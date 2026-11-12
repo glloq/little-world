@@ -37,6 +37,11 @@ export function waterSurface(x: number, z: number): number | null {
   if (z < -290 || z > 205) return null;
   return Math.abs(x - riverX(z)) <= 6.8 ? riverLevel(z) : null;
 }
+/** Underwater visuals depend on the CAMERA, never on the player's swim state. */
+export function cameraSubmerged(x:number,y:number,z:number):boolean {
+  const surface=waterSurface(x,z);
+  return surface!==null && y<surface-.1;
+}
 export function waterDepth(x: number, z: number): number {
   const surface = waterSurface(x, z);
   return surface === null ? 0 : Math.max(0, surface - terrainHeight(x, z));
