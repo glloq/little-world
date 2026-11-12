@@ -111,7 +111,7 @@ renderer.domElement.addEventListener('pointerup',e=>{
   const rect=renderer.domElement.getBoundingClientRect();
   mouse.set((e.clientX-rect.left)/rect.width*2-1,-(e.clientY-rect.top)/rect.height*2+1);
   ray.setFromCamera(mouse,camera);
-  const intersections=ray.intersectObject(world.terrain);
+  const intersections=ray.intersectObject(world.terrain, true);
   if(!intersections.length)return;
   const pos=intersections[0].point;
   if(!insideWorld(pos.x,pos.z))return;
