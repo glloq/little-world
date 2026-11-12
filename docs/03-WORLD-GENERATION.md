@@ -123,6 +123,16 @@ La [spécification 21](21-WATER-HYDROLOGY-LOW-RESOURCE.md) complète l'eau de la
 - Vue sous-marine : visibilité, couleur et volume selon **caméra réelle**, sans second moteur; gameplay ne dépend pas du niveau de détail visuel.
 - Export ZIP V3 inclut sources hydrographiques et références ; un GLB Blender de cascade n'implique pas automatiquement un volume de nage.
 
+## Génération, secteur et cache sous budget global PERF
+
+Le [contrat PERF](22-RESOURCE-BUDGET-MANAGER.md) remplace l'optimisation locale isolée par un **budget commun de streaming, temps de génération et mémoire**. Le monde reste **une géographie continue jusqu'à 10×10 km**, avec relief d'horizon sans brouillard-cache.
+
+- Le planificateur priorise chunks **proches/visibles**, puis préchargement **devant le joueur** en planage/bateau, puis ressources lointaines non critiques ; ne pas parcourir tous les secteurs.
+- **Deux constructions de mesh par update** dans `terrain-view.ts` ne constituent pas une limite de temps CPU : instrumenter leur durée et ajouter un **quota de travail**, des tâches découpées si besoin et un fallback de LOD temporaire.
+- Préserver bordures/LOD, **IDs de secteur**, collisions, sources d'eau et biotopes. Le niveau de qualité ne doit modifier que la **représentation**, pas `WorldDefinitionV3` ni la navigation.
+- Les caches terrain/éco/GLB doivent déclarer **octets estimés, références et résidence** ; n'évincer que des ressources libérables sans trou, invalider localement après modification.
+- LOD de relief, maisons/forêts, cascades et océan selon **taille projetée et importance**, avec priorité aux grandes silhouettes de côtes et îles et jamais de fog de masque.
+
 ## Critères techniques
 
 1. Même seed/versions/paramètres → même génération.
