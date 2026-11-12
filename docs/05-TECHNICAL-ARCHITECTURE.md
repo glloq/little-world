@@ -160,6 +160,21 @@ Le rendu **n'est pas** un état du monde : la physique, la navigation, les dialo
 
 **Interdit maintenant** : serveur permanent, synchronisation de la pluie, moteur de climat physiquement simulé, nuages volumétriques, ombres lunaires multiples.
 
+## Blender ↔ Studio : architecture d'échange non destructive
+
+Voir [20 — Contrat import/export GLB, presets et cartes](20-BLENDER-STUDIO-INTERCHANGE.md).
+
+**Couches indépendantes** : auteur `.blend` facultatif → ressource géométrique **glTF/GLB** interopérable → catalogue/prefabs et sources **WorldDefinitionV3** → **compilation par secteurs** vers runtime statique. Le moteur **n'utilise pas de fichiers `.blend`** et ne dépend pas de Blender au lancement.
+
+**Modes d'échange** :
+- Asset GLB → entrée catalogue/prefab versionné (preview, licence, validation) ;
+- Scene/collection GLB + JSON sidecar → transforms, ancrages et groupes de placements, avec réimport diff plutôt qu'un overwrite aveugle ;
+- Preset ZIP+JSON+GLB → ensemble réutilisable inter-projets ;
+- **Carte V3 ZIP portable** → sources auteur par secteur + dépendances réelles, données de logique et biotopes ;
+- Build compilé sur GitHub Pages → **indépendant** des archives auteur, supports LOD/streaming/instancing.
+
+**Stabilité** : IDs stables, conversion Blender **Z-up** ↔ Studio/glTF **Y-up** faite une seule fois, gestion des pyramides transform (quaternions, échelles), hashes de sources, transactions et Undo/Redo, migration V1/V2/V3 ; sécurité et budget GPU à l'import. Les interactions, dialogues et règles de biotopes sont **données V3**, non inférées de meshes Blender.
+
 ## Compatibilité avec un futur multijoueur (non implémenté)
 
 **Contrat de préparation**, cf. [16 — Architecture multijoueur future](16-FUTURE-MULTIPLAYER.md) :
