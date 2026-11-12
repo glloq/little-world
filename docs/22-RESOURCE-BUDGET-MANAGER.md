@@ -356,6 +356,19 @@ interface BudgetedJob {
 - En cas de worker, mesurer aussi son **temps de travail, messages et transferts** ; éviter de prétendre qu'un travail ne coûte plus rien parce qu'il quitte le thread principal.
 - Vérifier événements/bugs : double dispose, context loss, GLB tardif, collisions, qualité oscillante, UI floue, trou de terrain et buffer qui augmente sans borne.
 
+## Contrat transversal AUD : AudioBudgetManager sous la politique PERF
+
+Le [document 23 — Audio MIDI LOW-RESOURCE](23-MIDI-AUDIO-LOW-RESOURCE.md) définit le moteur audio **hybride, limité à 5–10 instruments MIDI** (palette fixe de patches), plus petit synthétiseur et lecteur d'échantillons naturels.
+
+- `AudioBudgetManager` est **un `QualityConsumer` de `ResourceBudgetManager`**, avec plafonds de **polyphonie totale (musique+SFX+ambiance)**, notes musicales, émetteurs spatialisés, couches d'ambiance, réverbération, et cache PCM.
+- Profils expérimentaux **12/16/24 voix totales**, **2/4/6** spatialisation et **2–4/4–8/8–16 Mio PCM** par Eco/Équilibré/Qualité ; pas des résultats démontrés. Les **5–10 instruments restent les mêmes** quel que soit le profil.
+- Les **événements sonores importants** restent fonctionnels même si les animations et les PNJ lointains sont réduits ; les effets audio décoratifs les moins importants peuvent être ignorés/fondus, sans changer la simulation.
+- La **mesure audio** n'est pas le temps de soumission WebGL ni le FPS GPU : compteur de voix/nœuds actifs, PCM décodé estimé, décodage, latence et glitches/underruns si observables ; coût réel backend seulement si le navigateur/profiler le permet.
+- L'horloge `AudioContext.currentTime` programme les notes **indépendamment du rendu 30/20 FPS** et de `WorldClock` accélérée en bêta ; changements de biotope/météo sont des événements logiques, pas une nouvelle simulation sonore.
+- Gérer le **cycle de vie mémoire** des `AudioBuffer` comme ressources partageables via `ResourceRegistry` ou adaptateur, et les admissions de décodage audio dans `WorkScheduler` lorsque nécessaire, sans faire de décodage synchrone à chaque note.
+- Le contrôle audio reste dans un panneau **Ressources / Performance** existant (sous-section Audio), **pas un second régulateur graphique**. La qualification AUD-0…AUD-8 fait partie des scénarios PERF globaux.
+- Pas de backend audio, banque GM complète, accès MIDI matériel obligatoire ou télémétrie audio distante.
+
 ## 13. Plan de développement incrémental PERF-0…PERF-9
 
 | Phase | Développement minimal et artefact testable | Gate |
