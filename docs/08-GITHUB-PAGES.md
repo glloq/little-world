@@ -111,6 +111,16 @@ Le [document 22 — ResourceBudgetManager](22-RESOURCE-BUDGET-MANAGER.md) introd
 - Éviter de charger des décodeurs/worker/ressources supplémentaires non utilisés avant preuve de gain ; tests du cache après changement de carte, imports et retours d'onglet.
 - L'export JSON des mesures est **facultatif et local**, pas une remontée d'informations à GitHub.
 
+## Chargement statique des partitions MIDI et de quelques échantillons
+
+La [spécification AUD](23-MIDI-AUDIO-LOW-RESOURCE.md) prévoit une **palette musicale de 5–10 instruments**, un synthétiseur Web Audio natif et un petit lecteur de sons naturels, compatibles avec **GitHub Pages sans service audio**.
+
+- Distribuer les `.mid`, manifestes de patches et samples/loops **comme assets statiques versionnés** sous le `BASE_URL` Vite correct, avec licences et hashes. **Pas** de CDN ni banque SF2 générale obligatoire.
+- Charger les pistes et sons d'ambiance **en fonction des biotopes et zones réellement visités**, préchargement borné, décodage `AudioBuffer` mutualisé ; ne pas décoder tout le monde au spawn.
+- Un **`AudioContext` créé/repris après le clic utilisateur** évite les restrictions autoplay ; afficher un mode silencieux et continuer jeu/Studio si le contexte est bloqué.
+- Les archives auteur ZIP V3 comprennent sources MIDI/samples et références ; le build statique ne contient pas de buffers PCM pré-décodés, offsets de voix ou graphes `AudioNode`.
+- Tester les codecs/fallbacks, chargement sous `/little-world/`, stop/restart, retour d'onglet et navigateurs Firefox/Chromium sans dépendance MIDI matériel.
+
 ## Limites et décisions
 
 - GitHub Pages est adapté au **jeu solo** : la logique de mouvement et d'interaction s'exécute sur le PC du joueur.
