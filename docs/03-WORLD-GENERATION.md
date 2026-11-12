@@ -100,6 +100,18 @@ La [spécification 19](19-ENVIRONMENT-WEATHER-SKY.md) fixe un **état environnem
 - Les **lumières d'astres n'augmentent pas avec le nombre de lunes** ; pas de shadow map globale de terrain, une zone solaire proche seulement si qualité suffisante.
 - L'éditeur peut tester des états météo arbitraires **sans écrire les paramètres de test dans les sources auteur**.
 
+## Géographie depuis Blender et export de monde Studio
+
+**Décision validée :** [20 — Blender, presets, heightfields et cartes rééditables](20-BLENDER-STUDIO-INTERCHANGE.md). Un monde peut mélanger **relief heightfield importé de Blender**, retouches locales Studio et **falaises/grottes/arches en modules GLB**.
+
+- **Blender crée la géométrie** ; le **Studio conserve** la source géographique sectorisée, les biotopes/masques/densités, eau/splines, routes, placements, PNJ et logique.
+- Hauteurs importées en **heightfield avec échelle, origine, précision et bornes explicites** ; vérifier vraie précision 16 bits ou binaire. Pas d'inférence des altitudes depuis une simple texture 8 bits.
+- Pour la géométrie complexe/overhang, **import GLB modulaire**, mais terrain et collisions restent des données séparées. Une carte de 10 × 10 km n'est jamais exportée comme un **unique gros GLB** à charger d'un coup.
+- **Export/import carte complète** en ZIP standard **portable** contenant manifest, fichiers source par secteur, heightfields/masques, prefabs/GLB, données de biotopes, navigation, PNJ, dialogues, interactions et météo ; ne pas confondre avec build compilé ou scène Blender.
+- **Export d'une zone vers Blender** = GLB + sidecar IDs/transforms pour **modifier les géométries/placements**, sans perte des états non géométriques au réimport. Afficher les différences et préserver les overrides sans écrasement silencieux.
+- Les **presets de paysage** (ruines, pont, bord de marais, port, village) doivent pouvoir être importés/exportés et **repeints** dans Studio. Les végétaux instanciés restent générés par seed et recette, non dupliqués en géométries Blender.
+- Recompiler **uniquement les secteurs et index affectés** après import, modification de prefab, terrain ou biome. Préflight des tailles/collisions/liaisons/compatibilité low-poly avant publication.
+
 ## Critères techniques
 
 1. Même seed/versions/paramètres → même génération.
