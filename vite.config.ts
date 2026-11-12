@@ -1,5 +1,5 @@
 import { defineConfig } from 'vite';
-import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 export default defineConfig({
   base: '/little-world/',
@@ -8,8 +8,8 @@ export default defineConfig({
     sourcemap: true,
     rollupOptions: {
       input: {
-        game: resolve(__dirname, 'index.html'),
-        editor: resolve(__dirname, 'editor/index.html'),
+        game: fileURLToPath(new URL('./index.html', import.meta.url)),
+        editor: fileURLToPath(new URL('./editor/index.html', import.meta.url)),
       },
     },
   },
