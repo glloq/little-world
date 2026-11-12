@@ -153,6 +153,20 @@ Référence détaillée : [18 — Herbes ultra-low-resource](18-GRASS-LOW-RESOUR
 - **Studio** : rendu à la demande si idle, files de génération/import et compilations par secteur, édition et Undo/Redo toujours réactifs.
 - **Ne pas fixer seuils supplémentaires** RAM/VRAM/frame/LOD ni déclarer 30/20 FPS atteints sur GPU intégré d'après SwiftShader ; toute amélioration doit être mesurée et reliée à sa qualité effective.
 
+## Mines : extraction multi-niveaux LOW-RESOURCE, sans voxels mondiaux
+
+**Choix validé :** [24 — Mines creusables 2,5D](24-MINES-MULTILEVEL-LOW-RESOURCE.md).
+
+- **Mines limitées à des zones autorisées**, **grille 2,5D par niveau**, étages reliés par rampes/escaliers/puits, **heightfield de surface intact** sauf entrée contrôlée.
+- Générer/afficher **uniquement faces de roche exposées** et regrouper les surfaces coplanaires si rentable ; **pas un mesh/collider par cube** et pas de stockage volumique pour 100 km².
+- 1 m/cellule, 32×32/chunk, 3–8 niveaux **valeurs expérimentales** ; cellule à 1 octet = 1 Kio brute pour un champ, pas mémoire GPU totale ni état persistant.
+- Creusement → **mise à jour locale** de collision, mesh, navigation et données de récolte, avec budget CPU/remeshing et tâches versionnées ; aucune compilation du monde entier à chaque frappe.
+- N'afficher que galeries/étages réellement proches et visibles, **culling intérieur/portails**, couleurs de sommets et très peu de sources lumineuses **sans shadow maps par torche**, cristaux instanciés proches.
+- **PERF** arbitre cache des mine chunks, géométries/GLB partagées et uploads ; la physique et l'inventaire **ne se dégradent jamais** avec le LOD.
+- Métaux/cristaux issus de **gisements déterministes et épuisables**, non un objet physique par éclat ; collectes et modifications persistées en **état joueur** distinct de Studio.
+- **Serveur futur** : intention de creusement et **deltas de cellules seulement**, validation de portée/outils et transaction creusement+inventaire. Le jeu solo statique n'implémente pas le backend.
+- Vérifier les connexions de niveaux, l'entrée de terrain, collision XYZ et interactions avec eau/mer avant d'ouvrir le creusement.
+
 ## 3. Rendu 3D
 
 - Three.js/WebGL2, **peu de matériaux**, éclairage simple, limiter les ombres portées dynamiques et la transparence.
