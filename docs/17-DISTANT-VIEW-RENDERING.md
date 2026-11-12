@@ -174,6 +174,16 @@ La [spécification 18 — Herbes ultra-low-resource](18-GRASS-LOW-RESOURCE.md) p
 - Le budget de l'herbe est **subordonné au paysage d'horizon** ; la réduction de densité ou `groundOnly` ne doit pas effacer les lignes de crête, îles et côtes.
 - Toute animation de vent/réaction est purement locale, décorative et désactivable.
 
+## Compatibilité avec la météo et le ciel nocturne
+
+Le [document 19](19-ENVIRONMENT-WEATHER-SKY.md) valide **ciel étoilé, une ou plusieurs lunes à cycles propres, neige accumulée et lumière solaire évolutive**, en conservant une vue lointaine réelle.
+
+- Les **proxies de terrain/horizon, îles et montagnes** reçoivent les **mêmes palettes jour/nuit et coefficients de neige** que le terrain proche, pour éviter une rupture visuelle.
+- Les couleurs du ciel, du soleil couchant, des lunes et des étoiles **ne remplacent pas** la géométrie d'horizon.
+- **Brouillard uniquement météorologique** : ne jamais réintroduire un fog fixe afin de masquer le manque de chunks; par beau temps, la visibilité longue reste disponible.
+- La zone d'ombres dynamiques du soleil reste **proche du joueur** : les reliefs lointains utilisent un éclairage/proxy à faible coût, même lors des couchers.
+- Prévoir scènes de test sur falaises, océan, montagnes enneigées et planage, à midi, aube, nuit étoilée et tempête.
+
 ## 9. Tests et portes de qualification
 
 **Scènes à couvrir :**
