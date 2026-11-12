@@ -187,6 +187,18 @@ Le créateur a validé la [spécification 18 — Herbes ultra-low-resource](18-G
 - Volumes logiques stables quel que soit le LOD graphique, sauvegarde et import/export V3 non destructif, vent météo partagé, aucun réseau de vagues.
 - **À mesurer** CPU/GPU, cout des pixels d'océan, p95/p99, présence d'une grande mer/planage, mode ultra-économique, pas des chiffres garantis.
 
+## Décisions PERF — ResourceBudgetManager et optimisation globale
+
+**Cible technique validée, non livrée par la seule documentation :** [22 — ResourceBudgetManager](22-RESOURCE-BUDGET-MANAGER.md).
+
+- **Un seul arbitre des ressources** remplace/étend progressivement `PresentationBudget`, `FrameClock` et sa simulation 30 Hz restent distincts. Présentation 30 FPS nominal / secours 20 FPS, mode Auto et plafonds manuels.
+- **PerfSampler** : mesure p50/p95/p99, CPU sim/update/soumission, métriques WebGL, cache/queue ; timer GPU asynchrone facultatif et VRAM **estimée**. Ne pas appeler temps CPU WebGL « GPU ».
+- **QualityBudgetSnapshot** : limites globales versionnées, consommateurs autonomes terrain/horizon, GLB, herbe, eau, météo, ombres, PNJ/audio/Studio ; dégradation stable selon origine CPU/GPU/mémoire, avec cooldown/hystérésis.
+- **ResourceRegistry** : owner/refcounts de ressources partagées, poids GPU/CPU estimé, mémoire cache soft/hard et libération sûre. **WorkScheduler** : priorité critique/visible/prédictive/opportuniste, temps CPU et upload max par frame, tâches invalidées/annulées après édition.
+- **LOD selon importance/surface projetée**, prefetch directionnel planage/bateau, culling hiérarchique, aucune rupture de skyline, pas de fog de camouflage ni disparition du monde.
+- **Bêta** : panneau Ressources, contrôles et forçage diagnostics, export de scénarios ; source V3 rééditable **indépendante des profils de qualité d'un appareil**.
+- **Gate** : benchmarks reproductibles sur GPU intégré réel avec longues traversées, scène océan plein écran, forêt, village, retours, p95/p99, croissance mémoire et absence de régression gameplay ; valeurs provisoires non promises.
+
 ## 9. Règles d'architecture issues de ces décisions
 
 1. **Un projet source, plusieurs éditeurs spécialisés**. Partager objets/IDs/sélection/historique, mais charger les écrans lourds à la demande.
