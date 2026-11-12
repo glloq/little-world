@@ -1,6 +1,21 @@
 # 04 — Éditeur de monde et interactions
 
-**Statut : prototype d'éditeur démarré** (placement, graine/densité, sauvegarde IndexedDB, JSON, prévisualisation dans le jeu). Les outils de terrain, splines et interactions génériques restent à faire.
+**Statut : atelier fonctionnel avec format source v2.** Sélection/multisélection, gizmos de position/rotation/échelle, duplication/suppression, annuler/rétablir, sculpture locale, peinture de biotopes, tracés d’eau/chemins, PNJ et dialogues déclaratifs sont implémentés. IndexedDB, export/import validé, migration v1 et retour du mode test sont partagés avec le jeu.
+
+## Fonctions disponibles
+
+- Relief : élever/abaisser, lisser vers la moyenne locale, aplanir à une altitude ; rayon et intensité. Les retouches sont des opérations persistantes, appliquées aux calculs de collision et aux seuls chunks intersectés. Les objets placés, arbres, chemins et bâtiments proches sont recalés.
+- Biotopes : pinceau circulaire parmi sept types, priorité au dernier override. La flore/faune locale est régénérée progressivement ; les habitats restent contrôlés.
+- Eau : cliquer les points d’une polyligne, régler largeur/niveau/profondeur, terminer. Le lit est creusé et le même volume sert à la nage/navigation. Chemins : polyligne adaptée au relief et exclusion écologique.
+- Objets : choisir le catalogue, cliquer ; sélectionner avec Maj pour grouper. Les gizmos transforment un objet ; duplication/suppression opèrent sur le groupe. Inspecteur numérique et magnétisme optionnel.
+- PNJ : placement, nom, activité, rayon, vitesse ; patrouille sur le dernier chemin dessiné. Éditeur complet de graphe de dialogue : entrée, répliques, expressions, réponses, liens, conditions/effets booléens locaux ; aperçu direct.
+- Chaque opération significative est annulable. L’historique garde 60 états en mémoire ; il ne persiste pas entre rechargements. Le brouillon IndexedDB et l’export conservent les données, pas l’historique.
+- `npm run compile:map -- carte.json public/maps/default.json` valide et produit la carte statique et son manifeste de secteurs. Les géométries sont encore générées localement à la demande, pas précompilées.
+
+## Limites de cette livraison
+
+Les tracés se créent par points et se suppriment via la liste des retouches ; pas encore de poignées de déplacement de points ni de spline courbe. La multisélection n’a pas de gizmo de groupe. Pas de brosse de dispersion, miniatures de catalogue, zones d’exclusion dessinables, undo persistant, sculpture en worker, navmesh ou éditeur général d’événements/mécanismes. Les actions des dialogues modifient seulement des flags de session. Les spécifications ci-dessous restent des objectifs lorsqu’elles dépassent ces fonctions.
+
 
 ## Objectif
 

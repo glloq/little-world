@@ -1,6 +1,43 @@
 # 07 — Feuille de route — Little World Solo / GitHub Pages
 
-**Statut : suivi du prototype initial — 12 novembre 2026.**
+**Statut : campagne avancée implémentée sur branche — 12 novembre 2026 ; publication distincte.**
+
+## Campagne avancée — état livré sur branche
+
+| Domaine | Avant | Après | Statut | Reste à faire |
+|---|---|---|---|---|
+| Moteur / performance | Terrain complet et caches de prefabs | Génération locale répartie, cache GPU borné, libération, compteurs et benchmark RAF | Implémenté et mesuré en rendu logiciel | Worker, mesures GPU PC, LOD du bâti |
+| Grande carte | Dimensions figées 200 × 600 m | Configuration commune, limites physiques dynamiques, scènes 1 × 1 et 2 × 2 km | Scènes synthétiques vérifiées | Générateur géographique et grande forêt répartie |
+| Écureuil / rigging | Groupes procéduraux | 14 os rigides, oreilles/queue articulées, sockets, GLB original reproductible | Implémenté | Skinning pondéré, GLB utilisé directement au runtime |
+| Animations | Sinusoïdes marche/planage | 13 états interpolés et 13 clips exportés, 9 expressions | Testé | Animations artistiques détaillées et interactions variées |
+| PNJ | Aucun | 4 exemples déclaratifs, activités et simulation selon distance, navigation sol/eau/pente/obstacles | Testé | Graphe de chemins et évitement avancé |
+| Dialogues / interactions | Bateau, moulin automatique | Dialogues à choix, flags, conditions/actions, éditeur de graphe et aperçu | Testé | Événements de zones et moteur de mécanismes générique |
+| Biotopes | Règles fixes de forêt | 7 configurations, peinture locale persistante, habitats contrôlés | Implémenté | Zones d’exclusion auteur, densité par coup de pinceau |
+| Faune / flore | Arbres/rochers | 7 plantes et 3 créatures instanciées, secteurs bornés, poissons dans l’eau | Testé | Vent, sons, perchoirs, fuite, bancs évolués |
+| Éditeur | Placement simple | Sculpture locale, gizmos, multisélection, duplication, historique, eau/chemins, PNJ/dialogues, retour du test | Parcours navigateur validé | Déplacement des points, gizmo de groupe, brosse de dispersion, miniatures |
+| Assets | 3 GLB + prefabs | GLB écureuil original, registres séparés personnage/écologie, provenance et dimensions | Testé | Pipeline général de miniatures/optimisation |
+
+### Données et outils
+
+`world-data.ts` constitue le contrat v2, partagé par le jeu, l’éditeur et le compilateur. Migration v1, validation des limites/types/identifiants/références, JSON sans code exécutable. La génération reste recalculable depuis la source et les overrides. Le compilateur émet des données et un manifeste de secteurs ; il ne précompile pas encore les meshes GPU.
+
+Les cartes de démonstration conservent la rivière, les bâtiments et le port historiques. Dimensions acceptées : largeur 200–2000 m, longueur 600–2000 m. La configuration analytique active est unique par page. Les grandes scènes ne représentent pas des kilomètres carrés de contenu entièrement authored.
+
+### Validation
+
+Campagne locale : **61 tests réussis**, TypeScript/build réussis, compilation de la carte (40 secteurs) et régénération GLB identique (236 788 octets), **15 vérifications Chromium** réussies sur le build statique, aucune erreur JS/HTTP. Quatre scénarios de benchmark ont terminé sans erreur ; la version enrichie est plus lente sur SwiftShader que la référence et aucun gain global n’est revendiqué.
+
+Commits applicatifs : `710fe46` (données/terrain), `7bd718d` (personnage/PNJ/dialogues), `ad45f73` (intégration atelier/écologie/tests). Branche : `feat/living-world-editor`. La création de Pull Request et l’observation de CI via API sont bloquées par le refus réseau vers `api.github.com` ; l’ajout du domaine est enregistré dans le brouillon de l’environnement et doit être appliqué dans les paramètres. La présence d’authentification API utilisable reste à vérifier après cette autorisation réseau. Aucun déploiement de cette branche n’est revendiqué.
+
+Les résultats de campagne sont décrits dans le [plan navigateur](09-BROWSER-TEST-PLAN.md) et les [mesures](10-PERFORMANCE-ROADMAP.md). Le build vérifie TypeScript strict. La validation des branches/PR est définie dans `.github/workflows/checks.yml`, avec tests, compilation de carte, build et parcours Chromium sur le build statique. Le workflow Pages de main est conservé.
+
+L’état distant de CI et le déploiement doivent être vérifiés séparément : une exécution locale réussie ne vaut pas publication. Voir le rapport final de campagne pour la branche et le dernier commit.
+
+---
+
+## Feuille de route historique et objectifs restants
+
+Les jalons ci-dessous décrivent le prototype initial et la cible V1 ; le tableau de campagne ci-dessus fait foi pour les évolutions de cette branche.
 
 ## Avancement réel
 

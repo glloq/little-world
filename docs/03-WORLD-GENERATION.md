@@ -1,6 +1,11 @@
 # 03 — Carte, génération et compilation du monde
 
-**Statut : terrain et rivière procéduraux codés en prototype**, mais édition fine, compilation éditable et contrôles de cohérence restant à développer. V1 mono-carte solo statique.
+**Statut : carte source v2 partagée, compatible v1.** Configuration dynamique de 200 × 600 m à 2 × 2 km, retouches terrain/biotopes, volumes d’eau, chemins, placements et PNJ. Le compilateur statique valide le JSON et émet un manifeste de limites de secteurs ; la génération des meshes est encore faite à la demande dans le navigateur. La vallée intégrée reste la carte par défaut, les grands formats sont des scènes synthétiques.
+
+`maps/default.json` est la source ; `public/maps/default.json` et `public/maps/default.chunks.json` sont produits par `npm run compile:map -- maps/default.json public/maps/default.json`. Le jeu charge la carte statique avec la base Vite ; en mode test il utilise le même validateur sur le brouillon de session. Les anciens exports v1 migrent vers v2 sans perdre leurs placements.
+
+Les retouches sont séparées en tableaux `terrain`, `biomes`, `water`, `paths` et `placements`. Les IDs sont stables. Aucun script importé n’est exécuté. Le générateur conserve encore une rivière et des bâtiments de démonstration aux positions historiques ; il ne constitue pas un auteur géographique arbitraire complet. Les bornes minimales préservent ces emplacements.
+
 
 ## Géographie
 

@@ -93,3 +93,14 @@
 2. Distinguer **confirmé**, **proposé**, **testé**, **livré**.
 3. Ne pas écrire une infrastructure « au cas où » si elle complique la V1 statique.
 4. L'architecture doit rester modulaire, mais la modularité n'implique pas la présence d'un serveur.
+
+## Implémentation — campagne avancée du 12 novembre 2026
+
+- Architecture plate TypeScript conservée ; npm/package-lock est le gestionnaire effectif.
+- Source carte v2 commune, migration v1, stockage IndexedDB, export et compilation statique validés.
+- Terrain local à trois LOD avec jupes, cache borné et génération répartie ; pas de worker ni promesse de gain FPS non mesuré.
+- Configuration active unique par page ; carte historique conservée, grandes cartes synthétiques jusqu’à 2 km de côté.
+- Rig original articulé rigide, export GLB reproductible ; skinning pondéré différé.
+- PNJ par données, navigation analytique légère ; dialogues/flags de session, aucun service distant.
+- Biotopes peints en overrides, écologie instanciée locale ; modèles originaux catalogués séparément des objets plaçables.
+- UI d’auteur incrémentale avec annuler/rétablir ; pas de langage de script importé ni d’éditeur de règles universel.

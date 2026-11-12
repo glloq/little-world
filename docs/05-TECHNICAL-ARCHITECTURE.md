@@ -1,6 +1,11 @@
 # 05 — Architecture technique — solo et GitHub Pages
 
-**Statut : architecture cible avec un premier prototype codé.** `src/terrain.ts`, `src/world.ts`, `src/player.ts`, `src/main.ts` et `src/editor.ts` sont en place ; Rapier reste différé.
+**Statut : architecture incrémentale implémentée.** Pas de réécriture en monorepo : modules TypeScript dédiés au format source (`world-data`), terrain analytique (`terrain`), planification et rendu de chunks (`chunks`, `terrain-view`), écologie (`biomes`, `ecology`), comportement PNJ (`npc`), dialogues et édition (`dialogue`, `dialogue-authoring`, `dialogue-editor`), rig/animation, stockage et UI. La simulation joueur/bateau reste indépendante du rig ; Rapier reste différé.
+
+Le terrain utilise actuellement une configuration active unique par page. Jeu et éditeur sont deux pages distinctes : ils ne doivent pas instancier simultanément deux cartes de configurations différentes dans un même contexte JavaScript. Le cache GLB et les géométries partagées restent résidents ; les géométries de terrain et les secteurs écologiques sont bornés et libérés explicitement.
+
+La pile réellement utilisée est **Node.js 22, npm avec package-lock, TypeScript, Vite, Three.js et Playwright en développement**. `npm ci`, `npm test`, `npm run build`, puis `npm run test:browser` avec un serveur local constituent la validation. Le workflow `checks.yml` couvre les branches/PR ; `pages.yml` conserve le déploiement sur main. Les structures plus ambitieuses décrites ci-dessous restent des objectifs.
+
 
 ## Principe cardinal
 
@@ -16,7 +21,7 @@ Le multijoueur pourra être étudié après la V1, mais **ne doit pas complexifi
 | Rendu 3D | **Three.js** / WebGL |
 | Physique | **Rapier JS/WASM** (prévu, pas encore installé dans le prototype) |
 | Build / dev | **Vite** |
-| Dépendances et workspace | **pnpm** |
+| Dépendances | **npm**, verrouillage `package-lock.json` |
 | Test du code | Tests unitaires TS et tests navigateur |
 | Publication | **GitHub Actions → GitHub Pages** |
 | Sauvegarde d'éditeur | **IndexedDB** + import/export JSON |

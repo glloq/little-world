@@ -1,12 +1,37 @@
 # 06 — Bibliothèque d'assets et pipeline d'import
 
-**Statut : trois GLB originaux ajoutés dans `public/models/` (sapin, rocher, caisse), avec `assets/catalog.json`. Aucun asset tiers importé. Pipeline complet encore à développer.**
+**Statut : trois GLB d’objets conservés, un GLB de personnage articulé exporté et dix assets écologiques procéduraux documentés. Aucun asset tiers importé. Le pipeline générique de miniatures et d’optimisation reste à développer.**
 
 ## Objectif V1
 
 Disposer de **plusieurs assets 3D utilisables directement depuis le dépôt et son build GitHub Pages** : fichiers locaux, organisés, vérifiés et progressivement enrichis.
 
-Le navigateur ne dépend ni d'un CDN ni d'une API pour afficher les ressources de base. Les trois GLB du premier lot sont livrés via Vite. **Le site public sera mis à jour par nouveau build** lorsqu'un asset est ajouté.
+Le navigateur ne dépend ni d'un CDN ni d'une API pour afficher les ressources de base. Les GLB sont livrés localement via Vite ; les ressources procédurales sont construites depuis le code versionné. **Le site public sera mis à jour par nouveau build** lorsqu'un asset est ajouté.
+
+## Inventaire livré
+
+| Registre | Contenu réel | Utilisation |
+| --- | --- | --- |
+| `assets/catalog.json` | Six objets plaçables : sapin, feuillu, rocher, maison, caisse et lanterne ; sapin/rocher/caisse disposent d'un GLB local | Catalogue de placement dans l'éditeur, références stables dans les cartes |
+| `assets/character-catalog.json` | Écureuil original, 14 articulations rigides, 9 expressions et 13 clips exportés dans `public/models/squirrel.glb` | Asset de référence exporté ; joueur et PNJ utilisent encore le rig procédural équivalent |
+| `assets/ecology-catalog.json` | Dix formes originales : herbe, fleur, fougère, champignon, roseau, algue, nénuphar, poisson, oiseau et papillon | Génération écologique par `src/ecology.ts` ; **pas des objets sélectionnables dans le catalogue de placement** |
+
+Les registres écologiques déclarent leur provenance, leurs dimensions de géométrie source, leurs triangles et leur usage. Les variations d'instances modifient dimensions et palette. Oiseaux, poissons et insectes restent des représentations géométriques simplifiées avec trajectoires paramétriques ; leurs fiches ne promettent ni GLB individuel, ni miniature, ni rig skinné.
+
+### Reconstruction de l'écureuil
+
+Depuis la racine du dépôt, avec Node.js 22 et les dépendances installées :
+
+```bash
+node --experimental-strip-types tools/generate-squirrel.mjs
+node --experimental-strip-types --test tests/character*.test.mjs
+```
+
+L'outil utilise `GLTFExporter`, sans Blender, téléchargement ou serveur. Il reconstruit `public/models/squirrel.glb` depuis `src/squirrel.ts` et les poses de `src/character-animation.ts` / `src/character-clips.ts`. Deux générations successives ont produit un fichier identique. Les animations exportées sont `idle`, `walk`, `run`, `jump`, `rise`, `fall`, `deploy`, `glide`, `fold`, `land`, `swim`, `dive` et `ascend`.
+
+Le GLB possède une **hiérarchie d'articulations rigides**, sans poids de skinning ni déformation continue du maillage. Le format glTF ne conserve pas `Object3D.visible` : les expressions et accessoires non sélectionnés sont exportés avec une échelle nulle ; les métadonnées décrivent ce choix. Le fichier contient toutes ces variantes, tandis que le runtime procédural masque réellement les groupes inutilisés. Le chargement du GLB, son rendu et l'animation d'une articulation par `AnimationMixer` ont été vérifiés dans Chromium.
+
+Un chargement de personnage GLB intégré au jeu, des déformations skinnées, des miniatures automatiques et une qualification artistique exhaustive restent à réaliser.
 
 ## Règles de licence
 
@@ -21,7 +46,7 @@ Catalogues possibles à examiner **modèle par modèle** : https://quaternius.co
 
 ## Format et conventions
 
-- Runtime : **GLB** (glTF binaire), chargeable par `GLTFLoader`.
+- Ressources fichier : **GLB** (glTF binaire), chargeable par `GLTFLoader`. Les prefabs et l’écosystème peuvent aussi provenir de générateurs TypeScript locaux.
 - Origine et dimensions documentées ; **mètres**, axe vertical **Y**, pivots explicites.
 - Modèles et textures simples, palette cohérente, minimum de matériaux.
 - Collision simple par défaut, spécialisée seulement si nécessaire.
@@ -53,7 +78,7 @@ assets/
 
 ## Premier lot visé (20–30 assets, objectif non livré)
 
-- Écureuil volant (modèle original avec rig, ou **proxy documenté** d'abord).
+- Écureuil volant : rig rigide et export GLB déjà livrés ; skinning pondéré et finition des animations restent des objectifs.
 - Quelques variantes d'arbres, rochers, buissons, herbes et fleurs.
 - Moulin avec roue distincte, maison, grange, pont.
 - Ponton, barque, caisse, tonneau, amarrage.
@@ -101,6 +126,6 @@ Les URL `example.invalid` et noms inventés sont de simples exemples et **interd
 
 ## Risque principal
 
-Il peut être difficile de trouver un **écureuil volant quadrupède avec membrane et animations aquatiques** sous une licence compatible. Planifier la création du modèle et du rig originaux ; commencer par un proxy jouable pendant le développement.
+Le modèle et le rig rigide originaux évitent une dépendance à un personnage tiers de provenance incertaine. Le travail restant porte surtout sur la déformation skinnée, la finesse des animations, le coût de rendu et la revue artistique. La présence du GLB exporté ne signifie pas que le jeu utilise un personnage skinné.
 
 Ne pas stocker des packs lourds complets par défaut. Introduire Git LFS seulement si besoin mesuré et ne pas inclure de secrets ou de ressources privées dans le build public.
