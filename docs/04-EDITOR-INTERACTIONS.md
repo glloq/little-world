@@ -1,110 +1,102 @@
-# 04 — Éditeur de monde et système d'interactions
+# 04 — Éditeur de monde et interactions
 
-Statut : **architecture fonctionnelle recommandée**, validation par prototypes requise.
+**Statut : architecture fonctionnelle proposée, adaptée à GitHub Pages / solo.**
 
 ## Objectif
 
-Permettre de **générer, retoucher et publier** la carte de Little World et d'y associer des comportements sans modifier le code pour chaque nouvel objet.
+Créer et modifier la vallée de Little World **directement dans le navigateur** : génération, sculpture du relief, eau, chemins, végétation, bâtiments, objets interactifs et test immédiat.
 
-L'éditeur est un outil **développeur / créateur**, distinct du gameplay : les joueurs **ne peuvent pas modifier le relief, les chemins, l'eau ni les bâtiments statiques**.
+**Pas de serveur ni d'authentification.** L'éditeur est un outil d'auteur local, inclus au site statique mais **ses modifications ne sont pas publiées automatiquement** sur GitHub Pages.
 
-## Un moteur de monde commun
+## Un moteur de monde partagé
 
-Le jeu et l'éditeur doivent consommer les mêmes données, définitions d'assets, volumes de collision et composants d'interaction.
+Le jeu et l'éditeur réutilisent les mêmes modules `world`, `rendering`, `movement`, `interactions`, `asset-registry`. Aucun système réseau n'est requis.
 
-- **Mode édition :** chargement des données sources, outils de modification, inspection, validation.
-- **Mode simulation :** exécution locale à partir d'une copie figée de la scène en cours ; les modifications de test ne doivent pas altérer l'édition.
-- **Mode publication :** vérification des références puis production d'un **bundle versionné immuable** utilisable par le client et le serveur.
+- **Édition** : modifier une copie de la carte source, avec historique des opérations.
+- **Test local** : jouer dans une copie de la carte actuellement éditée, sans altérer l'historique.
+- **Compilation/publication** : valider et produire les ressources statiques du jeu. La publication sur Pages se fait par **commit du contenu autorisé + build GitHub Actions**, jamais par une écriture anonyme dans le navigateur.
+- La version incluse dans le site est une **carte par défaut en lecture seule** pour le mode joueur.
 
-Éviter de dupliquer les calculs de terrain/rivière dans une implémentation éditeur et une implémentation jeu divergentes.
+## Interface
 
-## Interface de l'éditeur
+1. **Header compact** : carte, sauvegarder localement, importer, exporter, undo/redo, générer, tester, statut non publié.
+2. **Outils à gauche** : sélection, terrain, eau, végétation, chemins, bâtiments, objets, interactions.
+3. **Viewport central Three.js** : navigation souris, poignées de transformation, grille facultative, raycasting.
+4. **Inspecteur droit contextuel** : propriétés pertinentes de l'objet courant, sans réglages inutiles.
+5. **Catalogue d'assets** : recherche, catégorie, miniature, glisser-déposer.
+6. **Calques** : sol, eau, décor, collisions, interactions et volumes de test (masquables).
 
-Interface claire et compacte :
-
-1. **Barre supérieure** : nom de carte, sauvegarde, annuler/refaire, générer, tester, publier.
-2. **Barre d'outils gauche** : sélection, terrain, eau, végétation, chemins, bâtiments, objets, interactions.
-3. **Viewport central** : Three.js, contrôles de navigation, grille/magnétisme activables.
-4. **Inspecteur droit contextuel** : paramètres uniquement de l'objet sélectionné.
-5. **Catalogue d'assets** : recherche, filtres, aperçu, insertion par glisser-déposer.
-6. **Calques** : terrain, eau, décor statique, gameplay, volumes invisibles ; masquage/verrouillage.
-
-Pas de saisie manuelle obligatoire des coordonnées pour les actions courantes : utiliser les poignées de manipulation et la sélection directe.
+Les actions fréquentes ne doivent pas exiger de saisir des coordonnées manuellement.
 
 ## Outils prioritaires
 
-### Génération du monde
-- Modifier graine et contraintes ; aperçu avant validation.
-- Régénérer une **zone** avec indication des overrides potentiellement impactés.
-- Garder les derniers états sauvegardés pour revenir en arrière.
-
 ### Terrain
-- Pinceaux **élever, abaisser, lisser, aplanir** ; taille/force.
-- Repère des pentes impraticables.
-- Collisions reconstruites à la compilation ou lors de l'aperçu, pas à chaque mouvement de souris inutilement.
+- Génération par graine, aperçu et confirmation.
+- Pinceaux : **élever, abaisser, lisser, aplanir**, réglages simples.
+- Régénération partielle et avertissement en cas de conflit avec retouches manuelles.
+- Visualisation des pentes non praticables.
 
-### Eau
-- Dessiner rivière par points de contrôle (spline).
-- Ajuster largeur, profondeur et profil de hauteur.
-- Visualiser les volumes d'eau indépendamment du rendu.
+### Eau et chemins
+- Rivière et routes par splines/points de contrôle.
+- Paramètres de largeur, profondeur, élévation ; volumes logiques de nage et plongée.
+- Placement de ponts/quais et contrôle des connexions.
 
-### Décor
-- Palette de prefabs avec miniatures ; placement, déplacement, rotation, échelle.
-- Dispersion contrôlée (végétation, pierres), avec exclusions autour des chemins.
-- Bâtiments complets et modules assemblables ; pas d'éditeur d'architecture complexe initial.
+### Assets
+- Placement, déplacement, rotation, échelle, duplication, suppression.
+- Prefabs complets et modules ; dispersion de végétation avec zones d'exclusion.
+- Prévisualisation des collisions et points d'animation (roue, porte, vanne).
 
-### Chemins et zones
-- Dessiner des chemins par spline ou points ; validation des pentes.
-- Zones logiques : immersion, déclencheur, interaction, végétation, spawn, exclusion.
+## Interactions locales (sans backend)
 
-## Système d'interactions
-
-**Séparer l'apparence d'un objet et son comportement.** Chaque instance placée référence un prefab plus un ensemble de composants de gameplay.
+L'interaction est **configurable en données**, sans script JavaScript arbitraire éditable dans une carte.
 
 Composants proposés :
-- `Interactable` : portée, commande d'activation, libellé.
-- `TriggerVolume` : entrée / sortie d'une zone.
-- `Animated` : animation nommée, pivot, durée, boucle.
-- `StateMachine` : états possibles et transitions autorisées.
-- `Collectible` : collecte (post-prototype).
-- `Container` : inventaire associé (post-prototype).
-- `Dialogue` : dialogues (itération ultérieure).
+- `Interactable` : portée, libellé, touche `E`.
+- `TriggerVolume` : entrée/sortie d'un volume.
+- `Animated` : animation nommée, pivot, lecture en boucle.
+- `StateMachine` : états/transitions.
+- `Collectible` et `Dialogue` : différés, mais compatibles avec le modèle.
 
-**V1 de l'éditeur :** règles déclaratives, pas de scripts arbitraires injectés depuis la carte. Un catalogue d'événements/conditions/actions validé côté serveur protège le modèle réseau et permet de tester chaque règle.
+Types d'événements : `onInteract`, `onEnterZone`, `onExitZone`, `onStateChanged`.
 
-| Événements | Conditions | Actions |
-| --- | --- | --- |
-| `onInteract` | `distance < seuil` | `setState` |
-| `onEnterZone` | `state == X` | `playAnimation` |
-| `onExitZone` | `hasPermission` | `stopAnimation` |
-| `onStateChanged` | `cooldownReady` | `emitEvent` |
+Conditions : distance, état courant, cooldown (pas de compte ou permission distante).
 
-Les futurs nœuds visuels doivent utiliser **le même schéma de données** que les règles simples, sans second interpréteur.
+Actions : `setState`, `toggleState`, `playAnimation`, `stopAnimation`, `emitEvent`.
 
-## Exemple : vanne du moulin
+**Exemple moulin** : appuyer sur `E` devant une vanne → état `open` → roue et eau animées localement. Pas de validation réseau ni d'état partagé entre utilisateurs en V1.
 
-- Prefab visuel `mill_gate` avec poignée, animation et collider.
-- `Interactable` à portée de 2 m (valeur d'exemple).
-- États `closed` et `open`.
-- `onInteract` : vérifier portée et permissions → basculer l'état autoritaire → déclencher animation de poignée et de roue.
-- Les clients observent l'état et animent **localement** : pas de synchronisation de chaque angle de la roue à 60 Hz.
+## Sauvegardes adaptées à GitHub Pages
 
-Ce type d'objet doit pouvoir être configuré, testé et enregistré sans ajouter une classe JavaScript spécifique au moulin.
+### Édition locale
+- **IndexedDB** : sauvegardes de travail automatiques ou explicites, avec schéma/version.
+- **Export JSON** : sauvegarde portable complète de la carte éditable et des références aux assets.
+- **Import JSON** : contrôle strict des versions, types, limites et références ; erreurs explicites.
+- **Aucune promesse de persistance absolue** : les données du navigateur peuvent être supprimées, d'où l'export recommandé.
+- Le navigateur ne peut pas écrire directement les fichiers GitHub Pages ; une carte modifiée reste locale tant qu'elle n'est pas intégrée au dépôt et redéployée.
 
-## Données, undo/redo et publication
+### Publication
+1. Éditer/tester la carte.
+2. Exporter et **valider** le fichier source.
+3. Ajouter au dépôt les données approuvées et les assets nécessaires.
+4. Compiler le bundle statique.
+5. Publier avec GitHub Actions vers GitHub Pages.
+6. Vérifier la carte sur l'URL publique.
 
-- Commandes d'édition réversibles et granulaire (ajout, suppression, déplacement, modification propriété).
-- Sauvegarde **atomique** d'une version source avec schéma et références d'assets.
-- Identifiants stables pour instances, zones et composants ; les liens entre objets ne doivent pas dépendre de l'ordre dans un tableau.
-- Validation avant publication : références manquantes, collisions absentes, événements inconnus, volumes incohérents, points de spawn invalides.
-- Publication versionnée ; session multijoueur verrouillée sur **une version exacte** de la carte.
+Cette procédure est **l'objectif du pipeline**, pas une fonctionnalité déjà codée.
 
-## Tests d'acceptation
+## Sécurité et limites
 
-1. Générer → déplacer un arbre → enregistrer → recharger : position identique.
-2. Changer la graine avec overrides : aucun effacement silencieux.
-3. Importer un prefab valide → placer → publier → voir dans le client.
-4. Associer une interaction → tester localement → sauvegarder → tester en réseau.
-5. Deux joueurs activant simultanément la vanne aboutissent à un état serveur cohérent.
-6. La fonction undo/redo reproduit l'état attendu sans altérer les IDs des autres éléments.
-7. Une interaction avec un type inconnu ou asset absent **bloque la publication** avec erreur explicite.
+- Le site public fournit un éditeur accessible si l'URL est connue : **aucune donnée privée, aucun jeton ni secret ne doit y être inclus**.
+- Fichiers importés traités comme données non fiables ; aucune exécution de scripts importés.
+- Références d'assets validées, pas de chargement incontrôlé d'URL tierces.
+- Undo/redo d'opérations ; identifiants stables pour les objets liés.
+- Le mode joueur ne propose **aucune** fonction de modification de terrain.
+
+## Critères d'acceptation
+
+1. Générer une carte → déplacer un arbre → sauvegarder → fermer/recharger → même état.
+2. Exporter JSON → effacer le stockage local → réimporter → scène identique.
+3. Changer la graine → prévisualiser → annuler sans perte.
+4. Associer un levier à une roue → tester → animer, sans code spécifique au moulin.
+5. Publier une carte de démonstration comme **fichiers statiques**, puis la charger sur Pages.
+6. Les références manquantes, schémas invalides ou scripts interdits bloquent import ou compilation.
