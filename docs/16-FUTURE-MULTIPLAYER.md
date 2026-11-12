@@ -239,6 +239,18 @@ Le [document 22 — ResourceBudgetManager](22-RESOURCE-BUDGET-MANAGER.md) est co
 - Chaque joueur peut avoir son **plafond local** de polyphonie/cache/émetteurs fixé par `AudioBudgetManager` (PERF), sans ralentir les règles de gameplay ou messages serveur.
 - Aucune dépendance réseau/audio serveur pour la bêta solo ; les sons d'interaction critiques ont toujours un retour visuel adapté si la sortie audio est muette.
 
+## Mines creusables synchronisées : intentions, snapshots et transactions
+
+Le [document MINE 24](24-MINES-MULTILEVEL-LOW-RESOURCE.md) précise la future **autorité serveur des mines**, sans lancer de backend pour le solo statique actuel.
+
+- **MineDefinitionV3** (source auteur) décrit entrées/étages/strates ; **MineState** serveur stocke **cellules excavées et gisements épuisés**, avec version du générateur. Les maillages restent calculés **côté client**.
+- Le client envoie **`MineDigRequest` intention** (`requestId`, mine, étage, chunk, cellule, outil) ; le serveur valide **position/portée, permissions, outil, solidité, ressource et accès au niveau**. Ne jamais faire confiance à une quantité de minerai annoncée par le client.
+- **Atomicité** : excavation + baisse de stock + crédit inventaire et contrôle **idempotent** du `requestId`, pour éviter qu'une cellule excavée simultanément par deux joueurs rapporte deux récompenses.
+- **AOI mine localisée** : abonner seulement joueurs intéressés par `mineId/levelId/chunkId` et passages connectés, transmettre un **snapshot à l'arrivée** puis des **deltas ordonnés et révisés** ; en cas de trou de révision, resync snapshot.
+- **Ne jamais envoyer des géométries/voxels complets en permanence**, pas de particules/sons/cristaux individuels réseau. Compression de snapshots et compaction des deltas à calibrer.
+- Les **gisements rares cachés** et graines secrètes restent **dans l'autorité serveur**, non dans les assets publics ou fichiers V3 distribués aux clients.
+- La définition physique/collision et les récompenses sont partagées, tandis que la géométrie LOD/éclairage/culling et qualité PERF sont locaux. **Stockage, transactions et réseau restent différés** jusqu'à une phase multijoueur réelle.
+
 ## 10. Plan de validation futur (gates non exécutés)
 
 | Scénario | Participants | Densité | Gate |
