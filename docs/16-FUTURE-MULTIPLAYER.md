@@ -251,6 +251,18 @@ Le [document MINE 24](24-MINES-MULTILEVEL-LOW-RESOURCE.md) précise la future **
 - Les **gisements rares cachés** et graines secrètes restent **dans l'autorité serveur**, non dans les assets publics ou fichiers V3 distribués aux clients.
 - La définition physique/collision et les récompenses sont partagées, tandis que la géométrie LOD/éclairage/culling et qualité PERF sont locaux. **Stockage, transactions et réseau restent différés** jusqu'à une phase multijoueur réelle.
 
+## Agriculture partagée : simulation paresseuse et informations selon droits
+
+**Cible future :** [25 — AGRI LOW-RESOURCE](25-AGRICULTURE-PARCELS-LOW-RESOURCE.md). **Aucun backend agricole à développer dans le prototype solo** ; conserver le contrat d'autorité.
+
+- **Définition auteur V3** des parcelles/cultures/sols séparée de l'**état de partie partagé** (semis, humidité/nutriments, croissance, santé, maturité, récoltes et historique daté).
+- **Un seul `FarmState` serveur pour chaque parcelle/zone**, progression calculée **lors d'une action/lecture valide/échéance** avec temps du monde et **résumés climatiques régionaux historiques**, jamais à chaque tick serveur ou chaque frame client.
+- **Agriculteur/propriétaire ou ouvrier autorisé** : actions et état détaillé ; **passant** : `FarmPublicVisualState` compact, selon droits. **Ne pas envoyer secrets/rendements/stocks privés** aux clients non autorisés. Caméra identique ⇒ rendu LOD identique, quel que soit l'accès aux données.
+- Commandes `Plant/Irrigate/Fertilize/Treat/Tend/Harvest` avec `requestId` et révisions, **auth/droits/outil/stock/portée et temps autoritaires** ; consommation graines/eau/engrais et récompense inventaire **transactionnelles et idempotentes**, anti-double récolte.
+- **Snapshots initial + deltas significatifs** seulement aux abonnés AOI des parcelles ; les cultures visibles de loin peuvent être des **masques/proxies statiques**. Aucun réseau de 10 000 coordonnées de plants ni de pluie/vent individuel.
+- **Agriculture hors connexion** : les champs continuent de progresser par événements/agrégats temporels communs, même en absence de propriétaires ; file d'échéances et batchs, sans régulateur par parcelle.
+- En solo, `LocalFarmRepository` reproduit ces commandes/états **sans serveur, transaction réseau ou anti-triche prétendue** ; le serveur futur devient l'autorité du temps et du journal climatique.
+
 ## 10. Plan de validation futur (gates non exécutés)
 
 | Scénario | Participants | Densité | Gate |
