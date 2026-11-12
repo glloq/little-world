@@ -91,6 +91,15 @@ Appliquer des marges/hystérésis aux seuils pour empêcher une alternance de mo
 - Le volume d'eau fonctionne **identiquement** en LOD0 et LOD3, même en qualité minimale sans vagues ; les effets de sillages et gouttes sont purement locaux et visuels.
 - Tester la pente de la rivière, rive, bateau, cascade, lac, plongée, sortie d'eau, caméra au seuil, stabilité à 20/30/60 FPS et absence d'altération des contrôles du joueur.
 
+## Indépendance de la simulation et du budget de rendu
+
+**Politique cible [22 — ResourceBudgetManager](22-RESOURCE-BUDGET-MANAGER.md)** : le contrôleur peut modifier **FPS de présentation 30→20, DPR, LOD des rigs/écologie/eau et nombre de petites animations**, mais ne modifie **pas** le pas fixe `FrameClock` 30 Hz, les commandes, la physique arcade, les contacts sol/eau, l'oxygène, la navigation bateau ni les événements de dialogue.
+
+- Un PNJ éloigné peut être **visuellement réduit en silhouette** sans perdre son identifiant/état/chemin logique ; ses routines obéissent au scheduling PNJ explicitement défini, **pas** au FPS GPU.
+- Collisions/volumes d'eau et terrain proches doivent rester disponibles ; le streaming peut différer les **décors** mais jamais supprimer les supports physiques d'un personnage.
+- Tester 20/30/60 callbacks, retours d'onglet, surcharge d'import, changements de LOD au planage et sous-marin : contrôle joueur inchangé.
+- Les préférences de profil graphiques sont locales et n'affectent pas les sauvegardes de partie ni les données auteur.
+
 ## Tests obligatoires
 
 1. Espace maintenu produit **un seul saut**.
