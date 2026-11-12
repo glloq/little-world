@@ -463,6 +463,68 @@ Le [document 23 — Audio LOW-RESOURCE](23-MIDI-AUDIO-LOW-RESOURCE.md) fixe la f
 
 Les interfaces `AudioQualityBudget/AudioPlayEvent/MidiPatchDefinition/AudioProjectDefinitionV3` sont **indicatives** au document 23, jusqu'à leur implémentation/test.
 
+## Contrat V3 — Mines 2,5D : sources auteur et excavations de partie séparées
+
+**Spécification détaillée :** [24 — Mines creusables low-resource et future synchro](24-MINES-MULTILEVEL-LOW-RESOURCE.md).
+
+**Nouvelle séparation obligatoire** : `MineDefinitionV3` dans les **sources auteur du monde** (mine initiale, géologie, couches/niveaux, limites, entrées, connecteurs, gisements et références GLB) ; `MineStateV1` dans les **états de partie** (cellules creusées, stocks épuisés, constructions, révisions) ; `MineMesh/Collision/Navigation` sont **dérivés**. Ne jamais reconstituer les excavations en écrivant silencieusement dans `WorldDefinitionV3`.
+
+**Types indicatifs à valider progressivement** :
+
+```ts
+type MineId = string;
+type MineLevelId = string;
+type MineChunkId = string;
+type MineCellIndex = number; // coordonnées locales 2D dans un étage
+
+interface MineLevelSourceV3 {
+  levelId: MineLevelId;
+  floorElevationM: number;
+  galleryHeightM: number;
+  boundsXZ: [number, number, number, number];
+  cellSizeM: number;     // par exemple 1 m, à tester
+  chunkCells: number;    // par exemple 32, à tester
+  geologySourceRef: string;
+  initialVoidRef?: string;  // passages pré-creusés auteur
+}
+
+interface MineDefinitionV3 {
+  mineId: MineId;
+  schemaVersion: 1;
+  worldEntranceEntityIds: string[];
+  levels: MineLevelSourceV3[];
+  connectors: Array<{
+    id: string;
+    fromLevelId: MineLevelId;
+    toLevelId: MineLevelId;
+    kind: "stairs" | "ramp" | "shaft";
+    prefabId?: string;
+  }>;
+  resourceTableRef: string;    // métal/cristal par strate et version
+  generatorVersion: number;
+  seed: number;
+}
+
+interface MineChunkPlayerState {
+  mineId: MineId;
+  levelId: MineLevelId;
+  chunkId: MineChunkId;
+  revision: number;
+  excavatedCells: Uint8Array; // octets/bitset ou codec à définir, exemple runtime
+  extractedDeposits: Array<{depositId: string; remaining: number}>;
+}
+```
+
+- **Adressage stable** : `mineId/levelId/chunkId/cellIndex`, `XYZ` en mètres et **Y vertical** ; altitude d'étage explicite, pas de détermination uniquement par X/Z. IDs de mine, filon et connexion **persistants**.
+- **Entrée/transition** : lien vers un `EntityDefinitionV3` ou prefab d'entrée, **ouverture contrôlée du heightfield**, interfaces `SurfaceQuery` et navigation pour éviter le snap du joueur à la surface.
+- **Définition du gisement** déterministe par seed/version/strate/profondeur avec état épuisable **par partie**. Si un multijoueur futur veut cacher le plan des minerais, les données secrètes restent au serveur et non dans les assets statiques publics.
+- **Mutations** : `MineDigRequest` intention, `MineChunkDelta` avec `baseRevision/revision` et cellules modifiées, `requestId` idempotent ; autorité serveur éventuelle valide outils/portée et effectue **transaction unique excavation + inventaire**. Aucun transfert de maillages.
+- **Compilation** : seuls chunks/étages et **bordures touchées** invalident mesh, collision, navigation, rendu et index ; source V3/état de partie restent séparés, tâches PERF annulables/versionnées.
+- **Sauvegarde auteur portable** : `MineDefinitionV3`, GLB/presets, géologie et générateur versionné ; **sauvegarde joueur** : excavations/stocks/inventaire, sans les réécrire dans l'archive source. Migration du monde doit traiter les sauvegardes existantes avant de changer la seed ou les dimensions.
+- Dimensions 1 m/cellule, 32×32 et 3–8 niveaux **sujettes à benchmark** ; **ne pas inclure un voxel 3D de toute la carte** dans les schémas.
+
+**Porte de qualification** : `export source → import source` sans perte et `save partie → load partie` conservant fouilles/épuisement/inventaire ; anti-double extraction même sous commandes redondantes.
+
 ## 10. Architecture de code proposée (pas de refonte cosmétique préalable)
 
 ```text
