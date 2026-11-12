@@ -272,8 +272,7 @@ function createVillage(root: THREE.Group): { wheel: THREE.Group; millPosition: T
   const hull=mesh(new THREE.SphereGeometry(3,9,5),wood,boat,0,0,0);hull.scale.set(.7,.4,2.1);
   box(boat,paleWood,3.9,.22,10.5,0,.7,0);
   cylinder(boat,darkWood,.12,.13,7,0,4.1,.4);
-  const sail=mesh(new THREE.PlaneGeometry(4.1,5.8),cream,boat,2.1,4.25,.4);
-  sail.material.side=THREE.DoubleSide;
+  mesh(new THREE.PlaneGeometry(4.1,5.8),new THREE.MeshLambertMaterial({color:0xf3ddb2,side:THREE.DoubleSide}),boat,2.1,4.25,.4);
   const lantern=createAsset('props.lantern');lantern.position.set(-29,1,205);root.add(lantern);
   return {wheel,millPosition};
 }
