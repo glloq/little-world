@@ -1,6 +1,6 @@
 # Little World
 
-Prototype **solo** d'exploration 3D avec **Three.js**, exécutable entièrement dans un navigateur PC. Un **écureuil volant** parcourt une vallée montagneuse de **200 × 600 m**, avec rivière, moulin à eau, forêt, petit village et port maritime.
+Prototype **solo** d'exploration 3D avec **Three.js**, exécutable entièrement dans un navigateur PC. La vallée montagneuse actuelle mesure **200 × 600 m** ; l'architecture cible prépare **une carte continue pouvant atteindre 10 × 10 km (100 km² au maximum)**, sans considérer cette taille comme déjà implémentée.
 
 > **Statut : prototype technique jouable en développement.** La première version est volontairement simple, avec graphismes et physique provisoires. Le code et les fichiers sont dans `main`. Le site est publié via GitHub Pages. La disponibilité de la dernière révision dépend du déploiement GitHub Actions.
 
@@ -31,6 +31,14 @@ npm run typecheck # TypeScript strict
 npm run build     # génère dist/ pour GitHub Pages
 npm run preview   # prévisualisation du build
 ```
+
+## Périmètre final validé
+
+Little World doit devenir un **monde vivant où il existe de nombreuses petites choses facultatives à faire** : dialogues à embranchements, petites missions, collecte et inventaire légers, énigmes et activités comme la pêche. Des actions peuvent modifier durablement certains états et plusieurs sauvegardes de partie seront possibles. **Pas d'humains, de combat ni de RPG lourd**.
+
+Les **PNJ animaux/créatures** pourront réutiliser les variantes du personnage joueur lorsque leur morphologie le permet, avec activités simples et **navigation libre avancée**. La création du monde passera par **Little World Studio**, un ensemble d'éditeurs spécialisés partageant un projet et des données communes : relief, eau/chemins, biotopes, bâtiments, PNJ, dialogues, actions, assets et tests.
+
+Ces fonctions sont **des objectifs confirmés, pas des fonctions déjà livrées**. Voir [12 — Périmètre](docs/12-PROJECT-SCOPE.md) et [13 — Studio et UX](docs/13-STUDIO-UX-ARCHITECTURE.md).
 
 ## Fonctionnalités initiales
 
@@ -101,9 +109,9 @@ docs/                       # Conception, objectifs et registre de décisions
 - L'eau, la nage et le planage sont des **modèles arcade provisoires**, à ajuster après essais.
 - Le bateau n'a pas encore de collisions physiques détaillées avec les pontons ; les limites de navigation sont évaluées à partir de la profondeur.
 - Les optimisations actuelles limitent l'utilisation GPU mais ne constituent pas encore un système de streaming/LOD pour une très grande carte.
-- L'éditeur ne sculpte pas encore le relief, n'édite pas les courbes de rivière, ni ne configure librement les interactions ; les changements locaux ne publient pas automatiquement le site.
+- Les éditeurs spécialisés (relief, eau, biotopes, PNJ, dialogues, événements) **restent à développer**. L'éditeur actuel ne sculpte pas le relief, n'édite pas les courbes de rivière et ne configure pas encore d'interactions ; les changements locaux ne publient pas automatiquement le site.
 - L'instance jouable charge la carte par défaut ; **les objets placés dans l'éditeur ne remplacent pas le jeu publié** tant qu'un pipeline de compilation de carte n'est pas ajouté.
-- Aucun multijoueur n'est prévu pour la première version.
+- Aucun multijoueur n'est prévu pour la première version ; l'architecture cible de **100 km² est une limite de conception, pas une performance démontrée**.
 
 ## Documentation
 
@@ -119,5 +127,7 @@ docs/                       # Conception, objectifs et registre de décisions
 - [Plan de test navigateur](docs/09-BROWSER-TEST-PLAN.md)
 - [Optimisation et extension de la carte](docs/10-PERFORMANCE-ROADMAP.md)
 - [Politique globale LOW-RESOURCE : 30/20 Hz, CPU/GPU, PNJ, éditeur](docs/11-LOW-RESOURCE-POLICY.md)
+- [Périmètre et limites validés (jeu + Studio)](docs/12-PROJECT-SCOPE.md)
+- [UX du Studio, éditeurs spécialisés et contrats de données](docs/13-STUDIO-UX-ARCHITECTURE.md)
 
 **Licence de code :** à définir. Les premiers GLB ont été créés spécifiquement pour Little World ; aucun asset tiers n'est incorporé à ce stade.
