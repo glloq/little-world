@@ -3,7 +3,7 @@ import './style.css';
 import { addPlacement, buildWorld, configureScene, type AssetId, type Placement, type WorldConfig } from './world';
 import catalogue from '../assets/catalog.json';
 import { buildSquirrel, MAX_OXYGEN, simulatePlayer, spawnPlayer, type Controls } from './player';
-import { clamp, terrainHeight, waterSurface } from './terrain';
+import { cameraSubmerged, clamp, terrainHeight } from './terrain';
 import { nearBoat, nearDock, spawnBoat, updateBoat, waterDisembarkPoint, BOAT_DOCK } from './boat';
 
 const viewport=document.querySelector<HTMLElement>('#viewport')!;
@@ -148,8 +148,7 @@ function updateHud(){
   action.textContent=aboard?'[E] Quitter le bateau · Z/S avancer/reculer · Q/D tourner':canBoard?'[E] Embarquer dans le bateau':'';
   if(elapsed>=infoUntil)message.classList.add('hide');
   // A submerged squirrel does NOT imply a submerged camera.
-  const cameraWater=waterSurface(camera.position.x,camera.position.z);
-  document.body.classList.toggle('underwater',cameraWater!==null && camera.position.y<cameraWater-.1);
+  document.body.classList.toggle('underwater',cameraSubmerged(camera.position.x,camera.position.y,camera.position.z));
 }
 function tick(dt:number){
   if(!started)return;
