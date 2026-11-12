@@ -115,6 +115,22 @@
 
 **Spécification d'implémentation HZ-0…HZ-6 :** [17-DISTANT-VIEW-RENDERING.md](17-DISTANT-VIEW-RENDERING.md).
 
+## VALIDÉ — herbe ultra-économique et réaction aux personnages
+
+| ID | Décision |
+| --- | --- |
+| **GR-D01** | Herbe courte représentée **principalement par le sol** : couleurs/motifs de biotope déjà intégrés au terrain, pas un brin 3D par tige |
+| **GR-D02** | Herbe haute : **touffes opaques 3D très peu polygonales**, instanciées par zones proches ; géométrie et matériau mutualisés |
+| **GR-D03** | **Aucune ombre dynamique, physique individuelle, rigid body, mise à jour CPU des matrices ni animation CPU par touffe/frame** |
+| **GR-D04** | Vent et passage du joueur en **déformation de sommets GPU locale et facultative**, racines ancrées ; calcul d'influence de courte portée |
+| **GR-D05** | Génération déterministe par seed/biotope/secteur et exclusions ; **aucun stockage individuel** de milliers de touffes dans les schémas V3 |
+| **GR-D06** | Profils `groundOnly`, ultra-économique, équilibré et dense ; **budget adaptatif commun** avec le reste du terrain, de la végétation et des foules |
+| **GR-D07** | Réaction locale des autres joueurs sans réseau dédié : positions déjà disponibles ; texture d'influence **facultative et à benchmarker**, pas d'implémentation anticipée |
+| **GR-D08** | Lointain assuré par les couleurs et silhouettes de biotopes, **sans brouillard**, sans maintenir des milliers d'herbes 3D invisibles |
+| **GR-D09** | Objectifs expérimentaux : **< 0,1 ms CPU/frame**, **< 0,5 ms GPU/frame**, **1–4 draw calls**, **< 2 Mio GPU** de coût supplémentaire ; jamais considérer ces chiffres comme atteints sans mesure |
+
+**Spécification :** [18 — Herbes ultra-low-resource](18-GRASS-LOW-RESOURCE.md). Distances, densités et coûts à calibrer sur GPU intégré ; les modèles V2 ne sont pas considérés comme déjà enrichis de ces effets.
+
 ## PROPOSÉ — technique
 
 | ID | Choix | Réévaluation |
