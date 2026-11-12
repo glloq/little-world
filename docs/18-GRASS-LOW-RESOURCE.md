@@ -146,6 +146,15 @@ Selon [19 — Environnement LOW-RESOURCE](19-ENVIRONMENT-WEATHER-SKY.md), l'herb
 - Ombres : **aucune herbe ne projette de shadow map**, même si des bâtiments/arbres proches reçoivent des ombres dynamiques.
 - Météo et herbe se partagent le **budget graphique global**, les précipitations et ombres ne doivent pas empêcher de basculer vers `groundOnly`.
 
+## Berges et zones humides : adapter la végétation au réseau d'eau
+
+Le [contrat hydrographique 21](21-WATER-HYDROLOGY-LOW-RESOURCE.md) produit **berges, rives, profondeurs et zones d'immersion** en données spatiales dérivées, exploitées par les règles d'écologie/biotopes :
+
+- **Écarter l'herbe terrestre sous l'eau** et les touffes 3D situées à l'intérieur d'un volume de rivière/lac/mer ; utiliser des espèces aquatiques/roseaux selon zones.
+- Les **rives humides** peuvent sélectionner des densités et styles propres, mais la végétation est générée par **seed + biome + cellules**, pas un mesh par plante ou une simulation d'eau/sol par touffe.
+- Après modification de spline/lit/berge, invalider uniquement les **cellules écologiques concernées** et préserver les autres seeds/instances. Les LOD eau n'ont aucun effet sur la présence réelle des volumes ou sur les exclusions de végétation.
+- Le vent est commun avec la météo (doc 19), **pas** le courant de rivière ; pas de déplacement CPU individuel d'herbe à cause du courant.
+
 ## 8. Tests et validation
 
 **Scènes et variantes :**
