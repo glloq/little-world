@@ -1,31 +1,27 @@
-# Catalogue d'assets Little World
+# Catalogue d'assets — Little World Solo
 
-**État : répertoire documentaire. Aucun modèle 3D, animation ou audio n'a encore été importé.**
+**État : documentation uniquement. Aucun modèle 3D, animation ou audio n'a encore été intégré.**
 
-La bibliothèque d'assets **sera incluse directement dans le dépôt** et complétée progressivement. Voir [le pipeline d'import](../docs/06-ASSET-PIPELINE.md).
+Les fichiers 3D de la V1 seront **disponibles directement dans le dépôt public** et dans le site statique **GitHub Pages**, sans CDN ni serveur de jeu. Voir [pipeline d'assets](../docs/06-ASSET-PIPELINE.md).
 
-## Familles prévues
+## Familles visées
 
 - `characters/flying-squirrel/` : écureuil volant original, animations.
-- `nature/trees/`, `nature/rocks/`, `nature/plants/` : végétation et relief.
-- `buildings/houses/`, `buildings/watermill/`, `buildings/harbor/` : architecture.
-- `props/interactions/` : leviers, portes, vannes, lanternes, panneaux.
-- `props/decoration/` : caisses, tonneaux et petits objets.
+- `nature/trees/`, `nature/rocks/`, `nature/plants/` : végétation et décors naturels.
+- `buildings/houses/`, `buildings/watermill/`, `buildings/harbor/` : maisons, moulin, port.
+- `props/interactions/` : vanne, levier, porte, lanterne, panneaux.
+- `props/decoration/` : petits objets, caisses, tonneaux.
 - `animations/` et `audio/` : ressources réutilisables.
 
-## Politique de contribution d'assets
+## Garanties à l'import
 
-- **Privilégier CC0 / créations originales**, vérifier la licence propre à chaque modèle.
-- Décrire précisément **auteur, source, licence, version et modifications**.
-- Ne pas intégrer un pack entier si seuls quelques modèles sont utiles.
-- Format cible : **GLB**, unités en mètres, axe vertical Y.
-- L'éditeur référencera les ressources par **ID stable**, pas par index.
-- Aucun fichier sans provenance et droit de redistribution clair dans un dépôt public.
+1. Licence **autorisant la redistribution publique** du fichier, origine vérifiée (CC0/original prioritaire).
+2. GLB valide avec modèle à **échelle métrique**, axe Y vertical et pivot cohérent.
+3. Taille raisonnable, collisions et animations compatibles avec le jeu.
+4. Identifiant stable dans un registre consultable par l'éditeur.
+5. Prévisualisation et métadonnées disponibles.
+6. **Chemin d'accès compatible avec `/little-world/`** après Vite et publication Pages.
 
-## Futur registre
+Le futur `assets/registry.json` sera créé **au premier import réel**. Il ne contiendra pas d'entrées fictives.
 
-`assets/registry.json` sera créé **avec le pipeline d'import** et ne listera que des fichiers effectivement présents et validés. Pas d'entrées fictives pour remplir le catalogue.
-
-Priorité à un petit ensemble cohérent : écureuil (ou proxy temporaire), arbres, rochers, moulin à roue distincte, maison, ponton et objets d'interaction.
-
-**Aucune dépendance à un CDN tiers ne doit être requise pour afficher les assets de base d'une version publiée.**
+L'éditeur pourra insérer ces assets dans la carte locale, mais **les ajouts au catalogue public nécessiteront un commit et une nouvelle publication GitHub Pages**.
