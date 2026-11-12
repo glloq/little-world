@@ -220,6 +220,16 @@ Le [contrat WAT](21-WATER-HYDROLOGY-LOW-RESOURCE.md) distingue un réseau hydrog
 - Une désactivation de détails au loin **n'interrompt pas** la navigation, l'état autoritaire ou le calcul de collision. Les événements liés à l'eau s'appuient sur `WaterVolumes`, jamais sur le mesh Three.js.
 - **Ne pas coder de serveur maintenant** au seul motif que cette frontière est documentée.
 
+## PERF : optimisation locale au client, logique autoritaire indépendante
+
+Le [document 22 — ResourceBudgetManager](22-RESOURCE-BUDGET-MANAGER.md) est conçu pour le **jeu solo d'abord** ; sa politique GPU/CPU ne crée aucune obligation serveur.
+
+- Le **client** choisit DPR/résolution, LOD de personnages/objets/eau/ombres/météo, distance d'animation et nombre d'assets visibles selon sa propre machine ; **aucun LOD graphique à répliquer**.
+- Un futur **serveur** resterait autoritaire pour positions, événements, collisions et règles de gameplay ; qualité visuelle et cadence de présentation ne peuvent **pas réduire la fréquence des actions/événements critiques**.
+- Les snapshots monde/entités gardent des IDs stables, les variantes d'affichage sont dérivées ; ressources/silhouettes plus économiques pour les joueurs secondaires sans divergence du monde.
+- **Mesurer séparément** bande passante/tick serveur et frametime/draw calls/mémoire client ; 30/200/500 joueurs restent des objectifs non qualifiés.
+- Préserver simulation/interaction au passage à 20 FPS présentation. Ne pas créer un système de gestion mémoire ou un serveur multijoueur au nom de PERF avant la campagne solo.
+
 ## 10. Plan de validation futur (gates non exécutés)
 
 | Scénario | Participants | Densité | Gate |
