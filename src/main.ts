@@ -110,12 +110,14 @@ window.addEventListener('keydown',e=>{
   if(e.code==='KeyR'&&started){
     const reset=spawnPlayer();player.position.copy(reset.position);player.velocity.set(0,0,0);
     aboard=false;player.mode='ground';player.oxygen=MAX_OXYGEN;player.glideReady=false;
+    updateCamera(1); // Snap camera across long-distance debug teleports.
     showInfo('Retour au point de départ');
   }
   // Prototype navigation shortcut: reach the harbor without walking the full 600 m.
   if(e.code==='KeyP'&&started){
     aboard=false;player.position.set(-23,1.35,217);player.velocity.set(0,0,0);
     player.mode='air';player.glideReady=false;
+    updateCamera(1);
     showInfo('Port : approchez du bateau et appuyez sur E');
   }
 });
