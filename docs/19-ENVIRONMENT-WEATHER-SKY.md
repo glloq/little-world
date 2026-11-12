@@ -284,6 +284,17 @@ Budgets **expérimentaux hors shadow maps**, **non mesurés** :
 - Les événements orage/effets sont dérivés d'IDs et seeds. Les actions gameplay dépendantes de la météo (un mécanisme gelé, une mission) doivent être **évaluées par l'autorité logique**, et non par la densité des particules que voit le client.
 - Ne pas installer de backend dans la campagne solo au nom de cette compatibilité future.
 
+## Eau et météo : un seul vent, une seule horloge visuelle
+
+Le [document 21 — Eau et hydrographie LOW-RESOURCE](21-WATER-HYDROLOGY-LOW-RESOURCE.md) fixe l'intégration :
+
+- L'eau extérieure reçoit **soleil/lunes/ciel, couverture nuageuse et vent** depuis les uniformes partagés de l'environnement. **Ne pas créer une seconde météo** dans `WaterRenderer`.
+- Le **vent** peut animer les faibles vaguelettes de mer et lac près de la caméra ; le **courant fluvial** reste indépendant, défini par `WaterNetwork` pour les rubans et acteurs.
+- Pluie/neige peuvent changer **teinte/écume** via quelques paramètres globaux ; pas de particules de pluie avec collisions individuelles sur la surface ni remeshing de l'océan.
+- La **vue sous-marine** reçoit teinte et atténuation lumineuse selon eau/soleil/profondeur ; le brouillard sous-marin est une **atténuation dans l'eau** et non un fog permanent masquant le décor/horizon terrestre.
+- Le **LOD eau moyen/lointain** privilégie couleur et luminosité globales, désactive les animations inutiles, même pendant l'orage ; la qualité adaptative est partagée avec végétation, météo et ombres.
+- Un futur serveur peut être autoritaire pour l'heure et météo commune ; **aucune synchronisation individuelle** des vagues et éclaboussures.
+
 ## 13. Tests et qualification
 
 **Scénarios** :
