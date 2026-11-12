@@ -84,3 +84,17 @@ Appliquer des marges/hystérésis aux seuils pour empêcher une alternance de mo
 9. Sans bouton de souris enfoncé : aucun changement de lacet/inclinaison de caméra ; clic-glissé actif : rotation autorisée.
 10. Maintenir A → menu visible ; cliquer options → changement immédiat ; relâcher A → fermeture ; reload → préférences conservées.
 11. Hors planage la membrane est invisible, quelles que soient les émotions et accessoires choisis.
+
+## Cible de gameplay final et comportements des personnages
+
+**Ce qui précède décrit surtout le prototype du joueur**. Le jeu final comprend **de nombreuses petites choses facultatives à faire** : courtes missions, collecte/pêche simples, énigmes, rencontres et interactions persistantes, sans RPG lourd, mort ou combat.
+
+- Personnages non humains : **PNJ animaux et créatures**. Réutiliser le modèle de personnage du joueur (morphologie, rig, animations, vêtements et émotions) pour les espèces compatibles, et choisir un autre rig pour les espèces qui ne le sont pas.
+- Navigation PNJ **libre et robuste** (zones autorisées, obstacle, portes/ponts et planification à travers plusieurs secteurs), mais activités/réactions **simples et peu coûteuses** (repos, déplacement, travail, dialogue, salut, fuite).
+- Dialogues à choix, émissions de texte/sons stylisés, réactions à l'approche du joueur et aux états des objets.
+- Inventaire léger, quelques actions qui persistent, **plusieurs slots de sauvegarde locale** du jeu, distincts des projets auteur.
+- Les systèmes interactifs sont **déclaratifs**, configurés dans des éditeurs spécialisés du Studio, sans script propre à chaque objet.
+
+La géographie est **une carte continue jusqu'à 10 × 10 km maximum**, sans garantie de peuplement intégral ou de FPS avant benchmark. Le Studio comporte plusieurs éditeurs spécialisés et partage les données et IDs du jeu. Les choix complets sont dans [12 — Périmètre](12-PROJECT-SCOPE.md) et [13 — Studio UX](13-STUDIO-UX-ARCHITECTURE.md).
+
+**État :** ces systèmes PNJ, activités, sauvegardes et Studio multi-éditeurs sont des objectifs confirmés et **pas encore livrés**.
