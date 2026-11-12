@@ -272,6 +272,17 @@ La [spécification 21](21-WATER-HYDROLOGY-LOW-RESOURCE.md) valide un réseau d'e
 - **Heightfields importés de Blender** sont échantillonnés avant la génération du lit ; eau/berges et volumes sont compilés localement, secteur par secteur. Ne pas exporter un océan de 100 km² en mesh GLB unique.
 - Les **presets de lieux** peuvent inclure `WaterNetwork` partiel (p. ex. petit étang avec cascade) et des références de volumes avec IDs remappés proprement lors de l'import, à condition d'avoir des **interfaces amont/aval** explicites et une validation des raccords.
 
+## Import Blender sous le budget transversal PERF
+
+Voir [22 — ResourceBudgetManager](22-RESOURCE-BUDGET-MANAGER.md).
+
+- Le **préflight** d'un GLB/preset/ZIP déclare le poids **CPU/VRAM estimé** et le nombre de matériaux, triangles/texture/meshes ; ne pas confondre le nombre de geometries WebGL et les octets réels.
+- Après import, les assets sont **enregistrés avec ownership/références** ; plusieurs instances de la même ruine ne consomment pas chacune une copie GPU. Les ressources ne sont libérées qu'après retrait du dernier consommateur.
+- Décodage, génération de miniatures, construction LOD, upload GPU et compilation des secteurs passent par des **jobs priorisés et limités en temps/mémoire**, sans bloquer les gizmos ou écraser le projet si import annulé.
+- Un preset portuaire/de grotte/ruine possède des options LOD/proxy et catégories d'importance ; **les paramètres de qualité propres à l'appareil ne font pas partie du format auteur portable V3**.
+- Ne pas compiler/charger un monde GLB de 100 km² d'un bloc : géométrie source sectorisée, préchargement selon caméra/vitesse et rendu d'horizon simplifié.
+- Benchmark de 100 copies du même prefab, import/export répétés, context loss, suppression/mise à jour, stabilité mémoire après de nombreuses opérations.
+
 ## 12. Décisions finales et exclusions
 
 **Validé :** Blender pour fabriquer les modèles/sets low-poly ; `glTF 2.0/GLB` comme échange 3D ouvert ; `.blend` comme source facultative ; Studio pour placements XYZ/rotation/échelle, biotopes/peinture/génération, prefab/groupes et interactions ; import/export de **presets** et de **cartes rééditables**.
