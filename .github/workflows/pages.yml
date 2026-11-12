@@ -35,6 +35,9 @@ jobs:
           test -f dist/index.html
           test -f dist/editor/index.html
           test -d dist/assets
+          test -f dist/models/pine.glb
+          test -f dist/models/rock.glb
+          test -f dist/models/crate.glb
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload build
