@@ -295,6 +295,16 @@ Le [document 21 — Eau et hydrographie LOW-RESOURCE](21-WATER-HYDROLOGY-LOW-RES
 - Le **LOD eau moyen/lointain** privilégie couleur et luminosité globales, désactive les animations inutiles, même pendant l'orage ; la qualité adaptative est partagée avec végétation, météo et ombres.
 - Un futur serveur peut être autoritaire pour l'heure et météo commune ; **aucune synchronisation individuelle** des vagues et éclaboussures.
 
+## Budget central PERF : météo et ombres coopératives
+
+**Règle du [ResourceBudgetManager](22-RESOURCE-BUDGET-MANAGER.md)** : la météo et les ombres reçoivent un **plafond commun**, elles n'exécutent pas leur propre algorithme de baisse de qualité indépendant.
+
+- **Ciel, heure, étoiles, orbites de lunes, température et neige accumulée** restent **logiquement exacts** quel que soit le profil GPU.
+- Le budget peut réduire ou couper **précipitations visuelles, éclaboussures, couches de nuages, vent décoratif**, densité d'effets d'orage ; conserver la lisibilité du monde.
+- Ombres : `off/near512/near1024` (variants indicatifs), priorité **grands objets proches**, coûts des casters surveillés ; la shadow map solaire est une passe GPU additionnelle, **indépendamment** du coût ciel/particules.
+- Les uniformes de vent/soleil restent partagés avec herbe/eau. **Pas** de recompile shader à chaque changement de météo ou de profil, variantes stables et transitions limitées.
+- Benchmark couplé nuit/lunes, pluie/neige, forêt, village, eau et planage, avec p95/p99, longue frame et **temps GPU réellement mesuré si disponible**.
+
 ## 13. Tests et qualification
 
 **Scénarios** :
