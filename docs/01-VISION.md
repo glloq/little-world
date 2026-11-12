@@ -1,69 +1,76 @@
 # 01 — Vision et périmètre
 
-Statut : **spécification initiale approuvée pour la préproduction**, 12 novembre 2026.
+**Statut : spécification V1 solo validée — 12 novembre 2026.**
 
 ## Concept
 
-Little World est un **petit monde 3D exploratoire multijoueur**, conçu d'abord pour le navigateur sur PC. Le joueur incarne **un écureuil volant non humanoïde**, traverse une vallée montagneuse, suit le cours d'eau, découvre un moulin, un village et un petit port débouchant sur la mer.
+Petit monde 3D d'**exploration solo** dans le navigateur **PC**. Le joueur est un **écureuil volant non humanoïde** qui traverse une vallée montagneuse depuis une source jusqu'à un port sur la mer. On privilégie une exploration agréable, de beaux panoramas, le planage, la nage et la plongée, sans boucle de progression complexe.
 
-L'expérience recherchée est calme, lisible et centrée sur le plaisir de circuler dans le relief. Les mécaniques de marche, course, saut, nage, plongée et planage doivent être intéressantes **avant** tout ajout de progression, quête ou économie.
+La **première version est intégralement autonome côté navigateur**, hébergée sur **GitHub Pages**. Pas de serveur de jeu, compte ni réseau temps réel requis.
 
-## Décisions validées
+## Choix actés
 
-| Sujet | Décision |
+| Domaine | Décision |
 | --- | --- |
-| Carte jouable | **200 m de large × 600 m de long** |
-| Terrain | Fixe côté joueurs ; création procédurale et édition côté développeur |
-| Personnage | **Écureuil volant**, animal stylisé, locomotion surtout quadrupède |
-| Caméra | Troisième personne, orientable à la souris |
-| Plateforme V1 | Navigateur **PC uniquement** |
-| Contrôles | Clavier + souris, `Espace` pour saut et déploiement du planage selon le contexte |
-| Endurance | Aucune au lancement |
-| Plongée | Oxygène limité mais délai volontairement long |
-| Dégâts / mort | Aucun dans la première version |
-| Activité V1 | **Exploration et tests** |
-| Population visée | 10 à 30 joueurs par instance, objectif à valider |
-| Visuel | Low-poly organique et fortement optimisé, atmosphère chaleureuse |
-| Assets | Catalogue dans le repo, enrichissement itératif, provenance et licences suivies |
+| Carte | **200 × 600 m** de zone de conception jouable |
+| Environnement | Montagnes, rivière, moulin à eau, forêt, village, port, côte |
+| Personnage | Écureuil volant stylisé, principalement quadrupède |
+| Contrôles | PC clavier/souris, caméra troisième personne à la souris |
+| Déplacements | Marche, course, saut, planage volontaire, nage, plongée |
+| Endurance | Aucune dans la première version |
+| Oxygène | Limite généreuse ; valeur à régler en prototype |
+| Santé / mort | Ni dégâts ni mort |
+| Activité | Exploration et tests techniques |
+| Style | Low-poly organique optimisé ; ambiance originale d'animation japonaise |
+| Carte côté joueur | **Immuable** : aucune modification terrain, rivières ou bâtiments |
+| Fabrication du monde | Génération déterministe + **éditeur de carte et d'interactions** |
+| Assets | Petits packs sélectionnés, GLB locaux, provenance/licences vérifiées |
+| Publication | Build statique + GitHub Actions + GitHub Pages |
 
-## Direction artistique
+## Ambiance
 
-- Une ambiance **originale** de conte animé : silhouettes rondes, végétation riche mais légère, lumière douce, palette naturelle, petites touches de magie environnementale.
-- Éviter l'imitation directe d'un studio, film ou personnage existant ; créer des modèles, palettes et formes propres au projet.
-- Priorité à une **forte lisibilité à distance**, notamment en planage.
-- Préférer la variété par formes, couleurs et échelles à une multiplication de matériaux et textures.
-- Architecture artisanale : bois, pierre, petites tuiles, moulin à roue visible, pontons de pêche et accessoires portuaires.
+- Formes organiques simples, matériaux légers, palette naturelle et lumière chaleureuse.
+- Moulin avec roue visible, maisonnettes en bois/pierre, pontons de pêche, végétation abondante et quelques vestiges anciens.
+- Magie environnementale **discrète** possible, pas de système de sorts dans le prototype.
+- Identité visuelle originale ; ne pas chercher à reproduire un film ou une marque.
 
-## Zones narratives de la carte
+## Parcours géographique proposé
 
-Ordre géographique proposé, à affiner dans l'éditeur : **haute vallée et source → forêt et clairières → moulin à eau → village et terres ouvertes → estuaire et port → côte maritime**. Les montagnes cadrent les déplacements et servent de décor lointain sans être toutes accessibles.
+**Source en altitude → sentiers et forêt → moulin → clairières/village → estuaire → port/mer**.
 
-Présence souhaitée de quelques vestiges d'une civilisation ancienne et d'une magie discrète, mais **sans système de quêtes requis** pour la première version.
+Les pentes et montagnes lointaines renforcent l'impression d'échelle tout en limitant la zone réellement parcourable. Le planage doit procurer des trajets intéressants ; la rivière contient des sections profondes permettant la plongée.
 
-## Inclus dans le premier prototype jouable
+## Premier prototype acceptable
 
-1. Une **scène technique représentative** avec pente, plateforme de saut, eau de surface et volume profond.
-2. Un écureuil avec déplacement, caméra et les six comportements : marche, course, saut, nage, plongée, planage.
-3. Une petite boucle de test reproductible permettant de comparer les réglages.
-4. Un test réseau minimal de deux joueurs pour éviter une simulation exclusivement locale.
+1. **Scène de test WebGL accessible par URL GitHub Pages** et sans backend.
+2. Écureuil provisoire ou final, caméra souris et états de mouvement fonctionnels.
+3. Marche/course, saut, planage, nage et plongée dans une petite zone avec pentes/eau profonde.
+4. Réglages des vitesses et transitions mesurables via interface de debug locale.
+5. Fonctionnement dans un navigateur PC récent sans compte, réseau API ni installation applicative.
 
-## Hors périmètre du premier prototype
+## Objectif de la V1 complète
 
-- Mobile, manette et réalité virtuelle.
-- Construction et modification du terrain par les joueurs.
-- Combat, santé, mort, endurance, inventaire complet, économie.
-- PNJ complexes, quêtes, agriculture et pêche jouable (candidats aux itérations suivantes).
-- Monde infini, plusieurs régions ou serveurs distribués.
-- Multijoueur **à 30 joueurs garanti** : à mesurer après une implémentation effective.
+- Vallée de 200 × 600 m générée et retouchée.
+- Bibliothèque d'assets locaux classés, accessibles dans l'éditeur.
+- Éditeur web statique : terrain, eau, végétation, chemins, bâtiments, interactions.
+- **Sauvegardes locales** et import/export explicites des cartes JSON.
+- Mode de test immédiat de la carte et des interactions.
+- Jeu jouable depuis GitHub Pages avec scène par défaut compilée/embarquée.
 
-## Critères qualitatifs
+## Exclusions de V1
 
-- Les états du personnage sont prévisibles ; aucun saut involontaire en entrant dans l'eau.
-- Les transitions sol/air/eau sont faciles à comprendre visuellement.
-- La carte paraît plus riche que ses dimensions grâce au relief, aux chemins, à l'eau et au cadrage.
-- Les assets d'origines différentes doivent pouvoir être harmonisés automatiquement dans une même palette.
-- Les systèmes doivent rester testables séparément du rendu et du réseau.
+- **Multijoueur** (objectif historique de 10–30 joueurs **reporté**, non testé).
+- Serveur Colyseus, sessions, base de données, comptes utilisateurs, chat, synchronisation.
+- Modification du monde par les joueurs.
+- Combat, dégâts, mort, endurance, économie, quêtes et agriculture.
+- Mobile/manette/VR ; météo complexe et cycle jour/nuit complet non prioritaires.
 
-## Gouvernance des choix
+## Critères qualité
 
-Les décisions déjà prises et les hypothèses non confirmées sont référencées dans [DECISIONS.md](DECISIONS.md). Toute décision qui modifie la jouabilité, les formats de carte ou les règles du catalogue d'assets devra y être consignée avant implémentation.
+- Transitions de locomotion fluides et prévisibles ; aucun état bloquant.
+- La page charge **tous les assets nécessaires** depuis le même site statique.
+- Sauvegarde/rechargement d'une carte sans perte ; export de sécurité utilisable.
+- Déploiement reproductible avec version de build identifiable.
+- Performances mesurées sur PC représentatif, sans objectif FPS inventé.
+
+Voir [Feuille de route](07-ROADMAP.md), [Pages](08-GITHUB-PAGES.md) et [Décisions](DECISIONS.md).
