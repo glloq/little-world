@@ -175,6 +175,18 @@ Le créateur a validé la [spécification 18 — Herbes ultra-low-resource](18-G
 - **Sécurité/licences/performance** : bounds/tailles/versions, extensions glTF acceptées, axes/units, protection contre ZIP-bombs/traversal, assets redistribuables, budgets LOD/instancing/chunks mesurés.
 - Compatibilité V2→V3 et jeu solo sans serveur ; statut **défini mais non entièrement implémenté**.
 
+## Décisions WAT — eau sur relief, immersion et horizon économique
+
+**Spécification validée :** [21 — Eau LOW-RESOURCE](21-WATER-HYDROLOGY-LOW-RESOURCE.md).
+
+- **Réseau hydrographique V3** (sources, tronçons orientés, lacs, jonctions, cascades haut/bas, mer) et **volumes gameplay séparés des meshes**. Tracés Studio avec altitude calculée suivant le relief et profil corrigible, lit/berges en compilation sectorisée.
+- Lacs **horizontaux**, rivières non ascendantes sauf erreur à corriger, rapides/cascades déduits de pente ou override auteur, embouchures et collisions/navigation explicites.
+- **WaterLODManager LOD0–3** : petites vagues/écume près seulement ; surfaces lointaines **presque statiques**, simplifier géométrie **et shader/overdraw** ; océan à l'horizon sans masquer les terres.
+- **Sous-marin** par position/volume de caméra + hystérésis et coloration/visibilité peu coûteuse ; aucun deuxième rendu lourd ni physique de l'eau.
+- **Pas de FFT, fluides simulés, reflets/réfraction multipasses, SSR ni particules fluides en masse**. Effets GPU et rubans UV localisés, courants simples interrogés à la simulation.
+- Volumes logiques stables quel que soit le LOD graphique, sauvegarde et import/export V3 non destructif, vent météo partagé, aucun réseau de vagues.
+- **À mesurer** CPU/GPU, cout des pixels d'océan, p95/p99, présence d'une grande mer/planage, mode ultra-économique, pas des chiffres garantis.
+
 ## 9. Règles d'architecture issues de ces décisions
 
 1. **Un projet source, plusieurs éditeurs spécialisés**. Partager objets/IDs/sélection/historique, mais charger les écrans lourds à la demande.
