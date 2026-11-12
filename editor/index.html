@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#f6f8f2" />
+  <title>Little World — Éditeur de vallée</title>
+</head>
+<body class="editor-page">
+  <div id="editor-layout">
+    <header class="editor-header">
+      <div class="brand"><span class="brand-icon">✦</span><div><strong>little world</strong><small>Éditeur de monde · Prototype</small></div></div>
+      <div class="header-actions">
+        <button id="import" class="light-button" type="button">Importer JSON</button>
+        <button id="export" class="light-button" type="button">Exporter JSON</button>
+        <button id="save" class="primary-button" type="button">Sauvegarder localement</button>
+        <a class="light-button" href="../">Jouer ↗</a>
+      </div>
+    </header>
+    <aside class="editor-sidebar">
+      <div class="section-kicker">GÉNÉRATION</div>
+      <label for="seed">Graine</label>
+      <input id="seed" type="number" min="1" max="9999999" value="1284">
+      <label for="density">Densité des arbres <span id="density-value">1</span></label>
+      <input id="density" type="range" min="0" max="2" step=".25" value="1">
+      <button id="regenerate" class="light-button fill-button">Régénérer la vallée</button>
+      <hr>
+      <div class="section-kicker">CATALOGUE D'OBJETS</div>
+      <p class="muted">Choisis un objet, puis clique sur le terrain pour le placer.</p>
+      <div id="catalogue" class="catalogue"></div>
+      <button id="clear" class="light-button fill-button">Effacer les objets ajoutés</button>
+      <hr>
+      <div class="section-kicker">CARTE LOCALE</div>
+      <div id="object-count" class="muted">0 objet</div>
+      <p class="muted">Les modifications restent dans ce navigateur. Exporte le JSON pour conserver une sauvegarde.</p>
+    </aside>
+    <div id="editor-viewport"></div>
+    <aside class="editor-inspector">
+      <div class="section-kicker">INSPECTEUR</div>
+      <h2>Vallée côtière</h2>
+      <div class="info-table"><span>Taille</span><strong>200 × 600 m</strong><span>Mode</span><strong>Solo · statique</strong><span>Caméra</span><strong>Orbitale</strong><span>Ajout</span><strong id="active-tool">Aucun</strong></div>
+      <hr>
+      <div class="section-kicker">OBJECTIFS</div>
+      <p>Relief, rivière, moulin et port sont générés automatiquement. Les nouveaux objets sont sauvegardés au format JSON.</p>
+      <div class="info-note">Ce premier éditeur permet le placement simple ; sculpture du relief et édition des splines arriveront dans les prochains jalons.</div>
+    </aside>
+    <footer class="editor-footer"><span id="editor-message">Prêt · cliquer-glisser pour tourner, molette pour zoomer</span><span>Prototype d'éditeur · non publié automatiquement</span></footer>
+    <input id="import-file" type="file" accept=".json,application/json" hidden>
+  </div>
+  <script type="module" src="/src/editor.ts"></script>
+</body>
+</html>
