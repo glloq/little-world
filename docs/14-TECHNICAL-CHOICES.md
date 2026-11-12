@@ -163,6 +163,18 @@ Le créateur a validé la [spécification 18 — Herbes ultra-low-resource](18-G
 - **Bêta** : panneau pour imposer temps/météo/neige/astres/ombres, accélération temporelle, profiler le coût ; overrides non persistants.
 - Ne pas multiplier les lumières/ombres, matériaux ou compilations shader lors d'une transition ; mesurer toutes les dépenses GPU, ombres à part.
 
+## Décisions BL — Blender, packs de presets, échange de cartes et compatibilité V3
+
+**Choix validé :** [20 — Blender ↔ Little World Studio](20-BLENDER-STUDIO-INTERCHANGE.md).
+
+- **Modélisation low-poly dans Blender**, avec `.blend` source optionnelle ; **glTF 2.0/GLB** échange géométrique ouvert ; Studio conserve **biotopes, végétation, eau, relief local, PNJ et interactions**.
+- **Modèles, collections hiérarchiques et presets composites** importables/exportables et placés via **translation XYZ, rotation quaternion, échelle XYZ**, pivots/ancres, alignement terrain, variantes/overrides et Undo/Redo.
+- **Heightfields** importables/exportables avec métadonnées de dimensions/origine/altitude/précision ; falaises, surplombs, grottes, arches en modules GLB. **Pas de monde entier en un unique GLB monolithique.**
+- **Formats de sortie distincts** : (a) asset/preset réutilisable `ZIP+JSON+GLB`, (b) carte entière **archive V3 ZIP autonome rééditable** avec toutes dépendances, (c) sélection/scène vers Blender en `GLB+sidecar`, (d) build runtime compilé/sectorisé.
+- **Round-trip Blender non destructif** : comparaison des IDs/versions/hashes, maintien des propriétés gameplay non représentées en GLB, aperçu de diff et remapping explicite, imports transactionnels.
+- **Sécurité/licences/performance** : bounds/tailles/versions, extensions glTF acceptées, axes/units, protection contre ZIP-bombs/traversal, assets redistribuables, budgets LOD/instancing/chunks mesurés.
+- Compatibilité V2→V3 et jeu solo sans serveur ; statut **défini mais non entièrement implémenté**.
+
 ## 9. Règles d'architecture issues de ces décisions
 
 1. **Un projet source, plusieurs éditeurs spécialisés**. Partager objets/IDs/sélection/historique, mais charger les écrans lourds à la demande.
