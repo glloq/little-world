@@ -152,5 +152,6 @@ docs/                       # Conception, objectifs et registre de décisions
 - [Décisions techniques validées pour tous les systèmes](docs/14-TECHNICAL-CHOICES.md)
 - [Schémas V3, contrats entre éditeurs et migration des cartes](docs/15-STUDIO-DATA-SCHEMAS-V3.md)
 - [Évolution future : multijoueur, AOI, foules et synchronisation adaptative](docs/16-FUTURE-MULTIPLAYER.md)
+- [Vue panoramique sans brouillard : LOD, relief d'horizon et imposteurs](docs/17-DISTANT-VIEW-RENDERING.md)
 
 **Licence de code :** à définir. Les premiers GLB ont été créés spécifiquement pour Little World ; aucun asset tiers n'est incorporé à ce stade.
