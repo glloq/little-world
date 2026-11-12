@@ -99,6 +99,19 @@ Référence détaillée : [18 — Herbes ultra-low-resource](18-GRASS-LOW-RESOUR
 - **Futur multijoueur** : aucune synchronisation d'herbe. Utiliser positions de 1–2 avatars prioritaires, texture d'influence optionnelle seulement après mesure ; **aucun traitement de tous les joueurs dans chaque sommet**.
 - Lointain : couleur de terrain et silhouettes/proxies du document 17, **sans brouillard ni bande d'arrêt visible**.
 
+## Environnement : budget commun pour soleil, nuages, étoiles, lunes, neige et ombres
+
+**Contrat validé** : [19 — Météo et ciel LOW-RESOURCE](19-ENVIRONMENT-WEATHER-SKY.md).
+
+- **Ciel unique** pour ciel diurne, crépuscules, nuit étoilée et lunes à périodes indépendantes. Pas de mesh/light par étoile ou lune, pas de nuages volumétriques.
+- Neige accumulée/fonte selon macro-climat, altitude et température ; **masques de matériaux et uniformes** sur terrain/toitures/arbres/rochers/proxies d'horizon, sans reconstruction de terrain.
+- Précipitations pluie/neige en **instances locales limitées à la caméra**, vent commun au shader d'herbe/arbres et aux nuages ; aucun calcul par goutte/flocon sur CPU.
+- **Ombres** : uniquement grands objets et proches/essentiels, **1 shadow map solaire locale (512² ou 1024² à mesurer)** en qualité normale, mode minimum **OFF**, herbes et objets éloignés exclus, lune et lanternes sans shadow map par défaut.
+- Ombres à actualiser suivant caméra/casters/soleil, **pas à fréquence arbitraire de 2 Hz** si joueur en mouvement ; stabiliser le mouvement de la shadow map.
+- **Fog autorisé seulement comme météo** ; toujours interdit pour cacher les limites du terrain et les trous de LOD.
+- Adapter particules, nuages, puis ombres avant d'amputer la silhouette de l'horizon ou la stabilité du temps logique.
+- **Cibles d'essai hors ombres** : CPU < 0,2 ms/frame, GPU < 1 ms/frame, 1–4 draw calls météo, 1–4 Mio GPU ; non mesurées. **Ombres** à benchmarker et comptabiliser **séparément**.
+
 ## 3. Rendu 3D
 
 - Three.js/WebGL2, **peu de matériaux**, éclairage simple, limiter les ombres portées dynamiques et la transparence.
