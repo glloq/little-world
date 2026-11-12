@@ -188,6 +188,25 @@
 
 **Contrat technique et jalons WAT-0…WAT-7 :** [21 — Eau, hydrographie et LOD](21-WATER-HYDROLOGY-LOW-RESOURCE.md). Ces règles ne constituent **pas** une preuve de code livré.
 
+## VALIDÉ — PERF transversal : arbitrage global CPU/GPU/RAM/streaming
+
+| ID | Décision |
+| --- | --- |
+| **PERF-D01** | **ResourceBudgetManager unique** : faire évoluer `PresentationBudget` existant, conserver `FrameClock` ; aucune double boucle de qualité |
+| **PERF-D02** | Observabilité honnête : p50/p95/p99, longs frames, **CPU simulation/update/soumission**, appels, caches ; **temps JS WebGL ≠ temps GPU** |
+| **PERF-D03** | Mesure GPU asynchrone **seulement si supportée et valide** ; mémoire GPU **estimée** via registre de ressources, jamais présentée comme mesure matérielle exacte |
+| **PERF-D04** | Budgets globaux versionnés et **consommateurs modulaires** (terrain, GLB, herbe, eau, ombres, météo, PNJ, audio, Studio) avec minima gameplay non dégradables |
+| **PERF-D05** | Profils **Auto/Éco/Équilibré/Qualité**, baisse progressive et restauration lente avec hystérésis ; résolution adaptative, 20 FPS présentation en dernier recours, simulation 30 Hz indépendante |
+| **PERF-D06** | LOD par **taille/erreur projetée**, importance, caméra, planage et préchargement spatial ; préserver îles, montagnes, côtes et océan visibles **sans fog-cache** |
+| **PERF-D07** | **ResourceRegistry** : partage/ownership GLB, géométries et textures, cache borné en **octets estimés**, refcounts, éviction non active, test context loss |
+| **PERF-D08** | **WorkScheduler** : files de priorités, quota CPU par frame et uploads bornés, préchargement directionnel, annulation/versions, fallback visuel et zéro rebuild massif |
+| **PERF-D09** | **Studio** : rendu à la demande si idle, traitement différé des imports/compilations et conservation des propriétés V3 indépendamment de la qualité locale |
+| **PERF-D10** | Panneau bêta Ressources : métriques, causes d'adaptation, inspection LOD/caches/queues, tests forcés, export JSON de scénario |
+| **PERF-D11** | Benchmarks comparables avec/sans adaptation, p95/p99, longues traversées, mémoire, océans plein écran, scènes couplées et matériel GPU réel, pas seulement SwiftShader |
+| **PERF-D12** | **Cibles non garanties** : 30 FPS nominal/20 secours, 10×10 km plafond de format, RAM/VRAM/draw calls ajustés **uniquement après mesures** ; conserver gameplay et vues lointaines |
+
+**Spécification, interfaces et plan PERF-0…PERF-9 :** [22 — ResourceBudgetManager](22-RESOURCE-BUDGET-MANAGER.md). L'implémentation du manager et ses gains restent **à qualifier**, même si des bases d'adaptation existent déjà.
+
 ## PROPOSÉ — technique
 
 | ID | Choix | Réévaluation |
