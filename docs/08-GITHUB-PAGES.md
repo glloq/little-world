@@ -101,6 +101,16 @@ Voir [21 — Eau, réseau et LOD](21-WATER-HYDROLOGY-LOW-RESOURCE.md). Les sourc
 
 Aucun serveur n'est requis pour la bêta solo, aucun programme externe de simulation de fluide, et **aucune réflexion multi-passes** obligatoire côté navigateur. Les bugs de chemin sous `/little-world/`, de raccords d'eau inter-secteurs et de géométrie océan dessinée sur les îles font partie du préflight de publication.
 
+## Contrôle des performances du build statique (PERF)
+
+Le [document 22 — ResourceBudgetManager](22-RESOURCE-BUDGET-MANAGER.md) introduit un **pilotage local des budgets** : aucune logique ou télémétrie ne nécessite de serveur en jeu solo.
+
+- Build public : versions LOD/proxies/GLB et manifestes de secteurs pour **streaming directionnel**, sans tout télécharger dès le spawn ; sources `.blend` et archives auteur exclues du runtime.
+- `ResourceBudgetManager` choisit rendu adapté au GPU actuel ; **qualité enregistrée en préférences locales**, jamais dans le format carte ou ses ressources serveur.
+- Préserver le déploiement sous le `BASE_URL` Vite de Pages et tester navigateur sur GPU matériel ; le temps de préparation SwiftShader n'est pas un benchmark réel.
+- Éviter de charger des décodeurs/worker/ressources supplémentaires non utilisés avant preuve de gain ; tests du cache après changement de carte, imports et retours d'onglet.
+- L'export JSON des mesures est **facultatif et local**, pas une remontée d'informations à GitHub.
+
 ## Limites et décisions
 
 - GitHub Pages est adapté au **jeu solo** : la logique de mouvement et d'interaction s'exécute sur le PC du joueur.
