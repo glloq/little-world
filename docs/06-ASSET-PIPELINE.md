@@ -129,3 +129,20 @@ Les URL `example.invalid` et noms inventés sont de simples exemples et **interd
 Le modèle et le rig rigide originaux évitent une dépendance à un personnage tiers de provenance incertaine. Le travail restant porte surtout sur la déformation skinnée, la finesse des animations, le coût de rendu et la revue artistique. La présence du GLB exporté ne signifie pas que le jeu utilise un personnage skinné.
 
 Ne pas stocker des packs lourds complets par défaut. Introduire Git LFS seulement si besoin mesuré et ne pas inclure de secrets ou de ressources privées dans le build public.
+
+## Besoins de la version finale : personnages, créatures et Studio
+
+Le périmètre approuvé est **sans personnages humains**. Prévoir un système de variantes de personnages animaux / créatures à partir du modèle et du rig du joueur **lorsque la morphologie le permet** :
+
+- Variables visuelles : taille/proportions, oreilles, queue, couleurs, accessoires, expressions, voix/sons stylisés.
+- Rig/animations communs pour humanoïdes animaux compatibles ; rigs spécialisés pour poissons, oiseaux et animaux à morphologies différentes.
+- Animations réutilisables pour locomotion, repos, salutation, travail, dialogue, nage/planage et réactions.
+- Catalogue unifié entre le jeu et **plusieurs éditeurs spécialisés** (objets/bâtiments, personnages, biotopes, dialogues/actions), avec prévisualisation et identifiants stables.
+- Import GLB, animations et sons dans le Studio, métadonnées licence/provenance et validation avant publication.
+- Familles écologiques low-poly : arbres, herbes, fleurs, plantes aquatiques, algues, poissons, insectes, oiseaux, ruines, maisons et mécanismes.
+- Variantes et instancing par secteur pour une **carte continue jusqu'à 10 × 10 km maximum**, sans précharger l'ensemble.
+- Ne pas construire un modeleur généraliste, un éditeur de squelette/UV ou un éditeur de shaders complet dans le navigateur.
+
+L'éditeur doit offrir un moyen clair d'ajouter un prefab **et de vérifier immédiatement ses animations, points d'attache, collisions et interactions**, mais les ressources ne sont mises en ligne que par build du dépôt.
+
+Références : [12 — Périmètre](12-PROJECT-SCOPE.md) et [13 — Little World Studio](13-STUDIO-UX-ARCHITECTURE.md). Ces outils sont **à développer**, pas déjà disponibles.
