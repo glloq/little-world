@@ -164,6 +164,16 @@ Ce sont des **produits du compilateur**, pas des états persistants du gameplay.
 
 **Impact de l'édition :** une sculpture de relief peut invalider le proxy terrain et la silhouette de forêt de plusieurs secteurs voisins, mais pas la totalité du monde ; l'index de dépendances V3 doit le savoir.
 
+## Cas particulier : herbes courtes/hautes sans brouillard ni masse géométrique
+
+La [spécification 18 — Herbes ultra-low-resource](18-GRASS-LOW-RESOURCE.md) précise le rendu de végétation basse :
+
+- **Herbe courte** visuellement intégrée au sol du biome, sans maillage individuel à distance.
+- **Herbe haute** en touffes 3D opaques uniquement proches, basculant progressivement vers les couleurs de sol/masses de végétation déjà représentées par terrain et proxies.
+- Aucune vue de prairie ne doit nécessiter d'étendre les chunks détaillés ou d'activer du fog pour masquer l'arrêt des touffes.
+- Le budget de l'herbe est **subordonné au paysage d'horizon** ; la réduction de densité ou `groundOnly` ne doit pas effacer les lignes de crête, îles et côtes.
+- Toute animation de vent/réaction est purement locale, décorative et désactivable.
+
 ## 9. Tests et portes de qualification
 
 **Scènes à couvrir :**
