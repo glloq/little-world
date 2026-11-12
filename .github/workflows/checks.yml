@@ -1,0 +1,35 @@
+name: Validate Little World
+on:
+  pull_request:
+  push:
+    branches-ignore: [main]
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm test
+      - run: npm run compile:map -- maps/default.json public/maps/default.json
+      - run: git diff --exit-code -- public/maps
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - name: Browser authoring and play smoke
+        run: |
+          npm run preview -- --host 127.0.0.1 --port 5173 --strictPort > /tmp/little-world-preview.log 2>&1 &
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:5173/little-world/ > /dev/null; then break; fi
+            sleep 1
+          done
+          npm run test:browser
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: browser-artifacts
+          path: /tmp/little-world-browser
