@@ -174,6 +174,15 @@ Le [document AUD 23](23-MIDI-AUDIO-LOW-RESOURCE.md) conserve la forêt comme **b
 - Les sons musicaux d'ambiance exploitent **5–10 patches MIDI communs** via séquenceur et synthétiseur partagés. Les bruitages naturels utilisent des samples/loops si moins coûteux.
 - Le `AudioBudgetManager` plafonne voix et mémoire sous PERF, indépendamment de la densité de végétation et du nombre d'instances GPU.
 
+## Entrées de mines, biotopes et végétation de surface
+
+Les [mines 2,5D localisées](24-MINES-MULTILEVEL-LOW-RESOURCE.md) n'exigent **aucune végétation 3D par cellule sous-terre**.
+
+- Une **entrée de mine** ou ouverture locale masque/exclut l'herbe, les petits objets et les arbres de son emprise, comme une entrée de grotte, selon sources V3 et masques d'exclusion.
+- L'excavation **à l'intérieur** des mines ne doit **pas** invalider les biotopes ou champs d'herbe de toute la carte ; seule une **ouverture surface autorisée** peut modifier une petite zone de végétation.
+- Galeries souterraines utilisent des **assets GLB de cristaux/roches** et couleurs de sommet, non la génération d'herbe de surface.
+- Le budget PERF arbitre les deux sans mélanger caches/mesh d'une mine et cellules de végétation du heightfield.
+
 ## 8. Tests et validation
 
 **Scènes et variantes :**
