@@ -1,34 +1,41 @@
 # 06 — Bibliothèque d'assets et pipeline d'import
 
-Statut : **stratégie approuvée ; aucun asset tiers encore importé**.
+**Statut : spécification de catalogue statique ; aucun asset 3D tiers encore importé.**
 
-## Objectif
+## Objectif V1
 
-Fournir **plusieurs assets disponibles directement dans le dépôt**, classés, documentés, visibles dans l'éditeur et progressivement enrichis sans casser les scènes existantes.
+Disposer de **plusieurs assets 3D utilisables directement depuis le dépôt et son build GitHub Pages** : fichiers locaux, organisés, vérifiés et progressivement enrichis.
 
-Le catalogue est **une dépendance stable du jeu**, pas une collection informelle de fichiers `.glb`.
+Le navigateur ne dépend ni d'un CDN ni d'une API pour afficher les ressources de base. **Le site public sera mis à jour par nouveau build** lorsqu'un asset est ajouté.
 
-## Règles de licence pour le dépôt public
+## Règles de licence
 
-1. **Priorité au CC0 et aux créations originales** dont les droits permettent la publication dans le dépôt.
-2. Une ressource étiquetée « gratuite » n'est **pas nécessairement redistribuable** ; vérifier chaque pack/fichier avant commit.
-3. Conserver auteur, URL source exacte, date de récupération, licence, lien vers la licence et modifications.
-4. Ne pas importer de modèles payants/propriétaires dans le dépôt public sans autorisation explicite.
-5. Ne pas confondre inspiration d'ambiance et copie d'œuvres protégées : personnalité artistique originale.
-6. Aucune licence du **code du projet** n'a encore été choisie ; elle est indépendante des licences des assets.
+- Préférer **CC0 et créations originales** avec droit de redistribution dans le **dépôt public** et dans le site publié.
+- « Gratuit », « gratuit pour usage personnel » et « utilisable dans un jeu » ne signifient pas forcément **redistribuable séparément**.
+- Vérifier chaque pack et fichier avant l'import ; enregistrer auteur, source exacte, licence, date et transformations.
+- Aucun contenu propriétaire/acheté ni source Blender ne doit être commité sans droit explicite de redistribution.
+- Les modèles doivent être originaux ; l'ambiance d'animation est une référence stylistique, pas un droit de copier des personnages.
+- La licence du **code** sera décidée séparément.
 
-Sources possibles à évaluer **pack par pack** (aucun téléchargement acté) :
-- https://quaternius.com/
-- https://kenney.nl/assets
+Catalogues possibles à examiner **modèle par modèle** : https://quaternius.com/ et https://kenney.nl/assets. **Aucun asset de ces sites n'est déclaré importé.**
 
-Le contrôle doit porter sur **l'asset exact**, pas sur la réputation générale du fournisseur.
+## Format et conventions
 
-## Répartition proposée
+- Runtime : **GLB** (glTF binaire), chargeable par `GLTFLoader`.
+- Origine et dimensions documentées ; **mètres**, axe vertical **Y**, pivots explicites.
+- Modèles et textures simples, palette cohérente, minimum de matériaux.
+- Collision simple par défaut, spécialisée seulement si nécessaire.
+- Animations nommées : repos, marche, course, saut, chute, planage, nage, plongée pour l'écureuil.
+- Roue du moulin, portes et leviers : pivots précis et géométries séparées.
+- Chaque asset reçoit un identifiant stable, une catégorie, un fichier source et une miniature.
+- Les fichiers GLB/WASM/assets sont référencés par des URL compatibles avec **`/little-world/`**, jamais par une racine `/assets` codée en dur.
+
+## Organisation cible
 
 ```text
 assets/
 ├── README.md
-├── registry.json                 # Généré/validé plus tard
+├── registry.json         # Créé au premier import validé
 ├── characters/flying-squirrel/
 ├── nature/trees/
 ├── nature/rocks/
@@ -42,92 +49,58 @@ assets/
 └── audio/
 ```
 
-Convention : noms minuscules `kebab-case`, **identifiants pérennes**, version indépendante du chemin disque. Ne pas remplacer silencieusement un ID dont la collision ou l'échelle change.
+`registry.json` ne listera **que des fichiers réellement présents** et validés, jamais des placeholders.
 
-## Premier lot visé (environ 20–30 modèles utiles)
+## Premier lot visé (20–30 assets, objectif non livré)
 
-| Groupe | Inventaire prioritaire |
-| --- | --- |
-| Personnage | **Un écureuil volant original**, squelette compatible avec marche, course, saut, chute, planage, nage, plongée |
-| Nature | Plusieurs silhouettes d'arbres, buissons, rochers, herbes / fleurs, souches |
-| Architecture | Moulin, **roue séparée et animable**, petite maison, grange, pont |
-| Port | Ponton, petit bateau, tonneaux, caisses, poteaux |
-| Interactions | Levier, vanne, porte, coffre, panneau, lanterne |
+- Écureuil volant (modèle original avec rig, ou **proxy documenté** d'abord).
+- Quelques variantes d'arbres, rochers, buissons, herbes et fleurs.
+- Moulin avec roue distincte, maison, grange, pont.
+- Ponton, barque, caisse, tonneau, amarrage.
+- Porte, vanne, levier, coffre, lanterne, panneau.
 
-**Un lot annoncé n'est pas un lot disponible** : `registry.json` ne devra contenir que des entrées validées et réellement présentes.
+## Pipeline
 
-## Formats et standards
+1. Sélectionner/importer localement un fichier ou un pack explicitement autorisé.
+2. Vérifier provenance, licence et droit de **redistribution publique**.
+3. Valider format, orientation, échelle, pivots, animations et textures.
+4. Mesurer triangles, matériaux, textures, tailles et limites.
+5. Harmoniser/optimiser sans détruire les sources autorisées.
+6. Créer miniature, collider simple et métadonnées.
+7. Mettre à jour le manifeste et tests de cohérence.
+8. Ajouter le contenu qualifié au dépôt et **recompiler** le site Pages.
 
-- Runtime : **`.glb`** prioritaire (glTF binaire).
-- Sources : `.blend` ou autre **uniquement si licence adaptée** et nécessité de maintenance.
-- Coordonnées unifiées : **mètres**, axe vertical **Y**, conventions d'orientation documentées pour les personnages/objets.
-- Pivot logique explicite, important pour roues, portes, leviers, bateaux et animations.
-- Couleurs, palette et matériaux harmonisés ; textures légères, atlas si utile.
-- Collision : collider automatique très simple ou volumes spécifiques, **pas de collision détaillée par défaut**.
-- Prévisualisation : miniature générée, dimensions, nombre de triangles, matériaux, animations.
-- Instancing possible pour arbres/roches ; ne pas rendre chaque objet unique sans raison.
-
-## Métadonnées minimales proposées
-
-Exemple **illustratif**, non encore implémenté :
+Exemple informatif d'entrée de manifeste (non importée) :
 
 ```json
 {
   "schemaVersion": 1,
   "id": "nature.tree.oak-a",
-  "version": 1,
   "category": "nature/trees",
-  "name": "Chêne stylisé A",
   "file": "nature/trees/oak-a.glb",
-  "thumbnail": "nature/trees/oak-a.webp",
-  "source": {
-    "author": "A DEFINIR",
-    "url": "https://exemple.invalid/source-exacte",
-    "license": "CC0-1.0",
-    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/"
-  },
-  "geometry": {
-    "units": "m",
-    "upAxis": "Y",
-    "pivot": "base-center"
-  },
-  "collision": {
-    "kind": "trunk-capsule"
-  },
-  "tags": ["tree", "forest", "instanced"],
-  "animations": []
+  "license": "CC0-1.0",
+  "sourceUrl": "https://example.invalid/model-to-be-verified",
+  "pivot": "base-center",
+  "units": "m",
+  "tags": ["tree", "forest"]
 }
 ```
 
-`exemple.invalid` et les champs fictifs sont **des placeholders** : ils ne doivent pas être copiés tels quels dans un registre publié.
+Les URL `example.invalid` et noms inventés sont de simples exemples et **interdits dans un registre publié**.
 
-## Pipeline d'import envisagé
+## Qualification
 
-1. Déposer l'asset **dans une zone d'import provisoire**.
-2. Vérifier **source, licence et possibilité de redistribution** ; refuser l'import si provenance inconnue.
-3. Vérifier le format, l'unité, l'orientation, les pivots et animations.
-4. Calculer les limites, triangles, matériaux, textures et taille.
-5. Harmoniser l'apparence et optimiser **sans détruire le fichier original autorisé**.
-6. Générer miniature, collision par défaut et manifeste.
-7. Valider automatiquement les contraintes et les identifiants.
-8. Publier dans `assets/` et rendre l'élément immédiatement accessible dans l'éditeur.
+- Fichier présent, path valide après build GitHub Pages.
+- Loader GLB sans erreur navigateur.
+- Licence/source contrôlées.
+- Taille, orientation, palette et collision cohérentes.
+- Aperçu et recherche dans l'éditeur.
+- Animations disponibles si la fiche les annonce.
+- Scène rechargée retrouvant la même référence par ID.
+- Asset absent ou incompatible = erreur claire, jamais chargement silencieux d'une URL tierce.
 
-Toute conversion destructrice devra être reproductible et documentée. Les scènes sauvegardées référencent **un ID d'asset**, jamais un index de tableau ou un nom d'affichage susceptible de changer.
+## Risque principal
 
-## Gestion de taille du dépôt
+Il peut être difficile de trouver un **écureuil volant quadrupède avec membrane et animations aquatiques** sous une licence compatible. Planifier la création du modèle et du rig originaux ; commencer par un proxy jouable pendant le développement.
 
-Ne pas importer des packs complets inutiles. Conserver d'abord les **GLB optimisés** et leurs crédits ; n'ajouter les sources lourdes que si elles sont utiles et licites. Examiner Git LFS seulement si la taille réelle le justifie.
-
-## Critères de qualification d'un asset
-
-- Présent physiquement, s'ouvre sans erreur avec le loader.
-- Licence et provenance vérifiées.
-- Échelle, orientation et pivot corrects.
-- Budget graphique compatible avec la catégorie.
-- Collider et animation fonctionnels si requis.
-- Visible et sélectionnable dans le catalogue éditeur.
-- Références stables après sauvegarde et rechargement d'une scène.
-
-## Dépendance structurante : écureuil volant
-
-Les assets tiers risquent de ne pas fournir de modèle qui possède exactement un squelette quadrupède, une membrane de planage et les animations de nage/plongée. **Prévoir de produire ce personnage original** plutôt que de forcer une rig d'animal générique. Commencer avec un proxy animé simple jusqu'à qualification de la version artistique.
+Ne pas stocker des packs lourds complets par défaut. Introduire Git LFS seulement si besoin mesuré et ne pas inclure de secrets ou de ressources privées dans le build public.
