@@ -168,6 +168,18 @@ La [spécification 23](23-MIDI-AUDIO-LOW-RESOURCE.md) définit **5–10 patches 
 
 **Gates AUD-0…AUD-8** : audio engine → MIDI → synth/voice pool → sample player → spatial/ambience → budgets PERF → UI/ZIP Studio → qualification matérielle.
 
+## Campagne MINE — coût de creusement 2,5D et streaming des galeries
+
+**Contrat de test :** [24 — Mines 2,5D, minerais/cristaux, serveur futur](24-MINES-MULTILEVEL-LOW-RESOURCE.md). L'architecture de départ est **grille excavable par étage**, non voxels mondiaux.
+
+- **MINE-0** compare **mêmes trois étages/galeries/ressources** en grille 2,5D, modules GLB et voxel 3D **strictement local**, pour valider les gains et les limites artistiques.
+- Mesures avant/après **1/10/100 excavations**, changement de chunk et d'étage : CPU **création de mesh**, collision/nav, uploads GPU, p50/p95/p99, taille buffers et mémoire estimée, draw calls/triangles.
+- Scénarios de charge : 3→8 étages, une mine de 80×80 m vs plusieurs mines dispersées, déplacement rapide, entrée/sortie/retour, longue session, recharge et import presets Blender.
+- **Grille 32×32 à 1 m/cellule** : **1 Kio brut** pour un champ octet, mais **pas** le coût total (états, filons, meshes, overhead GPU, caches, collision).
+- Mesurer **snapshots/deltas** réseau (futurs) et commandes doublées/résynchronisées ; garder la récolte correcte quand 2 joueurs demandent la même cellule. CPU/latence serveur **non mesurables sans serveur réel**, simuler uniquement les invariants de logique d'abord.
+- Tester sur **GPU intégré réel** : 30 FPS nominal/20 secours, sans éteindre la collision/collecte ; culling galeries hors vue, éclairage faible, textures minimales et pas de mesh par cube.
+- Coûts de remeshing doivent être gouvernés par `WorkScheduler` / `ResourceBudgetManager`, jeu logique prioritaire, fallback visuel temporaire en cas de travail différé.
+
 ## Suite prioritaire
 
 1. Réduire les appels du personnage et regrouper les sous-meshes statiques par matériau/articulation, puis mesurer sur les mêmes scènes.
