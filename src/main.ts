@@ -2,7 +2,9 @@ import * as THREE from 'three';
 import './style.css';
 import { addPlacement, buildWorld, configureScene, type AssetId, type Placement, type WorldConfig } from './world';
 import catalogue from '../assets/catalog.json';
-import { buildSquirrel, MAX_OXYGEN, simulatePlayer, spawnPlayer, type Controls } from './player';
+import { MAX_OXYGEN, simulatePlayer, spawnPlayer, type Controls } from './player';
+import { buildSquirrel } from './squirrel';
+import { createCustomizationMenu } from './customization-menu';
 import { cameraSubmerged, clamp, terrainHeight } from './terrain';
 import { nearBoat, nearDock, spawnBoat, updateBoat, waterDisembarkPoint, BOAT_DOCK } from './boat';
 
@@ -71,6 +73,10 @@ scene.add(world.root);
 const player=spawnPlayer();
 const squirrel=buildSquirrel();
 scene.add(squirrel.group);
+const customization=createCustomizationMenu(
+  document.querySelector<HTMLElement>('#appearance-menu')!,
+  appearance=>squirrel.setAppearance(appearance)
+);
 const boat=spawnBoat();
 let aboard=false;
 world.boat.position.set(boat.x,boat.y,boat.z);
@@ -92,6 +98,10 @@ window.addEventListener('resize',resize);
 resize();
 function codeHeld(...codes:string[]):boolean{return codes.some(c=>keySet.has(c));}
 function input():Controls{
+  if(customization.isOpen)return {
+    forward:0,right:0,run:false,jumpPressed:false,spaceHeld:false,
+    dive:false,cameraYaw:yaw
+  };
   return {
     forward:Number(codeHeld('KeyW','KeyZ','ArrowUp'))-Number(codeHeld('KeyS','ArrowDown')),
     right:Number(codeHeld('KeyD','ArrowRight'))-Number(codeHeld('KeyA','KeyQ','ArrowLeft')),
@@ -101,7 +111,25 @@ function input():Controls{
     cameraYaw:yaw
   };
 }
+function isMenuKey(e:KeyboardEvent):boolean {
+  return e.key.toLowerCase()==='a' && !e.altKey && !e.ctrlKey && !e.metaKey;
+}
+function resetCameraDrag():void {
+  draggingCamera=false;
+  dragPointerId=null;
+  renderer.domElement.classList.remove('dragging-camera');
+}
 window.addEventListener('keydown',e=>{
+  // Read the typed character: AZERTY 'A' is physically KeyQ, QWERTY 'A' is KeyA.
+  if(isMenuKey(e)){
+    e.preventDefault();
+    if(started){
+      customization.open();resetCameraDrag();
+      keySet.delete(e.code);jumpQueue=0;actionQueue=0;
+    }
+    return;
+  }
+  if(customization.isOpen)return;
   if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault();
   if(e.repeat)return;
   keySet.add(e.code);
@@ -110,10 +138,9 @@ window.addEventListener('keydown',e=>{
   if(e.code==='KeyR'&&started){
     const reset=spawnPlayer();player.position.copy(reset.position);player.velocity.set(0,0,0);
     aboard=false;player.mode='ground';player.oxygen=MAX_OXYGEN;player.glideReady=false;
-    updateCamera(1); // Snap camera across long-distance debug teleports.
+    updateCamera(1);
     showInfo('Retour au point de départ');
   }
-  // Prototype navigation shortcut: reach the harbor without walking the full 600 m.
   if(e.code==='KeyP'&&started){
     aboard=false;player.position.set(-23,1.35,217);player.velocity.set(0,0,0);
     player.mode='air';player.glideReady=false;
@@ -121,24 +148,44 @@ window.addEventListener('keydown',e=>{
     showInfo('Port : approchez du bateau et appuyez sur E');
   }
 });
-window.addEventListener('keyup',e=>keySet.delete(e.code));
-window.addEventListener('blur',()=>{keySet.clear();jumpQueue=0;});
-window.addEventListener('mousemove',e=>{
-  if(document.pointerLockElement===renderer.domElement){
-    yaw-=e.movementX*.00235;
-    pitch=clamp(pitch-e.movementY*.00185,-.12,1.03);
-  }
+window.addEventListener('keyup',e=>{
+  if(isMenuKey(e))customization.close();
+  keySet.delete(e.code);
 });
-renderer.domElement.addEventListener('click',()=>{
-  if(started&&document.pointerLockElement!==renderer.domElement)void renderer.domElement.requestPointerLock();
+window.addEventListener('blur',()=>{
+  keySet.clear();jumpQueue=0;actionQueue=0;
+  customization.close();resetCameraDrag();
 });
+let draggingCamera=false;
+let dragPointerId:number|null=null;
+let lastMouseX=0,lastMouseY=0;
+renderer.domElement.addEventListener('pointerdown',e=>{
+  if(!started||customization.isOpen||e.button!==0)return;
+  draggingCamera=true;dragPointerId=e.pointerId;
+  lastMouseX=e.clientX;lastMouseY=e.clientY;
+  renderer.domElement.classList.add('dragging-camera');
+  renderer.domElement.setPointerCapture(e.pointerId);
+  e.preventDefault();
+});
+renderer.domElement.addEventListener('pointermove',e=>{
+  if(!draggingCamera||dragPointerId!==e.pointerId)return;
+  if(!(e.buttons&1)){resetCameraDrag();return;}
+  const dx=e.clientX-lastMouseX,dy=e.clientY-lastMouseY;
+  lastMouseX=e.clientX;lastMouseY=e.clientY;
+  yaw-=dx*.00315;
+  pitch=clamp(pitch-dy*.0024,-.12,1.03);
+});
+renderer.domElement.addEventListener('pointerup',e=>{
+  if(e.pointerId===dragPointerId)resetCameraDrag();
+});
+renderer.domElement.addEventListener('pointercancel',resetCameraDrag);
+renderer.domElement.addEventListener('lostpointercapture',resetCameraDrag);
 renderer.domElement.addEventListener('wheel',e=>{
   distance=clamp(distance+Math.sign(e.deltaY)*1.0,7,25);
 },{passive:true});
 start.addEventListener('click',()=>{
   started=true;
   overlay.classList.add('hide');
-  void renderer.domElement.requestPointerLock();
 });
 function showInfo(text:string){
   infoUntil=elapsed+3.3;message.textContent=text;message.classList.remove('hide');
