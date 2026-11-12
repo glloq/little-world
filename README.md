@@ -158,6 +158,7 @@ docs/                       # Conception, objectifs et registre de décisions
 - [Blender ↔ Studio : GLB, création de presets, import/export de scènes et de cartes complètes](docs/20-BLENDER-STUDIO-INTERCHANGE.md)
 
 - [PERF : ResourceBudgetManager, budgets communs, métriques, mémoire, streaming et qualité adaptative](docs/22-RESOURCE-BUDGET-MANAGER.md)
-- [Audio LOW-RESOURCE : 5 à 10 instruments MIDI, synthétiseur Web Audio, échantillons et budgets](docs/23-MIDI-AUDIO-LOW-RESOURCE.md)- [Eau LOW-RESOURCE : rivières en pente, lacs, cascades, plongée et océan LOD](docs/21-WATER-HYDROLOGY-LOW-RESOURCE.md)
+- [Audio LOW-RESOURCE : 5 à 10 instruments MIDI, synthétiseur Web Audio, échantillons et budgets](docs/23-MIDI-AUDIO-LOW-RESOURCE.md)
+- [Mines LOW-RESOURCE : galeries creusables 2,5D, niveaux superposés, filons et synchronisation future](docs/24-MINES-MULTILEVEL-LOW-RESOURCE.md)- [Eau LOW-RESOURCE : rivières en pente, lacs, cascades, plongée et océan LOD](docs/21-WATER-HYDROLOGY-LOW-RESOURCE.md)
 
 **Licence de code :** à définir. Les premiers GLB ont été créés spécifiquement pour Little World ; aucun asset tiers n'est incorporé à ce stade.
