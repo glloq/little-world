@@ -128,6 +128,20 @@ Un rapport doit distinguer **échange géométrique Blender (non exhaustif côt�
 8. Mesurer GPU/CPU/p95/p99 + draw calls + overdraw alpha, **avec/sans eau**, y compris mer plein écran et profil ultra-économique.
 9. Export/import ZIP V3 garde IDs, tronçons, cascades, niveaux et liens ; compatibilité ancien volume V2 sans destruction des retouches.
 
+## Plan de tests PERF — gestionnaire global de ressources
+
+**Plan futur, pas mesure déjà réalisée :** [22 — ResourceBudgetManager et gates PERF-0…PERF-9](22-RESOURCE-BUDGET-MANAGER.md).
+
+1. Un seul système de qualité gouverne `FrameClock` et DPR/LOD ; **30/20 FPS ne change pas les 30 Hz de simulation**. Tester oscillations autour des seuils, surcharge 3 s, restauration 12 s, retour d'onglet, redimensionnement.
+2. CPU JS `renderer.render` **n'est pas étiqueté GPU** ; timer GPU WebGL2 absent/disjoint affiche `non disponible`, pas 0 ; p50/p95/p99 et longues frames correctement collectés.
+3. **Scènes fixes** : forêt + écureuil/PNJ, village GLB répétitif, océan plein écran, cascade, plage/nage, horizon îles/montagnes, nuit/orage, planage et bateau rapide. Caméra/seed/résolution identiques pour comparaison.
+4. Plusieurs mouvements de caméra/retours/téléportations → tâches prioritaires et prefetch, **aucun chunk critique absent**, pas de compilation synchrone incontrôlée, LOD stable sans pop sévère.
+5. **Ressources** : 100 clones d'un GLB puis suppression partielle/totale, import/export répétés dans Studio, limite de cache et mémoire estimée ; pas de dispose prématuré ni fuite prolongée.
+6. **Mode éco** : herbes/ombres/water FX cosmétiques retirés mais sources, volumes, interactions, PNJ logique et **silhouettes lointaines** maintenus.
+7. Profil Auto/Éco/Équilibré/Qualité et mode debug forçage, import V3 sur autre appareil, même monde mais qualité propre à l'appareil.
+8. Tests navigateur **SwiftShader pour régression**, puis vrais PC GPU intégré Firefox/Chromium pour qualification ; aucune conclusion GPU réel depuis le temps CPU de soumission.
+9. **Studio inactif** ne doit pas rendre en boucle par défaut après implémentation du mode idle ; manipulation reste réactive, annulation et save préservés.
+
 ## Scénarios futurs — Studio complet et jeu final (non implémentés)
 
 Cette liste est un **plan d'acceptation pour la prochaine architecture**, et non un compte-rendu de tests réussis :
