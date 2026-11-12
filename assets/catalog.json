@@ -1,12 +1,54 @@
 {
   "schemaVersion": 1,
-  "description": "Prefabs procéduraux originaux, livrés avec le code source. Aucun GLB externe importé à ce stade.",
+  "description": "Original lightweight assets: GLB files for pine, rock and crate; other prefabs are generated in TypeScript. All shipped locally with the site.",
   "assets": [
-    { "id": "nature.pine", "name": "Sapin", "category": "Nature", "type": "procedural", "license": "project-original" },
-    { "id": "nature.oak", "name": "Arbre feuillu", "category": "Nature", "type": "procedural", "license": "project-original" },
-    { "id": "nature.rock", "name": "Rocher", "category": "Nature", "type": "procedural", "license": "project-original" },
-    { "id": "architecture.cottage", "name": "Maison de vallée", "category": "Bâtiments", "type": "procedural", "license": "project-original" },
-    { "id": "props.crate", "name": "Caisse en bois", "category": "Objets", "type": "procedural", "license": "project-original" },
-    { "id": "props.lantern", "name": "Lanterne", "category": "Objets", "type": "procedural", "license": "project-original" }
+    {
+      "id": "nature.pine",
+      "name": "Sapin",
+      "category": "Nature",
+      "type": "glb",
+      "license": "project-original",
+      "file": "models/pine.glb",
+      "source": "Little World original generated low-poly geometry"
+    },
+    {
+      "id": "nature.oak",
+      "name": "Arbre feuillu",
+      "category": "Nature",
+      "type": "procedural",
+      "license": "project-original"
+    },
+    {
+      "id": "nature.rock",
+      "name": "Rocher",
+      "category": "Nature",
+      "type": "glb",
+      "license": "project-original",
+      "file": "models/rock.glb",
+      "source": "Little World original generated low-poly geometry"
+    },
+    {
+      "id": "architecture.cottage",
+      "name": "Maison de vallée",
+      "category": "Bâtiments",
+      "type": "procedural",
+      "license": "project-original"
+    },
+    {
+      "id": "props.crate",
+      "name": "Caisse en bois",
+      "category": "Objets",
+      "type": "glb",
+      "license": "project-original",
+      "file": "models/crate.glb",
+      "source": "Little World original generated low-poly geometry"
+    },
+    {
+      "id": "props.lantern",
+      "name": "Lanterne",
+      "category": "Objets",
+      "type": "procedural",
+      "license": "project-original"
+    }
   ]
 }
