@@ -305,6 +305,19 @@ Un index de dépendances `sourceId → dependentIds` permet, par exemple :
 - Pas de token GitHub public ni de scripts importés ; publier par validation → compilation → commit Git → GitHub Actions.
 - Distinguer **données structurées du projet** et **données compilées du jeu**. Une archive source n'est pas un build publiable.
 
+## Compatibilité future avec la réplication — **ne pas la coder aujourd'hui**
+
+Le [cadrage du futur multijoueur](16-FUTURE-MULTIPLAYER.md) doit être pris en compte dans les contrats V3 **sans introduire de serveur ni de système de réseau dans le solo**.
+
+- `EntityDefinitionV3.id` stable et index mondial `entityId → type/owner/location` : base future de l'Interest Management et des abonnements.
+- `ChunkId` **définit le stockage**, pas une future autorité serveur ni la portée de visibilité ; une entité/événement peut agir hors du chunk courant.
+- `State`, `Persistence`, `InteractionDefinitionV3` : distinguer **définition auteur**, **état logique de runtime** et **données persistantes de partie**. Éviter tout état important uniquement porté par un `THREE.Object3D`.
+- `Transform` en mètres avec origine/coordonnées cohérentes, compatible avec une future **quantification relative au chunk**, sans imposer un encodage réseau maintenant.
+- `BehaviorDefinition`/scheduler et animations reposent sur des horloges indépendantes du rendu ; les PNJ dormants conservent leurs états importants.
+- Des métadonnées de réplication **facultatives** pourront être ajoutées à une version future **après benchmark**, mais **aucun champ `network` obligatoire, classe `NetworkEntity` ni dépendance socket/Colyseus** dans le V3 actuel.
+
+Le futur multijoueur utiliserait un serveur autoritaire, des abonnements AOI contextualisés, réplication adaptative du mouvement de 2 à 20 Hz, événements critiques prioritaires, LOD de foule et, si nécessaire, zones d'autorité distinctes des chunks. Ces fonctionnalités sont **hors périmètre de l'implémentation V3 solo**.
+
 ## 10. Architecture de code proposée (pas de refonte cosmétique préalable)
 
 ```text
