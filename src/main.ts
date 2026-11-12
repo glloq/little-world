@@ -31,7 +31,7 @@ const keySet=new Set<string>();
 let jumpQueue=0,actionQueue=0;
 let yaw=0,pitch=.32,distance=13.8;
 let started=false,wheelOn=true;
-let infoUntil=0,infoText='';
+let infoUntil=0;
 let last=performance.now(),accumulator=0,elapsed=0;
 let frameCount=0,fpsTime=0;
 const clockDt=1/60;
@@ -86,7 +86,7 @@ start.addEventListener('click',()=>{
   void renderer.domElement.requestPointerLock();
 });
 function showInfo(text:string){
-  infoText=text;infoUntil=elapsed+3.3;message.textContent=text;message.classList.remove('hide');
+  infoUntil=elapsed+3.3;message.textContent=text;message.classList.remove('hide');
 }
 function updateCamera(dt:number){
   const target=player.position.clone().add(new THREE.Vector3(0,1.85,0));
