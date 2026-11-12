@@ -63,6 +63,23 @@ Ce chantier vise le **jeu solo immédiatement**, et les profils de foule du **fu
 
 **Règles :** pas de physique de brin, d'ombres ni de réseau spécifique à l'herbe ; le budget de végétation est **partagé** avec arbres, faune décorative, paysage et personnages. Les objectifs **< 0,1 ms CPU / < 0,5 ms GPU** sont des hypothèses **non atteintes** tant qu'aucun benchmark ne le prouve.
 
+## Axe ENV — météo, neige, ciel étoilé, lunes et ombres locales
+
+**Cible validée, implémentation non revendiquée** : [19 — Environnement LOW-RESOURCE](19-ENVIRONMENT-WEATHER-SKY.md).
+
+| Phase | Livrable / gate |
+| --- | --- |
+| **ENV-0** | Audit lumière/fog actuels, baseline GPU, panneau de test bêta initial |
+| **ENV-1** | `WorldClock` + `EnvironmentStateSource` + accélération/pause et transition contrôlée |
+| **ENV-2** | Ciel jour/nuit, crépuscules, étoiles et **une ou plusieurs lunes à orbites/phases indépendantes** |
+| **ENV-3** | Nuages simples, vent partagé, pluie/neige visuelle locale, orages et brouillard météo |
+| **ENV-4** | **Neige persistante** par masques sur sol, arbres, rochers, toits et horizons, température/fonte/altitude |
+| **ENV-5** | **ShadowBudgetManager** : 1 shadow map solaire locale uniquement pour grands objets proches, profil Off |
+| **ENV-6** | Menu bêta et Studio : forcer temps/météo/astres/ombres, scénarios reproductibles, snapshot source simulé |
+| **ENV-7** | Benchmarks PC GPU intégré : FPS 30/20, transitions, météo, paysages lointains, ombres désactivables |
+
+**Périmètre** : implémenter le test en source locale dans la bêta, garder la même interface pour **l'autorité serveur future**, **sans créer de backend en solo**. **Ne pas introduire de météo physique lourde, de nuages volumétriques ni d'ombres lunaires**. Budgets GPU des ombres mesurés séparément de ceux des shaders/particules.
+
 ## Campagne avancée — état livré sur branche
 
 | Domaine | Avant | Après | Statut | Reste à faire |
@@ -250,7 +267,7 @@ Les jalons **M0–M6 décrivent le prototype**, pas les limites du produit final
 
 **Évolution optionnelle** : concevoir un multijoueur 10–30 joueurs avec serveur autoritaire, synchronisation, persistance et comptes. Ce n'est **ni implémenté, ni planifié pour le jeu solo actuel**. Une étude séparée devra évaluer coûts, contraintes et modifications de l'architecture solo.
 
-Fonctions hors périmètre final actuel : combat, simulation sociale/économique lourde, crafting/commerce complexes, agriculture avancée, météo complexe, éditeur de rig/polygones généraliste, mobile/manette. **PNJ, dialogues, pêche légère, collecte, petites quêtes, inventaire léger et personnalisation font désormais partie de l'objectif final** (S3–S6), pas du prototype actuel.
+Fonctions hors périmètre final actuel : combat, simulation sociale/économique lourde, crafting/commerce complexes, agriculture avancée, **simulation climatique physique complexe** (ciel et météo stylisés prévus via ENV-0…ENV-7), éditeur de rig/polygones généraliste, mobile/manette. **PNJ, dialogues, pêche légère, collecte, petites quêtes, inventaire léger et personnalisation font désormais partie de l'objectif final** (S3–S6), pas du prototype actuel.
 
 ## Définition de terminé
 
