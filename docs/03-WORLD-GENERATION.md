@@ -112,6 +112,17 @@ La [spécification 19](19-ENVIRONMENT-WEATHER-SKY.md) fixe un **état environnem
 - Les **presets de paysage** (ruines, pont, bord de marais, port, village) doivent pouvoir être importés/exportés et **repeints** dans Studio. Les végétaux instanciés restent générés par seed et recette, non dupliqués en géométries Blender.
 - Recompiler **uniquement les secteurs et index affectés** après import, modification de prefab, terrain ou biome. Préflight des tailles/collisions/liaisons/compatibilité low-poly avant publication.
 
+## Réseau d'eau compilé : relief, cascades et mer lointaine
+
+La [spécification 21](21-WATER-HYDROLOGY-LOW-RESOURCE.md) complète l'eau de la carte : **rivières tracées dans Studio** sous forme de splines avec source/exutoire, niveau automatique suivant le terrain, rapides/cascades, jonctions, lacs horizontaux et embouchure.
+
+- **WaterNetwork** est une source auteur de nœuds/segments/bassins/chutes ; **volumes de nage/courants** indépendants des rubans et LOD visuels. Une cascade possède **haut/bas** et la mer un niveau de référence.
+- Profil de pente et adaptation du lit calculés **à l'édition/compilation** sur le **terrain source avant incision du lit** ; signaler rivière ascendante, niveaux verrouillés contradictoires et jonctions invalides.
+- Rivières, berges, profondeurs, volumes, nav et masques d'écume sont recompilés **par secteurs affectés**. Les overrides auteur/IDs demeurent stables, avec Undo/Redo et migration V2 non destructive.
+- **Océan en patches et LOD0–3** : surface toujours visible au loin sans fog-cache, mais **pas de vagues/écume/transparence coûteuse au loin**. Éviter l'eau dessinée sous les îles et les seams entre chunks.
+- Vue sous-marine : visibilité, couleur et volume selon **caméra réelle**, sans second moteur; gameplay ne dépend pas du niveau de détail visuel.
+- Export ZIP V3 inclut sources hydrographiques et références ; un GLB Blender de cascade n'implique pas automatiquement un volume de nage.
+
 ## Critères techniques
 
 1. Même seed/versions/paramètres → même génération.
