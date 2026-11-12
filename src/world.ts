@@ -192,48 +192,76 @@ function createTrail(root: THREE.Group): void {
   geo.computeVertexNormals();
   mesh(geo, new THREE.MeshLambertMaterial({color:0xd3bd94,side:THREE.DoubleSide}),root,0,0,0);
 }
+/** Instancing per valley sector lets the GPU skip distant trees outside the frustum. */
 function createForest(root: THREE.Group, seed: number, density: number): void {
-  const rand = mulberry32(seed + 1743);
-  const max = Math.round(360 * density);
-  const pines: {x:number;y:number;z:number;s:number;hue:number}[] = [];
-  const oaks: typeof pines = [];
-  const rocks: typeof pines = [];
-  for (let i = 0; i < max * 2 && pines.length + oaks.length < max; i++) {
-    const x = (rand() - .5) * 183, z = -278 + rand() * 465;
-    const y = terrainHeight(x,z);
-    if (z > 170 || Math.abs(x - riverX(z)) < 17 || y < riverLevel(z) + .8) continue;
-    if (Math.abs(z + 56) < 26 && Math.abs(x - (riverX(-56) - 23)) < 25) continue;
-    if (Math.abs(z - 100) < 35 && Math.abs(x - (riverX(100) - 25)) < 29) continue;
-    const item = {x,y,z,s:.73+rand()*1.0,hue:Math.floor(rand()*foliage.length)};
-    (rand() > .40 ? pines : oaks).push(item);
+  const rand=mulberry32(seed+1743);
+  type Item={x:number;y:number;z:number;s:number;hue:number};
+  const sectors=6;
+  const buckets=Array.from({length:sectors},()=>({
+    pines:[] as Item[], oaks:[] as Item[], rocks:[] as Item[]
+  }));
+  const treeSector=(z:number)=>Math.max(0,Math.min(sectors-1,Math.floor((z+278)/465*sectors)));
+  const rockSector=(z:number)=>Math.max(0,Math.min(sectors-1,Math.floor((z+267.5)/535*sectors)));
+  const total=Math.round(360*density);
+  let count=0;
+  for(let i=0;i<total*2&&count<total;i++){
+    const x=(rand()-.5)*183,z=-278+rand()*465,y=terrainHeight(x,z);
+    if(z>170 || Math.abs(x-riverX(z))<17 || y<riverLevel(z)+.8)continue;
+    if(Math.abs(z+56)<26&&Math.abs(x-(riverX(-56)-23))<25)continue;
+    if(Math.abs(z-100)<35&&Math.abs(x-(riverX(100)-25))<29)continue;
+    const item:Item={x,y,z,s:.73+rand()*1,hue:Math.floor(rand()*foliage.length)};
+    const bucket=buckets[treeSector(z)];
+    (rand()>.40?bucket.pines:bucket.oaks).push(item);
+    count++;
   }
-  const mat4 = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3();
-  const trunkGeo = new THREE.CylinderGeometry(.33,.45,3,6);
-  const canopyGeo = new THREE.ConeGeometry(2.55,6.7,7);
-  const oakGeo = new THREE.IcosahedronGeometry(2.65,0);
-  function instances(items: typeof pines, geo: THREE.BufferGeometry, color: number, yOffset: number, sx:number, sy:number, sz:number, varyColors=false): void {
-    const m = new THREE.InstancedMesh(geo,mat(color),items.length);
-    for (let i=0;i<items.length;i++){
-      const a=items[i];p.set(a.x,a.y+yOffset*a.s,a.z);s.set(a.s*sx,a.s*sy,a.s*sz);mat4.compose(p,q,s);m.setMatrixAt(i,mat4);
-      if(varyColors)m.setColorAt(i,new THREE.Color(foliage[a.hue]));
-    }
-    m.instanceMatrix.needsUpdate=true;
-    root.add(m);
-  }
-  instances(pines,trunkGeo,0x7b6046,1.5,1,1,1);
-  instances(pines,canopyGeo,0xffffff,5.1,1,1,1,true);
-  instances(oaks,trunkGeo,0x7b6046,1.35,1,1,1);
-  instances(oaks,oakGeo,0xffffff,4.3,1.08,.85,1.08,true);
   for(let i=0;i<155;i++){
     const x=(rand()-.5)*190,z=(rand()-.5)*535,y=terrainHeight(x,z);
-    if(waterSurface(x,z)!==null || y<-1)continue;
-    rocks.push({x,y,z,s:.35+rand()*1.5,hue:Math.floor(rand()*foliage.length)});
+    if(waterSurface(x,z)!==null||y<-1)continue;
+    buckets[rockSector(z)].rocks.push({x,y,z,s:.35+rand()*1.5,hue:0});
   }
-  const rock = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1.8,0),stone,rocks.length);
-  for(let i=0;i<rocks.length;i++){
-    const a=rocks[i];p.set(a.x,a.y+.2*a.s,a.z);s.set(a.s,a.s*.6,a.s*.85);q.setFromAxisAngle(new THREE.Vector3(0,1,0),rand()*6);mat4.compose(p,q,s);rock.setMatrixAt(i,mat4);
+  const trunkGeo=geometry('forest-trunk',()=>new THREE.CylinderGeometry(.33,.45,3,6));
+  const pineGeo=geometry('forest-cone',()=>new THREE.ConeGeometry(2.55,6.7,7));
+  const oakGeo=geometry('forest-oak',()=>new THREE.IcosahedronGeometry(2.65,0));
+  const rockGeo=geometry('forest-rock',()=>new THREE.IcosahedronGeometry(1.8,0));
+  const trunkMat=mat(0x7b6046),leafMat=mat(0xffffff);
+  const dummy=new THREE.Object3D(),color=new THREE.Color();
+  function instances(items:Item[],geo:THREE.BufferGeometry,material:THREE.Material,offset:number,scaleX:number,scaleY:number,scaleZ:number,colors=false){
+    if(!items.length)return;
+    const inst=new THREE.InstancedMesh(geo,material,items.length);
+    inst.name='Vegetation sector';inst.frustumCulled=true;
+    for(let i=0;i<items.length;i++){
+      const it=items[i];
+      dummy.position.set(it.x,it.y+offset*it.s,it.z);
+      dummy.rotation.set(0,0,0);
+      dummy.scale.set(it.s*scaleX,it.s*scaleY,it.s*scaleZ);
+      dummy.updateMatrix();inst.setMatrixAt(i,dummy.matrix);
+      if(colors)inst.setColorAt(i,color.setHex(foliage[it.hue]));
+    }
+    inst.instanceMatrix.needsUpdate=true;
+    if(inst.instanceColor)inst.instanceColor.needsUpdate=true;
+    inst.computeBoundingSphere();
+    root.add(inst);
   }
-  rock.instanceMatrix.needsUpdate = true;root.add(rock);
+  for(const bucket of buckets){
+    instances(bucket.pines,trunkGeo,trunkMat,1.5,1,1,1);
+    instances(bucket.pines,pineGeo,leafMat,5.1,1,1,1,true);
+    instances(bucket.oaks,trunkGeo,trunkMat,1.35,1,1,1);
+    instances(bucket.oaks,oakGeo,leafMat,4.3,1.08,.85,1.08,true);
+    if(bucket.rocks.length){
+      const rocks=new THREE.InstancedMesh(rockGeo,stone,bucket.rocks.length);
+      rocks.name='Rocks sector';
+      for(let i=0;i<bucket.rocks.length;i++){
+        const it=bucket.rocks[i];
+        dummy.position.set(it.x,it.y+.2*it.s,it.z);
+        dummy.rotation.set(0,(i*2.399963229728653),0);
+        dummy.scale.set(it.s,it.s*.6,it.s*.85);
+        dummy.updateMatrix();rocks.setMatrixAt(i,dummy.matrix);
+      }
+      rocks.instanceMatrix.needsUpdate=true;
+      rocks.computeBoundingSphere();
+      root.add(rocks);
+    }
+  }
 }
 
 const modelPaths: Partial<Record<AssetId, string>> = {
