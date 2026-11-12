@@ -2,7 +2,19 @@
 
 **Statut : suivi du prototype initial et plan du jeu final — 12 novembre 2026.**
 
-**Documents de cadrage prioritaires :** [12 — Limites du jeu](12-PROJECT-SCOPE.md) et [13 — UX du Studio](13-STUDIO-UX-ARCHITECTURE.md). Le **200 × 600 m** des jalons M0–M6 est la carte de démonstration ; le monde final est **une carte continue de 10 × 10 km maximum**, performance à qualifier.
+**Documents de cadrage prioritaires :** [12 — Limites du jeu](12-PROJECT-SCOPE.md), [13 — UX du Studio](13-STUDIO-UX-ARCHITECTURE.md) et **[14 — Décisions techniques validées](14-TECHNICAL-CHOICES.md)**. Le **200 × 600 m** des jalons M0–M6 est la carte de démonstration ; le monde final est **une carte continue de 10 × 10 km maximum**, performance à qualifier.
+
+## Contrats techniques désormais figés
+
+Toutes les recommandations de [14 — Choix techniques](14-TECHNICAL-CHOICES.md) sont **acceptées comme cible**, sans être considérées comme livrées : heightfield multi-résolution ; Studio spécialisé + transactions communes ; rigs par familles ; PNJ à navigation libre hiérarchique et comportements simples ; horloge logique ; activités par templates ; conditions/états typés ; patrimoine de données versionné ; optimisation pour PC avec GPU intégré.
+
+**Gates supplémentaires :**
+1. Étape géographie : carte sectorisée + aperçu global 2D et édition locale sans reconstruire 100 km².
+2. Étape Studio : un geste de peinture/spline = une transaction, annulable après changement d'éditeur ; checkpoints et références stables.
+3. Étape PNJ : déplacer librement un habitant entre secteurs et autour d'obstacles avec activité simple et budget CPU borné.
+4. Étape activités : produire collecte, pêche légère, énigme et mission depuis les mêmes types d'événements/conditions/actions.
+5. Étape persistance : restaurer flags/objets/inventaire depuis différents slots de partie, sans altérer le projet auteur.
+6. Étape performance : benchmark reproductible sur PC standard à GPU intégré, **aucune garantie 30 FPS/100 km² avant résultats**.
 
 ## Campagne avancée — état livré sur branche
 
