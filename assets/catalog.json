@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "description": "Prefabs procéduraux originaux, livrés avec le code source. Aucun GLB externe importé à ce stade.",
+  "assets": [
+    { "id": "nature.pine", "name": "Sapin", "category": "Nature", "type": "procedural", "license": "project-original" },
+    { "id": "nature.oak", "name": "Arbre feuillu", "category": "Nature", "type": "procedural", "license": "project-original" },
+    { "id": "nature.rock", "name": "Rocher", "category": "Nature", "type": "procedural", "license": "project-original" },
+    { "id": "architecture.cottage", "name": "Maison de vallée", "category": "Bâtiments", "type": "procedural", "license": "project-original" },
+    { "id": "props.crate", "name": "Caisse en bois", "category": "Objets", "type": "procedural", "license": "project-original" },
+    { "id": "props.lantern", "name": "Lanterne", "category": "Objets", "type": "procedural", "license": "project-original" }
+  ]
+}
