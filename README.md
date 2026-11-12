@@ -99,5 +99,6 @@ docs/                       # Conception, objectifs et registre de décisions
 - [Feuille de route](docs/07-ROADMAP.md)
 - [GitHub Pages](docs/08-GITHUB-PAGES.md)
 - [Registre des décisions](docs/DECISIONS.md)
+- [Plan de test navigateur](docs/09-BROWSER-TEST-PLAN.md)
 
 **Licence de code :** à définir. Les premiers GLB ont été créés spécifiquement pour Little World ; aucun asset tiers n'est incorporé à ce stade.
