@@ -71,6 +71,18 @@ Lire [17 — Rendu longue portée](docs/17-DISTANT-VIEW-RENDERING.md). Dans le j
 - N'activer ni `logarithmicDepthBuffer` global ni distance caméra far excessive sans test GPU ; tester rendu d'horizon séparé / profondeur inversée si réellement utile.
 - **Ne pas confondre** objectif documenté et HZ-0…HZ-6 implémentés ; préserver les LOD et caches actuels.
 
+## Herbes courtes/hautes : priorité LOW-RESOURCE obligatoire
+
+Lire [18 — Herbes ultra-low-resource](docs/18-GRASS-LOW-RESOURCE.md). **Décisions validées :**
+- Sol herbeux d'abord assuré par **couleurs/motifs du terrain**, sans maillage par brin ; herbes 3D **facultatives et très locales**.
+- Herbes hautes : **2–4 triangles/touffe à tester**, `InstancedMesh` par cellules, shader opaque partagé, **aucune ombre projetée/reçue**.
+- **0 animation CPU / rigid body / mise à jour de matrice par touffe et par frame** ; vent et réaction locale au passage des personnages en vertex shader uniquement lorsque utile.
+- Réaction à 1–2 personnages prioritaires d'abord ; texture d'influence de foule seulement **après benchmark**, **aucun trafic réseau propre à l'herbe**.
+- Génération par `seed + biome + cellule`, sans milliers d'IDs d'herbes dans le V3 ; conserver la stabilité géographique lors du streaming.
+- Profils `groundOnly / ultra-économique / équilibré / plus dense` adaptatifs selon **un budget global de végétation/scène**, hystérésis et retour automatique à `groundOnly` si nécessaire.
+- **Aucun brouillard de masquage**, et aucun effet sur collisions, simulation ou gameplay ; cibles CPU < 0,1 ms/frame, GPU < 0,5 ms/frame, 1–4 draw calls et < 2 Mio **à mesurer**.
+- Ne pas annoncer un shader/éditeur `GrassRenderer` livré tant qu'il n'est pas réellement codé, intégré et benchmarké.
+
 ## 2. Séparation des données et des responsabilités
 
 - Projet auteur : `worldId`, `schemaVersion`, `seed`, dimensions, chunks, overrides, prefabs, entités, dialogues, navigation, interactions.
