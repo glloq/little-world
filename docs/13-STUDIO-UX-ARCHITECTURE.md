@@ -215,6 +215,26 @@ La [spécification 19](19-ENVIRONMENT-WEATHER-SKY.md) définit un **panneau « E
 
 **Architecture UX :** un panneau compact avec presets et commandes simples, options techniques avancées repliées. Un override de test n'altère **ni `EnvironmentDefinitionV3` de l'auteur, ni slot de partie**, sauf action explicite. Le bouton « Jouer ici » reprend ce même moteur d'environnement ; ne pas dupliquer le système.
 
+## UX Blender ↔ Studio : modèles, packs de presets et cartes
+
+La [spécification 20](20-BLENDER-STUDIO-INTERCHANGE.md) détermine une interface compacte de création 3D **sans réimplémenter Blender**.
+
+**Bibliothèque / assets** :
+- `Importer un modèle GLB` → preview 3D, unités/axes, pivot, dimensions, nombre de triangles/matériaux, animations/LOD et provenance/licence.
+- `Importer un preset` → ZIP+manifest, aperçu des enfants, points d'ancrage, dépendances et recouvrement d'IDs.
+- `Exporter l'asset` ou `Exporter le preset et ses dépendances` ; source `.blend` optionnelle, non embarquée dans le runtime.
+- `Mettre à jour un modèle` → garder la version du catalogue/ID, montrer les changements/pivots et remapper les ancres si nécessaire, **ne pas détruire les instances**.
+
+**Dans l'éditeur de carte** :
+- Glisser-déposer d'un modèle/preset depuis la bibliothèque, gizmos **déplacer/rotation/échelle**, translation XYZ et scale uniforme en mode courant, 3 axes/parents en avancé ; aimantation, alignement terrain, duplicate, group, Undo/Redo.
+- L'éditeur de terrain conserve **sculpture locale**, import heightfield Blender + géométrie GLB pour grottes/arches, masques de biome avec origine/échelle explicites.
+- **Biotopes/végétation** restent de simples contrôles de zones, densités, exclusions et seed même si la scène vient de Blender.
+- **Exporter la sélection vers Blender** (GLB + JSON sidecar d'IDs/transforms) et **réimporter la scène** via aperçu ajout/modification/suppression potentielle/conflit ; ne pas perdre dialogues/PNJ/overrides non géométriques.
+- **Exporter le projet complet** (ZIP portable), **Importer un projet** (nouveau projet par défaut), **Exporter le build jouable** : trois commandes **distinctes et clairement décrites**.
+- Les erreurs de taille, licence, géométrie non supportée, IDs ou dépendances sont **cliquables** et bloquent les mutations destructives, sans remplacer la carte courante à l'échec.
+
+**Parcours obligatoire** : Blender GLB → Library → placement avec 3 transforms → peinture d'un biome → prefab/preset exporté → nouvelle carte avec import → export ZIP carte → restauration avec toutes les références → export scène Blender → réimport non destructif.
+
 ## 10. Politique UX et performance
 
 - Ne pas afficher toutes les catégories et réglages à la fois ; le contexte détermine l'inspecteur.
