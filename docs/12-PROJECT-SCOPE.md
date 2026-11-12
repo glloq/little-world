@@ -1,6 +1,8 @@
 # 12 — Périmètre fonctionnel et limites du jeu / studio
 
 **Référence de cadrage pour le développement — 12 novembre 2026.**
+
+**Choix techniques complémentaires validés :** [14 — Décisions techniques transversales](14-TECHNICAL-CHOICES.md). Ce document 12 fixe le périmètre fonctionnel ; le document 14 fixe les options d'implémentation/ergonomie retenues et leurs budgets provisoires.
 **Statut : décisions fonctionnelles validées par le créateur, architecture cible ; la majorité des fonctions décrites restent à développer.**
 
 > En cas de contradiction avec les anciennes spécifications, les **décisions de ce document et de [DECISIONS.md](DECISIONS.md)** priment. La scène actuelle de 200 × 600 m reste le **prototype existant**, pas la limite du monde final. Le cadre LOW-RESOURCE reste défini dans [11-LOW-RESOURCE-POLICY.md](11-LOW-RESOURCE-POLICY.md).
