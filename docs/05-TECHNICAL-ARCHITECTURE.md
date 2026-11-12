@@ -67,6 +67,14 @@ Ne créer **aucun** `apps/server` dans la V1. Des packages ne doivent être cré
 
 **Le rendu ne décide pas de l'état physique.** Simulation à pas fixe, rendu à fréquence variable ; mesures de performance et trajectoires reproductibles.
 
+### Politique de cadence et de ressources
+
+La référence globale est [11 — LOW-RESOURCE](11-LOW-RESOURCE-POLICY.md) : **30 Hz d'affichage nominal (33,3 ms/image), 20 Hz en secours (50 ms/image)**. Proposition pour la simulation locale : **pas fixe 30 Hz** et interpolation visuelle, indépendamment du FPS. Le joueur, le bateau et les interactions doivent conserver leur vitesse et leurs commandes en mode 20 FPS ; PNJ et faune peuvent employer des fréquences plus basses. Éviter l'exécution de plusieurs moteurs de simulation ou de rendu par entité.
+
+**Écart d'implémentation identifié :** au 12 novembre 2026, `src/main.ts` conserve un pas de simulation `1/60` et rend à chaque `requestAnimationFrame`. Les objectifs 30/20 ne sont **pas encore implémentés**. Les modifier exige des tests de locomotion, planage, eau et bateau.
+
+Le joueur ne charge pas les outils de compilation/édition ; mettre la génération lourde, la validation et l'optimisation des cartes hors de la boucle de rendu.
+
 ## Gestion des données
 
 ### Jeu
@@ -105,8 +113,9 @@ Détails : [08-GITHUB-PAGES.md](08-GITHUB-PAGES.md).
 5. Générateur déterministe et formats de cartes validés.
 6. Sauvegarde/export/import/rechargement d'éditeur sans perte.
 7. Test navigateur automatisé avec capture des erreurs réseau/console.
-8. Budget téléchargé, draw calls et FPS mesurés sur un PC de test.
+8. Budgets LOW-RESOURCE (30/20 FPS, temps CPU/GPU, draw calls, triangles, téléchargements, mémoire) mesurés sur un PC de test de référence.
 9. Un artefact de build publié est **visuellement vérifié** sur GitHub Pages.
+10. Une baisse d'affichage à 20 FPS ne ralentit pas le monde ; aucune perte d'input, aucun rattrapage CPU incontrôlé après changement d'onglet.
 
 ## Travaux explicitement différés
 

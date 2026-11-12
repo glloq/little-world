@@ -61,6 +61,7 @@ Les tests navigateur utilisent Chromium système s’il existe, sinon celui de P
 - **Moulin automatique** : la roue tourne avec le cours d'eau, sans interaction artificielle.
 - **Bateau pilotable** depuis le port : embarquement/débarquement, accélération, inertie, gouvernail et limites d'eau navigable.
 - **Performance** : terrain rendu par sections, végétation instanciée par secteur, géométries et matériaux réutilisés, chargement GLB mutualisé et modes de qualité de rendu.
+- **Objectif LOW-RESOURCE** : 30 FPS nominal, 20 FPS en secours, sans ralentissement de la simulation ; [budget global de ressources](docs/11-LOW-RESOURCE-POLICY.md). Cible **documentée mais pas encore implémentée** (boucle de jeu actuellement à 60 Hz).
 - **Éditeur initial** : changer la graine et la densité, choisir des prefabs, cliquer sur le terrain pour placer des objets, effacer, sauvegarder dans IndexedDB, exporter/importer JSON.
 - **Catalogue d'assets intégré** : trois fichiers GLB originaux (`public/models/`) plus des prefabs générés par code, inventoriés dans `assets/catalog.json`.
 - Aucun backend, compte, serveur multijoueur ou API externe au runtime.
@@ -137,5 +138,6 @@ docs/                       # Conception, objectifs et registre de décisions
 - [Registre des décisions](docs/DECISIONS.md)
 - [Plan de test navigateur](docs/09-BROWSER-TEST-PLAN.md)
 - [Optimisation et extension de la carte](docs/10-PERFORMANCE-ROADMAP.md)
+- [Politique globale LOW-RESOURCE : 30/20 Hz, CPU/GPU, PNJ, éditeur](docs/11-LOW-RESOURCE-POLICY.md)
 
 **Licence de code :** à définir. Les premiers GLB ont été créés spécifiquement pour Little World ; aucun asset tiers n'est incorporé à ce stade.

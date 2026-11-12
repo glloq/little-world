@@ -2,7 +2,9 @@
 
 **12 novembre 2026 — architecture locale implémentée ; aucun gain global de FPS revendiqué.**
 
-## Mesures de campagne
+**Référence globale : [Politique LOW-RESOURCE](11-LOW-RESOURCE-POLICY.md), cible 30 FPS, secours 20 FPS, simulation indépendante.**
+
+## Mesures de campagne (avant migration de cadence)
 
 Même Chromium 156.0.8078.79, viewport 960 × 640, DPR 1, qualité moyenne, rendu logiciel SwiftShader. Les moyennes proviennent de 90 intervalles réels `requestAnimationFrame`, sans plafonnement du delta. Les sources n’ont pas changé pendant la mesure finale. Les données brutes sont conservées dans [before](benchmarks/2026-11-12-before.json) et [after](benchmarks/2026-11-12-after.json).
 

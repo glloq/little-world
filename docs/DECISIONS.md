@@ -40,6 +40,7 @@
 | D-026 | **Accessoires** : chapeau, sac à dos, pendentif ou écharpe ; **émotions** affichées sur le visage |
 | D-027 | Menu de personnalisation **uniquement pendant le maintien de la touche A** ; sélection à la souris |
 | D-028 | **Caméra : rotation uniquement par clic gauche maintenu + déplacement de la souris** ; aucune capture permanente |
+| D-029 | **LOW-RESOURCE : affichage cible 30 Hz en normal et jusqu'à 20 Hz si nécessaire** ; aucune modification de la vitesse du monde liée aux FPS |
 
 ## PROPOSÉ — technique
 
@@ -63,6 +64,9 @@
 | P-016 | Carte par défaut compilée et publiée ; éditeur **ne commit pas directement** | M4 |
 | P-017 | Pas de routage SPA historique exigeant un fallback serveur | M0 |
 | P-018 | Pas de `apps/server` ni de packages réseau en V1 | M0 |
+| P-019 | Simulation joueur/bateau à **pas fixe 30 Hz**, indépendante du rendu 30/20 FPS, avec interpolation graphique | Première migration du runtime |
+| P-020 | Budgets CPU/GPU, mémoire et réseau du document [11 — LOW-RESOURCE](11-LOW-RESOURCE-POLICY.md) considérés comme **hypothèses à étalonner** | Benchmarks sur PC cible |
+| P-021 | Dégradation par étapes (résolution, densité, LOD, effets, PNJ), passage à 20 FPS en dernier ressort | Benchmark 30/20 |
 
 ## OUVERT — valeurs, sans bloquer D0
 
@@ -86,6 +90,10 @@
 **Multijoueur** (objectif historique 10–30 joueurs), Colyseus, serveur Node.js permanent, synchronisation, comptes, chat, PostgreSQL, persistance partagée, validation d'interactions côté serveur, prédiction réseau, tests de charge multi-joueurs.
 
 Également différés : mobile, manette, PNJ complexes, quêtes, pêche jouable, agriculture, commerce, combat, changements de terrain par les joueurs, météo avancée, logique visuelle par nœuds.
+
+## Écart entre politique et prototype actuel
+
+La **politique de cadence 30/20 FPS est validée**, mais le runtime actuel utilise encore une simulation `1/60` avec rendu à chaque `requestAnimationFrame`. Cette mise en conformité, ainsi que l'instrumentation, doivent être programmées et validées. Voir [11 — LOW-RESOURCE](11-LOW-RESOURCE-POLICY.md).
 
 ## Règles de suivi
 
