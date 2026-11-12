@@ -97,6 +97,21 @@ Lire **[19 — Météo, neige, ciel, étoiles, lunes indépendantes et ombres](d
 - `EnvironmentStateSource` **interchangeable** : local/test maintenant ; **serveur autoritaire futur** pour heure et états météo. Ne pas ajouter de backend maintenant.
 - Garder un budget graphique **global** avec l'herbe, les personnages et l'horizon ; budgets et FPS sont **à benchmarker**, non considérés atteints.
 
+## Blender ↔ Studio, échange ouvert et import/export portable — décision validée
+
+Lire **[20 — Blender, GLB, presets et archives de cartes](docs/20-BLENDER-STUDIO-INTERCHANGE.md)** avant de créer/modifier les outils d'assets, de placements ou d'édition 3D.
+
+- **Blender reste le modeleur 3D** (sources `.blend`), **GLB/glTF 2.0 l'échange 3D ouvert** ; Studio est un éditeur spécialisé **d'assemblage, biotopes, végétation, eau, chemins et logique**, **pas** un clone de Blender.
+- **Import et export dans les deux sens** : (a) GLB asset/préfab, (b) scène/sélection vers Blender avec sidecar de correspondance, (c) **preset réutilisable** ZIP+JSON+GLB, (d) **carte V3 entière rééditable** en ZIP portable. **Un GLB seul n'est pas un projet V3 complet**.
+- **Transform complètes** : translation XYZ, quaternion, scale XYZ, parent/child, pivots/points d'ancrage ; UI simple déplacement/rotation/échelle, alignement au relief, duplication, groupes, transactions Undo/Redo.
+- Respecter **Blender Z-up vs Studio/glTF Y-up**, mètres et conversions **une seule fois**. IDs stables et sidecars/`extras` **validés** : jamais accepter les noms Blender comme uniques vérités ni des scripts depuis un GLB.
+- Biotopes et végétation **éditables dans Studio même sur terrain importé de Blender** : zones, densités, exclusions, graines/masques ; pas des milliers de plantes intégrées au GLB.
+- Terrain heightfield importable avec **métadonnées de hauteur/échelle/origine/précision** ; grottes/surplombs/falaises en GLB, compilés spatialement et non un monde entier monolithique.
+- **Import/round-trip non destructif** : importer un projet en nouveau brouillon par défaut, aperçus ajout/modification/conflit, pas de suppression silencieuse des interactions/PNJ/overrides lors d'un réimport Blender.
+- **Portable = ressources réellement incluses** et licences/provenances vérifiées ; mode références léger clairement marqué non autonome. Préflight ZIP/glTF sécurisé, versionnement, limites mémoire, tests et budgets GPU.
+- Les sources `.blend` peuvent être conservées **en option**, ne jamais les charger dans le jeu ; les assets compilés doivent profiter des LOD, instancing et streaming.
+- **Statut** : contrats prévus ; **ne pas annoncer** le pipeline complet/presets et archives V3 déjà implémentés sur `main`.
+
 ## 2. Séparation des données et des responsabilités
 
 - Projet auteur : `worldId`, `schemaVersion`, `seed`, dimensions, chunks, overrides, prefabs, entités, dialogues, navigation, interactions.
