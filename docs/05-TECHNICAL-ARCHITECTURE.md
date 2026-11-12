@@ -190,6 +190,16 @@ Voir [20 — Contrat import/export GLB, presets et cartes](20-BLENDER-STUDIO-INT
 
 **Statut** : l'eau V2, nage/bateau et rubans existants restent actifs ; ni réseau hydrographique V3 ni océan LOD ne sont livrés par cette documentation.
 
+## Architecture PERF : coordination des ressources et responsabilités
+
+**Contrat transversal :** [22 — ResourceBudgetManager](22-RESOURCE-BUDGET-MANAGER.md).
+
+**Réutiliser plutôt que dupliquer :** `FrameClock` garde le pas fixe (30 Hz) et le rythme de présentation (30/20 FPS), `PresentationBudget` est migré progressivement vers **un seul `ResourceBudgetManager`**, `main.ts` échantillonne, les modules continuent à appliquer leurs LOD/caches localement.
+
+`PerfSampler` (mesure réelle CPU+frametimes, GPU optionnel) → `ResourceBudgetManager` (snapshots plafonds/profils versionnés) → consommateurs terrain/GLB/herbe/ombres/eau/météo/PNJ. En complément, `ResourceRegistry` estime usage mémoire/ownership et `WorkScheduler` limite la construction/streaming/uploads par priorités. **Le manager ne doit ni reconstruire les objets ni posséder tous les caches**.
+
+**Invariants** : jeu logique indépendant du rendu, silhouette d'horizon et eau visible même en profil ECO, qualité non persistante dans les données V3, frontend solo sans serveur, instruments `renderer.info` non confondus avec mémoire réelle ni temps GPU. Les paramètres seuils ne sont fixés **qu'après** tests PC GPU intégré.
+
 ## Compatibilité avec un futur multijoueur (non implémenté)
 
 **Contrat de préparation**, cf. [16 — Architecture multijoueur future](16-FUTURE-MULTIPLAYER.md) :
