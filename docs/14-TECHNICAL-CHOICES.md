@@ -140,6 +140,17 @@ Le créateur a retenu la **vue panoramique profonde sans brouillard cache**. Voi
 - Transitions propres et mesures (CPU, GPU, overdraw, draw calls, mémoire, absence de popping) sur GPU intégré.
 - Aucun fog de dissimulation ; distances de LOD purement indicatives tant que non benchées.
 
+## Décisions GR — herbe basse/haute et coût marginal minimal
+
+Le créateur a validé la [spécification 18 — Herbes ultra-low-resource](18-GRASS-LOW-RESOURCE.md) :
+
+- Herbe courte principalement **sans géométrie supplémentaire**, via sol coloré par biome.
+- Herbe haute : touffes opaques **2–4 triangles à tester**, instances groupées par cellules proches, sans ombre ni physique.
+- Interactions/wind cosmétiques **GPU seulement**, sans mise à jour CPU des touffes ; réaction locale de quelques personnages, **zéro trafic réseau dédié**.
+- Génération déterministe/régénération locale ; aucun ID persistant par brin dans les schémas V3.
+- Profil de rendu totalement désactivable (`groundOnly`) et budgets **communs** avec le reste de la scène ; le lointain reste visible sans fog.
+- Budgets CPU/GPU/draw calls/mémoire et paliers de distance **provisoires** ; tests obligatoires avant toute annonce de gain.
+
 ## 9. Règles d'architecture issues de ces décisions
 
 1. **Un projet source, plusieurs éditeurs spécialisés**. Partager objets/IDs/sélection/historique, mais charger les écrans lourds à la demande.
