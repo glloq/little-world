@@ -3,12 +3,14 @@ import './style.css';
 import { addPlacement, buildWorld, configureScene, type AssetId, type Placement, type WorldConfig } from './world';
 import catalogue from '../assets/catalog.json';
 import { buildSquirrel, MAX_OXYGEN, simulatePlayer, spawnPlayer, type Controls } from './player';
-import { clamp, terrainHeight } from './terrain';
+import { clamp, terrainHeight, waterSurface } from './terrain';
+import { nearBoat, nearDock, spawnBoat, updateBoat, waterDisembarkPoint, BOAT_DOCK } from './boat';
 
 const viewport=document.querySelector<HTMLElement>('#viewport')!;
 const status=document.querySelector<HTMLElement>('#status')!;
 const coords=document.querySelector<HTMLElement>('#coords')!;
 const fps=document.querySelector<HTMLElement>('#fps')!;
+const renderMetrics=document.querySelector<HTMLElement>('#render-metrics')!;
 const oxygen=document.querySelector<HTMLElement>('#oxygen')!;
 const action=document.querySelector<HTMLElement>('#action')!;
 const message=document.querySelector<HTMLElement>('#message')!;
@@ -55,10 +57,13 @@ scene.add(world.root);
 const player=spawnPlayer();
 const squirrel=buildSquirrel();
 scene.add(squirrel.group);
+const boat=spawnBoat();
+let aboard=false;
+world.boat.position.set(boat.x,boat.y,boat.z);
 const keySet=new Set<string>();
 let jumpQueue=0,actionQueue=0;
 let yaw=0,pitch=.32,distance=13.8;
-let started=false,wheelOn=true;
+let started=false;
 let infoUntil=0;
 let last=performance.now(),accumulator=0,elapsed=0;
 let frameCount=0,fpsTime=0;
@@ -90,8 +95,14 @@ window.addEventListener('keydown',e=>{
   if(e.code==='KeyE')actionQueue++;
   if(e.code==='KeyR'&&started){
     const reset=spawnPlayer();player.position.copy(reset.position);player.velocity.set(0,0,0);
-    player.mode='ground';player.oxygen=MAX_OXYGEN;player.glideReady=false;
+    aboard=false;player.mode='ground';player.oxygen=MAX_OXYGEN;player.glideReady=false;
     showInfo('Retour au point de départ');
+  }
+  // Prototype navigation shortcut: reach the harbor without walking the full 600 m.
+  if(e.code==='KeyP'&&started){
+    aboard=false;player.position.set(-23,1.35,217);player.velocity.set(0,0,0);
+    player.mode='air';player.glideReady=false;
+    showInfo('Port : approchez du bateau et appuyez sur E');
   }
 });
 window.addEventListener('keyup',e=>keySet.delete(e.code));
@@ -117,7 +128,7 @@ function showInfo(text:string){
   infoUntil=elapsed+3.3;message.textContent=text;message.classList.remove('hide');
 }
 function updateCamera(dt:number){
-  const target=player.position.clone().add(new THREE.Vector3(0,1.85,0));
+  const target=player.position.clone().add(new THREE.Vector3(0,aboard?2.9:1.85,0));
   const cosPitch=Math.cos(pitch);
   const x=target.x-Math.sin(yaw)*cosPitch*distance;
   const z=target.z-Math.cos(yaw)*cosPitch*distance;
@@ -128,24 +139,49 @@ function updateCamera(dt:number){
 }
 function updateHud(){
   const labels:Record<string,string>={ground:'Au sol',air:'En l’air',glide:'En planage',swim:'Nage',dive:'Plongée'};
-  status.textContent=labels[player.mode];
+  status.textContent=aboard?'Navigation en bateau':labels[player.mode];
   coords.textContent=`X ${player.position.x.toFixed(0)} m · Z ${player.position.z.toFixed(0)} m · H ${player.position.y.toFixed(1)} m`;
   oxygen.textContent=`Oxygène : ${Math.round(player.oxygen)} / ${MAX_OXYGEN} s`;
   oxygen.classList.toggle('hide',player.mode!=='dive'&&player.mode!=='swim');
-  const nearMill=player.position.distanceTo(world.millPosition)<15;
-  action.classList.toggle('hide',!nearMill);
-  action.textContent=nearMill?`[E] ${wheelOn?'Arrêter':'Démarrer'} la roue du moulin`:'';
+  const canBoard=!aboard&&nearBoat(boat,player.position.x,player.position.y,player.position.z);
+  action.classList.toggle('hide',!canBoard&&!aboard);
+  action.textContent=aboard?'[E] Quitter le bateau · Z/S avancer/reculer · Q/D tourner':canBoard?'[E] Embarquer dans le bateau':'';
   if(elapsed>=infoUntil)message.classList.add('hide');
-  document.body.classList.toggle('underwater',player.mode==='dive');
+  // A submerged squirrel does NOT imply a submerged camera.
+  const cameraWater=waterSurface(camera.position.x,camera.position.z);
+  document.body.classList.toggle('underwater',cameraWater!==null && camera.position.y<cameraWater-.1);
 }
 function tick(dt:number){
   if(!started)return;
   const keys=input();
-  simulatePlayer(player,keys,dt);
-  if(keys.jumpPressed)jumpQueue=Math.max(0,jumpQueue-1);
+  if(aboard){
+    updateBoat(boat,{throttle:keys.forward,steer:keys.right},dt);
+    player.position.set(boat.x,boat.y+1.02,boat.z);
+    player.velocity.set(0,0,0);
+    player.mode='ground';
+    jumpQueue=0;
+  } else {
+    simulatePlayer(player,keys,dt);
+    if(keys.jumpPressed)jumpQueue=Math.max(0,jumpQueue-1);
+  }
   if(actionQueue>0){
-    if(player.position.distanceTo(world.millPosition)<15){
-      wheelOn=!wheelOn;showInfo(wheelOn?'La roue tourne de nouveau':'Roue du moulin arrêtée');
+    if(aboard){
+      aboard=false;
+      if(nearDock(boat)){
+        player.position.set(BOAT_DOCK.x+1,1.3,BOAT_DOCK.z+3);
+        player.mode='air';
+      } else {
+        const exit=waterDisembarkPoint(boat);
+        player.position.set(exit.x,exit.y,exit.z);
+        player.mode='swim';
+      }
+      player.velocity.set(0,0,0);player.glideReady=false;
+      showInfo('Vous avez quitté le bateau');
+    }else if(nearBoat(boat,player.position.x,player.position.y,player.position.z)){
+      aboard=true;
+      player.velocity.set(0,0,0);player.glideReady=false;
+      player.position.set(boat.x,boat.y+1.02,boat.z);
+      showInfo('Bateau : Z/S pour naviguer, Q/D pour tourner, E pour descendre');
     }
     actionQueue=0;
   }
@@ -159,14 +195,20 @@ function draw(now:number){
     accumulator-=clockDt;
   }
   if(iterations>=5)accumulator=0;
-  if(wheelOn)world.update(delta);
+  world.update(delta); // The river drives the mill: no manual on/off control.
+  world.boat.position.set(boat.x,boat.y+Math.sin(elapsed*1.7)*.055,boat.z);
+  world.boat.rotation.y=boat.heading;
   squirrel.group.position.copy(player.position);
   squirrel.update(player,delta,elapsed);
   updateCamera(delta);
   updateHud();
   fpsTime+=delta;frameCount++;
-  if(fpsTime>=.8){fps.textContent=`FPS : ${Math.round(frameCount/fpsTime)}`;fpsTime=0;frameCount=0;}
   renderer.render(scene,camera);
+  if(fpsTime>=.8){
+    fps.textContent=`FPS : ${Math.round(frameCount/fpsTime)}`;
+    renderMetrics.textContent=`Rendu : ${renderer.info.render.calls} appels · ${Math.round(renderer.info.render.triangles/1000)}k triangles`;
+    fpsTime=0;frameCount=0;
+  }
   requestAnimationFrame(draw);
 }
 camera.position.set(player.position.x,player.position.y+13,player.position.z-24);
