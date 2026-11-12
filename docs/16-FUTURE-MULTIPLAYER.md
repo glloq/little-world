@@ -230,6 +230,15 @@ Le [document 22 — ResourceBudgetManager](22-RESOURCE-BUDGET-MANAGER.md) est co
 - **Mesurer séparément** bande passante/tick serveur et frametime/draw calls/mémoire client ; 30/200/500 joueurs restent des objectifs non qualifiés.
 - Préserver simulation/interaction au passage à 20 FPS présentation. Ne pas créer un système de gestion mémoire ou un serveur multijoueur au nom de PERF avant la campagne solo.
 
+## Audio MIDI/SFX : contrôle local et événements futurs
+
+**Contrat** : [23 — Audio LOW-RESOURCE](23-MIDI-AUDIO-LOW-RESOURCE.md). L'audio est **rendu local côté client**, depuis une palette de **5 à 10 instruments MIDI**, un synthétiseur commun et une petite bibliothèque de sons naturels.
+
+- Les événements logiques importants (instrument actionné, musique régionale, interactions) pourraient être transmis comme **ID et temps de départ** par un serveur futur ; les **notes audio/PCM/voix, émetteurs cullés et spatialisation** ne sont pas répliqués.
+- `AudioContext` et scheduling musical suivent une **horloge audio client**, éventuellement alignée sur un événement serveur pour une musique commune, mais **pas** sur le tick FPS.
+- Chaque joueur peut avoir son **plafond local** de polyphonie/cache/émetteurs fixé par `AudioBudgetManager` (PERF), sans ralentir les règles de gameplay ou messages serveur.
+- Aucune dépendance réseau/audio serveur pour la bêta solo ; les sons d'interaction critiques ont toujours un retour visuel adapté si la sortie audio est muette.
+
 ## 10. Plan de validation futur (gates non exécutés)
 
 | Scénario | Participants | Densité | Gate |
