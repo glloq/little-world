@@ -64,6 +64,18 @@ Le script utilise Chromium système et SwiftShader ; `CHROMIUM_PATH` permet un a
 
 Les caches de modèles sont encore bornés par le petit catalogue, sans LRU de textures. Le terrain analytique est une configuration unique par page. Les bâtiments, forêt principale et rivière de démonstration gardent leurs positions historiques ; les grandes cartes sont des tests de terrain étendu, pas des mondes entièrement peuplés. Les secteurs proches génèrent leur géométrie de façon synchrone répartie entre frames : aucun worker n’est encore implémenté. Les LOD n’ont pas de morphing.
 
+## Future campagne multijoueur — mesures à préparer, pas à exécuter aujourd'hui
+
+La [spécification 16](16-FUTURE-MULTIPLAYER.md) distingue **nombre total connecté, densité de foule, affichage GPU et charge serveur**. Les 30/200/500 joueurs sont des objectifs de charge **non mesurés**.
+
+- **AOI** : entités pertinentes par client, transitions, hystérésis et fréquence de réabonnement.
+- **Réplication** : mouvements de 2–20 Hz selon priorité, 0 Hz hors intérêt, événements importants priorisés ; quantification, delta, files et overhead à mesurer.
+- **Serveur** : tick CPU p50/p95/p99, encodage, débit sortant, mémoire/GC, validation d'interaction, latence de transmission.
+- **Client** : FPS/frametime p50/p95/p99 sur GPU intégré, coût des rigs/LOD/ombres, nombre de joueurs détaillés/silhouettes, interpolation à 2–3 Hz.
+- **Scénarios distincts** : 30 regroupés, 100/50 regroupés, 200/100 regroupés, 500/200–300 regroupés et 500 dispersés.
+- **Vérifications distinctes** : bots headless pour charge serveur vs navigateurs réels pour coût graphique. Les deux sont indispensables avant d'annoncer une capacité.
+- **Pas de charge réseau en jeu solo pour simuler une future optimisation** ; l'architecture de données reste compatible, sans dépendance réseau au runtime actuel.
+
 ## Suite prioritaire
 
 1. Réduire les appels du personnage et regrouper les sous-meshes statiques par matériau/articulation, puis mesurer sur les mêmes scènes.
