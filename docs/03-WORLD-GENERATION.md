@@ -67,6 +67,17 @@ WorldDefinition (ID, schemaVersion, seed, dimensions, paramètres globaux)
 - Publication d'une carte dans le jeu public : export/validation → dépôt GitHub → build statique → GitHub Pages. Aucun token d'écriture GitHub exposé.
 - **Pas de serveur, de chargement de niveau indépendant ni de collaboration multi-utilisateur** requis.
 
+## Vue panoramique : production de reliefs et d'horizons lointains
+
+Décision documentée dans [17 — Rendu sans brouillard, horizon et imposteurs](17-DISTANT-VIEW-RENDERING.md) : la **surface du monde et les objets lointains doivent rester visibles en silhouette** sans précharger les maillages proches.
+
+- Le générateur/compilateur doit pouvoir produire **reliefs/côtes/îles en meshes ultra-légers** séparés des chunks locaux.
+- Les **massifs de forêt, monuments et bâtiments éloignés** peuvent bénéficier de proxies ou imposteurs précalculés, seulement là où la perspective reste crédible.
+- Les produits de rendu (proxies, images, atlas) sont **dérivés des sources**, avec hash et invalidation après édition locale ; les overrides restent la source d'autorité.
+- Le **ciel/skybox** ne remplace pas les montagnes approchables ; pas de fog de dissimulation.
+- Les vues de planage et haute altitude doivent être évaluées en priorité. Une distance de vue profonde **n'implique pas** de charger la végétation/faune/physique de l'horizon.
+- Mesurer la taille des ressources, les changements de LOD, le temps de compilation et la charge GPU avant de figer le codec et les distances.
+
 ## Critères techniques
 
 1. Même seed/versions/paramètres → même génération.
