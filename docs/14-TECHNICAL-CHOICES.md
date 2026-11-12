@@ -45,7 +45,7 @@ Cette spécification consigne **l'acceptation par l'utilisateur de l'ensemble de
 | **TP-P2** | **Comportements par machines à états configurables** | Activités simples, prévisibles et éditables ; pas d'IA sociale/émergente complexe |
 | **TP-P3** | **Navigation hiérarchique libre** | Zones et portails inter-secteurs + navigation locale/évitement, recalcul de chemin sur événement |
 | **TP-P4** | **Expressions + animations + dialogues + réactions contextuelles** | Interactions lisibles, pas de simulation de relations sociales profonde |
-| **TP-P5** | **Horaires/activités simples liés à une horloge commune** | Temps logique réglable ; cycle jour/nuit visuel facultatif |
+| **TP-P5** | **Horaires/activités simples liés à une horloge commune** | Temps logique réglable ; l'environnement visuel futur suit la même horloge et sera contrôlé par serveur seulement en multijoueur |
 | **TP-P6** | **Niveaux de simulation différents selon la faune** | PNJ complets pour habitants ; oiseaux légers, poissons en groupes, insectes procéduraux |
 
 **Périmètre des espèces :** animaux/créatures uniquement, **aucun humain**. Navigation libre `TP-P3` ne signifie **pas** que les PNJ savent automatiquement utiliser bateaux, montures, outils complexes ou tous les moyens de déplacement ; leurs capacités restent explicites par espèce/agent et pourront évoluer.
@@ -68,7 +68,7 @@ Cette spécification consigne **l'acceptation par l'utilisateur de l'ensemble de
 
 | ID | Décision validée | Limite et justification |
 | --- | --- | --- |
-| **TG-G1** | **Horloge de jeu simple** | Événements et routines PNJ ; cycle visuel facultatif, pas de saisons/météo complexes |
+| **TG-G1** | **Horloge de jeu simple** | Événements et routines PNJ ; **cadrage ultérieur ENV du jour/nuit, astres et météo stylisée** documenté pour la bêta, sans simulation climatique physique complexe |
 | **TG-G2** | **Inventaire léger : types/catégories/quantités** | Objets ramassables/utilisables ; pas de craft/stats/équipement RPG complexes |
 | **TG-G3** | **Petites missions configurables** | Objectifs, conditions, flags, récompenses/réactions ; pas de campagne obligatoire |
 | **TG-G4** | **Mini-activités à partir de templates** | Collecte, pêche, petite énigme, service à un PNJ ; pas de mini-jeu généraliste programmable |
@@ -151,6 +151,18 @@ Le créateur a validé la [spécification 18 — Herbes ultra-low-resource](18-G
 - Profil de rendu totalement désactivable (`groundOnly`) et budgets **communs** avec le reste de la scène ; le lointain reste visible sans fog.
 - Budgets CPU/GPU/draw calls/mémoire et paliers de distance **provisoires** ; tests obligatoires avant toute annonce de gain.
 
+## Choix ENV — météo, astres et ombres LOW-RESOURCE
+
+**Décisions validées** : [19 — Environnement météo, neige, ciel et ombres](19-ENVIRONMENT-WEATHER-SKY.md). Les choix historiques de simplicité de l'horloge n'interdisent pas **un rendu météorologique stylisé**, mais excluent une simulation atmosphérique lourde.
+
+- **Une horloge absolue et un état d'environnement commun**, source locale/test aujourd'hui, autorité serveur future sans backend exigé en solo.
+- **Soleil/coucher/aube, ciel étoilé et plusieurs lunes à périodes, inclinaisons et phases propres** via un rendu de ciel très léger, sans lights/meshes 3D par astre.
+- **Neige persistante/fonte** déterminées par température/altitude/macro-climat et affichées avec masques sur terrain, toitures, arbres et paysage lointain. Précipitations pluie/neige = instances locales, aucune physique par goutte/flocon.
+- **Une shadow map solaire locale au plus** en profil normal, uniquement sur grands objets proches et essentiels ; herbes, objets lointains et lunes exclus. Mode qualité minimum sans ombres dynamiques.
+- **Brouillard météorologique** oui ; brouillard permanent de masquage de clipping non.
+- **Bêta** : panneau pour imposer temps/météo/neige/astres/ombres, accélération temporelle, profiler le coût ; overrides non persistants.
+- Ne pas multiplier les lumières/ombres, matériaux ou compilations shader lors d'une transition ; mesurer toutes les dépenses GPU, ombres à part.
+
 ## 9. Règles d'architecture issues de ces décisions
 
 1. **Un projet source, plusieurs éditeurs spécialisés**. Partager objets/IDs/sélection/historique, mais charger les écrans lourds à la demande.
@@ -177,6 +189,6 @@ Une étape d'éditeur est considérée intégrée seulement si :
 - **VALIDÉ :** choix fonctionnels et architectures de ce document, par accord explicite du créateur.
 - **À ÉTALONNER :** tailles de chunks, résolution de terrain, distances LOD, hardware de référence exact, mémoire, nombres d'instances et latences.
 - **À IMPLÉMENTER / COMPLÉTER :** tout outil ou mécanisme absent du dépôt ou de la branche cible au moment du développement.
-- **HORS PÉRIMÈTRE :** backend de jeu, multijoueur initial, scripts utilisateurs non fiables, moteur voxel universel, simulation sociale ou météo de complexité élevée.
+- **HORS PÉRIMÈTRE :** backend de jeu, multijoueur initial, scripts utilisateurs non fiables, moteur voxel universel, simulation sociale ou **simulation physique de météo** de complexité élevée (les effets stylisés ENV sont prévus en bêta).
 
 **Chaque agent de développement doit comparer ses changements à ce document et aux spécifications 12/13, en vérifiant l'état de la branche avant de modifier le code.**
