@@ -138,6 +138,22 @@ Référence : [21 — Eau LOW-RESOURCE](21-WATER-HYDROLOGY-LOW-RESOURCE.md). Com
 
 Mesurer **temps CPU de compilation/streaming**, GPU si timer disponible, frametimes p50/p95/p99, draw calls/matériaux par LOD, surcouches transparentes, textures/transferts, courants/nage/bateau inchangés et horizon sans fog-cache. **Budget partagé** avec météo, herbes, terrain et ombres.
 
+## Campagne PERF — mesures et gates pour le budget global
+
+Le document [22 — ResourceBudgetManager](22-RESOURCE-BUDGET-MANAGER.md) prescrit un **contrôleur unique** utilisant les systèmes déjà existants : `src/frame-clock.ts::PresentationBudget` (0–2, 3 s de surcharge / 12 s de marge, 30→20 FPS), `src/main.ts` (DPR 1 / 0,8 / 0,65), `src/terrain-view.ts` (cache borné mais pas compté en octets, **deux** constructions max par update), `src/ecology.ts` et LOD PNJ.
+
+**Mesures distinctes** : temps **mur** entre frames présentées, `simCpuMs`, `updateCpuMs`, `renderSubmitCpuMs`, p50/p95/p99, longues frames >100 ms, calls/triangles, pending queue/chunks, octets **estimés** CPU/GPU, GPU timers uniquement via mesure WebGL **asynchrone et valide**. `renderSubmitMs` actuel **n'est pas la durée GPU**, `renderer.info.memory` mesure des **comptes**, pas la VRAM.
+
+**Scènes et trajectoires** : vallée, village de prefabs, forêt/herbe/PNJ, océan plein écran (rive, bateau, planage, plongée), îles/montagnes/horizon, cascade et neige/orage, traversées rapides/retours/téléportation, Studio avec nombreux assets, session longue cache/GC.
+
+**Protocole** :
+1. Même `seed/caméra/trajectoire/résolution/contenu/navigateur/commit` ; comparer modes **qualité fixe** et **adaptatif** avec suivi des changements de niveau.
+2. Séparer gains réels du code à rendu égal, baisse de qualité volontaire et surcharge/erreur de cadence du navigateur. **SwiftShader ≠ GPU intégré** ; refaire le gate sur matériel réel.
+3. Vérifier p95/p99, perte/restauration du contexte, file de streaming et latence de l'édition, **non-régression 30 Hz logique**, pas de trou d'horizon et absence de dispose prématuré sur GLB partagé.
+4. Seuils de mémoire, LOD et quota génération **non figés** sans mesure. Les objectifs actuels **30/20 FPS, ≈200 Mio GPU estimés, ≈250k triangles** restent provisoires.
+
+**PERF-0…PERF-9** : audit → sampler → contrôleur unique → adaptateurs → registre mémoire → scheduler → LOD/anticipation → panel bêta → benchmarks → qualification release.
+
 ## Suite prioritaire
 
 1. Réduire les appels du personnage et regrouper les sous-meshes statiques par matériau/articulation, puis mesurer sur les mêmes scènes.
