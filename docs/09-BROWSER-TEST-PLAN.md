@@ -156,6 +156,21 @@ Un rapport doit distinguer **échange géométrique Blender (non exhaustif côt�
 8. **Erreurs et sécurité** : MIDI malformé/SysEx/énorme, sample absent/licence/codec, autoplay bloqué, import annulé : aucun crash ni mutation de données auteur.
 9. **Perf** : Firefox/Chromium matériel modeste, 0/8/16/24 voix, Panner OFF/ON, durée/latence/glitches, allocations audio décodées et sessions prolongées ; ne pas déduire CPU audio du seul FPS graphique.
 
+## Plan de tests MINE — excavation, étages, persistance et charge
+
+**Contrat :** [24 — Mines creusables 2,5D LOW-RESOURCE](24-MINES-MULTILEVEL-LOW-RESOURCE.md). Tests à créer pendant MINE-0…MINE-9, **pas acquis**.
+
+1. Grille 2,5D en mine locale : creuser 1/10/100 cellules ; faces exposées seulement, pas de cube interne ni fissure entre chunks.
+2. **3 puis 8 niveaux** superposés et connecteurs escalier/rampe/puits ; joueur/collisions ne rebondissent pas à la hauteur de la surface `terrainHeight(x,z)`.
+3. Entrée via terrain et GLB, changement de zone physique, cohérence des surfaces, collision avec plafond/étage supérieur et navigation de PNJ.
+4. Filière minerai/cristal par seed/version/strate, mêmes dépôts au rechargement, récolte persistée, zéro duplication ou régénération implicite.
+5. Sauvegarde de partie fermée/reprise : cellules creusées, gisements épuisés et inventaire inchangés ; export ZIP **auteur** distinct de save joueur.
+6. Simulation concurrente : 2 commandes identiques ou joueurs sur même cellule → **1 seule récompense**, révision monotone, snapshot après delta manquant, rejet hors portée/non autorisé.
+7. Eau/lac/mer/traversée de niveau et volumes interdits : diagnostics et prévention de cavités incohérentes.
+8. Mine chargée/déchargée rapidement, téléportation, 20/30 FPS, cache/mesh/invalidation sur frontières, aucun `dispose` prématuré ou gap de collision.
+9. Benchmark comparatif **2,5D vs GLB modules vs voxels locaux** à géométrie/récolte équivalentes : CPU remeshing p95/p99, mémoire GPU estimée, draw calls, tailles de sauvegarde et de delta.
+10. En solo **aucune connexion serveur requise** ; futur serveur testé séparément, sans masquer l'absence d'autorité réseau dans GitHub Pages.
+
 ## Scénarios futurs — Studio complet et jeu final (non implémentés)
 
 Cette liste est un **plan d'acceptation pour la prochaine architecture**, et non un compte-rendu de tests réussis :
