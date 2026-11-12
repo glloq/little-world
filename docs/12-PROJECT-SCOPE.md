@@ -31,7 +31,7 @@
 | G6 | **Activités indépendantes** | Collecte, pêche, énigmes, petites tâches, promenade, bateau ; implémentation progressive, aucune obligation de toutes les livrer en première étape |
 | G7 | **Plusieurs sauvegardes de partie** | Slots locaux, versionnés, distincts des brouillons de l'éditeur |
 
-Pas de dégâts, mort, endurance, économie systémique ni agriculture complexe imposés. Réactions non hostiles ou fuite/défense simple de la faune ; **pas de combat prévu**. Jour/nuit et météo détaillée restent secondaires.
+Pas de dégâts, mort, endurance, économie systémique ni agriculture complexe imposés. Réactions non hostiles ou fuite/défense simple de la faune ; **pas de combat prévu**. La **simulation physique climatique complexe** reste hors périmètre. Le **ciel jour/nuit, météo stylisée, neige accumulée et lunes multiples** sont désormais **documentés pour la bêta** (voir document 19), sans être considérés livrés.
 
 ## 3. Monde et géographie
 
@@ -156,6 +156,18 @@ Le jeu doit conserver des **panoramas profonds et des reliefs lointains reconnai
 Retenir un **terrain simplifié géométriquement jusqu'à l'horizon**, des LOD différents pour forêt/bâtiments/objets et des **imposteurs/panoramas précalculés** réservés aux éléments suffisamment éloignés. Un sky dome/skybox représente le ciel, pas des reliefs approchables. Les seuils seront mesurés et adaptés à 30/20 FPS sur GPU intégré.
 
 Spécification, état réel du code et étapes HZ : [17 — Vue profonde et optimisation](17-DISTANT-VIEW-RENDERING.md).
+
+## Ciel, météo, neige et astres — objectif visuel futur de la bêta
+
+Le monde doit disposer d'un **jour/nuit complet**, lever/coucher de soleil, **ciel étoilé**, **zéro, une ou plusieurs lunes à cycles indépendants**, nuages, vent, pluie, neige, brouillard météorologique et orages, tout en restant LOW-RESOURCE.
+
+- Neige qui tombe et **neige accumulée** sont distinctes. La couverture du sol, des toitures, des arbres et des montagnes varie avec la température/altitude/fonte.
+- **Ombres dynamiques locales**, limitées aux grands objets proches ; pas de grande zone d'ombres sur 100 km² ni d'ombres d'herbe. Profil minimum sans shadow map.
+- **Brouillard naturel possible** pour une situation météo, **jamais un brouillard permanent pour cacher le terrain lointain**.
+- La **bêta** dispose d'un menu pour forcer l'heure, les états météo, les phases/lunes, la neige, les ombres et les profils de performance ; pas de sauvegarde involontaire des overrides.
+- Un **futur serveur** contrôlera l'horloge et la météo commune ; le moteur graphique reste autonome/local et aucun backend n'est requis pour le développement solo.
+
+**Spécification cible et jalons** : [19 — Environnement LOW-RESOURCE](19-ENVIRONMENT-WEATHER-SKY.md). La complexité **physique** du climat reste exclue ; les effets stylisés ont une architecture prévue, pas une implémentation acquise.
 
 ## 10. Frontière entre acquis et objectifs
 
