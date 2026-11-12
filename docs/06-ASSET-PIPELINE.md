@@ -166,6 +166,17 @@ Voir [21 — Eau LOW-RESOURCE](21-WATER-HYDROLOGY-LOW-RESOURCE.md). Les presets 
 - `InstancedMesh` par **secteurs cullables**, LOD/proxies géométriques et shaders économiques ; compression Meshopt/Draco/KTX2 **sur benchmark** temps de transfert/décodage/VRAM et non sur taille seule.
 - Les caches du Studio et du jeu ne doivent pas grossir indéfiniment après déplacement/Undo/Redo/imports répétés ; tester perte/reprise contexte WebGL et longues sessions.
 
+## Catalogue d'assets audio MIDI / échantillons — 5 à 10 instruments
+
+**Contrat :** [23 — Audio LOW-RESOURCE](23-MIDI-AUDIO-LOW-RESOURCE.md). La bibliothèque doit accepter **les partitions MIDI et quelques échantillons**, pas une grosse SoundFont de 128 instruments.
+
+- `music/*.mid` et `audio/patches/*.json` : séquences MIDI et **palette de 5–10 timbres autorisés** (patchs oscillateurs/enveloppes, exceptionnellement petits samples). En cas de programmes GM non reconnus, mapper explicitement ou signaler l'import.
+- `audio/sfx/*` et `audio/ambience/*` : courts sons/loops compressés avec variantes de codec si nécessaires, licence/provenance/ID et canaux mono/stéréo. Ne pas considérer la taille compressée comme le coût décodé en mémoire.
+- Préflight : poids des fichiers, pistes/événements MIDI, polyphonie maximale, durée, tempo/programmes, import des contrôleurs/SysEx limité, canaux, **estimation PCM = frames × channels × 4**, ressource de remplacement / codec et licence.
+- Les samples et buffers synthétisés sont **mutualisés** par ID/hashe et comptés une seule fois dans le cache décodé ; aucun buffer audio complet par instance de ruine, PNJ ou cascade.
+- Le **ZIP V3 portable** contient les `.mid`, patches, samples et manifestes requis, jamais les voix/audio graphes runtime ; le build statique ne précharge pas toutes les ambiances du monde.
+- À l'import, écouter le son et afficher **la quantité de voix potentielle, la taille PCM et la portée**. Pas de script ni d'extension synthèse arbitraire venant d'un preset.
+
 ## Qualification
 
 - Fichier présent, path valide après build GitHub Pages.
