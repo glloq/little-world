@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import './style.css';
-import { buildWorld, configureScene } from './world';
+import { addPlacement, buildWorld, configureScene, type AssetId, type Placement, type WorldConfig } from './world';
+import catalogue from '../assets/catalog.json';
 import { buildSquirrel, MAX_OXYGEN, simulatePlayer, spawnPlayer, type Controls } from './player';
 import { clamp, terrainHeight } from './terrain';
 
@@ -22,7 +23,34 @@ renderer.outputColorSpace=THREE.SRGBColorSpace;
 renderer.toneMapping=THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure=1.1;
 viewport.appendChild(renderer.domElement);
-const world=buildWorld({seed:1284,density:1});
+const isPreview=new URLSearchParams(window.location.search).get('preview')==='1';
+let worldConfig:WorldConfig={seed:1284,density:1};
+let previewPlacements:Placement[]=[];
+if(isPreview){
+  try{
+    const raw=sessionStorage.getItem('little-world-preview');
+    const d:unknown=raw?JSON.parse(raw):null;
+    if(d && typeof d==='object'){
+      const draft=d as {schemaVersion?:number;config?:WorldConfig;placements?:Placement[]};
+      const validAssets=new Set(catalogue.assets.map(a=>a.id));
+      if(draft.schemaVersion===1 && draft.config && Number.isInteger(draft.config.seed) &&
+        draft.config.seed>=1 && draft.config.seed<=9999999 &&
+        Number.isFinite(draft.config.density) && draft.config.density>=0 &&
+        draft.config.density<=2 && Array.isArray(draft.placements) &&
+        draft.placements.length<=2000 &&
+        draft.placements.every(p=>typeof p.x==='number'&&typeof p.z==='number'&&
+          Number.isFinite(p.x)&&Number.isFinite(p.z)&&Number.isFinite(p.rotation)&&
+          validAssets.has(p.assetId as AssetId))){
+        worldConfig=draft.config;
+        previewPlacements=draft.placements;
+        const subtitle=document.querySelector<HTMLElement>('.brand small');
+        if(subtitle)subtitle.textContent='Prévisualisation locale de l’éditeur';
+      }
+    }
+  }catch(e){console.warn('Prévisualisation invalide : carte par défaut utilisée',e);}
+}
+const world=buildWorld(worldConfig);
+for(const item of previewPlacements)addPlacement(world,item);
 scene.add(world.root);
 const player=spawnPlayer();
 const squirrel=buildSquirrel();
