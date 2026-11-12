@@ -97,6 +97,23 @@ Ce chantier vise le **jeu solo immédiatement**, et les profils de foule du **fu
 
 **Règle :** ne pas faire de Blender un prérequis pour utiliser le Studio ; un GLB ne remplace pas les données auteur V3. Toute fusion/mise à jour importée est prévisualisée, transactionnelle, **non destructive**. Le jeu solo ne requiert ni backend ni décodeur `.blend`.
 
+## Axe WAT — hydrographie, cascades, eau sous-marine et océan LOW-RESOURCE
+
+**Décision validée, développement non acquis :** [21 — Eau, pente et LOD](21-WATER-HYDROLOGY-LOW-RESOURCE.md).
+
+| Phase | Résultat vérifiable |
+| --- | --- |
+| **WAT-0** | Audit eau actuelle et référence CPU/GPU rivière, côte, nage et bateau |
+| **WAT-1** | Réseau V3 nœuds/tronçons/lacs/jonctions + Studio tracé/édition et profil longitudinal |
+| **WAT-2** | Adaptation aux pentes/dénivelés, niveau d'eau non ascendant, lit/berges, détection des conflits |
+| **WAT-3** | Rapides/cascades à **deux niveaux**, lacs, jonctions, embouchures, volumes indépendants |
+| **WAT-4** | Rendu extérieur low-poly et shader très léger, mousse locale et intégration vent/ciel |
+| **WAT-5** | Immersion par caméra/volume, transitions sans clignotement, visibilité et couleur sous-marine |
+| **WAT-6** | Courants logiques pour nage/bateau, navigation, faune aquatique, pas de simulation des vagues |
+| **WAT-7** | **LOD0–3 mer/rivières/cascades** : horizon sans fog-cache, masques de côte, shaders différents, benchmarks GPU intégré |
+
+**Priorité :** ne pas étendre l'animation aux grandes étendues d'eau éloignées ; les distances 0–15, 15–60, 60–250 et >250 m sont **provisoires** et doivent être ajustées par taille écran, altitude, visibilité et budget partagé. L'eau lointaine reste visible, mais essentiellement statique.
+
 ## Campagne avancée — état livré sur branche
 
 | Domaine | Avant | Après | Statut | Reste à faire |
