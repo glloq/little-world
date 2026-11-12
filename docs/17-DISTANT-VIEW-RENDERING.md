@@ -205,6 +205,17 @@ La [spécification 21](21-WATER-HYDROLOGY-LOW-RESOURCE.md) fixe pour **mer, lac,
 - Attention **fill-rate et alpha-overdraw** : même 2 triangles de mer peuvent coûter très cher s'ils couvrent tout l'écran avec un shader fragmentaire compliqué.
 - Continuité des couleurs, hautes mers, écumes/shoreline et transitions des LOD sous météo et lever/coucher ; le **jeu/nage/bateau** reste indépendant des niveaux de détail du rendu.
 
+## Horizon sous budget PERF global
+
+La [spécification 22 — ResourceBudgetManager](22-RESOURCE-BUDGET-MANAGER.md) arbitre le détail des secteurs et éléments lointains **sans jamais supprimer la représentation géographique réelle**.
+
+- À plusieurs kilomètres, montagnes, îles, côtes, mer et repères restent sous forme de **LOD/proxies/instances simples** ; aucune brume de masquage lorsque la météo est claire.
+- Les seuils de niveau de détail dépendent de l'**erreur projetée/importance de silhouette**, altitude et vitesse (planage/bateau) et priorité écran, pas seulement d'un rayon global.
+- Le **streaming directionnel** prépare les secteurs visibles avant le changement de caméra, avec **quota de création CPU/upload et fallback LOD** ; éviter fissures, popping et frames longues.
+- Les surfaces d'océan et le terrain peuvent remplir l'écran : mesurer **fill-rate, shaders, transparence/overdraw**, non uniquement triangles.
+- **Budget partagé** : diminuer herbe/particules/ombre/détails secondaires avant d'amputer l'horizon. L'importance auteur de monuments/points d'accès peut orienter les LOD.
+- Panneau bêta : affichage LOD, frustum, tâches en file, caches, qualité effective, coût CPU/GPU (GPU si possible) et scène de panorama fixe reproductible.
+
 ## 9. Tests et portes de qualification
 
 **Scènes à couvrir :**
