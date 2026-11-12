@@ -419,6 +419,21 @@ interface PortableWorldArchiveManifest {
 
 **Contraintes de compatibilité** : le validateur actuel V2 utilise `Placement` avec `x/z/rotation/scale` simplifiés ; faire migrer via adaptateur non destructif, pas transformer silencieusement le V2 en API finale V3.
 
+## Contrat V3 — réseau hydrographique, volumes d'immersion et LOD dérivés
+
+**Contrat cible :** [21 — Eau LOW-RESOURCE et hydrographie](21-WATER-HYDROLOGY-LOW-RESOURCE.md).
+
+- `WaterNetworkDefinitionV3` est une **source auteur** : `WaterNode` (source/jonction/sortie/embouchure), `WaterReach` spline orientée, `WaterBasin` polygone de lac/mer à niveau stable, `WaterDrop` cascade avec **altitude supérieure et inférieure explicites**. Les cas V2 `WaterBody` sont migrés sans inventer silencieusement de cascades.
+- **HydroProfileCompiler** dérive altitude de rivière non ascendante et propose rapides/chutes selon le **relief original** (avant incision du lit). Les exceptions et niveaux manuels sont des **overrides explicites**, validés et annulables.
+- Sources persistantes : topologie, IDs, points, largeurs/profondeurs/courants, zones navigables, valeurs auteur et `generatorVersion`. **Dérivés non persistants** : lit/berges compilés, maillages rubans, écume, volumes indexés, colliders, masques, WaterLOD0–3/proxies.
+- **WaterVolumes** définit les requêtes `surface/depth/isCameraSubmerged/current` pour nage/bateau et futures autorités logiques ; **jamais** basé sur le mesh de vague ni sur le LOD du rendu. Une cascade verticale n'est pas un volume d'immersion horizontal.
+- `WaterLODManager` consomme les données dérivées et réduit animation, opérations shader et géométrie selon taille projetée/distance/budget, sans changer le **volume logique et courant**.
+- Rivières/lacs/chutes/mer compilés par secteur, index et dépendances entre secteurs vérifiés, invalidation locale après édition, **IDs stables**, Undo/Redo et import/export dans les archives **V3 ZIP**.
+- Blender GLB peut servir de **décor de cascade/falaise/pont**, mais ne crée pas un graphe d'eau ou un exutoire par son apparence. Les métadonnées glTF importées restent non fiables.
+- Sources répliquées côté serveur futur seulement pour états de gameplay nécessaires ; **vagues et écume locales** sans trafic réseau particulier.
+
+**Types de référence (illustratifs, pas encore livrés)** : `WaterNodeV3`, `WaterReachV3`, `WaterBasinV3`, `WaterDropV3` et `WaterNetworkDefinitionV3` sont esquissés dans le document 21. Les unités = mètres, Y vertical, profils et coordonnées validés.
+
 ## 10. Architecture de code proposée (pas de refonte cosmétique préalable)
 
 ```text
