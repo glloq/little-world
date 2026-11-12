@@ -112,6 +112,19 @@ Référence détaillée : [18 — Herbes ultra-low-resource](18-GRASS-LOW-RESOUR
 - Adapter particules, nuages, puis ombres avant d'amputer la silhouette de l'horizon ou la stabilité du temps logique.
 - **Cibles d'essai hors ombres** : CPU < 0,2 ms/frame, GPU < 1 ms/frame, 1–4 draw calls météo, 1–4 Mio GPU ; non mesurées. **Ombres** à benchmarker et comptabiliser **séparément**.
 
+## Politique GLB/presets/cartes importées depuis Blender
+
+**Contrat** : [20 — Blender, packs de presets et import/export portable](20-BLENDER-STUDIO-INTERCHANGE.md). Blender fournit la géométrie ; le Studio fournit les règles de contenu et les instances ; le compilateur produit **un runtime sectorisé, non une scène monolithique**.
+
+- **Réutiliser les mêmes GLB** pour beaucoup d'instances ; regrouper les répétitions en `InstancedMesh` par secteurs visibles et fusionner décorations fixes seulement si rentable.
+- Prévoir **LOD/proxies** pour bâtiments, falaises, arbres et objets lointains, en conservant le rendu d'horizon sans brouillard ; ne pas ajouter une copie détaillée par placement.
+- Limiter nombre de matériaux, draw calls, textures et transparences dès le **préflight**. Budget de triangles et taille de textures **mesurés**, pas imposés arbitrairement comme preuve de FPS.
+- Les **sources `.blend`** et l'archive V3 auteur sont facultatives dans le workspace de création, **exclues du build jouable**.
+- **Import ZIP/glTF sécurisé** : limites taille décompressée, profondeur des nœuds, références externes et extensions, vérification des licences et de la VRAM approximative.
+- Les biotopes et herbes proviennent de **recettes du Studio**, pas d'un GLB contenant des milliers de touffes. Masques/heightfields sont chargés/compiler par zones.
+- **Pas de GLB unique pour 100 km²** ni téléchargement de tous les assets au spawn ; le manifeste/runtime choisit les secteurs nécessaires.
+- Compression glTF/textures seulement après comparaison du **temps de décodage vs transfert/VRAM** sur matériel bas de gamme.
+
 ## 3. Rendu 3D
 
 - Three.js/WebGL2, **peu de matériaux**, éclairage simple, limiter les ombres portées dynamiques et la transparence.
