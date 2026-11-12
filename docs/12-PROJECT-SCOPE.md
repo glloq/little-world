@@ -141,6 +141,14 @@ Les outils peuvent partager une coquille d'application et un viewport Three.js *
 - Studio : charger/modifier/recompiler les zones utiles, éviter les longues opérations sur le thread principal et les fuites GPU.
 - Toutes les cibles de mémoire, draw calls et FPS restent **à mesurer** sur PC de référence.
 
+## Évolution future volontairement différée : multijoueur
+
+Le produit **actuel** reste **solo**, sans backend ni réseau obligatoire. L'objectif futur discuté est un monde partagé avec un **premier palier de 30 joueurs**, une **cible de 200** et **500 comme scénario expérimental** ; ces chiffres sont des hypothèses de dimensionnement et **pas des résultats de performance**.
+
+Pour la V3, préparer seulement les **IDs stables**, la logique indépendante de Three.js, les données spatialement indexables, la persistance explicite, les niveaux de détails et la simulation décorrélée. Le fonctionnement futur visé comprend **AOI**, synchronisation de mouvement **2–20 Hz** selon intérêt (jusqu'à **2–3 Hz** pour avatars secondaires d'une foule), événements prioritaires et optimisation du rendu des foules.
+
+**Aucun serveur, protocole, compte ou système de réplication à implémenter maintenant.** Spécification : [16 — Futur multijoueur et optimisation des foules](16-FUTURE-MULTIPLAYER.md).
+
 ## 10. Frontière entre acquis et objectifs
 
 **Sur la branche `feat/living-world-editor` :** vallée de démonstration préservée, données v2 communes et migration v1, terrain local à trois LOD/cache borné, scènes synthétiques 1/2 km, rig rigide animé et GLB original, quatre PNJ animaux à navigation simple, dialogues/flags temporaires, écologie instanciée, atelier unifié avec sculpture/tracés/transformation/historique/IndexedDB/export/test. Ces évolutions sont testées ; elles ne constituent **pas** le Studio spécialisé, la navigation libre hiérarchique ou le streaming complet de 100 km².
