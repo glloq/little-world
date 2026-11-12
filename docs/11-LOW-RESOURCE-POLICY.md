@@ -125,6 +125,20 @@ Référence détaillée : [18 — Herbes ultra-low-resource](18-GRASS-LOW-RESOUR
 - **Pas de GLB unique pour 100 km²** ni téléchargement de tous les assets au spawn ; le manifeste/runtime choisit les secteurs nécessaires.
 - Compression glTF/textures seulement après comparaison du **temps de décodage vs transfert/VRAM** sur matériel bas de gamme.
 
+## Eau : même politique LOW-RESOURCE de profondeur de vue que terrain et végétation
+
+**Décision validée :** [21 — Hydrographie et eau LOW-RESOURCE](21-WATER-HYDROLOGY-LOW-RESOURCE.md).
+
+- **Distinguer réseau d'eau auteur, volumes gameplay et surfaces graphiques** : piscine/lac/rivière, nage et bateau toujours exacts quand l'eau ne montre aucune vague.
+- Tracé de spline et adaptation **au dénivelé** calculés à l'édition/compilation ; rivière non ascendante, pentes/rapides/cascades à niveaux haut/bas explicites, lit creusé **localement**, pas simulation fluide.
+- **WaterLODManager** : près (effets locaux facultatifs), intermédiaire (shader/ondulations simplifiés), lointain (surface presque fixe, couleur du ciel), horizon (très peu de faces **et** d'instructions de shader). **Pas de vagues, mousse ou particules à grande distance**.
+- **Océan visible jusqu'à l'horizon** sans fog-cache, mais patches/anneaux et masques de côte empêchent de dessiner l'eau sur les îles ; phasage des petites vagues **ancré au monde** et LOD sans fissure.
+- **Limiter le coût fragmentaire** d'une surface d'eau très grande : préférer matériaux opaques stylisés, transparence locale, pas de réflexion/refraction seconde caméra, SSR, FFT, grosses passes ou surcouches.
+- **Sous l'eau** : teinte/visibilité selon volume et caméra avec hystérésis ; aucun rendu sous-marin secondaire obligatoire. Chute d'eau ≠ bassin nageable par défaut.
+- Effets d'écume, rapides et cascade : quelques rubans UV animés et sprites proches facultatifs, jamais des milliers de gouttes CPU. Vent global partagé et courant logique interrogé uniquement pour acteurs pertinents.
+- Budgets **CPU/GPU à mesurer** (cibles indicatives < 0,1–0,2 ms CPU/frame récurrent et < 0,5–1 ms GPU par scène si possible), indépendamment du nombre de triangles ; garder FPS 30/20 en surcharge globale.
+- Les distances illustratives **0–15, 15–60, 60–250, >250 m** ne sont pas des seuils fixes ; distance projetée, angle, altitude, budget réel et hystérésis dominent.
+
 ## 3. Rendu 3D
 
 - Three.js/WebGL2, **peu de matériaux**, éclairage simple, limiter les ombres portées dynamiques et la transparence.
