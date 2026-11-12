@@ -226,6 +226,25 @@
 
 **Architecture, budgets et étapes AUD-0…AUD-8 :** [23 — Audio LOW-RESOURCE / MIDI](23-MIDI-AUDIO-LOW-RESOURCE.md). La musique et le moteur audio sont **à développer**, pas considérés livrés.
 
+## VALIDÉ — mines creusables 2,5D, niveaux et persistance
+
+| ID | Décision |
+| --- | --- |
+| **MINE-D01** | Mines **localisées creusables par étage 2,5D**, **heightfield extérieur inchangé** ; pas de voxels mondiaux, benchmark ciblé d'alternatives en MINE-0 |
+| **MINE-D02** | **3–8 étages à tester**, grilles locales par `mineId/levelId`, escalier/rampe/puits explicites ; liberté horizontale, liberté verticale **contrainte** |
+| **MINE-D03** | **Exception au non-creusement du monde** : excavation **persistante uniquement dans les mines autorisées**, jamais modification implicite des sources auteur Studio |
+| **MINE-D04** | Cellules solides/excavées → **faces exposées, fusion de faces et maillages par chunks**, invalidation des seules bordures concernées |
+| **MINE-D05** | Collisions/navigation de mine selon **position 3D et étage**, transitions de surface ; `terrainHeight(x,z)` extérieur seul ne suffit plus |
+| **MINE-D06** | **Métaux/cristaux en filons déterministes** par seed/version/profondeur, stocks épuisables persistants ; pas d'objet physique par éclat |
+| **MINE-D07** | **Source V3 / partie séparés** : géologie, étages et presets auteur ; excavations, inventaire et gisements épuisés en sauvegarde locale puis serveur futur |
+| **MINE-D08** | **Commande de creusement validée** : portée/outils/état, idempotence, transaction atomique excavation+récompense ; réplication snapshots/deltas et révisions plutôt que meshes |
+| **MINE-D09** | Backend serveur **différé** (jeu solo statique actuel), mais protocole prêt ; futurs clients abonnés à la zone de mine, données de minerai rare gardées serveur si nécessaire |
+| **MINE-D10** | **PERF** : streaming des seuls étages/chunks utiles, culling galeries, aucune ombre dynamique par torche, remeshing local et budgets partagés |
+| **MINE-D11** | **Studio** : emprises/entrées/niveaux, plan par étage, filons, connexions, aperçu coupe, test temporaire, validation et archive ZIP V3 |
+| **MINE-D12** | Tester entrées/heightfield, eau/mer, rampes, collisions, concurrence de récolte, sauvegarde, FPS/CPU/VRAM ; dimensions **1m / 32×32 / 3–8 étages indicatives seulement** |
+
+**Spécification et phases MINE-0…MINE-9 :** [24 — Mines LOW-RESOURCE](24-MINES-MULTILEVEL-LOW-RESOURCE.md). **Défini ne signifie pas implémenté ni synchronisé sur un serveur en production.**
+
 ## PROPOSÉ — technique
 
 | ID | Choix | Réévaluation |
