@@ -1,7 +1,7 @@
 # 11 — Politique globale LOW-RESOURCE (Little World)
 
 **Statut : objectifs de conception validés pour les fréquences ; autres budgets provisoires à calibrer.**
-**Périmètre : jeu solo PC/WebGL sur GitHub Pages, éditeur et outils de génération, quelle que soit la taille future de la carte.**
+**Périmètre : jeu solo PC/WebGL sur GitHub Pages, Studio et outils de génération. Limite cible : une carte continue jusqu'à 10 × 10 km maximum.**
 
 > Cette politique concerne **tout le projet** : rendu, simulation, PNJ, faune, assets, mémoire, stockage, téléchargements et édition. **Ce n'est pas un relevé de performances atteintes.** Le prototype existant n'applique pas encore nécessairement ces paramètres ; les écarts doivent être suivis explicitement.
 
@@ -82,6 +82,8 @@ Le **matériel de référence est à choisir** (idéalement PC avec circuit grap
 
 ## 4. Carte et génération
 
+**Périmètre approuvé :** une seule carte géographique continue par partie, limite de format 100 km², jamais intégralement simulée en détail. Les éditeurs spécialisés du Studio partagent IDs, historique et données auteur ([12 — Limites](12-PROJECT-SCOPE.md), [13 — Studio](13-STUDIO-UX-ARCHITECTURE.md)).
+
 - Carte et biotopes **compilés hors de la boucle de jeu** ; le runtime charge des données statiques plus les états interactifs locaux.
 - `WorldConfig` versionné pour les dimensions ; supprimer à terme les limites `200 × 600` dispersées dans le code.
 - Chunks de taille **proposée : 64 × 64 m**, paramétrables, avec identifiant, limites spatiales et version.
@@ -112,6 +114,8 @@ Le **matériel de référence est à choisir** (idéalement PC avec circuit grap
 - En premier, optimiser le **personnage joueur visible en permanence** ; ne pas ajouter plusieurs rigs complets pour la faune décorative.
 
 ## 7. PNJ, oiseaux, insectes et poissons
+
+**Choix approuvé :** PNJ animaux et créatures sans humains, réutilisation du rig/variantes du joueur si compatible ; **navigation spatialement libre et avancée**, mais routines/activités simples. Privilégier trajets hiérarchiques par secteurs et calcul sur événement plutôt que la simulation détaillée de tous les habitants.
 
 **Trois classes de coûts, avec budgets de fréquence distincts :**
 
@@ -152,6 +156,8 @@ Ce sont des **ordres de grandeur**, pas des fréquences garanties. Une animation
 - Séparer **bundle jeu** et **bundle éditeur**, pour ne pas faire télécharger les outils de sculpture aux joueurs.
 
 ## 10. Éditeur LOW-RESOURCE
+
+Le Studio a **plusieurs éditeurs spécialisés**, mais un projet/une carte continus et un historique commun. Charger dynamiquement l'éditeur actif ; la vue mondiale est 2D/simplifiée. Séparer les brouillons auteur des **plusieurs slots de partie joueur**.
 
 - Outils de sculpture/peinture : mettre à jour **la zone affectée**, pas le terrain entier.
 - Prévisualisation légère pendant un glisser-déposer ; calculs définitifs en fin d'opération ou par lots.
