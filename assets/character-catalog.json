@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "characters": [
+    {
+      "id": "character.flying-squirrel",
+      "name": "Écureuil volant articulé",
+      "file": "models/squirrel.glb",
+      "type": "glb",
+      "license": "project-original",
+      "source": "Original Little World procedural geometry in src/squirrel.ts",
+      "generator": "node --experimental-strip-types tools/generate-squirrel.mjs",
+      "rig": "rigid articulated Three.Bone hierarchy; no weighted skinning",
+      "runtime": "Game and NPCs use the equivalent procedural rig; GLB is an exported reference asset",
+      "units": "meters",
+      "up": "Y",
+      "pivot": "ground-center",
+      "accessorySockets": ["SocketHead", "SocketBack", "SocketNeck"],
+      "animations": ["idle", "walk", "run", "jump", "rise", "fall", "deploy", "glide", "fold", "land", "swim", "dive", "ascend"]
+    }
+  ]
+}
