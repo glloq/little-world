@@ -140,6 +140,20 @@ Lire **[21 — Eau LOW-RESOURCE, rivières/lacs/mer et LOD](docs/21-WATER-HYDROL
 - **Bêta** : panneau Ressources mesurant FPS/frametime, CPU/GPU si disponible, RAM/VRAM estimée, draw calls, secteurs, LOD, qualité effective, raisons du changement ; export JSON de scénarios reproductibles.
 - Contrats/étapes **PERF-0…PERF-9** ; seuils et cibles GPU **non qualifiés sans tests sur matériel réel**. Les mesures SwiftShader servent aux régressions, pas à garantir 30/20 FPS sur GPU intégré.
 
+## Audio/MIDI LOW-RESOURCE — 5 à 10 instruments maximum (validé)
+
+Lire **[23 — Audio MIDI, synthèse légère et échantillons](docs/23-MIDI-AUDIO-LOW-RESOURCE.md)** avant toute implémentation de musique, de sons d'ambiance ou d'`AudioEmitter`.
+
+- **5–10 instruments MIDI musicaux maximum** sur l'ensemble du jeu, **pas** 128 instruments GM. Le nombre de patches n'est **pas** le nombre de notes simultanées : polyphonie plafonnée globalement.
+- **Un `AudioContext` Web Audio partagé**, synthétiseur léger (oscillateurs/enveloppes et éventuels patches échantillonnés), `MidiSequencer` déterministe en temps audio, et **petit lecteur d'échantillons** pour bruitages naturels (eau/vent/animaux/pas).
+- Lecture de **fichiers `.mid` internes** : **Web MIDI API et clavier matériel non nécessaires** ; import SMF type0/1 restreint, mapping des programmes vers les 5–10 timbres, validation et avertissements. Aucune grosse SoundFont/SF2 ou synthèse générale 128 programmes par défaut.
+- **Audio 3D uniquement pour sources audibles/proches**, priorité sons de gameplay/joueur avant ambiance décorative ; `equalpower` par défaut et HRTF seulement après tests, voix/échantillons/effets plafonnés.
+- `AudioBudgetManager` est **consommateur de `ResourceBudgetManager` (doc 22)**, jamais un second arbitre. Profils éco/équilibré/qualité et cache PCM estimé, avec mesures de glitches et mémoire.
+- **MIDI séquencé par horloge `AudioContext.currentTime`** avec lookahead, **pas** selon RAF/30 FPS ni accélération de `WorldClock` ; cohérence des transitions jour/nuit/météo/biome sans décalage musical.
+- Autoplay navigateur : premier clic « Jouer » pour unlock/reprise ; mute et **mode silencieux sans erreur** si contexte audio bloqué, fermeture/onglet masqué robustes.
+- Le Studio importe `.mid` et quelques samples/loops avec **licence, taille/PCM décodé, mappings de patches**, place des émetteurs, définit ambiances par biome ; ZIP V3 contient les **sources** audio, non les buffers décodés ou états de voix.
+- Cibles de ressources/profils **provisoires**, aucune CPU ou compatibilité audio annoncée sans tests Firefox/Chromium. **AUD-0…AUD-8 spécifiés, non livrés**.
+
 ## 2. Séparation des données et des responsabilités
 
 - Projet auteur : `worldId`, `schemaVersion`, `seed`, dimensions, chunks, overrides, prefabs, entités, dialogues, navigation, interactions.
