@@ -137,6 +137,14 @@ Détails : [08-GITHUB-PAGES.md](08-GITHUB-PAGES.md).
 
 En pratique : éditeur → source autorisée → validation/compilation par secteurs → build statique GitHub Pages → runtime et slots de partie. **Le Studio ne publie pas directement depuis le navigateur public**.
 
+## Visibilité longue portée sans brouillard (cible de rendu)
+
+**Décision validée :** relief visible à plusieurs kilomètres sans fog-cache, au moyen d'un **horizon 3D simplifié indépendant des chunks détaillés**, accompagné si utile d'imposteurs/atlas/silhouettes précalculés et d'un ciel panoramique. Voir [17 — Rendu panoramique](17-DISTANT-VIEW-RENDERING.md).
+
+Le **terrain actuel à trois LOD** reste la base locale ; le système d'horizon et les LOD de forêts, bâtiments, eau et silhouettes sont des **extensions à implémenter et benchmarker**. Les changements V3 d'auteur invalident seulement les dérivés affectés.
+
+Le rendu **n'est pas** un état du monde : la physique, la navigation, les dialogues et la persistance sont indépendants des meshes/proxies. Éviter `camera.far` illimité, `logarithmicDepthBuffer` global sans test et les billboards alpha trop coûteux. Comparer les performances à graine, contenu et caméra identiques sur GPU intégré.
+
 ## Compatibilité avec un futur multijoueur (non implémenté)
 
 **Contrat de préparation**, cf. [16 — Architecture multijoueur future](16-FUTURE-MULTIPLAYER.md) :
