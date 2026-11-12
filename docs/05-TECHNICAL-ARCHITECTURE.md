@@ -175,6 +175,21 @@ Voir [20 — Contrat import/export GLB, presets et cartes](20-BLENDER-STUDIO-INT
 
 **Stabilité** : IDs stables, conversion Blender **Z-up** ↔ Studio/glTF **Y-up** faite une seule fois, gestion des pyramides transform (quaternions, échelles), hashes de sources, transactions et Undo/Redo, migration V1/V2/V3 ; sécurité et budget GPU à l'import. Les interactions, dialogues et règles de biotopes sont **données V3**, non inférées de meshes Blender.
 
+## Architecture eau V3 : source, logique, géométrie et LOD
+
+**Contrat** : [21 — Eau LOW-RESOURCE](21-WATER-HYDROLOGY-LOW-RESOURCE.md). Les formes visuelles ne servent pas d'oracle aux volumes gameplay.
+
+`WaterNetworkDefinitionV3` → `HydroProfileCompiler` (pentes, lit/berges, lacs, chutes) → sources compilées par secteur ; séparation **`WaterVolumes`** (niveau, profondeur, courants, nage/bateau) et **`WaterLODManager/WaterRenderer`** (surfaces, sous-marin, vagues, écume).
+
+- Géométrie de rivières en rubans/splines, lacs en surfaces, cascades en rubans dénivelés, mer en patches/anneaux avec **côtes masquées** et horizon conservé.
+- **LOD0–3** réduit géométrie **et calcul shader** selon distance/importance écran/GPU ; pas de simulation fluide, ni de réflexion/refraction multipass, ni d'animation CPU de chaque vague.
+- **Vue caméra immergée** fondée sur un volume d'eau et une hystérésis, matériaux légers et état d'immersion indépendants du mode locomotion.
+- Données d'eau/source persistantes V3 et sources de cartes ZIP ; caches de géométrie/écume/proxies de rendu **dérivés**, compilés seulement sur les zones modifiées.
+- Courants évalués au pas fixe **pour joueurs/bateaux concernés** ; aucun coût hydrographique mondial à chaque frame, aucun serveur nécessaire en solo.
+- Météo (vent/ciel) via uniformes du système global ; futur serveur autoritaire seulement pour gameplay partagé, **pas de réplication de vagues**.
+
+**Statut** : l'eau V2, nage/bateau et rubans existants restent actifs ; ni réseau hydrographique V3 ni océan LOD ne sont livrés par cette documentation.
+
 ## Compatibilité avec un futur multijoueur (non implémenté)
 
 **Contrat de préparation**, cf. [16 — Architecture multijoueur future](16-FUTURE-MULTIPLAYER.md) :
