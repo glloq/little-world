@@ -167,6 +167,18 @@ Référence détaillée : [18 — Herbes ultra-low-resource](18-GRASS-LOW-RESOUR
 - **Serveur futur** : intention de creusement et **deltas de cellules seulement**, validation de portée/outils et transaction creusement+inventaire. Le jeu solo statique n'implémente pas le backend.
 - Vérifier les connexions de niveaux, l'entrée de terrain, collision XYZ et interactions avec eau/mer avant d'ouvrir le creusement.
 
+## AGRI : parcelles riches en règles, coûts minimes en temps réel
+
+**Décision :** [25 — Agriculture LOW-RESOURCE](25-AGRICULTURE-PARCELS-LOW-RESOURCE.md).
+
+- Agriculture **facultative**, enfermée dans **parcelles polygonales** et un petit nombre de sous-zones ; **une simulation agronomique par zone**, pas des milliers de plants simulés ou des objets de collision par culture.
+- Croissance/soins/maturité **différés** à l'action, consultation autorisée ou échéance, avec **temps du monde + météo historique agrégée et versionnée**. Pas de **30 Hz** agricole ni de simulation de pluie/eau pour chaque plant.
+- **Rendu LOD par caméra** : `InstancedMesh` proche, rangs agrégés en distance moyenne, **teinte/masque du champ au loin**, animation vent/ombres/effets coupés lorsque non perceptibles. Les informations du propriétaire ne justifient pas plus de triangles à caméra égale.
+- **Passant** reçoit état public compact sans données privées ; **agriculteur** reçoit détails/commandes suivant droits, mêmes états et résultats. LOD graphique **indépendant** de droits/réseau.
+- Fertilité/humidité/santé/parasites/rotation/rendement sont des **scalaires/états agrégés bornés**, calculés à échéances ; historique climatique et actions stockés/compactés, pas de minuteur par parcelle.
+- **PERF** limite caches de rendu, génération/instances, file de simulation/échéances et mémoire. Surface cultivée exclut l'herbe naturelle en doublon; compatibilité eau/neige/pentes.
+- Valeurs de mémoire, nombre de parcelles, profils d'espèces et distances LOD **à mesurer sur GPU intégré et navigateur** avant toute garantie de ressources.
+
 ## 3. Rendu 3D
 
 - Three.js/WebGL2, **peu de matériaux**, éclairage simple, limiter les ombres portées dynamiques et la transparence.
