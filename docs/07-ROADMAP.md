@@ -2,7 +2,7 @@
 
 **Statut : suivi du prototype initial et plan du jeu final — 12 novembre 2026.**
 
-**Documents de cadrage prioritaires :** [12 — Limites du jeu](12-PROJECT-SCOPE.md), [13 — UX du Studio](13-STUDIO-UX-ARCHITECTURE.md) et **[14 — Décisions techniques validées](14-TECHNICAL-CHOICES.md)**. Le **200 × 600 m** des jalons M0–M6 est la carte de démonstration ; le monde final est **une carte continue de 10 × 10 km maximum**, performance à qualifier.
+**Documents de cadrage prioritaires :** [12 — Limites du jeu](12-PROJECT-SCOPE.md), [13 — UX du Studio](13-STUDIO-UX-ARCHITECTURE.md), [14 — Décisions techniques validées](14-TECHNICAL-CHOICES.md) et **[15 — Schémas V3 du Studio](15-STUDIO-DATA-SCHEMAS-V3.md)**. Le **200 × 600 m** des jalons M0–M6 est la carte de démonstration ; le monde final est **une carte continue de 10 × 10 km maximum**, performance à qualifier.
 
 ## Contrats techniques désormais figés
 
@@ -15,6 +15,22 @@ Toutes les recommandations de [14 — Choix techniques](14-TECHNICAL-CHOICES.md)
 4. Étape activités : produire collecte, pêche légère, énigme et mission depuis les mêmes types d'événements/conditions/actions.
 5. Étape persistance : restaurer flags/objets/inventaire depuis différents slots de partie, sans altérer le projet auteur.
 6. Étape performance : benchmark reproductible sur PC standard à GPU intégré, **aucune garantie 30 FPS/100 km² avant résultats**.
+
+## Plan de migration Studio V2 → V3 — objectifs, pas encore livrés
+
+Les contrats de [15 — Schémas V3](15-STUDIO-DATA-SCHEMAS-V3.md) doivent être intégrés par **étapes verticales testables**, sans casser la démonstration V2.
+
+| Jalon | Travail à fournir | Gate d'acceptation |
+| --- | --- | --- |
+| V3-A | Manifestes/schémas V3 et migration V1/V2 | Imports non destructifs, seed/placements/dialogues/IDs conservés |
+| V3-B | StudioContext, projets IndexedDB, CommandBus, checkpoints | Annuler/refaire entre éditeurs, après changement de module ; sauvegarde/retour fiable |
+| V3-C | Index global d'entités et source par chunks, vue mondiale 2D | Ouvrir une zone éloignée sans charger le monde entier |
+| V3-D | Entités à composants, prefabs, variantes, terrain/eau/biotopes sectorisés | Un objet lié reste stable après déplacement, sculpture et régénération |
+| V3-E | PNJ/dialogues, variables typées, événements/conditions/actions réutilisables | Réactions d'un PNJ/objet déclenchées depuis des données, même si secteur déchargé |
+| V3-F | Activités + inventaire + sauvegardes de partie + « Jouer ici » | Collecte, pêche légère, énigme, mission ; slots distincts des brouillons |
+| V3-G | Compilation incrémentale, préflight, performances et Pages | Build statique, tests navigateur et benchmarks 30/20 FPS |
+
+**Cibles non livrées par cette mise à jour documentaire.** L'ancien `WorldDefinition` V2 et son `parseWorld` restent valides pendant la transition ; ne pas monter la limite à 10 km dans un parseur V2 monolithique pour simuler une architecture V3.
 
 ## Campagne avancée — état livré sur branche
 
