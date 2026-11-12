@@ -332,6 +332,19 @@ Les choix du [document 17](17-DISTANT-VIEW-RENDERING.md) sont **indépendants du
 
 **Ne pas stocker les proxies dans les sauvegardes de joueur ni introduire de brouillard pour masquer les limites de la carte.**
 
+## Schéma V3 — herbes comme données de biotope, pas comme entités individuelles
+
+La [spécification 18](18-GRASS-LOW-RESOURCE.md) fixe une **végétation d'herbes déterministe**, indépendante des états de PNJ, des collisions et des données d'édition détaillées.
+
+- Stocker dans les sources/overrides de biotope **une densité, une hauteur/classe, une variante de palette, une seed/règle et des exclusions**, avec validation/migration. Ne **jamais** sérialiser des centaines de milliers de `EntityDefinitionV3` pour des touffes générées.
+- `GrassGenerator` reconstruit des cellules près du joueur à partir de `worldId + generatorVersion + chunkId + biome`, avec positions monde stables, heightfield et zones interdites.
+- `GrassRenderer` et son champ d'interaction visuel sont **des ressources dérivées et jetables** : aucun état de pliage persisté ni collision par plante.
+- Les changements de `TerrainEdit` / `BiomeEdit` invalident **uniquement les cellules recoupées**, compatibles Undo/Redo et WorldCompiler.
+- Des profils de rendu globaux (`groundOnly` / économique / équilibré / dense) limitent le coût et se partagent un budget avec le reste des LOD ; ce ne sont **pas** des valeurs à enregistrer dans chaque touffe.
+- En futur multijoueur, chaque client déforme les herbes avec les **positions déjà reçues** ; aucune propriété réseau obligatoire ajoutée dans les données V3.
+
+Les prototypes TypeScript précis de ces modules restent à fixer à l'implémentation, après mesures sur le rendu réel.
+
 ## 10. Architecture de code proposée (pas de refonte cosmétique préalable)
 
 ```text
