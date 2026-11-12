@@ -129,6 +129,13 @@ document.querySelector('#clear')!.addEventListener('click',()=>{
   if(!window.confirm('Supprimer tous les objets placés manuellement ?'))return;
   draft.placements=[];rebuild();markDirty();info('Objets manuels effacés');
 });
+document.querySelector('#play-preview')!.addEventListener('click',()=>{
+  if(!validDraft(draft)){info('Carte invalide : impossible de tester');return;}
+  try{
+    sessionStorage.setItem('little-world-preview',JSON.stringify(draft));
+    window.location.href=import.meta.env.BASE_URL+'?preview=1';
+  }catch(e){info('Prévisualisation impossible : '+String(e));}
+});
 document.querySelector('#save')!.addEventListener('click',async()=>{
   try{await saveLocal(draft);dirty=false;updateControls();info('Brouillon enregistré dans IndexedDB');}
   catch(e){info(`Échec de sauvegarde locale : ${String(e)}`);}
