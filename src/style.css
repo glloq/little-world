@@ -32,7 +32,7 @@ kbd{display:inline-block;padding:3px 6px;min-width:21px;text-align:center;border
 .hud-stats{right:22px;bottom:22px;min-width:225px;padding:14px 16px;font-size:12px;line-height:1.9}
 .status-dot{display:inline-block;vertical-align:middle;width:7px;height:7px;border-radius:50%;background:#54ae73;margin-right:6px}
 .mini-separator{height:1px;background:rgba(72,115,89,.17);margin:7px 0}
-#coords,#fps,#oxygen{font-variant-numeric:tabular-nums;color:#5f7968;font-size:11px}
+#coords,#fps,#oxygen,#render-metrics{font-variant-numeric:tabular-nums;color:#5f7968;font-size:11px}
 .action-toast,.toast{position:fixed;left:50%;z-index:5;transform:translateX(-50%);padding:12px 19px;border-radius:12px;background:rgba(38,74,59,.91);color:#f5fbf5;font-size:13px;box-shadow:0 8px 30px #203f3838;white-space:nowrap}
 .action-toast{bottom:22px}
 .toast{top:90px}
