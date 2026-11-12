@@ -74,7 +74,7 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number): void {
       p.glideReady=true;
     }
     if(p.mode==='air'||p.mode==='glide') {
-      if(keys.jumpPressed && p.glideReady) {
+      if(keys.jumpPressed && p.glideReady && oldMode !== 'ground') {
         p.mode=p.mode==='glide'?'air':'glide';
       }
       if(p.mode==='glide') {
