@@ -47,13 +47,11 @@ try {
   map.npcs[0].x = -23;
   map.npcs[0].z = -182;
   map.npcs[0].behavior = 'idle';
-  await page
-    .locator('#import-file')
-    .setInputFiles({
-      name: 'map.json',
-      mimeType: 'application/json',
-      buffer: Buffer.from(JSON.stringify(map)),
-    });
+  await page.locator('#import-file').setInputFiles({
+    name: 'map.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify(map)),
+  });
   await page.waitForFunction(
     () =>
       document.querySelector('#editor-message').textContent ===
@@ -61,13 +59,32 @@ try {
   );
   checks++;
   await page.locator('#object-list').selectOption('npc:' + map.npcs[0].id);
-  await page.getByLabel('Texte du PNJ', {exact:true}).fill('Bienvenue dans notre vallée !');
-  await page.getByLabel('Texte du PNJ', {exact:true}).press('Tab');
-  await page.getByRole('button', {name:'+ Réplique', exact:true}).click();
+  await page
+    .getByLabel('Texte du PNJ', { exact: true })
+    .fill('Bienvenue dans notre vallée !');
+  await page.getByLabel('Texte du PNJ', { exact: true }).press('Tab');
+  await page.getByRole('button', { name: '+ Réplique', exact: true }).click();
   checks++;
+  await page.locator('#npc-speed').fill('9');
+  await page.locator('#npc-apply').click();
+  await page.waitForFunction(() =>
+    document
+      .querySelector('#editor-message')
+      .textContent.includes('PNJ ou dialogues invalides'),
+  );
   await page.locator('#object-list').selectOption('smoke-crate');
   await page.locator('#object-scale').fill('1.5');
   await page.locator('#object-scale').press('Tab');
+  await page.locator('#object-x').fill('5000');
+  await page.locator('#object-x').press('Tab');
+  await page.waitForFunction(() =>
+    document
+      .querySelector('#editor-message')
+      .textContent.includes('Objets invalides'),
+  );
+  await page.locator('#object-list').selectOption('smoke-crate');
+  assert.equal(await page.locator('#object-x').inputValue(), '-20');
+  checks++;
   await page.locator('#duplicate-object').click();
   assert.equal(await page.locator('#object-list option').count(), 7);
   checks++;
@@ -124,8 +141,11 @@ try {
   const exported = JSON.parse(
     await readFile(artifacts + '/export.json', 'utf8'),
   );
-  assert.equal(exported.npcs[0].dialogue.lines[0].text,'Bienvenue dans notre vallée !');
-  assert.equal(exported.npcs[0].dialogue.lines.length,4);
+  assert.equal(
+    exported.npcs[0].dialogue.lines[0].text,
+    'Bienvenue dans notre vallée !',
+  );
+  assert.equal(exported.npcs[0].dialogue.lines.length, 4);
   assert.equal(exported.placements.length, 2);
   assert.equal(exported.placements[0].scale, 1.5);
   assert.equal(exported.terrain.length, 1);
@@ -211,13 +231,11 @@ try {
   checks++;
   const bad = structuredClone(exported);
   bad.placements = [null];
-  await page
-    .locator('#import-file')
-    .setInputFiles({
-      name: 'bad.json',
-      mimeType: 'application/json',
-      buffer: Buffer.from(JSON.stringify(bad)),
-    });
+  await page.locator('#import-file').setInputFiles({
+    name: 'bad.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify(bad)),
+  });
   await page.waitForFunction(() =>
     document
       .querySelector('#editor-message')

@@ -75,7 +75,8 @@ const point = (v: unknown, bounds: NPCBounds): v is NPCPoint =>
   finite((v as NPCPoint).x) &&
   finite((v as NPCPoint).z) &&
   Math.abs((v as NPCPoint).x) <= (bounds.width ?? 2000) / 2 - 3 &&
-  Math.abs((v as NPCPoint).z) <= (bounds.length ?? 2000) / 2 - 14;
+  (v as NPCPoint).z >= -(bounds.length ?? 2000) / 2 + 12 &&
+  (v as NPCPoint).z <= (bounds.length ?? 2000) / 2 - 14;
 export function validNPC(
   v: unknown,
   bounds: NPCBounds = {},

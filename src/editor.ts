@@ -175,11 +175,19 @@ function rebuild() {
   inspect();
 }
 function applyEdit(edit: () => void, rebuildAll = false) {
-  checkpoint();
-  edit();
-  configure();
-  if (rebuildAll) rebuild();
-  markDirty();
+  const before = structuredClone(draft);
+  try {
+    edit();
+    parseWorld(draft);
+    history.record(before);
+    configure();
+    if (rebuildAll) rebuild();
+    markDirty();
+  } catch (e) {
+    draft = before;
+    rebuild();
+    info('Modification refusée : ' + String(e));
+  }
 }
 function selectedObject() {
   return world.objects.children.find((o) =>
@@ -531,6 +539,7 @@ $('finish-line').onclick = () => {
     info('Tracé appliqué');
   } catch (e) {
     draft = before;
+    rebuild();
     info(String(e));
   }
 };
@@ -612,7 +621,7 @@ for (const id of ['object-x', 'object-z', 'object-rotation', 'object-scale'])
       markDirty();
     } catch (e) {
       draft = before;
-      inspect();
+      rebuild();
       info(String(e));
     }
   };
@@ -681,7 +690,7 @@ $('npc-apply').onclick = () => {
     info('PNJ mis à jour');
   } catch (e) {
     draft = before;
-    inspect();
+    rebuild();
     info(String(e));
   }
 };
@@ -742,7 +751,7 @@ $('regenerate').onclick = () => {
     info('Vallée régénérée · retouches conservées');
   } catch (e) {
     draft = before;
-    updateControls();
+    rebuild();
     info(String(e));
   }
 };
@@ -760,8 +769,8 @@ $('clear').onclick = () => {
     }, true);
 };
 $('save').onclick = async () => {
-  const snapshot = structuredClone(draft);
   try {
+    const snapshot = parseWorld(draft);
     await saveLocal(snapshot);
     if (JSON.stringify(snapshot) === JSON.stringify(draft)) dirty = false;
     updateControls();

@@ -183,3 +183,13 @@ test('greetings react before the next decision while slow-frame catch-up stays b
   updateNPC(state, 60, { x: state.x + 20, z: state.z });
   assert.ok(state.decisions <= 2);
 });
+
+test('NPC validation preserves the historical asymmetric northern and southern world margins', () => {
+  const n = structuredClone(DEFAULT_NPCS[0]);
+  n.z = -287;
+  assert.equal(validateNPCs([n], { width: 200, length: 600 }), true);
+  n.z = -289;
+  assert.equal(validateNPCs([n], { width: 200, length: 600 }), false);
+  n.z = 287;
+  assert.equal(validateNPCs([n], { width: 200, length: 600 }), false);
+});
