@@ -75,6 +75,17 @@ Ils servent à **détecter tôt les régressions**, pas à imposer un plafond un
 
 Le **matériel de référence est à choisir** (idéalement PC avec circuit graphique intégré, navigateur Firefox et Chromium, test en 1600 × 900 puis 1920 × 1080). Consigner GPU, CPU, OS, résolution, qualité, navigateur et révision Git dans chaque mesure.
 
+## Exigence de vue profonde sans brouillard
+
+**Nouveau choix approuvé :** préserver une grande visibilité **sans masquer la distance avec du brouillard**. Voir [17 — Rendu panoramique, relief d'horizon et imposteurs](17-DISTANT-VIEW-RENDERING.md).
+
+- Les **distances de vue détaillée et de silhouette lointaine sont indépendantes** : voir une montagne ne signifie pas charger ses arbres, collisions et PNJ.
+- Utiliser **LOD terrain/silhouettes 3D** pour les reliefs, **imposteurs/panoramas** pour les éléments dont la parallaxe lointaine reste acceptable ; skybox pour le ciel.
+- Bâtiments, végétation, eau, PNJ et personnages ont leurs **propres LOD / budgets** ; l'efficacité des imposteurs dépend aussi de la transparence/overdraw et du nombre de draw calls.
+- Prioriser les vues de crête, planage, océan/îles et panorama 360°, ainsi que l'absence de trous, clignotements et transitions abruptes.
+- Distance de vue, seuils de LOD, altitude et budgets d'images de fond sont **à mesurer**, jamais fixés définitivement d'après les exemples.
+- Conserver les **30/20 FPS** sans diminuer la vitesse de simulation ; tout proxy lointain est une représentation graphique, pas un changement de gameplay.
+
 ## 3. Rendu 3D
 
 - Three.js/WebGL2, **peu de matériaux**, éclairage simple, limiter les ombres portées dynamiques et la transparence.
