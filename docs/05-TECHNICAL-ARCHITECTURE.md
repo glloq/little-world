@@ -1,6 +1,6 @@
 # 05 — Architecture technique — solo et GitHub Pages
 
-**Statut : architecture cible, non encore implémentée.**
+**Statut : architecture cible avec un premier prototype codé.** `src/terrain.ts`, `src/world.ts`, `src/player.ts`, `src/main.ts` et `src/editor.ts` sont en place ; Rapier reste différé.
 
 ## Principe cardinal
 
@@ -14,7 +14,7 @@ Le multijoueur pourra être étudié après la V1, mais **ne doit pas complexifi
 | --- | --- |
 | Code commun | **TypeScript** strict |
 | Rendu 3D | **Three.js** / WebGL |
-| Physique | **Rapier JS/WASM** |
+| Physique | **Rapier JS/WASM** (prévu, pas encore installé dans le prototype) |
 | Build / dev | **Vite** |
 | Dépendances et workspace | **pnpm** |
 | Test du code | Tests unitaires TS et tests navigateur |
