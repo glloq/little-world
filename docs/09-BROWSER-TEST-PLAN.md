@@ -114,6 +114,20 @@ Les tests automatiques en CI couvrent les mathématiques de terrain, les transit
 
 Un rapport doit distinguer **échange géométrique Blender (non exhaustif côté gameplay)** et **archive V3 complète**. Le round-trip test valide l'absence de perte des **données prises en charge**, non l'identité binaire des ZIP.
 
+## Plan de test WAT — rivière, lacs, cascades, sous-marin et LOD de mer
+
+**Gates futurs, pas fonctionnalités déjà prouvées :** [21 — Eau LOW-RESOURCE](21-WATER-HYDROLOGY-LOW-RESOURCE.md).
+
+1. Dessiner une rivière source→embouchure sur terrain accidenté. Vérifier **profil d'altitude non ascendant**, lit/berges cohérents, niveaux de raccordement et Undo/Redo.
+2. Forcer des niveaux impossibles/rivière en contre-pente : diagnostic et blocage/validation humaine, pas de creusement ou correction silencieuse.
+3. Créer source → **rapides** → **cascade** (haut/bas distincts) → **lac horizontal** → mer. Tester continuité géométrique, collisions, volumes, jonctions, effets locaux.
+4. En nage et plongée, la **caméra** franchit la surface de nombreuses fois : immersion/hystérésis sans clignoter ; sous-face, couleur, visibilité, fonds/faune et lumière adaptés.
+5. Bateau : navigation rivière/lac/mer, zone trop peu profonde et cascade refusées ; courants stables indépendants du rendu et FPS.
+6. Tester **LOD0, LOD1, LOD2, LOD3**, puis océan très grand et planage : mer visible jusqu'à l'horizon, **sans vagues/écumes lointaines animées, bandes de LOD, glissement d'UV ni eau traversant les îles**.
+7. Cascade observée de loin : silhouette conservée, effet particulaire coupé ; même résultat logique pour gameplay avec rendu LOD3.
+8. Mesurer GPU/CPU/p95/p99 + draw calls + overdraw alpha, **avec/sans eau**, y compris mer plein écran et profil ultra-économique.
+9. Export/import ZIP V3 garde IDs, tronçons, cascades, niveaux et liens ; compatibilité ancien volume V2 sans destruction des retouches.
+
 ## Scénarios futurs — Studio complet et jeu final (non implémentés)
 
 Cette liste est un **plan d'acceptation pour la prochaine architecture**, et non un compte-rendu de tests réussis :
