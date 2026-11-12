@@ -1,5 +1,7 @@
 # Little World — instructions pour Codex et autres agents de développement
 
+> **Rendu panoramique sans brouillard :** [17 — Horizon lointain, LOD et imposteurs](docs/17-DISTANT-VIEW-RENDERING.md). Priorité à la silhouette réelle, au proxy 3D lointain et aux gains mesurables ; ne pas masquer les distances par du fog.
+>
 > **Lire d'abord** : [Périmètre final](docs/12-PROJECT-SCOPE.md), [Architecture UX du Studio](docs/13-STUDIO-UX-ARCHITECTURE.md), **[Contrats V3 du Studio](docs/15-STUDIO-DATA-SCHEMAS-V3.md)**, **[Décisions techniques validées](docs/14-TECHNICAL-CHOICES.md)**, [Décisions](docs/DECISIONS.md), [Budget LOW-RESOURCE](docs/11-LOW-RESOURCE-POLICY.md), puis [Architecture technique](docs/05-TECHNICAL-ARCHITECTURE.md) et [Roadmap](docs/07-ROADMAP.md).
 >
 > **Multijoueur ultérieur seulement :** [16 — Architecture future, intérêt spatial, fréquences adaptatives et foules](docs/16-FUTURE-MULTIPLAYER.md). Ces choix sont des contraintes de compatibilité V3, **pas** un ordre d'ajouter un réseau/serveur au jeu solo.
@@ -55,6 +57,19 @@ Préserver dès V3 : **IDs stables**, index spatial, séparation données auteur
 **À NE PAS implémenter pendant la campagne solo/Studio actuelle :** sockets, backend, Colyseus, réplication, protocole binaire, comptes, serveur autoritaire, code réseau dans les composants ou métadonnées `ReplicationHints` obligatoires. Ces éléments sont reportés jusqu'au jalon multijoueur explicite.
 
 **Politique réseau future** : mouvements cadencés par intérêt de 0 à 20 Hz (2–3 Hz pour personnages secondaires en foule), événements importants envoyés en priorité, simulation serveur indépendante, rendu client 30/20 FPS. Ne pas ralentir les règles de jeu ou les interactions à 2 Hz.
+
+## 1 quinquies. Vue panoramique sans brouillard — décision validée
+
+Lire [17 — Rendu longue portée](docs/17-DISTANT-VIEW-RENDERING.md). Dans le jeu solo ET le futur monde partagé :
+
+- **Aucun brouillard utilisé comme cache** pour les limites de rendu. Conserver montagnes, côtes et îles visibles au loin.
+- **Séparer** le terrain/objets détaillés du **relief d'horizon ultra-léger** ; privilégier une géométrie de crête 3D pour le paysage approchable et des imposteurs/panoramas seulement lorsque la parallaxe reste crédible.
+- Terrain multi-LOD à erreur projetée écran, hystérésis, transitions sans trous, préchargement en déplacement/planage ; végétation, bâtiments, avatars et eau avec profils de détails distincts.
+- La source V3 est **indépendante** des proxies, imposteurs, atlas et textures de fond **compilés** ; invalidation locale après édition.
+- Mesurer **draw calls, overdraw, mémoire GPU, uploads, temps de frame, popping** et consommation CPU, pas uniquement le nombre de triangles.
+- N'imposer **aucune distance LOD** de 100 m / 400 m / 1,5 km comme vérité : ce sont des valeurs de benchmark.
+- N'activer ni `logarithmicDepthBuffer` global ni distance caméra far excessive sans test GPU ; tester rendu d'horizon séparé / profondeur inversée si réellement utile.
+- **Ne pas confondre** objectif documenté et HZ-0…HZ-6 implémentés ; préserver les LOD et caches actuels.
 
 ## 2. Séparation des données et des responsabilités
 
