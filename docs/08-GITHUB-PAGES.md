@@ -93,6 +93,14 @@ La [spécification 20](20-BLENDER-STUDIO-INTERCHANGE.md) distingue **trois livra
 
 Le Studio doit proposer ces actions sous des noms différents, valider licences/provenance et dépendances, rejeter exports corrompus, et permettre le réimport d'un projet sur une autre machine **sans backend**. L'édition Blender de la source auteur reste locale/externe ; le site statique ne démarre jamais Blender, n'exécute jamais de script importé et ne publie pas directement un projet sans étape de build Git sécurisée.
 
+## Eau V3 dans les archives source et dans le build statique
+
+Voir [21 — Eau, réseau et LOD](21-WATER-HYDROLOGY-LOW-RESOURCE.md). Les sources du monde conservent réseau hydrographique, niveaux, lacs, chutes, courants et volumes **dans l'archive V3 portable** ; ne pas réduire l'hydrographie à des GLB de surfaces ou du décor Blender.
+
+À la publication statique, le compilateur produit **géométries et données logiques sectorisées** pour les secteurs d'eau, plus LOD de surface/océan et proxies de cascade/horizon. Charger seulement les ressources d'eau utiles à la caméra, **sans téléchargement initial de tous les meshes d'océan**, et conserver une apparence lointaine simplifiée.
+
+Aucun serveur n'est requis pour la bêta solo, aucun programme externe de simulation de fluide, et **aucune réflexion multi-passes** obligatoire côté navigateur. Les bugs de chemin sous `/little-world/`, de raccords d'eau inter-secteurs et de géométrie océan dessinée sur les îles font partie du préflight de publication.
+
 ## Limites et décisions
 
 - GitHub Pages est adapté au **jeu solo** : la logique de mouvement et d'interaction s'exécute sur le PC du joueur.
