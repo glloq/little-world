@@ -133,6 +133,19 @@ Pour les **ombres**, fournir lorsque pertinent limites/importance du modèle et 
 
 Les matériaux spéciaux restent des dérivés compacts du catalogue et doivent être **mesurés sur GPU intégré** (draw calls, VRAM, éventuelle recompilation de shaders et surcoût de calcul fragmentaire).
 
+## Workflow Blender ↔ Studio : import/export d'assets et packs de presets
+
+**Référence normative :** [20 — Blender, presets, échange de scènes et cartes](20-BLENDER-STUDIO-INTERCHANGE.md). La bibliothèque **doit pouvoir importer et exporter** des modèles low-poly et des ensembles de décors réutilisables.
+
+- **Sources Blender** : `.blend` conservé facultativement par l'auteur ; **format 3D ouvert d'échange** : glTF 2.0/`.glb` avec pivot, axes, unités, hiérarchie, noms stables des points d'attache, matériaux et animations supportées.
+- Un **preset composite** comprend un/des GLB, des enfants/groupes et transformations relatives, variantes, marqueurs (porte/entrée/socket), profil d'habillage végétal et dépendances logiques déclaratives. Ne pas rendre Blender obligatoire pour chaque placement.
+- **Import GLB** : aperçu avant validation, budget triangles/draw calls, matériaux/texture, dimensions/axes, pivot, collision, extensions supportées, origine/licence, nom/ID stable, métadonnées autorisées seulement.
+- **Export asset/preset** : ZIP standard + JSON versionné + GLB et ressources nécessaires ; option d'inclure les `.blend` sources **hors runtime**. Export **autonome** distinct d'un pack de références.
+- **Mise à jour GLB** : détecter hash/hiérarchie/pivot, proposer même assetId ou nouveau prefab ; conserver placements et interactions dans le Studio et afficher les conflits.
+- **GLB de scène entier** sert à transférer une sélection/groupe à Blender ; export/import carte complète **uniquement** dans une archive de sources V3 portable contenant les biotopes, eau, chemins, états et références.
+- Optimiser à la **compilation** : mutualisation GLB, instancing lorsque possible, LOD/proxies, découpage de secteurs, petit nombre de matériaux ; ne pas prétendre que chaque matériau/Geometry Nodes/contrainte Blender survit intact au glTF.
+- Vérifier **licence de redistribution** de chaque asset, textures et sources ; rejeter chemins ZIP suspects, scripts, `extras` non autorisés, ressources externes inattendues et imports trop volumineux.
+
 ## Qualification
 
 - Fichier présent, path valide après build GitHub Pages.
