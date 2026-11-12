@@ -80,6 +80,23 @@ Ce chantier vise le **jeu solo immédiatement**, et les profils de foule du **fu
 
 **Périmètre** : implémenter le test en source locale dans la bêta, garder la même interface pour **l'autorité serveur future**, **sans créer de backend en solo**. **Ne pas introduire de météo physique lourde, de nuages volumétriques ni d'ombres lunaires**. Budgets GPU des ombres mesurés séparément de ceux des shaders/particules.
 
+## Axe BL — Blender, bibliothèque de presets et import/export de cartes
+
+**Choix validé, fonctionnalités encore à développer :** [20 — Échange Blender ↔ Little World Studio](20-BLENDER-STUDIO-INTERCHANGE.md).
+
+| Phase | Livrable vérifiable |
+| --- | --- |
+| **BL-0** | Audit du code import/export actuel, tests pivots/axes Blender Z-up → glTF/Studio Y-up, schéma de formats |
+| **BL-1** | **Import GLB catalogue** : préflight, aperçu/LOD/coûts, licences, ressources et IDs versionnés |
+| **BL-2** | **Prefabs composés / groupes** et transform XYZ/quaternion/scale, gizmos, alignement, annuler/refaire |
+| **BL-3** | **Export/import de packs de presets ZIP+JSON+GLB**, dépendances, variantes, conflits/IDs |
+| **BL-4** | **Import heightfield Blender, masques de biotopes, modules de terrain GLB**, édition locale Studio |
+| **BL-5** | **Export/import d'archive V3 portable de carte entière** (sources, assets, biotopes, logique, météo), sans perte |
+| **BL-6** | **Export scène/sélection vers Blender** (GLB+sidecar), réimport diff conservant IDs, interactions et overrides |
+| **BL-7** | Compilation low-poly : chunks, LOD, instancing, streaming, budgets GPU et tests GitHub Pages |
+
+**Règle :** ne pas faire de Blender un prérequis pour utiliser le Studio ; un GLB ne remplace pas les données auteur V3. Toute fusion/mise à jour importée est prévisualisée, transactionnelle, **non destructive**. Le jeu solo ne requiert ni backend ni décodeur `.blend`.
+
 ## Campagne avancée — état livré sur branche
 
 | Domaine | Avant | Après | Statut | Reste à faire |
