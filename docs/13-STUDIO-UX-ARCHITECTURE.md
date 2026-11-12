@@ -181,6 +181,16 @@ L'auteur peut **partir du modèle** et n'éditer que les cibles, conditions et d
 - « Jouer ici » lance le **runtime sur une copie temporaire du brouillon** ; au retour, aucune modification auteur persistante involontaire.
 - Publication publique : commit/build GitHub Actions, **jamais de token GitHub dans le navigateur**.
 
+## Prévisualisation de l'horizon et contrôle des LOD
+
+**Décision UX validée :** le Studio doit pouvoir montrer l'effet du rendu à plusieurs kilomètres **sans utiliser de brouillard-cache** (voir [17 — Vue panoramique](17-DISTANT-VIEW-RENDERING.md)).
+
+- **Vue carte globale** : secteurs de paysage et relief d'horizon à résolution simplifiée, sans charger tous les meshes.
+- **Terrain et biotopes** : aperçus de silhouette depuis quelques points de vue enregistrables, diagnostic de fissures/transition LOD.
+- **Objets et assets** : indication de coût, proxy/silhouette pour les repères importants, atlas/imposteur si justifié.
+- **Tests/performance** : activer/cacher séparément terrain proche, terrain lointain, végétation, imposteurs ; reproduire marche, planage, bateau et rotation panoramique.
+- Ne pas submerger l'auteur de réglages GPU : profils automatiques, options avancées facultatives, erreurs navigables et résultats mesurés.
+
 ## 10. Politique UX et performance
 
 - Ne pas afficher toutes les catégories et réglages à la fois ; le contexte détermine l'inspecteur.
