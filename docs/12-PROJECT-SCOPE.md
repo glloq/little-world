@@ -149,6 +149,14 @@ Pour la V3, préparer seulement les **IDs stables**, la logique indépendante de
 
 **Aucun serveur, protocole, compte ou système de réplication à implémenter maintenant.** Spécification : [16 — Futur multijoueur et optimisation des foules](16-FUTURE-MULTIPLAYER.md).
 
+## Vision artistique : horizon étendu sans brouillard
+
+Le jeu doit conserver des **panoramas profonds et des reliefs lointains reconnaissables** depuis les hauteurs, la côte et pendant le planage, **sans brouillard servant à masquer les distances de rendu**.
+
+Retenir un **terrain simplifié géométriquement jusqu'à l'horizon**, des LOD différents pour forêt/bâtiments/objets et des **imposteurs/panoramas précalculés** réservés aux éléments suffisamment éloignés. Un sky dome/skybox représente le ciel, pas des reliefs approchables. Les seuils seront mesurés et adaptés à 30/20 FPS sur GPU intégré.
+
+Spécification, état réel du code et étapes HZ : [17 — Vue profonde et optimisation](17-DISTANT-VIEW-RENDERING.md).
+
 ## 10. Frontière entre acquis et objectifs
 
 **Sur la branche `feat/living-world-editor` :** vallée de démonstration préservée, données v2 communes et migration v1, terrain local à trois LOD/cache borné, scènes synthétiques 1/2 km, rig rigide animé et GLB original, quatre PNJ animaux à navigation simple, dialogues/flags temporaires, écologie instanciée, atelier unifié avec sculpture/tracés/transformation/historique/IndexedDB/export/test. Ces évolutions sont testées ; elles ne constituent **pas** le Studio spécialisé, la navigation libre hiérarchique ou le streaming complet de 100 km².
