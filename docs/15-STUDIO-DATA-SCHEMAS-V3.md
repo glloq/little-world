@@ -1,0 +1,370 @@
+# 15 — Little World Studio : schémas V3 et contrats entre éditeurs
+
+**Décision architecturale validée le 12 novembre 2026.** Ce document précise les choix déjà approuvés pour le Studio et le jeu final ; il **ne signifie pas que le format V3 ou les éditeurs spécialisés sont implémentés**.
+
+**Références de périmètre :** [12 — Limites du jeu](12-PROJECT-SCOPE.md), [13 — UX Studio](13-STUDIO-UX-ARCHITECTURE.md), [14 — Choix techniques](14-TECHNICAL-CHOICES.md), [11 — LOW-RESOURCE](11-LOW-RESOURCE-POLICY.md).
+
+## 0. Diagnostic du code actuel et obligation de compatibilité
+
+**Faits relevés dans la branche `main` lors du cadrage :**
+
+- `src/world-data.ts` expose `WorldDefinition` **schemaVersion 2** avec des tableaux globaux `placements / terrain / biomes / water / paths / npcs`, des transformations 2D et une validation monolithique. `parseWorld` borne actuellement largeur et longueur à **2 000 m**, avec limites de quantité par tableau.
+- `src/npc.ts` contient `NPCDefinition` avec apparition, comportement et **dialogue éventuellement embarqué** ; navigation de proximité encore simplifiée.
+- `EditHistory<T>` conserve jusqu'à **60 copies complètes** de l'état, non viable pour une grande carte.
+- `src/editor-storage.ts` conserve un seul brouillon IndexedDB sous la clé **`main`**.
+- `tools/compile-map.mjs` lit un JSON de **2 Mo maximum** et émet une carte avec un manifeste de secteurs ; ce n'est pas encore une compilation source/maillages/graphes réellement sectorisée.
+- `src/editor.ts` concentre de nombreuses responsabilités de vue et d'édition. L'éditeur courant possède déjà des outils utiles (sculpture, eau, biomes, objets, PNJ/dialogues) : **les réutiliser et les migrer**, ne pas repartir de zéro.
+
+**Règle de migration :** le V2 doit rester lisible pendant la transition V3. Ne pas modifier les données originales lors de l'import ; produire une copie convertie, valider puis confirmer son enregistrement. Les fonctionnalités V3 passent derrière un chemin d'exécution ou un module distinct tant que la migration n'est pas qualifiée.
+
+## 1. Trois modèles séparés : auteur, runtime et partie
+
+| Domaine | Source d'autorité | Où et comment | Éditable ? |
+| --- | --- | --- | --- |
+| **Projet auteur** | Studio | Manifeste + sources par secteur + registres + bibliothèques | Oui, avec Undo/Redo |
+| **Monde compilé** | WorldCompiler, dérivé du projet auteur | Manifeste + chunks statiques, LOD, collisions, index | Non ; régénérable |
+| **Sauvegarde joueur** | Runtime de la partie | Slots locaux versionnés, position, inventaire, flags/états | Pas via les outils auteur |
+
+Ne **jamais** enregistrer l'état de partie dans les sources auteur ni recopier les géométries dans les slots de sauvegarde. Une modification de carte doit pouvoir identifier sa compatibilité avec les anciennes sauvegardes joueur (IDs supprimés, changements de schéma, version de monde).
+
+### Arborescence de principe (proposée, ajustable après test)
+
+```text
+project/
+  project.json                # métadonnées, schemaVersion: 3
+  world/world.json            # une carte continue, dimensions, seed, config
+  world/chunks/<cx>_<cz>.json # sources/overrides locaux et index d'entités
+  world/terrain/<cx>_<cz>.*   # données heightfield compactes si nécessaire
+  library/prefabs.json        # définitions de prefabs réutilisables
+  library/characters.json     # rigs, espèces, variantes
+  library/dialogues.json      # dialogues référencés par ID
+  library/behaviors.json      # routines / réactions
+  library/interactions.json   # séquences d'événements/conditions/actions
+  library/activities.json     # collectes, pêche, petites missions, énigmes
+  assets/catalog.json         # IDs, versions, provenance, références
+  project.checks.json         # optionnel : diagnostic reproductible
+```
+
+Une archive exportée conserve l'organisation logique. Les extensions exactes des heightfields (binaires, compressées) et des index sont un **détail de codec**, à choisir par benchmark. Aucun navigateur ne doit avoir à ouvrir ou désérialiser tous les fichiers d'un monde de 100 km².
+
+## 2. Contrats V3 : éléments et identité
+
+Les noms de types ci-dessous décrivent une **forme cible**, pas l'API déjà présente.
+
+### Projet et monde
+
+```ts
+type StableId = string;               // UUID pour objets auteur
+type ChunkId = string;                // ID déterministe du secteur dans le monde
+type AssetId = string;                // catalogue, pas simple indice de tableau
+
+interface StudioProjectV3 {
+  schemaVersion: 3;
+  projectId: StableId;
+  name: string;
+  worldId: StableId;                  // un monde continu par projet jouable
+  assetCatalogVersion: string;
+  createdWith: string;                // version outil/migration
+  sourceManifest: SourceManifest;
+}
+
+interface WorldDefinitionV3 {
+  schemaVersion: 3;
+  worldId: StableId;
+  seed: number;
+  generatorVersion: string;
+  bounds: { minX: number; maxX: number; minZ: number; maxZ: number };
+  seaLevel: number;
+  chunkSizeM: number;
+  coordinateSystem: "meters-y-up";
+  chunkIndexRef: string;
+}
+
+interface ChunkSourceV3 {
+  schemaVersion: 3;
+  chunkId: ChunkId;
+  index: { cx: number; cz: number };
+  terrainSourceRef?: string;
+  terrainEdits: TerrainEdit[];
+  biomeEdits: BiomeEdit[];
+  waterRefs: StableId[];
+  pathRefs: StableId[];
+  entityIds: StableId[];
+  revision: number;
+}
+```
+
+**Contraintes :** rectangle de monde continu avec **largeur et longueur ≤ 10 000 m**, coordonnées réelles en mètres, **Y vertical**, vecteurs sans `NaN`/`Infinity`, dimensions positives, bornes et versions vérifiées à l'import. Pour faciliter la migration V2, conserver les coordonnées X/Z centrées autour de l'origine comme convention initiale, mais **calculer les IDs de secteurs à partir de `bounds.minX/minZ`**, pas d'une constante de carte. Au bord supérieur du rectangle, définir explicitement la propriété du secteur (indexation demi-ouverte sauf dernier bord).
+
+Le `chunkSizeM` est configurable : **64 m constitue une hypothèse de départ**, pas un choix imposé à toutes les scènes. Le heightfield peut avoir plusieurs résolutions ; la **résolution de rendu LOD n'est pas la résolution de la source d'édition**.
+
+### IDs et références
+
+- Objet créé par l'auteur : **UUID** persistant. Ne jamais réémettre un ID au rechargement ou au changement de secteur.
+- Géométrie/instance générée déterministiquement : clé stable dérivée de **version générateur + chunkId + clé locale** ; ne pas persister un UUID aléatoire pour chaque brin d'herbe.
+- Chaque élément persistant a **un propriétaire logique** (`ownerChunkId` pour l'entité spatiale, ou `global` pour définition partagée) et peut posséder une emprise sur plusieurs secteurs.
+- Les références entre secteurs utilisent des **IDs**, jamais les noms d'affichage, `Object3D.uuid` Three.js ou les index de tableaux.
+- Maintenir un **registre léger mondial `id → kind + owner + locator`**, disponible sans charger chaque chunk détaillé ; distinguer `missing`, `unloaded` et `loaded`.
+- Déplacement d'un objet entre secteurs : **transaction atomique** sur son propriétaire, son index et ses références ; son ID reste identique.
+- Suppression d'un ID référencé : avertir, proposer **réaffecter / annuler / supprimer avec confirmation** ; ne jamais casser silencieusement les dialogues et actions.
+
+## 3. Entités, composants, prefabs et variantes
+
+Une entité est un objet auteur identifié. Ses capacités viennent de **composants typés et validés**, pas d'une classe spéciale par nouveau décor.
+
+```ts
+interface EntityDefinitionV3 {
+  id: StableId;
+  kind: "prop" | "building" | "character" | "trigger" | "effect";
+  prefabId?: StableId;
+  ownerChunkId: ChunkId;
+  parentId?: StableId;
+  components: ComponentMap;           // discriminé / validé par schémas
+  overrides?: PrefabOverrides;
+}
+
+interface TransformComponent {
+  type: "Transform";
+  position: { x: number; y: number; z: number };
+  rotation: { x: number; y: number; z: number; w: number }; // quaternion
+  scale: { x: number; y: number; z: number };
+}
+
+interface PrefabDefinitionV3 {
+  id: StableId;
+  version: number;
+  name: string;
+  components: ComponentMap;
+  childPrefabs?: PrefabChild[];
+}
+```
+
+**Catalogue limité initialement aux composants effectivement nécessaires :**
+
+| Composant | Fonction | Exemple |
+| --- | --- | --- |
+| `Transform` | position/orientation/échelle/hiérarchie | maison, PNJ |
+| `Visual` | asset/variante/LOD | arbre, bâtiment |
+| `Collider` | forme simple et couche | mur, porte |
+| `Animator` | animation(s), sockets | écureuil, mécanisme |
+| `Interactable` | invite, portée, déclencheur | panneau, levier |
+| `State` | état initial et transitions | vanne, porte |
+| `Character` | espèce, rig compatible, apparence | PNJ animal |
+| `Navigation` | capacités, limites et comportements de trajet | PNJ mobile |
+| `DialogueActor` | IDs de dialogues possibles | meunier |
+| `InventoryContainer` | contenu/objets ramassables | panier, coffre |
+| `TriggerVolume` | forme, filtre, événements de zone | entrée de ruine |
+| `Persistence` | états sauvegardables | mécanisme ouvert |
+| `AudioEmitter` / `EffectEmitter` | ambiance, sons et effets contrôlés | cascade, magie |
+
+**Prefabs :** définition immuable/versionnée + variantes + **overrides explicites par champ**. Résolution déterministe : base du prefab → variante → overrides de l'instance. Les overrides sont **typiquement des chemins de composants whitelistés**, pas du JSON arbitraire exécuté. Un changement global de prefab doit être **prévisualisable**, signaler les conflits et laisser les overrides locaux intacts.
+
+**Réutilisation des rigs :** `Character` référence famille morphologique/rig, apparence et clips ; ne pas imposer le rig d'écureuil à tous les animaux. Les oiseaux/insectes/poissons décoratifs peuvent être des systèmes de faune simplifiés sans entité complète par individu.
+
+## 4. Registres gameplay : dialogues, PNJ, actions et activités
+
+La **définition d'un PNJ** référence sa `Character`, sa `Navigation`, son `BehaviorId` et ses `DialogueId` ; elle **n'embarque plus directement un graphe de dialogue** en V3. Les données de conversation deviennent réutilisables et vérifiables sans recharger le chunk de l'acteur.
+
+### Comportements et navigation
+
+- `BehaviorDefinition` : routine légère, horaires liés à l'horloge commune, états `idle/wander/patrol/work/greet/flee/talk` avec extensions validées.
+- `NavAgent` : capacités par espèce (`walk/swim/fly` **si supportées**), pente/franchissement, zones, coût des surfaces, type de graphe. **Ne pas inférer automatiquement** que tout PNJ peut conduire un bateau.
+- Données navigables **hiérarchiques par secteurs** : connexions/portails + couches locales ; invalider la navigation concernée par terrain, eau, ponts et portes.
+- Éloignement : état/routine logique dormante, pas de pathfinding global ni de mise à jour visuelle constante.
+
+### Dialogue et événements
+
+```ts
+type StateValue = boolean | number | string;
+interface VariableDefinition {
+  id: StableId;
+  scope: "entity" | "zone" | "world" | "savegame";
+  valueType: "boolean" | "number" | "string";
+  initialValue: StateValue;
+  persistent: boolean;
+}
+interface InteractionDefinitionV3 {
+  id: StableId;
+  trigger: TriggerDefinition;          // tagged union
+  condition?: ConditionExpr;           // all/any/not + prédicats typés
+  sequence: ActionStep[];              // tagged union : setState, playAnimation, ...
+  repeat: "once" | "always" | "cooldown";
+}
+```
+
+- **Déclencheurs** : `onInteract`, `onEnterZone`, `onExitZone`, `onDialogueChoice`, `onTimer`, `onStateChanged`, `onAnimationFinished`, `onObjectiveChanged`.
+- **Conditions** : `all/any/not` (profondeur bornée), états, variables typées, distance, inventaire, objectif, cooldown.
+- **Actions** : `setState`, `setVariable`, `playAnimation`, `playSound`, `showText`, `startDialogue`, `giveItem`, `takeItem`, `moveNPCTo`, `emitEvent`, `wait`, `setObjective`.
+- **Séquences** : ordre déterministe, délais explicites, politique claire si acteur/objet cible devient absent ou déchargé. Éviter les cycles d'`emitEvent` sans attente ; budget d'événements exécutés et nombre de déclenchements bornés.
+- **DialogueDefinition** : graphes de répliques et choix avec identifiants stables, conditions/effets typés et référence `actorId` ; jamais index de ligne comme cible persistante.
+- **ActivityDefinition** : templates composant les mêmes variables, événements et actions : `collect`, `fish`, `puzzle`, `deliver`. **Pas de mini-moteur spécifique pour chaque nouvelle activité**.
+
+Les variables d'état/réactions **fonctionnent sur des entités non chargées** : le registre logique d'état est distinct des meshes et des systèmes d'animation. La présentation visuelle se synchronise quand le chunk devient actif. Ne pas charger une maison à 5 km pour y changer un flag de porte.
+
+## 5. Studio Core : contrat commun des modules
+
+**Tous les éditeurs** consomment un même `StudioContext` ; seuls les outils et inspecteurs sont spécialisés.
+
+```ts
+interface StudioContext {
+  projectId: StableId;
+  worldId: StableId;
+  selected: { kind: string; id: StableId } | null;
+  camera: { x: number; y: number; z: number; mode: "map2d" | "orbit" | "free" };
+  activeModule: string;
+  activeTool: string;
+  // services référencés, non sérialisés : SelectionService,
+  // ProjectStore, CommandBus, ReferenceIndex, ValidationService,
+  // WorldPreview, ExportCompiler...
+}
+```
+
+La sélection, le secteur actif, le viewport et l'historique survivent à un changement d'éditeur. Depuis un PNJ, « Modifier le dialogue » ouvre le bon dialogue ; « Voir sur carte » retourne à la position d'origine. Un écran de dialogue n'a pas besoin d'instancier Three.js s'il ne montre pas de prévisualisation.
+
+### Interfaces et responsabilités
+
+| Module | Manipule principalement | Réaction aux changements |
+| --- | --- | --- |
+| **Carte globale** | `WorldDefinition`, `ChunkIndex`, `EntityIndex` | aperçu 2D/index mis à jour |
+| **Terrain** | sources heightfield et `TerrainEdit` | collisions, nav locale, végétation à invalider |
+| **Eau / chemins** | splines, régions, volumes | terrain, collisions, navigation, biotopes |
+| **Biotopes** | zones et règles/overrides | régénération du secteur concerné |
+| **Bâtiments / objets** | entities, prefabs, transforms | index spatial, collisions, points d'interaction |
+| **PNJ** | characters, behaviors, NavAgent | navigation, animations, sélection |
+| **Dialogues** | graphe/dialogue IDs | liens PNJ, variables, interactions |
+| **Actions** | triggers, conditions, sequences | dépendances vers IDs, prévisualisation |
+| **Assets** | catalogue, variantes, clips, licences | références et caches des utilisateurs d'asset |
+| **Tests** | snapshot du brouillon, diagnostics | runtime jetable sans mutation auteur |
+
+**Contrat UX minimal pour chacun** : sélectionner → créer/modifier → aperçu immédiat → annuler/refaire → sauvegarder → « Jouer ici » → retour au même contexte. L'inspecteur montre des **propriétés métier**, pas des structures JSON brutes.
+
+## 6. Édition réversible : commandes et checkpoints
+
+Remplacer le principe de **copies complètes `EditHistory<WorldDefinition>`** par un **bus de commandes transactionnelles**, en conservant la compatibilité avec le V2 durant la migration.
+
+```ts
+interface EditCommand {
+  id: StableId;
+  label: string;
+  projectId: StableId;
+  targets: StableId[];                 // ou chunkIds
+  apply(context: EditorState): void;
+  revert(context: EditorState): void;
+  affectedChunks: ChunkId[];
+}
+interface EditTransaction {
+  id: StableId;
+  commands: EditCommand[];
+  committedAt: number;
+}
+```
+
+- Un **drag**, un coup de pinceau, une session de modification spline ou une réplique éditée = **une transaction**, contenant les changements minimaux (avant/après ou patches inverses).
+- Annuler/refaire **à travers les modules**, conserver l'ordre causal et les dépendances ; l'index spatial et les aperçus sont réactualisés après application/réversion.
+- **Checkpoints périodiques** du projet, historique **borné en mémoire**, règles de crash recovery et d'autosauvegarde explicites. Ne pas sérialiser comme source des closures de méthodes `apply/revert` : le **journal persistant** doit utiliser un format **déclaratif et versionné** (type de commande + payload + inverse).
+- Une commande touche plusieurs secteurs ? **Commit atomique** et restauration cohérente ; la transaction ne doit jamais laisser une moitié de déplacement.
+- Checkpoints et logs sont séparés des **slots de sauvegarde de joueur**.
+- Si un schéma changé rend un ancien journal invalide : restaurer un checkpoint compatible et afficher une erreur claire ; **ne jamais perdre silencieusement le projet**.
+
+## 7. Validation et index de dépendances
+
+**Validation en trois étapes :**
+
+1. **À la saisie** : champs numériques/ranges/types, référence ciblée, feedback immédiat local.
+2. **Au commit d'une transaction** : schémas des entités touchées, index et dépendances locales, duplicate ID, incohérence de prefab, chemin impossible.
+3. **Au préflight/compilation** : contrôle global du projet et des liens, versions, licences/asset paths, cycles d'événements, limites du monde, compatibilité des migrations, tailles/sorties.
+
+Catégories d'erreur : `ERROR` (bloque l'export/compilation), `WARNING` (signalé, publication possible), `INFO` (réglage facultatif). **La navigation/UX** doit permettre de cliquer une erreur → sélectionner la cible → ouvrir le bon éditeur à l'emplacement associé.
+
+Un index de dépendances `sourceId → dependentIds` permet, par exemple :
+- de changer une variante de porte sans modifier tous les dialogues ;
+- de signaler qu'un PNJ utilise un dialogue supprimé ;
+- de reconstruire seulement la navmesh/les collisions/instances des secteurs concernés ;
+- de maintenir l'état d'une porte lointaine sans charger son modèle.
+
+**La validation ne doit pas transformer chaque mouvement de souris en recalcul global**.
+
+## 8. Migration V1/V2 → V3 : règles de reprise
+
+1. **D'abord tests golden de fichiers V1/V2 réels** ; garder un fichier source inchangé pour comparaison.
+2. Import `schemaVersion 1` ou `2` → **adaptateur pur** `migrateWorldToV3(input)` ; aucune modification de la source fournie.
+3. Préserver `seed`, dimensions, `placements.id`, positions `x/z`, rotation autour de Y, échelles, strokes terrain/biomes, polylignes eau/chemins, PNJ et IDs de dialogues/répliques.
+4. Convertir `Placement` en `EntityDefinitionV3` avec `Transform`, `Visual` et éventuel prefab ; convertir les PNJ en `Character`, `Navigation`, `BehaviorRef`, `DialogueActor`. **Conserver les liens dialogue** en extrayant leur graphe dans la bibliothèque V3.
+5. Affecter propriétaires de secteurs et recalculer les index sans changer l'emplacement. Les strokes V2 deviennent des overrides V3 **dans le même ordre d'application** ; pour ceux qui traversent des frontières de chunk, garder une source/ID unique et référencer les secteurs impactés (éviter de les appliquer deux fois).
+6. Mettre les données transformées dans un **nouveau brouillon/projet** ; présenter un rapport de migration (comptages, IDs, avertissements), puis valider/importer.
+7. Export V3 puis réimport V3 : mêmes objets/effets/états initiaux ; test de **déterminisme** au rendu/terrain et tests de navigation.
+8. Ne pas augmenter simplement les limites de `parseWorld` V2 pour lui faire traiter 10 km : le V3 possède son propre parseur par manifeste et par secteur. Le V2 reste un format de compatibilité/transition.
+
+## 9. Sauvegarde, packaging et publication
+
+- IndexedDB versionné avec **plusieurs projets** (pas une seule clé `main`), stockage indépendant du jeu et statut d'autosauvegarde visible.
+- Source auteur : index/secteurs et bibliothèques ; **export portable** dans une archive projet (structure section 1), références d'assets valides, tailles et quota contrôlés.
+- **CompiledWorldManifest** : hash/version de source, liste des chunks, bundles, index global d'entités/logique, LOD et nav ; paquets statiques `base-aware` pour GitHub Pages.
+- Build incrémental : recompilation du secteur modifié **et des dépendances identifiées**, pas du monde entier. Les ressources GPU/générées sont jetables et reconstruisibles.
+- Runtime : **GameSaveV1** séparé avec `worldId`, `worldBuildVersion`, `slotId`, emplacement, inventaire/flags/objectives/états persistants ; migrer/avertir si des IDs ont disparu.
+- Pas de token GitHub public ni de scripts importés ; publier par validation → compilation → commit Git → GitHub Actions.
+- Distinguer **données structurées du projet** et **données compilées du jeu**. Une archive source n'est pas un build publiable.
+
+## 10. Architecture de code proposée (pas de refonte cosmétique préalable)
+
+```text
+src/
+  world-data.ts                   # contrat V1/V2 maintenu provisoirement
+  studio-core/
+    project-schema.ts             # V3 projet/monde/secteurs, parseurs
+    entity-schema.ts              # entités, composants et prefabs
+    references.ts                 # registry + dependency index
+    commands.ts                   # transactions inversables
+    project-store.ts              # IndexedDB, checkpoints, migrations
+    validation.ts                 # diagnostics par niveau
+  gameplay/
+    dialogue-schema.ts
+    interactions-schema.ts
+    behaviors-schema.ts
+    activities-schema.ts
+    save-schema.ts
+  studio/
+    shell.ts                      # routes, context/selection, vue globale
+    terrain-editor.ts
+    water-path-editor.ts
+    biome-editor.ts
+    objects-editor.ts
+    npc-editor.ts
+    dialogue-editor.ts
+    actions-editor.ts
+    assets-editor.ts
+    playtest.ts
+  world-compiler/
+    manifests.ts
+    chunks.ts
+    navigation.ts
+    validate.ts
+```
+
+**Ces chemins sont indicatifs, pas une obligation de déplacer immédiatement les fichiers existants.** Commencer par extraire des fonctions du `src/editor.ts` seulement lorsqu'une responsabilité en bénéficie. Ne pas créer une structure monorepo lourde pour remplacer les fichiers sans raison.
+
+## 11. Ordre de mise en œuvre et tests d'acceptation
+
+| Phase | Livraison verticale | Gate vérifiable |
+| --- | --- | --- |
+| **V3-A** | schémas V3, parseurs, adaptateur V2→V3, fixtures | migration stable ; test non-mutation et préservation des IDs |
+| **V3-B** | StudioContext, ProjectStore multi-projets, sélection + Undo/Redo transactionnel | édition → annulation → autosave → reload sans perte |
+| **V3-C** | index mondial + manifeste/secteurs source, vue carte globale 2D | ouvrir secteur distant sans charger le monde entier |
+| **V3-D** | entités/prefabs, objets et terrain/water/biomes sur contrats V3 | déplacer prefab, déplacer PNJ, sculpter sans casser liens |
+| **V3-E** | variables, actions, dialogues/PNJ refactorisés, scheduler léger | porte/vanne/PNJ fonctionnent depuis données V3, même hors chunk |
+| **V3-F** | activités, sauvegardes joueur, tests « Jouer ici » | collecte/pêche/énigme/mission ; slots persistants |
+| **V3-G** | compilation incrémentale, performance et publication | build Pages statique, tests navigateur et mesures 30/20 FPS |
+
+**Scénario transversal obligatoire :** créer une forêt et une maison → placer un meunier → définir sa navigation → lier un dialogue à un levier et une vanne → tester → revenir à l'édition → annuler la vanne → sauvegarder/exporter/réimporter → compiler → vérifier qu'aucun ID/référence n'est perdu.
+
+### Invariants à préserver
+
+1. La carte 200 × 600 m du prototype V2 reste jouable et importable.
+2. **Une carte continue** par monde, limite au plus **10 × 10 km**, sans simulation intégrale obligatoire.
+3. Aucun ralentissement des mouvements lorsque le rendu passe de 30 à 20 FPS.
+4. Aucun `WorldDefinition` complet copié à chaque coup de pinceau dans la version V3.
+5. Aucune action/condition associée directement à un mesh Three.js en guise de source de vérité.
+6. Aucun système autorisé à stocker la progression joueur dans la carte auteur.
+7. Aucune affirmation de performance V3 **sans mesure sur matériel**.
+
+**Statut final : spécification validée et utilisable comme contrat de développement. Les interfaces/types illustratifs doivent être consolidés et testés au moment de leur implémentation.**
