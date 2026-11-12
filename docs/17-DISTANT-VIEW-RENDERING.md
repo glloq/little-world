@@ -216,6 +216,15 @@ La [spécification 22 — ResourceBudgetManager](22-RESOURCE-BUDGET-MANAGER.md) 
 - **Budget partagé** : diminuer herbe/particules/ombre/détails secondaires avant d'amputer l'horizon. L'importance auteur de monuments/points d'accès peut orienter les LOD.
 - Panneau bêta : affichage LOD, frustum, tâches en file, caches, qualité effective, coût CPU/GPU (GPU si possible) et scène de panorama fixe reproductible.
 
+## Ambiance sonore et horizon : culling AUD séparé du LOD visuel
+
+La [spécification 23 — Audio MIDI LOW-RESOURCE](23-MIDI-AUDIO-LOW-RESOURCE.md) est compatible avec les panoramas profonds **sans déclencher des sons pour chaque objet visible à plusieurs kilomètres**.
+
+- Les montagnes, îles, cascades et villages peuvent conserver **leurs silhouettes** au loin, tandis que leurs émetteurs sonores sont **inactifs hors portée audible** ; aucun raccourcissement de vue panoramique n'est nécessaire.
+- Les ambiances globales dépendent du **biome/heure/météo**, avec **5–10 instruments MIDI partagés** et sons naturels échantillonnés, non d'un nœud audio par mesh de forêt.
+- L'importance audio (signal de gameplay, objet proche) est **distincte** de l'importance d'un monument à l'écran ; `AudioBudgetManager` sous PERF gère voix, spatialisation et cache PCM indépendamment des LOD terrain/eau/ombre.
+- Le trajet rapide en planage ou bateau permet de précharger légèrement le prochain profil sonore sans télécharger toutes les ambiances des îles lointaines.
+
 ## 9. Tests et portes de qualification
 
 **Scènes à couvrir :**
