@@ -66,6 +66,12 @@ Le jeu vise une **qualité adaptative unifiée** par [ResourceBudgetManager](22-
 
 Le prototype dispose déjà de **`FrameClock`, `PresentationBudget`**, caches de terrain et LOD de personnages ; leur intégration à un arbitre commun, la gestion mémoire et les budgets de chargement sont des **objectifs de développement**, pas des gains démontrés. Les **30 FPS nominaux et 20 FPS de secours** sont à qualifier sur GPU intégré matériel.
 
+## Identité sonore : MIDI très limité et nature échantillonnée
+
+Le [contrat AUDIO 23](23-MIDI-AUDIO-LOW-RESOURCE.md) prévoit **5–10 instruments musicaux MIDI au maximum**, synthétisés dans un moteur Web Audio léger partagé, complétés par **une petite banque d'échantillons** pour faune, pas, eau, vent et ambiance naturelle. Les musiques peuvent changer selon biome, météo ou moment du jour, **sans SoundFont GM complète ni synthétiseur indépendant par personnage**.
+
+La qualité sonore est pilotée par le [budget transversal PERF](22-RESOURCE-BUDGET-MANAGER.md) : polyphonie, sources 3D et mémoire PCM plafonnées, lecture MIDI **indépendante des FPS**. **Choix de conception, non fonctionnalité déjà livrée.**
+
 ## État d'implémentation
 
 **Prototype déjà codé :** vallée 200 × 600 m, personnage procédural, déplacement/planage/nage, bateau, roue de moulin, premier catalogue GLB et éditeur de placement local.
