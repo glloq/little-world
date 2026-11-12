@@ -130,7 +130,7 @@ docs/                       # Conception, objectifs et registre de décisions
 - Les optimisations actuelles limitent l'utilisation GPU mais ne constituent pas encore un système de streaming/LOD pour une très grande carte.
 - Les éditeurs spécialisés (relief, eau, biotopes, PNJ, dialogues, événements) **restent à développer**. L’atelier actuel sculpte le relief, trace eau/chemins et édite PNJ/dialogues, mais ne constitue pas encore ces éditeurs spécialisés ni un moteur général d’événements ; les changements locaux ne publient pas automatiquement le site.
 - L'instance jouable charge la carte par défaut ; **les objets placés dans l'éditeur ne remplacent pas le jeu publié** sans compiler la carte exportée dans `public/maps/default.json`, la commiter et redéployer.
-- Aucun multijoueur n'est prévu pour la première version ; l'architecture cible de **100 km² est une limite de conception, pas une performance démontrée**.
+- Aucun multijoueur n'est prévu pour la première version. **Évolution future seulement** : objectif expérimental de 30 puis 200 joueurs dans un même monde, 500 à étudier, via AOI et synchronisation adaptative ; **aucun serveur ni résultat de charge actuellement**. Voir [16 — Multijoueur futur](docs/16-FUTURE-MULTIPLAYER.md). L'architecture cible de **100 km² est une limite de conception, pas une performance démontrée**.
 
 ## Documentation
 
@@ -151,5 +151,6 @@ docs/                       # Conception, objectifs et registre de décisions
 - [UX du Studio, éditeurs spécialisés et contrats de données](docs/13-STUDIO-UX-ARCHITECTURE.md)
 - [Décisions techniques validées pour tous les systèmes](docs/14-TECHNICAL-CHOICES.md)
 - [Schémas V3, contrats entre éditeurs et migration des cartes](docs/15-STUDIO-DATA-SCHEMAS-V3.md)
+- [Évolution future : multijoueur, AOI, foules et synchronisation adaptative](docs/16-FUTURE-MULTIPLAYER.md)
 
 **Licence de code :** à définir. Les premiers GLB ont été créés spécifiquement pour Little World ; aucun asset tiers n'est incorporé à ce stade.
