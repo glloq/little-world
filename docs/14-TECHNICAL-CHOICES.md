@@ -4,7 +4,7 @@
 
 Cette spécification consigne **l'acceptation par l'utilisateur de l'ensemble des recommandations** des choix techniques/UX discutés après le cadrage du monde et de Little World Studio.
 
-**Lecture prioritaire :** [12 — Périmètre fonctionnel](12-PROJECT-SCOPE.md), [13 — Architecture UX du Studio](13-STUDIO-UX-ARCHITECTURE.md), [11 — LOW-RESOURCE](11-LOW-RESOURCE-POLICY.md), [Décisions](DECISIONS.md).
+**Lecture prioritaire :** [12 — Périmètre fonctionnel](12-PROJECT-SCOPE.md), [13 — Architecture UX du Studio](13-STUDIO-UX-ARCHITECTURE.md), **[15 — Schémas V3 du Studio](15-STUDIO-DATA-SCHEMAS-V3.md)**, [11 — LOW-RESOURCE](11-LOW-RESOURCE-POLICY.md), [Décisions](DECISIONS.md).
 
 **Important :** les préfixes `TW-`, `TE-`, `TP-`, `TL-`, `TG-`, `TA-`, `TT-` et `TD-` sont les **IDs uniques des choix techniques de ce document**. Ne pas confondre, par exemple, `TP-P1` (rigs) avec l'ancien choix métier `P1` (types de PNJ) du document 12.
 
@@ -114,6 +114,12 @@ Cette spécification consigne **l'acceptation par l'utilisateur de l'ensemble de
 | **TD-D6** | **Tests unitaires, d'intégration et navigateur** | Régression gameplay/Studio, métriques réelles en complément |
 
 **Gates de publication :** un lien cassé, un asset absent, une référence PNJ/dialogue/action invalide ou une migration impossible bloque la compilation/publication avec message clair ; il ne faut pas « corriger silencieusement » les contenus.
+
+## Complément — schémas et interfaces V3 validés
+
+Les décisions TE-E1 à TE-E7 et TD-D1 à TD-D6 sont concrétisées dans [15 — Schémas V3](15-STUDIO-DATA-SCHEMAS-V3.md) : projet/manifeste/secteurs, entités/composants, `PrefabDefinition`, `StudioContext`, index de références inter-secteurs, commandes transactionnelles et migrations.
+
+**Validé comme choix d'architecture**, pas comme API figée à l'octet ni fonctionnalité déjà développée. Les types d'exemple sont à éprouver avec la carte V2, les performances et les tests de cas réels.
 
 ## 9. Règles d'architecture issues de ces décisions
 
