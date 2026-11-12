@@ -94,7 +94,7 @@ catalogue.assets.forEach(asset=>{
     for(const item of catalog.querySelectorAll('.asset-choice'))item.classList.remove('selected');
     chosen=asset.id as AssetId;btn.classList.add('selected');
     toolLabel.textContent=asset.name;
-    info=`Placer : ${asset.name} — cliquer sur le terrain`;
+    info(`Placer : ${asset.name} — cliquer sur le terrain`);
   });
   catalog.appendChild(btn);
 });
