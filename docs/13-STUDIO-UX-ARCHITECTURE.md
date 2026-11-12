@@ -191,6 +191,16 @@ L'auteur peut **partir du modèle** et n'éditer que les cibles, conditions et d
 - **Tests/performance** : activer/cacher séparément terrain proche, terrain lointain, végétation, imposteurs ; reproduire marche, planage, bateau et rotation panoramique.
 - Ne pas submerger l'auteur de réglages GPU : profils automatiques, options avancées facultatives, erreurs navigables et résultats mesurés.
 
+## Studio — édition simple des herbes par biotope
+
+Le [cadrage 18](18-GRASS-LOW-RESOURCE.md) prévoit **de l'herbe courte principalement intégrée au sol**, et des **touffes hautes 3D facultatives**, générées automatiquement autour du joueur. L'éditeur Biotopes doit exposer **style, densité et hauteur d'herbe** via presets simples, peinture et exclusions ; aucune édition manuelle de milliers de touffes.
+
+- Utiliser les mêmes `seed`, régions et règles déterministes que le projet V3, avec régénération **seulement locale** et Undo/Redo cohérent.
+- Prévoir un **aperçu « Sol seul / Touffes / Vent / Interaction »** et des profils graphiques `groundOnly`, économique, équilibré et dense.
+- L'inspecteur ne doit pas imposer de régler par touffe distances LOD, coefficients shaders ou matrices d'instance.
+- Le mode Test peut simuler **le passage de 1 ou 2 personnages** et afficher coût CPU/GPU si mesurable.
+- Aucun état de déformation cosmétique, buffer GPU ou instance individuelle ne doit être sauvegardé comme source auteur ou état de partie.
+
 ## 10. Politique UX et performance
 
 - Ne pas afficher toutes les catégories et réglages à la fois ; le contexte détermine l'inspecteur.
