@@ -201,6 +201,18 @@ Voir [22 — ResourceBudgetManager](22-RESOURCE-BUDGET-MANAGER.md) : le Studio d
 - Export/import ZIP V3 doit inclure **partitions MIDI, échantillons et patches nécessaires** avec IDs/licences, sans sauvegarder les buffers PCM temporaires et voix en cours.
 - Ne pas fournir d'éditeur de piano roll, SoundFont complète ou synthétiseur indépendant par objet ; les options de polyphonie/perf restent dans le menu AUD/PERF avancé.
 
+## Éditeur Mines — niveaux 2,5D et état de partie distinct
+
+**Référence :** [24 — Mines creusables LOW-RESOURCE](24-MINES-MULTILEVEL-LOW-RESOURCE.md).
+
+- Ajouter une **zone de mine** et son entrée, définir **plusieurs étages** (altitude/hauteur), cavités préexistantes, matériaux/filons/quantités, zones protégées.
+- **Plan par étage** et vue coupe simple ; sélection d'un niveau, création/édition de **rampes, escaliers, puits** et validation des raccordements.
+- **Creuser en mode test** sur un clone temporaire de **`MineState`** : ne pas transformer les excavations du joueur en modifications auteur sans action explicite.
+- Prévisualisation des **chunks de cellules concernés, faces exposées, collisions et navigation**, pas de sculpture voxel générale ni de mesh mondial régénéré à chaque frappe.
+- Gérer **entrée heightfield ou prefab GLB**, placement de cristaux/roches/rails/torches, diagnostic des trous, niveaux superposés, ressources hors bornes et conflits avec eau/sol.
+- Undo/Redo des décisions auteur et rétablissement des états de test ; export ZIP **source de la mine** distinct des **sauvegardes de partie creusée**. Les résultats serveur futurs ne remplacent pas l'archive auteur.
+- Inspecteur avancé PERF : nombre de chunks/étages actifs, temps remeshing, collisions, secteurs/ressources, aucun affichage des mines non visibles depuis le ciel.
+
 ## 9. Critères d'acceptation
 
 1. Créer/charger une carte, peindre un relief et un biome, sauvegarder, annuler, recharger : données identiques.
