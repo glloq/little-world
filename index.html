@@ -25,14 +25,15 @@
     <aside class="hud-help panel">
       <div class="section-kicker">COMMANDES</div>
       <div class="control-row"><kbd>ZQSD</kbd><span>Déplacement</span></div>
-      <div class="control-row"><kbd>Souris</kbd><span>Orienter la caméra</span></div>
+      <div class="control-row"><kbd>Clic + glisser</kbd><span>Tourner la caméra</span></div>
       <div class="control-row"><kbd>Shift</kbd><span>Courir</span></div>
+      <div class="control-row"><kbd>A</kbd><span>Tenir : accessoires / émotions</span></div>
       <div class="control-row"><kbd>Espace</kbd><span>Sauter / planer</span></div>
       <div class="control-row"><kbd>Ctrl</kbd><span>Plonger</span></div>
       <div class="control-row"><kbd>E</kbd><span>Monter / quitter le bateau</span></div>
       <div class="control-row"><kbd>P</kbd><span>Aller au port (test)</span></div>
       <div class="section-kicker space-top">ASTUCE</div>
-      <p>Sauter depuis une hauteur, relâcher <kbd>Espace</kbd> puis réappuyer pour planer. Dans le bateau : Z/S pour naviguer, Q/D pour tourner.</p>
+      <p>Maintenir <kbd>A</kbd> et cliquer sur un accessoire ou une émotion. La caméra tourne seulement pendant un clic-glissé sur la scène.</p>
     </aside>
     <aside class="hud-stats panel">
       <span class="status-dot"></span><span id="status">Initialisation…</span>
@@ -41,6 +42,27 @@
       <div id="oxygen" class="hide">Oxygène : —</div>
       <div id="fps">FPS : —</div>
       <div id="render-metrics">Rendu : —</div>
+    </aside>
+    <aside id="appearance-menu" class="appearance-menu panel hide" aria-hidden="true" aria-label="Personnalisation de l'écureuil">
+      <div class="appearance-heading">
+        <div>
+          <div class="section-kicker">MON ÉCUREUIL</div>
+          <h2>Accessoires &amp; émotions</h2>
+          <p>Choisis un style tout en maintenant <kbd>A</kbd>.</p>
+        </div>
+        <div class="appearance-key"><kbd>A</kbd><small>maintenir</small></div>
+      </div>
+      <div class="appearance-columns">
+        <section aria-label="Accessoires">
+          <h3>Accessoires</h3>
+          <div id="appearance-accessories" class="appearance-options"></div>
+        </section>
+        <section aria-label="Émotions">
+          <h3>Émotions</h3>
+          <div id="appearance-emotions" class="appearance-options"></div>
+        </section>
+      </div>
+      <p class="appearance-footer">Les choix sont conservés automatiquement dans ce navigateur. Relâche <kbd>A</kbd> pour reprendre l’exploration.</p>
     </aside>
     <div id="action" class="action-toast hide"></div>
     <div id="message" class="toast hide"></div>
