@@ -6,7 +6,7 @@
 
 ## Objectif
 
-Préparer Little World (actuellement **200 × 600 m**) à devenir plus vaste, sans sacrifier le rendu low-poly organique ni ajouter prématurément un moteur de streaming complexe.
+Préparer Little World (prototype actuellement **200 × 600 m**) à devenir une **carte continue pouvant atteindre 10 × 10 km au maximum**, sans sacrifier le rendu low-poly organique ni ajouter prématurément un moteur de streaming complexe. **100 km² est une limite de format, non une capacité validée ni un monde à remplir immédiatement.**
 
 Le projet vise désormais **30 images/s en fonctionnement normal** et autorise une baisse jusqu'à **20 images/s** si nécessaire, sans faire varier la vitesse des déplacements. Le joueur doit rester réactif à ces deux cadences ; le rendu 20 FPS est un filet de secours, non une excuse pour ne pas optimiser les assets et la simulation.
 
@@ -75,9 +75,18 @@ L'utilisation de **chunks ne signifie pas que le streaming est implémenté** : 
 
 Éviter de figer des constantes **200 × 600** dans tous les modules. Les dimensions et les sections devront être lues d'un `WorldConfig` versionné, et non du code de simulation.
 
-Pour l'instant les dimensions sont encore des constantes dans `src/terrain.ts` : **c'est une dette technique explicite avant extension réelle**.
+Pour l'instant les dimensions sont encore des constantes dans `src/terrain.ts` : **c'est une dette technique explicite avant extension réelle**. Le Studio multi-éditeurs doit exploiter une **vue mondiale 2D/simplifiée**, indépendante des maillages haute résolution, et recompiler localement les données de navigation libre des PNJ en cas de modification terrain/eau/obstacles.
 
 Le format des cartes éditables doit pouvoir référencer des objets par ID, des zones par coordonnée locale et des assets par ID stable, sans dépendance à l'ordre de génération.
+
+## Scénarios d'extension vers 10 × 10 km
+
+- Générer un monde **synthétique de taille maximale** en données source et secteurs, sans le peupler intégralement.
+- Déplacer la caméra/éditeur vers des secteurs très éloignés et confirmer que seules les ressources utiles sont actives.
+- Vérifier le passage du PNJ d'une zone à une autre par graphe de navigation **hiérarchique**, sans recalcul de chemin global chaque frame.
+- Comparer marche, planage, bateau et vue globale Studio sur les **mêmes budgets 30/20 FPS** et sans ralentissement de simulation.
+- Mesurer le coût des données de source, du manifest global, de la navigation par secteurs, de la mise à jour locale et de l'export/compilation.
+- Le plafond 100 km² **n'est pas un résultat de performance atteint** tant que les essais de production n'existent pas.
 
 ## Procédure d'acceptation
 
