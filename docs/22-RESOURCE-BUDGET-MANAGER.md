@@ -369,6 +369,17 @@ Le [document 23 — Audio MIDI LOW-RESOURCE](23-MIDI-AUDIO-LOW-RESOURCE.md) déf
 - Le contrôle audio reste dans un panneau **Ressources / Performance** existant (sous-section Audio), **pas un second régulateur graphique**. La qualification AUD-0…AUD-8 fait partie des scénarios PERF globaux.
 - Pas de backend audio, banque GM complète, accès MIDI matériel obligatoire ou télémétrie audio distante.
 
+## Consommateur PERF MINE : streaming souterrain et maillage local
+
+**Référence :** [24 — Mines low-resource creusables 2,5D](24-MINES-MULTILEVEL-LOW-RESOURCE.md). La mine **ne crée aucun second gestionnaire adaptatif** : `MineRenderer/MineMesher` consomment les quotas PERF comme terrain, eau et GLB.
+
+- **L'occupation et la physique** d'une cellule restent exactes quel que soit le LOD. Les niveaux de détails diminuent uniquement cristaux décoratifs, petites variations de parois, effets de poussière, éclairage et géométrie distante **réellement hors vue**.
+- `WorkScheduler` reçoit jobs **prioritaires de collision/surface** et jobs de maillage des chunks/bordures **touchés**, annulables par révision et répartis sur frames ; pas de remeshing de 8 niveaux à chaque pioche.
+- `ResourceRegistry` estime octets des cellules/bitsets/deltas, buffers de mesh, géométries et matériaux GLB partagés, caches de mine actifs/inactifs ; exclure la masse roche intacte non visible de la géométrie GPU.
+- **Culling intérieur** par groupes de galeries/portails, préchargement du prochain niveau lors de la descente, zéro dessin de mines sous une caméra extérieure lointaine. Le panorama de surface reste visible sans fog-cache.
+- **Tests** : 1/10/100 excavations, 3 puis 8 étages, franchissement de chunk, changement de mine, session longue, entrée/sortie, p50/p95/p99 CPU remeshing, draw calls/mémoire, dégradation visuelle sans perte de récolte/collision.
+- Réseau/serveur futur mesure **octets de snapshot/delta** et fréquence de transactions séparément des métriques GPU. Les valeurs 1m/cellule, 32×32, 3–8 niveaux sont **des hypothèses**, pas des budgets qualifiés.
+
 ## 13. Plan de développement incrémental PERF-0…PERF-9
 
 | Phase | Développement minimal et artefact testable | Gate |
