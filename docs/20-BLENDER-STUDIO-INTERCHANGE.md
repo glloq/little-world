@@ -262,6 +262,16 @@ Toute entrée est considérée **non fiable**, même si elle provient de Blender
 
 **Statut réel du dépôt `main` à la date de cadrage** : `src/world-data.ts` est encore **V2**, avec `Placement` (x, z, rotation, scale facultative) et un catalogue statique ; `src/editor.ts` utilise des gizmos et un brouillon local. **BL-0…BL-7 sont des livrables cibles, pas des fonctionnalités déclarées acquises**.
 
+## Échanges de carte et preset : hydrographie indépendante des meshes Blender
+
+La [spécification 21](21-WATER-HYDROLOGY-LOW-RESOURCE.md) valide un réseau d'eau éditable **distinct de la géométrie GLB**.
+
+- Blender peut créer **falaises, grottes, rochers, ponts, ruines de barrage et habillages de cascade** en GLB ; ces meshes **n'impliquent pas** un niveau d'eau, une rivière navigable ou des collisions aquatiques.
+- Le **Studio** garde `WaterNetworkDefinitionV3`, splines/points, cascades haut/bas, lacs, exutoires, profondeurs, courants et overrides, en **données JSON V3** au sein du ZIP portable de la carte.
+- Un export de **scène vers Blender GLB+sidecar** peut inclure **des marqueurs d'ancrage** de rivière/chute/port, mais le round-trip géométrique ne remplace **pas** la source hydrographique. Réimport avec aperçu de conflit, aucun écrasement implicite des niveaux.
+- **Heightfields importés de Blender** sont échantillonnés avant la génération du lit ; eau/berges et volumes sont compilés localement, secteur par secteur. Ne pas exporter un océan de 100 km² en mesh GLB unique.
+- Les **presets de lieux** peuvent inclure `WaterNetwork` partiel (p. ex. petit étang avec cascade) et des références de volumes avec IDs remappés proprement lors de l'import, à condition d'avoir des **interfaces amont/aval** explicites et une validation des raccords.
+
 ## 12. Décisions finales et exclusions
 
 **Validé :** Blender pour fabriquer les modèles/sets low-poly ; `glTF 2.0/GLB` comme échange 3D ouvert ; `.blend` comme source facultative ; Studio pour placements XYZ/rotation/échelle, biotopes/peinture/génération, prefab/groupes et interactions ; import/export de **presets** et de **cartes rééditables**.
