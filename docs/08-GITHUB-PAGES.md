@@ -1,6 +1,6 @@
 # 08 — GitHub Pages — hébergement statique de Little World
 
-**Statut : guide d'implémentation cible pour M0. Aucun workflow ou site fonctionnel n'est encore déployé.**
+**Statut : workflow de publication présent dans `.github/workflows/pages.yml`. Le déploiement CI a réussi ; rendu du jeu et de l'éditeur restant à valider manuellement dans le navigateur.**
 
 ## Objectif
 
@@ -51,7 +51,7 @@ Les applications `game` et `editor` peuvent être publiées en **une seule sorti
 5. Envoi de l'artefact statique GitHub Pages, puis déploiement.
 6. Ouverture du site public et **test manuel/navigateur** des déplacements, du chargement des assets et de l'éditeur.
 
-Un workflow doit utiliser les actions officielles `actions/configure-pages`, `actions/upload-pages-artifact` et `actions/deploy-pages`, avec les permissions nécessaires au déploiement. **Ce document ne crée pas ce workflow ; cela appartient à M0.**
+Un workflow doit utiliser les actions officielles `actions/configure-pages`, `actions/upload-pages-artifact` et `actions/deploy-pages`, avec les permissions nécessaires au déploiement. **Workflow en place** : `.github/workflows/pages.yml`. Les déploiements et leurs résultats sont consultables dans l'onglet Actions.
 
 ### Critères de vérification de publication
 
@@ -93,13 +93,13 @@ Pour rendre une nouvelle carte visible de tous sur l'URL Pages :
 
 ## Liste de tâches M0
 
-- [ ] Initialiser le projet TypeScript, Three.js, Vite et tests.
-- [ ] Définir une stratégie unique de build du jeu et de l'éditeur.
-- [ ] Configurer `base: '/little-world/'` et les URL des fichiers statiques.
-- [ ] Ajouter une scène 3D légère et un aperçu d'éditeur.
-- [ ] Ajouter `.github/workflows/deploy.yml` pour test/build/publish.
-- [ ] Activer GitHub Pages depuis les paramètres du dépôt.
+- [x] Initialiser le projet TypeScript, Three.js, Vite et tests.
+- [x] Définir une stratégie unique de build du jeu et de l'éditeur (Vite multipage).
+- [x] Configurer `base: '/little-world/'` et les URL des fichiers statiques.
+- [x] Ajouter une scène 3D légère et un aperçu d'éditeur.
+- [x] Ajouter `.github/workflows/pages.yml` pour test/build/publish.
+- [x] Activer GitHub Pages depuis les paramètres du dépôt (déploiement Actions réussi).
 - [ ] Vérifier site public, console, erreurs réseau et WASM.
-- [ ] Documenter commandes locales de démarrage, build et aperçu.
+- [x] Documenter commandes locales de démarrage, build et aperçu.
 
-> **D0 ne valide que la conception.** Aucun des points de cette liste n'est déclaré réalisé.
+> **La CI valide le build, pas le rendu** : vérifier la page dans un navigateur avant de marquer M0 totalement qualifié.
