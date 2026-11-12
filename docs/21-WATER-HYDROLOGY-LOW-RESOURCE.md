@@ -232,6 +232,17 @@ interface WaterNetworkDefinitionV3 {
 
 **Observabilité** : `WaterLODManager` expose nombre de surfaces par niveau, triangles, draw calls, matériaux, surfaces transparentes, pixels couverts approximatifs, uploads GPU, temps CPU compilation/streaming, temps GPU si instrumentation, p50/p95/p99 du frametime. Mesurer **avec et sans eau**, vue rive, vue plongeur, bateau, planage face à l'horizon, embouchures et cascades. Comparer les effets shader par variante ; **ne pas supposer qu'un `uniform enable=false` évite tous les calculs fragmentaires** si le code shader coûteux est toujours évalué.
 
+## Budget de l'eau intégré à PERF, pas de deuxième régulateur
+
+La [spécification PERF](22-RESOURCE-BUDGET-MANAGER.md) fournit le **budget global** et le `WaterLODManager` réalise son adaptation **locale** :
+
+- Les variantes `minimal/balanced/enhanced`, résolution des vagues, écume et transparence sont **plafonnées par ResourceBudgetManager** ; **aucune boucle concurrente** de qualité indépendante de l'eau.
+- La **surface projetée** d'une mer plein écran prime souvent sur le nombre de triangles : les LOD doivent simplifier **les opérations en shader et l'overdraw** au loin et préserver la couleur de l'horizon.
+- Le `WorkScheduler` prépare géométrie/chunks/LOD aquatiques **près de la caméra ou devant un bateau en déplacement**, avec quota CPU/upload et fallback visuel sans trou de côte.
+- Le `ResourceRegistry` comptabilise textures/buffers/maillages d'eau et masques **une fois par ressource partagée** ; cache par secteur et éviction des objets non actifs.
+- Vue sous-marine, profondeur, niveaux de lacs, volumes/courants, bateau/nage **ne varient jamais** avec une décision de budget graphique.
+- Benchmarks identiques rive/planage/plongée/mer entière avec effet eau coupé puis activé, contrôle p95/p99/frametimes, GPU optionnel, oscillation LOD/hystérésis et intégration météo/herbe/ombres.
+
 ## 11. Phases, tests et gates
 
 | Phase | Livrable / validation |
