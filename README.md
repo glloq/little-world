@@ -2,7 +2,7 @@
 
 Prototype **solo** d'exploration 3D avec **Three.js**, exécutable entièrement dans un navigateur PC. La vallée montagneuse actuelle mesure **200 × 600 m** ; l'architecture cible prépare **une carte continue pouvant atteindre 10 × 10 km (100 km² au maximum)**, sans considérer cette taille comme déjà implémentée.
 
-> **Statut : prototype technique jouable en développement.** La première version est volontairement simple, avec graphismes et physique provisoires. Le code et les fichiers sont dans `main`. Le site est publié via GitHub Pages. La disponibilité de la dernière révision dépend du déploiement GitHub Actions.
+> **Statut : prototype technique jouable en développement.** La première version est volontairement simple, avec graphismes et physique provisoires. La campagne avancée est sur `feat/living-world-editor` ; le site publié depuis `main` peut rester antérieur. Le site est publié via GitHub Pages. La disponibilité de la dernière révision dépend du déploiement GitHub Actions.
 
 ## Essayer le prototype
 
@@ -19,7 +19,7 @@ Pré-requis : **Node.js 22** et npm.
 ```bash
 git clone https://github.com/glloq/little-world.git
 cd little-world
-npm install
+npm ci
 npm run dev
 ```
 
@@ -38,18 +38,37 @@ Little World doit devenir un **monde vivant où il existe de nombreuses petites 
 
 Les **PNJ animaux/créatures** pourront réutiliser les variantes du personnage joueur lorsque leur morphologie le permet, avec activités simples et **navigation libre avancée**. La création du monde passera par **Little World Studio**, un ensemble d'éditeurs spécialisés partageant un projet et des données communes : relief, eau/chemins, biotopes, bâtiments, PNJ, dialogues, actions, assets et tests.
 
-Ces fonctions sont **des objectifs confirmés, pas des fonctions déjà livrées**. Voir [12 — Périmètre](docs/12-PROJECT-SCOPE.md) et [13 — Studio et UX](docs/13-STUDIO-UX-ARCHITECTURE.md).
+Ce périmètre complet reste **un objectif confirmé** ; les fonctions livrées sur la branche sont précisées ci-dessous. Voir [12 — Périmètre](docs/12-PROJECT-SCOPE.md) et [13 — Studio et UX](docs/13-STUDIO-UX-ARCHITECTURE.md).
 
-## Fonctionnalités initiales
+## Campagne de développement
+
+- Terrain en secteurs chargés progressivement, trois LOD et cache borné ; cartes synthétiques jusqu’à **2 × 2 km**. La carte par défaut reste la vallée de 200 × 600 m.
+- Écureuil articulé avec 14 os, 13 états animés interpolés, 9 expressions et accessoires ; GLB original exportable. Le rig est rigide, sans skinning pondéré ; le jeu utilise sa version procédurale.
+- Quatre PNJ de démonstration, activités selon la distance, navigation simple et dialogues à choix/flags locaux.
+- Sept biotopes et dix modèles écologiques procéduraux instanciés : flore, oiseaux, papillons et poissons contraints à l’eau.
+- Atelier : sculpture, peinture de biotopes, tracés d’eau/chemins, sélection/gizmos, historique, PNJ et dialogues, sauvegarde/rechargement et test immédiat.
+- Format de carte v2 validé commun au jeu/éditeur, migration v1, compilation en données statiques pour Pages.
+
+```bash
+npm run compile:map -- maps/default.json public/maps/default.json
+npm run assets:squirrel # régénère le GLB original
+# Avec npm run dev dans un autre terminal et Chromium installé :
+npm run test:browser
+npm run benchmark -- http://127.0.0.1:5173/little-world/ /tmp/world-bench
+```
+
+Les tests navigateur utilisent Chromium système s’il existe, sinon celui de Playwright (`npx playwright install chromium`). Les résultats cloud utilisent SwiftShader et ne représentent pas les performances d’un GPU PC. Le suivi précis et les fonctions restantes figurent dans [la feuille de route](docs/07-ROADMAP.md) et [les mesures](docs/10-PERFORMANCE-ROADMAP.md).
+
+## Base du prototype conservée
 
 - **Terrain low-poly procédural** : relief, cours d'eau en pente, mer, montagnes et sentier ; graine de placement déterministe.
 - **Végétation instanciée** ; moulin, maisons, ponton, barque et roue animée.
-- **Écureuil 3D low-poly original**, remodelé en style chibi (visage expressif, grandes oreilles, ventre crème, queue volumineuse). Membrane de planage cachée au repos et déployée seulement en vol ; 5 expressions et accessoires modulaires. Le personnage est encore procédural, **sans rig squelettique définitif ni GLB exporté**.
+- **Écureuil 3D low-poly original**, remodelé en style chibi (visage expressif, grandes oreilles, ventre crème, queue volumineuse). Membrane de planage cachée au repos et déployée seulement en vol ; 9 expressions et accessoires modulaires. Le personnage est encore procédural, **avec rig rigide et GLB exporté, sans skinning pondéré**.
 - **Caméra troisième personne** orientable à la souris et HUD affichant l'état, les coordonnées, les FPS et l'oxygène.
 - **Moulin automatique** : la roue tourne avec le cours d'eau, sans interaction artificielle.
 - **Bateau pilotable** depuis le port : embarquement/débarquement, accélération, inertie, gouvernail et limites d'eau navigable.
 - **Performance** : terrain rendu par sections, végétation instanciée par secteur, géométries et matériaux réutilisés, chargement GLB mutualisé et modes de qualité de rendu.
-- **Objectif LOW-RESOURCE** : 30 FPS nominal, 20 FPS en secours, sans ralentissement de la simulation ; [budget global de ressources](docs/11-LOW-RESOURCE-POLICY.md). Cible **documentée mais pas encore implémentée** (boucle de jeu actuellement à 60 Hz).
+- **Objectif LOW-RESOURCE** : 30 FPS nominal, 20 FPS en secours, sans ralentissement de la simulation ; [budget global de ressources](docs/11-LOW-RESOURCE-POLICY.md). Cadences implémentées avec simulation fixe 30 Hz, interpolation, adaptation de qualité et pause des onglets masqués ; fluidité sur PC de référence non validée.
 - **Éditeur initial** : changer la graine et la densité, choisir des prefabs, cliquer sur le terrain pour placer des objets, effacer, sauvegarder dans IndexedDB, exporter/importer JSON.
 - **Catalogue d'assets intégré** : trois fichiers GLB originaux (`public/models/`) plus des prefabs générés par code, inventoriés dans `assets/catalog.json`.
 - Aucun backend, compte, serveur multijoueur ou API externe au runtime.
@@ -104,13 +123,13 @@ docs/                       # Conception, objectifs et registre de décisions
 
 ## Limites connues
 
-- Le personnage est une **version procédurale stylisée plus aboutie**, mais sans animations squelettiques, facial rig, déformation de membrane ni GLB final.
+- Le personnage est une **version procédurale stylisée plus aboutie**, avec rig rigide et transitions animées ; skinning pondéré et déformation fine restent à réaliser.
 - Le contrôleur de mouvement utilise actuellement des **collisions analytiques avec le terrain** : la physique Rapier et les collisions détaillées des bâtiments restent à intégrer.
 - L'eau, la nage et le planage sont des **modèles arcade provisoires**, à ajuster après essais.
 - Le bateau n'a pas encore de collisions physiques détaillées avec les pontons ; les limites de navigation sont évaluées à partir de la profondeur.
 - Les optimisations actuelles limitent l'utilisation GPU mais ne constituent pas encore un système de streaming/LOD pour une très grande carte.
-- Les éditeurs spécialisés (relief, eau, biotopes, PNJ, dialogues, événements) **restent à développer**. L'éditeur actuel ne sculpte pas le relief, n'édite pas les courbes de rivière et ne configure pas encore d'interactions ; les changements locaux ne publient pas automatiquement le site.
-- L'instance jouable charge la carte par défaut ; **les objets placés dans l'éditeur ne remplacent pas le jeu publié** tant qu'un pipeline de compilation de carte n'est pas ajouté.
+- Les éditeurs spécialisés (relief, eau, biotopes, PNJ, dialogues, événements) **restent à développer**. L’atelier actuel sculpte le relief, trace eau/chemins et édite PNJ/dialogues, mais ne constitue pas encore ces éditeurs spécialisés ni un moteur général d’événements ; les changements locaux ne publient pas automatiquement le site.
+- L'instance jouable charge la carte par défaut ; **les objets placés dans l'éditeur ne remplacent pas le jeu publié** sans compiler la carte exportée dans `public/maps/default.json`, la commiter et redéployer.
 - Aucun multijoueur n'est prévu pour la première version ; l'architecture cible de **100 km² est une limite de conception, pas une performance démontrée**.
 
 ## Documentation

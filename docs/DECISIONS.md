@@ -111,7 +111,7 @@
 
 ## Écart entre politique et prototype actuel
 
-La **politique de cadence 30/20 FPS est validée**, mais le runtime actuel utilise encore une simulation `1/60` avec rendu à chaque `requestAnimationFrame`. Cette mise en conformité, ainsi que l'instrumentation, doivent être programmées et validées. Voir [11 — LOW-RESOURCE](11-LOW-RESOURCE-POLICY.md).
+La **politique de cadence 30/20 FPS est validée** et la migration de runtime est implémentée sur cette branche : simulation fixe 30 Hz, interpolation, réduction de résolution puis détails avant secours 20 Hz, pause hors visibilité et reprise bornée. Les PNJ utilisent des décisions 10/2 Hz. Les tests ne remplacent pas la validation de fluidité sur PC de référence ; les seuils adaptatifs restent provisoires. Voir [11 — LOW-RESOURCE](11-LOW-RESOURCE-POLICY.md).
 
 ## Règles de suivi
 
@@ -119,3 +119,18 @@ La **politique de cadence 30/20 FPS est validée**, mais le runtime actuel utili
 2. Distinguer **confirmé**, **proposé**, **testé**, **livré**.
 3. Ne pas écrire une infrastructure « au cas où » si elle complique la V1 statique.
 4. L'architecture doit rester modulaire, mais la modularité n'implique pas la présence d'un serveur.
+
+## Implémentation — campagne avancée du 12 novembre 2026
+
+- Architecture plate TypeScript conservée ; npm/package-lock est le gestionnaire effectif.
+- Source carte v2 commune, migration v1, stockage IndexedDB, export et compilation statique validés.
+- Terrain local à trois LOD avec jupes, cache borné et génération répartie ; pas de worker ni promesse de gain FPS non mesuré.
+- Configuration active unique par page ; carte historique conservée, grandes cartes synthétiques jusqu’à 2 km de côté.
+- Rig original articulé rigide, export GLB reproductible ; skinning pondéré différé.
+- PNJ par données, navigation analytique légère ; dialogues/flags de session, aucun service distant.
+- Biotopes peints en overrides, écologie instanciée locale ; modèles originaux catalogués séparément des objets plaçables.
+- UI d’auteur incrémentale avec annuler/rétablir ; pas de langage de script importé ni d’éditeur de règles universel.
+
+## État après synchronisation du cadrage Studio / 100 km²
+
+Les décisions G/M/P/I/E/C/Q validées dans main sont conservées. Le plafond **final de conception** est 10 × 10 km, mais le validateur de cette version reste volontairement limité à 2 × 2 km pour les scènes expérimentales. L’atelier livré reste unifié ; le Studio spécialisé, navigation hiérarchique, inventaire, petites activités et slots de sauvegarde joueur sont à développer. Les PNJ livrés sont tous des écureuils/créatures, aucun humain. L’interface actuelle de dialogue agit sur des flags temporaires, sans prétendre au moteur de séquences et de progression final.

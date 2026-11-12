@@ -12,7 +12,7 @@
 - **Pas d'humains** : PNJ animaux/créatures uniquement, variantes du personnage joueur quand morphologies/rigs compatibles. **Navigation libre avancée** mais comportements sociaux/routines simples ; pas de combat, survie punitive ou RPG lourd.
 - **Plusieurs éditeurs spécialisés** dans Little World Studio : carte globale, terrain, eau/chemins, biotopes/faune, bâtiments, personnages/PNJ, dialogues, événements/actions, assets et tests. **Un seul projet partagé**, IDs, sélection et Undo/Redo cohérents. Outils génériques avant décors ad hoc.
 - **Interactions déclaratives** : déclencheurs, conditions ET/OU, séquences, liens entre objets, états temporaires/persistants. Pas de JS arbitraire provenant d'une carte.
-- **30 FPS normal, 20 FPS secours**, sans ralentissement du monde ; simulation à pas fixe indépendante du rendu (proposition : 30 Hz, **non implémentée dans le prototype actuel**).
+- **30 FPS normal, 20 FPS secours**, sans ralentissement du monde ; simulation à pas fixe indépendante du rendu (30 Hz implémentés et testés sur cette branche ; l’atteinte des cibles FPS doit être vérifiée sur PC de référence).
 - Le joueur ne modifie **pas** le terrain de manière permanente ; l'auteur peut le modifier dans le Studio.
 - Réutilisation des assets avec licence de redistribution publique (CC0/originaux prioritaires), catalogue local, aucun CDN/runtime externe obligatoire.
 

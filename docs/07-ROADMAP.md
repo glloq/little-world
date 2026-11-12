@@ -4,30 +4,50 @@
 
 **Documents de cadrage prioritaires :** [12 — Limites du jeu](12-PROJECT-SCOPE.md) et [13 — UX du Studio](13-STUDIO-UX-ARCHITECTURE.md). Le **200 × 600 m** des jalons M0–M6 est la carte de démonstration ; le monde final est **une carte continue de 10 × 10 km maximum**, performance à qualifier.
 
-## Avancement réel
+## Campagne avancée — état livré sur branche
 
-| Jalon | État | Livré / restant |
-| --- | --- | --- |
-| D0 documentation | **Fait** | Spécifications et test navigateur |
-| M0 bootstrap + Pages | **Implémenté ; déploiement CI réalisé** | Le test visuel dans le navigateur reste à valider |
-| M1 écureuil / déplacements | **Prototype fonctionnel dans le code** | Proxy 3D, mouvement arcade ; Rapier, animations et ajustements manquent |
-| M2 vallée | **Prototype** | Relief et rivière déterministes, moulin, port ; éditeur du relief absent |
-| M3 assets | **Démarré** | 3 GLB originaux et 3 autres prefabs procéduraux ; catalogue riche à construire |
-| M4 éditeur | **Démarré** | Placement d'objets, graine, densité, IndexedDB, JSON, test brouillon ; sculpture non réalisée |
-| M5 interactions | **Démarré** | Moulin interactif codé ; moteur générique déclaratif absent |
-| M6 finition | **Non démarré** | Profils de performance et direction artistique finale à valider |
+| Domaine | Avant | Après | Statut | Reste à faire |
+|---|---|---|---|---|
+| Moteur / performance | Terrain complet et caches de prefabs | Génération locale répartie, cache GPU borné, libération, compteurs et benchmark RAF | Implémenté et mesuré en rendu logiciel | Worker, mesures GPU PC, LOD du bâti |
+| Grande carte | Dimensions figées 200 × 600 m | Configuration commune, limites physiques dynamiques, scènes 1 × 1 et 2 × 2 km | Scènes synthétiques vérifiées | Générateur géographique et grande forêt répartie |
+| Écureuil / rigging | Groupes procéduraux | 14 os rigides, oreilles/queue articulées, sockets, GLB original reproductible | Implémenté | Skinning pondéré, GLB utilisé directement au runtime |
+| Animations | Sinusoïdes marche/planage | 13 états interpolés et 13 clips exportés, 9 expressions | Testé | Animations artistiques détaillées et interactions variées |
+| PNJ | Aucun | 4 exemples déclaratifs, activités et simulation selon distance, navigation sol/eau/pente/obstacles | Testé | Graphe de chemins et évitement avancé |
+| Dialogues / interactions | Bateau, moulin automatique | Dialogues à choix, flags, conditions/actions, éditeur de graphe et aperçu | Testé | Événements de zones et moteur de mécanismes générique |
+| Biotopes | Règles fixes de forêt | 7 configurations, peinture locale persistante, habitats contrôlés | Implémenté | Zones d’exclusion auteur, densité par coup de pinceau |
+| Faune / flore | Arbres/rochers | 7 plantes et 3 créatures instanciées, secteurs bornés, poissons dans l’eau | Testé | Vent, sons, perchoirs, fuite, bancs évolués |
+| Éditeur | Placement simple | Sculpture locale, gizmos, multisélection, duplication, historique, eau/chemins, PNJ/dialogues, retour du test | Parcours navigateur validé | Déplacement des points, gizmo de groupe, brosse de dispersion, miniatures |
+| Assets | 3 GLB + prefabs | GLB écureuil original, registres séparés personnage/écologie, provenance et dimensions | Testé | Pipeline général de miniatures/optimisation |
 
-Ne pas confondre **tests automatiques passés** et **validation visuelle**. Le suivi détaillé figure dans [09-BROWSER-TEST-PLAN.md](09-BROWSER-TEST-PLAN.md).
+### Données et outils
 
-**Politique générale LOW-RESOURCE :** [docs/11-LOW-RESOURCE-POLICY.md](11-LOW-RESOURCE-POLICY.md). **Objectif validé : 30 FPS nominaux, repli à 20 FPS si nécessaire ; aucun ralentissement du jeu.** La limite de cadence n'est pas encore intégrée au prototype.
+`world-data.ts` constitue le contrat v2, partagé par le jeu, l’éditeur et le compilateur. Migration v1, validation des limites/types/identifiants/références, JSON sans code exécutable. La génération reste recalculable depuis la source et les overrides. Le compilateur émet des données et un manifeste de secteurs ; il ne précompile pas encore les meshes GPU.
 
-### Travail technique P0 à réaliser avant l'extension de carte
+Les cartes de démonstration conservent la rivière, les bâtiments et le port historiques. Dimensions acceptées : largeur 200–2000 m, longueur 600–2000 m. La configuration analytique active est unique par page. Les grandes scènes ne représentent pas des kilomètres carrés de contenu entièrement authored.
 
-- [ ] Ajouter des mesures reproductibles (frametime p50/p95, FPS, draw calls, triangles, chargements, mémoire si accessible).
-- [ ] Découpler cadence d'affichage **30/20 FPS** et pas fixe de simulation proposé **30 Hz**, avec interpolation ; conserver le comportement des commandes.
-- [ ] Suspendre l'activité inutile en arrière-plan et éviter tout rattrapage infini au retour de l'onglet.
-- [ ] Évaluer les performances sur le PC de référence en forêt, planage, bateau, plongée et éditeur.
-- [ ] Ajouter uniquement les mécanismes LOD/chunks/streaming justifiés par les mesures avant de dépasser le monde actuel.
+### Validation
+
+Dernier commit applicatif : `7128fc9`, avec validation GitHub réussie ([exécution](https://github.com/glloq/little-world/actions/runs/43291414744)). Les cadrages de `main` jusqu’à `abf85bb` sont intégrés ; la publication Pages de ces fonctionnalités et la création de PR ne sont pas faites. La PR est bloquée par le refus réseau de l’API GitHub, pas par un échec des tests.
+
+La dernière CI applicative a réussi sur `7128fc9` : [exécution GitHub](https://github.com/glloq/little-world/actions/runs/43291414744). Le dernier correctif de rendu réduit la distance détaillée du petit animal à 8 m ; PNJ parlants à 18 m. Le plafond final validé reste 100 km², le Studio spécialisé/progression/slots de partie sont encore des objectifs.
+
+Campagne locale : **72 tests réussis**, TypeScript/build réussis, compilation de la carte (40 secteurs) et régénération GLB identique (236 788 octets), **16 vérifications Chromium** réussies sur le build statique, aucune erreur JS/HTTP. Quatre scénarios de benchmark ont terminé sans erreur ; la version enrichie est plus lente sur SwiftShader que la référence et aucun gain global n’est revendiqué.
+
+Commits applicatifs : `710fe46` (données/terrain), `7bd718d` (personnage/PNJ/dialogues), `ad45f73` (intégration atelier/écologie/tests). Branche : `feat/living-world-editor`. La création de Pull Request et l’observation de CI via API sont bloquées par le refus réseau vers `api.github.com` ; l’ajout du domaine est enregistré dans le brouillon de l’environnement et doit être appliqué dans les paramètres. La présence d’authentification API utilisable reste à vérifier après cette autorisation réseau. Aucun déploiement de cette branche n’est revendiqué.
+
+Les résultats de campagne sont décrits dans le [plan navigateur](09-BROWSER-TEST-PLAN.md) et les [mesures](10-PERFORMANCE-ROADMAP.md). Le build vérifie TypeScript strict. La validation des branches/PR est définie dans `.github/workflows/checks.yml`, avec tests, compilation de carte, build et parcours Chromium sur le build statique. Le workflow Pages de main est conservé.
+
+La CI GitHub a réussi sur `5baf97f`, puis sur `bbe0796` après synchronisation avec main et migration 30/20 Hz ([exécution](https://github.com/glloq/little-world/actions/runs/43288636931)). Le déploiement doit être vérifié séparément : une exécution CI réussie de branche ne vaut pas publication sur Pages. Voir le rapport final de campagne pour la branche et le dernier commit.
+
+---
+
+## P0 LOW-RESOURCE et objectifs restant à valider
+
+- [x] Instrumentation, simulation fixe 30 Hz, présentation 30/20, interpolation et pause des onglets masqués.
+- [x] Données source communes, secteurs/LOD locaux et cache borné ; 1/2 km synthétiques mesurés.
+- [ ] PC de référence, longues traversées, navigation hiérarchique, Studio spécialisé et format sectorisé pour 100 km².
+
+Les jalons ci-dessous sont la **cible générale** et les critères restants ; le tableau de campagne décrit ce qui est effectivement livré sur cette branche.
 
 ## Objectif
 

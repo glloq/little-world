@@ -141,9 +141,9 @@ Les outils peuvent partager une coquille d'application et un viewport Three.js *
 
 ## 10. Frontière entre acquis et objectifs
 
-**Actuellement implémenté (prototype, à vérifier sur la branche exécutée)** : vallée 200 × 600 m, écureuil procédural, nage/planage, bateau, première édition de placements, IndexedDB/JSON et aperçu de carte. **Ne pas affirmer que les outils du Studio, la navigation libre, les PNJ, l'inventaire, les sauvegardes de partie, le streaming 100 km² ou les activités sont livrés.**
+**Sur la branche `feat/living-world-editor` :** vallée de démonstration préservée, données v2 communes et migration v1, terrain local à trois LOD/cache borné, scènes synthétiques 1/2 km, rig rigide animé et GLB original, quatre PNJ animaux à navigation simple, dialogues/flags temporaires, écologie instanciée, atelier unifié avec sculpture/tracés/transformation/historique/IndexedDB/export/test. Ces évolutions sont testées ; elles ne constituent **pas** le Studio spécialisé, la navigation libre hiérarchique ou le streaming complet de 100 km².
 
-**À développer** : tous les éditeurs spécialisés, schémas et compilation par secteur, NPC runtime/authoring, dialogues, interactions déclaratives, navigation, persistance joueur et bibliothèque d'activités.
+**À développer :** éditeurs spécialisés, archive sectorisée avec compilation des meshes/navigation, moteur générique d’événements/séquences, navigation avancée, inventaire, activités et sauvegardes de partie. Le suivi de campagne et ses limites figurent dans [07-ROADMAP.md](07-ROADMAP.md).
 
 ## 11. Règles applicables à tout développement Codex
 

@@ -3,6 +3,17 @@
 **Statut : spécification cible ; prototype de vallée 200 × 600 m existant.**
 **Périmètre :** carte continue jusqu'à **10 × 10 km maximum** (100 km²), sans garantie de pouvoir la charger intégralement en mémoire.
 
+## Implémentation de cette branche
+
+**Statut : carte source v2 partagée, compatible v1.** Configuration dynamique de 200 × 600 m à 2 × 2 km, retouches terrain/biotopes, volumes d’eau, chemins, placements et PNJ. Le compilateur statique valide le JSON et émet un manifeste de limites de secteurs ; la génération des meshes est encore faite à la demande dans le navigateur. La vallée intégrée reste la carte par défaut, les grands formats sont des scènes synthétiques.
+
+`maps/default.json` est la source ; `public/maps/default.json` et `public/maps/default.chunks.json` sont produits par `npm run compile:map -- maps/default.json public/maps/default.json`. Le jeu charge la carte statique avec la base Vite ; en mode test il utilise le même validateur sur le brouillon de session. Les anciens exports v1 migrent vers v2 sans perdre leurs placements.
+
+Les retouches sont séparées en tableaux `terrain`, `biomes`, `water`, `paths` et `placements`. Les IDs sont stables. Aucun script importé n’est exécuté. Le générateur conserve encore une rivière et des bâtiments de démonstration aux positions historiques ; il ne constitue pas un auteur géographique arbitraire complet. Les bornes minimales préservent ces emplacements.
+
+
+La limite **expérimentale du validateur actuel** est de 2 km par axe. Le plafond de conception reste 10 km par axe ; le format sectorisé et le streaming complet de 100 km² restent à développer.
+
 ## Géographie
 
 La carte de démonstration reste une vallée source → rivière → moulin → village → port → mer. L'architecture cible ne doit **pas imposer** cette géographie à tous les projets créés dans le Studio.

@@ -1,9 +1,25 @@
 # 04 — Little World Studio : édition de carte et interactions
 
 **Statut : spécification fonctionnelle validée, à implémenter progressivement.**
-**État actuel : un éditeur de placement simple avec graine/densité, IndexedDB, export/import JSON et aperçu dans le jeu. Les éditeurs spécialisés ne sont pas encore livrés.**
+**État de cette branche : atelier unifié fonctionnel (sculpture, eau/chemins, biotopes, objets, PNJ/dialogues, historique et stockage v2). Les éditeurs spécialisés du Studio ne sont pas encore livrés.**
 
 **Références impératives :** [12 — Périmètre](12-PROJECT-SCOPE.md), [13 — Studio, UX et schémas](13-STUDIO-UX-ARCHITECTURE.md), [11 — LOW-RESOURCE](11-LOW-RESOURCE-POLICY.md).
+
+## Fonctions disponibles
+
+- Relief : élever/abaisser, lisser vers la moyenne locale, aplanir à une altitude ; rayon et intensité. Les retouches sont des opérations persistantes, appliquées aux calculs de collision et aux seuls chunks intersectés. Les objets placés, arbres, chemins et bâtiments proches sont recalés.
+- Biotopes : pinceau circulaire parmi sept types, priorité au dernier override. La flore/faune locale est régénérée progressivement ; les habitats restent contrôlés.
+- Eau : cliquer les points d’une polyligne, régler largeur/niveau/profondeur, terminer. Le lit est creusé et le même volume sert à la nage/navigation. Chemins : polyligne adaptée au relief et exclusion écologique.
+- Objets : choisir le catalogue, cliquer ; sélectionner avec Maj pour grouper. Les gizmos transforment un objet ; duplication/suppression opèrent sur le groupe. Inspecteur numérique et magnétisme optionnel.
+- PNJ : placement, nom, activité, rayon, vitesse ; patrouille sur le dernier chemin dessiné. Éditeur complet de graphe de dialogue : entrée, répliques, expressions, réponses, liens, conditions/effets booléens locaux ; aperçu direct.
+- Chaque opération significative est annulable. L’historique garde 60 états en mémoire ; il ne persiste pas entre rechargements. Le brouillon IndexedDB et l’export conservent les données, pas l’historique.
+- `npm run compile:map -- carte.json public/maps/default.json` valide et produit la carte statique et son manifeste de secteurs. Les géométries sont encore générées localement à la demande, pas précompilées.
+
+## Limites de cette livraison
+
+Les tracés se créent par points et se suppriment via la liste des retouches ; pas encore de poignées de déplacement de points ni de spline courbe. La multisélection n’a pas de gizmo de groupe. Pas de brosse de dispersion, miniatures de catalogue, zones d’exclusion dessinables, undo persistant, sculpture en worker, navmesh ou éditeur général d’événements/mécanismes. Les actions des dialogues modifient seulement des flags de session. Les spécifications ci-dessous restent des objectifs lorsqu’elles dépassent ces fonctions.
+
+
 
 ## 1. Choix directeur : E1=C — plusieurs éditeurs spécialisés
 

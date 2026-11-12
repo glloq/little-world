@@ -1,6 +1,7 @@
 # 08 — GitHub Pages — hébergement statique de Little World
 
-**Statut : workflow de publication présent dans `.github/workflows/pages.yml`. Le déploiement CI a réussi ; rendu du jeu et de l'éditeur restant à valider manuellement dans le navigateur.**
+**Statut :** le workflow Pages de main est conservé et utilise désormais `npm ci`. Un workflow de validation des branches/PR compile la carte, exécute les tests et le build puis le parcours navigateur sur les fichiers statiques. La campagne actuelle est livrée sur une branche ; son déploiement public n’est pas effectué. Les succès de déploiement historiques mentionnés ci-dessous ne valident pas cette nouvelle révision.
+
 
 ## Objectif
 
@@ -118,4 +119,4 @@ L'hébergement **reste GitHub Pages** pour le jeu solo et pour les **éditeurs s
 
 Voir [12 — Périmètre du projet](12-PROJECT-SCOPE.md) et [13 — UX Studio](13-STUDIO-UX-ARCHITECTURE.md).
 
-**Statut : objectif d'architecture.** Le prototype actuel ne possède pas encore de compilation/streaming de grande carte ni plusieurs éditeurs spécialisés.
+**Statut : objectif d'architecture.** La branche actuelle possède un compilateur de données statiques et un terrain à chargement local, testés sur des scènes synthétiques jusqu’à 2 × 2 km. La compilation/streaming complète de 100 km² et les éditeurs spécialisés restent à développer.

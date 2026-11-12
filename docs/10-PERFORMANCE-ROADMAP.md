@@ -1,97 +1,75 @@
-# 10 — Performance et agrandissement futur de la carte
+# 10 — Performance, chargement spatial et mesures
 
-**12 novembre 2026 — premières optimisations implémentées, mesures sur PC utilisateur à recueillir.**
+**12 novembre 2026 — architecture locale implémentée ; aucun gain global de FPS revendiqué.**
 
-**Document de référence pour les budgets globaux : [11 — Politique LOW-RESOURCE](11-LOW-RESOURCE-POLICY.md). Objectif validé : 30 FPS nominaux, secours 20 FPS, simulation indépendante.**
+**Cible de conception :** carte continue de 100 km² maximum et Studio spécialisé, voir [périmètre](12-PROJECT-SCOPE.md) et [UX](13-STUDIO-UX-ARCHITECTURE.md). Cette campagne conserve une limite expérimentale de 2 km par axe ; aucun test 100 km² n’est revendiqué.
 
-## Objectif
+**Référence globale : [Politique LOW-RESOURCE](11-LOW-RESOURCE-POLICY.md), cible 30 FPS, secours 20 FPS, simulation indépendante.**
 
-Préparer Little World (prototype actuellement **200 × 600 m**) à devenir une **carte continue pouvant atteindre 10 × 10 km au maximum**, sans sacrifier le rendu low-poly organique ni ajouter prématurément un moteur de streaming complexe. **100 km² est une limite de format, non une capacité validée ni un monde à remplir immédiatement.**
+## Mesures de campagne (avant migration de cadence)
 
-Le projet vise désormais **30 images/s en fonctionnement normal** et autorise une baisse jusqu'à **20 images/s** si nécessaire, sans faire varier la vitesse des déplacements. Le joueur doit rester réactif à ces deux cadences ; le rendu 20 FPS est un filet de secours, non une excuse pour ne pas optimiser les assets et la simulation.
+Même Chromium 156.0.8078.79, viewport 960 × 640, DPR 1, qualité moyenne, rendu logiciel SwiftShader. Les moyennes proviennent de 90 intervalles réels `requestAnimationFrame`, sans plafonnement du delta. Les sources n’ont pas changé pendant la mesure finale. Les données brutes sont conservées dans [before](benchmarks/2026-11-12-before.json) et [after](benchmarks/2026-11-12-after.json).
 
-L'objectif est d'**augmenter progressivement les dimensions seulement après mesures**. Ce document ne fixe **aucun chiffre FPS, triangles, RAM ou draw calls comme atteint** ; seuls les tests sur un navigateur PC peuvent valider les performances réelles.
+| Scène | Frame avant (ms) | Frame après (ms) | FPS après | Appels avant → après | Triangles après | Chunks actifs / résidents |
+|---|---:|---:|---:|---:|---:|---:|
+| Vallée, départ | 82,51 | 96,85 | 10,33 | 165 → 219 | 47 738 | 24 / 24 |
+| Port, caméra après raccourci P | 55,13 | 79,44 | 12,59 | 64 → 89 | 24 586 | 24 / 38 |
+| Terrain synthétique 1 × 1 km | non mesuré | 103,70 | 9,64 | non mesuré → 229,41 | 52 646 | 60 / 60 |
+| Terrain synthétique 2 × 2 km | non mesuré | 96,85 | 10,33 | non mesuré → 229,73 | 51 579 | 59 / 59 |
 
-## Travail déjà intégré
+Les triangles avant étaient affichés arrondis dans le HUD : environ 65k au départ et 19k au port. Les résultats après moyennent les valeurs exactes ; les comptes géométriques internes de chunks incluent les jupes et diffèrent des triangles effectivement soumis au rendu.
 
-| Technique | Implémentation | Bénéfice attendu |
-| --- | --- | --- |
-| Terrain en **16 sections** (2 × 8) | `src/world.ts:createTerrain` | Frustum culling des secteurs hors caméra ; base pour LOD futurs |
-| Végétation en **6 secteurs longitudinaux** | `src/world.ts:createForest` | Ne pas dessiner les arbres éloignés hors champ |
-| InstancedMesh pour arbres/rochers | `src/world.ts` | Plusieurs dizaines/centaines d'éléments par draw call |
-| Cache de géométries | `src/world.ts:geometry` | Partage des meshes de boîtes/cylindres et de la végétation |
-| Cache de matériaux | `src/world.ts:mat` | Réduction des matériaux et allocations |
-| Chargement GLB mutualisé | `src/world.ts:loadModel` | Une seule requête et ressource 3D partagée par modèle |
-| Qualité de rendu | `src/main.ts`, menu en haut à droite | Prise en charge de 3 plafonds de pixel ratio |
-| HUD de performance | `src/main.ts` | FPS, **draw calls** et triangles rendus |
-| Limites d'eau et navigation | `src/boat.ts` | Calculs simples, sans moteur physique nautique complexe |
+**Le rendu enrichi régresse sur cette machine logicielle**. Les nouveaux personnages, plantes et créatures augmentent les appels ; il ne s’agit pas d’une comparaison isolant uniquement le streaming, puisque le contenu a évolué. Ces mesures ne démontrent ni gain FPS, ni cible GPU PC atteinte. Elles démontrent le démarrage des quatre scènes et un jeu de géométries de terrain actif limité à une zone locale.
 
-Ces mesures facilitent l'extension, mais un monde nettement plus grand demandera de **distinguer chargement de données, visibilité, géométrie et logique**.
+Le benchmark a observé 13,5–17,7 Mo de heap JS utilisé selon la scène (API Chrome approximative, pas la mémoire GPU). Le temps jusqu’au début de mesure est 5,4–9,0 s, **incluant navigation de préparation, chargements et attente de stabilisation de 1,2 s** ; ce n’est pas un temps de chargement pur. Les octets de ressources mesurés viennent du serveur Vite de développement et ne constituent pas la taille du site de production. Temps CPU isolé, mémoire VRAM, forêt dense, long vol panoramique et éditeur avec 2000 objets restent non mesurés.
 
-## Profilage à réaliser maintenant
+Aucune exception JS ni erreur HTTP observée dans les quatre scénarios. Pas de mesure Firefox ni de validation d’un déploiement public pour cette branche.
 
-Tester sur un même PC et avec les trois réglages de qualité :
+## Mesures après migration LOW-RESOURCE et LOD du petit animal
 
-| Scène | FPS | Draw calls | Triangles | Observations |
-| --- | --- | --- | --- | --- |
-| Départ dans la vallée | À mesurer | À mesurer | À mesurer | |
-| Forêt en vue rapprochée | À mesurer | À mesurer | À mesurer | |
-| Planage, vue panoramique | À mesurer | À mesurer | À mesurer | |
-| Village/moulin | À mesurer | À mesurer | À mesurer | |
-| Port et bateau en déplacement | À mesurer | À mesurer | À mesurer | |
-| Éditeur, après plusieurs régénérations | À mesurer | À mesurer | À mesurer | |
+Mesures sur le commit applicatif `7128fc9`, même navigateur/viewport/machine, **12 secondes de stabilisation adaptative**, puis 90 images effectivement présentées (les callbacks RAF sans rendu sont ignorés). Données [LOW-RESOURCE](benchmarks/2026-11-12-low-resource.json). Aucun changement de source pendant cette collecte, aucune erreur JS/HTTP.
 
-Compléter par temps de chargement, taille JS/GLB, usage mémoire GPU (si profilage navigateur disponible), coûts de la simulation (CPU), garbage collection **et frametimes p50/p95 à 30/20 FPS**. Mesurer le mode dégradé sans changer la vitesse du joueur ou du bateau.
+| Scène | Intervalle moyen (ms) | FPS mesuré | Appels moyens | Triangles moyens | Chunks actifs / résidents | Cible finale / qualité adaptative |
+|---|---:|---:|---:|---:|---:|---|
+| Départ | 68,51 | 14,60 | 185,00 | 41219 | 24 / 24 | 20 Hz / niveau 2 |
+| Port | 52,40 | 19,08 | 73,00 | 22944 | 24 / 45 | 20 Hz / niveau 2 |
+| Terrain 1 km | 66,85 | 14,96 | 188,00 | 45091 | 60 / 60 | 20 Hz / niveau 2 |
+| Terrain 2 km | 67,22 | 14,88 | 188,00 | 43979 | 59 / 59 | 20 Hz / niveau 2 |
 
-Les chiffres du panneau `renderer.info` sont les **triangles réellement soumis** au rendu de la frame, pas nécessairement la géométrie totale résidente en VRAM.
+**Le gate global 30/20 FPS reste non atteint sur SwiftShader** et le PC de référence n’est pas choisi. L’adaptation réduit réellement la résolution sur un écran DPR1 (facteurs 0,8 puis 0,65 après application du plafond utilisateur/appareil) et les petits éléments éloignés ; elle ne garantit pas la cadence cible. La physique conserve sa vitesse normale à 20, 30, 60 et même 10 callbacks/s dans les tests déterministes.
 
-## Gate préalable à une carte étendue
+Les timers CPU instrumentés et le heap Chrome sont conservés dans les données brutes ; le temps de soumission WebGL **n’est pas** un temps GPU. L’évolution des moyennes FPS reflète aussi la qualité et le contenu adaptatifs : aucun gain à qualité/contenu identiques n’est démontré. Le LOD du petit animal s’applique après 8 m, celui des personnages interactifs après 18 m ; tous utilisent une silhouette jusqu’à 160 m puis sont masqués.
 
-Avant tout streaming ou agrandissement significatif, instrumenter les **budgets globaux** ([LOW-RESOURCE](11-LOW-RESOURCE-POLICY.md)) et mesurer la scène à **30 FPS**, puis à **20 FPS si nécessaire**. Les plafonds indicatifs (draw calls, triangles, téléchargement, mémoire) sont des garde-fous, pas des gains déjà constatés. Mettre d'abord en place le régulateur d'affichage, la simulation indépendante et les mesures ; garder des scénarios d'essai identiques.
+Les cibles de présentation sont des plafonds, pas des FPS annoncés comme atteints. Les durées surcharge/restauration (3/12 secondes) et le lissage des charges irrégulières restent à calibrer sur matériel réel. Les onglets masqués suspendent le rendu/simulation ; l’éditeur actif est plafonné à 30 Hz mais son rendu à la demande reste à réaliser.
 
-## Étape suivante : culling et LOD
+## Reproduire
 
-1. Mesurer le coût des **sections de terrain** : trop fines => trop d'appels ; trop grosses => trop de triangles invisibles.
-2. Mettre en place **LOD 0/1/2** pour le relief, avec transitions propres, particulièrement en planage.
-3. Ajouter LOD ou **impostors** aux arbres distants ; ne pas multiplier les modèles.
-4. Séparer données statiques des objets interactifs et de leurs points de collision.
-5. Profiler les collisions et la fréquence des tests de profondeur avant d'optimiser la physique.
-6. Préparer le générateur pour une compilation par **secteur stable** (ID, version, hachage, AABB et voisins).
-7. Charger/décharger des secteurs selon la caméra et la position du joueur seulement si la surface le nécessite.
+```bash
+npm ci
+npm run dev -- --host 127.0.0.1 --port 5173 --strictPort
+# Dans un autre terminal, sans autre navigateur de test ni édition des sources :
+npm run benchmark -- http://127.0.0.1:5173/little-world/ /tmp/world-bench
+```
 
-L'utilisation de **chunks ne signifie pas que le streaming est implémenté** : le prototype charge encore toute sa carte à l'ouverture. Le découpage actuel sert surtout au *frustum culling*.
+Le script utilise Chromium système et SwiftShader ; `CHROMIUM_PATH` permet un autre exécutable. `BENCHMARK_SCENARIOS` filtre les scènes et `BENCHMARK_FRAMES` change le nombre d’échantillons. La comparaison ci-dessus utilise les valeurs par défaut. Le script capture caméra/scène, erreurs, heap, géométries, intervalles bruts et empreintes des sources. Les FPS du HUD ont également été corrigés pour utiliser le temps réel ; l’ancien HUD plafonnait le delta et surestimait les faibles FPS.
 
-## Étape ultérieure : streaming géométrique et assets
+## Architecture livrée
 
-- Précompilation de maillages, collisions et instances par zone.
-- Bundles par zone, chargement asynchrone proche caméra, anticipation selon vitesse (surtout planage).
-- Cache mémoire LRU et délai de déchargement pour éviter le clignotement.
-- Compression géométrie/GLB seulement après validation coût CPU de décompression (Meshopt ou Draco selon profilage).
-- Atlas de textures / KTX2 pour les textures si elles deviennent significatives.
-- Petits modèles statiques réutilisables et instancing, tout en limitant le nombre de matériaux.
-- Génération déterministe réalisée à l'éditeur, **pas à chaque frame** du jeu.
+- `chunks.ts` : grille finie, IDs stables, AABB, planification limitée à la distance d’affichage et hystérésis de LOD.
+- `terrain-view.ts` : trois résolutions, échantillons de bord alignés, normales analytiques, jupes, deux nouveaux meshes maximum par mise à jour. Cache borné, réutilisation des secteurs récemment visités, éviction des géométries et rafraîchissement local après sculpture.
+- `terrain.ts` : dimensions/niveau marin/configuration active, overrides de relief, eau et distances aux chemins partagés avec la physique. Les niveaux marin, bateau et port suivent la même configuration.
+- `ecology.ts` : secteurs locaux de 48 m, génération d’un secteur par mise à jour, cache limité, instancing et activation proche. Habitats et eau contrôlés ; tracés de chemins exclus.
+- `npc.ts` / `npc-view.ts` : simulation complète proche, réduite à distance intermédiaire, dormante au loin. Rig complet jusqu’à 18 m (8 m pour le petit animal), silhouette de cinq meshes jusqu’à 160 m, aucun rendu au-delà. Ressources de silhouette partagées ; articulations mises en cache.
+- Les modèles GLB et géométries/matériaux partagés restent mutualisés. Les ressources uniques, buffers d’instances et rigs sont libérés lors des régénérations. La caméra n’alloue plus ses deux vecteurs à chaque frame.
 
-## Contraintes de conception du générateur
+Les caches de modèles sont encore bornés par le petit catalogue, sans LRU de textures. Le terrain analytique est une configuration unique par page. Les bâtiments, forêt principale et rivière de démonstration gardent leurs positions historiques ; les grandes cartes sont des tests de terrain étendu, pas des mondes entièrement peuplés. Les secteurs proches génèrent leur géométrie de façon synchrone répartie entre frames : aucun worker n’est encore implémenté. Les LOD n’ont pas de morphing.
 
-Éviter de figer des constantes **200 × 600** dans tous les modules. Les dimensions et les sections devront être lues d'un `WorldConfig` versionné, et non du code de simulation.
+## Suite prioritaire
 
-Pour l'instant les dimensions sont encore des constantes dans `src/terrain.ts` : **c'est une dette technique explicite avant extension réelle**. Le Studio multi-éditeurs doit exploiter une **vue mondiale 2D/simplifiée**, indépendante des maillages haute résolution, et recompiler localement les données de navigation libre des PNJ en cas de modification terrain/eau/obstacles.
+1. Réduire les appels du personnage et regrouper les sous-meshes statiques par matériau/articulation, puis mesurer sur les mêmes scènes.
+2. Profiler séparément CPU et GPU sur PC ; comparer moteur seul et contenu enrichi avec des interrupteurs de benchmark explicites.
+3. Étendre la forêt et les objets statiques avec le même registre spatial, ajouter des LOD du bâti et de la végétation principale.
+4. Déplacer les calculs coûteux de relief vers un worker ou la compilation statique après profilage.
+5. Tester mémoire et réactivité de l’éditeur chargé, longues traversées et renouvellement des caches.
 
-Le format des cartes éditables doit pouvoir référencer des objets par ID, des zones par coordonnée locale et des assets par ID stable, sans dépendance à l'ordre de génération.
-
-## Scénarios d'extension vers 10 × 10 km
-
-- Générer un monde **synthétique de taille maximale** en données source et secteurs, sans le peupler intégralement.
-- Déplacer la caméra/éditeur vers des secteurs très éloignés et confirmer que seules les ressources utiles sont actives.
-- Vérifier le passage du PNJ d'une zone à une autre par graphe de navigation **hiérarchique**, sans recalcul de chemin global chaque frame.
-- Comparer marche, planage, bateau et vue globale Studio sur les **mêmes budgets 30/20 FPS** et sans ralentissement de simulation.
-- Mesurer le coût des données de source, du manifest global, de la navigation par secteurs, de la mise à jour locale et de l'export/compilation.
-- Le plafond 100 km² **n'est pas un résultat de performance atteint** tant que les essais de production n'existent pas.
-
-## Procédure d'acceptation
-
-- **Ne pas inventer de gains** : comparer *avant / après* avec la même scène, la même caméra, la même résolution et le même matériel.
-- Garder les tests de contrôle, bateau, plongée, éditeur et import/export au vert.
-- Ne pas augmenter la taille du monde tant que la qualité, les FPS et la mémoire ne sont pas suffisamment mesurés.
-- Une optimisation du rendu ne doit pas réduire la cohérence géographique ou les collisions du joueur.
-- Documenter le surcoût de chaque draw call supplémentaire avant de découper encore davantage le terrain.
+Aucun objectif de performance chiffré n’est considéré atteint sur matériel utilisateur.

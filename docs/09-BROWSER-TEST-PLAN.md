@@ -1,6 +1,9 @@
 # 09 — Plan de test navigateur du prototype
 
-**Prototype : V0.1 solo statique**. Ce document décrit les essais manuels attendus, **pas une validation visuelle déjà effectuée**.
+**État de campagne :** le parcours automatisé `npm run test:browser` a exécuté 16 vérifications sur le build statique sous Chromium/SwiftShader à 1280 × 800 : édition du graphe de dialogue, import, transformation/duplication, undo/redo, sculpture, peinture, chemin, export, sauvegarde/rechargement, test et retour, dialogue, personnalisation, planage, navigation/nage/plongée et rejet d’un import malformé et de saisies invalides avec restauration du brouillon. Aucune exception JS ni erreur HTTP observée. Les captures sont des artefacts d’exécution, pas une validation artistique exhaustive.
+
+Exécution : `npm run build`, lancer `npm run preview -- --host 127.0.0.1 --port 5173 --strictPort` dans un terminal, puis `npm run test:browser`. `WORLD_URL`, `CHROMIUM_PATH` et `ARTIFACTS_DIR` permettent d’adapter le parcours. La CI installe Chromium Playwright ; en cloud le navigateur système est utilisé. Les cas manuels ci-dessous restent des essais supplémentaires, notamment Firefox, qualité artistique, courbes et performances GPU PC.
+
 
 ## Accès
 

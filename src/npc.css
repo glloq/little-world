@@ -1,0 +1,53 @@
+.npc-dialogue {
+  position: fixed;
+  z-index: 100;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(560px, calc(100vw - 40px));
+  padding: 22px 26px;
+  background: #fff9eb;
+  color: #354c40;
+  border: 1px solid #d5ddc9;
+  border-radius: 18px;
+  box-shadow: 0 12px 48px #16352955;
+  font:
+    16px/1.55 system-ui,
+    sans-serif;
+}
+.npc-dialogue[hidden] {
+  display: none;
+}
+.npc-dialogue h2 {
+  font-size: 19px;
+  margin: 0 0 8px;
+}
+.npc-dialogue p {
+  margin: 0 0 15px;
+  white-space: pre-wrap;
+}
+.npc-dialogue > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.npc-dialogue button {
+  font: inherit;
+  cursor: pointer;
+  border: 1px solid #b7c8ae;
+  border-radius: 9px;
+  padding: 8px 12px;
+  background: #e5eed9;
+  color: #2f4c3c;
+}
+.npc-dialogue button:hover,
+.npc-dialogue button:focus-visible {
+  background: #cadfbb;
+  outline: 2px solid #5c825c;
+  outline-offset: 2px;
+}
+.npc-dialogue .npc-dialogue-close {
+  margin-top: 12px;
+  background: transparent;
+  font-size: 13px;
+}
