@@ -4,6 +4,8 @@
 
 **Références de développement :** [12 — Périmètre et choix G/M/P/I/E/C/Q](12-PROJECT-SCOPE.md), [13 — UX et modèles Studio](13-STUDIO-UX-ARCHITECTURE.md), **[14 — Décisions techniques transversales validées](14-TECHNICAL-CHOICES.md)**, **[15 — Schémas V3 et contrats entre éditeurs](15-STUDIO-DATA-SCHEMAS-V3.md)**, [11 — LOW-RESOURCE](11-LOW-RESOURCE-POLICY.md).
 
+**Cadrage de l'évolution future seulement :** [16 — Multijoueur et optimisation des foules](16-FUTURE-MULTIPLAYER.md). **Le jeu actuel reste solo** ; valider un objectif de capacité ne signifie pas livrer une infrastructure réseau.
+
 États :
 - **VALIDÉ** : choisi par l'utilisateur / confirmé précédemment.
 - **PROPOSÉ** : valeur technique modifiable après tests.
@@ -78,6 +80,24 @@
 | D-060 | **V3 : migration V1/V2 vers V3 pure, non destructive et testée**, sans casser les anciennes cartes et sans qualifier le V3 comme déjà livré |
 | D-061 | **V3 : validation incrémentale + préflight global, compilation locale des secteurs** ; erreurs et liens cassés navigables depuis le Studio |
 
+## VALIDÉ — garde-fous pour un éventuel multijoueur futur (hors livraison solo)
+
+| ID | Décision de cadrage différée |
+| --- | --- |
+| **FMP-001** | Préparer sans implémenter maintenant le multijoueur ; solo/Studio/GitHub Pages restent indépendants du réseau |
+| **FMP-002** | Jalon initial **30 joueurs**, cible principale **200**, scénario expérimental **500**, sans performance garantie |
+| **FMP-003** | AOI/Interest Management spatial **et contextuel** avec priorités, visibilité, interactions et hystérésis |
+| **FMP-004** | Réplication adaptative **0–20 Hz**, généralement **2–20 Hz** pour entités suivies ; **2–3 Hz pour foule secondaire**, pas pour interactions critiques |
+| **FMP-005** | **Simulation serveur indépendante** (20–30 Hz comme hypothèse à mesurer), interpolation et rendu client à 30/20 FPS |
+| **FMP-006** | Événements critiques fiables/prioritaires, snapshots initiaux et deltas, messages binaires compacts/quantifiés et backpressure à étudier |
+| **FMP-007** | Rigs et avatars à LOD, animations locales et simulation PNJ/faune adaptative ; pas de rendu détaillé de centaines de joueurs |
+| **FMP-008** | **Séparer** secteurs de stockage, zones d'autorité/simulation et ensembles de visibilité réseau ; multi-processus uniquement si benchmark nécessaire |
+| **FMP-009** | V3 doit garder IDs, index spatial, états logiques et événements typés indépendants de Three.js et du transport |
+| **FMP-010** | Vérifier séparément **bots serveur** et **vrais clients GPU intégré** ; tests 30/100/200/500 et densités de foules |
+| **FMP-011** | Aucun socket, `NetworkEntity`, authentification ou métadonnée obligatoire de réplication dans les modèles solo/V3 actuels |
+
+**Détails, valeurs provisoires et tests :** [16-FUTURE-MULTIPLAYER.md](16-FUTURE-MULTIPLAYER.md).
+
 ## PROPOSÉ — technique
 
 | ID | Choix | Réévaluation |
@@ -123,7 +143,7 @@
 
 ## DIFFÉRÉ — aucune livraison V1
 
-**Multijoueur** (objectif historique 10–30 joueurs), Colyseus, serveur Node.js permanent, synchronisation, comptes, chat, PostgreSQL, persistance partagée, validation d'interactions côté serveur, prédiction réseau, tests de charge multi-joueurs.
+**Multijoueur hors livraison actuelle** (premier objectif 30 joueurs, cible future 200, scénario expérimental 500) : serveur autoritaire, transport, synchronisation, comptes, chat, persistance partagée, validation côté serveur, prédiction réseau et tests de charge ; voir [16 — Multijoueur futur](16-FUTURE-MULTIPLAYER.md).
 
 Également différés : mobile, manette, **IA sociale complexe**, agriculture/commerce/craft étendus, combat, changements permanents de terrain par les joueurs, météo avancée, programmation libre, éditeur de polygones/rig complet. **PNJ navigants, quêtes légères, collecte et pêche éventuelle sont dans le périmètre final**, pas livrés dans le prototype.
 
