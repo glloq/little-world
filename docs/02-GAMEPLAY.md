@@ -120,6 +120,16 @@ Le [document 23 — Audio MIDI LOW-RESOURCE](23-MIDI-AUDIO-LOW-RESOURCE.md) vali
 - Une cellule épuisée reste épuisée après sauvegarde/reprise. En solo, commandes locales transactionnelles ; plus tard serveur valide distance/outil/ressource et l'inventaire **sans duplication**.
 - Tester 3 étages superposés et connexion verticale, collision sans snap à la surface, extraction au bord de chunk et retour de la mine. Le creusement et l'inventaire ne dépendent ni du LOD ni des FPS.
 
+## Agriculture facultative : gérer une parcelle sans simuler chaque plante
+
+**Contrat cible :** [25 — Agriculture par parcelles LOW-RESOURCE](25-AGRICULTURE-PARCELS-LOW-RESOURCE.md).
+
+- Dans une **parcelle autorisée**, le joueur peut semer, entretenir, arroser, fertiliser, traiter, récolter et gérer les stocks ; **aucune simulation individuelle de chaque plant**.
+- Croissance/santé/fertilité et maturité dérivent du **temps agricole du monde**, de la météo passée et des actions datées, même si le joueur se déconnecte ; les **récompenses** ne peuvent pas être gagnées deux fois par retry.
+- L'agriculture approfondie **n'est pas nécessaire pour explorer** ; les passants voient des cultures, stades et récoltes sans recevoir les données privées ni disposer des droits de gestion.
+- **Collisions par obstacles/équipements pertinents**, pas par épi de blé. Les plantes à proximité sont instanciées pour le rendu, pas des entités gameplay individuelles.
+- Solo : états agricoles et inventaire en sauvegarde de partie, distincts des parcelles initiales du Studio ; serveur autoritaire seulement dans une phase future.
+
 ## Tests obligatoires
 
 1. Espace maintenu produit **un seul saut**.
