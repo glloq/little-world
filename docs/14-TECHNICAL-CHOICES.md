@@ -199,6 +199,18 @@ Le créateur a validé la [spécification 18 — Herbes ultra-low-resource](18-G
 - **Bêta** : panneau Ressources, contrôles et forçage diagnostics, export de scénarios ; source V3 rééditable **indépendante des profils de qualité d'un appareil**.
 - **Gate** : benchmarks reproductibles sur GPU intégré réel avec longues traversées, scène océan plein écran, forêt, village, retours, p95/p99, croissance mémoire et absence de régression gameplay ; valeurs provisoires non promises.
 
+## Choix AUD — 5–10 instruments MIDI et samples LOW-RESOURCE
+
+Voir [23 — Audio MIDI / synthèse / échantillons](23-MIDI-AUDIO-LOW-RESOURCE.md).
+
+- **MIDI pour musique et notes**, **5 à 10 patches musicaux maximum** ; séquenceur interne SMF type0/1 avec programmes réaffectés à la palette, sans MIDI USB/Web MIDI API requis.
+- **Web Audio natif** : un seul `AudioContext` après interaction utilisateur, un mixeur music/SFX/ambience/master, **synthétiseur oscillateurs/enveloppes léger**, voix globales limitées, `SamplePlayer` pour sons naturels et certains timbres.
+- **Ni SoundFont GM 128 programmes ni AudioWorklet d'office** ; le coût des patches, du décodage/PCM et des voix prime sur le poids du MIDI seul. Sélection `equalpower` pour la spatialisation avant HRTF coûteux.
+- **Musiques/ambiances liées à biomes, météo et heure du monde**, notes programmées sur l'horloge audio indépendamment du FPS/simulation, séquences crossfadées proprement.
+- **`AudioBudgetManager` est un consommateur de `ResourceBudgetManager`**, profils limitant voix totales/notes musicales/sources 3D/PCM, effets décoratifs supprimables, événements critiques préservés.
+- **Studio/V3** : catalogue `.mid` et samples licites, patches/IDs/emitters/budgets éditables, ZIP portable ; profils qualité sont des données runtime et non une propriété du monde auteur.
+- Test Firefox/Chromium : autoplay, compat codecs, notes qui restent actives, plusieurs PNJ/cascades, cache/décodage, glitch, long-play. **Budget et latence non garantis avant benchmark.**
+
 ## 9. Règles d'architecture issues de ces décisions
 
 1. **Un projet source, plusieurs éditeurs spécialisés**. Partager objets/IDs/sélection/historique, mais charger les écrans lourds à la demande.
