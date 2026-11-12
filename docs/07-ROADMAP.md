@@ -133,6 +133,24 @@ Ce chantier vise le **jeu solo immédiatement**, et les profils de foule du **fu
 
 **Règles** : `FrameClock` conserve le pas fixe 30 Hz, **un seul** contrôleur de dégradation, pas de nouvelle boucle d'animation ; GPU `renderSubmitMs` reste du CPU, VRAM seulement estimée, FPS/10×10 km **non garantis** sans benchmarks. Les budgets PERF arbitrent HZ/GR/ENV/BL/WAT, pas l'inverse.
 
+## Axe AUD — 5 à 10 instruments MIDI, synthèse et échantillons économes
+
+**Choix validé et documentation complète, code applicatif non livré :** [23 — Audio MIDI LOW-RESOURCE](23-MIDI-AUDIO-LOW-RESOURCE.md).
+
+| Phase | Livrable et gate |
+| --- | --- |
+| **AUD-0** | Audit audio actuel, palette de 5 timbres initiaux, méthode de mesure audio et compatibilité navigateur |
+| **AUD-1** | `AudioEngine` : contexte Web Audio unique, bus de mixage, unlock clic, mute, suspend/reprise et dispose |
+| **AUD-2** | Lecteur MIDI SMF type0/1, mapping 5–10 patches, scheduling en temps audio, tempo/note-off et diagnostics |
+| **AUD-3** | Synthétiseur oscillateurs/enveloppes et `VoicePool`, polyphonie bornée, vol de voix sans clic |
+| **AUD-4** | `SamplePlayer` : buffers courts, ambiances/loops, cache PCM, licence, chargement/décodage différé |
+| **AUD-5** | `AudioEmitter`, culling audio, `equalpower`, musique et ambiances par biome, heure et météo |
+| **AUD-6** | `AudioBudgetManager` sous `ResourceBudgetManager` : quotas voix/émissions/cache, priorités et diagnostics |
+| **AUD-7** | Studio : import MIDI/sons, palette d'instruments, placement et preview, archive portable V3 |
+| **AUD-8** | Benchmarks Firefox/Chromium PC modeste : CPU audio, PCM, glitches, latence, longues sessions, profils |
+
+**Principe :** les instruments sont **des presets musicaux**, distincts des sons naturels, des voix et des émetteurs. Limiter les **voix audibles réellement synthétisées**, pas le nombre de créatures logiques. Aucun `AudioContext` par PNJ, aucune Web MIDI API ou SoundFont lourde obligatoire.
+
 ## Campagne avancée — état livré sur branche
 
 | Domaine | Avant | Après | Statut | Reste à faire |
