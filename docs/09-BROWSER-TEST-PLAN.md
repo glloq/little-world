@@ -142,6 +142,20 @@ Un rapport doit distinguer **échange géométrique Blender (non exhaustif côt�
 8. Tests navigateur **SwiftShader pour régression**, puis vrais PC GPU intégré Firefox/Chromium pour qualification ; aucune conclusion GPU réel depuis le temps CPU de soumission.
 9. **Studio inactif** ne doit pas rendre en boucle par défaut après implémentation du mode idle ; manipulation reste réactive, annulation et save préservés.
 
+## Plan navigateur AUD — MIDI 5–10 timbres et audio à ressources bornées
+
+**Contrat à implémenter** : [23 — Audio MIDI LOW-RESOURCE](23-MIDI-AUDIO-LOW-RESOURCE.md).
+
+1. **Autorisation** : aucun son ne part avant interaction ; « Jouer » active le contexte ; mute/master/music/SFX/ambience, changement d'onglet, retour focus et refus d'audio ne bloquent pas le jeu.
+2. **MIDI** : partitions SMF type0 et type1, tempo et changements, notes note-on/off, notes velocity0, plusieurs pistes, mapping vers **5–10 instruments** autorisés ; pas de note infinie/notes en rafale au retour de pause.
+3. **Polyphonie** : essais limite de 8/12/16 notes et 12/16/24 voix totales (hypothèses), voice stealing audible sans clic, sons importants du joueur préservés.
+4. **Échantillons** : 1 cascade + 1 vent + 1 chant animal + pas, mono/stéréo et codec fallback, cache PCM partagé et nettoyé après passage à une autre région.
+5. **Spatialisation** : 100–200 émetteurs logiques mais seulement quelques sources audibles/spatialisées, `equalpower`, attenuation cohérente avec distance, aucune source permanente par NPC.
+6. **Ambiance et musique adaptatives** : forêt → marais → côte, midi/nuit et pluie/neige, transitions propres et synchrones **en temps audio**, même à 20 FPS.
+7. **Studio** : importer MIDI, mapper programmes non pris en charge, prévisualiser patches, placer émetteur et enregistrer les données dans ZIP V3 portable sans décoder toute la banque.
+8. **Erreurs et sécurité** : MIDI malformé/SysEx/énorme, sample absent/licence/codec, autoplay bloqué, import annulé : aucun crash ni mutation de données auteur.
+9. **Perf** : Firefox/Chromium matériel modeste, 0/8/16/24 voix, Panner OFF/ON, durée/latence/glitches, allocations audio décodées et sessions prolongées ; ne pas déduire CPU audio du seul FPS graphique.
+
 ## Scénarios futurs — Studio complet et jeu final (non implémentés)
 
 Cette liste est un **plan d'acceptation pour la prochaine architecture**, et non un compte-rendu de tests réussis :
