@@ -157,6 +157,18 @@ Les imports sont non fiables : valider types, tailles, schémas et références,
 - PNJ et faune hors champ non simulés de façon intensive ; pas de rigid bodies décoratifs.
 - Profilage des longues sessions d'édition et libération des ressources GPU après chargements/régénérations.
 
+## Import/export Blender et presets dans les éditeurs spécialisés
+
+**Contrat :** [20 — Blender ↔ Studio](20-BLENDER-STUDIO-INTERCHANGE.md). Blender se charge de la **modélisation**, le Studio de la **composition de la carte et de son comportement**.
+
+- **Bibliothèque** : importer/exporter GLB, créer un preset depuis une sélection/collection, pack ZIP/JSON/GLB avec dépendances, prévisualisation et rapport de coût/licence.
+- **Scène** : placer/déplacer/rotater/redimensionner via gizmos ; propriétés XYZ/quaternion/scale, hiérarchie parent/enfant, pivots et marqueurs d'objets, alignement au sol, duplicate/grouper.
+- **Relief** : importer heightfield Blender et modules de terrain complexes en GLB, modifier localement dans Studio sans altérer la source `.blend`.
+- **Biotopes** : peindre densités, végétation et exclusions sur terrain importé ; ne pas imposer de modéliser chaque arbre dans Blender.
+- **Cartes** : exporter/importer **archive V3 ZIP portable** avec toutes données auteur et ressources ; export scène **GLB+sidecar** vers Blender pour réédition partielle, **pas** comme sauvegarde intégrale.
+- **Réimport** : préserver IDs et liens métier, montrer les conflits/ajouts/suppressions proposés ; opérations transactionnelles avec Undo/Redo, jamais écraser un projet ou ses overrides silencieusement.
+- **Runtime** : catalogues/LOD/instances partagés par chunks, aucune exigence de `.blend` côté joueur.
+
 ## 9. Critères d'acceptation
 
 1. Créer/charger une carte, peindre un relief et un biome, sauvegarder, annuler, recharger : données identiques.
