@@ -170,6 +170,24 @@ Ce chantier vise le **jeu solo immédiatement**, et les profils de foule du **fu
 
 **Portée** : **autoriser le creusement permanent uniquement dans les zones mines**, sans convertir tout le monde heightfield en voxels. Le serveur et le multijoueur sont **préparés mais différés** ; persistance locale d'abord. Paramètres 1m, 32×32 et 3–8 niveaux **à benchmarker**.
 
+## Axe AGRI — agriculture par parcelles complète et économique
+
+**Cible validée, non implémentée :** [25 — Agriculture LOW-RESOURCE, simulation différée et rendus](25-AGRICULTURE-PARCELS-LOW-RESOURCE.md).
+
+| Phase | Fonction et gate |
+| --- | --- |
+| **AGRI-0** | Banc comparatif modèle par parcelle vs simulation fine, charge 100/1 000/10 000 parcelles |
+| **AGRI-1** | `FarmPlotDefinitionV3` et `FarmPlotState` séparés, sous-zones/sol/espèces/index spatial |
+| **AGRI-2** | `FarmSimulation` différée, résumé climatique historique, `WorldClock` et croissance hors-ligne déterministe |
+| **AGRI-3** | Humidité, irrigation, nutriments, rotation, santé, parasites/maladies, rendement/qualité |
+| **AGRI-4** | LOD0–3 plantes instanciées près, rangs simplifiés, masque/couleur loin, quotas PERF |
+| **AGRI-5** | Semis, entretien, récoltes, inventaire, actions atomiques/idempotentes et UI agriculteur vs passant |
+| **AGRI-6** | Studio parcelles/cultures/sous-zones, validation eau/terrain, preview/Undo, source ZIP V3 |
+| **AGRI-7** | Contrat serveur futur pour permissions, données publiques/privées, échéances, snapshots/deltas/révisions, sans backend obligatoire |
+| **AGRI-8** | Benchmarks navigateur GPU intégré, saisons/reprise après absence, mémoire/CPU, charge agricole et concurrence |
+
+**Point central** : **état unique partagé, simulation uniquement sur événements/échéances, données détaillées uniquement pour utilisateurs autorisés, LOD visuel lié à la caméra**. Agriculture optionnelle, sans 10 000 plants simulés, sans terrain extérieur librement creusable.
+
 ## Campagne avancée — état livré sur branche
 
 | Domaine | Avant | Après | Statut | Reste à faire |
