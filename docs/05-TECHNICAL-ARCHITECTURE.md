@@ -145,6 +145,21 @@ Le **terrain actuel à trois LOD** reste la base locale ; le système d'horizon 
 
 Le rendu **n'est pas** un état du monde : la physique, la navigation, les dialogues et la persistance sont indépendants des meshes/proxies. Éviter `camera.far` illimité, `logarithmicDepthBuffer` global sans test et les billboards alpha trop coûteux. Comparer les performances à graine, contenu et caméra identiques sur GPU intégré.
 
+## Architecture cible : environnement, ciel et ombres à coût limité
+
+**Contrat :** [19 — Environnement météo/astral LOW-RESOURCE](19-ENVIRONMENT-WEATHER-SKY.md). Le prototype actuel a une couleur de fond, un fog fixe, une `HemisphereLight` et deux `DirectionalLight` fixes ; **ce n'est pas encore un système météo/soleil**.
+
+À terme : `WorldClock` (temps absolu) → `EnvironmentStateSource` (locale/test, serveur ultérieur) → `EnvironmentState` → un ensemble de rendus spécialisés. Le rendu ne connaît pas la source : changer d'autorité ne réécrit pas le ciel, les surfaces ou le code des PNJ.
+
+- Jour/nuit, étoiles et **plusieurs lunes à cycles propres**, disque du soleil/lune et nuages dans un ciel peu coûteux ; aucun objet astral lourd.
+- Pluie et neige **locale visuelle** partageant un même système, état météo **par grandes zones climatiques**, pas de particules par chunk.
+- Neige persistante/fonte/température : coloration par masques sur terrain, arbres, toiture et silhouettes d'horizon ; **ne pas reconstruire les meshes** à chaque météo.
+- **ShadowBudgetManager** : au maximum une shadow map solaire locale pour grands objets proches, désactivée dans les profils modestes ; ombres de contact simples pour personnages si nécessaire.
+- Le fog est un **état météo explicite**, interdit comme masque des limites du rendu ; le paysage profond du document 17 reste géométriquement présent.
+- Outils bêta : menus contrôlant météo, horloge, lunes indépendantes, ombres et profil qualité, sans sauvegarde auteur involontaire.
+
+**Interdit maintenant** : serveur permanent, synchronisation de la pluie, moteur de climat physiquement simulé, nuages volumétriques, ombres lunaires multiples.
+
 ## Compatibilité avec un futur multijoueur (non implémenté)
 
 **Contrat de préparation**, cf. [16 — Architecture multijoueur future](16-FUTURE-MULTIPLAYER.md) :
