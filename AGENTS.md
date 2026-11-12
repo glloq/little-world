@@ -1,6 +1,6 @@
 # Little World — instructions pour Codex et autres agents de développement
 
-> **Lire d'abord** : [Périmètre final](docs/12-PROJECT-SCOPE.md), [Architecture UX du Studio](docs/13-STUDIO-UX-ARCHITECTURE.md), [Décisions](docs/DECISIONS.md), [Budget LOW-RESOURCE](docs/11-LOW-RESOURCE-POLICY.md), puis [Architecture technique](docs/05-TECHNICAL-ARCHITECTURE.md) et [Roadmap](docs/07-ROADMAP.md).
+> **Lire d'abord** : [Périmètre final](docs/12-PROJECT-SCOPE.md), [Architecture UX du Studio](docs/13-STUDIO-UX-ARCHITECTURE.md), **[Décisions techniques validées](docs/14-TECHNICAL-CHOICES.md)**, [Décisions](docs/DECISIONS.md), [Budget LOW-RESOURCE](docs/11-LOW-RESOURCE-POLICY.md), puis [Architecture technique](docs/05-TECHNICAL-ARCHITECTURE.md) et [Roadmap](docs/07-ROADMAP.md).
 >
 > Ces documents sont les **sources de vérité du périmètre fonctionnel**. En cas de contradiction avec une ancienne description du prototype, appliquer les décisions validées les plus récentes. **Ne pas supposer qu'une fonction décrite est déjà codée.**
 
@@ -15,6 +15,20 @@
 - **30 FPS normal, 20 FPS secours**, sans ralentissement du monde ; simulation à pas fixe indépendante du rendu (30 Hz implémentés et testés sur cette branche ; l’atteinte des cibles FPS doit être vérifiée sur PC de référence).
 - Le joueur ne modifie **pas** le terrain de manière permanente ; l'auteur peut le modifier dans le Studio.
 - Réutilisation des assets avec licence de redistribution publique (CC0/originaux prioritaires), catalogue local, aucun CDN/runtime externe obligatoire.
+
+## 1 bis. Choix techniques transversaux approuvés
+
+**Toutes les recommandations du tableau de décisions techniques ont été validées** : voir [14 — Décisions techniques](docs/14-TECHNICAL-CHOICES.md) pour les IDs uniques `TW-*`, `TE-*`, `TP-*`, `TL-*`, `TG-*`, `TA-*`, `TT-*`, `TD-*`.
+
+Conséquences prioritaires :
+- Terrain **multi-résolution** et chunks/LOD/streaming, géographie continue.
+- Studio à **plusieurs éditeurs spécialisés**, vue globale 2D et édition 3D locale, prefabs/overrides, historique **transactionnel commun avec checkpoints**.
+- Familles de rigs réutilisables ; PNJ à **navigation libre hiérarchique**, mais activités pilotées par états simples et **horloge commune**.
+- Logique de gameplay déclarative, variables typées à portée définie, séquences d'actions et dialogues à choix ; **pas de scripts carte arbitraires**.
+- Activités par templates (collecte, pêche légère, énigme, petite mission), inventaire léger et slots de sauvegarde distincts des projets Studio.
+- PC standard **GPU intégré** visé, profil indicatif 8 Go RAM / 1600 × 900 ; **ni FPS ni capacité 100 km² garantis avant benchmark**.
+
+**Ne pas reposer ces choix comme des questions ouvertes.** Les détails de quantification (pas de terrain, taille de chunks, VRAM, nombre de PNJ, distances LOD) doivent être calibrés par mesures et documentés comme tels.
 
 ## 2. Séparation des données et des responsabilités
 
