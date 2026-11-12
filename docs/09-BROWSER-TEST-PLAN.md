@@ -98,6 +98,22 @@ Message console (si disponible) :
 
 Les tests automatiques en CI couvrent les mathématiques de terrain, les transitions principales de mouvement et la structure des GLB ; **ils ne remplacent pas les vérifications de rendu et de maniabilité**.
 
+## Plan de tests futur BL — échange Blender, presets et cartes
+
+**Non livré par le simple cadrage** : tests à développer selon [20 — Import/export Blender ↔ Studio](20-BLENDER-STUDIO-INTERCHANGE.md).
+
+1. Importer un GLB Blender asymétrique : **axes Z-up → Y-up**, unité **1 m**, pivot, matériau, texture, aperçu et catégorie cohérents.
+2. Poser trois instances d'un prefab avec **translation XYZ, rotation quaternion/axe Y, scale** et parent/enfant ; copier, grouper, annuler, recharger puis comparer les transforms.
+3. Exporter le prefab comme **pack ZIP+JSON+GLB**, l'importer dans un autre projet ; vérifier refs, hiérarchie, licence, versions et collisions d'IDs.
+4. Importer un heightfield source avec résolution/hauteurs/origine connues, puis poser un module de falaise/grotte GLB ; peindre végétation/biotope sans perdre les hauteurs.
+5. Exporter une **carte V3 ZIP autonome**, ouvrir sur un navigateur vierge/hors ligne avec assets inclus, vérifier terrain, eau, biotopes, PNJ/dialogues, objets, météo et interactions sans perte.
+6. Exporter une **sélection vers Blender GLB+sidecar**, modifier le modèle, réimporter ; aperçu des changements et maintien des IDs/overrides/refs non géométriques. Aucun effacement automatique des absents.
+7. Fichiers invalides : ZIP `../`, archive compressée pathologique, GLB extension inconnue, texture externe, ID dupliqué, erreur de version, licence absente ; **projet actif intact**.
+8. LOD, collisions, ombres/neige sur un prefab importé et profil 30/20 FPS ; recompilation des **seuls secteurs affectés**.
+9. Vérifier le **build GitHub Pages** sans `.blend` dans le runtime, ressources chargées depuis la base Vite et catalogue complet.
+
+Un rapport doit distinguer **échange géométrique Blender (non exhaustif côté gameplay)** et **archive V3 complète**. Le round-trip test valide l'absence de perte des **données prises en charge**, non l'identité binaire des ZIP.
+
 ## Scénarios futurs — Studio complet et jeu final (non implémentés)
 
 Cette liste est un **plan d'acceptation pour la prochaine architecture**, et non un compte-rendu de tests réussis :
