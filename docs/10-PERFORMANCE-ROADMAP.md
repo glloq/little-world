@@ -154,6 +154,20 @@ Le document [22 — ResourceBudgetManager](22-RESOURCE-BUDGET-MANAGER.md) prescr
 
 **PERF-0…PERF-9** : audit → sampler → contrôleur unique → adaptateurs → registre mémoire → scheduler → LOD/anticipation → panel bêta → benchmarks → qualification release.
 
+## Campagne AUD — polyphonie MIDI, échantillons et coût audio
+
+La [spécification 23](23-MIDI-AUDIO-LOW-RESOURCE.md) définit **5–10 patches musicaux**, un **synthétiseur Web Audio partagé** et un **lecteur d'échantillons** peu nombreux, avec `AudioBudgetManager` sous PERF.
+
+**Scénarios de mesure reproductibles** : aucune lecture → 1/5/10 patches présents, puis **0/8/16/24 voix réellement actives** ; musique MIDI seule, notes courtes/longues, 1–2 couches de biotope, cascade/rivière/pluie, 100 émetteurs virtuels vs 2/4/6 audibles ; passage forêt/côte/nuit/orage, plusieurs reprises onglet.
+
+**Mesures** : latence de démarrage/unlock, notes manquées/accumulées, glitch et clicks audible/test enregistré, compteur voix/nœuds/Panner, CPU audio **si profiler le permet**, temps JS de scheduling/décodage, PCM estimé par nombre de canaux/frames (48 kHz mono Float32 ≈192 ko/s), poids compressé réseau, mémoire après plusieurs changements de biome.
+
+**Cibles expérimentales, non validées** : **12/16/24 voix totales**, **6–8/10–12/12–16 notes musicales**, **2/4/6** sources 3D, **2–4/4–8/8–16 Mio de PCM décodé** (Eco/Équilibré/Qualité). La palette de **5–10 instruments ne change pas** avec le mode qualité : seule la polyphonie/les effets diminuent.
+
+**Ne pas inventer de CPU audio en ms à partir du FPS** ; rendu/WebGL et traitement Web Audio ne sont pas le même budget. Mesurer sous Firefox/Chromium et sur PC réel ; sous SwiftShader, seuls certains aspects fonctionnels/latence sont informatifs. Aucune SoundFont GM entière nécessaire.
+
+**Gates AUD-0…AUD-8** : audio engine → MIDI → synth/voice pool → sample player → spatial/ambience → budgets PERF → UI/ZIP Studio → qualification matérielle.
+
 ## Suite prioritaire
 
 1. Réduire les appels du personnage et regrouper les sous-meshes statiques par matériau/articulation, puis mesurer sur les mêmes scènes.
