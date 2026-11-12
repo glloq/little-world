@@ -94,3 +94,21 @@ Message console (si disponible) :
 ```
 
 Les tests automatiques en CI couvrent les mathématiques de terrain, les transitions principales de mouvement et la structure des GLB ; **ils ne remplacent pas les vérifications de rendu et de maniabilité**.
+
+## Scénarios futurs — Studio complet et jeu final (non implémentés)
+
+Cette liste est un **plan d'acceptation pour la prochaine architecture**, et non un compte-rendu de tests réussis :
+
+1. Créer un projet, générer une petite carte puis ouvrir un secteur via **la vue globale 2D**.
+2. Passer entre les éditeurs spécialisés (terrain → biotopes → PNJ → dialogues → événements) en conservant projet, sélection et historique.
+3. Sculpter une berge, modifier un chemin et régénérer la végétation **sans reconstruire toute la carte**.
+4. Créer un PNJ animal avec variante du joueur, zone et navigation **libre**, parcourant plusieurs secteurs.
+5. Ajouter un dialogue à choix, un objet à ramasser et un mécanisme lié à une porte/vanne ; les configurer **sans code**.
+6. Activer une petite mission ; vérifier sa persistance et la restauration d'un des **plusieurs slots de partie**.
+7. Tester la carte depuis une position auteur puis revenir au même contexte d'édition, sans modifier le projet de manière inattendue.
+8. Exporter et réimporter une archive auteur sectorisée, puis vérifier liens, assets, données PNJ/actions.
+9. Compiler, déployer le monde et vérifier que le jeu fonctionne **sans serveur**, avec uniquement les secteurs proches chargés.
+10. Tester une **carte continue de taille synthétique jusqu'à 10 × 10 km au maximum** avec chiffres mesurés CPU/GPU/mémoire/chargement ; aucune performance présumée.
+11. Vérifier 30 FPS nominal et secours 20 FPS **sans perte d'input ni ralentissement de simulation**, suivant la politique LOW-RESOURCE.
+
+Références : [12 — Limites](12-PROJECT-SCOPE.md), [13 — Studio](13-STUDIO-UX-ARCHITECTURE.md), [11 — LOW-RESOURCE](11-LOW-RESOURCE-POLICY.md).
