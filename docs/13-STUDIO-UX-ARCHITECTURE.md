@@ -201,6 +201,20 @@ Le [cadrage 18](18-GRASS-LOW-RESOURCE.md) prévoit **de l'herbe courte principal
 - Le mode Test peut simuler **le passage de 1 ou 2 personnages** et afficher coût CPU/GPU si mesurable.
 - Aucun état de déformation cosmétique, buffer GPU ou instance individuelle ne doit être sauvegardé comme source auteur ou état de partie.
 
+## Menu d'environnement de la bêta : météo, astres, neige et ombres
+
+La [spécification 19](19-ENVIRONMENT-WEATHER-SKY.md) définit un **panneau « Environnement » de test**, indépendant des données auteur et du futur serveur.
+
+**Éléments à tester sans modifier une carte source :**
+- Presets Clair/Nuageux/Pluie/Neige/Mixte/Brouillard/Orage et transitions immédiates ou interpolées.
+- Heure solaire **0–24**, pause/×1/×60/×240, durée du jour, date/saison si disponibles.
+- Couverture du ciel, visibilité des étoiles, **liste de lunes avec cycles propres** : périodes, déphasage, inclinaison, tailles/couleurs et visualisation des phases.
+- Vent, température, précipitations, neige accumulée/fonte, humidité, limite altitudinale d'enneigement.
+- **Ombres auto/off/on** : distance 20–40 m indicative, résolution 512²/1024², casters sélectionnés, coût rendu/frames et compteur d'ombres.
+- Profil GPU minimal/équilibré/élevé, comparaisons à caméra égale, export JSON de scénario de test, restauration de l'état initial.
+
+**Architecture UX :** un panneau compact avec presets et commandes simples, options techniques avancées repliées. Un override de test n'altère **ni `EnvironmentDefinitionV3` de l'auteur, ni slot de partie**, sauf action explicite. Le bouton « Jouer ici » reprend ce même moteur d'environnement ; ne pas dupliquer le système.
+
 ## 10. Politique UX et performance
 
 - Ne pas afficher toutes les catégories et réglages à la fois ; le contexte détermine l'inspecteur.
