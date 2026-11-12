@@ -88,6 +88,18 @@ La [spécification 18](18-GRASS-LOW-RESOURCE.md) fixe la stratégie d'**herbes c
 - Toute édition de biotope ou de terrain **invalide seulement les cellules concernées**, avec Undo/Redo V3 ; le monde à 100 km² reste descriptible sans stocker chaque herbe.
 - Le vent et les interactions sont purement visuels côté client, sans influence sur collisions/PNJ ; le terrain lointain conserve des couleurs/silhouettes sans géométrie d'herbe.
 
+## Environnement macro-régional : météo sans simulation par chunk
+
+La [spécification 19](19-ENVIRONMENT-WEATHER-SKY.md) fixe un **état environnemental indépendant du moteur de relief** : soleil, ciel étoilé, plusieurs lunes à cycles distincts, climats, vent, neige au sol et brouillard météo.
+
+- Les **zones climatiques** couvrent de grands territoires/altitudes ; **pas de simulateur de météo pour chaque chunk de 64 m**.
+- `EnvironmentDefinitionV3` décrit l'environnement auteur ; `EnvironmentSnapshot` décrit l'état dynamique horodaté ; le rendu lit des paramètres sans altérer le relief.
+- L'apparence neigeuse du terrain, des arbres, des toitures et des **proxies lointains** utilise des masques/coefficient de matériau, **pas une nouvelle triangulation ou une seconde carte**.
+- Le calcul de chute de neige/pluie et ses particules n'a lieu **qu'autour du client** ; neige accumulée/fonte par région peut rester cohérente hors champ.
+- Les règles météorologiques dépendantes du temps utilisent une **horloge unique** : source locale pendant la bêta, serveur comme autorité seulement lors d'une phase multijoueur ultérieure.
+- Les **lumières d'astres n'augmentent pas avec le nombre de lunes** ; pas de shadow map globale de terrain, une zone solaire proche seulement si qualité suffisante.
+- L'éditeur peut tester des états météo arbitraires **sans écrire les paramètres de test dans les sources auteur**.
+
 ## Critères techniques
 
 1. Même seed/versions/paramètres → même génération.
