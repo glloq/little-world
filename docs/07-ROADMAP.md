@@ -1,6 +1,8 @@
 # 07 — Feuille de route — Little World Solo / GitHub Pages
 
-**Statut : suivi du prototype initial — 12 novembre 2026.**
+**Statut : suivi du prototype initial et plan du jeu final — 12 novembre 2026.**
+
+**Documents de cadrage prioritaires :** [12 — Limites du jeu](12-PROJECT-SCOPE.md) et [13 — UX du Studio](13-STUDIO-UX-ARCHITECTURE.md). Le **200 × 600 m** des jalons M0–M6 est la carte de démonstration ; le monde final est **une carte continue de 10 × 10 km maximum**, performance à qualifier.
 
 ## Avancement réel
 
@@ -123,11 +125,37 @@ Développer un **jeu solo exploratoire PC dans le navigateur**, disponible sur *
 
 M2 et M3 peuvent progresser partiellement en parallèle. Les décisions de design qui empêchent la jouabilité priment sur la finition de décor.
 
+## Jalons suivants : jeu final et Studio spécialisé
+
+Les jalons **M0–M6 décrivent le prototype**, pas les limites du produit final. **État : objectifs non livrés** ; ne pas présenter ces lignes comme du code déjà déployé.
+
+| Jalon | À réaliser | Critère de fin |
+| --- | --- | --- |
+| **S0 — Studio Core** | Données partagées, IDs, validation, sélection, Undo/Redo transactionnel, projets et sauvegardes auteur versionnés | Import/export d'un projet fiable et sans perte |
+| **S1 — Carte mondiale** | Une carte continue configurable, plafond 10 × 10 km, vue globale 2D, chunks/LOD/streaming mesurés | Navigation entre zones/secteurs, benchmark et contrôles de mémoire |
+| **S2 — Géographie** | Outils terrain, rivières, lacs, cascades, routes, overrides et recalcul local | Modifier un secteur n'efface pas les autres |
+| **S3 — Biotopes et décors** | Peinture, génération déterministe, végétation/faune, objets modulaires, GLB importables | Catalogue et biotopes modifiables depuis Studio |
+| **S4 — Personnages / PNJ** | Variantes animales (pas d'humains), rig compatible, routines simples, navigation libre et évitement | PNJ traverse secteurs/obstacles avec simulation dormante à distance |
+| **S5 — Dialogues et interactions** | Dialogues à choix, événements/conditions/actions, réactions, petits objectifs, objets ramassables | Quête et mécanisme créés **sans code ad hoc** |
+| **S6 — Sauvegardes de jeu** | Slots de partie, inventaire léger, actions et flags persistants, intérieurs choisis | Recharger la partie restaure les états prévus |
+| **S7 — Intégration UX / performance** | Éditeurs spécialisés cohérents, « Jouer ici », compilation, diagnostic, benchmarks 30/20 FPS | Jeu + Studio publiables sur GitHub Pages et testés |
+
+**Priorité Q3=B : outils génériques avant accumulation de contenu.** Décomposer chaque jalon en incréments testables ; ne pas implémenter 100 km² de végétation avant de mesurer le chargement des secteurs.
+
+### Gates de conception
+
+1. Aucun modèle de données du Studio ne dépend de l'état temporaire des meshes Three.js.
+2. Un PNJ a des comportements simples, mais peut **trouver son chemin librement** dans des zones adaptées.
+3. Un outil spécialisé peut ouvrir un objet créé par un autre **sans perdre la sélection ni casser les références**.
+4. Les données de sauvegarde joueur et les brouillons auteur ne se mélangent jamais.
+5. Une carte au maximum théorique de 10 × 10 km n'est **pas une garantie de rendu 30 FPS**.
+6. Chaque fonctionnalité suit : conçue → codée → testée → publiée/validée navigateur.
+
 ## Après V1 (hors plan de livraison)
 
-**Évolution optionnelle** : concevoir un multijoueur 10–30 joueurs avec serveur autoritaire, synchronisation, persistance et comptes. Ce n'est **ni implémenté, ni planifié pour la V1**. Une étude séparée devra évaluer coûts, contraintes et modifications de l'architecture solo.
+**Évolution optionnelle** : concevoir un multijoueur 10–30 joueurs avec serveur autoritaire, synchronisation, persistance et comptes. Ce n'est **ni implémenté, ni planifié pour le jeu solo actuel**. Une étude séparée devra évaluer coûts, contraintes et modifications de l'architecture solo.
 
-Autres fonctionnalités différées : pêche jouable, PNJ, quêtes, météo complexe, agriculture, inventaire, personnalisation, mobile/manette.
+Fonctions hors périmètre final actuel : combat, simulation sociale/économique lourde, crafting/commerce complexes, agriculture avancée, météo complexe, éditeur de rig/polygones généraliste, mobile/manette. **PNJ, dialogues, pêche légère, collecte, petites quêtes, inventaire léger et personnalisation font désormais partie de l'objectif final** (S3–S6), pas du prototype actuel.
 
 ## Définition de terminé
 
