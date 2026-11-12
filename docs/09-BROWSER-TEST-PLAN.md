@@ -17,10 +17,18 @@ PC conseillé : Chrome, Edge ou Firefox récents, clavier AZERTY ou QWERTY et so
 - [ ] L'écran d'accueil « Une vallée à explorer » apparaît ; pas d'erreur bloquante de chargement.
 - [ ] Cliquer **Explorer la vallée** ; une scène 3D avec écureuil, vallée, forêt et rivière est visible.
 - [ ] **ZQSD/WASD** : marcher, caméra souris après capture du pointeur, **Shift** pour courir.
+- [ ] **Q / A** produit un déplacement **vers la gauche de l'écran**, **D** vers la droite, après rotation libre de la caméra.
 - [ ] **Espace** au sol : saut unique. **Maintenir** Espace ne doit pas déployer le planeur automatiquement.
 - [ ] Relâcher puis **réappuyer** Espace en l'air : membrane ouverte. Nouvel appui : repli.
 - [ ] Aller dans la rivière : passage à la **nage** ; **Ctrl** descend, **Espace** remonte ; l'oxygène s'affiche.
-- [ ] Suivre le sentier vers le moulin : appuyer sur **E** à proximité pour arrêter puis redémarrer la roue.
+- [ ] En plongée, la teinte bleue n'apparaît **que lorsque la caméra** passe sous la surface ; elle disparaît lorsque la caméra remonte, même si l'écureuil reste sous l'eau.
+- [ ] Suivre le sentier vers le moulin : sa roue tourne **sans interaction manuelle**.
+- [ ] Presser **P** pour rejoindre rapidement le port, puis **E** près du bateau pour embarquer.
+- [ ] En bateau : **Z/S** avance/recul, **Q/D** gouvernail ; tester accélération, inertie et direction.
+- [ ] Naviguer vers la côte : le bateau s'arrête avant les zones non navigables (rivage/eau trop peu profonde).
+- [ ] **E** pour débarquer : près du port, retour vers le ponton ; plus loin, retour à la nage.
+- [ ] Le bouton « Économie / Équilibré / Élevée » modifie la résolution interne sans changer la carte.
+- [ ] Noter les **draw calls** et triangles affichés dans le HUD en vue du port et de la vallée.
 - [ ] Approcher de la côte et observer le ponton, la barque et les maisons.
 - [ ] **R** ramène au départ, **Échap** libère la souris.
 - [ ] Les FPS et la position apparaissent dans le panneau inférieur.
@@ -29,7 +37,7 @@ PC conseillé : Chrome, Edge ou Firefox récents, clavier AZERTY ou QWERTY et so
 
 - L'écureuil est un proxy géométrique, pas encore un personnage riggé/animé.
 - Les collisions utilisent la hauteur analytique du terrain ; pas de collisions de bâtiment et de roue.
-- Le mouvement est un modèle arcade simplifié ; les paramètres doivent être ajustés avec les retours d'essai.
+- Le mouvement et le bateau sont des modèles arcade simplifiés ; collisions du ponton et système de baignade à améliorer avec les retours d'essai.
 - La rivière est un volume logique simple, pas une simulation de fluide.
 - Les décors lointains et les fonds marins ne sont pas finalisés.
 
@@ -57,7 +65,9 @@ Sculpture du relief, modification des splines d'eau, import direct de GLB depuis
 3. Tester au moins **Firefox et Chromium** si possible.
 4. Relever le **FPS indiqué**, le navigateur, le GPU et la résolution.
 5. Vérifier l'éditeur après un rechargement complet et après un export/import.
-6. Confirmer que le site n'appelle aucun service de jeu distant.
+6. Comparer **FPS / draw calls / triangles** : port, forêt, vue lointaine de la vallée ; changer la qualité graphique.
+7. Tester la navigation et les collisions limites du bateau ; relever toute traversée de berge.
+8. Confirmer que le site n'appelle aucun service de jeu distant.
 
 ## Format de retour utile
 
@@ -68,6 +78,8 @@ Carte (jeu / éditeur) :
 Résultat observé :
 Résultat attendu :
 FPS affichés :
+Appels de rendu / triangles :
+Qualité graphique :
 Message console (si disponible) :
 ```
 
