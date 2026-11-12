@@ -7,15 +7,30 @@ export interface Placement { id: string; assetId: AssetId; x: number; z: number;
 export interface WorldConfig { seed: number; density: number; }
 export interface WorldView {
   root: THREE.Group;
-  terrain: THREE.Mesh;
+  terrain: THREE.Group;
   wheel: THREE.Group;
   millPosition: THREE.Vector3;
+  boat: THREE.Group;
   objects: THREE.Group;
   update: (dt: number) => void;
   dispose: () => void;
 }
-const mat = (color: number, opts?: THREE.MeshLambertMaterialParameters) =>
-  new THREE.MeshLambertMaterial({ color, ...opts });
+// Prefabs reuse GPU geometry/material resources across placed instances and editor rebuilds.
+const geometryCache = new Map<string, THREE.BufferGeometry>();
+const materialCache = new Map<number, THREE.MeshLambertMaterial>();
+const sharedGeometry = new WeakSet<THREE.BufferGeometry>();
+const sharedMaterials = new WeakSet<THREE.Material>();
+function geometry(key:string, build:()=>THREE.BufferGeometry):THREE.BufferGeometry {
+  let cached=geometryCache.get(key);
+  if(!cached){cached=build();geometryCache.set(key,cached);sharedGeometry.add(cached);}
+  return cached;
+}
+function mat(color:number,opts?:THREE.MeshLambertMaterialParameters):THREE.MeshLambertMaterial {
+  if(opts)return new THREE.MeshLambertMaterial({color,...opts});
+  let cached=materialCache.get(color);
+  if(!cached){cached=new THREE.MeshLambertMaterial({color});materialCache.set(color,cached);sharedMaterials.add(cached);}
+  return cached;
+}
 const foliage = [0x6f9d69, 0x8bb879, 0x668e63, 0xa6bd80, 0x659a75];
 const stone = mat(0x9ca69a);
 const wood = mat(0x946d4e);
@@ -36,11 +51,11 @@ function mesh(geometry: THREE.BufferGeometry, material: THREE.Material, parent: 
 }
 function box(parent: THREE.Object3D, color: THREE.Material, w: number, h: number, d: number,
   x: number, y: number, z: number): THREE.Mesh {
-  return mesh(new THREE.BoxGeometry(w, h, d), color, parent, x, y, z);
+  return mesh(geometry(`box:${w}:${h}:${d}`,()=>new THREE.BoxGeometry(w,h,d)), color, parent, x, y, z);
 }
 function cylinder(parent: THREE.Object3D, color: THREE.Material, r1: number, r2: number, h: number,
   x: number, y: number, z: number, edges = 7): THREE.Mesh {
-  return mesh(new THREE.CylinderGeometry(r1, r2, h, edges), color, parent, x, y, z);
+  return mesh(geometry(`cyl:${r1}:${r2}:${h}:${edges}`,()=>new THREE.CylinderGeometry(r1,r2,h,edges)),color,parent,x,y,z);
 }
 function roofHouse(parent: THREE.Object3D, w: number, d: number, h: number): void {
   const side = Math.hypot(w / 2 + 1, 3.0);
@@ -85,42 +100,51 @@ function waterwheel(parent: THREE.Object3D): THREE.Group {
   return spin;
 }
 
-function createTerrain(root: THREE.Group): THREE.Mesh {
-  const stepsX = 100, stepsZ = 260;
-  const vertices: number[] = [], colors: number[] = [], indices: number[] = [];
-  const c = new THREE.Color();
-  for (let iz = 0; iz <= stepsZ; iz++) {
-    const z = (iz / stepsZ - .5) * WORLD_LENGTH;
-    for (let ix = 0; ix <= stepsX; ix++) {
-      const x = (ix / stepsX - .5) * WORLD_WIDTH;
-      const h = terrainHeight(x, z);
-      vertices.push(x, h, z);
-      const nearRiver = Math.abs(x - riverX(z)) < 17;
-      const coast = smoothstep(165, 236, z);
-      const slope = Math.abs(terrainHeight(x + 2, z) - h);
-      if (coast > .65 && h < 2) c.setHex(0xa5b7a0);
-      else if (nearRiver) c.setHex(0xb9c997);
-      else if (h > 37 && slope > 1.6) c.setHex(0x9baca1);
-      else if (h > 58) c.setHex(0xb6bbae);
-      else if (h > 30) c.setHex(0x8fa78a);
-      else c.setHex(0x89ad7b);
-      const variation = .92 + .07 * Math.sin(ix * .55 + iz * .38) + .035 * Math.sin(ix * 2 + iz);
-      c.multiplyScalar(variation);
-      colors.push(c.r, c.g, c.b);
+/** Culling-friendly static terrain sections; future terrain LOD may replace section meshes. */
+function createTerrain(root: THREE.Group): THREE.Group {
+  const sectionsX=2, sectionsZ=8, cellsX=40, cellsZ=34;
+  const container=new THREE.Group();container.name='Terrain';
+  const terrainMaterial=new THREE.MeshLambertMaterial({vertexColors:true,side:THREE.DoubleSide});
+  for(let cz=0;cz<sectionsZ;cz++)for(let cx=0;cx<sectionsX;cx++){
+    const vertices:number[]=[], colors:number[]=[], indices:number[]=[];
+    const color=new THREE.Color();
+    for(let iz=0;iz<=cellsZ;iz++){
+      const z=((cz+iz/cellsZ)/sectionsZ-.5)*WORLD_LENGTH;
+      for(let ix=0;ix<=cellsX;ix++){
+        const x=((cx+ix/cellsX)/sectionsX-.5)*WORLD_WIDTH;
+        const h=terrainHeight(x,z);
+        vertices.push(x,h,z);
+        const nearRiver=Math.abs(x-riverX(z))<17;
+        const coast=smoothstep(165,236,z);
+        const slope=Math.abs(terrainHeight(x+2,z)-h);
+        if(coast>.65&&h<2)color.setHex(0xa5b7a0);
+        else if(nearRiver)color.setHex(0xb9c997);
+        else if(h>37&&slope>1.6)color.setHex(0x9baca1);
+        else if(h>58)color.setHex(0xb6bbae);
+        else if(h>30)color.setHex(0x8fa78a);
+        else color.setHex(0x89ad7b);
+        // Use world coordinates: section borders keep the same color.
+        const variation=.92+.07*Math.sin(x*.275+z*.165)+.035*Math.sin(x+z*.7);
+        color.multiplyScalar(variation);
+        colors.push(color.r,color.g,color.b);
+      }
     }
+    for(let iz=0;iz<cellsZ;iz++)for(let ix=0;ix<cellsX;ix++){
+      const a=iz*(cellsX+1)+ix,b=a+1,d=a+cellsX+1;
+      indices.push(a,d,b,b,d,d+1);
+    }
+    const geo=new THREE.BufferGeometry();
+    geo.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
+    geo.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));
+    geo.setIndex(indices);
+    geo.computeVertexNormals();
+    const chunk=new THREE.Mesh(geo,terrainMaterial);
+    chunk.name=`Terrain ${cx}-${cz}`;
+    chunk.frustumCulled=true;
+    container.add(chunk);
   }
-  for (let iz = 0; iz < stepsZ; iz++) for (let ix = 0; ix < stepsX; ix++) {
-    const a = iz * (stepsX + 1) + ix, b = a + 1, c1 = a + stepsX + 1, d = c1 + 1;
-    indices.push(a, c1, b, b, c1, d);
-  }
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-  geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-  geo.setIndex(indices);
-  geo.computeVertexNormals();
-  const terrain = mesh(geo, new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }), root, 0, 0, 0);
-  terrain.name = 'Terrain';
-  return terrain;
+  root.add(container);
+  return container;
 }
 function createRiver(root: THREE.Group): void {
   const pos: number[] = [], indices: number[] = [];
@@ -218,6 +242,22 @@ const modelPaths: Partial<Record<AssetId, string>> = {
   'props.crate':'models/crate.glb',
 };
 const modelLoader = new GLTFLoader();
+const loadingModels = new Map<string, Promise<THREE.Group | null>>();
+function loadModel(path:string):Promise<THREE.Group|null>{
+  let pending=loadingModels.get(path);
+  if(!pending){
+    pending=modelLoader.loadAsync(import.meta.env.BASE_URL+path).then(gltf=>{
+      gltf.scene.traverse(o=>{
+        const m=o as THREE.Mesh;
+        if(m.geometry)sharedGeometry.add(m.geometry);
+        if(m.material)for(const material of (Array.isArray(m.material)?m.material:[m.material]))sharedMaterials.add(material);
+      });
+      return gltf.scene as THREE.Group;
+    }).catch(e=>{console.warn('GLB indisponible, modèle procédural conservé',path,e);return null;});
+    loadingModels.set(path,pending);
+  }
+  return pending;
+}
 export function createAsset(id: AssetId): THREE.Group {
   const g = new THREE.Group();
   if (id === 'nature.pine') {
@@ -246,19 +286,16 @@ export function createAsset(id: AssetId): THREE.Group {
   }
   const path=modelPaths[id];
   if(path){
-    modelLoader.load(import.meta.env.BASE_URL + path, (gltf)=>{
-      if(!g.parent)return;
-      for(const old of [...g.children]){
-        old.traverse(child=>{const m=child as THREE.Mesh;if(m.geometry)m.geometry.dispose();});
-      }
+    void loadModel(path).then(scene=>{
+      if(!scene||!g.parent)return; // Editor may have regenerated while loading.
       g.clear();
-      g.add(gltf.scene);
-    },undefined,(e)=>console.warn('GLB indisponible, modèle procédural utilisé',path,e));
+      g.add(scene.clone(true)); // Shared GPU resources; independent transforms.
+    });
   }
   return g;
 }
 
-function createVillage(root: THREE.Group): { wheel: THREE.Group; millPosition: THREE.Vector3 } {
+function createVillage(root: THREE.Group): { wheel: THREE.Group; millPosition: THREE.Vector3; boat:THREE.Group } {
   const z=-57, x=riverX(z)-24;
   const millPosition = new THREE.Vector3(x,terrainHeight(x,z),z);
   const mill=new THREE.Group();mill.position.copy(millPosition);
@@ -286,14 +323,14 @@ function createVillage(root: THREE.Group): { wheel: THREE.Group; millPosition: T
   const dock=new THREE.Group();dock.position.set(-25,0,213);root.add(dock);
   for(let i=0;i<10;i++)box(dock,paleWood,9,.34,1.52,0,1.05,i*2.3-8);
   for(const x1 of [-3.75,3.75])for(const z1 of [-7,12])cylinder(dock,wood,.34,.42,4,x1,.1,z1);
-  const boat=new THREE.Group();boat.position.set(-12,-.15,229);root.add(boat);
+  const boat=new THREE.Group();boat.position.set(-17,-.15,220);root.add(boat);
   const hull=mesh(new THREE.SphereGeometry(3,9,5),wood,boat,0,0,0);hull.scale.set(.7,.4,2.1);
   box(boat,paleWood,3.9,.22,10.5,0,.7,0);
   cylinder(boat,darkWood,.12,.13,7,0,4.1,.4);
   mesh(new THREE.PlaneGeometry(4.1,5.8),new THREE.MeshLambertMaterial({color:0xf3ddb2,side:THREE.DoubleSide}),boat,2.1,4.25,.4);
   const lantern=createAsset('props.lantern');lantern.position.set(-29,1,205);root.add(lantern);
   const crate=createAsset('props.crate');crate.position.set(x-5,terrainHeight(x-5,z+11),z+11);root.add(crate);
-  return {wheel,millPosition};
+  return {wheel,millPosition,boat};
 }
 
 export function buildWorld(config: WorldConfig): WorldView {
@@ -302,16 +339,16 @@ export function buildWorld(config: WorldConfig): WorldView {
   createRiver(root);
   createTrail(root);
   createForest(root,config.seed,config.density);
-  const {wheel,millPosition}=createVillage(root);
+  const {wheel,millPosition,boat}=createVillage(root);
   const objects=new THREE.Group();objects.name='PlacedAssets';root.add(objects);
   return {
-    root,terrain,wheel,millPosition,objects,
+    root,terrain,wheel,millPosition,boat,objects,
     update(dt:number){ wheel.rotation.x -= dt * .33; },
     dispose(){
       root.traverse(o=>{
         const m=o as THREE.Mesh;
-        if(m.geometry)m.geometry.dispose();
-        if(m.material)for(const material of (Array.isArray(m.material)?m.material:[m.material]))material.dispose();
+        if(m.geometry&&!sharedGeometry.has(m.geometry))m.geometry.dispose();
+        if(m.material)for(const material of (Array.isArray(m.material)?m.material:[m.material]))if(!sharedMaterials.has(material))material.dispose();
       });
       root.removeFromParent();
     }
