@@ -113,6 +113,14 @@ Exemple informatif d'entrée de manifeste (non importée) :
 
 Les URL `example.invalid` et noms inventés sont de simples exemples et **interdits dans un registre publié**.
 
+## Convention d'assets — touffes d'herbe
+
+Pour l'herbe courte/haute, privilégier **petits modèles opaques 2–4 triangles par touffe** (à mesurer), un matériau partagé, variation de couleur et dimensions par instance. **Pas de texture transparente haute résolution**, d'animation d'os, de collision, de physique ni de génération d'ombres individuelles.
+
+L'aspect herbe courte provient principalement des couleurs/motifs du terrain. Les herbes hautes sont générées par biotope, proches et reproductibles ; le `GrassRenderer` éventuel ajoute une déformation GPU des sommets sans modifier les matrices d'instances chaque frame.
+
+**Les triangles ne sont pas le seul coût :** comptabiliser draw calls, overdraw, mémoire GPU, nombre de secteurs actifs et éventuels changements de shader. Les budgets et portes de validation sont définis dans [18 — Herbes ultra-low-resource](18-GRASS-LOW-RESOURCE.md).
+
 ## Qualification
 
 - Fichier présent, path valide après build GitHub Pages.
