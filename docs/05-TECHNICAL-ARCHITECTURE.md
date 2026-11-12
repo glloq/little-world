@@ -1,6 +1,6 @@
 # 05 — Architecture technique — solo et GitHub Pages
 
-**Statut : architecture cible avec un premier prototype codé.** `src/terrain.ts`, `src/world.ts`, `src/player.ts`, `src/main.ts` et `src/editor.ts` sont en place ; Rapier reste différé.
+**Statut : architecture cible avec un premier prototype codé.** Le périmètre final et le Studio sont spécifiés dans [12 — Limites](12-PROJECT-SCOPE.md) et [13 — Studio UX](13-STUDIO-UX-ARCHITECTURE.md). `src/terrain.ts`, `src/world.ts`, `src/player.ts`, `src/main.ts` et `src/editor.ts` sont en place ; Rapier reste différé.
 
 ## Principe cardinal
 
@@ -74,7 +74,7 @@ Le joueur ne charge pas les outils de compilation/édition ; mettre la générat
 
 ### Jeu
 
-Charge une **carte de démonstration versionnée** livrée avec le site ; aucune requête vers un backend. Les états temporaires (roue du moulin, leviers, position) peuvent rester en mémoire et sont réinitialisés au chargement pour la V1. La persistance de progression joueur n'est **pas nécessaire**.
+Charge une **carte de démonstration versionnée** livrée avec le site ; aucune requête vers un backend. Les états temporaires (roue du moulin, leviers, position) peuvent rester en mémoire et sont réinitialisés au chargement pour la V1. La persistance de progression joueur n'est **pas nécessaire pour le prototype initial**, mais le **jeu final doit disposer de plusieurs sauvegardes de partie locales** (inventaire léger, flags, objectifs, position et états persistants), distinctes des projets auteur.
 
 ### Éditeur
 
@@ -111,6 +111,20 @@ Détails : [08-GITHUB-PAGES.md](08-GITHUB-PAGES.md).
 8. Budgets LOW-RESOURCE (30/20 FPS, temps CPU/GPU, draw calls, triangles, téléchargements, mémoire) mesurés sur un PC de test de référence.
 9. Un artefact de build publié est **visuellement vérifié** sur GitHub Pages.
 10. Une baisse d'affichage à 20 FPS ne ralentit pas le monde ; aucune perte d'input, aucun rattrapage CPU incontrôlé après changement d'onglet.
+
+## Studio, monde et gameplay final (cible, non implémentée)
+
+- **Limite : une seule carte géographique continue jusqu'à 10 × 10 km**, 100 km² maximum théorique. La carte actuelle 200 × 600 m reste une démonstration, pas la limite du projet.
+- **Studio multi-éditeurs (E1=C)** : carte globale, terrain, eau/chemins, biotopes, objets/bâtiments, personnages/PNJ, dialogues, interactions, assets et tests. Les écrans sont spécialisés mais partagent IDs, formats, projet, sélection et historique Undo/Redo.
+- **Format auteur sectorisé** : manifeste global, `WorldDefinition`, chunks/overrides, prefabs, entités, graphes d'interactions, dialogues, navigation, schémas versionnés. Éviter un JSON monolithique à 100 km².
+- **Runtime compilé** : fichiers statiques de secteurs, LOD, collisions, index PNJ/biotopes ; le jeu charge les secteurs proches et **ne télécharge pas les modules lourds du Studio**.
+- **PNJ animaux et créatures, aucun humain** : réutiliser les variantes du rig joueur lorsque possible. Activités/reactions simples, mais **navigation libre** avec planification hiérarchique par secteurs et évitement local ; IA dormant hors proximité.
+- **Interactions** : événements, conditions ET/OU, actions séquencées, références typées par IDs, sauvegarde des flags utiles. Aucun JS arbitraire issu d'une carte importée.
+- **Activités** : exploration avec petites missions, objets ramassables/inventaire léger, énigmes et possibilités de pêche/collecte ; pas de combat ni RPG lourd.
+- **Sauvegardes séparées** : projets et brouillons auteur d'une part, parties joueur (plusieurs slots) d'autre part. Compilation/édition n'écrasent pas la progression.
+- **30 FPS nominal / 20 FPS de secours**, pas fixe indépendant, benchmarks avant toute garantie de fluidité sur 100 km².
+
+En pratique : éditeur → source autorisée → validation/compilation par secteurs → build statique GitHub Pages → runtime et slots de partie. **Le Studio ne publie pas directement depuis le navigateur public**.
 
 ## Travaux explicitement différés
 
