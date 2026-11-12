@@ -191,6 +191,16 @@ Voir [22 — ResourceBudgetManager](22-RESOURCE-BUDGET-MANAGER.md) : le Studio d
 - Panneau bêta **Ressources/Performance** : charges CPU/GPU mesurable, compteurs, LOD, caches, queue, snapshots de profil Auto/Éco/Équilibré/Qualité, raison du downgrade et export JSON de benchmark.
 - Le format auteur V3 et les archives Blender ne stockent **pas les choix adaptatifs du GPU** ; optimiser l'affichage ne doit jamais altérer relief, placés, biotopes, PNJ ou écosystème.
 
+## Édition audio : 5–10 timbres et effets naturels sans DAW
+
+**Référence AUD :** [23 — MIDI/synthétiseur/échantillons](23-MIDI-AUDIO-LOW-RESOURCE.md).
+
+- Bibliothèque : **import MIDI `.mid` et échantillons**, validation polyphonie/tempo/programmes/licences/taille PCM ; **palette maximale de dix patches**.
+- Studio : assigner `AudioEmitter` à objet/PNJ/lieu, rayon/volume/loop/événement ; ajouter 1–2 couches d'ambiance et événements ponctuels aux **profils de biotope**.
+- Prévisualiser l'objet depuis une position d'écoute, le rendu **également à basse qualité/voix limitée**, mute et transitions nuit/pluie; l'audio se débloque seulement après interaction autorisée.
+- Export/import ZIP V3 doit inclure **partitions MIDI, échantillons et patches nécessaires** avec IDs/licences, sans sauvegarder les buffers PCM temporaires et voix en cours.
+- Ne pas fournir d'éditeur de piano roll, SoundFont complète ou synthétiseur indépendant par objet ; les options de polyphonie/perf restent dans le menu AUD/PERF avancé.
+
 ## 9. Critères d'acceptation
 
 1. Créer/charger une carte, peindre un relief et un biome, sauvegarder, annuler, recharger : données identiques.
