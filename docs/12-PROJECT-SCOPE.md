@@ -207,6 +207,17 @@ Le monde doit disposer d'un **jour/nuit complet**, lever/coucher de soleil, **ci
 - Bêta : **panneau Ressources** avec métriques, qualité effective, LOD et ajustements/tests ; **aucune altération des données auteur V3**.
 - Architecture sans serveur ni télémétrie distante pour le solo. Gate matériel GPU réel toujours non accompli ; chiffres de mémoire et FPS ne sont pas des promesses de capacité.
 
+## Audio/MIDI très léger — choix de palette et fonctionnalités
+
+**Spécification cible :** [23 — Audio LOW-RESOURCE](23-MIDI-AUDIO-LOW-RESOURCE.md). Little World utilisera **5 à 10 instruments MIDI maximum** pour la musique et les notes interactives, joués par **un synthétiseur Web Audio léger commun**. Bruitages (eau, vent, pas, animaux) via **petit lecteur d'échantillons ou bruit procédural** si cela est plus économique.
+
+- **Un contexte audio et un mixeur** : bus musique, effets et ambiance ; plafond total de voix, émetteurs audibles seulement, `equalpower` avant toute spatialisation coûteuse.
+- **Jour/nuit, biomes, météo, PNJ et interactions** peuvent sélectionner des morceaux ou motifs MIDI, mais les événements audio sont calés sur une **horloge audio** séparée des FPS et de la vitesse du monde.
+- **Studio** : importer `.mid`, échantillons et patches, écouter, mapper les instruments vers les 5–10 timbres, placer `AudioEmitter` et profils de biome ; **pas d'éditeur musical complet**.
+- **ResourceBudgetManager** reçoit un consommateur `AudioBudgetManager` : polyphonie/émissions/cache PCM et priorité aux sons de gameplay, mesures et mode silencieux fiable.
+- **Fichiers portables V3** et builds statiques contiennent les sources licites et leurs dépendances, pas de grosse banque GM, MIDI matériel ou serveur nécessaires.
+- **Non implémenté à date** : aucune qualité ni performance MIDI garantie par le cadrage.
+
 ## 10. Frontière entre acquis et objectifs
 
 **Sur la branche `feat/living-world-editor` :** vallée de démonstration préservée, données v2 communes et migration v1, terrain local à trois LOD/cache borné, scènes synthétiques 1/2 km, rig rigide animé et GLB original, quatre PNJ animaux à navigation simple, dialogues/flags temporaires, écologie instanciée, atelier unifié avec sculpture/tracés/transformation/historique/IndexedDB/export/test. Ces évolutions sont testées ; elles ne constituent **pas** le Studio spécialisé, la navigation libre hiérarchique ou le streaming complet de 100 km².
