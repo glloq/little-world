@@ -211,6 +211,18 @@ Voir [23 — Audio MIDI / synthèse / échantillons](23-MIDI-AUDIO-LOW-RESOURCE.
 - **Studio/V3** : catalogue `.mid` et samples licites, patches/IDs/emitters/budgets éditables, ZIP portable ; profils qualité sont des données runtime et non une propriété du monde auteur.
 - Test Firefox/Chromium : autoplay, compat codecs, notes qui restent actives, plusieurs PNJ/cascades, cache/décodage, glitch, long-play. **Budget et latence non garantis avant benchmark.**
 
+## Choix MINE — cellules 2,5D multiétages et synchronisation légère
+
+**Spécification acceptée :** [24 — Mines creusables 2,5D](24-MINES-MULTILEVEL-LOW-RESOURCE.md).
+
+- **Mines localisées, grille 2,5D par étage**, terrains extérieure heightfield + modules GLB. Pas de voxels mondiaux, de destruction libre du sol extérieur ou de moteur volumétrique universel.
+- **Plusieurs niveaux** avec escaliers/rampes/puits explicites, collisions `XYZ` et zone physique active ; `terrainHeight(x,z)` de la surface ne s'applique pas à une galerie superposée.
+- Source `MineDefinitionV3` stable **séparée** de `MineState` de la partie (cellules excavées, stocks de métaux/cristaux, inventaire). Les joueur modifient durablement **uniquement les mines autorisées**.
+- Construire **faces exposées/fusion locale** par chunks et bordures, pas un cube par bloc ; matériaux communs, culling de galeries, pas de lumières/ombres complexes.
+- Récolte atomique et **idempotence**, gisements seed/profondeur/version, snapshots/deltas de cellules avec révision pour serveur autoritaire **futur**. Le solo utilise le même contrat logique en sauvegarde locale.
+- Budgets de travail/streaming/mémoire via PERF, **pas de régression collisions/navigation/inventaire** sous LOD minimal ; tests MINE-0…9 incluant eau/mer, hauteur, débordement des niveaux et concurrence.
+- Valeurs 1 m/cellule, chunks 32×32 et 3–8 étages **illustratives seulement** ; prototype comparatif MINE-0 pour qualifier les coûts et limites verticales.
+
 ## 9. Règles d'architecture issues de ces décisions
 
 1. **Un projet source, plusieurs éditeurs spécialisés**. Partager objets/IDs/sélection/historique, mais charger les écrans lourds à la demande.
