@@ -259,6 +259,24 @@ La [spécification 20](20-BLENDER-STUDIO-INTERCHANGE.md) détermine une interfac
 - **Éditeur** : préserver gizmos, Undo/Redo, sauvegarde et apparence de l'asset sélectionné ; repousser build/imports/miniatures lourds et **ne rendre que sur changement si la vue est idle**.
 - La **qualité est locale à l'appareil et temporaire**, non incluse dans l'archive auteur V3 ni imposée par un preset Blender. Le playtest utilise le même gestionnaire que le jeu, pas un deuxième.
 
+## Studio Audio — MIDI restreint, sons naturels et contrôle simple
+
+La [spécification 23](23-MIDI-AUDIO-LOW-RESOURCE.md) ajoute un **éditeur audio spécialisé**, et non une station musicale complète.
+
+**Bibliothèque Audio** :
+- `Importer une partition MIDI` → durée, tempo, pistes, événements, polyphonie maximale prévisible, **mapping des instruments** vers une **palette unique de 5–10 patches**, avertissements GM.
+- `Importer un son` → écoute, mono/stéréo, codec compatible, poids téléchargé et **PCM décodé estimé**, licence, classe SFX/ambiance, loop/variante.
+- Palette 5–10 instruments : nom, échantillon ou synthèse simple (enveloppe/timbre pré-approuvé), preview, coût et ID ; ajouter au-delà de 10 bloqué par validation.
+
+**Édition du monde** :
+- Sélectionner objet/PNJ/lieu → composant `AudioEmitter` : son/partition, position, rayon, gain, atténuation, déclencheur, priorité et prévisualisation à distance.
+- Panneau biotope : **1–2 couches d'ambiance** + événements discrets, influence de météo/nuit via les états existants. La logique de biotope n'est **pas** liée aux sources audio réellement actives.
+- Outils jeu/bêta : volume master/music/sfx/ambience, mute, lecture MIDI et budget voix, sources spatialisées, cache PCM et mode éco ; les contrôles audio avancés sont dans Ressources/PERF, pas sur l'écran principal.
+- Audio bloqué avant le clic : affichage clair de l'état `suspended`, activation au clic et mode silence si indisponible. Ne pas tenter de lancer un `AudioContext` pour chaque modèle importé.
+- **Archive Studio V3** : sources MIDI/sons + patchs + références stables/licences ; ne pas sauvegarder graphes `AudioNode`, voix actives ou données PCM temporaires.
+
+**Parcours d'essai** : créer 5 patches, importer deux MIDI, mapper les pistes, associer une musique à forêt/nuit, placer un chant d'oiseau et une cascade échantillonnée, tester transition et portée, exporter ZIP, réimporter et vérifier aucune dépendance perdue.
+
 ## 10. Politique UX et performance
 
 - Ne pas afficher toutes les catégories et réglages à la fois ; le contexte détermine l'inspecteur.
