@@ -200,6 +200,19 @@ Voir [20 — Contrat import/export GLB, presets et cartes](20-BLENDER-STUDIO-INT
 
 **Invariants** : jeu logique indépendant du rendu, silhouette d'horizon et eau visible même en profil ECO, qualité non persistante dans les données V3, frontend solo sans serveur, instruments `renderer.info` non confondus avec mémoire réelle ni temps GPU. Les paramètres seuils ne sont fixés **qu'après** tests PC GPU intégré.
 
+## Architecture audio MIDI : Web Audio partagé et budget borné
+
+Référence : [23 — Audio LOW-RESOURCE](23-MIDI-AUDIO-LOW-RESOURCE.md).
+
+- **5–10 patches musicaux** maximum, utilisés par un seul `MidiSequencer` et un `LightSynth` Web Audio à **polyphonie limitée globalement**, plus `SamplePlayer` pour bruitages et quelques ambiances naturelles.
+- **Un `AudioContext`** et trois bus `music/sfx/ambience` vers master ; activation au clic/retour d'onglet, mute et fallback silencieux sans arrêter gameplay.
+- `.mid` SMF type0/1 → parseur validé → mapping de programmes **vers palette limitée** → scheduling sur **horloge AudioContext**, pas `requestAnimationFrame` ou vitesse du jour/nuit.
+- `AudioEmitter` par ID dans les données auteur, mais nœuds de spatialisation/synthèse **seulement pour émetteurs actifs proches** ; sons environnementaux légers, `equalpower` par défaut.
+- `AudioBudgetManager` **sous ResourceBudgetManager (PERF)** : max voix/nœuds/PCM, voix prioritaires gameplay, `ResourceRegistry` pour buffers partagés et `WorkScheduler` pour décodage différé quand utile.
+- Pas de SoundFont GM complète, Web MIDI API obligatoire, serveur musical ni audio par chaque PNJ. Audio logique et visuel indépendants du FPS et du LOD.
+
+**Statut : cible technique, pas encore implémentée/testée.**
+
 ## Compatibilité avec un futur multijoueur (non implémenté)
 
 **Contrat de préparation**, cf. [16 — Architecture multijoueur future](16-FUTURE-MULTIPLAYER.md) :
