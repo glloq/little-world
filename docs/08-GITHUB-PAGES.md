@@ -121,6 +121,16 @@ La [spécification AUD](23-MIDI-AUDIO-LOW-RESOURCE.md) prévoit une **palette mu
 - Les archives auteur ZIP V3 comprennent sources MIDI/samples et références ; le build statique ne contient pas de buffers PCM pré-décodés, offsets de voix ou graphes `AudioNode`.
 - Tester les codecs/fallbacks, chargement sous `/little-world/`, stop/restart, retour d'onglet et navigateurs Firefox/Chromium sans dépendance MIDI matériel.
 
+## Mines creusables : données statiques auteur et état de partie séparés
+
+La [spécification MINE 24](24-MINES-MULTILEVEL-LOW-RESOURCE.md) ajoute un système d'excavation localisé, **sans modifier l'hébergement statique actuel**.
+
+- **Build GitHub Pages** : distribuer géologie **publique** et entrées/chunks de base de mine sous manifestes V3, prefabs GLB et variantes; **ne pas** publier de données **secrètes de gisements multijoueurs futurs** ni d'inventaires joueurs.
+- **Bêta solo** : les mines creusées et gisements épuisés sont stockés en **sauvegarde de partie locale** (IndexedDB ou export propre), **pas** dans la source V3 publiée du monde.
+- **Serveur de jeu futur** : nécessite hébergement/application distincts pour valider actions, transactions et synchroniser **deltas/snapshots de cellules** ; **GitHub Pages ne fournit ni serveur autoritaire ni mutations partagées**.
+- Chargement/streaming des **seules mines/étages proches et connecteurs utiles**, assets low-poly ; aucun téléchargement d'un volume voxel 100 km².
+- Préserver le `BASE_URL` Vite pour GLB de mine, manifestes et chunks. Les licences/format/IDs restent vérifiés à l'export.
+
 ## Limites et décisions
 
 - GitHub Pages est adapté au **jeu solo** : la logique de mouvement et d'interaction s'exécute sur le PC du joueur.
