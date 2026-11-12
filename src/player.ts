@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { clamp, insideWorld, terrainHeight, waterSurface } from './terrain';
+import { clamp, insideWorld, terrainHeight, waterSurface } from './terrain.ts';
 
 export type MotionMode = 'ground' | 'air' | 'glide' | 'swim' | 'dive';
 export interface Controls {
