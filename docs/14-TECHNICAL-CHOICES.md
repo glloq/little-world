@@ -121,6 +121,14 @@ Les décisions TE-E1 à TE-E7 et TD-D1 à TD-D6 sont concrétisées dans [15 —
 
 **Validé comme choix d'architecture**, pas comme API figée à l'octet ni fonctionnalité déjà développée. Les types d'exemple sont à éprouver avec la carte V2, les performances et les tests de cas réels.
 
+## Option future documentée — multijoueur et optimisations des foules
+
+Le jeu solo V3 et Little World Studio doivent rester **sans backend obligatoire**. L'utilisateur a demandé de préparer l'évolution multijoueur selon [16 — Architecture future](16-FUTURE-MULTIPLAYER.md) : objectif de **30** puis **200** joueurs, **500** en étude expérimentale.
+
+**Compatibilité technique dès maintenant, sans réseau** : identifiants et états logiques stables, index spatial, découplage simulation/rendu, événements typés, LOD de personnages et chunks chargés spatialement. **Implémentation différée** : AOI, fréquence réseau adaptative 2–20 Hz, 2–3 Hz pour silhouettes secondaires, serveur autoritaire, transport binaire, multi-processus. Les événements critiques exigent un traitement prioritaire indépendant de la fréquence des mouvements.
+
+**Ces nombres sont des cibles de conception, non des capacités atteintes**. Les paramètres futurs devront être validés sur serveur et GPU intégrés réels.
+
 ## 9. Règles d'architecture issues de ces décisions
 
 1. **Un projet source, plusieurs éditeurs spécialisés**. Partager objets/IDs/sélection/historique, mais charger les écrans lourds à la demande.
