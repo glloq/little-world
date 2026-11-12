@@ -183,6 +183,19 @@ Le monde doit disposer d'un **jour/nuit complet**, lever/coucher de soleil, **ci
 
 **Statut : spécification cible.** Le code V2 actuel ne dispose pas encore du pipeline d'échange de scène et des archives V3 complètes.
 
+## Eau, cours d'eau en pente et océan toujours visible
+
+**Nouvelle décision de cadrage :** [21 — Eau LOW-RESOURCE](21-WATER-HYDROLOGY-LOW-RESOURCE.md). La carte doit pouvoir représenter **rivière, lac, étang, rivière rapide, cascade, estuaire, mer/océan** à très faible coût tout en conservant nage, plongée et bateau.
+
+- Dans le Studio, **tracer la rivière** sur la carte, régler source/destination/largeur/profondeur et laisser le générateur adapter lit, berges et niveau de l'eau aux **dénivelés**. Prévisualiser le profil longitudinal, rapides et chutes ; intervention manuelle possible.
+- Un **lac a un niveau horizontal**, une cascade a deux niveaux et les jonctions/embouchures doivent être cohérentes. L'édition de l'eau n'altère que les secteurs concernés.
+- Le rendu extérieur et **sous-marin** repose sur shaders/palettes légers, visible depuis les deux côtés de la surface et adaptation à la caméra ; **pas de simulation physique d'océan**.
+- Les **grandes étendues visibles à l'horizon** perdent vagues, écume et coût shader avec la distance ; LOD0–3 et budget GPU commun, sans eau à travers les terres ni brouillard-cache.
+- Le réseau/les volumes logiques continuent de fonctionner indépendamment du rendu et des réglages GPU ; bateau, immersion, profondeur et courants simplifiés restent fiables.
+- Import/export V3 de l'eau et génération sectorisée compatibles avec Blender, sans déduire une rivière navigable du seul mesh d'une cascade GLB.
+
+**Statut : cible documentée, pas fonctionnalités déjà intégrées à V2**. Les rivières, nage et bateau du prototype demeurent, sans WaterLODManager complet.
+
 ## 10. Frontière entre acquis et objectifs
 
 **Sur la branche `feat/living-world-editor` :** vallée de démonstration préservée, données v2 communes et migration v1, terrain local à trois LOD/cache borné, scènes synthétiques 1/2 km, rig rigide animé et GLB original, quatre PNJ animaux à navigation simple, dialogues/flags temporaires, écologie instanciée, atelier unifié avec sculpture/tracés/transformation/historique/IndexedDB/export/test. Ces évolutions sont testées ; elles ne constituent **pas** le Studio spécialisé, la navigation libre hiérarchique ou le streaming complet de 100 km².
