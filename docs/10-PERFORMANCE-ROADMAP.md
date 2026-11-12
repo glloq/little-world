@@ -102,6 +102,18 @@ Ne pas mesurer seulement les triangles : relever charge CPU de la création d'in
 
 **Point essentiel :** attribuer un **budget global à la végétation et aux détails** ; ne pas dégrader le rendu d'horizon sans brouillard pour préserver de l'herbe facultative.
 
+## Campagne ENV — météo, astres et ombres : mesures à réaliser
+
+La [spécification 19](19-ENVIRONMENT-WEATHER-SKY.md) prescrit **ENV-0…ENV-7**, avec un ciel à faible coût (jour/nuit, étoiles, lunes indépendantes, nuages), neige par masques et ombres dynamiques limitées.
+
+**Scènes comparables** : midi clair, aube/coucher, nuit étoilée avec 1 puis 2 lunes à phases différentes, ciel couvert, pluie, tempête, neige + terrain/toits/sapins enneigés, fog météorologique actif/inactif, planage au-dessus d'une forêt/village, panorama de montagne, foule simulée.
+
+**Variantes isolées** : pas d'ombres / ombres 512² / ombres 1024² ; pluie 0/peu/beaucoup ; ciel fixe/shader ; neige terrain seulement/arbres/toits/horizon ; nuages 1/2 couches. Comparer à graine, caméra, scène, résolution et trajectoire identiques.
+
+**Cibles expérimentales non mesurées** : CPU météo **< 0,2 ms/frame**, GPU ciel/particules **< 1 ms/frame hors ombres**, **1–4** draw calls supplémentaires hors shadow pass et **1–4 Mio** de textures/buffers météo hors shadow map. Les **shadow maps ont un budget distinct**, parce que leur coût est dépendant des casters/draw calls additionnels/texels.
+
+**Mesurer** frame p50/p95/p99, shadow pass calls, nombre de casters/receivers, coût CPU/GPU des shaders et particules, overdraw, uploads, recompilations de shaders, popping de l'horizon, neige sur proxies. Vérifier mode shadow OFF et menu bêta sans état persistant involontaire. **Ne pas revendiquer les cibles avant des tests sur GPU intégré réel.**
+
 ## Suite prioritaire
 
 1. Réduire les appels du personnage et regrouper les sous-meshes statiques par matériau/articulation, puis mesurer sur les mêmes scènes.
