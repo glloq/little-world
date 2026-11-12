@@ -1,5 +1,9 @@
 import * as THREE from 'three';
-import { FrameClock, PresentationBudget, presentationPixelRatio } from './frame-clock';
+import {
+  FrameClock,
+  PresentationBudget,
+  presentationPixelRatio,
+} from './frame-clock';
 import './style.css';
 import { addPlacement, buildWorld, configureScene } from './world';
 import { defaultWorld, parseWorld } from './world-data';
@@ -61,7 +65,11 @@ if (remembered && remembered in qualityRatios) quality.value = remembered;
 function applyQuality() {
   const mode = quality.value as RenderQuality;
   renderer.setPixelRatio(
-    presentationPixelRatio(window.devicePixelRatio,qualityRatios[mode]??1.35,budget.level),
+    presentationPixelRatio(
+      window.devicePixelRatio,
+      qualityRatios[mode] ?? 1.35,
+      budget.level,
+    ),
   );
   resize();
 }
@@ -126,7 +134,7 @@ let elapsed = 0;
 const previousPlayerPosition = player.position.clone(),
   renderPosition = player.position.clone();
 let presentedFrames = 0;
-let lastPresented:number|null=null;
+let lastPresented: number | null = null;
 let frameCount = 0,
   fpsTime = 0;
 const clockDt = presentation.step;
@@ -391,7 +399,9 @@ function draw(now: number) {
     requestAnimationFrame(draw);
     return;
   }
-  const wallDrawDelta=lastPresented===null?0:(now-lastPresented)/1000;lastPresented=now;
+  const wallDrawDelta =
+    lastPresented === null ? 0 : (now - lastPresented) / 1000;
+  lastPresented = now;
   const begin = performance.now(),
     delta = frame.renderDelta;
   renderPosition.lerpVectors(
@@ -441,11 +451,8 @@ function draw(now: number) {
     fpsTime = 0;
     frameCount = 0;
   }
-  const cost = Math.max(
-    performance.now() - begin,
-    delta * 1000 - 500 / budget.rate,
-  );
-  if (budget.observe(cost, delta)) {
+  const cost = performance.now() - begin;
+  if (budget.observe(cost, wallDrawDelta)) {
     presentation.rate = budget.rate;
     world.setDetail(budget.level);
     applyQuality();
@@ -453,7 +460,10 @@ function draw(now: number) {
   requestAnimationFrame(draw);
 }
 document.addEventListener('visibilitychange', () => {
-  presentation.reset();lastPresented=null;fpsTime=0;frameCount=0;
+  presentation.reset();
+  lastPresented = null;
+  fpsTime = 0;
+  frameCount = 0;
   keySet.clear();
   jumpQueue = 0;
   actionQueue = 0;

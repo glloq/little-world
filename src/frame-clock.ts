@@ -62,14 +62,28 @@ export class PresentationBudget {
   rate: 30 | 20 = 30;
   private overload = 0;
   private stable = 0;
+  private averageWork = 0;
+  private averageInterval = 0;
   observe(workMs: number, seconds: number): boolean {
     if (!Number.isFinite(workMs) || !Number.isFinite(seconds) || seconds <= 0)
       return false;
     const target = 1000 / this.rate;
-    if (workMs > target * 0.95) {
+    // Smooth GPU scheduling bursts; one fast callback must not erase sustained overload.
+    const duration = Math.min(seconds, 0.25),
+      mix = 1 - Math.exp(-duration / 0.5);
+    this.averageWork += (Math.min(workMs, target * 4) - this.averageWork) * mix;
+    this.averageInterval +=
+      (Math.min(seconds * 1000, target * 4) - this.averageInterval) * mix;
+    if (
+      this.averageWork > target * 0.95 ||
+      this.averageInterval > target * 1.15
+    ) {
       this.overload += Math.min(seconds, 0.25);
       this.stable = 0;
-    } else if (workMs < target * 0.4) {
+    } else if (
+      this.averageWork < target * 0.4 &&
+      this.averageInterval <= target * 1.1
+    ) {
       this.stable += Math.min(seconds, 0.25);
       this.overload = 0;
     } else {
@@ -103,6 +117,12 @@ export class PresentationBudget {
 }
 
 /** Apply adaptation after the device/user ceiling, including ordinary DPR1 screens. */
-export function presentationPixelRatio(device:number,ceiling:number,level:number):number {
-  return Math.min(device,ceiling)*(level>=2?.65:level===1?.8:1);
+export function presentationPixelRatio(
+  device: number,
+  ceiling: number,
+  level: number,
+): number {
+  return (
+    Math.min(device, ceiling) * (level >= 2 ? 0.65 : level === 1 ? 0.8 : 1)
+  );
 }
