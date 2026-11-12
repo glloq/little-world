@@ -126,6 +126,20 @@ Lire **[21 — Eau LOW-RESOURCE, rivières/lacs/mer et LOD](docs/21-WATER-HYDROL
 - **Panneau bêta** : niveaux, courants, cascades, profil d'altitude, LOD, vue immergée, coût CPU/GPU. Conserver les données V2 existantes et migrer sans écrasement.
 - Budgets LOW-RESOURCE et distances 0–15 / 15–60 / 60–250 / >250 m **illustratifs seulement** : réévaluer après bench sur GPU intégré ; aucune phase WAT considérée implémentée par sa seule documentation.
 
+## PERF transversal — ResourceBudgetManager et limites communes (validé)
+
+**Lire [22 — PERF / ResourceBudgetManager](docs/22-RESOURCE-BUDGET-MANAGER.md)** avant de modifier les LOD, caches, streaming, qualité adaptative, performance HUD ou moteurs eau/ombre/météo/herbe.
+
+- **Un seul contrôleur adaptatif** : faire évoluer `PresentationBudget`, ne **pas** créer un deuxième automate divergent ; `FrameClock` continue de posséder la **simulation 30 Hz** et la présentation **30/20 FPS**.
+- `PerfSampler` enregistre p50/p95/p99, longue frame, coûts CPU isolés, calls/triangles, file de génération et mémoire **estimée**. **Soumission WebGL en JS ≠ temps GPU** ; GPU timer WebGL2 asynchrone facultatif, disjoint/absence explicités.
+- `ResourceBudgetManager` fournit des **quotas/qualités versionnés** aux consommateurs (terrain/horizon, objets/GLB, écologie/herbe, eau, ombres, météo, PNJ, audio et Studio) ; aucun système ne modifie la qualité globale seul.
+- Adapter selon **importance/surface projetée/vitesse/altitude** et budget : réduire d'abord les détails **cosmétiques**, puis résolution/LODs/ombres, secours **20 FPS seulement en dernier recours**. Ne jamais supprimer silhouettes de paysages lointains ni ralentir le monde.
+- Gestion **CPU+mémoire+streaming** : temps de création maximal et priorité de file, préchargement devant le joueur, annulation des tâches obsolètes, estimations de RAM/VRAM, caches avec éviction, ownership des GLB partagés (pas de `dispose()` prématuré).
+- **Hystérésis** : baisse après surcharge stable et remontée lente (3/12 s prévus actuellement, à calibrer), pas de changement de shader ou rebuild de tous les chunks à chaque frame.
+- **Studio** : rendu à la demande si inactif, édition/gizmo immédiat, re-compilation différée et quota de previews ; aucune préférence de qualité runtime dans les archives source V3.
+- **Bêta** : panneau Ressources mesurant FPS/frametime, CPU/GPU si disponible, RAM/VRAM estimée, draw calls, secteurs, LOD, qualité effective, raisons du changement ; export JSON de scénarios reproductibles.
+- Contrats/étapes **PERF-0…PERF-9** ; seuils et cibles GPU **non qualifiés sans tests sur matériel réel**. Les mesures SwiftShader servent aux régressions, pas à garantir 30/20 FPS sur GPU intégré.
+
 ## 2. Séparation des données et des responsabilités
 
 - Projet auteur : `worldId`, `schemaVersion`, `seed`, dimensions, chunks, overrides, prefabs, entités, dialogues, navigation, interactions.
