@@ -245,6 +245,25 @@
 
 **Spécification et phases MINE-0…MINE-9 :** [24 — Mines LOW-RESOURCE](24-MINES-MULTILEVEL-LOW-RESOURCE.md). **Défini ne signifie pas implémenté ni synchronisé sur un serveur en production.**
 
+## VALIDÉ — AGRI : agriculture par parcelles, simulation différée et vues adaptées
+
+| ID | Décision |
+| --- | --- |
+| **AGRI-D01** | Agriculture **facultative et délimitée à des parcelles**, moteur de culture riche **agrégé par parcelle/sous-zone**, aucun plant logique individuel |
+| **AGRI-D02** | `FarmPlotDefinitionV3` **source Studio**, `FarmPlotState` **état de partie/serveur futur**, `FarmPublicVisualState` **vue compacte**, meshes/LOD **dérivés** |
+| **AGRI-D03** | Croissance **à l'action, lecture ou échéance** avec `lastEvaluatedWorldTime` ; aucun tick par plante/parcelle à 30 Hz |
+| **AGRI-D04** | **Historique climatique agrégé** par région/période + événements d'entretien datés ; rattrapage hors-ligne reproductible et règles versionnées |
+| **AGRI-D05** | Moteur par profils de culture : saisons, température, croissance, humidité, fertilité, irrigation, maladies/parasites, rotation, rendement/qualité |
+| **AGRI-D06** | Propriétaire/ouvrier autorisé : données détaillées et actions ; passant : informations publiques seulement ; **LOD graphique par caméra et budget, pas par rôle** |
+| **AGRI-D07** | Cultures proches **instanciées**, rangs groupés, cultures lointaines **couleur/masque de parcelle** ; pas de collision/animation de vent/ombres par plante |
+| **AGRI-D08** | **PERF** arbitre rendering, cache, quotas d'échéances et géométrie ; index spatial des parcelles, aucune boucle qualité AGRI indépendante |
+| **AGRI-D09** | Actions `Plant/Irrigate/Fertilize/Treat/Tend/Harvest/Clear` validées avec stocks/eau/droits ; future transaction serveur atomique/idempotente |
+| **AGRI-D10** | **Solo en sauvegarde locale**, serveur partagé et AOI futur : snapshots/deltas à événements, révisions, droits privés/publics, pas de streaming de plantes individuelles |
+| **AGRI-D11** | **Studio** : outils parcelles/sous-zones/cultures/irrigation/sol, preview du cycle, ZIP V3 auteur, essais sur état de partie distinct |
+| **AGRI-D12** | Benchmarks connecté/hors-ligne, 100/1 000/10 000 parcelles synthétiques, rendu de champs, p95/p99, inventaires/permissions et GPU intégré ; seuils **non garantis** |
+
+**Spécification et phases AGRI-0…AGRI-8 :** [25 — Agriculture par parcelles](25-AGRICULTURE-PARCELS-LOW-RESOURCE.md). **Prévu/documenté, pas encore codé ni qualifié**.
+
 ## PROPOSÉ — technique
 
 | ID | Choix | Réévaluation |
