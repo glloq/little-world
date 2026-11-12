@@ -156,6 +156,16 @@ Voir [21 — Eau LOW-RESOURCE](21-WATER-HYDROLOGY-LOW-RESOURCE.md). Les presets 
 - Une eau visible **sous la surface** doit rester correcte avec le culling/material choisi ; ne pas dupliquer de scène ou de caméra.
 - Évaluer coûts de pixels d'une **mer plein écran**, overdraw, taille des ressources, nombre de materials/draw calls, pas uniquement triangles.
 
+## Budget mémoire, streaming et mutualisation des assets (PERF)
+
+**Référence :** [22 — ResourceBudgetManager](22-RESOURCE-BUDGET-MANAGER.md). Les modèles Blender/GLB et prefabs importés doivent participer au **même registre de ressources et quotas que le terrain, l'eau, la végétation et le Studio**.
+
+- Pour chaque asset : nombre de meshes, triangles, matériaux, textures/tailles/formats, **octets GPU/CPU estimés**, nombre d'instances et niveaux de LOD ; indiquer **incertitude** au lieu d'une fausse mesure VRAM.
+- Mutualiser `BufferGeometry`, matériaux et textures partagés avec **ownership / référence**, libérer seulement après **dernière instance** et fin des chargements en attente ; pas de `dispose()` anticipé sur les clones.
+- Charger/décoder/importer avec priorité **visible → proche → préfetch → opportuniste** et budget **temps de travail + octets/ressources**, pas seulement nombre de fichiers. Annuler les futures attaches GLB de mondes supprimés.
+- `InstancedMesh` par **secteurs cullables**, LOD/proxies géométriques et shaders économiques ; compression Meshopt/Draco/KTX2 **sur benchmark** temps de transfert/décodage/VRAM et non sur taille seule.
+- Les caches du Studio et du jeu ne doivent pas grossir indéfiniment après déplacement/Undo/Redo/imports répétés ; tester perte/reprise contexte WebGL et longues sessions.
+
 ## Qualification
 
 - Fichier présent, path valide après build GitHub Pages.
