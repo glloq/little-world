@@ -36,6 +36,10 @@
 | D-022 | Interactions configurables dans l'éditeur, sans code spécifique pour chaque objet |
 | D-023 | Possibilité de sauvegarder et d'exporter les modifications localement |
 | D-024 | Cycle jour/nuit/météo, quêtes et activités avancées non prioritaires |
+| D-025 | **Design d'écureuil chibi** selon la planche fournie : grands yeux, ventre clair, queue volumineuse, membrane invisible au repos |
+| D-026 | **Accessoires** : chapeau, sac à dos, pendentif ou écharpe ; **émotions** affichées sur le visage |
+| D-027 | Menu de personnalisation **uniquement pendant le maintien de la touche A** ; sélection à la souris |
+| D-028 | **Caméra : rotation uniquement par clic gauche maintenu + déplacement de la souris** ; aucune capture permanente |
 
 ## PROPOSÉ — technique
 
