@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { FrameClock } from './frame-clock';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
 import './style.css';
@@ -249,7 +250,15 @@ function setTool(value: string) {
   ].includes(tool)
     ? null
     : THREE.MOUSE.ROTATE;
-  orbit.mouseButtons.RIGHT = ['raise','lower','flatten','smooth','biome'].includes(tool) ? THREE.MOUSE.ROTATE : THREE.MOUSE.PAN;
+  orbit.mouseButtons.RIGHT = [
+    'raise',
+    'lower',
+    'flatten',
+    'smooth',
+    'biome',
+  ].includes(tool)
+    ? THREE.MOUSE.ROTATE
+    : THREE.MOUSE.PAN;
   $('brush-panel').hidden = ![
     'raise',
     'lower',
@@ -856,12 +865,17 @@ window.addEventListener('beforeunload', (e) => {
     e.returnValue = '';
   }
 });
-let previous = performance.now(),
-  time = 0,
+const editorClock = new FrameClock();
+let time = 0,
   metricTime = 0;
+document.addEventListener('visibilitychange', () => editorClock.reset());
 function animate(now: number) {
-  const dt = Math.min(0.05, (now - previous) / 1000);
-  previous = now;
+  const frame = editorClock.advance(now, !document.hidden);
+  if (!frame.render) {
+    requestAnimationFrame(animate);
+    return;
+  }
+  const dt = frame.renderDelta;
   time += dt;
   orbit.update();
   world.update(dt, orbit.target);

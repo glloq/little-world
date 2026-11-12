@@ -29,6 +29,7 @@ export interface WorldView {
   boat: THREE.Group;
   objects: THREE.Group;
   update: (dt: number, focus?: { x: number; z: number }) => void;
+  setDetail: (level: number) => void;
   refreshTerrain: (x: number, z: number, radius: number) => void;
   stats: {
     active: number;
@@ -635,6 +636,9 @@ export function buildWorld(
     boat,
     objects,
     stats: terrainView.stats,
+    setDetail(level) {
+      ecology.setDetail(level);
+    },
     refreshTerrain(x, z, radius) {
       terrainView.refresh(x, z, radius);
       ecology.refresh(x, z, radius);
@@ -692,7 +696,8 @@ export function buildWorld(
       root.traverse((o) => {
         o.userData.disposed = true; // Pending GLB callbacks must not attach to retired editor worlds.
         const m = o as THREE.Mesh;
-        if ((m as THREE.InstancedMesh).isInstancedMesh) (m as THREE.InstancedMesh).dispose();
+        if ((m as THREE.InstancedMesh).isInstancedMesh)
+          (m as THREE.InstancedMesh).dispose();
         if (m.geometry && !sharedGeometry.has(m.geometry)) m.geometry.dispose();
         if (m.material)
           for (const material of Array.isArray(m.material)

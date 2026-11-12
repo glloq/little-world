@@ -7,6 +7,7 @@ import {
   DEFAULT_NPC_OBSTACLES,
   updateNPC,
   npcVisualTier,
+  npcInterpolationAlpha,
   validateNPCs,
   type NPCDefinition,
   type NPCPoint,
@@ -119,24 +120,44 @@ export function createNPCSystem(
 ) {
   if (!validateNPCs(definitions)) throw new Error('Liste de PNJ invalide');
   const dialogue = createDialoguePanel();
-  let disposed=false;
+  let disposed = false;
   // Original five-part low-poly silhouette. GPU resources belong to this system,
   // are shared by every distant actor, and are disposed once when it is retired.
   const proxyGeometry = new THREE.IcosahedronGeometry(1, 0);
-  const proxyFur = new THREE.MeshLambertMaterial({color:0x9d654f,flatShading:true});
-  const proxyLight = new THREE.MeshLambertMaterial({color:0xb77d64,flatShading:true});
-  function silhouette(definition:NPCDefinition){
-    const root=new THREE.Group();root.name='NPC silhouette:'+definition.id;
-    const part=(material:THREE.Material,x:number,y:number,z:number,sx:number,sy:number,sz:number)=>{
-      const mesh=new THREE.Mesh(proxyGeometry,material);mesh.position.set(x,y,z);mesh.scale.set(sx,sy,sz);root.add(mesh);
+  const proxyFur = new THREE.MeshLambertMaterial({
+    color: 0x9d654f,
+    flatShading: true,
+  });
+  const proxyLight = new THREE.MeshLambertMaterial({
+    color: 0xb77d64,
+    flatShading: true,
+  });
+  function silhouette(definition: NPCDefinition) {
+    const root = new THREE.Group();
+    root.name = 'NPC silhouette:' + definition.id;
+    const part = (
+      material: THREE.Material,
+      x: number,
+      y: number,
+      z: number,
+      sx: number,
+      sy: number,
+      sz: number,
+    ) => {
+      const mesh = new THREE.Mesh(proxyGeometry, material);
+      mesh.position.set(x, y, z);
+      mesh.scale.set(sx, sy, sz);
+      root.add(mesh);
     };
-    part(proxyFur,0,.72,0,.49,.62,.41);
-    part(proxyLight,0,1.45,.23,.55,.51,.46);
-    part(proxyLight,.42,1.35,-.62,.46,.85,.4);
-    part(proxyFur,-.42,1.98,.24,.2,.29,.15);
-    part(proxyFur,.42,1.98,.24,.2,.29,.15);
-    if(definition.kind==='animal')root.scale.setScalar(.58);
-    root.visible=false;scene.add(root);return root;
+    part(proxyFur, 0, 0.72, 0, 0.49, 0.62, 0.41);
+    part(proxyLight, 0, 1.45, 0.23, 0.55, 0.51, 0.46);
+    part(proxyLight, 0.42, 1.35, -0.62, 0.46, 0.85, 0.4);
+    part(proxyFur, -0.42, 1.98, 0.24, 0.2, 0.29, 0.15);
+    part(proxyFur, 0.42, 1.98, 0.24, 0.2, 0.29, 0.15);
+    if (definition.kind === 'animal') root.scale.setScalar(0.58);
+    root.visible = false;
+    scene.add(root);
+    return root;
   }
   const entries = definitions.map((definition) => {
     const state = createNPCState(definition),
@@ -144,10 +165,11 @@ export function createNPCSystem(
     model.setAppearance(definition.appearance);
     if (definition.kind === 'animal') model.group.scale.setScalar(0.58);
     model.group.name = 'NPC:' + definition.id;
-    model.group.visible=false;
+    model.group.visible = false;
     scene.add(model.group);
-    const proxy=silhouette(definition);
-    const head=model.group.getObjectByName('HeadJoint'),arm=model.group.getObjectByName('ArmRight');
+    const proxy = silhouette(definition);
+    const head = model.group.getObjectByName('HeadJoint'),
+      arm = model.group.getObjectByName('ArmRight');
     const player: Player = {
       position: new THREE.Vector3(),
       velocity: new THREE.Vector3(),
@@ -155,7 +177,15 @@ export function createNPCSystem(
       oxygen: 90,
       glideReady: false,
     };
-    return { state, model, player, proxy, head, arm, appliedEmotion:definition.appearance.emotion };
+    return {
+      state,
+      model,
+      player,
+      proxy,
+      head,
+      arm,
+      appliedEmotion: definition.appearance.emotion,
+    };
   });
   function nearest(player: NPCPoint) {
     let best: (typeof entries)[number] | null = null,
@@ -174,18 +204,26 @@ export function createNPCSystem(
     dialogue,
     states: entries.map((entry) => entry.state),
     update(dt: number, time: number, position: NPCPoint) {
-      if(disposed)return;
+      if (disposed) return;
       for (const entry of entries) {
-        const {state,model,player,proxy,head,arm}=entry;
+        const { state, model, player, proxy, head, arm } = entry;
         updateNPC(state, dt, position, obstacles);
-        const tier=npcVisualTier(Math.hypot(position.x-state.x,position.z-state.z));
-        model.group.visible=tier==='rig';proxy.visible=tier==='silhouette';
-        if(tier==='hidden')continue;
-        if(tier==='silhouette'){
-          proxy.position.set(state.x,state.y,state.z);proxy.rotation.y=state.heading;
+        const tier = npcVisualTier(
+          Math.hypot(position.x - state.x, position.z - state.z),
+        );
+        model.group.visible = tier === 'rig';
+        proxy.visible = tier === 'silhouette';
+        if (tier === 'hidden') continue;
+        const alpha = npcInterpolationAlpha(state);
+        const x = THREE.MathUtils.lerp(state.previousX, state.x, alpha),
+          y = THREE.MathUtils.lerp(state.previousY, state.y, alpha),
+          z = THREE.MathUtils.lerp(state.previousZ, state.z, alpha);
+        if (tier === 'silhouette') {
+          proxy.position.set(x, y, z);
+          proxy.rotation.y = state.heading;
           continue;
         }
-        player.position.set(state.x, state.y, state.z);
+        player.position.set(x, y, z);
         // The visual model faces its local +Z; its parent supplies world heading.
         player.velocity.set(0, 0, Math.hypot(state.vx, state.vz));
         model.group.position.copy(player.position);
@@ -195,17 +233,22 @@ export function createNPCSystem(
           if (head) head.rotation.y = Math.sin(time * 1.7) * 0.12;
           if (arm) {
             arm.rotation.z = state.phase === 'greet' ? -1.6 : -0.45;
-            arm.rotation.x = Math.sin(time * (state.phase === 'greet' ? 5 : 3)) * 0.25;
+            arm.rotation.x =
+              Math.sin(time * (state.phase === 'greet' ? 5 : 3)) * 0.25;
           }
         }
-        const emotion=(dialogue.npcId===state.definition.id?dialogue.emotion:undefined)??state.definition.appearance.emotion;
-        if(emotion!==entry.appliedEmotion){
-          model.setAppearance({...state.definition.appearance,emotion});entry.appliedEmotion=emotion;
+        const emotion =
+          (dialogue.npcId === state.definition.id
+            ? dialogue.emotion
+            : undefined) ?? state.definition.appearance.emotion;
+        if (emotion !== entry.appliedEmotion) {
+          model.setAppearance({ ...state.definition.appearance, emotion });
+          entry.appliedEmotion = emotion;
         }
       }
     },
     interact(position: NPCPoint): boolean {
-      if(disposed)return false;
+      if (disposed) return false;
       if (dialogue.isOpen) return true;
       const entry = nearest(position);
       if (!entry) return false;
@@ -213,16 +256,22 @@ export function createNPCSystem(
       return true;
     },
     prompt(position: NPCPoint): string | null {
-      if(disposed)return null;
+      if (disposed) return null;
       if (dialogue.isOpen) return null;
       const entry = nearest(position);
       return entry ? '[E] Parler avec ' + entry.state.definition.name : null;
     },
     dispose() {
-      if(disposed)return;disposed=true;
+      if (disposed) return;
+      disposed = true;
       dialogue.dispose();
-      for (const { model, proxy } of entries) { model.dispose();proxy.removeFromParent(); }
-      proxyGeometry.dispose();proxyFur.dispose();proxyLight.dispose();
+      for (const { model, proxy } of entries) {
+        model.dispose();
+        proxy.removeFromParent();
+      }
+      proxyGeometry.dispose();
+      proxyFur.dispose();
+      proxyLight.dispose();
     },
   };
 }

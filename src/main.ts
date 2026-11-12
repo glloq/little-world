@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { FrameClock, PresentationBudget, presentationPixelRatio } from './frame-clock';
 import './style.css';
 import { addPlacement, buildWorld, configureScene } from './world';
 import { defaultWorld, parseWorld } from './world-data';
@@ -45,6 +46,8 @@ const renderer = new THREE.WebGLRenderer({
   powerPreference: 'high-performance',
 });
 const quality = document.querySelector<HTMLSelectElement>('#quality')!;
+const presentation = new FrameClock(),
+  budget = new PresentationBudget();
 const qualityRatios = { low: 1, medium: 1.35, high: 2 } as const;
 type RenderQuality = keyof typeof qualityRatios;
 const remembered = (() => {
@@ -58,7 +61,7 @@ if (remembered && remembered in qualityRatios) quality.value = remembered;
 function applyQuality() {
   const mode = quality.value as RenderQuality;
   renderer.setPixelRatio(
-    Math.min(window.devicePixelRatio, qualityRatios[mode] ?? 1.35),
+    presentationPixelRatio(window.devicePixelRatio,qualityRatios[mode]??1.35,budget.level),
   );
   resize();
 }
@@ -119,12 +122,14 @@ let yaw = 0,
   distance = 13.8;
 let started = false;
 let infoUntil = 0;
-let last = performance.now(),
-  accumulator = 0,
-  elapsed = 0;
+let elapsed = 0;
+const previousPlayerPosition = player.position.clone(),
+  renderPosition = player.position.clone();
+let presentedFrames = 0;
+let lastPresented:number|null=null;
 let frameCount = 0,
   fpsTime = 0;
-const clockDt = 1 / 60;
+const clockDt = presentation.step;
 
 function resize() {
   const w = viewport.clientWidth,
@@ -205,6 +210,8 @@ window.addEventListener('keydown', (e) => {
     player.mode = 'ground';
     player.oxygen = MAX_OXYGEN;
     player.glideReady = false;
+    previousPlayerPosition.copy(player.position);
+    renderPosition.copy(player.position);
     updateCamera(1);
     showInfo('Retour au point de départ');
   }
@@ -214,6 +221,8 @@ window.addEventListener('keydown', (e) => {
     player.velocity.set(0, 0, 0);
     player.mode = 'air';
     player.glideReady = false;
+    previousPlayerPosition.copy(player.position);
+    renderPosition.copy(player.position);
     updateCamera(1);
     showInfo('Port : approchez du bateau et appuyez sur E');
   }
@@ -270,7 +279,7 @@ function showInfo(text: string) {
 const cameraTarget = new THREE.Vector3(),
   cameraDesired = new THREE.Vector3();
 function updateCamera(dt: number) {
-  const target = cameraTarget.copy(player.position);
+  const target = cameraTarget.copy(renderPosition);
   target.y += aboard ? 2.9 : 1.85;
   const cosPitch = Math.cos(pitch);
   const x = target.x - Math.sin(yaw) * cosPitch * distance;
@@ -368,17 +377,28 @@ function tick(dt: number) {
   }
 }
 function draw(now: number) {
-  const rawDelta = (now - last) / 1000,
-    delta = Math.min(rawDelta, 0.06);
-  last = now;
-  elapsed += delta;
-  accumulator += delta;
-  let iterations = 0;
-  while (accumulator >= clockDt && iterations++ < 5) {
+  const frame = presentation.advance(now, !document.hidden);
+  const simulationBegin = performance.now();
+  for (let i = 0; i < frame.steps; i++) {
+    previousPlayerPosition.copy(player.position);
     tick(clockDt);
-    accumulator -= clockDt;
+    elapsed += clockDt;
+    if (previousPlayerPosition.distanceToSquared(player.position) > 100)
+      previousPlayerPosition.copy(player.position);
   }
-  if (iterations >= 5) accumulator = 0;
+  const simulationMs = performance.now() - simulationBegin;
+  if (!frame.render) {
+    requestAnimationFrame(draw);
+    return;
+  }
+  const wallDrawDelta=lastPresented===null?0:(now-lastPresented)/1000;lastPresented=now;
+  const begin = performance.now(),
+    delta = frame.renderDelta;
+  renderPosition.lerpVectors(
+    previousPlayerPosition,
+    player.position,
+    frame.alpha,
+  );
   world.update(delta, player.position);
   npcs.update(delta, elapsed, player.position); // The river drives the mill: no manual on/off control.
   world.boat.position.set(
@@ -387,21 +407,32 @@ function draw(now: number) {
     boat.z,
   );
   world.boat.rotation.y = boat.heading;
-  squirrel.group.position.copy(player.position);
+  squirrel.group.position.copy(renderPosition);
   squirrel.update(player, delta, elapsed);
   updateCamera(delta);
   updateHud();
-  fpsTime += rawDelta;
+  fpsTime += wallDrawDelta;
   frameCount++;
+  const renderBegin = performance.now();
   renderer.render(scene, camera);
+  const renderSubmitMs = performance.now() - renderBegin;
   if (metricsEnabled)
     Object.assign(window, {
       littleWorldMetrics: {
+        frameId: ++presentedFrames,
         calls: renderer.info.render.calls,
         triangles: renderer.info.render.triangles,
         geometries: renderer.info.memory.geometries,
         chunks: { ...world.stats },
         position: player.position.toArray(),
+        renderRate: budget.rate,
+        qualityLevel: budget.level,
+        simulationHz: 30,
+        timings: {
+          simulationMs,
+          updateMs: renderBegin - begin,
+          renderSubmitMs,
+        },
       },
     });
   if (fpsTime >= 0.8) {
@@ -410,8 +441,26 @@ function draw(now: number) {
     fpsTime = 0;
     frameCount = 0;
   }
+  const cost = Math.max(
+    performance.now() - begin,
+    delta * 1000 - 500 / budget.rate,
+  );
+  if (budget.observe(cost, delta)) {
+    presentation.rate = budget.rate;
+    world.setDetail(budget.level);
+    applyQuality();
+  }
   requestAnimationFrame(draw);
 }
+document.addEventListener('visibilitychange', () => {
+  presentation.reset();lastPresented=null;fpsTime=0;frameCount=0;
+  keySet.clear();
+  jumpQueue = 0;
+  actionQueue = 0;
+  customization.close();
+  resetCameraDrag();
+  previousPlayerPosition.copy(player.position);
+});
 camera.position.set(
   player.position.x,
   player.position.y + 13,

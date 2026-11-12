@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/** Real browser frame-interval benchmark. Run a development server first.
+/** Real browser presentation-interval benchmark. Run a development server first.
  * NODE_PATH is deliberately unnecessary: set PLAYWRIGHT_MODULE to an installed
  * playwright ESM entry if it is not installed alongside this repository.
  * Example: node tools/benchmark-world.mjs http://127.0.0.1:5173/little-world/ /tmp/world-bench
@@ -73,10 +73,11 @@ const run = {
   deviceScaleFactor: 1,
   launchArgs,
   sampleFrames,
+  settleMs:Number(process.env.BENCHMARK_SETTLE_MS??1200),
   workingTreeBefore: await fingerprint(),
   notes: [
     'Chromium headless uses software SwiftShader: these measurements are not representative of a hardware GPU.',
-    'FPS is computed from uncapped browser requestAnimationFrame intervals, not from the game HUD.',
+    'FPS is computed from actual presentation frames observed through requestAnimationFrame, not from the game HUD.',
     'Frame intervals include scheduling and rendering; they do not isolate CPU work or GPU execution time.',
     'The large-map scenarios extend synthetic terrain with the same demo content, not a fully populated square-kilometer ecosystem.',
     'Snapshots represent the current working tree shown by dirtyFiles, not necessarily the recorded HEAD alone.',
@@ -133,7 +134,7 @@ try {
       {},
       { timeout: 30000 },
     );
-    await page.waitForTimeout(1200);
+    await page.waitForTimeout(run.settleMs);
     const readyMs = performance.now() - begin;
     const scenarioFingerprint = await fingerprint();
     const sampled = await page.evaluate(
@@ -141,8 +142,16 @@ try {
         new Promise((resolve) => {
           const intervals = [],
             metricSamples = [];
-          let start, last;
+          let start,
+            last,
+            lastFrame = -1;
           function frame(now) {
+            const frameId = window.littleWorldMetrics?.frameId;
+            if (frameId !== undefined && frameId === lastFrame) {
+              requestAnimationFrame(frame);
+              return;
+            }
+            lastFrame = frameId;
             if (start === undefined) {
               start = now;
               last = now;
@@ -175,6 +184,15 @@ try {
               drawCallsMean: numericMean('calls'),
               trianglesMean: numericMean('triangles'),
               lastMetrics: metricSamples.at(-1),
+              timingsMean: Object.fromEntries(
+                ['simulationMs', 'updateMs', 'renderSubmitMs'].map((key) => [
+                  key,
+                  metricSamples.reduce(
+                    (sum, s) => sum + (s.timings?.[key] ?? 0),
+                    0,
+                  ) / metricSamples.length,
+                ]),
+              ),
               gpu: debug
                 ? gl.getParameter(debug.UNMASKED_RENDERER_WEBGL)
                 : 'unavailable',

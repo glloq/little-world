@@ -201,8 +201,12 @@ export function createEcology(
         stats.creatures += item.sites.length;
       }
   }
+  let detail = 0;
   return {
     stats,
+    setDetail(level: number) {
+      detail = level;
+    },
     update(_dt: number, time: number, x: number, z: number) {
       if (retired) return;
       const cx = Math.floor(x / ECOLOGY_SECTOR_SIZE),
@@ -224,7 +228,7 @@ export function createEcology(
           residents.delete(key);
           continue;
         }
-        sector.root.visible = distance <= 1;
+        sector.root.visible = distance <= (detail >= 2 ? 0 : 1);
         if (!sector.root.visible) continue;
         for (const mesh of sector.creatures) {
           let index = 0;

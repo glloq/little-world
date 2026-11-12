@@ -60,6 +60,10 @@ export interface NPCState {
   waypoint: number;
   wait: number;
   coarseTime: number;
+  decisions: number;
+  previousX: number;
+  previousY: number;
+  previousZ: number;
   random: () => number;
   flags: DialogueFlags;
 }
@@ -137,6 +141,10 @@ export function createNPCState(definition: NPCDefinition): NPCState {
     waypoint: 0,
     wait: 0,
     coarseTime: 0,
+    decisions: 0,
+    previousX: definition.x,
+    previousY: terrainHeight(definition.x, definition.z),
+    previousZ: definition.z,
     random: mulberry32(seed),
     flags: Object.create(null) as DialogueFlags,
   };
@@ -178,32 +186,20 @@ function nextTarget(s: NPCState): NPCPoint | null {
   }
   return null;
 }
-export function updateNPC(
+/** Decision budgets are independent of the browser's presentation frequency. */
+export function npcDecisionInterval(activity: NPCActivity): number {
+  return activity === 'full' ? 0.1 : activity === 'reduced' ? 0.5 : Infinity;
+}
+export function npcInterpolationAlpha(state: NPCState): number {
+  return Math.min(1, state.coarseTime / npcDecisionInterval(state.activity));
+}
+function decideNPC(
   s: NPCState,
-  dt: number,
-  player: NPCPoint,
-  obstacles: readonly NavigationObstacle[] = [],
+  stepTime: number,
+  obstacles: readonly NavigationObstacle[],
 ): void {
-  if (!Number.isFinite(dt) || dt <= 0) return;
-  s.y = terrainHeight(s.x, s.z);
-  const distance = Math.hypot(player.x - s.x, player.z - s.z);
-  s.activity = npcActivity(distance);
   s.vx = 0;
   s.vz = 0;
-  if (s.activity === 'dormant') return;
-  if (s.phase === 'talk') {
-    s.heading = Math.atan2(player.x - s.x, player.z - s.z);
-    return;
-  }
-  if (distance < 7) {
-    s.phase = 'greet';
-    s.heading = Math.atan2(player.x - s.x, player.z - s.z);
-    return;
-  }
-  s.coarseTime += Math.min(dt, 0.1);
-  if (s.activity === 'reduced' && s.coarseTime < 0.25) return;
-  const stepTime = Math.min(s.coarseTime, 0.3);
-  s.coarseTime = 0;
   s.wait = Math.max(0, s.wait - stepTime);
   if (s.wait > 0) {
     s.phase = 'idle';
@@ -241,6 +237,59 @@ export function updateNPC(
   s.heading = Math.atan2(dx, dz);
   s.phase = 'walk';
 }
+export function updateNPC(
+  s: NPCState,
+  dt: number,
+  player: NPCPoint,
+  obstacles: readonly NavigationObstacle[] = [],
+): void {
+  if (!Number.isFinite(dt) || dt <= 0) return;
+  const distance = Math.hypot(player.x - s.x, player.z - s.z),
+    activity = npcActivity(distance);
+  if (activity !== s.activity) {
+    s.coarseTime = 0;
+    s.previousX = s.x;
+    s.previousY = s.y;
+    s.previousZ = s.z;
+    s.vx = 0;
+    s.vz = 0;
+    s.activity = activity;
+  }
+  if (activity === 'dormant') {
+    s.vx = 0;
+    s.vz = 0;
+    return;
+  }
+  // Proximity reactions and conversation facing stay responsive between decisions.
+  const paused = s.phase === 'talk' || distance < 7;
+  if (paused) {
+    if (s.phase !== 'talk') s.phase = 'greet';
+    s.heading = Math.atan2(player.x - s.x, player.z - s.z);
+    s.vx = 0;
+    s.vz = 0;
+    s.previousX = s.x;
+    s.previousY = s.y;
+    s.previousZ = s.z;
+  }
+  const interval = npcDecisionInterval(activity);
+  // Bound catch-up after a slow frame; background pauses never produce a CPU spiral.
+  s.coarseTime = Math.min(s.coarseTime + Math.min(dt, 0.25), interval * 2);
+  let steps = 0;
+  while (s.coarseTime + 1e-9 >= interval && steps++ < 2) {
+    s.coarseTime = Math.max(0, s.coarseTime - interval);
+    s.previousX = s.x;
+    s.previousY = s.y;
+    s.previousZ = s.z;
+    s.decisions++;
+    s.y = terrainHeight(s.x, s.z);
+    if (paused) {
+      s.previousY = s.y;
+      continue;
+    }
+    decideNPC(s, interval, obstacles);
+  }
+}
+
 const conversation = (subject: string, detail: string): DialogueDefinition => ({
   start: 'hello',
   lines: [
