@@ -1,6 +1,8 @@
 # 11 — Politique globale LOW-RESOURCE (Little World)
 
 **Statut : objectifs de conception validés pour les fréquences ; autres budgets provisoires à calibrer.**
+
+**Références techniques approuvées :** [14 — Décisions techniques](14-TECHNICAL-CHOICES.md), groupe `TT-*`. Cible **PC standard à GPU intégré**, profil indicatif **8 Go RAM / 1600 × 900**. Cette fiche est un **objectif à mesurer**, pas un matériel minimal garanti.
 **Périmètre : jeu solo PC/WebGL sur GitHub Pages, Studio et outils de génération. Limite cible : une carte continue jusqu'à 10 × 10 km maximum.**
 
 > Cette politique concerne **tout le projet** : rendu, simulation, PNJ, faune, assets, mémoire, stockage, téléchargements et édition. **Ce n'est pas un relevé de performances atteintes.** Le prototype existant n'applique pas encore nécessairement ces paramètres ; les écarts doivent être suivis explicitement.
