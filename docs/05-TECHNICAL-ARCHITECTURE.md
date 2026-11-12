@@ -137,8 +137,22 @@ Détails : [08-GITHUB-PAGES.md](08-GITHUB-PAGES.md).
 
 En pratique : éditeur → source autorisée → validation/compilation par secteurs → build statique GitHub Pages → runtime et slots de partie. **Le Studio ne publie pas directement depuis le navigateur public**.
 
+## Compatibilité avec un futur multijoueur (non implémenté)
+
+**Contrat de préparation**, cf. [16 — Architecture multijoueur future](16-FUTURE-MULTIPLAYER.md) :
+
+- **IDs/repères spatiaux/états de gameplay V3** indépendants des meshes, de l'éditeur, des bibliothèques de transport et des processus.
+- Contenu statique (carte compilée, assets) livré séparément de la **simulation dynamique**, pour éviter la retransmission des décors.
+- Future réplication **par destinataire et intérêt spatial/contextuel (AOI)**, distincte des chunks de stockage et des zones d'autorité.
+- **Simulation serveur future à cadence propre**, réplication de mouvement adaptative typiquement 2–20 Hz et actions critiques prioritaires ; le rendu client reste 30/20 FPS.
+- Animations locales et modèles de foule à plusieurs LOD ; PNJ et faune à fréquence adaptée.
+- En cas d'évolution à plusieurs processus : propriétaire logique d'entité, transferts atomiques d'autorité et continuité de jeu ; **ne pas l'implémenter sans démontrer la saturation d'un serveur dédié unique**.
+- Objectif d'étude : 30 joueurs d'abord, **200 visés**, 500 comme expérimentation ; benchmarks serveur et vrais navigateurs distincts.
+
+**N'ajouter aucun module réseau, socket, compte, dépendance serveur ou `ReplicationPolicy` obligatoire aux données V3 pour le solo.**
+
 ## Travaux explicitement différés
 
-Colyseus, serveur autoritaire, prédiction/réconciliation réseau, rooms, chat, authentification, base de données, position des autres joueurs, sauvegarde partagée et tests de charge 10–30 joueurs.
+Colyseus ou autre transport, serveur autoritaire, prédiction/réconciliation réseau, rooms, chat, authentification, base de données, positions des autres joueurs, sauvegarde partagée et tests de charge (30 → 200, 500 expérimental).
 
 Une future évolution réseau demanderait un nouveau jalon et une conception spécifique ; **ne pas ajouter d'infrastructure prématurée**.
