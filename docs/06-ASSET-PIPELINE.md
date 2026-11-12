@@ -1,12 +1,12 @@
 # 06 — Bibliothèque d'assets et pipeline d'import
 
-**Statut : spécification de catalogue statique ; aucun asset 3D tiers encore importé.**
+**Statut : trois GLB originaux ajoutés dans `public/models/` (sapin, rocher, caisse), avec `assets/catalog.json`. Aucun asset tiers importé. Pipeline complet encore à développer.**
 
 ## Objectif V1
 
 Disposer de **plusieurs assets 3D utilisables directement depuis le dépôt et son build GitHub Pages** : fichiers locaux, organisés, vérifiés et progressivement enrichis.
 
-Le navigateur ne dépend ni d'un CDN ni d'une API pour afficher les ressources de base. **Le site public sera mis à jour par nouveau build** lorsqu'un asset est ajouté.
+Le navigateur ne dépend ni d'un CDN ni d'une API pour afficher les ressources de base. Les trois GLB du premier lot sont livrés via Vite. **Le site public sera mis à jour par nouveau build** lorsqu'un asset est ajouté.
 
 ## Règles de licence
 
