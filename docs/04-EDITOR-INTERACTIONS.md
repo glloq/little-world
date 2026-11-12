@@ -1,6 +1,6 @@
 # 04 — Éditeur de monde et interactions
 
-**Statut : architecture fonctionnelle proposée, adaptée à GitHub Pages / solo.**
+**Statut : prototype d'éditeur démarré** (placement, graine/densité, sauvegarde IndexedDB, JSON, prévisualisation dans le jeu). Les outils de terrain, splines et interactions génériques restent à faire.
 
 ## Objectif
 
