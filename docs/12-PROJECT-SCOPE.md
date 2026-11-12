@@ -196,6 +196,17 @@ Le monde doit disposer d'un **jour/nuit complet**, lever/coucher de soleil, **ci
 
 **Statut : cible documentée, pas fonctionnalités déjà intégrées à V2**. Les rivières, nage et bateau du prototype demeurent, sans WaterLODManager complet.
 
+## Gestion centralisée des ressources : objectif transversal PERF
+
+**Choix de conception validé :** [22 — ResourceBudgetManager](22-RESOURCE-BUDGET-MANAGER.md).
+
+- Un **seul contrôleur adaptatif** distribue les plafonds de qualité aux rendus terrain/LOD, arbres, herbe, eau, ombres, météo, PNJ, GLB, audio et Studio ; **pas** de multiples boucles concurrentes.
+- **30 FPS cible, secours présentation 20 FPS**, simulation à pas fixe 30 Hz indépendante et aucun ralentissement gameplay lié aux FPS. Profils Auto/Éco/Équilibré/Qualité.
+- Optimisation des **octets estimés de mémoire, temps CPU de génération, uploads GPU, files, LOD et draw calls**, pas seulement triangles/FPS ; p50/p95/p99, stabilité et charge des sessions longues.
+- **Vue profonde/horizon et océan conservés**, silhouettes simplifiées plutôt que cachées ; dégrader d'abord la présentation et les détails facultatifs, jamais les interactions/volumes/collisions.
+- Bêta : **panneau Ressources** avec métriques, qualité effective, LOD et ajustements/tests ; **aucune altération des données auteur V3**.
+- Architecture sans serveur ni télémétrie distante pour le solo. Gate matériel GPU réel toujours non accompli ; chiffres de mémoire et FPS ne sont pas des promesses de capacité.
+
 ## 10. Frontière entre acquis et objectifs
 
 **Sur la branche `feat/living-world-editor` :** vallée de démonstration préservée, données v2 communes et migration v1, terrain local à trois LOD/cache borné, scènes synthétiques 1/2 km, rig rigide animé et GLB original, quatre PNJ animaux à navigation simple, dialogues/flags temporaires, écologie instanciée, atelier unifié avec sculpture/tracés/transformation/historique/IndexedDB/export/test. Ces évolutions sont testées ; elles ne constituent **pas** le Studio spécialisé, la navigation libre hiérarchique ou le streaming complet de 100 km².
