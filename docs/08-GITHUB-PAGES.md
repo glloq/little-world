@@ -1,0 +1,105 @@
+# 08 — GitHub Pages — hébergement statique de Little World
+
+**Statut : guide d'implémentation cible pour M0. Aucun workflow ou site fonctionnel n'est encore déployé.**
+
+## Objectif
+
+Publier le jeu **solo** et son **éditeur** depuis `glloq/little-world` sur GitHub Pages, avec **zéro backend** en fonctionnement.
+
+- **Adresse prévue du jeu :** https://glloq.github.io/little-world/
+- **Adresse envisagée de l'éditeur :** https://glloq.github.io/little-world/editor/ (à valider pendant M0).
+- **Sources :** dépôt GitHub public.
+- **Contenu :** fichiers statiques HTML, JS, CSS, WASM Rapier, cartes et GLB optimisés.
+- **Hébergement :** Pages uniquement, sans serveur d'app, base de données, WebSocket ni authentification.
+
+La publication peut être automatisée après un commit sur `main` avec **GitHub Actions**. Il faut d'abord activer **Settings → Pages → Build and deployment → GitHub Actions** dans les paramètres du dépôt.
+
+Sources officielles : [GitHub Pages — créer un site](https://docs.github.com/en/pages/getting-started-with-github-pages/creating-a-github-pages-site), [Vite — déploiement](https://vite.dev/guide/static-deploy), [Vite — base publique](https://vite.dev/guide/build).
+
+## Build Vite : chemins indispensables
+
+Le projet étant servi **dans un sous-répertoire**, configurer :
+
+```ts
+// vite.config.ts — exemple minimal de base de production
+import { defineConfig } from 'vite';
+
+export default defineConfig({
+  base: '/little-world/',
+});
+```
+
+Ne jamais supposer que le site est à la racine `/`. Pour les chemins générés **dynamiquement** en code, utiliser la base publique injectée :
+
+```ts
+// Exemple conceptuel : ressource située dans le dossier public du build
+const assetUrl = `${import.meta.env.BASE_URL}assets/nature/tree.glb`;
+```
+
+Vite traite normalement les URL d'assets importés dans le code et le CSS. Vérifier séparément les chemins des **GLB, textures, fichiers JSON, shaders et modules WASM** Rapier.
+
+Les applications `game` et `editor` peuvent être publiées en **une seule sortie multi-pages** (un Vite build correctement configuré) ou via deux builds assemblés. **La stratégie exacte sera choisie et testée lors de M0** ; elle ne doit pas produire d'assets doublés inutilement.
+
+Éviter le routage URL « history » profond nécessitant un fallback HTTP. Choisir des **pages HTML réelles** ou un routage hash.
+
+## Flux de publication attendu
+
+1. Commit du code, des assets validés et de la **carte compilée par défaut**.
+2. GitHub Actions : installation de dépendances verrouillées, lint, typecheck et tests.
+3. Build Vite de production avec préfixe **`/little-world/`**.
+4. Validation automatique des références statiques et de la structure du build.
+5. Envoi de l'artefact statique GitHub Pages, puis déploiement.
+6. Ouverture du site public et **test manuel/navigateur** des déplacements, du chargement des assets et de l'éditeur.
+
+Un workflow doit utiliser les actions officielles `actions/configure-pages`, `actions/upload-pages-artifact` et `actions/deploy-pages`, avec les permissions nécessaires au déploiement. **Ce document ne crée pas ce workflow ; cela appartient à M0.**
+
+### Critères de vérification de publication
+
+- Jeu visible directement sur `https://glloq.github.io/little-world/`.
+- Pas de 404 ni d'erreur CORS sur les fichiers du projet.
+- Three.js affiche une scène, et Rapier WASM se charge.
+- L'éditeur se charge à son URL et utilise les mêmes modèles.
+- Une mise à jour de `main` génère un nouveau build identifiable.
+- Aucun appel à une API serveur externe n'est nécessaire pour **jouer** ou **éditer**.
+
+## Sauvegarde et édition sans serveur
+
+GitHub Pages **ne peut pas recevoir les fichiers modifiés par le navigateur**.
+
+L'éditeur conservera donc :
+- **Une carte publiée**, chargée depuis le site et traitée comme base en lecture seule.
+- **Des brouillons locaux** dans IndexedDB, identifiés par `worldId` et `schemaVersion`.
+- **Export JSON** de la carte éditable, que l'utilisateur peut archiver.
+- **Import JSON** avec validation du schéma et des IDs.
+- **Mode test local** à partir d'une copie du brouillon.
+
+Le stockage IndexedDB peut être supprimé par le navigateur ou par l'utilisateur : il ne remplace pas un fichier exporté et sauvegardé ailleurs. Ajouter des avertissements d'export avant des changements destructifs.
+
+Pour rendre une nouvelle carte visible de tous sur l'URL Pages :
+1. Exporter la carte depuis l'éditeur.
+2. Valider les données et les références d'assets.
+3. Ajouter les sources pertinentes au dépôt.
+4. Recompiler et republier via GitHub Actions.
+
+**Aucun jeton d'écriture GitHub dans les JS publics ; aucune publication directe anonyme depuis l'éditeur.**
+
+## Limites et décisions
+
+- GitHub Pages est adapté au **jeu solo** : la logique de mouvement et d'interaction s'exécute sur le PC du joueur.
+- Pas de stockage partagé, de session serveur, de classement fiable ou de multijoueur en temps réel.
+- Les performances dépendent du PC et des assets ; mesurer taille du bundle, démarrage et framerate.
+- Les ressources publiées doivent être librement redistribuables ; respecter leurs licences.
+- Si un backend devient utile plus tard, il sera **hébergé ailleurs** et fera l'objet d'un projet distinct.
+
+## Liste de tâches M0
+
+- [ ] Initialiser le projet TypeScript, Three.js, Vite et tests.
+- [ ] Définir une stratégie unique de build du jeu et de l'éditeur.
+- [ ] Configurer `base: '/little-world/'` et les URL des fichiers statiques.
+- [ ] Ajouter une scène 3D légère et un aperçu d'éditeur.
+- [ ] Ajouter `.github/workflows/deploy.yml` pour test/build/publish.
+- [ ] Activer GitHub Pages depuis les paramètres du dépôt.
+- [ ] Vérifier site public, console, erreurs réseau et WASM.
+- [ ] Documenter commandes locales de démarrage, build et aperçu.
+
+> **D0 ne valide que la conception.** Aucun des points de cette liste n'est déclaré réalisé.
