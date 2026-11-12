@@ -380,6 +380,18 @@ Le [document 23 — Audio MIDI LOW-RESOURCE](23-MIDI-AUDIO-LOW-RESOURCE.md) déf
 - **Tests** : 1/10/100 excavations, 3 puis 8 étages, franchissement de chunk, changement de mine, session longue, entrée/sortie, p50/p95/p99 CPU remeshing, draw calls/mémoire, dégradation visuelle sans perte de récolte/collision.
 - Réseau/serveur futur mesure **octets de snapshot/delta** et fréquence de transactions séparément des métriques GPU. Les valeurs 1m/cellule, 32×32, 3–8 niveaux sont **des hypothèses**, pas des budgets qualifiés.
 
+## Consommateur AGRI — simulation datée par parcelle et LOD des cultures
+
+**Référence :** [25 — Agriculture LOW-RESOURCE](25-AGRICULTURE-PARCELS-LOW-RESOURCE.md).
+
+- **`FarmSimulation` n'est pas un système à 30 Hz** : état par parcelle/zone, croissance différée à la demande ou aux échéances, **résumés climatiques** pour périodes d'absence et calcul prioritaire uniquement lors des actions. Les événements/échéances utilisent **`WorkScheduler`** avec quotas et priorités ; éviter scan global du monde à chaque frame.
+- `FarmLODRenderer` est un **`QualityConsumer` de ResourceBudgetManager** : cultures proches instanciées, rangs regroupés moyens, **couleurs/masques polygonaux lointains**, pas d'ombre/collision ni animation CPU par plante.
+- **Budget mémoire** : états agronomiques quantifiés, journaux climatiques périodiques/versionnés et événements compactés ; **les chiffres 96–256 octets/zone sont uniquement des estimations de stockage brut**, pas des mesures JS/DB/RAM réelles.
+- `ResourceRegistry` compte géométries, matériaux, instances/atlas d'espèces partagés, cache de parcelles visibles ; éviction/LOD après passage devant une ferme, aucun rechargement agronomique inutile depuis le shader.
+- **Propriétaire vs passant** : adaptation de la **quantité de données et des commandes** selon droits, tandis que le rendu suit **distance/taille écran/importance/GPU** et non un flag de rôle.
+- Benchmarker **100/1 000/10 000 parcelles synthétiques**, 0/10/100 proches, croissance connectée vs 30 jours d'absence, récoltes simultanées et plusieurs agriculteurs/visiteurs ; mesurer temps CPU événements, p95/p99, buffers/instance, draw calls, taille journaux/deltas, GPU intégré.
+- Les cultures ne modifient **jamais** la vitesse du monde pour tenir le FPS ; l'éviction de l'affichage ne modifie ni maturation, ni rendement, ni autorité des récoltes. **Pas de deuxième contrôleur PERF**.
+
 ## 13. Plan de développement incrémental PERF-0…PERF-9
 
 | Phase | Développement minimal et artefact testable | Gate |
