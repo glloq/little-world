@@ -360,6 +360,65 @@ Les prototypes TypeScript précis de ces modules restent à fixer à l'implémen
 
 Les types détaillés du document 19 sont **illustratifs jusqu'à implémentation et tests**. Garder les mêmes contrats pour « Jouer ici » et le runtime publié.
 
+## Contrat V3 — interop Blender, presets et archives auteur
+
+**Référence** : [20 — Blender ↔ Studio](20-BLENDER-STUDIO-INTERCHANGE.md). Distinguer sans ambiguïté **source d'asset Blender** (`.blend`), **ressource géométrique** (`.glb`), **source Studio V3** (terrain, biotopes, placements, logiques) et **runtime compilé**.
+
+**Types indicatifs de contrats, à figer/tester progressivement :**
+
+```ts
+interface StudioAssetReference {
+  assetId: string;                  // stable, jamais un nom de node GLB
+  version: string;
+  glbPath: string;                  // chemin résolu et validé dans Library / build
+  sourceHash: string;
+  sourceBlendPath?: string;         // auteur facultatif, exclu du runtime
+  licenseId: string;
+  originDescription?: string;
+  pivot?: [number, number, number];
+  category: string;
+}
+
+interface SceneInstanceExchange {
+  sourceNodeKey: string;            // stable pour réimport avec sidecar versionné
+  entityId?: string;                // seulement après validation de provenance et collision
+  prefabId: string;
+  transform: {
+    positionM: [number, number, number]; // Y up Studio
+    rotationQuat: [number, number, number, number];
+    scale: [number, number, number];
+  };
+  parentSourceNodeKey?: string;
+}
+
+interface PresetPackManifest {
+  schemaVersion: number;
+  presetId: string;
+  prefabVersion: string;
+  kind: "asset" | "composite" | "biome" | "place";
+  assetDependencies: Array<{assetId: string; version: string; hash: string}>;
+  logicalDependencies?: string[];
+}
+
+interface PortableWorldArchiveManifest {
+  schemaVersion: number;
+  worldId: string;
+  includesDependencies: true;       // uniquement si physiquement présentes
+  sourceSchemaVersion: number;
+  entries: Array<{path: string; hash: string; sizeBytes: number}>;
+}
+```
+
+- `TransformComponent` V3 **déjà prévu** porte XYZ, quaternion et scale XYZ. L'UI emploie rotation Y/scale uniforme par défaut et contrôle 3 axes en avancé. **Blender Z-up → glTF/Studio Y-up une seule fois**, mètres, pivot explicite.
+- Les **child prefabs et groupes** conservent leurs références/IDs via transactions et migrations ; remplacer une ressource GLB ne supprime ni les interactions, ni les biotopes, ni les dialogues.
+- **Heightfield source**, masque de biotope, zones de végétation et règles de génération sont **des sources V3 versionnées**, jamais implicitement les sommets d'un GLB de décor ou des géométries GPU. Les `TerrainEdit/BiomeEdit` restent éditables et invalidés localement.
+- **Archive portable de carte** = ZIP standard avec **toutes** les dépendances réellement présentes : manifest, secteurs et sources, heightfields/masques, GLB, prefabs, dialogues, interactions, PNJ, environnements. Variante **références seulement** clairement distincte et non autonome.
+- **Export vers Blender** = GLB de scène **plus sidecar** pour IDs/mapping ; les métadonnées de gameplay non glTF **restent dans le projet V3**. Réimport = comparaison ajout/modification/conflit et choix d'application transactionnelle ; supprimer explicitement uniquement après validation.
+- Les extras glTF, ZIP et manifest importés sont **non fiables** : allowlist, tailles, types, hashes, chemins relatifs, licences, extension glTF supportée, IDs uniques et compteurs de charge GPU. Un échec ne doit pas altérer le brouillon courant.
+- Lors d'un **round-trip archive V3**, vérifier la conservation sémantique des données (IDs, références, positions, biomes, événements, dialogue, horaires et sources), sans exiger ZIP identique au bit près.
+
+**Contraintes de compatibilité** : le validateur actuel V2 utilise `Placement` avec `x/z/rotation/scale` simplifiés ; faire migrer via adaptateur non destructif, pas transformer silencieusement le V2 en API finale V3.
+
 ## 10. Architecture de code proposée (pas de refonte cosmétique préalable)
 
 ```text
