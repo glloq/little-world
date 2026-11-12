@@ -41,7 +41,7 @@
 | D-021 | Carte : source, forêt, rivière, moulin à eau, village, port près de la mer |
 | D-022 | Interactions configurables dans l'éditeur, sans code spécifique pour chaque objet |
 | D-023 | Possibilité de sauvegarder et d'exporter les modifications localement |
-| D-024 | Cycle jour/nuit et météo avancée non prioritaires ; **quêtes légères/activités facultatives sont désormais prévues** |
+| D-024 | **Priorité historique V1** : jour/nuit et météo non prioritaires. **Cadrage ultérieur adopté** dans ENV-D01…ENV-D12 : environnement stylisé complet à tester dans la bêta, sans simulation physique météo lourde |
 | D-025 | **Design d'écureuil chibi** selon la planche fournie : grands yeux, ventre clair, queue volumineuse, membrane invisible au repos |
 | D-026 | **Accessoires** : chapeau, sac à dos, pendentif ou écharpe ; **émotions** affichées sur le visage |
 | D-027 | Menu de personnalisation **uniquement pendant le maintien de la touche A** ; sélection à la souris |
@@ -131,6 +131,25 @@
 
 **Spécification :** [18 — Herbes ultra-low-resource](18-GRASS-LOW-RESOURCE.md). Distances, densités et coûts à calibrer sur GPU intégré ; les modèles V2 ne sont pas considérés comme déjà enrichis de ces effets.
 
+## VALIDÉ — environnement LOW-RESOURCE et cycles célestes (cadrage de la bêta)
+
+| ID | Décision |
+| --- | --- |
+| **ENV-D01** | Une horloge et un **état météo canonique** utilisés par ciel, éclairage, matières, pluie/neige, vent, orage, brouillard |
+| **ENV-D02** | **Source locale et menu bêta maintenant**, même interface avec **serveur autoritaire futur** ; aucune infrastructure réseau requise actuellement |
+| **ENV-D03** | **Jour/nuit et lever/coucher** via direction solaire et palettes interpolées, un ciel procédural peu coûteux |
+| **ENV-D04** | **Étoiles nocturnes en fond unique déterministe**, masquées de jour et sous les nuages ; aucun mesh/light par étoile |
+| **ENV-D05** | **0/1/plusieurs lunes à cycles indépendants** (orbites/périodes/phase initiale/inclinaison), phases éclairées cohérentes avec le soleil ; pas de shadow map lunaire |
+| **ENV-D06** | Nuages en **1–2 couches shader** sans raymarching volumétrique, vent commun, pluie/neige via un système local d'instances |
+| **ENV-D07** | **Accumulation/fonte de neige indépendantes des précipitations** ; neige sur terrain, arbres, toitures, rochers et **relief d'horizon** via masques/coefficient, sans nouveau mesh global |
+| **ENV-D08** | **Brouillard seulement météorologique**, non utilisé pour masquer la distance de clipping ; horizon réel toujours présent |
+| **ENV-D09** | **Ombres dynamiques uniquement près du joueur et sur objets volumineux/importants** ; 1 shadow map solaire locale au plus en qualité normale ; herbes et monde lointain exclus |
+| **ENV-D10** | Profil minimum **sans shadow map**, petites ombres simulées si utiles ; résolution/distance/selection casters adaptées et benchmarkées |
+| **ENV-D11** | Menu bêta : forcer météo, heure, transitions, températures, neige, nuages, étoiles, lunes/cycles, ombres et qualité ; overrides réversibles, pas de modification implicite des sauvegardes |
+| **ENV-D12** | Budgets communs LOW-RESOURCE, évaluations séparées CPU/GPU/ombres et tests de transitions ; paramètres numériques provisoires tant que non mesurés |
+
+**Contrats et phases ENV-0…ENV-7 :** [19 — Environnement, ciel, étoiles, lunes, neige et ombres](19-ENVIRONMENT-WEATHER-SKY.md). La météo « avancée » exclue du périmètre initial désigne une **simulation physique climatique complexe**, pas ces effets visuels stylisés.
+
 ## PROPOSÉ — technique
 
 | ID | Choix | Réévaluation |
@@ -178,7 +197,7 @@
 
 **Multijoueur hors livraison actuelle** (premier objectif 30 joueurs, cible future 200, scénario expérimental 500) : serveur autoritaire, transport, synchronisation, comptes, chat, persistance partagée, validation côté serveur, prédiction réseau et tests de charge ; voir [16 — Multijoueur futur](16-FUTURE-MULTIPLAYER.md).
 
-Également différés : mobile, manette, **IA sociale complexe**, agriculture/commerce/craft étendus, combat, changements permanents de terrain par les joueurs, météo avancée, programmation libre, éditeur de polygones/rig complet. **PNJ navigants, quêtes légères, collecte et pêche éventuelle sont dans le périmètre final**, pas livrés dans le prototype.
+Également différés : mobile, manette, **IA sociale complexe**, agriculture/commerce/craft étendus, combat, changements permanents de terrain par les joueurs, **météo physiquement simulée à haute complexité** (les effets stylisés ENV sont prévus en bêta), programmation libre, éditeur de polygones/rig complet. **PNJ navigants, quêtes légères, collecte et pêche éventuelle sont dans le périmètre final**, pas livrés dans le prototype.
 
 ## Écart entre politique et prototype actuel
 
