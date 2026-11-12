@@ -60,6 +60,12 @@ Le plafond de 100 km² est une **limite d'architecture/format**, pas une obligat
 - PNJ/faune avec fréquence de logique adaptée à la proximité.
 - Aucune dépendance serveur pour jouer, éditer ou sauvegarder localement.
 
+## Optimisation globale : PERF
+
+Le jeu vise une **qualité adaptative unifiée** par [ResourceBudgetManager](22-RESOURCE-BUDGET-MANAGER.md) : CPU, GPU, RAM/VRAM estimée, streaming et LOD pour terrain, ciel, eau, végétation, bâtiments, personnages et Studio. L'optimisation préserve **la simulation à pas fixe**, les interactions et **les silhouettes du paysage jusqu'à l'horizon sans brouillard de masquage**.
+
+Le prototype dispose déjà de **`FrameClock`, `PresentationBudget`**, caches de terrain et LOD de personnages ; leur intégration à un arbitre commun, la gestion mémoire et les budgets de chargement sont des **objectifs de développement**, pas des gains démontrés. Les **30 FPS nominaux et 20 FPS de secours** sont à qualifier sur GPU intégré matériel.
+
 ## État d'implémentation
 
 **Prototype déjà codé :** vallée 200 × 600 m, personnage procédural, déplacement/planage/nage, bateau, roue de moulin, premier catalogue GLB et éditeur de placement local.
