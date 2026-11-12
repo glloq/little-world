@@ -235,6 +235,18 @@ La [spécification 20](20-BLENDER-STUDIO-INTERCHANGE.md) détermine une interfac
 
 **Parcours obligatoire** : Blender GLB → Library → placement avec 3 transforms → peinture d'un biome → prefab/preset exporté → nouvelle carte avec import → export ZIP carte → restauration avec toutes les références → export scène Blender → réimport non destructif.
 
+## Éditeur Eau : profil longitudinal et niveaux de détails
+
+**Contrat :** [21 — Eau, relief, cascades et LOD](21-WATER-HYDROLOGY-LOW-RESOURCE.md). Étendre le tracé de l'eau V2 au lieu de concevoir une interface de simulation de fluides.
+
+- Outils **Cours d'eau / Lac / Cascade / Rapides / Mer**, avec clics de points et édition directe dans le viewport et la carte 2D.
+- **Adaptation automatique au relief** après tracé, visualisation simple du **profil terrain / niveau eau** et repères de cascades/rapides, diagnostic des sections qui remontent.
+- Contrôles simples : largeur, profondeur, courant, surface claire/turbide, niveau verrouillé facultatif, distance aux berges et navigabilité ; overrides manuels et Undo/Redo.
+- Preview **rive / bateau / plongée / planage**, curseur LOD0–3 et profil qualité, boutons mousse/vagues/particules, mesures CPU/GPU/draw calls si disponibles.
+- Édition propre : une action unique undo pour modification de spline/tronçon, aperçu du terrain creusé et des chunks invalidés, **préserver les IDs et les projets lors des imports V2/V3**.
+- Une cascade GLB Blender reste **un décor graphique** tant que son volume, ses niveaux et sa navigation ne sont pas définis dans l'hydrographie V3 ; export archive Studio portable.
+- Les options GPU avancées restent repliées ; l'auteur ne règle pas manuellement chaque triangle d'une rivière.
+
 ## 10. Politique UX et performance
 
 - Ne pas afficher toutes les catégories et réglages à la fois ; le contexte détermine l'inspecteur.
