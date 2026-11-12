@@ -314,6 +314,15 @@ Le [document 23 — Audio MIDI LOW-RESOURCE](23-MIDI-AUDIO-LOW-RESOURCE.md) expl
 - La météo renseigne gain/intensité/événements, `AudioBudgetManager` plafonne **voix/émetteurs/PCM** sous PERF et évite de dédoubler les couches d'ambiance par biome.
 - Tonnerre daté, changement de vent et entrée en zone enneigée déclenchent des **événements sonores**, non des `AudioContext` supplémentaires. Niveaux sonores et effets limités pour ne pas masquer les indices utiles au gameplay.
 
+## Éclairage sous terre : mines sans shadow maps volumineuses
+
+Le [contrat MINE 24](24-MINES-MULTILEVEL-LOW-RESOURCE.md) prévoit des galeries **2,5D multiétages** à faible coût.
+
+- Mines : **couleurs de sommet et lumière ambiante stylisée**, quelques cristaux/prefabs **émissifs** et lampes simples, pas une shadow map par torche/puits.
+- Le soleil, nuages, lunes et météo continuent de régir **l'extérieur** ; en sous-sol, utiliser une ambiance lumineuse propre, cohérente avec entrée/puits et visibilité, sans recalcul global.
+- La **météo** n'impose pas une simulation de pluie/neige ou d'eau dans chaque cellule excavée. Les volumes d'eau souterrains sont intentionnels et vérifiés selon [21 — Eau](21-WATER-HYDROLOGY-LOW-RESOURCE.md).
+- LOD/qualité depuis PERF : diminuer ornements et petites lumières, **pas** la collision, l'accessibilité ni la récolte.
+
 ## 13. Tests et qualification
 
 **Scénarios** :
