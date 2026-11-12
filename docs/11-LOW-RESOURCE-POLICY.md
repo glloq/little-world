@@ -86,6 +86,19 @@ Le **matériel de référence est à choisir** (idéalement PC avec circuit grap
 - Distance de vue, seuils de LOD, altitude et budgets d'images de fond sont **à mesurer**, jamais fixés définitivement d'après les exemples.
 - Conserver les **30/20 FPS** sans diminuer la vitesse de simulation ; tout proxy lointain est une représentation graphique, pas un changement de gameplay.
 
+## Politique validée — herbe courte et herbe haute quasi gratuite
+
+Référence détaillée : [18 — Herbes ultra-low-resource](18-GRASS-LOW-RESOURCE.md).
+
+- **Herbe courte** : couleur/motifs du terrain, pas un mesh par brin. **Herbe haute** : quelques centaines de touffes opaques très simples, `InstancedMesh` par cellules proches, matériau partagé, **aucune ombre**.
+- **Aucune physique/rig ni mise à jour CPU individuelle** ; placement déterministe par biome/seed/cellule, recalcul seulement si entrée de zone ou édition.
+- Vent et réaction des personnages : **déformation locale dans un vertex shader**, racines fixées ; désactiver totalement l'effet si budget saturé.
+- **Profils adaptatifs** : `groundOnly` (aucune herbe 3D), ultra-économique (5–7 m), équilibré (8–12 m), dense (12–18 m). Distances/instances **expérimentales à étalonner**.
+- **Budget commun** avec arbres, bâtiments, foules et horizon : préserver d'abord silhouette du paysage et vitesse de simulation, dégrader l'herbe cosmétique avant la vue panoramique.
+- Cibles de benchmark additionnelles : **CPU < 0,1 ms/frame**, **GPU < 0,5 ms/frame**, **1–4 draw calls** et **< 2 Mio GPU** de ressources pour l'herbe ; non garantis/mesurés.
+- **Futur multijoueur** : aucune synchronisation d'herbe. Utiliser positions de 1–2 avatars prioritaires, texture d'influence optionnelle seulement après mesure ; **aucun traitement de tous les joueurs dans chaque sommet**.
+- Lointain : couleur de terrain et silhouettes/proxies du document 17, **sans brouillard ni bande d'arrêt visible**.
+
 ## 3. Rendu 3D
 
 - Three.js/WebGL2, **peu de matériaux**, éclairage simple, limiter les ombres portées dynamiques et la transparence.
