@@ -210,6 +210,16 @@ La [spécification 19 — Environnement](19-ENVIRONMENT-WEATHER-SKY.md) définit
 
 **Ne pas implémenter de backend météo lors de la campagne solo** au seul motif que ce contrat existe.
 
+## Hydrographie : autorité serveur future, rendu d'eau local
+
+Le [contrat WAT](21-WATER-HYDROLOGY-LOW-RESOURCE.md) distingue un réseau hydrographique **stable**, des volumes de nage/courants **logiques** et des vagues/écumes **strictement visuelles** :
+
+- Le serveur éventuel devient autoritaire sur **règles de courant et niveaux d'eau de gameplay**, mouvements de bateaux/joueurs et éventuels événements de vannes/barrages, **pas** sur chaque animation de surface.
+- Le client reconstruit localement le **WaterLODManager**, les vagues, écumes, reflets stylisés, vues sous-marines et densités en fonction de sa caméra/budget graphique.
+- Pas de diffusion des triangles, particules, phase de mousse, normal maps ou pixels d'océan. La carte V3 et les volumes possèdent des **IDs et versions** réutilisables.
+- Une désactivation de détails au loin **n'interrompt pas** la navigation, l'état autoritaire ou le calcul de collision. Les événements liés à l'eau s'appuient sur `WaterVolumes`, jamais sur le mesh Three.js.
+- **Ne pas coder de serveur maintenant** au seul motif que cette frontière est documentée.
+
 ## 10. Plan de validation futur (gates non exécutés)
 
 | Scénario | Participants | Densité | Gate |
