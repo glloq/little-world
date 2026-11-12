@@ -187,6 +187,16 @@ Les **LOD d'avatars** et les **LOD géographiques** ont des budgets et une perti
 
 **Ne jamais mélanger** la fréquence réseau AOI 2–20 Hz et la distance de rendu de l'horizon ; le monde profond est statique/reproductible côté client. La qualité 30/20 FPS doit être testée avec terrain panoramique **et** foule, pas avec une scène vide.
 
+## Herbes interactives : cosmétique locale, coût borné en foule
+
+Le [cadrage herbes low-resource](18-GRASS-LOW-RESOURCE.md) prépare une réaction au passage d'un ou plusieurs personnages **sans jamais synchroniser une touffe**.
+
+- Tous les clients connaissent les biotopes/terrain compilés et régénèrent localement l'herbe proche ; le serveur n'envoie **ni matrices, ni oscillations, ni positions d'herbes**.
+- La déformation se fonde uniquement sur les positions de joueurs **déjà répliquées par AOI**, en priorisant **1–2 acteurs** (d'autres si budget GPU mesuré).
+- Ne pas effectuer une boucle shader sur tous les avatars d'une foule. Pour une densité élevée, tester éventuellement une **texture d'influence locale** de petite taille, **uniquement après profilage**.
+- Les personnages lointains n'ont pas d'effet sur les touffes 3D du client. Aucun impact sur navigation, collisions, logique ou état autoritaire.
+- Priorité GPU à la **vue panoramique et aux avatars lisibles** ; l'herbe peut passer en `groundOnly` pendant une foule dense.
+
 ## 10. Plan de validation futur (gates non exécutés)
 
 | Scénario | Participants | Densité | Gate |
