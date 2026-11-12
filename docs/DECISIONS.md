@@ -4,7 +4,9 @@
 
 **Références de développement :** [12 — Périmètre et choix G/M/P/I/E/C/Q](12-PROJECT-SCOPE.md), [13 — UX et modèles Studio](13-STUDIO-UX-ARCHITECTURE.md), **[14 — Décisions techniques transversales validées](14-TECHNICAL-CHOICES.md)**, **[15 — Schémas V3 et contrats entre éditeurs](15-STUDIO-DATA-SCHEMAS-V3.md)**, [11 — LOW-RESOURCE](11-LOW-RESOURCE-POLICY.md).
 
-**Cadrage de l'évolution future seulement :** [16 — Multijoueur et optimisation des foules](16-FUTURE-MULTIPLAYER.md). **Le jeu actuel reste solo** ; valider un objectif de capacité ne signifie pas livrer une infrastructure réseau.
+**Cadrage de l'évolution future seulement :** [16 — Multijoueur et optimisation des foules](16-FUTURE-MULTIPLAYER.md).
+
+**Rendu panoramique validé :** [17 — Vue longue portée sans brouillard](17-DISTANT-VIEW-RENDERING.md). Il faut préserver les silhouettes du monde à grande distance sans charger toutes les géométries. **Le jeu actuel reste solo** ; valider un objectif de capacité ne signifie pas livrer une infrastructure réseau.
 
 États :
 - **VALIDÉ** : choisi par l'utilisateur / confirmé précédemment.
@@ -97,6 +99,21 @@
 | **FMP-011** | Aucun socket, `NetworkEntity`, authentification ou métadonnée obligatoire de réplication dans les modèles solo/V3 actuels |
 
 **Détails, valeurs provisoires et tests :** [16-FUTURE-MULTIPLAYER.md](16-FUTURE-MULTIPLAYER.md).
+
+## VALIDÉ — vue panoramique profonde / optimisation du monde
+
+| ID | Choix |
+| --- | --- |
+| **HZ-D01** | **Vue large et profonde sans brouillard pour masquer le clipping** ; préserver reliefs, côtes, îles et grands repères visibles au loin |
+| **HZ-D02** | **Terrain et objets à plusieurs niveaux de détail** ; simplification géométrique progressive, contrôle de l'erreur écran et hystérésis |
+| **HZ-D03** | **Horizon 3D ultra-léger indépendant du terrain détaillé** ; éviter le préchargement des hectares de décors |
+| **HZ-D04** | **Imposteurs 2D/panoramas** lorsque la parallaxe le permet, et skybox/dôme pour le ciel ; éviter l'image de fond unique pour des montagnes approchables |
+| **HZ-D05** | **LODs par famille** : herbes/forêts, bâtiments/ruines, personnages/PNJ, eau, particules, ombres, ressources GPU |
+| **HZ-D06** | **Proxies dérivés de la source V3**, compilés/versionnés, invalidés localement après sculpture ou modifications d'assets |
+| **HZ-D07** | **Budget GPU et comparaison à contenu identique** : triangles + draw calls + overdraw + mémoire + popping ; 30/20 FPS sur PC intégré à vérifier |
+| **HZ-D08** | **Rendu profond cohérent en planage** et en vue panoramique depuis la côte/falaise ; distances LOD provisoires à étalonner |
+
+**Spécification d'implémentation HZ-0…HZ-6 :** [17-DISTANT-VIEW-RENDERING.md](17-DISTANT-VIEW-RENDERING.md).
 
 ## PROPOSÉ — technique
 
