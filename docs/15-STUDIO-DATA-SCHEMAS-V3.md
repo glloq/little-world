@@ -318,6 +318,20 @@ Le [cadrage du futur multijoueur](16-FUTURE-MULTIPLAYER.md) doit être pris en c
 
 Le futur multijoueur utiliserait un serveur autoritaire, des abonnements AOI contextualisés, réplication adaptative du mouvement de 2 à 20 Hz, événements critiques prioritaires, LOD de foule et, si nécessaire, zones d'autorité distinctes des chunks. Ces fonctionnalités sont **hors périmètre de l'implémentation V3 solo**.
 
+## Contrat V3 — dérivés graphiques et arrière-plan lointain
+
+Les choix du [document 17](17-DISTANT-VIEW-RENDERING.md) sont **indépendants du gameplay** :
+
+- `WorldDefinitionV3` et `ChunkSourceV3` continuent à décrire une géographie **réelle et éditable**, jamais un panorama comme source d'autorité.
+- `CompiledWorldManifest` peut référencer des **proxies de relief, silhouettes de forêt, proxies de bâtiments et imposteurs** avec version, empreinte du contenu source et région de validité.
+- Le **compilateur V3** reconstruit/invalide les produits graphiques après sculpture, modifications de biotope/prefab et déplacements de grands repères, **uniquement sur les zones dépendantes**.
+- Le **runtime** décide de ses tiers de détail selon caméra/altitude/erreur écran, pas selon les états de gameplay.
+- Le Studio permet de **prévisualiser horizon/LOD depuis un point de vue**, mais l'auteur n'a pas à paramétrer manuellement la distance de rendu de chaque arbre.
+- Les montagnes, côtes et îles **approchables** utilisent de préférence un proxy 3D ; skybox/texture panoramique réservées au très loin/ciel, avec précalcul quand il est rentable.
+- Les `RenderProxyDescriptor` et `HorizonData` de la spécification 17 sont **illustratifs et facultatifs** tant qu'aucun bench ne justifie le stockage binaire/texture exact.
+
+**Ne pas stocker les proxies dans les sauvegardes de joueur ni introduire de brouillard pour masquer les limites de la carte.**
+
 ## 10. Architecture de code proposée (pas de refonte cosmétique préalable)
 
 ```text
