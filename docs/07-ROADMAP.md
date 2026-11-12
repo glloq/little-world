@@ -151,6 +151,25 @@ Ce chantier vise le **jeu solo immédiatement**, et les profils de foule du **fu
 
 **Principe :** les instruments sont **des presets musicaux**, distincts des sons naturels, des voix et des émetteurs. Limiter les **voix audibles réellement synthétisées**, pas le nombre de créatures logiques. Aucun `AudioContext` par PNJ, aucune Web MIDI API ou SoundFont lourde obligatoire.
 
+## Axe MINE — galeries creusables en couches, ressources et futur serveur
+
+**Décision retenue, non implémentée :** [24 — Mines 2,5D, plusieurs niveaux et synchronisation](24-MINES-MULTILEVEL-LOW-RESOURCE.md).
+
+| Phase | Livrable vérifiable |
+| --- | --- |
+| **MINE-0** | Banc comparatif 2,5D / galeries modulaires / voxels localisés ; mesurer flexibilité et coûts réels |
+| **MINE-1** | Schémas mine/niveaux/chunks/cellules, règles de géologie, IDs et sources V3 distinctes de l'état de partie |
+| **MINE-2** | Creusement local, maillage faces exposées/fusion, frontières des chunks et Undo du test |
+| **MINE-3** | `SurfaceQuery` 3D, collisions entrée/galeries, escaliers/rampes/puits, navigation multiétage |
+| **MINE-4** | Filons de métaux/cristaux déterministes, ressources épuisables et GLB décoratifs |
+| **MINE-5** | Récolte/inventaire/sauvegarde solo, aucun respawn implicite ni duplication |
+| **MINE-6** | Streaming, LOD, culling galeries, éclairage léger, budgets et remeshing sous PERF |
+| **MINE-7** | Contrats autorité serveur **sans backend obligatoire**, intentions, révisions, snapshots/deltas et idempotence |
+| **MINE-8** | Éditeur Studio mines : plan par étage/coupe, entrées/filons/connexions, export ZIP V3 et validation |
+| **MINE-9** | Test concurrence simulée puis multi-client si serveur disponible, stress et GPU intégré |
+
+**Portée** : **autoriser le creusement permanent uniquement dans les zones mines**, sans convertir tout le monde heightfield en voxels. Le serveur et le multijoueur sont **préparés mais différés** ; persistance locale d'abord. Paramètres 1m, 32×32 et 3–8 niveaux **à benchmarker**.
+
 ## Campagne avancée — état livré sur branche
 
 | Domaine | Avant | Après | Statut | Reste à faire |
