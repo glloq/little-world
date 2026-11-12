@@ -230,6 +230,18 @@ Le principe précédent « le joueur ne modifie pas durablement le terrain » re
 - Les collisions 3D souterraines, la navigation interétages et les contraintes eau/mer sont requises avant de déclarer la fonctionnalité jouable.
 - L'éclairage des galeries, les maillages et minerais décoratifs suivent le **budget PERF** sans compromettre collision ni récolte. Valeurs de taille et nombre de niveaux encore à qualifier.
 
+## Extension optionnelle : agriculture riche par parcelles LOW-RESOURCE
+
+**Nouvelle décision produit :** [25 — Agriculture LOW-RESOURCE](25-AGRICULTURE-PARCELS-LOW-RESOURCE.md). L'ancien cadrage « pas d'agriculture complexe **imposée** » reste valable : **l'activité agricole peut être approfondie pour les joueurs intéressés, sans devenir obligatoire**.
+
+- Agriculture **uniquement dans des parcelles autorisées** (polygones et quelques sous-zones), avec semis, saison, météo, irrigation, fertilité, entretien, parasites, rotation, rendement/qualité, récolte et inventaire.
+- Les **parcelles** portent un état agronomique compact ; **pas** d'état physique et de croissance par plant ni de simulation sur chaque frame. Croissance différée **selon temps du monde, résumé climatique historique et événements**, y compris en l'absence du propriétaire.
+- **Agriculteur autorisé** : interface complète et actions. **Passant** : culture/stade/apparence publique seulement. À distance et caméra équivalentes, **même LOD graphique** pour les deux, avec herbes/instances optimisées.
+- `FarmPlotDefinitionV3` dans Studio, `FarmPlotState` dans la **sauvegarde de partie**, autorité serveur et synchronisation **futures** ; pas d'agriculture serveur nécessaire pour la bêta solo.
+- Budget PERF pour rendu, éviction, file d'échéances, mémoire et streaming ; tests de compatibilité avec le terrain, biotope, hydrologie, météo et GPU intégré avant promesse de charge.
+
+**Non livré actuellement** : aucun moteur agricole complet ni système de parcelles partagées sur serveur, seulement le contrat et les jalons `AGRI-0…AGRI-8`.
+
 ## 10. Frontière entre acquis et objectifs
 
 **Sur la branche `feat/living-world-editor` :** vallée de démonstration préservée, données v2 communes et migration v1, terrain local à trois LOD/cache borné, scènes synthétiques 1/2 km, rig rigide animé et GLB original, quatre PNJ animaux à navigation simple, dialogues/flags temporaires, écologie instanciée, atelier unifié avec sculpture/tracés/transformation/historique/IndexedDB/export/test. Ces évolutions sont testées ; elles ne constituent **pas** le Studio spécialisé, la navigation libre hiérarchique ou le streaming complet de 100 km².
