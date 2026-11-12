@@ -169,6 +169,20 @@ Le monde doit disposer d'un **jour/nuit complet**, lever/coucher de soleil, **ci
 
 **Spécification cible et jalons** : [19 — Environnement LOW-RESOURCE](19-ENVIRONMENT-WEATHER-SKY.md). La complexité **physique** du climat reste exclue ; les effets stylisés ont une architecture prévue, pas une implémentation acquise.
 
+## Blender ↔ Studio : création de décors et cartes transférables
+
+**Choix validé :** [20 — Import/export Blender, presets et cartes](20-BLENDER-STUDIO-INTERCHANGE.md). **Blender est l'outil principal de modélisation 3D ; Little World Studio assemble et configure le monde** sans dupliquer un éditeur de meshes, UV, rigs ou matériaux.
+
+- **GLB/glTF** comme format ouvert pour objets, groupes, ruines, maisons, ponts, falaises et grottes ; `.blend` sauvegardé en **source optionnelle**.
+- Studio : **placement, translation XYZ, rotation, échelle, groupement, duplication et alignement terrain** des presets avec hiérarchie/pivots/ancres.
+- Le terrain peut être **importé depuis Blender en heightfield** (avec métadonnées de géographie) ou créé/retouché dans Studio ; arches, surplombs/grottes en GLB modulaires.
+- **Biotopes, masques, densités, végétation, eau, PNJ et interactions** restent éditables dans Studio indépendamment de l'origine Blender.
+- **Import/export des cartes entières** sous forme d'**archives V3 ZIP rééditables avec ressources**, distinctes de l'export GLB d'une sélection ou du build statique.
+- **Packs de presets** importables/exportables entre projets ; mises à jour d'assets non destructives avec IDs et overrides conservés, contrôle licence et budget GPU.
+- Aucune obligation de fournir Blender aux joueurs ; pas de backend en solo, pas de scripts arbitraires importés.
+
+**Statut : spécification cible.** Le code V2 actuel ne dispose pas encore du pipeline d'échange de scène et des archives V3 complètes.
+
 ## 10. Frontière entre acquis et objectifs
 
 **Sur la branche `feat/living-world-editor` :** vallée de démonstration préservée, données v2 communes et migration v1, terrain local à trois LOD/cache borné, scènes synthétiques 1/2 km, rig rigide animé et GLB original, quatre PNJ animaux à navigation simple, dialogues/flags temporaires, écologie instanciée, atelier unifié avec sculpture/tracés/transformation/historique/IndexedDB/export/test. Ces évolutions sont testées ; elles ne constituent **pas** le Studio spécialisé, la navigation libre hiérarchique ou le streaming complet de 100 km².
