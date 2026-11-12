@@ -2,7 +2,7 @@
 
 **Mise à jour : 12 novembre 2026 — limites du jeu et de Little World Studio validées.**
 
-**Références de développement :** [12 — Périmètre et choix G/M/P/I/E/C/Q](12-PROJECT-SCOPE.md), [13 — UX et modèles Studio](13-STUDIO-UX-ARCHITECTURE.md), [11 — LOW-RESOURCE](11-LOW-RESOURCE-POLICY.md).
+**Références de développement :** [12 — Périmètre et choix G/M/P/I/E/C/Q](12-PROJECT-SCOPE.md), [13 — UX et modèles Studio](13-STUDIO-UX-ARCHITECTURE.md), **[14 — Décisions techniques transversales validées](14-TECHNICAL-CHOICES.md)**, [11 — LOW-RESOURCE](11-LOW-RESOURCE-POLICY.md).
 
 États :
 - **VALIDÉ** : choisi par l'utilisateur / confirmé précédemment.
@@ -59,6 +59,15 @@
 | D-043 | **Q3=B : outils génériques du Studio en priorité, puis enrichissement du contenu de carte** |
 | D-044 | **Sauvegardes distinctes** : projets/brouillons auteur et slots de partie joueur, sans écrasement |
 | D-045 | Les modèles de données sont **versionnés et sectorisés** ; compiler les cartes en ressources statiques GitHub Pages |
+| D-046 | **TW-W1 à TW-W6 validés** : heightfield multi-résolution, chunks/LOD, génération + overrides, eau par volumes, modules 3D et biotopes peignables |
+| D-047 | **TE-E1 à TE-E7 validés** : Studio spécialisé + vue globale 2D, prefabs/variantes, inspecteur contextuel, « Jouer ici », validation incrémentale et **Undo/Redo transactionnel commun** |
+| D-048 | **TP-P1 à TP-P6 validés** : familles de rigs, machines à états simples, navigation libre hiérarchique, expressions/animations, horaires et faune à simulation adaptée |
+| D-049 | **TL-L1 à TL-L7 validés** : événements/conditions/actions déclaratifs, séquences, variables typées par portée, références stables et dialogue à embranchements |
+| D-050 | **TG-G1 à TG-G7 validés** : horloge simple, inventaire léger, petites missions, mini-activités par templates, états persistants, sauvegardes multiples, quelques intérieurs |
+| D-051 | **TA-A1 à TA-A6 validés** : GLB optimisés/procédural léger, animations rig + procédurales, vertex colors/atlas, instancing, ambiances audio et catalogue versionné |
+| D-052 | **TT-T1 à TT-T6 validés** : physique ciblée, simulation adaptative, streaming, LOD/instancing/caches, Workers ciblés ; cible PC standard GPU intégré, **à mesurer** |
+| D-053 | **TD-D1 à TD-D6 validés** : manifeste + secteurs, IndexedDB/export, transactions + checkpoints, schémas/migrations, publication CI et tests navigateur |
+
 
 ## PROPOSÉ — technique
 
