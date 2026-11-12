@@ -525,6 +525,53 @@ interface MineChunkPlayerState {
 
 **Porte de qualification** : `export source → import source` sans perte et `save partie → load partie` conservant fouilles/épuisement/inventaire ; anti-double extraction même sous commandes redondantes.
 
+## Contrat V3 — parcelles agricoles, simulation temporelle et droits
+
+**Référence :** [25 — AGRI par parcelles LOW-RESOURCE](25-AGRICULTURE-PARCELS-LOW-RESOURCE.md).
+
+**Séparation obligatoire** :
+- **`FarmPlotDefinitionV3` (auteur)** : `plotId`, polygone en X/Z monde, liens de terrain/eau/sol, ID de zone propriétaire autorisée, cultures/variantes possibles, orientation de rangs, sous-zones et `CropProfile` versionnés. Une parcelle traversant plusieurs chunks garde **un état de référence**, avec index spatial dans chaque chunk touché.
+- **`FarmPlotState` (partie)** : `plotId/revision`, zones, `cropId`, date de semis, `lastEvaluatedWorldTime`, croissance/degree-days, humidité, nutriments, santé, maturité, rendement, précédent cultural et échéance. **Pas** dans le ZIP auteur ni dans les composants GPU.
+- **`ClimateSummary` / `FarmActionEvent` (moteur logique)** : historique climat **agrégé par période** et actions agricoles datées, versionnées/ordonnées, permettant calcul **hors-ligne/retardé** équivalent à l'évaluation continue. Temps monde (pas FPS ou horloge PC libre) et règles quantifiées/versionnées.
+- **`FarmPublicVisualState`** : culture/stade/teinte/présence publique, à côté d'une **vue détaillée autorisée** sol/eau/rendement/stock ; pas de fuite de champs privés via la sérialisation passerelle.
+- **`FarmLODRenderer`** : données visuelles dérivées et jetables (instances/masques/couleur/parcelle) réutilisées par secteurs, sans un `EntityDefinitionV3` par plante ; **LOD selon caméra**, non selon rôle agriculteur/passant.
+
+**Interfaces de départ** (non encore figées en API, voir document 25) :
+```ts
+interface FarmPlotDefinitionV3 {
+  plotId: string;
+  outlineXZ: [number, number][];
+  soilPresetId: string;
+  irrigationSourceRef?: string;
+  seed: number;
+  zoneRefs?: string[];  // zones limitées, pas une entité par plante
+}
+interface FarmZoneState {
+  zoneId: string;
+  cropId: string | null;
+  plantedWorldTime: number | null;
+  lastEvaluatedWorldTime: number;
+  growth: number;
+  soilMoisture: number;
+  soilNutrients: number[];
+  health: number;
+  harvested: boolean;
+}
+interface FarmPlotState {
+  plotId: string;
+  revision: number;
+  zones: FarmZoneState[];
+}
+```
+
+**Validation** : formes polygonales, pas d'auto-intersections ni chevauchement eau/chemins/biotopes protégés, points X/Z finis, pentes et épaisseurs de culture ; références de sol/cultures/irrigation résolues, dates et taux bornés. Permissions d'action **vérifiées côté serveur futur**, jamais déduites d'un champ UI seul.
+
+**Réplication future** : `FarmActionRequest(requestId, plotId, zoneId, action, payload validé)`; transactions **semis/arrosage/engrais/traitement/récolte+inventaire** atomiques, idempotence et révisions ; vue publique **compacte** au passant, propriétaire reçoit état détaillé et droits selon serveur. Aucun transfert de plantes/animations.
+
+**Packaging** : source V3 portable = polygones, profils et assets ; sauvegarde joueur = stades, temps, ressources/quantités et journal/agrégats nécessaires ; caches GPU/instances exclus. Toute migration de seed/règle doit préserver ou traiter explicitement les sauvegardes de culture, sans changer silencieusement les rendements.
+
+**Statut** : cible non implémentée, contrats et 6–12 espèces de démonstration proposés à calibrer.
+
 ## 10. Architecture de code proposée (pas de refonte cosmétique préalable)
 
 ```text
