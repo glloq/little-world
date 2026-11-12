@@ -305,6 +305,15 @@ Le [document 21 — Eau et hydrographie LOW-RESOURCE](21-WATER-HYDROLOGY-LOW-RES
 - Les uniformes de vent/soleil restent partagés avec herbe/eau. **Pas** de recompile shader à chaque changement de météo ou de profil, variantes stables et transitions limitées.
 - Benchmark couplé nuit/lunes, pluie/neige, forêt, village, eau et planage, avec p95/p99, longue frame et **temps GPU réellement mesuré si disponible**.
 
+## Ambiances musicales et sons météo en MIDI/SFX
+
+Le [document 23 — Audio MIDI LOW-RESOURCE](23-MIDI-AUDIO-LOW-RESOURCE.md) exploite `EnvironmentState` **sans ajouter un autre contrôleur de météo**.
+
+- `WorldClock` et la météo sélectionnent des motifs **dans une palette de 5–10 instruments MIDI**, avec transitions musicales (jour/nuit, lever/coucher, pluie/neige, tempête). L'horloge **AudioContext** cadence la lecture, indépendamment de la vitesse de passage des heures en bêta.
+- Pluie, vent, feuillage et éclairs sont des **sons naturels** : quelques boucles/échantillons légers ou bruit synthétique si moins coûteux, **pas** une note MIDI par goutte/flocon.
+- La météo renseigne gain/intensité/événements, `AudioBudgetManager` plafonne **voix/émetteurs/PCM** sous PERF et évite de dédoubler les couches d'ambiance par biome.
+- Tonnerre daté, changement de vent et entrée en zone enneigée déclenchent des **événements sonores**, non des `AudioContext` supplémentaires. Niveaux sonores et effets limités pour ne pas masquer les indices utiles au gameplay.
+
 ## 13. Tests et qualification
 
 **Scénarios** :
