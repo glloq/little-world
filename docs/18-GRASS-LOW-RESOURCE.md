@@ -165,6 +165,15 @@ Le [contrat hydrographique 21](21-WATER-HYDROLOGY-LOW-RESOURCE.md) produit **ber
 - Inspecter CPU génération, GPU shader/fill-rate, draw calls/instances/caches estimés, hystérésis de distance/qualité ; pas de centaines d'effets de passage simulés sur CPU.
 - Éviter de figer les profils herbe sous forme de nombre de triangles seulement : **budget de frame commun** et tests de forêts densément couvertes.
 
+## Ambiance sonore de végétation et budget AUD partagé
+
+Le [document AUD 23](23-MIDI-AUDIO-LOW-RESOURCE.md) conserve la forêt comme **biotope logique** et le bruit de feuillage comme **une ambiance partagée**, pas un son individuel par touffe.
+
+- Vent/feuillage, insectes et oiseaux sont gérés par **une/deux couches d'ambiance et quelques émetteurs proches** ou événements échantillonnés, sans ajouter un `AudioContext` ou `AudioNode` à chaque plante.
+- L'intensité sonore peut suivre le vent/météo global ; le rendu d'herbe `groundOnly` ne coupe **pas** les indices sonores utiles au joueur.
+- Les sons musicaux d'ambiance exploitent **5–10 patches MIDI communs** via séquenceur et synthétiseur partagés. Les bruitages naturels utilisent des samples/loops si moins coûteux.
+- Le `AudioBudgetManager` plafonne voix et mémoire sous PERF, indépendamment de la densité de végétation et du nombre d'instances GPU.
+
 ## 8. Tests et validation
 
 **Scènes et variantes :**
