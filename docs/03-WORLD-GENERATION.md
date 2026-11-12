@@ -1,6 +1,6 @@
 # 03 — Carte, génération et compilation du monde
 
-**Statut : périmètre validé, algorithmes proposés. V1 mono-carte, solo et statique.**
+**Statut : terrain et rivière procéduraux codés en prototype**, mais édition fine, compilation éditable et contrôles de cohérence restant à développer. V1 mono-carte solo statique.
 
 ## Géographie
 
