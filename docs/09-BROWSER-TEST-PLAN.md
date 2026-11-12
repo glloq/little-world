@@ -17,7 +17,14 @@ PC conseillé : Chrome, Edge ou Firefox récents, clavier AZERTY ou QWERTY et so
 - [ ] L'écran d'accueil « Une vallée à explorer » apparaît ; pas d'erreur bloquante de chargement.
 - [ ] Cliquer **Explorer la vallée** ; une scène 3D avec écureuil, vallée, forêt et rivière est visible.
 - [ ] **ZQSD/WASD** : marcher, caméra souris après capture du pointeur, **Shift** pour courir.
-- [ ] **Q / A** produit un déplacement **vers la gauche de l'écran**, **D** vers la droite, après rotation libre de la caméra.
+- [ ] **Q / ←** déplace l'écureuil vers la gauche de l'écran, **D / →** vers la droite. Sur QWERTY, A est réservé au menu d'apparence.
+- [ ] Sans clic, déplacer la souris : la caméra **ne tourne pas**.
+- [ ] Maintenir le clic gauche sur la scène puis déplacer la souris : la caméra tourne ; relâcher le bouton : elle s'arrête.
+- [ ] Maintenir **A** (touche indiquant le caractère A, y compris sur AZERTY) : le menu **Accessoires & émotions** apparaît.
+- [ ] Tout en maintenant A, cliquer sur **Chapeau**, **Sac à dos**, **Pendentif** et **Écharpe** : chaque changement est visible immédiatement ; pendentif et écharpe sont exclusifs.
+- [ ] Essayer les **5 expressions** : joyeux, ravi, surpris, apaisé, déterminé. Vérifier les yeux et la bouche.
+- [ ] Relâcher A : fermeture du menu ; reprendre la marche. Recharger la page : tenue et émotion conservées.
+- [ ] **Membrane invisible hors planage** ; lors du planage, déploiement visible des deux côtés, puis disparition en repliant.
 - [ ] **Espace** au sol : saut unique. **Maintenir** Espace ne doit pas déployer le planeur automatiquement.
 - [ ] Relâcher puis **réappuyer** Espace en l'air : membrane ouverte. Nouvel appui : repli.
 - [ ] Aller dans la rivière : passage à la **nage** ; **Ctrl** descend, **Espace** remonte ; l'oxygène s'affiche.
@@ -34,6 +41,9 @@ PC conseillé : Chrome, Edge ou Firefox récents, clavier AZERTY ou QWERTY et so
 - [ ] Les FPS et la position apparaissent dans le panneau inférieur.
 
 ### Limites intentionnelles
+
+- Le nouvel écureuil se compose de **maillages 3D originaux**, inspirés de la planche conceptuelle fournie ; ce n'est **pas encore** un GLB riggé/animé finement.
+- Le menu de personnalisation est local au navigateur ; le changement de vêtements et d'émotions ne constitue pas une mécanique réseau.
 
 - L'écureuil est un proxy géométrique, pas encore un personnage riggé/animé.
 - Les collisions utilisent la hauteur analytique du terrain ; pas de collisions de bâtiment et de roue.
