@@ -149,5 +149,6 @@ docs/                       # Conception, objectifs et registre de décisions
 - [Instructions de développement pour Codex](AGENTS.md)
 - [Périmètre et limites validés (jeu + Studio)](docs/12-PROJECT-SCOPE.md)
 - [UX du Studio, éditeurs spécialisés et contrats de données](docs/13-STUDIO-UX-ARCHITECTURE.md)
+- [Décisions techniques validées pour tous les systèmes](docs/14-TECHNICAL-CHOICES.md)
 
 **Licence de code :** à définir. Les premiers GLB ont été créés spécifiquement pour Little World ; aucun asset tiers n'est incorporé à ce stade.
