@@ -103,3 +103,19 @@ Pour rendre une nouvelle carte visible de tous sur l'URL Pages :
 - [x] Documenter commandes locales de démarrage, build et aperçu.
 
 > **La CI valide le build, pas le rendu** : vérifier la page dans un navigateur avant de marquer M0 totalement qualifié.
+
+## Évolution vers Little World Studio et une carte plus grande
+
+L'hébergement **reste GitHub Pages** pour le jeu solo et pour les **éditeurs spécialisés**. Ceux-ci peuvent être regroupés dans une application Studio à plusieurs routes et modules chargés à la demande, à condition de conserver des URLs compatibles avec un site statique (pages physiques ou hash routing) et de **ne pas charger les outils auteurs dans le bundle du jeu**.
+
+- **Une carte continue**, limite de format maximale **10 × 10 km** ; bundle monolithique contenant tous les meshes 100 km² interdit comme approche par défaut.
+- Publier un **manifeste et des paquets de secteurs** : les données sont disponibles statiquement, téléchargées selon la position du joueur/caméra.
+- Format auteur dans le Studio : manifeste global, données sectorisées, IDs stables, schémas versionnés, dépendances d'assets explicitement vérifiées.
+- Brouillons auteur / export d'archive : IndexedDB et téléchargement local ; publication uniquement après validation + commit + build GitHub Actions.
+- Le **jeu final dispose de plusieurs sauvegardes de partie locales**, séparées des données auteur et accessibles sans compte/backend.
+- Les dialogues, missions et interactions sont des données déclaratives **compilées dans le site**, pas des scripts téléchargés à la volée.
+- **Limite réelle :** un site statique peut distribuer des milliers de fichiers optimisés, mais ses performances de chargement et de cache doivent être **mesurées** ; ne pas promettre 100 km² à 30 FPS sans benchmark.
+
+Voir [12 — Périmètre du projet](12-PROJECT-SCOPE.md) et [13 — UX Studio](13-STUDIO-UX-ARCHITECTURE.md).
+
+**Statut : objectif d'architecture.** Le prototype actuel ne possède pas encore de compilation/streaming de grande carte ni plusieurs éditeurs spécialisés.
