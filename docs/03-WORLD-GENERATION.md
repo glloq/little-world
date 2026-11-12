@@ -143,6 +143,18 @@ La [spécification audio 23](23-MIDI-AUDIO-LOW-RESOURCE.md) réutilise la répar
 - Le budget voix/PCM et spatialisation est confié à `AudioBudgetManager` sous PERF ; audio suspendu hors présence du joueur ou onglet inactif, **sans altération du monde auteur**.
 - L'archive V3 de carte contient sources MIDI/samples et profils avec références licences, **pas** des milliards d'instanciations sonores.
 
+## Mines creusables : couches souterraines sans voxéliser la carte
+
+Le [contrat MINE 24](24-MINES-MULTILEVEL-LOW-RESOURCE.md) ajoute des **zones souterraines localisées 2,5D par étage** au heightfield extérieur. Ce n'est **pas** un remplacement du générateur de relief ni l'autorisation de creuser tout le monde.
+
+- `MineDefinitionV3` décrit emprise, entrée/portail, `levelId`/altitude/hauteur, couches de matériaux, **seed/strates/filons**, connecteurs escalier/rampe/puits. Les **états de partie** enregistrent excavation et ressources épuisées, séparément des sources Studio.
+- **1 m/cellule, chunk 32×32 cellules, 3–8 étages** sont des hypothèses de développement, pas des paramètres arrêtés. Les chunks de mine sont **distincts des chunks de surface**, avec adresse `mineId/levelId/chunkId`.
+- Excavation → **état d'occupation solide/vide**, parois des seules faces exposées, fusion de faces si rentable, matériaux partagés ; recalcul des **chunks et bordures concernés seulement** et de leurs collisions/navigation.
+- Entrée depuis la surface par ouverture locale/GLB lié à mine ; **ne pas faire de trous dans toute la carte** ni charger les caves depuis le panorama. Les rampes/puits connectent les étages explicitement.
+- Interdictions/diagnostics si mine recoupe lac, mer ou zone interdite ; aucun simulateur d'inondation en V1. Les **filons et cristaux** dépendent de profondeur/roche/seed, pas d'un RNG refait à chaque chargement.
+- Chargement des **seules zones souterraines actives/visibles** sous PERF. Export ZIP V3 = géologie et structure initiale ; creusement d'une partie = sauvegarde de jeu et futur serveur.
+- Toute mise à jour envoyée ultérieurement au serveur est une **intention de creusement**, pas un mesh ni la source auteur remplacée silencieusement.
+
 ## Critères techniques
 
 1. Même seed/versions/paramètres → même génération.
