@@ -156,5 +156,6 @@ docs/                       # Conception, objectifs et registre de décisions
 - [Herbes ultra-économiques : sol, touffes instanciées, passage des personnages et budgets](docs/18-GRASS-LOW-RESOURCE.md)
 - [Environnement LOW-RESOURCE : météo, neige, étoiles, lunes indépendantes, ombres et menu bêta](docs/19-ENVIRONMENT-WEATHER-SKY.md)
 - [Blender ↔ Studio : GLB, création de presets, import/export de scènes et de cartes complètes](docs/20-BLENDER-STUDIO-INTERCHANGE.md)
+- [Eau LOW-RESOURCE : rivières en pente, lacs, cascades, plongée et océan LOD](docs/21-WATER-HYDROLOGY-LOW-RESOURCE.md)
 
 **Licence de code :** à définir. Les premiers GLB ont été créés spécifiquement pour Little World ; aucun asset tiers n'est incorporé à ce stade.
