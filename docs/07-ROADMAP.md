@@ -17,6 +17,16 @@
 
 Ne pas confondre **tests automatiques passés** et **validation visuelle**. Le suivi détaillé figure dans [09-BROWSER-TEST-PLAN.md](09-BROWSER-TEST-PLAN.md).
 
+**Politique générale LOW-RESOURCE :** [docs/11-LOW-RESOURCE-POLICY.md](11-LOW-RESOURCE-POLICY.md). **Objectif validé : 30 FPS nominaux, repli à 20 FPS si nécessaire ; aucun ralentissement du jeu.** La limite de cadence n'est pas encore intégrée au prototype.
+
+### Travail technique P0 à réaliser avant l'extension de carte
+
+- [ ] Ajouter des mesures reproductibles (frametime p50/p95, FPS, draw calls, triangles, chargements, mémoire si accessible).
+- [ ] Découpler cadence d'affichage **30/20 FPS** et pas fixe de simulation proposé **30 Hz**, avec interpolation ; conserver le comportement des commandes.
+- [ ] Suspendre l'activité inutile en arrière-plan et éviter tout rattrapage infini au retour de l'onglet.
+- [ ] Évaluer les performances sur le PC de référence en forêt, planage, bateau, plongée et éditeur.
+- [ ] Ajouter uniquement les mécanismes LOD/chunks/streaming justifiés par les mesures avant de dépasser le monde actuel.
+
 ## Objectif
 
 Développer un **jeu solo exploratoire PC dans le navigateur**, disponible sur **GitHub Pages**, sans serveur au runtime. La première version inclut un écureuil volant, une vallée de **200 × 600 m**, un catalogue d'assets locaux et un éditeur de carte/interactions utilisable dans le navigateur.
@@ -51,7 +61,7 @@ Développer un **jeu solo exploratoire PC dans le navigateur**, disponible sur *
 - `Espace` sur front d'appui = saut ; relâchement et nouvel appui = ouvrir/replier membrane.
 - Transitions sol/air/eau stables ; aucun état bloquant.
 - Rivière/volume d'eau d'essai suffisamment profond pour plonger.
-- Mode debug pour trajectoire, vitesse, hauteur, état et FPS.
+- Mode debug pour trajectoire, vitesse, hauteur, état, FPS **et temps entre images**, incluant la cible nominale 30 et le secours 20.
 - Tests de simulation indépendants du rendu ; validation visuelle dans **Pages**.
 
 ### M2 — Première vallée procédurale
@@ -103,7 +113,7 @@ Développer un **jeu solo exploratoire PC dans le navigateur**, disponible sur *
 **Critères :**
 - Parcours complet de la source à la mer, avec tous les modes de locomotion.
 - Build GitHub Pages stable sur navigateurs PC ciblés.
-- Taille des assets et FPS **mesurés et documentés**, et corrections des points critiques.
+- Taille des assets, FPS, frametimes, draw calls et consommation mémoire quand mesurable **documentés selon la politique LOW-RESOURCE** ; corrections des points critiques.
 - Éditeur utilisable pour retoucher et exporter la carte.
 - Pas de requête obligatoire vers une API serveur ni de donnée secrète dans le build.
 
