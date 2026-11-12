@@ -127,6 +127,7 @@ docs/                       # Conception, objectifs et registre de décisions
 - [Plan de test navigateur](docs/09-BROWSER-TEST-PLAN.md)
 - [Optimisation et extension de la carte](docs/10-PERFORMANCE-ROADMAP.md)
 - [Politique globale LOW-RESOURCE : 30/20 Hz, CPU/GPU, PNJ, éditeur](docs/11-LOW-RESOURCE-POLICY.md)
+- [Instructions de développement pour Codex](AGENTS.md)
 - [Périmètre et limites validés (jeu + Studio)](docs/12-PROJECT-SCOPE.md)
 - [UX du Studio, éditeurs spécialisés et contrats de données](docs/13-STUDIO-UX-ARCHITECTURE.md)
 
