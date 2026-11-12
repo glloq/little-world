@@ -2,7 +2,7 @@
 
 **Mise à jour : 12 novembre 2026 — limites du jeu et de Little World Studio validées.**
 
-**Références de développement :** [12 — Périmètre et choix G/M/P/I/E/C/Q](12-PROJECT-SCOPE.md), [13 — UX et modèles Studio](13-STUDIO-UX-ARCHITECTURE.md), **[14 — Décisions techniques transversales validées](14-TECHNICAL-CHOICES.md)**, [11 — LOW-RESOURCE](11-LOW-RESOURCE-POLICY.md).
+**Références de développement :** [12 — Périmètre et choix G/M/P/I/E/C/Q](12-PROJECT-SCOPE.md), [13 — UX et modèles Studio](13-STUDIO-UX-ARCHITECTURE.md), **[14 — Décisions techniques transversales validées](14-TECHNICAL-CHOICES.md)**, **[15 — Schémas V3 et contrats entre éditeurs](15-STUDIO-DATA-SCHEMAS-V3.md)**, [11 — LOW-RESOURCE](11-LOW-RESOURCE-POLICY.md).
 
 États :
 - **VALIDÉ** : choisi par l'utilisateur / confirmé précédemment.
@@ -68,6 +68,15 @@
 | D-052 | **TT-T1 à TT-T6 validés** : physique ciblée, simulation adaptative, streaming, LOD/instancing/caches, Workers ciblés ; cible PC standard GPU intégré, **à mesurer** |
 | D-053 | **TD-D1 à TD-D6 validés** : manifeste + secteurs, IndexedDB/export, transactions + checkpoints, schémas/migrations, publication CI et tests navigateur |
 
+
+| D-054 | **Studio V3 : trois domaines distincts** — projet auteur sectorisé, monde compilé et sauvegardes joueur ; versions et validations indépendantes |
+| D-055 | **V3 : registre mondial d'IDs stables et références typées** ; propriétaire par secteur et index logique accessible sans chargement 3D |
+| D-056 | **V3 : entités à composants typés, prefabs versionnés, variantes et overrides locaux** ; pas d'ECS/framework lourd obligatoire |
+| D-057 | **V3 : StudioContext partagé** (projet, sélection, caméra, module), éditeurs spécialisés et affichage contextuel |
+| D-058 | **V3 : historique par commandes réversibles, transactions et checkpoints**, sans copie intégrale de carte à chaque édition |
+| D-059 | **V3 : schémas dialogues/PNJ/événements/activités indépendants**, portées de variables typées et logique hors secteurs chargés |
+| D-060 | **V3 : migration V1/V2 vers V3 pure, non destructive et testée**, sans casser les anciennes cartes et sans qualifier le V3 comme déjà livré |
+| D-061 | **V3 : validation incrémentale + préflight global, compilation locale des secteurs** ; erreurs et liens cassés navigables depuis le Studio |
 
 ## PROPOSÉ — technique
 
