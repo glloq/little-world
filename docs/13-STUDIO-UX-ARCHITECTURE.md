@@ -247,6 +247,18 @@ La [spécification 20](20-BLENDER-STUDIO-INTERCHANGE.md) détermine une interfac
 - Une cascade GLB Blender reste **un décor graphique** tant que son volume, ses niveaux et sa navigation ne sont pas définis dans l'hydrographie V3 ; export archive Studio portable.
 - Les options GPU avancées restent repliées ; l'auteur ne règle pas manuellement chaque triangle d'une rivière.
 
+## Bêta : panneau Ressources / Performance et budget du Studio
+
+**Spécification :** [22 — ResourceBudgetManager](22-RESOURCE-BUDGET-MANAGER.md). Le Studio ne doit pas multiplier les sous-menus d'optimisation à côté des éditeurs Eau, Herbe, Météo et Assets.
+
+**Un seul panneau technique bêta**, organisé **Résumé / Qualité & LOD / Chargement & mémoire / Scénarios**, accessible indépendamment du module actif :
+- **Résumé** : FPS réel/cible, frametimes p50/p95/p99, frames >100 ms, CPU sim/update/submit, GPU **si disponible**, résolutions réelle/CSS, draw calls, triangles et qualité effectivement appliquée.
+- **Qualité** : Auto/Éco/Équilibré/Qualité, plafonds de résolution, profils ombres, végétation/eau/météo, raisons des dégradations ; options avancées **repliées**, mode `freezeAuto` pour benchmark uniquement.
+- **Chargement/mémoire** : secteurs actifs/résidents/en attente, occupations RAM/VRAM **estimées**, GLB/texture/geometry partagés, files de job et priorités, préchargement, annulation de génération périmée.
+- **Scénarios** : capturer caméra/seed/viewport/qualité/événements avec export JSON de mesure, comparaison stable sur GPU réel ou SwiftShader, **aucune télémétrie externe**.
+- **Éditeur** : préserver gizmos, Undo/Redo, sauvegarde et apparence de l'asset sélectionné ; repousser build/imports/miniatures lourds et **ne rendre que sur changement si la vue est idle**.
+- La **qualité est locale à l'appareil et temporaire**, non incluse dans l'archive auteur V3 ni imposée par un preset Blender. Le playtest utilise le même gestionnaire que le jeu, pas un deuxième.
+
 ## 10. Politique UX et performance
 
 - Ne pas afficher toutes les catégories et réglages à la fois ; le contexte détermine l'inspecteur.
