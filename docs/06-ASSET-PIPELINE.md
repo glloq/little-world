@@ -189,6 +189,17 @@ Voir [21 — Eau LOW-RESOURCE](21-WATER-HYDROLOGY-LOW-RESOURCE.md). Les presets 
 - Ne pas importer une mine entière avec tous ses étages, son minerai caché et ses voxels rendus comme un seul GLB monolithique. En multijoueur futur, les filons secrets restent côté autorité serveur.
 - Les assets AUD de creusement/récolte/ambiance grotte sont émis **seulement près du joueur**, sans un AudioNode par cellule/rocher.
 
+## Assets de cultures et parcelles : instancing, stades et coût borné
+
+**Référence :** [25 — AGRI par parcelles LOW-RESOURCE](25-AGRICULTURE-PARCELS-LOW-RESOURCE.md).
+
+- Préparer **quelques profils d'espèces** (p. ex. céréales/légumes) avec 2–4 variantes visuelles de stades ou évolution simple d'échelle/couleur. **Pas de mesh/texture unique pour chaque plant**.
+- Assets proches : low-poly opaques, géométrie/matériau mutualisés et **`InstancedMesh` par groupes spatialement cullables** ; culture mature/semis avec variation artistique déterministe par `plotId`/seed.
+- **Rangs intermédiaires** : géométries simples/fusionnées ; lointain : **masques de champ et coloration du heightfield**, sans plantes individuelles ni animation GPU lourde.
+- La **définition de culture** décrit durée/degrés-jours, besoins eau/température/nutriments, rendu/stade et droits de ressources ; **un GLB Blender n'est pas une simulation agronomique ni une sauvegarde de récolte**.
+- Import/export Studio V3 : sources `CropProfile`, assets GLB/presets de ferme, rangs/sols, licences/hashes, **aucun buffer d'instances ni état de récolte privé**.
+- Profiler en scènes champ dense + panorama : triangles, draw calls, fill-rate, VRAM estimée, temps de génération, cache/shared ownership et compatibilité ciel/météo/herbe sans doublon.
+
 ## Qualification
 
 - Fichier présent, path valide après build GitHub Pages.
