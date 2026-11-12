@@ -20,7 +20,21 @@ const scene=new THREE.Scene();
 configureScene(scene);
 const camera=new THREE.PerspectiveCamera(66,1,.1,750);
 const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
-renderer.setPixelRatio(Math.min(window.devicePixelRatio,1.75));
+const quality=document.querySelector<HTMLSelectElement>('#quality')!;
+const qualityRatios={low:1,medium:1.35,high:2} as const;
+type RenderQuality=keyof typeof qualityRatios;
+const remembered=(()=>{try{return localStorage.getItem('little-world-quality')}catch{return null}})();
+if(remembered && remembered in qualityRatios)quality.value=remembered;
+function applyQuality(){
+  const mode=quality.value as RenderQuality;
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio,qualityRatios[mode] ?? 1.35));
+  resize();
+}
+quality.addEventListener('change',()=>{
+  try{localStorage.setItem('little-world-quality',quality.value)}catch{/* optional */}
+  applyQuality();
+});
+applyQuality();
 renderer.outputColorSpace=THREE.SRGBColorSpace;
 renderer.toneMapping=THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure=1.1;
