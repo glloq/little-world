@@ -1,10 +1,14 @@
 # 10 — Performance et agrandissement futur de la carte
 
-**12 novembre 2026 — premiers optimisations implémentées, mesures terrain utilisateur à recueillir.**
+**12 novembre 2026 — premières optimisations implémentées, mesures sur PC utilisateur à recueillir.**
+
+**Document de référence pour les budgets globaux : [11 — Politique LOW-RESOURCE](11-LOW-RESOURCE-POLICY.md). Objectif validé : 30 FPS nominaux, secours 20 FPS, simulation indépendante.**
 
 ## Objectif
 
 Préparer Little World (actuellement **200 × 600 m**) à devenir plus vaste, sans sacrifier le rendu low-poly organique ni ajouter prématurément un moteur de streaming complexe.
+
+Le projet vise désormais **30 images/s en fonctionnement normal** et autorise une baisse jusqu'à **20 images/s** si nécessaire, sans faire varier la vitesse des déplacements. Le joueur doit rester réactif à ces deux cadences ; le rendu 20 FPS est un filet de secours, non une excuse pour ne pas optimiser les assets et la simulation.
 
 L'objectif est d'**augmenter progressivement les dimensions seulement après mesures**. Ce document ne fixe **aucun chiffre FPS, triangles, RAM ou draw calls comme atteint** ; seuls les tests sur un navigateur PC peuvent valider les performances réelles.
 
@@ -37,9 +41,13 @@ Tester sur un même PC et avec les trois réglages de qualité :
 | Port et bateau en déplacement | À mesurer | À mesurer | À mesurer | |
 | Éditeur, après plusieurs régénérations | À mesurer | À mesurer | À mesurer | |
 
-Compléter par temps de chargement, taille JS/GLB, usage mémoire GPU (si profilage navigateur disponible), coûts de la simulation (CPU) et garbage collection.
+Compléter par temps de chargement, taille JS/GLB, usage mémoire GPU (si profilage navigateur disponible), coûts de la simulation (CPU), garbage collection **et frametimes p50/p95 à 30/20 FPS**. Mesurer le mode dégradé sans changer la vitesse du joueur ou du bateau.
 
 Les chiffres du panneau `renderer.info` sont les **triangles réellement soumis** au rendu de la frame, pas nécessairement la géométrie totale résidente en VRAM.
+
+## Gate préalable à une carte étendue
+
+Avant tout streaming ou agrandissement significatif, instrumenter les **budgets globaux** ([LOW-RESOURCE](11-LOW-RESOURCE-POLICY.md)) et mesurer la scène à **30 FPS**, puis à **20 FPS si nécessaire**. Les plafonds indicatifs (draw calls, triangles, téléchargement, mémoire) sont des garde-fous, pas des gains déjà constatés. Mettre d'abord en place le régulateur d'affichage, la simulation indépendante et les mesures ; garder des scénarios d'essai identiques.
 
 ## Étape suivante : culling et LOD
 
