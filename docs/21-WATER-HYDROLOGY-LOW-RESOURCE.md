@@ -243,6 +243,16 @@ La [spécification PERF](22-RESOURCE-BUDGET-MANAGER.md) fournit le **budget glob
 - Vue sous-marine, profondeur, niveaux de lacs, volumes/courants, bateau/nage **ne varient jamais** avec une décision de budget graphique.
 - Benchmarks identiques rive/planage/plongée/mer entière avec effet eau coupé puis activé, contrôle p95/p99/frametimes, GPU optionnel, oscillation LOD/hystérésis et intégration météo/herbe/ombres.
 
+## Audio de l'eau : bruitages locaux et budget AUD/PERF
+
+Le [document 23 — Audio MIDI et échantillons](23-MIDI-AUDIO-LOW-RESOURCE.md) décrit l'ambiance sonore **distincte de la géométrie d'eau et des notes MIDI musicales**.
+
+- Rivière/cascade/rapides/mer = **émetteurs logiques** reliés à `WaterNetwork` ou aux volumes, mais seulement **quelques sources audio proches et audibles**. Ne pas créer un synthétiseur ou nœud audio par tronçon/triangle.
+- Cascade et rivière : 1 boucle/échantillon court partagé (ou bruit filtré si benchmark avantageux), gain/pitch liés à proximité/intensité/importance, atténuation `equalpower` simple.
+- En immersion : adapter la **teinte sonore/filtrage léger** si pertinent, sans gros moteur d'occlusion ou reverb par volume. Nage/bateau restent logiquement identiques si le son est coupé.
+- Les LOD graphiques d'océan/rapides **ne définissent pas** les événements sonores ou l'accessibilité ; culling audio par proximité et budget propre sous `ResourceBudgetManager`.
+- Ne pas synthétiser les remous et gouttelettes en notes MIDI ou en milliers de petites sources ; priorité au coût CPU, à l'empreinte PCM et à la lisibilité du mixage.
+
 ## 11. Phases, tests et gates
 
 | Phase | Livrable / validation |
