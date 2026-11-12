@@ -80,6 +80,17 @@ Appliquer des marges/hystérésis aux seuils pour empêcher une alternance de mo
 
 **Pas de synchronisation joueur, de prédiction réseau ni de serveur en V1.** Éviter néanmoins de mélanger logique et rendu : un éventuel mode en ligne pourra réutiliser le contrôleur et les commandes.
 
+## Courants, cascades et immersion : contrat de gameplay LOW-RESOURCE
+
+**Cible d'évolution** : [21 — Eau, courant et LOD](21-WATER-HYDROLOGY-LOW-RESOURCE.md). Le prototype conserve sa nage, plongée et bateau actuels pendant l'évolution vers le réseau V3.
+
+- Le mode `swim/dive` dépend de la **profondeur/volume logique de l'eau**, non du mesh visible ou de son LOD ; **la caméra** décide indépendamment de la teinte/visibilité sous-marine.
+- La **transition caméra** au-dessus/dessous utilise hystérésis (pas de flicker à la surface). La position du personnage sous l'eau ne suffit pas à définir l'effet si la caméra reste hors de l'eau.
+- Le **courant** vient de la tangente et de l'intensité de la rivière/canal, évalué uniquement au pas fixe pour les agents concernés ; pas de simulation physique du flux pour toutes les particules.
+- Les **rapides et cascades** marquent des segments dont la navigation peut être restreinte. Une cascade n'est ni un lac horizontal ni une surface que le bateau peut traverser sans règles explicites.
+- Le volume d'eau fonctionne **identiquement** en LOD0 et LOD3, même en qualité minimale sans vagues ; les effets de sillages et gouttes sont purement locaux et visuels.
+- Tester la pente de la rivière, rive, bateau, cascade, lac, plongée, sortie d'eau, caméra au seuil, stabilité à 20/30/60 FPS et absence d'altération des contrôles du joueur.
+
 ## Tests obligatoires
 
 1. Espace maintenu produit **un seul saut**.
