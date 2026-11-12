@@ -114,6 +114,25 @@ Ce chantier vise le **jeu solo immédiatement**, et les profils de foule du **fu
 
 **Priorité :** ne pas étendre l'animation aux grandes étendues d'eau éloignées ; les distances 0–15, 15–60, 60–250 et >250 m sont **provisoires** et doivent être ajustées par taille écran, altitude, visibilité et budget partagé. L'eau lointaine reste visible, mais essentiellement statique.
 
+## Axe PERF — ResourceBudgetManager transversal et optimisation maîtrisée
+
+**Architecture approuvée pour le développement, gains non démontrés :** [22 — ResourceBudgetManager, mémoire, streaming, LOD et diagnostics](22-RESOURCE-BUDGET-MANAGER.md).
+
+| Phase | Livrable / gate |
+| --- | --- |
+| **PERF-0** | Audit `PresentationBudget`, `FrameClock`, terrain/ecology/GLB, Studio et baselines mesurables |
+| **PERF-1** | `PerfSampler` + p50/p95/p99, longues frames, métriques CPU séparées, timer GPU optionnel et honnête |
+| **PERF-2** | **ResourceBudgetManager unique** : reprendre la politique 3/12 s, adaptation résolution, 30/20 et consommateurs existants |
+| **PERF-3** | Adaptateurs de budget pour terrain/horizon, herbe, ombres, eau, météo, personnages/PNJ et assets |
+| **PERF-4** | **ResourceRegistry** : coût estimé CPU/GPU, refcounts GLB/texture/geometry, cache borné et éviction sans fuite |
+| **PERF-5** | **WorkScheduler** : quotas de temps CPU, générations/uploads bornés, priorité au proche et anticipée en planage |
+| **PERF-6** | LOD par taille projetée/importance, streaming directionnel, culling hiérarchique sans couper l'horizon |
+| **PERF-7** | Menu bêta **Ressources/Performance**, Auto/Éco/Équilibré/Qualité, export scénarios, Studio idle |
+| **PERF-8** | Tests CPU/GPU réels, p95/p99, longue session, scenes océan/forêt/village, cross-systèmes |
+| **PERF-9** | Seuils calibrés, protocoles de régression, garde-fous de release et preuve d'absence de régression gameplay |
+
+**Règles** : `FrameClock` conserve le pas fixe 30 Hz, **un seul** contrôleur de dégradation, pas de nouvelle boucle d'animation ; GPU `renderSubmitMs` reste du CPU, VRAM seulement estimée, FPS/10×10 km **non garantis** sans benchmarks. Les budgets PERF arbitrent HZ/GR/ENV/BL/WAT, pas l'inverse.
+
 ## Campagne avancée — état livré sur branche
 
 | Domaine | Avant | Après | Statut | Reste à faire |
