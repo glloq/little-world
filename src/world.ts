@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { WORLD_LENGTH, WORLD_WIDTH, mulberry32, riverLevel, riverX, terrainHeight, waterSurface, smoothstep } from './terrain';
 
 export type AssetId = 'nature.pine' | 'nature.oak' | 'nature.rock' | 'architecture.cottage' | 'props.crate' | 'props.lantern';
@@ -211,6 +212,12 @@ function createForest(root: THREE.Group, seed: number, density: number): void {
   rock.instanceMatrix.needsUpdate = true;root.add(rock);
 }
 
+const modelPaths: Partial<Record<AssetId, string>> = {
+  'nature.pine':'models/pine.glb',
+  'nature.rock':'models/rock.glb',
+  'props.crate':'models/crate.glb',
+};
+const modelLoader = new GLTFLoader();
 export function createAsset(id: AssetId): THREE.Group {
   const g = new THREE.Group();
   if (id === 'nature.pine') {
@@ -236,6 +243,17 @@ export function createAsset(id: AssetId): THREE.Group {
     box(g,mat(0xffd687),.85,1,.85,0,3.7,0);
     box(g,darkWood,1.1,.25,1.1,0,4.4,0);
     mesh(new THREE.ConeGeometry(.7,.62,4),roof,g,0,4.85,0);
+  }
+  const path=modelPaths[id];
+  if(path){
+    modelLoader.load(import.meta.env.BASE_URL + path, (gltf)=>{
+      if(!g.parent)return;
+      for(const old of [...g.children]){
+        old.traverse(child=>{const m=child as THREE.Mesh;if(m.geometry)m.geometry.dispose();});
+      }
+      g.clear();
+      g.add(gltf.scene);
+    },undefined,(e)=>console.warn('GLB indisponible, modèle procédural utilisé',path,e));
   }
   return g;
 }
@@ -274,6 +292,7 @@ function createVillage(root: THREE.Group): { wheel: THREE.Group; millPosition: T
   cylinder(boat,darkWood,.12,.13,7,0,4.1,.4);
   mesh(new THREE.PlaneGeometry(4.1,5.8),new THREE.MeshLambertMaterial({color:0xf3ddb2,side:THREE.DoubleSide}),boat,2.1,4.25,.4);
   const lantern=createAsset('props.lantern');lantern.position.set(-29,1,205);root.add(lantern);
+  const crate=createAsset('props.crate');crate.position.set(x-5,terrainHeight(x-5,z+11),z+11);root.add(crate);
   return {wheel,millPosition};
 }
 
