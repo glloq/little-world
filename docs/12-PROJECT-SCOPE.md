@@ -218,6 +218,18 @@ Le monde doit disposer d'un **jour/nuit complet**, lever/coucher de soleil, **ci
 - **Fichiers portables V3** et builds statiques contiennent les sources licites et leurs dépendances, pas de grosse banque GM, MIDI matériel ou serveur nécessaires.
 - **Non implémenté à date** : aucune qualité ni performance MIDI garantie par le cadrage.
 
+## Nouvelle exception au monde non modifiable : mines creusables uniquement
+
+**Décision ajoutée :** [24 — Mines 2,5D LOW-RESOURCE](24-MINES-MULTILEVEL-LOW-RESOURCE.md).
+
+Le principe précédent « le joueur ne modifie pas durablement le terrain » reste vrai **sur la surface et pour le terrain général**, mais fait désormais **exception pour les mines autorisées** : le joueur peut **creuser des galeries persistantes**, accéder à **plusieurs étages** via escaliers/rampes/puits et **récolter métaux/cristaux épuisables**. **Pas de terrassement libre de la carte** ni simulation voxel des 100 km².
+
+- Chaque mine est **une zone locale en couches 2,5D** sous le heightfield, avec entrées connectées au terrain extérieur et geologie/presets initialisés par le Studio.
+- **État de partie séparé** : cellules creusées, gisements épuisés et inventaire persistés localement pendant le jeu solo. Une modification d'auteur Studio n'efface pas les parties existantes.
+- **Serveur autoritaire futur** pour creusement partagé, transactions et deltas de chunks ; le prototype WebGL/GitHub Pages actuel n'a pas de serveur de jeu.
+- Les collisions 3D souterraines, la navigation interétages et les contraintes eau/mer sont requises avant de déclarer la fonctionnalité jouable.
+- L'éclairage des galeries, les maillages et minerais décoratifs suivent le **budget PERF** sans compromettre collision ni récolte. Valeurs de taille et nombre de niveaux encore à qualifier.
+
 ## 10. Frontière entre acquis et objectifs
 
 **Sur la branche `feat/living-world-editor` :** vallée de démonstration préservée, données v2 communes et migration v1, terrain local à trois LOD/cache borné, scènes synthétiques 1/2 km, rig rigide animé et GLB original, quatre PNJ animaux à navigation simple, dialogues/flags temporaires, écologie instanciée, atelier unifié avec sculpture/tracés/transformation/historique/IndexedDB/export/test. Ces évolutions sont testées ; elles ne constituent **pas** le Studio spécialisé, la navigation libre hiérarchique ou le streaming complet de 100 km².
