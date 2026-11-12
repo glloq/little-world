@@ -225,6 +225,21 @@ Référence : [23 — Audio LOW-RESOURCE](23-MIDI-AUDIO-LOW-RESOURCE.md).
 - Import Studio ZIP source conserve seed, filons, niveaux et connecteurs ; **save joueur** conserve cellules creusées et épuisement, inventaire. Aucun overwrite silencieux entre ces domaines.
 - Escaliers/puits, entrée de surface, interactions avec volumes eau, PNJ et audio sont des interfaces explicites, pas des exceptions invisibles dans le heightfield global.
 
+## Agriculture par parcelles : état daté, calcul différé et deux vues de données
+
+**Architecture cible :** [25 — Agriculture LOW-RESOURCE](25-AGRICULTURE-PARCELS-LOW-RESOURCE.md).
+
+`FarmPlotDefinitionV3` (source Studio) + `CropCatalog` + `EnvironmentTimeline/ClimateSummary` → **`FarmSimulation`** évaluée **sur commande/lecture autorisée/échéance** → `FarmPlotState` en sauvegarde de partie ; `FarmPublicVisualState` et **`FarmLODRenderer`** sont des vues **dérivées**.
+
+- **Aucun tick 30 Hz par parcelle, encore moins par plant.** Les résumés climatiques par période et les actions agricoles datées permettent de progresser hors présence, à résultats reproductibles.
+- `FarmEventScheduler` = **file d'échéances bornée**, `LocalFarmRepository` pour le solo, futur serveur autoritaire sur `Plant/Irrigate/Fertilize/Treat/Harvest` et transactions d'inventaire.
+- Requête **propriétaire/ouvrier** pour sol/eau/santé/rendement et commandes ; **visiteur** reçoit seulement `plotId`, stade et infos publiques selon autorisations. **LOD visible** déterminé par caméra/importance/budget, pas par droits.
+- `FarmLODRenderer` en instancing proche, rangs simplifiés puis champs de couleur/masque lointains ; caches matériels/LOD sous `ResourceBudgetManager`.
+- **Validation spatiale** au Studio des parcelles contre terrain/eau/chemins/biotopes/objets. Source/partie/visuals distincts, IDs stables et invalidation locale.
+- Le futur serveur diffuse **snapshots/deltas à changements**, non plantes/vents/cycles par frame ; horloge et historiques météo autoritaires plus tard, sans backend nécessaire à la bêta solo.
+
+**Non implémenté actuellement** : contrats conçus pour le développement incrémental `AGRI-0…AGRI-8`.
+
 ## Compatibilité avec un futur multijoueur (non implémenté)
 
 **Contrat de préparation**, cf. [16 — Architecture multijoueur future](16-FUTURE-MULTIPLAYER.md) :
