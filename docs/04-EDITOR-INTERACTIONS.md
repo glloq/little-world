@@ -213,6 +213,18 @@ Voir [22 — ResourceBudgetManager](22-RESOURCE-BUDGET-MANAGER.md) : le Studio d
 - Undo/Redo des décisions auteur et rétablissement des états de test ; export ZIP **source de la mine** distinct des **sauvegardes de partie creusée**. Les résultats serveur futurs ne remplacent pas l'archive auteur.
 - Inspecteur avancé PERF : nombre de chunks/étages actifs, temps remeshing, collisions, secteurs/ressources, aucun affichage des mines non visibles depuis le ciel.
 
+## Éditeur agricole — parcelles et cycles de culture
+
+**Contrat :** [25 — AGRI par parcelles LOW-RESOURCE](25-AGRICULTURE-PARCELS-LOW-RESOURCE.md).
+
+- **Outil Parcelle** : polygone sur terrain, orientation/densité des rangs, bordures, pentes, source d'eau, sols, cultures autorisées, **sous-zones facultatives**.
+- **Bibliothèque Cultures** : profils légers paramétrables (saisons, température/humidité, croissance, engrais/soins, stades visuels, rendement, qualité et licence d'asset).
+- Aperçu **temps/saison** et stades/LOD : plante proche instanciée, rangs simplifiés puis teinte de parcelle lointaine ; pas de placement d'un `EntityDefinitionV3` par plant.
+- Inspecteur **agriculteur autorisé** (humidités, nutriments, santé, historique, actions) distinct de la **vue passant** (apparence et informations publiques). Même résolution de rendu à caméra équivalente.
+- **Playtest agricole sur état jetable** et flux de sauvegarde de partie distinct de l'export ZIP source Studio ; Undo/Redo des limites/sous-zones et validation intersections avec eau/chemins/biotopes/maisons.
+- Panneau bêta : forcer 10 jours d'absence fictifs, comparer connecté/déconnecté, déclencher sécheresse/pluie/gel, inspecter historique climatique, profils de cultures, mémoire et files d'échéances.
+- Ne pas transformer l'interface en logiciel agronomique complet ni obliger le joueur occasionnel à gérer l'engrais et les maladies.
+
 ## 9. Critères d'acceptation
 
 1. Créer/charger une carte, peindre un relief et un biome, sauvegarder, annuler, recharger : données identiques.
