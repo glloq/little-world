@@ -277,6 +277,21 @@ La [spécification 23](23-MIDI-AUDIO-LOW-RESOURCE.md) ajoute un **éditeur audio
 
 **Parcours d'essai** : créer 5 patches, importer deux MIDI, mapper les pistes, associer une musique à forêt/nuit, placer un chant d'oiseau et une cascade échantillonnée, tester transition et portée, exporter ZIP, réimporter et vérifier aucune dépendance perdue.
 
+## Little World Studio — éditeur de mines 2,5D par étage
+
+**Cible validée :** [24 — Mines creusables multi-niveaux](24-MINES-MULTILEVEL-LOW-RESOURCE.md). Le Studio **n'est pas** un éditeur voxel général : il compose une mine localisée à partir de **couches de cellules**, filons et connecteurs.
+
+**Outils** :
+- **Créer une mine** : entrée sur la carte extérieure, emprise creusable/zone protégée et géologie initiale.
+- **Choisir un niveau** dans une liste compacte, avec altitude Y, hauteur de galerie et plan de l'étage ; **vue en coupe** facultative pour les superpositions et contraintes.
+- **Géologie** : matériaux terre/roche/dure, filons fer/cuivre/cristaux, intensité/rareté/quantités, cavités de départ et seed ; afficher des masques de minerai plutôt que chaque fragment.
+- **Connexions** : puits, rampe, escalier par marqueurs entre niveaux, collision et navigation vérifiées automatiquement.
+- **Décor** : GLB low-poly de portes, soutènements, torches, rails/cristaux/roches ; aucune fusion permanente de la géométrie décorative avec les cellules logique.
+- **Test creusement** sur un **état joueur jetable**, aperçus de cellules, obstacles et récolte ; bouton de retour au projet auteur sans importer les excavations par défaut.
+- **Exporter/importer** mine source avec ZIP V3 ; **les sauvegardes excavées des joueurs restent séparées**. Éventuelles options serveur, synchronisation et statut réseau dans le **jeu futur**, pas de contrôle d'autorité actuellement simulé comme fonctionnel.
+
+**Validation contextuelle** : niveau qui recoupe un autre, connecteur absent, entrée mal ouverte, volume d'eau/lac/mer, collisions ou gisement hors emprise ; surligner les secteurs concernés et proposer correction **sans destruction silencieuse**. Statistiques PERF de meshes visibles, collisions, temps remeshing et chunks actifs.
+
 ## 10. Politique UX et performance
 
 - Ne pas afficher toutes les catégories et réglages à la fois ; le contexte détermine l'inspecteur.
