@@ -225,6 +225,15 @@ La [spécification 23 — Audio MIDI LOW-RESOURCE](23-MIDI-AUDIO-LOW-RESOURCE.md
 - L'importance audio (signal de gameplay, objet proche) est **distincte** de l'importance d'un monument à l'écran ; `AudioBudgetManager` sous PERF gère voix, spatialisation et cache PCM indépendamment des LOD terrain/eau/ombre.
 - Le trajet rapide en planage ou bateau permet de précharger légèrement le prochain profil sonore sans télécharger toutes les ambiances des îles lointaines.
 
+## Mines souterraines et rendu lointain
+
+Le [contrat MINE 24](24-MINES-MULTILEVEL-LOW-RESOURCE.md) n'autorise pas à réduire la visibilité du monde extérieur pour masquer les coûts des tunnels.
+
+- Vue depuis le ciel/plannage : **pas de chargement des galeries enfouies**, sauf une éventuelle **entrée/structure visible en surface** en GLB/LOD normal. Les montagnes/îles et leur horizon restent visibles.
+- Dans les mines, **culling par salles/galeries et connecteurs** : ne dessiner que les faces exposées et couloirs accessibles à la vue/portes, pas tous les étages sous le joueur.
+- Les murs/roches/minerais et cristaux sont des LOD locaux, géométrie low-poly, sans terrains voxel mondiaux ni émission de lumière GPU lourde.
+- Une mine ouverte près de l'extérieur peut présenter des coupes/portails ; éviter les **trous de terrain** non voulus et les effets de culling qui font disparaître les passages observables.
+
 ## 9. Tests et portes de qualification
 
 **Scènes à couvrir :**
