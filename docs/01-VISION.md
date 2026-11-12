@@ -72,6 +72,12 @@ Le [contrat AUDIO 23](23-MIDI-AUDIO-LOW-RESOURCE.md) prévoit **5–10 instrumen
 
 La qualité sonore est pilotée par le [budget transversal PERF](22-RESOURCE-BUDGET-MANAGER.md) : polyphonie, sources 3D et mémoire PCM plafonnées, lecture MIDI **indépendante des FPS**. **Choix de conception, non fonctionnalité déjà livrée.**
 
+## Mines creusables à niveaux : exception locale à la surface immuable
+
+**Nouveau choix validé :** [24 — Mines creusables 2,5D LOW-RESOURCE](24-MINES-MULTILEVEL-LOW-RESOURCE.md). Le monde extérieur reste un **heightfield non creusable durablement par les joueurs** ; des **mines localisées** permettent toutefois de **creuser des galeries par étage**, descendre par rampes/escaliers/puits, collecter **métaux/cristaux**, puis **sauvegarder** les excavations et gisements épuisés.
+
+Le système **n'est pas** un terrain voxel mondial. Les maillages souterrains sont dérivés des seules faces excavées et chargés localement. Les données V3 auteur sont distinctes des états de partie. **Un serveur autoritaire pour partager les mines est prévu mais pas encore implémenté.**
+
 ## État d'implémentation
 
 **Prototype déjà codé :** vallée 200 × 600 m, personnage procédural, déplacement/planage/nage, bateau, roue de moulin, premier catalogue GLB et éditeur de placement local.
