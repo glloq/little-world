@@ -1,97 +1,74 @@
 # 03 — Carte, génération et compilation du monde
 
-Statut : **périmètre validé ; algorithmes, amplitudes et résolutions proposés**.
+**Statut : périmètre validé, algorithmes proposés. V1 mono-carte, solo et statique.**
 
-## Cadre géographique fixe
+## Géographie
 
-- **200 m (largeur) × 600 m (longueur)** de zone de jeu.
-- Vallée longitudinale bordée de reliefs montagneux, ouverte sur une côte maritime.
-- Cours d'eau continu : **source haute → rivière → moulin → estuaire → port → mer**.
-- Un petit village, des clairières, sentiers, forêt, rochers et quelques ruines.
-- Les montagnes éloignées sont principalement du décor ; délimitation diégétique du monde plutôt que murs invisibles dans les zones centrales.
+- Carte jouable : **200 m de large × 600 m de long** (enveloppe de conception).
+- Vallée montagneuse orientée **de la source vers la mer**.
+- Rivière, moulin à eau, forêt, clairières, village, estuaire, port, côte maritime.
+- Montagnes lointaines et pentes raides : contraintes naturelles et décor simplifié.
+- Quelques ruines, éléments de magie environnementale discrets.
+- Relief en hauteur pour rendre le **planage** intéressant ; profondeurs localisées pour la **plongée**.
 
-La surface rectangulaire correspond à une **enveloppe de conception**, pas à 120 000 m² de sol plat accessible. La part de terrain praticable dépendra des couloirs, pentes et obstacles.
+## Génération procédurale déterministe
 
-## Stratégie : génération guidée + corrections manuelles
+Le monde est **généré dans l'éditeur**, retouché, puis **compilé en ressources statiques** servies par GitHub Pages. Il n'est **pas nécessaire de régénérer la vallée à chaque ouverture du jeu**.
 
-L'éditeur s'appuie sur une **graine déterministe** et des contraintes de haut niveau, puis enregistre les retouches humaines dans une couche distincte.
+Pipeline :
 
-### Pipeline envisagé
+1. Paramètres versionnés : `seed`, dimension, version du générateur, styles.
+2. Axe de vallée, zones de montagne et littoral.
+3. Source, rivière continue, profil de hauteur descendant, connexion à la mer.
+4. Terrain triangulé low-poly à partir de profils/bruit et contraintes d'eau.
+5. Emplacements potentiels du moulin, village, chemins et pontons.
+6. Distribution de végétation/rochers selon altitude, pente, distance à l'eau.
+7. Application des **modifications manuelles** (sculpture, splines, placements).
+8. Compilation des géométries, collisions simplifiées, instances et interactions.
 
-1. Paramètres versionnés (`seed`, dimensions, configuration du relief, style, version du générateur).
-2. **Squelette de vallée** : axe longitudinal, pentes générales, versants et zone littorale.
-3. **Hydrologie guidée** : source, profil descendant de rivière, bassin de moulin, embouchure, mer.
-4. Terrain détaillé par bruit/profil et contraintes locales ; correction des incohérences hydrologiques.
-5. Détection de surfaces potentielles pour moulin, village, ponts et port.
-6. Végétation et rochers selon biome local, pente, altitude, distance à l'eau et exclusion de zones.
-7. Application des **overrides manuels non destructifs** : sculpture, suppression, peinture de zones, courbes, positions de prefabs.
-8. **Compilation** : maillages optimisés, collisions simplifiées, instances, navigation et catalogue des interactions.
+Les mêmes entrées `seed` + `generatorVersion` + paramètres doivent produire le même résultat.
 
-Chaque génération doit être **reproductible** avec la même graine, la même version du générateur et la même configuration. Changer la version de génération sans migration ne doit pas silencieusement déplacer les objets placés à la main.
+## Structure à conserver dans l'éditeur
 
-## Édition sans perte
+- `base` : résultat procédural.
+- `overrides` : retouches humaines non destructives.
+- `authored` : bâtiments/objets/chemins/interactions ajoutés volontairement.
+- `compiled` : carte optimisée pour l'exécution dans le jeu (recalculable).
 
-Séparer :
-- `base` : résultat procédural connu.
-- `overrides` : corrections humaines explicites.
-- `authored` : objets, chemins et interactions placés intentionnellement.
-- `compiled` : artefacts dérivés et régénérables pour le runtime.
+**Aucune régénération ne doit écraser silencieusement les overrides.** Le mode aperçu doit signaler les conflits.
 
-Lors d'une régénération partielle, avertir des conflits et conserver l'ancien résultat si une correction ne peut être réappliquée ; **ne pas écraser les modifications humaines**.
+## Géométrie et eau
 
-## Terrain
+- Terrain principal sous forme de **heightfield maillé** ; grottes, falaises surplombantes et ponts en maillages distincts.
+- Rivière dessinée par **spline**, largeur et profondeur configurables.
+- Surface visuelle, fond physique et **volume d'immersion logique** séparés.
+- Moulin : roue et vanne séparées, positions de pivot précises, animation locale.
+- Mer : niveau défini, zone praticable limitée par le relief/conception.
+- Collision simplifiée, culling par section si nécessaire ; **pas de système de chunks infinis**.
 
-Terrain **heightfield** triangulé low-poly pour la majeure partie de la vallée. Les murs, surplombs et grottes éventuels seront des **meshes séparés** ; une heightmap seule ne sait pas représenter des surplombs.
+## Fichiers et publication
 
-Le maillage peut être scindé en petites sections pour le culling et la réédition, mais le monde n'est **pas infini**. Les décors distants peuvent être condensés en silhouettes sans collisions.
+- **Source éditable** : manifeste versionné et données JSON (terrain, eau, objets, overrides).
+- **Build joueur** : GLB/meshes, objets instanciés, textures locales, manifeste et interactions.
+- Référencer les assets par ID stable ; inclure un `schemaVersion` et `worldVersion`.
+- Le jeu charge la **carte compilée par défaut** via des URL relatives à la base Vite `/little-world/` ; pas d'API serveur.
+- Dans la V1, **l'éditeur conserve ses modifications localement** (IndexedDB) et propose un import/export JSON. Publier une nouvelle carte sur Pages nécessite de l'ajouter au dépôt et de reconstruire.
+- Versionner les données sources et assurer une validation avant compilation.
 
-Résolution du terrain, limite de pente, étendue de la côte, amplitude d'altitude et taille des sections : **paramètres à mesurer**, non encore figés.
+## Performance
 
-## Eau
+- Petit monde fixe : tester un **chargement complet** avant d'implémenter un découpage progressif.
+- Instancing des arbres/rochers ; faible nombre de matériaux/lumières.
+- Géométries éloignées simplifiées, textures compactes, allocations évitées dans la boucle.
+- Limiter draw calls, triangles, taille des GLB et coût des collisions.
+- Les objectifs de taille et FPS sont **des budgets à mesurer** sur PC réels, pas des garanties.
 
-Une rivière représentée par une **spline** et un profil de hauteur physiquement plausible, avec des tronçons plus ou moins profonds pour permettre nage et plongée. L'estuaire rejoint un niveau de mer fixe.
+## Vérifications
 
-Séparer :
-1. Maillage visuel de surface.
-2. Volume logique d'immersion.
-3. Géométrie du fond.
-4. Sens et intensité du courant éventuel (facultatif en V1).
-
-Le moulin s'installe au bord d'un tronçon à dénivelé adapté ; sa roue sera un prefab distinct avec pivot d'animation.
-
-## Placement et décoration
-
-- **Prefabs** complets ou modulaires : arbres, rochers, maison, moulin, pont, port, accessoires.
-- Contraintes de placement automatique (distance aux rives, pente maximale, densité).
-- Placement manuel pour les éléments narratifs.
-- Variantes d'échelle/rotation/couleur à partir d'un nombre réduit de modèles.
-- **Instancing** des éléments répétitifs, et nombres de matériaux limités.
-- Zones d'exclusion autour des chemins, accès du moulin et quais.
-
-## Performance et visibilité
-
-- Limiter la géométrie, les matériaux, les lumières dynamiques et les objets avec collision.
-- Culling des objets derrière les reliefs / hors champ ; distance d'affichage adaptée à une carte longue.
-- Les grandes montagnes et l'horizon peuvent être des assets très simples.
-- Le chargement progressif par section est **optionnel**, à déclencher si le profilage le justifie : à cette échelle, une carte compilée intégralement pourrait suffire.
-- **Aucune synchronisation réseau du terrain** : les joueurs reçoivent une même version immuable de la carte et seulement les états dynamiques nécessaires.
-
-## Contrats de données proposés
-
-Chaque carte contiendra au minimum :
-- `worldId`, `schemaVersion`, `generatorVersion`, `seed`, `sizeMeters`.
-- `generationParams`, `landmarks`, `waterBodies`, `terrainOverrides`.
-- `placedInstances` (références d'assets par ID stable), `interactionInstances`.
-- `publicationVersion` et hachages des artefacts dérivés.
-
-**Séparer le format source éditable du format compilé** est indispensable. L'éditeur doit pouvoir recharger la carte même après optimisation des meshes destinés au jeu.
-
-## Vérifications minimales
-
-- Génération déterministe sur la même entrée.
-- Rivière sans remontée d'altitude inexpliquée hors ouvrages d'art.
-- Aucune maison, quai ou moulin placé dans une pente incompatible.
-- Chemin praticable entre zones principales.
-- Absence de collision incohérente dans les zones aquatiques.
-- Overrides humains conservés après compilation et rechargement.
-- Aucune modification par les joueurs en session multijoueur.
+- Même graine et paramètres → résultats identiques.
+- Source → rivière → estuaire → mer sans discontinuité incohérente.
+- Maison/moulin/ponton placés sur surfaces adaptées.
+- Parcours de la vallée praticable ; endroits où le planage et la plongée sont réellement utiles.
+- Sauvegarde, export, import et rechargement de la carte source fidèles.
+- Publication de la carte compilée sur **site statique sans backend**.
+- Modification de la carte impossible depuis le mode joueur.
