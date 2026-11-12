@@ -315,7 +315,15 @@ export function createAsset(id: AssetId): THREE.Group {
   const path=modelPaths[id];
   if(path){
     void loadModel(path).then(scene=>{
-      if(!scene||!g.parent)return; // Editor may have regenerated while loading.
+      if(!scene||!g.parent||g.userData.disposed)return; // Avoid late mutation of a removed map.
+      // Release the temporary procedural fallback before installing the shared GLB.
+      g.traverse(node=>{
+        const m=node as THREE.Mesh;
+        if(m.geometry&&!sharedGeometry.has(m.geometry))m.geometry.dispose();
+        if(m.material)for(const mat of (Array.isArray(m.material)?m.material:[m.material])){
+          if(!sharedMaterials.has(mat))mat.dispose();
+        }
+      });
       g.clear();
       g.add(scene.clone(true)); // Shared GPU resources; independent transforms.
     });
@@ -374,6 +382,7 @@ export function buildWorld(config: WorldConfig): WorldView {
     update(dt:number){ wheel.rotation.x -= dt * .33; },
     dispose(){
       root.traverse(o=>{
+        o.userData.disposed=true; // Pending GLB callbacks must not attach to retired editor worlds.
         const m=o as THREE.Mesh;
         if(m.geometry&&!sharedGeometry.has(m.geometry))m.geometry.dispose();
         if(m.material)for(const material of (Array.isArray(m.material)?m.material:[m.material]))if(!sharedMaterials.has(material))material.dispose();
