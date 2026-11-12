@@ -1,57 +1,103 @@
 # Little World
 
-**Little World** est un projet de jeu **solo 3D**, jouable dans le navigateur sur **PC**, avec Three.js. Le joueur incarne un **écureuil volant** et explore une petite vallée montagneuse allant d'une source à un port maritime.
+Prototype **solo** d'exploration 3D avec **Three.js**, exécutable entièrement dans un navigateur PC. Un **écureuil volant** parcourt une vallée montagneuse de **200 × 600 m**, avec rivière, moulin à eau, forêt, petit village et port maritime.
 
-**Objectif V1 : application 100 % statique sur GitHub Pages, sans serveur ni compte utilisateur.**
+> **Statut : prototype technique jouable en développement.** La première version est volontairement simple, avec graphismes et physique provisoires. Le code et les fichiers sont dans `main`. Le site GitHub Pages doit être activé dans les réglages du dépôt avant de pouvoir utiliser l'URL publique.
 
-> **État : documentation de conception.** Aucun jeu, éditeur, asset 3D ou déploiement GitHub Pages n'est encore opérationnel.
+## Essayer le prototype
 
-## Vision validée
+**GitHub Pages (une fois activé et déployé) :**
+- Jeu : **https://glloq.github.io/little-world/**
+- Éditeur : **https://glloq.github.io/little-world/editor/**
 
-- Carte **200 × 600 mètres**, vallée montagneuse avec rivière, moulin à eau, village et petit port côtier.
-- Personnage **écureuil volant animal stylisé**, vue troisième personne, caméra souris.
-- **Marche, course, saut, nage, plongée et planage** : saut au clavier par `Espace`, réappui pour ouvrir/replier la membrane en l'air.
-- **PC uniquement**, clavier/souris, sans endurance, avec oxygène de plongée généreux, sans dégâts ni mort.
-- D'abord **exploration et tests**, sans progression imposée, quêtes, combat ou construction par les joueurs.
-- Génération procédurale déterministe d'un terrain **fixe côté joueur**, puis retouches dans un éditeur visuel.
-- Ambiance d'animation traditionnelle originale : **low-poly organique**, éclairage doux, formes simples.
-- **Assets GLB versionnés dans le dépôt**, catalogués, enrichis progressivement ; uniquement ressources dont la redistribution est autorisée (priorité CC0/originales).
+Activer **Settings → Pages → Build and deployment → GitHub Actions** dans le dépôt, puis relancer le workflow [Build and deploy Little World](https://github.com/glloq/little-world/actions). Le build est 100 % statique et utilise `/little-world/` comme préfixe.
 
-## Cible de publication
+### Lancer en local
 
-- Jeu : `https://glloq.github.io/little-world/` (**URL prévue, non encore déployée**).
-- Éditeur : page statique du même site, avec accès séparé (itinéraire exact à décider lors du bootstrap).
-- **GitHub Actions** : tests, build Vite, publication sur GitHub Pages après validation.
-- **Éditeur sans backend** : sauvegarde locale dans le navigateur (IndexedDB), import/export JSON pour conserver ou partager une carte ; pas de commit GitHub depuis le navigateur.
-- Carte et ressources de démonstration intégrées au build ; aucune API ou connexion au serveur nécessaire au jeu.
+Pré-requis : **Node.js 22** et npm.
 
-## Hors V1
+```bash
+git clone https://github.com/glloq/little-world.git
+cd little-world
+npm install
+npm run dev
+```
 
-**Multijoueur, Colyseus, serveur Node.js permanent, base PostgreSQL, authentification, état partagé et sessions** sont **reportés**. L'architecture garde des modules séparés pour les ajouter éventuellement plus tard, sans imposer de protocole réseau maintenant.
+Ouvrir **http://localhost:5173/little-world/** ; éditeur **http://localhost:5173/little-world/editor/**.
 
-Les éventuels systèmes de pêche, PNJ, quêtes, personnalisation avancée, météo complexe et mobile sont également différés.
+```bash
+npm test          # tests des règles de terrain, mouvement et fichiers GLB
+npm run typecheck # TypeScript strict
+npm run build     # génère dist/ pour GitHub Pages
+npm run preview   # prévisualisation du build
+```
+
+## Fonctionnalités initiales
+
+- **Terrain low-poly procédural** : relief, cours d'eau en pente, mer, montagnes et sentier ; graine de placement déterministe.
+- **Végétation instanciée** ; moulin, maisons, ponton, barque et roue animée.
+- **Écureuil 3D provisoire**, sans asset tiers, avec marche, course, saut, planage, nage et plongée.
+- **Caméra troisième personne** orientable à la souris et HUD affichant l'état, les coordonnées, les FPS et l'oxygène.
+- **Interaction `E`** pour arrêter/redémarrer la roue du moulin.
+- **Éditeur initial** : changer la graine et la densité, choisir des prefabs, cliquer sur le terrain pour placer des objets, effacer, sauvegarder dans IndexedDB, exporter/importer JSON.
+- **Catalogue d'assets intégré** : trois fichiers GLB originaux (`public/models/`) plus des prefabs générés par code, inventoriés dans `assets/catalog.json`.
+- Aucun backend, compte, serveur multijoueur ou API externe au runtime.
+
+## Contrôles
+
+| Entrée | Effet |
+| --- | --- |
+| `ZQSD` ou `WASD` | Déplacer l'écureuil |
+| Souris (clic dans la scène) | Caméra libre |
+| `Shift` | Course |
+| `Espace` au sol | Saut |
+| Relâcher puis réappuyer `Espace` en l'air | Ouvrir/replier la membrane |
+| `Ctrl` dans l'eau | Plonger |
+| `Espace` dans l'eau | Remonter |
+| `E` près du moulin | Activer/désactiver sa roue |
+| `R` | Retour au départ |
+| `Échap` | Libérer le pointeur |
+
+En mode éditeur : clic-glisser pour pivoter la vue, molette pour zoomer ; sélectionner un asset à gauche puis cliquer sur le terrain pour le déposer.
+
+## Architecture actuelle
+
+```text
+index.html                  # Jeu
+editor/index.html           # Éditeur
+src/
+  terrain.ts                # Relief, hydrologie, graine, limites
+  world.ts                  # Rendu procédural, buildings, prefabs, GLB
+  player.ts                 # Simulation locale et modèle d'écureuil
+  main.ts                   # Boucle de jeu, entrées, caméra, HUD
+  editor.ts                 # Placement, import/export, IndexedDB
+  style.css                 # Interface jeu et éditeur
+assets/catalog.json         # Catalogue réel : GLB + modèles procéduraux
+public/models/              # Fichiers GLB originaux publiés dans le site
+tests/                      # Terrain, déplacements et GLB
+.github/workflows/pages.yml # Tests, build Vite, publication Pages
+docs/                       # Conception, objectifs et registre de décisions
+```
+
+## Limites connues
+
+- Le personnage est un **proxy stylisé**, sans animations squelettiques ni rig final.
+- Le contrôleur de mouvement utilise actuellement des **collisions analytiques avec le terrain** : la physique Rapier et les collisions détaillées des bâtiments restent à intégrer.
+- L'eau, la nage et le planage sont des **modèles arcade provisoires**, à ajuster après essais.
+- L'éditeur ne sculpte pas encore le relief, n'édite pas les courbes de rivière, ni ne configure librement les interactions ; les changements locaux ne publient pas automatiquement le site.
+- L'instance jouable charge la carte par défaut ; **les objets placés dans l'éditeur ne remplacent pas le jeu publié** tant qu'un pipeline de compilation de carte n'est pas ajouté.
+- Aucun multijoueur n'est prévu pour la première version.
 
 ## Documentation
 
-| Fichier | Sujet |
-| --- | --- |
-| [Vision](docs/01-VISION.md) | Périmètre et objectifs solo |
-| [Gameplay](docs/02-GAMEPLAY.md) | Écureuil, contrôles, locomotion |
-| [Monde](docs/03-WORLD-GENERATION.md) | Génération, vallée, eau, géométrie |
-| [Éditeur](docs/04-EDITOR-INTERACTIONS.md) | Édition, interactions locales, sauvegarde |
-| [Architecture](docs/05-TECHNICAL-ARCHITECTURE.md) | Three.js, Rapier, TypeScript, organisation |
-| [Assets](docs/06-ASSET-PIPELINE.md) | Licence, import, catalogue GLB |
-| [Feuille de route](docs/07-ROADMAP.md) | Jalons testables solo/Pages |
-| [GitHub Pages](docs/08-GITHUB-PAGES.md) | Hébergement statique, build et contraintes |
-| [Décisions](docs/DECISIONS.md) | Validées, proposées, ouvertes, différées |
-| [Catalogue](assets/README.md) | Futurs assets du dépôt |
+- [Vision](docs/01-VISION.md)
+- [Gameplay](docs/02-GAMEPLAY.md)
+- [Générateur de vallée](docs/03-WORLD-GENERATION.md)
+- [Éditeur et interactions](docs/04-EDITOR-INTERACTIONS.md)
+- [Architecture](docs/05-TECHNICAL-ARCHITECTURE.md)
+- [Assets](docs/06-ASSET-PIPELINE.md)
+- [Feuille de route](docs/07-ROADMAP.md)
+- [GitHub Pages](docs/08-GITHUB-PAGES.md)
+- [Registre des décisions](docs/DECISIONS.md)
 
-## Ordre de développement
-
-`D0 Documentation → M0 squelette Three.js + déploiement Pages → M1 déplacements → M2 vallée → M3 catalogue d'assets → M4 éditeur → M5 interactions → M6 optimisation/démonstration`.
-
-Ne pas confondre **documenté**, **codé**, **testé localement**, **publié** et **validé dans le navigateur**.
-
-## Licence
-
-Aucune licence générale du **code** n'a encore été choisie. La publication du dépôt ne remplace pas la vérification des droits de redistribution de chaque asset.
+**Licence de code :** à définir. Les premiers GLB ont été créés spécifiquement pour Little World ; aucun asset tiers n'est incorporé à ce stade.
