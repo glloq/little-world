@@ -84,6 +84,15 @@ Pour rendre une nouvelle carte visible de tous sur l'URL Pages :
 
 **Aucun jeton d'écriture GitHub dans les JS publics ; aucune publication directe anonyme depuis l'éditeur.**
 
+## Export source de carte, GLB et publication : flux distincts
+
+La [spécification 20](20-BLENDER-STUDIO-INTERCHANGE.md) distingue **trois livrables** :
+1. **Archive projet V3 ZIP portable** : sources auteur + GLB/dépendances + biotopes/PNJ/logic et météo, pour partage/import Studio hors ligne ; **non chargée par le jeu public**.
+2. **Export Blender** : GLB + sidecar JSON des transforms/IDs, pour réédition des éléments géométriques ; **pas** une restauration entière du gameplay.
+3. **Build GitHub Pages** : `manifest`, `chunks`, GLB/proxies/LOD/masques et assets optimisés, chargés au besoin sous base Vite ; **aucun fichier `.blend`** ni projet auteur volumineux embarqué automatiquement.
+
+Le Studio doit proposer ces actions sous des noms différents, valider licences/provenance et dépendances, rejeter exports corrompus, et permettre le réimport d'un projet sur une autre machine **sans backend**. L'édition Blender de la source auteur reste locale/externe ; le site statique ne démarre jamais Blender, n'exécute jamais de script importé et ne publie pas directement un projet sans étape de build Git sécurisée.
+
 ## Limites et décisions
 
 - GitHub Pages est adapté au **jeu solo** : la logique de mouvement et d'interaction s'exécute sur le PC du joueur.
