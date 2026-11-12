@@ -230,6 +230,15 @@ En surcharge : ne pas démarrer une source inaudible, voler une voix décorative
 
 **Aucune cible CPU « <0,1 ms » revendiquée** sans mesure : audio sur thread distinct, scheduler léger sur JS, backend variable. Un budget de 5–10 patches est une limite **artistique de choix**, pas une preuve de performance à lui seul.
 
+## Ambiance minière et son d'excavation
+
+Le [document MINE 24](24-MINES-MULTILEVEL-LOW-RESOURCE.md) ajoute des zones creusables multiétages, sans élargir la palette de **5–10 instruments MIDI**.
+
+- Sons de frappe, roche, récolte/cristal, passage de puits et bruitage d'outil : **petits échantillons courts** ou synthèse ponctuelle si plus légère, pas une source par cellule de pierre.
+- Par mine/étage, une **ambiance sonore de galerie** (éventuellement une seconde couche très locale) suffit ; culling des émetteurs par salle/portail et priorité à l'action joueur.
+- Musique de découverte ou de cristaux via **les patches MIDI existants**, pas de banque entière dédiée aux mines.
+- `AudioBudgetManager` plafonne voix/PCM/émetteurs, et un delta de mine ne transporte **aucun buffer ni son**, uniquement l'événement logique nécessaire.
+
 ## 12. Plan d'implémentation AUD-0…AUD-8
 
 | Phase | Livrable / gate |
