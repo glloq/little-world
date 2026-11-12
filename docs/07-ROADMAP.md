@@ -1,6 +1,21 @@
 # 07 — Feuille de route — Little World Solo / GitHub Pages
 
-**Statut : plan de développement. D0 documentaire uniquement.**
+**Statut : suivi du prototype initial — 12 novembre 2026.**
+
+## Avancement réel
+
+| Jalon | État | Livré / restant |
+| --- | --- | --- |
+| D0 documentation | **Fait** | Spécifications et test navigateur |
+| M0 bootstrap + Pages | **Implémenté ; déploiement CI réalisé** | Le test visuel dans le navigateur reste à valider |
+| M1 écureuil / déplacements | **Prototype fonctionnel dans le code** | Proxy 3D, mouvement arcade ; Rapier, animations et ajustements manquent |
+| M2 vallée | **Prototype** | Relief et rivière déterministes, moulin, port ; éditeur du relief absent |
+| M3 assets | **Démarré** | 3 GLB originaux et 3 autres prefabs procéduraux ; catalogue riche à construire |
+| M4 éditeur | **Démarré** | Placement d'objets, graine, densité, IndexedDB, JSON, test brouillon ; sculpture non réalisée |
+| M5 interactions | **Démarré** | Moulin interactif codé ; moteur générique déclaratif absent |
+| M6 finition | **Non démarré** | Profils de performance et direction artistique finale à valider |
+
+Ne pas confondre **tests automatiques passés** et **validation visuelle**. Le suivi détaillé figure dans [09-BROWSER-TEST-PLAN.md](09-BROWSER-TEST-PLAN.md).
 
 ## Objectif
 
