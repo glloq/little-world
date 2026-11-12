@@ -4,6 +4,18 @@
 
 **Décisions complémentaires validées** : [14 — Choix techniques du moteur et des éditeurs](14-TECHNICAL-CHOICES.md). En particulier : **TE-E4 / TD-D3 = transactions inter-éditeurs + checkpoints**, **TE-E7 = validation incrémentale**, **TL-L7 = formulaires + séquences** ; les écrans restent spécialisés (E1=C).
 
+**Contrats désormais précisés et retenus :** [15 — Schémas V3 et contrats entre éditeurs](15-STUDIO-DATA-SCHEMAS-V3.md). Ce document 13 définit **l'UX et les parcours d'auteur** ; le document 15 décrit **les sources de données, ID, composants, transactions, registres, migrations et responsabilités**. Le V3 reste une **architecture cible non implémentée**.
+
+## Contrats communs incontournables
+
+- Le contexte `StudioContext` conserve **projet, ID de sélection, secteur/caméra, éditeur actif et outil** quand on passe du terrain au PNJ, dialogue ou mécanisme.
+- Un **`ProjectStore` versionné** prend en charge plusieurs projets, index de secteurs et des changements atomiques ; plus d'unique brouillon `main` comme cible finale.
+- Un **`CommandBus` réversible avec checkpoints** assure l'historique inter-éditeurs ; **un geste continu = une transaction**.
+- Les éléments affichés proviennent de **`EntityDefinitionV3` + composants typés** ; le `Mesh` Three.js n'est jamais une source de vérité d'auteur.
+- Le `ReferenceIndex` résout les relations même si des secteurs sont déchargés ; erreurs de liens et invalidations sont navigables depuis la carte globale.
+- La carte source V1/V2 reste migrable et utilisable pendant la transition V3.
+- Les **contrats exacts et gates** sont détaillés dans le document [15](15-STUDIO-DATA-SCHEMAS-V3.md).
+
 ## 1. Principe : éditeurs spécialisés, projet unifié
 
 **Choix E1=C confirmé** : créer des éditeurs spécialisés, plutôt qu'un seul écran débordant de menus. Ils sont **indépendants au niveau de leur interface et de leurs outils**, mais partagent un **seul graphe de données versionné**, un contexte de sélection, les IDs d'entités et le service de sauvegarde.
