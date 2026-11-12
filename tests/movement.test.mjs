@@ -27,3 +27,17 @@ test('swimming, diving and ascent are local transitions',()=>{
  for(let i=0;i<130;i++)simulatePlayer(p,{...empty,spaceHeld:true},1/60);
  assert.equal(p.mode,'swim');
 });
+
+test('right and left movement follow camera screen directions',()=>{
+ const right=spawnPlayer();
+ const x=right.position.x;
+ simulatePlayer(right,{...empty,right:1},1/60);
+ assert.ok(right.position.x<x,'right must be world -X when camera looks toward +Z');
+ const left=spawnPlayer();
+ simulatePlayer(left,{...empty,right:-1},1/60);
+ assert.ok(left.position.x>x,'left must be world +X when camera looks toward +Z');
+ const turned=spawnPlayer();
+ const z=turned.position.z;
+ simulatePlayer(turned,{...empty,right:1,cameraYaw:Math.PI/2},1/60);
+ assert.ok(turned.position.z>z,'camera yaw must rotate screen-right to world +Z');
+});
