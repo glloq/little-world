@@ -220,6 +220,20 @@ Ce sont des **ordres de grandeur**, pas des fréquences garanties. Une animation
 - Ne pas recalculer les chemins, la proximité ou les voisins de toutes les entités chaque frame.
 - À distance : entité dormante, ou état calculable directement à partir du temps et de la graine.
 
+## Audio/MIDI : palette de 5–10 instruments et budget propre sous PERF
+
+**Décision :** [23 — Audio LOW-RESOURCE](23-MIDI-AUDIO-LOW-RESOURCE.md). Little World ne chargera **pas** de banque General MIDI complète. Le jeu utilisera **5–10 patches musicaux maximum** partagés (formes d'onde/enveloppes simples, parfois courts samples), un petit `MidiSequencer` et des **échantillons courts/ambiance** pour les sons naturels.
+
+- **Un AudioContext**, musique/SFX/ambiance mixés, voix musicales et émetteurs actifs plafonnés ; 5–10 timbres **≠** seulement 5–10 notes simultanées.
+- Budget expérimental **Eco 12 / Équilibré 16 / Qualité 24 voix totales**, notes musicales 6–8 / 10–12 / 12–16, émetteurs spatiaux 2/4/6, et cache PCM ~2–4 / 4–8 / 8–16 Mio. **À mesurer**, ne pas présenter comme des limites garanties.
+- Prioriser **sons de gameplay et du joueur** avant ambiance, oiseaux lointains et décor. Émettre uniquement les sons réellement audibles, conserver 1–2 couches d'ambiance par biome, petits fade-outs et voice stealing propres.
+- **Web Audio natif**, `equalpower` par défaut, pas de reverb par voix/HRTF généralisé ; `AudioWorklet` seulement si les mesures le justifient, pas de grosse SoundFont.
+- MIDI `.mid` joué par séquenceur sur **l'horloge audio** avec lookahead, jamais en déclenchant chaque note depuis le RAF/jeu ; les rythmes doivent rester stables à **20/30 FPS** et lors du retour d'onglet.
+- Échantillons décodés **réutilisés** et comptés en PCM, pas de décodage par PNJ : 48 kHz mono Float32 ≈192 ko/s. Décodeurs/codec et coût CPU/latence à mesurer sous Firefox/Chromium.
+- **AudioBudgetManager consommateur de PERF** pour plafonds, cache, nombre de voix et sources ; aucun deuxième contrôleur adaptatif concurrent.
+- Son activé par **interaction utilisateur**, mode muet/silencieux fiable en cas d'autoplay bloqué. Le MIDI matériel/Web MIDI API reste non nécessaire.
+- Bibliothèque Studio/export V3 : partitions, patches, loops, licences et références, sans graphes audio live ni données PCM réencodées dans le projet.
+
 ## 8. Eau, ambiance et audio
 
 - Eau : surface visuelle simple + volumes logiques d'immersion distincts.
