@@ -48,6 +48,21 @@ Les contrats de [15 — Schémas V3](15-STUDIO-DATA-SCHEMAS-V3.md) doivent être
 
 Ce chantier vise le **jeu solo immédiatement**, et les profils de foule du **futur multijoueur** pourront utiliser les mêmes outils de LOD. **Aucun chiffre de gain n'est revendiqué avant benchmark.**
 
+## Axe GR — herbes basses/hautes ultra-low-resource
+
+**Décision validée, développement et gains encore à mesurer :** [18 — Herbes, shaders et budget partagé](18-GRASS-LOW-RESOURCE.md).
+
+| Phase | Livraison vérifiable |
+| --- | --- |
+| **GR-0** | Baseline sol seul, écologie actuelle et budget de rendu global sur GPU de référence |
+| **GR-1** | Couleurs de biotope assurant l'herbe courte + touffes opaques instanciées ultra-simples |
+| **GR-2** | Déformation GPU locale au passage d'un joueur et vent facultatif, sans matrices CPU par brin |
+| **GR-3** | Génération déterministe en cellules activées autour du joueur + invalidation locale depuis biotopes/Studio |
+| **GR-4** | Profils de qualité `groundOnly` / ultra-économique / équilibré / plus dense, dégradation adaptative |
+| **GR-5** | Tests sur PC à GPU intégré : coût CPU/GPU/VRAM, streaming, scène forestière et personnages simulés |
+
+**Règles :** pas de physique de brin, d'ombres ni de réseau spécifique à l'herbe ; le budget de végétation est **partagé** avec arbres, faune décorative, paysage et personnages. Les objectifs **< 0,1 ms CPU / < 0,5 ms GPU** sont des hypothèses **non atteintes** tant qu'aucun benchmark ne le prouve.
+
 ## Campagne avancée — état livré sur branche
 
 | Domaine | Avant | Après | Statut | Reste à faire |
