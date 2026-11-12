@@ -133,6 +133,16 @@ Le [contrat PERF](22-RESOURCE-BUDGET-MANAGER.md) remplace l'optimisation locale 
 - Les caches terrain/éco/GLB doivent déclarer **octets estimés, références et résidence** ; n'évincer que des ressources libérables sans trou, invalider localement après modification.
 - LOD de relief, maisons/forêts, cascades et océan selon **taille projetée et importance**, avec priorité aux grandes silhouettes de côtes et îles et jamais de fog de masque.
 
+## Biotopes et sources sonores AUD : pas de coût par objet généré
+
+La [spécification audio 23](23-MIDI-AUDIO-LOW-RESOURCE.md) réutilise la répartition **déterministe** des biotopes/espèces et les volumes d'eau pour déclencher des ambiances à **quelques sources réellement audibles**.
+
+- Les zones de biotope peuvent référencer des **profils d'ambiance et séquences MIDI**, avec 5–10 instruments partagés dans tout le monde et échantillons naturels mutualisés.
+- Ne pas associer un moteur audio actif à chaque arbre/oiseau/chunk. Générer seulement des **candidats à événements/émetteurs** par seed, puis limiter ceux audibles au voisinage du joueur avec culling spatial.
+- Les rivières/lacs/cascades fournissent des **références logiques** de proximité et intensité de bruit de fond ; aucune dépendance à la géométrie LOD de l'eau.
+- Le budget voix/PCM et spatialisation est confié à `AudioBudgetManager` sous PERF ; audio suspendu hors présence du joueur ou onglet inactif, **sans altération du monde auteur**.
+- L'archive V3 de carte contient sources MIDI/samples et profils avec références licences, **pas** des milliards d'instanciations sonores.
+
 ## Critères techniques
 
 1. Même seed/versions/paramètres → même génération.
