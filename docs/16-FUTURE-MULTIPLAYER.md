@@ -179,6 +179,14 @@ interface ReplicationHints {
 
 **Ce qu'il ne faut PAS implémenter maintenant :** classe `NetworkEntity` pour tout objet, socket dans `StudioContext`, simulation de serveur en solo, protocole RPC global, transport fixé dans le schéma V3, comptes, login ou backend.
 
+## Rendu des foules et environnement panoramique partagé
+
+Le futur multijoueur exploite la **même politique de rendu longue portée que le solo** ([17 — Horizon et LOD sans brouillard](17-DISTANT-VIEW-RENDERING.md)). Le serveur n'envoie pas la géométrie du paysage : il synchronise les **états dynamiques pertinents**, tandis que les clients chargent localement le terrain statique, les silhouettes, les proxies de bâtiments et les ressources d'assets depuis un build/version déterminé.
+
+Les **LOD d'avatars** et les **LOD géographiques** ont des budgets et une pertinence distincts. Un joueur lointain peut être invisible sans que la montagne sur laquelle il se trouve disparaisse ; les masses de forêt et les grands monuments ne sont pas rendus à leur détail maximal dans une foule.
+
+**Ne jamais mélanger** la fréquence réseau AOI 2–20 Hz et la distance de rendu de l'horizon ; le monde profond est statique/reproductible côté client. La qualité 30/20 FPS doit être testée avec terrain panoramique **et** foule, pas avec une scène vide.
+
 ## 10. Plan de validation futur (gates non exécutés)
 
 | Scénario | Participants | Densité | Gate |
