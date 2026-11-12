@@ -146,6 +146,16 @@ Les matériaux spéciaux restent des dérivés compacts du catalogue et doivent 
 - Optimiser à la **compilation** : mutualisation GLB, instancing lorsque possible, LOD/proxies, découpage de secteurs, petit nombre de matériaux ; ne pas prétendre que chaque matériau/Geometry Nodes/contrainte Blender survit intact au glTF.
 - Vérifier **licence de redistribution** de chaque asset, textures et sources ; rejeter chemins ZIP suspects, scripts, `extras` non autorisés, ressources externes inattendues et imports trop volumineux.
 
+## Assets aquatiques compatibles WAT : cascades, rapide, berge et eau sous-marine
+
+Voir [21 — Eau LOW-RESOURCE](21-WATER-HYDROLOGY-LOW-RESOURCE.md). Les presets graphiques Blender/GLB de rochers, seuils, ponts et arches peuvent être associés à une **cascade ou un rapide**, mais les **niveaux, volumes de nage, courants et connexions** restent des données Studio V3.
+
+- Une cascade low-poly utilise un **ruban vertical/incliné**, éventuellement des textures UV animées très simples, une petite mousse au pied et des particules optionnelles près du joueur. Aucun système fluides en 3D.
+- Les rivières/lacs/océan utilisent des **surfaces compilées/masquées par côtes**, sans importer le monde entier comme un GLB unique ; éviter transparence de masse et réflexion/réfraction multipasses.
+- Les assets doivent permettre des **matériaux simples par LOD** : proche légère animation, loin teinte quasi uniforme, sans calcul de vague ou d'écume en fragment shader inutile.
+- Une eau visible **sous la surface** doit rester correcte avec le culling/material choisi ; ne pas dupliquer de scène ou de caméra.
+- Évaluer coûts de pixels d'une **mer plein écran**, overdraw, taille des ressources, nombre de materials/draw calls, pas uniquement triangles.
+
 ## Qualification
 
 - Fichier présent, path valide après build GitHub Pages.
