@@ -434,6 +434,20 @@ interface PortableWorldArchiveManifest {
 
 **Types de référence (illustratifs, pas encore livrés)** : `WaterNodeV3`, `WaterReachV3`, `WaterBasinV3`, `WaterDropV3` et `WaterNetworkDefinitionV3` sont esquissés dans le document 21. Les unités = mètres, Y vertical, profils et coordonnées validés.
 
+## Contrat V3 / Runtime PERF — budgets locaux non persistants
+
+La [spécification 22 — ResourceBudgetManager](22-RESOURCE-BUDGET-MANAGER.md) **sépare les choix d'auteur des choix de rendu**.
+
+- `WorldDefinitionV3`, `EntityDefinitionV3`, `WaterNetworkDefinitionV3`, biotopes, prefab, états PNJ et données source par secteur restent **indépendants de l'appareil**. Ne pas stocker `qualityLevel`, résolution GPU, draw calls ou caches dans le ZIP auteur.
+- `QualityBudgetSnapshot` **readonly/versionné** est un **état runtime éphémère**, produit par un `ResourceBudgetManager` commun à la partie et au playtest Studio. Ce n'est ni un état de gameplay autoritaire ni un composant d'entité.
+- Les **métadonnées auteur admises** incluent catégorie de LOD, marqueurs d'importance (pont, site, point d'intérêt, objet interactif), taille visuelle et **sources LOD/proxies**. La sélection de profil et distance de détail reste **locale**.
+- Les caches `TerrainLOD`/`WaterLOD`, instances de végétation, ressources de GPU, imposteurs, textures compilées, registre mémoire et tâches de génération sont des **dérivés**, avec identifiants/versions de sources et invalidation locale.
+- L'index spatial auteur et les relations entre secteurs doivent permettre la **priorité visible/proche/directionnelle** sans parcourir toute la carte ; l'ownership des ressources partagées est **runtime**, non une entité sauvée.
+- Valeurs configurables **profil utilisateur** éventuellement sauvegardées dans préférences locales, jamais transportées dans une archive de carte rééditable.
+- Les schémas et adaptateurs V1/V2 → V3 sont testés à tous les profils graphiques ; aucune baisse de qualité ne doit altérer la topologie de l'eau, collisions, PNJ, dialogues ou placements.
+
+**Interfaces TypeScript détaillées** `FrameSample/PerfWindow/QualityBudgetSnapshot/QualityConsumer` : document 22, indicatives jusqu'à implémentation. Le gestionnaire **ne doit pas** doubler le composant existant `PresentationBudget`.
+
 ## 10. Architecture de code proposée (pas de refonte cosmétique préalable)
 
 ```text
