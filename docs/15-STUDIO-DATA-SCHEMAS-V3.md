@@ -345,6 +345,21 @@ La [spécification 18](18-GRASS-LOW-RESOURCE.md) fixe une **végétation d'herbe
 
 Les prototypes TypeScript précis de ces modules restent à fixer à l'implémentation, après mesures sur le rendu réel.
 
+## Contrat V3 — environnement auteur, état météo, météo visualisée
+
+**Spécification :** [19 — Environnement et astres](19-ENVIRONMENT-WEATHER-SKY.md). Les états météo et les ressources graphiques ne doivent **pas** être mélangés aux données de terrain auteur.
+
+- `EnvironmentDefinitionV3` versionné dans la **source du Studio** : rythme solaire, étoiles/seed, définitions de **0/1/plusieurs lunes** (IDs, périodes indépendantes, phases initiales, inclinaisons et apparences), climats macro et palettes.
+- `EnvironmentSnapshot` état **dynamique** : `worldTimeSeconds` absolu, heure/scale, zones météo, neige accumulée/fonte, température, vent, précipitation, humidité, fog météo, orage, version, seed/transitions. Local en bêta ; serveur futur via même interface.
+- `EnvironmentVisualState` (uniformes, particules, matrices d'ombres, prototypes de nuages) est une **ressource dérivée, non persistante et non source d'autorité**.
+- Sources de météo macro-régionales et effets locaux **distincts des chunks de 64 m** : éviter des millions de sources météo dans la carte de 100 km².
+- Neige sur terrain, arbres, toits, rochers et **proxies d'horizon** via masques de matériau/attributs dérivés ; pas de mutation `TerrainEdit` quand il neige. Collisions inchangées, sauf mécanique explicite ultérieure.
+- `ShadowBudgetManager` ne modifie pas l'auteur : sélection runtime de casters volumineux/proches, shadow map solaire unique en option, sans ombres d'herbe, de ciel ni de lunes.
+- Le **panneau bêta** remplace temporairement la source `EnvironmentSnapshot` et peut exporter un scénario reproductible ; aucune sauvegarde implicite dans la source V3 ou le slot joueur.
+- Validation/migration : IDs de lunes uniques, périodes positives, valeurs finies, `schemaVersion` géré et anciennes cartes sans environnement compatibles via valeurs par défaut. Le serveur futur n'est **pas** une dépendance du runtime actuel.
+
+Les types détaillés du document 19 sont **illustratifs jusqu'à implémentation et tests**. Garder les mêmes contrats pour « Jouer ici » et le runtime publié.
+
 ## 10. Architecture de code proposée (pas de refonte cosmétique préalable)
 
 ```text
