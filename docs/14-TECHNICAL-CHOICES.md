@@ -129,6 +129,17 @@ Le jeu solo V3 et Little World Studio doivent rester **sans backend obligatoire*
 
 **Ces nombres sont des cibles de conception, non des capacités atteintes**. Les paramètres futurs devront être validés sur serveur et GPU intégrés réels.
 
+## Décision de rendu longue portée — HZ
+
+Le créateur a retenu la **vue panoramique profonde sans brouillard cache**. Voir [17 — Horizon et imposteurs](17-DISTANT-VIEW-RENDERING.md) :
+
+- Terrain 3D ultraléger jusqu'à l'horizon visible, découplé du terrain proche.
+- LOD étagés et budgets adaptés aux végétaux, bâtiments, avatars, eau, ombres et effets.
+- Imposteurs/panoramas précalculés si avantage réel, notamment au lointain où la parallaxe peut être négligée ; ciel via sky dome/skybox.
+- Chunks détaillés locaux ; les proxies d'horizon sont dérivés, versionnés et recompilables depuis V3.
+- Transitions propres et mesures (CPU, GPU, overdraw, draw calls, mémoire, absence de popping) sur GPU intégré.
+- Aucun fog de dissimulation ; distances de LOD purement indicatives tant que non benchées.
+
 ## 9. Règles d'architecture issues de ces décisions
 
 1. **Un projet source, plusieurs éditeurs spécialisés**. Partager objets/IDs/sélection/historique, mais charger les écrans lourds à la demande.
