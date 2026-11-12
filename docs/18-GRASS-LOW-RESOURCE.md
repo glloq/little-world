@@ -136,6 +136,16 @@ Le découpage peut rester **un ou deux fichiers** tant que la complexité ne jus
 
 **Données V3 :** propriétés de biotope `grassStyle/grassDensity/grassHeight/seed` facultatives, profils globaux/recettes de génération et variantes artistiques ; les buffers d'instances et silhouettes sont **des ressources dérivées**. Les pinceaux du Studio modifient une région source, déclenchent une invalidation locale, puis le runtime/éditeur reconstituent le résultat sans stocker des milliers de touffes dans le JSON.
 
+## Vent et précipitations partagés avec l'environnement
+
+Selon [19 — Environnement LOW-RESOURCE](19-ENVIRONMENT-WEATHER-SKY.md), l'herbe ne crée **aucun système météo autonome**.
+
+- Le `WeatherController` fournit un **vecteur de vent commun** au shader d'herbe, aux arbres, nuages et eau ; les uniformes ne font pas recalculer les matrices de touffes.
+- La neige peut modifier **la palette du terrain et, si nécessaire, la couleur d'herbes visibles** par coefficient de matériau ; ne pas recréer des milliers de touffes enneigées ni ajouter un mesh par flocon.
+- En hiver/fort enneigement, **réduire ou masquer l'herbe basse** lorsque la neige la couvre ; priorité aux couleurs du sol, sans coût de végétation supplémentaire.
+- Ombres : **aucune herbe ne projette de shadow map**, même si des bâtiments/arbres proches reçoivent des ombres dynamiques.
+- Météo et herbe se partagent le **budget graphique global**, les précipitations et ombres ne doivent pas empêcher de basculer vers `groundOnly`.
+
 ## 8. Tests et validation
 
 **Scènes et variantes :**
