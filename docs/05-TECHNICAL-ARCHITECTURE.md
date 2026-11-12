@@ -213,6 +213,18 @@ Référence : [23 — Audio LOW-RESOURCE](23-MIDI-AUDIO-LOW-RESOURCE.md).
 
 **Statut : cible technique, pas encore implémentée/testée.**
 
+## Mines 2,5D : runtime creusable et future persistance autoritaire
+
+**Contrat MINE :** [24 — Mines multilevel LOW-RESOURCE](24-MINES-MULTILEVEL-LOW-RESOURCE.md).
+
+- Terrain général **heightfield** conservé ; le runtime ajoute des **`MineDefinition` locales par niveaux 2,5D**, **`MineStateStore` persistant** séparé des sources auteur, et `MineChunk` de 32×32 cellules comme **hypothèse**.
+- `MineQuery` répond à occupation, matière et collision selon **X/Y/Z + mineId/levelId** ; une mine souterraine ne doit pas déclencher le placement du joueur à `terrainHeight(x,z)` de la surface.
+- `MineMesher` construit **uniquement faces exposées** et fusionne/décore localement ; `MineCollision`, `MineNavigation` et `MineRenderer` dérivent de la grille et des changements sur les **seuls chunks touchés**.
+- Mines/étages chargés spatialement ; portes et couloirs invisibles cullés, couleurs de sommet/éclairage simple, WorkScheduler et ResourceRegistry de PERF, **pas** d'ombres par torche ni voxels partout.
+- **LocalMineRepository** pour la bêta solo ; `MineSyncAdapter` futur **sans implémenter maintenant un backend**, commandes d'intention, validation autoritaire, transaction creusement+récolte, snapshots/deltas `revision` et idempotence.
+- Import Studio ZIP source conserve seed, filons, niveaux et connecteurs ; **save joueur** conserve cellules creusées et épuisement, inventaire. Aucun overwrite silencieux entre ces domaines.
+- Escaliers/puits, entrée de surface, interactions avec volumes eau, PNJ et audio sont des interfaces explicites, pas des exceptions invisibles dans le heightfield global.
+
 ## Compatibilité avec un futur multijoueur (non implémenté)
 
 **Contrat de préparation**, cf. [16 — Architecture multijoueur future](16-FUTURE-MULTIPLAYER.md) :
