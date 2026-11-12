@@ -1,106 +1,110 @@
-# 05 — Architecture technique
+# 05 — Architecture technique — solo et GitHub Pages
 
-Statut : **choix technologiques recommandés, non encore implémentés**.
+**Statut : architecture cible, non encore implémentée.**
+
+## Principe cardinal
+
+**Toute la V1 s'exécute dans le navigateur.** GitHub Pages sert le HTML, JavaScript, WASM, fichiers GLB, textures et cartes compilées. **Aucun serveur applicatif, API de jeu, WebSocket, comptes, PostgreSQL ou Colyseus.**
+
+Le multijoueur pourra être étudié après la V1, mais **ne doit pas complexifier l'architecture courante** : garder simplement simulation et rendu séparés.
 
 ## Stack cible
 
-| Domaine | Choix | Commentaire |
-| --- | --- | --- |
-| Langage | **TypeScript** | Types partagés client / serveur / éditeur |
-| Frontend rendu | **Three.js** | WebGL, modèles glTF/GLB |
-| Build & dev | **Vite** | Clients jeu et éditeur séparés |
-| Physique | **Rapier JS** | Collisions, détection de contacts |
-| Réseau | **Colyseus / WebSocket** | Rooms et état autoritaire |
-| Backend | **Node.js** | Une instance de serveur en premier |
-| Stockage | **PostgreSQL**, plus tard | États persistants ; initialement stockage simple reproductible |
-| Assets | **GLB** | Catalogue et validation à l'import |
-| Outils | pnpm workspaces | Monorepo partagé et scripts reproductibles |
+| Partie | Technologie |
+| --- | --- |
+| Code commun | **TypeScript** strict |
+| Rendu 3D | **Three.js** / WebGL |
+| Physique | **Rapier JS/WASM** |
+| Build / dev | **Vite** |
+| Dépendances et workspace | **pnpm** |
+| Test du code | Tests unitaires TS et tests navigateur |
+| Publication | **GitHub Actions → GitHub Pages** |
+| Sauvegarde d'éditeur | **IndexedDB** + import/export JSON |
+| Assets | **GLB** + manifeste local versionné |
 
-Choix provisoires sujets à un **spike d'intégration** : Rapier avec personnage quadrupède et planage, fréquence réseau, stratégie de prédiction, persistance, outils de build d'assets.
+Pas de service Node.js au runtime : Node n'est utilisé **qu'au développement et dans le build CI**.
 
-## Monorepo envisagé
+## Structure visée
 
 ```text
 little-world/
 ├── apps/
-│   ├── game/              # Client navigateur / joueur
-│   ├── editor/            # Éditeur de monde (web)
-│   └── server/            # Serveur autoritaire Colyseus
+│   ├── game/              # Jeu solo statique Three.js
+│   └── editor/            # Éditeur statique, même moteur
 ├── packages/
-│   ├── core/              # Horloge, événements, identifiants
-│   ├── movement/          # États, inputs, simulateur
-│   ├── world/             # Générateur, carte source, compilateur
-│   ├── rendering/         # Three.js, caméra, visuels
-│   ├── interactions/      # Modèle déclaratif partagé
-│   ├── asset-registry/    # Contrats et validation d'assets
-│   └── shared/            # Protocoles, schémas et types
-├── assets/                # Catalogue documenté d'assets
+│   ├── core/              # Horloge, IDs, événements et contrats
+│   ├── movement/          # Simulateur local et états de déplacement
+│   ├── world/             # Générateur, carte source, compilation
+│   ├── rendering/         # Three.js, caméra, animation
+│   ├── interactions/      # États et actions locaux déclaratifs
+│   ├── asset-registry/    # Catalogue, provenance, validation
+│   └── shared/            # Types et schémas
+├── assets/                # Assets redistribuables dans le repo
 ├── docs/
-└── tools/                 # Tests, import et compilation
+├── tools/                 # Conversion/import/tests
+└── .github/workflows/     # Build/test/deploy Pages
 ```
 
-Les modules **simulation**, **world** (données) et **interactions** doivent rester indépendants des types Three.js quand ce n'est pas indispensable ; les objets 3D appartiennent au rendu.
+Ne créer **aucun** `apps/server` dans la V1. Des packages ne doivent être créés que si la séparation sert réellement la maintenabilité ; éviter des abstractions inutiles.
 
-## Séparation des responsabilités
+## Découpage de l'exécution
 
-| Couche | Responsabilité | Ne doit pas décider |
-| --- | --- | --- |
-| Entrées | Clavier/souris → commandes datées | Collisions |
-| Simulation | États, vitesse, contacts, transitions | Maillages et UI |
-| Rendu | Meshes, interpolations, animations, caméra | État autoritaire |
-| Monde | Terrain, eau, placement, version de carte | Identité des joueurs |
-| Interactions | Événements, conditions, actions validées | Scripts arbitraires externes |
-| Réseau | Ordonnancement, snapshots/deltas, sessions | Art direction |
-| Éditeur | Outils d'édition, historique, compilation | Logique alternative de gameplay |
+| Couche | Rôle |
+| --- | --- |
+| `InputMapper` | Souris/clavier → commandes |
+| `MovementSimulator` | Machine à états, accélérations, planage, eau |
+| `PhysicsAdapter` | Collisions et volumes Rapier |
+| `WorldLoader` | Charger manifeste/terrain/objets statiques locaux |
+| `InteractionRuntime` | Événements et états locaux d'objets |
+| `CharacterView` | Modèle GLB, animations, interpolation graphique |
+| `CameraController` | Caméra troisième personne indépendante |
+| `EditorState` | Modifications, undo/redo, sérialisation (éditeur seulement) |
 
-## Boucle de simulation
+**Le rendu ne décide pas de l'état physique.** Simulation à pas fixe, rendu à fréquence variable ; mesures de performance et trajectoires reproductibles.
 
-- **Pas fixe** pour la physique et la logique (fréquence exacte à mesurer).
-- Un input comprend au minimum : `sequence`, `clientTick`, mouvement, course, saut, planage, commandes de nage.
-- **Serveur autoritaire** : chaque action est validée sur sa simulation et la version publiée de la carte.
-- **Prédiction locale** possible pour la fluidité ; réconciliation basée sur séquences, pas sur simple téléportation périodique.
-- Interpolation des joueurs distants.
-- Ne jamais faire dépendre la simulation de `requestAnimationFrame`, de la fréquence de rendu ou d'une animation GLB.
+## Gestion des données
 
-### Déplacements / Rapier
+### Jeu
 
-Éviter de compter sur un contrôleur de personnage Rapier comme solution complète : il faut implémenter explicitement les règles de nage et de planage. Pour la reproductibilité réseau, documenter précision numérique, ordre de traitement et tolérances de correction.
+Charge une **carte de démonstration versionnée** livrée avec le site ; aucune requête vers un backend. Les états temporaires (roue du moulin, leviers, position) peuvent rester en mémoire et sont réinitialisés au chargement pour la V1. La persistance de progression joueur n'est **pas nécessaire**.
 
-## Synchronisation de la carte et des actions
+### Éditeur
 
-1. Le **bundle de carte publié** est identifié par `worldId` + `publicationVersion` + hachage.
-2. Tous les clients d'une room chargent cette même version.
-3. La géométrie statique **n'est pas retransmise à chaque joueur** par le protocole temps réel.
-4. Le serveur synchronise positions/modes des personnages et **états** d'interactions partagées.
-5. La roue du moulin tourne côté client à partir de son état et de son paramètre d'animation, pas d'un angle envoyé à chaque frame.
-6. La visibilité réseau peut filtrer les entités lointaines si le profilage montre le besoin ; ne pas surdimensionner prématurément.
+- Format source JSON validé par schéma.
+- Stockage de travail IndexedDB (stockage local non garanti à vie).
+- Export/import JSON manuel comme sauvegarde portable.
+- Carte publiée dans le site seulement après **validation, commit et nouveau build**.
 
-## Performance cible — hypothèses à tester
+### Assets
 
-**PC navigateur seulement** au premier jalon. La carte est petite mais les scènes riches en végétation et les vues de planage peuvent coûter cher. Cibles de départ : rendu fluide sur PC moyen et test d'au moins 2 joueurs ; **10 à 30 joueurs restent un objectif**, pas une capacité démontrée.
+Registre local stable, chemins de fichiers construits **relativement à la base publique du build**, sans dépendance CDN. Aucun chargement d'asset via URL externe non validée par défaut.
 
-Suivre FPS, durée des frames, draw calls, triangles, textures/mémoire, coût de la physique, utilisation CPU serveur, bande passante et latence perçue. Rapporter performances sur machines et scénarios reproductibles.
+## Spécificités GitHub Pages
 
-## Validation / CI
+Site de projet prévu : `https://glloq.github.io/little-world/`.
 
-- Lint, format et TypeScript strict.
-- Tests unitaires des transitions de mouvement et des règles d'interactions.
-- Tests de schéma des données de cartes/assets, migrations et refus de contenu invalide.
-- Tests du générateur : reproductibilité pour graine/version données.
-- Tests d'intégration client/serveur : 2 joueurs, transitions eau-air, déclenchement simultané.
-- Test navigateur de parcours minimal incluant caméra et entrée clavier.
-- Benchmarks à 2, 10 et 30 joueurs avec profils réalistes et métriques conservées.
+Pour Vite, choisir **`base: '/little-world/'`** en production. Ne pas écrire de chemins absolus `/assets/...` qui chercheraient les fichiers à la racine de `github.io`. Utiliser `import.meta.env.BASE_URL` quand il faut fabriquer une URL publique dynamiquement.
 
-Un test réussi ne signifie pas automatiquement **déployé** : distinguer implémentation, test local, validation en CI et version effectivement publiée.
+Jeu et éditeur peuvent être deux points d'entrée statiques ou utiliser un routage **hash** ; éviter les URLs SPA profondes qui provoquent un 404 au rechargement sans configuration de fallback.
 
-## Sécurité et exploitation
+CI : lint/typecheck/tests → build → vérification des chemins/artefacts → déploiement GitHub Pages. Le workflow **sera implémenté à M0** ; GitHub Pages doit être activé dans les paramètres du repo.
 
-- Ne jamais faire confiance aux positions finales envoyées directement par un client.
-- Vérifier portée, état, permissions et fréquence des interactions côté serveur.
-- Versionner les protocoles entre clients et serveur.
-- Garder les sauvegardes persistantes indépendantes des artefacts compilés de carte.
-- Isoler les commandes d'éditeur des routes publiques de jeu ; publication réservée aux auteurs.
+Détails : [08-GITHUB-PAGES.md](08-GITHUB-PAGES.md).
 
-## Ordre d'intégration
+## Tests V1
 
-Créer en premier les contrats `InputCommand`, `MovementState`, `WaterVolume`, `WorldManifest`, `AssetManifest`, `InteractionDefinition`. Ensuite seulement développer les adaptateurs Three.js, Rapier et Colyseus. L'objectif est d'éviter les classes globales monolithiques et les règles implicites.
+1. Build statique **sans serveur au runtime**.
+2. Chargement correct depuis le préfixe **`/little-world/`** et non seulement depuis `localhost:/`.
+3. Rapier WASM et textures/GLB accessibles avec les bons chemins.
+4. Marche/course/saut/planage/nage/plongée testés à différents FPS.
+5. Générateur déterministe et formats de cartes validés.
+6. Sauvegarde/export/import/rechargement d'éditeur sans perte.
+7. Test navigateur automatisé avec capture des erreurs réseau/console.
+8. Budget téléchargé, draw calls et FPS mesurés sur un PC de test.
+9. Un artefact de build publié est **visuellement vérifié** sur GitHub Pages.
+
+## Travaux explicitement différés
+
+Colyseus, serveur autoritaire, prédiction/réconciliation réseau, rooms, chat, authentification, base de données, position des autres joueurs, sauvegarde partagée et tests de charge 10–30 joueurs.
+
+Une future évolution réseau demanderait un nouveau jalon et une conception spécifique ; **ne pas ajouter d'infrastructure prématurée**.
