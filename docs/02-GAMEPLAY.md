@@ -4,23 +4,27 @@
 
 ## Personnage
 
-- **Écureuil volant stylisé non humanoïde**, locomotion surtout quadrupède, queue expressive.
+- **Écureuil volant stylisé à proportions chibi**, selon la planche de référence fournie : tête ronde, yeux très expressifs, grandes oreilles, ventre beige et queue facettée. La posture visuelle est davantage bipède au repos ; le contrôleur physique reste identique.
 - Membrane entre membres, **animation de déploiement**, sans simulation de tissu coûteuse.
-- Modèle glTF/GLB avec squelette/animations ; **proxy** géométrique autorisé pour tester la simulation avant la création du personnage définitif.
+- Le **modèle procédural original est implémenté** dans `src/squirrel.ts` ; squelette/animations glTF/GLB restent à réaliser pour la version finale.
 
 ## Contrôles (proposition à tester)
 
 | Contexte | Entrée | Action |
 | --- | --- | --- |
-| Tous | Souris | Caméra libre à la troisième personne |
+| Tous | **Clic gauche maintenu et glissement souris** sur le canvas 3D | Rotation orbitale ; pas de rotation au simple mouvement de souris |
 | Sol/eau | `ZQSD` ou `WASD` | Se déplacer par rapport à la caméra |
 | Sol | `Shift` maintenu | Courir |
+| Tous | **`A` maintenu** | Menu accessoires / émotions (cliquable pendant le maintien) |
+| Tous | `A` relâché | Fermer le menu sans perdre l'apparence choisie |
 | Sol | `Espace` (front d'appui) | Saut simple |
 | Air | `Espace` après relâchement | Déployer / replier la membrane |
 | Nage/plongée | `Espace` maintenu | Remonter |
 | Nage/plongée | `Ctrl` maintenu | Descendre |
 | Près d'un objet | `E` | Interagir |
 | Tous | `Échap` | Libérer la souris / menu local |
+
+**Menu A :** la touche est identifiée par `KeyboardEvent.key === 'a'` pour fonctionner en AZERTY/QWERTY. Sur QWERTY, la touche A est **réservée à ce menu** et ne sert plus à straffer : utiliser Q ou flèche gauche. Les déplacements sont ignorés tant que le menu est affiché, et l'apparence choisie est enregistrée localement. Le menu doit rester accessible pendant un clic sur ses options.
 
 **Règle essentielle :** un `Espace` maintenu ne doit pas provoquer un saut puis un déploiement involontaire. Il faut un **nouvel appui après relâchement** en l'air. Les mappings restent configurables.
 
@@ -55,7 +59,7 @@ Appliquer des marges/hystérésis aux seuils pour empêcher une alternance de mo
 - **Planage :** vitesse avant, angle d'inclinaison, portance simplifiée, perte d'altitude ; impossible de monter indéfiniment sans source de courant ascendant explicitement conçue.
 - **Eau :** surface logique et volumes de profondeur, résistance, flottabilité simplifiée, contrôle vertical.
 - **Oxygène :** longue durée configurable ; comme il n'y a **ni dégâts ni mort**, prévoir une remontée/assistance non punitive à zéro et en confirmer l'ergonomie.
-- **Caméra :** suivi amorti, zoom et orbite souris, évitement d'obstacles, réglages contextualisés au planage/eau.
+- **Caméra :** suivi amorti, zoom et **orbite uniquement au clic-glissé** ; éviter toute capture permanente du pointeur. Évitement d'obstacles et réglages contextualisés au planage/eau restent à perfectionner.
 
 ## Architecture locale (sans réseau)
 
@@ -77,3 +81,6 @@ Appliquer des marges/hystérésis aux seuils pour empêcher une alternance de mo
 6. Caméra ne traverse pas durablement les rochers ni ne se retrouve coincée.
 7. Comportement stable à **FPS variables**, grâce au pas fixe.
 8. Les modes ne dépendent pas d'une animation GLB particulière ; un proxy reste fonctionnel.
+9. Sans bouton de souris enfoncé : aucun changement de lacet/inclinaison de caméra ; clic-glissé actif : rotation autorisée.
+10. Maintenir A → menu visible ; cliquer options → changement immédiat ; relâcher A → fermeture ; reload → préférences conservées.
+11. Hors planage la membrane est invisible, quelles que soient les émotions et accessoires choisis.
