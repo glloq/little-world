@@ -448,6 +448,21 @@ La [spécification 22 — ResourceBudgetManager](22-RESOURCE-BUDGET-MANAGER.md) 
 
 **Interfaces TypeScript détaillées** `FrameSample/PerfWindow/QualityBudgetSnapshot/QualityConsumer` : document 22, indicatives jusqu'à implémentation. Le gestionnaire **ne doit pas** doubler le composant existant `PresentationBudget`.
 
+## Contrat V3 — partitions MIDI, patches, émetteurs et ressources audio
+
+Le [document 23 — Audio LOW-RESOURCE](23-MIDI-AUDIO-LOW-RESOURCE.md) fixe la frontière **auteur / runtime** :
+
+- `AudioProjectDefinitionV3` versionné : petite bibliothèque **1–10 patches actifs (cible artistique 5–10 max)**, `scoreId → midiAssetId` avec mapping de pistes/programmes aux `patchId`, profils ambiance par `biomeId` et `AudioEmitter` liés à des `entityId`.
+- Chaque **patch musical est une définition** (`oscillator`/petit `sampled`), **pas une voix** ou un `AudioNode` persistant. Les instruments musicaux ne doivent pas être dupliqués dans chaque prefab.
+- Les sons naturels `soundId` sont des **assets** avec format/codec variantes, ID stable, taille/durée/canaux/licence ; les fichiers `.mid` sont des sources binaires séparées du JSON auteur. Ajouter une validation MIME/SMF et des liens de dépendance.
+- `AudioEmitter` représente des **coordonnées/IDs/événements, gain, portée, priorité, loop** ; sa présence ne déclenche pas la création d'un `PannerNode` tant qu'il n'est pas audible.
+- `AudioBudgetManager`, voix en cours, `AudioContext.currentTime`, caches PCM, décodage, PannerNodes, graphes de mixage et effet mute **sont purement runtime/appareil-dépendants**, jamais source de vérité V3.
+- Les **archives V3 ZIP portables** embarquent sources MIDI, samples/loops, patch library, manifestes/hashe/licences et refs, **pas les buffers audio décodés**. Import non destructif avec mapping de programmes GM non reconnus, compatibilité migration V1/V2.
+- `WorldClock` conditionne sélection de motifs/musique, mais le séquenceur joue sur **l'horloge audio** ; l'accélération bêta de l'heure ne précipite pas automatiquement les notes.
+- Un futur multijoueur réplique au plus les **événements logiques sonores pertinents**, pas PCM, frames audio, voix ou détails de mixage.
+
+Les interfaces `AudioQualityBudget/AudioPlayEvent/MidiPatchDefinition/AudioProjectDefinitionV3` sont **indicatives** au document 23, jusqu'à leur implémentation/test.
+
 ## 10. Architecture de code proposée (pas de refonte cosmétique préalable)
 
 ```text
