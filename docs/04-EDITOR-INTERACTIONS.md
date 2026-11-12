@@ -1,6 +1,9 @@
-# 04 — Éditeur de monde et interactions
+# 04 — Little World Studio : édition de carte et interactions
 
-**Statut : atelier fonctionnel avec format source v2.** Sélection/multisélection, gizmos de position/rotation/échelle, duplication/suppression, annuler/rétablir, sculpture locale, peinture de biotopes, tracés d’eau/chemins, PNJ et dialogues déclaratifs sont implémentés. IndexedDB, export/import validé, migration v1 et retour du mode test sont partagés avec le jeu.
+**Statut : spécification fonctionnelle validée, à implémenter progressivement.**
+**État de cette branche : atelier unifié fonctionnel (sculpture, eau/chemins, biotopes, objets, PNJ/dialogues, historique et stockage v2). Les éditeurs spécialisés du Studio ne sont pas encore livrés.**
+
+**Références impératives :** [12 — Périmètre](12-PROJECT-SCOPE.md), [13 — Studio, UX et schémas](13-STUDIO-UX-ARCHITECTURE.md), [11 — LOW-RESOURCE](11-LOW-RESOURCE-POLICY.md).
 
 ## Fonctions disponibles
 
@@ -17,101 +20,147 @@
 Les tracés se créent par points et se suppriment via la liste des retouches ; pas encore de poignées de déplacement de points ni de spline courbe. La multisélection n’a pas de gizmo de groupe. Pas de brosse de dispersion, miniatures de catalogue, zones d’exclusion dessinables, undo persistant, sculpture en worker, navmesh ou éditeur général d’événements/mécanismes. Les actions des dialogues modifient seulement des flags de session. Les spécifications ci-dessous restent des objectifs lorsqu’elles dépassent ces fonctions.
 
 
-## Objectif
 
-Créer et modifier la vallée de Little World **directement dans le navigateur** : génération, sculpture du relief, eau, chemins, végétation, bâtiments, objets interactifs et test immédiat.
+## 1. Choix directeur : E1=C — plusieurs éditeurs spécialisés
 
-**Pas de serveur ni d'authentification.** L'éditeur est un outil d'auteur local, inclus au site statique mais **ses modifications ne sont pas publiées automatiquement** sur GitHub Pages.
+Le Studio permet de créer un **monde géographiquement continu** avec limite de format **10 × 10 km (100 km²)**. Cette limite ne signifie ni une carte actuelle de cette taille, ni le chargement de tout le monde en mémoire.
 
-## Un moteur de monde partagé
+**Une seule source de projet, un seul historique logique et un seul graphe d'IDs**, mais plusieurs vues/outils spécialisés :
 
-Le jeu et l'éditeur réutilisent les mêmes modules `world`, `rendering`, `movement`, `interactions`, `asset-registry`. Aucun système réseau n'est requis.
+1. **Accueil / plan global 2D** : liste des projets, miniatures, recherche de zones et d'objets, ouverture à une position.
+2. **Terrain et relief** : génération, sculpture, lissage, aplanissement, pentes, overrides, régénération locale.
+3. **Eau et chemins** : splines, rivières, lacs, cascades, volumes navigables, chemins, ponts.
+4. **Biotopes et faune** : peinture de zones, règles déterministes de flore/faune, densités, exclusions.
+5. **Objets et bâtiments** : catalogue, placement, transformations, groupes, maisons modulaires, portes.
+6. **Personnages / PNJ** : apparence animale, variantes du personnage joueur, comportements, zones de circulation, navigation libre.
+7. **Dialogues** : répliques, choix, branches, conditions, animations, émotions et bruitages.
+8. **Événements / actions** : déclencheurs, conditions ET/OU, séquences et état persistant.
+9. **Assets** : import GLB, audio/animations, prévisualisations, licences et catalogues.
+10. **Tests et validation** : jouer depuis la sélection, diagnostic, état du monde, navigation, performance et publication.
 
-- **Édition** : modifier une copie de la carte source, avec historique des opérations.
-- **Test local** : jouer dans une copie de la carte actuellement éditée, sans altérer l'historique.
-- **Compilation/publication** : valider et produire les ressources statiques du jeu. La publication sur Pages se fait par **commit du contenu autorisé + build GitHub Actions**, jamais par une écriture anonyme dans le navigateur.
-- La version incluse dans le site est une **carte par défaut en lecture seule** pour le mode joueur.
+Une fonction doit appartenir à **un module responsable**. Si un PNJ est sélectionné dans le viewport, « Modifier son dialogue » ouvre l'éditeur de dialogue **sur le même PNJ**, avec retour rapide au viewport.
 
-## Interface
+## 2. Ergonomie commune
 
-1. **Header compact** : carte, sauvegarder localement, importer, exporter, undo/redo, générer, tester, statut non publié.
-2. **Outils à gauche** : sélection, terrain, eau, végétation, chemins, bâtiments, objets, interactions.
-3. **Viewport central Three.js** : navigation souris, poignées de transformation, grille facultative, raycasting.
-4. **Inspecteur droit contextuel** : propriétés pertinentes de l'objet courant, sans réglages inutiles.
-5. **Catalogue d'assets** : recherche, catégorie, miniature, glisser-déposer.
-6. **Calques** : sol, eau, décor, collisions, interactions et volumes de test (masquables).
+- En-tête compact avec fil d'Ariane projet > zone > outil, nom de carte, état sauvegardé, Undo/Redo, « Jouer ici », export.
+- Outils courants dans une barre latérale compacte ; pas de liste massive couvrant toutes les spécialités.
+- Grand viewport 3D, avec vue de dessus, perspective et navigation libre ; caméra d'éditeur différente de celle du jeu.
+- Panneau de propriétés contextuelles, masquable, sans valeurs techniques non pertinentes.
+- Sélection claire et stable, multisélection, cadres de zones, gizmos simples, aperçu avant action.
+- Catalogue filtrable par type/biotope/animation, miniatures et favoris éventuels.
+- Raccourcis **proposés** : clic gauche sélection/action, clic droit maintenu orbite, clic molette déplacement, `F` centrer, `Suppr` effacer, `Ctrl+Z/Y` annuler/refaire, `Échap` annuler l'outil.
+- Outil courant et état de sauvegarde clairement visibles.
+- Une action de peinture ou transformation continue = **une seule transaction réversible**, pas une entrée d'historique par pixel.
 
-Les actions fréquentes ne doivent pas exiger de saisir des coordonnées manuellement.
+## 3. Édition du terrain et de la géographie
 
-## Outils prioritaires
+### Relief
+- Pinceaux élever, abaisser, lisser, aplanir, intensité/rayon, zones protégées.
+- Appliquer les modifications **localement aux secteurs affectés**.
+- Prévenir lorsque bâtiments/chemins/objets deviennent mal positionnés ; correction explicite.
+- Régénérer un secteur sans écraser les overrides humains et sans invalider des ID.
 
-### Terrain
-- Génération par graine, aperçu et confirmation.
-- Pinceaux : **élever, abaisser, lisser, aplanir**, réglages simples.
-- Régénération partielle et avertissement en cas de conflit avec retouches manuelles.
-- Visualisation des pentes non praticables.
+### Eau, chemins et biotopes
+- Eau/route par points de contrôle et courbes, largeur, profondeur, altitude, volume logique.
+- Rivières, mer, lacs, bassins, cascades (sans simulation physique complète d'eau).
+- Biotopes peignables avec densité, exclusion, types de végétaux et espèces.
+- Recalculer localement instances, collisions et navigation lorsque les données changent.
+- Éviter les générateurs impossibles à corriger à la main.
 
-### Eau et chemins
-- Rivière et routes par splines/points de contrôle.
-- Paramètres de largeur, profondeur, élévation ; volumes logiques de nage et plongée.
-- Placement de ponts/quais et contrôle des connexions.
+### Bâtiments
+- Prefabs entiers et éléments modulaires : murs, toits, portes, fenêtres, pontons, ruines.
+- Pas de modélisation de polygones/UV ou rigging complet dans le Studio.
+- Quelques intérieurs simples, sans obligation d'intérieur pour tous les bâtiments.
+- Modifications de prefab partagées, overrides par instance explicites.
 
-### Assets
-- Placement, déplacement, rotation, échelle, duplication, suppression.
-- Prefabs complets et modules ; dispersion de végétation avec zones d'exclusion.
-- Prévisualisation des collisions et points d'animation (roue, porte, vanne).
+## 4. PNJ et comportement
 
-## Interactions locales (sans backend)
+**Pas d'humains** : animaux/êtres stylisés variés ; réutiliser les paramètres du personnage joueur pour des rig/morphologies compatibles. Ne pas forcer un poisson ou un oiseau sur un squelette d'écureuil.
 
-L'interaction est **configurable en données**, sans script JavaScript arbitraire éditable dans une carte.
+Outil auteur :
+- Choisir morphologie/variantes, accessoires, émotions et animations.
+- Déposer PNJ, dessiner ses zones d'activité et définir les obstacles/chemins autorisés.
+- Ajouter une routine (se déplacer, travailler, attendre, saluer, regarder, fuir) et ses conditions.
+- Configurer une **navigation libre avancée**, avec calcul hiérarchique inter-secteurs et évitement local.
+- Ouvrir le dialogue ou les réactions directement depuis son panneau.
+- Prévisualiser parcours, zones et états, et rendre visibles les erreurs de navigation.
 
-Composants proposés :
-- `Interactable` : portée, libellé, touche `E`.
-- `TriggerVolume` : entrée/sortie d'un volume.
-- `Animated` : animation nommée, pivot, lecture en boucle.
-- `StateMachine` : états/transitions.
-- `Collectible` et `Dialogue` : différés, mais compatibles avec le modèle.
+**Navigation libre n'implique pas IA sociale complexe :** calculs de trajets déclenchés sur événement, activités simples, NPC éloignés endormis.
 
-Types d'événements : `onInteract`, `onEnterZone`, `onExitZone`, `onStateChanged`.
+## 5. Dialogues et interactions
 
-Conditions : distance, état courant, cooldown (pas de compte ou permission distante).
+**L'éditeur ne doit pas exiger du JavaScript pour créer chaque activité.**
 
-Actions : `setState`, `toggleState`, `playAnimation`, `stopAnimation`, `emitEvent`.
+### Types de déclencheurs
 
-**Exemple moulin** : appuyer sur `E` devant une vanne → état `open` → roue et eau animées localement. Pas de validation réseau ni d'état partagé entre utilisateurs en V1.
+- Appui sur `E` à proximité.
+- Entrée / sortie d'une zone.
+- Choix de dialogue.
+- Minuterie.
+- Changement d'état/objectif.
+- Fin d'animation.
 
-## Sauvegardes adaptées à GitHub Pages
+### Conditions
+- État d'objet/PNJ, drapeau, inventaire léger, mission, distance, cooldown.
+- Combinaisons `ET`, `OU`, négation bornée.
 
-### Édition locale
-- **IndexedDB** : sauvegardes de travail automatiques ou explicites, avec schéma/version.
-- **Export JSON** : sauvegarde portable complète de la carte éditable et des références aux assets.
-- **Import JSON** : contrôle strict des versions, types, limites et références ; erreurs explicites.
-- **Aucune promesse de persistance absolue** : les données du navigateur peuvent être supprimées, d'où l'export recommandé.
-- Le navigateur ne peut pas écrire directement les fichiers GitHub Pages ; une carte modifiée reste locale tant qu'elle n'est pas intégrée au dépôt et redéployée.
+### Actions
+- Changer état, activer mécanisme, animer un pivot, jouer son/effet, afficher texte.
+- Démarrer dialogue, choix de réponse, changer expression, lancer PNJ vers destination.
+- Donner/retirer objet, mettre à jour mission, mémoriser flag, déclencher autre événement.
+- Délais et séquences ordonnées.
 
-### Publication
-1. Éditer/tester la carte.
-2. Exporter et **valider** le fichier source.
-3. Ajouter au dépôt les données approuvées et les assets nécessaires.
-4. Compiler le bundle statique.
-5. Publier avec GitHub Actions vers GitHub Pages.
-6. Vérifier la carte sur l'URL publique.
+### Interface
+- **Formulaires adaptés** + séquences avec étapes lisibles ; éditeur de nœuds **non obligatoire**.
+- Une référence à un objet se choisit **en cliquant l'objet dans le viewport**, pas en recopiant son identifiant.
+- Vérification des références cassées, cycles sans attente, cible/animation absente et conditions illisibles.
+- Templates rapides : porte, interrupteur/mécanisme, dialogue simple, PNJ saluant, panneau, objet collectible, petite mission, énigme à étapes.
+- Dialogue à branches avec répliques, réponses, prévisualisation, animations/émotions/sons locaux.
+- Persistance configurable par état, plutôt que sauvegarde de toutes les animations.
 
-Cette procédure est **l'objectif du pipeline**, pas une fonctionnalité déjà codée.
+**Exemple complet :** le joueur actionne une vanne ; si fermée et dans la portée, lancer animation + son, changer état, accélérer roue, faire regarder le meunier, afficher une réplique et mémoriser le mécanisme ouvert. Chaque lien cible un **ID stable**.
 
-## Sécurité et limites
+Les séquences ne peuvent pas exécuter des scripts externes. Ajouter limites de longueur/profondeur/déclenchements pour empêcher des boucles instantanées.
 
-- Le site public fournit un éditeur accessible si l'URL est connue : **aucune donnée privée, aucun jeton ni secret ne doit y être inclus**.
-- Fichiers importés traités comme données non fiables ; aucune exécution de scripts importés.
-- Références d'assets validées, pas de chargement incontrôlé d'URL tierces.
-- Undo/redo d'opérations ; identifiants stables pour les objets liés.
-- Le mode joueur ne propose **aucune** fonction de modification de terrain.
+## 6. Inventaire, missions et sauvegardes
 
-## Critères d'acceptation
+Cible du jeu final : **inventaire léger**, quelques objets ramassables, petites missions facultatives et conséquences locales persistantes ; **plusieurs slots de partie**.
 
-1. Générer une carte → déplacer un arbre → sauvegarder → fermer/recharger → même état.
-2. Exporter JSON → effacer le stockage local → réimporter → scène identique.
-3. Changer la graine → prévisualiser → annuler sans perte.
-4. Associer un levier à une roue → tester → animer, sans code spécifique au moulin.
-5. Publier une carte de démonstration comme **fichiers statiques**, puis la charger sur Pages.
-6. Les références manquantes, schémas invalides ou scripts interdits bloquent import ou compilation.
+La sauvegarde du joueur comprend les états pertinents (objets, flags, objectifs, position), **jamais** les données auteur du Studio. Séparer les namespaces et versions.
+
+Le Studio conserve des brouillons et une archive exportable ; les cartes 100 km² sont **découpées en fichiers par secteur** et un manifeste, pas un énorme JSON monolithique.
+
+## 7. Édition, aperçu et publication
+
+1. Ouvrir un projet + une zone, charger la partie de carte utile.
+2. Éditer en transactions Undo/Redo ; enregistrer automatiquement en local avec indication de statut.
+3. Tester immédiatement dans le runtime depuis la position choisie, avec une **copie du brouillon**.
+4. Revenir à l'éditeur sur le même projet et avec la sélection/historique conservés.
+5. Vérifier schémas, coordonnées, assets, références NPC/dialogue/action, incohérences de navigation.
+6. Exporter un projet portable ou compiler les secteurs du monde en ressources statiques.
+7. Publier via GitHub/GitHub Actions → GitHub Pages, **pas par écriture anonyme depuis la page**.
+
+Les imports sont non fiables : valider types, tailles, schémas et références, et éviter les tokens GitHub dans le client.
+
+## 8. Contraintes LOW-RESOURCE
+
+- Cible 30 FPS, secours 20 FPS ; pas de ralentissement du monde ni d'inputs perdus.
+- Vue globale 2D légère ; viewport détaillé uniquement sur les secteurs nécessaires.
+- Mutualiser meshes/GLB/matériaux, lazy loading des éditeurs lourds, culling/LOD.
+- Régénération de terrain, végétation et navigation **uniquement autour des modifications** ; travailleurs Web Worker seulement si justifiés.
+- PNJ et faune hors champ non simulés de façon intensive ; pas de rigid bodies décoratifs.
+- Profilage des longues sessions d'édition et libération des ressources GPU après chargements/régénérations.
+
+## 9. Critères d'acceptation
+
+1. Créer/charger une carte, peindre un relief et un biome, sauvegarder, annuler, recharger : données identiques.
+2. Créer un PNJ animal avec variante, zone de navigation libre, dialogue à choix et animation de salut **depuis des écrans spécialisés**, puis revenir à sa position sur la carte.
+3. Configurer porte/vanne + réaction d'un autre objet ou d'un PNJ sans changer le code.
+4. Créer une petite mission avec objet ramassable, condition d'inventaire et flag persistant.
+5. Lancer « Jouer ici », vérifier les actions, revenir à la même édition et à la même sélection.
+6. Exporter puis importer un projet sectorisé versionné sans perte de liens.
+7. Recompiler les secteurs modifiés sans reconstruire toute la carte.
+8. Tester une carte synthétique à grande échelle et documenter les limites **sans prétendre à 100 km² fluides non mesurés**.
+9. Le runtime publié reste **entièrement statique** sur GitHub Pages.
+
+**Avant de coder, consulter [12-PROJECT-SCOPE.md](12-PROJECT-SCOPE.md) et [13-STUDIO-UX-ARCHITECTURE.md](13-STUDIO-UX-ARCHITECTURE.md)**.

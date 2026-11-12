@@ -2,6 +2,8 @@
 
 **12 novembre 2026 — architecture locale implémentée ; aucun gain global de FPS revendiqué.**
 
+**Cible de conception :** carte continue de 100 km² maximum et Studio spécialisé, voir [périmètre](12-PROJECT-SCOPE.md) et [UX](13-STUDIO-UX-ARCHITECTURE.md). Cette campagne conserve une limite expérimentale de 2 km par axe ; aucun test 100 km² n’est revendiqué.
+
 **Référence globale : [Politique LOW-RESOURCE](11-LOW-RESOURCE-POLICY.md), cible 30 FPS, secours 20 FPS, simulation indépendante.**
 
 ## Mesures de campagne (avant migration de cadence)
@@ -22,6 +24,23 @@ Les triangles avant étaient affichés arrondis dans le HUD : environ 65k au dé
 Le benchmark a observé 13,5–17,7 Mo de heap JS utilisé selon la scène (API Chrome approximative, pas la mémoire GPU). Le temps jusqu’au début de mesure est 5,4–9,0 s, **incluant navigation de préparation, chargements et attente de stabilisation de 1,2 s** ; ce n’est pas un temps de chargement pur. Les octets de ressources mesurés viennent du serveur Vite de développement et ne constituent pas la taille du site de production. Temps CPU isolé, mémoire VRAM, forêt dense, long vol panoramique et éditeur avec 2000 objets restent non mesurés.
 
 Aucune exception JS ni erreur HTTP observée dans les quatre scénarios. Pas de mesure Firefox ni de validation d’un déploiement public pour cette branche.
+
+## Mesures après migration LOW-RESOURCE
+
+Mesures sur le commit applicatif `bbe0796`, même navigateur/viewport/machine, **12 secondes de stabilisation adaptative**, puis 90 images effectivement présentées (les callbacks RAF sans rendu sont ignorés). Données [LOW-RESOURCE](benchmarks/2026-11-12-low-resource.json). Les corrections ultérieures de validation des saisies n’affectent pas le chemin de rendu mesuré.
+
+| Scène | Intervalle moyen (ms) | FPS mesuré | Appels moyens | Triangles moyens | Cible finale / qualité adaptative |
+|---|---:|---:|---:|---:|---|
+| Départ | 69,07 | 14,48 | 214 | 45 271 | 20 Hz / niveau 2 |
+| Port | 75,37 | 13,27 | 86,69 | 24 349 | 30 Hz / niveau 2 |
+| Terrain 1 km | 71,48 | 13,99 | 213,46 | 48 648 | 20 Hz / niveau 2 |
+| Terrain 2 km | 73,89 | 13,53 | 211,52 | 47 266 | 20 Hz / niveau 2 |
+
+**Le gate 30/20 FPS reste non atteint sur SwiftShader** et le PC de référence n’est pas choisi. L’adaptation réduit réellement la résolution sur un écran DPR1 (facteurs 0,8 puis 0,65 après application du plafond utilisateur/appareil) et les petits éléments éloignés ; elle ne garantit pas la cadence cible. La physique conserve sa vitesse normale à 20, 30, 60 et même 10 callbacks/s dans les tests déterministes.
+
+Les timers JS instrumentés montrent environ 0,04–0,07 ms pour les pas de simulation observés, 0,3–0,4 ms de préparation et 1,5–1,8 ms de soumission WebGL selon la scène. Ce sont des coûts CPU partiels, **pas des temps GPU** ; ils n’expliquent pas à eux seuls les intervalles observés. Le heap JS utilisé est approximativement 14–21 Mo. La qualité et les animations sont adaptatives : les différences avec le tableau historique ne constituent pas une preuve de gain à qualité/contenu identiques. Aucun changement de source pendant cette collecte, aucune erreur JS/HTTP.
+
+Les cibles de présentation sont des plafonds de cadence, pas des FPS annoncés comme atteints. Les durées de surcharge/restauration (3/12 secondes) restent à calibrer sur matériel réel. Les onglets masqués suspendent le rendu/simulation ; l’éditeur actif est plafonné à 30 Hz mais son rendu à la demande reste à réaliser.
 
 ## Reproduire
 

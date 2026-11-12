@@ -1,6 +1,8 @@
 # 07 — Feuille de route — Little World Solo / GitHub Pages
 
-**Statut : campagne avancée implémentée sur branche — 12 novembre 2026 ; publication distincte.**
+**Statut : suivi du prototype initial et plan du jeu final — 12 novembre 2026.**
+
+**Documents de cadrage prioritaires :** [12 — Limites du jeu](12-PROJECT-SCOPE.md) et [13 — UX du Studio](13-STUDIO-UX-ARCHITECTURE.md). Le **200 × 600 m** des jalons M0–M6 est la carte de démonstration ; le monde final est **une carte continue de 10 × 10 km maximum**, performance à qualifier.
 
 ## Campagne avancée — état livré sur branche
 
@@ -25,44 +27,25 @@ Les cartes de démonstration conservent la rivière, les bâtiments et le port h
 
 ### Validation
 
-Campagne locale : **61 tests réussis**, TypeScript/build réussis, compilation de la carte (40 secteurs) et régénération GLB identique (236 788 octets), **15 vérifications Chromium** réussies sur le build statique, aucune erreur JS/HTTP. Quatre scénarios de benchmark ont terminé sans erreur ; la version enrichie est plus lente sur SwiftShader que la référence et aucun gain global n’est revendiqué.
+La dernière CI applicative a réussi sur `7128fc9` : [exécution GitHub](https://github.com/glloq/little-world/actions/runs/43291414744). Le dernier correctif de rendu réduit la distance détaillée du petit animal à 8 m ; PNJ parlants à 18 m. Le plafond final validé reste 100 km², le Studio spécialisé/progression/slots de partie sont encore des objectifs.
+
+Campagne locale : **72 tests réussis**, TypeScript/build réussis, compilation de la carte (40 secteurs) et régénération GLB identique (236 788 octets), **16 vérifications Chromium** réussies sur le build statique, aucune erreur JS/HTTP. Quatre scénarios de benchmark ont terminé sans erreur ; la version enrichie est plus lente sur SwiftShader que la référence et aucun gain global n’est revendiqué.
 
 Commits applicatifs : `710fe46` (données/terrain), `7bd718d` (personnage/PNJ/dialogues), `ad45f73` (intégration atelier/écologie/tests). Branche : `feat/living-world-editor`. La création de Pull Request et l’observation de CI via API sont bloquées par le refus réseau vers `api.github.com` ; l’ajout du domaine est enregistré dans le brouillon de l’environnement et doit être appliqué dans les paramètres. La présence d’authentification API utilisable reste à vérifier après cette autorisation réseau. Aucun déploiement de cette branche n’est revendiqué.
 
 Les résultats de campagne sont décrits dans le [plan navigateur](09-BROWSER-TEST-PLAN.md) et les [mesures](10-PERFORMANCE-ROADMAP.md). Le build vérifie TypeScript strict. La validation des branches/PR est définie dans `.github/workflows/checks.yml`, avec tests, compilation de carte, build et parcours Chromium sur le build statique. Le workflow Pages de main est conservé.
 
-L’état distant de CI et le déploiement doivent être vérifiés séparément : une exécution locale réussie ne vaut pas publication. Voir le rapport final de campagne pour la branche et le dernier commit.
+La CI GitHub a réussi sur `5baf97f`, puis sur `bbe0796` après synchronisation avec main et migration 30/20 Hz ([exécution](https://github.com/glloq/little-world/actions/runs/43288636931)). Le déploiement doit être vérifié séparément : une exécution CI réussie de branche ne vaut pas publication sur Pages. Voir le rapport final de campagne pour la branche et le dernier commit.
 
 ---
 
-## Feuille de route historique et objectifs restants
+## P0 LOW-RESOURCE et objectifs restant à valider
 
-Les jalons ci-dessous décrivent le prototype initial et la cible V1 ; le tableau de campagne ci-dessus fait foi pour les évolutions de cette branche.
+- [x] Instrumentation, simulation fixe 30 Hz, présentation 30/20, interpolation et pause des onglets masqués.
+- [x] Données source communes, secteurs/LOD locaux et cache borné ; 1/2 km synthétiques mesurés.
+- [ ] PC de référence, longues traversées, navigation hiérarchique, Studio spécialisé et format sectorisé pour 100 km².
 
-## Avancement réel
-
-| Jalon | État | Livré / restant |
-| --- | --- | --- |
-| D0 documentation | **Fait** | Spécifications et test navigateur |
-| M0 bootstrap + Pages | **Implémenté ; déploiement CI réalisé** | Le test visuel dans le navigateur reste à valider |
-| M1 écureuil / déplacements | **Prototype fonctionnel dans le code** | Proxy 3D, mouvement arcade ; Rapier, animations et ajustements manquent |
-| M2 vallée | **Prototype** | Relief et rivière déterministes, moulin, port ; éditeur du relief absent |
-| M3 assets | **Démarré** | 3 GLB originaux et 3 autres prefabs procéduraux ; catalogue riche à construire |
-| M4 éditeur | **Démarré** | Placement d'objets, graine, densité, IndexedDB, JSON, test brouillon ; sculpture non réalisée |
-| M5 interactions | **Démarré** | Moulin interactif codé ; moteur générique déclaratif absent |
-| M6 finition | **Non démarré** | Profils de performance et direction artistique finale à valider |
-
-Ne pas confondre **tests automatiques passés** et **validation visuelle**. Le suivi détaillé figure dans [09-BROWSER-TEST-PLAN.md](09-BROWSER-TEST-PLAN.md).
-
-**Politique générale LOW-RESOURCE :** [docs/11-LOW-RESOURCE-POLICY.md](11-LOW-RESOURCE-POLICY.md). **Objectif validé : 30 FPS nominaux, repli à 20 FPS si nécessaire ; aucun ralentissement du jeu.** La limite de cadence n'est pas encore intégrée au prototype.
-
-### Travail technique P0 à réaliser avant l'extension de carte
-
-- [ ] Ajouter des mesures reproductibles (frametime p50/p95, FPS, draw calls, triangles, chargements, mémoire si accessible).
-- [ ] Découpler cadence d'affichage **30/20 FPS** et pas fixe de simulation proposé **30 Hz**, avec interpolation ; conserver le comportement des commandes.
-- [ ] Suspendre l'activité inutile en arrière-plan et éviter tout rattrapage infini au retour de l'onglet.
-- [ ] Évaluer les performances sur le PC de référence en forêt, planage, bateau, plongée et éditeur.
-- [ ] Ajouter uniquement les mécanismes LOD/chunks/streaming justifiés par les mesures avant de dépasser le monde actuel.
+Les jalons ci-dessous sont la **cible générale** et les critères restants ; le tableau de campagne décrit ce qui est effectivement livré sur cette branche.
 
 ## Objectif
 
@@ -160,11 +143,37 @@ Développer un **jeu solo exploratoire PC dans le navigateur**, disponible sur *
 
 M2 et M3 peuvent progresser partiellement en parallèle. Les décisions de design qui empêchent la jouabilité priment sur la finition de décor.
 
+## Jalons suivants : jeu final et Studio spécialisé
+
+Les jalons **M0–M6 décrivent le prototype**, pas les limites du produit final. **État : objectifs non livrés** ; ne pas présenter ces lignes comme du code déjà déployé.
+
+| Jalon | À réaliser | Critère de fin |
+| --- | --- | --- |
+| **S0 — Studio Core** | Données partagées, IDs, validation, sélection, Undo/Redo transactionnel, projets et sauvegardes auteur versionnés | Import/export d'un projet fiable et sans perte |
+| **S1 — Carte mondiale** | Une carte continue configurable, plafond 10 × 10 km, vue globale 2D, chunks/LOD/streaming mesurés | Navigation entre zones/secteurs, benchmark et contrôles de mémoire |
+| **S2 — Géographie** | Outils terrain, rivières, lacs, cascades, routes, overrides et recalcul local | Modifier un secteur n'efface pas les autres |
+| **S3 — Biotopes et décors** | Peinture, génération déterministe, végétation/faune, objets modulaires, GLB importables | Catalogue et biotopes modifiables depuis Studio |
+| **S4 — Personnages / PNJ** | Variantes animales (pas d'humains), rig compatible, routines simples, navigation libre et évitement | PNJ traverse secteurs/obstacles avec simulation dormante à distance |
+| **S5 — Dialogues et interactions** | Dialogues à choix, événements/conditions/actions, réactions, petits objectifs, objets ramassables | Quête et mécanisme créés **sans code ad hoc** |
+| **S6 — Sauvegardes de jeu** | Slots de partie, inventaire léger, actions et flags persistants, intérieurs choisis | Recharger la partie restaure les états prévus |
+| **S7 — Intégration UX / performance** | Éditeurs spécialisés cohérents, « Jouer ici », compilation, diagnostic, benchmarks 30/20 FPS | Jeu + Studio publiables sur GitHub Pages et testés |
+
+**Priorité Q3=B : outils génériques avant accumulation de contenu.** Décomposer chaque jalon en incréments testables ; ne pas implémenter 100 km² de végétation avant de mesurer le chargement des secteurs.
+
+### Gates de conception
+
+1. Aucun modèle de données du Studio ne dépend de l'état temporaire des meshes Three.js.
+2. Un PNJ a des comportements simples, mais peut **trouver son chemin librement** dans des zones adaptées.
+3. Un outil spécialisé peut ouvrir un objet créé par un autre **sans perdre la sélection ni casser les références**.
+4. Les données de sauvegarde joueur et les brouillons auteur ne se mélangent jamais.
+5. Une carte au maximum théorique de 10 × 10 km n'est **pas une garantie de rendu 30 FPS**.
+6. Chaque fonctionnalité suit : conçue → codée → testée → publiée/validée navigateur.
+
 ## Après V1 (hors plan de livraison)
 
-**Évolution optionnelle** : concevoir un multijoueur 10–30 joueurs avec serveur autoritaire, synchronisation, persistance et comptes. Ce n'est **ni implémenté, ni planifié pour la V1**. Une étude séparée devra évaluer coûts, contraintes et modifications de l'architecture solo.
+**Évolution optionnelle** : concevoir un multijoueur 10–30 joueurs avec serveur autoritaire, synchronisation, persistance et comptes. Ce n'est **ni implémenté, ni planifié pour le jeu solo actuel**. Une étude séparée devra évaluer coûts, contraintes et modifications de l'architecture solo.
 
-Autres fonctionnalités différées : pêche jouable, PNJ, quêtes, météo complexe, agriculture, inventaire, personnalisation, mobile/manette.
+Fonctions hors périmètre final actuel : combat, simulation sociale/économique lourde, crafting/commerce complexes, agriculture avancée, météo complexe, éditeur de rig/polygones généraliste, mobile/manette. **PNJ, dialogues, pêche légère, collecte, petites quêtes, inventaire léger et personnalisation font désormais partie de l'objectif final** (S3–S6), pas du prototype actuel.
 
 ## Définition de terminé
 

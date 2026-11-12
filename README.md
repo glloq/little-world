@@ -1,8 +1,8 @@
 # Little World
 
-Prototype **solo** d'exploration 3D avec **Three.js**, exécutable entièrement dans un navigateur PC. Un **écureuil volant** parcourt une vallée montagneuse de **200 × 600 m**, avec rivière, moulin à eau, forêt, petit village et port maritime.
+Prototype **solo** d'exploration 3D avec **Three.js**, exécutable entièrement dans un navigateur PC. La vallée montagneuse actuelle mesure **200 × 600 m** ; l'architecture cible prépare **une carte continue pouvant atteindre 10 × 10 km (100 km² au maximum)**, sans considérer cette taille comme déjà implémentée.
 
-> **Statut : prototype technique jouable en développement.** La première version est volontairement simple, avec graphismes et physique provisoires. Le code et les fichiers sont dans `main`. Le site est publié via GitHub Pages. La disponibilité de la dernière révision dépend du déploiement GitHub Actions.
+> **Statut : prototype technique jouable en développement.** La première version est volontairement simple, avec graphismes et physique provisoires. La campagne avancée est sur `feat/living-world-editor` ; le site publié depuis `main` peut rester antérieur. Le site est publié via GitHub Pages. La disponibilité de la dernière révision dépend du déploiement GitHub Actions.
 
 ## Essayer le prototype
 
@@ -32,6 +32,14 @@ npm run build     # génère dist/ pour GitHub Pages
 npm run preview   # prévisualisation du build
 ```
 
+## Périmètre final validé
+
+Little World doit devenir un **monde vivant où il existe de nombreuses petites choses facultatives à faire** : dialogues à embranchements, petites missions, collecte et inventaire légers, énigmes et activités comme la pêche. Des actions peuvent modifier durablement certains états et plusieurs sauvegardes de partie seront possibles. **Pas d'humains, de combat ni de RPG lourd**.
+
+Les **PNJ animaux/créatures** pourront réutiliser les variantes du personnage joueur lorsque leur morphologie le permet, avec activités simples et **navigation libre avancée**. La création du monde passera par **Little World Studio**, un ensemble d'éditeurs spécialisés partageant un projet et des données communes : relief, eau/chemins, biotopes, bâtiments, PNJ, dialogues, actions, assets et tests.
+
+Ces fonctions sont **des objectifs confirmés, pas des fonctions déjà livrées**. Voir [12 — Périmètre](docs/12-PROJECT-SCOPE.md) et [13 — Studio et UX](docs/13-STUDIO-UX-ARCHITECTURE.md).
+
 ## Campagne de développement
 
 - Terrain en secteurs chargés progressivement, trois LOD et cache borné ; cartes synthétiques jusqu’à **2 × 2 km**. La carte par défaut reste la vallée de 200 × 600 m.
@@ -53,7 +61,6 @@ Les tests navigateur utilisent Chromium système s’il existe, sinon celui de P
 
 ## Base du prototype conservée
 
-
 - **Terrain low-poly procédural** : relief, cours d'eau en pente, mer, montagnes et sentier ; graine de placement déterministe.
 - **Végétation instanciée** ; moulin, maisons, ponton, barque et roue animée.
 - **Écureuil 3D low-poly original**, remodelé en style chibi (visage expressif, grandes oreilles, ventre crème, queue volumineuse). Membrane de planage cachée au repos et déployée seulement en vol ; 9 expressions et accessoires modulaires. Le personnage est encore procédural, **avec rig rigide et GLB exporté, sans skinning pondéré**.
@@ -61,7 +68,7 @@ Les tests navigateur utilisent Chromium système s’il existe, sinon celui de P
 - **Moulin automatique** : la roue tourne avec le cours d'eau, sans interaction artificielle.
 - **Bateau pilotable** depuis le port : embarquement/débarquement, accélération, inertie, gouvernail et limites d'eau navigable.
 - **Performance** : terrain rendu par sections, végétation instanciée par secteur, géométries et matériaux réutilisés, chargement GLB mutualisé et modes de qualité de rendu.
-- **Objectif LOW-RESOURCE** : 30 FPS nominal, 20 FPS en secours, sans ralentissement de la simulation ; [budget global de ressources](docs/11-LOW-RESOURCE-POLICY.md). Cible **documentée mais pas encore implémentée** (boucle de jeu actuellement à 60 Hz).
+- **Objectif LOW-RESOURCE** : 30 FPS nominal, 20 FPS en secours, sans ralentissement de la simulation ; [budget global de ressources](docs/11-LOW-RESOURCE-POLICY.md). Cadences implémentées avec simulation fixe 30 Hz, interpolation, adaptation de qualité et pause des onglets masqués ; fluidité sur PC de référence non validée.
 - **Éditeur initial** : changer la graine et la densité, choisir des prefabs, cliquer sur le terrain pour placer des objets, effacer, sauvegarder dans IndexedDB, exporter/importer JSON.
 - **Catalogue d'assets intégré** : trois fichiers GLB originaux (`public/models/`) plus des prefabs générés par code, inventoriés dans `assets/catalog.json`.
 - Aucun backend, compte, serveur multijoueur ou API externe au runtime.
@@ -116,14 +123,14 @@ docs/                       # Conception, objectifs et registre de décisions
 
 ## Limites connues
 
-- Le personnage est une **version procédurale stylisée plus aboutie**, avec rig rigide et animations interpolées ; skinning pondéré et déformation fine restent à réaliser.
+- Le personnage est une **version procédurale stylisée plus aboutie**, avec rig rigide et transitions animées ; skinning pondéré et déformation fine restent à réaliser.
 - Le contrôleur de mouvement utilise actuellement des **collisions analytiques avec le terrain** : la physique Rapier et les collisions détaillées des bâtiments restent à intégrer.
 - L'eau, la nage et le planage sont des **modèles arcade provisoires**, à ajuster après essais.
 - Le bateau n'a pas encore de collisions physiques détaillées avec les pontons ; les limites de navigation sont évaluées à partir de la profondeur.
 - Les optimisations actuelles limitent l'utilisation GPU mais ne constituent pas encore un système de streaming/LOD pour une très grande carte.
-- Les tracés d’eau et chemins sont des polylignes, sans poignées de déplacement de points. Les règles d’interaction générales et les collisions détaillées de bâtiments restent à développer ; les changements locaux ne publient pas automatiquement le site.
+- Les éditeurs spécialisés (relief, eau, biotopes, PNJ, dialogues, événements) **restent à développer**. L’atelier actuel sculpte le relief, trace eau/chemins et édite PNJ/dialogues, mais ne constitue pas encore ces éditeurs spécialisés ni un moteur général d’événements ; les changements locaux ne publient pas automatiquement le site.
 - L'instance jouable charge la carte par défaut ; **les objets placés dans l'éditeur ne remplacent pas le jeu publié** sans compiler la carte exportée dans `public/maps/default.json`, la commiter et redéployer.
-- Aucun multijoueur n'est prévu pour la première version.
+- Aucun multijoueur n'est prévu pour la première version ; l'architecture cible de **100 km² est une limite de conception, pas une performance démontrée**.
 
 ## Documentation
 
@@ -139,5 +146,7 @@ docs/                       # Conception, objectifs et registre de décisions
 - [Plan de test navigateur](docs/09-BROWSER-TEST-PLAN.md)
 - [Optimisation et extension de la carte](docs/10-PERFORMANCE-ROADMAP.md)
 - [Politique globale LOW-RESOURCE : 30/20 Hz, CPU/GPU, PNJ, éditeur](docs/11-LOW-RESOURCE-POLICY.md)
+- [Périmètre et limites validés (jeu + Studio)](docs/12-PROJECT-SCOPE.md)
+- [UX du Studio, éditeurs spécialisés et contrats de données](docs/13-STUDIO-UX-ARCHITECTURE.md)
 
 **Licence de code :** à définir. Les premiers GLB ont été créés spécifiquement pour Little World ; aucun asset tiers n'est incorporé à ce stade.

@@ -1,76 +1,69 @@
-# 01 — Vision et périmètre
+# 01 — Vision et périmètre de Little World
 
-**Statut : spécification V1 solo validée — 12 novembre 2026.**
+**Statut : vision approuvée pour le jeu final ; la scène actuelle reste un prototype.**
+**Références prioritaires :** [12 — Périmètre et limites](12-PROJECT-SCOPE.md), [13 — Little World Studio](13-STUDIO-UX-ARCHITECTURE.md), [11 — LOW-RESOURCE](11-LOW-RESOURCE-POLICY.md).
 
 ## Concept
 
-Petit monde 3D d'**exploration solo** dans le navigateur **PC**. Le joueur est un **écureuil volant non humanoïde** qui traverse une vallée montagneuse depuis une source jusqu'à un port sur la mer. On privilégie une exploration agréable, de beaux panoramas, le planage, la nage et la plongée, sans boucle de progression complexe.
+Un monde 3D **solo**, paisible et vivant, dans lequel le joueur incarne un **écureuil volant** et peut découvrir **de nombreuses petites activités facultatives** : rencontres avec des PNJ, courtes missions, dialogues, pêche, collecte limitée, petites énigmes et mécanismes locaux. L'exploration et les déplacements restent le centre du jeu. **Pas de RPG lourd, de survie punitive ni de combat.**
 
-La **première version est intégralement autonome côté navigateur**, hébergée sur **GitHub Pages**. Pas de serveur de jeu, compte ni réseau temps réel requis.
+L'application fonctionne dans le navigateur PC avec Three.js/WebGL et se publie sur **GitHub Pages sans backend obligatoire**.
 
-## Choix actés
+## Monde et dimensions
 
-| Domaine | Décision |
+| Critère | Choix |
 | --- | --- |
-| Carte | **200 × 600 m** de zone de conception jouable |
-| Environnement | Montagnes, rivière, moulin à eau, forêt, village, port, côte |
-| Personnage | Écureuil volant stylisé, principalement quadrupède |
-| Contrôles | PC clavier/souris, caméra troisième personne à la souris |
-| Déplacements | Marche, course, saut, planage volontaire, nage, plongée |
-| Endurance | Aucune dans la première version |
-| Oxygène | Limite généreuse ; valeur à régler en prototype |
-| Santé / mort | Ni dégâts ni mort |
-| Activité | Exploration et tests techniques |
-| Style | Low-poly organique optimisé ; ambiance originale d'animation japonaise |
-| Carte côté joueur | **Immuable** : aucune modification terrain, rivières ou bâtiments |
-| Fabrication du monde | Génération déterministe + **éditeur de carte et d'interactions** |
-| Assets | Petits packs sélectionnés, GLB locaux, provenance/licences vérifiées |
-| Publication | Build statique + GitHub Actions + GitHub Pages |
+| Prototype actuel | **200 × 600 m** : vallée, rivière, moulin, village et port |
+| Limite du monde final | **10 × 10 km maximum (100 km²)** |
+| Organisation | **Une carte continue** par partie, sans niveaux séparés |
+| Génération | Déterministe avec retouches manuelles, régénération locale |
+| Relief | Terrain heightfield + modules 3D pour tunnels, grottes et surplombs |
+| Hydrologie | Rivières, lacs, mer, bassins et cascades ; volumes de nage/navigation simplifiés |
+| Biotopes | Peignables, configurables et enrichis en flore/faune |
+| Décors | Prefabs complets et construction par modules |
+| Édition du monde | Réservée au créateur dans **Little World Studio** ; le joueur ne façonne pas la carte |
 
-## Ambiance
+Le plafond de 100 km² est une **limite d'architecture/format**, pas une obligation de contenu, et **n'est pas garanti performant** avant benchmarks. Priorité à une petite carte riche et bien éditable.
 
-- Formes organiques simples, matériaux légers, palette naturelle et lumière chaleureuse.
-- Moulin avec roue visible, maisonnettes en bois/pierre, pontons de pêche, végétation abondante et quelques vestiges anciens.
-- Magie environnementale **discrète** possible, pas de système de sorts dans le prototype.
-- Identité visuelle originale ; ne pas chercher à reproduire un film ou une marque.
+## Joueur et univers
 
-## Parcours géographique proposé
+- Écureuil chibi low-poly, grand visage expressif, queue facettée, membrane cachée hors planage.
+- Marche/course, saut/planage, nage/plongée, navigation en bateau.
+- Caméra troisième personne orbitale **uniquement au clic-glissé de la souris**.
+- Accessoires/émotions depuis **A maintenu**.
+- Style low-poly organique, coloré et original ; magie naturelle principalement environnementale.
+- Pas de dégâts, mort, endurance ni combat en V1.
 
-**Source en altitude → sentiers et forêt → moulin → clairières/village → estuaire → port/mer**.
+## Vie et interactions
 
-Les pentes et montagnes lointaines renforcent l'impression d'échelle tout en limitant la zone réellement parcourable. Le planage doit procurer des trajets intéressants ; la rivière contient des sections profondes permettant la plongée.
+- **PNJ exclusivement animaux ou créatures, jamais humains**, dont des variantes du personnage joueur quand les rigs sont compatibles.
+- Déplacements **libres** avec navigation avancée, mais **activités volontairement simples** : trajet, travail, repos, regard, salut, fuite, échange.
+- Dialogues textuels à choix multiples, conditions simples et sons/voix stylisés.
+- Événements et réactions configurables : proximité, interaction, séquences, délais, conditions ET/OU, conséquences persistantes sélectionnées.
+- Petites missions facultatives, inventaire léger, quelques intérieurs simples et **plusieurs sauvegardes de partie locales**.
+- Pas de simulation socio-économique complexe, de fabrication étendue ou d'IA cloud.
 
-## Premier prototype acceptable
+## Outils de création : Little World Studio
 
-1. **Scène de test WebGL accessible par URL GitHub Pages** et sans backend.
-2. Écureuil provisoire ou final, caméra souris et états de mouvement fonctionnels.
-3. Marche/course, saut, planage, nage et plongée dans une petite zone avec pentes/eau profonde.
-4. Réglages des vitesses et transitions mesurables via interface de debug locale.
-5. Fonctionnement dans un navigateur PC récent sans compte, réseau API ni installation applicative.
+**Plusieurs éditeurs spécialisés, un projet partagé** : carte globale, terrain, eau/chemins, biotopes, bâtiments/objets, personnages/PNJ, dialogues, actions/événements, assets, tests.
 
-## Objectif de la V1 complète
+- Édition directe dans des vues 3D/2D cohérentes ; inspecteurs contextuels, sélections stables.
+- Modèles prêts à l'emploi (porte, mécanisme, PNJ, objet ramassable, petite mission) et logique déclarative, **sans script arbitraire**.
+- Historique Undo/Redo commun, autosauvegarde locale, export/import de projet versionné.
+- Carte compilée en ressources statiques ; publication après intégration dans Git et build GitHub Actions.
+- Test immédiat de la carte, des PNJ et des dialogues, puis retour dans l'éditeur sans perdre les modifications.
 
-- Vallée de 200 × 600 m générée et retouchée.
-- Bibliothèque d'assets locaux classés, accessibles dans l'éditeur.
-- Éditeur web statique : terrain, eau, végétation, chemins, bâtiments, interactions.
-- **Sauvegardes locales** et import/export explicites des cartes JSON.
-- Mode de test immédiat de la carte et des interactions.
-- Jeu jouable depuis GitHub Pages avec scène par défaut compilée/embarquée.
+## Objectifs LOW-RESOURCE
 
-## Exclusions de V1
+- **30 FPS cible**, **20 FPS secours**, pas fixe de simulation indépendant du rendu.
+- Chunks, LOD, culling, instancing, ressources partagées, chargement spatial sur grandes cartes.
+- PNJ/faune avec fréquence de logique adaptée à la proximité.
+- Aucune dépendance serveur pour jouer, éditer ou sauvegarder localement.
 
-- **Multijoueur** (objectif historique de 10–30 joueurs **reporté**, non testé).
-- Serveur Colyseus, sessions, base de données, comptes utilisateurs, chat, synchronisation.
-- Modification du monde par les joueurs.
-- Combat, dégâts, mort, endurance, économie, quêtes et agriculture.
-- Mobile/manette/VR ; météo complexe et cycle jour/nuit complet non prioritaires.
+## État d'implémentation
 
-## Critères qualité
+**Prototype déjà codé :** vallée 200 × 600 m, personnage procédural, déplacement/planage/nage, bateau, roue de moulin, premier catalogue GLB et éditeur de placement local.
 
-- Transitions de locomotion fluides et prévisibles ; aucun état bloquant.
-- La page charge **tous les assets nécessaires** depuis le même site statique.
-- Sauvegarde/rechargement d'une carte sans perte ; export de sécurité utilisable.
-- Déploiement reproductible avec version de build identifiable.
-- Performances mesurées sur PC représentatif, sans objectif FPS inventé.
+**Objectif, non livré :** monde jusqu'à 100 km², streaming/LOD validés, PNJ librement mobiles, dialogues, interactions déclaratives, activités, inventaire, progression/sauvegardes de partie et Studio multi-éditeurs. Les affirmations de fonctionnalité nécessitent des tests réels et un état distinct du simple document de conception.
 
-Voir [Feuille de route](07-ROADMAP.md), [Pages](08-GITHUB-PAGES.md) et [Décisions](DECISIONS.md).
+Pour les décisions détaillées, voir [12-PROJECT-SCOPE.md](12-PROJECT-SCOPE.md).

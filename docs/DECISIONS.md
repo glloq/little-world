@@ -1,6 +1,8 @@
 # Registre de décisions — Little World
 
-**Mise à jour : 12 novembre 2026 — nouvelle cible V1 solo sur GitHub Pages.**
+**Mise à jour : 12 novembre 2026 — limites du jeu et de Little World Studio validées.**
+
+**Références de développement :** [12 — Périmètre et choix G/M/P/I/E/C/Q](12-PROJECT-SCOPE.md), [13 — UX et modèles Studio](13-STUDIO-UX-ARCHITECTURE.md), [11 — LOW-RESOURCE](11-LOW-RESOURCE-POLICY.md).
 
 États :
 - **VALIDÉ** : choisi par l'utilisateur / confirmé précédemment.
@@ -13,7 +15,7 @@
 | ID | Décision |
 | --- | --- |
 | D-001 | Rendu **Three.js / WebGL** |
-| D-002 | Carte jouable **200 × 600 m** dans une vallée montagneuse |
+| D-002 | **Prototype 200 × 600 m** ; **plafond d'architecture 10 × 10 km**, une seule carte géographique continue par monde/partie |
 | D-003 | Personnage **écureuil volant animal stylisé**, surtout quadrupède |
 | D-004 | Vue troisième personne, caméra contrôlée à la souris |
 | D-005 | **PC uniquement**, clavier/souris |
@@ -22,7 +24,7 @@
 | D-008 | `Espace` au sol pour sauter, déclenchement volontaire de la membrane en l'air |
 | D-009 | Oxygène de plongée à **grande limite** |
 | D-010 | Pas de dégâts ni mort en V1 |
-| D-011 | Exploration / expérimentation avant quêtes ou activités complexes |
+| D-011 | Exploration avec **de nombreuses petites activités facultatives** et missions courtes ; pas de RPG lourd |
 | D-012 | Les joueurs **ne modifient pas la carte** |
 | D-013 | Génération automatique + **éditeur visuel** de carte, objets et interactions |
 | D-014 | Assets disponibles **dans le dépôt**, ajout progressif |
@@ -35,12 +37,28 @@
 | D-021 | Carte : source, forêt, rivière, moulin à eau, village, port près de la mer |
 | D-022 | Interactions configurables dans l'éditeur, sans code spécifique pour chaque objet |
 | D-023 | Possibilité de sauvegarder et d'exporter les modifications localement |
-| D-024 | Cycle jour/nuit/météo, quêtes et activités avancées non prioritaires |
+| D-024 | Cycle jour/nuit et météo avancée non prioritaires ; **quêtes légères/activités facultatives sont désormais prévues** |
 | D-025 | **Design d'écureuil chibi** selon la planche fournie : grands yeux, ventre clair, queue volumineuse, membrane invisible au repos |
 | D-026 | **Accessoires** : chapeau, sac à dos, pendentif ou écharpe ; **émotions** affichées sur le visage |
 | D-027 | Menu de personnalisation **uniquement pendant le maintien de la touche A** ; sélection à la souris |
 | D-028 | **Caméra : rotation uniquement par clic gauche maintenu + déplacement de la souris** ; aucune capture permanente |
 | D-029 | **LOW-RESOURCE : affichage cible 30 Hz en normal et jusqu'à 20 Hz si nécessaire** ; aucune modification de la vitesse du monde liée aux FPS |
+| D-030 | **M1 : maximum 10 × 10 km (100 km²)** comme limite de format, pas performance atteinte |
+| D-031 | **M2=A : une carte continue par monde/partie** ; plusieurs projets auteur possibles mais pas de niveaux disjoints |
+| D-032 | **G1–G7 : exploration + petites missions/activités facultatives, inventaire léger, quelques intérieurs, conséquences persistantes et plusieurs slots de partie** |
+| D-033 | **P1 : animaux/créatures exclusivement ; aucun humain** ; réutiliser des variations du personnage joueur avec rig compatible |
+| D-034 | **P2=B et P3=C : comportements simples mais navigation libre avancée**, avec calcul hiérarchique localisé |
+| D-035 | **P4–P7 : dialogues à choix, réactions, sons stylisés, faune pouvant fuir/se défendre sans combat** |
+| D-036 | **I1–I7=B : événements, conditions ET/OU, séquences, liens, persistance et réglage par formulaires**, sans scripts |
+| D-037 | **E1=C : plusieurs éditeurs spécialisés avec une source de projet et un historique communs** |
+| D-038 | **E2–E8=B : vue dessus/perspective, groupes, prefabs/overrides, multisélection, autosauvegarde et test immédiat** |
+| D-039 | **M3–M7=B : modules de grottes/surplombs, bâtiments modulaires, eau diversifiée, biotopes peignables et régénération locale** |
+| D-040 | **C1–C7=B : import GLB/animations/audio, zones, lumières/effets paramétrables, catalogues partagés** ; une seule carte continue par partie |
+| D-041 | **Q1=B : création visuelle de gameplay via événements/conditions/actions, pas programmation arbitraire** |
+| D-042 | **Q2=B : activités/réactions PNJ configurables sans IA sociale émergente obligatoire** |
+| D-043 | **Q3=B : outils génériques du Studio en priorité, puis enrichissement du contenu de carte** |
+| D-044 | **Sauvegardes distinctes** : projets/brouillons auteur et slots de partie joueur, sans écrasement |
+| D-045 | Les modèles de données sont **versionnés et sectorisés** ; compiler les cartes en ressources statiques GitHub Pages |
 
 ## PROPOSÉ — technique
 
@@ -48,7 +66,7 @@
 | --- | --- | --- |
 | P-001 | TypeScript strict + Vite + pnpm | M0 |
 | P-002 | Rapier JS/WASM pour collisions | M1 |
-| P-003 | Jeu et éditeur comme **2 entrées web statiques** partageant des modules | M0 |
+| P-003 | Jeu statique et **Studio à éditeurs spécialisés** avec modules/viewport/données partagés et chargement différé | Studio Core |
 | P-004 | Publication GitHub Actions, site `/little-world/` | M0 |
 | P-005 | `base: '/little-world/'` en prod Vite, assets base-aware | M0 |
 | P-006 | Stockage **IndexedDB + import/export JSON** pour l'éditeur | M4 |
@@ -56,12 +74,12 @@
 | P-008 | GLB, unités mètres, Y vertical, pivots documentés | M3 |
 | P-009 | `ZQSD/WASD` mouvement, `Shift` course, `Ctrl` descente, `E` interagir | M1 |
 | P-010 | `Espace` front au sol ; nouvel appui après relâchement pour toggle membrane | M1 |
-| P-011 | Pas de persistance de progression joueur nécessaire en V1 | M1 |
+| P-011 | Pas de persistance requise dans le **prototype M1**, mais **plusieurs slots persistants** pour le jeu final | Après Studio Core |
 | P-012 | États d'interactions locaux, composants déclaratifs sans JS externe | M5 |
 | P-013 | Terrain heightfield + meshes séparés pour surplombs | M2 |
 | P-014 | Instancing végétation, décors éloignés simplifiés | Profilage M6 |
 | P-015 | Pas d'escalade complexe, saut simple | M1 |
-| P-016 | Carte par défaut compilée et publiée ; éditeur **ne commit pas directement** | M4 |
+| P-016 | Carte **continue** compilée par secteurs et publiée ; Studio web **ne commit pas directement** | Pipeline carte |
 | P-017 | Pas de routage SPA historique exigeant un fallback serveur | M0 |
 | P-018 | Pas de `apps/server` ni de packages réseau en V1 | M0 |
 | P-019 | Simulation joueur/bateau à **pas fixe 30 Hz**, indépendante du rendu 30/20 FPS, avec interpolation graphique | Première migration du runtime |
@@ -89,11 +107,11 @@
 
 **Multijoueur** (objectif historique 10–30 joueurs), Colyseus, serveur Node.js permanent, synchronisation, comptes, chat, PostgreSQL, persistance partagée, validation d'interactions côté serveur, prédiction réseau, tests de charge multi-joueurs.
 
-Également différés : mobile, manette, PNJ complexes, quêtes, pêche jouable, agriculture, commerce, combat, changements de terrain par les joueurs, météo avancée, logique visuelle par nœuds.
+Également différés : mobile, manette, **IA sociale complexe**, agriculture/commerce/craft étendus, combat, changements permanents de terrain par les joueurs, météo avancée, programmation libre, éditeur de polygones/rig complet. **PNJ navigants, quêtes légères, collecte et pêche éventuelle sont dans le périmètre final**, pas livrés dans le prototype.
 
 ## Écart entre politique et prototype actuel
 
-La **politique de cadence 30/20 FPS est validée**, mais le runtime actuel utilise encore une simulation `1/60` avec rendu à chaque `requestAnimationFrame`. Cette mise en conformité, ainsi que l'instrumentation, doivent être programmées et validées. Voir [11 — LOW-RESOURCE](11-LOW-RESOURCE-POLICY.md).
+La **politique de cadence 30/20 FPS est validée** et la migration de runtime est implémentée sur cette branche : simulation fixe 30 Hz, interpolation, réduction de résolution puis détails avant secours 20 Hz, pause hors visibilité et reprise bornée. Les PNJ utilisent des décisions 10/2 Hz. Les tests ne remplacent pas la validation de fluidité sur PC de référence ; les seuils adaptatifs restent provisoires. Voir [11 — LOW-RESOURCE](11-LOW-RESOURCE-POLICY.md).
 
 ## Règles de suivi
 
@@ -112,3 +130,7 @@ La **politique de cadence 30/20 FPS est validée**, mais le runtime actuel utili
 - PNJ par données, navigation analytique légère ; dialogues/flags de session, aucun service distant.
 - Biotopes peints en overrides, écologie instanciée locale ; modèles originaux catalogués séparément des objets plaçables.
 - UI d’auteur incrémentale avec annuler/rétablir ; pas de langage de script importé ni d’éditeur de règles universel.
+
+## État après synchronisation du cadrage Studio / 100 km²
+
+Les décisions G/M/P/I/E/C/Q validées dans main sont conservées. Le plafond **final de conception** est 10 × 10 km, mais le validateur de cette version reste volontairement limité à 2 × 2 km pour les scènes expérimentales. L’atelier livré reste unifié ; le Studio spécialisé, navigation hiérarchique, inventaire, petites activités et slots de sauvegarde joueur sont à développer. Les PNJ livrés sont tous des écureuils/créatures, aucun humain. L’interface actuelle de dialogue agit sur des flags temporaires, sans prétendre au moteur de séquences et de progression final.

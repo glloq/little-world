@@ -1,7 +1,7 @@
 # 11 — Politique globale LOW-RESOURCE (Little World)
 
 **Statut : objectifs de conception validés pour les fréquences ; autres budgets provisoires à calibrer.**
-**Périmètre : jeu solo PC/WebGL sur GitHub Pages, éditeur et outils de génération, quelle que soit la taille future de la carte.**
+**Périmètre : jeu solo PC/WebGL sur GitHub Pages, Studio et outils de génération. Limite cible : une carte continue jusqu'à 10 × 10 km maximum.**
 
 > Cette politique concerne **tout le projet** : rendu, simulation, PNJ, faune, assets, mémoire, stockage, téléchargements et édition. **Ce n'est pas un relevé de performances atteintes.** Le prototype existant n'applique pas encore nécessairement ces paramètres ; les écarts doivent être suivis explicitement.
 
@@ -26,7 +26,11 @@ Le terme « Hz » désigne ici le **rythme d'affichage ciblé** (30 ou 20 images
 - Les animations peuvent être interpolées à l'affichage ; les timers logiques utilisent le temps de simulation.
 - Éviter les allocations fréquentes et les rebuilds pendant chaque frame.
 
-**État actuel à migrer :** la boucle de `src/main.ts` utilise encore `1/60` pour son pas fixe et dessine à chaque `requestAnimationFrame`. La nouvelle cible **n'est pas encore implémentée** ; la migration doit conserver la maniabilité, la trajectoire du planage et les tests existants (ne pas changer simplement une constante sans vérifier les coefficients de mouvement).
+**État de la branche de campagne : migration implémentée.** `src/frame-clock.ts` utilise un pas fixe 1/30 s, découple la présentation 30/20, borne le rattrapage et réinitialise les horloges après pause. Le joueur est interpolé à l’affichage. Résolution puis petits éléments éloignés sont réduits après 3 s de surcharge soutenue ; secours 20 Hz ensuite, restauration après 12 s de marge stable. Ces durées sont des réglages initiaux à calibrer. Les décisions PNJ sont cadencées à 10/2 Hz avec interpolation. Jeu et éditeur ne dessinent pas en onglet masqué ; le rendu de l’éditeur actif reste à 30 Hz, pas encore entièrement à la demande.
+
+Les tests vérifient l’indépendance de la simulation à 20/30/60 FPS, la marche, le bateau, le saut et l’absence de dette de temps au retour d’onglet. Les tests navigateur couvrent aussi planage, nage et plongée. Cela ne constitue **pas** une réussite du gate de fluidité sur un PC de référence, toujours non choisi.
+
+
 
 ### Dégradation adaptative : priorité à la qualité, ensuite aux FPS
 
@@ -82,6 +86,8 @@ Le **matériel de référence est à choisir** (idéalement PC avec circuit grap
 
 ## 4. Carte et génération
 
+**Périmètre approuvé :** une seule carte géographique continue par partie, limite de format 100 km², jamais intégralement simulée en détail. Les éditeurs spécialisés du Studio partagent IDs, historique et données auteur ([12 — Limites](12-PROJECT-SCOPE.md), [13 — Studio](13-STUDIO-UX-ARCHITECTURE.md)).
+
 - Carte et biotopes **compilés hors de la boucle de jeu** ; le runtime charge des données statiques plus les états interactifs locaux.
 - `WorldConfig` versionné pour les dimensions ; supprimer à terme les limites `200 × 600` dispersées dans le code.
 - Chunks de taille **proposée : 64 × 64 m**, paramétrables, avec identifiant, limites spatiales et version.
@@ -112,6 +118,8 @@ Le **matériel de référence est à choisir** (idéalement PC avec circuit grap
 - En premier, optimiser le **personnage joueur visible en permanence** ; ne pas ajouter plusieurs rigs complets pour la faune décorative.
 
 ## 7. PNJ, oiseaux, insectes et poissons
+
+**Choix approuvé :** PNJ animaux et créatures sans humains, réutilisation du rig/variantes du joueur si compatible ; **navigation spatialement libre et avancée**, mais routines/activités simples. Privilégier trajets hiérarchiques par secteurs et calcul sur événement plutôt que la simulation détaillée de tous les habitants.
 
 **Trois classes de coûts, avec budgets de fréquence distincts :**
 
@@ -152,6 +160,8 @@ Ce sont des **ordres de grandeur**, pas des fréquences garanties. Une animation
 - Séparer **bundle jeu** et **bundle éditeur**, pour ne pas faire télécharger les outils de sculpture aux joueurs.
 
 ## 10. Éditeur LOW-RESOURCE
+
+Le Studio a **plusieurs éditeurs spécialisés**, mais un projet/une carte continus et un historique commun. Charger dynamiquement l'éditeur actif ; la vue mondiale est 2D/simplifiée. Séparer les brouillons auteur des **plusieurs slots de partie joueur**.
 
 - Outils de sculpture/peinture : mettre à jour **la zone affectée**, pas le terrain entier.
 - Prévisualisation légère pendant un glisser-déposer ; calculs définitifs en fin d'opération ou par lots.

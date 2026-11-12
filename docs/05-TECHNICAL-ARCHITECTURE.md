@@ -1,11 +1,17 @@
 # 05 — Architecture technique — solo et GitHub Pages
 
+**Statut : architecture cible avec un premier prototype codé.** Le périmètre final et le Studio sont spécifiés dans [12 — Limites](12-PROJECT-SCOPE.md) et [13 — Studio UX](13-STUDIO-UX-ARCHITECTURE.md). `src/terrain.ts`, `src/world.ts`, `src/player.ts`, `src/main.ts` et `src/editor.ts` sont en place ; Rapier reste différé.
+
+## Implémentation actuelle de la branche
+
 **Statut : architecture incrémentale implémentée.** Pas de réécriture en monorepo : modules TypeScript dédiés au format source (`world-data`), terrain analytique (`terrain`), planification et rendu de chunks (`chunks`, `terrain-view`), écologie (`biomes`, `ecology`), comportement PNJ (`npc`), dialogues et édition (`dialogue`, `dialogue-authoring`, `dialogue-editor`), rig/animation, stockage et UI. La simulation joueur/bateau reste indépendante du rig ; Rapier reste différé.
 
 Le terrain utilise actuellement une configuration active unique par page. Jeu et éditeur sont deux pages distinctes : ils ne doivent pas instancier simultanément deux cartes de configurations différentes dans un même contexte JavaScript. Le cache GLB et les géométries partagées restent résidents ; les géométries de terrain et les secteurs écologiques sont bornés et libérés explicitement.
 
 La pile réellement utilisée est **Node.js 22, npm avec package-lock, TypeScript, Vite, Three.js et Playwright en développement**. `npm ci`, `npm test`, `npm run build`, puis `npm run test:browser` avec un serveur local constituent la validation. Le workflow `checks.yml` couvre les branches/PR ; `pages.yml` conserve le déploiement sur main. Les structures plus ambitieuses décrites ci-dessous restent des objectifs.
 
+
+La cible Studio/100 km² ci-dessous reste à distinguer de cette implémentation locale.
 
 ## Principe cardinal
 
@@ -21,7 +27,7 @@ Le multijoueur pourra être étudié après la V1, mais **ne doit pas complexifi
 | Rendu 3D | **Three.js** / WebGL |
 | Physique | **Rapier JS/WASM** (prévu, pas encore installé dans le prototype) |
 | Build / dev | **Vite** |
-| Dépendances | **npm**, verrouillage `package-lock.json` |
+| Dépendances actuelles | **npm**, `package-lock.json` |
 | Test du code | Tests unitaires TS et tests navigateur |
 | Publication | **GitHub Actions → GitHub Pages** |
 | Sauvegarde d'éditeur | **IndexedDB** + import/export JSON |
@@ -71,7 +77,7 @@ Ne créer **aucun** `apps/server` dans la V1. Des packages ne doivent être cré
 
 La référence globale est [11 — LOW-RESOURCE](11-LOW-RESOURCE-POLICY.md) : **30 Hz d'affichage nominal (33,3 ms/image), 20 Hz en secours (50 ms/image)**. Proposition pour la simulation locale : **pas fixe 30 Hz** et interpolation visuelle, indépendamment du FPS. Le joueur, le bateau et les interactions doivent conserver leur vitesse et leurs commandes en mode 20 FPS ; PNJ et faune peuvent employer des fréquences plus basses. Éviter l'exécution de plusieurs moteurs de simulation ou de rendu par entité.
 
-**Écart d'implémentation identifié :** au 12 novembre 2026, `src/main.ts` conserve un pas de simulation `1/60` et rend à chaque `requestAnimationFrame`. Les objectifs 30/20 ne sont **pas encore implémentés**. Les modifier exige des tests de locomotion, planage, eau et bateau.
+**Migration implémentée sur la branche de campagne :** `frame-clock.ts` simule à 30 Hz indépendamment de la présentation (cible 30, secours 20), interpole la position visuelle et borne le rattrapage. Résolution puis détails écologiques sont réduits après surcharge soutenue, avec restauration temporisée. Le jeu et l’éditeur suspendent leur rendu lorsque l’onglet est masqué ; l’éditeur actif est plafonné à 30 Hz. Les décisions PNJ tournent à 10 Hz proches / 2 Hz intermédiaires et leurs positions sont interpolées. Tests d’indépendance 20/30/60 FPS, reprise d’onglet et équivalence approximative avec les anciennes trajectoires 60 Hz. Les seuils adaptatifs sont provisoires ; cela ne prouve pas l’atteinte de 30 FPS sur PC.
 
 Le joueur ne charge pas les outils de compilation/édition ; mettre la génération lourde, la validation et l'optimisation des cartes hors de la boucle de rendu.
 
@@ -79,7 +85,7 @@ Le joueur ne charge pas les outils de compilation/édition ; mettre la générat
 
 ### Jeu
 
-Charge une **carte de démonstration versionnée** livrée avec le site ; aucune requête vers un backend. Les états temporaires (roue du moulin, leviers, position) peuvent rester en mémoire et sont réinitialisés au chargement pour la V1. La persistance de progression joueur n'est **pas nécessaire**.
+Charge une **carte de démonstration versionnée** livrée avec le site ; aucune requête vers un backend. Les états temporaires (roue du moulin, leviers, position) peuvent rester en mémoire et sont réinitialisés au chargement pour la V1. La persistance de progression joueur n'est **pas nécessaire pour le prototype initial**, mais le **jeu final doit disposer de plusieurs sauvegardes de partie locales** (inventaire léger, flags, objectifs, position et états persistants), distinctes des projets auteur.
 
 ### Éditeur
 
@@ -116,6 +122,20 @@ Détails : [08-GITHUB-PAGES.md](08-GITHUB-PAGES.md).
 8. Budgets LOW-RESOURCE (30/20 FPS, temps CPU/GPU, draw calls, triangles, téléchargements, mémoire) mesurés sur un PC de test de référence.
 9. Un artefact de build publié est **visuellement vérifié** sur GitHub Pages.
 10. Une baisse d'affichage à 20 FPS ne ralentit pas le monde ; aucune perte d'input, aucun rattrapage CPU incontrôlé après changement d'onglet.
+
+## Studio, monde et gameplay final (cible, non implémentée)
+
+- **Limite : une seule carte géographique continue jusqu'à 10 × 10 km**, 100 km² maximum théorique. La carte actuelle 200 × 600 m reste une démonstration, pas la limite du projet.
+- **Studio multi-éditeurs (E1=C)** : carte globale, terrain, eau/chemins, biotopes, objets/bâtiments, personnages/PNJ, dialogues, interactions, assets et tests. Les écrans sont spécialisés mais partagent IDs, formats, projet, sélection et historique Undo/Redo.
+- **Format auteur sectorisé** : manifeste global, `WorldDefinition`, chunks/overrides, prefabs, entités, graphes d'interactions, dialogues, navigation, schémas versionnés. Éviter un JSON monolithique à 100 km².
+- **Runtime compilé** : fichiers statiques de secteurs, LOD, collisions, index PNJ/biotopes ; le jeu charge les secteurs proches et **ne télécharge pas les modules lourds du Studio**.
+- **PNJ animaux et créatures, aucun humain** : réutiliser les variantes du rig joueur lorsque possible. Activités/reactions simples, mais **navigation libre** avec planification hiérarchique par secteurs et évitement local ; IA dormant hors proximité.
+- **Interactions** : événements, conditions ET/OU, actions séquencées, références typées par IDs, sauvegarde des flags utiles. Aucun JS arbitraire issu d'une carte importée.
+- **Activités** : exploration avec petites missions, objets ramassables/inventaire léger, énigmes et possibilités de pêche/collecte ; pas de combat ni RPG lourd.
+- **Sauvegardes séparées** : projets et brouillons auteur d'une part, parties joueur (plusieurs slots) d'autre part. Compilation/édition n'écrasent pas la progression.
+- **30 FPS nominal / 20 FPS de secours**, pas fixe indépendant, benchmarks avant toute garantie de fluidité sur 100 km².
+
+En pratique : éditeur → source autorisée → validation/compilation par secteurs → build statique GitHub Pages → runtime et slots de partie. **Le Studio ne publie pas directement depuis le navigateur public**.
 
 ## Travaux explicitement différés
 

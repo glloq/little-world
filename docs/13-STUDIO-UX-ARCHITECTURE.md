@@ -1,0 +1,200 @@
+# 13 — Little World Studio : UX, modules et contrats de données
+
+**Document d'architecture cible pour le développement** — décisions basées sur [12-PROJECT-SCOPE.md](12-PROJECT-SCOPE.md). **Non implémenté entièrement.**
+
+## 1. Principe : éditeurs spécialisés, projet unifié
+
+**Choix E1=C confirmé** : créer des éditeurs spécialisés, plutôt qu'un seul écran débordant de menus. Ils sont **indépendants au niveau de leur interface et de leurs outils**, mais partagent un **seul graphe de données versionné**, un contexte de sélection, les IDs d'entités et le service de sauvegarde.
+
+Le Studio doit rester utilisable **sans connaissance de Three.js ou de programmation**.
+
+### Modules et transitions
+
+| Éditeur | Opérations essentielles | Lien avec les autres |
+| --- | --- | --- |
+| **Projet / carte globale** | Vue 2D et miniature du monde, recherche des zones/objets, accès rapide à une coordonnée, état d'enregistrement | Ouvre un secteur dans l'outil approprié |
+| **Terrain** | Sculpter, lisser, niveler, gérer pentes, prévisualiser régénération locale | Préserve objets/overrides ; signale collisions et objets mal posés |
+| **Eau et chemins** | Rivières/lacs/cascades, volumes de nage/bateau, chemins/splines, ponts | Actualise terrain local, navmesh, biotopes et exclusions |
+| **Biotopes / écologie** | Peinture, densité, familles de végétaux et animaux, règles de distribution | Produit des instances compilées par secteur |
+| **Objets / bâtiments** | Catalogue, placement, multisélection, groupes, variantes, portes, modules | Crée points d'attache et objets interactifs |
+| **Personnages / PNJ** | Morphologie, couleurs, accessoires, activités, déplacements, zones autorisées | Ouvre éditeur de dialogues, animations ou actions sur le même ID |
+| **Dialogues** | Texte, réponses, conditions, réactions, sons, aperçu conversationnel | Références typées vers PNJ/états/actions |
+| **Actions / événements** | Déclencheur → conditions → séquence → effets, mode test | Références vers objets, PNJ, audio et progression |
+| **Assets** | Import GLB/audio/animations, validation, aperçu, variante/prefab | Catalogue commun, aucun lien rompu sans avertissement |
+| **Test / analyse** | Jouer depuis une position, injecter états, visualiser navmesh/collisions, profiler, diagnostics | Revient à la sélection/au brouillon antérieurs |
+
+**Chargement différé des modules d'édition** : ne pas charger l'éditeur de dialogues/animation complet simplement pour afficher la carte. La caméra et les primitives de rendu peuvent être communes.
+
+## 2. Parcours UX à garantir
+
+1. **Nouvelle carte** → choisir dimensions (sous limite 10 km par axe), graine, biotopes initiaux → générer/apercevoir → sauvegarder.
+2. **Créer une forêt** → ouvrir Biotopes → choisir « Forêt » → peindre → régler densité → régénérer **seulement la zone** → annuler si nécessaire.
+3. **Créer une rivière** → Eau → tracer les points → modifier largeur/profondeur → aperçu des volumes de baignade et des passages de bateau.
+4. **Créer une maison** → Objets/Bâtiments → glisser prefab → aligner au relief → ajouter porte à partir d'un modèle d'interaction.
+5. **Créer un PNJ** → Personnages → choisir espèce/variantes, position et activité → dessiner zone de navigation → ouvrir son dialogue dans l'éditeur associé.
+6. **Créer une petite mission** → dialogue d'un PNJ → réponse → action d'attribution d'objet/flag → condition de restitution → récompense ou réaction ; pas de script.
+7. **Tester** → « Jouer ici » depuis la sélection/caméra, avec brouillon non publié → retour à l'éditeur sur le même projet, avec historique intact.
+8. **Diagnostiquer** → sélection d'un objet/ID cassé → zoom vers sa position → proposition de correction explicite, jamais réparation silencieuse.
+9. **Exporter** → préflight des schémas/liens/assets → archive portable du projet + rapport d'erreurs → compilation statique hors jeu.
+
+Toute opération fréquente doit viser **2–3 actions** à partir d'un contexte déjà sélectionné, pas une traversée d'onglets et de modales.
+
+## 3. Interface commune minimale
+
+- **En-tête** : fil d'Ariane projet/zone/outil, état brouillon (sauvé/non sauvegardé), annuler/refaire, test et export. Conserver compact.
+- **À gauche** : outils contextuels de l'éditeur actif et bibliothèque/objets utiles. Ne pas afficher tous les outils à la fois.
+- **Au centre** : grande vue (perspective, dessus, libre) et manipulation directe de l'objet/zone.
+- **À droite** : inspecteur contextuel repliable ; jamais des centaines de champs simultanés.
+- **En bas** : barre de statut compacte (outil, sélection, erreurs, FPS/latence si mode diagnostic) ; pas de grand panneau permanent.
+- **Commandes** : clic gauche action outil/sélection, clic droit maintenu orbite, clic molette pan, molette zoom, `F` cadrer sélection, `Suppr` supprimer, `Ctrl+Z/Y` annuler/refaire, `Échap` annuler action courante. Les mappings précis restent configurables et testés AZERTY/QWERTY.
+- **Toujours visible** : outil courant, zone modifiée, survol, aperçu avant application, état d'annulation et erreurs.
+
+Le Studio utilise son propre système de contrôle caméra ; **ne pas confondre** avec la règle du jeu (clic gauche maintenu pour orbiter).
+
+## 4. Modèle de monde commun
+
+Séparer la **source auteur** et le **runtime compilé**, avec contrats de données explicites (noms indicatifs) :
+
+```text
+StudioProject
+├── metadata: projectId, schemaVersion, name, assetCatalogVersion
+├── world: WorldDefinition (widthM, lengthM, seed, seaLevel, generatorVersion)
+├── chunks: ChunkSource[] / overrides sauvegardés par secteur
+├── resources: AssetReference[] / prefabs versionnés
+├── entities: EntityDefinition[] avec IDs stables
+├── biomes: BiomeZone[] / règles de distribution
+├── navigation: NavArea[] / portails par secteur
+├── dialogues: DialogueGraph[] / choix/conditions
+├── behaviors: BehaviorDefinition[] / états et routines
+├── interactions: InteractionDefinition[] / événements/conditions/actions
+├── objectives: ObjectiveDefinition[] / petits objectifs facultatifs
+└── validation: rapports, erreurs de références, migration, compilation
+```
+
+Pour 10 × 10 km : fichiers **découpés en secteurs** + manifeste/indices. Une carte « 100 km² » ne doit pas être matérialisée en un gigantesque JSON chargé en mémoire.
+
+**IDs stables** : `projectId`, `worldId`, `chunkId`, `entityId`, `assetId`, `dialogueId`, `behaviorId`, `interactionId`, `flagId`. Interdire références par nom visuel ou index instable.
+
+**Sources** : génération de base déterministe + overrides manuels + entités auteur. Ne jamais créer le GOLD d'un état de carte à partir de meshes rendus alors que la source existe. Recompiler uniquement les secteurs et index affectés.
+
+## 5. Schémas d'entités et composants
+
+Préférer un modèle déclaratif limité avec composants validés :
+
+| Composant | Données / rôles |
+| --- | --- |
+| `Transform` | Position, rotation, échelle, section, parent |
+| `Renderable` | asset/prefab, variante, visibilité/LOD |
+| `Collider` | Forme simple, couche de collision, nature statique |
+| `Interactable` | invite, portée, entrée utilisateur, cooldown |
+| `TriggerVolume` | forme, événements entrée/sortie, filtres |
+| `Animated` | clips/références, réglage vitesse, lecture |
+| `StateMachine` | états possibles, transition, état initial |
+| `CharacterAppearance` | rig compatible, proportions, couleurs, accessoires, émotions |
+| `NPCBehavior` | zone d'activité, routine, chemin, réactions |
+| `NavAgent` | classe de déplacement, vitesse, zones autorisées |
+| `DialogueActor` | graphes de dialogue et répliques |
+| `InventoryObject` | objet ramassable, ID de type, usage |
+| `Persistence` | liste des champs sauvegardables, namespace de partie |
+| `AudioEmitter` / `EffectEmitter` | sons/effets paramétrables avec coûts bornés |
+
+**Ne pas obliger chaque élément à posséder toutes ces propriétés**. Les templates construisent des assemblages compatibles.
+
+## 6. Modèle d'interaction générique
+
+Une interaction est une suite **déclarative**, jamais un morceau de JavaScript injecté depuis les cartes :
+
+```text
+Événement → Préconditions (ET/OU) → Actions ordonnées → État(s) modifié(s)
+```
+
+### Déclencheurs
+
+`onInteract`, `onEnterZone`, `onExitZone`, `onTimer`, `onDialogueChoice`, `onStateChanged`, `onAnimationFinished`, `onObjectiveUpdated`.
+
+### Conditions
+
+`flagEquals`, `entityStateEquals`, `hasItem`, `distanceWithin`, `cooldownReady`, `objectiveState`, `all`, `any`, `not` (profondeur bornée et schéma validé).
+
+### Actions
+
+`setState`, `toggleState`, `setFlag`, `playAnimation`, `playSound`, `showText`, `startDialogue`, `giveItem`, `takeItem`, `moveNPCTo`, `playEffect`, `wait`, `emitEvent`, `updateObjective`.
+
+Chaque action dispose de paramètres typés, contraintes de valeur, référence d'objet sélectionnable dans la scène et erreur de validation compréhensible. Limiter la longueur/profondeur des séquences et **empêcher les cycles instantanés infinis** (`emitEvent` en boucle).
+
+### Modèles prêts à l'emploi (P0)
+
+- Porte à ouvrir / fermer.
+- Levier → objet cible (roue, vanne, grille).
+- Collectible / objet ramassable.
+- PNJ qui salue / parle.
+- Panneau affichant un texte.
+- Déclencheur d'effet dans une zone.
+- Petite mission (donner, retrouver, rapporter).
+- Énigme à étapes.
+- Objet à état persistant avec réinitialisation configurable.
+
+L'auteur peut **partir du modèle** et n'éditer que les cibles, conditions et durées courantes.
+
+## 7. Dialogues et réactions PNJ
+
+- Éditeur en **liste de répliques avec embranchements visibles** ; pas d'éditeur de graphes complexe obligatoire.
+- Chaque réplique peut avoir : locuteur, texte, choix, conditions, animation, émotion, son stylisé et actions avant/après.
+- Aperçu interactif du dialogue avec simulation de flags/items et retour aux nœuds.
+- États PNJ simples (repos, marche, travail, salut, regard, fuite, interaction).
+- **Navigation libre dans la zone** avec hiérarchie à grande échelle : topologie/connexions par secteur, recherches locales proches, mises à jour seulement quand utiles ; comportements restent simples.
+- Pas de PNJ humains : variantes animales du personnage joueur quand compatibles ; modèles alternatifs pour oiseaux, poissons et animaux non humanoïdes.
+- Si un lien dialogue/animation/PNJ manque : préflight bloquant pour la publication, diagnostic cliquable pour l'auteur.
+
+## 8. Périmètres de navigation et logique monde
+
+- Jeu : coordonnées monde continues, mais chargement **spatial** de la carte.
+- Plan global 2D du Studio = aperçu découplé des meshes haute résolution ; sélectionner une zone depuis le plan.
+- `NavAgent` : zone autorisée, pente/traversabilité, eau/sol, obstacles, portes/ponts ; aucun calcul global par frame.
+- Calculer les données de navigation avec la **compilation des secteurs** ; invalider localement les éléments touchés par la sculpture/eau/bâtiment.
+- Faune décorative : **pas tous des PNJ complets**. Poissons par groupes, oiseaux à trajectoires contrôlées, insectes simplifiés.
+- Retoucher le terrain ou ouvrir une porte peut invalider la navigation : signaler et recalculer les sous-zones concernées.
+
+## 9. Annulation, sauvegarde et compilation
+
+**Une commande d'édition = une transaction réversible** : création, suppression, modification, transformation, peinture par trait, remaniement de spline, édition d'une réplique, modification d'une interaction. Éviter une entrée Undo pour chaque pixel/déplacement de souris.
+
+- Autosauvegarde IndexedDB avec indication visible et gestion des erreurs/quota.
+- Projets, brouillons et **slots de sauvegarde du joueur distincts**.
+- Export/import de projet **portable, versionné**, incluant données auteur et références du catalogue ; archive sectorisée pour grandes cartes.
+- Les assets très lourds peuvent rester en fichiers distincts tant que l'archive est reproductible ; signaler explicitement les dépendances manquantes.
+- `Validate Project` puis `Compile World` : vérification de schémas, liens, collision/navigation, budgets/tailles ; produire un manifeste statique et les chunks nécessaires, pas une copie du Studio dans le jeu.
+- « Jouer ici » lance le **runtime sur une copie temporaire du brouillon** ; au retour, aucune modification auteur persistante involontaire.
+- Publication publique : commit/build GitHub Actions, **jamais de token GitHub dans le navigateur**.
+
+## 10. Politique UX et performance
+
+- Ne pas afficher toutes les catégories et réglages à la fois ; le contexte détermine l'inspecteur.
+- Données et rendu du Studio réutilisent le runtime, **mais pas les éditeurs lourds dans le build du jeu**.
+- Limiter le chargement aux secteurs nécessaires ; recalcul des overlays, collisions et navmesh **par zone touchée**.
+- Profiler les longues sessions, 20 coups de pinceau, 10 régénérations, 100 objets, 50 PNJ de test sans prétendre à la performance réelle avant mesure.
+- Objectif global : 30 FPS normal / 20 FPS de secours ; temporisation de sauvegarde indépendante du rendu.
+- Le Studio doit permettre de visualiser les secteurs et les budgets (chunks, draw calls, triangles, entités actives), sans afficher les compteurs à tous les auteurs par défaut.
+
+## 11. Découpage d'implémentation proposé
+
+1. **Core Studio** : schémas partagés, ID/selection, gestion de projet, commandes Undo/Redo, catalogue, validation.
+2. **Vue globale** : plan du monde, navigation/secteurs, recherche, brouillons, ouvrir l'éditeur lié.
+3. **Terrain / Eau / objets** : outil complet sur zone locale, transactions, modifications et compilation incrémentale.
+4. **Éditeur PNJ** : variantes, points/zones/navigation, états simples, aperçu et inspection.
+5. **Dialogues / événements** : templates et liens fiables, aperçu runtime.
+6. **Biotopes/faune** : peinture, distribution déterministe, édition d'overrides.
+7. **Test/compilation** : préflight, archive, runtime statique, audit UX et performance.
+8. **Finition** : raccourcis, onboarding contextuel, retours d'erreurs, performance 10 × 10 km synthétique.
+
+**Acceptation minimale** : une personne peut créer une carte, placer un moulin/PNJ, tracer son parcours, écrire son dialogue, lier un levier à une roue, tester le tout, revenir au Studio, exporter/importer puis republier le monde sans modifier le code métier.
+
+## 12. Hors scope
+
+- Édition de polygones/UV/rigs 3D complète.
+- Scripts arbitraires et plugins exécutés depuis des cartes importées.
+- Simulation sociale lourde ou économie autonome des PNJ.
+- Un serveur cloud ou des comptes obligatoires.
+- Plusieurs niveaux géographiques indépendants dans une même partie.
+- Terrain voxel illimité / création d'îles océaniques dynamiques par le joueur.
+- Garantie 100 km² à 30 FPS avant réalisation de benchmarks.

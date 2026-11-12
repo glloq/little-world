@@ -1,4 +1,9 @@
-# 03 — Carte, génération et compilation du monde
+# 03 — Génération, format et compilation d'une carte continue
+
+**Statut : spécification cible ; prototype de vallée 200 × 600 m existant.**
+**Périmètre :** carte continue jusqu'à **10 × 10 km maximum** (100 km²), sans garantie de pouvoir la charger intégralement en mémoire.
+
+## Implémentation de cette branche
 
 **Statut : carte source v2 partagée, compatible v1.** Configuration dynamique de 200 × 600 m à 2 × 2 km, retouches terrain/biotopes, volumes d’eau, chemins, placements et PNJ. Le compilateur statique valide le JSON et émet un manifeste de limites de secteurs ; la génération des meshes est encore faite à la demande dans le navigateur. La vallée intégrée reste la carte par défaut, les grands formats sont des scènes synthétiques.
 
@@ -7,73 +12,70 @@
 Les retouches sont séparées en tableaux `terrain`, `biomes`, `water`, `paths` et `placements`. Les IDs sont stables. Aucun script importé n’est exécuté. Le générateur conserve encore une rivière et des bâtiments de démonstration aux positions historiques ; il ne constitue pas un auteur géographique arbitraire complet. Les bornes minimales préservent ces emplacements.
 
 
+La limite **expérimentale du validateur actuel** est de 2 km par axe. Le plafond de conception reste 10 km par axe ; le format sectorisé et le streaming complet de 100 km² restent à développer.
+
 ## Géographie
 
-- Carte jouable : **200 m de large × 600 m de long** (enveloppe de conception).
-- Vallée montagneuse orientée **de la source vers la mer**.
-- Rivière, moulin à eau, forêt, clairières, village, estuaire, port, côte maritime.
-- Montagnes lointaines et pentes raides : contraintes naturelles et décor simplifié.
-- Quelques ruines, éléments de magie environnementale discrets.
-- Relief en hauteur pour rendre le **planage** intéressant ; profondeurs localisées pour la **plongée**.
+La carte de démonstration reste une vallée source → rivière → moulin → village → port → mer. L'architecture cible ne doit **pas imposer** cette géographie à tous les projets créés dans le Studio.
 
-## Génération procédurale déterministe
+- **Un monde jouable = une géographie unique et continue**. Plusieurs projets/cartes auteur peuvent être enregistrés séparément, pas plusieurs niveaux disjoints dans une partie.
+- Dimensions du monde configurables, maximum **10 km par axe**.
+- Terrain heightfield maillé pour le relief ; grottes, tunnels, ponts et surplombs sous forme de meshes/prefabs distincts, pas de voxels universels.
+- Rivières, lacs, bassins, cascades et mer : géométrie visuelle et volumes physiques distincts.
+- Biotopes : régions et pinceaux, règles de densité et d'espèces, zones interdites/exclusions ; variations locales reproductibles.
 
-Le monde est **généré dans l'éditeur**, retouché, puis **compilé en ressources statiques** servies par GitHub Pages. Il n'est **pas nécessaire de régénérer la vallée à chaque ouverture du jeu**.
+## Source d'autorité
 
-Pipeline :
+L'auteur travaille sur des **sources éditables**. Le runtime ne doit pas traiter les géométries affichées comme la source de vérité.
 
-1. Paramètres versionnés : `seed`, dimension, version du générateur, styles.
-2. Axe de vallée, zones de montagne et littoral.
-3. Source, rivière continue, profil de hauteur descendant, connexion à la mer.
-4. Terrain triangulé low-poly à partir de profils/bruit et contraintes d'eau.
-5. Emplacements potentiels du moulin, village, chemins et pontons.
-6. Distribution de végétation/rochers selon altitude, pente, distance à l'eau.
-7. Application des **modifications manuelles** (sculpture, splines, placements).
-8. Compilation des géométries, collisions simplifiées, instances et interactions.
+```text
+WorldDefinition (ID, schemaVersion, seed, dimensions, paramètres globaux)
+ + GeneratorVersion + BaseGeneration
+ + TerrainOverrides / RiverSplines / Paths / BiomeRegions
+ + PlacedObjects / Prefabs / NPCs / Triggers / Dialogues / Interactions
+ = Compilation sectorisée → WorldManifest + ChunkBundle[] + AssetRegistry
+```
 
-Les mêmes entrées `seed` + `generatorVersion` + paramètres doivent produire le même résultat.
+- La même version de générateur, graine et paramètres donne les mêmes données de base.
+- Les retouches **ne sont jamais écrasées silencieusement** par une régénération.
+- La régénération locale affiche aperçu et conflits ; elle peut être annulée.
+- Les entités conservent un ID stable, les ressources un `assetId` stable.
 
-## Structure à conserver dans l'éditeur
+## Secteurs et grande carte
 
-- `base` : résultat procédural.
-- `overrides` : retouches humaines non destructives.
-- `authored` : bâtiments/objets/chemins/interactions ajoutés volontairement.
-- `compiled` : carte optimisée pour l'exécution dans le jeu (recalculable).
+- Taille initiale proposée des chunks : **64 × 64 m**, configurable et vérifiée en benchmark.
+- Secteurs avec IDs stables, AABB, voisinage, version, sources auteur, géométries compilées.
+- Culling, LOD terrain et végétation, chargement prioritaire autour de la caméra/joueur et de sa vitesse (planage, bateau).
+- **Un aperçu global 2D/simplifié** pour le Studio, sans charger tous les maillages 3D haute résolution.
+- Compiler seulement les secteurs modifiés et invalider les dépendances (collision, végétation, navigation PNJ) selon les changements.
+- Les PNJ peuvent naviguer librement : **topologie traversable à grande échelle** (ponts/portes/secteurs) + planification locale/évitement.
+- Éviter d'activer tous les PNJ, poissons et oiseaux de la carte au même instant.
 
-**Aucune régénération ne doit écraser silencieusement les overrides.** Le mode aperçu doit signaler les conflits.
+## Eau, relief et interactions
 
-## Géométrie et eau
+- Surface visible, niveau, fond et volume d'immersion séparés ; pas de simulation hydrodynamique lourde.
+- Vérifier la continuité des splines et l'accessibilité des transitions (rive, pont, embarcation).
+- Tracer chemins/splines avec exclusion locale de végétation et options de pont.
+- Bâtiments et intérieurs simples configurables par modules, non générés comme terrain volumétrique.
+- Les points d'interaction, NPC et volumes sont des **données**, pas des éléments codés dans `world.ts` pour chaque cas.
 
-- Terrain principal sous forme de **heightfield maillé** ; grottes, falaises surplombantes et ponts en maillages distincts.
-- Rivière dessinée par **spline**, largeur et profondeur configurables.
-- Surface visuelle, fond physique et **volume d'immersion logique** séparés.
-- Moulin : roue et vanne séparées, positions de pivot précises, animation locale.
-- Mer : niveau défini, zone praticable limitée par le relief/conception.
-- Collision simplifiée, culling par section si nécessaire ; **pas de système de chunks infinis**.
+## Sauvegarde et publication
 
-## Fichiers et publication
+- Ne pas imposer **un unique JSON gigantesque** pour 100 km² ; manifeste + données par secteur + références partagées.
+- Le Studio conserve des brouillons IndexedDB et exporte une archive de projet portable avec versions ; contrôles de références/assets et migrations.
+- Le jeu charge **les chunks compilés**, assets GLB et états interactifs ; les slots de **sauvegarde joueur** (position, inventaire, flags) sont indépendants des données Studio.
+- Publication d'une carte dans le jeu public : export/validation → dépôt GitHub → build statique → GitHub Pages. Aucun token d'écriture GitHub exposé.
+- **Pas de serveur, de chargement de niveau indépendant ni de collaboration multi-utilisateur** requis.
 
-- **Source éditable** : manifeste versionné et données JSON (terrain, eau, objets, overrides).
-- **Build joueur** : GLB/meshes, objets instanciés, textures locales, manifeste et interactions.
-- Référencer les assets par ID stable ; inclure un `schemaVersion` et `worldVersion`.
-- Le jeu charge la **carte compilée par défaut** via des URL relatives à la base Vite `/little-world/` ; pas d'API serveur.
-- Dans la V1, **l'éditeur conserve ses modifications localement** (IndexedDB) et propose un import/export JSON. Publier une nouvelle carte sur Pages nécessite de l'ajouter au dépôt et de reconstruire.
-- Versionner les données sources et assurer une validation avant compilation.
+## Critères techniques
 
-## Performance
+1. Même seed/versions/paramètres → même génération.
+2. Sculpter une zone ne reconstruit pas toute la carte.
+3. Une régénération ne détruit pas les overrides, événements, PNJ, chemins et assets déjà placés.
+4. Le Studio ouvre une section depuis le plan global avec une latence mesurée acceptable.
+5. Le jeu peut traverser plusieurs secteurs sans cassure visible, sans changement de vitesse de simulation.
+6. Les navmeshes/graphes de navigation affectés par le terrain/eau/bâtiment sont invalidés localement.
+7. Une carte proche du plafond 10 × 10 km peut **être représentée dans le format source**, mais ses performances doivent être benchmarkées avant toute promesse.
+8. Vérifier les budgets de [11 — LOW-RESOURCE](11-LOW-RESOURCE-POLICY.md) : cible 30 FPS, secours 20 FPS.
 
-- Petit monde fixe : tester un **chargement complet** avant d'implémenter un découpage progressif.
-- Instancing des arbres/rochers ; faible nombre de matériaux/lumières.
-- Géométries éloignées simplifiées, textures compactes, allocations évitées dans la boucle.
-- Limiter draw calls, triangles, taille des GLB et coût des collisions.
-- Les objectifs de taille et FPS sont **des budgets à mesurer** sur PC réels, pas des garanties.
-
-## Vérifications
-
-- Même graine et paramètres → résultats identiques.
-- Source → rivière → estuaire → mer sans discontinuité incohérente.
-- Maison/moulin/ponton placés sur surfaces adaptées.
-- Parcours de la vallée praticable ; endroits où le planage et la plongée sont réellement utiles.
-- Sauvegarde, export, import et rechargement de la carte source fidèles.
-- Publication de la carte compilée sur **site statique sans backend**.
-- Modification de la carte impossible depuis le mode joueur.
+Voir [13 — Studio](13-STUDIO-UX-ARCHITECTURE.md) pour les flux d'édition.
