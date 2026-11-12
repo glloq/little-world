@@ -18,6 +18,9 @@ button:hover,a:hover{filter:brightness(.97)}
 .brand small{display:block;color:#64796f;font-size:11px;margin-top:2px}
 .hud-title{position:fixed;z-index:3;left:22px;right:22px;top:18px;display:flex;align-items:center;justify-content:space-between;pointer-events:none}
 .hud-title>*{pointer-events:auto}
+.header-right{display:flex;align-items:center;gap:11px}
+.quality-control{display:flex;align-items:center;gap:7px;color:#476b56;font-size:12px;padding:6px 8px;border:1px solid #d7e4d8;border-radius:11px;background:rgba(255,255,248,.89)}
+.quality-control select{border:0;background:transparent;color:#345b47;font:inherit;font-weight:650;cursor:pointer;outline-offset:4px}
 .light-button{border:1px solid rgba(73,112,91,.23);background:rgba(255,255,249,.90);padding:10px 15px;border-radius:11px;font-size:12px;font-weight:650;color:#3c584a;box-shadow:0 4px 20px rgba(34,72,50,.08)}
 .primary-button{border:0;background:#427e62;color:#fff;border-radius:11px;padding:12px 18px;font-weight:650;font-size:13px;box-shadow:0 6px 18px rgba(28,76,49,.18)}
 .primary-button:hover{background:#32664f}
