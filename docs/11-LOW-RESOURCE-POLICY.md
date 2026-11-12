@@ -216,6 +216,18 @@ Pour chaque scénario, conserver :
 
 Les étapes 1–2 sont prioritaires : aucun budget n'est considéré atteint sans instrumentation.
 
+## Compatibilité LOW-RESOURCE du futur multijoueur (hors jeu solo)
+
+Référence : [16 — Multijoueur futur, AOI et foules](16-FUTURE-MULTIPLAYER.md).
+
+- **Client GPU intégré** : LOD des personnages/rigs/animations/ombres et budget plafonné pour les avatars détaillés, indépendant du nombre total de joueurs connectés.
+- **Simulation** : jeu à pas fixe et scheduler PNJ/faune existants restent locaux ; un éventuel serveur futur possède une cadence propre. Ne pas faire varier vitesse de jeu ou taux de rendu au rythme des snapshots réseau.
+- **Réplication future** : AOI et priorités pour réduire les destinataires ; mouvement 2–20 Hz selon intérêt, 2–3 Hz pour personnages secondaires d'une foule, éventuellement 0 hors intérêt ; événements et interactions critiques prioritaires.
+- **Grosse foule** : mesurer nombre d'avatars visibles/détaillés, animation CPU, triangles/draw calls, réseau et latence d'interaction **séparément**.
+- **Secteurs** : chunk de terrain, zone de simulation et zone d'intérêt restent des notions indépendantes.
+- **Non-objectif actuel** : aucun serveur/socket/Protocole réseau nécessaire pour atteindre le budget solo 30/20 FPS.
+- **Aucun résultat 200/500 joueurs n'est revendiqué**, les cibles seront validées par benchmarks au lancement du chantier multijoueur.
+
 ## 13. Décisions et évolution de la politique
 
 - **Validé par l'utilisateur :** 30 Hz normalement, possibilité de descendre à 20 Hz.
