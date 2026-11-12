@@ -76,6 +76,22 @@ La [spécification 16](16-FUTURE-MULTIPLAYER.md) distingue **nombre total connec
 - **Vérifications distinctes** : bots headless pour charge serveur vs navigateurs réels pour coût graphique. Les deux sont indispensables avant d'annoncer une capacité.
 - **Pas de charge réseau en jeu solo pour simuler une future optimisation** ; l'architecture de données reste compatible, sans dépendance réseau au runtime actuel.
 
+## Campagne HZ — profondeur de vue sans brouillard (non mesurée)
+
+La [spécification 17](17-DISTANT-VIEW-RENDERING.md) définit **HZ-0 à HZ-6** pour construire une vue lointaine de montagnes, îles, côtes, ruines et forêts **sans fog de masquage**. La vue détaillée (terrain LOD0/1/2) doit être distincte de **l'horizon à faible polygones et imposteurs**.
+
+| Étape | Validation attendue |
+| --- | --- |
+| HZ-0 | Baseline identique (seed/caméra/résolution/contenu) vallée, hauteur, planage, océan, forêt |
+| HZ-1 | Maillage de relief d'horizon indépendant du rayon de terrain actif |
+| HZ-2 | Transitions LOD/hystérésis, budgets et préchargement directionnel en planage |
+| HZ-3 | LOD de forêts/arbres, bâtiments et repères ; instancing par zones |
+| HZ-4 | Imposteurs et panoramas précalculés seulement lorsque la parallaxe reste correcte |
+| HZ-5 | Proxy indexés/hachés/invalidation locale par le compilateur V3 et le Studio |
+| HZ-6 | Benchmark GPU intégré 30/20 FPS, popping, alpha overdraw, mémoire et transfert |
+
+**Ne pas confondre** terrain synthétique de 2 km testé en logiciel avec la **performance d'une vue effective à plusieurs kilomètres**. Les chiffres LOD 100 m/400 m/1,5 km/5 km de la spec 17 restent illustratifs. Tous les gains doivent être comparés à **contenu identique**.
+
 ## Suite prioritaire
 
 1. Réduire les appels du personnage et regrouper les sous-meshes statiques par matériau/articulation, puis mesurer sur les mêmes scènes.
