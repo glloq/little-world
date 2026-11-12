@@ -32,8 +32,9 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number): void {
   const forward=len>0?keys.forward/Math.max(1,len):0;
   const right=len>0?keys.right/Math.max(1,len):0;
   const sx=Math.sin(keys.cameraYaw),cz=Math.cos(keys.cameraYaw);
-  const dx=right*cz+forward*sx;
-  const dz=forward*cz-right*sx;
+  // Camera looks toward +Z at yaw=0: screen-right is world -X.
+  const dx=forward*sx-right*cz;
+  const dz=forward*cz+right*sx;
   const atWater=waterSurface(pos.x,pos.z);
   const ground=terrainHeight(pos.x,pos.z);
   const deepEnough=atWater!==null && atWater-ground>.62;
