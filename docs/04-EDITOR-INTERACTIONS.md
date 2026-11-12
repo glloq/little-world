@@ -181,6 +181,16 @@ Les imports sont non fiables : valider types, tailles, schémas et références,
 - Contrôles de courants, couleurs, visibilité sous-marine et niveau d'écume via presets ; réglages de shader avancés repliés.
 - Une cascade Blender GLB peut décorer l'effet visuel, mais c'est le **réseau d'eau V3**, pas le GLB, qui pilote immersion et navigation.
 
+## Éditeur : temps de réponse prioritaire et budget PERF
+
+Voir [22 — ResourceBudgetManager](22-RESOURCE-BUDGET-MANAGER.md) : le Studio doit réutiliser la politique de budget et **réserver la réactivité de l'édition** aux tâches essentielles.
+
+- Gizmos, pinceaux, sélection, Undo/Redo et saisie auteur **prioritaires** ; sculpter ou importer un preset n'autorise pas un recalcul total synchrone de la carte.
+- **Compilation/preview/miniatures différées**, jobs annulables et versionnés, invalidation locale, mémoire des GLB partagés et cache borné.
+- **Rendu à la demande** si carte/viewport inactif, rendu interactif lors du déplacement/camera/animation, FPS/cadence et qualité propres à la prévisualisation. Les opérations de sauvegarde ne dépendent pas du FPS.
+- Panneau bêta **Ressources/Performance** : charges CPU/GPU mesurable, compteurs, LOD, caches, queue, snapshots de profil Auto/Éco/Équilibré/Qualité, raison du downgrade et export JSON de benchmark.
+- Le format auteur V3 et les archives Blender ne stockent **pas les choix adaptatifs du GPU** ; optimiser l'affichage ne doit jamais altérer relief, placés, biotopes, PNJ ou écosystème.
+
 ## 9. Critères d'acceptation
 
 1. Créer/charger une carte, peindre un relief et un biome, sauvegarder, annuler, recharger : données identiques.
