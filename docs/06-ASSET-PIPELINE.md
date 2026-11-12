@@ -121,6 +121,18 @@ L'aspect herbe courte provient principalement des couleurs/motifs du terrain. Le
 
 **Les triangles ne sont pas le seul coût :** comptabiliser draw calls, overdraw, mémoire GPU, nombre de secteurs actifs et éventuels changements de shader. Les budgets et portes de validation sont définis dans [18 — Herbes ultra-low-resource](18-GRASS-LOW-RESOURCE.md).
 
+## Métadonnées d'environnement pour les assets
+
+Voir [19 — Environnement LOW-RESOURCE](19-ENVIRONMENT-WEATHER-SKY.md).
+
+**Pour les matériaux qui reçoivent la neige**, prévoir un **masque de dépôt précalculé** (attribut de sommet, matériau ou petite texture partagée si nécessaire), déterminé par orientation/partie du modèle et propriétés métier : neige sur dessus de toiture et feuillage, mais pas sur murs verticaux/troncs/eau par défaut. Le coefficient de neige, d'humidité et d'éclairage est un **uniforme partagé** ; ne pas dupliquer toutes les versions d'assets « été/hiver/pluie ».
+
+Pour le **ciel, les étoiles et les lunes**, privilégier texture/carte procédurale compacte, disque/sprite peu coûteux et paramètres de palette, **sans mesh ni lumière par étoile ou lune** ; les cycles sont des données d'environnement, pas un asset animé unique par lune.
+
+Pour les **ombres**, fournir lorsque pertinent limites/importance du modèle et catégorie de cast/receive shadow ; le `ShadowBudgetManager` choisit les **grands objets proches**, les herbes restent toujours exclues. Un objet importé **ne doit pas activer automatiquement un shader lourd, une shadow map ou une texture de neige volumineuse**.
+
+Les matériaux spéciaux restent des dérivés compacts du catalogue et doivent être **mesurés sur GPU intégré** (draw calls, VRAM, éventuelle recompilation de shaders et surcoût de calcul fragmentaire).
+
 ## Qualification
 
 - Fichier présent, path valide après build GitHub Pages.
