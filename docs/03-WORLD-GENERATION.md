@@ -78,6 +78,16 @@ Décision documentée dans [17 — Rendu sans brouillard, horizon et imposteurs]
 - Les vues de planage et haute altitude doivent être évaluées en priorité. Une distance de vue profonde **n'implique pas** de charger la végétation/faune/physique de l'horizon.
 - Mesurer la taille des ressources, les changements de LOD, le temps de compilation et la charge GPU avant de figer le codec et les distances.
 
+## Végétation basse : herbes procédurales très légères
+
+La [spécification 18](18-GRASS-LOW-RESOURCE.md) fixe la stratégie d'**herbes courtes/hautes low-resource**, complémentaire au rendu lointain sans brouillard du document 17 :
+
+- Le **sol porte la majorité de l'aspect herbeux** via les couleurs du heightfield et les règles de biotopes.
+- Des **touffes 3D opaques instanciées** sont générées seulement dans une bande locale utile autour du joueur ; aucune instance persistante par brin.
+- Le placement se reconstruit à partir de `seed + version + chunk + biotope`, avec exclusions (routes, eau, bâtiments) et paramètres auteur ; l'anneau local **n'entraîne pas de glissement** des touffes en coordonnées monde.
+- Toute édition de biotope ou de terrain **invalide seulement les cellules concernées**, avec Undo/Redo V3 ; le monde à 100 km² reste descriptible sans stocker chaque herbe.
+- Le vent et les interactions sont purement visuels côté client, sans influence sur collisions/PNJ ; le terrain lointain conserve des couleurs/silhouettes sans géométrie d'herbe.
+
 ## Critères techniques
 
 1. Même seed/versions/paramètres → même génération.
