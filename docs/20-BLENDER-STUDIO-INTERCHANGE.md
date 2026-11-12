@@ -292,6 +292,16 @@ Le [document 23 — Audio MIDI LOW-RESOURCE](23-MIDI-AUDIO-LOW-RESOURCE.md) ajou
 - L'import d'un pack vérifie **résolution des IDs, droits/licences, taille PCM estimée, contrôle de mapping MIDI** vers la palette existante. Si le pack introduit un onzième instrument, proposer remappage/substitution **explicite**, pas expansion silencieuse.
 - Export scène Blender `GLB+sidecar` préserve les **références audio non géométriques** dans V3 ; une mise à jour de géométrie ne supprime pas les sons d'interaction.
 
+## Mines creusables : géométrie Blender vs cellules persistantes
+
+Le [document MINE 24](24-MINES-MULTILEVEL-LOW-RESOURCE.md) sépare les **prefabs GLB** du système de **cellules creusables 2,5D par niveau**.
+
+- Blender peut fournir **entrée de mine, puits, escaliers, rails, chambres particulières, accessoires, minerais apparents et cristaux** en GLB, avec pivots et sockets de connexion validés.
+- Les **cellules solides/excavées, filons initiaux, niveaux, altitude, navigation et états de partie** restent des données V3 + sauvegarde partie, **pas** une scène GLB monolithique modifiable.
+- Le Studio associe le prefab d'entrée aux **ouvertures du heightfield**, et chaque rampe/puits à des **connecteurs de niveaux** ; échelle/origine Blender Y-up convertie une fois.
+- **Archive V3 portable d'auteur** : définitions et seeds de mines + dépendances GLB (et sources `.blend` seulement si explicitement incluses) ; **ne pas inclure l'excavation d'une partie** par défaut.
+- La réimportation d'une scène Blender ne **supprime jamais** les cellules creusées ni le stock épuisé d'une sauvegarde ; conflits entre source/générateur et états existants évalués séparément.
+
 ## 12. Décisions finales et exclusions
 
 **Validé :** Blender pour fabriquer les modèles/sets low-poly ; `glTF 2.0/GLB` comme échange 3D ouvert ; `.blend` comme source facultative ; Studio pour placements XYZ/rotation/échelle, biotopes/peinture/génération, prefab/groupes et interactions ; import/export de **presets** et de **cartes rééditables**.
