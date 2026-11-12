@@ -207,6 +207,25 @@
 
 **Spécification, interfaces et plan PERF-0…PERF-9 :** [22 — ResourceBudgetManager](22-RESOURCE-BUDGET-MANAGER.md). L'implémentation du manager et ses gains restent **à qualifier**, même si des bases d'adaptation existent déjà.
 
+## VALIDÉ — audio MIDI limité et synthèse LOW-RESOURCE
+
+| ID | Décision |
+| --- | --- |
+| **AUD-D01** | **5 à 10 instruments MIDI au maximum**, palette sonore réutilisable à l'échelle du monde ; ne pas confondre patches et notes simultanées |
+| **AUD-D02** | **Un seul AudioContext partagé** et mixeur music/SFX/ambience/master, audio initialisé/réactivé après action utilisateur et fallback silencieux |
+| **AUD-D03** | **Synthétiseur léger Web Audio** : oscillateurs, enveloppes, filtre minimal optionnel, voix mutualisées ; SoundFont GM complète et 128 patches exclus |
+| **AUD-D04** | **Lecteur d'échantillons courts partagé** pour bruitages et ambiances naturelles ; boucle/sons procéduraux retenus selon coût mesuré |
+| **AUD-D05** | MIDI SMF 0/1 interne → séquenceur horloge audio, programmes mappés à palette 5–10, contrôleurs restreints ; **Web MIDI matériel non requis** |
+| **AUD-D06** | **AudioBudgetManager consommateur de PERF**, plafonds de voix totales/musicales, sources 3D, couches d'ambiance et cache PCM ; pas de second régulateur global |
+| **AUD-D07** | Spatialisation limitée aux sons audibles, `equalpower` économique en priorité, HRTF optionnel après benchmark ; priorité aux signaux de gameplay |
+| **AUD-D08** | Musique et ambiance adaptatives selon biome, météo, jour/nuit et événements depuis états logiques existants ; lecture audio indépendante des FPS/accélération de l'horloge monde |
+| **AUD-D09** | **Studio** : import `.mid` et samples, mapping des 5–10 instruments, presets, `AudioEmitter` et ambiances par biotope, sans créer un DAW |
+| **AUD-D10** | Archive V3 portable contient partitions, samples, patches, IDs/refs/licences, pas buffers PCM décodés, graphes de nœuds ni états audio runtime |
+| **AUD-D11** | Mesurer polyphonie, latence/glitches, décodage, cache PCM et coût navigateur Firefox/Chromium, sans déduire le CPU audio des FPS GPU |
+| **AUD-D12** | Pas de Web MIDI API obligatoire, pas de banque géante, pas de script dans l'import et pas de backend audio/cloud en solo |
+
+**Architecture, budgets et étapes AUD-0…AUD-8 :** [23 — Audio LOW-RESOURCE / MIDI](23-MIDI-AUDIO-LOW-RESOURCE.md). La musique et le moteur audio sont **à développer**, pas considérés livrés.
+
 ## PROPOSÉ — technique
 
 | ID | Choix | Réévaluation |
