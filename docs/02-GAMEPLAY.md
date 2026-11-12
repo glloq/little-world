@@ -1,104 +1,79 @@
 # 02 — Personnage, déplacements et contrôles
 
-Statut : **comportements validés, paramètres physiques à régler par prototypage**.
+**Statut : comportements validés, valeurs physiques à calibrer. V1 solo / client local uniquement.**
 
-## Identité du personnage
+## Personnage
 
-- **Écureuil volant animal**, stylisé, non humanoïde.
-- Déplacement principalement quadrupède, queue expressive.
-- Membrane de planage entre membres avant et arrière ; **animation contrôlée** (pas de simulation coûteuse de tissu).
-- Modèle, squelette et animations devront rester compatibles avec un format **glTF/GLB**.
-- Silhouette identifiable de loin et dans les vues de dessus inclinées.
+- **Écureuil volant stylisé non humanoïde**, locomotion surtout quadrupède, queue expressive.
+- Membrane entre membres, **animation de déploiement**, sans simulation de tissu coûteuse.
+- Modèle glTF/GLB avec squelette/animations ; **proxy** géométrique autorisé pour tester la simulation avant la création du personnage définitif.
 
-## Commandes clavier / souris proposées
+## Contrôles (proposition à tester)
 
-| Contexte | Commande | Effet |
+| Contexte | Entrée | Action |
 | --- | --- | --- |
-| Tous | Souris | Orbite de la caméra en troisième personne ; capture du pointeur à valider |
-| Au sol | `ZQSD` ou `WASD` | Mouvement relatif à la caméra |
-| Au sol | `Shift` maintenu | Course |
-| Au sol | `Espace` | Saut |
-| En l'air, après relâchement | Nouvel appui `Espace` | Ouvre ou replie la membrane |
-| En surface | `ZQSD` | Nage horizontale |
-| Dans l'eau | `Espace` maintenu | Remonte vers la surface |
-| Dans l'eau | `Ctrl` maintenu | Descend / plonge |
-| Près d'un objet interactif | `E` | Interagir |
-| Tous | `Échap` | Quitter la capture du pointeur / pause locale |
+| Tous | Souris | Caméra libre à la troisième personne |
+| Sol/eau | `ZQSD` ou `WASD` | Se déplacer par rapport à la caméra |
+| Sol | `Shift` maintenu | Courir |
+| Sol | `Espace` (front d'appui) | Saut simple |
+| Air | `Espace` après relâchement | Déployer / replier la membrane |
+| Nage/plongée | `Espace` maintenu | Remonter |
+| Nage/plongée | `Ctrl` maintenu | Descendre |
+| Près d'un objet | `E` | Interagir |
+| Tous | `Échap` | Libérer la souris / menu local |
 
-Les **touches exactes sont une proposition** ; la règle demandée est ferme : `Espace` saute au sol et commande le planage après le saut. Les systèmes doivent accepter un mapping de touches reconfigurable.
+**Règle essentielle :** un `Espace` maintenu ne doit pas provoquer un saut puis un déploiement involontaire. Il faut un **nouvel appui après relâchement** en l'air. Les mappings restent configurables.
 
-### Gestion rigoureuse d'Espace
+## Machine à états unique
 
-Un saut se déclenche sur **front d'appui**, jamais à chaque frame. En l'air, l'activation du planage requiert **relâchement puis nouvel appui** afin de ne pas déployer automatiquement la membrane au moment du saut. À l'entrée dans un volume d'eau, le changement de contexte annule les commandes d'air non pertinentes.
+- `GROUNDED` : repos, marche, course, lancement du saut.
+- `AIRBORNE` : chute et vol balistique.
+- `GLIDING` : membrane ouverte ; portance arcade, descente contrôlée.
+- `SWIMMING_SURFACE` : nage de surface.
+- `DIVING` : mouvement 3D sous l'eau.
 
-Le comportement d'un second appui en l'air est retenu comme un **toggle** de membrane. L'ouverture peut être limitée par un très bref délai de sécurité, à régler aux essais.
+Les transitions proviennent de **contacts géométriques**, volumes d'immersion, profondeur et commandes ; une animation ne décide jamais de l'état physique.
 
-## États de locomotion
+| Transition | Condition |
+| --- | --- |
+| Sol → Air | Saut sur nouvel appui ou perte de support |
+| Air → Planage | Nouvel appui Espace après relâchement |
+| Planage → Air | Nouvel appui Espace |
+| Air/Planage → Sol | Collision d'atterrissage admissible |
+| Sol/Air → Eau | Seuil d'immersion franchi |
+| Nage → Plongée | Commande de descente / profondeur |
+| Plongée → Nage | Retour au niveau de la surface |
+| Eau → Sol/Air | Sortie valide du volume d'eau |
 
-États de haut niveau proposés :
+Appliquer des marges/hystérésis aux seuils pour empêcher une alternance de modes à chaque frame.
 
-- `GROUNDED` : repos, marche, course et saut initial.
-- `AIRBORNE` : chute et saut.
-- `GLIDING` : portance simplifiée, conservation d'une vitesse minimale, descente contrôlée.
-- `SWIMMING_SURFACE` : mouvement sur le plan d'eau.
-- `DIVING` : mouvement 3D sous la surface.
+## Physique et réglages
 
-Transitions pilotées par **contact physique**, position du volume d'eau, profondeur d'immersion et actions utilisateur. Éviter que les animations soient elles-mêmes la source de vérité de la locomotion.
+**Rapier** est proposé pour collisions et contacts, avec un **pas de simulation fixe**, indépendant du framerate Three.js. Nage, flottabilité et planage utilisent des règles dédiées.
 
-| Transition | Déclencheur | Règle |
-| --- | --- | --- |
-| Sol → Air | Front `Espace` ou bord de falaise | Appliquer impulsion si saut, sinon chute |
-| Air → Planage | Front `Espace` après relâchement | Déployer membrane |
-| Planage → Air | Nouveau front `Espace` | Replier membrane |
-| Air/Planage → Sol | Collision d'atterrissage valide | Retour locomotion au sol |
-| Sol/Air → Nage | Immersion suffisante dans volume d'eau | Fermer membrane, adapter vitesse |
-| Nage → Plongée | `Ctrl` ou immersion voulue | Mouvement vertical sous l'eau |
-| Plongée → Surface | Remontée à la ligne d'eau | Reprendre nage |
-| Eau → Sol/Air | Sortie de l'eau selon contacts | Remettre locomotion terrestre / aérienne |
+- **Sol :** accélération, vitesse marche/course, pentes, marches, glissement et saut.
+- **Planage :** vitesse avant, angle d'inclinaison, portance simplifiée, perte d'altitude ; impossible de monter indéfiniment sans source de courant ascendant explicitement conçue.
+- **Eau :** surface logique et volumes de profondeur, résistance, flottabilité simplifiée, contrôle vertical.
+- **Oxygène :** longue durée configurable ; comme il n'y a **ni dégâts ni mort**, prévoir une remontée/assistance non punitive à zéro et en confirmer l'ergonomie.
+- **Caméra :** suivi amorti, zoom et orbite souris, évitement d'obstacles, réglages contextualisés au planage/eau.
 
-## Physique et ajustements
+## Architecture locale (sans réseau)
 
-**Rapier** est proposé pour les collisions et la détection des contacts ; la simulation de planage et de flottabilité sera une logique spécialisée, avec des états testables sans Three.js.
+1. `InputMapper` collecte le clavier/souris.
+2. `MovementController` traite l'input dans une machine à états testable.
+3. `PhysicsAdapter` lit collisions, pentes et volumes d'eau.
+4. `CharacterView` anime le GLB d'après l'état simulé.
+5. `ThirdPersonCamera` suit le personnage sans imposer sa propre physique.
 
-### Sol
+**Pas de synchronisation joueur, de prédiction réseau ni de serveur en V1.** Éviter néanmoins de mélanger logique et rendu : un éventuel mode en ligne pourra réutiliser le contrôleur et les commandes.
 
-- Vitesse marche/course configurable dans des données, pas dans des constantes disséminées.
-- Gravité et impulsion de saut cohérentes avec l'échelle du monde.
-- Gestion des pentes, marches faibles, glissement sur surfaces trop raides.
-- Aucune endurance.
+## Tests obligatoires
 
-### Planage
-
-- Modèle **arcade contrôlé** : accélération modérée, descente minimale, limites de vitesse et virage doux.
-- Pas de propulsion infinie, pas de gain arbitraire d'altitude.
-- Mesurer distance de planage et vitesse terminale dans une scène standard.
-- Les paramètres pourront évoluer après essais, sans changement de protocole réseau.
-
-### Eau
-
-- Surface décrite par une hauteur ou une fonction de hauteur ; volumes d'eau explicites pour détecter les transitions.
-- Flottabilité et résistance à l'eau simplifiées ; mouvement de plongée en trois dimensions.
-- Barre ou indicateur d'oxygène, **limite longue** à préciser lors des tests.
-- **Pas de mort en V1** : à épuisement de l'oxygène, appliquer une remontée ou un retour en surface sûr, à choisir en prototypage.
-- Rendu sous-marin : modification simple de brouillard/couleur, avec caméra encore lisible.
-
-## Caméra
-
-Troisième personne, contrôlée à la souris ; suivi amorti, évitement des obstacles entre la caméra et le personnage, distance et angle limités. Prévoir des réglages indépendants pour course, nage et planage, mais une seule implémentation de caméra.
-
-PC : cible clavier AZERTY et QWERTY ; mappings exposés dans les paramètres. Pas d'interface tactile dans la première version.
-
-## Modèle réseau à respecter
-
-Les **commandes** (direction, saut, course, déploiement, nage) sont les données transmises par le client. Le serveur détient les états physiques et les valide. Le client pourra prédire son mouvement puis se réconcilier avec l'état autoritaire ; la synchronisation de position brute sans prise en compte des inputs n'est pas l'architecture cible.
-
-## Jeux de tests nécessaires
-
-1. Saut unique même si `Espace` reste enfoncé.
-2. Saut → relâchement → second appui → planage.
-3. Planage → repli → atterrissage ; absence de déploiement automatique.
-4. Air → eau, eau → sol et eau → profondeur sans oscillation entre états.
-5. Sortie de l'eau proche d'une pente ou d'un rebord.
-6. Caméra coincée entre personnage et montagne.
-7. Correspondance simulation locale/serveur sur un jeu d'inputs rejoué.
-8. Changement de mapping AZERTY/QWERTY sans modifier le contrôleur.
+1. Espace maintenu produit **un seul saut**.
+2. Saut, relâchement, deuxième appui = planage, troisième appui = repli.
+3. Saut/chute → eau ; eau → sol, sans oscillation.
+4. Nage en surface, plongée, remontée et sortie d'eau près de berges.
+5. Inclinaison du terrain, marches et obstacles.
+6. Caméra ne traverse pas durablement les rochers ni ne se retrouve coincée.
+7. Comportement stable à **FPS variables**, grâce au pas fixe.
+8. Les modes ne dépendent pas d'une animation GLB particulière ; un proxy reste fonctionnel.
