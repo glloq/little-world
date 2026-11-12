@@ -169,6 +169,18 @@ Les imports sont non fiables : valider types, tailles, schémas et références,
 - **Réimport** : préserver IDs et liens métier, montrer les conflits/ajouts/suppressions proposés ; opérations transactionnelles avec Undo/Redo, jamais écraser un projet ou ses overrides silencieusement.
 - **Runtime** : catalogues/LOD/instances partagés par chunks, aucune exigence de `.blend` côté joueur.
 
+## Outil Eau V3 : dessiner, profiler et corriger les dénivelés
+
+**Contrat cible** : [21 — Eau LOW-RESOURCE](21-WATER-HYDROLOGY-LOW-RESOURCE.md). Réutiliser le tracé d'eau V2, mais éviter de garder **une seule hauteur constante par rivière**.
+
+- Outils simples : **cours d'eau (source → points → sortie)**, **lac/bassin polygonal**, **cascade**, **rapides**, **mer**.
+- Sur un tracé, proposer automatiquement **altitude de l'eau, lit/berges, largeur/profondeur, classement des pentes** puis afficher un **profil longitudinal terrain / eau** avec marqueurs de chutes et niveaux manuels.
+- Signaler **pente qui remonte**, raccords/embouchures/jonctions impossibles, chute sans niveau bas, erreurs de navigation et secteurs/objets affectés. Afficher corrections avant acceptation.
+- Garder Undo/Redo, sources V3 et relations entre lacs/rivières et nav/biotopes ; **pas de destruction silencieuse** des retouches auteur.
+- **Aperçu caméra** : rive, bateau, nage/plongée, cascade proche et éloignée, océan en planage ; profils LOD0–LOD3 et compteurs GPU/CPU.
+- Contrôles de courants, couleurs, visibilité sous-marine et niveau d'écume via presets ; réglages de shader avancés repliés.
+- Une cascade Blender GLB peut décorer l'effet visuel, mais c'est le **réseau d'eau V3**, pas le GLB, qui pilote immersion et navigation.
+
 ## 9. Critères d'acceptation
 
 1. Créer/charger une carte, peindre un relief et un biome, sauvegarder, annuler, recharger : données identiques.
