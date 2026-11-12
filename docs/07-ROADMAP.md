@@ -199,6 +199,22 @@ Les jalons **M0–M6 décrivent le prototype**, pas les limites du produit final
 5. Une carte au maximum théorique de 10 × 10 km n'est **pas une garantie de rendu 30 FPS**.
 6. Chaque fonctionnalité suit : conçue → codée → testée → publiée/validée navigateur.
 
+## Évolution différée : multijoueur du même monde continu
+
+**Choix de préparation validés, développement non demandé pour la campagne solo/V3.** Voir [16 — Multijoueur futur et optimisation des foules](16-FUTURE-MULTIPLAYER.md).
+
+| Jalon futur | Description | Gate indispensable |
+| --- | --- | --- |
+| **MP-0** | Isoler un prototype réseau et un serveur autoritaire sans dépendance pour le solo | 2–10 clients, états cohérents, collisions/actions validées |
+| **MP-1** | Premier multijoueur, **30 joueurs regroupés**, AOI et intérêts contextuels | Mouvement, interactions et reconnexion validés en navigateurs |
+| **MP-2** | Cible principale **200 connectés**, test **100 regroupés** | Cadences 2–20 Hz, LOD de foules, CPU/réseau/p95 et qualité client |
+| **MP-3** | Objectif **500 expérimentaux**, test **200–300 regroupés** | Profilage puis décision si multi-processus nécessaire |
+| **MP-4 éventuel** | Autorité répartie par zones de simulation, transferts de joueurs et abonnements trans-zones | Aucun doublon d'autorité, aucun écran de chargement lors de traversée |
+
+**À prévoir maintenant dans la V3 uniquement :** IDs stables, états logiques indépendants du rendu, référence inter-secteurs, simulation découplée, index spatial, LOD et événements typés. **Ne pas coder** le transport, les comptes, les réplications et le scheduler réseau avant MP-0.
+
+**Différence cruciale :** `2–3 Hz` pour les mouvements des avatars secondaires **n'est pas** une simulation serveur à 2 Hz et ne s'applique pas aux interactions prioritaires. Les chiffres 30/200/500 sont des **objectifs de test**, non une capacité atteinte.
+
 ## Après V1 (hors plan de livraison)
 
 **Évolution optionnelle** : concevoir un multijoueur 10–30 joueurs avec serveur autoritaire, synchronisation, persistance et comptes. Ce n'est **ni implémenté, ni planifié pour le jeu solo actuel**. Une étude séparée devra évaluer coûts, contraintes et modifications de l'architecture solo.
