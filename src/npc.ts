@@ -43,8 +43,8 @@ export interface NPCDefinition {
 export type NPCActivity = 'full' | 'reduced' | 'dormant';
 export type NPCVisualTier = 'rig' | 'silhouette' | 'hidden';
 /** Rendering detail is separate from behavior scheduling and conversation range. */
-export function npcVisualTier(distance: number): NPCVisualTier {
-  return distance <= 18 ? 'rig' : distance <= 160 ? 'silhouette' : 'hidden';
+export function npcVisualTier(distance: number, kind:NPCDefinition['kind']='squirrel'): NPCVisualTier {
+  return distance <= (kind==='animal'?8:18) ? 'rig' : distance <= 160 ? 'silhouette' : 'hidden';
 }
 export interface NPCState {
   definition: NPCDefinition;

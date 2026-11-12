@@ -193,3 +193,5 @@ test('NPC validation preserves the historical asymmetric northern and southern w
   n.z = 287;
   assert.equal(validateNPCs([n], { width: 200, length: 600 }), false);
 });
+
+test('small decorative animals retain detailed interaction range without a full distant rig',()=>{assert.equal(npcVisualTier(5.5,'animal'),'rig');assert.equal(npcVisualTier(8,'animal'),'rig');assert.equal(npcVisualTier(8.1,'animal'),'silhouette');assert.equal(npcVisualTier(17,'squirrel'),'rig');});

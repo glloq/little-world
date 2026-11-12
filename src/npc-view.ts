@@ -210,6 +210,7 @@ export function createNPCSystem(
         updateNPC(state, dt, position, obstacles);
         const tier = npcVisualTier(
           Math.hypot(position.x - state.x, position.z - state.z),
+          state.definition.kind,
         );
         model.group.visible = tier === 'rig';
         proxy.visible = tier === 'silhouette';
