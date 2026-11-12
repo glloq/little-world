@@ -283,6 +283,15 @@ Voir [22 — ResourceBudgetManager](22-RESOURCE-BUDGET-MANAGER.md).
 - Ne pas compiler/charger un monde GLB de 100 km² d'un bloc : géométrie source sectorisée, préchargement selon caméra/vitesse et rendu d'horizon simplifié.
 - Benchmark de 100 copies du même prefab, import/export répétés, context loss, suppression/mise à jour, stabilité mémoire après de nombreuses opérations.
 
+## Presets Blender / cartes V3 avec ressources MIDI et échantillons
+
+Le [document 23 — Audio MIDI LOW-RESOURCE](23-MIDI-AUDIO-LOW-RESOURCE.md) ajoute les **sons et partitions** aux dépendances des presets réutilisables.
+
+- Un preset ruine, pont, port, moulin ou forêt peut déclarer des **références `soundId/scoreId/patchId`** et des points d'implantation pour `AudioEmitter`, mais les modèles GLB ne transportent **ni scripts Web Audio ni événements MIDI runtime**.
+- L'**archive de carte Studio V3** inclut partitions `.mid`, petite palette de **5–10 patches MIDI**, samples/loops, licences, manifestes et IDs liés ; **pas** de `AudioBuffer` décodés, `AudioContext`, voix ni offsets de lecture.
+- L'import d'un pack vérifie **résolution des IDs, droits/licences, taille PCM estimée, contrôle de mapping MIDI** vers la palette existante. Si le pack introduit un onzième instrument, proposer remappage/substitution **explicite**, pas expansion silencieuse.
+- Export scène Blender `GLB+sidecar` préserve les **références audio non géométriques** dans V3 ; une mise à jour de géométrie ne supprime pas les sons d'interaction.
+
 ## 12. Décisions finales et exclusions
 
 **Validé :** Blender pour fabriquer les modèles/sets low-poly ; `glTF 2.0/GLB` comme échange 3D ouvert ; `.blend` comme source facultative ; Studio pour placements XYZ/rotation/échelle, biotopes/peinture/génération, prefab/groupes et interactions ; import/export de **presets** et de **cartes rééditables**.
