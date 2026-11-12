@@ -139,6 +139,20 @@ Référence détaillée : [18 — Herbes ultra-low-resource](18-GRASS-LOW-RESOUR
 - Budgets **CPU/GPU à mesurer** (cibles indicatives < 0,1–0,2 ms CPU/frame récurrent et < 0,5–1 ms GPU par scène si possible), indépendamment du nombre de triangles ; garder FPS 30/20 en surcharge globale.
 - Les distances illustratives **0–15, 15–60, 60–250, >250 m** ne sont pas des seuils fixes ; distance projetée, angle, altitude, budget réel et hystérésis dominent.
 
+## Gestion globale PERF : un arbitre pour tous les budgets
+
+**Décision validée** : [22 — ResourceBudgetManager transversal](22-RESOURCE-BUDGET-MANAGER.md).
+
+- **Migrer `PresentationBudget` actuel vers un arbitre unique**, réutiliser `FrameClock` sans deuxième RAF ni second régulateur de qualité. Politique en vigueur **baisse ~3 s / restauration ~12 s** (à étalonner), 30/20 FPS **de présentation**, simulation 30 Hz indépendante.
+- **Profils** Auto (par défaut)/Éco/Équilibré/Qualité ; **plafonds** de qualité, pas une demande de dépasser les limites. Un snapshot de quotas commun pilote terrain/horizon, GLB, herbe, eau, ombres, météo, PNJ et Studio.
+- **Mesures** p50/p95/p99 et frames longues, CPU simulation/update/soumission, appels/triangles, files de chargement. **Temps de soumission WebGL JS ≠ GPU** ; timer GPU facultatif asynchrone, mémoire CPU/VRAM **estimée**, et absence de mesure explicitement affichée.
+- **LOD selon erreur/taille projetée et importance**, pas simple distance fixe ; précharger devant le joueur en planage/bateau, préserver montagnes/îles/océan jusqu'à l'horizon **sans fog de camouflage**.
+- **Streaming à budget** : priorité d'accès critique/visible/prédictif/cosmétique, quotas CPU et uploads, invalidation/cancellation des jobs obsolètes, fallback de LOD visible. Deux builds de terrain par frame ne suffisent pas à borner les pics si leur coût varie.
+- **Mémoire** : registre d'ownership/refcounts pour GLB/texture/geometry, cache en **octets estimés** avec éviction des ressources non actives, aucun `dispose()` de ressource encore partagée ; reprise après perte de contexte WebGL à tester.
+- **Dégradation du cosmétique avant fonctionnel** : particules/ombres/herbe/détails réduits, qualité GPU adaptative et 20 FPS seulement en dernier ressort, **jamais** de changement de vitesse du monde, de collisions, d'interactions ou de suppression de vue lointaine.
+- **Studio** : rendu à la demande si idle, files de génération/import et compilations par secteur, édition et Undo/Redo toujours réactifs.
+- **Ne pas fixer seuils supplémentaires** RAM/VRAM/frame/LOD ni déclarer 30/20 FPS atteints sur GPU intégré d'après SwiftShader ; toute amélioration doit être mesurée et reliée à sa qualité effective.
+
 ## 3. Rendu 3D
 
 - Three.js/WebGL2, **peu de matériaux**, éclairage simple, limiter les ombres portées dynamiques et la transparence.
