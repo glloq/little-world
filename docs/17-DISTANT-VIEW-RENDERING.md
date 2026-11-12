@@ -184,6 +184,16 @@ Le [document 19](19-ENVIRONMENT-WEATHER-SKY.md) valide **ciel étoilé, une ou p
 - La zone d'ombres dynamiques du soleil reste **proche du joueur** : les reliefs lointains utilisent un éclairage/proxy à faible coût, même lors des couchers.
 - Prévoir scènes de test sur falaises, océan, montagnes enneigées et planage, à midi, aube, nuit étoilée et tempête.
 
+## Horizons et végétation avec ressources Blender importées
+
+Le [document 20](20-BLENDER-STUDIO-INTERCHANGE.md) précise que les **roches, falaises, bâtiments, arches, ports et arbres remarquables** peuvent provenir d'assets/presets Blender **GLB**, mais leur rendu doit respecter le même pipeline **chunks + LOD + imposteurs**.
+
+- Un GLB importé ne doit pas bloquer la visibilité lointaine ni rester à son niveau de détail maximal à plusieurs kilomètres.
+- Proxies d'horizon et versions low-poly sont **dérivés/compilés** avec hashes de sources ; remplacement d'un asset invalide les seuls secteurs et silhouettes concernées.
+- Le Studio conserve **biotopes et recettages de végétation** sur le terrain importé ; ne pas cuire toute la prairie/forêt en un GLB géant pour simuler de la profondeur.
+- Les assets importés compatibles peuvent recevoir palette jour/nuit, neige et ombres proches du document 19 ; pas de shadow map de tous les modèles lointains.
+- L'export complet **source V3 portable** ne confond pas la géométrie d'horizon compilée avec les heightfields et GLB sources auteurs.
+
 ## 9. Tests et portes de qualification
 
 **Scènes à couvrir :**
