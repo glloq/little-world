@@ -197,6 +197,19 @@ Le [cadrage herbes low-resource](18-GRASS-LOW-RESOURCE.md) prépare une réactio
 - Les personnages lointains n'ont pas d'effet sur les touffes 3D du client. Aucun impact sur navigation, collisions, logique ou état autoritaire.
 - Priorité GPU à la **vue panoramique et aux avatars lisibles** ; l'herbe peut passer en `groundOnly` pendant une foule dense.
 
+## Autorité future de l'horloge, de la météo et des astres
+
+La [spécification 19 — Environnement](19-ENVIRONMENT-WEATHER-SKY.md) définit `EnvironmentStateSource` : **LocalEnvironmentSource** utilisée dans le solo et le panneau de test bêta, **ServerEnvironmentSource** disponible plus tard lorsqu'un serveur sera réellement développé.
+
+- Le **serveur futur** est autoritaire sur `worldTimeSeconds`, la cadence de temps, les régions météorologiques, les transitions et les états de neige/vent significatifs.
+- Les clients reconstruisent depuis **epoch/seed/périodes** les étoiles, **chaque lune à cycle indépendant**, soleil, nuages, gouttes/flocons et palettes ; **aucun objet astral ni particule transmis sur le réseau**.
+- Envoyer **snapshots horodatés et transitions/événements datés** par zone d'intérêt, avec version pour reconnexion/rattrapage. Éviter un paquet météo à chaque tick.
+- Le joueur local ne peut pas modifier l'état météo commun via le panneau bêta : override de test uniquement en session isolée.
+- Les règles gameplay dépendantes du temps/météo sont contrôlées par l'**autorité logique**, non par les shaders ou le FPS local.
+- Les **ombres et leur budget** sont purement locaux à chaque client ; le serveur ne diffuse pas les shadow maps.
+
+**Ne pas implémenter de backend météo lors de la campagne solo** au seul motif que ce contrat existe.
+
 ## 10. Plan de validation futur (gates non exécutés)
 
 | Scénario | Participants | Densité | Gate |
