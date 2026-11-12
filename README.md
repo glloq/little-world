@@ -38,7 +38,7 @@ Little World doit devenir un **monde vivant où il existe de nombreuses petites 
 
 Les **PNJ animaux/créatures** pourront réutiliser les variantes du personnage joueur lorsque leur morphologie le permet, avec activités simples et **navigation libre avancée**. La création du monde passera par **Little World Studio**, un ensemble d'éditeurs spécialisés partageant un projet et des données communes : relief, eau/chemins, biotopes, bâtiments, PNJ, dialogues, actions, assets et tests.
 
-Ces fonctions sont **des objectifs confirmés, pas des fonctions déjà livrées**. Voir [12 — Périmètre](docs/12-PROJECT-SCOPE.md) et [13 — Studio et UX](docs/13-STUDIO-UX-ARCHITECTURE.md).
+Ce périmètre complet reste **un objectif confirmé** ; les fonctions livrées sur la branche sont précisées ci-dessous. Voir [12 — Périmètre](docs/12-PROJECT-SCOPE.md) et [13 — Studio et UX](docs/13-STUDIO-UX-ARCHITECTURE.md).
 
 ## Campagne de développement
 

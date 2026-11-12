@@ -25,22 +25,22 @@ Le benchmark a observé 13,5–17,7 Mo de heap JS utilisé selon la scène (API 
 
 Aucune exception JS ni erreur HTTP observée dans les quatre scénarios. Pas de mesure Firefox ni de validation d’un déploiement public pour cette branche.
 
-## Mesures après migration LOW-RESOURCE
+## Mesures après migration LOW-RESOURCE et LOD du petit animal
 
-Mesures sur le commit applicatif `bbe0796`, même navigateur/viewport/machine, **12 secondes de stabilisation adaptative**, puis 90 images effectivement présentées (les callbacks RAF sans rendu sont ignorés). Données [LOW-RESOURCE](benchmarks/2026-11-12-low-resource.json). Les corrections ultérieures de validation des saisies n’affectent pas le chemin de rendu mesuré.
+Mesures sur le commit applicatif `7128fc9`, même navigateur/viewport/machine, **12 secondes de stabilisation adaptative**, puis 90 images effectivement présentées (les callbacks RAF sans rendu sont ignorés). Données [LOW-RESOURCE](benchmarks/2026-11-12-low-resource.json). Aucun changement de source pendant cette collecte, aucune erreur JS/HTTP.
 
-| Scène | Intervalle moyen (ms) | FPS mesuré | Appels moyens | Triangles moyens | Cible finale / qualité adaptative |
-|---|---:|---:|---:|---:|---|
-| Départ | 69,07 | 14,48 | 214 | 45 271 | 20 Hz / niveau 2 |
-| Port | 75,37 | 13,27 | 86,69 | 24 349 | 30 Hz / niveau 2 |
-| Terrain 1 km | 71,48 | 13,99 | 213,46 | 48 648 | 20 Hz / niveau 2 |
-| Terrain 2 km | 73,89 | 13,53 | 211,52 | 47 266 | 20 Hz / niveau 2 |
+| Scène | Intervalle moyen (ms) | FPS mesuré | Appels moyens | Triangles moyens | Chunks actifs / résidents | Cible finale / qualité adaptative |
+|---|---:|---:|---:|---:|---:|---|
+| Départ | 68,51 | 14,60 | 185,00 | 41219 | 24 / 24 | 20 Hz / niveau 2 |
+| Port | 52,40 | 19,08 | 73,00 | 22944 | 24 / 45 | 20 Hz / niveau 2 |
+| Terrain 1 km | 66,85 | 14,96 | 188,00 | 45091 | 60 / 60 | 20 Hz / niveau 2 |
+| Terrain 2 km | 67,22 | 14,88 | 188,00 | 43979 | 59 / 59 | 20 Hz / niveau 2 |
 
-**Le gate 30/20 FPS reste non atteint sur SwiftShader** et le PC de référence n’est pas choisi. L’adaptation réduit réellement la résolution sur un écran DPR1 (facteurs 0,8 puis 0,65 après application du plafond utilisateur/appareil) et les petits éléments éloignés ; elle ne garantit pas la cadence cible. La physique conserve sa vitesse normale à 20, 30, 60 et même 10 callbacks/s dans les tests déterministes.
+**Le gate global 30/20 FPS reste non atteint sur SwiftShader** et le PC de référence n’est pas choisi. L’adaptation réduit réellement la résolution sur un écran DPR1 (facteurs 0,8 puis 0,65 après application du plafond utilisateur/appareil) et les petits éléments éloignés ; elle ne garantit pas la cadence cible. La physique conserve sa vitesse normale à 20, 30, 60 et même 10 callbacks/s dans les tests déterministes.
 
-Les timers JS instrumentés montrent environ 0,04–0,07 ms pour les pas de simulation observés, 0,3–0,4 ms de préparation et 1,5–1,8 ms de soumission WebGL selon la scène. Ce sont des coûts CPU partiels, **pas des temps GPU** ; ils n’expliquent pas à eux seuls les intervalles observés. Le heap JS utilisé est approximativement 14–21 Mo. La qualité et les animations sont adaptatives : les différences avec le tableau historique ne constituent pas une preuve de gain à qualité/contenu identiques. Aucun changement de source pendant cette collecte, aucune erreur JS/HTTP.
+Les timers CPU instrumentés et le heap Chrome sont conservés dans les données brutes ; le temps de soumission WebGL **n’est pas** un temps GPU. L’évolution des moyennes FPS reflète aussi la qualité et le contenu adaptatifs : aucun gain à qualité/contenu identiques n’est démontré. Le LOD du petit animal s’applique après 8 m, celui des personnages interactifs après 18 m ; tous utilisent une silhouette jusqu’à 160 m puis sont masqués.
 
-Les cibles de présentation sont des plafonds de cadence, pas des FPS annoncés comme atteints. Les durées de surcharge/restauration (3/12 secondes) restent à calibrer sur matériel réel. Les onglets masqués suspendent le rendu/simulation ; l’éditeur actif est plafonné à 30 Hz mais son rendu à la demande reste à réaliser.
+Les cibles de présentation sont des plafonds, pas des FPS annoncés comme atteints. Les durées surcharge/restauration (3/12 secondes) et le lissage des charges irrégulières restent à calibrer sur matériel réel. Les onglets masqués suspendent le rendu/simulation ; l’éditeur actif est plafonné à 30 Hz mais son rendu à la demande reste à réaliser.
 
 ## Reproduire
 
@@ -59,7 +59,7 @@ Le script utilise Chromium système et SwiftShader ; `CHROMIUM_PATH` permet un a
 - `terrain-view.ts` : trois résolutions, échantillons de bord alignés, normales analytiques, jupes, deux nouveaux meshes maximum par mise à jour. Cache borné, réutilisation des secteurs récemment visités, éviction des géométries et rafraîchissement local après sculpture.
 - `terrain.ts` : dimensions/niveau marin/configuration active, overrides de relief, eau et distances aux chemins partagés avec la physique. Les niveaux marin, bateau et port suivent la même configuration.
 - `ecology.ts` : secteurs locaux de 48 m, génération d’un secteur par mise à jour, cache limité, instancing et activation proche. Habitats et eau contrôlés ; tracés de chemins exclus.
-- `npc.ts` / `npc-view.ts` : simulation complète proche, réduite à distance intermédiaire, dormante au loin. Rig complet jusqu’à 18 m, silhouette de cinq meshes jusqu’à 160 m, aucun rendu au-delà. Ressources de silhouette partagées ; articulations mises en cache.
+- `npc.ts` / `npc-view.ts` : simulation complète proche, réduite à distance intermédiaire, dormante au loin. Rig complet jusqu’à 18 m (8 m pour le petit animal), silhouette de cinq meshes jusqu’à 160 m, aucun rendu au-delà. Ressources de silhouette partagées ; articulations mises en cache.
 - Les modèles GLB et géométries/matériaux partagés restent mutualisés. Les ressources uniques, buffers d’instances et rigs sont libérés lors des régénérations. La caméra n’alloue plus ses deux vecteurs à chaque frame.
 
 Les caches de modèles sont encore bornés par le petit catalogue, sans LRU de textures. Le terrain analytique est une configuration unique par page. Les bâtiments, forêt principale et rivière de démonstration gardent leurs positions historiques ; les grandes cartes sont des tests de terrain étendu, pas des mondes entièrement peuplés. Les secteurs proches génèrent leur géométrie de façon synchrone répartie entre frames : aucun worker n’est encore implémenté. Les LOD n’ont pas de morphing.

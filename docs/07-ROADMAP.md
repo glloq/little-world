@@ -27,6 +27,8 @@ Les cartes de démonstration conservent la rivière, les bâtiments et le port h
 
 ### Validation
 
+Dernier commit applicatif : `7128fc9`, avec validation GitHub réussie ([exécution](https://github.com/glloq/little-world/actions/runs/43291414744)). Les cadrages de `main` jusqu’à `abf85bb` sont intégrés ; la publication Pages de ces fonctionnalités et la création de PR ne sont pas faites. La PR est bloquée par le refus réseau de l’API GitHub, pas par un échec des tests.
+
 La dernière CI applicative a réussi sur `7128fc9` : [exécution GitHub](https://github.com/glloq/little-world/actions/runs/43291414744). Le dernier correctif de rendu réduit la distance détaillée du petit animal à 8 m ; PNJ parlants à 18 m. Le plafond final validé reste 100 km², le Studio spécialisé/progression/slots de partie sont encore des objectifs.
 
 Campagne locale : **72 tests réussis**, TypeScript/build réussis, compilation de la carte (40 secteurs) et régénération GLB identique (236 788 octets), **16 vérifications Chromium** réussies sur le build statique, aucune erreur JS/HTTP. Quatre scénarios de benchmark ont terminé sans erreur ; la version enrichie est plus lente sur SwiftShader que la référence et aucun gain global n’est revendiqué.
