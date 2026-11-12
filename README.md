@@ -36,7 +36,7 @@ npm run preview   # prévisualisation du build
 
 - **Terrain low-poly procédural** : relief, cours d'eau en pente, mer, montagnes et sentier ; graine de placement déterministe.
 - **Végétation instanciée** ; moulin, maisons, ponton, barque et roue animée.
-- **Écureuil 3D provisoire**, sans asset tiers, avec marche, course, saut, planage, nage et plongée.
+- **Écureuil 3D low-poly original**, remodelé en style chibi (visage expressif, grandes oreilles, ventre crème, queue volumineuse). Membrane de planage cachée au repos et déployée seulement en vol ; 5 expressions et accessoires modulaires. Le personnage est encore procédural, **sans rig squelettique définitif ni GLB exporté**.
 - **Caméra troisième personne** orientable à la souris et HUD affichant l'état, les coordonnées, les FPS et l'oxygène.
 - **Moulin automatique** : la roue tourne avec le cours d'eau, sans interaction artificielle.
 - **Bateau pilotable** depuis le port : embarquement/débarquement, accélération, inertie, gouvernail et limites d'eau navigable.
@@ -50,8 +50,10 @@ npm run preview   # prévisualisation du build
 | Entrée | Effet |
 | --- | --- |
 | `ZQSD` ou `WASD` | Déplacer l'écureuil |
-| Souris (clic dans la scène) | Caméra libre |
+| **Clic gauche maintenu + glisser** sur la scène | Tourner la caméra ; souris libre autrement |
 | `Shift` | Course |
+| **`A` maintenu** | Menu accessoires et émotions ; clic pour équiper/choisir |
+| `A` relâché | Fermer le menu (choix conservés localement) |
 | `Espace` au sol | Saut |
 | Relâcher puis réappuyer `Espace` en l'air | Ouvrir/replier la membrane |
 | `Ctrl` dans l'eau | Plonger |
@@ -64,6 +66,8 @@ npm run preview   # prévisualisation du build
 | `R` | Retour au départ |
 | `Échap` | Libérer le pointeur |
 
+**Clavier :** le menu reconnaît la lettre **A** sur AZERTY et QWERTY (pas la position physique de la touche). Sur QWERTY, **A est réservé au menu** : utiliser **Q** ou **←** pour aller à gauche. Sur AZERTY, **Q** reste la commande gauche. Les choix d'accessoires/émotions sont enregistrés en `localStorage`.
+
 En mode éditeur : clic-glisser pour pivoter la vue, molette pour zoomer ; sélectionner un asset à gauche puis cliquer sur le terrain pour le déposer.
 
 ## Architecture actuelle
@@ -75,7 +79,10 @@ src/
   terrain.ts                # Relief, hydrologie, graine, limites
   world.ts                  # Terrain sectionné, végétation, prefabs, GLB
   boat.ts                   # Navigation arcade et contraintes nautiques
-  player.ts                 # Simulation locale et modèle d'écureuil
+  player.ts                 # Simulation locale des mouvements
+  squirrel.ts               # Modèle 3D original, morphologie, mimiques, accessoires
+  character-style.ts        # Options et sauvegarde des apparences
+  customization-menu.ts     # Interface de personnalisation (A maintenu)
   main.ts                   # Boucle de jeu, entrées, caméra, HUD
   editor.ts                 # Placement, import/export, IndexedDB
   style.css                 # Interface jeu et éditeur
@@ -88,7 +95,7 @@ docs/                       # Conception, objectifs et registre de décisions
 
 ## Limites connues
 
-- Le personnage est un **proxy stylisé**, sans animations squelettiques ni rig final.
+- Le personnage est une **version procédurale stylisée plus aboutie**, mais sans animations squelettiques, facial rig, déformation de membrane ni GLB final.
 - Le contrôleur de mouvement utilise actuellement des **collisions analytiques avec le terrain** : la physique Rapier et les collisions détaillées des bâtiments restent à intégrer.
 - L'eau, la nage et le planage sont des **modèles arcade provisoires**, à ajuster après essais.
 - Le bateau n'a pas encore de collisions physiques détaillées avec les pontons ; les limites de navigation sont évaluées à partir de la profondeur.
