@@ -5,6 +5,7 @@ import catalogue from '../assets/catalog.json';
 import { MAX_OXYGEN, simulatePlayer, spawnPlayer, type Controls } from './player';
 import { buildSquirrel } from './squirrel';
 import { createCustomizationMenu } from './customization-menu';
+import { MouseDragOrbit } from './camera-drag';
 import { cameraSubmerged, clamp, terrainHeight } from './terrain';
 import { nearBoat, nearDock, spawnBoat, updateBoat, waterDisembarkPoint, BOAT_DOCK } from './boat';
 
@@ -114,9 +115,9 @@ function input():Controls{
 function isMenuKey(e:KeyboardEvent):boolean {
   return e.key.toLowerCase()==='a' && !e.altKey && !e.ctrlKey && !e.metaKey;
 }
+const orbitDrag=new MouseDragOrbit();
 function resetCameraDrag():void {
-  draggingCamera=false;
-  dragPointerId=null;
+  orbitDrag.cancel();
   renderer.domElement.classList.remove('dragging-camera');
 }
 window.addEventListener('keydown',e=>{
@@ -149,34 +150,32 @@ window.addEventListener('keydown',e=>{
   }
 });
 window.addEventListener('keyup',e=>{
-  if(isMenuKey(e))customization.close();
+  if(e.key.toLowerCase()==='a')customization.close();
   keySet.delete(e.code);
 });
 window.addEventListener('blur',()=>{
   keySet.clear();jumpQueue=0;actionQueue=0;
   customization.close();resetCameraDrag();
 });
-let draggingCamera=false;
-let dragPointerId:number|null=null;
-let lastMouseX=0,lastMouseY=0;
 renderer.domElement.addEventListener('pointerdown',e=>{
-  if(!started||customization.isOpen||e.button!==0)return;
-  draggingCamera=true;dragPointerId=e.pointerId;
-  lastMouseX=e.clientX;lastMouseY=e.clientY;
+  if(!started||customization.isOpen)return;
+  if(!orbitDrag.begin(e.pointerId,e.button,e.clientX,e.clientY))return;
   renderer.domElement.classList.add('dragging-camera');
   renderer.domElement.setPointerCapture(e.pointerId);
   e.preventDefault();
 });
 renderer.domElement.addEventListener('pointermove',e=>{
-  if(!draggingCamera||dragPointerId!==e.pointerId)return;
-  if(!(e.buttons&1)){resetCameraDrag();return;}
-  const dx=e.clientX-lastMouseX,dy=e.clientY-lastMouseY;
-  lastMouseX=e.clientX;lastMouseY=e.clientY;
-  yaw-=dx*.00315;
-  pitch=clamp(pitch-dy*.0024,-.12,1.03);
+  const movement=orbitDrag.move(e.pointerId,e.buttons,e.clientX,e.clientY);
+  if(!movement){
+    if(!orbitDrag.active)resetCameraDrag();
+    return;
+  }
+  yaw-=movement.dx*.00315;
+  pitch=clamp(pitch-movement.dy*.0024,-.12,1.03);
 });
 renderer.domElement.addEventListener('pointerup',e=>{
-  if(e.pointerId===dragPointerId)resetCameraDrag();
+  orbitDrag.end(e.pointerId);
+  if(!orbitDrag.active)resetCameraDrag();
 });
 renderer.domElement.addEventListener('pointercancel',resetCameraDrag);
 renderer.domElement.addEventListener('lostpointercapture',resetCameraDrag);
