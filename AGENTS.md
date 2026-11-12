@@ -2,6 +2,8 @@
 
 > **Lire d'abord** : [Périmètre final](docs/12-PROJECT-SCOPE.md), [Architecture UX du Studio](docs/13-STUDIO-UX-ARCHITECTURE.md), **[Contrats V3 du Studio](docs/15-STUDIO-DATA-SCHEMAS-V3.md)**, **[Décisions techniques validées](docs/14-TECHNICAL-CHOICES.md)**, [Décisions](docs/DECISIONS.md), [Budget LOW-RESOURCE](docs/11-LOW-RESOURCE-POLICY.md), puis [Architecture technique](docs/05-TECHNICAL-ARCHITECTURE.md) et [Roadmap](docs/07-ROADMAP.md).
 >
+> **Multijoueur ultérieur seulement :** [16 — Architecture future, intérêt spatial, fréquences adaptatives et foules](docs/16-FUTURE-MULTIPLAYER.md). Ces choix sont des contraintes de compatibilité V3, **pas** un ordre d'ajouter un réseau/serveur au jeu solo.
+>
 > Ces documents sont les **sources de vérité du périmètre fonctionnel**. En cas de contradiction avec une ancienne description du prototype, appliquer les décisions validées les plus récentes. **Ne pas supposer qu'une fonction décrite est déjà codée.**
 
 ## 1. Limites validées
@@ -43,6 +45,16 @@ Voir **[15 — Schémas V3 et contrats entre éditeurs](docs/15-STUDIO-DATA-SCHE
 - Partager IDs, sélection, historique et validation entre les éditeurs spécialisés ; inspecteurs orientés utilisateur.
 - Validation incrémentale et diagnostics navigables ; compilation stricte, puis build statique avec index/chunks.
 - Ne pas annoncer le V3 « livré » sans migration, tests sur vrais projets et vérification navigateur.
+
+## 1 quater. Préparer le futur multijoueur sans l'implémenter maintenant
+
+La spécification [16 — Future Multiplayer](docs/16-FUTURE-MULTIPLAYER.md) prévoit **30 joueurs en premier jalon**, **200 comme cible principale** et **500 comme scénario expérimental**, **aucune capacité garantie ni mesurée**.
+
+Préserver dès V3 : **IDs stables**, index spatial, séparation données auteur / état logique / rendu, événements typés et persistants, simulation décorrélée, supports LOD et secteurs. Les chunks de données, zones de simulation et ensembles d'intérêt réseau sont distincts.
+
+**À NE PAS implémenter pendant la campagne solo/Studio actuelle :** sockets, backend, Colyseus, réplication, protocole binaire, comptes, serveur autoritaire, code réseau dans les composants ou métadonnées `ReplicationHints` obligatoires. Ces éléments sont reportés jusqu'au jalon multijoueur explicite.
+
+**Politique réseau future** : mouvements cadencés par intérêt de 0 à 20 Hz (2–3 Hz pour personnages secondaires en foule), événements importants envoyés en priorité, simulation serveur indépendante, rendu client 30/20 FPS. Ne pas ralentir les règles de jeu ou les interactions à 2 Hz.
 
 ## 2. Séparation des données et des responsabilités
 
