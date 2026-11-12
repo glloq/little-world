@@ -11,7 +11,16 @@
     <div id="viewport"></div>
     <header class="hud-title">
       <div class="brand"><span class="brand-icon">✦</span><div><strong>little world</strong><small>Prototype d'exploration · Solo</small></div></div>
-      <a class="light-button" href="./editor/">Éditeur de carte <span aria-hidden="true">↗</span></a>
+      <div class="header-right">
+        <label class="quality-control" for="quality">Qualité
+          <select id="quality" aria-label="Qualité du rendu">
+            <option value="low">Économie</option>
+            <option value="medium" selected>Équilibré</option>
+            <option value="high">Élevée</option>
+          </select>
+        </label>
+        <a class="light-button" href="./editor/">Éditeur de carte <span aria-hidden="true">↗</span></a>
+      </div>
     </header>
     <aside class="hud-help panel">
       <div class="section-kicker">COMMANDES</div>
