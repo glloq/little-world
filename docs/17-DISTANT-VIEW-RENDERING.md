@@ -194,6 +194,17 @@ Le [document 20](20-BLENDER-STUDIO-INTERCHANGE.md) précise que les **roches, fa
 - Les assets importés compatibles peuvent recevoir palette jour/nuit, neige et ombres proches du document 19 ; pas de shadow map de tous les modèles lointains.
 - L'export complet **source V3 portable** ne confond pas la géométrie d'horizon compilée avec les heightfields et GLB sources auteurs.
 
+## Eau lointaine : conserver l'océan visible sans le simuler
+
+La [spécification 21](21-WATER-HYDROLOGY-LOW-RESOURCE.md) fixe pour **mer, lac, rivière, rapides et cascade** un système **WaterLOD0–3** similaire au terrain :
+
+- **LOD0/1** : surface proche, ondulations simples et écumes près des rives/objets ; détails visibles adaptés à la caméra.
+- **LOD2/3** : géométrie **et shader** réellement allégés, **pas d'animation de petites vagues ni de gouttelettes** à grande distance, couleur du ciel/soleil cohérente ; pas de fog-cache.
+- Océan rendu en **patches/anneaux ou équivalent mesuré**, respectant les îles et côtes via masques, sans surface d'eau visible sur les terres et sans phases glissantes.
+- Les cascades éloignées gardent leur **silhouette repérable** (ruban clair), pas leurs particules ou grosses textures animées.
+- Attention **fill-rate et alpha-overdraw** : même 2 triangles de mer peuvent coûter très cher s'ils couvrent tout l'écran avec un shader fragmentaire compliqué.
+- Continuité des couleurs, hautes mers, écumes/shoreline et transitions des LOD sous météo et lever/coucher ; le **jeu/nage/bateau** reste indépendant des niveaux de détail du rendu.
+
 ## 9. Tests et portes de qualification
 
 **Scènes à couvrir :**
