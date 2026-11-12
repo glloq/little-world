@@ -110,6 +110,16 @@ Le [document 23 — Audio MIDI LOW-RESOURCE](23-MIDI-AUDIO-LOW-RESOURCE.md) vali
 - `MidiSequencer` utilise l'horloge Web Audio, indépendamment du **tick logique 30 Hz** et du rendu **30/20 FPS**. Le joueur reste pleinement fonctionnel sans permission audio.
 - Le Studio peut placer des instruments/émetteurs associés à un lieu, un PNJ ou un objet ; les sources ne sont matérialisées en nœuds audio que si audibles.
 
+## Mines 2,5D : déplacement souterrain, creusement et collecte
+
+**Nouveau contrat cible :** [24 — Mines creusables multi-niveaux](24-MINES-MULTILEVEL-LOW-RESOURCE.md).
+
+- Le joueur peut **creuser durablement seulement dans des mines autorisées**, en ciblant une cellule de paroi à portée et avec l'outil approprié, puis récolter métaux/cristaux et enregistrer l'inventaire.
+- **Déplacements sous-terre** : `terrainHeight(x,z)` du monde extérieur n'est pas une réponse valable dans une galerie. Utiliser une **requête de collision/sol 3D dépendant de la zone active** et du niveau, avec entrées, escaliers, puits et rampes.
+- La roche est une **occupation logique de grille par niveau** ; le rendu mesh, les effets de poussière/son et les cristaux GLB ne décident pas de la possibilité de passer ou de récolter.
+- Une cellule épuisée reste épuisée après sauvegarde/reprise. En solo, commandes locales transactionnelles ; plus tard serveur valide distance/outil/ressource et l'inventaire **sans duplication**.
+- Tester 3 étages superposés et connexion verticale, collision sans snap à la surface, extraction au bord de chunk et retour de la mine. Le creusement et l'inventaire ne dépendent ni du LOD ni des FPS.
+
 ## Tests obligatoires
 
 1. Espace maintenu produit **un seul saut**.
