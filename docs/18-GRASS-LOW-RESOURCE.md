@@ -155,6 +155,16 @@ Le [contrat hydrographique 21](21-WATER-HYDROLOGY-LOW-RESOURCE.md) produit **ber
 - Après modification de spline/lit/berge, invalider uniquement les **cellules écologiques concernées** et préserver les autres seeds/instances. Les LOD eau n'ont aucun effet sur la présence réelle des volumes ou sur les exclusions de végétation.
 - Le vent est commun avec la météo (doc 19), **pas** le courant de rivière ; pas de déplacement CPU individuel d'herbe à cause du courant.
 
+## Budget global PERF et végétation
+
+[22 — ResourceBudgetManager](22-RESOURCE-BUDGET-MANAGER.md) arbitre la **végétation, le terrain, la météo et l'horizon** par plafonds communs.
+
+- `GrassRenderer`/écologie conservent leurs **instances par secteurs** et variations déterministes ; appliquent des profils `groundOnly`→dense reçus du gestionnaire **sans second régulateur autonome**.
+- Les petites herbes/décorations sont sacrifiées avant le relief visible, les maisons, la nage et les personnages essentiels ; vent/animation secondaires peuvent s'arrêter sans modifier les données de biotope.
+- La fréquence/charge de génération dépend d'un **quota de jobs CPU/VRAM** et de la priorité spatiale, pas du nombre global d'herbes du monde ; le côté de planage/vision bénéficie du préchargement.
+- Inspecter CPU génération, GPU shader/fill-rate, draw calls/instances/caches estimés, hystérésis de distance/qualité ; pas de centaines d'effets de passage simulés sur CPU.
+- Éviter de figer les profils herbe sous forme de nombre de triangles seulement : **budget de frame commun** et tests de forêts densément couvertes.
+
 ## 8. Tests et validation
 
 **Scènes et variantes :**
