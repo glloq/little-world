@@ -150,6 +150,25 @@
 
 **Contrats et phases ENV-0…ENV-7 :** [19 — Environnement, ciel, étoiles, lunes, neige et ombres](19-ENVIRONMENT-WEATHER-SKY.md). La météo « avancée » exclue du périmètre initial désigne une **simulation physique climatique complexe**, pas ces effets visuels stylisés.
 
+## VALIDÉ — Blender, presets et import/export de carte
+
+| ID | Décision |
+| --- | --- |
+| **BL-D01** | **Blender comme modeleur 3D externe** ; le Studio reste un éditeur de placement, biotopes, végétation, eau, interactions et composition |
+| **BL-D02** | **glTF 2.0 / GLB** comme format d'échange 3D ouvert ; `.blend` source facultative, aucun runtime Blender |
+| **BL-D03** | Presets simples ou **composites/collections** avec hiérarchies, pivots, ancres, variantes et dépendances, importables et exportables entre projets |
+| **BL-D04** | Placement dans Studio avec **translation XYZ, quaternion/rotation, scale XYZ**, gizmos, alignement terrain et groupes ; ids stables, overrides non écrasés |
+| **BL-D05** | **Terrain heightfield + métadonnées d'origine/résolution/altitude** importable/exportable ; falaises, arches, grottes et surplombs via GLB modulaires |
+| **BL-D06** | **Biotopes et végétations restent définis/éditables dans Studio**, avec masques/règles/seed, même quand géométrie importée depuis Blender |
+| **BL-D07** | **Archive ZIP standard + JSON V3 + dépendances** pour carte complète réellement portable et rééditable ; **GLB seul ≠ carte complète** |
+| **BL-D08** | **Export scène/sélection vers Blender** via GLB+sidecar, réimport avec comparaison d'IDs/hashes, aperçu des différences et préservation des références gameplay |
+| **BL-D09** | Import transactionnel sécurisé : versions, licences, limites, chemins, extensions glTF, collision d'IDs, migrations et rollback ; aucune exécution de scripts importés |
+| **BL-D10** | Build jouable séparé des archives auteur et sources `.blend`, optimisé pour secteurs, LOD, instancing et GPU intégré |
+| **BL-D11** | Importer une carte en **nouveau projet** par défaut ; fusion/mise à jour uniquement avec consentement explicite et remapping de références cohérent |
+| **BL-D12** | Distinguer **format Blender éditable**, **asset ouvert** et **source Studio complète** ; round-trip sans perte uniquement garanti pour les données supportées de l'archive Studio |
+
+**Spécification et jalons BL-0…BL-7 :** [20 — Blender ↔ Studio, presets et cartes](20-BLENDER-STUDIO-INTERCHANGE.md). **Aucun importer/exporter V3 complet n'est présumé livré** par la validation de ces décisions.
+
 ## PROPOSÉ — technique
 
 | ID | Choix | Réévaluation |
