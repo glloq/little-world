@@ -1,6 +1,6 @@
 # Little World — instructions pour Codex et autres agents de développement
 
-> **Lire d'abord** : [Périmètre final](docs/12-PROJECT-SCOPE.md), [Architecture UX du Studio](docs/13-STUDIO-UX-ARCHITECTURE.md), **[Décisions techniques validées](docs/14-TECHNICAL-CHOICES.md)**, [Décisions](docs/DECISIONS.md), [Budget LOW-RESOURCE](docs/11-LOW-RESOURCE-POLICY.md), puis [Architecture technique](docs/05-TECHNICAL-ARCHITECTURE.md) et [Roadmap](docs/07-ROADMAP.md).
+> **Lire d'abord** : [Périmètre final](docs/12-PROJECT-SCOPE.md), [Architecture UX du Studio](docs/13-STUDIO-UX-ARCHITECTURE.md), **[Contrats V3 du Studio](docs/15-STUDIO-DATA-SCHEMAS-V3.md)**, **[Décisions techniques validées](docs/14-TECHNICAL-CHOICES.md)**, [Décisions](docs/DECISIONS.md), [Budget LOW-RESOURCE](docs/11-LOW-RESOURCE-POLICY.md), puis [Architecture technique](docs/05-TECHNICAL-ARCHITECTURE.md) et [Roadmap](docs/07-ROADMAP.md).
 >
 > Ces documents sont les **sources de vérité du périmètre fonctionnel**. En cas de contradiction avec une ancienne description du prototype, appliquer les décisions validées les plus récentes. **Ne pas supposer qu'une fonction décrite est déjà codée.**
 
@@ -29,6 +29,20 @@ Conséquences prioritaires :
 - PC standard **GPU intégré** visé, profil indicatif 8 Go RAM / 1600 × 900 ; **ni FPS ni capacité 100 km² garantis avant benchmark**.
 
 **Ne pas reposer ces choix comme des questions ouvertes.** Les détails de quantification (pas de terrain, taille de chunks, VRAM, nombre de PNJ, distances LOD) doivent être calibrés par mesures et documentés comme tels.
+
+## 1 ter. Architecture V3 du Studio — acceptée comme cible
+
+Voir **[15 — Schémas V3 et contrats entre éditeurs](docs/15-STUDIO-DATA-SCHEMAS-V3.md)** pour les schémas source/compilé/partie, IDs stables, références entre secteurs, composants, prefabs/overrides, dialogue/behaviors/actions, `StudioContext`, transaction bus, checkpoints et migration V1/V2.
+
+**Obligations pour tout code V3 :**
+- Garder la lecture V1/V2 pendant la transition ; écrire une migration **pure, non destructive et testée** vers V3, pas simplement augmenter le plafond de `parseWorld`.
+- **Un projet source ≠ monde compilé ≠ sauvegarde joueur**, avec schémas, versions et stockages séparés.
+- Sources par secteurs + manifeste global + index d'entités/relations ; références inter-secteurs disponibles même si un secteur est déchargé.
+- Entités à **composants typés** et prefabs avec overrides ; ne pas introduire un ECS ou un framework supplémentaire sans nécessité mesurée.
+- Remplacer l'historique de **copies complètes** par commandes réversibles/transactions et checkpoints ; une opération de pinceau = une transaction.
+- Partager IDs, sélection, historique et validation entre les éditeurs spécialisés ; inspecteurs orientés utilisateur.
+- Validation incrémentale et diagnostics navigables ; compilation stricte, puis build statique avec index/chunks.
+- Ne pas annoncer le V3 « livré » sans migration, tests sur vrais projets et vérification navigateur.
 
 ## 2. Séparation des données et des responsabilités
 
