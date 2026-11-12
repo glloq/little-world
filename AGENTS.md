@@ -154,6 +154,20 @@ Lire **[23 — Audio MIDI, synthèse légère et échantillons](docs/23-MIDI-AUD
 - Le Studio importe `.mid` et quelques samples/loops avec **licence, taille/PCM décodé, mappings de patches**, place des émetteurs, définit ambiances par biome ; ZIP V3 contient les **sources** audio, non les buffers décodés ou états de voix.
 - Cibles de ressources/profils **provisoires**, aucune CPU ou compatibilité audio annoncée sans tests Firefox/Chromium. **AUD-0…AUD-8 spécifiés, non livrés**.
 
+## Mines creusables LOW-RESOURCE — galeries 2,5D multi-niveaux (validé)
+
+Lire **[24 — Mines en couches 2,5D et synchronisation des excavations](docs/24-MINES-MULTILEVEL-LOW-RESOURCE.md)** avant de modifier le terrain, les collisions souterraines, l'inventaire, les sauvegardes ou les schémas V3.
+
+- **Décision** : **mines localisées**, grille excavable **2,5D par niveau**, avec **plusieurs étages** reliés par escaliers, rampes et puits explicites. **Heightfield extérieur conservé** ; pas de voxels sur 100 km². GLB pour entrées, rampes, soutènements et décors, pas comme source des cellules creusées.
+- **Exception au périmètre précédent** : les joueurs peuvent modifier **durablement les cellules des mines autorisées seulement** ; pas de creusement libre sur le terrain de surface. **Source Studio** (mine initiale/géologie) **distincte des états de partie** (excavation/épuisement/inventaire).
+- Ne pas confondre étages superposés : toutes les requêtes physiques se fondent sur **mineId, levelId et X/Y/Z** ; `terrainHeight(x,z)` seul est insuffisant dans une galerie. Remplacer localement via un `SurfaceQuery/CollisionWorld` compatible terrain extérieur.
+- **Creusement** : cellules exposées et fusion de faces, meshes/collisions/nav **du chunk et voisins de bord seulement**, pas de reconstruction de la mine entière ; géométrie purement dérivée de la grille.
+- **Métaux/cristaux** : filons déterministes par seed/version/strate, récolte épuisable persistante, pas de minerai physique par fragment ; pas de duplication de récompense pour une même cellule.
+- **Serveur futur** : le client envoie une **intention de creuser**, le serveur vérifie distance/outils/état et valide atomiquement creusement + inventaire, puis diffuse **snapshots/deltas avec révisions et idempotence**, jamais des meshes. **Bêta actuelle solo sans backend obligatoire**, même interface via repository local.
+- **PERF** : charger uniquement mine/étages/chunks visibles et voisins nécessaires, culling de galeries, quelques matériaux/lumières sans ombres massives, remeshing via `WorkScheduler` et cache `ResourceRegistry`. Collision et état logiques restent corrects à tous LOD.
+- **Studio** : emprise, niveaux, entrées, gisements, plan par étage, coupe, connecteurs/validation ; playtest d'excavation sur état de partie **jetable**, aucun overwrite silencieux de source V3.
+- Dimensions **1 m/cellule, 32×32, 3–8 niveaux** = paramètres de test, **pas des seuils qualifiés** ; jalons **MINE-0…MINE-9 non livrés**. Prévoir compatibilité eau et hauteur/occlusion des ouvertures.
+
 ## 2. Séparation des données et des responsabilités
 
 - Projet auteur : `worldId`, `schemaVersion`, `seed`, dimensions, chunks, overrides, prefabs, entités, dialogues, navigation, interactions.
