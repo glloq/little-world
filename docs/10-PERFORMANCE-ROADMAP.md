@@ -114,6 +114,16 @@ La [spécification 19](19-ENVIRONMENT-WEATHER-SKY.md) prescrit **ENV-0…ENV-7**
 
 **Mesurer** frame p50/p95/p99, shadow pass calls, nombre de casters/receivers, coût CPU/GPU des shaders et particules, overdraw, uploads, recompilations de shaders, popping de l'horizon, neige sur proxies. Vérifier mode shadow OFF et menu bêta sans état persistant involontaire. **Ne pas revendiquer les cibles avant des tests sur GPU intégré réel.**
 
+## Campagne BL — coûts des imports Blender, presets et cartes
+
+**Spécification à mettre à l'épreuve :** [20 — Échange Blender ↔ Studio](20-BLENDER-STUDIO-INTERCHANGE.md).
+
+Tester **assets simples, prefab composite, ruine à 100 copies, village, massif de végétation et zone heightfield**. Distinguer coût en **édition/import/compilation** du coût **runtime** après mutualisation GLB, LOD et instancing ; un export compact n'est pas automatiquement rapide à charger.
+
+**Mesures** : poids total/transféré initial et par secteur, textures et mémoire GPU, nombre de matériaux/meshes/draw calls, triangles, temps de décodage glTF/texture, allocations/GC, latence import/aperçu, fluidité des gizmos, vitesse d'export/import ZIP et recompilation locale. Mesurer **avant/après réutilisation d'un même prefab** et après simplification des LOD, à scène/résolution identiques.
+
+**Gate** : la carte 10 × 10 km ne précharge ni tous ses GLB ni son zip auteur au spawn ; archives portables utilisables hors ligne ; import ZIP/GLB non fiable borné en mémoire et temps ; **30/20 FPS** visés sur PC GPU intégré seulement après mesures, pas supposés. Les sources `.blend` et archives de projets ne figurent pas dans le bundle client jouable.
+
 ## Suite prioritaire
 
 1. Réduire les appels du personnage et regrouper les sous-meshes statiques par matériau/articulation, puis mesurer sur les mêmes scènes.
