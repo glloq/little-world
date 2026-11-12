@@ -168,6 +168,21 @@ Lire **[24 — Mines en couches 2,5D et synchronisation des excavations](docs/24
 - **Studio** : emprise, niveaux, entrées, gisements, plan par étage, coupe, connecteurs/validation ; playtest d'excavation sur état de partie **jetable**, aucun overwrite silencieux de source V3.
 - Dimensions **1 m/cellule, 32×32, 3–8 niveaux** = paramètres de test, **pas des seuils qualifiés** ; jalons **MINE-0…MINE-9 non livrés**. Prévoir compatibilité eau et hauteur/occlusion des ouvertures.
 
+## Agriculture LOW-RESOURCE — parcelles, calcul différé et vues distinctes (validé)
+
+Lire **[25 — Agriculture par parcelles LOW-RESOURCE](docs/25-AGRICULTURE-PARCELS-LOW-RESOURCE.md)** avant de modifier les cultures, la simulation de saisons, les outils agricoles, les sauvegardes ou la gestion des biotopes.
+
+- **Parcelles agricoles autorisées et polygonales**, avec 1 ou quelques **zones de culture**, état agronomique **agrégé par zone**, jamais `Mesh`, `Collider` ni composant logique par plant. Agriculture approfondie **facultative** pour le joueur.
+- **Séparer** `FarmPlotDefinitionV3` (source Studio) / `FarmPlotState` (save partie, serveur futur) / `FarmPublicVisualState` (passants) / `FarmLODRenderer` (instances GPU dérivées).
+- **Croissance sur action, consultation fiable ou échéance** : temps agricole de l'horloge du monde, `lastEvaluatedWorldTime`, événements datés et **historique climatique agrégé couvrant tout l'intervalle** (pas météo du moment × durée). Calculer connecté/hors-ligne avec résultat déterministe à quantification annoncée ; pas de tick agricole 30 Hz.
+- **Deux vues de données** : propriétaire/ouvrier autorisé peut consulter humidité, nutriments, santé, rendement/planifier et agir ; passant reçoit seulement stade/couleur/info publique. **À caméra identique, même LOD 3D** quel que soit le rôle.
+- **Rendu** : instancing de cultures proches, rangs/groupes simplifiés à mi-distance, **couleur/masque de parcelle** à l'horizon, sans herbe en doublon, sans ombres par plante ou animation CPU individuelle ; limites sous `ResourceBudgetManager`, pas d'automate PERF parallèle.
+- **Actions** `Plant/Irrigate/Fertilize/Treat/Tend/Harvest/Clear` : vérifier parcelle, droits, stock, eau et temps ; inventaire et changement d'état **atomiques et idempotents** dans le futur serveur. Solo via `LocalFarmRepository`, **pas de backend maintenant**.
+- **Événements rares/échéances** : file bornée et journal climatique compact, éviter scan de chaque parcelle chaque frame et progression dépendant du fait qu'un joueur soit connecté.
+- **Studio** : dessiner parcelle/sous-zones, gérer cultures/sol/eau/profils, aperçu saisons/LOD, playtest sur **état de partie jetable**, ZIP V3 auteur indépendant des récoltes de joueurs.
+- **Agriculture optionnelle riche** : climat, rotation, fertilité, irrigation, risques parasites/maladies et qualité calculés **par zone**, pas simulateur de fluides/biologie individuelle.
+- Plan **AGRI-0…AGRI-8**, budgets et chiffres de mémoire/cadence **à benchmarker**, aucune phase validée par la seule documentation.
+
 ## 2. Séparation des données et des responsabilités
 
 - Projet auteur : `worldId`, `schemaVersion`, `seed`, dimensions, chunks, overrides, prefabs, entités, dialogues, navigation, interactions.
