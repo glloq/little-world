@@ -100,6 +100,16 @@ Appliquer des marges/hystérésis aux seuils pour empêcher une alternance de mo
 - Tester 20/30/60 callbacks, retours d'onglet, surcharge d'import, changements de LOD au planage et sous-marin : contrôle joueur inchangé.
 - Les préférences de profil graphiques sont locales et n'affectent pas les sauvegardes de partie ni les données auteur.
 
+## Feedback audio musical et sons de gameplay
+
+Le [document 23 — Audio MIDI LOW-RESOURCE](23-MIDI-AUDIO-LOW-RESOURCE.md) valide une palette de **5–10 instruments musicaux** et un **lecteur d'échantillons** pour pas, eau, faune, interaction et ambiances.
+
+- Les **notes musicales**, chants et sons magiques peuvent venir du même synthétiseur Web Audio selon l'activité; les sons naturels ne sont pas forcés à devenir des notes MIDI.
+- Une interaction/mission/énigme produit des **événements audio par `soundId/scoreId`** à partir du même système d'actions déclaré, avec **fallback visuel** si le joueur est en mode muet.
+- Le `AudioBudgetManager` conserve les sons utiles au gameplay/joueur avant les musiques/ambiances décoratives, sans perturber les commandes et transitions du joueur.
+- `MidiSequencer` utilise l'horloge Web Audio, indépendamment du **tick logique 30 Hz** et du rendu **30/20 FPS**. Le joueur reste pleinement fonctionnel sans permission audio.
+- Le Studio peut placer des instruments/émetteurs associés à un lieu, un PNJ ou un objet ; les sources ne sont matérialisées en nœuds audio que si audibles.
+
 ## Tests obligatoires
 
 1. Espace maintenu produit **un seul saut**.
