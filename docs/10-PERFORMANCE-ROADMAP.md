@@ -124,6 +124,20 @@ Tester **assets simples, prefab composite, ruine à 100 copies, village, massif 
 
 **Gate** : la carte 10 × 10 km ne précharge ni tous ses GLB ni son zip auteur au spawn ; archives portables utilisables hors ligne ; import ZIP/GLB non fiable borné en mémoire et temps ; **30/20 FPS** visés sur PC GPU intégré seulement après mesures, pas supposés. Les sources `.blend` et archives de projets ne figurent pas dans le bundle client jouable.
 
+## Campagne WAT — océan plein écran, rendu immergé et LOD
+
+Référence : [21 — Eau LOW-RESOURCE](21-WATER-HYDROLOGY-LOW-RESOURCE.md). Comparer **rive, rivière, cascade proche/lointaine, lac, embouchure, bateau, caméra sous-marine, planage sur vaste océan** à scène/graine/résolution/caméra identiques.
+
+**Variantes d'essai** :
+- surfaces eau actuelle translucides vs surface **opaque stylisée** avec profondeur précalculée et transparence **locale** ;
+- effets près (vagues, écume, sillages) **ON/OFF**, LOD0/1/2/3, transition caméra, océan en patches/anneaux ou géométrie sectorisée ;
+- shader eau proche vs shader **lointain réellement simplifié** ; nombre de triangles **et coût fragmentaire/fill-rate**, alpha overdraw et multiplicité des surfaces ;
+- scènes couplées au ciel, météo, neige, arbres, PNJ et horizons du monde.
+
+**Cibles d'essai non mesurées** : CPU eau récurrent **< 0,1–0,2 ms/frame hors compilation**, GPU eau supplémentaire **< 0,5–1 ms** en scène représentative si possible ; **ces chiffres ne garantissent rien pour une mer plein écran**. Ne pas remplacer le benchmark GPU par un simple compteur de triangles.
+
+Mesurer **temps CPU de compilation/streaming**, GPU si timer disponible, frametimes p50/p95/p99, draw calls/matériaux par LOD, surcouches transparentes, textures/transferts, courants/nage/bateau inchangés et horizon sans fog-cache. **Budget partagé** avec météo, herbes, terrain et ombres.
+
 ## Suite prioritaire
 
 1. Réduire les appels du personnage et regrouper les sous-meshes statiques par matériau/articulation, puis mesurer sur les mêmes scènes.
