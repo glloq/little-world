@@ -83,6 +83,20 @@ Lire [18 — Herbes ultra-low-resource](docs/18-GRASS-LOW-RESOURCE.md). **Décis
 - **Aucun brouillard de masquage**, et aucun effet sur collisions, simulation ou gameplay ; cibles CPU < 0,1 ms/frame, GPU < 0,5 ms/frame, 1–4 draw calls et < 2 Mio **à mesurer**.
 - Ne pas annoncer un shader/éditeur `GrassRenderer` livré tant qu'il n'est pas réellement codé, intégré et benchmarké.
 
+## Environnement et astres : décision LOW-RESOURCE validée
+
+Lire **[19 — Météo, neige, ciel, étoiles, lunes indépendantes et ombres](docs/19-ENVIRONMENT-WEATHER-SKY.md)** avant toute implémentation d'éclairage ou de météo.
+
+- **Une horloge logique et un `EnvironmentState` commun** pour le soleil, le jour/nuit, les nuages, la pluie/neige, le vent, l'orage et le brouillard météorologique.
+- **Ciel nocturne étoilé très léger** ; **0/1/plusieurs lunes** avec trajectoire et période propres, phases cohérentes avec le soleil, étoiles/astres sans lumière/mesh individuel coûteux.
+- **Neige accumulée distincte de la chute**, température/altitude/fonte, coloration des terrains, toitures, arbres/rochers et proxies d'horizon via masques de matériaux ; pas de reconstruction massive du monde.
+- **Ombres locales sélectionnées** : une shadow map solaire au plus en profil normal (512²/1024² à tester), casters grands/proches/importants, herbes et décor éloigné exclus, shadow maps totalement désactivables.
+- Pluie/neige sous forme de **particules GPU locales**, ciel/nuages par shader très simple, vent partagé avec végétation ; pas de simulations physiques goutte/flocon ni de nuages volumétriques.
+- **Brouillard météorologique autorisé** seulement comme état réel, **interdit comme camouflage** des limites de carte.
+- **Menu de test bêta local** : heure accélérée/pausée, météo, température, neige, brouillard, soleil, étoiles, cycles séparés des lunes, ombres/LOD, mesure FPS. Overrides temporaires.
+- `EnvironmentStateSource` **interchangeable** : local/test maintenant ; **serveur autoritaire futur** pour heure et états météo. Ne pas ajouter de backend maintenant.
+- Garder un budget graphique **global** avec l'herbe, les personnages et l'horizon ; budgets et FPS sont **à benchmarker**, non considérés atteints.
+
 ## 2. Séparation des données et des responsabilités
 
 - Projet auteur : `worldId`, `schemaVersion`, `seed`, dimensions, chunks, overrides, prefabs, entités, dialogues, navigation, interactions.
