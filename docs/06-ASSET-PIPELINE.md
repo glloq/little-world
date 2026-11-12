@@ -177,6 +177,18 @@ Voir [21 — Eau LOW-RESOURCE](21-WATER-HYDROLOGY-LOW-RESOURCE.md). Les presets 
 - Le **ZIP V3 portable** contient les `.mid`, patches, samples et manifestes requis, jamais les voix/audio graphes runtime ; le build statique ne précharge pas toutes les ambiances du monde.
 - À l'import, écouter le son et afficher **la quantité de voix potentielle, la taille PCM et la portée**. Pas de script ni d'extension synthèse arbitraire venant d'un preset.
 
+## Assets de mine : Blender sans voxelisation globale
+
+**Contrat :** [24 — Mines 2,5D, minerais et ressources](24-MINES-MULTILEVEL-LOW-RESOURCE.md).
+
+- Blender/GLB prépare **entrées de mines, portes, soutènements, rampes/escaliers/puits, rails, wagonnets, caisses, lanternes, minerais apparents et cristaux** low-poly.
+- La **grille solide/vide par étage** et les gisements sont des sources/données V3 et états de partie ; **aucun GLB ne porte à lui seul une galerie creusable persistante**.
+- Parois et plafonds répétés sont **compilés à partir des faces exposées** avec peu de matériaux partagés, vertex colors et éventuelle fusion ; cristaux **instanciés près du joueur**, non un mesh par fragment.
+- **Prefabs de connecteurs verticaux** : pivots, dimensions en mètres, altitudes et marqueurs d'accès vérifiés ; les entrées masquent proprement la jonction avec le terrain extérieur.
+- Le pipeline comptabilise les **GLB partagés une fois**, leur coûts textures/draw calls et l'impact de la reconstruction locale ; licences/IDs stables et version de la source préservés.
+- Ne pas importer une mine entière avec tous ses étages, son minerai caché et ses voxels rendus comme un seul GLB monolithique. En multijoueur futur, les filons secrets restent côté autorité serveur.
+- Les assets AUD de creusement/récolte/ambiance grotte sont émis **seulement près du joueur**, sans un AudioNode par cellule/rocher.
+
 ## Qualification
 
 - Fichier présent, path valide après build GitHub Pages.
