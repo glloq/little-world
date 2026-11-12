@@ -169,6 +169,25 @@
 
 **Spécification et jalons BL-0…BL-7 :** [20 — Blender ↔ Studio, presets et cartes](20-BLENDER-STUDIO-INTERCHANGE.md). **Aucun importer/exporter V3 complet n'est présumé livré** par la validation de ces décisions.
 
+## VALIDÉ — eau hydrographique et rendu LOW-RESOURCE
+
+| ID | Décision |
+| --- | --- |
+| **WAT-D01** | L'eau est décrite par **réseau auteur, volumes gameplay et rendu** distincts ; aucun LOD ne change la nage, la profondeur ou la flottabilité |
+| **WAT-D02** | Studio permet le **tracé des cours d'eau et de lacs** : source, points, largeur, profondeur, jonctions, exutoires et **profil de pente automatique + overrides** |
+| **WAT-D03** | **Rapides et cascades** issus de la pente et d'indications auteur ; une cascade possède **niveaux haut/bas explicites**, détection des contre-pentes et diagnostics |
+| **WAT-D04** | Lit/berges/écume/volumes et LOD sont compilés **par secteurs**, avec source de relief indépendante du lit calculé, invalidation locale et Undo/Redo |
+| **WAT-D05** | Rivières, cascades, lacs, océan rendus par **rubans/polygones et shaders stylisés légers**, pas de simulateur de fluides, FFT, réflexion ou réfraction multipasses |
+| **WAT-D06** | **WaterLODManager LOD0–3** : vagues/interactions proches ; moyen fortement simplifié ; **océan et cascades lointains visibles mais sans détails animés** |
+| **WAT-D07** | LOD selon **distance, surface projetée, altitude et budget graphique**, avec hystérésis ; simplifier **aussi le shader/fill-rate**, pas seulement les triangles |
+| **WAT-D08** | Océan patches/anneaux possibles avec **masque des îles/côtes** et phases ancrées au monde ; aucun glissement visuel, fissure ou eau traversant la terre |
+| **WAT-D09** | **Nage/plongée depuis la caméra et volumes d'eau** : teinte/visibilité, lumière adaptée et hystérésis ; pas de second rendu caméra ni de fog-cache terrestre |
+| **WAT-D10** | Courants simplifiés uniquement pour acteurs concernés, navigation bateau/poisson, zones de cascades non navigables ; **aucun trafic réseau de vague/écume** |
+| **WAT-D11** | Outil Studio et panneau bêta de test de l'eau : profil longitudinal, effets, niveaux, LOD, immersion et métriques, scénarios reproductibles |
+| **WAT-D12** | Budget partagé avec environnement/terrain/herbe, animations GPU locales seulement, mesures réelles GPU intégré avant fixation des distances/coûts |
+
+**Contrat technique et jalons WAT-0…WAT-7 :** [21 — Eau, hydrographie et LOD](21-WATER-HYDROLOGY-LOW-RESOURCE.md). Ces règles ne constituent **pas** une preuve de code livré.
+
 ## PROPOSÉ — technique
 
 | ID | Choix | Réévaluation |
