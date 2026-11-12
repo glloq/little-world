@@ -3,7 +3,13 @@
 **Statut : spécification fonctionnelle validée, à implémenter progressivement.**
 **État de cette branche : atelier unifié fonctionnel (sculpture, eau/chemins, biotopes, objets, PNJ/dialogues, historique et stockage v2). Les éditeurs spécialisés du Studio ne sont pas encore livrés.**
 
-**Références impératives :** [12 — Périmètre](12-PROJECT-SCOPE.md), [13 — Studio, UX et schémas](13-STUDIO-UX-ARCHITECTURE.md), [11 — LOW-RESOURCE](11-LOW-RESOURCE-POLICY.md).
+**Références impératives :** [12 — Périmètre](12-PROJECT-SCOPE.md), [13 — Studio UX](13-STUDIO-UX-ARCHITECTURE.md), **[15 — Schémas V3 et contrats entre éditeurs](15-STUDIO-DATA-SCHEMAS-V3.md)**, [11 — LOW-RESOURCE](11-LOW-RESOURCE-POLICY.md).
+
+## Cible des contrats V3 — choix désormais retenus
+
+Le Studio conserve **plusieurs éditeurs spécialisés** mais partage un `StudioContext`, un `ProjectStore`, un `CommandBus` transactionnel, un `ReferenceIndex` et une validation commune. Les objets deviennent des **entités à composants typés et prefabs avec overrides** ; PNJ/dialogues/actions sont liés par **IDs stables**, même lorsque des secteurs sont déchargés.
+
+Les projets V3 sont **sectorisés** (manifeste, sources/overrides, registres), avec migration V1/V2 et checkpoints. **Les éditeurs actuels restent sur V2 à ce stade** ; ne pas assimiler la spécification à un état de développement. Détails : [15 — Schémas V3](15-STUDIO-DATA-SCHEMAS-V3.md).
 
 ## Fonctions disponibles
 
