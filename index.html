@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#d9e6ce" />
+  <title>Little World — Vallée de l'écureuil volant</title>
+</head>
+<body class="game-page">
+  <div id="app">
+    <div id="viewport"></div>
+    <header class="hud-title">
+      <div class="brand"><span class="brand-icon">✦</span><div><strong>little world</strong><small>Prototype d'exploration · Solo</small></div></div>
+      <a class="light-button" href="./editor/">Éditeur de carte <span aria-hidden="true">↗</span></a>
+    </header>
+    <aside class="hud-help panel">
+      <div class="section-kicker">COMMANDES</div>
+      <div class="control-row"><kbd>ZQSD</kbd><span>Déplacement</span></div>
+      <div class="control-row"><kbd>Souris</kbd><span>Orienter la caméra</span></div>
+      <div class="control-row"><kbd>Shift</kbd><span>Courir</span></div>
+      <div class="control-row"><kbd>Espace</kbd><span>Sauter / planer</span></div>
+      <div class="control-row"><kbd>Ctrl</kbd><span>Plonger</span></div>
+      <div class="control-row"><kbd>E</kbd><span>Interagir</span></div>
+      <div class="section-kicker space-top">ASTUCE</div>
+      <p>Sauter depuis une hauteur, relâcher <kbd>Espace</kbd> puis réappuyer pour ouvrir la membrane.</p>
+    </aside>
+    <aside class="hud-stats panel">
+      <span class="status-dot"></span><span id="status">Initialisation…</span>
+      <div class="mini-separator"></div>
+      <div id="coords">Position : —</div>
+      <div id="oxygen" class="hide">Oxygène : —</div>
+      <div id="fps">FPS : —</div>
+    </aside>
+    <div id="action" class="action-toast hide"></div>
+    <div id="message" class="toast hide"></div>
+    <div id="start-overlay" class="start-overlay">
+      <div class="start-card">
+        <div class="start-sun">✦</div>
+        <div class="section-kicker">UNE PETITE AVENTURE</div>
+        <h1>Une vallée à explorer</h1>
+        <p>Incarne un écureuil volant. Grimpe les reliefs, plane au-dessus de la rivière, nage et découvre le moulin.</p>
+        <button id="start" class="primary-button" type="button">Explorer la vallée <span aria-hidden="true">→</span></button>
+        <small>Prototype technique · PC, clavier et souris · aucun compte requis</small>
+      </div>
+    </div>
+  </div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
