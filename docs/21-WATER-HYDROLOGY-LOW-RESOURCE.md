@@ -253,6 +253,16 @@ Le [document 23 — Audio MIDI et échantillons](23-MIDI-AUDIO-LOW-RESOURCE.md) 
 - Les LOD graphiques d'océan/rapides **ne définissent pas** les événements sonores ou l'accessibilité ; culling audio par proximité et budget propre sous `ResourceBudgetManager`.
 - Ne pas synthétiser les remous et gouttelettes en notes MIDI ou en milliers de petites sources ; priorité au coût CPU, à l'empreinte PCM et à la lisibilité du mixage.
 
+## Compatibilité des mines et des volumes d'eau
+
+La [spécification MINE 24](24-MINES-MULTILEVEL-LOW-RESOURCE.md) autorise un creusement **localisé** avec plusieurs étages sous le heightfield, mais **ne crée pas** de simulation d'inondation.
+
+- Le compilateur/validateur de mine utilise les **niveaux d'eau de rivières, lacs et mer** et les **volumes 3D** pour détecter les entrées, chambres et galeries en conflit avec l'eau.
+- En MINE-V1, soit bloquer l'excavation dans une zone incompatible, soit déclarer **un volume immergé intentionnel** avec règles de gameplay distinctes ; **ne pas déduire automatiquement des écoulements hydrauliques en 3D**.
+- La logique de nage/plongée est indépendante de l'apparence des roches ; une cascade GLB voisine d'une mine ne remplace pas l'état du réseau hydrographique.
+- Les données de mine et eau partagent un **index spatial** et des **invalidation locales** lors d'une modification autorisée ; aucune recompilation intégrale du monde 100 km².
+- Sous l'eau, les galeries accessibles doivent être validées pour caméra et collisions par volumes explicites, sans créer de physics fluides globales.
+
 ## 11. Phases, tests et gates
 
 | Phase | Livrable / validation |
