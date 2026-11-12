@@ -155,6 +155,17 @@ Le [contrat MINE 24](24-MINES-MULTILEVEL-LOW-RESOURCE.md) ajoute des **zones sou
 - Chargement des **seules zones souterraines actives/visibles** sous PERF. Export ZIP V3 = géologie et structure initiale ; creusement d'une partie = sauvegarde de jeu et futur serveur.
 - Toute mise à jour envoyée ultérieurement au serveur est une **intention de creusement**, pas un mesh ni la source auteur remplacée silencieusement.
 
+## Parcelles agricoles : géographie, saisons et rendu instancié
+
+Le [contrat AGRI 25](25-AGRICULTURE-PARCELS-LOW-RESOURCE.md) complète la carte V3 avec des **polygones de parcelles**, éventuellement quelques **sous-zones**, distincts des grandes règles de biotopes sauvages.
+
+- `FarmPlotDefinitionV3` est **auteur** : contour X/Z, terrain/pente, sols, orientation de rangs, accès irrigation, espèces autorisées, ID stable et version. **`FarmPlotState`** (semis, humidité, qualité, rendement, récoltes) appartient aux **sauvegardes de partie/serveur futur**.
+- Générer les plantes graphiques **par seed + plotId + cropId + stade**, instanciées à proximité ; au loin **lignes simplifiées ou couleur/masque de surface**. Aucune sérialisation de millions d'entités `Placement` et aucune collision par plante.
+- Croissance **différée** évaluée sur action/échéance/lecture pertinente, avec **résumés climatiques historiques versionnés** par zone/période. Le `WorldClock` et l'hydrologie donnent des conditions, pas un moteur d'écoulement liquide par parcelle.
+- **Indexer les parcelles par chunks recoupés**, mais conserver **une source et un état** par parcelle/zone même sur plusieurs chunks. Édition de contour invalide seulement géométrie, herbe, navigation/visuels affectés.
+- Exclure la végétation sauvage sur parcelles labourées pour éviter le double rendu. Gérer limites de pente, routes, eau, bâtiments, entrées de mine, parcelles superposées ou protections.
+- **Pas de recalcul agricole sur le RAF** ou le streaming, et pas de chargement du catalogue complet à chaque visite.
+
 ## Critères techniques
 
 1. Même seed/versions/paramètres → même génération.
