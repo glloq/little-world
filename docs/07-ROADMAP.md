@@ -32,6 +32,22 @@ Les contrats de [15 — Schémas V3](15-STUDIO-DATA-SCHEMAS-V3.md) doivent être
 
 **Cibles non livrées par cette mise à jour documentaire.** L'ancien `WorldDefinition` V2 et son `parseWorld` restent valides pendant la transition ; ne pas monter la limite à 10 km dans un parseur V2 monolithique pour simuler une architecture V3.
 
+## Axe HZ — horizon large et détaillé à coût réduit
+
+**Décision validée :** le rendu doit conserver montagnes, côtes et îles visibles **sans brouillard qui dissimule les limites du monde**. Voir [17 — Rendu panoramique](17-DISTANT-VIEW-RENDERING.md).
+
+**À intégrer dans la suite des travaux V3 / LOW-RESOURCE**, sans casser les fonctionnalités existantes :
+
+1. **HZ-0 — instrumenter** scènes panoramiques fixes et traversées (marche, planage, bateau), mesurer draw calls / triangles / overdraw / ressources.
+2. **HZ-1 — horizon 3D léger** indépendant du terrain proche, silhouette cohérente même lorsque les chunks détaillés sont absents.
+3. **HZ-2 — transitions LOD propres**, hystérésis, critère erreur écran et chargement anticipé en planage.
+4. **HZ-3 — LOD de végétation, maisons, ruines et objets** via meshes simplifiés, regroupement par secteur.
+5. **HZ-4 — imposteurs et panoramas ciblés**, sky dome, sans figer l'arrière-plan approchable dans une texture.
+6. **HZ-5 — compilation et invalidation des proxies** depuis les données auteur V3 ; aperçu et contrôles simples dans le Studio.
+7. **HZ-6 — gate 30/20 FPS** sans fog et sans popping critique, mesures sur GPU intégré, contenu et caméra identiques.
+
+Ce chantier vise le **jeu solo immédiatement**, et les profils de foule du **futur multijoueur** pourront utiliser les mêmes outils de LOD. **Aucun chiffre de gain n'est revendiqué avant benchmark.**
+
 ## Campagne avancée — état livré sur branche
 
 | Domaine | Avant | Après | Statut | Reste à faire |
