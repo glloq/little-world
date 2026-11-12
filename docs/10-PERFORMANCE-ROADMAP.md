@@ -92,6 +92,16 @@ La [spécification 17](17-DISTANT-VIEW-RENDERING.md) définit **HZ-0 à HZ-6** p
 
 **Ne pas confondre** terrain synthétique de 2 km testé en logiciel avec la **performance d'une vue effective à plusieurs kilomètres**. Les chiffres LOD 100 m/400 m/1,5 km/5 km de la spec 17 restent illustratifs. Tous les gains doivent être comparés à **contenu identique**.
 
+## Campagne GR — coût de l'herbe ultra-économique (non mesuré)
+
+Référence : [18 — Herbe courte/haute et réaction GPU](18-GRASS-LOW-RESOURCE.md). Comparer **sol seul**, **touffes sans animation**, **vent GPU**, **réaction un joueur**, **réaction deux joueurs**, puis **végétation + forêt/village/planage** sur **les mêmes coordonnées, mêmes ressources et même résolution**.
+
+**Objectifs indicatifs :** < 0,1 ms CPU/frame hors génération, < 0,5 ms GPU additionnel, 1–4 draw calls et < 2 Mio GPU de buffers/textures d'herbe. Les budgets sont **à mesurer**, non des valeurs constatées.
+
+Ne pas mesurer seulement les triangles : relever charge CPU de la création d'instances/streaming et coût récurrent, GPU lorsque timer disponible, mémoire, uploads, alpha overdraw, animations, transitions de profils et absence de régression 30/20 FPS. Vérifier le profil de secours **`groundOnly` (aucune touffe 3D)**.
+
+**Point essentiel :** attribuer un **budget global à la végétation et aux détails** ; ne pas dégrader le rendu d'horizon sans brouillard pour préserver de l'herbe facultative.
+
 ## Suite prioritaire
 
 1. Réduire les appels du personnage et regrouper les sous-meshes statiques par matériau/articulation, puis mesurer sur les mêmes scènes.
