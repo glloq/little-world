@@ -112,6 +112,20 @@ Lire **[20 — Blender, GLB, presets et archives de cartes](docs/20-BLENDER-STUD
 - Les sources `.blend` peuvent être conservées **en option**, ne jamais les charger dans le jeu ; les assets compilés doivent profiter des LOD, instancing et streaming.
 - **Statut** : contrats prévus ; **ne pas annoncer** le pipeline complet/presets et archives V3 déjà implémentés sur `main`.
 
+## Eau LOW-RESOURCE : réseau, immersion, cascades et horizon — décision validée
+
+Lire **[21 — Eau LOW-RESOURCE, rivières/lacs/mer et LOD](docs/21-WATER-HYDROLOGY-LOW-RESOURCE.md)** avant de toucher aux surfaces d'eau, à la nage/plongée ou au Studio « Eau ».
+
+- **Une seule source hydrographique V3** : tracés orientés, nœuds/jonctions, lacs à niveau constant, rapides, cascades à niveau haut/bas, embouchures. Tracer les rivières depuis Studio et calculer le profil d'altitude, puis creuser **localement** le lit ; signaler les contre-pentes/contradictions au lieu d'inventer des niveaux.
+- **Séparation absolue** `WaterNetwork` (auteur), `WaterVolumes` (immersion, profondeur, bateau/courants) et `WaterRenderer` (surfaces/écume) : un LOD graphique n'altère jamais nage/flottabilité/état logique.
+- **LOD0–LOD3** commun à rivières/lacs/cascades/océan : proche léger animé, lointain **géométriquement et en shader simplifié**, mer visible à l'horizon ; LOD fonction de taille écran/distance/caméra, sans brouillard-cache.
+- Océan en patches ou anneaux camera-relative **uniquement avec masquage des terres/côtes** et motifs stables en coordonnées monde ; éviter une unique surface coûteuse plein écran ou un grand GLB monolithique.
+- **Aucune FFT, fluide physique, réflexions miroir par seconde caméra, SSR ou réfraction multi-pass** par défaut. Privilégier shaders opaques/teinte/masques peu profonds ; transparence, mousse et particules **locales, facultatives et benchmarkées**.
+- **Sous l'eau** : se fonder sur le **volume où se trouve la caméra**, avec hystérésis et palette/visibilité à faible coût, pas uniquement sur l'état nage du joueur. Cascade verticale ≠ lac navigable.
+- Le vent provient de l'environnement, **le courant** du graphe d'eau ; simulations limitées aux acteurs concernés au pas fixe, aucune animation CPU individuelle de particules.
+- **Panneau bêta** : niveaux, courants, cascades, profil d'altitude, LOD, vue immergée, coût CPU/GPU. Conserver les données V2 existantes et migrer sans écrasement.
+- Budgets LOW-RESOURCE et distances 0–15 / 15–60 / 60–250 / >250 m **illustratifs seulement** : réévaluer après bench sur GPU intégré ; aucune phase WAT considérée implémentée par sa seule documentation.
+
 ## 2. Séparation des données et des responsabilités
 
 - Projet auteur : `worldId`, `schemaVersion`, `seed`, dimensions, chunks, overrides, prefabs, entités, dialogues, navigation, interactions.
