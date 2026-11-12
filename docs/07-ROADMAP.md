@@ -1,133 +1,121 @@
-# 07 — Feuille de route et critères d'acceptation
+# 07 — Feuille de route — Little World Solo / GitHub Pages
 
-Statut : **plan de développement proposé**. Aucun jalon technique n'a encore démarré ; la documentation constitue le jalon **D0**.
+**Statut : plan de développement. D0 documentaire uniquement.**
 
-## Principes
+## Objectif
 
-- **Fonctionnement testable avant finition artistique** : scène minimale d'abord.
-- Architecture client/serveur pensée dès le départ, sans devoir livrer immédiatement un serveur complet.
-- Éditeur et jeu réutilisent les mêmes données et règles ; les assets sont sélectionnés depuis un registre.
-- Les tests doivent distinguer : codé, testé automatiquement, testé visuellement, validé multijoueur et effectivement déployé.
-- Ne pas promettre 30 joueurs ou de bonnes performances avant un banc de test.
+Développer un **jeu solo exploratoire PC dans le navigateur**, disponible sur **GitHub Pages**, sans serveur au runtime. La première version inclut un écureuil volant, une vallée de **200 × 600 m**, un catalogue d'assets locaux et un éditeur de carte/interactions utilisable dans le navigateur.
 
-## Jalons
+**Le multijoueur et tout le backend sont reportés** : aucun jalon M0–M6 ne dépend de Colyseus, de PostgreSQL, de connexions ou de tests à 30 joueurs.
 
-### D0 — Documentation et décisions (ce commit)
+## Jalons successifs
 
-**Livrables :** README, spécifications gameplay, monde, éditeur, architecture, assets, feuille de route et registre de décisions.
+### D0 — Documentation
 
-**Critère :** documents liés, choix validés et hypothèses clairement distingués, aucune ressource présentée comme implémentée.
+**Livrables :** vision, gameplay, génération, éditeur, architecture, assets, objectifs, décision et guide GitHub Pages.
 
-### M0 — Squelette exécutable du projet
+**Critère :** tous les documents distinguent **solo actuel** et **multijoueur hypothétique futur**. Aucune fonction n'est annoncée comme implémentée.
 
-**Livrables :** pnpm workspaces, applications `game`, `editor`, `server` minimales, packages partagés, TypeScript strict, Vite, scripts CI et tests.
+### M0 — Squelette exécutable + GitHub Pages
+
+**Livrables :** monorepo TypeScript/pnpm ou structure équivalente simple ; Three.js, Vite ; application `game` et point d'entrée `editor` ; tests, lint, build ; workflow de déploiement.
 
 **Critères :**
-- Démarrage local reproductible depuis README, sans installation implicite.
-- Une scène Three.js vide s'affiche ; le serveur démarre ; l'éditeur démarre.
-- Types `InputCommand`, `MovementState`, `WorldManifest`, `AssetManifest`, `InteractionDefinition` documentés.
-- Tests / lint / build exécutables et vérifiés.
+- Jeu test 3D accessible sur l'URL prévue `https://glloq.github.io/little-world/`.
+- Build fonctionnant sous **`/little-world/`**, avec ressources JS/WASM/GLB chargées sans 404.
+- Éditeur statique accessible par une URL dédiée.
+- **Aucun serveur Node.js requis après publication**.
+- Instructions reproductibles de développement, build et dépannage.
+- CI de build et vérification du site après publication.
 
-### M1 — Déplacements de l'écureuil volant
+### M1 — Écureuil et déplacements
 
-**Livrables :** prototype visuel avec proxy d'écureuil, caméra, marche/course/saut, chute/planage, nage/plongée, collisions et volumes d'eau.
-
-**Critères :**
-- `Espace` déclenche un seul saut à l'appui ; deuxième appui après relâchement ouvre/replie membrane.
-- Le personnage peut rejoindre l'eau, nager, plonger, refaire surface et en sortir.
-- Les pentes et les bords de rivière ne provoquent pas de transitions répétées.
-- Les six comportements sont rejouables via inputs simulés.
-- Une scène de test permet de régler les vitesses sans changer le code.
-
-### M1b — Risque réseau précoce
-
-**Livrables :** serveur simple, deux clients, réplication de position/mode, premier banc de latence.
+**Livrables :** proxy/écureuil, caméra souris, simulation locale Rapier, marche, course, saut, chute, planage, nage et plongée.
 
 **Critères :**
-- Deux écureuils se voient dans la même scène et conservent les modes de locomotion.
-- Les inputs invalides ne peuvent pas fixer arbitrairement la position côté serveur.
-- Documentation des écarts de position et des corrections.
+- `Espace` sur front d'appui = saut ; relâchement et nouvel appui = ouvrir/replier membrane.
+- Transitions sol/air/eau stables ; aucun état bloquant.
+- Rivière/volume d'eau d'essai suffisamment profond pour plonger.
+- Mode debug pour trajectoire, vitesse, hauteur, état et FPS.
+- Tests de simulation indépendants du rendu ; validation visuelle dans **Pages**.
 
-**Remarque :** cette étape est volontairement anticipée avant la carte complète.
+### M2 — Première vallée procédurale
 
-### M2 — Générateur initial de vallée
-
-**Livrables :** graine déterministe, génération 200 × 600 m, cours d'eau, volume maritime, reliefs et points d'intérêt réservés.
-
-**Critères :**
-- Deux générations avec la même graine/version sont identiques.
-- Source → moulin → estuaire → mer connectés de façon cohérente.
-- Parcours continu au sol et passages de planage/nage intentionnels.
-- Une scène représentative contient pente, forêt, eau profonde et littoral.
-
-### M3 — Bibliothèque initiale d'assets
-
-**Livrables :** registre validé, import GLB, miniatures, liste de provenance/licences, modèle d'écureuil qualifié ou proxy documenté.
+**Livrables :** générateur déterministe de carte **200 × 600 m**, source, rivière, moulin pré-positionnable, relief, littoral et port de démonstration.
 
 **Critères :**
-- Chaque asset effectivement ajouté possède source/licence et validation technique.
-- Plusieurs arbres/roches/bâtiments et accessoires visibles par recherche dans un catalogue simple.
-- Le moulin dispose d'une roue séparée et animable.
-- Aucun asset non redistribuable n'est ajouté au dépôt public.
+- Même graine et paramètres → même résultat.
+- Continuité source → estuaire → mer.
+- Parcours à pied et opportunités de planage/nage/plongée.
+- Collision et maillage adaptés, **carte statique chargée en navigateur**.
+- Compilation de la carte en ressources téléchargeables via Pages.
 
-### M4 — Éditeur de carte minimal
+### M3 — Catalogue initial d'assets
 
-**Livrables :** sélection, sculpture de terrain, contrôle de rivière, placement/rotation d'assets, chemins, sauvegarde/chargement et mode test.
-
-**Critères :**
-- Générer → modifier → sauvegarder → recharger conserve toutes les retouches.
-- Changer la graine ne supprime jamais silencieusement les modifications.
-- Les assets placés sont référencés par identifiant stable.
-- Une carte peut être compilée/publée et chargée par le jeu.
-
-### M5 — Interactions déclaratives
-
-**Livrables :** composant `Interactable`, état, déclencheurs, animations, interface de configuration et validation serveur.
+**Livrables :** validation GLB, catalogue avec métadonnées et miniature, première collection nature/architecture/objets, écureuil original ou proxy assumé.
 
 **Critères :**
-- Interaction `E` sur la vanne du moulin : état partagé et roue animée localement.
-- Contrôle de portée et d'état côté serveur.
-- Les interactions inconnues ou invalides empêchent la publication.
-- L'éditeur peut créer cette interaction sans script spécifique au moulin.
+- Assets présents **physiquement** dans le dépôt, licence et provenance vérifiées.
+- Chargement correct depuis GitHub Pages et par le catalogue de l'éditeur.
+- Moulin avec roue animable, arbres instanciables, collisions simplifiées.
+- Tests automatiques de références et des chemins, pas de faux assets dans le registre.
 
-### M6 — Monde multijoueur jouable
+### M4 — Éditeur de carte statique
 
-**Livrables :** sessions, apparition et déconnexion, états des joueurs, synchronisation d'interactions, persistance minimale des états partagés.
-
-**Critères :**
-- Deux joueurs parcourent toute la carte ; pas de désynchronisation durable des états.
-- Tests progressifs à **2, 10 et 30** clients simulés ou réels, avec mesure latence/CPU/traffic.
-- Reconnexion et changement de version de carte gérés sans incohérence.
-- Déclaration explicite des limites constatées.
-
-### M7 — Finition, ambiance et publication
-
-**Livrables :** palette cohérente, LOD / instancing si nécessaires, éclairage, audio environnemental, port/moulin/village aboutis.
+**Livrables :** sélection et transformation, terrain, rivière, chemins, placement d'assets, undo/redo, test dans le navigateur.
 
 **Critères :**
-- Mesures de FPS et temps de chargement sur PC représentatifs.
-- Parcours exploration complet de la source à la mer sans bug bloquant.
-- Bundle de carte versionné, assets auditables, procédures de déploiement.
+- Modifier → sauvegarder **IndexedDB** → recharger → retrouver les modifications.
+- Export JSON → vider stockage local → import → même carte.
+- Génération et overrides séparés, pas de perte de corrections au re-generate.
+- Publier une carte test **manuellement dans le dépôt** puis la charger après build sur Pages.
+- Aucun besoin de backend, tokens ou compte pour utiliser l'éditeur local.
 
-## Ordre pratique recommandé
+### M5 — Interactions déclaratives locales
 
-`D0 → M0 → M1 → M1b → M2 → M3 → M4 → M5 → M6 → M7`.
+**Livrables :** composants d'interaction, déclencheurs, conditions, animations, inspecteur de configuration.
 
-**M2/M3 peuvent avancer parallèlement** : l'outillage d'import d'assets peut être préparé pendant que le générateur de vallée se stabilise. Les parties statiques du monde doivent être disponibles avant l'intégration définitive des interactions.
+**Critères :**
+- `E` devant vanne → changement d'état **local** → roue de moulin animée.
+- Possibilité de créer cette interaction depuis l'éditeur sans écrire de JavaScript spécifique.
+- Schéma validé à l'import et à la compilation ; aucune exécution de scripts arbitraires issus d'une carte.
+- Aucun WebSocket ni mécanisme d'état partagé.
 
-## Risques à surveiller
+### M6 — Finition et démonstration solo
 
-| Risque | Parade |
-| --- | --- |
-| Animations de planage non disponibles pour un écureuil existant | Proxy puis rig original |
-| Instabilité sol/eau/air | États testés, seuils d'entrée/sortie distincts, pas fixe |
-| Mauvais couplage Three.js / physique / serveur | Contrats et simulation indépendante du rendu |
-| Résultats génératifs peu crédibles | Contraintes géographiques et éditeur non destructif |
-| Baisse des FPS dans une vallée très végétalisée | Instancing, culling, budgets mesurés |
-| Éditeur trop ambitieux | Outils simples d'abord, graphe visuel après |
-| Licences d'assets incompatibles avec repo public | CC0 vérifié asset par asset, source et licence enregistrées |
-| Multijoueur 30 joueurs non atteint | Benchmarks progressifs, profiler avant d'optimiser |
+**Livrables :** atmosphère visuelle low-poly organique, végétation, moulin, village, port, panoramas, son léger, profilage et corrections.
+
+**Critères :**
+- Parcours complet de la source à la mer, avec tous les modes de locomotion.
+- Build GitHub Pages stable sur navigateurs PC ciblés.
+- Taille des assets et FPS **mesurés et documentés**, et corrections des points critiques.
+- Éditeur utilisable pour retoucher et exporter la carte.
+- Pas de requête obligatoire vers une API serveur ni de donnée secrète dans le build.
+
+## Ordre recommandé
+
+`D0 → M0 → M1 → M2 → M3 → M4 → M5 → M6`.
+
+M2 et M3 peuvent progresser partiellement en parallèle. Les décisions de design qui empêchent la jouabilité priment sur la finition de décor.
+
+## Après V1 (hors plan de livraison)
+
+**Évolution optionnelle** : concevoir un multijoueur 10–30 joueurs avec serveur autoritaire, synchronisation, persistance et comptes. Ce n'est **ni implémenté, ni planifié pour la V1**. Une étude séparée devra évaluer coûts, contraintes et modifications de l'architecture solo.
+
+Autres fonctionnalités différées : pêche jouable, PNJ, quêtes, météo complexe, agriculture, inventaire, personnalisation, mobile/manette.
 
 ## Définition de terminé
 
-Pour chaque jalon, enregistrer : commit/PR, instructions d'essai, tests exécutés, captures ou courte vidéo si visuel, résultats mesurés, problèmes connus et statut **implémenté / testé / validé**. Aucun pourcentage d'avancement ne doit être déduit du seul nombre de fichiers créés.
+Pour chaque jalon : commit/PR, tests automatisés, captures ou essai navigateur, statut **implémenté / testé / publié / validé**, limitations et métriques. **Un build réussi n'est pas une preuve de fonctionnement sur Pages.**
+
+## Risques dominants
+
+| Risque | Parade |
+| --- | --- |
+| 404 des ressources sous `/little-world/` | Tests du chemin base Vite et des URL dynamiques |
+| Une sauvegarde IndexedDB disparaît | Export JSON recommandé et testé |
+| Incohérence des transitions locomotion | Machine à états + tests à FPS variables |
+| Scène lourde pour navigateur PC | Instancing, culling, budgets mesurés |
+| Éditeur trop complexe | Outils simples puis raffinements |
+| Assets tiers non redistribuables | Vérification fichier par fichier avant commit |
+| Écureuil volant difficile à trouver sous licence | Proxy puis modélisation / rig original |
