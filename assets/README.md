@@ -1,6 +1,6 @@
 # Catalogue d'assets — Little World Solo
 
-**État : documentation uniquement. Aucun modèle 3D, animation ou audio n'a encore été intégré.**
+**État : premier lot intégré.** Trois modèles GLB originaux (sapin, rocher, caisse) se trouvent dans `public/models/` et sont embarqués dans le site statique. Les autres prefabs sont procéduraux, définis dans `src/world.ts`. Aucun asset tiers n'a encore été importé.
 
 Les fichiers 3D de la V1 seront **disponibles directement dans le dépôt public** et dans le site statique **GitHub Pages**, sans CDN ni serveur de jeu. Voir [pipeline d'assets](../docs/06-ASSET-PIPELINE.md).
 
@@ -22,6 +22,6 @@ Les fichiers 3D de la V1 seront **disponibles directement dans le dépôt public
 5. Prévisualisation et métadonnées disponibles.
 6. **Chemin d'accès compatible avec `/little-world/`** après Vite et publication Pages.
 
-Le futur `assets/registry.json` sera créé **au premier import réel**. Il ne contiendra pas d'entrées fictives.
+Le catalogue initial `assets/catalog.json` liste les modèles GLB présents et les prefabs procéduraux. Un registre plus complet pourra le remplacer lors de l'évolution du pipeline. Il ne contiendra pas d'entrées fictives.
 
 L'éditeur pourra insérer ces assets dans la carte locale, mais **les ajouts au catalogue public nécessiteront un commit et une nouvelle publication GitHub Pages**.
