@@ -263,6 +263,16 @@ La [spécification MINE 24](24-MINES-MULTILEVEL-LOW-RESOURCE.md) autorise un cre
 - Les données de mine et eau partagent un **index spatial** et des **invalidation locales** lors d'une modification autorisée ; aucune recompilation intégrale du monde 100 km².
 - Sous l'eau, les galeries accessibles doivent être validées pour caméra et collisions par volumes explicites, sans créer de physics fluides globales.
 
+## Irrigation des parcelles : consommation d'eau sans hydrodynamique par champ
+
+La [spécification AGRI 25](25-AGRICULTURE-PARCELS-LOW-RESOURCE.md) relie les parcelles au réseau d'eau **comme une ressource logique de gameplay**, pas une simulation d'écoulement à chaque plant.
+
+- Une parcelle/sous-zone `FarmPlotDefinitionV3` peut référencer un **point d'irrigation, puits, réservoir ou canal**, avec disponibilité, droits et stock/capacité **abstraits et contrôlés**.
+- L'action `Irrigate` valide quantité disponible/portée/propriétaire puis augmente **l'humidité agrégée** et consomme l'eau de façon transactionnelle (local solo, serveur futur).
+- **La météo historique** complète l'humidité des cultures : **pluie passée**, chaleur/évaporation, sécheresse/gels, pas seulement le shader d'eau ou les gouttes présentes à l'écran.
+- La croissance/le rendement ne dépendent **jamais** de `WaterLODManager` : eau visuellement immobile et océan sans vagues n'affectent pas les ressources logiques d'irrigation.
+- Les **parcelles en bord de rivière/lac/mer** doivent être validées contre zones inondées, berges et contraintes d'eau/pente, sans créer un solveur d'inondation agricole.
+
 ## 11. Phases, tests et gates
 
 | Phase | Livrable / validation |
