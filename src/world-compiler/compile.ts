@@ -1,4 +1,5 @@
 import {defaultEnvironment} from '../environment/climate.ts';
+import {LEGACY_GENERATOR} from '../terrain-generator.ts';
 import {createCompileContext,compileChunkData,dependencyIds,compiledChunkBounds} from './chunks.ts';
 import {preflightProject,ProjectCompilationError,type CompileOptions} from './validate.ts';
 import {COMPILER_VERSION,canonicalJSON,hashText,jsonFile,utf8Bytes,type CompileResult,type CompiledWorldManifest} from './manifests.ts';
@@ -11,7 +12,7 @@ export async function compileProject(input:unknown,options:CompileOptions={}):Pr
   if(!checked.project||checked.diagnostics.some(d=>d.severity==='ERROR'))throw new ProjectCompilationError(checked.diagnostics);
   const project=checked.project,context=await createCompileContext(project,checked.assets);
   const sourceHash=await hashText(canonicalJSON({compiler:COMPILER_VERSION,project:{...project,manifest:{...project.manifest,revision:0}},assets:checked.assets}));
-  const spatialWorld={bounds:project.world.bounds,seed:project.world.seed,generatorVersion:project.world.generatorVersion,density:project.world.density,seaLevel:project.world.seaLevel,chunkSizeM:project.world.chunkSizeM,coordinateSystem:project.world.coordinateSystem};
+  const spatialWorld={terrain:project.world.terrain??LEGACY_GENERATOR,bounds:project.world.bounds,seed:project.world.seed,generatorVersion:project.world.generatorVersion,density:project.world.density,seaLevel:project.world.seaLevel,chunkSizeM:project.world.chunkSizeM,coordinateSystem:project.world.coordinateSystem};
   const files:Record<string,string>={},chunks:CompiledWorldManifest['chunks']=[],rebuiltChunkIds:string[]=[];
   const previous=new Map((options.previous?.worldId===project.world.worldId?options.previous.chunks:[]).map(chunk=>[chunk.chunkId,chunk]));
   for(const metadata of Object.values(project.chunkIndex).sort((a,b)=>a.cz-b.cz||a.cx-b.cx)){
@@ -34,7 +35,7 @@ export async function compileProject(input:unknown,options:CompileOptions={}):Pr
   const logicHash=await hashText(logicText),logicURL=`logic.${logicHash.slice(0,16)}.json`;files[logicURL]=logicText;
   const manifest:CompiledWorldManifest={schemaVersion:1,kind:'compiled-world',compilerVersion:COMPILER_VERSION,
     ...(project.world.audio?{audio:project.world.audio}:{}),environment:project.world.environment??defaultEnvironment(project.world.seed),projectId:project.manifest.projectId,worldId:project.world.worldId,sourceHash,buildVersion:COMPILER_VERSION+'-'+sourceHash.slice(0,16),
-    bounds:project.world.bounds,seed:project.world.seed,generatorVersion:project.world.generatorVersion,seaLevel:project.world.seaLevel,chunkSizeM:project.world.chunkSizeM,
+    bounds:project.world.bounds,seed:project.world.seed,generatorVersion:project.world.generatorVersion,seaLevel:project.world.seaLevel,chunkSizeM:project.world.chunkSizeM,terrain:structuredClone(project.world.terrain??LEGACY_GENERATOR),density:project.world.density,
     coordinateSystem:'meters-y-up',chunks,entityIndex:Object.values(project.entityIndex).sort((a,b)=>a.id.localeCompare(b.id)).map(entity=>({id:entity.id,kind:entity.kind,ownerChunkId:entity.ownerChunkId,chunkUrl:chunkURLs.get(entity.ownerChunkId)!})),
     logic:{url:logicURL,hash:logicHash,byteLength:utf8Bytes(logicText)},assets:checked.assets,
     capabilities:{bakedMeshes:false,bakedLOD:false,navigation:'source-descriptors',collisions:'source-descriptors',sparseSourceChunks:true}};

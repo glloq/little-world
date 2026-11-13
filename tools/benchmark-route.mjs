@@ -25,7 +25,7 @@ const scenarios=[
   {name:'valley-start',kind:'v2-preview',width:200,length:600},
   {name:'terrain-2km',kind:'v2-preview',width:2000,length:2000},
   {name:'island-3x8',kind:'url',query:{world:'maps/island/manifest.json'}},
-  {name:'island-3x8-128',kind:'url',query:{world:'maps/island-128/manifest.json'}},
+  {name:'island-3x8-128',kind:'url',query:{world:'maps/island/manifest.json',tile:'128'}},
 ].filter(s=>!process.env.BENCHMARK_SCENARIOS||process.env.BENCHMARK_SCENARIOS.split(',').includes(s.name));
 
 const percentile=(sorted,p)=>sorted.length?sorted[Math.min(sorted.length-1,Math.floor(sorted.length*p))]:null;
@@ -34,27 +34,41 @@ function summarize(intervals){
   return {frames:intervals.length,meanMs:mean,p50Ms:percentile(sorted,.5),p95Ms:percentile(sorted,.95),p99Ms:percentile(sorted,.99),maxMs:sorted.at(-1)??null,
     over50Ms:intervals.filter(v=>v>50).length,over100Ms:intervals.filter(v=>v>100).length,fps:1000/mean};
 }
-async function holeFraction(page){
-  // Reference = background colour sampled in the top row while looking slightly upward.
+/** Ground truth from the analytic terrain: a pixel whose camera ray hits terrain (or the
+ * open sea of a generated island) should not show the background colour. Returns
+ * holes/expected on a 64×40 grid; null when the page exposes no camera (old builds). */
+async function holeFraction(page,baseHref){
   const shot=await page.screenshot({type:'png'});
-  return page.evaluate(async b64=>{
+  return page.evaluate(async({b64,baseHref})=>{
+    const m=window.littleWorldMetrics;if(!m?.camera)return null;
+    const terrain=await import(new URL('src/terrain.ts',baseHref).href),config=terrain.getTerrainConfig();
     const blob=await (await fetch('data:image/png;base64,'+b64)).blob(),bitmap=await createImageBitmap(blob);
     const canvas=new OffscreenCanvas(bitmap.width,bitmap.height),ctx=canvas.getContext('2d');ctx.drawImage(bitmap,0,0);
-    const {data,width,height}=ctx.getImageData(0,0,bitmap.width,bitmap.height);
-    const at=(x,y)=>{const i=(y*width+x)*4;return [data[i],data[i+1],data[i+2]];};
-    const ref=at(Math.floor(width/2),2);let holes=0,total=0;
-    for(let y=Math.floor(height*.62);y<height;y+=2)for(let x=0;x<width;x+=2){
-      const c=at(x,y);total++;if(Math.abs(c[0]-ref[0])<=3&&Math.abs(c[1]-ref[1])<=3&&Math.abs(c[2]-ref[2])<=3)holes++;
+    const {data,width,height}=ctx.getImageData(0,0,bitmap.width,bitmap.height),px=(x,y)=>{const i=(y*width+x)*4;return [data[i],data[i+1],data[i+2]];};
+    const ref=px(Math.floor(width/2),2),[cx,cy,cz]=m.camera.position,[qx,qy,qz,qw]=m.camera.quaternion,tanY=Math.tan(m.camera.fov*Math.PI/360),tanX=tanY*m.camera.aspect;
+    const rotate=(x,y,z)=>{const ix=qw*x+qy*z-qz*y,iy=qw*y+qz*x-qx*z,iz=qw*z+qx*y-qy*x,iw=-qx*x-qy*y-qz*z;return [ix*qw+iw*-qx+iy*-qz-iz*-qy,iy*qw+iw*-qy+iz*-qx-ix*-qz,iz*qw+iw*-qz+ix*-qy-iy*-qx];};
+    const inside=(x,z)=>Math.abs(x)<=config.width/2&&Math.abs(z)<=config.length/2;
+    let expected=0,holes=0;
+    for(let gy=0;gy<40;gy++)for(let gx=0;gx<64;gx++){
+      const sx=Math.floor((gx+.5)/64*width),sy=Math.floor((gy+.5)/40*height),ndcX=(sx+.5)/width*2-1,ndcY=1-(sy+.5)/height*2;
+      let [dx,dy,dz]=rotate(ndcX*tanX,ndcY*tanY,-1);const len=Math.hypot(dx,dy,dz);dx/=len;dy/=len;dz/=len;
+      let hit=false;
+      for(let t=1;t<14000;t+=Math.max(2,t*.015)){const x=cx+dx*t,y=cy+dy*t,z=cz+dz*t;
+        if(inside(x,z)&&y<=terrain.terrainHeight(x,z)){hit=true;break;}
+        if(!m.legacyTerrain&&y<=config.seaLevel){hit=true;break;}
+        if(y>1600&&dy>0)break;}
+      if(!hit)continue;expected++;
+      const c=px(sx,sy);if(Math.abs(c[0]-ref[0])<=3&&Math.abs(c[1]-ref[1])<=3&&Math.abs(c[2]-ref[2])<=3)holes++;
     }
-    return holes/total;
-  },shot.toString('base64'));
+    return expected?holes/expected:0;
+  },{b64:shot.toString('base64'),baseHref});
 }
 const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH??(existsSync('/usr/bin/chromium')?'/usr/bin/chromium':undefined),args:launchArgs});
 const run={recordedAt:new Date().toISOString(),base:base.href,revision:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),
   dirty:execFileSync('git',['status','--short'],{encoding:'utf8'}).trim().split('\n').filter(Boolean).length,browserVersion:browser.version(),viewport,quality:'medium',launchArgs,
   notes:['SwiftShader software rendering: regression signal only, not an integrated-GPU qualification.',
     'Intervals are presentation intervals observed by requestAnimationFrame; renderSubmitMs is JS submission time, not GPU time.',
-    'holeFraction = share of background-coloured pixels in the lower 38% of the frame (below the eye-level horizon) at the lowest camera pitch (8 headings).',
+    'holeFraction = background-coloured pixels among those whose camera ray hits the analytic terrain (or open sea of a generated island), 64×40 grid, lowest pitch, 8 headings; null when the build exposes no camera.',
     'Route timing is wall-clock; frame counts per phase vary with throughput.'],scenarios:[]};
 await mkdir(output,{recursive:true});
 try{
@@ -90,7 +104,7 @@ try{
     await phase('run');await page.keyboard.down('ShiftLeft');await page.keyboard.down('KeyW');await page.waitForTimeout(6000);await page.keyboard.up('KeyW');await page.keyboard.up('ShiftLeft');
     await phase('uturn');await drag(997,0,4,40);await page.keyboard.down('KeyW');await page.waitForTimeout(3000);await page.keyboard.up('KeyW');
     await phase('horizon');await drag(0,600,10,30);const holes=[];
-    for(let i=0;i<8;i++){await page.waitForTimeout(700);holes.push(await holeFraction(page));if(i===0)await page.screenshot({path:resolve(output,`${scenario.name}-horizon.png`)});await drag(249,0,4,30);}
+    for(let i=0;i<8;i++){await page.waitForTimeout(700);holes.push(await holeFraction(page,base.href));if(i===0)await page.screenshot({path:resolve(output,`${scenario.name}-horizon.png`)});await drag(249,0,4,30);}
     const sampled=await page.evaluate(()=>{const s=window.__routeSampler;s.stop=true;return {intervals:s.intervals,samples:s.samples};});
     const byPhase={};for(const name of ['idle','rotate360','run','uturn','horizon']){const idx=sampled.samples.map((s,i)=>s.phase===name?i:-1).filter(i=>i>=0);byPhase[name]=summarize(idx.map(i=>sampled.intervals[i]));}
     const mean=k=>sampled.samples.reduce((a,s)=>a+(k(s)??0),0)/Math.max(1,sampled.samples.length);
@@ -100,7 +114,7 @@ try{
       chunksActiveMax:max(s=>s.chunks?.active),chunksResidentMax:max(s=>s.chunks?.resident),chunksPendingMax:max(s=>s.chunks?.pending),chunksVisibleMean:mean(s=>s.chunks?.visible),
       terrainBytesMax:max(s=>s.chunks?.bytes),terrainBuildMsMax:max(s=>s.terrainWork?.lastMs),terrainBuiltTotal:sampled.samples.at(-1)?.chunks?.built??null,
       updateMsMean:mean(s=>s.timings?.updateMs),renderSubmitMsMean:mean(s=>s.timings?.renderSubmitMs),simulationMsMean:mean(s=>s.timings?.simulationMs),
-      horizon:sampled.samples.at(-1)?.horizon??null,holeFraction:{mean:holes.reduce((a,b)=>a+b,0)/holes.length,max:Math.max(...holes),samples:holes},
+      horizon:sampled.samples.at(-1)?.horizon??null,holeFraction:holes.some(h=>h===null)?null:{mean:holes.reduce((a,b)=>a+b,0)/holes.length,max:Math.max(...holes),samples:holes},
       heapMB:await page.evaluate(()=>performance.memory?performance.memory.usedJSHeapSize/1048576:null),errors};
     run.scenarios.push(result);
     console.log(JSON.stringify({name:scenario.name,p50:result.overall.p50Ms,p95:result.overall.p95Ms,p99:result.overall.p99Ms,over100:result.overall.over100Ms,calls:result.drawCallsMean,tris:result.trianglesMean,active:result.chunksActiveMax,resident:result.chunksResidentMax,holes:result.holeFraction,errors}));
