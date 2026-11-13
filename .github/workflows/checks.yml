@@ -20,6 +20,8 @@ jobs:
       - run: git diff --exit-code -- public/audio
       - run: npm run generate:beta
       - run: git diff --exit-code -- maps/beta.project.json public/maps/beta.json public/maps/beta.project.json
+      - run: npm run generate:island
+      - run: git diff --exit-code -- maps/island.project.json public/maps/island
       - run: npm run compile:map -- maps/default.json public/maps/default.json
       - run: git diff --exit-code -- public/maps
       - run: npm run build
@@ -51,6 +53,8 @@ jobs:
         run: node tools/run-browser-check.mjs water
       - name: Audio browser checks
         run: node tools/run-browser-check.mjs audio
+      - name: Island lot 1 browser checks
+        run: node tools/run-browser-check.mjs island
       - name: IndexedDB integration
         run: |
           npm run dev -- --host 127.0.0.1 --port 5189 --strictPort > /tmp/little-world-studio-dev.log 2>&1 &

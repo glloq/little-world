@@ -1,5 +1,22 @@
 import {node} from './dom.ts';
 import type {StudioSession} from './session.ts';
+import {createTerrainSource} from '../terrain.ts';
+import type {ProjectDocument} from '../studio-core/types.ts';
+/** Low-resolution hypsometric preview of the base relief + loaded edits (≤ 256 px on the long side).
+ * Pure sampling: it never configures the shared runtime terrain or loads 3D geometry. */
+export function topographyCanvas(p:ProjectDocument):HTMLCanvasElement{
+ const b=p.world.bounds,width=b.maxX-b.minX,length=b.maxZ-b.minZ,step=Math.max(width,length)/256,w=Math.max(2,Math.round(width/step)),h=Math.max(2,Math.round(length/step));
+ const edits=Object.values(p.chunks).flatMap(c=>c.terrainEdits).sort((a,c)=>a.order-c.order);
+ const height=createTerrainSource({seed:p.world.seed,density:p.world.density,width,length,seaLevel:p.world.seaLevel,...(p.world.terrain?{terrain:p.world.terrain}:{})},edits);
+ const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;const ctx=canvas.getContext('2d')!,image=ctx.createImageData(w,h),sea=p.world.seaLevel;
+ const sample=new Float32Array((w+1)*(h+1));for(let j=0;j<=h;j++)for(let i=0;i<=w;i++)sample[j*(w+1)+i]=height(-width/2+Math.min(width,(i+.5)*width/w),-length/2+Math.min(length,(j+.5)*length/h));
+ for(let j=0;j<h;j++)for(let i=0;i<w;i++){
+  const y=sample[j*(w+1)+i]-sea,shade=Math.max(.6,Math.min(1.25,1+(sample[j*(w+1)+i+1]-sample[(j+1)*(w+1)+i])/step*1.6));
+  const c=y<0?[110+Math.max(-60,y)*.6,170+Math.max(-60,y)*.6,190]:y<3?[222,206,160]:y<80?[150,182,128]:y<200?[164,176,134]:y<350?[168,162,146]:[150,140,132];
+  const k=(j*w+i)*4,f=y<0?1:shade;image.data[k]=c[0]*f;image.data[k+1]=c[1]*f;image.data[k+2]=c[2]*f;image.data[k+3]=255;
+ }
+ ctx.putImageData(image,0,0);return canvas;
+}
 export function mountMap(host:HTMLElement,session:StudioSession,onPick:(x:number,z:number)=>void){
  const wrap=node('div','','map-wrap'),canvas=node('canvas'),note=node('div','Glisser : déplacer · Molette : zoom · Clic : sélectionner / placer','map-note');wrap.append(canvas,note);host.replaceChildren(wrap);
  const ctx=canvas.getContext('2d')!,p=session.document,b=p.world.bounds;
@@ -7,9 +24,13 @@ export function mountMap(host:HTMLElement,session:StudioSession,onPick:(x:number
  const base=()=>Math.min(canvas.width/(b.maxX-b.minX+50),canvas.height/(b.maxZ-b.minZ+50))*scale;
  const point=(x:number,z:number)=>({x:canvas.width/2+(x-cx)*base(),y:canvas.height/2+(z-cz)*base()});
  const world=(x:number,y:number)=>({x:cx+(x-canvas.width/2)/base(),z:cz+(y-canvas.height/2)/base()});
+ let topo:HTMLCanvasElement|null=null,topoKey='';
  const draw=()=>{
   const r=wrap.getBoundingClientRect();canvas.width=Math.max(1,r.width);canvas.height=Math.max(1,r.height);ctx.fillStyle='#e9f0e5';ctx.fillRect(0,0,canvas.width,canvas.height);
-  const a=point(b.minX,b.minZ),c=point(b.maxX,b.maxZ);ctx.fillStyle='#d3dfbf';ctx.fillRect(a.x,a.y,c.x-a.x,c.y-a.y);
+  const a=point(b.minX,b.minZ),c=point(b.maxX,b.maxZ);
+  const key=JSON.stringify(p.world.terrain??null)+'|'+p.world.editSequence+'|'+Object.keys(p.chunks).length;
+  if(key!==topoKey){topoKey=key;try{topo=topographyCanvas(p);}catch{topo=null;}}
+  if(topo){ctx.imageSmoothingEnabled=true;ctx.drawImage(topo,a.x,a.y,c.x-a.x,c.y-a.y);}else{ctx.fillStyle='#d3dfbf';ctx.fillRect(a.x,a.y,c.x-a.x,c.y-a.y);}
   ctx.strokeStyle='#9ab294';ctx.lineWidth=.5;
   // Grid only for visible cells, bounded by zoom and viewport.
   const lo=world(0,0),hi=world(canvas.width,canvas.height),step=p.world.chunkSizeM;

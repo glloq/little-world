@@ -292,6 +292,8 @@ Le [contrat AGRI 25](25-AGRICULTURE-PARCELS-LOW-RESOURCE.md) applique les mêmes
 - `src/npc.ts` : classes de distance/simulation, représentation simplifiée.
 - `docs/10-PERFORMANCE-ROADMAP.md` : benchmarks logiciel SwiftShader non représentatifs d'une preuve de 30 FPS GPU intégré.
 
-**Manque identifié :** découplage horizon / distance d'activation du terrain local ; terrain « de très loin » avec maillages pauvres mais visibles, proxies de côtes/îles/monuments, baking d'imposteurs conditionné par la parallaxe, tests de panorama/crête, politique de rendu de ciel et transitions garanties sans brouillard.
+**Lot 1 (branche `claude/bold-tesla-b0pe7k`, voir [31](31-LOT1-ILE-RENDU-CONTINU.md)) :** HZ-0 (benchmark d'itinéraire reproductible avec mesure de trous) et **HZ-1 partiel** — horizon géométrique par blocs indépendant du détail, cellules couvertes retirées de l'index, océan d'île en anneau, `far` dérivé de l'emprise, sans brouillard ; début de HZ-2 (priorité caméra/frustum élargi/altitude/prédiction, couronne de demi-tour, hystérésis existante). Restent : horizon compilé et invalidé depuis Studio (HZ-5), erreur projetée par tuile plutôt que par distance, proxies de repères/forêts (HZ-3/4), qualification GPU (HZ-6).
+
+**Manque identifié (avant lot 1) :** découplage horizon / distance d'activation du terrain local ; terrain « de très loin » avec maillages pauvres mais visibles, proxies de côtes/îles/monuments, baking d'imposteurs conditionné par la parallaxe, tests de panorama/crête, politique de rendu de ciel et transitions garanties sans brouillard.
 
 **Politique produit :** vue large sans fog. **Politique technique :** réduire progressivement la complexité de la géométrie et des shaders, pas augmenter aveuglément les rayons de simulation. **Mesures :** chaque gain sera qualifié en comparaison équitable, pas sur une scène différente.
