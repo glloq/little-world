@@ -1,0 +1,275 @@
+{
+  "version": "lot1-v1",
+  "units": "m",
+  "up": "Y",
+  "textures": 0,
+  "status": "APPROVED",
+  "items": [
+    {
+      "id": "broadleaf_round",
+      "group": "trees",
+      "label": "Arbre feuillu rond",
+      "lods": {
+        "0": {
+          "path": "public/models/vegetation/trees/broadleaf_round/lod0.glb",
+          "triangles": 198,
+          "bytes": 5408,
+          "sha256": "7c503a69e1a6603d3077bf309790783f4abc1da2c5fcb6eebf70aa1117b2acb1"
+        },
+        "1": {
+          "path": "public/models/vegetation/trees/broadleaf_round/lod1.glb",
+          "triangles": 116,
+          "bytes": 3556,
+          "sha256": "860ddc47df2655e31844beb6d8292da00799d437a529f43c37a55b8047599318"
+        }
+      }
+    },
+    {
+      "id": "hazel_thin",
+      "group": "trees",
+      "label": "Noisetier fin",
+      "lods": {
+        "0": {
+          "path": "public/models/vegetation/trees/hazel_thin/lod0.glb",
+          "triangles": 236,
+          "bytes": 7580,
+          "sha256": "f9838d07c7577f0c97651116601cca876b22150b05147ad70606d60ba244661c"
+        },
+        "1": {
+          "path": "public/models/vegetation/trees/hazel_thin/lod1.glb",
+          "triangles": 124,
+          "bytes": 4444,
+          "sha256": "3ffc7a57d72664c8e8256140ce87553c3a6573ce4f3dd9a504037de570ae6212"
+        }
+      }
+    },
+    {
+      "id": "palm_thin",
+      "group": "trees",
+      "label": "Palmier fin",
+      "lods": {
+        "0": {
+          "path": "public/models/vegetation/trees/palm_thin/lod0.glb",
+          "triangles": 150,
+          "bytes": 4240,
+          "sha256": "030a0a26970d3eec95f64c0481f2be3e28a9dc9ed5acb63611d3369711408067"
+        },
+        "1": {
+          "path": "public/models/vegetation/trees/palm_thin/lod1.glb",
+          "triangles": 75,
+          "bytes": 2664,
+          "sha256": "872b370b74fb6f3a41e3bb837f25881014467f639294cf5690f123f2a7b4b9b1"
+        }
+      }
+    },
+    {
+      "id": "stump_simple",
+      "group": "deadwood",
+      "label": "Souche simple",
+      "lods": {
+        "0": {
+          "path": "public/models/vegetation/deadwood/stump_simple/lod0.glb",
+          "triangles": 142,
+          "bytes": 4276,
+          "sha256": "24eaad5a3b8eebe30cf709db9fce17b783d414861ef4f668e56b608c362c8372"
+        },
+        "1": {
+          "path": "public/models/vegetation/deadwood/stump_simple/lod1.glb",
+          "triangles": 64,
+          "bytes": 2440,
+          "sha256": "090b74b54a92f14d6a7dcff1e4ab94a316d63f2b99647f7def1fb11f9dccbd85"
+        }
+      }
+    },
+    {
+      "id": "bush_small",
+      "group": "shrubs",
+      "label": "Petit buisson",
+      "lods": {
+        "0": {
+          "path": "public/models/vegetation/shrubs/bush_small/lod0.glb",
+          "triangles": 144,
+          "bytes": 4248,
+          "sha256": "ee3f926d94cf3c37d2fdca24ee15c57246f2c920e54e029346b3a4292752a046"
+        },
+        "1": {
+          "path": "public/models/vegetation/shrubs/bush_small/lod1.glb",
+          "triangles": 60,
+          "bytes": 2280,
+          "sha256": "36bf0248d9e92d3213c831be5ac859e6f3889943878d67cf88e2cb0b41e5f329"
+        }
+      }
+    },
+    {
+      "id": "wildflowers_patch",
+      "group": "ground",
+      "label": "Fleurs sauvages",
+      "lods": {
+        "0": {
+          "path": "public/models/vegetation/ground/wildflowers_patch/lod0.glb",
+          "triangles": 164,
+          "bytes": 5600,
+          "sha256": "6fa4af8e00066239bef24c73718863f8a563ab4a66bcc2ef9e4dbe2d160c4e51"
+        },
+        "1": {
+          "path": "public/models/vegetation/ground/wildflowers_patch/lod1.glb",
+          "triangles": 106,
+          "bytes": 3928,
+          "sha256": "58d8d9f3fda3333335d47d5bfaa27de3d0619b7b1f4187e2f9c35128156429d1"
+        }
+      }
+    },
+    {
+      "id": "broadleaf_tall",
+      "group": "trees",
+      "label": "Arbre feuillu haut",
+      "lods": {
+        "0": {
+          "path": "public/models/vegetation/trees/broadleaf_tall/lod0.glb",
+          "triangles": 120,
+          "bytes": 3652,
+          "sha256": "e96fbc88d2467e7e85325d10b700b7e3917283bbc09e7519ecb9303d93cf5049"
+        },
+        "1": {
+          "path": "public/models/vegetation/trees/broadleaf_tall/lod1.glb",
+          "triangles": 76,
+          "bytes": 2708,
+          "sha256": "80b0a1e1901a233cebb98cbb265715414e0ad7b6ff3327d189cd7d523f437472"
+        }
+      }
+    },
+    {
+      "id": "leafless_tree",
+      "group": "trees",
+      "label": "Arbre sans feuilles",
+      "lods": {
+        "0": {
+          "path": "public/models/vegetation/trees/leafless_tree/lod0.glb",
+          "triangles": 122,
+          "bytes": 4228,
+          "sha256": "54bc13e9112a5cfbcdb9083922b60a77ce6ea36094ee41fda4e6daac0ea6a19d"
+        },
+        "1": {
+          "path": "public/models/vegetation/trees/leafless_tree/lod1.glb",
+          "triangles": 52,
+          "bytes": 2292,
+          "sha256": "86894829c89ef293a22989da4a5aec9b622efad0f64bffeaa920b46d3d133dde"
+        }
+      }
+    },
+    {
+      "id": "fruit_apple",
+      "group": "trees",
+      "label": "Pommier",
+      "lods": {
+        "0": {
+          "path": "public/models/vegetation/trees/fruit_apple/lod0.glb",
+          "triangles": 256,
+          "bytes": 6684,
+          "sha256": "c17e398a8ed82f7ce63805d79cc80412159e9803ae3d7804a3361a14cd845b8d"
+        },
+        "1": {
+          "path": "public/models/vegetation/trees/fruit_apple/lod1.glb",
+          "triangles": 116,
+          "bytes": 3560,
+          "sha256": "9025b4d9dc7a3a85ddaf26ed60663f90b910bc8d65cc5a8aaad84a677fc2614c"
+        }
+      }
+    },
+    {
+      "id": "log_fallen",
+      "group": "deadwood",
+      "label": "Tronc tombé",
+      "lods": {
+        "0": {
+          "path": "public/models/vegetation/deadwood/log_fallen/lod0.glb",
+          "triangles": 80,
+          "bytes": 2824,
+          "sha256": "3397536f51573c0e1cf87b7caf6ac668ada6a521ab075beaa12a8fa00e7854df"
+        },
+        "1": {
+          "path": "public/models/vegetation/deadwood/log_fallen/lod1.glb",
+          "triangles": 48,
+          "bytes": 2056,
+          "sha256": "2af759481d42ef746bb12588faed893138204077f03533a1d63c99a13dc460f6"
+        }
+      }
+    },
+    {
+      "id": "bush_asym",
+      "group": "shrubs",
+      "label": "Buisson asymétrique",
+      "lods": {
+        "0": {
+          "path": "public/models/vegetation/shrubs/bush_asym/lod0.glb",
+          "triangles": 110,
+          "bytes": 3536,
+          "sha256": "23ce61f9ba6f2909425d3d54a149e66ce8aaf647ed5ab068c2cdfeb68fdd141a"
+        },
+        "1": {
+          "path": "public/models/vegetation/shrubs/bush_asym/lod1.glb",
+          "triangles": 50,
+          "bytes": 2112,
+          "sha256": "f181b7ab2c8c3c2c183a94927e34dcc1f796ba5fdd018d88233384e3b53c7f6a"
+        }
+      }
+    },
+    {
+      "id": "fern_small",
+      "group": "ground",
+      "label": "Fougère simple",
+      "lods": {
+        "0": {
+          "path": "public/models/vegetation/ground/fern_small/lod0.glb",
+          "triangles": 190,
+          "bytes": 6292,
+          "sha256": "746c2bd0ad7ba8600781720bd1b5965c1784a9b946b1a1c176a5c5a5bf3176e5"
+        },
+        "1": {
+          "path": "public/models/vegetation/ground/fern_small/lod1.glb",
+          "triangles": 66,
+          "bytes": 2816,
+          "sha256": "3debf9a5dc4e376b94cc149084517181142edf4821ff68a5ae9cdce58d780962"
+        }
+      }
+    },
+    {
+      "id": "mushrooms_patch",
+      "group": "ground",
+      "label": "Champignons groupés",
+      "lods": {
+        "0": {
+          "path": "public/models/vegetation/ground/mushrooms_patch/lod0.glb",
+          "triangles": 96,
+          "bytes": 3064,
+          "sha256": "dc38081032b54c080dafa41c31145960fde5c43a1ec7771dad13f39492f9aaeb"
+        },
+        "1": {
+          "path": "public/models/vegetation/ground/mushrooms_patch/lod1.glb",
+          "triangles": 52,
+          "bytes": 2120,
+          "sha256": "bc33a03bba89ba0d5232135d0d5b15cc41325a82f1b650aae9e3317c5178d091"
+        }
+      }
+    },
+    {
+      "id": "moss_patch",
+      "group": "ground",
+      "label": "Mousse au sol",
+      "lods": {
+        "0": {
+          "path": "public/models/vegetation/ground/moss_patch/lod0.glb",
+          "triangles": 28,
+          "bytes": 1748,
+          "sha256": "eec63e9212fe07df3d7e9f66e1f0bc64fce6e1ddfee5415c31809dc2ed63b860"
+        },
+        "1": {
+          "path": "public/models/vegetation/ground/moss_patch/lod1.glb",
+          "triangles": 12,
+          "bytes": 1300,
+          "sha256": "8718035556e594879d10704070fc9e57367f869254b520bc6f04eb6eae4deca0"
+        }
+      }
+    }
+  ]
+}

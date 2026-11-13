@@ -1,0 +1,237 @@
+{
+  "version": "lot2-v1",
+  "units": "m",
+  "up": "Y",
+  "textures": 0,
+  "status": "APPROVED",
+  "items": [
+    {
+      "id": "fruit_pear",
+      "group": "trees",
+      "label": "Poirier",
+      "lods": {
+        "0": {
+          "path": "public/models/vegetation/trees/fruit_pear/lod0.glb",
+          "triangles": 256,
+          "bytes": 6680,
+          "sha256": "1dfdfc69814f1baa0201b2c67b7c33d5ac604f35239b4e4cbd2d73385ed4aba4"
+        },
+        "1": {
+          "path": "public/models/vegetation/trees/fruit_pear/lod1.glb",
+          "triangles": 116,
+          "bytes": 3560,
+          "sha256": "02c03b8fd28011a6958698155f3a6010ec05f64c91f28f221c7406df8babafcb"
+        }
+      }
+    },
+    {
+      "id": "fruit_plum",
+      "group": "trees",
+      "label": "Prunier",
+      "lods": {
+        "0": {
+          "path": "public/models/vegetation/trees/fruit_plum/lod0.glb",
+          "triangles": 256,
+          "bytes": 6684,
+          "sha256": "302f86de02c47f56ed3ff56f9d84165a902da18e36db9bbcebd64257dd084e40"
+        },
+        "1": {
+          "path": "public/models/vegetation/trees/fruit_plum/lod1.glb",
+          "triangles": 116,
+          "bytes": 3560,
+          "sha256": "426c36583c2e2a065b352921f1bc395ded7b688cfb3b0c4e8b6b713c01ec0a00"
+        }
+      }
+    },
+    {
+      "id": "fruit_cherry",
+      "group": "trees",
+      "label": "Cerisier",
+      "lods": {
+        "0": {
+          "path": "public/models/vegetation/trees/fruit_cherry/lod0.glb",
+          "triangles": 276,
+          "bytes": 7244,
+          "sha256": "57c45f2ff49ddf3bf1fed9e2468108b5a29b8b8e0fbb3a94d5c2c2d8d440f380"
+        },
+        "1": {
+          "path": "public/models/vegetation/trees/fruit_cherry/lod1.glb",
+          "triangles": 116,
+          "bytes": 3556,
+          "sha256": "863087c91aa4ed33a75b34ec8e415ea8af92cd6cd26443db68cc898ce96274e0"
+        }
+      }
+    },
+    {
+      "id": "palm_curved",
+      "group": "trees",
+      "label": "Palmier courbé",
+      "lods": {
+        "0": {
+          "path": "public/models/vegetation/trees/palm_curved/lod0.glb",
+          "triangles": 174,
+          "bytes": 4752,
+          "sha256": "f405de04d797178a30f51e093579f341b155e2852250d853293b9614ceaf7dc9"
+        },
+        "1": {
+          "path": "public/models/vegetation/trees/palm_curved/lod1.glb",
+          "triangles": 68,
+          "bytes": 2516,
+          "sha256": "efc29374e672f0af4e86902033941fd1087fbc4e2154b21a43d5cd17d64ccbdb"
+        }
+      }
+    },
+    {
+      "id": "dead_tree_twisted",
+      "group": "trees",
+      "label": "Arbre mort tordu",
+      "lods": {
+        "0": {
+          "path": "public/models/vegetation/trees/dead_tree_twisted/lod0.glb",
+          "triangles": 148,
+          "bytes": 4988,
+          "sha256": "1638478ac669932bf7946116b1a7e060722c3a7c6a62e478ec63f8e43c084009"
+        },
+        "1": {
+          "path": "public/models/vegetation/trees/dead_tree_twisted/lod1.glb",
+          "triangles": 72,
+          "bytes": 2884,
+          "sha256": "b4b639393b0b5494ed8bf368ce7370402cc1587fac22c8ebc6a5d8e7bc02c033"
+        }
+      }
+    },
+    {
+      "id": "shrub_flowering",
+      "group": "shrubs",
+      "label": "Arbuste fleuri",
+      "lods": {
+        "0": {
+          "path": "public/models/vegetation/shrubs/shrub_flowering/lod0.glb",
+          "triangles": 98,
+          "bytes": 3440,
+          "sha256": "a87693ae070dac5660ee2820139154766f1c2f62f06faa2f96371402910d7c6d"
+        },
+        "1": {
+          "path": "public/models/vegetation/shrubs/shrub_flowering/lod1.glb",
+          "triangles": 70,
+          "bytes": 2720,
+          "sha256": "586a75c72c788de0f7eb1cc2d329ec71501635558d7fa88f5b196718acf2b788"
+        }
+      }
+    },
+    {
+      "id": "reeds_patch",
+      "group": "ground",
+      "label": "Roseaux",
+      "lods": {
+        "0": {
+          "path": "public/models/vegetation/ground/reeds_patch/lod0.glb",
+          "triangles": 164,
+          "bytes": 5052,
+          "sha256": "ca530f27bb20ec09f4bce63bda14a700de948a74957c4762d3531712e844b11f"
+        },
+        "1": {
+          "path": "public/models/vegetation/ground/reeds_patch/lod1.glb",
+          "triangles": 72,
+          "bytes": 2724,
+          "sha256": "99fb4f3c2283494b2a62d80ad2f2aaadf58a7449d8373211378c5979e384dac8"
+        }
+      }
+    },
+    {
+      "id": "flowers_tall",
+      "group": "ground",
+      "label": "Fleurs hautes",
+      "lods": {
+        "0": {
+          "path": "public/models/vegetation/ground/flowers_tall/lod0.glb",
+          "triangles": 144,
+          "bytes": 4700,
+          "sha256": "ec7f22a5254e07798fa9f83d9b285788f6aaf779075f25150b717a9227e5cdfe"
+        },
+        "1": {
+          "path": "public/models/vegetation/ground/flowers_tall/lod1.glb",
+          "triangles": 80,
+          "bytes": 2996,
+          "sha256": "0a47cb46bdb91741021300f70c8173e90a31f8c585060cacd9502f01f87fc20a"
+        }
+      }
+    },
+    {
+      "id": "mushroom_tall",
+      "group": "ground",
+      "label": "Champignon haut",
+      "lods": {
+        "0": {
+          "path": "public/models/vegetation/ground/mushroom_tall/lod0.glb",
+          "triangles": 62,
+          "bytes": 2304,
+          "sha256": "2991ff545af39cebbec62a52c7eaade9170ff4415c89ee0c175b0339efd561c1"
+        },
+        "1": {
+          "path": "public/models/vegetation/ground/mushroom_tall/lod1.glb",
+          "triangles": 26,
+          "bytes": 1552,
+          "sha256": "3e53fd954033213abec5981a4cb410b35118a57d08c4f75ee3921344963812bc"
+        }
+      }
+    },
+    {
+      "id": "stump_mossy",
+      "group": "deadwood",
+      "label": "Souche moussue",
+      "lods": {
+        "0": {
+          "path": "public/models/vegetation/deadwood/stump_mossy/lod0.glb",
+          "triangles": 172,
+          "bytes": 4764,
+          "sha256": "2fc8fd85edded2cb1607ea2674ee141ebbfea7a1654ae2a6e55d9f97875f3ec5"
+        },
+        "1": {
+          "path": "public/models/vegetation/deadwood/stump_mossy/lod1.glb",
+          "triangles": 80,
+          "bytes": 2696,
+          "sha256": "b9c632627bb4389fafcec2be8f13959a47b9cf18c5b92d4d14660e1ad51d9cdd"
+        }
+      }
+    },
+    {
+      "id": "sapling_thin",
+      "group": "trees",
+      "label": "Jeune arbre fin",
+      "lods": {
+        "0": {
+          "path": "public/models/vegetation/trees/sapling_thin/lod0.glb",
+          "triangles": 52,
+          "bytes": 2296,
+          "sha256": "8dd86c19861482c215edc1f673c80c7f1d3fb96c53da5cbbc102cd857bce80ba"
+        },
+        "1": {
+          "path": "public/models/vegetation/trees/sapling_thin/lod1.glb",
+          "triangles": 32,
+          "bytes": 1768,
+          "sha256": "4cbfb7105c004906e82acdf350736dbdaffc74681de8d6e69052eae0a47b558f"
+        }
+      }
+    },
+    {
+      "id": "broadleaf_plant",
+      "group": "ground",
+      "label": "Plante à larges feuilles",
+      "lods": {
+        "0": {
+          "path": "public/models/vegetation/ground/broadleaf_plant/lod0.glb",
+          "triangles": 72,
+          "bytes": 2972,
+          "sha256": "68b2b690955cb6656a3bcc2d0231251b90562b5a818b032d5d3ea9e08f4009ec"
+        },
+        "1": {
+          "path": "public/models/vegetation/ground/broadleaf_plant/lod1.glb",
+          "triangles": 36,
+          "bytes": 1972,
+          "sha256": "e7e1f3afef729c70e78d92788ec37ddc1cf1c02b7d92af9252a2a2e1012f4cc4"
+        }
+      }
+    }
+  ]
+}
