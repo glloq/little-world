@@ -30,7 +30,7 @@ profile?: { mode: 'terrain'; offset: number }
         | { mode: 'manual'; levels: number[] }
 ```
 
-Sans `profile`, `level` conserve exactement son sens historique. Les valeurs auteur sont validées en V2/V3 et conservées dans les archives. Le réseau `WaterNetworkDefinitionV3` complet du document 21 reste la cible : cette extension est une étape compatible dans la bibliothèque d’eau existante, pas une implémentation de toute sa topologie.
+Sans `profile`, `level` conserve exactement son sens historique. Les valeurs auteur sont validées en V2/V3 et conservées dans les archives. Les points d’eau peuvent atteindre les limites de la carte : ils n’héritent plus des marges réservées au déplacement du joueur dans le lecteur V2. Le réseau `WaterNetworkDefinitionV3` complet du document 21 reste la cible : cette extension est une étape compatible dans la bibliothèque d’eau existante, pas une implémentation de toute sa topologie.
 
 Le profil automatique dépend du relief sur **l’ensemble du tracé**. La vue locale hydrate les sources de son corridor et leurs propriétaires canoniques ; l’adaptateur inclut ces retouches même si elles sont en amont de la vue. La compilation `little-world-descriptors-4` prend ces dépendances en compte : une retouche amont invalide les secteurs de la rivière concernée, sans invalider les secteurs indépendants. La conversion d’un ancien tracé nettoie aussi ses anciennes références réparties par bounding circle ; la suppression nettoie en plus les secteurs conservateurs situés au-delà des extrémités du corridor.
 

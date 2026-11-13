@@ -204,18 +204,18 @@ export function parseWorld(value: unknown): WorldDefinition {
     )
   )
     throw Error('Biotopes invalides');
-  const line = (p: Record<string, unknown>) =>
+  const line = (p: Record<string, unknown>, within=point) =>
     id(p.id) &&
     num(p.width, 1, 40) &&
     Array.isArray(p.points) &&
     p.points.length >= 2 &&
     p.points.length <= 100 &&
-    p.points.every((x) => record(x) && point(x));
+    p.points.every((x) => record(x) && within(x));
   if (
     !list(
       value.water,
       100,
-      (p) => line(p) && num(p.level, -20, 100) && num(p.depth, 0.5, 20),
+      (p) => line(p,v=>num(v.x,-config.width/2,config.width/2)&&num(v.z,-config.length/2,config.length/2)) && num(p.level, -20, 100) && num(p.depth, 0.5, 20),
     )
   )
     throw Error('Volumes d’eau invalides');

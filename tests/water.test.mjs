@@ -53,6 +53,8 @@ test('V2 constant levels are preserved while profiled rivers round-trip through 
  const p=migrateWorldToV3(parseWorld(world)).project,restored=readProjectArchive(writeProjectArchive(p));
  assert.deepEqual(restored.libraries.water.stream,a);assert.equal(restored.libraries.water.flat.profile,undefined);
  assert.deepEqual(toRuntimeWorld(restored).water,world.water);
+ const edge=defaultWorld();edge.water=[{...body(),points:[{x:-99,z:-299},{x:-99,z:-200}]}];
+ const migrated=migrateWorldToV3(parseWorld(edge)).project;assert.deepEqual(parseWorld(toRuntimeWorld(migrated)).water,edge.water);
 });
 test('water updates and removal keep all migrated sector references valid',()=>{
  const world=defaultWorld();world.water=[body()];const p=migrateWorldToV3(world).project;
