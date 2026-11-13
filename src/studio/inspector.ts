@@ -1,3 +1,4 @@
+import {audioSoundIds} from '../audio/migrate.ts';
 import * as THREE from 'three';
 import {node,button,field,input,numberInput,select} from './dom.ts';
 import type {StudioSession} from './session.ts';
@@ -78,7 +79,7 @@ async function buildInspector(host:HTMLElement,ctx:InspectorContext){
   else if(!resolved.components.Character){
     // One-click template: the object becomes a collectable resource (item + interaction + state).
     let resource=source.name;const quick=node('div','','row');
-    quick.append(field('Ressource ramassée',input(resource,v=>resource=v)),button('Rendre collectable',()=>void editQueue.run(async()=>{const request={entityId:id,kind:'collect' as const,prompt:'Ramasser '+resource.trim().toLowerCase(),quantity:1,resourceName:resource,soundId:p.world.audio?.sounds.collect?'collect':undefined};
+    quick.append(field('Ressource ramassée',input(resource,v=>resource=v)),button('Rendre collectable',()=>void editQueue.run(async()=>{const request={entityId:id,kind:'collect' as const,prompt:'Ramasser '+resource.trim().toLowerCase(),quantity:1,resourceName:resource,soundId:audioSoundIds(p.world.audio).includes('collect')?'collect':audioSoundIds(p.world.audio).includes('interaction.collect')?'interaction.collect':undefined};
       await s.change('Rendre collectable '+source.name,interactionChunkIds(p,request),d=>{applyInteraction(d,request);});ctx.status('Objet collectable : « Jouer ici » puis E pour le ramasser.');ctx.refresh();}).catch(e=>ctx.status(String(e instanceof Error?e.message:e),true)),'primary-button'));
     logic.append(quick);
   }

@@ -85,3 +85,4 @@ label:has(> input[type=checkbox]){flex-direction:row;align-items:center;justify-
 .mine-plan{image-rendering:pixelated;border:1px solid var(--line,#d7dccf);max-width:100%;width:240px}
 .farm-stage{display:inline-block;padding:1px 6px;margin:0 3px;border-radius:6px;color:#fff;font-size:.8em}
 .water-falls{display:grid;gap:6px}
+.chip.warn{background:#fbf0e3;border-color:#e2c39f;color:#8a5a2b}.chip.pending{background:#eef3fb;border-color:#bfcde3;color:#3f5b80}

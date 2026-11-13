@@ -1,6 +1,7 @@
 /** Declarative interaction templates applied to an authoring entity (collect, deliver, door,
  * lever). One shared implementation for the Interactions panel and the inspector; runs inside
  * one StudioSession.change (one undoable transaction). No arbitrary code is produced. */
+import {audioSoundIds} from '../audio/migrate.ts';
 import {resolveEntity} from './references.ts';
 import {putEntity} from './source.ts';
 import {makeCollect,makeDeliver,makeDoor,makeLever} from '../gameplay/templates.ts';
@@ -39,7 +40,7 @@ export function applyInteraction(d:ProjectDocument,r:InteractionRequest):string{
     const objectiveId='objective:delivery:'+r.entityId;d.libraries.objectives={...d.libraries.objectives,[objectiveId]:{id:objectiveId,name:'Livrer '+r.quantity+' '+d.libraries.items[r.itemId!].name,initialStatus:'active',persistent:true}};interaction=makeDeliver(id,r.entityId,r.itemId!,objectiveId,r.quantity);
   }else if(r.kind==='door'){entity.components.Collider??={type:'Collider',shape:'box',size:{x:2,y:2,z:2},layer:'solid'};state(entity,{open:false});interaction=makeDoor(id,r.entityId);}
   else{const target=d.entityIndex[r.targetId!],destination=structuredClone(d.chunks[target.ownerChunkId].entities[r.targetId!]);destination.components.Collider??={type:'Collider',shape:'box',size:{x:2,y:2,z:2},layer:'solid'};state(destination,{open:false});putEntity(d,destination);state(entity,{active:false});interaction=makeLever(id,r.entityId,r.targetId!);}
-  if(r.soundId&&d.world.audio?.sounds[r.soundId])interaction.sequence.push({type:'playSound',soundId:r.soundId});
+  if(r.soundId&&audioSoundIds(d.world.audio).includes(r.soundId))interaction.sequence.push({type:'playSound',soundId:r.soundId});
   d.libraries.interactions={...d.libraries.interactions,[id]:interaction};putEntity(d,entity);
   // Validate complete logical references using the lightweight index, including unloaded sources.
   gameplayDataFromProject(d);

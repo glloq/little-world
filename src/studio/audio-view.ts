@@ -1,17 +1,30 @@
 import {node,field,input,numberInput,select,button} from './dom.ts';
 import {parseAudioDefinition,encodeBase64,PATCHES,type AudioDefinition,type PatchId} from '../audio/schema.ts';
+import {migrateAudioV1toV2,mergeAudioCatalogs} from '../audio/migrate.ts';
+import {parseAudioDefinitionV2} from '../audio/catalog.ts';
 import {parseMidi} from '../audio/midi.ts';
 import {inspectWav} from '../audio/wav.ts';
 import {AudioEngine} from '../audio/engine.ts';
 import type {StudioSession} from './session.ts';
 const empty=():AudioDefinition=>({schemaVersion:1,patchIds:['flute','pluck','harp','bell','soft-drum'],assets:{},scores:{},sounds:{},music:{},ambience:{},emitters:[]});
+/** V1 projects keep the V1 panel until the author migrates (one undoable transaction); V2 uses the catalogue manager. */
 export function mountAudio(host:HTMLElement,s:StudioSession,isActive:()=>boolean){
+ let version=s.document.world.audio?.schemaVersion??0,current:{dispose():void}|null=null,disposed=false;
+ const mount=()=>{current?.dispose();current=null;if(disposed)return;if(version===2)void import('./audio-catalog-view.ts').then(m=>{if(disposed||version!==2)return;current=m.mountAudioCatalog(host,s,isActive);});else current=mountAudioV1(host,s,isActive);};
+ const unbind=s.commands.subscribe(()=>{const next=s.document.world.audio?.schemaVersion??0;if((next===2)!==(version===2)){version=next;mount();}});mount();
+ return {dispose(){disposed=true;unbind();current?.dispose();}};
+}
+function mountAudioV1(host:HTMLElement,s:StudioSession,isActive:()=>boolean){
  let preview:AudioEngine|null=null,pending:{name:string;bytes:Uint8Array;kind:'midi'|'sample'}|null=null,license='',origin='',disposed=false;const feedback=node('p','','muted');
  const stop=()=>{if(preview)void preview.dispose();preview=null;};
- const engine=()=>preview??(preview=new AudioEngine(s.document.world.audio??empty()));
- const apply=async(label:string,edit:(d:AudioDefinition)=>void)=>{const next=structuredClone(s.document.world.audio??empty());edit(next);const validated=parseAudioDefinition(next);await s.change(label,[],d=>{d.world.audio=validated;});};
- function render(){if(disposed||!isActive())return;const data=s.document.world.audio??empty(),panel=node('section','','section-card');panel.append(node('div','AUDIO · MIDI ET ÉCHANTILLONS','kicker'),node('h2','L’ambiance de votre monde'),node('p','Cinq timbres partagés, musique, bruitages courts et quelques sources proches. Les fichiers et leurs licences sont inclus dans l’archive du projet.','muted'));
+ const v1=()=>s.document.world.audio?.schemaVersion===1?s.document.world.audio:undefined;
+ const engine=()=>preview??(preview=new AudioEngine(v1()??empty(),undefined,{baseUrl:import.meta.env.BASE_URL}));
+ const apply=async(label:string,edit:(d:AudioDefinition)=>void)=>{const next=structuredClone(v1()??empty());edit(next);const validated=parseAudioDefinition(next);await s.change(label,[],d=>{d.world.audio=validated;});};
+ function render(){if(disposed||!isActive()||s.document.world.audio?.schemaVersion===2)return;const data=v1()??empty(),panel=node('section','','section-card');panel.append(node('div','AUDIO · MIDI ET ÉCHANTILLONS','kicker'),node('h2','L’ambiance de votre monde'),node('p','Cinq timbres partagés, musique, bruitages courts et quelques sources proches. Les fichiers et leurs licences sont inclus dans l’archive du projet.','muted'));
   panel.append(button('Installer l’ambiance Little World',async()=>{try{const response=await fetch(import.meta.env.BASE_URL+'audio/default.json');if(!response.ok)throw Error('Ambiance indisponible');const next=parseAudioDefinition(await response.json());await s.change('Installer l’audio',[],d=>{d.world.audio=next;});feedback.textContent='Ambiance installée : deux partitions, cinq timbres et six bruitages CC0.';}catch(e){feedback.textContent=String(e);}},'primary-button'),button('Arrêter l’écoute',stop));
+  // AUD-V2: explicit, undoable upgrade. The V1 data is converted (same ids, gains, scores, emitters), never dropped.
+  panel.append(node('h3','Catalogue audio V2'),node('p','Événements sémantiques, variantes selon le contexte (surface, matière, météo…), profils de musique et d’ambiance. La conversion conserve vos sons, partitions, émetteurs et liens d’interaction ; elle est annulable.','muted'),
+   button(s.document.world.audio?'Passer au catalogue V2':'Installer le catalogue Little World V2',async()=>{try{const response=await fetch(import.meta.env.BASE_URL+'audio/catalog.json');if(!response.ok)throw Error('Catalogue V2 indisponible');const builtin=parseAudioDefinitionV2(await response.json()),current=v1();const next=current?mergeAudioCatalogs(migrateAudioV1toV2(current),builtin):builtin;await s.change(current?'Passer au catalogue audio V2':'Installer le catalogue audio V2',[],d=>{d.world.audio=next;});}catch(e){feedback.textContent=String(e);}},'primary-button'));
   const patches=node('div','','row');for(const id of data.patchIds)patches.append(button('Écouter '+PATCHES[id].name,async()=>{try{const e=engine();await e.unlock();e.audition(id);}catch(error){feedback.textContent=String(error);}}));panel.append(node('h3','Palette de timbres'),patches);
   const choices=[['','Silence'],...Object.values(data.scores).map(score=>[score.id,score.id] as const)] as const;
   for(const [key,title]of [['day','Musique de jour'],['night','Musique de nuit']] as const){

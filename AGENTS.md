@@ -153,6 +153,7 @@ Lire **[23 — Audio MIDI, synthèse légère et échantillons](docs/23-MIDI-AUD
 - Autoplay navigateur : premier clic « Jouer » pour unlock/reprise ; mute et **mode silencieux sans erreur** si contexte audio bloqué, fermeture/onglet masqué robustes.
 - Le Studio importe `.mid` et quelques samples/loops avec **licence, taille/PCM décodé, mappings de patches**, place des émetteurs, définit ambiances par biome ; ZIP V3 contient les **sources** audio, non les buffers décodés ou états de voix.
 - Cibles de ressources/profils **provisoires**, aucune CPU ou compatibilité audio annoncée sans tests Firefox/Chromium. **AUD-0…AUD-8 spécifiés, non livrés**.
+- **Catalogue V2** : lire [37 — Audio V2](docs/37-AUDIO-V2-CATALOGUE.md). Événements sémantiques + contexte, jamais de chemin de fichier dans le gameplay ; catalogue généré depuis `src/audio/catalog-source.ts` (`npm run generate:audio`, ne pas éditer `public/audio/catalog.json` à la main) ; ressources absentes = `PLANNED` sans `uri` ; manifeste de production `assets/audio/production-manifest.json`.
 
 ## Mines creusables LOW-RESOURCE — galeries 2,5D multi-niveaux (validé)
 

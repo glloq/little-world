@@ -1,4 +1,4 @@
-import type {AudioDefinition} from '../audio/schema.ts';
+import type {AnyAudioDefinition} from '../audio/migrate.ts';
 import type {EnvironmentDefinition} from '../environment/climate.ts';
 /** Runtime output contracts are deliberately separate from Studio source schemas.
  * This compiler emits validated data descriptors, not baked GPU meshes/navmeshes.
@@ -26,7 +26,7 @@ export interface CompiledAssetDescriptor {
   license:string;
 }
 export interface CompiledWorldManifest {
-  audio?:AudioDefinition;
+  audio?:AnyAudioDefinition;
   environment?:EnvironmentDefinition;
   schemaVersion:1;
   kind:'compiled-world';
