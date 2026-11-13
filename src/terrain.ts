@@ -1,4 +1,4 @@
-import {WaterSpatialIndex} from './water/profile.ts';
+import {WaterSpatialIndex,polygonSignedDistance} from './water/profile.ts';
 import {ribbonDistance} from './geography/lines.ts';
 import {pathRibbon} from './paths/path-geometry.ts';
 import {LEGACY_GENERATOR,generatorField,type TerrainGeneratorDefinition} from './terrain-generator.ts';
@@ -43,7 +43,7 @@ export function configureTerrain(
   const g=config.generator;
   field=g.kind==='legacy-valley'?null:generatorField(g,{seed:c.seed,seaLevel:config.seaLevel,width:config.width,length:config.length},()=>0);
   sourceHeight=createTerrainSource(c,edits,field);
-  waterIndex=new WaterSpatialIndex(water,sourceHeight);
+  waterIndex=new WaterSpatialIndex(water,sourceHeight,config.seaLevel);
   pathRibbons = ribbonDistance(roads.map(pathRibbon));
   // Revision of the terrain inputs: geography workers replay them, results computed with an
   // older revision are discarded. Unchanged inputs keep the revision (no needless rebuild).
@@ -134,15 +134,25 @@ export function compiledWaterBodies(){return waterIndex.bodies;}
 /** Distance to the nearest water body edge, exact below `within`. */
 let waterRibbons:{source:readonly unknown[];distance:ReturnType<typeof ribbonDistance>}={source:[],distance:()=>Infinity};
 export function waterEdgeDistance(x:number,z:number,within:number):number{
-  const bodies=waterIndex.bodies;if(waterRibbons.source!==bodies)waterRibbons={source:bodies,distance:ribbonDistance(bodies)};
-  return waterRibbons.distance(x,z,within);
+  const bodies=waterIndex.bodies;if(waterRibbons.source!==bodies)waterRibbons={source:bodies,distance:ribbonDistance(bodies.filter(b=>b.kind!=='lake'))};
+  let d=waterRibbons.distance(x,z,within);
+  // Lakes: 0 inside, distance to the shore outside.
+  for(const hit of waterIndex.query(x,z,within))if(hit.water.kind==='lake')d=Math.min(d,hit.distance);
+  return d;
 }
 export function terrainHeight(x:number,z:number):number {return carveWaterBeds(sourceHeight,waterIndex,x,z);}
 /** Relief with river/lake beds carved under their surface (shared by the runtime terrain and
  * authoring previews such as the Studio 2D map, so both see the same water and banks). */
 export function carveWaterBeds(source:(x:number,z:number)=>number,index:WaterSpatialIndex,x:number,z:number):number {
  let h=source(x,z);
- for(const {water,distance,level} of index.query(x,z,2)){
+ for(const {water,distance,level} of index.query(x,z,3)){
+  if(water.kind==='lake'){
+   // Basin: deepens away from the shore; a 3 m bank outside meets the relief.
+   const inward=polygonSignedDistance(water.polygon!,x,z);
+   const bed=inward>=0?level-.08-water.depth*smoothstep(0,Math.max(3,water.depth*2.5),inward):lerp(level-.08,h,smoothstep(0,3,-inward));
+   h=Math.min(h,bed);continue;
+  }
+  if(distance>water.width*.5+2)continue;
   const core=water.width*.25,edge=water.width*.5+2;
   // Extend a shallow bank beyond the surface so coarse terrain cannot cover the ribbon.
   const half=water.width*.5;

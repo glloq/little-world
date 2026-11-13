@@ -1,5 +1,5 @@
 import {createTerrainSource} from '../terrain.ts';
-import {compileWaterBody} from '../water/profile.ts';
+import {compileWaterNetwork} from '../water/profile.ts';
 import {parseProject} from '../studio-core/schema.ts';
 import {ReferenceIndex} from '../studio-core/references.ts';
 import {validateGameplayLibraries} from '../gameplay/schema.ts';
@@ -36,7 +36,8 @@ export async function preflightProject(input:unknown,options:CompileOptions={}):
    // Same relief as the runtime: dimensions and generator of the world (not the legacy valley).
    const b=project.world.bounds;
    const source=createTerrainSource({seed:project.world.seed,density:project.world.density,seaLevel:project.world.seaLevel,width:b.maxX-b.minX,length:b.maxZ-b.minZ,...(project.world.terrain?{terrain:project.world.terrain}:{})},edits);
-   for(const water of Object.values(project.libraries.water))for(const d of compileWaterBody(water,source).diagnostics)diagnostics.push({...d,targetId:water.id});
+   // Whole hydrographic network: links between rivers, lakes and the sea are checked too.
+   for(const water of compileWaterNetwork(Object.values(project.libraries.water),source,project.world.seaLevel))for(const d of water.diagnostics)diagnostics.push({...d,targetId:water.id});
   }
   const verified=await verifyAssets(project,options.resolveAsset);diagnostics.push(...verified.diagnostics);
   diagnostics.push({severity:'INFO',code:'DESCRIPTOR_COMPILATION',message:'Output contains source/runtime entity, analytic terrain, collision and navigation descriptors; GPU meshes, terrain LOD geometry and navmeshes are not baked.'});

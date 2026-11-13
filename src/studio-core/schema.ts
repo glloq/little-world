@@ -1,5 +1,5 @@
 import {PATH_KINDS,type PathKind} from '../world-data.ts';
-import {validateWaterProfile} from '../water/profile.ts';
+import {validateWaterProfile,validateWaterNetworkFields} from '../water/profile.ts';
 import {parseAudioDefinition,validateAudioLinks} from '../audio/schema.ts';
 import {parseEnvironmentDefinition} from '../environment/climate.ts';
 import catalogue from '../../assets/catalog.json' with {type:'json'};
@@ -128,8 +128,8 @@ import { validateGameplayLibraries } from '../gameplay/schema.ts';
 import { ReferenceIndex, entityIndexEntry, resolveEntity } from './references.ts';
 function dictionary(value:unknown,label:string,max=100000):Record<string,unknown>{const v=object(value,label);if(Object.keys(v).length>max)throw Error(`${label} trop grand`);for(const key of Object.keys(v))string(key,`Clé ${label}`);return v;}
 export function validateLine(value:unknown,world:WorldDefinitionV3,water:boolean):void{
-  const line=object(value,'Tracé');keys(line,water?['id','points','width','level','depth','profile']:['id','points','width','kind','smooth'],'Tracé');
-  if(!water){if(line.kind!==undefined&&!PATH_KINDS.includes(line.kind as PathKind))throw Error('Chemin : type inconnu');if(line.smooth!==undefined&&typeof line.smooth!=='boolean')throw Error('Chemin : courbe invalide');}string(line.id,'ID tracé');finite(line.width,'Largeur',1,40);const points=array(line.points,'Points',100);if(points.length<2)throw Error('Tracé : deux points requis');for(const p of points){const v=object(p,'Point');keys(v,['x','z'],'Point');point(v,world,'Tracé');}if(water){finite(line.level,'Niveau',-20,100);finite(line.depth,'Profondeur',.5,20);validateWaterProfile(line.profile,points.length);}
+  const line=object(value,'Tracé');keys(line,water?['id','points','width','level','depth','profile','kind','from','to','falls']:['id','points','width','kind','smooth'],'Tracé');
+  if(!water){if(line.kind!==undefined&&!PATH_KINDS.includes(line.kind as PathKind))throw Error('Chemin : type inconnu');if(line.smooth!==undefined&&typeof line.smooth!=='boolean')throw Error('Chemin : courbe invalide');}string(line.id,'ID tracé');finite(line.width,'Largeur',1,40);const points=array(line.points,'Points',100);if(points.length<2)throw Error('Tracé : deux points requis');for(const p of points){const v=object(p,'Point');keys(v,['x','z'],'Point');point(v,world,'Tracé');}if(water){finite(line.level,'Niveau',-20,100);finite(line.depth,'Profondeur',.5,20);validateWaterProfile(line.profile,points.length);validateWaterNetworkFields(line as never);}
 }
 function validateLibraries(value:unknown,world:WorldDefinitionV3,entityIds:string[],chunkIds:string[]):void{
   const libs=object(value,'Bibliothèques');keys(libs,['prefabs','characters','dialogues','behaviors','interactions','activities','variables','items','objectives','water','paths','zones'],'Bibliothèques');

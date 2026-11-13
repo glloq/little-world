@@ -29,7 +29,7 @@ export function migrateWorldToV3(input:unknown,options:{projectId?:string;worldI
   legacy.terrain.forEach((edit,order)=>{putTerrainEdit(project,{...edit,order});preservedIds.push(edit.id);});
   legacy.biomes.forEach((edit,order)=>{putBiomeEdit(project,{...edit,order});preservedIds.push(edit.id);});
   for(const [kind,lines]of [['water',legacy.water],['paths',legacy.paths]] as const)for(const line of lines){
-    if(kind==='water')project.libraries.water[line.id]=structuredClone(line) as WorldDefinition['water'][number];else project.libraries.paths[line.id]=structuredClone(line);
+    if(kind==='water')project.libraries.water[line.id]=structuredClone(line) as WorldDefinition['water'][number];else project.libraries.paths[line.id]=structuredClone(line) as WorldDefinition['paths'][number];
     const minX=Math.min(...line.points.map(p=>p.x)),maxX=Math.max(...line.points.map(p=>p.x)),minZ=Math.min(...line.points.map(p=>p.z)),maxZ=Math.max(...line.points.map(p=>p.z));
     for(const id of affectedChunkIds(project.world,(minX+maxX)/2,(minZ+maxZ)/2,Math.hypot(maxX-minX,maxZ-minZ)/2+line.width/2)){const chunk=ensureChunk(project,id);(kind==='water'?chunk.waterRefs:chunk.pathRefs).push(line.id);}preservedIds.push(line.id);
   }
