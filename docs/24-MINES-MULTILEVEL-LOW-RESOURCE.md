@@ -206,6 +206,16 @@ interface MineChunkDelta {
 - **Multijoueur (doc 16)** : serveur autoritaire **futur**, snapshots/deltas AOI localisés, pas de réplication géométrie, révisions/idempotence, pas de synchronisation à l'échelle du monde.
 - **PERF (doc 22)** : profils faibles conservent minerai/galerie/collision ; seuls éclairage, effets de poussière et ornements diminuent.
 
+## Ressources persistantes partagées avec l'agriculture, sans moteur commun artificiel
+
+Le [document AGRI 25](25-AGRICULTURE-PARCELS-LOW-RESOURCE.md) utilise des **parcelles agricoles** en surface, et non des cellules minérales. Les deux activités restent **des systèmes métiers séparés**, tout en partageant quelques fondations :
+
+- **Définitions Studio V3** séparées des **états mutables de partie**, avec commande idempotente, inventaire et serveur futur autoritaire ; réutiliser les infrastructures de transactions/sauvegardes/IDs quand elles seront disponibles, **pas un unique schéma « cellule universelle »**.
+- Mines : excavation et gisements en **étages 2,5D** ; agriculture : **polygones et quelques sous-zones de culture** avec progression temporelle différée. Aucune voxelisation de champs ni croissance par bloc.
+- Contrôles d'emprise : une **parcelle** ne doit pas masquer une entrée de mine, un puits ou un chantier ; modifications sources validées spatialement par le Studio.
+- **PERF** répartit budgets, mémoire, chargements et fréquence d'échéances ; il n'y a aucun intérêt à lancer un moteur minier/agricole par frame lorsque le joueur est absent.
+- Les récoltes des champs et minerais des mines utilisent une **autorité d'inventaire commune** au multijoueur futur, sans autoriser doubles récompenses sur même action.
+
 ## 11. Validation, benchmark, limites et gates
 
 **Gates indispensables** :
