@@ -1,3 +1,5 @@
+import {createTerrainSource} from '../terrain.ts';
+import {compileWaterBody} from '../water/profile.ts';
 import {parseProject} from '../studio-core/schema.ts';
 import {ReferenceIndex} from '../studio-core/references.ts';
 import {validateGameplayLibraries} from '../gameplay/schema.ts';
@@ -29,6 +31,11 @@ export async function preflightProject(input:unknown,options:CompileOptions={}):
     ...(diagnostic.id?{targetId:diagnostic.id}:{}),...(diagnostic.chunkId?{chunkId:diagnostic.chunkId}:{})});
   try{validateGameplayLibraries(project.libraries,Object.keys(project.entityIndex),Object.keys(project.chunkIndex));}
   catch(error){diagnostics.push({severity:'ERROR',code:'GAMEPLAY_SCHEMA',message:error instanceof Error?error.message:String(error)});}
+  if(Object.keys(project.libraries.water).length){
+   const edits=Object.values(project.chunks).flatMap(c=>c.terrainEdits).sort((a,b)=>a.order-b.order);
+   const source=createTerrainSource({seed:project.world.seed,density:project.world.density,seaLevel:project.world.seaLevel},edits);
+   for(const water of Object.values(project.libraries.water))for(const d of compileWaterBody(water,source).diagnostics)diagnostics.push({...d,targetId:water.id});
+  }
   const verified=await verifyAssets(project,options.resolveAsset);diagnostics.push(...verified.diagnostics);
   diagnostics.push({severity:'INFO',code:'DESCRIPTOR_COMPILATION',message:'Output contains source/runtime entity, analytic terrain, collision and navigation descriptors; GPU meshes, terrain LOD geometry and navmeshes are not baked.'});
   return {project,diagnostics,assets:verified.assets};

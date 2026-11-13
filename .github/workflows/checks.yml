@@ -47,6 +47,8 @@ jobs:
         run: node tools/run-browser-check.mjs local
       - name: Character authoring browser checks
         run: node tools/run-browser-check.mjs characters
+      - name: Water authoring browser checks
+        run: node tools/run-browser-check.mjs water
       - name: Audio browser checks
         run: node tools/run-browser-check.mjs audio
       - name: IndexedDB integration
@@ -58,6 +60,7 @@ jobs:
           done
           node tools/run-browser-check.mjs storage http://127.0.0.1:5189/little-world/
           node tools/run-browser-check.mjs audio-engine http://127.0.0.1:5189/little-world/
+          node tools/run-browser-check.mjs water-engine http://127.0.0.1:5189/little-world/
       - uses: actions/upload-artifact@v4
         if: always()
         with:

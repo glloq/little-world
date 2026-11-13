@@ -21,7 +21,8 @@
     "test:local": "node tools/test-local-browser.mjs",
     "test:characters": "node tools/test-characters-browser.mjs",
     "generate:audio": "node --experimental-strip-types tools/generate-audio.mjs",
-    "test:audio": "node tools/test-audio-browser.mjs"
+    "test:audio": "node tools/test-audio-browser.mjs",
+    "test:water": "node tools/test-water-browser.mjs"
   },
   "dependencies": {
     "three": "^0.180.0"

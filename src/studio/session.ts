@@ -1,3 +1,4 @@
+import {waterChunkIds} from '../water/sectors.ts';
 import {CommandBus,type EditPatch} from '../studio-core/commands.ts';
 import {SelectionService} from '../studio-core/context.ts';
 import {ProjectStore,type StoredProject} from '../studio-core/project-store.ts';
@@ -35,6 +36,10 @@ export class StudioSession {
  async hydrate(ids:string[]){
   while(this.saving)await this.saving;
   const needed=new Set<string>();const visit=(id:string)=>{if(needed.has(id)||!this.document.chunkIndex[id])return;needed.add(id);for(const dep of this.document.chunkIndex[id].dependencies)visit(dep);};ids.forEach(visit);
+  for(const water of Object.values(this.document.libraries.water))if(water.profile?.mode==='terrain'){
+   const corridor=waterChunkIds(this.document.world,water);
+   if(corridor.some(id=>needed.has(id)))corridor.forEach(visit);
+  }
   const missing=[...needed].filter(id=>!this.document.chunks[id]);Object.assign(this.document.chunks,await this.store.loadChunks(this.document.manifest.projectId,missing,this.revision));
  }
  /** Copy touched sectors only, then derive field patches. No complete world snapshots. */

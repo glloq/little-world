@@ -1,3 +1,4 @@
+import {waterTerrainIds} from '../water/sectors.ts';
 import type {ProjectDocument,ChunkSourceV3,TerrainEdit,BiomeEdit} from '../studio-core/types.ts';
 import {resolveEntity,ReferenceIndex} from '../studio-core/references.ts';
 import type {CompiledChunkData,CompiledBounds,CompiledAssetDescriptor} from './manifests.ts';
@@ -39,7 +40,7 @@ function required<T>(map:Map<string,T>,id:string):T {
 }
 /** Hash transitive ID dependencies once per chunk; no world geometry is allocated. */
 export function dependencyIds(context:CompileContext,chunk:ChunkSourceV3):string[]{
-  const found=new Set<string>(),pending=[...chunk.entityIds,...chunk.terrainRefs,...chunk.biomeRefs,...chunk.waterRefs,...chunk.pathRefs];
+  const found=new Set<string>(),pending=[...chunk.entityIds,...chunk.terrainRefs,...chunk.biomeRefs,...chunk.waterRefs,...chunk.pathRefs,...waterTerrainIds(context.project,chunk.waterRefs)];
   for(const id of context.project.chunkIndex[chunk.chunkId].dependencies)pending.push('chunk:'+id);
   while(pending.length){
     const id=pending.pop()!;if(found.has(id))continue;found.add(id);
@@ -59,7 +60,7 @@ export function compileChunkData(context:CompileContext,chunk:ChunkSourceV3,ids:
     return {id:resolved.id,kind:resolved.kind,name:resolved.name,ownerChunkId:resolved.ownerChunkId,
       ...(resolved.parentId?{parentId:resolved.parentId}:{}),components:resolved.components};
   });
-  const terrain=[...chunk.terrainEdits,...chunk.terrainRefs.map(id=>required(context.terrain,id))];
+  const terrain=[...chunk.terrainEdits,...[...chunk.terrainRefs,...waterTerrainIds(project,chunk.waterRefs)].map(id=>required(context.terrain,id))];
   const biomes=[...chunk.biomeEdits,...chunk.biomeRefs.map(id=>required(context.biomes,id))];
   const uniqueOrdered=<T extends {id:string;order:number}>(values:T[]):T[]=>[...new Map(values.map(value=>[value.id,value])).values()].sort((a,b)=>a.order-b.order||a.id.localeCompare(b.id));
   const neighbors:string[]=[];

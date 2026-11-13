@@ -1,3 +1,4 @@
+import {waterChunkIds} from '../water/sectors.ts';
 import {materializeComponents} from '../studio-core/entity-authoring.ts';
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
@@ -17,7 +18,8 @@ interface Options {isActive:()=>boolean;inspector:()=>Promise<void>;message:(tex
 /** Local viewport reuses the existing terrain/asset renderers. Source ownership stays in StudioSession. */
 export async function mountLocal(host:HTMLElement,tools:HTMLElement,s:StudioSession,options:Options){
  const p=s.document,selected=s.selection.state.selected,entry=selected?p.entityIndex[selected.id]:undefined,context=s.selection.state.camera;
- const focus={x:entry?.position.x??context.x,z:entry?.position.z??context.z},radius=160;
+ const water=selected?.kind==='water'?p.libraries.water[selected.id]:undefined,waterFocus=water?.points[Math.floor(water.points.length/2)];
+ const focus={x:entry?.position.x??waterFocus?.x??context.x,z:entry?.position.z??waterFocus?.z??context.z},radius=160;
  const visible=()=>affectedChunkIds(p.world,focus.x,focus.z,radius).filter(id=>!!p.chunkIndex[id]);
  await s.hydrate(visible());if(!options.isActive())return {focus:()=>{},dispose:()=>{}};const definition=toRuntimeWorld(p,visible());definition.config.viewDistance=radius;
  const scene=new THREE.Scene();configureScene(scene);const world=buildWorld(definition.config,definition);scene.add(world.root);
@@ -41,7 +43,7 @@ export async function mountLocal(host:HTMLElement,tools:HTMLElement,s:StudioSess
  function resize(){const r=wrap.getBoundingClientRect();renderer.setSize(Math.max(1,r.width),Math.max(1,r.height),false);camera.aspect=r.width/Math.max(1,r.height);camera.updateProjectionMatrix();invalidate(5);}
  function draw(now:number){
   frameId=0;if(disposed)return;drawing=true;const frame=clock.advance(now,!document.hidden);
-  if(frame.render){orbit.update();world.update(frame.renderDelta,focus);if(selectionBox.visible&&!dragging){const object=selectedObject();if(object)selectionBox.setFromObject(object);}renderer.render(scene,camera);remaining--;canvas.dataset.renderCount=String(++renderCount);canvas.dataset.pending=String(world.stats.pending);stats.textContent=`Vue locale · ${Object.keys(p.chunks).length} sources chargées · ${renderer.info.render.calls} appels · ${world.stats.active} secteurs visibles`;}
+  if(frame.render){orbit.update();world.update(frame.renderDelta,focus);if(selectionBox.visible&&!dragging){const object=selectedObject();if(object)selectionBox.setFromObject(object);}renderer.render(scene,camera);remaining--;canvas.dataset.renderCount=String(++renderCount);canvas.dataset.pending=String(world.stats.pending);canvas.dataset.waterCount=String(world.root.children.filter(o=>o.userData.waterId).length);stats.textContent=`Vue locale · ${Object.keys(p.chunks).length} sources chargées · ${renderer.info.render.calls} appels · ${world.stats.active} secteurs visibles`;}
   drawing=false;if(remaining>0||world.stats.pending>0||dragging)frameId=requestAnimationFrame(draw);else canvas.dataset.idle='true';
  }
  function invalidate(frames=60){if(disposed)return;remaining=Math.max(remaining,frames);canvas.dataset.idle='false';if(!frameId&&!drawing){clock.reset();frameId=requestAnimationFrame(draw);}}
@@ -49,7 +51,10 @@ export async function mountLocal(host:HTMLElement,tools:HTMLElement,s:StudioSess
  function refresh(transaction?:EditTransaction){
   refreshQueue=refreshQueue.then(async()=>{if(disposed)return;await s.hydrate(visible());if(disposed)return;const next=toRuntimeWorld(p,visible());next.config.viewDistance=radius;Object.assign(definition,next);configureTerrain(definition.config,definition.terrain,definition.water,definition.paths);
    const terrainChanged=transaction?.patches.some(p=>p.path.some(k=>['terrainEdits','biomeEdits'].includes(k))||p.path[0]==='chunks'&&p.path.length===2);
-   if(terrainChanged)for(const id of transaction!.affectedChunks){const c=chunkCoordinates(p.world,id),size=p.world.chunkSizeM;world.refreshTerrain(p.world.bounds.minX+(c.cx+.5)*size,p.world.bounds.minZ+(c.cz+.5)*size,size*.72);}
+   const changedWater=new Set(world.refreshWater()),refreshIds=new Set(terrainChanged?transaction!.affectedChunks:[]);
+   for(const water of definition.water)if(changedWater.has(water.id))for(const id of waterChunkIds(p.world,water))refreshIds.add(id);
+   if(changedWater.size)for(const id of transaction?.affectedChunks??[])refreshIds.add(id);
+   for(const id of refreshIds){const c=chunkCoordinates(p.world,id),size=p.world.chunkSizeM;world.refreshTerrain(p.world.bounds.minX+(c.cx+.5)*size,p.world.bounds.minZ+(c.cz+.5)*size,size*.72);}
    syncModels();invalidate(40);
   }).catch(error=>options.message(String(error),true));
  }

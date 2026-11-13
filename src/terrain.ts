@@ -1,3 +1,4 @@
+import {WaterSpatialIndex} from './water/profile.ts';
 import type {
   WorldConfig,
   TerrainStroke,
@@ -15,8 +16,8 @@ let config = {
   chunkSize: 64,
   viewDistance: 240,
 };
-let strokes: TerrainStroke[] = [];
-let waters: WaterBody[] = [];
+let waterIndex=new WaterSpatialIndex([],()=>0);
+let sourceHeight:(x:number,z:number)=>number=(x,z)=>baseHeight(x,z,0);
 let paths: PathDefinition[] = [];
 export function configureTerrain(
   c: WorldConfig,
@@ -31,8 +32,8 @@ export function configureTerrain(
     chunkSize: c.chunkSize ?? 64,
     viewDistance: c.viewDistance ?? 240,
   };
-  strokes = edits;
-  waters = water;
+  sourceHeight=createTerrainSource(c,edits);
+  waterIndex=new WaterSpatialIndex(water,sourceHeight);
   paths = roads;
 }
 export function getTerrainConfig() {
@@ -81,32 +82,25 @@ export function riverX(z: number): number {
 export function riverLevel(z: number): number {
   return config.seaLevel + Math.max(0, (190 - z) * 0.027);
 }
-function baseHeight(x: number, z: number): number {
+function baseHeight(x: number, z: number, seaLevel:number): number {
+  const level=seaLevel+Math.max(0,(190-z)*.027);
   const d = Math.abs(x - riverX(z));
   const ridge = Math.pow(Math.min(1.6, Math.max(0, (d - 13) / 78)), 1.7) * 54;
   const roughness =
     (1.0 + smoothstep(12, 60, d) * 3.0) *
     (Math.sin(x * 0.1 + z * 0.031) * Math.sin(z * 0.057 - x * 0.036) * 0.42 +
       Math.sin(z * 0.021 + x * 0.17) * 0.21);
-  const shore = riverLevel(z) + 1.15 + ridge + roughness;
-  const channel = riverLevel(z) - 2.45 + 0.03 * d;
+  const shore = level + 1.15 + ridge + roughness;
+  const channel = level - 2.45 + 0.03 * d;
   const inland = lerp(channel, shore, smoothstep(5.4, 13.8, d));
   // The flat sea floor gradually takes over at the open coast.
   const seabed =
-    config.seaLevel - 1.9 - Math.max(0, z - 208) * 0.049 + 0.02 * Math.abs(x);
+    seaLevel - 1.9 - Math.max(0, z - 208) * 0.049 + 0.02 * Math.abs(x);
   return lerp(inland, seabed, smoothstep(175, 246, z));
 }
-export function terrainHeight(x: number, z: number): number {
-  let h = baseHeight(x, z);
-  for (const w of waters) {
-    const d = lineDistance(x, z, w.points);
-    if (d < w.width / 2)
-      h = Math.min(
-        h,
-        w.level - w.depth * (1 - smoothstep(w.width * 0.25, w.width * 0.5, d)),
-      );
-  }
-  for (const s of strokes) {
+export function createTerrainSource(c:WorldConfig,edits:TerrainStroke[]=[]):(x:number,z:number)=>number {
+ return (x,z)=>{let h=baseHeight(x,z,c.seaLevel??0);
+  for (const s of edits) {
     const d = Math.hypot(x - s.x, z - s.z);
     if (d >= s.radius) continue;
     const weight = 1 - smoothstep(0, s.radius, d);
@@ -115,12 +109,25 @@ export function terrainHeight(x: number, z: number): number {
     else h = lerp(h, s.height, weight * Math.min(1, s.strength / 4));
   }
   return h;
+};
 }
+export function sourceTerrainHeight(x:number,z:number){return sourceHeight(x,z);}
+export function compiledWaterBodies(){return waterIndex.bodies;}
+export function terrainHeight(x:number,z:number):number {
+ let h=sourceHeight(x,z);
+ for(const {water,distance,level} of waterIndex.query(x,z,2)){
+  const core=water.width*.25,edge=water.width*.5+2;
+  // Extend a shallow bank beyond the surface so coarse terrain cannot cover the ribbon.
+  const half=water.width*.5;
+  const bed=distance<=half?level-.08-water.depth*(1-smoothstep(core,half,distance)):lerp(level-.08,h,smoothstep(half,edge,distance));
+  h=Math.min(h,bed);
+ }
+ return h;
+}
+
 export function waterSurface(x: number, z: number): number | null {
-  for (let i = waters.length - 1; i >= 0; i--) {
-    const w = waters[i];
-    if (lineDistance(x, z, w.points) <= w.width / 2) return w.level;
-  }
+  const hit=waterIndex.query(x,z)[0];
+  if(hit)return hit.level;
   if (
     z >= 190 &&
     z <= config.length / 2 &&

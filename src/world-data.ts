@@ -1,3 +1,4 @@
+import {validateWaterProfile, type WaterProfile} from './water/profile.ts';
 /** Versioned authoring data shared by the editor, game and static-map compiler. */
 import catalogue from '../assets/catalog.json' with { type: 'json' };
 import { DEFAULT_NPCS, validateNPCs, type NPCDefinition } from './npc.ts';
@@ -45,6 +46,7 @@ export interface BiomeStroke {
   density: number;
 }
 export interface WaterBody {
+  profile?: WaterProfile;
   id: string;
   points: { x: number; z: number }[];
   width: number;
@@ -217,6 +219,7 @@ export function parseWorld(value: unknown): WorldDefinition {
     )
   )
     throw Error('Volumes d’eau invalides');
+  for(const w of value.water as WaterBody[])validateWaterProfile(w.profile,w.points.length);
   if (!list(value.paths, 100, line)) throw Error('Chemins invalides');
   if (!validateNPCs(value.npcs, config))
     throw Error('PNJ ou dialogues invalides');

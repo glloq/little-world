@@ -68,7 +68,7 @@ export interface CompileResult {
   rebuiltChunkIds:string[];
   diagnostics:CompilationDiagnostic[];
 }
-export const COMPILER_VERSION='little-world-descriptors-3';
+export const COMPILER_VERSION='little-world-descriptors-4';
 
 /** Stable object key order; array order remains semantically meaningful. */
 export function canonicalJSON(value:unknown):string {

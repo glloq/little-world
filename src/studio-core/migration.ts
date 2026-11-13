@@ -1,3 +1,4 @@
+import {waterTerrainIds} from '../water/sectors.ts';
 import { parseWorld, type WorldDefinition } from '../world-data.ts';
 import type { BiomeEdit, TerrainEdit, EntityDefinitionV3, MigrationReport, ProjectDocument } from './types.ts';
 import { affectedChunkIds, chunkAt, createProject, parseProject } from './schema.ts';
@@ -46,7 +47,7 @@ export function toRuntimeWorld(project:ProjectDocument,chunkIds?:string[]):World
   const {world}=project,width=world.bounds.maxX-world.bounds.minX,length=world.bounds.maxZ-world.bounds.minZ;
   if(Math.abs(world.bounds.minX+world.bounds.maxX)>1e-6||Math.abs(world.bounds.minZ+world.bounds.maxZ)>1e-6)throw Error('Le rendu historique exige actuellement des limites centrées à l’origine');
   const selected=(chunkIds??Object.keys(project.chunks)).map(id=>{const chunk=project.chunks[id];if(!chunk)throw Error(`Secteur non chargé : ${id}`);return chunk;});
-  const terrainIds=new Set(selected.flatMap(c=>c.terrainRefs)),biomeIds=new Set(selected.flatMap(c=>c.biomeRefs));
+  const terrainIds=new Set([...selected.flatMap(c=>c.terrainRefs),...waterTerrainIds(project,[...new Set(selected.flatMap(c=>c.waterRefs))])]),biomeIds=new Set(selected.flatMap(c=>c.biomeRefs));
   const terrain=new Map<string,TerrainEdit>(),biomes=new Map<string,BiomeEdit>();
   for(const c of Object.values(project.chunks)){for(const edit of c.terrainEdits)if(terrainIds.has(edit.id))terrain.set(edit.id,edit);for(const edit of c.biomeEdits)if(biomeIds.has(edit.id))biomes.set(edit.id,edit);}
   if(terrain.size!==terrainIds.size||biomes.size!==biomeIds.size)throw Error('Charger les dépendances canoniques des retouches avant prévisualisation');

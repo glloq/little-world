@@ -1,3 +1,5 @@
+import {waterChunkIds,waterEditChunkIds} from '../water/sectors.ts';
+import {validateLine} from './schema.ts';
 /** Source mutations are intended to run inside a CommandBus transaction. They
  * preserve canonical overrides, touched-sector ownership and lightweight indexes. */
 import type { BiomeEdit, ChunkId, ChunkSourceV3, EntityDefinitionV3, ProjectDocument, TerrainEdit } from './types.ts';
@@ -57,3 +59,19 @@ function putEdit(project:ProjectDocument,stroke:(TerrainStroke|BiomeStroke)&{ord
 }
 export function putTerrainEdit(project:ProjectDocument,stroke:TerrainStroke&{order?:number}):void{putEdit(project,stroke,'terrain');}
 export function putBiomeEdit(project:ProjectDocument,stroke:BiomeStroke&{order?:number}):void{putEdit(project,stroke,'biome');}
+
+/** Water source and corridor references are one undoable transaction. */
+export function putWater(project:ProjectDocument,water:import('../world-data.ts').WaterBody):void {
+ validateLine(water,project.world,true);
+ const ids=waterEditChunkIds(project,project.libraries.water[water.id],water);
+ for(const id of ids)if(project.chunkIndex[id]&&!project.chunks[id])throw Error(`Charger le secteur d’eau : ${id}`);
+ for(const id of ids)if(project.chunks[id])project.chunks[id].waterRefs=project.chunks[id].waterRefs.filter(v=>v!==water.id);
+ project.libraries.water={...project.libraries.water,[water.id]:structuredClone(water)};
+ for(const id of waterChunkIds(project.world,water))ensureChunk(project,id).waterRefs.push(water.id);
+}
+export function removeWater(project:ProjectDocument,id:string):void {
+ const water=project.libraries.water[id];if(!water)return;
+ const ids=waterEditChunkIds(project,water,undefined);
+ for(const key of ids){const chunk=project.chunks[key];if(!chunk)throw Error(`Charger le secteur d’eau : ${key}`);chunk.waterRefs=chunk.waterRefs.filter(v=>v!==id);}
+ const next={...project.libraries.water};delete next[id];project.libraries.water=next;
+}

@@ -1,3 +1,5 @@
+import {compileWaterBody} from './water/profile.ts';
+import {drawHydroProfile} from './water/profile-view.ts';
 import * as THREE from 'three';
 import { FrameClock } from './frame-clock';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -24,6 +26,7 @@ import {
   configureTerrain,
   insideWorld,
   terrainHeight,
+  sourceTerrainHeight,
   getTerrainConfig,
 } from './terrain';
 import { BIOMES, type BiomeId } from './biomes';
@@ -277,7 +280,9 @@ function setTool(value: string) {
   $('height-label').hidden = tool !== 'flatten';
   $('biome-label').hidden = tool !== 'biome';
   $('line-panel').hidden = !['water', 'path'].includes(tool);
+  for(const id of ['water-mode-label','water-offset-label','reverse-line'])$(id).hidden=tool!=='water';
   $('water-level-label').hidden = tool !== 'water';
+  updateWaterPreview();
   $('water-depth-label').hidden = tool !== 'water';
   for (const b of $('tools').querySelectorAll<HTMLButtonElement>('button'))
     b.classList.toggle('selected', b.dataset.tool === value);
@@ -490,6 +495,7 @@ renderer.domElement.addEventListener('pointerup', (e) => {
   }
   if (tool === 'water' || tool === 'path') {
     line.push({ x: p.x, z: p.z });
+    updateWaterPreview();
     const dot = new THREE.Mesh(
       new THREE.SphereGeometry(0.6, 6, 4),
       new THREE.MeshBasicMaterial({ color: 0xffdd88 }),
@@ -522,13 +528,17 @@ $('finish-line').onclick = () => {
     points: structuredClone(line),
     width: +val('line-width').value,
   };
-  if (tool === 'water')
-    draft.water.push({
+  if (tool === 'water') {
+    const water={
       ...item,
       level: +val('water-level').value,
       depth: +val('water-depth').value,
-    });
-  else draft.paths.push(item);
+      ...(val('water-mode').value==='terrain'?{profile:{mode:'terrain' as const,offset:+val('water-offset').value}}:{}),
+    };
+    const errors=compileWaterBody(water,sourceTerrainHeight).diagnostics.filter(d=>d.severity==='ERROR');
+    if(errors.length){info(errors.map(d=>d.message).join(' '));return;}
+    draft.water.push(water);
+  } else draft.paths.push(item);
   try {
     draft = parseWorld(draft);
     history.record(before);
@@ -546,6 +556,7 @@ $('finish-line').onclick = () => {
 $('cancel-line').onclick = () => {
   line = [];
   clearMarkers();
+  updateWaterPreview();
   info('Tracé annulé');
 };
 transform.addEventListener('dragging-changed', (e) => {
@@ -898,3 +909,15 @@ function animate(now: number) {
   requestAnimationFrame(animate);
 }
 requestAnimationFrame(animate);
+
+function updateWaterPreview(){
+ const plot=$('water-profile') as HTMLCanvasElement,active=tool==='water';plot.hidden=!active;
+ $('water-offset-label').hidden=!active||val('water-mode').value!=='terrain';
+ $('water-level-label').hidden=!active||val('water-mode').value==='terrain';
+ if(!active)return;
+ const w={id:'preview',points:line,width:+val('line-width').value,level:+val('water-level').value,depth:+val('water-depth').value,...(val('water-mode').value==='terrain'?{profile:{mode:'terrain' as const,offset:+val('water-offset').value}}:{})};
+ const profile=compileWaterBody(w,sourceTerrainHeight);drawHydroProfile(plot,profile);
+ $('water-diagnostics').textContent=profile.diagnostics.map(d=>d.message).join(' ');
+}
+for(const id of ['water-mode','water-offset','water-level','water-depth','line-width'])$(id).addEventListener('change',updateWaterPreview);
+$('reverse-line').onclick=()=>{line.reverse();updateWaterPreview();};

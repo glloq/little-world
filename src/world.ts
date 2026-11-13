@@ -1,3 +1,4 @@
+import {waterRibbonData} from './water/geometry.ts';
 import * as THREE from 'three';
 import { createTerrainView } from './terrain-view';
 import { createEcology } from './ecology';
@@ -12,6 +13,7 @@ export type { WorldConfig, Placement, AssetId } from './world-data';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import {
   configureTerrain,
+  compiledWaterBodies,
   getTerrainConfig,
   mulberry32,
   riverLevel,
@@ -31,6 +33,7 @@ export interface WorldView {
   update: (dt: number, focus?: { x: number; z: number }) => void;
   setDetail: (level: number) => void;
   refreshTerrain: (x: number, z: number, radius: number) => void;
+  refreshWater:()=>string[];
   stats: {
     active: number;
     resident: number;
@@ -604,16 +607,24 @@ export function buildWorld(
     return sampleBiome(x, z);
   };
   const ecology = createEcology(root, config.seed, config.density, biomeAt);
+  const waterMeshes=new Map<string,{signature:string;mesh:THREE.Mesh}>();
+  function refreshWater(){
+    const changed:string[]=[],ids=new Set(compiledWaterBodies().map(w=>w.id));
+    for(const [id,entry]of waterMeshes)if(!ids.has(id)){removePlacement(entry.mesh);waterMeshes.delete(id);changed.push(id);}
+    for(const water of compiledWaterBodies()){
+      const signature=JSON.stringify([water.width,water.depth,water.points.map(v=>[v.x,v.z,v.level])]);
+      if(waterMeshes.get(water.id)?.signature===signature)continue;
+      const previous=waterMeshes.get(water.id);if(previous)removePlacement(previous.mesh);
+      const data=waterRibbonData(water),geo=new THREE.BufferGeometry();
+      geo.setAttribute('position',new THREE.Float32BufferAttribute(data.positions,3));geo.setIndex(data.indices);geo.computeVertexNormals();
+      const ribbon=mesh(geo,new THREE.MeshLambertMaterial({color:0x6daeb5,side:THREE.DoubleSide}),root,0,0,0);
+      ribbon.name='Water:'+water.id;ribbon.userData.waterId=water.id;
+      waterMeshes.set(water.id,{signature,mesh:ribbon});changed.push(water.id);
+    }
+    return changed;
+  }
+  refreshWater();
   if (definition) {
-    for (const water of definition.water)
-      createRibbon(
-        root,
-        water.points,
-        water.width,
-        () => water.level + 0.04,
-        0x6daeb5,
-        true,
-      );
     for (const path of definition.paths)
       createRibbon(
         root,
@@ -636,6 +647,7 @@ export function buildWorld(
     boat,
     objects,
     stats: terrainView.stats,
+    refreshWater,
     setDetail(level) {
       ecology.setDetail(level);
     },

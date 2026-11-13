@@ -72,6 +72,8 @@
           </p>
         </section>
         <section id="line-panel" hidden>
+          <label id="water-mode-label">Type d’eau<select id="water-mode"><option value="terrain">Cours d’eau — suivre le relief</option><option value="constant">Plan d’eau — niveau horizontal</option></select></label>
+          <label id="water-offset-label">Décalage sous la berge (m)<input id="water-offset" type="number" min="-10" max="10" step=".1" value="-.35"></label>
           <label
             >Largeur
             <input
@@ -101,7 +103,7 @@
           ><button id="cancel-line" class="light-button fill-button">
             Annuler le tracé
           </button>
-          <p class="muted">Cliquer pour ajouter les points du tracé.</p>
+          <button id="reverse-line" class="light-button fill-button">Inverser amont / aval</button><canvas id="water-profile" width="260" height="140" aria-label="Profil du terrain et de l’eau" hidden></canvas><p id="water-diagnostics" role="status"></p><p class="muted">Cours d’eau : cliquer de l’amont vers l’aval. Le profil bleu descend ; le terrain source est brun. Les anciens tracés gardent leur niveau horizontal.</p>
         </section>
         <details open>
           <summary>Catalogue</summary>
