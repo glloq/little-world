@@ -35,8 +35,9 @@ export function createGameSaveStore(provided?:SaveStorage){
   };
 }
 /** Prefix sandbox for a single disposable playtest snapshot. */
+export function playtestSlotPrefix(scope:string){if(!identifier(scope))throw Error('Périmètre de test invalide');return 'little-world:playtest-slots:'+encodeURIComponent(scope)+':';}
 export function scopedSaveStorage(storage:SaveStorage,scope:string):SaveStorage {
- if(!identifier(scope))throw Error('Périmètre de test invalide');const prefix='little-world:playtest-slots:'+encodeURIComponent(scope)+':';
+ const prefix=playtestSlotPrefix(scope);
  const keys=()=>Array.from({length:storage.length},(_,i)=>storage.key(i)).filter((k):k is string=>!!k&&k.startsWith(prefix));
  return {get length(){return keys().length;},key(index){return keys()[index]?.slice(prefix.length)??null;},getItem(key){return storage.getItem(prefix+key);},setItem(key,value){storage.setItem(prefix+key,value);},removeItem(key){storage.removeItem(prefix+key);}};
 }

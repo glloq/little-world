@@ -4,7 +4,7 @@ import {readFile} from 'node:fs/promises';
 import {parsePlayableWorld,loadPlaytest,savePlaytest} from '../src/gameplay/playable.ts';
 import {createGameplay} from '../src/gameplay/runtime.ts';
 import {gameplayDialogueSession} from '../src/gameplay/dialogue-session.ts';
-import {scopedSaveStorage,createGameSaveStore} from '../src/gameplay/save.ts';
+import {scopedSaveStorage,createGameSaveStore,playtestSlotPrefix} from '../src/gameplay/save.ts';
 const bundle=JSON.parse(await readFile(new URL('../public/maps/beta.json',import.meta.url),'utf8'));
 function storage(){const values=new Map();return {get length(){return values.size;},key(i){return [...values.keys()][i]??null;},getItem(k){return values.get(k)??null;},setItem(k,v){values.set(k,v);},removeItem(k){values.delete(k);}};}
 test('reference playable content supports choice, collection, delivery and ordered puzzle, then save/resume',()=>{
@@ -14,8 +14,8 @@ test('reference playable content supports choice, collection, delivery and order
  const next=createGameplay(content.gameplay);next.restore(r.save('one'));assert.equal(next.interact('beta-acorn',{x:-24,y:0,z:-180}),false);assert.equal(next.state.entities['beta-gate'].open,true);assert.equal(next.state.objectives.delivery,'complete');
 });
 test('playtest snapshots are independent, capped and reject missing or mismatched copies',()=>{
- const s=storage(),before=structuredClone(bundle);const a=savePlaytest({projectId:'studio',content:bundle},s);assert.deepEqual(bundle,before);a.content.world.name='changed';assert.notEqual(loadPlaytest(a.snapshotId,s).content.world.name,'changed');
- for(let i=0;i<8;i++)savePlaytest({projectId:'studio',content:bundle},s);assert.equal(s.length,5);assert.throws(()=>loadPlaytest(a.snapshotId,s));
+ const s=storage(),before=structuredClone(bundle);const a=savePlaytest({projectId:'studio',content:bundle},s);assert.deepEqual(bundle,before);s.setItem(playtestSlotPrefix(a.snapshotId)+'temporary','test');a.content.world.name='changed';assert.notEqual(loadPlaytest(a.snapshotId,s).content.world.name,'changed');
+ for(let i=0;i<8;i++)savePlaytest({projectId:'studio',content:bundle},s);assert.equal(s.length,5);assert.equal(s.getItem(playtestSlotPrefix(a.snapshotId)+'temporary'),null);assert.throws(()=>loadPlaytest(a.snapshotId,s));
  const last=savePlaytest({projectId:'studio',content:bundle},s);const raw=JSON.parse(s.getItem('little-world:studio-playtest:v1:'+last.snapshotId));raw.snapshotId='wrong';s.setItem('little-world:studio-playtest:v1:'+last.snapshotId,JSON.stringify(raw));assert.throws(()=>loadPlaytest(last.snapshotId,s));
 });
 test('two disposable tests and real game slots never read or overwrite each other',async()=>{

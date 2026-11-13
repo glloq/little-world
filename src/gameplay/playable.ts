@@ -1,3 +1,4 @@
+import {playtestSlotPrefix} from './save.ts';
 import {validateCollisionDefinition,type CollisionDefinition} from '../physics/definitions.ts';
 /** Runtime input has no authoring database access or Studio module dependency. */
 import {parseWorld,type WorldDefinition} from '../world-data.ts';
@@ -21,7 +22,7 @@ export function savePlaytest(value:Omit<StudioPlaytest,'schemaVersion'|'kind'|'s
  const keys=Array.from({length:storage.length},(_,i)=>storage.key(i)).filter((k):k is string=>!!k&&k.startsWith(PREFIX));
  // Bound retained source copies; game slots use another namespace.
  const previous=keys.map(key=>{try{return {key,at:JSON.parse(storage.getItem(key)!).createdAt??0};}catch{return {key,at:0};}}).sort((a,b)=>b.at-a.at);
- for(const entry of previous.slice(4))storage.removeItem(entry.key);
+ for(const entry of previous.slice(4)){storage.removeItem(entry.key);try{const prefix=playtestSlotPrefix(entry.key.slice(PREFIX.length)),slots=Array.from({length:storage.length},(_,i)=>storage.key(i)).filter((key):key is string=>!!key&&key.startsWith(prefix));for(const key of slots)storage.removeItem(key);}catch{/* A malformed snapshot key has no valid slot namespace. */}}
  storage.setItem(PREFIX+snapshot.snapshotId,JSON.stringify(snapshot));return snapshot;
 }
 export function loadPlaytest(id:string,storage:Storage=sessionStorage):StudioPlaytest {

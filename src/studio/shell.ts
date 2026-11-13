@@ -1,3 +1,4 @@
+import {materializeComponents} from '../studio-core/entity-authoring.ts';
 import './studio.css';
 import {button,field,input,node,numberInput,select,download} from './dom.ts';
 import {ProjectStore} from '../studio-core/project-store.ts';
@@ -10,18 +11,18 @@ import type {EntityDefinitionV3,ProjectDocument} from '../studio-core/types.ts';
 import {StudioSession} from './session.ts';
 const store=new ProjectStore(),$=(id:string)=>document.getElementById(id)!;
 let session:StudioSession|null=null,dispose=()=>{},unsubscribe=()=>{},asset='props.crate',tool='select',radius=12,strength=2;
-let moduleGeneration=0;
+let moduleGeneration=0,pendingEntityEdits=0,entityEdits:Promise<void>=Promise.resolve();
 let map:{focus:(x:number,z:number)=>void}|null=null;
 const status=(message:string,error=false)=>{$('status').textContent=message;$('status').classList.toggle('status-error',error);};
 const run=(action:()=>Promise<unknown>|unknown)=>async()=>{try{await action();}catch(e){status(String(e),true);}};
 const action=(title:string,fn:()=>Promise<unknown>|unknown)=>button(title,run(fn));
 function refreshHeader(){
  const s=session;if(!s)return;$('save-status').textContent=s.status;$('breadcrumbs').textContent=s.document.manifest.name+' / '+s.selection.state.activeModule;
- $('header-actions').replaceChildren(action('Mes projets',home),action('Annuler',async()=>{s.commands.undo();await inspector();}),action('Refaire',async()=>{s.commands.redo();await inspector();}),action('Sauvegarder',()=>s.flush()),action('Exporter ZIP',async()=>{const p=await s.fullDocument();const bytes=writeProjectArchive(p);download(p.manifest.name+'.zip',bytes.buffer as ArrayBuffer,'application/zip');}),action('Tester la copie',preview));
+ $('header-actions').replaceChildren(action('Mes projets',home),action('Annuler',async()=>{s.commands.undo();await inspector();}),action('Refaire',async()=>{s.commands.redo();await inspector();}),action('Sauvegarder',async()=>{await entityEdits;await s.flush();}),action('Exporter ZIP',async()=>{await entityEdits;const p=await s.fullDocument();const bytes=writeProjectArchive(p);download(p.manifest.name+'.zip',bytes.buffer as ArrayBuffer,'application/zip');}),action('Tester la copie',preview));
  const buttons=$('header-actions').querySelectorAll('button');buttons[1].disabled=!s.commands.canUndo;buttons[2].disabled=!s.commands.canRedo;
 }
 async function home(){
- moduleGeneration++; if(session)await session.flush();dispose();unsubscribe();session=null;map=null;$('modules').replaceChildren();$('tools').replaceChildren(node('h3','Vos mondes'),node('p','Projets conservés dans ce navigateur. Exportez une archive pour les transférer ou les protéger.','muted'));$('inspector').replaceChildren();$('header-actions').replaceChildren();$('breadcrumbs').textContent='Mes projets';$('save-status').textContent='';
+ moduleGeneration++; await entityEdits.catch(()=>{});if(session)await session.flush();dispose();unsubscribe();session=null;map=null;$('modules').replaceChildren();$('tools').replaceChildren(node('h3','Vos mondes'),node('p','Projets conservés dans ce navigateur. Exportez une archive pour les transférer ou les protéger.','muted'));$('inspector').replaceChildren();$('header-actions').replaceChildren();$('breadcrumbs').textContent='Mes projets';$('save-status').textContent='';
  const home=node('div','','home'),head=node('div','','home-heading'),titles=node('div');titles.append(node('div','LITTLE WORLD STUDIO · V3','kicker'),node('h1','Des idées aux petits mondes'),node('p','Créez un projet ou poursuivez votre atelier.','muted'));head.append(titles,action('Ouvrir le scénario de référence',async()=>{const response=await fetch(import.meta.env.BASE_URL+'maps/beta.project.json');if(!response.ok)throw Error('Scénario indisponible');const p=parseProject(await response.json());if(!(await store.list()).some(v=>v.projectId===p.manifest.projectId))await store.create(p);await open(p.manifest.projectId);}),action('Importer JSON / ZIP',()=>($('project-file') as HTMLInputElement).click()));home.append(head);
  const form=node('form','','section-card'),name=input('Mon petit monde',()=>{}),size=select('1000',[['200','200 × 600 m'],['1000','1 000 × 1 000 m — cible B1']],()=>{}),create=button('Créer le projet',()=>{},'primary-button');create.type='submit';form.append(field('Nom du projet',name),field('Dimensions',size),create);form.onsubmit=e=>{e.preventDefault();void run(async()=>{const side=Number(size.value),p=createProject({name:name.value,width:side,length:side===200?600:side});await store.create(p);await open(p.manifest.projectId);})();};home.append(form);
  const cards=node('div','','project-cards');for(const p of await store.list()){const card=node('article','','project-card');card.append(node('div','PROJET LOCAL · V3','kicker'),node('h2',p.name),node('p',`Révision ${p.revision} · ${new Date(p.updatedAt).toLocaleString('fr')}`,'muted'),action('Ouvrir le monde',()=>open(p.projectId)));cards.append(card);}home.append(cards);$('workspace').replaceChildren(home);status('Studio V3 : socle et carte auteur. La qualification bêta reste en cours.');
@@ -62,7 +63,7 @@ async function inspector(){
  const entry=selected?p.entityIndex[selected.id]:undefined;if(!entry){host.append(node('h3','Votre monde'),node('p','Sélectionnez un objet sur la carte ou dans la recherche.','muted'));return;}
  await s.hydrate([entry.ownerChunkId]);const e=p.chunks[entry.ownerChunkId].entities[entry.id],resolved=resolveEntity(p,e),transform=resolved.components.Transform!;
  host.append(node('h3',e.name),node('p',e.id,'selection-tag'));
- const update=async(edit:(v:EntityDefinitionV3)=>void)=>{const next=structuredClone(e);next.components.Transform=structuredClone(transform);edit(next);next.ownerChunkId=chunkAt(p.world,next.components.Transform!.position.x,next.components.Transform!.position.z);await s.change('Modifier '+e.name,[entry.ownerChunkId,next.ownerChunkId],d=>putEntity(d,next));await inspector();results('');};
+ const update=(edit:(v:EntityDefinitionV3)=>void)=>{pendingEntityEdits++;const work=entityEdits.catch(()=>{}).then(async()=>{const current=p.entityIndex[e.id];if(!current)throw Error('Entité supprimée');await s.hydrate([current.ownerChunkId]);const source=p.chunks[current.ownerChunkId].entities[e.id],next=materializeComponents(source,{Transform:resolveEntity(p,source).components.Transform!});edit(next);next.ownerChunkId=chunkAt(p.world,next.components.Transform!.position.x,next.components.Transform!.position.z);await s.change('Modifier '+source.name,[current.ownerChunkId,next.ownerChunkId],d=>putEntity(d,next));if(session===s){await inspector();results('');}});const queued=work.finally(()=>pendingEntityEdits--);entityEdits=queued;return queued;};
  host.append(field('Nom',input(e.name,v=>run(()=>update(n=>n.name=v))())));
  for(const axis of ['x','y','z'] as const)host.append(field('Position '+axis.toUpperCase()+' (m)',numberInput(transform.position[axis],v=>run(()=>update(n=>n.components.Transform!.position[axis]=v))(),-5000,5000)));
  host.append(field('Échelle',numberInput(transform.scale.x,v=>run(()=>update(n=>n.components.Transform!.scale={x:v,y:v,z:v}))(),.1,10)),action('Supprimer',async()=>{const refs=new ReferenceIndex(p).dependents(e.id);if(refs.length)throw Error('Suppression impossible : des références utilisent cette entité.');await s.change('Supprimer '+e.name,[entry.ownerChunkId],d=>removeEntity(d,e.id));s.selection.select(null);results('');await inspector();}));
@@ -85,7 +86,7 @@ async function diagnostics(){
  panel.append(action('Exporter le monde compilé',async()=>{const compiled=await compileProject(p,options),bytes=writeFilesArchive(compiled.files);download('compiled-world.zip',bytes.buffer as ArrayBuffer,'application/zip');status(`${compiled.manifest.chunks.length} secteurs compilés ; source auteur inchangée.`);}));
 }
 async function preview(){
- const s=session!,p=await s.fullDocument();await s.flush();const world=toRuntimeWorld(p);
+ await entityEdits;const s=session!,p=await s.fullDocument();await s.flush();const world=toRuntimeWorld(p);
  if((world.config.width??200)>2000||(world.config.length??600)>2000)throw Error('Le lecteur de test actuel est limité à 2 km par axe.');
  const {savePlaytest}=await import('../gameplay/playable.ts'),{gameplayDataFromProject}=await import('../gameplay/project-adapter.ts');
  const selected=s.selection.state.selected,entry=selected?p.entityIndex[selected.id]:undefined,camera=s.selection.state.camera;
@@ -100,5 +101,5 @@ async function preview(){
  if((await store.list()).some(v=>v.projectId===p.manifest.projectId))throw Error('Ce projet existe déjà. Ouvrez-le depuis Mes projets pour éviter un écrasement.');await store.create(p);await open(p.manifest.projectId);($('project-file') as HTMLInputElement).value='';
 })();
 window.addEventListener('keydown',e=>{if(!session||(e.target instanceof HTMLInputElement||e.target instanceof HTMLTextAreaElement||e.target instanceof HTMLSelectElement))return;if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){e.preventDefault();if(e.shiftKey)session.commands.redo();else session.commands.undo();void inspector();}});
-window.addEventListener('beforeunload',e=>{if(session&&session.status!=='Sauvegardé localement'){e.preventDefault();e.returnValue='';}});
+window.addEventListener('beforeunload',e=>{if(pendingEntityEdits>0||session&&session.status!=='Sauvegardé localement'){e.preventDefault();e.returnValue='';}});
 void run(home)();

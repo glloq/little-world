@@ -1,27 +1,29 @@
 # B1 — Avancement vérifié de la branche Studio V3
 
 Date : 13 novembre 2026. Périmètre : [objectifs B1](26-BETA-B1-OBJECTIFS.md).
-Cette branche avance G1 et une première partie de G4. **La bêta B1 n'est pas qualifiée.**
+Cette branche avance G1, G2 et G4 par incréments testés. **La bêta B1 n'est pas qualifiée.**
 
 ## Incréments conservés
 
 - `7e84e0d` : contrats source V3, migration V1/V2, commandes, stockage auteur, logique déclarative, slots de partie et compilateur statique.
-- Incrément suivant : entrée `/studio/`, projets, carte auteur 2D, outils et workflow navigateur. Le jeu V2 et l'ancien éditeur restent accessibles.
+- `4c69f19` : première interface Studio.
+- `fe6c046`, `6092334`, `c914a8f`, `6929a3d`, `a248fef`, `5682345` : atomicité, boucle de jeu/sauvegardes, environnement, viewport 3D, collisions et personnages. Le jeu V2 et l'ancien éditeur restent accessibles.
 
 ## Réalisation et preuves
 
 | Domaine / contrat | Implémenté sur cette branche | Vérification | Suite nécessaire |
 | --- | --- | --- | --- |
 | FND-01 / B1-13 | Source sectorisée clairsemée, index global, composants, prefabs/overrides, références et migration pure déterministe | Carte réelle `maps/default.json` : conservation des PNJ, dialogues, IDs et retour runtime ; V1 sans ajout de PNJ ; retouches à cheval sur secteurs | Autres archives auteur réelles et ergonomie de diagnostic |
-| FND-07 / B1-14 | CommandBus à patches réversibles, historique borné, checkpoints, sélection et contexte communs | Annuler/refaire après rechargement ; transactions multi-secteurs ; restauration de checkpoints | Pinceaux continus et gizmos 3D communs |
+| FND-07 / B1-14 | CommandBus à patches réversibles, historique borné, checkpoints, sélection et contexte communs | Annuler/refaire après rechargement ; transactions multi-secteurs ; restauration de checkpoints | Édition de tracés et caméra détaillée persistée |
 | Stockage auteur | Projets IndexedDB indépendants, sources chargées à la demande, sauvegarde atomique avec révision attendue | 15 contrôles Chromium : multi-projets, conflit, rollback, checkpoint, reprise | Récupération guidée depuis checkpoint dans l'interface |
-| Studio / B1-12 | Accueil, import V1/V2/V3, carte 2D déplaçable/zoomable, recherche, objets/position/échelle, retouches relief et biotopes, dialogue existant réutilisé | Workflow de production Chromium : création, placement, rechargement, historique, import de référence et dialogue | Viewport 3D local, manipulation directe complète, eau/chemins, création PNJ, éditeurs d'actions/mine/parcelles |
+| Studio / B1-12 | Accueil, import V1/V2/V3, carte 2D déplaçable/zoomable, recherche, objets/position/échelle, retouches relief et biotopes, viewport 3D/gizmos/pinceaux, personnages, dialogues, interactions et environnement | Workflow de production Chromium : création, placement, rechargement, historique, import de référence et dialogue | Eau/chemins, patrouilles dessinées, mine/parcelles et formulaires avancés de conditions/actions |
 | Archive / B1-14 | ZIP STORE JSON validé, sources sectorisées et bibliothèques, CRC et chemins contrôlés | Export/réimport unitaires ; téléchargement navigateur | Assets du catalogue intégrés à l'application ; fichiers binaires personnalisés et ZIP compressés non pris en charge |
-| FND-03 / B1-06/07 | Conditions/actions typées, états logiques indépendants du rendu, templates porte/levier/réaction/collecte/livraison/pêche/énigme | Tests logique, limites, séquences différées, inventaire et références inter-secteurs | Raccord complet au jeu et aux formulaires Studio ; scénario B1 de référence |
-| FND-02 / B1-08 | GameSaveV1 et jusqu'à 10 slots locaux par monde, distincts du stockage auteur | Reprise des états persistants et séquences différées, slots corrompus diagnostiqués | UI en jeu, migration de sauvegardes après évolution des contrats ; mine/parcelles non intégrées |
+| FND-03 / B1-06/07 | Conditions/actions typées, états logiques indépendants du rendu, templates porte/levier/réaction/collecte/livraison/pêche/énigme | Tests logique, limites, séquences différées, inventaire et références inter-secteurs | Effets de présentation complets (audio/animation), activités B1 spécialisées et scénario de qualification complet |
+| FND-02 / B1-08 | GameSaveV1 et jusqu'à 10 slots locaux par monde, distincts du stockage auteur | Reprise des états persistants et séquences différées, slots corrompus diagnostiqués | État du bateau/position des PNJ, mine/parcelles et migrations après évolution des contrats |
 | FND-08 | Préflight strict, catalogue local vérifié, compilation déterministe et incrémentale en ressources JSON par secteur | Tests de hashes, dépendances inter-secteurs, assets et sorties sur disque ; compilation depuis Studio | **Pas de meshes/LOD/navmeshes précalculés** ; raccord au streaming runtime |
-| Copie de test / B1-14 | Adaptation temporaire vers le lecteur V2, autre fenêtre, source et historique Studio conservés | Ouverture du test et historique conservé dans Chromium ; anciens tests preview préservés | Lecteur V3 sectorisé et états gameplay jetables ; test V2 limité à 2 km par axe et terrains centrés |
-| FND-04/05/09, B1-01/03/09/10/11 | Contrats documentaires conservés | Aucun statut livré ajouté | Horloge/climat, requêtes de collision 3D, budget commun, carte B1, mine, agriculture et audio à développer |
+| Copie de test / B1-14 | Snapshot V3 logique avec représentation V2, slots temporaires isolés, autre fenêtre, source et historique conservés | Ouverture du test et historique conservé dans Chromium ; anciens tests preview préservés | Lecteur V3 sectorisé ; représentation V2 limitée à 2 km par axe et terrains centrés |
+| FND-04/05, B1-03 | Horloge, climat périodique rejouable, jour/nuit et pluie bornée ; requêtes XYZ, sols/plafonds et colliders logiques | Agrégats continus/différés, temps/slots, barrière fermée/ouverte, trois étages en tests | Ciel avancé, connexions souterraines, climat agricole qualifié et rendu des mines |
+| FND-09, B1-01/09/10/11 | Budget de présentation existant réutilisé, région source 1 km² de démonstration | Tests fonctionnels ; aucune qualification matérielle | Budget transversal complet, densité/contenu de la région, mine, agriculture, audio et benchmarks PC |
 
 ## Vérifications reproductibles
 
@@ -36,6 +38,10 @@ npm run preview -- --host 127.0.0.1 --port 5173 --strictPort
 # Dans un autre terminal, sur ce build :
 npm run test:browser
 npm run test:studio
+npm run test:gameplay
+npm run test:environment
+npm run test:local
+npm run test:characters
 ```
 
 Résultat local de cet incrément : **99 tests unitaires/intégration**, **16 contrôles navigateur existants**, **15 contrôles Studio** ; aucun échec ni erreur JavaScript/HTTP sur ces parcours. Les tests IndexedDB utilisent les modules source via Vite :
@@ -117,3 +123,10 @@ Preuves : **116 tests unitaires/intégration**. Le parcours jeu contient désorm
 - Les contrôles de formulaires Studio possèdent maintenant un libellé accessible explicite, y compris les listes déroulantes.
 
 Preuves : **119 tests unitaires/intégration**, dont création/lien, identité du dialogue après personnalisation, patrouille et overrides, PNJ situé au-delà des anciennes limites avec limites V3 explicites. **6 contrôles navigateur** : création sans JSON → apparence/navigation → dialogue → sauvegarde/rechargement → annulation persistante → personnage réellement présent et conversation ouverte dans le playtest. Navigation hiérarchique avancée, nouvelle morphologie/rig et édition visuelle des patrouilles restent hors de cet incrément.
+
+## Fiabilisation des éditions et rétention des tests
+
+- Les éditions successives de l’inspecteur sont sérialisées à partir de l’état courant. Sauvegarde, export, changement de projet et lancement de test attendent la fin des éditions en cours. Un départ pendant une édition en attente déclenche la protection de fermeture.
+- Matérialiser un composant résolu sur une instance retire ses anciens overrides correspondants, en conservant prefab, variante et overrides des autres composants. Une position ne revient plus silencieusement à une ancienne valeur après édition/déplacement. Test de déplacement entre secteurs avec overrides existants.
+- L’éviction d’un ancien snapshot jetable supprime aussi ses slots temporaires ; les vrais slots et les sources auteur restent distincts.
+- État de validation de cet incrément : **120 tests unitaires/intégration**, build TypeScript/Vite et **17 contrôles Studio** incluant deux changements de coordonnées déclenchés avant la fin de la première édition. Les autres parcours (16 historiques, 12 gameplay, 5 environnement, 10 local, 6 personnages, 15 stockage) restent dans la CI.
