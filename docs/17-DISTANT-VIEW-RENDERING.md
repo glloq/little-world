@@ -234,6 +234,16 @@ Le [contrat MINE 24](24-MINES-MULTILEVEL-LOW-RESOURCE.md) n'autorise pas à réd
 - Les murs/roches/minerais et cristaux sont des LOD locaux, géométrie low-poly, sans terrains voxel mondiaux ni émission de lumière GPU lourde.
 - Une mine ouverte près de l'extérieur peut présenter des coupes/portails ; éviter les **trous de terrain** non voulus et les effets de culling qui font disparaître les passages observables.
 
+## Champs cultivés jusqu'à l'horizon sans simulation de plants lointains
+
+Le [contrat AGRI 25](25-AGRICULTURE-PARCELS-LOW-RESOURCE.md) applique les mêmes principes de profondeur de vue au paysage agricole :
+
+- **LOD0 proche** : plants low-poly `InstancedMesh` réutilisés/éventuel vent local; **LOD1** rangs simplifiés ; **LOD2/3** une teinte/masque sur la parcelle et les grandes rangées, **aucun plant animé loin**.
+- Parcelles cultivées restent **reconnaissables en panorama**, comme les champs de différentes cultures/couleurs, sans brume ni texture plantée pour chaque mètre carré.
+- Le `FarmLODRenderer` utilise taille/importance écran, altitude et vitesse de caméra/planage, charge GPU, **pas le statut agriculteur/visiteur**; la vue détaillée de gestion est un canal de données/UI distinct.
+- Les transitions de stade se font par **invalidation locale du cache de culture**, pas par reconstruction des reliefs/objets/forêts lointains.
+- Benchmarks de **fermes densément visibles** et panaches de couleur à l'horizon, fill-rate, draw calls, triangles, fréquence des mises à jour et absence de popping important.
+
 ## 9. Tests et portes de qualification
 
 **Scènes à couvrir :**
