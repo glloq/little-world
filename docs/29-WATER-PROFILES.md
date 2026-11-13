@@ -32,7 +32,7 @@ profile?: { mode: 'terrain'; offset: number }
 
 Sans `profile`, `level` conserve exactement son sens historique. Les valeurs auteur sont validées en V2/V3 et conservées dans les archives. Le réseau `WaterNetworkDefinitionV3` complet du document 21 reste la cible : cette extension est une étape compatible dans la bibliothèque d’eau existante, pas une implémentation de toute sa topologie.
 
-Le profil automatique dépend du relief sur **l’ensemble du tracé**. La vue locale hydrate les sources de son corridor et leurs propriétaires canoniques ; l’adaptateur inclut ces retouches même si elles sont en amont de la vue. La compilation `little-world-descriptors-4` prend ces dépendances en compte : une retouche amont invalide les secteurs de la rivière concernée, sans invalider les secteurs indépendants. La conversion d’un ancien tracé nettoie aussi ses anciennes références réparties par bounding circle.
+Le profil automatique dépend du relief sur **l’ensemble du tracé**. La vue locale hydrate les sources de son corridor et leurs propriétaires canoniques ; l’adaptateur inclut ces retouches même si elles sont en amont de la vue. La compilation `little-world-descriptors-4` prend ces dépendances en compte : une retouche amont invalide les secteurs de la rivière concernée, sans invalider les secteurs indépendants. La conversion d’un ancien tracé nettoie aussi ses anciennes références réparties par bounding circle ; la suppression nettoie en plus les secteurs conservateurs situés au-delà des extrémités du corridor.
 
 ## Vérifications et limites
 
@@ -40,7 +40,7 @@ Le profil automatique dépend du relief sur **l’ensemble du tracé**. La vue l
 - Chromium sur le build : tracer, appliquer, exporter, annuler/refaire, niveaux manuels, rejet d’une contre-pente sans écrasement, sauvegarder/recharger, présence réelle du mesh en vue 3D et contrôles de l’éditeur historique.
 - Chromium sur les modules source : chargement différé des retouches amont sans hydrater les secteurs indépendants, pente réelle du mesh, correspondance avec la surface logique, profondeur/immersion, modification après retouche, libération des anciennes géométries, absence de reconstruction inutile et suppression.
 
-Résultat local : **145 tests unitaires/intégration**, **11 contrôles navigateur auteur**, **8 contrôles source/3D/IndexedDB**, typecheck et build réussis. La CI de branche exécute aussi les parcours préexistants.
+Résultat local : **146 tests unitaires/intégration**, **11 contrôles navigateur auteur**, **8 contrôles source/3D/IndexedDB**, typecheck et build réussis. La CI de branche exécute aussi les parcours préexistants.
 
 Commandes : `npm test`, `npm run build`, `npm run test:water` sur le preview ; `node tests/water-engine.browser.mjs <base-url>` sur Vite source. Captures Actions : `water-profile.png`, `water-3d.png`.
 

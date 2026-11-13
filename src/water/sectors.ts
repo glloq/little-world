@@ -27,6 +27,7 @@ export function waterTerrainIds(project:ProjectDocument,waterIds:string[]):strin
 export function waterEditChunkIds(project:ProjectDocument,before:WaterBody|undefined,after:WaterBody|undefined):string[]{
  const ids=new Set(after?waterChunkIds(project.world,after):[]);
  if(before){
+  for(const id of waterChunkIds(project.world,before))if(project.chunkIndex[id])ids.add(id);
   const xs=before.points.map(p=>p.x),zs=before.points.map(p=>p.z),minX=Math.min(...xs),maxX=Math.max(...xs),minZ=Math.min(...zs),maxZ=Math.max(...zs);
   for(const id of affectedChunkIds(project.world,(minX+maxX)/2,(minZ+maxZ)/2,Math.hypot(maxX-minX,maxZ-minZ)/2+before.width/2+2))if(project.chunkIndex[id])ids.add(id);
  }

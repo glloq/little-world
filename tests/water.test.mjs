@@ -5,7 +5,7 @@ import {waterRibbonData} from '../src/water/geometry.ts';
 import {createTerrainSource,configureTerrain,compiledWaterBodies,waterSurface,waterDepth,terrainHeight} from '../src/terrain.ts';
 import {defaultWorld,parseWorld} from '../src/world-data.ts';
 import {migrateWorldToV3,toRuntimeWorld} from '../src/studio-core/migration.ts';
-import {parseProject,chunkAt} from '../src/studio-core/schema.ts';
+import {createProject,parseProject,chunkAt} from '../src/studio-core/schema.ts';
 import {putWater,removeWater,putTerrainEdit} from '../src/studio-core/source.ts';
 import {writeProjectArchive,readProjectArchive} from '../src/studio-core/archive.ts';
 import {compileProject} from '../src/world-compiler/compile.ts';
@@ -69,4 +69,12 @@ test('a local preview includes upstream canonical edits, and water chunks rebuil
  const b=await compileProject(p,{...options,previous:a.manifest});
  for(const c of Object.values(p.chunks).filter(c=>c.waterRefs.includes('stream')))assert.ok(b.rebuiltChunkIds.includes(c.chunkId));
  for(const c of Object.values(p.chunks).filter(c=>!c.waterRefs.includes('stream')&&!c.terrainRefs.includes('upstream')))assert.ok(!b.rebuiltChunkIds.includes(c.chunkId));
+});
+
+test('deleting a newly drawn water corridor clears conservative references beyond its endpoint sectors',()=>{
+ const p=createProject({name:'Removal boundary',width:400,length:600});
+ putWater(p,{id:'boundary-water',points:[{x:-40,z:-280},{x:-40,z:-184}],width:8,depth:2,level:4});
+ assert.ok(p.chunks['2:2'].waterRefs.includes('boundary-water'));
+ removeWater(p,'boundary-water');parseProject(p);
+ assert.ok(Object.values(p.chunks).every(c=>c.waterRefs.length===0));
 });
