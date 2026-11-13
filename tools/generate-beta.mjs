@@ -5,9 +5,11 @@ import {chunkAt,parseProject} from '../src/studio-core/schema.ts';
 import {putEntity} from '../src/studio-core/source.ts';
 import {gameplayDataFromProject} from '../src/gameplay/project-adapter.ts';
 import {makeCollect,makeDeliver,makePuzzle} from '../src/gameplay/templates.ts';
+import {defaultEnvironment} from '../src/environment/climate.ts';
 import {parsePlayableWorld} from '../src/gameplay/playable.ts';
 const base=JSON.parse(await readFile(new URL('../maps/default.json',import.meta.url),'utf8'));base.name='Clairière des petits services';base.config.width=1000;base.config.length=1000;
 const {project:p}=migrateWorldToV3(base,{projectId:'little-world-beta-authoring',worldId:'little-world-beta'});
+p.world.environment=defaultEnvironment(p.world.seed);
 function prop(id,name,assetId,x,z,initial={},prompt){const ownerChunkId=chunkAt(p.world,x,z);const e={id,name,kind:'prop',ownerChunkId,components:{Transform:{type:'Transform',position:{x,y:0,z},rotation:{x:0,y:0,z:0,w:1},scale:{x:1,y:1,z:1}},Visual:{type:'Visual',assetId},State:{type:'State',initial},Persistence:{type:'Persistence',fields:Object.keys(initial)},...(prompt?{Interactable:{type:'Interactable',prompt,range:4,interactionIds:['action:'+id]}}:{})}};putEntity(p,e);return e;}
 prop('beta-acorn','Panier de glands','props.crate',-24,-180,{collected:false},'Ramasser un gland');
 prop('beta-lever','Levier de la clairière','props.crate',-20,-180,{active:false},'Actionner le levier');
@@ -22,5 +24,5 @@ p.libraries.interactions['action:beta-lever']={id:'action:beta-lever',trigger:{t
 p.libraries.interactions['action:beta-panel']=makePuzzle('action:beta-panel','beta-panel','beta-gate',[{type:'stateEquals',entityId:'beta-lever',key:'active',value:true}]);
 p.libraries.activities['activity:delivery']={id:'activity:delivery',kind:'deliver',name:'Le petit service de Galopin',interactionIds:['action:beta-acorn','action:delivery'],objectiveId:'delivery'};p.libraries.activities['activity:puzzle']={id:'activity:puzzle',kind:'puzzle',name:'Le levier et la lanterne',interactionIds:['action:beta-lever','action:beta-panel']};
 // The old authored conversation is still a valid library entry; its actor keeps the same stable ID.
-const project=parseProject(p),bundle=parsePlayableWorld({schemaVersion:1,kind:'playable-world',world:toRuntimeWorld(project),gameplay:gameplayDataFromProject(project,'beta-g1-v1'),spawn:{x:-24,y:0,z:-183}});
+const project=parseProject(p),bundle=parsePlayableWorld({schemaVersion:1,kind:'playable-world',world:toRuntimeWorld(project),gameplay:gameplayDataFromProject(project,'beta-g2-v2'),spawn:{x:-24,y:0,z:-183}});
 await writeFile(new URL('../maps/beta.project.json',import.meta.url),JSON.stringify(project,null,2)+'\n');await writeFile(new URL('../public/maps/beta.project.json',import.meta.url),JSON.stringify(project)+'\n');await writeFile(new URL('../public/maps/beta.json',import.meta.url),JSON.stringify(bundle)+'\n');console.log('Beta fixture: 1000 × 1000 m source, 4 NPCs, collection/delivery and two-step mechanism; not qualified B1.');

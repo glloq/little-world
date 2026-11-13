@@ -1,3 +1,4 @@
+import {parseEnvironmentDefinition} from '../environment/climate.ts';
 import catalogue from '../../assets/catalog.json' with {type:'json'};
 import { EMOTIONS } from '../character-style.ts';
 import { validDialogue } from '../dialogue.ts';
@@ -27,8 +28,9 @@ export function parseManifest(value:unknown):StudioProjectV3{
   return structuredClone(v) as unknown as StudioProjectV3;
 }
 export function parseWorldV3(value:unknown):WorldDefinitionV3{
-  const v=object(value,'Monde');keys(v,['schemaVersion','worldId','seed','generatorVersion','bounds','seaLevel','chunkSizeM','coordinateSystem','chunkIndexRef','density','viewDistance','editSequence'],'Monde');
+  const v=object(value,'Monde');keys(v,['schemaVersion','worldId','seed','generatorVersion','bounds','seaLevel','chunkSizeM','coordinateSystem','chunkIndexRef','density','viewDistance','editSequence','environment'],'Monde');
   if(v.schemaVersion!==3||v.generatorVersion!=='1'||v.coordinateSystem!=='meters-y-up')throw Error('Version ou coordonnées de monde incompatibles');
+  if(v.environment!==undefined)parseEnvironmentDefinition(v.environment);
   string(v.worldId,'ID monde');integer(v.editSequence,'Séquence retouches');integer(v.seed,'Graine',1,9999999);finite(v.seaLevel,'Mer',-20,20);finite(v.chunkSizeM,'Taille de secteur',16,512);finite(v.density,'Densité',0,2);finite(v.viewDistance,'Distance visible',64,800);localPath(v.chunkIndexRef,'Index secteurs');
   const b=object(v.bounds,'Limites');keys(b,['minX','maxX','minZ','maxZ'],'Limites');for(const key of ['minX','maxX','minZ','maxZ'])finite(b[key],'Limites',-100000,100000);
   for(const [lo,hi] of [['minX','maxX'],['minZ','maxZ']])finite((b[hi] as number)-(b[lo] as number),'Dimensions',1,10000);

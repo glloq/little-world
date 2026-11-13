@@ -6,6 +6,8 @@ import {
 } from './frame-clock';
 import './style.css';
 import type {PlayableWorld,StudioPlaytest} from './gameplay/playable.ts';
+import {WorldClock} from './environment/clock.ts';
+import {createClimate,defaultEnvironment} from './environment/climate.ts';
 import type {GameplayView} from './gameplay/game-view.ts';
 import { addPlacement, buildWorld, configureScene } from './world';
 import { defaultWorld, parseWorld } from './world-data';
@@ -45,7 +47,7 @@ const message = document.querySelector<HTMLElement>('#message')!;
 const overlay = document.querySelector<HTMLElement>('#start-overlay')!;
 const start = document.querySelector<HTMLButtonElement>('#start')!;
 const scene = new THREE.Scene();
-configureScene(scene);
+const lighting=configureScene(scene);
 const camera = new THREE.PerspectiveCamera(66, 1, 0.1, 750);
 const renderer = new THREE.WebGLRenderer({
   antialias: true,
@@ -131,6 +133,9 @@ if(playable){
 }
 const npcs = createNPCSystem(scene, definition.npcs,undefined,gameplay?.dialogueSession);
 gameplay?.attachNPCs(npcs.states);
+const worldClock=gameplay?.runtime.clock??new WorldClock(),climate=gameplay?.runtime.climate??createClimate(defaultEnvironment(definition.config.seed));
+const {createEnvironmentView}=await import('./environment/view.ts');
+const environment=createEnvironmentView(scene,lighting,worldClock,climate);
 world.update(0, player.position);
 const squirrel = buildSquirrel();
 scene.add(squirrel.group);
@@ -204,7 +209,7 @@ function resetCameraDrag(): void {
   renderer.domElement.classList.remove('dragging-camera');
 }
 window.addEventListener('keydown', (e) => {
-  if(gameplay?.isOpen)return;
+  if(gameplay?.isOpen||e.target instanceof HTMLInputElement||e.target instanceof HTMLTextAreaElement||e.target instanceof HTMLSelectElement)return;
   // Read the typed character: AZERTY 'A' is physically KeyQ, QWERTY 'A' is KeyA.
   if (isMenuKey(e)) {
     e.preventDefault();
@@ -356,7 +361,7 @@ function updateHud() {
 }
 function tick(dt: number) {
   if (!started) return;
-  gameplay?.update(dt);
+  if(gameplay)gameplay.update(dt);else worldClock.advance(dt);
   const keys = input();
   if (aboard) {
     updateBoat(boat, { throttle: keys.forward, steer: keys.right }, dt);
@@ -432,6 +437,7 @@ function draw(now: number) {
     player.position,
     frame.alpha,
   );
+  environment.update(delta,player.position,budget.level);
   world.update(delta, player.position);
   npcs.update(delta, elapsed, player.position); // The river drives the mill: no manual on/off control.
   world.boat.position.set(
@@ -457,6 +463,7 @@ function draw(now: number) {
         triangles: renderer.info.render.triangles,
         geometries: renderer.info.memory.geometries,
         chunks: { ...world.stats },
+        environment:environment.metrics,
         position: player.position.toArray(),
         renderRate: budget.rate,
         qualityLevel: budget.level,

@@ -1,3 +1,5 @@
+import {WorldClock} from '../environment/clock.ts';
+import {createClimate,defaultEnvironment} from '../environment/climate.ts';
 import {finite,gameplayLimits,parseGameplayData,type ActionStep,type ConditionExpr,type GameplayData,type ObjectiveStatus,type Point3,type StateValue,type TriggerDefinition} from './schema.ts';
 import {parseGameSave,type GameSaveV1} from './save.ts';
 export interface GameplayEvent {type:TriggerDefinition['type'];entityId?:string;zoneId?:string;dialogueId?:string;choiceId?:string;timerId?:string;key?:string;animation?:string;objectiveId?:string;eventId?:string;depth?:number;}
@@ -6,11 +8,13 @@ export interface GameplayState {time:number;entities:Record<string,Record<string
 interface Job {interactionId:string;sequence:ActionStep[];cursor:number;wakeAt:number;depth:number;}
 const dictionary=<T>():Record<string,T>=>Object.create(null) as Record<string,T>;
 export function createGameplay(raw:GameplayData){
+  const clock=new WorldClock();
   const data=parseGameplayData(raw),entities=new Map(data.entities.map(e=>[e.id,e])),interactions=new Map(data.interactions.map(i=>[i.id,i])),items=new Map(data.items.map(i=>[i.id,i])),dialogues=new Map(data.dialogues.map(d=>[d.id,d]));
   const state:GameplayState={time:0,entities:dictionary(),variables:dictionary(),inventory:dictionary(),objectives:dictionary(),executed:dictionary(),cooldowns:dictionary(),dialogueFlags:dictionary(),playerPosition:{x:0,y:0,z:0},diagnostics:[],metrics:{events:0,actions:0,started:0}};
   for(const e of data.entities)state.entities[e.id]=Object.assign(dictionary<StateValue>(),e.initialState);
   for(const v of data.variables)state.variables[v.id]=v.initialValue;
   for(const o of data.objectives)state.objectives[o.id]=o.initialStatus;
+  const climate=createClimate(data.environment??defaultEnvironment());
   const events:GameplayEvent[]=[],jobs:Job[]=[],effects:GameplayEffect[]=[];
   const eventKey=(event:GameplayEvent|TriggerDefinition):string=>{
     const field=event.type==='onInteract'||event.type==='onStateChanged'||event.type==='onAnimationFinished'?'entityId':event.type==='onEnterZone'||event.type==='onExitZone'?'zoneId':event.type==='onDialogueChoice'?'dialogueId':event.type==='onTimer'?'timerId':event.type==='onObjectiveChanged'?'objectiveId':'eventId';
@@ -104,7 +108,7 @@ export function createGameplay(raw:GameplayData){
     }finally{pumping=false;}
   }
   function emit(event:GameplayEvent){if(!listeners.has(eventKey(event)))return;enqueue(event);pump();}
-  function update(dt:number){if(!Number.isFinite(dt)||dt<0||dt>60)throw Error('Pas de temps gameplay invalide');state.time+=dt;let emitted=0;for(const timer of timers){while(state.time+1e-9>=timer.next&&emitted<16){enqueue({type:'onTimer',timerId:timer.trigger.timerId});timer.next+=timer.trigger.interval;emitted++;}if(state.time>=timer.next)timer.next=state.time+timer.trigger.interval;}pump();}
+  function update(dt:number){if(!Number.isFinite(dt)||dt<0||dt>60)throw Error('Pas de temps gameplay invalide');state.time=clock.advance(dt);let emitted=0;for(const timer of timers){while(state.time+1e-9>=timer.next&&emitted<16){enqueue({type:'onTimer',timerId:timer.trigger.timerId});timer.next+=timer.trigger.interval;emitted++;}if(state.time>=timer.next)timer.next=state.time+timer.trigger.interval;}pump();}
   function interact(entityId:string,position?:Point3):boolean {
     const entity=entities.get(entityId);if(!entity?.interactable)return false;
     if(position)state.playerPosition={...position};const p=entity.position;
@@ -131,7 +135,7 @@ export function createGameplay(raw:GameplayData){
   function restore(raw:GameSaveV1):string[]{
     const saved=parseGameSave(raw);if(saved.worldId!==data.worldId)throw Error('Sauvegarde d’un autre monde');
     const warnings:string[]=[];if(saved.worldBuildVersion!==data.buildVersion)warnings.push('Version de monde différente ; références contrôlées.');
-    state.time=saved.time;state.playerPosition={...saved.position};events.length=0;jobs.length=0;effects.length=0;
+    clock.restore(saved.time);state.time=clock.time;state.playerPosition={...saved.position};events.length=0;jobs.length=0;effects.length=0;
     for(const e of data.entities)state.entities[e.id]=Object.assign(dictionary<StateValue>(),e.initialState);
     for(const v of data.variables)state.variables[v.id]=v.initialValue;
     for(const o of data.objectives)state.objectives[o.id]=o.initialStatus;
@@ -148,6 +152,6 @@ export function createGameplay(raw:GameplayData){
     for(const timer of timers)timer.next=state.time+timer.trigger.interval;
     return warnings;
   }
-  return {data,state,emit,update,interact,evaluate,setEntityPosition(id:string,position:Point3){const entity=entities.get(id);if(!entity||!finite(position.x,-100000,100000)||!finite(position.y,-10000,10000)||!finite(position.z,-100000,100000))throw Error('Position logique invalide');entity.position={...position};},dialogueChoice,enterDialogueLine,availableChoices,save,restore,drainEffects(){return effects.splice(0);},get pendingSequences(){return jobs.length;}};
+  return {data,state,clock,climate,emit,update,interact,evaluate,setEntityPosition(id:string,position:Point3){const entity=entities.get(id);if(!entity||!finite(position.x,-100000,100000)||!finite(position.y,-10000,10000)||!finite(position.z,-100000,100000))throw Error('Position logique invalide');entity.position={...position};},dialogueChoice,enterDialogueLine,availableChoices,save,restore,drainEffects(){return effects.splice(0);},get pendingSequences(){return jobs.length;}};
 }
 export type GameplayRuntime=ReturnType<typeof createGameplay>;

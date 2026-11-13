@@ -1,3 +1,4 @@
+import {defaultEnvironment} from '../environment/climate.ts';
 import type {ProjectDocument,EntityDefinitionV3} from '../studio-core/types.ts';
 import {parseGameplayData,type GameplayData,type GameplayEntity} from './schema.ts';
 /** Logical index metadata, including unloaded sectors, supplies initial gameplay state. */
@@ -9,6 +10,6 @@ export function gameplayDataFromProject(project:ProjectDocument,buildVersion='so
       initialState:logical?.initialState??components?.State?.initial??{},persistentState:logical?.persistentState??components?.Persistence?.fields??[],dialogueIds:(index.references??[]).filter(id=>!!project.libraries.dialogues[id]),
       ...((logical?.interactable??components?.Interactable)?{interactable:logical?.interactable??components?.Interactable}:{})};
   });
-  return parseGameplayData({worldId:project.world.worldId,buildVersion,entities,
+  return parseGameplayData({environment:project.world.environment??defaultEnvironment(project.world.seed),worldId:project.world.worldId,buildVersion,entities,
     variables:Object.values(project.libraries.variables),interactions:Object.values(project.libraries.interactions),items:Object.values(project.libraries.items),objectives:Object.values(project.libraries.objectives),dialogues:Object.values(project.libraries.dialogues),activities:Object.values(project.libraries.activities)});
 }

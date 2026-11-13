@@ -32,7 +32,15 @@
     "chunkIndexRef": "world/chunk-index.json",
     "density": 1,
     "viewDistance": 240,
-    "editSequence": 0
+    "editSequence": 0,
+    "environment": {
+      "schemaVersion": 1,
+      "generatorVersion": 1,
+      "weatherSeed": 1284,
+      "dayLengthSeconds": 1200,
+      "initialDayPhase": 0.36,
+      "weatherPeriodSeconds": 180
+    }
   },
   "chunkIndex": {
     "7:7": {

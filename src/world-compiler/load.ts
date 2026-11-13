@@ -1,3 +1,4 @@
+import {parseEnvironmentDefinition} from '../environment/climate.ts';
 import {parseComponents} from '../studio-core/schema.ts';
 import {hashText,utf8Bytes,type CompiledChunkData,type CompiledChunkDescriptor,type CompiledWorldManifest} from './manifests.ts';
 const record=(v:unknown):v is Record<string,unknown>=>typeof v==='object'&&v!==null&&!Array.isArray(v);
@@ -8,6 +9,7 @@ const local=(v:unknown):v is string=>typeof v==='string'&&/^[a-zA-Z0-9_./-]+\.js
 function bounds(v:unknown){return record(v)&&['minX','maxX','minZ','maxZ'].every(key=>number(v[key],-100000,100000))&&number((v.maxX as number)-(v.minX as number),1,10000)&&number((v.maxZ as number)-(v.minZ as number),1,10000);}
 export function parseCompiledManifest(value:unknown):CompiledWorldManifest {
  if(!record(value)||value.schemaVersion!==1||value.kind!=='compiled-world'||value.coordinateSystem!=='meters-y-up'||!text(value.worldId)||!text(value.projectId)||!text(value.compilerVersion)||!text(value.buildVersion)||!hash(value.sourceHash)||!bounds(value.bounds)||!number(value.seed,1,9999999)||!text(value.generatorVersion)||!number(value.seaLevel,-20,20)||!number(value.chunkSizeM,16,512))throw Error('Invalid compiled world manifest');
+ if(value.environment!==undefined)parseEnvironmentDefinition(value.environment);
  if(!record(value.capabilities)||value.capabilities.bakedMeshes!==false||value.capabilities.bakedLOD!==false||value.capabilities.navigation!=='source-descriptors'||value.capabilities.collisions!=='source-descriptors'||value.capabilities.sparseSourceChunks!==true)throw Error('Unsupported compiled world capabilities');
  if(!Array.isArray(value.chunks)||value.chunks.length>30000||!Array.isArray(value.entityIndex)||value.entityIndex.length>100000||!Array.isArray(value.assets)||value.assets.length>10000||!record(value.logic)||!local(value.logic.url)||!hash(value.logic.hash)||!number(value.logic.byteLength,1,16*1024*1024))throw Error('Invalid compiled world index');
  const ids=new Set<string>();

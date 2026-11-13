@@ -27,7 +27,8 @@ async function home(){
 }
 async function open(id:string){dispose();unsubscribe();session=await StudioSession.open(store,id);const s=session;unsubscribe=s.subscribe(()=>{refreshHeader();});await module(s.selection.state.activeModule==='dialogues'?'dialogues':'map');refreshHeader();}
 async function module(id:string){
- const s=session!;dispose();dispose=()=>{};map=null;s.selection.openModule(id);$('tools').replaceChildren();$('inspector').replaceChildren();$('modules').replaceChildren(...[['map','Carte globale'],['objects','Objets'],['terrain','Relief'],['biomes','Biotopes'],['dialogues','Dialogues'],['interactions','Interactions'],['tests','Validation / compilation']].map(([key,label])=>{const b=action(label,()=>module(key));b.classList.toggle('active',key===id);return b;}));
+ const s=session!;dispose();dispose=()=>{};map=null;s.selection.openModule(id);$('tools').replaceChildren();$('inspector').replaceChildren();$('modules').replaceChildren(...[['map','Carte globale'],['objects','Objets'],['terrain','Relief'],['biomes','Biotopes'],['dialogues','Dialogues'],['interactions','Interactions'],['environment','Environnement'],['tests','Validation / compilation']].map(([key,label])=>{const b=action(label,()=>module(key));b.classList.toggle('active',key===id);return b;}));
+ if(id==='environment'){const {mountEnvironment}=await import('./environment-view.ts');mountEnvironment($('workspace'),s);return;}
  if(id==='interactions'){const {mountInteractions}=await import('./interactions-view.ts');await mountInteractions($('workspace'),s);return;}
  if(id==='tests'){await diagnostics();return;}
  if(id==='dialogues'){await dialogues();return;}

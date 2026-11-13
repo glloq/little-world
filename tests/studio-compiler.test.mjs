@@ -108,3 +108,6 @@ test('runtime manifest/chunk loaders use relative local URLs and reject corrupt 
  compiled.files[descriptor.url]+=' ';await assert.rejects(loadCompiledChunk(base,manifest,descriptor.chunkId,fetcher),/hash\/size/);
  const invalid=structuredClone(manifest);invalid.chunks[0].url='../secret.json';assert.throws(()=>parseCompiledManifest(invalid),/chunk descriptor/);
 });
+test('authored environment survives portable compilation and invalid definitions fail preflight',async()=>{
+ const p=fixture();p.world.environment={schemaVersion:1,generatorVersion:1,weatherSeed:42,dayLengthSeconds:900,initialDayPhase:.7,weatherPeriodSeconds:120};const output=await compile(p);assert.deepEqual(output.manifest.environment,p.world.environment);assert.deepEqual(parseCompiledManifest(output.manifest).environment,p.world.environment);const bad=structuredClone(p);bad.world.environment.dayLengthSeconds=-1;await assert.rejects(()=>compile(bad));
+});
