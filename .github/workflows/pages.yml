@@ -26,18 +26,29 @@ jobs:
           node-version: '22'
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
+      - name: Use the compiled application as Pages source
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const {ensureWorkflowPages} = await import(`${process.env.GITHUB_WORKSPACE}/tools/pages-source.mjs`);
+            await ensureWorkflowPages({github, context, core});
       - name: Unit tests
         run: npm test
       - name: Typecheck and build
         run: npm run build
+      - name: Identify the published revision
+        run: printf '{"revision":"%s"}\n' "$GITHUB_SHA" > dist/deployment.json
       - name: Verify static output
+        run: node tools/verify-static-build.mjs
+      - name: Check application startup on the production build
         run: |
-          test -f dist/index.html
-          test -f dist/editor/index.html
-          test -d dist/assets
-          test -f dist/models/pine.glb
-          test -f dist/models/rock.glb
-          test -f dist/models/crate.glb
+          npx playwright install --with-deps chromium
+          npm run preview -- --host 127.0.0.1 --port 5173 --strictPort > /tmp/little-world-preview.log 2>&1 &
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:5173/little-world/ > /dev/null; then break; fi
+            sleep 1
+          done
+          node tools/test-published-browser.mjs http://127.0.0.1:5173/little-world/
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload build
@@ -55,3 +66,25 @@ jobs:
       - name: Deploy Pages
         id: deployment
         uses: actions/deploy-pages@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --no-audit --no-fund
+      - name: Verify the public game, Studio and editor
+        env:
+          WORLD_URL: ${{ steps.deployment.outputs.page_url }}
+          EXPECTED_REVISION: ${{ github.sha }}
+        run: |
+          npx playwright install --with-deps chromium
+          # Allow bounded propagation through the Pages CDN, but keep a real failure red.
+          for attempt in 1 2 3; do
+            if node tools/test-published-browser.mjs; then exit 0; fi
+            if [ "$attempt" -lt 3 ]; then sleep 10; fi
+          done
+          exit 1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: published-browser-artifacts
+          path: /tmp/little-world-browser

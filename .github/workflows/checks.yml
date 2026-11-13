@@ -23,6 +23,7 @@ jobs:
       - run: npm run compile:map -- maps/default.json public/maps/default.json
       - run: git diff --exit-code -- public/maps
       - run: npm run build
+      - run: node tools/verify-static-build.mjs
       - run: npx playwright install --with-deps chromium
       - name: Start production preview
         run: |
@@ -34,6 +35,8 @@ jobs:
           curl -fsS http://127.0.0.1:5173/little-world/ > /dev/null
       - name: Legacy game and editor browser checks
         run: node tools/run-browser-check.mjs legacy
+      - name: Compiled application startup checks
+        run: node tools/run-browser-check.mjs published
       - name: Studio browser checks
         run: node tools/run-browser-check.mjs studio
       - name: Gameplay and saves browser checks

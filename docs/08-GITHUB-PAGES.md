@@ -1,6 +1,22 @@
 # 08 — GitHub Pages — hébergement statique de Little World
 
-**Statut :** le workflow Pages de main est conservé et utilise désormais `npm ci`. Un workflow de validation des branches/PR compile la carte, exécute les tests et le build puis le parcours navigateur sur les fichiers statiques. La campagne actuelle est livrée sur une branche ; son déploiement public n’est pas effectué. Les succès de déploiement historiques mentionnés ci-dessous ne valident pas cette nouvelle révision.
+**Statut :** le prototype V3 précédant l’audio a été fusionné sur `main` (`f4a4433`). Les ajouts audio et le correctif de publication sont sur `feat/studio-v3`. Un succès de build seul ne certifie pas que le site public sert le bon artefact. Le workflow corrigé contrôle les trois interfaces avant publication puis sur leur URL publique.
+
+## Incident : site public affichant uniquement du texte
+
+Le 13 novembre 2026, deux publications ont été déclenchées par le même merge sur `main` : [le build Vite](https://github.com/glloq/little-world/actions/runs/43391489642) et [le workflow Pages automatique](https://github.com/glloq/little-world/actions/runs/43391488649). Tous deux réussissent ; le second termine après le premier et peut remplacer l’application compilée par les sources. Le HTML source contient `/src/main.ts` et importe le CSS depuis TypeScript : un serveur statique ne peut pas exécuter ces sources et laisse le texte HTML sans interface ni scène. Ce symptôme est reproduit en servant le dépôt sans Vite.
+
+**Remise en service immédiate (administration du dépôt) :**
+
+1. Dans [Settings → Pages](https://github.com/glloq/little-world/settings/pages), choisir **Build and deployment → Source → GitHub Actions**, et non **Deploy from a branch**.
+2. Dans Actions, relancer **Build and deploy Little World** sur `main`. Ne pas relancer le workflow automatique **pages build and deployment** qui distribue les sources.
+3. Attendre la fin du déploiement, puis actualiser le site avec Ctrl+F5. L’audio arrivera après fusion de la branche qui le contient.
+
+Le correctif fait lire la configuration Pages par le workflow. Si la source est encore `legacy`, il tente de la passer à `workflow` avec le jeton Actions disposant de `pages:write`. Si GitHub refuse ce changement, il arrête la publication avec le chemin exact du réglage manuel ; aucun jeton personnel n’est nécessaire dans le navigateur. Une publication automatique déjà lancée doit finir avant la relance manuelle.
+
+`node tools/verify-static-build.mjs` refuse un artefact contenant les HTML source, contrôle les JS/CSS compilés et les trois pages. `node tools/test-published-browser.mjs <base-url>` vérifie leurs ressources et leur type MIME, démarre le jeu avec une scène animée, crée un projet dans le Studio et ouvre la scène de l’éditeur. Ce test tourne avant publication et après déploiement, sur l’URL publique, avec captures dans les artefacts Actions. Le contrôle public compare aussi `deployment.json` au commit attendu ; trois tentatives bornées laissent le CDN se mettre à jour. Le projet de test reste dans le navigateur éphémère de la CI.
+
+L’environnement cloud de cette réparation ne permet pas de joindre `glloq.github.io` (HTTP 403 du proxy) ni de modifier les paramètres d’administration GitHub. La preuve publique doit donc être fournie par ce contrôle post-déploiement ; les contrôles locaux sur le build de production ne sont pas présentés comme un site public déjà réparé.
 
 
 ## Objectif
