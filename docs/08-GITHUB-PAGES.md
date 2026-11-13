@@ -131,6 +131,16 @@ La [spécification MINE 24](24-MINES-MULTILEVEL-LOW-RESOURCE.md) ajoute un syst�
 - Chargement/streaming des **seules mines/étages proches et connecteurs utiles**, assets low-poly ; aucun téléchargement d'un volume voxel 100 km².
 - Préserver le `BASE_URL` Vite pour GLB de mine, manifestes et chunks. Les licences/format/IDs restent vérifiés à l'export.
 
+## Parcelles agricoles : build statique, progression solo et serveur futur
+
+**Contrat :** [25 — AGRI par parcelles](25-AGRICULTURE-PARCELS-LOW-RESOURCE.md).
+
+- Le build **GitHub Pages** distribue **`FarmPlotDefinitionV3`**, polygones/profils d'espèce/sol, visuels et manifestes par secteurs, **pas** les récoltes et états privés des joueurs.
+- **Solo statique** : `FarmPlotState`, événements, temps agricole et résumé climatique nécessaires sont dans une **sauvegarde locale de partie**. Les parcelles se mettent à jour **de manière différée à la reprise**, sans service réseau et sans tick lorsque le jeu est fermé.
+- **Futur multijoueur** : serveur distinct exigé pour **horloge, historique climatique, droits, stock, état persistant, actions et récoltes atomiques** ; **GitHub Pages ne peut pas synchroniser les fermes de plusieurs personnes**.
+- Charger les assets/rangs de plantes proches seulement à la demande ; le lointain utilise **une couleur/masque de parcelle**, sans download de milliers de modèles par champ.
+- Les fichiers/archives V3 sauvegardent les **sources auteur** ; aucune banque d'états de partie publics ou autorité agricole dans le HTML statique. Base Vite/chemins d'assets à tester.
+
 ## Limites et décisions
 
 - GitHub Pages est adapté au **jeu solo** : la logique de mouvement et d'interaction s'exécute sur le PC du joueur.
