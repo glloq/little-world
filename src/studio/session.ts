@@ -1,5 +1,6 @@
 import {waterChunkIds} from '../water/sectors.ts';
-import {CommandBus,type EditPatch} from '../studio-core/commands.ts';
+import {CommandBus} from '../studio-core/commands.ts';
+import {editDocument} from '../studio-core/edit.ts';
 import {SelectionService} from '../studio-core/context.ts';
 import {ProjectStore,type StoredProject} from '../studio-core/project-store.ts';
 import {parseChunk,parseWorldV3} from '../studio-core/schema.ts';
@@ -44,18 +45,7 @@ export class StudioSession {
  }
  /** Copy touched sectors only, then derive field patches. No complete world snapshots. */
  async change(label:string,ids:string[],edit:(draft:ProjectDocument)=>void){
-  await this.hydrate(ids);const p=this.document,draft={...p,world:{...p.world},manifest:{...p.manifest},chunks:{...p.chunks},chunkIndex:{...p.chunkIndex},entityIndex:{...p.entityIndex},libraries:{...p.libraries}};
-  for(const id of ids){if(p.chunks[id])draft.chunks[id]=structuredClone(p.chunks[id]);if(p.chunkIndex[id])draft.chunkIndex[id]=structuredClone(p.chunkIndex[id]);}
-  edit(draft);const patches:EditPatch[]=[];
-  const diff=(before:unknown,after:unknown,path:string[])=>{
-   if(before===after)return;
-   if(before&&after&&typeof before==='object'&&typeof after==='object'&&!Array.isArray(before)&&!Array.isArray(after)){
-    const a=before as Record<string,unknown>,b=after as Record<string,unknown>;
-    for(const key of new Set([...Object.keys(a),...Object.keys(b)]))diff(a[key],b[key],[...path,key]);
-   }else if(JSON.stringify(before)!==JSON.stringify(after))patches.push(after===undefined?this.commands.removePatch(path):this.commands.patch(path,after));
-  };
-  for(const key of ['world','manifest','chunks','chunkIndex','entityIndex','libraries'] as const)diff(p[key],draft[key],[key]);
-  this.commands.execute(label,patches,ids);
+  await this.hydrate(ids);return editDocument(this.commands,label,ids,edit);
  }
  async flush():Promise<void>{
   clearTimeout(this.timer);if(this.saving){await this.saving;if(this.pending)return this.flush();return;}

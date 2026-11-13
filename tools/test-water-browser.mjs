@@ -9,7 +9,7 @@ let checks=0;const check=(v,m)=>{assert.ok(v,m);checks++;};
 try{
  const page=await browser.newPage({viewport:{width:1440,height:1000}}),errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>d.accept());
  page.setDefaultTimeout(45000);
- await page.goto(base+'studio/');await page.getByLabel('Nom du projet').fill('Hydro navigateur');await page.getByLabel('Dimensions').selectOption('200');await page.getByRole('button',{name:'Créer le projet',exact:true}).click();await page.locator('#workspace canvas').waitFor();
+ await page.goto(base+'studio/');await page.getByLabel('Nom du projet').fill('Hydro navigateur');await page.getByLabel('Dimensions').selectOption('200');await page.getByRole('button',{name:'Créer le projet',exact:true}).click();await page.locator('.viewport canvas').waitFor();
  await page.getByRole('button',{name:'Eau',exact:true}).click();
  const map=page.getByLabel('Tracer le cours d’eau de l’amont vers l’aval');await map.waitFor();
  const r=await map.boundingBox();
@@ -30,8 +30,8 @@ try{
  await page.getByRole('button',{name:'Inverser amont / aval',exact:true}).click();await page.getByRole('button',{name:'Appliquer le tracé',exact:true}).click();await page.getByText('Tracé appliqué ; Annuler / Refaire disponibles.').waitFor();
  await page.getByRole('button',{name:'Sauvegarder',exact:true}).click();await page.waitForFunction(()=>document.querySelector('#save-status').textContent==='Sauvegardé localement');await page.reload();await page.getByRole('button',{name:'Ouvrir le monde'}).click();await page.getByText(/3 points · 150 m/).waitFor();check(true,'Saved water tool and selection restore after reload');
  await mkdir('/tmp/little-world-browser',{recursive:true});await page.screenshot({path:'/tmp/little-world-browser/water-profile.png'});
- await page.getByRole('button',{name:'Vue 3D locale',exact:true}).click();await page.waitForFunction(()=>Number(document.querySelector('#workspace canvas')?.dataset.renderCount)>3);check(await page.locator('#workspace canvas').getAttribute('data-water-count')==='1','3D local view contains the saved water mesh');await page.screenshot({path:'/tmp/little-world-browser/water-3d.png'});
- const popupPromise=page.waitForEvent('popup');await page.getByRole('button',{name:'Tester la copie',exact:true}).click();const popup=await popupPromise;await popup.waitForLoadState();
+ await page.getByRole('button',{name:'Sélection',exact:true}).click();await page.waitForFunction(()=>Number(document.querySelector('.viewport canvas')?.dataset.renderCount)>3);await page.waitForFunction(()=>document.querySelector('.viewport canvas')?.dataset.waterCount==='1');check(await page.locator('.viewport canvas').getAttribute('data-water-count')==='1','3D local view contains the saved water mesh');await page.screenshot({path:'/tmp/little-world-browser/water-3d.png'});
+ const popupPromise=page.waitForEvent('popup');await page.getByRole('button',{name:'Jouer ici',exact:true}).click();const popup=await popupPromise;await popup.waitForLoadState();
  // The test copy is a compiled build stored in IndexedDB and read by the game's compiled-world reader.
  const snapshot=await popup.evaluate(async()=>{const id=new URL(location.href).searchParams.get('studioBuild');const db=await new Promise((ok,ko)=>{const r=indexedDB.open('little-world-test-builds');r.onsuccess=()=>ok(r.result);r.onerror=()=>ko(r.error);});
   const build=await new Promise((ok,ko)=>{const r=db.transaction('builds').objectStore('builds').get(id);r.onsuccess=()=>ok(r.result);r.onerror=()=>ko(r.error);});db.close();

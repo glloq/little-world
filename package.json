@@ -25,7 +25,8 @@
     "generate:audio": "node --experimental-strip-types tools/generate-audio.mjs",
     "test:audio": "node tools/test-audio-browser.mjs",
     "test:water": "node tools/test-water-browser.mjs",
-    "test:island": "node tools/test-island-browser.mjs"
+    "test:island": "node tools/test-island-browser.mjs",
+    "test:editor": "node tools/test-editor-browser.mjs"
   },
   "dependencies": {
     "three": "^0.180.0"

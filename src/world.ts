@@ -783,11 +783,13 @@ export function addPlacement(
   const a = createAsset(placement.assetId);
   a.position.set(
     placement.x,
-    terrainHeight(placement.x, placement.z),
+    terrainHeight(placement.x, placement.z) + (placement.y ?? 0),
     placement.z,
   );
-  a.rotation.y = placement.rotation;
-  a.scale.setScalar(placement.scale ?? 1);
+  if (placement.quaternion) a.quaternion.fromArray(placement.quaternion);
+  else a.rotation.y = placement.rotation;
+  if (placement.scale3) a.scale.fromArray(placement.scale3);
+  else a.scale.setScalar(placement.scale ?? 1);
   a.userData.placementId = placement.id;
   world.objects.add(a);
   return a;

@@ -59,13 +59,13 @@ export function toRuntimeWorld(project:ProjectDocument,chunkIds?:string[]):World
 }
 
 /** Shared Studio-preview / compiled-reader projection of resolved entities to the
- * current renderer. Rotation is reduced to yaw and scale to X (S-06 keeps full transforms later). */
+ * current renderer, with the complete transform (height offset, quaternion, per-axis scale). */
 export function runtimeContent(entities:{id:string;name:string;components:EntityDefinitionV3['components']}[],libraries:Pick<ProjectDocument['libraries'],'behaviors'|'dialogues'>):{placements:WorldDefinition['placements'];npcs:WorldDefinition['npcs']}{
   const placements:WorldDefinition['placements']=[],npcs:WorldDefinition['npcs']=[];
   for(const entity of entities){
     const c=entity.components,t=c.Transform;if(!t)continue;
     if(c.Character){const n=c.Navigation,behavior=n?libraries.behaviors[n.behaviorId]?.kind:'idle',dialogue=c.DialogueActor?.dialogueIds[0],graph=dialogue?libraries.dialogues[dialogue]:undefined;npcs.push({id:entity.id,name:entity.name,kind:c.Character.species,x:t.position.x,z:t.position.z,behavior:behavior??'idle',radius:n?.radius??0,speed:n?.speed??0,appearance:structuredClone(c.Character.appearance),...(n?.path?{path:structuredClone(n.path)}:{}),...(graph?{dialogue:{start:graph.start,lines:structuredClone(graph.lines)}}:{})});
-    }else if(c.Visual)placements.push({id:entity.id,assetId:c.Visual.assetId as WorldDefinition['placements'][number]['assetId'],x:t.position.x,z:t.position.z,rotation:Math.atan2(2*(t.rotation.w*t.rotation.y+t.rotation.x*t.rotation.z),1-2*(t.rotation.y*t.rotation.y+t.rotation.z*t.rotation.z)),scale:t.scale.x});
+    }else if(c.Visual)placements.push({id:entity.id,assetId:c.Visual.assetId as WorldDefinition['placements'][number]['assetId'],x:t.position.x,z:t.position.z,rotation:Math.atan2(2*(t.rotation.w*t.rotation.y+t.rotation.x*t.rotation.z),1-2*(t.rotation.y*t.rotation.y+t.rotation.z*t.rotation.z)),scale:t.scale.x,y:t.position.y,quaternion:[t.rotation.x,t.rotation.y,t.rotation.z,t.rotation.w],scale3:[t.scale.x,t.scale.y,t.scale.z]});
   }
   return {placements,npcs};
 }
