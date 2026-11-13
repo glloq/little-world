@@ -55,6 +55,25 @@ const lerp=(a:number,b:number,t:number)=>a+(b-a)*clamp(t,0,1);
 export function shapeSeed(seed:number,id:string,variant=0):number{return (seed^hashString(id)^Math.imul(variant,0x9e3779b1))>>>0;}
 export function hashString(text:string):number{let h=2166136261;for(let i=0;i<text.length;i++)h=Math.imul(h^text.charCodeAt(i),16777619);return h>>>0;}
 
+/** Polygon pre-compiled into typed arrays: same arithmetic as polygonSignedDistance (edge
+ * vectors and squared lengths computed once), for per-sample hot paths. */
+export function compilePolygon(poly:PointXZ[]):(x:number,z:number)=>number{
+  const n=poly.length,ax=new Float64Array(n),az=new Float64Array(n),bx=new Float64Array(n),bz=new Float64Array(n),dx=new Float64Array(n),dz=new Float64Array(n),len2=new Float64Array(n);
+  const x0=new Float64Array(n),x1=new Float64Array(n),z0=new Float64Array(n),z1=new Float64Array(n);
+  for(let i=0,j=n-1;i<n;j=i++){const a=poly[j],b=poly[i];ax[i]=a.x;az[i]=a.z;bx[i]=b.x;bz[i]=b.z;dx[i]=b.x-a.x;dz[i]=b.z-a.z;len2[i]=dx[i]*dx[i]+dz[i]*dz[i]||1;x0[i]=Math.min(a.x,b.x);x1[i]=Math.max(a.x,b.x);z0[i]=Math.min(a.z,b.z);z1[i]=Math.max(a.z,b.z);}
+  return (x,z)=>{
+    let best=Infinity,inside=false;
+    for(let i=0;i<n;i++){
+      if((az[i]>z)!==(bz[i]>z)&&x<ax[i]+(z-az[i])/(bz[i]-az[i])*(bx[i]-ax[i]))inside=!inside;
+      // An edge whose bounding box is already farther than the best edge cannot win
+      // (relative margin: rounding can never turn a skipped edge into the minimum).
+      const lx=x<x0[i]?x0[i]-x:x>x1[i]?x-x1[i]:0,lz=z<z0[i]?z0[i]-z:z>z1[i]?z-z1[i]:0;
+      if(lx*lx+lz*lz>best*(1+1e-9))continue;
+      const t=clamp(((x-ax[i])*dx[i]+(z-az[i])*dz[i])/len2[i],0,1),ex=x-ax[i]-t*dx[i],ez=z-az[i]-t*dz[i],d2=ex*ex+ez*ez;if(d2<best)best=d2;
+    }
+    best=Math.sqrt(best);return inside?best:-best;
+  };
+}
 /** Signed distance to a closed polygon, positive inside. */
 export function polygonSignedDistance(poly:PointXZ[],x:number,z:number):number{
   let best=Infinity,inside=false;
@@ -82,18 +101,21 @@ const bump=(t:number)=>t>=1?0:.5+.5*Math.cos(Math.PI*clamp(t,0,1));
 
 export function archipelagoField(world:GeoWorld,p:ArchipelagoParams):GeneratorField{
   const sea=world.seaLevel,seed=world.seed>>>0,falloff=320;
-  const masses=p.landmasses.map(l=>({l,box:landmassBounds(l,falloff),seed:shapeSeed(seed,l.id,l.variant),freq:1/l.coastWavelengthM,hill:1/Math.max(80,l.coastWavelengthM*.45)}));
+  const masses=p.landmasses.map((l,index)=>({l,index,sdf:compilePolygon(l.outline),box:landmassBounds(l,falloff),seed:shapeSeed(seed,l.id,l.variant),freq:1/l.coastWavelengthM,hill:1/Math.max(80,l.coastWavelengthM*.45)}));
   // Features grouped by composition stage once (no per-sample filtering/allocation).
-  const stage=(kinds:FeatureKind[])=>p.features.filter(f=>kinds.includes(f.kind)).map(f=>({f,box:featureBounds(f),seed:shapeSeed(seed,f.id,f.variant)}));
+  const stage=(kinds:FeatureKind[])=>p.features.filter(f=>kinds.includes(f.kind)).map(f=>({f,box:featureBounds(f),seed:shapeSeed(seed,f.id,f.variant),sdf:f.kind==='plateau'?compilePolygon(f.polygon):null}));
   const plateaus=stage(['plateau']),raises=stage(['mountain','hill','ridge']),cuts=stage(['basin','valley']),volcanoes=stage(['volcano']);
   /** Best coast value and the land mass providing it. */
-  // One-entry memo: height() then site() at the same point (tile colouring) share the coast.
-  let memoX=NaN,memoZ=NaN,memo:{coast:number;mass:typeof masses[number]|null}={coast:-falloff-1,mass:null};
+  // Direct-mapped cache of exact results: height() then site() at the same point (tile and
+  // horizon colouring, map pixels, dressing) reuse the coast instead of recomputing it.
+  const CACHE=4096,cx=new Float64Array(CACHE).fill(NaN),cz=new Float64Array(CACHE).fill(NaN),cc=new Float64Array(CACHE),cm=new Int16Array(CACHE);
+  const memo:{coast:number;mass:typeof masses[number]|null}={coast:-falloff-1,mass:null};
   function coastOf(x:number,z:number){
-    if(x===memoX&&z===memoZ)return memo;
+    const slot=(Math.imul(Math.floor(x*4),0x27d4eb2d)^Math.imul(Math.floor(z*4),0x165667b1))>>>20;
+    if(cx[slot]===x&&cz[slot]===z){memo.coast=cc[slot];memo.mass=cm[slot]<0?null:masses[cm[slot]];return memo;}
     let best=-falloff-1,mass:typeof masses[number]|null=null;
-    for(const m of masses){if(!inBox(m.box,x,z))continue;const c=polygonSignedDistance(m.l.outline,x,z)+fbm(m.seed^0x51ed,x*m.freq,z*m.freq,3)*m.l.coastNoiseM;if(c>best){best=c;mass=m;}}
-    memoX=x;memoZ=z;return memo={coast:best,mass};
+    for(const m of masses){if(!inBox(m.box,x,z))continue;const c=m.sdf(x,z)+fbm(m.seed^0x51ed,x*m.freq,z*m.freq,3)*m.l.coastNoiseM;if(c>best){best=c;mass=m;}}
+    cx[slot]=x;cz[slot]=z;cc[slot]=best;cm[slot]=mass?mass.index:-1;memo.coast=best;memo.mass=mass;return memo;
   }
   const cliffOf=(m:typeof masses[number],x:number,z:number)=>clamp(m.l.cliffs+.6*valueNoise(m.seed^0xc11f,x/650,z/650),0,1);
   function height(x:number,z:number):number{
@@ -105,7 +127,7 @@ export function archipelagoField(world:GeoWorld,p:ArchipelagoParams):GeneratorFi
     }
     const land=smooth(-60,40,coast);
     // Macro then intermediate features, in a fixed order (deterministic composition).
-    for(const {f,box}of plateaus){if(f.kind!=='plateau'||!inBox(box,x,z))continue;const s=polygonSignedDistance(f.polygon,x,z);h=lerp(h,sea+f.heightM,smooth(-f.edgeM,0,s));}
+    for(const {f,box,sdf}of plateaus){if(f.kind!=='plateau'||!inBox(box,x,z))continue;const s=sdf!(x,z);h=lerp(h,sea+f.heightM,smooth(-f.edgeM,0,s));}
     for(const {f,box,seed:fs}of raises){
       if(!inBox(box,x,z))continue;
       if(f.kind==='mountain'||f.kind==='hill'){const d=Math.sqrt((x-f.x)*(x-f.x)+(z-f.z)*(z-f.z))/f.radiusM;if(d<1){const shape=f.kind==='mountain'?Math.pow(1-d,1.35)*(1-d*.2):bump(d),rough=f.roughness?1+f.roughness*(Math.abs(fbm(fs,x/140,z/140,3))*2-.5)*smooth(0,.5,1-d):1;h+=f.heightM*shape*rough*Math.max(land,.4);}}

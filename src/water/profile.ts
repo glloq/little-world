@@ -69,8 +69,10 @@ function triangleLevel(x:number,z:number,a:HydroVertex,b:HydroVertex,c:HydroVert
 export interface WaterHit {water:CompiledWater;distance:number;level:number;flowX:number;flowZ:number;inside:boolean}
 /** Local segment grid shared by bed, swimming and surface queries. */
 const EMPTY_HITS:readonly WaterHit[]=Object.freeze([]);
+/** Unique numeric key of a 32 m cell (|cell| < 2^20 covers any world up to ±33 000 km). */
+const cellKey=(cx:number,cz:number)=>(cx+1048576)*2097152+(cz+1048576);
 export class WaterSpatialIndex {
- private cells=new Map<string,Segment[]>();
+ private cells=new Map<number,Segment[]>();
  readonly bodies:CompiledWater[];
  constructor(waters:WaterBody[],source:(x:number,z:number)=>number){
   this.bodies=waters.map(w=>compileWaterBody(w,source));
@@ -82,13 +84,13 @@ export class WaterSpatialIndex {
    const a=water.points[i-1],b=water.points[i],r=water.width/2+2,segment={water,order,a,b,leftA:sections[i-1].left,rightA:sections[i-1].right,leftB:sections[i].left,rightB:sections[i].right};
    for(let cx=Math.floor((Math.min(a.x,b.x)-r)/32);cx<=Math.floor((Math.max(a.x,b.x)+r)/32);cx++)
     for(let cz=Math.floor((Math.min(a.z,b.z)-r)/32);cz<=Math.floor((Math.max(a.z,b.z)+r)/32);cz++){
-     const key=cx+','+cz,cell=this.cells.get(key)??[];cell.push(segment);this.cells.set(key,cell);
+     const key=cellKey(cx,cz),cell=this.cells.get(key)??[];cell.push(segment);this.cells.set(key,cell);
     }
    }
   }
  }
  query(x:number,z:number,bank=0):readonly WaterHit[]{
-  const candidates=this.cells.get(Math.floor(x/32)+','+Math.floor(z/32));if(!candidates)return EMPTY_HITS;
+  const candidates=this.cells.get(cellKey(Math.floor(x/32),Math.floor(z/32)));if(!candidates)return EMPTY_HITS;
   const closest=new Map<number,WaterHit>();
   for(const {water,order,a,b,leftA,rightA,leftB,rightB} of candidates){
    const dx=b.x-a.x,dz=b.z-a.z,length=Math.hypot(dx,dz),t=Math.max(0,Math.min(1,((x-a.x)*dx+(z-a.z)*dz)/(length*length)));

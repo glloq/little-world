@@ -7,24 +7,15 @@ import type {TerrainStroke,WaterBody,PathDefinition} from '../world-data.ts';
 import {createTerrainSource,carveWaterBeds} from '../terrain.ts';
 import {generatorField,LEGACY_GENERATOR} from '../terrain-generator.ts';
 import {WaterSpatialIndex} from '../water/profile.ts';
+import {ribbonDistance} from '../geography/lines.ts';
 import {createGeoContext,type GeographySources} from '../geography/engine.ts';
 import type {GeoContext} from '../geography/classify.ts';
 import type {SectorLayers} from '../geography/layers.ts';
 import {resolveEntity} from './references.ts';
 import {sectorGrid} from './geo-edits.ts';
 
-/** Bounding-box accelerated distance to a set of ribbons (paths, rivers). */
-export function lineSet(lines:{points:{x:number;z:number}[];width:number}[]){
-  const items=lines.filter(l=>l.points.length>1).map(l=>{let minX=Infinity,maxX=-Infinity,minZ=Infinity,maxZ=-Infinity;for(const p of l.points){minX=Math.min(minX,p.x);maxX=Math.max(maxX,p.x);minZ=Math.min(minZ,p.z);maxZ=Math.max(maxZ,p.z);}const pad=l.width/2;return {l,minX:minX-pad,maxX:maxX+pad,minZ:minZ-pad,maxZ:maxZ+pad};});
-  return (x:number,z:number,within:number):number=>{
-    let best=Infinity;
-    for(const {l,minX,maxX,minZ,maxZ}of items){
-      if(x<minX-within||x>maxX+within||z<minZ-within||z>maxZ+within)continue;
-      for(let i=1;i<l.points.length;i++){const a=l.points[i-1],b=l.points[i],dx=b.x-a.x,dz=b.z-a.z,t=Math.max(0,Math.min(1,((x-a.x)*dx+(z-a.z)*dz)/(dx*dx+dz*dz||1))),ex=x-a.x-t*dx,ez=z-a.z-t*dz;best=Math.min(best,Math.sqrt(ex*ex+ez*ez)-l.width/2);}
-    }
-    return best;
-  };
-}
+/** Same ribbon distance as the runtime terrain (kept as an alias for existing callers). */
+export const lineSet=ribbonDistance;
 export interface ProjectGeography {ctx:GeoContext;sources:GeographySources;legacy:boolean}
 const strip=<T extends {order:number}>(e:T)=>{const {order:_,...rest}=e;return rest;};
 export function projectGeography(p:ProjectDocument):ProjectGeography{

@@ -15,6 +15,10 @@ export const DRESSING_KINDS:DressingKind[]=['pine','oak','shrub','rock','scree',
 export const ITEM_STRIDE=6;
 export interface DressingCell {cx:number;cz:number;items:Record<DressingKind,Float32Array>;count:number;ms:number}
 export const DRESSING_CELL_M=64;
+/** Highest acceptance threshold of the rules of generateDressingCell (cliff rocks .22 + .25;
+ * trees ≤ .85 × .42 + shrubs ≤ .5 × .12 = .417; pebbles .45; scree .35; basalt .11). Keep it
+ * ≥ every threshold when a rule changes (tests compare with an unskipped generation). */
+export const PLACEMENT_CEILING=.47;
 /** Candidate spacing per family (m): trees are sparse, small stones dense but short-ranged. */
 const STEP=4;
 const clamp01=(v:number)=>Math.max(0,Math.min(1,v));
@@ -23,14 +27,15 @@ const smooth=(a:number,b:number,x:number)=>{const t=clamp01((x-a)/(b-a));return 
 /** Forest structure: low-frequency clumps → groves and clearings inside forest biomes. */
 export function forestClump(seed:number,x:number,z:number):number{return smooth(-.15,.35,fbm((seed^0x6f1c)>>>0,x/55,z/55,2));}
 
-export function generateDressingCell(ctx:GeoContext,seed:number,cx:number,cz:number,inside:(x:number,z:number)=>boolean):DressingCell{
+export function generateDressingCell(ctx:GeoContext,seed:number,cx:number,cz:number,inside:(x:number,z:number)=>boolean,ceiling=PLACEMENT_CEILING):DressingCell{
   const t0=performance.now(),size=DRESSING_CELL_M,n=size/STEP,lists:Record<DressingKind,number[]>={pine:[],oak:[],shrub:[],rock:[],scree:[],pebble:[],basalt:[]};
   const cellSeed=(seed^Math.imul(cx,73856093)^Math.imul(cz,19349663))>>>0;
   const push=(kind:DressingKind,x:number,y:number,z:number,s:number,r:number,t:number)=>lists[kind].push(x,y,z,s,r,t);
   for(let j=0;j<n;j++)for(let i=0;i<n;i++){
     const r0=rnd(cellSeed,i,j),r1=rnd(cellSeed^0x9e37,i,j),r2=rnd(cellSeed^0x51ed,i,j),r3=rnd(cellSeed^0x2c1b,i,j);
     const x=cx*size+(i+.15+.7*r0)*STEP,z=cz*size+(j+.15+.7*r1)*STEP;
-    if(!inside(x,z))continue;
+    // No rule below places anything when r2 ≥ PLACEMENT_CEILING: skip the costly sampling.
+    if(r2>=ceiling||!inside(x,z))continue;
     const east=ctx.height(x+2,z),h=ctx.height(x,z),slope=Math.abs(east-h)/2;
     const s:GeoSample=classifyPoint(ctx,x,z,{height:h,slope});if(s.underwater)continue;
     const hab=habitatOf(s);

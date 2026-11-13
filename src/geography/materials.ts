@@ -7,12 +7,14 @@ export const MATERIAL_COLORS:Record<Material,number>={
   rock:0x8f8f86,gravel:0xa39f8f,basalt:0x5f5b58,ash:0x8b837b,mud:0x8a7c5f,
 };
 export const SEABED_COLOR=0x9fb7a8;
+/** Colours as converted by the output's setHex (colour management), cached per material. */
+const LINEAR:Partial<Record<Material,[number,number,number]>>={};
 /** Final vertex colour: material, gentle altitude lightening, a tiny moisture tint and, for
  * mineral materials, cheap deterministic variation (wet sand band, rock strata, scree speckle).
  * `x`/`z` only seed the variation; no texture, no extra draw call. */
 export function materialColor(s:GeoSample,seaLevel:number,out:{setHex(hex:number):unknown;r:number;g:number;b:number},x=0,z=0):void{
   if(s.height<seaLevel-.6){out.setHex(SEABED_COLOR);return;}
-  out.setHex(MATERIAL_COLORS[s.material]);
+  const lin=LINEAR[s.material];if(lin){out.r=lin[0];out.g=lin[1];out.b=lin[2];}else{out.setHex(MATERIAL_COLORS[s.material]);LINEAR[s.material]=[out.r,out.g,out.b];}
   const alt=s.height-seaLevel,light=Math.min(.12,Math.max(0,(alt-150)/2500)),wet=(s.moisture-.5)*.06;
   let k=1;
   switch(s.material){

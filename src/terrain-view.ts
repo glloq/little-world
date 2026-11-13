@@ -28,10 +28,21 @@ export function createChunkGeometry(
     normals: number[] = [],
     indices: number[] = [];
   const color = new THREE.Color();
+  // Per-vertex results kept for the skirts: a skirt vertex samples exactly the same (x, z) as
+  // its edge vertex, so its height, colour and normal are copied instead of recomputed.
+  const heights: number[] = [];
+  function skirtVertex(index: number): number {
+    positions.push(positions[index * 3], heights[index] - 12, positions[index * 3 + 2]);
+    colors.push(colors[index * 3], colors[index * 3 + 1], colors[index * 3 + 2]);
+    normals.push(normals[index * 3], normals[index * 3 + 1], normals[index * 3 + 2]);
+    heights.push(heights[index]);
+    return positions.length / 3 - 1;
+  }
   function vertex(x: number, z: number, skirt = false): number {
     // Neighbour first: the generator memoizes the last point, reused by the colour classification.
     const east = terrainHeight(x + 2, z), h = terrainHeight(x, z);
     positions.push(x, h - (skirt ? 12 : 0), z);
+    heights.push(h);
     const slope = Math.abs(east - h);
     surfaceColor(x, z, h, slope, color);
     color.multiplyScalar(
@@ -71,9 +82,7 @@ export function createChunkGeometry(
     Array.from({ length: cellsZ + 1 }, (_, i) => (cellsZ - i) * (cellsX + 1)),
   ];
   for (const edge of edges) {
-    const bottom = edge.map((index) =>
-      vertex(positions[index * 3], positions[index * 3 + 2], true),
-    );
+    const bottom = edge.map((index) => skirtVertex(index));
     for (let i = 0; i < edge.length - 1; i++)
       indices.push(
         edge[i],
