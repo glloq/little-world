@@ -1,0 +1,107 @@
+{
+  "name": "Little World - vegetation",
+  "version": "2.0",
+  "units": "meters",
+  "upAxis": "+Y",
+  "moduleAxis": "+X",
+  "format": "glb",
+  "textures": 0,
+  "source": "LittleWorld_Enclosures_Nature_V2",
+  "models": [
+    {
+      "id": "hedge_low",
+      "label": "Haie basse continue",
+      "placement": "grid_2m",
+      "lods": [
+        {
+          "level": 0,
+          "path": "public/models/vegetation/hedge_low/lod0.glb",
+          "triangles": 140,
+          "gitBlobSha": "8ab3e902a9317e1e39aaf691b6f6b34039ecf12d"
+        },
+        {
+          "level": 1,
+          "path": "public/models/vegetation/hedge_low/lod1.glb",
+          "triangles": 60,
+          "gitBlobSha": "6973a3f2c698936770c75f4480c8121514e95a54"
+        }
+      ]
+    },
+    {
+      "id": "hedge_dense",
+      "label": "Haie haute et touffue",
+      "placement": "grid_2m",
+      "lods": [
+        {
+          "level": 0,
+          "path": "public/models/vegetation/hedge_dense/lod0.glb",
+          "triangles": 176,
+          "gitBlobSha": "187094aa9c3c0a7ef2aae04f7c26a2b92fb7b440"
+        },
+        {
+          "level": 1,
+          "path": "public/models/vegetation/hedge_dense/lod1.glb",
+          "triangles": 84,
+          "gitBlobSha": "ed2e9f1361da76a1e6bcb17bea7873ddb2cb18e5"
+        }
+      ]
+    },
+    {
+      "id": "bush_round",
+      "label": "Buisson arrondi",
+      "placement": "free",
+      "lods": [
+        {
+          "level": 0,
+          "path": "public/models/vegetation/bush_round/lod0.glb",
+          "triangles": 48,
+          "gitBlobSha": "12b710aab7bacd4d518d6b2a8ca93815505d1ad2"
+        },
+        {
+          "level": 1,
+          "path": "public/models/vegetation/bush_round/lod1.glb",
+          "triangles": 20,
+          "gitBlobSha": "ad8770da97a2c4b152c5cf03d861e232e68b5b4d"
+        }
+      ]
+    },
+    {
+      "id": "bush_irregular",
+      "label": "Buisson irrégulier",
+      "placement": "free",
+      "lods": [
+        {
+          "level": 0,
+          "path": "public/models/vegetation/bush_irregular/lod0.glb",
+          "triangles": 96,
+          "gitBlobSha": "c88603449d6a492dfa2cc85fb00e6ade505d34bd"
+        },
+        {
+          "level": 1,
+          "path": "public/models/vegetation/bush_irregular/lod1.glb",
+          "triangles": 40,
+          "gitBlobSha": "afd1ae7db0de3cb479b1a572b6000f449954e795"
+        }
+      ]
+    },
+    {
+      "id": "shrub_flower",
+      "label": "Arbuste fleuri",
+      "placement": "free",
+      "lods": [
+        {
+          "level": 0,
+          "path": "public/models/vegetation/shrub_flower/lod0.glb",
+          "triangles": 156,
+          "gitBlobSha": "74d1378965dfe71195fa0ab9656be664fe18957c"
+        },
+        {
+          "level": 1,
+          "path": "public/models/vegetation/shrub_flower/lod1.glb",
+          "triangles": 52,
+          "gitBlobSha": "2cc3fe0d23e7c996422b4ed7d74709a889400179"
+        }
+      ]
+    }
+  ]
+}

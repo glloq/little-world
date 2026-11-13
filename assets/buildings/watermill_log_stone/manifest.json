@@ -1,0 +1,37 @@
+{
+  "id": "watermill_log_stone",
+  "name": "Moulin à eau, rondins/pierre",
+  "version": "V5",
+  "source": "LittleWorld_Moulin_Eau_Lod0_V5",
+  "up": "Y",
+  "units": "m",
+  "front": "-Z",
+  "textures": 0,
+  "wheelPivot": [
+    3.98,
+    2.02,
+    0.08
+  ],
+  "animateNode": "WheelPivot",
+  "wheelRotationAxis": "X",
+  "lods": [
+    {
+      "path": "public/models/buildings/watermill_log_stone/lod0.glb",
+      "triangles": 1308,
+      "sha256": "0d91ba032d3dda690ee1141a0dace58d65c07d5bf9288be250f5103fbb91cb58",
+      "bytes": 30732
+    },
+    {
+      "path": "public/models/buildings/watermill_log_stone/lod1.glb",
+      "triangles": 932,
+      "sha256": "41cb4c1ff26033c2ade98b0516a36d301b989ffd09ed054ce3ce22232d25355c",
+      "bytes": 22440
+    },
+    {
+      "path": "public/models/buildings/watermill_log_stone/lod2.glb",
+      "triangles": 656,
+      "sha256": "d6c359a5d85448fab229e3bff8420cb89e20d98b09948bff7ff1d6a54d674990",
+      "bytes": 16308
+    }
+  ]
+}

@@ -1,0 +1,60 @@
+name: Generate approved wooden bridge GLBs
+on:
+  push:
+    branches: [feat/little-world-assets]
+    paths:
+      - .github/workflows/generate-wooden-bridges.yml
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  export:
+    if: github.ref == 'refs/heads/feat/little-world-assets'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Install matching generation dependencies
+        run: python -m pip install numpy==2.3.5 trimesh==4.11.1
+      - name: Export the six verified GLBs
+        run: python tools/assets/generate-wooden-bridges.py
+      - name: Confirm GLB geometry and SHA-256 against validated assets
+        run: |
+          python - <<'PY'
+          import hashlib, json, pathlib
+          m=json.loads(pathlib.Path("assets/structures/bridges/manifest.json").read_text())
+          expected={
+            "structure.bridge.wooden_arch_v1":[
+             (652,"5e9398c559de96d80b01bed1f9ce76c8e81fdb27ef38f2447e00b6457a58a950"),
+             (412,"7a24e5ca4b704e490164ccd0a46f82313f3dfc9a0c334c1f87698b4435b4968a"),
+             (208,"1a5d88df339eaa5d72b7ffb9eb8479313362e611a8fd344e768eb7999449fac6")
+            ],
+            "structure.bridge.log_v1":[
+             (296,"f76a8aeb48d44d1cfe72dc701be2fb9df98cedd92f9c32d59dd7f595947c9d84"),
+             (240,"acb237a4ed1af9bcdd9ce479ccb0f48356c375e0db0cffa5fa3244afbd552694"),
+             (132,"73a9f08023b61383f568ec74540a11e7f88631ae1a12f63c33af1469a2580f5a")
+            ]
+          }
+          assert len(m["models"])==2
+          for item in m["models"]:
+           assert len(item["lods"])==3
+           for i,lod in enumerate(item["lods"]):
+            path=pathlib.Path("public")/lod["file"]
+            data=path.read_bytes()
+            assert data[:4]==b"glTF",path
+            assert (lod["triangles"],hashlib.sha256(data).hexdigest())==expected[item["id"]][i],path
+            print("verified",path,len(data))
+          PY
+      - name: Commit approved GLBs and manifest to branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/models/structures/bridges assets/structures/bridges/manifest.json
+          if ! git diff --cached --quiet; then
+            git commit -m "assets: add approved wooden bridges and three LODs each"
+            git push origin HEAD:refs/heads/feat/little-world-assets
+          fi

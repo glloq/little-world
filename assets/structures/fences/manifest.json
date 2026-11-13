@@ -1,0 +1,126 @@
+{
+  "name": "Little World - fences",
+  "version": "1.0",
+  "units": "meters",
+  "upAxis": "+Y",
+  "moduleAxis": "+X",
+  "format": "glb",
+  "textures": 0,
+  "source": "LittleWorld_Enclosures_Nature_V2",
+  "models": [
+    {
+      "id": "fence_split_rail",
+      "label": "Barrière rustique à deux traverses",
+      "placement": "grid_2m",
+      "lods": [
+        {
+          "level": 0,
+          "path": "public/models/structures/fences/fence_split_rail/lod0.glb",
+          "triangles": 24,
+          "gitBlobSha": "64fc1eb74cbeef65870fb00900813795f2d49c45"
+        },
+        {
+          "level": 1,
+          "path": "public/models/structures/fences/fence_split_rail/lod1.glb",
+          "triangles": 8,
+          "gitBlobSha": "6122a48f287512134ed1c6a86ba4e28667c6aa3a"
+        }
+      ]
+    },
+    {
+      "id": "fence_picket",
+      "label": "Clôture à piquets",
+      "placement": "grid_2m",
+      "lods": [
+        {
+          "level": 0,
+          "path": "public/models/structures/fences/fence_picket/lod0.glb",
+          "triangles": 132,
+          "gitBlobSha": "462a1c912bc9aa50c92af04ccc5fd24cf1b0faa3"
+        },
+        {
+          "level": 1,
+          "path": "public/models/structures/fences/fence_picket/lod1.glb",
+          "triangles": 84,
+          "gitBlobSha": "1a9d64b1438b1ac79309ecbc693562dbc88909ec"
+        }
+      ]
+    },
+    {
+      "id": "fence_pasture",
+      "label": "Barrière de pâturage à trois traverses",
+      "placement": "grid_2m",
+      "lods": [
+        {
+          "level": 0,
+          "path": "public/models/structures/fences/fence_pasture/lod0.glb",
+          "triangles": 48,
+          "gitBlobSha": "7db33a30c67cf1964d86d9594655b367b72016c1"
+        },
+        {
+          "level": 1,
+          "path": "public/models/structures/fences/fence_pasture/lod1.glb",
+          "triangles": 24,
+          "gitBlobSha": "ff4fa31d1786b3a23d54d28e3903d28158f6f09e"
+        }
+      ]
+    },
+    {
+      "id": "fence_gate",
+      "label": "Portillon en bois",
+      "placement": "grid_2m",
+      "lods": [
+        {
+          "level": 0,
+          "path": "public/models/structures/fences/fence_gate/lod0.glb",
+          "triangles": 72,
+          "gitBlobSha": "2e6a6537ce669552a3445c7abacccfcf61598d49"
+        },
+        {
+          "level": 1,
+          "path": "public/models/structures/fences/fence_gate/lod1.glb",
+          "triangles": 48,
+          "gitBlobSha": "fe4496115bf148fcbb7fd81f2e6775de2865855f"
+        }
+      ]
+    },
+    {
+      "id": "post_rustic",
+      "label": "Poteau rustique partagé",
+      "placement": "intersection",
+      "lods": [
+        {
+          "level": 0,
+          "path": "public/models/structures/fences/post_rustic/lod0.glb",
+          "triangles": 40,
+          "gitBlobSha": "0217d2a8b0d7969d23897884a53960bdda18bf2d"
+        },
+        {
+          "level": 1,
+          "path": "public/models/structures/fences/post_rustic/lod1.glb",
+          "triangles": 16,
+          "gitBlobSha": "e90b5bae5492e7791b652ee74f032c7100df28f0"
+        }
+      ]
+    },
+    {
+      "id": "post_square",
+      "label": "Poteau carré partagé",
+      "placement": "intersection",
+      "lods": [
+        {
+          "level": 0,
+          "path": "public/models/structures/fences/post_square/lod0.glb",
+          "triangles": 24,
+          "gitBlobSha": "d29f5a8eeccdf6c966666f4dd837d08132a4d046"
+        },
+        {
+          "level": 1,
+          "path": "public/models/structures/fences/post_square/lod1.glb",
+          "triangles": 12,
+          "gitBlobSha": "a91efcae1d0fe5d4b2513844ac0636e184246a95"
+        }
+      ]
+    }
+  ]
+}

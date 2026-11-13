@@ -1,0 +1,107 @@
+{
+  "name": "Little World - walls",
+  "version": "2.0",
+  "units": "meters",
+  "upAxis": "+Y",
+  "moduleAxis": "+X",
+  "format": "glb",
+  "textures": 0,
+  "source": "LittleWorld_Enclosures_Nature_V2",
+  "models": [
+    {
+      "id": "wall_straight",
+      "label": "Muret de pierre droit",
+      "placement": "grid_2m",
+      "lods": [
+        {
+          "level": 0,
+          "path": "public/models/structures/walls/wall_straight/lod0.glb",
+          "triangles": 160,
+          "gitBlobSha": "ca062ece2b96d0f66c7494e47d0a41934c088467"
+        },
+        {
+          "level": 1,
+          "path": "public/models/structures/walls/wall_straight/lod1.glb",
+          "triangles": 80,
+          "gitBlobSha": "31afaed7823eabe3ddaa66d33e4091046138ea9b"
+        }
+      ]
+    },
+    {
+      "id": "wall_corner",
+      "label": "Muret en angle à 90 degrés",
+      "placement": "grid_2m",
+      "lods": [
+        {
+          "level": 0,
+          "path": "public/models/structures/walls/wall_corner/lod0.glb",
+          "triangles": 320,
+          "gitBlobSha": "8ae4b5943a158979388eee87d462a828d8c394e5"
+        },
+        {
+          "level": 1,
+          "path": "public/models/structures/walls/wall_corner/lod1.glb",
+          "triangles": 160,
+          "gitBlobSha": "4b744bd5b7928532306173e0df69bd510b9a1949"
+        }
+      ]
+    },
+    {
+      "id": "wall_end",
+      "label": "Muret avec extrémité finie",
+      "placement": "grid_2m",
+      "lods": [
+        {
+          "level": 0,
+          "path": "public/models/structures/walls/wall_end/lod0.glb",
+          "triangles": 180,
+          "gitBlobSha": "945cb71cba9e68b0c416a5e5c7bd1c2166716c26"
+        },
+        {
+          "level": 1,
+          "path": "public/models/structures/walls/wall_end/lod1.glb",
+          "triangles": 100,
+          "gitBlobSha": "655144b546aa1b7a3d3c7c64eae7be005d07c9a4"
+        }
+      ]
+    },
+    {
+      "id": "wall_irregular",
+      "label": "Muret de pierre irrégulier",
+      "placement": "grid_2m",
+      "lods": [
+        {
+          "level": 0,
+          "path": "public/models/structures/walls/wall_irregular/lod0.glb",
+          "triangles": 200,
+          "gitBlobSha": "c3562a5f0f5cb1acf3bc7e3e99d19b2b5ff0b345"
+        },
+        {
+          "level": 1,
+          "path": "public/models/structures/walls/wall_irregular/lod1.glb",
+          "triangles": 80,
+          "gitBlobSha": "78735a527d141cd65bc91c13a8906a8de1578e1a"
+        }
+      ]
+    },
+    {
+      "id": "wall_moss",
+      "label": "Muret avec mousse",
+      "placement": "grid_2m",
+      "lods": [
+        {
+          "level": 0,
+          "path": "public/models/structures/walls/wall_moss/lod0.glb",
+          "triangles": 220,
+          "gitBlobSha": "cb180cf5aae4a33ef8b8c6a8b62566307500d5cc"
+        },
+        {
+          "level": 1,
+          "path": "public/models/structures/walls/wall_moss/lod1.glb",
+          "triangles": 80,
+          "gitBlobSha": "1156ba4f854a35260e2f3f9e377deab2455348d9"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "collection": "LittleWorld_Boats_V2",
+  "status": "APPROVED",
+  "common": {
+    "textures": 0,
+    "vertexColors": true,
+    "units": "meters",
+    "up": "Y",
+    "forward": "+Z",
+    "hullCollision": "simplified separate runtime proxy",
+    "windFlutter": "runtime visual shader only; V2 inflates sail toward +Z (bow)",
+    "faceOrientation": "winding and normals repaired before GLB export"
+  },
+  "models": [
+    {
+      "id": "boat.rowboat_wood",
+      "name": "Barque à rames",
+      "category": "boats",
+      "format": "glb",
+      "license": "original",
+      "scale": "meters",
+      "up": "Y",
+      "forward": "+Z",
+      "waterlineY": 0,
+      "lod0": {
+        "file": "public/models/boats/rowboat_wood/lod0.glb",
+        "triangles": 404,
+        "bytes": 16232,
+        "sha256": "22770387d6d486fedeff0f606110e270239ada328dce68a0cdaf6f8222137dac"
+      },
+      "lod1": {
+        "file": "public/models/boats/rowboat_wood/lod1.glb",
+        "triangles": 232,
+        "bytes": 10884,
+        "sha256": "1a02038710ae6e7ee6b8434f05f46ee54a149a065c182faa6f7f12142837f62d"
+      },
+      "animationNodes": [
+        "Body",
+        "OarPort",
+        "OarStarboard"
+      ],
+      "animationClips": [
+        "OarsRow"
+      ],
+      "approxHullLengthMeters": 3.69,
+      "approxHullBeamMeters": 1.56,
+      "note": "Visual model only. Dynamic water effects, gameplay boat controller and wind simulation are not baked into GLB."
+    },
+    {
+      "id": "boat.sailboat_small",
+      "name": "Petit voilier",
+      "category": "boats",
+      "format": "glb",
+      "license": "original",
+      "scale": "meters",
+      "up": "Y",
+      "forward": "+Z",
+      "waterlineY": 0,
+      "lod0": {
+        "file": "public/models/boats/sailboat_small/lod0.glb",
+        "triangles": 604,
+        "bytes": 26492,
+        "sha256": "9f89cc05ce97c2321d338a998a5a6d4eb8a411c65101e3a9296b30f9ad32f0ea"
+      },
+      "lod1": {
+        "file": "public/models/boats/sailboat_small/lod1.glb",
+        "triangles": 312,
+        "bytes": 17076,
+        "sha256": "8ee1bb5477f0f98e58388ec2b8a37fc885cdfb37b66f1457d6f4df4eb4d3448f"
+      },
+      "animationNodes": [
+        "Body",
+        "Boom",
+        "RudderPivot",
+        "SailCloth",
+        "SailRigPivot",
+        "SailRolled"
+      ],
+      "animationClips": [
+        "RudderTurn",
+        "SailFold",
+        "SailTrim",
+        "SailUnfold"
+      ],
+      "approxHullLengthMeters": 5.17,
+      "approxHullBeamMeters": 2.24,
+      "note": "Visual model only. Dynamic water effects, gameplay boat controller and wind simulation are not baked into GLB."
+    }
+  ]
+}
