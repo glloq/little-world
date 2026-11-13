@@ -6,15 +6,16 @@
 import {node,button,field} from '../dom.ts';
 import type {StudioSession} from '../session.ts';
 import {projectGeography,type ProjectGeography} from '../../studio-core/geo-context.ts';
-import {paintMask,regionCells,regionCorrections,restoreGeneration,regionChunkIds,sectorGrid,type Region} from '../../studio-core/geo-edits.ts';
+import {paintMask,regionCells,regionCorrections,restoreGeneration,regionChunkIds,sectorGrid,terrainChangeRects,type Region} from '../../studio-core/geo-edits.ts';
 import {affectedChunkIds} from '../../studio-core/schema.ts';
 import {putTerrainEdit} from '../../studio-core/source.ts';
 import {classifyPoint} from '../../geography/classify.ts';
 import {LAYERS,CATEGORY_LAYERS,MOISTURE_CODES,MASK_GRID,cellCenter,type LayerId,type MaskLayerId} from '../../geography/layers.ts';
 import {TILE_PX,levelMpp,sampleTile,ALTITUDE_RAMP,SLOPE_RAMP,MOISTURE_RAMP} from './raster.ts';
 import {TileCache} from './tile-cache.ts';
+import {createShapeTool} from './shapes.ts';
 
-export type MapToolId='select'|'pan'|'paint'|'erase'|'polygon'|'raise'|'lower'|'smooth'|'flatten';
+export type MapToolId='select'|'pan'|'shape'|'paint'|'erase'|'polygon'|'raise'|'lower'|'smooth'|'flatten';
 interface LayerState {id:LayerId;visible:boolean;opacity:number;locked:boolean}
 const MASKS=new Set<LayerId>(['geology','moisture','biome','material','occupation']);
 const RELIEF=new Set<LayerId>(['altitude','landsea']);
@@ -22,11 +23,12 @@ const TOOL_INFO:Record<MapToolId,[string,string]>={
   select:['Viser','Clic : choisir l’élément proche et viser ce lieu en 3D'],pan:['Déplacer','Glisser pour déplacer la carte'],
   paint:['Pinceau','Peint la valeur choisie (un trait = une opération annulable)'],erase:['Gomme','Rétablit la valeur générée sous le pinceau'],
   polygon:['Polygone','Clics : sommets · double-clic / Entrée : fermer · Retour arrière : retirer'],
+  shape:['Formes','Contours d’îles, volcans, massifs, collines, cuvettes, plateaux, crêtes et vallées'],
   raise:['Monter','Élève le relief'],lower:['Creuser','Abaisse le relief'],smooth:['Lisser','Adoucit les bosses'],flatten:['Aplanir','Aplanit à la hauteur du premier point'],
 };
 export function toolsFor(layer:LayerId):MapToolId[]{
   if(MASKS.has(layer))return ['select','pan','paint','erase','polygon'];
-  if(RELIEF.has(layer))return ['select','pan','raise','lower','smooth','flatten','polygon'];
+  if(RELIEF.has(layer))return ['select','pan','shape','raise','lower','smooth','flatten','polygon'];
   return ['select','pan'];
 }
 const PREFS='little-world.map-layers.v1';
@@ -45,8 +47,10 @@ function sharedFor(session:StudioSession):SharedMap{
   state.stop=session.commands.subscribe(t=>{
     state.geo=null;
     // Terrain edits reach up to their radius (≤ 80 m) past the owner sector; moisture reads rivers 60 m away.
-    if(t.patches.some(q=>q.path[0]==='world'||q.path[0]==='libraries'))state.cache.invalidate(null);
-    else for(const id of t.affectedChunks){const [x,z]=id.split(':').map(Number),s=grid.chunkSizeM,pad=96;state.cache.invalidate({minX:grid.minX+x*s-pad,maxX:grid.minX+(x+1)*s+pad,minZ:grid.minZ+z*s-pad,maxZ:grid.minZ+(z+1)*s+pad});}
+    const relief=terrainChangeRects(t.patches);
+    if(relief.global||t.patches.some(q=>q.path[0]==='libraries'||q.path[0]==='world'&&q.path[1]!=='terrain'))state.cache.invalidate(null);
+    else for(const r of relief.rects)state.cache.invalidate({minX:r.minX-8,maxX:r.maxX+8,minZ:r.minZ-8,maxZ:r.maxZ+8});
+    for(const id of t.affectedChunks){const [x,z]=id.split(':').map(Number),s=grid.chunkSizeM,pad=96;state.cache.invalidate({minX:grid.minX+x*s-pad,maxX:grid.minX+(x+1)*s+pad,minZ:grid.minZ+z*s-pad,maxZ:grid.minZ+(z+1)*s+pad});}
   });
   return shared=state;
 }
@@ -121,6 +125,7 @@ export function mountGeoMap(host:HTMLElement,tools:HTMLElement,session:StudioSes
     const a=toScreen(b.minX,b.minZ),c=toScreen(b.maxX,b.maxZ);g2.strokeStyle='#5f7a68';g2.lineWidth=1;g2.strokeRect(a.x,a.y,c.x-a.x,c.y-a.y);
     if(state.grid&&grid.chunkSizeM*base()>10){g2.strokeStyle='#ffffff55';g2.beginPath();for(let x=0;x<=grid.columns;x++){const q=toScreen(grid.minX+x*grid.chunkSizeM,0);g2.moveTo(q.x,a.y);g2.lineTo(q.x,c.y);}for(let z=0;z<=grid.rows;z++){const q=toScreen(0,grid.minZ+z*grid.chunkSizeM);g2.moveTo(a.x,q.y);g2.lineTo(c.x,q.y);}g2.stroke();}
     if(state.overlays)drawVectors();
+    if(state.tool==='shape')shapes.draw(g2);
     drawToolPreview();
     const lvl=levelMpp(level);note.textContent=`${LAYERS.find(l=>l.id===state.active)!.label} · ${TOOL_INFO[state.tool][0]} · ${lvl} m/px · ${cache.size} tuiles (${(cache.bytes/1048576).toFixed(1)} Mio)${queue.length?' · calcul '+queue.length:''}${samples?` · ${(sampleMs/samples).toFixed(1)} ms/tuile`:''}`;
     if(replan){plan();hydrateVisible();}
@@ -169,6 +174,7 @@ export function mountGeoMap(host:HTMLElement,tools:HTMLElement,session:StudioSes
   const inside=(q:{x:number;z:number})=>q.x>=b.minX&&q.x<=b.maxX&&q.z>=b.minZ&&q.z<=b.maxZ;
   canvas.onpointerdown=e=>{
     canvas.focus();canvas.setPointerCapture(e.pointerId);const q=local(e);
+    if(e.button===0&&state.tool==='shape'&&!activeLayer().locked){const r=canvas.getBoundingClientRect();if(shapes.pointerDown(e.clientX-r.left,e.clientY-r.top,q))return;}
     const editing=e.button===0&&!activeLayer().locked&&!busy;
     if(editing&&isBrush()&&inside(q)){painting=true;stroke=[q];flatHeight=geography().ctx.height(q.x,q.z);draw(false);return;}
     if(editing&&state.tool==='polygon'&&inside(q)){if(region){region=null;polygon=[];}const first=polygon[0];if(first&&polygon.length>2&&Math.hypot((q.x-first.x)*base(),(q.z-first.z)*base())<10)closePolygon();else polygon.push(q);draw(false);return;}
@@ -178,20 +184,23 @@ export function mountGeoMap(host:HTMLElement,tools:HTMLElement,session:StudioSes
   canvas.onpointermove=e=>{
     const q=local(e);cursor=inside(q)?q:null;
     if(painting&&e.buttons&1){stroke.push(q);draw(false);return;}
+    if(state.tool==='shape'&&shapes.pointerMove(q))return;
     if(drag){const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.hypot(dx,dy)>4)drag.moved=true;if(drag.moved){cx=drag.cx-dx/base();cz=drag.cz-dy/base();draw();return;}}
     if(isBrush()||state.tool==='polygon')draw(false);
     if(cursor&&performance.now()-lastReadout>60){lastReadout=performance.now();showReadout(cursor);}
   };
   canvas.onpointerup=e=>{
+    if(state.tool==='shape'&&shapes.pointerUp())return;
     if(painting){painting=false;commitStroke();stroke=[];draw(false);return;}
     const d=drag;drag=null;if(!d)return;
     if(d.moved){const c=session.selection.state.camera,t=c.target??{x:c.x,y:0,z:c.z};session.selection.setCamera({...c,x:c.x+cx-t.x,z:c.z+cz-t.z,target:{...t,x:cx,z:cz}});return;}
     const q=local(e);if(e.button===0&&inside(q)&&(state.tool==='select'||activeLayer().locked||!toolsFor(state.active).includes(state.tool)))options.onPick(q.x,q.z);
   };
-  canvas.ondblclick=()=>{if(state.tool==='polygon'&&polygon.length>2)closePolygon();};
+  canvas.ondblclick=e=>{if(state.tool==='polygon'&&polygon.length>2)closePolygon();else if(state.tool==='shape'&&!activeLayer().locked)shapes.dblclick(local(e));};
   canvas.onpointerleave=()=>{cursor=null;readout.textContent='';draw(false);};
   canvas.onwheel=e=>{e.preventDefault();const before=local(e);scale=Math.max(.25,Math.min(400,scale*Math.exp(-e.deltaY*.0015)));const after=local(e);cx+=before.x-after.x;cz+=before.z-after.z;draw();};
   canvas.onkeydown=e=>{
+    if(state.tool==='shape'&&shapes.key(e)){e.preventDefault();return;}
     if(e.key==='Escape'){if(painting){painting=false;stroke=[];options.status('Trait annulé.');}else if(polygon.length||region){polygon=[];region=null;panel();}draw(false);e.preventDefault();}
     else if(e.key==='Enter'&&polygon.length>2){closePolygon();e.preventDefault();}
     else if(e.key==='Backspace'&&polygon.length&&!region){polygon.pop();draw(false);e.preventDefault();}
@@ -223,6 +232,7 @@ export function mountGeoMap(host:HTMLElement,tools:HTMLElement,session:StudioSes
     const chips=node('div','','chip-row');
     for(const t of toolsFor(layer.id)){const c=button(TOOL_INFO[t][0],()=>{state.tool=t;polygon=[];region=null;panel();draw(false);},'chip'+(state.tool===t?' active':''));c.title=TOOL_INFO[t][1];c.dataset.tool=t;if(layer.locked&&t!=='select'&&t!=='pan')c.disabled=true;chips.append(c);}
     tools.append(chips,node('p',TOOL_INFO[state.tool][1],'muted'));
+    if(state.tool==='shape'&&!layer.locked)tools.append(shapes.panel());
     if(info.mode==='computed')tools.append(node('p','Couche calculée : modifiez le relief (Altitude) pour la faire évoluer.','muted'));
     if(isBrush()){
       const radius=node('input');radius.type='range';radius.min='2';radius.max='200';radius.value=String(state.radius);radius.oninput=()=>{state.radius=Number(radius.value);radiusLabel.textContent=`Rayon : ${state.radius.toFixed(0)} m ( [ ] )`;};
@@ -270,6 +280,7 @@ export function mountGeoMap(host:HTMLElement,tools:HTMLElement,session:StudioSes
   function move(id:LayerId,delta:number){const i=state.layers.findIndex(l=>l.id===id),j=i+delta;if(j<0||j>=state.layers.length)return;const [l]=state.layers.splice(i,1);state.layers.splice(j,0,l);persist();panel();draw(false);}
   function persist(){savePrefs({layers:state.layers,active:state.active});}
   // ---- lifecycle
+  const shapes=createShapeTool({session,toScreen,scale:base,redraw:()=>draw(false),refreshPanel:()=>panel(),status:options.status});
   const observer=new ResizeObserver(()=>draw());observer.observe(wrap);
   const stops=[session.commands.subscribe(onTransaction),session.selection.subscribe(()=>draw(false))];
   panel();draw();

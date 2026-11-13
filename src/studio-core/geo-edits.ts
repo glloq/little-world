@@ -3,7 +3,8 @@
 import type {ProjectDocument,TerrainEdit} from './types.ts';
 import {ensureChunk,removeTerrainEdit,removeBiomeEdit} from './source.ts';
 import {MASK_GRID,MASK_LAYERS,isEmptyMask,setMaskCell,cellCenter,type MaskLayerId,type SectorGrid} from '../geography/layers.ts';
-import {polygonSignedDistance,type PointXZ} from '../geography/archipelago.ts';
+import {polygonSignedDistance,featureBounds,landmassBounds,type PointXZ,type ReliefFeature,type Landmass,type ArchipelagoParams} from '../geography/archipelago.ts';
+import type {EditPatch} from './commands.ts';
 
 export function sectorGrid(p:ProjectDocument):SectorGrid{
   const b=p.world.bounds,s=p.world.chunkSizeM;return {minX:b.minX,minZ:b.minZ,chunkSizeM:s,columns:Math.ceil((b.maxX-b.minX)/s),rows:Math.ceil((b.maxZ-b.minZ)/s)};
@@ -60,3 +61,23 @@ export function regionChunkIds(p:ProjectDocument,r:Region):string[]{
   for(const meta of Object.values(p.chunkIndex)){const minX=g.minX+meta.cx*g.chunkSizeM,minZ=g.minZ+meta.cz*g.chunkSizeM;if(minX<=box.maxX+pad&&minX+g.chunkSizeM>=box.minX-pad&&minZ<=box.maxZ+pad&&minZ+g.chunkSizeM>=box.minZ-pad)ids.add(meta.chunkId);}
   return [...ids];
 }
+export interface Rect {minX:number;maxX:number;minZ:number;maxZ:number}
+/** Areas whose relief changes with a transaction's `world.terrain` patches (explicit
+ * dependency → local invalidation): changed features/land masses only, compared by id.
+ * `global` when generator-wide parameters (kind, seabed, detail…) changed. */
+export function terrainChangeRects(patches:readonly EditPatch[]):{changed:boolean;global:boolean;rects:Rect[]}{
+  const out={changed:false,global:false,rects:[] as Rect[]};
+  for(const patch of patches){
+    if(patch.path[0]!=='world'||patch.path[1]!=='terrain')continue;out.changed=true;
+    const list=patch.path.length===4&&patch.path[2]==='archipelago'?patch.path[3]:null;
+    if(list!=='features'&&list!=='landmasses'){out.global=true;continue;}
+    const before=(patch.before.value??[]) as {id:string}[],after=(patch.after.value??[]) as {id:string}[];
+    const key=(v:unknown)=>JSON.stringify(v),old=new Map(before.map(v=>[v.id,key(v)])),now=new Map(after.map(v=>[v.id,key(v)]));
+    const bounds=(v:unknown)=>list==='features'?featureBounds(v as ReliefFeature):landmassBounds(v as Landmass);
+    for(const v of before)if(now.get(v.id)!==old.get(v.id))out.rects.push(bounds(v));
+    for(const v of after)if(now.get(v.id)!==old.get(v.id))out.rects.push(bounds(v));
+  }
+  return out;
+}
+/** Replace the archipelago parameters (validated by the transaction validator). */
+export function setArchipelago(draft:ProjectDocument,a:ArchipelagoParams){draft.world.terrain={kind:'archipelago',version:1,archipelago:structuredClone(a)};}

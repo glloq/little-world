@@ -19,15 +19,19 @@ export interface Landmass {
   beachWidthM:number;shoreHeightM:number;lowlandHeightM:number;hillHeightM:number;
   /** 0 = gentle beaches everywhere, 1 = cliffs everywhere; varies naturally along the coast. */
   cliffs:number;
+  /** Local re-seed of the coast noise ("Varier"); absent = 0. */
+  variant?:number;
 }
-export type ReliefFeature=
+export type ReliefFeature=WithVariant<
   |({id:string;kind:'volcano'}&VolcanoParams)
   |{id:string;kind:'mountain'|'hill';x:number;z:number;radiusM:number;heightM:number;roughness:number}
   |{id:string;kind:'basin';x:number;z:number;radiusM:number;depthM:number}
   |{id:string;kind:'plateau';polygon:PointXZ[];heightM:number;edgeM:number}
   |{id:string;kind:'ridge';points:PointXZ[];widthM:number;heightM:number}
-  |{id:string;kind:'valley';points:PointXZ[];widthM:number;depthM:number};
+  |{id:string;kind:'valley';points:PointXZ[];widthM:number;depthM:number}>;
 export type FeatureKind=ReliefFeature['kind'];
+/** Every feature may carry `variant` (local re-seed of its noise; absent = 0). */
+export type WithVariant<T>=T&{variant?:number};
 export interface ArchipelagoParams {seabedDepthM:number;detailM:number;landmasses:Landmass[];features:ReliefFeature[]}
 export interface GeoWorld {seed:number;seaLevel:number;width:number;length:number}
 /** Generator outputs shared by every consumer (terrain, classification, map, vegetation). */
@@ -47,6 +51,8 @@ export const FEATURE_LABELS:Record<FeatureKind,string>={volcano:'Volcan',mountai
 const clamp=(v:number,a:number,b:number)=>Math.min(b,Math.max(a,v));
 const smooth=(a:number,b:number,x:number)=>{const t=clamp((x-a)/(b-a),0,1);return t*t*(3-2*t);};
 const lerp=(a:number,b:number,t:number)=>a+(b-a)*clamp(t,0,1);
+/** Seed of a shape: world seed, stable id and optional variant. */
+export function shapeSeed(seed:number,id:string,variant=0):number{return (seed^hashString(id)^Math.imul(variant,0x9e3779b1))>>>0;}
 export function hashString(text:string):number{let h=2166136261;for(let i=0;i<text.length;i++)h=Math.imul(h^text.charCodeAt(i),16777619);return h>>>0;}
 
 /** Signed distance to a closed polygon, positive inside. */
@@ -76,9 +82,9 @@ const bump=(t:number)=>t>=1?0:.5+.5*Math.cos(Math.PI*clamp(t,0,1));
 
 export function archipelagoField(world:GeoWorld,p:ArchipelagoParams):GeneratorField{
   const sea=world.seaLevel,seed=world.seed>>>0,falloff=320;
-  const masses=p.landmasses.map(l=>({l,box:landmassBounds(l,falloff),seed:(seed^hashString(l.id))>>>0,freq:1/l.coastWavelengthM,hill:1/Math.max(80,l.coastWavelengthM*.45)}));
+  const masses=p.landmasses.map(l=>({l,box:landmassBounds(l,falloff),seed:shapeSeed(seed,l.id,l.variant),freq:1/l.coastWavelengthM,hill:1/Math.max(80,l.coastWavelengthM*.45)}));
   // Features grouped by composition stage once (no per-sample filtering/allocation).
-  const stage=(kinds:FeatureKind[])=>p.features.filter(f=>kinds.includes(f.kind)).map(f=>({f,box:featureBounds(f),seed:(seed^hashString(f.id))>>>0}));
+  const stage=(kinds:FeatureKind[])=>p.features.filter(f=>kinds.includes(f.kind)).map(f=>({f,box:featureBounds(f),seed:shapeSeed(seed,f.id,f.variant)}));
   const plateaus=stage(['plateau']),raises=stage(['mountain','hill','ridge']),cuts=stage(['basin','valley']),volcanoes=stage(['volcano']);
   /** Best coast value and the land mass providing it. */
   // One-entry memo: height() then site() at the same point (tile colouring) share the coast.

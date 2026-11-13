@@ -57,3 +57,26 @@ test('ribbon distances skip far lines but stay exact nearby',()=>{
   const d=lineSet([{points:[{x:0,z:0},{x:100,z:0}],width:4}]);
   assert.equal(d(50,10,20),8);assert.equal(d(50,500,20),Infinity);assert.equal(d(50,500,Infinity),498);
 });
+test('relief shapes: variants re-seed locally, presets validate, changes invalidate only their area',async()=>{
+  const {parseArchipelago,isletChainPreset,islandToArchipelago}=await import('../src/geography/archipelago-params.ts');
+  const {archipelagoField,featureBounds}=await import('../src/geography/archipelago.ts');
+  const {terrainChangeRects,setArchipelago}=await import('../src/studio-core/geo-edits.ts');
+  const {islandPreset}=await import('../src/terrain-generator.ts');
+  const world={seed:4242,seaLevel:0,width:W,length:L},base=archipelagoPreset(W,L);
+  for(const preset of [base,isletChainPreset(W,L),islandToArchipelago(islandPreset(W,L).island,W,L)])assert.deepEqual(parseArchipelago(structuredClone(preset),{width:W,length:L}),preset);
+  const varied=structuredClone(base),massif=varied.features.find(f=>f.id==='massif');massif.variant=7;
+  assert.deepEqual(parseArchipelago(structuredClone(varied),{width:W,length:L}),varied,'variant round-trips');
+  assert.throws(()=>parseArchipelago({...base,features:[{...base.features[0],variant:1.5}]},{width:W,length:L}),/variante/);
+  const a=archipelagoField(world,base),b=archipelagoField(world,varied),box=featureBounds(massif);let inside=0,outside=0;
+  for(let i=0;i<400;i++){const x=box.minX+(i%20+.5)*(box.maxX-box.minX)/20,z=box.minZ+(Math.floor(i/20)+.5)*(box.maxZ-box.minZ)/20;if(Math.abs(a.height(x,z)-b.height(x,z))>.01)inside++;}
+  for(let i=0;i<400;i++){const x=(i*131%2800)-1400,z=(i*577%7800)-3900;if(x>=box.minX&&x<=box.maxX&&z>=box.minZ&&z<=box.maxZ)continue;if(a.height(x,z)!==b.height(x,z))outside++;}
+  assert.ok(inside>20,'variant changes the massif');assert.equal(outside,0,'and nothing outside its bounds');
+  // Transaction → invalidation rectangles.
+  const p=createProject({name:'Formes',width:W,length:L,seed:4242,terrain:{kind:'archipelago',version:1,archipelago:base}}),{parseWorldV3}=await import('../src/studio-core/schema.ts'),bus=new CommandBus(p,q=>parseWorldV3(q.world));
+  const moved=structuredClone(base);moved.features.find(f=>f.id==='volcano').x+=100;
+  const t=editDocument(bus,'Déplacer',[],d=>setArchipelago(d,moved)),change=terrainChangeRects(t.patches);
+  assert.ok(change.changed&&!change.global);assert.equal(change.rects.length,2,'old and new volcano areas');
+  const general=editDocument(bus,'Fond',[],d=>setArchipelago(d,{...moved,seabedDepthM:60}));assert.ok(terrainChangeRects(general.patches).global);
+  bus.undo();bus.undo();assert.deepEqual(p.world.terrain.archipelago,base,'undo restores the relief parameters');
+  assert.throws(()=>editDocument(bus,'Invalide',[],d=>setArchipelago(d,{...base,landmasses:[]})),/terres|Archipel/);
+});

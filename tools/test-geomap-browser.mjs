@@ -56,6 +56,25 @@ try{
   await page.getByRole('button',{name:'Carte globale',exact:true}).click();await ready();
   check(await page.locator('.layer-row.active').getAttribute('data-layer')==='biome','Active layer and layer settings persist across 2D/3D switches');
   await page.getByRole('button',{name:'Sauvegarder',exact:true}).click();await page.waitForFunction(()=>document.querySelector('#save-status').textContent==='Sauvegardé localement');check(true,'Edits saved locally');
+  // G3 — relief shapes on an archipelago project.
+  await page.getByRole('button',{name:'Mes projets',exact:true}).click();await page.getByLabel('Nom du projet').fill('Archipel formes');await page.getByLabel('Modèle et dimensions').selectOption('archipelago');await page.getByRole('button',{name:'Créer le projet',exact:true}).click();
+  await page.waitForFunction(()=>document.querySelector('.viewport canvas')?.dataset.idle==='true',{},{timeout:120000});
+  await page.getByRole('button',{name:'Carte globale',exact:true}).click();await ready();
+  const before=await page.evaluate(()=>Number(document.querySelector('.viewport canvas').dataset.generatorRevision??0));
+  await page.locator('.layer-row[data-layer=altitude] .layer-name').click();await page.locator('button[data-tool=shape]').click();
+  check(await page.locator('[data-add]').count()===8,'Shape tool offers islets and the seven relief forms');
+  await page.locator('[data-add=hill]').click();const c2=await canvas.boundingBox();await page.mouse.click(c2.x+c2.width/2+20,c2.y+c2.height/2);
+  await page.waitForFunction(()=>/Ajouter : Colline/.test(document.querySelector('[data-action=undo]').title));check(await page.locator('.shape-card').count()===1,'Placed hill is selected with its parameters');
+  const hand=await page.locator('.shape-card').textContent();check(/Rayon/.test(hand)&&/Rugosité/.test(hand),'Hill parameters exposed');
+  await page.mouse.move(c2.x+c2.width/2+20,c2.y+c2.height/2);await page.mouse.down();for(let i=1;i<=8;i++)await page.mouse.move(c2.x+c2.width/2+20+i*4,c2.y+c2.height/2+i*3);await page.mouse.up();
+  await page.waitForFunction(()=>/Déplacer une forme/.test(document.querySelector('[data-action=undo]').title));check(true,'Dragging a shape is one operation');
+  await page.getByRole('button',{name:'Varier (aperçu)'}).click();check(await page.locator('.thumb-pair canvas').count()===2,'Variation shows current vs candidate before commit');
+  await page.getByRole('button',{name:'Appliquer cette variante'}).click();await page.waitForFunction(()=>/Varier une forme/.test(document.querySelector('[data-action=undo]').title));check(true,'Variation applied as one operation');
+  await page.getByText('Presets de relief',{exact:true}).click();await page.locator('[data-preset=chain]').click();check(await page.locator('.presets .relief-thumb').count()===1,'Preset preview before applying');
+  await page.getByRole('button',{name:'Appliquer ce relief'}).click();await page.waitForFunction(()=>/Appliquer un preset de relief/.test(document.querySelector('[data-action=undo]').title));await ready();check(true,'Preset applied as one operation');
+  await page.keyboard.press('Control+z');await page.waitForFunction(()=>/Varier une forme/.test(document.querySelector('[data-action=undo]').title));check(true,'Undo restores the previous relief');
+  await page.getByRole('button',{name:'Sélection',exact:true}).click();await page.waitForFunction(()=>document.querySelector('.viewport canvas')?.dataset.idle==='true',{},{timeout:120000});
+  check(await page.evaluate(()=>Number(document.querySelector('.viewport canvas').dataset.generatorRevision??0))>before,'3D view rebuilt the relief after shape edits');
   check(errors.length===0,errors.join('\n')||'No page errors');
   console.log(JSON.stringify({checks,errors}));
 }finally{await browser.close();}

@@ -63,3 +63,9 @@ label:has(> input[type=checkbox]){flex-direction:row;align-items:center;justify-
 .map-readout{position:absolute;left:16px;bottom:12px;padding:6px 10px;background:#fffff1e8;border:1px solid #e1e7ce;border-radius:8px;font-size:11px;pointer-events:none;max-width:calc(100% - 32px)}
 .map-readout:empty{display:none}
 #panel-host .map-wrap canvas{display:block;width:100%;height:100%;touch-action:none;cursor:crosshair}
+.shape-card{margin:8px 0;padding:10px;display:flex;flex-direction:column;gap:4px}
+.shape-card label{margin:6px 0}
+.range-value{font-size:11px;color:#5a7262;align-self:flex-end;margin-top:-4px}
+.thumb-pair{display:grid;grid-template-columns:1fr 1fr;gap:6px}.thumb-pair figure{margin:0;text-align:center;font-size:11px;color:#5a7262}
+.relief-thumb{width:100%;height:auto;max-height:180px;object-fit:contain;border-radius:6px;border:1px solid #d5e1cf;image-rendering:auto;display:block}
+.presets{display:flex;flex-direction:column;gap:5px}.presets>button{text-align:left}
