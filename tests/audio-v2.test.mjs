@@ -155,3 +155,14 @@ test('installing the shipped catalogue on a migrated V1 project keeps every auth
  assert.ok(merged.ambience.legacy&&!merged.ambience.weather,'no doubled rain/water layers');assert.equal(merged.music.cues.day,undefined);assert.deepEqual(Object.keys(merged.music.cues).filter(k=>k.startsWith('explore')).sort(),['explore.day','explore.night']);
  assert.equal(merged.assets['sample-collect'].bytesBase64,v1.assets['sample-collect'].bytesBase64,'embedded V1 bytes kept (portable)');
 });
+test('a produced file replaces its PLANNED entry: probed metadata, played instead of the fallback, removed from the to-do list',async()=>{
+ const {buildAudioCatalog}=await import('../src/audio/catalog-source.ts'),{probeAudioFile,probeOgg}=await import('../tools/audio-probe.mjs');
+ const library=Object.fromEntries(Object.entries(catalog.assets).filter(([,a])=>a.uri?.startsWith('audio/library/')));
+ const wav=new Uint8Array(await readFile(new URL('../public/audio/library/sample-step.wav',import.meta.url))),meta=probeAudioFile(wav,'wav');
+ assert.equal(meta.channels,1);assert.equal(meta.contentHash,library['sample-step'].contentHash);
+ const built=buildAudioCatalog(library,{'fs-grass-01':{uri:'audio/sfx/movement/fs-grass-01.wav',status:'GENERATED',source:'test',license:'CC0-1.0',...meta}}),c=parseAudioDefinitionV2(built.catalog);
+ assert.equal(c.assets['fs-grass-01'].status,'GENERATED');assert.equal(c.assets['fs-grass-01'].format,'wav');assert.ok(!built.production.some(p=>p.assetId==='fs-grass-01'));assert.equal(built.done.length,1);
+ const r=resolveSound(c,'player.footstep',{surface:'grass'},picker());assert.equal(r.sound.asset.id,'fs-grass-01');assert.deepEqual(r.sound.path,['player.footstep']);
+ assert.throws(()=>buildAudioCatalog(library,{'sample-step':{uri:'audio/x.wav'}}),/inconnue ou déjà disponible/);
+ assert.throws(()=>probeOgg(wav),/OggS/);
+});

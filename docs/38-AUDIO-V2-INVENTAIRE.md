@@ -61,15 +61,15 @@ Légende « État réel » : *Disponible* = prises jouables ; *Repli* = joue le 
 | `ambience.fire` | Feu (boucle) | Émetteur sur feu de camp/cheminée | — | 1 prévue(s) | post-B1 | sample | 4–8 s (boucle) | monde (20 m) | random, max 2 | — | Silencieux (à produire) · non émis (prévu) |
 | `ambience.forest` | Forêt (fond) | Profil « forêt » | place, time | 1 prévue(s) | B1 | sample | 6–8 s (boucle) | boucle globale | random, max 2 | — | Silencieux (à produire) |
 | `ambience.plain` | Plaine / vallée / ferme (fond) | Profils « plaine », « vallée », « ferme » | place | 1 prévue(s) | B1 | sample | 6–8 s (boucle) | boucle globale | random, max 2 | — | Silencieux (à produire) |
-| `ambience.swamp` | Marais (fond) | Profil « marais » | place | 1 prévue(s) | post-B1 | sample | 6–8 s (boucle) | boucle globale | random, max 2 | — | Silencieux (à produire) |
-| `ambience.desert` | Désert (fond) | Profil « désert » | place | 0 (réutilisation) | post-B1 | sample | — | boucle globale | random, max 2 | réutilise `amb-wind-strong` ×1.05 hauteur ×0.8 gain | Silencieux (à produire) |
-| `ambience.volcano` | Volcan (fond) | Profil « volcan » | place | 1 prévue(s) | post-B1 | sample | 6–8 s (boucle) | boucle globale | random, max 2 | — | Silencieux (à produire) |
+| `ambience.swamp` | Marais (fond) | Profil « marais » — lieu pas encore fourni par la sonde de terrain | place | 1 prévue(s) | post-B1 | sample | 6–8 s (boucle) | boucle globale | random, max 2 | — | Silencieux (à produire) · non émis (prévu) |
+| `ambience.desert` | Désert (fond) | Profil « désert » — lieu pas encore fourni par la sonde de terrain | place | 0 (réutilisation) | post-B1 | sample | — | boucle globale | random, max 2 | réutilise `amb-wind-strong` ×1.05 hauteur ×0.8 gain | Silencieux (à produire) · non émis (prévu) |
+| `ambience.volcano` | Volcan (fond) | Profil « volcan » — lieu pas encore fourni par la sonde de terrain | place | 1 prévue(s) | post-B1 | sample | 6–8 s (boucle) | boucle globale | random, max 2 | — | Silencieux (à produire) · non émis (prévu) |
 | `ambience.sea` | Plage / océan / côte (fond) | Profils « côte », « plage », « océan » | place | 1 prévue(s) | post-B1 | sample | 6–8 s (boucle) | boucle globale | random, max 2 | — | Silencieux (à produire) |
 | `ambience.water.river` | Rivière (fond) | Profil global : eau proche | nearWater, place | 1 prévue(s) | B1 | sample | 6–8 s (boucle) | boucle globale | random, max 2 | partagé avec `farm.irrigate` | Repli → `water` |
-| `ambience.waterfall` | Cascade (fond/émetteur) | Profil « cascade » ou émetteur WaterNetwork | place | 1 prévue(s) | post-B1 | sample | 6–8 s (boucle) | boucle globale | random, max 2 | partagé avec `water.rapids` | Silencieux (à produire) |
+| `ambience.waterfall` | Cascade (fond/émetteur) | Profil « cascade » ou émetteur WaterNetwork — lieu pas encore fourni par la sonde de terrain | place | 1 prévue(s) | post-B1 | sample | 6–8 s (boucle) | boucle globale | random, max 2 | partagé avec `water.rapids` | Silencieux (à produire) · non émis (prévu) |
 | `ambience.lake` | Lac (fond) | Profil « lac » | place | 1 prévue(s) | post-B1 | sample | 6–8 s (boucle) | boucle globale | random, max 2 | — | Silencieux (à produire) |
 | `ambience.village` | Village (fond) | Profil « village » | place | 1 prévue(s) | post-B1 | sample | 6–8 s (boucle) | boucle globale | random, max 2 | — | Silencieux (à produire) |
-| `ambience.ruins` | Ruines (fond) | Profil « ruines » | place | 0 (réutilisation) | B1 | sample | — | boucle globale | random, max 2 | réutilise `amb-wind-light` ×0.85 hauteur ×0.7 gain | Silencieux (à produire) |
+| `ambience.ruins` | Ruines (fond) | Profil « ruines » — lieu pas encore fourni par la sonde de terrain | place | 0 (réutilisation) | B1 | sample | — | boucle globale | random, max 2 | réutilise `amb-wind-light` ×0.85 hauteur ×0.7 gain | Silencieux (à produire) · non émis (prévu) |
 | `ambience.night` | Nuit (grillons) | Profil global : time = night | time | 1 prévue(s) | B1 | sample | 6–8 s (boucle) | boucle globale | random, max 2 | — | Silencieux (à produire) |
 
 ## Navigation

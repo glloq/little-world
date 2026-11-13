@@ -1,5 +1,7 @@
 # Audio B1 et vérification avant essais utilisateur
 
+> **Évolution AUD-V2** : catalogue contextuel (événements, variantes, profils musicaux et d’ambiance), migration V1→V2 et manifeste de production — voir [37 — Audio V2](37-AUDIO-V2-CATALOGUE.md). Le parcours ci-dessous reste valable ; le module Audio propose en plus « Passer au catalogue V2 ». Tests ajoutés : `tests/audio-v2.test.mjs`, `tests/audio-v2.browser.mjs` (`run-browser-check audio-v2`).
+
 Branche de travail : `feat/studio-v3`. L’audio décrit ici est implémenté ; les mines, l’agriculture et les autres critères B1 restant dans le [suivi général](27-B1-IMPLEMENTATION-STATUS.md) ne sont pas déclarés terminés.
 
 ## Audio disponible

@@ -453,11 +453,11 @@ function tick(dt: number) {
     if(player.space){const forward={x:Math.sin(yaw),z:Math.cos(yaw)},target=a.mineTarget(player.position,player.space,forward),r=a.dig(player.position,player.space,forward);showInfo(r.message);
       // Audio follows the validated business result (never mesh changes).
       const material=target?MATERIAL_BY_MINE_KEY[MINE_MATERIALS[target.material]?.key]:undefined,context={material,tool:'pickaxe',place:'mine' as const};
-      if(r.ok){audio?.emit('mine.hit',{context,position:player.position,source:'player'});audio?.emit('mine.cell.excavated',{context,position:player.position,source:'player'});if(r.message.startsWith('+'))audio?.emit(material==='crystal'?'mine.resource.crystal':'mine.resource.collect',{context,source:'player'});}
+      if(r.ok){audio?.emit('mine.hit',{context,position:player.position,source:'player'});audio?.emit('mine.cell.excavated',{context,position:player.position,source:'player'});if(r.message.startsWith('+')/* dig() reports a reward as « +1 item » */)audio?.emit(material==='crystal'?'mine.resource.crystal':'mine.resource.collect',{context,source:'player'});}
       else audio?.emit('mine.action.denied',{context,source:'player'});}
-    else{const plot=a.farmNear(player.position);if(plot){const intent=a.farmIntent(plot.zone.id),r=a.farmAct(plot.zone.id);showInfo(r.message);
-      const farmEvent={plant:'farm.plant',water:'farm.water',harvest:'farm.harvest',clear:'farm.clear'}[intent.type]??'farm.plant';audio?.emit(r.ok?farmEvent:'ui.error',{context:{place:'farm',activity:'farming',objectKind:intent.type},position:player.position,source:'player'});}}}
-  if(cropQueue>0&&gameplay){cropQueue=0;const plot=gameplay.activities.farmNear(player.position,player.space);if(plot){const name=gameplay.activities.cycleCrop(plot.zone.id);if(name)showInfo('Culture choisie : '+name);}}
+    else{const plot=a.farmNear(player.position);if(plot){const intent=a.farmIntent(plot.zone.id),view=a.farmView(plot.zone.id),crop=view?.cropId??view?.selectedCrop,r=a.farmAct(plot.zone.id);showInfo(r.message);
+      const farmEvent={plant:'farm.plant',water:'farm.water',harvest:'farm.harvest',clear:'farm.clear'}[intent.type]??'farm.plant';audio?.emit(r.ok?farmEvent:'ui.error',{context:{place:'farm',activity:'farming',objectKind:crop??undefined,state:intent.type},position:player.position,source:'player'});}}}
+  if(cropQueue>0&&gameplay){cropQueue=0;const plot=gameplay.activities.farmNear(player.position,player.space);if(plot){const name=gameplay.activities.cycleCrop(plot.zone.id);if(name){showInfo('Culture choisie : '+name);audio?.emit('farm.seedbag',{source:'player'});}}}
   if (actionQueue > 0) {
     if (aboard) {
       aboard = false;
@@ -479,6 +479,7 @@ function tick(dt: number) {
     } else if (gameplay?.interact(player.position)) {
       showInfo('Interaction effectuée.');
     } else if (npcs.interact(player.position)) {
+      audio?.emit('npc.vocalize',{context:{species:'squirrel'},position:player.position});
       keySet.clear();
       jumpQueue = 0;
       player.velocity.set(0, 0, 0);

@@ -5,6 +5,7 @@
  "purpose": "Cahier des charges machine-readable des ressources audio Little World à produire (statut PLANNED dans public/audio/catalog.json).",
  "summary": {
   "plannedFiles": 160,
+  "producedFiles": 0,
   "samples": 143,
   "midi": 17,
   "byWave": {

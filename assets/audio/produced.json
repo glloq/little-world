@@ -1,0 +1,5 @@
+{
+ "schemaVersion": 1,
+ "about": "Fichiers audio livrés (chemins relatifs à public/). Chaque entrée : {file, status GENERATED|VERIFIED|REJECTED, source, license, generatorVersion?, notes?}. Les métadonnées (octets, sha256, durée, canaux, fréquence) sont mesurées par npm run generate:audio.",
+ "files": {}
+}
