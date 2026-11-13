@@ -78,6 +78,14 @@ La qualité sonore est pilotée par le [budget transversal PERF](22-RESOURCE-BUD
 
 Le système **n'est pas** un terrain voxel mondial. Les maillages souterrains sont dérivés des seules faces excavées et chargés localement. Les données V3 auteur sont distinctes des états de partie. **Un serveur autoritaire pour partager les mines est prévu mais pas encore implémenté.**
 
+## Agriculture facultative : gestion complète, coût par parcelle
+
+Le [contrat AGRI 25](25-AGRICULTURE-PARCELS-LOW-RESOURCE.md) prévoit des **parcelles agricoles limitées et éditables**, permettant semis, culture, irrigation, fertilité, rotation, maladies et récoltes, **sans rendre l'agriculture obligatoire** dans le monde d'exploration.
+
+Les récoltes évoluent selon **le temps du monde, le climat historique et les actions**, même hors présence du joueur, par **calcul différé** et quelques échéances. Une zone de culture est **un état logique agrégé**, non des milliers de plantes simulées. Le propriétaire accède aux commandes et données autorisées; un visiteur voit une apparence simplifiée. **Le LOD est déterminé par la caméra**, pas le statut de propriétaire.
+
+Le rendu des champs et la charge des simulations restent gouvernés par PERF; sauvegarde locale solo, **autorité serveur future**. **Cadrage validé, moteur agricole non encore implémenté**.
+
 ## État d'implémentation
 
 **Prototype déjà codé :** vallée 200 × 600 m, personnage procédural, déplacement/planage/nage, bateau, roue de moulin, premier catalogue GLB et éditeur de placement local.
