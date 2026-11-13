@@ -1,0 +1,335 @@
+{
+  "schemaVersion": 1,
+  "name": "Little World Dock Kit v1",
+  "generator": "generate_dock_assets.py",
+  "license": "project-original",
+  "units": "meters",
+  "axis": "Y_UP",
+  "coordinateSystem": "right-handed",
+  "tileSizeMeters": 2,
+  "deckTopY": 1.0,
+  "assets": {
+    "tile": {
+      "lods": {
+        "lod0": {
+          "file": "models/structures/dock/tile/lod0.glb",
+          "triangles": 96,
+          "sizeBytes": 4196,
+          "sha256": "6071876bb458e2ba5e87b17aa66ced6663dd919ec29c501a58072d2341cd1948",
+          "boundsMeters": [
+            [
+              -0.982,
+              0.7555,
+              -0.973
+            ],
+            [
+              0.982,
+              1.0,
+              0.973
+            ]
+          ]
+        },
+        "lod1": {
+          "file": "models/structures/dock/tile/lod1.glb",
+          "triangles": 72,
+          "sizeBytes": 3456,
+          "sha256": "1d433e601729088995b841d7d71fc773de32e9cce32ea9305822b12258f911c3",
+          "boundsMeters": [
+            [
+              -0.982,
+              0.7555,
+              -0.973
+            ],
+            [
+              0.982,
+              1.0,
+              0.973
+            ]
+          ]
+        },
+        "lod2": {
+          "file": "models/structures/dock/tile/lod2.glb",
+          "triangles": 12,
+          "sizeBytes": 1632,
+          "sha256": "3f005665f4f7f35ffe8b896de3de84fe9bd6303dd22104503158e4241763eebc",
+          "boundsMeters": [
+            [
+              -0.982,
+              0.905,
+              -0.973
+            ],
+            [
+              0.982,
+              1.0,
+              0.973
+            ]
+          ]
+        }
+      },
+      "type": "glb",
+      "colorMode": "vertex-colors",
+      "textures": 0,
+      "fileBase": "models/structures/dock/tile"
+    },
+    "post": {
+      "lods": {
+        "lod0": {
+          "file": "models/structures/dock/post/lod0.glb",
+          "triangles": 36,
+          "sizeBytes": 2372,
+          "sha256": "62d350409993c396968ac70e12f8eaa81edcb5421806d5fca2514a98bca5901b",
+          "boundsMeters": [
+            [
+              -0.15,
+              -0.165,
+              -0.15
+            ],
+            [
+              0.15,
+              1.26,
+              0.15
+            ]
+          ]
+        },
+        "lod1": {
+          "file": "models/structures/dock/post/lod1.glb",
+          "triangles": 24,
+          "sizeBytes": 2000,
+          "sha256": "acf5485167bfa01df89988a8d3195c0eee04e4b119bd938c20692fd21b057061",
+          "boundsMeters": [
+            [
+              -0.135,
+              -0.165,
+              -0.135
+            ],
+            [
+              0.135,
+              1.19,
+              0.135
+            ]
+          ]
+        },
+        "lod2": {
+          "file": "models/structures/dock/post/lod2.glb",
+          "triangles": 12,
+          "sizeBytes": 1648,
+          "sha256": "034cdd4c91ee15ed9fa35ab19fc4d06a4b9cf3620cbfbdbbfd1f0c4e1a3ce85e",
+          "boundsMeters": [
+            [
+              -0.115,
+              -0.14,
+              -0.115
+            ],
+            [
+              0.115,
+              1.19,
+              0.115
+            ]
+          ]
+        }
+      },
+      "type": "glb",
+      "colorMode": "vertex-colors",
+      "textures": 0,
+      "fileBase": "models/structures/dock/post"
+    },
+    "bollard": {
+      "lods": {
+        "lod0": {
+          "file": "models/structures/dock/bollard/lod0.glb",
+          "triangles": 68,
+          "sizeBytes": 3232,
+          "sha256": "903dcaa1a8346594e9a49e08a14dd018fccdea842923e56298fffbf6b7c3c125",
+          "boundsMeters": [
+            [
+              -0.235,
+              0.0325,
+              -0.195
+            ],
+            [
+              0.235,
+              0.4975,
+              0.195
+            ]
+          ]
+        },
+        "lod1": {
+          "file": "models/structures/dock/bollard/lod1.glb",
+          "triangles": 36,
+          "sizeBytes": 2372,
+          "sha256": "463a775785ebb5fd216d7870c60b563b4cd6cfc76acb48d88d4f74c0f21164ff",
+          "boundsMeters": [
+            [
+              -0.225,
+              0.0325,
+              -0.18
+            ],
+            [
+              0.225,
+              0.45,
+              0.18
+            ]
+          ]
+        },
+        "lod2": {
+          "file": "models/structures/dock/bollard/lod2.glb",
+          "triangles": 24,
+          "sizeBytes": 1996,
+          "sha256": "4e704daa21a849105e4303a3813da51e5606e5dbc0fe5225d6ac717c0ff7ecbb",
+          "boundsMeters": [
+            [
+              -0.175,
+              0.03,
+              -0.16
+            ],
+            [
+              0.175,
+              0.44,
+              0.16
+            ]
+          ]
+        }
+      },
+      "type": "glb",
+      "colorMode": "vertex-colors",
+      "textures": 0,
+      "fileBase": "models/structures/dock/bollard"
+    },
+    "ramp": {
+      "lods": {
+        "lod0": {
+          "file": "models/structures/dock/ramp/lod0.glb",
+          "triangles": 96,
+          "sizeBytes": 4212,
+          "sha256": "ad70b04427b1c68c154be853b0ad26c29fda051ffe9b4d605a13f42aad05b46b",
+          "boundsMeters": [
+            [
+              -0.88,
+              0.1096,
+              -0.983
+            ],
+            [
+              0.88,
+              1.0298,
+              1.0205
+            ]
+          ]
+        },
+        "lod1": {
+          "file": "models/structures/dock/ramp/lod1.glb",
+          "triangles": 72,
+          "sizeBytes": 3472,
+          "sha256": "db449c8bcad2a939e0c60a1658d3f73ca2c0d6fb65cb2185029fe5e29bb372a6",
+          "boundsMeters": [
+            [
+              -0.88,
+              0.1096,
+              -0.983
+            ],
+            [
+              0.88,
+              1.0298,
+              1.0205
+            ]
+          ]
+        },
+        "lod2": {
+          "file": "models/structures/dock/ramp/lod2.glb",
+          "triangles": 12,
+          "sizeBytes": 1660,
+          "sha256": "71f1c019822e23516a0690cd4273d59cca8f64d2f4a2590d821b9c0a53b67c39",
+          "boundsMeters": [
+            [
+              -0.88,
+              0.2149,
+              -0.9971
+            ],
+            [
+              0.88,
+              1.0351,
+              0.9971
+            ]
+          ]
+        }
+      },
+      "type": "glb",
+      "colorMode": "vertex-colors",
+      "textures": 0,
+      "fileBase": "models/structures/dock/ramp"
+    },
+    "ladder": {
+      "lods": {
+        "lod0": {
+          "file": "models/structures/dock/ladder/lod0.glb",
+          "triangles": 96,
+          "sizeBytes": 4212,
+          "sha256": "47eb6c530585600b088e8ac020019128aa3abd0b7bb2cca22080dcbaf025493a",
+          "boundsMeters": [
+            [
+              -0.3475,
+              -0.27,
+              -0.0715
+            ],
+            [
+              0.3475,
+              1.13,
+              0.32
+            ]
+          ]
+        },
+        "lod1": {
+          "file": "models/structures/dock/ladder/lod1.glb",
+          "triangles": 60,
+          "sizeBytes": 3108,
+          "sha256": "09459cb6b00aa5514d1ded9349e4b9840a1fc26bd6dd91687a7bf184c35549d6",
+          "boundsMeters": [
+            [
+              -0.3475,
+              -0.27,
+              -0.0715
+            ],
+            [
+              0.3475,
+              1.13,
+              0.06
+            ]
+          ]
+        },
+        "lod2": {
+          "file": "models/structures/dock/ladder/lod2.glb",
+          "triangles": 48,
+          "sizeBytes": 2740,
+          "sha256": "29a3e4b3fc63a830591c9590d0d0642691beaecc37be7b48af6f1a373603c1b7",
+          "boundsMeters": [
+            [
+              -0.3475,
+              -0.27,
+              -0.0715
+            ],
+            [
+              0.3475,
+              1.13,
+              0.06
+            ]
+          ]
+        }
+      },
+      "type": "glb",
+      "colorMode": "vertex-colors",
+      "textures": 0,
+      "fileBase": "models/structures/dock/ladder"
+    }
+  },
+  "conventions": {
+    "tile": "center at origin; floor surface y=1.0",
+    "post": "center of grid corner; no posts are part of tile GLB",
+    "bollard": "local model foot near y=0; place at deckTopY",
+    "ramp": "local center y=0.625; high end local +Z at y=1.0; low -Z at y=0.25",
+    "ladder": "local center; install near tile outer edge; top grip y=1.13"
+  },
+  "assembly": {
+    "cornerKeys": "For each tile (gx,gz), unique posts at (2*gx+/-1, 2*gz+/-1)",
+    "edgeRule": "Boundary fascia generated only if no neighbor on N/S/E/W",
+    "defaultLodDistancesMeters": "not fixed; select by projected size with hysteresis"
+  }
+}
