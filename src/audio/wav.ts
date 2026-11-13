@@ -1,0 +1,7 @@
+/** Bounded PCM WAV import: deterministic size/duration validation before native decoding. */
+export function inspectWav(bytes:Uint8Array){
+ const v=new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength),tag=(at:number)=>String.fromCharCode(...bytes.subarray(at,at+4));if(bytes.length<44||bytes.length>1_048_576||tag(0)!=='RIFF'||tag(8)!=='WAVE'||v.getUint32(4,true)+8!==bytes.length)throw Error('WAV RIFF invalide');
+ let at=12,channels=0,sampleRate=0,bits=0,format=0,dataBytes=0,block=0;
+ while(at+8<=bytes.length){const id=tag(at),size=v.getUint32(at+4,true);at+=8;if(at+size>bytes.length)throw Error('WAV tronqué');if(id==='fmt '){if(size<16||format)throw Error('Format WAV invalide');format=v.getUint16(at,true);channels=v.getUint16(at+2,true);sampleRate=v.getUint32(at+4,true);block=v.getUint16(at+12,true);bits=v.getUint16(at+14,true);}if(id==='data'){if(dataBytes)throw Error('Plusieurs blocs WAV non pris en charge');dataBytes=size;}at+=size+(size%2);}
+ if(at!==bytes.length||!((format===1&&(bits===8||bits===16))||(format===3&&bits===32))||channels<1||channels>2||sampleRate<8000||sampleRate>96000||block!==channels*bits/8||!dataBytes||dataBytes%block)throw Error('WAV PCM 8/16 bits ou float32, mono/stéréo requis');const frames=dataBytes/block,duration=frames/sampleRate;if(duration>8)throw Error('Échantillon limité à huit secondes');return {channels,sampleRate,frames,duration,pcmBytes:frames*channels*4};
+}

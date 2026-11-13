@@ -32,7 +32,7 @@ export async function compileProject(input:unknown,options:CompileOptions={}):Pr
   const logicText=jsonFile({schemaVersion:1,kind:'compiled-logic',worldId:project.world.worldId,libraries:project.libraries,entityIndex:project.entityIndex,initialStates});
   const logicHash=await hashText(logicText),logicURL=`logic.${logicHash.slice(0,16)}.json`;files[logicURL]=logicText;
   const manifest:CompiledWorldManifest={schemaVersion:1,kind:'compiled-world',compilerVersion:COMPILER_VERSION,
-    environment:project.world.environment??defaultEnvironment(project.world.seed),projectId:project.manifest.projectId,worldId:project.world.worldId,sourceHash,buildVersion:COMPILER_VERSION+'-'+sourceHash.slice(0,16),
+    ...(project.world.audio?{audio:project.world.audio}:{}),environment:project.world.environment??defaultEnvironment(project.world.seed),projectId:project.manifest.projectId,worldId:project.world.worldId,sourceHash,buildVersion:COMPILER_VERSION+'-'+sourceHash.slice(0,16),
     bounds:project.world.bounds,seed:project.world.seed,generatorVersion:project.world.generatorVersion,seaLevel:project.world.seaLevel,chunkSizeM:project.world.chunkSizeM,
     coordinateSystem:'meters-y-up',chunks,entityIndex:Object.values(project.entityIndex).sort((a,b)=>a.id.localeCompare(b.id)).map(entity=>({id:entity.id,kind:entity.kind,ownerChunkId:entity.ownerChunkId,chunkUrl:chunkURLs.get(entity.ownerChunkId)!})),
     logic:{url:logicURL,hash:logicHash,byteLength:utf8Bytes(logicText)},assets:checked.assets,

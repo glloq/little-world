@@ -152,6 +152,6 @@ export function createGameplay(raw:GameplayData){
     for(const timer of timers)timer.next=state.time+timer.trigger.interval;
     return warnings;
   }
-  return {data,state,clock,climate,emit,update,interact,evaluate,setEntityPosition(id:string,position:Point3){const entity=entities.get(id);if(!entity||!finite(position.x,-100000,100000)||!finite(position.y,-10000,10000)||!finite(position.z,-100000,100000))throw Error('Position logique invalide');entity.position={...position};},dialogueChoice,enterDialogueLine,availableChoices,save,restore,drainEffects(){return effects.splice(0);},get pendingSequences(){return jobs.length;}};
+  return {data,state,clock,climate,getEntityPosition(id:string){return entities.get(id)?.position;},emit,update,interact,evaluate,setEntityPosition(id:string,position:Point3){const entity=entities.get(id);if(!entity||!finite(position.x,-100000,100000)||!finite(position.y,-10000,10000)||!finite(position.z,-100000,100000))throw Error('Position logique invalide');entity.position={...position};},dialogueChoice,enterDialogueLine,availableChoices,save,restore,drainEffects(){return effects.splice(0);},get pendingSequences(){return jobs.length;}};
 }
 export type GameplayRuntime=ReturnType<typeof createGameplay>;

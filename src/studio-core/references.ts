@@ -70,6 +70,7 @@ export class ReferenceIndex {
       for(const [field,kind]of [['terrainEdits','terrainEdit'],['biomeEdits','biomeEdit']] as const)for(const edit of chunk[field])this.add({id:edit.id,kind,ownerChunkId:chunk.chunkId,locator:`${kind}/${edit.id}`},true);
       for(const entity of Object.values(chunk.entities))for(const target of collectEntityReferences(entity))this.link(entity.id,target);
     }
+    for(const e of p.world.audio?.emitters??[]){const id='audio-emitter:'+e.id;this.add({id,kind:'audioEmitter',ownerChunkId:'global',locator:'world/audio/emitters/'+e.id},true);if(e.entityId)this.link(id,e.entityId);}
     for(const edge of gameplayReferences(p.libraries))this.link(edge.sourceId,edge.targetId);
   }
   get(id:StableId):ReferenceResolution{const entry=this.entries.get(id);return entry?{state:this.loaded.has(id)?'loaded':'unloaded',entry}:{state:'missing'};}

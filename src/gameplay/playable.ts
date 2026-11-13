@@ -1,9 +1,10 @@
+import {parseAudioDefinition,validateAudioLinks,type AudioDefinition} from '../audio/schema.ts';
 import {playtestSlotPrefix} from './save.ts';
 import {validateCollisionDefinition,type CollisionDefinition} from '../physics/definitions.ts';
 /** Runtime input has no authoring database access or Studio module dependency. */
 import {parseWorld,type WorldDefinition} from '../world-data.ts';
 import {parseGameplayData,finite,identifier,record,type GameplayData,type Point3} from './schema.ts';
-export interface PlayableWorld {schemaVersion:1;kind:'playable-world';collisions?:CollisionDefinition[];world:WorldDefinition;gameplay:GameplayData;spawn:Point3;}
+export interface PlayableWorld {schemaVersion:1;kind:'playable-world';audio?:AudioDefinition;collisions?:CollisionDefinition[];world:WorldDefinition;gameplay:GameplayData;spawn:Point3;}
 export interface StudioPlaytest {schemaVersion:1;kind:'studio-playtest';snapshotId:string;projectId:string;createdAt:number;content:PlayableWorld;}
 export function parsePlayableWorld(value:unknown):PlayableWorld {
  if(!record(value)||value.schemaVersion!==1||value.kind!=='playable-world'||!record(value.spawn)||!finite(value.spawn.x,-10000,10000)||!finite(value.spawn.y,-10000,10000)||!finite(value.spawn.z,-10000,10000))throw Error('Monde jouable invalide');
@@ -13,7 +14,8 @@ export function parsePlayableWorld(value:unknown):PlayableWorld {
  const rendered=new Set([...world.placements.map(e=>e.id),...world.npcs.map(e=>e.id)]);
  for(const entity of gameplay.entities)if(entity.interactable&&!rendered.has(entity.id))throw Error('Objet interactif sans représentation : '+entity.id);
  if(value.collisions!==undefined){if(!Array.isArray(value.collisions)||value.collisions.length>100000)throw Error('Liste de collisions invalide');const ids=new Set<string>(),entityIds=new Set(gameplay.entities.map(e=>e.id));for(const body of value.collisions){validateCollisionDefinition(body);if(ids.has(body.id)||!entityIds.has(body.id))throw Error('Référence collider invalide');ids.add(body.id);}}
- return {schemaVersion:1,kind:'playable-world',world,gameplay,spawn:{...spawn},...(value.collisions?{collisions:structuredClone(value.collisions) as CollisionDefinition[]}:{} )};
+ const audio=value.audio!==undefined?parseAudioDefinition(value.audio):undefined;const actions=[...gameplay.interactions.flatMap(i=>i.sequence),...gameplay.dialogues.flatMap(d=>d.lines.flatMap(l=>[...(l.actions??[]),...l.choices.flatMap(c=>c.actions??[])]))];validateAudioLinks(audio,gameplay.entities.map(e=>e.id),actions.filter(a=>a.type==='playSound').map(a=>(a as {soundId:string}).soundId));
+ return {schemaVersion:1,kind:'playable-world',...(audio?{audio}:{}),world,gameplay,spawn:{...spawn},...(value.collisions?{collisions:structuredClone(value.collisions) as CollisionDefinition[]}:{} )};
 }
 const PREFIX='little-world:studio-playtest:v1:';
 export function savePlaytest(value:Omit<StudioPlaytest,'schemaVersion'|'kind'|'snapshotId'|'createdAt'>,storage:Storage=sessionStorage):StudioPlaytest {

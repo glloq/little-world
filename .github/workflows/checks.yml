@@ -16,6 +16,8 @@ jobs:
           cache: npm
       - run: npm ci --no-audit --no-fund
       - run: npm test
+      - run: npm run generate:audio
+      - run: git diff --exit-code -- public/audio
       - run: npm run generate:beta
       - run: git diff --exit-code -- maps/beta.project.json public/maps/beta.json public/maps/beta.project.json
       - run: npm run compile:map -- maps/default.json public/maps/default.json
@@ -42,6 +44,8 @@ jobs:
         run: node tools/run-browser-check.mjs local
       - name: Character authoring browser checks
         run: node tools/run-browser-check.mjs characters
+      - name: Audio browser checks
+        run: node tools/run-browser-check.mjs audio
       - name: IndexedDB integration
         run: |
           npm run dev -- --host 127.0.0.1 --port 5189 --strictPort > /tmp/little-world-studio-dev.log 2>&1 &
@@ -50,6 +54,7 @@ jobs:
             sleep 1
           done
           node tools/run-browser-check.mjs storage http://127.0.0.1:5189/little-world/
+          node tools/run-browser-check.mjs audio-engine http://127.0.0.1:5189/little-world/
       - uses: actions/upload-artifact@v4
         if: always()
         with:

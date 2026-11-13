@@ -1,0 +1,3 @@
+Little World original procedural MIDI and PCM sounds
+CC0 1.0 Universal — https://creativecommons.org/publicdomain/zero/1.0/
+Generated reproducibly by tools/generate-audio.mjs. No external samples.
