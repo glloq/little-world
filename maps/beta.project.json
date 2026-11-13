@@ -1,0 +1,1299 @@
+{
+  "manifest": {
+    "schemaVersion": 3,
+    "projectId": "little-world-beta-authoring",
+    "worldId": "little-world-beta",
+    "name": "Clairière des petits services",
+    "assetCatalogVersion": "1",
+    "createdWith": "little-world-migration-v2-v3",
+    "revision": 0,
+    "sourceManifest": {
+      "worldRef": "world/world.json",
+      "chunkIndexRef": "world/chunk-index.json",
+      "entityIndexRef": "world/entity-index.json",
+      "librariesRef": "library/index.json",
+      "assetCatalogRef": "assets/catalog.json"
+    }
+  },
+  "world": {
+    "schemaVersion": 3,
+    "worldId": "little-world-beta",
+    "seed": 1284,
+    "generatorVersion": "1",
+    "bounds": {
+      "minX": -500,
+      "maxX": 500,
+      "minZ": -500,
+      "maxZ": 500
+    },
+    "seaLevel": 0,
+    "chunkSizeM": 64,
+    "coordinateSystem": "meters-y-up",
+    "chunkIndexRef": "world/chunk-index.json",
+    "density": 1,
+    "viewDistance": 240,
+    "editSequence": 0,
+    "environment": {
+      "schemaVersion": 1,
+      "generatorVersion": 1,
+      "weatherSeed": 1284,
+      "dayLengthSeconds": 1200,
+      "initialDayPhase": 0.36,
+      "weatherPeriodSeconds": 180
+    }
+  },
+  "chunkIndex": {
+    "7:7": {
+      "chunkId": "7:7",
+      "cx": 7,
+      "cz": 7,
+      "revision": 0,
+      "sourceRef": "world/chunks/7_7.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "7:9": {
+      "chunkId": "7:9",
+      "cx": 7,
+      "cz": 9,
+      "revision": 0,
+      "sourceRef": "world/chunks/7_9.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "7:10": {
+      "chunkId": "7:10",
+      "cx": 7,
+      "cz": 10,
+      "revision": 0,
+      "sourceRef": "world/chunks/7_10.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "7:5": {
+      "chunkId": "7:5",
+      "cx": 7,
+      "cz": 5,
+      "revision": 0,
+      "sourceRef": "world/chunks/7_5.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    }
+  },
+  "entityIndex": {
+    "miller": {
+      "id": "miller",
+      "kind": "character",
+      "name": "Noisette · meunière",
+      "ownerChunkId": "7:7",
+      "position": {
+        "x": -27.434938825863263,
+        "y": 0,
+        "z": -39
+      },
+      "references": [
+        "behavior:miller",
+        "dialogue:miller"
+      ],
+      "logical": {
+        "position": {
+          "x": -27.434938825863263,
+          "y": 0,
+          "z": -39
+        },
+        "initialState": {},
+        "persistentState": []
+      }
+    },
+    "villager": {
+      "id": "villager",
+      "kind": "character",
+      "name": "Miel · du village",
+      "ownerChunkId": "7:9",
+      "position": {
+        "x": -39,
+        "y": 0,
+        "z": 87
+      },
+      "references": [
+        "behavior:villager",
+        "dialogue:villager"
+      ],
+      "logical": {
+        "position": {
+          "x": -39,
+          "y": 0,
+          "z": 87
+        },
+        "initialState": {},
+        "persistentState": []
+      }
+    },
+    "fisher": {
+      "id": "fisher",
+      "kind": "character",
+      "name": "Galet · pêcheur",
+      "ownerChunkId": "7:10",
+      "position": {
+        "x": -31,
+        "y": 0,
+        "z": 174
+      },
+      "references": [
+        "behavior:fisher",
+        "dialogue:fisher"
+      ],
+      "logical": {
+        "position": {
+          "x": -31,
+          "y": 0,
+          "z": 174
+        },
+        "initialState": {},
+        "persistentState": []
+      }
+    },
+    "woodland-animal": {
+      "id": "woodland-animal",
+      "kind": "character",
+      "name": "Galopin",
+      "ownerChunkId": "7:5",
+      "position": {
+        "x": -30,
+        "y": 0,
+        "z": -180
+      },
+      "references": [
+        "behavior:woodland-animal",
+        "beta-talk",
+        "action:delivery"
+      ],
+      "logical": {
+        "position": {
+          "x": -30,
+          "y": 0,
+          "z": -180
+        },
+        "initialState": {},
+        "persistentState": [],
+        "interactable": {
+          "prompt": "Livrer le gland à Galopin",
+          "range": 4,
+          "interactionIds": [
+            "action:delivery"
+          ]
+        }
+      }
+    },
+    "beta-acorn": {
+      "id": "beta-acorn",
+      "kind": "prop",
+      "name": "Panier de glands",
+      "ownerChunkId": "7:5",
+      "position": {
+        "x": -24,
+        "y": 0,
+        "z": -180
+      },
+      "references": [
+        "props.crate",
+        "action:beta-acorn"
+      ],
+      "logical": {
+        "position": {
+          "x": -24,
+          "y": 0,
+          "z": -180
+        },
+        "initialState": {
+          "collected": false
+        },
+        "persistentState": [
+          "collected"
+        ],
+        "interactable": {
+          "prompt": "Ramasser un gland",
+          "range": 4,
+          "interactionIds": [
+            "action:beta-acorn"
+          ]
+        }
+      }
+    },
+    "beta-lever": {
+      "id": "beta-lever",
+      "kind": "prop",
+      "name": "Levier de la clairière",
+      "ownerChunkId": "7:5",
+      "position": {
+        "x": -20,
+        "y": 0,
+        "z": -180
+      },
+      "references": [
+        "props.crate",
+        "action:beta-lever"
+      ],
+      "logical": {
+        "position": {
+          "x": -20,
+          "y": 0,
+          "z": -180
+        },
+        "initialState": {
+          "active": false
+        },
+        "persistentState": [
+          "active"
+        ],
+        "interactable": {
+          "prompt": "Actionner le levier",
+          "range": 4,
+          "interactionIds": [
+            "action:beta-lever"
+          ]
+        }
+      }
+    },
+    "beta-panel": {
+      "id": "beta-panel",
+      "kind": "prop",
+      "name": "Lanterne du mécanisme",
+      "ownerChunkId": "7:5",
+      "position": {
+        "x": -20,
+        "y": 0,
+        "z": -175
+      },
+      "references": [
+        "props.lantern",
+        "action:beta-panel"
+      ],
+      "logical": {
+        "position": {
+          "x": -20,
+          "y": 0,
+          "z": -175
+        },
+        "initialState": {},
+        "persistentState": [],
+        "interactable": {
+          "prompt": "Essayer le mécanisme",
+          "range": 4,
+          "interactionIds": [
+            "action:beta-panel"
+          ]
+        }
+      }
+    },
+    "beta-gate": {
+      "id": "beta-gate",
+      "kind": "prop",
+      "name": "Barrière de démonstration",
+      "ownerChunkId": "7:5",
+      "position": {
+        "x": -16,
+        "y": 0,
+        "z": -174
+      },
+      "references": [
+        "props.crate"
+      ],
+      "logical": {
+        "position": {
+          "x": -16,
+          "y": 0,
+          "z": -174
+        },
+        "initialState": {
+          "open": false
+        },
+        "persistentState": [
+          "open"
+        ]
+      }
+    }
+  },
+  "libraries": {
+    "prefabs": {},
+    "characters": {},
+    "dialogues": {
+      "dialogue:miller": {
+        "id": "dialogue:miller",
+        "actorId": "miller",
+        "start": "hello",
+        "lines": [
+          {
+            "id": "hello",
+            "text": "Bonjour ! Tu entends la roue du moulin ?",
+            "emotion": "happy",
+            "choices": [
+              {
+                "text": "Raconte-moi.",
+                "next": "story"
+              },
+              {
+                "text": "Comment rejoindre le port ?",
+                "next": "port"
+              },
+              {
+                "text": "À bientôt !",
+                "action": {
+                  "flag": "met",
+                  "value": true
+                }
+              }
+            ]
+          },
+          {
+            "id": "story",
+            "text": "La rivière fait tourner la roue toute seule. J'aime écouter son rythme pendant que je prépare la farine.",
+            "emotion": "joyful",
+            "choices": [
+              {
+                "text": "Merci !",
+                "next": "hello"
+              }
+            ]
+          },
+          {
+            "id": "port",
+            "text": "Suis le sentier vers le sud, en longeant la rivière. Le ponton est juste après le village.",
+            "choices": [
+              {
+                "text": "Merci pour le chemin !",
+                "action": {
+                  "flag": "directions",
+                  "value": true
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "dialogue:villager": {
+        "id": "dialogue:villager",
+        "actorId": "villager",
+        "start": "hello",
+        "lines": [
+          {
+            "id": "hello",
+            "text": "Bonjour ! Bienvenue dans notre vallée !",
+            "emotion": "happy",
+            "choices": [
+              {
+                "text": "Raconte-moi.",
+                "next": "story"
+              },
+              {
+                "text": "Comment rejoindre le port ?",
+                "next": "port"
+              },
+              {
+                "text": "À bientôt !",
+                "action": {
+                  "flag": "met",
+                  "value": true
+                }
+              }
+            ]
+          },
+          {
+            "id": "story",
+            "text": "Les maisons se blottissent à côté du sentier. Tu peux prendre le temps de te promener et de planer au-dessus des arbres.",
+            "emotion": "joyful",
+            "choices": [
+              {
+                "text": "Merci !",
+                "next": "hello"
+              }
+            ]
+          },
+          {
+            "id": "port",
+            "text": "Suis le sentier vers le sud, en longeant la rivière. Le ponton est juste après le village.",
+            "choices": [
+              {
+                "text": "Merci pour le chemin !",
+                "action": {
+                  "flag": "directions",
+                  "value": true
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "dialogue:fisher": {
+        "id": "dialogue:fisher",
+        "actorId": "fisher",
+        "start": "hello",
+        "lines": [
+          {
+            "id": "hello",
+            "text": "Bonjour ! J'observe les poissons près de l'estuaire.",
+            "emotion": "happy",
+            "choices": [
+              {
+                "text": "Raconte-moi.",
+                "next": "story"
+              },
+              {
+                "text": "Comment rejoindre le port ?",
+                "next": "port"
+              },
+              {
+                "text": "À bientôt !",
+                "action": {
+                  "flag": "met",
+                  "value": true
+                }
+              }
+            ]
+          },
+          {
+            "id": "story",
+            "text": "La mer commence au bout de la rivière. Approche du bateau et appuie sur E pour embarquer, puis E pour redescendre.",
+            "emotion": "joyful",
+            "choices": [
+              {
+                "text": "Merci !",
+                "next": "hello"
+              }
+            ]
+          },
+          {
+            "id": "port",
+            "text": "Suis le sentier vers le sud, en longeant la rivière. Le ponton est juste après le village.",
+            "choices": [
+              {
+                "text": "Merci pour le chemin !",
+                "action": {
+                  "flag": "directions",
+                  "value": true
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "beta-talk": {
+        "id": "beta-talk",
+        "actorId": "woodland-animal",
+        "start": "hello",
+        "lines": [
+          {
+            "id": "hello",
+            "text": "Bonjour ! Peux-tu me rapporter un gland du panier ? Le levier et la lanterne cachent aussi un petit mécanisme.",
+            "choices": [
+              {
+                "id": "accept",
+                "text": "Avec plaisir.",
+                "gate": {
+                  "type": "objectiveState",
+                  "objectiveId": "delivery",
+                  "status": "locked"
+                },
+                "actions": [
+                  {
+                    "type": "setObjective",
+                    "objectiveId": "delivery",
+                    "status": "active"
+                  }
+                ],
+                "next": "thanks"
+              },
+              {
+                "text": "À bientôt."
+              }
+            ]
+          },
+          {
+            "id": "thanks",
+            "text": "Merci ! Rapporte-moi un gland avec E. Tu peux sauvegarder depuis ton sac.",
+            "choices": [
+              {
+                "text": "Je vais voir."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "behaviors": {
+      "behavior:miller": {
+        "id": "behavior:miller",
+        "kind": "work"
+      },
+      "behavior:villager": {
+        "id": "behavior:villager",
+        "kind": "patrol"
+      },
+      "behavior:fisher": {
+        "id": "behavior:fisher",
+        "kind": "idle"
+      },
+      "behavior:woodland-animal": {
+        "id": "behavior:woodland-animal",
+        "kind": "idle"
+      }
+    },
+    "interactions": {
+      "action:beta-acorn": {
+        "id": "action:beta-acorn",
+        "trigger": {
+          "type": "onInteract",
+          "entityId": "beta-acorn"
+        },
+        "condition": {
+          "type": "stateEquals",
+          "entityId": "beta-acorn",
+          "key": "collected",
+          "value": false
+        },
+        "sequence": [
+          {
+            "type": "giveItem",
+            "itemId": "acorn",
+            "quantity": 1
+          },
+          {
+            "type": "setState",
+            "entityId": "beta-acorn",
+            "key": "collected",
+            "value": true
+          },
+          {
+            "type": "showText",
+            "text": "Objet ajouté à l’inventaire."
+          }
+        ],
+        "repeat": "once",
+        "persistent": true
+      },
+      "action:delivery": {
+        "id": "action:delivery",
+        "trigger": {
+          "type": "onInteract",
+          "entityId": "woodland-animal"
+        },
+        "condition": {
+          "type": "all",
+          "conditions": [
+            {
+              "type": "all",
+              "conditions": [
+                {
+                  "type": "hasItem",
+                  "itemId": "acorn",
+                  "quantity": 1
+                },
+                {
+                  "type": "not",
+                  "condition": {
+                    "type": "objectiveState",
+                    "objectiveId": "delivery",
+                    "status": "complete"
+                  }
+                }
+              ]
+            },
+            {
+              "type": "objectiveState",
+              "objectiveId": "delivery",
+              "status": "active"
+            }
+          ]
+        },
+        "sequence": [
+          {
+            "type": "takeItem",
+            "itemId": "acorn",
+            "quantity": 1
+          },
+          {
+            "type": "setObjective",
+            "objectiveId": "delivery",
+            "status": "complete"
+          },
+          {
+            "type": "showText",
+            "entityId": "woodland-animal",
+            "text": "Merci ! Ta petite mission est terminée."
+          }
+        ],
+        "repeat": "once",
+        "persistent": true
+      },
+      "action:beta-lever": {
+        "id": "action:beta-lever",
+        "trigger": {
+          "type": "onInteract",
+          "entityId": "beta-lever"
+        },
+        "repeat": "always",
+        "persistent": true,
+        "sequence": [
+          {
+            "type": "toggleState",
+            "entityId": "beta-lever",
+            "key": "active"
+          },
+          {
+            "type": "showText",
+            "text": "Le levier a changé de position. Essayez la lanterne."
+          }
+        ]
+      },
+      "action:beta-panel": {
+        "id": "action:beta-panel",
+        "trigger": {
+          "type": "onInteract",
+          "entityId": "beta-panel"
+        },
+        "condition": {
+          "type": "all",
+          "conditions": [
+            {
+              "type": "stateEquals",
+              "entityId": "beta-lever",
+              "key": "active",
+              "value": true
+            }
+          ]
+        },
+        "sequence": [
+          {
+            "type": "setState",
+            "entityId": "beta-gate",
+            "key": "open",
+            "value": true
+          },
+          {
+            "type": "showText",
+            "text": "Le mécanisme s’ouvre."
+          }
+        ],
+        "repeat": "once",
+        "persistent": true
+      }
+    },
+    "activities": {
+      "activity:delivery": {
+        "id": "activity:delivery",
+        "kind": "deliver",
+        "name": "Le petit service de Galopin",
+        "interactionIds": [
+          "action:beta-acorn",
+          "action:delivery"
+        ],
+        "objectiveId": "delivery"
+      },
+      "activity:puzzle": {
+        "id": "activity:puzzle",
+        "kind": "puzzle",
+        "name": "Le levier et la lanterne",
+        "interactionIds": [
+          "action:beta-lever",
+          "action:beta-panel"
+        ]
+      }
+    },
+    "variables": {},
+    "items": {
+      "acorn": {
+        "id": "acorn",
+        "name": "Gland",
+        "category": "nature",
+        "maxQuantity": 9
+      }
+    },
+    "objectives": {
+      "delivery": {
+        "id": "delivery",
+        "name": "Apporter un gland à Galopin",
+        "initialStatus": "locked",
+        "persistent": true
+      }
+    },
+    "water": {},
+    "paths": {}
+  },
+  "assets": {
+    "nature.pine": {
+      "id": "nature.pine",
+      "name": "Sapin",
+      "type": "glb",
+      "file": "models/pine.glb",
+      "license": "project-original",
+      "source": "Little World original generated low-poly geometry"
+    },
+    "nature.oak": {
+      "id": "nature.oak",
+      "name": "Arbre feuillu",
+      "type": "procedural",
+      "license": "project-original",
+      "source": "Little World original procedural geometry"
+    },
+    "nature.rock": {
+      "id": "nature.rock",
+      "name": "Rocher",
+      "type": "glb",
+      "file": "models/rock.glb",
+      "license": "project-original",
+      "source": "Little World original generated low-poly geometry"
+    },
+    "architecture.cottage": {
+      "id": "architecture.cottage",
+      "name": "Maison de vallée",
+      "type": "procedural",
+      "license": "project-original",
+      "source": "Little World original procedural geometry"
+    },
+    "props.crate": {
+      "id": "props.crate",
+      "name": "Caisse en bois",
+      "type": "glb",
+      "file": "models/crate.glb",
+      "license": "project-original",
+      "source": "Little World original generated low-poly geometry"
+    },
+    "props.lantern": {
+      "id": "props.lantern",
+      "name": "Lanterne",
+      "type": "procedural",
+      "license": "project-original",
+      "source": "Little World original procedural geometry"
+    }
+  },
+  "chunks": {
+    "7:7": {
+      "schemaVersion": 3,
+      "chunkId": "7:7",
+      "index": {
+        "cx": 7,
+        "cz": 7
+      },
+      "revision": 0,
+      "entities": {
+        "miller": {
+          "id": "miller",
+          "kind": "character",
+          "name": "Noisette · meunière",
+          "ownerChunkId": "7:7",
+          "components": {
+            "Transform": {
+              "type": "Transform",
+              "position": {
+                "x": -27.434938825863263,
+                "y": 0,
+                "z": -39
+              },
+              "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0,
+                "w": 1
+              },
+              "scale": {
+                "x": 1,
+                "y": 1,
+                "z": 1
+              }
+            },
+            "Character": {
+              "type": "Character",
+              "species": "squirrel",
+              "rigId": "squirrel-rigid",
+              "appearance": {
+                "hat": true,
+                "backpack": false,
+                "neckwear": "none",
+                "emotion": "happy"
+              }
+            },
+            "Navigation": {
+              "type": "Navigation",
+              "behaviorId": "behavior:miller",
+              "speed": 1,
+              "radius": 0
+            },
+            "BehaviorRef": {
+              "type": "BehaviorRef",
+              "behaviorId": "behavior:miller"
+            },
+            "DialogueActor": {
+              "type": "DialogueActor",
+              "dialogueIds": [
+                "dialogue:miller"
+              ]
+            }
+          }
+        }
+      },
+      "entityIds": [
+        "miller"
+      ],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": []
+    },
+    "7:9": {
+      "schemaVersion": 3,
+      "chunkId": "7:9",
+      "index": {
+        "cx": 7,
+        "cz": 9
+      },
+      "revision": 0,
+      "entities": {
+        "villager": {
+          "id": "villager",
+          "kind": "character",
+          "name": "Miel · du village",
+          "ownerChunkId": "7:9",
+          "components": {
+            "Transform": {
+              "type": "Transform",
+              "position": {
+                "x": -39,
+                "y": 0,
+                "z": 87
+              },
+              "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0,
+                "w": 1
+              },
+              "scale": {
+                "x": 1,
+                "y": 1,
+                "z": 1
+              }
+            },
+            "Character": {
+              "type": "Character",
+              "species": "squirrel",
+              "rigId": "squirrel-rigid",
+              "appearance": {
+                "hat": false,
+                "backpack": false,
+                "neckwear": "scarf",
+                "emotion": "joyful"
+              }
+            },
+            "Navigation": {
+              "type": "Navigation",
+              "behaviorId": "behavior:villager",
+              "speed": 1.2,
+              "radius": 15,
+              "path": [
+                {
+                  "x": -39,
+                  "z": 87
+                },
+                {
+                  "x": -43,
+                  "z": 97
+                },
+                {
+                  "x": -41,
+                  "z": 110
+                }
+              ]
+            },
+            "BehaviorRef": {
+              "type": "BehaviorRef",
+              "behaviorId": "behavior:villager"
+            },
+            "DialogueActor": {
+              "type": "DialogueActor",
+              "dialogueIds": [
+                "dialogue:villager"
+              ]
+            }
+          }
+        }
+      },
+      "entityIds": [
+        "villager"
+      ],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": []
+    },
+    "7:10": {
+      "schemaVersion": 3,
+      "chunkId": "7:10",
+      "index": {
+        "cx": 7,
+        "cz": 10
+      },
+      "revision": 0,
+      "entities": {
+        "fisher": {
+          "id": "fisher",
+          "kind": "character",
+          "name": "Galet · pêcheur",
+          "ownerChunkId": "7:10",
+          "components": {
+            "Transform": {
+              "type": "Transform",
+              "position": {
+                "x": -31,
+                "y": 0,
+                "z": 174
+              },
+              "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0,
+                "w": 1
+              },
+              "scale": {
+                "x": 1,
+                "y": 1,
+                "z": 1
+              }
+            },
+            "Character": {
+              "type": "Character",
+              "species": "squirrel",
+              "rigId": "squirrel-rigid",
+              "appearance": {
+                "hat": true,
+                "backpack": false,
+                "neckwear": "pendant",
+                "emotion": "happy"
+              }
+            },
+            "Navigation": {
+              "type": "Navigation",
+              "behaviorId": "behavior:fisher",
+              "speed": 1,
+              "radius": 0
+            },
+            "BehaviorRef": {
+              "type": "BehaviorRef",
+              "behaviorId": "behavior:fisher"
+            },
+            "DialogueActor": {
+              "type": "DialogueActor",
+              "dialogueIds": [
+                "dialogue:fisher"
+              ]
+            }
+          }
+        }
+      },
+      "entityIds": [
+        "fisher"
+      ],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": []
+    },
+    "7:5": {
+      "schemaVersion": 3,
+      "chunkId": "7:5",
+      "index": {
+        "cx": 7,
+        "cz": 5
+      },
+      "revision": 0,
+      "entities": {
+        "woodland-animal": {
+          "id": "woodland-animal",
+          "kind": "character",
+          "name": "Galopin",
+          "ownerChunkId": "7:5",
+          "components": {
+            "Transform": {
+              "type": "Transform",
+              "position": {
+                "x": -30,
+                "y": 0,
+                "z": -180
+              },
+              "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0,
+                "w": 1
+              },
+              "scale": {
+                "x": 1,
+                "y": 1,
+                "z": 1
+              }
+            },
+            "Character": {
+              "type": "Character",
+              "species": "animal",
+              "rigId": "squirrel-rigid",
+              "appearance": {
+                "hat": false,
+                "backpack": false,
+                "neckwear": "none",
+                "emotion": "surprised"
+              }
+            },
+            "Navigation": {
+              "type": "Navigation",
+              "behaviorId": "behavior:woodland-animal",
+              "speed": 0,
+              "radius": 0
+            },
+            "BehaviorRef": {
+              "type": "BehaviorRef",
+              "behaviorId": "behavior:woodland-animal"
+            },
+            "DialogueActor": {
+              "type": "DialogueActor",
+              "dialogueIds": [
+                "beta-talk"
+              ]
+            },
+            "Interactable": {
+              "type": "Interactable",
+              "prompt": "Livrer le gland à Galopin",
+              "range": 4,
+              "interactionIds": [
+                "action:delivery"
+              ]
+            }
+          }
+        },
+        "beta-acorn": {
+          "id": "beta-acorn",
+          "name": "Panier de glands",
+          "kind": "prop",
+          "ownerChunkId": "7:5",
+          "components": {
+            "Transform": {
+              "type": "Transform",
+              "position": {
+                "x": -24,
+                "y": 0,
+                "z": -180
+              },
+              "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0,
+                "w": 1
+              },
+              "scale": {
+                "x": 1,
+                "y": 1,
+                "z": 1
+              }
+            },
+            "Visual": {
+              "type": "Visual",
+              "assetId": "props.crate"
+            },
+            "State": {
+              "type": "State",
+              "initial": {
+                "collected": false
+              }
+            },
+            "Persistence": {
+              "type": "Persistence",
+              "fields": [
+                "collected"
+              ]
+            },
+            "Interactable": {
+              "type": "Interactable",
+              "prompt": "Ramasser un gland",
+              "range": 4,
+              "interactionIds": [
+                "action:beta-acorn"
+              ]
+            }
+          }
+        },
+        "beta-lever": {
+          "id": "beta-lever",
+          "name": "Levier de la clairière",
+          "kind": "prop",
+          "ownerChunkId": "7:5",
+          "components": {
+            "Transform": {
+              "type": "Transform",
+              "position": {
+                "x": -20,
+                "y": 0,
+                "z": -180
+              },
+              "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0,
+                "w": 1
+              },
+              "scale": {
+                "x": 1,
+                "y": 1,
+                "z": 1
+              }
+            },
+            "Visual": {
+              "type": "Visual",
+              "assetId": "props.crate"
+            },
+            "State": {
+              "type": "State",
+              "initial": {
+                "active": false
+              }
+            },
+            "Persistence": {
+              "type": "Persistence",
+              "fields": [
+                "active"
+              ]
+            },
+            "Interactable": {
+              "type": "Interactable",
+              "prompt": "Actionner le levier",
+              "range": 4,
+              "interactionIds": [
+                "action:beta-lever"
+              ]
+            }
+          }
+        },
+        "beta-panel": {
+          "id": "beta-panel",
+          "name": "Lanterne du mécanisme",
+          "kind": "prop",
+          "ownerChunkId": "7:5",
+          "components": {
+            "Transform": {
+              "type": "Transform",
+              "position": {
+                "x": -20,
+                "y": 0,
+                "z": -175
+              },
+              "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0,
+                "w": 1
+              },
+              "scale": {
+                "x": 1,
+                "y": 1,
+                "z": 1
+              }
+            },
+            "Visual": {
+              "type": "Visual",
+              "assetId": "props.lantern"
+            },
+            "State": {
+              "type": "State",
+              "initial": {}
+            },
+            "Persistence": {
+              "type": "Persistence",
+              "fields": []
+            },
+            "Interactable": {
+              "type": "Interactable",
+              "prompt": "Essayer le mécanisme",
+              "range": 4,
+              "interactionIds": [
+                "action:beta-panel"
+              ]
+            }
+          }
+        },
+        "beta-gate": {
+          "id": "beta-gate",
+          "name": "Barrière de démonstration",
+          "kind": "prop",
+          "ownerChunkId": "7:5",
+          "components": {
+            "Transform": {
+              "type": "Transform",
+              "position": {
+                "x": -16,
+                "y": 0,
+                "z": -174
+              },
+              "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0,
+                "w": 1
+              },
+              "scale": {
+                "x": 1,
+                "y": 1,
+                "z": 1
+              }
+            },
+            "Visual": {
+              "type": "Visual",
+              "assetId": "props.crate"
+            },
+            "State": {
+              "type": "State",
+              "initial": {
+                "open": false
+              }
+            },
+            "Persistence": {
+              "type": "Persistence",
+              "fields": [
+                "open"
+              ]
+            },
+            "Collider": {
+              "type": "Collider",
+              "shape": "box",
+              "size": {
+                "x": 2,
+                "y": 2,
+                "z": 2
+              },
+              "layer": "solid"
+            }
+          }
+        }
+      },
+      "entityIds": [
+        "woodland-animal",
+        "beta-acorn",
+        "beta-lever",
+        "beta-panel",
+        "beta-gate"
+      ],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": []
+    }
+  }
+}

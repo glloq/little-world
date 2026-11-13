@@ -1,3 +1,4 @@
+import type {WorldCollisionQuery,MovementSpace} from './physics/collision-world.ts';
 import * as THREE from 'three';
 import {
   clamp,
@@ -23,6 +24,7 @@ export interface Player {
   mode: MotionMode;
   oxygen: number;
   glideReady: boolean;
+  space?:MovementSpace;
 }
 export const MAX_OXYGEN = 90;
 export function spawnPlayer(): Player {
@@ -37,7 +39,7 @@ export function spawnPlayer(): Player {
   };
 }
 
-export function simulatePlayer(p: Player, keys: Controls, dt: number): void {
+export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:WorldCollisionQuery): void {
   const { position: pos, velocity: v } = p;
   const oldMode = p.mode;
   const len = Math.hypot(keys.forward, keys.right);
@@ -48,8 +50,8 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number): void {
   // Camera looks toward +Z at yaw=0: screen-right is world -X.
   const dx = forward * sx - right * cz;
   const dz = forward * cz + right * sx;
-  const atWater = waterSurface(pos.x, pos.z);
-  const ground = terrainHeight(pos.x, pos.z);
+  const atWater = collision?collision.waterAt(pos,p.space):waterSurface(pos.x, pos.z);
+  const ground = collision?collision.surfaceAt(pos,p.space).floorY:terrainHeight(pos.x, pos.z);
   const deepEnough = atWater !== null && atWater - ground > 0.62;
   const inWater = deepEnough && pos.y <= atWater + 0.42;
   if (inWater) {
@@ -113,7 +115,7 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number): void {
         v.z += (dz * speed - v.z) * a;
       }
       pos.y += v.y * dt;
-      const nextGround = terrainHeight(pos.x, pos.z);
+      const nextGround = collision?collision.surfaceAt(pos,p.space).floorY:terrainHeight(pos.x, pos.z);
       if (pos.y <= nextGround && v.y <= 0) {
         pos.y = nextGround;
         v.y = 0;
@@ -128,8 +130,10 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number): void {
     }
     p.oxygen = Math.min(MAX_OXYGEN, p.oxygen + dt * 14);
   }
+  const from=collision?{x:pos.x,y:pos.y,z:pos.z}:null;
   pos.x += v.x * dt;
   pos.z += v.z * dt;
+  if(collision&&from){const moved=collision.move(from,pos);pos.x=moved.position.x;pos.z=moved.position.z;if(moved.blockedX)v.x=0;if(moved.blockedZ)v.z=0;}
   if (!insideWorld(pos.x, pos.z)) {
     const bounds = getTerrainConfig();
     pos.x = clamp(pos.x, -bounds.width / 2 + 3, bounds.width / 2 - 3);
@@ -137,7 +141,9 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number): void {
     v.x *= 0.2;
     v.z *= 0.2;
   }
-  const newGround = terrainHeight(pos.x, pos.z);
+  const surface=collision?.surfaceAt(pos,p.space);
+  const newGround = surface?.floorY??terrainHeight(pos.x, pos.z);
+  if(surface?.ceilingY!==null&&surface?.ceilingY!==undefined&&pos.y+1.8>surface.ceilingY){pos.y=surface.ceilingY-1.8;v.y=Math.min(0,v.y);p.mode='air';}
   if (p.mode === 'ground') pos.y = Math.max(pos.y, newGround);
   if ((p.mode === 'air' || p.mode === 'glide') && pos.y < newGround) {
     pos.y = newGround;
@@ -146,10 +152,10 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number): void {
     p.glideReady = false;
   }
   // Water is evaluated after horizontal motion as well, to avoid passing through the banks.
-  const newWater = waterSurface(pos.x, pos.z);
+  const newWater = collision?collision.waterAt(pos,p.space):waterSurface(pos.x, pos.z);
   if (
     newWater !== null &&
-    newWater - terrainHeight(pos.x, pos.z) > 0.62 &&
+    newWater - newGround > 0.62 &&
     pos.y <= newWater + 0.25 &&
     p.mode !== 'swim' &&
     p.mode !== 'dive'

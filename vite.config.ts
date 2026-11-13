@@ -9,6 +9,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         game: fileURLToPath(new URL('./index.html', import.meta.url)),
+        studio: fileURLToPath(new URL('./studio/index.html', import.meta.url)),
         editor: fileURLToPath(new URL('./editor/index.html', import.meta.url)),
       },
     },

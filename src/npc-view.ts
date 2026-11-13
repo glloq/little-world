@@ -1,3 +1,4 @@
+import {getTerrainConfig} from './terrain.ts';
 import * as THREE from 'three';
 import { buildSquirrel } from './squirrel.ts';
 import { createDialogue, type DialogueSession } from './dialogue.ts';
@@ -18,7 +19,7 @@ import type { Player } from './player.ts';
 import './npc.css';
 
 /** All DOM content is written as text, including author-provided names and dialogue. */
-function createDialoguePanel() {
+function createDialoguePanel(factory?:(state:NPCState)=>DialogueSession|undefined) {
   const root = document.createElement('section');
   root.className = 'npc-dialogue';
   root.hidden = true;
@@ -91,7 +92,7 @@ function createDialoguePanel() {
       previousFocus = document.activeElement as HTMLElement | null;
       npc = state;
       npc.phase = 'talk';
-      session = createDialogue(state.definition.dialogue, state.flags);
+      session = factory?.(state) ?? createDialogue(state.definition.dialogue, state.flags);
       name.textContent = state.definition.name;
       root.hidden = false;
       render();
@@ -117,9 +118,11 @@ export function createNPCSystem(
   scene: THREE.Scene,
   definitions: readonly NPCDefinition[] = DEFAULT_NPCS,
   obstacles: readonly NavigationObstacle[] = DEFAULT_NPC_OBSTACLES,
+  dialogueFactory?:(state:NPCState)=>DialogueSession|undefined,
 ) {
-  if (!validateNPCs(definitions)) throw new Error('Liste de PNJ invalide');
-  const dialogue = createDialoguePanel();
+  const bounds=getTerrainConfig();
+  if (!validateNPCs(definitions,bounds)) throw new Error('Liste de PNJ invalide');
+  const dialogue = createDialoguePanel(dialogueFactory);
   let disposed = false;
   // Original five-part low-poly silhouette. GPU resources belong to this system,
   // are shared by every distant actor, and are disposed once when it is retired.
@@ -160,7 +163,7 @@ export function createNPCSystem(
     return root;
   }
   const entries = definitions.map((definition) => {
-    const state = createNPCState(definition),
+    const state = createNPCState(definition,bounds),
       model = buildSquirrel();
     model.setAppearance(definition.appearance);
     if (definition.kind === 'animal') model.group.scale.setScalar(0.58);

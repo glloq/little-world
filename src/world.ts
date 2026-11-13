@@ -727,16 +727,18 @@ export function addPlacement(
   return a;
 }
 
-export function configureScene(scene: THREE.Scene): void {
+export function configureScene(scene: THREE.Scene) {
   scene.background = new THREE.Color(0xcce6e2);
-  scene.fog = new THREE.Fog(0xcce6e2, 190, 570);
-  scene.add(new THREE.HemisphereLight(0xfaf7e9, 0x678c7c, 2.15));
+  scene.fog = null;
+  const ambient=new THREE.HemisphereLight(0xfaf7e9, 0x678c7c, 2.15);
+  scene.add(ambient);
   const sun = new THREE.DirectionalLight(0xffeed3, 2.35);
   sun.position.set(-130, 185, -120);
   scene.add(sun);
   const fill = new THREE.DirectionalLight(0xd8f0ff, 0.65);
   fill.position.set(100, 70, 190);
   scene.add(fill);
+  return {sun,fill,ambient};
 }
 
 /** Dispose unique fallback geometry while retaining cache-owned GPU resources. */

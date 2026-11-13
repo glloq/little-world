@@ -5,6 +5,10 @@ import {
   presentationPixelRatio,
 } from './frame-clock';
 import './style.css';
+import type {PlayableWorld,StudioPlaytest} from './gameplay/playable.ts';
+import {WorldClock} from './environment/clock.ts';
+import {createClimate,defaultEnvironment} from './environment/climate.ts';
+import type {GameplayView} from './gameplay/game-view.ts';
 import { addPlacement, buildWorld, configureScene } from './world';
 import { defaultWorld, parseWorld } from './world-data';
 import { createNPCSystem } from './npc-view';
@@ -43,7 +47,7 @@ const message = document.querySelector<HTMLElement>('#message')!;
 const overlay = document.querySelector<HTMLElement>('#start-overlay')!;
 const start = document.querySelector<HTMLButtonElement>('#start')!;
 const scene = new THREE.Scene();
-configureScene(scene);
+const lighting=configureScene(scene);
 const camera = new THREE.PerspectiveCamera(66, 1, 0.1, 750);
 const renderer = new THREE.WebGLRenderer({
   antialias: true,
@@ -90,7 +94,15 @@ const searchParams = new URLSearchParams(window.location.search);
 const isPreview = searchParams.get('preview') === '1',
   metricsEnabled = searchParams.has('metrics');
 let definition = defaultWorld();
-if (isPreview) {
+let playable:PlayableWorld|null=null,studioTest:StudioPlaytest|null=null;
+if(searchParams.has('studioPreview')||searchParams.get('beta')==='1'){
+  try{
+    const {loadPlaytest,parsePlayableWorld}=await import('./gameplay/playable.ts');
+    if(searchParams.has('studioPreview')){studioTest=loadPlaytest(searchParams.get('studioPreview')!);playable=studioTest.content;}
+    else{const response=await fetch(import.meta.env.BASE_URL+'maps/beta.json');if(!response.ok)throw Error('Monde bêta indisponible');playable=parsePlayableWorld(await response.json());}
+    definition=playable.world;
+  }catch(error){overlay.setAttribute('aria-busy','false');overlay.querySelector('h1')!.textContent='Impossible d’ouvrir cette partie';overlay.querySelector('p')!.textContent=String(error);start.disabled=true;throw error;}
+}else if (isPreview) {
   try {
     const raw = sessionStorage.getItem('little-world-preview');
     if (raw) definition = parseWorld(JSON.parse(raw));
@@ -111,7 +123,19 @@ const world = buildWorld(definition.config, definition);
 for (const item of definition.placements) addPlacement(world, item);
 scene.add(world.root);
 const player = spawnPlayer();
-const npcs = createNPCSystem(scene, definition.npcs);
+if(playable)player.position.set(playable.spawn.x,terrainHeight(playable.spawn.x,playable.spawn.z)+playable.spawn.y+.02,playable.spawn.z);
+let gameplay:GameplayView|null=null;
+if(playable){
+  const {createGameplayView}=await import('./gameplay/game-view.ts');
+  gameplay=createGameplayView(playable.gameplay,{collisions:playable.collisions,temporary:!!studioTest,saveScope:studioTest?.snapshotId,getPosition:()=>({x:player.position.x,y:player.position.y,z:player.position.z}),objects:world.objects,showInfo,
+    setPosition:p=>{player.position.set(p.x,p.y,p.z);player.velocity.set(0,0,0);player.mode='air';player.oxygen=MAX_OXYGEN;player.glideReady=false;aboard=false;keySet.clear();jumpQueue=0;actionQueue=0;npcs.dialogue.close();previousPlayerPosition.copy(player.position);renderPosition.copy(player.position);updateCamera(1);}
+  });
+}
+const npcs = createNPCSystem(scene, definition.npcs,undefined,gameplay?.dialogueSession);
+gameplay?.attachNPCs(npcs.states);
+const worldClock=gameplay?.runtime.clock??new WorldClock(),climate=gameplay?.runtime.climate??createClimate(defaultEnvironment(definition.config.seed));
+const {createEnvironmentView}=await import('./environment/view.ts');
+const environment=createEnvironmentView(scene,lighting,worldClock,climate);
 world.update(0, player.position);
 const squirrel = buildSquirrel();
 scene.add(squirrel.group);
@@ -152,7 +176,7 @@ function codeHeld(...codes: string[]): boolean {
   return codes.some((c) => keySet.has(c));
 }
 function input(): Controls {
-  if (customization.isOpen || npcs.dialogue.isOpen)
+  if (customization.isOpen || npcs.dialogue.isOpen || gameplay?.isOpen)
     return {
       forward: 0,
       right: 0,
@@ -185,6 +209,7 @@ function resetCameraDrag(): void {
   renderer.domElement.classList.remove('dragging-camera');
 }
 window.addEventListener('keydown', (e) => {
+  if(gameplay?.isOpen||e.target instanceof HTMLInputElement||e.target instanceof HTMLTextAreaElement||e.target instanceof HTMLSelectElement)return;
   // Read the typed character: AZERTY 'A' is physically KeyQ, QWERTY 'A' is KeyA.
   if (isMenuKey(e)) {
     e.preventDefault();
@@ -247,7 +272,7 @@ window.addEventListener('blur', () => {
   resetCameraDrag();
 });
 renderer.domElement.addEventListener('pointerdown', (e) => {
-  if (!started || customization.isOpen) return;
+  if (!started || customization.isOpen || gameplay?.isOpen || npcs.dialogue.isOpen) return;
   if (!orbitDrag.begin(e.pointerId, e.button, e.clientX, e.clientY)) return;
   renderer.domElement.classList.add('dragging-camera');
   renderer.domElement.setPointerCapture(e.pointerId);
@@ -318,7 +343,7 @@ function updateHud() {
   const canBoard =
     !aboard &&
     nearBoat(boat, player.position.x, player.position.y, player.position.z);
-  const npcPrompt = !aboard ? npcs.prompt(player.position) : null;
+  const npcPrompt = !aboard ? (gameplay?.prompt(player.position) ?? npcs.prompt(player.position)) : null;
   action.classList.toggle('hide', !canBoard && !aboard && !npcPrompt);
   action.textContent =
     npcPrompt ??
@@ -336,6 +361,7 @@ function updateHud() {
 }
 function tick(dt: number) {
   if (!started) return;
+  if(gameplay)gameplay.update(dt);else worldClock.advance(dt);
   const keys = input();
   if (aboard) {
     updateBoat(boat, { throttle: keys.forward, steer: keys.right }, dt);
@@ -344,7 +370,7 @@ function tick(dt: number) {
     player.mode = 'ground';
     jumpQueue = 0;
   } else {
-    simulatePlayer(player, keys, dt);
+    simulatePlayer(player, keys, dt,gameplay?.collision);
     if (keys.jumpPressed) jumpQueue = Math.max(0, jumpQueue - 1);
   }
   if (actionQueue > 0) {
@@ -365,6 +391,8 @@ function tick(dt: number) {
       player.velocity.set(0, 0, 0);
       player.glideReady = false;
       showInfo('Vous avez quitté le bateau');
+    } else if (gameplay?.interact(player.position)) {
+      showInfo('Interaction effectuée.');
     } else if (npcs.interact(player.position)) {
       keySet.clear();
       jumpQueue = 0;
@@ -409,6 +437,7 @@ function draw(now: number) {
     player.position,
     frame.alpha,
   );
+  environment.update(delta,player.position,budget.level);
   world.update(delta, player.position);
   npcs.update(delta, elapsed, player.position); // The river drives the mill: no manual on/off control.
   world.boat.position.set(
@@ -434,6 +463,8 @@ function draw(now: number) {
         triangles: renderer.info.render.triangles,
         geometries: renderer.info.memory.geometries,
         chunks: { ...world.stats },
+        environment:environment.metrics,
+        collisions:gameplay?.collision.stats??null,
         position: player.position.toArray(),
         renderRate: budget.rate,
         qualityLevel: budget.level,
@@ -477,4 +508,6 @@ camera.position.set(
   player.position.z - 24,
 );
 camera.lookAt(player.position);
+// The visible start button must not accept a click before asynchronous boot has attached its listeners.
+overlay.setAttribute('aria-busy','false');start.disabled=false;
 requestAnimationFrame(draw);
