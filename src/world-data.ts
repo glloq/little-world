@@ -60,10 +60,17 @@ export interface WaterBody {
   level: number;
   depth: number;
 }
+/** Path surface profiles: one drawing tool, several looks (E8). Absent = dirt (historical look). */
+export type PathKind = 'trail' | 'dirt' | 'stone' | 'wood';
+export const PATH_KINDS: PathKind[] = ['trail', 'dirt', 'stone', 'wood'];
 export interface PathDefinition {
   id: string;
   points: { x: number; z: number }[];
   width: number;
+  /** Surface profile; absent = dirt. */
+  kind?: PathKind;
+  /** Light curve interpolation between points; absent = straight segments (older maps). */
+  smooth?: boolean;
 }
 export interface WorldDefinition {
   schemaVersion: 2;
@@ -231,7 +238,7 @@ export function parseWorld(value: unknown): WorldDefinition {
   )
     throw Error('Volumes d’eau invalides');
   for(const w of value.water as WaterBody[])validateWaterProfile(w.profile,w.points.length);
-  if (!list(value.paths, 100, line)) throw Error('Chemins invalides');
+  if (!list(value.paths, 100, (p) => line(p) && (p.kind === undefined || PATH_KINDS.includes(p.kind as PathKind)) && (p.smooth === undefined || typeof p.smooth === 'boolean'))) throw Error('Chemins invalides');
   if (!validateNPCs(value.npcs, config))
     throw Error('PNJ ou dialogues invalides');
   if (

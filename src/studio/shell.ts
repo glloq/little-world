@@ -8,6 +8,7 @@ import {resolveEntity} from '../studio-core/references.ts';
 import {createCharacter} from '../studio-core/character-authoring.ts';
 import type {ProjectDocument} from '../studio-core/types.ts';
 import {StudioSession} from './session.ts';
+import {elementAnchor,elementsAt} from '../studio-core/elements.ts';
 import {renderInspector,editQueue} from './inspector.ts';
 import {mountEntityList} from './entity-list.ts';
 import type {StudioViewport} from './viewport/editor-viewport.ts';
@@ -92,7 +93,7 @@ async function module(requested:string){
   }
   viewport?.setVisible(false);panelHost().hidden=false;panelHost().replaceChildren();const host=panelHost();
   if(id==='map'){const {mountGeoMap}=await import('./geo-map/editor.ts');mapLoaded=true;if(mine!==generation)return;const panel=node('div','','map-panel');$('tools').append(panel);
-    const view=mountGeoMap(host,panel,s,{onPick:(x,z)=>void run(()=>pick(x,z))(),status,open3D:()=>void run(()=>module('scene'))()});disposePanel=view.dispose;
+    const view=mountGeoMap(host,panel,s,{onPick:(x,z,tolerance)=>void run(()=>pick(x,z,tolerance))(),status,open3D:()=>void run(()=>module('scene'))()});disposePanel=view.dispose;
     const list=node('details','','entity-details');list.open=true;list.append(node('summary','Objets et personnages'));$('tools').append(list);listPanel(s,list);}
   else if(id==='water'){const {mountWater}=await import('./water-view.ts');if(mine!==generation)return;disposePanel=mountWater(host,$('tools'),s).dispose;}
   else if(id==='audio'){const {mountAudio}=await import('./audio-view.ts');if(mine!==generation)return;disposePanel=mountAudio(host,s,()=>mine===generation).dispose;}
@@ -142,13 +143,17 @@ async function toolPanel(id:string,v:StudioViewport){
   }
 }
 function listPanel(s:StudioSession,host:HTMLElement){
-  const list=mountEntityList(host,s.document,()=>s.selection.selection.map(v=>v.id),(e,additive)=>{if(additive)s.selection.toggle({kind:'entity',id:e.id});else s.selection.select({kind:'entity',id:e.id});if(viewport&&VIEWPORT_MODULES.has(activeModule))viewport.focusSelection();else s.selection.setCamera(moveContext(s,e.position.x,e.position.z));list.refresh();void inspector();});
-  const stop=s.selection.subscribe(()=>list.refresh()),previous=disposePanel;disposePanel=()=>{stop();previous();};
+  const list=mountEntityList(host,s.document,()=>s.selection.selection.map(v=>v.id),(ref,additive)=>{if(additive)s.selection.toggle(ref);else s.selection.select(ref);
+    const at=elementAnchor(s.document,ref);if(viewport&&VIEWPORT_MODULES.has(activeModule))viewport.focusSelection();else if(at)s.selection.setCamera(moveContext(s,at.x,at.z));list.refresh();void inspector();});
+  const stops=[s.selection.subscribe(()=>list.refresh()),s.commands.subscribe(()=>list.refresh())],previous=disposePanel;disposePanel=()=>{stops.forEach(stop=>stop());previous();};
 }
 function moveContext(s:StudioSession,x:number,z:number){const c=s.selection.state.camera,t=c.target??{x:c.x,y:0,z:c.z};return {...c,x:c.x+x-t.x,z:c.z+z-t.z,target:{...t,x,z}};}
-async function pick(x:number,z:number){
+/** Map click: a close entity first, then the path/river/zone under the point, then a farther entity. */
+async function pick(x:number,z:number,tolerance=3){
   const s=session!,p=s.document;let nearest:typeof p.entityIndex[string]|undefined,distance=Infinity;for(const e of Object.values(p.entityIndex)){const d=Math.hypot(e.position.x-x,e.position.z-z);if(d<distance){distance=d;nearest=e;}}
-  s.selection.select(nearest&&distance<25?{kind:'entity',id:nearest.id}:null);s.selection.setCamera(moveContext(s,x,z));await inspector();
+  const line=elementsAt(p,x,z,tolerance)[0];
+  const ref=nearest&&distance<Math.max(6,tolerance*2)?{kind:'entity',id:nearest.id}:line??(nearest&&distance<25?{kind:'entity',id:nearest.id}:null);
+  s.selection.select(ref);s.selection.setCamera(moveContext(s,x,z));await inspector();
 }
 async function inspector(){
   const s=session;if(!s)return;

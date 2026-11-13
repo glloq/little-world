@@ -12,6 +12,8 @@ export interface StudioContext {
   activeChunkId:string|null;
   activeModule:string;
   activeTool:string;
+  /** Elements protected from moves/deletion in the editor (authoring preference, not world data). */
+  locked?:string[];
 }
 export function defaultStudioContext(projectId:string,worldId:string):StudioContext {
   return {schemaVersion:1,projectId,worldId,selected:null,selectedIds:[],camera:{x:0,y:150,z:0,mode:'map2d'},activeChunkId:null,activeModule:'scene',activeTool:'select'};
@@ -28,7 +30,8 @@ export function parseStudioContext(value:unknown):StudioContext {
     (context.selected!==null&&!selection(context.selected))||!Array.isArray(context.selectedIds)||context.selectedIds.length>1000||!context.selectedIds.every(selection)||
     !context.camera||!['map2d','orbit','free','top'].includes(context.camera.mode)||!['x','y','z'].every(key=>Number.isFinite(context.camera[key as 'x'|'y'|'z']))||
     (context.camera.target!==undefined&&(!context.camera.target||!['x','y','z'].every(key=>Number.isFinite(context.camera.target![key as 'x'|'y'|'z']))))||
-    (context.camera.zoom!==undefined&&!(Number.isFinite(context.camera.zoom)&&context.camera.zoom>0)))throw Error('Contexte Studio incompatible ou invalide');
+    (context.camera.zoom!==undefined&&!(Number.isFinite(context.camera.zoom)&&context.camera.zoom>0))||
+    (context.locked!==undefined&&(!Array.isArray(context.locked)||context.locked.length>5000||!context.locked.every(text))))throw Error('Contexte Studio incompatible ou invalide');
   return structuredClone(context);
 }
 export class SelectionService {
@@ -57,6 +60,8 @@ export class SelectionService {
   get selection():StudioSelection[]{return this.current.selectedIds.length?structuredClone(this.current.selectedIds):this.current.selected?[structuredClone(this.current.selected)]:[];}
   /** Drop elements that no longer exist (after undo, deletion or import); no event if unchanged. */
   prune(exists:(value:StudioSelection)=>boolean):void{const list=this.selection,kept=list.filter(exists);if(kept.length!==list.length)this.setSelection(kept);}
+  isLocked(id:string):boolean{return !!this.current.locked?.includes(id);}
+  setLocked(id:string,locked:boolean):void{const set=new Set(this.current.locked??[]);if(locked)set.add(id);else set.delete(id);this.patch({locked:[...set]});}
   openModule(activeModule:string):void{this.patch({activeModule});}
   setTool(activeTool:string):void{this.patch({activeTool});}
   setChunk(activeChunkId:string|null):void{this.patch({activeChunkId});}

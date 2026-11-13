@@ -9,6 +9,7 @@ import {projectGeography,projectGeographyInput,type ProjectGeography} from '../.
 import {geoWorkerPool,type GeoTask} from '../../geography/geo-workers.ts';
 import {paintMask,regionCells,regionCorrections,restoreGeneration,regionChunkIds,sectorGrid,terrainChangeRects,type Region} from '../../studio-core/geo-edits.ts';
 import {affectedChunkIds} from '../../studio-core/schema.ts';
+import {elementData,type ElementRef} from '../../studio-core/elements.ts';
 import {putTerrainEdit} from '../../studio-core/source.ts';
 import {classifyPoint} from '../../geography/classify.ts';
 import {LAYERS,CATEGORY_LAYERS,MOISTURE_CODES,MASK_GRID,cellCenter,type LayerId,type MaskLayerId} from '../../geography/layers.ts';
@@ -59,7 +60,7 @@ function sharedFor(session:StudioSession):SharedMap{
 }
 /** Free the map caches (project closed). */
 export function releaseGeoMap(){if(shared){shared.stop();shared.cache.clear();shared=null;}}
-export interface GeoMapOptions {onPick(x:number,z:number):void;status(message:string,error?:boolean):void;open3D():void}
+export interface GeoMapOptions {onPick(x:number,z:number,tolerance?:number):void;status(message:string,error?:boolean):void;open3D():void}
 export function mountGeoMap(host:HTMLElement,tools:HTMLElement,session:StudioSession,options:GeoMapOptions){
   const p=session.document,b=p.world.bounds,grid=sectorGrid(p);
   const wrap=node('div','','map-wrap'),canvas=node('canvas'),note=node('div','','map-note'),readout=node('div','','map-readout');wrap.append(canvas,note,readout);host.replaceChildren(wrap);
@@ -156,7 +157,18 @@ export function mountGeoMap(host:HTMLElement,tools:HTMLElement,session:StudioSes
   function drawVectors(){
     const lib=p.libraries;
     for(const zone of Object.values(lib.zones??{})){g2.beginPath();zone.polygon.forEach((v,i)=>{const q=toScreen(v.x,v.z);if(i)g2.lineTo(q.x,q.y);else g2.moveTo(q.x,q.y);});g2.closePath();g2.fillStyle=zone.kind==='farm-plot'?'#e5b83c33':'#9b59b633';g2.fill();g2.strokeStyle=zone.kind==='farm-plot'?'#b88a1c':'#7d3c98';g2.lineWidth=1.5;g2.stroke();}
-    for(const line of [...Object.values(lib.water),...Object.values(lib.paths)]){g2.strokeStyle='kind' in line?'#2f7fb8':'#8a6a45';g2.lineWidth=Math.max(1.5,line.width*base());g2.beginPath();line.points.forEach((v,i)=>{const q=toScreen(v.x,v.z);if(i)g2.lineTo(q.x,q.y);else g2.moveTo(q.x,q.y);});g2.stroke();}
+    const PATH_COLOURS:Record<string,string>={trail:'#a08a5c',dirt:'#8a6a45',stone:'#7d7d78',wood:'#9a6b3c'};
+    const strokeLine=(pts:{x:number;z:number}[],colour:string,width:number)=>{g2.strokeStyle=colour;g2.lineWidth=width;g2.beginPath();pts.forEach((v,i)=>{const q=toScreen(v.x,v.z);if(i)g2.lineTo(q.x,q.y);else g2.moveTo(q.x,q.y);});g2.stroke();};
+    for(const water of Object.values(lib.water))strokeLine(water.points,'#2f7fb8',Math.max(1.5,water.width*base()));
+    for(const path of Object.values(lib.paths))strokeLine(path.points,PATH_COLOURS[path.kind??'dirt'],Math.max(1.5,path.width*base()));
+    // E7 — selected lines, zones and retouches are outlined (entities: dots below).
+    for(const ref of session.selection.selection){
+      const d=elementData(p,ref as ElementRef);if(!d||ref.kind==='entity')continue;g2.save();g2.setLineDash([6,4]);
+      if('points' in d)strokeLine(d.points,'#c0562e',Math.max(3,d.width*base()+4));
+      else if('polygon' in d){g2.strokeStyle='#c0562e';g2.lineWidth=3;g2.beginPath();d.polygon.forEach((v,i)=>{const q=toScreen(v.x,v.z);if(i)g2.lineTo(q.x,q.y);else g2.moveTo(q.x,q.y);});g2.closePath();g2.stroke();}
+      else{const q=toScreen(d.x,d.z);g2.strokeStyle='#c0562e';g2.lineWidth=2;g2.beginPath();g2.arc(q.x,q.y,Math.max(4,d.radius*base()),0,Math.PI*2);g2.stroke();}
+      g2.restore();
+    }
     const selected=new Set(session.selection.selection.map(v=>v.id));
     for(const e of Object.values(p.entityIndex)){const q=toScreen(e.position.x,e.position.z);if(q.x<-8||q.x>canvas.width+8||q.y<-8||q.y>canvas.height+8)continue;const on=selected.has(e.id);g2.fillStyle=on?'#c0562e':e.kind==='character'?'#8a5a2b':'#2d5a3f';g2.strokeStyle='#fff';g2.lineWidth=1.5;g2.beginPath();g2.arc(q.x,q.y,on?7:4,0,Math.PI*2);g2.fill();g2.stroke();}
     const target=session.selection.state.camera.target;if(target){const q=toScreen(target.x,target.z);g2.strokeStyle='#c0562e';g2.lineWidth=2;g2.beginPath();g2.moveTo(q.x-9,q.y);g2.lineTo(q.x+9,q.y);g2.moveTo(q.x,q.y-9);g2.lineTo(q.x,q.y+9);g2.stroke();}
@@ -217,7 +229,7 @@ export function mountGeoMap(host:HTMLElement,tools:HTMLElement,session:StudioSes
     if(painting){painting=false;commitStroke();stroke=[];draw(false);return;}
     const d=drag;drag=null;if(!d)return;
     if(d.moved){const c=session.selection.state.camera,t=c.target??{x:c.x,y:0,z:c.z};session.selection.setCamera({...c,x:c.x+cx-t.x,z:c.z+cz-t.z,target:{...t,x:cx,z:cz}});return;}
-    const q=local(e);if(e.button===0&&inside(q)&&(state.tool==='select'||activeLayer().locked||!toolsFor(state.active).includes(state.tool)))options.onPick(q.x,q.z);
+    const q=local(e);if(e.button===0&&inside(q)&&(state.tool==='select'||activeLayer().locked||!toolsFor(state.active).includes(state.tool)))options.onPick(q.x,q.z,Math.max(2,8/base()));
   };
   canvas.ondblclick=e=>{if(state.tool==='polygon'&&polygon.length>2)closePolygon();else if(state.tool==='shape'&&!activeLayer().locked)shapes.dblclick(local(e));};
   canvas.onpointerleave=()=>{cursor=null;readout.textContent='';draw(false);};

@@ -14,6 +14,7 @@ import type {StudioSession} from '../session.ts';
 import {EditorCamera,poseFromContext} from './camera-controller.ts';
 import {attachNavigation,isFormTarget,type Navigation} from './navigation.ts';
 import {SelectionController} from './selection.ts';
+import {elementExists} from '../../studio-core/elements.ts';
 import {ToolManager,type ToolContext} from './tools.ts';
 import {SelectTool} from './select-tool.ts';
 import {PlacementTool} from './placement-tool.ts';
@@ -72,7 +73,7 @@ export class StudioViewport {
     const b=p.world.bounds;this.camera=new EditorCamera(poseFromContext(start,terrainHeight),session.selection.state.camera.mode==='top'?'top':session.selection.state.camera.mode==='free'?'free':'orbit',{minX:b.minX,maxX:b.maxX,minZ:b.minZ,maxZ:b.maxZ,ground:(x,z)=>terrainHeight(x,z)});
     this.camera.setFar(horizonFar(b.maxX-b.minX,b.maxZ-b.minZ));
     this.npcs=createNPCSystem(this.scene,[],[]);
-    this.selection=new SelectionController(this.scene,session,()=>[...[...this.models.values()].map(m=>m.object),...[...this.npcObjects.values()].flat()],id=>this.objectFor(id));
+    this.selection=new SelectionController(this.scene,session,()=>[...[...this.models.values()].map(m=>m.object),...[...this.npcObjects.values()].flat()],id=>this.objectFor(id),e=>this.groundAt(e.clientX,e.clientY));
     this.navigation=attachNavigation(this.canvas,this.camera,{pick:(x,y)=>this.groundAt(x,y),heightPx:()=>this.canvas.clientHeight,isActive:()=>this.visible,onInteract:()=>this.invalidate(4),onSettled:()=>this.saveCamera()});
     const context:ToolContext={session,scene:this.scene,canvas:this.canvas,camera:this.camera,selection:this.selection,ground:e=>this.groundAt(e.clientX,e.clientY),objectFor:id=>this.objectFor(id),invalidate:n=>this.invalidate(n),message:options.message,refreshInspector:options.refreshInspector,setTool:id=>{this.setTool(id);options.toolChanged(id);},
       run:action=>{void action().catch(error=>{options.message(String(error instanceof Error?error.message:error),true);this.refresh();});}};
@@ -157,7 +158,7 @@ export class StudioViewport {
   }
   refresh(transaction?:EditTransaction){
     // Undo/redo may remove selected elements: keep only those that still exist.
-    this.session.selection.prune(v=>v.kind!=='entity'||!!this.session.document.entityIndex[v.id]);
+    this.session.selection.prune(v=>elementExists(this.session.document,v));
     this.syncContent(transaction);
   }
   /** Relief generator parameters changed (2D shape editing, presets, undo): reconfigure the
