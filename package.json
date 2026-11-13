@@ -41,7 +41,10 @@
     "test:b1": "node tools/test-b1-browser.mjs",
     "test:b1-studio": "node tools/test-b1-studio-browser.mjs",
     "bench:physics": "node tools/bench-physics.mjs",
-    "bench:activities": "node --expose-gc tools/bench-activities.mjs"
+    "bench:activities": "node --expose-gc tools/bench-activities.mjs",
+    "synth:audio": "node --experimental-strip-types tools/audio-synth/build.mjs --all && node --experimental-strip-types tools/audio-synth/build-music.mjs && npm run generate:audio && node --experimental-strip-types tools/audio-synth/report.mjs",
+    "check:audio-synth": "node --experimental-strip-types tools/audio-synth/build.mjs --all --check && node --experimental-strip-types tools/audio-synth/build-music.mjs --check",
+    "test:audio-production": "node tests/audio-production.browser.mjs"
   },
   "dependencies": {
     "three": "^0.180.0"

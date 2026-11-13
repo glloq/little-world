@@ -99,6 +99,8 @@ export class AudioEngine {
  private startTimer(){if(!this.interval&&!this.disposed)this.interval=setInterval(()=>this.pump(),25);}
  /** `fade` > 0 = slow ambience fade-out (s); otherwise the historic 4 ms anti-click fade. */
  private stop(v:Voice,at=this.context?.currentTime??0,fade=0){if(v.retiring)return;v.retiring=true;const tau=fade>0?fade/3:.004;v.fade=fade;try{v.gain.gain.cancelScheduledValues(at);v.gain.gain.setTargetAtTime(0,at,tau);v.source.stop(at+Math.max(.02,tau*6));}catch{/* Already ended. */}}
+ /** At most 4 slow ambience fades at once: flickering zones must not pile up nodes. */
+ private limitFades(){const fading=[...this.voices.values()].filter(v=>v.retiring&&v.fade).sort((a,b)=>a.start-b.start);while(fading.length>4){const v=fading.shift()!;v.fade=0;try{const at=this.context?.currentTime??0;v.gain.gain.cancelScheduledValues(at);v.gain.gain.setTargetAtTime(0,at,.004);v.source.stop(at+.03);}catch{/* Already ended. */}}}
  private stopAll(){for(const v of this.voices.values())this.stop(v);this.ambient.clear();this.playedEntries.clear();}
  private clean(v:Voice){if(!this.voices.delete(v.id))return;v.source.disconnect();v.gain.disconnect();v.panner?.disconnect();for(const [key,id]of this.ambient)if(id===v.id)this.ambient.delete(key);this.trimBuffers(0);}
  /** Nodes counted against the hard cap; slow ambience fades (≤ 2 layers) do not block gameplay sounds. */
@@ -218,6 +220,7 @@ export class AudioEngine {
    if(this.ambient.has(emitter.id)||!this.ready||!emitter.loop&&this.playedEntries.has(emitter.id))continue;if(!emitter.loop)this.playedEntries.add(emitter.id);this.ambient.set(emitter.id,-1);
    void this.playEvent(emitter.soundId,{bus:emitter.bus,position:emitter.position,radius:emitter.radius,loop:emitter.loop,priority:Math.min(1,emitter.priority/10),gainScale:emitter.gain,fadeIn:emitter.fade,context}).then(id=>{if(!this.desiredAmbient.some(e=>e.id===emitter.id)||this.disposed){if(id){const v=this.voices.get(id);if(v)this.stop(v,undefined,emitter.fade);}this.ambient.delete(emitter.id);}else if(id){const v=this.voices.get(id);if(v)v.fade=emitter.fade;this.ambient.set(emitter.id,id);}else this.ambient.delete(emitter.id);});}
   if(this.ready&&this.context)for(const shot of this.mixer.due(context,this.context.currentTime))void this.playEvent(shot.eventId,{bus:'ambience',gainScale:shot.gain,priority:.1,context});
+  this.limitFades();
  }
  async setHidden(hidden:boolean){this.hidden=hidden;if(!this.context)return;if(hidden){if(this.interval)clearInterval(this.interval);this.interval=null;this.stopAll();for(const v of [...this.voices.values()]){try{v.source.stop(this.context.currentTime);}catch{}this.clean(v);}this.transport=null;this.pending=null;try{await this.context.suspend();}catch{/* Silent fallback. */}}else if(this.enabled){await this.unlock();}}
  get diagnostics():readonly string[]{return [...this.diagnosticLog];}

@@ -23,6 +23,8 @@ export class AudioEventRouter {
  private lastStroke=-Infinity;
  private fall=0;
  private world:SoundContext={};
+ /** Place hysteresis: a surface place must hold 800 ms before ambience/music follow it (no flicker at biome borders). */
+ private place:{value?:Place;candidate?:Place;since:number}={since:0};
  readonly counters={emitted:0,steps:0,transitions:0};
  private readonly sink:(sound:RoutedSound)=>void;
  constructor(sink:(sound:RoutedSound)=>void){this.sink=sink;}
@@ -36,7 +38,10 @@ export class AudioEventRouter {
  /** Called every rendered frame (cheap). Footsteps are distance-based, so 20 or 30 FPS give the same cadence. */
  observe(frame:AudioFrame):StateLoop[] {
   const p=frame.player,w=frame.world,prev=this.previous?.player;
-  const place:Place|undefined=p.space?'mine':w.submerged?'underwater':w.place;
+  const raw:Place|undefined=p.space?'mine':w.submerged?'underwater':w.place;
+  if(raw!==this.place.candidate){this.place.candidate=raw;this.place.since=frame.nowMs;}
+  if(raw==='mine'||raw==='underwater'||this.place.value==='mine'||this.place.value==='underwater'||frame.nowMs-this.place.since>=800||!this.previous)this.place.value=raw;
+  const place=this.place.value;
   const activity:Activity=w.activity??(p.space?'mining':p.aboard?'sailing':'explore');
   this.world=sanitizeContext({time:w.time,weather:w.weather,wet:w.wet??(w.weather==='rain'||w.weather==='storm'),biome:w.biome,place,nearWater:w.nearWater,activity});
   const body=(extra:SoundContext)=>({...this.world,surface:p.surface,...extra});
@@ -73,5 +78,5 @@ export class AudioEventRouter {
   if(p.aboard&&(p.boatSpeed??0)>.4)loops.push({key:'state:boat',eventId:'boat.move',gain:Math.min(1,.3+(p.boatSpeed??0)/8),bus:'sfx'});
   return loops;
  }
- reset(){this.previous=null;this.stepFrom=null;this.walked=0;this.swimFrom=null;this.fall=0;}
+ reset(){this.place={since:0};this.previous=null;this.stepFrom=null;this.walked=0;this.swimFrom=null;this.fall=0;}
 }

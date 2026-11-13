@@ -2,7 +2,8 @@
 
 **Campagne AUD-V2 (novembre 2026).** Évolution incrémentale du moteur audio B1 décrit en [23](23-MIDI-AUDIO-LOW-RESOURCE.md) et [28](28-AUDIO-ET-RECETTE.md) : le moteur, le mixeur, le séquenceur MIDI, les cinq timbres, les budgets et l'activation après geste sont **conservés** ; on ajoute un catalogue versionné organisé par événements, contextes, musiques et ambiances, directement exploitable par le jeu, le Studio et un futur agent de génération audio.
 
-- Inventaire complet généré (107 événements, 19 thèmes, 19 profils, 160 fichiers à produire) : [38 — Inventaire audio V2](38-AUDIO-V2-INVENTAIRE.md).
+- Inventaire complet généré : [38 — Inventaire audio V2](38-AUDIO-V2-INVENTAIRE.md).
+- **Production réalisée (campagne AUDIO PRODUCTION)** : 230 WAV + 19 MIDI originaux, aucun `PLANNED` restant — [39 — Rapport de production](39-AUDIO-PRODUCTION-RAPPORT.md) (mesures, états, liste de préécoute humaine).
 - Manifeste machine-readable pour l'agent de génération : [`assets/audio/production-manifest.json`](../assets/audio/production-manifest.json).
 - Source unique du catalogue : [`src/audio/catalog-source.ts`](../src/audio/catalog-source.ts) → `npm run generate:audio` → `public/audio/catalog.json`, manifeste et doc 38 (déterministes, vérifiés en CI).
 
@@ -100,6 +101,13 @@ Projet V1 : panneau V1 inchangé + bouton de passage au V2. Projet V2 : recherch
 
 Essai réalisé dans une copie jetable : un Ogg Vorbis de 0,25 s enregistré pour `fs-grass-01` a été mesuré (44,1 kHz, mono), rendu disponible, choisi pour `player.footstep` sur herbe au lieu du repli `step`, et retiré du manifeste (159 fichiers restants). Aucun fichier de ce test n'est livré.
 
+## 8 bis. Production réalisée et outils
+
+- `tools/audio-synth/` : DSP déterministe (`dsp.mjs`), recettes par groupe (`recipes.mjs`), contrôle qualité (`qc.mjs`), rendu (`render.mjs`), compositions (`music.mjs`, `compositions.mjs`), rapport (`report.mjs`).
+- `npm run synth:audio` régénère tout (fichiers, registre, catalogue, rapport) ; `npm run check:audio-synth` vérifie que chaque fichier livré est **identique bit à bit** à son rendu (exécuté en CI).
+- États : `TECHNICALLY_VALID` (contrôles automatiques réussis), `LISTENING_REVIEW` (substitut procédural d’un son naturel complexe, écoute prioritaire), `VERIFIED` réservé à une écoute humaine, `REJECTED` jamais joué. Le moteur joue `GENERATED`, `TECHNICALLY_VALID`, `LISTENING_REVIEW` et `VERIFIED`.
+- Licence : créations originales du projet (synthèse et composition), dédiées CC0 comme la bibliothèque V1 existante — **à confirmer par le propriétaire du dépôt**.
+
 ## 9. Statuts (spécifié / implémenté / testé / publié)
 
 | Mécanisme | Spécifié | Implémenté | Testé | Publié |
@@ -111,7 +119,7 @@ Essai réalisé dans une copie jetable : un Ogg Vorbis de 0,25 s enregistré pou
 | Directeur musical, mixeur d'ambiances | oui | oui | unitaires + Chromium | build local |
 | Chargement statique différé, Ogg Vorbis | oui | oui | Chromium (Ogg si `ffmpeg` présent) | build local |
 | Studio catalogue | oui | oui | Chromium | build local |
-| 160 ressources à produire | oui (manifeste) | **non** (PLANNED) | — | — |
+| Ressources sonores et MIDI | oui | **oui** : 230 WAV + 19 MIDI (synthèse procédurale et composition originales, `tools/audio-synth`) | contrôle technique automatique, reproductibilité bit à bit, lecture dans le moteur réel (Chromium) ; **aucune écoute humaine** | build local |
 | Portes/coffres/UI/émetteurs WaterNetwork, outils/agriculture avancée, montures | événements définis | **non émis** (fonctions de jeu absentes) | — | — |
 
 **Non exécuté dans cet environnement** : Firefox (non installé — le repli de positionnement listener/panner reste testé en unitaire), écoute humaine, mesures CPU audio/glitches sur PC à GPU intégré, déploiement GitHub Pages réel (build statique, chemins base-aware et `verify-static-build` vérifiés localement). Les budgets restent des hypothèses à calibrer (doc 22/23).

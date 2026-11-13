@@ -18,6 +18,7 @@ jobs:
       - run: npm test
       - run: npm run generate:audio
       - run: git diff --exit-code -- public/audio assets/audio docs/38-AUDIO-V2-INVENTAIRE.md
+      - run: npm run check:audio-synth
       - run: npm run generate:beta
       - run: git diff --exit-code -- maps/beta.project.json public/maps/beta.json public/maps/beta.project.json
       - run: npm run generate:island
@@ -85,6 +86,7 @@ jobs:
           node tools/run-browser-check.mjs storage http://127.0.0.1:5189/little-world/
           node tools/run-browser-check.mjs audio-engine http://127.0.0.1:5189/little-world/
           node tools/run-browser-check.mjs audio-v2 http://127.0.0.1:5189/little-world/
+          node tools/run-browser-check.mjs audio-production http://127.0.0.1:5189/little-world/
           node tools/run-browser-check.mjs water-engine http://127.0.0.1:5189/little-world/
       - uses: actions/upload-artifact@v4
         if: always()

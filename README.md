@@ -165,7 +165,7 @@ docs/                       # Conception, objectifs et registre de décisions
 
 - [PERF : ResourceBudgetManager, budgets communs, métriques, mémoire, streaming et qualité adaptative](docs/22-RESOURCE-BUDGET-MANAGER.md)
 - [Audio LOW-RESOURCE : 5 à 10 instruments MIDI, synthétiseur Web Audio, échantillons et budgets](docs/23-MIDI-AUDIO-LOW-RESOURCE.md)
-- [Audio V2 : catalogue contextuel, événements sémantiques, migration et production](docs/37-AUDIO-V2-CATALOGUE.md) · [inventaire généré](docs/38-AUDIO-V2-INVENTAIRE.md)
+- [Audio V2 : catalogue contextuel, événements sémantiques, migration et production](docs/37-AUDIO-V2-CATALOGUE.md) · [inventaire généré](docs/38-AUDIO-V2-INVENTAIRE.md) · [rapport de production et préécoute](docs/39-AUDIO-PRODUCTION-RAPPORT.md)
 - [Mines LOW-RESOURCE : galeries creusables 2,5D, niveaux superposés, filons et synchronisation future](docs/24-MINES-MULTILEVEL-LOW-RESOURCE.md)
 - [Agriculture LOW-RESOURCE : parcelles, croissance différée, rendu LOD et gestion des cultures](docs/25-AGRICULTURE-PARCELS-LOW-RESOURCE.md)- [Eau LOW-RESOURCE : rivières en pente, lacs, cascades, plongée et océan LOD](docs/21-WATER-HYDROLOGY-LOW-RESOURCE.md)
 

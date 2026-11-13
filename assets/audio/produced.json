@@ -1,5 +1,1998 @@
 {
  "schemaVersion": 1,
  "about": "Fichiers audio livrés (chemins relatifs à public/). Chaque entrée : {file, status GENERATED|VERIFIED|REJECTED, source, license, generatorVersion?, notes?}. Les métadonnées (octets, sha256, durée, canaux, fréquence) sont mesurées par npm run generate:audio.",
- "files": {}
+ "files": {
+  "amb-cave-01": {
+   "file": "audio/ambience/mine/amb-cave-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « amb-cave », lot A, prise 1/1, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "amb-desert-01": {
+   "file": "audio/ambience/desert/amb-desert-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « amb-desert », lot C, prise 1/1, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "amb-fire-01": {
+   "file": "audio/sfx/objects/amb-fire-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « amb-fire », lot E, prise 1/1, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "amb-forest-01": {
+   "file": "audio/ambience/forest/amb-forest-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « amb-forest », lot A, prise 1/1, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "amb-forest-night-01": {
+   "file": "audio/ambience/forest/amb-forest-night-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « amb-forest-night », lot C, prise 1/1, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "amb-lake-01": {
+   "file": "audio/ambience/water/amb-lake-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « amb-lake », lot C, prise 1/1, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "amb-night-01": {
+   "file": "audio/ambience/night/amb-night-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « amb-night », lot A, prise 1/1, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "amb-plain-01": {
+   "file": "audio/ambience/plains/amb-plain-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « amb-plain », lot C, prise 1/1, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "amb-rain-heavy-01": {
+   "file": "audio/ambience/weather/amb-rain-heavy-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « amb-rain-heavy », lot C, prise 1/1, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "amb-rain-light-01": {
+   "file": "audio/ambience/weather/amb-rain-light-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « amb-rain-light », lot A, prise 1/1, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "amb-rapids-01": {
+   "file": "audio/ambience/water/amb-rapids-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « amb-rapids », lot C, prise 1/1, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "amb-river-01": {
+   "file": "audio/ambience/water/amb-river-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « amb-river », lot A, prise 1/1, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "amb-sea-01": {
+   "file": "audio/ambience/coast/amb-sea-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « amb-sea », lot C, prise 1/1, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "amb-shimmer-01": {
+   "file": "audio/sfx/magic/amb-shimmer-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « amb-shimmer », lot E, prise 1/1, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "amb-swamp-01": {
+   "file": "audio/ambience/marsh/amb-swamp-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « amb-swamp », lot C, prise 1/1, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "amb-underwater-01": {
+   "file": "audio/ambience/water/amb-underwater-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « amb-underwater », lot A, prise 1/1, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "amb-village-01": {
+   "file": "audio/ambience/village/amb-village-01.wav",
+   "status": "LISTENING_REVIEW",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « amb-village », lot C, prise 1/1, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Substitut procédural d’un son naturel complexe : écoute prioritaire, source réaliste recommandée. Aucune écoute humaine réalisée."
+  },
+  "amb-volcano-01": {
+   "file": "audio/ambience/volcano/amb-volcano-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « amb-volcano », lot C, prise 1/1, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "amb-waterfall-01": {
+   "file": "audio/ambience/water/amb-waterfall-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « amb-waterfall », lot C, prise 1/1, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "amb-watermill-01": {
+   "file": "audio/ambience/village/amb-watermill-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « amb-watermill », lot C, prise 1/1, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "amb-wind-light-01": {
+   "file": "audio/ambience/weather/amb-wind-light-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « amb-wind-light », lot A, prise 1/1, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "amb-wind-strong-01": {
+   "file": "audio/ambience/weather/amb-wind-strong-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « amb-wind-strong », lot C, prise 1/1, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "amb-windmill-01": {
+   "file": "audio/ambience/weather/amb-windmill-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « amb-windmill », lot C, prise 1/1, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "bag-01": {
+   "file": "audio/sfx/ui/bag-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « bag », lot A, prise 1/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "bag-02": {
+   "file": "audio/sfx/ui/bag-02.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « bag », lot A, prise 2/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "basket-01": {
+   "file": "audio/sfx/farming/basket-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « basket », lot E, prise 1/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "basket-02": {
+   "file": "audio/sfx/farming/basket-02.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « basket », lot E, prise 2/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "bird-01": {
+   "file": "audio/sfx/creatures/bird-01.wav",
+   "status": "LISTENING_REVIEW",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « bird », lot D, prise 1/4, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Substitut procédural d’un son naturel complexe : écoute prioritaire, source réaliste recommandée. Aucune écoute humaine réalisée."
+  },
+  "bird-02": {
+   "file": "audio/sfx/creatures/bird-02.wav",
+   "status": "LISTENING_REVIEW",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « bird », lot D, prise 2/4, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Substitut procédural d’un son naturel complexe : écoute prioritaire, source réaliste recommandée. Aucune écoute humaine réalisée."
+  },
+  "bird-03": {
+   "file": "audio/sfx/creatures/bird-03.wav",
+   "status": "LISTENING_REVIEW",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « bird », lot D, prise 3/4, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Substitut procédural d’un son naturel complexe : écoute prioritaire, source réaliste recommandée. Aucune écoute humaine réalisée."
+  },
+  "bird-04": {
+   "file": "audio/sfx/creatures/bird-04.wav",
+   "status": "LISTENING_REVIEW",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « bird », lot D, prise 4/4, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Substitut procédural d’un son naturel complexe : écoute prioritaire, source réaliste recommandée. Aucune écoute humaine réalisée."
+  },
+  "boat-board-01": {
+   "file": "audio/sfx/water/boat-board-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « boat-board », lot A, prise 1/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "boat-board-02": {
+   "file": "audio/sfx/water/boat-board-02.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « boat-board », lot A, prise 2/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "boat-bump-01": {
+   "file": "audio/sfx/water/boat-bump-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « boat-bump », lot E, prise 1/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "boat-bump-02": {
+   "file": "audio/sfx/water/boat-bump-02.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « boat-bump », lot E, prise 2/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "boat-creak-01": {
+   "file": "audio/sfx/water/boat-creak-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « boat-creak », lot C, prise 1/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "boat-creak-02": {
+   "file": "audio/sfx/water/boat-creak-02.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « boat-creak », lot C, prise 2/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "boat-creak-03": {
+   "file": "audio/sfx/water/boat-creak-03.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « boat-creak », lot C, prise 3/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "boat-move-01": {
+   "file": "audio/sfx/water/boat-move-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « boat-move », lot A, prise 1/1, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "bridge-01": {
+   "file": "audio/sfx/objects/bridge-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « bridge », lot E, prise 1/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "bridge-02": {
+   "file": "audio/sfx/objects/bridge-02.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « bridge », lot E, prise 2/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "chest-01": {
+   "file": "audio/sfx/objects/chest-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « chest », lot E, prise 1/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "chest-02": {
+   "file": "audio/sfx/objects/chest-02.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « chest », lot E, prise 2/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "cut-01": {
+   "file": "audio/sfx/farming/cut-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « cut », lot E, prise 1/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "cut-02": {
+   "file": "audio/sfx/farming/cut-02.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « cut », lot E, prise 2/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "dive-01": {
+   "file": "audio/sfx/water/dive-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « dive », lot A, prise 1/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "dive-02": {
+   "file": "audio/sfx/water/dive-02.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « dive », lot A, prise 2/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "door-close-01": {
+   "file": "audio/sfx/objects/door-close-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « door-close », lot E, prise 1/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "door-close-02": {
+   "file": "audio/sfx/objects/door-close-02.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « door-close », lot E, prise 2/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "door-open-01": {
+   "file": "audio/sfx/objects/door-open-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « door-open », lot E, prise 1/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "door-open-02": {
+   "file": "audio/sfx/objects/door-open-02.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « door-open », lot E, prise 2/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "drip-01": {
+   "file": "audio/ambience/mine/drip-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « drip », lot C, prise 1/4, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "drip-02": {
+   "file": "audio/ambience/mine/drip-02.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « drip », lot C, prise 2/4, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "drip-03": {
+   "file": "audio/ambience/mine/drip-03.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « drip », lot C, prise 3/4, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "drip-04": {
+   "file": "audio/ambience/mine/drip-04.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « drip », lot C, prise 4/4, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "expr-annoyed-01": {
+   "file": "audio/sfx/creatures/expr-annoyed-01.wav",
+   "status": "LISTENING_REVIEW",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « expr-annoyed », lot D, prise 1/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Substitut procédural d’un son naturel complexe : écoute prioritaire, source réaliste recommandée. Aucune écoute humaine réalisée."
+  },
+  "expr-annoyed-02": {
+   "file": "audio/sfx/creatures/expr-annoyed-02.wav",
+   "status": "LISTENING_REVIEW",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « expr-annoyed », lot D, prise 2/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Substitut procédural d’un son naturel complexe : écoute prioritaire, source réaliste recommandée. Aucune écoute humaine réalisée."
+  },
+  "expr-calm-01": {
+   "file": "audio/sfx/creatures/expr-calm-01.wav",
+   "status": "LISTENING_REVIEW",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « expr-calm », lot D, prise 1/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Substitut procédural d’un son naturel complexe : écoute prioritaire, source réaliste recommandée. Aucune écoute humaine réalisée."
+  },
+  "expr-calm-02": {
+   "file": "audio/sfx/creatures/expr-calm-02.wav",
+   "status": "LISTENING_REVIEW",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « expr-calm », lot D, prise 2/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Substitut procédural d’un son naturel complexe : écoute prioritaire, source réaliste recommandée. Aucune écoute humaine réalisée."
+  },
+  "expr-effort-01": {
+   "file": "audio/sfx/creatures/expr-effort-01.wav",
+   "status": "LISTENING_REVIEW",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « expr-effort », lot D, prise 1/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Substitut procédural d’un son naturel complexe : écoute prioritaire, source réaliste recommandée. Aucune écoute humaine réalisée."
+  },
+  "expr-effort-02": {
+   "file": "audio/sfx/creatures/expr-effort-02.wav",
+   "status": "LISTENING_REVIEW",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « expr-effort », lot D, prise 2/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Substitut procédural d’un son naturel complexe : écoute prioritaire, source réaliste recommandée. Aucune écoute humaine réalisée."
+  },
+  "expr-happy-01": {
+   "file": "audio/sfx/creatures/expr-happy-01.wav",
+   "status": "LISTENING_REVIEW",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « expr-happy », lot D, prise 1/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Substitut procédural d’un son naturel complexe : écoute prioritaire, source réaliste recommandée. Aucune écoute humaine réalisée."
+  },
+  "expr-happy-02": {
+   "file": "audio/sfx/creatures/expr-happy-02.wav",
+   "status": "LISTENING_REVIEW",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « expr-happy », lot D, prise 2/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Substitut procédural d’un son naturel complexe : écoute prioritaire, source réaliste recommandée. Aucune écoute humaine réalisée."
+  },
+  "expr-sad-01": {
+   "file": "audio/sfx/creatures/expr-sad-01.wav",
+   "status": "LISTENING_REVIEW",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « expr-sad », lot D, prise 1/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Substitut procédural d’un son naturel complexe : écoute prioritaire, source réaliste recommandée. Aucune écoute humaine réalisée."
+  },
+  "expr-sad-02": {
+   "file": "audio/sfx/creatures/expr-sad-02.wav",
+   "status": "LISTENING_REVIEW",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « expr-sad », lot D, prise 2/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Substitut procédural d’un son naturel complexe : écoute prioritaire, source réaliste recommandée. Aucune écoute humaine réalisée."
+  },
+  "expr-surprised-01": {
+   "file": "audio/sfx/creatures/expr-surprised-01.wav",
+   "status": "LISTENING_REVIEW",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « expr-surprised », lot D, prise 1/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Substitut procédural d’un son naturel complexe : écoute prioritaire, source réaliste recommandée. Aucune écoute humaine réalisée."
+  },
+  "expr-surprised-02": {
+   "file": "audio/sfx/creatures/expr-surprised-02.wav",
+   "status": "LISTENING_REVIEW",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « expr-surprised », lot D, prise 2/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Substitut procédural d’un son naturel complexe : écoute prioritaire, source réaliste recommandée. Aucune écoute humaine réalisée."
+  },
+  "fish-01": {
+   "file": "audio/sfx/water/fish-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « fish », lot D, prise 1/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "fish-02": {
+   "file": "audio/sfx/water/fish-02.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « fish », lot D, prise 2/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "flock-01": {
+   "file": "audio/sfx/creatures/flock-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « flock », lot D, prise 1/1, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "frog-01": {
+   "file": "audio/sfx/creatures/frog-01.wav",
+   "status": "LISTENING_REVIEW",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « frog », lot D, prise 1/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Substitut procédural d’un son naturel complexe : écoute prioritaire, source réaliste recommandée. Aucune écoute humaine réalisée."
+  },
+  "frog-02": {
+   "file": "audio/sfx/creatures/frog-02.wav",
+   "status": "LISTENING_REVIEW",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « frog », lot D, prise 2/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Substitut procédural d’un son naturel complexe : écoute prioritaire, source réaliste recommandée. Aucune écoute humaine réalisée."
+  },
+  "frog-03": {
+   "file": "audio/sfx/creatures/frog-03.wav",
+   "status": "LISTENING_REVIEW",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « frog », lot D, prise 3/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Substitut procédural d’un son naturel complexe : écoute prioritaire, source réaliste recommandée. Aucune écoute humaine réalisée."
+  },
+  "fs-dirt-01": {
+   "file": "audio/sfx/footsteps/fs-dirt-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « fs-dirt », lot A, prise 1/4, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "fs-dirt-02": {
+   "file": "audio/sfx/footsteps/fs-dirt-02.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « fs-dirt », lot A, prise 2/4, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "fs-dirt-03": {
+   "file": "audio/sfx/footsteps/fs-dirt-03.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « fs-dirt », lot A, prise 3/4, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "fs-dirt-04": {
+   "file": "audio/sfx/footsteps/fs-dirt-04.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « fs-dirt », lot A, prise 4/4, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "fs-grass-01": {
+   "file": "audio/sfx/footsteps/fs-grass-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « fs-grass », lot A, prise 1/4, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "fs-grass-02": {
+   "file": "audio/sfx/footsteps/fs-grass-02.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « fs-grass », lot A, prise 2/4, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "fs-grass-03": {
+   "file": "audio/sfx/footsteps/fs-grass-03.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « fs-grass », lot A, prise 3/4, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "fs-grass-04": {
+   "file": "audio/sfx/footsteps/fs-grass-04.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « fs-grass », lot A, prise 4/4, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "fs-grass-wet-01": {
+   "file": "audio/sfx/footsteps/fs-grass-wet-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « fs-grass-wet », lot A, prise 1/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "fs-grass-wet-02": {
+   "file": "audio/sfx/footsteps/fs-grass-wet-02.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « fs-grass-wet », lot A, prise 2/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "fs-grass-wet-03": {
+   "file": "audio/sfx/footsteps/fs-grass-wet-03.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « fs-grass-wet », lot A, prise 3/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "fs-gravel-01": {
+   "file": "audio/sfx/footsteps/fs-gravel-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « fs-gravel », lot A, prise 1/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "fs-gravel-02": {
+   "file": "audio/sfx/footsteps/fs-gravel-02.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « fs-gravel », lot A, prise 2/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "fs-gravel-03": {
+   "file": "audio/sfx/footsteps/fs-gravel-03.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « fs-gravel », lot A, prise 3/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "fs-metal-01": {
+   "file": "audio/sfx/footsteps/fs-metal-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « fs-metal », lot E, prise 1/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "fs-metal-02": {
+   "file": "audio/sfx/footsteps/fs-metal-02.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « fs-metal », lot E, prise 2/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "fs-metal-03": {
+   "file": "audio/sfx/footsteps/fs-metal-03.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « fs-metal », lot E, prise 3/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "fs-mud-01": {
+   "file": "audio/sfx/footsteps/fs-mud-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « fs-mud », lot A, prise 1/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "fs-mud-02": {
+   "file": "audio/sfx/footsteps/fs-mud-02.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « fs-mud », lot A, prise 2/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "fs-mud-03": {
+   "file": "audio/sfx/footsteps/fs-mud-03.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « fs-mud », lot A, prise 3/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "fs-sand-01": {
+   "file": "audio/sfx/footsteps/fs-sand-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « fs-sand », lot A, prise 1/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "fs-sand-02": {
+   "file": "audio/sfx/footsteps/fs-sand-02.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « fs-sand », lot A, prise 2/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "fs-sand-03": {
+   "file": "audio/sfx/footsteps/fs-sand-03.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « fs-sand », lot A, prise 3/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "fs-snow-01": {
+   "file": "audio/sfx/footsteps/fs-snow-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « fs-snow », lot E, prise 1/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "fs-snow-02": {
+   "file": "audio/sfx/footsteps/fs-snow-02.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « fs-snow », lot E, prise 2/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "fs-snow-03": {
+   "file": "audio/sfx/footsteps/fs-snow-03.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « fs-snow », lot E, prise 3/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "fs-stone-01": {
+   "file": "audio/sfx/footsteps/fs-stone-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « fs-stone », lot A, prise 1/4, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "fs-stone-02": {
+   "file": "audio/sfx/footsteps/fs-stone-02.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « fs-stone », lot A, prise 2/4, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "fs-stone-03": {
+   "file": "audio/sfx/footsteps/fs-stone-03.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « fs-stone », lot A, prise 3/4, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "fs-stone-04": {
+   "file": "audio/sfx/footsteps/fs-stone-04.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « fs-stone », lot A, prise 4/4, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "fs-tallgrass-01": {
+   "file": "audio/sfx/footsteps/fs-tallgrass-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « fs-tallgrass », lot A, prise 1/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "fs-tallgrass-02": {
+   "file": "audio/sfx/footsteps/fs-tallgrass-02.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « fs-tallgrass », lot A, prise 2/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "fs-tallgrass-03": {
+   "file": "audio/sfx/footsteps/fs-tallgrass-03.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « fs-tallgrass », lot A, prise 3/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "fs-water-01": {
+   "file": "audio/sfx/footsteps/fs-water-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « fs-water », lot A, prise 1/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "fs-water-02": {
+   "file": "audio/sfx/footsteps/fs-water-02.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « fs-water », lot A, prise 2/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "fs-water-03": {
+   "file": "audio/sfx/footsteps/fs-water-03.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « fs-water », lot A, prise 3/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "fs-wood-01": {
+   "file": "audio/sfx/footsteps/fs-wood-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « fs-wood », lot A, prise 1/4, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "fs-wood-02": {
+   "file": "audio/sfx/footsteps/fs-wood-02.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « fs-wood », lot A, prise 2/4, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "fs-wood-03": {
+   "file": "audio/sfx/footsteps/fs-wood-03.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « fs-wood », lot A, prise 3/4, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "fs-wood-04": {
+   "file": "audio/sfx/footsteps/fs-wood-04.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « fs-wood », lot A, prise 4/4, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "gears-01": {
+   "file": "audio/sfx/objects/gears-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « gears », lot E, prise 1/1, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "glide-deploy-01": {
+   "file": "audio/sfx/player/glide-deploy-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « glide-deploy », lot A, prise 1/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "glide-deploy-02": {
+   "file": "audio/sfx/player/glide-deploy-02.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « glide-deploy », lot A, prise 2/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "gull-01": {
+   "file": "audio/sfx/creatures/gull-01.wav",
+   "status": "LISTENING_REVIEW",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « gull », lot D, prise 1/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Substitut procédural d’un son naturel complexe : écoute prioritaire, source réaliste recommandée. Aucune écoute humaine réalisée."
+  },
+  "gull-02": {
+   "file": "audio/sfx/creatures/gull-02.wav",
+   "status": "LISTENING_REVIEW",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « gull », lot D, prise 2/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Substitut procédural d’un son naturel complexe : écoute prioritaire, source réaliste recommandée. Aucune écoute humaine réalisée."
+  },
+  "harvest-01": {
+   "file": "audio/sfx/farming/harvest-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « harvest », lot A, prise 1/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "harvest-02": {
+   "file": "audio/sfx/farming/harvest-02.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « harvest », lot A, prise 2/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "harvest-03": {
+   "file": "audio/sfx/farming/harvest-03.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « harvest », lot A, prise 3/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "harvest-grain-01": {
+   "file": "audio/sfx/farming/harvest-grain-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « harvest-grain », lot A, prise 1/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "harvest-grain-02": {
+   "file": "audio/sfx/farming/harvest-grain-02.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « harvest-grain », lot A, prise 2/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "harvest-grain-03": {
+   "file": "audio/sfx/farming/harvest-grain-03.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « harvest-grain », lot A, prise 3/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "insect-01": {
+   "file": "audio/sfx/creatures/insect-01.wav",
+   "status": "LISTENING_REVIEW",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « insect », lot D, prise 1/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Substitut procédural d’un son naturel complexe : écoute prioritaire, source réaliste recommandée. Aucune écoute humaine réalisée."
+  },
+  "insect-02": {
+   "file": "audio/sfx/creatures/insect-02.wav",
+   "status": "LISTENING_REVIEW",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « insect », lot D, prise 2/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Substitut procédural d’un son naturel complexe : écoute prioritaire, source réaliste recommandée. Aucune écoute humaine réalisée."
+  },
+  "irrigate-01": {
+   "file": "audio/ambience/water/irrigate-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « irrigate », lot C, prise 1/1, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "jump-01": {
+   "file": "audio/sfx/player/jump-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « jump », lot A, prise 1/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "jump-02": {
+   "file": "audio/sfx/player/jump-02.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « jump », lot A, prise 2/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "ladder-01": {
+   "file": "audio/sfx/mining/ladder-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « ladder », lot C, prise 1/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "ladder-02": {
+   "file": "audio/sfx/mining/ladder-02.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « ladder », lot C, prise 2/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "land-heavy-01": {
+   "file": "audio/sfx/player/land-heavy-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « land-heavy », lot A, prise 1/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "land-heavy-02": {
+   "file": "audio/sfx/player/land-heavy-02.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « land-heavy », lot A, prise 2/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "land-soft-01": {
+   "file": "audio/sfx/player/land-soft-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « land-soft », lot A, prise 1/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "land-soft-02": {
+   "file": "audio/sfx/player/land-soft-02.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « land-soft », lot A, prise 2/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "land-soft-03": {
+   "file": "audio/sfx/player/land-soft-03.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « land-soft », lot A, prise 3/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "lap-01": {
+   "file": "audio/sfx/water/lap-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « lap », lot C, prise 1/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "lap-02": {
+   "file": "audio/sfx/water/lap-02.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « lap », lot C, prise 2/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "lap-03": {
+   "file": "audio/sfx/water/lap-03.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « lap », lot C, prise 3/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "lever-01": {
+   "file": "audio/sfx/objects/lever-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « lever », lot E, prise 1/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "lever-02": {
+   "file": "audio/sfx/objects/lever-02.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « lever », lot E, prise 2/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "magic-01": {
+   "file": "audio/sfx/magic/magic-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « magic », lot E, prise 1/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "magic-02": {
+   "file": "audio/sfx/magic/magic-02.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « magic », lot E, prise 2/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "mammal-01": {
+   "file": "audio/sfx/creatures/mammal-01.wav",
+   "status": "LISTENING_REVIEW",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « mammal », lot D, prise 1/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Substitut procédural d’un son naturel complexe : écoute prioritaire, source réaliste recommandée. Aucune écoute humaine réalisée."
+  },
+  "mammal-02": {
+   "file": "audio/sfx/creatures/mammal-02.wav",
+   "status": "LISTENING_REVIEW",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « mammal », lot D, prise 2/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Substitut procédural d’un son naturel complexe : écoute prioritaire, source réaliste recommandée. Aucune écoute humaine réalisée."
+  },
+  "mine-collect-01": {
+   "file": "audio/sfx/mining/mine-collect-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « mine-collect », lot A, prise 1/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "mine-collect-02": {
+   "file": "audio/sfx/mining/mine-collect-02.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « mine-collect », lot A, prise 2/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "mine-crack-01": {
+   "file": "audio/sfx/mining/mine-crack-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « mine-crack », lot E, prise 1/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "mine-crack-02": {
+   "file": "audio/sfx/mining/mine-crack-02.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « mine-crack », lot E, prise 2/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "mine-crystal-01": {
+   "file": "audio/sfx/mining/mine-crystal-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « mine-crystal », lot A, prise 1/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "mine-crystal-02": {
+   "file": "audio/sfx/mining/mine-crystal-02.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « mine-crystal », lot A, prise 2/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "mine-denied-01": {
+   "file": "audio/sfx/mining/mine-denied-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « mine-denied », lot A, prise 1/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "mine-denied-02": {
+   "file": "audio/sfx/mining/mine-denied-02.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « mine-denied », lot A, prise 2/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "mine-enter-01": {
+   "file": "audio/sfx/mining/mine-enter-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « mine-enter », lot C, prise 1/1, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "mine-hit-crystal-01": {
+   "file": "audio/sfx/mining/mine-hit-crystal-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « mine-hit-crystal », lot A, prise 1/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "mine-hit-crystal-02": {
+   "file": "audio/sfx/mining/mine-hit-crystal-02.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « mine-hit-crystal », lot A, prise 2/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "mine-hit-crystal-03": {
+   "file": "audio/sfx/mining/mine-hit-crystal-03.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « mine-hit-crystal », lot A, prise 3/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "mine-hit-hardrock-01": {
+   "file": "audio/sfx/mining/mine-hit-hardrock-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « mine-hit-hardrock », lot A, prise 1/4, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "mine-hit-hardrock-02": {
+   "file": "audio/sfx/mining/mine-hit-hardrock-02.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « mine-hit-hardrock », lot A, prise 2/4, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "mine-hit-hardrock-03": {
+   "file": "audio/sfx/mining/mine-hit-hardrock-03.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « mine-hit-hardrock », lot A, prise 3/4, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "mine-hit-hardrock-04": {
+   "file": "audio/sfx/mining/mine-hit-hardrock-04.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « mine-hit-hardrock », lot A, prise 4/4, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "mine-hit-ore-01": {
+   "file": "audio/sfx/mining/mine-hit-ore-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « mine-hit-ore », lot A, prise 1/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "mine-hit-ore-02": {
+   "file": "audio/sfx/mining/mine-hit-ore-02.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « mine-hit-ore », lot A, prise 2/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "mine-hit-ore-03": {
+   "file": "audio/sfx/mining/mine-hit-ore-03.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « mine-hit-ore », lot A, prise 3/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "mine-hit-softrock-01": {
+   "file": "audio/sfx/mining/mine-hit-softrock-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « mine-hit-softrock », lot A, prise 1/4, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "mine-hit-softrock-02": {
+   "file": "audio/sfx/mining/mine-hit-softrock-02.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « mine-hit-softrock », lot A, prise 2/4, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "mine-hit-softrock-03": {
+   "file": "audio/sfx/mining/mine-hit-softrock-03.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « mine-hit-softrock », lot A, prise 3/4, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "mine-hit-softrock-04": {
+   "file": "audio/sfx/mining/mine-hit-softrock-04.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « mine-hit-softrock », lot A, prise 4/4, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "mine-hit-soil-01": {
+   "file": "audio/sfx/mining/mine-hit-soil-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « mine-hit-soil », lot A, prise 1/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "mine-hit-soil-02": {
+   "file": "audio/sfx/mining/mine-hit-soil-02.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « mine-hit-soil », lot A, prise 2/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "mine-hit-soil-03": {
+   "file": "audio/sfx/mining/mine-hit-soil-03.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « mine-hit-soil », lot A, prise 3/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "mine-rubble-01": {
+   "file": "audio/sfx/mining/mine-rubble-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « mine-rubble », lot A, prise 1/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "mine-rubble-02": {
+   "file": "audio/sfx/mining/mine-rubble-02.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « mine-rubble », lot A, prise 2/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "mine-rubble-03": {
+   "file": "audio/sfx/mining/mine-rubble-03.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « mine-rubble », lot A, prise 3/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "mine-strike-01": {
+   "file": "audio/sfx/mining/mine-strike-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « mine-strike », lot A, prise 1/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "mine-strike-02": {
+   "file": "audio/sfx/mining/mine-strike-02.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « mine-strike », lot A, prise 2/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "mine-strike-03": {
+   "file": "audio/sfx/mining/mine-strike-03.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « mine-strike », lot A, prise 3/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "mission-accept-01": {
+   "file": "audio/sfx/objects/mission-accept-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « mission-accept », lot E, prise 1/1, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "music-coast": {
+   "file": "audio/music/music-coast.mid",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — composition originale « Houle » (tools/audio-synth/compositions.mjs, 2026-11-13), mélodie écrite note à note, accompagnement généré par grille d’accords",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-music-1",
+   "notes": "16 mesures à 84 BPM, polyphonie 4. Contrôles SMF/tonalité réussis ; écoute humaine non réalisée."
+  },
+  "music-day-a": {
+   "file": "audio/music/music-day-a.mid",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — composition originale « Matin dans la vallée » (tools/audio-synth/compositions.mjs, 2026-11-13), mélodie écrite note à note, accompagnement généré par grille d’accords",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-music-1",
+   "notes": "16 mesures à 92 BPM, polyphonie 5. Contrôles SMF/tonalité réussis ; écoute humaine non réalisée."
+  },
+  "music-day-b": {
+   "file": "audio/music/music-day-b.mid",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — composition originale « Sentier ensoleillé » (tools/audio-synth/compositions.mjs, 2026-11-13), mélodie écrite note à note, accompagnement généré par grille d’accords",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-music-1",
+   "notes": "16 mesures à 104 BPM, polyphonie 5. Contrôles SMF/tonalité réussis ; écoute humaine non réalisée."
+  },
+  "music-desert": {
+   "file": "audio/music/music-desert.mid",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — composition originale « Dunes » (tools/audio-synth/compositions.mjs, 2026-11-13), mélodie écrite note à note, accompagnement généré par grille d’accords",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-music-1",
+   "notes": "16 mesures à 76 BPM, polyphonie 3. Contrôles SMF/tonalité réussis ; écoute humaine non réalisée."
+  },
+  "music-discovery": {
+   "file": "audio/music/music-discovery.mid",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — composition originale « Découverte » (tools/audio-synth/compositions.mjs, 2026-11-13), mélodie écrite note à note, accompagnement généré par grille d’accords",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-music-1",
+   "notes": "3 mesures à 84 BPM, polyphonie 3. Contrôles SMF/tonalité réussis ; écoute humaine non réalisée."
+  },
+  "music-farm": {
+   "file": "audio/music/music-farm.mid",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — composition originale « Sillons » (tools/audio-synth/compositions.mjs, 2026-11-13), mélodie écrite note à note, accompagnement généré par grille d’accords",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-music-1",
+   "notes": "16 mesures à 92 BPM, polyphonie 4. Contrôles SMF/tonalité réussis ; écoute humaine non réalisée."
+  },
+  "music-forest": {
+   "file": "audio/music/music-forest.mid",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — composition originale « Sous les feuillages » (tools/audio-synth/compositions.mjs, 2026-11-13), mélodie écrite note à note, accompagnement généré par grille d’accords",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-music-1",
+   "notes": "16 mesures à 84 BPM, polyphonie 5. Contrôles SMF/tonalité réussis ; écoute humaine non réalisée."
+  },
+  "music-magic": {
+   "file": "audio/music/music-magic.mid",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — composition originale « Sortilège » (tools/audio-synth/compositions.mjs, 2026-11-13), mélodie écrite note à note, accompagnement généré par grille d’accords",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-music-1",
+   "notes": "16 mesures à 72 BPM, polyphonie 3. Contrôles SMF/tonalité réussis ; écoute humaine non réalisée."
+  },
+  "music-menu": {
+   "file": "audio/music/music-menu.mid",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — composition originale « Little World — Accueil » (tools/audio-synth/compositions.mjs, 2026-11-13), mélodie écrite note à note, accompagnement généré par grille d’accords",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-music-1",
+   "notes": "16 mesures à 76 BPM, polyphonie 5. Contrôles SMF/tonalité réussis ; écoute humaine non réalisée."
+  },
+  "music-mine": {
+   "file": "audio/music/music-mine.mid",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — composition originale « Galeries » (tools/audio-synth/compositions.mjs, 2026-11-13), mélodie écrite note à note, accompagnement généré par grille d’accords",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-music-1",
+   "notes": "16 mesures à 66 BPM, polyphonie 4. Contrôles SMF/tonalité réussis ; écoute humaine non réalisée."
+  },
+  "music-mission": {
+   "file": "audio/music/music-mission.mid",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — composition originale « Réflexion » (tools/audio-synth/compositions.mjs, 2026-11-13), mélodie écrite note à note, accompagnement généré par grille d’accords",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-music-1",
+   "notes": "16 mesures à 104 BPM, polyphonie 3. Contrôles SMF/tonalité réussis ; écoute humaine non réalisée."
+  },
+  "music-mountain": {
+   "file": "audio/music/music-mountain.mid",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — composition originale « Crêtes » (tools/audio-synth/compositions.mjs, 2026-11-13), mélodie écrite note à note, accompagnement généré par grille d’accords",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-music-1",
+   "notes": "16 mesures à 68 BPM, polyphonie 4. Contrôles SMF/tonalité réussis ; écoute humaine non réalisée."
+  },
+  "music-night-a": {
+   "file": "audio/music/music-night-a.mid",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — composition originale « Nuit étoilée » (tools/audio-synth/compositions.mjs, 2026-11-13), mélodie écrite note à note, accompagnement généré par grille d’accords",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-music-1",
+   "notes": "16 mesures à 66 BPM, polyphonie 6. Contrôles SMF/tonalité réussis ; écoute humaine non réalisée."
+  },
+  "music-night-b": {
+   "file": "audio/music/music-night-b.mid",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — composition originale « Lucioles » (tools/audio-synth/compositions.mjs, 2026-11-13), mélodie écrite note à note, accompagnement généré par grille d’accords",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-music-1",
+   "notes": "16 mesures à 72 BPM, polyphonie 4. Contrôles SMF/tonalité réussis ; écoute humaine non réalisée."
+  },
+  "music-rare": {
+   "file": "audio/music/music-rare.mid",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — composition originale « Phénomène rare » (tools/audio-synth/compositions.mjs, 2026-11-13), mélodie écrite note à note, accompagnement généré par grille d’accords",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-music-1",
+   "notes": "3 mesures à 60 BPM, polyphonie 5. Contrôles SMF/tonalité réussis ; écoute humaine non réalisée."
+  },
+  "music-ruins": {
+   "file": "audio/music/music-ruins.mid",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — composition originale « Pierres anciennes » (tools/audio-synth/compositions.mjs, 2026-11-13), mélodie écrite note à note, accompagnement généré par grille d’accords",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-music-1",
+   "notes": "16 mesures à 64 BPM, polyphonie 3. Contrôles SMF/tonalité réussis ; écoute humaine non réalisée."
+  },
+  "music-success": {
+   "file": "audio/music/music-success.mid",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — composition originale « Réussite » (tools/audio-synth/compositions.mjs, 2026-11-13), mélodie écrite note à note, accompagnement généré par grille d’accords",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-music-1",
+   "notes": "3 mesures à 96 BPM, polyphonie 4. Contrôles SMF/tonalité réussis ; écoute humaine non réalisée."
+  },
+  "music-swamp": {
+   "file": "audio/music/music-swamp.mid",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — composition originale « Brume » (tools/audio-synth/compositions.mjs, 2026-11-13), mélodie écrite note à note, accompagnement généré par grille d’accords",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-music-1",
+   "notes": "16 mesures à 70 BPM, polyphonie 5. Contrôles SMF/tonalité réussis ; écoute humaine non réalisée."
+  },
+  "music-village": {
+   "file": "audio/music/music-village.mid",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — composition originale « Place du marché » (tools/audio-synth/compositions.mjs, 2026-11-13), mélodie écrite note à note, accompagnement généré par grille d’accords",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-music-1",
+   "notes": "16 mesures à 100 BPM, polyphonie 4. Contrôles SMF/tonalité réussis ; écoute humaine non réalisée."
+  },
+  "npc-activity-01": {
+   "file": "audio/sfx/creatures/npc-activity-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « npc-activity », lot D, prise 1/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "npc-activity-02": {
+   "file": "audio/sfx/creatures/npc-activity-02.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « npc-activity », lot D, prise 2/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "owl-01": {
+   "file": "audio/sfx/creatures/owl-01.wav",
+   "status": "LISTENING_REVIEW",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « owl », lot D, prise 1/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Substitut procédural d’un son naturel complexe : écoute prioritaire, source réaliste recommandée. Aucune écoute humaine réalisée."
+  },
+  "owl-02": {
+   "file": "audio/sfx/creatures/owl-02.wav",
+   "status": "LISTENING_REVIEW",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « owl », lot D, prise 2/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Substitut procédural d’un son naturel complexe : écoute prioritaire, source réaliste recommandée. Aucune écoute humaine réalisée."
+  },
+  "pick-01": {
+   "file": "audio/sfx/farming/pick-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « pick », lot E, prise 1/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "pick-02": {
+   "file": "audio/sfx/farming/pick-02.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « pick », lot E, prise 2/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "pick-03": {
+   "file": "audio/sfx/farming/pick-03.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « pick », lot E, prise 3/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "pickup-01": {
+   "file": "audio/sfx/farming/pickup-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « pickup », lot A, prise 1/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "pickup-02": {
+   "file": "audio/sfx/farming/pickup-02.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « pickup », lot A, prise 2/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "pickup-03": {
+   "file": "audio/sfx/farming/pickup-03.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « pickup », lot A, prise 3/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "plant-01": {
+   "file": "audio/sfx/farming/plant-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « plant », lot A, prise 1/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "plant-02": {
+   "file": "audio/sfx/farming/plant-02.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « plant », lot A, prise 2/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "plant-03": {
+   "file": "audio/sfx/farming/plant-03.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « plant », lot A, prise 3/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "puzzle-step-01": {
+   "file": "audio/sfx/objects/puzzle-step-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « puzzle-step », lot E, prise 1/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "puzzle-step-02": {
+   "file": "audio/sfx/objects/puzzle-step-02.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « puzzle-step », lot E, prise 2/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "resurface-01": {
+   "file": "audio/sfx/water/resurface-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « resurface », lot A, prise 1/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "resurface-02": {
+   "file": "audio/sfx/water/resurface-02.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « resurface », lot A, prise 2/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "rumble-01": {
+   "file": "audio/ambience/mine/rumble-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « rumble », lot C, prise 1/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "rumble-02": {
+   "file": "audio/ambience/mine/rumble-02.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « rumble », lot C, prise 2/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "seedbag-01": {
+   "file": "audio/sfx/farming/seedbag-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « seedbag », lot E, prise 1/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "seedbag-02": {
+   "file": "audio/sfx/farming/seedbag-02.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « seedbag », lot E, prise 2/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "shimmer-hit-01": {
+   "file": "audio/sfx/magic/shimmer-hit-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « shimmer-hit », lot E, prise 1/1, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "slide-01": {
+   "file": "audio/sfx/player/slide-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « slide », lot E, prise 1/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "slide-02": {
+   "file": "audio/sfx/player/slide-02.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « slide », lot E, prise 2/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "splash-big-01": {
+   "file": "audio/sfx/water/splash-big-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « splash-big », lot A, prise 1/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "splash-big-02": {
+   "file": "audio/sfx/water/splash-big-02.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « splash-big », lot A, prise 2/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "splash-small-01": {
+   "file": "audio/sfx/water/splash-small-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « splash-small », lot A, prise 1/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "splash-small-02": {
+   "file": "audio/sfx/water/splash-small-02.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « splash-small », lot A, prise 2/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "splash-small-03": {
+   "file": "audio/sfx/water/splash-small-03.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « splash-small », lot A, prise 3/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "squirrel-01": {
+   "file": "audio/sfx/creatures/squirrel-01.wav",
+   "status": "LISTENING_REVIEW",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « squirrel », lot D, prise 1/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Substitut procédural d’un son naturel complexe : écoute prioritaire, source réaliste recommandée. Aucune écoute humaine réalisée."
+  },
+  "squirrel-02": {
+   "file": "audio/sfx/creatures/squirrel-02.wav",
+   "status": "LISTENING_REVIEW",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « squirrel », lot D, prise 2/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Substitut procédural d’un son naturel complexe : écoute prioritaire, source réaliste recommandée. Aucune écoute humaine réalisée."
+  },
+  "squirrel-03": {
+   "file": "audio/sfx/creatures/squirrel-03.wav",
+   "status": "LISTENING_REVIEW",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « squirrel », lot D, prise 3/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Substitut procédural d’un son naturel complexe : écoute prioritaire, source réaliste recommandée. Aucune écoute humaine réalisée."
+  },
+  "swim-01": {
+   "file": "audio/sfx/water/swim-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « swim », lot A, prise 1/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "swim-02": {
+   "file": "audio/sfx/water/swim-02.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « swim », lot A, prise 2/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "swim-03": {
+   "file": "audio/sfx/water/swim-03.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « swim », lot A, prise 3/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "thunder-01": {
+   "file": "audio/ambience/weather/thunder-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « thunder », lot C, prise 1/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "thunder-02": {
+   "file": "audio/ambience/weather/thunder-02.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « thunder », lot C, prise 2/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "till-01": {
+   "file": "audio/sfx/farming/till-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « till », lot E, prise 1/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "till-02": {
+   "file": "audio/sfx/farming/till-02.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « till », lot E, prise 2/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "till-03": {
+   "file": "audio/sfx/farming/till-03.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « till », lot E, prise 3/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "tools-01": {
+   "file": "audio/sfx/farming/tools-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « tools », lot E, prise 1/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "tools-02": {
+   "file": "audio/sfx/farming/tools-02.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « tools », lot E, prise 2/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "torch-01": {
+   "file": "audio/sfx/objects/torch-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « torch », lot E, prise 1/1, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "voc-squirrel-01": {
+   "file": "audio/sfx/creatures/voc-squirrel-01.wav",
+   "status": "LISTENING_REVIEW",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « voc-squirrel », lot D, prise 1/4, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Substitut procédural d’un son naturel complexe : écoute prioritaire, source réaliste recommandée. Aucune écoute humaine réalisée."
+  },
+  "voc-squirrel-02": {
+   "file": "audio/sfx/creatures/voc-squirrel-02.wav",
+   "status": "LISTENING_REVIEW",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « voc-squirrel », lot D, prise 2/4, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Substitut procédural d’un son naturel complexe : écoute prioritaire, source réaliste recommandée. Aucune écoute humaine réalisée."
+  },
+  "voc-squirrel-03": {
+   "file": "audio/sfx/creatures/voc-squirrel-03.wav",
+   "status": "LISTENING_REVIEW",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « voc-squirrel », lot D, prise 3/4, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Substitut procédural d’un son naturel complexe : écoute prioritaire, source réaliste recommandée. Aucune écoute humaine réalisée."
+  },
+  "voc-squirrel-04": {
+   "file": "audio/sfx/creatures/voc-squirrel-04.wav",
+   "status": "LISTENING_REVIEW",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « voc-squirrel », lot D, prise 4/4, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Substitut procédural d’un son naturel complexe : écoute prioritaire, source réaliste recommandée. Aucune écoute humaine réalisée."
+  },
+  "watering-01": {
+   "file": "audio/sfx/farming/watering-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « watering », lot A, prise 1/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "watering-02": {
+   "file": "audio/sfx/farming/watering-02.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « watering », lot A, prise 2/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "watering-03": {
+   "file": "audio/sfx/farming/watering-03.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « watering », lot A, prise 3/3, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "weed-01": {
+   "file": "audio/sfx/farming/weed-01.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « weed », lot A, prise 1/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  },
+  "weed-02": {
+   "file": "audio/sfx/farming/weed-02.wav",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — synthèse procédurale originale (tools/audio-synth, recette « weed », lot A, prise 2/2, 2026-11-13)",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-synth-1",
+   "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
+  }
+ }
 }

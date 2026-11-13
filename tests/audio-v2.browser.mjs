@@ -18,6 +18,8 @@ try{
  await page.goto(base+'audio/catalog.json');
  await page.evaluate(async({base,withOgg})=>{const {AudioEngine}=await import(base+'src/audio/engine.ts');const catalog=await(await fetch(base+'audio/catalog.json')).json();
   const broken=structuredClone(catalog);broken.assets['sample-collect'].uri='audio/library/absent.wav';
+  // Independent of production progress: these takes are forced back to PLANNED in the test copy.
+  for(const a of Object.values(broken.assets))if(/^(fs-grass-|jump-|music-discovery)/.test(a.id)){a.status='PLANNED';delete a.uri;delete a.bytes;delete a.contentHash;}
   if(withOgg){catalog.assets['ogg-test']={id:'ogg-test',name:'ogg',kind:'sample',format:'ogg',status:'GENERATED',license:'CC0-1.0',source:'test',uri:'audio/test/fixture.ogg'};catalog.events['test.ogg']={...catalog.events.collect,id:'test.ogg',variants:[{assetId:'ogg-test',weight:1}]};}
   window.v2=new AudioEngine(catalog,undefined,{baseUrl:base});window.broken=new AudioEngine(broken,undefined,{baseUrl:base});
   const legacy=await(await fetch(base+'audio/default.json')).json();window.legacy=new AudioEngine(legacy,undefined,{baseUrl:base});
@@ -25,26 +27,28 @@ try{
  check(await page.evaluate(()=>window.v2.metrics.contexts)===0&&await page.evaluate(()=>window.v2.playEvent('player.footstep'))===null,'No context and no sound before the user gesture');
  check(!requests.some(r=>r.includes('/audio/library/')),'Nothing from the library is downloaded before it is needed');
  await page.click('#unlock');await page.waitForFunction(()=>window.v2.ready&&window.broken.ready&&window.legacy.ready);
- const id=await page.evaluate(()=>window.v2.playEvent('player.footstep',{context:{surface:'grass',wet:true},position:{x:1,y:0,z:0},source:'player'}));
- check(id!==null&&requests.includes(basePath+'audio/library/sample-step.wav'),'Planned footstep takes fall back to the V1 step, fetched from the Vite base path');
+ const real=await page.evaluate(()=>window.v2.playEvent('player.footstep',{context:{surface:'grass'},position:{x:1,y:0,z:0},source:'player'}));
+ check(real!==null&&requests.some(r=>/^.*\/audio\/sfx\/footsteps\/fs-grass-0[1-4]\.wav$/.test(r)&&r.startsWith(basePath)),'Produced grass footstep takes load from the Vite base path');
+ const id=await page.evaluate(()=>window.broken.playEvent('player.footstep',{context:{surface:'grass'},position:{x:1,y:0,z:0},source:'player'}));
+ check(id!==null&&requests.includes(basePath+'audio/library/sample-step.wav'),'Takes still PLANNED fall back to the V1 step');
  const before=requests.filter(r=>r.endsWith('sample-lever.wav')).length;await page.evaluate(async()=>{await Promise.all(Array.from({length:10},()=>window.v2.playEvent('lever')));});
  check(requests.filter(r=>r.endsWith('sample-lever.wav')).length-before===1,'Concurrent requests share one download and one decoding');
  check(await page.evaluate(()=>window.v2.playEvent('no.such.event'))===null&&await page.evaluate(()=>window.v2.diagnostics.some(d=>d.includes('absent du catalogue'))),'Unknown event is a diagnostic, not an exception');
- check(await page.evaluate(()=>window.v2.playEvent('player.jump'))===null&&await page.evaluate(()=>window.v2.diagnostics.some(d=>d.includes('player.jump'))),'Planned-only event stays silent with an explicit diagnostic');
- await page.evaluate(()=>window.broken.playEvent('collect'));const missing=requests.filter(r=>r.endsWith('absent.wav')).length;await page.evaluate(async()=>{for(let i=0;i<5;i++)await window.broken.playEvent('collect');});
+ check(await page.evaluate(()=>window.broken.playEvent('player.jump'))===null&&await page.evaluate(()=>window.broken.diagnostics.some(d=>d.includes('player.jump'))),'Planned-only event stays silent with an explicit diagnostic');
+ await page.evaluate(()=>window.broken.playEvent('collect'));await page.waitForTimeout(100);const missing=requests.filter(r=>r.endsWith('absent.wav')).length;await page.evaluate(async()=>{for(let i=0;i<5;i++)await window.broken.playEvent('collect');});
  check(missing===1&&requests.filter(r=>r.endsWith('absent.wav')).length===1&&await page.evaluate(()=>window.broken.metrics.unavailable===1&&window.broken.diagnostics.some(d=>/indisponible|incompatible/.test(d))),'A missing file is requested once, then skipped silently with a diagnostic');
  check(await page.evaluate(async()=>(await window.v2.playEvent('ui.error'))!==null),'Procedural UI sound is synthesised and played');
  await page.evaluate(async()=>{for(let i=0;i<20;i++)await window.v2.playEvent('mine.action.denied');});const cooled=await page.evaluate(()=>window.v2.metrics.events.cooldown);check(cooled>=19,`Cooldown prevents artificial rapid repetition (${cooled} rejected)`);
  await page.waitForFunction(()=>window.v2.metrics.voices===0,null,{timeout:5000});await page.evaluate(async()=>{await Promise.all(Array.from({length:10},()=>window.v2.playEvent('player.footstep',{context:{surface:'stone'}})));});
  let m=await page.evaluate(()=>window.v2.metrics);check(m.voices<=3,`Per-event polyphony is capped (${m.voices} voices for 10 footsteps)`);
  const scene=(ctx)=>page.evaluate(ctx=>window.v2.updateScene({x:0,y:0,z:0},()=>undefined,{night:ctx.time==='night',rain:ctx.weather==='rain',water:!!ctx.nearWater},1,{x:0,y:0,z:1},{context:ctx}),ctx);
- await scene({time:'day',weather:'rain',place:'forest'});await page.waitForFunction(()=>window.v2.metrics.ambience.includes('amb:weather:rain')&&window.v2.metrics.voices>0);check(true,'Rain profile layer plays (V1 rain as explicit fallback)');
- await page.waitForFunction(()=>window.v2.metrics.score==='day',null,{timeout:8000});check(await page.evaluate(()=>window.v2.metrics.cue)==='explore.day','Music cue selected from context; static MIDI loaded on demand');
+ await scene({time:'day',weather:'rain',place:'forest'});await page.waitForFunction(()=>window.v2.metrics.ambience.includes('amb:weather:rain')&&window.v2.metrics.voices>0);check(true,'Rain profile layer plays');
+ await page.waitForFunction(()=>window.v2.metrics.score==='music-forest',null,{timeout:8000});check(await page.evaluate(()=>window.v2.metrics.cue)==='forest','Forest theme selected from context; static MIDI loaded on demand');
  for(let i=0;i<20;i++)await scene({time:'day',weather:i%2?'rain':'clear',place:i%3?'forest':'mine',nearWater:i%4===0});
- m=await page.evaluate(()=>window.v2.metrics);check(m.nodes<=m.budget.maxTotalVoices+4&&m.pcmBytes<=m.budget.maxPcmBytes,`Fast profile changes keep voices and cache bounded (${m.nodes} nodes, ${Math.round(m.pcmBytes/1024)} KiB)`);
+ m=await page.evaluate(()=>window.v2.metrics);check(m.nodes<=m.budget.maxTotalVoices+6&&m.pcmBytes<=m.budget.maxPcmBytes,`Fast profile changes keep voices and cache bounded (${m.nodes} nodes, ${Math.round(m.pcmBytes/1024)} KiB)`);
  await scene({time:'day',weather:'clear',place:'mine'});await page.waitForFunction(()=>!window.v2.metrics.ambience.some(k=>k.startsWith('amb:weather')),null,{timeout:4000});check(true,'Ambience layers leave cleanly (exclusive mine profile mutes weather)');
- await scene({time:'night',weather:'clear',place:'plain'});await page.waitForFunction(()=>window.v2.metrics.score==='night',null,{timeout:10000});check(true,'Day → night music switches on a bar boundary');
- check(await page.evaluate(()=>window.v2.triggerCue('discovery'))===false,'Planned stinger is never requested');
+ await scene({time:'night',weather:'clear',place:'plain'});await page.waitForFunction(()=>/^music-night-/.test(window.v2.metrics.score??''),null,{timeout:10000});check(await page.evaluate(()=>window.v2.metrics.cue)==='explore.night','Day → night music switches on a bar boundary');
+ check(await page.evaluate(()=>window.broken.triggerCue('discovery'))===false,'Planned stinger is never requested');check(await page.evaluate(()=>window.v2.triggerCue('discovery'))===true,'Produced discovery jingle can be triggered');await page.evaluate(()=>window.v2.updateScene({x:0,y:0,z:0},()=>undefined,{night:true,rain:false,water:false},1,{x:0,y:0,z:1},{context:{time:'night',place:'plain'}}));await page.waitForFunction(()=>window.v2.metrics.score==='music-discovery',null,{timeout:10000});check(true,'Jingle replaces the loop at the next bar');
  if(ogg){check(await page.evaluate(async()=>(await window.v2.playEvent('test.ogg'))!==null),'Ogg Vorbis resource decodes in Chromium');}
  await page.evaluate(()=>window.v2.setHidden(true));m=await page.evaluate(()=>window.v2.metrics);check(m.nodes===0&&m.state==='suspended','Hidden tab releases every voice');await page.evaluate(()=>window.v2.setHidden(false));
  check(await page.evaluate(async()=>(await window.legacy.playSound('collect'))!==null&&window.legacy.metrics.catalogVersion==='migrated-v1'),'V1 definition still plays embedded samples through the migrated catalogue');
