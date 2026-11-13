@@ -39,6 +39,10 @@ try{
   // The inspector re-renders asynchronously (selection, transactions): wait until the old fields are replaced.
   const replaced=async label=>{const old=await page.getByLabel(label,{exact:true}).elementHandle();return ()=>page.waitForFunction(el=>!el.isConnected,old);};
   let rerendered=await replaced('Nom');await page.locator('.light-row').first().click();await rerendered();await page.waitForSelector('#inspector .light-card');
+  // Several debounced inspector renders can follow one selection (selection + viewport refresh): editing a field
+  // that a later render replaces loses the change, so wait until the inspector has been quiet for 400 ms.
+  await page.evaluate(()=>{window.__inspectorChanged=performance.now();new MutationObserver(()=>{window.__inspectorChanged=performance.now();}).observe(document.querySelector('#inspector'),{childList:true,subtree:true});});
+  const settled=()=>page.waitForFunction(()=>performance.now()-window.__inspectorChanged>400);await settled();
   rerendered=await replaced('Allumage');const intensity=page.getByLabel('Intensité (cd)');await intensity.fill('40');await intensity.press('Tab');await page.waitForFunction(()=>/Intensité de la lumière/.test(document.querySelector('[data-action=undo]').title));await rerendered();
   await page.getByLabel('Allumage').selectOption('state');await page.waitForFunction(()=>/Mode de la lumière/.test(document.querySelector('[data-action=undo]').title));
   await idle();check(['dynamic','budget','glow','far','off'].includes(await canvas.getAttribute('data-selected-light')),'Range gizmo of the selected light shows its budget status');
