@@ -195,3 +195,83 @@ Les contrats détaillés sont complétés phase par phase dans les sections suiv
 - **Diagnostic physique** (module Zones) : volumes de collision, pentes infranchissables, niveaux de mine. C'est une aide d'édition, jamais exportée.
 - **« Démonstration B1 »** depuis l'accueil du Studio.
 - **Tests** : `tests/activity-authoring.test.mjs` ; `npm run test:b1-studio` (étape 12 : édition, annulation, « Jouer ici », projet intact).
+
+## Phase 7 — Qualification et mesures
+
+**Statut** : TESTED (navigateur, build de production) ; BENCHMARKED en CPU et en rendu logiciel seulement.
+
+- **Build statique** (`npm run build` + `vite preview`, chemin `/little-world/`) :
+  - `test:b1` : 19 contrôles ;
+  - `test:b1-studio` : 13 contrôles ;
+  - `published` : OK.
+- **Suites existantes, toutes vertes après la campagne** :
+
+| Suite | Contrôles |
+| --- | --- |
+| legacy | 16 |
+| gameplay | 12 |
+| island | 11 |
+| environment | 6 |
+| characters | 6 |
+| water | 11 |
+| audio | 12 |
+| editor | 37 |
+| editor-content | 12 |
+| editor-world | 9 |
+| studio | 17 |
+| local | 10 |
+| selection | 13 |
+| paths | 8 |
+| geo-edit | 9 |
+| lights | 12 |
+| geomap | 30 |
+
+- **CI** : régénération reproductible de la scène B1 (`git diff --exit-code`) ; `test:b1` et `test:b1-studio` ajoutés.
+- **Scène B1 dans Chromium / SwiftShader** (`docs/benchmarks/2026-11-13-b1-activities-swiftshader.json`) :
+  - SwiftShader rastérise sur le CPU : ces chiffres servent à comparer les lieux et à détecter les régressions, **pas** à qualifier un GPU intégré ;
+  - `submit` est un temps CPU de soumission WebGL.
+
+| Lieu | Intervalle p50 / p95 (ms) | Appels de dessin | Triangles | Chunks de mine dessinés |
+| --- | --- | --- | --- | --- |
+| Surface, entrée de mine | 133 / 350 | 132 | 49 k | 0 |
+| Mine, niveau 3 | 83 / 100 | 98 | 32 k | 4 (158 quads) |
+| Parcelles | 100 / 233 | 121 | 43 k | — (460 plantes instanciées) |
+| Rive du lac | 100 / 233 | 101 | 38 k | 0 |
+
+- **Données auteur de B1 chargées au démarrage** : 40 paquets de secteurs, 41 Ko.
+
+## Statut par système
+
+| Système | SPECIFIED | IMPLEMENTED | TESTED | BENCHMARKED | RELEASED |
+| --- | --- | --- | --- | --- | --- |
+| PHYS (balayage, marches, pentes, plafonds, espaces, transitions) | oui | oui | oui (Node + navigateur) | CPU Node | non (PR) |
+| WATER (lacs, liens, cascades, réseau, volumes) | oui | oui | oui (Node + navigateur) | compilation | non |
+| MINE (grille, géologie, état, creusement, maillage, collision, rendu) | oui | oui | oui (Node + navigateur B1) | CPU + SwiftShader relatif | non |
+| AGRI (profils, simulation différée, actions, rendu) | oui | oui | oui (Node + navigateur B1) | CPU + SwiftShader relatif | non |
+| Sauvegardes V2 (migration, IndexedDB, export) | oui | oui | oui (Node + navigateur B1) | taille mesurée | non |
+| Studio (mine, parcelle, eau, diagnostic physique) | oui | oui | oui (navigateur) | — | non |
+| Qualification GPU intégré 30/20 FPS | oui | — | — | **non** | — |
+
+## Limites et risques restants
+
+- **Streaming des données auteur** : le lecteur compilé charge encore tous les paquets au démarrage. C'est mesuré et borné (B1 : 41 Ko ; plafond de 48 Mio avec message explicite). Les mines déchargent leurs maillages hors du niveau actif ; leurs états logiques restent en mémoire.
+  - Le streaming des entités n'est pas implémenté. Le document 11 demande de ne pas ajouter de streaming complexe sans mesure qui le justifie.
+- **Relief extérieur sous terre** : il reste rendu quand le joueur est dans une galerie. C'est invisible, car les plafonds sont maillés, mais cela coûte des appels de dessin. Piste : masquer le relief et la végétation tant que la caméra est dans une mine.
+- **Mines** : un coup = une cellule (la résistance n'est pas encore un nombre de coups) ; pas d'outil requis ; transitions par portails (pas de rampe continue) ; pas d'eau souterraine.
+- **Agriculture** : une zone par parcelle (sous-zones prévues par le contrat, non implémentées) ; fertilité, rotation, parasites et santé réservés ; l'arrosage dépend d'un point d'irrigation logique (pas d'écoulement).
+- **Eau** :
+  - jonctions rivière → rivière sans surface de raccord dédiée ;
+  - pas de LOD spécifique des surfaces d'eau lointaines ni d'animation de surface ;
+  - le bateau et la nage utilisent les nouveaux volumes de lac via `waterSurface` ; navigation du bateau testée sur la mer et les rivières existantes, **pas** spécifiquement sur un lac.
+- **Studio** :
+  - pas d'outil graphique pour dessiner une galerie (édition par valeurs, plan par niveau en lecture) ;
+  - le dessin d'un lac passe par le panneau Eau (clics du contour), pas encore par la vue 3D.
+- **Multijoueur futur** (compatibilité préservée sans implémentation) : intentions validées, `requestId`, révisions par chunk et par parcelle, états séparés du rendu, différences sérialisables.
+
+## Prochaine phase recommandée
+
+1. Banc sur un PC de référence à GPU intégré (temps GPU via timer WebGL2) : surface, mine, parcelles.
+2. Masquer le relief extérieur sous terre, puis LOD des surfaces d'eau.
+3. Outil graphique de galeries (plan par niveau éditable) et dessin des lacs en 3D.
+4. Résistance des matières en nombre de coups et outils.
+5. Sous-zones de parcelle et premiers modèles de fertilité et de rotation.

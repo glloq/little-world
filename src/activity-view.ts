@@ -62,7 +62,8 @@ export function createActivityView(parent:THREE.Object3D,activities:ActivityRunt
         }}
     }
     // Leaving a level / the mine: chunks out of the wanted set are hidden, the oldest evicted.
-    for(const [key,v] of chunks){v.mesh.visible=wanted.has(key);if(!wanted.has(key)&&chunks.size>MAX_CHUNKS){v.mesh.geometry.dispose();v.mesh.removeFromParent();chunks.delete(key);}}
+    // Solid-rock chunks have no face: kept as a cache entry, never drawn.
+    for(const [key,v] of chunks){v.mesh.visible=wanted.has(key)&&v.quads>0;if(!wanted.has(key)&&chunks.size>MAX_CHUNKS){v.mesh.geometry.dispose();v.mesh.removeFromParent();chunks.delete(key);}}
     stats.mineChunks=[...chunks.values()].filter(v=>v.mesh.visible).length;stats.mineQuads=[...chunks.values()].reduce((s,v)=>s+(v.mesh.visible?v.quads:0),0);
   }
   // Farms.

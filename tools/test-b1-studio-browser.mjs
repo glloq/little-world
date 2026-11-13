@@ -26,7 +26,7 @@ try{
   await page.getByRole('button',{name:'Filtre Zones'}).click();await page.locator('.search-results button',{hasText:'Champ de l’ouest'}).click();await page.waitForSelector('#inspector .farm-card');await page.waitForTimeout(500);
   await page.getByLabel('Culture initiale').selectOption('wheat');await page.waitForFunction(()=>/Culture initiale/.test(document.querySelector('[data-action=undo]').title));check(true,'Initial crop of the west field set to wheat');
   // Water module: lake and waterfall present, network without error.
-  await page.getByRole('button',{name:'Eau',exact:true}).click();const choices=await page.getByLabel('Tracé d’eau').locator('option').allTextContents();check(choices.length===4,'Three water bodies listed: '+choices.join(', '));
+  await page.getByRole('button',{name:'Eau',exact:true}).click();await page.getByLabel('Tracé d’eau').waitFor();await page.waitForFunction(()=>document.querySelector('select[aria-label="Tracé d’eau"]')?.options.length>1);const choices=await page.getByLabel('Tracé d’eau').locator('option').allTextContents();check(choices.length===4,'Three water bodies listed: '+choices.join(', '));
   await page.getByLabel('Tracé d’eau').selectOption({index:2});await page.waitForTimeout(800);
   const form=await page.getByLabel('Forme').inputValue();check(form==='lake'||form==='river','Water form shown ('+form+')');
   const anyRiver=async()=>{for(let i=1;i<4;i++){await page.getByLabel('Tracé d’eau').selectOption({index:i});await page.waitForTimeout(500);if(await page.locator('.water-falls .water-point').count())return true;}return false;};
