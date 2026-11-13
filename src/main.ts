@@ -12,6 +12,7 @@ import {WorldClock} from './environment/clock.ts';
 import {createClimate,defaultEnvironment} from './environment/climate.ts';
 import type {GameplayView} from './gameplay/game-view.ts';
 import { addPlacement, buildWorld, configureScene } from './world';
+import { horizonFar } from './horizon-view';
 import { defaultWorld, parseWorld } from './world-data';
 import { createNPCSystem } from './npc-view';
 import {
@@ -108,7 +109,11 @@ if(searchParams.has('studioBuild')||searchParams.has('world')){
       const {loadTestBuild,buildFetcher,buildManifestURL}=await import('./runtime/build-store.ts');
       const build=await loadTestBuild(searchParams.get('studioBuild')!);
       playable=playableFromCompiled(await openCompiledWorld(buildManifestURL(build.buildId),buildFetcher(build)),build.spawn);buildScope=build.buildId;
-    }else playable=playableFromCompiled(await openCompiledWorld(publishedManifestURL(import.meta.env.BASE_URL,searchParams.get('world')!)));
+    }else{
+      // Optional control viewpoint (audit §6: sea→volcano, rim→coasts…) for reproducible checks.
+      const view=(searchParams.get('spawn')??'').split(',').map(Number),spawn=view.length===2&&view.every(Number.isFinite)?{x:view[0],y:0,z:view[1]}:undefined;
+      playable=playableFromCompiled(await openCompiledWorld(publishedManifestURL(import.meta.env.BASE_URL,searchParams.get('world')!)),spawn);
+    }
     definition=playable.world;
     // Render tile size is a renderer parameter, distinct from authored sectors (benchmarks compare 64/128/256 m).
     const tile=Number(searchParams.get('tile'));if([32,64,128,256].includes(tile))definition.config.chunkSize=tile;
@@ -138,6 +143,8 @@ if(searchParams.has('studioBuild')||searchParams.has('world')){
   }
 }
 const world = buildWorld(definition.config, definition);
+// Far plane follows the project diagonal: silhouettes stay visible without fog (near plane unchanged).
+camera.far=horizonFar(getTerrainConfig().width,getTerrainConfig().length);camera.updateProjectionMatrix();
 for (const item of definition.placements) addPlacement(world, item);
 scene.add(world.root);
 const player = spawnPlayer();
@@ -180,7 +187,7 @@ let started = false;
 let infoUntil = 0;
 let elapsed = 0;
 // Generated worlds start on a coast: face the island centre rather than the open sea.
-if(playable&&!isLegacyTerrain())yaw=Math.atan2(-player.position.x,-player.position.z);
+if(playable&&!isLegacyTerrain()){const yawParam=Number(searchParams.get('yaw'));yaw=searchParams.has('yaw')&&Number.isFinite(yawParam)?yawParam:Math.atan2(-player.position.x,-player.position.z);}
 const previousPlayerPosition = player.position.clone(),
   renderPosition = player.position.clone();
 let presentedFrames = 0;
@@ -494,6 +501,7 @@ function draw(now: number) {
         triangles: renderer.info.render.triangles,
         geometries: renderer.info.memory.geometries,
         chunks: { ...world.stats },
+        horizon: { ...world.horizon },
         environment:environment.metrics,
         audio:audio?.engine.metrics??null,
         collisions:gameplay?.collision.stats??null,

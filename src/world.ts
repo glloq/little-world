@@ -1,6 +1,7 @@
 import {waterRibbonData} from './water/geometry.ts';
 import * as THREE from 'three';
 import { createTerrainView } from './terrain-view';
+import { createHorizonView, type HorizonStats } from './horizon-view';
 import { createEcology } from './ecology';
 import { sampleBiome } from './biomes';
 import type {
@@ -35,6 +36,7 @@ export interface WorldView {
   setDetail: (level: number) => void;
   refreshTerrain: (x: number, z: number, radius: number) => void;
   refreshWater:()=>string[];
+  horizon: HorizonStats;
   stats: {
     active: number;
     resident: number;
@@ -600,6 +602,7 @@ export function buildWorld(
   root.name = 'LittleWorld';
   const terrainView = createTerrainView(root, getTerrainConfig());
   const terrain = terrainView.terrain;
+  const horizon = createHorizonView(root, getTerrainConfig(), terrainView);
   // The demonstration valley decor is tied to the legacy generator; generated worlds
   // receive their content from V3 sources instead of hard-coded scenery.
   const legacy = isLegacyTerrain();
@@ -658,12 +661,14 @@ export function buildWorld(
     boat,
     objects,
     stats: terrainView.stats,
+    horizon: horizon.stats,
     refreshWater,
     setDetail(level) {
       ecology.setDetail(level);
     },
     refreshTerrain(x, z, radius) {
       terrainView.refresh(x, z, radius);
+      horizon.refresh(x, z, radius);
       ecology.refresh(x, z, radius);
       const matrix = new THREE.Matrix4();
       root.traverse((node) => {
@@ -706,6 +711,7 @@ export function buildWorld(
       time += dt;
       wheel.rotation.x -= dt * 0.33;
       terrainView.update(focus.x, focus.z);
+      horizon.update(focus);
       ecology.update(dt, time, focus.x, focus.z);
       const distance = getTerrainConfig().viewDistance;
       for (const object of objects.children)
@@ -715,6 +721,7 @@ export function buildWorld(
     },
     dispose() {
       ecology.dispose();
+      horizon.dispose();
       terrainView.dispose();
       root.traverse((o) => {
         o.userData.disposed = true; // Pending GLB callbacks must not attach to retired editor worlds.

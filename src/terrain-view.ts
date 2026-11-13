@@ -110,6 +110,10 @@ export interface TerrainStats {
 export interface TerrainView {
   terrain: THREE.Group;
   stats: TerrainStats;
+  /** Incremented whenever the displayed tile set changes (horizon coverage mask). */
+  readonly version: number;
+  readonly tileSize: number;
+  forEachActive(visit: (column: number, row: number) => void): void;
   update(x: number, z: number): void;
   refresh(x: number, z: number, radius: number): void;
   dispose(): void;
@@ -148,6 +152,7 @@ export function createTerrainView(
   let desired: PlannedChunk[] = [],
     pending: PlannedChunk[] = [],
     sequence = 0;
+  let version = 0;
   let lastX = Infinity,
     lastZ = Infinity,
     dead = false;
@@ -157,7 +162,10 @@ export function createTerrainView(
     record.mesh.geometry.dispose();
     stats.disposed++;
     cache.delete(key(record.chunk, record.lod));
-    if (active.get(record.chunk.id) === record) active.delete(record.chunk.id);
+    if (active.get(record.chunk.id) === record) {
+      active.delete(record.chunk.id);
+      version++;
+    }
   }
   function show(record: CachedChunk): void {
     const previous = active.get(record.chunk.id);
@@ -165,6 +173,7 @@ export function createTerrainView(
       previous?.mesh.removeFromParent();
       terrain.add(record.mesh);
       active.set(record.chunk.id, record);
+      version++;
     }
     record.used = ++sequence;
   }
@@ -180,6 +189,7 @@ export function createTerrainView(
       if (!wanted.has(id)) {
         record.mesh.removeFromParent();
         active.delete(id);
+        version++;
       }
     pending = [];
     for (const chunk of desired) {
@@ -201,6 +211,14 @@ export function createTerrainView(
   const view: TerrainView = {
     terrain,
     stats,
+    get version() {
+      return version;
+    },
+    tileSize: config.chunkSize,
+    forEachActive(visit) {
+      for (const record of active.values())
+        visit(record.chunk.column, record.chunk.row);
+    },
     update(x, z) {
       if (dead || !Number.isFinite(x) || !Number.isFinite(z)) return;
       if (Math.hypot(x - lastX, z - lastZ) > config.chunkSize / 8) replan(x, z);
