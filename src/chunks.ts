@@ -132,7 +132,7 @@ export interface ViewFocus {
   /** Shared adaptive level from PresentationBudget (0 best … 2 lowest). */
   quality: number;
 }
-export type InterestReason = 'safety' | 'view' | 'ahead';
+export type InterestReason = 'safety' | 'view' | 'ahead' | 'turn';
 export interface ViewPlannedChunk extends PlannedChunk {
   reason: InterestReason;
   priority: number;
@@ -144,6 +144,8 @@ export const INTEREST = {
   lookahead: 2,
   maxAheadShift: 0.5,
   referenceFocal: 493,
+  /** Low-priority ring kept around the player for quick U-turns (fraction of view distance). */
+  turnRing: 0.5,
 } as const;
 export function safetyRadius(config: ChunkConfig): number {
   return Math.max(48, config.chunkSize * 1.5);
@@ -197,6 +199,7 @@ export function planView(
         if (d <= radius || angle - Math.asin(Math.min(1, radius / d)) <= focus.halfFovH + INTEREST.turnMargin) reason = 'view';
       }
       if (!reason && moving && distanceToChunk(chunk, aheadX, aheadZ) <= safety * 1.5) reason = 'ahead';
+      if (!reason && distanceToChunk(chunk, focus.playerX, focus.playerZ) <= Math.max(safety, viewDistance * INTEREST.turnRing)) reason = 'turn';
       if (!reason) continue;
       const distance = Math.hypot(toCamera, altitude);
       let lod: TerrainLOD = distance < near ? 0 : distance < medium ? 1 : 2;
@@ -205,7 +208,7 @@ export function planView(
         const threshold = Math.min(old, lod) === 0 ? near : medium;
         if (Math.abs(distance - threshold) < chunkSize * 0.15) lod = old;
       }
-      const rank = reason === 'safety' ? 0 : reason === 'view' ? 1 : 2;
+      const rank = reason === 'safety' ? 0 : reason === 'view' ? 1 : reason === 'ahead' ? 2 : 3;
       planned.push({ ...chunk, distance, lod, reason, priority: rank * 1e6 + distance });
     }
   return planned.sort((a, b) => a.priority - b.priority || a.row - b.row || a.column - b.column);

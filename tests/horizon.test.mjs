@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {horizonGrid,horizonBlockData,horizonFar} from '../src/horizon-view.ts';
+import {horizonGrid,horizonBlockData,horizonFar,visibleHorizonIndex} from '../src/horizon-view.ts';
 import {configureTerrain,terrainHeight} from '../src/terrain.ts';
 import {islandPreset} from '../src/terrain-generator.ts';
 
@@ -31,4 +31,12 @@ test('adjacent horizon blocks share identical edge vertices and fold the sea fla
   assert.ok(sea>0,'western block contains open sea');
   const last=horizonBlockData(bounds,g,g.columns-1,g.rows-1);
   assert.equal(last.maxX,1500);assert.equal(last.maxZ,4000);
+});
+test('cells under displayed detail are left out of the horizon index',()=>{
+  const full=new Uint16Array(2*2*6).map((_,i)=>i),out=new Uint16Array(full.length);
+  assert.equal(visibleHorizonIndex(full,2,2,()=>false,out),24);
+  const count=visibleHorizonIndex(full,2,2,(i,j)=>i===1&&j===0,out);
+  assert.equal(count,18);
+  assert.deepEqual([...out.slice(0,12)],[...full.slice(0,6),...full.slice(12,18)]);
+  assert.equal(visibleHorizonIndex(full,2,2,()=>true,out),0);
 });

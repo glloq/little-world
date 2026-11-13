@@ -1,0 +1,217 @@
+{
+  "recordedAt": "2026-11-13T11:26:10.690Z",
+  "base": "http://127.0.0.1:5174/little-world/",
+  "revision": "3c0cf3917dcbf4c6e86dc320dab09da6fb395672",
+  "dirty": 2,
+  "browserVersion": "153.0.8010.12",
+  "viewport": {
+    "width": 960,
+    "height": 640
+  },
+  "quality": "medium",
+  "launchArgs": [
+    "--no-sandbox",
+    "--use-angle=swiftshader",
+    "--enable-unsafe-swiftshader"
+  ],
+  "notes": [
+    "SwiftShader software rendering: regression signal only, not an integrated-GPU qualification.",
+    "Intervals are presentation intervals observed by requestAnimationFrame; renderSubmitMs is JS submission time, not GPU time.",
+    "holeFraction = background-coloured pixels among those whose camera ray hits the analytic terrain (or open sea of a generated island), 64×40 grid, lowest pitch, 8 headings; null when the build exposes no camera.",
+    "Route timing is wall-clock; frame counts per phase vary with throughput."
+  ],
+  "scenarios": [
+    {
+      "name": "valley-start",
+      "kind": "v2-preview",
+      "width": 200,
+      "length": 600,
+      "bootMs": 4470.67687,
+      "settled": true,
+      "settleMs": 1298.813846,
+      "overall": {
+        "frames": 384,
+        "meanMs": 76.51588541666666,
+        "p50Ms": 66.70000000000073,
+        "p95Ms": 133.40000000000055,
+        "p99Ms": 183.40000000000146,
+        "maxMs": 433.3000000000002,
+        "over50Ms": 296,
+        "over100Ms": 54,
+        "fps": 13.069181576538098
+      },
+      "byPhase": {
+        "idle": {
+          "frames": 14,
+          "meanMs": 134.51428571428576,
+          "p50Ms": 133.29999999999927,
+          "p95Ms": 433.3000000000002,
+          "p99Ms": 433.3000000000002,
+          "maxMs": 433.3000000000002,
+          "over50Ms": 12,
+          "over100Ms": 10,
+          "fps": 7.43415463041631
+        },
+        "rotate360": {
+          "frames": 84,
+          "meanMs": 73.60833333333333,
+          "p50Ms": 66.69999999999891,
+          "p95Ms": 116.80000000000018,
+          "p99Ms": 199.89999999999964,
+          "maxMs": 199.89999999999964,
+          "over50Ms": 62,
+          "over100Ms": 10,
+          "fps": 13.585418317672366
+        },
+        "run": {
+          "frames": 68,
+          "meanMs": 87.98676470588234,
+          "p50Ms": 83.30000000000109,
+          "p95Ms": 150,
+          "p99Ms": 166.70000000000073,
+          "maxMs": 166.70000000000073,
+          "over50Ms": 63,
+          "over100Ms": 11,
+          "fps": 11.365345723788673
+        },
+        "uturn": {
+          "frames": 51,
+          "meanMs": 67.97058823529412,
+          "p50Ms": 66.60000000000218,
+          "p95Ms": 116.79999999999927,
+          "p99Ms": 133.29999999999927,
+          "maxMs": 133.29999999999927,
+          "over50Ms": 39,
+          "over100Ms": 5,
+          "fps": 14.712245781047166
+        },
+        "horizon": {
+          "frames": 167,
+          "meanMs": 71.05508982035929,
+          "p50Ms": 66.69999999999709,
+          "p95Ms": 133.3000000000029,
+          "p99Ms": 183.40000000000146,
+          "maxMs": 266.6000000000022,
+          "over50Ms": 120,
+          "over100Ms": 18,
+          "fps": 14.073587163540138
+        }
+      },
+      "drawCallsMean": 120.43489583333333,
+      "drawCallsMax": 219,
+      "trianglesMean": 36670.458333333336,
+      "trianglesMax": 47738,
+      "geometriesMax": 79,
+      "chunksActiveMax": 27,
+      "chunksResidentMax": 32,
+      "chunksPendingMax": 2,
+      "chunksVisibleMean": 0,
+      "terrainBytesMax": 0,
+      "terrainBuildMsMax": 0,
+      "terrainBuiltTotal": 32,
+      "updateMsMean": 0.46432291663465247,
+      "renderSubmitMsMean": 2.141145833345945,
+      "simulationMsMean": 0.06848958334497486,
+      "horizon": null,
+      "holeFraction": null,
+      "heapMB": 31.034637451171875,
+      "errors": []
+    },
+    {
+      "name": "terrain-2km",
+      "kind": "v2-preview",
+      "width": 2000,
+      "length": 2000,
+      "bootMs": 3398.5269899999985,
+      "settled": true,
+      "settleMs": 3080.2395860000033,
+      "overall": {
+        "frames": 384,
+        "meanMs": 79.03333333333335,
+        "p50Ms": 83.29999999999927,
+        "p95Ms": 133.29999999999927,
+        "p99Ms": 166.60000000000218,
+        "maxMs": 300,
+        "over50Ms": 320,
+        "over100Ms": 49,
+        "fps": 12.652889076339095
+      },
+      "byPhase": {
+        "idle": {
+          "frames": 18,
+          "meanMs": 109.25,
+          "p50Ms": 100,
+          "p95Ms": 300,
+          "p99Ms": 300,
+          "maxMs": 300,
+          "over50Ms": 17,
+          "over100Ms": 7,
+          "fps": 9.153318077803204
+        },
+        "rotate360": {
+          "frames": 86,
+          "meanMs": 70.54069767441861,
+          "p50Ms": 66.70000000000073,
+          "p95Ms": 100.10000000000036,
+          "p99Ms": 116.69999999999891,
+          "maxMs": 116.69999999999891,
+          "over50Ms": 67,
+          "over100Ms": 6,
+          "fps": 14.176213632242643
+        },
+        "run": {
+          "frames": 71,
+          "meanMs": 84.50422535211267,
+          "p50Ms": 83.30000000000291,
+          "p95Ms": 149.89999999999964,
+          "p99Ms": 200,
+          "maxMs": 200,
+          "over50Ms": 64,
+          "over100Ms": 10,
+          "fps": 11.833727790926366
+        },
+        "uturn": {
+          "frames": 48,
+          "meanMs": 71.87083333333332,
+          "p50Ms": 66.70000000000073,
+          "p95Ms": 100,
+          "p99Ms": 166.60000000000218,
+          "maxMs": 166.60000000000218,
+          "over50Ms": 40,
+          "over100Ms": 2,
+          "fps": 13.913850078265408
+        },
+        "horizon": {
+          "frames": 161,
+          "meanMs": 79.91428571428574,
+          "p50Ms": 83.29999999999927,
+          "p95Ms": 150,
+          "p99Ms": 166.59999999999854,
+          "maxMs": 183.20000000000437,
+          "over50Ms": 132,
+          "over100Ms": 24,
+          "fps": 12.513407222023593
+        }
+      },
+      "drawCallsMean": 130.88020833333334,
+      "drawCallsMax": 222,
+      "trianglesMean": 41359.911458333336,
+      "trianglesMax": 50886,
+      "geometriesMax": 124,
+      "chunksActiveMax": 60,
+      "chunksResidentMax": 77,
+      "chunksPendingMax": 3,
+      "chunksVisibleMean": 0,
+      "terrainBytesMax": 0,
+      "terrainBuildMsMax": 0,
+      "terrainBuiltTotal": 77,
+      "updateMsMean": 0.46770833331053535,
+      "renderSubmitMsMean": 2.168489583350796,
+      "simulationMsMean": 0.0502604166722449,
+      "horizon": null,
+      "holeFraction": null,
+      "heapMB": 30.475930213928223,
+      "errors": []
+    }
+  ]
+}

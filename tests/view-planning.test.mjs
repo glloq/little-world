@@ -13,7 +13,8 @@ test('detail follows the camera frustum and keeps a 360° safety ring around the
   // every tile touching the safety disc is present, whatever the direction
   for(let x=-200;x<=200;x+=16)for(let z=-200;z<=200;z+=16)if(Math.hypot(x,z)<=safety*.9)assert.ok(plan.some(c=>x>=c.minX&&x<c.maxX&&z>=c.minZ&&z<c.maxZ),`(${x},${z}) covered`);
   const behind=plan.filter(c=>c.reason!=='safety'&&center(c).z<-40);
-  assert.equal(behind.length,0,'nothing far behind the camera is requested');
+  assert.ok(behind.every(c=>c.reason==='turn'&&Math.hypot(center(c).x,center(c).z)<=120+46),'behind the camera: only the low-priority U-turn ring');
+  assert.ok(!plan.some(c=>center(c).z<-200),'nothing far behind the camera is requested');
   const ahead=plan.filter(c=>center(c).z>150);
   assert.ok(ahead.length>4);
   const turned=planView(config,focus({forwardZ:-1,cameraZ:13}));
@@ -23,7 +24,7 @@ test('detail follows the camera frustum and keeps a 360° safety ring around the
 });
 test('safety and view requests come first, ordered by distance',()=>{
   const plan=planView(config,focus());
-  const ranks=plan.map(c=>c.reason==='safety'?0:c.reason==='view'?1:2);
+  const ranks=plan.map(c=>({safety:0,view:1,ahead:2,turn:3})[c.reason]);
   assert.deepEqual(ranks,[...ranks].sort((a,b)=>a-b));
   for(let i=1;i<plan.length;i++)if(plan[i].reason===plan[i-1].reason)assert.ok(plan[i].distance>=plan[i-1].distance);
 });
@@ -32,6 +33,7 @@ test('movement prediction preloads tiles along the trajectory even when looking 
   const moving=planView(config,focus({forwardX:1,forwardZ:0,cameraX:-13,cameraZ:0,velocityZ:-9}));
   assert.ok(moving.some(c=>c.reason==='ahead'&&center(c).z<-100));
   assert.ok(!still.some(c=>c.reason==='ahead'));
+  assert.ok(moving.filter(c=>c.reason==='ahead').every(c=>c.distance>0));
 });
 test('altitude, projected size and the shared quality level coarsen LOD',()=>{
   const count=(plan,lod)=>plan.filter(c=>c.lod===lod).length;

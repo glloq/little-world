@@ -93,6 +93,10 @@ export function createChunkGeometry(
   geometry.computeBoundingBox();
   geometry.computeBoundingSphere();
   geometry.userData.surfaceVertices = (cellsX + 1) * (cellsZ + 1);
+  let minSurfaceY = Infinity;
+  for (let i = 1; i < geometry.userData.surfaceVertices * 3; i += 3)
+    minSurfaceY = Math.min(minSurfaceY, positions[i]);
+  geometry.userData.minSurfaceY = minSurfaceY;
   return geometry;
 }
 
@@ -118,6 +122,7 @@ export interface TerrainStats {
   safety: number;
   inView: number;
   ahead: number;
+  turn: number;
   replans: number;
 }
 export interface TerrainWorkStats {lastMs:number;maxTileMs:number;totalMs:number;lastBuilt:number}
@@ -128,7 +133,7 @@ export interface TerrainView {
   /** Incremented whenever the displayed tile set changes (horizon coverage mask). */
   readonly version: number;
   readonly tileSize: number;
-  forEachActive(visit: (column: number, row: number) => void): void;
+  forEachActive(visit: (column: number, row: number, minY?: number) => void): void;
   update(x: number, z: number, focus?: ViewFocus, frustum?: THREE.Frustum): void;
   refresh(x: number, z: number, radius: number): void;
   dispose(): void;
@@ -178,6 +183,7 @@ export function createTerrainView(
     safety: 0,
     inView: 0,
     ahead: 0,
+    turn: 0,
     replans: 0,
   };
   const work: TerrainWorkStats = { lastMs: 0, maxTileMs: 0, totalMs: 0, lastBuilt: 0 };
@@ -249,11 +255,12 @@ export function createTerrainView(
   }
   function replanView(focus: ViewFocus): void {
     const plan = planView(config, focus, previousLods());
-    stats.safety = stats.inView = stats.ahead = 0;
+    stats.safety = stats.inView = stats.ahead = stats.turn = 0;
     for (const chunk of plan)
       if (chunk.reason === 'safety') stats.safety++;
       else if (chunk.reason === 'view') stats.inView++;
-      else stats.ahead++;
+      else if (chunk.reason === 'ahead') stats.ahead++;
+      else stats.turn++;
     apply(plan);
     lastFocus = { ...focus };
     lastX = focus.playerX;
@@ -313,7 +320,7 @@ export function createTerrainView(
     tileSize: config.chunkSize,
     forEachActive(visit) {
       for (const record of active.values())
-        visit(record.chunk.column, record.chunk.row);
+        visit(record.chunk.column, record.chunk.row, record.mesh.geometry.userData.minSurfaceY);
     },
     update(x, z, focus, frustum) {
       if (dead || !Number.isFinite(x) || !Number.isFinite(z)) return;
