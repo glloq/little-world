@@ -1,4 +1,4 @@
-import {gameplayLimits,parseGameplayData,type ActionStep,type ConditionExpr,type GameplayData,type ObjectiveStatus,type Point3,type StateValue,type TriggerDefinition} from './schema.ts';
+import {finite,gameplayLimits,parseGameplayData,type ActionStep,type ConditionExpr,type GameplayData,type ObjectiveStatus,type Point3,type StateValue,type TriggerDefinition} from './schema.ts';
 import {parseGameSave,type GameSaveV1} from './save.ts';
 export interface GameplayEvent {type:TriggerDefinition['type'];entityId?:string;zoneId?:string;dialogueId?:string;choiceId?:string;timerId?:string;key?:string;animation?:string;objectiveId?:string;eventId?:string;depth?:number;}
 export type GameplayEffect=Extract<ActionStep,{type:'showText'|'startDialogue'|'playAnimation'|'playSound'|'playEffect'|'moveNPCTo'}>;
@@ -148,6 +148,6 @@ export function createGameplay(raw:GameplayData){
     for(const timer of timers)timer.next=state.time+timer.trigger.interval;
     return warnings;
   }
-  return {data,state,emit,update,interact,evaluate,dialogueChoice,enterDialogueLine,availableChoices,save,restore,drainEffects(){return effects.splice(0);},get pendingSequences(){return jobs.length;}};
+  return {data,state,emit,update,interact,evaluate,setEntityPosition(id:string,position:Point3){const entity=entities.get(id);if(!entity||!finite(position.x,-100000,100000)||!finite(position.y,-10000,10000)||!finite(position.z,-100000,100000))throw Error('Position logique invalide');entity.position={...position};},dialogueChoice,enterDialogueLine,availableChoices,save,restore,drainEffects(){return effects.splice(0);},get pendingSequences(){return jobs.length;}};
 }
 export type GameplayRuntime=ReturnType<typeof createGameplay>;

@@ -58,3 +58,19 @@ Chromium headless/SwiftShader vérifie les régressions fonctionnelles ; **aucun
 5. G5 : Firefox, sessions longues et mesures sur PC réel ; publier seulement après qualification explicite.
 
 La branche de travail doit être poussée après chaque incrément cohérent. Une branche poussée et testée n'est ni un déploiement Pages ni une bêta publiée.
+
+## Complément G1/G2 : boucle interactive raccordée
+
+Incréments postérieurs au premier atelier :
+
+- `fe6c046` : validation atomique des segments d'actions, absence de récompense partielle sur inventaire plein, persistance des flags de dialogue (anciens slots V1 acceptés avec flags vides).
+- Le scénario `maps/beta.project.json`, généré de façon déterministe par `npm run generate:beta`, est réimportable dans Studio. Entrée jeu `?beta=1` et bouton sur l'accueil ; source 1 000 × 1 000 m, quatre PNJ, collecte/livraison et levier + mécanisme. **Ce contenu n'est pas la carte B1 complète ni une qualification de sa densité/performance.**
+- Nouveau module Studio **Interactions** : templates collecte/livraison/bascule/levier, références validées, même CommandBus. Modifier un template conserve l'identité de son interaction principale et les liens existants.
+- Le jeu consomme les données logiques sans importer le stockage auteur. Les choix de dialogue exécutent les conditions/actions V3 dans le panneau existant.
+- Sac, trois slots visibles par monde (stockage jusqu'à dix), sauvegarde/chargement et import/export JSON. Inventaire, progression, états et position sont restaurés. Le bateau, les états de mine/parcelle et l'environnement ne sont pas encore inclus.
+- La copie de test utilise un snapshot identifié et des slots **sessionStorage isolés par snapshot** ; les vrais slots restent en localStorage. Chaque nouveau snapshot démarre sans reprendre un ancien état de test. La source, la sélection et l'historique restent dans Studio.
+- Retour visuel des états : objet collecté masqué, ouverture représentée par rotation. **Pas de collision mobile de porte**, d'animation/son/effet générique complet ni de navigation avancée ajoutés ici. Le lecteur utilise encore l'adaptateur V2 pour la représentation, limité à 2 km par axe ; le modèle logique V3 est séparé.
+
+Preuves : **106 tests unitaires/intégration** ; `npm run test:gameplay` ajoute **10 contrôles Chromium** couvrant collecte → dialogue/mission → livraison → mécanisme → sauvegarde/reload → absence de duplication → template Studio → sauvegarde temporaire sans écrasement des vrais slots → historique auteur conservé. Les 16 contrôles historiques et 15 contrôles Studio restent requis. `npm run generate:beta` est suivi d'un contrôle de dérive des fichiers générés dans la CI.
+
+**Ordre actualisé :** conserver ces boucles fonctionnelles ; poursuivre FND-04 (horloge/climat communs), puis le viewport Studio local et FND-05 (requêtes 3D) avant mine/agriculture. G1/G2/G4 restent partiels tant que leurs autres critères ne sont pas démontrés.

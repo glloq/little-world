@@ -6,7 +6,7 @@ export function gameplayDataFromProject(project:ProjectDocument,buildVersion='so
   const entities:GameplayEntity[]=Object.values(project.entityIndex).map(index=>{
     const components=local.get(index.id)?.components,logical=index.logical;
     return {id:index.id,ownerChunkId:index.ownerChunkId,position:logical?.position??index.position,
-      initialState:logical?.initialState??components?.State?.initial??{},persistentState:logical?.persistentState??components?.Persistence?.fields??[],
+      initialState:logical?.initialState??components?.State?.initial??{},persistentState:logical?.persistentState??components?.Persistence?.fields??[],dialogueIds:(index.references??[]).filter(id=>!!project.libraries.dialogues[id]),
       ...((logical?.interactable??components?.Interactable)?{interactable:logical?.interactable??components?.Interactable}:{})};
   });
   return parseGameplayData({worldId:project.world.worldId,buildVersion,entities,

@@ -14,7 +14,9 @@
     "compile:map": "node --experimental-strip-types tools/compile-map.mjs",
     "assets:squirrel": "node --experimental-strip-types tools/generate-squirrel.mjs",
     "test:studio": "node tools/test-studio-browser.mjs",
-    "compile:project": "node --experimental-strip-types tools/compile-project.mjs"
+    "compile:project": "node --experimental-strip-types tools/compile-project.mjs",
+    "generate:beta": "node --experimental-strip-types tools/generate-beta.mjs",
+    "test:gameplay": "node tools/test-gameplay-browser.mjs"
   },
   "dependencies": {
     "three": "^0.180.0"

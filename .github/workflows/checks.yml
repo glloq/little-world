@@ -16,6 +16,8 @@ jobs:
           cache: npm
       - run: npm ci --no-audit --no-fund
       - run: npm test
+      - run: npm run generate:beta
+      - run: git diff --exit-code -- maps/beta.project.json public/maps/beta.json public/maps/beta.project.json
       - run: npm run compile:map -- maps/default.json public/maps/default.json
       - run: git diff --exit-code -- public/maps
       - run: npm run build
@@ -29,6 +31,7 @@ jobs:
           done
           npm run test:browser
           npm run test:studio
+          npm run test:gameplay
       - name: IndexedDB integration
         run: |
           npm run dev -- --host 127.0.0.1 --port 5189 --strictPort > /tmp/little-world-studio-dev.log 2>&1 &
