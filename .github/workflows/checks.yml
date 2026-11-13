@@ -72,6 +72,10 @@ jobs:
         run: node tools/run-browser-check.mjs geo-edit
       - name: Local lighting browser checks (E10)
         run: node tools/run-browser-check.mjs lights
+      - name: Studio inspector keeps the field being edited
+        run: |
+          node tools/run-browser-check.mjs inspector-editing
+          node tools/run-browser-check.mjs inspector-edit
       - name: B1 acceptance walk — obstacles, water, mine, farm, saves (PHYS/WATER/MINE/AGRI)
         run: node tools/run-browser-check.mjs b1
       - name: B1 Studio edits and « Jouer ici »

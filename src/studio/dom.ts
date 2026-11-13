@@ -1,7 +1,7 @@
 export function node<K extends keyof HTMLElementTagNameMap>(tag:K,text='',className=''):HTMLElementTagNameMap[K]{const e=document.createElement(tag);e.textContent=text;if(className)e.className=className;return e;}
 export function button(text:string,action:()=>unknown,className='light-button'){const e=node('button',text,className);e.type='button';e.onclick=()=>{void action();};return e;}
 export function field(text:string,input:HTMLElement){const e=node('label',text);if(['INPUT','SELECT','TEXTAREA'].includes(input.tagName))input.setAttribute('aria-label',text);e.append(input);return e;}
-export function input(value:string,onChange:(value:string)=>unknown,type='text'){const e=node('input');e.type=type;e.value=value;e.onchange=()=>{void onChange(e.value);};return e;}
+export function input(value:string,onChange:(value:string)=>unknown,type='text'){const e=node('input');e.type=type;e.value=value;e.dataset.initial=value;e.onchange=()=>{e.dataset.committed=e.value;void onChange(e.value);};return e;}
 export function numberInput(value:number,onChange:(value:number)=>unknown,min=-10000,max=10000,step='any'){const e=input(String(value),v=>onChange(Number(v)),'number');e.min=String(min);e.max=String(max);e.step=step;return e;}
 export function select(value:string,options:readonly (readonly [string,string])[],onChange:(value:string)=>unknown){const e=node('select');for(const [id,title] of options)e.add(new Option(title,id));e.value=value;e.onchange=()=>{void onChange(e.value);};return e;}
 export function download(name:string,bytes:BlobPart,type='application/octet-stream'){const url=URL.createObjectURL(new Blob([bytes],{type})),a=node('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}

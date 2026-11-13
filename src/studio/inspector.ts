@@ -1,4 +1,5 @@
 import {audioSoundIds} from '../audio/migrate.ts';
+import {carryEditing} from './inspector-editing.ts';
 import * as THREE from 'three';
 import {node,button,field,input,numberInput,select} from './dom.ts';
 import type {StudioSession} from './session.ts';
@@ -38,7 +39,9 @@ export function quaternionFromDegrees(d:{x:number;y:number;z:number}){const q=ne
 let renderToken=0;
 /** Built off-DOM and swapped in only if no newer render started (async hydration never duplicates fields). */
 export async function renderInspector(target:HTMLElement,ctx:InspectorContext){
-  const token=++renderToken,host=node('div');await buildInspector(host,ctx);if(token===renderToken)target.replaceChildren(...host.childNodes);
+  const token=++renderToken,host=node('div');await buildInspector(host,ctx);if(token!==renderToken)return;
+  // A render never takes the field being typed in away from the author (see inspector-editing.ts).
+  const restore=carryEditing(target,host);target.replaceChildren(...host.childNodes);restore();
 }
 async function buildInspector(host:HTMLElement,ctx:InspectorContext){
   const s=ctx.session,p=s.document,refs=s.selection.selection.filter(v=>elementExists(p,v)) as ElementRef[],ids=refs.filter(v=>v.kind==='entity').map(v=>v.id);

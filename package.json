@@ -35,6 +35,7 @@
     "test:editor-content": "node tools/test-editor-content-browser.mjs",
     "test:editor-world": "node tools/test-editor-world-browser.mjs",
     "test:lights": "node tools/test-lights-browser.mjs",
+    "test:inspector-edit": "node tools/test-inspector-edit-browser.mjs && node tests/inspector-editing.browser.mjs",
     "bench:lights": "node --expose-gc tools/bench-lights.mjs",
     "bench:lights:browser": "node tools/bench-lights-browser.mjs",
     "generate:b1": "node --experimental-strip-types tools/generate-b1-demo.mjs",
