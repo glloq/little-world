@@ -183,6 +183,17 @@ Les [mines 2,5D localisées](24-MINES-MULTILEVEL-LOW-RESOURCE.md) n'exigent **au
 - Galeries souterraines utilisent des **assets GLB de cristaux/roches** et couleurs de sommet, non la génération d'herbe de surface.
 - Le budget PERF arbitre les deux sans mélanger caches/mesh d'une mine et cellules de végétation du heightfield.
 
+## Parcelles cultivées : rendre les cultures sans doubler l'herbe sauvage
+
+**Référence AGRI :** [25 — Agriculture par parcelles LOW-RESOURCE](25-AGRICULTURE-PARCELS-LOW-RESOURCE.md).
+
+- Le polygone de parcelle agricole V3 crée une **zone d'exclusion** pour touffes sauvages/grass générées, évitant **double rendu et z-fighting** avec les rangs de plantes cultivées.
+- Cultures = instances/LOD de `FarmLODRenderer` **distinctes de l'état agronomique**, calculées par seed/culture/stade et regroupées en cellules cullables; le **vent** provient de l'environnement partagé, pas d'animations CPU par plante.
+- **Farmer/passant** regardant la même culture depuis la même caméra reçoivent **le même budget de géométrie**, même si seuls les agriculteurs autorisés disposent des réglages de culture.
+- Lors d'un changement de parcelle/crop/sol, invalider **seulement les cellules de végétation sauvage** intersectées et les caches de culture touchés, sans reconstruire le reste du biome.
+- **Parcelles distantes** se dessinent comme des champs colorés/masques du terrain; aucune herbe cultivée 3D nécessaire à plusieurs kilomètres.
+- Métriques PERF et benchmarks : 100 rangs visibles, forte densité et passage vers LOD2/3 sans surcharger caches/draw calls.
+
 ## 8. Tests et validation
 
 **Scènes et variantes :**
