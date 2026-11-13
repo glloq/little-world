@@ -180,6 +180,20 @@ La [spécification 23](23-MIDI-AUDIO-LOW-RESOURCE.md) définit **5–10 patches 
 - Tester sur **GPU intégré réel** : 30 FPS nominal/20 secours, sans éteindre la collision/collecte ; culling galeries hors vue, éclairage faible, textures minimales et pas de mesh par cube.
 - Coûts de remeshing doivent être gouvernés par `WorkScheduler` / `ResourceBudgetManager`, jeu logique prioritaire, fallback visuel temporaire en cas de travail différé.
 
+## Campagne AGRI — coût de simulation et rendu de parcelles
+
+Le [contrat AGRI 25](25-AGRICULTURE-PARCELS-LOW-RESOURCE.md) demande de **découpler coûts agronomiques et géométrie de culture**.
+
+**Mesures par scénario** :
+- Nombre de parcelles **100 / 1 000 / 10 000** en données avec une **fraction seulement active/visible** ; comparaison simulateur agrégé/différé vs variante naïve plus fine.
+- Actions `Plant/Irrigate/Treat/Harvest` sur 1/10/100 parcelles et **même parcelle sollicitée simultanément** : temps d'intégration, transactions, échéances, latence, backlog, p95/p99.
+- **Reprise après 1/10/30 jours de monde** avec historique climat/saison/pluie/gel réellement agrégé : temps CPU de rattrapage, coût mémoire du journal et **égalité de résultat connecté/hors-ligne**.
+- Visuel **champ proche densément planté**, forêt/plaine adjacente, village et **champs lointains depuis planage** : draw calls, triangles/instancing, fill-rate, shadermat, caches GPU estimés, changements LOD sans régénération de `EntityDefinition` individuels.
+- **Rôles** propriétaire vs passant : coût des données détaillées et messages réseau/snapshots, sans modifier le nombre de plantes rendues à caméra identique.
+- **PERF** : quota des échéances/journaux/climat et de la construction d'instances; mesurer séparément GPU matériel, frames longues, période d'absence et nombre de joueurs.
+
+**Aucune limite ferme** de parcelles/tailles/stades ni promesse 30/20 FPS avant benchmark GPU intégré. Les hypothèses de stockage **96–256 octets par état compact brut** ne sont pas des mesures mémoire JS ou DB.
+
 ## Suite prioritaire
 
 1. Réduire les appels du personnage et regrouper les sous-meshes statiques par matériau/articulation, puis mesurer sur les mêmes scènes.
