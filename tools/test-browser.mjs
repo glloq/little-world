@@ -172,7 +172,11 @@ try {
     .locator('.npc-dialogue:not([hidden]) > div button')
     .first()
     .click();
-  await page.keyboard.press('Escape');
+  // Escape closes a dialogue that is still open; with no dialogue it would open the game Menu.
+  if (await page.locator('.npc-dialogue:not([hidden])').count()) {
+    await page.keyboard.press('Escape');
+    assert.equal(await page.locator('.ui-panel:not([hidden])').count(), 0, 'Escape closing a dialogue does not also open the Menu');
+  }
   checks++;
   await page.keyboard.down('a');
   await page.locator('#appearance-menu[aria-hidden="false"]').waitFor();

@@ -91,12 +91,14 @@ Les tests navigateur utilisent Chromium système s’il existe, sinon celui de P
 | `Ctrl` dans l'eau | Plonger |
 | `Espace` dans l'eau | Remonter |
 | `P` | Aller au port rapidement (raccourci de test) |
-| `E` près du bateau | Monter / descendre |
+| `E` | Action principale indiquée en bas de l'écran (ramasser, parler, embarquer/descendre du bateau, creuser, cultiver) ; si l'action est impossible, la raison est affichée |
+| `F` / `C` | Creuser ou agir sur la parcelle / changer de culture |
+| `I` · `J` · `M` | Sac · Journal · Carte |
 | `Z/S` ou `W/S` en bateau | Avancer / reculer |
 | `Q/D` ou `A/D` en bateau | Tourner à gauche / droite |
-| Qualité graphique (en haut) | Économie, Équilibré, Élevée |
+| Qualité graphique | Menu (`Échap`) → Paramètres : Économie, Équilibré, Élevée |
 | `R` | Retour au départ |
-| `Échap` | Libérer le pointeur |
+| `Échap` | Fermer le panneau ou le dialogue ouvert, sinon ouvrir le Menu (Reprendre, Parties, Paramètres, Retour à l'accueil) |
 
 **Clavier :** le menu reconnaît la lettre **A** sur AZERTY et QWERTY (pas la position physique de la touche). Sur QWERTY, **A est réservé au menu** : utiliser **Q** ou **←** pour aller à gauche. Sur AZERTY, **Q** reste la commande gauche. Les choix d'accessoires/émotions sont enregistrés en `localStorage`.
 
@@ -166,6 +168,7 @@ docs/                       # Conception, objectifs et registre de décisions
 - [PERF : ResourceBudgetManager, budgets communs, métriques, mémoire, streaming et qualité adaptative](docs/22-RESOURCE-BUDGET-MANAGER.md)
 - [Audio LOW-RESOURCE : 5 à 10 instruments MIDI, synthétiseur Web Audio, échantillons et budgets](docs/23-MIDI-AUDIO-LOW-RESOURCE.md)
 - [Audio V2 : catalogue contextuel, événements sémantiques, migration et production](docs/37-AUDIO-V2-CATALOGUE.md) · [inventaire généré](docs/38-AUDIO-V2-INVENTAIRE.md) · [rapport de production et préécoute](docs/39-AUDIO-PRODUCTION-RAPPORT.md)
+- [UI-JOUEUR : interface de jeu (HUD contextuel, Sac, Journal, Carte, Menu, Paramètres, Parties, inspecteurs mine/parcelle)](docs/40-UI-JOUEUR.md)
 - [Mines LOW-RESOURCE : galeries creusables 2,5D, niveaux superposés, filons et synchronisation future](docs/24-MINES-MULTILEVEL-LOW-RESOURCE.md)
 - [Agriculture LOW-RESOURCE : parcelles, croissance différée, rendu LOD et gestion des cultures](docs/25-AGRICULTURE-PARCELS-LOW-RESOURCE.md)- [Eau LOW-RESOURCE : rivières en pente, lacs, cascades, plongée et océan LOD](docs/21-WATER-HYDROLOGY-LOW-RESOURCE.md)
 

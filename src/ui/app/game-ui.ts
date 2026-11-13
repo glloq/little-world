@@ -41,7 +41,7 @@ export function createGameUi(deps:GameUiDeps){
   const center=createNotificationCenter(host,sound);
   const ui=new UiController(host),g=deps.gameplay,a=g?.activities;
   // Panels.
-  let selectedTool:string|null=null;
+  let selectedTool:string|null=null,restoring=false;
   const inventory=inventoryPanel({items:()=>g?.runtime.data.items??[],inventory:()=>g?.runtime.state.inventory??{},selectedTool:()=>selectedTool,selectTool:id=>{selectedTool=id;renderTool();}});
   ui.register('inventory','Sac',{render:b=>inventory.render(b),onClose:()=>{inventory.markSeen();deps.audio?.emit('ui.inventory.close',{source:'ui'});}});
   ui.register('journal','Journal',{render:b=>journalPanel({objectives:()=>g?.runtime.data.objectives??[],status:()=>g?.runtime.state.objectives??{},activities:()=>g?.runtime.data.activities??[]}).render(b)});
@@ -59,12 +59,12 @@ export function createGameUi(deps:GameUiDeps){
   ui.register('map','Carte',{render:b=>map.render(b),onClose:()=>map.close()});
   if(g){const saves=savesPanel({worldId:g.runtime.data.worldId,buildVersion:g.runtime.data.buildVersion,dayLength:g.runtime.climate.definition.dayLengthSeconds,temporary:g.temporary,
     list:()=>g.slots.list(g.runtime.data.worldId),save:id=>g.slots.save(g.compose(id)),load:id=>g.slots.load(g.runtime.data.worldId,id),remove:id=>g.slots.delete(g.runtime.data.worldId,id),
-    restore:save=>{const w=g.restore(save);snapshot();return w;},exportCurrent:()=>g.compose('slot-export'),importFile:raw=>g.importSave(raw),
+    restore:save=>{restoring=true;try{return g.restore(save);}finally{restoring=false;snapshot();}},exportCurrent:()=>g.compose('slot-export'),importFile:raw=>g.importSave(raw),
     confirm:(t,l)=>ui.confirm(t,l),closePanels:()=>ui.close(),notify:(k,t)=>center.notify(k,t)});
     ui.register('saves','Parties',{pauses:true,render:b=>saves.render(b)});}
   ui.register('settings','Paramètres',{pauses:true,render:b=>settingsPanel({preferences:()=>prefs,update:updatePrefs,quality:deps.quality,audioPanel:document.querySelector<HTMLDetailsElement>('.audio-controls')}).render(b),
     // The audio panel goes back to its developer place when the settings close.
-    onClose:()=>{const audio=document.querySelector('.audio-controls');if(audio)document.body.append(audio);}});
+    onClose:()=>{const audio=document.querySelector<HTMLDetailsElement>('.audio-controls');if(audio){audio.open=false;document.body.append(audio);}}});
   ui.register('pause','Menu',{pauses:true,render:b=>pauseMenu({has:id=>ui.has(id),open:id=>ui.open(id),resume:()=>ui.close(),home:deps.home,studioUrl:deps.studioUrl,worldName:deps.world.name,temporary:deps.temporary}).render(b)});
   // HUD: prompt, quick bar, oxygen, tool, activity card, start hint.
   const prompt=document.querySelector<HTMLElement>('#action')??el('div','action-toast');prompt.id='action';prompt.classList.add('ui-prompt','hide');host.append(prompt);
@@ -81,6 +81,8 @@ export function createGameUi(deps:GameUiDeps){
   let lastInventory:Record<string,number>={...(g?.runtime.state.inventory??{})},lastObjectives={...(g?.runtime.state.objectives??{})};
   function snapshot(){lastInventory={...(g?.runtime.state.inventory??{})};lastObjectives={...(g?.runtime.state.objectives??{})};}
   g?.subscribe(()=>{
+    // A restored save is not new progress: no gain / mission notification for it.
+    if(restoring)return;
     const inv=g.runtime.state.inventory;for(const [id,q] of Object.entries(inv)){const d=q-(lastInventory[id]??0);if(d>0)center.gain(id,g.runtime.data.items.find(i=>i.id===id)?.name??id,d);}
     for(const text of questChanges(g.runtime.data.objectives,lastObjectives,g.runtime.state.objectives))center.quest(text);
     snapshot();if(ui.active==='inventory'||ui.active==='journal')ui.refresh();
@@ -93,7 +95,9 @@ export function createGameUi(deps:GameUiDeps){
     started(){hint.classList.remove('hide');setTimeout(()=>hint.classList.add('hide'),prefs.reduceMotion?6000:9000);},
     /** Keys of the interface. Returns true when consumed (the game must ignore it). */
     handleKey(e:KeyboardEvent,inGame:boolean):boolean{
-      if(ui.handleKey(e))return true;if(!inGame||deps.npcs.dialogue.isOpen||e.ctrlKey||e.metaKey||e.altKey||e.repeat)return false;
+      if(ui.handleKey(e))return true;
+      // A key already handled elsewhere (e.g. Escape closing an NPC dialogue) never also opens a panel.
+      if(e.defaultPrevented)return false;if(!inGame||deps.npcs.dialogue.isOpen||e.ctrlKey||e.metaKey||e.altKey||e.repeat)return false;
       const k=e.key.toLowerCase();
       if(e.key==='Escape'){e.preventDefault();ui.open('pause');return true;}
       if(k==='i'&&g){e.preventDefault();ui.open('inventory');deps.audio?.emit('ui.inventory.open',{source:'ui'});return true;}

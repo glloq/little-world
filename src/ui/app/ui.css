@@ -78,3 +78,7 @@ body:not(.developer) .dev-only{display:none!important}
 body:not(.developer) .environment-controls label{display:none}
 body:not(.developer)>.audio-controls{display:none}
 .ui-notifications{top:64px}
+/* Developer statistics never cover the quick bar; the audio engine status line is technical. */
+body.developer .hud-stats{bottom:68px}
+body:not(.developer) .ui-settings-section .audio-controls>p{display:none}
+.ui-notifications .ui-notice{position:static;transform:none;white-space:normal;max-width:min(380px,calc(100vw - 32px));box-sizing:border-box;text-align:left}

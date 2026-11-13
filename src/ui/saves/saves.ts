@@ -28,7 +28,7 @@ export function savesPanel(deps:SavesDeps){
     if(listError)target.append(el('p','ui-alert',listError));
     for(const s of vm){
       const row=el('div','game-slot-row');row.dataset.slot=s.slotId;row.dataset.state=s.state;const info=el('div','ui-slot-info');info.append(el('strong','',s.title));
-      info.append(el('span','',s.state==='empty'?'Vide':s.state==='error'?'Illisible : '+s.error:s.when??'Sauvegardée'));if(s.progress)info.append(el('span','ui-muted',s.progress));if(s.versionWarning)info.append(el('span','ui-warn-text','Version du monde différente : certains éléments peuvent ne pas être restaurés.'));
+      info.append(el('span','',s.state==='empty'?'Vide':s.state==='error'?'Illisible : données endommagées. Supprimez cet emplacement ou importez une copie exportée.':s.when??'Sauvegardée'));if(s.progress)info.append(el('span','ui-muted',s.progress));if(s.state==='error'&&s.error)info.lastElementChild!.setAttribute('title','Détail technique : '+s.error);if(s.versionWarning)info.append(el('span','ui-warn-text','Version du monde différente : certains éléments peuvent ne pas être restaurés.'));
       const actions=el('div','ui-row');
       actions.append(button('Sauvegarder',guard(async()=>{if(s.state!=='empty'&&!(await deps.confirm(`Remplacer « ${s.title} » par la partie en cours ?`,'Remplacer')))return;const r=await deps.save(s.slotId);say(r.external?'Partie sauvegardée (détails des mines et parcelles dans le stockage IndexedDB du navigateur).':'Partie sauvegardée.');deps.notify('save','Partie sauvegardée');})));
       if(s.state==='ready'){

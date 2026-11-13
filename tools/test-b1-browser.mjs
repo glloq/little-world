@@ -34,6 +34,8 @@ try{
   // 3–4. Mine: entrance, then down two levels by the stairs.
   await moveTo(172.5,45,22);const inside=await hold('KeyW',v=>v.act.space?.levelId==='level-3',40);
   check(inside.act.space?.levelId==='level-3'&&Math.abs(inside.pos[1]-mine.levels[2].floorY)<.05,'Entered the mine and went down to level 3 (y '+inside.pos[1].toFixed(1)+')');
+  const card=page.locator('.ui-activity-card');await page.waitForFunction(()=>/\(3\/3\)/.test(document.querySelector('.ui-activity-card[data-kind=mine]')?.textContent??''),null,{timeout:5000}).catch(()=>{});const mineCard=await card.textContent();
+  check(/\(3\/3\)/.test(mineCard)&&/\d+ m/.test(mineCard),'Mine card: level 3/3 and way out with distance ('+mineCard+')');
   await page.screenshot({path:out+'/b1-level3.png'});
   // 5. Dig: iron at the end of the gallery, then rock (stone), walking into each new cell.
   await hold('KeyW',v=>v.pos[2]>71.5,6);const digs=[];
@@ -44,6 +46,9 @@ try{
   const surface=await hold('KeyS',v=>v.act.space===null,60);check(surface.act.space===null&&Math.abs(surface.pos[2]-28.5)<2,'Back on the surface outside the entrance ('+surface.pos.map(n=>n.toFixed(1))+')');
   // 7–9. Farm: choose carrots, sow, water, accelerate the world clock, harvest.
   await moveTo(-164,40,118);await page.keyboard.press('KeyC');await page.waitForTimeout(300);check(/Carotte/.test(await msg()),'Crop chosen with C');
+  await page.waitForFunction(()=>document.querySelector('.ui-activity-card')?.dataset.kind==='farm');check(await card.getByRole('button',{name:'Carotte'}).getAttribute('aria-pressed')==='true','Plot card shows the chosen crop as pressed');
+  const other=card.locator('.ui-chip[aria-pressed=false]').first(),otherName=await other.textContent();await other.click();await page.waitForFunction(n=>[...document.querySelectorAll('.ui-activity-card .ui-chip')].find(b=>b.textContent===n)?.getAttribute('aria-pressed')==='true',otherName);
+  await card.getByRole('button',{name:'Carotte'}).click();await page.waitForFunction(()=>[...document.querySelectorAll('.ui-activity-card .ui-chip')].find(b=>b.textContent==='Carotte')?.getAttribute('aria-pressed')==='true');check(true,'Crop chips select through the farm runtime ('+otherName+' then Carotte)');
   await page.keyboard.press('KeyF');await page.waitForTimeout(300);check(/Semis/.test(await msg()),'Sown');
   await page.keyboard.press('KeyF');await page.waitForTimeout(300);check(/arrosée/.test(await msg()),'Watered from the irrigation point');
   await page.locator('.environment-controls summary').click();await page.getByLabel('Vitesse du monde').selectOption('240');
@@ -53,7 +58,7 @@ try{
   const before=await m();const beforeBag=await inventory();check(/Carotte/.test(beforeBag),'Carrots in the bag');
   // 10–11. Save, reload the page, load: everything restored.
   await save();const raw=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)),SLOT);check(raw.schemaVersion===2&&Object.keys(raw.mines).length===1&&raw.farms['plot-west'],'Versioned save with mine differences and plot states');
-  await boot();await load();const after=await m();
+  await boot();await load();await page.waitForFunction(n=>window.littleWorldMetrics?.activities?.excavated===n,before.act.excavated,{timeout:5000}).catch(()=>{});const after=await m();
   check(after.act.excavated===before.act.excavated,'Dug cells restored after reload ('+after.act.excavated+')');
   check(after.act.plots['plot-west'].stage==='empty'&&after.act.plots['plot-east'].crop==='carrot','Plots restored (harvested west, east still growing)');
   const restoredBag=await inventory();check(/Minerai de fer/.test(restoredBag)&&/Carotte/.test(restoredBag),'Inventory restored');

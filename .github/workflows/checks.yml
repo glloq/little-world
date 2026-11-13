@@ -46,6 +46,8 @@ jobs:
         run: node tools/run-browser-check.mjs studio
       - name: Gameplay and saves browser checks
         run: node tools/run-browser-check.mjs gameplay
+      - name: Player interface browser checks
+        run: node tools/run-browser-check.mjs ui
       - name: Environment browser checks
         run: node tools/run-browser-check.mjs environment
       - name: Local viewport browser checks

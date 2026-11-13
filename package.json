@@ -20,6 +20,7 @@
     "generate:reference": "node --experimental-strip-types tools/generate-reference.mjs",
     "benchmark:route": "node tools/benchmark-route.mjs",
     "test:gameplay": "node tools/test-gameplay-browser.mjs",
+    "test:ui": "node tools/test-ui-browser.mjs",
     "test:environment": "node tools/test-environment-browser.mjs",
     "test:local": "node tools/test-local-browser.mjs",
     "test:characters": "node tools/test-characters-browser.mjs",
