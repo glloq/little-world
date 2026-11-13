@@ -6,7 +6,11 @@ import {parseMidi} from './midi.ts';
 import {base64Bytes,PATCHES,type AudioEmitter,type AudioScoreDefinition,type PatchId} from './schema.ts';
 import {matchCondition,parseCondition,type SoundCondition,type SoundContext} from './context.ts';
 
-export const ASSET_STATUSES=['PLANNED','GENERATED','VERIFIED','REJECTED'] as const;
+/** Production lifecycle. GENERATED = file produced, no automatic QC recorded; TECHNICALLY_VALID = automatic QC
+ * passed (format, peak, clipping, DC, silence, loop seam, variation); LISTENING_REVIEW = QC passed but a human
+ * listen is a priority (procedural stand-in for a complex natural sound); VERIFIED = QC + reference listening
+ * approved; REJECTED = never played. Every status except VERIFIED still needs a human listen. */
+export const ASSET_STATUSES=['PLANNED','GENERATED','TECHNICALLY_VALID','LISTENING_REVIEW','VERIFIED','REJECTED'] as const;
 export type AssetStatus=typeof ASSET_STATUSES[number];
 export type AssetKind='sample'|'midi'|'procedural';
 export type AssetFormat='wav'|'ogg'|'midi'|'procedural';
@@ -46,7 +50,7 @@ export interface AudioDefinitionV2 {
  music:MusicProfileV2;ambience:Record<string,AmbienceProfile>;emitters:AudioEmitter[];
 }
 /** Limits depend on the asset kind and how it is loaded (embedded vs static file). */
-export const AUDIO_V2_LIMITS={assets:512,embeddedAssets:64,embeddedBytes:4_194_304,embeddedFileBytes:1_048_576,staticSampleBytes:2_097_152,staticMidiBytes:1_048_576,sampleSeconds:12,proceduralSeconds:4,proceduralAssets:128,events:1024,variants:32,scores:64,cues:64,cueScores:8,profiles:64,layers:8,emitters:1000} as const;
+export const AUDIO_V2_LIMITS={assets:512,embeddedAssets:64,embeddedBytes:4_194_304,embeddedFileBytes:1_048_576,staticSampleBytes:2_097_152,staticMidiBytes:1_048_576,sampleSeconds:12,proceduralSeconds:4,proceduralAssets:128,events:1024,variants:64,scores:64,cues:64,cueScores:8,profiles:64,layers:8,emitters:1000} as const;
 
 const blocked=new Set(['__proto__','prototype','constructor']);
 const obj=(v:unknown):v is Record<string,unknown>=>!!v&&typeof v==='object'&&!Array.isArray(v);
@@ -57,7 +61,7 @@ function need(ok:boolean,message:string):asserts ok {if(!ok)throw Error(message)
 function range(v:unknown,min:number,max:number,path:string):[number,number]{need(Array.isArray(v)&&v.length===2&&num(v[0],min,max)&&num(v[1],min,max)&&v[0]<=v[1],`${path} : intervalle invalide`);return [v[0],v[1]] as [number,number];}
 const URI=/^audio\/[a-z0-9][a-z0-9._-]*(\/[a-z0-9][a-z0-9._-]*){0,4}$/;
 const EXT:Record<string,AssetFormat>={wav:'wav',ogg:'ogg',mid:'midi',midi:'midi'};
-export const playableStatus=(s:AssetStatus)=>s==='GENERATED'||s==='VERIFIED';
+export const playableStatus=(s:AssetStatus)=>s==='GENERATED'||s==='TECHNICALLY_VALID'||s==='LISTENING_REVIEW'||s==='VERIFIED';
 /** True when the runtime may try to load/play the asset (it can still fail to download). */
 export const assetPlayable=(a:AudioAssetV2|undefined):a is AudioAssetV2=>!!a&&playableStatus(a.status)&&(a.uri!==undefined||a.bytesBase64!==undefined||a.procedural!==undefined);
 export function validAudioUri(uri:unknown):uri is string {return typeof uri==='string'&&uri.length<=200&&URI.test(uri)&&!uri.includes('..')&&!uri.includes('//');}
@@ -83,7 +87,7 @@ function parseAsset(id:string,v:unknown,totals:{embedded:number;embeddedCount:nu
  if(v.usage!==undefined)need(['sfx','ambience','music','ui'].includes(v.usage as string),p+' : usage inconnu');
  const sources=['uri','bytesBase64','procedural'].filter(k=>v[k]!==undefined);need(sources.length<=1,p+' : une seule source (fichier, données intégrées ou synthèse)');
  if(v.status==='PLANNED')need(sources.length===0,p+' : une ressource PLANNED ne peut pas référencer de fichier fictif');
- if(v.status==='GENERATED'||v.status==='VERIFIED')need(sources.length===1,p+' : ressource disponible sans source');
+ if(playableStatus(v.status as AssetStatus))need(sources.length===1,p+' : ressource disponible sans source');
  if(v.uri!==undefined){need(validAudioUri(v.uri),p+' : chemin relatif « audio/… » requis (aucune URL absolue)');const ext=(v.uri as string).split('.').pop()!;need(EXT[ext]===v.format,p+' : extension et format incohérents');
   if(v.bytes!==undefined)need(Number.isInteger(v.bytes)&&num(v.bytes,1,v.kind==='midi'?AUDIO_V2_LIMITS.staticMidiBytes:AUDIO_V2_LIMITS.staticSampleBytes),p+' : fichier trop volumineux');}
  if(v.bytesBase64!==undefined){need(text(v.bytesBase64,1_400_000),p+' : données intégrées invalides');need(v.format==='wav'||v.format==='midi',p+' : seuls WAV PCM et MIDI peuvent être intégrés au projet');const bytes=base64Bytes(v.bytesBase64 as string);
@@ -108,7 +112,7 @@ function parseEvent(id:string,v:unknown,assets:Record<string,AudioAssetV2>):Soun
  need(num(v.gain,0,1)&&num(v.pitch,.5,2)&&num(v.pitchJitter,0,2)&&num(v.gainJitter,0,.5),p+' : gain/hauteur hors limites (jitter ≤ 2 demi-tons)');
  need(num(v.cooldownMs,0,60000)&&num(v.priority,0,10)&&Number.isInteger(v.maxInstances)&&num(v.maxInstances,1,16)&&num(v.radius,1,200)&&num(v.maxLatencyMs,0,2000),p+' : limites de lecture invalides');
  need(v.steal==='oldest'||v.steal==='none',p+' : politique de vol invalide');need(typeof v.spatial==='boolean'&&typeof v.loop==='boolean',p+' : spatial/loop booléens');need((REPEAT_MODES as readonly unknown[]).includes(v.repeat),p+' : politique de répétition inconnue');
- need(Array.isArray(v.variants)&&v.variants.length<=AUDIO_V2_LIMITS.variants,p+' : 32 variantes maximum');
+ need(Array.isArray(v.variants)&&v.variants.length<=AUDIO_V2_LIMITS.variants,p+' : 64 variantes maximum');
  v.variants.forEach((variant,i)=>{const vp=`${p} variante ${i+1}`;need(obj(variant),vp+' invalide');keys(variant,['assetId','weight','gain','pitch','when'],vp);need(text(variant.assetId)&&Object.hasOwn(assets,variant.assetId as string),vp+' : ressource absente « '+String(variant.assetId)+' »');
   need(assets[variant.assetId as string].kind!=='midi',vp+' : une partition MIDI n’est pas un bruitage');need(num(variant.weight,.001,100),vp+' : poids invalide');
   if(variant.gain!==undefined)need(num(variant.gain,0,1.5),vp+' : gain invalide');if(variant.pitch!==undefined)need(num(variant.pitch,.5,2),vp+' : hauteur invalide');if(variant.when!==undefined)parseCondition(variant.when,vp);});

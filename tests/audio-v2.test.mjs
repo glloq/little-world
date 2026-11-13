@@ -15,7 +15,7 @@ import {validateAudioLinks} from '../src/audio/schema.ts';
 import {createProject,parseProject} from '../src/studio-core/schema.ts';
 import {writeProjectArchive,readProjectArchive} from '../src/studio-core/archive.ts';
 const json=async path=>JSON.parse(await readFile(new URL(path,import.meta.url),'utf8'));
-const v1=await json('../public/audio/default.json'),catalog=await json('../public/audio/catalog.json'),manifest=await json('../assets/audio/production-manifest.json');
+const v1=await json('../public/audio/default.json'),catalog=await json('../public/audio/catalog.json'),manifest=await json('../assets/audio/production-manifest.json'),produced=await json('../assets/audio/produced.json');
 const picker=(seed=7)=>new VariantPicker(seededRandom(seed));
 const asset=(id,extra={})=>({id,name:id,kind:'sample',format:'wav',status:'GENERATED',license:'CC0-1.0',source:'test',uri:`audio/test/${id}.wav`,...extra});
 const event=(id,extra={})=>({id,category:'movement',bus:'sfx',variants:[],gain:1,pitch:1,pitchJitter:0,gainJitter:0,cooldownMs:0,priority:4,maxInstances:2,steal:'oldest',spatial:true,radius:20,loop:false,repeat:'random',maxLatencyMs:0,...extra});
@@ -30,13 +30,13 @@ test('shipped V2 catalogue validates; PLANNED resources carry no fictive file re
  for(const id of ['forest','plain','swamp','desert','mountain','volcano','coast','river','lake','waterfall','village','farm','mine','ruins','weather','night','underwater'])assert.ok(c.ambience[id],id);
 });
 test('library files are local static files whose bytes match the catalogue hashes and the V1 base64',async()=>{
- const c=parseAudioDefinitionV2(catalog);for(const a of Object.values(c.assets).filter(a=>a.uri)){const bytes=await readFile(new URL('../public/'+a.uri,import.meta.url));assert.equal(bytes.length,a.bytes);assert.equal('sha256-'+createHash('sha256').update(bytes).digest('hex'),a.contentHash);assert.equal(bytes.toString('base64'),v1.assets[a.id].bytesBase64);}
+ const c=parseAudioDefinitionV2(catalog);for(const a of Object.values(c.assets).filter(a=>a.uri?.startsWith('audio/library/'))){const bytes=await readFile(new URL('../public/'+a.uri,import.meta.url));assert.equal(bytes.length,a.bytes);assert.equal('sha256-'+createHash('sha256').update(bytes).digest('hex'),a.contentHash);assert.equal(bytes.toString('base64'),v1.assets[a.id].bytesBase64);}
 });
-test('production manifest covers every PLANNED file once, with stable unique paths and a bounded enriched-beta target',()=>{
+test('production manifest covers every PLANNED file once, with stable unique paths and consistent counts',()=>{
  const c=parseAudioDefinitionV2(catalog),planned=Object.values(c.assets).filter(a=>a.status==='PLANNED').map(a=>a.id).sort();
  assert.deepEqual(manifest.items.map(i=>i.assetId).sort(),planned);assert.equal(new Set(manifest.items.map(i=>i.file)).size,manifest.items.length);
- for(const i of manifest.items){assert.match(i.file,i.kind==='midi'?/^audio\/music\/[a-z0-9-]+\.mid$/:/^audio\/(sfx\/[a-z]+|ambience)\/[a-z0-9-]+\.ogg$/);assert.ok(i.brief.length>10&&i.events.length>=1&&i.durationSeconds[0]<=i.durationSeconds[1]);assert.ok(i.durationSeconds[1]<=(i.kind==='midi'?120:AUDIO_V2_LIMITS.sampleSeconds));if(i.loop&&i.kind==='sample')assert.ok(i.durationSeconds[1]<=8,'loops fit the eco PCM budget');}
- const s=manifest.summary;assert.equal(s.b1+s.byWave[2],s.enrichedBeta);assert.ok(s.enrichedBeta>=80&&s.enrichedBeta<=120,`enriched beta ${s.enrichedBeta}`);assert.ok(s.b1<s.enrichedBeta);
+ for(const i of manifest.items){assert.match(i.file,i.kind==='midi'?/^audio\/music\/[a-z0-9-]+\.mid$/:/^audio\/(sfx|ambience)\/[a-z]+\/[a-z0-9-]+\.wav$/);assert.ok(i.brief.length>10&&i.events.length>=1&&i.durationSeconds[0]<=i.durationSeconds[1]);assert.ok(i.durationSeconds[1]<=(i.kind==='midi'?120:AUDIO_V2_LIMITS.sampleSeconds));if(i.loop&&i.kind==='sample')assert.ok(i.durationSeconds[1]<=8,'loops fit the eco PCM budget');}
+ const s=manifest.summary;assert.equal(s.b1+s.byWave[2],s.enrichedBeta);assert.equal(s.plannedFiles,manifest.items.length);assert.equal(s.producedFiles,Object.keys(produced.files).length);assert.equal(s.byWave[1]+s.byWave[2]+s.byWave[3],s.plannedFiles);
 });
 test('V1 → V2 migration is pure, keeps ids, gains, scores, emitters and the legacy music/ambience behaviour',()=>{
  const input=structuredClone(v1);input.emitters=[{id:'mill',position:{x:1,y:2,z:3},soundId:'water',radius:30,loop:true,priority:3}];const before=JSON.stringify(input),out=migrateAudioV1toV2(input);
@@ -151,7 +151,7 @@ test('installing the shipped catalogue on a migrated V1 project keeps every auth
  const {mergeAudioCatalogs}=await import('../src/audio/migrate.ts');const custom=structuredClone(v1);custom.sounds.collect.gain=.2;custom.emitters=[{id:'e',position:{x:0,y:0,z:0},soundId:'water',radius:10,loop:true,priority:1}];
  const base=migrateAudioV1toV2(custom),merged=mergeAudioCatalogs(base,parseAudioDefinitionV2(catalog));
  assert.equal(merged.events.collect.gain,.2);assert.ok(merged.events['player.footstep'].variants.length>10&&merged.events['player.footstep'].fallback==='step','migration alias replaced by the richer built-in event');
- const p=picker();assert.equal(resolveSound(merged,'player.footstep',{surface:'grass'},p).sound.asset.id,'sample-step');assert.equal(resolveSound(merged,'interaction.collect',{},p).sound.gain,.2,'fallback still uses the author gain');assert.deepEqual(merged.emitters,custom.emitters);assert.ok(merged.events['mine.hit']&&merged.ambience.forest&&merged.music.cues.mine);
+ const p=picker();assert.match(resolveSound(merged,'player.footstep',{surface:'grass'},p).sound.asset.id,/^fs-grass-0[1-4]$/,'produced takes beat the V1 fallback');assert.equal(resolveSound(merged,'collect',{},p).sound.gain,.2,'author V1 sound keeps its gain');assert.match(resolveSound(merged,'interaction.collect',{},p).sound.asset.id,/^pickup-/);assert.deepEqual(merged.emitters,custom.emitters);assert.ok(merged.events['mine.hit']&&merged.ambience.forest&&merged.music.cues.mine);
  assert.ok(merged.ambience.legacy&&!merged.ambience.weather,'no doubled rain/water layers');assert.equal(merged.music.cues.day,undefined);assert.deepEqual(Object.keys(merged.music.cues).filter(k=>k.startsWith('explore')).sort(),['explore.day','explore.night']);
  assert.equal(merged.assets['sample-collect'].bytesBase64,v1.assets['sample-collect'].bytesBase64,'embedded V1 bytes kept (portable)');
 });
@@ -165,4 +165,10 @@ test('a produced file replaces its PLANNED entry: probed metadata, played instea
  const r=resolveSound(c,'player.footstep',{surface:'grass'},picker());assert.equal(r.sound.asset.id,'fs-grass-01');assert.deepEqual(r.sound.path,['player.footstep']);
  assert.throws(()=>buildAudioCatalog(library,{'sample-step':{uri:'audio/x.wav'}}),/inconnue ou déjà disponible/);
  assert.throws(()=>probeOgg(wav),/OggS/);
+});
+test('router: surface place changes need 800 ms of stability (no ambience flicker at biome borders); mine and underwater are immediate',()=>{
+ const r=new AudioEventRouter(()=>{});let t=0;const at=(place,extra={})=>{t+=100;r.observe(frame(t,extra,{place}));return r.context.place;};
+ assert.equal(at('forest'),'forest');for(let i=0;i<6;i++)assert.equal(at(i%2?'forest':'plain'),'forest','flicker ignored');
+ for(let i=0;i<8;i++)at('plain');assert.equal(at('plain'),'plain','stable change adopted');
+ assert.equal(at('plain',{space:{zoneId:'m',levelId:'l0'}}),'mine');assert.equal(at('plain'),'plain','leaving a mine is immediate too');
 });

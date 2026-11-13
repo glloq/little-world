@@ -4,27 +4,27 @@
  "generatedBy": "tools/generate-audio.mjs (npm run generate:audio)",
  "purpose": "Cahier des charges machine-readable des ressources audio Little World à produire (statut PLANNED dans public/audio/catalog.json).",
  "summary": {
-  "plannedFiles": 160,
-  "producedFiles": 0,
-  "samples": 143,
+  "plannedFiles": 135,
+  "producedFiles": 112,
+  "samples": 118,
   "midi": 17,
   "byWave": {
-   "1": 54,
-   "2": 63,
-   "3": 43
+   "1": 23,
+   "2": 48,
+   "3": 64
   },
-  "b1": 54,
-  "enrichedBeta": 117,
-  "optional": 43,
-  "events": 107,
-  "eventsPlayableNow": 22,
+  "b1": 23,
+  "enrichedBeta": 71,
+  "optional": 64,
+  "events": 108,
+  "eventsPlayableNow": 53,
   "libraryFiles": 8,
   "proceduralAssets": 5
  },
  "conventions": {
   "delivery": "Déposer chaque fichier au chemin `file` (relatif à public/), puis passer l’asset du catalogue de PLANNED à GENERATED avec uri, bytes, duration, channels, sampleRate, contentHash (sha256-…), generatorVersion et source (outil, version, graine/prompt). VERIFIED seulement après écoute humaine.",
   "samples": {
-   "format": "Ogg Vorbis (qualité ≈ 4–5), mono, 44 100 ou 48 000 Hz ; WAV PCM 16 bits accepté si l’encodeur Ogg manque",
+   "format": "WAV PCM 16 bits mono, 44 100 Hz (22 050 Hz admis pour les fonds sans aigus) ; Ogg Vorbis possible après test navigateur",
    "maxBytes": 2097152,
    "maxSeconds": 12,
    "peakDbfs": -1,
@@ -53,650 +53,15 @@
  },
  "items": [
   {
-   "assetId": "fs-grass-01",
-   "file": "audio/sfx/movement/fs-grass-01.ogg",
-   "kind": "sample",
-   "format": "ogg",
-   "wave": 1,
-   "priority": "B1",
-   "group": "fs-grass",
-   "take": 1,
-   "takes": 3,
-   "durationSeconds": [
-    0.15,
-    0.3
-   ],
-   "loop": false,
-   "channels": 1,
-   "events": [
-    "player.footstep"
-   ],
-   "reusedBy": [],
-   "condition": {
-    "surface": [
-     "grass"
-    ]
-   },
-   "brief": "Pas léger de petit animal sur herbe courte : froissement doux, attaque nette, aucune réverbération."
-  },
-  {
-   "assetId": "fs-grass-02",
-   "file": "audio/sfx/movement/fs-grass-02.ogg",
-   "kind": "sample",
-   "format": "ogg",
-   "wave": 1,
-   "priority": "B1",
-   "group": "fs-grass",
-   "take": 2,
-   "takes": 3,
-   "durationSeconds": [
-    0.15,
-    0.3
-   ],
-   "loop": false,
-   "channels": 1,
-   "events": [
-    "player.footstep"
-   ],
-   "reusedBy": [],
-   "condition": {
-    "surface": [
-     "grass"
-    ]
-   },
-   "brief": "Pas léger de petit animal sur herbe courte : froissement doux, attaque nette, aucune réverbération."
-  },
-  {
-   "assetId": "fs-grass-03",
-   "file": "audio/sfx/movement/fs-grass-03.ogg",
-   "kind": "sample",
-   "format": "ogg",
-   "wave": 1,
-   "priority": "B1",
-   "group": "fs-grass",
-   "take": 3,
-   "takes": 3,
-   "durationSeconds": [
-    0.15,
-    0.3
-   ],
-   "loop": false,
-   "channels": 1,
-   "events": [
-    "player.footstep"
-   ],
-   "reusedBy": [],
-   "condition": {
-    "surface": [
-     "grass"
-    ]
-   },
-   "brief": "Pas léger de petit animal sur herbe courte : froissement doux, attaque nette, aucune réverbération."
-  },
-  {
-   "assetId": "fs-dirt-01",
-   "file": "audio/sfx/movement/fs-dirt-01.ogg",
-   "kind": "sample",
-   "format": "ogg",
-   "wave": 1,
-   "priority": "B1",
-   "group": "fs-dirt",
-   "take": 1,
-   "takes": 3,
-   "durationSeconds": [
-    0.15,
-    0.3
-   ],
-   "loop": false,
-   "channels": 1,
-   "events": [
-    "player.footstep"
-   ],
-   "reusedBy": [],
-   "condition": {
-    "surface": [
-     "dirt"
-    ]
-   },
-   "brief": "Pas sur terre sèche tassée : contact mat, légère poussière, sans grain de gravier."
-  },
-  {
-   "assetId": "fs-dirt-02",
-   "file": "audio/sfx/movement/fs-dirt-02.ogg",
-   "kind": "sample",
-   "format": "ogg",
-   "wave": 1,
-   "priority": "B1",
-   "group": "fs-dirt",
-   "take": 2,
-   "takes": 3,
-   "durationSeconds": [
-    0.15,
-    0.3
-   ],
-   "loop": false,
-   "channels": 1,
-   "events": [
-    "player.footstep"
-   ],
-   "reusedBy": [],
-   "condition": {
-    "surface": [
-     "dirt"
-    ]
-   },
-   "brief": "Pas sur terre sèche tassée : contact mat, légère poussière, sans grain de gravier."
-  },
-  {
-   "assetId": "fs-dirt-03",
-   "file": "audio/sfx/movement/fs-dirt-03.ogg",
-   "kind": "sample",
-   "format": "ogg",
-   "wave": 2,
-   "priority": "post-B1",
-   "group": "fs-dirt",
-   "take": 3,
-   "takes": 3,
-   "durationSeconds": [
-    0.15,
-    0.3
-   ],
-   "loop": false,
-   "channels": 1,
-   "events": [
-    "player.footstep"
-   ],
-   "reusedBy": [],
-   "condition": {
-    "surface": [
-     "dirt"
-    ]
-   },
-   "brief": "Pas sur terre sèche tassée : contact mat, légère poussière, sans grain de gravier."
-  },
-  {
-   "assetId": "fs-stone-01",
-   "file": "audio/sfx/movement/fs-stone-01.ogg",
-   "kind": "sample",
-   "format": "ogg",
-   "wave": 1,
-   "priority": "B1",
-   "group": "fs-stone",
-   "take": 1,
-   "takes": 3,
-   "durationSeconds": [
-    0.12,
-    0.28
-   ],
-   "loop": false,
-   "channels": 1,
-   "events": [
-    "player.footstep"
-   ],
-   "reusedBy": [],
-   "condition": {
-    "surface": [
-     "stone"
-    ]
-   },
-   "brief": "Pas sur pierre/roche : clic sec et court, petite queue sans écho de grotte (l’écho viendra de l’ambiance)."
-  },
-  {
-   "assetId": "fs-stone-02",
-   "file": "audio/sfx/movement/fs-stone-02.ogg",
-   "kind": "sample",
-   "format": "ogg",
-   "wave": 1,
-   "priority": "B1",
-   "group": "fs-stone",
-   "take": 2,
-   "takes": 3,
-   "durationSeconds": [
-    0.12,
-    0.28
-   ],
-   "loop": false,
-   "channels": 1,
-   "events": [
-    "player.footstep"
-   ],
-   "reusedBy": [],
-   "condition": {
-    "surface": [
-     "stone"
-    ]
-   },
-   "brief": "Pas sur pierre/roche : clic sec et court, petite queue sans écho de grotte (l’écho viendra de l’ambiance)."
-  },
-  {
-   "assetId": "fs-stone-03",
-   "file": "audio/sfx/movement/fs-stone-03.ogg",
-   "kind": "sample",
-   "format": "ogg",
-   "wave": 2,
-   "priority": "post-B1",
-   "group": "fs-stone",
-   "take": 3,
-   "takes": 3,
-   "durationSeconds": [
-    0.12,
-    0.28
-   ],
-   "loop": false,
-   "channels": 1,
-   "events": [
-    "player.footstep"
-   ],
-   "reusedBy": [],
-   "condition": {
-    "surface": [
-     "stone"
-    ]
-   },
-   "brief": "Pas sur pierre/roche : clic sec et court, petite queue sans écho de grotte (l’écho viendra de l’ambiance)."
-  },
-  {
-   "assetId": "fs-wood-01",
-   "file": "audio/sfx/movement/fs-wood-01.ogg",
-   "kind": "sample",
-   "format": "ogg",
-   "wave": 1,
-   "priority": "B1",
-   "group": "fs-wood",
-   "take": 1,
-   "takes": 2,
-   "durationSeconds": [
-    0.15,
-    0.3
-   ],
-   "loop": false,
-   "channels": 1,
-   "events": [
-    "player.footstep"
-   ],
-   "reusedBy": [],
-   "condition": {
-    "surface": [
-     "wood"
-    ]
-   },
-   "brief": "Pas sur planche de bois (pont, ponton, pont de bateau) : toc creux et chaleureux."
-  },
-  {
-   "assetId": "fs-wood-02",
-   "file": "audio/sfx/movement/fs-wood-02.ogg",
-   "kind": "sample",
-   "format": "ogg",
-   "wave": 1,
-   "priority": "B1",
-   "group": "fs-wood",
-   "take": 2,
-   "takes": 2,
-   "durationSeconds": [
-    0.15,
-    0.3
-   ],
-   "loop": false,
-   "channels": 1,
-   "events": [
-    "player.footstep"
-   ],
-   "reusedBy": [],
-   "condition": {
-    "surface": [
-     "wood"
-    ]
-   },
-   "brief": "Pas sur planche de bois (pont, ponton, pont de bateau) : toc creux et chaleureux."
-  },
-  {
-   "assetId": "fs-water-01",
-   "file": "audio/sfx/movement/fs-water-01.ogg",
-   "kind": "sample",
-   "format": "ogg",
-   "wave": 1,
-   "priority": "B1",
-   "group": "fs-water",
-   "take": 1,
-   "takes": 2,
-   "durationSeconds": [
-    0.2,
-    0.4
-   ],
-   "loop": false,
-   "channels": 1,
-   "events": [
-    "player.footstep"
-   ],
-   "reusedBy": [
-    {
-     "eventId": "water.exit",
-     "gain": 1.1,
-     "pitch": 0.95
-    }
-   ],
-   "condition": {
-    "surface": [
-     "water"
-    ]
-   },
-   "brief": "Pas dans l’eau peu profonde : petite éclaboussure, gouttes, sans immersion."
-  },
-  {
-   "assetId": "fs-water-02",
-   "file": "audio/sfx/movement/fs-water-02.ogg",
-   "kind": "sample",
-   "format": "ogg",
-   "wave": 1,
-   "priority": "B1",
-   "group": "fs-water",
-   "take": 2,
-   "takes": 2,
-   "durationSeconds": [
-    0.2,
-    0.4
-   ],
-   "loop": false,
-   "channels": 1,
-   "events": [
-    "player.footstep"
-   ],
-   "reusedBy": [
-    {
-     "eventId": "water.exit",
-     "gain": 1.1,
-     "pitch": 0.95
-    }
-   ],
-   "condition": {
-    "surface": [
-     "water"
-    ]
-   },
-   "brief": "Pas dans l’eau peu profonde : petite éclaboussure, gouttes, sans immersion."
-  },
-  {
-   "assetId": "fs-grass-wet-01",
-   "file": "audio/sfx/movement/fs-grass-wet-01.ogg",
-   "kind": "sample",
-   "format": "ogg",
-   "wave": 2,
-   "priority": "post-B1",
-   "group": "fs-grass-wet",
-   "take": 1,
-   "takes": 2,
-   "durationSeconds": [
-    0.18,
-    0.32
-   ],
-   "loop": false,
-   "channels": 1,
-   "events": [
-    "player.footstep"
-   ],
-   "reusedBy": [],
-   "condition": {
-    "surface": [
-     "grass"
-    ],
-    "wet": true
-   },
-   "brief": "Pas sur herbe mouillée : froissement plus humide et légèrement collant que fs-grass."
-  },
-  {
-   "assetId": "fs-grass-wet-02",
-   "file": "audio/sfx/movement/fs-grass-wet-02.ogg",
-   "kind": "sample",
-   "format": "ogg",
-   "wave": 2,
-   "priority": "post-B1",
-   "group": "fs-grass-wet",
-   "take": 2,
-   "takes": 2,
-   "durationSeconds": [
-    0.18,
-    0.32
-   ],
-   "loop": false,
-   "channels": 1,
-   "events": [
-    "player.footstep"
-   ],
-   "reusedBy": [],
-   "condition": {
-    "surface": [
-     "grass"
-    ],
-    "wet": true
-   },
-   "brief": "Pas sur herbe mouillée : froissement plus humide et légèrement collant que fs-grass."
-  },
-  {
-   "assetId": "fs-tallgrass-01",
-   "file": "audio/sfx/movement/fs-tallgrass-01.ogg",
-   "kind": "sample",
-   "format": "ogg",
-   "wave": 2,
-   "priority": "post-B1",
-   "group": "fs-tallgrass",
-   "take": 1,
-   "takes": 2,
-   "durationSeconds": [
-    0.25,
-    0.45
-   ],
-   "loop": false,
-   "channels": 1,
-   "events": [
-    "player.footstep"
-   ],
-   "reusedBy": [],
-   "condition": {
-    "surface": [
-     "tallGrass"
-    ]
-   },
-   "brief": "Passage dans herbe haute : froissement plus long, tiges qui frottent."
-  },
-  {
-   "assetId": "fs-tallgrass-02",
-   "file": "audio/sfx/movement/fs-tallgrass-02.ogg",
-   "kind": "sample",
-   "format": "ogg",
-   "wave": 2,
-   "priority": "post-B1",
-   "group": "fs-tallgrass",
-   "take": 2,
-   "takes": 2,
-   "durationSeconds": [
-    0.25,
-    0.45
-   ],
-   "loop": false,
-   "channels": 1,
-   "events": [
-    "player.footstep"
-   ],
-   "reusedBy": [],
-   "condition": {
-    "surface": [
-     "tallGrass"
-    ]
-   },
-   "brief": "Passage dans herbe haute : froissement plus long, tiges qui frottent."
-  },
-  {
-   "assetId": "fs-mud-01",
-   "file": "audio/sfx/movement/fs-mud-01.ogg",
-   "kind": "sample",
-   "format": "ogg",
-   "wave": 2,
-   "priority": "post-B1",
-   "group": "fs-mud",
-   "take": 1,
-   "takes": 2,
-   "durationSeconds": [
-    0.2,
-    0.4
-   ],
-   "loop": false,
-   "channels": 1,
-   "events": [
-    "player.footstep"
-   ],
-   "reusedBy": [],
-   "condition": {
-    "surface": [
-     "mud"
-    ]
-   },
-   "brief": "Pas dans la boue / terre détrempée : succion légère, humide."
-  },
-  {
-   "assetId": "fs-mud-02",
-   "file": "audio/sfx/movement/fs-mud-02.ogg",
-   "kind": "sample",
-   "format": "ogg",
-   "wave": 2,
-   "priority": "post-B1",
-   "group": "fs-mud",
-   "take": 2,
-   "takes": 2,
-   "durationSeconds": [
-    0.2,
-    0.4
-   ],
-   "loop": false,
-   "channels": 1,
-   "events": [
-    "player.footstep"
-   ],
-   "reusedBy": [],
-   "condition": {
-    "surface": [
-     "mud"
-    ]
-   },
-   "brief": "Pas dans la boue / terre détrempée : succion légère, humide."
-  },
-  {
-   "assetId": "fs-sand-01",
-   "file": "audio/sfx/movement/fs-sand-01.ogg",
-   "kind": "sample",
-   "format": "ogg",
-   "wave": 2,
-   "priority": "post-B1",
-   "group": "fs-sand",
-   "take": 1,
-   "takes": 2,
-   "durationSeconds": [
-    0.18,
-    0.35
-   ],
-   "loop": false,
-   "channels": 1,
-   "events": [
-    "player.footstep"
-   ],
-   "reusedBy": [],
-   "condition": {
-    "surface": [
-     "sand"
-    ]
-   },
-   "brief": "Pas sur sable sec de plage : crissement fin et étouffé."
-  },
-  {
-   "assetId": "fs-sand-02",
-   "file": "audio/sfx/movement/fs-sand-02.ogg",
-   "kind": "sample",
-   "format": "ogg",
-   "wave": 2,
-   "priority": "post-B1",
-   "group": "fs-sand",
-   "take": 2,
-   "takes": 2,
-   "durationSeconds": [
-    0.18,
-    0.35
-   ],
-   "loop": false,
-   "channels": 1,
-   "events": [
-    "player.footstep"
-   ],
-   "reusedBy": [],
-   "condition": {
-    "surface": [
-     "sand"
-    ]
-   },
-   "brief": "Pas sur sable sec de plage : crissement fin et étouffé."
-  },
-  {
-   "assetId": "fs-gravel-01",
-   "file": "audio/sfx/movement/fs-gravel-01.ogg",
-   "kind": "sample",
-   "format": "ogg",
-   "wave": 2,
-   "priority": "post-B1",
-   "group": "fs-gravel",
-   "take": 1,
-   "takes": 2,
-   "durationSeconds": [
-    0.18,
-    0.35
-   ],
-   "loop": false,
-   "channels": 1,
-   "events": [
-    "player.footstep"
-   ],
-   "reusedBy": [],
-   "condition": {
-    "surface": [
-     "gravel"
-    ]
-   },
-   "brief": "Pas sur gravier de chemin : petits cailloux qui roulent."
-  },
-  {
-   "assetId": "fs-gravel-02",
-   "file": "audio/sfx/movement/fs-gravel-02.ogg",
-   "kind": "sample",
-   "format": "ogg",
-   "wave": 2,
-   "priority": "post-B1",
-   "group": "fs-gravel",
-   "take": 2,
-   "takes": 2,
-   "durationSeconds": [
-    0.18,
-    0.35
-   ],
-   "loop": false,
-   "channels": 1,
-   "events": [
-    "player.footstep"
-   ],
-   "reusedBy": [],
-   "condition": {
-    "surface": [
-     "gravel"
-    ]
-   },
-   "brief": "Pas sur gravier de chemin : petits cailloux qui roulent."
-  },
-  {
    "assetId": "fs-metal-01",
-   "file": "audio/sfx/movement/fs-metal-01.ogg",
+   "file": "audio/sfx/footsteps/fs-metal-01.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 3,
    "priority": "post-B1",
    "group": "fs-metal",
    "take": 1,
-   "takes": 2,
+   "takes": 3,
    "durationSeconds": [
     0.15,
     0.3
@@ -716,14 +81,41 @@
   },
   {
    "assetId": "fs-metal-02",
-   "file": "audio/sfx/movement/fs-metal-02.ogg",
+   "file": "audio/sfx/footsteps/fs-metal-02.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 3,
    "priority": "post-B1",
    "group": "fs-metal",
    "take": 2,
-   "takes": 2,
+   "takes": 3,
+   "durationSeconds": [
+    0.15,
+    0.3
+   ],
+   "loop": false,
+   "channels": 1,
+   "events": [
+    "player.footstep"
+   ],
+   "reusedBy": [],
+   "condition": {
+    "surface": [
+     "metal"
+    ]
+   },
+   "brief": "Pas sur grille/plaque métallique : tintement court et sourd, sans résonance longue."
+  },
+  {
+   "assetId": "fs-metal-03",
+   "file": "audio/sfx/footsteps/fs-metal-03.wav",
+   "kind": "sample",
+   "format": "wav",
+   "wave": 3,
+   "priority": "post-B1",
+   "group": "fs-metal",
+   "take": 3,
+   "takes": 3,
    "durationSeconds": [
     0.15,
     0.3
@@ -743,14 +135,14 @@
   },
   {
    "assetId": "fs-snow-01",
-   "file": "audio/sfx/movement/fs-snow-01.ogg",
+   "file": "audio/sfx/footsteps/fs-snow-01.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 3,
    "priority": "post-B1",
    "group": "fs-snow",
    "take": 1,
-   "takes": 2,
+   "takes": 3,
    "durationSeconds": [
     0.2,
     0.4
@@ -770,14 +162,14 @@
   },
   {
    "assetId": "fs-snow-02",
-   "file": "audio/sfx/movement/fs-snow-02.ogg",
+   "file": "audio/sfx/footsteps/fs-snow-02.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 3,
    "priority": "post-B1",
    "group": "fs-snow",
    "take": 2,
-   "takes": 2,
+   "takes": 3,
    "durationSeconds": [
     0.2,
     0.4
@@ -796,59 +188,15 @@
    "brief": "Pas dans neige fraîche : compression feutrée (neige éventuelle)."
   },
   {
-   "assetId": "jump-01",
-   "file": "audio/sfx/movement/jump-01.ogg",
+   "assetId": "fs-snow-03",
+   "file": "audio/sfx/footsteps/fs-snow-03.wav",
    "kind": "sample",
-   "format": "ogg",
-   "wave": 1,
-   "priority": "B1",
-   "group": "jump",
-   "take": 1,
-   "takes": 2,
-   "durationSeconds": [
-    0.15,
-    0.35
-   ],
-   "loop": false,
-   "channels": 1,
-   "events": [
-    "player.jump"
-   ],
-   "reusedBy": [],
-   "brief": "Souffle d’impulsion très court (petit animal), léger « hop » sans voix humaine."
-  },
-  {
-   "assetId": "jump-02",
-   "file": "audio/sfx/movement/jump-02.ogg",
-   "kind": "sample",
-   "format": "ogg",
-   "wave": 2,
+   "format": "wav",
+   "wave": 3,
    "priority": "post-B1",
-   "group": "jump",
-   "take": 2,
-   "takes": 2,
-   "durationSeconds": [
-    0.15,
-    0.35
-   ],
-   "loop": false,
-   "channels": 1,
-   "events": [
-    "player.jump"
-   ],
-   "reusedBy": [],
-   "brief": "Souffle d’impulsion très court (petit animal), léger « hop » sans voix humaine."
-  },
-  {
-   "assetId": "land-soft-01",
-   "file": "audio/sfx/movement/land-soft-01.ogg",
-   "kind": "sample",
-   "format": "ogg",
-   "wave": 1,
-   "priority": "B1",
-   "group": "land-soft",
-   "take": 1,
-   "takes": 2,
+   "group": "fs-snow",
+   "take": 3,
+   "takes": 3,
    "durationSeconds": [
     0.2,
     0.4
@@ -856,138 +204,26 @@
    "loop": false,
    "channels": 1,
    "events": [
-    "player.land"
+    "player.footstep"
    ],
    "reusedBy": [],
    "condition": {
-    "intensity": [
-     "light",
-     "medium"
+    "surface": [
+     "snow"
     ]
    },
-   "brief": "Réception souple sur pattes : contact feutré + petit frottement, générique toutes surfaces."
-  },
-  {
-   "assetId": "land-soft-02",
-   "file": "audio/sfx/movement/land-soft-02.ogg",
-   "kind": "sample",
-   "format": "ogg",
-   "wave": 1,
-   "priority": "B1",
-   "group": "land-soft",
-   "take": 2,
-   "takes": 2,
-   "durationSeconds": [
-    0.2,
-    0.4
-   ],
-   "loop": false,
-   "channels": 1,
-   "events": [
-    "player.land"
-   ],
-   "reusedBy": [],
-   "condition": {
-    "intensity": [
-     "light",
-     "medium"
-    ]
-   },
-   "brief": "Réception souple sur pattes : contact feutré + petit frottement, générique toutes surfaces."
-  },
-  {
-   "assetId": "land-heavy-01",
-   "file": "audio/sfx/movement/land-heavy-01.ogg",
-   "kind": "sample",
-   "format": "ogg",
-   "wave": 2,
-   "priority": "post-B1",
-   "group": "land-heavy",
-   "take": 1,
-   "takes": 1,
-   "durationSeconds": [
-    0.3,
-    0.6
-   ],
-   "loop": false,
-   "channels": 1,
-   "events": [
-    "player.land"
-   ],
-   "reusedBy": [],
-   "condition": {
-    "intensity": [
-     "heavy"
-    ]
-   },
-   "brief": "Réception lourde après une longue chute : impact plus grave, sans dégâts ni cri."
-  },
-  {
-   "assetId": "glide-deploy-01",
-   "file": "audio/sfx/movement/glide-deploy-01.ogg",
-   "kind": "sample",
-   "format": "ogg",
-   "wave": 1,
-   "priority": "B1",
-   "group": "glide-deploy",
-   "take": 1,
-   "takes": 2,
-   "durationSeconds": [
-    0.2,
-    0.45
-   ],
-   "loop": false,
-   "channels": 1,
-   "events": [
-    "player.glide.deploy"
-   ],
-   "reusedBy": [
-    {
-     "eventId": "player.glide.fold",
-     "gain": 0.8,
-     "pitch": 0.9
-    }
-   ],
-   "brief": "Membrane/tissu qui se tend d’un coup : « flap » vif, aérien."
-  },
-  {
-   "assetId": "glide-deploy-02",
-   "file": "audio/sfx/movement/glide-deploy-02.ogg",
-   "kind": "sample",
-   "format": "ogg",
-   "wave": 2,
-   "priority": "post-B1",
-   "group": "glide-deploy",
-   "take": 2,
-   "takes": 2,
-   "durationSeconds": [
-    0.2,
-    0.45
-   ],
-   "loop": false,
-   "channels": 1,
-   "events": [
-    "player.glide.deploy"
-   ],
-   "reusedBy": [
-    {
-     "eventId": "player.glide.fold",
-     "gain": 0.8,
-     "pitch": 0.9
-    }
-   ],
-   "brief": "Membrane/tissu qui se tend d’un coup : « flap » vif, aérien."
+   "brief": "Pas dans neige fraîche : compression feutrée (neige éventuelle)."
   },
   {
    "assetId": "slide-01",
-   "file": "audio/sfx/movement/slide-01.ogg",
+   "file": "audio/sfx/player/slide-01.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 3,
    "priority": "post-B1",
    "group": "slide",
    "take": 1,
-   "takes": 1,
+   "takes": 2,
    "durationSeconds": [
     0.5,
     1
@@ -1001,182 +237,15 @@
    "brief": "Glissade sur terre/herbe : frottement continu court."
   },
   {
-   "assetId": "splash-small-01",
-   "file": "audio/sfx/water/splash-small-01.ogg",
+   "assetId": "slide-02",
+   "file": "audio/sfx/player/slide-02.wav",
    "kind": "sample",
-   "format": "ogg",
-   "wave": 1,
-   "priority": "B1",
-   "group": "splash-small",
-   "take": 1,
-   "takes": 2,
-   "durationSeconds": [
-    0.4,
-    0.8
-   ],
-   "loop": false,
-   "channels": 1,
-   "events": [
-    "water.enter"
-   ],
-   "reusedBy": [],
-   "condition": {
-    "intensity": [
-     "light",
-     "medium"
-    ]
-   },
-   "brief": "Éclaboussure moyenne d’un petit animal qui entre dans l’eau, gouttes retombantes."
-  },
-  {
-   "assetId": "splash-small-02",
-   "file": "audio/sfx/water/splash-small-02.ogg",
-   "kind": "sample",
-   "format": "ogg",
-   "wave": 1,
-   "priority": "B1",
-   "group": "splash-small",
+   "format": "wav",
+   "wave": 3,
+   "priority": "post-B1",
+   "group": "slide",
    "take": 2,
    "takes": 2,
-   "durationSeconds": [
-    0.4,
-    0.8
-   ],
-   "loop": false,
-   "channels": 1,
-   "events": [
-    "water.enter"
-   ],
-   "reusedBy": [],
-   "condition": {
-    "intensity": [
-     "light",
-     "medium"
-    ]
-   },
-   "brief": "Éclaboussure moyenne d’un petit animal qui entre dans l’eau, gouttes retombantes."
-  },
-  {
-   "assetId": "splash-big-01",
-   "file": "audio/sfx/water/splash-big-01.ogg",
-   "kind": "sample",
-   "format": "ogg",
-   "wave": 2,
-   "priority": "post-B1",
-   "group": "splash-big",
-   "take": 1,
-   "takes": 1,
-   "durationSeconds": [
-    0.6,
-    1.2
-   ],
-   "loop": false,
-   "channels": 1,
-   "events": [
-    "water.enter"
-   ],
-   "reusedBy": [],
-   "condition": {
-    "intensity": [
-     "heavy"
-    ]
-   },
-   "brief": "Plongeon depuis une hauteur : impact plus ample, bulles."
-  },
-  {
-   "assetId": "swim-01",
-   "file": "audio/sfx/water/swim-01.ogg",
-   "kind": "sample",
-   "format": "ogg",
-   "wave": 1,
-   "priority": "B1",
-   "group": "swim",
-   "take": 1,
-   "takes": 3,
-   "durationSeconds": [
-    0.4,
-    0.8
-   ],
-   "loop": false,
-   "channels": 1,
-   "events": [
-    "water.swim"
-   ],
-   "reusedBy": [
-    {
-     "eventId": "fauna.fish.splash",
-     "gain": 0.5,
-     "pitch": 1.3
-    }
-   ],
-   "brief": "Brasse en surface : eau poussée, petit clapot régulier, sans respiration humaine."
-  },
-  {
-   "assetId": "swim-02",
-   "file": "audio/sfx/water/swim-02.ogg",
-   "kind": "sample",
-   "format": "ogg",
-   "wave": 1,
-   "priority": "B1",
-   "group": "swim",
-   "take": 2,
-   "takes": 3,
-   "durationSeconds": [
-    0.4,
-    0.8
-   ],
-   "loop": false,
-   "channels": 1,
-   "events": [
-    "water.swim"
-   ],
-   "reusedBy": [
-    {
-     "eventId": "fauna.fish.splash",
-     "gain": 0.5,
-     "pitch": 1.3
-    }
-   ],
-   "brief": "Brasse en surface : eau poussée, petit clapot régulier, sans respiration humaine."
-  },
-  {
-   "assetId": "swim-03",
-   "file": "audio/sfx/water/swim-03.ogg",
-   "kind": "sample",
-   "format": "ogg",
-   "wave": 2,
-   "priority": "post-B1",
-   "group": "swim",
-   "take": 3,
-   "takes": 3,
-   "durationSeconds": [
-    0.4,
-    0.8
-   ],
-   "loop": false,
-   "channels": 1,
-   "events": [
-    "water.swim"
-   ],
-   "reusedBy": [
-    {
-     "eventId": "fauna.fish.splash",
-     "gain": 0.5,
-     "pitch": 1.3
-    }
-   ],
-   "brief": "Brasse en surface : eau poussée, petit clapot régulier, sans respiration humaine."
-  },
-  {
-   "assetId": "dive-01",
-   "file": "audio/sfx/water/dive-01.ogg",
-   "kind": "sample",
-   "format": "ogg",
-   "wave": 1,
-   "priority": "B1",
-   "group": "dive",
-   "take": 1,
-   "takes": 1,
    "durationSeconds": [
     0.5,
     1
@@ -1184,43 +253,21 @@
    "loop": false,
    "channels": 1,
    "events": [
-    "water.dive"
+    "player.slide"
    ],
    "reusedBy": [],
-   "brief": "Passage sous l’eau : « bloup » feutré et bulles qui montent."
-  },
-  {
-   "assetId": "resurface-01",
-   "file": "audio/sfx/water/resurface-01.ogg",
-   "kind": "sample",
-   "format": "ogg",
-   "wave": 1,
-   "priority": "B1",
-   "group": "resurface",
-   "take": 1,
-   "takes": 1,
-   "durationSeconds": [
-    0.4,
-    0.9
-   ],
-   "loop": false,
-   "channels": 1,
-   "events": [
-    "water.surface"
-   ],
-   "reusedBy": [],
-   "brief": "Sortie de tête hors de l’eau : ruissellement + petite inspiration animale."
+   "brief": "Glissade sur terre/herbe : frottement continu court."
   },
   {
    "assetId": "lap-01",
-   "file": "audio/sfx/water/lap-01.ogg",
+   "file": "audio/sfx/water/lap-01.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 2,
    "priority": "post-B1",
    "group": "lap",
    "take": 1,
-   "takes": 2,
+   "takes": 3,
    "durationSeconds": [
     0.5,
     1.5
@@ -1235,14 +282,14 @@
   },
   {
    "assetId": "lap-02",
-   "file": "audio/sfx/water/lap-02.ogg",
+   "file": "audio/sfx/water/lap-02.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 2,
    "priority": "post-B1",
    "group": "lap",
    "take": 2,
-   "takes": 2,
+   "takes": 3,
    "durationSeconds": [
     0.5,
     1.5
@@ -1256,13 +303,35 @@
    "brief": "Petite vague qui lèche une berge ou une coque, calme."
   },
   {
-   "assetId": "amb-underwater-01",
-   "file": "audio/ambience/amb-underwater-01.ogg",
+   "assetId": "lap-03",
+   "file": "audio/sfx/water/lap-03.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 2,
    "priority": "post-B1",
-   "group": "amb-underwater",
+   "group": "lap",
+   "take": 3,
+   "takes": 3,
+   "durationSeconds": [
+    0.5,
+    1.5
+   ],
+   "loop": false,
+   "channels": 1,
+   "events": [
+    "water.lap"
+   ],
+   "reusedBy": [],
+   "brief": "Petite vague qui lèche une berge ou une coque, calme."
+  },
+  {
+   "assetId": "amb-rapids-01",
+   "file": "audio/ambience/water/amb-rapids-01.wav",
+   "kind": "sample",
+   "format": "wav",
+   "wave": 2,
+   "priority": "post-B1",
+   "group": "amb-rapids",
    "take": 1,
    "takes": 1,
    "durationSeconds": [
@@ -1272,16 +341,16 @@
    "loop": true,
    "channels": 1,
    "events": [
-    "ambience.underwater"
+    "water.rapids"
    ],
    "reusedBy": [],
-   "brief": "Boucle sans couture : grondement grave étouffé, bulles rares, aucune musique."
+   "brief": "Boucle : eau vive sur des rochers, remous et éclaboussures continues, plus agitée qu’une rivière."
   },
   {
    "assetId": "boat-move-01",
-   "file": "audio/sfx/water/boat-move-01.ogg",
+   "file": "audio/sfx/water/boat-move-01.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 1,
    "priority": "B1",
    "group": "boat-move",
@@ -1300,42 +369,15 @@
    "brief": "Boucle : eau qui glisse le long d’une petite coque en bois, régulière."
   },
   {
-   "assetId": "boat-board-01",
-   "file": "audio/sfx/water/boat-board-01.ogg",
-   "kind": "sample",
-   "format": "ogg",
-   "wave": 1,
-   "priority": "B1",
-   "group": "boat-board",
-   "take": 1,
-   "takes": 1,
-   "durationSeconds": [
-    0.4,
-    0.9
-   ],
-   "loop": false,
-   "channels": 1,
-   "events": [
-    "boat.board"
-   ],
-   "reusedBy": [
-    {
-     "eventId": "boat.disembark",
-     "pitch": 0.92
-    }
-   ],
-   "brief": "Saut sur une barque : toc de bois + léger roulis d’eau."
-  },
-  {
    "assetId": "boat-creak-01",
-   "file": "audio/sfx/water/boat-creak-01.ogg",
+   "file": "audio/sfx/water/boat-creak-01.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 2,
    "priority": "post-B1",
    "group": "boat-creak",
    "take": 1,
-   "takes": 2,
+   "takes": 3,
    "durationSeconds": [
     0.6,
     1.5
@@ -1350,14 +392,36 @@
   },
   {
    "assetId": "boat-creak-02",
-   "file": "audio/sfx/water/boat-creak-02.ogg",
+   "file": "audio/sfx/water/boat-creak-02.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 2,
    "priority": "post-B1",
    "group": "boat-creak",
    "take": 2,
-   "takes": 2,
+   "takes": 3,
+   "durationSeconds": [
+    0.6,
+    1.5
+   ],
+   "loop": false,
+   "channels": 1,
+   "events": [
+    "boat.creak"
+   ],
+   "reusedBy": [],
+   "brief": "Grincement de bois de petite barque, doux."
+  },
+  {
+   "assetId": "boat-creak-03",
+   "file": "audio/sfx/water/boat-creak-03.wav",
+   "kind": "sample",
+   "format": "wav",
+   "wave": 2,
+   "priority": "post-B1",
+   "group": "boat-creak",
+   "take": 3,
+   "takes": 3,
    "durationSeconds": [
     0.6,
     1.5
@@ -1372,14 +436,14 @@
   },
   {
    "assetId": "boat-bump-01",
-   "file": "audio/sfx/water/boat-bump-01.ogg",
+   "file": "audio/sfx/water/boat-bump-01.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 3,
    "priority": "post-B1",
    "group": "boat-bump",
    "take": 1,
-   "takes": 1,
+   "takes": 2,
    "durationSeconds": [
     0.4,
     0.9
@@ -1393,285 +457,37 @@
    "brief": "Coque en bois qui heurte la rive : toc sourd sans casse."
   },
   {
-   "assetId": "mine-hit-soil-01",
-   "file": "audio/sfx/mine/mine-hit-soil-01.ogg",
+   "assetId": "boat-bump-02",
+   "file": "audio/sfx/water/boat-bump-02.wav",
    "kind": "sample",
-   "format": "ogg",
-   "wave": 1,
-   "priority": "B1",
-   "group": "mine-hit-soil",
-   "take": 1,
-   "takes": 2,
-   "durationSeconds": [
-    0.2,
-    0.45
-   ],
-   "loop": false,
-   "channels": 1,
-   "events": [
-    "mine.hit"
-   ],
-   "reusedBy": [],
-   "condition": {
-    "material": [
-     "soil"
-    ]
-   },
-   "brief": "Pioche dans la terre : impact mat, motte qui se détache."
-  },
-  {
-   "assetId": "mine-hit-soil-02",
-   "file": "audio/sfx/mine/mine-hit-soil-02.ogg",
-   "kind": "sample",
-   "format": "ogg",
-   "wave": 2,
+   "format": "wav",
+   "wave": 3,
    "priority": "post-B1",
-   "group": "mine-hit-soil",
+   "group": "boat-bump",
    "take": 2,
    "takes": 2,
    "durationSeconds": [
-    0.2,
-    0.45
+    0.4,
+    0.9
    ],
    "loop": false,
    "channels": 1,
    "events": [
-    "mine.hit"
+    "boat.collision"
    ],
    "reusedBy": [],
-   "condition": {
-    "material": [
-     "soil"
-    ]
-   },
-   "brief": "Pioche dans la terre : impact mat, motte qui se détache."
-  },
-  {
-   "assetId": "mine-hit-softrock-01",
-   "file": "audio/sfx/mine/mine-hit-softrock-01.ogg",
-   "kind": "sample",
-   "format": "ogg",
-   "wave": 1,
-   "priority": "B1",
-   "group": "mine-hit-softrock",
-   "take": 1,
-   "takes": 2,
-   "durationSeconds": [
-    0.2,
-    0.45
-   ],
-   "loop": false,
-   "channels": 1,
-   "events": [
-    "mine.hit"
-   ],
-   "reusedBy": [],
-   "condition": {
-    "material": [
-     "softRock"
-    ]
-   },
-   "brief": "Pioche sur roche tendre : choc sec, éclats fins."
-  },
-  {
-   "assetId": "mine-hit-softrock-02",
-   "file": "audio/sfx/mine/mine-hit-softrock-02.ogg",
-   "kind": "sample",
-   "format": "ogg",
-   "wave": 1,
-   "priority": "B1",
-   "group": "mine-hit-softrock",
-   "take": 2,
-   "takes": 2,
-   "durationSeconds": [
-    0.2,
-    0.45
-   ],
-   "loop": false,
-   "channels": 1,
-   "events": [
-    "mine.hit"
-   ],
-   "reusedBy": [],
-   "condition": {
-    "material": [
-     "softRock"
-    ]
-   },
-   "brief": "Pioche sur roche tendre : choc sec, éclats fins."
-  },
-  {
-   "assetId": "mine-hit-hardrock-01",
-   "file": "audio/sfx/mine/mine-hit-hardrock-01.ogg",
-   "kind": "sample",
-   "format": "ogg",
-   "wave": 1,
-   "priority": "B1",
-   "group": "mine-hit-hardrock",
-   "take": 1,
-   "takes": 2,
-   "durationSeconds": [
-    0.2,
-    0.45
-   ],
-   "loop": false,
-   "channels": 1,
-   "events": [
-    "mine.hit"
-   ],
-   "reusedBy": [],
-   "condition": {
-    "material": [
-     "hardRock"
-    ]
-   },
-   "brief": "Pioche sur roche dure : tintement plus aigu, résistance, peu de débris."
-  },
-  {
-   "assetId": "mine-hit-hardrock-02",
-   "file": "audio/sfx/mine/mine-hit-hardrock-02.ogg",
-   "kind": "sample",
-   "format": "ogg",
-   "wave": 2,
-   "priority": "post-B1",
-   "group": "mine-hit-hardrock",
-   "take": 2,
-   "takes": 2,
-   "durationSeconds": [
-    0.2,
-    0.45
-   ],
-   "loop": false,
-   "channels": 1,
-   "events": [
-    "mine.hit"
-   ],
-   "reusedBy": [],
-   "condition": {
-    "material": [
-     "hardRock"
-    ]
-   },
-   "brief": "Pioche sur roche dure : tintement plus aigu, résistance, peu de débris."
-  },
-  {
-   "assetId": "mine-hit-ore-01",
-   "file": "audio/sfx/mine/mine-hit-ore-01.ogg",
-   "kind": "sample",
-   "format": "ogg",
-   "wave": 1,
-   "priority": "B1",
-   "group": "mine-hit-ore",
-   "take": 1,
-   "takes": 2,
-   "durationSeconds": [
-    0.25,
-    0.5
-   ],
-   "loop": false,
-   "channels": 1,
-   "events": [
-    "mine.hit"
-   ],
-   "reusedBy": [],
-   "condition": {
-    "material": [
-     "metalOre"
-    ]
-   },
-   "brief": "Pioche sur filon métallique : timbre métallique léger mêlé à la roche."
-  },
-  {
-   "assetId": "mine-hit-ore-02",
-   "file": "audio/sfx/mine/mine-hit-ore-02.ogg",
-   "kind": "sample",
-   "format": "ogg",
-   "wave": 2,
-   "priority": "post-B1",
-   "group": "mine-hit-ore",
-   "take": 2,
-   "takes": 2,
-   "durationSeconds": [
-    0.25,
-    0.5
-   ],
-   "loop": false,
-   "channels": 1,
-   "events": [
-    "mine.hit"
-   ],
-   "reusedBy": [],
-   "condition": {
-    "material": [
-     "metalOre"
-    ]
-   },
-   "brief": "Pioche sur filon métallique : timbre métallique léger mêlé à la roche."
-  },
-  {
-   "assetId": "mine-hit-crystal-01",
-   "file": "audio/sfx/mine/mine-hit-crystal-01.ogg",
-   "kind": "sample",
-   "format": "ogg",
-   "wave": 1,
-   "priority": "B1",
-   "group": "mine-hit-crystal",
-   "take": 1,
-   "takes": 2,
-   "durationSeconds": [
-    0.3,
-    0.7
-   ],
-   "loop": false,
-   "channels": 1,
-   "events": [
-    "mine.hit"
-   ],
-   "reusedBy": [],
-   "condition": {
-    "material": [
-     "crystal"
-    ]
-   },
-   "brief": "Pioche sur cristal : impact clair avec résonance cristalline courte."
-  },
-  {
-   "assetId": "mine-hit-crystal-02",
-   "file": "audio/sfx/mine/mine-hit-crystal-02.ogg",
-   "kind": "sample",
-   "format": "ogg",
-   "wave": 2,
-   "priority": "post-B1",
-   "group": "mine-hit-crystal",
-   "take": 2,
-   "takes": 2,
-   "durationSeconds": [
-    0.3,
-    0.7
-   ],
-   "loop": false,
-   "channels": 1,
-   "events": [
-    "mine.hit"
-   ],
-   "reusedBy": [],
-   "condition": {
-    "material": [
-     "crystal"
-    ]
-   },
-   "brief": "Pioche sur cristal : impact clair avec résonance cristalline courte."
+   "brief": "Coque en bois qui heurte la rive : toc sourd sans casse."
   },
   {
    "assetId": "mine-crack-01",
-   "file": "audio/sfx/mine/mine-crack-01.ogg",
+   "file": "audio/sfx/mining/mine-crack-01.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 3,
    "priority": "post-B1",
    "group": "mine-crack",
    "take": 1,
-   "takes": 1,
+   "takes": 2,
    "durationSeconds": [
     0.3,
     0.7
@@ -1685,120 +501,32 @@
    "brief": "Roche qui se fend : craquement sec."
   },
   {
-   "assetId": "mine-rubble-01",
-   "file": "audio/sfx/mine/mine-rubble-01.ogg",
+   "assetId": "mine-crack-02",
+   "file": "audio/sfx/mining/mine-crack-02.wav",
    "kind": "sample",
-   "format": "ogg",
-   "wave": 1,
-   "priority": "B1",
-   "group": "mine-rubble",
-   "take": 1,
-   "takes": 2,
-   "durationSeconds": [
-    0.4,
-    1
-   ],
-   "loop": false,
-   "channels": 1,
-   "events": [
-    "mine.cell.excavated"
-   ],
-   "reusedBy": [],
-   "brief": "Petits gravats qui tombent au sol de la galerie, bref."
-  },
-  {
-   "assetId": "mine-rubble-02",
-   "file": "audio/sfx/mine/mine-rubble-02.ogg",
-   "kind": "sample",
-   "format": "ogg",
-   "wave": 2,
+   "format": "wav",
+   "wave": 3,
    "priority": "post-B1",
-   "group": "mine-rubble",
+   "group": "mine-crack",
    "take": 2,
    "takes": 2,
    "durationSeconds": [
-    0.4,
-    1
+    0.3,
+    0.7
    ],
    "loop": false,
    "channels": 1,
    "events": [
-    "mine.cell.excavated"
+    "mine.crack"
    ],
    "reusedBy": [],
-   "brief": "Petits gravats qui tombent au sol de la galerie, bref."
-  },
-  {
-   "assetId": "mine-collect-01",
-   "file": "audio/sfx/mine/mine-collect-01.ogg",
-   "kind": "sample",
-   "format": "ogg",
-   "wave": 1,
-   "priority": "B1",
-   "group": "mine-collect",
-   "take": 1,
-   "takes": 1,
-   "durationSeconds": [
-    0.25,
-    0.5
-   ],
-   "loop": false,
-   "channels": 1,
-   "events": [
-    "mine.resource.collect"
-   ],
-   "reusedBy": [],
-   "brief": "Pierre/minerai rangé dans le sac : clic + tissu."
-  },
-  {
-   "assetId": "mine-crystal-01",
-   "file": "audio/sfx/mine/mine-crystal-01.ogg",
-   "kind": "sample",
-   "format": "ogg",
-   "wave": 2,
-   "priority": "post-B1",
-   "group": "mine-crystal",
-   "take": 1,
-   "takes": 1,
-   "durationSeconds": [
-    0.5,
-    1.2
-   ],
-   "loop": false,
-   "channels": 1,
-   "events": [
-    "mine.resource.crystal"
-   ],
-   "reusedBy": [],
-   "brief": "Petit carillon cristallin, gratifiant, sans mélodie."
-  },
-  {
-   "assetId": "mine-denied-01",
-   "file": "audio/sfx/mine/mine-denied-01.ogg",
-   "kind": "sample",
-   "format": "ogg",
-   "wave": 2,
-   "priority": "post-B1",
-   "group": "mine-denied",
-   "take": 1,
-   "takes": 1,
-   "durationSeconds": [
-    0.2,
-    0.4
-   ],
-   "loop": false,
-   "channels": 1,
-   "events": [
-    "mine.action.denied"
-   ],
-   "reusedBy": [],
-   "brief": "Coup qui rebondit sur une roche indestructible : « tonk » mat."
+   "brief": "Roche qui se fend : craquement sec."
   },
   {
    "assetId": "mine-enter-01",
-   "file": "audio/sfx/mine/mine-enter-01.ogg",
+   "file": "audio/sfx/mining/mine-enter-01.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 2,
    "priority": "post-B1",
    "group": "mine-enter",
@@ -1823,14 +551,14 @@
   },
   {
    "assetId": "ladder-01",
-   "file": "audio/sfx/mine/ladder-01.ogg",
+   "file": "audio/sfx/mining/ladder-01.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 2,
    "priority": "post-B1",
    "group": "ladder",
    "take": 1,
-   "takes": 1,
+   "takes": 2,
    "durationSeconds": [
     0.5,
     1
@@ -1844,37 +572,37 @@
    "brief": "Échelle en bois qui grince sous de petites pattes."
   },
   {
-   "assetId": "amb-cave-01",
-   "file": "audio/ambience/amb-cave-01.ogg",
+   "assetId": "ladder-02",
+   "file": "audio/sfx/mining/ladder-02.wav",
    "kind": "sample",
-   "format": "ogg",
-   "wave": 1,
-   "priority": "B1",
-   "group": "amb-cave",
-   "take": 1,
-   "takes": 1,
+   "format": "wav",
+   "wave": 2,
+   "priority": "post-B1",
+   "group": "ladder",
+   "take": 2,
+   "takes": 2,
    "durationSeconds": [
-    6,
-    8
+    0.5,
+    1
    ],
-   "loop": true,
+   "loop": false,
    "channels": 1,
    "events": [
-    "ambience.cave"
+    "mine.level.change"
    ],
    "reusedBy": [],
-   "brief": "Boucle sans couture : air immobile, très légère rumeur grave."
+   "brief": "Échelle en bois qui grince sous de petites pattes."
   },
   {
    "assetId": "drip-01",
-   "file": "audio/ambience/drip-01.ogg",
+   "file": "audio/ambience/mine/drip-01.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 1,
    "priority": "B1",
    "group": "drip",
    "take": 1,
-   "takes": 2,
+   "takes": 4,
    "durationSeconds": [
     0.2,
     0.8
@@ -1889,14 +617,58 @@
   },
   {
    "assetId": "drip-02",
-   "file": "audio/ambience/drip-02.ogg",
+   "file": "audio/ambience/mine/drip-02.wav",
    "kind": "sample",
-   "format": "ogg",
-   "wave": 2,
-   "priority": "post-B1",
+   "format": "wav",
+   "wave": 1,
+   "priority": "B1",
    "group": "drip",
    "take": 2,
-   "takes": 2,
+   "takes": 4,
+   "durationSeconds": [
+    0.2,
+    0.8
+   ],
+   "loop": false,
+   "channels": 1,
+   "events": [
+    "ambience.cave.drip"
+   ],
+   "reusedBy": [],
+   "brief": "Goutte d’eau qui tombe dans une flaque, petite résonance."
+  },
+  {
+   "assetId": "drip-03",
+   "file": "audio/ambience/mine/drip-03.wav",
+   "kind": "sample",
+   "format": "wav",
+   "wave": 1,
+   "priority": "B1",
+   "group": "drip",
+   "take": 3,
+   "takes": 4,
+   "durationSeconds": [
+    0.2,
+    0.8
+   ],
+   "loop": false,
+   "channels": 1,
+   "events": [
+    "ambience.cave.drip"
+   ],
+   "reusedBy": [],
+   "brief": "Goutte d’eau qui tombe dans une flaque, petite résonance."
+  },
+  {
+   "assetId": "drip-04",
+   "file": "audio/ambience/mine/drip-04.wav",
+   "kind": "sample",
+   "format": "wav",
+   "wave": 1,
+   "priority": "B1",
+   "group": "drip",
+   "take": 4,
+   "takes": 4,
    "durationSeconds": [
     0.2,
     0.8
@@ -1911,14 +683,36 @@
   },
   {
    "assetId": "rumble-01",
-   "file": "audio/ambience/rumble-01.ogg",
+   "file": "audio/ambience/mine/rumble-01.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 2,
    "priority": "post-B1",
    "group": "rumble",
    "take": 1,
-   "takes": 1,
+   "takes": 2,
+   "durationSeconds": [
+    1.5,
+    3
+   ],
+   "loop": false,
+   "channels": 1,
+   "events": [
+    "ambience.cave.rumble"
+   ],
+   "reusedBy": [],
+   "brief": "Grondement sourd et lointain, rassurant (pas d’effondrement)."
+  },
+  {
+   "assetId": "rumble-02",
+   "file": "audio/ambience/mine/rumble-02.wav",
+   "kind": "sample",
+   "format": "wav",
+   "wave": 2,
+   "priority": "post-B1",
+   "group": "rumble",
+   "take": 2,
+   "takes": 2,
    "durationSeconds": [
     1.5,
     3
@@ -1933,9 +727,9 @@
   },
   {
    "assetId": "shimmer-hit-01",
-   "file": "audio/sfx/mine/shimmer-hit-01.ogg",
+   "file": "audio/sfx/magic/shimmer-hit-01.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 3,
    "priority": "post-B1",
    "group": "shimmer-hit",
@@ -1955,14 +749,14 @@
   },
   {
    "assetId": "till-01",
-   "file": "audio/sfx/farm/till-01.ogg",
+   "file": "audio/sfx/farming/till-01.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 3,
    "priority": "post-B1",
    "group": "till",
    "take": 1,
-   "takes": 1,
+   "takes": 3,
    "durationSeconds": [
     0.4,
     0.8
@@ -1976,139 +770,103 @@
    "brief": "Binette dans la terre meuble."
   },
   {
-   "assetId": "plant-01",
-   "file": "audio/sfx/farm/plant-01.ogg",
+   "assetId": "till-02",
+   "file": "audio/sfx/farming/till-02.wav",
    "kind": "sample",
-   "format": "ogg",
-   "wave": 1,
-   "priority": "B1",
-   "group": "plant",
-   "take": 1,
-   "takes": 2,
+   "format": "wav",
+   "wave": 3,
+   "priority": "post-B1",
+   "group": "till",
+   "take": 2,
+   "takes": 3,
    "durationSeconds": [
     0.4,
-    0.9
+    0.8
    ],
    "loop": false,
    "channels": 1,
    "events": [
-    "farm.plant"
+    "farm.till"
    ],
-   "reusedBy": [
-    {
-     "eventId": "farm.fertilize",
-     "pitch": 0.9
-    }
-   ],
-   "brief": "Graines qui tombent dans un sillon + petite tape de terre."
+   "reusedBy": [],
+   "brief": "Binette dans la terre meuble."
   },
   {
-   "assetId": "plant-02",
-   "file": "audio/sfx/farm/plant-02.ogg",
+   "assetId": "till-03",
+   "file": "audio/sfx/farming/till-03.wav",
    "kind": "sample",
-   "format": "ogg",
-   "wave": 2,
+   "format": "wav",
+   "wave": 3,
    "priority": "post-B1",
-   "group": "plant",
-   "take": 2,
-   "takes": 2,
+   "group": "till",
+   "take": 3,
+   "takes": 3,
    "durationSeconds": [
     0.4,
-    0.9
+    0.8
    ],
    "loop": false,
    "channels": 1,
    "events": [
-    "farm.plant"
-   ],
-   "reusedBy": [
-    {
-     "eventId": "farm.fertilize",
-     "pitch": 0.9
-    }
-   ],
-   "brief": "Graines qui tombent dans un sillon + petite tape de terre."
-  },
-  {
-   "assetId": "watering-01",
-   "file": "audio/sfx/farm/watering-01.ogg",
-   "kind": "sample",
-   "format": "ogg",
-   "wave": 1,
-   "priority": "B1",
-   "group": "watering",
-   "take": 1,
-   "takes": 2,
-   "durationSeconds": [
-    0.8,
-    1.6
-   ],
-   "loop": false,
-   "channels": 1,
-   "events": [
-    "farm.water"
+    "farm.till"
    ],
    "reusedBy": [],
-   "brief": "Arrosoir qui verse en pluie fine sur la terre."
+   "brief": "Binette dans la terre meuble."
   },
   {
-   "assetId": "watering-02",
-   "file": "audio/sfx/farm/watering-02.ogg",
+   "assetId": "irrigate-01",
+   "file": "audio/ambience/water/irrigate-01.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 2,
    "priority": "post-B1",
-   "group": "watering",
-   "take": 2,
-   "takes": 2,
-   "durationSeconds": [
-    0.8,
-    1.6
-   ],
-   "loop": false,
-   "channels": 1,
-   "events": [
-    "farm.water"
-   ],
-   "reusedBy": [],
-   "brief": "Arrosoir qui verse en pluie fine sur la terre."
-  },
-  {
-   "assetId": "weed-01",
-   "file": "audio/sfx/farm/weed-01.ogg",
-   "kind": "sample",
-   "format": "ogg",
-   "wave": 1,
-   "priority": "B1",
-   "group": "weed",
+   "group": "irrigate",
    "take": 1,
    "takes": 1,
    "durationSeconds": [
-    0.3,
-    0.7
+    4,
+    6
    ],
-   "loop": false,
+   "loop": true,
    "channels": 1,
    "events": [
-    "farm.weed"
+    "farm.irrigate"
    ],
-   "reusedBy": [
-    {
-     "eventId": "farm.clear"
-    }
-   ],
-   "brief": "Arrachage de mauvaises herbes : racines + froissement."
+   "reusedBy": [],
+   "brief": "Boucle : filet d’eau qui court dans une rigole de terre, discret."
   },
   {
    "assetId": "cut-01",
-   "file": "audio/sfx/farm/cut-01.ogg",
+   "file": "audio/sfx/farming/cut-01.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 3,
    "priority": "post-B1",
    "group": "cut",
    "take": 1,
-   "takes": 1,
+   "takes": 2,
+   "durationSeconds": [
+    0.2,
+    0.4
+   ],
+   "loop": false,
+   "channels": 1,
+   "events": [
+    "farm.cut"
+   ],
+   "reusedBy": [],
+   "brief": "Coup de sécateur sur tige tendre."
+  },
+  {
+   "assetId": "cut-02",
+   "file": "audio/sfx/farming/cut-02.wav",
+   "kind": "sample",
+   "format": "wav",
+   "wave": 3,
+   "priority": "post-B1",
+   "group": "cut",
+   "take": 2,
+   "takes": 2,
    "durationSeconds": [
     0.2,
     0.4
@@ -2123,14 +881,14 @@
   },
   {
    "assetId": "pick-01",
-   "file": "audio/sfx/farm/pick-01.ogg",
+   "file": "audio/sfx/farming/pick-01.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 3,
    "priority": "post-B1",
    "group": "pick",
    "take": 1,
-   "takes": 2,
+   "takes": 3,
    "durationSeconds": [
     0.25,
     0.5
@@ -2145,14 +903,14 @@
   },
   {
    "assetId": "pick-02",
-   "file": "audio/sfx/farm/pick-02.ogg",
+   "file": "audio/sfx/farming/pick-02.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 3,
    "priority": "post-B1",
    "group": "pick",
    "take": 2,
-   "takes": 2,
+   "takes": 3,
    "durationSeconds": [
     0.25,
     0.5
@@ -2166,91 +924,37 @@
    "brief": "Fruit/légume détaché à la main : petit « pop » végétal."
   },
   {
-   "assetId": "harvest-grain-01",
-   "file": "audio/sfx/farm/harvest-grain-01.ogg",
+   "assetId": "pick-03",
+   "file": "audio/sfx/farming/pick-03.wav",
    "kind": "sample",
-   "format": "ogg",
-   "wave": 1,
-   "priority": "B1",
-   "group": "harvest-grain",
-   "take": 1,
-   "takes": 2,
-   "durationSeconds": [
-    0.5,
-    1
-   ],
-   "loop": false,
-   "channels": 1,
-   "events": [
-    "farm.harvest"
-   ],
-   "reusedBy": [],
-   "condition": {
-    "objectKind": [
-     "wheat"
-    ]
-   },
-   "brief": "Faucille dans les épis de céréales : « swish » sec."
-  },
-  {
-   "assetId": "harvest-grain-02",
-   "file": "audio/sfx/farm/harvest-grain-02.ogg",
-   "kind": "sample",
-   "format": "ogg",
-   "wave": 2,
+   "format": "wav",
+   "wave": 3,
    "priority": "post-B1",
-   "group": "harvest-grain",
-   "take": 2,
-   "takes": 2,
+   "group": "pick",
+   "take": 3,
+   "takes": 3,
    "durationSeconds": [
-    0.5,
-    1
+    0.25,
+    0.5
    ],
    "loop": false,
    "channels": 1,
    "events": [
-    "farm.harvest"
+    "farm.pick"
    ],
    "reusedBy": [],
-   "condition": {
-    "objectKind": [
-     "wheat"
-    ]
-   },
-   "brief": "Faucille dans les épis de céréales : « swish » sec."
-  },
-  {
-   "assetId": "harvest-01",
-   "file": "audio/sfx/farm/harvest-01.ogg",
-   "kind": "sample",
-   "format": "ogg",
-   "wave": 1,
-   "priority": "B1",
-   "group": "harvest",
-   "take": 1,
-   "takes": 1,
-   "durationSeconds": [
-    0.4,
-    0.9
-   ],
-   "loop": false,
-   "channels": 1,
-   "events": [
-    "farm.harvest"
-   ],
-   "reusedBy": [],
-   "brief": "Récolte générique : légume arraché + terre qui tombe."
+   "brief": "Fruit/légume détaché à la main : petit « pop » végétal."
   },
   {
    "assetId": "basket-01",
-   "file": "audio/sfx/farm/basket-01.ogg",
+   "file": "audio/sfx/farming/basket-01.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 3,
    "priority": "post-B1",
    "group": "basket",
    "take": 1,
-   "takes": 1,
+   "takes": 2,
    "durationSeconds": [
     0.3,
     0.6
@@ -2264,15 +968,107 @@
    "brief": "Osier qui reçoit des légumes."
   },
   {
-   "assetId": "tools-01",
-   "file": "audio/sfx/farm/tools-01.ogg",
+   "assetId": "basket-02",
+   "file": "audio/sfx/farming/basket-02.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
+   "wave": 3,
+   "priority": "post-B1",
+   "group": "basket",
+   "take": 2,
+   "takes": 2,
+   "durationSeconds": [
+    0.3,
+    0.6
+   ],
+   "loop": false,
+   "channels": 1,
+   "events": [
+    "farm.basket"
+   ],
+   "reusedBy": [],
+   "brief": "Osier qui reçoit des légumes."
+  },
+  {
+   "assetId": "seedbag-01",
+   "file": "audio/sfx/farming/seedbag-01.wav",
+   "kind": "sample",
+   "format": "wav",
+   "wave": 2,
+   "priority": "post-B1",
+   "group": "seedbag",
+   "take": 1,
+   "takes": 2,
+   "durationSeconds": [
+    0.3,
+    0.6
+   ],
+   "loop": false,
+   "channels": 1,
+   "events": [
+    "farm.seedbag"
+   ],
+   "reusedBy": [],
+   "brief": "Graines secouées dans un petit sac en toile."
+  },
+  {
+   "assetId": "seedbag-02",
+   "file": "audio/sfx/farming/seedbag-02.wav",
+   "kind": "sample",
+   "format": "wav",
+   "wave": 2,
+   "priority": "post-B1",
+   "group": "seedbag",
+   "take": 2,
+   "takes": 2,
+   "durationSeconds": [
+    0.3,
+    0.6
+   ],
+   "loop": false,
+   "channels": 1,
+   "events": [
+    "farm.seedbag"
+   ],
+   "reusedBy": [],
+   "brief": "Graines secouées dans un petit sac en toile."
+  },
+  {
+   "assetId": "tools-01",
+   "file": "audio/sfx/farming/tools-01.wav",
+   "kind": "sample",
+   "format": "wav",
    "wave": 3,
    "priority": "post-B1",
    "group": "tools",
    "take": 1,
-   "takes": 1,
+   "takes": 2,
+   "durationSeconds": [
+    0.3,
+    0.6
+   ],
+   "loop": false,
+   "channels": 1,
+   "events": [
+    "farm.tools"
+   ],
+   "reusedBy": [
+    {
+     "eventId": "mine.tool.switch"
+    }
+   ],
+   "brief": "Outils en bois et métal qui s’entrechoquent doucement."
+  },
+  {
+   "assetId": "tools-02",
+   "file": "audio/sfx/farming/tools-02.wav",
+   "kind": "sample",
+   "format": "wav",
+   "wave": 3,
+   "priority": "post-B1",
+   "group": "tools",
+   "take": 2,
+   "takes": 2,
    "durationSeconds": [
     0.3,
     0.6
@@ -2291,9 +1087,9 @@
   },
   {
    "assetId": "amb-windmill-01",
-   "file": "audio/ambience/amb-windmill-01.ogg",
+   "file": "audio/ambience/weather/amb-windmill-01.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 2,
    "priority": "post-B1",
    "group": "amb-windmill",
@@ -2313,9 +1109,9 @@
   },
   {
    "assetId": "amb-watermill-01",
-   "file": "audio/ambience/amb-watermill-01.ogg",
+   "file": "audio/ambience/village/amb-watermill-01.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 2,
    "priority": "post-B1",
    "group": "amb-watermill",
@@ -2335,14 +1131,14 @@
   },
   {
    "assetId": "voc-squirrel-01",
-   "file": "audio/sfx/npc/voc-squirrel-01.ogg",
+   "file": "audio/sfx/creatures/voc-squirrel-01.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 1,
    "priority": "B1",
    "group": "voc-squirrel",
    "take": 1,
-   "takes": 3,
+   "takes": 4,
    "durationSeconds": [
     0.2,
     0.6
@@ -2357,14 +1153,14 @@
   },
   {
    "assetId": "voc-squirrel-02",
-   "file": "audio/sfx/npc/voc-squirrel-02.ogg",
+   "file": "audio/sfx/creatures/voc-squirrel-02.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 1,
    "priority": "B1",
    "group": "voc-squirrel",
    "take": 2,
-   "takes": 3,
+   "takes": 4,
    "durationSeconds": [
     0.2,
     0.6
@@ -2379,14 +1175,36 @@
   },
   {
    "assetId": "voc-squirrel-03",
-   "file": "audio/sfx/npc/voc-squirrel-03.ogg",
+   "file": "audio/sfx/creatures/voc-squirrel-03.wav",
    "kind": "sample",
-   "format": "ogg",
-   "wave": 2,
-   "priority": "post-B1",
+   "format": "wav",
+   "wave": 1,
+   "priority": "B1",
    "group": "voc-squirrel",
    "take": 3,
-   "takes": 3,
+   "takes": 4,
+   "durationSeconds": [
+    0.2,
+    0.6
+   ],
+   "loop": false,
+   "channels": 1,
+   "events": [
+    "npc.vocalize"
+   ],
+   "reusedBy": [],
+   "brief": "Babillage d’écureuil stylisé (syllabes aiguës non verbales), amical, sans mots."
+  },
+  {
+   "assetId": "voc-squirrel-04",
+   "file": "audio/sfx/creatures/voc-squirrel-04.wav",
+   "kind": "sample",
+   "format": "wav",
+   "wave": 1,
+   "priority": "B1",
+   "group": "voc-squirrel",
+   "take": 4,
+   "takes": 4,
    "durationSeconds": [
     0.2,
     0.6
@@ -2401,9 +1219,9 @@
   },
   {
    "assetId": "squirrel-01",
-   "file": "audio/sfx/npc/squirrel-01.ogg",
+   "file": "audio/sfx/creatures/squirrel-01.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 3,
    "priority": "post-B1",
    "group": "squirrel",
@@ -2423,9 +1241,9 @@
   },
   {
    "assetId": "squirrel-02",
-   "file": "audio/sfx/npc/squirrel-02.ogg",
+   "file": "audio/sfx/creatures/squirrel-02.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 3,
    "priority": "post-B1",
    "group": "squirrel",
@@ -2445,9 +1263,9 @@
   },
   {
    "assetId": "squirrel-03",
-   "file": "audio/sfx/npc/squirrel-03.ogg",
+   "file": "audio/sfx/creatures/squirrel-03.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 3,
    "priority": "post-B1",
    "group": "squirrel",
@@ -2467,14 +1285,41 @@
   },
   {
    "assetId": "expr-happy-01",
-   "file": "audio/sfx/npc/expr-happy-01.ogg",
+   "file": "audio/sfx/creatures/expr-happy-01.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 3,
    "priority": "post-B1",
    "group": "expr-happy",
    "take": 1,
-   "takes": 1,
+   "takes": 2,
+   "durationSeconds": [
+    0.3,
+    0.7
+   ],
+   "loop": false,
+   "channels": 1,
+   "events": [
+    "npc.expression"
+   ],
+   "reusedBy": [],
+   "condition": {
+    "state": [
+     "happy"
+    ]
+   },
+   "brief": "Petit son joyeux non verbal."
+  },
+  {
+   "assetId": "expr-happy-02",
+   "file": "audio/sfx/creatures/expr-happy-02.wav",
+   "kind": "sample",
+   "format": "wav",
+   "wave": 3,
+   "priority": "post-B1",
+   "group": "expr-happy",
+   "take": 2,
+   "takes": 2,
    "durationSeconds": [
     0.3,
     0.7
@@ -2494,14 +1339,41 @@
   },
   {
    "assetId": "expr-surprised-01",
-   "file": "audio/sfx/npc/expr-surprised-01.ogg",
+   "file": "audio/sfx/creatures/expr-surprised-01.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 3,
    "priority": "post-B1",
    "group": "expr-surprised",
    "take": 1,
-   "takes": 1,
+   "takes": 2,
+   "durationSeconds": [
+    0.2,
+    0.5
+   ],
+   "loop": false,
+   "channels": 1,
+   "events": [
+    "npc.expression"
+   ],
+   "reusedBy": [],
+   "condition": {
+    "state": [
+     "surprised"
+    ]
+   },
+   "brief": "Petit sursaut non verbal."
+  },
+  {
+   "assetId": "expr-surprised-02",
+   "file": "audio/sfx/creatures/expr-surprised-02.wav",
+   "kind": "sample",
+   "format": "wav",
+   "wave": 3,
+   "priority": "post-B1",
+   "group": "expr-surprised",
+   "take": 2,
+   "takes": 2,
    "durationSeconds": [
     0.2,
     0.5
@@ -2521,14 +1393,14 @@
   },
   {
    "assetId": "expr-sad-01",
-   "file": "audio/sfx/npc/expr-sad-01.ogg",
+   "file": "audio/sfx/creatures/expr-sad-01.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 3,
    "priority": "post-B1",
    "group": "expr-sad",
    "take": 1,
-   "takes": 1,
+   "takes": 2,
    "durationSeconds": [
     0.4,
     0.8
@@ -2547,10 +1419,199 @@
    "brief": "Soupir doux non verbal."
   },
   {
-   "assetId": "npc-activity-01",
-   "file": "audio/sfx/npc/npc-activity-01.ogg",
+   "assetId": "expr-sad-02",
+   "file": "audio/sfx/creatures/expr-sad-02.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
+   "wave": 3,
+   "priority": "post-B1",
+   "group": "expr-sad",
+   "take": 2,
+   "takes": 2,
+   "durationSeconds": [
+    0.4,
+    0.8
+   ],
+   "loop": false,
+   "channels": 1,
+   "events": [
+    "npc.expression"
+   ],
+   "reusedBy": [],
+   "condition": {
+    "state": [
+     "sad"
+    ]
+   },
+   "brief": "Soupir doux non verbal."
+  },
+  {
+   "assetId": "expr-calm-01",
+   "file": "audio/sfx/creatures/expr-calm-01.wav",
+   "kind": "sample",
+   "format": "wav",
+   "wave": 2,
+   "priority": "post-B1",
+   "group": "expr-calm",
+   "take": 1,
+   "takes": 2,
+   "durationSeconds": [
+    0.3,
+    0.7
+   ],
+   "loop": false,
+   "channels": 1,
+   "events": [
+    "npc.expression"
+   ],
+   "reusedBy": [],
+   "condition": {
+    "state": [
+     "calm"
+    ]
+   },
+   "brief": "Petit ronronnement/gazouillis paisible."
+  },
+  {
+   "assetId": "expr-calm-02",
+   "file": "audio/sfx/creatures/expr-calm-02.wav",
+   "kind": "sample",
+   "format": "wav",
+   "wave": 2,
+   "priority": "post-B1",
+   "group": "expr-calm",
+   "take": 2,
+   "takes": 2,
+   "durationSeconds": [
+    0.3,
+    0.7
+   ],
+   "loop": false,
+   "channels": 1,
+   "events": [
+    "npc.expression"
+   ],
+   "reusedBy": [],
+   "condition": {
+    "state": [
+     "calm"
+    ]
+   },
+   "brief": "Petit ronronnement/gazouillis paisible."
+  },
+  {
+   "assetId": "expr-effort-01",
+   "file": "audio/sfx/creatures/expr-effort-01.wav",
+   "kind": "sample",
+   "format": "wav",
+   "wave": 2,
+   "priority": "post-B1",
+   "group": "expr-effort",
+   "take": 1,
+   "takes": 2,
+   "durationSeconds": [
+    0.2,
+    0.5
+   ],
+   "loop": false,
+   "channels": 1,
+   "events": [
+    "npc.expression"
+   ],
+   "reusedBy": [],
+   "condition": {
+    "state": [
+     "effort"
+    ]
+   },
+   "brief": "Petit « hmpf » d’effort non verbal."
+  },
+  {
+   "assetId": "expr-effort-02",
+   "file": "audio/sfx/creatures/expr-effort-02.wav",
+   "kind": "sample",
+   "format": "wav",
+   "wave": 2,
+   "priority": "post-B1",
+   "group": "expr-effort",
+   "take": 2,
+   "takes": 2,
+   "durationSeconds": [
+    0.2,
+    0.5
+   ],
+   "loop": false,
+   "channels": 1,
+   "events": [
+    "npc.expression"
+   ],
+   "reusedBy": [],
+   "condition": {
+    "state": [
+     "effort"
+    ]
+   },
+   "brief": "Petit « hmpf » d’effort non verbal."
+  },
+  {
+   "assetId": "expr-annoyed-01",
+   "file": "audio/sfx/creatures/expr-annoyed-01.wav",
+   "kind": "sample",
+   "format": "wav",
+   "wave": 3,
+   "priority": "post-B1",
+   "group": "expr-annoyed",
+   "take": 1,
+   "takes": 2,
+   "durationSeconds": [
+    0.2,
+    0.5
+   ],
+   "loop": false,
+   "channels": 1,
+   "events": [
+    "npc.expression"
+   ],
+   "reusedBy": [],
+   "condition": {
+    "state": [
+     "annoyed"
+    ]
+   },
+   "brief": "Petit grognement de mécontentement léger, jamais agressif."
+  },
+  {
+   "assetId": "expr-annoyed-02",
+   "file": "audio/sfx/creatures/expr-annoyed-02.wav",
+   "kind": "sample",
+   "format": "wav",
+   "wave": 3,
+   "priority": "post-B1",
+   "group": "expr-annoyed",
+   "take": 2,
+   "takes": 2,
+   "durationSeconds": [
+    0.2,
+    0.5
+   ],
+   "loop": false,
+   "channels": 1,
+   "events": [
+    "npc.expression"
+   ],
+   "reusedBy": [],
+   "condition": {
+    "state": [
+     "annoyed"
+    ]
+   },
+   "brief": "Petit grognement de mécontentement léger, jamais agressif."
+  },
+  {
+   "assetId": "npc-activity-01",
+   "file": "audio/sfx/creatures/npc-activity-01.wav",
+   "kind": "sample",
+   "format": "wav",
    "wave": 3,
    "priority": "post-B1",
    "group": "npc-activity",
@@ -2570,9 +1631,9 @@
   },
   {
    "assetId": "npc-activity-02",
-   "file": "audio/sfx/npc/npc-activity-02.ogg",
+   "file": "audio/sfx/creatures/npc-activity-02.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 3,
    "priority": "post-B1",
    "group": "npc-activity",
@@ -2592,14 +1653,14 @@
   },
   {
    "assetId": "bird-01",
-   "file": "audio/sfx/fauna/bird-01.ogg",
+   "file": "audio/sfx/creatures/bird-01.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 1,
    "priority": "B1",
    "group": "bird",
    "take": 1,
-   "takes": 3,
+   "takes": 4,
    "durationSeconds": [
     0.8,
     2
@@ -2614,14 +1675,14 @@
   },
   {
    "assetId": "bird-02",
-   "file": "audio/sfx/fauna/bird-02.ogg",
+   "file": "audio/sfx/creatures/bird-02.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 1,
    "priority": "B1",
    "group": "bird",
    "take": 2,
-   "takes": 3,
+   "takes": 4,
    "durationSeconds": [
     0.8,
     2
@@ -2636,14 +1697,36 @@
   },
   {
    "assetId": "bird-03",
-   "file": "audio/sfx/fauna/bird-03.ogg",
+   "file": "audio/sfx/creatures/bird-03.wav",
    "kind": "sample",
-   "format": "ogg",
-   "wave": 2,
-   "priority": "post-B1",
+   "format": "wav",
+   "wave": 1,
+   "priority": "B1",
    "group": "bird",
    "take": 3,
-   "takes": 3,
+   "takes": 4,
+   "durationSeconds": [
+    0.8,
+    2
+   ],
+   "loop": false,
+   "channels": 1,
+   "events": [
+    "fauna.bird.song"
+   ],
+   "reusedBy": [],
+   "brief": "Court chant d’oiseau de forêt tempérée, lointain, sans fond."
+  },
+  {
+   "assetId": "bird-04",
+   "file": "audio/sfx/creatures/bird-04.wav",
+   "kind": "sample",
+   "format": "wav",
+   "wave": 1,
+   "priority": "B1",
+   "group": "bird",
+   "take": 4,
+   "takes": 4,
    "durationSeconds": [
     0.8,
     2
@@ -2658,9 +1741,9 @@
   },
   {
    "assetId": "flock-01",
-   "file": "audio/sfx/fauna/flock-01.ogg",
+   "file": "audio/sfx/creatures/flock-01.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 3,
    "priority": "post-B1",
    "group": "flock",
@@ -2680,14 +1763,36 @@
   },
   {
    "assetId": "owl-01",
-   "file": "audio/sfx/fauna/owl-01.ogg",
+   "file": "audio/sfx/creatures/owl-01.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 2,
    "priority": "post-B1",
    "group": "owl",
    "take": 1,
-   "takes": 1,
+   "takes": 2,
+   "durationSeconds": [
+    1,
+    2
+   ],
+   "loop": false,
+   "channels": 1,
+   "events": [
+    "fauna.owl"
+   ],
+   "reusedBy": [],
+   "brief": "Hululement lointain et doux."
+  },
+  {
+   "assetId": "owl-02",
+   "file": "audio/sfx/creatures/owl-02.wav",
+   "kind": "sample",
+   "format": "wav",
+   "wave": 2,
+   "priority": "post-B1",
+   "group": "owl",
+   "take": 2,
+   "takes": 2,
    "durationSeconds": [
     1,
     2
@@ -2702,14 +1807,58 @@
   },
   {
    "assetId": "frog-01",
-   "file": "audio/sfx/fauna/frog-01.ogg",
+   "file": "audio/sfx/creatures/frog-01.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 2,
    "priority": "post-B1",
    "group": "frog",
    "take": 1,
-   "takes": 1,
+   "takes": 3,
+   "durationSeconds": [
+    0.5,
+    1.2
+   ],
+   "loop": false,
+   "channels": 1,
+   "events": [
+    "fauna.frog"
+   ],
+   "reusedBy": [],
+   "brief": "Coassement isolé de grenouille."
+  },
+  {
+   "assetId": "frog-02",
+   "file": "audio/sfx/creatures/frog-02.wav",
+   "kind": "sample",
+   "format": "wav",
+   "wave": 2,
+   "priority": "post-B1",
+   "group": "frog",
+   "take": 2,
+   "takes": 3,
+   "durationSeconds": [
+    0.5,
+    1.2
+   ],
+   "loop": false,
+   "channels": 1,
+   "events": [
+    "fauna.frog"
+   ],
+   "reusedBy": [],
+   "brief": "Coassement isolé de grenouille."
+  },
+  {
+   "assetId": "frog-03",
+   "file": "audio/sfx/creatures/frog-03.wav",
+   "kind": "sample",
+   "format": "wav",
+   "wave": 2,
+   "priority": "post-B1",
+   "group": "frog",
+   "take": 3,
+   "takes": 3,
    "durationSeconds": [
     0.5,
     1.2
@@ -2724,14 +1873,14 @@
   },
   {
    "assetId": "insect-01",
-   "file": "audio/sfx/fauna/insect-01.ogg",
+   "file": "audio/sfx/creatures/insect-01.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 2,
    "priority": "post-B1",
    "group": "insect",
    "take": 1,
-   "takes": 1,
+   "takes": 2,
    "durationSeconds": [
     1,
     2.5
@@ -2745,15 +1894,103 @@
    "brief": "Bourdon qui passe, doppler léger."
   },
   {
-   "assetId": "gull-01",
-   "file": "audio/sfx/fauna/gull-01.ogg",
+   "assetId": "insect-02",
+   "file": "audio/sfx/creatures/insect-02.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
+   "wave": 2,
+   "priority": "post-B1",
+   "group": "insect",
+   "take": 2,
+   "takes": 2,
+   "durationSeconds": [
+    1,
+    2.5
+   ],
+   "loop": false,
+   "channels": 1,
+   "events": [
+    "fauna.insects"
+   ],
+   "reusedBy": [],
+   "brief": "Bourdon qui passe, doppler léger."
+  },
+  {
+   "assetId": "fish-01",
+   "file": "audio/sfx/water/fish-01.wav",
+   "kind": "sample",
+   "format": "wav",
+   "wave": 2,
+   "priority": "post-B1",
+   "group": "fish",
+   "take": 1,
+   "takes": 2,
+   "durationSeconds": [
+    0.3,
+    0.7
+   ],
+   "loop": false,
+   "channels": 1,
+   "events": [
+    "fauna.fish.splash"
+   ],
+   "reusedBy": [],
+   "brief": "Petit poisson qui saute et retombe : « plic » bref et bulles."
+  },
+  {
+   "assetId": "fish-02",
+   "file": "audio/sfx/water/fish-02.wav",
+   "kind": "sample",
+   "format": "wav",
+   "wave": 2,
+   "priority": "post-B1",
+   "group": "fish",
+   "take": 2,
+   "takes": 2,
+   "durationSeconds": [
+    0.3,
+    0.7
+   ],
+   "loop": false,
+   "channels": 1,
+   "events": [
+    "fauna.fish.splash"
+   ],
+   "reusedBy": [],
+   "brief": "Petit poisson qui saute et retombe : « plic » bref et bulles."
+  },
+  {
+   "assetId": "gull-01",
+   "file": "audio/sfx/creatures/gull-01.wav",
+   "kind": "sample",
+   "format": "wav",
    "wave": 2,
    "priority": "post-B1",
    "group": "gull",
    "take": 1,
-   "takes": 1,
+   "takes": 2,
+   "durationSeconds": [
+    0.6,
+    1.5
+   ],
+   "loop": false,
+   "channels": 1,
+   "events": [
+    "fauna.gull"
+   ],
+   "reusedBy": [],
+   "brief": "Cri de mouette lointain."
+  },
+  {
+   "assetId": "gull-02",
+   "file": "audio/sfx/creatures/gull-02.wav",
+   "kind": "sample",
+   "format": "wav",
+   "wave": 2,
+   "priority": "post-B1",
+   "group": "gull",
+   "take": 2,
+   "takes": 2,
    "durationSeconds": [
     0.6,
     1.5
@@ -2768,9 +2005,9 @@
   },
   {
    "assetId": "mammal-01",
-   "file": "audio/sfx/fauna/mammal-01.ogg",
+   "file": "audio/sfx/creatures/mammal-01.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 3,
    "priority": "post-B1",
    "group": "mammal",
@@ -2795,9 +2032,9 @@
   },
   {
    "assetId": "mammal-02",
-   "file": "audio/sfx/fauna/mammal-02.ogg",
+   "file": "audio/sfx/creatures/mammal-02.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 3,
    "priority": "post-B1",
    "group": "mammal",
@@ -2822,9 +2059,9 @@
   },
   {
    "assetId": "door-open-01",
-   "file": "audio/sfx/objects/door-open-01.ogg",
+   "file": "audio/sfx/objects/door-open-01.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 1,
    "priority": "B1",
    "group": "door-open",
@@ -2844,11 +2081,11 @@
   },
   {
    "assetId": "door-open-02",
-   "file": "audio/sfx/objects/door-open-02.ogg",
+   "file": "audio/sfx/objects/door-open-02.wav",
    "kind": "sample",
-   "format": "ogg",
-   "wave": 2,
-   "priority": "post-B1",
+   "format": "wav",
+   "wave": 1,
+   "priority": "B1",
    "group": "door-open",
    "take": 2,
    "takes": 2,
@@ -2866,14 +2103,36 @@
   },
   {
    "assetId": "door-close-01",
-   "file": "audio/sfx/objects/door-close-01.ogg",
+   "file": "audio/sfx/objects/door-close-01.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 1,
    "priority": "B1",
    "group": "door-close",
    "take": 1,
-   "takes": 1,
+   "takes": 2,
+   "durationSeconds": [
+    0.4,
+    0.9
+   ],
+   "loop": false,
+   "channels": 1,
+   "events": [
+    "interaction.door.close"
+   ],
+   "reusedBy": [],
+   "brief": "Porte en bois qui se referme : toc + loquet."
+  },
+  {
+   "assetId": "door-close-02",
+   "file": "audio/sfx/objects/door-close-02.wav",
+   "kind": "sample",
+   "format": "wav",
+   "wave": 1,
+   "priority": "B1",
+   "group": "door-close",
+   "take": 2,
+   "takes": 2,
    "durationSeconds": [
     0.4,
     0.9
@@ -2888,14 +2147,36 @@
   },
   {
    "assetId": "chest-01",
-   "file": "audio/sfx/objects/chest-01.ogg",
+   "file": "audio/sfx/objects/chest-01.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 3,
    "priority": "post-B1",
    "group": "chest",
    "take": 1,
-   "takes": 1,
+   "takes": 2,
+   "durationSeconds": [
+    0.5,
+    1
+   ],
+   "loop": false,
+   "channels": 1,
+   "events": [
+    "interaction.chest.open"
+   ],
+   "reusedBy": [],
+   "brief": "Couvercle de coffre en bois, charnières."
+  },
+  {
+   "assetId": "chest-02",
+   "file": "audio/sfx/objects/chest-02.wav",
+   "kind": "sample",
+   "format": "wav",
+   "wave": 3,
+   "priority": "post-B1",
+   "group": "chest",
+   "take": 2,
+   "takes": 2,
    "durationSeconds": [
     0.5,
     1
@@ -2910,14 +2191,36 @@
   },
   {
    "assetId": "lever-01",
-   "file": "audio/sfx/objects/lever-01.ogg",
+   "file": "audio/sfx/objects/lever-01.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 1,
    "priority": "B1",
    "group": "lever",
    "take": 1,
-   "takes": 1,
+   "takes": 2,
+   "durationSeconds": [
+    0.3,
+    0.7
+   ],
+   "loop": false,
+   "channels": 1,
+   "events": [
+    "interaction.lever"
+   ],
+   "reusedBy": [],
+   "brief": "Levier en bois/métal qui bascule avec un cran."
+  },
+  {
+   "assetId": "lever-02",
+   "file": "audio/sfx/objects/lever-02.wav",
+   "kind": "sample",
+   "format": "wav",
+   "wave": 1,
+   "priority": "B1",
+   "group": "lever",
+   "take": 2,
+   "takes": 2,
    "durationSeconds": [
     0.3,
     0.7
@@ -2932,9 +2235,9 @@
   },
   {
    "assetId": "gears-01",
-   "file": "audio/sfx/objects/gears-01.ogg",
+   "file": "audio/ambience/misc/gears-01.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 3,
    "priority": "post-B1",
    "group": "gears",
@@ -2959,14 +2262,36 @@
   },
   {
    "assetId": "bridge-01",
-   "file": "audio/sfx/objects/bridge-01.ogg",
+   "file": "audio/sfx/objects/bridge-01.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 3,
    "priority": "post-B1",
    "group": "bridge",
    "take": 1,
-   "takes": 1,
+   "takes": 2,
+   "durationSeconds": [
+    0.8,
+    1.6
+   ],
+   "loop": false,
+   "channels": 1,
+   "events": [
+    "interaction.bridge"
+   ],
+   "reusedBy": [],
+   "brief": "Pont en bois qui grince et se pose."
+  },
+  {
+   "assetId": "bridge-02",
+   "file": "audio/sfx/objects/bridge-02.wav",
+   "kind": "sample",
+   "format": "wav",
+   "wave": 3,
+   "priority": "post-B1",
+   "group": "bridge",
+   "take": 2,
+   "takes": 2,
    "durationSeconds": [
     0.8,
     1.6
@@ -2981,9 +2306,9 @@
   },
   {
    "assetId": "amb-fire-01",
-   "file": "audio/ambience/amb-fire-01.ogg",
+   "file": "audio/sfx/objects/amb-fire-01.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 2,
    "priority": "post-B1",
    "group": "amb-fire",
@@ -3003,9 +2328,9 @@
   },
   {
    "assetId": "torch-01",
-   "file": "audio/sfx/objects/torch-01.ogg",
+   "file": "audio/sfx/objects/torch-01.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 3,
    "priority": "post-B1",
    "group": "torch",
@@ -3024,85 +2349,10 @@
    "brief": "Embrasement court d’une torche (« fwoosh »)."
   },
   {
-   "assetId": "pickup-01",
-   "file": "audio/sfx/objects/pickup-01.ogg",
-   "kind": "sample",
-   "format": "ogg",
-   "wave": 1,
-   "priority": "B1",
-   "group": "pickup",
-   "take": 1,
-   "takes": 2,
-   "durationSeconds": [
-    0.25,
-    0.5
-   ],
-   "loop": false,
-   "channels": 1,
-   "events": [
-    "interaction.collect"
-   ],
-   "reusedBy": [],
-   "brief": "Ramassage d’un petit objet naturel (gland, branche) : froissement + clic doux."
-  },
-  {
-   "assetId": "pickup-02",
-   "file": "audio/sfx/objects/pickup-02.ogg",
-   "kind": "sample",
-   "format": "ogg",
-   "wave": 2,
-   "priority": "post-B1",
-   "group": "pickup",
-   "take": 2,
-   "takes": 2,
-   "durationSeconds": [
-    0.25,
-    0.5
-   ],
-   "loop": false,
-   "channels": 1,
-   "events": [
-    "interaction.collect"
-   ],
-   "reusedBy": [],
-   "brief": "Ramassage d’un petit objet naturel (gland, branche) : froissement + clic doux."
-  },
-  {
-   "assetId": "bag-01",
-   "file": "audio/sfx/ui/bag-01.ogg",
-   "kind": "sample",
-   "format": "ogg",
-   "wave": 2,
-   "priority": "post-B1",
-   "group": "bag",
-   "take": 1,
-   "takes": 1,
-   "durationSeconds": [
-    0.25,
-    0.5
-   ],
-   "loop": false,
-   "channels": 1,
-   "events": [
-    "ui.inventory.open"
-   ],
-   "reusedBy": [
-    {
-     "eventId": "farm.seedbag",
-     "pitch": 1.1
-    },
-    {
-     "eventId": "ui.inventory.close",
-     "pitch": 0.9
-    }
-   ],
-   "brief": "Sac en tissu qu’on ouvre."
-  },
-  {
    "assetId": "mission-accept-01",
-   "file": "audio/sfx/objects/mission-accept-01.ogg",
+   "file": "audio/sfx/objects/mission-accept-01.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 3,
    "priority": "post-B1",
    "group": "mission-accept",
@@ -3122,14 +2372,36 @@
   },
   {
    "assetId": "puzzle-step-01",
-   "file": "audio/sfx/objects/puzzle-step-01.ogg",
+   "file": "audio/sfx/objects/puzzle-step-01.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 3,
    "priority": "post-B1",
    "group": "puzzle-step",
    "take": 1,
-   "takes": 1,
+   "takes": 2,
+   "durationSeconds": [
+    0.3,
+    0.6
+   ],
+   "loop": false,
+   "channels": 1,
+   "events": [
+    "puzzle.step"
+   ],
+   "reusedBy": [],
+   "brief": "Pierre qui s’enclenche, clic net."
+  },
+  {
+   "assetId": "puzzle-step-02",
+   "file": "audio/sfx/objects/puzzle-step-02.wav",
+   "kind": "sample",
+   "format": "wav",
+   "wave": 3,
+   "priority": "post-B1",
+   "group": "puzzle-step",
+   "take": 2,
+   "takes": 2,
    "durationSeconds": [
     0.3,
     0.6
@@ -3144,14 +2416,36 @@
   },
   {
    "assetId": "magic-01",
-   "file": "audio/sfx/objects/magic-01.ogg",
+   "file": "audio/sfx/magic/magic-01.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 3,
    "priority": "post-B1",
    "group": "magic",
    "take": 1,
-   "takes": 1,
+   "takes": 2,
+   "durationSeconds": [
+    0.8,
+    1.6
+   ],
+   "loop": false,
+   "channels": 1,
+   "events": [
+    "magic.activate"
+   ],
+   "reusedBy": [],
+   "brief": "Activation douce : carillon + souffle scintillant."
+  },
+  {
+   "assetId": "magic-02",
+   "file": "audio/sfx/magic/magic-02.wav",
+   "kind": "sample",
+   "format": "wav",
+   "wave": 3,
+   "priority": "post-B1",
+   "group": "magic",
+   "take": 2,
+   "takes": 2,
    "durationSeconds": [
     0.8,
     1.6
@@ -3166,9 +2460,9 @@
   },
   {
    "assetId": "amb-shimmer-01",
-   "file": "audio/sfx/objects/amb-shimmer-01.ogg",
+   "file": "audio/sfx/magic/amb-shimmer-01.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 3,
    "priority": "post-B1",
    "group": "amb-shimmer",
@@ -3187,37 +2481,10 @@
    "brief": "Boucle : nappe scintillante très légère."
   },
   {
-   "assetId": "amb-rain-light-01",
-   "file": "audio/ambience/amb-rain-light-01.ogg",
-   "kind": "sample",
-   "format": "ogg",
-   "wave": 2,
-   "priority": "post-B1",
-   "group": "amb-rain-light",
-   "take": 1,
-   "takes": 1,
-   "durationSeconds": [
-    6,
-    8
-   ],
-   "loop": true,
-   "channels": 1,
-   "events": [
-    "weather.rain"
-   ],
-   "reusedBy": [],
-   "condition": {
-    "weather": [
-     "rain"
-    ]
-   },
-   "brief": "Boucle sans couture : pluie modérée sur feuillage et sol."
-  },
-  {
    "assetId": "amb-rain-heavy-01",
-   "file": "audio/ambience/amb-rain-heavy-01.ogg",
+   "file": "audio/ambience/weather/amb-rain-heavy-01.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 3,
    "priority": "post-B1",
    "group": "amb-rain-heavy",
@@ -3242,9 +2509,9 @@
   },
   {
    "assetId": "thunder-01",
-   "file": "audio/ambience/thunder-01.ogg",
+   "file": "audio/ambience/weather/thunder-01.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 3,
    "priority": "post-B1",
    "group": "thunder",
@@ -3264,9 +2531,9 @@
   },
   {
    "assetId": "thunder-02",
-   "file": "audio/ambience/thunder-02.ogg",
+   "file": "audio/ambience/weather/thunder-02.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 3,
    "priority": "post-B1",
    "group": "thunder",
@@ -3285,48 +2552,10 @@
    "brief": "Tonnerre lointain roulant, sans claquement violent."
   },
   {
-   "assetId": "amb-wind-light-01",
-   "file": "audio/ambience/amb-wind-light-01.ogg",
-   "kind": "sample",
-   "format": "ogg",
-   "wave": 1,
-   "priority": "B1",
-   "group": "amb-wind-light",
-   "take": 1,
-   "takes": 1,
-   "durationSeconds": [
-    6,
-    8
-   ],
-   "loop": true,
-   "channels": 1,
-   "events": [
-    "weather.wind"
-   ],
-   "reusedBy": [
-    {
-     "eventId": "player.glide.wind",
-     "gain": 0.8,
-     "pitch": 1.15
-    },
-    {
-     "eventId": "ambience.cave.air",
-     "gain": 0.5,
-     "pitch": 0.7
-    },
-    {
-     "eventId": "ambience.ruins",
-     "gain": 0.7,
-     "pitch": 0.85
-    }
-   ],
-   "brief": "Boucle sans couture : brise légère, sans sifflement."
-  },
-  {
    "assetId": "amb-wind-strong-01",
-   "file": "audio/ambience/amb-wind-strong-01.ogg",
+   "file": "audio/ambience/weather/amb-wind-strong-01.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 2,
    "priority": "post-B1",
    "group": "amb-wind-strong",
@@ -3341,13 +2570,7 @@
    "events": [
     "weather.wind"
    ],
-   "reusedBy": [
-    {
-     "eventId": "ambience.desert",
-     "gain": 0.8,
-     "pitch": 1.05
-    }
-   ],
+   "reusedBy": [],
    "condition": {
     "place": [
      "mountain",
@@ -3358,13 +2581,13 @@
    "brief": "Boucle : vent fort d’altitude, rafales lentes."
   },
   {
-   "assetId": "amb-forest-01",
-   "file": "audio/ambience/amb-forest-01.ogg",
+   "assetId": "amb-forest-night-01",
+   "file": "audio/ambience/forest/amb-forest-night-01.wav",
    "kind": "sample",
-   "format": "ogg",
-   "wave": 1,
-   "priority": "B1",
-   "group": "amb-forest",
+   "format": "wav",
+   "wave": 2,
+   "priority": "post-B1",
+   "group": "amb-forest-night",
    "take": 1,
    "takes": 1,
    "durationSeconds": [
@@ -3377,13 +2600,18 @@
     "ambience.forest"
    ],
    "reusedBy": [],
-   "brief": "Boucle sans couture : feuillage qui bruisse, air calme, sans oiseau marquant (les oiseaux sont une couche séparée)."
+   "condition": {
+    "time": [
+     "night"
+    ]
+   },
+   "brief": "Boucle nocturne : feuillage presque immobile, air froid, très calme."
   },
   {
    "assetId": "amb-plain-01",
-   "file": "audio/ambience/amb-plain-01.ogg",
+   "file": "audio/ambience/plains/amb-plain-01.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 1,
    "priority": "B1",
    "group": "amb-plain",
@@ -3403,9 +2631,9 @@
   },
   {
    "assetId": "amb-swamp-01",
-   "file": "audio/ambience/amb-swamp-01.ogg",
+   "file": "audio/ambience/marsh/amb-swamp-01.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 2,
    "priority": "post-B1",
    "group": "amb-swamp",
@@ -3424,10 +2652,32 @@
    "brief": "Boucle : eau stagnante, bulles rares, insectes très lointains."
   },
   {
-   "assetId": "amb-volcano-01",
-   "file": "audio/ambience/amb-volcano-01.ogg",
+   "assetId": "amb-desert-01",
+   "file": "audio/ambience/desert/amb-desert-01.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
+   "wave": 3,
+   "priority": "post-B1",
+   "group": "amb-desert",
+   "take": 1,
+   "takes": 1,
+   "durationSeconds": [
+    6,
+    8
+   ],
+   "loop": true,
+   "channels": 1,
+   "events": [
+    "ambience.desert"
+   ],
+   "reusedBy": [],
+   "brief": "Boucle : vent sec et chaud avec sable qui glisse, espace très ouvert."
+  },
+  {
+   "assetId": "amb-volcano-01",
+   "file": "audio/ambience/volcano/amb-volcano-01.wav",
+   "kind": "sample",
+   "format": "wav",
    "wave": 3,
    "priority": "post-B1",
    "group": "amb-volcano",
@@ -3447,9 +2697,9 @@
   },
   {
    "assetId": "amb-sea-01",
-   "file": "audio/ambience/amb-sea-01.ogg",
+   "file": "audio/ambience/coast/amb-sea-01.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 2,
    "priority": "post-B1",
    "group": "amb-sea",
@@ -3468,38 +2718,10 @@
    "brief": "Boucle sans couture : vagues régulières sur le sable, ressac doux."
   },
   {
-   "assetId": "amb-river-01",
-   "file": "audio/ambience/amb-river-01.ogg",
-   "kind": "sample",
-   "format": "ogg",
-   "wave": 1,
-   "priority": "B1",
-   "group": "amb-river",
-   "take": 1,
-   "takes": 1,
-   "durationSeconds": [
-    6,
-    8
-   ],
-   "loop": true,
-   "channels": 1,
-   "events": [
-    "ambience.water.river"
-   ],
-   "reusedBy": [
-    {
-     "eventId": "farm.irrigate",
-     "gain": 0.5,
-     "pitch": 1.3
-    }
-   ],
-   "brief": "Boucle sans couture : ruisseau/rivière qui coule sur des galets."
-  },
-  {
    "assetId": "amb-waterfall-01",
-   "file": "audio/ambience/amb-waterfall-01.ogg",
+   "file": "audio/ambience/water/amb-waterfall-01.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 2,
    "priority": "post-B1",
    "group": "amb-waterfall",
@@ -3514,20 +2736,14 @@
    "events": [
     "ambience.waterfall"
    ],
-   "reusedBy": [
-    {
-     "eventId": "water.rapids",
-     "gain": 0.7,
-     "pitch": 1.15
-    }
-   ],
+   "reusedBy": [],
    "brief": "Boucle : chute d’eau continue, large bande mais sans souffle agressif."
   },
   {
    "assetId": "amb-lake-01",
-   "file": "audio/ambience/amb-lake-01.ogg",
+   "file": "audio/ambience/water/amb-lake-01.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 2,
    "priority": "post-B1",
    "group": "amb-lake",
@@ -3547,9 +2763,9 @@
   },
   {
    "assetId": "amb-village-01",
-   "file": "audio/ambience/amb-village-01.ogg",
+   "file": "audio/ambience/village/amb-village-01.wav",
    "kind": "sample",
-   "format": "ogg",
+   "format": "wav",
    "wave": 2,
    "priority": "post-B1",
    "group": "amb-village",
@@ -3566,28 +2782,6 @@
    ],
    "reusedBy": [],
    "brief": "Boucle : vie de village animal paisible, bois, outils lointains, aucune voix humaine."
-  },
-  {
-   "assetId": "amb-night-01",
-   "file": "audio/ambience/amb-night-01.ogg",
-   "kind": "sample",
-   "format": "ogg",
-   "wave": 1,
-   "priority": "B1",
-   "group": "amb-night",
-   "take": 1,
-   "takes": 1,
-   "durationSeconds": [
-    6,
-    8
-   ],
-   "loop": true,
-   "channels": 1,
-   "events": [
-    "ambience.night"
-   ],
-   "reusedBy": [],
-   "brief": "Boucle sans couture : grillons lointains réguliers, calme nocturne."
   },
   {
    "assetId": "music-menu",
