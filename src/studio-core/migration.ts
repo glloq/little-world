@@ -55,7 +55,8 @@ export function toRuntimeWorld(project:ProjectDocument,chunkIds?:string[]):World
   const {placements,npcs}=runtimeContent(resolved,project.libraries);
   const waterIds=new Set(selected.flatMap(c=>c.waterRefs)),pathIds=new Set(selected.flatMap(c=>c.pathRefs));
   const stripOrder=<T extends {order:number}>(edit:T):Omit<T,'order'>=>{const {order:_,...data}=edit;return structuredClone(data);};
-  return {schemaVersion:2,name:project.manifest.name,config:{seed:world.seed,density:world.density,width,length,seaLevel:world.seaLevel,chunkSize:world.chunkSizeM,viewDistance:world.viewDistance,generatorVersion:1,...(world.terrain?{terrain:structuredClone(world.terrain)}:{})},placements,terrain:[...terrain.values()].sort((a,b)=>a.order-b.order).map(stripOrder),biomes:[...biomes.values()].sort((a,b)=>a.order-b.order).map(stripOrder),water:[...waterIds].map(id=>structuredClone(project.libraries.water[id])),paths:[...pathIds].map(id=>structuredClone(project.libraries.paths[id])),npcs};
+  const masks:WorldDefinition['geography']=geographyOf(project,selected);
+  return {...(masks?{geography:masks}:{}),schemaVersion:2,name:project.manifest.name,config:{seed:world.seed,density:world.density,width,length,seaLevel:world.seaLevel,chunkSize:world.chunkSizeM,viewDistance:world.viewDistance,generatorVersion:1,...(world.terrain?{terrain:structuredClone(world.terrain)}:{})},placements,terrain:[...terrain.values()].sort((a,b)=>a.order-b.order).map(stripOrder),biomes:[...biomes.values()].sort((a,b)=>a.order-b.order).map(stripOrder),water:[...waterIds].map(id=>structuredClone(project.libraries.water[id])),paths:[...pathIds].map(id=>structuredClone(project.libraries.paths[id])),npcs};
 }
 
 /** Shared Studio-preview / compiled-reader projection of resolved entities to the
@@ -68,4 +69,11 @@ export function runtimeContent(entities:{id:string;name:string;components:Entity
     }else if(c.Visual)placements.push({id:entity.id,assetId:c.Visual.assetId as WorldDefinition['placements'][number]['assetId'],x:t.position.x,z:t.position.z,rotation:Math.atan2(2*(t.rotation.w*t.rotation.y+t.rotation.x*t.rotation.z),1-2*(t.rotation.y*t.rotation.y+t.rotation.z*t.rotation.z)),scale:t.scale.x,y:t.position.y,quaternion:[t.rotation.x,t.rotation.y,t.rotation.z,t.rotation.w],scale3:[t.scale.x,t.scale.y,t.scale.z]});
   }
   return {placements,npcs};
+}
+
+/** Geography corrections of the given sectors and the activity zones (runtime-only input). */
+export function geographyOf(project:ProjectDocument,chunks:{chunkId:string;layers?:import('../geography/layers.ts').SectorLayers}[]):WorldDefinition['geography']|undefined{
+  const masks:Record<string,import('../geography/layers.ts').SectorLayers>={};for(const c of chunks)if(c.layers&&Object.keys(c.layers).length)masks[c.chunkId]=structuredClone(c.layers);
+  const zones=Object.values(project.libraries.zones??{}).map(z=>({kind:z.kind,polygon:z.polygon.map(p=>({...p}))}));
+  return Object.keys(masks).length||zones.length?{sectorSizeM:project.world.chunkSizeM,masks,zones}:undefined;
 }

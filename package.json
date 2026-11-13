@@ -17,6 +17,7 @@
     "compile:project": "node --experimental-strip-types tools/compile-project.mjs",
     "generate:beta": "node --experimental-strip-types tools/generate-beta.mjs",
     "generate:island": "node --experimental-strip-types tools/generate-island.mjs",
+    "generate:reference": "node --experimental-strip-types tools/generate-reference.mjs",
     "benchmark:route": "node tools/benchmark-route.mjs",
     "test:gameplay": "node tools/test-gameplay-browser.mjs",
     "test:environment": "node tools/test-environment-browser.mjs",
@@ -26,6 +27,7 @@
     "test:audio": "node tools/test-audio-browser.mjs",
     "test:water": "node tools/test-water-browser.mjs",
     "test:island": "node tools/test-island-browser.mjs",
+    "test:geomap": "node tools/test-geomap-browser.mjs",
     "test:editor": "node tools/test-editor-browser.mjs",
     "test:editor-content": "node tools/test-editor-content-browser.mjs",
     "test:editor-world": "node tools/test-editor-world-browser.mjs"

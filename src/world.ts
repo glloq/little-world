@@ -2,8 +2,10 @@ import {waterRibbonData} from './water/geometry.ts';
 import * as THREE from 'three';
 import { createTerrainView } from './terrain-view';
 import { createHorizonView, type HorizonStats } from './horizon-view';
+import { configureGeography } from './geography/engine';
 import { createEcology } from './ecology';
-import { sampleBiome } from './biomes';
+import { createDressingView, type DressingView, type DressingStats } from './dressing-view.ts';
+import { sampleBiome, generatedCover } from './biomes';
 import type {
   WorldDefinition,
   WorldConfig,
@@ -35,7 +37,10 @@ export interface WorldView {
   objects: THREE.Group;
   update: (dt: number, focus?: { x: number; z: number }, camera?: THREE.PerspectiveCamera, pixelHeight?: number) => void;
   terrainWork: import('./terrain-view').TerrainWorkStats;
-  setDetail: (level: number) => void;
+  /** Natural dressing of generated worlds (null for the historical valley). */
+  dressing: DressingStats | null;
+  /** `economy` (lowest quality setting) shifts the natural dressing one tier down. */
+  setDetail: (level: number, economy?: boolean) => void;
   refreshTerrain: (x: number, z: number, radius: number) => void;
   refreshWater:()=>string[];
   refreshPaths:(paths: PathDefinition[])=>string[];
@@ -601,6 +606,7 @@ export function buildWorld(
     definition?.water,
     definition?.paths,
   );
+  configureWorldGeography(config, definition);
   const root = new THREE.Group();
   root.name = 'LittleWorld';
   // Generation is time-sliced (ms) rather than a fixed count; the shared level adapts LOD.
@@ -624,7 +630,9 @@ export function buildWorld(
         return edits[i].biome;
     return sampleBiome(x, z);
   };
-  const ecology = createEcology(root, config.seed, config.density, biomeAt);
+  const ecology = createEcology(root, config.seed, config.density, biomeAt, legacy ? undefined : generatedCover);
+  // G5: natural dressing (forests, cliff rocks, scree, pebbles, basalt) of generated worlds.
+  const dressing: DressingView | null = legacy ? null : createDressingView(root, config.seed, config.density);
   const waterMeshes=new Map<string,{signature:string;mesh:THREE.Mesh}>();
   function refreshWater(){
     const changed:string[]=[],ids=new Set(compiledWaterBodies().map(w=>w.id));
@@ -682,16 +690,19 @@ export function buildWorld(
     stats: terrainView.stats,
     horizon: horizon.stats,
     terrainWork: terrainView.work,
+    dressing: dressing?.stats ?? null,
     refreshWater,
     refreshPaths,
-    setDetail(level) {
+    setDetail(level, economy = false) {
       detailLevel = level;
       ecology.setDetail(level);
+      dressing?.setDetail(economy ? level + 1 : level);
     },
     refreshTerrain(x, z, radius) {
       terrainView.refresh(x, z, radius);
       horizon.refresh(x, z, radius);
       ecology.refresh(x, z, radius);
+      dressing?.refresh(x, z, radius);
       const matrix = new THREE.Matrix4();
       root.traverse((node) => {
         if (
@@ -759,6 +770,7 @@ export function buildWorld(
       } else terrainView.update(focus.x, focus.z);
       horizon.update(focus);
       ecology.update(dt, time, focus.x, focus.z);
+      dressing?.update(focus.x, focus.z);
       const distance = getTerrainConfig().viewDistance;
       for (const object of objects.children)
         object.visible =
@@ -767,6 +779,7 @@ export function buildWorld(
     },
     dispose() {
       ecology.dispose();
+      dressing?.dispose();
       horizon.dispose();
       terrainView.dispose();
       root.traverse((o) => {
@@ -786,6 +799,19 @@ export function buildWorld(
   };
 }
 
+/** Geography Engine inputs for a runtime/Studio world: sector masks, zones, legacy biome
+ * strokes and building footprints, all derived from the same sources as the terrain. */
+export function configureWorldGeography(config: WorldConfig, definition?: WorldDefinition) {
+  const width = config.width ?? 200, length = config.length ?? 600, sector = definition?.geography?.sectorSizeM ?? config.chunkSize ?? 64;
+  configureGeography({
+    seed: config.seed,
+    grid: { minX: -width / 2, minZ: -length / 2, chunkSizeM: sector, columns: Math.ceil(width / sector), rows: Math.ceil(length / sector) },
+    masks: definition?.geography?.masks ?? {},
+    zones: definition?.geography?.zones ?? [],
+    biomeStrokes: (definition?.biomes ?? []).map((b) => ({ x: b.x, z: b.z, radius: b.radius, biome: b.biome })),
+    buildings: (definition?.placements ?? []).filter((p) => p.assetId.startsWith('architecture.')).map((p) => ({ x: p.x, z: p.z, radius: 6 * (p.scale ?? 1) })),
+  });
+}
 export function addPlacement(
   world: WorldView,
   placement: Placement,

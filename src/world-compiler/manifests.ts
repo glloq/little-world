@@ -71,7 +71,7 @@ export interface CompileResult {
   rebuiltChunkIds:string[];
   diagnostics:CompilationDiagnostic[];
 }
-export const COMPILER_VERSION='little-world-descriptors-5';
+export const COMPILER_VERSION='little-world-descriptors-6';
 
 /** Stable object key order; array order remains semantically meaningful. */
 export function canonicalJSON(value:unknown):string {
@@ -102,6 +102,8 @@ export interface CompiledChunkData {
   bounds:CompiledBounds;
   generator:{seed:number;version:string;density:number;seaLevel:number};
   entities:CompiledRuntimeEntity[];
+  /** Geography corrections (sector masks) authored in the Studio. */
+  layers?:import('../geography/layers.ts').SectorLayers;
   terrain:{mode:'procedural-with-ordered-overrides';edits:import('../studio-core/types.ts').TerrainEdit[]};
   biomes:{edits:import('../studio-core/types.ts').BiomeEdit[]};
   water:import('../world-data.ts').WaterBody[];

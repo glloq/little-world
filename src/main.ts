@@ -88,6 +88,7 @@ quality.addEventListener('change', () => {
     /* optional */
   }
   applyQuality();
+  world?.setDetail(budget.level, quality.value === 'low');
 });
 applyQuality();
 renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -143,6 +144,7 @@ if(searchParams.has('studioBuild')||searchParams.has('world')){
   }
 }
 const world = buildWorld(definition.config, definition);
+world.setDetail(budget.level, quality.value === 'low');
 // Far plane follows the project diagonal: silhouettes stay visible without fog (near plane unchanged).
 camera.far=horizonFar(getTerrainConfig().width,getTerrainConfig().length);camera.updateProjectionMatrix();
 for (const item of definition.placements) addPlacement(world, item);
@@ -503,6 +505,7 @@ function draw(now: number) {
         chunks: { ...world.stats },
         horizon: { ...world.horizon },
         terrainWork: { ...world.terrainWork },
+        dressing: world.dressing ? { ...world.dressing } : null,
         environment:environment.metrics,
         audio:audio?.engine.metrics??null,
         collisions:gameplay?.collision.stats??null,
@@ -529,7 +532,7 @@ function draw(now: number) {
   const cost = performance.now() - begin;
   if (budget.observe(cost, wallDrawDelta)) {
     presentation.rate = budget.rate;
-    world.setDetail(budget.level);
+    world.setDetail(budget.level, quality.value === 'low');
     applyQuality();
   }
   requestAnimationFrame(draw);

@@ -1,0 +1,143 @@
+{
+  "recordedAt": "2026-11-13T14:48:28.135Z",
+  "base": "http://localhost:5174/little-world/",
+  "revision": "10b091ad3f495a2948f3288a5974c46f445983ac",
+  "dirty": 10,
+  "browserVersion": "153.0.8010.12",
+  "viewport": {
+    "width": 960,
+    "height": 640
+  },
+  "quality": "medium",
+  "launchArgs": [
+    "--no-sandbox",
+    "--use-angle=swiftshader",
+    "--enable-unsafe-swiftshader"
+  ],
+  "notes": [
+    "SwiftShader software rendering: regression signal only, not an integrated-GPU qualification.",
+    "Intervals are presentation intervals observed by requestAnimationFrame; renderSubmitMs is JS submission time, not GPU time.",
+    "holeFraction = background-coloured pixels among those whose camera ray hits the analytic terrain (or open sea of a generated island), 64×40 grid, lowest pitch, 8 headings; null when the build exposes no camera.",
+    "Route timing is wall-clock; frame counts per phase vary with throughput."
+  ],
+  "scenarios": [
+    {
+      "name": "island-3x8",
+      "kind": "url",
+      "query": {
+        "world": "maps/island/manifest.json"
+      },
+      "bootMs": 4331.394164,
+      "settled": true,
+      "settleMs": 818.5069779999994,
+      "overall": {
+        "frames": 457,
+        "meanMs": 64.47592997811817,
+        "p50Ms": 50,
+        "p95Ms": 116.69999999999709,
+        "p99Ms": 216.6999999999971,
+        "maxMs": 316.7000000000007,
+        "over50Ms": 225,
+        "over100Ms": 30,
+        "fps": 15.509663844156723
+      },
+      "byPhase": {
+        "idle": {
+          "frames": 19,
+          "meanMs": 99.99473684210524,
+          "p50Ms": 83.40000000000055,
+          "p95Ms": 316.60000000000036,
+          "p99Ms": 316.60000000000036,
+          "maxMs": 316.60000000000036,
+          "over50Ms": 18,
+          "over100Ms": 3,
+          "fps": 10.000526343491766
+        },
+        "rotate360": {
+          "frames": 106,
+          "meanMs": 58.01698113207547,
+          "p50Ms": 50,
+          "p95Ms": 133.30000000000018,
+          "p99Ms": 183.30000000000018,
+          "maxMs": 183.30000000000018,
+          "over50Ms": 34,
+          "over100Ms": 10,
+          "fps": 17.236332888874436
+        },
+        "run": {
+          "frames": 80,
+          "meanMs": 75.20500000000001,
+          "p50Ms": 83.20000000000073,
+          "p95Ms": 100,
+          "p99Ms": 183.29999999999927,
+          "maxMs": 183.29999999999927,
+          "over50Ms": 73,
+          "over100Ms": 2,
+          "fps": 13.296988232165413
+        },
+        "uturn": {
+          "frames": 64,
+          "meanMs": 54.424999999999955,
+          "p50Ms": 50,
+          "p95Ms": 83.39999999999782,
+          "p99Ms": 100,
+          "maxMs": 100,
+          "over50Ms": 20,
+          "over100Ms": 0,
+          "fps": 18.37390904915022
+        },
+        "horizon": {
+          "frames": 188,
+          "meanMs": 63.38404255319151,
+          "p50Ms": 50,
+          "p95Ms": 133.20000000000073,
+          "p99Ms": 250,
+          "maxMs": 316.7000000000007,
+          "over50Ms": 80,
+          "over100Ms": 15,
+          "fps": 15.776841610580549
+        }
+      },
+      "drawCallsMean": 74.00875273522976,
+      "drawCallsMax": 100,
+      "trianglesMean": 33651.85995623632,
+      "trianglesMax": 73328,
+      "geometriesMax": 118,
+      "chunksActiveMax": 40,
+      "chunksResidentMax": 88,
+      "chunksPendingMax": 7,
+      "chunksVisibleMean": 20.833698030634572,
+      "terrainBytesMax": 1170336,
+      "terrainBuildMsMax": 5.400000000372529,
+      "terrainBuiltTotal": 88,
+      "updateMsMean": 0.4426695842314226,
+      "renderSubmitMsMean": 1.0984682713521143,
+      "simulationMsMean": 0.09256017505735387,
+      "horizon": {
+        "blocks": 24,
+        "triangles": 46720,
+        "bytes": 1470811,
+        "buildMs": 130.10000000009313,
+        "rebuilt": 24,
+        "coverageUpdates": 84,
+        "oceanVisible": true
+      },
+      "holeFraction": {
+        "mean": 0,
+        "max": 0,
+        "samples": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "heapMB": 22.601011276245117,
+      "errors": []
+    }
+  ]
+}

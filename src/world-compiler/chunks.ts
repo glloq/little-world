@@ -74,7 +74,7 @@ export function compileChunkData(context:CompileContext,chunk:ChunkSourceV3,ids:
   return {schemaVersion:1,kind:'compiled-chunk',worldId:project.world.worldId,chunkId:chunk.chunkId,
     bounds:compiledChunkBounds(project,chunk.index.cx,chunk.index.cz),
     generator:{seed:project.world.seed,version:project.world.generatorVersion,density:project.world.density,seaLevel:project.world.seaLevel},
-    entities,terrain:{mode:'procedural-with-ordered-overrides',edits:uniqueOrdered(terrain)},biomes:{edits:uniqueOrdered(biomes)},
+    entities,...(chunk.layers&&Object.keys(chunk.layers).length?{layers:structuredClone(chunk.layers)}:{}),terrain:{mode:'procedural-with-ordered-overrides',edits:uniqueOrdered(terrain)},biomes:{edits:uniqueOrdered(biomes)},
     water:chunk.waterRefs.map(id=>project.libraries.water[id]),paths:chunk.pathRefs.map(id=>project.libraries.paths[id]),
     collision:{mode:'analytic-terrain-and-shape-descriptors',shapes:entities.flatMap(entity=>
       entity.components.Collider&&entity.components.Transform?[{entityId:entity.id,transform:entity.components.Transform,collider:entity.components.Collider}]:[])},

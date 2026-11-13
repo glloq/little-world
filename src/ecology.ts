@@ -26,6 +26,7 @@ export function createEcology(
   seed: number,
   density: number,
   sampler?: BiomeSampler,
+  cover?: (x: number, z: number) => number,
 ) {
   const root = new THREE.Group();
   root.name = 'Ecology';
@@ -119,7 +120,7 @@ export function createEcology(
   let retired = false;
 
   function build(cx: number, cz: number): ResidentSector {
-    const source = generateEcologySector(seed, cx, cz, density, sampler);
+    const source = generateEcologySector(seed, cx, cz, density, sampler, cover);
     const group = new THREE.Group();
     group.name = `Ecology ${source.id}`;
     for (const kind of Object.keys(specs) as PlantKind[]) {

@@ -12,7 +12,9 @@
 Les retouches sont séparées en tableaux `terrain`, `biomes`, `water`, `paths` et `placements`. Les IDs sont stables. Aucun script importé n’est exécuté. Le générateur conserve encore une rivière et des bâtiments de démonstration aux positions historiques ; il ne constitue pas un auteur géographique arbitraire complet. Les bornes minimales préservent ces emplacements.
 
 
-La limite **expérimentale du validateur actuel** est de 2 km par axe. Le plafond de conception reste 10 km par axe ; le format sectorisé et le streaming complet de 100 km² restent à développer.
+La limite de 2 km par axe ne concerne que l'ancien format v2. Le schéma **V3** accepte jusqu'à 10 km par axe (plafond de format, pas de performance démontrée) ; l'empreinte B1 visée est 3 × 8 km. Le streaming complet de 100 km² reste à développer et à mesurer.
+
+**Mise à jour (lots G1–G7)** : le relief des nouveaux mondes est produit par un générateur d'archipel versionné, éditable depuis la carte 2D par couches du Studio, avec masques de corrections sectorisés, classification géologique/biomes/matériaux et habillage naturel par habitat. Voir [33 — Geography Engine et carte 2D](33-GEOGRAPHY-ENGINE-CARTE-2D.md).
 
 ## Géographie
 

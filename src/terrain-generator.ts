@@ -28,7 +28,12 @@ export interface IslandParams {
 }
 export type TerrainGeneratorDefinition =
   | {kind:'legacy-valley';version:1}
-  | {kind:'island';version:1;island:IslandParams};
+  | {kind:'island';version:1;island:IslandParams}
+  | {kind:'archipelago';version:1;archipelago:import('./geography/archipelago.ts').ArchipelagoParams};
+import {archipelagoField,type GeneratorField} from './geography/archipelago.ts';
+import {fbm,valueNoise,volcanoProfile} from './geography/noise.ts';
+export {fbm,valueNoise,volcanoProfile} from './geography/noise.ts';
+import {parseArchipelago} from './geography/archipelago-params.ts';
 export interface GeneratorWorld {seed:number;seaLevel:number;width:number;length:number}
 export type HeightFunction=(x:number,z:number)=>number;
 
@@ -57,6 +62,7 @@ function only(v:Record<string,unknown>,allowed:string[],label:string){for(const 
 export function parseTerrainGenerator(value:unknown,world:{width:number;length:number}):TerrainGeneratorDefinition{
   if(!record(value))throw Error('Générateur de relief invalide');
   if(value.kind==='legacy-valley'){only(value,['kind','version'],'Générateur');if(value.version!==1)throw Error('Version du générateur inconnue');return {kind:'legacy-valley',version:1};}
+  if(value.kind==='archipelago'){only(value,['kind','version','archipelago'],'Générateur');if(value.version!==1)throw Error('Version du générateur d’archipel inconnue');return {kind:'archipelago',version:1,archipelago:parseArchipelago(value.archipelago,world)};}
   if(value.kind!=='island'||value.version!==1||!record(value.island))throw Error('Générateur de relief inconnu');
   only(value,['kind','version','island'],'Générateur');const i=value.island;
   only(i,['seaMarginM','coastNoiseM','coastWavelengthM','beachWidthM','shoreHeightM','lowlandHeightM','hillHeightM','seabedDepthM','volcano'],'Île');
@@ -74,33 +80,10 @@ export function parseTerrainGenerator(value:unknown,world:{width:number;length:n
   return {kind:'island',version:1,island};
 }
 
-/** Small seeded lattice value noise (deterministic, allocation-free). */
-function hash2(seed:number,ix:number,iz:number):number{
-  let h=Math.imul(ix,0x27d4eb2d)^Math.imul(iz,0x165667b1)^Math.imul(seed,0x9e3779b1);
-  h=Math.imul(h^(h>>>15),0x85ebca6b);h=Math.imul(h^(h>>>13),0xc2b2ae35);h^=h>>>16;
-  return (h>>>0)/4294967296*2-1;
-}
-export function valueNoise(seed:number,x:number,z:number):number{
-  const ix=Math.floor(x),iz=Math.floor(z),fx=x-ix,fz=z-iz,ux=fx*fx*(3-2*fx),uz=fz*fz*(3-2*fz);
-  const a=hash2(seed,ix,iz),b=hash2(seed,ix+1,iz),c=hash2(seed,ix,iz+1),d=hash2(seed,ix+1,iz+1);
-  return a+(b-a)*ux+(c-a)*uz+(a-b-c+d)*ux*uz;
-}
-function fbm(seed:number,x:number,z:number,octaves:number):number{
-  let sum=0,amp=.5,freq=1,norm=0;
-  for(let o=0;o<octaves;o++){sum+=valueNoise(seed+o*1013,x*freq,z*freq)*amp;norm+=amp;amp*=.5;freq*=2.03;}
-  return sum/norm;
-}
 /** Signed distance (m) to a rounded rectangle; positive inside. */
 function roundedInside(x:number,z:number,hx:number,hz:number,r:number):number{
   const qx=Math.abs(x)-(hx-r),qz=Math.abs(z)-(hz-r);
   return -(Math.hypot(Math.max(qx,0),Math.max(qz,0))+Math.min(Math.max(qx,qz),0)-r);
-}
-export function volcanoProfile(v:VolcanoParams,distance:number):number{
-  if(v.radiusM<=0||distance>=v.radiusM)return 0;
-  const cone=(r:number)=>v.heightM*Math.pow(1-r/v.radiusM,1.55);
-  if(distance>=v.craterRadiusM)return cone(distance);
-  const t=v.craterRadiusM>0?distance/v.craterRadiusM:0;
-  return cone(v.craterRadiusM)-v.craterDepthM*(1-t*t*t*t);
 }
 /** Island relief: closed perturbed coast, beach, rolling lowland, gullied volcano and seabed. */
 export function islandHeight(world:GeneratorWorld,p:IslandParams):HeightFunction{
@@ -127,7 +110,16 @@ export function islandHeight(world:GeneratorWorld,p:IslandParams):HeightFunction
   };
 }
 export function generatorHeight(def:TerrainGeneratorDefinition,world:GeneratorWorld,legacy:HeightFunction):HeightFunction{
-  return def.kind==='island'?islandHeight(world,def.island):legacy;
+  return generatorField(def,world,legacy).height;
+}
+/** Shared generator outputs (height, coast distance, coastal steepness, volcanic influence). */
+export function generatorField(def:TerrainGeneratorDefinition,world:GeneratorWorld,legacy:HeightFunction):GeneratorField{
+  if(def.kind==='archipelago')return archipelagoField(world,def.archipelago);
+  if(def.kind==='island'){const coast=islandCoastDistance(world,def.island),v=def.island.volcano;
+    const volcanic=(x:number,z:number)=>smooth(v.radiusM,v.radiusM*.35,Math.hypot(x-v.x,z-v.z));
+    return {height:islandHeight(world,def.island),coast,cliff:()=>0,volcanic,site:(x,z)=>({coast:coast(x,z),cliff:0,volcanic:volcanic(x,z)})};}
+  // Historical valley: the open sea lies towards +Z beyond ~190 m.
+  return {height:legacy,coast:(_x,z)=>190-z,cliff:()=>0,volcanic:()=>0,site:(_x,z)=>({coast:190-z,cliff:0,volcanic:0})};
 }
 /** Approximate inland distance used by colouring/biomes; negative offshore. */
 export function islandCoastDistance(world:GeneratorWorld,p:IslandParams):HeightFunction{

@@ -5,6 +5,7 @@ import catalogue from '../../assets/catalog.json' with {type:'json'};
 import { EMOTIONS } from '../character-style.ts';
 import {parseTerrainGenerator,VERTICAL_ENVELOPE,type TerrainGeneratorDefinition} from '../terrain-generator.ts';
 import {validateZone} from './zones.ts';
+import {MASK_LAYERS,validMaskString,type MaskLayerId} from '../geography/layers.ts';
 import { validDialogue } from '../dialogue.ts';
 import type { AssetDefinition, BiomeEdit, ChunkId, ChunkSourceV3, ComponentMap, EntityDefinitionV3, ProjectDocument, StudioProjectV3, TerrainEdit, WorldDefinitionV3 } from './types.ts';
 
@@ -101,7 +102,8 @@ export function validateTerrainEdit(raw:unknown,world:WorldDefinitionV3,biome=fa
   if(biome){if(!['forest','meadow','mountain','river','lake','coast','village'].includes(String(e.biome)))throw Error('Biotope inconnu');finite(e.density,'Densité',0,2);}else{if(!['raise','lower','flatten','smooth'].includes(String(e.mode)))throw Error('Pinceau inconnu');finite(e.strength,'Intensité',0,10);finite(e.height,'Altitude',VERTICAL_ENVELOPE.min,VERTICAL_ENVELOPE.max);}
 }
 export function parseChunk(value:unknown,world:WorldDefinitionV3):ChunkSourceV3{
-  const c=object(value,'Secteur');keys(c,['schemaVersion','chunkId','index','revision','entities','entityIds','terrainEdits','terrainRefs','biomeEdits','biomeRefs','waterRefs','pathRefs'],'Secteur');if(c.schemaVersion!==3)throw Error('Version secteur V3 requise');const id=string(c.chunkId,'ID secteur'),coord=chunkCoordinates(world,id),index=object(c.index,'Indice');keys(index,['cx','cz'],'Indice');if(index.cx!==coord.cx||index.cz!==coord.cz)throw Error('Indice secteur incohérent');integer(c.revision,'Révision secteur');
+  const c=object(value,'Secteur');keys(c,['schemaVersion','chunkId','index','revision','entities','entityIds','terrainEdits','terrainRefs','biomeEdits','biomeRefs','waterRefs','pathRefs','layers'],'Secteur');
+  if(c.layers!==undefined){const layers=object(c.layers,'Couches géographiques');keys(layers,MASK_LAYERS,'Couches géographiques');for(const [layer,mask]of Object.entries(layers))if(!validMaskString(layer as MaskLayerId,mask))throw Error('Masque géographique invalide : '+layer);}if(c.schemaVersion!==3)throw Error('Version secteur V3 requise');const id=string(c.chunkId,'ID secteur'),coord=chunkCoordinates(world,id),index=object(c.index,'Indice');keys(index,['cx','cz'],'Indice');if(index.cx!==coord.cx||index.cz!==coord.cz)throw Error('Indice secteur incohérent');integer(c.revision,'Révision secteur');
   const entities=object(c.entities,'Entités');for(const [key,value]of Object.entries(entities)){const e=parseEntity(value,world);if(e.id!==key||e.ownerChunkId!==id)throw Error('Propriétaire ou ID entité incohérent');}
   const names=ids(c.entityIds,'Liste entités',5000);if(names.length!==Object.keys(entities).length||names.some(id=>!entities[id]))throw Error('Index local entités incohérent');
   for(const field of ['terrainRefs','biomeRefs','waterRefs','pathRefs'])ids(c[field],field,5000);

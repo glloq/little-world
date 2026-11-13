@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import {FrameClock} from '../../frame-clock.ts';
-import {buildWorld,configureScene,addPlacement,removePlacement,type WorldView} from '../../world.ts';
+import {buildWorld,configureScene,addPlacement,removePlacement,configureWorldGeography,type WorldView} from '../../world.ts';
 import {configureTerrain,terrainHeight} from '../../terrain.ts';
+import {terrainChangeRects} from '../../studio-core/geo-edits.ts';
 import {horizonFar} from '../../horizon-view.ts';
 import {createNPCSystem} from '../../npc-view.ts';
 import {toRuntimeWorld} from '../../studio-core/migration.ts';
@@ -62,7 +63,7 @@ export class StudioViewport {
   private session:StudioSession;private options:ViewportOptions;
   private constructor(host:HTMLElement,session:StudioSession,options:ViewportOptions,definition:WorldDefinition){
     this.session=session;this.options=options;
-    this.definition=definition;const p=session.document;this.editSignatures=new Map([...definition.terrain,...definition.biomes].map(e=>[e.id,JSON.stringify(e)]));
+    this.definition=definition;const p=session.document;this.editSignatures=new Map([...definition.terrain,...definition.biomes].map(e=>[e.id,JSON.stringify(e)]));this.geoSignatures=geographySignatures(definition);
     this.element=document.createElement('div');this.element.className='viewport';this.canvas=document.createElement('canvas');this.canvas.tabIndex=0;this.canvas.setAttribute('aria-label','Vue 3D du monde');this.element.append(this.canvas);host.append(this.element);
     this.renderer=new THREE.WebGLRenderer({canvas:this.canvas,antialias:true,powerPreference:'low-power'});this.renderer.setPixelRatio(Math.min(devicePixelRatio,1.25));this.renderer.outputColorSpace=THREE.SRGBColorSpace;this.renderer.toneMapping=THREE.ACESFilmicToneMapping;this.renderer.toneMappingExposure=1.1;
     configureScene(this.scene);this.world=buildWorld(definition.config,definition);this.scene.add(this.world.root);
@@ -148,14 +149,39 @@ export class StudioViewport {
       if(this.disposed)return;await this.session.hydrate(ids);if(this.disposed)return;
       this.contentIds=new Set(ids);const next=toRuntimeWorld(p,Object.keys(p.chunks));next.config.viewDistance=300;
       // Same object as the one given to buildWorld: biome sampling reads its live edit list.
+      const generatorBefore=JSON.stringify(this.definition.config.terrain??null);
       Object.assign(this.definition,next);
-      this.applyTerrain([...next.terrain,...next.biomes] as TerrainStroke[],transaction);this.world.refreshPaths(this.definition.paths);this.syncZones();this.syncModels();this.tools.active?.sourcesChanged?.();this.reportStatus();this.invalidate(20);
+      if(generatorBefore!==JSON.stringify(next.config.terrain??null))this.applyGenerator(transaction);
+      this.syncGeography();this.applyTerrain([...next.terrain,...next.biomes] as TerrainStroke[],transaction);this.world.refreshPaths(this.definition.paths);this.syncZones();this.syncModels();this.tools.active?.sourcesChanged?.();this.reportStatus();this.invalidate(20);
     }).catch(error=>this.options.message(String(error),true));
   }
   refresh(transaction?:EditTransaction){
     // Undo/redo may remove selected elements: keep only those that still exist.
     this.session.selection.prune(v=>v.kind!=='entity'||!!this.session.document.entityIndex[v.id]);
     this.syncContent(transaction);
+  }
+  /** Relief generator parameters changed (2D shape editing, presets, undo): reconfigure the
+   * terrain and rebuild only the areas of the changed shapes (whole world if global). */
+  private applyGenerator(transaction?:EditTransaction){
+    const d=this.definition;configureTerrain(d.config,d.terrain,d.water,d.paths);this.world.refreshWater();
+    this.canvas.dataset.generatorRevision=String(Number(this.canvas.dataset.generatorRevision??0)+1);
+    const change=transaction?terrainChangeRects(transaction.patches):{global:true,rects:[]};
+    const b=this.session.document.world.bounds;
+    if(change.global||!change.rects.length){this.world.refreshTerrain((b.minX+b.maxX)/2,(b.minZ+b.maxZ)/2,Math.hypot(b.maxX-b.minX,b.maxZ-b.minZ)/2+64);return;}
+    for(const r of change.rects)this.world.refreshTerrain((r.minX+r.maxX)/2,(r.minZ+r.maxZ)/2,Math.hypot(r.maxX-r.minX,r.maxZ-r.minZ)/2+16);
+  }
+  /** Geography corrections (sector masks, activity zones): reconfigure the shared engine and
+   * refresh only the sectors whose masks changed (2D map strokes, undo/redo, hydration). */
+  private geoSignatures=new Map<string,string>();
+  private syncGeography(){
+    const d=this.definition;configureWorldGeography(d.config,d);
+    const next=geographySignatures(d),previous=this.geoSignatures;this.geoSignatures=next;
+    const size=this.session.document.world.chunkSizeM,b=this.session.document.world.bounds;
+    for(const id of new Set([...next.keys(),...previous.keys()])){
+      if(next.get(id)===previous.get(id))continue;
+      if(id==='#zones'){for(const zones of [previous.get(id),next.get(id)])for(const z of JSON.parse(zones??'[]') as {polygon:{x:number;z:number}[]}[]){const xs=z.polygon.map(q=>q.x),zs=z.polygon.map(q=>q.z),x0=Math.min(...xs),x1=Math.max(...xs),z0=Math.min(...zs),z1=Math.max(...zs);this.world.refreshTerrain((x0+x1)/2,(z0+z1)/2,Math.hypot(x1-x0,z1-z0)/2+4);}continue;}
+      const [cx,cz]=id.split(':').map(Number);this.world.refreshTerrain(b.minX+(cx+.5)*size,b.minZ+(cz+.5)*size,size*.72+4);
+    }
   }
   /** Terrain and biome edits are refreshed locally (tiles, vegetation and horizon blocks around each changed edit). */
   private applyTerrain(edits:TerrainStroke[],transaction?:EditTransaction){
@@ -207,3 +233,8 @@ export class StudioViewport {
 }
 const clampX=(p:{world:{bounds:{minX:number;maxX:number}}},x:number)=>Math.min(p.world.bounds.maxX,Math.max(p.world.bounds.minX,x));
 const clampZ=(p:{world:{bounds:{minZ:number;maxZ:number}}},z:number)=>Math.min(p.world.bounds.maxZ,Math.max(p.world.bounds.minZ,z));
+
+function geographySignatures(d:WorldDefinition):Map<string,string>{
+  const out=new Map<string,string>();for(const [id,layers]of Object.entries(d.geography?.masks??{}))out.set(id,JSON.stringify(layers));
+  out.set('#zones',JSON.stringify(d.geography?.zones??[]));return out;
+}
