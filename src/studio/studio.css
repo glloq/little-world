@@ -80,3 +80,8 @@ label:has(> input[type=checkbox]){flex-direction:row;align-items:center;justify-
 .light-list .status-dynamic{color:#c98a12;font-weight:600}
 .light-list .status-budget{color:#c4472f}
 .light-list .status-off,.light-list .status-far{color:#7d8a90}
+/* Campaign PHYS/WATER/MINE/AGRI — activity settings */
+.activity-card{display:grid;gap:6px;margin-top:8px}
+.mine-plan{image-rendering:pixelated;border:1px solid var(--line,#d7dccf);max-width:100%;width:240px}
+.farm-stage{display:inline-block;padding:1px 6px;margin:0 3px;border-radius:6px;color:#fff;font-size:.8em}
+.water-falls{display:grid;gap:6px}

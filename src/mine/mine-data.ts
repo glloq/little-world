@@ -77,3 +77,18 @@ export function geologyAt(seed:number,levelIndex:number,ix:number,iz:number):num
   if(Math.abs(noise(ix,iz,L+1,seed,7)-.5)<.045+levelIndex*.008)return 4;
   const n=noise(ix,iz,L,seed,5)+levelIndex*.18;return n<.42?1:n<.95?2:3;
 }
+/** Same mine with `count` levels: extra levels are added below (7 m apart, stairs and a
+ * gallery reaching them), removed levels take their stairs and galleries with them. */
+export function withLevelCount(m:MineSettingsV3,count:number):MineSettingsV3{
+  const next=structuredClone(m);count=Math.max(1,Math.min(8,Math.round(count)));
+  while(next.levels.length>count){const gone=next.levels.pop()!;next.connectors=next.connectors.filter(c=>c.lower!==gone.id&&c.upper!==gone.id);next.galleries=next.galleries.filter(g=>g.levelId!==gone.id);}
+  while(next.levels.length<count){
+    const last=next.levels.at(-1)!,used=new Set(next.levels.map(l=>l.id));let n=next.levels.length+1;while(used.has('level-'+n))n++;
+    const level={id:'level-'+n,name:'Niveau '+(next.levels.length+1),floorY:last.floorY-7,height:last.height};next.levels.push(level);
+    const anchor=next.connectors.at(-1)??{x:next.entrance.x,z:next.entrance.z+6},x=Math.floor(anchor.x)+.5,z=Math.floor(anchor.z)+4.5;
+    let cid=next.connectors.length+1;while(next.connectors.some(c=>c.id==='stairs-'+cid))cid++;
+    next.connectors.push({id:'stairs-'+cid,upper:last.id,lower:level.id,x,z});
+    next.galleries.push({levelId:last.id,minX:Math.floor(x)-1,maxX:Math.floor(x)+2,minZ:Math.floor(anchor.z),maxZ:Math.floor(z)+3},{levelId:level.id,minX:Math.floor(x)-1,maxX:Math.floor(x)+2,minZ:Math.floor(z)-2,maxZ:Math.floor(z)+10});
+  }
+  return next;
+}

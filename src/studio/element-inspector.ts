@@ -5,6 +5,8 @@ import type {PathDefinition,WaterBody,TerrainStroke,BiomeStroke} from '../world-
 import type {ActivityZoneV3} from '../studio-core/types.ts';
 import type {PolylineTarget} from './viewport/polyline-tool.ts';
 import {ZONE_KINDS} from '../studio-core/zones.ts';
+import {activitySection,levelCountPatch} from './activity-inspector.ts';
+import {terrainHeight} from '../terrain.ts';
 import {riverWithPoints,pathTarget,PATH_ENV} from './world-features.ts';
 import {pathDiagnostics} from '../paths/path-geometry.ts';
 import {editQueue} from './inspector.ts';
@@ -46,7 +48,8 @@ export function renderElementInspector(host:HTMLElement,ref:ElementRef,ctx:Eleme
   }else if(ref.kind==='zone'){
     const zone=data as ActivityZoneV3;
     box.append(node('legend',ZONE_KINDS[zone.kind]),field('Nom de la zone',input(zone.name,v=>{if(v.trim())apply('Renommer une zone',{name:v.trim()});})));
-    if(zone.kind==='mine')box.append(field('Niveaux',numberInput(zone.levels??1,v=>apply('Niveaux de la mine',{levels:Math.max(1,Math.min(8,Math.round(v)))}),1,8,'1')));
+    if(zone.kind==='mine')box.append(field('Niveaux',numberInput(zone.levels??1,v=>apply('Niveaux de la mine',levelCountPatch(zone,v)),1,8,'1')));
+    box.append(activitySection(zone,(label,patch)=>apply(label,patch),terrainHeight,ctx.status));
     box.append(button('Éditer le contour',()=>ctx.editPath({label:'Contour : '+zone.name,points:zone.polygon,min:3,max:64,closed:true,color:zone.kind==='mine'?0x8a5a3c:0xd9a520,commit:async points=>{await s.change('Modifier une zone',[],d=>updateElement(d,ref,{polygon:points}));}}),'primary-button'));
   }else if(ref.kind==='terrainEdit'){
     const e=data as TerrainStroke;
