@@ -10,8 +10,8 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
-OUT=Path(__file__).resolve().parents[1]
-MODELS=OUT/'models'/'watermill_log_stone'
+OUT=Path(__file__).resolve().parents[2]
+MODELS=OUT/'public'/'models'/'buildings'/'watermill_log_stone'
 PREVIEW=OUT/'preview'
 MODELS.mkdir(parents=True, exist_ok=True)
 PREVIEW.mkdir(parents=True, exist_ok=True)
