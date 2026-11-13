@@ -88,7 +88,8 @@ async function preview(){
  const {savePlaytest}=await import('../gameplay/playable.ts'),{gameplayDataFromProject}=await import('../gameplay/project-adapter.ts');
  const selected=s.selection.state.selected,entry=selected?p.entityIndex[selected.id]:undefined,camera=s.selection.state.camera;
  const spawn={x:entry?.position.x??camera.x,y:0,z:Math.max(p.world.bounds.minZ+.5,Math.min(p.world.bounds.maxZ-.5,(entry?.position.z??camera.z)-3))};
- const snapshot=savePlaytest({projectId:p.manifest.projectId,content:{schemaVersion:1,kind:'playable-world',world,gameplay:gameplayDataFromProject(p),spawn}});
+ const {collisionDefinitionsFromProject}=await import('../studio-core/collision-adapter.ts');
+ const snapshot=savePlaytest({projectId:p.manifest.projectId,content:{schemaVersion:1,kind:'playable-world',world,gameplay:gameplayDataFromProject(p),collisions:collisionDefinitionsFromProject(p),spawn}});
  status('Copie de test prête : actions et slots temporaires, projet auteur conservé.');window.open(new URL('../?preview=1&studioPreview='+encodeURIComponent(snapshot.snapshotId),location.href),'little-world-playtest');
 }
 ($('project-file') as HTMLInputElement).onchange=()=>void run(async()=>{

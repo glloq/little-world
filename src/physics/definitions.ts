@@ -1,0 +1,8 @@
+import type {Point3} from './collision-world.ts';
+export interface CollisionDefinition {id:string;shape:'box'|'sphere';position:Point3;size:Point3;groundAnchor:{x:number;z:number};}
+export function validateCollisionDefinition(v:CollisionDefinition){if(!v||typeof v.id!=='string'||!v.id.length||v.id.length>128||!['box','sphere'].includes(v.shape)||!v.position||!v.size||!v.groundAnchor||![v.position.x,v.position.y,v.position.z,v.size.x,v.size.y,v.size.z,v.groundAnchor.x,v.groundAnchor.z].every(n=>Number.isFinite(n)&&Math.abs(n)<=100000)||[v.size.x,v.size.y,v.size.z].some(n=>n<=0))throw Error('Définition de collision invalide');}
+/** Conservative world AABB of the typed collider, derived from author transforms, never visual meshes. */
+export function transformedCollider(id:string,collider:{shape:'box'|'sphere';size:Point3},transform:{position:Point3;rotation:{x:number;y:number;z:number;w:number};scale:Point3}):CollisionDefinition {
+ const q=transform.rotation,{x,y,z,w}=q,m=[1-2*(y*y+z*z),2*(x*y-w*z),2*(x*z+w*y),2*(x*y+w*z),1-2*(x*x+z*z),2*(y*z-w*x),2*(x*z-w*y),2*(y*z+w*x),1-2*(x*x+y*y)],size={x:collider.size.x*Math.abs(transform.scale.x),y:collider.size.y*Math.abs(transform.scale.y),z:collider.size.z*Math.abs(transform.scale.z)},extent={x:Math.abs(m[0])*size.x+Math.abs(m[1])*size.y+Math.abs(m[2])*size.z,y:Math.abs(m[3])*size.x+Math.abs(m[4])*size.y+Math.abs(m[5])*size.z,z:Math.abs(m[6])*size.x+Math.abs(m[7])*size.y+Math.abs(m[8])*size.z},p=transform.position;
+ const result:CollisionDefinition={id,shape:collider.shape,size:extent,position:{x:p.x+m[1]*size.y/2,y:p.y+m[4]*size.y/2-extent.y/2,z:p.z+m[7]*size.y/2},groundAnchor:{x:p.x,z:p.z}};validateCollisionDefinition(result);return result;
+}

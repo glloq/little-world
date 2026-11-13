@@ -1,7 +1,8 @@
+import {validateCollisionDefinition,type CollisionDefinition} from '../physics/definitions.ts';
 /** Runtime input has no authoring database access or Studio module dependency. */
 import {parseWorld,type WorldDefinition} from '../world-data.ts';
 import {parseGameplayData,finite,identifier,record,type GameplayData,type Point3} from './schema.ts';
-export interface PlayableWorld {schemaVersion:1;kind:'playable-world';world:WorldDefinition;gameplay:GameplayData;spawn:Point3;}
+export interface PlayableWorld {schemaVersion:1;kind:'playable-world';collisions?:CollisionDefinition[];world:WorldDefinition;gameplay:GameplayData;spawn:Point3;}
 export interface StudioPlaytest {schemaVersion:1;kind:'studio-playtest';snapshotId:string;projectId:string;createdAt:number;content:PlayableWorld;}
 export function parsePlayableWorld(value:unknown):PlayableWorld {
  if(!record(value)||value.schemaVersion!==1||value.kind!=='playable-world'||!record(value.spawn)||!finite(value.spawn.x,-10000,10000)||!finite(value.spawn.y,-10000,10000)||!finite(value.spawn.z,-10000,10000))throw Error('Monde jouable invalide');
@@ -10,7 +11,8 @@ export function parsePlayableWorld(value:unknown):PlayableWorld {
  if(Math.abs(spawn.x)>width/2||Math.abs(spawn.z)>length/2)throw Error('Point de départ hors de la carte');
  const rendered=new Set([...world.placements.map(e=>e.id),...world.npcs.map(e=>e.id)]);
  for(const entity of gameplay.entities)if(entity.interactable&&!rendered.has(entity.id))throw Error('Objet interactif sans représentation : '+entity.id);
- return {schemaVersion:1,kind:'playable-world',world,gameplay,spawn:{...spawn}};
+ if(value.collisions!==undefined){if(!Array.isArray(value.collisions)||value.collisions.length>100000)throw Error('Liste de collisions invalide');const ids=new Set<string>(),entityIds=new Set(gameplay.entities.map(e=>e.id));for(const body of value.collisions){validateCollisionDefinition(body);if(ids.has(body.id)||!entityIds.has(body.id))throw Error('Référence collider invalide');ids.add(body.id);}}
+ return {schemaVersion:1,kind:'playable-world',world,gameplay,spawn:{...spawn},...(value.collisions?{collisions:structuredClone(value.collisions) as CollisionDefinition[]}:{} )};
 }
 const PREFIX='little-world:studio-playtest:v1:';
 export function savePlaytest(value:Omit<StudioPlaytest,'schemaVersion'|'kind'|'snapshotId'|'createdAt'>,storage:Storage=sessionStorage):StudioPlaytest {

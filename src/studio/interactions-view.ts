@@ -24,11 +24,11 @@ export async function mountInteractions(host:HTMLElement,s:StudioSession){
    let interaction;
    if(kind==='collect'){const resource=resourceId??'item:'+source.id;d.libraries.items={...d.libraries.items,[resource]:{id:resource,name,category:'nature',maxQuantity:99}};state(entity,{collected:false});interaction=makeCollect(id,source.id,resource,quantity);}
    else if(kind==='deliver'){d.libraries.objectives={...d.libraries.objectives,[objectiveId]:{id:objectiveId,name:'Livrer '+quantity+' '+p.libraries.items[itemId].name,initialStatus:'active',persistent:true}};interaction=makeDeliver(id,source.id,itemId,objectiveId,quantity);}
-   else if(kind==='door'){state(entity,{open:false});interaction=makeDoor(id,source.id);}
-   else{const destination=structuredClone(d.chunks[target!.ownerChunkId].entities[targetId]);state(destination,{open:false});putEntity(d,destination);state(entity,{active:false});interaction=makeLever(id,source.id,targetId);}
+   else if(kind==='door'){entity.components.Collider??={type:'Collider',shape:'box',size:{x:2,y:2,z:2},layer:'solid'};state(entity,{open:false});interaction=makeDoor(id,source.id);}
+   else{const destination=structuredClone(d.chunks[target!.ownerChunkId].entities[targetId]);destination.components.Collider??={type:'Collider',shape:'box',size:{x:2,y:2,z:2},layer:'solid'};state(destination,{open:false});putEntity(d,destination);state(entity,{active:false});interaction=makeLever(id,source.id,targetId);}
    d.libraries.interactions={...d.libraries.interactions,[id]:interaction};putEntity(d,entity);
    // Validate complete logical references using the lightweight index, including unloaded sources.
    gameplayDataFromProject(d);
   });feedback.textContent='Comportement appliqué. « Tester la copie » permet de l’utiliser avec E.';
- }catch(error){feedback.textContent=String(error);}},'primary-button'),feedback,node('p','L’ouverture est représentée par une rotation. Les collisions mobiles et les effets audio ne sont pas encore raccordés.','muted'));host.replaceChildren(panel);
+ }catch(error){feedback.textContent=String(error);}},'primary-button'),feedback,node('p','L’ouverture est représentée par une rotation et libère la collision. Les volumes sont des enveloppes simples ; les effets audio restent à raccorder.','muted'));host.replaceChildren(panel);
 }

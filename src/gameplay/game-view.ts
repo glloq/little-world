@@ -1,18 +1,22 @@
 import type * as THREE from 'three';
 import type {NPCState} from '../npc.ts';
-import {terrainHeight} from '../terrain.ts';
+import {WorldCollisionQuery} from '../physics/collision-world.ts';
+import type {CollisionDefinition} from '../physics/definitions.ts';
+import {terrainHeight,waterSurface} from '../terrain.ts';
 import {createGameplay} from './runtime.ts';
 import {gameplayDialogueSession} from './dialogue-session.ts';
 import {createGameSaveStore,scopedSaveStorage} from './save.ts';
 import type {GameplayData,GameplayEntity,Point3} from './schema.ts';
 import './game-view.css';
-interface Options {temporary:boolean;saveScope?:string;getPosition:()=>Point3;setPosition:(p:Point3)=>void;showInfo:(text:string)=>void;objects:THREE.Group;}
+interface Options {collisions?:CollisionDefinition[];temporary:boolean;saveScope?:string;getPosition:()=>Point3;setPosition:(p:Point3)=>void;showInfo:(text:string)=>void;objects:THREE.Group;}
 const element=<K extends keyof HTMLElementTagNameMap>(tag:K,text='')=>{const e=document.createElement(tag);e.textContent=text;return e;};
 /** Bounded UI/effect adapter. It never opens the Studio authoring database. */
 export function createGameplayView(data:GameplayData,options:Options){
  const runtime=createGameplay(data),slots=createGameSaveStore(options.temporary?scopedSaveStorage(sessionStorage,options.saveScope??'test'):undefined);
  const root=element('section'),heading=element('h2','Sac et parties'),inventory=element('div'),objectives=element('div'),slotRows=element('div'),feedback=element('p'),close=element('button','Reprendre l’exploration'),launcher=element('button',options.temporary?'Sac · Test temporaire':'Sac · Sauvegardes');
  root.className='game-save-panel';root.hidden=true;root.setAttribute('role','dialog');root.setAttribute('aria-label','Sac et sauvegardes');root.setAttribute('aria-modal','true');launcher.className='game-save-launcher light-button';root.append(heading,element('p',options.temporary?'Partie de test : slots temporaires, séparés des vraies parties.':'Parties locales conservées dans ce navigateur. Exportez un slot pour le protéger.'),inventory,objectives,slotRows,feedback,close);document.body.append(root,launcher);
+ const collisionDefinitions=new Map((options.collisions??[]).map(d=>[d.id,d]));
+ const collision=new WorldCollisionQuery(terrainHeight,waterSurface);for(const definition of options.collisions??[]){const height=terrainHeight(definition.groundAnchor.x,definition.groundAnchor.z);collision.add({...definition,position:{...definition.position,y:definition.position.y+height},enabled:()=>{const state=runtime.state.entities[definition.id];return state?.open!==true&&state?.collected!==true;}});}
  let npcs:readonly NPCState[]=[],version=-1,previousFocus:HTMLElement|null=null,disposed=false;
  const entityIds=new Set(runtime.data.entities.map(e=>e.id)),targets=runtime.data.entities.filter(e=>e.interactable),interactions=new Map<string,typeof runtime.data.interactions>();
  for(const i of runtime.data.interactions)if(i.trigger.type==='onInteract'){const list=interactions.get(i.trigger.entityId)??[];list.push(i);interactions.set(i.trigger.entityId,list);}
@@ -48,11 +52,11 @@ export function createGameplayView(data:GameplayData,options:Options){
  }
  sync();
  return {
-  runtime,get isOpen(){return !root.hidden;},dialogueSession:(state:NPCState)=>gameplayDialogueSession(runtime,state.definition.id),attachNPCs(states:readonly NPCState[]){npcs=states;},
+  runtime,collision,get isOpen(){return !root.hidden;},dialogueSession:(state:NPCState)=>gameplayDialogueSession(runtime,state.definition.id),attachNPCs(states:readonly NPCState[]){npcs=states;},
   prompt(position:Point3){runtime.state.playerPosition={...position};const target=nearest(position);return target?'[E] '+target.interactable!.prompt:null;},
   interact(position:Point3){runtime.state.playerPosition={...position};const target=nearest(position);return target?runtime.interact(target.id,position):false;},
   update(dt:number){
-   if(disposed)return;runtime.state.playerPosition={...options.getPosition()};for(const npc of npcs)if(entityIds.has(npc.definition.id))runtime.setEntityPosition(npc.definition.id,{x:npc.x,y:npc.y,z:npc.z});
+   if(disposed)return;runtime.state.playerPosition={...options.getPosition()};for(const npc of npcs)if(entityIds.has(npc.definition.id)){runtime.setEntityPosition(npc.definition.id,{x:npc.x,y:npc.y,z:npc.z});const body=collisionDefinitions.get(npc.definition.id);if(body)collision.moveBody(body.id,{x:npc.x+body.position.x-body.groundAnchor.x,y:npc.y+body.position.y,z:npc.z+body.position.z-body.groundAnchor.z});}
    runtime.update(dt);for(const effect of runtime.drainEffects()){
     if(effect.type==='showText')options.showInfo(effect.text);
     else if(effect.type==='startDialogue')options.showInfo('Approchez du personnage pour ouvrir sa conversation.');

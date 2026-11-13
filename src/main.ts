@@ -127,7 +127,7 @@ if(playable)player.position.set(playable.spawn.x,terrainHeight(playable.spawn.x,
 let gameplay:GameplayView|null=null;
 if(playable){
   const {createGameplayView}=await import('./gameplay/game-view.ts');
-  gameplay=createGameplayView(playable.gameplay,{temporary:!!studioTest,saveScope:studioTest?.snapshotId,getPosition:()=>({x:player.position.x,y:player.position.y,z:player.position.z}),objects:world.objects,showInfo,
+  gameplay=createGameplayView(playable.gameplay,{collisions:playable.collisions,temporary:!!studioTest,saveScope:studioTest?.snapshotId,getPosition:()=>({x:player.position.x,y:player.position.y,z:player.position.z}),objects:world.objects,showInfo,
     setPosition:p=>{player.position.set(p.x,p.y,p.z);player.velocity.set(0,0,0);player.mode='air';player.oxygen=MAX_OXYGEN;player.glideReady=false;aboard=false;keySet.clear();jumpQueue=0;actionQueue=0;npcs.dialogue.close();previousPlayerPosition.copy(player.position);renderPosition.copy(player.position);updateCamera(1);}
   });
 }
@@ -370,7 +370,7 @@ function tick(dt: number) {
     player.mode = 'ground';
     jumpQueue = 0;
   } else {
-    simulatePlayer(player, keys, dt);
+    simulatePlayer(player, keys, dt,gameplay?.collision);
     if (keys.jumpPressed) jumpQueue = Math.max(0, jumpQueue - 1);
   }
   if (actionQueue > 0) {
@@ -464,6 +464,7 @@ function draw(now: number) {
         geometries: renderer.info.memory.geometries,
         chunks: { ...world.stats },
         environment:environment.metrics,
+        collisions:gameplay?.collision.stats??null,
         position: player.position.toArray(),
         renderRate: budget.rate,
         qualityLevel: budget.level,

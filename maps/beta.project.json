@@ -1267,6 +1267,16 @@
               "fields": [
                 "open"
               ]
+            },
+            "Collider": {
+              "type": "Collider",
+              "shape": "box",
+              "size": {
+                "x": 2,
+                "y": 2,
+                "z": 2
+              },
+              "layer": "solid"
             }
           }
         }
