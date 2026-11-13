@@ -323,6 +323,17 @@ Le [contrat MINE 24](24-MINES-MULTILEVEL-LOW-RESOURCE.md) prévoit des galeries 
 - La **météo** n'impose pas une simulation de pluie/neige ou d'eau dans chaque cellule excavée. Les volumes d'eau souterrains sont intentionnels et vérifiés selon [21 — Eau](21-WATER-HYDROLOGY-LOW-RESOURCE.md).
 - LOD/qualité depuis PERF : diminuer ornements et petites lumières, **pas** la collision, l'accessibilité ni la récolte.
 
+## Agriculture et climat historique : utiliser le temps monde sans simuler par plant
+
+Le [contrat AGRI 25](25-AGRICULTURE-PARCELS-LOW-RESOURCE.md) consomme **le système climatique commun**, sans créer une seconde météo agricole :
+
+- Les régions climatiques et `WorldClock` produisent des **résumés périodiques versionnés** (`ClimateSummary`) : chaleur/degrés-jours, pluie, gel, sécheresse/évaporation estimée, épisodes marquants et saison, suffisants pour la **croissance par parcelle**.
+- Le calcul **offline/différé** utilise **l'historique de la période écoulée**, pas seulement le vent, l'humidité ou la pluie présents au moment du retour. Les règles de quantification doivent donner des résultats équivalents à la simulation en continu.
+- **Neige, gel, sécheresse, pluies** peuvent influencer rendements, santé ou humidité **à l'échelle de la parcelle/sous-zone**. Les plantes lointaines n'animent aucune précipitation individuelle.
+- Le vent/soleil/neige visibles continuent via **uniformes environnementaux partagés** ; les animations de feuillage/culture et shaders de plantes se désactivent au LOD lointain.
+- La timeline climatique et ses résumés doivent être **rejouables/compacts** et leurs versions incluses dans les sauvegardes pertinentes; **serveur autoritaire uniquement dans une phase future**.
+- Ne pas essayer de **déduire le climat passé du LOD graphique, d'un shader ou de l'état courant** du navigateur.
+
 ## 13. Tests et qualification
 
 **Scénarios** :
