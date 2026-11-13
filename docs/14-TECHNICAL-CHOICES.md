@@ -223,6 +223,18 @@ Voir [23 — Audio MIDI / synthèse / échantillons](23-MIDI-AUDIO-LOW-RESOURCE.
 - Budgets de travail/streaming/mémoire via PERF, **pas de régression collisions/navigation/inventaire** sous LOD minimal ; tests MINE-0…9 incluant eau/mer, hauteur, débordement des niveaux et concurrence.
 - Valeurs 1 m/cellule, chunks 32×32 et 3–8 étages **illustratives seulement** ; prototype comparatif MINE-0 pour qualifier les coûts et limites verticales.
 
+## Choix AGRI — agriculture complète par parcelles, faible coût de simulation
+
+**Contrat cible :** [25 — Agriculture LOW-RESOURCE](25-AGRICULTURE-PARCELS-LOW-RESOURCE.md).
+
+- **Agriculture optionnelle et géographiquement bornée** à des parcelles polygonales/sous-zones. Modèle agrégé par culture/zone : saisons, température, humidité, irrigation, fertilité, maladie/parasites, rotation, rendement/qualité — **aucun tick ni collider par plante**.
+- **Évaluation événementielle/différée** à l'heure du monde (dernier instant évalué, actions datées, **agrégats climatiques historiques versionnés**, échéances rares), résultats reproductibles actif vs hors-ligne. Pas de lecture de seule météo actuelle pour rattraper dix jours.
+- **Studio V3** = définition des parcelles/cultures/sol; **partie** = plante semée/stade/progression/soins/stock et inventaire; **visuel/LOD GPU** = dérivé jetable, instancing proche et couleur/rangs au loin.
+- **Agriculteur autorisé** reçoit détails/commandes ; **passant** reçoit uniquement informations publiques; le LOD graphique **dépend de la caméra**, pas du rôle réseau.
+- **ResourceBudgetManager** gouverne créations de plantes/instances, caches, échéances et temps CPU; géométrie agricole absente des secteurs non visibles; aucune simulation de plante sur chaque frame.
+- **Serveur futur** : horloge/climat, parcelles, permissions et inventaire autoritaires; actions idempotentes/atomiques, AOI + snapshots/deltas à événements, jamais données plante individuelle.
+- **Test** avec nombreuses parcelles descriptives, peu de parcelles visibles, périodes longues, changement de météo et conflits simultanés; cibles matérielles non garanties.
+
 ## 9. Règles d'architecture issues de ces décisions
 
 1. **Un projet source, plusieurs éditeurs spécialisés**. Partager objets/IDs/sélection/historique, mais charger les écrans lourds à la demande.
