@@ -1,6 +1,6 @@
 # Eau : tracé, profil d’altitude et cohérence 3D
 
-Contrats consultés : [21 — Hydrographie](21-WATER-HYDROLOGY-LOW-RESOURCE.md), [15 — Sources V3](15-STUDIO-DATA-SCHEMAS-V3.md), [14 — Choix](14-TECHNICAL-CHOICES.md). Incrément du 13 novembre 2026, préparé sur `feat/studio-v3`.
+Contrats consultés : [21 — Hydrographie](21-WATER-HYDROLOGY-LOW-RESOURCE.md), [15 — Sources V3](15-STUDIO-DATA-SCHEMAS-V3.md), [14 — Choix](14-TECHNICAL-CHOICES.md). Incrément du 13 novembre 2026, développé sur `feat/studio-v3`.
 
 ## Ce qui change
 
@@ -8,12 +8,12 @@ Auparavant, chaque `WaterBody` de l’éditeur imposait une seule valeur `level`
 
 Les nouveaux cours d’eau proposent un profil calculé à partir du **terrain source, retouches incluses mais sans leur propre creusement**. Échantillonnage à environ 3 m, niveau non ascendant de l’amont vers l’aval, correction des contre-pentes locales signalée. Le lit et les berges sont dérivés après ces retouches. Le ruban possède des sections jointes aux virages et la même altitude sur toute sa largeur. Un index de segments sert les requêtes de surface/profondeur ; la nage, la caméra et le bateau consomment ces requêtes sans lire le mesh.
 
-Le profil n’est pas recalculé par frame. Les points calculés et l’index restent des dérivés en mémoire. Aucun shader coûteux, seconde caméra, solveur de fluides ou automate de qualité n’est ajouté. Le matériau des rubans ajoutés est opaque et partagé par tronçon lors de son renouvellement ; l’ancien matériau et la géométrie sont libérés.
+Le profil n’est pas recalculé par frame. Les points calculés et l’index restent des dérivés en mémoire. Aucun shader coûteux, seconde caméra, solveur de fluides ou automate de qualité n’est ajouté. Chaque ruban ajouté utilise un matériau opaque ; l’ancien matériau et la géométrie sont libérés.
 
 ## Parcours utilisateur
 
 1. Studio → créer/ouvrir un projet → **Eau**. Pour reprendre une carte de l’éditeur historique, importer son JSON dans le Studio.
-2. Choisir **Cours d’eau — relief**. Cliquer de la source vers l’aval ; corriger X/Z des points si nécessaire. Régler largeur, profondeur et décalage eau/terrain (négatif pour garder l’eau sous la berge).
+2. Choisir **Cours d’eau — relief**. S’aider de l’aperçu coloré du relief, puis cliquer de la source vers l’aval ; corriger X/Z des points si nécessaire. Régler largeur, profondeur et décalage eau/terrain (négatif pour garder l’eau sous la berge).
 3. Lire le graphique : **brun = relief source**, **bleu = eau proposée**. Une arrivée trop haute, un creusement supplémentaire excessif, des points confondus ou un croisement du tracé empêchent l’application. **Inverser amont / aval** corrige un tracé dessiné à l’envers ; une forte pente signale un rapide incliné, sans inventer de cascade verticale.
 4. **Profil manuel verrouillé** permet une altitude à chaque point, toujours non ascendante. **Plan d’eau — horizontal** utilise une altitude constante. Ce dernier est encore un corridor plat, pas un lac polygonal.
 5. **Appliquer le tracé**, Annuler/Refaire, Sauvegarder, Exporter ZIP. L’ID et les références de secteurs sont conservés lors de la modification d’un tracé existant.
@@ -38,7 +38,9 @@ Le profil automatique dépend du relief sur **l’ensemble du tracé**. La vue l
 
 - Tests unitaires : profil descendant, diagnostics, niveaux manuels, source non mutée, absence de rétroaction, même niveau logique/géométrique, index spatial, compatibilité V2, archive V3, références et dépendances amont/invalidation.
 - Chromium sur le build : tracer, appliquer, exporter, annuler/refaire, niveaux manuels, rejet d’une contre-pente sans écrasement, sauvegarder/recharger, présence réelle du mesh en vue 3D et contrôles de l’éditeur historique.
-- Chromium sur les modules source : pente réelle du mesh, correspondance avec la surface logique, profondeur/immersion, modification après retouche, libération des anciennes géométries, absence de reconstruction inutile et suppression.
+- Chromium sur les modules source : chargement différé des retouches amont sans hydrater les secteurs indépendants, pente réelle du mesh, correspondance avec la surface logique, profondeur/immersion, modification après retouche, libération des anciennes géométries, absence de reconstruction inutile et suppression.
+
+Résultat local : **145 tests unitaires/intégration**, **10 contrôles navigateur auteur**, **8 contrôles source/3D/IndexedDB**, typecheck et build réussis. La CI de branche exécute aussi les parcours préexistants.
 
 Commandes : `npm test`, `npm run build`, `npm run test:water` sur le preview ; `node tests/water-engine.browser.mjs <base-url>` sur Vite source. Captures Actions : `water-profile.png`, `water-3d.png`.
 

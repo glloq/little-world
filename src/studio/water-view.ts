@@ -19,6 +19,13 @@ export function mountWater(host:HTMLElement,tools:HTMLElement,s:StudioSession){
  const xy=(v:{x:number;z:number})=>({x:20+(v.x-b.minX)/(b.maxX-b.minX)*960,y:20+(v.z-b.minZ)/(b.maxZ-b.minZ)*560});
  function draw(){
   const ctx=map.getContext('2d')!;ctx.fillStyle='#e7efdc';ctx.fillRect(0,0,1000,600);
+  const height=source();
+  for(let iz=0;iz<28;iz++)for(let ix=0;ix<48;ix++){
+   const h=height(b.minX+(ix+.5)/48*(b.maxX-b.minX),b.minZ+(iz+.5)/28*(b.maxZ-b.minZ));
+   const band=Math.max(0,Math.min(20,Math.floor((h-p.world.seaLevel)/4)));
+   ctx.fillStyle=h<p.world.seaLevel?'#b6d1ce':`rgb(${168-band*3},${193-band*3},${139-band*3})`;
+   ctx.fillRect(20+ix*20,20+iz*20,20,20);
+  }
   for(const w of [...Object.values(p.libraries.water).filter(v=>v.id!==draft.id),draft]){
    ctx.strokeStyle=w.id===draft.id?'#137da8':'#96c4cf';ctx.lineWidth=Math.max(2,w.width/(b.maxX-b.minX)*960);ctx.beginPath();
    w.points.forEach((v,i)=>{const q=xy(v);if(i)ctx.lineTo(q.x,q.y);else ctx.moveTo(q.x,q.y);});ctx.stroke();
@@ -27,7 +34,7 @@ export function mountWater(host:HTMLElement,tools:HTMLElement,s:StudioSession){
  }
  async function refresh(){
   const token=++generation;draw();
-  await s.hydrate(waterChunkIds(p.world,draft));if(disposed||token!==generation)return;
+  await s.hydrate(waterChunkIds(p.world,draft));if(disposed||token!==generation)return;draw();
   validateWaterProfile(draft.profile,draft.points.length);
   const profile=compileWaterBody(draft,source());drawHydroProfile(plot,profile);
   summary.textContent=profile.points.length?`${draft.points.length} points · ${profile.points.at(-1)!.distance.toFixed(0)} m · Eau : ${profile.points[0].level.toFixed(2)} → ${profile.points.at(-1)!.level.toFixed(2)} m · Terrain brun / eau bleue`:'Ajouter au moins deux points. Les niveaux sont en mètres.';
@@ -49,12 +56,6 @@ export function mountWater(host:HTMLElement,tools:HTMLElement,s:StudioSession){
   tools.append(field('Largeur (m)',numberInput(draft.width,v=>change(()=>draft.width=v),1,40)),field('Profondeur (m)',numberInput(draft.depth,v=>change(()=>draft.depth=v),.5,20)));
   if(draft.profile?.mode==='terrain')tools.append(field('Décalage eau / terrain (m)',numberInput(draft.profile.offset,v=>change(()=>{if(draft.profile?.mode==='terrain')draft.profile.offset=v;}),-10,10)));
   if(!draft.profile)tools.append(field('Altitude du plan d’eau (m)',numberInput(draft.level,v=>change(()=>draft.level=v),-20,100)));
-  for(const [i,point] of draft.points.entries()){
-   const row=node('div','','water-point');row.append(node('strong',`Point ${i+1}`));
-   for(const axis of ['x','z'] as const)row.append(field(`Point ${i+1} ${axis.toUpperCase()}`,numberInput(point[axis],v=>change(()=>point[axis]=v),axis==='x'?b.minX+.1:b.minZ+.1,axis==='x'?b.maxX-.1:b.maxZ-.1)));
-   if(draft.profile?.mode==='manual')row.append(field(`Point ${i+1} altitude`,numberInput(draft.profile.levels[i],v=>change(()=>{if(draft.profile?.mode==='manual')draft.profile.levels[i]=v;}),-50,150)));
-   tools.append(row);
-  }
   tools.append(button('Inverser amont / aval',()=>{draft.points.reverse();if(draft.profile?.mode==='manual')draft.profile.levels.reverse();controls();update();}),button('Retirer le dernier point',()=>{draft.points.pop();if(draft.profile?.mode==='manual')draft.profile.levels.pop();controls();update();}));
   tools.append(button('Appliquer le tracé',async()=>{
    if(committing)return;committing=true;
@@ -70,11 +71,18 @@ export function mountWater(host:HTMLElement,tools:HTMLElement,s:StudioSession){
   if(p.libraries.water[draft.id])tools.append(button('Supprimer ce tracé',async()=>{
    try{const id=draft.id;await s.change('Supprimer le tracé d’eau',waterEditChunkIds(p,p.libraries.water[id],undefined),d=>removeWater(d,id));}catch(e){messages.replaceChildren(node('p',String(e),'diagnostic ERROR'));}
   }));
+  for(const [i,point] of draft.points.entries()){
+   const row=node('div','','water-point');row.append(node('strong',`Point ${i+1}`));
+   for(const axis of ['x','z'] as const)row.append(field(`Point ${i+1} ${axis.toUpperCase()}`,numberInput(point[axis],v=>change(()=>point[axis]=v),axis==='x'?b.minX+.1:b.minZ+.1,axis==='x'?b.maxX-.1:b.maxZ-.1)));
+   if(draft.profile?.mode==='manual')row.append(field(`Point ${i+1} altitude`,numberInput(draft.profile.levels[i],v=>change(()=>{if(draft.profile?.mode==='manual')draft.profile.levels[i]=v;}),-50,150)));
+   tools.append(row);
+  }
+
  }
  map.onclick=e=>{
   if(draft.points.length>=100)return;
   const rect=map.getBoundingClientRect(),x=(e.clientX-rect.left)*1000/rect.width,z=(e.clientY-rect.top)*600/rect.height;
-  draft.points.push({x:Math.max(b.minX+.1,Math.min(b.maxX-.1,b.minX+(x-20)/960*(b.maxX-b.minX))),z:Math.max(b.minZ+.1,Math.min(b.maxZ-.1,b.minZ+(z-20)/560*(b.maxZ-b.minZ)))});
+  draft.points.push({x:Math.round(100*Math.max(b.minX+.1,Math.min(b.maxX-.1,b.minX+(x-20)/960*(b.maxX-b.minX))))/100,z:Math.round(100*Math.max(b.minZ+.1,Math.min(b.maxZ-.1,b.minZ+(z-20)/560*(b.maxZ-b.minZ))))/100});
   if(draft.profile?.mode==='manual')draft.profile.levels.push(draft.profile.levels.at(-1)??draft.level);
   controls();update();
  };

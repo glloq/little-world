@@ -2,7 +2,7 @@
 
 **Décision validée le 12 novembre 2026.** Little World doit représenter **rivières, ruisseaux, lacs, étangs, rapides, cascades, embouchures, mer et océan**, avec tracé éditable dans le Studio, **adaptation aux dénivelés** et rendu correct depuis la rive, un bateau, le planage, la nage ou **sous l'eau**. L'animation est **uniquement locale lorsque visible/utile** ; les grandes étendues restent visibles jusqu'à l'horizon sans être simulées en détail.
 
-**Statut : spécification d'architecture et budgets à tester, non code livré.** Conserver la nage, plongée, bateau, vallée, rivière/mer et volumes V2 existants pendant la migration. Les distances de LOD et budgets numériques sont des **hypothèses expérimentales**.
+**Statut : cible complète non livrée ; budgets à tester.** Un incrément compatible de profils suivant le relief, d’édition et de cohérence 3D est décrit dans [29 — Eau et profils](29-WATER-PROFILES.md). Il ne livre pas le graphe, les cascades, les lacs polygonaux ni WaterLOD0–3. Conserver la nage, plongée, bateau, vallée, rivière/mer et volumes V2 existants pendant la migration. Les distances de LOD et budgets numériques sont des **hypothèses expérimentales**.
 
 Références : [03 — Génération](03-WORLD-GENERATION.md), [04 — Studio](04-EDITOR-INTERACTIONS.md), [05 — Architecture](05-TECHNICAL-ARCHITECTURE.md), [07 — Roadmap](07-ROADMAP.md), [09 — Tests](09-BROWSER-TEST-PLAN.md), [10 — Performance](10-PERFORMANCE-ROADMAP.md), [11 — LOW-RESOURCE](11-LOW-RESOURCE-POLICY.md), [14 — Choix](14-TECHNICAL-CHOICES.md), [15 — V3](15-STUDIO-DATA-SCHEMAS-V3.md), [17 — Horizon sans brouillard-cache](17-DISTANT-VIEW-RENDERING.md), [19 — Environnement et météo](19-ENVIRONMENT-WEATHER-SKY.md) et [20 — Blender](20-BLENDER-STUDIO-INTERCHANGE.md).
 

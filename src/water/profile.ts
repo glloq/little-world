@@ -54,6 +54,7 @@ export function compileWaterBody(w:WaterBody,source:(x:number,z:number)=>number)
 interface Segment {water:CompiledWater;order:number;a:HydroPoint;b:HydroPoint}
 export interface WaterHit {water:CompiledWater;distance:number;level:number;flowX:number;flowZ:number}
 /** Local segment grid shared by bed, swimming and surface queries. */
+const EMPTY_HITS:readonly WaterHit[]=Object.freeze([]);
 export class WaterSpatialIndex {
  private cells=new Map<string,Segment[]>();
  readonly bodies:CompiledWater[];
@@ -69,9 +70,10 @@ export class WaterSpatialIndex {
     }
   }
  }
- query(x:number,z:number,bank=0):WaterHit[]{
+ query(x:number,z:number,bank=0):readonly WaterHit[]{
+  const candidates=this.cells.get(Math.floor(x/32)+','+Math.floor(z/32));if(!candidates)return EMPTY_HITS;
   const closest=new Map<number,WaterHit>();
-  for(const {water,order,a,b} of this.cells.get(Math.floor(x/32)+','+Math.floor(z/32))??[]){
+  for(const {water,order,a,b} of candidates){
    const dx=b.x-a.x,dz=b.z-a.z,length=Math.hypot(dx,dz),t=Math.max(0,Math.min(1,((x-a.x)*dx+(z-a.z)*dz)/(length*length)));
    const distance=Math.hypot(x-a.x-t*dx,z-a.z-t*dz);
    if(distance>water.width/2+bank||distance>=(closest.get(order)?.distance??Infinity))continue;

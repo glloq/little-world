@@ -635,3 +635,8 @@ src/
 7. Aucune affirmation de performance V3 **sans mesure sur matériel**.
 
 **Statut final : spécification validée et utilisable comme contrat de développement. Les interfaces/types illustratifs doivent être consolidés et testés au moment de leur implémentation.**
+
+
+### Transition compatible des profils de cours d’eau
+
+L’incrément [29 — Eau et profils](29-WATER-PROFILES.md) étend les `WaterBody` conservés dans `libraries.water` avec un champ optionnel `profile` : `{mode: "terrain", offset: number}` ou `{mode: "manual", levels: number[]}`. Sans ce champ, `level` reste horizontal. Il n’existe pas de second réseau auteur parallèle : les échantillons, le lit, l’index et les rubans sont dérivés de cette source. La migration V1/V2 conserve IDs, modes et niveaux ; ce contrat transitoire n’est pas le graphe `WaterNetworkDefinitionV3` complet.
