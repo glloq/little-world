@@ -5,6 +5,7 @@
 import {chromium} from 'playwright';
 import {existsSync} from 'node:fs';
 import {mkdir} from 'node:fs/promises';
+import {inspectorSettled} from './studio-test-helpers.mjs';
 import assert from 'node:assert/strict';
 const base=process.env.WORLD_URL??'http://127.0.0.1:5173/little-world/',out='/tmp/little-world-browser';await mkdir(out,{recursive:true});
 const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH??(existsSync('/usr/bin/chromium')?'/usr/bin/chromium':undefined),args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
@@ -39,12 +40,10 @@ try{
   // The inspector re-renders asynchronously (selection, transactions): wait until the old fields are replaced.
   const replaced=async label=>{const old=await page.getByLabel(label,{exact:true}).elementHandle();return ()=>page.waitForFunction(el=>!el.isConnected,old);};
   let rerendered=await replaced('Nom');await page.locator('.light-row').first().click();await rerendered();await page.waitForSelector('#inspector .light-card');
-  // Several debounced inspector renders can follow one selection (selection + viewport refresh): editing a field
-  // that a later render replaces loses the change, so wait until the inspector has been quiet for 400 ms.
-  await page.evaluate(()=>{window.__inspectorChanged=performance.now();new MutationObserver(()=>{window.__inspectorChanged=performance.now();}).observe(document.querySelector('#inspector'),{childList:true,subtree:true});});
-  const settled=()=>page.waitForFunction(()=>performance.now()-window.__inspectorChanged>400);await settled();
+  // Several debounced inspector renders follow one selection: edit only once the inspector is quiet.
+  await inspectorSettled(page);
   rerendered=await replaced('Allumage');const intensity=page.getByLabel('Intensité (cd)');await intensity.fill('40');await intensity.press('Tab');await page.waitForFunction(()=>/Intensité de la lumière/.test(document.querySelector('[data-action=undo]').title));await rerendered();
-  await page.getByLabel('Allumage').selectOption('state');await page.waitForFunction(()=>/Mode de la lumière/.test(document.querySelector('[data-action=undo]').title));
+  await inspectorSettled(page);await page.getByLabel('Allumage').selectOption('state');await page.waitForFunction(()=>/Mode de la lumière/.test(document.querySelector('[data-action=undo]').title));
   await idle();check(['dynamic','budget','glow','far','off'].includes(await canvas.getAttribute('data-selected-light')),'Range gizmo of the selected light shows its budget status');
   await page.keyboard.press('Control+z');await page.waitForFunction(()=>/Intensité de la lumière/.test(document.querySelector('[data-action=undo]').title));check(true,'Undo restores the previous light settings');
   // Attach a light to an object: place a crate, then « Ajouter une lumière » in its inspector.
