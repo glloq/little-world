@@ -1,0 +1,84 @@
+/* Player interface — warm, sober, light. No glass/blur, no costly shadows; short transitions,
+   disabled with « reduce motion ». Text contrast ≥ 4.5:1 on panel backgrounds. */
+:root{--ui-bg:#fffdf4;--ui-ink:#27402f;--ui-muted:#5d7262;--ui-line:#d6e0cf;--ui-accent:#3f7a5d;--ui-accent-ink:#fff;--ui-warn:#9a4a12;--ui-alert:#a22d22;--ui-chip:#eef3e7;--ui-radius:12px;--ui-shadow:0 6px 22px rgba(30,60,44,.14)}
+.ui-root{position:fixed;inset:0;pointer-events:none;z-index:20;font:14px/1.45 Inter,ui-sans-serif,system-ui,sans-serif;color:var(--ui-ink)}
+.ui-root>*{pointer-events:auto}
+.ui-root :focus-visible,.npc-dialogue :focus-visible{outline:3px solid #e2a33b;outline-offset:2px}
+.ui-button{border:1px solid var(--ui-line);background:var(--ui-chip);color:var(--ui-ink);border-radius:9px;padding:8px 12px;min-height:36px;cursor:pointer;font:inherit}
+.ui-button:hover{background:#e3ebdb}.ui-primary{background:var(--ui-accent);border-color:var(--ui-accent);color:var(--ui-accent-ink)}.ui-primary:hover{background:#346a50}
+.ui-link{display:inline-block;text-decoration:none;margin-top:10px}
+.ui-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.ui-muted{color:var(--ui-muted);font-size:13px}.ui-empty{color:var(--ui-muted);font-style:italic}.ui-alert{color:var(--ui-alert);font-weight:600}.ui-ok{color:var(--ui-accent);font-weight:600}.ui-warn-text{color:var(--ui-warn)}
+.ui-group{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ui-muted);margin:16px 0 8px}
+/* Panels: centred sheet, at most 860 px wide, scrolls inside. */
+.ui-panel{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(860px,calc(100vw - 32px));max-height:calc(100vh - 48px);display:flex;flex-direction:column;background:var(--ui-bg);border:1px solid var(--ui-line);border-radius:18px;box-shadow:var(--ui-shadow)}
+.ui-panel[hidden]{display:none}
+.ui-panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px;border-bottom:1px solid var(--ui-line)}
+.ui-panel-head h2{margin:0;font:600 22px Georgia,serif}
+.ui-panel-body{padding:14px 18px 18px;overflow:auto}
+.ui-panel[data-panel=pause],.ui-panel[data-panel=saves],.ui-panel[data-panel=settings]{width:min(560px,calc(100vw - 32px))}
+.ui-menu{display:grid;gap:8px;margin:8px 0}.ui-menu .ui-button{text-align:left;min-height:42px}
+.ui-badge-line{background:#fff2d8;border-radius:8px;padding:6px 10px;color:#6b4a14}
+/* Modal confirmation. */
+.ui-modal{position:fixed;inset:0;display:grid;place-items:center;background:rgba(26,40,32,.35)}
+.ui-modal-card{background:var(--ui-bg);border-radius:14px;padding:18px 20px;max-width:420px;box-shadow:var(--ui-shadow)}
+/* Prompt (contextual action), bottom centre, above nothing important. */
+.ui-prompt{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);padding:10px 16px;border-radius:12px;background:rgba(36,66,52,.92);color:#f5fbf3;font-size:14px;white-space:nowrap;max-width:calc(100vw - 32px);overflow:hidden;text-overflow:ellipsis}
+.ui-prompt[data-enabled=false]{background:rgba(84,74,58,.9)}
+/* Notifications: top-right stack, never in the centre. */
+.ui-notifications{position:fixed;top:16px;right:16px;display:grid;gap:6px;justify-items:end;max-width:min(380px,calc(100vw - 32px))}
+.ui-notice{background:rgba(36,66,52,.92);color:#f5fbf3;padding:8px 13px;border-radius:10px;font-size:13px;animation:ui-in .18s ease-out}
+.ui-notice[data-kind=gain]{background:rgba(58,96,72,.94)}.ui-notice[data-kind=warning]{background:rgba(120,72,20,.94)}.ui-notice[data-kind=error]{background:rgba(140,36,28,.95)}.ui-notice[data-kind=save]{background:rgba(40,88,104,.94)}
+.ui-quest-banner{position:fixed;top:16px;left:50%;transform:translateX(-50%);background:#fff7e3;color:#5b3d0c;border:1px solid #ecd6a6;padding:8px 16px;border-radius:12px;font-weight:600;box-shadow:var(--ui-shadow)}
+@keyframes ui-in{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.reduce-motion .ui-notice{animation:none}
+@media (prefers-reduced-motion:reduce){.ui-notice{animation:none}}
+/* Quick bar, bottom right. */
+.ui-quickbar{position:fixed;right:16px;bottom:16px;display:flex;gap:6px}
+.ui-quick{display:flex;align-items:center;gap:6px;border:1px solid var(--ui-line);background:rgba(255,253,244,.94);border-radius:10px;padding:6px 10px;min-height:38px;cursor:pointer;color:var(--ui-ink);font:inherit}
+.ui-quick kbd,.ui-keys kbd{font-size:11px;padding:1px 5px;border-radius:5px;background:var(--ui-chip);border:1px solid var(--ui-line)}
+.ui-tool{position:fixed;left:16px;bottom:16px;background:rgba(255,253,244,.94);border:1px solid var(--ui-line);border-radius:10px;padding:6px 10px}
+.ui-hint{position:fixed;left:50%;bottom:76px;transform:translateX(-50%);background:rgba(255,253,244,.94);border-radius:10px;padding:6px 12px;margin:0;font-size:13px;color:var(--ui-muted)}
+.ui-oxygen{position:fixed;left:50%;bottom:76px;transform:translateX(-50%);display:grid;gap:3px;width:200px;font-size:12px;color:#f3faf6;text-shadow:0 1px 2px #0006}
+/* Meters (growth, moisture, oxygen): text + bar, never colour alone. */
+.ui-meter{display:grid;gap:3px;font-size:12px}.ui-meter-track{display:block;height:7px;border-radius:5px;background:#dfe7da;overflow:hidden}.ui-meter-fill{display:block;height:100%;background:var(--ui-accent)}
+.ui-oxygen .ui-meter-track{background:rgba(255,255,255,.35)}.ui-oxygen .ui-meter-fill{background:#8fd4f0}
+/* Activity card (mine / plot), left side. */
+.ui-activity-card{position:fixed;left:16px;top:16px;width:min(270px,calc(100vw - 32px));background:rgba(255,253,244,.95);border:1px solid var(--ui-line);border-radius:14px;padding:10px 12px;display:grid;gap:6px;font-size:13px}
+.ui-activity-card p{margin:0}.ui-exit{display:flex;align-items:center;gap:6px}.ui-arrow{display:inline-block;font-weight:700;font-size:16px;transition:transform .2s}
+.reduce-motion .ui-arrow{transition:none}
+.ui-chip{border:1px solid var(--ui-line);background:var(--ui-chip);border-radius:20px;padding:4px 10px;cursor:pointer;font:inherit;font-size:12px;color:var(--ui-ink)}.ui-chip[aria-pressed=true]{background:var(--ui-accent);color:#fff;border-color:var(--ui-accent)}
+/* Inventory. */
+.ui-inventory{display:grid;grid-template-columns:minmax(0,1fr) 230px;gap:16px}
+.ui-item-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.ui-item{position:relative;display:grid;gap:2px;text-align:left;border:1px solid var(--ui-line);background:#fff;border-radius:10px;padding:8px 10px;cursor:pointer;font:inherit;color:var(--ui-ink)}
+.ui-item[aria-pressed=true]{border-color:var(--ui-accent);box-shadow:inset 0 0 0 1px var(--ui-accent)}.ui-item-name{font-weight:600}.ui-item-qty{color:var(--ui-muted);font-variant-numeric:tabular-nums}
+.ui-badge{justify-self:start;font-size:11px;background:#e2f1df;color:#24603f;border-radius:6px;padding:0 6px}.ui-badge.ui-warn{background:#fbe6d2;color:var(--ui-warn)}
+.ui-inventory-detail{border-left:1px solid var(--ui-line);padding-left:14px}.ui-inventory-detail h3{margin:6px 0}
+/* Journal. */
+.ui-quest{border:1px solid var(--ui-line);border-radius:10px;padding:8px 12px;margin:6px 0;display:grid;gap:2px;background:#fff}.ui-quest p{margin:2px 0 0}.ui-quest[data-status=complete]{opacity:.8}
+/* Map. */
+.ui-map-canvas{display:block;width:100%;height:auto;border-radius:12px;border:1px solid var(--ui-line);cursor:grab;background:#bcd8dc;touch-action:none}.ui-map-tools{margin-bottom:8px}
+/* Saves and settings. */
+.game-slot-row{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;border:1px solid var(--ui-line);border-radius:12px;padding:10px 12px;margin:8px 0;background:#fff}
+.ui-slot-info{display:grid;gap:2px}.ui-file{display:inline-flex;gap:8px;align-items:center;font-size:13px}
+.ui-settings-section{border-top:1px solid var(--ui-line);padding-top:4px}.ui-field{display:grid;gap:4px;margin:8px 0}.ui-check{display:flex;gap:8px;align-items:center;margin:8px 0}
+.ui-keys{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;margin:8px 0}.ui-keys dd{margin:0;color:var(--ui-muted)}
+.ui-settings-section .audio-controls{position:static;box-shadow:none;border:0;padding:0;background:none}.ui-settings-section .audio-controls>summary{display:none}
+/* Developer panel (technical statistics, test tools): hidden unless developer mode. */
+body:not(.developer) .dev-only{display:none!important}
+/* Dialogue (NPC) in the same style. */
+.npc-choice-hint{font-size:11px;background:#fff2d8;color:#6b4a14;border-radius:6px;padding:0 6px}
+.npc-choice-locked{opacity:.6;cursor:not-allowed}
+@media (max-width:760px){.ui-inventory{grid-template-columns:1fr}.ui-inventory-detail{border-left:0;padding-left:0;border-top:1px solid var(--ui-line)}.ui-quick span{display:none}.ui-activity-card{top:auto;bottom:70px}}
+
+/* Existing environment / audio panels: time and weather stay as a discreet chip; the world speed
+   selector and the raw audio panel are test tools (developer mode). */
+.environment-controls{top:16px!important;right:16px!important}
+body:not(.developer) .environment-controls label{display:none}
+body:not(.developer)>.audio-controls{display:none}
+.ui-notifications{top:64px}
+/* Developer statistics never cover the quick bar; the audio engine status line is technical. */
+body.developer .hud-stats{bottom:68px}
+body:not(.developer) .ui-settings-section .audio-controls>p{display:none}
+.ui-notifications .ui-notice{position:static;transform:none;white-space:normal;max-width:min(380px,calc(100vw - 32px));box-sizing:border-box;text-align:left}

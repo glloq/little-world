@@ -5,6 +5,7 @@
 import {chromium} from 'playwright';
 import {existsSync} from 'node:fs';
 import {mkdir} from 'node:fs/promises';
+import {inspectorSettled} from './studio-test-helpers.mjs';
 import assert from 'node:assert/strict';
 const base=process.env.WORLD_URL??'http://127.0.0.1:5173/little-world/',out='/tmp/little-world-browser';await mkdir(out,{recursive:true});
 const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH??(existsSync('/usr/bin/chromium')?'/usr/bin/chromium':undefined),args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
@@ -33,9 +34,9 @@ try{
   await page.getByRole('button',{name:'Filtre Chemins'}).click();await page.locator('.search-results button',{hasText:'Sentier'}).click();
   // The inspector re-renders asynchronously after each transaction: wait until the old field is replaced.
   await page.waitForSelector('#inspector .path-diagnostics');const before=await page.getByLabel('Largeur (m)',{exact:true}).elementHandle();
-  await page.locator('#inspector select').first().selectOption('dirt');await page.waitForFunction(()=>/Type de chemin/.test(document.querySelector('[data-action=undo]').title));
+  await inspectorSettled(page);await page.locator('#inspector select').first().selectOption('dirt');await page.waitForFunction(()=>/Type de chemin/.test(document.querySelector('[data-action=undo]').title));
   await page.waitForFunction(el=>!el.isConnected,before);
-  const width=page.getByLabel('Largeur (m)');await width.fill('4');await width.press('Tab');await page.waitForFunction(()=>/Largeur du chemin/.test(document.querySelector('[data-action=undo]').title));
+  await inspectorSettled(page);const width=page.getByLabel('Largeur (m)');await width.fill('4');await width.press('Tab');await page.waitForFunction(()=>/Largeur du chemin/.test(document.querySelector('[data-action=undo]').title));
   check(/terre/.test(await page.locator('#inspector h3').textContent()),'Path profile and width edited after creation');
   check(await page.locator('#inspector .path-diagnostics').count()===1,'Inspector shows slope/junction diagnostics');
   await idle();await page.waitForTimeout(500);const signature=await data('path-signature');await page.screenshot({path:out+'/paths-studio.png'});

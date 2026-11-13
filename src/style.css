@@ -24,7 +24,7 @@ button:hover,a:hover{filter:brightness(.97)}
 .light-button{border:1px solid rgba(73,112,91,.23);background:rgba(255,255,249,.90);padding:10px 15px;border-radius:11px;font-size:12px;font-weight:650;color:#3c584a;box-shadow:0 4px 20px rgba(34,72,50,.08)}
 .primary-button{border:0;background:#427e62;color:#fff;border-radius:11px;padding:12px 18px;font-weight:650;font-size:13px;box-shadow:0 6px 18px rgba(28,76,49,.18)}
 .primary-button:hover{background:#32664f}
-.panel{position:fixed;z-index:2;background:rgba(255,255,247,.84);border:1px solid rgba(87,127,100,.19);backdrop-filter:blur(18px);box-shadow:0 10px 34px rgba(35,64,50,.10);border-radius:16px;color:#3b5547}
+.panel{position:fixed;z-index:2;background:rgba(255,255,247,.84);border:1px solid rgba(87,127,100,.19);box-shadow:0 10px 34px rgba(35,64,50,.10);border-radius:16px;color:#3b5547}
 .hud-help{left:22px;bottom:22px;width:230px;padding:17px 17px 13px}
 .section-kicker{font-size:10px;font-weight:750;letter-spacing:.12em;color:#6c907d}
 .control-row{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:12px;margin-top:9px}
@@ -39,7 +39,7 @@ kbd{display:inline-block;padding:3px 6px;min-width:21px;text-align:center;border
 .action-toast,.toast{position:fixed;left:50%;z-index:5;transform:translateX(-50%);padding:12px 19px;border-radius:12px;background:rgba(38,74,59,.91);color:#f5fbf5;font-size:13px;box-shadow:0 8px 30px #203f3838;white-space:nowrap}
 .action-toast{bottom:22px}
 .toast{top:90px}
-.start-overlay{position:fixed;inset:0;display:grid;place-items:center;z-index:10;background:linear-gradient(135deg,rgba(204,226,217,.5),rgba(238,234,206,.23));backdrop-filter:blur(9px)}
+.start-overlay{position:fixed;inset:0;display:grid;place-items:center;z-index:10;background:linear-gradient(135deg,rgba(204,226,217,.82),rgba(238,234,206,.7))}
 .start-card{max-width:470px;margin:18px;padding:32px 36px 34px;border:1px solid #f9fff8a8;border-radius:25px;background:rgba(253,252,239,.95);box-shadow:0 20px 80px #294b3b45;text-align:center}
 .start-sun{font-size:35px;color:#d2aa65;margin-bottom:6px}
 .start-card h1{font-family:Georgia,serif;font-size:39px;font-weight:500;letter-spacing:-.04em;color:#345746;margin:10px 0 16px}

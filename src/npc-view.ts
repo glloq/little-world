@@ -57,13 +57,25 @@ function createDialoguePanel(factory?:(state:NPCState)=>DialogueSession|undefine
       const button = document.createElement('button');
       button.type = 'button';
       button.textContent = choice.text;
+      const hint = session.hint?.(i);
+      if (hint) { const tag = document.createElement('span'); tag.className = 'npc-choice-hint'; tag.textContent = hint === 'mission' ? 'mission' : 'objet'; tag.setAttribute('aria-hidden', 'true'); button.setAttribute('aria-description', hint === 'mission' ? 'Ce choix concerne une mission' : 'Ce choix donne ou demande un objet'); button.append(' ', tag); }
       button.addEventListener('click', () => {
         session?.choose(i);
         render();
       });
       choices.append(button);
     }
-    (choices.querySelector('button') ?? close).focus();
+    for (const locked of session.locked ?? []) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.disabled = true;
+      button.className = 'npc-choice-locked';
+      button.textContent = locked.text + ' (pas encore possible)';
+      choices.append(button);
+    }
+    if (!session.choices.length && !(session.locked ?? []).length) close.textContent = 'Terminer · Échap';
+    else close.textContent = 'Fermer · Échap';
+    (choices.querySelector<HTMLButtonElement>('button:not([disabled])') ?? close).focus();
   }
   close.addEventListener('click', dismiss);
   const onKey = (e: KeyboardEvent) => {
@@ -258,6 +270,12 @@ export function createNPCSystem(
       if (!entry) return false;
       dialogue.open(entry.state);
       return true;
+    },
+    /** Inhabitant within talking distance (interaction target of the player interface). */
+    talker(position: NPCPoint): { id: string; name: string } | null {
+      if (disposed || dialogue.isOpen) return null;
+      const entry = nearest(position);
+      return entry ? { id: entry.state.definition.id, name: entry.state.definition.name } : null;
     },
     prompt(position: NPCPoint): string | null {
       if (disposed) return null;

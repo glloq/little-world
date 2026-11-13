@@ -7,6 +7,8 @@ export function gameplayDialogueSession(runtime:GameplayRuntime,actorId:string):
  return {
   get line(){return graph.lines.find(l=>l.id===current)!;},
   get choices(){return runtime.availableChoices(graph.id,current);},get closed(){return closed;},
+  get locked(){return runtime.lockedChoices(graph.id,current);},
+  hint(index){const c=runtime.availableChoices(graph.id,current)[index];return c?.actions?.some(a=>a.type==='setObjective')?'mission':c?.actions?.some(a=>a.type==='giveItem')?'objet':undefined;},
   choose(index){if(closed)return false;const line=graph.lines.find(l=>l.id===current)!,choice=runtime.availableChoices(graph.id,current)[index];if(!choice)return false;
    const id=choice.id??current+':'+line.choices.indexOf(choice),next=runtime.dialogueChoice(graph.id,current,id);if(next===undefined)return false;if(next===null)closed=true;else{current=next;runtime.enterDialogueLine(graph.id,current);}return true;
   },close(){closed=true;}

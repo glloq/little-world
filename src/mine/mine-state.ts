@@ -55,9 +55,9 @@ export class MineState {
   material(level:number,ix:number,iz:number){return this.excavated(level,ix,iz)?0:this.grid.material(level,ix,iz);}
   chunkRevision(level:number,cx:number,cz:number){return this.chunks[level].get(chunkKey(cx,cz))?.revision??0;}
   get excavatedCount(){let n=0;for(const level of this.chunks)for(const c of level.values())for(const row of c.bits){let v=row;while(v){v&=v-1;n++;}}return n;}
-  dig(req:DigRequest,grant:(reward:{itemId:string;quantity:number})=>boolean):DigResult{
-    const cached=this.requests.get(req.requestId);if(cached)return cached;
-    const fail=(reason:string):DigResult=>({ok:false,reason});
+  /** Same validation as `dig`, without writing anything nor granting (UI preview). */
+  check(req:Omit<DigRequest,'requestId'>):{ok:true;material:number;reward:{itemId:string;quantity:number}|null}|{ok:false;reason:string}{
+    const fail=(reason:string)=>({ok:false as const,reason});
     const level=this.grid.levelIndex(req.levelId);if(level<0)return fail('Niveau inconnu');
     if(!Number.isInteger(req.ix)||!Number.isInteger(req.iz))return fail('Cellule invalide');
     if(req.expectedRevision!==undefined&&req.expectedRevision!==this.chunkRevision(level,Math.floor(req.ix/MINE_CHUNK),Math.floor(req.iz/MINE_CHUNK)))return fail('État de la mine modifié entre-temps');
@@ -67,7 +67,13 @@ export class MineState {
     if(![[1,0],[-1,0],[0,1],[0,-1]].some(([dx,dz])=>this.isOpen(level,req.ix+dx,req.iz+dz)))return fail('Paroi inaccessible');
     const l=this.grid.levels[level];
     if(Math.hypot(req.from.x-(req.ix+.5),req.from.z-(req.iz+.5))>DIG_REACH||req.from.y<l.floorY-.5||req.from.y>l.floorY+l.height)return fail('Trop loin');
-    const reward=info.item?{itemId:info.item,quantity:1}:null;
+    return {ok:true,material,reward:info.item?{itemId:info.item,quantity:1}:null};
+  }
+  dig(req:DigRequest,grant:(reward:{itemId:string;quantity:number})=>boolean):DigResult{
+    const cached=this.requests.get(req.requestId);if(cached)return cached;
+    const fail=(reason:string):DigResult=>({ok:false,reason});
+    const verdict=this.check(req);if(!verdict.ok)return fail(verdict.reason);
+    const level=this.grid.levelIndex(req.levelId),material=verdict.material,reward=verdict.reward;
     if(reward&&!grant(reward))return fail('Inventaire plein');
     // Commit: cell + revision (the reward has been accepted in the same step).
     const cx=Math.floor(req.ix/MINE_CHUNK),cz=Math.floor(req.iz/MINE_CHUNK),key=chunkKey(cx,cz);

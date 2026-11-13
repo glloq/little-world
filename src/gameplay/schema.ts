@@ -4,8 +4,10 @@ export type StateValue=boolean|number|string;
 export interface Point3 {x:number;y:number;z:number;}
 export interface VariableDefinition {id:string;scope:'entity'|'zone'|'world'|'savegame';ownerId?:string;valueType:'boolean'|'number'|'string';initialValue:StateValue;persistent:boolean;}
 export type ObjectiveStatus='locked'|'active'|'complete';
-export interface ItemDefinition {id:string;name:string;category:string;maxQuantity:number;}
-export interface ObjectiveDefinition {id:string;name:string;initialStatus:ObjectiveStatus;persistent:boolean;}
+export interface ItemDefinition {id:string;name:string;category:string;maxQuantity:number;
+  /** Short player-facing description (optional presentation metadata). */description?:string;}
+export interface ObjectiveDefinition {id:string;name:string;initialStatus:ObjectiveStatus;persistent:boolean;
+  /** What to do, shown in the journal (optional presentation metadata). */description?:string;}
 export type ConditionExpr=
   |{type:'all'|'any';conditions:ConditionExpr[]}|{type:'not';condition:ConditionExpr}
   |{type:'stateEquals';entityId:string;key:string;value:StateValue}
@@ -40,7 +42,7 @@ export type ActionStep=
 export interface InteractionDefinition {id:string;trigger:TriggerDefinition;condition?:ConditionExpr;sequence:ActionStep[];repeat:'once'|'always'|'cooldown';cooldown?:number;persistent?:boolean;}
 export interface ActivityDefinition {id:string;kind:'collect'|'deliver'|'fish'|'puzzle';name:string;interactionIds:string[];objectiveId?:string;}
 export interface GameplayDialogue extends Omit<LegacyDialogue,'lines'> {id:string;actorId?:string;lines:(Omit<LegacyDialogue['lines'][number],'choices'>&{actions?:ActionStep[];choices:(LegacyDialogue['lines'][number]['choices'][number]&{id?:string;gate?:ConditionExpr;actions?:ActionStep[]})[]})[];}
-export interface GameplayEntity {id:string;ownerChunkId:string;position?:Point3;initialState:Record<string,StateValue>;persistentState:string[];dialogueIds?:string[];interactable?:{prompt:string;range:number;interactionIds?:string[]};}
+export interface GameplayEntity {/** Display name from the authoring index (presentation only). */name?:string;id:string;ownerChunkId:string;position?:Point3;initialState:Record<string,StateValue>;persistentState:string[];dialogueIds?:string[];interactable?:{prompt:string;range:number;interactionIds?:string[]};}
 export interface GameplayData {environment?:EnvironmentDefinition;worldId:string;buildVersion:string;entities:GameplayEntity[];variables:VariableDefinition[];interactions:InteractionDefinition[];items:ItemDefinition[];objectives:ObjectiveDefinition[];dialogues:GameplayDialogue[];activities?:ActivityDefinition[];}
 export const gameplayLimits={conditionDepth:8,conditionNodes:128,sequenceSteps:64,eventsPerUpdate:128,actionsPerUpdate:256,activeSequences:64,effects:128} as const;
 export const record=(v:unknown):v is Record<string,unknown>=>typeof v==='object'&&v!==null&&!Array.isArray(v);
@@ -58,8 +60,8 @@ export function parseVariable(value:unknown):VariableDefinition {
   const v=object(value,'Variable');requireValue(identifier(v.id)&&['entity','zone','world','savegame'].includes(String(v.scope))&&['boolean','number','string'].includes(String(v.valueType))&&stateValue(v.initialValue)&&typeof v.initialValue===v.valueType&&typeof v.persistent==='boolean','Variable : type ou valeur invalide');
   requireValue((v.scope==='entity'||v.scope==='zone')?identifier(v.ownerId):v.ownerId===undefined,'Variable : propriétaire de portée invalide');return clone(value);
 }
-export function parseItem(value:unknown):ItemDefinition {const v=object(value,'Objet inventaire');requireValue(identifier(v.id)&&text(v.name,100)&&text(v.category,100)&&Number.isInteger(v.maxQuantity)&&finite(v.maxQuantity,1,9999),'Objet inventaire invalide');return clone(value);}
-export function parseObjective(value:unknown):ObjectiveDefinition {const v=object(value,'Objectif');requireValue(identifier(v.id)&&text(v.name,200)&&status(v.initialStatus)&&typeof v.persistent==='boolean','Objectif invalide');return clone(value);}
+export function parseItem(value:unknown):ItemDefinition {const v=object(value,'Objet inventaire');requireValue(identifier(v.id)&&text(v.name,100)&&text(v.category,100)&&Number.isInteger(v.maxQuantity)&&finite(v.maxQuantity,1,9999)&&(v.description===undefined||text(v.description,300)),'Objet inventaire invalide');return clone(value);}
+export function parseObjective(value:unknown):ObjectiveDefinition {const v=object(value,'Objectif');requireValue(identifier(v.id)&&text(v.name,200)&&status(v.initialStatus)&&typeof v.persistent==='boolean'&&(v.description===undefined||text(v.description,500)),'Objectif invalide');return clone(value);}
 export function parseActivity(value:unknown):ActivityDefinition {const v=object(value,'Activité');requireValue(identifier(v.id)&&['collect','deliver','fish','puzzle'].includes(String(v.kind))&&text(v.name,200)&&ids(v.interactionIds,100)&&(v.objectiveId===undefined||identifier(v.objectiveId)),'Activité invalide');return clone(value);}
 export function parseCondition(value:unknown):ConditionExpr {
   let nodes=0;
@@ -136,7 +138,7 @@ export function validateGameplayLibraries(value:unknown,entityIds?:Iterable<stri
 }
 export function parseGameplayData(value:unknown):GameplayData {
   const v=object(value,'Gameplay');requireValue(identifier(v.worldId)&&identifier(v.buildVersion)&&Array.isArray(v.entities)&&v.entities.length<=100000,'Monde gameplay invalide');const idsSeen=new Set<string>();
-  for(const raw of v.entities as unknown[]){const e=object(raw,'Entité logique');requireValue(identifier(e.id)&&!idsSeen.has(e.id as string)&&identifier(e.ownerChunkId)&&record(e.initialState)&&ids(e.persistentState,100)&&(e.position===undefined||point(e.position)),'Entité logique invalide');if(e.dialogueIds!==undefined)requireValue(ids(e.dialogueIds,100),'Liens dialogues invalides');idsSeen.add(e.id as string);requireValue(Object.keys(e.initialState as object).length<=100,'Trop de champs état');for(const [key,value] of Object.entries(e.initialState as object))requireValue(identifier(key)&&stateValue(value),'Champ état invalide');for(const key of e.persistentState as string[])requireValue(Object.hasOwn(e.initialState as object,key),'Champ persistant absent');if(e.interactable!==undefined){const i=object(e.interactable,'Interaction entité');requireValue(text(i.prompt,200)&&finite(i.range,.1,100)&&(i.interactionIds===undefined||ids(i.interactionIds,100)),'Invite interaction invalide');}}
+  for(const raw of v.entities as unknown[]){const e=object(raw,'Entité logique');requireValue(identifier(e.id)&&!idsSeen.has(e.id as string)&&identifier(e.ownerChunkId)&&(e.name===undefined||text(e.name,200))&&record(e.initialState)&&ids(e.persistentState,100)&&(e.position===undefined||point(e.position)),'Entité logique invalide');if(e.dialogueIds!==undefined)requireValue(ids(e.dialogueIds,100),'Liens dialogues invalides');idsSeen.add(e.id as string);requireValue(Object.keys(e.initialState as object).length<=100,'Trop de champs état');for(const [key,value] of Object.entries(e.initialState as object))requireValue(identifier(key)&&stateValue(value),'Champ état invalide');for(const key of e.persistentState as string[])requireValue(Object.hasOwn(e.initialState as object,key),'Champ persistant absent');if(e.interactable!==undefined){const i=object(e.interactable,'Interaction entité');requireValue(text(i.prompt,200)&&finite(i.range,.1,100)&&(i.interactionIds===undefined||ids(i.interactionIds,100)),'Invite interaction invalide');}}
   if(v.environment!==undefined)parseEnvironmentDefinition(v.environment);
   const libraries:Record<string,unknown>={};for(const name of Object.keys(libraryParsers)){const list=v[name]??[];requireValue(Array.isArray(list)&&list.length<=10000,'Liste gameplay invalide');const dict=Object.create(null) as Record<string,unknown>;for(const raw of list as unknown[]){const item=object(raw,name);requireValue(identifier(item.id)&&!Object.hasOwn(dict,item.id as string),'ID gameplay dupliqué');dict[item.id as string]=item;}libraries[name]=dict;}
   validateGameplayLibraries(libraries,idsSeen,new Set((v.entities as GameplayEntity[]).map(e=>e.ownerChunkId)));
