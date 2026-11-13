@@ -1,3 +1,4 @@
+import type {AudioController} from './audio/view.ts';
 import * as THREE from 'three';
 import {
   FrameClock,
@@ -5,6 +6,7 @@ import {
   presentationPixelRatio,
 } from './frame-clock';
 import './style.css';
+import {waterSurface,riverX} from './terrain.ts';
 import type {PlayableWorld,StudioPlaytest} from './gameplay/playable.ts';
 import {WorldClock} from './environment/clock.ts';
 import {createClimate,defaultEnvironment} from './environment/climate.ts';
@@ -89,6 +91,7 @@ applyQuality();
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.1;
+renderer.domElement.tabIndex=0;
 viewport.appendChild(renderer.domElement);
 const searchParams = new URLSearchParams(window.location.search);
 const isPreview = searchParams.get('preview') === '1',
@@ -124,10 +127,12 @@ for (const item of definition.placements) addPlacement(world, item);
 scene.add(world.root);
 const player = spawnPlayer();
 if(playable)player.position.set(playable.spawn.x,terrainHeight(playable.spawn.x,playable.spawn.z)+playable.spawn.y+.02,playable.spawn.z);
+let audio:AudioController|null=null;
+try{const {parseAudioDefinition}=await import('./audio/schema.ts');let definition=playable?.audio;if(!playable){const response=await fetch(import.meta.env.BASE_URL+'audio/default.json');if(response.ok)definition=parseAudioDefinition(await response.json());}if(definition){const {createAudioController}=await import('./audio/view.ts');audio=createAudioController(definition);}}catch{console.warn('Audio indisponible : le jeu reste silencieux.');}
 let gameplay:GameplayView|null=null;
 if(playable){
   const {createGameplayView}=await import('./gameplay/game-view.ts');
-  gameplay=createGameplayView(playable.gameplay,{collisions:playable.collisions,temporary:!!studioTest,saveScope:studioTest?.snapshotId,getPosition:()=>({x:player.position.x,y:player.position.y,z:player.position.z}),objects:world.objects,showInfo,
+  gameplay=createGameplayView(playable.gameplay,{onSound:(id,p)=>audio?.playSound(id,p),collisions:playable.collisions,temporary:!!studioTest,saveScope:studioTest?.snapshotId,getPosition:()=>({x:player.position.x,y:player.position.y,z:player.position.z}),objects:world.objects,showInfo,
     setPosition:p=>{player.position.set(p.x,p.y,p.z);player.velocity.set(0,0,0);player.mode='air';player.oxygen=MAX_OXYGEN;player.glideReady=false;aboard=false;keySet.clear();jumpQueue=0;actionQueue=0;npcs.dialogue.close();previousPlayerPosition.copy(player.position);renderPosition.copy(player.position);updateCamera(1);}
   });
 }
@@ -209,6 +214,7 @@ function resetCameraDrag(): void {
   renderer.domElement.classList.remove('dragging-camera');
 }
 window.addEventListener('keydown', (e) => {
+  if(e.target instanceof Element&&e.target.closest('button,summary,a')&&['Space','Enter','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))return;
   if(gameplay?.isOpen||e.target instanceof HTMLInputElement||e.target instanceof HTMLTextAreaElement||e.target instanceof HTMLSelectElement)return;
   // Read the typed character: AZERTY 'A' is physically KeyQ, QWERTY 'A' is KeyA.
   if (isMenuKey(e)) {
@@ -302,7 +308,9 @@ renderer.domElement.addEventListener(
 );
 start.addEventListener('click', () => {
   started = true;
+  void audio?.start();
   overlay.classList.add('hide');
+  renderer.domElement.focus();
 });
 function showInfo(text: string) {
   infoUntil = elapsed + 3.3;
@@ -310,7 +318,7 @@ function showInfo(text: string) {
   message.classList.remove('hide');
 }
 const cameraTarget = new THREE.Vector3(),
-  cameraDesired = new THREE.Vector3();
+  cameraDesired = new THREE.Vector3(),audioForward=new THREE.Vector3();
 function updateCamera(dt: number) {
   const target = cameraTarget.copy(renderPosition);
   target.y += aboard ? 2.9 : 1.85;
@@ -438,6 +446,7 @@ function draw(now: number) {
     frame.alpha,
   );
   environment.update(delta,player.position,budget.level);
+  if(started&&audio){const env=climate.state(worldClock.time);audio.update(now,player.position,id=>gameplay?.runtime.getEntityPosition(id),{night:env.sunAltitude<0,rain:env.weather==='rain',water:waterSurface(player.position.x,player.position.z)!==null||Math.abs(player.position.x-riverX(player.position.z))<16},budget.level,player.mode==='ground'&&!aboard&&player.velocity.lengthSq()>.1,camera.getWorldDirection(audioForward));}
   world.update(delta, player.position);
   npcs.update(delta, elapsed, player.position); // The river drives the mill: no manual on/off control.
   world.boat.position.set(
@@ -464,6 +473,7 @@ function draw(now: number) {
         geometries: renderer.info.memory.geometries,
         chunks: { ...world.stats },
         environment:environment.metrics,
+        audio:audio?.engine.metrics??null,
         collisions:gameplay?.collision.stats??null,
         position: player.position.toArray(),
         renderRate: budget.rate,
@@ -490,6 +500,8 @@ function draw(now: number) {
   }
   requestAnimationFrame(draw);
 }
+window.addEventListener('pagehide',event=>{if(event.persisted)void audio?.engine.setHidden(true);else void audio?.dispose();});
+window.addEventListener('pageshow',event=>{if(event.persisted&&started)void audio?.engine.setHidden(document.hidden);});
 document.addEventListener('visibilitychange', () => {
   presentation.reset();
   lastPresented = null;

@@ -111,3 +111,8 @@ test('runtime manifest/chunk loaders use relative local URLs and reject corrupt 
 test('authored environment survives portable compilation and invalid definitions fail preflight',async()=>{
  const p=fixture();p.world.environment={schemaVersion:1,generatorVersion:1,weatherSeed:42,dayLengthSeconds:900,initialDayPhase:.7,weatherPeriodSeconds:120};const output=await compile(p);assert.deepEqual(output.manifest.environment,p.world.environment);assert.deepEqual(parseCompiledManifest(output.manifest).environment,p.world.environment);const bad=structuredClone(p);bad.world.environment.dayLengthSeconds=-1;await assert.rejects(()=>compile(bad));
 });
+test('audio metadata changes do not recompile spatial chunks and storage revisions do not change build identity',async()=>{
+ const p=fixture();p.world.audio=JSON.parse(await readFile(new URL('../public/audio/default.json',import.meta.url),'utf8'));const first=await compile(p);p.world.audio.sounds.collect.gain=.2;const audio=await compileProject(p,{resolveAsset:resolver,previous:first.manifest});assert.deepEqual(audio.rebuiltChunkIds,[]);assert.notEqual(audio.manifest.sourceHash,first.manifest.sourceHash);assert.equal(audio.manifest.audio.sounds.collect.gain,.2);
+ p.manifest.revision=50;const revision=await compile(p);assert.equal(revision.manifest.sourceHash,audio.manifest.sourceHash);assert.deepEqual(revision.manifest.chunks,audio.manifest.chunks);
+ p.world.editSequence++;const order=await compileProject(p,{resolveAsset:resolver,previous:audio.manifest});assert.deepEqual(order.rebuiltChunkIds,[]);
+});

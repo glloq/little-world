@@ -8,7 +8,7 @@ import {gameplayDialogueSession} from './dialogue-session.ts';
 import {createGameSaveStore,scopedSaveStorage} from './save.ts';
 import type {GameplayData,GameplayEntity,Point3} from './schema.ts';
 import './game-view.css';
-interface Options {collisions?:CollisionDefinition[];temporary:boolean;saveScope?:string;getPosition:()=>Point3;setPosition:(p:Point3)=>void;showInfo:(text:string)=>void;objects:THREE.Group;}
+interface Options {onSound?:(id:string,position?:{x:number;y:number;z:number})=>void;collisions?:CollisionDefinition[];temporary:boolean;saveScope?:string;getPosition:()=>Point3;setPosition:(p:Point3)=>void;showInfo:(text:string)=>void;objects:THREE.Group;}
 const element=<K extends keyof HTMLElementTagNameMap>(tag:K,text='')=>{const e=document.createElement(tag);e.textContent=text;return e;};
 /** Bounded UI/effect adapter. It never opens the Studio authoring database. */
 export function createGameplayView(data:GameplayData,options:Options){
@@ -59,6 +59,7 @@ export function createGameplayView(data:GameplayData,options:Options){
    if(disposed)return;runtime.state.playerPosition={...options.getPosition()};for(const npc of npcs)if(entityIds.has(npc.definition.id)){runtime.setEntityPosition(npc.definition.id,{x:npc.x,y:npc.y,z:npc.z});const body=collisionDefinitions.get(npc.definition.id);if(body)collision.moveBody(body.id,{x:npc.x+body.position.x-body.groundAnchor.x,y:npc.y+body.position.y,z:npc.z+body.position.z-body.groundAnchor.z});}
    runtime.update(dt);for(const effect of runtime.drainEffects()){
     if(effect.type==='showText')options.showInfo(effect.text);
+    else if(effect.type==='playSound')options.onSound?.(effect.soundId,effect.entityId?runtime.data.entities.find(e=>e.id===effect.entityId)?.position:undefined);
     else if(effect.type==='startDialogue')options.showInfo('Approchez du personnage pour ouvrir sa conversation.');
     else options.showInfo('Effet de présentation non pris en charge : '+effect.type);
    }

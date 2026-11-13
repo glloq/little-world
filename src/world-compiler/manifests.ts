@@ -1,3 +1,4 @@
+import type {AudioDefinition} from '../audio/schema.ts';
 import type {EnvironmentDefinition} from '../environment/climate.ts';
 /** Runtime output contracts are deliberately separate from Studio source schemas.
  * This compiler emits validated data descriptors, not baked GPU meshes/navmeshes.
@@ -25,6 +26,7 @@ export interface CompiledAssetDescriptor {
   license:string;
 }
 export interface CompiledWorldManifest {
+  audio?:AudioDefinition;
   environment?:EnvironmentDefinition;
   schemaVersion:1;
   kind:'compiled-world';
@@ -66,7 +68,7 @@ export interface CompileResult {
   rebuiltChunkIds:string[];
   diagnostics:CompilationDiagnostic[];
 }
-export const COMPILER_VERSION='little-world-descriptors-2';
+export const COMPILER_VERSION='little-world-descriptors-3';
 
 /** Stable object key order; array order remains semantically meaningful. */
 export function canonicalJSON(value:unknown):string {

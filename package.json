@@ -19,7 +19,9 @@
     "test:gameplay": "node tools/test-gameplay-browser.mjs",
     "test:environment": "node tools/test-environment-browser.mjs",
     "test:local": "node tools/test-local-browser.mjs",
-    "test:characters": "node tools/test-characters-browser.mjs"
+    "test:characters": "node tools/test-characters-browser.mjs",
+    "generate:audio": "node --experimental-strip-types tools/generate-audio.mjs",
+    "test:audio": "node tools/test-audio-browser.mjs"
   },
   "dependencies": {
     "three": "^0.180.0"

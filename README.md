@@ -2,13 +2,16 @@
 
 Prototype **solo** d'exploration 3D avec **Three.js**, exécutable entièrement dans un navigateur PC. La vallée montagneuse actuelle mesure **200 × 600 m** ; l'architecture cible prépare **une carte continue pouvant atteindre 10 × 10 km (100 km² au maximum)**, sans considérer cette taille comme déjà implémentée.
 
-> **Statut : prototype technique jouable en développement.** La première version est volontairement simple, avec graphismes et physique provisoires. La campagne avancée est sur `feat/living-world-editor` ; le site publié depuis `main` peut rester antérieur. Le site est publié via GitHub Pages. La disponibilité de la dernière révision dépend du déploiement GitHub Actions.
+> **Statut : prototype technique jouable en développement.** La première version est volontairement simple, avec graphismes et physique provisoires. La campagne avancée est sur `feat/studio-v3` ; le site publié depuis `main` peut rester antérieur. La disponibilité de la dernière révision dépend du déploiement GitHub Actions.
 
 ## Essayer le prototype
 
 **GitHub Pages :**
 - Jeu : **https://glloq.github.io/little-world/**
 - Éditeur : **https://glloq.github.io/little-world/editor/**
+- Studio : **https://glloq.github.io/little-world/studio/**
+
+**Si le site affiche uniquement du texte :** dans [Settings → Pages](https://github.com/glloq/little-world/settings/pages), sélectionner **Build and deployment → Source → GitHub Actions**, puis relancer **Build and deploy Little World** sur `main`. Le mode **Deploy from a branch** publie les sources TypeScript sans les compiler et peut écraser le site fonctionnel. Publier uniquement le dossier `dist/` produit par Vite. Voir [le diagnostic et les contrôles de publication](docs/08-GITHUB-PAGES.md#incident--site-public-affichant-uniquement-du-texte).
 
 Les publications sont suivies dans [Build and deploy Little World](https://github.com/glloq/little-world/actions). Le build est 100 % statique et utilise `/little-world/` comme préfixe.
 
