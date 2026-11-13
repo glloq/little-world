@@ -11,7 +11,7 @@ Prototype **solo** d'exploration 3D avec **Three.js**, exécutable entièrement 
 - Éditeur : **https://glloq.github.io/little-world/editor/**
 - Studio : **https://glloq.github.io/little-world/studio/**
 
-**Si le site affiche uniquement du texte :** dans [Settings → Pages](https://github.com/glloq/little-world/settings/pages), sélectionner **Build and deployment → Source → GitHub Actions**, puis relancer **Build and deploy Little World** sur `main`. Le mode **Deploy from a branch** publie les sources TypeScript sans les compiler et peut écraser le site fonctionnel. Publier uniquement le dossier `dist/` produit par Vite. Voir [le diagnostic et les contrôles de publication](docs/08-GITHUB-PAGES.md#incident--site-public-affichant-uniquement-du-texte).
+**Si le site affiche uniquement du texte :** relancer **Build and deploy Little World** sur `main` avec le workflow corrigé. Il attend la fin de la publication automatique des sources avant de publier le build Vite et vérifie les trois interfaces publiques. Le réglage recommandé dans [Settings → Pages](https://github.com/glloq/little-world/settings/pages) est **Build and deployment → Source → GitHub Actions** pour éviter ce double build, mais le workflow fonctionne aussi sans modifier ce paramètre administratif. Publier uniquement `dist/`, jamais les sources TypeScript. Voir [le diagnostic et les contrôles de publication](docs/08-GITHUB-PAGES.md#incident--site-public-affichant-uniquement-du-texte).
 
 Les publications sont suivies dans [Build and deploy Little World](https://github.com/glloq/little-world/actions). Le build est 100 % statique et utilise `/little-world/` comme préfixe.
 

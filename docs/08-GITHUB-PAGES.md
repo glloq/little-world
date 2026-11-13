@@ -1,6 +1,6 @@
 # 08 — GitHub Pages — hébergement statique de Little World
 
-**Statut :** le prototype V3 précédant l’audio a été fusionné sur `main` (`f4a4433`). Les ajouts audio et le correctif de publication sont sur `feat/studio-v3`. Un succès de build seul ne certifie pas que le site public sert le bon artefact. Le workflow corrigé contrôle les trois interfaces avant publication puis sur leur URL publique.
+**Statut :** le prototype V3 et l’audio ont été fusionnés sur `main` (`70cb35b`). La réparation du déploiement est préparée sur `feat/studio-v3`. Un succès de build seul ne certifie pas que le site public sert le bon artefact. Le workflow corrigé contrôle les trois interfaces avant publication puis sur leur URL publique.
 
 ## Incident : site public affichant uniquement du texte
 
@@ -10,9 +10,13 @@ Le 13 novembre 2026, deux publications ont été déclenchées par le même merg
 
 1. Dans [Settings → Pages](https://github.com/glloq/little-world/settings/pages), choisir **Build and deployment → Source → GitHub Actions**, et non **Deploy from a branch**.
 2. Dans Actions, relancer **Build and deploy Little World** sur `main`. Ne pas relancer le workflow automatique **pages build and deployment** qui distribue les sources.
-3. Attendre la fin du déploiement, puis actualiser le site avec Ctrl+F5. L’audio arrivera après fusion de la branche qui le contient.
+3. Attendre la fin du déploiement, puis actualiser le site avec Ctrl+F5. L’audio est inclus dans la version de main à partir de `70cb35b`.
 
-Le correctif fait lire la configuration Pages par le workflow. Si la source est encore `legacy`, il tente de la passer à `workflow` avec le jeton Actions disposant de `pages:write`. Si GitHub refuse ce changement, il arrête la publication avec le chemin exact du réglage manuel ; aucun jeton personnel n’est nécessaire dans le navigateur. Une publication automatique déjà lancée doit finir avant la relance manuelle.
+La première réparation a échoué dans [le déploiement 43396892232](https://github.com/glloq/little-world/actions/runs/43396892232) : Pages reste `legacy` et le jeton Actions répond « Resource not accessible by integration » à la modification du réglage. Cette erreur était bloquante avant même le build. Le workflow corrigé **ne tente plus de modifier les paramètres administratifs** et continue avec les droits ordinaires de déploiement.
+
+**Repli compatible avec le réglage actuel :** avant de publier `dist/`, il attend la fin des workflows Pages automatiques en cours sur main, avec `actions:read`, deux lectures stables et un délai maximal de cinq minutes. Un événement `workflow_run` relance aussi la publication compilée après la fin d’un workflow Pages automatique, y compris une relance manuelle : les sources ne restent donc pas la dernière publication. Le mode GitHub Actions reste recommandé pour éviter ce double travail, mais son activation n’est plus un prérequis bloquant. Un dépassement du délai d’attente reste un vrai échec explicite.
+
+Un autre échec intermittent dans [la validation 43396706898](https://github.com/glloq/little-world/actions/runs/43396706898) venait du test Studio : `boundingBox()` pouvait retourner `null` pendant le remontage du canvas après changement de module. Le clic utilise maintenant un locator Playwright qui attend la visibilité/stabilité du canvas courant. Aucun délai fixe ne masque l’erreur.
 
 `node tools/verify-static-build.mjs` refuse un artefact contenant les HTML source, contrôle les JS/CSS compilés et les trois pages. `node tools/test-published-browser.mjs <base-url>` vérifie leurs ressources et leur type MIME, démarre le jeu avec une scène animée, crée un projet dans le Studio et ouvre la scène de l’éditeur. Ce test tourne avant publication et après déploiement, sur l’URL publique, avec captures dans les artefacts Actions. Le contrôle public compare aussi `deployment.json` au commit attendu ; trois tentatives bornées laissent le CDN se mettre à jour. Le projet de test reste dans le navigateur éphémère de la CI.
 
