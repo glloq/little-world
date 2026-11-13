@@ -137,6 +137,8 @@ docs/                       # Conception, objectifs et registre de décisions
 
 ## Documentation
 
+- [Audit de la bêta : Studio, rendu panoramique et île de 3 × 8 km](docs/30-AUDIT-BETA-ILE-3X8-STUDIO-RENDU.md)
+
 - [Vision](docs/01-VISION.md)
 - [Gameplay](docs/02-GAMEPLAY.md)
 - [Générateur de vallée](docs/03-WORLD-GENERATION.md)

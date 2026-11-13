@@ -1,7 +1,7 @@
 # B1 — Avancement vérifié de la branche Studio V3
 
 Date : 13 novembre 2026. Périmètre : [objectifs B1](26-BETA-B1-OBJECTIFS.md).
-Cette branche avance G1, G2 et G4 par incréments testés. **La bêta B1 n'est pas qualifiée.**
+Les incréments jusqu’à `a7a6f88` sont inclus dans `main`. **La bêta B1 n’est pas qualifiée.** Le nouvel [audit 30 — île 3 × 8 km](30-AUDIT-BETA-ILE-3X8-STUDIO-RENDU.md) consolide les manques actuels, les blocages de taille/visibilité et le plan Studio/rendu ; les décomptes plus bas correspondent aux incréments historiques.
 
 ## Incréments conservés
 

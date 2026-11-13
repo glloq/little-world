@@ -13,7 +13,7 @@ Little World B1 est un monde d'exploration 3D paisible, continu, low-poly, dans 
 **La bêta doit constituer une boucle de jeu cohérente**, et non une simple vitrine de technologies : découvrir → interagir → modifier un état de partie → sauvegarder → fermer → reprendre.
 
 - **Plateforme :** navigateur PC, TypeScript / Three.js / WebGL, publication statique GitHub Pages ; pas de serveur obligatoire.
-- **Carte B1 :** une zone continue **d'environ 1 km²** (hypothèse de forme : 1 000 × 1 000 m) suffisamment riche pour démontrer les biomes, l'eau, les activités et le streaming. Elle n'impose pas un remplissage uniforme.
+- **Carte B1 — cible géographique actualisée :** **île de 3 × 8 km**, avec volcan, rivières, forêt, village, agriculture et mine, selon la demande du 13 novembre 2026. La marge maritime, l’altitude et la densité restent à préciser. Le scénario initial d’environ **1 km²** est conservé comme référence fonctionnelle et de régression, sans imposer un remplissage uniforme des 24 km². Voir [30 — Audit et plan](30-AUDIT-BETA-ILE-3X8-STUDIO-RENDU.md) ; cette capacité n’est pas encore implémentée/qualifiée.
 - **Architecture long terme :** conserver un format évolutif jusqu'à **10 × 10 km maximum** sans exiger une carte de 100 km² jouable ni prétendre garantir ses performances dans B1.
 - **Présentation :** cible **30 FPS**, mode de secours **20 FPS**, simulation du joueur à pas fixe indépendante du rendu ; qualification sur PC réel requise.
 - **Édition :** Little World Studio permet d'éditer les éléments nécessaires à la bêta, tester le brouillon et exporter/importer le projet sans écrire de scripts de gameplay.
@@ -26,7 +26,7 @@ Le champ **Statut initial** signifie « objectif sélectionné » ; l'avancement
 
 | ID | Objectif B1 | Exigence minimale | Test d'acceptation |
 | --- | --- | --- | --- |
-| B1-01 | **Monde continu d'environ 1 km²** | Relief, régions, biomes et lieux de vie, chargement spatial/LOD sans coupure artificielle | Traversée à pied et en planage, sans trou visible ni chargement bloquant ; coûts mesurés |
+| B1-01 | **Monde continu : île cible de 3 × 8 km** | Relief/côtes, régions, biomes et lieux de vie ; lecteur V3, horizon et chargement spatial/LOD sans coupure artificielle ; référence 1 km² conservée | Traversées à pied/planage/bateau et panoramas de l’île, sans trou visible ni chargement bloquant ; coûts mesurés |
 | B1-02 | **Déplacements et caméra** | Marche, course, saut, planage à membrane rétractable, nage, plongée, bateau et caméra troisième personne | Transitions sol/air/eau/bateau stables, entrées cohérentes à 20 et 30 FPS |
 | B1-03 | **Jour/nuit et météo simple** | Horloge monde commune, éclairage/ciel jour-nuit, quelques états météo sobres (p. ex. clair/nuageux/pluie) | Transitions visuelles reproductibles ; temps/climat interrogables par le gameplay ; coût mesuré |
 | B1-04 | **Biomes, eau et navigation** | Biomes configurables, végétation/faune économiques, surfaces et volumes d'eau logiques, rivière/lac/mer utiles au parcours, navigation en bateau | Nage/plongée, berges et bateau corrects quel que soit le LOD ; biomes identiques pour une même source |
@@ -44,7 +44,7 @@ Le champ **Statut initial** signifie « objectif sélectionné » ; l'avancement
 
 ### Explications complémentaires des critères
 
-- **Monde :** « 1 km² » mesure la surface cible de la démonstration, pas une densité de végétation obligatoire ni une promesse de 100 km² à 30 FPS.
+- **Monde :** « 1 km² » désigne la référence fonctionnelle initiale. La cible géographique demandée devient une île de 3 × 8 km ; la répartition terre/mer reste à fixer. Ni sa densité, ni 30 FPS sur ses 24 km², ni les performances de 100 km² ne sont garanties avant mesures.
 - **PNJ :** navigation suffisamment fiable pour B1 ; pas de simulation sociale émergente ni de compétences universelles. Les 3–5 PNJ peuvent réutiliser des morphologies/rigs compatibles.
 - **Météo :** B1 exige les états utiles au jour/nuit et à la croissance, pas tous les cycles célestes, la neige persistante, les orages complexes ou un climat physique complet.
 - **Mines :** seule la mine autorisée est durablement excavable par le joueur. Le relief extérieur reste non creusable par le joueur ; les modifications auteur restent possibles dans Studio.
@@ -119,7 +119,7 @@ Ce sont des **propositions**, et non des décisions utilisateur déjà acquises 
 
 | ID | Point ouvert | Proposition de travail | Échéance |
 | --- | --- | --- | --- |
-| OPEN-B1-01 | Forme de la région d'environ 1 km² et répartition des lieux | 1 000 × 1 000 m ; 3–4 sous-zones visuellement distinctes | Avant création de la carte |
+| OPEN-B1-01 | Marges terre/mer, relief et implantation des lieux de l’île | Forme insulaire et cible 3 × 8 km désormais retenues ; altitude du volcan et répartition à définir. Garder la référence 1 km². | Avant production de l’île |
 | OPEN-B1-02 | Contenu précis de la mission et de l'énigme | Une mission de livraison/collecte et un mécanisme environnemental | Avant scénario de référence |
 | OPEN-B1-03 | Liste des PNJ, espèces, activités et dialogues | 4 PNJ de démonstration | Avant Studio PNJ |
 | OPEN-B1-04 | Paramètres de la mine et gisements | 3 niveaux, grilles 1 m, chunks 32 × 32, 2–3 matières/ressources ; benchmark nécessaire | Avant mine |

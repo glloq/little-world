@@ -4,6 +4,10 @@
 
 **Documents de cadrage prioritaires :** [12 — Limites du jeu](12-PROJECT-SCOPE.md), [13 — UX du Studio](13-STUDIO-UX-ARCHITECTURE.md), [14 — Décisions techniques validées](14-TECHNICAL-CHOICES.md) et **[15 — Schémas V3 du Studio](15-STUDIO-DATA-SCHEMAS-V3.md)**. Le **200 × 600 m** des jalons M0–M6 est la carte de démonstration ; le monde final est **une carte continue de 10 × 10 km maximum**, performance à qualifier.
 
+## Priorité actualisée — île de 3 × 8 km
+
+La demande du 13 novembre 2026 priorise le **Studio de production** et la **visibilité continue du paysage** pour une île avec volcan, rivières, forêt, village, parcelles et mine. L’[audit 30](30-AUDIT-BETA-ILE-3X8-STUDIO-RENDU.md) confronte le code publié aux contrats, liste les manques et fixe un ordre de lots proposé : lecteur V3/géographie/horizon, streaming sous budget, outils de production, activités et qualification. La scène de 1 km² reste une référence de régression. **Cet ajout est un plan, aucune implémentation n’est démarrée.**
+
 ## Contrats techniques désormais figés
 
 Toutes les recommandations de [14 — Choix techniques](14-TECHNICAL-CHOICES.md) sont **acceptées comme cible**, sans être considérées comme livrées : heightfield multi-résolution ; Studio spécialisé + transactions communes ; rigs par familles ; PNJ à navigation libre hiérarchique et comportements simples ; horloge logique ; activités par templates ; conditions/états typés ; patrimoine de données versionné ; optimisation pour PC avec GPU intégré.
