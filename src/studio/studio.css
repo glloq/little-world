@@ -69,3 +69,7 @@ label:has(> input[type=checkbox]){flex-direction:row;align-items:center;justify-
 .thumb-pair{display:grid;grid-template-columns:1fr 1fr;gap:6px}.thumb-pair figure{margin:0;text-align:center;font-size:11px;color:#5a7262}
 .relief-thumb{width:100%;height:auto;max-height:180px;object-fit:contain;border-radius:6px;border:1px solid #d5e1cf;image-rendering:auto;display:block}
 .presets{display:flex;flex-direction:column;gap:5px}.presets>button{text-align:left}
+.impact-card{border:1px solid #e3c9a0;background:#fff8ec;border-radius:9px;padding:8px;margin:6px 0 10px;display:flex;flex-direction:column;gap:5px}
+.impact-card .diagnostic{font-size:11px}
+.path-diagnostics{display:flex;flex-direction:column;gap:4px;margin-top:6px}
+.path-diagnostics .diagnostic{font-size:11px}

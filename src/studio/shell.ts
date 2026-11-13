@@ -71,7 +71,7 @@ let mapLoaded=false;
 function closeProject(){if(mapLoaded)void import('./geo-map/editor.ts').then(m=>m.releaseGeoMap());disposePanel();disposePanel=()=>{};unsubscribe();unsubscribe=()=>{};viewport?.dispose();viewport=null;session=null;$('studio').classList.remove('in-project');}
 async function open(id:string){
   closeProject();session=await StudioSession.open(store,id);const s=session;$('studio').classList.add('in-project');
-  const stops=[s.subscribe(()=>refreshHeader()),s.commands.subscribe(()=>{void inspector();}),s.selection.subscribe(()=>{if(VIEWPORT_MODULES.has(activeModule))scheduleInspector();})];unsubscribe=()=>stops.forEach(stop=>stop());
+  const stops=[s.subscribe(()=>refreshHeader()),s.commands.subscribe(t=>{checkImpact(s,t);void inspector();}),s.selection.subscribe(()=>{const key=JSON.stringify(s.selection.selection);if(VIEWPORT_MODULES.has(activeModule)||key!==selectionKey)scheduleInspector();selectionKey=key;})];unsubscribe=()=>stops.forEach(stop=>stop());
   buildHeader();buildToolbar();const saved=ALIASES[s.selection.state.activeModule]??s.selection.state.activeModule;
   await module(MODULES.some(m=>m[0]===saved)||VIEWPORT_MODULES.has(saved)?saved:'scene');
 }
@@ -155,12 +155,27 @@ async function pick(x:number,z:number,tolerance=3){
   const ref=nearest&&distance<Math.max(6,tolerance*2)?{kind:'entity',id:nearest.id}:line??(nearest&&distance<25?{kind:'entity',id:nearest.id}:null);
   s.selection.select(ref);s.selection.setCamera(moveContext(s,x,z));await inspector();
 }
+/** E9 — after a relief change (2D map, 3D brush, shapes, undo), check the touched elements
+ * against the new relief of the project (pure geography of the document, not the viewport). */
+let selectionKey='';
+let lastImpact:{touched:number;items:import('../studio-core/terrain-impact.ts').ImpactItem[]}|null=null;
+function checkImpact(s:StudioSession,t:import('../studio-core/commands.ts').EditTransaction){
+  void import('../studio-core/terrain-impact.ts').then(async m=>{
+    const areas=m.transactionTerrainAreas(t);if(!areas.length)return;
+    const {projectGeography}=await import('../studio-core/geo-context.ts'),g=projectGeography(s.document).ctx;
+    const result=m.terrainImpacts(s.document,areas,{height:g.height,water:(x,z)=>g.water(x,z,g.height(x,z))});
+    lastImpact=result.touched?{touched:result.touched,items:result.items}:null;
+    if(result.items.length)status(`${result.items.length} élément(s) à vérifier après la modification du relief (voir l’inspecteur).`,true);
+    scheduleInspector();
+  }).catch(()=>{});
+}
 async function inspector(){
   const s=session;if(!s)return;
   await renderInspector($('inspector'),{session:s,status,open:id=>void run(()=>module(id))(),focus:()=>{if(viewport&&VIEWPORT_MODULES.has(activeModule))viewport.focusSelection();else void module('scene').then(()=>viewport?.focusSelection());},
     editPath:(target)=>{void run(async()=>{const {polylineTarget}=await import('./viewport/polyline-tool.ts');polylineTarget.current=target;await module('polyline');})();},
     view:(x,z)=>{void run(async()=>{if(activeModule!=='scene')await module('scene');viewport?.goTo(x,z,12);})();},
-    duplicate:()=>{void withSelectTool(t=>t.duplicate());},remove:()=>{void withSelectTool(t=>t.remove());},refresh:()=>scheduleInspector()});
+    duplicate:()=>{void withSelectTool(t=>t.duplicate());},remove:()=>{void withSelectTool(t=>t.remove());},refresh:()=>scheduleInspector(),
+    ...(lastImpact?{impact:{...lastImpact,dismiss:()=>{lastImpact=null;scheduleInspector();},select:(ref,x,z)=>{s.selection.select(ref);if(viewport&&VIEWPORT_MODULES.has(activeModule))viewport.goTo(x,z,14);else s.selection.setCamera(moveContext(s,x,z));scheduleInspector();}}}:{})});
 }
 async function withSelectTool(fn:(tool:import('./viewport/select-tool.ts').SelectTool)=>void){if(activeModule!=='scene')await module('scene');const tool=viewport?.tools.active;if(tool&&tool.id==='select')fn(tool as import('./viewport/select-tool.ts').SelectTool);}
 async function dialogues(host:HTMLElement,mine:number){

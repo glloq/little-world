@@ -24,6 +24,8 @@ export interface InspectorContext {
   duplicate():void;
   remove():void;
   refresh():void;
+  /** E9 — elements touched by the last relief change (shown until dismissed). */
+  impact?:{touched:number;items:{ref:ElementRef;severity:string;message:string;x:number;z:number}[];dismiss():void;select(ref:ElementRef,x:number,z:number):void};
 }
 const KIND:Record<string,string>={prop:'Objet',building:'Bâtiment',character:'Personnage',trigger:'Zone',effect:'Effet'};
 const deg=THREE.MathUtils.radToDeg,rad=THREE.MathUtils.degToRad;
@@ -39,6 +41,7 @@ export async function renderInspector(target:HTMLElement,ctx:InspectorContext){
 async function buildInspector(host:HTMLElement,ctx:InspectorContext){
   const s=ctx.session,p=s.document,refs=s.selection.selection.filter(v=>elementExists(p,v)) as ElementRef[],ids=refs.filter(v=>v.kind==='entity').map(v=>v.id);
   host.replaceChildren(node('div','INSPECTEUR','kicker'));
+  if(ctx.impact)host.append(impactSection(ctx.impact));
   if(refs.length>1&&ids.length!==refs.length){
     host.append(node('h3',`${refs.length} éléments`),node('p',refs.map(r=>elementLabel(p,r)).join(', '),'selection-tag'),
       button('Centrer (F)',ctx.focus),button('Dupliquer (Ctrl+D)',ctx.duplicate),button('Supprimer (Suppr)',ctx.remove),
@@ -82,6 +85,12 @@ async function buildInspector(host:HTMLElement,ctx:InspectorContext){
   if(resolved.components.Character)host.append(characterSection(ctx,id,entry.ownerChunkId));
 }
 function round(v:number){return Math.round(v*1000)/1000;}
+function impactSection(impact:NonNullable<InspectorContext['impact']>){
+  const box=node('div','','impact-card');box.dataset.count=String(impact.items.length);
+  box.append(node('strong',impact.items.length?`Relief modifié : ${impact.items.length} point(s) à vérifier`:`Relief modifié : ${impact.touched} élément(s) touché(s), tous cohérents`));
+  for(const item of impact.items.slice(0,8))box.append(button((item.severity==='ERROR'?'⛔ ':'⚠ ')+item.message,()=>impact.select(item.ref,item.x,item.z),'diagnostic '+item.severity));
+  box.append(button('Masquer',impact.dismiss));return box;
+}
 function alignAll(ctx:InspectorContext,ids:string[]){
   const s=ctx.session;void editQueue.run(async()=>{const updates=ids.map(id=>{const t=entityTransform(s.document,id);return {id,transform:{...t,position:{...t.position,y:0}}};});await s.change(`Aligner ${ids.length} éléments au sol`,transformChunkIds(s.document,updates),d=>applyTransforms(d,updates));ctx.refresh();}).catch(e=>ctx.status(String(e),true));
 }

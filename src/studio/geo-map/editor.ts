@@ -7,7 +7,7 @@ import {node,button,field} from '../dom.ts';
 import type {StudioSession} from '../session.ts';
 import {projectGeography,projectGeographyInput,type ProjectGeography} from '../../studio-core/geo-context.ts';
 import {geoWorkerPool,type GeoTask} from '../../geography/geo-workers.ts';
-import {paintMask,regionCells,regionCorrections,restoreGeneration,regionChunkIds,sectorGrid,terrainChangeRects,type Region} from '../../studio-core/geo-edits.ts';
+import {paintMask,regionCells,regionCorrections,restoreGeneration,regionChunkIds,sectorGrid,terrainChangeRects,protectedCells,regionReliefStrokes,regionElements,type Region} from '../../studio-core/geo-edits.ts';
 import {affectedChunkIds} from '../../studio-core/schema.ts';
 import {elementData,type ElementRef} from '../../studio-core/elements.ts';
 import {putTerrainEdit} from '../../studio-core/source.ts';
@@ -17,21 +17,22 @@ import {TILE_PX,levelMpp,sampleTile,type SampleTile,ALTITUDE_RAMP,SLOPE_RAMP,MOI
 import {TileCache} from './tile-cache.ts';
 import {createShapeTool} from './shapes.ts';
 
-export type MapToolId='select'|'pan'|'shape'|'paint'|'erase'|'polygon'|'raise'|'lower'|'smooth'|'flatten';
+export type MapToolId='select'|'pan'|'shape'|'paint'|'erase'|'rect'|'polygon'|'raise'|'lower'|'smooth'|'flatten';
 interface LayerState {id:LayerId;visible:boolean;opacity:number;locked:boolean}
 const MASKS=new Set<LayerId>(['geology','moisture','biome','material','occupation']);
 const RELIEF=new Set<LayerId>(['altitude','landsea']);
 const TOOL_INFO:Record<MapToolId,[string,string]>={
   select:['Viser','Clic : choisir l’élément proche et viser ce lieu en 3D'],pan:['Déplacer','Glisser pour déplacer la carte'],
   paint:['Pinceau','Peint la valeur choisie (un trait = une opération annulable)'],erase:['Gomme','Rétablit la valeur générée sous le pinceau'],
+  rect:['Rectangle','Glisser : zone rectangulaire (corrections, relief, sélection du contenu)'],
   polygon:['Polygone','Clics : sommets · double-clic / Entrée : fermer · Retour arrière : retirer'],
   shape:['Formes','Contours d’îles, volcans, massifs, collines, cuvettes, plateaux, crêtes et vallées'],
   raise:['Monter','Élève le relief'],lower:['Creuser','Abaisse le relief'],smooth:['Lisser','Adoucit les bosses'],flatten:['Aplanir','Aplanit à la hauteur du premier point'],
 };
 export function toolsFor(layer:LayerId):MapToolId[]{
-  if(MASKS.has(layer))return ['select','pan','paint','erase','polygon'];
-  if(RELIEF.has(layer))return ['select','pan','shape','raise','lower','smooth','flatten','polygon'];
-  return ['select','pan'];
+  if(MASKS.has(layer))return ['select','pan','paint','erase','rect','polygon'];
+  if(RELIEF.has(layer))return ['select','pan','shape','raise','lower','smooth','flatten','rect','polygon'];
+  return ['select','pan','rect'];
 }
 const PREFS='little-world.map-layers.v1';
 function loadPrefs():{layers:LayerState[];active:LayerId}|null{try{const v=JSON.parse(localStorage.getItem(PREFS)??'null');if(v&&Array.isArray(v.layers)&&v.layers.length===LAYERS.length&&LAYERS.every(l=>v.layers.some((s:LayerState)=>s.id===l.id)))return v;}catch{/* per-viewer convenience only */}return null;}
@@ -69,7 +70,7 @@ export function mountGeoMap(host:HTMLElement,tools:HTMLElement,session:StudioSes
   // ---- view state
   const saved=loadPrefs();
   const state={layers:saved?.layers??LAYERS.map(l=>({id:l.id,visible:l.id==='altitude'||l.id==='biome',opacity:l.id==='biome'?.6:1,locked:false})),active:saved?.active??'biome' as LayerId,
-    tool:'select' as MapToolId,radius:16,strength:2,code:{geology:'r',moisture:'9',biome:'f',material:'s',occupation:'p'} as Record<MaskLayerId,string>,overlays:true,grid:false};
+    tool:'select' as MapToolId,protect:true,reliefAmount:2,radius:16,strength:2,code:{geology:'r',moisture:'9',biome:'f',material:'s',occupation:'p'} as Record<MaskLayerId,string>,overlays:true,grid:false};
   let scale=1,cx=session.selection.state.camera.target?.x??session.selection.state.camera.x??0,cz=session.selection.state.camera.target?.z??session.selection.state.camera.z??0;
   const base=()=>Math.min(canvas.width/(b.maxX-b.minX+50),canvas.height/(b.maxZ-b.minZ+50))*scale;
   const toScreen=(x:number,z:number)=>({x:canvas.width/2+(x-cx)*base(),y:canvas.height/2+(z-cz)*base()});
@@ -152,6 +153,7 @@ export function mountGeoMap(host:HTMLElement,tools:HTMLElement,session:StudioSes
     if(state.tool==='shape')shapes.draw(g2);
     drawToolPreview();
     const lvl=levelMpp(level);note.textContent=`${LAYERS.find(l=>l.id===state.active)!.label} · ${TOOL_INFO[state.tool][0]} · ${lvl} m/px · ${cache.size} tuiles (${(cache.bytes/1048576).toFixed(1)} Mio)${queue.length?' · calcul '+queue.length:''}${samples?` · ${(sampleMs/samples).toFixed(1)} ms/tuile`:''}`;
+    canvas.dataset.view=JSON.stringify({cx,cz,ppm:base(),width:canvas.width,height:canvas.height});
     if(replan){plan();hydrateVisible();}
   }
   function drawVectors(){
@@ -174,7 +176,7 @@ export function mountGeoMap(host:HTMLElement,tools:HTMLElement,session:StudioSes
     const target=session.selection.state.camera.target;if(target){const q=toScreen(target.x,target.z);g2.strokeStyle='#c0562e';g2.lineWidth=2;g2.beginPath();g2.moveTo(q.x-9,q.y);g2.lineTo(q.x+9,q.y);g2.moveTo(q.x,q.y-9);g2.lineTo(q.x,q.y+9);g2.stroke();}
   }
   // ---- tools
-  let cursor:{x:number;z:number}|null=null,stroke:{x:number;z:number}[]=[],painting=false,polygon:{x:number;z:number}[]=[],region:Region|null=null,flatHeight=0,busy=false;
+  let cursor:{x:number;z:number}|null=null,stroke:{x:number;z:number}[]=[],painting=false,polygon:{x:number;z:number}[]=[],region:Region|null=null,flatHeight=0,busy=false,rectStart:{x:number;z:number}|null=null,regionShape:'rect'|'polygon'='polygon';
   const activeLayer=()=>state.layers.find(l=>l.id===state.active)!;
   const isBrush=()=>['paint','erase','raise','lower','smooth','flatten'].includes(state.tool);
   function dabs(){const out:{x:number;z:number}[]=[],spacing=Math.max(1,state.radius*.45);for(const q of stroke){const last=out.at(-1);if(!last){out.push(q);continue;}const d=Math.hypot(q.x-last.x,q.z-last.z);if(d<spacing)continue;const n=Math.floor(d/spacing);for(let i=1;i<=n&&out.length<160;i++)out.push({x:last.x+(q.x-last.x)*i/n,z:last.z+(q.z-last.z)*i/n});}return out.slice(0,160);}
@@ -210,6 +212,8 @@ export function mountGeoMap(host:HTMLElement,tools:HTMLElement,session:StudioSes
   canvas.onpointerdown=e=>{
     canvas.focus();canvas.setPointerCapture(e.pointerId);const q=local(e);
     if(e.button===0&&state.tool==='shape'&&!activeLayer().locked){const r=canvas.getBoundingClientRect();if(shapes.pointerDown(e.clientX-r.left,e.clientY-r.top,q))return;}
+    // Rectangles select an area even on locked/computed layers (actions are filtered later).
+    if(e.button===0&&state.tool==='rect'&&inside(q)){rectStart=q;region=null;polygon=[];panel();return;}
     const editing=e.button===0&&!activeLayer().locked&&!busy;
     if(editing&&isBrush()&&inside(q)){painting=true;stroke=[q];flatHeight=geography().ctx.height(q.x,q.z);draw(false);return;}
     if(editing&&state.tool==='polygon'&&inside(q)){if(region){region=null;polygon=[];}const first=polygon[0];if(first&&polygon.length>2&&Math.hypot((q.x-first.x)*base(),(q.z-first.z)*base())<10)closePolygon();else polygon.push(q);draw(false);return;}
@@ -221,10 +225,12 @@ export function mountGeoMap(host:HTMLElement,tools:HTMLElement,session:StudioSes
     if(painting&&e.buttons&1){stroke.push(q);draw(false);return;}
     if(state.tool==='shape'&&shapes.pointerMove(q))return;
     if(drag){const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.hypot(dx,dy)>4)drag.moved=true;if(drag.moved){cx=drag.cx-dx/base();cz=drag.cz-dy/base();draw();return;}}
+    if(rectStart&&e.buttons&1){const a=rectStart;polygon=[a,{x:q.x,z:a.z},q,{x:a.x,z:q.z}];draw(false);return;}
     if(isBrush()||state.tool==='polygon')draw(false);
     if(cursor&&performance.now()-lastReadout>60){lastReadout=performance.now();showReadout(cursor);}
   };
   canvas.onpointerup=e=>{
+    if(rectStart){const a=rectStart;rectStart=null;if(polygon.length===4&&Math.abs(polygon[2].x-a.x)*base()>6&&Math.abs(polygon[2].z-a.z)*base()>6){regionShape='rect';region={kind:'polygon',points:polygon.slice()};polygon=[];panel();}else polygon=[];draw(false);return;}
     if(state.tool==='shape'&&shapes.pointerUp())return;
     if(painting){painting=false;commitStroke();stroke=[];draw(false);return;}
     const d=drag;drag=null;if(!d)return;
@@ -245,7 +251,7 @@ export function mountGeoMap(host:HTMLElement,tools:HTMLElement,session:StudioSes
     const s=classifyPoint(geography().ctx,q.x,q.z),cat=(l:Exclude<MaskLayerId,'moisture'>,id:string)=>CATEGORY_LAYERS[l].find(v=>v.id===id)?.label??'—';
     readout.textContent=`X ${q.x.toFixed(0)} · Z ${q.z.toFixed(0)} · ${(s.height-p.world.seaLevel).toFixed(1)} m · pente ${(s.slope*100).toFixed(0)} % · ${cat('geology',s.geology)} · ${cat('biome',s.biome)} · ${cat('material',s.material)}${s.occupation!=='none'?' · '+cat('occupation',s.occupation):''} · humidité ${(s.moisture*100).toFixed(0)} %`;
   }
-  function closePolygon(){region={kind:'polygon',points:polygon.slice()};polygon=[];panel();draw(false);}
+  function closePolygon(){regionShape='polygon';region={kind:'polygon',points:polygon.slice()};polygon=[];panel();draw(false);}
   // ---- left panel: layers, legend, tools, region actions
   function panel(){
     tools.replaceChildren();
@@ -298,17 +304,31 @@ export function mountGeoMap(host:HTMLElement,tools:HTMLElement,session:StudioSes
     return box;
   }
   function regionPanel(r:Region){
-    const box=node('div','','section-card region-card'),layer=state.active;
+    const box=node('div','','section-card region-card'),layer=state.active,locked=activeLayer().locked;
     const preview=regionCorrections(p,r,MASKS.has(layer)?[layer as MaskLayerId]:[]),all=regionCorrections(p,r);
-    const cells=regionCells(p,r),count=[...cells.values()].reduce((n,c)=>n+c.length,0);
-    box.append(node('strong','Zone polygonale'),node('p',`${count} cellules de ${grid.chunkSizeM/MASK_GRID} m · ${all.terrainEdits.length} retouche(s) de relief · ${Object.values(all.cells).reduce((n,v)=>n+(v??0),0)} correction(s) de couches (secteurs chargés).`,'muted'));
-    if(MASKS.has(layer)){
+    const cells=regionCells(p,r),count=[...cells.values()].reduce((n,c)=>n+c.length,0),content=regionElements(p,r);
+    box.dataset.shape=regionShape;
+    box.append(node('strong',regionShape==='rect'?'Zone rectangulaire':'Zone polygonale'),node('p',`${count} cellules de ${grid.chunkSizeM/MASK_GRID} m · ${all.terrainEdits.length} retouche(s) de relief · ${Object.values(all.cells).reduce((n,v)=>n+(v??0),0)} correction(s) de couches · ${content.length} élément(s) auteur (secteurs chargés).`,'muted'));
+    box.append(button(`Sélectionner le contenu (${content.length})`,()=>{session.selection.setSelection(content);options.status(`${content.length} élément(s) sélectionné(s) : inspecteur, Ctrl+D, Suppr ou gizmo en vue 3D.`);draw(false);}));
+    const protect=node('input');protect.type='checkbox';protect.checked=state.protect;protect.onchange=()=>{state.protect=protect.checked;};
+    if(MASKS.has(layer)&&!locked){
       const value=layer==='moisture'?`humidité ${Number(state.code.moisture)*10} %`:CATEGORY_LAYERS[layer as Exclude<MaskLayerId,'moisture'>].find(v=>v.code===state.code[layer as MaskLayerId])?.label;
-      box.append(button(`Remplir : ${value}`,()=>run(session.change('Remplir '+label(layer),[...cells.keys()],d=>paintMask(d,layer as MaskLayerId,state.code[layer as MaskLayerId],cells)),`${count} cellules remplies.`),'primary-button'));
+      box.append(field('Protéger les corrections existantes',protect),button(`Remplir : ${value}`,()=>{const target=state.protect?protectedCells(p,layer as MaskLayerId,cells):cells,n=[...target.values()].reduce((s,c)=>s+c.length,0);
+        run(session.change('Remplir '+label(layer),[...target.keys()],d=>paintMask(d,layer as MaskLayerId,state.code[layer as MaskLayerId],target)),`${n} cellules remplies${state.protect?' (corrections existantes préservées)':''}.`);},'primary-button'));
       box.append(button(`Rétablir la génération (${label(layer)}, ${preview.cells[layer as MaskLayerId]??0} cellule(s))`,()=>restore({terrain:false,layers:[layer as MaskLayerId]})));
     }
-    box.append(button(`Tout rétablir ici (relief + couches)`,()=>restore({terrain:true,layers:['geology','moisture','biome','material','occupation']})));
-    box.append(node('p','Aperçu calculé avant validation ; une seule opération annulable. Les corrections hors de la zone sont conservées.','muted'));
+    if(RELIEF.has(layer)&&!locked){
+      const amount=node('input');amount.type='number';amount.min='0.5';amount.max='60';amount.step='0.5';amount.value=String(state.reliefAmount);amount.onchange=()=>{state.reliefAmount=Math.max(.5,Math.min(60,Number(amount.value)||2));};
+      const relief=(mode:'flatten'|'raise'|'lower')=>{
+        try{const strokes=regionReliefStrokes(p,r,mode,state.reliefAmount,geography().ctx.height,state.protect);if(!strokes.length){options.status('Aucune retouche à créer (zone déjà retouchée et protégée).',true);return;}
+          const ids=[...new Set(strokes.flatMap(s=>affectedChunkIds(p.world,s.x,s.z,s.radius)))];
+          run(session.change(mode==='flatten'?'Aplanir la zone':mode==='raise'?'Élever la zone':'Abaisser la zone',ids,d=>{for(const s of strokes)putTerrainEdit(d,s);}),`${strokes.length} retouche(s) de relief · une opération annulable.`);}
+        catch(e){options.status(String(e instanceof Error?e.message:e),true);}
+      };
+      box.append(field('Préserver les retouches existantes',protect),field('Hauteur (m)',amount),button('Aplanir la zone',()=>relief('flatten'),'primary-button'),button('Élever la zone',()=>relief('raise')),button('Abaisser la zone',()=>relief('lower')));
+    }
+    if(!locked)box.append(button(`Tout rétablir ici (relief + couches)`,()=>restore({terrain:true,layers:['geology','moisture','biome','material','occupation']})));
+    box.append(node('p','Aperçu calculé avant validation ; une seule opération annulable. Les éléments touchés par une modification du relief sont vérifiés (pente, eau, raccords).','muted'));
     return box;
     function restore(o:{terrain:boolean;layers:MaskLayerId[]}){const ids=regionChunkIds(p,r);run(session.change('Rétablir la génération',ids,d=>{restoreGeneration(d,r,o);}),'Génération rétablie dans la zone.');region=null;panel();draw(false);}
   }
