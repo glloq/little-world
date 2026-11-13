@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "id": "structure.windmill_stone",
+  "name": "Moulin à vent en pierre",
+  "version": "V7",
+  "license": "project-original",
+  "status": "ART_APPROVED_RUNTIME_NOT_QUALIFIED",
+  "units": "m",
+  "up": "Y",
+  "forward": "-Z",
+  "textures": 0,
+  "meshNodes": [
+    "Body",
+    "RotorPivot"
+  ],
+  "rotorPivotLOD0": [
+    0,
+    7.48,
+    -3.45
+  ],
+  "rotorPivotLOD1And2": [
+    0,
+    7.48,
+    -3.28
+  ],
+  "note": "Porte et fenêtre en bois sur une face latérale plate, soubassement en pierre et pas de porte, grandes ailes vrillées, axe sous le toit.",
+  "source": "tools/assets/generate-windmill-stone.py",
+  "lods": [
+    {
+      "path": "models/buildings/windmill_stone/lod0.glb",
+      "triangles": 1524,
+      "sha256": "41536304970689ee0ef43e95030665680b114a6a9c8a3364e8119eb53e4d9215"
+    },
+    {
+      "path": "models/buildings/windmill_stone/lod1.glb",
+      "triangles": 1140,
+      "sha256": "bfc2783a8f17cb13d66e8d8d96928196430fd68114451bec6eeb4ebf1ad2a675"
+    },
+    {
+      "path": "models/buildings/windmill_stone/lod2.glb",
+      "triangles": 640,
+      "sha256": "3fbb86abeeb5a3ebbcc60471f631f664bb3b3b94da2504e120501464e726caa4"
+    }
+  ]
+}
