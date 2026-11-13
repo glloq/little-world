@@ -32,7 +32,8 @@ export interface WorldView {
   millPosition: THREE.Vector3;
   boat: THREE.Group;
   objects: THREE.Group;
-  update: (dt: number, focus?: { x: number; z: number }) => void;
+  update: (dt: number, focus?: { x: number; z: number }, camera?: THREE.PerspectiveCamera, pixelHeight?: number) => void;
+  terrainWork: import('./terrain-view').TerrainWorkStats;
   setDetail: (level: number) => void;
   refreshTerrain: (x: number, z: number, radius: number) => void;
   refreshWater:()=>string[];
@@ -600,7 +601,8 @@ export function buildWorld(
   );
   const root = new THREE.Group();
   root.name = 'LittleWorld';
-  const terrainView = createTerrainView(root, getTerrainConfig());
+  // Generation is time-sliced (ms) rather than a fixed count; the shared level adapts LOD.
+  const terrainView = createTerrainView(root, getTerrainConfig(), { buildBudgetMs: 4, maxBuildsPerUpdate: 8 });
   const terrain = terrainView.terrain;
   const horizon = createHorizonView(root, getTerrainConfig(), terrainView);
   // The demonstration valley decor is tied to the legacy generator; generated worlds
@@ -649,7 +651,15 @@ export function buildWorld(
         false,
       );
   }
-  let time = 0;
+  let time = 0,
+    detailLevel = 0,
+    lastFocusX = NaN,
+    lastFocusZ = NaN,
+    velocityX = 0,
+    velocityZ = 0;
+  const forward = new THREE.Vector3(),
+    frustum = new THREE.Frustum(),
+    projection = new THREE.Matrix4();
   const objects = new THREE.Group();
   objects.name = 'PlacedAssets';
   root.add(objects);
@@ -662,8 +672,10 @@ export function buildWorld(
     objects,
     stats: terrainView.stats,
     horizon: horizon.stats,
+    terrainWork: terrainView.work,
     refreshWater,
     setDetail(level) {
+      detailLevel = level;
       ecology.setDetail(level);
     },
     refreshTerrain(x, z, radius) {
@@ -707,10 +719,34 @@ export function buildWorld(
         }
       });
     },
-    update(dt: number, focus = { x: 0, z: 0 }) {
+    update(dt: number, focus = { x: 0, z: 0 }, camera?: THREE.PerspectiveCamera, pixelHeight = 640) {
       time += dt;
       wheel.rotation.x -= dt * 0.33;
-      terrainView.update(focus.x, focus.z);
+      if (camera) {
+        // Smoothed focus velocity drives look-ahead; a jump (teleport) resets it.
+        const jump = Math.hypot(focus.x - lastFocusX, focus.z - lastFocusZ);
+        if (dt > 0 && Number.isFinite(jump) && jump < 50) {
+          const mix = Math.min(1, dt * 4);
+          velocityX += ((focus.x - lastFocusX) / dt - velocityX) * mix;
+          velocityZ += ((focus.z - lastFocusZ) / dt - velocityZ) * mix;
+        } else velocityX = velocityZ = 0;
+        lastFocusX = focus.x;
+        lastFocusZ = focus.z;
+        camera.updateMatrixWorld();
+        camera.getWorldDirection(forward);
+        const tanHalf = Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2);
+        frustum.setFromProjectionMatrix(projection.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse));
+        terrainView.update(focus.x, focus.z, {
+          playerX: focus.x, playerZ: focus.z,
+          cameraX: camera.position.x, cameraY: camera.position.y, cameraZ: camera.position.z,
+          forwardX: forward.x, forwardZ: forward.z,
+          halfFovH: Math.atan(tanHalf * camera.aspect),
+          focalPx: pixelHeight / (2 * tanHalf),
+          velocityX, velocityZ,
+          groundY: terrainHeight(camera.position.x, camera.position.z),
+          quality: detailLevel,
+        }, frustum);
+      } else terrainView.update(focus.x, focus.z);
       horizon.update(focus);
       ecology.update(dt, time, focus.x, focus.z);
       const distance = getTerrainConfig().viewDistance;

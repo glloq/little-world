@@ -476,7 +476,7 @@ function draw(now: number) {
   );
   environment.update(delta,player.position,budget.level);
   if(started&&audio){const env=climate.state(worldClock.time);audio.update(now,player.position,id=>gameplay?.runtime.getEntityPosition(id),{night:env.sunAltitude<0,rain:env.weather==='rain',water:waterSurface(player.position.x,player.position.z)!==null||(isLegacyTerrain()&&Math.abs(player.position.x-riverX(player.position.z))<16)},budget.level,player.mode==='ground'&&!aboard&&player.velocity.lengthSq()>.1,camera.getWorldDirection(audioForward));}
-  world.update(delta, player.position);
+  world.update(delta, player.position, camera, renderer.domElement.height);
   npcs.update(delta, elapsed, player.position); // The river drives the mill: no manual on/off control.
   world.boat.position.set(
     boat.x,
@@ -502,12 +502,14 @@ function draw(now: number) {
         geometries: renderer.info.memory.geometries,
         chunks: { ...world.stats },
         horizon: { ...world.horizon },
+        terrainWork: { ...world.terrainWork },
         environment:environment.metrics,
         audio:audio?.engine.metrics??null,
         collisions:gameplay?.collision.stats??null,
         position: player.position.toArray(),
         camera:{position:camera.position.toArray(),quaternion:camera.quaternion.toArray(),fov:camera.fov,aspect:camera.aspect,far:camera.far},
         legacyTerrain:isLegacyTerrain(),
+        background:scene.background instanceof THREE.Color?scene.background.getHex(THREE.SRGBColorSpace):null,
         renderRate: budget.rate,
         qualityLevel: budget.level,
         simulationHz: 30,

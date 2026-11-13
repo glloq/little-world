@@ -45,7 +45,7 @@ async function holeFraction(page,baseHref){
     const blob=await (await fetch('data:image/png;base64,'+b64)).blob(),bitmap=await createImageBitmap(blob);
     const canvas=new OffscreenCanvas(bitmap.width,bitmap.height),ctx=canvas.getContext('2d');ctx.drawImage(bitmap,0,0);
     const {data,width,height}=ctx.getImageData(0,0,bitmap.width,bitmap.height),px=(x,y)=>{const i=(y*width+x)*4;return [data[i],data[i+1],data[i+2]];};
-    const ref=px(Math.floor(width/2),2),[cx,cy,cz]=m.camera.position,[qx,qy,qz,qw]=m.camera.quaternion,tanY=Math.tan(m.camera.fov*Math.PI/360),tanX=tanY*m.camera.aspect;
+    const ref=typeof m.background==='number'?[(m.background>>16)&255,(m.background>>8)&255,m.background&255]:px(Math.floor(width/2),2),[cx,cy,cz]=m.camera.position,[qx,qy,qz,qw]=m.camera.quaternion,tanY=Math.tan(m.camera.fov*Math.PI/360),tanX=tanY*m.camera.aspect;
     const rotate=(x,y,z)=>{const ix=qw*x+qy*z-qz*y,iy=qw*y+qz*x-qx*z,iz=qw*z+qx*y-qy*x,iw=-qx*x-qy*y-qz*z;return [ix*qw+iw*-qx+iy*-qz-iz*-qy,iy*qw+iw*-qy+iz*-qx-ix*-qz,iz*qw+iw*-qz+ix*-qy-iy*-qx];};
     const inside=(x,z)=>Math.abs(x)<=config.width/2&&Math.abs(z)<=config.length/2;
     let expected=0,holes=0;
