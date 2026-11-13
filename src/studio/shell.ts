@@ -92,7 +92,8 @@ async function preview(){
  if((world.config.width??200)>2000||(world.config.length??600)>2000)throw Error('Le lecteur de test actuel est limité à 2 km par axe.');
  const {savePlaytest}=await import('../gameplay/playable.ts'),{gameplayDataFromProject}=await import('../gameplay/project-adapter.ts');
  const selected=s.selection.state.selected,entry=selected?p.entityIndex[selected.id]:undefined,camera=s.selection.state.camera;
- const spawn={x:entry?.position.x??camera.x,y:0,z:Math.max(p.world.bounds.minZ+.5,Math.min(p.world.bounds.maxZ-.5,(entry?.position.z??camera.z)-3))};
+ const water=selected?.kind==='water'?p.libraries.water[selected.id]:undefined,waterFocus=water?.points[Math.floor(water.points.length/2)];
+ const spawn={x:entry?.position.x??waterFocus?.x??camera.x,y:0,z:Math.max(p.world.bounds.minZ+.5,Math.min(p.world.bounds.maxZ-.5,(entry?.position.z??waterFocus?.z??camera.z)-3))};
  const {collisionDefinitionsFromProject}=await import('../studio-core/collision-adapter.ts');
  const snapshot=savePlaytest({projectId:p.manifest.projectId,content:{schemaVersion:1,kind:'playable-world',world,...(p.world.audio?{audio:p.world.audio}:{}),gameplay:gameplayDataFromProject(p),collisions:collisionDefinitionsFromProject(p),spawn}});
  status('Copie de test prête : actions et slots temporaires, projet auteur conservé.');window.open(new URL('../?preview=1&studioPreview='+encodeURIComponent(snapshot.snapshotId),location.href),'little-world-playtest');
