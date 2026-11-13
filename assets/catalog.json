@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "description": "Original lightweight assets: GLB files for pine, rock and crate; other prefabs are generated in TypeScript. All shipped locally with the site.",
+  "description": "Original lightweight locally shipped GLB assets and procedural prefabs; buildings have approved LOD variants documented in assets/buildings/approved.json.",
   "assets": [
     {
       "id": "nature.pine",
@@ -49,6 +49,33 @@
       "category": "Objets",
       "type": "procedural",
       "license": "project-original"
+    },
+    {
+      "id": "architecture.wooden_cabin",
+      "name": "Cabane en bois",
+      "category": "Bâtiments",
+      "type": "glb",
+      "license": "project-original",
+      "file": "models/buildings/wooden_cabin/lod0.glb",
+      "source": "Little World original generated low-poly geometry (approved V1)"
+    },
+    {
+      "id": "architecture.stone_house",
+      "name": "Maison en pierre",
+      "category": "Bâtiments",
+      "type": "glb",
+      "license": "project-original",
+      "file": "models/buildings/stone_house/lod0.glb",
+      "source": "Little World original generated low-poly geometry (approved V1)"
+    },
+    {
+      "id": "architecture.lighthouse",
+      "name": "Phare côtier",
+      "category": "Bâtiments",
+      "type": "glb",
+      "license": "project-original",
+      "file": "models/buildings/lighthouse/lod0.glb",
+      "source": "Little World original generated low-poly geometry (approved V1.2; corrected culling and full lantern glazing)"
     }
   ]
 }
