@@ -10,7 +10,8 @@ import type {StudioSession} from './session.ts';
 export function mountWater(host:HTMLElement,tools:HTMLElement,s:StudioSession){
  const p=s.document,b=p.world.bounds;
  const empty=():WaterBody=>({id:crypto.randomUUID(),points:[],width:8,depth:2,level:4,profile:{mode:'terrain',offset:-.35}});
- let draft=empty(),disposed=false,generation=0,committing=false;
+ // lastId: the edited river survives undo/redo even though undo prunes it from the selection.
+ let draft=empty(),disposed=false,generation=0,committing=false,lastId='';
  const workspace=node('div','','water-workspace'),map=node('canvas'),plot=node('canvas'),summary=node('p','','muted'),messages=node('div');
  map.width=1000;map.height=600;map.setAttribute('aria-label','Tracer le cours d’eau de l’amont vers l’aval');
  plot.width=1000;plot.height=200;plot.setAttribute('aria-label','Profil longitudinal terrain et eau');
@@ -44,7 +45,7 @@ export function mountWater(host:HTMLElement,tools:HTMLElement,s:StudioSession){
  function controls(){
   tools.replaceChildren(node('h3','Eau · tracés et profil'));
   const choices:[string,string][]=[['','Nouveau cours d’eau'],...Object.values(p.libraries.water).map((w,i)=>[w.id,`Eau ${i+1} · ${w.id.slice(0,6)}`] as [string,string])];
-  tools.append(field('Tracé d’eau',select(p.libraries.water[draft.id]?draft.id:'',choices,id=>{draft=id?structuredClone(p.libraries.water[id]):empty();s.selection.select(id?{kind:'water',id}:null);controls();update();})));
+  tools.append(field('Tracé d’eau',select(p.libraries.water[draft.id]?draft.id:'',choices,id=>{draft=id?structuredClone(p.libraries.water[id]):empty();lastId=id;s.selection.select(id?{kind:'water',id}:null);controls();update();})));
   const mode=draft.profile?.mode??'constant';
   tools.append(field('Type d’eau',select(mode,[['terrain','Cours d’eau — relief'],['constant','Plan d’eau — horizontal'],['manual','Profil manuel verrouillé']],v=>{
    if(v==='constant')delete draft.profile;
@@ -63,7 +64,7 @@ export function mountWater(host:HTMLElement,tools:HTMLElement,s:StudioSession){
     await s.hydrate(waterChunkIds(p.world,draft));validateWaterProfile(draft.profile,draft.points.length);
     const profile=compileWaterBody(draft,source()),errors=profile.diagnostics.filter(d=>d.severity==='ERROR');
     if(errors.length)throw Error(errors.map(d=>d.message).join(' '));
-    const copy=structuredClone(draft),ids=waterEditChunkIds(p,p.libraries.water[copy.id],copy);
+    const copy=structuredClone(draft),ids=waterEditChunkIds(p,p.libraries.water[copy.id],copy);lastId=copy.id;
     await s.change('Modifier le tracé d’eau',ids,d=>putWater(d,copy));s.selection.select({kind:'water',id:copy.id});
     if(!disposed){controls();await refresh();messages.append(node('p','Tracé appliqué ; Annuler / Refaire disponibles.','status-success'));}
    }catch(e){if(!disposed)messages.replaceChildren(node('p',String(e),'diagnostic ERROR'));}finally{committing=false;}
@@ -87,8 +88,8 @@ export function mountWater(host:HTMLElement,tools:HTMLElement,s:StudioSession){
   controls();update();
  };
  const selection=s.selection.state.selected;
- if(selection?.kind==='water'&&p.libraries.water[selection.id])draft=structuredClone(p.libraries.water[selection.id]);
- const unsubscribe=s.commands.subscribe(()=>{const selected=s.selection.state.selected,restored=p.libraries.water[draft.id]??(selected?.kind==='water'?p.libraries.water[selected.id]:undefined);draft=restored?structuredClone(restored):empty();if(!disposed){controls();update();}});
+ if(selection?.kind==='water'&&p.libraries.water[selection.id]){draft=structuredClone(p.libraries.water[selection.id]);lastId=draft.id;}
+ const unsubscribe=s.commands.subscribe(()=>{const selected=s.selection.state.selected,restored=p.libraries.water[draft.id]??p.libraries.water[lastId]??(selected?.kind==='water'?p.libraries.water[selected.id]:undefined);draft=restored?structuredClone(restored):empty();if(restored)lastId=restored.id;if(!disposed){controls();update();}});
  controls();update();
  return {dispose(){disposed=true;generation++;unsubscribe();}};
 }
