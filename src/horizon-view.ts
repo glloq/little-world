@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {terrainHeight,isLegacyTerrain} from './terrain.ts';
 import {surfaceColor} from './geography/surface.ts';
+import {packedColors,packedNormals} from './render/packing.ts';
 
 /** HZ-1: geographic horizon independent from detailed tiles.
  * The whole project rectangle is covered by a coarse heightfield split into blocks
@@ -41,15 +42,15 @@ export function horizonBlockData(bounds:Bounds,grid:HorizonGrid,column:number,ro
   const count=(cellsX+1)*(cellsZ+1),positions=new Float32Array(count*3),normals=new Float32Array(count*3),colors=new Float32Array(count*3),color=new THREE.Color();
   let k=0;
   for(let j=0;j<=cellsZ;j++)for(let i=0;i<=cellsX;i++,k++){
-    const x=clampX(minX+i*step),z=clampZ(minZ+j*step),at=(a:number,b:number)=>heights[(j+1+b)*w+i+1+a],h=at(0,0);
+    const x=clampX(minX+i*step),z=clampZ(minZ+j*step),c=(j+1)*w+i+1,h=heights[c];
     const sea=!legacy&&h<bounds.seaLevel,y=sea?bounds.seaLevel:h;
-    let nx=0,nz=0;if(!sea){nx=(at(-1,0)-at(1,0))/(2*step);nz=(at(0,-1)-at(0,1))/(2*step);}
-    const n=Math.hypot(nx,1,nz);normals.set([nx/n,1/n,nz/n],k*3);positions.set([x,y,z],k*3);
-    if(sea)color.setHex(SEA_COLOR);else surfaceColor(x,z,h,Math.max(Math.abs(at(1,0)-h),Math.abs(at(0,1)-h))*2/step,color);
-    colors.set([color.r,color.g,color.b],k*3);
+    let nx=0,nz=0;if(!sea){nx=(heights[c-1]-heights[c+1])/(2*step);nz=(heights[c-w]-heights[c+w])/(2*step);}
+    const n=Math.hypot(nx,1,nz),o=k*3;normals[o]=nx/n;normals[o+1]=1/n;normals[o+2]=nz/n;positions[o]=x;positions[o+1]=y;positions[o+2]=z;
+    if(sea)color.setHex(SEA_COLOR);else surfaceColor(x,z,h,Math.max(Math.abs(heights[c+1]-h),Math.abs(heights[c+w]-h))*2/step,color);
+    colors[o]=color.r;colors[o+1]=color.g;colors[o+2]=color.b;
   }
   const index=count>65535?new Uint32Array(cellsX*cellsZ*6):new Uint16Array(cellsX*cellsZ*6);let t=0;
-  for(let j=0;j<cellsZ;j++)for(let i=0;i<cellsX;i++){const a=j*(cellsX+1)+i,b=a+1,d=a+cellsX+1;index.set([a,d,b,b,d,d+1],t);t+=6;}
+  for(let j=0;j<cellsZ;j++)for(let i=0;i<cellsX;i++){const a=j*(cellsX+1)+i,b=a+1,d=a+cellsX+1;index[t]=a;index[t+1]=d;index[t+2]=b;index[t+3]=b;index[t+4]=d;index[t+5]=d+1;t+=6;}
   return {positions,normals,colors,index,minX,minZ,cellsX,cellsZ,maxX:clampX(minX+cellsX*step),maxZ:clampZ(minZ+cellsZ*step)};
 }
 /** Cells of a block whose render tile is displayed in detail are simply not indexed:
@@ -78,7 +79,7 @@ export function createHorizonView(root:THREE.Group,bounds:Bounds,coverage:Covera
   }
   function build(column:number,row:number){
     const begin=performance.now(),data=horizonBlockData(bounds,grid,column,row),geometry=new THREE.BufferGeometry();
-    geometry.setAttribute('position',new THREE.BufferAttribute(data.positions,3));geometry.setAttribute('normal',new THREE.BufferAttribute(data.normals,3));geometry.setAttribute('color',new THREE.BufferAttribute(data.colors,3));
+    geometry.setAttribute('position',new THREE.BufferAttribute(data.positions,3));geometry.setAttribute('normal',packedNormals(data.normals));geometry.setAttribute('color',packedColors(data.colors));
     geometry.setIndex(new THREE.BufferAttribute(data.index.slice(),1));geometry.computeBoundingBox();geometry.computeBoundingSphere();
     const key=column+':'+row,old=blocks.get(key);if(old){old.mesh.geometry.dispose();old.mesh.removeFromParent();}
     const mesh=new THREE.Mesh(geometry,material);mesh.renderOrder=1;mesh.name='Horizon '+key;mesh.userData.horizonBlock=key;mesh.matrixAutoUpdate=false;group.add(mesh);

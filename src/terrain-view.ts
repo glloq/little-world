@@ -11,6 +11,7 @@ import {
 } from './chunks.ts';
 import { terrainHeight } from './terrain.ts';
 import { surfaceColor } from './geography/surface.ts';
+import { packedColors, packedNormals } from './render/packing.ts';
 
 /** A surface plus downward skirts hides cracks where neighboring chunks use different LODs. */
 export function createChunkGeometry(
@@ -98,8 +99,8 @@ export function createChunkGeometry(
     'position',
     new THREE.Float32BufferAttribute(positions, 3),
   );
-  geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-  geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
+  geometry.setAttribute('color', packedColors(colors));
+  geometry.setAttribute('normal', packedNormals(normals));
   geometry.setIndex(indices);
   geometry.computeBoundingBox();
   geometry.computeBoundingSphere();

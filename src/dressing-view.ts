@@ -14,7 +14,7 @@ const FAMILIES:Family[]=['trunk','cone','round','stone','grit','basalt','farCone
 /** Draw radius (m) per item kind at detail level 0; values are benchmark knobs, not truths. */
 export const DRESSING_RADII:Record<DressingKind|'farTrees',number>={pine:90,oak:90,shrub:90,rock:320,basalt:240,scree:80,pebble:60,farTrees:720};
 const CAPACITY:Record<Family,number>={trunk:2500,cone:1500,round:2500,stone:3000,grit:5000,basalt:1500,farCone:9000,farRound:9000};
-export interface DressingStats {byFamily:Record<string,number>;triangles:number;cells:number;pending:number;instances:number;calls:number;lastRebuildMs:number;maxCellMs:number;generatedMs:number;bytes:number;radiusScale:number}
+export interface DressingStats {/** Allocated instance buffers (matrices + colours), bytes. */instanceBytes:number;byFamily:Record<string,number>;triangles:number;cells:number;pending:number;instances:number;calls:number;lastRebuildMs:number;maxCellMs:number;generatedMs:number;bytes:number;radiusScale:number}
 
 const trianglesOf=(g:THREE.BufferGeometry)=>(g.index?g.index.count:g.getAttribute('position').count)/3;
 /** Far round crown: an octahedron whose lower half is squashed (reads as a canopy, not a diamond). */
@@ -39,9 +39,21 @@ export function createDressingView(parent:THREE.Group,seed:number,density:number
   const lambert=(color:number)=>new THREE.MeshLambertMaterial({color,flatShading:true});
   const materials:Record<Family,THREE.Material>={trunk:lambert(0x7b6046),cone:lambert(0xffffff),round:lambert(0xffffff),stone:lambert(0xffffff),grit:lambert(0xffffff),basalt:lambert(0xffffff),farCone:lambert(0xffffff),farRound:lambert(0xffffff)};
   const meshes={} as Record<Family,THREE.InstancedMesh>;
-  for(const f of FAMILIES){const m=new THREE.InstancedMesh(geometries[f],materials[f],CAPACITY[f]);m.count=0;m.visible=false;m.name='Dressing '+f;m.castShadow=m.receiveShadow=false;m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);if(f!=='trunk')m.setColorAt(0,new THREE.Color());root.add(m);meshes[f]=m;}
+  // Instance buffers start small and grow ×4 on demand up to CAPACITY (memory follows the
+  // actual scene, not the worst case). Near families draw before the terrain (renderOrder −1):
+  // terrain fragments hidden by trees and rocks fail the depth test before shading.
+  const allocated={} as Record<Family,number>;
+  function allocate(f:Family,capacity:number,keep=0){
+    const m=new THREE.InstancedMesh(geometries[f],materials[f],capacity);m.count=0;m.visible=false;m.name='Dressing '+f;m.castShadow=m.receiveShadow=false;m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    if(f!=='trunk'){m.setColorAt(0,new THREE.Color());m.instanceColor!.setUsage(THREE.DynamicDrawUsage);}
+    if(!f.startsWith('far'))m.renderOrder=-1;
+    const old=meshes[f];
+    if(old){(m.instanceMatrix.array as Float32Array).set((old.instanceMatrix.array as Float32Array).subarray(0,keep*16));if(old.instanceColor&&m.instanceColor)(m.instanceColor.array as Float32Array).set((old.instanceColor.array as Float32Array).subarray(0,keep*3));old.removeFromParent();old.dispose();}
+    root.add(m);meshes[f]=m;allocated[f]=capacity;
+  }
+  for(const f of FAMILIES)allocate(f,Math.min(512,CAPACITY[f]));
   const cache=new Map<string,DressingCell&{used:number;stale?:boolean}>(),MAX_CELLS=900;let clock=0;
-  const stats:DressingStats={byFamily:{},triangles:0,cells:0,pending:0,instances:0,calls:0,lastRebuildMs:0,maxCellMs:0,generatedMs:0,bytes:0,radiusScale:1};
+  const stats:DressingStats={instanceBytes:0,byFamily:{},triangles:0,cells:0,pending:0,instances:0,calls:0,lastRebuildMs:0,maxCellMs:0,generatedMs:0,bytes:0,radiusScale:1};
   let queue:[number,number][]=[],focusCell='',dirty=true,lastRebuild=0,radiusScale=1,farScale=1,detail=0,retired=false;
   const included=new Set<string>();
   const maxRadius=()=>Math.max(DRESSING_RADII.rock*radiusScale,DRESSING_RADII.farTrees*farScale);
@@ -69,7 +81,7 @@ export function createDressingView(parent:THREE.Group,seed:number,density:number
     const cells=[...cache.values()].map(c=>({c,d:Math.hypot((c.cx+.5)*DRESSING_CELL_M-fx,(c.cz+.5)*DRESSING_CELL_M-fz)})).sort((a,b)=>a.d-b.d);
     const near=(kind:DressingKind,d:number,key:string)=>{const r=DRESSING_RADII[kind]*radiusScale;const tag=kind+key;if(d<r){included.add(tag);return true;}if(d<r+24&&included.has(tag))return true;included.delete(tag);return false;};
     const write=(f:Family,x:number,y:number,z:number,sx:number,sy:number,sz:number,rot:number,hex:number|null)=>{
-      const n=counts[f];if(n>=CAPACITY[f])return;const m=meshes[f],e=m.instanceMatrix.array as Float32Array,o=n*16,c=Math.cos(rot),s=Math.sin(rot);
+      const n=counts[f];if(n>=CAPACITY[f])return;if(n>=allocated[f])allocate(f,Math.min(CAPACITY[f],allocated[f]*4),n);const m=meshes[f],e=m.instanceMatrix.array as Float32Array,o=n*16,c=Math.cos(rot),s=Math.sin(rot);
       e[o]=c*sx;e[o+1]=0;e[o+2]=-s*sx;e[o+3]=0;e[o+4]=0;e[o+5]=sy;e[o+6]=0;e[o+7]=0;e[o+8]=s*sz;e[o+9]=0;e[o+10]=c*sz;e[o+11]=0;e[o+12]=x;e[o+13]=y;e[o+14]=z;e[o+15]=1;
       if(hex!==null&&m.instanceColor){color.setHex(hex);m.instanceColor.setXYZ(n,color.r,color.g,color.b);}
       bounds[f].expandByPoint(new THREE.Vector3(x,y+sy,z)).expandByPoint(new THREE.Vector3(x,y,z));counts[f]=n+1;
@@ -105,6 +117,7 @@ export function createDressingView(parent:THREE.Group,seed:number,density:number
     }
     stats.instances=instances;stats.calls=calls;stats.triangles=triangles;stats.lastRebuildMs=performance.now()-t0;stats.cells=cache.size;
     let bytes=0;for(const c of cache.values())for(const a of Object.values(c.items))bytes+=a.byteLength;stats.bytes=bytes;
+    stats.instanceBytes=FAMILIES.reduce((sum,f)=>sum+allocated[f]*(f==='trunk'?64:76),0);
   }
   return {
     stats,
