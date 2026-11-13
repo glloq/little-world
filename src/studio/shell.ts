@@ -10,6 +10,7 @@ import type {EntityDefinitionV3,ProjectDocument} from '../studio-core/types.ts';
 import {StudioSession} from './session.ts';
 const store=new ProjectStore(),$=(id:string)=>document.getElementById(id)!;
 let session:StudioSession|null=null,dispose=()=>{},unsubscribe=()=>{},asset='props.crate',tool='select',radius=12,strength=2;
+let moduleGeneration=0;
 let map:{focus:(x:number,z:number)=>void}|null=null;
 const status=(message:string,error=false)=>{$('status').textContent=message;$('status').classList.toggle('status-error',error);};
 const run=(action:()=>Promise<unknown>|unknown)=>async()=>{try{await action();}catch(e){status(String(e),true);}};
@@ -20,14 +21,15 @@ function refreshHeader(){
  const buttons=$('header-actions').querySelectorAll('button');buttons[1].disabled=!s.commands.canUndo;buttons[2].disabled=!s.commands.canRedo;
 }
 async function home(){
- if(session)await session.flush();dispose();unsubscribe();session=null;map=null;$('modules').replaceChildren();$('tools').replaceChildren(node('h3','Vos mondes'),node('p','Projets conservés dans ce navigateur. Exportez une archive pour les transférer ou les protéger.','muted'));$('inspector').replaceChildren();$('header-actions').replaceChildren();$('breadcrumbs').textContent='Mes projets';$('save-status').textContent='';
+ moduleGeneration++; if(session)await session.flush();dispose();unsubscribe();session=null;map=null;$('modules').replaceChildren();$('tools').replaceChildren(node('h3','Vos mondes'),node('p','Projets conservés dans ce navigateur. Exportez une archive pour les transférer ou les protéger.','muted'));$('inspector').replaceChildren();$('header-actions').replaceChildren();$('breadcrumbs').textContent='Mes projets';$('save-status').textContent='';
  const home=node('div','','home'),head=node('div','','home-heading'),titles=node('div');titles.append(node('div','LITTLE WORLD STUDIO · V3','kicker'),node('h1','Des idées aux petits mondes'),node('p','Créez un projet ou poursuivez votre atelier.','muted'));head.append(titles,action('Ouvrir le scénario de référence',async()=>{const response=await fetch(import.meta.env.BASE_URL+'maps/beta.project.json');if(!response.ok)throw Error('Scénario indisponible');const p=parseProject(await response.json());if(!(await store.list()).some(v=>v.projectId===p.manifest.projectId))await store.create(p);await open(p.manifest.projectId);}),action('Importer JSON / ZIP',()=>($('project-file') as HTMLInputElement).click()));home.append(head);
  const form=node('form','','section-card'),name=input('Mon petit monde',()=>{}),size=select('1000',[['200','200 × 600 m'],['1000','1 000 × 1 000 m — cible B1']],()=>{}),create=button('Créer le projet',()=>{},'primary-button');create.type='submit';form.append(field('Nom du projet',name),field('Dimensions',size),create);form.onsubmit=e=>{e.preventDefault();void run(async()=>{const side=Number(size.value),p=createProject({name:name.value,width:side,length:side===200?600:side});await store.create(p);await open(p.manifest.projectId);})();};home.append(form);
  const cards=node('div','','project-cards');for(const p of await store.list()){const card=node('article','','project-card');card.append(node('div','PROJET LOCAL · V3','kicker'),node('h2',p.name),node('p',`Révision ${p.revision} · ${new Date(p.updatedAt).toLocaleString('fr')}`,'muted'),action('Ouvrir le monde',()=>open(p.projectId)));cards.append(card);}home.append(cards);$('workspace').replaceChildren(home);status('Studio V3 : socle et carte auteur. La qualification bêta reste en cours.');
 }
-async function open(id:string){dispose();unsubscribe();session=await StudioSession.open(store,id);const s=session;unsubscribe=s.subscribe(()=>{refreshHeader();});await module(s.selection.state.activeModule==='dialogues'?'dialogues':'map');refreshHeader();}
+async function open(id:string){dispose();unsubscribe();session=await StudioSession.open(store,id);const s=session;unsubscribe=s.subscribe(()=>{refreshHeader();});const active=s.selection.state.activeModule;await module(['map','objects','terrain','biomes','dialogues','interactions','environment','tests','local'].includes(active)?active:'map');refreshHeader();}
 async function module(id:string){
- const s=session!;dispose();dispose=()=>{};map=null;s.selection.openModule(id);$('tools').replaceChildren();$('inspector').replaceChildren();$('modules').replaceChildren(...[['map','Carte globale'],['objects','Objets'],['terrain','Relief'],['biomes','Biotopes'],['dialogues','Dialogues'],['interactions','Interactions'],['environment','Environnement'],['tests','Validation / compilation']].map(([key,label])=>{const b=action(label,()=>module(key));b.classList.toggle('active',key===id);return b;}));
+ const generation=++moduleGeneration; const s=session!;dispose();dispose=()=>{};map=null;s.selection.openModule(id);$('tools').replaceChildren();$('inspector').replaceChildren();$('modules').replaceChildren(...[['map','Carte globale'],['objects','Objets'],['local','Vue 3D locale'],['terrain','Relief'],['biomes','Biotopes'],['dialogues','Dialogues'],['interactions','Interactions'],['environment','Environnement'],['tests','Validation / compilation']].map(([key,label])=>{const b=action(label,()=>module(key));b.classList.toggle('active',key===id);return b;}));
+ if(id==='local'){const {mountLocal}=await import('./local-view.ts');if(generation!==moduleGeneration)return;const view=await mountLocal($('workspace'),$('tools'),s,{isActive:()=>generation===moduleGeneration,inspector,message:status});if(generation!==moduleGeneration){view.dispose();return;}map=view;dispose=view.dispose;await inspector();status('Vue 3D locale · sélection, déplacement et pinceaux partagent l’historique.');return;}
  if(id==='environment'){const {mountEnvironment}=await import('./environment-view.ts');mountEnvironment($('workspace'),s);return;}
  if(id==='interactions'){const {mountInteractions}=await import('./interactions-view.ts');await mountInteractions($('workspace'),s);return;}
  if(id==='tests'){await diagnostics();return;}
@@ -38,8 +40,8 @@ async function module(id:string){
  }else if(id==='terrain'||id==='biomes'){
   tool=id==='terrain'?'raise':'forest';$('tools').append(select(tool,id==='terrain'?[['raise','Élever'],['lower','Abaisser'],['flatten','Aplanir']]:[['forest','Forêt'],['meadow','Prairie'],['mountain','Montagne'],['coast','Côte']],v=>tool=v),field('Rayon (m)',numberInput(radius,v=>radius=v,1,100)),field(id==='terrain'?'Force / hauteur':'Densité',numberInput(strength,v=>strength=v,0,20)),node('p','Un clic applique une retouche circulaire, annulable en une opération.','muted'));
  }else tool='select';
- const search=input('',v=>results(v));search.placeholder='Nom ou identifiant…';search.oninput=()=>results(search.value);$('tools').append(field('Rechercher une entité',search),node('div','','search-results'));results('');
- const {mountMap}=await import('./map-view.ts');const view=mountMap($('workspace'),s,(x,z)=>void run(()=>pick(x,z))());map=view;dispose=view.dispose;await inspector();status('Carte des sources : les secteurs et entités sont indexés sans charger les géométries 3D.');
+ const search=input('',v=>results(v));search.placeholder='Nom ou identifiant…';search.onchange=null;search.oninput=()=>results(search.value);$('tools').append(field('Rechercher une entité',search),node('div','','search-results'));results('');
+ const {mountMap}=await import('./map-view.ts');if(generation!==moduleGeneration)return;const view=mountMap($('workspace'),s,(x,z)=>void run(()=>pick(x,z))());map=view;dispose=view.dispose;await inspector();status('Carte des sources : les secteurs et entités sont indexés sans charger les géométries 3D.');
 }
 function results(query:string){const host=$('tools').querySelector('.search-results');if(!host)return;host.replaceChildren();for(const e of Object.values(session!.document.entityIndex).filter(e=>(e.name+' '+e.id).toLowerCase().includes(query.toLowerCase())).slice(0,60))host.append(action(e.name,async()=>{session!.selection.select({kind:'entity',id:e.id});map?.focus(e.position.x,e.position.z);await inspector();}));}
 async function pick(x:number,z:number){
@@ -63,6 +65,7 @@ async function inspector(){
  host.append(field('Nom',input(e.name,v=>run(()=>update(n=>n.name=v))())));
  for(const axis of ['x','y','z'] as const)host.append(field('Position '+axis.toUpperCase()+' (m)',numberInput(transform.position[axis],v=>run(()=>update(n=>n.components.Transform!.position[axis]=v))(),-5000,5000)));
  host.append(field('Échelle',numberInput(transform.scale.x,v=>run(()=>update(n=>n.components.Transform!.scale={x:v,y:v,z:v}))(),.1,10)),action('Supprimer',async()=>{const refs=new ReferenceIndex(p).dependents(e.id);if(refs.length)throw Error('Suppression impossible : des références utilisent cette entité.');await s.change('Supprimer '+e.name,[entry.ownerChunkId],d=>removeEntity(d,e.id));s.selection.select(null);results('');await inspector();}));
+ host.append(action('Voir en 3D',()=>module('local')));
  host.append(action('Configurer une interaction',()=>module('interactions')));
  if(resolved.components.DialogueActor)host.append(action('Ouvrir son dialogue',()=>module('dialogues')));
 }

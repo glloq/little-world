@@ -33,6 +33,7 @@ jobs:
           npm run test:studio
           npm run test:gameplay
           npm run test:environment
+          npm run test:local
       - name: IndexedDB integration
         run: |
           npm run dev -- --host 127.0.0.1 --port 5189 --strictPort > /tmp/little-world-studio-dev.log 2>&1 &

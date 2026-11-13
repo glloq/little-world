@@ -84,3 +84,16 @@ Preuves : **106 tests unitaires/intégration** ; `npm run test:gameplay` ajoute 
 - Tests : horloges 20/30/60 Hz, pause/accélération/reprise ; agrégats continus/différés et partitions d'intervalles équivalents ; compilation de l'environnement ; 5 contrôles navigateur de l'horloge, de l'accélération, du retour à l'heure du slot et des compteurs de météo. Capture locale `/tmp/little-world-browser/beta-night.png`.
 
 **Limites conservées :** pas encore de saisons/cultures, régions climatiques multiples, neige/gel, ciel étoilé/lunes, ombres dynamiques ou aperçu météorologique indépendant. L'histoire climatique est le modèle périodique immuable v1 ; aucun forçage météo historique n'est proposé. Évolution de seed/version d'une carte : avertissement de version au chargement de partie, puis requalification nécessaire avant d'y raccorder les parcelles. Le fond change de couleur ; le shader de ciel panoramique complet reste à développer. Aucune capacité GPU intégrée n'est démontrée par SwiftShader.
+
+## Complément Studio G4 : viewport 3D local
+
+- Nouvelle entrée **Vue 3D locale**, chargée à la demande. Même projet/sélection/CommandBus que la carte ; retour dans le module actif après réouverture.
+- Réutilisation de `WorldView`, du terrain, des assets, des rigs PNJ et des contrôles Orbit/Transform existants. Chargement des sources voisines et de leurs dépendances canoniques ; géométries locales, aucun chargement de toutes les géométries du monde.
+- Placement par clic, sélection en scène, gizmo de translation horizontale et inspecteur (transformation V3 complète pour les objets). Un déplacement utilise `putEntity` avec ancien/nouveau propriétaire dans la même transaction.
+- Pinceaux 3D relief/forêt/prairie : collecte de points espacés pendant le glissement, au plus 64 retouches, **une transaction à la fin du geste**. Prévisualisation du rayon, puis mise à jour du terrain/écologie des secteurs affectés ; annulation/refaire communs. Le relief n'est pas recalculé à chaque événement de pointeur.
+- Rendu à la demande après stabilisation des secteurs ; compteur de rendus immobile au repos. Retrait des contrôles, abonnements, ressources propres et contexte WebGL à la fermeture du module. Les chargements tardifs ne remplacent pas une autre vue après navigation.
+- Correction de la recherche : filtrage pendant la saisie, sans remplacer le bouton au moment où le clic lui transfère le focus.
+
+**10 contrôles Chromium** : sélection globale → 3D, repos sans rendu, placement direct, déplacement via inspecteur et annulation, **glissement réel du gizmo identifié dans la capture** et annulation en une opération, glissement du pinceau en une opération, retour à la carte sans perdre la sélection, absence d'erreurs. Capture locale : `/tmp/little-world-browser/studio-local-3d.png`.
+
+Limites : objets et PNJ du secteur local, translation horizontale ; caméra réinitialisée autour du contexte conservé à l'ouverture, orientation orbitale détaillée non persistée. Les sources déjà hydratées restent en cache de session ; l'éviction du cache auteur reste à borner. Les traces eau/chemins ne sont pas encore modifiables dans ce module. Les contrôles matériels/ergonomiques restent nécessaires ; le test navigateur ne qualifie pas un budget GPU.
