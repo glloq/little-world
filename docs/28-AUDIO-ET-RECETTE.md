@@ -50,3 +50,13 @@ node tests/audio-engine.browser.mjs <base-url>
 ```
 
 Les tests audio Chromium mesurent une sortie Web Audio non nulle, mute/volumes, contexte unique, fermeture des notes, quotas, 200 sources virtuelles, décodage/cache, pause/reprise, changements de score, mode indisponible, import et archive. Ces mesures ne certifient ni la qualité à l’oreille ni l’absence de glitches sur un PC réel. L’écoute et les essais Firefox/GPU intégré restent à qualifier séparément.
+
+## Résultat de la vérification globale
+
+Validation locale de cette version : **132 tests unitaires/intégration**, typecheck/build, génération reproductible des fichiers audio et du scénario, **110 contrôles navigateur** (87 existants + 12 audio/Studio + 11 moteur audio réel). Aucun échec JavaScript/HTTP sur les parcours exécutés. La CI de la branche vérifie ces mêmes familles séparément.
+
+La revue a aussi corrigé l’invalidation du compilateur : changer un volume/une partition ne recompile plus les secteurs spatiaux ; une révision de stockage seule ne change plus l’identité du build. Une seconde compilation du scénario de référence n’écrit aucun fichier. Le démarrage et les contrôles audio sont utilisables au clavier ; les touches de commande ne capturent plus l’activation native des boutons/disclosures.
+
+Compatibilité audio : chemin moderne et repli des positions/orientations de listener/panner testés. Le navigateur Firefox n’est pas installé dans cet environnement ; ses essais réels et l’écoute sur vos enceintes restent à faire. Les tests Chromium utilisent Web Audio réel et mesurent les échantillons produits, mais ne prétendent pas remplacer une écoute humaine ou qualifier les performances matérielles.
+
+Les limites générales de B1 restent dans [27 — Avancement](27-B1-IMPLEMENTATION-STATUS.md) : notamment mine/agriculture non livrées, lecteur de représentation encore adapté du V2, navigation avancée et hydrologie complète restant à développer. La « vérification globale » porte sur les fonctionnalités actuellement implémentées.

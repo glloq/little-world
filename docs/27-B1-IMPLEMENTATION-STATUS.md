@@ -23,7 +23,7 @@ Cette branche avance G1, G2 et G4 par incréments testés. **La bêta B1 n'est p
 | FND-08 | Préflight strict, catalogue local vérifié, compilation déterministe et incrémentale en ressources JSON par secteur | Tests de hashes, dépendances inter-secteurs, assets et sorties sur disque ; compilation depuis Studio | **Pas de meshes/LOD/navmeshes précalculés** ; raccord au streaming runtime |
 | Copie de test / B1-14 | Snapshot V3 logique avec représentation V2, slots temporaires isolés, autre fenêtre, source et historique conservés | Ouverture du test et historique conservé dans Chromium ; anciens tests preview préservés | Lecteur V3 sectorisé ; représentation V2 limitée à 2 km par axe et terrains centrés |
 | FND-04/05, B1-03 | Horloge, climat périodique rejouable, jour/nuit et pluie bornée ; requêtes XYZ, sols/plafonds et colliders logiques | Agrégats continus/différés, temps/slots, barrière fermée/ouverte, trois étages en tests | Ciel avancé, connexions souterraines, climat agricole qualifié et rendu des mines |
-| FND-09, B1-01/09/10/11 | Budget de présentation existant réutilisé, région source 1 km² de démonstration | Tests fonctionnels ; aucune qualification matérielle | Budget transversal complet, densité/contenu de la région, mine, agriculture, audio et benchmarks PC |
+| FND-09, B1-01/09/10/11 | Budget de présentation existant réutilisé, région source 1 km² de démonstration | Tests fonctionnels ; aucune qualification matérielle | Budget transversal complet, densité/contenu de la région, mine, agriculture, qualification audio et benchmarks PC |
 
 ## Vérifications reproductibles
 
@@ -149,3 +149,7 @@ La CI de `1b42e96` a échoué dans l'ancienne étape regroupant tous les navigat
 - Les suites navigateur ont des étapes CI distinctes ; `tools/run-browser-check.mjs` remonte le nom et la fin de l'erreur dans une annotation. Les journaux et artefacts ordinaires restent produits. Cela permet de diagnostiquer un éventuel nouvel échec sans confondre jeu historique, Studio, gameplay, environnement, local, personnages et stockage.
 
 Ce contrôle de démarrage corrige un risque réel ; il ne suffit pas à attribuer avec certitude l'ancien échec CI sans son journal détaillé. La validation du nouveau head doit être consultée séparément.
+
+## Audio et vérification avant essais utilisateur
+
+Le moteur MIDI/Web Audio, le mixeur, les bruitages, les ambiances proches et le module Studio Audio sont implémentés sur cette branche. Sources MIDI/WAV licenciées embarquées, voix/PCM bornés, culling spatial, mode silencieux, réglages persistants et arrêt/reprise couverts par tests. Voir [28 — Audio et recette utilisateur](28-AUDIO-ET-RECETTE.md) pour le périmètre exact, les **132 tests / 110 contrôles navigateur** et les étapes d’essai. Les cinq presets et échantillons de référence sont originaux CC0. Le statut AUD-8 (écoute/bench matériel et Firefox réel) reste à qualifier ; il n’est pas assimilé à une CI verte.

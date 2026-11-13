@@ -10,13 +10,14 @@ export async function compileProject(input:unknown,options:CompileOptions={}):Pr
   const checked=await preflightProject(input,options);
   if(!checked.project||checked.diagnostics.some(d=>d.severity==='ERROR'))throw new ProjectCompilationError(checked.diagnostics);
   const project=checked.project,context=await createCompileContext(project,checked.assets);
-  const sourceHash=await hashText(canonicalJSON({compiler:COMPILER_VERSION,project,assets:checked.assets}));
+  const sourceHash=await hashText(canonicalJSON({compiler:COMPILER_VERSION,project:{...project,manifest:{...project.manifest,revision:0}},assets:checked.assets}));
+  const spatialWorld={bounds:project.world.bounds,seed:project.world.seed,generatorVersion:project.world.generatorVersion,density:project.world.density,seaLevel:project.world.seaLevel,chunkSizeM:project.world.chunkSizeM,coordinateSystem:project.world.coordinateSystem};
   const files:Record<string,string>={},chunks:CompiledWorldManifest['chunks']=[],rebuiltChunkIds:string[]=[];
   const previous=new Map((options.previous?.worldId===project.world.worldId?options.previous.chunks:[]).map(chunk=>[chunk.chunkId,chunk]));
   for(const metadata of Object.values(project.chunkIndex).sort((a,b)=>a.cz-b.cz||a.cx-b.cx)){
     const source=project.chunks[metadata.chunkId],ids=dependencyIds(context,source);
     const data=compileChunkData(context,source,ids),text=jsonFile(data),hash=await hashText(text);
-    const chunkSourceHash=await hashText(canonicalJSON({compiler:COMPILER_VERSION,source,world:project.world,dependencies:data.dependencyHashes}));
+    const chunkSourceHash=await hashText(canonicalJSON({compiler:COMPILER_VERSION,source,world:spatialWorld,dependencies:data.dependencyHashes}));
     const url=`chunks/${metadata.cx}_${metadata.cz}.${hash.slice(0,16)}.json`;
     files[url]=text;
     chunks.push({chunkId:source.chunkId,cx:metadata.cx,cz:metadata.cz,bounds:compiledChunkBounds(project,metadata.cx,metadata.cz),url,hash,sourceHash:chunkSourceHash,

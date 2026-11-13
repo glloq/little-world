@@ -91,6 +91,7 @@ applyQuality();
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.1;
+renderer.domElement.tabIndex=0;
 viewport.appendChild(renderer.domElement);
 const searchParams = new URLSearchParams(window.location.search);
 const isPreview = searchParams.get('preview') === '1',
@@ -213,6 +214,7 @@ function resetCameraDrag(): void {
   renderer.domElement.classList.remove('dragging-camera');
 }
 window.addEventListener('keydown', (e) => {
+  if(e.target instanceof Element&&e.target.closest('button,summary,a')&&['Space','Enter','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))return;
   if(gameplay?.isOpen||e.target instanceof HTMLInputElement||e.target instanceof HTMLTextAreaElement||e.target instanceof HTMLSelectElement)return;
   // Read the typed character: AZERTY 'A' is physically KeyQ, QWERTY 'A' is KeyA.
   if (isMenuKey(e)) {
@@ -308,6 +310,7 @@ start.addEventListener('click', () => {
   started = true;
   void audio?.start();
   overlay.classList.add('hide');
+  renderer.domElement.focus();
 });
 function showInfo(text: string) {
   infoUntil = elapsed + 3.3;
