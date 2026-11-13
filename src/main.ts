@@ -1,3 +1,4 @@
+import {MINE_MATERIALS} from './mine/mine-data.ts';
 import { geoWorkerPool } from './geography/geo-workers.ts';
 import type {AudioController} from './audio/view.ts';
 import * as THREE from 'three';
@@ -158,7 +159,8 @@ let gameplay:GameplayView|null=null;
 if(playable){
   const {createGameplayView}=await import('./gameplay/game-view.ts');
   gameplay=createGameplayView(playable.gameplay,{onSound:(id,p)=>audio?.playSound(id,p),collisions:playable.collisions,temporary:!!(studioTest||buildScope),saveScope:studioTest?.snapshotId??buildScope??undefined,getPosition:()=>({x:player.position.x,y:player.position.y,z:player.position.z}),objects:world.objects,showInfo,
-    setPosition:p=>{player.position.set(p.x,p.y,p.z);player.velocity.set(0,0,0);player.mode='air';player.oxygen=MAX_OXYGEN;player.glideReady=false;aboard=false;keySet.clear();jumpQueue=0;actionQueue=0;npcs.dialogue.close();previousPlayerPosition.copy(player.position);renderPosition.copy(player.position);updateCamera(1);}
+    activities:playable.activities,getSpace:()=>player.space,
+    setPosition:(p,space)=>{player.space=space??undefined;player.position.set(p.x,p.y,p.z);player.velocity.set(0,0,0);player.mode='air';player.oxygen=MAX_OXYGEN;player.glideReady=false;aboard=false;keySet.clear();jumpQueue=0;actionQueue=0;npcs.dialogue.close();previousPlayerPosition.copy(player.position);renderPosition.copy(player.position);updateCamera(1);}
   });
 }
 const npcs = createNPCSystem(scene, definition.npcs,isLegacyTerrain()?undefined:[],gameplay?.dialogueSession);
@@ -178,6 +180,10 @@ const {nightFactor}=await import('./lighting/light-data.ts');
   if(searchParams.get('night')==='1')worldClock.restore((1-climate.definition.initialDayPhase)*climate.definition.dayLengthSeconds);
 }
 world.lights.setEnvironment(nightFactor(climate.state(worldClock.time).sunAltitude),0);
+// Mines and farm plots: procedural stand-ins, lanterns join the E10 light pool.
+const activityView=gameplay&&(gameplay.activities.mines.size||gameplay.activities.farms.size)?(await import('./activity-view.ts')).createActivityView(scene,gameplay.activities,terrainHeight):null;
+if(activityView&&!searchParams.has('lightBench'))world.refreshLights([...(definition.lights??[]),...activityView.lights]);
+let activityQueue=0,cropQueue=0;
 world.update(0, player.position);
 const squirrel = buildSquirrel();
 scene.add(squirrel.group);
@@ -284,8 +290,11 @@ window.addEventListener('keydown', (e) => {
   keySet.add(e.code);
   if (e.code === 'Space') jumpQueue++;
   if (e.code === 'KeyE') actionQueue++;
+  if (e.code === 'KeyF') activityQueue++;
+  if (e.code === 'KeyC') cropQueue++;
   if (e.code === 'KeyR' && started) {
     const reset = spawnPlayer();
+    player.space = undefined;
     if(playable)reset.position.set(playable.spawn.x,terrainHeight(playable.spawn.x,playable.spawn.z)+playable.spawn.y+.02,playable.spawn.z);
     player.position.copy(reset.position);
     player.velocity.set(0, 0, 0);
@@ -369,13 +378,23 @@ function updateCamera(dt: number) {
   const cosPitch = Math.cos(pitch);
   const x = target.x - Math.sin(yaw) * cosPitch * distance;
   const z = target.z - Math.cos(yaw) * cosPitch * distance;
-  const y = Math.max(
+  let y = Math.max(
     target.y + Math.sin(pitch) * distance,
     terrainHeight(x, z) + 1.8,
   );
   const desired = cameraDesired.set(x, y, z);
+  // In a gallery: stay inside the open cells and under the ceiling, never above the relief.
+  if(player.space&&gameplay){const inside=gameplay.activities.cameraInMine(target,player.space,yaw,pitch,distance);if(inside){desired.set(inside.x,inside.y,inside.z);camera.position.copy(desired);camera.lookAt(target);return;}}
   camera.position.lerp(desired, Math.min(1, dt * 6));
   camera.lookAt(target);
+}
+/** F / C prompts of mines and farm plots (evaluated on consultation, not per plant). */
+let lastActivityPrompt=0,activityText:string|null=null;
+function activityPrompt():string|null{
+  if(!gameplay)return null;if(elapsed-lastActivityPrompt<.25)return activityText;lastActivityPrompt=elapsed;const a=gameplay.activities;
+  if(player.space){const t=a.mineTarget(player.position,player.space,{x:Math.sin(yaw),z:Math.cos(yaw)});activityText=t?`[F] Creuser : ${MINE_MATERIALS[t.material].name}`:null;return activityText;}
+  const plot=a.farmNear(player.position);if(!plot){activityText=null;return null;}const intent=a.farmIntent(plot.zone.id);
+  activityText=`${plot.zone.name} · [F] ${intent.label}${intent.type==='plant'?' · [C] changer de culture':''}`;return activityText;
 }
 function updateHud() {
   const labels: Record<string, string> = {
@@ -395,7 +414,7 @@ function updateHud() {
   const canBoard =
     !aboard &&
     nearBoat(boat, player.position.x, player.position.y, player.position.z);
-  const npcPrompt = !aboard ? (gameplay?.prompt(player.position) ?? npcs.prompt(player.position)) : null;
+  const npcPrompt = !aboard ? (gameplay?.prompt(player.position) ?? npcs.prompt(player.position) ?? activityPrompt()) : null;
   action.classList.toggle('hide', !canBoard && !aboard && !npcPrompt);
   action.textContent =
     npcPrompt ??
@@ -427,6 +446,10 @@ function tick(dt: number) {
     if(player.transitioned){previousPlayerPosition.copy(player.position);renderPosition.copy(player.position);}
     if (keys.jumpPressed) jumpQueue = Math.max(0, jumpQueue - 1);
   }
+  if(activityQueue>0&&gameplay&&!aboard){activityQueue=0;const a=gameplay.activities;
+    if(player.space){const r=a.dig(player.position,player.space,{x:Math.sin(yaw),z:Math.cos(yaw)});showInfo(r.message);}
+    else{const plot=a.farmNear(player.position);if(plot)showInfo(a.farmAct(plot.zone.id).message);}}
+  if(cropQueue>0&&gameplay){cropQueue=0;const plot=gameplay.activities.farmNear(player.position,player.space);if(plot){const name=gameplay.activities.cycleCrop(plot.zone.id);if(name)showInfo('Culture choisie : '+name);}}
   if (actionQueue > 0) {
     if (aboard) {
       aboard = false;
@@ -491,7 +514,8 @@ function draw(now: number) {
     player.position,
     frame.alpha,
   );
-  environment.update(delta,player.position,budget.level);
+  environment.update(delta,player.position,budget.level,!!player.space);
+  activityView?.update(delta,player.position,player.space);
   world.lights.setEnvironment(nightFactor(climate.state(worldClock.time).sunAltitude),now/1000);
   if(started&&audio){const env=climate.state(worldClock.time);audio.update(now,player.position,id=>gameplay?.runtime.getEntityPosition(id),{night:env.sunAltitude<0,rain:env.weather==='rain',water:waterSurface(player.position.x,player.position.z)!==null||(isLegacyTerrain()&&Math.abs(player.position.x-riverX(player.position.z))<16)},budget.level,player.mode==='ground'&&!aboard&&player.velocity.lengthSq()>.1,camera.getWorldDirection(audioForward));}
   world.update(delta, player.position, camera, renderer.domElement.height);
@@ -524,6 +548,9 @@ function draw(now: number) {
         dressing: world.dressing ? { ...world.dressing } : null,
         paths: { ...world.paths },
         lights: { ...world.lights.stats },
+        activities: activityView&&gameplay ? { ...activityView.stats, space: player.space ?? null,
+          excavated: [...gameplay.activities.mines.values()].reduce((n,m)=>n+m.state.excavatedCount,0),
+          plots: Object.fromEntries([...gameplay.activities.farms.keys()].map(id=>{const v=gameplay!.activities.farmView(id)!;return [id,{crop:v.cropId,stage:v.stage,growth:+v.growth.toFixed(3),moisture:+v.moisture.toFixed(3)}];})) } : null,
         programs: renderer.info.programs?.length ?? 0,
         workers: geoWorkerPool()?.stats ? { ...geoWorkerPool()!.stats } : null,
         environment:environment.metrics,

@@ -36,7 +36,9 @@
     "test:editor-world": "node tools/test-editor-world-browser.mjs",
     "test:lights": "node tools/test-lights-browser.mjs",
     "bench:lights": "node --expose-gc tools/bench-lights.mjs",
-    "bench:lights:browser": "node tools/bench-lights-browser.mjs"
+    "bench:lights:browser": "node tools/bench-lights-browser.mjs",
+    "generate:b1": "node --experimental-strip-types tools/generate-b1-demo.mjs",
+    "test:b1": "node tools/test-b1-browser.mjs"
   },
   "dependencies": {
     "three": "^0.180.0"

@@ -23,6 +23,8 @@ export function lightFromPreset(preset:LightPreset,offsetY?:number):LightCompone
 export interface RuntimeLight {
   id:string;entityId:string;x:number;y:number;z:number;offset:{x:number;y:number;z:number};
   color:string;intensity:number;range:number;mode:LightMode;stateKey?:string;flicker?:{amplitude:number;speed:number};follow:boolean;
+  /** `y` is an absolute world height (underground lanterns), not a height above the relief. */
+  absolute?:boolean;
 }
 /** Offset expressed in the entity's local frame (rotation and scale of its Transform). */
 export function worldOffset(t:TransformComponent,o:{x:number;y:number;z:number}){
