@@ -6,6 +6,13 @@ import {affectedChunkIds} from '../studio-core/schema.ts';
 export function lineChunkIds(world:WorldDefinitionV3,line:{points:{x:number;z:number}[];width:number}):string[]{return waterChunkIds(world,line as WaterBody);}
 export function waterChunkIds(world:WorldDefinitionV3,water:WaterBody):string[]{
  const ids=new Set<string>();
+ if(water.kind==='lake'){
+  // Every sector of the basin (outline bounding box + bank), not only the shore line.
+  const xs=water.points.map(p=>p.x),zs=water.points.map(p=>p.z),minX=Math.min(...xs)-4,maxX=Math.max(...xs)+4,minZ=Math.min(...zs)-4,maxZ=Math.max(...zs)+4,s=world.chunkSizeM/2;
+  for(let x=minX;x<=maxX+s;x+=s)for(let z=minZ;z<=maxZ+s;z+=s)for(const id of affectedChunkIds(world,Math.min(x,maxX),Math.min(z,maxZ),s))ids.add(id);
+  for(let i=0;i<water.points.length;i++){const a=water.points[i],b=water.points[(i+1)%water.points.length];for(const id of waterChunkIds(world,{...water,kind:undefined,points:[a,b]}))ids.add(id);}
+  return [...ids];
+ }
  for(let i=1;i<water.points.length;i++){
   const a=water.points[i-1],b=water.points[i],length=Math.hypot(b.x-a.x,b.z-a.z),steps=Math.max(1,Math.ceil(length/(world.chunkSizeM/2)));
   for(let j=0;j<=steps;j++)for(const id of affectedChunkIds(world,a.x+(b.x-a.x)*j/steps,a.z+(b.z-a.z)*j/steps,water.width/2+2+length/steps/2))ids.add(id);

@@ -40,7 +40,9 @@ try{
   const replans=m.chunks.replans;await drag(997,0,2);await page.waitForTimeout(150);
   const during=await belowHorizonBackground(page);
   check(during.holes===0,`No hole right after a fast U-turn (${during.holes}/${during.total})`);
-  await page.waitForFunction(()=>window.littleWorldMetrics?.chunks.pending===0,{},{timeout:30000});
+  // Slow CI runners (2 vCPU, CPU rasteriser) need more time; on failure, report the queue state
+  // so a stuck queue (never empties) is distinguished from a slow one.
+  await page.waitForFunction(()=>window.littleWorldMetrics?.chunks.pending===0,{},{timeout:90000}).catch(async e=>{const s=await page.evaluate(()=>({chunks:window.littleWorldMetrics?.chunks,work:window.littleWorldMetrics?.terrainWork,workers:window.littleWorldMetrics?.workers}));console.error('Terrain queue after the U-turn: '+JSON.stringify(s));throw e;});
   m=await page.evaluate(()=>window.littleWorldMetrics);
   check(m.chunks.replans>replans,'Rotation re-plans detail around the new view');
   await context.close();

@@ -22,6 +22,8 @@ import {BrushTool,type BrushMode} from './brush-tool.ts';
 import {PolylineTool} from './polyline-tool.ts';
 import {applySkyLighting,type SkyLighting} from '../../environment/sky-lighting.ts';
 import {entityTransform} from '../../studio-core/transforms.ts';
+import {collisionDefinitionsFromProject} from '../../studio-core/collision-adapter.ts';
+import {DEFAULT_BODY} from '../../physics/collision-world.ts';
 import type {LightStatus} from '../../lighting/light-budget.ts';
 
 export interface ViewportOptions {
@@ -110,6 +112,23 @@ export class StudioViewport {
     if(on)applySkyLighting(sky,background,-1,0,0);
     else{const d=this.skyDay;sky.sun.intensity=d.sun;sky.fill.intensity=d.fill;sky.ambient.intensity=d.ambient;sky.sun.color.setHex(d.sunColor);sky.sun.position.copy(d.sunPosition);background.setHex(d.background);}
     this.canvas.dataset.night=String(on);this.invalidate(6);
+  }
+  /** PHYS diagnostics (authoring aid, never exported): solid collision volumes from Collider
+   * components, relief points steeper than the walker can climb, mine level outlines. */
+  private physicsGroup=new THREE.Group();
+  get physicsOverlay(){return this.physicsGroup.visible&&!!this.physicsGroup.parent;}
+  setPhysicsOverlay(on:boolean){
+    for(const child of [...this.physicsGroup.children]){const m=child as THREE.Mesh;m.geometry?.dispose();(m.material as THREE.Material)?.dispose?.();}this.physicsGroup.clear();
+    if(!on){this.physicsGroup.removeFromParent();this.canvas.dataset.physicsOverlay='';this.invalidate(3);return;}
+    const p=this.session.document,boxMaterial=new THREE.LineBasicMaterial({color:0xe0614e,depthTest:false});
+    let boxes=0;for(const d of collisionDefinitionsFromProject(p)){const y=terrainHeight(d.groundAnchor.x,d.groundAnchor.z)+d.position.y,box=new THREE.Box3(new THREE.Vector3(d.position.x-d.size.x/2,y,d.position.z-d.size.z/2),new THREE.Vector3(d.position.x+d.size.x/2,y+d.size.y,d.position.z+d.size.z/2)),helper=new THREE.Box3Helper(box,0xe0614e);(helper.material as THREE.Material).depthTest=false;helper.renderOrder=26;this.physicsGroup.add(helper);boxes++;}
+    boxMaterial.dispose();
+    const t=this.camera.target,steep:number[]=[],limit=DEFAULT_BODY.maxSlope;
+    for(let x=t.x-64;x<=t.x+64;x+=2)for(let z=t.z-64;z<=t.z+64;z+=2){const h=terrainHeight(x,z),slope=Math.max(Math.abs(terrainHeight(x+1,z)-terrainHeight(x-1,z)),Math.abs(terrainHeight(x,z+1)-terrainHeight(x,z-1)))/2;if(slope>limit)steep.push(x,h+.3,z);}
+    const points=new THREE.Points(new THREE.BufferGeometry().setAttribute('position',new THREE.Float32BufferAttribute(steep,3)),new THREE.PointsMaterial({color:0xd03a2a,size:5,sizeAttenuation:false,depthTest:false}));points.renderOrder=26;this.physicsGroup.add(points);
+    let mines=0;for(const z of Object.values(p.libraries.zones??{}))if(z.kind==='mine'&&z.mine)for(const l of z.mine.levels){const ring=[...z.polygon,z.polygon[0]].map(q=>new THREE.Vector3(q.x,l.floorY,q.z));const line=new THREE.Line(new THREE.BufferGeometry().setFromPoints(ring),new THREE.LineDashedMaterial({color:0x8a5a3c,dashSize:1,gapSize:.6,depthTest:false}));line.computeLineDistances();line.renderOrder=26;this.physicsGroup.add(line);mines++;}
+    if(!this.physicsGroup.parent)this.scene.add(this.physicsGroup);this.physicsGroup.visible=true;
+    this.canvas.dataset.physicsOverlay=JSON.stringify({colliders:boxes,steepPoints:steep.length/3,mineLevels:mines});this.invalidate(6);
   }
   /** Budget decision for a light-carrying entity at the current camera (Studio list). */
   lightStatus(entityId:string):LightStatus{return this.world.lights.statusOf('light:'+entityId);}

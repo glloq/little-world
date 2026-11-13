@@ -1,4 +1,4 @@
-import type {WorldCollisionQuery,MovementSpace} from './physics/collision-world.ts';
+import {DEFAULT_BODY,type WorldCollisionQuery,type MovementSpace,type BodyDimensions} from './physics/collision-world.ts';
 import * as THREE from 'three';
 import {
   clamp,
@@ -25,6 +25,10 @@ export interface Player {
   oxygen: number;
   glideReady: boolean;
   space?:MovementSpace;
+  /** Collision body (radius, height, step, max slope); default walker when absent. */
+  body?:Partial<BodyDimensions>;
+  /** Id of the transition crossed during the last step (camera/interpolation reset). */
+  transitioned?:string;
 }
 export const MAX_OXYGEN = 90;
 export function spawnPlayer(): Player {
@@ -50,8 +54,10 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
   // Camera looks toward +Z at yaw=0: screen-right is world -X.
   const dx = forward * sx - right * cz;
   const dz = forward * cz + right * sx;
+  const body={...DEFAULT_BODY,...p.body};p.transitioned=undefined;
+  const floorAt=(fromY?:number)=>collision?collision.surfaceAt(pos,p.space,body.radius,{step:body.step,fromY}).floorY:terrainHeight(pos.x,pos.z);
   const atWater = collision?collision.waterAt(pos,p.space):waterSurface(pos.x, pos.z);
-  const ground = collision?collision.surfaceAt(pos,p.space).floorY:terrainHeight(pos.x, pos.z);
+  const ground = floorAt();
   const deepEnough = atWater !== null && atWater - ground > 0.62;
   const inWater = deepEnough && pos.y <= atWater + 0.42;
   if (inWater) {
@@ -114,8 +120,8 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
         v.x += (dx * speed - v.x) * a;
         v.z += (dz * speed - v.z) * a;
       }
-      pos.y += v.y * dt;
-      const nextGround = collision?collision.surfaceAt(pos,p.space).floorY:terrainHeight(pos.x, pos.z);
+      const before=pos.y;pos.y += v.y * dt;
+      const nextGround = floorAt(before);
       if (pos.y <= nextGround && v.y <= 0) {
         pos.y = nextGround;
         v.y = 0;
@@ -133,7 +139,7 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
   const from=collision?{x:pos.x,y:pos.y,z:pos.z}:null;
   pos.x += v.x * dt;
   pos.z += v.z * dt;
-  if(collision&&from){const moved=collision.move(from,pos);pos.x=moved.position.x;pos.z=moved.position.z;if(moved.blockedX)v.x=0;if(moved.blockedZ)v.z=0;}
+  if(collision&&from){const moved=collision.move(from,pos,body.radius,body.height,{space:p.space,body});pos.x=moved.position.x;pos.z=moved.position.z;if(moved.blockedX)v.x=0;if(moved.blockedZ)v.z=0;}
   if (!insideWorld(pos.x, pos.z)) {
     const bounds = getTerrainConfig();
     pos.x = clamp(pos.x, -bounds.width / 2 + 3, bounds.width / 2 - 3);
@@ -141,9 +147,9 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
     v.x *= 0.2;
     v.z *= 0.2;
   }
-  const surface=collision?.surfaceAt(pos,p.space);
+  const surface=collision?.surfaceAt(pos,p.space,body.radius,{step:body.step});
   const newGround = surface?.floorY??terrainHeight(pos.x, pos.z);
-  if(surface?.ceilingY!==null&&surface?.ceilingY!==undefined&&pos.y+1.8>surface.ceilingY){pos.y=surface.ceilingY-1.8;v.y=Math.min(0,v.y);p.mode='air';}
+  if(surface?.ceilingY!==null&&surface?.ceilingY!==undefined&&pos.y+body.height>surface.ceilingY){pos.y=Math.max(newGround,surface.ceilingY-body.height);v.y=Math.min(0,v.y);if(pos.y>newGround+.06)p.mode='air';}
   if (p.mode === 'ground') pos.y = Math.max(pos.y, newGround);
   if ((p.mode === 'air' || p.mode === 'glide') && pos.y < newGround) {
     pos.y = newGround;
@@ -165,4 +171,7 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
     pos.y = newWater + 0.08;
     p.glideReady = false;
   }
+  // Explicit connections between spaces (mine entrance, stairs, shafts): never implicit.
+  const transition=collision?.transitionAt(pos,p.space);
+  if(transition){p.space=transition.to??undefined;pos.set(transition.arrival.x,transition.arrival.y,transition.arrival.z);v.set(0,0,0);p.mode='ground';p.glideReady=false;p.transitioned=transition.id;}
 }

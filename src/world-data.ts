@@ -1,4 +1,4 @@
-import {validateWaterProfile, type WaterProfile} from './water/profile.ts';
+import {validateWaterProfile, validateWaterNetworkFields, type WaterProfile} from './water/profile.ts';
 /** Versioned authoring data shared by the editor, game and static-map compiler. */
 import catalogue from '../assets/catalog.json' with { type: 'json' };
 import { DEFAULT_NPCS, validateNPCs, type NPCDefinition } from './npc.ts';
@@ -52,8 +52,16 @@ export interface BiomeStroke {
     | 'village';
   density: number;
 }
+/** Oriented link of a river to its source or outlet (lake, river junction, sea). */
+export interface WaterLink { kind: 'lake' | 'river' | 'sea'; id?: string }
 export interface WaterBody {
   profile?: WaterProfile;
+  /** Lake = closed outline at a constant level; absent = river/stream (historical). */
+  kind?: 'river' | 'lake';
+  from?: WaterLink;
+  to?: WaterLink;
+  /** Explicit waterfalls at an intermediate point: high and low levels kept. */
+  falls?: { at: number; top: number; bottom: number }[];
   id: string;
   points: { x: number; z: number }[];
   width: number;
@@ -239,7 +247,7 @@ export function parseWorld(value: unknown): WorldDefinition {
     )
   )
     throw Error('Volumes d’eau invalides');
-  for(const w of value.water as WaterBody[])validateWaterProfile(w.profile,w.points.length);
+  for(const w of value.water as WaterBody[]){validateWaterProfile(w.profile,w.points.length);validateWaterNetworkFields(w);}
   if (!list(value.paths, 100, (p) => line(p) && (p.kind === undefined || PATH_KINDS.includes(p.kind as PathKind)) && (p.smooth === undefined || typeof p.smooth === 'boolean'))) throw Error('Chemins invalides');
   if (!validateNPCs(value.npcs, config))
     throw Error('PNJ ou dialogues invalides');

@@ -6,6 +6,7 @@
 import {loadCompiledManifest,loadCompiledLogic,loadCompiledChunk} from '../world-compiler/load.ts';
 import type {CompiledWorldManifest,CompiledChunkData,CompiledLogicData} from '../world-compiler/manifests.ts';
 import {runtimeContent} from '../studio-core/migration.ts';
+import {activitiesFromZones,activityItems} from '../gameplay/activities.ts';
 import {gameplayDataFromIndex} from '../gameplay/project-adapter.ts';
 import {defaultEnvironment} from '../environment/climate.ts';
 import {validateAudioLinks} from '../audio/schema.ts';
@@ -60,7 +61,9 @@ export function playableFromCompiled(bundle:CompiledWorldBundle,spawn?:Point3):P
   const world:WorldDefinition={...(Object.keys(masks).length||zones.length?{geography:{sectorSizeM:manifest.chunkSizeM,masks,zones}}:{}),schemaVersion:2,name:manifest.worldId,config,placements,terrain,biomes,
     water:unionById(chunks.map(chunk=>chunk.water as WaterBody[])).map(w=>structuredClone(w)),paths:unionById(chunks.map(chunk=>chunk.paths as PathDefinition[])).map(p=>structuredClone(p)),npcs,...(lights.length?{lights}:{})};
   const components=new Map<string,ComponentMap>(entities.map(entity=>[entity.id,entity.components]));
+  const activities=activitiesFromZones(Object.values(logic.libraries.zones??{}),createTerrainSource(config,terrain));
   const gameplay=gameplayDataFromIndex({entityIndex:logic.entityIndex,components,libraries:logic.libraries,environment:manifest.environment??defaultEnvironment(manifest.seed),worldId:manifest.worldId,buildVersion:manifest.buildVersion});
+  gameplay.items=activityItems(activities,gameplay.items);
   const rendered=new Set([...placements.map(p=>p.id),...npcs.map(n=>n.id)]);
   for(const entity of gameplay.entities)if(entity.interactable&&!rendered.has(entity.id))throw Error('Objet interactif sans représentation : '+entity.id);
   const collisions:CollisionDefinition[]=chunks.flatMap(chunk=>chunk.collision.shapes.filter(shape=>shape.collider.layer==='solid').map(shape=>transformedCollider(shape.entityId,shape.collider,shape.transform)));
@@ -68,7 +71,7 @@ export function playableFromCompiled(bundle:CompiledWorldBundle,spawn?:Point3):P
   validateAudioLinks(manifest.audio,gameplay.entities.map(e=>e.id),actions.filter(a=>a.type==='playSound').map(a=>(a as {soundId:string}).soundId));
   const start=spawn??defaultSpawn(config,terrain);
   if(Math.abs(start.x)>(config.width??0)/2||Math.abs(start.z)>(config.length??0)/2)throw Error('Point de départ hors de la carte');
-  return {schemaVersion:1,kind:'playable-world',...(manifest.audio?{audio:manifest.audio}:{}),world,gameplay,collisions,spawn:{...start}};
+  return {schemaVersion:1,kind:'playable-world',...(manifest.audio?{audio:manifest.audio}:{}),world,gameplay,collisions,spawn:{...start},...(activities.mines.length||activities.farms.length?{activities}:{})};
 }
 /** Published worlds: a same-origin relative manifest path such as `maps/island/manifest.json`. */
 export function publishedManifestURL(base:string,path:string):string{

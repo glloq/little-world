@@ -14,9 +14,13 @@ export function createEnvironmentView(scene:THREE.Scene,lighting:Lighting,clock:
  const rain=new THREE.Points(geometry,material);rain.frustumCulled=false;rain.visible=false;rain.renderOrder=2;scene.add(rain);
  const panel=document.createElement('details');panel.className='environment-controls';const summary=document.createElement('summary'),timeLabel=document.createElement('span'),weatherLabel=document.createElement('span'),label=document.createElement('label'),rate=document.createElement('select');summary.textContent='Heure et météo';label.textContent='Vitesse du monde';rate.setAttribute('aria-label','Vitesse du monde');for(const [value,text]of [['0','Pause'],['1','×1'],['60','×60'],['240','×240']])rate.add(new Option(text,value));rate.value='1';rate.onchange=()=>clock.setRate(Number(rate.value));label.append(rate);panel.append(summary,timeLabel,weatherLabel,label);document.body.append(panel);
  let visualTime=0,lastLabel='';
- function update(dt:number,position:{x:number;y:number;z:number},detail:number){
+ /** `underground`: inside a mine, the sky no longer lights the scene (local lanterns do). */
+ function update(dt:number,position:{x:number;y:number;z:number},detail:number,underground=false){
   const state=climate.state(clock.time);applySkyLighting(lighting,background,state.sunAltitude,state.dayPhase,state.cloudCover);
-  visualTime+=Math.max(0,Math.min(dt,.25));uniforms.time.value=visualTime;uniforms.anchor.value.set(position.x,position.y,position.z);rain.visible=state.weather==='rain'&&detail<2;geometry.setDrawRange(0,detail===1?96:count);
+  // Underground: no sky light; neutral rock-coloured ambient (outdoor sky/grass tints restored outside).
+  if(underground){lighting.sun.intensity=0;lighting.fill.intensity=.04;lighting.ambient.intensity=.7;lighting.ambient.color.set('#c9c0b4');lighting.ambient.groundColor.set('#4d4640');background.set('#0d0c0b');}
+  else if(lighting.ambient.groundColor.getHex()!==0x678c7c){lighting.ambient.color.set(0xfaf7e9);lighting.ambient.groundColor.set(0x678c7c);}
+  visualTime+=Math.max(0,Math.min(dt,.25));uniforms.time.value=visualTime;uniforms.anchor.value.set(position.x,position.y,position.z);rain.visible=state.weather==='rain'&&detail<2&&!underground;geometry.setDrawRange(0,detail===1?96:count);
   const minutes=Math.floor(state.dayPhase*1440),text=`${String(Math.floor(minutes/60)).padStart(2,'0')}:${String(minutes%60).padStart(2,'0')} · ${state.weather}`;
   if(text!==lastLabel){lastLabel=text;timeLabel.textContent=text.split(' · ')[0];weatherLabel.textContent={clear:'Temps clair',cloudy:'Ciel couvert',rain:'Pluie'}[state.weather]+` · ${state.temperatureC} °C`;panel.dataset.weather=state.weather;panel.dataset.time=String(clock.time);}
   if(Number(rate.value)!==clock.rate)rate.value=String(clock.rate);

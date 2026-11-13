@@ -1,0 +1,66 @@
+{
+ "renderer": "Chromium SwiftShader (CPU)",
+ "note": "submit = temps CPU de soumission WebGL, pas un temps GPU",
+ "authoredChunks": {
+  "files": 40,
+  "bytes": 40893
+ },
+ "rows": [
+  {
+   "place": "surface (mine entrance)",
+   "frames": 36,
+   "intervalP50": 133.4,
+   "intervalP95": 350,
+   "intervalP99": 466.8,
+   "submitCpuP50": 2.1,
+   "drawCallsP50": 132,
+   "trianglesP50": 49159,
+   "geometries": 79,
+   "mineChunks": 0,
+   "mineQuads": 0,
+   "farmInstances": 0
+  },
+  {
+   "place": "mine level 3",
+   "frames": 64,
+   "intervalP50": 83.3,
+   "intervalP95": 100.1,
+   "intervalP99": 133.4,
+   "submitCpuP50": 1.3,
+   "drawCallsP50": 98,
+   "trianglesP50": 32437,
+   "geometries": 107,
+   "mineChunks": 4,
+   "mineQuads": 158,
+   "farmInstances": 0
+  },
+  {
+   "place": "farm plots",
+   "frames": 48,
+   "intervalP50": 100,
+   "intervalP95": 233.3,
+   "intervalP99": 349.9,
+   "submitCpuP50": 1.4,
+   "drawCallsP50": 121,
+   "trianglesP50": 42900,
+   "geometries": 77,
+   "mineChunks": 0,
+   "mineQuads": 0,
+   "farmInstances": 460
+  },
+  {
+   "place": "lake shore",
+   "frames": 46,
+   "intervalP50": 100.1,
+   "intervalP95": 233.4,
+   "intervalP99": 266.6,
+   "submitCpuP50": 2.1,
+   "drawCallsP50": 101,
+   "trianglesP50": 37632,
+   "geometries": 80,
+   "mineChunks": 0,
+   "mineQuads": 0,
+   "farmInstances": 0
+  }
+ ]
+}

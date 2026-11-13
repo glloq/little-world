@@ -1,3 +1,4 @@
+import {levelCountPatch} from './activity-inspector.ts';
 import {node,button,field,input,numberInput,select} from './dom.ts';
 import type {StudioSession} from './session.ts';
 import type {PolylineTarget} from './viewport/polyline-tool.ts';
@@ -12,7 +13,8 @@ import type {PathDefinition,PathKind,WaterBody} from '../world-data.ts';
 
 /** E6 — lines (paths, rivers) and activity zones edited in the 3D view with the shared
  * polyline tool. Every validation goes through the existing V3 validators. */
-export interface FeatureContext {session:StudioSession;edit(target:PolylineTarget):void;status(text:string,error?:boolean):void;focus(x:number,z:number):void;}
+export interface FeatureContext {session:StudioSession;edit(target:PolylineTarget):void;status(text:string,error?:boolean):void;focus(x:number,z:number):void;
+  /** PHYS diagnostics overlay of the 3D view. */physics?:{enabled():boolean;toggle(on:boolean):void};}
 const length=(pts:{x:number;z:number}[])=>pts.slice(1).reduce((s,p,i)=>s+Math.hypot(p.x-pts[i].x,p.z-pts[i].z),0);
 /** Manual river heights follow a change of point count by interpolation along the line. */
 export function resampleLevels(levels:number[],before:{x:number;z:number}[],after:{x:number;z:number}[]):number[]{
@@ -67,18 +69,20 @@ export function mountPathsPanel(host:HTMLElement,ctx:FeatureContext){
 export function mountZonesPanel(host:HTMLElement,ctx:FeatureContext){
   const s=ctx.session,p=s.document;let levels=3;
   const zoneTarget=(kind:ActivityZoneV3['kind'],existing?:ActivityZoneV3):PolylineTarget=>{
-    const make=(polygon:{x:number;z:number}[]):ActivityZoneV3=>({id:existing?.id??'zone:'+crypto.randomUUID(),kind,name:existing?.name??(kind==='mine'?'Mine':'Parcelle')+' '+(Object.keys(p.libraries.zones??{}).length+1),polygon,...(kind==='mine'?{levels:existing?.levels??levels}:{})});
+    const make=(polygon:{x:number;z:number}[]):ActivityZoneV3=>({id:existing?.id??'zone:'+crypto.randomUUID(),kind,name:existing?.name??(kind==='mine'?'Mine':'Parcelle')+' '+(Object.keys(p.libraries.zones??{}).length+1),polygon,...(kind==='mine'?{levels:existing?.levels??levels}:{}),...(existing?.mine?{mine:existing.mine}:{}),...(existing?.farm?{farm:existing.farm}:{})});
     return {label:(existing?'Contour : ':'Nouvelle ')+(existing?.name??ZONE_KINDS[kind].toLowerCase()),points:existing?.polygon??[],min:3,max:64,closed:true,color:kind==='mine'?0x8a5a3c:0xd9a520,
       diagnose:points=>{try{validateZone(make(points),p.world);return null;}catch(e){return String(e instanceof Error?e.message:e);}},
       commit:async points=>{const zone=make(points);await s.change(existing?'Modifier une zone':'Dessiner '+ZONE_KINDS[kind].toLowerCase(),[],d=>putZone(d,zone));}};
   };
-  host.append(node('div','ZONES D’ACTIVITÉ','kicker'),node('h3','Parcelles et mines'),node('p','Les limites sont des données auteur (contrat V3) : le moteur de mine et d’agriculture n’est pas encore implémenté.','muted'),
+  host.append(node('div','ZONES D’ACTIVITÉ','kicker'),node('h3','Parcelles et mines'),node('p','Dessinez une zone, puis réglez ses niveaux, son entrée, sa géologie ou ses cultures dans l’inspecteur. « Jouer ici » permet de creuser et de cultiver sur une copie de test.','muted'),
     button('Nouvelle parcelle agricole',()=>ctx.edit(zoneTarget('farm-plot')),'primary-button'),field('Niveaux des nouvelles mines',numberInput(levels,v=>levels=Math.max(1,Math.min(8,Math.round(v)||1)),1,8,'1')),button('Nouvelle mine',()=>ctx.edit(zoneTarget('mine'))));
+  if(ctx.physics){const overlay=node('input');overlay.type='checkbox';overlay.checked=ctx.physics.enabled();overlay.onchange=()=>ctx.physics!.toggle(overlay.checked);
+    host.append(field('Diagnostic physique : volumes de collision, pentes infranchissables, niveaux de mine',overlay));}
   const list=node('div','','feature-list');
   for(const zone of Object.values(p.libraries.zones??{})){
     const row=node('div','','feature-row'),update=async(label:string,next:ActivityZoneV3)=>{try{await s.change(label,[],d=>putZone(d,next));}catch(e){ctx.status(String(e instanceof Error?e.message:e),true);}};
     row.append(node('strong',`${ZONE_KINDS[zone.kind]} · ${Math.round(polygonArea(zone.polygon))} m²`),field('Nom de la zone',input(zone.name,v=>void update('Renommer une zone',{...zone,name:v}))));
-    if(zone.kind==='mine')row.append(field('Niveaux',numberInput(zone.levels??1,v=>void update('Niveaux de la mine',{...zone,levels:Math.round(v)}),1,8,'1')));
+    if(zone.kind==='mine')row.append(field('Niveaux',numberInput(zone.levels??1,v=>void update('Niveaux de la mine',{...zone,...levelCountPatch(zone,v)}),1,8,'1')));
     row.append(button('Voir',()=>ctx.focus(zone.polygon[0].x,zone.polygon[0].z)),button('Éditer le contour',()=>ctx.edit(zoneTarget(zone.kind,zone))),button('Supprimer',async()=>{await s.change('Supprimer une zone',[],d=>removeZone(d,zone.id));}));list.append(row);
   }
   if(!list.children.length)list.append(node('p','Aucune zone dessinée.','muted'));

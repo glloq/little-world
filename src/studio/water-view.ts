@@ -1,6 +1,6 @@
 import type {WaterBody} from '../world-data.ts';
 import {createTerrainSource} from '../terrain.ts';
-import {compileWaterBody,validateWaterProfile} from '../water/profile.ts';
+import {compileWaterNetwork,validateWaterProfile,validateWaterNetworkFields} from '../water/profile.ts';
 import {drawHydroProfile} from '../water/profile-view.ts';
 import {waterChunkIds,waterEditChunkIds} from '../water/sectors.ts';
 import {putWater,removeWater} from '../studio-core/source.ts';
@@ -29,7 +29,7 @@ export function mountWater(host:HTMLElement,tools:HTMLElement,s:StudioSession){
   }
   for(const w of [...Object.values(p.libraries.water).filter(v=>v.id!==draft.id),draft]){
    ctx.strokeStyle=w.id===draft.id?'#137da8':'#96c4cf';ctx.lineWidth=Math.max(2,w.width/(b.maxX-b.minX)*960);ctx.beginPath();
-   w.points.forEach((v,i)=>{const q=xy(v);if(i)ctx.lineTo(q.x,q.y);else ctx.moveTo(q.x,q.y);});ctx.stroke();
+   w.points.forEach((v,i)=>{const q=xy(v);if(i)ctx.lineTo(q.x,q.y);else ctx.moveTo(q.x,q.y);});if(w.kind==='lake'){ctx.closePath();ctx.fillStyle='rgba(79,159,192,.45)';ctx.fill();}ctx.stroke();
   }
   draft.points.forEach((v,i)=>{const q=xy(v);ctx.fillStyle='#175c79';ctx.beginPath();ctx.arc(q.x,q.y,5,0,Math.PI*2);ctx.fill();ctx.fillText(String(i+1),q.x+7,q.y-7);});
  }
@@ -37,17 +37,36 @@ export function mountWater(host:HTMLElement,tools:HTMLElement,s:StudioSession){
   const token=++generation;draw();
   await s.hydrate(waterChunkIds(p.world,draft));if(disposed||token!==generation)return;draw();
   validateWaterProfile(draft.profile,draft.points.length);
-  const profile=compileWaterBody(draft,source());drawHydroProfile(plot,profile);
+  // Whole network: links to lakes, rivers and the sea are diagnosed with the draft in place.
+  const network=compileWaterNetwork([...Object.values(p.libraries.water).filter(w=>w.id!==draft.id),draft],source(),p.world.seaLevel),profile=network.at(-1)!;
+  if(draft.kind==='lake'){const ctx=plot.getContext('2d')!;ctx.clearRect(0,0,plot.width,plot.height);summary.textContent=draft.points.length>=3?`Lac · ${draft.points.length} sommets · niveau ${draft.level.toFixed(2)} m · profondeur ${draft.depth} m`:'Cliquer au moins trois sommets du rivage.';messages.replaceChildren(...profile.diagnostics.map(d=>node('p',d.message,'diagnostic '+d.severity)));return;}
+  drawHydroProfile(plot,profile);
   summary.textContent=profile.points.length?`${draft.points.length} points · ${profile.points.at(-1)!.distance.toFixed(0)} m · Eau : ${profile.points[0].level.toFixed(2)} → ${profile.points.at(-1)!.level.toFixed(2)} m · Terrain brun / eau bleue`:'Ajouter au moins deux points. Les niveaux sont en mètres.';
   messages.replaceChildren(...profile.diagnostics.map(d=>node('p',d.message,'diagnostic '+d.severity)));
  }
  const update=()=>{void refresh().catch(e=>messages.replaceChildren(node('p',String(e),'diagnostic ERROR')));};
+ /** V3 hydrography: river or lake, oriented links (source / outlet), explicit waterfalls. */
+ function networkControls(){
+  tools.append(field('Forme',select(draft.kind==='lake'?'lake':'river',[['river','Cours d’eau (tracé orienté)'],['lake','Lac (contour, niveau constant)']],v=>{
+   if(v==='lake'){draft.kind='lake';delete draft.profile;delete draft.from;delete draft.to;delete draft.falls;}else{delete draft.kind;draft.profile={mode:'terrain',offset:-.35};}controls();update();})));
+  if(draft.kind==='lake')return; // level: « Altitude du plan d’eau » below
+  const others=Object.values(p.libraries.water).filter(w=>w.id!==draft.id),label=(w:WaterBody)=>(w.kind==='lake'?'Lac ':'Rivière ')+w.id.slice(0,8);
+  const links:[string,string][]=[['','Aucun'],['sea','La mer'],...others.map(w=>[(w.kind==='lake'?'lake:':'river:')+w.id,label(w)] as [string,string])];
+  const encode=(l?:WaterBody['to'])=>!l?'':l.kind==='sea'?'sea':l.kind+':'+l.id,decode=(v:string):WaterBody['to']=>!v?undefined:v==='sea'?{kind:'sea'}:{kind:v.split(':')[0] as 'lake'|'river',id:v.slice(v.indexOf(':')+1)};
+  tools.append(field('Sort de',select(encode(draft.from),links.filter(l=>l[0]!=='sea'),v=>{const l=decode(v);if(l)draft.from=l;else delete draft.from;update();})),
+   field('Se jette dans',select(encode(draft.to),links,v=>{const l=decode(v);if(l)draft.to=l;else delete draft.to;update();})));
+  const falls=node('div','','water-falls');falls.append(node('h4','Cascades (niveaux haut et bas explicites)'));
+  for(const [k,f] of (draft.falls??[]).entries()){const row=node('div','','water-point');row.append(field(`Cascade ${k+1} au point`,numberInput(f.at+1,v=>{f.at=Math.round(v)-1;update();},2,Math.max(2,draft.points.length-1),'1')),field('Haut (m)',numberInput(f.top,v=>{f.top=v;update();},-50,150)),field('Bas (m)',numberInput(f.bottom,v=>{f.bottom=v;update();},-50,150)),button('Retirer la cascade',()=>{draft.falls=draft.falls!.filter(x=>x!==f);if(!draft.falls.length)delete draft.falls;controls();update();}));falls.append(row);}
+  if(draft.points.length>=3)falls.append(button('Ajouter une cascade',()=>{const at=Math.floor(draft.points.length/2),c=compileWaterNetwork([draft],source(),p.world.seaLevel)[0],q=draft.points[at],near=c.points.reduce((a,v)=>Math.hypot(v.x-q.x,v.z-q.z)<Math.hypot(a.x-q.x,a.z-q.z)?v:a,c.points[0]),top=Math.floor(near.level*10)/10;draft.falls=[...(draft.falls??[]),{at,top,bottom:Math.round((top-3)*10)/10}];controls();update();}));
+  tools.append(falls);
+ }
  function controls(){
   tools.replaceChildren(node('h3','Eau · tracés et profil'));
   const choices:[string,string][]=[['','Nouveau cours d’eau'],...Object.values(p.libraries.water).map((w,i)=>[w.id,`Eau ${i+1} · ${w.id.slice(0,6)}`] as [string,string])];
   tools.append(field('Tracé d’eau',select(p.libraries.water[draft.id]?draft.id:'',choices,id=>{draft=id?structuredClone(p.libraries.water[id]):empty();lastId=id;s.selection.select(id?{kind:'water',id}:null);controls();update();})));
+  networkControls();
   const mode=draft.profile?.mode??'constant';
-  tools.append(field('Type d’eau',select(mode,[['terrain','Cours d’eau — relief'],['constant','Plan d’eau — horizontal'],['manual','Profil manuel verrouillé']],v=>{
+  if(draft.kind!=='lake')tools.append(field('Type d’eau',select(mode,[['terrain','Cours d’eau — relief'],['constant','Plan d’eau — horizontal'],['manual','Profil manuel verrouillé']],v=>{
    if(v==='constant')delete draft.profile;
    else if(v==='terrain')draft.profile={mode:'terrain',offset:-.35};
    else {let previous=Infinity;const height=source();draft.profile={mode:'manual',levels:draft.points.map(v=>previous=Math.min(previous,height(v.x,v.z)-.35))};}
@@ -61,8 +80,8 @@ export function mountWater(host:HTMLElement,tools:HTMLElement,s:StudioSession){
   tools.append(button('Appliquer le tracé',async()=>{
    if(committing)return;committing=true;
    try{
-    await s.hydrate(waterChunkIds(p.world,draft));validateWaterProfile(draft.profile,draft.points.length);
-    const profile=compileWaterBody(draft,source()),errors=profile.diagnostics.filter(d=>d.severity==='ERROR');
+    await s.hydrate(waterChunkIds(p.world,draft));validateWaterProfile(draft.profile,draft.points.length);validateWaterNetworkFields(draft);
+    const profile=compileWaterNetwork([...Object.values(p.libraries.water).filter(w=>w.id!==draft.id),draft],source(),p.world.seaLevel).at(-1)!,errors=profile.diagnostics.filter(d=>d.severity==='ERROR');
     if(errors.length)throw Error(errors.map(d=>d.message).join(' '));
     const copy=structuredClone(draft),ids=waterEditChunkIds(p,p.libraries.water[copy.id],copy);lastId=copy.id;
     await s.change('Modifier le tracé d’eau',ids,d=>putWater(d,copy));s.selection.select({kind:'water',id:copy.id});

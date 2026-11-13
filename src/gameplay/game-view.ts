@@ -5,10 +5,13 @@ import type {CollisionDefinition} from '../physics/definitions.ts';
 import {terrainHeight,waterSurface} from '../terrain.ts';
 import {createGameplay} from './runtime.ts';
 import {gameplayDialogueSession} from './dialogue-session.ts';
-import {createGameSaveStore,scopedSaveStorage} from './save.ts';
+import {createGameSaveStore,scopedSaveStorage,type GameSaveV2} from './save.ts';
+import {createActivityRuntime} from './activity-runtime.ts';
+import type {PlayableActivities} from './activities.ts';
+import type {MovementSpace} from '../physics/collision-world.ts';
 import type {GameplayData,GameplayEntity,Point3} from './schema.ts';
 import './game-view.css';
-interface Options {onSound?:(id:string,position?:{x:number;y:number;z:number})=>void;collisions?:CollisionDefinition[];temporary:boolean;saveScope?:string;getPosition:()=>Point3;setPosition:(p:Point3)=>void;showInfo:(text:string)=>void;objects:THREE.Group;}
+interface Options {onSound?:(id:string,position?:{x:number;y:number;z:number})=>void;collisions?:CollisionDefinition[];temporary:boolean;saveScope?:string;getPosition:()=>Point3;setPosition:(p:Point3,space?:MovementSpace|null)=>void;activities?:PlayableActivities;getSpace?:()=>MovementSpace|undefined;showInfo:(text:string)=>void;objects:THREE.Group;}
 const element=<K extends keyof HTMLElementTagNameMap>(tag:K,text='')=>{const e=document.createElement(tag);e.textContent=text;return e;};
 /** Bounded UI/effect adapter. It never opens the Studio authoring database. */
 export function createGameplayView(data:GameplayData,options:Options){
@@ -17,6 +20,9 @@ export function createGameplayView(data:GameplayData,options:Options){
  root.className='game-save-panel';root.hidden=true;root.setAttribute('role','dialog');root.setAttribute('aria-label','Sac et sauvegardes');root.setAttribute('aria-modal','true');launcher.className='game-save-launcher light-button';root.append(heading,element('p',options.temporary?'Partie de test : slots temporaires, séparés des vraies parties.':'Parties locales conservées dans ce navigateur. Exportez un slot pour le protéger.'),inventory,objectives,slotRows,feedback,close);document.body.append(root,launcher);
  const collisionDefinitions=new Map((options.collisions??[]).map(d=>[d.id,d]));
  const collision=new WorldCollisionQuery(terrainHeight,waterSurface);for(const definition of options.collisions??[]){const height=terrainHeight(definition.groundAnchor.x,definition.groundAnchor.z);collision.add({...definition,position:{...definition.position,y:definition.position.y+height},enabled:()=>{const state=runtime.state.entities[definition.id];return state?.open!==true&&state?.collected!==true;}});}
+ const activities=createActivityRuntime(options.activities??{mines:[],farms:[]},{grant:changes=>runtime.grantItems(changes),time:()=>runtime.state.time,climate:runtime.climate,collision,ground:terrainHeight,water:waterSurface});
+ /** Core gameplay state + active space + activity differences, in one versioned save. */
+ const compose=(slotId:string):GameSaveV2=>({...runtime.save(slotId,options.getPosition()),space:options.getSpace?.()??null,...activities.serialize()});
  let npcs:readonly NPCState[]=[],version=-1,previousFocus:HTMLElement|null=null,disposed=false;
  const entityIds=new Set(runtime.data.entities.map(e=>e.id)),targets=runtime.data.entities.filter(e=>e.interactable),interactions=new Map<string,typeof runtime.data.interactions>();
  for(const i of runtime.data.interactions)if(i.trigger.type==='onInteract'){const list=interactions.get(i.trigger.entityId)??[];list.push(i);interactions.set(i.trigger.entityId,list);}
@@ -35,10 +41,11 @@ export function createGameplayView(data:GameplayData,options:Options){
  }
  async function renderSlots(){
   slotRows.replaceChildren(element('h3',options.temporary?'Slots de test':'Slots de partie'));const available=await slots.list(data.worldId);
-  for(const id of ['slot-1','slot-2','slot-3']){const current=available.find(s=>s.slotId===id),row=element('div');row.className='game-slot-row';row.append(element('strong',id.replace('slot-','Partie ')),element('span',current?.error?'Illisible : '+current.error:current?.savedAt?new Date(current.savedAt).toLocaleString('fr'):'Vide'),button('Sauvegarder',async()=>{await slots.save(runtime.save(id,options.getPosition()));feedback.textContent='Partie sauvegardée.';await renderSlots();}));
-   if(current&&!current.error)row.append(button('Charger',async()=>{const save=await slots.load(data.worldId,id);if(!save)throw Error('Slot absent');const warnings=runtime.restore(save);options.setPosition(save.position);sync();renderInventory();feedback.textContent=warnings.length?warnings.join(' · '):'Partie restaurée.';}),button('Exporter',async()=>{const save=await slots.load(data.worldId,id);if(save)download(id,JSON.stringify(save,null,2));}));slotRows.append(row);
+  for(const id of ['slot-1','slot-2','slot-3']){const current=available.find(s=>s.slotId===id),row=element('div');row.className='game-slot-row';row.append(element('strong',id.replace('slot-','Partie ')),element('span',current?.error?'Illisible : '+current.error:current?.savedAt?new Date(current.savedAt).toLocaleString('fr'):'Vide'),button('Sauvegarder',async()=>{const r=await slots.save(compose(id));feedback.textContent=r.external?'Partie sauvegardée (détails des mines et parcelles dans le stockage IndexedDB du navigateur).':'Partie sauvegardée.';await renderSlots();}));
+   if(current&&!current.error)row.append(button('Charger',async()=>{const save=await slots.load(data.worldId,id);if(!save)throw Error('Slot absent');const warnings=[...runtime.restore(save),...activities.restore(save)];options.setPosition(save.position,save.space??null);sync();renderInventory();feedback.textContent=warnings.length?warnings.join(' · '):'Partie restaurée.';}),button('Exporter',async()=>{const save=await slots.load(data.worldId,id);if(save)download(id,JSON.stringify(save,null,2));}));slotRows.append(row);
   }
-  const imported=element('input');imported.type='file';imported.accept='.json,application/json';imported.setAttribute('aria-label','Importer une sauvegarde');imported.onchange=()=>void Promise.resolve().then(async()=>{const file=imported.files?.[0];if(!file)return;if(file.size>2_000_000)throw Error('Sauvegarde trop volumineuse');const raw=JSON.parse(await file.text());if(raw.worldId!==data.worldId)throw Error('Sauvegarde d’un autre monde');await slots.save(raw);feedback.textContent='Slot importé. Chargez-le pour reprendre.';await renderSlots();}).catch(e=>feedback.textContent=String(e));slotRows.append(imported);
+  slotRows.append(button('Exporter la partie en cours',()=>download('partie-en-cours',JSON.stringify(compose('slot-export'),null,2))));
+  const imported=element('input');imported.type='file';imported.accept='.json,application/json';imported.setAttribute('aria-label','Importer une sauvegarde');imported.onchange=()=>void Promise.resolve().then(async()=>{const file=imported.files?.[0];if(!file)return;if(file.size>20_000_000)throw Error('Sauvegarde trop volumineuse');const raw=JSON.parse(await file.text());if(raw.worldId!==data.worldId)throw Error('Sauvegarde d’un autre monde');if(!['slot-1','slot-2','slot-3'].includes(raw.slotId)){const used=new Set((await slots.list(data.worldId)).map(v=>v.slotId)),free=['slot-1','slot-2','slot-3'].find(id=>!used.has(id));if(!free)throw Error('Libérez un slot pour importer cette partie');raw.slotId=free;}await slots.save(raw);feedback.textContent='Slot importé. Chargez-le pour reprendre.';await renderSlots();}).catch(e=>feedback.textContent=String(e));slotRows.append(imported);
  }
  function dismiss(){root.hidden=true;previousFocus?.focus();}
  launcher.onclick=()=>{previousFocus=document.activeElement as HTMLElement;root.hidden=false;feedback.textContent='';renderInventory();void renderSlots().catch(e=>feedback.textContent=String(e));close.focus();};close.onclick=dismiss;
@@ -52,7 +59,7 @@ export function createGameplayView(data:GameplayData,options:Options){
  }
  sync();
  return {
-  runtime,collision,get isOpen(){return !root.hidden;},dialogueSession:(state:NPCState)=>gameplayDialogueSession(runtime,state.definition.id),attachNPCs(states:readonly NPCState[]){npcs=states;},
+  runtime,collision,activities,get isOpen(){return !root.hidden;},dialogueSession:(state:NPCState)=>gameplayDialogueSession(runtime,state.definition.id),attachNPCs(states:readonly NPCState[]){npcs=states;},
   prompt(position:Point3){runtime.state.playerPosition={...position};const target=nearest(position);return target?'[E] '+target.interactable!.prompt:null;},
   interact(position:Point3){runtime.state.playerPosition={...position};const target=nearest(position);return target?runtime.interact(target.id,position):false;},
   update(dt:number){

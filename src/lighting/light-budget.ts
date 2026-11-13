@@ -61,7 +61,7 @@ export class LightBudget {
     for(let i=0;i<n;i++){
       const l=list[i];this.seeds[i]=lightSeed(l.id);this.maxRange=Math.max(this.maxRange,l.range);
       // Height above the ground under the carrying entity (as for its model), plus the offset.
-      this.px[i]=l.x;this.py[i]=height(l.x-l.offset.x,l.z-l.offset.z)+l.y;this.pz[i]=l.z;
+      this.px[i]=l.x;this.py[i]=l.absolute?l.y:height(l.x-l.offset.x,l.z-l.offset.z)+l.y;this.pz[i]=l.z;
       if(l.follow){this.followers.push(i);continue;}
       const key=cellKey(Math.floor(l.x/this.cellSize),Math.floor(l.z/this.cellSize));let cell=this.cells.get(key);if(!cell)this.cells.set(key,cell=[]);cell.push(i);
     }

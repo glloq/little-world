@@ -151,14 +151,18 @@ export function createTerrainView(
       if (!desired.some((d) => key(d, d.lod) === k)) { job.task.cancel(); inFlight.delete(k); }
     for (let i = 0; i < pending.length && inFlight.size < MAX_IN_FLIGHT; i++) {
       const chunk = pending[i], k = key(chunk, chunk.lod);
-      if (inFlight.has(k) || cache.has(k)) continue;
+      // Already built (e.g. by a request issued before a replan): show it, never wait for it.
+      const ready = cache.get(k);
+      if (ready) { pending.splice(i--, 1); show(ready); continue; }
+      if (inFlight.has(k)) continue;
       const task = pool!.run<ChunkData>({ kind: 'tile', chunk: { minX: chunk.minX, maxX: chunk.maxX, minZ: chunk.minZ, maxZ: chunk.maxZ }, lod: chunk.lod }, i);
       inFlight.set(k, { chunk, task });
       task.promise.then(({ result, stale }) => {
         if (inFlight.get(k)?.task !== task) return;
         inFlight.delete(k);
         if (dead || stale || cache.has(k)) return;
-        const index = pending.indexOf(chunk);
+        // A replan may have queued a new object for the same tile: match by key, not identity.
+        const index = pending.findIndex((c) => key(c, c.lod) === k);
         if (index >= 0) pending.splice(index, 1);
         build(chunk, result);
         work.lastBuilt++;
