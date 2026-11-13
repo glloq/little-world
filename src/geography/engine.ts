@@ -55,10 +55,12 @@ export function createGeoContext(src:GeographySources|null,deps:GeoDeps):GeoCont
 }
 let sources:GeographySources|null=null,revision=0,cached:GeoContext|null=null;
 const runtimeDeps=():GeoDeps=>({seaLevel:getTerrainConfig().seaLevel,height:terrainHeight,water:waterSurfaceWithHeight,site:geoSiteAt,pathDistance,waterDistance:waterEdgeDistance});
-export function configureGeography(next:GeographySources){sources={...next,masks:{...next.masks}};revision++;cached=null;}
+let signature='';
+/** Unchanged sources keep the revision: workers and derived caches are not invalidated. */
+export function configureGeography(next:GeographySources){const s=JSON.stringify(next);sources={...next,masks:{...next.masks}};cached=null;if(s!==signature){signature=s;revision++;}}
 /** Replace the masks of some sectors (Studio edits, streaming); other sectors are kept. */
 export function updateGeographyMasks(masks:Record<string,SectorLayers|undefined>){
-  if(!sources)return;for(const [id,layers]of Object.entries(masks)){if(layers)sources.masks[id]=layers;else delete sources.masks[id];}revision++;cached=null;
+  if(!sources)return;for(const [id,layers]of Object.entries(masks)){if(layers)sources.masks[id]=layers;else delete sources.masks[id];}revision++;signature='';cached=null;
 }
 export function geographyRevision(){return revision;}
 export function geographySources(){return sources;}

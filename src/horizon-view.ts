@@ -1,7 +1,10 @@
 import * as THREE from 'three';
-import {terrainHeight,isLegacyTerrain} from './terrain.ts';
-import {surfaceColor} from './geography/surface.ts';
+import {isLegacyTerrain} from './terrain.ts';
 import {packedColors,packedNormals} from './render/packing.ts';
+import {horizonGrid,horizonFar,packedHorizonBlock,SEA_COLOR,type HorizonBounds} from './horizon-data.ts';
+export {horizonGrid,horizonFar,horizonBlockData,visibleHorizonIndex,packedHorizonBlock,type HorizonGrid} from './horizon-data.ts';
+import {visibleHorizonIndex,type PackedHorizonBlock} from './horizon-data.ts';
+import type {GeoWorkerPool} from './geography/geo-workers.ts';
 
 /** HZ-1: geographic horizon independent from detailed tiles.
  * The whole project rectangle is covered by a coarse heightfield split into blocks
@@ -12,60 +15,12 @@ import {packedColors,packedNormals} from './render/packing.ts';
  * water/terrain depth fighting at kilometres.
  * Purely derived visuals: no collision, simulation or source data depends on it.
  */
-export interface HorizonGrid {spacing:number;blockCells:number;columns:number;rows:number}
 export interface CoverageSource {version:number;tileSize:number;/** minY: lowest point of the displayed tile (skirts excluded) when known. */forEachActive(visit:(column:number,row:number,minY?:number)=>void):void}
 export interface HorizonStats {blocks:number;triangles:number;bytes:number;buildMs:number;rebuilt:number;coverageUpdates:number;oceanVisible:boolean}
 export interface HorizonView {group:THREE.Group;stats:HorizonStats;update(focus?:{x:number;z:number}):void;refresh(x:number,z:number,radius:number):void;dispose():void}
 
-const SEA_COLOR=0x6aa9b3;
-/** Target ≤ ~32k horizon vertices whatever the project size (measured budget, not a contract).
- * Spacing is the render tile size times a power of two, so horizon cells never straddle tiles. */
-export function horizonGrid(width:number,length:number,tileSize=64):HorizonGrid{
-  const raw=Math.sqrt(width*length/32768);let spacing=tileSize;
-  while(spacing>8&&spacing/2>=raw)spacing/=2;
-  while(spacing<raw)spacing*=2;
-  const blockCells=32;
-  return {spacing,blockCells,columns:Math.ceil(width/(spacing*blockCells)),rows:Math.ceil(length/(spacing*blockCells))};
-}
-/** Far clipping plane large enough for the project diagonal plus an ocean margin. */
-export function horizonFar(width:number,length:number):number{
-  return Math.min(20000,Math.max(750,Math.hypot(width,length)+2500));
-}
-interface Bounds {width:number;length:number;seaLevel:number}
-/** Pure geometry of one block; shared edges sample identical points, so blocks never crack. */
-export function horizonBlockData(bounds:Bounds,grid:HorizonGrid,column:number,row:number,height=terrainHeight,legacy=isLegacyTerrain()){
-  const step=grid.spacing,minX=-bounds.width/2+column*grid.blockCells*step,minZ=-bounds.length/2+row*grid.blockCells*step;
-  const cellsX=Math.max(1,Math.min(grid.blockCells,Math.ceil((bounds.width/2-minX)/step))),cellsZ=Math.max(1,Math.min(grid.blockCells,Math.ceil((bounds.length/2-minZ)/step)));
-  const clampX=(x:number)=>Math.min(bounds.width/2,Math.max(-bounds.width/2,x)),clampZ=(z:number)=>Math.min(bounds.length/2,Math.max(-bounds.length/2,z));
-  const w=cellsX+3,heights=new Float32Array(w*(cellsZ+3));
-  for(let j=0;j<cellsZ+3;j++)for(let i=0;i<w;i++)heights[j*w+i]=height(clampX(minX+(i-1)*step),clampZ(minZ+(j-1)*step));
-  const count=(cellsX+1)*(cellsZ+1),positions=new Float32Array(count*3),normals=new Float32Array(count*3),colors=new Float32Array(count*3),color=new THREE.Color();
-  let k=0;
-  for(let j=0;j<=cellsZ;j++)for(let i=0;i<=cellsX;i++,k++){
-    const x=clampX(minX+i*step),z=clampZ(minZ+j*step),c=(j+1)*w+i+1,h=heights[c];
-    const sea=!legacy&&h<bounds.seaLevel,y=sea?bounds.seaLevel:h;
-    let nx=0,nz=0;if(!sea){nx=(heights[c-1]-heights[c+1])/(2*step);nz=(heights[c-w]-heights[c+w])/(2*step);}
-    const n=Math.hypot(nx,1,nz),o=k*3;normals[o]=nx/n;normals[o+1]=1/n;normals[o+2]=nz/n;positions[o]=x;positions[o+1]=y;positions[o+2]=z;
-    if(sea)color.setHex(SEA_COLOR);else surfaceColor(x,z,h,Math.max(Math.abs(heights[c+1]-h),Math.abs(heights[c+w]-h))*2/step,color);
-    colors[o]=color.r;colors[o+1]=color.g;colors[o+2]=color.b;
-  }
-  const index=count>65535?new Uint32Array(cellsX*cellsZ*6):new Uint16Array(cellsX*cellsZ*6);let t=0;
-  for(let j=0;j<cellsZ;j++)for(let i=0;i<cellsX;i++){const a=j*(cellsX+1)+i,b=a+1,d=a+cellsX+1;index[t]=a;index[t+1]=d;index[t+2]=b;index[t+3]=b;index[t+4]=d;index[t+5]=d+1;t+=6;}
-  return {positions,normals,colors,index,minX,minZ,cellsX,cellsZ,maxX:clampX(minX+cellsX*step),maxZ:clampZ(minZ+cellsZ*step)};
-}
-/** Cells of a block whose render tile is displayed in detail are simply not indexed:
- * no hidden triangle is rasterised, no fragment is discarded. Horizon cells are
- * tile-aligned, so the visible horizon starts exactly where detailed tiles stop. */
-export function visibleHorizonIndex(full:ArrayLike<number>,cellsX:number,cellsZ:number,covered:(i:number,j:number)=>boolean,out:Uint16Array|Uint32Array):number{
-  let count=0;
-  for(let j=0;j<cellsZ;j++)for(let i=0;i<cellsX;i++){
-    if(covered(i,j))continue;const at=(j*cellsX+i)*6;
-    for(let k=0;k<6;k++)out[count++]=full[at+k];
-  }
-  return count;
-}
 interface Block {mesh:THREE.Mesh;full:Uint16Array|Uint32Array;minX:number;minZ:number;cellsX:number;cellsZ:number}
-export function createHorizonView(root:THREE.Group,bounds:Bounds,coverage:CoverageSource):HorizonView{
+export function createHorizonView(root:THREE.Group,bounds:HorizonBounds,coverage:CoverageSource,workers:GeoWorkerPool|null=null):HorizonView{
   const group=new THREE.Group();group.name='HorizonProxy';root.add(group);
   const tile=coverage.tileSize,grid=horizonGrid(bounds.width,bounds.length,tile),legacy=isLegacyTerrain();
   const columns=Math.ceil(bounds.width/tile),rows=Math.ceil(bounds.length/tile),mask=new Uint8Array(columns*rows);
@@ -77,8 +32,20 @@ export function createHorizonView(root:THREE.Group,bounds:Bounds,coverage:Covera
     const count=visibleHorizonIndex(block.full,block.cellsX,block.cellsZ,(i,j)=>{const t=tileOf(block.minX+(i+.5)*grid.spacing,block.minZ+(j+.5)*grid.spacing);return t>=0&&mask[t]>0;},index.array as Uint16Array|Uint32Array);
     g.setDrawRange(0,count);index.needsUpdate=true;block.mesh.visible=count>0;
   }
-  function build(column:number,row:number){
-    const begin=performance.now(),data=horizonBlockData(bounds,grid,column,row),geometry=new THREE.BufferGeometry();
+  // Workers compute blocks off the main thread; a newer request for the same block makes
+  // older answers obsolete (generation counter), the displayed block stays until replaced.
+  const generation=new Map<string,number>();let disposed=false;
+  function request(column:number,row:number,priority:number){
+    if(!workers?.available){build(column,row);return;}
+    const key=column+':'+row,gen=(generation.get(key)??0)+1;generation.set(key,gen);
+    workers.run<PackedHorizonBlock>({kind:'horizon',bounds:{width:bounds.width,length:bounds.length,seaLevel:bounds.seaLevel},grid,column,row},priority).promise.then(({result,stale})=>{
+      if(disposed||generation.get(key)!==gen)return;
+      if(stale){request(column,row,priority);return;}
+      build(column,row,result);measure();
+    },()=>{if(!disposed&&generation.get(key)===gen){build(column,row);measure();}});
+  }
+  function build(column:number,row:number,packed?:PackedHorizonBlock){
+    const begin=performance.now(),data=packed??packedHorizonBlock(bounds,grid,column,row),geometry=new THREE.BufferGeometry();
     geometry.setAttribute('position',new THREE.BufferAttribute(data.positions,3));geometry.setAttribute('normal',packedNormals(data.normals));geometry.setAttribute('color',packedColors(data.colors));
     geometry.setIndex(new THREE.BufferAttribute(data.index.slice(),1));geometry.computeBoundingBox();geometry.computeBoundingSphere();
     const key=column+':'+row,old=blocks.get(key);if(old){old.mesh.geometry.dispose();old.mesh.removeFromParent();}
@@ -87,7 +54,9 @@ export function createHorizonView(root:THREE.Group,bounds:Bounds,coverage:Covera
     stats.buildMs+=performance.now()-begin;stats.rebuilt++;
   }
   function measure(){stats.blocks=blocks.size;stats.triangles=0;stats.bytes=mask.byteLength;for(const {mesh,full} of blocks.values()){const g=mesh.geometry;stats.triangles+=Math.min(g.drawRange.count,g.index?.count??0)/3;for(const a of Object.values(g.attributes))stats.bytes+=(a as THREE.BufferAttribute).array.byteLength;stats.bytes+=(g.index?.array.byteLength??0)+full.byteLength;}}
-  for(let row=0;row<grid.rows;row++)for(let column=0;column<grid.columns;column++)build(column,row);
+  // Blocks nearest the project centre first (the start point is usually inside).
+  const order:[number,number,number][]=[];for(let row=0;row<grid.rows;row++)for(let column=0;column<grid.columns;column++)order.push([column,row,Math.hypot(column-(grid.columns-1)/2,row-(grid.rows-1)/2)]);
+  for(const [column,row,d]of order.sort((a,b)=>a[2]-b[2]))request(column,row,1000+d);
   measure();
   // Open sea: an opaque ring around the project rectangle (no pixel over the island) and
   // one water quad per displayed tile that reaches below sea level (rebuilt on coverage change).
@@ -132,10 +101,10 @@ export function createHorizonView(root:THREE.Group,bounds:Bounds,coverage:Covera
       for(let row=0;row<grid.rows;row++)for(let column=0;column<grid.columns;column++){
         const minX=-bounds.width/2+column*span,minZ=-bounds.length/2+row*span;
         // One extra cell: border normals/colours sample the neighbour row.
-        if(minX-grid.spacing<=x+radius&&minX+span+grid.spacing>=x-radius&&minZ-grid.spacing<=z+radius&&minZ+span+grid.spacing>=z-radius)build(column,row);
+        if(minX-grid.spacing<=x+radius&&minX+span+grid.spacing>=x-radius&&minZ-grid.spacing<=z+radius&&minZ+span+grid.spacing>=z-radius)request(column,row,1000);
       }
       measure();
     },
-    dispose(){for(const {mesh} of blocks.values())mesh.geometry.dispose();blocks.clear();material.dispose();for(const sea of [ring,near])if(sea){sea.geometry.dispose();(sea.material as THREE.Material).dispose();}group.removeFromParent();measure();},
+    dispose(){disposed=true;for(const {mesh} of blocks.values())mesh.geometry.dispose();blocks.clear();material.dispose();for(const sea of [ring,near])if(sea){sea.geometry.dispose();(sea.material as THREE.Material).dispose();}group.removeFromParent();measure();},
   };
 }

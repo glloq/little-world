@@ -83,6 +83,7 @@ try{
     },{baseHref:base.href,scenario});
     const url=new URL(base);url.searchParams.set('metrics','1');
     if(scenario.kind==='v2-preview')url.searchParams.set('preview','1');else for(const [k,v] of Object.entries(scenario.query))url.searchParams.set(k,v);
+    for(const [k,v] of new URLSearchParams(process.env.BENCHMARK_EXTRA_QUERY??''))url.searchParams.set(k,v);
     await page.goto(url.href,{waitUntil:'networkidle'});
     await page.locator('#start').click();
     const bootMs=performance.now()-begin;

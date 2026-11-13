@@ -44,7 +44,17 @@ export function configureTerrain(
   sourceHeight=createTerrainSource(c,edits,field);
   waterIndex=new WaterSpatialIndex(water,sourceHeight);
   pathRibbons = ribbonDistance(roads);
+  // Revision of the terrain inputs: geography workers replay them, results computed with an
+  // older revision are discarded. Unchanged inputs keep the revision (no needless rebuild).
+  const signature = JSON.stringify([c, edits, water, roads]);
+  if (signature !== inputSignature) { inputSignature = signature; inputRevision++; }
+  inputs = { config: c, edits, water, roads };
 }
+let inputSignature = '', inputRevision = 0;
+let inputs: { config: WorldConfig; edits: TerrainStroke[]; water: WaterBody[]; roads: PathDefinition[] } | null = null;
+/** Inputs of the last configureTerrain call (structured-cloneable, for workers). */
+export function terrainInputs() { return inputs; }
+export function terrainRevision(): number { return inputRevision; }
 export function getTerrainConfig() {
   return { ...config };
 }

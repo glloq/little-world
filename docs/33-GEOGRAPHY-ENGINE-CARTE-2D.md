@@ -148,6 +148,27 @@ Mesures Node (minimum sur 3 processus × 7 passages, avant → après) :
 
 Navigateur (SwiftShader, île, même vue) : mêmes appels (91), triangles (64 636) et instances (1 768) ; mémoire des tuiles 913 → 679 Kio, horizon 1,47 → 1,17 Mio. Parcours `benchmark-route` : mise à jour CPU par image 0,83 → 0,56 ms, stabilisation 1,67 → 0,89 s ; l'intervalle d'image reste borné par le rastériseur logiciel (p50 66,7 ms dans les deux cas), le gain de remplissage dû à l'ordre de dessin n'est mesurable que sur GPU réel. Différence de pixels : écarts de ±1/255 du même ordre que ceux d'une même version capturée 6,5 s plus tard (course du soleil).
 
+## 10 ter. Calculs géographiques dans des workers
+
+- **Modules purs** (sans Three.js ni DOM) : `terrain-data.ts` (tuiles), `horizon-data.ts` (blocs d'horizon), `geography/dressing.ts`, `studio/geo-map/raster.ts`, `geography/input-geography.ts` (géographie d'un projet Studio à partir d'entrées simples), `render/linear-color.ts` (conversion sRGB → linéaire identique à `THREE.Color.setHex`). Le worker (`geography/geo-worker.ts`, 33 Kio en production) exécute **le même code** que le fil principal.
+- **Pool** (`geography/geo-workers.ts`) : 1 à 2 workers selon les cœurs, priorités (tuiles < horizon < habillage < carte 2D), 2 travaux en cours par worker, annulation des demandes devenues inutiles. Avant un travail, le pool rejoue la configuration (entrées de `configureTerrain`, sources géographiques, projet de la carte) si sa révision a changé ; un résultat calculé sur une révision antérieure est marqué **périmé** et redemandé. Les révisions ne changent que si les entrées changent (signature), pour ne pas tout invalider à chaque synchronisation du Studio.
+- **Consommateurs** : tuiles (l'ancienne tuile reste affichée jusqu'à son remplacement : pas de trou), horizon (construit en arrière-plan au démarrage, du centre vers les bords), habillage, carte 2D (redessins regroupés par image).
+- **Repli** : sans `Worker` (Node, tests), avec `?workers=0` ou après une erreur de worker, le chemin synchrone budgété d'origine est utilisé.
+- **Tests** : `tests/geo-workers.test.mjs` (worker simulé dans le processus : résultats identiques au calcul direct pour les quatre types, détection des résultats périmés, priorités, annulation, panne).
+
+Mesures (SwiftShader, machine virtuelle à 4 cœurs partagés avec le rastériseur logiciel ; signal de régression seulement) :
+
+| Mesure | Fil principal (`?workers=0`) | Workers |
+| --- | --- | --- |
+| Horizon de l'île, temps sur le fil principal | ≈ 80 ms (bloquant au démarrage) | 9,8 ms (assemblage des géométries) |
+| Démarrage du parcours île (`bootMs`, 2 passages) | 4,65 / 5,18 s | 3,51 / 4,65 s |
+| Parcours île : p95 / images > 100 ms | 166,6 ms / 67 et 72 | 150 ms / 53 et 73 |
+| Construction de tuile maximale sur le fil principal | 4,0–5,3 ms | 2,1–2,5 ms |
+| Carte 2D, première ouverture : tâches longues > 50 ms | 0 (déjà découpée en tranches de 10 ms) | 0 |
+| Carte 2D, première ouverture complète | ≈ 570–730 ms | ≈ 830–890 ms |
+
+Sur cette machine, le débit brut n'augmente pas (les workers partagent 4 cœurs avec le rendu logiciel et compilent leur code à froid) ; le gain est la **libération du fil principal** (démarrage, images lentes). Le bénéfice attendu est plus net sur un PC avec GPU réel, où le rendu ne consomme pas les cœurs : **à mesurer**.
+
 ## 11. Tableau de statut
 
 | Mécanisme | Spécifié | Implémenté | Testé | Benchmarké | Publié |
