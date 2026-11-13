@@ -1,7 +1,7 @@
 # B1 — Avancement vérifié de la branche Studio V3
 
 Date : 13 novembre 2026. Périmètre : [objectifs B1](26-BETA-B1-OBJECTIFS.md).
-Les incréments jusqu’à `a7a6f88` sont inclus dans `main`. **La bêta B1 n’est pas qualifiée.** **Lot 1 île (branche `claude/bold-tesla-b0pe7k`)** : générateur île/volcan V3, lecteur de monde compilé commun jeu/copie de test, horizon géographique + océan, priorité caméra et quotas — détail, mesures et limites dans [31 — Lot 1](31-LOT1-ILE-RENDU-CONTINU.md). Le nouvel [audit 30 — île 3 × 8 km](30-AUDIT-BETA-ILE-3X8-STUDIO-RENDU.md) consolide les manques actuels, les blocages de taille/visibilité et le plan Studio/rendu ; les décomptes plus bas correspondent aux incréments historiques.
+Les incréments jusqu’à `a7a6f88` sont inclus dans `main`. **La bêta B1 n’est pas qualifiée.** **Lot 1 île (branche `claude/bold-tesla-b0pe7k`)** : générateur île/volcan V3, lecteur de monde compilé commun jeu/copie de test, horizon géographique + océan, priorité caméra et quotas — détail, mesures et limites dans [31 — Lot 1](31-LOT1-ILE-RENDU-CONTINU.md). **Éditeur 3D du Studio (E1–E6)** : viewport persistant, navigation, sélection, placement, gizmos, pinceaux, PNJ, tracés et zones — voir [32 — Éditeur 3D](32-STUDIO-EDITEUR-3D.md). Le nouvel [audit 30 — île 3 × 8 km](30-AUDIT-BETA-ILE-3X8-STUDIO-RENDU.md) consolide les manques actuels, les blocages de taille/visibilité et le plan Studio/rendu ; les décomptes plus bas correspondent aux incréments historiques.
 
 ## Incréments conservés
 

@@ -1,0 +1,16 @@
+{
+  "recordedAt": "2026-11-13",
+  "tool": "tools/benchmark-studio.mjs",
+  "environment": "Chromium headless, SwiftShader software rendering, 1440x900, Vite dev server. Regression signal only: not an integrated-GPU measurement.",
+  "scenario": "Reference project (maps/beta.project.json): select 'Panier de glands', open the 3D view, then 5 round trips global map -> 3D view.",
+  "runs": [
+    {"label":"before-758b3b9","ui":"local-view","openMs":4861,"returnTo3dMs":{"median":4369,"max":4493},"drawCalls":185,"webglContextsAfter5Trips":6,"heapMB":31},
+    {"label":"after","ui":"persistent-viewport","openMs":2029,"returnTo3dMs":{"median":590,"max":612},"drawCalls":117,"geometries":54,"webglContextsAfter5Trips":1,"heapMB":20},
+    {"label":"before-758b3b9","ui":"local-view","openMs":4417,"returnTo3dMs":{"median":4378,"max":4513},"drawCalls":185,"webglContextsAfter5Trips":6,"heapMB":28},
+    {"label":"after","ui":"persistent-viewport","openMs":2182,"returnTo3dMs":{"median":593,"max":637},"drawCalls":117,"geometries":53,"webglContextsAfter5Trips":1,"heapMB":20}
+  ],
+  "notes": [
+    "Draw calls depend on the framing chosen by each version (old local view: fixed 24/28/32 m offset; new: 'Voir en 3D' frames the entity at ~38 m) and are indicative only.",
+    "The old local view recreated its WebGL renderer, world and NPC system at every module switch; the persistent viewport is created once per project."
+  ]
+}
