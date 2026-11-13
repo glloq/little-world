@@ -1,5 +1,7 @@
 # 13 — Little World Studio : UX, modules et contrats de données
 
+> **Implémentation (novembre 2026) :** l’espace 3D persistant, ses outils et ses commandes sont décrits, testés et mesurés dans [32 — Studio : éditeur de monde 3D](32-STUDIO-EDITEUR-3D.md).
+
 **Document d'architecture cible pour le développement** — décisions basées sur [12-PROJECT-SCOPE.md](12-PROJECT-SCOPE.md). **Non implémenté entièrement.**
 
 **Décisions complémentaires validées** : [14 — Choix techniques du moteur et des éditeurs](14-TECHNICAL-CHOICES.md). En particulier : **TE-E4 / TD-D3 = transactions inter-éditeurs + checkpoints**, **TE-E7 = validation incrémentale**, **TL-L7 = formulaires + séquences** ; les écrans restent spécialisés (E1=C).

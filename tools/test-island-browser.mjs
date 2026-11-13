@@ -49,9 +49,9 @@ try{
   studio.on('pageerror',e=>errors.push(e.message));studio.on('dialog',d=>d.accept());
   await studio.goto(base+'studio/');await studio.getByLabel('Nom du projet').fill('Île navigateur');
   await studio.getByLabel('Modèle et dimensions').selectOption('island');await studio.getByRole('button',{name:'Créer le projet',exact:true}).click();
-  await studio.locator('#workspace canvas').waitFor();check(await studio.locator('#breadcrumbs').textContent()==='Île navigateur / map','Studio creates a 3 × 8 km island project');
+  await studio.locator('.viewport canvas').waitFor();check(await studio.locator('#breadcrumbs').textContent()==='Île navigateur / scene','Studio creates a 3 × 8 km island project');
   await studio.screenshot({path:out+'/island-studio-map.png'});
-  const popup=studio.context().waitForEvent('page');await studio.getByRole('button',{name:'Tester la copie'}).click();const game=await popup;
+  const popup=studio.context().waitForEvent('page');await studio.getByRole('button',{name:'Jouer ici'}).click();const game=await popup;
   game.on('pageerror',e=>errors.push(e.message));await game.waitForLoadState();
   check(new URL(game.url()).searchParams.has('studioBuild'),'Test copy opens a compiled build, not a V2 snapshot');
   await game.waitForSelector('#start:not([disabled])',{timeout:30000});await game.locator('#start').click();
@@ -59,7 +59,7 @@ try{
   const z=Number(/Z (-?\d+)/.exec(await game.locator('#coords').textContent())?.[1]);
   check(z>3000,'Island test copy starts on the southern beach (Z '+z+')');
   await game.screenshot({path:out+'/island-playtest.png'});await game.close();
-  check(await studio.locator('#breadcrumbs').textContent()==='Île navigateur / map','Returning keeps the Studio context');
+  check(await studio.locator('#breadcrumbs').textContent()==='Île navigateur / scene','Returning keeps the Studio context');
   check(errors.length===0,errors.join('\n'));
   console.log(JSON.stringify({checks,errors}));
 }finally{await browser.close();}

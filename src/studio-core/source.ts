@@ -1,4 +1,4 @@
-import {waterChunkIds,waterEditChunkIds} from '../water/sectors.ts';
+import {waterChunkIds,waterEditChunkIds,lineChunkIds} from '../water/sectors.ts';
 import {validateLine} from './schema.ts';
 /** Source mutations are intended to run inside a CommandBus transaction. They
  * preserve canonical overrides, touched-sector ownership and lightweight indexes. */
@@ -68,6 +68,20 @@ export function putWater(project:ProjectDocument,water:import('../world-data.ts'
  for(const id of ids)if(project.chunks[id])project.chunks[id].waterRefs=project.chunks[id].waterRefs.filter(v=>v!==water.id);
  project.libraries.water={...project.libraries.water,[water.id]:structuredClone(water)};
  for(const id of waterChunkIds(project.world,water))ensureChunk(project,id).waterRefs.push(water.id);
+}
+/** Path source and its sector references are one undoable transaction (like water). */
+export function putPath(project:ProjectDocument,path:import('../world-data.ts').PathDefinition):void {
+ validateLine(path,project.world,false);const previous=project.libraries.paths[path.id];
+ const ids=new Set([...lineChunkIds(project.world,path),...(previous?lineChunkIds(project.world,previous):[])]);
+ for(const id of ids)if(project.chunkIndex[id]&&!project.chunks[id])throw Error(`Charger le secteur du chemin : ${id}`);
+ for(const id of ids)if(project.chunks[id])project.chunks[id].pathRefs=project.chunks[id].pathRefs.filter(v=>v!==path.id);
+ project.libraries.paths={...project.libraries.paths,[path.id]:structuredClone(path)};
+ for(const id of lineChunkIds(project.world,path))ensureChunk(project,id).pathRefs.push(path.id);
+}
+export function removePath(project:ProjectDocument,id:string):void {
+ const path=project.libraries.paths[id];if(!path)return;
+ for(const key of lineChunkIds(project.world,path)){const chunk=project.chunks[key];if(!chunk){if(project.chunkIndex[key])throw Error(`Charger le secteur du chemin : ${key}`);continue;}chunk.pathRefs=chunk.pathRefs.filter(v=>v!==id);}
+ const next={...project.libraries.paths};delete next[id];project.libraries.paths=next;
 }
 export function removeWater(project:ProjectDocument,id:string):void {
  const water=project.libraries.water[id];if(!water)return;

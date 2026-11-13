@@ -55,6 +55,12 @@ jobs:
         run: node tools/run-browser-check.mjs audio
       - name: Island lot 1 browser checks
         run: node tools/run-browser-check.mjs island
+      - name: Studio 3D editor browser checks
+        run: node tools/run-browser-check.mjs editor
+      - name: Studio content authoring browser checks
+        run: node tools/run-browser-check.mjs editor-content
+      - name: Studio world features browser checks
+        run: node tools/run-browser-check.mjs editor-world
       - name: IndexedDB integration
         run: |
           npm run dev -- --host 127.0.0.1 --port 5189 --strictPort > /tmp/little-world-studio-dev.log 2>&1 &

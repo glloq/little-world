@@ -22,6 +22,11 @@ export interface Placement {
   z: number;
   rotation: number;
   scale?: number;
+  /** Runtime-only full transform carried from V3 sources (never read from V1/V2 files):
+   * height offset above the terrain, rotation quaternion [x,y,z,w] and per-axis scale. */
+  y?: number;
+  quaternion?: [number, number, number, number];
+  scale3?: [number, number, number];
 }
 export interface TerrainStroke {
   id: string;
@@ -172,7 +177,7 @@ export function parseWorld(value: unknown): WorldDefinition {
     return {
       ...defaultWorld(),
       config,
-      placements: structuredClone(value.placements) as Placement[],
+      placements: (value.placements as Placement[]).map(({ id, assetId, x, z, rotation, scale }) => ({ id, assetId, x, z, rotation, ...(scale === undefined ? {} : { scale }) })),
     };
   if (
     value.schemaVersion !== 2 ||
@@ -237,7 +242,7 @@ export function parseWorld(value: unknown): WorldDefinition {
     schemaVersion: 2,
     name: value.name,
     config,
-    placements: value.placements,
+    placements: (value.placements as Placement[]).map(({ id, assetId, x, z, rotation, scale }) => ({ id, assetId, x, z, rotation, ...(scale === undefined ? {} : { scale }) })),
     terrain: value.terrain,
     biomes: value.biomes,
     water: value.water,

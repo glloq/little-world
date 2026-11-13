@@ -9,7 +9,7 @@ Prototype **solo** d'exploration 3D avec **Three.js**, exécutable entièrement 
 **GitHub Pages :**
 - Jeu : **https://glloq.github.io/little-world/**
 - Éditeur : **https://glloq.github.io/little-world/editor/**
-- Studio : **https://glloq.github.io/little-world/studio/**
+- Studio : **https://glloq.github.io/little-world/studio/** — éditeur 3D (clic : sélectionner · clic droit : orienter, + ZQSD/WASD : voler · molette : zoom · F : centrer · 7 : vue du dessus), voir [32 — Éditeur 3D](docs/32-STUDIO-EDITEUR-3D.md)
 - Île 3 × 8 km (lot 1, monde V3 compilé, peu dense) : **https://glloq.github.io/little-world/?world=maps/island/manifest.json** — une fois `main` publié ; voir [31 — Lot 1](docs/31-LOT1-ILE-RENDU-CONTINU.md).
 
 **Si le site affiche uniquement du texte :** relancer **Build and deploy Little World** sur `main` avec le workflow corrigé. Il attend la fin de la publication automatique des sources avant de publier le build Vite et vérifie les trois interfaces publiques. Le réglage recommandé dans [Settings → Pages](https://github.com/glloq/little-world/settings/pages) est **Build and deployment → Source → GitHub Actions** pour éviter ce double build, mais le workflow fonctionne aussi sans modifier ce paramètre administratif. Publier uniquement `dist/`, jamais les sources TypeScript. Voir [le diagnostic et les contrôles de publication](docs/08-GITHUB-PAGES.md#incident--site-public-affichant-uniquement-du-texte).
