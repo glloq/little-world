@@ -1,3 +1,4 @@
+import {getTerrainConfig} from './terrain.ts';
 import * as THREE from 'three';
 import { buildSquirrel } from './squirrel.ts';
 import { createDialogue, type DialogueSession } from './dialogue.ts';
@@ -119,7 +120,8 @@ export function createNPCSystem(
   obstacles: readonly NavigationObstacle[] = DEFAULT_NPC_OBSTACLES,
   dialogueFactory?:(state:NPCState)=>DialogueSession|undefined,
 ) {
-  if (!validateNPCs(definitions)) throw new Error('Liste de PNJ invalide');
+  const bounds=getTerrainConfig();
+  if (!validateNPCs(definitions,bounds)) throw new Error('Liste de PNJ invalide');
   const dialogue = createDialoguePanel(dialogueFactory);
   let disposed = false;
   // Original five-part low-poly silhouette. GPU resources belong to this system,
@@ -161,7 +163,7 @@ export function createNPCSystem(
     return root;
   }
   const entries = definitions.map((definition) => {
-    const state = createNPCState(definition),
+    const state = createNPCState(definition,bounds),
       model = buildSquirrel();
     model.setAppearance(definition.appearance);
     if (definition.kind === 'animal') model.group.scale.setScalar(0.58);

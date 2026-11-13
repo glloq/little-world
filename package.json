@@ -18,7 +18,8 @@
     "generate:beta": "node --experimental-strip-types tools/generate-beta.mjs",
     "test:gameplay": "node tools/test-gameplay-browser.mjs",
     "test:environment": "node tools/test-environment-browser.mjs",
-    "test:local": "node tools/test-local-browser.mjs"
+    "test:local": "node tools/test-local-browser.mjs",
+    "test:characters": "node tools/test-characters-browser.mjs"
   },
   "dependencies": {
     "three": "^0.180.0"

@@ -123,8 +123,8 @@ export function validateNPCs(
     new Set(v.map((d) => d.id)).size === v.length
   );
 }
-export function createNPCState(definition: NPCDefinition): NPCState {
-  if (!validNPC(definition)) throw new Error('PNJ invalide');
+export function createNPCState(definition: NPCDefinition,bounds:NPCBounds={}): NPCState {
+  if (!validNPC(definition,bounds)) throw new Error('PNJ invalide');
   let seed = 2166136261;
   for (const c of definition.id)
     seed = Math.imul(seed ^ c.charCodeAt(0), 16777619);

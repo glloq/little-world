@@ -107,3 +107,13 @@ Limites : objets et PNJ du secteur local, translation horizontale ; caméra réi
 - La collision ne dépend pas d'un état visible du mesh, d'un LOD ni du nombre de particules. Aucun backend ou moteur de physique supplémentaire.
 
 Preuves : **116 tests unitaires/intégration**. Le parcours jeu contient désormais **12 contrôles navigateur**, dont marche réelle contre la barrière fermée puis traversée après résolution du mécanisme, et reprise sans nouvelle récompense. Les contrôles historiques restent requis. Le prototype teste uniquement des corps simples ; franchissement automatique, contacts verticaux sur les boîtes, souterrains rendus, connecteurs, cellule excavable et persistance d'un contexte mine dans le slot restent à développer avant B1-09.
+
+## Complément Studio B1-05/12 : création et édition de personnages
+
+- Module **Personnages** : créer un écureuil/petit animal à une position choisie, puis nom, accessoires, émotion, activité (immobile/promenade/travail), rayon et vitesse. Le parcours d'une patrouille existante est préservé ; son dessin interactif reste à développer.
+- Création d'un dialogue et comportement liés avec IDs stables dans les bibliothèques. Édition par le panneau de dialogue existant ; mêmes transactions, sélection et stockage que la carte. Aucun accès à la personnalisation ou aux préférences du joueur.
+- Les modifications d'apparence remplacent les anciens overrides correspondants de l'instance ; les liens de dialogue et autres composants restent conservés.
+- Le constructeur de PNJ reçoit les limites explicites du monde pour la vue locale V3 ; la validation historique V2 garde ses limites par défaut. Les tests distinguent ces deux chemins.
+- Les contrôles de formulaires Studio possèdent maintenant un libellé accessible explicite, y compris les listes déroulantes.
+
+Preuves : **119 tests unitaires/intégration**, dont création/lien, identité du dialogue après personnalisation, patrouille et overrides, PNJ situé au-delà des anciennes limites avec limites V3 explicites. **6 contrôles navigateur** : création sans JSON → apparence/navigation → dialogue → sauvegarde/rechargement → annulation persistante → personnage réellement présent et conversation ouverte dans le playtest. Navigation hiérarchique avancée, nouvelle morphologie/rig et édition visuelle des patrouilles restent hors de cet incrément.
