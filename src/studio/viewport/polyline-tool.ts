@@ -3,7 +3,9 @@ import {terrainHeight} from '../../terrain.ts';
 import type {Tool,ToolContext} from './tools.ts';
 /** What the polyline tool edits: an NPC route, a river, a path or an activity zone. The
  * tool only collects points; `commit` performs ONE authoring transaction (Enter). */
-export interface PolylineTarget {label:string;points:{x:number;z:number}[];min:number;max:number;closed?:boolean;color?:number;commit(points:{x:number;z:number}[]):Promise<void>;}
+export interface PolylineTarget {label:string;points:{x:number;z:number}[];min:number;max:number;closed?:boolean;color?:number;commit(points:{x:number;z:number}[]):Promise<void>;
+  /** Live validation (e.g. river profile vs relief, zone contour); null = no remark. */
+  diagnose?(points:{x:number;z:number}[]):string|null;}
 export const polylineTarget={current:null as PolylineTarget|null};
 /** E5/E6 — click to add points on the ground, drag a handle to move it, Backspace removes
  * the last point, Enter validates, Escape abandons. Navigation stays on right/middle/wheel. */
@@ -25,6 +27,7 @@ export class PolylineTool implements Tool {
     this.line.geometry.dispose();this.line.geometry=new THREE.BufferGeometry().setFromPoints(pts);
     const m=new THREE.Matrix4(),scale=Math.max(1,this.ctx.camera.mode==='top'?this.ctx.camera.pose.zoom/90:this.ctx.camera.pose.distance/40);this.handles.count=Math.min(128,this.points.length);
     this.points.slice(0,128).forEach((p,i)=>{m.makeScale(scale,scale,scale).setPosition(p.x,terrainHeight(p.x,p.z)+.6,p.z);this.handles!.setMatrixAt(i,m);});this.handles.instanceMatrix.needsUpdate=true;this.ctx.invalidate(2);
+    const remark=this.target?.diagnose&&this.points.length>=this.target.min?this.target.diagnose(this.points):null;this.ctx.canvas.dataset.polylineRemark=remark??'';if(remark)this.ctx.message(remark,true);
   }
   /** Index of the handle under the pointer (screen distance), or null. */
   private handleAt(e:PointerEvent){
@@ -38,7 +41,7 @@ export class PolylineTool implements Tool {
     if(dragged!==null||Math.hypot(e.clientX-start.x,e.clientY-start.y)>5)return;
     if(this.points.length>=this.target.max){this.ctx.message(`Maximum ${this.target.max} points.`,true);return;}
     const g=this.ctx.ground(e),b=this.ctx.session.document.world.bounds;if(!g||g.x<b.minX||g.x>b.maxX||g.z<b.minZ||g.z>b.maxZ)return;
-    this.points.push({x:g.x,z:g.z});this.redraw();this.ctx.message(`${this.target.label} : ${this.points.length} point(s) · Entrée pour valider.`);
+    this.ctx.message(`${this.target.label} : ${this.points.length+1} point(s) · Entrée pour valider.`);this.points.push({x:g.x,z:g.z});this.redraw();
   }
   keyDown(e:KeyboardEvent){
     if(e.key==='Backspace'||e.key==='Delete'){this.points.pop();this.redraw();return true;}

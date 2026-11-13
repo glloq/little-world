@@ -9,6 +9,7 @@ import type {
   WorldConfig,
   Placement,
   AssetId,
+  PathDefinition,
 } from './world-data';
 export type { WorldConfig, Placement, AssetId } from './world-data';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -37,6 +38,7 @@ export interface WorldView {
   setDetail: (level: number) => void;
   refreshTerrain: (x: number, z: number, radius: number) => void;
   refreshWater:()=>string[];
+  refreshPaths:(paths: PathDefinition[])=>string[];
   horizon: HorizonStats;
   stats: {
     active: number;
@@ -640,17 +642,24 @@ export function buildWorld(
     return changed;
   }
   refreshWater();
-  if (definition) {
-    for (const path of definition.paths)
-      createRibbon(
-        root,
-        path.points,
-        path.width,
-        (x, z) => terrainHeight(x, z) + 0.12,
-        0xd3bd94,
-        false,
-      );
+  // Authored paths are kept by ID/signature so Studio edits rebuild only what changed.
+  const pathMeshes = new Map<string, { signature: string; mesh: THREE.Mesh }>();
+  function refreshPaths(paths: PathDefinition[]) {
+    const changed: string[] = [], ids = new Set(paths.map((p) => p.id));
+    for (const [id, entry] of pathMeshes)
+      if (!ids.has(id)) { removePlacement(entry.mesh); pathMeshes.delete(id); changed.push(id); }
+    for (const path of paths) {
+      const signature = JSON.stringify([path.width, path.points]);
+      if (pathMeshes.get(path.id)?.signature === signature) continue;
+      const previous = pathMeshes.get(path.id);
+      if (previous) removePlacement(previous.mesh);
+      const mesh = createRibbon(root, path.points, path.width, (x, z) => terrainHeight(x, z) + 0.12, 0xd3bd94, false);
+      mesh.name = 'Path:' + path.id; mesh.userData.pathId = path.id;
+      pathMeshes.set(path.id, { signature, mesh }); changed.push(path.id);
+    }
+    return changed;
   }
+  refreshPaths(definition?.paths ?? []);
   let time = 0,
     detailLevel = 0,
     lastFocusX = NaN,
@@ -674,6 +683,7 @@ export function buildWorld(
     horizon: horizon.stats,
     terrainWork: terrainView.work,
     refreshWater,
+    refreshPaths,
     setDetail(level) {
       detailLevel = level;
       ecology.setDetail(level);
@@ -877,4 +887,5 @@ function createRibbon(
     0,
   );
   if (!water) ribbon.userData.groundRibbon = true;
+  return ribbon;
 }

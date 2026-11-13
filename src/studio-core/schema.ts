@@ -4,6 +4,7 @@ import {parseEnvironmentDefinition} from '../environment/climate.ts';
 import catalogue from '../../assets/catalog.json' with {type:'json'};
 import { EMOTIONS } from '../character-style.ts';
 import {parseTerrainGenerator,VERTICAL_ENVELOPE,type TerrainGeneratorDefinition} from '../terrain-generator.ts';
+import {validateZone} from './zones.ts';
 import { validDialogue } from '../dialogue.ts';
 import type { AssetDefinition, BiomeEdit, ChunkId, ChunkSourceV3, ComponentMap, EntityDefinitionV3, ProjectDocument, StudioProjectV3, TerrainEdit, WorldDefinitionV3 } from './types.ts';
 
@@ -123,7 +124,8 @@ export function validateLine(value:unknown,world:WorldDefinitionV3,water:boolean
   const line=object(value,'Tracé');keys(line,water?['id','points','width','level','depth','profile']:['id','points','width'],'Tracé');string(line.id,'ID tracé');finite(line.width,'Largeur',1,40);const points=array(line.points,'Points',100);if(points.length<2)throw Error('Tracé : deux points requis');for(const p of points){const v=object(p,'Point');keys(v,['x','z'],'Point');point(v,world,'Tracé');}if(water){finite(line.level,'Niveau',-20,100);finite(line.depth,'Profondeur',.5,20);validateWaterProfile(line.profile,points.length);}
 }
 function validateLibraries(value:unknown,world:WorldDefinitionV3,entityIds:string[],chunkIds:string[]):void{
-  const libs=object(value,'Bibliothèques');keys(libs,['prefabs','characters','dialogues','behaviors','interactions','activities','variables','items','objectives','water','paths'],'Bibliothèques');
+  const libs=object(value,'Bibliothèques');keys(libs,['prefabs','characters','dialogues','behaviors','interactions','activities','variables','items','objectives','water','paths','zones'],'Bibliothèques');
+  if(libs.zones!==undefined)for(const [id,zone]of Object.entries(dictionary(libs.zones,'Bibliothèque zones',2000))){if(validateZone(zone,world).id!==id)throw Error('Bibliothèque zones : ID différent de la clé');}
   for(const name of ['prefabs','characters','dialogues','behaviors','interactions','activities','variables','items','objectives','water','paths']){
     const dict=dictionary(libs[name],`Bibliothèque ${name}`,10000);
     for(const [id,value]of Object.entries(dict)){

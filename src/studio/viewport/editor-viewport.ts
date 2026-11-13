@@ -134,7 +134,7 @@ export class StudioViewport {
       this.tools.active?.frame?.();this.selection.refresh();
       this.renderer.render(this.scene,this.camera.camera);this.remaining--;
       const d=this.canvas.dataset;d.renderCount=String(++this.renderCount);d.pending=String(this.world.stats.pending);d.cameraMode=this.camera.mode;d.camera=JSON.stringify(this.camera.context());d.calls=String(this.renderer.info.render.calls);
-      d.waterCount=String(this.world.root.children.filter(o=>o.userData.waterId).length);d.diagnostics=JSON.stringify(this.diagnostics);d.models=String(this.models.size);d.contentSectors=String(this.contentIds.size);
+      d.waterCount=String(this.world.root.children.filter(o=>o.userData.waterId).length);d.diagnostics=JSON.stringify(this.diagnostics);d.models=String(this.models.size);d.paths=String(this.world.root.children.filter(o=>o.userData.pathId).length);d.contentSectors=String(this.contentIds.size);
     }
     this.drawing=false;
     if(this.remaining>0||this.world.stats.pending>0||this.navigation.flying||this.camera.animating||this.tools.active&&'dragging' in this.tools.active&&(this.tools.active as {dragging:boolean}).dragging)this.frame=requestAnimationFrame(this.draw);
@@ -149,7 +149,7 @@ export class StudioViewport {
       this.contentIds=new Set(ids);const next=toRuntimeWorld(p,Object.keys(p.chunks));next.config.viewDistance=300;
       // Same object as the one given to buildWorld: biome sampling reads its live edit list.
       Object.assign(this.definition,next);
-      this.applyTerrain([...next.terrain,...next.biomes] as TerrainStroke[],transaction);this.syncModels();this.tools.active?.sourcesChanged?.();this.reportStatus();this.invalidate(20);
+      this.applyTerrain([...next.terrain,...next.biomes] as TerrainStroke[],transaction);this.world.refreshPaths(this.definition.paths);this.syncZones();this.syncModels();this.tools.active?.sourcesChanged?.();this.reportStatus();this.invalidate(20);
     }).catch(error=>this.options.message(String(error),true));
   }
   refresh(transaction?:EditTransaction){
@@ -168,6 +168,19 @@ export class StudioViewport {
     const water=new Set(this.world.refreshWater());
     for(const e of [...changed,...removed])this.world.refreshTerrain(e.x,e.z,e.radius+4);
     if(water.size)for(const w of d.water)if(water.has(w.id))for(const q of w.points)this.world.refreshTerrain(q.x,q.z,w.width+12);
+  }
+  /** Activity zone outlines (farm plots, mines), draped on the relief; authoring aid only. */
+  private zoneGroup=new THREE.Group();private zoneSignature='';
+  private syncZones(){
+    const zones=Object.values(this.session.document.libraries.zones??{}),signature=JSON.stringify(zones);if(signature===this.zoneSignature)return;this.zoneSignature=signature;
+    for(const child of [...this.zoneGroup.children]){const line=child as THREE.Line;line.geometry.dispose();(line.material as THREE.Material).dispose();}this.zoneGroup.clear();
+    if(!this.zoneGroup.parent)this.scene.add(this.zoneGroup);
+    for(const zone of zones){
+      const pts:THREE.Vector3[]=[];const ring=[...zone.polygon,zone.polygon[0]];
+      for(let i=1;i<ring.length;i++){const a=ring[i-1],b=ring[i],steps=Math.max(1,Math.ceil(Math.hypot(b.x-a.x,b.z-a.z)/4));for(let j=0;j<steps;j++){const x=a.x+(b.x-a.x)*j/steps,z=a.z+(b.z-a.z)*j/steps;pts.push(new THREE.Vector3(x,terrainHeight(x,z)+.5,z));}}
+      const line=new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(pts),new THREE.LineBasicMaterial({color:zone.kind==='mine'?0x8a5a3c:0xd9a520}));line.name='Zone:'+zone.id;line.userData.zoneId=zone.id;this.zoneGroup.add(line);
+    }
+    this.canvas.dataset.zones=String(zones.length);
   }
   private syncModels(){
     const p=this.session.document,shown=this.definition.placements.filter(v=>this.contentIds.has(p.entityIndex[v.id]?.ownerChunkId??''));const ids=new Set(shown.map(v=>v.id));
@@ -188,6 +201,7 @@ export class StudioViewport {
     if(this.disposed)return;this.disposed=true;clearTimeout(this.persist);cancelAnimationFrame(this.frame);this.session.selection.setCamera(this.camera.context());
     for(const stop of this.unsubscribe)stop();this.tools.dispose();this.navigation.dispose();this.resizeObserver.disconnect();
     this.canvas.removeEventListener('pointerdown',this.onDown);this.canvas.removeEventListener('pointermove',this.onMove);this.canvas.removeEventListener('pointerup',this.onUp);this.canvas.removeEventListener('pointerleave',this.onLeave);window.removeEventListener('keydown',this.onKey);
+    for(const child of this.zoneGroup.children){const line=child as THREE.Line;line.geometry.dispose();(line.material as THREE.Material).dispose();}this.zoneGroup.clear();this.zoneGroup.removeFromParent();
     for(const model of this.models.values())removePlacement(model.object);this.models.clear();this.npcs.dispose();this.selection.dispose();this.world.dispose();this.renderer.dispose();this.renderer.forceContextLoss();this.element.remove();
   }
 }

@@ -17,7 +17,7 @@ import type {StudioViewport} from './viewport/editor-viewport.ts';
  * scene, so camera, selection and scene survive every tool or panel change. */
 const store=new ProjectStore(),$=(id:string)=>document.getElementById(id)!;
 let session:StudioSession|null=null,viewport:StudioViewport|null=null,unsubscribe=()=>{},disposePanel=()=>{},generation=0,activeModule='scene';
-let inspectorOpen=true;
+let inspectorOpen=true,returnModule='scene';
 const status=(message:string,error=false)=>{$('status').textContent=message;$('status').classList.toggle('status-error',error);};
 const run=(action:()=>Promise<unknown>|unknown)=>async()=>{try{await action();}catch(e){status(String(e instanceof Error?e.message:e),true);}};
 const action=(title:string,fn:()=>Promise<unknown>|unknown,className?:string)=>button(title,run(fn),className);
@@ -25,11 +25,11 @@ const action=(title:string,fn:()=>Promise<unknown>|unknown,className?:string)=>b
 const MODULES:[string,string,string,string,string][]=[
   ['scene','Sélection','➚','Naviguer','V'],['map','Carte globale','▦','Naviguer','M'],
   ['objects','Objets','▣','Construire','B'],['characters','Personnages','☺','Construire',''],
-  ['terrain','Relief','⛰','Monde','T'],['biomes','Biotopes','✿','Monde',''],['water','Eau','≈','Monde',''],
+  ['terrain','Relief','⛰','Monde','T'],['biomes','Biotopes','✿','Monde',''],['paths','Chemins et rivières','〰','Monde',''],['water','Eau','≈','Monde',''],['zones','Zones','⬠','Monde',''],
   ['dialogues','Dialogues','✉','Logique',''],['interactions','Interactions','⚙','Logique',''],['environment','Environnement','☀','Logique',''],['audio','Audio','♪','Logique',''],
   ['tests','Validation / compilation','✓','Projet',''],
 ];
-const VIEWPORT_MODULES=new Set(['scene','objects','characters','terrain','biomes','polyline']);
+const VIEWPORT_MODULES=new Set(['scene','objects','characters','terrain','biomes','polyline','paths','zones']);
 const ALIASES:Record<string,string>={local:'scene',select:'scene'};
 const panelHost=()=>$('panel-host');
 function refreshHeader(){
@@ -74,7 +74,7 @@ async function open(id:string){
 }
 async function ensureViewport(){
   if(viewport)return viewport;const s=session!;const {StudioViewport}=await import('./viewport/editor-viewport.ts');if(session!==s)throw Error('Projet fermé');
-  viewport=await StudioViewport.create($('workspace'),s,{message:status,refreshInspector:scheduleInspector,toolChanged:id=>{if(id==='select'&&activeModule!=='scene')void module('scene');},
+  viewport=await StudioViewport.create($('workspace'),s,{message:status,refreshInspector:scheduleInspector,toolChanged:id=>{if(id==='select'&&activeModule==='polyline'){const back=returnModule;returnModule='scene';void module(back);}else if(id==='select'&&activeModule!=='scene'&&activeModule!=='paths'&&activeModule!=='zones')void module('scene');},
     status:info=>{$('viewport-status').textContent=[info.cursor?`X ${info.cursor.x.toFixed(1)} · Z ${info.cursor.z.toFixed(1)}`:'—',{orbit:'Orbite',free:'Vol libre',top:'Dessus'}[info.mode]??info.mode,info.selected?`${info.selected} sélectionné(s)`:'Aucune sélection',`${info.sectors} secteur(s)`].join('  ·  ');}});
   return viewport;
 }
@@ -127,10 +127,15 @@ async function toolPanel(id:string,v:StudioViewport){
     for(const [tool,label]of options){const b=button(label,()=>{v.setTool(tool);for(const c of chips.children)c.classList.toggle('active',c===b);},'chip'+(tool===current?' active':''));chips.append(b);}
     tools.append(node('div',id==='terrain'?'RELIEF':'BIOTOPES','kicker'),node('h3',id==='terrain'?'Pinceaux de relief':'Peindre les biotopes'),chips,field('Rayon du pinceau (m)',numberInput(brushSettings.radius,val=>brushSettings.radius=Math.max(1,Math.min(80,val||1)),1,80)),field(id==='terrain'?'Force / hauteur':'Densité ×2',numberInput(brushSettings.strength,val=>brushSettings.strength=Math.max(.1,Math.min(10,val||1)),.1,10)),
       node('p','Glisser : un trait = une opération annulable. [ ] : rayon · - + : force · clic droit / molette : naviguer · Échap : annuler le trait.','muted'));
+  }else if(id==='paths'||id==='zones'){
+    v.setTool('select');const {mountPathsPanel,mountZonesPanel}=await import('./world-features.ts');
+    const ctx={session:s,status,focus:(x:number,z:number)=>v.goTo(x,z,30),edit:(target:import('./viewport/polyline-tool.ts').PolylineTarget)=>{void run(async()=>{const {polylineTarget}=await import('./viewport/polyline-tool.ts');polylineTarget.current=target;returnModule=id;await module('polyline');})();}};
+    const render=()=>{tools.replaceChildren();(id==='paths'?mountPathsPanel:mountZonesPanel)(tools,ctx);};render();
+    const stop=s.commands.subscribe(()=>{if(activeModule===id)render();}),previous=disposePanel;disposePanel=()=>{stop();previous();};
   }else if(id==='polyline'){
     const {polylineTarget}=await import('./viewport/polyline-tool.ts');const target=polylineTarget.current;if(!target){await module('scene');return;}v.setTool('polyline');
     tools.append(node('div','TRACÉ','kicker'),node('h3',target.label),node('p','Clic : ajouter un point · glisser un point : le déplacer · Retour arrière : retirer le dernier · Entrée : valider (une opération) · Échap : abandonner. Clic droit / molette : naviguer.','muted'),
-      action('Valider le tracé',()=>{window.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter'}));},'primary-button'),action('Abandonner',()=>{polylineTarget.current=null;return module('scene');}));
+      action('Valider le tracé',()=>{window.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter'}));},'primary-button'),action('Abandonner',()=>{polylineTarget.current=null;const back=returnModule;returnModule='scene';return module(back);}));
   }
 }
 function listPanel(s:StudioSession,host:HTMLElement){

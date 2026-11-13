@@ -2,6 +2,8 @@ import type {ProjectDocument,WorldDefinitionV3} from '../studio-core/types.ts';
 import type {WaterBody} from '../world-data.ts';
 import {affectedChunkIds} from '../studio-core/schema.ts';
 /** Conservative corridor, not the whole bounding rectangle of a winding river. */
+/** Sectors crossed by a line (river or path) within half its width. */
+export function lineChunkIds(world:WorldDefinitionV3,line:{points:{x:number;z:number}[];width:number}):string[]{return waterChunkIds(world,line as WaterBody);}
 export function waterChunkIds(world:WorldDefinitionV3,water:WaterBody):string[]{
  const ids=new Set<string>();
  for(let i=1;i<water.points.length;i++){
