@@ -1,5 +1,5 @@
 import {finite,identifier,record,stateValue,type ObjectiveStatus,type Point3,type StateValue} from './schema.ts';
-export interface GameSaveV1 {schemaVersion:1;worldId:string;worldBuildVersion:string;slotId:string;savedAt:number;time:number;position:Point3;inventory:Record<string,number>;variables:Record<string,StateValue>;objectives:Record<string,ObjectiveStatus>;entities:Record<string,Record<string,StateValue>>;executed:Record<string,boolean>;cooldowns:Record<string,number>;pending:{interactionId:string;cursor:number;wakeAt:number}[];}
+export interface GameSaveV1 {schemaVersion:1;worldId:string;worldBuildVersion:string;slotId:string;savedAt:number;time:number;position:Point3;inventory:Record<string,number>;variables:Record<string,StateValue>;objectives:Record<string,ObjectiveStatus>;entities:Record<string,Record<string,StateValue>>;executed:Record<string,boolean>;cooldowns:Record<string,number>;dialogueFlags:Record<string,boolean>;pending:{interactionId:string;cursor:number;wakeAt:number}[];}
 const assert=(value:unknown,message:string):void=>{if(!value)throw Error(message);};
 function entries(value:unknown,limit:number,check:(value:unknown)=>boolean):void {assert(record(value)&&Object.keys(value).length<=limit,'Dictionnaire de sauvegarde invalide');for(const [key,item]of Object.entries(value as object))assert(identifier(key)&&check(item),'Champ de sauvegarde invalide : '+key);}
 export function parseGameSave(value:unknown):GameSaveV1 {
@@ -9,9 +9,10 @@ export function parseGameSave(value:unknown):GameSaveV1 {
   entries(v.inventory,1000,n=>Number.isInteger(n)&&finite(n,0,9999));entries(v.variables,10000,stateValue);
   entries(v.objectives,10000,s=>s==='locked'||s==='active'||s==='complete');entries(v.executed,10000,b=>typeof b==='boolean');entries(v.cooldowns,10000,n=>finite(n,0,1e9));
   entries(v.entities,10000,states=>{entries(states,100,stateValue);return true;});
+  if(v.dialogueFlags!==undefined){assert(record(v.dialogueFlags)&&Object.keys(v.dialogueFlags).length<=10000,'Choix de dialogue invalides');for(const [key,value]of Object.entries(v.dialogueFlags as object))assert(key.length<=512&&typeof value==='boolean','Choix de dialogue invalide');}
   assert(Array.isArray(v.pending)&&v.pending.length<=64,'Séquences sauvegardées invalides');
   for(const raw of v.pending as unknown[]){assert(record(raw)&&identifier(raw.interactionId)&&Number.isInteger(raw.cursor)&&finite(raw.cursor,0,64)&&finite(raw.wakeAt,0,1e9),'Séquence sauvegardée invalide');}
-  assert(new TextEncoder().encode(JSON.stringify(value)).byteLength<=2_000_000,'Sauvegarde trop volumineuse');return structuredClone(value) as GameSaveV1;
+  assert(new TextEncoder().encode(JSON.stringify(value)).byteLength<=2_000_000,'Sauvegarde trop volumineuse');return structuredClone({...v,dialogueFlags:v.dialogueFlags??{}}) as unknown as GameSaveV1;
 }
 export const GAME_SAVE_PREFIX='little-world:game-save:v1:';
 export interface SaveStorage {readonly length:number;key(index:number):string|null;getItem(key:string):string|null;setItem(key:string,value:string):void;removeItem(key:string):void;}

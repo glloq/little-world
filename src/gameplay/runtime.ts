@@ -68,13 +68,36 @@ export function createGameplay(raw:GameplayData){
       default:present(a);break;
     }return true;
   }
+  // Each uninterrupted segment is one logical transaction. Validate the inventory
+  // ledger before any state change, reward, event or presentation effect is emitted.
+  function segment(job:Job){
+    let end=job.cursor;while(end<job.sequence.length){if(job.sequence[end++].type==='wait')break;}
+    return end;
+  }
+  function canApplySegment(job:Job,end:number){
+    const ledger={...state.inventory};
+    for(let cursor=job.cursor;cursor<end;cursor++){
+      const a=job.sequence[cursor];if(a.type!=='giveItem'&&a.type!=='takeItem')continue;
+      const count=(ledger[a.itemId]??0)+(a.type==='giveItem'?a.quantity:-a.quantity);
+      if(count<0||count>items.get(a.itemId)!.maxQuantity){diagnostic((count<0?'Objet manquant : ':'Inventaire plein : ')+a.itemId);return false;}
+      ledger[a.itemId]=count;
+    }return true;
+  }
   function pump(){
     if(pumping)return;pumping=true;let actionBudget=gameplayLimits.actionsPerUpdate,eventBudget=gameplayLimits.eventsPerUpdate;
     try{
       while(actionBudget>0&&eventBudget>0){
         if(events.length){start(events.shift()!);eventBudget--;}
         const job=jobs.find(j=>j.wakeAt<=state.time+1e-9);if(!job){if(!events.length)break;continue;}
-        while(job.cursor<job.sequence.length&&actionBudget>0){const action=job.sequence[job.cursor++];actionBudget--;if(!execute(job,action)){if(action.type!=='wait'){job.cursor=job.sequence.length;delete state.executed[job.interactionId];}break;}}
+        const end=segment(job);
+        if(end-job.cursor>actionBudget)break;
+        if(!canApplySegment(job,end)){
+          // Before the first wait nothing has committed: the action may be retried.
+          // After a wait earlier segments stay committed and must never be replayed.
+          if(job.cursor===0){delete state.executed[job.interactionId];delete state.cooldowns[job.interactionId];}
+          jobs.splice(jobs.indexOf(job),1);continue;
+        }
+        while(job.cursor<end&&actionBudget>0){const action=job.sequence[job.cursor++];actionBudget--;if(!execute(job,action)){if(action.type!=='wait'){job.cursor=job.sequence.length;delete state.executed[job.interactionId];}break;}}
         if(job.cursor>=job.sequence.length)jobs.splice(jobs.indexOf(job),1);
       }
       if(events.length||jobs.some(j=>j.wakeAt<=state.time+1e-9)){diagnostic('Budget logique atteint ; opérations différées.');}
@@ -88,13 +111,14 @@ export function createGameplay(raw:GameplayData){
     if(p&&Math.hypot(p.x-state.playerPosition.x,p.y-state.playerPosition.y,p.z-state.playerPosition.z)>entity.interactable.range)return false;
     const before=state.metrics.started;emit({type:'onInteract',entityId});return state.metrics.started>before;
   }
-  function runActions(sequence:ActionStep[],id:string){if(sequence.length){if(jobs.length>=gameplayLimits.activeSequences){diagnostic('Trop de séquences actives.');return;}jobs.push({interactionId:id,sequence,cursor:0,wakeAt:state.time,depth:0});pump();}}
-  function availableChoices(dialogueId:string,lineId:string){const d=dialogues.get(dialogueId),line=d?.lines.find(l=>l.id===lineId);return line?.choices.filter(c=>(!c.gate||evaluate(c.gate))&&(!c.condition||(state.dialogueFlags[dialogueId+':'+c.condition.flag]===true)===c.condition.equals))??[];}
+  function runActions(sequence:ActionStep[],id:string):boolean{if(sequence.length){if(jobs.length>=gameplayLimits.activeSequences){diagnostic('Trop de séquences actives.');return false;}const job={interactionId:id,sequence,cursor:0,wakeAt:state.time,depth:0};if(!canApplySegment(job,segment(job)))return false;jobs.push(job);pump();}return true;}
+  function availableChoices(dialogueId:string,lineId:string){const d=dialogues.get(dialogueId),line=d?.lines.find(l=>l.id===lineId);return line?.choices.filter(c=>(!c.gate||evaluate(c.gate))&&(!c.condition||(state.dialogueFlags[JSON.stringify([dialogueId,c.condition.flag])]===true)===c.condition.equals))??[];}
   function dialogueChoice(dialogueId:string,lineId:string,choiceId:string):string|null|undefined {
     const d=dialogues.get(dialogueId),line=d?.lines.find(l=>l.id===lineId);if(!d||!line)return undefined;
     const choice=availableChoices(dialogueId,lineId).find(c=>(c.id??lineId+':'+line.choices.indexOf(c))===choiceId);if(!choice)return undefined;
-    if(choice.action)state.dialogueFlags[dialogueId+':'+choice.action.flag]=choice.action.value;
-    runActions(choice.actions??[],'dialogue:'+dialogueId+':'+choiceId);emit({type:'onDialogueChoice',dialogueId,choiceId,entityId:d.actorId});return choice.next??null;
+    if(!runActions(choice.actions??[],'dialogue:'+dialogueId+':'+choiceId))return undefined;
+    if(choice.action)state.dialogueFlags[JSON.stringify([dialogueId,choice.action.flag])]=choice.action.value;
+    emit({type:'onDialogueChoice',dialogueId,choiceId,entityId:d.actorId});return choice.next??null;
   }
   function enterDialogueLine(dialogueId:string,lineId:string){const line=dialogues.get(dialogueId)?.lines.find(l=>l.id===lineId);if(line)runActions(line.actions??[],'dialogue-line:'+dialogueId+':'+lineId);}
   function save(slotId:string,position:Point3=state.playerPosition):GameSaveV1 {
@@ -102,7 +126,7 @@ export function createGameplay(raw:GameplayData){
     const variables=dictionary<StateValue>();for(const v of data.variables)if(v.persistent)variables[v.id]=state.variables[v.id];
     const objectives=dictionary<ObjectiveStatus>();for(const o of data.objectives)if(o.persistent)objectives[o.id]=state.objectives[o.id];
     const executed=dictionary<boolean>(),cooldowns=dictionary<number>();for(const i of data.interactions)if(i.persistent){if(state.executed[i.id])executed[i.id]=true;if(state.cooldowns[i.id]!==undefined)cooldowns[i.id]=state.cooldowns[i.id];}
-    return parseGameSave({schemaVersion:1,worldId:data.worldId,worldBuildVersion:data.buildVersion,slotId,savedAt:Date.now(),time:state.time,position,inventory:{...state.inventory},variables,objectives,entities:persistentEntities,executed,cooldowns,pending:jobs.filter(j=>interactions.get(j.interactionId)?.persistent).map(j=>({interactionId:j.interactionId,cursor:j.cursor,wakeAt:j.wakeAt}))});
+    return parseGameSave({schemaVersion:1,worldId:data.worldId,worldBuildVersion:data.buildVersion,slotId,savedAt:Date.now(),time:state.time,position,inventory:{...state.inventory},variables,objectives,entities:persistentEntities,executed,cooldowns,dialogueFlags:{...state.dialogueFlags},pending:jobs.filter(j=>interactions.get(j.interactionId)?.persistent).map(j=>({interactionId:j.interactionId,cursor:j.cursor,wakeAt:j.wakeAt}))});
   }
   function restore(raw:GameSaveV1):string[]{
     const saved=parseGameSave(raw);if(saved.worldId!==data.worldId)throw Error('Sauvegarde d’un autre monde');
@@ -119,6 +143,8 @@ export function createGameplay(raw:GameplayData){
     for(const [id,value]of Object.entries(saved.executed))if(interactions.get(id)?.persistent)state.executed[id]=value;else warnings.push('Interaction supprimée : '+id);
     for(const [id,value]of Object.entries(saved.cooldowns))if(interactions.get(id)?.persistent)state.cooldowns[id]=value;
     for(const pending of saved.pending){const i=interactions.get(pending.interactionId);if(i?.persistent&&pending.cursor<=i.sequence.length)jobs.push({interactionId:i.id,sequence:i.sequence,cursor:pending.cursor,wakeAt:pending.wakeAt,depth:0});else warnings.push('Séquence interrompue : '+pending.interactionId);}
+    const flagKeys=new Set(data.dialogues.flatMap(d=>d.lines.flatMap(l=>l.choices.flatMap(c=>[c.condition?.flag,c.action?.flag].filter((f):f is string=>!!f).map(f=>JSON.stringify([d.id,f]))))));
+    for(const [key,value] of Object.entries(saved.dialogueFlags))if(flagKeys.has(key))state.dialogueFlags[key]=value;else warnings.push('Choix de dialogue supprimé : '+key);
     for(const timer of timers)timer.next=state.time+timer.trigger.interval;
     return warnings;
   }

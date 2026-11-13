@@ -61,3 +61,21 @@ test('logical index metadata supports actions while every source chunk is unload
 test('full inventory leaves a collectible available for a later successful attempt',()=>{
   const d=fixture();d.interactions=[makeCollect('collect','acorn','acorn')];const runtime=createGameplay(d);runtime.state.inventory.acorn=9;assert.equal(runtime.interact('acorn',at),true);assert.equal(runtime.state.entities.acorn.collected,false);runtime.state.inventory.acorn=8;runtime.interact('acorn',at);assert.equal(runtime.state.entities.acorn.collected,true);assert.equal(runtime.state.inventory.acorn,9);
 });
+
+test('a failed multi-item sequence commits no reward, state, objective, event or text and can retry',()=>{
+ const d=fixture();d.interactions=[{id:'atomic',trigger:{type:'onInteract',entityId:'acorn'},repeat:'once',persistent:true,sequence:[{type:'setState',entityId:'acorn',key:'collected',value:true},{type:'giveItem',itemId:'acorn',quantity:1},{type:'showText',text:'Success'},{type:'giveItem',itemId:'fish',quantity:1},{type:'setObjective',objectiveId:'delivery',status:'complete'}]}];
+ const r=createGameplay(d);r.state.inventory.fish=9;r.interact('acorn',at);
+ assert.equal(r.state.inventory.acorn,undefined);assert.equal(r.state.entities.acorn.collected,false);assert.equal(r.state.objectives.delivery,'active');assert.equal(r.drainEffects().length,0);assert.equal(r.state.executed.atomic,undefined);
+ r.state.inventory.fish=8;r.interact('acorn',at);assert.equal(r.state.inventory.acorn,1);assert.equal(r.state.inventory.fish,9);assert.equal(r.state.objectives.delivery,'complete');r.interact('acorn',at);assert.equal(r.state.inventory.acorn,1);
+ const again=createGameplay(d);again.restore(r.save('one',at));again.interact('acorn',at);assert.equal(again.state.inventory.acorn,1);
+});
+test('failure after a persistent wait cannot replay a previously committed reward',()=>{
+ const d=fixture();d.interactions=[{id:'delayed',trigger:{type:'onInteract',entityId:'acorn'},repeat:'once',persistent:true,sequence:[{type:'giveItem',itemId:'acorn',quantity:1},{type:'wait',seconds:1},{type:'giveItem',itemId:'fish',quantity:1}]}];
+ const r=createGameplay(d);r.state.inventory.fish=9;r.interact('acorn',at);r.update(1);assert.equal(r.state.inventory.acorn,1);assert.equal(r.pendingSequences,0);r.interact('acorn',at);assert.equal(r.state.inventory.acorn,1);
+ const restored=createGameplay(d);restored.restore(r.save('one',at));restored.interact('acorn',at);assert.equal(restored.state.inventory.acorn,1);
+});
+test('dialogue flags persist, scope keys do not collide and older V1 saves default safely',()=>{
+ const d=fixture();d.dialogues=[{id:'talk',actorId:'villager',start:'hello',lines:[{id:'hello',text:'Bonjour',choices:[{id:'accept',text:'Oui',condition:{flag:'accepted',equals:false},action:{flag:'accepted',value:true}}]}]}];
+ const r=createGameplay(d);r.dialogueChoice('talk','hello','accept');const saved=r.save('one',at);assert.equal(Object.keys(saved.dialogueFlags).length,1);const next=createGameplay(d);assert.deepEqual(next.restore(saved),[]);assert.equal(next.availableChoices('talk','hello').length,0);
+ const old=structuredClone(saved);delete old.dialogueFlags;assert.deepEqual(parseGameSave(old).dialogueFlags,{});
+});
