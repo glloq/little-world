@@ -3,7 +3,8 @@ import {node,button,field,input,numberInput,select} from './dom.ts';
 import type {StudioSession} from './session.ts';
 import {resolveEntity} from '../studio-core/references.ts';
 import {applyTransforms,transformChunkIds,entityTransform,type TransformValue} from '../studio-core/transforms.ts';
-import {updateCharacter} from '../studio-core/character-authoring.ts';
+import {updateCharacter,setCharacterPath} from '../studio-core/character-authoring.ts';
+import {applyInteraction,interactionChunkIds} from '../studio-core/interaction-templates.ts';
 import {EMOTIONS,type Emotion,type Neckwear} from '../character-style.ts';
 
 /** Serialised entity edits: rapid field changes never race each other (one transaction each). */
@@ -14,6 +15,8 @@ export interface InspectorContext {
   status(text:string,error?:boolean):void;
   open(module:string):void;
   focus():void;
+  /** Start the 3D polyline tool on a route/line/zone. */
+  editPath(target:import('./viewport/polyline-tool.ts').PolylineTarget):void;
   /** Show a place in the 3D view with a comfortable framing. */
   view(x:number,z:number):void;
   duplicate():void;
@@ -57,7 +60,15 @@ async function buildInspector(host:HTMLElement,ctx:InspectorContext){
   const axes=node('details');axes.append(node('summary','Échelle par axe'));for(const axis of ['x','y','z'] as const)axes.append(field('Échelle '+axis.toUpperCase(),numberInput(round(t.scale[axis]),v=>change('Mettre à l’échelle '+source.name,n=>{n.scale[axis]=v;}),.05,100)));scale.append(axes);
   host.append(position,rotation,scale);
   const actions=node('div','','row');actions.append(button('Centrer (F)',ctx.focus),button('Aligner au sol',()=>change('Aligner au sol',n=>{n.position.y=0;n.rotation=quaternionFromDegrees({x:0,y:eulerDegrees(n.rotation).y,z:0});})),button('Dupliquer',ctx.duplicate),button('Supprimer',ctx.remove),button('Voir en 3D',()=>ctx.view(t.position.x,t.position.z)));host.append(actions);
-  const logic=node('div','','row');logic.append(button('Configurer une interaction',()=>ctx.open('interactions')));if(resolved.components.Interactable)logic.append(node('span','Interaction : '+resolved.components.Interactable.prompt,'muted'));
+  const logic=node('div','','row');logic.append(button('Configurer une interaction',()=>ctx.open('interactions')));
+  if(resolved.components.Interactable)logic.append(node('span','Interaction : '+resolved.components.Interactable.prompt,'muted'));
+  else if(!resolved.components.Character){
+    // One-click template: the object becomes a collectable resource (item + interaction + state).
+    let resource=source.name;const quick=node('div','','row');
+    quick.append(field('Ressource ramassée',input(resource,v=>resource=v)),button('Rendre collectable',()=>void editQueue.run(async()=>{const request={entityId:id,kind:'collect' as const,prompt:'Ramasser '+resource.trim().toLowerCase(),quantity:1,resourceName:resource,soundId:p.world.audio?.sounds.collect?'collect':undefined};
+      await s.change('Rendre collectable '+source.name,interactionChunkIds(p,request),d=>{applyInteraction(d,request);});ctx.status('Objet collectable : « Jouer ici » puis E pour le ramasser.');ctx.refresh();}).catch(e=>ctx.status(String(e instanceof Error?e.message:e),true)),'primary-button'));
+    logic.append(quick);
+  }
   if(resolved.components.DialogueActor)logic.append(button('Ouvrir son dialogue',()=>ctx.open('dialogues')));host.append(node('h4','Logique'),logic);
   if(resolved.components.Character)host.append(characterSection(ctx,id,entry.ownerChunkId));
 }
@@ -77,7 +88,7 @@ function characterSection(ctx:InspectorContext,id:string,owner:string){
     field('Accessoire de cou',select(appearance.neckwear,[['none','Aucun'],['pendant','Pendentif'],['scarf','Écharpe']],v=>appearance.neckwear=v as Neckwear)),
     field('Émotion',select(appearance.emotion,EMOTIONS.map(e=>[e,e] as const),v=>appearance.emotion=v as Emotion)),
     button('Appliquer le personnage',()=>void editQueue.run(async()=>{await s.change('Modifier le personnage',[p.entityIndex[id].ownerChunkId],d=>updateCharacter(d,id,{name,species,behavior,radius,speed,appearance}));ctx.status('Personnage appliqué. Son identifiant et ses dialogues sont conservés.');ctx.refresh();}).catch(e=>ctx.status(String(e instanceof Error?e.message:e),true)),'primary-button'),
-    button('Éditer son dialogue',()=>ctx.open('dialogues')),button('Tracer son trajet',()=>ctx.open('patrol')));
+    button('Éditer son dialogue',()=>ctx.open('dialogues')),button('Tracer son trajet',()=>ctx.editPath({label:'Trajet de '+source.name,points:c.Navigation?.path?.length?c.Navigation.path:[{x:(c.Transform?.position.x??0),z:(c.Transform?.position.z??0)}],min:2,max:100,color:0xf5a35b,commit:async points=>{await s.change('Tracer le trajet de '+source.name,[p.entityIndex[id].ownerChunkId],d=>setCharacterPath(d,id,points));ctx.refresh();}})));
   const path=c.Navigation?.path;box.append(node('p',path?.length?`Trajet : ${path.length} point(s).`:'Aucun trajet : « Tracer son trajet » puis cliquer dans la vue.','muted'));
   return box;
 }

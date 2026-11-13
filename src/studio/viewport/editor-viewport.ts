@@ -17,6 +17,7 @@ import {ToolManager,type ToolContext} from './tools.ts';
 import {SelectTool} from './select-tool.ts';
 import {PlacementTool} from './placement-tool.ts';
 import {BrushTool,type BrushMode} from './brush-tool.ts';
+import {PolylineTool} from './polyline-tool.ts';
 
 export interface ViewportOptions {
   message(text:string,error?:boolean):void;
@@ -61,7 +62,7 @@ export class StudioViewport {
   private session:StudioSession;private options:ViewportOptions;
   private constructor(host:HTMLElement,session:StudioSession,options:ViewportOptions,definition:WorldDefinition){
     this.session=session;this.options=options;
-    this.definition=definition;const p=session.document;this.editSignatures=new Map(definition.terrain.map(e=>[e.id,JSON.stringify(e)]));
+    this.definition=definition;const p=session.document;this.editSignatures=new Map([...definition.terrain,...definition.biomes].map(e=>[e.id,JSON.stringify(e)]));
     this.element=document.createElement('div');this.element.className='viewport';this.canvas=document.createElement('canvas');this.canvas.tabIndex=0;this.canvas.setAttribute('aria-label','Vue 3D du monde');this.element.append(this.canvas);host.append(this.element);
     this.renderer=new THREE.WebGLRenderer({canvas:this.canvas,antialias:true,powerPreference:'low-power'});this.renderer.setPixelRatio(Math.min(devicePixelRatio,1.25));this.renderer.outputColorSpace=THREE.SRGBColorSpace;this.renderer.toneMapping=THREE.ACESFilmicToneMapping;this.renderer.toneMappingExposure=1.1;
     configureScene(this.scene);this.world=buildWorld(definition.config,definition);this.scene.add(this.world.root);
@@ -74,7 +75,7 @@ export class StudioViewport {
     this.navigation=attachNavigation(this.canvas,this.camera,{pick:(x,y)=>this.groundAt(x,y),heightPx:()=>this.canvas.clientHeight,isActive:()=>this.visible,onInteract:()=>this.invalidate(4),onSettled:()=>this.saveCamera()});
     const context:ToolContext={session,scene:this.scene,canvas:this.canvas,camera:this.camera,selection:this.selection,ground:e=>this.groundAt(e.clientX,e.clientY),objectFor:id=>this.objectFor(id),invalidate:n=>this.invalidate(n),message:options.message,refreshInspector:options.refreshInspector,setTool:id=>{this.setTool(id);options.toolChanged(id);},
       run:action=>{void action().catch(error=>{options.message(String(error instanceof Error?error.message:error),true);this.refresh();});}};
-    this.tools=new ToolManager(context);this.tools.register(new SelectTool());this.tools.register(new PlacementTool());for(const [id,mode]of BRUSH_TOOLS)this.tools.register(new BrushTool(id,mode));
+    this.tools=new ToolManager(context);this.tools.register(new SelectTool());this.tools.register(new PlacementTool());this.tools.register(new PolylineTool());for(const [id,mode]of BRUSH_TOOLS)this.tools.register(new BrushTool(id,mode));
     this.canvas.addEventListener('pointerdown',this.onDown);this.canvas.addEventListener('pointermove',this.onMove);this.canvas.addEventListener('pointerup',this.onUp);this.canvas.addEventListener('pointerleave',this.onLeave);
     window.addEventListener('keydown',this.onKey);
     this.unsubscribe.push(session.commands.subscribe(t=>this.refresh(t)),session.selection.subscribe(()=>{this.selection.refresh();this.invalidate(3);this.reportStatus();}));
@@ -145,8 +146,10 @@ export class StudioViewport {
     const ids=affectedChunkIds(p.world,clampX(p,t.x),clampZ(p,t.z),CONTENT_RADIUS).filter(id=>!!p.chunkIndex[id]);
     this.queue=this.queue.then(async()=>{
       if(this.disposed)return;await this.session.hydrate(ids);if(this.disposed)return;
-      this.contentIds=new Set(ids);const next=toRuntimeWorld(p,Object.keys(p.chunks));next.config.viewDistance=300;this.definition=next;
-      this.applyTerrain(next.terrain,transaction);this.syncModels();this.tools.active?.sourcesChanged?.();this.reportStatus();this.invalidate(20);
+      this.contentIds=new Set(ids);const next=toRuntimeWorld(p,Object.keys(p.chunks));next.config.viewDistance=300;
+      // Same object as the one given to buildWorld: biome sampling reads its live edit list.
+      Object.assign(this.definition,next);
+      this.applyTerrain([...next.terrain,...next.biomes] as TerrainStroke[],transaction);this.syncModels();this.tools.active?.sourcesChanged?.();this.reportStatus();this.invalidate(20);
     }).catch(error=>this.options.message(String(error),true));
   }
   refresh(transaction?:EditTransaction){
@@ -154,7 +157,7 @@ export class StudioViewport {
     this.session.selection.prune(v=>v.kind!=='entity'||!!this.session.document.entityIndex[v.id]);
     this.syncContent(transaction);
   }
-  /** Terrain edits are refreshed locally (tiles + horizon blocks around each changed edit). */
+  /** Terrain and biome edits are refreshed locally (tiles, vegetation and horizon blocks around each changed edit). */
   private applyTerrain(edits:TerrainStroke[],transaction?:EditTransaction){
     const next=new Map(edits.map(e=>[e.id,JSON.stringify(e)])),changed:TerrainStroke[]=[],previous=this.editSignatures;
     for(const e of edits)if(previous.get(e.id)!==next.get(e.id))changed.push(e);

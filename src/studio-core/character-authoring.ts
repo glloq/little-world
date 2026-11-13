@@ -17,3 +17,11 @@ export function updateCharacter(project:ProjectDocument,id:string,options:{name:
  const index=project.entityIndex[id];if(!index||!project.chunks[index.ownerChunkId])throw Error('Charger le secteur du personnage');const source=project.chunks[index.ownerChunkId].entities[id],resolved=resolveEntity(project,source);if(!resolved.components.Character||!options.name.trim()||options.name.length>80)throw Error('Personnage invalide');
  const entity=materializeComponents(source,{Character:resolved.components.Character,...(resolved.components.Navigation?{Navigation:resolved.components.Navigation}:{}),...(resolved.components.BehaviorRef?{BehaviorRef:resolved.components.BehaviorRef}:{})});const behaviorId='behavior:'+id;entity.name=options.name.trim();entity.components.Character={...resolved.components.Character,species:options.species,appearance:structuredClone(options.appearance)};entity.components.Navigation={type:'Navigation',behaviorId,radius:options.radius,speed:options.speed,...(options.behavior==='patrol'&&resolved.components.Navigation?.path?{path:structuredClone(resolved.components.Navigation.path)}:{})};entity.components.BehaviorRef={type:'BehaviorRef',behaviorId};project.libraries.behaviors={...project.libraries.behaviors,[behaviorId]:{id:behaviorId,kind:options.behavior}};putEntity(project,entity);
 }
+/** Patrol route drawn in the 3D view: the character switches to the "patrol" routine. */
+export function setCharacterPath(project:ProjectDocument,id:string,path:{x:number;z:number}[]){
+ if(path.length<2||path.length>100)throw Error('Un trajet compte de 2 à 100 points');
+ const index=project.entityIndex[id];if(!index||!project.chunks[index.ownerChunkId])throw Error('Charger le secteur du personnage');const source=project.chunks[index.ownerChunkId].entities[id],resolved=resolveEntity(project,source);
+ if(!resolved.components.Character)throw Error('Seuls les personnages ont un trajet');const behaviorId='behavior:'+id;
+ const entity=materializeComponents(source,{Navigation:{type:'Navigation',behaviorId,speed:resolved.components.Navigation?.speed||1,radius:resolved.components.Navigation?.radius??8,path:path.map(p=>({x:p.x,z:p.z}))},BehaviorRef:{type:'BehaviorRef',behaviorId}});
+ project.libraries.behaviors={...project.libraries.behaviors,[behaviorId]:{id:behaviorId,kind:'patrol'}};putEntity(project,entity);
+}

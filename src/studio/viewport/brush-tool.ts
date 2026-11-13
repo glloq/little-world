@@ -26,6 +26,9 @@ export function strokeDabs(points:Dab[],radius:number,max=96):Dab[]{
 export class BrushTool implements Tool {
   readonly cursor='none';
   private ctx!:ToolContext;private ring:THREE.Group|null=null;private points:Dab[]=[];private painting=false;private busy=false;
+  /** Expected result while dragging: footprints of the dabs that will be applied, and the
+   * target plane of flattening. Discarded on release/cancel (nothing is written before). */
+  private trail:THREE.InstancedMesh|null=null;private plane:THREE.Mesh|null=null;private flatHeight=0;
   readonly id:string;readonly mode:BrushMode;
   constructor(id:string,mode:BrushMode){this.id=id;this.mode=mode;}
   activate(ctx:ToolContext){
@@ -33,13 +36,20 @@ export class BrushTool implements Tool {
     const outer=new THREE.Mesh(new THREE.RingGeometry(.96,1,64),new THREE.MeshBasicMaterial({color,side:THREE.DoubleSide,depthTest:false,transparent:true,opacity:.95}));
     const inner=new THREE.Mesh(new THREE.CircleGeometry(1,48),new THREE.MeshBasicMaterial({color,side:THREE.DoubleSide,depthTest:false,transparent:true,opacity:.12}));
     for(const m of [outer,inner]){m.rotation.x=-Math.PI/2;m.renderOrder=40;g.add(m);}g.visible=false;g.name='BrushPreview';ctx.scene.add(g);this.ring=g;
+    const trail=new THREE.InstancedMesh(new THREE.RingGeometry(.9,1,32).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.55,depthTest:false,side:THREE.DoubleSide}),96);trail.count=0;trail.renderOrder=39;trail.frustumCulled=false;ctx.scene.add(trail);this.trail=trail;
+    if(this.mode==='flatten'){const plane=new THREE.Mesh(new THREE.CircleGeometry(1,48).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0xfff2b0,transparent:true,opacity:.35,side:THREE.DoubleSide,depthWrite:false}));plane.visible=false;plane.renderOrder=38;ctx.scene.add(plane);this.plane=plane;}
   }
-  deactivate(){if(this.ring){this.ring.traverse(o=>{const m=o as THREE.Mesh;if(m.isMesh){m.geometry.dispose();(m.material as THREE.Material).dispose();}});this.ring.removeFromParent();}this.ring=null;this.points=[];this.painting=false;}
+  private drawTrail(){
+    const trail=this.trail;if(!trail)return;const dabs=this.painting?strokeDabs(this.points,brushSettings.radius):[],m=new THREE.Matrix4();trail.count=dabs.length;
+    dabs.forEach((d,i)=>{m.makeScale(brushSettings.radius,1,brushSettings.radius).setPosition(d.x,terrainHeight(d.x,d.z)+.3,d.z);trail.setMatrixAt(i,m);});trail.instanceMatrix.needsUpdate=true;
+    if(this.plane){const last=this.points.at(-1);this.plane.visible=this.painting&&!!last;if(last){this.plane.position.set(last.x,this.flatHeight+.05,last.z);this.plane.scale.setScalar(brushSettings.radius);}}
+  }
+  deactivate(){for(const o of [this.trail,this.plane]){if(!o)continue;o.geometry.dispose();(o.material as THREE.Material).dispose();o.removeFromParent();}this.trail=null;this.plane=null;if(this.ring){this.ring.traverse(o=>{const m=o as THREE.Mesh;if(m.isMesh){m.geometry.dispose();(m.material as THREE.Material).dispose();}});this.ring.removeFromParent();}this.ring=null;this.points=[];this.painting=false;}
   private show(e:PointerEvent){const point=this.ctx.ground(e);if(!point||!this.ring){if(this.ring)this.ring.visible=false;return null;}this.ring.visible=true;this.ring.position.set(point.x,point.y+.25,point.z);this.ring.scale.setScalar(brushSettings.radius);this.ctx.invalidate(2);return point;}
-  pointerMove(e:PointerEvent){const point=this.show(e);if(this.painting&&point&&e.buttons&1){this.points.push({x:point.x,z:point.z});this.ctx.message(`${strokeDabs(this.points,brushSettings.radius).length} touche(s) · relâcher pour appliquer (Échap annule)`);}}
-  pointerDown(e:PointerEvent){if(e.button!==0||this.busy)return;const point=this.show(e);if(!point)return;this.painting=true;this.points=[{x:point.x,z:point.z}];}
-  pointerUp(e:PointerEvent){if(e.button!==0||!this.painting)return;this.painting=false;const dabs=strokeDabs(this.points,brushSettings.radius);this.points=[];if(dabs.length)this.commit(dabs);}
-  cancel(){if(!this.painting)return false;this.painting=false;this.points=[];this.ctx.message('Trait annulé.');return true;}
+  pointerMove(e:PointerEvent){const point=this.show(e);if(this.painting&&point&&e.buttons&1){this.points.push({x:point.x,z:point.z});this.drawTrail();this.ctx.message(`${strokeDabs(this.points,brushSettings.radius).length} touche(s) · relâcher pour appliquer (Échap annule)`);}}
+  pointerDown(e:PointerEvent){if(e.button!==0||this.busy)return;const point=this.show(e);if(!point)return;this.painting=true;this.points=[{x:point.x,z:point.z}];this.flatHeight=brushSettings.height??point.y;this.drawTrail();}
+  pointerUp(e:PointerEvent){if(e.button!==0||!this.painting)return;const dabs=strokeDabs(this.points,brushSettings.radius);this.painting=false;this.points=[];this.drawTrail();if(dabs.length)this.commit(dabs);}
+  cancel(){if(!this.painting)return false;this.painting=false;this.points=[];this.drawTrail();this.ctx.message('Trait annulé.');this.ctx.invalidate(3);return true;}
   keyDown(e:KeyboardEvent){
     if(e.key==='['||e.key===']'){brushSettings.radius=Math.min(80,Math.max(1,brushSettings.radius*(e.key===']'?1.25:.8)));if(this.ring)this.ring.scale.setScalar(brushSettings.radius);this.ctx.message(`Rayon ${brushSettings.radius.toFixed(1)} m`);this.ctx.invalidate(2);return true;}
     if(e.key==='-'||e.key==='+'||e.key==='='){brushSettings.strength=Math.min(10,Math.max(.1,brushSettings.strength+(e.key==='-'?-.5:.5)));this.ctx.message(`Force ${brushSettings.strength.toFixed(1)}`);return true;}
@@ -47,7 +57,7 @@ export class BrushTool implements Tool {
   }
   private commit(dabs:Dab[]){
     const s=this.ctx.session,radius=brushSettings.radius,strength=brushSettings.strength,mode=this.mode,biome=BIOME_MODES.includes(mode);this.busy=true;
-    const flatHeight=brushSettings.height??terrainHeight(dabs[0].x,dabs[0].z);
+    const flatHeight=this.flatHeight;
     const targets=dabs.map(d=>mode==='smooth'?localMean(terrainHeight,d.x,d.z,radius):flatHeight);
     this.ctx.run(async()=>{try{
       const chunks=[...new Set(dabs.flatMap(d=>affectedChunkIds(s.document.world,d.x,d.z,radius)))];

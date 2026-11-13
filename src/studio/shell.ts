@@ -29,7 +29,7 @@ const MODULES:[string,string,string,string,string][]=[
   ['dialogues','Dialogues','✉','Logique',''],['interactions','Interactions','⚙','Logique',''],['environment','Environnement','☀','Logique',''],['audio','Audio','♪','Logique',''],
   ['tests','Validation / compilation','✓','Projet',''],
 ];
-const VIEWPORT_MODULES=new Set(['scene','objects','characters','terrain','biomes','patrol']);
+const VIEWPORT_MODULES=new Set(['scene','objects','characters','terrain','biomes','polyline']);
 const ALIASES:Record<string,string>={local:'scene',select:'scene'};
 const panelHost=()=>$('panel-host');
 function refreshHeader(){
@@ -127,7 +127,11 @@ async function toolPanel(id:string,v:StudioViewport){
     for(const [tool,label]of options){const b=button(label,()=>{v.setTool(tool);for(const c of chips.children)c.classList.toggle('active',c===b);},'chip'+(tool===current?' active':''));chips.append(b);}
     tools.append(node('div',id==='terrain'?'RELIEF':'BIOTOPES','kicker'),node('h3',id==='terrain'?'Pinceaux de relief':'Peindre les biotopes'),chips,field('Rayon du pinceau (m)',numberInput(brushSettings.radius,val=>brushSettings.radius=Math.max(1,Math.min(80,val||1)),1,80)),field(id==='terrain'?'Force / hauteur':'Densité ×2',numberInput(brushSettings.strength,val=>brushSettings.strength=Math.max(.1,Math.min(10,val||1)),.1,10)),
       node('p','Glisser : un trait = une opération annulable. [ ] : rayon · - + : force · clic droit / molette : naviguer · Échap : annuler le trait.','muted'));
-  }else if(id==='patrol'){v.setTool('patrol');tools.append(node('div','TRAJET','kicker'),node('h3','Trajet du personnage'),node('p','Cliquer dans la vue pour ajouter des points ; Entrée pour valider, Échap pour abandonner.','muted'),action('Terminer',()=>module('scene')));}
+  }else if(id==='polyline'){
+    const {polylineTarget}=await import('./viewport/polyline-tool.ts');const target=polylineTarget.current;if(!target){await module('scene');return;}v.setTool('polyline');
+    tools.append(node('div','TRACÉ','kicker'),node('h3',target.label),node('p','Clic : ajouter un point · glisser un point : le déplacer · Retour arrière : retirer le dernier · Entrée : valider (une opération) · Échap : abandonner. Clic droit / molette : naviguer.','muted'),
+      action('Valider le tracé',()=>{window.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter'}));},'primary-button'),action('Abandonner',()=>{polylineTarget.current=null;return module('scene');}));
+  }
 }
 function listPanel(s:StudioSession,host:HTMLElement){
   const list=mountEntityList(host,s.document,()=>s.selection.selection.map(v=>v.id),(e,additive)=>{if(additive)s.selection.toggle({kind:'entity',id:e.id});else s.selection.select({kind:'entity',id:e.id});if(viewport&&VIEWPORT_MODULES.has(activeModule))viewport.focusSelection();else s.selection.setCamera(moveContext(s,e.position.x,e.position.z));list.refresh();void inspector();});
@@ -141,6 +145,7 @@ async function pick(x:number,z:number){
 async function inspector(){
   const s=session;if(!s)return;
   await renderInspector($('inspector'),{session:s,status,open:id=>void run(()=>module(id))(),focus:()=>{if(viewport&&VIEWPORT_MODULES.has(activeModule))viewport.focusSelection();else void module('scene').then(()=>viewport?.focusSelection());},
+    editPath:(target)=>{void run(async()=>{const {polylineTarget}=await import('./viewport/polyline-tool.ts');polylineTarget.current=target;await module('polyline');})();},
     view:(x,z)=>{void run(async()=>{if(activeModule!=='scene')await module('scene');viewport?.goTo(x,z,12);})();},
     duplicate:()=>{void withSelectTool(t=>t.duplicate());},remove:()=>{void withSelectTool(t=>t.remove());},refresh:()=>scheduleInspector()});
 }
