@@ -2,6 +2,7 @@ import {waterRibbonData} from './water/geometry.ts';
 import * as THREE from 'three';
 import { createTerrainView } from './terrain-view';
 import { createHorizonView, type HorizonStats } from './horizon-view';
+import { configureGeography } from './geography/engine';
 import { createEcology } from './ecology';
 import { sampleBiome } from './biomes';
 import type {
@@ -601,6 +602,7 @@ export function buildWorld(
     definition?.water,
     definition?.paths,
   );
+  configureWorldGeography(config, definition);
   const root = new THREE.Group();
   root.name = 'LittleWorld';
   // Generation is time-sliced (ms) rather than a fixed count; the shared level adapts LOD.
@@ -786,6 +788,19 @@ export function buildWorld(
   };
 }
 
+/** Geography Engine inputs for a runtime/Studio world: sector masks, zones, legacy biome
+ * strokes and building footprints, all derived from the same sources as the terrain. */
+export function configureWorldGeography(config: WorldConfig, definition?: WorldDefinition) {
+  const width = config.width ?? 200, length = config.length ?? 600, sector = definition?.geography?.sectorSizeM ?? config.chunkSize ?? 64;
+  configureGeography({
+    seed: config.seed,
+    grid: { minX: -width / 2, minZ: -length / 2, chunkSizeM: sector, columns: Math.ceil(width / sector), rows: Math.ceil(length / sector) },
+    masks: definition?.geography?.masks ?? {},
+    zones: definition?.geography?.zones ?? [],
+    biomeStrokes: (definition?.biomes ?? []).map((b) => ({ x: b.x, z: b.z, radius: b.radius, biome: b.biome })),
+    buildings: (definition?.placements ?? []).filter((p) => p.assetId.startsWith('architecture.')).map((p) => ({ x: p.x, z: p.z, radius: 6 * (p.scale ?? 1) })),
+  });
+}
 export function addPlacement(
   world: WorldView,
   placement: Placement,

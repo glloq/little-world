@@ -3,6 +3,7 @@ import {parseEnvironmentDefinition} from '../environment/climate.ts';
 import {parseComponents} from '../studio-core/schema.ts';
 import {hashText,utf8Bytes,type CompiledChunkData,type CompiledChunkDescriptor,type CompiledWorldManifest,type CompiledLogicData} from './manifests.ts';
 import {parseTerrainGenerator} from '../terrain-generator.ts';
+import {MASK_LAYERS,validMaskString,type MaskLayerId} from '../geography/layers.ts';
 const record=(v:unknown):v is Record<string,unknown>=>typeof v==='object'&&v!==null&&!Array.isArray(v);
 const hash=(v:unknown):v is string=>typeof v==='string'&&/^[a-f0-9]{64}$/.test(v);
 const text=(v:unknown):v is string=>typeof v==='string'&&v.length>0&&v.length<=200;
@@ -48,6 +49,7 @@ export async function loadCompiledChunk(manifestURL:string,manifest:CompiledWorl
 }
 export function parseCompiledChunk(value:unknown,manifest:CompiledWorldManifest,descriptor:CompiledChunkDescriptor):CompiledChunkData {
  if(!record(value)||value.schemaVersion!==1||value.kind!=='compiled-chunk'||value.worldId!==manifest.worldId||value.chunkId!==descriptor.chunkId||!bounds(value.bounds)||!Array.isArray(value.entities)||value.entities.length>5000||!record(value.terrain)||value.terrain.mode!=='procedural-with-ordered-overrides'||!Array.isArray(value.terrain.edits)||value.terrain.edits.length>10000||!record(value.biomes)||!Array.isArray(value.biomes.edits)||value.biomes.edits.length>10000||!Array.isArray(value.water)||!Array.isArray(value.paths)||!record(value.collision)||value.collision.mode!=='analytic-terrain-and-shape-descriptors'||!record(value.navigation)||value.navigation.mode!=='agent-and-path-descriptors'||!record(value.dependencyHashes))throw Error('Invalid compiled chunk payload');
+ if(value.layers!==undefined){if(!record(value.layers))throw Error('Invalid compiled geography layers');for(const [layer,mask]of Object.entries(value.layers))if(!(MASK_LAYERS as string[]).includes(layer)||!validMaskString(layer as MaskLayerId,mask))throw Error('Invalid compiled geography layer');}
  const ids=new Set<string>();
  for(const entity of value.entities){if(!record(entity)||!text(entity.id)||ids.has(entity.id)||entity.ownerChunkId!==descriptor.chunkId||!descriptor.entityIds.includes(entity.id))throw Error('Invalid compiled entity');parseComponents(entity.components);ids.add(entity.id);}
  if(ids.size!==descriptor.entityIds.length)throw Error('Compiled chunk/entity index mismatch');

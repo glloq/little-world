@@ -1,5 +1,6 @@
 import {WaterSpatialIndex} from './water/profile.ts';
-import {LEGACY_GENERATOR,generatorHeight,islandCoastDistance,type TerrainGeneratorDefinition} from './terrain-generator.ts';
+import {LEGACY_GENERATOR,generatorField,type TerrainGeneratorDefinition} from './terrain-generator.ts';
+import type {GeneratorField} from './geography/archipelago.ts';
 import type {
   WorldConfig,
   TerrainStroke,
@@ -18,10 +19,13 @@ let config = {
   viewDistance: 240,
   generator: LEGACY_GENERATOR as TerrainGeneratorDefinition,
 };
-let coastDistance:((x:number,z:number)=>number)|null=null;
+/** Generator outputs of the configured world (coast distance, coastal steepness, volcanism). */
+let field:GeneratorField|null=null;
 let waterIndex=new WaterSpatialIndex([],()=>0);
 let sourceHeight:(x:number,z:number)=>number=(x,z)=>baseHeight(x,z,0);
 let paths: PathDefinition[] = [];
+let pathBoxes: {minX:number;maxX:number;minZ:number;maxZ:number}[] = [];
+function pointsBox(points:{x:number;z:number}[],pad:number){let minX=Infinity,maxX=-Infinity,minZ=Infinity,maxZ=-Infinity;for(const p of points){minX=Math.min(minX,p.x);maxX=Math.max(maxX,p.x);minZ=Math.min(minZ,p.z);maxZ=Math.max(maxZ,p.z);}return {minX:minX-pad,maxX:maxX+pad,minZ:minZ-pad,maxZ:maxZ+pad};}
 export function configureTerrain(
   c: WorldConfig,
   edits: TerrainStroke[] = [],
@@ -37,10 +41,11 @@ export function configureTerrain(
     generator: c.terrain ?? LEGACY_GENERATOR,
   };
   const g=config.generator;
-  coastDistance=g.kind==='island'?islandCoastDistance({seed:c.seed,seaLevel:config.seaLevel,width:config.width,length:config.length},g.island):null;
-  sourceHeight=createTerrainSource(c,edits);
+  field=g.kind==='legacy-valley'?null:generatorField(g,{seed:c.seed,seaLevel:config.seaLevel,width:config.width,length:config.length},()=>0);
+  sourceHeight=createTerrainSource(c,edits,field);
   waterIndex=new WaterSpatialIndex(water,sourceHeight);
   paths = roads;
+  pathBoxes = roads.map(p=>pointsBox(p.points,p.width/2));
 }
 export function getTerrainConfig() {
   return { ...config };
@@ -68,10 +73,15 @@ function lineDistance(
 /** True for the historical demonstration valley (V1/V2 maps, projects without generator). */
 export function isLegacyTerrain():boolean{return config.generator.kind==='legacy-valley';}
 export function terrainGenerator():TerrainGeneratorDefinition{return config.generator;}
-export function pathDistance(x: number, z: number): number {
+/** Distance to the nearest path edge. With `within`, paths farther than that are skipped
+ * (the result is then only exact below `within`; Infinity means "farther"). */
+export function pathDistance(x: number, z: number, within = Infinity): number {
   let d = isLegacyTerrain()?Math.abs(x - (riverX(z) - 22)) - 1.8:Infinity;
-  for (const p of paths)
+  for (let i = 0; i < paths.length; i++) {
+    const p = paths[i], b = pathBoxes[i];
+    if (within < Infinity && (x < b.minX - within || x > b.maxX + within || z < b.minZ - within || z > b.maxZ + within)) continue;
     d = Math.min(d, lineDistance(x, z, p.points) - p.width / 2);
+  }
   return d;
 }
 
@@ -110,9 +120,9 @@ function baseHeight(x: number, z: number, seaLevel:number): number {
 const EDIT_CELL=64;
 /** Base generator + ordered authored edits. Edits are bucketed so a sample only visits
  * edits whose disc can reach it; bucket order preserves application order. */
-export function createTerrainSource(c:WorldConfig,edits:TerrainStroke[]=[]):(x:number,z:number)=>number {
+export function createTerrainSource(c:WorldConfig,edits:TerrainStroke[]=[],shared?:GeneratorField|null):(x:number,z:number)=>number {
  const seaLevel=c.seaLevel??0,generator=c.terrain??LEGACY_GENERATOR;
- const base=generatorHeight(generator,{seed:c.seed,seaLevel,width:c.width??200,length:c.length??600},(x,z)=>baseHeight(x,z,seaLevel));
+ const base=shared?shared.height:generatorField(generator,{seed:c.seed,seaLevel,width:c.width??200,length:c.length??600},(x,z)=>baseHeight(x,z,seaLevel)).height;
  const buckets=new Map<string,TerrainStroke[]>();
  for(const s of edits){
   const x0=Math.floor((s.x-s.radius)/EDIT_CELL),x1=Math.floor((s.x+s.radius)/EDIT_CELL),z0=Math.floor((s.z-s.radius)/EDIT_CELL),z1=Math.floor((s.z+s.radius)/EDIT_CELL);
@@ -133,6 +143,14 @@ export function createTerrainSource(c:WorldConfig,edits:TerrainStroke[]=[]):(x:n
 }
 export function sourceTerrainHeight(x:number,z:number){return sourceHeight(x,z);}
 export function compiledWaterBodies(){return waterIndex.bodies;}
+/** Distance to the nearest water body edge, exact below `within` (Infinity beyond). */
+let waterBoxes:{source:readonly unknown[];boxes:ReturnType<typeof pointsBox>[]}={source:[],boxes:[]};
+export function waterEdgeDistance(x:number,z:number,within:number):number{
+  const bodies=waterIndex.bodies;if(waterBoxes.source!==bodies)waterBoxes={source:bodies,boxes:bodies.map(w=>pointsBox(w.points,w.width/2))};
+  let best=Infinity;
+  for(let i=0;i<bodies.length;i++){const b=waterBoxes.boxes[i];if(x<b.minX-within||x>b.maxX+within||z<b.minZ-within||z>b.maxZ+within)continue;best=Math.min(best,lineDistance(x,z,bodies[i].points)-bodies[i].width/2);}
+  return best;
+}
 export function terrainHeight(x:number,z:number):number {
  let h=sourceHeight(x,z);
  for(const {water,distance,level} of waterIndex.query(x,z,2)){
@@ -160,7 +178,19 @@ export function waterSurface(x: number, z: number): number | null {
   return Math.abs(x - riverX(z)) <= 6.8 ? riverLevel(z) : null;
 }
 /** Signed inland distance for generated islands (negative offshore), null for the valley. */
-export function coastDistanceAt(x:number,z:number):number|null{return coastDistance?coastDistance(x,z):null;}
+export function coastDistanceAt(x:number,z:number):number|null{return field?field.coast(x,z):null;}
+/** 0..1 coastal steepness of generated worlds (0 for the valley). */
+export function cliffAt(x:number,z:number):number{return field?field.cliff(x,z):0;}
+/** 0..1 volcanic influence of generated worlds. */
+export function volcanicAt(x:number,z:number):number{return field?field.volcanic(x,z):0;}
+/** coast/cliff/volcanic in one evaluation. */
+export function geoSiteAt(x:number,z:number){return field?field.site(x,z):{coast:Infinity,cliff:0,volcanic:0};}
+/** Water surface when the terrain height is already known (avoids recomputing it). */
+export function waterSurfaceWithHeight(x:number,z:number,height:number):number|null{
+  const hit=waterIndex.query(x,z)[0];if(hit)return hit.level;
+  if(!isLegacyTerrain())return height<config.seaLevel?config.seaLevel:null;
+  return waterSurface(x,z);
+}
 /** Underwater visuals depend on the CAMERA, never on the player's swim state. */
 export function cameraSubmerged(x: number, y: number, z: number): boolean {
   const surface = waterSurface(x, z);

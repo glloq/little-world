@@ -75,6 +75,8 @@ export interface WorldDefinition {
   water: WaterBody[];
   paths: PathDefinition[];
   npcs: NPCDefinition[];
+  /** Runtime-only geography inputs carried from V3 (never read from V1/V2 files). */
+  geography?: {sectorSizeM: number; masks: Record<string, import('./geography/layers.ts').SectorLayers>; zones: import('./geography/engine.ts').GeoZone[]};
 }
 export const DEFAULT_CONFIG = {
   seed: 1284,

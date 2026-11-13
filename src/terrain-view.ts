@@ -9,7 +9,8 @@ import {
   type TerrainLOD,
   type WorldChunk,
 } from './chunks.ts';
-import { terrainColor, terrainHeight } from './terrain.ts';
+import { terrainHeight } from './terrain.ts';
+import { surfaceColor } from './geography/surface.ts';
 
 /** A surface plus downward skirts hides cracks where neighboring chunks use different LODs. */
 export function createChunkGeometry(
@@ -28,10 +29,11 @@ export function createChunkGeometry(
     indices: number[] = [];
   const color = new THREE.Color();
   function vertex(x: number, z: number, skirt = false): number {
-    const h = terrainHeight(x, z);
+    // Neighbour first: the generator memoizes the last point, reused by the colour classification.
+    const east = terrainHeight(x + 2, z), h = terrainHeight(x, z);
     positions.push(x, h - (skirt ? 12 : 0), z);
-    const slope = Math.abs(terrainHeight(x + 2, z) - h);
-    terrainColor(x, z, h, slope, color);
+    const slope = Math.abs(east - h);
+    surfaceColor(x, z, h, slope, color);
     color.multiplyScalar(
       0.92 +
         0.07 * Math.sin(x * 0.275 + z * 0.165) +

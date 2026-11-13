@@ -1,5 +1,6 @@
 import * as THREE from 'three';
-import {terrainColor,terrainHeight,isLegacyTerrain} from './terrain.ts';
+import {terrainHeight,isLegacyTerrain} from './terrain.ts';
+import {surfaceColor} from './geography/surface.ts';
 
 /** HZ-1: geographic horizon independent from detailed tiles.
  * The whole project rectangle is covered by a coarse heightfield split into blocks
@@ -44,7 +45,7 @@ export function horizonBlockData(bounds:Bounds,grid:HorizonGrid,column:number,ro
     const sea=!legacy&&h<bounds.seaLevel,y=sea?bounds.seaLevel:h;
     let nx=0,nz=0;if(!sea){nx=(at(-1,0)-at(1,0))/(2*step);nz=(at(0,-1)-at(0,1))/(2*step);}
     const n=Math.hypot(nx,1,nz);normals.set([nx/n,1/n,nz/n],k*3);positions.set([x,y,z],k*3);
-    if(sea)color.setHex(SEA_COLOR);else terrainColor(x,z,h,Math.max(Math.abs(at(1,0)-h),Math.abs(at(0,1)-h))*2/step,color);
+    if(sea)color.setHex(SEA_COLOR);else surfaceColor(x,z,h,Math.max(Math.abs(at(1,0)-h),Math.abs(at(0,1)-h))*2/step,color);
     colors.set([color.r,color.g,color.b],k*3);
   }
   const index=count>65535?new Uint32Array(cellsX*cellsZ*6):new Uint16Array(cellsX*cellsZ*6);let t=0;

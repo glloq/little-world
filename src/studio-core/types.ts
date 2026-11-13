@@ -65,6 +65,8 @@ export interface ChunkSourceV3 {
   entities:Record<StableId,EntityDefinitionV3>;entityIds:StableId[];
   terrainEdits:TerrainEdit[];terrainRefs:StableId[];biomeEdits:BiomeEdit[];biomeRefs:StableId[];
   waterRefs:StableId[];pathRefs:StableId[];
+  /** Geography corrections of this sector (16×16 cell masks per layer). Optional. */
+  layers?:import('../geography/layers.ts').SectorLayers;
 }
 /** chunks is a loaded source cache; indexes and libraries remain available globally. */
 export interface ProjectDocument {
