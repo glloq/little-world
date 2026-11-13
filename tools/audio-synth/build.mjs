@@ -20,14 +20,14 @@ let report={};try{report=JSON.parse(await readFile(new URL('assets/audio/qc-repo
 const selected=plan.filter(p=>RECIPES[p.group]&&(all||lots.has(RECIPES[p.group].lot)));
 if(!selected.length){console.error('Aucune prise sélectionnée (--lot A|B|C|D|E ou --all).');process.exit(1);}
 const problems=[],groups=new Map();
-for(const item of selected){const out=render(item);const loop=!!out.recipe.loop,m=measure(out.x,out.sr,{loop}),bad=check(m,{loop});if(bad.length)problems.push(`${item.assetId} : ${bad.join(' ; ')}`);
+for(const item of selected){const out=render(item);const loop=!!out.recipe.loop,swell=!!out.recipe.swell,gaps=!!out.recipe.gaps,m=measure(out.x,out.sr,{loop}),bad=check(m,{loop,swell,gaps});if(bad.length)problems.push(`${item.assetId} : ${bad.join(' ; ')}`);
  const g=groups.get(item.group)??[];g.push({id:item.assetId,x:out.x,m});groups.set(item.group,g);
  const bytes=wav16(out.x,out.sr,hash(item.assetId));const path=new URL('public/'+item.file,root);
  if(verifyOnly){const existing=new Uint8Array(await readFile(path));if(Buffer.compare(Buffer.from(existing),Buffer.from(bytes))!==0)problems.push(`${item.assetId} : rendu non reproductible`);continue;}
  await mkdir(dirname(fileURLToPath(path)),{recursive:true});await writeFile(path,bytes);
  const placeholder=out.recipe.confidence==='placeholder';
  registry.files[item.assetId]={file:item.file,status:placeholder?'LISTENING_REVIEW':'TECHNICALLY_VALID',source:`Little World — synthèse procédurale originale (tools/audio-synth, recette « ${item.group} », lot ${out.recipe.lot}, prise ${item.take}/${item.takes}, ${PRODUCTION_DATE})`,license:'CC0-1.0',generatorVersion:SYNTH_VERSION,notes:placeholder?'Substitut procédural d’un son naturel complexe : écoute prioritaire, source réaliste recommandée. Aucune écoute humaine réalisée.':'Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée.'};
- report[item.assetId]={group:item.group,lot:out.recipe.lot,file:item.file,loop,...m};}
+ report[item.assetId]={group:item.group,lot:out.recipe.lot,file:item.file,loop,...(swell?{swell}:{}),...(gaps?{gaps}:{}),...m};}
 for(const [group,items]of groups){const bad=groupCheck(items);if(bad.length)problems.push(`${group} : ${bad.join(' ; ')}`);}
 if(problems.length){console.error('Contrôle qualité en échec :\n- '+problems.join('\n- '));process.exit(1);}
 if(verifyOnly){console.log(`${selected.length} rendus identiques aux fichiers livrés.`);process.exit(0);}

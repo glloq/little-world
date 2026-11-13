@@ -23,7 +23,7 @@ test('every produced file exists, is registered in the catalogue with its hash, 
 });
 test('produced WAV files pass the technical QC again (mono 16-bit, peak, clipping, DC, edges, silence, loop seams)',async()=>{
  for(const [id,e]of samples){const w=readWav(await bytesOf(e));assert.equal(w.channels,1,id);assert.ok([44100,22050].includes(w.sr),id);const r=report[id],loop=r.loop,m=measure(w.x,w.sr,{loop});
-  assert.deepEqual(check(m,{loop}),[],id);assert.ok(Math.abs(m.peakDb-r.peakDb)<.2,id);if(loop)assert.ok(w.x.length/w.sr>=4&&w.x.length/w.sr<=8,id);else assert.ok(w.x.length/w.sr<=3.5,id);}
+  assert.deepEqual(check(m,{loop,swell:!!r.swell,gaps:!!r.gaps}),[],id);assert.ok(Math.abs(m.peakDb-r.peakDb)<.2,id);if(loop)assert.ok(w.x.length/w.sr>=4&&w.x.length/w.sr<=8,id);else assert.ok(w.x.length/w.sr<=3.5,id);}
 });
 test('takes of a group are genuinely different and level-coherent; placeholder recipes are flagged for listening',async()=>{
  const groups=new Map();for(const [id,e]of samples){const g=report[id].group,list=groups.get(g)??[];list.push({id,x:readWav(await bytesOf(e)).x,m:report[id]});groups.set(g,list);}

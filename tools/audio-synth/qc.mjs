@@ -11,16 +11,20 @@ export function measure(x,sr,{loop=false}={}){
  const thr=p*.05;let lead=0;while(lead<n&&Math.abs(x[lead])<thr)lead++;
  const win=Math.round(.01*sr);let gap=0,longest=0;const until=Math.round(n*.7);for(let s=0;s+win<=until;s+=win){if(db(rms(x,s,s+win))<-65){gap+=win;longest=Math.max(longest,gap);}else gap=0;}
  const m={durationS:+(n/sr).toFixed(4),sampleRate:sr,peakDb:+db(p).toFixed(2),rmsDb:+db(rms(x)).toFixed(2),clipped,dc:+mean.toFixed(5),leadingSilenceMs:+(lead/sr*1000).toFixed(1),longestInnerSilenceMs:+(longest/sr*1000).toFixed(0),edgeStart:+Math.abs(x[0]).toFixed(4),edgeEnd:+Math.abs(x[n-1]).toFixed(4),maxStep:+maxStep.toFixed(3),...spectrumSummary(x,sr)};
- if(loop){const w=Math.round(.05*sr),head=rms(x,0,w),tail=rms(x,n-w,n);let mean=0;for(let i=1;i<n;i++)mean+=Math.abs(x[i]-x[i-1]);mean/=n-1;m.loopSeamJump=+(Math.abs(x[0]-x[n-1])/(mean||1e-9)).toFixed(2);m.loopEdgeDb=+(db(head)-db(tail)).toFixed(2);}
+ if(loop){const d=[];for(let i=1;i<n;i+=3)d.push(Math.abs(x[i]-x[i-1]));d.sort((a,b)=>a-b);const p999=d[Math.floor(d.length*.999)]||1e-9;m.loopSeamJump=+(Math.abs(x[0]-x[n-1])/p999).toFixed(2);
+  // Level across the seam compared with the loop's own level distribution (200 ms windows, 100 ms hop).
+  const w=Math.round(.1*sr),levels=[];for(let s=0;s+2*w<=n;s+=w)levels.push(db(rms(x,s,s+2*w)));levels.sort((a,b)=>a-b);const seam=new Float32Array(2*w);seam.set(x.subarray(n-w));seam.set(x.subarray(0,w),w);
+  const lo=levels[Math.floor(levels.length*.05)],hi=levels[Math.ceil(levels.length*.95)-1],at=db(rms(seam));m.loopEdgeDb=+(at<lo?at-lo:at>hi?at-hi:0).toFixed(2);}
  return m;
 }
 function spectrumSummary(x,sr){const s=spectrum(x,sr);return {centroidHz:Math.round(s.centroid),bands:s.bands.map(v=>+v.toFixed(4))};}
 /** Pass/fail rules (technical only). Returns a list of problems. */
-export function check(m,{loop=false}={}){const p=[];
+/** `swell`: ambient one-shot fading in by design (distant thunder, rumble, lapping) — not a reactive gameplay sound. */
+export function check(m,{loop=false,swell=false,gaps=false}={}){const p=[];
  if(m.clipped>0)p.push(`écrêtage (${m.clipped} échantillons)`);if(m.peakDb>-0.9)p.push(`crête trop haute (${m.peakDb} dBFS)`);if(m.rmsDb<-50)p.push(`niveau quasi nul (${m.rmsDb} dBFS)`);
  if(Math.abs(m.dc)>.01)p.push(`offset DC ${m.dc}`);if(m.maxStep>1.2)p.push(`discontinuité ${m.maxStep}`);
- if(!loop){if(m.leadingSilenceMs>25)p.push(`silence initial ${m.leadingSilenceMs} ms`);if(m.edgeStart>.02||m.edgeEnd>.01)p.push('bord non nul (clic possible)');if(m.longestInnerSilenceMs>300)p.push(`silence interne ${m.longestInnerSilenceMs} ms`);}
- else{if(m.loopSeamJump>8)p.push(`raccord de boucle discontinu (×${m.loopSeamJump})`);if(Math.abs(m.loopEdgeDb)>3)p.push(`écart de niveau au raccord ${m.loopEdgeDb} dB`);if(m.longestInnerSilenceMs>0)p.push('silence dans une boucle');}
+ if(!loop){if(m.leadingSilenceMs>(swell?450:25))p.push(`silence initial ${m.leadingSilenceMs} ms`);if(m.edgeStart>.02||m.edgeEnd>.01)p.push('bord non nul (clic possible)');if(m.longestInnerSilenceMs>(gaps?600:300))p.push(`silence interne ${m.longestInnerSilenceMs} ms`);}
+ else{if(m.loopSeamJump>1.5)p.push(`raccord de boucle discontinu (×${m.loopSeamJump} le 99,9e centile)`);if(Math.abs(m.loopEdgeDb)>1)p.push(`niveau anormal au raccord (${m.loopEdgeDb} dB hors de la distribution de la boucle)`);if(m.longestInnerSilenceMs>0)p.push('silence dans une boucle');}
  return p;}
 /** Within a group: takes must be distinct (waveform & spectral signature), levels coherent. */
 export function groupCheck(items){const p=[];for(let i=0;i<items.length;i++)for(let j=i+1;j<items.length;j++){const a=items[i],b=items[j],c=corr(a.x,b.x);if(c>.9)p.push(`${a.id}/${b.id} presque identiques (corrélation ${c.toFixed(2)})`);}
