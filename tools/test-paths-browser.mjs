@@ -31,7 +31,10 @@ try{
   // Edit after creation: change the trail into a dirt road and widen it, then move a point.
   await page.getByRole('button',{name:'Sélection',exact:true}).click();await idle();
   await page.getByRole('button',{name:'Filtre Chemins'}).click();await page.locator('.search-results button',{hasText:'Sentier'}).click();
+  // The inspector re-renders asynchronously after each transaction: wait until the old field is replaced.
+  await page.waitForSelector('#inspector .path-diagnostics');const before=await page.getByLabel('Largeur (m)',{exact:true}).elementHandle();
   await page.locator('#inspector select').first().selectOption('dirt');await page.waitForFunction(()=>/Type de chemin/.test(document.querySelector('[data-action=undo]').title));
+  await page.waitForFunction(el=>!el.isConnected,before);
   const width=page.getByLabel('Largeur (m)');await width.fill('4');await width.press('Tab');await page.waitForFunction(()=>/Largeur du chemin/.test(document.querySelector('[data-action=undo]').title));
   check(/terre/.test(await page.locator('#inspector h3').textContent()),'Path profile and width edited after creation');
   check(await page.locator('#inspector .path-diagnostics').count()===1,'Inspector shows slope/junction diagnostics');

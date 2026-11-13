@@ -36,14 +36,16 @@ try{
   check(await page.locator('.light-row[data-status=budget]').count()+await page.locator('.light-row[data-status=dynamic]').count()>=1,'Sources over budget are identified');
   await page.screenshot({path:out+'/lights-studio-night.png'});
   // Select a light from the list: inspector edits (one transaction each) and range gizmo.
-  await page.locator('.light-row').first().click();await page.waitForSelector('#inspector .light-card');await page.waitForTimeout(800);
-  const intensity=page.getByLabel('Intensité (cd)');await intensity.fill('40');await intensity.press('Tab');await page.waitForFunction(()=>/Intensité de la lumière/.test(document.querySelector('[data-action=undo]').title));await page.waitForTimeout(600);
+  // The inspector re-renders asynchronously (selection, transactions): wait until the old fields are replaced.
+  const replaced=async label=>{const old=await page.getByLabel(label,{exact:true}).elementHandle();return ()=>page.waitForFunction(el=>!el.isConnected,old);};
+  let rerendered=await replaced('Nom');await page.locator('.light-row').first().click();await rerendered();await page.waitForSelector('#inspector .light-card');
+  rerendered=await replaced('Allumage');const intensity=page.getByLabel('Intensité (cd)');await intensity.fill('40');await intensity.press('Tab');await page.waitForFunction(()=>/Intensité de la lumière/.test(document.querySelector('[data-action=undo]').title));await rerendered();
   await page.getByLabel('Allumage').selectOption('state');await page.waitForFunction(()=>/Mode de la lumière/.test(document.querySelector('[data-action=undo]').title));
   await idle();check(['dynamic','budget','glow','far','off'].includes(await canvas.getAttribute('data-selected-light')),'Range gizmo of the selected light shows its budget status');
   await page.keyboard.press('Control+z');await page.waitForFunction(()=>/Intensité de la lumière/.test(document.querySelector('[data-action=undo]').title));check(true,'Undo restores the previous light settings');
   // Attach a light to an object: place a crate, then « Ajouter une lumière » in its inspector.
   await page.getByRole('button',{name:'Objets',exact:true}).click();await tool('place');await page.mouse.click(cx,cy+190);await page.waitForFunction(()=>/Placer Caisse|Placer (?!une lumière)/.test(document.querySelector('[data-action=undo]').title));
-  await page.keyboard.press('Escape');await page.waitForSelector('#inspector .light-card');await page.waitForTimeout(800);await page.getByRole('button',{name:'Ajouter une lumière'}).click();
+  await page.keyboard.press('Escape');await page.waitForFunction(()=>/Caisse/.test(document.querySelector('#inspector h3')?.textContent??''));await page.getByRole('button',{name:'Ajouter une lumière'}).click();
   await page.waitForFunction(()=>JSON.parse(document.querySelector('.viewport canvas').dataset.lights??'{}').sources===9);check(true,'A light attached to an object (independent of its model)');
   await page.getByRole('button',{name:'Sauvegarder',exact:true}).click();await page.waitForFunction(()=>document.querySelector('#save-status').textContent==='Sauvegardé localement');
   // « Jouer ici » at night: same sources, bounded dynamic lights, no shader recompilation while moving.
