@@ -1,0 +1,3609 @@
+{
+  "manifest": {
+    "schemaVersion": 3,
+    "projectId": "little-world-geo-reference-authoring",
+    "worldId": "little-world-geo-reference",
+    "name": "Scène de référence géographique",
+    "assetCatalogVersion": "1",
+    "createdWith": "little-world-studio-v3",
+    "revision": 0,
+    "sourceManifest": {
+      "worldRef": "world/world.json",
+      "chunkIndexRef": "world/chunk-index.json",
+      "entityIndexRef": "world/entity-index.json",
+      "librariesRef": "library/index.json",
+      "assetCatalogRef": "assets/catalog.json"
+    }
+  },
+  "world": {
+    "schemaVersion": 3,
+    "worldId": "little-world-geo-reference",
+    "seed": 2024,
+    "generatorVersion": "1",
+    "bounds": {
+      "minX": -800,
+      "maxX": 800,
+      "minZ": -1200,
+      "maxZ": 1200
+    },
+    "seaLevel": 0,
+    "chunkSizeM": 64,
+    "coordinateSystem": "meters-y-up",
+    "chunkIndexRef": "world/chunk-index.json",
+    "density": 1,
+    "viewDistance": 240,
+    "editSequence": 0,
+    "terrain": {
+      "kind": "archipelago",
+      "version": 1,
+      "archipelago": {
+        "seabedDepthM": 35,
+        "detailM": 2,
+        "landmasses": [
+          {
+            "id": "main",
+            "name": "Île de référence",
+            "outline": [
+              {
+                "x": 551.8,
+                "z": 90
+              },
+              {
+                "x": 529.6,
+                "z": 343.6
+              },
+              {
+                "x": 429.3,
+                "z": 542.6
+              },
+              {
+                "x": 315.6,
+                "z": 686.7
+              },
+              {
+                "x": 210.7,
+                "z": 813.6
+              },
+              {
+                "x": 97.4,
+                "z": 910.5
+              },
+              {
+                "x": -27.6,
+                "z": 943
+              },
+              {
+                "x": -151.9,
+                "z": 936.4
+              },
+              {
+                "x": -284.5,
+                "z": 941.8
+              },
+              {
+                "x": -439.3,
+                "z": 930.5
+              },
+              {
+                "x": -581.1,
+                "z": 812.5
+              },
+              {
+                "x": -643.5,
+                "z": 572.5
+              },
+              {
+                "x": -616.4,
+                "z": 305.5
+              },
+              {
+                "x": -568.2,
+                "z": 90
+              },
+              {
+                "x": -557.9,
+                "z": -101.5
+              },
+              {
+                "x": -562.4,
+                "z": -321.7
+              },
+              {
+                "x": -522.7,
+                "z": -546.7
+              },
+              {
+                "x": -425.5,
+                "z": -717.2
+              },
+              {
+                "x": -299.8,
+                "z": -828.6
+              },
+              {
+                "x": -162.6,
+                "z": -903.4
+              },
+              {
+                "x": -16.9,
+                "z": -910
+              },
+              {
+                "x": 112.6,
+                "z": -797.3
+              },
+              {
+                "x": 196.9,
+                "z": -600.3
+              },
+              {
+                "x": 257.2,
+                "z": -420.9
+              },
+              {
+                "x": 348.2,
+                "z": -291.9
+              },
+              {
+                "x": 471.1,
+                "z": -139.7
+              }
+            ],
+            "coastNoiseM": 45,
+            "coastWavelengthM": 420,
+            "beachWidthM": 40,
+            "shoreHeightM": 4,
+            "lowlandHeightM": 30,
+            "hillHeightM": 12,
+            "cliffs": 0.45
+          },
+          {
+            "id": "islet",
+            "name": "Îlot du phare",
+            "outline": [
+              {
+                "x": 685.6,
+                "z": -930
+              },
+              {
+                "x": 657.6,
+                "z": -883.9
+              },
+              {
+                "x": 602.3,
+                "z": -856.7
+              },
+              {
+                "x": 540,
+                "z": -830
+              },
+              {
+                "x": 460.1,
+                "z": -836.1
+              },
+              {
+                "x": 434.4,
+                "z": -888.6
+              },
+              {
+                "x": 405.6,
+                "z": -930
+              },
+              {
+                "x": 415.1,
+                "z": -978.9
+              },
+              {
+                "x": 462.3,
+                "z": -1021.3
+              },
+              {
+                "x": 540,
+                "z": -1020
+              },
+              {
+                "x": 600.1,
+                "z": -1000.6
+              },
+              {
+                "x": 676.9,
+                "z": -983.6
+              }
+            ],
+            "coastNoiseM": 12,
+            "coastWavelengthM": 160,
+            "beachWidthM": 18,
+            "shoreHeightM": 3,
+            "lowlandHeightM": 8,
+            "hillHeightM": 5,
+            "cliffs": 0.7
+          }
+        ],
+        "features": [
+          {
+            "id": "volcano",
+            "kind": "volcano",
+            "x": -150,
+            "z": -560,
+            "radiusM": 380,
+            "heightM": 230,
+            "craterRadiusM": 50,
+            "craterDepthM": 24
+          },
+          {
+            "id": "massif",
+            "kind": "mountain",
+            "x": -260,
+            "z": 430,
+            "radiusM": 300,
+            "heightM": 170,
+            "roughness": 0.6
+          },
+          {
+            "id": "ridge",
+            "kind": "ridge",
+            "points": [
+              {
+                "x": -420,
+                "z": 240
+              },
+              {
+                "x": -260,
+                "z": 430
+              },
+              {
+                "x": -120,
+                "z": 640
+              }
+            ],
+            "widthM": 90,
+            "heightM": 40
+          },
+          {
+            "id": "valley",
+            "kind": "valley",
+            "points": [
+              {
+                "x": -60,
+                "z": 420
+              },
+              {
+                "x": 60,
+                "z": 150
+              },
+              {
+                "x": 180,
+                "z": -60
+              },
+              {
+                "x": 340,
+                "z": -190
+              },
+              {
+                "x": 470,
+                "z": -230
+              }
+            ],
+            "widthM": 95,
+            "depthM": 9
+          },
+          {
+            "id": "plateau",
+            "kind": "plateau",
+            "polygon": [
+              {
+                "x": 317.6,
+                "z": 360
+              },
+              {
+                "x": 277.5,
+                "z": 416.4
+              },
+              {
+                "x": 200,
+                "z": 434.8
+              },
+              {
+                "x": 114.8,
+                "z": 421.9
+              },
+              {
+                "x": 97.6,
+                "z": 360
+              },
+              {
+                "x": 122,
+                "z": 303.3
+              },
+              {
+                "x": 200,
+                "z": 274.8
+              },
+              {
+                "x": 270.4,
+                "z": 308.8
+              }
+            ],
+            "heightM": 36,
+            "edgeM": 30
+          },
+          {
+            "id": "wetland",
+            "kind": "basin",
+            "x": -330,
+            "z": -60,
+            "radiusM": 95,
+            "depthM": 4
+          },
+          {
+            "id": "hills",
+            "kind": "hill",
+            "x": 100,
+            "z": 760,
+            "radiusM": 170,
+            "heightM": 18,
+            "roughness": 0.3
+          }
+        ]
+      }
+    },
+    "environment": {
+      "schemaVersion": 1,
+      "generatorVersion": 1,
+      "weatherSeed": 2024,
+      "dayLengthSeconds": 1200,
+      "initialDayPhase": 0.36,
+      "weatherPeriodSeconds": 180
+    }
+  },
+  "chunkIndex": {
+    "6:16": {
+      "chunkId": "6:16",
+      "cx": 6,
+      "cz": 16,
+      "revision": 0,
+      "sourceRef": "world/chunks/6_16.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "7:16": {
+      "chunkId": "7:16",
+      "cx": 7,
+      "cz": 16,
+      "revision": 0,
+      "sourceRef": "world/chunks/7_16.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "8:16": {
+      "chunkId": "8:16",
+      "cx": 8,
+      "cz": 16,
+      "revision": 0,
+      "sourceRef": "world/chunks/8_16.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "6:17": {
+      "chunkId": "6:17",
+      "cx": 6,
+      "cz": 17,
+      "revision": 0,
+      "sourceRef": "world/chunks/6_17.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "7:17": {
+      "chunkId": "7:17",
+      "cx": 7,
+      "cz": 17,
+      "revision": 0,
+      "sourceRef": "world/chunks/7_17.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "8:17": {
+      "chunkId": "8:17",
+      "cx": 8,
+      "cz": 17,
+      "revision": 0,
+      "sourceRef": "world/chunks/8_17.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "6:18": {
+      "chunkId": "6:18",
+      "cx": 6,
+      "cz": 18,
+      "revision": 0,
+      "sourceRef": "world/chunks/6_18.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "7:18": {
+      "chunkId": "7:18",
+      "cx": 7,
+      "cz": 18,
+      "revision": 0,
+      "sourceRef": "world/chunks/7_18.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "8:18": {
+      "chunkId": "8:18",
+      "cx": 8,
+      "cz": 18,
+      "revision": 0,
+      "sourceRef": "world/chunks/8_18.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "7:19": {
+      "chunkId": "7:19",
+      "cx": 7,
+      "cz": 19,
+      "revision": 0,
+      "sourceRef": "world/chunks/7_19.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "7:20": {
+      "chunkId": "7:20",
+      "cx": 7,
+      "cz": 20,
+      "revision": 0,
+      "sourceRef": "world/chunks/7_20.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "8:20": {
+      "chunkId": "8:20",
+      "cx": 8,
+      "cz": 20,
+      "revision": 0,
+      "sourceRef": "world/chunks/8_20.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "9:20": {
+      "chunkId": "9:20",
+      "cx": 9,
+      "cz": 20,
+      "revision": 0,
+      "sourceRef": "world/chunks/9_20.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "10:20": {
+      "chunkId": "10:20",
+      "cx": 10,
+      "cz": 20,
+      "revision": 0,
+      "sourceRef": "world/chunks/10_20.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "11:20": {
+      "chunkId": "11:20",
+      "cx": 11,
+      "cz": 20,
+      "revision": 0,
+      "sourceRef": "world/chunks/11_20.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "7:21": {
+      "chunkId": "7:21",
+      "cx": 7,
+      "cz": 21,
+      "revision": 0,
+      "sourceRef": "world/chunks/7_21.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "8:21": {
+      "chunkId": "8:21",
+      "cx": 8,
+      "cz": 21,
+      "revision": 0,
+      "sourceRef": "world/chunks/8_21.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "9:21": {
+      "chunkId": "9:21",
+      "cx": 9,
+      "cz": 21,
+      "revision": 0,
+      "sourceRef": "world/chunks/9_21.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "10:21": {
+      "chunkId": "10:21",
+      "cx": 10,
+      "cz": 21,
+      "revision": 0,
+      "sourceRef": "world/chunks/10_21.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "11:21": {
+      "chunkId": "11:21",
+      "cx": 11,
+      "cz": 21,
+      "revision": 0,
+      "sourceRef": "world/chunks/11_21.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "7:22": {
+      "chunkId": "7:22",
+      "cx": 7,
+      "cz": 22,
+      "revision": 0,
+      "sourceRef": "world/chunks/7_22.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "8:22": {
+      "chunkId": "8:22",
+      "cx": 8,
+      "cz": 22,
+      "revision": 0,
+      "sourceRef": "world/chunks/8_22.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "9:22": {
+      "chunkId": "9:22",
+      "cx": 9,
+      "cz": 22,
+      "revision": 0,
+      "sourceRef": "world/chunks/9_22.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "10:22": {
+      "chunkId": "10:22",
+      "cx": 10,
+      "cz": 22,
+      "revision": 0,
+      "sourceRef": "world/chunks/10_22.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "11:22": {
+      "chunkId": "11:22",
+      "cx": 11,
+      "cz": 22,
+      "revision": 0,
+      "sourceRef": "world/chunks/11_22.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "7:23": {
+      "chunkId": "7:23",
+      "cx": 7,
+      "cz": 23,
+      "revision": 0,
+      "sourceRef": "world/chunks/7_23.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "8:23": {
+      "chunkId": "8:23",
+      "cx": 8,
+      "cz": 23,
+      "revision": 0,
+      "sourceRef": "world/chunks/8_23.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "9:23": {
+      "chunkId": "9:23",
+      "cx": 9,
+      "cz": 23,
+      "revision": 0,
+      "sourceRef": "world/chunks/9_23.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "10:23": {
+      "chunkId": "10:23",
+      "cx": 10,
+      "cz": 23,
+      "revision": 0,
+      "sourceRef": "world/chunks/10_23.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "11:23": {
+      "chunkId": "11:23",
+      "cx": 11,
+      "cz": 23,
+      "revision": 0,
+      "sourceRef": "world/chunks/11_23.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "12:13": {
+      "chunkId": "12:13",
+      "cx": 12,
+      "cz": 13,
+      "revision": 0,
+      "sourceRef": "world/chunks/12_13.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "13:13": {
+      "chunkId": "13:13",
+      "cx": 13,
+      "cz": 13,
+      "revision": 0,
+      "sourceRef": "world/chunks/13_13.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "14:13": {
+      "chunkId": "14:13",
+      "cx": 14,
+      "cz": 13,
+      "revision": 0,
+      "sourceRef": "world/chunks/14_13.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "15:13": {
+      "chunkId": "15:13",
+      "cx": 15,
+      "cz": 13,
+      "revision": 0,
+      "sourceRef": "world/chunks/15_13.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "12:14": {
+      "chunkId": "12:14",
+      "cx": 12,
+      "cz": 14,
+      "revision": 0,
+      "sourceRef": "world/chunks/12_14.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "13:14": {
+      "chunkId": "13:14",
+      "cx": 13,
+      "cz": 14,
+      "revision": 0,
+      "sourceRef": "world/chunks/13_14.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "14:14": {
+      "chunkId": "14:14",
+      "cx": 14,
+      "cz": 14,
+      "revision": 0,
+      "sourceRef": "world/chunks/14_14.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "15:14": {
+      "chunkId": "15:14",
+      "cx": 15,
+      "cz": 14,
+      "revision": 0,
+      "sourceRef": "world/chunks/15_14.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "16:14": {
+      "chunkId": "16:14",
+      "cx": 16,
+      "cz": 14,
+      "revision": 0,
+      "sourceRef": "world/chunks/16_14.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "12:15": {
+      "chunkId": "12:15",
+      "cx": 12,
+      "cz": 15,
+      "revision": 0,
+      "sourceRef": "world/chunks/12_15.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "13:15": {
+      "chunkId": "13:15",
+      "cx": 13,
+      "cz": 15,
+      "revision": 0,
+      "sourceRef": "world/chunks/13_15.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "14:15": {
+      "chunkId": "14:15",
+      "cx": 14,
+      "cz": 15,
+      "revision": 0,
+      "sourceRef": "world/chunks/14_15.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "15:15": {
+      "chunkId": "15:15",
+      "cx": 15,
+      "cz": 15,
+      "revision": 0,
+      "sourceRef": "world/chunks/15_15.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "16:15": {
+      "chunkId": "16:15",
+      "cx": 16,
+      "cz": 15,
+      "revision": 0,
+      "sourceRef": "world/chunks/16_15.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "13:16": {
+      "chunkId": "13:16",
+      "cx": 13,
+      "cz": 16,
+      "revision": 0,
+      "sourceRef": "world/chunks/13_16.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "14:16": {
+      "chunkId": "14:16",
+      "cx": 14,
+      "cz": 16,
+      "revision": 0,
+      "sourceRef": "world/chunks/14_16.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "15:16": {
+      "chunkId": "15:16",
+      "cx": 15,
+      "cz": 16,
+      "revision": 0,
+      "sourceRef": "world/chunks/15_16.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "14:23": {
+      "chunkId": "14:23",
+      "cx": 14,
+      "cz": 23,
+      "revision": 0,
+      "sourceRef": "world/chunks/14_23.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "15:23": {
+      "chunkId": "15:23",
+      "cx": 15,
+      "cz": 23,
+      "revision": 0,
+      "sourceRef": "world/chunks/15_23.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "16:23": {
+      "chunkId": "16:23",
+      "cx": 16,
+      "cz": 23,
+      "revision": 0,
+      "sourceRef": "world/chunks/16_23.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "14:24": {
+      "chunkId": "14:24",
+      "cx": 14,
+      "cz": 24,
+      "revision": 0,
+      "sourceRef": "world/chunks/14_24.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "15:24": {
+      "chunkId": "15:24",
+      "cx": 15,
+      "cz": 24,
+      "revision": 0,
+      "sourceRef": "world/chunks/15_24.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "16:24": {
+      "chunkId": "16:24",
+      "cx": 16,
+      "cz": 24,
+      "revision": 0,
+      "sourceRef": "world/chunks/16_24.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "15:25": {
+      "chunkId": "15:25",
+      "cx": 15,
+      "cz": 25,
+      "revision": 0,
+      "sourceRef": "world/chunks/15_25.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "16:25": {
+      "chunkId": "16:25",
+      "cx": 16,
+      "cz": 25,
+      "revision": 0,
+      "sourceRef": "world/chunks/16_25.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "14:25": {
+      "chunkId": "14:25",
+      "cx": 14,
+      "cz": 25,
+      "revision": 0,
+      "sourceRef": "world/chunks/14_25.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "11:24": {
+      "chunkId": "11:24",
+      "cx": 11,
+      "cz": 24,
+      "revision": 0,
+      "sourceRef": "world/chunks/11_24.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "11:25": {
+      "chunkId": "11:25",
+      "cx": 11,
+      "cz": 25,
+      "revision": 0,
+      "sourceRef": "world/chunks/11_25.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "12:24": {
+      "chunkId": "12:24",
+      "cx": 12,
+      "cz": 24,
+      "revision": 0,
+      "sourceRef": "world/chunks/12_24.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "12:25": {
+      "chunkId": "12:25",
+      "cx": 12,
+      "cz": 25,
+      "revision": 0,
+      "sourceRef": "world/chunks/12_25.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "12:23": {
+      "chunkId": "12:23",
+      "cx": 12,
+      "cz": 23,
+      "revision": 0,
+      "sourceRef": "world/chunks/12_23.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "12:22": {
+      "chunkId": "12:22",
+      "cx": 12,
+      "cz": 22,
+      "revision": 0,
+      "sourceRef": "world/chunks/12_22.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "13:22": {
+      "chunkId": "13:22",
+      "cx": 13,
+      "cz": 22,
+      "revision": 0,
+      "sourceRef": "world/chunks/13_22.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "12:21": {
+      "chunkId": "12:21",
+      "cx": 12,
+      "cz": 21,
+      "revision": 0,
+      "sourceRef": "world/chunks/12_21.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "13:21": {
+      "chunkId": "13:21",
+      "cx": 13,
+      "cz": 21,
+      "revision": 0,
+      "sourceRef": "world/chunks/13_21.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "13:20": {
+      "chunkId": "13:20",
+      "cx": 13,
+      "cz": 20,
+      "revision": 0,
+      "sourceRef": "world/chunks/13_20.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "14:20": {
+      "chunkId": "14:20",
+      "cx": 14,
+      "cz": 20,
+      "revision": 0,
+      "sourceRef": "world/chunks/14_20.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "13:19": {
+      "chunkId": "13:19",
+      "cx": 13,
+      "cz": 19,
+      "revision": 0,
+      "sourceRef": "world/chunks/13_19.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "14:19": {
+      "chunkId": "14:19",
+      "cx": 14,
+      "cz": 19,
+      "revision": 0,
+      "sourceRef": "world/chunks/14_19.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "14:18": {
+      "chunkId": "14:18",
+      "cx": 14,
+      "cz": 18,
+      "revision": 0,
+      "sourceRef": "world/chunks/14_18.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "15:18": {
+      "chunkId": "15:18",
+      "cx": 15,
+      "cz": 18,
+      "revision": 0,
+      "sourceRef": "world/chunks/15_18.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "14:17": {
+      "chunkId": "14:17",
+      "cx": 14,
+      "cz": 17,
+      "revision": 0,
+      "sourceRef": "world/chunks/14_17.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "15:17": {
+      "chunkId": "15:17",
+      "cx": 15,
+      "cz": 17,
+      "revision": 0,
+      "sourceRef": "world/chunks/15_17.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "16:16": {
+      "chunkId": "16:16",
+      "cx": 16,
+      "cz": 16,
+      "revision": 0,
+      "sourceRef": "world/chunks/16_16.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "16:17": {
+      "chunkId": "16:17",
+      "cx": 16,
+      "cz": 17,
+      "revision": 0,
+      "sourceRef": "world/chunks/16_17.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "17:16": {
+      "chunkId": "17:16",
+      "cx": 17,
+      "cz": 16,
+      "revision": 0,
+      "sourceRef": "world/chunks/17_16.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "17:15": {
+      "chunkId": "17:15",
+      "cx": 17,
+      "cz": 15,
+      "revision": 0,
+      "sourceRef": "world/chunks/17_15.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "14:26": {
+      "chunkId": "14:26",
+      "cx": 14,
+      "cz": 26,
+      "revision": 0,
+      "sourceRef": "world/chunks/14_26.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "13:26": {
+      "chunkId": "13:26",
+      "cx": 13,
+      "cz": 26,
+      "revision": 0,
+      "sourceRef": "world/chunks/13_26.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "13:27": {
+      "chunkId": "13:27",
+      "cx": 13,
+      "cz": 27,
+      "revision": 0,
+      "sourceRef": "world/chunks/13_27.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "14:27": {
+      "chunkId": "14:27",
+      "cx": 14,
+      "cz": 27,
+      "revision": 0,
+      "sourceRef": "world/chunks/14_27.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "12:27": {
+      "chunkId": "12:27",
+      "cx": 12,
+      "cz": 27,
+      "revision": 0,
+      "sourceRef": "world/chunks/12_27.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "12:28": {
+      "chunkId": "12:28",
+      "cx": 12,
+      "cz": 28,
+      "revision": 0,
+      "sourceRef": "world/chunks/12_28.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "13:28": {
+      "chunkId": "13:28",
+      "cx": 13,
+      "cz": 28,
+      "revision": 0,
+      "sourceRef": "world/chunks/13_28.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "11:28": {
+      "chunkId": "11:28",
+      "cx": 11,
+      "cz": 28,
+      "revision": 0,
+      "sourceRef": "world/chunks/11_28.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "12:29": {
+      "chunkId": "12:29",
+      "cx": 12,
+      "cz": 29,
+      "revision": 0,
+      "sourceRef": "world/chunks/12_29.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "16:22": {
+      "chunkId": "16:22",
+      "cx": 16,
+      "cz": 22,
+      "revision": 0,
+      "sourceRef": "world/chunks/16_22.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "16:21": {
+      "chunkId": "16:21",
+      "cx": 16,
+      "cz": 21,
+      "revision": 0,
+      "sourceRef": "world/chunks/16_21.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "17:22": {
+      "chunkId": "17:22",
+      "cx": 17,
+      "cz": 22,
+      "revision": 0,
+      "sourceRef": "world/chunks/17_22.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "17:21": {
+      "chunkId": "17:21",
+      "cx": 17,
+      "cz": 21,
+      "revision": 0,
+      "sourceRef": "world/chunks/17_21.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "17:20": {
+      "chunkId": "17:20",
+      "cx": 17,
+      "cz": 20,
+      "revision": 0,
+      "sourceRef": "world/chunks/17_20.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "18:20": {
+      "chunkId": "18:20",
+      "cx": 18,
+      "cz": 20,
+      "revision": 0,
+      "sourceRef": "world/chunks/18_20.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "17:19": {
+      "chunkId": "17:19",
+      "cx": 17,
+      "cz": 19,
+      "revision": 0,
+      "sourceRef": "world/chunks/17_19.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "18:19": {
+      "chunkId": "18:19",
+      "cx": 18,
+      "cz": 19,
+      "revision": 0,
+      "sourceRef": "world/chunks/18_19.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "7:27": {
+      "chunkId": "7:27",
+      "cx": 7,
+      "cz": 27,
+      "revision": 0,
+      "sourceRef": "world/chunks/7_27.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    }
+  },
+  "entityIndex": {
+    "village-house-1": {
+      "id": "village-house-1",
+      "kind": "prop",
+      "name": "Maison du plateau",
+      "ownerChunkId": "15:24",
+      "position": {
+        "x": 185,
+        "y": 0,
+        "z": 345
+      },
+      "references": [
+        "architecture.cottage"
+      ],
+      "logical": {
+        "position": {
+          "x": 185,
+          "y": 0,
+          "z": 345
+        },
+        "initialState": {},
+        "persistentState": []
+      }
+    },
+    "village-house-2": {
+      "id": "village-house-2",
+      "kind": "prop",
+      "name": "Maison du puits",
+      "ownerChunkId": "15:24",
+      "position": {
+        "x": 222,
+        "y": 0,
+        "z": 372
+      },
+      "references": [
+        "architecture.cottage"
+      ],
+      "logical": {
+        "position": {
+          "x": 222,
+          "y": 0,
+          "z": 372
+        },
+        "initialState": {},
+        "persistentState": []
+      }
+    },
+    "village-house-3": {
+      "id": "village-house-3",
+      "kind": "prop",
+      "name": "Maison du chemin",
+      "ownerChunkId": "15:24",
+      "position": {
+        "x": 176,
+        "y": 0,
+        "z": 392
+      },
+      "references": [
+        "architecture.cottage"
+      ],
+      "logical": {
+        "position": {
+          "x": 176,
+          "y": 0,
+          "z": 392
+        },
+        "initialState": {},
+        "persistentState": []
+      }
+    },
+    "mine-marker": {
+      "id": "mine-marker",
+      "kind": "prop",
+      "name": "Caisse de l’entrée de mine",
+      "ownerChunkId": "7:27",
+      "position": {
+        "x": -328,
+        "y": 0,
+        "z": 560
+      },
+      "references": [
+        "props.crate"
+      ],
+      "logical": {
+        "position": {
+          "x": -328,
+          "y": 0,
+          "z": 560
+        },
+        "initialState": {},
+        "persistentState": []
+      }
+    }
+  },
+  "libraries": {
+    "prefabs": {},
+    "characters": {},
+    "dialogues": {},
+    "behaviors": {},
+    "interactions": {},
+    "activities": {},
+    "variables": {},
+    "items": {},
+    "objectives": {},
+    "water": {
+      "river": {
+        "id": "river",
+        "points": [
+          {
+            "x": -60,
+            "z": 420
+          },
+          {
+            "x": 60,
+            "z": 150
+          },
+          {
+            "x": 180,
+            "z": -60
+          },
+          {
+            "x": 330,
+            "z": -185
+          }
+        ],
+        "width": 9,
+        "level": 0,
+        "depth": 1.4,
+        "profile": {
+          "mode": "terrain",
+          "offset": -0.35
+        }
+      }
+    },
+    "paths": {
+      "path-village-farm": {
+        "id": "path-village-farm",
+        "points": [
+          {
+            "x": 200,
+            "z": 360
+          },
+          {
+            "x": 110,
+            "z": 520
+          },
+          {
+            "x": -20,
+            "z": 640
+          }
+        ],
+        "width": 3
+      },
+      "path-village-shore": {
+        "id": "path-village-shore",
+        "points": [
+          {
+            "x": 200,
+            "z": 360
+          },
+          {
+            "x": 300,
+            "z": 200
+          },
+          {
+            "x": 380,
+            "z": 40
+          }
+        ],
+        "width": 3
+      }
+    },
+    "zones": {
+      "zone-farm": {
+        "id": "zone-farm",
+        "kind": "farm-plot",
+        "name": "Champ de référence",
+        "polygon": [
+          {
+            "x": -90,
+            "z": 590
+          },
+          {
+            "x": 50,
+            "z": 580
+          },
+          {
+            "x": 60,
+            "z": 700
+          },
+          {
+            "x": -80,
+            "z": 705
+          }
+        ]
+      },
+      "zone-mine": {
+        "id": "zone-mine",
+        "kind": "mine",
+        "name": "Entrée de la mine",
+        "polygon": [
+          {
+            "x": -360,
+            "z": 540
+          },
+          {
+            "x": -300,
+            "z": 535
+          },
+          {
+            "x": -295,
+            "z": 585
+          },
+          {
+            "x": -355,
+            "z": 590
+          }
+        ],
+        "levels": 3
+      }
+    }
+  },
+  "assets": {
+    "nature.pine": {
+      "id": "nature.pine",
+      "name": "Sapin",
+      "type": "glb",
+      "file": "models/pine.glb",
+      "license": "project-original",
+      "source": "Little World original generated low-poly geometry"
+    },
+    "nature.oak": {
+      "id": "nature.oak",
+      "name": "Arbre feuillu",
+      "type": "procedural",
+      "license": "project-original",
+      "source": "Little World original procedural geometry"
+    },
+    "nature.rock": {
+      "id": "nature.rock",
+      "name": "Rocher",
+      "type": "glb",
+      "file": "models/rock.glb",
+      "license": "project-original",
+      "source": "Little World original generated low-poly geometry"
+    },
+    "architecture.cottage": {
+      "id": "architecture.cottage",
+      "name": "Maison de vallée",
+      "type": "procedural",
+      "license": "project-original",
+      "source": "Little World original procedural geometry"
+    },
+    "props.crate": {
+      "id": "props.crate",
+      "name": "Caisse en bois",
+      "type": "glb",
+      "file": "models/crate.glb",
+      "license": "project-original",
+      "source": "Little World original generated low-poly geometry"
+    },
+    "props.lantern": {
+      "id": "props.lantern",
+      "name": "Lanterne",
+      "type": "procedural",
+      "license": "project-original",
+      "source": "Little World original procedural geometry"
+    }
+  },
+  "chunks": {
+    "6:16": {
+      "schemaVersion": 3,
+      "chunkId": "6:16",
+      "index": {
+        "cx": 6,
+        "cz": 16
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [],
+      "layers": {
+        "biome": "..............................................................................................................................................................................ww............wwww..........wwwwww.........wwwwwww........wwwwwwww.......wwwwwwwww",
+        "moisture": ".............................................................................................................................................................................................................................999............9999..........999999"
+      }
+    },
+    "7:16": {
+      "schemaVersion": 3,
+      "chunkId": "7:16",
+      "index": {
+        "cx": 7,
+        "cz": 16
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [],
+      "layers": {
+        "biome": ".................................................................................................................................................wwwwwwwww......wwwwwwwwwwwww...wwwwwwwwwwwwwww.wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww",
+        "moisture": ".....................................................................................................................................................................................9..........99999999999.....99999999999999..999999999999999.9999999999999999"
+      }
+    },
+    "8:16": {
+      "schemaVersion": 3,
+      "chunkId": "8:16",
+      "index": {
+        "cx": 8,
+        "cz": 16
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [],
+      "layers": {
+        "biome": "................................................................................................................................................................................................w...............ww..............www.............wwww............",
+        "moisture": "................................................................................................................................................................................................................................................9..............."
+      }
+    },
+    "6:17": {
+      "schemaVersion": 3,
+      "chunkId": "6:17",
+      "index": {
+        "cx": 6,
+        "cz": 17
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [],
+      "layers": {
+        "biome": "......wwwwwwwwww.....wwwwwwwwwww....wwwwwwwwwwww....wwwwwwwwwwww...wwwwwwwwwwwww...wwwwwwwwwwwww...wwwwwwwwwwwww..wwwwwwwwwwwwww..wwwwwwwwwwwwww..wwwwwwwwwwwwww..wwwwwwwwwwwwww..wwwwwwwwwwwwww..wwwwwwwwwwwwww..wwwwwwwwwwwwww..wwwwwwwwwwwwww..wwwwwwwwwwwwww",
+        "moisture": ".........9999999........99999999.......999999999.......999999999......9999999999......9999999999.....99999999999.....99999999999.....99999999999....999999999999....999999999999....999999999999....999999999999....999999999999....999999999999....999999999999"
+      }
+    },
+    "7:17": {
+      "schemaVersion": 3,
+      "chunkId": "7:17",
+      "index": {
+        "cx": 7,
+        "cz": 17
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [],
+      "layers": {
+        "biome": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww",
+        "moisture": "9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999"
+      }
+    },
+    "8:17": {
+      "schemaVersion": 3,
+      "chunkId": "8:17",
+      "index": {
+        "cx": 8,
+        "cz": 17
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [],
+      "layers": {
+        "biome": "wwwww...........wwwwww..........wwwwwww.........wwwwwww.........wwwwwwww........wwwwwwww........wwwwwwww........wwwwwwwww.......wwwwwwwww.......wwwwwwwww.......wwwwwwwww.......wwwwwwwww.......wwwwwwwww.......wwwwwwwww.......wwwwwwwww.......wwwwwwwww.......",
+        "moisture": "99..............999.............9999............9999............99999...........99999...........999999..........999999..........999999..........9999999.........9999999.........9999999.........9999999.........9999999.........9999999.........9999999........."
+      }
+    },
+    "6:18": {
+      "schemaVersion": 3,
+      "chunkId": "6:18",
+      "index": {
+        "cx": 6,
+        "cz": 18
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [],
+      "layers": {
+        "biome": "..wwwwwwwwwwwwww..wwwwwwwwwwwwww..wwwwwwwwwwwwww...wwwwwwwwwwwww...wwwwwwwwwwwww...wwwwwwwwwwwww....wwwwwwwwwwww....wwwwwwwwwwww.....wwwwwwwwwww......wwwwwwwwww.......wwwwwwwww........wwwwwwww.........wwwwwww..........wwwwww............wwww..............ww",
+        "moisture": "....999999999999.....99999999999.....99999999999.....99999999999......9999999999......9999999999.......999999999.......999999999........99999999.........9999999..........999999............9999.............999................................................"
+      }
+    },
+    "7:18": {
+      "schemaVersion": 3,
+      "chunkId": "7:18",
+      "index": {
+        "cx": 7,
+        "cz": 18
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [],
+      "layers": {
+        "biome": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww.wwwwwwwwwwwww...",
+        "moisture": "99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999.99999999999999..99999999999..........9.........................."
+      }
+    },
+    "8:18": {
+      "schemaVersion": 3,
+      "chunkId": "8:18",
+      "index": {
+        "cx": 8,
+        "cz": 18
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [],
+      "layers": {
+        "biome": "wwwwwwwww.......wwwwwwwww.......wwwwwwwww.......wwwwwwww........wwwwwwww........wwwwwwww........wwwwwww.........wwwwwww.........wwwwww..........wwwww...........wwww............www.............ww..............w...............................................",
+        "moisture": "9999999.........999999..........999999..........999999..........99999...........99999...........9999............9999............999.............99..............9..............................................................................................."
+      }
+    },
+    "7:19": {
+      "schemaVersion": 3,
+      "chunkId": "7:19",
+      "index": {
+        "cx": 7,
+        "cz": 19
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [],
+      "layers": {
+        "biome": ".wwwwwwwww......................................................................................................................................................................................................................................................"
+      }
+    },
+    "7:20": {
+      "schemaVersion": 3,
+      "chunkId": "7:20",
+      "index": {
+        "cx": 7,
+        "cz": 20
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [],
+      "layers": {
+        "biome": "...................................................fffffffffffff...fffffffffffff....ffffffffffff....ffffffffffff....ffffffffffff....ffffffffffff....ffffffffffff.....fffffffffff.....fffffffffff.....fffffffffff.....fffffffffff.....fffffffffff.....fffffffffff"
+      }
+    },
+    "8:20": {
+      "schemaVersion": 3,
+      "chunkId": "8:20",
+      "index": {
+        "cx": 8,
+        "cz": 20
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [],
+      "layers": {
+        "biome": "................................................f...............fffffffffffffff.ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      }
+    },
+    "9:20": {
+      "schemaVersion": 3,
+      "chunkId": "9:20",
+      "index": {
+        "cx": 9,
+        "cz": 20
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [],
+      "layers": {
+        "biome": "................................................................................fffffffffffff...ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      }
+    },
+    "10:20": {
+      "schemaVersion": 3,
+      "chunkId": "10:20",
+      "index": {
+        "cx": 10,
+        "cz": 20
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [],
+      "layers": {
+        "biome": "................................................................................................fffffffffff.....ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      }
+    },
+    "11:20": {
+      "schemaVersion": 3,
+      "chunkId": "11:20",
+      "index": {
+        "cx": 11,
+        "cz": 20
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [],
+      "layers": {
+        "biome": "................................................................................................................fffffffff.......fffffffff.......fffffffff.......fffffffff.......fffffffff.......ffffffffff......ffffffffff......ffffffffff......ffffffffff......"
+      }
+    },
+    "7:21": {
+      "schemaVersion": 3,
+      "chunkId": "7:21",
+      "index": {
+        "cx": 7,
+        "cz": 21
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [],
+      "layers": {
+        "biome": "......ffffffffff......ffffffffff......ffffffffff......ffffffffff......ffffffffff.......fffffffff.......fffffffff.......fffffffff.......fffffffff.......fffffffff........ffffffff........ffffffff........ffffffff........ffffffff........ffffffff.........fffffff"
+      }
+    },
+    "8:21": {
+      "schemaVersion": 3,
+      "chunkId": "8:21",
+      "index": {
+        "cx": 8,
+        "cz": 21
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [],
+      "layers": {
+        "biome": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      }
+    },
+    "9:21": {
+      "schemaVersion": 3,
+      "chunkId": "9:21",
+      "index": {
+        "cx": 9,
+        "cz": 21
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [],
+      "layers": {
+        "biome": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      }
+    },
+    "10:21": {
+      "schemaVersion": 3,
+      "chunkId": "10:21",
+      "index": {
+        "cx": 10,
+        "cz": 21
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [],
+      "layers": {
+        "biome": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      }
+    },
+    "11:21": {
+      "schemaVersion": 3,
+      "chunkId": "11:21",
+      "index": {
+        "cx": 11,
+        "cz": 21
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [],
+      "layers": {
+        "biome": "ffffffffff......ffffffffff......ffffffffff......ffffffffff......ffffffffff......fffffffffff.....fffffffffff.....fffffffffff.....fffffffffff.....fffffffffff.....fffffffffff.....fffffffffff.....fffffffffff.....fffffffffff.....ffffffffffff....ffffffffffff...."
+      }
+    },
+    "7:22": {
+      "schemaVersion": 3,
+      "chunkId": "7:22",
+      "index": {
+        "cx": 7,
+        "cz": 22
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [],
+      "layers": {
+        "biome": ".........fffffff.........fffffff.........fffffff.........fffffff.........fffffff..........ffffff..........ffffff..........ffffff..........ffffff..........ffffff...........fffff...........fffff...........fffff...........fffff...........fffff............ffff"
+      }
+    },
+    "8:22": {
+      "schemaVersion": 3,
+      "chunkId": "8:22",
+      "index": {
+        "cx": 8,
+        "cz": 22
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [],
+      "layers": {
+        "biome": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      }
+    },
+    "9:22": {
+      "schemaVersion": 3,
+      "chunkId": "9:22",
+      "index": {
+        "cx": 9,
+        "cz": 22
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [],
+      "layers": {
+        "biome": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      }
+    },
+    "10:22": {
+      "schemaVersion": 3,
+      "chunkId": "10:22",
+      "index": {
+        "cx": 10,
+        "cz": 22
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [],
+      "layers": {
+        "biome": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      }
+    },
+    "11:22": {
+      "schemaVersion": 3,
+      "chunkId": "11:22",
+      "index": {
+        "cx": 11,
+        "cz": 22
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [],
+      "layers": {
+        "biome": "ffffffffffff....ffffffffffff....ffffffffffff....ffffffffffff....ffffffffffff....ffffffffffff....ffffffffffff....fffffffffffff...fffffffffffff...fffffffffffff...fffffffffffff...fffffffffffff...fffffffffffff...fffffffffffff...fffffffffffff...fffffffffffff..."
+      }
+    },
+    "7:23": {
+      "schemaVersion": 3,
+      "chunkId": "7:23",
+      "index": {
+        "cx": 7,
+        "cz": 23
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [],
+      "layers": {
+        "biome": "............ffff............ffff............ffff............ffff.............fff.............fff.............fff................................................................................................................................................"
+      }
+    },
+    "8:23": {
+      "schemaVersion": 3,
+      "chunkId": "8:23",
+      "index": {
+        "cx": 8,
+        "cz": 23
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [],
+      "layers": {
+        "biome": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff......................................................................................................................................................"
+      }
+    },
+    "9:23": {
+      "schemaVersion": 3,
+      "chunkId": "9:23",
+      "index": {
+        "cx": 9,
+        "cz": 23
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [],
+      "layers": {
+        "biome": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff................................................................................................................................................................"
+      }
+    },
+    "10:23": {
+      "schemaVersion": 3,
+      "chunkId": "10:23",
+      "index": {
+        "cx": 10,
+        "cz": 23
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [],
+      "layers": {
+        "biome": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff............................................................................................................................................................................"
+      }
+    },
+    "11:23": {
+      "schemaVersion": 3,
+      "chunkId": "11:23",
+      "index": {
+        "cx": 11,
+        "cz": 23
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [
+        "river"
+      ],
+      "pathRefs": [],
+      "layers": {
+        "biome": "ffffffffffffff..ffffffffffffff..ffffffffffffff..ffffffffffffff..ffffffffffffff.................................................................................................................................................................................."
+      }
+    },
+    "12:13": {
+      "schemaVersion": 3,
+      "chunkId": "12:13",
+      "index": {
+        "cx": 12,
+        "cz": 13
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [],
+      "layers": {
+        "biome": "...............................................................................................................................................................................................m...............m..............mm..............mm.............mmm"
+      }
+    },
+    "13:13": {
+      "schemaVersion": 3,
+      "chunkId": "13:13",
+      "index": {
+        "cx": 13,
+        "cz": 13
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [],
+      "layers": {
+        "biome": "...............m............mmmm..........mmmmmm........mmmmmmmm......mmmmmmmmmm.....mmmmmmmmmmm....mmmmmmmmmmmm...mmmmmmmmmmmmm..mmmmmmmmmmmmmm.mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+      }
+    },
+    "14:13": {
+      "schemaVersion": 3,
+      "chunkId": "14:13",
+      "index": {
+        "cx": 14,
+        "cz": 13
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [],
+      "layers": {
+        "biome": "mmmmmmmmmmmmm...mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+      }
+    },
+    "15:13": {
+      "schemaVersion": 3,
+      "chunkId": "15:13",
+      "index": {
+        "cx": 15,
+        "cz": 13
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [],
+      "layers": {
+        "biome": "................................mm..............mmmm............mmmmmm..........mmmmmmm.........mmmmmmmm........mmmmmmmmm.......mmmmmmmmmm......mmmmmmmmmmm.....mmmmmmmmmmmm....mmmmmmmmmmmmm...mmmmmmmmmmmmm...mmmmmmmmmmmmmm..mmmmmmmmmmmmmm..mmmmmmmmmmmmmmm."
+      }
+    },
+    "12:14": {
+      "schemaVersion": 3,
+      "chunkId": "12:14",
+      "index": {
+        "cx": 12,
+        "cz": 14
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [],
+      "layers": {
+        "biome": ".............mmm............mmmm............mmmm............mmmm...........mmmmm...........mmmmm...........mmmmm...........mmmmm...........mmmmm...........mmmmm...........mmmmm...........mmmmm...........mmmmm...........mmmmm...........mmmmm...........mmmmm"
+      }
+    },
+    "13:14": {
+      "schemaVersion": 3,
+      "chunkId": "13:14",
+      "index": {
+        "cx": 13,
+        "cz": 14
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [],
+      "layers": {
+        "biome": "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+      }
+    },
+    "14:14": {
+      "schemaVersion": 3,
+      "chunkId": "14:14",
+      "index": {
+        "cx": 14,
+        "cz": 14
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [],
+      "layers": {
+        "biome": "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+      }
+    },
+    "15:14": {
+      "schemaVersion": 3,
+      "chunkId": "15:14",
+      "index": {
+        "cx": 15,
+        "cz": 14
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [],
+      "layers": {
+        "biome": "mmmmmmmmmmmmmmm.mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+      }
+    },
+    "16:14": {
+      "schemaVersion": 3,
+      "chunkId": "16:14",
+      "index": {
+        "cx": 16,
+        "cz": 14
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [],
+      "layers": {
+        "biome": "................................................................m...............m...............m...............m...............m...............m...............m...............m...............m...............m...............m...............m..............."
+      }
+    },
+    "12:15": {
+      "schemaVersion": 3,
+      "chunkId": "12:15",
+      "index": {
+        "cx": 12,
+        "cz": 15
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [],
+      "layers": {
+        "biome": "...........mmmmm...........mmmmm............mmmm............mmmm............mmmm.............mmm.............mmm..............mm..............mm...............m...............m................................................................................"
+      }
+    },
+    "13:15": {
+      "schemaVersion": 3,
+      "chunkId": "13:15",
+      "index": {
+        "cx": 13,
+        "cz": 15
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [],
+      "layers": {
+        "biome": "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm.mmmmmmmmmmmmmmm..mmmmmmmmmmmmmm...mmmmmmmmmmmmm....mmmmmmmmmmmm"
+      }
+    },
+    "14:15": {
+      "schemaVersion": 3,
+      "chunkId": "14:15",
+      "index": {
+        "cx": 14,
+        "cz": 15
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [],
+      "layers": {
+        "biome": "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm"
+      }
+    },
+    "15:15": {
+      "schemaVersion": 3,
+      "chunkId": "15:15",
+      "index": {
+        "cx": 15,
+        "cz": 15
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [],
+      "layers": {
+        "biome": "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm.mmmmmmmmmmmmmmm.mmmmmmmmmmmmmm..mmmmmmmmmmmmmm..mmmmmmmmmmmmm...mmmmmmmmmmmmm...mmmmmmmmmmmm....mmmmmmmmmmm.....mmmmmmmmmm......mmmmmmmmm.......mmmmmmmm........"
+      }
+    },
+    "16:15": {
+      "schemaVersion": 3,
+      "chunkId": "16:15",
+      "index": {
+        "cx": 16,
+        "cz": 15
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [],
+      "layers": {
+        "biome": "m...............m..............................................................................................................................................................................................................................................."
+      }
+    },
+    "13:16": {
+      "schemaVersion": 3,
+      "chunkId": "13:16",
+      "index": {
+        "cx": 13,
+        "cz": 16
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [],
+      "layers": {
+        "biome": ".....mmmmmmmmmmm......mmmmmmmmmm........mmmmmmmm..........mmmmmm............mmmm...............m................................................................................................................................................................"
+      }
+    },
+    "14:16": {
+      "schemaVersion": 3,
+      "chunkId": "14:16",
+      "index": {
+        "cx": 14,
+        "cz": 16
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [],
+      "layers": {
+        "biome": "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm..................................................................................................................................................................."
+      }
+    },
+    "15:16": {
+      "schemaVersion": 3,
+      "chunkId": "15:16",
+      "index": {
+        "cx": 15,
+        "cz": 16
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [
+        "river"
+      ],
+      "pathRefs": [],
+      "layers": {
+        "biome": "mmmmmmm.........mmmmmm..........mmmm............mm.............................................................................................................................................................................................................."
+      }
+    },
+    "14:23": {
+      "schemaVersion": 3,
+      "chunkId": "14:23",
+      "index": {
+        "cx": 14,
+        "cz": 23
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [],
+      "layers": {
+        "occupation": "...............................................................................................................................................................................................................................b..............bb..............bb",
+        "biome": "...............................................................................................................................................................................................g..............gg..............gg.............ggg............gggg"
+      }
+    },
+    "15:23": {
+      "schemaVersion": 3,
+      "chunkId": "15:23",
+      "index": {
+        "cx": 15,
+        "cz": 23
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [
+        "path-village-shore"
+      ],
+      "layers": {
+        "occupation": ".......................................................................................................................................bbbbbb.......bbbbbbbbbbbb..bbbbbbbbbbbbbb.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "biome": "......................................................................................................................gggggggg.....ggggggggggggg..gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg"
+      }
+    },
+    "16:23": {
+      "schemaVersion": 3,
+      "chunkId": "16:23",
+      "index": {
+        "cx": 16,
+        "cz": 23
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [
+        "path-village-shore"
+      ],
+      "layers": {
+        "occupation": "................................................................................................................................................................bb..............bbb.............bbbb............bbbbb...........bbbbbb..........bbbbbb..........",
+        "biome": "................................................................................................................................g...............gg..............gggg............ggggg...........gggggg..........gggggg..........ggggggg.........gggggggg........"
+      }
+    },
+    "14:24": {
+      "schemaVersion": 3,
+      "chunkId": "14:24",
+      "index": {
+        "cx": 14,
+        "cz": 24
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [
+        "path-village-farm"
+      ],
+      "layers": {
+        "occupation": ".............bbb.............bbb.............bbb............bbbb............bbbb............bbbb............bbbb............bbbb............bbbb.............bbb.............bbb.............bbb..............bb..............bb...............b................",
+        "biome": "............gggg............gggg...........ggggg...........ggggg...........ggggg...........ggggg...........ggggg...........ggggg...........ggggg...........ggggg............gggg............gggg............gggg.............ggg..............gg..............gg"
+      }
+    },
+    "15:24": {
+      "schemaVersion": 3,
+      "chunkId": "15:24",
+      "index": {
+        "cx": 15,
+        "cz": 24
+      },
+      "revision": 0,
+      "entities": {
+        "village-house-1": {
+          "id": "village-house-1",
+          "name": "Maison du plateau",
+          "kind": "prop",
+          "ownerChunkId": "15:24",
+          "components": {
+            "Transform": {
+              "type": "Transform",
+              "position": {
+                "x": 185,
+                "y": 0,
+                "z": 345
+              },
+              "rotation": {
+                "x": 0,
+                "y": 0.19866933079506122,
+                "z": 0,
+                "w": 0.9800665778412416
+              },
+              "scale": {
+                "x": 1,
+                "y": 1,
+                "z": 1
+              }
+            },
+            "Visual": {
+              "type": "Visual",
+              "assetId": "architecture.cottage"
+            }
+          }
+        },
+        "village-house-2": {
+          "id": "village-house-2",
+          "name": "Maison du puits",
+          "kind": "prop",
+          "ownerChunkId": "15:24",
+          "components": {
+            "Transform": {
+              "type": "Transform",
+              "position": {
+                "x": 222,
+                "y": 0,
+                "z": 372
+              },
+              "rotation": {
+                "x": 0,
+                "y": -0.3894183423086505,
+                "z": 0,
+                "w": 0.9210609940028851
+              },
+              "scale": {
+                "x": 1,
+                "y": 1,
+                "z": 1
+              }
+            },
+            "Visual": {
+              "type": "Visual",
+              "assetId": "architecture.cottage"
+            }
+          }
+        },
+        "village-house-3": {
+          "id": "village-house-3",
+          "name": "Maison du chemin",
+          "kind": "prop",
+          "ownerChunkId": "15:24",
+          "components": {
+            "Transform": {
+              "type": "Transform",
+              "position": {
+                "x": 176,
+                "y": 0,
+                "z": 392
+              },
+              "rotation": {
+                "x": 0,
+                "y": 0.867423225594017,
+                "z": 0,
+                "w": 0.49757104789172696
+              },
+              "scale": {
+                "x": 1,
+                "y": 1,
+                "z": 1
+              }
+            },
+            "Visual": {
+              "type": "Visual",
+              "assetId": "architecture.cottage"
+            }
+          }
+        }
+      },
+      "entityIds": [
+        "village-house-1",
+        "village-house-2",
+        "village-house-3"
+      ],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [
+        "path-village-farm",
+        "path-village-shore"
+      ],
+      "layers": {
+        "occupation": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "biome": "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg"
+      }
+    },
+    "16:24": {
+      "schemaVersion": 3,
+      "chunkId": "16:24",
+      "index": {
+        "cx": 16,
+        "cz": 24
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [
+        "path-village-shore"
+      ],
+      "layers": {
+        "occupation": "bbbbbbb.........bbbbbbb.........bbbbbbb.........bbbbbbbb........bbbbbbbb........bbbbbbbb........bbbbbbbb........bbbbbbbb........bbbbbbbb........bbbbbbb.........bbbbbbb.........bbbbbbb.........bbbbbb..........bbbbbb..........bbbbb...........bbbb............",
+        "biome": "gggggggg........gggggggg........ggggggggg.......ggggggggg.......ggggggggg.......ggggggggg.......ggggggggg.......ggggggggg.......ggggggggg.......ggggggggg.......gggggggg........gggggggg........gggggggg........ggggggg.........gggggg..........gggggg.........."
+      }
+    },
+    "15:25": {
+      "schemaVersion": 3,
+      "chunkId": "15:25",
+      "index": {
+        "cx": 15,
+        "cz": 25
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [
+        "path-village-farm"
+      ],
+      "layers": {
+        "occupation": ".bbbbbbbbbbbbbbb..bbbbbbbbbbbbbb....bbbbbbbbbbbb.......bbbbbb...................................................................................................................................................................................................",
+        "biome": "gggggggggggggggggggggggggggggggg..gggggggggggggg...ggggggggggggg......gggggggg.................................................................................................................................................................................."
+      }
+    },
+    "16:25": {
+      "schemaVersion": 3,
+      "chunkId": "16:25",
+      "index": {
+        "cx": 16,
+        "cz": 25
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [],
+      "layers": {
+        "occupation": "bbb.............bb..............................................................................................................................................................................................................................................",
+        "biome": "ggggg...........gggg............gg..............g..............................................................................................................................................................................................................."
+      }
+    },
+    "14:25": {
+      "schemaVersion": 3,
+      "chunkId": "14:25",
+      "index": {
+        "cx": 14,
+        "cz": 25
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [
+        "path-village-farm"
+      ],
+      "layers": {
+        "biome": "...............g................................................................................................................................................................................................................................................"
+      }
+    },
+    "11:24": {
+      "schemaVersion": 3,
+      "chunkId": "11:24",
+      "index": {
+        "cx": 11,
+        "cz": 24
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [
+        "river"
+      ],
+      "pathRefs": []
+    },
+    "11:25": {
+      "schemaVersion": 3,
+      "chunkId": "11:25",
+      "index": {
+        "cx": 11,
+        "cz": 25
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [
+        "river"
+      ],
+      "pathRefs": []
+    },
+    "12:24": {
+      "schemaVersion": 3,
+      "chunkId": "12:24",
+      "index": {
+        "cx": 12,
+        "cz": 24
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [
+        "river"
+      ],
+      "pathRefs": []
+    },
+    "12:25": {
+      "schemaVersion": 3,
+      "chunkId": "12:25",
+      "index": {
+        "cx": 12,
+        "cz": 25
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [
+        "river"
+      ],
+      "pathRefs": []
+    },
+    "12:23": {
+      "schemaVersion": 3,
+      "chunkId": "12:23",
+      "index": {
+        "cx": 12,
+        "cz": 23
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [
+        "river"
+      ],
+      "pathRefs": []
+    },
+    "12:22": {
+      "schemaVersion": 3,
+      "chunkId": "12:22",
+      "index": {
+        "cx": 12,
+        "cz": 22
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [
+        "river"
+      ],
+      "pathRefs": []
+    },
+    "13:22": {
+      "schemaVersion": 3,
+      "chunkId": "13:22",
+      "index": {
+        "cx": 13,
+        "cz": 22
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [
+        "river"
+      ],
+      "pathRefs": []
+    },
+    "12:21": {
+      "schemaVersion": 3,
+      "chunkId": "12:21",
+      "index": {
+        "cx": 12,
+        "cz": 21
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [
+        "river"
+      ],
+      "pathRefs": []
+    },
+    "13:21": {
+      "schemaVersion": 3,
+      "chunkId": "13:21",
+      "index": {
+        "cx": 13,
+        "cz": 21
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [
+        "river"
+      ],
+      "pathRefs": []
+    },
+    "13:20": {
+      "schemaVersion": 3,
+      "chunkId": "13:20",
+      "index": {
+        "cx": 13,
+        "cz": 20
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [
+        "river"
+      ],
+      "pathRefs": []
+    },
+    "14:20": {
+      "schemaVersion": 3,
+      "chunkId": "14:20",
+      "index": {
+        "cx": 14,
+        "cz": 20
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [
+        "river"
+      ],
+      "pathRefs": []
+    },
+    "13:19": {
+      "schemaVersion": 3,
+      "chunkId": "13:19",
+      "index": {
+        "cx": 13,
+        "cz": 19
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [
+        "river"
+      ],
+      "pathRefs": []
+    },
+    "14:19": {
+      "schemaVersion": 3,
+      "chunkId": "14:19",
+      "index": {
+        "cx": 14,
+        "cz": 19
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [
+        "river"
+      ],
+      "pathRefs": []
+    },
+    "14:18": {
+      "schemaVersion": 3,
+      "chunkId": "14:18",
+      "index": {
+        "cx": 14,
+        "cz": 18
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [
+        "river"
+      ],
+      "pathRefs": []
+    },
+    "15:18": {
+      "schemaVersion": 3,
+      "chunkId": "15:18",
+      "index": {
+        "cx": 15,
+        "cz": 18
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [
+        "river"
+      ],
+      "pathRefs": []
+    },
+    "14:17": {
+      "schemaVersion": 3,
+      "chunkId": "14:17",
+      "index": {
+        "cx": 14,
+        "cz": 17
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [
+        "river"
+      ],
+      "pathRefs": []
+    },
+    "15:17": {
+      "schemaVersion": 3,
+      "chunkId": "15:17",
+      "index": {
+        "cx": 15,
+        "cz": 17
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [
+        "river"
+      ],
+      "pathRefs": []
+    },
+    "16:16": {
+      "schemaVersion": 3,
+      "chunkId": "16:16",
+      "index": {
+        "cx": 16,
+        "cz": 16
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [
+        "river"
+      ],
+      "pathRefs": []
+    },
+    "16:17": {
+      "schemaVersion": 3,
+      "chunkId": "16:17",
+      "index": {
+        "cx": 16,
+        "cz": 17
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [
+        "river"
+      ],
+      "pathRefs": []
+    },
+    "17:16": {
+      "schemaVersion": 3,
+      "chunkId": "17:16",
+      "index": {
+        "cx": 17,
+        "cz": 16
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [
+        "river"
+      ],
+      "pathRefs": []
+    },
+    "17:15": {
+      "schemaVersion": 3,
+      "chunkId": "17:15",
+      "index": {
+        "cx": 17,
+        "cz": 15
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [
+        "river"
+      ],
+      "pathRefs": []
+    },
+    "14:26": {
+      "schemaVersion": 3,
+      "chunkId": "14:26",
+      "index": {
+        "cx": 14,
+        "cz": 26
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [
+        "path-village-farm"
+      ]
+    },
+    "13:26": {
+      "schemaVersion": 3,
+      "chunkId": "13:26",
+      "index": {
+        "cx": 13,
+        "cz": 26
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [
+        "path-village-farm"
+      ]
+    },
+    "13:27": {
+      "schemaVersion": 3,
+      "chunkId": "13:27",
+      "index": {
+        "cx": 13,
+        "cz": 27
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [
+        "path-village-farm"
+      ]
+    },
+    "14:27": {
+      "schemaVersion": 3,
+      "chunkId": "14:27",
+      "index": {
+        "cx": 14,
+        "cz": 27
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [
+        "path-village-farm"
+      ]
+    },
+    "12:27": {
+      "schemaVersion": 3,
+      "chunkId": "12:27",
+      "index": {
+        "cx": 12,
+        "cz": 27
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [
+        "path-village-farm"
+      ]
+    },
+    "12:28": {
+      "schemaVersion": 3,
+      "chunkId": "12:28",
+      "index": {
+        "cx": 12,
+        "cz": 28
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [
+        "path-village-farm"
+      ]
+    },
+    "13:28": {
+      "schemaVersion": 3,
+      "chunkId": "13:28",
+      "index": {
+        "cx": 13,
+        "cz": 28
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [
+        "path-village-farm"
+      ]
+    },
+    "11:28": {
+      "schemaVersion": 3,
+      "chunkId": "11:28",
+      "index": {
+        "cx": 11,
+        "cz": 28
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [
+        "path-village-farm"
+      ]
+    },
+    "12:29": {
+      "schemaVersion": 3,
+      "chunkId": "12:29",
+      "index": {
+        "cx": 12,
+        "cz": 29
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [
+        "path-village-farm"
+      ]
+    },
+    "16:22": {
+      "schemaVersion": 3,
+      "chunkId": "16:22",
+      "index": {
+        "cx": 16,
+        "cz": 22
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [
+        "path-village-shore"
+      ]
+    },
+    "16:21": {
+      "schemaVersion": 3,
+      "chunkId": "16:21",
+      "index": {
+        "cx": 16,
+        "cz": 21
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [
+        "path-village-shore"
+      ]
+    },
+    "17:22": {
+      "schemaVersion": 3,
+      "chunkId": "17:22",
+      "index": {
+        "cx": 17,
+        "cz": 22
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [
+        "path-village-shore"
+      ]
+    },
+    "17:21": {
+      "schemaVersion": 3,
+      "chunkId": "17:21",
+      "index": {
+        "cx": 17,
+        "cz": 21
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [
+        "path-village-shore"
+      ]
+    },
+    "17:20": {
+      "schemaVersion": 3,
+      "chunkId": "17:20",
+      "index": {
+        "cx": 17,
+        "cz": 20
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [
+        "path-village-shore"
+      ]
+    },
+    "18:20": {
+      "schemaVersion": 3,
+      "chunkId": "18:20",
+      "index": {
+        "cx": 18,
+        "cz": 20
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [
+        "path-village-shore"
+      ]
+    },
+    "17:19": {
+      "schemaVersion": 3,
+      "chunkId": "17:19",
+      "index": {
+        "cx": 17,
+        "cz": 19
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [
+        "path-village-shore"
+      ]
+    },
+    "18:19": {
+      "schemaVersion": 3,
+      "chunkId": "18:19",
+      "index": {
+        "cx": 18,
+        "cz": 19
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [
+        "path-village-shore"
+      ]
+    },
+    "7:27": {
+      "schemaVersion": 3,
+      "chunkId": "7:27",
+      "index": {
+        "cx": 7,
+        "cz": 27
+      },
+      "revision": 0,
+      "entities": {
+        "mine-marker": {
+          "id": "mine-marker",
+          "name": "Caisse de l’entrée de mine",
+          "kind": "prop",
+          "ownerChunkId": "7:27",
+          "components": {
+            "Transform": {
+              "type": "Transform",
+              "position": {
+                "x": -328,
+                "y": 0,
+                "z": 560
+              },
+              "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0,
+                "w": 1
+              },
+              "scale": {
+                "x": 1,
+                "y": 1,
+                "z": 1
+              }
+            },
+            "Visual": {
+              "type": "Visual",
+              "assetId": "props.crate"
+            }
+          }
+        }
+      },
+      "entityIds": [
+        "mine-marker"
+      ],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": []
+    }
+  }
+}

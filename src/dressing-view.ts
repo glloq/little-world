@@ -17,6 +17,8 @@ const CAPACITY:Record<Family,number>={trunk:2500,cone:1500,round:2500,stone:3000
 export interface DressingStats {byFamily:Record<string,number>;triangles:number;cells:number;pending:number;instances:number;calls:number;lastRebuildMs:number;maxCellMs:number;generatedMs:number;bytes:number;radiusScale:number}
 
 const trianglesOf=(g:THREE.BufferGeometry)=>(g.index?g.index.count:g.getAttribute('position').count)/3;
+/** Far round crown: an octahedron whose lower half is squashed (reads as a canopy, not a diamond). */
+function flatBottom(g:THREE.BufferGeometry){const pos=g.getAttribute('position') as THREE.BufferAttribute;for(let i=0;i<pos.count;i++)if(pos.getY(i)<0)pos.setY(i,pos.getY(i)*.3);g.computeVertexNormals();return g;}
 function rockGeometry(){
   const g=new THREE.IcosahedronGeometry(1,0),pos=g.getAttribute('position') as THREE.BufferAttribute;
   for(let i=0;i<pos.count;i++){const x=pos.getX(i),y=pos.getY(i),z=pos.getZ(i),k=1+.18*Math.sin(x*12.9+y*7.1+z*3.7);pos.setXYZ(i,x*k,Math.max(-.35,y)*k,z*k);}
@@ -32,7 +34,7 @@ export function createDressingView(parent:THREE.Group,seed:number,density:number
     grit:new THREE.OctahedronGeometry(1,0).translate(0,.25,0),
     basalt:new THREE.CylinderGeometry(.5,.55,1,6,1,true).translate(0,.5,0),
     farCone:new THREE.ConeGeometry(1,1,4,1,true).translate(0,.5,0),
-    farRound:new THREE.OctahedronGeometry(1,0),
+    farRound:flatBottom(new THREE.OctahedronGeometry(1,0)),
   };
   const lambert=(color:number)=>new THREE.MeshLambertMaterial({color,flatShading:true});
   const materials:Record<Family,THREE.Material>={trunk:lambert(0x7b6046),cone:lambert(0xffffff),round:lambert(0xffffff),stone:lambert(0xffffff),grit:lambert(0xffffff),basalt:lambert(0xffffff),farCone:lambert(0xffffff),farRound:lambert(0xffffff)};
@@ -85,7 +87,7 @@ export function createDressingView(parent:THREE.Group,seed:number,density:number
           if(trees){
             const trunkH=kind==='pine'?2.4*s:2.1*s;write('trunk',x,y-.2,z,s,trunkH+.2,s,r,null);
             if(kind==='pine')write('cone',x,y+trunkH*.75,z,2.3*s,6.4*s,2.3*s,r,hex);else write('round',x,y+trunkH+1.6*s,z,2.5*s,2.1*s,2.5*s,r,hex);
-          }else if(kind==='pine')write('farCone',x,y,z,2.4*s*grow,8.8*s,2.4*s*grow,r,hex);else write('farRound',x,y+2.8*s,z,2.8*s*grow,2.6*s,2.8*s*grow,r,hex);
+          }else if(kind==='pine')write('farCone',x,y,z,2.4*s*grow,8.8*s,2.4*s*grow,r,hex);else write('farRound',x,y+1.2*s,z,2.9*s*grow,4.4*s,2.9*s*grow,r,hex);
         }
       }
       if(near('shrub',d,key)){const a=c.items.shrub;for(let i=0;i<a.length;i+=ITEM_STRIDE)write('round',a[i],a[i+1]+.45*a[i+3],a[i+2],1.1*a[i+3],.75*a[i+3],1.1*a[i+3],a[i+4],mix(0x6f8f4e,0x93a15a,a[i+5]));}

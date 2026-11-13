@@ -33,7 +33,9 @@ export async function preflightProject(input:unknown,options:CompileOptions={}):
   catch(error){diagnostics.push({severity:'ERROR',code:'GAMEPLAY_SCHEMA',message:error instanceof Error?error.message:String(error)});}
   if(Object.keys(project.libraries.water).length){
    const edits=Object.values(project.chunks).flatMap(c=>c.terrainEdits).sort((a,b)=>a.order-b.order);
-   const source=createTerrainSource({seed:project.world.seed,density:project.world.density,seaLevel:project.world.seaLevel},edits);
+   // Same relief as the runtime: dimensions and generator of the world (not the legacy valley).
+   const b=project.world.bounds;
+   const source=createTerrainSource({seed:project.world.seed,density:project.world.density,seaLevel:project.world.seaLevel,width:b.maxX-b.minX,length:b.maxZ-b.minZ,...(project.world.terrain?{terrain:project.world.terrain}:{})},edits);
    for(const water of Object.values(project.libraries.water))for(const d of compileWaterBody(water,source).diagnostics)diagnostics.push({...d,targetId:water.id});
   }
   const verified=await verifyAssets(project,options.resolveAsset);diagnostics.push(...verified.diagnostics);

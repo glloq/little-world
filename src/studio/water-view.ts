@@ -15,7 +15,7 @@ export function mountWater(host:HTMLElement,tools:HTMLElement,s:StudioSession){
  map.width=1000;map.height=600;map.setAttribute('aria-label','Tracer le cours d’eau de l’amont vers l’aval');
  plot.width=1000;plot.height=200;plot.setAttribute('aria-label','Profil longitudinal terrain et eau');
  workspace.append(node('p','Cliquer de la source vers l’arrivée. Modifier les points ci-dessous ou inverser le tracé avant validation.','muted'),map,plot,summary,messages);host.replaceChildren(workspace);
- const source=()=>createTerrainSource({seed:p.world.seed,density:p.world.density,seaLevel:p.world.seaLevel},Object.values(p.chunks).flatMap(c=>c.terrainEdits).sort((a,b)=>a.order-b.order));
+ const source=()=>createTerrainSource({seed:p.world.seed,density:p.world.density,seaLevel:p.world.seaLevel,width:p.world.bounds.maxX-p.world.bounds.minX,length:p.world.bounds.maxZ-p.world.bounds.minZ,...(p.world.terrain?{terrain:p.world.terrain}:{})},Object.values(p.chunks).flatMap(c=>c.terrainEdits).sort((a,b)=>a.order-b.order));
  const xy=(v:{x:number;z:number})=>({x:20+(v.x-b.minX)/(b.maxX-b.minX)*960,y:20+(v.z-b.minZ)/(b.maxZ-b.minZ)*560});
  function draw(){
   const ctx=map.getContext('2d')!;ctx.fillStyle='#e7efdc';ctx.fillRect(0,0,1000,600);

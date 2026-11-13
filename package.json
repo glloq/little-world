@@ -17,6 +17,7 @@
     "compile:project": "node --experimental-strip-types tools/compile-project.mjs",
     "generate:beta": "node --experimental-strip-types tools/generate-beta.mjs",
     "generate:island": "node --experimental-strip-types tools/generate-island.mjs",
+    "generate:reference": "node --experimental-strip-types tools/generate-reference.mjs",
     "benchmark:route": "node tools/benchmark-route.mjs",
     "test:gameplay": "node tools/test-gameplay-browser.mjs",
     "test:environment": "node tools/test-environment-browser.mjs",

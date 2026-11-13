@@ -151,9 +151,12 @@ export function waterEdgeDistance(x:number,z:number,within:number):number{
   for(let i=0;i<bodies.length;i++){const b=waterBoxes.boxes[i];if(x<b.minX-within||x>b.maxX+within||z<b.minZ-within||z>b.maxZ+within)continue;best=Math.min(best,lineDistance(x,z,bodies[i].points)-bodies[i].width/2);}
   return best;
 }
-export function terrainHeight(x:number,z:number):number {
- let h=sourceHeight(x,z);
- for(const {water,distance,level} of waterIndex.query(x,z,2)){
+export function terrainHeight(x:number,z:number):number {return carveWaterBeds(sourceHeight,waterIndex,x,z);}
+/** Relief with river/lake beds carved under their surface (shared by the runtime terrain and
+ * authoring previews such as the Studio 2D map, so both see the same water and banks). */
+export function carveWaterBeds(source:(x:number,z:number)=>number,index:WaterSpatialIndex,x:number,z:number):number {
+ let h=source(x,z);
+ for(const {water,distance,level} of index.query(x,z,2)){
   const core=water.width*.25,edge=water.width*.5+2;
   // Extend a shallow bank beyond the surface so coarse terrain cannot cover the ribbon.
   const half=water.width*.5;

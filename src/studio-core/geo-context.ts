@@ -4,7 +4,7 @@
  * the game (createGeoContext), so the map shows what the runtime will compute. */
 import type {ProjectDocument,TerrainEdit,BiomeEdit} from './types.ts';
 import type {TerrainStroke,WaterBody,PathDefinition} from '../world-data.ts';
-import {createTerrainSource} from '../terrain.ts';
+import {createTerrainSource,carveWaterBeds} from '../terrain.ts';
 import {generatorField,LEGACY_GENERATOR} from '../terrain-generator.ts';
 import {WaterSpatialIndex} from '../water/profile.ts';
 import {createGeoContext,type GeographySources} from '../geography/engine.ts';
@@ -34,10 +34,11 @@ export function projectGeography(p:ProjectDocument):ProjectGeography{
   for(const c of chunks){for(const e of c.terrainEdits)terrain.set(e.id,e);for(const e of c.biomeEdits)biomes.set(e.id,e);}
   const edits=[...terrain.values()].sort((a,c)=>a.order-c.order).map(strip) as TerrainStroke[];
   const config={seed:w.seed,density:w.density,width,length,seaLevel:w.seaLevel,...(w.terrain?{terrain:w.terrain}:{})};
-  const height=createTerrainSource(config,edits),sea=w.seaLevel;
-  const field=generatorField(generator,{seed:w.seed,seaLevel:sea,width,length},height);
+  const source=createTerrainSource(config,edits),sea=w.seaLevel;
+  const field=generatorField(generator,{seed:w.seed,seaLevel:sea,width,length},source);
   const waters=Object.values(p.libraries.water) as unknown as WaterBody[],paths=Object.values(p.libraries.paths) as unknown as PathDefinition[];
-  const index=new WaterSpatialIndex(waters,height),waterDistance=lineSet(waters),pathDistance=lineSet(paths);
+  const index=new WaterSpatialIndex(waters,source),waterDistance=lineSet(waters),pathDistance=lineSet(paths);
+  const height=(x:number,z:number)=>carveWaterBeds(source,index,x,z);
   const masks:Record<string,SectorLayers>={};for(const c of chunks)if(c.layers)masks[c.chunkId]=c.layers;
   const buildings:{x:number;z:number;radius:number}[]=[];
   for(const c of chunks)for(const id of c.entityIds){const e=c.entities[id];if(!e)continue;const r=resolveEntity(p,e),v=r.components.Visual,t=r.components.Transform;if(v&&t&&v.assetId.startsWith('architecture.'))buildings.push({x:t.position.x,z:t.position.z,radius:6*Math.max(t.scale.x,t.scale.z)});}
