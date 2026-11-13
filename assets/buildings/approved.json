@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "description": "Original low-poly Little World buildings approved by creator on 2026-11-13; external textures: none.",
+  "coordinateSystem": {
+    "units": "m",
+    "up": "Y",
+    "forward": "-Z"
+  },
+  "models": [
+    {
+      "id": "architecture.wooden_cabin",
+      "name": "Cabane en bois",
+      "version": "V1",
+      "license": "project-original",
+      "status": "ART_APPROVED_RUNTIME_NOT_QUALIFIED",
+      "lods": [
+        {
+          "path": "models/buildings/wooden_cabin/lod0.glb",
+          "triangles": 540,
+          "sha256": "416b664f39a25a6e1ad404ecb44bc913ee4f44d71033ba347dc7997e24aa9dc7"
+        },
+        {
+          "path": "models/buildings/wooden_cabin/lod1.glb",
+          "triangles": 152,
+          "sha256": "4409e1056047769537003207b22904a0a9d1b4777d518004060dfa2acc1ad3aa"
+        },
+        {
+          "path": "models/buildings/wooden_cabin/lod2.glb",
+          "triangles": 56,
+          "sha256": "e1396ce98342dd2eccd6d2dad107ff7a1d2d9012b3e3042928510d4bcba2e20c"
+        }
+      ]
+    },
+    {
+      "id": "architecture.stone_house",
+      "name": "Maison en pierre",
+      "version": "V1",
+      "license": "project-original",
+      "status": "ART_APPROVED_RUNTIME_NOT_QUALIFIED",
+      "lods": [
+        {
+          "path": "models/buildings/stone_house/lod0.glb",
+          "triangles": 456,
+          "sha256": "1a7c3454092e4a3a098b2796d9a6c777a951abcd0ddf011c1e8fdd3be4d335dd"
+        },
+        {
+          "path": "models/buildings/stone_house/lod1.glb",
+          "triangles": 104,
+          "sha256": "5520952df84281683065cf53483e07372994c0ca17bd15b0f100d493069dc75c"
+        },
+        {
+          "path": "models/buildings/stone_house/lod2.glb",
+          "triangles": 56,
+          "sha256": "f99f193b7bbc8d106c8b0005181f96f2675cf3f88d8484041e46f93d663b9ed3"
+        }
+      ]
+    },
+    {
+      "id": "architecture.lighthouse",
+      "name": "Phare côtier",
+      "version": "V1.2",
+      "license": "project-original",
+      "status": "ART_APPROVED_RUNTIME_NOT_QUALIFIED",
+      "lods": [
+        {
+          "path": "models/buildings/lighthouse/lod0.glb",
+          "triangles": 2672,
+          "sha256": "ccde73855b5461c6d080a75c37de41bc731135cdb088ab1c181671422a8036fe"
+        },
+        {
+          "path": "models/buildings/lighthouse/lod1.glb",
+          "triangles": 1236,
+          "sha256": "de1640e5cb9a77e94d4c93f3f73a0026a47bb1fdfdd665e15e6effacbc4a8e56"
+        },
+        {
+          "path": "models/buildings/lighthouse/lod2.glb",
+          "triangles": 528,
+          "sha256": "750cc158fc7386b12444e538d1ab84f51c9c260697a1f3964b7acf835d67ca03"
+        }
+      ],
+      "anchors": {
+        "entrance": [
+          0,
+          0,
+          -3.25
+        ],
+        "light_origin": [
+          0,
+          14.48,
+          0
+        ]
+      },
+      "note": "Vitrage opaque intégral, aucune géométrie de lampe intérieure."
+    }
+  ],
+  "note": "This registry is a staging manifest. Do not add catalog.json references before binaries are present and validated at runtime."
+}
