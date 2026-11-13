@@ -101,7 +101,7 @@ if(searchParams.has('studioPreview')||searchParams.get('beta')==='1'){
     if(searchParams.has('studioPreview')){studioTest=loadPlaytest(searchParams.get('studioPreview')!);playable=studioTest.content;}
     else{const response=await fetch(import.meta.env.BASE_URL+'maps/beta.json');if(!response.ok)throw Error('Monde bêta indisponible');playable=parsePlayableWorld(await response.json());}
     definition=playable.world;
-  }catch(error){overlay.querySelector('h1')!.textContent='Impossible d’ouvrir cette partie';overlay.querySelector('p')!.textContent=String(error);start.disabled=true;throw error;}
+  }catch(error){overlay.setAttribute('aria-busy','false');overlay.querySelector('h1')!.textContent='Impossible d’ouvrir cette partie';overlay.querySelector('p')!.textContent=String(error);start.disabled=true;throw error;}
 }else if (isPreview) {
   try {
     const raw = sessionStorage.getItem('little-world-preview');
@@ -508,4 +508,6 @@ camera.position.set(
   player.position.z - 24,
 );
 camera.lookAt(player.position);
+// The visible start button must not accept a click before asynchronous boot has attached its listeners.
+overlay.setAttribute('aria-busy','false');start.disabled=false;
 requestAnimationFrame(draw);

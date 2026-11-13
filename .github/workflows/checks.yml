@@ -22,19 +22,26 @@ jobs:
       - run: git diff --exit-code -- public/maps
       - run: npm run build
       - run: npx playwright install --with-deps chromium
-      - name: Browser authoring and play smoke
+      - name: Start production preview
         run: |
           npm run preview -- --host 127.0.0.1 --port 5173 --strictPort > /tmp/little-world-preview.log 2>&1 &
           for attempt in $(seq 1 30); do
             if curl -fsS http://127.0.0.1:5173/little-world/ > /dev/null; then break; fi
             sleep 1
           done
-          npm run test:browser
-          npm run test:studio
-          npm run test:gameplay
-          npm run test:environment
-          npm run test:local
-          npm run test:characters
+          curl -fsS http://127.0.0.1:5173/little-world/ > /dev/null
+      - name: Legacy game and editor browser checks
+        run: node tools/run-browser-check.mjs legacy
+      - name: Studio browser checks
+        run: node tools/run-browser-check.mjs studio
+      - name: Gameplay and saves browser checks
+        run: node tools/run-browser-check.mjs gameplay
+      - name: Environment browser checks
+        run: node tools/run-browser-check.mjs environment
+      - name: Local viewport browser checks
+        run: node tools/run-browser-check.mjs local
+      - name: Character authoring browser checks
+        run: node tools/run-browser-check.mjs characters
       - name: IndexedDB integration
         run: |
           npm run dev -- --host 127.0.0.1 --port 5189 --strictPort > /tmp/little-world-studio-dev.log 2>&1 &
@@ -42,7 +49,7 @@ jobs:
             if curl -fsS http://127.0.0.1:5189/little-world/ > /dev/null; then break; fi
             sleep 1
           done
-          node tests/studio-storage.browser.mjs http://127.0.0.1:5189/little-world/
+          node tools/run-browser-check.mjs storage http://127.0.0.1:5189/little-world/
       - uses: actions/upload-artifact@v4
         if: always()
         with:

@@ -139,3 +139,13 @@ Preuves : **119 tests unitaires/intégration**, dont création/lien, identité d
 - **20 contrôles IndexedDB Chromium** : 15 précédents, rejet d’une lecture obsolète, lecture à la bonne révision, ouverture d’une vraie base v1 avec données, conservation des secteurs après migration et mise à jour atomique de l’index de révision.
 
 État récapitulatif : **120 tests unitaires/intégration** et **86 contrôles navigateur** répartis entre jeu historique, Studio, interactions/sauvegardes, environnement, viewport local, personnages et stockage. Ces vérifications ne remplacent pas la qualification GPU intégré/Firefox ou l’acceptation humaine de B1.
+
+## Démarrage asynchrone et diagnostic CI
+
+La CI de `1b42e96` a échoué dans l'ancienne étape regroupant tous les navigateurs, tandis que la suite complète repassait localement. Les journaux détaillés de ce run demandent une authentification GitHub ; le résumé public ne donnait que l'étape groupée.
+
+- Le bouton **Explorer** reste désactivé jusqu'à la fin de l'initialisation et l'installation des handlers. Le premier clic ne peut plus être absorbé pendant les imports/fetch asynchrones.
+- Un contrôle navigateur bloque volontairement le chargement JavaScript, vérifie cet état désactivé puis libère le chargement et démarre la partie. Environnement : **6 contrôles** ; total courant **87 contrôles navigateur**.
+- Les suites navigateur ont des étapes CI distinctes ; `tools/run-browser-check.mjs` remonte le nom et la fin de l'erreur dans une annotation. Les journaux et artefacts ordinaires restent produits. Cela permet de diagnostiquer un éventuel nouvel échec sans confondre jeu historique, Studio, gameplay, environnement, local, personnages et stockage.
+
+Ce contrôle de démarrage corrige un risque réel ; il ne suffit pas à attribuer avec certitude l'ancien échec CI sans son journal détaillé. La validation du nouveau head doit être consultée séparément.
