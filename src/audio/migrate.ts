@@ -55,6 +55,9 @@ export function audioSoundIds(audio:AnyAudioDefinition|undefined):string[] {retu
 export function mergeAudioCatalogs(base:AudioDefinitionV2,addition:AudioDefinitionV2):AudioDefinitionV2 {
  const out=structuredClone(base),add=structuredClone(addition);
  for(const key of ['assets','scores','events'] as const)for(const [id,value]of Object.entries(add[key]))if(!Object.hasOwn(out[key],id))(out[key] as Record<string,unknown>)[id]=value;
+ // Untouched aliases created by the migration (no take, fallback to the V1 sound) give way to the
+ // richer built-in event, whose fallback chain still ends on the same V1 sound.
+ for(const [id,alias]of Object.entries(LEGACY_SEMANTIC_ALIASES)){const mine=out.events[id],theirs=add.events[id];if(mine&&theirs&&!mine.variants.length&&mine.fallback===alias.legacy&&theirs.fallback===alias.legacy)out.events[id]=theirs;}
  for(const [id,cue]of Object.entries(add.music.cues))if(!Object.hasOwn(out.music.cues,id)&&!(Object.values(out.music.cues).some(c=>c.kind==='loop'&&JSON.stringify(c.when)===JSON.stringify(cue.when))))out.music.cues[id]=cue;
  const legacy=Object.hasOwn(out.ambience,'legacy');for(const [id,profile]of Object.entries(add.ambience))if(!Object.hasOwn(out.ambience,id)&&!(legacy&&profile.global))out.ambience[id]=profile;
  out.patchIds=[...new Set([...out.patchIds,...add.patchIds])].slice(0,10);out.meta={catalogVersion:add.meta?.catalogVersion??'merged',description:'Catalogue fusionné : données du projet conservées, entrées manquantes ajoutées.'};

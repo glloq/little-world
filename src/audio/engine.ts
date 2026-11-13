@@ -40,6 +40,8 @@ export class AudioEngine {
  private parsed=new Map<string,MidiScore>();
  private loadingScores=new Map<string,Promise<MidiScore|null>>();
  private pending:{id:string;at:number;loop:boolean}|null=null;
+ /** Score requested while its static MIDI was still downloading: started as soon as it is parsed. */
+ private awaited:{id:string;options:{loop?:boolean;immediate?:boolean}}|null=null;
  private interval:ReturnType<typeof setInterval>|null=null;
  private levels:AudioLevels={...DEFAULT_LEVELS};
  private budget:AudioBudget=audioBudgetForLevel(0);
@@ -133,10 +135,10 @@ export class AudioEngine {
  private score(id:string):MidiScore|null {
   const definition=this.catalog.scores[id];if(!definition)return null;const cached=this.parsed.get(id);if(cached)return cached;const asset=this.catalog.assets[definition.assetId];if(!this.usable(asset))return null;
   if(asset.bytesBase64!==undefined)return this.parseScore(id,base64Bytes(asset.bytesBase64));
-  if(!this.loadingScores.has(id))this.loadingScores.set(id,this.fetchBytes(asset,AUDIO_V2_LIMITS.staticMidiBytes).then(bytes=>bytes?this.parseScore(id,bytes):null).finally(()=>this.loadingScores.delete(id)));
+  if(!this.loadingScores.has(id))this.loadingScores.set(id,this.fetchBytes(asset,AUDIO_V2_LIMITS.staticMidiBytes).then(bytes=>bytes?this.parseScore(id,bytes):null).then(parsed=>{const wanted=this.awaited;if(parsed&&wanted?.id===id&&!this.disposed){this.awaited=null;this.requestScore(id,wanted.options);}return parsed;}).finally(()=>this.loadingScores.delete(id)));
   return null;
  }
- requestScore(id:string|undefined,options:{loop?:boolean;immediate?:boolean}={}){if(!id||!this.catalog.scores[id]||!this.context||!this.ready)return;const loop=options.loop??this.catalog.scores[id].loop;if(this.transport?.id===id){this.pending=null;this.transport.loop=loop;return;}if(this.pending?.id===id)return;const score=this.score(id);if(!score)return;const now=this.context.currentTime;
+ requestScore(id:string|undefined,options:{loop?:boolean;immediate?:boolean}={}){if(!id||!this.catalog.scores[id]||!this.context||!this.ready)return;const loop=options.loop??this.catalog.scores[id].loop;if(this.transport?.id===id){this.pending=null;this.transport.loop=loop;return;}if(this.pending?.id===id)return;const score=this.score(id);if(!score){this.awaited={id,options};return;}this.awaited=null;const now=this.context.currentTime;
   if(!this.transport){this.transport={id,score,origin:now+.1,cursor:0,cycle:0,group:++this.group,loop};this.pump();}
   else{const t=this.transport,bar=240/t.score.bpm;this.pending={id,loop,at:options.immediate?now+.12:t.origin+Math.max(1,Math.ceil((now+.12-t.origin)/bar))*bar};}
  }

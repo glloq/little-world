@@ -23,8 +23,8 @@ export function mountAudioCatalog(host:HTMLElement,s:StudioSession,isActive:()=>
  function eventList(d:AudioDefinitionV2){
   const list=node('div','','feature-list'),q=query.trim().toLowerCase();
   const rows=Object.values(d.events).filter(e=>(!category||e.category===category)&&(!q||e.id.toLowerCase().includes(q)||(e.description??'').toLowerCase().includes(q))&&(!status||state(d,e.id).key===status));
-  for(const e of rows.slice(0,60)){const st=state(d,e.id),row=node('div','','feature-row');row.dataset.event=e.id;row.append(node('strong',e.id),node('span',CATEGORY[e.category]??e.category,'chip'),node('span',st.text,'chip'+(st.key==='ok'?' active':'')),node('span',e.description??'','muted'),button(selected===e.id?'Fermer':'Modifier '+e.id,()=>{selected=selected===e.id?null:e.id;render();}));list.append(row);if(selected===e.id)list.append(editor(d,e));}
-  if(rows.length>60)list.append(node('p',`${rows.length-60} autres événements : affinez la recherche.`,'muted'));if(!rows.length)list.append(node('p','Aucun événement ne correspond.','muted'));
+  for(const e of rows.slice(0,25)){const st=state(d,e.id),row=node('div','','feature-row');row.dataset.event=e.id;row.append(node('strong',e.id),node('span',CATEGORY[e.category]??e.category,'chip'),node('span',st.text,'chip'+(st.key==='ok'?' active':st.key==='missing'?' warn':' pending')),node('span',e.description??'','muted'),button(selected===e.id?'Fermer':'Modifier '+e.id,()=>{selected=selected===e.id?null:e.id;render();}));list.append(row);if(selected===e.id)list.append(editor(d,e));}
+  if(rows.length>25)list.append(node('p',`${rows.length-25} autres événements : affinez par recherche, catégorie ou état.`,'muted'));if(!rows.length)list.append(node('p','Aucun événement ne correspond.','muted'));
   return {list,count:rows.length};
  }
  function editor(d:AudioDefinitionV2,e:SoundEventV2){
@@ -57,7 +57,7 @@ export function mountAudioCatalog(host:HTMLElement,s:StudioSession,isActive:()=>
   const card=node('div','','audio-preview'),result=node('p','','muted'),ids=Object.keys(d.events);let eventId=selected??ids[0]??'';
   const pick=<K extends keyof SoundContext>(key:K,values:readonly string[],label:string)=>field(label,select(String(ctx[key]??''),options(values,'non précisé'),v=>{if(v)(ctx as Record<string,unknown>)[key]=v;else delete ctx[key];}));
   const wet=node('input');wet.type='checkbox';wet.checked=!!ctx.wet;wet.onchange=()=>{if(wet.checked)ctx.wet=true;else delete ctx.wet;};
-  card.append(node('strong','Prévisualiser un contexte'),field('Événement',select(eventId,ids.map(id=>[id,id] as const),v=>eventId=v)),pick('surface',SURFACES,'Surface'),pick('material',MATERIALS,'Matière'),pick('movement',MOVEMENTS,'Mouvement'),pick('intensity',INTENSITIES,'Intensité'),pick('weather',WEATHERS,'Météo'),pick('time',TIMES,'Moment'),pick('place',PLACES,'Lieu'),field('Mouillé',wet),
+  card.append(node('strong','Prévisualiser un contexte'),field('Événement à prévisualiser',select(eventId,ids.map(id=>[id,id] as const),v=>eventId=v)),pick('surface',SURFACES,'Contexte — surface'),pick('material',MATERIALS,'Contexte — matière'),pick('movement',MOVEMENTS,'Contexte — mouvement'),pick('intensity',INTENSITIES,'Contexte — intensité'),pick('weather',WEATHERS,'Contexte — météo'),pick('time',TIMES,'Contexte — moment'),pick('place',PLACES,'Contexte — lieu'),field('Contexte — mouillé',wet),
    button('Écouter dans ce contexte',async()=>{try{const e=await engine(),r=e.resolve(eventId,ctx);if(!r.ok){result.textContent=r.reason==='unknown-event'?'Événement inconnu.':`Silence : aucune ressource disponible (${r.path.join(' → ')}).`;return;}result.textContent=`Prise « ${r.sound.asset.id} » via ${r.sound.path.join(' → ')} · condition ${summary(r.sound.variant.when)} · gain ${r.sound.gain.toFixed(2)} · hauteur ×${r.sound.pitch.toFixed(2)}`;await e.playEvent(eventId,{context:ctx});}catch(err){result.textContent=String(err);}},'primary-button'),result);
   return card;
  }

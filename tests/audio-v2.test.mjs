@@ -150,7 +150,8 @@ test('the beta map (V1 audio) still loads and converts in memory',async()=>{
 test('installing the shipped catalogue on a migrated V1 project keeps every author value and adds missing ids only',async()=>{
  const {mergeAudioCatalogs}=await import('../src/audio/migrate.ts');const custom=structuredClone(v1);custom.sounds.collect.gain=.2;custom.emitters=[{id:'e',position:{x:0,y:0,z:0},soundId:'water',radius:10,loop:true,priority:1}];
  const base=migrateAudioV1toV2(custom),merged=mergeAudioCatalogs(base,parseAudioDefinitionV2(catalog));
- assert.equal(merged.events.collect.gain,.2);assert.deepEqual(merged.emitters,custom.emitters);assert.ok(merged.events['mine.hit']&&merged.ambience.forest&&merged.music.cues.mine);
+ assert.equal(merged.events.collect.gain,.2);assert.ok(merged.events['player.footstep'].variants.length>10&&merged.events['player.footstep'].fallback==='step','migration alias replaced by the richer built-in event');
+ const p=picker();assert.equal(resolveSound(merged,'player.footstep',{surface:'grass'},p).sound.asset.id,'sample-step');assert.equal(resolveSound(merged,'interaction.collect',{},p).sound.gain,.2,'fallback still uses the author gain');assert.deepEqual(merged.emitters,custom.emitters);assert.ok(merged.events['mine.hit']&&merged.ambience.forest&&merged.music.cues.mine);
  assert.ok(merged.ambience.legacy&&!merged.ambience.weather,'no doubled rain/water layers');assert.equal(merged.music.cues.day,undefined);assert.deepEqual(Object.keys(merged.music.cues).filter(k=>k.startsWith('explore')).sort(),['explore.day','explore.night']);
  assert.equal(merged.assets['sample-collect'].bytesBase64,v1.assets['sample-collect'].bytesBase64,'embedded V1 bytes kept (portable)');
 });
