@@ -292,6 +292,19 @@ La [spécification 23](23-MIDI-AUDIO-LOW-RESOURCE.md) ajoute un **éditeur audio
 
 **Validation contextuelle** : niveau qui recoupe un autre, connecteur absent, entrée mal ouverte, volume d'eau/lac/mer, collisions ou gisement hors emprise ; surligner les secteurs concernés et proposer correction **sans destruction silencieuse**. Statistiques PERF de meshes visibles, collisions, temps remeshing et chunks actifs.
 
+## Little World Studio — outil Parcelles agricoles et inspections contextuelles
+
+**Contrat d'interface :** [25 — Agriculture par parcelles LOW-RESOURCE](25-AGRICULTURE-PARCELS-LOW-RESOURCE.md).
+
+- Dans la barre d'outils de géographie/biotopes : **Parcelle** (dessiner/éditer polygone, aligner sur le relief), **Sous-zone** facultative, **Culture** (espèce, stade initial, sol, orientation des rangs) et **Irrigation** (connexion à une source).
+- Bibliothèque de **profils de cultures** paramétrés : saison/température, humidité/nutriments, stades, rendement, modèle/atlas GLB léger et variante visuelle ; ne pas faire un éditeur individuel de chaque plante.
+- Inspecteur **en jeu agriculteur** : humidité/fertilité/santé, maturité/risques/rendement, stockage, actions semis/entretien/récolte et permissions. **Passant** : seulement culture publique, apparence et stade, pas de gestion.
+- Preview **LOD0–3** selon camera : plants instanciés proches, rangs simplifiés et couleur de champ lointaine ; le passage en mode agriculteur n'augmente pas la géométrie si la caméra reste identique.
+- **Validation** : contour fermé, chevauchement eau/route/maison/zone protégée, pentes, irrigation manquante et biotope; aperçu des secteurs invalidés/Undo/Redo.
+- **Simulation/test du Studio** : 1–30 jours fictifs, météo historique/heure/saison, effet de sécheresse, inspection de croissance connectée/hors-ligne, **sur état de partie temporaire**.
+- Export/import ZIP V3 **définitions et assets auteur** ; récoltes/inventaire/état de saison d'une partie **sauvegardés séparément**, pas d'écrasement implicite.
+- Garder l'interface claire : réglages agronomiques avancés **repliables**, contrôle détaillé uniquement pour gestionnaire autorisé, métriques dans le panneau PERF.
+
 ## 10. Politique UX et performance
 
 - Ne pas afficher toutes les catégories et réglages à la fois ; le contexte détermine l'inspecteur.
