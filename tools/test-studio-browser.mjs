@@ -1,0 +1,28 @@
+import {chromium} from 'playwright';
+import {existsSync} from 'node:fs';
+import {readFile,mkdir} from 'node:fs/promises';
+import assert from 'node:assert/strict';
+const base=process.env.WORLD_URL??'http://127.0.0.1:5173/little-world/';
+const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH??(existsSync('/usr/bin/chromium')?'/usr/bin/chromium':undefined),args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
+let checks=0;const check=(v,message)=>{assert.ok(v,message);checks++;};
+try{
+ const context=await browser.newContext({viewport:{width:1440,height:900}}),page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>d.accept());
+ await page.goto(base+'studio/');await page.getByText('Des idées aux petits mondes').waitFor();
+ await page.getByLabel('Nom du projet').fill('Atelier navigateur');await page.getByRole('button',{name:'Créer le projet'}).click();await page.locator('canvas').waitFor();check(await page.locator('#breadcrumbs').textContent()==='Atelier navigateur / map','Create and open');
+ await page.getByRole('button',{name:'Objets',exact:true}).click();await page.locator('#tools select').first().selectOption('place');
+ const canvas=page.locator('canvas'),box=await canvas.boundingBox();await page.mouse.click(box.x+box.width/2,box.y+box.height/2);await page.getByLabel('Nom',{exact:true}).waitFor();await page.getByLabel('Nom',{exact:true}).fill('Caisse test');await page.getByLabel('Nom',{exact:true}).press('Tab');await page.getByRole('button',{name:'Sauvegarder',exact:true}).click();await page.waitForFunction(()=>document.querySelector('#save-status').textContent==='Sauvegardé localement');
+ check(await page.getByLabel('Nom',{exact:true}).inputValue()==='Caisse test','Place and rename');
+ await page.reload();await page.getByRole('button',{name:'Ouvrir le monde'}).click();await page.getByLabel('Nom',{exact:true}).waitFor();check(await page.getByLabel('Nom',{exact:true}).inputValue()==='Caisse test','Selection and object restored');
+ await page.getByRole('button',{name:'Annuler',exact:true}).click();check(await page.getByLabel('Nom',{exact:true}).inputValue()!=='Caisse test','Undo survives reload');await page.getByRole('button',{name:'Refaire',exact:true}).click();check(await page.getByLabel('Nom',{exact:true}).inputValue()==='Caisse test','Redo');
+ const exported=page.waitForEvent('download');await page.getByRole('button',{name:'Exporter ZIP'}).click();const file=await exported;const zip=await readFile(await file.path());check(zip[0]===80&&zip[1]===75,'Portable ZIP downloaded');
+ await page.getByRole('button',{name:'Relief',exact:true}).click();await page.locator('canvas').click({position:{x:200,y:220}});await page.getByRole('button',{name:'Sauvegarder',exact:true}).click();await page.waitForFunction(()=>document.querySelector('#save-status').textContent==='Sauvegardé localement');check(await page.getByRole('button',{name:'Annuler',exact:true}).isEnabled(),'Terrain transaction');
+ await page.getByRole('button',{name:'Validation / compilation'}).click();await page.getByText('Aucune erreur détectée.').waitFor();check(true,'Strict asset preflight');
+ const compiled=page.waitForEvent('download');await page.getByRole('button',{name:'Exporter le monde compilé'}).click();await compiled;check(true,'Compile download');
+ await page.getByRole('button',{name:'Mes projets',exact:true}).click();const reference=await readFile(new URL('../maps/default.json',import.meta.url));await page.locator('#project-file').setInputFiles({name:'reference.json',mimeType:'application/json',buffer:reference});await page.locator('canvas').waitFor();check((await page.locator('#tools .search-results button').count())>=4,'Real V2 migration into Studio');
+ await page.locator('#tools .search-results button').first().click();await page.getByRole('button',{name:'Ouvrir son dialogue'}).click();await page.locator('#workspace textarea').first().waitFor();const dialogue=page.locator('#workspace textarea').first();await dialogue.fill('Bonjour depuis Studio V3');await dialogue.press('Tab');
+ await page.getByRole('button',{name:'Sauvegarder',exact:true}).click();await page.waitForFunction(()=>document.querySelector('#save-status').textContent==='Sauvegardé localement');check(await dialogue.inputValue()==='Bonjour depuis Studio V3','Existing dialogue editor shares command store');
+ await page.getByRole('button',{name:'Annuler',exact:true}).click();await page.getByRole('button',{name:'Retour à la carte'}).click();await page.getByRole('button',{name:'Dialogues',exact:true}).click();check(await page.locator('#workspace textarea').first().inputValue()!=='Bonjour depuis Studio V3','Dialogue reversible');
+ await page.getByRole('button',{name:'Sauvegarder',exact:true}).click();const popup=context.waitForEvent('page');await page.getByRole('button',{name:'Tester la copie'}).click();const game=await popup;await game.waitForLoadState();check(new URL(game.url()).searchParams.get('preview')==='1','Playtest opens isolated preview copy');await game.close();check(await page.getByRole('button',{name:'Refaire',exact:true}).isEnabled(),'Playtest retains history');
+ await page.getByRole('button',{name:'Retour à la carte'}).click();await page.locator('canvas').waitFor();await page.getByLabel('Nom',{exact:true}).waitFor();await page.waitForFunction(()=>{const c=document.querySelector('canvas');return c&&c.width>10&&c.height>10;});await mkdir('/tmp/little-world-browser',{recursive:true});await page.screenshot({path:'/tmp/little-world-browser/studio-v3.png'});check(errors.length===0,errors.join('\n'));
+ console.log(JSON.stringify({checks,errors},null,2));
+}finally{await browser.close();}

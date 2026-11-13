@@ -12,7 +12,9 @@
     "test:browser": "node tools/test-browser.mjs",
     "benchmark": "node tools/benchmark-world.mjs",
     "compile:map": "node --experimental-strip-types tools/compile-map.mjs",
-    "assets:squirrel": "node --experimental-strip-types tools/generate-squirrel.mjs"
+    "assets:squirrel": "node --experimental-strip-types tools/generate-squirrel.mjs",
+    "test:studio": "node tools/test-studio-browser.mjs",
+    "compile:project": "node --experimental-strip-types tools/compile-project.mjs"
   },
   "dependencies": {
     "three": "^0.180.0"

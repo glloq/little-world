@@ -28,6 +28,15 @@ jobs:
             sleep 1
           done
           npm run test:browser
+          npm run test:studio
+      - name: IndexedDB integration
+        run: |
+          npm run dev -- --host 127.0.0.1 --port 5189 --strictPort > /tmp/little-world-studio-dev.log 2>&1 &
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:5189/little-world/ > /dev/null; then break; fi
+            sleep 1
+          done
+          node tests/studio-storage.browser.mjs http://127.0.0.1:5189/little-world/
       - uses: actions/upload-artifact@v4
         if: always()
         with:

@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import {chromium} from 'playwright';
+import {existsSync} from 'node:fs';
 const base=(process.argv[2]??'http://127.0.0.1:5189/little-world/').replace(/\/?$/,'/');
-const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH??'/usr/bin/chromium',args:['--no-sandbox']});
+const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH??(existsSync('/usr/bin/chromium')?'/usr/bin/chromium':undefined),args:['--no-sandbox']});
 try{
  const page=await browser.newPage();await page.goto(base+'assets/catalog.json');
  const result=await page.evaluate(async(base)=>{
