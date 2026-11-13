@@ -423,6 +423,8 @@ function tick(dt: number) {
     jumpQueue = 0;
   } else {
     simulatePlayer(player, keys, dt,gameplay?.collision);
+    // Crossing a mine entrance / stairs: no interpolation through rock.
+    if(player.transitioned){previousPlayerPosition.copy(player.position);renderPosition.copy(player.position);}
     if (keys.jumpPressed) jumpQueue = Math.max(0, jumpQueue - 1);
   }
   if (actionQueue > 0) {
