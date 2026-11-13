@@ -30,7 +30,9 @@ export function parseAudioDefinition(raw:unknown):AudioDefinition {
  if(!Array.isArray(raw.emitters)||raw.emitters.length>1000)throw Error('Trop d’émetteurs audio');const ids=new Set<string>();for(const e of raw.emitters){if(!obj(e)||!text(e.id)||ids.has(e.id)||(!text(e.soundId)||!Object.hasOwn(sounds,e.soundId))||!number(e.radius,1,200)||!number(e.priority,0,10)||typeof e.loop!=='boolean'||(e.entityId!==undefined&&!text(e.entityId))||(!e.entityId&&!e.position))throw Error('Émetteur audio invalide');keys(e,['id','entityId','position','soundId','radius','loop','priority']);if(e.position!==undefined&&(!obj(e.position)||!['x','y','z'].every(k=>number((e.position as Record<string,unknown>)[k],-100000,100000))))throw Error('Position audio invalide');ids.add(e.id);}
  return structuredClone(raw) as unknown as AudioDefinition;
 }
-export function validateAudioLinks(audio:AudioDefinition|undefined,entityIds:Iterable<string>,soundIds:Iterable<string>){
- const entities=new Set(entityIds);for(const e of audio?.emitters??[])if(e.entityId&&!entities.has(e.entityId))throw Error('Entité audio absente : '+e.entityId);
- for(const id of soundIds)if(!audio||!Object.hasOwn(audio.sounds,id))throw Error('Son d’action absent : '+id);
+/** Author-side link check (V1 sounds or V2 events). Missing *resources* are diagnostics elsewhere;
+ * a broken authored reference is refused here with an explicit message. */
+export function validateAudioLinks(audio:{schemaVersion:number;emitters:readonly AudioEmitter[];sounds?:Record<string,unknown>;events?:Record<string,unknown>}|undefined,entityIds:Iterable<string>,soundIds:Iterable<string>){
+ const entities=new Set(entityIds),registry=audio?(audio.schemaVersion===2?audio.events:audio.sounds)??{}:{};for(const e of audio?.emitters??[])if(e.entityId&&!entities.has(e.entityId))throw Error('Entité audio absente : '+e.entityId);
+ for(const id of soundIds)if(!audio||!Object.hasOwn(registry,id))throw Error('Son d’action absent : '+id);
 }

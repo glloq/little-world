@@ -1,4 +1,4 @@
-import {parseAudioDefinition} from '../audio/schema.ts';
+import {parseAnyAudioDefinition} from '../audio/migrate.ts';
 import {parseEnvironmentDefinition} from '../environment/climate.ts';
 import {parseComponents} from '../studio-core/schema.ts';
 import {hashText,utf8Bytes,type CompiledChunkData,type CompiledChunkDescriptor,type CompiledWorldManifest,type CompiledLogicData} from './manifests.ts';
@@ -13,7 +13,7 @@ function bounds(v:unknown){return record(v)&&['minX','maxX','minZ','maxZ'].every
 export function parseCompiledManifest(value:unknown):CompiledWorldManifest {
  if(!record(value)||value.schemaVersion!==1||value.kind!=='compiled-world'||value.coordinateSystem!=='meters-y-up'||!text(value.worldId)||!text(value.projectId)||!text(value.compilerVersion)||!text(value.buildVersion)||!hash(value.sourceHash)||!bounds(value.bounds)||!number(value.seed,1,9999999)||!text(value.generatorVersion)||!number(value.seaLevel,-20,20)||!number(value.chunkSizeM,16,512)||!number(value.density,0,2))throw Error('Invalid compiled world manifest');
  const b=value.bounds as Record<string,number>;parseTerrainGenerator(value.terrain,{width:b.maxX-b.minX,length:b.maxZ-b.minZ});
- if(value.audio!==undefined)parseAudioDefinition(value.audio);
+ if(value.audio!==undefined)parseAnyAudioDefinition(value.audio);
  if(value.environment!==undefined)parseEnvironmentDefinition(value.environment);
  if(!record(value.capabilities)||value.capabilities.bakedMeshes!==false||value.capabilities.bakedLOD!==false||value.capabilities.navigation!=='source-descriptors'||value.capabilities.collisions!=='source-descriptors'||value.capabilities.sparseSourceChunks!==true)throw Error('Unsupported compiled world capabilities');
  if(!Array.isArray(value.chunks)||value.chunks.length>30000||!Array.isArray(value.entityIndex)||value.entityIndex.length>100000||!Array.isArray(value.assets)||value.assets.length>10000||!record(value.logic)||!local(value.logic.url)||!hash(value.logic.hash)||!number(value.logic.byteLength,1,16*1024*1024))throw Error('Invalid compiled world index');

@@ -1,4 +1,5 @@
 import {MINE_MATERIALS} from './mine/mine-data.ts';
+import {MATERIAL_BY_MINE_KEY} from './audio/context.ts';
 import { geoWorkerPool } from './geography/geo-workers.ts';
 import type {AudioController} from './audio/view.ts';
 import * as THREE from 'three';
@@ -154,7 +155,9 @@ scene.add(world.root);
 const player = spawnPlayer();
 if(playable)player.position.set(playable.spawn.x,terrainHeight(playable.spawn.x,playable.spawn.z)+playable.spawn.y+.02,playable.spawn.z);
 let audio:AudioController|null=null;
-try{const {parseAudioDefinition}=await import('./audio/schema.ts');let definition=playable?.audio;if(!playable){const response=await fetch(import.meta.env.BASE_URL+'audio/default.json');if(response.ok)definition=parseAudioDefinition(await response.json());}if(definition){const {createAudioController}=await import('./audio/view.ts');audio=createAudioController(definition);}}catch{console.warn('Audio indisponible : le jeu reste silencieux.');}
+// AUD-V2: the valley uses the V2 catalogue (static files loaded on demand); playable maps may still carry V1 audio (migrated in memory).
+try{const {parseAnyAudioDefinition}=await import('./audio/migrate.ts');let definition=playable?.audio;if(!playable){for(const file of ['audio/catalog.json','audio/default.json']){const response=await fetch(import.meta.env.BASE_URL+file).catch(()=>null);if(response?.ok){definition=parseAnyAudioDefinition(await response.json());break;}}}if(definition){const {createAudioController}=await import('./audio/view.ts');audio=createAudioController(definition,{baseUrl:import.meta.env.BASE_URL});}}catch{console.warn('Audio indisponible : le jeu reste silencieux.');}
+const {createGroundProbe}=await import('./audio/world-probe.ts'),groundProbe=createGroundProbe();
 let gameplay:GameplayView|null=null;
 if(playable){
   const {createGameplayView}=await import('./gameplay/game-view.ts');
@@ -447,8 +450,13 @@ function tick(dt: number) {
     if (keys.jumpPressed) jumpQueue = Math.max(0, jumpQueue - 1);
   }
   if(activityQueue>0&&gameplay&&!aboard){activityQueue=0;const a=gameplay.activities;
-    if(player.space){const r=a.dig(player.position,player.space,{x:Math.sin(yaw),z:Math.cos(yaw)});showInfo(r.message);}
-    else{const plot=a.farmNear(player.position);if(plot)showInfo(a.farmAct(plot.zone.id).message);}}
+    if(player.space){const forward={x:Math.sin(yaw),z:Math.cos(yaw)},target=a.mineTarget(player.position,player.space,forward),r=a.dig(player.position,player.space,forward);showInfo(r.message);
+      // Audio follows the validated business result (never mesh changes).
+      const material=target?MATERIAL_BY_MINE_KEY[MINE_MATERIALS[target.material]?.key]:undefined,context={material,tool:'pickaxe',place:'mine' as const};
+      if(r.ok){audio?.emit('mine.hit',{context,position:player.position,source:'player'});audio?.emit('mine.cell.excavated',{context,position:player.position,source:'player'});if(r.message.startsWith('+'))audio?.emit(material==='crystal'?'mine.resource.crystal':'mine.resource.collect',{context,source:'player'});}
+      else audio?.emit('mine.action.denied',{context,source:'player'});}
+    else{const plot=a.farmNear(player.position);if(plot){const intent=a.farmIntent(plot.zone.id),r=a.farmAct(plot.zone.id);showInfo(r.message);
+      const farmEvent={plant:'farm.plant',water:'farm.water',harvest:'farm.harvest',clear:'farm.clear'}[intent.type]??'farm.plant';audio?.emit(r.ok?farmEvent:'ui.error',{context:{place:'farm',activity:'farming',objectKind:intent.type},position:player.position,source:'player'});}}}
   if(cropQueue>0&&gameplay){cropQueue=0;const plot=gameplay.activities.farmNear(player.position,player.space);if(plot){const name=gameplay.activities.cycleCrop(plot.zone.id);if(name)showInfo('Culture choisie : '+name);}}
   if (actionQueue > 0) {
     if (aboard) {
@@ -517,7 +525,10 @@ function draw(now: number) {
   environment.update(delta,player.position,budget.level,!!player.space);
   activityView?.update(delta,player.position,player.space);
   world.lights.setEnvironment(nightFactor(climate.state(worldClock.time).sunAltitude),now/1000);
-  if(started&&audio){const env=climate.state(worldClock.time);audio.update(now,player.position,id=>gameplay?.runtime.getEntityPosition(id),{night:env.sunAltitude<0,rain:env.weather==='rain',water:waterSurface(player.position.x,player.position.z)!==null||(isLegacyTerrain()&&Math.abs(player.position.x-riverX(player.position.z))<16)},budget.level,player.mode==='ground'&&!aboard&&player.velocity.lengthSq()>.1,camera.getWorldDirection(audioForward));}
+  if(started&&audio){const env=climate.state(worldClock.time),ground=player.space?{}:groundProbe(player.position.x,player.position.z,now),farm=!player.space&&gameplay?.activities.farmNear(player.position);
+    audio.update(now,{nowMs:now,player:{position:player.position,velocity:player.velocity,mode:player.mode,aboard,boatSpeed:Math.abs(boat.speed),space:player.space??null,surface:player.space?'stone':aboard?'wood':ground.surface},
+      world:{time:env.sunAltitude<0?'night':'day',weather:env.weather,wind:env.wind,biome:ground.biome,place:farm?'farm':ground.place,activity:farm?'farming':undefined,submerged:cameraSubmerged(camera.position.x,camera.position.y,camera.position.z),nearWater:waterSurface(player.position.x,player.position.z)!==null||(isLegacyTerrain()&&Math.abs(player.position.x-riverX(player.position.z))<16)}},
+      id=>gameplay?.runtime.getEntityPosition(id),budget.level,camera.getWorldDirection(audioForward));}
   world.update(delta, player.position, camera, renderer.domElement.height);
   npcs.update(delta, elapsed, player.position); // The river drives the mill: no manual on/off control.
   world.boat.position.set(

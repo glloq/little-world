@@ -1,6 +1,12 @@
 /** Original procedural CC0 sounds and two SMF scores; no downloaded bank or runtime CDN. */
 import {writeFile,mkdir} from 'node:fs/promises';
-import {encodeBase64,parseAudioDefinition} from '../src/audio/schema.ts';
+import {encodeBase64,parseAudioDefinition,base64Bytes} from '../src/audio/schema.ts';
+import {createHash} from 'node:crypto';
+import {inspectWav} from '../src/audio/wav.ts';
+import {parseMidi} from '../src/audio/midi.ts';
+import {parseAudioDefinitionV2,diagnoseAudioCatalog,eventAvailability} from '../src/audio/catalog.ts';
+import {buildAudioCatalog,CATALOG_VERSION,LIBRARY_PROGRAM_MAP} from '../src/audio/catalog-source.ts';
+import {writeInventory} from './audio-inventory.mjs';
 const u32=n=>[(n>>>24)&255,(n>>>16)&255,(n>>>8)&255,n&255],u16=n=>[(n>>>8)&255,n&255],tag=s=>[...s].map(c=>c.charCodeAt(0));
 const vlq=n=>{const a=[n&127];while(n>>=7)a.unshift((n&127)|128);return a;};
 function midi(night=false){const events=[{tick:0,bytes:[0xff,0x51,3,0x09,0x27,0xc0]}],programs=[73,0,24,10,115],melody=night?[69,72,76,72,67,71,74,71]:[72,76,79,76,74,77,81,77];for(let channel=0;channel<5;channel++){events.push({tick:0,bytes:[0xc0+channel,programs[channel]]});for(let i=0;i<melody.length;i++){const start=i*480+(channel%2)*120,note=channel===4?45:melody[i]-(channel===2?24:channel===1?12:0);events.push({tick:start,bytes:[0x90+channel,note,channel===4?28:channel===3?36:48]},{tick:start+(channel===0?360:180),bytes:[0x80+channel,note,0]});}}events.sort((a,b)=>a.tick-b.tick);let previous=0;const track=[];for(const e of events){track.push(...vlq(e.tick-previous),...e.bytes);previous=e.tick;}track.push(...vlq(3840-previous),0xff,0x2f,0);return new Uint8Array([...tag('MThd'),...u32(6),...u16(0),...u16(1),...u16(480),...tag('MTrk'),...u32(track.length),...track]);}
@@ -10,3 +16,25 @@ for(const kind of ['day','night']){add('midi-'+kind,'midi',midi(kind==='night'),
 for(const [id,duration,gain]of [['collect',.28,.7],['mission',.5,.7],['lever',.18,.6],['step',.1,.35],['water',1.5,.45],['rain',1,.3]]){add('sample-'+id,'sample',wav(duration,id),'audio/wav');sounds[id]={id,assetId:'sample-'+id,gain,pitch:1};}
 const definition=parseAudioDefinition({schemaVersion:1,patchIds:['flute','pluck','harp','bell','soft-drum'],assets,scores,sounds,music:{day:'day',night:'night'},ambience:{water:'water',rain:'rain'},emitters:[]});
 await mkdir(new URL('../public/audio/',import.meta.url),{recursive:true});await writeFile(new URL('../public/audio/default.json',import.meta.url),JSON.stringify(definition)+'\n');await writeFile(new URL('../public/audio/LICENSE.txt',import.meta.url),'Little World original procedural MIDI and PCM sounds\nCC0 1.0 Universal — https://creativecommons.org/publicdomain/zero/1.0/\nGenerated reproducibly by tools/generate-audio.mjs. No external samples.\n');console.log('Five patches, two MIDI scores, six original short PCM samples generated.');
+// AUD-V2 — the same bytes as static library files (lazy loading, no systematic base64), the V2 catalogue,
+// the machine-readable production manifest and the generated inventory. Deterministic (CI diff).
+const library={};await mkdir(new URL('../public/audio/library/',import.meta.url),{recursive:true});
+for(const a of Object.values(definition.assets)){const bytes=base64Bytes(a.bytesBase64),ext=a.kind==='midi'?'mid':'wav',uri=`audio/library/${a.id}.${ext}`;await writeFile(new URL('../public/'+uri,import.meta.url),bytes);
+ const common={id:a.id,name:a.name,kind:a.kind,format:a.kind==='midi'?'midi':'wav',status:'GENERATED',license:a.license,source:a.source,uri,bytes:bytes.length,contentHash:'sha256-'+createHash('sha256').update(bytes).digest('hex'),generatorVersion:'generate-audio-1',notes:'Bibliothèque V1 (synthèse procédurale CC0), servie en fichier statique.'};
+ if(a.kind==='midi'){const m=parseMidi(bytes);library[a.id]={...common,usage:'music',duration:Math.round(m.duration*1000)/1000};}
+ else{const w=inspectWav(bytes);library[a.id]={...common,usage:'sfx',duration:Math.round(w.duration*1e4)/1e4,channels:w.channels,sampleRate:w.sampleRate,estimatedDecodedBytes:Math.ceil(w.duration*48000)*w.channels*4};}}
+const built=buildAudioCatalog(library),catalog=parseAudioDefinitionV2(built.catalog),diagnostics=diagnoseAudioCatalog(catalog);
+await writeFile(new URL('../public/audio/catalog.json',import.meta.url),JSON.stringify(catalog)+'\n');
+const waves={1:0,2:0,3:0};for(const p of built.production)waves[p.wave]++;
+const manifest={manifestVersion:1,catalogVersion:CATALOG_VERSION,generatedBy:'tools/generate-audio.mjs (npm run generate:audio)',purpose:'Cahier des charges machine-readable des ressources audio Little World à produire (statut PLANNED dans public/audio/catalog.json).',
+ summary:{plannedFiles:built.production.length,samples:built.production.filter(p=>p.kind==='sample').length,midi:built.production.filter(p=>p.kind==='midi').length,byWave:waves,b1:waves[1],enrichedBeta:waves[1]+waves[2],optional:waves[3],events:Object.keys(catalog.events).length,eventsPlayableNow:Object.keys(catalog.events).filter(id=>eventAvailability(catalog,id).playable).length,libraryFiles:Object.keys(library).length,proceduralAssets:Object.values(catalog.assets).filter(a=>a.kind==='procedural').length},
+ conventions:{
+  delivery:'Déposer chaque fichier au chemin `file` (relatif à public/), puis passer l’asset du catalogue de PLANNED à GENERATED avec uri, bytes, duration, channels, sampleRate, contentHash (sha256-…), generatorVersion et source (outil, version, graine/prompt). VERIFIED seulement après écoute humaine.',
+  samples:{format:'Ogg Vorbis (qualité ≈ 4–5), mono, 44 100 ou 48 000 Hz ; WAV PCM 16 bits accepté si l’encodeur Ogg manque',maxBytes:2097152,maxSeconds:12,peakDbfs:-1,oneShotLoudness:'≈ −20 LUFS court terme (±2) ; prises d’un même groupe à ±1 dB',ambienceLoudness:'≈ −28 LUFS (±3), sans événement saillant',edges:'Attaque immédiate (≤ 15 ms de silence initial), queue ≤ 10 ms de fondu pour les one-shots',loops:'Boucle sans couture sur toute la longueur du fichier (passage par zéro, pas de fondu aux bords), 6–8 s pour les fonds : le budget PCM éco est 2 Mio décodés',takes:'Les prises d’un même groupe doivent être réellement différentes (geste, matière, rythme), pas des transpositions'},
+  midi:{format:'SMF type 1, PPQN 480, tempo en méta-événement, aucun SysEx/pitch bend/contrôleur (ignorés)',programs:LIBRARY_PROGRAM_MAP,percussion:'Canal 10 accepté (joué en percussion douce)',maxPolyphony:6,loops:'Boucles : longueur multiple de la mesure, dernier note-off avant la fin, reprise sans note pendante',stingers:'Jingles de 2 à 4 mesures, se terminant sur une note longue'},
+  content:'Univers paisible low-poly animalier : aucune voix humaine, aucune violence, aucun son effrayant. Licence CC0 ou création originale, aucun échantillon tiers non CC0.',
+  budgets:'Cibles à mesurer, non qualifiées : 12/16/24 voix, 2/3/4 sources spatialisées, 2/4/4 Mio de PCM décodé selon le profil PresentationBudget.'},
+ items:built.production};
+await mkdir(new URL('../assets/audio/',import.meta.url),{recursive:true});await writeFile(new URL('../assets/audio/production-manifest.json',import.meta.url),JSON.stringify(manifest,null,1)+'\n');
+await writeInventory(new URL('../docs/38-AUDIO-V2-INVENTAIRE.md',import.meta.url),{catalog,built,manifest,diagnostics});
+console.log(`AUD-V2: ${Object.keys(catalog.events).length} événements, ${Object.keys(catalog.music.cues).length} thèmes, ${Object.keys(catalog.ambience).length} profils ; ${built.production.length} fichiers à produire (B1 ${waves[1]}, bêta enrichie ${waves[1]+waves[2]}, optionnels ${waves[3]}).`);
