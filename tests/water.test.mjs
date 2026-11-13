@@ -80,3 +80,11 @@ test('deleting a newly drawn water corridor clears conservative references beyon
  removeWater(p,'boundary-water');parseProject(p);
  assert.ok(Object.values(p.chunks).every(c=>c.waterRefs.length===0));
 });
+
+test('bends use the same sloped cross-sections for water volume and visible strip, including flat endpoints',()=>{
+ const w={...body(),points:[{x:-50,z:-240},{x:-50,z:-200},{x:-10,z:-180}],profile:{mode:'manual',levels:[24,22,20]}};
+ const index=new WaterSpatialIndex([w],()=>40),c=index.bodies[0],data=waterRibbonData(c),i=c.points.findIndex(p=>p.x===-50&&p.z===-200);
+ const a=(i-1)*6,b=i*6,x=(data.positions[a]+data.positions[b])/2,z=(data.positions[a+2]+data.positions[b+2])/2;
+ near(index.query(x,z)[0].level,(c.points[i-1].level+c.points[i].level)/2);
+ assert.equal(index.query(-50,-241).length,0,'No invisible swimming volume beyond the flat ribbon endpoint');
+});

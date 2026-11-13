@@ -51,8 +51,22 @@ export function compileWaterBody(w:WaterBody,source:(x:number,z:number)=>number)
  if(w.profile&&maxSlope>.18)diagnostics.push({severity:'WARNING',code:'WATER_STEEP',message:'Forte pente : aperçu en rapide incliné ; aucune cascade verticale n’est créée automatiquement.'});
  return {id:w.id,width:w.width,depth:w.depth,points,diagnostics};
 }
-interface Segment {water:CompiledWater;order:number;a:HydroPoint;b:HydroPoint}
-export interface WaterHit {water:CompiledWater;distance:number;level:number;flowX:number;flowZ:number}
+export interface HydroVertex {x:number;z:number;level:number}
+export function waterSections(water:CompiledWater):{left:HydroVertex;right:HydroVertex}[]{
+ const p=water.points;
+ return p.map((v,i)=>{
+  const before=p[Math.max(0,i-1)],after=p[Math.min(p.length-1,i+1)],dx=after.x-before.x,dz=after.z-before.z,len=Math.hypot(dx,dz)||1;
+  return {left:{x:v.x-dz/len*water.width/2,z:v.z+dx/len*water.width/2,level:v.level},right:{x:v.x+dz/len*water.width/2,z:v.z-dx/len*water.width/2,level:v.level}};
+ });
+}
+interface Segment {water:CompiledWater;order:number;a:HydroPoint;b:HydroPoint;leftA:HydroVertex;rightA:HydroVertex;leftB:HydroVertex;rightB:HydroVertex}
+function triangleLevel(x:number,z:number,a:HydroVertex,b:HydroVertex,c:HydroVertex):number|null {
+ const dx=b.x-a.x,dz=b.z-a.z,ex=c.x-a.x,ez=c.z-a.z,det=dx*ez-dz*ex;
+ if(Math.abs(det)<1e-10)return null;
+ const u=((x-a.x)*ez-(z-a.z)*ex)/det,v=(dx*(z-a.z)-dz*(x-a.x))/det;
+ return u>=-1e-7&&v>=-1e-7&&u+v<=1+1e-7?a.level+u*(b.level-a.level)+v*(c.level-a.level):null;
+}
+export interface WaterHit {water:CompiledWater;distance:number;level:number;flowX:number;flowZ:number;inside:boolean}
 /** Local segment grid shared by bed, swimming and surface queries. */
 const EMPTY_HITS:readonly WaterHit[]=Object.freeze([]);
 export class WaterSpatialIndex {
@@ -61,23 +75,32 @@ export class WaterSpatialIndex {
  constructor(waters:WaterBody[],source:(x:number,z:number)=>number){
   this.bodies=waters.map(w=>compileWaterBody(w,source));
   let segments=0;
-  for(const [order,water] of this.bodies.entries())for(let i=1;i<water.points.length;i++){
+  for(const [order,water] of this.bodies.entries()){
+   const sections=waterSections(water);
+   for(let i=1;i<water.points.length;i++){
    if(++segments>65536)throw Error('Réseau d’eau trop détaillé : plus de 65 536 segments.');
-   const a=water.points[i-1],b=water.points[i],r=water.width/2+2,segment={water,order,a,b};
+   const a=water.points[i-1],b=water.points[i],r=water.width/2+2,segment={water,order,a,b,leftA:sections[i-1].left,rightA:sections[i-1].right,leftB:sections[i].left,rightB:sections[i].right};
    for(let cx=Math.floor((Math.min(a.x,b.x)-r)/32);cx<=Math.floor((Math.max(a.x,b.x)+r)/32);cx++)
     for(let cz=Math.floor((Math.min(a.z,b.z)-r)/32);cz<=Math.floor((Math.max(a.z,b.z)+r)/32);cz++){
      const key=cx+','+cz,cell=this.cells.get(key)??[];cell.push(segment);this.cells.set(key,cell);
     }
+   }
   }
  }
  query(x:number,z:number,bank=0):readonly WaterHit[]{
   const candidates=this.cells.get(Math.floor(x/32)+','+Math.floor(z/32));if(!candidates)return EMPTY_HITS;
   const closest=new Map<number,WaterHit>();
-  for(const {water,order,a,b} of candidates){
+  for(const {water,order,a,b,leftA,rightA,leftB,rightB} of candidates){
    const dx=b.x-a.x,dz=b.z-a.z,length=Math.hypot(dx,dz),t=Math.max(0,Math.min(1,((x-a.x)*dx+(z-a.z)*dz)/(length*length)));
    const distance=Math.hypot(x-a.x-t*dx,z-a.z-t*dz);
-   if(distance>water.width/2+bank||distance>=(closest.get(order)?.distance??Infinity))continue;
-   closest.set(order,{water,distance,level:a.level+(b.level-a.level)*t,flowX:dx/length,flowZ:dz/length});
+   if(distance>water.width/2+bank)continue;
+   const first=triangleLevel(x,z,leftA,leftB,rightA),second=triangleLevel(x,z,rightA,leftB,rightB),inside=first!==null||second!==null;
+   if(!inside&&bank===0)continue;
+   const level=inside?Math.max(first??-Infinity,second??-Infinity):a.level+(b.level-a.level)*t,previous=closest.get(order);
+   // Upper surface wins if a very tight bend overlaps its own strip. Bank-only
+   // projections must never replace an actual water volume.
+   if(previous&&(previous.inside&&!inside||previous.inside===inside&&(inside?level<=previous.level:distance>=previous.distance)))continue;
+   closest.set(order,{water,distance,level,flowX:dx/length,flowZ:dz/length,inside});
   }
   return [...closest].sort(([a],[b])=>b-a).map(([,hit])=>hit);
  }
