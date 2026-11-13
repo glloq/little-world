@@ -239,6 +239,15 @@ Le [document MINE 24](24-MINES-MULTILEVEL-LOW-RESOURCE.md) ajoute des zones creu
 - Musique de découverte ou de cristaux via **les patches MIDI existants**, pas de banque entière dédiée aux mines.
 - `AudioBudgetManager` plafonne voix/PCM/émetteurs, et un delta de mine ne transporte **aucun buffer ni son**, uniquement l'événement logique nécessaire.
 
+## Sons d'agriculture : actions et ambiances, sans une source par plante
+
+Le [document AGRI 25](25-AGRICULTURE-PARCELS-LOW-RESOURCE.md) utilise la même palette de **5–10 instruments MIDI maximum** et les échantillons naturels AUD.
+
+- Sons courts d'outils, plantation, arrosage, récolte, moulin et animaux **déclenchés sur événements réels** ; aucune voix audio par épi, rang ou changement de stade hors écran.
+- Quelques émetteurs proches pour ferme/grange/moulin et musique adaptée au **biotope/saison/heure** depuis la palette MIDI commune, sans bande-son distincte par parcelle.
+- `AudioBudgetManager` sous PERF garde priorité aux actions du joueur, effets d'ambiance lointains ignorés. Le **calcul de croissance différé** n'émet pas les milliers de sons correspondant aux événements passés lors de la reconnexion.
+- Les états agricoles/sauvegardes n'incluent **pas** les buffers PCM ou notes temporaires; événements significatifs synchronisés au besoin seulement.
+
 ## 12. Plan d'implémentation AUD-0…AUD-8
 
 | Phase | Livrable / gate |
