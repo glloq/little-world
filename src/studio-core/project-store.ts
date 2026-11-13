@@ -4,7 +4,7 @@ import type { CommandJournal } from './commands.ts';
 import { defaultStudioContext, parseStudioContext, type StudioContext } from './context.ts';
 
 export const STUDIO_DATABASE='little-world-studio-v3';
-const DB_VERSION=1;
+const DB_VERSION=2;
 const stores=['projects','chunks','journals','contexts','checkpoints','checkpointChunks'] as const;
 interface HeaderRecord {document:Omit<ProjectDocument,'chunks'>;revision:number;updatedAt:number;checkpointId:string|null;}
 interface ChunkRecord {projectId:string;chunkId:string;source:ChunkSourceV3;}
@@ -35,7 +35,7 @@ export class ProjectStore {
     if(!this.db)this.db=new Promise((resolve,reject)=>{
       if(typeof indexedDB==='undefined'){reject(new ProjectStorageError('IndexedDB indisponible ; exportez le projet pour le conserver'));return;}
       const r=indexedDB.open(this.databaseName,DB_VERSION);
-      r.onupgradeneeded=()=>{for(const name of stores)if(!r.result.objectStoreNames.contains(name))r.result.createObjectStore(name);};
+      r.onupgradeneeded=()=>{for(const name of stores)if(!r.result.objectStoreNames.contains(name))r.result.createObjectStore(name);const projects=r.transaction!.objectStore('projects');if(!projects.indexNames.contains('identityRevision'))projects.createIndex('identityRevision',['document.manifest.projectId','revision'],{unique:true});};
       r.onsuccess=()=>{const db=r.result;db.onversionchange=()=>{db.close();this.db=null;};resolve(db);};
       r.onerror=()=>{this.db=null;reject(r.error);};
       r.onblocked=()=>{this.db=null;reject(new ProjectStorageError('Fermez les autres onglets Studio pour mettre à jour le stockage'));};
@@ -78,10 +78,12 @@ export class ProjectStore {
     const document=parseProjectHeader({...header.document,chunks:{}});
     return {document,revision:header.revision,context:contextFor(document,context),journal:journal??null,checkpointId:header.checkpointId};
   }
-  async loadChunks(projectId:string,ids:readonly string[]):Promise<Record<string,ChunkSourceV3>> {
+  async loadChunks(projectId:string,ids:readonly string[],expectedRevision?:number):Promise<Record<string,ChunkSourceV3>> {
     if(!ids.length)return {};
-    const db=await this.open(),tx=db.transaction('chunks','readonly'),done=completion(tx),result:Record<string,ChunkSourceV3>={};
-    const rows=await Promise.all([...new Set(ids)].map(id=>request(tx.objectStore('chunks').get([projectId,id])) as Promise<ChunkRecord|undefined>));await done;
+    const db=await this.open(),tx=db.transaction(['chunks','projects'],'readonly'),done=completion(tx),result:Record<string,ChunkSourceV3>={};
+    // Index lookup verifies the snapshot without cloning the global header/index.
+    const revision=expectedRevision===undefined?Promise.resolve(projectId):request(tx.objectStore('projects').index('identityRevision').getKey([projectId,expectedRevision]));
+    const rows=await Promise.all([...new Set(ids)].map(id=>request(tx.objectStore('chunks').get([projectId,id])) as Promise<ChunkRecord|undefined>));const identity=await revision;await done;if(identity!==projectId)throw new ProjectRevisionError();
     rows.forEach((row,i)=>{if(!row)throw new ProjectStorageError('Source de secteur introuvable : '+[...new Set(ids)][i]);result[row.chunkId]=row.source;});return result;
   }
   async loadAll(projectId:string):Promise<StoredProject> {

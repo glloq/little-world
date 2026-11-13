@@ -26,15 +26,16 @@ export class StudioSession {
   const stored=await store.loadProject(id),journal=stored.journal;
   const ids=new Set([...(journal?.undo??[]),...(journal?.redo??[])].flatMap(t=>t.affectedChunks));
   // A deleted sector can exist solely in history; its inverse patch restores it.
-  Object.assign(stored.document.chunks,await store.loadChunks(id,[...ids].filter(k=>stored.document.chunkIndex[k])));
+  Object.assign(stored.document.chunks,await store.loadChunks(id,[...ids].filter(k=>stored.document.chunkIndex[k]),stored.revision));
   return new StudioSession(store,stored);
  }
  subscribe(listener:()=>void){this.listeners.add(listener);return()=>this.listeners.delete(listener);}
  private emit(){for(const listener of this.listeners)listener();}
  private changed(){this.pending=true;this.status='Modifications à sauvegarder…';clearTimeout(this.timer);this.timer=setTimeout(()=>void this.flush().catch(()=>{}),650);this.emit();}
  async hydrate(ids:string[]){
+  while(this.saving)await this.saving;
   const needed=new Set<string>();const visit=(id:string)=>{if(needed.has(id)||!this.document.chunkIndex[id])return;needed.add(id);for(const dep of this.document.chunkIndex[id].dependencies)visit(dep);};ids.forEach(visit);
-  const missing=[...needed].filter(id=>!this.document.chunks[id]);Object.assign(this.document.chunks,await this.store.loadChunks(this.document.manifest.projectId,missing));
+  const missing=[...needed].filter(id=>!this.document.chunks[id]);Object.assign(this.document.chunks,await this.store.loadChunks(this.document.manifest.projectId,missing,this.revision));
  }
  /** Copy touched sectors only, then derive field patches. No complete world snapshots. */
  async change(label:string,ids:string[],edit:(draft:ProjectDocument)=>void){
