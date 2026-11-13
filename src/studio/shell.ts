@@ -65,7 +65,8 @@ async function home(){
   const cards=node('div','','project-cards');for(const p of await store.list()){const card=node('article','','project-card');card.append(node('div','PROJET LOCAL · V3','kicker'),node('h2',p.name),node('p',`Révision ${p.revision} · ${new Date(p.updatedAt).toLocaleString('fr')}`,'muted'),action('Ouvrir le monde',()=>open(p.projectId)));cards.append(card);}page.append(cards);
   panelHost().hidden=false;panelHost().replaceChildren(page);status('Studio V3 : éditeur de monde 3D. La qualification bêta reste en cours.');
 }
-function closeProject(){disposePanel();disposePanel=()=>{};unsubscribe();unsubscribe=()=>{};viewport?.dispose();viewport=null;session=null;$('studio').classList.remove('in-project');}
+let mapLoaded=false;
+function closeProject(){if(mapLoaded)void import('./geo-map/editor.ts').then(m=>m.releaseGeoMap());disposePanel();disposePanel=()=>{};unsubscribe();unsubscribe=()=>{};viewport?.dispose();viewport=null;session=null;$('studio').classList.remove('in-project');}
 async function open(id:string){
   closeProject();session=await StudioSession.open(store,id);const s=session;$('studio').classList.add('in-project');
   const stops=[s.subscribe(()=>refreshHeader()),s.commands.subscribe(()=>{void inspector();}),s.selection.subscribe(()=>{if(VIEWPORT_MODULES.has(activeModule))scheduleInspector();})];unsubscribe=()=>stops.forEach(stop=>stop());
@@ -89,8 +90,9 @@ async function module(requested:string){
     toolPanel(id,v);await inspector();return;
   }
   viewport?.setVisible(false);panelHost().hidden=false;panelHost().replaceChildren();const host=panelHost();
-  if(id==='map'){const {mountMap}=await import('./map-view.ts');if(mine!==generation)return;const view=mountMap(host,s,(x,z)=>void run(()=>pick(x,z))());disposePanel=view.dispose;
-    $('tools').append(node('div','NAVIGATION','kicker'),node('h3','Carte globale'),node('p','Glisser : déplacer · Molette : zoom · Clic : sélectionner l’élément proche ou viser ce lieu. La vue 3D reprend à l’endroit visé.','muted'),action('Voir ce lieu en 3D',()=>module('scene'),'primary-button'));listPanel(s,$('tools'));}
+  if(id==='map'){const {mountGeoMap}=await import('./geo-map/editor.ts');mapLoaded=true;if(mine!==generation)return;const panel=node('div','','map-panel');$('tools').append(panel);
+    const view=mountGeoMap(host,panel,s,{onPick:(x,z)=>void run(()=>pick(x,z))(),status,open3D:()=>void run(()=>module('scene'))()});disposePanel=view.dispose;
+    const list=node('details','','entity-details');list.append(node('summary','Objets et personnages'));$('tools').append(list);listPanel(s,list);}
   else if(id==='water'){const {mountWater}=await import('./water-view.ts');if(mine!==generation)return;disposePanel=mountWater(host,$('tools'),s).dispose;}
   else if(id==='audio'){const {mountAudio}=await import('./audio-view.ts');if(mine!==generation)return;disposePanel=mountAudio(host,s,()=>mine===generation).dispose;}
   else if(id==='environment'){const {mountEnvironment}=await import('./environment-view.ts');mountEnvironment(host,s);}
