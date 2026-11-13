@@ -183,7 +183,13 @@ Conditions : 960×540, vallée par défaut, `?lightBench=N&lightLayout=…&night
 
 « Publié » signifie fusionné dans `main` et déployé sur GitHub Pages : ce n'est le cas d'aucun lot tant que la PR n'est pas fusionnée.
 
-## 8. Limites connues
+## 8. Régressions détectées et corrigées pendant la campagne
+
+- Panneau Eau : après Annuler puis Refaire, le tracé n'était plus retrouvé. L'annulation retire désormais de la sélection les éléments supprimés, et le panneau dépendait de cette sélection. Il mémorise maintenant le tracé édité (`test:water` rétabli, 11 contrôles).
+- Module Objets : il replaçait la dernière lumière ou le dernier personnage au lieu d'un asset (corrigé, couvert par `test:lights`).
+- Inspecteur : une étape asynchrone ajoutée (import différé) retardait l'affichage après Annuler. L'import est désormais statique (`test:studio`, `test:local` rétablis).
+
+## 9. Limites connues
 
 - Les lumières des secteurs non hydratés ne sont pas listées dans le Studio, car l'index global ne porte pas les composants. Le jeu compilé les charge toutes au démarrage, comme les autres entités (lot 1, pas de streaming d'entités).
 - Les porteurs PNJ suivent la position logique du PNJ, avec une frame de décalage au plus.
@@ -192,7 +198,7 @@ Conditions : 960×540, vallée par défaut, `?lightBench=N&lightLayout=…&night
 - Temps GPU non mesuré : le timer WebGL2 n'est pas branché, et les cibles 30/20 FPS avec 4 lumières sur GPU intégré ne sont pas qualifiées.
 - Les routes ne sont pas des surfaces de collision ou de navigation : le relief reste la surface de marche.
 
-## 9. Étapes suivantes
+## 10. Étapes suivantes
 
 1. Banc sur PC de référence à GPU intégré : temps GPU (timer WebGL2 asynchrone dans `PerfSampler`), 0/2/4 lumières, village de nuit.
 2. Index léger « porte une lumière » dans `entityIndex` pour lister les sources des secteurs non chargés.
