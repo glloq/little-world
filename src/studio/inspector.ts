@@ -6,6 +6,9 @@ import {applyTransforms,transformChunkIds,entityTransform,type TransformValue} f
 import {updateCharacter,setCharacterPath} from '../studio-core/character-authoring.ts';
 import {applyInteraction,interactionChunkIds} from '../studio-core/interaction-templates.ts';
 import {EMOTIONS,type Emotion,type Neckwear} from '../character-style.ts';
+import {elementExists,elementLabel,type ElementRef} from '../studio-core/elements.ts';
+import {renderElementInspector,lockToggle} from './element-inspector.ts';
+import {lightSection} from './light-inspector.ts';
 
 /** Serialised entity edits: rapid field changes never race each other (one transaction each). */
 export const editQueue={pending:0,last:Promise.resolve() as Promise<unknown>,
@@ -22,6 +25,8 @@ export interface InspectorContext {
   duplicate():void;
   remove():void;
   refresh():void;
+  /** E9 — elements touched by the last relief change (shown until dismissed). */
+  impact?:{touched:number;items:{ref:ElementRef;severity:string;message:string;x:number;z:number}[];dismiss():void;select(ref:ElementRef,x:number,z:number):void};
 }
 const KIND:Record<string,string>={prop:'Objet',building:'Bâtiment',character:'Personnage',trigger:'Zone',effect:'Effet'};
 const deg=THREE.MathUtils.radToDeg,rad=THREE.MathUtils.degToRad;
@@ -35,8 +40,16 @@ export async function renderInspector(target:HTMLElement,ctx:InspectorContext){
   const token=++renderToken,host=node('div');await buildInspector(host,ctx);if(token===renderToken)target.replaceChildren(...host.childNodes);
 }
 async function buildInspector(host:HTMLElement,ctx:InspectorContext){
-  const s=ctx.session,p=s.document,ids=s.selection.selection.filter(v=>v.kind==='entity'&&p.entityIndex[v.id]).map(v=>v.id);
+  const s=ctx.session,p=s.document,refs=s.selection.selection.filter(v=>elementExists(p,v)) as ElementRef[],ids=refs.filter(v=>v.kind==='entity').map(v=>v.id);
   host.replaceChildren(node('div','INSPECTEUR','kicker'));
+  if(ctx.impact)host.append(impactSection(ctx.impact));
+  if(refs.length>1&&ids.length!==refs.length){
+    host.append(node('h3',`${refs.length} éléments`),node('p',refs.map(r=>elementLabel(p,r)).join(', '),'selection-tag'),
+      button('Centrer (F)',ctx.focus),button('Dupliquer (Ctrl+D)',ctx.duplicate),button('Supprimer (Suppr)',ctx.remove),
+      node('p','Le gizmo déplace tout le groupe (W) ; rotation et échelle ne s’appliquent qu’aux objets.','muted'));
+    return;
+  }
+  if(refs.length===1&&refs[0].kind!=='entity'){renderElementInspector(host,refs[0],ctx);return;}
   if(!ids.length){host.append(node('h3','Votre monde'),node('p','Clic : sélectionner · Maj+clic : ajouter · F : centrer · 7 : vue du dessus · clic droit : orienter (+ ZQSD/WASD pour voler) · clic molette : déplacer la vue.','muted'));return;}
   if(ids.length>1){
     host.append(node('h3',`${ids.length} éléments`),node('p',ids.map(id=>p.entityIndex[id].name).join(', '),'selection-tag'),
@@ -59,7 +72,7 @@ async function buildInspector(host:HTMLElement,ctx:InspectorContext){
   const scale=node('fieldset');scale.append(node('legend','Échelle'),field('Échelle',numberInput(round(t.scale.x),v=>change('Mettre à l’échelle '+source.name,n=>{n.scale={x:v,y:v,z:v};}),.05,100)));
   const axes=node('details');axes.append(node('summary','Échelle par axe'));for(const axis of ['x','y','z'] as const)axes.append(field('Échelle '+axis.toUpperCase(),numberInput(round(t.scale[axis]),v=>change('Mettre à l’échelle '+source.name,n=>{n.scale[axis]=v;}),.05,100)));scale.append(axes);
   host.append(position,rotation,scale);
-  const actions=node('div','','row');actions.append(button('Centrer (F)',ctx.focus),button('Aligner au sol',()=>change('Aligner au sol',n=>{n.position.y=0;n.rotation=quaternionFromDegrees({x:0,y:eulerDegrees(n.rotation).y,z:0});})),button('Dupliquer',ctx.duplicate),button('Supprimer',ctx.remove),button('Voir en 3D',()=>ctx.view(t.position.x,t.position.z)));host.append(actions);
+  const actions=node('div','','row');actions.append(button('Centrer (F)',ctx.focus),button('Aligner au sol',()=>change('Aligner au sol',n=>{n.position.y=0;n.rotation=quaternionFromDegrees({x:0,y:eulerDegrees(n.rotation).y,z:0});})),button('Dupliquer',ctx.duplicate),button('Supprimer',ctx.remove),button('Voir en 3D',()=>ctx.view(t.position.x,t.position.z)),lockToggle(s,id,ctx.refresh));host.append(actions);
   const logic=node('div','','row');logic.append(button('Configurer une interaction',()=>ctx.open('interactions')));
   if(resolved.components.Interactable)logic.append(node('span','Interaction : '+resolved.components.Interactable.prompt,'muted'));
   else if(!resolved.components.Character){
@@ -71,8 +84,15 @@ async function buildInspector(host:HTMLElement,ctx:InspectorContext){
   }
   if(resolved.components.DialogueActor)logic.append(button('Ouvrir son dialogue',()=>ctx.open('dialogues')));host.append(node('h4','Logique'),logic);
   if(resolved.components.Character)host.append(characterSection(ctx,id,entry.ownerChunkId));
+  host.append(lightSection(ctx,id,source.components.Light));
 }
 function round(v:number){return Math.round(v*1000)/1000;}
+function impactSection(impact:NonNullable<InspectorContext['impact']>){
+  const box=node('div','','impact-card');box.dataset.count=String(impact.items.length);
+  box.append(node('strong',impact.items.length?`Relief modifié : ${impact.items.length} point(s) à vérifier`:`Relief modifié : ${impact.touched} élément(s) touché(s), tous cohérents`));
+  for(const item of impact.items.slice(0,8))box.append(button((item.severity==='ERROR'?'⛔ ':'⚠ ')+item.message,()=>impact.select(item.ref,item.x,item.z),'diagnostic '+item.severity));
+  box.append(button('Masquer',impact.dismiss));return box;
+}
 function alignAll(ctx:InspectorContext,ids:string[]){
   const s=ctx.session;void editQueue.run(async()=>{const updates=ids.map(id=>{const t=entityTransform(s.document,id);return {id,transform:{...t,position:{...t.position,y:0}}};});await s.change(`Aligner ${ids.length} éléments au sol`,transformChunkIds(s.document,updates),d=>applyTransforms(d,updates));ctx.refresh();}).catch(e=>ctx.status(String(e),true));
 }

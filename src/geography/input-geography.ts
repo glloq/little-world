@@ -6,6 +6,7 @@ import {createTerrainSource,carveWaterBeds} from '../terrain.ts';
 import {generatorField} from '../terrain-generator.ts';
 import {WaterSpatialIndex} from '../water/profile.ts';
 import {ribbonDistance} from './lines.ts';
+import {pathRibbon} from '../paths/path-geometry.ts';
 import {createGeoContext,type GeographySources} from './engine.ts';
 import type {GeoContext} from './classify.ts';
 const lineSet=ribbonDistance;
@@ -20,7 +21,7 @@ export function geographyFromInput(input:ProjectGeographyInput):ProjectGeography
   const {config,generator,edits,waters,paths,sources}=input,legacy=generator.kind==='legacy-valley',sea=config.seaLevel??0;
   const source=createTerrainSource(config,edits);
   const field=generatorField(generator,{seed:config.seed,seaLevel:sea,width:config.width??200,length:config.length??600},source);
-  const index=new WaterSpatialIndex(waters,source),waterDistance=lineSet(waters),pathDistance=lineSet(paths);
+  const index=new WaterSpatialIndex(waters,source),waterDistance=lineSet(waters),pathDistance=lineSet(paths.map(pathRibbon));
   const height=(x:number,z:number)=>carveWaterBeds(source,index,x,z);
   const ctx=createGeoContext(sources,{seaLevel:sea,height,site:field.site,pathDistance,waterDistance,
     water:(x,z,h)=>{const hit=index.query(x,z)[0];if(hit)return hit.level;return !legacy&&h<sea?sea:null;}});

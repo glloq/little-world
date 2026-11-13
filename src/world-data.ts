@@ -60,10 +60,17 @@ export interface WaterBody {
   level: number;
   depth: number;
 }
+/** Path surface profiles: one drawing tool, several looks (E8). Absent = dirt (historical look). */
+export type PathKind = 'trail' | 'dirt' | 'stone' | 'wood';
+export const PATH_KINDS: PathKind[] = ['trail', 'dirt', 'stone', 'wood'];
 export interface PathDefinition {
   id: string;
   points: { x: number; z: number }[];
   width: number;
+  /** Surface profile; absent = dirt. */
+  kind?: PathKind;
+  /** Light curve interpolation between points; absent = straight segments (older maps). */
+  smooth?: boolean;
 }
 export interface WorldDefinition {
   schemaVersion: 2;
@@ -76,6 +83,8 @@ export interface WorldDefinition {
   paths: PathDefinition[];
   npcs: NPCDefinition[];
   /** Runtime-only geography inputs carried from V3 (never read from V1/V2 files). */
+  /** Runtime-only local lights projected from V3 Light components (never read from V1/V2 files). */
+  lights?: import('./lighting/light-data.ts').RuntimeLight[];
   geography?: {sectorSizeM: number; masks: Record<string, import('./geography/layers.ts').SectorLayers>; zones: import('./geography/engine.ts').GeoZone[]};
 }
 export const DEFAULT_CONFIG = {
@@ -231,7 +240,7 @@ export function parseWorld(value: unknown): WorldDefinition {
   )
     throw Error('Volumes d’eau invalides');
   for(const w of value.water as WaterBody[])validateWaterProfile(w.profile,w.points.length);
-  if (!list(value.paths, 100, line)) throw Error('Chemins invalides');
+  if (!list(value.paths, 100, (p) => line(p) && (p.kind === undefined || PATH_KINDS.includes(p.kind as PathKind)) && (p.smooth === undefined || typeof p.smooth === 'boolean'))) throw Error('Chemins invalides');
   if (!validateNPCs(value.npcs, config))
     throw Error('PNJ ou dialogues invalides');
   if (

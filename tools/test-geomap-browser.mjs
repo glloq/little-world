@@ -21,7 +21,7 @@ try{
   check(/4 m\/px|2 m\/px|1 m\/px/.test(await page.locator('.map-note').textContent()),'Progressive detail level follows the zoom');
   // Tool palette adapts to the layer.
   await page.locator('.layer-row[data-layer=slope] .layer-name').click();
-  check(await page.locator('button[data-tool]').count()===2,'Computed slope layer offers navigation tools only');
+  check(await page.locator('button[data-tool]').count()===3&&await page.locator('button[data-tool=paint]').count()===0,'Computed slope layer offers navigation and area selection only');
   await page.locator('.layer-row[data-layer=altitude] .layer-name').click();
   check(await page.locator('button[data-tool=raise]').count()===1&&await page.locator('button[data-tool=paint]').count()===0,'Altitude layer offers relief tools');
   await page.locator('.layer-row[data-layer=material] .layer-name').click();

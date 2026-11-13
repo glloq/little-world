@@ -27,11 +27,20 @@ export interface PersistenceComponent {type:'Persistence';fields:string[];}
 export interface InteractableComponent {type:'Interactable';prompt:string;range:number;interactionIds:StableId[];}
 export interface ColliderComponent {type:'Collider';shape:'box'|'sphere';size:Vector3;layer:'solid'|'trigger';}
 export interface AnimatorComponent {type:'Animator';clips:string[];initialClip?:string;}
+/** E10 — local light, independent of any GLB: on its own entity or attached to an object/NPC
+ * (offset in the entity's local frame). Point lights only; no shadow map. */
+export type LightMode='always'|'night'|'state';
+export type LightPreset='warm-lantern'|'flickering-fire'|'fixed-lamp'|'cold-light';
+export interface LightComponent {type:'Light';kind:'point';color:string;intensity:number;range:number;offset:Vector3;enabled:boolean;mode:LightMode;
+  /** mode 'state': boolean entity state that switches the light (e.g. « allumee »). */
+  stateKey?:string;
+  /** Deterministic low-frequency flicker: amplitude 0–1, speed in variations per second. */
+  flicker?:{amplitude:number;speed:number};preset?:LightPreset;}
 export interface TriggerVolumeComponent {type:'TriggerVolume';shape:'box'|'sphere';size:Vector3;interactionIds:StableId[];}
 export interface ComponentMap {
   Transform?:TransformComponent;Visual?:VisualComponent;Character?:CharacterComponent;Navigation?:NavigationComponent;
   BehaviorRef?:BehaviorRefComponent;DialogueActor?:DialogueActorComponent;State?:StateComponent;Persistence?:PersistenceComponent;
-  Interactable?:InteractableComponent;Collider?:ColliderComponent;Animator?:AnimatorComponent;TriggerVolume?:TriggerVolumeComponent;
+  Interactable?:InteractableComponent;Collider?:ColliderComponent;Animator?:AnimatorComponent;TriggerVolume?:TriggerVolumeComponent;Light?:LightComponent;
 }
 export type ComponentName = keyof ComponentMap;
 export interface PrefabOverride {component:ComponentName;field:string;value:unknown;}

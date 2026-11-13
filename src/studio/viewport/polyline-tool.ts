@@ -5,7 +5,9 @@ import type {Tool,ToolContext} from './tools.ts';
  * tool only collects points; `commit` performs ONE authoring transaction (Enter). */
 export interface PolylineTarget {label:string;points:{x:number;z:number}[];min:number;max:number;closed?:boolean;color?:number;commit(points:{x:number;z:number}[]):Promise<void>;
   /** Live validation (e.g. river profile vs relief, zone contour); null = no remark. */
-  diagnose?(points:{x:number;z:number}[]):string|null;}
+  diagnose?(points:{x:number;z:number}[]):string|null;
+  /** Optional magnet (E8: path ends and points snap onto existing paths). */
+  snap?(point:{x:number;z:number}):{x:number;z:number}|null;}
 export const polylineTarget={current:null as PolylineTarget|null};
 /** E5/E6 — click to add points on the ground, drag a handle to move it, Backspace removes
  * the last point, Enter validates, Escape abandons. Navigation stays on right/middle/wheel. */
@@ -35,13 +37,14 @@ export class PolylineTool implements Tool {
     this.points.forEach((p,i)=>{v.set(p.x,terrainHeight(p.x,p.z)+.6,p.z).project(this.ctx.camera.camera);const x=(v.x+1)/2*r.width+r.left,y=(1-v.y)/2*r.height+r.top,d=Math.hypot(x-e.clientX,y-e.clientY);if(d<bestD&&v.z<1){bestD=d;best=i;}});return best;
   }
   pointerDown(e:PointerEvent){if(e.button!==0)return;this.down={x:e.clientX,y:e.clientY};this.drag=this.handleAt(e);}
-  pointerMove(e:PointerEvent){if(this.drag===null||!(e.buttons&1))return;const g=this.ctx.ground(e);if(g){this.points[this.drag]={x:g.x,z:g.z};this.redraw();}}
+  private snapped(g:{x:number;z:number}){const q={x:g.x,z:g.z},s=this.target?.snap?.(q);if(s){this.ctx.canvas.dataset.polylineSnap='1';return {x:s.x,z:s.z};}this.ctx.canvas.dataset.polylineSnap='0';return q;}
+  pointerMove(e:PointerEvent){if(this.drag===null||!(e.buttons&1))return;const g=this.ctx.ground(e);if(g){this.points[this.drag]=this.snapped(g);this.redraw();}}
   pointerUp(e:PointerEvent){
     const start=this.down,dragged=this.drag;this.down=null;this.drag=null;if(e.button!==0||!start||!this.target)return;
     if(dragged!==null||Math.hypot(e.clientX-start.x,e.clientY-start.y)>5)return;
     if(this.points.length>=this.target.max){this.ctx.message(`Maximum ${this.target.max} points.`,true);return;}
     const g=this.ctx.ground(e),b=this.ctx.session.document.world.bounds;if(!g||g.x<b.minX||g.x>b.maxX||g.z<b.minZ||g.z>b.maxZ)return;
-    this.ctx.message(`${this.target.label} : ${this.points.length+1} point(s) · Entrée pour valider.`);this.points.push({x:g.x,z:g.z});this.redraw();
+    const q=this.snapped(g);this.ctx.message(`${this.target.label} : ${this.points.length+1} point(s)${this.ctx.canvas.dataset.polylineSnap==='1'?' · raccordé à un chemin':''} · Entrée pour valider.`);this.points.push(q);this.redraw();
   }
   keyDown(e:KeyboardEvent){
     if(e.key==='Backspace'||e.key==='Delete'){this.points.pop();this.redraw();return true;}

@@ -1,3 +1,4 @@
+import {PATH_KINDS,type PathKind} from '../world-data.ts';
 import {validateWaterProfile} from '../water/profile.ts';
 import {parseAudioDefinition,validateAudioLinks} from '../audio/schema.ts';
 import {parseEnvironmentDefinition} from '../environment/climate.ts';
@@ -65,7 +66,7 @@ export function affectedChunkIds(world:WorldDefinitionV3,x:number,z:number,radiu
 export function emptyChunk(world:WorldDefinitionV3,id:ChunkId):ChunkSourceV3{return {schemaVersion:3,chunkId:id,index:chunkCoordinates(world,id),revision:0,entities:{},entityIds:[],terrainEdits:[],terrainRefs:[],biomeEdits:[],biomeRefs:[],waterRefs:[],pathRefs:[]};}
 function validateAppearance(value:unknown){const v=object(value,'Apparence');keys(v,['hat','backpack','neckwear','emotion'],'Apparence');if(typeof v.hat!=='boolean'||typeof v.backpack!=='boolean'||!['none','pendant','scarf'].includes(String(v.neckwear))||!EMOTIONS.includes(v.emotion as typeof EMOTIONS[number]))throw Error('Apparence invalide');}
 const componentFields:Record<string,readonly string[]>={
-  Transform:['type','position','rotation','scale'],Visual:['type','assetId','variant'],Character:['type','species','rigId','appearance'],Navigation:['type','behaviorId','speed','radius','path'],BehaviorRef:['type','behaviorId'],DialogueActor:['type','dialogueIds'],State:['type','initial'],Persistence:['type','fields'],Interactable:['type','prompt','range','interactionIds'],Collider:['type','shape','size','layer'],Animator:['type','clips','initialClip'],TriggerVolume:['type','shape','size','interactionIds'],
+  Transform:['type','position','rotation','scale'],Visual:['type','assetId','variant'],Character:['type','species','rigId','appearance'],Navigation:['type','behaviorId','speed','radius','path'],BehaviorRef:['type','behaviorId'],DialogueActor:['type','dialogueIds'],State:['type','initial'],Persistence:['type','fields'],Interactable:['type','prompt','range','interactionIds'],Collider:['type','shape','size','layer'],Animator:['type','clips','initialClip'],TriggerVolume:['type','shape','size','interactionIds'],Light:['type','kind','color','intensity','range','offset','enabled','mode','stateKey','flicker','preset'],
 };
 export function parseComponents(value:unknown,world?:WorldDefinitionV3):ComponentMap{
   const components=object(value,'Composants');for(const [name,raw] of Object.entries(components)){
@@ -81,6 +82,10 @@ export function parseComponents(value:unknown,world?:WorldDefinitionV3):Componen
       case 'Persistence':ids(c.fields,'Champs persistants',100);break;
       case 'Interactable':string(c.prompt,'Invite',200);finite(c.range,'Portée',.1,50);ids(c.interactionIds,'Interactions',100);break;
       case 'Collider':case 'TriggerVolume':if(!['box','sphere'].includes(String(c.shape)))throw Error('Forme inconnue');vector(c.size,'Taille',.01,1000);if(name==='Collider'&&!['solid','trigger'].includes(String(c.layer)))throw Error('Couche inconnue');if(name==='TriggerVolume')ids(c.interactionIds,'Interactions',100);break;
+      case 'Light':{if(c.kind!=='point')throw Error('Seules les lumières ponctuelles sont prises en charge');if(typeof c.color!=='string'||!/^#[0-9a-f]{6}$/i.test(c.color))throw Error('Couleur de lumière invalide');finite(c.intensity,'Intensité lumineuse',0,200);finite(c.range,'Portée lumineuse',.5,60);vector(c.offset,'Décalage lumière',-50,50);
+        if(typeof c.enabled!=='boolean')throw Error('Activation de lumière invalide');if(!['always','night','state'].includes(String(c.mode)))throw Error('Mode de lumière inconnu');if(c.mode==='state')string(c.stateKey,'État de la lumière',100);else if(c.stateKey!==undefined)string(c.stateKey,'État de la lumière',100);
+        if(c.flicker!==undefined){const f=object(c.flicker,'Vacillement');keys(f,['amplitude','speed'],'Vacillement');finite(f.amplitude,'Amplitude',0,1);finite(f.speed,'Vitesse de vacillement',.1,4);}
+        if(c.preset!==undefined&&!['warm-lantern','flickering-fire','fixed-lamp','cold-light'].includes(String(c.preset)))throw Error('Préréglage de lumière inconnu');break;}
       case 'Animator':{const clips=ids(c.clips,'Clips',100);if(c.initialClip!==undefined&&!clips.includes(string(c.initialClip,'Clip initial')))throw Error('Clip initial absent');break;}
     }
   }return structuredClone(components) as unknown as ComponentMap;
@@ -123,7 +128,8 @@ import { validateGameplayLibraries } from '../gameplay/schema.ts';
 import { ReferenceIndex, entityIndexEntry, resolveEntity } from './references.ts';
 function dictionary(value:unknown,label:string,max=100000):Record<string,unknown>{const v=object(value,label);if(Object.keys(v).length>max)throw Error(`${label} trop grand`);for(const key of Object.keys(v))string(key,`Clé ${label}`);return v;}
 export function validateLine(value:unknown,world:WorldDefinitionV3,water:boolean):void{
-  const line=object(value,'Tracé');keys(line,water?['id','points','width','level','depth','profile']:['id','points','width'],'Tracé');string(line.id,'ID tracé');finite(line.width,'Largeur',1,40);const points=array(line.points,'Points',100);if(points.length<2)throw Error('Tracé : deux points requis');for(const p of points){const v=object(p,'Point');keys(v,['x','z'],'Point');point(v,world,'Tracé');}if(water){finite(line.level,'Niveau',-20,100);finite(line.depth,'Profondeur',.5,20);validateWaterProfile(line.profile,points.length);}
+  const line=object(value,'Tracé');keys(line,water?['id','points','width','level','depth','profile']:['id','points','width','kind','smooth'],'Tracé');
+  if(!water){if(line.kind!==undefined&&!PATH_KINDS.includes(line.kind as PathKind))throw Error('Chemin : type inconnu');if(line.smooth!==undefined&&typeof line.smooth!=='boolean')throw Error('Chemin : courbe invalide');}string(line.id,'ID tracé');finite(line.width,'Largeur',1,40);const points=array(line.points,'Points',100);if(points.length<2)throw Error('Tracé : deux points requis');for(const p of points){const v=object(p,'Point');keys(v,['x','z'],'Point');point(v,world,'Tracé');}if(water){finite(line.level,'Niveau',-20,100);finite(line.depth,'Profondeur',.5,20);validateWaterProfile(line.profile,points.length);}
 }
 function validateLibraries(value:unknown,world:WorldDefinitionV3,entityIds:string[],chunkIds:string[]):void{
   const libs=object(value,'Bibliothèques');keys(libs,['prefabs','characters','dialogues','behaviors','interactions','activities','variables','items','objectives','water','paths','zones'],'Bibliothèques');

@@ -8,6 +8,7 @@ import {resolveEntity} from '../studio-core/references.ts';
 import {createCharacter} from '../studio-core/character-authoring.ts';
 import type {ProjectDocument} from '../studio-core/types.ts';
 import {StudioSession} from './session.ts';
+import {elementAnchor,elementsAt} from '../studio-core/elements.ts';
 import {renderInspector,editQueue} from './inspector.ts';
 import {mountEntityList} from './entity-list.ts';
 import type {StudioViewport} from './viewport/editor-viewport.ts';
@@ -17,19 +18,19 @@ import type {StudioViewport} from './viewport/editor-viewport.ts';
  * scene, so camera, selection and scene survive every tool or panel change. */
 const store=new ProjectStore(),$=(id:string)=>document.getElementById(id)!;
 let session:StudioSession|null=null,viewport:StudioViewport|null=null,unsubscribe=()=>{},disposePanel=()=>{},generation=0,activeModule='scene';
-let inspectorOpen=true,returnModule='scene';
+let inspectorOpen=true,returnModule='scene',lastAsset='props.crate';
 const status=(message:string,error=false)=>{$('status').textContent=message;$('status').classList.toggle('status-error',error);};
 const run=(action:()=>Promise<unknown>|unknown)=>async()=>{try{await action();}catch(e){status(String(e instanceof Error?e.message:e),true);}};
 const action=(title:string,fn:()=>Promise<unknown>|unknown,className?:string)=>button(title,run(fn),className);
 /** Toolbar: [module id, accessible name, icon, group, shortcut]. Viewport modules keep the 3D view. */
 const MODULES:[string,string,string,string,string][]=[
   ['scene','Sélection','➚','Naviguer','V'],['map','Carte globale','▦','Naviguer','M'],
-  ['objects','Objets','▣','Construire','B'],['characters','Personnages','☺','Construire',''],
+  ['objects','Objets','▣','Construire','B'],['characters','Personnages','☺','Construire',''],['lights','Lumières','✦','Construire','L'],
   ['terrain','Relief','⛰','Monde','T'],['biomes','Biotopes','✿','Monde',''],['paths','Chemins et rivières','〰','Monde',''],['water','Eau','≈','Monde',''],['zones','Zones','⬠','Monde',''],
   ['dialogues','Dialogues','✉','Logique',''],['interactions','Interactions','⚙','Logique',''],['environment','Environnement','☀','Logique',''],['audio','Audio','♪','Logique',''],
   ['tests','Validation / compilation','✓','Projet',''],
 ];
-const VIEWPORT_MODULES=new Set(['scene','objects','characters','terrain','biomes','polyline','paths','zones']);
+const VIEWPORT_MODULES=new Set(['scene','objects','characters','lights','terrain','biomes','polyline','paths','zones']);
 const ALIASES:Record<string,string>={local:'scene',select:'scene'};
 const panelHost=()=>$('panel-host');
 function refreshHeader(){
@@ -70,13 +71,13 @@ let mapLoaded=false;
 function closeProject(){if(mapLoaded)void import('./geo-map/editor.ts').then(m=>m.releaseGeoMap());disposePanel();disposePanel=()=>{};unsubscribe();unsubscribe=()=>{};viewport?.dispose();viewport=null;session=null;$('studio').classList.remove('in-project');}
 async function open(id:string){
   closeProject();session=await StudioSession.open(store,id);const s=session;$('studio').classList.add('in-project');
-  const stops=[s.subscribe(()=>refreshHeader()),s.commands.subscribe(()=>{void inspector();}),s.selection.subscribe(()=>{if(VIEWPORT_MODULES.has(activeModule))scheduleInspector();})];unsubscribe=()=>stops.forEach(stop=>stop());
+  const stops=[s.subscribe(()=>refreshHeader()),s.commands.subscribe(t=>{checkImpact(s,t);void inspector();}),s.selection.subscribe(()=>{const key=JSON.stringify(s.selection.selection);if(VIEWPORT_MODULES.has(activeModule)||key!==selectionKey)scheduleInspector();selectionKey=key;})];unsubscribe=()=>stops.forEach(stop=>stop());
   buildHeader();buildToolbar();const saved=ALIASES[s.selection.state.activeModule]??s.selection.state.activeModule;
   await module(MODULES.some(m=>m[0]===saved)||VIEWPORT_MODULES.has(saved)?saved:'scene');
 }
 async function ensureViewport(){
   if(viewport)return viewport;const s=session!;const {StudioViewport}=await import('./viewport/editor-viewport.ts');if(session!==s)throw Error('Projet fermé');
-  viewport=await StudioViewport.create($('workspace'),s,{message:status,refreshInspector:scheduleInspector,toolChanged:id=>{if(id==='select'&&activeModule==='polyline'){const back=returnModule;returnModule='scene';void module(back);}else if(id==='select'&&activeModule!=='scene'&&activeModule!=='paths'&&activeModule!=='zones')void module('scene');},
+  viewport=await StudioViewport.create($('workspace'),s,{message:status,refreshInspector:scheduleInspector,toolChanged:id=>{if(id==='select'&&activeModule==='polyline'){const back=returnModule;returnModule='scene';void module(back);}else if(id==='select'&&activeModule!=='scene'&&activeModule!=='paths'&&activeModule!=='zones'&&activeModule!=='lights')void module('scene');},
     status:info=>{$('viewport-status').textContent=[info.cursor?`X ${info.cursor.x.toFixed(1)} · Z ${info.cursor.z.toFixed(1)}`:'—',{orbit:'Orbite',free:'Vol libre',top:'Dessus'}[info.mode]??info.mode,info.selected?`${info.selected} sélectionné(s)`:'Aucune sélection',`${info.sectors} secteur(s)`].join('  ·  ');}});
   return viewport;
 }
@@ -92,7 +93,7 @@ async function module(requested:string){
   }
   viewport?.setVisible(false);panelHost().hidden=false;panelHost().replaceChildren();const host=panelHost();
   if(id==='map'){const {mountGeoMap}=await import('./geo-map/editor.ts');mapLoaded=true;if(mine!==generation)return;const panel=node('div','','map-panel');$('tools').append(panel);
-    const view=mountGeoMap(host,panel,s,{onPick:(x,z)=>void run(()=>pick(x,z))(),status,open3D:()=>void run(()=>module('scene'))()});disposePanel=view.dispose;
+    const view=mountGeoMap(host,panel,s,{onPick:(x,z,tolerance)=>void run(()=>pick(x,z,tolerance))(),status,open3D:()=>void run(()=>module('scene'))()});disposePanel=view.dispose;
     const list=node('details','','entity-details');list.open=true;list.append(node('summary','Objets et personnages'));$('tools').append(list);listPanel(s,list);}
   else if(id==='water'){const {mountWater}=await import('./water-view.ts');if(mine!==generation)return;disposePanel=mountWater(host,$('tools'),s).dispose;}
   else if(id==='audio'){const {mountAudio}=await import('./audio-view.ts');if(mine!==generation)return;disposePanel=mountAudio(host,s,()=>mine===generation).dispose;}
@@ -114,7 +115,9 @@ async function toolPanel(id:string,v:StudioViewport){
     tools.append(node('div','SÉLECTION ET TRANSFORMATION','kicker'),modes,field('Aimanter à la grille',snap),field('Pas de grille (m)',numberInput(transformSettings.grid,x=>{transformSettings.grid=Math.max(.1,x||1);apply();},.1,100)),field('Pas angulaire (°)',numberInput(transformSettings.angle,x=>{transformSettings.angle=Math.max(1,x||15);apply();},1,90)),field('Suivre le relief',follow));apply();
     listPanel(s,tools);
   }else if(id==='objects'){
-    v.setTool('place');const {mountLibrary}=await import('./library.ts');tools.append(node('div','BIBLIOTHÈQUE','kicker'),node('h3','Placer des objets'));mountLibrary(tools,s.document.assets,()=>{v.setTool('place');status('Choix conservé : cliquez dans la vue pour placer, autant de fois que nécessaire.');});
+    // The placement choice is shared with characters/lights: the Objects module always places an asset.
+    const {placementSettings}=await import('./viewport/placement-tool.ts');if(placementSettings.item.kind!=='asset')placementSettings.item={kind:'asset',id:lastAsset};
+    v.setTool('place');const {mountLibrary}=await import('./library.ts');tools.append(node('div','BIBLIOTHÈQUE','kicker'),node('h3','Placer des objets'));mountLibrary(tools,s.document.assets,item=>{if(item.kind==='asset')lastAsset=item.id;v.setTool('place');status('Choix conservé : cliquez dans la vue pour placer, autant de fois que nécessaire.');});
   }else if(id==='characters'){
     const {placementSettings}=await import('./viewport/placement-tool.ts');let name='Nouvel habitant',species:'squirrel'|'animal'='squirrel';
     const choose=()=>{placementSettings.item={kind:'npc',species,name};v.setTool('place');};choose();
@@ -135,6 +138,9 @@ async function toolPanel(id:string,v:StudioViewport){
     const ctx={session:s,status,focus:(x:number,z:number)=>v.goTo(x,z,30),edit:(target:import('./viewport/polyline-tool.ts').PolylineTarget)=>{void run(async()=>{const {polylineTarget}=await import('./viewport/polyline-tool.ts');polylineTarget.current=target;returnModule=id;await module('polyline');})();}};
     const render=()=>{tools.replaceChildren();(id==='paths'?mountPathsPanel:mountZonesPanel)(tools,ctx);};render();
     const stop=s.commands.subscribe(()=>{if(activeModule===id)render();}),previous=disposePanel;disposePanel=()=>{stop();previous();};
+  }else if(id==='lights'){
+    v.setTool('select');const {mountLightsPanel}=await import('./lights-panel.ts');
+    const stop=mountLightsPanel(tools,{session:s,viewport:v,status,refresh:()=>void inspector()}),previous=disposePanel;disposePanel=()=>{stop();previous();};
   }else if(id==='polyline'){
     const {polylineTarget}=await import('./viewport/polyline-tool.ts');const target=polylineTarget.current;if(!target){await module('scene');return;}v.setTool('polyline');
     tools.append(node('div','TRACÉ','kicker'),node('h3',target.label),node('p','Clic : ajouter un point · glisser un point : le déplacer · Retour arrière : retirer le dernier · Entrée : valider (une opération) · Échap : abandonner. Clic droit / molette : naviguer.','muted'),
@@ -142,20 +148,39 @@ async function toolPanel(id:string,v:StudioViewport){
   }
 }
 function listPanel(s:StudioSession,host:HTMLElement){
-  const list=mountEntityList(host,s.document,()=>s.selection.selection.map(v=>v.id),(e,additive)=>{if(additive)s.selection.toggle({kind:'entity',id:e.id});else s.selection.select({kind:'entity',id:e.id});if(viewport&&VIEWPORT_MODULES.has(activeModule))viewport.focusSelection();else s.selection.setCamera(moveContext(s,e.position.x,e.position.z));list.refresh();void inspector();});
-  const stop=s.selection.subscribe(()=>list.refresh()),previous=disposePanel;disposePanel=()=>{stop();previous();};
+  const list=mountEntityList(host,s.document,()=>s.selection.selection.map(v=>v.id),(ref,additive)=>{if(additive)s.selection.toggle(ref);else s.selection.select(ref);
+    const at=elementAnchor(s.document,ref);if(viewport&&VIEWPORT_MODULES.has(activeModule))viewport.focusSelection();else if(at)s.selection.setCamera(moveContext(s,at.x,at.z));list.refresh();void inspector();});
+  const stops=[s.selection.subscribe(()=>list.refresh()),s.commands.subscribe(()=>list.refresh())],previous=disposePanel;disposePanel=()=>{stops.forEach(stop=>stop());previous();};
 }
 function moveContext(s:StudioSession,x:number,z:number){const c=s.selection.state.camera,t=c.target??{x:c.x,y:0,z:c.z};return {...c,x:c.x+x-t.x,z:c.z+z-t.z,target:{...t,x,z}};}
-async function pick(x:number,z:number){
+/** Map click: a close entity first, then the path/river/zone under the point, then a farther entity. */
+async function pick(x:number,z:number,tolerance=3){
   const s=session!,p=s.document;let nearest:typeof p.entityIndex[string]|undefined,distance=Infinity;for(const e of Object.values(p.entityIndex)){const d=Math.hypot(e.position.x-x,e.position.z-z);if(d<distance){distance=d;nearest=e;}}
-  s.selection.select(nearest&&distance<25?{kind:'entity',id:nearest.id}:null);s.selection.setCamera(moveContext(s,x,z));await inspector();
+  const line=elementsAt(p,x,z,tolerance)[0];
+  const ref=nearest&&distance<Math.max(6,tolerance*2)?{kind:'entity',id:nearest.id}:line??(nearest&&distance<25?{kind:'entity',id:nearest.id}:null);
+  s.selection.select(ref);s.selection.setCamera(moveContext(s,x,z));await inspector();
+}
+/** E9 — after a relief change (2D map, 3D brush, shapes, undo), check the touched elements
+ * against the new relief of the project (pure geography of the document, not the viewport). */
+let selectionKey='';
+let lastImpact:{touched:number;items:import('../studio-core/terrain-impact.ts').ImpactItem[]}|null=null;
+function checkImpact(s:StudioSession,t:import('../studio-core/commands.ts').EditTransaction){
+  void import('../studio-core/terrain-impact.ts').then(async m=>{
+    const areas=m.transactionTerrainAreas(t);if(!areas.length)return;
+    const {projectGeography}=await import('../studio-core/geo-context.ts'),g=projectGeography(s.document).ctx;
+    const result=m.terrainImpacts(s.document,areas,{height:g.height,water:(x,z)=>g.water(x,z,g.height(x,z))});
+    lastImpact=result.touched?{touched:result.touched,items:result.items}:null;
+    if(result.items.length)status(`${result.items.length} élément(s) à vérifier après la modification du relief (voir l’inspecteur).`,true);
+    scheduleInspector();
+  }).catch(()=>{});
 }
 async function inspector(){
   const s=session;if(!s)return;
   await renderInspector($('inspector'),{session:s,status,open:id=>void run(()=>module(id))(),focus:()=>{if(viewport&&VIEWPORT_MODULES.has(activeModule))viewport.focusSelection();else void module('scene').then(()=>viewport?.focusSelection());},
     editPath:(target)=>{void run(async()=>{const {polylineTarget}=await import('./viewport/polyline-tool.ts');polylineTarget.current=target;await module('polyline');})();},
     view:(x,z)=>{void run(async()=>{if(activeModule!=='scene')await module('scene');viewport?.goTo(x,z,12);})();},
-    duplicate:()=>{void withSelectTool(t=>t.duplicate());},remove:()=>{void withSelectTool(t=>t.remove());},refresh:()=>scheduleInspector()});
+    duplicate:()=>{void withSelectTool(t=>t.duplicate());},remove:()=>{void withSelectTool(t=>t.remove());},refresh:()=>scheduleInspector(),
+    ...(lastImpact?{impact:{...lastImpact,dismiss:()=>{lastImpact=null;scheduleInspector();},select:(ref,x,z)=>{s.selection.select(ref);if(viewport&&VIEWPORT_MODULES.has(activeModule))viewport.goTo(x,z,14);else s.selection.setCamera(moveContext(s,x,z));scheduleInspector();}}}:{})});
 }
 async function withSelectTool(fn:(tool:import('./viewport/select-tool.ts').SelectTool)=>void){if(activeModule!=='scene')await module('scene');const tool=viewport?.tools.active;if(tool&&tool.id==='select')fn(tool as import('./viewport/select-tool.ts').SelectTool);}
 async function dialogues(host:HTMLElement,mine:number){
@@ -198,7 +223,7 @@ async function preview(){
   if(file.name.toLowerCase().endsWith('.zip'))p=readProjectArchive(new Uint8Array(await file.arrayBuffer()));else{const json=JSON.parse(await file.text());if(json.manifest?.schemaVersion===3)p=parseProject(json);else{const migration=migrateWorldToV3(json,{projectId:crypto.randomUUID(),worldId:crypto.randomUUID()});p=migration.project;status(`Migration non destructive : ${migration.report.counts.entities} entités et leurs identifiants préservés.`);}}
   if((await store.list()).some(v=>v.projectId===p.manifest.projectId))throw Error('Ce projet existe déjà. Ouvrez-le depuis Mes projets pour éviter un écrasement.');await store.create(p);await open(p.manifest.projectId);($('project-file') as HTMLInputElement).value='';
 })();
-const SHORTCUTS:Record<string,string>={v:'scene',m:'map',b:'objects',t:'terrain'};
+const SHORTCUTS:Record<string,string>={v:'scene',m:'map',b:'objects',t:'terrain',l:'lights'};
 window.addEventListener('keydown',e=>{
   if(!session||e.target instanceof HTMLInputElement||e.target instanceof HTMLTextAreaElement||e.target instanceof HTMLSelectElement)return;
   const key=e.key.toLowerCase();

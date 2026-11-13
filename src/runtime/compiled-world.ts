@@ -52,13 +52,13 @@ export function defaultSpawn(config:WorldConfig,terrain:TerrainStroke[]):Point3{
 export function playableFromCompiled(bundle:CompiledWorldBundle,spawn?:Point3):PlayableWorld{
   const {manifest,logic,chunks}=bundle,config=runtimeConfig(manifest);
   const entities=unionById(chunks.map(chunk=>chunk.entities)).sort((a,b)=>a.id.localeCompare(b.id));
-  const {placements,npcs}=runtimeContent(entities,logic.libraries);
+  const {placements,npcs,lights}=runtimeContent(entities,logic.libraries);
   const terrain=unionById(chunks.map(chunk=>chunk.terrain.edits)).sort((a,b)=>a.order-b.order||a.id.localeCompare(b.id)).map(stripOrder) as TerrainStroke[];
   const biomes=unionById(chunks.map(chunk=>chunk.biomes.edits)).sort((a,b)=>a.order-b.order||a.id.localeCompare(b.id)).map(stripOrder) as BiomeStroke[];
   const masks:Record<string,import('../geography/layers.ts').SectorLayers>={};for(const chunk of chunks)if(chunk.layers)masks[chunk.chunkId]=structuredClone(chunk.layers);
   const zones=Object.values(logic.libraries.zones??{}).map(z=>({kind:z.kind,polygon:z.polygon.map(p=>({...p}))}));
   const world:WorldDefinition={...(Object.keys(masks).length||zones.length?{geography:{sectorSizeM:manifest.chunkSizeM,masks,zones}}:{}),schemaVersion:2,name:manifest.worldId,config,placements,terrain,biomes,
-    water:unionById(chunks.map(chunk=>chunk.water as WaterBody[])).map(w=>structuredClone(w)),paths:unionById(chunks.map(chunk=>chunk.paths as PathDefinition[])).map(p=>structuredClone(p)),npcs};
+    water:unionById(chunks.map(chunk=>chunk.water as WaterBody[])).map(w=>structuredClone(w)),paths:unionById(chunks.map(chunk=>chunk.paths as PathDefinition[])).map(p=>structuredClone(p)),npcs,...(lights.length?{lights}:{})};
   const components=new Map<string,ComponentMap>(entities.map(entity=>[entity.id,entity.components]));
   const gameplay=gameplayDataFromIndex({entityIndex:logic.entityIndex,components,libraries:logic.libraries,environment:manifest.environment??defaultEnvironment(manifest.seed),worldId:manifest.worldId,buildVersion:manifest.buildVersion});
   const rendered=new Set([...placements.map(p=>p.id),...npcs.map(n=>n.id)]);

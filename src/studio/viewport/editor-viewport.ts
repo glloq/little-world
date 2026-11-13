@@ -14,11 +14,15 @@ import type {StudioSession} from '../session.ts';
 import {EditorCamera,poseFromContext} from './camera-controller.ts';
 import {attachNavigation,isFormTarget,type Navigation} from './navigation.ts';
 import {SelectionController} from './selection.ts';
+import {elementExists} from '../../studio-core/elements.ts';
 import {ToolManager,type ToolContext} from './tools.ts';
 import {SelectTool} from './select-tool.ts';
 import {PlacementTool} from './placement-tool.ts';
 import {BrushTool,type BrushMode} from './brush-tool.ts';
 import {PolylineTool} from './polyline-tool.ts';
+import {applySkyLighting,type SkyLighting} from '../../environment/sky-lighting.ts';
+import {entityTransform} from '../../studio-core/transforms.ts';
+import type {LightStatus} from '../../lighting/light-budget.ts';
 
 export interface ViewportOptions {
   message(text:string,error?:boolean):void;
@@ -66,13 +70,15 @@ export class StudioViewport {
     this.definition=definition;const p=session.document;this.editSignatures=new Map([...definition.terrain,...definition.biomes].map(e=>[e.id,JSON.stringify(e)]));this.geoSignatures=geographySignatures(definition);
     this.element=document.createElement('div');this.element.className='viewport';this.canvas=document.createElement('canvas');this.canvas.tabIndex=0;this.canvas.setAttribute('aria-label','Vue 3D du monde');this.element.append(this.canvas);host.append(this.element);
     this.renderer=new THREE.WebGLRenderer({canvas:this.canvas,antialias:true,powerPreference:'low-power'});this.renderer.setPixelRatio(Math.min(devicePixelRatio,1.25));this.renderer.outputColorSpace=THREE.SRGBColorSpace;this.renderer.toneMapping=THREE.ACESFilmicToneMapping;this.renderer.toneMappingExposure=1.1;
-    configureScene(this.scene);this.world=buildWorld(definition.config,definition);this.scene.add(this.world.root);
+    this.sky=configureScene(this.scene);this.skyDay={sun:this.sky.sun.intensity,fill:this.sky.fill.intensity,ambient:this.sky.ambient.intensity,sunColor:this.sky.sun.color.getHex(),sunPosition:this.sky.sun.position.clone(),background:(this.scene.background as THREE.Color).getHex()};
+    this.lightGroup.name='LightMarkers';this.scene.add(this.lightGroup);this.rangeGizmo.visible=false;this.rangeGizmo.renderOrder=24;this.scene.add(this.rangeGizmo);
+    this.world=buildWorld(definition.config,definition);this.scene.add(this.world.root);
     // A project without a saved 3D pose starts on the world's start point (beach, valley entrance).
     const saved=session.selection.state.camera,start=saved.target?saved:{...defaultSpawn(definition.config,definition.terrain),mode:'orbit' as const};
     const b=p.world.bounds;this.camera=new EditorCamera(poseFromContext(start,terrainHeight),session.selection.state.camera.mode==='top'?'top':session.selection.state.camera.mode==='free'?'free':'orbit',{minX:b.minX,maxX:b.maxX,minZ:b.minZ,maxZ:b.maxZ,ground:(x,z)=>terrainHeight(x,z)});
     this.camera.setFar(horizonFar(b.maxX-b.minX,b.maxZ-b.minZ));
     this.npcs=createNPCSystem(this.scene,[],[]);
-    this.selection=new SelectionController(this.scene,session,()=>[...[...this.models.values()].map(m=>m.object),...[...this.npcObjects.values()].flat()],id=>this.objectFor(id));
+    this.selection=new SelectionController(this.scene,session,()=>[...[...this.models.values()].map(m=>m.object),...[...this.npcObjects.values()].flat(),...[...this.lightMarkers.values()].map(m=>m.object)],id=>this.objectFor(id),e=>this.groundAt(e.clientX,e.clientY));
     this.navigation=attachNavigation(this.canvas,this.camera,{pick:(x,y)=>this.groundAt(x,y),heightPx:()=>this.canvas.clientHeight,isActive:()=>this.visible,onInteract:()=>this.invalidate(4),onSettled:()=>this.saveCamera()});
     const context:ToolContext={session,scene:this.scene,canvas:this.canvas,camera:this.camera,selection:this.selection,ground:e=>this.groundAt(e.clientX,e.clientY),objectFor:id=>this.objectFor(id),invalidate:n=>this.invalidate(n),message:options.message,refreshInspector:options.refreshInspector,setTool:id=>{this.setTool(id);options.toolChanged(id);},
       run:action=>{void action().catch(error=>{options.message(String(error instanceof Error?error.message:error),true);this.refresh();});}};
@@ -95,7 +101,18 @@ export class StudioViewport {
   setTool(id:string){this.tools.activate(this.tools.has(id)?id:'select');if(this.session.selection.state.activeTool!==this.tools.active!.id)this.session.selection.setTool(this.tools.active!.id);this.canvas.dataset.tool=this.tools.active!.id;}
   focusSelection(){const b=this.selection.bounds();if(b)this.camera.focus(b.center,b.radius);else if(this.cursor)this.camera.focus({x:this.cursor.x,y:terrainHeight(this.cursor.x,this.cursor.z),z:this.cursor.z},10);this.invalidate(30);this.saveCamera();}
   goTo(x:number,z:number,radius=12){const p=this.session.document;x=clampX(p,x);z=clampZ(p,z);this.camera.moveTarget(x,z);this.camera.focus({x,y:terrainHeight(x,z),z},radius);this.invalidate(30);this.saveCamera();}
-  objectFor(id:string):THREE.Object3D|undefined{return this.models.get(id)?.object??this.npcObjects.get(id)?.find(o=>o.visible)??this.npcObjects.get(id)?.[0];}
+  objectFor(id:string):THREE.Object3D|undefined{return this.models.get(id)?.object??this.npcObjects.get(id)?.find(o=>o.visible)??this.npcObjects.get(id)?.[0]??this.lightMarkers.get(id)?.object;}
+  /** E10 — night preview: the runtime's own midnight sky values and lights at full night
+   * factor; the project's time and environment settings are not modified. */
+  get nightPreview(){return this.night;}
+  setNightPreview(on:boolean){
+    this.night=on;const sky=this.sky,background=this.scene.background as THREE.Color;
+    if(on)applySkyLighting(sky,background,-1,0,0);
+    else{const d=this.skyDay;sky.sun.intensity=d.sun;sky.fill.intensity=d.fill;sky.ambient.intensity=d.ambient;sky.sun.color.setHex(d.sunColor);sky.sun.position.copy(d.sunPosition);background.setHex(d.background);}
+    this.canvas.dataset.night=String(on);this.invalidate(6);
+  }
+  /** Budget decision for a light-carrying entity at the current camera (Studio list). */
+  lightStatus(entityId:string):LightStatus{return this.world.lights.statusOf('light:'+entityId);}
   get diagnostics(){return {models:this.models.size,npcs:this.npcObjects.size,contentSectors:this.contentIds.size,loadedSectors:Object.keys(this.session.document.chunks).length,geometries:this.renderer.info.memory.geometries,textures:this.renderer.info.memory.textures,sceneChildren:this.scene.children.length,toolActivations:this.tools.activations,toolDeactivations:this.tools.deactivations,listeners:this.navigation.listenerCount+5,terrain:{...this.world.stats},horizon:{...this.world.horizon}};}
   private groundAt(clientX:number,clientY:number):THREE.Vector3|null{
     const r=this.canvas.getBoundingClientRect();if(!r.width)return null;this.pointer.set((clientX-r.left)/r.width*2-1,-(clientY-r.top)/r.height*2+1);this.ray.setFromCamera(this.pointer,this.camera.camera);
@@ -129,13 +146,15 @@ export class StudioViewport {
     if(step.render){
       const dt=step.renderDelta;if(this.navigation.update(dt))this.remaining=Math.max(this.remaining,3);
       const t=this.camera.target;
-      this.world.update(dt,{x:t.x,z:t.z},this.camera.mode==='top'?undefined:this.camera.perspective,this.canvas.height);
+      this.world.lights.setEnvironment(this.night?1:0,now/1000);
+      this.world.update(dt,{x:t.x,z:t.z},this.camera.mode==='top'?undefined:this.camera.perspective,this.canvas.height);this.updateRangeGizmo();
       this.npcs.update(0,0,{x:t.x,z:t.z});
       if(Math.hypot(t.x-this.contentCenter.x,t.z-this.contentCenter.z)>REPLAN_DISTANCE)this.syncContent();
       this.tools.active?.frame?.();this.selection.refresh();
       this.renderer.render(this.scene,this.camera.camera);this.remaining--;
       const d=this.canvas.dataset;d.renderCount=String(++this.renderCount);d.pending=String(this.world.stats.pending);d.cameraMode=this.camera.mode;d.camera=JSON.stringify(this.camera.context());d.calls=String(this.renderer.info.render.calls);
-      d.waterCount=String(this.world.root.children.filter(o=>o.userData.waterId).length);d.diagnostics=JSON.stringify(this.diagnostics);d.models=String(this.models.size);d.paths=String(this.world.root.children.filter(o=>o.userData.pathId).length);d.contentSectors=String(this.contentIds.size);
+      d.waterCount=String(this.world.root.children.filter(o=>o.userData.waterId).length);d.diagnostics=JSON.stringify(this.diagnostics);d.models=String(this.models.size);d.paths=String(this.world.paths.paths);d.pathSectors=String(this.world.paths.sectors);d.pathSignature=this.world.paths.signature;d.contentSectors=String(this.contentIds.size);
+      const ls=this.world.lights.stats;d.lights=JSON.stringify({sources:ls.sources,pool:ls.pool,budget:ls.budget,active:ls.active,glow:ls.glow,overBudget:ls.overBudget,markers:this.lightMarkers.size});
     }
     this.drawing=false;
     if(this.remaining>0||this.world.stats.pending>0||this.navigation.flying||this.camera.animating||this.tools.active&&'dragging' in this.tools.active&&(this.tools.active as {dragging:boolean}).dragging)this.frame=requestAnimationFrame(this.draw);
@@ -152,12 +171,12 @@ export class StudioViewport {
       const generatorBefore=JSON.stringify(this.definition.config.terrain??null);
       Object.assign(this.definition,next);
       if(generatorBefore!==JSON.stringify(next.config.terrain??null))this.applyGenerator(transaction);
-      this.syncGeography();this.applyTerrain([...next.terrain,...next.biomes] as TerrainStroke[],transaction);this.world.refreshPaths(this.definition.paths);this.syncZones();this.syncModels();this.tools.active?.sourcesChanged?.();this.reportStatus();this.invalidate(20);
+      this.syncGeography();this.applyTerrain([...next.terrain,...next.biomes] as TerrainStroke[],transaction);this.world.refreshPaths(this.definition.paths);this.syncZones();this.syncModels();this.syncLights();this.tools.active?.sourcesChanged?.();this.reportStatus();this.invalidate(20);
     }).catch(error=>this.options.message(String(error),true));
   }
   refresh(transaction?:EditTransaction){
     // Undo/redo may remove selected elements: keep only those that still exist.
-    this.session.selection.prune(v=>v.kind!=='entity'||!!this.session.document.entityIndex[v.id]);
+    this.session.selection.prune(v=>elementExists(this.session.document,v));
     this.syncContent(transaction);
   }
   /** Relief generator parameters changed (2D shape editing, presets, undo): reconfigure the
@@ -208,6 +227,32 @@ export class StudioViewport {
     }
     this.canvas.dataset.zones=String(zones.length);
   }
+  /** Light sources go to the shared world renderer (same budget as the game); editor markers
+   * (small octahedra + range gizmo) are authoring aids only and are never exported. */
+  private lightGroup=new THREE.Group();private lightMarkers=new Map<string,{object:THREE.Object3D;signature:string}>();private lightSignature='';
+  private markerGeometry=new THREE.OctahedronGeometry(.32,0);
+  private rangeGizmo=new THREE.LineSegments(rangeGeometry(),new THREE.LineBasicMaterial({color:0xffd27a,transparent:true,opacity:.85,depthTest:false}));
+  private sky!:SkyLighting;private skyDay!:{sun:number;fill:number;ambient:number;sunColor:number;sunPosition:THREE.Vector3;background:number};private night=false;
+  private syncLights(){
+    const lights=this.definition.lights??[],signature=JSON.stringify(lights);
+    if(signature!==this.lightSignature){this.lightSignature=signature;this.world.refreshLights(lights);}
+    const p=this.session.document,shown=lights.filter(l=>this.contentIds.has(p.entityIndex[l.entityId]?.ownerChunkId??'')),ids=new Set(shown.map(l=>l.entityId));
+    for(const [id,m]of this.lightMarkers)if(!ids.has(id)){disposeMarker(m.object);this.lightMarkers.delete(id);}
+    for(const l of shown){
+      let t;try{t=entityTransform(p,l.entityId);}catch{continue;}
+      const sig=JSON.stringify([l,t]),current=this.lightMarkers.get(l.entityId);if(current?.signature===sig)continue;if(current)disposeMarker(current.object);
+      const group=new THREE.Group(),marker=new THREE.Mesh(this.markerGeometry,new THREE.MeshBasicMaterial({color:l.color}));group.name='LightMarker:'+l.entityId;group.userData.entityId=l.entityId;
+      group.position.set(t.position.x,terrainHeight(t.position.x,t.position.z)+t.position.y,t.position.z);group.quaternion.set(t.rotation.x,t.rotation.y,t.rotation.z,t.rotation.w);group.scale.set(t.scale.x,t.scale.y,t.scale.z);
+      const local=new THREE.Vector3(l.offset.x,l.offset.y,l.offset.z).applyQuaternion(group.quaternion.clone().invert()).divide(group.scale);marker.position.copy(local);marker.userData.entityId=l.entityId;marker.userData.range=l.range;
+      group.add(marker);this.lightGroup.add(group);this.lightMarkers.set(l.entityId,{object:group,signature:sig});
+    }
+  }
+  /** Range of the selected light (sphere outline), coloured by its budget decision. */
+  private updateRangeGizmo(){
+    const id=this.selection.ids.find(v=>this.lightMarkers.has(v)),g=this.rangeGizmo;if(!id){g.visible=false;return;}
+    const marker=this.lightMarkers.get(id)!.object.children[0];marker.getWorldPosition(g.position);g.scale.setScalar(marker.userData.range as number);g.visible=true;
+    const status=this.lightStatus(id);(g.material as THREE.LineBasicMaterial).color.setHex(status==='dynamic'?0xffd27a:status==='budget'?0xe0614e:0x9aa6ad);this.canvas.dataset.selectedLight=status;
+  }
   private syncModels(){
     const p=this.session.document,shown=this.definition.placements.filter(v=>this.contentIds.has(p.entityIndex[v.id]?.ownerChunkId??''));const ids=new Set(shown.map(v=>v.id));
     for(const [id,model]of this.models)if(!ids.has(id)){removePlacement(model.object);this.models.delete(id);}
@@ -228,12 +273,18 @@ export class StudioViewport {
     for(const stop of this.unsubscribe)stop();this.tools.dispose();this.navigation.dispose();this.resizeObserver.disconnect();
     this.canvas.removeEventListener('pointerdown',this.onDown);this.canvas.removeEventListener('pointermove',this.onMove);this.canvas.removeEventListener('pointerup',this.onUp);this.canvas.removeEventListener('pointerleave',this.onLeave);window.removeEventListener('keydown',this.onKey);
     for(const child of this.zoneGroup.children){const line=child as THREE.Line;line.geometry.dispose();(line.material as THREE.Material).dispose();}this.zoneGroup.clear();this.zoneGroup.removeFromParent();
-    for(const model of this.models.values())removePlacement(model.object);this.models.clear();this.npcs.dispose();this.selection.dispose();this.world.dispose();this.renderer.dispose();this.renderer.forceContextLoss();this.element.remove();
+    for(const model of this.models.values())removePlacement(model.object);this.models.clear();for(const m of this.lightMarkers.values())disposeMarker(m.object);this.lightMarkers.clear();this.markerGeometry.dispose();this.rangeGizmo.geometry.dispose();(this.rangeGizmo.material as THREE.Material).dispose();this.npcs.dispose();this.selection.dispose();this.world.dispose();this.renderer.dispose();this.renderer.forceContextLoss();this.element.remove();
   }
 }
 const clampX=(p:{world:{bounds:{minX:number;maxX:number}}},x:number)=>Math.min(p.world.bounds.maxX,Math.max(p.world.bounds.minX,x));
 const clampZ=(p:{world:{bounds:{minZ:number;maxZ:number}}},z:number)=>Math.min(p.world.bounds.maxZ,Math.max(p.world.bounds.minZ,z));
 
+function disposeMarker(o:THREE.Object3D){o.traverse(c=>{const m=c as THREE.Mesh;if(m.isMesh)(m.material as THREE.Material).dispose();});o.removeFromParent();}
+/** Three unit circles (XY, XZ, YZ): the outline of a light's range sphere. */
+function rangeGeometry(){
+  const pts:number[]=[],n=48;for(let axis=0;axis<3;axis++)for(let i=0;i<n;i++)for(const k of [i,i+1]){const a=k/n*Math.PI*2,c=Math.cos(a),s=Math.sin(a);pts.push(...(axis===0?[c,s,0]:axis===1?[c,0,s]:[0,c,s]));}
+  return new THREE.BufferGeometry().setAttribute('position',new THREE.Float32BufferAttribute(pts,3));
+}
 function geographySignatures(d:WorldDefinition):Map<string,string>{
   const out=new Map<string,string>();for(const [id,layers]of Object.entries(d.geography?.masks??{}))out.set(id,JSON.stringify(layers));
   out.set('#zones',JSON.stringify(d.geography?.zones??[]));return out;

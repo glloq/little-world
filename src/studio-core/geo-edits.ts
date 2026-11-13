@@ -1,6 +1,7 @@
 /** Authoring operations on geography corrections, run inside one StudioSession.change
  * (one undoable transaction per stroke/fill/regeneration). Masks live in their V3 sector. */
 import type {ProjectDocument,TerrainEdit} from './types.ts';
+import type {TerrainStroke} from '../world-data.ts';
 import {ensureChunk,removeTerrainEdit,removeBiomeEdit} from './source.ts';
 import {MASK_GRID,MASK_LAYERS,isEmptyMask,setMaskCell,cellCenter,type MaskLayerId,type SectorGrid} from '../geography/layers.ts';
 import {polygonSignedDistance,featureBounds,landmassBounds,type PointXZ,type ReliefFeature,type Landmass,type ArchipelagoParams} from '../geography/archipelago.ts';
@@ -81,3 +82,33 @@ export function terrainChangeRects(patches:readonly EditPatch[]):{changed:boolea
 }
 /** Replace the archipelago parameters (validated by the transaction validator). */
 export function setArchipelago(draft:ProjectDocument,a:ArchipelagoParams){draft.world.terrain={kind:'archipelago',version:1,archipelago:structuredClone(a)};}
+/** Paint only cells that still carry the generated value (protects earlier corrections). */
+export function protectedCells(p:ProjectDocument,layer:MaskLayerId,cells:Map<string,number[]>):Map<string,number[]>{
+  const out=new Map<string,number[]>();for(const [id,list]of cells){const mask=p.chunks[id]?.layers?.[layer];const free=list.filter(i=>!mask||mask[i]==='.');if(free.length)out.set(id,free);}return out;
+}
+export type RegionReliefMode='flatten'|'raise'|'lower';
+/** Terrain retouches covering a region (hexagonal packing, bounded count): flatten to the mean
+ * height, or raise/lower by `amount` metres. With `protect`, discs centred inside existing
+ * retouches are skipped so earlier relief work is kept. Pure: the caller commits them. */
+export function regionReliefStrokes(p:ProjectDocument,r:Region,mode:RegionReliefMode,amount:number,height:(x:number,z:number)=>number,protect:boolean,newId:()=>string=()=>crypto.randomUUID()):TerrainStroke[]{
+  const box=regionBox(r),area=Math.max(1,(box.maxX-box.minX)*(box.maxZ-box.minZ)),radius=Math.max(6,Math.min(40,Math.sqrt(area/150)*1.25)),step=radius*.8;
+  const existing=protect?Object.values(p.chunks).flatMap(c=>c.terrainEdits as TerrainEdit[]):[];
+  const centres:{x:number;z:number}[]=[];
+  for(let row=0,z=box.minZ;z<=box.maxZ;z+=step*.866,row++)for(let x=box.minX+(row%2)*step/2;x<=box.maxX;x+=step){
+    if(!regionContains(r,x,z))continue;if(existing.some(e=>(e.x-x)**2+(e.z-z)**2<e.radius*e.radius))continue;centres.push({x,z});
+  }
+  if(centres.length>400)throw Error('Zone trop grande pour une retouche de relief en une fois (400 disques au plus)');
+  const mean=centres.length?centres.reduce((s,c)=>s+height(c.x,c.z),0)/centres.length:0;
+  // Overlapping discs at 0.8 r cover each point about 1.8 times: strengths are normalised.
+  return centres.map(c=>({id:newId(),x:Math.round(c.x*100)/100,z:Math.round(c.z*100)/100,radius:Math.round(radius*100)/100,
+    ...(mode==='flatten'?{mode:'flatten' as const,strength:4,height:Math.round(mean*100)/100}:{mode,strength:Math.max(.1,Math.abs(amount)/1.8),height:Math.abs(amount)})}));
+}
+/** Authoring elements lying in a region (entities by position, lines/zones by any vertex). */
+export function regionElements(p:ProjectDocument,r:Region):{kind:'entity'|'path'|'water'|'zone';id:string}[]{
+  const out:{kind:'entity'|'path'|'water'|'zone';id:string}[]=[];
+  for(const e of Object.values(p.entityIndex))if(regionContains(r,e.position.x,e.position.z))out.push({kind:'entity',id:e.id});
+  for(const v of Object.values(p.libraries.paths))if(v.points.some(q=>regionContains(r,q.x,q.z)))out.push({kind:'path',id:v.id});
+  for(const v of Object.values(p.libraries.water))if(v.points.some(q=>regionContains(r,q.x,q.z)))out.push({kind:'water',id:v.id});
+  for(const v of Object.values(p.libraries.zones??{}))if(v.polygon.some(q=>regionContains(r,q.x,q.z)))out.push({kind:'zone',id:v.id});
+  return out;
+}
