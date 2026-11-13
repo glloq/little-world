@@ -56,3 +56,16 @@ test('time-sliced generation and byte-bounded residency',()=>{
   assert.ok(view.stats.disposed>0);
   view.dispose();
 });
+test('worker results that land after a replan never leave the queue stuck (key, not object identity)',async()=>{
+  const {createChunkData}=await import('../src/terrain-data.ts');
+  // Fake geography pool: answers only when flushed, so a replan can happen in between.
+  const jobs=[];const pool={available:true,run(job){let resolve;const promise=new Promise(r=>resolve=r);const entry={job,resolve,cancelled:false};jobs.push(entry);return {promise,cancel(){entry.cancelled=true;}};}};
+  const flush=()=>{for(const e of jobs.splice(0))if(!e.cancelled)e.resolve({result:createChunkData(e.job.chunk,e.job.lod),stale:false,ms:0});return new Promise(r=>setTimeout(r,0));};
+  const view=createTerrainView(new THREE.Group(),{width:1000,length:1000,chunkSize:64,viewDistance:240},{workers:pool});
+  view.update(0,0,focus());assert.ok(jobs.length>0,'tiles requested from the workers');
+  // Small turn: same tiles still wanted, the queue is rebuilt with new objects, requests stay in flight.
+  view.update(0,0,focus({forwardX:.3,forwardZ:1}));
+  for(let i=0;i<200&&view.stats.pending;i++){await flush();view.update(0,0,focus({forwardX:.3,forwardZ:1}));}
+  assert.equal(view.stats.pending,0,'queue drained');
+  view.dispose();
+});
