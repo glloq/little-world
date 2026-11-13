@@ -1,7 +1,7 @@
 /** Seeded, allocation-free noise and relief profiles shared by every generator (no imports). */
 export interface VolcanoShape {radiusM:number;heightM:number;craterRadiusM:number;craterDepthM:number}
 /** Small seeded lattice value noise (deterministic, allocation-free). */
-function hash2(seed:number,ix:number,iz:number):number{
+export function hash2(seed:number,ix:number,iz:number):number{
   let h=Math.imul(ix,0x27d4eb2d)^Math.imul(iz,0x165667b1)^Math.imul(seed,0x9e3779b1);
   h=Math.imul(h^(h>>>15),0x85ebca6b);h=Math.imul(h^(h>>>13),0xc2b2ae35);h^=h>>>16;
   return (h>>>0)/4294967296*2-1;

@@ -1,6 +1,4 @@
 import {
-  coastDistanceAt,
-  getTerrainConfig,
   insideWorld,
   isLegacyTerrain,
   mulberry32,
@@ -9,6 +7,8 @@ import {
   terrainHeight,
   waterSurface,
 } from './terrain.ts';
+import { classifyAt } from './geography/engine.ts';
+import { habitatOf, type GeoSample, type Biome } from './geography/classify.ts';
 
 export const BIOMES = {
   forest: {
@@ -59,17 +59,23 @@ export type BiomeSampler = (x: number, z: number) => BiomeId;
 export const ECOLOGY_SECTOR_SIZE = 48;
 
 /** Classify from the same height/water queries as collisions; authored biomes may override this. */
+/** Generated worlds: the Geography Engine classification (same as terrain colours and the
+ * Studio map) drives the small plants; one-entry memo shared by biome, cover and exclusion. */
+let memoX = NaN, memoZ = NaN, memo: GeoSample | null = null;
+function generatedSample(x: number, z: number, height?: number): GeoSample {
+  if (x !== memoX || z !== memoZ || !memo) { memo = classifyAt(x, z, height === undefined ? undefined : { height }); memoX = x; memoZ = z; }
+  return memo;
+}
+const GENERATED_TO_ECOLOGY: Record<Biome, BiomeId> = { meadow: 'meadow', forest: 'forest', wetland: 'forest', mountain: 'mountain', volcanic: 'mountain', scrub: 'meadow', coast: 'coast', river: 'river', lake: 'lake', village: 'village' };
+/** Density multiplier of small plants from the habitat (0 on roads, fields, exclusions…). */
+export function generatedCover(x: number, z: number): number {
+  const h = habitatOf(generatedSample(x, z));
+  return Math.min(1, h.grass + h.flowers * .5 + h.shrubs * .3 + h.reeds);
+}
 export function sampleBiome(x: number, z: number): BiomeId {
   const level = waterSurface(x, z),
     height = terrainHeight(x, z);
-  if (!isLegacyTerrain()) {
-    // Generated relief: coast/altitude bands only; authored biome edits override them.
-    const coast = coastDistanceAt(x, z) ?? Infinity, sea = getTerrainConfig().seaLevel;
-    if (level !== null && level > height + 0.15) return level > sea + 0.05 ? 'river' : 'coast';
-    if (coast < 90 || height < sea + 3) return 'coast';
-    if (height > sea + 170) return 'mountain';
-    return 'meadow';
-  }
+  if (!isLegacyTerrain()) return GENERATED_TO_ECOLOGY[generatedSample(x, z, height).biome];
   if (level !== null && level > height + 0.15)
     return z > 190 ? 'coast' : 'river';
   if (Math.abs(z - 95) < 40 && Math.abs(x - (riverX(95) - 30)) < 32)
@@ -82,7 +88,7 @@ export function sampleBiome(x: number, z: number): BiomeId {
 /** Keep generated decoration clear of the existing trail, mill, homes and dock. */
 export function ecologyExcluded(x: number, z: number): boolean {
   if (pathDistance(x, z) < 1.4) return true;
-  if (!isLegacyTerrain()) return false;
+  if (!isLegacyTerrain()) { const o = generatedSample(x, z).occupation; return o === 'road' || o === 'built' || o === 'farm' || o === 'exclusion'; }
   if (Math.abs(z + 57) < 15 && Math.abs(x - (riverX(-57) - 24)) < 12)
     return true;
   for (const homeZ of [70, 94, 118]) {
@@ -120,6 +126,8 @@ export function generateEcologySector(
   cz: number,
   density = 1,
   sampler: BiomeSampler = sampleBiome,
+  /** Optional habitat density (generated worlds); absent = historical behaviour. */
+  cover?: (x: number, z: number) => number,
 ): EcologySector {
   const random = mulberry32(
     (seed ^ Math.imul(cx, 73856093) ^ Math.imul(cz, 19349663)) >>> 0,
@@ -134,6 +142,7 @@ export function generateEcologySector(
     if (!insideWorld(x, z)) continue;
     const biome = sampler(x, z),
       options = BIOMES[biome].plants;
+    if (cover && random() > cover(x, z)) continue;
     const kind = options[Math.floor(random() * options.length)];
     const floor = terrainHeight(x, z),
       surface = waterSurface(x, z);
