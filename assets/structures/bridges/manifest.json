@@ -1,0 +1,204 @@
+{
+  "schemaVersion": 1,
+  "status": "ART_APPROVED_RUNTIME_NOT_QUALIFIED",
+  "license": "project-original",
+  "units": "m",
+  "up": "Y",
+  "forward": "-Z",
+  "textures": 0,
+  "models": [
+    {
+      "id": "structure.bridge.wooden_arch_v1",
+      "name": "Pont en bois arqué V1",
+      "span_m": 5.6,
+      "width_m": 2.45,
+      "visual": "arch, two curved rails, four end posts, diagonals, staggered planks",
+      "placement": {
+        "axis": "X",
+        "leftBank": [
+          -2.8,
+          0.86,
+          0
+        ],
+        "rightBank": [
+          2.8,
+          0.86,
+          0
+        ]
+      },
+      "lods": [
+        {
+          "file": "models/structures/bridges/wooden_arch_bridge/lod0.glb",
+          "triangles": 652,
+          "bytes": 45512,
+          "sha256": "5e9398c559de96d80b01bed1f9ce76c8e81fdb27ef38f2447e00b6457a58a950",
+          "boundsMeters": [
+            [
+              -2.89,
+              0.378,
+              -1.33
+            ],
+            [
+              2.89,
+              2.093,
+              1.33
+            ]
+          ],
+          "componentTriangles": {
+            "deck": 132,
+            "under_beam": 152,
+            "curved_rail": 152,
+            "end_post": 48,
+            "post_cap": 48,
+            "diagonal": 48,
+            "rail_upright": 48,
+            "edge_lip": 24
+          }
+        },
+        {
+          "file": "models/structures/bridges/wooden_arch_bridge/lod1.glb",
+          "triangles": 412,
+          "bytes": 29184,
+          "sha256": "7a24e5ca4b704e490164ccd0a46f82313f3dfc9a0c334c1f87698b4435b4968a",
+          "boundsMeters": [
+            [
+              -2.8,
+              0.399,
+              -1.33
+            ],
+            [
+              2.8,
+              2.1,
+              1.33
+            ]
+          ],
+          "componentTriangles": {
+            "deck": 84,
+            "under_beam": 104,
+            "curved_rail": 104,
+            "end_post": 48,
+            "post_cap": 48,
+            "rail_upright": 24
+          }
+        },
+        {
+          "file": "models/structures/bridges/wooden_arch_bridge/lod2.glb",
+          "triangles": 208,
+          "bytes": 15308,
+          "sha256": "1a5d88df339eaa5d72b7ffb9eb8479313362e611a8fd344e768eb7999449fac6",
+          "boundsMeters": [
+            [
+              -2.8,
+              0.399,
+              -1.28
+            ],
+            [
+              2.8,
+              2.045,
+              1.28
+            ]
+          ],
+          "componentTriangles": {
+            "deck": 48,
+            "under_beam": 56,
+            "curved_rail": 56,
+            "end_post": 48
+          }
+        }
+      ]
+    },
+    {
+      "id": "structure.bridge.log_v1",
+      "name": "Pont rustique en rondins V1",
+      "span_m": 4.3,
+      "width_m": 2.25,
+      "visual": "flat planks, two crosswise logs, four small pegs",
+      "placement": {
+        "axis": "X",
+        "leftBank": [
+          -2.15,
+          0.82,
+          0
+        ],
+        "rightBank": [
+          2.15,
+          0.82,
+          0
+        ]
+      },
+      "lods": [
+        {
+          "file": "models/structures/bridges/log_bridge/lod0.glb",
+          "triangles": 296,
+          "bytes": 23736,
+          "sha256": "f76a8aeb48d44d1cfe72dc701be2fb9df98cedd92f9c32d59dd7f595947c9d84",
+          "boundsMeters": [
+            [
+              -2.126,
+              0.034,
+              -1.125
+            ],
+            [
+              2.126,
+              1.085,
+              1.125
+            ]
+          ],
+          "componentTriangles": {
+            "deck": 96,
+            "support_log": 80,
+            "stringer": 24,
+            "corner_peg": 96
+          }
+        },
+        {
+          "file": "models/structures/bridges/log_bridge/lod1.glb",
+          "triangles": 240,
+          "bytes": 19480,
+          "sha256": "acb237a4ed1af9bcdd9ce479ccb0f48356c375e0db0cffa5fa3244afbd552694",
+          "boundsMeters": [
+            [
+              -2.118,
+              0.02,
+              -1.125
+            ],
+            [
+              2.118,
+              1.085,
+              1.125
+            ]
+          ],
+          "componentTriangles": {
+            "deck": 72,
+            "support_log": 64,
+            "stringer": 24,
+            "corner_peg": 80
+          }
+        },
+        {
+          "file": "models/structures/bridges/log_bridge/lod2.glb",
+          "triangles": 132,
+          "bytes": 10792,
+          "sha256": "73a9f08023b61383f568ec74540a11e7f88631ae1a12f63c33af1469a2580f5a",
+          "boundsMeters": [
+            [
+              -2.086,
+              0.059,
+              -1.125
+            ],
+            [
+              2.086,
+              1.04,
+              1.125
+            ]
+          ],
+          "componentTriangles": {
+            "deck": 36,
+            "support_log": 48,
+            "corner_peg": 48
+          }
+        }
+      ]
+    }
+  ]
+}
