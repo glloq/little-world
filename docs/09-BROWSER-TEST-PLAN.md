@@ -171,6 +171,20 @@ Un rapport doit distinguer **échange géométrique Blender (non exhaustif côt�
 9. Benchmark comparatif **2,5D vs GLB modules vs voxels locaux** à géométrie/récolte équivalentes : CPU remeshing p95/p99, mémoire GPU estimée, draw calls, tailles de sauvegarde et de delta.
 10. En solo **aucune connexion serveur requise** ; futur serveur testé séparément, sans masquer l'absence d'autorité réseau dans GitHub Pages.
 
+## Plan de tests AGRI — parcelles, météo passée, propriétaire et LOD
+
+**Tests futurs spécifiés dans [25 — Agriculture LOW-RESOURCE](25-AGRICULTURE-PARCELS-LOW-RESOURCE.md)**, non exécutés par la documentation.
+
+1. Dessiner trois parcelles et sous-zones, semer, arroser, traiter, mûrir, récolter, sauvegarder puis recharger — cultures, stocks et inventaire intacts.
+2. **10–30 jours fictifs sans connexion** : mêmes résultats que croissance évaluée par étapes sous **la même météo historique**, y compris sécheresse/gel/rotation ; pas de calcul agronomique à chaque RAF.
+3. Horloge accélérée, onglet masqué et changements d'heures/saisons : pas de croissance doublée, gelée ou de retard faux; historique climatique/version de règles respectés.
+4. Récolte/arrosage simultanés simulés, requêtes dupliquées et versions de parcelle obsolètes : **une seule transaction**, stocks d'eau/graines et inventaire corrects.
+5. **Agriculteur propriétaire/ouvrier** reçoit état détaillé; **visiteur** ne reçoit que stade/infos publiques ni droits; **même géométrie LOD à même caméra**.
+6. Un champ à proximité : plantes instanciées; à mi-distance rangs simplifiés; en planage couleur/masque; herbe naturelle exclue, aucune animation/collision par plant.
+7. 100/1 000/10 000 parcelles **synthétiques**, 0/10/100 visibles proches, événements météo/échéances et récoltes simultanés : p95/p99, CPU, caches, mémoire, draw calls et bande passante simulée.
+8. Parcelle recoupant 2–3 chunks, conflit eau/route/bâtiment/mine, Undo/Redo Studio et export ZIP **source** distinct de la sauvegarde de **partie**.
+9. Vérifier sur **GPU intégré matériel**, pas seulement SwiftShader; maintenir 30 FPS nominal/20 secours comme objectif à qualifier, sans changer le rythme agricole lors du downgrade.
+
 ## Scénarios futurs — Studio complet et jeu final (non implémentés)
 
 Cette liste est un **plan d'acceptation pour la prochaine architecture**, et non un compte-rendu de tests réussis :
