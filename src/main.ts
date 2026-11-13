@@ -507,6 +507,7 @@ function draw(now: number) {
         horizon: { ...world.horizon },
         terrainWork: { ...world.terrainWork },
         dressing: world.dressing ? { ...world.dressing } : null,
+        paths: { ...world.paths },
         workers: geoWorkerPool()?.stats ? { ...geoWorkerPool()!.stats } : null,
         environment:environment.metrics,
         audio:audio?.engine.metrics??null,

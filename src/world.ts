@@ -5,6 +5,7 @@ import { createHorizonView, type HorizonStats } from './horizon-view';
 import { configureGeography } from './geography/engine';
 import { createEcology } from './ecology';
 import { geoWorkerPool } from './geography/geo-workers.ts';
+import { createPathView, type PathViewStats } from './paths/path-view.ts';
 import { createDressingView, type DressingView, type DressingStats } from './dressing-view.ts';
 import { sampleBiome, generatedCover } from './biomes';
 import type {
@@ -40,6 +41,8 @@ export interface WorldView {
   terrainWork: import('./terrain-view').TerrainWorkStats;
   /** Natural dressing of generated worlds (null for the historical valley). */
   dressing: DressingStats | null;
+  /** Path surfaces (sectors built, triangles, pending). */
+  paths: PathViewStats;
   /** `economy` (lowest quality setting) shifts the natural dressing one tier down. */
   setDetail: (level: number, economy?: boolean) => void;
   refreshTerrain: (x: number, z: number, radius: number) => void;
@@ -653,22 +656,11 @@ export function buildWorld(
     return changed;
   }
   refreshWater();
-  // Authored paths are kept by ID/signature so Studio edits rebuild only what changed.
-  const pathMeshes = new Map<string, { signature: string; mesh: THREE.Mesh }>();
+  // E8: authored paths are rendered per sector (one shared material, LOD, streaming);
+  // an edit rebuilds only the sectors its path crosses.
+  const pathView = createPathView(root, getTerrainConfig().chunkSize);
   function refreshPaths(paths: PathDefinition[]) {
-    const changed: string[] = [], ids = new Set(paths.map((p) => p.id));
-    for (const [id, entry] of pathMeshes)
-      if (!ids.has(id)) { removePlacement(entry.mesh); pathMeshes.delete(id); changed.push(id); }
-    for (const path of paths) {
-      const signature = JSON.stringify([path.width, path.points]);
-      if (pathMeshes.get(path.id)?.signature === signature) continue;
-      const previous = pathMeshes.get(path.id);
-      if (previous) removePlacement(previous.mesh);
-      const mesh = createRibbon(root, path.points, path.width, (x, z) => terrainHeight(x, z) + 0.12, 0xd3bd94, false);
-      mesh.name = 'Path:' + path.id; mesh.userData.pathId = path.id;
-      pathMeshes.set(path.id, { signature, mesh }); changed.push(path.id);
-    }
-    return changed;
+    return pathView.setPaths(paths);
   }
   refreshPaths(definition?.paths ?? []);
   let time = 0,
@@ -694,6 +686,7 @@ export function buildWorld(
     horizon: horizon.stats,
     terrainWork: terrainView.work,
     dressing: dressing?.stats ?? null,
+    paths: pathView.stats,
     refreshWater,
     refreshPaths,
     setDetail(level, economy = false) {
@@ -706,6 +699,7 @@ export function buildWorld(
       horizon.refresh(x, z, radius);
       ecology.refresh(x, z, radius);
       dressing?.refresh(x, z, radius);
+      pathView.refreshArea(x, z, radius + 8);
       const matrix = new THREE.Matrix4();
       root.traverse((node) => {
         if (
@@ -774,6 +768,7 @@ export function buildWorld(
       horizon.update(focus);
       ecology.update(dt, time, focus.x, focus.z);
       dressing?.update(focus.x, focus.z);
+      pathView.update(focus.x, focus.z);
       const distance = getTerrainConfig().viewDistance;
       for (const object of objects.children)
         object.visible =
@@ -783,6 +778,7 @@ export function buildWorld(
     dispose() {
       ecology.dispose();
       dressing?.dispose();
+      pathView.dispose();
       horizon.dispose();
       terrainView.dispose();
       root.traverse((o) => {
@@ -862,59 +858,4 @@ export function removePlacement(object: THREE.Object3D): void {
         if (!sharedMaterials.has(m)) m.dispose();
   });
   object.removeFromParent();
-}
-function createRibbon(
-  root: THREE.Group,
-  points: { x: number; z: number }[],
-  width: number,
-  height: (x: number, z: number) => number,
-  color: number,
-  water: boolean,
-) {
-  const vertices: number[] = [],
-    indices: number[] = [];
-  for (let i = 1; i < points.length; i++) {
-    const a = points[i - 1],
-      b = points[i],
-      dx = b.x - a.x,
-      dz = b.z - a.z,
-      len = Math.hypot(dx, dz) || 1;
-    const steps = Math.max(1, Math.ceil(len / 3));
-    for (let j = 0; j < steps; j++) {
-      const start = vertices.length / 3;
-      for (const t of [j / steps, (j + 1) / steps])
-        for (const side of [-1, 1]) {
-          const x = a.x + dx * t + (dz / len) * width * 0.5 * side,
-            z = a.z + dz * t - (dx / len) * width * 0.5 * side;
-          vertices.push(x, height(x, z), z);
-        }
-      indices.push(
-        start,
-        start + 2,
-        start + 1,
-        start + 1,
-        start + 2,
-        start + 3,
-      );
-    }
-  }
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-  geo.setIndex(indices);
-  geo.computeVertexNormals();
-  const ribbon = mesh(
-    geo,
-    new THREE.MeshLambertMaterial({
-      color,
-      side: THREE.DoubleSide,
-      transparent: water,
-      opacity: water ? 0.8 : 1,
-    }),
-    root,
-    0,
-    0,
-    0,
-  );
-  if (!water) ribbon.userData.groundRibbon = true;
-  return ribbon;
 }

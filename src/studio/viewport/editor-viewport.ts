@@ -136,7 +136,7 @@ export class StudioViewport {
       this.tools.active?.frame?.();this.selection.refresh();
       this.renderer.render(this.scene,this.camera.camera);this.remaining--;
       const d=this.canvas.dataset;d.renderCount=String(++this.renderCount);d.pending=String(this.world.stats.pending);d.cameraMode=this.camera.mode;d.camera=JSON.stringify(this.camera.context());d.calls=String(this.renderer.info.render.calls);
-      d.waterCount=String(this.world.root.children.filter(o=>o.userData.waterId).length);d.diagnostics=JSON.stringify(this.diagnostics);d.models=String(this.models.size);d.paths=String(this.world.root.children.filter(o=>o.userData.pathId).length);d.contentSectors=String(this.contentIds.size);
+      d.waterCount=String(this.world.root.children.filter(o=>o.userData.waterId).length);d.diagnostics=JSON.stringify(this.diagnostics);d.models=String(this.models.size);d.paths=String(this.world.paths.paths);d.pathSectors=String(this.world.paths.sectors);d.pathSignature=this.world.paths.signature;d.contentSectors=String(this.contentIds.size);
     }
     this.drawing=false;
     if(this.remaining>0||this.world.stats.pending>0||this.navigation.flying||this.camera.animating||this.tools.active&&'dragging' in this.tools.active&&(this.tools.active as {dragging:boolean}).dragging)this.frame=requestAnimationFrame(this.draw);

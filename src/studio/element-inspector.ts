@@ -5,7 +5,8 @@ import type {PathDefinition,WaterBody,TerrainStroke,BiomeStroke} from '../world-
 import type {ActivityZoneV3} from '../studio-core/types.ts';
 import type {PolylineTarget} from './viewport/polyline-tool.ts';
 import {ZONE_KINDS} from '../studio-core/zones.ts';
-import {riverWithPoints} from './world-features.ts';
+import {riverWithPoints,pathTarget,PATH_ENV} from './world-features.ts';
+import {pathDiagnostics} from '../paths/path-geometry.ts';
 import {editQueue} from './inspector.ts';
 
 /** E7 — inspector of non-entity authoring elements: properties of the selected type, point
@@ -32,7 +33,10 @@ export function renderElementInspector(host:HTMLElement,ref:ElementRef,ctx:Eleme
     box.append(node('legend','Chemin'),field('Type de chemin',select(path.kind??'dirt',PATH_KIND_LABELS,v=>apply('Type de chemin',{kind:v}))),
       field('Largeur (m)',numberInput(path.width,v=>apply('Largeur du chemin',{width:Math.max(1,Math.min(40,v))}),1,40)));
     const smooth=node('input');smooth.type='checkbox';smooth.checked=!!path.smooth;smooth.onchange=()=>apply(smooth.checked?'Courber le chemin':'Chemin à segments droits',{smooth:smooth.checked});box.append(field('Courbes adoucies',smooth));
-    box.append(node('p',`${path.points.length} points`,'muted'),button('Éditer les points',()=>ctx.editPath({label:'Chemin',points:path.points,min:2,max:100,color:0xc9a46a,commit:async points=>{const patch={points};await s.change('Modifier un chemin',updateChunkIds(p,ref,patch),d=>updateElement(d,ref,patch));}}),'primary-button'));
+    box.append(node('p',`${path.points.length} points`,'muted'),button('Éditer les points',()=>ctx.editPath(pathTarget(s,'Chemin',path,async next=>{const patch={points:next.points};await s.change('Modifier un chemin',updateChunkIds(p,ref,patch),d=>updateElement(d,ref,patch));})),'primary-button'));
+    const issues=pathDiagnostics(Object.values(p.libraries.paths),PATH_ENV).filter(d=>d.pathId===path.id),diag=node('div','','path-diagnostics');diag.dataset.count=String(issues.length);
+    for(const d of issues){const b=button((d.severity==='ERROR'?'⛔ ':'⚠ ')+d.message,()=>ctx.view(d.x,d.z),'diagnostic '+d.severity);diag.append(b);}
+    if(!issues.length)diag.append(node('p','Aucun problème de pente ni de raccord.','muted'));box.append(diag);
   }else if(ref.kind==='water'){
     const water=data as WaterBody;
     box.append(node('legend','Rivière'),field('Largeur (m)',numberInput(water.width,v=>apply('Largeur de la rivière',{width:Math.max(1,Math.min(40,v))}),1,40)),field('Profondeur (m)',numberInput(water.depth,v=>apply('Profondeur de la rivière',{depth:Math.max(.5,Math.min(20,v))}),.5,20)),

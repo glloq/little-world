@@ -1,13 +1,14 @@
-import {node,button,field,input,numberInput} from './dom.ts';
+import {node,button,field,input,numberInput,select} from './dom.ts';
 import type {StudioSession} from './session.ts';
 import type {PolylineTarget} from './viewport/polyline-tool.ts';
 import {putPath,removePath,putWater,removeWater} from '../studio-core/source.ts';
 import {putZone,removeZone,validateZone,polygonArea,ZONE_KINDS} from '../studio-core/zones.ts';
 import {lineChunkIds,waterEditChunkIds} from '../water/sectors.ts';
 import {compileWaterBody} from '../water/profile.ts';
-import {sourceTerrainHeight} from '../terrain.ts';
+import {sourceTerrainHeight,terrainHeight,waterSurface} from '../terrain.ts';
+import {pathDiagnostics,snapToPaths,PATH_PROFILES,PATH_KIND_IDS} from '../paths/path-geometry.ts';
 import type {ActivityZoneV3} from '../studio-core/types.ts';
-import type {PathDefinition,WaterBody} from '../world-data.ts';
+import type {PathDefinition,PathKind,WaterBody} from '../world-data.ts';
 
 /** E6 — lines (paths, rivers) and activity zones edited in the 3D view with the shared
  * polyline tool. Every validation goes through the existing V3 validators. */
@@ -25,19 +26,33 @@ export function riverWithPoints(water:WaterBody,points:{x:number;z:number}[]):Wa
   return {...structuredClone(water),points:points.map(p=>({x:p.x,z:p.z})),...(profile?{profile}:{})};
 }
 function riverRemark(water:WaterBody):string|null{const d=compileWaterBody(water,sourceTerrainHeight).diagnostics;const first=d.find(v=>v.severity==='ERROR')??d[0];return first?first.message:null;}
+/** E8 — snapping and live diagnostics shared by the paths panel and the inspector. */
+export function pathTarget(s:StudioSession,label:string,base:PathDefinition,commit:(path:PathDefinition)=>Promise<void>):PolylineTarget{
+  const p=s.document,others=()=>Object.values(p.libraries.paths).filter(o=>o.id!==base.id);
+  return {label,points:base.points,min:2,max:100,color:0xc9a46a,
+    snap:q=>snapToPaths(others(),q,Math.max(2.5,base.width)),
+    diagnose:points=>{const draft={...base,points};const d=pathDiagnostics([...others(),draft],PATH_ENV).find(v=>v.pathId===base.id);return d?d.message:null;},
+    commit:points=>commit({...base,points})};
+}
+export const PATH_ENV={height:terrainHeight,water:waterSurface};
 export function mountPathsPanel(host:HTMLElement,ctx:FeatureContext){
-  const s=ctx.session,p=s.document;let width=3;
-  const newPath=():PolylineTarget=>({label:'Nouveau chemin',points:[],min:2,max:100,color:0xc9a46a,commit:async points=>{const path:PathDefinition={id:'path:'+crypto.randomUUID(),points,width};await s.change('Tracer un chemin',lineChunkIds(p.world,path),d=>putPath(d,path));}});
+  const s=ctx.session,p=s.document;let width=3,kind:PathKind='dirt',smooth=true;
+  const newPath=():PolylineTarget=>pathTarget(s,'Nouveau chemin',{id:'path:'+crypto.randomUUID(),points:[],width,kind,smooth},async path=>{await s.change('Tracer un chemin',lineChunkIds(p.world,path),d=>putPath(d,path));});
   const newRiver=():PolylineTarget=>{const base:WaterBody={id:crypto.randomUUID(),points:[],width:8,depth:2,level:4,profile:{mode:'terrain',offset:-.35}};
     return {label:'Nouvelle rivière (de la source vers l’aval)',points:[],min:2,max:100,color:0x4fa3d1,diagnose:points=>riverRemark({...base,points}),commit:async points=>{const water={...base,points};await s.change('Tracer une rivière',waterEditChunkIds(p,undefined,water),d=>putWater(d,water));}};};
-  host.append(node('div','CHEMINS ET RIVIÈRES','kicker'),node('h3','Tracés du monde'),field('Largeur des nouveaux chemins (m)',numberInput(width,v=>width=Math.max(1,Math.min(40,v||3)),1,40)),
+  const smoothBox=node('input');smoothBox.type='checkbox';smoothBox.checked=smooth;smoothBox.onchange=()=>{smooth=smoothBox.checked;};
+  host.append(node('div','CHEMINS ET RIVIÈRES','kicker'),node('h3','Tracés du monde'),
+    field('Type des nouveaux chemins',select(kind,PATH_KIND_IDS.map(k=>[k,PATH_PROFILES[k].label] as [string,string]),v=>{kind=v as PathKind;})),
+    field('Largeur des nouveaux chemins (m)',numberInput(width,v=>width=Math.max(1,Math.min(40,v||3)),1,40)),field('Courbes adoucies',smoothBox),
     button('Nouveau chemin',()=>ctx.edit(newPath()),'primary-button'),button('Nouvelle rivière',()=>ctx.edit(newRiver())),
-    node('p','Clic : ajouter des points · glisser un point pour le déplacer · Entrée : valider. Les rivières suivent le relief ; les incohérences de profil s’affichent pendant le tracé.','muted'));
+    node('p','Clic : ajouter des points (aimantés aux chemins existants pour les raccords) · glisser un point pour le déplacer · Entrée : valider. Pentes et raccords incohérents s’affichent pendant le tracé.','muted'));
   const list=node('div','','feature-list');
+  const diagnostics=pathDiagnostics(Object.values(p.libraries.paths),PATH_ENV);
   for(const path of Object.values(p.libraries.paths)){
-    const row=node('div','','feature-row');row.append(node('strong',`Chemin · ${Math.round(length(path.points))} m`),
+    const row=node('div','','feature-row'),issues=diagnostics.filter(d=>d.pathId===path.id);
+    row.append(node('strong',`${PATH_PROFILES[path.kind??'dirt'].label} · ${Math.round(length(path.points))} m`),...issues.map(d=>node('p','⚠ '+d.message,'muted')),
       button('Voir',()=>ctx.focus(path.points[0].x,path.points[0].z)),
-      button('Éditer les points',()=>ctx.edit({label:'Chemin',points:path.points,min:2,max:100,color:0xc9a46a,commit:async points=>{const next={...path,points};await s.change('Modifier un chemin',[...new Set([...lineChunkIds(p.world,path),...lineChunkIds(p.world,next)])],d=>putPath(d,next));}})),
+      button('Éditer les points',()=>ctx.edit(pathTarget(s,'Chemin',path,async next=>{await s.change('Modifier un chemin',[...new Set([...lineChunkIds(p.world,path),...lineChunkIds(p.world,next)])],d=>putPath(d,next));}))),
       button('Supprimer',async()=>{try{await s.change('Supprimer un chemin',lineChunkIds(p.world,path),d=>removePath(d,path.id));}catch(e){ctx.status(String(e),true);}}));list.append(row);
   }
   for(const water of Object.values(p.libraries.water)){

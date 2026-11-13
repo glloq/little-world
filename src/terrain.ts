@@ -1,5 +1,6 @@
 import {WaterSpatialIndex} from './water/profile.ts';
 import {ribbonDistance} from './geography/lines.ts';
+import {pathRibbon} from './paths/path-geometry.ts';
 import {LEGACY_GENERATOR,generatorField,type TerrainGeneratorDefinition} from './terrain-generator.ts';
 import type {GeneratorField} from './geography/archipelago.ts';
 import type {
@@ -43,7 +44,7 @@ export function configureTerrain(
   field=g.kind==='legacy-valley'?null:generatorField(g,{seed:c.seed,seaLevel:config.seaLevel,width:config.width,length:config.length},()=>0);
   sourceHeight=createTerrainSource(c,edits,field);
   waterIndex=new WaterSpatialIndex(water,sourceHeight);
-  pathRibbons = ribbonDistance(roads);
+  pathRibbons = ribbonDistance(roads.map(pathRibbon));
   // Revision of the terrain inputs: geography workers replay them, results computed with an
   // older revision are discarded. Unchanged inputs keep the revision (no needless rebuild).
   const signature = JSON.stringify([c, edits, water, roads]);
