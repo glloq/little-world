@@ -1,5 +1,8 @@
 import {
+  coastDistanceAt,
+  getTerrainConfig,
   insideWorld,
+  isLegacyTerrain,
   mulberry32,
   pathDistance,
   riverX,
@@ -59,6 +62,14 @@ export const ECOLOGY_SECTOR_SIZE = 48;
 export function sampleBiome(x: number, z: number): BiomeId {
   const level = waterSurface(x, z),
     height = terrainHeight(x, z);
+  if (!isLegacyTerrain()) {
+    // Generated relief: coast/altitude bands only; authored biome edits override them.
+    const coast = coastDistanceAt(x, z) ?? Infinity, sea = getTerrainConfig().seaLevel;
+    if (level !== null && level > height + 0.15) return level > sea + 0.05 ? 'river' : 'coast';
+    if (coast < 90 || height < sea + 3) return 'coast';
+    if (height > sea + 170) return 'mountain';
+    return 'meadow';
+  }
   if (level !== null && level > height + 0.15)
     return z > 190 ? 'coast' : 'river';
   if (Math.abs(z - 95) < 40 && Math.abs(x - (riverX(95) - 30)) < 32)
@@ -71,6 +82,7 @@ export function sampleBiome(x: number, z: number): BiomeId {
 /** Keep generated decoration clear of the existing trail, mill, homes and dock. */
 export function ecologyExcluded(x: number, z: number): boolean {
   if (pathDistance(x, z) < 1.4) return true;
+  if (!isLegacyTerrain()) return false;
   if (Math.abs(z + 57) < 15 && Math.abs(x - (riverX(-57) - 24)) < 12)
     return true;
   for (const homeZ of [70, 94, 118]) {

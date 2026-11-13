@@ -6,7 +6,7 @@ import {
   presentationPixelRatio,
 } from './frame-clock';
 import './style.css';
-import {waterSurface,riverX} from './terrain.ts';
+import {waterSurface,riverX,isLegacyTerrain} from './terrain.ts';
 import type {PlayableWorld,StudioPlaytest} from './gameplay/playable.ts';
 import {WorldClock} from './environment/clock.ts';
 import {createClimate,defaultEnvironment} from './environment/climate.ts';
@@ -136,7 +136,7 @@ if(playable){
     setPosition:p=>{player.position.set(p.x,p.y,p.z);player.velocity.set(0,0,0);player.mode='air';player.oxygen=MAX_OXYGEN;player.glideReady=false;aboard=false;keySet.clear();jumpQueue=0;actionQueue=0;npcs.dialogue.close();previousPlayerPosition.copy(player.position);renderPosition.copy(player.position);updateCamera(1);}
   });
 }
-const npcs = createNPCSystem(scene, definition.npcs,undefined,gameplay?.dialogueSession);
+const npcs = createNPCSystem(scene, definition.npcs,isLegacyTerrain()?undefined:[],gameplay?.dialogueSession);
 gameplay?.attachNPCs(npcs.states);
 const worldClock=gameplay?.runtime.clock??new WorldClock(),climate=gameplay?.runtime.climate??createClimate(defaultEnvironment(definition.config.seed));
 const {createEnvironmentView}=await import('./environment/view.ts');
@@ -446,7 +446,7 @@ function draw(now: number) {
     frame.alpha,
   );
   environment.update(delta,player.position,budget.level);
-  if(started&&audio){const env=climate.state(worldClock.time);audio.update(now,player.position,id=>gameplay?.runtime.getEntityPosition(id),{night:env.sunAltitude<0,rain:env.weather==='rain',water:waterSurface(player.position.x,player.position.z)!==null||Math.abs(player.position.x-riverX(player.position.z))<16},budget.level,player.mode==='ground'&&!aboard&&player.velocity.lengthSq()>.1,camera.getWorldDirection(audioForward));}
+  if(started&&audio){const env=climate.state(worldClock.time);audio.update(now,player.position,id=>gameplay?.runtime.getEntityPosition(id),{night:env.sunAltitude<0,rain:env.weather==='rain',water:waterSurface(player.position.x,player.position.z)!==null||(isLegacyTerrain()&&Math.abs(player.position.x-riverX(player.position.z))<16)},budget.level,player.mode==='ground'&&!aboard&&player.velocity.lengthSq()>.1,camera.getWorldDirection(audioForward));}
   world.update(delta, player.position);
   npcs.update(delta, elapsed, player.position); // The river drives the mill: no manual on/off control.
   world.boat.position.set(

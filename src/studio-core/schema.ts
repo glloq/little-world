@@ -3,6 +3,7 @@ import {parseAudioDefinition,validateAudioLinks} from '../audio/schema.ts';
 import {parseEnvironmentDefinition} from '../environment/climate.ts';
 import catalogue from '../../assets/catalog.json' with {type:'json'};
 import { EMOTIONS } from '../character-style.ts';
+import {parseTerrainGenerator,VERTICAL_ENVELOPE,type TerrainGeneratorDefinition} from '../terrain-generator.ts';
 import { validDialogue } from '../dialogue.ts';
 import type { AssetDefinition, BiomeEdit, ChunkId, ChunkSourceV3, ComponentMap, EntityDefinitionV3, ProjectDocument, StudioProjectV3, TerrainEdit, WorldDefinitionV3 } from './types.ts';
 
@@ -30,13 +31,14 @@ export function parseManifest(value:unknown):StudioProjectV3{
   return structuredClone(v) as unknown as StudioProjectV3;
 }
 export function parseWorldV3(value:unknown):WorldDefinitionV3{
-  const v=object(value,'Monde');keys(v,['schemaVersion','worldId','seed','generatorVersion','bounds','seaLevel','chunkSizeM','coordinateSystem','chunkIndexRef','density','viewDistance','editSequence','environment','audio'],'Monde');
+  const v=object(value,'Monde');keys(v,['schemaVersion','worldId','seed','generatorVersion','bounds','seaLevel','chunkSizeM','coordinateSystem','chunkIndexRef','density','viewDistance','editSequence','environment','audio','terrain'],'Monde');
   if(v.schemaVersion!==3||v.generatorVersion!=='1'||v.coordinateSystem!=='meters-y-up')throw Error('Version ou coordonnées de monde incompatibles');
   if(v.audio!==undefined)parseAudioDefinition(v.audio);
   if(v.environment!==undefined)parseEnvironmentDefinition(v.environment);
   string(v.worldId,'ID monde');integer(v.editSequence,'Séquence retouches');integer(v.seed,'Graine',1,9999999);finite(v.seaLevel,'Mer',-20,20);finite(v.chunkSizeM,'Taille de secteur',16,512);finite(v.density,'Densité',0,2);finite(v.viewDistance,'Distance visible',64,800);localPath(v.chunkIndexRef,'Index secteurs');
   const b=object(v.bounds,'Limites');keys(b,['minX','maxX','minZ','maxZ'],'Limites');for(const key of ['minX','maxX','minZ','maxZ'])finite(b[key],'Limites',-100000,100000);
   for(const [lo,hi] of [['minX','maxX'],['minZ','maxZ']])finite((b[hi] as number)-(b[lo] as number),'Dimensions',1,10000);
+  if(v.terrain!==undefined)parseTerrainGenerator(v.terrain,{width:(b.maxX as number)-(b.minX as number),length:(b.maxZ as number)-(b.minZ as number)});
   return structuredClone(v) as unknown as WorldDefinitionV3;
 }
 /** Half-open cells, with the world's uppermost edge owned by the final cell. */
@@ -95,7 +97,7 @@ export function validateOverrides(value:unknown):void{
 }
 export function validateTerrainEdit(raw:unknown,world:WorldDefinitionV3,biome=false):void{
   const e=object(raw,'Retouche');keys(e,biome?['id','x','z','radius','biome','density','order']:['id','x','z','radius','strength','mode','height','order'],'Retouche');string(e.id,'ID retouche');point(e,world,'Retouche');finite(e.radius,'Rayon',1,biome?100:80);integer(e.order,'Ordre');
-  if(biome){if(!['forest','meadow','mountain','river','lake','coast','village'].includes(String(e.biome)))throw Error('Biotope inconnu');finite(e.density,'Densité',0,2);}else{if(!['raise','lower','flatten','smooth'].includes(String(e.mode)))throw Error('Pinceau inconnu');finite(e.strength,'Intensité',0,10);finite(e.height,'Altitude',-50,150);}
+  if(biome){if(!['forest','meadow','mountain','river','lake','coast','village'].includes(String(e.biome)))throw Error('Biotope inconnu');finite(e.density,'Densité',0,2);}else{if(!['raise','lower','flatten','smooth'].includes(String(e.mode)))throw Error('Pinceau inconnu');finite(e.strength,'Intensité',0,10);finite(e.height,'Altitude',VERTICAL_ENVELOPE.min,VERTICAL_ENVELOPE.max);}
 }
 export function parseChunk(value:unknown,world:WorldDefinitionV3):ChunkSourceV3{
   const c=object(value,'Secteur');keys(c,['schemaVersion','chunkId','index','revision','entities','entityIds','terrainEdits','terrainRefs','biomeEdits','biomeRefs','waterRefs','pathRefs'],'Secteur');if(c.schemaVersion!==3)throw Error('Version secteur V3 requise');const id=string(c.chunkId,'ID secteur'),coord=chunkCoordinates(world,id),index=object(c.index,'Indice');keys(index,['cx','cz'],'Indice');if(index.cx!==coord.cx||index.cz!==coord.cz)throw Error('Indice secteur incohérent');integer(c.revision,'Révision secteur');
@@ -105,10 +107,10 @@ export function parseChunk(value:unknown,world:WorldDefinitionV3):ChunkSourceV3{
   for(const [field,biome]of [['terrainEdits',false],['biomeEdits',true]] as const){const edits=array(c[field],field,2000);const seen=new Set();for(const e of edits){validateTerrainEdit(e,world,biome);const data=e as TerrainEdit|BiomeEdit;if(seen.has(data.id))throw Error('Retouche dupliquée');seen.add(data.id);if(chunkAt(world,data.x,data.z)!==id)throw Error('Propriétaire retouche incohérent');}}
   return structuredClone(c) as unknown as ChunkSourceV3;
 }
-export function createProject(options:{name:string;width?:number;length?:number;seed?:number;projectId?:string;worldId?:string;chunkSizeM?:number;density?:number;seaLevel?:number;viewDistance?:number}):ProjectDocument{
+export function createProject(options:{name:string;width?:number;length?:number;seed?:number;projectId?:string;worldId?:string;chunkSizeM?:number;density?:number;seaLevel?:number;viewDistance?:number;terrain?:TerrainGeneratorDefinition}):ProjectDocument{
   const projectId=options.projectId??crypto.randomUUID(),worldId=options.worldId??crypto.randomUUID(),width=options.width??200,length=options.length??600;
   const manifest:StudioProjectV3={schemaVersion:3,projectId,worldId,name:options.name,assetCatalogVersion:String(catalogue.schemaVersion),createdWith:'little-world-studio-v3',revision:0,sourceManifest:{worldRef:'world/world.json',chunkIndexRef:'world/chunk-index.json',entityIndexRef:'world/entity-index.json',librariesRef:'library/index.json',assetCatalogRef:'assets/catalog.json'}};
-  const world:WorldDefinitionV3={schemaVersion:3,worldId,seed:options.seed??1284,generatorVersion:'1',bounds:{minX:-width/2,maxX:width/2,minZ:-length/2,maxZ:length/2},seaLevel:options.seaLevel??0,chunkSizeM:options.chunkSizeM??64,coordinateSystem:'meters-y-up',chunkIndexRef:manifest.sourceManifest.chunkIndexRef,density:options.density??1,viewDistance:options.viewDistance??240,editSequence:0};
+  const world:WorldDefinitionV3={schemaVersion:3,worldId,seed:options.seed??1284,generatorVersion:'1',bounds:{minX:-width/2,maxX:width/2,minZ:-length/2,maxZ:length/2},seaLevel:options.seaLevel??0,chunkSizeM:options.chunkSizeM??64,coordinateSystem:'meters-y-up',chunkIndexRef:manifest.sourceManifest.chunkIndexRef,density:options.density??1,viewDistance:options.viewDistance??240,editSequence:0,...(options.terrain?{terrain:structuredClone(options.terrain)}:{})};
   parseManifest(manifest);parseWorldV3(world);
   const assets:Record<string,AssetDefinition>={};for(const a of catalogue.assets)assets[a.id]={id:a.id,name:a.name,type:a.type as 'glb'|'procedural',...('file'in a?{file:a.file}:{}),license:a.license,source:'source'in a?String(a.source):'Little World original procedural geometry'};
   return {manifest,world,chunkIndex:{},entityIndex:{},libraries:{prefabs:{},characters:{},dialogues:{},behaviors:{},interactions:{},activities:{},variables:{},items:{},objectives:{},water:{},paths:{}},assets,chunks:{}};

@@ -15,6 +15,7 @@ import {
   configureTerrain,
   compiledWaterBodies,
   getTerrainConfig,
+  isLegacyTerrain,
   mulberry32,
   riverLevel,
   riverX,
@@ -517,6 +518,23 @@ export function createAsset(id: AssetId): THREE.Group {
   return g;
 }
 
+function createBoatMesh(root: THREE.Group): THREE.Group {
+  const boat = new THREE.Group();
+  root.add(boat);
+  const hull = mesh(new THREE.SphereGeometry(3, 9, 5), wood, boat, 0, 0, 0);
+  hull.scale.set(0.7, 0.4, 2.1);
+  box(boat, paleWood, 3.9, 0.22, 10.5, 0, 0.7, 0);
+  cylinder(boat, darkWood, 0.12, 0.13, 7, 0, 4.1, 0.4);
+  mesh(
+    new THREE.PlaneGeometry(4.1, 5.8),
+    new THREE.MeshLambertMaterial({ color: 0xf3ddb2, side: THREE.DoubleSide }),
+    boat,
+    2.1,
+    4.25,
+    0.4,
+  );
+  return boat;
+}
 function createVillage(root: THREE.Group): {
   wheel: THREE.Group;
   millPosition: THREE.Vector3;
@@ -557,21 +575,8 @@ function createVillage(root: THREE.Group): {
     box(dock, paleWood, 9, 0.34, 1.52, 0, 1.05, i * 2.3 - 8);
   for (const x1 of [-3.75, 3.75])
     for (const z1 of [-7, 12]) cylinder(dock, wood, 0.34, 0.42, 4, x1, 0.1, z1);
-  const boat = new THREE.Group();
+  const boat = createBoatMesh(root);
   boat.position.set(-17, getTerrainConfig().seaLevel - 0.15, 220);
-  root.add(boat);
-  const hull = mesh(new THREE.SphereGeometry(3, 9, 5), wood, boat, 0, 0, 0);
-  hull.scale.set(0.7, 0.4, 2.1);
-  box(boat, paleWood, 3.9, 0.22, 10.5, 0, 0.7, 0);
-  cylinder(boat, darkWood, 0.12, 0.13, 7, 0, 4.1, 0.4);
-  mesh(
-    new THREE.PlaneGeometry(4.1, 5.8),
-    new THREE.MeshLambertMaterial({ color: 0xf3ddb2, side: THREE.DoubleSide }),
-    boat,
-    2.1,
-    4.25,
-    0.4,
-  );
   const lantern = createAsset('props.lantern');
   lantern.position.set(-29, getTerrainConfig().seaLevel + 1, 205);
   root.add(lantern);
@@ -595,10 +600,16 @@ export function buildWorld(
   root.name = 'LittleWorld';
   const terrainView = createTerrainView(root, getTerrainConfig());
   const terrain = terrainView.terrain;
-  createRiver(root);
-  createTrail(root);
-  createForest(root, config.seed, config.density);
-  const { wheel, millPosition, boat } = createVillage(root);
+  // The demonstration valley decor is tied to the legacy generator; generated worlds
+  // receive their content from V3 sources instead of hard-coded scenery.
+  const legacy = isLegacyTerrain();
+  let wheel = new THREE.Group(), millPosition = new THREE.Vector3(), boat: THREE.Group;
+  if (legacy) {
+    createRiver(root);
+    createTrail(root);
+    createForest(root, config.seed, config.density);
+    ({ wheel, millPosition, boat } = createVillage(root));
+  } else boat = createBoatMesh(root);
   const biomeAt = (x: number, z: number) => {
     const edits = definition?.biomes ?? [];
     for (let i = edits.length - 1; i >= 0; i--)

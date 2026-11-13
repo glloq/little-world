@@ -13,7 +13,7 @@ export interface Vector3 { x:number; y:number; z:number; }
 export interface Bounds { minX:number; maxX:number; minZ:number; maxZ:number; }
 export interface SourceManifest { worldRef:string; chunkIndexRef:string; entityIndexRef:string; librariesRef:string; assetCatalogRef:string; }
 export interface StudioProjectV3 { schemaVersion:3; projectId:StableId; worldId:StableId; name:string; assetCatalogVersion:string; createdWith:string; revision:number; sourceManifest:SourceManifest; }
-export interface WorldDefinitionV3 { audio?:AudioDefinition; environment?:EnvironmentDefinition; schemaVersion:3; worldId:StableId; seed:number; generatorVersion:'1'; bounds:Bounds; seaLevel:number; chunkSizeM:number; coordinateSystem:'meters-y-up'; chunkIndexRef:string; density:number; viewDistance:number; editSequence:number; }
+export interface WorldDefinitionV3 { /** Base relief generator; absent = historical valley. */ terrain?:import('../terrain-generator.ts').TerrainGeneratorDefinition; audio?:AudioDefinition; environment?:EnvironmentDefinition; schemaVersion:3; worldId:StableId; seed:number; generatorVersion:'1'; bounds:Bounds; seaLevel:number; chunkSizeM:number; coordinateSystem:'meters-y-up'; chunkIndexRef:string; density:number; viewDistance:number; editSequence:number; }
 export interface TerrainEdit extends TerrainStroke { order:number; }
 export interface BiomeEdit extends BiomeStroke { order:number; }
 export interface TransformComponent {type:'Transform';position:Vector3;rotation:{x:number;y:number;z:number;w:number};scale:Vector3;}

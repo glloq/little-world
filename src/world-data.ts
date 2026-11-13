@@ -12,6 +12,8 @@ export interface WorldConfig {
   chunkSize?: number;
   viewDistance?: number;
   generatorVersion?: 1;
+  /** Runtime-only base relief descriptor carried from V3 sources; V1/V2 files cannot set it. */
+  terrain?: import('./terrain-generator.ts').TerrainGeneratorDefinition;
 }
 export interface Placement {
   id: string;
@@ -143,6 +145,8 @@ export function parseWorld(value: unknown): WorldDefinition {
   ] as const)
     if (c[key] !== undefined && !num(c[key], min, max))
       throw Error('Configuration invalide : ' + key);
+  if (c.terrain !== undefined)
+    throw Error('Générateur de relief réservé aux sources V3');
   if (c.generatorVersion !== undefined && c.generatorVersion !== 1)
     throw Error('Version du générateur inconnue');
   const config = resolveConfig(c as unknown as WorldConfig);

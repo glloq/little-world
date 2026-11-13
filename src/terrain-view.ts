@@ -6,7 +6,7 @@ import {
   type TerrainLOD,
   type WorldChunk,
 } from './chunks.ts';
-import { riverX, smoothstep, terrainHeight } from './terrain.ts';
+import { terrainColor, terrainHeight } from './terrain.ts';
 
 /** A surface plus downward skirts hides cracks where neighboring chunks use different LODs. */
 export function createChunkGeometry(
@@ -28,12 +28,7 @@ export function createChunkGeometry(
     const h = terrainHeight(x, z);
     positions.push(x, h - (skirt ? 12 : 0), z);
     const slope = Math.abs(terrainHeight(x + 2, z) - h);
-    if (smoothstep(165, 236, z) > 0.65 && h < 2) color.setHex(0xa5b7a0);
-    else if (Math.abs(x - riverX(z)) < 17) color.setHex(0xb9c997);
-    else if (h > 37 && slope > 1.6) color.setHex(0x9baca1);
-    else if (h > 58) color.setHex(0xb6bbae);
-    else if (h > 30) color.setHex(0x8fa78a);
-    else color.setHex(0x89ad7b);
+    terrainColor(x, z, h, slope, color);
     color.multiplyScalar(
       0.92 +
         0.07 * Math.sin(x * 0.275 + z * 0.165) +
