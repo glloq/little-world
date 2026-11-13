@@ -32,7 +32,8 @@ export function parseGameSave(value:unknown):GameSaveV2 {
 }
 export const GAME_SAVE_PREFIX='little-world:game-save:v1:';
 export interface SaveStorage {readonly length:number;key(index:number):string|null;getItem(key:string):string|null;setItem(key:string,value:string):void;removeItem(key:string):void;}
-export interface SaveSlot {slotId:string;worldId:string;savedAt?:number;worldBuildVersion?:string;error?:string;}
+export interface SaveSlot {slotId:string;worldId:string;savedAt?:number;worldBuildVersion?:string;error?:string;
+  /** Minimal progress shown by the saves screen (world time, items carried, missions done). */progress?:{time:number;items:number;objectivesDone:number};}
 /** Game slots have their own namespace; authoring drafts/checkpoints are never read or modified. */
 export function createGameSaveStore(provided?:SaveStorage,blobStore?:BlobStore|null){
   const storage=()=>provided??localStorage;let blobsResolved=blobStore!==undefined,blobsValue=blobStore??null;
@@ -47,7 +48,7 @@ export function createGameSaveStore(provided?:SaveStorage,blobStore?:BlobStore|n
   const key=(worldId:string,slotId:string)=>{if(!identifier(slotId))throw Error('Slot invalide');return worldPrefix(worldId)+encodeURIComponent(slotId);};
   async function list(worldId:string):Promise<SaveSlot[]>{
     const s=storage(),prefix=worldPrefix(worldId),out:SaveSlot[]=[];
-    for(let i=0;i<s.length;i++){const k=s.key(i);if(!k?.startsWith(prefix))continue;const slotId=decodeURIComponent(k.slice(prefix.length));try{const raw=s.getItem(k);if(!raw)continue;const parsed=parseGameSave(JSON.parse(raw));if(parsed.worldId!==worldId||parsed.slotId!==slotId)throw Error('Identité du slot incohérente');out.push({slotId,worldId,savedAt:parsed.savedAt,worldBuildVersion:parsed.worldBuildVersion});}catch(e){out.push({slotId,worldId,error:e instanceof Error?e.message:String(e)});}}
+    for(let i=0;i<s.length;i++){const k=s.key(i);if(!k?.startsWith(prefix))continue;const slotId=decodeURIComponent(k.slice(prefix.length));try{const raw=s.getItem(k);if(!raw)continue;const parsed=parseGameSave(JSON.parse(raw));if(parsed.worldId!==worldId||parsed.slotId!==slotId)throw Error('Identité du slot incohérente');out.push({slotId,worldId,savedAt:parsed.savedAt,worldBuildVersion:parsed.worldBuildVersion,progress:{time:parsed.time,items:Object.values(parsed.inventory).reduce((n,q)=>n+q,0),objectivesDone:Object.values(parsed.objectives).filter(v=>v==='complete').length}});}catch(e){out.push({slotId,worldId,error:e instanceof Error?e.message:String(e)});}}
     return out.sort((a,b)=>(b.savedAt??0)-(a.savedAt??0));
   }
   return {

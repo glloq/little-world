@@ -90,6 +90,10 @@ export interface DialogueSession {
   readonly closed: boolean;
   choose(index: number): boolean;
   close(): void;
+  /** Choices that exist but are not available yet (displayed disabled). Optional. */
+  readonly locked?: { text: string }[];
+  /** Short hint for an available choice (e.g. it starts a mission). Optional. */
+  hint?(index: number): string | undefined;
 }
 export function createDialogue(
   definition: DialogueDefinition,

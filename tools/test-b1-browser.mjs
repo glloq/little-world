@@ -8,6 +8,7 @@
 import {chromium} from 'playwright';
 import {existsSync} from 'node:fs';
 import {readFile,mkdir} from 'node:fs/promises';
+import {playerUi} from './ui-test-helpers.mjs';
 import assert from 'node:assert/strict';
 const base=process.env.WORLD_URL??'http://127.0.0.1:5173/little-world/',out='/tmp/little-world-browser';await mkdir(out,{recursive:true});
 const project=JSON.parse(await readFile(new URL('../maps/b1-demo.project.json',import.meta.url),'utf8')),mine=project.libraries.zones['zone-mine'].mine;
@@ -19,11 +20,8 @@ try{
   const url=base+'?world=maps/b1-demo/manifest.json&metrics&yaw=0&spawn=-40,296';
   const boot=async()=>{await page.goto(url);await page.locator('#start:not([disabled])').click({timeout:120000});await page.waitForFunction(()=>window.littleWorldMetrics?.activities,{},{timeout:120000});await page.waitForTimeout(800);};
   const m=()=>page.evaluate(()=>{const v=window.littleWorldMetrics;return {pos:v.position,mode:document.querySelector('#status')?.textContent,act:v.activities};});
-  const msg=()=>page.locator('#message').textContent();
-  const panel=async(fn)=>{await page.getByRole('button',{name:/^Sac/}).click();await fn();await page.getByRole('button',{name:'Reprendre l’exploration'}).click();};
-  const save=()=>panel(async()=>{await page.locator('.game-slot-row').first().getByRole('button',{name:'Sauvegarder'}).click();await page.waitForFunction(()=>/Partie sauvegardée/.test(document.querySelector('.game-save-panel p:last-of-type')?.textContent??'')||document.querySelector('.game-slot-row span')?.textContent!=='Vide');});
-  const load=()=>panel(async()=>{await page.locator('.game-slot-row').first().getByRole('button',{name:'Charger'}).click();await page.waitForTimeout(300);});
-  const inventory=()=>page.evaluate(()=>{document.querySelector('.game-save-launcher').click();const t=document.querySelector('.game-save-panel').textContent;document.querySelector('.game-save-panel button:last-of-type').click();return t;});
+  const msg=()=>page.locator('.ui-notifications').textContent();
+  const ui=playerUi(page),save=()=>ui.save(),load=()=>ui.load(),inventory=()=>ui.bag();
   /** Teleport through the save file (position + active space), then load it. */
   async function moveTo(x,y,z,space=null){await save();await page.evaluate(([k,x,y,z,space])=>{const raw=JSON.parse(localStorage.getItem(k));raw.position={x,y,z};raw.space=space;localStorage.setItem(k,JSON.stringify(raw));},[SLOT,x,y,z,space]);await load();await page.waitForTimeout(600);}
   async function hold(key,until,seconds=20){await page.keyboard.down(key);let v;for(let i=0;i<seconds*5;i++){await page.waitForTimeout(200);v=await m();if(until(v))break;}await page.keyboard.up(key);return v;}
@@ -51,7 +49,7 @@ try{
   await page.locator('.environment-controls summary').click();await page.getByLabel('Vitesse du monde').selectOption('240');
   let plot;for(let i=0;i<60;i++){await page.waitForTimeout(1500);plot=(await m()).act.plots['plot-west'];if(plot.stage==='mature')break;if(plot.moisture<.45){await page.keyboard.press('KeyF');}}
   await page.getByLabel('Vitesse du monde').selectOption('1');check(plot.stage==='mature','Carrots grew to maturity with the world clock ('+JSON.stringify(plot)+')');
-  await page.keyboard.press('KeyF');await page.waitForTimeout(400);check(/Récolte/.test(await msg()),'Harvested: '+(await msg()));
+  await page.keyboard.press('KeyF');await page.waitForTimeout(400);check(/\+\d+ Carotte/.test(await msg()),'Harvested (inventory gain notification): '+(await msg()));
   const before=await m();const beforeBag=await inventory();check(/Carotte/.test(beforeBag),'Carrots in the bag');
   // 10–11. Save, reload the page, load: everything restored.
   await save();const raw=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)),SLOT);check(raw.schemaVersion===2&&Object.keys(raw.mines).length===1&&raw.farms['plot-west'],'Versioned save with mine differences and plot states');

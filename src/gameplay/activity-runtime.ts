@@ -54,6 +54,8 @@ export function createActivityRuntime(activities:PlayableActivities,deps:Deps){
     if(!r.ok)return {ok:false,message:r.reason};notify({kind:'farm',plotId});
     return {ok:true,message:r.reward?`Récolte : +${r.reward.quantity} ${nameOf(r.reward.itemId)}`:intent.type==='plant'?'Semis effectué':intent.type==='water'?'Parcelle arrosée':'Parcelle nettoyée'};
   }
+  /** Explicit crop choice among the plot's allowed profiles (validated here, not by the UI). */
+  function selectCrop(plotId:string,cropId:string){const f=farms.get(plotId);if(!f)return null;const i=f.zone.farm.crops.indexOf(cropId);if(i<0)return null;f.crop=i;return CROPS[cropId].name;}
   function cycleCrop(plotId:string){const f=farms.get(plotId);if(!f)return null;f.crop=(f.crop+1)%f.zone.farm.crops.length;return CROPS[f.zone.farm.crops[f.crop]].name;}
   function serialize(){
     const mineOut:Record<string,MineSaveState>={},farmOut:Record<string,FarmPlotState>={};
@@ -77,7 +79,29 @@ export function createActivityRuntime(activities:PlayableActivities,deps:Deps){
     for(let d=.1;d<=max;d+=.1){const x=target.x+dx*d,z=target.z+dz*d,y=Math.min(high,Math.max(low,target.y+dy*d));if(!m.state.isOpen(level,Math.floor(x+Math.sign(dx)*.2),Math.floor(z+Math.sign(dz)*.2)))break;best={x,y,z};}
     return best;
   }
-  return {mines,farms,cameraInMine,mineTarget,dig,farmNear,farmView,farmIntent,farmAct,cycleCrop,serialize,restore,subscribe(l:(c:ActivityChange)=>void){listeners.add(l);return ()=>listeners.delete(l);}};
+  /** UI preview of the wall in front: validated by the mine itself, nothing is written. */
+  function digPreview(position:Point3,space:MovementSpace|undefined,forward:{x:number;z:number}){
+    const t=mineTarget(position,space,forward);if(!t||!space)return null;const m=mines.get(t.mineId)!;
+    const verdict=m.state.check({levelId:space.levelId,ix:t.ix,iz:t.iz,from:position});
+    return {target:t,materialName:MINE_MATERIALS[t.material].name,reward:verdict.ok?verdict.reward:null,ok:verdict.ok,reason:verdict.ok?undefined:verdict.reason};
+  }
+  /** UI preview of the next plot action: the farm rules run on a copy of the state. */
+  function farmPreview(plotId:string){
+    const f=farms.get(plotId);if(!f)return null;const intent=farmIntent(plotId),copy=structuredClone(f.state);
+    const r=act(copy,f.zone.farm,deps.climate,{requestId:'preview',type:intent.type,cropId:f.zone.farm.crops[f.crop%f.zone.farm.crops.length],time:deps.time(),waterAvailable:waterAvailable(f.zone)},()=>true);
+    return {intent,ok:r.ok,reason:r.ok?undefined:r.reason};
+  }
+  /** Mine context for the HUD: mine, level, nearby passage and the way out (stairs up or exit). */
+  function mineNavigation(position:Point3,space?:MovementSpace){
+    if(!space)return null;const m=mines.get(space.zoneId);if(!m)return null;const level=m.state.grid.levelIndex(space.levelId);if(level<0)return null;
+    const ways=mineTransitions(m.state,deps.ground).filter(t=>t.from?.levelId===space.levelId);
+    let near:typeof ways[number]|undefined,nearD=Infinity,out:typeof ways[number]|undefined,outD=Infinity;
+    for(const t of ways){const cx=(t.minX+t.maxX)/2,cz=(t.minZ+t.maxZ)/2,d=Math.hypot(cx-position.x,cz-position.z);if(d<nearD){nearD=d;near=t;}const up=t.to===null||m.state.grid.levelIndex(t.to.levelId)<level;if(up&&d<outD){outD=d;out=t;}}
+    const bearing=(t?:typeof near)=>{if(!t)return null;const dx=(t.minX+t.maxX)/2-position.x,dz=(t.minZ+t.maxZ)/2-position.z;return {distance:Math.hypot(dx,dz),angle:Math.atan2(dx,dz)};};
+    return {mineId:m.zone.id,mineName:m.zone.name,levelIndex:level,levelName:m.state.grid.levels[level].name,levelCount:m.state.grid.levels.length,
+      passage:near&&nearD<3?{label:near.label??'Passage',distance:nearD}:null,exit:out?{label:out.to===null?'Sortie':'Escalier vers le haut',...bearing(out)!}:null};
+  }
+  return {mines,farms,cameraInMine,mineTarget,digPreview,farmPreview,mineNavigation,selectCrop,dig,farmNear,farmView,farmIntent,farmAct,cycleCrop,serialize,restore,subscribe(l:(c:ActivityChange)=>void){listeners.add(l);return ()=>listeners.delete(l);}};
 }
 export type ActivityRuntime=ReturnType<typeof createActivityRuntime>;
 const NAMES:Record<string,string>={'mine:stone':'pierre','mine:iron':'minerai de fer','mine:crystal':'cristal','farm:wheat':'blé','farm:carrot':'carotte(s)','farm:pumpkin':'citrouille(s)'};

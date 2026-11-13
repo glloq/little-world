@@ -11,7 +11,7 @@ export const CROPS:Record<string,CropProfile>={
   carrot:{id:'carrot',name:'Carotte',itemId:'farm:carrot',baseTempC:4,maturity:24,waterUse:.4,yield:3,color:0x5f9e3c,matureColor:0x6faa3e,height:.35},
   pumpkin:{id:'pumpkin',name:'Citrouille',itemId:'farm:pumpkin',baseTempC:8,maturity:30,waterUse:.5,yield:2,color:0x4f8c3a,matureColor:0xe08a2c,height:.5},
 };
-export const FARM_ITEMS=Object.values(CROPS).map(c=>({id:c.itemId,name:c.name,category:'farm',maxQuantity:999}));
+export const FARM_ITEMS=Object.values(CROPS).map(c=>({id:c.itemId,name:c.name,category:'farm',maxQuantity:999,description:`Récolté sur une parcelle (${c.name.toLowerCase()}).`}));
 export interface FarmSettingsV3 {crops:string[];initialCrop:string|null;rowAngle:number;soil:{fertility:number;drainage:number};irrigation:{x:number;z:number}|null}
 export interface FarmZone {id:string;name:string;polygon:PointXZ[];farm:FarmSettingsV3}
 export function defaultFarmSettings(polygon:PointXZ[]):FarmSettingsV3{

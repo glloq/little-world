@@ -1,4 +1,6 @@
 import {MINE_MATERIALS} from './mine/mine-data.ts';
+import type {GameUi} from './ui/app/game-ui.ts';
+import {resolveTarget,objectTarget,npcTarget,boatTarget,mineWallTarget,farmPlotTarget,type TargetDescriptor} from './ui/interactions/targets.ts';
 import {MATERIAL_BY_MINE_KEY} from './audio/context.ts';
 import { geoWorkerPool } from './geography/geo-workers.ts';
 import type {AudioController} from './audio/view.ts';
@@ -49,8 +51,8 @@ const coords = document.querySelector<HTMLElement>('#coords')!;
 const fps = document.querySelector<HTMLElement>('#fps')!;
 const renderMetrics = document.querySelector<HTMLElement>('#render-metrics')!;
 const oxygen = document.querySelector<HTMLElement>('#oxygen')!;
-const action = document.querySelector<HTMLElement>('#action')!;
-const message = document.querySelector<HTMLElement>('#message')!;
+/** Player interface (src/ui): created once the world, gameplay and NPCs exist. */
+let gameUi:GameUi|null=null;
 const overlay = document.querySelector<HTMLElement>('#start-overlay')!;
 const start = document.querySelector<HTMLButtonElement>('#start')!;
 const scene = new THREE.Scene();
@@ -188,6 +190,14 @@ const activityView=gameplay&&(gameplay.activities.mines.size||gameplay.activitie
 if(activityView&&!searchParams.has('lightBench'))world.refreshLights([...(definition.lights??[]),...activityView.lights]);
 let activityQueue=0,cropQueue=0;
 world.update(0, player.position);
+{
+  const {createGameUi}=await import('./ui/app/game-ui.ts'),c=getTerrainConfig();
+  gameUi=createGameUi({gameplay,npcs,audio,quality:document.querySelector<HTMLSelectElement>('#quality'),temporary:!!(studioTest||buildScope),studioUrl:import.meta.env.BASE_URL+'studio/',
+    world:{name:definition.name,buildVersion:gameplay?.runtime.data.buildVersion??'vallée',dayLength:climate.definition.dayLengthSeconds,bounds:{minX:-c.width/2,maxX:c.width/2,minZ:-c.length/2,maxZ:c.length/2},seaLevel:c.seaLevel,height:terrainHeight,water:waterSurface},
+    player:()=>({x:player.position.x,y:player.position.y,z:player.position.z,yaw,space:player.space,mode:player.mode,oxygen:player.oxygen,maxOxygen:MAX_OXYGEN}),
+    target:()=>currentTarget(),
+    home:()=>{started=false;gameUi?.controller.close();keySet.clear();overlay.classList.remove('hide');start.focus();}});
+}
 const squirrel = buildSquirrel();
 scene.add(squirrel.group);
 const customization = createCustomizationMenu(
@@ -208,7 +218,6 @@ let yaw = 0,
   pitch = 0.32,
   distance = 13.8;
 let started = false;
-let infoUntil = 0;
 let elapsed = 0;
 // Generated worlds start on a coast: face the island centre rather than the open sea.
 if(playable&&!isLegacyTerrain()){const yawParam=Number(searchParams.get('yaw'));yaw=searchParams.has('yaw')&&Number.isFinite(yawParam)?yawParam:Math.atan2(-player.position.x,-player.position.z);}
@@ -233,7 +242,7 @@ function codeHeld(...codes: string[]): boolean {
   return codes.some((c) => keySet.has(c));
 }
 function input(): Controls {
-  if (customization.isOpen || npcs.dialogue.isOpen || gameplay?.isOpen)
+  if (customization.isOpen || npcs.dialogue.isOpen || gameUi?.blocking)
     return {
       forward: 0,
       right: 0,
@@ -266,8 +275,10 @@ function resetCameraDrag(): void {
   renderer.domElement.classList.remove('dragging-camera');
 }
 window.addEventListener('keydown', (e) => {
+  // Player interface first: panels, Escape (menu), I / J / M. Consumed keys never reach the game.
+  if(gameUi?.handleKey(e,started&&!customization.isOpen))return;
   if(e.target instanceof Element&&e.target.closest('button,summary,a')&&['Space','Enter','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))return;
-  if(gameplay?.isOpen||e.target instanceof HTMLInputElement||e.target instanceof HTMLTextAreaElement||e.target instanceof HTMLSelectElement)return;
+  if(gameUi?.blocking||e.target instanceof HTMLInputElement||e.target instanceof HTMLTextAreaElement||e.target instanceof HTMLSelectElement)return;
   // Read the typed character: AZERTY 'A' is physically KeyQ, QWERTY 'A' is KeyA.
   if (isMenuKey(e)) {
     e.preventDefault();
@@ -334,7 +345,7 @@ window.addEventListener('blur', () => {
   resetCameraDrag();
 });
 renderer.domElement.addEventListener('pointerdown', (e) => {
-  if (!started || customization.isOpen || gameplay?.isOpen || npcs.dialogue.isOpen) return;
+  if (!started || customization.isOpen || gameUi?.blocking || npcs.dialogue.isOpen) return;
   if (!orbitDrag.begin(e.pointerId, e.button, e.clientX, e.clientY)) return;
   renderer.domElement.classList.add('dragging-camera');
   renderer.domElement.setPointerCapture(e.pointerId);
@@ -346,8 +357,10 @@ renderer.domElement.addEventListener('pointermove', (e) => {
     if (!orbitDrag.active) resetCameraDrag();
     return;
   }
-  yaw -= movement.dx * 0.00315;
-  pitch = clamp(pitch - movement.dy * 0.0024, -0.12, 1.03);
+  // Camera sensitivity / vertical inversion: player preferences (Paramètres › Contrôles).
+  const prefs=gameUi?.preferences,k=prefs?.cameraSensitivity??1;
+  yaw -= movement.dx * 0.00315 * k;
+  pitch = clamp(pitch - movement.dy * 0.0024 * k * (prefs?.invertY ? -1 : 1), -0.12, 1.03);
 });
 renderer.domElement.addEventListener('pointerup', (e) => {
   orbitDrag.end(e.pointerId);
@@ -366,12 +379,12 @@ start.addEventListener('click', () => {
   started = true;
   void audio?.start();
   overlay.classList.add('hide');
+  gameUi?.started();
   renderer.domElement.focus();
 });
-function showInfo(text: string) {
-  infoUntil = elapsed + 3.3;
-  message.textContent = text;
-  message.classList.remove('hide');
+/** Messages from gameplay effects and actions go through the single notification manager. */
+function showInfo(text: string, kind:'info'|'success'|'warning'='info') {
+  gameUi?.notify(kind,text);
 }
 const cameraTarget = new THREE.Vector3(),
   cameraDesired = new THREE.Vector3(),audioForward=new THREE.Vector3();
@@ -391,13 +404,41 @@ function updateCamera(dt: number) {
   camera.position.lerp(desired, Math.min(1, dt * 6));
   camera.lookAt(target);
 }
-/** F / C prompts of mines and farm plots (evaluated on consultation, not per plant). */
-let lastActivityPrompt=0,activityText:string|null=null;
-function activityPrompt():string|null{
-  if(!gameplay)return null;if(elapsed-lastActivityPrompt<.25)return activityText;lastActivityPrompt=elapsed;const a=gameplay.activities;
-  if(player.space){const t=a.mineTarget(player.position,player.space,{x:Math.sin(yaw),z:Math.cos(yaw)});activityText=t?`[F] Creuser : ${MINE_MATERIALS[t.material].name}`:null;return activityText;}
-  const plot=a.farmNear(player.position);if(!plot){activityText=null;return null;}const intent=a.farmIntent(plot.zone.id);
-  activityText=`${plot.zone.name} · [F] ${intent.label}${intent.type==='plant'?' · [C] changer de culture':''}`;return activityText;
+/** Contextual target: the same ordered sources decide what the HUD shows and what E does
+ * (boat → usable object → inhabitant → boat to board → mine wall → farm plot → unusable object). */
+const forwardOf=()=>({x:Math.sin(yaw),z:Math.cos(yaw)});
+const itemName=(id?:string)=>id?gameplay?.runtime.data.items.find(i=>i.id===id)?.name??id:undefined;
+function currentTarget():TargetDescriptor|null{
+  if(!started)return null;
+  let unusable:TargetDescriptor|null=null;
+  return resolveTarget([
+    ()=>aboard?boatTarget(true):null,
+    ()=>{const o=gameplay?.describe(player.position);if(!o)return null;const t=objectTarget(o);if(!o.usable){unusable=t;return null;}return t;},
+    ()=>{const n=npcs.talker(player.position);return n?npcTarget(n):null;},
+    ()=>nearBoat(boat,player.position.x,player.position.y,player.position.z)?boatTarget(false):null,
+    ()=>{if(!gameplay||!player.space)return null;const p=gameplay.activities.digPreview(player.position,player.space,forwardOf());return p?mineWallTarget({...p,rewardName:itemName(p.reward?.itemId)}):null;},
+    ()=>{if(!gameplay||player.space)return null;const plot=gameplay.activities.farmNear(player.position);if(!plot)return null;const pv=gameplay.activities.farmPreview(plot.zone.id)!;return farmPlotTarget({zoneId:plot.zone.id,zoneName:plot.zone.name,intent:pv.intent,ok:pv.ok,reason:pv.reason,choices:plot.zone.farm.crops.length});},
+    ()=>unusable,
+  ]);
+}
+/** Digging the wall in front (F, or E when it is the target): validated by the mine. */
+function runDig(){
+  if(!gameplay||!player.space)return;const a=gameplay.activities,forward=forwardOf(),target=a.mineTarget(player.position,player.space,forward),r=a.dig(player.position,player.space,forward);
+  // Audio follows the validated business result (never mesh changes).
+  const material=target?MATERIAL_BY_MINE_KEY[MINE_MATERIALS[target.material]?.key]:undefined,context={material,tool:'pickaxe',place:'mine' as const};
+  audio?.emit('mine.tool.strike',{context,position:player.position,source:'player'});
+  if(r.ok){audio?.emit('mine.hit',{context,position:player.position,source:'player'});audio?.emit('mine.cell.excavated',{context,position:player.position,source:'player'});
+    // A reward is announced by the inventory notification (« +1 Pierre », merged); otherwise say what happened.
+    if(r.message.startsWith('+')/* dig() reports a reward as « +1 item » */){audio?.emit(material==='crystal'?'mine.resource.crystal':'mine.resource.collect',{context,source:'player'});if(material==='crystal')audio?.cue('discovery');}else showInfo(r.message,'success');}
+  else{audio?.emit('mine.action.denied',{context,source:'player'});showInfo(r.message,'warning');}
+}
+/** Next action on the plot under the player (F, or E when it is the target): validated by AGRI. */
+function runFarm(){
+  if(!gameplay)return;const a=gameplay.activities,plot=a.farmNear(player.position);if(!plot)return;
+  const intent=a.farmIntent(plot.zone.id),view=a.farmView(plot.zone.id),crop=view?.cropId??view?.selectedCrop,r=a.farmAct(plot.zone.id);
+  // A harvest is announced by the inventory gain notification (one message per event).
+  if(!(r.ok&&intent.type==='harvest'))showInfo(r.message,r.ok?'success':'warning');
+  const farmEvent={plant:'farm.plant',water:'farm.water',harvest:'farm.harvest',clear:'farm.clear'}[intent.type]??'farm.plant';audio?.emit(r.ok?farmEvent:'ui.error',{context:{place:'farm',activity:'farming',objectKind:crop??undefined,state:intent.type},position:player.position,source:'player'});
 }
 function updateHud() {
   const labels: Record<string, string> = {
@@ -414,19 +455,6 @@ function updateHud() {
     'hide',
     player.mode !== 'dive' && player.mode !== 'swim',
   );
-  const canBoard =
-    !aboard &&
-    nearBoat(boat, player.position.x, player.position.y, player.position.z);
-  const npcPrompt = !aboard ? (gameplay?.prompt(player.position) ?? npcs.prompt(player.position) ?? activityPrompt()) : null;
-  action.classList.toggle('hide', !canBoard && !aboard && !npcPrompt);
-  action.textContent =
-    npcPrompt ??
-    (aboard
-      ? '[E] Quitter le bateau · Z/S avancer/reculer · Q/D tourner'
-      : canBoard
-        ? '[E] Embarquer dans le bateau'
-        : '');
-  if (elapsed >= infoUntil) message.classList.add('hide');
   // A submerged squirrel does NOT imply a submerged camera.
   document.body.classList.toggle(
     'underwater',
@@ -434,7 +462,8 @@ function updateHud() {
   );
 }
 function tick(dt: number) {
-  if (!started) return;
+  // Menus (pause, parties, paramètres) pause the world simulation; the frame still renders.
+  if (!started || gameUi?.paused) return;
   if(gameplay)gameplay.update(dt);else worldClock.advance(dt);
   const keys = input();
   if (aboard) {
@@ -449,25 +478,19 @@ function tick(dt: number) {
     if(player.transitioned){previousPlayerPosition.copy(player.position);renderPosition.copy(player.position);}
     if (keys.jumpPressed) jumpQueue = Math.max(0, jumpQueue - 1);
   }
-  if(activityQueue>0&&gameplay&&!aboard){activityQueue=0;const a=gameplay.activities;
-    if(player.space){const forward={x:Math.sin(yaw),z:Math.cos(yaw)},target=a.mineTarget(player.position,player.space,forward),r=a.dig(player.position,player.space,forward);showInfo(r.message);
-      // Audio follows the validated business result (never mesh changes).
-      const material=target?MATERIAL_BY_MINE_KEY[MINE_MATERIALS[target.material]?.key]:undefined,context={material,tool:'pickaxe',place:'mine' as const};
-      audio?.emit('mine.tool.strike',{context,position:player.position,source:'player'});
-      if(r.ok){audio?.emit('mine.hit',{context,position:player.position,source:'player'});audio?.emit('mine.cell.excavated',{context,position:player.position,source:'player'});if(r.message.startsWith('+')/* dig() reports a reward as « +1 item » */){audio?.emit(material==='crystal'?'mine.resource.crystal':'mine.resource.collect',{context,source:'player'});if(material==='crystal')audio?.cue('discovery');}}
-      else audio?.emit('mine.action.denied',{context,source:'player'});}
-    else{const plot=a.farmNear(player.position);if(plot){const intent=a.farmIntent(plot.zone.id),view=a.farmView(plot.zone.id),crop=view?.cropId??view?.selectedCrop,r=a.farmAct(plot.zone.id);showInfo(r.message);
-      const farmEvent={plant:'farm.plant',water:'farm.water',harvest:'farm.harvest',clear:'farm.clear'}[intent.type]??'farm.plant';audio?.emit(r.ok?farmEvent:'ui.error',{context:{place:'farm',activity:'farming',objectKind:crop??undefined,state:intent.type},position:player.position,source:'player'});}}}
+  if(activityQueue>0&&gameplay&&!aboard){activityQueue=0;if(player.space)runDig();else runFarm();}
   if(cropQueue>0&&gameplay){cropQueue=0;const plot=gameplay.activities.farmNear(player.position,player.space);if(plot){const name=gameplay.activities.cycleCrop(plot.zone.id);if(name){showInfo('Culture choisie : '+name);audio?.emit('farm.seedbag',{source:'player'});}}}
   if (actionQueue > 0) {
-    if (aboard) {
+    actionQueue = 0;
+    const target = currentTarget();
+    if (target?.primaryAction && !target.primaryAction.enabled) {
+      // The business system said no: tell why (never act on a disabled target).
+      showInfo(target.primaryAction.disabledReason ?? 'Impossible pour le moment', 'warning');
+      audio?.emit('ui.error', { source: 'ui' });
+    } else if (target?.targetType === 'boat' && aboard) {
       aboard = false;
       if (nearDock(boat)) {
-        player.position.set(
-          BOAT_DOCK.x + 1,
-          getTerrainConfig().seaLevel + 1.3,
-          BOAT_DOCK.z + 3,
-        );
+        player.position.set(BOAT_DOCK.x + 1, getTerrainConfig().seaLevel + 1.3, BOAT_DOCK.z + 3);
         player.mode = 'air';
       } else {
         const exit = waterDisembarkPoint(boat);
@@ -477,26 +500,24 @@ function tick(dt: number) {
       player.velocity.set(0, 0, 0);
       player.glideReady = false;
       showInfo('Vous avez quitté le bateau');
-    } else if (gameplay?.interact(player.position)) {
-      showInfo('Interaction effectuée.');
-    } else if (npcs.interact(player.position)) {
-      audio?.emit('npc.vocalize',{context:{species:'squirrel'},position:player.position});
-      keySet.clear();
-      jumpQueue = 0;
-      player.velocity.set(0, 0, 0);
-      resetCameraDrag();
-    } else if (
-      nearBoat(boat, player.position.x, player.position.y, player.position.z)
-    ) {
+    } else if (target?.targetType === 'object') {
+      if (gameplay?.interact(player.position)) showInfo('Interaction effectuée.', 'success');
+    } else if (target?.targetType === 'npc') {
+      if (npcs.interact(player.position)) {
+        audio?.emit('npc.vocalize',{context:{species:'squirrel'},position:player.position});
+        keySet.clear();
+        jumpQueue = 0;
+        player.velocity.set(0, 0, 0);
+        resetCameraDrag();
+      }
+    } else if (target?.targetType === 'boat') {
       aboard = true;
       player.velocity.set(0, 0, 0);
       player.glideReady = false;
       player.position.set(boat.x, boat.y + 1.02, boat.z);
-      showInfo(
-        'Bateau : Z/S pour naviguer, Q/D pour tourner, E pour descendre',
-      );
-    }
-    actionQueue = 0;
+      showInfo('Bateau : Z/S pour naviguer, Q/D pour tourner, E pour descendre');
+    } else if (target?.targetType === 'mine-wall') runDig();
+    else if (target?.targetType === 'farm-plot') runFarm();
   }
 }
 function draw(now: number) {
@@ -543,6 +564,7 @@ function draw(now: number) {
   squirrel.update(player, delta, elapsed);
   updateCamera(delta);
   updateHud();
+  gameUi?.frame(elapsed);
   fpsTime += wallDrawDelta;
   frameCount++;
   const renderBegin = performance.now();

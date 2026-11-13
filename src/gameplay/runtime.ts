@@ -117,6 +117,8 @@ export function createGameplay(raw:GameplayData){
   }
   function runActions(sequence:ActionStep[],id:string):boolean{if(sequence.length){if(jobs.length>=gameplayLimits.activeSequences){diagnostic('Trop de séquences actives.');return false;}const job={interactionId:id,sequence,cursor:0,wakeAt:state.time,depth:0};if(!canApplySegment(job,segment(job)))return false;jobs.push(job);pump();}return true;}
   function availableChoices(dialogueId:string,lineId:string){const d=dialogues.get(dialogueId),line=d?.lines.find(l=>l.id===lineId);return line?.choices.filter(c=>(!c.gate||evaluate(c.gate))&&(!c.condition||(state.dialogueFlags[JSON.stringify([dialogueId,c.condition.flag])]===true)===c.condition.equals))??[];}
+  /** Choices of a line that exist but are not available yet (shown disabled by the interface). */
+  function lockedChoices(dialogueId:string,lineId:string){const line=dialogues.get(dialogueId)?.lines.find(l=>l.id===lineId);if(!line)return [];const open=new Set(availableChoices(dialogueId,lineId));return line.choices.filter(c=>!open.has(c));}
   function dialogueChoice(dialogueId:string,lineId:string,choiceId:string):string|null|undefined {
     const d=dialogues.get(dialogueId),line=d?.lines.find(l=>l.id===lineId);if(!d||!line)return undefined;
     const choice=availableChoices(dialogueId,lineId).find(c=>(c.id??lineId+':'+line.choices.indexOf(c))===choiceId);if(!choice)return undefined;
@@ -158,6 +160,6 @@ export function createGameplay(raw:GameplayData){
     for(const c of changes){const item=items.get(c.itemId);if(!item||!Number.isInteger(c.quantity)){diagnostic('Objet inconnu : '+c.itemId);return false;}const next=(ledger[c.itemId]??0)+c.quantity;if(next<0||next>item.maxQuantity){diagnostic((next<0?'Objet manquant : ':'Inventaire plein : ')+item.name);return false;}ledger[c.itemId]=next;}
     for(const c of changes)state.inventory[c.itemId]=ledger[c.itemId];state.metrics.actions++;return true;
   }
-  return {data,state,clock,climate,grantItems,getEntityPosition(id:string){return entities.get(id)?.position;},emit,update,interact,evaluate,setEntityPosition(id:string,position:Point3){const entity=entities.get(id);if(!entity||!finite(position.x,-100000,100000)||!finite(position.y,-10000,10000)||!finite(position.z,-100000,100000))throw Error('Position logique invalide');entity.position={...position};},dialogueChoice,enterDialogueLine,availableChoices,save,restore,drainEffects(){return effects.splice(0);},get pendingSequences(){return jobs.length;}};
+  return {data,state,clock,climate,grantItems,getEntityPosition(id:string){return entities.get(id)?.position;},emit,update,interact,evaluate,setEntityPosition(id:string,position:Point3){const entity=entities.get(id);if(!entity||!finite(position.x,-100000,100000)||!finite(position.y,-10000,10000)||!finite(position.z,-100000,100000))throw Error('Position logique invalide');entity.position={...position};},dialogueChoice,enterDialogueLine,availableChoices,lockedChoices,save,restore,drainEffects(){return effects.splice(0);},get pendingSequences(){return jobs.length;}};
 }
 export type GameplayRuntime=ReturnType<typeof createGameplay>;

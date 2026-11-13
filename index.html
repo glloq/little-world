@@ -9,41 +9,23 @@
 <body class="game-page">
   <div id="app">
     <div id="viewport"></div>
-    <header class="hud-title">
-      <div class="brand"><span class="brand-icon">✦</span><div><strong>little world</strong><small>Prototype d'exploration · Solo</small></div></div>
-      <div class="header-right">
-        <label class="quality-control" for="quality">Qualité
-          <select id="quality" aria-label="Qualité du rendu">
-            <option value="low">Économie</option>
-            <option value="medium" selected>Équilibré</option>
-            <option value="high">Élevée</option>
-          </select>
-        </label>
-        <a class="light-button" href="./studio/">Studio V3 <span aria-hidden="true">↗</span></a>
-        <a class="light-button" href="./editor/">Éditeur de carte <span aria-hidden="true">↗</span></a>
-      </div>
-    </header>
-    <aside class="hud-help panel">
-      <div class="section-kicker">COMMANDES</div>
-      <div class="control-row"><kbd>ZQSD</kbd><span>Déplacement</span></div>
-      <div class="control-row"><kbd>Clic + glisser</kbd><span>Tourner la caméra</span></div>
-      <div class="control-row"><kbd>Shift</kbd><span>Courir</span></div>
-      <div class="control-row"><kbd>A</kbd><span>Tenir : accessoires / émotions</span></div>
-      <div class="control-row"><kbd>Espace</kbd><span>Sauter / planer</span></div>
-      <div class="control-row"><kbd>Ctrl</kbd><span>Plonger</span></div>
-      <div class="control-row"><kbd>E</kbd><span>Monter / quitter le bateau</span></div>
-      <div class="control-row"><kbd>P</kbd><span>Aller au port (test)</span></div>
-      <div class="section-kicker space-top">ASTUCE</div>
-      <p>Maintenir <kbd>A</kbd> et cliquer sur un accessoire ou une émotion. La caméra tourne seulement pendant un clic-glissé sur la scène.</p>
-    </aside>
-    <aside class="hud-stats panel">
+    <!-- Developer panel (technical statistics): hidden unless developer mode (Paramètres, ?metrics or ?dev). -->
+    <aside class="hud-stats panel dev-only" aria-label="Statistiques techniques">
       <span class="status-dot"></span><span id="status">Initialisation…</span>
       <div class="mini-separator"></div>
       <div id="coords">Position : —</div>
-      <div id="oxygen" class="hide">Oxygène : —</div>
+      <div id="oxygen">Oxygène : —</div>
       <div id="fps">FPS : —</div>
       <div id="render-metrics">Rendu : —</div>
     </aside>
+    <!-- Render quality selector, shown in Paramètres › Affichage. -->
+    <div id="ui-templates" hidden>
+      <select id="quality" aria-label="Qualité du rendu">
+        <option value="low">Économie</option>
+        <option value="medium" selected>Équilibré</option>
+        <option value="high">Élevée</option>
+      </select>
+    </div>
     <aside id="appearance-menu" class="appearance-menu panel hide" aria-hidden="true" aria-label="Personnalisation de l'écureuil">
       <div class="appearance-heading">
         <div>
@@ -65,8 +47,7 @@
       </div>
       <p class="appearance-footer">Les choix sont conservés automatiquement dans ce navigateur. Relâche <kbd>A</kbd> pour reprendre l’exploration.</p>
     </aside>
-    <div id="action" class="action-toast hide"></div>
-    <div id="message" class="toast hide"></div>
+    <div id="action" class="ui-prompt hide" role="status" aria-live="polite"></div>
     <div id="start-overlay" class="start-overlay" aria-busy="true">
       <div class="start-card">
         <div class="start-sun">✦</div>
@@ -75,7 +56,7 @@
         <p>Incarne un écureuil volant. Grimpe les reliefs, plane au-dessus de la rivière, nage et découvre le moulin.</p>
         <button id="start" class="primary-button" type="button" disabled>Explorer la vallée <span aria-hidden="true">→</span></button>
         <a class="light-button" href="?beta=1">Tester la mission et le mécanisme</a>
-        <small>Prototype technique · PC, clavier et souris · aucun compte requis</small>
+        <small>PC, clavier et souris · aucun compte requis · Échap : menu</small>
       </div>
     </div>
   </div>

@@ -24,7 +24,7 @@ export const MINE_MATERIALS:MineMaterial[]=[
   {id:5,key:'crystal',name:'Cristal',color:0x63c7d8,diggable:true,item:'mine:crystal'},
   {id:6,key:'bedrock',name:'Roche mère (protégée)',color:0x3a3638,diggable:false},
 ];
-export const MINE_ITEMS=[{id:'mine:stone',name:'Pierre',category:'mine',maxQuantity:999},{id:'mine:iron',name:'Minerai de fer',category:'mine',maxQuantity:999},{id:'mine:crystal',name:'Cristal',category:'mine',maxQuantity:999}];
+export const MINE_ITEMS=[{id:'mine:stone',name:'Pierre',category:'mine',maxQuantity:999,description:'Roche taillée en creusant les galeries.'},{id:'mine:iron',name:'Minerai de fer',category:'mine',maxQuantity:999,description:'Extrait des filons rouillés des mines.'},{id:'mine:crystal',name:'Cristal',category:'mine',maxQuantity:999,description:'Rare, il brille dans les amas des parois.'}];
 
 const finite=(v:unknown,min:number,max:number):v is number=>typeof v==='number'&&Number.isFinite(v)&&v>=min&&v<=max;
 const id=(v:unknown):v is string=>typeof v==='string'&&v.length>0&&v.length<=64&&!/[\u0000-\u001f]/.test(v);
