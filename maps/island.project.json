@@ -1,0 +1,130 @@
+{
+  "manifest": {
+    "schemaVersion": 3,
+    "projectId": "little-world-island-authoring",
+    "worldId": "little-world-island",
+    "name": "Île du volcan",
+    "assetCatalogVersion": "1",
+    "createdWith": "little-world-studio-v3",
+    "revision": 0,
+    "sourceManifest": {
+      "worldRef": "world/world.json",
+      "chunkIndexRef": "world/chunk-index.json",
+      "entityIndexRef": "world/entity-index.json",
+      "librariesRef": "library/index.json",
+      "assetCatalogRef": "assets/catalog.json"
+    }
+  },
+  "world": {
+    "schemaVersion": 3,
+    "worldId": "little-world-island",
+    "seed": 4242,
+    "generatorVersion": "1",
+    "bounds": {
+      "minX": -1500,
+      "maxX": 1500,
+      "minZ": -4000,
+      "maxZ": 4000
+    },
+    "seaLevel": 0,
+    "chunkSizeM": 64,
+    "coordinateSystem": "meters-y-up",
+    "chunkIndexRef": "world/chunk-index.json",
+    "density": 1,
+    "viewDistance": 240,
+    "editSequence": 0,
+    "terrain": {
+      "kind": "island",
+      "version": 1,
+      "island": {
+        "seaMarginM": 270,
+        "coastNoiseM": 210,
+        "coastWavelengthM": 900,
+        "beachWidthM": 60,
+        "shoreHeightM": 5,
+        "lowlandHeightM": 45,
+        "hillHeightM": 36,
+        "seabedDepthM": 40,
+        "volcano": {
+          "x": 0,
+          "z": -1324,
+          "radiusM": 1260,
+          "heightM": 529,
+          "craterRadiusM": 151,
+          "craterDepthM": 63
+        }
+      }
+    },
+    "environment": {
+      "schemaVersion": 1,
+      "generatorVersion": 1,
+      "weatherSeed": 4242,
+      "dayLengthSeconds": 1200,
+      "initialDayPhase": 0.36,
+      "weatherPeriodSeconds": 180
+    }
+  },
+  "chunkIndex": {},
+  "entityIndex": {},
+  "libraries": {
+    "prefabs": {},
+    "characters": {},
+    "dialogues": {},
+    "behaviors": {},
+    "interactions": {},
+    "activities": {},
+    "variables": {},
+    "items": {},
+    "objectives": {},
+    "water": {},
+    "paths": {}
+  },
+  "assets": {
+    "nature.pine": {
+      "id": "nature.pine",
+      "name": "Sapin",
+      "type": "glb",
+      "file": "models/pine.glb",
+      "license": "project-original",
+      "source": "Little World original generated low-poly geometry"
+    },
+    "nature.oak": {
+      "id": "nature.oak",
+      "name": "Arbre feuillu",
+      "type": "procedural",
+      "license": "project-original",
+      "source": "Little World original procedural geometry"
+    },
+    "nature.rock": {
+      "id": "nature.rock",
+      "name": "Rocher",
+      "type": "glb",
+      "file": "models/rock.glb",
+      "license": "project-original",
+      "source": "Little World original generated low-poly geometry"
+    },
+    "architecture.cottage": {
+      "id": "architecture.cottage",
+      "name": "Maison de vallée",
+      "type": "procedural",
+      "license": "project-original",
+      "source": "Little World original procedural geometry"
+    },
+    "props.crate": {
+      "id": "props.crate",
+      "name": "Caisse en bois",
+      "type": "glb",
+      "file": "models/crate.glb",
+      "license": "project-original",
+      "source": "Little World original generated low-poly geometry"
+    },
+    "props.lantern": {
+      "id": "props.lantern",
+      "name": "Lanterne",
+      "type": "procedural",
+      "license": "project-original",
+      "source": "Little World original procedural geometry"
+    }
+  },
+  "chunks": {}
+}

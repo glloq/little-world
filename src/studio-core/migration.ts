@@ -51,13 +51,21 @@ export function toRuntimeWorld(project:ProjectDocument,chunkIds?:string[]):World
   const terrain=new Map<string,TerrainEdit>(),biomes=new Map<string,BiomeEdit>();
   for(const c of Object.values(project.chunks)){for(const edit of c.terrainEdits)if(terrainIds.has(edit.id))terrain.set(edit.id,edit);for(const edit of c.biomeEdits)if(biomeIds.has(edit.id))biomes.set(edit.id,edit);}
   if(terrain.size!==terrainIds.size||biomes.size!==biomeIds.size)throw Error('Charger les dépendances canoniques des retouches avant prévisualisation');
-  const placements:WorldDefinition['placements']=[],npcs:WorldDefinition['npcs']=[];
-  for(const chunk of selected)for(const id of chunk.entityIds){
-    const entity=resolveEntity(project,chunk.entities[id]),c=entity.components,t=c.Transform!;
-    if(c.Character){const n=c.Navigation,behavior=n?project.libraries.behaviors[n.behaviorId]?.kind:'idle',dialogue=c.DialogueActor?.dialogueIds[0],graph=dialogue?project.libraries.dialogues[dialogue]:undefined;npcs.push({id:entity.id,name:entity.name,kind:c.Character.species,x:t.position.x,z:t.position.z,behavior:behavior??'idle',radius:n?.radius??0,speed:n?.speed??0,appearance:structuredClone(c.Character.appearance),...(n?.path?{path:structuredClone(n.path)}:{}),...(graph?{dialogue:{start:graph.start,lines:structuredClone(graph.lines)}}:{})});
-    }else if(c.Visual)placements.push({id:entity.id,assetId:c.Visual.assetId,x:t.position.x,z:t.position.z,rotation:Math.atan2(2*(t.rotation.w*t.rotation.y+t.rotation.x*t.rotation.z),1-2*(t.rotation.y*t.rotation.y+t.rotation.z*t.rotation.z)),scale:t.scale.x});
-  }
+  const resolved=selected.flatMap(chunk=>chunk.entityIds.map(id=>resolveEntity(project,chunk.entities[id])));
+  const {placements,npcs}=runtimeContent(resolved,project.libraries);
   const waterIds=new Set(selected.flatMap(c=>c.waterRefs)),pathIds=new Set(selected.flatMap(c=>c.pathRefs));
   const stripOrder=<T extends {order:number}>(edit:T):Omit<T,'order'>=>{const {order:_,...data}=edit;return structuredClone(data);};
-  return {schemaVersion:2,name:project.manifest.name,config:{seed:world.seed,density:world.density,width,length,seaLevel:world.seaLevel,chunkSize:world.chunkSizeM,viewDistance:world.viewDistance,generatorVersion:1},placements,terrain:[...terrain.values()].sort((a,b)=>a.order-b.order).map(stripOrder),biomes:[...biomes.values()].sort((a,b)=>a.order-b.order).map(stripOrder),water:[...waterIds].map(id=>structuredClone(project.libraries.water[id])),paths:[...pathIds].map(id=>structuredClone(project.libraries.paths[id])),npcs};
+  return {schemaVersion:2,name:project.manifest.name,config:{seed:world.seed,density:world.density,width,length,seaLevel:world.seaLevel,chunkSize:world.chunkSizeM,viewDistance:world.viewDistance,generatorVersion:1,...(world.terrain?{terrain:structuredClone(world.terrain)}:{})},placements,terrain:[...terrain.values()].sort((a,b)=>a.order-b.order).map(stripOrder),biomes:[...biomes.values()].sort((a,b)=>a.order-b.order).map(stripOrder),water:[...waterIds].map(id=>structuredClone(project.libraries.water[id])),paths:[...pathIds].map(id=>structuredClone(project.libraries.paths[id])),npcs};
+}
+
+/** Shared Studio-preview / compiled-reader projection of resolved entities to the
+ * current renderer. Rotation is reduced to yaw and scale to X (S-06 keeps full transforms later). */
+export function runtimeContent(entities:{id:string;name:string;components:EntityDefinitionV3['components']}[],libraries:Pick<ProjectDocument['libraries'],'behaviors'|'dialogues'>):{placements:WorldDefinition['placements'];npcs:WorldDefinition['npcs']}{
+  const placements:WorldDefinition['placements']=[],npcs:WorldDefinition['npcs']=[];
+  for(const entity of entities){
+    const c=entity.components,t=c.Transform;if(!t)continue;
+    if(c.Character){const n=c.Navigation,behavior=n?libraries.behaviors[n.behaviorId]?.kind:'idle',dialogue=c.DialogueActor?.dialogueIds[0],graph=dialogue?libraries.dialogues[dialogue]:undefined;npcs.push({id:entity.id,name:entity.name,kind:c.Character.species,x:t.position.x,z:t.position.z,behavior:behavior??'idle',radius:n?.radius??0,speed:n?.speed??0,appearance:structuredClone(c.Character.appearance),...(n?.path?{path:structuredClone(n.path)}:{}),...(graph?{dialogue:{start:graph.start,lines:structuredClone(graph.lines)}}:{})});
+    }else if(c.Visual)placements.push({id:entity.id,assetId:c.Visual.assetId as WorldDefinition['placements'][number]['assetId'],x:t.position.x,z:t.position.z,rotation:Math.atan2(2*(t.rotation.w*t.rotation.y+t.rotation.x*t.rotation.z),1-2*(t.rotation.y*t.rotation.y+t.rotation.z*t.rotation.z)),scale:t.scale.x});
+  }
+  return {placements,npcs};
 }

@@ -24,7 +24,7 @@ export async function verifyStaticBuild(directory = 'dist') {
       assert.ok((await stat(file)).isFile(), `Ressource absente : ${url}`);
     }
   }
-  for (const asset of ['models/pine.glb', 'models/rock.glb', 'models/crate.glb', 'maps/default.json']) {
+  for (const asset of ['models/pine.glb', 'models/rock.glb', 'models/crate.glb', 'maps/default.json', 'maps/island/manifest.json']) {
     assert.ok((await stat(resolve(root, asset))).isFile(), `Ressource absente : ${asset}`);
   }
 }

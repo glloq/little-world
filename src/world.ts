@@ -1,6 +1,7 @@
 import {waterRibbonData} from './water/geometry.ts';
 import * as THREE from 'three';
 import { createTerrainView } from './terrain-view';
+import { createHorizonView, type HorizonStats } from './horizon-view';
 import { createEcology } from './ecology';
 import { sampleBiome } from './biomes';
 import type {
@@ -15,6 +16,7 @@ import {
   configureTerrain,
   compiledWaterBodies,
   getTerrainConfig,
+  isLegacyTerrain,
   mulberry32,
   riverLevel,
   riverX,
@@ -30,10 +32,12 @@ export interface WorldView {
   millPosition: THREE.Vector3;
   boat: THREE.Group;
   objects: THREE.Group;
-  update: (dt: number, focus?: { x: number; z: number }) => void;
+  update: (dt: number, focus?: { x: number; z: number }, camera?: THREE.PerspectiveCamera, pixelHeight?: number) => void;
+  terrainWork: import('./terrain-view').TerrainWorkStats;
   setDetail: (level: number) => void;
   refreshTerrain: (x: number, z: number, radius: number) => void;
   refreshWater:()=>string[];
+  horizon: HorizonStats;
   stats: {
     active: number;
     resident: number;
@@ -517,6 +521,23 @@ export function createAsset(id: AssetId): THREE.Group {
   return g;
 }
 
+function createBoatMesh(root: THREE.Group): THREE.Group {
+  const boat = new THREE.Group();
+  root.add(boat);
+  const hull = mesh(new THREE.SphereGeometry(3, 9, 5), wood, boat, 0, 0, 0);
+  hull.scale.set(0.7, 0.4, 2.1);
+  box(boat, paleWood, 3.9, 0.22, 10.5, 0, 0.7, 0);
+  cylinder(boat, darkWood, 0.12, 0.13, 7, 0, 4.1, 0.4);
+  mesh(
+    new THREE.PlaneGeometry(4.1, 5.8),
+    new THREE.MeshLambertMaterial({ color: 0xf3ddb2, side: THREE.DoubleSide }),
+    boat,
+    2.1,
+    4.25,
+    0.4,
+  );
+  return boat;
+}
 function createVillage(root: THREE.Group): {
   wheel: THREE.Group;
   millPosition: THREE.Vector3;
@@ -557,21 +578,8 @@ function createVillage(root: THREE.Group): {
     box(dock, paleWood, 9, 0.34, 1.52, 0, 1.05, i * 2.3 - 8);
   for (const x1 of [-3.75, 3.75])
     for (const z1 of [-7, 12]) cylinder(dock, wood, 0.34, 0.42, 4, x1, 0.1, z1);
-  const boat = new THREE.Group();
+  const boat = createBoatMesh(root);
   boat.position.set(-17, getTerrainConfig().seaLevel - 0.15, 220);
-  root.add(boat);
-  const hull = mesh(new THREE.SphereGeometry(3, 9, 5), wood, boat, 0, 0, 0);
-  hull.scale.set(0.7, 0.4, 2.1);
-  box(boat, paleWood, 3.9, 0.22, 10.5, 0, 0.7, 0);
-  cylinder(boat, darkWood, 0.12, 0.13, 7, 0, 4.1, 0.4);
-  mesh(
-    new THREE.PlaneGeometry(4.1, 5.8),
-    new THREE.MeshLambertMaterial({ color: 0xf3ddb2, side: THREE.DoubleSide }),
-    boat,
-    2.1,
-    4.25,
-    0.4,
-  );
   const lantern = createAsset('props.lantern');
   lantern.position.set(-29, getTerrainConfig().seaLevel + 1, 205);
   root.add(lantern);
@@ -593,12 +601,20 @@ export function buildWorld(
   );
   const root = new THREE.Group();
   root.name = 'LittleWorld';
-  const terrainView = createTerrainView(root, getTerrainConfig());
+  // Generation is time-sliced (ms) rather than a fixed count; the shared level adapts LOD.
+  const terrainView = createTerrainView(root, getTerrainConfig(), { buildBudgetMs: 4, maxBuildsPerUpdate: 8 });
   const terrain = terrainView.terrain;
-  createRiver(root);
-  createTrail(root);
-  createForest(root, config.seed, config.density);
-  const { wheel, millPosition, boat } = createVillage(root);
+  const horizon = createHorizonView(root, getTerrainConfig(), terrainView);
+  // The demonstration valley decor is tied to the legacy generator; generated worlds
+  // receive their content from V3 sources instead of hard-coded scenery.
+  const legacy = isLegacyTerrain();
+  let wheel = new THREE.Group(), millPosition = new THREE.Vector3(), boat: THREE.Group;
+  if (legacy) {
+    createRiver(root);
+    createTrail(root);
+    createForest(root, config.seed, config.density);
+    ({ wheel, millPosition, boat } = createVillage(root));
+  } else boat = createBoatMesh(root);
   const biomeAt = (x: number, z: number) => {
     const edits = definition?.biomes ?? [];
     for (let i = edits.length - 1; i >= 0; i--)
@@ -635,7 +651,15 @@ export function buildWorld(
         false,
       );
   }
-  let time = 0;
+  let time = 0,
+    detailLevel = 0,
+    lastFocusX = NaN,
+    lastFocusZ = NaN,
+    velocityX = 0,
+    velocityZ = 0;
+  const forward = new THREE.Vector3(),
+    frustum = new THREE.Frustum(),
+    projection = new THREE.Matrix4();
   const objects = new THREE.Group();
   objects.name = 'PlacedAssets';
   root.add(objects);
@@ -647,12 +671,16 @@ export function buildWorld(
     boat,
     objects,
     stats: terrainView.stats,
+    horizon: horizon.stats,
+    terrainWork: terrainView.work,
     refreshWater,
     setDetail(level) {
+      detailLevel = level;
       ecology.setDetail(level);
     },
     refreshTerrain(x, z, radius) {
       terrainView.refresh(x, z, radius);
+      horizon.refresh(x, z, radius);
       ecology.refresh(x, z, radius);
       const matrix = new THREE.Matrix4();
       root.traverse((node) => {
@@ -691,10 +719,35 @@ export function buildWorld(
         }
       });
     },
-    update(dt: number, focus = { x: 0, z: 0 }) {
+    update(dt: number, focus = { x: 0, z: 0 }, camera?: THREE.PerspectiveCamera, pixelHeight = 640) {
       time += dt;
       wheel.rotation.x -= dt * 0.33;
-      terrainView.update(focus.x, focus.z);
+      if (camera) {
+        // Smoothed focus velocity drives look-ahead; a jump (teleport) resets it.
+        const jump = Math.hypot(focus.x - lastFocusX, focus.z - lastFocusZ);
+        if (dt > 0 && Number.isFinite(jump) && jump < 50) {
+          const mix = Math.min(1, dt * 4);
+          velocityX += ((focus.x - lastFocusX) / dt - velocityX) * mix;
+          velocityZ += ((focus.z - lastFocusZ) / dt - velocityZ) * mix;
+        } else velocityX = velocityZ = 0;
+        lastFocusX = focus.x;
+        lastFocusZ = focus.z;
+        camera.updateMatrixWorld();
+        camera.getWorldDirection(forward);
+        const tanHalf = Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2);
+        frustum.setFromProjectionMatrix(projection.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse));
+        terrainView.update(focus.x, focus.z, {
+          playerX: focus.x, playerZ: focus.z,
+          cameraX: camera.position.x, cameraY: camera.position.y, cameraZ: camera.position.z,
+          forwardX: forward.x, forwardZ: forward.z,
+          halfFovH: Math.atan(tanHalf * camera.aspect),
+          focalPx: pixelHeight / (2 * tanHalf),
+          velocityX, velocityZ,
+          groundY: terrainHeight(camera.position.x, camera.position.z),
+          quality: detailLevel,
+        }, frustum);
+      } else terrainView.update(focus.x, focus.z);
+      horizon.update(focus);
       ecology.update(dt, time, focus.x, focus.z);
       const distance = getTerrainConfig().viewDistance;
       for (const object of objects.children)
@@ -704,6 +757,7 @@ export function buildWorld(
     },
     dispose() {
       ecology.dispose();
+      horizon.dispose();
       terrainView.dispose();
       root.traverse((o) => {
         o.userData.disposed = true; // Pending GLB callbacks must not attach to retired editor worlds.

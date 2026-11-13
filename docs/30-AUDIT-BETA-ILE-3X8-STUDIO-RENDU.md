@@ -3,6 +3,8 @@
 **Date : 13 novembre 2026. Référence de code : `a7a6f88`.**
 **Nature du livrable : audit, inventaire et plan de travail. Aucune fonctionnalité, valeur de rendu ou configuration du jeu n’est modifiée par cet audit.**
 
+> **Suivi :** le premier lot de code (L0, L1 et début de L2) est décrit, mesuré et borné dans [31 — Lot 1 : île 3 × 8 km, lecteur V3 compilé et rendu continu](31-LOT1-ILE-RENDU-CONTINU.md). Les constats ci-dessous restent la référence de `3c0cf39`.
+
 ## 1. État de main et objectif retenu
 
 Les modifications de `feat/studio-v3`, de `feat/living-world-editor` et de la branche locale `work` sont déjà contenues dans `main`. Au début de l’audit, `main` et `feat/studio-v3` pointent sur `a7a6f88` ; la branche historique `feat/living-world-editor` n’a aucun commit absent de main. Aucun faux merge ni écrasement de branche n’est nécessaire.

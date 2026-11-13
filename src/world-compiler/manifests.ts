@@ -40,6 +40,9 @@ export interface CompiledWorldManifest {
   generatorVersion:string;
   seaLevel:number;
   chunkSizeM:number;
+  /** Base relief generator, so sectors without an authored package keep their terrain. */
+  terrain:import('../terrain-generator.ts').TerrainGeneratorDefinition;
+  density:number;
   coordinateSystem:'meters-y-up';
   chunks:CompiledChunkDescriptor[];
   entityIndex:CompiledEntityLocator[];
@@ -68,7 +71,7 @@ export interface CompileResult {
   rebuiltChunkIds:string[];
   diagnostics:CompilationDiagnostic[];
 }
-export const COMPILER_VERSION='little-world-descriptors-4';
+export const COMPILER_VERSION='little-world-descriptors-5';
 
 /** Stable object key order; array order remains semantically meaningful. */
 export function canonicalJSON(value:unknown):string {
@@ -106,4 +109,10 @@ export interface CompiledChunkData {
   collision:{mode:'analytic-terrain-and-shape-descriptors';shapes:{entityId:string;transform:import('../studio-core/types.ts').TransformComponent;collider:import('../studio-core/types.ts').ColliderComponent}[]};
   navigation:{mode:'agent-and-path-descriptors';agents:{entityId:string;navigation:import('../studio-core/types.ts').NavigationComponent}[];pathIds:string[];neighborChunkIds:string[]};
   dependencyHashes:Record<string,string>;
+}
+export interface CompiledLogicData {
+  schemaVersion:1;kind:'compiled-logic';worldId:string;
+  libraries:import('../studio-core/types.ts').ProjectLibraries;
+  entityIndex:Record<string,import('../studio-core/types.ts').EntityIndexEntry>;
+  initialStates:Record<string,unknown>;
 }

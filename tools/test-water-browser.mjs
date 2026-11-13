@@ -32,8 +32,11 @@ try{
  await mkdir('/tmp/little-world-browser',{recursive:true});await page.screenshot({path:'/tmp/little-world-browser/water-profile.png'});
  await page.getByRole('button',{name:'Vue 3D locale',exact:true}).click();await page.waitForFunction(()=>Number(document.querySelector('#workspace canvas')?.dataset.renderCount)>3);check(await page.locator('#workspace canvas').getAttribute('data-water-count')==='1','3D local view contains the saved water mesh');await page.screenshot({path:'/tmp/little-world-browser/water-3d.png'});
  const popupPromise=page.waitForEvent('popup');await page.getByRole('button',{name:'Tester la copie',exact:true}).click();const popup=await popupPromise;await popup.waitForLoadState();
- const snapshot=await popup.evaluate(()=>JSON.parse(sessionStorage.getItem('little-world:studio-playtest:v1:'+new URL(location.href).searchParams.get('studioPreview'))));
- check(Math.abs(snapshot.content.spawn.x+40)<1&&Math.abs(snapshot.content.spawn.z+183)<2&&snapshot.content.world.water[0].profile.mode==='terrain','Playtest starts beside the selected water with its authored profile');await popup.close();
+ // The test copy is a compiled build stored in IndexedDB and read by the game's compiled-world reader.
+ const snapshot=await popup.evaluate(async()=>{const id=new URL(location.href).searchParams.get('studioBuild');const db=await new Promise((ok,ko)=>{const r=indexedDB.open('little-world-test-builds');r.onsuccess=()=>ok(r.result);r.onerror=()=>ko(r.error);});
+  const build=await new Promise((ok,ko)=>{const r=db.transaction('builds').objectStore('builds').get(id);r.onsuccess=()=>ok(r.result);r.onerror=()=>ko(r.error);});db.close();
+  const manifest=JSON.parse(build.files['manifest.json']),water=manifest.chunks.flatMap(c=>JSON.parse(build.files[c.url]).water);return {spawn:build.spawn,water};});
+ check(Math.abs(snapshot.spawn.x+40)<1&&Math.abs(snapshot.spawn.z+183)<2&&snapshot.water[0].profile.mode==='terrain','Playtest starts beside the selected water with its authored profile');await popup.close();
  await page.goto(base+'editor/');await page.waitForFunction(()=>document.querySelector('#editor-message').textContent.startsWith('Prêt'));
  await page.locator('[data-tool="water"]').click();check(await page.locator('#water-mode').inputValue()==='terrain'&&await page.locator('#water-profile').isVisible(),'Legacy editor defaults new streams to relief profiles');
  check(errors.length===0,errors.join('\n'));console.log(JSON.stringify({checks,errors}));

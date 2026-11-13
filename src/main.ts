@@ -6,12 +6,13 @@ import {
   presentationPixelRatio,
 } from './frame-clock';
 import './style.css';
-import {waterSurface,riverX} from './terrain.ts';
+import {waterSurface,riverX,isLegacyTerrain} from './terrain.ts';
 import type {PlayableWorld,StudioPlaytest} from './gameplay/playable.ts';
 import {WorldClock} from './environment/clock.ts';
 import {createClimate,defaultEnvironment} from './environment/climate.ts';
 import type {GameplayView} from './gameplay/game-view.ts';
 import { addPlacement, buildWorld, configureScene } from './world';
+import { horizonFar } from './horizon-view';
 import { defaultWorld, parseWorld } from './world-data';
 import { createNPCSystem } from './npc-view';
 import {
@@ -28,6 +29,7 @@ import {
   getTerrainConfig,
   clamp,
   terrainHeight,
+  waterDepth,
 } from './terrain';
 import {
   nearBoat,
@@ -97,8 +99,26 @@ const searchParams = new URLSearchParams(window.location.search);
 const isPreview = searchParams.get('preview') === '1',
   metricsEnabled = searchParams.has('metrics');
 let definition = defaultWorld();
-let playable:PlayableWorld|null=null,studioTest:StudioPlaytest|null=null;
-if(searchParams.has('studioPreview')||searchParams.get('beta')==='1'){
+let playable:PlayableWorld|null=null,studioTest:StudioPlaytest|null=null,buildScope:string|null=null;
+function bootFailure(error:unknown):never{overlay.setAttribute('aria-busy','false');overlay.querySelector('h1')!.textContent='Impossible d’ouvrir cette partie';overlay.querySelector('p')!.textContent=String(error);start.disabled=true;throw error;}
+if(searchParams.has('studioBuild')||searchParams.has('world')){
+  // Compiled V3 reader: the same path for published worlds and Studio test builds.
+  try{
+    const {openCompiledWorld,playableFromCompiled,publishedManifestURL}=await import('./runtime/compiled-world.ts');
+    if(searchParams.has('studioBuild')){
+      const {loadTestBuild,buildFetcher,buildManifestURL}=await import('./runtime/build-store.ts');
+      const build=await loadTestBuild(searchParams.get('studioBuild')!);
+      playable=playableFromCompiled(await openCompiledWorld(buildManifestURL(build.buildId),buildFetcher(build)),build.spawn);buildScope=build.buildId;
+    }else{
+      // Optional control viewpoint (audit §6: sea→volcano, rim→coasts…) for reproducible checks.
+      const view=(searchParams.get('spawn')??'').split(',').map(Number),spawn=view.length===2&&view.every(Number.isFinite)?{x:view[0],y:0,z:view[1]}:undefined;
+      playable=playableFromCompiled(await openCompiledWorld(publishedManifestURL(import.meta.env.BASE_URL,searchParams.get('world')!)),spawn);
+    }
+    definition=playable.world;
+    // Render tile size is a renderer parameter, distinct from authored sectors (benchmarks compare 64/128/256 m).
+    const tile=Number(searchParams.get('tile'));if([32,64,128,256].includes(tile))definition.config.chunkSize=tile;
+  }catch(error){bootFailure(error);}
+}else if(searchParams.has('studioPreview')||searchParams.get('beta')==='1'){
   try{
     const {loadPlaytest,parsePlayableWorld}=await import('./gameplay/playable.ts');
     if(searchParams.has('studioPreview')){studioTest=loadPlaytest(searchParams.get('studioPreview')!);playable=studioTest.content;}
@@ -123,6 +143,8 @@ if(searchParams.has('studioPreview')||searchParams.get('beta')==='1'){
   }
 }
 const world = buildWorld(definition.config, definition);
+// Far plane follows the project diagonal: silhouettes stay visible without fog (near plane unchanged).
+camera.far=horizonFar(getTerrainConfig().width,getTerrainConfig().length);camera.updateProjectionMatrix();
 for (const item of definition.placements) addPlacement(world, item);
 scene.add(world.root);
 const player = spawnPlayer();
@@ -132,11 +154,11 @@ try{const {parseAudioDefinition}=await import('./audio/schema.ts');let definitio
 let gameplay:GameplayView|null=null;
 if(playable){
   const {createGameplayView}=await import('./gameplay/game-view.ts');
-  gameplay=createGameplayView(playable.gameplay,{onSound:(id,p)=>audio?.playSound(id,p),collisions:playable.collisions,temporary:!!studioTest,saveScope:studioTest?.snapshotId,getPosition:()=>({x:player.position.x,y:player.position.y,z:player.position.z}),objects:world.objects,showInfo,
+  gameplay=createGameplayView(playable.gameplay,{onSound:(id,p)=>audio?.playSound(id,p),collisions:playable.collisions,temporary:!!(studioTest||buildScope),saveScope:studioTest?.snapshotId??buildScope??undefined,getPosition:()=>({x:player.position.x,y:player.position.y,z:player.position.z}),objects:world.objects,showInfo,
     setPosition:p=>{player.position.set(p.x,p.y,p.z);player.velocity.set(0,0,0);player.mode='air';player.oxygen=MAX_OXYGEN;player.glideReady=false;aboard=false;keySet.clear();jumpQueue=0;actionQueue=0;npcs.dialogue.close();previousPlayerPosition.copy(player.position);renderPosition.copy(player.position);updateCamera(1);}
   });
 }
-const npcs = createNPCSystem(scene, definition.npcs,undefined,gameplay?.dialogueSession);
+const npcs = createNPCSystem(scene, definition.npcs,isLegacyTerrain()?undefined:[],gameplay?.dialogueSession);
 gameplay?.attachNPCs(npcs.states);
 const worldClock=gameplay?.runtime.clock??new WorldClock(),climate=gameplay?.runtime.climate??createClimate(defaultEnvironment(definition.config.seed));
 const {createEnvironmentView}=await import('./environment/view.ts');
@@ -149,6 +171,10 @@ const customization = createCustomizationMenu(
   (appearance) => squirrel.setAppearance(appearance),
 );
 const boat = spawnBoat();
+if(!isLegacyTerrain()){
+  // Generated worlds have no hard-coded harbour: moor the boat in the first deep water seaward of the start.
+  for(let d=6;d<600;d+=3){const x=player.position.x,z=player.position.z+d;if(waterDepth(x,z)>1.4){boat.x=x;boat.z=z;boat.y=getTerrainConfig().seaLevel-.15;break;}}
+}
 let aboard = false;
 world.boat.position.set(boat.x, boat.y, boat.z);
 const keySet = new Set<string>();
@@ -160,6 +186,8 @@ let yaw = 0,
 let started = false;
 let infoUntil = 0;
 let elapsed = 0;
+// Generated worlds start on a coast: face the island centre rather than the open sea.
+if(playable&&!isLegacyTerrain()){const yawParam=Number(searchParams.get('yaw'));yaw=searchParams.has('yaw')&&Number.isFinite(yawParam)?yawParam:Math.atan2(-player.position.x,-player.position.z);}
 const previousPlayerPosition = player.position.clone(),
   renderPosition = player.position.clone();
 let presentedFrames = 0;
@@ -243,6 +271,7 @@ window.addEventListener('keydown', (e) => {
   if (e.code === 'KeyE') actionQueue++;
   if (e.code === 'KeyR' && started) {
     const reset = spawnPlayer();
+    if(playable)reset.position.set(playable.spawn.x,terrainHeight(playable.spawn.x,playable.spawn.z)+playable.spawn.y+.02,playable.spawn.z);
     player.position.copy(reset.position);
     player.velocity.set(0, 0, 0);
     aboard = false;
@@ -254,7 +283,7 @@ window.addEventListener('keydown', (e) => {
     updateCamera(1);
     showInfo('Retour au point de départ');
   }
-  if (e.code === 'KeyP' && started) {
+  if (e.code === 'KeyP' && started && isLegacyTerrain()) {
     aboard = false;
     player.position.set(-23, getTerrainConfig().seaLevel + 1.35, 217);
     player.velocity.set(0, 0, 0);
@@ -446,8 +475,8 @@ function draw(now: number) {
     frame.alpha,
   );
   environment.update(delta,player.position,budget.level);
-  if(started&&audio){const env=climate.state(worldClock.time);audio.update(now,player.position,id=>gameplay?.runtime.getEntityPosition(id),{night:env.sunAltitude<0,rain:env.weather==='rain',water:waterSurface(player.position.x,player.position.z)!==null||Math.abs(player.position.x-riverX(player.position.z))<16},budget.level,player.mode==='ground'&&!aboard&&player.velocity.lengthSq()>.1,camera.getWorldDirection(audioForward));}
-  world.update(delta, player.position);
+  if(started&&audio){const env=climate.state(worldClock.time);audio.update(now,player.position,id=>gameplay?.runtime.getEntityPosition(id),{night:env.sunAltitude<0,rain:env.weather==='rain',water:waterSurface(player.position.x,player.position.z)!==null||(isLegacyTerrain()&&Math.abs(player.position.x-riverX(player.position.z))<16)},budget.level,player.mode==='ground'&&!aboard&&player.velocity.lengthSq()>.1,camera.getWorldDirection(audioForward));}
+  world.update(delta, player.position, camera, renderer.domElement.height);
   npcs.update(delta, elapsed, player.position); // The river drives the mill: no manual on/off control.
   world.boat.position.set(
     boat.x,
@@ -472,10 +501,15 @@ function draw(now: number) {
         triangles: renderer.info.render.triangles,
         geometries: renderer.info.memory.geometries,
         chunks: { ...world.stats },
+        horizon: { ...world.horizon },
+        terrainWork: { ...world.terrainWork },
         environment:environment.metrics,
         audio:audio?.engine.metrics??null,
         collisions:gameplay?.collision.stats??null,
         position: player.position.toArray(),
+        camera:{position:camera.position.toArray(),quaternion:camera.quaternion.toArray(),fov:camera.fov,aspect:camera.aspect,far:camera.far},
+        legacyTerrain:isLegacyTerrain(),
+        background:scene.background instanceof THREE.Color?scene.background.getHex(THREE.SRGBColorSpace):null,
         renderRate: budget.rate,
         qualityLevel: budget.level,
         simulationHz: 30,

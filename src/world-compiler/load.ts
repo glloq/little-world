@@ -1,7 +1,8 @@
 import {parseAudioDefinition} from '../audio/schema.ts';
 import {parseEnvironmentDefinition} from '../environment/climate.ts';
 import {parseComponents} from '../studio-core/schema.ts';
-import {hashText,utf8Bytes,type CompiledChunkData,type CompiledChunkDescriptor,type CompiledWorldManifest} from './manifests.ts';
+import {hashText,utf8Bytes,type CompiledChunkData,type CompiledChunkDescriptor,type CompiledWorldManifest,type CompiledLogicData} from './manifests.ts';
+import {parseTerrainGenerator} from '../terrain-generator.ts';
 const record=(v:unknown):v is Record<string,unknown>=>typeof v==='object'&&v!==null&&!Array.isArray(v);
 const hash=(v:unknown):v is string=>typeof v==='string'&&/^[a-f0-9]{64}$/.test(v);
 const text=(v:unknown):v is string=>typeof v==='string'&&v.length>0&&v.length<=200;
@@ -9,7 +10,8 @@ const number=(v:unknown,min:number,max:number):v is number=>typeof v==='number'&
 const local=(v:unknown):v is string=>typeof v==='string'&&/^[a-zA-Z0-9_./-]+\.json$/.test(v)&&!v.startsWith('/')&&!v.split('/').some(s=>!s||s==='.'||s==='..');
 function bounds(v:unknown){return record(v)&&['minX','maxX','minZ','maxZ'].every(key=>number(v[key],-100000,100000))&&number((v.maxX as number)-(v.minX as number),1,10000)&&number((v.maxZ as number)-(v.minZ as number),1,10000);}
 export function parseCompiledManifest(value:unknown):CompiledWorldManifest {
- if(!record(value)||value.schemaVersion!==1||value.kind!=='compiled-world'||value.coordinateSystem!=='meters-y-up'||!text(value.worldId)||!text(value.projectId)||!text(value.compilerVersion)||!text(value.buildVersion)||!hash(value.sourceHash)||!bounds(value.bounds)||!number(value.seed,1,9999999)||!text(value.generatorVersion)||!number(value.seaLevel,-20,20)||!number(value.chunkSizeM,16,512))throw Error('Invalid compiled world manifest');
+ if(!record(value)||value.schemaVersion!==1||value.kind!=='compiled-world'||value.coordinateSystem!=='meters-y-up'||!text(value.worldId)||!text(value.projectId)||!text(value.compilerVersion)||!text(value.buildVersion)||!hash(value.sourceHash)||!bounds(value.bounds)||!number(value.seed,1,9999999)||!text(value.generatorVersion)||!number(value.seaLevel,-20,20)||!number(value.chunkSizeM,16,512)||!number(value.density,0,2))throw Error('Invalid compiled world manifest');
+ const b=value.bounds as Record<string,number>;parseTerrainGenerator(value.terrain,{width:b.maxX-b.minX,length:b.maxZ-b.minZ});
  if(value.audio!==undefined)parseAudioDefinition(value.audio);
  if(value.environment!==undefined)parseEnvironmentDefinition(value.environment);
  if(!record(value.capabilities)||value.capabilities.bakedMeshes!==false||value.capabilities.bakedLOD!==false||value.capabilities.navigation!=='source-descriptors'||value.capabilities.collisions!=='source-descriptors'||value.capabilities.sparseSourceChunks!==true)throw Error('Unsupported compiled world capabilities');
@@ -51,4 +53,13 @@ export function parseCompiledChunk(value:unknown,manifest:CompiledWorldManifest,
  if(ids.size!==descriptor.entityIds.length)throw Error('Compiled chunk/entity index mismatch');
  for(const [id,digest] of Object.entries(value.dependencyHashes))if(!text(id)||!hash(digest))throw Error('Invalid compiled dependency hash');
  return structuredClone(value) as unknown as CompiledChunkData;
+}
+/** Global logic index (all entities, including those in sectors not yet loaded). */
+export async function loadCompiledLogic(manifestURL:string,manifest:CompiledWorldManifest,fetcher:typeof fetch=fetch):Promise<CompiledLogicData>{
+ const value=await readJSON(relativeURL(manifestURL,manifest.logic.url),fetcher,manifest.logic);
+ if(!record(value)||value.schemaVersion!==1||value.kind!=='compiled-logic'||value.worldId!==manifest.worldId||!record(value.libraries)||!record(value.entityIndex)||!record(value.initialStates))throw Error('Invalid compiled logic payload');
+ const known=new Set(manifest.entityIndex.map(e=>e.id));
+ for(const [id,entry] of Object.entries(value.entityIndex))if(!record(entry)||entry.id!==id||!known.has(id))throw Error('Compiled logic/entity index mismatch');
+ if(Object.keys(value.entityIndex).length!==manifest.entityIndex.length)throw Error('Compiled logic/entity index mismatch');
+ return structuredClone(value) as unknown as CompiledLogicData;
 }

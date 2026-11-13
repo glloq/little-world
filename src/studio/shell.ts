@@ -24,7 +24,7 @@ function refreshHeader(){
 async function home(){
  moduleGeneration++; await entityEdits.catch(()=>{});if(session)await session.flush();dispose();unsubscribe();session=null;map=null;$('modules').replaceChildren();$('tools').replaceChildren(node('h3','Vos mondes'),node('p','Projets conservés dans ce navigateur. Exportez une archive pour les transférer ou les protéger.','muted'));$('inspector').replaceChildren();$('header-actions').replaceChildren();$('breadcrumbs').textContent='Mes projets';$('save-status').textContent='';
  const home=node('div','','home'),head=node('div','','home-heading'),titles=node('div');titles.append(node('div','LITTLE WORLD STUDIO · V3','kicker'),node('h1','Des idées aux petits mondes'),node('p','Créez un projet ou poursuivez votre atelier.','muted'));head.append(titles,action('Ouvrir le scénario de référence',async()=>{const response=await fetch(import.meta.env.BASE_URL+'maps/beta.project.json');if(!response.ok)throw Error('Scénario indisponible');const p=parseProject(await response.json());if(!(await store.list()).some(v=>v.projectId===p.manifest.projectId))await store.create(p);await open(p.manifest.projectId);}),action('Importer JSON / ZIP',()=>($('project-file') as HTMLInputElement).click()));home.append(head);
- const form=node('form','','section-card'),name=input('Mon petit monde',()=>{}),size=select('1000',[['200','200 × 600 m'],['1000','1 000 × 1 000 m — cible B1']],()=>{}),create=button('Créer le projet',()=>{},'primary-button');create.type='submit';form.append(field('Nom du projet',name),field('Dimensions',size),create);form.onsubmit=e=>{e.preventDefault();void run(async()=>{const side=Number(size.value),p=createProject({name:name.value,width:side,length:side===200?600:side});await store.create(p);await open(p.manifest.projectId);})();};home.append(form);
+ const form=node('form','','section-card'),name=input('Mon petit monde',()=>{}),size=select('1000',[['island','Île volcanique · 3 000 × 8 000 m'],['200','Vallée historique · 200 × 600 m'],['1000','Vallée historique · 1 000 × 1 000 m']],()=>{}),seed=numberInput(4242,()=>{},1,9999999),create=button('Créer le projet',()=>{},'primary-button');create.type='submit';form.append(field('Nom du projet',name),field('Modèle et dimensions',size),field('Graine du relief',seed),node('p','L’île est générée par un preset paramétrique (côtes, plaines, volcan) ; vos retouches et contenus s’ajoutent par-dessus sans le recopier.','muted'),create);form.onsubmit=e=>{e.preventDefault();void run(async()=>{const value=Math.max(1,Math.min(9999999,Math.round(Number(seed.value)||1)));let p;if(size.value==='island'){const {islandPreset}=await import('../terrain-generator.ts');p=createProject({name:name.value,width:3000,length:8000,seed:value,terrain:islandPreset(3000,8000)});}else{const side=Number(size.value);p=createProject({name:name.value,width:side,length:side===200?600:side,seed:value});}await store.create(p);await open(p.manifest.projectId);})();};home.append(form);
  const cards=node('div','','project-cards');for(const p of await store.list()){const card=node('article','','project-card');card.append(node('div','PROJET LOCAL · V3','kicker'),node('h2',p.name),node('p',`Révision ${p.revision} · ${new Date(p.updatedAt).toLocaleString('fr')}`,'muted'),action('Ouvrir le monde',()=>open(p.projectId)));cards.append(card);}home.append(cards);$('workspace').replaceChildren(home);status('Studio V3 : socle et carte auteur. La qualification bêta reste en cours.');
 }
 async function open(id:string){dispose();unsubscribe();session=await StudioSession.open(store,id);const s=session;unsubscribe=s.subscribe(()=>{refreshHeader();});const active=s.selection.state.activeModule;await module(['map','objects','terrain','biomes','dialogues','interactions','environment','tests','local','characters','audio','water'].includes(active)?active:'map');refreshHeader();}
@@ -88,15 +88,21 @@ async function diagnostics(){
  panel.append(action('Exporter le monde compilé',async()=>{const compiled=await compileProject(p,options),bytes=writeFilesArchive(compiled.files);download('compiled-world.zip',bytes.buffer as ArrayBuffer,'application/zip');status(`${compiled.manifest.chunks.length} secteurs compilés ; source auteur inchangée.`);}));
 }
 async function preview(){
- await entityEdits;const s=session!,p=await s.fullDocument();await s.flush();const world=toRuntimeWorld(p);
- if((world.config.width??200)>2000||(world.config.length??600)>2000)throw Error('Le lecteur de test actuel est limité à 2 km par axe.');
- const {savePlaytest}=await import('../gameplay/playable.ts'),{gameplayDataFromProject}=await import('../gameplay/project-adapter.ts');
+ // Same compiled reader as the published game: compile the snapshot, store the build in
+ // IndexedDB, open the game on it. Sources, history and real save slots stay untouched.
+ await entityEdits;const s=session!,p=await s.fullDocument();await s.flush();
  const selected=s.selection.state.selected,entry=selected?p.entityIndex[selected.id]:undefined,camera=s.selection.state.camera;
  const water=selected?.kind==='water'?p.libraries.water[selected.id]:undefined,waterFocus=water?.points[Math.floor(water.points.length/2)];
- const spawn={x:entry?.position.x??waterFocus?.x??camera.x,y:0,z:Math.max(p.world.bounds.minZ+.5,Math.min(p.world.bounds.maxZ-.5,(entry?.position.z??waterFocus?.z??camera.z)-3))};
- const {collisionDefinitionsFromProject}=await import('../studio-core/collision-adapter.ts');
- const snapshot=savePlaytest({projectId:p.manifest.projectId,content:{schemaVersion:1,kind:'playable-world',world,...(p.world.audio?{audio:p.world.audio}:{}),gameplay:gameplayDataFromProject(p),collisions:collisionDefinitionsFromProject(p),spawn}});
- status('Copie de test prête : actions et slots temporaires, projet auteur conservé.');window.open(new URL('../?preview=1&studioPreview='+encodeURIComponent(snapshot.snapshotId),location.href),'little-world-playtest');
+ const focus=entry?.position??waterFocus??(selected||camera.x!==0||camera.z!==0?camera:null);
+ const {compileProject,fetchAssetResolver}=await import('../world-compiler/compile.ts'),{saveTestBuild}=await import('../runtime/build-store.ts');
+ status('Compilation de la copie de test…');
+ const compiled=await compileProject(p,{resolveAsset:fetchAssetResolver(new URL(import.meta.env.BASE_URL,location.origin).href)});
+ let spawn;
+ if(focus)spawn={x:focus.x,y:0,z:Math.max(p.world.bounds.minZ+.5,Math.min(p.world.bounds.maxZ-.5,focus.z-3))};
+ else{const {defaultSpawn,runtimeConfig}=await import('../runtime/compiled-world.ts');spawn=defaultSpawn(runtimeConfig(compiled.manifest),Object.values(p.chunks).flatMap(c=>c.terrainEdits));}
+ const build=await saveTestBuild({projectId:p.manifest.projectId,spawn,files:compiled.files});
+ status(`Copie de test compilée (${compiled.manifest.chunks.length} secteurs auteur) : actions et slots temporaires, projet auteur conservé.`);
+ window.open(new URL('../?preview=1&studioBuild='+encodeURIComponent(build.buildId),location.href),'little-world-playtest');
 }
 ($('project-file') as HTMLInputElement).onchange=()=>void run(async()=>{
  const file=($('project-file') as HTMLInputElement).files?.[0];if(!file)return;let p:ProjectDocument;

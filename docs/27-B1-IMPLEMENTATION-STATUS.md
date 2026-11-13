@@ -1,7 +1,7 @@
 # B1 — Avancement vérifié de la branche Studio V3
 
 Date : 13 novembre 2026. Périmètre : [objectifs B1](26-BETA-B1-OBJECTIFS.md).
-Les incréments jusqu’à `a7a6f88` sont inclus dans `main`. **La bêta B1 n’est pas qualifiée.** Le nouvel [audit 30 — île 3 × 8 km](30-AUDIT-BETA-ILE-3X8-STUDIO-RENDU.md) consolide les manques actuels, les blocages de taille/visibilité et le plan Studio/rendu ; les décomptes plus bas correspondent aux incréments historiques.
+Les incréments jusqu’à `a7a6f88` sont inclus dans `main`. **La bêta B1 n’est pas qualifiée.** **Lot 1 île (branche `claude/bold-tesla-b0pe7k`)** : générateur île/volcan V3, lecteur de monde compilé commun jeu/copie de test, horizon géographique + océan, priorité caméra et quotas — détail, mesures et limites dans [31 — Lot 1](31-LOT1-ILE-RENDU-CONTINU.md). Le nouvel [audit 30 — île 3 × 8 km](30-AUDIT-BETA-ILE-3X8-STUDIO-RENDU.md) consolide les manques actuels, les blocages de taille/visibilité et le plan Studio/rendu ; les décomptes plus bas correspondent aux incréments historiques.
 
 ## Incréments conservés
 
@@ -21,7 +21,7 @@ Les incréments jusqu’à `a7a6f88` sont inclus dans `main`. **La bêta B1 n’
 | FND-03 / B1-06/07 | Conditions/actions typées, états logiques indépendants du rendu, templates porte/levier/réaction/collecte/livraison/pêche/énigme | Tests logique, limites, séquences différées, inventaire et références inter-secteurs | Effets de présentation complets (audio/animation), activités B1 spécialisées et scénario de qualification complet |
 | FND-02 / B1-08 | GameSaveV1 et jusqu'à 10 slots locaux par monde, distincts du stockage auteur | Reprise des états persistants et séquences différées, slots corrompus diagnostiqués | État du bateau/position des PNJ, mine/parcelles et migrations après évolution des contrats |
 | FND-08 | Préflight strict, catalogue local vérifié, compilation déterministe et incrémentale en ressources JSON par secteur | Tests de hashes, dépendances inter-secteurs, assets et sorties sur disque ; compilation depuis Studio | **Pas de meshes/LOD/navmeshes précalculés** ; raccord au streaming runtime |
-| Copie de test / B1-14 | Snapshot V3 logique avec représentation V2, slots temporaires isolés, autre fenêtre, source et historique conservés | Ouverture du test et historique conservé dans Chromium ; anciens tests preview préservés | Lecteur V3 sectorisé ; représentation V2 limitée à 2 km par axe et terrains centrés |
+| Copie de test / B1-14 | Snapshot V3 **compilé** stocké en IndexedDB et lu par le même lecteur que le monde publié (lot 1), slots temporaires isolés, autre fenêtre, source et historique conservés | Parcours Chromium studio/gameplay/eau/île sur build de production | Streaming des paquets auteur par secteur ; limites centrées ; transformations complètes (S-06) |
 | FND-04/05, B1-03 | Horloge, climat périodique rejouable, jour/nuit et pluie bornée ; requêtes XYZ, sols/plafonds et colliders logiques | Agrégats continus/différés, temps/slots, barrière fermée/ouverte, trois étages en tests | Ciel avancé, connexions souterraines, climat agricole qualifié et rendu des mines |
 | FND-09, B1-01/09/10/11 | Budget de présentation existant réutilisé, région source 1 km² de démonstration | Tests fonctionnels ; aucune qualification matérielle | Budget transversal complet, densité/contenu de la région, mine, agriculture, qualification audio et benchmarks PC |
 
