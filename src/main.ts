@@ -1,3 +1,4 @@
+import { geoWorkerPool } from './geography/geo-workers.ts';
 import type {AudioController} from './audio/view.ts';
 import * as THREE from 'three';
 import {
@@ -506,6 +507,7 @@ function draw(now: number) {
         horizon: { ...world.horizon },
         terrainWork: { ...world.terrainWork },
         dressing: world.dressing ? { ...world.dressing } : null,
+        workers: geoWorkerPool()?.stats ? { ...geoWorkerPool()!.stats } : null,
         environment:environment.metrics,
         audio:audio?.engine.metrics??null,
         collisions:gameplay?.collision.stats??null,

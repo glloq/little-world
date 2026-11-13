@@ -7,7 +7,7 @@ const base=process.argv[2]??'http://127.0.0.1:5173/little-world/',label=process.
 const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH??(existsSync('/usr/bin/chromium')?'/usr/bin/chromium':undefined),args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
 try{
   const page=await browser.newPage({viewport:{width:1440,height:900}});page.on('dialog',d=>d.accept());
-  await page.goto(base+'studio/');await page.getByLabel('Nom du projet').fill('Bench géo');await page.getByLabel('Modèle et dimensions').selectOption('island');await page.getByRole('button',{name:'Créer le projet',exact:true}).click();
+  await page.goto(base+'studio/'+(process.env.QUERY??''));await page.getByLabel('Nom du projet').fill('Bench géo');await page.getByLabel('Modèle et dimensions').selectOption('island');await page.getByRole('button',{name:'Créer le projet',exact:true}).click();
   const idle3d=()=>page.waitForFunction(()=>{const c=document.querySelector('.viewport canvas');return c&&!c.closest('[hidden]')&&c.dataset.idle==='true'&&c.dataset.pending==='0';},{},{timeout:120000,polling:20});
   await idle3d();
   const mapReady=()=>page.waitForFunction(()=>{const c=document.querySelector('#panel-host canvas');return c&&c.width>10&&(c.dataset.mapPending??'0')==='0';},{},{timeout:120000,polling:20});

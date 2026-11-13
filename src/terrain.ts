@@ -1,4 +1,5 @@
 import {WaterSpatialIndex} from './water/profile.ts';
+import {ribbonDistance} from './geography/lines.ts';
 import {LEGACY_GENERATOR,generatorField,type TerrainGeneratorDefinition} from './terrain-generator.ts';
 import type {GeneratorField} from './geography/archipelago.ts';
 import type {
@@ -23,9 +24,7 @@ let config = {
 let field:GeneratorField|null=null;
 let waterIndex=new WaterSpatialIndex([],()=>0);
 let sourceHeight:(x:number,z:number)=>number=(x,z)=>baseHeight(x,z,0);
-let paths: PathDefinition[] = [];
-let pathBoxes: {minX:number;maxX:number;minZ:number;maxZ:number}[] = [];
-function pointsBox(points:{x:number;z:number}[],pad:number){let minX=Infinity,maxX=-Infinity,minZ=Infinity,maxZ=-Infinity;for(const p of points){minX=Math.min(minX,p.x);maxX=Math.max(maxX,p.x);minZ=Math.min(minZ,p.z);maxZ=Math.max(maxZ,p.z);}return {minX:minX-pad,maxX:maxX+pad,minZ:minZ-pad,maxZ:maxZ+pad};}
+let pathRibbons: ReturnType<typeof ribbonDistance> = () => Infinity;
 export function configureTerrain(
   c: WorldConfig,
   edits: TerrainStroke[] = [],
@@ -44,31 +43,24 @@ export function configureTerrain(
   field=g.kind==='legacy-valley'?null:generatorField(g,{seed:c.seed,seaLevel:config.seaLevel,width:config.width,length:config.length},()=>0);
   sourceHeight=createTerrainSource(c,edits,field);
   waterIndex=new WaterSpatialIndex(water,sourceHeight);
-  paths = roads;
-  pathBoxes = roads.map(p=>pointsBox(p.points,p.width/2));
+  pathRibbons = ribbonDistance(roads);
+  // Revision of the terrain inputs: geography workers replay them, results computed with an
+  // older revision are discarded. Unchanged inputs keep the revision (no needless rebuild).
+  const signature = JSON.stringify([c, edits, water, roads]);
+  if (signature !== inputSignature) { inputSignature = signature; inputRevision++; }
+  inputs = { config: c, edits, water, roads };
 }
+let inputSignature = '', inputRevision = 0;
+let inputs: { config: WorldConfig; edits: TerrainStroke[]; water: WaterBody[]; roads: PathDefinition[] } | null = null;
+/** Inputs of the last configureTerrain call (structured-cloneable, for workers). */
+export function terrainInputs() { return inputs; }
+export function terrainRevision(): number { return inputRevision; }
 export function getTerrainConfig() {
   return { ...config };
 }
-function lineDistance(
-  x: number,
-  z: number,
-  points: { x: number; z: number }[],
-): number {
-  let best = Infinity;
-  for (let i = 1; i < points.length; i++) {
-    const a = points[i - 1],
-      b = points[i],
-      dx = b.x - a.x,
-      dz = b.z - a.z;
-    const t = clamp(
-      ((x - a.x) * dx + (z - a.z) * dz) / (dx * dx + dz * dz || 1),
-      0,
-      1,
-    );
-    best = Math.min(best, Math.hypot(x - a.x - t * dx, z - a.z - t * dz));
-  }
-  return best;
+/** Sea level without copying the configuration (per-sample hot paths). */
+export function terrainSeaLevel(): number {
+  return config.seaLevel;
 }
 /** True for the historical demonstration valley (V1/V2 maps, projects without generator). */
 export function isLegacyTerrain():boolean{return config.generator.kind==='legacy-valley';}
@@ -76,13 +68,8 @@ export function terrainGenerator():TerrainGeneratorDefinition{return config.gene
 /** Distance to the nearest path edge. With `within`, paths farther than that are skipped
  * (the result is then only exact below `within`; Infinity means "farther"). */
 export function pathDistance(x: number, z: number, within = Infinity): number {
-  let d = isLegacyTerrain()?Math.abs(x - (riverX(z) - 22)) - 1.8:Infinity;
-  for (let i = 0; i < paths.length; i++) {
-    const p = paths[i], b = pathBoxes[i];
-    if (within < Infinity && (x < b.minX - within || x > b.maxX + within || z < b.minZ - within || z > b.maxZ + within)) continue;
-    d = Math.min(d, lineDistance(x, z, p.points) - p.width / 2);
-  }
-  return d;
+  const legacy = isLegacyTerrain()?Math.abs(x - (riverX(z) - 22)) - 1.8:Infinity;
+  return Math.min(legacy, pathRibbons(x, z, within));
 }
 
 export function clamp(value: number, min: number, max: number): number {
@@ -123,13 +110,13 @@ const EDIT_CELL=64;
 export function createTerrainSource(c:WorldConfig,edits:TerrainStroke[]=[],shared?:GeneratorField|null):(x:number,z:number)=>number {
  const seaLevel=c.seaLevel??0,generator=c.terrain??LEGACY_GENERATOR;
  const base=shared?shared.height:generatorField(generator,{seed:c.seed,seaLevel,width:c.width??200,length:c.length??600},(x,z)=>baseHeight(x,z,seaLevel)).height;
- const buckets=new Map<string,TerrainStroke[]>();
+ const buckets=new Map<number,TerrainStroke[]>(),key=(cx:number,cz:number)=>(cx+1048576)*2097152+(cz+1048576);
  for(const s of edits){
   const x0=Math.floor((s.x-s.radius)/EDIT_CELL),x1=Math.floor((s.x+s.radius)/EDIT_CELL),z0=Math.floor((s.z-s.radius)/EDIT_CELL),z1=Math.floor((s.z+s.radius)/EDIT_CELL);
-  for(let cz=z0;cz<=z1;cz++)for(let cx=x0;cx<=x1;cx++){const key=cx+':'+cz;let list=buckets.get(key);if(!list)buckets.set(key,list=[]);list.push(s);}
+  for(let cz=z0;cz<=z1;cz++)for(let cx=x0;cx<=x1;cx++){const k=key(cx,cz);let list=buckets.get(k);if(!list)buckets.set(k,list=[]);list.push(s);}
  }
  return (x,z)=>{let h=base(x,z);
-  const list=buckets.get(Math.floor(x/EDIT_CELL)+':'+Math.floor(z/EDIT_CELL));
+  const list=buckets.size?buckets.get(key(Math.floor(x/EDIT_CELL),Math.floor(z/EDIT_CELL))):undefined;
   if(list)for (const s of list) {
     const d = Math.hypot(x - s.x, z - s.z);
     if (d >= s.radius) continue;
@@ -143,13 +130,11 @@ export function createTerrainSource(c:WorldConfig,edits:TerrainStroke[]=[],share
 }
 export function sourceTerrainHeight(x:number,z:number){return sourceHeight(x,z);}
 export function compiledWaterBodies(){return waterIndex.bodies;}
-/** Distance to the nearest water body edge, exact below `within` (Infinity beyond). */
-let waterBoxes:{source:readonly unknown[];boxes:ReturnType<typeof pointsBox>[]}={source:[],boxes:[]};
+/** Distance to the nearest water body edge, exact below `within`. */
+let waterRibbons:{source:readonly unknown[];distance:ReturnType<typeof ribbonDistance>}={source:[],distance:()=>Infinity};
 export function waterEdgeDistance(x:number,z:number,within:number):number{
-  const bodies=waterIndex.bodies;if(waterBoxes.source!==bodies)waterBoxes={source:bodies,boxes:bodies.map(w=>pointsBox(w.points,w.width/2))};
-  let best=Infinity;
-  for(let i=0;i<bodies.length;i++){const b=waterBoxes.boxes[i];if(x<b.minX-within||x>b.maxX+within||z<b.minZ-within||z>b.maxZ+within)continue;best=Math.min(best,lineDistance(x,z,bodies[i].points)-bodies[i].width/2);}
-  return best;
+  const bodies=waterIndex.bodies;if(waterRibbons.source!==bodies)waterRibbons={source:bodies,distance:ribbonDistance(bodies)};
+  return waterRibbons.distance(x,z,within);
 }
 export function terrainHeight(x:number,z:number):number {return carveWaterBeds(sourceHeight,waterIndex,x,z);}
 /** Relief with river/lake beds carved under their surface (shared by the runtime terrain and

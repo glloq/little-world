@@ -120,6 +120,55 @@ Mesures SwiftShader 1440×900 / 960×640 (signal de régression uniquement) :
 | Studio, ouverture / retour 3D médian / tas | 2 526 ms / 671 ms / 20 Mio | 2 558 ms / 708 ms / 30 Mio | +10 Mio = cache de tuiles (borné) |
 | Habillage, cellule de 64 m | — | 0,54 ms (Node), ≤ 6–11 ms (SwiftShader, à froid) | |
 
+## 10 bis. Optimisations sans perte de qualité (suite au lot G7)
+
+Règle : aucune réduction de distance, de densité ou de détail. Les calculs donnent un résultat **identique au bit près** (empreintes SHA-256 des positions, couleurs, normales, blocs d'horizon, cellules d'habillage et tuiles de carte : `tools/benchmark-geography-cpu.mjs`) ; seul le format GPU des normales et couleurs est compacté, avec une erreur inférieure au pas d'un affichage 8 bits.
+
+| Optimisation | Effet |
+| --- | --- |
+| Distances aux chemins/rivières en tableaux typés, rejet par boîte de segment, un seul `hypot` par ruban (`geography/lines.ts`, partagé jeu/Studio) | supprime le premier point chaud (17 % du temps de construction) |
+| Contours d'îles et plateaux pré-compilés, rejet d'arête par boîte englobante | distance signée sans parcourir toutes les arêtes |
+| Cache direct de la côte (4 096 entrées) partagé hauteur ↔ classification | horizon, carte 2D et habillage ne recalculent plus la côte |
+| Bruit de valeur à produits de hachage partagés (mêmes bits) | bruit ≈ 25 % moins cher |
+| Clés numériques (index d'eau, retouches), mémo de cellule des masques, couleurs linéaires mises en cache, niveau de la mer sans copie | moins d'allocations et de ramasse-miettes |
+| Jupes des tuiles recopiées du sommet de bord | −10 % de sommets recalculés |
+| Habillage : rejet anticipé des candidats qui ne peuvent rien placer | testé contre une génération sans rejet |
+| Normales Int16 et couleurs Uint16 normalisées (tuiles, horizon) | 24 au lieu de 36 octets par sommet |
+| Tampons d'instances d'habillage alloués à la demande (×4 jusqu'au plafond) | ≈ 0,44 Mio au lieu de ≈ 2,5 Mio |
+| Habillage proche dessiné avant le sol (`renderOrder −1`) | les pixels de sol cachés par les arbres échouent au test de profondeur avant ombrage |
+
+Mesures Node (minimum sur 3 processus × 7 passages, avant → après) :
+
+| Charge | Scène de référence | Île 3 × 8 km |
+| --- | --- | --- |
+| 48 tuiles 3D | 231 → 131 ms | 79 → 48 ms |
+| Horizon complet | 42 → 18 ms | 31 → 20 ms |
+| 60 cellules d'habillage | 83 → 13,5 ms | 25 → 6,8 ms |
+| 16 tuiles de carte 2D | 202 → 113 ms | 126 → 53 ms |
+
+Navigateur (SwiftShader, île, même vue) : mêmes appels (91), triangles (64 636) et instances (1 768) ; mémoire des tuiles 913 → 679 Kio, horizon 1,47 → 1,17 Mio. Parcours `benchmark-route` : mise à jour CPU par image 0,83 → 0,56 ms, stabilisation 1,67 → 0,89 s ; l'intervalle d'image reste borné par le rastériseur logiciel (p50 66,7 ms dans les deux cas), le gain de remplissage dû à l'ordre de dessin n'est mesurable que sur GPU réel. Différence de pixels : écarts de ±1/255 du même ordre que ceux d'une même version capturée 6,5 s plus tard (course du soleil).
+
+## 10 ter. Calculs géographiques dans des workers
+
+- **Modules purs** (sans Three.js ni DOM) : `terrain-data.ts` (tuiles), `horizon-data.ts` (blocs d'horizon), `geography/dressing.ts`, `studio/geo-map/raster.ts`, `geography/input-geography.ts` (géographie d'un projet Studio à partir d'entrées simples), `render/linear-color.ts` (conversion sRGB → linéaire identique à `THREE.Color.setHex`). Le worker (`geography/geo-worker.ts`, 33 Kio en production) exécute **le même code** que le fil principal.
+- **Pool** (`geography/geo-workers.ts`) : 1 à 2 workers selon les cœurs, priorités (tuiles < horizon < habillage < carte 2D), 2 travaux en cours par worker, annulation des demandes devenues inutiles. Avant un travail, le pool rejoue la configuration (entrées de `configureTerrain`, sources géographiques, projet de la carte) si sa révision a changé ; un résultat calculé sur une révision antérieure est marqué **périmé** et redemandé. Les révisions ne changent que si les entrées changent (signature), pour ne pas tout invalider à chaque synchronisation du Studio.
+- **Consommateurs** : tuiles (l'ancienne tuile reste affichée jusqu'à son remplacement : pas de trou), horizon (construit en arrière-plan au démarrage, du centre vers les bords), habillage, carte 2D (redessins regroupés par image).
+- **Repli** : sans `Worker` (Node, tests), avec `?workers=0` ou après une erreur de worker, le chemin synchrone budgété d'origine est utilisé.
+- **Tests** : `tests/geo-workers.test.mjs` (worker simulé dans le processus : résultats identiques au calcul direct pour les quatre types, détection des résultats périmés, priorités, annulation, panne).
+
+Mesures (SwiftShader, machine virtuelle à 4 cœurs partagés avec le rastériseur logiciel ; signal de régression seulement) :
+
+| Mesure | Fil principal (`?workers=0`) | Workers |
+| --- | --- | --- |
+| Horizon de l'île, temps sur le fil principal | ≈ 80 ms (bloquant au démarrage) | 9,8 ms (assemblage des géométries) |
+| Démarrage du parcours île (`bootMs`, 2 passages) | 4,65 / 5,18 s | 3,51 / 4,65 s |
+| Parcours île : p95 / images > 100 ms | 166,6 ms / 67 et 72 | 150 ms / 53 et 73 |
+| Construction de tuile maximale sur le fil principal | 4,0–5,3 ms | 2,1–2,5 ms |
+| Carte 2D, première ouverture : tâches longues > 50 ms | 0 (déjà découpée en tranches de 10 ms) | 0 |
+| Carte 2D, première ouverture complète | ≈ 570–730 ms | ≈ 830–890 ms |
+
+Sur cette machine, le débit brut n'augmente pas (les workers partagent 4 cœurs avec le rendu logiciel et compilent leur code à froid) ; le gain est la **libération du fil principal** (démarrage, images lentes). Le bénéfice attendu est plus net sur un PC avec GPU réel, où le rendu ne consomme pas les cœurs : **à mesurer**.
+
 ## 11. Tableau de statut
 
 | Mécanisme | Spécifié | Implémenté | Testé | Benchmarké | Publié |
@@ -137,7 +186,7 @@ Mesures SwiftShader 1440×900 / 960×640 (signal de régression uniquement) :
 
 ## 12. Limites connues
 
-- Classification par sommet : coût de construction des tuiles ≈ ×1,7 et de l'horizon ≈ ×1,8 (SwiftShader). Piste : grille de classification par tuile à pas grossier, mise en cache par cellule ou calcul en worker.
+- Classification par sommet : le surcoût initial (tuiles ≈ ×1,7, horizon ≈ ×1,8) est réduit par les optimisations du § 10 bis : dans le navigateur, construction des tuiles de l'île revenue au niveau d'avant G1 (≈ 71–91 ms cumulés contre ≈ 72), horizon encore ≈ ×1,6 au premier calcul (≈ 80 ms contre ≈ 50, compilation JIT à froid incluse). Piste suivante : calcul en worker.
 - La carte 2D n'affiche que les corrections des secteurs hydratés (au-delà de 600 secteurs visibles non chargés, elle invite à zoomer).
 - Pas d'édition vectorielle des contours au-delà des points (pas de courbes de Bézier) ; pas de lignes de niveau éditables (crêtes/vallées tiennent ce rôle).
 - Habillage : pas d'ombres, pas de vent, silhouettes lointaines simplifiées ; aucun réglage de densité par l'auteur hors biomes/masques/occupation.

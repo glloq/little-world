@@ -4,6 +4,7 @@ import { createTerrainView } from './terrain-view';
 import { createHorizonView, type HorizonStats } from './horizon-view';
 import { configureGeography } from './geography/engine';
 import { createEcology } from './ecology';
+import { geoWorkerPool } from './geography/geo-workers.ts';
 import { createDressingView, type DressingView, type DressingStats } from './dressing-view.ts';
 import { sampleBiome, generatedCover } from './biomes';
 import type {
@@ -610,9 +611,11 @@ export function buildWorld(
   const root = new THREE.Group();
   root.name = 'LittleWorld';
   // Generation is time-sliced (ms) rather than a fixed count; the shared level adapts LOD.
-  const terrainView = createTerrainView(root, getTerrainConfig(), { buildBudgetMs: 4, maxBuildsPerUpdate: 8 });
+  // Geography workers (null in Node or when unavailable: synchronous main-thread path).
+  const workers = geoWorkerPool();
+  const terrainView = createTerrainView(root, getTerrainConfig(), { buildBudgetMs: 4, maxBuildsPerUpdate: 8, workers });
   const terrain = terrainView.terrain;
-  const horizon = createHorizonView(root, getTerrainConfig(), terrainView);
+  const horizon = createHorizonView(root, getTerrainConfig(), terrainView, workers);
   // The demonstration valley decor is tied to the legacy generator; generated worlds
   // receive their content from V3 sources instead of hard-coded scenery.
   const legacy = isLegacyTerrain();
@@ -632,7 +635,7 @@ export function buildWorld(
   };
   const ecology = createEcology(root, config.seed, config.density, biomeAt, legacy ? undefined : generatedCover);
   // G5: natural dressing (forests, cliff rocks, scree, pebbles, basalt) of generated worlds.
-  const dressing: DressingView | null = legacy ? null : createDressingView(root, config.seed, config.density);
+  const dressing: DressingView | null = legacy ? null : createDressingView(root, config.seed, config.density, workers);
   const waterMeshes=new Map<string,{signature:string;mesh:THREE.Mesh}>();
   function refreshWater(){
     const changed:string[]=[],ids=new Set(compiledWaterBodies().map(w=>w.id));

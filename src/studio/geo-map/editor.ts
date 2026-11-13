@@ -5,13 +5,14 @@
  * LRU cache, local invalidation from transaction sectors; vectors drawn as overlays. */
 import {node,button,field} from '../dom.ts';
 import type {StudioSession} from '../session.ts';
-import {projectGeography,type ProjectGeography} from '../../studio-core/geo-context.ts';
+import {projectGeography,projectGeographyInput,type ProjectGeography} from '../../studio-core/geo-context.ts';
+import {geoWorkerPool,type GeoTask} from '../../geography/geo-workers.ts';
 import {paintMask,regionCells,regionCorrections,restoreGeneration,regionChunkIds,sectorGrid,terrainChangeRects,type Region} from '../../studio-core/geo-edits.ts';
 import {affectedChunkIds} from '../../studio-core/schema.ts';
 import {putTerrainEdit} from '../../studio-core/source.ts';
 import {classifyPoint} from '../../geography/classify.ts';
 import {LAYERS,CATEGORY_LAYERS,MOISTURE_CODES,MASK_GRID,cellCenter,type LayerId,type MaskLayerId} from '../../geography/layers.ts';
-import {TILE_PX,levelMpp,sampleTile,ALTITUDE_RAMP,SLOPE_RAMP,MOISTURE_RAMP} from './raster.ts';
+import {TILE_PX,levelMpp,sampleTile,type SampleTile,ALTITUDE_RAMP,SLOPE_RAMP,MOISTURE_RAMP} from './raster.ts';
 import {TileCache} from './tile-cache.ts';
 import {createShapeTool} from './shapes.ts';
 
@@ -40,12 +41,14 @@ const gradient=(stops:[number,number][])=>`linear-gradient(90deg,${stops.map(([,
 /** Tiles and geography survive 2D/3D switches while the project stays open (bounded LRU);
  * edits made from any view keep invalidating them locally even while the map is hidden. */
 interface SharedMap {session:StudioSession;cache:TileCache;geo:ProjectGeography|null;stop:()=>void}
+/** Geography sources changed: drop the main-thread context and the workers' project. */
+function invalidateGeo(state:SharedMap){state.geo=null;geoWorkerPool()?.invalidateProject();}
 let shared:SharedMap|null=null;
 function sharedFor(session:StudioSession):SharedMap{
   if(shared?.session===session)return shared;releaseGeoMap();
   const p=session.document,grid=sectorGrid(p),state:SharedMap={session,cache:new TileCache(),geo:null,stop:()=>{}};
   state.stop=session.commands.subscribe(t=>{
-    state.geo=null;
+    invalidateGeo(state);
     // Terrain edits reach up to their radius (≤ 80 m) past the owner sector; moisture reads rivers 60 m away.
     const relief=terrainChangeRects(t.patches);
     if(relief.global||t.patches.some(q=>q.path[0]==='libraries'||q.path[0]==='world'&&q.path[1]!=='terrain'))state.cache.invalidate(null);
@@ -83,11 +86,31 @@ export function mountGeoMap(host:HTMLElement,tools:HTMLElement,session:StudioSes
     const level=levelFor(),coarse=Math.min(7,level+2),centre=toWorld(canvas.width/2,canvas.height/2);
     const need=[...visibleTiles(coarse),...(coarse!==level?visibleTiles(level):[])].filter(t=>{const e=cache.get(t.level,t.tx,t.tz);return !e||e.stale;});
     const dist=(t:{level:number;tx:number;tz:number})=>{const span=TILE_PX*levelMpp(t.level);return Math.hypot(b.minX+(t.tx+.5)*span-centre.x,b.minZ+(t.tz+.5)*span-centre.z);};
-    queue=need.sort((a,c)=>c.level-a.level||dist(a)-dist(c));canvas.dataset.mapPending=String(queue.length);
+    queue=need.sort((a,c)=>c.level-a.level||dist(a)-dist(c));canvas.dataset.mapPending=String(queue.length+(pool?inFlight.size:0));
     if(queue.length&&!raf)raf=requestAnimationFrame(work);
   }
+  const pool=geoWorkerPool(),inFlight=new Map<string,GeoTask<SampleTile>>();
+  /** Off-thread sampling (same engine, same pixels); the project inputs are sent lazily. */
+  function dispatch(){
+    if(pool!.projectRev===0||!projectSent()){pool!.setProject(projectGeographyInput(p));sentRev=pool!.projectRev;}
+    for(let i=0;i<queue.length&&inFlight.size<4;i++){
+      const t=queue[i],k=TileCache.key(t.level,t.tx,t.tz);if(inFlight.has(k))continue;
+      const task=pool!.run<SampleTile>({kind:'map',bounds:{minX:b.minX,minZ:b.minZ},level:t.level,tx:t.tx,tz:t.tz},3000+i);inFlight.set(k,task);
+      task.promise.then(({result,stale,ms})=>{
+        if(inFlight.get(k)!==task)return;inFlight.delete(k);if(disposed)return;
+        if(!stale){cache.put(result);sampleMs+=ms;samples++;}
+        redrawSoon();
+      },()=>{if(inFlight.get(k)===task)inFlight.delete(k);if(!disposed)redrawSoon();});
+    }
+    queue=queue.filter(t=>!inFlight.has(TileCache.key(t.level,t.tx,t.tz)));
+    canvas.dataset.mapPending=String(queue.length+inFlight.size);
+  }
+  /** Results arriving in bursts are merged into one redraw per animation frame. */
+  let redrawFrame=0;const redrawSoon=()=>{if(!redrawFrame)redrawFrame=requestAnimationFrame(()=>{redrawFrame=0;if(!disposed)draw();});};
+  let sentRev=0,disposed=false;const projectSent=()=>sentRev===pool!.projectRev;
   function work(){
-    raf=0;const t0=performance.now(),g=geography();let did=0;
+    raf=0;if(pool?.available){dispatch();return;}
+    const t0=performance.now(),g=geography();let did=0;
     while(queue.length&&performance.now()-t0<10){const t=queue.shift()!,s0=performance.now();cache.put(sampleTile(g.ctx,b,t.level,t.tx,t.tz));sampleMs+=performance.now()-s0;samples++;did++;}
     canvas.dataset.mapPending=String(queue.length);if(did)draw(false);if(queue.length)raf=requestAnimationFrame(work);
   }
@@ -97,7 +120,7 @@ export function mountGeoMap(host:HTMLElement,tools:HTMLElement,session:StudioSes
     if(hydrating)return;const lo=toWorld(0,0),hi=toWorld(canvas.width,canvas.height),s=grid.chunkSizeM,ids:string[]=[];
     for(let z=Math.max(0,Math.floor((lo.z-grid.minZ)/s));z<=Math.min(grid.rows-1,Math.floor((hi.z-grid.minZ)/s));z++)for(let x=Math.max(0,Math.floor((lo.x-grid.minX)/s));x<=Math.min(grid.columns-1,Math.floor((hi.x-grid.minX)/s));x++){const id=x+':'+z;if(p.chunkIndex[id]&&!p.chunks[id])ids.push(id);}
     if(!ids.length)return;if(ids.length>600){note.textContent='Zoomer pour charger les corrections de ce secteur ('+ids.length+' secteurs).';return;}
-    hydrating=true;void session.hydrate(ids).then(()=>{mem.geo=null;for(const id of ids)invalidateChunk(id,8);draw();}).catch(e=>options.status(String(e),true)).finally(()=>{hydrating=false;});
+    hydrating=true;void session.hydrate(ids).then(()=>{invalidateGeo(mem);for(const id of ids)invalidateChunk(id,8);draw();}).catch(e=>options.status(String(e),true)).finally(()=>{hydrating=false;});
   }
   function chunkRect(id:string,pad:number){const [x,z]=id.split(':').map(Number),s=grid.chunkSizeM;return {minX:grid.minX+x*s-pad,maxX:grid.minX+(x+1)*s+pad,minZ:grid.minZ+z*s-pad,maxZ:grid.minZ+(z+1)*s+pad};}
   function invalidateChunk(id:string,pad:number){cache.invalidate(chunkRect(id,pad));}
@@ -285,7 +308,7 @@ export function mountGeoMap(host:HTMLElement,tools:HTMLElement,session:StudioSes
   const stops=[session.commands.subscribe(onTransaction),session.selection.subscribe(()=>draw(false))];
   panel();draw();
   return {
-    dispose(){observer.disconnect();stops.forEach(s=>s());if(raf)cancelAnimationFrame(raf);},
+    dispose(){disposed=true;if(redrawFrame)cancelAnimationFrame(redrawFrame);observer.disconnect();stops.forEach(s=>s());if(raf)cancelAnimationFrame(raf);for(const t of inFlight.values())t.cancel();inFlight.clear();},
     focus(x:number,z:number){cx=x;cz=z;draw();},
     /** Test/benchmark hooks. */
     stats:()=>({tiles:cache.size,bytes:cache.bytes,pending:queue.length,msPerTile:samples?sampleMs/samples:0}),

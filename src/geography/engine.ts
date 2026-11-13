@@ -3,7 +3,7 @@
  * `revision` changes whenever a source changes, so derived caches can invalidate.
  * `createGeoContext` is the single implementation of the classification inputs: the runtime
  * binds it to the configured terrain, the Studio map binds it to a project document. */
-import {terrainHeight,waterSurfaceWithHeight,geoSiteAt,pathDistance,getTerrainConfig,waterEdgeDistance} from '../terrain.ts';
+import {terrainHeight,waterSurfaceWithHeight,geoSiteAt,pathDistance,getTerrainConfig,terrainSeaLevel,waterEdgeDistance} from '../terrain.ts';
 import {classifyPoint,type GeoContext,type GeoSample,type Occupation} from './classify.ts';
 import {maskCell,type MaskLayerId,type SectorGrid,type SectorLayers} from './layers.ts';
 import {polygonSignedDistance,type PointXZ} from './archipelago.ts';
@@ -34,12 +34,15 @@ const RIVER_INFLUENCE_M=60;
 export function createGeoContext(src:GeographySources|null,deps:GeoDeps):GeoContext{
   const zones=(src?.zones??[]).map(zone=>{const xs=zone.polygon.map(p=>p.x),zs=zone.polygon.map(p=>p.z);return {zone,minX:Math.min(...xs),maxX:Math.max(...xs),minZ:Math.min(...zs),maxZ:Math.max(...zs)};});
   const buildings=src?.buildings??[],strokes=src?.biomeStrokes??[];
+  let cellX=NaN,cellZ=NaN,cellIndex=0,cellLayers:SectorLayers|undefined;
   return {
     seed:src?.seed??0,seaLevel:deps.seaLevel,height:deps.height,water:deps.water,site:deps.site,
     riverDistance:(x,z)=>Math.max(0,deps.waterDistance(x,z,RIVER_INFLUENCE_M)),
+    // The 5 mask layers of one point share its cell lookup (one-entry memo).
     mask(layer:MaskLayerId,x:number,z:number){
-      if(!src)return undefined;const cell=maskCell(src.grid,x,z);if(!cell)return undefined;
-      const mask=src.masks[cell.chunkId]?.[layer];return mask?mask[cell.index]:undefined;
+      if(!src)return undefined;
+      if(x!==cellX||z!==cellZ){cellX=x;cellZ=z;const cell=maskCell(src.grid,x,z);cellLayers=cell?src.masks[cell.chunkId]:undefined;cellIndex=cell?cell.index:0;}
+      const mask=cellLayers?.[layer];return mask?mask[cellIndex]:undefined;
     },
     biomeStroke(x,z){for(let i=strokes.length-1;i>=0;i--){const s=strokes[i];if((x-s.x)*(x-s.x)+(z-s.z)*(z-s.z)<s.radius*s.radius)return s.biome;}return undefined;},
     occupancy(x,z):Occupation{
@@ -52,17 +55,19 @@ export function createGeoContext(src:GeographySources|null,deps:GeoDeps):GeoCont
 }
 let sources:GeographySources|null=null,revision=0,cached:GeoContext|null=null;
 const runtimeDeps=():GeoDeps=>({seaLevel:getTerrainConfig().seaLevel,height:terrainHeight,water:waterSurfaceWithHeight,site:geoSiteAt,pathDistance,waterDistance:waterEdgeDistance});
-export function configureGeography(next:GeographySources){sources={...next,masks:{...next.masks}};revision++;cached=null;}
+let signature='';
+/** Unchanged sources keep the revision: workers and derived caches are not invalidated. */
+export function configureGeography(next:GeographySources){const s=JSON.stringify(next);sources={...next,masks:{...next.masks}};cached=null;if(s!==signature){signature=s;revision++;}}
 /** Replace the masks of some sectors (Studio edits, streaming); other sectors are kept. */
 export function updateGeographyMasks(masks:Record<string,SectorLayers|undefined>){
-  if(!sources)return;for(const [id,layers]of Object.entries(masks)){if(layers)sources.masks[id]=layers;else delete sources.masks[id];}revision++;cached=null;
+  if(!sources)return;for(const [id,layers]of Object.entries(masks)){if(layers)sources.masks[id]=layers;else delete sources.masks[id];}revision++;signature='';cached=null;
 }
 export function geographyRevision(){return revision;}
 export function geographySources(){return sources;}
 /** Context of the configured world, reused across samples (rebuilt after a configuration or
  * a sea-level change, never per sample). */
 export function geoContext():GeoContext{
-  const sea=getTerrainConfig().seaLevel;
+  const sea=terrainSeaLevel();
   if(!cached||cached.seaLevel!==sea)cached=createGeoContext(sources,runtimeDeps());
   return cached;
 }

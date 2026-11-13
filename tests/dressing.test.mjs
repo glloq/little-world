@@ -42,3 +42,7 @@ test('dressing cell cost stays bounded (Node measurement, regression signal only
   const c=ctx(),t=performance.now();for(const [x,z]of sampleCells)generateDressingCell(c,4242,x,z,inside);
   const per=(performance.now()-t)/sampleCells.length;assert.ok(per<25,'ms per 64 m cell: '+per.toFixed(2));console.log('# dressing ms/cell',per.toFixed(2));
 });
+test('the early rejection of dressing candidates never changes the result',()=>{
+  const c=ctx();
+  for(const [x,z]of sampleCells){const fast=generateDressingCell(c,4242,x,z,inside),full=generateDressingCell(c,4242,x,z,inside,1);for(const k of DRESSING_KINDS)assert.deepEqual(fast.items[k],full.items[k]);}
+});

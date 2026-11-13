@@ -9,100 +9,31 @@ import {
   type TerrainLOD,
   type WorldChunk,
 } from './chunks.ts';
-import { terrainHeight } from './terrain.ts';
-import { surfaceColor } from './geography/surface.ts';
+import { packedColors, packedNormals } from './render/packing.ts';
+import { createChunkData, type ChunkData } from './terrain-data.ts';
+import type { GeoWorkerPool, GeoTask } from './geography/geo-workers.ts';
+export { createChunkData, type ChunkData } from './terrain-data.ts';
 
-/** A surface plus downward skirts hides cracks where neighboring chunks use different LODs. */
-export function createChunkGeometry(
-  chunk: WorldChunk,
-  lod: TerrainLOD,
-): THREE.BufferGeometry {
-  const spacing = [2.5, 5, 10][lod];
-  // Power-of-two subdivisions align coarse and fine samples, including partial edge chunks.
-  const cells = (length: number) =>
-    2 ** Math.max(0, Math.ceil(Math.log2(length / spacing)));
-  const cellsX = cells(chunk.maxX - chunk.minX),
-    cellsZ = cells(chunk.maxZ - chunk.minZ);
-  const positions: number[] = [],
-    colors: number[] = [],
-    normals: number[] = [],
-    indices: number[] = [];
-  const color = new THREE.Color();
-  function vertex(x: number, z: number, skirt = false): number {
-    // Neighbour first: the generator memoizes the last point, reused by the colour classification.
-    const east = terrainHeight(x + 2, z), h = terrainHeight(x, z);
-    positions.push(x, h - (skirt ? 12 : 0), z);
-    const slope = Math.abs(east - h);
-    surfaceColor(x, z, h, slope, color);
-    color.multiplyScalar(
-      0.92 +
-        0.07 * Math.sin(x * 0.275 + z * 0.165) +
-        0.035 * Math.sin(x + z * 0.7),
-    );
-    colors.push(color.r, color.g, color.b);
-    // Analytic finite-difference normals are independent of local LOD and match across boundaries.
-    const nx = terrainHeight(x - 0.25, z) - terrainHeight(x + 0.25, z);
-    const nz = terrainHeight(x, z - 0.25) - terrainHeight(x, z + 0.25);
-    const magnitude = Math.hypot(nx, 0.5, nz);
-    normals.push(nx / magnitude, 0.5 / magnitude, nz / magnitude);
-    return positions.length / 3 - 1;
-  }
-  for (let iz = 0; iz <= cellsZ; iz++)
-    for (let ix = 0; ix <= cellsX; ix++) {
-      vertex(
-        chunk.minX + ((chunk.maxX - chunk.minX) * ix) / cellsX,
-        chunk.minZ + ((chunk.maxZ - chunk.minZ) * iz) / cellsZ,
-      );
-    }
-  for (let iz = 0; iz < cellsZ; iz++)
-    for (let ix = 0; ix < cellsX; ix++) {
-      const a = iz * (cellsX + 1) + ix,
-        b = a + 1,
-        d = a + cellsX + 1;
-      indices.push(a, d, b, b, d, d + 1);
-    }
-  const edges: number[][] = [
-    Array.from({ length: cellsX + 1 }, (_, i) => i),
-    Array.from({ length: cellsZ + 1 }, (_, i) => i * (cellsX + 1) + cellsX),
-    Array.from(
-      { length: cellsX + 1 },
-      (_, i) => cellsZ * (cellsX + 1) + cellsX - i,
-    ),
-    Array.from({ length: cellsZ + 1 }, (_, i) => (cellsZ - i) * (cellsX + 1)),
-  ];
-  for (const edge of edges) {
-    const bottom = edge.map((index) =>
-      vertex(positions[index * 3], positions[index * 3 + 2], true),
-    );
-    for (let i = 0; i < edge.length - 1; i++)
-      indices.push(
-        edge[i],
-        bottom[i],
-        edge[i + 1],
-        edge[i + 1],
-        bottom[i],
-        bottom[i + 1],
-      );
-  }
+/** Three.js geometry of a tile from its pure data (see terrain-data.ts). */
+export function geometryFromChunkData(data: ChunkData): THREE.BufferGeometry {
   const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute(
-    'position',
-    new THREE.Float32BufferAttribute(positions, 3),
-  );
-  geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-  geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
-  geometry.setIndex(indices);
+  geometry.setAttribute('position', new THREE.BufferAttribute(data.positions, 3));
+  geometry.setAttribute('color', packedColors(data.colors));
+  geometry.setAttribute('normal', packedNormals(data.normals));
+  geometry.setIndex(new THREE.BufferAttribute(data.index, 1));
   geometry.computeBoundingBox();
   geometry.computeBoundingSphere();
-  geometry.userData.surfaceVertices = (cellsX + 1) * (cellsZ + 1);
-  let minSurfaceY = Infinity;
-  for (let i = 1; i < geometry.userData.surfaceVertices * 3; i += 3)
-    minSurfaceY = Math.min(minSurfaceY, positions[i]);
-  geometry.userData.minSurfaceY = minSurfaceY;
+  geometry.userData.surfaceVertices = data.surfaceVertices;
+  geometry.userData.minSurfaceY = data.minSurfaceY;
   return geometry;
+}
+export function createChunkGeometry(chunk: WorldChunk, lod: TerrainLOD): THREE.BufferGeometry {
+  return geometryFromChunkData(createChunkData(chunk, lod));
 }
 
 interface CachedChunk {
+  /** Displayed but outdated after an edit: kept until its replacement arrives (no hole). */
+  stale?: boolean;
   mesh: THREE.Mesh;
   chunk: WorldChunk;
   lod: TerrainLOD;
@@ -146,6 +77,8 @@ export interface TerrainViewOptions {
   maxBuildsPerUpdate?: number;
   /** Byte bound of resident tile geometry (displayed tiles are never evicted). */
   maxBytes?: number;
+  /** Geography workers: tile data is computed off the main thread (same results). */
+  workers?: GeoWorkerPool | null;
 }
 export function geometryBytes(geometry: THREE.BufferGeometry): number {
   let bytes = geometry.index?.array.byteLength ?? 0;
@@ -208,6 +141,33 @@ export function createTerrainView(
     lastFocus: ViewFocus | null = null,
     dead = false;
   const key = (chunk: WorldChunk, lod: TerrainLOD) => `${chunk.id}/${lod}`;
+  const pool = options.workers ?? null;
+  /** Tiles requested from the workers (key → job), at most MAX_IN_FLIGHT at once so a
+   * replanned camera keeps priority over older requests. */
+  const inFlight = new Map<string, { chunk: PlannedChunk; task: GeoTask<ChunkData> }>();
+  const MAX_IN_FLIGHT = 6;
+  function dispatch(): void {
+    for (const [k, job] of inFlight)
+      if (!desired.some((d) => key(d, d.lod) === k)) { job.task.cancel(); inFlight.delete(k); }
+    for (let i = 0; i < pending.length && inFlight.size < MAX_IN_FLIGHT; i++) {
+      const chunk = pending[i], k = key(chunk, chunk.lod);
+      if (inFlight.has(k) || cache.has(k)) continue;
+      const task = pool!.run<ChunkData>({ kind: 'tile', chunk: { minX: chunk.minX, maxX: chunk.maxX, minZ: chunk.minZ, maxZ: chunk.maxZ }, lod: chunk.lod }, i);
+      inFlight.set(k, { chunk, task });
+      task.promise.then(({ result, stale }) => {
+        if (inFlight.get(k)?.task !== task) return;
+        inFlight.delete(k);
+        if (dead || stale || cache.has(k)) return;
+        const index = pending.indexOf(chunk);
+        if (index >= 0) pending.splice(index, 1);
+        build(chunk, result);
+        work.lastBuilt++;
+      }, () => {
+        // Worker failure: the tile is built on the main thread by the synchronous path.
+        if (inFlight.get(k)?.task === task) inFlight.delete(k);
+      });
+    }
+  }
   function release(record: CachedChunk): void {
     record.mesh.removeFromParent();
     record.mesh.geometry.dispose();
@@ -219,10 +179,17 @@ export function createTerrainView(
       version++;
     }
   }
+  function retireStale(record: CachedChunk): void {
+    record.mesh.removeFromParent();
+    record.mesh.geometry.dispose();
+    stats.disposed++;
+    bytes -= record.bytes;
+  }
   function show(record: CachedChunk): void {
     const previous = active.get(record.chunk.id);
     if (previous !== record) {
-      previous?.mesh.removeFromParent();
+      if (previous?.stale) retireStale(previous);
+      else previous?.mesh.removeFromParent();
       terrain.add(record.mesh);
       active.set(record.chunk.id, record);
       version++;
@@ -235,7 +202,8 @@ export function createTerrainView(
     const wanted = new Set(desired.map((chunk) => chunk.id));
     for (const [id, record] of active)
       if (!wanted.has(id)) {
-        record.mesh.removeFromParent();
+        if (record.stale) retireStale(record);
+        else record.mesh.removeFromParent();
         active.delete(id);
         version++;
       }
@@ -268,9 +236,9 @@ export function createTerrainView(
     lastX = focus.playerX;
     lastZ = focus.playerZ;
   }
-  function build(chunk: PlannedChunk): void {
+  function build(chunk: PlannedChunk, data?: ChunkData): void {
     const begin = performance.now();
-    const mesh = new THREE.Mesh(createChunkGeometry(chunk, chunk.lod), material);
+    const mesh = new THREE.Mesh(geometryFromChunkData(data ?? createChunkData(chunk, chunk.lod)), material);
     mesh.name = `Terrain ${chunk.id} LOD ${chunk.lod}`;
     mesh.userData.chunkId = chunk.id;
     mesh.userData.lod = chunk.lod;
@@ -285,7 +253,7 @@ export function createTerrainView(
     cache.set(key(chunk, chunk.lod), record);
     bytes += record.bytes;
     stats.built++;
-    show(record);
+    if (desired.some((d) => d.id === chunk.id && d.lod === chunk.lod)) show(record);
     const spent = performance.now() - begin;
     work.maxTileMs = Math.max(work.maxTileMs, spent);
   }
@@ -331,10 +299,12 @@ export function createTerrainView(
       } else if (Math.hypot(x - lastX, z - lastZ) > config.chunkSize / 8) replan(x, z);
       const begin = performance.now();
       let built = 0;
-      while (pending.length && built < maxBuilds && (built === 0 || performance.now() - begin < budgetMs)) {
-        build(pending.shift()!);
-        built++;
-      }
+      if (pool?.available) dispatch();
+      else
+        while (pending.length && built < maxBuilds && (built === 0 || performance.now() - begin < budgetMs)) {
+          build(pending.shift()!);
+          built++;
+        }
       work.lastBuilt = built;
       work.lastMs = performance.now() - begin;
       work.totalMs += work.lastMs;
@@ -343,16 +313,16 @@ export function createTerrainView(
     },
     refresh(x, z, radius) {
       if (dead) return;
+      const touched = (chunk: WorldChunk) => chunk.maxX >= x - radius && chunk.minX <= x + radius && chunk.maxZ >= z - radius && chunk.minZ <= z + radius;
       for (const record of [...cache.values()]) {
-        const chunk = record.chunk;
-        if (
-          chunk.maxX >= x - radius &&
-          chunk.minX <= x + radius &&
-          chunk.maxZ >= z - radius &&
-          chunk.minZ <= z + radius
-        )
-          release(record);
+        if (!touched(record.chunk)) continue;
+        // With workers the displayed tile stays until its rebuilt version arrives.
+        if (pool?.available && active.get(record.chunk.id) === record) {
+          record.stale = true;
+          cache.delete(key(record.chunk, record.lod));
+        } else release(record);
       }
+      for (const [k, job] of inFlight) if (touched(job.chunk)) { job.task.cancel(); inFlight.delete(k); }
       if (lastFocus) replanView(lastFocus);
       else
         replan(
@@ -365,6 +335,9 @@ export function createTerrainView(
       if (dead) return;
       dead = true;
       for (const record of [...cache.values()]) release(record);
+      for (const record of active.values()) if (record.stale) retireStale(record);
+      for (const job of inFlight.values()) job.task.cancel();
+      inFlight.clear();
       material.dispose();
       pending = [];
       desired = [];
