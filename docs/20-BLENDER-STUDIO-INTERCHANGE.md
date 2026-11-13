@@ -302,6 +302,16 @@ Le [document MINE 24](24-MINES-MULTILEVEL-LOW-RESOURCE.md) sépare les **prefabs
 - **Archive V3 portable d'auteur** : définitions et seeds de mines + dépendances GLB (et sources `.blend` seulement si explicitement incluses) ; **ne pas inclure l'excavation d'une partie** par défaut.
 - La réimportation d'une scène Blender ne **supprime jamais** les cellules creusées ni le stock épuisé d'une sauvegarde ; conflits entre source/générateur et états existants évalués séparément.
 
+## Presets de ferme et parcelles agricoles : données V3 distinctes des GLB
+
+**Contrat :** [25 — Agriculture par parcelles LOW-RESOURCE](25-AGRICULTURE-PARCELS-LOW-RESOURCE.md).
+
+- Blender/GLB peut fournir **maisons de ferme, granges, clôtures, outils, moulins, serres et quelques modèles low-poly de cultures/stades**. Il **ne fournit pas** lui-même croissance, humidité, récoltes ou droits du propriétaire.
+- **Studio V3** conserve `FarmPlotDefinitionV3`, polygones/sous-zones, rangs, profils `CropProfile`, sol, sources d'irrigation et catalogue d'assets/IDs ; les **états de partie** (stades, sols, quantités, récoltes) restent séparés.
+- Les plantes répétées sont **générées par `FarmLODRenderer` avec instancing** depuis seed/culture/stade, et non importées comme des milliers de copies GLB permanentes ; champs lointains en masques/couleurs de terrain.
+- Les packs de presets **« ferme »** peuvent regrouper parcelle polygonale, clôtures, bâtiments, accès à l'eau et profils de sol/culture, avec **remappage des IDs** et validation des chemins d'eau/biotopes/chunks.
+- **Export ZIP auteur** inclut profils/meshes/IDs/licences, **pas les cultures récoltées d'une partie** ni les buffers GPU instanciés. Réimport Blender non destructif des références agricoles et overrides auteur.
+
 ## 12. Décisions finales et exclusions
 
 **Validé :** Blender pour fabriquer les modèles/sets low-poly ; `glTF 2.0/GLB` comme échange 3D ouvert ; `.blend` comme source facultative ; Studio pour placements XYZ/rotation/échelle, biotopes/peinture/génération, prefab/groupes et interactions ; import/export de **presets** et de **cartes rééditables**.
