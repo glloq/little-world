@@ -132,12 +132,12 @@ export function createTerrainSource(c:WorldConfig,edits:TerrainStroke[]=[],share
 export function sourceTerrainHeight(x:number,z:number){return sourceHeight(x,z);}
 export function compiledWaterBodies(){return waterIndex.bodies;}
 /** Distance to the nearest water body edge, exact below `within`. */
-let waterRibbons:{source:readonly unknown[];distance:ReturnType<typeof ribbonDistance>}={source:[],distance:()=>Infinity};
+let waterRibbons:{source:readonly unknown[];distance:ReturnType<typeof ribbonDistance>;lakes:boolean}={source:[],distance:()=>Infinity,lakes:false};
 export function waterEdgeDistance(x:number,z:number,within:number):number{
-  const bodies=waterIndex.bodies;if(waterRibbons.source!==bodies)waterRibbons={source:bodies,distance:ribbonDistance(bodies.filter(b=>b.kind!=='lake'))};
+  const bodies=waterIndex.bodies;if(waterRibbons.source!==bodies)waterRibbons={source:bodies,distance:ribbonDistance(bodies.filter(b=>b.kind!=='lake')),lakes:bodies.some(b=>b.kind==='lake')};
   let d=waterRibbons.distance(x,z,within);
-  // Lakes: 0 inside, distance to the shore outside.
-  for(const hit of waterIndex.query(x,z,within))if(hit.water.kind==='lake')d=Math.min(d,hit.distance);
+  // Lakes: 0 inside, distance to the shore outside (hot path: only when the world has lakes).
+  if(waterRibbons.lakes)for(const hit of waterIndex.query(x,z,within))if(hit.water.kind==='lake')d=Math.min(d,hit.distance);
   return d;
 }
 export function terrainHeight(x:number,z:number):number {return carveWaterBeds(sourceHeight,waterIndex,x,z);}
