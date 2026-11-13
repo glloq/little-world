@@ -65,7 +65,11 @@ export interface ProjectLibraries {
   /** Activity zone boundaries (farm plots, mines). Optional: older projects have none. */
   zones?:Record<StableId,ActivityZoneV3>;
 }
-export interface ActivityZoneV3 {id:StableId;kind:'farm-plot'|'mine';name:string;polygon:PointXZ[];levels?:number;}
+export interface ActivityZoneV3 {id:StableId;kind:'farm-plot'|'mine';name:string;polygon:PointXZ[];levels?:number;
+  /** Mine settings (levels, entrance, stairs, geology). Optional: defaults derived at compile time. */
+  mine?:import('../mine/mine-data.ts').MineSettingsV3;
+  /** Farm plot settings (crops, rows, soil, irrigation). Optional: defaults derived at compile time. */
+  farm?:import('../farm/farm-data.ts').FarmSettingsV3;}
 export interface AssetDefinition {id:AssetId;name:string;type:'glb'|'procedural';file?:string;license:string;source:string;}
 export interface EntityIndexEntry {id:StableId;kind:EntityDefinitionV3['kind'];name:string;ownerChunkId:ChunkId;position:Vector3;references:StableId[];logical?:{position?:Vector3;initialState?:Record<string,StateValue>;persistentState?:string[];interactable?:{prompt:string;range:number;interactionIds:string[]}};}
 export interface ChunkMetadata {chunkId:ChunkId;cx:number;cz:number;revision:number;sourceRef:string;dependencies:ChunkId[];terrainOwners?:Record<StableId,ChunkId>;biomeOwners?:Record<StableId,ChunkId>;}

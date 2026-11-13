@@ -1,7 +1,7 @@
 import {WorldClock} from '../environment/clock.ts';
 import {createClimate,defaultEnvironment} from '../environment/climate.ts';
 import {finite,gameplayLimits,parseGameplayData,type ActionStep,type ConditionExpr,type GameplayData,type ObjectiveStatus,type Point3,type StateValue,type TriggerDefinition} from './schema.ts';
-import {parseGameSave,type GameSaveV1} from './save.ts';
+import {parseGameSave,type GameSaveV1,type GameSaveV2} from './save.ts';
 export interface GameplayEvent {type:TriggerDefinition['type'];entityId?:string;zoneId?:string;dialogueId?:string;choiceId?:string;timerId?:string;key?:string;animation?:string;objectiveId?:string;eventId?:string;depth?:number;}
 export type GameplayEffect=Extract<ActionStep,{type:'showText'|'startDialogue'|'playAnimation'|'playSound'|'playEffect'|'moveNPCTo'}>;
 export interface GameplayState {time:number;entities:Record<string,Record<string,StateValue>>;variables:Record<string,StateValue>;inventory:Record<string,number>;objectives:Record<string,ObjectiveStatus>;executed:Record<string,boolean>;cooldowns:Record<string,number>;dialogueFlags:Record<string,boolean>;playerPosition:Point3;diagnostics:string[];metrics:{events:number;actions:number;started:number};}
@@ -125,14 +125,14 @@ export function createGameplay(raw:GameplayData){
     emit({type:'onDialogueChoice',dialogueId,choiceId,entityId:d.actorId});return choice.next??null;
   }
   function enterDialogueLine(dialogueId:string,lineId:string){const line=dialogues.get(dialogueId)?.lines.find(l=>l.id===lineId);if(line)runActions(line.actions??[],'dialogue-line:'+dialogueId+':'+lineId);}
-  function save(slotId:string,position:Point3=state.playerPosition):GameSaveV1 {
+  function save(slotId:string,position:Point3=state.playerPosition):GameSaveV2 {
     const persistentEntities=dictionary<Record<string,StateValue>>();for(const e of data.entities){const values=dictionary<StateValue>();for(const field of e.persistentState)values[field]=state.entities[e.id][field];if(e.persistentState.length)persistentEntities[e.id]=values;}
     const variables=dictionary<StateValue>();for(const v of data.variables)if(v.persistent)variables[v.id]=state.variables[v.id];
     const objectives=dictionary<ObjectiveStatus>();for(const o of data.objectives)if(o.persistent)objectives[o.id]=state.objectives[o.id];
     const executed=dictionary<boolean>(),cooldowns=dictionary<number>();for(const i of data.interactions)if(i.persistent){if(state.executed[i.id])executed[i.id]=true;if(state.cooldowns[i.id]!==undefined)cooldowns[i.id]=state.cooldowns[i.id];}
-    return parseGameSave({schemaVersion:1,worldId:data.worldId,worldBuildVersion:data.buildVersion,slotId,savedAt:Date.now(),time:state.time,position,inventory:{...state.inventory},variables,objectives,entities:persistentEntities,executed,cooldowns,dialogueFlags:{...state.dialogueFlags},pending:jobs.filter(j=>interactions.get(j.interactionId)?.persistent).map(j=>({interactionId:j.interactionId,cursor:j.cursor,wakeAt:j.wakeAt}))});
+    return parseGameSave({schemaVersion:2,mines:{},farms:{},worldId:data.worldId,worldBuildVersion:data.buildVersion,slotId,savedAt:Date.now(),time:state.time,position,inventory:{...state.inventory},variables,objectives,entities:persistentEntities,executed,cooldowns,dialogueFlags:{...state.dialogueFlags},pending:jobs.filter(j=>interactions.get(j.interactionId)?.persistent).map(j=>({interactionId:j.interactionId,cursor:j.cursor,wakeAt:j.wakeAt}))});
   }
-  function restore(raw:GameSaveV1):string[]{
+  function restore(raw:GameSaveV1|GameSaveV2):string[]{
     const saved=parseGameSave(raw);if(saved.worldId!==data.worldId)throw Error('Sauvegarde d’un autre monde');
     const warnings:string[]=[];if(saved.worldBuildVersion!==data.buildVersion)warnings.push('Version de monde différente ; références contrôlées.');
     clock.restore(saved.time);state.time=clock.time;state.playerPosition={...saved.position};events.length=0;jobs.length=0;effects.length=0;
@@ -152,6 +152,12 @@ export function createGameplay(raw:GameplayData){
     for(const timer of timers)timer.next=state.time+timer.trigger.interval;
     return warnings;
   }
-  return {data,state,clock,climate,getEntityPosition(id:string){return entities.get(id)?.position;},emit,update,interact,evaluate,setEntityPosition(id:string,position:Point3){const entity=entities.get(id);if(!entity||!finite(position.x,-100000,100000)||!finite(position.y,-10000,10000)||!finite(position.z,-100000,100000))throw Error('Position logique invalide');entity.position={...position};},dialogueChoice,enterDialogueLine,availableChoices,save,restore,drainEffects(){return effects.splice(0);},get pendingSequences(){return jobs.length;}};
+  /** Atomic inventory change used by activities (mining, harvest): all or nothing. */
+  function grantItems(changes:{itemId:string;quantity:number}[]):boolean{
+    const ledger={...state.inventory};
+    for(const c of changes){const item=items.get(c.itemId);if(!item||!Number.isInteger(c.quantity)){diagnostic('Objet inconnu : '+c.itemId);return false;}const next=(ledger[c.itemId]??0)+c.quantity;if(next<0||next>item.maxQuantity){diagnostic((next<0?'Objet manquant : ':'Inventaire plein : ')+item.name);return false;}ledger[c.itemId]=next;}
+    for(const c of changes)state.inventory[c.itemId]=ledger[c.itemId];state.metrics.actions++;return true;
+  }
+  return {data,state,clock,climate,grantItems,getEntityPosition(id:string){return entities.get(id)?.position;},emit,update,interact,evaluate,setEntityPosition(id:string,position:Point3){const entity=entities.get(id);if(!entity||!finite(position.x,-100000,100000)||!finite(position.y,-10000,10000)||!finite(position.z,-100000,100000))throw Error('Position logique invalide');entity.position={...position};},dialogueChoice,enterDialogueLine,availableChoices,save,restore,drainEffects(){return effects.splice(0);},get pendingSequences(){return jobs.length;}};
 }
 export type GameplayRuntime=ReturnType<typeof createGameplay>;
