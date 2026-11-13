@@ -42,3 +42,12 @@ test('offline synthesis is bit-exact reproducible from the recipes',async()=>{
 test('decoded PCM of every produced file fits the eco budget; loops leave room for gameplay sounds',async()=>{
  for(const [id,e]of samples){const decoded=catalog.assets[id].duration*48000*4;assert.ok(decoded<=2_097_152*.8,`${id} ${Math.round(decoded/1024)} Kio`);}
 });
+test('MIDI themes: bit-exact from the compositions, valid SMF for the game parser, five-patch palette, bounded polyphony, in key',async()=>{
+ const {PIECES}=await import('../tools/audio-synth/compositions.mjs'),{smf,outOfKey}=await import('../tools/audio-synth/music.mjs'),{parseMidi}=await import('../src/audio/midi.ts');
+ assert.ok(Object.keys(PIECES).length>=19);
+ for(const [id,p]of Object.entries(PIECES)){const e=produced[id],bytes=await bytesOf(e),m=parseMidi(bytes);assert.ok(Buffer.from(smf(p)).equals(Buffer.from(bytes)),id);
+  assert.equal(m.warnings.length,0,id);assert.ok(m.maxPolyphony<=6,id);assert.ok(m.programs.every(x=>[0,10,24,73,115].includes(x)),id);assert.deepEqual(outOfKey(p),[],id);
+  assert.ok(m.notes.every(n=>n.start+n.duration<=m.duration+1e-6),id+' : no note crosses the loop point');const score=Object.values(catalog.scores).find(s=>s.assetId===id);assert.ok(score,id);}
+ for(const [cue,ids]of [['explore.day',['music-day-a','music-day-b']],['explore.night',['music-night-a','music-night-b']],['mine',['music-mine']]])assert.deepEqual(catalog.music.cues[cue].scoreIds,ids,cue);
+ assert.ok(catalog.scores.day&&catalog.scores.night,'V1 library scores stay addressable for old projects');
+});

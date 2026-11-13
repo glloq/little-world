@@ -4017,6 +4017,358 @@
    0.0608
   ]
  },
+ "music-coast": {
+  "group": "music",
+  "lot": "B",
+  "file": "audio/music/music-coast.mid",
+  "loop": false,
+  "durationS": 34.29,
+  "bpm": 84,
+  "bars": 16,
+  "beatsPerBar": 3,
+  "notes": 155,
+  "maxPolyphony": 4,
+  "programs": [
+   0,
+   24,
+   73
+  ],
+  "leadPitches": 8
+ },
+ "music-day-a": {
+  "group": "music",
+  "lot": "B",
+  "file": "audio/music/music-day-a.mid",
+  "loop": false,
+  "durationS": 41.74,
+  "bpm": 92,
+  "bars": 16,
+  "beatsPerBar": 4,
+  "notes": 253,
+  "maxPolyphony": 5,
+  "programs": [
+   0,
+   10,
+   73,
+   115
+  ],
+  "leadPitches": 11
+ },
+ "music-day-b": {
+  "group": "music",
+  "lot": "B",
+  "file": "audio/music/music-day-b.mid",
+  "loop": false,
+  "durationS": 27.69,
+  "bpm": 104,
+  "bars": 16,
+  "beatsPerBar": 3,
+  "notes": 126,
+  "maxPolyphony": 5,
+  "programs": [
+   0,
+   24,
+   73,
+   115
+  ],
+  "leadPitches": 15
+ },
+ "music-desert": {
+  "group": "music",
+  "lot": "B",
+  "file": "audio/music/music-desert.mid",
+  "loop": false,
+  "durationS": 50.53,
+  "bpm": 76,
+  "bars": 16,
+  "beatsPerBar": 4,
+  "notes": 141,
+  "maxPolyphony": 3,
+  "programs": [
+   0,
+   73,
+   115
+  ],
+  "leadPitches": 11
+ },
+ "music-discovery": {
+  "group": "music",
+  "lot": "B",
+  "file": "audio/music/music-discovery.mid",
+  "loop": false,
+  "durationS": 8.57,
+  "bpm": 84,
+  "bars": 3,
+  "beatsPerBar": 4,
+  "notes": 16,
+  "maxPolyphony": 3,
+  "programs": [
+   10,
+   24,
+   73
+  ],
+  "leadPitches": 11
+ },
+ "music-farm": {
+  "group": "music",
+  "lot": "B",
+  "file": "audio/music/music-farm.mid",
+  "loop": false,
+  "durationS": 41.74,
+  "bpm": 92,
+  "bars": 16,
+  "beatsPerBar": 4,
+  "notes": 238,
+  "maxPolyphony": 4,
+  "programs": [
+   0,
+   24,
+   73
+  ],
+  "leadPitches": 10
+ },
+ "music-forest": {
+  "group": "music",
+  "lot": "B",
+  "file": "audio/music/music-forest.mid",
+  "loop": false,
+  "durationS": 45.71,
+  "bpm": 84,
+  "bars": 16,
+  "beatsPerBar": 4,
+  "notes": 246,
+  "maxPolyphony": 5,
+  "programs": [
+   0,
+   10,
+   24,
+   73
+  ],
+  "leadPitches": 11
+ },
+ "music-magic": {
+  "group": "music",
+  "lot": "B",
+  "file": "audio/music/music-magic.mid",
+  "loop": false,
+  "durationS": 53.33,
+  "bpm": 72,
+  "bars": 16,
+  "beatsPerBar": 4,
+  "notes": 286,
+  "maxPolyphony": 3,
+  "programs": [
+   10,
+   24,
+   73
+  ],
+  "leadPitches": 7
+ },
+ "music-menu": {
+  "group": "music",
+  "lot": "B",
+  "file": "audio/music/music-menu.mid",
+  "loop": false,
+  "durationS": 50.53,
+  "bpm": 76,
+  "bars": 16,
+  "beatsPerBar": 4,
+  "notes": 200,
+  "maxPolyphony": 5,
+  "programs": [
+   0,
+   10,
+   24,
+   73
+  ],
+  "leadPitches": 11
+ },
+ "music-mine": {
+  "group": "music",
+  "lot": "B",
+  "file": "audio/music/music-mine.mid",
+  "loop": false,
+  "durationS": 58.18,
+  "bpm": 66,
+  "bars": 16,
+  "beatsPerBar": 4,
+  "notes": 115,
+  "maxPolyphony": 4,
+  "programs": [
+   0,
+   10,
+   24,
+   73,
+   115
+  ],
+  "leadPitches": 11
+ },
+ "music-mission": {
+  "group": "music",
+  "lot": "B",
+  "file": "audio/music/music-mission.mid",
+  "loop": false,
+  "durationS": 36.92,
+  "bpm": 104,
+  "bars": 16,
+  "beatsPerBar": 4,
+  "notes": 187,
+  "maxPolyphony": 3,
+  "programs": [
+   0,
+   73,
+   115
+  ],
+  "leadPitches": 11
+ },
+ "music-mountain": {
+  "group": "music",
+  "lot": "B",
+  "file": "audio/music/music-mountain.mid",
+  "loop": false,
+  "durationS": 56.47,
+  "bpm": 68,
+  "bars": 16,
+  "beatsPerBar": 4,
+  "notes": 176,
+  "maxPolyphony": 4,
+  "programs": [
+   0,
+   24,
+   73
+  ],
+  "leadPitches": 8
+ },
+ "music-night-a": {
+  "group": "music",
+  "lot": "B",
+  "file": "audio/music/music-night-a.mid",
+  "loop": false,
+  "durationS": 58.18,
+  "bpm": 66,
+  "bars": 16,
+  "beatsPerBar": 4,
+  "notes": 184,
+  "maxPolyphony": 6,
+  "programs": [
+   0,
+   10,
+   24,
+   73
+  ],
+  "leadPitches": 10
+ },
+ "music-night-b": {
+  "group": "music",
+  "lot": "B",
+  "file": "audio/music/music-night-b.mid",
+  "loop": false,
+  "durationS": 40,
+  "bpm": 72,
+  "bars": 16,
+  "beatsPerBar": 3,
+  "notes": 58,
+  "maxPolyphony": 4,
+  "programs": [
+   0,
+   10,
+   24
+  ],
+  "leadPitches": 10
+ },
+ "music-rare": {
+  "group": "music",
+  "lot": "B",
+  "file": "audio/music/music-rare.mid",
+  "loop": false,
+  "durationS": 12,
+  "bpm": 60,
+  "bars": 3,
+  "beatsPerBar": 4,
+  "notes": 24,
+  "maxPolyphony": 5,
+  "programs": [
+   10,
+   24,
+   73
+  ],
+  "leadPitches": 2
+ },
+ "music-ruins": {
+  "group": "music",
+  "lot": "B",
+  "file": "audio/music/music-ruins.mid",
+  "loop": false,
+  "durationS": 60,
+  "bpm": 64,
+  "bars": 16,
+  "beatsPerBar": 4,
+  "notes": 62,
+  "maxPolyphony": 3,
+  "programs": [
+   0,
+   10,
+   73,
+   115
+  ],
+  "leadPitches": 9
+ },
+ "music-success": {
+  "group": "music",
+  "lot": "B",
+  "file": "audio/music/music-success.mid",
+  "loop": false,
+  "durationS": 7.5,
+  "bpm": 96,
+  "bars": 3,
+  "beatsPerBar": 4,
+  "notes": 23,
+  "maxPolyphony": 4,
+  "programs": [
+   0,
+   10,
+   73
+  ],
+  "leadPitches": 13
+ },
+ "music-swamp": {
+  "group": "music",
+  "lot": "B",
+  "file": "audio/music/music-swamp.mid",
+  "loop": false,
+  "durationS": 54.86,
+  "bpm": 70,
+  "bars": 16,
+  "beatsPerBar": 4,
+  "notes": 113,
+  "maxPolyphony": 5,
+  "programs": [
+   0,
+   10,
+   24,
+   73
+  ],
+  "leadPitches": 9
+ },
+ "music-village": {
+  "group": "music",
+  "lot": "B",
+  "file": "audio/music/music-village.mid",
+  "loop": false,
+  "durationS": 38.4,
+  "bpm": 100,
+  "bars": 16,
+  "beatsPerBar": 4,
+  "notes": 159,
+  "maxPolyphony": 4,
+  "programs": [
+   0,
+   10,
+   73,
+   115
+  ],
+  "leadPitches": 18
+ },
  "pickup-01": {
   "group": "pickup",
   "lot": "A",

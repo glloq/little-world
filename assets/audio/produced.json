@@ -730,6 +730,158 @@
    "generatorVersion": "lw-synth-1",
    "notes": "Contrôles techniques automatiques réussis. Aucune écoute humaine réalisée."
   },
+  "music-coast": {
+   "file": "audio/music/music-coast.mid",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — composition originale « Houle » (tools/audio-synth/compositions.mjs, 2026-11-13), mélodie écrite note à note, accompagnement généré par grille d’accords",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-music-1",
+   "notes": "16 mesures à 84 BPM, polyphonie 4. Contrôles SMF/tonalité réussis ; écoute humaine non réalisée."
+  },
+  "music-day-a": {
+   "file": "audio/music/music-day-a.mid",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — composition originale « Matin dans la vallée » (tools/audio-synth/compositions.mjs, 2026-11-13), mélodie écrite note à note, accompagnement généré par grille d’accords",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-music-1",
+   "notes": "16 mesures à 92 BPM, polyphonie 5. Contrôles SMF/tonalité réussis ; écoute humaine non réalisée."
+  },
+  "music-day-b": {
+   "file": "audio/music/music-day-b.mid",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — composition originale « Sentier ensoleillé » (tools/audio-synth/compositions.mjs, 2026-11-13), mélodie écrite note à note, accompagnement généré par grille d’accords",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-music-1",
+   "notes": "16 mesures à 104 BPM, polyphonie 5. Contrôles SMF/tonalité réussis ; écoute humaine non réalisée."
+  },
+  "music-desert": {
+   "file": "audio/music/music-desert.mid",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — composition originale « Dunes » (tools/audio-synth/compositions.mjs, 2026-11-13), mélodie écrite note à note, accompagnement généré par grille d’accords",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-music-1",
+   "notes": "16 mesures à 76 BPM, polyphonie 3. Contrôles SMF/tonalité réussis ; écoute humaine non réalisée."
+  },
+  "music-discovery": {
+   "file": "audio/music/music-discovery.mid",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — composition originale « Découverte » (tools/audio-synth/compositions.mjs, 2026-11-13), mélodie écrite note à note, accompagnement généré par grille d’accords",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-music-1",
+   "notes": "3 mesures à 84 BPM, polyphonie 3. Contrôles SMF/tonalité réussis ; écoute humaine non réalisée."
+  },
+  "music-farm": {
+   "file": "audio/music/music-farm.mid",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — composition originale « Sillons » (tools/audio-synth/compositions.mjs, 2026-11-13), mélodie écrite note à note, accompagnement généré par grille d’accords",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-music-1",
+   "notes": "16 mesures à 92 BPM, polyphonie 4. Contrôles SMF/tonalité réussis ; écoute humaine non réalisée."
+  },
+  "music-forest": {
+   "file": "audio/music/music-forest.mid",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — composition originale « Sous les feuillages » (tools/audio-synth/compositions.mjs, 2026-11-13), mélodie écrite note à note, accompagnement généré par grille d’accords",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-music-1",
+   "notes": "16 mesures à 84 BPM, polyphonie 5. Contrôles SMF/tonalité réussis ; écoute humaine non réalisée."
+  },
+  "music-magic": {
+   "file": "audio/music/music-magic.mid",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — composition originale « Sortilège » (tools/audio-synth/compositions.mjs, 2026-11-13), mélodie écrite note à note, accompagnement généré par grille d’accords",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-music-1",
+   "notes": "16 mesures à 72 BPM, polyphonie 3. Contrôles SMF/tonalité réussis ; écoute humaine non réalisée."
+  },
+  "music-menu": {
+   "file": "audio/music/music-menu.mid",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — composition originale « Little World — Accueil » (tools/audio-synth/compositions.mjs, 2026-11-13), mélodie écrite note à note, accompagnement généré par grille d’accords",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-music-1",
+   "notes": "16 mesures à 76 BPM, polyphonie 5. Contrôles SMF/tonalité réussis ; écoute humaine non réalisée."
+  },
+  "music-mine": {
+   "file": "audio/music/music-mine.mid",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — composition originale « Galeries » (tools/audio-synth/compositions.mjs, 2026-11-13), mélodie écrite note à note, accompagnement généré par grille d’accords",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-music-1",
+   "notes": "16 mesures à 66 BPM, polyphonie 4. Contrôles SMF/tonalité réussis ; écoute humaine non réalisée."
+  },
+  "music-mission": {
+   "file": "audio/music/music-mission.mid",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — composition originale « Réflexion » (tools/audio-synth/compositions.mjs, 2026-11-13), mélodie écrite note à note, accompagnement généré par grille d’accords",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-music-1",
+   "notes": "16 mesures à 104 BPM, polyphonie 3. Contrôles SMF/tonalité réussis ; écoute humaine non réalisée."
+  },
+  "music-mountain": {
+   "file": "audio/music/music-mountain.mid",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — composition originale « Crêtes » (tools/audio-synth/compositions.mjs, 2026-11-13), mélodie écrite note à note, accompagnement généré par grille d’accords",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-music-1",
+   "notes": "16 mesures à 68 BPM, polyphonie 4. Contrôles SMF/tonalité réussis ; écoute humaine non réalisée."
+  },
+  "music-night-a": {
+   "file": "audio/music/music-night-a.mid",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — composition originale « Nuit étoilée » (tools/audio-synth/compositions.mjs, 2026-11-13), mélodie écrite note à note, accompagnement généré par grille d’accords",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-music-1",
+   "notes": "16 mesures à 66 BPM, polyphonie 6. Contrôles SMF/tonalité réussis ; écoute humaine non réalisée."
+  },
+  "music-night-b": {
+   "file": "audio/music/music-night-b.mid",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — composition originale « Lucioles » (tools/audio-synth/compositions.mjs, 2026-11-13), mélodie écrite note à note, accompagnement généré par grille d’accords",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-music-1",
+   "notes": "16 mesures à 72 BPM, polyphonie 4. Contrôles SMF/tonalité réussis ; écoute humaine non réalisée."
+  },
+  "music-rare": {
+   "file": "audio/music/music-rare.mid",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — composition originale « Phénomène rare » (tools/audio-synth/compositions.mjs, 2026-11-13), mélodie écrite note à note, accompagnement généré par grille d’accords",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-music-1",
+   "notes": "3 mesures à 60 BPM, polyphonie 5. Contrôles SMF/tonalité réussis ; écoute humaine non réalisée."
+  },
+  "music-ruins": {
+   "file": "audio/music/music-ruins.mid",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — composition originale « Pierres anciennes » (tools/audio-synth/compositions.mjs, 2026-11-13), mélodie écrite note à note, accompagnement généré par grille d’accords",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-music-1",
+   "notes": "16 mesures à 64 BPM, polyphonie 3. Contrôles SMF/tonalité réussis ; écoute humaine non réalisée."
+  },
+  "music-success": {
+   "file": "audio/music/music-success.mid",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — composition originale « Réussite » (tools/audio-synth/compositions.mjs, 2026-11-13), mélodie écrite note à note, accompagnement généré par grille d’accords",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-music-1",
+   "notes": "3 mesures à 96 BPM, polyphonie 4. Contrôles SMF/tonalité réussis ; écoute humaine non réalisée."
+  },
+  "music-swamp": {
+   "file": "audio/music/music-swamp.mid",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — composition originale « Brume » (tools/audio-synth/compositions.mjs, 2026-11-13), mélodie écrite note à note, accompagnement généré par grille d’accords",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-music-1",
+   "notes": "16 mesures à 70 BPM, polyphonie 5. Contrôles SMF/tonalité réussis ; écoute humaine non réalisée."
+  },
+  "music-village": {
+   "file": "audio/music/music-village.mid",
+   "status": "TECHNICALLY_VALID",
+   "source": "Little World — composition originale « Place du marché » (tools/audio-synth/compositions.mjs, 2026-11-13), mélodie écrite note à note, accompagnement généré par grille d’accords",
+   "license": "CC0-1.0",
+   "generatorVersion": "lw-music-1",
+   "notes": "16 mesures à 100 BPM, polyphonie 4. Contrôles SMF/tonalité réussis ; écoute humaine non réalisée."
+  },
   "pickup-01": {
    "file": "audio/sfx/farming/pickup-01.wav",
    "status": "TECHNICALLY_VALID",

@@ -7,7 +7,7 @@
 - Catalogue `2.0.0-aud-v2` : **108 événements**, **19 thèmes musicaux**, **19 profils d’ambiance**.
 - Jouables dès maintenant : **53/108 événements** (ressources disponibles ou repli explicite) ; les autres restent silencieux sans erreur.
 - Ressources disponibles : 8 fichiers de la bibliothèque V1 (6 WAV + 2 MIDI, statut GENERATED) et 5 sons procéduraux (GENERATED, écoute non qualifiée).
-- **À produire : 135 fichiers** (118 échantillons, 17 MIDI) — vague 1 / B1 : **23**, vague 2 : 48 (bêta enrichie = 71), vague 3 optionnelle : 64.
+- **À produire : 118 fichiers** (118 échantillons, 0 MIDI) — vague 1 / B1 : **20**, vague 2 : 40 (bêta enrichie = 60), vague 3 optionnelle : 58.
 - Un événement n’est pas un fichier : plusieurs événements réutilisent les mêmes fichiers avec un gain/une hauteur différents (colonne « Réutilisation »).
 
 Légende « État réel » : *Disponible* = prises jouables ; *Repli* = joue le son indiqué en attendant ; *Silencieux* = aucune ressource, diagnostic sans exception ; *non émis* = événement défini mais pas encore déclenché par le jeu.
@@ -196,25 +196,25 @@ Sélection par contexte (priorité puis spécificité), transition sur la mesure
 
 | Thème | Description | Condition | Priorité | Type | Partitions | Silence | Transition |
 |---|---|---|---|---|---|---|---|
-| `menu` | Menu principal | place=menu | 9 | loop | `music-menu` (PLANNED) | — | immediate |
-| `explore.day` | Exploration de jour | time=dawn/day/dusk | 1 | loop | `day` (disponible), `music-day-b` (PLANNED) | — | bar |
-| `explore.night` | Exploration de nuit | time=night | 1 | loop | `night` (disponible), `music-night-b` (PLANNED) | — | bar |
-| `forest` | Forêt | place=forest, time=dawn/day/dusk | 2 | loop | `music-forest` (PLANNED) | 20–60 s | bar |
-| `village` | Village | place=village | 2 | loop | `music-village` (PLANNED) | 15–45 s | bar |
-| `farm` | Agriculture | activity=farming | 3 | loop | `music-farm` (PLANNED) | 20–60 s | bar |
-| `mine` | Mine | place=mine | 3 | loop | `music-mine` (PLANNED) | 30–90 s | bar |
-| `coast` | Côte / navigation | place=coast/beach/ocean | 2 | loop | `music-coast` (PLANNED) | 20–60 s | bar |
-| `sailing` | Navigation (activité) | activity=sailing | 3 | loop | `music-coast` (PLANNED) | 20–60 s | bar |
-| `swamp` | Marais | place=swamp | 2 | loop | `music-swamp` (PLANNED) | 30–90 s | bar |
-| `desert` | Désert | place=desert | 2 | loop | `music-desert` (PLANNED) | 30–90 s | bar |
-| `mountain` | Montagne / volcan | place=mountain/volcano | 2 | loop | `music-mountain` (PLANNED) | 30–90 s | bar |
-| `ruins` | Ruines | place=ruins | 2 | loop | `music-ruins` (PLANNED) | 30–90 s | bar |
-| `mission` | Mission / énigme en cours | activity=mission/puzzle | 4 | loop | `music-mission` (PLANNED) | — | bar |
-| `magic` | Magie / phénomène | activity=magic | 4 | loop | `music-magic` (PLANNED) | — | bar |
-| `discovery` | Découverte (jingle) | — | 8 | stinger | `music-discovery` (PLANNED) | — | bar |
-| `mission.success` | Réussite de mission (jingle) | — | 8 | stinger | `music-success` (PLANNED) | — | bar |
-| `puzzle.solved` | Énigme résolue (jingle) | — | 8 | stinger | `music-success` (PLANNED) | — | bar |
-| `rare.phenomenon` | Phénomène rare (jingle) | — | 8 | stinger | `music-rare` (PLANNED) | — | immediate |
+| `menu` | Menu principal | place=menu | 9 | loop | `music-menu` (disponible) | — | immediate |
+| `explore.day` | Exploration de jour | time=dawn/day/dusk | 1 | loop | `music-day-a` (disponible), `music-day-b` (disponible) | 4–12 s | bar |
+| `explore.night` | Exploration de nuit | time=night | 1 | loop | `music-night-a` (disponible), `music-night-b` (disponible) | 6–16 s | bar |
+| `forest` | Forêt | place=forest, time=dawn/day/dusk | 2 | loop | `music-forest` (disponible) | 20–60 s | bar |
+| `village` | Village | place=village | 2 | loop | `music-village` (disponible) | 15–45 s | bar |
+| `farm` | Agriculture | activity=farming | 3 | loop | `music-farm` (disponible) | 20–60 s | bar |
+| `mine` | Mine | place=mine | 3 | loop | `music-mine` (disponible) | 30–90 s | bar |
+| `coast` | Côte / navigation | place=coast/beach/ocean | 2 | loop | `music-coast` (disponible) | 20–60 s | bar |
+| `sailing` | Navigation (activité) | activity=sailing | 3 | loop | `music-coast` (disponible) | 20–60 s | bar |
+| `swamp` | Marais | place=swamp | 2 | loop | `music-swamp` (disponible) | 30–90 s | bar |
+| `desert` | Désert | place=desert | 2 | loop | `music-desert` (disponible) | 30–90 s | bar |
+| `mountain` | Montagne / volcan | place=mountain/volcano | 2 | loop | `music-mountain` (disponible) | 30–90 s | bar |
+| `ruins` | Ruines | place=ruins | 2 | loop | `music-ruins` (disponible) | 30–90 s | bar |
+| `mission` | Mission / énigme en cours | activity=mission/puzzle | 4 | loop | `music-mission` (disponible) | — | bar |
+| `magic` | Magie / phénomène | activity=magic | 4 | loop | `music-magic` (disponible) | — | bar |
+| `discovery` | Découverte (jingle) | — | 8 | stinger | `music-discovery` (disponible) | — | bar |
+| `mission.success` | Réussite de mission (jingle) | — | 8 | stinger | `music-success` (disponible) | — | bar |
+| `puzzle.solved` | Énigme résolue (jingle) | — | 8 | stinger | `music-success` (disponible) | — | bar |
+| `rare.phenomenon` | Phénomène rare (jingle) | — | 8 | stinger | `music-rare` (disponible) | — | immediate |
 
 ## Ambiances (AmbienceProfile)
 
@@ -246,7 +246,7 @@ Profils globaux (météo, eau proche, nuit) + **un seul** profil de lieu (le plu
 
 Format, normalisation, boucles, licences et règles MIDI : section `conventions` du manifeste. Chaque ligne = un fichier ; les identifiants sont stables.
 
-### Vague 1 — B1 (première tranche) : 23 fichiers
+### Vague 1 — B1 (première tranche) : 20 fichiers
 
 | Fichier | Groupe (prise) | Événements | Durée | Boucle | Cahier des charges |
 |---|---|---|---|---|---|
@@ -270,11 +270,8 @@ Format, normalisation, boucles, licences et règles MIDI : section `conventions`
 | `audio/sfx/objects/lever-01.wav` | lever (1/2) | `interaction.lever` | 0.3–0.7 s | non | Levier en bois/métal qui bascule avec un cran. |
 | `audio/sfx/objects/lever-02.wav` | lever (2/2) | `interaction.lever` | 0.3–0.7 s | non | Levier en bois/métal qui bascule avec un cran. |
 | `audio/ambience/plains/amb-plain-01.wav` | amb-plain (1/1) | `ambience.plain` | 6–8 s | oui | Boucle : espace ouvert, herbe agitée, très doux. |
-| `audio/music/music-mine.mid` | mine (1/1) | `music:mine` | 45–90 s | oui | Ambiance souterraine : clochette grave, harpe espacée, mystère doux, jamais angoissant. (60–72 BPM) |
-| `audio/music/music-discovery.mid` | discovery (1/1) | `music:discovery` | 3–6 s | non | Jingle de découverte, 2 mesures, harpe montante + clochette finale. (libre) |
-| `audio/music/music-success.mid` | mission.success (1/1) | `music:mission.success` + `music:puzzle.solved` | 3–6 s | non | Jingle de réussite chaleureux, cadence parfaite, flûte + pluck. (libre) |
 
-### Vague 2 — bêta enrichie : 48 fichiers
+### Vague 2 — bêta enrichie : 40 fichiers
 
 | Fichier | Groupe (prise) | Événements | Durée | Boucle | Cahier des charges |
 |---|---|---|---|---|---|
@@ -318,16 +315,8 @@ Format, normalisation, boucles, licences et règles MIDI : section `conventions`
 | `audio/ambience/water/amb-waterfall-01.wav` | amb-waterfall (1/1) | `ambience.waterfall` | 6–8 s | oui | Boucle : chute d’eau continue, large bande mais sans souffle agressif. |
 | `audio/ambience/water/amb-lake-01.wav` | amb-lake (1/1) | `ambience.lake` | 6–8 s | oui | Boucle : eau calme qui clapote très doucement. |
 | `audio/ambience/village/amb-village-01.wav` | amb-village (1/1) | `ambience.village` | 6–8 s | oui | Boucle : vie de village animal paisible, bois, outils lointains, aucune voix humaine. |
-| `audio/music/music-menu.mid` | menu (1/1) | `music:menu` | 32–64 s | oui | Thème d’accueil chaleureux, flûte + harpe, boucle propre sur 8–16 mesures. (72–84 BPM) |
-| `audio/music/music-forest.mid` | forest (1/1) | `music:forest` | 45–90 s | oui | Motif boisé à la flûte, pizzicati, mode dorien, sans percussion forte. (76–88 BPM) |
-| `audio/music/music-village.mid` | village (1/1) | `music:village` | 45–90 s | oui | Air de village enjoué, pluck + percussion douce, carrure régulière. (92–104 BPM) |
-| `audio/music/music-farm.mid` | farm (1/1) | `music:farm` | 45–90 s | oui | Motif pastoral, harpe + flûte, rythme de travail paisible. (88–100 BPM) |
-| `audio/music/music-coast.mid` | coast (1/1) | `music:coast` + `music:sailing` | 45–90 s | oui | Houle en 6/8, flûte ample et harpe ondulante. (80–92 BPM) |
-| `audio/music/music-mountain.mid` | mountain (1/1) | `music:mountain` | 45–90 s | oui | Grand espace : harpe en arpèges larges, flûte lointaine. (64–76 BPM) |
-| `audio/music/music-ruins.mid` | ruins (1/1) | `music:ruins` | 45–90 s | oui | Mystère ancien : clochettes, intervalles de quarte, rares percussions. (60–70 BPM) |
-| `audio/music/music-mission.mid` | mission (1/1) | `music:mission` | 32–64 s | oui | Motif de réflexion léger, pizzicati, boucle courte non lassante. (96–108 BPM) |
 
-### Vague 3 — optionnelle / ultérieure : 64 fichiers
+### Vague 3 — optionnelle / ultérieure : 58 fichiers
 
 | Fichier | Groupe (prise) | Événements | Durée | Boucle | Cahier des charges |
 |---|---|---|---|---|---|
@@ -389,14 +378,8 @@ Format, normalisation, boucles, licences et règles MIDI : section `conventions`
 | `audio/ambience/weather/thunder-02.wav` | thunder (2/2) | `weather.thunder` | 2–4 s | non | Tonnerre lointain roulant, sans claquement violent. |
 | `audio/ambience/desert/amb-desert-01.wav` | amb-desert (1/1) | `ambience.desert` | 6–8 s | oui | Boucle : vent sec et chaud avec sable qui glisse, espace très ouvert. |
 | `audio/ambience/volcano/amb-volcano-01.wav` | amb-volcano (1/1) | `ambience.volcano` | 6–8 s | oui | Boucle : grondement tellurique grave, bouillonnement lointain. |
-| `audio/music/music-day-b.mid` | explore.day (1/1) | `music:explore.day` | 40–80 s | oui | Variante jour légère et aérée, mêmes timbres que midi-day, tonalité voisine. (84–96 BPM) |
-| `audio/music/music-night-b.mid` | explore.night (1/1) | `music:explore.night` | 40–80 s | oui | Variante nocturne clairsemée : clochette, harpe, longues respirations. (60–72 BPM) |
-| `audio/music/music-swamp.mid` | swamp (1/1) | `music:swamp` | 45–90 s | oui | Motif lent et humide, notes tenues de flûte grave. (66–76 BPM) |
-| `audio/music/music-desert.mid` | desert (1/1) | `music:desert` | 45–90 s | oui | Mode phrygien doux, pluck répétitif, espace. (70–80 BPM) |
-| `audio/music/music-magic.mid` | magic (1/1) | `music:magic` | 32–64 s | oui | Nappe de clochettes et harpe en gammes par tons. (libre) |
-| `audio/music/music-rare.mid` | rare.phenomenon (1/1) | `music:rare.phenomenon` | 4–8 s | non | Jingle étrange et merveilleux, clochettes en tons entiers. (libre) |
 
-### Déjà produits : 112 fichiers
+### Déjà produits : 131 fichiers
 
 | Fichier | Statut | Événements |
 |---|---|---|
@@ -512,10 +495,29 @@ Format, normalisation, boucles, licences et règles MIDI : section `conventions`
 | `audio/ambience/forest/amb-forest-01.wav` | TECHNICALLY_VALID | `ambience.forest` |
 | `audio/ambience/water/amb-river-01.wav` | TECHNICALLY_VALID | `ambience.water.river` |
 | `audio/ambience/forest/amb-night-01.wav` | TECHNICALLY_VALID | `ambience.night` |
+| `audio/music/music-menu.mid` | TECHNICALLY_VALID | `music:menu` |
+| `audio/music/music-day-a.mid` | TECHNICALLY_VALID | `music:explore.day` |
+| `audio/music/music-day-b.mid` | TECHNICALLY_VALID | `music:explore.day` |
+| `audio/music/music-night-a.mid` | TECHNICALLY_VALID | `music:explore.night` |
+| `audio/music/music-night-b.mid` | TECHNICALLY_VALID | `music:explore.night` |
+| `audio/music/music-forest.mid` | TECHNICALLY_VALID | `music:forest` |
+| `audio/music/music-village.mid` | TECHNICALLY_VALID | `music:village` |
+| `audio/music/music-farm.mid` | TECHNICALLY_VALID | `music:farm` |
+| `audio/music/music-mine.mid` | TECHNICALLY_VALID | `music:mine` |
+| `audio/music/music-coast.mid` | TECHNICALLY_VALID | `music:coast` |
+| `audio/music/music-swamp.mid` | TECHNICALLY_VALID | `music:swamp` |
+| `audio/music/music-desert.mid` | TECHNICALLY_VALID | `music:desert` |
+| `audio/music/music-mountain.mid` | TECHNICALLY_VALID | `music:mountain` |
+| `audio/music/music-ruins.mid` | TECHNICALLY_VALID | `music:ruins` |
+| `audio/music/music-mission.mid` | TECHNICALLY_VALID | `music:mission` |
+| `audio/music/music-magic.mid` | TECHNICALLY_VALID | `music:magic` |
+| `audio/music/music-discovery.mid` | TECHNICALLY_VALID | `music:discovery` |
+| `audio/music/music-success.mid` | TECHNICALLY_VALID | `music:mission.success` |
+| `audio/music/music-rare.mid` | TECHNICALLY_VALID | `music:rare.phenomenon` |
 
 ## Diagnostics du catalogue livré
 
-109 diagnostics (55 avertissements : événements encore silencieux). Aucun n’est bloquant.
+92 diagnostics (55 avertissements : événements encore silencieux). Aucun n’est bloquant.
 
 - « player.slide » n’a encore aucune ressource disponible : l’événement reste silencieux.
 - « water.lap » n’a encore aucune ressource disponible : l’événement reste silencieux.

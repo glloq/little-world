@@ -93,15 +93,16 @@ test('V2 validation refuses fictive or unsafe references and out-of-range parame
  const layer={schemaVersion:2,patchIds:['flute'],assets:ok,scores:{},events:e,music:{cues:{}},ambience:{p:{id:'p',priority:1,global:true,fadeSeconds:1,layers:[{id:'l',role:'bed',eventId:'missing',priority:1,gain:1}]}},emitters:[]};assert.throws(()=>parseAudioDefinitionV2(layer),/événement absent/);
 });
 test('music director: context cues, hold when nothing matches, silences between takes, stingers resume the loop',()=>{
- const c=parseAudioDefinitionV2(catalog),available=id=>assetPlayable(c.assets[c.scores[id].assetId]),d=new MusicDirector(c,available,seededRandom(2));
- let r=d.update(0,{time:'day',place:'forest'},null);assert.equal(r.type,'play');assert.equal(r.scoreId,'day','forest score is PLANNED: the playable day cue wins');assert.equal(r.loop,true);
- assert.equal(d.update(1,{time:'day'},'day').type,'hold');r=d.update(2,{time:'night'},'day');assert.equal(r.scoreId,'night');
+ // Availability is simulated so the test does not depend on production progress.
+ const c=parseAudioDefinitionV2(catalog),available=id=>id==='music-day-a'||id==='music-night-a',d=new MusicDirector(c,available,seededRandom(2));
+ let r=d.update(0,{time:'day',place:'forest'},null);assert.equal(r.type,'play');assert.equal(r.scoreId,'music-day-a','forest theme unavailable: the playable day cue wins');assert.equal(r.loop,false,'day cue alternates takes with silences');
+ assert.equal(d.update(1,{time:'day'},'music-day-a').type,'hold');r=d.update(2,{time:'night'},'music-day-a');assert.equal(r.scoreId,'music-night-a');
  const none=new MusicDirector(c,()=>false);assert.equal(none.update(0,{time:'day'},null).type,'hold');
  const all=new MusicDirector(c,()=>true,seededRandom(3));r=all.update(0,{place:'mine',time:'day'},null);assert.equal(r.cueId,'mine');assert.equal(r.loop,false);
  assert.equal(all.update(10,{place:'mine'},null).type,'silence');assert.equal(all.update(11,{place:'mine'},null).type,'hold');assert.equal(all.update(200,{place:'mine'},null).type,'play');
  assert.ok(all.trigger('discovery'));r=all.update(201,{place:'mine'},'music-mine');assert.equal(r.cueId,'discovery');assert.equal(r.loop,false);assert.equal(all.update(202,{place:'mine'},'music-mine').type,'hold','waits for the bar boundary');
  assert.equal(all.update(203,{place:'mine'},'music-discovery').type,'hold');assert.equal(all.update(206,{place:'mine'},null).cueId,'mine','loop cue resumes after the stinger');
- assert.equal(new MusicDirector(c,available).trigger('discovery'),false,'planned stinger is never requested');
+ assert.equal(new MusicDirector(c,available).trigger('discovery'),false,'unavailable stinger is never requested');
 });
 test('ambience mixer: one place profile plus globals, capped loops, punctual layers on random intervals without bursts',()=>{
  const c=parseAudioDefinitionV2(catalog),mixer=new AmbienceMixer(c,()=>true,seededRandom(9));
