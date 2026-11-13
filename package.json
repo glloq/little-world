@@ -33,7 +33,10 @@
     "test:geo-edit": "node tools/test-geo-edit-browser.mjs",
     "test:editor": "node tools/test-editor-browser.mjs",
     "test:editor-content": "node tools/test-editor-content-browser.mjs",
-    "test:editor-world": "node tools/test-editor-world-browser.mjs"
+    "test:editor-world": "node tools/test-editor-world-browser.mjs",
+    "test:lights": "node tools/test-lights-browser.mjs",
+    "bench:lights": "node --expose-gc tools/bench-lights.mjs",
+    "bench:lights:browser": "node tools/bench-lights-browser.mjs"
   },
   "dependencies": {
     "three": "^0.180.0"

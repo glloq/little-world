@@ -73,3 +73,10 @@ label:has(> input[type=checkbox]){flex-direction:row;align-items:center;justify-
 .impact-card .diagnostic{font-size:11px}
 .path-diagnostics{display:flex;flex-direction:column;gap:4px;margin-top:6px}
 .path-diagnostics .diagnostic{font-size:11px}
+/* E10 — lights */
+.light-card{display:grid;gap:6px}
+.light-list .light-row{display:flex;justify-content:space-between;gap:6px;text-align:left}
+.light-list small{opacity:.8}
+.light-list .status-dynamic{color:#c98a12;font-weight:600}
+.light-list .status-budget{color:#c4472f}
+.light-list .status-off,.light-list .status-far{color:#7d8a90}

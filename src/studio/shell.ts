@@ -18,19 +18,19 @@ import type {StudioViewport} from './viewport/editor-viewport.ts';
  * scene, so camera, selection and scene survive every tool or panel change. */
 const store=new ProjectStore(),$=(id:string)=>document.getElementById(id)!;
 let session:StudioSession|null=null,viewport:StudioViewport|null=null,unsubscribe=()=>{},disposePanel=()=>{},generation=0,activeModule='scene';
-let inspectorOpen=true,returnModule='scene';
+let inspectorOpen=true,returnModule='scene',lastAsset='props.crate';
 const status=(message:string,error=false)=>{$('status').textContent=message;$('status').classList.toggle('status-error',error);};
 const run=(action:()=>Promise<unknown>|unknown)=>async()=>{try{await action();}catch(e){status(String(e instanceof Error?e.message:e),true);}};
 const action=(title:string,fn:()=>Promise<unknown>|unknown,className?:string)=>button(title,run(fn),className);
 /** Toolbar: [module id, accessible name, icon, group, shortcut]. Viewport modules keep the 3D view. */
 const MODULES:[string,string,string,string,string][]=[
   ['scene','Sélection','➚','Naviguer','V'],['map','Carte globale','▦','Naviguer','M'],
-  ['objects','Objets','▣','Construire','B'],['characters','Personnages','☺','Construire',''],
+  ['objects','Objets','▣','Construire','B'],['characters','Personnages','☺','Construire',''],['lights','Lumières','✦','Construire','L'],
   ['terrain','Relief','⛰','Monde','T'],['biomes','Biotopes','✿','Monde',''],['paths','Chemins et rivières','〰','Monde',''],['water','Eau','≈','Monde',''],['zones','Zones','⬠','Monde',''],
   ['dialogues','Dialogues','✉','Logique',''],['interactions','Interactions','⚙','Logique',''],['environment','Environnement','☀','Logique',''],['audio','Audio','♪','Logique',''],
   ['tests','Validation / compilation','✓','Projet',''],
 ];
-const VIEWPORT_MODULES=new Set(['scene','objects','characters','terrain','biomes','polyline','paths','zones']);
+const VIEWPORT_MODULES=new Set(['scene','objects','characters','lights','terrain','biomes','polyline','paths','zones']);
 const ALIASES:Record<string,string>={local:'scene',select:'scene'};
 const panelHost=()=>$('panel-host');
 function refreshHeader(){
@@ -77,7 +77,7 @@ async function open(id:string){
 }
 async function ensureViewport(){
   if(viewport)return viewport;const s=session!;const {StudioViewport}=await import('./viewport/editor-viewport.ts');if(session!==s)throw Error('Projet fermé');
-  viewport=await StudioViewport.create($('workspace'),s,{message:status,refreshInspector:scheduleInspector,toolChanged:id=>{if(id==='select'&&activeModule==='polyline'){const back=returnModule;returnModule='scene';void module(back);}else if(id==='select'&&activeModule!=='scene'&&activeModule!=='paths'&&activeModule!=='zones')void module('scene');},
+  viewport=await StudioViewport.create($('workspace'),s,{message:status,refreshInspector:scheduleInspector,toolChanged:id=>{if(id==='select'&&activeModule==='polyline'){const back=returnModule;returnModule='scene';void module(back);}else if(id==='select'&&activeModule!=='scene'&&activeModule!=='paths'&&activeModule!=='zones'&&activeModule!=='lights')void module('scene');},
     status:info=>{$('viewport-status').textContent=[info.cursor?`X ${info.cursor.x.toFixed(1)} · Z ${info.cursor.z.toFixed(1)}`:'—',{orbit:'Orbite',free:'Vol libre',top:'Dessus'}[info.mode]??info.mode,info.selected?`${info.selected} sélectionné(s)`:'Aucune sélection',`${info.sectors} secteur(s)`].join('  ·  ');}});
   return viewport;
 }
@@ -115,7 +115,9 @@ async function toolPanel(id:string,v:StudioViewport){
     tools.append(node('div','SÉLECTION ET TRANSFORMATION','kicker'),modes,field('Aimanter à la grille',snap),field('Pas de grille (m)',numberInput(transformSettings.grid,x=>{transformSettings.grid=Math.max(.1,x||1);apply();},.1,100)),field('Pas angulaire (°)',numberInput(transformSettings.angle,x=>{transformSettings.angle=Math.max(1,x||15);apply();},1,90)),field('Suivre le relief',follow));apply();
     listPanel(s,tools);
   }else if(id==='objects'){
-    v.setTool('place');const {mountLibrary}=await import('./library.ts');tools.append(node('div','BIBLIOTHÈQUE','kicker'),node('h3','Placer des objets'));mountLibrary(tools,s.document.assets,()=>{v.setTool('place');status('Choix conservé : cliquez dans la vue pour placer, autant de fois que nécessaire.');});
+    // The placement choice is shared with characters/lights: the Objects module always places an asset.
+    const {placementSettings}=await import('./viewport/placement-tool.ts');if(placementSettings.item.kind!=='asset')placementSettings.item={kind:'asset',id:lastAsset};
+    v.setTool('place');const {mountLibrary}=await import('./library.ts');tools.append(node('div','BIBLIOTHÈQUE','kicker'),node('h3','Placer des objets'));mountLibrary(tools,s.document.assets,item=>{if(item.kind==='asset')lastAsset=item.id;v.setTool('place');status('Choix conservé : cliquez dans la vue pour placer, autant de fois que nécessaire.');});
   }else if(id==='characters'){
     const {placementSettings}=await import('./viewport/placement-tool.ts');let name='Nouvel habitant',species:'squirrel'|'animal'='squirrel';
     const choose=()=>{placementSettings.item={kind:'npc',species,name};v.setTool('place');};choose();
@@ -136,6 +138,9 @@ async function toolPanel(id:string,v:StudioViewport){
     const ctx={session:s,status,focus:(x:number,z:number)=>v.goTo(x,z,30),edit:(target:import('./viewport/polyline-tool.ts').PolylineTarget)=>{void run(async()=>{const {polylineTarget}=await import('./viewport/polyline-tool.ts');polylineTarget.current=target;returnModule=id;await module('polyline');})();}};
     const render=()=>{tools.replaceChildren();(id==='paths'?mountPathsPanel:mountZonesPanel)(tools,ctx);};render();
     const stop=s.commands.subscribe(()=>{if(activeModule===id)render();}),previous=disposePanel;disposePanel=()=>{stop();previous();};
+  }else if(id==='lights'){
+    v.setTool('select');const {mountLightsPanel}=await import('./lights-panel.ts');
+    const stop=mountLightsPanel(tools,{session:s,viewport:v,status,refresh:()=>void inspector()}),previous=disposePanel;disposePanel=()=>{stop();previous();};
   }else if(id==='polyline'){
     const {polylineTarget}=await import('./viewport/polyline-tool.ts');const target=polylineTarget.current;if(!target){await module('scene');return;}v.setTool('polyline');
     tools.append(node('div','TRACÉ','kicker'),node('h3',target.label),node('p','Clic : ajouter un point · glisser un point : le déplacer · Retour arrière : retirer le dernier · Entrée : valider (une opération) · Échap : abandonner. Clic droit / molette : naviguer.','muted'),
@@ -218,7 +223,7 @@ async function preview(){
   if(file.name.toLowerCase().endsWith('.zip'))p=readProjectArchive(new Uint8Array(await file.arrayBuffer()));else{const json=JSON.parse(await file.text());if(json.manifest?.schemaVersion===3)p=parseProject(json);else{const migration=migrateWorldToV3(json,{projectId:crypto.randomUUID(),worldId:crypto.randomUUID()});p=migration.project;status(`Migration non destructive : ${migration.report.counts.entities} entités et leurs identifiants préservés.`);}}
   if((await store.list()).some(v=>v.projectId===p.manifest.projectId))throw Error('Ce projet existe déjà. Ouvrez-le depuis Mes projets pour éviter un écrasement.');await store.create(p);await open(p.manifest.projectId);($('project-file') as HTMLInputElement).value='';
 })();
-const SHORTCUTS:Record<string,string>={v:'scene',m:'map',b:'objects',t:'terrain'};
+const SHORTCUTS:Record<string,string>={v:'scene',m:'map',b:'objects',t:'terrain',l:'lights'};
 window.addEventListener('keydown',e=>{
   if(!session||e.target instanceof HTMLInputElement||e.target instanceof HTMLTextAreaElement||e.target instanceof HTMLSelectElement)return;
   const key=e.key.toLowerCase();

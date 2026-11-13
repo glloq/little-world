@@ -8,6 +8,7 @@ import {applyInteraction,interactionChunkIds} from '../studio-core/interaction-t
 import {EMOTIONS,type Emotion,type Neckwear} from '../character-style.ts';
 import {elementExists,elementLabel,type ElementRef} from '../studio-core/elements.ts';
 import {renderElementInspector,lockToggle} from './element-inspector.ts';
+import {lightSection} from './light-inspector.ts';
 
 /** Serialised entity edits: rapid field changes never race each other (one transaction each). */
 export const editQueue={pending:0,last:Promise.resolve() as Promise<unknown>,
@@ -83,6 +84,7 @@ async function buildInspector(host:HTMLElement,ctx:InspectorContext){
   }
   if(resolved.components.DialogueActor)logic.append(button('Ouvrir son dialogue',()=>ctx.open('dialogues')));host.append(node('h4','Logique'),logic);
   if(resolved.components.Character)host.append(characterSection(ctx,id,entry.ownerChunkId));
+  host.append(lightSection(ctx,id,source.components.Light));
 }
 function round(v:number){return Math.round(v*1000)/1000;}
 function impactSection(impact:NonNullable<InspectorContext['impact']>){

@@ -166,6 +166,18 @@ gameplay?.attachNPCs(npcs.states);
 const worldClock=gameplay?.runtime.clock??new WorldClock(),climate=gameplay?.runtime.climate??createClimate(defaultEnvironment(definition.config.seed));
 const {createEnvironmentView}=await import('./environment/view.ts');
 const environment=createEnvironmentView(scene,lighting,worldClock,climate);
+// E10 — local lights: entity states switch « state » lights, NPC carriers move their lights.
+const {nightFactor}=await import('./lighting/light-data.ts');
+{
+  const carriers=new Map(npcs.states.map(state=>[state.definition.id,state])),carried={x:0,y:0,z:0};
+  world.lights.setLookups((id,key)=>{const value=gameplay?.runtime.state.entities[id]?.[key];return typeof value==='boolean'?value:undefined;},
+    id=>{const state=carriers.get(id);if(!state)return undefined;carried.x=state.x;carried.y=state.y;carried.z=state.z;return carried;});
+  // Benchmark scenarios (?lightBench=N&lightLayout=cluster|spread&night=1): sources only, same budget.
+  const bench=Number(searchParams.get('lightBench'));
+  if(Number.isInteger(bench)&&bench>=0&&bench<=5000&&searchParams.has('lightBench')){const {benchLights}=await import('./lighting/light-bench.ts');world.refreshLights(benchLights(bench,searchParams.get('lightLayout')==='spread'?'spread':'cluster',player.position.x,player.position.z));}
+  if(searchParams.get('night')==='1')worldClock.restore((1-climate.definition.initialDayPhase)*climate.definition.dayLengthSeconds);
+}
+world.lights.setEnvironment(nightFactor(climate.state(worldClock.time).sunAltitude),0);
 world.update(0, player.position);
 const squirrel = buildSquirrel();
 scene.add(squirrel.group);
@@ -478,6 +490,7 @@ function draw(now: number) {
     frame.alpha,
   );
   environment.update(delta,player.position,budget.level);
+  world.lights.setEnvironment(nightFactor(climate.state(worldClock.time).sunAltitude),now/1000);
   if(started&&audio){const env=climate.state(worldClock.time);audio.update(now,player.position,id=>gameplay?.runtime.getEntityPosition(id),{night:env.sunAltitude<0,rain:env.weather==='rain',water:waterSurface(player.position.x,player.position.z)!==null||(isLegacyTerrain()&&Math.abs(player.position.x-riverX(player.position.z))<16)},budget.level,player.mode==='ground'&&!aboard&&player.velocity.lengthSq()>.1,camera.getWorldDirection(audioForward));}
   world.update(delta, player.position, camera, renderer.domElement.height);
   npcs.update(delta, elapsed, player.position); // The river drives the mill: no manual on/off control.
@@ -508,6 +521,8 @@ function draw(now: number) {
         terrainWork: { ...world.terrainWork },
         dressing: world.dressing ? { ...world.dressing } : null,
         paths: { ...world.paths },
+        lights: { ...world.lights.stats },
+        programs: renderer.info.programs?.length ?? 0,
         workers: geoWorkerPool()?.stats ? { ...geoWorkerPool()!.stats } : null,
         environment:environment.metrics,
         audio:audio?.engine.metrics??null,

@@ -61,6 +61,14 @@ jobs:
         run: node tools/run-browser-check.mjs editor-content
       - name: Studio world features browser checks
         run: node tools/run-browser-check.mjs editor-world
+      - name: Studio universal selection browser checks (E7)
+        run: node tools/run-browser-check.mjs selection
+      - name: Paths network browser checks (E8)
+        run: node tools/run-browser-check.mjs paths
+      - name: Geographic editing browser checks (E9)
+        run: node tools/run-browser-check.mjs geo-edit
+      - name: Local lighting browser checks (E10)
+        run: node tools/run-browser-check.mjs lights
       - name: IndexedDB integration
         run: |
           npm run dev -- --host 127.0.0.1 --port 5189 --strictPort > /tmp/little-world-studio-dev.log 2>&1 &

@@ -5,12 +5,14 @@ import {chunkAt} from '../../studio-core/schema.ts';
 import {putEntity} from '../../studio-core/source.ts';
 import {yawQuaternion} from '../../studio-core/transforms.ts';
 import {createCharacter} from '../../studio-core/character-authoring.ts';
+import {createLightEntity} from '../../studio-core/light-authoring.ts';
+import {LIGHT_PRESETS} from '../../lighting/light-data.ts';
 import type {AssetId} from '../../world-data.ts';
 import {checkPlacement,type PlacementCheck} from './placement-rules.ts';
 import type {Tool,ToolContext} from './tools.ts';
 import {transformSettings} from './select-tool.ts';
 
-export type PlaceItem={kind:'asset';id:string}|{kind:'npc';species:'squirrel'|'animal';name:string};
+export type PlaceItem={kind:'asset';id:string}|{kind:'npc';species:'squirrel'|'animal';name:string}|{kind:'light';preset:import('../../studio-core/types.ts').LightPreset;name:string};
 /** Library choice shared with the catalogue panel: one choice, many placements. */
 export const placementSettings={item:{kind:'asset',id:'props.crate'} as PlaceItem,yaw:0};
 /** E3 — semi-transparent preview following the cursor, R/Shift+R to rotate before commit,
@@ -29,9 +31,10 @@ export class PlacementTool implements Tool {
     if(ghost.userData.ownsGeometry){ghost.traverse(o=>(o as THREE.Mesh).geometry?.dispose());ghost.removeFromParent();}else removePlacement(ghost);
   }
   private ensureGhost(){
-    const item=placementSettings.item,key=item.kind==='asset'?item.id:'npc:'+item.species;if(this.ghost&&this.ghostKey===key)return this.ghost;this.clearGhost();
+    const item=placementSettings.item,key=item.kind==='asset'?item.id:item.kind==='light'?'light:'+item.preset:'npc:'+item.species;if(this.ghost&&this.ghostKey===key)return this.ghost;this.clearGhost();
     let ghost:THREE.Object3D;
     if(item.kind==='asset'){ghost=createAsset(item.id as AssetId);}
+    else if(item.kind==='light'){const g=new THREE.Group(),y=LIGHT_PRESETS[item.preset].offsetY,post=new THREE.Mesh(new THREE.CylinderGeometry(.05,.05,y,6));post.position.y=y/2;const bulb=new THREE.Mesh(new THREE.OctahedronGeometry(.4,0));bulb.position.y=y;g.add(post,bulb);g.userData.ownsGeometry=true;ghost=g;}
     else{const g=new THREE.Group(),body=new THREE.Mesh(new THREE.CapsuleGeometry(.45,.9,4,8));body.position.y=.9;const head=new THREE.Mesh(new THREE.SphereGeometry(.38,10,8));head.position.y=1.95;g.add(body,head);g.userData.ownsGeometry=true;ghost=g;}
     ghost.name='PlacementPreview';ghost.renderOrder=25;this.ctx.scene.add(ghost);this.ghost=ghost;this.ghostKey=key;return ghost;
   }
@@ -53,6 +56,7 @@ export class PlacementTool implements Tool {
     this.ctx.run(async()=>{
       if(item.kind==='asset'){const asset=s.document.assets[item.id];if(!asset)throw Error('Asset inconnu : '+item.id);
         await s.change('Placer '+asset.name,[owner],d=>putEntity(d,{id,kind:item.id.startsWith('architecture.')?'building':'prop',name:asset.name,ownerChunkId:owner,components:{Transform:{type:'Transform',position:{x,y:0,z},rotation:yawQuaternion(yaw),scale:{x:1,y:1,z:1}},Visual:{type:'Visual',assetId:item.id}}}));}
+      else if(item.kind==='light')await s.change('Placer une lumière',[owner],d=>{createLightEntity(d,{id,name:item.name,x,z,preset:item.preset});});
       else await s.change('Placer un personnage',[owner],d=>{createCharacter(d,{id,name:item.name,x,z,species:item.species});const source=d.chunks[owner].entities[id];source.components.Transform!.rotation=yawQuaternion(yaw);putEntity(d,source);});
       s.selection.select({kind:'entity',id});this.ctx.message('Élément placé. Cliquez encore pour en placer un autre, Échap pour terminer.'+warning);this.ctx.refreshInspector();
     });

@@ -6,6 +6,8 @@ import { configureGeography } from './geography/engine';
 import { createEcology } from './ecology';
 import { geoWorkerPool } from './geography/geo-workers.ts';
 import { createPathView, type PathViewStats } from './paths/path-view.ts';
+import { createLightView, type LightView } from './lighting/light-view.ts';
+import type { RuntimeLight } from './lighting/light-data.ts';
 import { createDressingView, type DressingView, type DressingStats } from './dressing-view.ts';
 import { sampleBiome, generatedCover } from './biomes';
 import type {
@@ -30,6 +32,9 @@ import {
   pathDistance,
 } from './terrain';
 
+/** Dynamic point lights present in shaders: normal quality / economy setting. Starting values
+ * (E10), to be confirmed on integrated GPUs; the pool never grows with the number of sources. */
+export const LIGHT_POOL = 4, LIGHT_POOL_ECONOMY = 2;
 export interface WorldView {
   root: THREE.Group;
   terrain: THREE.Group;
@@ -48,6 +53,9 @@ export interface WorldView {
   refreshTerrain: (x: number, z: number, radius: number) => void;
   refreshWater:()=>string[];
   refreshPaths:(paths: PathDefinition[])=>string[];
+  /** E10 — local lights: fixed pool of real point lights + halos (budgeted selection). */
+  lights: LightView;
+  refreshLights:(lights: RuntimeLight[])=>void;
   horizon: HorizonStats;
   stats: {
     active: number;
@@ -663,6 +671,10 @@ export function buildWorld(
     return pathView.setPaths(paths);
   }
   refreshPaths(definition?.paths ?? []);
+  // E10: at most LIGHT_POOL real point lights (budget lowered in economy / overload).
+  const lightView = createLightView(root, terrainHeight, { capacity: LIGHT_POOL });
+  lightView.setSources(definition?.lights ?? []);
+  const lightCamera = { x: 0, y: 0, z: 0 };
   let time = 0,
     detailLevel = 0,
     lastFocusX = NaN,
@@ -689,8 +701,14 @@ export function buildWorld(
     paths: pathView.stats,
     refreshWater,
     refreshPaths,
+    lights: lightView,
+    refreshLights(lights) {
+      lightView.setSources(lights);
+    },
     setDetail(level, economy = false) {
       detailLevel = level;
+      const pool = economy ? LIGHT_POOL_ECONOMY : LIGHT_POOL;
+      lightView.setBudget(level >= 2 ? Math.ceil(pool / 2) : pool, pool);
       ecology.setDetail(level);
       dressing?.setDetail(economy ? level + 1 : level);
     },
@@ -769,6 +787,11 @@ export function buildWorld(
       ecology.update(dt, time, focus.x, focus.z);
       dressing?.update(focus.x, focus.z);
       pathView.update(focus.x, focus.z);
+      if (camera) lightCamera.x = camera.position.x;
+      else lightCamera.x = focus.x;
+      lightCamera.y = camera ? camera.position.y : terrainHeight(focus.x, focus.z) + 30;
+      lightCamera.z = camera ? camera.position.z : focus.z;
+      lightView.update(lightCamera);
       const distance = getTerrainConfig().viewDistance;
       for (const object of objects.children)
         object.visible =
@@ -779,6 +802,7 @@ export function buildWorld(
       ecology.dispose();
       dressing?.dispose();
       pathView.dispose();
+      lightView.dispose();
       horizon.dispose();
       terrainView.dispose();
       root.traverse((o) => {

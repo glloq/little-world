@@ -338,3 +338,10 @@ La **politique de cadence 30/20 FPS est validée** et la migration de runtime es
 ## État après synchronisation du cadrage Studio / 100 km²
 
 Les décisions G/M/P/I/E/C/Q validées dans main sont conservées. Le plafond **final de conception** est 10 × 10 km, mais le validateur de cette version reste volontairement limité à 2 × 2 km pour les scènes expérimentales. L’atelier livré reste unifié ; le Studio spécialisé, navigation hiérarchique, inventaire, petites activités et slots de sauvegarde joueur sont à développer. Les PNJ livrés sont tous des écureuils/créatures, aucun humain. L’interface actuelle de dialogue agit sur des flags temporaires, sans prétendre au moteur de séquences et de progression final.
+
+## Studio E7–E10 (sélection, routes, édition géographique, éclairage local)
+
+Voir [35](35-STUDIO-E7-E10-SELECTION-ROUTES-ECLAIRAGE.md).
+- Sélection typée commune (`entity | path | water | zone | terrainEdit | biomeEdit`) ; verrouillage = préférence Studio, non exportée.
+- Chemins : un outil, quatre profils optionnels (`kind`, `smooth`), géométrie déterministe sectorisée, aucun collider ni objet par planche.
+- Lumières : composant V3 `Light` (ponctuelle, sans ombre), pool fixe de `PointLight` (4 normal / 2 économie, valeurs de départ non qualifiées sur GPU) + halos en un seul `Points` ; sélection par grille et hystérésis, intégrée au `PresentationBudget` existant (pas de second automate).
