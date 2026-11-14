@@ -13,7 +13,7 @@ import {checkPlacement,type PlacementCheck} from './placement-rules.ts';
 import type {Tool,ToolContext} from './tools.ts';
 import {transformSettings} from './select-tool.ts';
 
-export type PlaceItem={kind:'asset';id:string}|{kind:'npc';species:'squirrel'|'animal';name:string}|{kind:'light';preset:import('../../studio-core/types.ts').LightPreset;name:string};
+export type PlaceItem={kind:'asset';id:string}|{kind:'npc';species:import('../../studio-core/types.ts').CharacterSpecies;name:string}|{kind:'light';preset:import('../../studio-core/types.ts').LightPreset;name:string};
 /** Library choice shared with the catalogue panel: one choice, many placements. */
 export const placementSettings={item:{kind:'asset',id:'props.crate'} as PlaceItem,yaw:0};
 /** E3 — semi-transparent preview following the cursor, R/Shift+R to rotate before commit,

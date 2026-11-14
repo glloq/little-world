@@ -1,6 +1,7 @@
 import {getTerrainConfig} from './terrain.ts';
 import * as THREE from 'three';
 import { buildSquirrel, CHARACTER_SCALE } from './squirrel.ts';
+import { buildHamster } from './hamster/hamster.ts';
 import { createDialogue, type DialogueSession } from './dialogue.ts';
 import {
   createNPCState,
@@ -176,15 +177,17 @@ export function createNPCSystem(
   }
   const entries = definitions.map((definition) => {
     const state = createNPCState(definition,bounds),
-      model = buildSquirrel();
+      hamster = definition.kind === 'hamster' ? buildHamster() : null,
+      model = hamster ?? buildSquirrel();
     model.setAppearance(definition.appearance);
     if (definition.kind === 'animal') model.group.scale.setScalar(0.58);
     model.group.name = 'NPC:' + definition.id;
     model.group.visible = false;
     scene.add(model.group);
     const proxy = silhouette(definition);
-    const head = model.group.getObjectByName('HeadJoint'),
-      arm = model.group.getObjectByName('ArmRight');
+    // Squirrel rig: greeting/work gestures written on its joints; the hamster plays real actions.
+    const head = hamster ? null : model.group.getObjectByName('HeadJoint'),
+      arm = hamster ? null : model.group.getObjectByName('ArmRight');
     const player: Player = {
       position: new THREE.Vector3(),
       velocity: new THREE.Vector3(),
@@ -195,6 +198,7 @@ export function createNPCSystem(
     return {
       state,
       model,
+      hamster,
       player,
       proxy,
       head,
@@ -221,7 +225,7 @@ export function createNPCSystem(
     update(dt: number, time: number, position: NPCPoint) {
       if (disposed) return;
       for (const entry of entries) {
-        const { state, model, player, proxy, head, arm } = entry;
+        const { state, model, hamster, player, proxy, head, arm } = entry;
         updateNPC(state, dt, position, obstacles);
         const tier = npcVisualTier(
           Math.hypot(position.x - state.x, position.z - state.z),
@@ -245,7 +249,10 @@ export function createNPCSystem(
         model.group.position.copy(player.position);
         model.group.rotation.y = state.heading;
         model.update(player, dt, time);
-        if (state.phase === 'greet' || state.phase === 'work') {
+        if (hamster) {
+          if (state.phase === 'greet' && !hamster.action) hamster.play('INTERACT');
+          else if (state.phase === 'work' && !hamster.action) hamster.play('TOOL_SWING_VERTICAL', 'hammer');
+        } else if (state.phase === 'greet' || state.phase === 'work') {
           if (head) head.rotation.y = Math.sin(time * 1.7) * 0.12;
           if (arm) {
             arm.rotation.z = state.phase === 'greet' ? -1.6 : -0.45;

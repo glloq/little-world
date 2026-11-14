@@ -30,7 +30,8 @@ export interface NavigationObstacle extends NPCPoint {
 export interface NPCDefinition {
   id: string;
   name: string;
-  kind: 'squirrel' | 'animal';
+  /** Morphology (squirrel rig, small animal, or the hamster rig of doc 43). */
+  kind: 'squirrel' | 'animal' | 'hamster';
   x: number;
   z: number;
   behavior: 'idle' | 'wander' | 'patrol' | 'work';
@@ -91,7 +92,7 @@ export function validNPC(
     typeof d.name === 'string' &&
     d.name.length > 0 &&
     d.name.length <= 80 &&
-    (d.kind === 'squirrel' || d.kind === 'animal') &&
+    (d.kind === 'squirrel' || d.kind === 'animal' || d.kind === 'hamster') &&
     point(d, bounds) &&
     ['idle', 'wander', 'patrol', 'work'].includes(d.behavior) &&
     finite(d.radius) &&

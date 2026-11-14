@@ -162,7 +162,7 @@ export function applyLandscape(draft:ProjectDocument,input:LandscapeInstanceV1,o
       ...(e.interact?{Interactable:{type:'Interactable' as const,prompt:e.interact.prompt,range:e.interact.range,interactionIds:e.interact.interactionKeys.map(k=>`${inst.id}.${k}`)},
         ...(e.interact.persist.length?{Persistence:{type:'Persistence' as const,fields:[...e.interact.persist]}}:{})}:{})};
     if(e.character){const c=e.character,behaviorId=`${inst.id}.${c.behaviorKey}`;
-      add('entities',id,{id,name:e.name,kind:'character',ownerChunkId:chunkAt(draft.world,e.x,e.z),components:{Transform:transform,Character:{type:'Character',species:c.species,rigId:'squirrel-rigid',appearance:{...c.appearance}},
+      add('entities',id,{id,name:e.name,kind:'character',ownerChunkId:chunkAt(draft.world,e.x,e.z),components:{Transform:transform,Character:{type:'Character',species:c.species,rigId:c.species==='hamster'?'hamster-rigid':'squirrel-rigid',appearance:{...c.appearance}},
         Navigation:{type:'Navigation',behaviorId,speed:c.speed,radius:c.radius},BehaviorRef:{type:'BehaviorRef',behaviorId},...(c.dialogueKeys.length?{DialogueActor:{type:'DialogueActor',dialogueIds:c.dialogueKeys.map(k=>`${inst.id}.${k}`)}}:{}),...state}} satisfies EntityDefinitionV3);continue;}
     const collider=colliderFor(e.assetId),light=lightFor(e.assetId,id);
     add('entities',id,{id,name:e.name,kind:role,ownerChunkId:chunkAt(draft.world,e.x,e.z),components:{Transform:transform,Visual:{type:'Visual',assetId:e.assetId},...state,...(collider?{Collider:collider}:{}),...(light?{Light:light}:{})}} satisfies EntityDefinitionV3);

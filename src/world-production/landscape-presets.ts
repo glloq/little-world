@@ -38,7 +38,7 @@ export interface PlannedEntity {key:string;name:string;assetId:string;x:number;z
   /** Interactable object (E): prompt, range and interaction keys of this instance; persisted state fields. */
   interact?:{prompt:string;range:number;interactionKeys:string[];persist:string[]};
   /** An inhabitant (NPC) instead of a model: routine, dialogues (keys of this instance). */
-  character?:{species:'squirrel'|'animal';appearance:import('../character-style.ts').Appearance;behaviorKey:string;dialogueKeys:string[];speed:number;radius:number}}
+  character?:{species:import('../studio-core/types.ts').CharacterSpecies;appearance:import('../character-style.ts').Appearance;behaviorKey:string;dialogueKeys:string[];speed:number;radius:number}}
 export interface LandscapeContent {
   /** Gameplay library entries (key = local key, or '@id' for a shared global id such as an item). */
   libraries?:Partial<Record<'behaviors'|'dialogues'|'objectives'|'items'|'interactions',{key:string;value:Record<string,unknown>}[]>>;
@@ -328,7 +328,7 @@ export function treasure(env:ContentEnv,c:LandscapeContent,key:string,q:PointXZ,
       {type:'showText',text:`Trésor ! +${coins} pièces${bonus?` et ${bonus.label}`:''}.`}]}});
 }
 /** An inhabitant with a routine and a simple dialogue (greeting + optional lines). */
-function inhabitant(env:ContentEnv,c:LandscapeContent,o:{key:string;name:string;x:number;z:number;appearance:Appearance;routine?:'idle'|'wander';radius?:number;greeting:string;topics?:[string,string][];species?:'squirrel'|'animal'}){
+function inhabitant(env:ContentEnv,c:LandscapeContent,o:{key:string;name:string;x:number;z:number;appearance:Appearance;routine?:'idle'|'wander';radius?:number;greeting:string;topics?:[string,string][];species?:import('../studio-core/types.ts').CharacterSpecies}){
   const L=libs(c),dialogueKey=o.key+'-talk',behaviorKey=o.key+'-routine';
   L.behaviors.push({key:behaviorKey,value:{kind:o.routine??'wander'}});
   const topics=o.topics??[];
