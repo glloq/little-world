@@ -7,7 +7,7 @@ import {createGameplay} from './runtime.ts';
 import {gameplayDialogueSession} from './dialogue-session.ts';
 import {createGameSaveStore,scopedSaveStorage,parseGameSave,type GameSaveV2} from './save.ts';
 import {createActivityRuntime} from './activity-runtime.ts';
-import {COIN,STARTING_COINS,SHOPS,buy,sell,type ShopKind} from './economy.ts';
+import {COIN,STARTING_COINS,STARTING_KIT,SHOPS,buy,sell,type ShopKind} from './economy.ts';
 import {createGathering,createFishing,type GatherDeps} from './gathering.ts';
 import type {PlayableActivities} from './activities.ts';
 import type {MovementSpace} from '../physics/collision-world.ts';
@@ -24,10 +24,10 @@ export function createGameplayView(data:GameplayData,options:Options){
  const collisionDefinitions=new Map((options.collisions??[]).map(d=>[d.id,d]));
  const collision=new WorldCollisionQuery(terrainHeight,waterSurface);for(const definition of options.collisions??[]){const height=terrainHeight(definition.groundAnchor.x,definition.groundAnchor.z);collision.add({...definition,position:{...definition.position,y:definition.position.y+height},enabled:()=>{const state=runtime.state.entities[definition.id];return state?.open!==true&&state?.collected!==true;}});}
  const has=(itemId:string)=>(runtime.state.inventory[itemId]??0)>0;
- const activities=createActivityRuntime(options.activities??{mines:[],farms:[]},{grant:changes=>runtime.grantItems(changes),has,time:()=>runtime.state.time,climate:runtime.climate,collision,ground:terrainHeight,water:waterSurface});
+ const activities=createActivityRuntime(options.activities??{mines:[],farms:[]},{grant:changes=>runtime.grantItems(changes),has,seedItem:cropId=>runtime.data.items.some(i=>i.id==='seed:'+cropId)?'seed:'+cropId:null,time:()=>runtime.state.time,climate:runtime.climate,collision,ground:terrainHeight,water:waterSurface});
  /** Core gameplay state + active space + activity differences, in one versioned save. */
  // Economy: a new game starts with a small purse (restored saves replace the whole inventory).
- if(runtime.data.items.some(i=>i.id===COIN))runtime.grantItems([{itemId:COIN,quantity:STARTING_COINS}]);
+ if(runtime.data.items.some(i=>i.id===COIN))runtime.grantItems([{itemId:COIN,quantity:STARTING_COINS},...STARTING_KIT.filter(k=>runtime.data.items.some(i=>i.id===k.itemId))]);
  // Gathering (trees, fruits, mushrooms, flowers) on the procedural dressing of generated worlds.
  const gathering=options.gathering?createGathering({...options.gathering,time:()=>runtime.state.time,grant:changes=>runtime.grantItems(changes),has}):null;
  const fishing=createFishing();

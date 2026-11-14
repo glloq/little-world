@@ -9,6 +9,8 @@ import type {ItemDefinition} from './schema.ts';
 export const COIN='coin';
 /** Starting purse of a new game (enough for one basic tool). */
 export const STARTING_COINS=40;
+/** A new game also starts with a few seed packets so the first field can be sown at once. */
+export const STARTING_KIT=[{itemId:'seed:wheat',quantity:3},{itemId:'seed:carrot',quantity:2}];
 export type ToolId='tool:axe'|'tool:pickaxe'|'tool:pickaxe-steel'|'tool:fishing-rod';
 interface Priced extends ItemDefinition {buy?:number;sell?:number}
 /** Core item catalogue (merged into every playable world, project items win on id clashes). */

@@ -63,3 +63,25 @@ test('fishing: bite window, strike in time catches a fish of that water, too ear
   f.cast('river',{x:0,z:0},0);assert.equal(f.update(10),'bite');r=.1;assert.equal(f.strike(),'fish:trout');
   f.cast('sea',{x:0,z:0},0);f.update(10);assert.equal(f.update(20),'lost');
 });
+
+test('farming: sowing uses a seed packet, a harvest returns crops and one seed (economy worlds only)',async()=>{
+  const {createActivityRuntime}=await import('../src/gameplay/activity-runtime.ts');
+  const {createClimate,defaultEnvironment}=await import('../src/environment/climate.ts');
+  const {defaultFarmSettings,validateFarmSettings,CROPS}=await import('../src/farm/farm-data.ts');
+  const {WorldCollisionQuery}=await import('../src/physics/collision-world.ts');
+  const polygon=[{x:0,z:0},{x:8,z:0},{x:8,z:6},{x:0,z:6}],zone={id:'field',name:'Champ',polygon,farm:validateFarmSettings({...defaultFarmSettings(polygon),crops:['wheat']})};
+  const climate=createClimate(defaultEnvironment(7)),DAY=climate.definition.dayLengthSeconds;let time=0;
+  const make=(seeds)=>{const p=purse({...(seeds?{'seed:wheat':1}:{})});
+    const rt=createActivityRuntime({mines:[],farms:[zone]},{grant:c=>p.apply(c),has:id=>p.count(id)>0,seedItem:seeds===null?undefined:id=>'seed:'+id,time:()=>time,climate,collision:new WorldCollisionQuery(()=>0,()=>0),ground:()=>0,water:()=>0});
+    return {p,rt};};
+  // Without seed packet: refused with a clear reason, nothing planted.
+  const none=make(false);assert.match(none.rt.farmPreview('field').reason,/semences de blé/);assert.equal(none.rt.farmAct('field').ok,false);assert.equal(none.rt.farmView('field').stage,'empty');
+  // With one packet: sowing consumes it.
+  const {p,rt}=make(true);assert.equal(rt.farmPreview('field').ok,true);assert.equal(rt.farmAct('field').ok,true);assert.equal(p.count('seed:wheat'),0,'seed consumed');assert.equal(rt.farmView('field').stage,'seeded');
+  // Grow (watered every half day) until mature, then harvest: crops + one seed back.
+  for(let d=0;d<40&&rt.farmView('field').stage!=='mature';d++){time+=DAY/2;if(rt.farmView('field').moisture<.5)rt.farmAct('field');}
+  assert.equal(rt.farmView('field').stage,'mature');const r=rt.farmAct('field');assert.ok(r.ok,r.message);
+  assert.ok(p.count(CROPS.wheat.itemId)>=1,'crops harvested');assert.equal(p.count('seed:wheat'),1,'one seed packet returned');
+  // A world without economy seeds keeps free sowing (older projects).
+  const legacy=make(null);assert.equal(legacy.rt.farmAct('field').ok,true);
+});
