@@ -9900,16 +9900,16 @@
       "ls-fishing-port-1.house-0": "513dc953e8d12880",
       "ls-fishing-port-1.house-1": "d49e6e0a5b9f5174",
       "ls-fishing-port-1.house-2": "128b681cafd0a398",
-      "ls-fishing-port-1.pier-0": "98a2250937a04fa1",
-      "ls-fishing-port-1.pier-1": "042054679df1e3e6",
-      "ls-fishing-port-1.pier-2": "963dd2ec2d9c9887",
-      "ls-fishing-port-1.pier-3": "ff783c07eba555a8",
-      "ls-fishing-port-1.pier-4": "1a4168e87022a701",
-      "ls-fishing-port-1.pier-5": "e9f5c240f27c7245",
-      "ls-fishing-port-1.pier-6": "f0c7ceb8d37f486c",
-      "ls-fishing-port-1.pier-7": "ebcb227c51cdfc5a",
-      "ls-fishing-port-1.pier-8": "3191af8128fb7999",
-      "ls-fishing-port-1.pier-9": "b5829ebdf20dfdb4",
+      "ls-fishing-port-1.pier-0": "4bc7d24593833238",
+      "ls-fishing-port-1.pier-1": "6be9d3f36779bc82",
+      "ls-fishing-port-1.pier-2": "b0f37d40f9abfe9a",
+      "ls-fishing-port-1.pier-3": "dd209e53955fb7af",
+      "ls-fishing-port-1.pier-4": "2d3c59c444787327",
+      "ls-fishing-port-1.pier-5": "b935e58cf8f8f47d",
+      "ls-fishing-port-1.pier-6": "7b8e697c57f97e0d",
+      "ls-fishing-port-1.pier-7": "b5b58fe8bc7a1522",
+      "ls-fishing-port-1.pier-8": "23303d5d0bee4732",
+      "ls-fishing-port-1.pier-9": "115535e1db4c4bfb",
       "ls-fishing-port-1.hut-0": "e7ab241645d5142b",
       "ls-fishing-port-1.hut-1": "ef4ceb43dc705204",
       "ls-fishing-port-1.port-counter": "af1e7121d61e47fc",
@@ -18234,6 +18234,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.dock_tile"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.96,
+        "y": 0.3,
+        "z": 1.95
+       },
+       "layer": "solid"
       }
      }
     },
@@ -18265,6 +18275,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.dock_tile"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.96,
+        "y": 0.3,
+        "z": 1.95
+       },
+       "layer": "solid"
       }
      }
     },
@@ -18296,6 +18316,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.dock_tile"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.96,
+        "y": 0.3,
+        "z": 1.95
+       },
+       "layer": "solid"
       }
      }
     },
@@ -18327,6 +18357,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.dock_tile"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.96,
+        "y": 0.3,
+        "z": 1.95
+       },
+       "layer": "solid"
       }
      }
     },
@@ -18358,6 +18398,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.dock_tile"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.96,
+        "y": 0.3,
+        "z": 1.95
+       },
+       "layer": "solid"
       }
      }
     },
@@ -22133,6 +22183,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.dock_tile"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.96,
+        "y": 0.3,
+        "z": 1.95
+       },
+       "layer": "solid"
       }
      }
     },
@@ -22164,6 +22224,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.dock_tile"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.96,
+        "y": 0.3,
+        "z": 1.95
+       },
+       "layer": "solid"
       }
      }
     },
@@ -22195,6 +22265,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.dock_tile"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.96,
+        "y": 0.3,
+        "z": 1.95
+       },
+       "layer": "solid"
       }
      }
     },
@@ -22226,6 +22306,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.dock_tile"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.96,
+        "y": 0.3,
+        "z": 1.95
+       },
+       "layer": "solid"
       }
      }
     },
@@ -22257,6 +22347,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.dock_tile"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.96,
+        "y": 0.3,
+        "z": 1.95
+       },
+       "layer": "solid"
       }
      }
     },

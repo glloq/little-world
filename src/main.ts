@@ -14,6 +14,8 @@ import {
 } from './frame-clock';
 import './style.css';
 import {waterSurface,riverX,isLegacyTerrain} from './terrain.ts';
+import {createFleet} from './gameplay/fleet.ts';
+import {worldAsset} from './world-production/registry.ts';
 import type {PlayableWorld,StudioPlaytest} from './gameplay/playable.ts';
 import {WorldClock} from './environment/clock.ts';
 import {createClimate,defaultEnvironment} from './environment/climate.ts';
@@ -42,7 +44,6 @@ import {
   waterDepth,
 } from './terrain';
 import {
-  nearBoat,
   nearDock,
   spawnBoat,
   updateBoat,
@@ -150,7 +151,9 @@ camera.far=horizonFar(getTerrainConfig().width,getTerrainConfig().length);camera
 // World Production: repeated structural modules share instanced batches; anything with gameplay
 // state or an interaction keeps its own object (doors, collectibles…).
 const statefulIds = new Set((playable?.gameplay.entities ?? []).filter((e) => e.interactable || Object.keys(e.initialState).length).map((e) => e.id));
-for (const item of definition.placements) if (statefulIds.has(item.id) || !world.placed.add(item)) addPlacement(world, item);
+// Moored boats (`boat.*` placements) become usable boats of the fleet (see gameplay/fleet.ts).
+const mooredBoats:{id:string;assetId:string;object:THREE.Object3D}[]=[];
+for (const item of definition.placements) if (statefulIds.has(item.id) || !world.placed.add(item)) { const object = addPlacement(world, item); if (item.assetId.startsWith('boat.')) mooredBoats.push({ id: item.id, assetId: item.assetId, object }); }
 scene.add(world.root);
 const player = spawnPlayer();
 // Smaller character (CHARACTER_SCALE): collision body scaled like the model.
@@ -213,13 +216,17 @@ const customization = createCustomizationMenu(
   document.querySelector<HTMLElement>('#appearance-menu')!,
   (appearance) => character.setAppearance(appearance),
 );
-const boat = spawnBoat();
+let boat = spawnBoat();
 if(!isLegacyTerrain()){
   // Generated worlds have no hard-coded harbour: moor the boat in the first deep water seaward of the start.
   for(let d=6;d<600;d+=3){const x=player.position.x,z=player.position.z+d;if(waterDepth(x,z)>1.4){boat.x=x;boat.z=z;boat.y=getTerrainConfig().seaLevel-.15;break;}}
 }
 let aboard = false;
 world.boat.position.set(boat.x, boat.y, boat.z);
+// Fleet: the player's boat first, then every boat moored in the ports (board any of them with E).
+const fleet = createFleet(gameplay?.collision ?? null);
+const playerBoat = fleet.add({ id: 'player-boat', assetId: 'boat.sailboat_small', state: boat, object: world.boat, yOffset: 0, hull: { beam: 2.6, length: 6.2, height: 1.6 } });
+for (const m of mooredBoats) { const size = worldAsset(m.assetId)?.size ?? [2, 1.3, 5]; fleet.addMoored(m.id, m.assetId, m.object, waterSurface(m.object.position.x, m.object.position.z) ?? getTerrainConfig().seaLevel, size as [number, number, number]); }
 const keySet = new Set<string>();
 let rollQueue = 0;
 let jumpQueue = 0,
@@ -443,6 +450,15 @@ function insidePolygonXZ(pts:{x:number;z:number}[],x:number,z:number){let inside
 /** Sound/effect of the next tool impact: played on the animation event (impact/grab), so that
  * what is heard and seen matches the swing; flushed at once when no animation can play. */
 let pendingImpact:{sound:string;kind:ImpactKind;context?:Record<string,unknown>;extra?:string[];count?:number}|null=null;
+/** Nearest dry ground or dock deck within reach of a boat (generated worlds): the collision floor
+ * (terrain + dock colliders) above the water line, no higher than a step out of the boat. */
+function dryLanding(b:{x:number;y:number;z:number;heading:number}):{x:number;y:number;z:number}|null{
+  const c=gameplay?.collision,sea=b.y+.15;let best:{x:number;y:number;z:number}|null=null,bd=Infinity;
+  for(let r=2;r<=7;r+=.5)for(let k=0;k<24;k++){const a=k/24*Math.PI*2,x=b.x+Math.sin(a)*r,z=b.z+Math.cos(a)*r;
+    const floor=c?c.surfaceAt({x,y:sea+2.6,z},undefined,.3,{fromY:sea+2.6}).floorY:terrainHeight(x,z),water=waterSurface(x,z);
+    if(floor<sea+.1||floor>sea+2.4||(water!==null&&water>floor+.05))continue;if(r<bd){bd=r;best={x,y:floor,z};}}
+  return best;
+}
 /** Visible meshes of an object (metrics: the hamster draws ONE skinned mesh + its ground shadow). */
 function visibleMeshCount(root:THREE.Object3D){let n=0;root.traverseVisible(o=>{if((o as THREE.Mesh).isMesh||(o as THREE.Line).isLine)n++;});return n;}
 function onImpact(i:NonNullable<typeof pendingImpact>){flushImpact();pendingImpact=i;}
@@ -489,7 +505,7 @@ function currentTarget():TargetDescriptor|null{
     // A counter the player faces wins over a shopkeeper standing next to it.
     ()=>{const s=nearShop(true);return s?shopTarget({entityId:s.id,name:SHOPS[s.kind].name}):null;},
     ()=>{const n=npcs.talker(player.position);return n?npcTarget(n):null;},
-    ()=>nearBoat(boat,player.position.x,player.position.y,player.position.z)?boatTarget(false):null,
+    ()=>fleet.nearest(player.position.x,player.position.y,player.position.z)?boatTarget(false):null,
     ()=>{if(!gameplay||!player.space)return null;const p=gameplay.activities.digPreview(player.position,player.space,forwardOf());return p?mineWallTarget({...p,rewardName:itemName(p.reward?.itemId)}):null;},
     ()=>{const s=nearShop();return s?shopTarget({entityId:s.id,name:SHOPS[s.kind].name}):null;},
     ()=>{if(!gameplay||player.space||aboard)return null;const f=fishingSpot();if(!f&&gameplay.fishing.state.phase==='idle')return null;const has=gameplay.has('tool:fishing-rod');return fishingTarget({phase:gameplay.fishing.state.phase,water:f?WATER_NAMES[f.kind]:'',ok:has||gameplay.fishing.state.phase!=='idle',reason:'Il faut une canne à pêche (comptoir du port ou marché)'});},
@@ -577,9 +593,14 @@ function tick(dt: number) {
       showInfo(target.primaryAction.disabledReason ?? 'Impossible pour le moment', 'warning');
       audio?.emit('ui.error', { source: 'ui' });
     } else if (target?.targetType === 'boat' && aboard) {
-      aboard = false;
-      if (nearDock(boat)) {
+      aboard = false;fleet.leave();
+      const dock = isLegacyTerrain() ? null : dryLanding(boat);
+      if (isLegacyTerrain() && nearDock(boat)) {
         player.position.set(BOAT_DOCK.x + 1, getTerrainConfig().seaLevel + 1.3, BOAT_DOCK.z + 3);
+        player.mode = 'air';
+      } else if (dock) {
+        // A dock or the shore within reach: step onto it.
+        player.position.set(dock.x, dock.y + .05, dock.z);
         player.mode = 'air';
       } else {
         const exit = waterDisembarkPoint(boat);
@@ -601,6 +622,8 @@ function tick(dt: number) {
         resetCameraDrag();
       }
     } else if (target?.targetType === 'boat') {
+      const ride = fleet.nearest(player.position.x, player.position.y, player.position.z);
+      if (ride) { boat = ride.state; fleet.board(ride); }
       aboard = true;
       player.velocity.set(0, 0, 0);
       player.glideReady = false;
@@ -640,8 +663,8 @@ function draw(now: number) {
   );
   environment.update(delta,player.position,budget.level,!!player.space);
   activityView?.update(delta,player.position,player.space);
-  {const night=nightFactor(climate.state(worldClock.time).sunAltitude);world.lights.setEnvironment(night,now/1000);world.setNight(night);}
-  world.animateBoat(aboard?boat.speed:0,aboard?boatSteer:0,delta);
+  {const climateNow=climate.state(worldClock.time),night=nightFactor(climateNow.sunAltitude);world.lights.setEnvironment(night,now/1000);world.setNight(night);world.setWind(.25+.8*climateNow.wind);}
+  world.animateBoat(aboard&&fleet.current===playerBoat?boat.speed:0,aboard&&fleet.current===playerBoat?boatSteer:0,delta);
   if(started&&audio){const env=climate.state(worldClock.time),ground=player.space?{}:groundProbe(player.position.x,player.position.z,now),farm=!player.space&&gameplay?.activities.farmNear(player.position);
     audio.update(now,{nowMs:now,player:{position:player.position,velocity:player.velocity,mode:player.mode,aboard,boatSpeed:Math.abs(boat.speed),space:player.space??null,surface:player.space?'stone':aboard?'wood':ground.surface},
       world:{time:env.sunAltitude<0?'night':'day',weather:env.weather,wind:env.wind,biome:ground.biome,place:farm?'farm':ground.place,activity:farm?'farming':undefined,submerged:cameraSubmerged(camera.position.x,camera.position.y,camera.position.z),nearWater:waterSurface(player.position.x,player.position.z)!==null||(isLegacyTerrain()&&Math.abs(player.position.x-riverX(player.position.z))<16)}},
@@ -649,12 +672,8 @@ function draw(now: number) {
   world.update(delta, player.position, camera, renderer.domElement.height);
   if(!loading.ready)loading.update({terrainPending:world.stats.pending,dressingPending:world.dressing?.nearPending??0,speciesState:world.dressing?.species.state??'none'});
   npcs.update(delta, elapsed, player.position); // The river drives the mill: no manual on/off control.
-  world.boat.position.set(
-    boat.x,
-    boat.y + Math.sin(elapsed * 1.7) * 0.055,
-    boat.z,
-  );
-  world.boat.rotation.y = boat.heading;
+  // Boats follow their state (the one in use moves; the player's own boat bobs at its mooring).
+  playerBoat&&fleet.sync(playerBoat,elapsed);if(fleet.current&&fleet.current!==playerBoat)fleet.sync(fleet.current,elapsed);
   character.group.position.copy(renderPosition);
   character.setAboard(aboard);
   if(gameplay){const f=gameplay.fishing.state;character.setFishing(f.phase!=='idle'&&f.castAt?{x:f.castAt.x,y:waterSurface(f.castAt.x,f.castAt.z)??getTerrainConfig().seaLevel,z:f.castAt.z,biting:f.phase==='bite'}:null);}
@@ -679,6 +698,7 @@ function draw(now: number) {
         horizon: { ...world.horizon },
         terrainWork: { ...world.terrainWork },
         dressing: world.dressing ? { ...world.dressing } : null,
+        grass: world.grass ? { ...world.grass } : null,
         inventory: gameplay ? { ...gameplay.runtime.state.inventory } : null,
         target: currentTarget()?.primaryAction?.label ?? null,
         targetId: currentTarget()?.targetId ?? null,
@@ -687,6 +707,7 @@ function draw(now: number) {
         occlusion: world.occlusion,
         boatModel: world.boat.getObjectByName('Sailboat') ? 'sailboat' : 'procedural',
         boatPosition: [boat.x, boat.y, boat.z],
+        boats: { count: fleet.boats.length, aboard, current: fleet.current?.id ?? null },
         paths: { ...world.paths },
         lights: { ...world.lights.stats },
         activities: activityView&&gameplay ? { ...activityView.stats, space: player.space ?? null,

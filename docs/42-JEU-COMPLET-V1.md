@@ -196,6 +196,19 @@ Seules les plantes de sol et le bois mort sortent de leur rayon prévu.
 | Bois | 48 → 48 | 51 k → 56 k (+11 %) | 564 → 815 |
 | Crête | 97 → 98 | 91 k → 91 k | 3 → 6 |
 
+## 3 sexies. Bateaux, pontons et herbes (demande du 14 novembre 2026)
+
+**Pontons et bateaux.** Avant, les pontons et les bateaux n’avaient aucune collision : le joueur les traversait. Les 8 bateaux amarrés dans les ports étaient décoratifs, et seul un bateau isolé était utilisable.
+- **Pontons** : les tuiles, rampes et poteaux reçoivent un collisionneur du registre (plancher fin, emprise complète). Le hamster marche de la plage jusqu’au bout du ponton au-dessus de la mer.
+- **Flotte** (`src/gameplay/fleet.ts`) : le bateau du joueur et **tous les bateaux amarrés**.
+  - `E` monte dans le plus proche. Le bateau navigue avec le même contrôleur et reste là où on le laisse.
+  - Chaque bateau est solide : son collisionneur le suit et se désactive quand on est à bord.
+- **Eau peu profonde** : un bateau amarré par 1 m de fond peut tourner à l’arrêt et avancer tant que la coque ne s’envase pas davantage. La règle des 1,15 m reste inchangée ailleurs.
+- **Débarquement** : sur le ponton ou la rive la plus proche (dans un rayon de 7 m), sinon à la nage.
+- **Preuves** : `tests/fleet.test.mjs` et le test navigateur `boats` (marche sur le ponton, embarquement, 34 m navigués, débarquement).
+
+**Herbes courtes et hautes** : implémentées selon le doc 18 (voir son état d’implémentation). Un appel de rendu ; 3,9 k à 21 k triangles selon le profil ; vent et passage du joueur gérés par le GPU.
+
 ## 4. Limites connues (honnêtes)
 
 - **Performance non qualifiée** sur GPU intégré. Sous SwiftShader, l’intervalle de présentation est inchangé, mais **le démarrage (+3,8 s) et le tas JS (+19 Mo) régressent** (voir §3).

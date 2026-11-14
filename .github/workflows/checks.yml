@@ -88,6 +88,8 @@ jobs:
         run: node tools/run-browser-check.mjs hamster
       - name: Near trees and rocks stay drawn (cache eviction)
         run: node tools/run-browser-check.mjs dressing-stability
+      - name: Docks and boats (walk on docks, board moored boats)
+        run: node tools/run-browser-check.mjs boats
       - name: B1 Studio edits and « Jouer ici »
         run: node tools/run-browser-check.mjs b1-studio
       - name: IndexedDB integration

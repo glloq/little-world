@@ -63,7 +63,9 @@ try{
   // 9. Pause menu: world paused, keyboard focus on « Reprendre ».
   await page.keyboard.press('Escape');await ui.panel('pause').waitFor();
   verify(await page.evaluate(()=>document.activeElement?.textContent==='Reprendre'),'Pause menu focuses « Reprendre »');
-  const tp=await envTime();await page.waitForTimeout(700);verify(await envTime()===tp,'Pause menu pauses the world clock');await shot('pause');
+  // The frame already in flight when the panel opens may still advance the clock once: read it
+  // after that frame, then check it stays frozen (CI flake: intermittent off-by-one-frame).
+  await page.waitForTimeout(250);const tp=await envTime();await page.waitForTimeout(700);verify(await envTime()===tp,'Pause menu pauses the world clock');await shot('pause');
   // 10. Settings: preferences stored apart, existing audio mixer reused and persisted.
   await ui.panel('pause').getByRole('button',{name:'Paramètres'}).click();const set=ui.panel('settings');await set.waitFor();
   await set.getByLabel('Sensibilité de la caméra').fill('2');await set.getByText('Inverser l’axe vertical de la caméra').click();await set.getByText('Réduire les animations de l’interface').click();

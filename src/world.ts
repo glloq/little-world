@@ -12,7 +12,8 @@ import { worldAsset, lodDistances, exclusionRadius } from './world-production/re
 import { linearizeVertexColors } from './world-production/species-library.ts';
 import { createPlacedInstances, type PlacedInstances } from './world-production/placed-instances.ts';
 import { createDressingView, type DressingView, type DressingStats } from './dressing-view.ts';
-import { sampleBiome, generatedCover } from './biomes';
+import { sampleBiome, generatedCover, generatedGrass } from './biomes';
+import { createGrass, grassProfileFor, type GrassStats } from './render/grass.ts';
 import type {
   WorldDefinition,
   WorldConfig,
@@ -65,6 +66,10 @@ export interface WorldView {
   terrainWork: import('./terrain-view').TerrainWorkStats;
   /** Natural dressing of generated worlds (null for the historical valley). */
   dressing: DressingStats | null;
+  /** Grass tufts (doc 18): profile, tufts, triangles, draw calls (null for the historical valley). */
+  grass: GrassStats | null;
+  /** Wind strength of the environment (grass sway in the shader). */
+  setWind(strength: number): void;
   /** Path surfaces (sectors built, triangles, pending). */
   paths: PathViewStats;
   /** `economy` (lowest quality setting) shifts the natural dressing one tier down. */
@@ -735,6 +740,12 @@ export function buildWorld(
   // G5: natural dressing (forests, cliff rocks, scree, pebbles, basalt) of generated worlds.
   const dressing: DressingView | null = legacy ? null : createDressingView(root, config.seed, config.density, workers);
   const placed = createPlacedInstances(root, terrainHeight);
+  // Doc 18: short and tall grass tufts near the player (generated worlds), 1 draw call, wind in the shader.
+  const grass = legacy ? null : createGrass(root, config.seed, generatedGrass, terrainHeight);
+  // `?grass=dense|balanced|ultra|off` (benchmarks, captures): fixed profile instead of the budget level.
+  const grassParam = typeof location !== 'undefined' ? new URLSearchParams(location.search).get('grass') : null;
+  const grassOverride = grassParam === 'off' ? 'groundOnly' : grassParam === 'dense' || grassParam === 'balanced' || grassParam === 'ultra' ? grassParam : null;
+  if (grassOverride) grass?.setProfile(grassOverride);
   // Relief occlusion of distant content (generated worlds): refreshed in slices after camera moves.
   const occlusionOff = typeof location !== 'undefined' && new URLSearchParams(location.search).get('occlusion') === '0';
   const occlusion = legacy || occlusionOff ? null : createHorizonOcclusion(terrainHeight);
@@ -798,6 +809,8 @@ export function buildWorld(
     get occlusion() { return occlusion ? { ...occlusion.stats } : null; },
     redrawDressing() { dressing?.redraw(); },
     dressing: dressing?.stats ?? null,
+    grass: grass?.stats ?? null,
+    setWind(strength: number) { grass?.setWind(strength); },
     paths: pathView.stats,
     refreshWater,
     refreshPaths,
@@ -811,12 +824,14 @@ export function buildWorld(
       lightView.setBudget(level >= 2 ? Math.ceil(pool / 2) : pool, pool);
       ecology.setDetail(level);
       dressing?.setDetail(economy ? level + 1 : level);
+      grass?.setProfile(grassOverride ?? grassProfileFor(level, economy));
     },
     refreshTerrain(x, z, radius) {
       terrainView.refresh(x, z, radius);
       horizon.refresh(x, z, radius);
       ecology.refresh(x, z, radius);
       dressing?.refresh(x, z, radius);
+      grass?.refresh(x, z, radius);
       pathView.refreshArea(x, z, radius + 8);
       const matrix = new THREE.Matrix4();
       root.traverse((node) => {
@@ -891,6 +906,7 @@ export function buildWorld(
         placed.setOcclusion(occluded);
       }
       dressing?.update(focus.x, focus.z);
+      grass?.update(dt, { x: focus.x, y: (focus as { y?: number }).y, z: focus.z });
       placed.update(focus.x, focus.z);
       pathView.update(focus.x, focus.z);
       if (camera) lightCamera.x = camera.position.x;
@@ -907,6 +923,7 @@ export function buildWorld(
     dispose() {
       ecology.dispose();
       dressing?.dispose();
+      grass?.dispose();
       placed.dispose();
       pathView.dispose();
       lightView.dispose();

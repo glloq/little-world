@@ -59,6 +59,24 @@ export function canBoatSailAt(x: number, z: number, heading: number): boolean {
       null,
   );
 }
+/** Shallowest water under the hull (keel, bow, stern, both sides), metres; −∞ without water. */
+export function hullDepth(x: number, z: number, heading: number): number {
+  const sx = Math.sin(heading), sz = Math.cos(heading);
+  let min = Infinity;
+  for (const [side, front] of [[0, 0], [0, 4], [0, -4], [-1.6, 0], [1.6, 0]]) {
+    const px = x + front * sx - side * sz, pz = z + front * sz + side * sx, level = waterSurface(px, pz);
+    if (level === null || !insideWorld(px, pz)) return -Infinity;
+    min = Math.min(min, level - terrainHeight(px, pz));
+  }
+  return min;
+}
+/** A move is accepted on navigable water, or when it does not make the hull shallower: a boat
+ * moored in shallow water (port, beach) can always be steered out toward open water. */
+function canMove(boat: BoatState, x: number, z: number, heading: number): boolean {
+  if (canBoatSailAt(x, z, heading)) return true;
+  const depth = hullDepth(x, z, heading);
+  return depth > 0.3 && depth >= hullDepth(boat.x, boat.z, boat.heading) - 0.05;
+}
 export function updateBoat(
   boat: BoatState,
   input: BoatInput,
@@ -78,21 +96,22 @@ export function updateBoat(
   );
   if (Math.abs(boat.speed) < 0.025) boat.speed = 0;
   // A boat turns much less when stationary.
-  const steeringStrength = Math.min(1, Math.abs(boat.speed) / 4);
+  // …but still turns slowly when stopped (a boat moored in the shallows can point to open water).
+  const steeringStrength = Math.max(0.3, Math.min(1, Math.abs(boat.speed) / 4));
   const candidateHeading =
     boat.heading -
     steer * steeringStrength * 1.05 * dt * Math.sign(boat.speed || 1);
-  if (canBoatSailAt(boat.x, boat.z, candidateHeading))
+  if (canMove(boat, boat.x, boat.z, candidateHeading))
     boat.heading = candidateHeading;
   const nextX = boat.x + Math.sin(boat.heading) * boat.speed * dt;
   const nextZ = boat.z + Math.cos(boat.heading) * boat.speed * dt;
-  if (canBoatSailAt(nextX, nextZ, boat.heading)) {
+  if (canMove(boat, nextX, nextZ, boat.heading)) {
     boat.x = nextX;
     boat.z = nextZ;
   } else {
     boat.speed = 0;
   }
-  boat.y = (boatSurfaceAt(boat.x, boat.z) ?? 0) - 0.15;
+  boat.y = (boatSurfaceAt(boat.x, boat.z) ?? waterSurface(boat.x, boat.z) ?? 0) - 0.15;
 }
 export function boatDistanceXZ(boat: BoatState, x: number, z: number): number {
   return Math.hypot(x - boat.x, z - boat.z);
