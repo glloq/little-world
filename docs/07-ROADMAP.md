@@ -6,7 +6,7 @@
 
 ## Personnage joueur Hamster V1 (14 novembre 2026)
 
-Détail et état terminé / partiel / bloqué : **[43 — Hamster joueur](43-HAMSTER-JOUEUR.md)**. Implémenté et testé **sur branche** (PR #15) : modèle procédural de 854 triangles et 22 os, export GLB, machines d’animation locomotion et actions, roulade en boule dans la simulation 30 Hz, planage à membranes, outils 3D animés reliés à la mine, l’abattage, la pêche et l’agriculture, événements d’animation reliés aux sons et éclats, contrat d’état de présentation (sans réseau), morphologie `hamster` pour les PNJ du Studio. Ce G10 « outils visibles » est livré pour le joueur.
+Détail et état terminé / partiel / bloqué : **[43 — Hamster joueur](43-HAMSTER-JOUEUR.md)**. Implémenté et testé **sur branche** : modèle procédural en un seul maillage skinné (1 appel de rendu, 960 triangles visibles, 22 os animés), export GLB, machines d’animation locomotion et actions, roulade en boule dans la simulation 30 Hz, planage à membranes, outils 3D animés reliés à la mine, l’abattage, la pêche et l’agriculture, événements d’animation reliés aux sons et éclats, contrat d’état de présentation (sans réseau), morphologie `hamster` pour les PNJ du Studio. Ce G10 « outils visibles » est livré pour le joueur.
 
 Restant : action explicite sortir/ranger (`EQUIP`), activités porter/s’asseoir/ramer, panneau d’aperçu des animations dans le Studio, qualification sur GPU intégré.
 

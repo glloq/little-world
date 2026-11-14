@@ -12,20 +12,36 @@ const input=(mode='ground',speed=0,verticalSpeed=0)=>({mode,speed,verticalSpeed,
 const step=(a,inp,s,dt=1/30)=>{const ev=[];for(let i=0;i<Math.round(s/dt);i++){a.update(inp,dt);ev.push(...a.events);}return ev;};
 const player=(mode='ground',vx=0,vz=0,vy=0)=>({position:new THREE.Vector3(),velocity:new THREE.Vector3(vx,vy,vz),mode});
 
-test('HAMSTER model — low-poly budget, 22 joints, sockets and accessories',()=>{
+test('HAMSTER model — ONE skinned mesh (1 draw call), low-poly budget, 22 animated joints, toggled pieces',()=>{
   const rig=buildHamsterRig();rig.group.updateMatrixWorld(true);
-  const tris=visibleTriangles(rig.group);
+  const meshes=[];rig.group.traverse(o=>{if(o.isMesh)meshes.push(o);});
+  assert.deepEqual(meshes.map(m=>m.name).sort(),['HamsterMesh','Shadow'],'one character mesh + the ground blob shadow');
+  assert.ok(rig.mesh.isSkinnedMesh&&rig.mesh.material===meshes.find(m=>m.name==='HamsterMesh').material);
+  const tris=visibleTriangles(rig);
   assert.ok(tris>=800&&tris<=1500,'800–1500 triangles visible: '+tris);
-  assert.equal(rig.skeleton.bones.length,22);assert.equal(HAMSTER_JOINTS.length,22);
+  assert.equal(HAMSTER_JOINTS.length,22);for(const n of HAMSTER_JOINTS)assert.ok(rig.joints[n].isBone,n);
+  // Rigid binding: one bone per vertex, weight 1.
+  const sw=rig.mesh.geometry.getAttribute('skinWeight');for(let i=0;i<sw.count;i+=97)assert.equal(sw.getX(i),1);
   for(const s of ['tool','offHand','head','face','back','neck','satchel'])assert.ok(rig.sockets[s]?.isBone,'socket '+s);
-  const materials=new Set();rig.group.traverse(o=>{if(o.isMesh&&o.name!=='Shadow'&&!o.name.startsWith('Membrane'))materials.add(o.material);});
-  assert.equal(materials.size,1,'one shared vertex-coloured material for body, face, accessories');
-  for(const k of ['hat','goggles','backpack','scarf','pendant']){assert.equal(rig.accessories[k].visible,false,k+' hidden by default');}
-  rig.accessories.hat.visible=true;assert.ok(visibleTriangles(rig.group)>tris,'accessory adds geometry');
-  // Rigid parts are cached: a second rig shares the same geometries (no per-instance duplication).
-  const other=buildHamsterRig();assert.equal(other.joints.Head.children[0].geometry,rig.joints.Head.children[0].geometry);
-  const membrane=rig.joints.MembraneLeft.children[0];rig.setMembranes(1);assert.ok(membrane.visible);rig.setMembranes(0);assert.equal(membrane.visible,false);
+  for(const k of ['hat','goggles','backpack','scarf','pendant'])assert.equal(rig.accessories[k].visible,false,k+' hidden by default');
+  rig.accessories.hat.visible=true;assert.ok(visibleTriangles(rig)>tris,'accessory adds geometry');rig.accessories.hat.visible=false;assert.equal(visibleTriangles(rig),tris);
+  // Geometry shared between every hamster (no per-instance copy).
+  const other=buildHamsterRig();assert.equal(other.mesh.geometry,rig.mesh.geometry);assert.notEqual(other.skeleton,rig.skeleton);
+  rig.setMembranes(1);assert.equal(rig.joints.MembraneLeft.scale.x,1);rig.setMembranes(.5);assert.equal(rig.joints.MembraneRight.scale.x,.5);rig.setMembranes(0);assert.equal(rig.joints.MembraneLeft.scale.x,0);
   rig.dispose();other.dispose();
+});
+
+test('HAMSTER model — skinning follows the joints and hides collapsed pieces',()=>{
+  const rig=buildHamsterRig(),g=rig.mesh.geometry,si=g.getAttribute('skinIndex'),bones=rig.skeleton.bones;
+  const first=name=>{const k=bones.findIndex(b=>b.name===name);for(let i=0;i<si.count;i++)if(si.getX(i)===k)return i;return -1;};
+  const v=new THREE.Vector3(),at=(i)=>{rig.group.updateMatrixWorld(true);rig.skeleton.update();rig.mesh.getVertexPosition(i,v);return v.clone();};
+  const hat=first('Acc_StrawHat'),paw=first('HandRight'),axe=first('Tool_axe');
+  const hb=bones.find(b=>b.name==='Acc_StrawHat');assert.ok(at(hat).distanceTo(hb.getWorldPosition(new THREE.Vector3()))<1e-5,'hidden hat collapsed onto its bone (zero area, nothing rasterised)');
+  rig.accessories.hat.visible=true;assert.ok(at(hat).y>1,'shown hat sits on the head');
+  rig.tools.axe.visible=true;const a0=at(axe),p0=at(paw);rig.joints.ShoulderRight.rotation.x=-1.5;const a1=at(axe),p1=at(paw);
+  assert.ok(a0.distanceTo(a1)>.2&&p0.distanceTo(p1)>.1,'the axe moves with the arm');
+  assert.ok(Math.abs(a0.distanceTo(p0)-a1.distanceTo(p1))<1e-4,'rigid: tool–paw distance unchanged');
+  rig.dispose();
 });
 
 test('HAMSTER animator — locomotion transitions follow the simulation mode',()=>{
@@ -81,7 +97,7 @@ test('HAMSTER character — tools follow the actions, fishing line and float, on
   assert.equal(h.tool,null,'tool stowed after the swing');
   h.play('fell');h.update(player(),1/30,2);assert.equal(h.tool,'axe');
   h.play('farm-water');h.update(player(),1/30,2.1);assert.equal(h.tool,'watering-can');
-  let shown=0;h.group.traverse(o=>{if(o.name.startsWith('Tool_')&&o.visible)shown++;});assert.equal(shown,1,'exactly one tool visible');
+  assert.equal(Object.values(h.rig.tools).filter(t=>t.visible).length,1,'exactly one tool visible');
   for(let i=0;i<40;i++)h.update(player(),1/30,3+i/30);
   h.setFishing({x:3,y:0,z:4,biting:false});h.update(player(),1/30,4);
   assert.equal(h.tool,'fishing-rod');assert.equal(h.action,'FISH_WAIT');
@@ -90,9 +106,8 @@ test('HAMSTER character — tools follow the actions, fishing line and float, on
   h.group.position.set(100,5,-50);h.update(player(),1/30,4.1);const w=float.getWorldPosition(new THREE.Vector3());
   assert.ok(Math.abs(w.x-3)<.01&&Math.abs(w.z-4)<.01,'float stays on its world target when the player moves');
   h.setFishing(null);h.update(player(),1/30,4.2);assert.equal(line.visible,false);assert.equal(h.action,null,'FISH_WAIT stops with the line');
-  // The tool socket built each tool once (lazy), the same geometry is reused by another character.
-  const other=buildHamster();other.play('mine');other.update(player(),1/30,0);
-  const geo=n=>{let g=null;n.traverse(o=>{if(o.name==='Tool_pickaxe')g=o.geometry;});return g;};assert.equal(geo(h.group),geo(other.group),'tool geometry shared');
+  // Tools live in the shared single mesh: another character draws the same geometry.
+  const other=buildHamster();other.play('mine');other.update(player(),1/30,0);assert.equal(other.rig.mesh.geometry,h.rig.mesh.geometry);assert.equal(other.tool,'pickaxe');
   off();h.dispose();other.dispose();assert.equal(h.group.parent,null,'removed from the scene');
   h.update(player(),1/30,5);// no throw after dispose
 });

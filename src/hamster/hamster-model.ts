@@ -46,7 +46,6 @@ export function mergeParts(key: string, parts: PartSpec[]): THREE.BufferGeometry
 }
 /** Shared flat-shaded material of every hamster part. */
 export const hamsterMaterial = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .95, metalness: 0, flatShading: true });
-const membraneMaterial = new THREE.MeshStandardMaterial({ color: 0xf2b59a, emissive: 0x5a3020, roughness: 1, metalness: 0, flatShading: true, side: THREE.DoubleSide });
 
 // ---- Part lists per joint (local frame of the joint). -----------------------------------
 const BODY: PartSpec[] = [
@@ -100,17 +99,44 @@ const BACKPACK: PartSpec[] = [{ s: 'box', c: P.canvas, p: [0, 0, -.1], k: [.42, 
 const SCARF: PartSpec[] = [{ s: 'cyl', c: P.scarf, p: [0, 0, 0], k: [.635, .11, .6] }, { s: 'box', c: P.scarf, p: [.2, -.16, .53], k: [.12, .26, .05], r: [.25, 0, .2] }];
 const PENDANT: PartSpec[] = [{ s: 'cyl', c: P.leatherDark, p: [0, 0, 0], k: [.63, .02, .59] }, { s: 'ball0', c: P.gold, p: [0, -.09, .6], k: [.06, .07, .04] }];
 
+// ---- Held objects (tool frame = right paw: grip at the origin, handle along +Z). ---------------
+export const TOOL_IDS = ['pickaxe', 'pickaxe-steel', 'axe', 'fishing-rod', 'shovel', 'hammer', 'watering-can', 'seed-bag'] as const;
+export type ToolId = typeof TOOL_IDS[number];
+const W = 0x9a6b42, WD = 0x6e4a2d, IRON = 0x8d9298, STEEL = 0xc4ccd4;
+const handle = (len: number, c = W, r = .035): PartSpec => ({ s: 'cyl', c, p: [0, 0, len / 2 - .12], k: [r, len, r], r: [Math.PI / 2, 0, 0] });
+export const TOOL_PARTS: Record<ToolId, PartSpec[]> = {
+  pickaxe: [handle(.9), { s: 'box', c: IRON, p: [0, 0, .72], k: [.06, .62, .07], r: [0, 0, 0] }, { s: 'cone', c: IRON, p: [0, .36, .72], k: [.04, .12, .04] }, { s: 'cone', c: IRON, p: [0, -.36, .72], k: [.04, .12, .04], r: [Math.PI, 0, 0] }],
+  'pickaxe-steel': [handle(.9, WD), { s: 'box', c: STEEL, p: [0, 0, .72], k: [.07, .66, .08] }, { s: 'cone', c: STEEL, p: [0, .38, .72], k: [.045, .14, .045] }, { s: 'cone', c: STEEL, p: [0, -.38, .72], k: [.045, .14, .045], r: [Math.PI, 0, 0] }],
+  axe: [handle(.85), { s: 'box', c: IRON, p: [0, .14, .66], k: [.04, .26, .2] }, { s: 'box', c: STEEL, p: [0, .28, .66], k: [.03, .04, .24] }],
+  'fishing-rod': [handle(1.7, W, .022), { s: 'cyl', c: WD, p: [0, 0, .05], k: [.04, .2, .04], r: [Math.PI / 2, 0, 0] }, { s: 'cyl', c: IRON, p: [.05, 0, .12], k: [.04, .03, .04], r: [0, 0, Math.PI / 2] }],
+  shovel: [handle(.9), { s: 'box', c: IRON, p: [0, 0, .82], k: [.2, .02, .24] }],
+  hammer: [handle(.6), { s: 'box', c: IRON, p: [0, 0, .45], k: [.08, .22, .08] }],
+  'watering-can': [{ s: 'cyl', c: 0x5f8fa6, p: [0, -.1, .22], k: [.13, .22, .13] }, { s: 'cyl', c: 0x5f8fa6, p: [0, -.02, .4], k: [.02, .3, .02], r: [-1.1, 0, 0] }, { s: 'box', c: 0x4b7488, p: [0, .06, .14], k: [.03, .12, .03] }],
+  'seed-bag': [{ s: 'ball0', c: 0xd8c08f, p: [0, -.08, .12], k: [.13, .15, .12] }, { s: 'cyl', c: WD, p: [0, .06, .12], k: [.05, .04, .05] }],
+};
+
 export const HAMSTER_JOINTS = ['HamsterBody', 'Head', 'EarLeft', 'EarRight', 'ShoulderLeft', 'ArmLeft', 'HandLeft', 'ShoulderRight', 'ArmRight', 'HandRight', 'HipLeft', 'FootLeft', 'HipRight', 'FootRight', 'Tail', 'MembraneLeft', 'MembraneRight', 'Satchel', 'SocketHead', 'SocketFace', 'SocketBack', 'SocketNeck'] as const;
 export type HamsterJoint = typeof HAMSTER_JOINTS[number];
+/** An optional piece of the single mesh: shown/hidden through the scale of its own bone. */
+export interface PartToggle { visible: boolean }
+export const ACCESSORY_IDS = ['hat', 'goggles', 'backpack', 'scarf', 'pendant'] as const;
+export type AccessoryId = typeof ACCESSORY_IDS[number];
 export interface HamsterRig {
   group: THREE.Group;
+  /** The whole hamster — body, faces, accessories, tools, membranes — in ONE skinned mesh (1 draw call). */
+  mesh: THREE.SkinnedMesh;
+  /** The 22 animated joints. */
   joints: Record<HamsterJoint, THREE.Bone>;
   /** Tool anchor (right paw) and the off-hand (left paw) for two-handed grips. */
   sockets: { tool: THREE.Bone; offHand: THREE.Bone; head: THREE.Bone; face: THREE.Bone; back: THREE.Bone; neck: THREE.Bone; satchel: THREE.Bone };
-  faces: Record<Emotion, THREE.Mesh>;
-  accessories: { hat: THREE.Mesh; goggles: THREE.Mesh; backpack: THREE.Mesh; scarf: THREE.Mesh; pendant: THREE.Mesh };
-  /** Glide membranes (dynamic 4-vertex quads, body frame): open 0 (hidden) … 1. */
+  faces: Record<Emotion, PartToggle>;
+  accessories: Record<AccessoryId, PartToggle>;
+  /** Held objects (one bone each under the right paw). */
+  tools: Record<ToolId, PartToggle>;
+  toolBones: Record<ToolId, THREE.Bone>;
+  /** Glide membranes: open 0 (hidden) … 1 (spread). */
   setMembranes(open: number): void;
+  /** Ground blob shadow (separate: transparent decal, not part of the character mesh). */
   shadow: THREE.Mesh;
   skeleton: THREE.Skeleton;
   dispose(): void;
@@ -122,7 +148,7 @@ export const REST: Record<HamsterJoint, [number, number, number]> = {
   HamsterBody: [0, BODY_CENTRE, 0], Head: [0, .1, .02], EarLeft: [-.3, .52, -.04], EarRight: [.3, .52, -.04],
   ShoulderLeft: [-.4, -.06, .36], ArmLeft: [0, 0, 0], HandLeft: [0, -.25, .03], ShoulderRight: [.4, -.06, .36], ArmRight: [0, 0, 0], HandRight: [0, -.25, .03],
   HipLeft: [-.28, -.58, .28], FootLeft: [0, 0, 0], HipRight: [.28, -.58, .28], FootRight: [0, 0, 0], Tail: [0, -.34, -.56],
-  MembraneLeft: [0, -BODY_CENTRE, 0], MembraneRight: [0, -BODY_CENTRE, 0], Satchel: [.4, -.26, .34], SocketHead: [0, .6, -.02], SocketFace: [0, .21, .46], SocketBack: [0, .04, -.5], SocketNeck: [0, .12, 0],
+  MembraneLeft: [-.5, -BODY_CENTRE, 0], MembraneRight: [.5, -BODY_CENTRE, 0], Satchel: [.4, -.26, .34], SocketHead: [0, .6, -.02], SocketFace: [0, .21, .46], SocketBack: [0, .04, -.5], SocketNeck: [0, .12, 0],
 };
 const PARENT: Record<HamsterJoint, HamsterJoint | null> = {
   HamsterBody: null, Head: 'HamsterBody', EarLeft: 'Head', EarRight: 'Head', ShoulderLeft: 'HamsterBody', ArmLeft: 'ShoulderLeft', HandLeft: 'ArmLeft', ShoulderRight: 'HamsterBody', ArmRight: 'ShoulderRight', HandRight: 'ArmRight',
@@ -130,51 +156,90 @@ const PARENT: Record<HamsterJoint, HamsterJoint | null> = {
   SocketHead: 'Head', SocketFace: 'Head', SocketBack: 'HamsterBody', SocketNeck: 'HamsterBody',
 };
 const JOINT_PARTS: Partial<Record<HamsterJoint, PartSpec[]>> = { HamsterBody: [...BODY, ...STRAP], Head: HEAD, EarLeft: EAR, EarRight: EAR, ArmLeft: ARM, ArmRight: ARM, HandLeft: HAND, HandRight: HAND, FootLeft: FOOT, FootRight: FOOT, Tail: TAIL, Satchel: SATCHEL };
+/** Technical bones of the optional pieces (never animated: scale 1 = shown, 0 = hidden). */
+interface Piece { bone: string; parent: string; parts?: PartSpec[]; membrane?: -1 | 1; at?: [number, number, number]; rx?: number; shown: boolean }
+const ACCESSORY_PIECES: Record<AccessoryId, { bone: string; socket: HamsterJoint; parts: PartSpec[]; at?: [number, number, number]; rx?: number }> = {
+  hat: { bone: 'Acc_StrawHat', socket: 'SocketHead', parts: HAT }, goggles: { bone: 'Acc_Goggles', socket: 'SocketFace', parts: GOGGLES, at: [0, .2, -.07], rx: -.5 },
+  backpack: { bone: 'Acc_Backpack', socket: 'SocketBack', parts: BACKPACK }, scarf: { bone: 'Acc_Scarf', socket: 'SocketNeck', parts: SCARF }, pendant: { bone: 'Acc_Pendant', socket: 'SocketNeck', parts: PENDANT },
+};
+function pieces(): Piece[] {
+  const list: Piece[] = [];
+  for (const name of HAMSTER_JOINTS) { const parts = JOINT_PARTS[name]; if (parts) list.push({ bone: name, parent: '', parts, shown: true }); }
+  for (const emotion of EMOTIONS) list.push({ bone: 'Face_' + emotion, parent: 'Head', parts: faceParts(emotion), shown: emotion === 'happy' });
+  for (const id of ACCESSORY_IDS) { const a = ACCESSORY_PIECES[id]; list.push({ bone: a.bone, parent: a.socket, parts: a.parts, at: a.at, rx: a.rx, shown: false }); }
+  for (const id of TOOL_IDS) list.push({ bone: 'Tool_' + id, parent: 'HandRight', parts: TOOL_PARTS[id], shown: false });
+  list.push({ bone: 'MembraneLeft', parent: '', membrane: -1, shown: false }, { bone: 'MembraneRight', parent: '', membrane: 1, shown: false });
+  return list;
+}
+/** Glide membrane, fully spread, in its bone frame (pivot on the body side): shoulder, wrist, ankle,
+ * hip; both windings so that one front-side material serves the whole mesh. Scale x = opening. */
+function membraneGeometry(sx: number) {
+  const v = [[0, .72, .2], [sx * .55, .76, .32], [sx * .3, .2, .02], [0, .32, -.02]], tri = [0, 1, 2, 0, 2, 3, 0, 2, 1, 0, 3, 2];
+  const pos = new Float32Array(tri.length * 3), col = new Float32Array(tri.length * 3), c = new THREE.Color(0xf2b59a);
+  tri.forEach((k, i) => { pos.set(v[k], i * 3); col.set([c.r, c.g, c.b], i * 3); });
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.BufferAttribute(col, 3)); return g;
+}
+/** Shared skinned geometry: every vertex bound with weight 1 to the bone of its piece (rigid). */
+let shared: { geometry: THREE.BufferGeometry; boneNames: string[]; triangles: number[] } | null = null;
+function skinnedGeometry(boneNames: string[], restWorld: Map<string, THREE.Matrix4>) {
+  if (shared) return shared;
+  const list = pieces(), geos: THREE.BufferGeometry[] = [], triangles: number[] = [];
+  for (const piece of list) {
+    const source = piece.membrane ? membraneGeometry(piece.membrane) : mergeParts('hamster:' + piece.bone, piece.parts!);
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', source.getAttribute('position').clone()); g.setAttribute('color', source.getAttribute('color').clone());
+    g.applyMatrix4(restWorld.get(piece.bone)!);
+    const n = g.getAttribute('position').count, bone = boneNames.indexOf(piece.bone), si = new Uint16Array(n * 4), sw = new Float32Array(n * 4);
+    for (let i = 0; i < n; i++) { si[i * 4] = bone; sw[i * 4] = 1; }
+    g.setAttribute('skinIndex', new THREE.BufferAttribute(si, 4)); g.setAttribute('skinWeight', new THREE.BufferAttribute(sw, 4));
+    geos.push(g); triangles.push(n / 3); if (piece.membrane) source.dispose();
+  }
+  const geometry = mergeGeometries(geos, false)!; for (const g of geos) g.dispose();
+  geometry.computeVertexNormals(); geometry.computeBoundingSphere();
+  return shared = { geometry, boneNames, triangles };
+}
+const toggle = (bone: THREE.Bone): PartToggle => ({ get visible() { return bone.scale.x > 0; }, set visible(v: boolean) { bone.scale.setScalar(v ? 1 : 0); } });
 
 export function buildHamsterRig(): HamsterRig {
-  const joints = {} as Record<HamsterJoint, THREE.Bone>;
-  for (const name of HAMSTER_JOINTS) { const b = new THREE.Bone(); b.name = name; b.position.set(...REST[name]); joints[name] = b; }
-  for (const name of HAMSTER_JOINTS) { const parent = PARENT[name]; if (parent) joints[parent].add(joints[name]); }
-  for (const [name, parts] of Object.entries(JOINT_PARTS) as [HamsterJoint, PartSpec[]][]) {
-    const mesh = new THREE.Mesh(mergeParts('hamster:' + name, parts), hamsterMaterial); mesh.name = name + 'Mesh'; joints[name].add(mesh);
-  }
+  const bones = new Map<string, THREE.Bone>();
+  const bone = (name: string) => { const b = new THREE.Bone(); b.name = name; bones.set(name, b); return b; };
+  for (const name of HAMSTER_JOINTS) bone(name).position.set(...REST[name]);
+  for (const name of HAMSTER_JOINTS) { const parent = PARENT[name]; if (parent) bones.get(parent)!.add(bones.get(name)!); }
+  const list = pieces();
+  for (const piece of list) if (piece.parent) { const b = bone(piece.bone); if (piece.at) b.position.set(...piece.at); if (piece.rx) b.rotation.x = piece.rx; bones.get(piece.parent)!.add(b); }
+  const joints = Object.fromEntries(HAMSTER_JOINTS.map((n) => [n, bones.get(n)!])) as Record<HamsterJoint, THREE.Bone>;
   joints.Satchel.rotation.set(0, .55, 0);
-  const faces = {} as Record<Emotion, THREE.Mesh>;
-  for (const emotion of EMOTIONS) { const m = new THREE.Mesh(mergeParts('hamster:face:' + emotion, faceParts(emotion)), hamsterMaterial); m.name = 'Face_' + emotion; m.visible = emotion === 'happy'; joints.Head.add(m); faces[emotion] = m; }
-  const accessory = (name: string, parts: PartSpec[], socket: THREE.Bone) => { const m = new THREE.Mesh(mergeParts('hamster:acc:' + name, parts), hamsterMaterial); m.name = name; m.visible = false; socket.add(m); return m; };
-  const accessories = {
-    hat: accessory('StrawHat', HAT, joints.SocketHead), goggles: accessory('Goggles', GOGGLES, joints.SocketFace),
-    backpack: accessory('Backpack', BACKPACK, joints.SocketBack), scarf: accessory('Scarf', SCARF, joints.SocketNeck), pendant: accessory('Pendant', PENDANT, joints.SocketNeck),
-  };
-  accessories.goggles.position.set(0, .2, -.07);accessories.goggles.rotation.x = -.5;
-  // Glide membranes: quads shoulder → wrist → ankle → hip in the body frame (per-instance).
-  const membranes = (['Left', 'Right'] as const).map((side) => {
-    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(12), 3)); g.setIndex([0, 1, 2, 0, 2, 3]);
-    const m = new THREE.Mesh(g, membraneMaterial); m.name = 'Membrane' + side; m.visible = false; m.frustumCulled = false; joints['Membrane' + side as HamsterJoint].add(m); return { m, sx: side === 'Left' ? -1 : 1 };
-  });
+  // Rest pose (every piece shown) → bind matrices, then hide the optional pieces.
+  const root = joints.HamsterBody; root.updateMatrixWorld(true);
+  const boneNames = [...bones.keys()], restWorld = new Map(boneNames.map((n) => [n, bones.get(n)!.matrixWorld.clone()]));
+  const { geometry, triangles } = skinnedGeometry(boneNames, restWorld);
+  const mesh = new THREE.SkinnedMesh(geometry, hamsterMaterial); mesh.name = 'HamsterMesh'; mesh.add(root);
+  const skeleton = new THREE.Skeleton(boneNames.map((n) => bones.get(n)!));
+  mesh.bind(skeleton, new THREE.Matrix4());
+  // Generous fixed bounds (posed limbs, held rod): no per-frame recomputation.
+  mesh.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, .8, 0), 2.4);
+  for (const piece of list) if (!piece.shown) bones.get(piece.bone)!.scale.setScalar(0);
+  const faces = Object.fromEntries(EMOTIONS.map((e) => [e, toggle(bones.get('Face_' + e)!)])) as Record<Emotion, PartToggle>;
+  const accessories = Object.fromEntries(ACCESSORY_IDS.map((id) => [id, toggle(bones.get(ACCESSORY_PIECES[id].bone)!)])) as Record<AccessoryId, PartToggle>;
+  const toolBones = Object.fromEntries(TOOL_IDS.map((id) => [id, bones.get('Tool_' + id)!])) as Record<ToolId, THREE.Bone>;
+  const tools = Object.fromEntries(TOOL_IDS.map((id) => [id, toggle(toolBones[id])])) as Record<ToolId, PartToggle>;
   function setMembranes(open: number) {
     const u = Math.max(0, Math.min(1, open));
-    for (const { m, sx } of membranes) {
-      m.visible = u > .02; if (!m.visible) continue;
-      const pos = m.geometry.getAttribute('position') as THREE.BufferAttribute;
-      // shoulder, wrist (spreads with u), ankle (spreads), hip
-      pos.setXYZ(0, sx * .5, .72, .2); pos.setXYZ(1, sx * (.5 + .55 * u), .7 + .06 * u, .32);
-      pos.setXYZ(2, sx * (.38 + .42 * u), .2, .02); pos.setXYZ(3, sx * .5, .32, -.02);
-      pos.needsUpdate = true; m.geometry.computeVertexNormals();
-    }
+    for (const b of [joints.MembraneLeft, joints.MembraneRight]) if (u > .02) b.scale.set(u, 1, 1); else b.scale.setScalar(0);
   }
   const shadow = new THREE.Mesh(new THREE.CircleGeometry(.62, 14), new THREE.MeshBasicMaterial({ color: 0x20453a, transparent: true, opacity: .18, depthWrite: false }));
   shadow.rotation.x = -Math.PI / 2; shadow.position.y = .03; shadow.name = 'Shadow';
-  const group = new THREE.Group(); group.name = 'Hamster'; group.add(shadow, joints.HamsterBody);
+  const group = new THREE.Group(); group.name = 'Hamster'; group.add(shadow, mesh);
+  group.userData.pieceTriangles = list.map((piece, i) => ({ bone: piece.bone, triangles: triangles[i] }));
   group.updateMatrixWorld(true);
-  const skeleton = new THREE.Skeleton(HAMSTER_JOINTS.map((n) => joints[n]));
   return {
-    group, joints, faces, accessories, setMembranes, shadow, skeleton,
+    group, mesh, joints, faces, accessories, tools, toolBones, setMembranes, shadow, skeleton,
     sockets: { tool: joints.HandRight, offHand: joints.HandLeft, head: joints.SocketHead, face: joints.SocketFace, back: joints.SocketBack, neck: joints.SocketNeck, satchel: joints.Satchel },
-    dispose() { for (const { m } of membranes) m.geometry.dispose(); shadow.geometry.dispose(); (shadow.material as THREE.Material).dispose(); skeleton.dispose(); group.removeFromParent(); },
+    // The skinned geometry and the material are shared by every hamster: never disposed here.
+    dispose() { shadow.geometry.dispose(); (shadow.material as THREE.Material).dispose(); skeleton.dispose(); group.removeFromParent(); },
   };
 }
-/** Triangle count of the visible base model (default appearance, membranes folded). */
-export function visibleTriangles(root: THREE.Object3D): number {
-  let n = 0; root.traverseVisible((o) => { const m = o as THREE.Mesh; if (!m.isMesh) return; const g = m.geometry; n += (g.index ? g.index.count : g.getAttribute('position').count) / 3; }); return n;
+/** Triangles of the pieces currently shown (a piece is hidden when its bone or an ancestor has scale 0). */
+export function visibleTriangles(rig: HamsterRig): number {
+  const shown = (b: THREE.Object3D | null): boolean => { for (let o = b; o && o !== rig.mesh; o = o.parent) if (o.scale.x * o.scale.y * o.scale.z === 0) return false; return true; };
+  let n = 0; for (const { bone, triangles } of rig.group.userData.pieceTriangles as { bone: string; triangles: number }[]) if (shown(rig.mesh.getObjectByName(bone) ?? null)) n += triangles; return n;
 }

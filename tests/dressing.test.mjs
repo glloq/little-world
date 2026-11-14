@@ -74,3 +74,20 @@ test('G6 far canopy: deterministic, only on wooded land, cheaper than the full d
   assert.ok(crowns>0&&both>0,'wooded cells get crowns');assert.ok(canopyMs<fullMs/3,`canopy ${canopyMs.toFixed(0)} ms vs full dressing ${fullMs.toFixed(0)} ms`);
   console.log('# canopy',{crowns,trees,canopyMs:+canopyMs.toFixed(1),fullMs:+fullMs.toFixed(1)});
 });
+test('Rocks: north/south-facing slopes get their rocks too, and rocks sit on the ground (no gap downhill)',()=>{
+  const c=ctx(),h=field.height;let rocks=0,steepNS=0,steepEW=0,worstGap=-Infinity;
+  for(const [cx,cz]of sampleCells){const a=generateDressingCell(c,4242,cx,cz,inside).items.rock;
+    for(let i=0;i<a.length;i+=ITEM_STRIDE){const x=a[i],y=a[i+1],z=a[i+2],s=a[i+3],d=.85*s;rocks++;
+      // Rock base vs lowest ground under its footprint: never above it.
+      worstGap=Math.max(worstGap,y-Math.min(h(x,z),h(x+d,z),h(x-d,z),h(x,z+d),h(x,z-d)));
+      const gx=(h(x+2,z)-h(x-2,z))/4,gz=(h(x,z+2)-h(x,z-2))/4;if(Math.hypot(gx,gz)>.45){if(Math.abs(gz)>Math.abs(gx))steepNS++;else steepEW++;}}}
+  assert.ok(rocks>200,'rocks generated: '+rocks);
+  assert.ok(worstGap<=-.14,'every rock is seated at or below the lowest ground of its footprint (worst '+worstGap.toFixed(2)+' m)');
+  assert.ok(steepNS>.5*steepEW,'steep north/south faces carry rocks like east/west faces ('+steepNS+' vs '+steepEW+')');
+});
+test('Big GLB rocks (boulders, spires, cliff blocks) stay drawn far beyond small structures',async()=>{
+  const {placedCullRadius,PLACED_RADII}=await import('../src/world-production/placed-instances.ts');
+  assert.equal(placedCullRadius('nature.boulder_large',3.1),PLACED_RADII.rockMin);
+  assert.ok(placedCullRadius('nature.rock_spire',10.6)>600,'a 10.6 m spire is a landmark of the relief');
+  assert.equal(placedCullRadius('nature.unknown',2),PLACED_RADII.lod1,'other structures keep their radius');
+});

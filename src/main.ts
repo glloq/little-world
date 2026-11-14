@@ -440,6 +440,8 @@ function insidePolygonXZ(pts:{x:number;z:number}[],x:number,z:number){let inside
 /** Sound/effect of the next tool impact: played on the animation event (impact/grab), so that
  * what is heard and seen matches the swing; flushed at once when no animation can play. */
 let pendingImpact:{sound:string;kind:ImpactKind;context?:Record<string,unknown>;extra?:string[];count?:number}|null=null;
+/** Visible meshes of an object (metrics: the hamster draws ONE skinned mesh + its ground shadow). */
+function visibleMeshCount(root:THREE.Object3D){let n=0;root.traverseVisible(o=>{if((o as THREE.Mesh).isMesh||(o as THREE.Line).isLine)n++;});return n;}
 function onImpact(i:NonNullable<typeof pendingImpact>){flushImpact();pendingImpact=i;}
 function flushImpact(at?:{x:number;y:number;z:number}){
   const i=pendingImpact;if(!i)return;pendingImpact=null;const position=at??player.position;
@@ -694,7 +696,7 @@ function draw(now: number) {
         collisions:gameplay?.collision.stats??null,
         position: player.position.toArray(),
         mode: player.mode,
-        character: { state: character.animationState, action: character.action, tool: character.tool, fishingLine: !!character.group.getObjectByName('FishingLine')?.visible },
+        character: { state: character.animationState, action: character.action, tool: character.tool, fishingLine: !!character.group.getObjectByName('FishingLine')?.visible, meshes: visibleMeshCount(character.group) },
         stamina: player.stamina ?? MAX_STAMINA,
         camera:{position:camera.position.toArray(),quaternion:camera.quaternion.toArray(),fov:camera.fov,aspect:camera.aspect,far:camera.far},
         legacyTerrain:isLegacyTerrain(),

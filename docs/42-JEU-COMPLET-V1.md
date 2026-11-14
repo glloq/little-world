@@ -139,6 +139,28 @@ Non qualifié sur GPU intégré : les triangles supplémentaires (silhouettes 4�
 
 **Limites** : les cuvettes de marais du nord restent sans étang (trop plates sur ce relief, diagnostic du preset) ; les collisions sont des boîtes alignées sur les axes (un bâtiment tourné à 45° bloque un peu plus large que son mur) ; l’occultation est vérifiée sur des vues fixes et un parcours, pas encore en planage continu sur GPU réel.
 
+## 3 quater. Lisibilité des arbres et rochers (demande du 14 novembre 2026)
+
+Diagnostic mesuré (SwiftShader et scripts Node sur l’île), avant les corrections :
+
+| Constat | Cause | Correction | Mesure après |
+| --- | --- | --- | --- |
+| Peu de rochers sur les versants nord et sud | Pente calculée avec le seul voisin est (`dressing.ts`) : 63 % des pentes raides réelles vues comme douces | Gradient complet `slopeAt` ; `DRESSING_VERSION` 5 | Rochers sur versants raides nord/sud, sur 120 cellules de test : 59 → 168 (est/ouest 299 → 319) ; rochers au total 385 → 514 |
+| Rochers suspendus au-dessus des pentes, jusqu’à 9 m | Base fixe `h − 0,4` quelle que soit la pente | Base au point le plus bas sous l’emprise (±0,85 × rayon), puis enfoncement de 0,15 m | Rochers dont la base dépasse le sol de plus de 0,5 m : 267 / 385 → 0 (test unitaire) |
+| Gros rochers GLB (blocs, aiguilles, éboulis de falaise) absents au-delà de 140 m | Rayon commun des structures instanciées | Rayon propre aux rochers : max(400 m, 60 × hauteur), en LOD1 | Test unitaire |
+| Arbres apparaissant par vagues en montant une butte | Horizon de relief recalculé seulement après 6 m de montée | Horizon calculé depuis un œil relevé de la moitié du seuil (6 m) | L’analyse indique −80 à −99 % d’apparitions tardives ; test unitaire de montée |
+| Fleurs lues comme des cailloux beiges flottants | Icosaèdre beige à 0,5 m du sol, sans tige | Tige verte, coupe jaune et cœur posés au sol (≈ 18 triangles) | Captures |
+| Forêts lointaines clairsemées | Une silhouette sur 2 ou 4, agrandie de 1,25 ou 1,6 seulement (perte d’aire de couronne) | Agrandissement √2 et 2 : aire de couronne conservée | Captures |
+| Petits rochers flottant ou enfouis sur le terrain grossier lointain | Au-delà de 240 m, maillage du terrain à 32 m de pas | Rayon des petits rochers ramené à 240 m (fin du terrain détaillé) ; tampon des pierres porté à 6 000 | — |
+
+Écarté par la mesure :
+- la latence de streaming (arbres GLB proches après 0,6 s) ;
+- la rotation de la caméra ;
+- la saturation des lots ;
+- les arbres mal posés (99,6 % à moins de 1 m du sol).
+
+Statut : implémenté et testé (`tests/dressing.test.mjs`, `tests/occlusion.test.mjs`) ; coût GPU à requalifier.
+
 ## 4. Limites connues (honnêtes)
 
 - **Performance non qualifiée** sur GPU intégré. Sous SwiftShader, l’intervalle de présentation est inchangé, mais **le démarrage (+3,8 s) et le tas JS (+19 Mo) régressent** (voir §3).
