@@ -9,6 +9,7 @@ import { createPathView, type PathViewStats } from './paths/path-view.ts';
 import { createLightView, type LightView } from './lighting/light-view.ts';
 import type { RuntimeLight } from './lighting/light-data.ts';
 import { worldAsset, lodDistances, exclusionRadius } from './world-production/registry.ts';
+import { linearizeVertexColors } from './world-production/species-library.ts';
 import { createDressingView, type DressingView, type DressingStats } from './dressing-view.ts';
 import { sampleBiome, generatedCover } from './biomes';
 import type {
@@ -458,6 +459,7 @@ const modelPaths: Partial<Record<AssetId, string>> = {
   'nature.rock': 'models/rock.glb',
   'props.crate': 'models/crate.glb',
 };
+const legacyModelPaths = new Set(Object.values(modelPaths));
 const modelLoader = new GLTFLoader();
 const loadingModels = new Map<string, Promise<THREE.Group | null>>();
 function loadModel(path: string): Promise<THREE.Group | null> {
@@ -466,6 +468,7 @@ function loadModel(path: string): Promise<THREE.Group | null> {
     pending = modelLoader
       .loadAsync(import.meta.env.BASE_URL + path)
       .then((gltf) => {
+        if (!legacyModelPaths.has(path)) linearizeVertexColors(gltf.scene); // sRGB COLOR_0 bytes of the library
         gltf.scene.traverse((o) => {
           const m = o as THREE.Mesh;
           if (m.geometry) sharedGeometry.add(m.geometry);

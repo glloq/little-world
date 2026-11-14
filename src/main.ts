@@ -221,6 +221,8 @@ let started = false;
 let elapsed = 0;
 // Generated worlds start on a coast: face the island centre rather than the open sea.
 if(playable&&!isLegacyTerrain()){const yawParam=Number(searchParams.get('yaw'));yaw=searchParams.has('yaw')&&Number.isFinite(yawParam)?yawParam:Math.atan2(-player.position.x,-player.position.z);}
+// Reproducible control viewpoints (World Production captures): camera pitch and distance.
+{const p=Number(searchParams.get('pitch')),d=Number(searchParams.get('dist'));if(searchParams.has('pitch')&&Number.isFinite(p))pitch=Math.max(-.3,Math.min(1.4,p));if(searchParams.has('dist')&&Number.isFinite(d))distance=Math.max(2,Math.min(600,d));}
 const previousPlayerPosition = player.position.clone(),
   renderPosition = player.position.clone();
 let presentedFrames = 0;

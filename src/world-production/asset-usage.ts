@@ -45,7 +45,7 @@ export const ASSET_USAGE:Record<string,AssetUsage>={
   'nature.fruit_pear':tree(['orchard','village'],'round',[1,1.3]),
   'nature.fruit_plum':tree(['orchard','village'],'round',[1,1.3]),
   'nature.fruit_cherry':tree(['orchard','village','prairie'],'round',[1,1.3]),
-  'nature.pine':{...tree(['mountain','temperate-forest','rocky-coast','heath'],'cone',[.9,1.5],'Sapin historique (20 triangles, 2 matériaux, sans couleurs de sommets) : seul conifère disponible. Famille « conifères » insuffisamment couverte.'),runtimeStatus:'INTEGRATED'},
+  'nature.pine':{...tree(['mountain','temperate-forest','rocky-coast','heath'],'cone',[.8,1.25],'Sapin historique (20 triangles, 2 matériaux, sans couleurs de sommets) : seul conifère disponible. Famille « conifères » insuffisamment couverte.'),runtimeStatus:'INTEGRATED'},
   // Shrubs.
   'nature.bush_small':small('shrub',['temperate-forest','prairie','humid-valley','heath','village'],[.8,1.4],'cluster'),
   'nature.bush_asym':small('shrub',['temperate-forest','heath','mountain','rocky-coast','dry-zone'],[.8,1.3],'cluster'),

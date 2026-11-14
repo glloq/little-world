@@ -3225,8 +3225,8 @@
     "instancing": true,
     "footprintM": 1.2,
     "scale": [
-     0.9,
-     1.5
+     0.8,
+     1.25
     ],
     "crown": "cone",
     "habitats": [

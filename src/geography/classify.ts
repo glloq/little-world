@@ -26,6 +26,8 @@ export interface GeoContext {
   biomeStroke(x:number,z:number):string|undefined;
   /** Vector occupation sources: zones, paths, building footprints. */
   occupancy(x:number,z:number):Occupation;
+  /** World Production landscapes (presets) influencing the dressing; absent = none. */
+  landscape?(x:number,z:number):import('../world-production/biotopes.ts').LandscapeInfluence|null;
 }
 export interface GeoSample {height:number;slope:number;coast:number;cliff:number;volcanic:number;moisture:number;geology:Geology;biome:Biome;material:Material;occupation:Occupation;underwater:boolean}
 const clamp=(v:number,a:number,b:number)=>Math.min(b,Math.max(a,v));

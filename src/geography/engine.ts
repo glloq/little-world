@@ -7,6 +7,7 @@ import {terrainHeight,waterSurfaceWithHeight,geoSiteAt,pathDistance,getTerrainCo
 import {classifyPoint,type GeoContext,type GeoSample,type Occupation} from './classify.ts';
 import {maskCell,type MaskLayerId,type SectorGrid,type SectorLayers} from './layers.ts';
 import {polygonSignedDistance,type PointXZ} from './archipelago.ts';
+import {landscapeInfluenceAt,type LandscapeRegion} from '../world-production/biotopes.ts';
 
 export interface GeoZone {kind:'farm-plot'|'mine';polygon:PointXZ[]}
 export interface GeoBiomeStroke {x:number;z:number;radius:number;biome:string}
@@ -17,6 +18,8 @@ export interface GeographySources {
   biomeStrokes?:GeoBiomeStroke[];
   /** Building footprints (centre + radius) that exclude vegetation. */
   buildings?:{x:number;z:number;radius:number}[];
+  /** Landscape preset footprints (World Production V1). Optional. */
+  landscapes?:LandscapeRegion[];
 }
 /** Relief and network inputs of a context (runtime terrain or a project preview). */
 export interface GeoDeps {
@@ -33,7 +36,7 @@ export interface GeoDeps {
 const RIVER_INFLUENCE_M=60;
 export function createGeoContext(src:GeographySources|null,deps:GeoDeps):GeoContext{
   const zones=(src?.zones??[]).map(zone=>{const xs=zone.polygon.map(p=>p.x),zs=zone.polygon.map(p=>p.z);return {zone,minX:Math.min(...xs),maxX:Math.max(...xs),minZ:Math.min(...zs),maxZ:Math.max(...zs)};});
-  const buildings=src?.buildings??[],strokes=src?.biomeStrokes??[];
+  const buildings=src?.buildings??[],strokes=src?.biomeStrokes??[],landscapes=src?.landscapes??[];
   let cellX=NaN,cellZ=NaN,cellIndex=0,cellLayers:SectorLayers|undefined;
   return {
     seed:src?.seed??0,seaLevel:deps.seaLevel,height:deps.height,water:deps.water,site:deps.site,
@@ -45,6 +48,7 @@ export function createGeoContext(src:GeographySources|null,deps:GeoDeps):GeoCont
       const mask=cellLayers?.[layer];return mask?mask[cellIndex]:undefined;
     },
     biomeStroke(x,z){for(let i=strokes.length-1;i>=0;i--){const s=strokes[i];if((x-s.x)*(x-s.x)+(z-s.z)*(z-s.z)<s.radius*s.radius)return s.biome;}return undefined;},
+    ...(landscapes.length?{landscape:(x:number,z:number)=>landscapeInfluenceAt(landscapes,x,z)}:{}),
     occupancy(x,z):Occupation{
       for(const {zone,minX,maxX,minZ,maxZ}of zones)if(x>=minX&&x<=maxX&&z>=minZ&&z<=maxZ&&polygonSignedDistance(zone.polygon,x,z)>=0)return zone.kind==='farm-plot'?'farm':'reserved';
       if(deps.pathDistance(x,z,1)<.8)return 'road';
