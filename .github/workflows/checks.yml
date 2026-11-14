@@ -86,6 +86,8 @@ jobs:
         run: node tools/run-browser-check.mjs climb
       - name: Hamster player (roll, glide, tools, fishing)
         run: node tools/run-browser-check.mjs hamster
+      - name: Near trees and rocks stay drawn (cache eviction)
+        run: node tools/run-browser-check.mjs dressing-stability
       - name: B1 Studio edits and « Jouer ici »
         run: node tools/run-browser-check.mjs b1-studio
       - name: IndexedDB integration

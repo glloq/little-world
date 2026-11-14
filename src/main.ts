@@ -170,7 +170,9 @@ if(playable){
   });
   if(metricsEnabled){const g=gameplay;Object.assign(window,{littleWorldDebug:{/** Developer/test hook (metrics mode only): give items. */grant:(itemId:string,quantity:number)=>g.runtime.grantItems([{itemId,quantity}]),
     /** Developer/test hook: move the player on the ground and turn the camera (heading in rad). */
-    teleport:(x:number,z:number,heading:number)=>{player.space=undefined;player.mode='ground';player.velocity.set(0,0,0);player.position.set(x,terrainHeight(x,z),z);previousPlayerPosition.copy(player.position);yaw=heading;}}});}
+    teleport:(x:number,z:number,heading:number)=>{player.space=undefined;player.mode='ground';player.velocity.set(0,0,0);player.position.set(x,terrainHeight(x,z),z);previousPlayerPosition.copy(player.position);yaw=heading;},
+    /** Developer/test hook: natural dressing and placed objects drawn within r m of the player. */
+    drawnNear:(r:number)=>world.drawnNear(player.position.x,player.position.z,r)}});}
   if(gameplay.gathering){const gather=gameplay.gathering;world.setDressingFilter((cx,cz,kind,index)=>gather.hiddenAt(cx,cz,kind,index));gather.subscribe(()=>world.redrawDressing());}
 }
 const npcs = createNPCSystem(scene, definition.npcs,isLegacyTerrain()?undefined:[],gameplay?.dialogueSession);

@@ -6,7 +6,7 @@
  * conservative (silhouettes on a crest stay drawn). The terrain itself is never culled (no hole);
  * the field is recomputed in time slices after the camera moves, so no frame pays the full cost.
  * Purely visual: gameplay, collisions and simulation never read it. */
-export const OCCLUSION={sectors:64,step:24,maxDistance:2400,margin:1.5,moveM:12} as const;
+export const OCCLUSION={sectors:64,step:24,maxDistance:2400,margin:1.5,moveM:12,nearM:80} as const;
 export interface OcclusionStats {refreshes:number;samples:number;tested:number;hidden:number;ready:boolean}
 export function createHorizonOcclusion(height:(x:number,z:number)=>number,o:{sectors?:number;step?:number;maxDistance?:number}={}){
   const sectors=o.sectors??OCCLUSION.sectors,step=o.step??OCCLUSION.step,steps=Math.ceil((o.maxDistance??OCCLUSION.maxDistance)/step);
@@ -37,7 +37,8 @@ export function createHorizonOcclusion(height:(x:number,z:number)=>number,o:{sec
     visible(x:number,z:number,topY:number):boolean{
       if(!stats.ready)return true;stats.tested++;
       const dx=x-origin.x,dz=z-origin.z,d=Math.hypot(dx,dz),i=Math.floor(d/step)-1;
-      if(i<1||i>=steps)return true;
+      // Near guarantee: nothing within nearM of the camera is ever culled by the relief.
+      if(d<OCCLUSION.nearM||i<1||i>=steps)return true;
       const t=(Math.atan2(dx,dz)/(Math.PI*2)+1)%1*sectors,s0=Math.floor(t)%sectors,s1=(s0+1)%sectors;
       const horizon=Math.min(field[s0*steps+i-1],field[s1*steps+i-1]);
       const ok=(topY+OCCLUSION.margin-origin.y-lift)/d>=horizon;if(!ok)stats.hidden++;return ok;

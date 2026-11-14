@@ -44,6 +44,8 @@ export interface WorldView {
   /** World Production: instanced enclosure/dock modules (game runtime). */
   placed: PlacedInstances;
   setDressingFilter(fn: ((cx: number, cz: number, kind: import('./geography/dressing.ts').DressingKind, index: number) => boolean) | null): void;
+  /** Debug/test (metrics mode): natural dressing and placed objects drawn within `r` of (x, z). */
+  drawnNear(x: number, z: number, r: number): string[];
   /** Night factor (0 day … 1 night) for lighthouse beams and lamps. */
   setNight(night: number): void;
   /** Sail and rudder of the player's boat (speed m/s, steer −1…1). */
@@ -789,6 +791,7 @@ export function buildWorld(
     terrainWork: terrainView.work,
     placed,
     setDressingFilter(fn: Parameters<DressingView['setHidden']>[0]) { dressing?.setHidden(fn); },
+    drawnNear(x: number, z: number, r: number) { return [...(dressing?.drawnNear(x, z, r) ?? []), ...placed.drawnNear(x, z, r)]; },
     setNight(night: number) { animatedAssets.setNight(night); },
     animateBoat(speed: number, steer: number, dt: number) { boatRig?.update(speed, steer, dt); },
     get animated() { return animatedAssets.stats; },
