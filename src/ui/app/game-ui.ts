@@ -78,7 +78,7 @@ export function createGameUi(deps:GameUiDeps){
   for(const [id,label,key] of [['inventory','Sac','I'],['journal','Journal','J'],['map','Carte','M'],['pause','Menu','Échap']] as const){if(id==='inventory'&&!g)continue;const b=button('',()=>ui.toggle(id),'ui-quick');b.append(el('span','',label),kbd(key));b.setAttribute('aria-label',`${label} (${key})`);b.dataset.panel=id;quick.append(b);}
   const purse=el('div','ui-purse');purse.setAttribute('aria-label','Bourse');if(g)host.append(purse);
   const tool=el('div','ui-tool hide');const oxygen=el('div','ui-oxygen hide');oxygen.setAttribute('role','meter');oxygen.setAttribute('aria-label','Oxygène');const oxyFill=el('span','ui-meter-fill');oxygen.append(el('span','','Oxygène'),el('span','ui-meter-track'));oxygen.lastElementChild!.append(oxyFill);
-  const hint=el('p','ui-hint hide','Z Q S D : se déplacer · X : rouler en boule · avancer contre une falaise : grimper · E : agir · I : sac · J : journal · M : carte · Échap : menu');
+  const hint=el('p','ui-hint hide','Z Q S D : se déplacer · Maj : rouler vite en boule · avancer contre une falaise : grimper · E : agir · I : sac · J : journal · M : carte · Échap : menu');
   // Stamina (climbing): shown while climbing or while it refills.
   const stamina=el('div','ui-oxygen ui-stamina hide');stamina.setAttribute('role','meter');stamina.setAttribute('aria-label','Endurance');const stFill=el('span','ui-meter-fill');stamina.append(el('span','','Endurance'),el('span','ui-meter-track'));stamina.lastElementChild!.append(stFill);
   host.append(quick,tool,oxygen,stamina,hint);

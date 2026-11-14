@@ -17,6 +17,9 @@ export interface Controls {
   jumpPressed: boolean;
   /** Roll toggle pressed this step (hamster ball mode). Optional for older callers. */
   rollPressed?: boolean;
+  /** Sprint key held (Shift): the hamster rolls into a ball to go fast while it moves on the
+   * ground, and unrolls when the key is released. Optional for older callers. */
+  rollHeld?: boolean;
   spaceHeld: boolean;
   dive: boolean;
   cameraYaw: number;
@@ -40,6 +43,8 @@ export interface Player {
   climbDir?:{x:number;z:number};
   /** Roll (ball mode): forward speed (m/s), heading (rad, 0 = +Z) and idle time (s). */
   rollSpeed?:number;rollHeading?:number;rollIdle?:number;
+  /** True when the ball was entered by holding the sprint key (released → back on the paws). */
+  rollByHold?:boolean;
 }
 export const MAX_OXYGEN = 90;
 export const MAX_STAMINA = 100;
@@ -81,9 +86,12 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
   const ground = floorAt();
   const deepEnough = atWater !== null && atWater - ground > 0.62;
   const inWater = deepEnough && pos.y <= atWater + 0.42;
-  // Roll toggle: from the ground (not in water, not on a boat); a second press leaves the ball.
-  if(keys.rollPressed){if(p.mode==='ground'&&!inWater){p.mode='roll';p.rollSpeed=Math.max(Math.hypot(v.x,v.z),2.5);p.rollHeading=len>0?Math.atan2(dx,dz):Math.hypot(v.x,v.z)>.3?Math.atan2(v.x,v.z):keys.cameraYaw;p.rollIdle=0;}
-    else if(p.mode==='roll')p.mode='ground';}
+  // Roll: from the ground (not in water, not on a boat). X toggles the ball; holding the sprint
+  // key (Shift) while moving rolls to go fast and releasing it unrolls (momentum kept).
+  const enterRoll=(byHold:boolean)=>{p.mode='roll';p.rollByHold=byHold;p.rollSpeed=Math.max(Math.hypot(v.x,v.z),2.5);p.rollHeading=len>0?Math.atan2(dx,dz):Math.hypot(v.x,v.z)>.3?Math.atan2(v.x,v.z):keys.cameraYaw;p.rollIdle=0;};
+  if(keys.rollPressed){if(p.mode==='ground'&&!inWater)enterRoll(false);else if(p.mode==='roll')p.mode='ground';}
+  else if(keys.rollHeld&&len>.3&&p.mode==='ground'&&!inWater)enterRoll(true);
+  else if(p.mode==='roll'&&p.rollByHold&&!keys.rollHeld)p.mode='ground';
   if(p.mode==='roll'&&!inWater)rollStep(p,keys,dt,dx,dz,len,relief);
   // Climbing (outdoor relief only): steeper than the walkable slope, pushed into, with stamina.
   if(p.mode!=='climb'&&!p.space&&p.climbCooldown<=0&&p.stamina>=CLIMB.minStart&&len>.3&&(p.mode==='ground'||p.mode==='air'||p.mode==='glide')){

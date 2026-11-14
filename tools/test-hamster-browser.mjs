@@ -38,6 +38,11 @@ try{
   check(rolling.character.state==='ROLL_LOOP'&&v>8,`Rolling animation and distance (${v.toFixed(1)} m in 2.6 s)`);
   await page.keyboard.press('KeyX');await page.waitForFunction(()=>window.littleWorldMetrics?.mode==='ground',{},{timeout:5000});await page.waitForTimeout(500);
   check((await m()).character.state!=='ROLL_LOOP','X again: back on its paws');
+  // Shift held while moving: the hamster rolls to go fast; released: back on its paws.
+  await page.keyboard.down('ShiftLeft');await page.keyboard.down('KeyW');
+  await page.waitForFunction(()=>window.littleWorldMetrics?.mode==='roll',{},{timeout:5000}).catch(()=>{});check((await m()).mode==='roll','Shift + forward: rolls into a ball to go fast');
+  await page.keyboard.up('ShiftLeft');await page.waitForFunction(()=>window.littleWorldMetrics?.mode==='ground',{},{timeout:5000}).catch(()=>{});await page.keyboard.up('KeyW');
+  check((await m()).mode==='ground','Shift released: back on its paws');
   // 3. Glide: jump then Space again in the air.
   await page.keyboard.press('Space');await page.waitForTimeout(220);await page.keyboard.press('Space');
   await page.waitForFunction(()=>window.littleWorldMetrics?.mode==='glide',{},{timeout:3000}).catch(()=>{});const g=await m();
