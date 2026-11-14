@@ -49,6 +49,7 @@
     "generate:world-assets": "node --experimental-strip-types tools/build-world-assets.mjs",
     "check:world-assets": "node --experimental-strip-types tools/build-world-assets.mjs --check",
     "test:landscapes": "node tools/test-landscapes-browser.mjs",
+    "test:economy": "node tools/test-economy-browser.mjs",
     "capture:views": "node tools/capture-world-views.mjs",
     "generate:production-reference": "node --experimental-strip-types tools/generate-production-reference.mjs",
     "generate:world-kit": "node tools/assets/generate-world-kit.mjs && npm run generate:world-assets"

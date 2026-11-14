@@ -173,6 +173,7 @@ if(playable){
     ...(isLegacyTerrain()?{}:{gathering:{ctx:geoContext,seed:definition.config.seed,inside:(x:number,z:number)=>Math.abs(x)<=(definition.config.width??200)/2&&Math.abs(z)<=(definition.config.length??600)/2}}),
     setPosition:(p,space)=>{player.space=space??undefined;player.position.set(p.x,p.y,p.z);player.velocity.set(0,0,0);player.mode='air';player.oxygen=MAX_OXYGEN;player.glideReady=false;aboard=false;keySet.clear();jumpQueue=0;actionQueue=0;npcs.dialogue.close();previousPlayerPosition.copy(player.position);renderPosition.copy(player.position);updateCamera(1);}
   });
+  if(metricsEnabled){const g=gameplay;Object.assign(window,{littleWorldDebug:{/** Developer/test hook (metrics mode only): give items. */grant:(itemId:string,quantity:number)=>g.runtime.grantItems([{itemId,quantity}])}});}
   if(gameplay.gathering){const gather=gameplay.gathering;world.setDressingFilter((cx,cz,kind,index)=>gather.hiddenAt(cx,cz,kind,index));gather.subscribe(()=>world.redrawDressing());}
 }
 const npcs = createNPCSystem(scene, definition.npcs,isLegacyTerrain()?undefined:[],gameplay?.dialogueSession);
@@ -419,9 +420,10 @@ const forwardOf=()=>({x:Math.sin(yaw),z:Math.cos(yaw)});
 const itemName=(id?:string)=>id?gameplay?.runtime.data.items.find(i=>i.id===id)?.name??id:undefined;
 const WATER_NAMES:Record<string,string>={sea:'Mer',river:'Rivière',lake:'Lac'};
 /** Shop counter entity near the player (entity state `shop` = kind of counter). */
-function nearShop():{id:string;kind:ShopKind}|null{
-  if(!gameplay||player.space)return null;let best:{id:string;kind:ShopKind}|null=null,bd=3.2;
-  for(const e of gameplay.runtime.data.entities){const kind=e.initialState.shop;if(typeof kind!=='string'||!(kind in SHOPS)||!e.position)continue;const d=Math.hypot(e.position.x-player.position.x,e.position.z-player.position.z);if(d<bd){bd=d;best={id:e.id,kind:kind as ShopKind};}}
+function nearShop(facing=false):{id:string;kind:ShopKind}|null{
+  if(!gameplay||player.space)return null;let best:{id:string;kind:ShopKind}|null=null,bd=3.2;const f=forwardOf();
+  for(const e of gameplay.runtime.data.entities){const kind=e.initialState.shop;if(typeof kind!=='string'||!(kind in SHOPS)||!e.position)continue;const dx=e.position.x-player.position.x,dz=e.position.z-player.position.z,d=Math.hypot(dx,dz);
+    if(facing&&d>.5&&(dx*f.x+dz*f.z)/d<.6)continue;if(d<bd){bd=d;best={id:e.id,kind:kind as ShopKind};}}
   return best;
 }
 /** Water surface 2.5–6 m in front of a standing player (sea, river or lake). */
@@ -457,6 +459,8 @@ function currentTarget():TargetDescriptor|null{
   return resolveTarget([
     ()=>aboard?boatTarget(true):null,
     ()=>{const o=gameplay?.describe(player.position);if(!o)return null;const t=objectTarget(o);if(!o.usable){unusable=t;return null;}return t;},
+    // A counter the player faces wins over a shopkeeper standing next to it.
+    ()=>{const s=nearShop(true);return s?shopTarget({entityId:s.id,name:SHOPS[s.kind].name}):null;},
     ()=>{const n=npcs.talker(player.position);return n?npcTarget(n):null;},
     ()=>nearBoat(boat,player.position.x,player.position.y,player.position.z)?boatTarget(false):null,
     ()=>{if(!gameplay||!player.space)return null;const p=gameplay.activities.digPreview(player.position,player.space,forwardOf());return p?mineWallTarget({...p,rewardName:itemName(p.reward?.itemId)}):null;},
@@ -634,6 +638,9 @@ function draw(now: number) {
         horizon: { ...world.horizon },
         terrainWork: { ...world.terrainWork },
         dressing: world.dressing ? { ...world.dressing } : null,
+        inventory: gameplay ? { ...gameplay.runtime.state.inventory } : null,
+        target: currentTarget()?.primaryAction?.label ?? null,
+        targetId: currentTarget()?.targetId ?? null,
         placed: { ...world.placed.stats },
         paths: { ...world.paths },
         lights: { ...world.lights.stats },
