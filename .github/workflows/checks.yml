@@ -16,6 +16,7 @@ jobs:
           cache: npm
       - run: npm ci --no-audit --no-fund
       - run: npm test
+      - run: npm run check:world-assets
       - run: npm run generate:audio
       - run: git diff --exit-code -- public/audio assets/audio docs/38-AUDIO-V2-INVENTAIRE.md
       - run: npm run check:audio-synth
@@ -23,9 +24,10 @@ jobs:
       - run: git diff --exit-code -- maps/beta.project.json public/maps/beta.json public/maps/beta.project.json
       - run: npm run generate:island
       - run: git diff --exit-code -- maps/island.project.json public/maps/island
+      - run: npm run generate:production-reference
+      - run: git diff --exit-code -- maps/production-reference.project.json public/maps/production-reference.project.json public/maps/production-reference
       - run: npm run generate:b1
       - run: git diff --exit-code -- maps/b1-demo.project.json public/maps/b1-demo.project.json public/maps/b1-demo
-      - run: npm run compile:map -- maps/default.json public/maps/default.json
       - run: git diff --exit-code -- public/maps
       - run: npm run build
       - run: node tools/verify-static-build.mjs
@@ -38,8 +40,6 @@ jobs:
             sleep 1
           done
           curl -fsS http://127.0.0.1:5173/little-world/ > /dev/null
-      - name: Legacy game and editor browser checks
-        run: node tools/run-browser-check.mjs legacy
       - name: Compiled application startup checks
         run: node tools/run-browser-check.mjs published
       - name: Studio browser checks
@@ -76,6 +76,12 @@ jobs:
         run: node tools/run-browser-check.mjs lights
       - name: B1 acceptance walk — obstacles, water, mine, farm, saves (PHYS/WATER/MINE/AGRI)
         run: node tools/run-browser-check.mjs b1
+      - name: World Production landscapes and asset library
+        run: node tools/run-browser-check.mjs landscapes
+      - name: Economy — counter, axe, felling, selling (island)
+        run: node tools/run-browser-check.mjs economy
+      - name: Cliff climbing (island)
+        run: node tools/run-browser-check.mjs climb
       - name: B1 Studio edits and « Jouer ici »
         run: node tools/run-browser-check.mjs b1-studio
       - name: IndexedDB integration

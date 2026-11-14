@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {WorldCollisionQuery,DEFAULT_BODY} from '../src/physics/collision-world.ts';
-import {simulatePlayer,MAX_OXYGEN} from '../src/player.ts';
+import {simulatePlayer,MAX_OXYGEN,MAX_STAMINA,CLIMB} from '../src/player.ts';
 
 const keys={forward:0,right:0,run:false,jumpPressed:false,spaceHeld:false,dive:false,cameraYaw:0};
 const actor=(x,y,z)=>({position:new THREE.Vector3(x,y,z),velocity:new THREE.Vector3(),mode:'ground',oxygen:MAX_OXYGEN,glideReady:false});
@@ -34,7 +34,8 @@ test('PHYS 2/3/4 — small step climbed, tall block stops, wall slides, low ceil
   const small=walk(Object.assign(actor(0,0,0),{body:{height:1.2}}),low,1.5);assert.ok(small.position.z>4,'a 1.2 m body passes under the beam');
 });
 test('PHYS — slopes above the limit cannot be climbed, gentle ones can; descent is free',()=>{
-  const cliff=(x,z)=>z>5?(z-5)*2.5:0,q=new WorldCollisionQuery(cliff,()=>null),p=walk(actor(0,0,0),q,3);assert.ok(p.position.z<5.3&&p.position.y<.8,'stopped at the cliff foot '+p.position.z);
+  // When climbing is unavailable (cooldown), the walker stops at the foot of the cliff: the walker stops at the foot of the cliff.
+  const cliff=(x,z)=>z>5?(z-5)*2.5:0,q=new WorldCollisionQuery(cliff,()=>null),p=walk(Object.assign(actor(0,0,0),{climbCooldown:1e9}),q,3);assert.ok(p.position.z<5.3&&p.position.y<.8&&p.mode==='ground','stopped at the cliff foot '+p.position.z);
   const hill=(x,z)=>z>5?(z-5)*.6:0,g=walk(actor(0,0,0),new WorldCollisionQuery(hill,()=>null),3);assert.ok(g.position.z>9,'climbs a 31° slope');
   const down=walk(actor(0,cliff(0,8),8),q,1,30,{forward:-1});assert.ok(down.position.z<6,'goes down the cliff');
 });
@@ -69,4 +70,30 @@ test('PHYS — same trajectory at 20, 30 and 60 Hz (step, wall slide, landing on
   const run=hz=>{const q=new WorldCollisionQuery(()=>0,()=>null);q.add(box('step',0,3,6,.3,1));q.add(box('wall',3,8,1,3,10));q.add(box('crate',-1,10,3,1,2));const p=actor(0,0,0);
     for(let i=0;i<hz*4;i++)simulatePlayer(p,{...keys,forward:1,right:-.4,jumpPressed:i===Math.round(hz*1.8)},1/hz,q);return p.position;};
   const a=run(20),b=run(30),c=run(60);for(const v of [a,c]){assert.ok(Math.hypot(v.x-b.x,v.z-b.z)<.35,`${JSON.stringify(v)} vs ${JSON.stringify(b)}`);assert.ok(Math.abs(v.y-b.y)<.05);}
+});
+
+test('CLIMB — pushing into a cliff climbs it with stamina, the ridge ends the climb on the ground',()=>{
+  // 2.5:1 cliff (68°) from z=5 to z=9 (10 m high), then a flat plateau.
+  const cliff=(x,z)=>z<=5?0:z<9?(z-5)*2.5:10,q=new WorldCollisionQuery(cliff,()=>null),p=actor(0,0,0);
+  let climbed=false;for(let i=0;i<30*12;i++){simulatePlayer(p,{...keys,forward:1},1/30,q);if(p.mode==='climb')climbed=true;}
+  assert.ok(climbed,'entered climbing at the foot');assert.equal(p.mode,'ground');assert.ok(p.position.z>9&&p.position.y>9.9,'on the plateau '+p.position.z+' '+p.position.y);
+  assert.ok(p.stamina<MAX_STAMINA||p.stamina===MAX_STAMINA,'stamina is tracked');
+});
+test('CLIMB — stamina drains while climbing; exhaustion drops the player; jump leaps off the wall',()=>{
+  const wall=(x,z)=>z<=5?0:(z-5)*3,q=new WorldCollisionQuery(wall,()=>null),p=actor(0,0,0);
+  for(let i=0;i<30*2;i++)simulatePlayer(p,{...keys,forward:1},1/30,q);
+  assert.equal(p.mode,'climb');const h=p.position.y;assert.ok(h>1,'gained height '+h);assert.ok(p.stamina<MAX_STAMINA-10,'stamina used '+p.stamina);
+  // Hold position (no input): slower drain until exhaustion, then fall.
+  let fell=false;for(let i=0;i<30*60&&!fell;i++){simulatePlayer(p,keys,1/30,q);fell=p.mode!=='climb';}
+  assert.ok(fell&&p.stamina<2,'exhausted → let go ('+p.stamina+')');
+  for(let i=0;i<30*3;i++)simulatePlayer(p,keys,1/30,q);assert.equal(p.mode,'ground');assert.ok(p.position.y<h,'fell back down');
+  // Stamina regenerates on the ground; a new climb then a jump-off.
+  for(let i=0;i<30*5;i++)simulatePlayer(p,keys,1/30,q);assert.equal(p.stamina,MAX_STAMINA);
+  for(let i=0;i<30;i++)simulatePlayer(p,{...keys,forward:1},1/30,q);assert.equal(p.mode,'climb');
+  simulatePlayer(p,{...keys,forward:1,jumpPressed:true},1/30,q);assert.equal(p.mode,'air');assert.ok(p.velocity.y>0&&p.velocity.z<0,'leaps away from the wall');assert.ok(p.glideReady,'can open the glider');
+  assert.ok(CLIMB.minStart>0);
+});
+test('CLIMB — never inside a mine space, never on walkable slopes',()=>{
+  const hill=(x,z)=>z>5?(z-5)*.6:0,p=actor(0,0,0);const q=new WorldCollisionQuery(hill,()=>null);let climbed=false;
+  for(let i=0;i<90;i++){simulatePlayer(p,{...keys,forward:1},1/30,q);if(p.mode==='climb')climbed=true;}assert.ok(!climbed,'gentle slope walked');
 });

@@ -10,7 +10,9 @@ import {MINE_CHUNK,MINE_MATERIALS,geologyAt,insidePolygon,type MineZone,type Min
 
 export interface DigRequest {requestId:string;levelId:string;ix:number;iz:number;from:{x:number;y:number;z:number};expectedRevision?:number}
 export type DigResult={ok:true;material:number;reward:{itemId:string;quantity:number}|null;chunks:string[];revision:number}|{ok:false;reason:string};
-export interface MineSaveState {mineId:string;seed:number;geologyVersion:number;levels:Record<string,Record<string,{r:number;b:string}>>;requests:string[]}
+export interface MineSaveState {mineId:string;seed:number;geologyVersion:number;levels:Record<string,Record<string,{r:number;b:string}>>;requests:string[];
+  /** Partially struck cells « levelId:ix:iz » → damage (optional, bounded). */damage?:Record<string,number>}
+export type StrikeResult=DigResult|{ok:true;partial:true;material:number;progress:number;fragment:{itemId:string;quantity:number}|null};
 export const DIG_REACH=2.6;
 const chunkKey=(cx:number,cz:number)=>cx+','+cz;
 
@@ -47,6 +49,7 @@ export class MineState {
   readonly grid:MineGrid;
   private chunks:Map<string,{bits:Uint32Array;revision:number}>[];
   private requests=new Map<string,DigResult>();private order:string[]=[];
+  private damage=new Map<string,number>();
   revision=0;
   constructor(grid:MineGrid){this.grid=grid;this.chunks=grid.levels.map(()=>new Map());}
   excavated(level:number,ix:number,iz:number){const c=this.chunks[level].get(chunkKey(Math.floor(ix/MINE_CHUNK),Math.floor(iz/MINE_CHUNK)));if(!c)return false;const lx=ix-Math.floor(ix/MINE_CHUNK)*MINE_CHUNK,lz=iz-Math.floor(iz/MINE_CHUNK)*MINE_CHUNK;return (c.bits[lz]>>>lx&1)===1;}
@@ -84,11 +87,25 @@ export class MineState {
     this.requests.set(req.requestId,result);this.order.push(req.requestId);if(this.order.length>256)this.requests.delete(this.order.shift()!);
     return result;
   }
+  /** Damage already dealt to a wall cell (0 when intact). */
+  damageAt(level:number,ix:number,iz:number){return this.damage.get(`${this.grid.levels[level].id}:${ix}:${iz}`)??0;}
+  /** One strike of `power` on a wall cell: accumulates damage (cells have 20 … 500 hp), may break
+   * off a fragment of the resource, and digs the cell (full reward) when the damage reaches its
+   * hit points. Same validation as `dig`; the fragment is granted before anything is written. */
+  strike(req:DigRequest,power:number,grant:(reward:{itemId:string;quantity:number})=>boolean):StrikeResult{
+    const verdict=this.check(req);if(!verdict.ok)return {ok:false,reason:verdict.reason};
+    const level=this.grid.levelIndex(req.levelId),info=MINE_MATERIALS[verdict.material],key=`${req.levelId}:${req.ix}:${req.iz}`,dealt=(this.damage.get(key)??0)+Math.max(1,power);
+    if(dealt>=info.hp){this.damage.delete(key);return this.dig(req,grant);}
+    let fragment:{itemId:string;quantity:number}|null=null;
+    if(info.item&&strikeNoise(level,req.ix,req.iz,dealt)<info.fragment){fragment={itemId:info.item,quantity:1};if(!grant(fragment))fragment=null;}
+    this.damage.set(key,dealt);if(this.damage.size>256)this.damage.delete(this.damage.keys().next().value!);
+    return {ok:true,partial:true,material:verdict.material,progress:dealt/info.hp,fragment};
+  }
   /** Differences only: excavated bitsets per level/chunk (base64) + revisions + recent request ids. */
   serialize():MineSaveState{
     const levels:MineSaveState['levels']={};
     this.grid.levels.forEach((l,i)=>{const out:Record<string,{r:number;b:string}>={};for(const [k,c]of this.chunks[i])out[k]={r:c.revision,b:encodeBits(c.bits)};if(Object.keys(out).length)levels[l.id]=out;});
-    return {mineId:this.grid.zone.id,seed:this.grid.zone.mine.seed,geologyVersion:this.grid.zone.mine.geologyVersion,levels,requests:this.order.slice(-64)};
+    return {mineId:this.grid.zone.id,seed:this.grid.zone.mine.seed,geologyVersion:this.grid.zone.mine.geologyVersion,levels,requests:this.order.slice(-64),...(this.damage.size?{damage:Object.fromEntries(this.damage)}:{})};
   }
   /** Restores excavations (also after a geology change: dug cells never reappear). Returns warnings. */
   restore(save:MineSaveState):string[]{
@@ -97,14 +114,18 @@ export class MineState {
     this.chunks=this.grid.levels.map(()=>new Map());this.revision=0;this.requests.clear();this.order=[];
     for(const [levelId,chunks]of Object.entries(save.levels)){const level=this.grid.levelIndex(levelId);if(level<0){warnings.push('Niveau supprimé : '+levelId);continue;}
       for(const [key,c]of Object.entries(chunks)){if(!/^-?\d+,-?\d+$/.test(key)||!Number.isInteger(c.r)||c.r<0)throw Error('Chunk de mine invalide');this.chunks[level].set(key,{bits:decodeBits(c.b),revision:c.r});this.revision+=c.r;}}
+    this.damage=new Map(Object.entries(save.damage??{}));
     for(const id of save.requests){this.order.push(id);this.requests.set(id,{ok:false,reason:'Demande déjà traitée'});}
     return warnings;
   }
 }
+/** Deterministic 0..1 noise of a strike (fragments do not depend on the frame rate or order). */
+function strikeNoise(level:number,ix:number,iz:number,dealt:number){let h=Math.imul(ix,0x27d4eb2d)^Math.imul(iz,0x165667b1)^Math.imul(level+1,0x9e3779b1)^Math.imul(dealt,0x85ebca6b);h=Math.imul(h^(h>>>15),0x2c1b3c6d);h^=h>>>13;return (h>>>0)/4294967296;}
 function encodeBits(bits:Uint32Array){const bytes=new Uint8Array(bits.buffer.slice(0));let s='';for(const b of bytes)s+=String.fromCharCode(b);return btoa(s);}
 function decodeBits(text:string){const s=atob(text);if(s.length!==MINE_CHUNK*4)throw Error('Chunk de mine corrompu');const bytes=new Uint8Array(s.length);for(let i=0;i<s.length;i++)bytes[i]=s.charCodeAt(i);return new Uint32Array(bytes.buffer);}
 export function parseMineSave(value:unknown):MineSaveState{
   const v=value as MineSaveState;if(!v||typeof v!=='object'||typeof v.mineId!=='string'||!Number.isFinite(v.seed)||!Number.isFinite(v.geologyVersion)||!v.levels||typeof v.levels!=='object'||!Array.isArray(v.requests)||v.requests.length>64||!v.requests.every(r=>typeof r==='string'&&r.length<=128))throw Error('État de mine invalide');
+  if(v.damage!==undefined&&(typeof v.damage!=='object'||Object.keys(v.damage).length>256||!Object.entries(v.damage).every(([k,d])=>/^[a-zA-Z0-9_:.-]+:-?\d+:-?\d+$/.test(k)&&Number.isFinite(d)&&d>=0&&d<=1000)))throw Error('État de mine invalide');
   for(const chunks of Object.values(v.levels))for(const c of Object.values(chunks)){if(!c||typeof c.b!=='string'||c.b.length!==172||!Number.isInteger(c.r))throw Error('État de mine invalide');}
   return structuredClone(v);
 }

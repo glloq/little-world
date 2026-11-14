@@ -32,7 +32,7 @@ try{
   check((await undoTitle()).includes('Tracer le trajet'),'Enter commits the route as one transaction');
   await page.getByText(/Trajet : 4 point\(s\)/).waitFor();check(true,'Route (start + 3 clicks) is stored and shown in the inspector');
   // E5 — object + one-click collectable interaction from the inspector.
-  await page.getByRole('button',{name:'Objets',exact:true}).click();await page.getByRole('button',{name:'Placer : Lanterne'}).click();const lamp=at(70,90);await page.mouse.move(lamp.x,lamp.y,{steps:3});await page.mouse.click(lamp.x,lamp.y);
+  await page.getByRole('button',{name:'Objets',exact:true}).click();await page.getByRole('button',{name:'Placer : Lanterne',exact:true}).click();const lamp=at(70,90);await page.mouse.move(lamp.x,lamp.y,{steps:3});await page.mouse.click(lamp.x,lamp.y);
   await page.waitForFunction(()=>document.querySelector('#inspector h3')?.textContent==='Lanterne');await page.keyboard.press('Escape');
   await page.getByLabel('Ressource ramassée').fill('Lanterne');await page.getByRole('button',{name:'Rendre collectable'}).click();await page.getByText(/Objet collectable/).waitFor();
   check((await undoTitle()).includes('Rendre collectable'),'One-click collectable is an undoable transaction');

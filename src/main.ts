@@ -1,6 +1,8 @@
 import {MINE_MATERIALS} from './mine/mine-data.ts';
 import type {GameUi} from './ui/app/game-ui.ts';
-import {resolveTarget,objectTarget,npcTarget,boatTarget,mineWallTarget,farmPlotTarget,type TargetDescriptor} from './ui/interactions/targets.ts';
+import {resolveTarget,objectTarget,npcTarget,boatTarget,mineWallTarget,farmPlotTarget,shopTarget,gatherTarget,fishingTarget,type TargetDescriptor} from './ui/interactions/targets.ts';
+import {SHOPS,type ShopKind} from './gameplay/economy.ts';
+import {geoContext} from './geography/engine.ts';
 import {MATERIAL_BY_MINE_KEY} from './audio/context.ts';
 import { geoWorkerPool } from './geography/geo-workers.ts';
 import type {AudioController} from './audio/view.ts';
@@ -18,10 +20,11 @@ import {createClimate,defaultEnvironment} from './environment/climate.ts';
 import type {GameplayView} from './gameplay/game-view.ts';
 import { addPlacement, buildWorld, configureScene } from './world';
 import { horizonFar } from './horizon-view';
-import { defaultWorld, parseWorld } from './world-data';
+import { defaultWorld } from './world-data';
 import { createNPCSystem } from './npc-view';
 import {
   MAX_OXYGEN,
+  MAX_STAMINA,
   simulatePlayer,
   spawnPlayer,
   type Controls,
@@ -102,12 +105,14 @@ renderer.toneMappingExposure = 1.1;
 renderer.domElement.tabIndex=0;
 viewport.appendChild(renderer.domElement);
 const searchParams = new URLSearchParams(window.location.search);
-const isPreview = searchParams.get('preview') === '1',
-  metricsEnabled = searchParams.has('metrics');
+const metricsEnabled = searchParams.has('metrics');
+/** Home page: the published island (complete game). Test maps stay reachable with ?world= / ?beta=1. */
+const DEFAULT_WORLD='maps/island/manifest.json';
+const worldPath=searchParams.get('world')??(searchParams.has('studioPreview')||searchParams.has('studioBuild')||searchParams.get('beta')==='1'?null:DEFAULT_WORLD);
 let definition = defaultWorld();
 let playable:PlayableWorld|null=null,studioTest:StudioPlaytest|null=null,buildScope:string|null=null;
 function bootFailure(error:unknown):never{overlay.setAttribute('aria-busy','false');overlay.querySelector('h1')!.textContent='Impossible d’ouvrir cette partie';overlay.querySelector('p')!.textContent=String(error);start.disabled=true;throw error;}
-if(searchParams.has('studioBuild')||searchParams.has('world')){
+if(searchParams.has('studioBuild')||worldPath){
   // Compiled V3 reader: the same path for published worlds and Studio test builds.
   try{
     const {openCompiledWorld,playableFromCompiled,publishedManifestURL}=await import('./runtime/compiled-world.ts');
@@ -118,7 +123,7 @@ if(searchParams.has('studioBuild')||searchParams.has('world')){
     }else{
       // Optional control viewpoint (audit §6: sea→volcano, rim→coasts…) for reproducible checks.
       const view=(searchParams.get('spawn')??'').split(',').map(Number),spawn=view.length===2&&view.every(Number.isFinite)?{x:view[0],y:0,z:view[1]}:undefined;
-      playable=playableFromCompiled(await openCompiledWorld(publishedManifestURL(import.meta.env.BASE_URL,searchParams.get('world')!)),spawn);
+      playable=playableFromCompiled(await openCompiledWorld(publishedManifestURL(import.meta.env.BASE_URL,worldPath!)),spawn);
     }
     definition=playable.world;
     // Render tile size is a renderer parameter, distinct from authored sectors (benchmarks compare 64/128/256 m).
@@ -131,42 +136,32 @@ if(searchParams.has('studioBuild')||searchParams.has('world')){
     else{const response=await fetch(import.meta.env.BASE_URL+'maps/beta.json');if(!response.ok)throw Error('Monde bêta indisponible');playable=parsePlayableWorld(await response.json());}
     definition=playable.world;
   }catch(error){overlay.setAttribute('aria-busy','false');overlay.querySelector('h1')!.textContent='Impossible d’ouvrir cette partie';overlay.querySelector('p')!.textContent=String(error);start.disabled=true;throw error;}
-}else if (isPreview) {
-  try {
-    const raw = sessionStorage.getItem('little-world-preview');
-    if (raw) definition = parseWorld(JSON.parse(raw));
-  } catch (e) {
-    console.warn('Prévisualisation invalide : carte par défaut utilisée', e);
-  }
-} else {
-  try {
-    const response = await fetch(
-      import.meta.env.BASE_URL + 'maps/default.json',
-    );
-    if (response.ok) definition = parseWorld(await response.json());
-  } catch (e) {
-    console.warn('Carte publiée indisponible : vallée intégrée utilisée', e);
-  }
 }
 const world = buildWorld(definition.config, definition);
 world.setDetail(budget.level, quality.value === 'low');
 // Far plane follows the project diagonal: silhouettes stay visible without fog (near plane unchanged).
 camera.far=horizonFar(getTerrainConfig().width,getTerrainConfig().length);camera.updateProjectionMatrix();
-for (const item of definition.placements) addPlacement(world, item);
+// World Production: repeated structural modules share instanced batches; anything with gameplay
+// state or an interaction keeps its own object (doors, collectibles…).
+const statefulIds = new Set((playable?.gameplay.entities ?? []).filter((e) => e.interactable || Object.keys(e.initialState).length).map((e) => e.id));
+for (const item of definition.placements) if (statefulIds.has(item.id) || !world.placed.add(item)) addPlacement(world, item);
 scene.add(world.root);
 const player = spawnPlayer();
 if(playable)player.position.set(playable.spawn.x,terrainHeight(playable.spawn.x,playable.spawn.z)+playable.spawn.y+.02,playable.spawn.z);
 let audio:AudioController|null=null;
 // AUD-V2: the valley uses the V2 catalogue (static files loaded on demand); playable maps may still carry V1 audio (migrated in memory).
-try{const {parseAnyAudioDefinition}=await import('./audio/migrate.ts');let definition=playable?.audio;if(!playable){for(const file of ['audio/catalog.json','audio/default.json']){const response=await fetch(import.meta.env.BASE_URL+file).catch(()=>null);if(response?.ok){definition=parseAnyAudioDefinition(await response.json());break;}}}if(definition){const {createAudioController}=await import('./audio/view.ts');audio=createAudioController(definition,{baseUrl:import.meta.env.BASE_URL});}}catch{console.warn('Audio indisponible : le jeu reste silencieux.');}
+try{const {parseAnyAudioDefinition}=await import('./audio/migrate.ts');let definition=playable?.audio;if(!definition){for(const file of ['audio/catalog.json','audio/default.json']){const response=await fetch(import.meta.env.BASE_URL+file).catch(()=>null);if(response?.ok){definition=parseAnyAudioDefinition(await response.json());break;}}}if(definition){const {createAudioController}=await import('./audio/view.ts');audio=createAudioController(definition,{baseUrl:import.meta.env.BASE_URL});}}catch{console.warn('Audio indisponible : le jeu reste silencieux.');}
 const {createGroundProbe}=await import('./audio/world-probe.ts'),groundProbe=createGroundProbe();
 let gameplay:GameplayView|null=null;
 if(playable){
   const {createGameplayView}=await import('./gameplay/game-view.ts');
   gameplay=createGameplayView(playable.gameplay,{onSound:(id,p)=>audio?.playSound(id,p),collisions:playable.collisions,temporary:!!(studioTest||buildScope),saveScope:studioTest?.snapshotId??buildScope??undefined,getPosition:()=>({x:player.position.x,y:player.position.y,z:player.position.z}),objects:world.objects,showInfo,
     activities:playable.activities,getSpace:()=>player.space,
+    ...(isLegacyTerrain()?{}:{gathering:{ctx:geoContext,seed:definition.config.seed,inside:(x:number,z:number)=>Math.abs(x)<=(definition.config.width??200)/2&&Math.abs(z)<=(definition.config.length??600)/2}}),
     setPosition:(p,space)=>{player.space=space??undefined;player.position.set(p.x,p.y,p.z);player.velocity.set(0,0,0);player.mode='air';player.oxygen=MAX_OXYGEN;player.glideReady=false;aboard=false;keySet.clear();jumpQueue=0;actionQueue=0;npcs.dialogue.close();previousPlayerPosition.copy(player.position);renderPosition.copy(player.position);updateCamera(1);}
   });
+  if(metricsEnabled){const g=gameplay;Object.assign(window,{littleWorldDebug:{/** Developer/test hook (metrics mode only): give items. */grant:(itemId:string,quantity:number)=>g.runtime.grantItems([{itemId,quantity}])}});}
+  if(gameplay.gathering){const gather=gameplay.gathering;world.setDressingFilter((cx,cz,kind,index)=>gather.hiddenAt(cx,cz,kind,index));gather.subscribe(()=>world.redrawDressing());}
 }
 const npcs = createNPCSystem(scene, definition.npcs,isLegacyTerrain()?undefined:[],gameplay?.dialogueSession);
 gameplay?.attachNPCs(npcs.states);
@@ -188,13 +183,13 @@ world.lights.setEnvironment(nightFactor(climate.state(worldClock.time).sunAltitu
 // Mines and farm plots: procedural stand-ins, lanterns join the E10 light pool.
 const activityView=gameplay&&(gameplay.activities.mines.size||gameplay.activities.farms.size)?(await import('./activity-view.ts')).createActivityView(scene,gameplay.activities,terrainHeight):null;
 if(activityView&&!searchParams.has('lightBench'))world.refreshLights([...(definition.lights??[]),...activityView.lights]);
-let activityQueue=0,cropQueue=0;
+let activityQueue=0,cropQueue=0,strikeTimer=0;
 world.update(0, player.position);
 {
   const {createGameUi}=await import('./ui/app/game-ui.ts'),c=getTerrainConfig();
   gameUi=createGameUi({gameplay,npcs,audio,quality:document.querySelector<HTMLSelectElement>('#quality'),temporary:!!(studioTest||buildScope),studioUrl:import.meta.env.BASE_URL+'studio/',
     world:{name:definition.name,buildVersion:gameplay?.runtime.data.buildVersion??'vallée',dayLength:climate.definition.dayLengthSeconds,bounds:{minX:-c.width/2,maxX:c.width/2,minZ:-c.length/2,maxZ:c.length/2},seaLevel:c.seaLevel,height:terrainHeight,water:waterSurface},
-    player:()=>({x:player.position.x,y:player.position.y,z:player.position.z,yaw,space:player.space,mode:player.mode,oxygen:player.oxygen,maxOxygen:MAX_OXYGEN}),
+    player:()=>({x:player.position.x,y:player.position.y,z:player.position.z,yaw,space:player.space,mode:player.mode,oxygen:player.oxygen,maxOxygen:MAX_OXYGEN,stamina:player.stamina??MAX_STAMINA,maxStamina:MAX_STAMINA}),
     target:()=>currentTarget(),
     home:()=>{started=false;gameUi?.controller.close();keySet.clear();overlay.classList.remove('hide');start.focus();}});
 }
@@ -221,6 +216,8 @@ let started = false;
 let elapsed = 0;
 // Generated worlds start on a coast: face the island centre rather than the open sea.
 if(playable&&!isLegacyTerrain()){const yawParam=Number(searchParams.get('yaw'));yaw=searchParams.has('yaw')&&Number.isFinite(yawParam)?yawParam:Math.atan2(-player.position.x,-player.position.z);}
+// Reproducible control viewpoints (World Production captures): camera pitch and distance.
+{const p=Number(searchParams.get('pitch')),d=Number(searchParams.get('dist'));if(searchParams.has('pitch')&&Number.isFinite(p))pitch=Math.max(-.3,Math.min(1.4,p));if(searchParams.has('dist')&&Number.isFinite(d))distance=Math.max(2,Math.min(600,d));}
 const previousPlayerPosition = player.position.clone(),
   renderPosition = player.position.clone();
 let presentedFrames = 0;
@@ -304,7 +301,7 @@ window.addEventListener('keydown', (e) => {
   keySet.add(e.code);
   if (e.code === 'Space') jumpQueue++;
   if (e.code === 'KeyE') actionQueue++;
-  if (e.code === 'KeyF') activityQueue++;
+  if (e.code === 'KeyF' && !e.repeat) activityQueue++;
   if (e.code === 'KeyC') cropQueue++;
   if (e.code === 'KeyR' && started) {
     const reset = spawnPlayer();
@@ -408,15 +405,56 @@ function updateCamera(dt: number) {
  * (boat → usable object → inhabitant → boat to board → mine wall → farm plot → unusable object). */
 const forwardOf=()=>({x:Math.sin(yaw),z:Math.cos(yaw)});
 const itemName=(id?:string)=>id?gameplay?.runtime.data.items.find(i=>i.id===id)?.name??id:undefined;
+const WATER_NAMES:Record<string,string>={sea:'Mer',river:'Rivière',lake:'Lac'};
+/** Shop counter entity near the player (entity state `shop` = kind of counter). */
+function nearShop(facing=false):{id:string;kind:ShopKind}|null{
+  if(!gameplay||player.space)return null;let best:{id:string;kind:ShopKind}|null=null,bd=3.2;const f=forwardOf();
+  for(const e of gameplay.runtime.data.entities){const kind=e.initialState.shop;if(typeof kind!=='string'||!(kind in SHOPS)||!e.position)continue;const dx=e.position.x-player.position.x,dz=e.position.z-player.position.z,d=Math.hypot(dx,dz);
+    if(facing&&d>.5&&(dx*f.x+dz*f.z)/d<.6)continue;if(d<bd){bd=d;best={id:e.id,kind:kind as ShopKind};}}
+  return best;
+}
+/** Water surface 2.5–6 m in front of a standing player (sea, river or lake). */
+function fishingSpot():{kind:'sea'|'river'|'lake';x:number;z:number}|null{
+  if(player.mode!=='ground')return null;const f=forwardOf(),sea=getTerrainConfig().seaLevel;
+  for(const d of [2.5,3.5,4.5,6]){const x=player.position.x+f.x*d,z=player.position.z+f.z*d,w=waterSurface(x,z),h=terrainHeight(x,z);if(w!==null&&w>h+.4)return {kind:Math.abs(w-sea)<.05&&h<sea?'sea':waterSurface(x,z)!==null&&isLakeAt(x,z)?'lake':'river',x,z};}
+  return null;
+}
+function isLakeAt(x:number,z:number){return !!definition.water?.some(w=>w.kind==='lake'&&insidePolygonXZ(w.points,x,z));}
+function insidePolygonXZ(pts:{x:number;z:number}[],x:number,z:number){let inside=false;for(let i=0,j=pts.length-1;i<pts.length;j=i++){const a=pts[i],b=pts[j];if((a.z>z)!==(b.z>z)&&x<(b.x-a.x)*(z-a.z)/(b.z-a.z)+a.x)inside=!inside;}return inside;}
+/** One gathering action (E/F): strike/pick, validated by the gathering rules. */
+function runGather(){
+  if(!gameplay?.gathering)return;const r=gameplay.gathering.act(player.position,forwardOf());
+  if(!r.ok){showInfo(r.message,'warning');audio?.emit('ui.error',{source:'ui'});return;}
+  if(!r.done)showInfo(r.message);
+  audio?.emit(r.target?.rule.action==='fell'?'mine.tool.strike':'farm.harvest',{position:player.position,source:'player'});
+}
+/** Fishing: cast (E), wait for the bite, strike (E) in time. */
+function runFishing(){
+  if(!gameplay)return;const f=gameplay.fishing,now=elapsed;
+  if(f.state.phase==='idle'){const spot=fishingSpot();if(!spot)return;if(!gameplay.has('tool:fishing-rod')){showInfo('Il faut une canne à pêche','warning');return;}f.cast(spot.kind,spot,now);showInfo('Ligne lancée… attendez que ça morde.');return;}
+  const biting=f.state.phase==='bite',fish=f.strike();if(!fish){showInfo(biting?'Raté !':'Ligne relevée (trop tôt).','warning');return;}
+  if(!gameplay.runtime.grantItems([{itemId:fish,quantity:1}]))showInfo('Sac plein','warning');
+}
+function updateFishing(){
+  if(!gameplay)return;const f=gameplay.fishing;if(f.state.phase==='idle')return;
+  if(f.state.castAt&&(Math.hypot(f.state.castAt.x-player.position.x,f.state.castAt.z-player.position.z)>8||player.mode!=='ground')){f.cancel();showInfo('Ligne relevée.');return;}
+  const r=f.update(elapsed);if(r==='bite'){showInfo('Ça mord ! Appuyez sur E','success');audio?.emit('ui.confirm',{source:'ui'});}else if(r==='lost')showInfo('Le poisson s’est échappé…','warning');
+}
 function currentTarget():TargetDescriptor|null{
   if(!started)return null;
   let unusable:TargetDescriptor|null=null;
   return resolveTarget([
     ()=>aboard?boatTarget(true):null,
     ()=>{const o=gameplay?.describe(player.position);if(!o)return null;const t=objectTarget(o);if(!o.usable){unusable=t;return null;}return t;},
+    // A counter the player faces wins over a shopkeeper standing next to it.
+    ()=>{const s=nearShop(true);return s?shopTarget({entityId:s.id,name:SHOPS[s.kind].name}):null;},
     ()=>{const n=npcs.talker(player.position);return n?npcTarget(n):null;},
     ()=>nearBoat(boat,player.position.x,player.position.y,player.position.z)?boatTarget(false):null,
     ()=>{if(!gameplay||!player.space)return null;const p=gameplay.activities.digPreview(player.position,player.space,forwardOf());return p?mineWallTarget({...p,rewardName:itemName(p.reward?.itemId)}):null;},
+    ()=>{const s=nearShop();return s?shopTarget({entityId:s.id,name:SHOPS[s.kind].name}):null;},
+    ()=>{if(!gameplay||player.space||aboard)return null;const f=fishingSpot();if(!f&&gameplay.fishing.state.phase==='idle')return null;const has=gameplay.has('tool:fishing-rod');return fishingTarget({phase:gameplay.fishing.state.phase,water:f?WATER_NAMES[f.kind]:'',ok:has||gameplay.fishing.state.phase!=='idle',reason:'Il faut une canne à pêche (comptoir du port ou marché)'});},
+    ()=>{if(!gameplay?.gathering||player.space||aboard)return null;const t=gameplay.gathering.target(player.position,forwardOf());if(!t)return null;const ok=!t.rule.tool||gameplay.has(t.rule.tool);
+      return gatherTarget({key:t.key,label:t.rule.label,name:gameplay.itemName(t.rule.yields.itemId),ok,reason:'Il faut une hache (comptoir du bûcheron ou marché)',progress:t.rule.strikes>1&&t.hits?`${t.hits}/${t.rule.strikes}`:undefined});},
     ()=>{if(!gameplay||player.space)return null;const plot=gameplay.activities.farmNear(player.position);if(!plot)return null;const pv=gameplay.activities.farmPreview(plot.zone.id)!;return farmPlotTarget({zoneId:plot.zone.id,zoneName:plot.zone.name,intent:pv.intent,ok:pv.ok,reason:pv.reason,choices:plot.zone.farm.crops.length});},
     ()=>unusable,
   ]);
@@ -447,6 +485,7 @@ function updateHud() {
     glide: 'En planage',
     swim: 'Nage',
     dive: 'Plongée',
+    climb: 'Escalade',
   };
   status.textContent = aboard ? 'Navigation en bateau' : labels[player.mode];
   coords.textContent = `X ${player.position.x.toFixed(0)} m · Z ${player.position.z.toFixed(0)} m · H ${player.position.y.toFixed(1)} m`;
@@ -478,7 +517,10 @@ function tick(dt: number) {
     if(player.transitioned){previousPlayerPosition.copy(player.position);renderPosition.copy(player.position);}
     if (keys.jumpPressed) jumpQueue = Math.max(0, jumpQueue - 1);
   }
-  if(activityQueue>0&&gameplay&&!aboard){activityQueue=0;if(player.space)runDig();else runFarm();}
+  // F: activity in front (dig, fell/pick, farm). Holding F repeats strikes (≈ 3.5 per second).
+  if(gameplay&&!aboard&&keySet.has('KeyF')){strikeTimer-=dt;if(strikeTimer<=0){strikeTimer=.28;activityQueue=Math.max(activityQueue,1);}}else strikeTimer=0;
+  if(activityQueue>0&&gameplay&&!aboard){activityQueue=0;if(player.space)runDig();else if(gameplay.activities.farmNear(player.position))runFarm();else runGather();}
+  updateFishing();
   if(cropQueue>0&&gameplay){cropQueue=0;const plot=gameplay.activities.farmNear(player.position,player.space);if(plot){const name=gameplay.activities.cycleCrop(plot.zone.id);if(name){showInfo('Culture choisie : '+name);audio?.emit('farm.seedbag',{source:'player'});}}}
   if (actionQueue > 0) {
     actionQueue = 0;
@@ -518,6 +560,9 @@ function tick(dt: number) {
       showInfo('Bateau : Z/S pour naviguer, Q/D pour tourner, E pour descendre');
     } else if (target?.targetType === 'mine-wall') runDig();
     else if (target?.targetType === 'farm-plot') runFarm();
+    else if (target?.targetType === 'gather') runGather();
+    else if (target?.targetType === 'fishing') runFishing();
+    else if (target?.targetType === 'shop') { const s = nearShop(); if (s) gameUi?.openShop(s.kind); }
   }
 }
 function draw(now: number) {
@@ -581,6 +626,10 @@ function draw(now: number) {
         horizon: { ...world.horizon },
         terrainWork: { ...world.terrainWork },
         dressing: world.dressing ? { ...world.dressing } : null,
+        inventory: gameplay ? { ...gameplay.runtime.state.inventory } : null,
+        target: currentTarget()?.primaryAction?.label ?? null,
+        targetId: currentTarget()?.targetId ?? null,
+        placed: { ...world.placed.stats },
         paths: { ...world.paths },
         lights: { ...world.lights.stats },
         activities: activityView&&gameplay ? { ...activityView.stats, space: player.space ?? null,
@@ -592,6 +641,8 @@ function draw(now: number) {
         audio:audio?.engine.metrics??null,
         collisions:gameplay?.collision.stats??null,
         position: player.position.toArray(),
+        mode: player.mode,
+        stamina: player.stamina ?? MAX_STAMINA,
         camera:{position:camera.position.toArray(),quaternion:camera.quaternion.toArray(),fov:camera.fov,aspect:camera.aspect,far:camera.far},
         legacyTerrain:isLegacyTerrain(),
         background:scene.background instanceof THREE.Color?scene.background.getHex(THREE.SRGBColorSpace):null,

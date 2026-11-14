@@ -16,7 +16,7 @@ export function compiledResources(html, page = 'index.html') {
 
 export async function verifyStaticBuild(directory = 'dist') {
   const root = resolve(directory);
-  for (const page of ['index.html', 'studio/index.html', 'editor/index.html']) {
+  for (const page of ['index.html', 'studio/index.html']) {
     const html = await readFile(resolve(root, page), 'utf8');
     for (const url of compiledResources(html, page)) {
       const file = resolve(root, url.slice('/little-world/'.length));
@@ -24,12 +24,12 @@ export async function verifyStaticBuild(directory = 'dist') {
       assert.ok((await stat(file)).isFile(), `Ressource absente : ${url}`);
     }
   }
-  for (const asset of ['models/pine.glb', 'models/rock.glb', 'models/crate.glb', 'maps/default.json', 'maps/island/manifest.json']) {
+  for (const asset of ['models/pine.glb', 'models/rock.glb', 'models/crate.glb', 'maps/island/manifest.json']) {
     assert.ok((await stat(resolve(root, asset))).isFile(), `Ressource absente : ${asset}`);
   }
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === resolve(new URL(import.meta.url).pathname)) {
   await verifyStaticBuild(process.argv[2]);
-  console.log('Build statique validé : jeu, Studio et éditeur utilisent les JS/CSS compilés.');
+  console.log('Build statique validé : jeu et Studio utilisent les JS/CSS compilés.');
 }

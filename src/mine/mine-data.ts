@@ -14,15 +14,17 @@ export interface MineSettingsV3 {seed:number;geologyVersion:1;entrance:{x:number
 export interface MineZone {id:string;name:string;polygon:PointXZ[];mine:MineSettingsV3}
 
 /** Materials: palette versioned with the geology (never 256 kinds of 3D objects). */
-export interface MineMaterial {id:number;key:string;name:string;color:number;diggable:boolean;item?:string}
+/** `hp` = hit points of a cell (20 … 500): strikes remove `power` each (hands 2, pickaxe 8, steel 25).
+ * `fragment` = chance per non-final strike to break off one unit of the cell's resource. */
+export interface MineMaterial {id:number;key:string;name:string;color:number;diggable:boolean;item?:string;hp:number;fragment:number}
 export const MINE_MATERIALS:MineMaterial[]=[
-  {id:0,key:'air',name:'Vide',color:0,diggable:false},
-  {id:1,key:'dirt',name:'Terre',color:0x7a5a3e,diggable:true},
-  {id:2,key:'rock',name:'Roche',color:0x7d7a76,diggable:true,item:'mine:stone'},
-  {id:3,key:'hard',name:'Roche dure',color:0x5c5a5f,diggable:true,item:'mine:stone'},
-  {id:4,key:'iron',name:'Filon de fer',color:0xa0643c,diggable:true,item:'mine:iron'},
-  {id:5,key:'crystal',name:'Cristal',color:0x63c7d8,diggable:true,item:'mine:crystal'},
-  {id:6,key:'bedrock',name:'Roche mère (protégée)',color:0x3a3638,diggable:false},
+  {id:0,key:'air',name:'Vide',color:0,diggable:false,hp:0,fragment:0},
+  {id:1,key:'dirt',name:'Terre',color:0x7a5a3e,diggable:true,hp:20,fragment:0},
+  {id:2,key:'rock',name:'Roche',color:0x7d7a76,diggable:true,item:'mine:stone',hp:60,fragment:.15},
+  {id:3,key:'hard',name:'Roche dure',color:0x5c5a5f,diggable:true,item:'mine:stone',hp:150,fragment:.12},
+  {id:4,key:'iron',name:'Filon de fer',color:0xa0643c,diggable:true,item:'mine:iron',hp:220,fragment:.06},
+  {id:5,key:'crystal',name:'Cristal',color:0x63c7d8,diggable:true,item:'mine:crystal',hp:500,fragment:.03},
+  {id:6,key:'bedrock',name:'Roche mère (protégée)',color:0x3a3638,diggable:false,hp:0,fragment:0},
 ];
 export const MINE_ITEMS=[{id:'mine:stone',name:'Pierre',category:'mine',maxQuantity:999,description:'Roche taillée en creusant les galeries.'},{id:'mine:iron',name:'Minerai de fer',category:'mine',maxQuantity:999,description:'Extrait des filons rouillés des mines.'},{id:'mine:crystal',name:'Cristal',category:'mine',maxQuantity:999,description:'Rare, il brille dans les amas des parois.'}];
 

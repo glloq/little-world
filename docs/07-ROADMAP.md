@@ -4,7 +4,13 @@
 
 **Documents de cadrage prioritaires :** [12 — Limites du jeu](12-PROJECT-SCOPE.md), [13 — UX du Studio](13-STUDIO-UX-ARCHITECTURE.md), [14 — Décisions techniques validées](14-TECHNICAL-CHOICES.md) et **[15 — Schémas V3 du Studio](15-STUDIO-DATA-SCHEMAS-V3.md)**. Le **200 × 600 m** des jalons M0–M6 est la carte de démonstration ; le monde final est **une carte continue de 10 × 10 km maximum**, performance à qualifier.
 
-## Priorité actualisée — île de 3 × 8 km
+## Priorité actualisée — jeu complet V1 (14 novembre 2026)
+
+Nouveaux objectifs et état détaillé : **[42 — Jeu complet V1](42-JEU-COMPLET-V1.md)**. Implémenté et testé **sur branche** (PR #15, non publié sur `main`) : économie (pièces, 6 types de comptoirs), cueillette, abattage, pêche, mine à points de vie et rendu organique, agriculture par semences, escalade avec endurance, écureuil allégé, kit de 37 modèles originaux, ville au château fortifiée, bois et clairières, 28 coffres cachés, suppression de l’ancien éditeur et de l’ancienne vallée (le Studio est le seul éditeur, la page d’accueil ouvre l’île).
+
+Suite proposée : **G6 qualification performance** → G7 quêtes en chaîne → G8 styles de villes → G9 falaises GLB grimpables → G10 outils visibles → G11 agriculture approfondie → G12 revue artistique (gates dans [42 §5](42-JEU-COMPLET-V1.md#5-feuille-de-route-suite)).
+
+## Priorité précédente — île de 3 × 8 km
 
 La demande du 13 novembre 2026 priorise le **Studio de production** et la **visibilité continue du paysage** pour une île avec volcan, rivières, forêt, village, parcelles et mine. L’[audit 30](30-AUDIT-BETA-ILE-3X8-STUDIO-RENDU.md) confronte le code publié aux contrats, liste les manques et fixe un ordre de lots proposé : lecteur V3/géographie/horizon, streaming sous budget, outils de production, activités et qualification. La scène de 1 km² reste une référence de régression. **Cet ajout est un plan, aucune implémentation n’est démarrée.**
 

@@ -9,11 +9,15 @@ import {MINE_MATERIALS,insidePolygon,type MineZone} from '../mine/mine-data.ts';
 import {MineGrid,MineState,DIG_REACH,type MineSaveState} from '../mine/mine-state.ts';
 import {mineSpaceProvider,mineTransitions} from '../mine/mine-collision.ts';
 import {CROPS,type FarmZone} from '../farm/farm-data.ts';
+import {pickPower} from './economy.ts';
 import {newPlotState,evaluate,act,publicView,type FarmPlotState} from '../farm/farm-sim.ts';
 
 export type ActivityChange={kind:'mine';mineId:string;level:number;chunks:string[]}|{kind:'farm';plotId:string};
 export interface MineTarget {mineId:string;level:number;ix:number;iz:number;material:number}
-interface Deps {grant(changes:{itemId:string;quantity:number}[]):boolean;time():number;climate:ClimateHistory;collision:WorldCollisionQuery;ground(x:number,z:number):number;water(x:number,z:number):number|null}
+interface Deps {grant(changes:{itemId:string;quantity:number}[]):boolean;
+  /** Carried item test (tools: pickaxe power). Absent = bare hands. */has?(itemId:string):boolean;
+  /** Seed packet item of a crop when the game economy defines it (sowing then consumes one,
+   * a harvest returns one). Absent or null = free sowing (worlds without economy). */seedItem?(cropId:string):string|null;time():number;climate:ClimateHistory;collision:WorldCollisionQuery;ground(x:number,z:number):number;water(x:number,z:number):number|null}
 
 export function createActivityRuntime(activities:PlayableActivities,deps:Deps){
   const mines=new Map<string,{zone:MineZone;state:MineState}>(),farms=new Map<string,{zone:FarmZone;state:FarmPlotState;crop:number}>();
@@ -30,10 +34,13 @@ export function createActivityRuntime(activities:PlayableActivities,deps:Deps){
     for(let d=.3;d<=DIG_REACH;d+=.2){const ix=Math.floor(position.x+fx*d),iz=Math.floor(position.z+fz*d);if(m.state.isOpen(level,ix,iz))continue;return {mineId:m.zone.id,level,ix,iz,material:m.state.material(level,ix,iz)};}
     return null;
   }
-  function dig(position:Point3,space:MovementSpace|undefined,forward:{x:number;z:number}):{ok:boolean;message:string}{
+  function dig(position:Point3,space:MovementSpace|undefined,forward:{x:number;z:number}):{ok:boolean;message:string;partial?:boolean;progress?:number}{
     const t=mineTarget(position,space,forward);if(!t||!space)return {ok:false,message:'Aucune paroi à portée'};
-    const m=mines.get(t.mineId)!;const r=m.state.dig({requestId:requestId('dig'),levelId:space.levelId,ix:t.ix,iz:t.iz,from:position},reward=>deps.grant([reward]));
-    if(!r.ok)return {ok:false,message:r.reason};notify({kind:'mine',mineId:t.mineId,level:t.level,chunks:r.chunks});
+    const m=mines.get(t.mineId)!,tool=pickPower(id=>deps.has?.(id)??false);
+    const r=m.state.strike({requestId:requestId('dig'),levelId:space.levelId,ix:t.ix,iz:t.iz,from:position},tool.power,reward=>deps.grant([reward]));
+    if(!r.ok)return {ok:false,message:r.reason};
+    if('partial'in r)return {ok:true,partial:true,progress:r.progress,message:r.fragment?`+1 ${nameOf(r.fragment.itemId)} (éclat)`:`${MINE_MATERIALS[r.material].name} : ${Math.round(r.progress*100)} % (${tool.tool})`};
+    notify({kind:'mine',mineId:t.mineId,level:t.level,chunks:r.chunks});
     return {ok:true,message:r.reward?`+1 ${nameOf(r.reward.itemId)}`:`${MINE_MATERIALS[r.material].name} déblayée`};
   }
   /** Plot the player stands on or next to (surface only). */
@@ -49,9 +56,14 @@ export function createActivityRuntime(activities:PlayableActivities,deps:Deps){
   /** Next sensible action on the plot (plant / water / harvest / clear). */
   function farmIntent(plotId:string){const v=farmView(plotId)!;if(v.stage==='empty')return {type:'plant' as const,label:`Semer : ${CROPS[v.selectedCrop].name}`};if(v.stage==='failed')return {type:'clear' as const,label:'Nettoyer la parcelle (culture desséchée)'};if(v.stage==='mature')return {type:'harvest' as const,label:`Récolter : ${CROPS[v.cropId!].name}`};return {type:'water' as const,label:`Arroser (${CROPS[v.cropId!].name}, ${Math.round(v.growth*100)} %, humidité ${Math.round(v.moisture*100)} %)`};}
   function farmAct(plotId:string):{ok:boolean;message:string}{
-    const f=farms.get(plotId);if(!f)return {ok:false,message:'Parcelle inconnue'};const intent=farmIntent(plotId);
-    const r=act(f.state,f.zone.farm,deps.climate,{requestId:requestId('farm'),type:intent.type,cropId:f.zone.farm.crops[f.crop%f.zone.farm.crops.length],time:deps.time(),waterAvailable:waterAvailable(f.zone)},reward=>deps.grant([reward]));
-    if(!r.ok)return {ok:false,message:r.reason};notify({kind:'farm',plotId});
+    const f=farms.get(plotId);if(!f)return {ok:false,message:'Parcelle inconnue'};const intent=farmIntent(plotId),cropId=f.zone.farm.crops[f.crop%f.zone.farm.crops.length];
+    const missing=seedMissing(plotId);if(missing)return {ok:false,message:missing};
+    // Harvest: the crop and one seed packet of the harvested crop, granted atomically.
+    const harvested=f.state.crop?.cropId,bonus=intent.type==='harvest'&&harvested?deps.seedItem?.(harvested)??null:null;
+    const r=act(f.state,f.zone.farm,deps.climate,{requestId:requestId('farm'),type:intent.type,cropId,time:deps.time(),waterAvailable:waterAvailable(f.zone)},reward=>deps.grant(bonus?[reward,{itemId:bonus,quantity:1}]:[reward])||!!bonus&&deps.grant([reward]));
+    if(!r.ok)return {ok:false,message:r.reason};
+    if(intent.type==='plant'){const seed=deps.seedItem?.(cropId);if(seed)deps.grant([{itemId:seed,quantity:-1}]);}
+    notify({kind:'farm',plotId});
     return {ok:true,message:r.reward?`Récolte : +${r.reward.quantity} ${nameOf(r.reward.itemId)}`:intent.type==='plant'?'Semis effectué':intent.type==='water'?'Parcelle arrosée':'Parcelle nettoyée'};
   }
   /** Explicit crop choice among the plot's allowed profiles (validated here, not by the UI). */
@@ -83,11 +95,19 @@ export function createActivityRuntime(activities:PlayableActivities,deps:Deps){
   function digPreview(position:Point3,space:MovementSpace|undefined,forward:{x:number;z:number}){
     const t=mineTarget(position,space,forward);if(!t||!space)return null;const m=mines.get(t.mineId)!;
     const verdict=m.state.check({levelId:space.levelId,ix:t.ix,iz:t.iz,from:position});
-    return {target:t,materialName:MINE_MATERIALS[t.material].name,reward:verdict.ok?verdict.reward:null,ok:verdict.ok,reason:verdict.ok?undefined:verdict.reason};
+    const info=MINE_MATERIALS[t.material],tool=pickPower(id=>deps.has?.(id)??false);
+    return {target:t,materialName:info.name,reward:verdict.ok?verdict.reward:null,ok:verdict.ok,reason:verdict.ok?undefined:verdict.reason,progress:m.state.damageAt(t.level,t.ix,t.iz)/Math.max(1,info.hp),strikesLeft:Math.ceil((info.hp-m.state.damageAt(t.level,t.ix,t.iz))/tool.power),tool:tool.tool};
   }
   /** UI preview of the next plot action: the farm rules run on a copy of the state. */
+  /** Sowing needs a seed packet of the selected crop when the economy defines seeds. */
+  function seedMissing(plotId:string):string|null{
+    const f=farms.get(plotId)!,cropId=f.zone.farm.crops[f.crop%f.zone.farm.crops.length],seed=deps.seedItem?.(cropId);
+    if(!seed||farmIntent(plotId).type!=='plant'||deps.has?.(seed))return null;
+    return `Il faut des semences de ${CROPS[cropId].name.toLowerCase()} (comptoir agricole ou marché)`;
+  }
   function farmPreview(plotId:string){
     const f=farms.get(plotId);if(!f)return null;const intent=farmIntent(plotId),copy=structuredClone(f.state);
+    const missing=seedMissing(plotId);if(missing)return {intent,ok:false,reason:missing};
     const r=act(copy,f.zone.farm,deps.climate,{requestId:'preview',type:intent.type,cropId:f.zone.farm.crops[f.crop%f.zone.farm.crops.length],time:deps.time(),waterAvailable:waterAvailable(f.zone)},()=>true);
     return {intent,ok:r.ok,reason:r.ok?undefined:r.reason};
   }

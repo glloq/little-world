@@ -8,7 +8,7 @@ Exécution : `npm run build`, lancer `npm run preview -- --host 127.0.0.1 --port
 ## Accès
 
 - Jeu : https://glloq.github.io/little-world/
-- Éditeur : https://glloq.github.io/little-world/editor/
+- Studio : https://glloq.github.io/little-world/studio/ (l’ancien `/editor/` est retiré)
 - Workflow : https://github.com/glloq/little-world/actions
 
 **Pré-requis :** GitHub Pages doit être activé avec source **GitHub Actions** et le dernier workflow `Build and deploy Little World` doit afficher **success**. Après modification de `main`, attendre un déploiement réussi avant de conclure qu'un bug subsiste.
@@ -56,7 +56,7 @@ PC conseillé : Chrome, Edge ou Firefox récents, clavier AZERTY ou QWERTY et so
 
 ## Éditeur — scénario de test
 
-- [ ] Ouvrir **/editor/** : la vallée et les panneaux d'outils apparaissent.
+- [ ] Ouvrir **/studio/** : créer un projet, la carte et les panneaux d'outils apparaissent.
 - [ ] Caméra orbitale : clic-glisser pour tourner, molette pour zoomer.
 - [ ] Modifier **graine** et **densité**, puis cliquer « Régénérer la vallée » ; les arbres changent.
 - [ ] Choisir **Sapin**, **Rocher** ou **Caisse** ; cliquer sur le terrain pour ajouter au moins trois objets.

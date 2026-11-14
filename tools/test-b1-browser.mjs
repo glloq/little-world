@@ -39,14 +39,14 @@ try{
   await page.screenshot({path:out+'/b1-level3.png'});
   // 5. Dig: iron at the end of the gallery, then rock (stone), walking into each new cell.
   await hold('KeyW',v=>v.pos[2]>71.5,6);const digs=[];
-  for(let i=0;i<3;i++){await page.keyboard.press('KeyF');await page.waitForTimeout(500);digs.push(await msg());await hold('KeyW',()=>false,.6);}
+  for(let i=0;i<3;i++){const before=(await m()).act.excavated;await hold('KeyF',v=>v.act.excavated>before,90);digs.push(await msg());await hold('KeyW',()=>false,.6);} // cells have 20–500 hp: hold F (bare hands)
   const bag=await inventory();check(/Minerai de fer/.test(bag)&&/Pierre/.test(bag),'Two mined resources in the bag: '+digs.join(' | '));
   const dug=(await m()).act.excavated;check(dug>=3,'Excavated cells: '+dug);
   // 6. Climb back: stairs up twice, then out through the entrance.
   const surface=await hold('KeyS',v=>v.act.space===null,60);check(surface.act.space===null&&Math.abs(surface.pos[2]-28.5)<2,'Back on the surface outside the entrance ('+surface.pos.map(n=>n.toFixed(1))+')');
   // 7–9. Farm: choose carrots, sow, water, accelerate the world clock, harvest.
   await moveTo(-164,40,118);await page.keyboard.press('KeyC');await page.waitForTimeout(300);check(/Carotte/.test(await msg()),'Crop chosen with C');
-  await page.waitForFunction(()=>document.querySelector('.ui-activity-card')?.dataset.kind==='farm');check(await card.getByRole('button',{name:'Carotte'}).getAttribute('aria-pressed')==='true','Plot card shows the chosen crop as pressed');
+  await page.waitForFunction(()=>document.querySelector('.ui-activity-card')?.dataset.kind==='farm');check(await page.waitForFunction(()=>[...document.querySelectorAll('.ui-activity-card .ui-chip')].find(b=>b.textContent==='Carotte')?.getAttribute('aria-pressed')==='true',{},{timeout:5000}).then(()=>true,()=>false),'Plot card shows the chosen crop as pressed');
   const other=card.locator('.ui-chip[aria-pressed=false]').first(),otherName=await other.textContent();await other.click();await page.waitForFunction(n=>[...document.querySelectorAll('.ui-activity-card .ui-chip')].find(b=>b.textContent===n)?.getAttribute('aria-pressed')==='true',otherName);
   await card.getByRole('button',{name:'Carotte'}).click();await page.waitForFunction(()=>[...document.querySelectorAll('.ui-activity-card .ui-chip')].find(b=>b.textContent==='Carotte')?.getAttribute('aria-pressed')==='true');check(true,'Crop chips select through the farm runtime ('+otherName+' then Carotte)');
   await page.keyboard.press('KeyF');await page.waitForTimeout(300);check(/Semis/.test(await msg()),'Sown');

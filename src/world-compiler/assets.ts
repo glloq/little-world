@@ -1,5 +1,6 @@
 import catalogue from '../../assets/catalog.json' with {type:'json'};
 import characterCatalogue from '../../assets/character-catalog.json' with {type:'json'};
+import {placeableWorldAssets} from '../world-production/registry.ts';
 import type {AssetDefinition,ProjectDocument} from '../studio-core/types.ts';
 import type {CompiledAssetDescriptor,CompilationDiagnostic} from './manifests.ts';
 import {hashText} from './manifests.ts';
@@ -27,7 +28,7 @@ export function localAssetPath(path:string):boolean {
   return /^models\/[a-zA-Z0-9_./-]+\.glb$/.test(path)&&!path.split('/').some(part=>part==='..'||part==='.'||part==='');
 }
 const registry=new Map<string,{type:string;file?:string;license:string}>([
-  ...catalogue.assets,...characterCatalogue.characters,
+  ...catalogue.assets,...characterCatalogue.characters,...placeableWorldAssets(),
 ].map(asset=>[asset.id,asset]));
 export async function verifyAssets(project:ProjectDocument,resolver?:AssetResolver):Promise<{assets:CompiledAssetDescriptor[];diagnostics:CompilationDiagnostic[]}>{
   const assets:CompiledAssetDescriptor[]=[],diagnostics:CompilationDiagnostic[]=[];

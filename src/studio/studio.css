@@ -86,3 +86,4 @@ label:has(> input[type=checkbox]){flex-direction:row;align-items:center;justify-
 .farm-stage{display:inline-block;padding:1px 6px;margin:0 3px;border-radius:6px;color:#fff;font-size:.8em}
 .water-falls{display:grid;gap:6px}
 .chip.warn{background:#fbf0e3;border-color:#e2c39f;color:#8a5a2b}.chip.pending{background:#eef3fb;border-color:#bfcde3;color:#3f5b80}
+.landscape-form{display:flex;flex-direction:column;gap:4px}.landscape-report{margin:8px 0;padding:6px 8px;border-radius:9px;background:#f2f6ee;font-size:11px}.landscape-report:empty{display:none}

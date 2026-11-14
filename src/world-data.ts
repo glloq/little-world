@@ -1,8 +1,10 @@
 import {validateWaterProfile, validateWaterNetworkFields, type WaterProfile} from './water/profile.ts';
 /** Versioned authoring data shared by the editor, game and static-map compiler. */
 import catalogue from '../assets/catalog.json' with { type: 'json' };
+import { placeableWorldAssets } from './world-production/registry.ts';
 import { DEFAULT_NPCS, validateNPCs, type NPCDefinition } from './npc.ts';
-export type AssetId = (typeof catalogue.assets)[number]['id'];
+/** Legacy catalogue ids + World Production registry ids (assets/world-assets.json). */
+export type AssetId = string;
 export interface WorldConfig {
   seed: number;
   density: number;
@@ -93,7 +95,7 @@ export interface WorldDefinition {
   /** Runtime-only geography inputs carried from V3 (never read from V1/V2 files). */
   /** Runtime-only local lights projected from V3 Light components (never read from V1/V2 files). */
   lights?: import('./lighting/light-data.ts').RuntimeLight[];
-  geography?: {sectorSizeM: number; masks: Record<string, import('./geography/layers.ts').SectorLayers>; zones: import('./geography/engine.ts').GeoZone[]};
+  geography?: {sectorSizeM: number; masks: Record<string, import('./geography/layers.ts').SectorLayers>; zones: import('./geography/engine.ts').GeoZone[]; landscapes?: import('./world-production/biotopes.ts').LandscapeRegion[]};
 }
 export const DEFAULT_CONFIG = {
   seed: 1284,
@@ -127,7 +129,7 @@ const num = (v: unknown, min: number, max: number): v is number =>
   typeof v === 'number' && Number.isFinite(v) && v >= min && v <= max;
 const id = (v: unknown): v is string =>
   typeof v === 'string' && v.length > 0 && v.length <= 100;
-const assets = new Set(catalogue.assets.map((a) => a.id));
+const assets = new Set([...catalogue.assets.map((a) => a.id), ...placeableWorldAssets().map((a) => a.id)]);
 const biomes = new Set([
   'forest',
   'meadow',

@@ -7,11 +7,13 @@ import {loadCompiledManifest,loadCompiledLogic,loadCompiledChunk} from '../world
 import type {CompiledWorldManifest,CompiledChunkData,CompiledLogicData} from '../world-compiler/manifests.ts';
 import {runtimeContent} from '../studio-core/migration.ts';
 import {activitiesFromZones,activityItems} from '../gameplay/activities.ts';
+import {economyItems} from '../gameplay/economy.ts';
 import {gameplayDataFromIndex} from '../gameplay/project-adapter.ts';
 import {defaultEnvironment} from '../environment/climate.ts';
 import {validateAudioLinks} from '../audio/schema.ts';
 import {transformedCollider,type CollisionDefinition} from '../physics/definitions.ts';
 import {createTerrainSource} from '../terrain.ts';
+import {landscapeRegions} from '../world-production/landscapes.ts';
 import type {PlayableWorld} from '../gameplay/playable.ts';
 import type {Point3} from '../gameplay/schema.ts';
 import type {WorldDefinition,WorldConfig,TerrainStroke,BiomeStroke,WaterBody,PathDefinition} from '../world-data.ts';
@@ -58,12 +60,13 @@ export function playableFromCompiled(bundle:CompiledWorldBundle,spawn?:Point3):P
   const biomes=unionById(chunks.map(chunk=>chunk.biomes.edits)).sort((a,b)=>a.order-b.order||a.id.localeCompare(b.id)).map(stripOrder) as BiomeStroke[];
   const masks:Record<string,import('../geography/layers.ts').SectorLayers>={};for(const chunk of chunks)if(chunk.layers)masks[chunk.chunkId]=structuredClone(chunk.layers);
   const zones=Object.values(logic.libraries.zones??{}).map(z=>({kind:z.kind,polygon:z.polygon.map(p=>({...p}))}));
-  const world:WorldDefinition={...(Object.keys(masks).length||zones.length?{geography:{sectorSizeM:manifest.chunkSizeM,masks,zones}}:{}),schemaVersion:2,name:manifest.worldId,config,placements,terrain,biomes,
+  const landscapes=landscapeRegions(logic.libraries.landscapes);
+  const world:WorldDefinition={...(Object.keys(masks).length||zones.length||landscapes.length?{geography:{sectorSizeM:manifest.chunkSizeM,masks,zones,...(landscapes.length?{landscapes}:{})}}:{}),schemaVersion:2,name:manifest.worldId,config,placements,terrain,biomes,
     water:unionById(chunks.map(chunk=>chunk.water as WaterBody[])).map(w=>structuredClone(w)),paths:unionById(chunks.map(chunk=>chunk.paths as PathDefinition[])).map(p=>structuredClone(p)),npcs,...(lights.length?{lights}:{})};
   const components=new Map<string,ComponentMap>(entities.map(entity=>[entity.id,entity.components]));
   const activities=activitiesFromZones(Object.values(logic.libraries.zones??{}),createTerrainSource(config,terrain));
   const gameplay=gameplayDataFromIndex({entityIndex:logic.entityIndex,components,libraries:logic.libraries,environment:manifest.environment??defaultEnvironment(manifest.seed),worldId:manifest.worldId,buildVersion:manifest.buildVersion});
-  gameplay.items=activityItems(activities,gameplay.items);
+  gameplay.items=economyItems(activityItems(activities,gameplay.items));
   const rendered=new Set([...placements.map(p=>p.id),...npcs.map(n=>n.id)]);
   for(const entity of gameplay.entities)if(entity.interactable&&!rendered.has(entity.id))throw Error('Objet interactif sans représentation : '+entity.id);
   const collisions:CollisionDefinition[]=chunks.flatMap(chunk=>chunk.collision.shapes.filter(shape=>shape.collider.layer==='solid').map(shape=>transformedCollider(shape.entityId,shape.collider,shape.transform)));

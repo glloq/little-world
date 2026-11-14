@@ -1,0 +1,51 @@
+/** World Production V1 — instanced drawing of repeated placed structures (game runtime).
+ * Enclosure modules (fences, posts, walls, hedges) and dock pieces are authored as individual
+ * V3 entities (stable ids, transactions, collisions), but drawing each one as its own object
+ * costs one draw call per module. Here they share ONE BatchedMesh per LOD (LOD0 near, LOD1
+ * mid-distance, nothing beyond the cull radius), rebuilt only when the focus moves by more than
+ * a step. Logic (positions, collisions, gameplay state) never depends on what is drawn.
+ * Entities with gameplay state keep their individual object (not handled here). */
+import * as THREE from 'three';
+import {worldAsset} from './registry.ts';
+import {loadAssetLods} from './species-library.ts';
+import type {Placement} from '../world-data.ts';
+
+export const INSTANCED_ROLES=new Set(['fence','wall','hedge','dock','rock','prop']);
+/** LOD radii (m) of instanced structures: benchmark knobs. */
+export const PLACED_RADII={lod0:45,lod1:140};
+export interface PlacedInstanceStats {placements:number;lod0:number;lod1:number;calls:number;rebuilds:number;state:'empty'|'loading'|'ready'}
+export function eligibleForInstancing(assetId:string):boolean{const a=worldAsset(assetId);return !!a&&!!a.usage&&INSTANCED_ROLES.has(a.usage.role);}
+export function createPlacedInstances(parent:THREE.Object3D,ground:(x:number,z:number)=>number){
+  const items:{assetId:string;matrix:THREE.Matrix4;x:number;z:number}[]=[],stats:PlacedInstanceStats={placements:0,lod0:0,lod1:0,calls:0,rebuilds:0,state:'empty'};
+  const material=new THREE.MeshLambertMaterial({vertexColors:true,flatShading:true});
+  const active:number[][]=[[],[]];let batches:THREE.BatchedMesh[]=[],geometryIds:Map<string,number[]>=new Map(),focusX=NaN,focusZ=NaN,disposed=false,loading:Promise<void>|null=null;
+  async function build(){
+    const ids=[...new Set(items.map(i=>i.assetId))],lods=await Promise.all(ids.map(id=>loadAssetLods(id)));if(disposed)return;
+    const per=[0,1].map(level=>{let v=0,ix=0;ids.forEach((_,k)=>{const g=lods[k]?.[Math.min(level,(lods[k]?.length??1)-1)];if(g){v+=g.getAttribute('position').count;ix+=g.index!.count;}});return {v,ix};});
+    batches=[0,1].map(level=>{const b=new THREE.BatchedMesh(Math.max(1,items.length),Math.max(3,per[level].v),Math.max(3,per[level].ix),material);b.name='Placed structures LOD'+level;b.perObjectFrustumCulled=true;b.sortObjects=false;b.frustumCulled=false;b.castShadow=b.receiveShadow=false;parent.add(b);return b;});
+    ids.forEach((id,k)=>{const l=lods[k];if(!l)return;geometryIds.set(id,[0,1].map(level=>batches[level].addGeometry(l[Math.min(level,l.length-1)])));});
+    stats.state='ready';focusX=NaN;
+  }
+  return {
+    stats,
+    /** Registers a placement; returns false when it must stay an individual object. */
+    add(p:Placement):boolean{
+      if(!eligibleForInstancing(p.assetId))return false;
+      const q=p.quaternion?new THREE.Quaternion().fromArray(p.quaternion):new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),p.rotation);
+      const s=p.scale3?new THREE.Vector3().fromArray(p.scale3):new THREE.Vector3().setScalar(p.scale??1);
+      items.push({assetId:p.assetId,x:p.x,z:p.z,matrix:new THREE.Matrix4().compose(new THREE.Vector3(p.x,ground(p.x,p.z)+(p.y??0),p.z),q,s)});stats.placements=items.length;
+      if(!loading){stats.state='loading';loading=Promise.resolve().then(build);}
+      return true;
+    },
+    update(fx:number,fz:number){
+      if(stats.state!=='ready'||disposed||Math.hypot(fx-focusX,fz-focusZ)<16)return;focusX=fx;focusZ=fz;stats.rebuilds++;
+      const counts=[0,0];
+      batches.forEach((b,k)=>{for(const id of active[k])b.deleteInstance(id);active[k]=[];});
+      for(const it of items){const d=Math.hypot(it.x-fx,it.z-fz),level=d<PLACED_RADII.lod0?0:d<PLACED_RADII.lod1?1:-1;if(level<0)continue;const g=geometryIds.get(it.assetId);if(!g)continue;
+        const id=batches[level].addInstance(g[level]);active[level].push(id);batches[level].setMatrixAt(id,it.matrix);counts[level]++;}
+      stats.lod0=counts[0];stats.lod1=counts[1];stats.calls=counts.filter(Boolean).length;batches.forEach((b,k)=>b.visible=counts[k]>0);
+    },
+    dispose(){disposed=true;for(const b of batches){b.removeFromParent();b.dispose();}material.dispose();},
+  };
+}
+export type PlacedInstances=ReturnType<typeof createPlacedInstances>;

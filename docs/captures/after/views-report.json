@@ -1,0 +1,641 @@
+{
+  "recordedAt": "2026-11-14T01:05:49.094Z",
+  "base": "http://127.0.0.1:5182/little-world/",
+  "viewport": {
+    "width": 960,
+    "height": 540
+  },
+  "renderer": "Chromium headless + SwiftShader (logiciel) — non qualifiant GPU",
+  "views": [
+    {
+      "name": "ref-panorama",
+      "label": "Panorama depuis les hauteurs (sommet nord)",
+      "settled": true,
+      "settleMs": 8003,
+      "metrics": {
+        "calls": 109,
+        "triangles": 71165,
+        "position": [
+          -20,
+          82.1632614029214,
+          430
+        ],
+        "dressing": {
+          "instances": 635,
+          "calls": 5,
+          "triangles": 8750,
+          "cells": 151,
+          "species": {
+            "state": "ready",
+            "lod0": 8,
+            "lod1": 16,
+            "triangles": 2874,
+            "bytes": 149826,
+            "loadMs": 150.60000000009313,
+            "failed": [],
+            "dropped": 0
+          }
+        },
+        "horizon": {
+          "triangles": 56770
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "ref-forest",
+      "label": "Forêt dense de la vallée",
+      "settled": true,
+      "settleMs": 7645,
+      "metrics": {
+        "calls": 89,
+        "triangles": 48909,
+        "position": [
+          -250,
+          17.57416224036247,
+          230
+        ],
+        "dressing": {
+          "instances": 1038,
+          "calls": 5,
+          "triangles": 30872,
+          "cells": 167,
+          "species": {
+            "state": "ready",
+            "lod0": 65,
+            "lod1": 193,
+            "triangles": 23808,
+            "bytes": 149826,
+            "loadMs": 103.3000000002794,
+            "failed": [],
+            "dropped": 0
+          }
+        },
+        "horizon": {
+          "triangles": 56514
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "ref-valley",
+      "label": "Vallée forestière",
+      "settled": true,
+      "settleMs": 7795,
+      "metrics": {
+        "calls": 103,
+        "triangles": 56932,
+        "position": [
+          -280,
+          13.206101188575445,
+          20
+        ],
+        "dressing": {
+          "instances": 893,
+          "calls": 5,
+          "triangles": 19222,
+          "cells": 166,
+          "species": {
+            "state": "ready",
+            "lod0": 35,
+            "lod1": 106,
+            "triangles": 12730,
+            "bytes": 149826,
+            "loadMs": 132.60000000009313,
+            "failed": [],
+            "dropped": 0
+          }
+        },
+        "horizon": {
+          "triangles": 56770
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "ref-river",
+      "label": "Rivière, berges et pont",
+      "settled": true,
+      "settleMs": 7839,
+      "metrics": {
+        "calls": 100,
+        "triangles": 50079,
+        "position": [
+          120,
+          17.83119691039806,
+          40
+        ],
+        "dressing": {
+          "instances": 740,
+          "calls": 6,
+          "triangles": 12278,
+          "cells": 184,
+          "species": {
+            "state": "ready",
+            "lod0": 11,
+            "lod1": 69,
+            "triangles": 7050,
+            "bytes": 149826,
+            "loadMs": 142.70000000018626,
+            "failed": [],
+            "dropped": 0
+          }
+        },
+        "horizon": {
+          "triangles": 57154
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "ref-falls",
+      "label": "Gorge et cascade",
+      "settled": true,
+      "settleMs": 7877,
+      "metrics": {
+        "calls": 90,
+        "triangles": 41519,
+        "position": [
+          138,
+          31.178104875383113,
+          262
+        ],
+        "dressing": {
+          "instances": 948,
+          "calls": 6,
+          "triangles": 13738,
+          "cells": 174,
+          "species": {
+            "state": "ready",
+            "lod0": 11,
+            "lod1": 51,
+            "triangles": 5670,
+            "bytes": 149826,
+            "loadMs": 107.89999999990687,
+            "failed": [],
+            "dropped": 0
+          }
+        },
+        "horizon": {
+          "triangles": 56898
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "ref-cliff",
+      "label": "Falaise depuis sa base",
+      "settled": true,
+      "settleMs": 7607,
+      "metrics": {
+        "calls": 80,
+        "triangles": 33962,
+        "position": [
+          370,
+          25.1455226484284,
+          -60
+        ],
+        "dressing": {
+          "instances": 701,
+          "calls": 6,
+          "triangles": 10768,
+          "cells": 198,
+          "species": {
+            "state": "ready",
+            "lod0": 8,
+            "lod1": 18,
+            "triangles": 1884,
+            "bytes": 149826,
+            "loadMs": 138.1999999997206,
+            "failed": [],
+            "dropped": 0
+          }
+        },
+        "horizon": {
+          "triangles": 56898
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "ref-coast",
+      "label": "Littoral sableux et ponton",
+      "settled": true,
+      "settleMs": 7309,
+      "metrics": {
+        "calls": 81,
+        "triangles": 27351,
+        "position": [
+          -380,
+          5.457754504491912,
+          -170
+        ],
+        "dressing": {
+          "instances": 447,
+          "calls": 5,
+          "triangles": 7580,
+          "cells": 234,
+          "species": {
+            "state": "ready",
+            "lod0": 2,
+            "lod1": 56,
+            "triangles": 4392,
+            "bytes": 149826,
+            "loadMs": 144.5,
+            "failed": [],
+            "dropped": 0
+          }
+        },
+        "horizon": {
+          "triangles": 56898
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "ref-village",
+      "label": "Village, champ et moulin",
+      "settled": true,
+      "settleMs": 7927,
+      "metrics": {
+        "calls": 138,
+        "triangles": 71096,
+        "position": [
+          -60,
+          19.515251989322593,
+          -230
+        ],
+        "dressing": {
+          "instances": 490,
+          "calls": 4,
+          "triangles": 4576,
+          "cells": 166,
+          "species": {
+            "state": "ready",
+            "lod0": 1,
+            "lod1": 11,
+            "triangles": 1004,
+            "bytes": 149826,
+            "loadMs": 136.5,
+            "failed": [],
+            "dropped": 0
+          }
+        },
+        "horizon": {
+          "triangles": 57154
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "ref-flight",
+      "label": "Vue en planage au-dessus de plusieurs biotopes",
+      "settled": true,
+      "settleMs": 7802,
+      "metrics": {
+        "calls": 154,
+        "triangles": 74702,
+        "position": [
+          0,
+          19.91064889832462,
+          -160
+        ],
+        "dressing": {
+          "instances": 538,
+          "calls": 5,
+          "triangles": 4800,
+          "cells": 162,
+          "species": {
+            "state": "ready",
+            "lod0": 1,
+            "lod1": 4,
+            "triangles": 652,
+            "bytes": 149826,
+            "loadMs": 145.1999999997206,
+            "failed": [],
+            "dropped": 0
+          }
+        },
+        "horizon": {
+          "triangles": 56386
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "island-volcano",
+      "label": "Panorama depuis le volcan",
+      "settled": true,
+      "settleMs": 7791,
+      "metrics": {
+        "calls": 119,
+        "triangles": 73586,
+        "position": [
+          -120,
+          460.5239330531446,
+          2528
+        ],
+        "dressing": {
+          "instances": 702,
+          "calls": 5,
+          "triangles": 12040,
+          "cells": 194,
+          "species": {
+            "state": "ready",
+            "lod0": 1,
+            "lod1": 1,
+            "triangles": 68,
+            "bytes": 149826,
+            "loadMs": 196.79999999981374,
+            "failed": [],
+            "dropped": 0
+          }
+        },
+        "horizon": {
+          "triangles": 46752
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "island-forest",
+      "label": "Forêt dense (vallée ouest)",
+      "settled": true,
+      "settleMs": 8157,
+      "metrics": {
+        "calls": 101,
+        "triangles": 58859,
+        "position": [
+          -700,
+          31.09634501906516,
+          450
+        ],
+        "dressing": {
+          "instances": 1909,
+          "calls": 6,
+          "triangles": 28964,
+          "cells": 148,
+          "species": {
+            "state": "ready",
+            "lod0": 62,
+            "lod1": 51,
+            "triangles": 13572,
+            "bytes": 149826,
+            "loadMs": 183.89999999990687,
+            "failed": [],
+            "dropped": 0
+          }
+        },
+        "horizon": {
+          "triangles": 46704
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "island-valley",
+      "label": "Vallée forestière ouest",
+      "settled": true,
+      "settleMs": 8097,
+      "metrics": {
+        "calls": 110,
+        "triangles": 69475,
+        "position": [
+          -700,
+          30.01578117400718,
+          -60
+        ],
+        "dressing": {
+          "instances": 2043,
+          "calls": 5,
+          "triangles": 28054,
+          "cells": 160,
+          "species": {
+            "state": "ready",
+            "lod0": 34,
+            "lod1": 95,
+            "triangles": 12310,
+            "bytes": 149826,
+            "loadMs": 203.89999999990687,
+            "failed": [],
+            "dropped": 0
+          }
+        },
+        "horizon": {
+          "triangles": 46720
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "island-river",
+      "label": "Rivière et berges",
+      "settled": true,
+      "settleMs": 7627,
+      "metrics": {
+        "calls": 91,
+        "triangles": 43531,
+        "position": [
+          260,
+          15.571190795384204,
+          250
+        ],
+        "dressing": {
+          "instances": 949,
+          "calls": 6,
+          "triangles": 15196,
+          "cells": 192,
+          "species": {
+            "state": "ready",
+            "lod0": 7,
+            "lod1": 65,
+            "triangles": 6512,
+            "bytes": 149826,
+            "loadMs": 144.70000000018626,
+            "failed": [],
+            "dropped": 0
+          }
+        },
+        "horizon": {
+          "triangles": 46736
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "island-falls",
+      "label": "Gorge et cascade",
+      "settled": true,
+      "settleMs": 7743,
+      "metrics": {
+        "calls": 82,
+        "triangles": 43509,
+        "position": [
+          -300,
+          7.307712540255586,
+          1580
+        ],
+        "dressing": {
+          "instances": 716,
+          "calls": 6,
+          "triangles": 11226,
+          "cells": 169,
+          "species": {
+            "state": "ready",
+            "lod0": 14,
+            "lod1": 41,
+            "triangles": 4634,
+            "bytes": 149826,
+            "loadMs": 253.8999999994412,
+            "failed": [],
+            "dropped": 0
+          }
+        },
+        "horizon": {
+          "triangles": 46712
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "island-cliff",
+      "label": "Falaise est depuis sa base",
+      "settled": true,
+      "settleMs": 7353,
+      "metrics": {
+        "calls": 71,
+        "triangles": 29322,
+        "position": [
+          1090,
+          16.302858521065534,
+          900
+        ],
+        "dressing": {
+          "instances": 775,
+          "calls": 6,
+          "triangles": 10272,
+          "cells": 211,
+          "species": {
+            "state": "ready",
+            "lod0": 7,
+            "lod1": 17,
+            "triangles": 2080,
+            "bytes": 149826,
+            "loadMs": 213.8999999994412,
+            "failed": [],
+            "dropped": 0
+          }
+        },
+        "horizon": {
+          "triangles": 46728
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "island-coast",
+      "label": "Littoral sud et port",
+      "settled": true,
+      "settleMs": 7399,
+      "metrics": {
+        "calls": 75,
+        "triangles": 25672,
+        "position": [
+          -120,
+          7.673481566900836,
+          -3570
+        ],
+        "dressing": {
+          "instances": 481,
+          "calls": 4,
+          "triangles": 3672,
+          "cells": 227,
+          "species": {
+            "state": "ready",
+            "lod0": 1,
+            "lod1": 3,
+            "triangles": 164,
+            "bytes": 149826,
+            "loadMs": 237.70000000018626,
+            "failed": [],
+            "dropped": 0
+          }
+        },
+        "horizon": {
+          "triangles": 46720
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "island-village",
+      "label": "Village principal",
+      "settled": true,
+      "settleMs": 7801,
+      "metrics": {
+        "calls": 142,
+        "triangles": 66466,
+        "position": [
+          -80,
+          7.9713949445583125,
+          -1660
+        ],
+        "dressing": {
+          "instances": 184,
+          "calls": 4,
+          "triangles": 2538,
+          "cells": 180,
+          "species": {
+            "state": "ready",
+            "lod0": 3,
+            "lod1": 10,
+            "triangles": 1278,
+            "bytes": 149826,
+            "loadMs": 200.70000000018626,
+            "failed": [],
+            "dropped": 0
+          }
+        },
+        "horizon": {
+          "triangles": 46744
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "island-flight",
+      "label": "Planage au-dessus de plusieurs biotopes",
+      "settled": true,
+      "settleMs": 7917,
+      "metrics": {
+        "calls": 129,
+        "triangles": 70037,
+        "position": [
+          0,
+          20.527962017629378,
+          -900
+        ],
+        "dressing": {
+          "instances": 1116,
+          "calls": 4,
+          "triangles": 21930,
+          "cells": 168,
+          "species": {
+            "state": "ready",
+            "lod0": 46,
+            "lod1": 104,
+            "triangles": 14874,
+            "bytes": 149826,
+            "loadMs": 169.59999999962747,
+            "failed": [],
+            "dropped": 0
+          }
+        },
+        "horizon": {
+          "triangles": 46624
+        }
+      },
+      "errors": []
+    }
+  ]
+}

@@ -1,3 +1,4 @@
+import {assetDefinitionFor} from '../../world-production/registry.ts';
 import * as THREE from 'three';
 import {createAsset,removePlacement} from '../../world.ts';
 import {terrainHeight,waterDepth} from '../../terrain.ts';
@@ -54,8 +55,8 @@ export class PlacementTool implements Tool {
     if(this.check.level==='invalid'){this.ctx.message('Placement impossible : '+this.check.reason+'.',true);return;}
     const x=this.ghost.position.x,z=this.ghost.position.z,yaw=placementSettings.yaw,item=placementSettings.item,s=this.ctx.session,owner=chunkAt(s.document.world,x,z),id=crypto.randomUUID(),warning=this.check.level==='warning'?' Attention : '+this.check.reason+'.':'';
     this.ctx.run(async()=>{
-      if(item.kind==='asset'){const asset=s.document.assets[item.id];if(!asset)throw Error('Asset inconnu : '+item.id);
-        await s.change('Placer '+asset.name,[owner],d=>putEntity(d,{id,kind:item.id.startsWith('architecture.')?'building':'prop',name:asset.name,ownerChunkId:owner,components:{Transform:{type:'Transform',position:{x,y:0,z},rotation:yawQuaternion(yaw),scale:{x:1,y:1,z:1}},Visual:{type:'Visual',assetId:item.id}}}));}
+      if(item.kind==='asset'){const known=s.document.assets[item.id],asset=known??assetDefinitionFor(item.id);if(!asset)throw Error('Asset inconnu : '+item.id);
+        await s.change('Placer '+asset.name,[owner],d=>{if(!known)d.assets={...d.assets,[asset.id]:asset};putEntity(d,{id,kind:item.id.startsWith('architecture.')?'building':'prop',name:asset.name,ownerChunkId:owner,components:{Transform:{type:'Transform',position:{x,y:0,z},rotation:yawQuaternion(yaw),scale:{x:1,y:1,z:1}},Visual:{type:'Visual',assetId:item.id}}});});}
       else if(item.kind==='light')await s.change('Placer une lumière',[owner],d=>{createLightEntity(d,{id,name:item.name,x,z,preset:item.preset});});
       else await s.change('Placer un personnage',[owner],d=>{createCharacter(d,{id,name:item.name,x,z,species:item.species});const source=d.chunks[owner].entities[id];source.components.Transform!.rotation=yawQuaternion(yaw);putEntity(d,source);});
       s.selection.select({kind:'entity',id});this.ctx.message('Élément placé. Cliquez encore pour en placer un autre, Échap pour terminer.'+warning);this.ctx.refreshInspector();

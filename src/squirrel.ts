@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import type { Player } from './player.ts';
 import {
   DEFAULT_APPEARANCE,
@@ -55,7 +56,8 @@ function material(color: number): THREE.MeshStandardMaterial {
   }
   return result;
 }
-const round = new THREE.SphereGeometry(1, 12, 8);
+// Low-poly budget (G4): 8×6 spheres (flat-shaded) instead of 12×8; parts are merged per joint below.
+const round = new THREE.SphereGeometry(1, 8, 6);
 const faceted = new THREE.IcosahedronGeometry(1, 1);
 function oval(
   parent: THREE.Object3D,
@@ -466,6 +468,46 @@ function createAccessories(body: THREE.Object3D, head: THREE.Object3D) {
   return { hat, backpack, pendant, scarf, sockets };
 }
 
+/** One flat-shaded vertex-coloured material shared by every merged squirrel part. */
+const bakedMaterial = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, metalness: 0, flatShading: true });
+/** Merges, under each joint or toggle group, the unnamed leaf meshes using the palette
+ * materials into ONE mesh: geometry baked in the joint's frame, the palette colour baked as a
+ * vertex colour. The rig, the named parts (glider) and the visibility groups (emotions,
+ * accessories) are untouched, so animation and appearance behave as before with one draw call
+ * per joint. Flat shading derives normals per face in the shader. */
+/** Merged geometries are identical for every squirrel built: shared by path (never disposed per rig). */
+const mergedCache = new Map<string, THREE.BufferGeometry>();
+const pathOf = (node: THREE.Object3D, root: THREE.Object3D) => { const parts: string[] = []; for (let n: THREE.Object3D | null = node; n && n !== root.parent; n = n.parent) parts.push(n.name || String(n.parent?.children.indexOf(n) ?? 0)); return parts.reverse().join('/'); };
+export function mergeRigidParts(root: THREE.Object3D): void {
+  const palette = new Set<THREE.Material>(materials.values());
+  const nodes: THREE.Object3D[] = [];
+  root.traverse((node) => { if (!(node instanceof THREE.Mesh)) nodes.push(node); });
+  for (const node of nodes) {
+    const parts = node.children.filter((child): child is THREE.Mesh =>
+      child instanceof THREE.Mesh && !child.name && !child.children.length && child.visible && palette.has(child.material as THREE.Material));
+    if (!parts.length) continue;
+    const key = pathOf(node, root) + '#' + parts.length, cached = mergedCache.get(key);
+    if (cached) { for (const part of parts) node.remove(part); node.add(new THREE.Mesh(cached, bakedMaterial)); continue; }
+    const geos = parts.map((part) => {
+      part.updateMatrix();
+      const g = (part.geometry.index ? part.geometry.toNonIndexed() : part.geometry.clone()).applyMatrix4(part.matrix);
+      for (const key of Object.keys(g.attributes)) if (key !== 'position') g.deleteAttribute(key);
+      const c = (part.material as THREE.MeshStandardMaterial).color, n = g.attributes.position.count, colors = new Float32Array(n * 3);
+      for (let i = 0; i < n; i++) { colors[i * 3] = c.r; colors[i * 3 + 1] = c.g; colors[i * 3 + 2] = c.b; }
+      g.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+      return g;
+    });
+    const merged = mergeGeometries(geos, false);
+    for (const g of geos) g.dispose();
+    if (!merged) continue;
+    merged.computeVertexNormals();
+    mergedCache.set(key, merged);
+    for (const part of parts) node.remove(part);
+    const mesh = new THREE.Mesh(merged, bakedMaterial);
+    mesh.name = '';
+    node.add(mesh);
+  }
+}
 export function buildSquirrel(): SquirrelModel {
   const body = new THREE.Bone();
   body.name = 'SquirrelBody';
@@ -625,6 +667,7 @@ export function buildSquirrel(): SquirrelModel {
   const container = new THREE.Group();
   container.name = 'FlyingSquirrel';
   container.add(shadow, body);
+  mergeRigidParts(body);
   // Character height ≈2 m, with model geometry left low-poly and independent of physics.
   body.scale.setScalar(0.78);
   container.updateMatrixWorld(true);
@@ -666,10 +709,11 @@ export function buildSquirrel(): SquirrelModel {
       disposed = true;
       const geometries = new Set<THREE.BufferGeometry>(),
         ownedMaterials = new Set<THREE.Material>();
-      const sharedMaterials = new Set(materials.values());
+      const sharedMaterials = new Set<THREE.Material>([...materials.values(), bakedMaterial]);
+      const sharedMerged = new Set(mergedCache.values());
       container.traverse((node) => {
         if (!(node instanceof THREE.Mesh)) return;
-        if (node.geometry !== round && node.geometry !== faceted)
+        if (node.geometry !== round && node.geometry !== faceted && !sharedMerged.has(node.geometry))
           geometries.add(node.geometry);
         for (const mat of Array.isArray(node.material)
           ? node.material
@@ -686,8 +730,10 @@ export function buildSquirrel(): SquirrelModel {
     update(player, dt, _time) {
       if (disposed) return;
       const speed = Math.hypot(player.velocity.x, player.velocity.z);
-      if (speed > 0.4) {
-        const desired = Math.atan2(player.velocity.x, player.velocity.z);
+      const climbing = player.mode === 'climb' && player.climbDir;
+      if (speed > 0.4 || climbing) {
+        // Climbing: always face the wall (uphill), whatever the lateral motion.
+        const desired = climbing ? Math.atan2(player.climbDir!.x, player.climbDir!.z) : Math.atan2(player.velocity.x, player.velocity.z);
         const delta = Math.atan2(
           Math.sin(desired - facing),
           Math.cos(desired - facing),

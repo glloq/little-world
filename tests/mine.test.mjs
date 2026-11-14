@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {defaultMineSettings,validateMineSettings,geologyAt,MINE_CHUNK} from '../src/mine/mine-data.ts';
 import {MineGrid,MineState,parseMineSave} from '../src/mine/mine-state.ts';
-import {mineChunkGeometry} from '../src/mine/mine-mesher.ts';
+import {mineChunkGeometry,WALL_ROWS,MINE_RELIEF} from '../src/mine/mine-mesher.ts';
 import {mineSpaceProvider,mineTransitions} from '../src/mine/mine-collision.ts';
 import {WorldCollisionQuery} from '../src/physics/collision-world.ts';
 import {simulatePlayer,MAX_OXYGEN} from '../src/player.ts';
@@ -56,11 +56,12 @@ test('persistence: only differences saved; excavations and exhausted ores surviv
   assert.equal(back.dig({requestId:'d0',levelId:'level-2',ix:dug[0].ix,iz:dug[0].iz,from:from(back,1,dug[0].stand.ix,dug[0].stand.iz)},()=>{throw Error('regrant');}).ok,false,'replayed request is not granted again');
   const changed=new MineState(new MineGrid(zone(99)));const warnings=changed.restore(save);assert.equal(warnings.length,1);for(const w of dug)assert.equal(changed.isOpen(1,w.ix,w.iz),true,'dug cells never reappear');
 });
-test('mesher: exposed faces only, merged runs, border excavation updates the neighbour chunk',()=>{
+test('mesher: exposed faces only, bounded organic geometry, border excavation updates the neighbour chunk',()=>{
   const state=new MineState(new MineGrid(zone()));let quads=0,open=0;
   const {cx0,cx1,cz0,cz1}=state.grid.chunkRange();for(let cx=cx0;cx<=cx1;cx++)for(let cz=cz0;cz<=cz1;cz++){const g=mineChunkGeometry(state,0,cx,cz);quads+=g.quads;assert.ok(g.positions.every(Number.isFinite));}
   for(let x=-25;x<25;x++)for(let z=-5;z<45;z++)if(state.isOpen(0,x,z))open++;
-  assert.ok(open>20&&quads<open*6*.6,`merged geometry: ${quads} quads for ${open} open cells`);
+  // Floor + ceiling per cell, ≤ 3 wall rows per exposed face (a corridor exposes ~2 faces per cell).
+  assert.ok(open>20&&quads<=open*(2+(WALL_ROWS.length-1)*2.2),`bounded geometry: ${quads} quads for ${open} open cells`);
   const solid=mineChunkGeometry(state,0,10,10);assert.equal(solid.quads,0,'no geometry for untouched rock');
 });
 test('player enters the mine, digs, takes the stairs, never snaps to the surface, comes back out',()=>{
@@ -78,4 +79,22 @@ test('player enters the mine, digs, takes the stairs, never snaps to the surface
   for(let i=0;i<15;i++)simulatePlayer(p,{...keys,right:1},1/30,q);assert.ok(p.position.x<edge,'walked into the dug cell: '+p.position.x);
   for(let i=0;i<15;i++)simulatePlayer(p,{...keys,right:-1},1/30,q);p.position.x=Math.floor(state.grid.zone.mine.connectors[0].x)+.5;
   step(-1,400);assert.equal(p.space,undefined,'back outside after '+crossed.join(' > '));assert.equal(p.position.y,30);
+});
+
+test('mesher: organic relief is crack-free and never intrudes into the walkable space',()=>{
+  const state=new MineState(new MineGrid(zone()));const L=state.grid.levels[0],seen=new Map();let displaced=0;
+  const {cx0,cx1,cz0,cz1}=state.grid.chunkRange();
+  for(let cx=cx0;cx<=cx1;cx++)for(let cz=cz0;cz<=cz1;cz++){const g=mineChunkGeometry(state,0,cx,cz);
+    for(let i=0;i<g.positions.length;i+=3){const x=g.positions[i],y=g.positions[i+1],z=g.positions[i+2],gx=Math.round(x),gz=Math.round(z);
+      // Each vertex is a displaced grid vertex: a small offset from its grid column.
+      assert.ok(Math.abs(x-gx)<=MINE_RELIEF.wall+1e-6&&Math.abs(z-gz)<=MINE_RELIEF.wall+1e-6,'vertex near its grid column');
+      if(Math.abs(x-gx)>.01||Math.abs(z-gz)>.01)displaced++;
+      // Never below the floor undulation nor below the ceiling (headroom kept).
+      assert.ok(y>=L.floorY-MINE_RELIEF.floor-1e-6&&y<=L.floorY+L.height+MINE_RELIEF.vault+1e-6,'vertex within the level band');
+      // Horizontal displacement goes away from the open cells around the column (into the rock).
+      if(Math.abs(x-gx)>1e-6||Math.abs(z-gz)>1e-6){let ox=0,oz=0;for(const [a,b] of [[-1,-1],[0,-1],[-1,0],[0,0]])if(state.isOpen(0,gx+a,gz+b)){ox+=a+.5;oz+=b+.5;}assert.ok((x-gx)*ox+(z-gz)*oz<=1e-9,'displaced into the rock');}
+      // Crack-free: the same grid vertex at the same height row has one position across faces/chunks.
+      const key=gx+':'+gz+':'+Math.round((y-L.floorY)/L.height*100);const prev=seen.get(key);
+      if(prev)assert.ok(Math.abs(prev[0]-x)<1e-6&&Math.abs(prev[1]-y)<1e-6&&Math.abs(prev[2]-z)<1e-6,'shared vertex '+key);else seen.set(key,[x,y,z]);}}
+  assert.ok(displaced>50,'walls are not flat ('+displaced+' displaced vertices)');
 });

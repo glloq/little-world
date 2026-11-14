@@ -8,6 +8,9 @@ import { geoWorkerPool } from './geography/geo-workers.ts';
 import { createPathView, type PathViewStats } from './paths/path-view.ts';
 import { createLightView, type LightView } from './lighting/light-view.ts';
 import type { RuntimeLight } from './lighting/light-data.ts';
+import { worldAsset, lodDistances, exclusionRadius } from './world-production/registry.ts';
+import { linearizeVertexColors } from './world-production/species-library.ts';
+import { createPlacedInstances, type PlacedInstances } from './world-production/placed-instances.ts';
 import { createDressingView, type DressingView, type DressingStats } from './dressing-view.ts';
 import { sampleBiome, generatedCover } from './biomes';
 import type {
@@ -36,6 +39,10 @@ import {
  * (E10), to be confirmed on integrated GPUs; the pool never grows with the number of sources. */
 export const LIGHT_POOL = 4, LIGHT_POOL_ECONOMY = 2;
 export interface WorldView {
+  /** World Production: instanced enclosure/dock modules (game runtime). */
+  placed: PlacedInstances;
+  setDressingFilter(fn: ((cx: number, cz: number, kind: import('./geography/dressing.ts').DressingKind, index: number) => boolean) | null): void;
+  redrawDressing(): void;
   root: THREE.Group;
   terrain: THREE.Group;
   wheel: THREE.Group;
@@ -457,6 +464,9 @@ const modelPaths: Partial<Record<AssetId, string>> = {
   'nature.rock': 'models/rock.glb',
   'props.crate': 'models/crate.glb',
 };
+const legacyModelPaths = new Set(Object.values(modelPaths));
+const registryMaterial = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
+sharedMaterials.add(registryMaterial);
 const modelLoader = new GLTFLoader();
 const loadingModels = new Map<string, Promise<THREE.Group | null>>();
 function loadModel(path: string): Promise<THREE.Group | null> {
@@ -465,6 +475,12 @@ function loadModel(path: string): Promise<THREE.Group | null> {
     pending = modelLoader
       .loadAsync(import.meta.env.BASE_URL + path)
       .then((gltf) => {
+        if (!legacyModelPaths.has(path)) {
+          // Library GLBs carry sRGB COLOR_0 bytes and no material (glTF default = metallic,
+          // rendered black without an environment map): one shared flat Lambert material.
+          linearizeVertexColors(gltf.scene);
+          gltf.scene.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh) m.material = registryMaterial; });
+        }
         gltf.scene.traverse((o) => {
           const m = o as THREE.Mesh;
           if (m.geometry) sharedGeometry.add(m.geometry);
@@ -484,7 +500,54 @@ function loadModel(path: string): Promise<THREE.Group | null> {
   }
   return pending;
 }
+/** World Production registry GLB (vegetation lots, enclosures, bridges, dock, buildings):
+ * THREE.LOD with the real LOD files, loaded lazily and shared; a neutral placeholder box of
+ * the measured size stands in while loading (clearly procedural). Collisions, interactions
+ * and placement never depend on which LOD is drawn. */
+function createRegistryAsset(id: string): THREE.Group | null {
+  const asset = worldAsset(id);
+  if (!asset || asset.group === 'legacy') return null;
+  const g = new THREE.Group();
+  g.userData.registryAsset = id;
+  // Landmarks stay visible far away (cheap LOD2 silhouettes), buildings farther than props.
+  const role = asset.usage?.role;
+  if (role === 'landmark') g.userData.viewDistance = 2600;
+  else if (role === 'building') g.userData.viewDistance = 900;
+  const [sx, sy, sz] = asset.size;
+  const placeholder = box(g, mat(asset.usage?.role === 'tree' || asset.usage?.role === 'shrub' || asset.usage?.role === 'ground' ? 0x7fa86a : 0xb9a789), Math.max(.2, sx * .8), Math.max(.2, sy), Math.max(.2, sz * .8), 0, sy / 2, 0);
+  placeholder.name = 'Placeholder ' + id;
+  const distances = lodDistances(asset);
+  void Promise.all(asset.lods.map((l) => loadModel(l.file))).then((scenes) => {
+    if (!g.parent || g.userData.disposed) return;
+    if (scenes.some((scene) => !scene)) return; // Keep the placeholder; error already logged.
+    removeFallback(g);
+    const lod = new THREE.LOD();
+    lod.name = 'LOD ' + id;
+    scenes.forEach((scene, i) => lod.addLevel(scene!.clone(true), distances[i], 2));
+    g.add(lod);
+  });
+  return g;
+}
+/** LOD0 of a registry asset, loaded and cloned (Studio thumbnails); null for other assets. */
+export async function loadAssetPreview(id: string): Promise<THREE.Object3D | null> {
+  const asset = worldAsset(id);
+  if (!asset || asset.group === 'legacy') return null;
+  const scene = await loadModel(asset.lods[0].file);
+  return scene ? scene.clone(true) : null;
+}
+function removeFallback(g: THREE.Group) {
+  g.traverse((node) => {
+    const m = node as THREE.Mesh;
+    if (m.geometry && !sharedGeometry.has(m.geometry)) m.geometry.dispose();
+    if (m.material)
+      for (const mat of Array.isArray(m.material) ? m.material : [m.material])
+        if (!sharedMaterials.has(mat)) mat.dispose();
+  });
+  g.clear();
+}
 export function createAsset(id: AssetId): THREE.Group {
+  const registry = createRegistryAsset(id);
+  if (registry) return registry;
   const g = new THREE.Group();
   if (id === 'nature.pine') {
     cylinder(g, wood, 0.24, 0.34, 2.4, 0, 1.2, 0);
@@ -647,6 +710,7 @@ export function buildWorld(
   const ecology = createEcology(root, config.seed, config.density, biomeAt, legacy ? undefined : generatedCover);
   // G5: natural dressing (forests, cliff rocks, scree, pebbles, basalt) of generated worlds.
   const dressing: DressingView | null = legacy ? null : createDressingView(root, config.seed, config.density, workers);
+  const placed = createPlacedInstances(root, terrainHeight);
   const waterMeshes=new Map<string,{signature:string;mesh:THREE.Mesh}>();
   function refreshWater(){
     const changed:string[]=[],ids=new Set(compiledWaterBodies().map(w=>w.id));
@@ -697,6 +761,9 @@ export function buildWorld(
     stats: terrainView.stats,
     horizon: horizon.stats,
     terrainWork: terrainView.work,
+    placed,
+    setDressingFilter(fn: Parameters<DressingView['setHidden']>[0]) { dressing?.setHidden(fn); },
+    redrawDressing() { dressing?.redraw(); },
     dressing: dressing?.stats ?? null,
     paths: pathView.stats,
     refreshWater,
@@ -786,6 +853,7 @@ export function buildWorld(
       horizon.update(focus);
       ecology.update(dt, time, focus.x, focus.z);
       dressing?.update(focus.x, focus.z);
+      placed.update(focus.x, focus.z);
       pathView.update(focus.x, focus.z);
       if (camera) lightCamera.x = camera.position.x;
       else lightCamera.x = focus.x;
@@ -796,11 +864,12 @@ export function buildWorld(
       for (const object of objects.children)
         object.visible =
           Math.hypot(object.position.x - focus.x, object.position.z - focus.z) <
-          distance;
+          (object.userData.viewDistance ?? distance);
     },
     dispose() {
       ecology.dispose();
       dressing?.dispose();
+      placed.dispose();
       pathView.dispose();
       lightView.dispose();
       horizon.dispose();
@@ -831,8 +900,9 @@ export function configureWorldGeography(config: WorldConfig, definition?: WorldD
     grid: { minX: -width / 2, minZ: -length / 2, chunkSizeM: sector, columns: Math.ceil(width / sector), rows: Math.ceil(length / sector) },
     masks: definition?.geography?.masks ?? {},
     zones: definition?.geography?.zones ?? [],
+    landscapes: definition?.geography?.landscapes ?? [],
     biomeStrokes: (definition?.biomes ?? []).map((b) => ({ x: b.x, z: b.z, radius: b.radius, biome: b.biome })),
-    buildings: (definition?.placements ?? []).filter((p) => p.assetId.startsWith('architecture.')).map((p) => ({ x: p.x, z: p.z, radius: 6 * (p.scale ?? 1) })),
+    buildings: (definition?.placements ?? []).flatMap((p) => { const radius = exclusionRadius(p.assetId, p.scale ?? 1); return radius === null ? [] : [{ x: p.x, z: p.z, radius }]; }),
   });
 }
 export function addPlacement(

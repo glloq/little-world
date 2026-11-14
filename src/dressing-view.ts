@@ -3,19 +3,28 @@ import {geoContext} from './geography/engine.ts';
 import {insideWorld} from './terrain.ts';
 import type {GeoWorkerPool,GeoTask} from './geography/geo-workers.ts';
 import {DRESSING_CELL_M,ITEM_STRIDE,generateDressingCell,type DressingCell,type DressingKind} from './geography/dressing.ts';
+import {loadSpeciesLibrary,type SpeciesLibrary} from './world-production/species-library.ts';
+import {SPECIES} from './world-production/biotopes.ts';
 
 /** G5 — renderer of the natural dressing of generated worlds (doc 17/18/22 constraints).
  * Cells are generated progressively around the focus (time budget per frame, nearest
  * first, bounded LRU cache), then aggregated into ONE InstancedMesh per visual family:
  * ≤ 8 draw calls whatever the number of cells. Near trees have trunk + crown; far trees
  * keep a 4–8 triangle silhouette (no fog); small stones are short-ranged. No shadows, no
- * per-frame CPU animation: buffers are rewritten only when the visible cell set changes. */
+ * per-frame CPU animation: buffers are rewritten only when the visible cell set changes.
+ * World Production V1: items carrying a library species are drawn with the real GLB models —
+ * LOD0 near, LOD1 at mid distance — through TWO shared BatchedMeshes (all species in one draw
+ * call per LOD, per-instance frustum culling, no sorting). Beyond, trees keep their 4–8
+ * triangle silhouettes tinted with the species crown colour; while the GLB library loads (or
+ * if a file is missing) the procedural families stay in place: no hole, no popping to empty. */
 type Family='trunk'|'cone'|'round'|'stone'|'grit'|'basalt'|'farCone'|'farRound';
 const FAMILIES:Family[]=['trunk','cone','round','stone','grit','basalt','farCone','farRound'];
 /** Draw radius (m) per item kind at detail level 0; values are benchmark knobs, not truths. */
-export const DRESSING_RADII:Record<DressingKind|'farTrees',number>={pine:90,oak:90,shrub:90,rock:320,basalt:240,scree:80,pebble:60,farTrees:720};
+/** GLB LOD radii (m) per kind at detail level 0: LOD0 ≤ first, LOD1 ≤ second. Benchmark knobs. */
+export const SPECIES_RADII:Record<'pine'|'oak'|'shrub'|'plant'|'deadwood',[number,number]>={pine:[55,110],oak:[55,110],shrub:[40,80],plant:[30,55],deadwood:[35,70]};
+export const DRESSING_RADII:Record<DressingKind|'farTrees',number>={pine:90,oak:90,shrub:90,plant:70,deadwood:90,rock:320,basalt:240,scree:80,pebble:60,farTrees:720};
 const CAPACITY:Record<Family,number>={trunk:2500,cone:1500,round:2500,stone:3000,grit:5000,basalt:1500,farCone:9000,farRound:9000};
-export interface DressingStats {/** Allocated instance buffers (matrices + colours), bytes. */instanceBytes:number;byFamily:Record<string,number>;triangles:number;cells:number;pending:number;instances:number;calls:number;lastRebuildMs:number;maxCellMs:number;generatedMs:number;bytes:number;radiusScale:number}
+export interface DressingStats {/** GLB species library: loading state, instances per LOD, culling. */species:{state:'loading'|'ready'|'failed';lod0:number;lod1:number;triangles:number;bytes:number;loadMs:number;failed:string[];dropped:number};/** Allocated instance buffers (matrices + colours), bytes. */instanceBytes:number;byFamily:Record<string,number>;triangles:number;cells:number;pending:number;instances:number;calls:number;lastRebuildMs:number;maxCellMs:number;generatedMs:number;bytes:number;radiusScale:number}
 
 const trianglesOf=(g:THREE.BufferGeometry)=>(g.index?g.index.count:g.getAttribute('position').count)/3;
 /** Far round crown: an octahedron whose lower half is squashed (reads as a canopy, not a diamond). */
@@ -55,8 +64,40 @@ export function createDressingView(parent:THREE.Group,seed:number,density:number
     root.add(m);meshes[f]=m;allocated[f]=capacity;
   }
   for(const f of FAMILIES)allocate(f,Math.min(512,CAPACITY[f]));
+  // ---- GLB species: one BatchedMesh per LOD, created when the shared library is loaded.
+  const batchMaterial=new THREE.MeshLambertMaterial({vertexColors:true,flatShading:true});
+  interface Batch {mesh:THREE.BatchedMesh;ids:number[];capacity:number;added:number;used:number;tri:number[]}
+  let library:SpeciesLibrary|null=null;const batches:Batch[]=[];
+  /** Gameplay filter: elements felled/picked by the player and not grown back are not drawn. */
+  let hidden:((cx:number,cz:number,kind:DressingKind,index:number)=>boolean)|null=null;
+  const BATCH_CAP=[6000,12000];
+  function createBatch(lod:0|1):Batch{
+    let verts=0,idx=0;for(const g of library!.species)if(g){const geo=lod?g.lod1:g.lod0;verts+=geo.getAttribute('position').count;idx+=geo.index!.count;}
+    const capacity=1024,mesh=new THREE.BatchedMesh(capacity,verts,idx,batchMaterial);mesh.name='Dressing species LOD'+lod;
+    mesh.perObjectFrustumCulled=true;mesh.sortObjects=false;mesh.frustumCulled=false;mesh.castShadow=mesh.receiveShadow=false;if(lod===0)mesh.renderOrder=-1;
+    const ids=library!.species.map(g=>g?mesh.addGeometry(lod?g.lod1:g.lod0):-1),tri=library!.species.map(g=>g?g.triangles[lod]:0);
+    root.add(mesh);return {mesh,ids,capacity,added:0,used:0,tri};
+  }
+  // `?glb=0` (benchmarks, fallback checks): keep the procedural families only.
+  const glbDisabled=typeof location!=='undefined'&&new URLSearchParams(location.search).get('glb')==='0';
+  if(glbDisabled)queueMicrotask(()=>{stats.species.state='failed';});
+  else void loadSpeciesLibrary().then(lib=>{
+    if(retired)return;library=lib;stats.species.bytes=lib.bytes;stats.species.loadMs=lib.loadMs;stats.species.failed=lib.failed;
+    if(lib.species.every(g=>!g)){stats.species.state='failed';return;}
+    batches.push(createBatch(0),createBatch(1));stats.species.state='ready';dirty=true;
+  },()=>{stats.species.state='failed';});
+  const m4=new THREE.Matrix4(),tint=new THREE.Color();
+  function batchWrite(b:Batch,species:number,x:number,y:number,z:number,s:number,rot:number,t:number):boolean{
+    const gid=b.ids[species];if(gid<0)return false;
+    if(b.used>=b.capacity){if(b.capacity>=BATCH_CAP[batches.indexOf(b)]){stats.species.dropped++;return true;}b.capacity=Math.min(BATCH_CAP[batches.indexOf(b)],b.capacity*2);b.mesh.setInstanceCount(b.capacity);}
+    const i=b.used++;
+    if(i>=b.added){b.mesh.addInstance(gid);b.added++;}else{b.mesh.setGeometryIdAt(i,gid);b.mesh.setVisibleAt(i,true);}
+    const c=Math.cos(rot)*s,sn=Math.sin(rot)*s;m4.set(c,0,sn,x, 0,s,0,y, -sn,0,c,z, 0,0,0,1);b.mesh.setMatrixAt(i,m4);
+    const k=.88+.22*t;tint.setRGB(k,k*(.98+.04*t),k*.97);b.mesh.setColorAt(i,tint);
+    return true;
+  }
   const cache=new Map<string,DressingCell&{used:number;stale?:boolean}>(),MAX_CELLS=900;let clock=0;
-  const stats:DressingStats={instanceBytes:0,byFamily:{},triangles:0,cells:0,pending:0,instances:0,calls:0,lastRebuildMs:0,maxCellMs:0,generatedMs:0,bytes:0,radiusScale:1};
+  const stats:DressingStats={species:{state:'loading',lod0:0,lod1:0,triangles:0,bytes:0,loadMs:0,failed:[],dropped:0},instanceBytes:0,byFamily:{},triangles:0,cells:0,pending:0,instances:0,calls:0,lastRebuildMs:0,maxCellMs:0,generatedMs:0,bytes:0,radiusScale:1};
   let queue:[number,number][]=[],focusCell='',dirty=true,lastRebuild=0,radiusScale=1,farScale=1,detail=0,retired=false;
   const included=new Set<string>();
   const maxRadius=()=>Math.max(DRESSING_RADII.rock*radiusScale,DRESSING_RADII.farTrees*farScale);
@@ -90,22 +131,44 @@ export function createDressingView(parent:THREE.Group,seed:number,density:number
       bounds[f].expandByPoint(new THREE.Vector3(x,y+sy,z)).expandByPoint(new THREE.Vector3(x,y,z));counts[f]=n+1;
     };
     const mix=(a:number,b:number,t:number)=>{color.setHex(a);c2.setHex(b);color.lerp(c2,t);return color.getHex();};
+    const glb=library&&batches.length===2,prevUsed=batches.map(b=>b.used);for(const b of batches)b.used=0;let speciesTriangles=0;
+    const lodOf=(kind:'pine'|'oak'|'shrub'|'plant'|'deadwood',dist:number)=>{const [r0,r1]=SPECIES_RADII[kind];return dist<r0*radiusScale?0:dist<r1*radiusScale?1:-1;};
+    const species=(kind:'pine'|'oak'|'shrub'|'plant'|'deadwood',x:number,y:number,z:number,s:number,r:number,t:number,sp:number,dist:number):boolean=>{
+      if(!glb||sp<0||!library!.species[sp])return false;const lod=lodOf(kind,dist);if(lod<0)return false;
+      if(batchWrite(batches[lod],sp,x,y,z,s,r,t))speciesTriangles+=batches[lod].tri[sp];return true;
+    };
     for(const {c,d}of cells){
       c.used=++clock;const key=':'+c.cx+':'+c.cz;
-      const trees=near('pine',d,key),far=!trees&&d<DRESSING_RADII.farTrees*farScale;
+      const trees=near('pine',d,key),far=d<DRESSING_RADII.farTrees*farScale;
       for(const kind of ['pine','oak'] as const){
-        const a=c.items[kind];if(!trees&&!far)continue;
+        const a=c.items[kind];if(!trees&&!far&&!glb)continue;
         // Distant groves: one silhouette out of two, slightly larger (same canopy coverage).
-        const thin=far&&(d>320*farScale||detail>=2)?2:1,grow=thin===2?1.25:1;
-        for(let i=0;i<a.length;i+=ITEM_STRIDE*thin){
-          const x=a[i],y=a[i+1],z=a[i+2],s=a[i+3],r=a[i+4],t=a[i+5],tone=FOLIAGE[kind==='pine'?0:1],hex=mix(tone[0],tone[1],t);
+        const thin=!trees&&(d>320*farScale||detail>=2)?2:1,grow=thin===2?1.25:1;
+        for(let i=0;i<a.length;i+=ITEM_STRIDE){
+          const x=a[i],y=a[i+1],z=a[i+2],s=a[i+3],r=a[i+4],t=a[i+5],sp=a[i+6];
+          if(hidden?.(c.cx,c.cz,kind,i/ITEM_STRIDE))continue;
+          if(glb&&sp>=0&&library!.species[sp]){
+            const dist=Math.hypot(x-fx,z-fz);if(species(kind,x,y,z,s,r,t,sp,dist))continue;
+            if(!far||(thin===2&&(i/ITEM_STRIDE)%2===1))continue;
+            // Far silhouette sized and tinted after the real species model.
+            const g=library!.species[sp]!,h=g.height*s,w=g.radius*s*grow*1.1,hex=mix(g.crownHex,0x5a7a4a,.25*t);
+            if(SPECIES[sp].crown==='cone')write('farCone',x,y,z,w,h,w,r,hex);else write('farRound',x,y+h*.58,z,w,h*.42,w,r,hex);
+            continue;
+          }
+          if(!trees&&(!far||(thin===2&&(i/ITEM_STRIDE)%2===1)))continue;
+          const tone=FOLIAGE[kind==='pine'?0:1],hex=mix(tone[0],tone[1],t);
+          // Procedural fallback (library loading or missing): historical trunk + crown sizes.
+          const ps=sp>=0?Math.min(1.45,.75+.35*s):s;
           if(trees){
-            const trunkH=kind==='pine'?2.4*s:2.1*s;write('trunk',x,y-.2,z,s,trunkH+.2,s,r,null);
-            if(kind==='pine')write('cone',x,y+trunkH*.75,z,2.3*s,6.4*s,2.3*s,r,hex);else write('round',x,y+trunkH+1.6*s,z,2.5*s,2.1*s,2.5*s,r,hex);
-          }else if(kind==='pine')write('farCone',x,y,z,2.4*s*grow,8.8*s,2.4*s*grow,r,hex);else write('farRound',x,y+1.2*s,z,2.9*s*grow,4.4*s,2.9*s*grow,r,hex);
+            const trunkH=kind==='pine'?2.4*ps:2.1*ps;write('trunk',x,y-.2,z,ps,trunkH+.2,ps,r,null);
+            if(kind==='pine')write('cone',x,y+trunkH*.75,z,2.3*ps,6.4*ps,2.3*ps,r,hex);else write('round',x,y+trunkH+1.6*ps,z,2.5*ps,2.1*ps,2.5*ps,r,hex);
+          }else if(kind==='pine')write('farCone',x,y,z,2.4*ps*grow,8.8*ps,2.4*ps*grow,r,hex);else write('farRound',x,y+1.2*ps,z,2.9*ps*grow,4.4*ps,2.9*ps*grow,r,hex);
         }
       }
-      if(near('shrub',d,key)){const a=c.items.shrub;for(let i=0;i<a.length;i+=ITEM_STRIDE)write('round',a[i],a[i+1]+.45*a[i+3],a[i+2],1.1*a[i+3],.75*a[i+3],1.1*a[i+3],a[i+4],mix(0x6f8f4e,0x93a15a,a[i+5]));}
+      {const a=c.items.shrub,nearShrub=near('shrub',d,key);for(let i=0;i<a.length;i+=ITEM_STRIDE){
+        if(species('shrub',a[i],a[i+1],a[i+2],a[i+3],a[i+4],a[i+5],a[i+6],Math.hypot(a[i]-fx,a[i+2]-fz)))continue;
+        if(nearShrub&&!glb)write('round',a[i],a[i+1]+.45*a[i+3],a[i+2],1.1*a[i+3],.75*a[i+3],1.1*a[i+3],a[i+4],mix(0x6f8f4e,0x93a15a,a[i+5]));}}
+      for(const kind of ['plant','deadwood'] as const){const a=c.items[kind];if(!glb||d>SPECIES_RADII[kind][1]*radiusScale+48)continue;for(let i=0;i<a.length;i+=ITEM_STRIDE)if(!hidden?.(c.cx,c.cz,kind,i/ITEM_STRIDE))species(kind,a[i],a[i+1],a[i+2],a[i+3],a[i+4],a[i+5],a[i+6],Math.hypot(a[i]-fx,a[i+2]-fz));}
       if(near('rock',d,key)){const a=c.items.rock;for(let i=0;i<a.length;i+=ITEM_STRIDE)write('stone',a[i],a[i+1],a[i+2],a[i+3],a[i+3]*(.7+.5*a[i+5]),a[i+3]*.85,a[i+4],mix(0x8b8b84,0x6f6e69,a[i+5]));}
       if(near('scree',d,key)){const a=c.items.scree;for(let i=0;i<a.length;i+=ITEM_STRIDE)write('grit',a[i],a[i+1],a[i+2],a[i+3],a[i+3]*.55,a[i+3]*.8,a[i+4],mix(0xa29d8e,0x85817a,a[i+5]));}
       if(near('pebble',d,key)){const a=c.items.pebble;for(let i=0;i<a.length;i+=ITEM_STRIDE)write('grit',a[i],a[i+1],a[i+2],a[i+3],a[i+3]*.4,a[i+3]*.75,a[i+4],mix(0xc2bbaa,0x9b968a,a[i+5]));}
@@ -118,12 +181,16 @@ export function createDressingView(parent:THREE.Group,seed:number,density:number
       if(m.instanceColor){m.instanceColor.needsUpdate=true;m.instanceColor.clearUpdateRanges();m.instanceColor.addUpdateRange(0,n*3);}
       if(n){m.boundingSphere=bounds[f].getBoundingSphere(new THREE.Sphere());m.boundingSphere.radius+=8;}
     }
+    batches.forEach((b,k)=>{for(let i=b.used;i<prevUsed[k];i++)b.mesh.setVisibleAt(i,false);b.mesh.visible=b.used>0;if(b.used){calls++;instances+=b.used;}});
+    triangles+=speciesTriangles;stats.species.lod0=batches[0]?.used??0;stats.species.lod1=batches[1]?.used??0;stats.species.triangles=speciesTriangles;
     stats.instances=instances;stats.calls=calls;stats.triangles=triangles;stats.lastRebuildMs=performance.now()-t0;stats.cells=cache.size;
     let bytes=0;for(const c of cache.values())for(const a of Object.values(c.items))bytes+=a.byteLength;stats.bytes=bytes;
     stats.instanceBytes=FAMILIES.reduce((sum,f)=>sum+allocated[f]*(f==='trunk'?64:76),0);
   }
   return {
     stats,
+    setHidden(fn:typeof hidden){hidden=fn;dirty=true;},
+    /** Redraw from cached cells (gameplay changes: felled tree, picked flowers). */redraw(){dirty=true;lastRebuild=0;},
     /** Quality tiers of the shared budget manager: 0 full, 1 −15 %, 2 shorter rings and thinner
      * far groves, 3 near dressing only (far silhouettes off; terrain colours keep forests). */
     setDetail(level:number){detail=level;const next=level>=3?.45:level>=2?.65:level>=1?.85:1,far=level>=3?0:level>=2?.55:level>=1?.85:1;if(next!==radiusScale||far!==farScale){radiusScale=next;farScale=far;stats.radiusScale=next;dirty=true;focusCell='';}},
@@ -162,6 +229,8 @@ export function createDressingView(parent:THREE.Group,seed:number,density:number
     dispose(){
       if(retired)return;retired=true;for(const t of inFlight.values())t.cancel();inFlight.clear();cache.clear();root.removeFromParent();
       for(const f of FAMILIES){meshes[f].dispose();geometries[f].dispose();materials[f].dispose();}
+      // Batches own copies of the shared species geometries; the library cache itself is kept.
+      for(const b of batches)b.mesh.dispose();batchMaterial.dispose();
     },
   };
 }

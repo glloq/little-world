@@ -24,7 +24,7 @@ try {
     assert.equal((await revision.json()).revision, process.env.EXPECTED_REVISION, 'Le site public sert une autre révision');
   }
   // Detect raw source publication before waiting for an interface that cannot start.
-  for (const path of ['', 'studio/', 'editor/']) {
+  for (const path of ['', 'studio/']) {
     const response = await context.request.get(new URL(path, base).href, {headers: {'Cache-Control': 'no-cache'}});
     assert.ok(response.ok(), `${path}: HTTP ${response.status()}`);
     for (const resource of compiledResources(await response.text(), path || 'jeu')) {
@@ -46,12 +46,8 @@ try {
   await page.waitForFunction(() => {const c = document.querySelector('#workspace canvas'); return c && c.width > 100 && c.height > 100;});
   assert.ok(await page.locator('#workspace canvas').isVisible(), 'Carte du Studio invisible');
   await page.screenshot({path: `${artifacts}/published-studio.png`});
-  await page.goto(new URL('editor/', base).href);
-  await page.waitForFunction(() => document.querySelector('#editor-message')?.textContent.startsWith('Prêt'));
-  assert.ok(await page.locator('#editor-viewport canvas').isVisible(), 'Scène de l’éditeur invisible');
-  await page.screenshot({path: `${artifacts}/published-editor.png`});
   assert.deepEqual(errors, [], 'Erreurs de chargement ou d’exécution');
-  console.log('Publication vérifiée : JS/CSS compilés et servis avec le bon MIME ; jeu animé, carte Studio et éditeur visibles.');
+  console.log('Publication vérifiée : JS/CSS compilés et servis avec le bon MIME ; jeu (île) animé et carte Studio visibles.');
 } finally {
   await browser.close();
 }

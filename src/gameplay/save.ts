@@ -1,12 +1,14 @@
 import {finite,identifier,record,stateValue,type ObjectiveStatus,type Point3,type StateValue} from './schema.ts';
 import {parseMineSave,type MineSaveState} from '../mine/mine-state.ts';
 import {parsePlotState,type FarmPlotState} from '../farm/farm-sim.ts';
+import {parseGatherSave} from './gathering.ts';
 import {indexedDbBlobStore,type BlobStore} from './save-blobs.ts';
 export interface GameSaveV1 {schemaVersion:1;worldId:string;worldBuildVersion:string;slotId:string;savedAt:number;time:number;position:Point3;inventory:Record<string,number>;variables:Record<string,StateValue>;objectives:Record<string,ObjectiveStatus>;entities:Record<string,Record<string,StateValue>>;executed:Record<string,boolean>;cooldowns:Record<string,number>;dialogueFlags:Record<string,boolean>;pending:{interactionId:string;cursor:number;wakeAt:number}[];}
 /** V2 = V1 + active space + per-mine excavation differences + per-plot farm states. Large
  * activity payloads live in IndexedDB (`external`), the compact manifest stays at the same
  * localStorage key, written last as the commit point. V1 slots are migrated on read. */
-export interface GameSaveV2 extends Omit<GameSaveV1,'schemaVersion'> {schemaVersion:2;space?:{zoneId:string;levelId:string}|null;mines:Record<string,MineSaveState>;farms:Record<string,FarmPlotState>;external?:{key:string;bytes:number}}
+export interface GameSaveV2 extends Omit<GameSaveV1,'schemaVersion'> {schemaVersion:2;space?:{zoneId:string;levelId:string}|null;mines:Record<string,MineSaveState>;farms:Record<string,FarmPlotState>;external?:{key:string;bytes:number};
+  /** Gathered natural elements not grown back yet (optional, World Production gameplay). */gathering?:import('./gathering.ts').GatherSave}
 export type GameSave=GameSaveV2;
 /** Activity payloads above this size go to IndexedDB (when available). */
 export const INLINE_ACTIVITY_LIMIT=256*1024;
@@ -26,6 +28,7 @@ export function parseGameSave(value:unknown):GameSaveV2 {
   const mines:Record<string,MineSaveState>={},farms:Record<string,FarmPlotState>={};
   if(v.mines!==undefined){assert(record(v.mines)&&Object.keys(v.mines).length<=64,'États de mines invalides');for(const [id,m]of Object.entries(v.mines as object)){const parsed=parseMineSave(m);assert(parsed.mineId===id,'Identité de mine incohérente');mines[id]=parsed;}}
   if(v.farms!==undefined){assert(record(v.farms)&&Object.keys(v.farms).length<=512,'États de parcelles invalides');for(const [id,f]of Object.entries(v.farms as object)){const parsed=parsePlotState(f);assert(parsed.plotId===id,'Identité de parcelle incohérente');farms[id]=parsed;}}
+  if(v.gathering!==undefined)parseGatherSave(v.gathering);
   if(v.external!==undefined)assert(record(v.external)&&typeof v.external.key==='string'&&v.external.key.length<=300&&finite(v.external.bytes,0,1e9),'Référence de données de partie invalide');
   assert(new TextEncoder().encode(JSON.stringify({...v,mines:undefined,farms:undefined})).byteLength<=2_000_000,'Sauvegarde trop volumineuse');
   return structuredClone({...v,schemaVersion:2,dialogueFlags:v.dialogueFlags??{},space:v.space??null,mines,farms}) as unknown as GameSaveV2;

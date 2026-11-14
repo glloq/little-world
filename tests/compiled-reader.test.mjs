@@ -1,4 +1,5 @@
 import test from 'node:test';
+import {economyItems} from '../src/gameplay/economy.ts';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {compileProject} from '../src/world-compiler/compile.ts';
@@ -24,7 +25,7 @@ test('compiled reader reproduces the Studio source projection of the reference s
   assert.deepEqual(byId(playable.world.npcs),byId(source.npcs));
   assert.deepEqual(playable.world.terrain,source.terrain);
   assert.deepEqual(byId(playable.world.water),byId(source.water));
-  const expected=gameplayDataFromProject(project,bundle.manifest.buildVersion);
+  const expected=gameplayDataFromProject(project,bundle.manifest.buildVersion);expected.items=economyItems(expected.items); // the reader adds the core economy items
   assert.deepEqual(byId(playable.gameplay.entities),byId(expected.entities));
   for(const key of ['interactions','dialogues','items','objectives','variables'])assert.deepEqual(byId(playable.gameplay[key]),byId(expected[key]),key);
   assert.deepEqual(byId(playable.collisions),byId(collisionDefinitionsFromProject(project)));

@@ -5,7 +5,7 @@ import {migrateWorldToV3,toRuntimeWorld} from '../src/studio-core/migration.ts';
 import {parseProject,createProject,chunkAt} from '../src/studio-core/schema.ts';
 import {writeProjectArchive,readProjectArchive,writeFilesArchive} from '../src/studio-core/archive.ts';
 import {putTerrainEdit} from '../src/studio-core/source.ts';
-const reference=JSON.parse(await readFile(new URL('../maps/default.json',import.meta.url),'utf8'));
+const reference=JSON.parse(await readFile(new URL('./fixtures/legacy-v1-valley.json',import.meta.url),'utf8'));
 test('real V2 reference migrates purely with stable IDs and complete runtime roundtrip',()=>{
  const source=structuredClone(reference),before=structuredClone(source);
  const a=migrateWorldToV3(source),b=migrateWorldToV3(source);

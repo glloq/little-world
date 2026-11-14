@@ -116,6 +116,15 @@ export class StudioViewport {
   /** PHYS diagnostics (authoring aid, never exported): solid collision volumes from Collider
    * components, relief points steeper than the walker can climb, mine level outlines. */
   private physicsGroup=new THREE.Group();
+  /** World Production: oriented footprint of a landscape being positioned (authoring aid only). */
+  private footprint:THREE.LineLoop|null=null;
+  showFootprint(points:{x:number;z:number}[]|null,color=0x3d8bd9){
+    if(this.footprint){this.footprint.geometry.dispose();(this.footprint.material as THREE.Material).dispose();this.footprint.removeFromParent();this.footprint=null;}
+    if(points&&points.length>2){const pts:THREE.Vector3[]=[];const ring=[...points,points[0]];
+      for(let i=1;i<ring.length;i++){const a=ring[i-1],b=ring[i],steps=Math.max(1,Math.ceil(Math.hypot(b.x-a.x,b.z-a.z)/6));for(let j=0;j<steps;j++){const x=a.x+(b.x-a.x)*j/steps,z=a.z+(b.z-a.z)*j/steps;pts.push(new THREE.Vector3(x,terrainHeight(x,z)+1.2,z));}}
+      this.footprint=new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(pts),new THREE.LineBasicMaterial({color,depthTest:false}));this.footprint.name='Landscape footprint';this.footprint.renderOrder=10;this.scene.add(this.footprint);}
+    this.canvas.dataset.footprint=points?String(points.length):'0';this.invalidate(10);
+  }
   get physicsOverlay(){return this.physicsGroup.visible&&!!this.physicsGroup.parent;}
   setPhysicsOverlay(on:boolean){
     for(const child of [...this.physicsGroup.children]){const m=child as THREE.Mesh;m.geometry?.dispose();(m.material as THREE.Material)?.dispose?.();}this.physicsGroup.clear();
@@ -217,6 +226,7 @@ export class StudioViewport {
     const size=this.session.document.world.chunkSizeM,b=this.session.document.world.bounds;
     for(const id of new Set([...next.keys(),...previous.keys()])){
       if(next.get(id)===previous.get(id))continue;
+      if(id==='#landscapes'){for(const regions of [previous.get(id),next.get(id)])for(const r of JSON.parse(regions??'[]') as {x:number;z:number;width:number;length:number}[])this.world.refreshTerrain(r.x,r.z,Math.hypot(r.width,r.length)/2+8);continue;}
       if(id==='#zones'){for(const zones of [previous.get(id),next.get(id)])for(const z of JSON.parse(zones??'[]') as {polygon:{x:number;z:number}[]}[]){const xs=z.polygon.map(q=>q.x),zs=z.polygon.map(q=>q.z),x0=Math.min(...xs),x1=Math.max(...xs),z0=Math.min(...zs),z1=Math.max(...zs);this.world.refreshTerrain((x0+x1)/2,(z0+z1)/2,Math.hypot(x1-x0,z1-z0)/2+4);}continue;}
       const [cx,cz]=id.split(':').map(Number);this.world.refreshTerrain(b.minX+(cx+.5)*size,b.minZ+(cz+.5)*size,size*.72+4);
     }
@@ -306,5 +316,5 @@ function rangeGeometry(){
 }
 function geographySignatures(d:WorldDefinition):Map<string,string>{
   const out=new Map<string,string>();for(const [id,layers]of Object.entries(d.geography?.masks??{}))out.set(id,JSON.stringify(layers));
-  out.set('#zones',JSON.stringify(d.geography?.zones??[]));return out;
+  out.set('#zones',JSON.stringify(d.geography?.zones??[]));out.set('#landscapes',JSON.stringify(d.geography?.landscapes??[]));return out;
 }

@@ -14,7 +14,8 @@ export type CharacterAnimation =
   | 'land'
   | 'swim'
   | 'dive'
-  | 'ascend';
+  | 'ascend'
+  | 'climb';
 export interface AnimationInput {
   mode: MotionMode;
   speed: number;
@@ -111,7 +112,9 @@ export class CharacterAnimator {
           : 0.14;
     if (this.transitionTime >= duration) this.transition = null;
     this.state =
-      input.mode === 'ground'
+      input.mode === 'climb'
+        ? 'climb'
+        : input.mode === 'ground'
         ? this.transition === 'land'
           ? 'land'
           : speed < 0.4
@@ -176,6 +179,20 @@ export class CharacterAnimator {
       p.headZ = Math.sin(t * 0.75) * 0.035;
       p.tailX += 0.24;
       p.membrane = 1;
+    } else if (input.mode === 'climb') {
+      // Upright against the wall, paws reaching up alternately, hind legs pushing.
+      const moving = speed > 0.15 || Math.abs(input.verticalSpeed) > 0.15;
+      const reach = moving ? stride : Math.sin(t * 1.4) * 0.15;
+      p.bodyX = -0.28;
+      p.bodyY = Math.abs(reach) * 0.04;
+      p.armLX = -1.85 + reach * 0.45;
+      p.armRX = -1.85 - reach * 0.45;
+      p.armLZ = 0.28;
+      p.armRZ = -0.28;
+      p.legLX = -0.25 - reach * 0.4;
+      p.legRX = -0.25 + reach * 0.4;
+      p.headX = -0.18;
+      p.tailX += 0.35;
     } else if (input.mode === 'swim' || input.mode === 'dive') {
       p.bodyX =
         input.mode === 'swim' ? 0.58 : this.state === 'ascend' ? -0.36 : 0.88;

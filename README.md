@@ -7,10 +7,9 @@ Prototype **solo** d'exploration 3D avec **Three.js**, exécutable entièrement 
 ## Essayer le prototype
 
 **GitHub Pages :**
-- Jeu : **https://glloq.github.io/little-world/**
-- Éditeur : **https://glloq.github.io/little-world/editor/**
+- Jeu (île 3 × 8 km) : **https://glloq.github.io/little-world/**
 - Studio : **https://glloq.github.io/little-world/studio/** — éditeur 3D (clic : sélectionner · clic droit : orienter, + ZQSD/WASD : voler · molette : zoom · F : centrer · 7 : vue du dessus), voir [32 — Éditeur 3D](docs/32-STUDIO-EDITEUR-3D.md)
-- Île 3 × 8 km (lot 1, monde V3 compilé, peu dense) : **https://glloq.github.io/little-world/?world=maps/island/manifest.json** — une fois `main` publié ; voir [31 — Lot 1](docs/31-LOT1-ILE-RENDU-CONTINU.md).
+- L’ancien « Atelier de cartes » (`/editor/`) et l’ancienne vallée 200 × 600 m sont **retirés** : la page d’accueil ouvre l’île, le Studio est le seul éditeur. Voir [42 — Jeu complet V1](docs/42-JEU-COMPLET-V1.md).
 
 **Si le site affiche uniquement du texte :** relancer **Build and deploy Little World** sur `main` avec le workflow corrigé. Il attend la fin de la publication automatique des sources avant de publier le build Vite et vérifie les trois interfaces publiques. Le réglage recommandé dans [Settings → Pages](https://github.com/glloq/little-world/settings/pages) est **Build and deployment → Source → GitHub Actions** pour éviter ce double build, mais le workflow fonctionne aussi sans modifier ce paramètre administratif. Publier uniquement `dist/`, jamais les sources TypeScript. Voir [le diagnostic et les contrôles de publication](docs/08-GITHUB-PAGES.md#incident--site-public-affichant-uniquement-du-texte).
 
@@ -27,7 +26,7 @@ npm ci
 npm run dev
 ```
 
-Ouvrir **http://localhost:5173/little-world/** ; éditeur **http://localhost:5173/little-world/editor/**.
+Ouvrir **http://localhost:5173/little-world/** (jeu) ; Studio **http://localhost:5173/little-world/studio/**.
 
 ```bash
 npm test          # tests des règles de terrain, mouvement et fichiers GLB
@@ -54,10 +53,10 @@ Ce périmètre complet reste **un objectif confirmé** ; les fonctions livrées 
 - Format de carte v2 validé commun au jeu/éditeur, migration v1, compilation en données statiques pour Pages.
 
 ```bash
-npm run compile:map -- maps/default.json public/maps/default.json
+npm run generate:island      # régénère l’île (source V3 + monde compilé)
 npm run assets:squirrel # régénère le GLB original
 # Avec npm run dev dans un autre terminal et Chromium installé :
-npm run test:browser
+npm run test:economy && npm run test:climb
 npm run benchmark -- http://127.0.0.1:5173/little-world/ /tmp/world-bench
 ```
 
@@ -102,13 +101,13 @@ Les tests navigateur utilisent Chromium système s’il existe, sinon celui de P
 
 **Clavier :** le menu reconnaît la lettre **A** sur AZERTY et QWERTY (pas la position physique de la touche). Sur QWERTY, **A est réservé au menu** : utiliser **Q** ou **←** pour aller à gauche. Sur AZERTY, **Q** reste la commande gauche. Les choix d'accessoires/émotions sont enregistrés en `localStorage`.
 
-En mode éditeur : clic-glisser pour pivoter la vue, molette pour zoomer ; sélectionner un asset à gauche puis cliquer sur le terrain pour le déposer.
+**Jeu complet V1 :** `E` agir (parler, commercer, pêcher, ouvrir un coffre, cueillir) · `F` maintenu : frapper (abattre, creuser, cultiver) · avancer contre une falaise : grimper (endurance), `Espace` : se détacher. Voir [42](docs/42-JEU-COMPLET-V1.md).
 
 ## Architecture actuelle
 
 ```text
 index.html                  # Jeu
-editor/index.html           # Éditeur
+studio/index.html           # Little World Studio (seul éditeur)
 src/
   terrain.ts                # Relief, hydrologie, graine, limites
   world.ts                  # Terrain sectionné, végétation, prefabs, GLB
@@ -118,7 +117,8 @@ src/
   character-style.ts        # Options et sauvegarde des apparences
   customization-menu.ts     # Interface de personnalisation (A maintenu)
   main.ts                   # Boucle de jeu, entrées, caméra, HUD
-  editor.ts                 # Placement, import/export, IndexedDB
+  studio/                   # Studio V3 (éditeurs spécialisés)
+  gameplay/                 # Économie, cueillette, pêche, activités, sauvegardes
   style.css                 # Interface jeu et éditeur
 assets/catalog.json         # Catalogue réel : GLB + modèles procéduraux
 public/models/              # Fichiers GLB originaux publiés dans le site
@@ -169,6 +169,7 @@ docs/                       # Conception, objectifs et registre de décisions
 - [Audio LOW-RESOURCE : 5 à 10 instruments MIDI, synthétiseur Web Audio, échantillons et budgets](docs/23-MIDI-AUDIO-LOW-RESOURCE.md)
 - [Audio V2 : catalogue contextuel, événements sémantiques, migration et production](docs/37-AUDIO-V2-CATALOGUE.md) · [inventaire généré](docs/38-AUDIO-V2-INVENTAIRE.md) · [rapport de production et préécoute](docs/39-AUDIO-PRODUCTION-RAPPORT.md)
 - [UI-JOUEUR : interface de jeu (HUD contextuel, Sac, Journal, Carte, Menu, Paramètres, Parties, inspecteurs mine/parcelle)](docs/40-UI-JOUEUR.md)
+- [World Production V1 : registre d'assets mesuré, 10 biotopes, 10 presets de paysages, scène de référence et île 3 × 8 km peuplée](docs/41-WORLD-PRODUCTION-V1.md)
 - [Mines LOW-RESOURCE : galeries creusables 2,5D, niveaux superposés, filons et synchronisation future](docs/24-MINES-MULTILEVEL-LOW-RESOURCE.md)
 - [Agriculture LOW-RESOURCE : parcelles, croissance différée, rendu LOD et gestion des cultures](docs/25-AGRICULTURE-PARCELS-LOW-RESOURCE.md)- [Eau LOW-RESOURCE : rivières en pente, lacs, cascades, plongée et océan LOD](docs/21-WATER-HYDROLOGY-LOW-RESOURCE.md)
 
