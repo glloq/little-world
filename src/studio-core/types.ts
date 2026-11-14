@@ -18,7 +18,10 @@ export interface TerrainEdit extends TerrainStroke { order:number; }
 export interface BiomeEdit extends BiomeStroke { order:number; }
 export interface TransformComponent {type:'Transform';position:Vector3;rotation:{x:number;y:number;z:number;w:number};scale:Vector3;}
 export interface VisualComponent {type:'Visual';assetId:AssetId;variant?:string;}
-export interface CharacterComponent {type:'Character';species:'squirrel'|'animal';rigId:'squirrel-rigid';appearance:Appearance;}
+/** Character morphologies: squirrel and small animal share the squirrel rig, the hamster has its own (doc 43). */
+export type CharacterSpecies='squirrel'|'animal'|'hamster';
+export type CharacterRigId='squirrel-rigid'|'hamster-rigid';
+export interface CharacterComponent {type:'Character';species:CharacterSpecies;rigId:CharacterRigId;appearance:Appearance;}
 export interface NavigationComponent {type:'Navigation';behaviorId:StableId;speed:number;radius:number;path?:PointXZ[];}
 export interface BehaviorRefComponent {type:'BehaviorRef';behaviorId:StableId;}
 export interface DialogueActorComponent {type:'DialogueActor';dialogueIds:StableId[];}
@@ -48,7 +51,7 @@ export interface EntityDefinitionV3 {id:StableId;kind:'prop'|'building'|'charact
 export interface PrefabDefinitionV3 {id:StableId;version:number;name:string;components:ComponentMap;variants?:Record<string,PrefabOverride[]>;}
 export type DialogueDefinitionV3 = GameplayDialogue;
 export interface BehaviorDefinition {id:StableId;kind:'idle'|'wander'|'patrol'|'work';}
-export interface CharacterDefinition {id:StableId;name:string;species:'squirrel'|'animal';rigId:'squirrel-rigid';appearance:Appearance;}
+export interface CharacterDefinition {id:StableId;name:string;species:CharacterSpecies;rigId:CharacterRigId;appearance:Appearance;}
 /** Only actually implemented declarative gameplay registries are populated. */
 export interface ProjectLibraries {
   prefabs:Record<StableId,PrefabDefinitionV3>;

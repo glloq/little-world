@@ -24,12 +24,12 @@ async function belowHorizonBackground(page){
 try{
   const context=await browser.newContext({viewport:{width:960,height:640}}),page=await context.newPage();
   page.on('pageerror',e=>errors.push(e.message));page.on('response',r=>{if(r.status()>=400)errors.push(`HTTP ${r.status()}: ${r.url()}`);});
-  await page.goto(base+'?world=maps/island/manifest.json&metrics=1&spawn=0,1500&yaw=3.14159',{waitUntil:'networkidle'});
+  await page.goto(base+'?world=maps/island/manifest.json&metrics=1&spawn=0,1250&yaw=3.14159',{waitUntil:'networkidle'});
   await page.waitForSelector('#start:not([disabled])',{timeout:30000});await page.locator('#start').click();
   await page.waitForFunction(()=>window.littleWorldMetrics?.chunks.pending===0,{},{timeout:30000});
   let m=await page.evaluate(()=>window.littleWorldMetrics);
-  check(m.legacyTerrain===false&&m.horizon.blocks===24&&m.horizon.oceanVisible,'Published island opens through the compiled reader with its horizon and ocean');
-  check(m.camera.far>Math.hypot(3000,8000),'Far plane covers the island diagonal (no fog)');
+  check(m.legacyTerrain===false&&m.horizon.blocks===12&&m.horizon.oceanVisible,'Published island opens through the compiled reader with its horizon and ocean');
+  check(m.camera.far>Math.hypot(4000,3000),'Far plane covers the island diagonal (no fog)');
   check(m.chunks.active<120&&m.chunks.visible<=m.chunks.active,'Only a bounded set of detailed tiles is displayed ('+m.chunks.active+')');
   const drag=async(dx,dy,steps=6)=>{await page.mouse.move(480,320);await page.mouse.down();for(let i=1;i<=steps;i++){await page.mouse.move(480+dx*i/steps,320+dy*i/steps);await page.waitForTimeout(25);}await page.mouse.up();};
   await drag(0,600);await page.waitForTimeout(600);

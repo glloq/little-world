@@ -31,7 +31,7 @@ try{
     if(v.night)url.searchParams.set('night','1');
     await page.goto(url.href,{waitUntil:'networkidle'});await page.locator('#start').click();
     const t0=performance.now();
-    const settled=await page.waitForFunction(()=>{const m=window.littleWorldMetrics;return m&&m.chunks.pending===0&&(!m.dressing||m.dressing.pending===0&&m.dressing.species.state!=='loading');},{},{timeout:45000}).then(()=>true,()=>false);
+    const settled=await page.waitForFunction(()=>{const m=window.littleWorldMetrics;return m&&m.chunks.pending===0&&(!m.dressing||m.dressing.pending===0&&!m.dressing.canopyPending&&m.dressing.species.state!=='loading');},{},{timeout:60000}).then(()=>true,()=>false);
     await page.waitForTimeout(1500);
     const metrics=await page.evaluate(()=>{const m=window.littleWorldMetrics;return {calls:m.calls,triangles:m.triangles,position:m.position,dressing:m.dressing?{instances:m.dressing.instances,calls:m.dressing.calls,triangles:m.dressing.triangles,cells:m.dressing.cells,species:m.dressing.species}:null,horizon:m.horizon?{triangles:m.horizon.triangles}:null};});
     const jpeg=process.env.FORMAT==='jpeg',file=resolve(output,`${v.name}.${jpeg?'jpg':'png'}`);await page.screenshot({path:file,...(jpeg?{type:'jpeg',quality:78}:{})});

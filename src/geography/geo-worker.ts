@@ -4,7 +4,7 @@ import {configureTerrain,insideWorld} from '../terrain.ts';
 import {configureGeography,geoContext} from './engine.ts';
 import {createChunkData} from '../terrain-data.ts';
 import {packedHorizonBlock} from '../horizon-data.ts';
-import {generateDressingCell} from './dressing.ts';
+import {generateDressingCell,generateCanopyCell} from './dressing.ts';
 import {geographyFromInput,type ProjectGeography} from './input-geography.ts';
 import {sampleTile} from '../studio/geo-map/raster.ts';
 import type {GeoJob,GeoMessage,GeoReply} from './geo-protocol.ts';
@@ -16,6 +16,7 @@ function run(job:GeoJob):{result:unknown;transfer:ArrayBuffer[]}{
     case 'tile':{const d=createChunkData(job.chunk,job.lod);return {result:d,transfer:buffers(d.positions,d.colors,d.normals,d.index)};}
     case 'horizon':{const d=packedHorizonBlock(job.bounds,job.grid,job.column,job.row);return {result:d,transfer:buffers(d.positions,d.normals,d.colors,d.index)};}
     case 'dressing':{const c=generateDressingCell(geoContext(),job.seed,job.cx,job.cz,insideWorld);return {result:c,transfer:buffers(...Object.values(c.items))};}
+    case 'canopy':{const a=generateCanopyCell(geoContext(),job.seed,job.cx,job.cz,insideWorld);return {result:a,transfer:buffers(a)};}
     case 'map':{if(!project)throw Error('Projet non configuré');const t=sampleTile(project.ctx,job.bounds,job.level,job.tx,job.tz);return {result:t,transfer:buffers(t.heights,t.slope,t.moisture,t.authored,t.underwater,...Object.values(t.codes))};}
   }
 }

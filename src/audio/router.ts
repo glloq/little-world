@@ -3,7 +3,7 @@
  * never mesh changes. Pure and client-local: a future server only needs to send event IDs + params. */
 import {sanitizeContext,type Activity,type Place,type SoundContext,type Surface,type TimeOfDay,type Weather} from './context.ts';
 type V3={x:number;y:number;z:number};
-export type PlayerMotion='ground'|'air'|'glide'|'swim'|'dive'|'climb';
+export type PlayerMotion='ground'|'air'|'glide'|'swim'|'dive'|'climb'|'roll';
 export interface AudioFrame {
  nowMs:number;
  player:{position:V3;velocity:V3;mode:PlayerMotion;aboard:boolean;boatSpeed?:number;space?:{zoneId:string;levelId:string}|null;surface?:Surface};
@@ -75,6 +75,7 @@ export class AudioEventRouter {
   this.previous={nowMs:frame.nowMs,player:{...p,position:{...p.position},velocity:{...p.velocity}},world:{...w}};
   const loops:StateLoop[]=[];
   if(p.mode==='glide')loops.push({key:'state:glide',eventId:'player.glide.wind',gain:Math.min(1,.35+speed/16),bus:'sfx'});
+  if(p.mode==='roll'&&!p.aboard)loops.push({key:'state:roll',eventId:'player.roll.loop',gain:Math.min(1,.2+speed/12),bus:'sfx'});
   if(p.aboard&&(p.boatSpeed??0)>.4)loops.push({key:'state:boat',eventId:'boat.move',gain:Math.min(1,.3+(p.boatSpeed??0)/8),bus:'sfx'});
   return loops;
  }

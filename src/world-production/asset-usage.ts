@@ -93,6 +93,9 @@ export const ASSET_USAGE:Record<string,AssetUsage>={
   // Buildings: anchored on flat ground, exclude dense vegetation around their footprint.
   'architecture.wooden_cabin':built('building',5,['village','temperate-forest','mountain'],'anchor','footprint'),
   'architecture.stone_house':built('building',5.5,['village','ruins'],'anchor','footprint'),
+  // Boats (doc 42 §H2): the player's boat wears the sailboat; both are moored in the ports.
+  'boat.sailboat_small':built('boat',3,['sandy-coast','rocky-coast'],'manual','none'),
+  'boat.rowboat_wood':built('boat',3,['sandy-coast','rocky-coast','riverbank'],'manual','none'),
   'architecture.lighthouse':built('building',4.5,['rocky-coast','sandy-coast'],'anchor','footprint',3000,'2 672 triangles en LOD0 : réservé aux points de vue remarquables.'),
   'architecture.windmill_stone':built('building',6.5,['village','prairie'],'anchor','footprint'),
   'architecture.watermill_log_stone':built('building',5.5,['village','riverbank'],'anchor','footprint'),
@@ -130,6 +133,7 @@ export const ASSET_USAGE:Record<string,AssetUsage>={
   'structure.barrel':built('prop',.5,['town','port','village'],'manual','box'),
   'structure.crate_stack':built('prop',1,['town','port','mine'],'manual','box'),
   'structure.chest':built('prop',.7,['town','forest-camp','castle'],'manual','box'),
+  'structure.campfire':built('prop',1.6,['town','forest-camp','village','prairie'],'manual','box'),
   'structure.bench':built('prop',1,['town','village'],'manual','none'),
   'structure.fountain':built('prop',2.6,['town'],'anchor','box'),
   'structure.palisade':built('wall',.4,['village','forest-camp','castle'],'line','box'),

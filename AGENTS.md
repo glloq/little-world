@@ -11,7 +11,7 @@
 ## 1. Limites validées
 
 - **Jeu solo PC**, Three.js / TypeScript / Vite, **GitHub Pages statique** ; pas de backend obligatoire, serveur de jeu, comptes ou multijoueur.
-- **Une seule carte continue par monde/partie**, jusqu'à **10 × 10 km maximum** comme limite de **format/architecture**, pas performance démontrée. **Carte jouable actuelle : île 3 × 8 km** (l’ancienne vallée 200 × 600 m n’est plus qu’un fixture de migration).
+- **Une seule carte continue par monde/partie**, jusqu'à **10 × 10 km maximum** comme limite de **format/architecture**, pas performance démontrée. **Carte jouable actuelle : île 4 × 3 km** (l’ancienne vallée 200 × 600 m n’est plus qu’un fixture de migration).
 - **Exploration paisible avec de nombreuses petites activités facultatives** : collecte/inventaire léger, pêche éventuelle, petites missions, énigmes, dialogues à choix, quelques intérieurs, conséquences persistantes et **plusieurs sauvegardes de partie locales**.
 - **Pas d'humains** : PNJ animaux/créatures uniquement, variantes du personnage joueur quand morphologies/rigs compatibles. **Navigation libre avancée** mais comportements sociaux/routines simples ; pas de combat, survie punitive ou RPG lourd.
 - **Plusieurs éditeurs spécialisés** dans Little World Studio : carte globale, terrain, eau/chemins, biotopes/faune, bâtiments, personnages/PNJ, dialogues, événements/actions, assets et tests. **Un seul projet partagé**, IDs, sélection et Undo/Redo cohérents. Outils génériques avant décors ad hoc.
@@ -199,7 +199,21 @@ Lire **[42 — Jeu complet V1](docs/42-JEU-COMPLET-V1.md)** avant de toucher à 
 - Économie déclarative : pièces = objet `coin` ; comptoir = entité avec état `shop` ; prix dans `src/gameplay/economy.ts`. Coffres = interactions déclaratives (`once`, état persistant), jamais de script.
 - Escalade = mode `climb` du joueur sur le **heightfield extérieur** seulement (endurance, jamais en mine) ; le rendu des mines reste **dérivé de la grille** (relief déplacé dans la roche, collisions = cellules).
 - Cueillette/abattage indexés par `DRESSING_VERSION` : l’augmenter quand la génération de végétation change.
-- Statuts : implémenté/testé sur branche ; **performance non qualifiée** après l’enrichissement de l’île.
+- **Priorités d’habillage** (`src/world-production/dressing-priority.ts`) : arbres et silhouettes lointaines jamais coupés par le budget ; cueillables, puis buissons ; plantes de sol, bois mort, cailloux et éboulis réduits/éteints en premier. Canopée lointaine = échantillons de la classification (workers), pas un second moteur.
+- Collisions des objets placés = composants `Collider` auteur (`registry.colliderFor`), troncs générés via `gameplay/tree-colliders.ts` ; lumières auteur via `registry.lightFor`. Personnages à l’échelle `CHARACTER_SCALE`.
+- Occultation par le relief (`src/render/horizon-occlusion.ts`) : purement visuelle, conservative, jamais appliquée au terrain ni au gameplay.
+- `polylineDistance` renvoie désormais une vraie distance (crêtes/vallées à la largeur saisie) ; appliquer en dernier les presets qui tracent de l’eau.
+- Statuts : implémenté/testé sur branche ; **performance non qualifiée** sur GPU intégré.
+
+## Personnage joueur Hamster V1 (implémenté sur branche)
+
+Lire **[43 — Hamster joueur](docs/43-HAMSTER-JOUEUR.md)** avant de toucher au personnage du joueur, aux animations, aux outils tenus ou à la roulade.
+- Modèle et rig **procéduraux** (`src/hamster/`), 22 os rigides, un matériau partagé, géométries en cache ; le GLB `public/models/hamster.glb` est **généré** (`npm run assets:hamster`, vérifié en CI) pour l’échange Blender, pas chargé par le jeu.
+- La roulade est un **mode de `simulatePlayer`** (pas de moteur physique, pas de second contrôleur) ; le rendu lit le `Player`, ne le modifie jamais.
+- Animations = **tables de données** (`ACTION_DEFS`, `ACTIVITY_ANIMATIONS`) et événements datés ; sons/éclats partent des événements d’animation. Ajouter un outil = une entrée de `TOOL_PARTS` + une ligne d’activité, pas une animation dédiée.
+- Les activités (gathering, fishing, dig, AGRI) restent l’autorité ; l’animation suit une action validée.
+- `PlayerPresentationState` est le **seul** contrat de synchronisation future : pas de sockets ni d’os transmis (§1 quater).
+- PNJ : morphologie `hamster` ⇒ rig `hamster-rigid` (validé par le schéma).
 
 ## 2. Séparation des données et des responsabilités
 

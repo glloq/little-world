@@ -1,0 +1,151 @@
+{
+  "recordedAt": "2026-11-14T13:36:28.998Z",
+  "base": "http://127.0.0.1:5182/little-world/",
+  "viewport": {
+    "width": 1280,
+    "height": 720
+  },
+  "renderer": "Chromium headless + SwiftShader (logiciel) — non qualifiant GPU",
+  "views": [
+    {
+      "name": "island-volcano",
+      "label": "Panorama depuis le volcan",
+      "settled": true,
+      "settleMs": 17382,
+      "metrics": {
+        "calls": 91,
+        "triangles": 49914,
+        "position": [
+          1100,
+          280.16616547848173,
+          -580
+        ],
+        "dressing": {
+          "instances": 1467,
+          "calls": 4,
+          "triangles": 18412,
+          "cells": 365,
+          "species": {
+            "state": "ready",
+            "lod0": 0,
+            "lod1": 0,
+            "triangles": 0,
+            "bytes": 154422,
+            "loadMs": 288.3999999994412,
+            "failed": [],
+            "dropped": 0
+          }
+        },
+        "horizon": {
+          "triangles": 23228
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "island-falls",
+      "label": "Gorge et cascade",
+      "settled": true,
+      "settleMs": 16202,
+      "metrics": {
+        "calls": 53,
+        "triangles": 34002,
+        "position": [
+          -650,
+          29.698517786102556,
+          -800
+        ],
+        "dressing": {
+          "instances": 787,
+          "calls": 5,
+          "triangles": 15050,
+          "cells": 359,
+          "species": {
+            "state": "ready",
+            "lod0": 29,
+            "lod1": 53,
+            "triangles": 9390,
+            "bytes": 154422,
+            "loadMs": 273.79999999981374,
+            "failed": [],
+            "dropped": 0
+          }
+        },
+        "horizon": {
+          "triangles": 23228
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "island-village",
+      "label": "Ville au château",
+      "settled": true,
+      "settleMs": 19692,
+      "metrics": {
+        "calls": 153,
+        "triangles": 71694,
+        "position": [
+          -150,
+          17.242934811204847,
+          900
+        ],
+        "dressing": {
+          "instances": 3018,
+          "calls": 4,
+          "triangles": 38134,
+          "cells": 358,
+          "species": {
+            "state": "ready",
+            "lod0": 53,
+            "lod1": 114,
+            "triangles": 17654,
+            "bytes": 154422,
+            "loadMs": 151.5,
+            "failed": [],
+            "dropped": 0
+          }
+        },
+        "horizon": {
+          "triangles": 23236
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "island-flight",
+      "label": "Planage au-dessus de plusieurs biotopes",
+      "settled": true,
+      "settleMs": 14859,
+      "metrics": {
+        "calls": 186,
+        "triangles": 74032,
+        "position": [
+          0,
+          16.752200054149245,
+          1300
+        ],
+        "dressing": {
+          "instances": 2621,
+          "calls": 4,
+          "triangles": 34470,
+          "cells": 258,
+          "species": {
+            "state": "ready",
+            "lod0": 92,
+            "lod1": 47,
+            "triangles": 16566,
+            "bytes": 154422,
+            "loadMs": 301.70000000018626,
+            "failed": [],
+            "dropped": 0
+          }
+        },
+        "horizon": {
+          "triangles": 23260
+        }
+      },
+      "errors": []
+    }
+  ]
+}

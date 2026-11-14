@@ -38,7 +38,7 @@ export interface PlannedEntity {key:string;name:string;assetId:string;x:number;z
   /** Interactable object (E): prompt, range and interaction keys of this instance; persisted state fields. */
   interact?:{prompt:string;range:number;interactionKeys:string[];persist:string[]};
   /** An inhabitant (NPC) instead of a model: routine, dialogues (keys of this instance). */
-  character?:{species:'squirrel'|'animal';appearance:import('../character-style.ts').Appearance;behaviorKey:string;dialogueKeys:string[];speed:number;radius:number}}
+  character?:{species:import('../studio-core/types.ts').CharacterSpecies;appearance:import('../character-style.ts').Appearance;behaviorKey:string;dialogueKeys:string[];speed:number;radius:number}}
 export interface LandscapeContent {
   /** Gameplay library entries (key = local key, or '@id' for a shared global id such as an item). */
   libraries?:Partial<Record<'behaviors'|'dialogues'|'objectives'|'items'|'interactions',{key:string;value:Record<string,unknown>}[]>>;
@@ -328,7 +328,7 @@ export function treasure(env:ContentEnv,c:LandscapeContent,key:string,q:PointXZ,
       {type:'showText',text:`Trésor ! +${coins} pièces${bonus?` et ${bonus.label}`:''}.`}]}});
 }
 /** An inhabitant with a routine and a simple dialogue (greeting + optional lines). */
-function inhabitant(env:ContentEnv,c:LandscapeContent,o:{key:string;name:string;x:number;z:number;appearance:Appearance;routine?:'idle'|'wander';radius?:number;greeting:string;topics?:[string,string][];species?:'squirrel'|'animal'}){
+function inhabitant(env:ContentEnv,c:LandscapeContent,o:{key:string;name:string;x:number;z:number;appearance:Appearance;routine?:'idle'|'wander';radius?:number;greeting:string;topics?:[string,string][];species?:import('../studio-core/types.ts').CharacterSpecies}){
   const L=libs(c),dialogueKey=o.key+'-talk',behaviorKey=o.key+'-routine';
   L.behaviors.push({key:behaviorKey,value:{kind:o.routine??'wander'}});
   const topics=o.topics??[];
@@ -433,7 +433,7 @@ const SETTLEMENT_PRESETS={
       // Small enclosed fields outside the ramparts.
       enclosedField(env,c,'field-1','Champ clos ouest',-W-22,-T*.5,22,16,'hedge');enclosedField(env,c,'field-2','Champ clos est',W+22,-T*.45,20,14,'wall');
       return c;}}),
-  'fishing-port':P({id:'fishing-port',version:1,label:'Port de pêche',description:'Village côtier : maisons de pêcheurs, cabanes sur pilotis, ponton, comptoir du port, pêcheurs et quêtes (dont la canne à pêche).',profile:'sandy-coast',defaultSize:[340,300],
+  'fishing-port':P({id:'fishing-port',version:2,label:'Port de pêche',description:'Village côtier : maisons de pêcheurs, cabanes sur pilotis, ponton, comptoir du port, pêcheurs et quêtes (dont la canne à pêche).',profile:'sandy-coast',defaultSize:[340,300],
     params:townParams(6),produces:['entités : maisons de pêcheurs, cabanes sur pilotis, ponton, tonneaux, lanternes','comptoir du port','habitants, quêtes (canne à pêche en récompense)','chemins'],
     relief:()=>[],regions:(f,p)=>[{x:f.cx,z:f.cz,width:f.width,length:f.length,rotation:f.rotation,edgeM:30,profile:'sandy-coast',density:num(p,'density',.4)}],
     content:(env,p)=>{const c=empty(),o=(u:number,v:number)=>env.toWorld(u,v);
@@ -448,6 +448,10 @@ const SETTLEMENT_PRESETS={
       counter(c,'port-counter','port','structure.counter_port','Comptoir du port',o(-7,shore-9),env.rotation+Math.PI);
       for(const [i,q]of [o(6,shore-8),o(-12,shore-14),o(9,shore-16)].entries())prop(c,'barrel-'+i,'Tonneau','structure.barrel',q);prop(c,'crates','Caisses','structure.crate_stack',o(4,shore-11));
       for(const [i,q]of [o(2,shore-3),o(0,shore+14)].entries())prop(c,'lamp-'+i,'Lanterne','structure.lamp_post',q);
+      // Moored boats beside the pier, floating on the water (offset from the sea floor).
+      for(const [i,[u,dv,asset,name]]of ([[-4,6,'boat.rowboat_wood','Barque'],[4,10,'boat.rowboat_wood','Barque'],[-5,15,'boat.sailboat_small','Voilier'],[6,18,'boat.sailboat_small','Voilier']] as const).entries()){
+        let q=o(u,shore+dv),h=env.height(q.x,q.z);for(let d=dv;d<dv+40&&env.seaLevel-h<.8;d+=2){q=o(u,shore+d);h=env.height(q.x,q.z);}if(env.seaLevel-h<.8)continue;
+        c.entities.push({key:'boat-'+i,name,assetId:asset,x:q.x,z:q.z,rotation:env.rotation+(i%2?.25:-.2),y:env.seaLevel-h-.12,...(asset==='boat.sailboat_small'?{scale:1.4}:{scale:1.2})});}
       c.paths.push({key:'harbour-road',points:[centre,o(0,-env.length/2)],width:3,kind:'dirt',smooth:true});
       inhabitant(env,c,{key:'harbourmaster',name:'Capitaine Nageoire',x:o(-9,shore-6).x,z:o(-9,shore-6).z,appearance:look(true,false,'scarf','joyful'),routine:'idle',greeting:'Ahoy ! Le comptoir achète tout ce qui nage.',topics:[['Où pêcher ?','Face à la mer depuis le ponton : sardines et maquereaux. Les truites préfèrent les rivières, les carpes les lacs.']]});
       if(bool(p,'quests',true)){

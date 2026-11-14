@@ -16,3 +16,12 @@ test('editing a character preserves patrol data and can replace prefab appearanc
 test('V3 NPC construction accepts explicit large bounds without relaxing legacy validation',()=>{
  const p=createProject({name:'Large',width:10000,length:10000});createCharacter(p,{...options,x:4000,z:4000});const npc=toRuntimeWorld(parseProject(p)).npcs[0];assert.equal(validNPC(npc),false);assert.doesNotThrow(()=>createNPCState(npc,{width:10000,length:10000}));
 });
+test('Character species — hamster uses its own rig, rig/species mismatch is rejected, runtime keeps the morphology',()=>{
+ const p=createProject({name:'Hamsters'});createCharacter(p,{id:'h-1',name:'Noisette',x:0,z:0,species:'hamster'});
+ assert.equal(resolveEntity(p,p.chunks[p.entityIndex['h-1'].ownerChunkId].entities['h-1']).components.Character.rigId,'hamster-rigid');
+ const npc=toRuntimeWorld(parseProject(p)).npcs[0];assert.equal(npc.kind,'hamster');
+ updateCharacter(p,'h-1',{name:'Noisette',species:'squirrel',appearance:{hat:false,backpack:false,neckwear:'none',emotion:'happy'},behavior:'idle',radius:0,speed:0});
+ assert.equal(toRuntimeWorld(parseProject(p)).npcs[0].kind,'squirrel');
+ const bad=JSON.parse(JSON.stringify(p));const walk=o=>{if(o&&typeof o==='object'){if(o.type==='Character')o.rigId='hamster-rigid';for(const v of Object.values(o))walk(v);}};walk(bad);
+ assert.throws(()=>parseProject(bad),/rig/);
+});

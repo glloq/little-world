@@ -84,8 +84,10 @@ export function polygonSignedDistance(poly:PointXZ[],x:number,z:number):number{
   }
   best=Math.sqrt(best);return inside?best:-best;
 }
+/** Distance (m) from (x, z) to the polyline. (Fixed: used to return the squared distance, which
+ * made ridges and valleys √width wide — knife edges instead of the authored widths.) */
 export function polylineDistance(points:PointXZ[],x:number,z:number):number{
-  let best=Infinity;for(let i=1;i<points.length;i++){const a=points[i-1],b=points[i],dx=b.x-a.x,dz=b.z-a.z,t=clamp(((x-a.x)*dx+(z-a.z)*dz)/(dx*dx+dz*dz||1),0,1);const ex=x-a.x-t*dx,ez=z-a.z-t*dz,d2=ex*ex+ez*ez;if(d2<best)best=d2;}return best;
+  let best=Infinity;for(let i=1;i<points.length;i++){const a=points[i-1],b=points[i],dx=b.x-a.x,dz=b.z-a.z,t=clamp(((x-a.x)*dx+(z-a.z)*dz)/(dx*dx+dz*dz||1),0,1);const ex=x-a.x-t*dx,ez=z-a.z-t*dz,d2=ex*ex+ez*ez;if(d2<best)best=d2;}return Math.sqrt(best);
 }
 interface Box {minX:number;maxX:number;minZ:number;maxZ:number}
 function boxOf(points:PointXZ[],pad:number):Box{let minX=Infinity,maxX=-Infinity,minZ=Infinity,maxZ=-Infinity;for(const p of points){minX=Math.min(minX,p.x);maxX=Math.max(maxX,p.x);minZ=Math.min(minZ,p.z);maxZ=Math.max(maxZ,p.z);}return {minX:minX-pad,maxX:maxX+pad,minZ:minZ-pad,maxZ:maxZ+pad};}

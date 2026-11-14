@@ -12,6 +12,7 @@
     "benchmark": "node tools/benchmark-world.mjs",
     "compile:map": "node --experimental-strip-types tools/compile-map.mjs",
     "assets:squirrel": "node --experimental-strip-types tools/generate-squirrel.mjs",
+    "assets:hamster": "node --experimental-strip-types tools/generate-hamster.mjs",
     "test:studio": "node tools/test-studio-browser.mjs",
     "compile:project": "node --experimental-strip-types tools/compile-project.mjs",
     "generate:beta": "node --experimental-strip-types tools/generate-beta.mjs",
@@ -50,6 +51,7 @@
     "test:landscapes": "node tools/test-landscapes-browser.mjs",
     "test:economy": "node tools/test-economy-browser.mjs",
     "test:climb": "node tools/test-climb-browser.mjs",
+    "test:hamster": "node tools/test-hamster-browser.mjs",
     "capture:views": "node tools/capture-world-views.mjs",
     "generate:production-reference": "node --experimental-strip-types tools/generate-production-reference.mjs",
     "generate:world-kit": "node tools/assets/generate-world-kit.mjs && npm run generate:world-assets"

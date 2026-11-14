@@ -66,7 +66,7 @@ export function affectedChunkIds(world:WorldDefinitionV3,x:number,z:number,radiu
   }return result;
 }
 export function emptyChunk(world:WorldDefinitionV3,id:ChunkId):ChunkSourceV3{return {schemaVersion:3,chunkId:id,index:chunkCoordinates(world,id),revision:0,entities:{},entityIds:[],terrainEdits:[],terrainRefs:[],biomeEdits:[],biomeRefs:[],waterRefs:[],pathRefs:[]};}
-function validateAppearance(value:unknown){const v=object(value,'Apparence');keys(v,['hat','backpack','neckwear','emotion'],'Apparence');if(typeof v.hat!=='boolean'||typeof v.backpack!=='boolean'||!['none','pendant','scarf'].includes(String(v.neckwear))||!EMOTIONS.includes(v.emotion as typeof EMOTIONS[number]))throw Error('Apparence invalide');}
+function validateAppearance(value:unknown){const v=object(value,'Apparence');keys(v,['hat','backpack','neckwear','emotion','goggles'],'Apparence');if(v.goggles!==undefined&&typeof v.goggles!=='boolean')throw Error('Lunettes invalides');if(typeof v.hat!=='boolean'||typeof v.backpack!=='boolean'||!['none','pendant','scarf'].includes(String(v.neckwear))||!EMOTIONS.includes(v.emotion as typeof EMOTIONS[number]))throw Error('Apparence invalide');}
 const componentFields:Record<string,readonly string[]>={
   Transform:['type','position','rotation','scale'],Visual:['type','assetId','variant'],Character:['type','species','rigId','appearance'],Navigation:['type','behaviorId','speed','radius','path'],BehaviorRef:['type','behaviorId'],DialogueActor:['type','dialogueIds'],State:['type','initial'],Persistence:['type','fields'],Interactable:['type','prompt','range','interactionIds'],Collider:['type','shape','size','layer'],Animator:['type','clips','initialClip'],TriggerVolume:['type','shape','size','interactionIds'],Light:['type','kind','color','intensity','range','offset','enabled','mode','stateKey','flicker','preset'],
 };
@@ -76,7 +76,7 @@ export function parseComponents(value:unknown,world?:WorldDefinitionV3):Componen
     switch(name){
       case 'Transform':{const p=vector(c.position,'Position');if(world)point(p,world,'Position');const q=object(c.rotation,'Quaternion');keys(q,['x','y','z','w'],'Quaternion');for(const key of ['x','y','z','w'])finite(q[key],'Quaternion',-1,1);const norm=Math.hypot(q.x as number,q.y as number,q.z as number,q.w as number);if(Math.abs(norm-1)>.001)throw Error('Quaternion non normalisé');vector(c.scale,'Échelle',.01,100);break;}
       case 'Visual':string(c.assetId,'Asset');if(c.variant!==undefined)string(c.variant,'Variante');break;
-      case 'Character':if(!['squirrel','animal'].includes(String(c.species))||c.rigId!=='squirrel-rigid')throw Error('Espèce ou rig non pris en charge');validateAppearance(c.appearance);break;
+      case 'Character':if(!(CHARACTER_SPECIES as readonly string[]).includes(String(c.species))||c.rigId!==rigForSpecies(String(c.species)))throw Error('Espèce ou rig non pris en charge');validateAppearance(c.appearance);break;
       case 'Navigation':string(c.behaviorId,'Comportement');finite(c.speed,'Vitesse',0,5);finite(c.radius,'Zone',0,100);if(c.path!==undefined)for(const p of array(c.path,'Parcours',100)){const pt=object(p,'Point parcours');keys(pt,['x','z'],'Point parcours');if(world)point(pt,world,'Parcours');else{finite(pt.x,'Parcours');finite(pt.z,'Parcours');}}break;
       case 'BehaviorRef':string(c.behaviorId,'Comportement');break;
       case 'DialogueActor':ids(c.dialogueIds,'Dialogues',100);break;
@@ -202,3 +202,7 @@ function parseProjectInternal(value:unknown,complete:boolean):ProjectDocument{
 export function parseProject(value:unknown):ProjectDocument{return parseProjectInternal(value,true);}
 /** Lightweight header/cache: unloaded sources are valid, dangling global IDs are not. */
 export function parseProjectHeader(value:unknown):ProjectDocument{return parseProjectInternal(value,false);}
+
+/** Supported character morphologies and the rig each one uses (doc 43: the hamster has its own rig). */
+export const CHARACTER_SPECIES=['squirrel','animal','hamster'] as const;
+export function rigForSpecies(species:string):'squirrel-rigid'|'hamster-rigid'{return species==='hamster'?'hamster-rigid':'squirrel-rigid';}

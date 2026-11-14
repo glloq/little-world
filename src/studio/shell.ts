@@ -119,10 +119,10 @@ async function toolPanel(id:string,v:StudioViewport){
     const {placementSettings}=await import('./viewport/placement-tool.ts');if(placementSettings.item.kind!=='asset')placementSettings.item={kind:'asset',id:lastAsset};
     v.setTool('place');const {mountLibrary}=await import('./library.ts');tools.append(node('div','BIBLIOTHÈQUE','kicker'),node('h3','Placer des objets'));mountLibrary(tools,s.document.assets,item=>{if(item.kind==='asset')lastAsset=item.id;v.setTool('place');status('Choix conservé : cliquez dans la vue pour placer, autant de fois que nécessaire.');});
   }else if(id==='characters'){
-    const {placementSettings}=await import('./viewport/placement-tool.ts');let name='Nouvel habitant',species:'squirrel'|'animal'='squirrel';
+    const {placementSettings}=await import('./viewport/placement-tool.ts');let name='Nouvel habitant',species:import('../studio-core/types.ts').CharacterSpecies='squirrel';
     const choose=()=>{placementSettings.item={kind:'npc',species,name};v.setTool('place');};choose();
     const target=v.camera.target;let x=target.x,z=target.z;
-    tools.append(node('div','PERSONNAGES','kicker'),node('h3','Placer un habitant'),field('Nom du nouveau personnage',input(name,val=>{name=val;choose();})),field('Morphologie',select(species,[['squirrel','Écureuil'],['animal','Petit animal']],val=>{species=val as typeof species;choose();})),
+    tools.append(node('div','PERSONNAGES','kicker'),node('h3','Placer un habitant'),field('Nom du nouveau personnage',input(name,val=>{name=val;choose();})),field('Morphologie',select(species,[['squirrel','Écureuil'],['hamster','Hamster'],['animal','Petit animal']],val=>{species=val as typeof species;choose();})),
       node('p','Cliquez dans la vue pour placer le personnage (R : pivoter). Son routine, son apparence et son dialogue se règlent dans l’inspecteur.','muted'),
       field('Créer à X (m)',numberInput(Math.round(x),val=>x=val,s.document.world.bounds.minX,s.document.world.bounds.maxX)),field('Créer à Z (m)',numberInput(Math.round(z),val=>z=val,s.document.world.bounds.minZ,s.document.world.bounds.maxZ)),
       action('Créer un personnage ici',async()=>{const owner=chunkAt(s.document.world,x,z),id=crypto.randomUUID();await s.change('Créer un personnage',[owner],d=>createCharacter(d,{id,name,x,z,species}));s.selection.select({kind:'entity',id});await inspector();}));
