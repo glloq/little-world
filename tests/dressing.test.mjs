@@ -46,3 +46,31 @@ test('the early rejection of dressing candidates never changes the result',()=>{
   const c=ctx();
   for(const [x,z]of sampleCells){const fast=generateDressingCell(c,4242,x,z,inside),full=generateDressingCell(c,4242,x,z,inside,1);for(const k of DRESSING_KINDS)assert.deepEqual(fast.items[k],full.items[k]);}
 });
+
+test('G6 priorities: trees and their far silhouettes stay at every detail level, small elements go first',async()=>{
+  const {CLASS_SCALE,FAR_SCALE,CLASS_ORDER,classOf,classScale,GATHERABLE}=await import('../src/world-production/dressing-priority.ts');
+  for(let level=0;level<4;level++){
+    assert.ok(classScale('tree',level)>=.75&&FAR_SCALE[level]>=.8,'trees and far silhouettes kept at level '+level);
+    // Every lower-priority class shrinks at least as much as the trees.
+    for(const c of ['shrub','ground','deadwood','small'])assert.ok(CLASS_SCALE[c][level]<=CLASS_SCALE.tree[level],c+' ≤ trees at level '+level);
+    assert.ok(classScale('gather',level)>=classScale('ground',level),'flowers/mushrooms kept longer than ground plants');
+  }
+  assert.equal(classScale('small',2),0,'pebbles and scree off from level 2');assert.equal(classScale('ground',3),0,'ground plants off at level 3');
+  assert.deepEqual(CLASS_ORDER.slice(0,3),['tree','gather','shrub']);
+  assert.equal(classOf('pine'),'tree');assert.equal(classOf('plant','nature.mushrooms_patch'),'gather');assert.equal(classOf('plant','nature.fern_small'),'ground');assert.equal(classOf('pebble'),'small');
+  assert.ok(GATHERABLE.has('nature.wildflowers_patch'));
+});
+test('G6 far canopy: deterministic, only on wooded land, cheaper than the full dressing',async()=>{
+  const {generateCanopyCell,CANOPY_STRIDE}=await import('../src/geography/dressing.ts');const c=ctx();
+  let canopyMs=0,fullMs=0,trees=0,crowns=0,both=0;
+  for(const [cx,cz]of sampleCells){
+    let t=performance.now();const a=generateCanopyCell(c,world.seed,cx,cz,inside);canopyMs+=performance.now()-t;
+    assert.deepEqual(a,generateCanopyCell(c,world.seed,cx,cz,inside),'same input → same crowns');
+    t=performance.now();const full=generateDressingCell(c,world.seed,cx,cz,inside);fullMs+=performance.now()-t;
+    const n=full.items.pine.length/ITEM_STRIDE+full.items.oak.length/ITEM_STRIDE;trees+=n;crowns+=a.length/CANOPY_STRIDE;if(n>=8&&a.length)both++;
+    for(let i=0;i<a.length;i+=CANOPY_STRIDE){const s=classifyPoint(c,a[i],a[i+2]);assert.ok(!s.underwater&&s.occupation==='none','crown on dry, free land');assert.ok(a[i+3]>0&&a[i+4]>0);}
+    if(n===0)assert.ok(a.length/CANOPY_STRIDE<=2,'no forest canopy where the dressing has no tree ('+cx+','+cz+')');
+  }
+  assert.ok(crowns>0&&both>0,'wooded cells get crowns');assert.ok(canopyMs<fullMs/3,`canopy ${canopyMs.toFixed(0)} ms vs full dressing ${fullMs.toFixed(0)} ms`);
+  console.log('# canopy',{crowns,trees,canopyMs:+canopyMs.toFixed(1),fullMs:+fullMs.toFixed(1)});
+});

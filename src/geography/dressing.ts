@@ -125,3 +125,24 @@ export function generateDressingCell(ctx:GeoContext,seed:number,cx:number,cz:num
   for(const kind of DRESSING_KINDS){items[kind]=new Float32Array(lists[kind]);count+=lists[kind].length/ITEM_STRIDE;}
   return {cx,cz,items,count,ms:performance.now()-t0};
 }
+
+/** Far forest canopy (G6, doc 17): a cheap stand-in for wooded cells beyond the far
+ * silhouette ring. 3 × 3 jittered samples of the SAME classification per 64 m cell (no species
+ * rules, no full generation): where the habitat holds trees, one large silhouette stands for a
+ * clump. Pure and deterministic. Stride 6: x, y, z, width, height, conifer (1) or broadleaf (0). */
+export const CANOPY_STRIDE=6;
+const CANOPY_GRID=3;
+const coneShare=new Map<BiotopeId,number>();
+function conifers(id:BiotopeId){let v=coneShare.get(id);if(v===undefined){const mix=BIOTOPES[id].treeMix;let a=0,t=0;for(const [sid,w]of Object.entries(mix)){t+=w;if(SPECIES[SPECIES_INDEX[sid]]?.crown==='cone')a+=w;}v=t?a/t:0;coneShare.set(id,v);}return v;}
+export function generateCanopyCell(ctx:GeoContext,seed:number,cx:number,cz:number,inside:(x:number,z:number)=>boolean):Float32Array{
+  const out:number[]=[],step=DRESSING_CELL_M/CANOPY_GRID,s=(seed^0x7c3a91^Math.imul(cx,2654435761)^Math.imul(cz,40503))>>>0;
+  for(let j=0;j<CANOPY_GRID;j++)for(let i=0;i<CANOPY_GRID;i++){
+    const r0=rnd(s,i,j),r1=rnd(s^0x1f,i,j),r2=rnd(s^0x2e,i,j);
+    const x=cx*DRESSING_CELL_M+(i+.2+.6*r0)*step,z=cz*DRESSING_CELL_M+(j+.2+.6*r1)*step;if(!inside(x,z))continue;
+    const p=classifyPoint(ctx,x,z);if(p.underwater||p.occupation!=='none')continue;
+    const hab=habitatOf(p);if(hab.trees<.2||r2>hab.trees*1.1)continue;
+    const profile=profileOf(p,ctx.riverDistance(x,z)),k=BIOTOPES[profile].size??1,cone=rnd(s^0x3d,i,j)<conifers(profile)?1:0;
+    out.push(x,p.height,z,(cone?4.2:6.2)*k,(cone?13:10)*k,cone);
+  }
+  return new Float32Array(out);
+}

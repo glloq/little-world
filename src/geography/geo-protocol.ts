@@ -11,6 +11,7 @@ export type GeoJob=
   |{kind:'tile';chunk:{minX:number;maxX:number;minZ:number;maxZ:number};lod:TerrainLOD}
   |{kind:'horizon';bounds:HorizonBounds;grid:HorizonGrid;column:number;row:number}
   |{kind:'dressing';seed:number;cx:number;cz:number}
+  |{kind:'canopy';seed:number;cx:number;cz:number}
   |{kind:'map';bounds:{minX:number;minZ:number};level:number;tx:number;tz:number};
 export type GeoMessage=
   |{type:'terrain';config:WorldConfig;edits:TerrainStroke[];water:WaterBody[];roads:PathDefinition[]}

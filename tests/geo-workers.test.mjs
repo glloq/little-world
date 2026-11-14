@@ -7,7 +7,7 @@ import {configureTerrain,insideWorld} from '../src/terrain.ts';
 import {configureGeography,geoContext} from '../src/geography/engine.ts';
 import {createChunkData} from '../src/terrain-data.ts';
 import {packedHorizonBlock,horizonGrid} from '../src/horizon-data.ts';
-import {generateDressingCell} from '../src/geography/dressing.ts';
+import {generateDressingCell,generateCanopyCell} from '../src/geography/dressing.ts';
 import {parseProject} from '../src/studio-core/schema.ts';
 import {toRuntimeWorld} from '../src/studio-core/migration.ts';
 import {projectGeography,projectGeographyInput} from '../src/studio-core/geo-context.ts';
@@ -31,6 +31,7 @@ test('worker results are identical to the main-thread computation (tiles, horizo
   assert.deepEqual(tile.result,createChunkData(chunk,0));assert.equal(tile.stale,false);
   assert.deepEqual(horizon.result,packedHorizonBlock(bounds,grid,1,1));
   const {ms:_,...cell}=dressing.result,{ms:__,...expected}=generateDressingCell(geoContext(),c.seed,-3,2,insideWorld);assert.deepEqual(cell,expected);
+  const canopy=await pool.run({kind:'canopy',seed:c.seed,cx:-3,cz:2},2).promise;assert.deepEqual(canopy.result,generateCanopyCell(geoContext(),c.seed,-3,2,insideWorld),'far canopy identical off-thread');
   assert.ok(workers.every(w=>w.posted[0]==='terrain'&&w.posted[1]==='geography'||w.posted.length===0),'configuration replayed before the first job');
   pool.setProject(projectGeographyInput(p));
   const map=await pool.run({kind:'map',bounds:{minX:-W/2,minZ:-L/2},level:3,tx:1,tz:2},3).promise;

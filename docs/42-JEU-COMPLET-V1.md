@@ -83,6 +83,40 @@ Carte de densité (végétation par cellule de 64 m, paysages, entités) : `docs
 
 **Hypothèse non encore mesurée** : la hausse du démarrage et de la mémoire viendrait du contenu lu d’un bloc au démarrage (1 141 secteurs auteur contre 939, interactions, bibliothèques, végétation plus dense). Le profilage du démarrage puis le streaming des paquets auteur par proximité sont la **première tâche de G6**.
 
+## 3 bis. Priorités de l’habillage : arbres et forêts d’abord (G6, 14 novembre 2026)
+
+**Constat** (demande : « les arbres ne restent pas à l’écran ») : sur une machine chargée, le budget adaptatif (doc 22) descend aux niveaux 2–3 ; l’ancienne règle réduisait **tous** les éléments du même facteur (arbres compris, rayon × 0,45 au niveau 3) et **coupait les silhouettes lointaines** au niveau 3. De plus, les silhouettes s’arrêtaient à 540–720 m : depuis les hauteurs, les forêts éloignées n’étaient plus que de la couleur de terrain.
+
+**Règle implémentée** (`src/world-production/dressing-priority.ts`, consommée par `src/dressing-view.ts` ; le budget global ne fait que fixer le niveau) :
+
+| Classe | Niveau 0 | 1 | 2 | 3 | Part max. d’un lot GLB |
+| --- | --- | --- | --- | --- | --- |
+| Arbres (modèles proches) | 1 | 0,95 | 0,85 | 0,75 | 100 % |
+| Silhouettes lointaines | 1 | 1 | 0,9 | 0,8 | — (jamais coupées) |
+| Fleurs, champignons, roseaux (cueillables) | 1 | 0,9 | 0,8 | 0,7 | 25 % |
+| Buissons | 1 | 0,8 | 0,6 | 0,45 | 25 % |
+| Plantes de sol (fougères, mousses…) | 1 | 0,6 | 0,4 | **0** | 30 % |
+| Bois mort | 1 | 0,6 | 0,4 | **0** | 8 % |
+| Gros rochers, basalte | 1 | 0,85 | 0,7 | 0,6 | — |
+| Cailloux, éboulis | 1 | 0,5 | **0** | **0** | — |
+
+- Rayons de base réduits pour les petits éléments (plantes de sol 22/42 m au lieu de 30/55, bois mort 25/50 au lieu de 35/70, cailloux 40 m au lieu de 60, éboulis 55 au lieu de 80) ; cueillables 45/80 m.
+- Remplissage **par passes** (arbres de toutes les cellules, puis cueillables, buissons, plantes de sol, bois mort, minéraux) : un lot plein refuse d’abord les petits éléments ; **un arbre refusé garde sa silhouette** au lieu de disparaître.
+- Bosquets lointains éclaircis (1/2 au-delà de 320 m, 1/4 au-delà de 560 m, silhouettes agrandies : même couverture).
+- **Canopée lointaine** (`generateCanopyCell`) : au-delà des silhouettes et jusqu’à 1 800 / 1 600 / 1 400 / 1 100 m selon le niveau, 9 échantillons de la **même classification** par cellule de 64 m donnent quelques grandes couronnes là où l’habitat porte des arbres (≈ 11 × moins cher que l’habillage complet en Node) ; générée **dans les workers** après l’habillage proche, mêmes familles de silhouettes (aucun appel de dessin en plus), redessin limité à 1 / s.
+
+**Mesures** (SwiftShader, même vue aérienne au niveau 2, captures `game-v1/forests-far.jpg`) : silhouettes d’arbres 957 → ~7 400, arbres en modèles réels 374 → 539 dans un bois, plantes de sol 3, cailloux 0, appels de dessin de l’habillage inchangés (4–5). Parcours de route (`docs/benchmarks/2026-11-14-route-dressing-priority.json`, deux passes chacun) :
+
+| Mesure | Avant (2 passes) | Après (2 passes) |
+| --- | --- | --- |
+| p50 | 66,6–66,7 ms | 66,7 ms |
+| p95 | 133–150 ms | 150–167 ms (bruit SwiftShader du même ordre) |
+| Mise à jour JS / image | 1,28–1,42 ms | 1,38–1,47 ms |
+| Triangles (moyenne) | 43,3–43,8 k | 48,1–48,4 k (+11 %) |
+| Appels de dessin | 75,7–76,3 | 75,5 |
+
+Non qualifié sur GPU intégré : les triangles supplémentaires (silhouettes 4–8 triangles) sont le coût assumé de forêts visibles jusqu’à l’horizon.
+
 ## 4. Limites connues (honnêtes)
 
 - **Performance non qualifiée** sur GPU intégré. Sous SwiftShader, l’intervalle de présentation est inchangé, mais **le démarrage (+3,8 s) et le tas JS (+19 Mo) régressent** (voir §3).

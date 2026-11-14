@@ -199,6 +199,7 @@ Lire **[42 — Jeu complet V1](docs/42-JEU-COMPLET-V1.md)** avant de toucher à 
 - Économie déclarative : pièces = objet `coin` ; comptoir = entité avec état `shop` ; prix dans `src/gameplay/economy.ts`. Coffres = interactions déclaratives (`once`, état persistant), jamais de script.
 - Escalade = mode `climb` du joueur sur le **heightfield extérieur** seulement (endurance, jamais en mine) ; le rendu des mines reste **dérivé de la grille** (relief déplacé dans la roche, collisions = cellules).
 - Cueillette/abattage indexés par `DRESSING_VERSION` : l’augmenter quand la génération de végétation change.
+- **Priorités d’habillage** (`src/world-production/dressing-priority.ts`) : arbres et silhouettes lointaines jamais coupés par le budget ; cueillables, puis buissons ; plantes de sol, bois mort, cailloux et éboulis réduits/éteints en premier. Canopée lointaine = échantillons de la classification (workers), pas un second moteur.
 - Statuts : implémenté/testé sur branche ; **performance non qualifiée** après l’enrichissement de l’île.
 
 ## 2. Séparation des données et des responsabilités
