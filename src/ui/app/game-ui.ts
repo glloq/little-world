@@ -15,6 +15,8 @@ import {mapPanel,type MapMarker} from '../map/map.ts';
 import {savesPanel} from '../saves/saves.ts';
 import {settingsPanel} from '../settings/settings.ts';
 import {pauseMenu} from '../menus/pause.ts';
+import {shopPanel} from '../shop/shop.ts';
+import {COIN,SHOPS,type ShopKind} from '../../gameplay/economy.ts';
 import {activityCard,miningViewModel,farmingViewModel} from '../activities/activity-card.ts';
 import {promptText,type TargetDescriptor} from '../interactions/targets.ts';
 import {el,button,kbd} from '../shared/dom.ts';
@@ -62,6 +64,10 @@ export function createGameUi(deps:GameUiDeps){
     restore:save=>{restoring=true;try{return g.restore(save);}finally{restoring=false;snapshot();}},exportCurrent:()=>g.compose('slot-export'),importFile:raw=>g.importSave(raw),
     confirm:(t,l)=>ui.confirm(t,l),closePanels:()=>ui.close(),notify:(k,t)=>center.notify(k,t)});
     ui.register('saves','Parties',{pauses:true,render:b=>saves.render(b)});}
+  // Counters (mine, forest, port, market, farm, inn): one panel, catalogue chosen by the counter.
+  let shopKind:ShopKind|null=null;
+  if(g){const shop=shopPanel({kind:()=>shopKind,inventory:()=>g.runtime.state.inventory,name:id=>g.itemName(id),max:id=>g.purse.max(id),trade:(k,id,q,m)=>g.trade(k,id,q,m),notify:(ok,t)=>{center.notify(ok?'success':'warning',t);deps.audio?.emit(ok?'ui.confirm':'ui.error',{source:'ui'});}});
+    ui.register('shop','Comptoir',{pauses:true,render:b=>{const h=b.closest('.ui-panel')?.querySelector('h2');if(h&&shopKind)h.textContent=SHOPS[shopKind].name;shop.render(b);}});}
   ui.register('settings','Paramètres',{pauses:true,render:b=>settingsPanel({preferences:()=>prefs,update:updatePrefs,quality:deps.quality,audioPanel:document.querySelector<HTMLDetailsElement>('.audio-controls')}).render(b),
     // The audio panel goes back to its developer place when the settings close.
     onClose:()=>{const audio=document.querySelector<HTMLDetailsElement>('.audio-controls');if(audio){audio.open=false;document.body.append(audio);}}});
@@ -70,6 +76,7 @@ export function createGameUi(deps:GameUiDeps){
   const prompt=document.querySelector<HTMLElement>('#action')??el('div','action-toast');prompt.id='action';prompt.classList.add('ui-prompt','hide');host.append(prompt);
   const quick=el('nav','ui-quickbar');quick.setAttribute('aria-label','Accès rapide');
   for(const [id,label,key] of [['inventory','Sac','I'],['journal','Journal','J'],['map','Carte','M'],['pause','Menu','Échap']] as const){if(id==='inventory'&&!g)continue;const b=button('',()=>ui.toggle(id),'ui-quick');b.append(el('span','',label),kbd(key));b.setAttribute('aria-label',`${label} (${key})`);b.dataset.panel=id;quick.append(b);}
+  const purse=el('div','ui-purse');purse.setAttribute('aria-label','Bourse');if(g)host.append(purse);
   const tool=el('div','ui-tool hide');const oxygen=el('div','ui-oxygen hide');oxygen.setAttribute('role','meter');oxygen.setAttribute('aria-label','Oxygène');const oxyFill=el('span','ui-meter-fill');oxygen.append(el('span','','Oxygène'),el('span','ui-meter-track'));oxygen.lastElementChild!.append(oxyFill);
   const hint=el('p','ui-hint hide','Z Q S D : se déplacer · E : agir · I : sac · J : journal · M : carte · Échap : menu');
   host.append(quick,tool,oxygen,hint);
@@ -89,6 +96,7 @@ export function createGameUi(deps:GameUiDeps){
   });
   let lastFrame=-1,promptKey='';
   return {
+    /** Opens the counter panel of a shop entity. */openShop(kind:ShopKind){shopKind=kind;ui.open('shop');},
     controller:ui,notify:(kind:NoticeKind,text:string)=>center.notify(kind,text),center,
     get preferences(){return prefs;},
     get blocking(){return ui.blocking;},get paused(){return ui.paused;},
@@ -113,6 +121,7 @@ export function createGameUi(deps:GameUiDeps){
       const nav=a?.mineNavigation(p,p.space),wall=nav&&target?.targetType==='mine-wall'?{materialName:target.displayName,ok:!!target.primaryAction?.enabled,reason:target.disabledReason,rewardName:(target.contextData?.resource as string|null)??undefined}:null;
       const plot=!p.space?a?.farmNear(p):null,view=plot?a?.farmView(plot.zone.id):null,preview=plot?a?.farmPreview(plot.zone.id):null;
       card.update(nav?miningViewModel(nav,p.yaw,wall):null,view&&preview?farmingViewModel({...view,plotId:plot!.zone.id},preview):null);
+      if(g){const c=g.runtime.state.inventory[COIN]??0,txt=`${c} pièces`;if(purse.textContent!==txt)purse.textContent=txt;}
       const swim=p.mode==='swim'||p.mode==='dive';oxygen.classList.toggle('hide',!swim);if(swim){oxyFill.style.width=Math.round(p.oxygen/p.maxOxygen*100)+'%';oxygen.setAttribute('aria-valuenow',String(Math.round(p.oxygen)));}
     },
   };

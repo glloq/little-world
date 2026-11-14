@@ -7,6 +7,7 @@ import {loadCompiledManifest,loadCompiledLogic,loadCompiledChunk} from '../world
 import type {CompiledWorldManifest,CompiledChunkData,CompiledLogicData} from '../world-compiler/manifests.ts';
 import {runtimeContent} from '../studio-core/migration.ts';
 import {activitiesFromZones,activityItems} from '../gameplay/activities.ts';
+import {economyItems} from '../gameplay/economy.ts';
 import {gameplayDataFromIndex} from '../gameplay/project-adapter.ts';
 import {defaultEnvironment} from '../environment/climate.ts';
 import {validateAudioLinks} from '../audio/schema.ts';
@@ -65,7 +66,7 @@ export function playableFromCompiled(bundle:CompiledWorldBundle,spawn?:Point3):P
   const components=new Map<string,ComponentMap>(entities.map(entity=>[entity.id,entity.components]));
   const activities=activitiesFromZones(Object.values(logic.libraries.zones??{}),createTerrainSource(config,terrain));
   const gameplay=gameplayDataFromIndex({entityIndex:logic.entityIndex,components,libraries:logic.libraries,environment:manifest.environment??defaultEnvironment(manifest.seed),worldId:manifest.worldId,buildVersion:manifest.buildVersion});
-  gameplay.items=activityItems(activities,gameplay.items);
+  gameplay.items=economyItems(activityItems(activities,gameplay.items));
   const rendered=new Set([...placements.map(p=>p.id),...npcs.map(n=>n.id)]);
   for(const entity of gameplay.entities)if(entity.interactable&&!rendered.has(entity.id))throw Error('Objet interactif sans représentation : '+entity.id);
   const collisions:CollisionDefinition[]=chunks.flatMap(chunk=>chunk.collision.shapes.filter(shape=>shape.collider.layer==='solid').map(shape=>transformedCollider(shape.entityId,shape.collider,shape.transform)));

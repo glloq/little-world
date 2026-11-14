@@ -41,6 +41,8 @@ export const LIGHT_POOL = 4, LIGHT_POOL_ECONOMY = 2;
 export interface WorldView {
   /** World Production: instanced enclosure/dock modules (game runtime). */
   placed: PlacedInstances;
+  setDressingFilter(fn: ((cx: number, cz: number, kind: import('./geography/dressing.ts').DressingKind, index: number) => boolean) | null): void;
+  redrawDressing(): void;
   root: THREE.Group;
   terrain: THREE.Group;
   wheel: THREE.Group;
@@ -756,6 +758,8 @@ export function buildWorld(
     horizon: horizon.stats,
     terrainWork: terrainView.work,
     placed,
+    setDressingFilter(fn: Parameters<DressingView['setHidden']>[0]) { dressing?.setHidden(fn); },
+    redrawDressing() { dressing?.redraw(); },
     dressing: dressing?.stats ?? null,
     paths: pathView.stats,
     refreshWater,

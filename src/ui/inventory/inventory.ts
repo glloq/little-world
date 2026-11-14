@@ -5,14 +5,14 @@
 import type {ItemDefinition} from '../../gameplay/schema.ts';
 import {el,button} from '../shared/dom.ts';
 
-export const CATEGORY_LABELS:Record<string,string>={nature:'Ressources naturelles',mine:'Minerais et cristaux',farm:'Produits agricoles',tool:'Outils',quest:'Objets de mission',mission:'Objets de mission'};
-const ORDER=['Ressources naturelles','Minerais et cristaux','Produits agricoles','Outils','Objets de mission','Objets divers'];
+export const CATEGORY_LABELS:Record<string,string>={nature:'Ressources naturelles',mine:'Minerais et cristaux',farm:'Produits agricoles',tool:'Outils',outil:'Outils',quest:'Objets de mission',mission:'Objets de mission',argent:'Argent',bois:'Bois',cueillette:'Cueillette',poisson:'Poissons',graines:'Graines'};
+const ORDER=['Argent','Outils','Ressources naturelles','Bois','Cueillette','Poissons','Minerais et cristaux','Produits agricoles','Graines','Objets de mission','Objets divers'];
 export interface InventoryEntry {id:string;name:string;category:string;categoryLabel:string;quantity:number;max:number;description?:string;delta:number;full:boolean;nearlyFull:boolean;tool:boolean}
 export interface InventoryViewModel {groups:{label:string;entries:InventoryEntry[]}[];kinds:number;total:number;empty:boolean}
 export function inventoryViewModel(items:readonly ItemDefinition[],inventory:Readonly<Record<string,number>>,seen:Readonly<Record<string,number>>):InventoryViewModel{
   const groups=new Map<string,InventoryEntry[]>();let total=0,kinds=0;
   for(const item of items){const quantity=inventory[item.id]??0;if(quantity<=0)continue;kinds++;total+=quantity;
-    const label=CATEGORY_LABELS[item.category]??'Objets divers',entry:InventoryEntry={id:item.id,name:item.name,category:item.category,categoryLabel:label,quantity,max:item.maxQuantity,...(item.description?{description:item.description}:{}),delta:Math.max(0,quantity-(seen[item.id]??0)),full:quantity>=item.maxQuantity,nearlyFull:quantity>=item.maxQuantity*.9,tool:item.category==='tool'};
+    const label=CATEGORY_LABELS[item.category]??'Objets divers',entry:InventoryEntry={id:item.id,name:item.name,category:item.category,categoryLabel:label,quantity,max:item.maxQuantity,...(item.description?{description:item.description}:{}),delta:Math.max(0,quantity-(seen[item.id]??0)),full:quantity>=item.maxQuantity,nearlyFull:quantity>=item.maxQuantity*.9,tool:item.category==='tool'||item.category==='outil'};
     const list=groups.get(label)??[];list.push(entry);groups.set(label,list);}
   return {groups:[...groups].sort(([a],[b])=>ORDER.indexOf(a)-ORDER.indexOf(b)).map(([label,entries])=>({label,entries:entries.sort((x,y)=>x.name.localeCompare(y.name,'fr'))})),kinds,total,empty:kinds===0};
 }

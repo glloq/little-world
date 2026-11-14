@@ -39,7 +39,7 @@ try{
   await page.screenshot({path:out+'/b1-level3.png'});
   // 5. Dig: iron at the end of the gallery, then rock (stone), walking into each new cell.
   await hold('KeyW',v=>v.pos[2]>71.5,6);const digs=[];
-  for(let i=0;i<3;i++){await page.keyboard.press('KeyF');await page.waitForTimeout(500);digs.push(await msg());await hold('KeyW',()=>false,.6);}
+  for(let i=0;i<3;i++){const before=(await m()).act.excavated;await hold('KeyF',v=>v.act.excavated>before,90);digs.push(await msg());await hold('KeyW',()=>false,.6);} // cells have 20–500 hp: hold F (bare hands)
   const bag=await inventory();check(/Minerai de fer/.test(bag)&&/Pierre/.test(bag),'Two mined resources in the bag: '+digs.join(' | '));
   const dug=(await m()).act.excavated;check(dug>=3,'Excavated cells: '+dug);
   // 6. Climb back: stairs up twice, then out through the entrance.

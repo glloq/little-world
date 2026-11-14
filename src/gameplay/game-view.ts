@@ -7,11 +7,13 @@ import {createGameplay} from './runtime.ts';
 import {gameplayDialogueSession} from './dialogue-session.ts';
 import {createGameSaveStore,scopedSaveStorage,parseGameSave,type GameSaveV2} from './save.ts';
 import {createActivityRuntime} from './activity-runtime.ts';
+import {COIN,STARTING_COINS,SHOPS,buy,sell,type ShopKind} from './economy.ts';
+import {createGathering,createFishing,type GatherDeps} from './gathering.ts';
 import type {PlayableActivities} from './activities.ts';
 import type {MovementSpace} from '../physics/collision-world.ts';
 import type {GameplayData,GameplayEntity,Point3} from './schema.ts';
 
-interface Options {onSound?:(id:string,position?:{x:number;y:number;z:number})=>void;collisions?:CollisionDefinition[];temporary:boolean;saveScope?:string;getPosition:()=>Point3;setPosition:(p:Point3,space?:MovementSpace|null)=>void;activities?:PlayableActivities;getSpace?:()=>MovementSpace|undefined;showInfo:(text:string)=>void;objects:THREE.Group}
+interface Options {gathering?:Omit<GatherDeps,'time'|'grant'|'has'>;onSound?:(id:string,position?:{x:number;y:number;z:number})=>void;collisions?:CollisionDefinition[];temporary:boolean;saveScope?:string;getPosition:()=>Point3;setPosition:(p:Point3,space?:MovementSpace|null)=>void;activities?:PlayableActivities;getSpace?:()=>MovementSpace|undefined;showInfo:(text:string)=>void;objects:THREE.Group}
 /** Interactive object near the player, usable or not (the reason comes from the runtime state). */
 export interface ObjectTarget {entity:GameplayEntity;name:string;prompt:string;range:number;usable:boolean;reason?:string;distance:number}
 /** Gameplay controller of a playable world: logical runtime, collisions, activities, save
@@ -21,9 +23,18 @@ export function createGameplayView(data:GameplayData,options:Options){
  const runtime=createGameplay(data),slots=createGameSaveStore(options.temporary?scopedSaveStorage(sessionStorage,options.saveScope??'test'):undefined);
  const collisionDefinitions=new Map((options.collisions??[]).map(d=>[d.id,d]));
  const collision=new WorldCollisionQuery(terrainHeight,waterSurface);for(const definition of options.collisions??[]){const height=terrainHeight(definition.groundAnchor.x,definition.groundAnchor.z);collision.add({...definition,position:{...definition.position,y:definition.position.y+height},enabled:()=>{const state=runtime.state.entities[definition.id];return state?.open!==true&&state?.collected!==true;}});}
- const activities=createActivityRuntime(options.activities??{mines:[],farms:[]},{grant:changes=>runtime.grantItems(changes),time:()=>runtime.state.time,climate:runtime.climate,collision,ground:terrainHeight,water:waterSurface});
+ const has=(itemId:string)=>(runtime.state.inventory[itemId]??0)>0;
+ const activities=createActivityRuntime(options.activities??{mines:[],farms:[]},{grant:changes=>runtime.grantItems(changes),has,time:()=>runtime.state.time,climate:runtime.climate,collision,ground:terrainHeight,water:waterSurface});
  /** Core gameplay state + active space + activity differences, in one versioned save. */
- const compose=(slotId:string):GameSaveV2=>({...runtime.save(slotId,options.getPosition()),space:options.getSpace?.()??null,...activities.serialize()});
+ // Economy: a new game starts with a small purse (restored saves replace the whole inventory).
+ if(runtime.data.items.some(i=>i.id===COIN))runtime.grantItems([{itemId:COIN,quantity:STARTING_COINS}]);
+ // Gathering (trees, fruits, mushrooms, flowers) on the procedural dressing of generated worlds.
+ const gathering=options.gathering?createGathering({...options.gathering,time:()=>runtime.state.time,grant:changes=>runtime.grantItems(changes),has}):null;
+ const fishing=createFishing();
+ const purse={count:(id:string)=>runtime.state.inventory[id]??0,max:(id:string)=>runtime.data.items.find(i=>i.id===id)?.maxQuantity??0,apply:(changes:{itemId:string;quantity:number}[])=>runtime.grantItems(changes)};
+ const itemName=(id:string)=>runtime.data.items.find(i=>i.id===id)?.name??id;
+ function trade(kind:ShopKind,itemId:string,quantity:number,mode:'buy'|'sell'){const shop=SHOPS[kind];return mode==='buy'?buy(shop,itemId,quantity,purse,itemName):sell(shop,itemId,quantity,purse,itemName);}
+ const compose=(slotId:string):GameSaveV2=>({...runtime.save(slotId,options.getPosition()),space:options.getSpace?.()??null,...activities.serialize(),...(gathering?{gathering:gathering.serialize()}:{})});
  let npcs:readonly NPCState[]=[],version=-1,disposed=false;const listeners=new Set<()=>void>();
  const entityIds=new Set(runtime.data.entities.map(e=>e.id)),targets=runtime.data.entities.filter(e=>e.interactable),interactions=new Map<string,typeof runtime.data.interactions>();
  for(const i of runtime.data.interactions)if(i.trigger.type==='onInteract'){const list=interactions.get(i.trigger.entityId)??[];list.push(i);interactions.set(i.trigger.entityId,list);}
@@ -51,9 +62,9 @@ export function createGameplayView(data:GameplayData,options:Options){
  }
  sync();
  return {
-  runtime,collision,activities,slots,compose,
+  runtime,collision,activities,slots,compose,gathering,fishing,trade,purse,itemName,has,
   /** Restores a validated save into the runtime and the activities; returns the warnings. */
-  restore(save:GameSaveV2){const warnings=[...runtime.restore(save),...activities.restore(save)];options.setPosition(save.position,save.space??null);sync();version=-1;for(const l of listeners)l();return warnings;},
+  restore(save:GameSaveV2){const warnings=[...runtime.restore(save),...activities.restore(save)];gathering?.restore(save.gathering??null);options.setPosition(save.position,save.space??null);sync();version=-1;for(const l of listeners)l();return warnings;},
   /** Imports an exported slot file (validated) into a free slot of this world. */
   async importSave(raw:unknown){const parsed=parseGameSave(raw);if(parsed.worldId!==data.worldId)throw Error('Sauvegarde d’un autre monde');const value={...parsed};if(!['slot-1','slot-2','slot-3'].includes(value.slotId)){const used=new Set((await slots.list(data.worldId)).map(v=>v.slotId)),free=['slot-1','slot-2','slot-3'].find(id=>!used.has(id));if(!free)throw Error('Libérez un emplacement pour importer cette partie');value.slotId=free;}await slots.save(value);return value.slotId;},
   temporary:options.temporary,describe,

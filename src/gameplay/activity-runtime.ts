@@ -9,11 +9,13 @@ import {MINE_MATERIALS,insidePolygon,type MineZone} from '../mine/mine-data.ts';
 import {MineGrid,MineState,DIG_REACH,type MineSaveState} from '../mine/mine-state.ts';
 import {mineSpaceProvider,mineTransitions} from '../mine/mine-collision.ts';
 import {CROPS,type FarmZone} from '../farm/farm-data.ts';
+import {pickPower} from './economy.ts';
 import {newPlotState,evaluate,act,publicView,type FarmPlotState} from '../farm/farm-sim.ts';
 
 export type ActivityChange={kind:'mine';mineId:string;level:number;chunks:string[]}|{kind:'farm';plotId:string};
 export interface MineTarget {mineId:string;level:number;ix:number;iz:number;material:number}
-interface Deps {grant(changes:{itemId:string;quantity:number}[]):boolean;time():number;climate:ClimateHistory;collision:WorldCollisionQuery;ground(x:number,z:number):number;water(x:number,z:number):number|null}
+interface Deps {grant(changes:{itemId:string;quantity:number}[]):boolean;
+  /** Carried item test (tools: pickaxe power). Absent = bare hands. */has?(itemId:string):boolean;time():number;climate:ClimateHistory;collision:WorldCollisionQuery;ground(x:number,z:number):number;water(x:number,z:number):number|null}
 
 export function createActivityRuntime(activities:PlayableActivities,deps:Deps){
   const mines=new Map<string,{zone:MineZone;state:MineState}>(),farms=new Map<string,{zone:FarmZone;state:FarmPlotState;crop:number}>();
@@ -30,10 +32,13 @@ export function createActivityRuntime(activities:PlayableActivities,deps:Deps){
     for(let d=.3;d<=DIG_REACH;d+=.2){const ix=Math.floor(position.x+fx*d),iz=Math.floor(position.z+fz*d);if(m.state.isOpen(level,ix,iz))continue;return {mineId:m.zone.id,level,ix,iz,material:m.state.material(level,ix,iz)};}
     return null;
   }
-  function dig(position:Point3,space:MovementSpace|undefined,forward:{x:number;z:number}):{ok:boolean;message:string}{
+  function dig(position:Point3,space:MovementSpace|undefined,forward:{x:number;z:number}):{ok:boolean;message:string;partial?:boolean;progress?:number}{
     const t=mineTarget(position,space,forward);if(!t||!space)return {ok:false,message:'Aucune paroi à portée'};
-    const m=mines.get(t.mineId)!;const r=m.state.dig({requestId:requestId('dig'),levelId:space.levelId,ix:t.ix,iz:t.iz,from:position},reward=>deps.grant([reward]));
-    if(!r.ok)return {ok:false,message:r.reason};notify({kind:'mine',mineId:t.mineId,level:t.level,chunks:r.chunks});
+    const m=mines.get(t.mineId)!,tool=pickPower(id=>deps.has?.(id)??false);
+    const r=m.state.strike({requestId:requestId('dig'),levelId:space.levelId,ix:t.ix,iz:t.iz,from:position},tool.power,reward=>deps.grant([reward]));
+    if(!r.ok)return {ok:false,message:r.reason};
+    if('partial'in r)return {ok:true,partial:true,progress:r.progress,message:r.fragment?`+1 ${nameOf(r.fragment.itemId)} (éclat)`:`${MINE_MATERIALS[r.material].name} : ${Math.round(r.progress*100)} % (${tool.tool})`};
+    notify({kind:'mine',mineId:t.mineId,level:t.level,chunks:r.chunks});
     return {ok:true,message:r.reward?`+1 ${nameOf(r.reward.itemId)}`:`${MINE_MATERIALS[r.material].name} déblayée`};
   }
   /** Plot the player stands on or next to (surface only). */
@@ -83,7 +88,8 @@ export function createActivityRuntime(activities:PlayableActivities,deps:Deps){
   function digPreview(position:Point3,space:MovementSpace|undefined,forward:{x:number;z:number}){
     const t=mineTarget(position,space,forward);if(!t||!space)return null;const m=mines.get(t.mineId)!;
     const verdict=m.state.check({levelId:space.levelId,ix:t.ix,iz:t.iz,from:position});
-    return {target:t,materialName:MINE_MATERIALS[t.material].name,reward:verdict.ok?verdict.reward:null,ok:verdict.ok,reason:verdict.ok?undefined:verdict.reason};
+    const info=MINE_MATERIALS[t.material],tool=pickPower(id=>deps.has?.(id)??false);
+    return {target:t,materialName:info.name,reward:verdict.ok?verdict.reward:null,ok:verdict.ok,reason:verdict.ok?undefined:verdict.reason,progress:m.state.damageAt(t.level,t.ix,t.iz)/Math.max(1,info.hp),strikesLeft:Math.ceil((info.hp-m.state.damageAt(t.level,t.ix,t.iz))/tool.power),tool:tool.tool};
   }
   /** UI preview of the next plot action: the farm rules run on a copy of the state. */
   function farmPreview(plotId:string){

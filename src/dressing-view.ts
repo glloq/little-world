@@ -68,6 +68,8 @@ export function createDressingView(parent:THREE.Group,seed:number,density:number
   const batchMaterial=new THREE.MeshLambertMaterial({vertexColors:true,flatShading:true});
   interface Batch {mesh:THREE.BatchedMesh;ids:number[];capacity:number;added:number;used:number;tri:number[]}
   let library:SpeciesLibrary|null=null;const batches:Batch[]=[];
+  /** Gameplay filter: elements felled/picked by the player and not grown back are not drawn. */
+  let hidden:((cx:number,cz:number,kind:DressingKind,index:number)=>boolean)|null=null;
   const BATCH_CAP=[6000,12000];
   function createBatch(lod:0|1):Batch{
     let verts=0,idx=0;for(const g of library!.species)if(g){const geo=lod?g.lod1:g.lod0;verts+=geo.getAttribute('position').count;idx+=geo.index!.count;}
@@ -144,6 +146,7 @@ export function createDressingView(parent:THREE.Group,seed:number,density:number
         const thin=!trees&&(d>320*farScale||detail>=2)?2:1,grow=thin===2?1.25:1;
         for(let i=0;i<a.length;i+=ITEM_STRIDE){
           const x=a[i],y=a[i+1],z=a[i+2],s=a[i+3],r=a[i+4],t=a[i+5],sp=a[i+6];
+          if(hidden?.(c.cx,c.cz,kind,i/ITEM_STRIDE))continue;
           if(glb&&sp>=0&&library!.species[sp]){
             const dist=Math.hypot(x-fx,z-fz);if(species(kind,x,y,z,s,r,t,sp,dist))continue;
             if(!far||(thin===2&&(i/ITEM_STRIDE)%2===1))continue;
@@ -165,7 +168,7 @@ export function createDressingView(parent:THREE.Group,seed:number,density:number
       {const a=c.items.shrub,nearShrub=near('shrub',d,key);for(let i=0;i<a.length;i+=ITEM_STRIDE){
         if(species('shrub',a[i],a[i+1],a[i+2],a[i+3],a[i+4],a[i+5],a[i+6],Math.hypot(a[i]-fx,a[i+2]-fz)))continue;
         if(nearShrub&&!glb)write('round',a[i],a[i+1]+.45*a[i+3],a[i+2],1.1*a[i+3],.75*a[i+3],1.1*a[i+3],a[i+4],mix(0x6f8f4e,0x93a15a,a[i+5]));}}
-      for(const kind of ['plant','deadwood'] as const){const a=c.items[kind];if(!glb||d>SPECIES_RADII[kind][1]*radiusScale+48)continue;for(let i=0;i<a.length;i+=ITEM_STRIDE)species(kind,a[i],a[i+1],a[i+2],a[i+3],a[i+4],a[i+5],a[i+6],Math.hypot(a[i]-fx,a[i+2]-fz));}
+      for(const kind of ['plant','deadwood'] as const){const a=c.items[kind];if(!glb||d>SPECIES_RADII[kind][1]*radiusScale+48)continue;for(let i=0;i<a.length;i+=ITEM_STRIDE)if(!hidden?.(c.cx,c.cz,kind,i/ITEM_STRIDE))species(kind,a[i],a[i+1],a[i+2],a[i+3],a[i+4],a[i+5],a[i+6],Math.hypot(a[i]-fx,a[i+2]-fz));}
       if(near('rock',d,key)){const a=c.items.rock;for(let i=0;i<a.length;i+=ITEM_STRIDE)write('stone',a[i],a[i+1],a[i+2],a[i+3],a[i+3]*(.7+.5*a[i+5]),a[i+3]*.85,a[i+4],mix(0x8b8b84,0x6f6e69,a[i+5]));}
       if(near('scree',d,key)){const a=c.items.scree;for(let i=0;i<a.length;i+=ITEM_STRIDE)write('grit',a[i],a[i+1],a[i+2],a[i+3],a[i+3]*.55,a[i+3]*.8,a[i+4],mix(0xa29d8e,0x85817a,a[i+5]));}
       if(near('pebble',d,key)){const a=c.items.pebble;for(let i=0;i<a.length;i+=ITEM_STRIDE)write('grit',a[i],a[i+1],a[i+2],a[i+3],a[i+3]*.4,a[i+3]*.75,a[i+4],mix(0xc2bbaa,0x9b968a,a[i+5]));}
@@ -186,6 +189,8 @@ export function createDressingView(parent:THREE.Group,seed:number,density:number
   }
   return {
     stats,
+    setHidden(fn:typeof hidden){hidden=fn;dirty=true;},
+    /** Redraw from cached cells (gameplay changes: felled tree, picked flowers). */redraw(){dirty=true;lastRebuild=0;},
     /** Quality tiers of the shared budget manager: 0 full, 1 −15 %, 2 shorter rings and thinner
      * far groves, 3 near dressing only (far silhouettes off; terrain colours keep forests). */
     setDetail(level:number){detail=level;const next=level>=3?.45:level>=2?.65:level>=1?.85:1,far=level>=3?0:level>=2?.55:level>=1?.85:1;if(next!==radiusScale||far!==farScale){radiusScale=next;farScale=far;stats.radiusScale=next;dirty=true;focusCell='';}},

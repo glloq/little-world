@@ -82,3 +82,7 @@ body:not(.developer)>.audio-controls{display:none}
 body.developer .hud-stats{bottom:68px}
 body:not(.developer) .ui-settings-section .audio-controls>p{display:none}
 .ui-notifications .ui-notice{position:static;transform:none;white-space:normal;max-width:min(380px,calc(100vw - 32px));box-sizing:border-box;text-align:left}
+.ui-purse{position:fixed;left:16px;top:16px;padding:6px 12px;border-radius:999px;background:var(--ui-bg);border:1px solid var(--ui-line);font-weight:600;font-size:13px;box-shadow:var(--ui-shadow)}
+.ui-shop-coins{font-weight:600}.ui-shop-section{margin:10px 0}
+.ui-shop-row{display:grid;grid-template-columns:1fr auto auto auto auto;gap:8px;align-items:center;padding:6px 4px;border-bottom:1px solid var(--ui-line)}
+.ui-shop-price{font-variant-numeric:tabular-nums;font-weight:600}
