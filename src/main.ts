@@ -29,7 +29,8 @@ import {
   spawnPlayer,
   type Controls,
 } from './player';
-import { buildSquirrel } from './squirrel';
+import { buildHamster } from './hamster/hamster.ts';
+import { createImpactEffects, type ImpactKind } from './hamster/impact-effects.ts';
 import { createLoadingScreen } from './ui/loading.ts';
 import { createCustomizationMenu } from './customization-menu';
 import { MouseDragOrbit } from './camera-drag';
@@ -167,7 +168,9 @@ if(playable){
     ...(isLegacyTerrain()?{}:{gathering:{ctx:geoContext,seed:definition.config.seed,inside:(x:number,z:number)=>Math.abs(x)<=(definition.config.width??200)/2&&Math.abs(z)<=(definition.config.length??600)/2}}),
     setPosition:(p,space)=>{player.space=space??undefined;player.position.set(p.x,p.y,p.z);player.velocity.set(0,0,0);player.mode='air';player.oxygen=MAX_OXYGEN;player.glideReady=false;aboard=false;keySet.clear();jumpQueue=0;actionQueue=0;npcs.dialogue.close();previousPlayerPosition.copy(player.position);renderPosition.copy(player.position);updateCamera(1);}
   });
-  if(metricsEnabled){const g=gameplay;Object.assign(window,{littleWorldDebug:{/** Developer/test hook (metrics mode only): give items. */grant:(itemId:string,quantity:number)=>g.runtime.grantItems([{itemId,quantity}])}});}
+  if(metricsEnabled){const g=gameplay;Object.assign(window,{littleWorldDebug:{/** Developer/test hook (metrics mode only): give items. */grant:(itemId:string,quantity:number)=>g.runtime.grantItems([{itemId,quantity}]),
+    /** Developer/test hook: move the player on the ground and turn the camera (heading in rad). */
+    teleport:(x:number,z:number,heading:number)=>{player.space=undefined;player.mode='ground';player.velocity.set(0,0,0);player.position.set(x,terrainHeight(x,z),z);previousPlayerPosition.copy(player.position);yaw=heading;}}});}
   if(gameplay.gathering){const gather=gameplay.gathering;world.setDressingFilter((cx,cz,kind,index)=>gather.hiddenAt(cx,cz,kind,index));gather.subscribe(()=>world.redrawDressing());}
 }
 const npcs = createNPCSystem(scene, definition.npcs,isLegacyTerrain()?undefined:[],gameplay?.dialogueSession);
@@ -200,11 +203,13 @@ world.update(0, player.position);
     target:()=>currentTarget(),
     home:()=>{started=false;gameUi?.controller.close();keySet.clear();overlay.classList.remove('hide');start.focus();}});
 }
-const squirrel = buildSquirrel();
-scene.add(squirrel.group);
+// The player is the hamster (doc 43); NPCs keep their own rigs.
+const character = buildHamster();
+scene.add(character.group);
+const impacts = createImpactEffects(scene);
 const customization = createCustomizationMenu(
   document.querySelector<HTMLElement>('#appearance-menu')!,
-  (appearance) => squirrel.setAppearance(appearance),
+  (appearance) => character.setAppearance(appearance),
 );
 const boat = spawnBoat();
 if(!isLegacyTerrain()){
@@ -214,11 +219,12 @@ if(!isLegacyTerrain()){
 let aboard = false;
 world.boat.position.set(boat.x, boat.y, boat.z);
 const keySet = new Set<string>();
+let rollQueue = 0;
 let jumpQueue = 0,
   actionQueue = 0;
 let yaw = 0,
   pitch = 0.32,
-  distance = 10.5;
+  distance = 8;
 let started = false;
 let elapsed = 0;
 // Generated worlds start on a coast: face the island centre rather than the open sea.
@@ -265,6 +271,7 @@ function input(): Controls {
       Number(codeHeld('KeyA', 'KeyQ', 'ArrowLeft')),
     run: codeHeld('ShiftLeft', 'ShiftRight'),
     jumpPressed: jumpQueue > 0,
+    rollPressed: rollQueue > 0,
     spaceHeld: codeHeld('Space'),
     dive: codeHeld('ControlLeft', 'ControlRight'),
     cameraYaw: yaw,
@@ -307,6 +314,7 @@ window.addEventListener('keydown', (e) => {
   if (e.repeat) return;
   keySet.add(e.code);
   if (e.code === 'Space') jumpQueue++;
+  if (e.code === 'KeyX') rollQueue++;
   if (e.code === 'KeyE') actionQueue++;
   if (e.code === 'KeyF' && !e.repeat) activityQueue++;
   if (e.code === 'KeyC') cropQueue++;
@@ -375,7 +383,7 @@ renderer.domElement.addEventListener('lostpointercapture', resetCameraDrag);
 renderer.domElement.addEventListener(
   'wheel',
   (e) => {
-    distance = clamp(distance + Math.sign(e.deltaY) * 1.0, 5, 22);
+    distance = clamp(distance + Math.sign(e.deltaY) * 1.0, 4, 22);
   },
   { passive: true },
 );
@@ -429,23 +437,43 @@ function fishingSpot():{kind:'sea'|'river'|'lake';x:number;z:number}|null{
 function isLakeAt(x:number,z:number){return !!definition.water?.some(w=>w.kind==='lake'&&insidePolygonXZ(w.points,x,z));}
 function insidePolygonXZ(pts:{x:number;z:number}[],x:number,z:number){let inside=false;for(let i=0,j=pts.length-1;i<pts.length;j=i++){const a=pts[i],b=pts[j];if((a.z>z)!==(b.z>z)&&x<(b.x-a.x)*(z-a.z)/(b.z-a.z)+a.x)inside=!inside;}return inside;}
 /** One gathering action (E/F): strike/pick, validated by the gathering rules. */
+/** Sound/effect of the next tool impact: played on the animation event (impact/grab), so that
+ * what is heard and seen matches the swing; flushed at once when no animation can play. */
+let pendingImpact:{sound:string;kind:ImpactKind;context?:Record<string,unknown>;extra?:string[];count?:number}|null=null;
+function onImpact(i:NonNullable<typeof pendingImpact>){flushImpact();pendingImpact=i;}
+function flushImpact(at?:{x:number;y:number;z:number}){
+  const i=pendingImpact;if(!i)return;pendingImpact=null;const position=at??player.position;
+  for(const id of [i.sound,...(i.extra??[])])audio?.emit(id,{...(i.context?{context:i.context}:{}),position,source:'player'});
+  if(at)impacts.spawn(at,i.kind,i.count??7);
+}
+character.onEvent((e)=>{
+  if(e.name==='impact'||e.name==='grab')flushImpact(e.position);
+  else if(e.name==='release'){audio?.emit('fishing.cast',{position:player.position,source:'player'});setTimeout(()=>audio?.emit('fishing.float',{position:player.position,source:'player'}),450);}
+  else if(e.name==='reel')audio?.emit('fishing.reel',{position:player.position,source:'player'});
+  else if(e.name==='roll-start')audio?.emit('player.roll.start',{position:player.position,source:'player'});
+  else if(e.name==='roll-stop')audio?.emit('player.roll.stop',{position:player.position,source:'player'});
+  else if(e.name==='equip'||e.name==='unequip')audio?.emit('tool.equip',{position:player.position,source:'player'});
+  else if(e.name==='pour')impacts.spawn(e.position,'water',5);
+});
 function runGather(){
   if(!gameplay?.gathering)return;const r=gameplay.gathering.act(player.position,forwardOf());
   if(!r.ok){showInfo(r.message,'warning');audio?.emit('ui.error',{source:'ui'});return;}
   if(!r.done)showInfo(r.message);
-  audio?.emit(r.target?.rule.action==='fell'?'mine.tool.strike':'farm.harvest',{position:player.position,source:'player'});
+  // The animation carries the sound and the chips (impact / grab events), not the key press.
+  const fell=r.target?.rule.action==='fell';onImpact(fell?{sound:'tool.chop',kind:'wood'}:{sound:'farm.pick',kind:'leaf',count:3});
+  if(!character.play(fell?'fell':'pick'))flushImpact();
 }
 /** Fishing: cast (E), wait for the bite, strike (E) in time. */
 function runFishing(){
   if(!gameplay)return;const f=gameplay.fishing,now=elapsed;
-  if(f.state.phase==='idle'){const spot=fishingSpot();if(!spot)return;if(!gameplay.has('tool:fishing-rod')){showInfo('Il faut une canne à pêche','warning');return;}f.cast(spot.kind,spot,now);showInfo('Ligne lancée… attendez que ça morde.');return;}
-  const biting=f.state.phase==='bite',fish=f.strike();if(!fish){showInfo(biting?'Raté !':'Ligne relevée (trop tôt).','warning');return;}
+  if(f.state.phase==='idle'){const spot=fishingSpot();if(!spot)return;if(!gameplay.has('tool:fishing-rod')){showInfo('Il faut une canne à pêche','warning');return;}character.play('fish-cast');f.cast(spot.kind,spot,now);showInfo('Ligne lancée… attendez que ça morde.');return;}
+  const biting=f.state.phase==='bite',fish=f.strike();character.play('fish-reel');if(!fish){showInfo(biting?'Raté !':'Ligne relevée (trop tôt).','warning');return;}
   if(!gameplay.runtime.grantItems([{itemId:fish,quantity:1}]))showInfo('Sac plein','warning');
 }
 function updateFishing(){
   if(!gameplay)return;const f=gameplay.fishing;if(f.state.phase==='idle')return;
   if(f.state.castAt&&(Math.hypot(f.state.castAt.x-player.position.x,f.state.castAt.z-player.position.z)>8||player.mode!=='ground')){f.cancel();showInfo('Ligne relevée.');return;}
-  const r=f.update(elapsed);if(r==='bite'){showInfo('Ça mord ! Appuyez sur E','success');audio?.emit('ui.confirm',{source:'ui'});}else if(r==='lost')showInfo('Le poisson s’est échappé…','warning');
+  const r=f.update(elapsed);if(r==='bite'){showInfo('Ça mord ! Appuyez sur E','success');audio?.emit('fishing.bite',{position:player.position,source:'player'});}else if(r==='lost')showInfo('Le poisson s’est échappé…','warning');
 }
 function currentTarget():TargetDescriptor|null{
   if(!started)return null;
@@ -471,8 +499,10 @@ function runDig(){
   if(!gameplay||!player.space)return;const a=gameplay.activities,forward=forwardOf(),target=a.mineTarget(player.position,player.space,forward),r=a.dig(player.position,player.space,forward);
   // Audio follows the validated business result (never mesh changes).
   const material=target?MATERIAL_BY_MINE_KEY[MINE_MATERIALS[target.material]?.key]:undefined,context={material,tool:'pickaxe',place:'mine' as const};
-  audio?.emit('mine.tool.strike',{context,position:player.position,source:'player'});
-  if(r.ok){audio?.emit('mine.hit',{context,position:player.position,source:'player'});audio?.emit('mine.cell.excavated',{context,position:player.position,source:'player'});
+  const tool=gameplay.has('tool:pickaxe-steel')?'pickaxe-steel':gameplay.has('tool:pickaxe')?'pickaxe':null;
+  onImpact({sound:'mine.tool.strike',context,kind:target?.material===5?'crystal':target?.material===4?'iron':material==='soil'?'soil':'stone',extra:r.ok?['mine.hit']:[]});
+  if(!character.play('mine',tool))flushImpact();
+  if(r.ok){audio?.emit('mine.cell.excavated',{context,position:player.position,source:'player'});
     // A reward is announced by the inventory notification (« +1 Pierre », merged); otherwise say what happened.
     if(r.message.startsWith('+')/* dig() reports a reward as « +1 item » */){audio?.emit(material==='crystal'?'mine.resource.crystal':'mine.resource.collect',{context,source:'player'});if(material==='crystal')audio?.cue('discovery');}else showInfo(r.message,'success');}
   else{audio?.emit('mine.action.denied',{context,source:'player'});showInfo(r.message,'warning');}
@@ -481,6 +511,7 @@ function runDig(){
 function runFarm(){
   if(!gameplay)return;const a=gameplay.activities,plot=a.farmNear(player.position);if(!plot)return;
   const intent=a.farmIntent(plot.zone.id),view=a.farmView(plot.zone.id),crop=view?.cropId??view?.selectedCrop,r=a.farmAct(plot.zone.id);
+  if(r.ok)character.play('farm-'+intent.type);
   // A harvest is announced by the inventory gain notification (one message per event).
   if(!(r.ok&&intent.type==='harvest'))showInfo(r.message,r.ok?'success':'warning');
   const farmEvent={plant:'farm.plant',water:'farm.water',harvest:'farm.harvest',clear:'farm.clear'}[intent.type]??'farm.plant';audio?.emit(r.ok?farmEvent:'ui.error',{context:{place:'farm',activity:'farming',objectKind:crop??undefined,state:intent.type},position:player.position,source:'player'});
@@ -493,6 +524,7 @@ function updateHud() {
     swim: 'Nage',
     dive: 'Plongée',
     climb: 'Escalade',
+    roll: 'En boule',
   };
   status.textContent = aboard ? 'Navigation en bateau' : labels[player.mode];
   coords.textContent = `X ${player.position.x.toFixed(0)} m · Z ${player.position.z.toFixed(0)} m · H ${player.position.y.toFixed(1)} m`;
@@ -525,10 +557,11 @@ function tick(dt: number) {
     // Crossing a mine entrance / stairs: no interpolation through rock.
     if(player.transitioned){previousPlayerPosition.copy(player.position);renderPosition.copy(player.position);}
     if (keys.jumpPressed) jumpQueue = Math.max(0, jumpQueue - 1);
+    rollQueue = 0;
   }
   // F: activity in front (dig, fell/pick, farm). Holding F repeats strikes (≈ 3.5 per second).
   if(gameplay&&!aboard&&keySet.has('KeyF')){strikeTimer-=dt;if(strikeTimer<=0){strikeTimer=.28;activityQueue=Math.max(activityQueue,1);}}else strikeTimer=0;
-  if(activityQueue>0&&gameplay&&!aboard){activityQueue=0;if(player.space)runDig();else if(gameplay.activities.farmNear(player.position))runFarm();else runGather();}
+  if(activityQueue>0&&gameplay&&!aboard&&player.mode!=='roll'){activityQueue=0;if(player.space)runDig();else if(gameplay.activities.farmNear(player.position))runFarm();else runGather();}
   updateFishing();
   if(cropQueue>0&&gameplay){cropQueue=0;const plot=gameplay.activities.farmNear(player.position,player.space);if(plot){const name=gameplay.activities.cycleCrop(plot.zone.id);if(name){showInfo('Culture choisie : '+name);audio?.emit('farm.seedbag',{source:'player'});}}}
   if (actionQueue > 0) {
@@ -552,9 +585,10 @@ function tick(dt: number) {
       player.glideReady = false;
       showInfo('Vous avez quitté le bateau');
     } else if (target?.targetType === 'object') {
-      if (gameplay?.interact(player.position)) showInfo('Interaction effectuée.', 'success');
+      if (gameplay?.interact(player.position)) {showInfo('Interaction effectuée.', 'success');character.play('interact');}
     } else if (target?.targetType === 'npc') {
       if (npcs.interact(player.position)) {
+        character.play('talk');
         audio?.emit('npc.vocalize',{context:{species:'squirrel'},position:player.position});
         keySet.clear();
         jumpQueue = 0;
@@ -616,8 +650,11 @@ function draw(now: number) {
     boat.z,
   );
   world.boat.rotation.y = boat.heading;
-  squirrel.group.position.copy(renderPosition);
-  squirrel.update(player, delta, elapsed);
+  character.group.position.copy(renderPosition);
+  character.setAboard(aboard);
+  if(gameplay){const f=gameplay.fishing.state;character.setFishing(f.phase!=='idle'&&f.castAt?{x:f.castAt.x,y:waterSurface(f.castAt.x,f.castAt.z)??getTerrainConfig().seaLevel,z:f.castAt.z,biting:f.phase==='bite'}:null);}
+  character.update(player, delta, elapsed);
+  impacts.update(delta);
   updateCamera(delta);
   updateHud();
   gameUi?.frame(elapsed);
@@ -657,6 +694,7 @@ function draw(now: number) {
         collisions:gameplay?.collision.stats??null,
         position: player.position.toArray(),
         mode: player.mode,
+        character: { state: character.animationState, action: character.action, tool: character.tool, fishingLine: !!character.group.getObjectByName('FishingLine')?.visible },
         stamina: player.stamina ?? MAX_STAMINA,
         camera:{position:camera.position.toArray(),quaternion:camera.quaternion.toArray(),fov:camera.fov,aspect:camera.aspect,far:camera.far},
         legacyTerrain:isLegacyTerrain(),

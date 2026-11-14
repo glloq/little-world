@@ -18,6 +18,8 @@ export interface Appearance {
   backpack: boolean;
   neckwear: Neckwear;
   emotion: Emotion;
+  /** Aviator goggles (hamster player; optional, absent in older data). */
+  goggles?: boolean;
 }
 export const DEFAULT_APPEARANCE: Readonly<Appearance> = Object.freeze({
   hat: false,
@@ -26,7 +28,7 @@ export const DEFAULT_APPEARANCE: Readonly<Appearance> = Object.freeze({
   emotion: 'happy',
 });
 export const APPEARANCE_STORAGE_KEY = 'little-world-character-v1';
-export type Accessory = 'hat' | 'backpack' | 'pendant' | 'scarf';
+export type Accessory = 'hat' | 'backpack' | 'pendant' | 'scarf' | 'goggles';
 
 export function isEmotion(value: unknown): value is Emotion {
   return (
@@ -46,6 +48,7 @@ export function normalizeAppearance(value: unknown): Appearance {
         ? item.neckwear
         : 'none',
     emotion: isEmotion(item.emotion) ? item.emotion : 'happy',
+    ...(item.goggles === true ? { goggles: true } : {}),
   };
 }
 export function toggleAccessory(
@@ -54,6 +57,7 @@ export function toggleAccessory(
 ): Appearance {
   if (item === 'hat' || item === 'backpack')
     return { ...current, [item]: !current[item] };
+  if (item === 'goggles') { const { goggles, ...rest } = current; return goggles ? rest : { ...rest, goggles: true }; }
   return { ...current, neckwear: current.neckwear === item ? 'none' : item };
 }
 export function setEmotion(current: Appearance, emotion: Emotion): Appearance {

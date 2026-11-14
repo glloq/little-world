@@ -4,8 +4,8 @@
 
 ## Résumé
 
-- Catalogue `2.0.0-aud-v2` : **108 événements**, **19 thèmes musicaux**, **19 profils d’ambiance**.
-- Jouables dès maintenant : **108/108 événements** (ressources disponibles ou repli explicite) ; les autres restent silencieux sans erreur.
+- Catalogue `2.0.0-aud-v2` : **117 événements**, **19 thèmes musicaux**, **19 profils d’ambiance**.
+- Jouables dès maintenant : **117/117 événements** (ressources disponibles ou repli explicite) ; les autres restent silencieux sans erreur.
 - Ressources disponibles : 8 fichiers de la bibliothèque V1 (6 WAV + 2 MIDI, statut GENERATED) et 5 sons procéduraux (GENERATED, écoute non qualifiée).
 - **À produire : 0 fichiers** (0 échantillons, 0 MIDI) — vague 1 / B1 : **0**, vague 2 : 0 (bêta enrichie = 0), vague 3 optionnelle : 0.
 - Un événement n’est pas un fichier : plusieurs événements réutilisent les mêmes fichiers avec un gain/une hauteur différents (colonne « Réutilisation »).
@@ -33,6 +33,9 @@ Légende « État réel » : *Disponible* = prises jouables ; *Repli* = joue le 
 | `player.glide.deploy` | Déploiement des membranes de planage | Routeur : air → planage | movement | 2 prévue(s) | B1 | sample | 0.2–0.45 s | joueur (25 m) | shuffle, cooldown 200 ms, max 3, ±0.4 demi-ton, ±10 % gain | — | Disponible (2/2) |
 | `player.glide.fold` | Repli des membranes | Routeur : planage → air/sol | movement | 0 (réutilisation) | B1 | sample | — | joueur (25 m) | shuffle, cooldown 200 ms, max 3, ±0.4 demi-ton, ±10 % gain | réutilise `glide-deploy` ×0.9 hauteur ×0.8 gain | Disponible (2/2) |
 | `player.glide.wind` | Souffle d’air pendant le planage (boucle) | Routeur : boucle d’état tant que le mode est « glide », gain selon la vitesse | movement | 0 (réutilisation) | B1 | sample | — | non | random, max 3, ±10 % gain | réutilise `amb-wind-light` ×1.15 hauteur ×0.8 gain | Disponible (1/1) |
+| `player.roll.start` | Le hamster se met en boule | Événement d’animation « roll-start » (sol → boule) | surface | 0 (réutilisation) | B1 | sample | — | joueur (25 m) | shuffle, cooldown 250 ms, max 3, ±0.4 demi-ton, ±10 % gain | réutilise `glide-deploy` ×0.8 hauteur ×0.8 gain | Disponible (2/2) |
+| `player.roll.loop` | Roulade en boule (boucle) | Routeur : boucle d’état tant que le mode est « roll », gain selon la vitesse | surface | 0 (réutilisation) | B1 | sample | — | non | random, max 3, ±10 % gain | réutilise `slide` ×0.9 hauteur ×0.8 gain | Disponible (2/2) |
+| `player.roll.stop` | Sortie de la boule | Événement d’animation « roll-stop » | surface | 0 (réutilisation) | B1 | sample | — | joueur (25 m) | shuffle, cooldown 250 ms, max 3, ±0.4 demi-ton, ±10 % gain | réutilise `glide-deploy` ×1.1 hauteur ×0.7 gain | Disponible (2/2) |
 | `player.slide` | Glissade | Futur : glissade sur pente/neige (pas encore de mode « slide ») | surface | 2 prévue(s) | B1 | sample | 0.5–1 s | joueur (25 m) | shuffle, cooldown 300 ms, max 3, ±0.4 demi-ton, ±10 % gain | — | Disponible (2/2) · non émis (prévu) |
 
 ## Eau
@@ -46,6 +49,10 @@ Légende « État réel » : *Disponible* = prises jouables ; *Repli* = joue le 
 | `water.exit` | Sortie de l’eau | Routeur : nage/plongée → sol/air | surface | 0 (réutilisation) | B1 | sample | — | joueur (30 m) | avoid-repeat, cooldown 80 ms, max 3, ±0.4 demi-ton, ±10 % gain | réutilise `fs-water` ×0.95 hauteur ×1.1 gain | Disponible (3/3) |
 | `water.lap` | Clapotis ponctuel au bord de l’eau | Couche ponctuelle des ambiances lac/rivière/côte | place | 3 prévue(s) | B1 | sample | 0.5–1.5 s | non | avoid-repeat, cooldown 1500 ms, max 3, ±0.6 demi-ton, ±20 % gain | — | Disponible (3/3) |
 | `water.rapids` | Rapides (boucle locale) | Émetteur sur un tronçon de rapides (réseau d’eau) | place | 1 prévue(s) | B1 | sample | 6–8 s (boucle) | monde (40 m) | avoid-repeat, cooldown 80 ms, max 3, ±0.4 demi-ton, ±10 % gain | Émetteurs WaterNetwork à brancher. | Disponible (1/1) · non émis (prévu) |
+| `fishing.cast` | Lancer de canne | Événement d’animation « release » du lancer | — | 0 (réutilisation) | B1 | sample | — | joueur (30 m) | avoid-repeat, cooldown 300 ms, max 3, ±0.4 demi-ton, ±10 % gain | réutilise `glide-deploy` ×1.35 hauteur ×0.8 gain | Disponible (2/2) |
+| `fishing.float` | Le flotteur touche l’eau | Après le lancer (bouchon posé) | — | 0 (réutilisation) | B1 | sample | — | joueur (30 m) | avoid-repeat, cooldown 300 ms, max 3, ±0.4 demi-ton, ±10 % gain | réutilise `fish` ×1.3 hauteur ×0.7 gain | Disponible (2/2) |
+| `fishing.bite` | Touche du poisson | Phase « bite » de la pêche | — | 0 (réutilisation) | B1 | sample | — | joueur (30 m) | avoid-repeat, cooldown 300 ms, max 3, ±0.4 demi-ton, ±10 % gain | réutilise `fish` ×0.9 hauteur ×1 gain | Disponible (2/2) |
+| `fishing.reel` | Ferrage et moulinet | Événement d’animation « reel » | — | 0 (réutilisation) | B1 | sample | — | joueur (30 m) | avoid-repeat, cooldown 300 ms, max 3, ±0.4 demi-ton, ±10 % gain | réutilise `tools` ×1.5 hauteur ×0.8 gain | Disponible (2/2) |
 
 ## Ambiances
 
@@ -93,6 +100,7 @@ Légende « État réel » : *Disponible* = prises jouables ; *Repli* = joue le 
 | `mine.resource.collect` | Récolte de pierre/minerai | Creusement validé avec récompense | material | 2 prévue(s) | B1 | sample | 0.25–0.5 s | non | avoid-repeat, cooldown 60 ms, max 3, ±0.5 demi-ton, ±10 % gain | — | Disponible (2/2) |
 | `mine.resource.crystal` | Récolte de cristal | Creusement validé d’une cellule de cristal | — | 2 prévue(s) | B1 | sample | 0.5–1.2 s | non | avoid-repeat, cooldown 60 ms, max 3, ±0.5 demi-ton, ±10 % gain | — | Disponible (2/2) |
 | `mine.tool.switch` | Changement d’outil | Futur : sélection d’outil | tool | 0 (réutilisation) | B1 | sample | — | non | avoid-repeat, cooldown 60 ms, max 3, ±0.5 demi-ton, ±10 % gain | réutilise `tools` | Disponible (2/2) · non émis (prévu) |
+| `tool.equip` | Sortir / ranger un outil (pioche, hache, canne…) | Événements d’animation « equip » / « unequip » | tool | 0 (réutilisation) | B1 | sample | — | joueur (25 m) | avoid-repeat, cooldown 200 ms, max 3, ±0.5 demi-ton, ±10 % gain | réutilise `tools` ×1.1 hauteur | Disponible (2/2) |
 | `mine.action.denied` | Action impossible (roche mère, hors de portée) | Creusement refusé | material | 2 prévue(s) | B1 | sample | 0.2–0.4 s | non | avoid-repeat, cooldown 400 ms, max 3, ±0.5 demi-ton, ±10 % gain | — | Disponible (2/2) |
 | `mine.enter` | Entrée dans une mine | Routeur : espace de mine atteint | place | 1 prévue(s) | B1 | sample | 0.8–1.6 s | non | avoid-repeat, cooldown 1500 ms, max 3, ±0.5 demi-ton, ±10 % gain | — | Disponible (1/1) |
 | `mine.exit` | Sortie de mine | Routeur : retour en surface | place | 0 (réutilisation) | B1 | sample | — | non | avoid-repeat, cooldown 1500 ms, max 3, ±0.5 demi-ton, ±10 % gain | réutilise `mine-enter` ×1.1 hauteur | Disponible (1/1) |
@@ -103,6 +111,7 @@ Légende « État réel » : *Disponible* = prises jouables ; *Repli* = joue le 
 
 | ID | Description | Déclencheur | Contexte | Prises | Priorité | Type | Durée | Spatialisation | Répétition | Réutilisation | État réel |
 |---|---|---|---|---|---|---|---|---|---|---|---|
+| `tool.chop` | Coup de hache dans un tronc | Événement d’animation « impact » de la frappe latérale | tool | 0 (réutilisation) | B1 | sample | — | joueur (25 m) | avoid-repeat, cooldown 120 ms, max 2, ±0.4 demi-ton, ±10 % gain | réutilise `mine-strike` ×0.62 hauteur ×1 gain | Disponible (3/3) |
 | `farm.till` | Travail du sol | Futur : action « préparer le sol » | surface | 3 prévue(s) | B1 | sample | 0.4–0.8 s | joueur (25 m) | avoid-repeat, cooldown 100 ms, max 2, ±0.4 demi-ton, ±10 % gain | — | Disponible (3/3) · non émis (prévu) |
 | `farm.plant` | Semis | Action ferme « plant » validée | objectKind | 3 prévue(s) | B1 | sample | 0.4–0.9 s | joueur (25 m) | avoid-repeat, cooldown 100 ms, max 2, ±0.4 demi-ton, ±10 % gain | — | Disponible (3/3) |
 | `farm.water` | Arrosage à l’arrosoir | Action ferme « water » validée | objectKind | 3 prévue(s) | B1 | sample | 0.8–1.6 s | joueur (25 m) | avoid-repeat, cooldown 100 ms, max 2, ±0.4 demi-ton, ±10 % gain | — | Disponible (3/3) |

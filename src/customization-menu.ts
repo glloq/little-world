@@ -28,6 +28,7 @@ const accessories: readonly {
   },
   { id: 'pendant', icon: '◇', title: 'Pendentif', description: 'Gland doré' },
   { id: 'scarf', icon: '≈', title: 'Écharpe', description: 'Écharpe douce' },
+  { id: 'goggles', icon: '◎', title: 'Lunettes', description: 'Lunettes d’aviateur' },
 ];
 const emotions: readonly { id: Emotion; icon: string; title: string }[] = [
   { id: 'happy', icon: '☺', title: 'Joyeux' },
@@ -71,7 +72,9 @@ export function createCustomizationMenu(
           ? value.hat
           : id === 'backpack'
             ? value.backpack
-            : value.neckwear === id;
+            : id === 'goggles'
+              ? !!value.goggles
+              : value.neckwear === id;
       button.classList.toggle('active', active);
       button.setAttribute('aria-pressed', String(active));
     }
