@@ -6,7 +6,7 @@ import {el,kbd} from '../shared/dom.ts';
 import type {UiPreferences} from '../app/preferences.ts';
 
 export const KEY_BINDINGS:[string,string][]=[
-  ['Z Q S D / W A S D / flèches','Se déplacer'],['Clic + glisser','Tourner la caméra · molette : distance'],['Shift','Courir'],['Espace','Sauter / planer'],['Ctrl','Plonger'],
+  ['Z Q S D / W A S D / flèches','Se déplacer'],['Clic + glisser','Tourner la caméra · molette : distance'],['Shift (maintenir)','Rouler en boule pour aller vite (nage : nager plus vite)'],['X','Se mettre en boule / en sortir'],['Espace','Sauter / planer'],['Ctrl','Plonger'],
   ['E','Action principale (parler, ramasser, embarquer, creuser, cultiver)'],['F','Creuser / agir sur la parcelle'],['C','Changer de culture'],['A (maintenir)','Accessoires et émotions'],
   ['I','Sac'],['J','Journal'],['M','Carte'],['Échap','Fermer · menu'],['R','Retour au point de départ'],
 ];

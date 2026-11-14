@@ -80,9 +80,10 @@ Les tests navigateur utilisent Chromium système s’il existe, sinon celui de P
 
 | Entrée | Effet |
 | --- | --- |
-| `ZQSD` ou `WASD` | Déplacer l'écureuil |
+| `ZQSD` ou `WASD` | Déplacer le hamster |
 | **Clic gauche maintenu + glisser** sur la scène | Tourner la caméra ; souris libre autrement |
-| `Shift` | Course |
+| `Shift` maintenu | Rouler en boule pour aller vite (relâcher : sur ses pattes) ; nage plus rapide dans l'eau |
+| `X` | Se mettre en boule / en sortir (bascule) |
 | **`A` maintenu** | Menu accessoires et émotions ; clic pour équiper/choisir |
 | `A` relâché | Fermer le menu (choix conservés localement) |
 | `Espace` au sol | Saut |
@@ -101,7 +102,7 @@ Les tests navigateur utilisent Chromium système s’il existe, sinon celui de P
 
 **Clavier :** le menu reconnaît la lettre **A** sur AZERTY et QWERTY (pas la position physique de la touche). Sur QWERTY, **A est réservé au menu** : utiliser **Q** ou **←** pour aller à gauche. Sur AZERTY, **Q** reste la commande gauche. Les choix d'accessoires/émotions sont enregistrés en `localStorage`.
 
-**Hamster V1 (joueur) :** `X` rouler en boule (plus rapide que la course, pentes, sortie automatique) · `Espace` ×2 planer avec les membranes · outils visibles (pioche, hache, canne avec ligne et flotteur, arrosoir, semences, pelle). Voir [43 — Hamster joueur](docs/43-HAMSTER-JOUEUR.md).
+**Hamster V1 (joueur) :** `Shift` maintenu : rouler vite en boule (relâcher pour se remettre sur ses pattes) · `X` : boule en bascule (pentes, sortie automatique) · `Espace` ×2 planer avec les membranes · outils visibles (pioche, hache, canne avec ligne et flotteur, arrosoir, semences, pelle). Voir [43 — Hamster joueur](docs/43-HAMSTER-JOUEUR.md).
 
 **Jeu complet V1 :** `E` agir (parler, commercer, pêcher, ouvrir un coffre, cueillir) · `F` maintenu : frapper (abattre, creuser, cultiver) · avancer contre une falaise : grimper (endurance), `Espace` : se détacher. Voir [42](docs/42-JEU-COMPLET-V1.md).
 

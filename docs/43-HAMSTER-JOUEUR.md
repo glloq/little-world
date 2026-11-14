@@ -72,7 +72,8 @@ Coût accepté : le vertex shader traite toujours les 7 224 sommets, y compris c
 
 **Roulade** (`ROLL` dans `player.ts`) :
 
-- `X` bascule le mode boule. L’accélération est progressive jusqu’à 11 m/s, contre environ 8,7 m/s en course.
+- **`Shift` maintenu en se déplaçant** : le hamster se met en boule pour aller vite. **Relâcher** le remet sur ses pattes en gardant l’élan, et la boule revient après un saut tant que `Shift` reste enfoncé. À l’arrêt, `Shift` seul ne fait rien ; sur le bateau, rien ne change. Dans l’eau, `Shift` fait toujours nager plus vite.
+- `X` bascule le mode boule (une boule entrée avec `X` ne s’arrête pas au relâchement de `Shift`). L’accélération est progressive jusqu’à 11 m/s, contre environ 8,7 m/s en course.
 - Le virage est limité (1,8 rad/s) au-delà de 1,5 m/s. Pousser vers l’arrière freine.
 - La pente accélère la boule en descente et la ralentit en montée. Un obstacle freine la boule à 35 %, sans traverser les murs.
 - Un saut garde l’élan. La boule sort d’elle-même à l’arrêt, à l’entrée dans l’eau ou sur une falaise.
@@ -153,7 +154,8 @@ Tests correspondants :
 
 ## 7. Commandes
 
-- `X` : rouler en boule, ou en sortir.
+- `Shift` maintenu : rouler vite en boule (relâcher : retour sur les pattes).
+- `X` : se mettre en boule, ou en sortir (bascule).
 - `Espace` deux fois : planer.
 - `E` : agir (cueillir, pêcher, parler).
 - `F` maintenu : frapper (miner, abattre, cultiver).

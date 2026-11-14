@@ -272,6 +272,7 @@ function input(): Controls {
     run: codeHeld('ShiftLeft', 'ShiftRight'),
     jumpPressed: jumpQueue > 0,
     rollPressed: rollQueue > 0,
+    rollHeld: codeHeld('ShiftLeft', 'ShiftRight'),
     spaceHeld: codeHeld('Space'),
     dive: codeHeld('ControlLeft', 'ControlRight'),
     cameraYaw: yaw,

@@ -33,3 +33,16 @@ test('ROLL — slopes: downhill speeds up, uphill slows; obstacles slow down; ju
   const cliff=new WorldCollisionQuery((x,z)=>z>4?-20:0,()=>null),c=actor();simulatePlayer(c,{...keys,forward:1,rollPressed:true},1/30,cliff);run(c,cliff,1.5,{forward:1});assert.ok(c.mode==='air'||c.position.y<-1,'rolls off the cliff edge and falls');
   const lake=new WorldCollisionQuery((x,z)=>z>4?-3:0,(x,z)=>z>4?0:null),l=actor();simulatePlayer(l,{...keys,forward:1,rollPressed:true},1/30,lake);run(l,lake,3,{forward:1});assert.ok(l.mode==='swim','water ends the roll: '+l.mode);
 });
+test('ROLL — holding Shift while moving rolls fast, releasing it puts the hamster back on its paws',()=>{
+  const q=flat(),p=actor();
+  run(p,q,.5,{rollHeld:true});assert.equal(p.mode,'ground','Shift alone, standing still: no ball');
+  run(p,q,1/30,{forward:1,rollHeld:true});assert.equal(p.mode,'roll','Shift + forward: ball');assert.equal(p.rollByHold,true);
+  run(p,q,3,{forward:1,rollHeld:true});assert.ok(p.rollSpeed>8.7,'faster than running on foot: '+p.rollSpeed.toFixed(2));
+  const z=p.position.z;run(p,q,1/30,{forward:1});assert.equal(p.mode,'ground','released: back on the paws');
+  assert.ok(Math.hypot(p.velocity.x,p.velocity.z)>4&&p.position.z>z,'momentum kept when unrolling');
+  // A jump from the held ball keeps momentum, and the ball comes back on landing while Shift is held.
+  const j=actor();run(j,q,2,{forward:1,rollHeld:true});simulatePlayer(j,{...keys,forward:1,rollHeld:true,jumpPressed:true},1/30,q);assert.equal(j.mode,'air');
+  run(j,q,2,{forward:1,rollHeld:true});assert.equal(j.mode,'roll','rolls again after landing');
+  // The X toggle is not undone by releasing Shift.
+  const t=actor();simulatePlayer(t,{...keys,forward:1,rollPressed:true},1/30,q);run(t,q,1,{forward:1});assert.equal(t.mode,'roll');assert.equal(t.rollByHold,false);
+});
