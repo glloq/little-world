@@ -12,10 +12,10 @@ const keys={forward:0,right:0,run:false,jumpPressed:false,spaceHeld:false,dive:f
 const actor=(x,z)=>({position:new THREE.Vector3(x,0,z),velocity:new THREE.Vector3(),mode:'ground',oxygen:MAX_OXYGEN,glideReady:false,body:{radius:.32,height:1.35,step:.4},climbCooldown:1e9});
 const walk=(p,q,s)=>{for(let i=0;i<s*30;i++)simulatePlayer(p,{...keys,forward:1},1/30,q);return p;};
 
-test('H3 colliders from the registry: buildings by footprint, props by box, trees by trunk, boats/docks none',()=>{
+test('H3 colliders from the registry: buildings by footprint, props by box, trees by trunk, docks walkable, boats at runtime',()=>{
   const house=colliderFor('architecture.house_timber');assert.ok(house&&house.size.x>5&&house.size.y>7,'house footprint');
   assert.ok(colliderFor('structure.barrel').size.x<1);assert.ok(colliderFor('landmark.world_tree').size.x<6,'world tree: trunk, not canopy');
-  assert.equal(colliderFor('boat.rowboat_wood'),null);assert.equal(colliderFor('structure.dock_tile'),null);assert.equal(colliderFor('nature.fern_small'),null);
+  assert.equal(colliderFor('boat.rowboat_wood'),null,'boats: moving collider of the fleet (gameplay/fleet.ts)');const dock=colliderFor('structure.dock_tile');assert.ok(dock&&dock.size.x>=1.9&&dock.size.y<=.35,'dock tile: thin walkable deck');assert.equal(colliderFor('structure.dock_ladder'),null);assert.equal(colliderFor('nature.fern_small'),null);
 });
 test('H3 a house collider stops the player; walking around it is possible',()=>{
   const q=new WorldCollisionQuery(()=>0,()=>null),c=colliderFor('architecture.house_timber');

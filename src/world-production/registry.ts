@@ -35,11 +35,12 @@ export function placeableWorldAssets():PlaceableAssetEntry[]{
  * world-tree landmark by their trunk only; boats, docks, ground flora: none. Written into the V3
  * source as a regular `Collider` component (editable, compiled like any authored collider). */
 export function colliderFor(assetId:string):{type:'Collider';shape:'box';size:{x:number;y:number;z:number};layer:'solid'}|null{
-  const a=worldAsset(assetId),u=a?.usage;if(!a||!u||u.collision==='none'||u.role==='dock'||u.role==='boat'||u.role==='ground')return null;
+  // Boats get a moving collider at runtime (gameplay/fleet.ts); docks are walkable decks (box tops are floors).
+  const a=worldAsset(assetId),u=a?.usage;if(!a||!u||u.collision==='none'||u.role==='boat'||u.role==='ground')return null;
   const [sx,sy,sz]=a.size,r=(v:number)=>Math.round(v*100)/100;
   const trunk=u.collision==='trunk'||/tree/.test(assetId);
   if(trunk){const w=Math.max(.4,Math.min(sx,sz)*(assetId==='landmark.world_tree'?.16:.12));return {type:'Collider',shape:'box',size:{x:r(w),y:r(Math.min(sy,8)),z:r(w)},layer:'solid'};}
-  const inset=u.collision==='footprint'?.88:.92;
+  const inset=u.role==='dock'?1:u.collision==='footprint'?.88:.92;
   return {type:'Collider',shape:'box',size:{x:r(Math.max(.2,sx*inset)),y:r(Math.max(.3,sy)),z:r(Math.max(.2,sz*inset))},layer:'solid'};
 }
 /** Authored light of a registry asset (doc 42 §H4), written as a regular `Light` component:
