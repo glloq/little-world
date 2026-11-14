@@ -25,8 +25,8 @@ const FAMILIES:Family[]=['trunk','cone','round','stone','grit','basalt','farCone
 /** Priorities (doc 42 G6): gatherable flora (flowers, mushrooms, reeds) keeps a longer range
  * than the generic ground plants; deadwood and ground plants are short-ranged. */
 export const SPECIES_RADII:Record<'pine'|'oak'|'shrub'|'plant'|'gather'|'deadwood',[number,number]>={pine:[55,110],oak:[55,110],shrub:[40,80],gather:[45,80],plant:[22,42],deadwood:[25,50]};
-export const DRESSING_RADII:Record<DressingKind|'farTrees',number>={pine:90,oak:90,shrub:90,plant:70,deadwood:90,rock:320,basalt:240,scree:55,pebble:40,farTrees:720};
-const CAPACITY:Record<Family,number>={trunk:2500,cone:1500,round:2500,stone:3000,grit:5000,basalt:1500,farCone:16000,farRound:16000};
+export const DRESSING_RADII:Record<DressingKind|'farTrees',number>={pine:90,oak:90,shrub:90,plant:70,deadwood:90,rock:240,basalt:240,scree:55,pebble:40,farTrees:720};
+const CAPACITY:Record<Family,number>={trunk:2500,cone:1500,round:2500,stone:6000,grit:5000,basalt:1500,farCone:16000,farRound:16000};
 /** Far forest canopy ring (beyond the far silhouettes) per detail level: never switched off. */
 export const CANOPY_RADII=[1800,1600,1400,1100] as const;
 export interface DressingStats {/** GLB species library: loading state, instances per LOD, culling. */species:{state:'loading'|'ready'|'failed';lod0:number;lod1:number;triangles:number;bytes:number;loadMs:number;failed:string[];dropped:number};/** Allocated instance buffers (matrices + colours), bytes. */instanceBytes:number;byFamily:Record<string,number>;triangles:number;cells:number;pending:number;instances:number;calls:number;lastRebuildMs:number;maxCellMs:number;generatedMs:number;bytes:number;radiusScale:number;
@@ -169,8 +169,8 @@ export function createDressingView(parent:THREE.Group,seed:number,density:number
       for(const kind of ['pine','oak'] as const){
         const a=c.items[kind];if(!trees&&!far&&!glb)continue;
         // Distant groves: one silhouette out of two beyond 320 m, one out of four beyond 560 m,
-        // drawn larger (same canopy coverage, far fewer instances).
-        const thin=trees?1:d>560*farScale?4:d>320*farScale||detail>=3?2:1,grow=thin===4?1.6:thin===2?1.25:1;
+        // drawn larger so that the canopy AREA is kept (√thin wider: woods stay as full as near).
+        const thin=trees?1:d>560*farScale?4:d>320*farScale||detail>=3?2:1,grow=Math.sqrt(thin);
         for(let i=0;i<a.length;i+=ITEM_STRIDE){
           const x=a[i],y=a[i+1],z=a[i+2],s=a[i+3],r=a[i+4],t=a[i+5],sp=a[i+6];
           if(hidden?.(c.cx,c.cz,kind,i/ITEM_STRIDE))continue;

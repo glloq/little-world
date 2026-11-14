@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import {
   creaturePosition,
   ECOLOGY_SECTOR_SIZE,
@@ -42,6 +43,11 @@ export function createEcology(
     ownedMaterials.push(result);
     return result;
   };
+  const vertexMaterial = () => {
+    const result = new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide });
+    ownedMaterials.push(result);
+    return result;
+  };
   const geo = <T extends THREE.BufferGeometry>(value: T): T => {
     ownedGeometry.push(value);
     return value;
@@ -56,11 +62,11 @@ export function createEcology(
       ),
       material: material(0x9cb565),
     },
+    // A flower stands on the ground: green stem + open cup (it used to be a beige ball hovering
+    // 0.2–0.4 m above the grass, read as a floating pebble).
     flower: {
-      geometry: geo(
-        new THREE.IcosahedronGeometry(0.24, 0).translate(0, 0.5, 0),
-      ),
-      material: material(0xe6bf83),
+      geometry: geo(flowerGeometry()),
+      material: vertexMaterial(),
     },
     fern: {
       geometry: geo(
@@ -295,4 +301,20 @@ export function createEcology(
       stats.sectors = stats.plants = stats.creatures = 0;
     },
   };
+}
+
+/** Low-poly flower (≈ 18 triangles): thin green stem and a 5-petal cup opening upwards. */
+function flowerGeometry(): THREE.BufferGeometry {
+  const part = (g: THREE.BufferGeometry, hex: number) => {
+    const p = g.index ? g.toNonIndexed() : g, c = new THREE.Color(hex), n = p.getAttribute('position').count, col = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) col.set([c.r, c.g, c.b], i * 3);
+    for (const name of Object.keys(p.attributes)) if (name !== 'position') p.deleteAttribute(name);
+    p.setAttribute('color', new THREE.BufferAttribute(col, 3)); return p;
+  };
+  const stem = part(new THREE.CylinderGeometry(0.018, 0.028, 0.34, 3, 1, true).translate(0, 0.17, 0), 0x5e8f3e);
+  const cup = part(new THREE.ConeGeometry(0.16, 0.14, 5, 1, true).rotateX(Math.PI).translate(0, 0.39, 0), 0xf0c24a);
+  const heart = part(new THREE.IcosahedronGeometry(0.045, 0).translate(0, 0.36, 0), 0xd9773f);
+  const merged = mergeGeometries([stem, cup, heart], false)!;
+  merged.computeVertexNormals();
+  return merged;
 }

@@ -12,6 +12,10 @@ export function createHorizonOcclusion(height:(x:number,z:number)=>number,o:{sec
   const sectors=o.sectors??OCCLUSION.sectors,step=o.step??OCCLUSION.step,steps=Math.ceil((o.maxDistance??OCCLUSION.maxDistance)/step);
   let field=new Float32Array(sectors*steps).fill(-Infinity),next=new Float32Array(sectors*steps);
   let origin={x:NaN,y:NaN,z:NaN},pending={x:0,y:0,z:0},cursor=-1;
+  /** The field is computed from an eye raised by half the refresh height: until the next refresh the
+   * camera may climb up to that much, and what it would then see must already be drawn (no pop-in
+   * waves when walking over a rise). Still conservative; culls somewhat less. */
+  const lift=OCCLUSION.moveM/2;
   const stats:OcclusionStats={refreshes:0,samples:0,tested:0,hidden:0,ready:false};
   /** One azimuth: running maximum of the elevation slope along the ray. */
   function sweep(sector:number,c:{x:number;y:number;z:number}){
@@ -25,7 +29,7 @@ export function createHorizonOcclusion(height:(x:number,z:number)=>number,o:{sec
     update(camera:{x:number;y:number;z:number},budget=16){
       if(cursor<0&&!(Math.hypot(camera.x-origin.x,camera.z-origin.z)<OCCLUSION.moveM&&Math.abs(camera.y-origin.y)<OCCLUSION.moveM/2)){pending={...camera};cursor=0;}
       if(cursor<0)return false;
-      for(let n=0;n<budget&&cursor<sectors;n++)sweep(cursor++,pending);
+      for(let n=0;n<budget&&cursor<sectors;n++)sweep(cursor++,{x:pending.x,y:pending.y+lift,z:pending.z});
       if(cursor<sectors)return false;
       [field,next]=[next,field];origin=pending;cursor=-1;stats.refreshes++;stats.ready=true;return true;
     },
@@ -36,7 +40,7 @@ export function createHorizonOcclusion(height:(x:number,z:number)=>number,o:{sec
       if(i<1||i>=steps)return true;
       const t=(Math.atan2(dx,dz)/(Math.PI*2)+1)%1*sectors,s0=Math.floor(t)%sectors,s1=(s0+1)%sectors;
       const horizon=Math.min(field[s0*steps+i-1],field[s1*steps+i-1]);
-      const ok=(topY+OCCLUSION.margin-origin.y)/d>=horizon;if(!ok)stats.hidden++;return ok;
+      const ok=(topY+OCCLUSION.margin-origin.y-lift)/d>=horizon;if(!ok)stats.hidden++;return ok;
     },
     /** Camera position the current field was computed from. */
     get origin(){return origin;},

@@ -9,7 +9,7 @@
  * reserved/exclusion zones, water and steep rock; LOD never changes this logic, only which
  * cells are drawn. Ecotones: the profile of a candidate is read at a seeded jittered point
  * within the profile's transition width, so neighbouring biotopes interpenetrate. */
-import {classifyPoint,curvatureAt,habitatOf,type GeoContext,type GeoSample} from './classify.ts';
+import {classifyPoint,curvatureAt,slopeAt,habitatOf,type GeoContext,type GeoSample} from './classify.ts';
 import {fbm,hash2} from './noise.ts';
 import {BIOTOPES,pickSpecies,profileOf,speciesScale,treeMix,SPECIES,SPECIES_INDEX,BIOTOPE_IDS,type LandscapeInfluence} from '../world-production/biotopes.ts';
 import type {BiotopeId} from '../world-production/asset-usage.ts';
@@ -17,7 +17,7 @@ import type {BiotopeId} from '../world-production/asset-usage.ts';
 const rnd=(seed:number,i:number,j:number)=>(hash2(seed,i,j)+1)/2;
 
 /** Bump when the placement rules or the species table change (cache keys, reproducibility). */
-export const DRESSING_VERSION=4;
+export const DRESSING_VERSION=5;
 export type DressingKind='pine'|'oak'|'shrub'|'plant'|'deadwood'|'rock'|'scree'|'pebble'|'basalt';
 export const DRESSING_KINDS:DressingKind[]=['pine','oak','shrub','plant','deadwood','rock','scree','pebble','basalt'];
 /** x, y, z, scale, rotation (rad), tint 0..1, species index (-1 = procedural) per item.
@@ -57,12 +57,16 @@ export function generateDressingCell(ctx:GeoContext,seed:number,cx:number,cz:num
     if(v===-1){const nx=ox+a*ECOTONE_GRID_M,nz=oz+b*ECOTONE_GRID_M,js=classifyPoint(ctx,nx,nz);v=js.underwater||js.occupation!=='none'?-2:BIOTOPE_IDS.indexOf(profileOf(js,ctx.riverDistance(nx,nz)));memo[k]=v;}
     return v<0?null:BIOTOPE_IDS[v];
   };
+  /** Base height of a rock of radius k (its flattened icosahedron spans ±k): the lowest ground under
+   * its footprint, slightly sunk, so that on a slope the downhill side never hangs in the air. */
+  const seat=(x:number,z:number,k:number,h:number)=>{const d=.85*k;return Math.min(h,ctx.height(x+d,z),ctx.height(x-d,z),ctx.height(x,z+d),ctx.height(x,z-d))-.15;};
   for(let j=0;j<n;j++)for(let i=0;i<n;i++){
     const r0=rnd(cellSeed,i,j),r1=rnd(cellSeed^0x9e37,i,j),r2=rnd(cellSeed^0x51ed,i,j),r3=rnd(cellSeed^0x2c1b,i,j);
     const x=cx*size+(i+.15+.7*r0)*STEP,z=cz*size+(j+.15+.7*r1)*STEP;
     // No rule below places anything when r2 ≥ PLACEMENT_CEILING: skip the costly sampling.
     if(r2>=ceiling||!inside(x,z))continue;
-    const east=ctx.height(x+2,z),h=ctx.height(x,z),slope=Math.abs(east-h)/2;
+    // Full gradient (4 neighbours): an east-only difference missed north/south-facing slopes.
+    const h=ctx.height(x,z),slope=slopeAt(ctx.height,x,z);
     const s:GeoSample=classifyPoint(ctx,x,z,{height:h,slope});
     const r4=rnd(cellSeed^0x6a09,i,j),r5=rnd(cellSeed^0x3c6e,i,j);
     if(s.underwater){
@@ -107,19 +111,19 @@ export function generateDressingCell(ctx:GeoContext,seed:number,cx:number,cz:num
     acc+=profile.deadwood*.15*(.3+structure)+drift;
     if(r2<acc){const sp=pickSpecies(drift?{'nature.log_fallen':1}:profile.deadwoodMix,r3);pushSpecies(sp,x,h-.05,z,speciesScale(sp,r4),r0*6.283,r1);continue;}
     // Geology dressing (relief): cliffs, foot boulders, basalt, scree, beach pebbles.
-    if(s.geology==='rock'&&(s.slope>.45||s.cliff>.55&&s.coast<160)){if(r2<.22+.25*smooth(.45,1.2,s.slope))push('rock',x,h-.4,z,1.2+2.8*r3,r0*6.283,r1);continue;}
+    if(s.geology==='rock'&&(s.slope>.45||s.cliff>.55&&s.coast<160)){if(r2<.22+.25*smooth(.45,1.2,s.slope)){const k=1.2+2.8*r3;push('rock',x,seat(x,z,k,h),z,k,r0*6.283,r1);}continue;}
     if(s.geology==='basalt'){
       // Basalt outcrops: small clusters of hexagonal columns of varied heights, rare.
-      if(r2<.035){const n=3+Math.floor(r3*4);for(let q=0;q<n;q++){const a=q*2.4+r0*6.283,d=q?.85+.3*r1:0;push('basalt',x+Math.cos(a)*d,h-.5,z+Math.sin(a)*d,.8+.5*rnd(cellSeed^q,i,j),a,rnd(cellSeed^(q+11),i,j));}}
-      else if(r2<.11)push('rock',x,h-.3,z,.8+1.6*r3,r0*6.283,.15*r1);
+      if(r2<.035){const n=3+Math.floor(r3*4);for(let q=0;q<n;q++){const a=q*2.4+r0*6.283,d=q?.85+.3*r1:0;push('basalt',x+Math.cos(a)*d,seat(x+Math.cos(a)*d,z+Math.sin(a)*d,.45,h)-.3,z+Math.sin(a)*d,.8+.5*rnd(cellSeed^q,i,j),a,rnd(cellSeed^(q+11),i,j));}}
+      else if(r2<.11){const k=.8+1.6*r3;push('rock',x,seat(x,z,k,h),z,k,r0*6.283,.15*r1);}
       continue;}
     if(s.geology==='gravel'||s.geology==='rock'){if(r2<.35)push('scree',x,h,z,.25+.5*r3,r0*6.283,r1);continue;}
     if(s.material==='pebbles'){if(r2<.45)push('pebble',x,h,z,.18+.22*r3,r0*6.283,r1);continue;}
     // Cliff and slope feet: concave ground below steep rock collects fallen boulders.
     if((profileId==='mountain'||profileId==='rocky-coast'||profileId==='heath')&&s.slope>.18&&s.slope<.65&&r2<.1){
-      if(curvatureAt(ctx.height,x,z)< -.012){push('rock',x,h-.35,z,1+2.2*r3,r0*6.283,r1);continue;}
+      if(curvatureAt(ctx.height,x,z)< -.012){const k=1+2.2*r3;push('rock',x,seat(x,z,k,h),z,k,r0*6.283,r1);continue;}
     }
-    if(hab.rocks>0&&r2<profile.rocks*.06)push('rock',x,h-.3,z,.6+1.4*r3,r0*6.283,r1);
+    if(hab.rocks>0&&r2<profile.rocks*.06){const k=.6+1.4*r3;push('rock',x,seat(x,z,k,h),z,k,r0*6.283,r1);}
   }
   const items={} as Record<DressingKind,Float32Array>;let count=0;
   for(const kind of DRESSING_KINDS){items[kind]=new Float32Array(lists[kind]);count+=lists[kind].length/ITEM_STRIDE;}

@@ -12,12 +12,15 @@ import type {Placement} from '../world-data.ts';
 
 export const INSTANCED_ROLES=new Set(['fence','wall','hedge','dock','rock','prop']);
 /** LOD radii (m) of instanced structures: benchmark knobs. */
-export const PLACED_RADII={lod0:45,lod1:140};
+export const PLACED_RADII={lod0:45,lod1:140,rockMin:400,rockPerMetre:60};
+/** Cull radius of a placement: natural rocks are landmarks of the relief (boulders, spires, cliff
+ * blocks up to ~12 m): they stay drawn (LOD1) far beyond the small structures, scaled by their size. */
+export function placedCullRadius(assetId:string,height:number):number{return worldAsset(assetId)?.usage?.role==='rock'?Math.max(PLACED_RADII.rockMin,PLACED_RADII.rockPerMetre*height):PLACED_RADII.lod1;}
 export interface PlacedInstanceStats {placements:number;lod0:number;lod1:number;calls:number;rebuilds:number;state:'empty'|'loading'|'ready'}
 export function eligibleForInstancing(assetId:string):boolean{const a=worldAsset(assetId);return !!a&&!!a.usage&&INSTANCED_ROLES.has(a.usage.role);}
 export function createPlacedInstances(parent:THREE.Object3D,ground:(x:number,z:number)=>number){
   let occluded:((x:number,z:number,top:number)=>boolean)|null=null;
-  const items:{assetId:string;matrix:THREE.Matrix4;x:number;z:number;top:number}[]=[],stats:PlacedInstanceStats={placements:0,lod0:0,lod1:0,calls:0,rebuilds:0,state:'empty'};
+  const items:{assetId:string;matrix:THREE.Matrix4;x:number;z:number;top:number;cull:number}[]=[],stats:PlacedInstanceStats={placements:0,lod0:0,lod1:0,calls:0,rebuilds:0,state:'empty'};
   const material=new THREE.MeshLambertMaterial({vertexColors:true,flatShading:true});
   const active:number[][]=[[],[]];let batches:THREE.BatchedMesh[]=[],geometryIds:Map<string,number[]>=new Map(),focusX=NaN,focusZ=NaN,disposed=false,loading:Promise<void>|null=null;
   async function build(){
@@ -34,7 +37,7 @@ export function createPlacedInstances(parent:THREE.Object3D,ground:(x:number,z:n
       if(!eligibleForInstancing(p.assetId))return false;
       const q=p.quaternion?new THREE.Quaternion().fromArray(p.quaternion):new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),p.rotation);
       const s=p.scale3?new THREE.Vector3().fromArray(p.scale3):new THREE.Vector3().setScalar(p.scale??1);
-      items.push({assetId:p.assetId,x:p.x,z:p.z,top:ground(p.x,p.z)+(p.y??0)+(worldAsset(p.assetId)?.size[1]??2)*Math.abs(s.y),matrix:new THREE.Matrix4().compose(new THREE.Vector3(p.x,ground(p.x,p.z)+(p.y??0),p.z),q,s)});stats.placements=items.length;
+      items.push({assetId:p.assetId,x:p.x,z:p.z,cull:placedCullRadius(p.assetId,(worldAsset(p.assetId)?.size[1]??2)*Math.abs(s.y)),top:ground(p.x,p.z)+(p.y??0)+(worldAsset(p.assetId)?.size[1]??2)*Math.abs(s.y),matrix:new THREE.Matrix4().compose(new THREE.Vector3(p.x,ground(p.x,p.z)+(p.y??0),p.z),q,s)});stats.placements=items.length;
       if(!loading){stats.state='loading';loading=Promise.resolve().then(build);}
       return true;
     },
@@ -44,7 +47,7 @@ export function createPlacedInstances(parent:THREE.Object3D,ground:(x:number,z:n
       if(stats.state!=='ready'||disposed||Math.hypot(fx-focusX,fz-focusZ)<16)return;focusX=fx;focusZ=fz;stats.rebuilds++;
       const counts=[0,0];
       batches.forEach((b,k)=>{for(const id of active[k])b.deleteInstance(id);active[k]=[];});
-      for(const it of items){const d=Math.hypot(it.x-fx,it.z-fz),level=d<PLACED_RADII.lod0?0:d<PLACED_RADII.lod1?1:-1;if(level<0||d>40&&occluded?.(it.x,it.z,it.top))continue;const g=geometryIds.get(it.assetId);if(!g)continue;
+      for(const it of items){const d=Math.hypot(it.x-fx,it.z-fz),level=d<PLACED_RADII.lod0?0:d<it.cull?1:-1;if(level<0||d>40&&occluded?.(it.x,it.z,it.top))continue;const g=geometryIds.get(it.assetId);if(!g)continue;
         const id=batches[level].addInstance(g[level]);active[level].push(id);batches[level].setMatrixAt(id,it.matrix);counts[level]++;}
       stats.lod0=counts[0];stats.lod1=counts[1];stats.calls=counts.filter(Boolean).length;batches.forEach((b,k)=>b.visible=counts[k]>0);
     },
