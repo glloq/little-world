@@ -180,6 +180,8 @@ Optimisations appliquées : un **BatchedMesh par LOD** pour toutes les espèces 
 | Démarrage / stabilisation | 3,2–3,8 s / 0,03–0,12 s | 5,6 s / 0,5–0,7 s | 5,2 s / 0,6 s |
 | « Trous » (fond visible sous l'horizon) | 0 | 0,08 % moyen, 0,29 % max | 0,06 % / 0,24 % |
 
+Rapports bruts : [avant](benchmarks/2026-11-14-route-world-production-before.json), [après](benchmarks/2026-11-14-route-world-production-after.json), [après `?glb=0`](benchmarks/2026-11-14-route-world-production-after-glb0.json).
+
 **Lecture honnête** : sur ce parcours, la végétation GLB elle-même ne coûte rien de mesurable (`?glb=0` donne les mêmes chiffres) ; la dégradation vient du **contenu de l'île** (933 paquets auteur lus au démarrage — limite connue du lecteur, pas encore de streaming des paquets auteur —, chemins, eau, entités, relief plus accidenté). Les « trous » mesurés sont de l'ordre de quelques pixels sur 2 560 points et apparaissent dans les caps tournés vers les nouveaux reliefs côtiers : à investiguer (silhouettes lointaines de falaises). **Aucune cible 30/20 FPS n'est déclarée atteinte** ; SwiftShader n'est pas un GPU intégré.
 
 Bundles : JS total 1,39 → 1,59 Mio (registre JSON + modules) ; worker géographique inchangé dans son rôle (les profils de biotopes y sont inclus, pas le registre).
@@ -191,8 +193,8 @@ Bundles : JS total 1,39 → 1,59 Mio (registre JSON + modules) ; worker géograp
 | Node (`npm test`) | 317 tests (295 avant) dont `world-assets` (5), `biotopes` (6), `landscapes` (7), `production-reference` (4) ; suites existantes inchangées et vertes | 317/317 |
 | Déterminisme | habillage (ordre de génération), presets (deux applications), régénération sans effet, référence = sortie du générateur | TESTED |
 | Compilation / import-export | projet → monde compilé → lecteur runtime (paysages, eau, zones) ; aller-retour du schéma (`parseProject`) ; Undo/Redo exact | TESTED |
-| Navigateur | `tools/test-landscapes-browser.mjs` (12 contrôles) + suites existantes (§ 7 bis) | voir ci-dessous |
-| Visuel | `tools/capture-world-views.mjs` + [tools/world-views.json](../tools/world-views.json) : 18 points de vue (9 référence, 9 île) ; avant/après de l'île dans [docs/captures/](captures/) | captures reproductibles, **pas une approbation artistique** |
+| Navigateur (build de production, `vite preview`) | `tools/test-landscapes-browser.mjs` (12 contrôles, ajouté à la CI) + 15 suites existantes : legacy (16), published, studio, island (11), local, editor, editor-world, selection, geo-edit, paths, water, gameplay, b1, b1-studio, lights | **16/16 suites vertes** localement (SwiftShader) |
+| Visuel | `tools/capture-world-views.mjs` + [tools/world-views.json](../tools/world-views.json) : 18 points de vue (panorama depuis le volcan, forêt dense, vallée, rivière et berges, falaise depuis sa base, littoral, village, planage, cascade) ; tableau avant/après avec appels et triangles : [docs/captures/README.md](captures/README.md) | captures reproductibles, **pas une approbation artistique** |
 
 ## 8. Limites restantes
 

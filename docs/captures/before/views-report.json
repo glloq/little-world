@@ -1,0 +1,245 @@
+{
+  "recordedAt": "2026-11-14T01:02:14.995Z",
+  "base": "http://127.0.0.1:5181/little-world/",
+  "viewport": {
+    "width": 960,
+    "height": 540
+  },
+  "renderer": "Chromium headless + SwiftShader (logiciel) — non qualifiant GPU",
+  "views": [
+    {
+      "name": "island-volcano",
+      "label": "Panorama depuis le volcan",
+      "settled": true,
+      "settleMs": 7395,
+      "metrics": {
+        "calls": 94,
+        "triangles": 71892,
+        "position": [
+          -120,
+          46.67380962041344,
+          2528
+        ],
+        "dressing": {
+          "instances": 2554,
+          "calls": 5,
+          "triangles": 21514,
+          "cells": 170,
+          "species": {}
+        },
+        "horizon": {
+          "triangles": 46752
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "island-forest",
+      "label": "Forêt dense (vallée ouest)",
+      "settled": true,
+      "settleMs": 7486,
+      "metrics": {
+        "calls": 83,
+        "triangles": 49323,
+        "position": [
+          -700,
+          46.158595249491654,
+          450
+        ],
+        "dressing": {
+          "instances": 1479,
+          "calls": 5,
+          "triangles": 10888,
+          "cells": 240,
+          "species": {}
+        },
+        "horizon": {
+          "triangles": 46704
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "island-valley",
+      "label": "Vallée forestière ouest",
+      "settled": true,
+      "settleMs": 7452,
+      "metrics": {
+        "calls": 87,
+        "triangles": 61061,
+        "position": [
+          -700,
+          25.29252633281279,
+          -60
+        ],
+        "dressing": {
+          "instances": 2487,
+          "calls": 5,
+          "triangles": 18394,
+          "cells": 204,
+          "species": {}
+        },
+        "horizon": {
+          "triangles": 46720
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "island-river",
+      "label": "Rivière et berges",
+      "settled": true,
+      "settleMs": 7281,
+      "metrics": {
+        "calls": 77,
+        "triangles": 39278,
+        "position": [
+          260,
+          42.24482345849412,
+          250
+        ],
+        "dressing": {
+          "instances": 1016,
+          "calls": 5,
+          "triangles": 7674,
+          "cells": 280,
+          "species": {}
+        },
+        "horizon": {
+          "triangles": 46736
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "island-falls",
+      "label": "Gorge et cascade",
+      "settled": true,
+      "settleMs": 7317,
+      "metrics": {
+        "calls": 80,
+        "triangles": 43688,
+        "position": [
+          -300,
+          40.26319911795119,
+          1580
+        ],
+        "dressing": {
+          "instances": 1249,
+          "calls": 5,
+          "triangles": 10478,
+          "cells": 279,
+          "species": {}
+        },
+        "horizon": {
+          "triangles": 46712
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "island-cliff",
+      "label": "Falaise est depuis sa base",
+      "settled": true,
+      "settleMs": 6765,
+      "metrics": {
+        "calls": 70,
+        "triangles": 24888,
+        "position": [
+          1090,
+          10.263926378086593,
+          900
+        ],
+        "dressing": {
+          "instances": 725,
+          "calls": 5,
+          "triangles": 4976,
+          "cells": 298,
+          "species": {}
+        },
+        "horizon": {
+          "triangles": 46728
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "island-coast",
+      "label": "Littoral sud et port",
+      "settled": true,
+      "settleMs": 6497,
+      "metrics": {
+        "calls": 70,
+        "triangles": 26226,
+        "position": [
+          -120,
+          -0.5552457589735955,
+          -3570
+        ],
+        "dressing": {
+          "instances": 836,
+          "calls": 5,
+          "triangles": 5298,
+          "cells": 296,
+          "species": {}
+        },
+        "horizon": {
+          "triangles": 46720
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "island-village",
+      "label": "Village principal",
+      "settled": true,
+      "settleMs": 7226,
+      "metrics": {
+        "calls": 94,
+        "triangles": 51862,
+        "position": [
+          -80,
+          334.20264564254103,
+          -1660
+        ],
+        "dressing": {
+          "instances": 389,
+          "calls": 3,
+          "triangles": 7476,
+          "cells": 312,
+          "species": {}
+        },
+        "horizon": {
+          "triangles": 46744
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "island-flight",
+      "label": "Planage au-dessus de plusieurs biotopes",
+      "settled": true,
+      "settleMs": 7264,
+      "metrics": {
+        "calls": 108,
+        "triangles": 53920,
+        "position": [
+          0,
+          299.3906969106572,
+          -900
+        ],
+        "dressing": {
+          "instances": 339,
+          "calls": 2,
+          "triangles": 6780,
+          "cells": 278,
+          "species": {}
+        },
+        "horizon": {
+          "triangles": 46624
+        }
+      },
+      "errors": []
+    }
+  ]
+}
