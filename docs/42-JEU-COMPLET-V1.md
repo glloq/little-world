@@ -81,7 +81,7 @@ Carte de densité (végétation par cellule de 64 m, paysages, entités) : `docs
 | Tas JS | 29,7 Mo | 48,7 Mo | **+19 Mo : régression** |
 | Trous d’horizon (max) | 0,29 % | 0,29 % | inchangé |
 
-La hausse du démarrage et de la mémoire vient du contenu chargé d’un bloc (1 141 secteurs auteur, interactions, bibliothèques) : c’est la **première tâche de G6** (streaming des paquets auteur par proximité), pas une conséquence du rendu.
+**Hypothèse non encore mesurée** : la hausse du démarrage et de la mémoire viendrait du contenu lu d’un bloc au démarrage (1 141 secteurs auteur contre 939, interactions, bibliothèques, végétation plus dense). Le profilage du démarrage puis le streaming des paquets auteur par proximité sont la **première tâche de G6**.
 
 ## 4. Limites connues (honnêtes)
 
