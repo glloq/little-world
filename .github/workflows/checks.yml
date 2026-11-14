@@ -80,6 +80,8 @@ jobs:
         run: node tools/run-browser-check.mjs landscapes
       - name: Economy — counter, axe, felling, selling (island)
         run: node tools/run-browser-check.mjs economy
+      - name: Cliff climbing (island)
+        run: node tools/run-browser-check.mjs climb
       - name: B1 Studio edits and « Jouer ici »
         run: node tools/run-browser-check.mjs b1-studio
       - name: IndexedDB integration

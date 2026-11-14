@@ -3,7 +3,7 @@
  * never mesh changes. Pure and client-local: a future server only needs to send event IDs + params. */
 import {sanitizeContext,type Activity,type Place,type SoundContext,type Surface,type TimeOfDay,type Weather} from './context.ts';
 type V3={x:number;y:number;z:number};
-export type PlayerMotion='ground'|'air'|'glide'|'swim'|'dive';
+export type PlayerMotion='ground'|'air'|'glide'|'swim'|'dive'|'climb';
 export interface AudioFrame {
  nowMs:number;
  player:{position:V3;velocity:V3;mode:PlayerMotion;aboard:boolean;boatSpeed?:number;space?:{zoneId:string;levelId:string}|null;surface?:Surface};

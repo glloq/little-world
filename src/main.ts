@@ -24,6 +24,7 @@ import { defaultWorld } from './world-data';
 import { createNPCSystem } from './npc-view';
 import {
   MAX_OXYGEN,
+  MAX_STAMINA,
   simulatePlayer,
   spawnPlayer,
   type Controls,
@@ -188,7 +189,7 @@ world.update(0, player.position);
   const {createGameUi}=await import('./ui/app/game-ui.ts'),c=getTerrainConfig();
   gameUi=createGameUi({gameplay,npcs,audio,quality:document.querySelector<HTMLSelectElement>('#quality'),temporary:!!(studioTest||buildScope),studioUrl:import.meta.env.BASE_URL+'studio/',
     world:{name:definition.name,buildVersion:gameplay?.runtime.data.buildVersion??'vallée',dayLength:climate.definition.dayLengthSeconds,bounds:{minX:-c.width/2,maxX:c.width/2,minZ:-c.length/2,maxZ:c.length/2},seaLevel:c.seaLevel,height:terrainHeight,water:waterSurface},
-    player:()=>({x:player.position.x,y:player.position.y,z:player.position.z,yaw,space:player.space,mode:player.mode,oxygen:player.oxygen,maxOxygen:MAX_OXYGEN}),
+    player:()=>({x:player.position.x,y:player.position.y,z:player.position.z,yaw,space:player.space,mode:player.mode,oxygen:player.oxygen,maxOxygen:MAX_OXYGEN,stamina:player.stamina??MAX_STAMINA,maxStamina:MAX_STAMINA}),
     target:()=>currentTarget(),
     home:()=>{started=false;gameUi?.controller.close();keySet.clear();overlay.classList.remove('hide');start.focus();}});
 }
@@ -484,6 +485,7 @@ function updateHud() {
     glide: 'En planage',
     swim: 'Nage',
     dive: 'Plongée',
+    climb: 'Escalade',
   };
   status.textContent = aboard ? 'Navigation en bateau' : labels[player.mode];
   coords.textContent = `X ${player.position.x.toFixed(0)} m · Z ${player.position.z.toFixed(0)} m · H ${player.position.y.toFixed(1)} m`;
@@ -639,6 +641,8 @@ function draw(now: number) {
         audio:audio?.engine.metrics??null,
         collisions:gameplay?.collision.stats??null,
         position: player.position.toArray(),
+        mode: player.mode,
+        stamina: player.stamina ?? MAX_STAMINA,
         camera:{position:camera.position.toArray(),quaternion:camera.quaternion.toArray(),fov:camera.fov,aspect:camera.aspect,far:camera.far},
         legacyTerrain:isLegacyTerrain(),
         background:scene.background instanceof THREE.Color?scene.background.getHex(THREE.SRGBColorSpace):null,

@@ -39,6 +39,8 @@ export class WorldCollisionQuery {
  private providers=new Map<string,SpaceProvider>();
  private transitions:TransitionVolume[]=[];
  private terrain:(x:number,z:number)=>number;
+ /** Outdoor relief height (the base heightfield, without obstacles). */
+ reliefHeight(x:number,z:number){return this.terrain(x,z);}
  private water:(x:number,z:number)=>number|null;
  private large=new Set<string>();
  private scratch:Bounds[]=[];
