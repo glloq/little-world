@@ -54,6 +54,9 @@ async function collect(){
   const boats=await json('assets/boats/manifest.json');
   for(const item of boats.models)add({id:item.id,source:'assets/boats/manifest.json',sourceId:item.id,label:item.name,group:'boats',license:'project-original',status:boats.status==='APPROVED'?'ART_APPROVED':'UNKNOWN',
     lods:['lod0','lod1'].filter(k=>item[k]).map((k,i)=>({level:i,file:modelPath(item[k].file),triangles:item[k].triangles,sha256:item[k].sha256}))});
+  const kit=await json('assets/world-kit/manifest.json');
+  for(const item of kit.models)add({id:item.id,source:'assets/world-kit/manifest.json',sourceId:item.id,label:item.label,group:item.group,license:kit.license,status:'GENERATED_NOT_REVIEWED',
+    lods:item.lods.map(l=>({level:l.level,file:modelPath(l.path),triangles:l.triangles,sha256:l.sha256}))});
   const legacy=await json('assets/catalog.json');
   for(const item of legacy.assets.filter(a=>a.type==='glb'))add({id:item.id,source:'assets/catalog.json',sourceId:item.id,label:item.name,group:'legacy',license:item.license,status:'RUNTIME_QUALIFIED',lods:[{level:0,file:item.file}]});
   return out;

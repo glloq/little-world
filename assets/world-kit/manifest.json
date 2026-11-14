@@ -1,0 +1,831 @@
+{
+ "schemaVersion": 1,
+ "name": "Little World — world kit (landmarks, town, counters, rocks, conifers)",
+ "license": "project-original",
+ "origin": "Generated from primitives by tools/assets/generate-world-kit.mjs (no third-party source)",
+ "units": "m",
+ "up": "Y",
+ "forward": "-Z",
+ "textures": 0,
+ "models": [
+  {
+   "id": "architecture.inn",
+   "label": "Auberge à colombages",
+   "group": "buildings",
+   "lods": [
+    {
+     "level": 0,
+     "path": "public/models/world-kit/inn/lod0.glb",
+     "triangles": 176,
+     "bytes": 3844,
+     "sha256": "e66243d9499057684bccc46096059329a43f41850b764b856c41edf53129797d"
+    },
+    {
+     "level": 1,
+     "path": "public/models/world-kit/inn/lod1.glb",
+     "triangles": 116,
+     "bytes": 2840,
+     "sha256": "d86aa4316807f04d1d2e539fad111546234c918f87b056506af4563d1eafe121"
+    },
+    {
+     "level": 2,
+     "path": "public/models/world-kit/inn/lod2.glb",
+     "triangles": 20,
+     "bytes": 1220,
+     "sha256": "9bd43020624a0655860b99df54cd4cc6c77c3e25a1497761cb34ab4852a6f72e"
+    }
+   ]
+  },
+  {
+   "id": "architecture.house_timber",
+   "label": "Maison à colombages",
+   "group": "buildings",
+   "lods": [
+    {
+     "level": 0,
+     "path": "public/models/world-kit/house_timber/lod0.glb",
+     "triangles": 128,
+     "bytes": 3024,
+     "sha256": "ab17006a86d3850c2888bdbac5a0dd945e9195bbb91fb7a556a7b79293decdd6"
+    },
+    {
+     "level": 1,
+     "path": "public/models/world-kit/house_timber/lod1.glb",
+     "triangles": 68,
+     "bytes": 2020,
+     "sha256": "23908da8a70f63d9e10c8b70e83d2859a2287a76b8dee0aa63fb2a190a092b57"
+    },
+    {
+     "level": 2,
+     "path": "public/models/world-kit/house_timber/lod2.glb",
+     "triangles": 20,
+     "bytes": 1216,
+     "sha256": "6d682ae926b23ebeda3dd94a09c077116031e6cd7d1ca542cdd2d41db606f5ca"
+    }
+   ]
+  },
+  {
+   "id": "architecture.house_blue",
+   "label": "Maison de pêcheur (toit bleu)",
+   "group": "buildings",
+   "lods": [
+    {
+     "level": 0,
+     "path": "public/models/world-kit/house_blue/lod0.glb",
+     "triangles": 80,
+     "bytes": 2220,
+     "sha256": "603f0ea7c9be444aed59b03f709636d87aef1e697ce8bb8193614172fd2cf437"
+    },
+    {
+     "level": 1,
+     "path": "public/models/world-kit/house_blue/lod1.glb",
+     "triangles": 80,
+     "bytes": 2220,
+     "sha256": "603f0ea7c9be444aed59b03f709636d87aef1e697ce8bb8193614172fd2cf437"
+    },
+    {
+     "level": 2,
+     "path": "public/models/world-kit/house_blue/lod2.glb",
+     "triangles": 20,
+     "bytes": 1212,
+     "sha256": "691c40419ac6b6d523e5b3a397c0e0c7ab4682a6a0f7db5f355566edae9aa512"
+    }
+   ]
+  },
+  {
+   "id": "architecture.farmhouse",
+   "label": "Ferme et grange",
+   "group": "buildings",
+   "lods": [
+    {
+     "level": 0,
+     "path": "public/models/world-kit/farmhouse/lod0.glb",
+     "triangles": 100,
+     "bytes": 2572,
+     "sha256": "c2677e3e6482a3a458be8871fd92138901c5837a3227f4e0073b4daeeeaff89e"
+    },
+    {
+     "level": 1,
+     "path": "public/models/world-kit/farmhouse/lod1.glb",
+     "triangles": 100,
+     "bytes": 2572,
+     "sha256": "c2677e3e6482a3a458be8871fd92138901c5837a3227f4e0073b4daeeeaff89e"
+    },
+    {
+     "level": 2,
+     "path": "public/models/world-kit/farmhouse/lod2.glb",
+     "triangles": 40,
+     "bytes": 1572,
+     "sha256": "1296644e755bda572afc43988ae198c59bc9de6923c7fb56020ec0571e360895"
+    }
+   ]
+  },
+  {
+   "id": "architecture.watchtower",
+   "label": "Tour de guet",
+   "group": "landmarks",
+   "lods": [
+    {
+     "level": 0,
+     "path": "public/models/world-kit/watchtower/lod0.glb",
+     "triangles": 280,
+     "bytes": 6916,
+     "sha256": "cbe872f9ff09ff19b6a32832dbdd1c3038d2e5ba4de4812dd8d8092b964f23df"
+    },
+    {
+     "level": 1,
+     "path": "public/models/world-kit/watchtower/lod1.glb",
+     "triangles": 212,
+     "bytes": 5564,
+     "sha256": "a278587d9f11a67eb2589e9ee5b29d535d850a4bb5e2a223ebf406d487a283cc"
+    },
+    {
+     "level": 2,
+     "path": "public/models/world-kit/watchtower/lod2.glb",
+     "triangles": 60,
+     "bytes": 2724,
+     "sha256": "6c01e38e47bad73df5802be8b38f0794921583712e7bf697aa2a398527f678da"
+    }
+   ]
+  },
+  {
+   "id": "architecture.castle_keep",
+   "label": "Donjon de château",
+   "group": "landmarks",
+   "lods": [
+    {
+     "level": 0,
+     "path": "public/models/world-kit/castle_keep/lod0.glb",
+     "triangles": 568,
+     "bytes": 10476,
+     "sha256": "797d61623ba1a5f204681b8573026818f1cf21622d1278c494ed7df231169e89"
+    },
+    {
+     "level": 1,
+     "path": "public/models/world-kit/castle_keep/lod1.glb",
+     "triangles": 520,
+     "bytes": 9804,
+     "sha256": "40b5f937e2d2f31de1427eada62bb5870c5adfea332d5ee582aa72feb7f11db9"
+    },
+    {
+     "level": 2,
+     "path": "public/models/world-kit/castle_keep/lod2.glb",
+     "triangles": 144,
+     "bytes": 3612,
+     "sha256": "8a00431a4b548819e3430207797291d8b36407f061e49c4408fefc5b1543f714"
+    }
+   ]
+  },
+  {
+   "id": "structure.castle_wall",
+   "label": "Muraille (8 m)",
+   "group": "landmarks",
+   "lods": [
+    {
+     "level": 0,
+     "path": "public/models/world-kit/castle_wall/lod0.glb",
+     "triangles": 84,
+     "bytes": 2664,
+     "sha256": "78438326e99c7ef907a0bdd053f162b94d8beb3eabf33c204b8db2e5730ee649"
+    },
+    {
+     "level": 1,
+     "path": "public/models/world-kit/castle_wall/lod1.glb",
+     "triangles": 24,
+     "bytes": 1660,
+     "sha256": "ff3f90cfd781413d35fdd92ec8cdb455cfd23565a795afbf153ebb04e5e58c03"
+    }
+   ]
+  },
+  {
+   "id": "structure.castle_tower",
+   "label": "Tour de muraille",
+   "group": "landmarks",
+   "lods": [
+    {
+     "level": 0,
+     "path": "public/models/world-kit/castle_tower/lod0.glb",
+     "triangles": 200,
+     "bytes": 5504,
+     "sha256": "5418ee5c2f0ce823d07eded39c0256d842bdf8f6caeccc02e1f1b651b6de6075"
+    },
+    {
+     "level": 1,
+     "path": "public/models/world-kit/castle_tower/lod1.glb",
+     "triangles": 48,
+     "bytes": 2472,
+     "sha256": "56479bc7775268d7835b01638166adecd4d392a1cc4de99b7a6ae606065544a9"
+    }
+   ]
+  },
+  {
+   "id": "structure.castle_gate",
+   "label": "Porte fortifiée",
+   "group": "landmarks",
+   "lods": [
+    {
+     "level": 0,
+     "path": "public/models/world-kit/castle_gate/lod0.glb",
+     "triangles": 252,
+     "bytes": 4848,
+     "sha256": "b8bbf677d19e9daa93b5e7dcbcbb36ec996292e96a7d637e6fcae94967bd7c24"
+    },
+    {
+     "level": 1,
+     "path": "public/models/world-kit/castle_gate/lod1.glb",
+     "triangles": 36,
+     "bytes": 2248,
+     "sha256": "d4372908a1b67cbf2a1ee8fcd0b62ae95477b55dfab1947b1e08bf4b7638d9ea"
+    }
+   ]
+  },
+  {
+   "id": "architecture.church",
+   "label": "Église",
+   "group": "landmarks",
+   "lods": [
+    {
+     "level": 0,
+     "path": "public/models/world-kit/church/lod0.glb",
+     "triangles": 148,
+     "bytes": 3792,
+     "sha256": "10e1ad986da92bfe67c59f332022c6345752158dd33d4d2a0ce5024eb6cbfb83"
+    },
+    {
+     "level": 1,
+     "path": "public/models/world-kit/church/lod1.glb",
+     "triangles": 148,
+     "bytes": 3792,
+     "sha256": "10e1ad986da92bfe67c59f332022c6345752158dd33d4d2a0ce5024eb6cbfb83"
+    },
+    {
+     "level": 2,
+     "path": "public/models/world-kit/church/lod2.glb",
+     "triangles": 40,
+     "bytes": 1948,
+     "sha256": "80978f649d25fbfb69abe27b7dd8d57db45e8024e2af3fe4f226dcd840f31453"
+    }
+   ]
+  },
+  {
+   "id": "architecture.cathedral",
+   "label": "Cathédrale",
+   "group": "landmarks",
+   "lods": [
+    {
+     "level": 0,
+     "path": "public/models/world-kit/cathedral/lod0.glb",
+     "triangles": 276,
+     "bytes": 5812,
+     "sha256": "478f016ce8db6d6314f70ece10740f2ce4be27b5d11bf4b16f0bcd6def533ab9"
+    },
+    {
+     "level": 1,
+     "path": "public/models/world-kit/cathedral/lod1.glb",
+     "triangles": 252,
+     "bytes": 5476,
+     "sha256": "c8b3dd67d06d744c60c037f406970044cb25477628a621f33c8769edfc22f9b3"
+    },
+    {
+     "level": 2,
+     "path": "public/models/world-kit/cathedral/lod2.glb",
+     "triangles": 80,
+     "bytes": 2648,
+     "sha256": "3ea8734c881df858a30853df5559206f90d8ce4d751b1b2c9e32af22a415eb58"
+    }
+   ]
+  },
+  {
+   "id": "landmark.world_tree",
+   "label": "Arbre-monde",
+   "group": "landmarks",
+   "lods": [
+    {
+     "level": 0,
+     "path": "public/models/world-kit/world_tree/lod0.glb",
+     "triangles": 864,
+     "bytes": 34908,
+     "sha256": "b1f16862287b149a3b60c65de7cb3a983a6d3b0b130f3c561e90929688621756"
+    },
+    {
+     "level": 1,
+     "path": "public/models/world-kit/world_tree/lod1.glb",
+     "triangles": 436,
+     "bytes": 13648,
+     "sha256": "6e369d2c691f82cdd3a0e81d657c4139d2312a67560a5b16f5f6e7d44f295129"
+    },
+    {
+     "level": 2,
+     "path": "public/models/world-kit/world_tree/lod2.glb",
+     "triangles": 164,
+     "bytes": 4968,
+     "sha256": "897e4b90c1cb8ca785bdb2822d7e9d9f9dcf9b996f3b83b63dc86669adc1cce7"
+    }
+   ]
+  },
+  {
+   "id": "nature.conifer_tall",
+   "label": "Conifère élancé",
+   "group": "trees",
+   "lods": [
+    {
+     "level": 0,
+     "path": "public/models/world-kit/conifer_tall/lod0.glb",
+     "triangles": 80,
+     "bytes": 2288,
+     "sha256": "8de2795207aa8b9e799ad47f64dc9f3e97288b892bd3338730b3b4af1bd395b6"
+    },
+    {
+     "level": 1,
+     "path": "public/models/world-kit/conifer_tall/lod1.glb",
+     "triangles": 26,
+     "bytes": 1368,
+     "sha256": "410fa1f5d804479910f7aa0a78488fed1d2ca727a2faaea415efc89a96bcc8d2"
+    }
+   ]
+  },
+  {
+   "id": "nature.conifer_wide",
+   "label": "Conifère trapu",
+   "group": "trees",
+   "lods": [
+    {
+     "level": 0,
+     "path": "public/models/world-kit/conifer_wide/lod0.glb",
+     "triangles": 66,
+     "bytes": 2032,
+     "sha256": "2c0efe259dabb780a1ba3485527595547939457bb23b3ba5303706eb813f66cd"
+    },
+    {
+     "level": 1,
+     "path": "public/models/world-kit/conifer_wide/lod1.glb",
+     "triangles": 26,
+     "bytes": 1388,
+     "sha256": "aa3c9ba8e72635cee22640b23a941f2845434ce3fe5edaf9f9d2eb9aa4351118"
+    }
+   ]
+  },
+  {
+   "id": "nature.boulder_large",
+   "label": "Gros bloc de pierre",
+   "group": "rocks",
+   "lods": [
+    {
+     "level": 0,
+     "path": "public/models/world-kit/boulder_large/lod0.glb",
+     "triangles": 100,
+     "bytes": 5968,
+     "sha256": "7923b6cda4d8851578ee7f42a04d9022c2a890c1a2fd6ee2f44a88711a02abe7"
+    },
+    {
+     "level": 1,
+     "path": "public/models/world-kit/boulder_large/lod1.glb",
+     "triangles": 20,
+     "bytes": 1960,
+     "sha256": "84120a6174191e511a097f3b9a0c5b4e780f2a295fbb97b7be4ea44ddca72e50"
+    }
+   ]
+  },
+  {
+   "id": "nature.boulder_pile",
+   "label": "Amas de blocs",
+   "group": "rocks",
+   "lods": [
+    {
+     "level": 0,
+     "path": "public/models/world-kit/boulder_pile/lod0.glb",
+     "triangles": 140,
+     "bytes": 8140,
+     "sha256": "b715149edc7ae47694a69266226e2179a35099f133e61ef240a37d08b2ee7405"
+    },
+    {
+     "level": 1,
+     "path": "public/models/world-kit/boulder_pile/lod1.glb",
+     "triangles": 60,
+     "bytes": 3900,
+     "sha256": "5edc3937486d5c5c473570436689bcde99601f62be955c1a16c57eabec4d47ef"
+    }
+   ]
+  },
+  {
+   "id": "nature.rock_spire",
+   "label": "Aiguille rocheuse",
+   "group": "rocks",
+   "lods": [
+    {
+     "level": 0,
+     "path": "public/models/world-kit/rock_spire/lod0.glb",
+     "triangles": 100,
+     "bytes": 5852,
+     "sha256": "79099a773d2719006f9dbad239dd7d58bb7c51d6578273a52e7028aeb8f0dc56"
+    },
+    {
+     "level": 1,
+     "path": "public/models/world-kit/rock_spire/lod1.glb",
+     "triangles": 40,
+     "bytes": 2992,
+     "sha256": "1ab40d82e06006b54f62d1daee56ca0d98cc8b9449eb1ab430b89e847997d240"
+    }
+   ]
+  },
+  {
+   "id": "nature.rock_arch",
+   "label": "Arche rocheuse",
+   "group": "rocks",
+   "lods": [
+    {
+     "level": 0,
+     "path": "public/models/world-kit/rock_arch/lod0.glb",
+     "triangles": 240,
+     "bytes": 13248,
+     "sha256": "a8a3b2cd7730f905f344f625ebbfef611d3b8f4e31ea755bacc3ee78fe29229a"
+    },
+    {
+     "level": 1,
+     "path": "public/models/world-kit/rock_arch/lod1.glb",
+     "triangles": 60,
+     "bytes": 4004,
+     "sha256": "31d021def26e2c42d254a90d8b2c6c8b4253593885037c375de9cde65a5a4bb8"
+    }
+   ]
+  },
+  {
+   "id": "nature.cliff_block",
+   "label": "Module de falaise",
+   "group": "rocks",
+   "lods": [
+    {
+     "level": 0,
+     "path": "public/models/world-kit/cliff_block/lod0.glb",
+     "triangles": 120,
+     "bytes": 7124,
+     "sha256": "d633cdaad0cc850d592112448f97aa76fa8823b8697a67b304e50165845d7603"
+    },
+    {
+     "level": 1,
+     "path": "public/models/world-kit/cliff_block/lod1.glb",
+     "triangles": 40,
+     "bytes": 2992,
+     "sha256": "ed9e77f4a86d7f616d5dd5dddf21ee8d32298909350523da255013235e1b4928"
+    }
+   ]
+  },
+  {
+   "id": "landmark.cave_entrance",
+   "label": "Entrée de grotte",
+   "group": "landmarks",
+   "lods": [
+    {
+     "level": 0,
+     "path": "public/models/world-kit/cave_entrance/lod0.glb",
+     "triangles": 156,
+     "bytes": 7684,
+     "sha256": "8c6e7a0ee4e11a3b50a52daa68766595a57f0679c1ab59c8a690e1da4af838c7"
+    },
+    {
+     "level": 1,
+     "path": "public/models/world-kit/cave_entrance/lod1.glb",
+     "triangles": 72,
+     "bytes": 4172,
+     "sha256": "fcd916c551f7e0cc21016435fa4798e242f4b2b607c29862133aa14e2e2f755e"
+    }
+   ]
+  },
+  {
+   "id": "landmark.standing_stones",
+   "label": "Cercle de pierres levées",
+   "group": "landmarks",
+   "lods": [
+    {
+     "level": 0,
+     "path": "public/models/world-kit/standing_stones/lod0.glb",
+     "triangles": 120,
+     "bytes": 6696,
+     "sha256": "adae8ad58c2aa1266a9f1c7eba326538e830f7626232ccdb4396415080de4465"
+    },
+    {
+     "level": 1,
+     "path": "public/models/world-kit/standing_stones/lod1.glb",
+     "triangles": 72,
+     "bytes": 4596,
+     "sha256": "2288e4c166759dee04a4cec923a064b2e8d2de079c9fc75d0c741614ec0283c4"
+    }
+   ]
+  },
+  {
+   "id": "landmark.ruined_tower",
+   "label": "Tour en ruine",
+   "group": "landmarks",
+   "lods": [
+    {
+     "level": 0,
+     "path": "public/models/world-kit/ruined_tower/lod0.glb",
+     "triangles": 212,
+     "bytes": 9940,
+     "sha256": "7fdf6ecd8aff85b8a4d60db8f991a464ffe3a3313efcd84987e58e57de6ce97e"
+    },
+    {
+     "level": 1,
+     "path": "public/models/world-kit/ruined_tower/lod1.glb",
+     "triangles": 56,
+     "bytes": 2804,
+     "sha256": "c9026e9a7c5795c6d6823fd3b8213cfa51cdb960c622176b3827d339590757e1"
+    }
+   ]
+  },
+  {
+   "id": "landmark.obelisk",
+   "label": "Obélisque",
+   "group": "landmarks",
+   "lods": [
+    {
+     "level": 0,
+     "path": "public/models/world-kit/obelisk/lod0.glb",
+     "triangles": 36,
+     "bytes": 1428,
+     "sha256": "04c71d756a1863d533c9a2c34ff393841013ffa23f7e6c1f2b8841f3278d2cfe"
+    },
+    {
+     "level": 1,
+     "path": "public/models/world-kit/obelisk/lod1.glb",
+     "triangles": 36,
+     "bytes": 1428,
+     "sha256": "04c71d756a1863d533c9a2c34ff393841013ffa23f7e6c1f2b8841f3278d2cfe"
+    }
+   ]
+  },
+  {
+   "id": "structure.market_stall",
+   "label": "Comptoir du marché",
+   "group": "counters",
+   "lods": [
+    {
+     "level": 0,
+     "path": "public/models/world-kit/market_stall/lod0.glb",
+     "triangles": 128,
+     "bytes": 3068,
+     "sha256": "c99a1659345b884a49bad6aea94e0d4a1c1856043e9c3ef11e353dd1fb85bd8d"
+    },
+    {
+     "level": 1,
+     "path": "public/models/world-kit/market_stall/lod1.glb",
+     "triangles": 68,
+     "bytes": 2068,
+     "sha256": "286eaa5a27117c5b988852d94ec891e968f9ada56be84c740a46f6b5f4699ea5"
+    }
+   ]
+  },
+  {
+   "id": "structure.counter_mine",
+   "label": "Comptoir de la mine",
+   "group": "counters",
+   "lods": [
+    {
+     "level": 0,
+     "path": "public/models/world-kit/counter_mine/lod0.glb",
+     "triangles": 128,
+     "bytes": 4460,
+     "sha256": "10c94d0f1264051c668fdc461d30090831e486ba789b4d87a79cfea74a79b441"
+    },
+    {
+     "level": 1,
+     "path": "public/models/world-kit/counter_mine/lod1.glb",
+     "triangles": 48,
+     "bytes": 1720,
+     "sha256": "5464480d5495cc064c0e18477af4fa9f4e076c9db4706f3b98b5f2b5ad29588a"
+    }
+   ]
+  },
+  {
+   "id": "structure.counter_forest",
+   "label": "Comptoir du bûcheron",
+   "group": "counters",
+   "lods": [
+    {
+     "level": 0,
+     "path": "public/models/world-kit/counter_forest/lod0.glb",
+     "triangles": 188,
+     "bytes": 3880,
+     "sha256": "22feb8d135d1d626372800802d59db6c1240b3484ae109ea29dde45fb52569e1"
+    },
+    {
+     "level": 1,
+     "path": "public/models/world-kit/counter_forest/lod1.glb",
+     "triangles": 44,
+     "bytes": 1668,
+     "sha256": "10fe50f16871a1f8c3c0bd61a0a4cd51a3818c2e0c1929dbc54209d3527f2ebc"
+    }
+   ]
+  },
+  {
+   "id": "structure.counter_port",
+   "label": "Comptoir du port",
+   "group": "counters",
+   "lods": [
+    {
+     "level": 0,
+     "path": "public/models/world-kit/counter_port/lod0.glb",
+     "triangles": 92,
+     "bytes": 2440,
+     "sha256": "59b4d741c9962f98df155a7f9ad35522b695354f9d1201470697a0d6a96442ab"
+    },
+    {
+     "level": 1,
+     "path": "public/models/world-kit/counter_port/lod1.glb",
+     "triangles": 44,
+     "bytes": 1660,
+     "sha256": "e5cb987b745522f65ee6a33134dc3e08c83859f2280ee0c473b4acdb980ed901"
+    }
+   ]
+  },
+  {
+   "id": "structure.well",
+   "label": "Puits",
+   "group": "town",
+   "lods": [
+    {
+     "level": 0,
+     "path": "public/models/world-kit/well/lod0.glb",
+     "triangles": 112,
+     "bytes": 2700,
+     "sha256": "c7eb713f9865a6a82f395f976921c690651e609c2fb70c8dd08c4aef5e56a013"
+    },
+    {
+     "level": 1,
+     "path": "public/models/world-kit/well/lod1.glb",
+     "triangles": 80,
+     "bytes": 2252,
+     "sha256": "995f078cb976a074d39d3368f50bbce11a882507a205dc979337abc0e2d5b191"
+    }
+   ]
+  },
+  {
+   "id": "structure.lamp_post",
+   "label": "Lanterne de rue",
+   "group": "town",
+   "lods": [
+    {
+     "level": 0,
+     "path": "public/models/world-kit/lamp_post/lod0.glb",
+     "triangles": 44,
+     "bytes": 1660,
+     "sha256": "1f21bd10d839e433b2b8c5c307fb75f163418f41d874be1ec5d8238c33363e86"
+    },
+    {
+     "level": 1,
+     "path": "public/models/world-kit/lamp_post/lod1.glb",
+     "triangles": 36,
+     "bytes": 1548,
+     "sha256": "a1b029e1a5fd509258e88f80a64a774333d5dbfe3c4534546cb56a314b9d1653"
+    }
+   ]
+  },
+  {
+   "id": "structure.signpost",
+   "label": "Panneau indicateur",
+   "group": "town",
+   "lods": [
+    {
+     "level": 0,
+     "path": "public/models/world-kit/signpost/lod0.glb",
+     "triangles": 36,
+     "bytes": 1512,
+     "sha256": "6a68beb3c014b18923788a91e14287b48bbe4986f6abf925af96f51fe857f1b0"
+    },
+    {
+     "level": 1,
+     "path": "public/models/world-kit/signpost/lod1.glb",
+     "triangles": 24,
+     "bytes": 1312,
+     "sha256": "54dd9ad73ac284f6276b120e946bd4c33c0be55b2e36437498237f07520a74b3"
+    }
+   ]
+  },
+  {
+   "id": "structure.barrel",
+   "label": "Tonneau",
+   "group": "town",
+   "lods": [
+    {
+     "level": 0,
+     "path": "public/models/world-kit/barrel/lod0.glb",
+     "triangles": 96,
+     "bytes": 2408,
+     "sha256": "2cc56a6e9e29f4245a4affb88461b88e89b3e119e0a148c09700393d198f3f37"
+    },
+    {
+     "level": 1,
+     "path": "public/models/world-kit/barrel/lod1.glb",
+     "triangles": 24,
+     "bytes": 1272,
+     "sha256": "86066fdf1143c6cf5a5f1cb7766d228c95b3cf022e47e56bcc3b09dc4056ec1e"
+    }
+   ]
+  },
+  {
+   "id": "structure.crate_stack",
+   "label": "Pile de caisses",
+   "group": "town",
+   "lods": [
+    {
+     "level": 0,
+     "path": "public/models/world-kit/crate_stack/lod0.glb",
+     "triangles": 36,
+     "bytes": 1480,
+     "sha256": "9221700cfb0f3da0bb53b6d5bd11f68c5ef724da2ef71dd72e559d6806c4bc05"
+    },
+    {
+     "level": 1,
+     "path": "public/models/world-kit/crate_stack/lod1.glb",
+     "triangles": 36,
+     "bytes": 1480,
+     "sha256": "9221700cfb0f3da0bb53b6d5bd11f68c5ef724da2ef71dd72e559d6806c4bc05"
+    }
+   ]
+  },
+  {
+   "id": "structure.bench",
+   "label": "Banc",
+   "group": "town",
+   "lods": [
+    {
+     "level": 0,
+     "path": "public/models/world-kit/bench/lod0.glb",
+     "triangles": 48,
+     "bytes": 1676,
+     "sha256": "520ed9c6a4454f8cdb36d8d1affa13db4c1b7f33ff56b770557e710c60b26cea"
+    },
+    {
+     "level": 1,
+     "path": "public/models/world-kit/bench/lod1.glb",
+     "triangles": 36,
+     "bytes": 1476,
+     "sha256": "5c0b5c43ce7295c04b6ea1992163e0cbff127321386bcd23914333a25092a822"
+    }
+   ]
+  },
+  {
+   "id": "structure.fountain",
+   "label": "Fontaine de place",
+   "group": "town",
+   "lods": [
+    {
+     "level": 0,
+     "path": "public/models/world-kit/fountain/lod0.glb",
+     "triangles": 160,
+     "bytes": 3412,
+     "sha256": "bc26b55a4a8a7a88a6f8062a1cacd05cecaf43c92498d2232d9eced9d0447647"
+    },
+    {
+     "level": 1,
+     "path": "public/models/world-kit/fountain/lod1.glb",
+     "triangles": 112,
+     "bytes": 2740,
+     "sha256": "7bc63cc0254eed3ca0641fafc78d2baf7837f5ed7f59b67b40f6b03bb9655ef7"
+    }
+   ]
+  },
+  {
+   "id": "structure.palisade",
+   "label": "Palissade (4 m)",
+   "group": "town",
+   "lods": [
+    {
+     "level": 0,
+     "path": "public/models/world-kit/palisade/lod0.glb",
+     "triangles": 372,
+     "bytes": 6740,
+     "sha256": "eae6ea445768fb2eaac04394ef62eba556fbfbd75627097a103b577e01dcf68c"
+    },
+    {
+     "level": 1,
+     "path": "public/models/world-kit/palisade/lod1.glb",
+     "triangles": 92,
+     "bytes": 2380,
+     "sha256": "7b9c78e52f692323dceae765c50ae55778b7a91a67abd1cd0a9ffbf3c7c927e2"
+    }
+   ]
+  },
+  {
+   "id": "structure.pier_hut",
+   "label": "Cabane de pêcheur sur pilotis",
+   "group": "buildings",
+   "lods": [
+    {
+     "level": 0,
+     "path": "public/models/world-kit/pier_hut/lod0.glb",
+     "triangles": 140,
+     "bytes": 3052,
+     "sha256": "3212fc912971d06b50e8f7673c9e002c25673aa9bbff808c64c49940423b3668"
+    },
+    {
+     "level": 1,
+     "path": "public/models/world-kit/pier_hut/lod1.glb",
+     "triangles": 128,
+     "bytes": 2848,
+     "sha256": "165560452e90d9a6166761dd42aebe88c17850563a3d0db0506e9ef79febeb95"
+    }
+   ]
+  }
+ ]
+}

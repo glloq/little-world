@@ -7,8 +7,8 @@
 export const REGISTRY_VERSION='1';
 export type BiotopeId='temperate-forest'|'prairie'|'humid-valley'|'marsh'|'mountain'|'heath'|'sandy-coast'|'rocky-coast'|'volcanic'|'dry-zone';
 /** Superimposed land uses (occupations / amenities), never exclusive biomes. */
-export type AmenityId='village'|'orchard'|'ruins'|'riverbank'|'cliff-foot'|'dune';
-export type AssetRole='tree'|'shrub'|'ground'|'deadwood'|'hedge'|'fence'|'wall'|'bridge'|'dock'|'building'|'boat'|'legacy';
+export type AmenityId='village'|'orchard'|'ruins'|'riverbank'|'cliff-foot'|'dune'|'town'|'castle'|'port'|'mine'|'forest-camp';
+export type AssetRole='tree'|'shrub'|'ground'|'deadwood'|'hedge'|'fence'|'wall'|'bridge'|'dock'|'building'|'boat'|'legacy'|'landmark'|'rock'|'counter'|'prop';
 export type PlacementKind='scatter'|'cluster'|'line'|'anchor'|'manual';
 /** Logical collision wished at runtime (independent from the visual LOD). */
 export type CollisionKind='none'|'trunk'|'box'|'footprint';
@@ -96,4 +96,41 @@ export const ASSET_USAGE:Record<string,AssetUsage>={
   'architecture.lighthouse':built('building',4.5,['rocky-coast','sandy-coast'],'anchor','footprint',3000,'2 672 triangles en LOD0 : réservé aux points de vue remarquables.'),
   'architecture.windmill_stone':built('building',6.5,['village','prairie'],'anchor','footprint'),
   'architecture.watermill_log_stone':built('building',5.5,['village','riverbank'],'anchor','footprint'),
+  // World kit (project-generated, art review pending): town, landmarks, counters, rocks, conifers.
+  'architecture.inn':built('building',6.5,['town','village'],'anchor','footprint'),
+  'architecture.house_timber':built('building',4.5,['town','village'],'anchor','footprint'),
+  'architecture.house_blue':built('building',4,['port','village'],'anchor','footprint'),
+  'architecture.farmhouse':built('building',8,['village','prairie'],'anchor','footprint'),
+  'architecture.watchtower':built('landmark',3.4,['mountain','rocky-coast','town','castle'],'anchor','footprint'),
+  'architecture.castle_keep':built('landmark',9,['castle'],'anchor','footprint'),
+  'structure.castle_wall':built('wall',1.4,['castle','town'],'line','box'),
+  'structure.castle_tower':built('landmark',3.4,['castle','town'],'anchor','footprint'),
+  'structure.castle_gate':built('landmark',5,['castle','town'],'anchor','footprint'),
+  'architecture.church':built('landmark',8,['town','village'],'anchor','footprint'),
+  'architecture.cathedral':built('landmark',14,['town'],'anchor','footprint'),
+  'landmark.world_tree':built('landmark',7,['temperate-forest','humid-valley'],'anchor','footprint',1000),
+  'nature.conifer_tall':{...tree(['mountain','temperate-forest','heath','rocky-coast'],'cone',[.9,1.4],'Conifère du kit généré (comble la famille conifères).'),runtimeStatus:'INTEGRATED'},
+  'nature.conifer_wide':{...tree(['mountain','temperate-forest','heath'],'cone',[.9,1.3]),runtimeStatus:'INTEGRATED'},
+  'nature.boulder_large':built('rock',3.2,['mountain','cliff-foot','prairie','heath','volcanic'],'scatter','box'),
+  'nature.boulder_pile':built('rock',3.5,['mountain','cliff-foot','rocky-coast','heath'],'scatter','box'),
+  'nature.rock_spire':built('rock',2.6,['mountain','rocky-coast','volcanic'],'anchor','box'),
+  'nature.rock_arch':built('landmark',7,['rocky-coast','mountain','dry-zone'],'anchor','footprint'),
+  'nature.cliff_block':built('rock',4.5,['mountain','rocky-coast','cliff-foot'],'anchor','box'),
+  'landmark.cave_entrance':built('landmark',6,['mountain','rocky-coast','mine'],'anchor','footprint'),
+  'landmark.standing_stones':built('landmark',7,['prairie','heath','ruins'],'anchor','none'),
+  'landmark.ruined_tower':built('landmark',4,['ruins','heath','mountain'],'anchor','footprint'),
+  'landmark.obelisk':built('landmark',1.6,['ruins','town'],'anchor','box'),
+  'structure.market_stall':built('counter',1.8,['town','village','port'],'anchor','box'),
+  'structure.counter_mine':built('counter',1.8,['mine'],'anchor','box'),
+  'structure.counter_forest':built('counter',2.2,['forest-camp','temperate-forest'],'anchor','box'),
+  'structure.counter_port':built('counter',1.8,['port'],'anchor','box'),
+  'structure.well':built('prop',1.3,['town','village'],'anchor','box'),
+  'structure.lamp_post':built('prop',.3,['town','village','port'],'manual','box'),
+  'structure.signpost':built('prop',.3,['town','village','prairie'],'manual','none'),
+  'structure.barrel':built('prop',.5,['town','port','village'],'manual','box'),
+  'structure.crate_stack':built('prop',1,['town','port','mine'],'manual','box'),
+  'structure.bench':built('prop',1,['town','village'],'manual','none'),
+  'structure.fountain':built('prop',2.6,['town'],'anchor','box'),
+  'structure.palisade':built('wall',.4,['village','forest-camp','castle'],'line','box'),
+  'structure.pier_hut':built('building',3,['port','marsh'],'anchor','footprint'),
 };

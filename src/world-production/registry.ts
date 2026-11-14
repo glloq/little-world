@@ -53,8 +53,8 @@ export function exclusionRadius(assetId:string,scale=1):number|null{
   const a=worldAsset(assetId);
   if(!a||a.group==='legacy')return assetId.startsWith('architecture.')?6*scale:null;
   const u=a.usage;if(!u)return null;
-  if(u.role==='building')return (u.footprintM+2)*scale;
-  if(u.role==='bridge'||u.role==='dock'||u.role==='wall')return (u.footprintM+.6)*scale;
+  if(u.role==='building'||u.role==='landmark')return (u.footprintM+2)*scale;
+  if(u.role==='bridge'||u.role==='dock'||u.role==='wall'||u.role==='counter'||u.role==='rock'||u.role==='prop')return (u.footprintM+.6)*scale;
   return null;
 }
 /** Vertical correction applied to instanced copies so that the model base touches the ground

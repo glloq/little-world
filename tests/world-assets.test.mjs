@@ -11,7 +11,7 @@ test('committed registry matches the real GLB files and manifests (no drift)',as
   assert.equal(fresh.diagnostics.filter(d=>d.severity==='ERROR').length,0,JSON.stringify(fresh.diagnostics));
 });
 test('inventory covers the merged asset branch: 26 vegetation lot models, enclosures, bridges, dock, buildings',()=>{
-  const groups={};for(const a of WORLD_ASSETS.assets)groups[a.group]=(groups[a.group]??0)+1;
+  const groups={};for(const a of WORLD_ASSETS.assets.filter(a=>!a.source.includes('world-kit')))groups[a.group]=(groups[a.group]??0)+1;
   assert.equal((groups.trees??0)+(groups.shrubs??0)+(groups.ground??0)+(groups.deadwood??0),26);
   assert.equal(groups.hedges,5);assert.equal(groups.fences,6);assert.equal(groups.walls,5);assert.equal(groups.bridges,3);assert.equal(groups.dock,5);assert.equal(groups.buildings,5);
   for(const id of ['nature.broadleaf_round','nature.hazel_thin','nature.palm_curved','nature.log_fallen','nature.reeds_patch','structure.bridge_stone','architecture.windmill_stone'])assert.ok(worldAsset(id),id);
@@ -39,4 +39,9 @@ test('exclusion footprints: buildings and structures, never small plants',()=>{
   assert.ok(exclusionRadius('structure.bridge_stone')>4);
   assert.equal(exclusionRadius('nature.fern_small'),null);
   assert.equal(exclusionRadius('props.crate'),null);
+});
+test('world kit: original generated landmarks/counters/rocks/conifers are registered, light and pending art review',()=>{
+  const kit=WORLD_ASSETS.assets.filter(a=>a.source.includes('world-kit'));assert.ok(kit.length>=30);
+  for(const a of kit){assert.equal(a.license,'project-original');assert.equal(a.artStatus,'GENERATED_NOT_REVIEWED');assert.ok(a.usage,a.id);assert.ok(a.lods[0].triangles<=1000,a.id);assert.equal(a.pivot.base==='below-ground',false,a.id);}
+  for(const id of ['architecture.castle_keep','architecture.cathedral','architecture.church','architecture.inn','landmark.world_tree','structure.counter_mine','structure.counter_port','structure.counter_forest','structure.market_stall','nature.conifer_tall'])assert.ok(worldAsset(id),id);
 });
