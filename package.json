@@ -45,7 +45,9 @@
     "bench:activities": "node --expose-gc tools/bench-activities.mjs",
     "synth:audio": "node --experimental-strip-types tools/audio-synth/build.mjs --all && node --experimental-strip-types tools/audio-synth/build-music.mjs && npm run generate:audio && node --experimental-strip-types tools/audio-synth/report.mjs",
     "check:audio-synth": "node --experimental-strip-types tools/audio-synth/build.mjs --all --check && node --experimental-strip-types tools/audio-synth/build-music.mjs --check",
-    "test:audio-production": "node tests/audio-production.browser.mjs"
+    "test:audio-production": "node tests/audio-production.browser.mjs",
+    "generate:world-assets": "node --experimental-strip-types tools/build-world-assets.mjs",
+    "check:world-assets": "node --experimental-strip-types tools/build-world-assets.mjs --check"
   },
   "dependencies": {
     "three": "^0.180.0"

@@ -8,6 +8,7 @@ import { geoWorkerPool } from './geography/geo-workers.ts';
 import { createPathView, type PathViewStats } from './paths/path-view.ts';
 import { createLightView, type LightView } from './lighting/light-view.ts';
 import type { RuntimeLight } from './lighting/light-data.ts';
+import { worldAsset, lodDistances, exclusionRadius } from './world-production/registry.ts';
 import { createDressingView, type DressingView, type DressingStats } from './dressing-view.ts';
 import { sampleBiome, generatedCover } from './biomes';
 import type {
@@ -484,7 +485,43 @@ function loadModel(path: string): Promise<THREE.Group | null> {
   }
   return pending;
 }
+/** World Production registry GLB (vegetation lots, enclosures, bridges, dock, buildings):
+ * THREE.LOD with the real LOD files, loaded lazily and shared; a neutral placeholder box of
+ * the measured size stands in while loading (clearly procedural). Collisions, interactions
+ * and placement never depend on which LOD is drawn. */
+function createRegistryAsset(id: string): THREE.Group | null {
+  const asset = worldAsset(id);
+  if (!asset || asset.group === 'legacy') return null;
+  const g = new THREE.Group();
+  g.userData.registryAsset = id;
+  const [sx, sy, sz] = asset.size;
+  const placeholder = box(g, mat(asset.usage?.role === 'tree' || asset.usage?.role === 'shrub' || asset.usage?.role === 'ground' ? 0x7fa86a : 0xb9a789), Math.max(.2, sx * .8), Math.max(.2, sy), Math.max(.2, sz * .8), 0, sy / 2, 0);
+  placeholder.name = 'Placeholder ' + id;
+  const distances = lodDistances(asset);
+  void Promise.all(asset.lods.map((l) => loadModel(l.file))).then((scenes) => {
+    if (!g.parent || g.userData.disposed) return;
+    if (scenes.some((scene) => !scene)) return; // Keep the placeholder; error already logged.
+    removeFallback(g);
+    const lod = new THREE.LOD();
+    lod.name = 'LOD ' + id;
+    scenes.forEach((scene, i) => lod.addLevel(scene!.clone(true), distances[i], 2));
+    g.add(lod);
+  });
+  return g;
+}
+function removeFallback(g: THREE.Group) {
+  g.traverse((node) => {
+    const m = node as THREE.Mesh;
+    if (m.geometry && !sharedGeometry.has(m.geometry)) m.geometry.dispose();
+    if (m.material)
+      for (const mat of Array.isArray(m.material) ? m.material : [m.material])
+        if (!sharedMaterials.has(mat)) mat.dispose();
+  });
+  g.clear();
+}
 export function createAsset(id: AssetId): THREE.Group {
+  const registry = createRegistryAsset(id);
+  if (registry) return registry;
   const g = new THREE.Group();
   if (id === 'nature.pine') {
     cylinder(g, wood, 0.24, 0.34, 2.4, 0, 1.2, 0);
@@ -832,7 +869,7 @@ export function configureWorldGeography(config: WorldConfig, definition?: WorldD
     masks: definition?.geography?.masks ?? {},
     zones: definition?.geography?.zones ?? [],
     biomeStrokes: (definition?.biomes ?? []).map((b) => ({ x: b.x, z: b.z, radius: b.radius, biome: b.biome })),
-    buildings: (definition?.placements ?? []).filter((p) => p.assetId.startsWith('architecture.')).map((p) => ({ x: p.x, z: p.z, radius: 6 * (p.scale ?? 1) })),
+    buildings: (definition?.placements ?? []).flatMap((p) => { const radius = exclusionRadius(p.assetId, p.scale ?? 1); return radius === null ? [] : [{ x: p.x, z: p.z, radius }]; }),
   });
 }
 export function addPlacement(

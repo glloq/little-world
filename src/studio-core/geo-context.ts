@@ -2,6 +2,7 @@
  * Pure: it never configures the shared runtime terrain used by the 3D viewport. Built from the
  * loaded sectors only — callers hydrate the sectors they display. Same classification code as
  * the game (createGeoContext), so the map shows what the runtime will compute. */
+import {exclusionRadius} from '../world-production/registry.ts';
 import type {ProjectDocument,TerrainEdit,BiomeEdit} from './types.ts';
 import type {TerrainStroke,WaterBody,PathDefinition,WorldConfig} from '../world-data.ts';
 import {LEGACY_GENERATOR} from '../terrain-generator.ts';
@@ -25,7 +26,7 @@ export function projectGeographyInput(p:ProjectDocument):ProjectGeographyInput{
   const config={seed:w.seed,density:w.density,width,length,seaLevel:w.seaLevel,...(w.terrain?{terrain:w.terrain}:{})} as WorldConfig;
   const masks:Record<string,SectorLayers>={};for(const c of chunks)if(c.layers)masks[c.chunkId]=c.layers;
   const buildings:{x:number;z:number;radius:number}[]=[];
-  for(const c of chunks)for(const id of c.entityIds){const e=c.entities[id];if(!e)continue;const r=resolveEntity(p,e),v=r.components.Visual,t=r.components.Transform;if(v&&t&&v.assetId.startsWith('architecture.'))buildings.push({x:t.position.x,z:t.position.z,radius:6*Math.max(t.scale.x,t.scale.z)});}
+  for(const c of chunks)for(const id of c.entityIds){const e=c.entities[id];if(!e)continue;const r=resolveEntity(p,e),v=r.components.Visual,t=r.components.Transform;if(v&&t){const radius=exclusionRadius(v.assetId,Math.max(t.scale.x,t.scale.z));if(radius!==null)buildings.push({x:t.position.x,z:t.position.z,radius});}}
   const sources:GeographySources={seed:w.seed,grid:sectorGrid(p),masks,
     zones:Object.values(p.libraries.zones??{}).map(z=>({kind:z.kind,polygon:z.polygon})),
     biomeStrokes:[...biomes.values()].sort((a,c)=>a.order-c.order).map(e=>({x:e.x,z:e.z,radius:e.radius,biome:e.biome})),buildings};
