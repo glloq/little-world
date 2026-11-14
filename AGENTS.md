@@ -202,6 +202,7 @@ Lire **[42 — Jeu complet V1](docs/42-JEU-COMPLET-V1.md)** avant de toucher à 
 - **Priorités d’habillage** (`src/world-production/dressing-priority.ts`) : arbres et silhouettes lointaines jamais coupés par le budget ; cueillables, puis buissons ; plantes de sol, bois mort, cailloux et éboulis réduits/éteints en premier. Canopée lointaine = échantillons de la classification (workers), pas un second moteur.
 - Collisions des objets placés = composants `Collider` auteur (`registry.colliderFor`), troncs générés via `gameplay/tree-colliders.ts` ; lumières auteur via `registry.lightFor`. Personnages à l’échelle `CHARACTER_SCALE`.
 - Occultation par le relief (`src/render/horizon-occlusion.ts`) : purement visuelle, conservative, jamais appliquée au terrain ni au gameplay.
+- **Garantie de proximité** (doc 42 §3 quinquies) : le cache d’habillage évince les cellules **les plus éloignées**, jamais celles du rayon dessiné ; rien n’est occulté à moins de `OCCLUSION.nearM` (80 m) ; test navigateur `dressing-stability` en CI.
 - `polylineDistance` renvoie désormais une vraie distance (crêtes/vallées à la largeur saisie) ; appliquer en dernier les presets qui tracent de l’eau.
 - Statuts : implémenté/testé sur branche ; **performance non qualifiée** sur GPU intégré.
 

@@ -24,8 +24,8 @@ const FAMILIES:Family[]=['trunk','cone','round','stone','grit','basalt','farCone
 /** GLB LOD radii (m) per kind at detail level 0: LOD0 ≤ first, LOD1 ≤ second. Benchmark knobs. */
 /** Priorities (doc 42 G6): gatherable flora (flowers, mushrooms, reeds) keeps a longer range
  * than the generic ground plants; deadwood and ground plants are short-ranged. */
-export const SPECIES_RADII:Record<'pine'|'oak'|'shrub'|'plant'|'gather'|'deadwood',[number,number]>={pine:[55,110],oak:[55,110],shrub:[40,80],gather:[45,80],plant:[22,42],deadwood:[25,50]};
-export const DRESSING_RADII:Record<DressingKind|'farTrees',number>={pine:90,oak:90,shrub:90,plant:70,deadwood:90,rock:240,basalt:240,scree:55,pebble:40,farTrees:720};
+export const SPECIES_RADII:Record<'pine'|'oak'|'shrub'|'plant'|'gather'|'deadwood',[number,number]>={pine:[60,170],oak:[60,170],shrub:[40,110],gather:[45,80],plant:[22,42],deadwood:[25,50]};
+export const DRESSING_RADII:Record<DressingKind|'farTrees',number>={pine:90,oak:90,shrub:90,plant:70,deadwood:90,rock:240,basalt:240,scree:55,pebble:40,farTrees:900};
 const CAPACITY:Record<Family,number>={trunk:2500,cone:1500,round:2500,stone:6000,grit:5000,basalt:1500,farCone:16000,farRound:16000};
 /** Far forest canopy ring (beyond the far silhouettes) per detail level: never switched off. */
 export const CANOPY_RADII=[1800,1600,1400,1100] as const;
@@ -73,7 +73,7 @@ export function createDressingView(parent:THREE.Group,seed:number,density:number
   for(const f of FAMILIES)allocate(f,Math.min(512,CAPACITY[f]));
   // ---- GLB species: one BatchedMesh per LOD, created when the shared library is loaded.
   const batchMaterial=new THREE.MeshLambertMaterial({vertexColors:true,flatShading:true});
-  interface Batch {mesh:THREE.BatchedMesh;ids:number[];capacity:number;added:number;used:number;tri:number[];byClass:Partial<Record<DressingClass,number>>}
+  interface Batch {mesh:THREE.BatchedMesh;ids:number[];capacity:number;added:number;used:number;tri:number[];byClass:Partial<Record<DressingClass,number>>;/** Class of each used instance (debug: popping analysis). */cls:DressingClass[]}
   let library:SpeciesLibrary|null=null;const batches:Batch[]=[];
   /** Gameplay filter: elements felled/picked by the player and not grown back are not drawn. */
   let hidden:((cx:number,cz:number,kind:DressingKind,index:number)=>boolean)|null=null;
@@ -85,7 +85,7 @@ export function createDressingView(parent:THREE.Group,seed:number,density:number
     const capacity=1024,mesh=new THREE.BatchedMesh(capacity,verts,idx,batchMaterial);mesh.name='Dressing species LOD'+lod;
     mesh.perObjectFrustumCulled=true;mesh.sortObjects=false;mesh.frustumCulled=false;mesh.castShadow=mesh.receiveShadow=false;if(lod===0)mesh.renderOrder=-1;
     const ids=library!.species.map(g=>g?mesh.addGeometry(lod?g.lod1:g.lod0):-1),tri=library!.species.map(g=>g?g.triangles[lod]:0);
-    root.add(mesh);return {mesh,ids,capacity,added:0,used:0,tri,byClass:{}};
+    root.add(mesh);return {mesh,ids,capacity,added:0,used:0,tri,byClass:{},cls:[]};
   }
   // `?glb=0` (benchmarks, fallback checks): keep the procedural families only.
   const glbDisabled=typeof location!=='undefined'&&new URLSearchParams(location.search).get('glb')==='0';
@@ -103,13 +103,13 @@ export function createDressingView(parent:THREE.Group,seed:number,density:number
     if(mine>=cap*CLASS_SHARE[cls]||b.used>=cap){stats.species.dropped++;stats.droppedByClass[cls]=(stats.droppedByClass[cls]??0)+1;return false;}
     if(b.used>=b.capacity){b.capacity=Math.min(cap,b.capacity*2);b.mesh.setInstanceCount(b.capacity);}
     b.byClass[cls]=mine+1;
-    const i=b.used++;
+    const i=b.used++;b.cls[i]=cls;
     if(i>=b.added){b.mesh.addInstance(gid);b.added++;}else{b.mesh.setGeometryIdAt(i,gid);b.mesh.setVisibleAt(i,true);}
     const c=Math.cos(rot)*s,sn=Math.sin(rot)*s;m4.set(c,0,sn,x, 0,s,0,y, -sn,0,c,z, 0,0,0,1);b.mesh.setMatrixAt(i,m4);
     const k=.88+.22*t;tint.setRGB(k,k*(.98+.04*t),k*.97);b.mesh.setColorAt(i,tint);
     return true;
   }
-  const cache=new Map<string,DressingCell&{used:number;stale?:boolean}>(),MAX_CELLS=900;let clock=0;
+  const cache=new Map<string,DressingCell&{used:number;stale?:boolean}>(),MAX_CELLS=1200;let clock=0;
   const stats:DressingStats={species:{state:'loading',lod0:0,lod1:0,triangles:0,bytes:0,loadMs:0,failed:[],dropped:0},instanceBytes:0,byFamily:{},triangles:0,cells:0,pending:0,instances:0,calls:0,lastRebuildMs:0,maxCellMs:0,generatedMs:0,bytes:0,radiusScale:1,byClass:{},droppedByClass:{},canopyCells:0,canopyPending:0,nearPending:-1};
   const canopyFlight=new Map<string,GeoTask<Float32Array>>();let canopyDirty=false,queue:[number,number][]=[],focusCell='',dirty=true,lastRebuild=0,farScale=1,detail=0,retired=false;
   const scaleOf=(c:DressingClass)=>classScale(c,detail);
@@ -134,9 +134,14 @@ export function createDressingView(parent:THREE.Group,seed:number,density:number
     canopyQueue=wanted.sort((a,b)=>a[2]-b[2]).map(([x,z])=>[x,z]);
   }
   const cellDistance=(x:number,z:number,fx:number,fz:number)=>{const dx=Math.max(x*DRESSING_CELL_M-fx,0,fx-(x+1)*DRESSING_CELL_M),dz=Math.max(z*DRESSING_CELL_M-fz,0,fz-(z+1)*DRESSING_CELL_M);return Math.hypot(dx,dz);};
+  /** Last focus (player): cache eviction drops the FARTHEST cells and never a cell inside the
+   * drawing radius. (An LRU on the rebuild order evicted the nearest cells first once the cache was
+   * full — about 1 km of travel —, making near trees and rocks vanish and pop back.) */
+  let lastFx=0,lastFz=0;
   function evict(){
-    if(cache.size<=MAX_CELLS)return;const order=[...cache.entries()].sort((a,b)=>a[1].used-b[1].used);
-    for(const [key]of order.slice(0,cache.size-MAX_CELLS)){cache.delete(key);for(const kind of ['pine','shrub','rock','scree','pebble','basalt'])included.delete(kind+':'+key);}
+    if(cache.size<=MAX_CELLS)return;const keep=maxRadius()+DRESSING_CELL_M;
+    const order=[...cache.entries()].map(([key,c])=>({key,d:cellDistance(c.cx,c.cz,lastFx,lastFz)})).filter(e=>e.d>keep).sort((a,b)=>b.d-a.d);
+    for(const {key}of order.slice(0,cache.size-MAX_CELLS)){cache.delete(key);const tag=':'+key;for(const kind of ['pine','shrub','rock','scree','pebble','basalt'])included.delete(kind+tag);}
   }
   const color=new THREE.Color(),c2=new THREE.Color();
   const FOLIAGE:[number,number][]=[[0x4f7a45,0x6d9653],[0x5d8a4a,0x8aa85c]];
@@ -243,12 +248,20 @@ export function createDressingView(parent:THREE.Group,seed:number,density:number
     /** New relief-occlusion field (refreshed after camera moves): redraw without hidden items. */
     setOcclusion(fn:typeof occlusion){occlusion=fn;dirty=true;},
     /** Redraw from cached cells (gameplay changes: felled tree, picked flowers). */redraw(){dirty=true;lastRebuild=0;},
+    /** Debug/test (metrics mode): keys of the objects drawn within `r` of (x, z) — GLB species
+     * instances of both LODs and procedural families (trees, rocks) — to detect popping. */
+    drawnNear(x:number,z:number,r:number):string[]{
+      const out:string[]=[],m=new THREE.Matrix4(),p=new THREE.Vector3(),key=(tag:string)=>{if(Math.hypot(p.x-x,p.z-z)<=r)out.push(tag+':'+p.x.toFixed(1)+':'+p.z.toFixed(1));};
+      batches.forEach(b=>{for(let i=0;i<b.used;i++){if(!b.mesh.getVisibleAt(i))continue;b.mesh.getMatrixAt(i,m);p.setFromMatrixPosition(m);key(b.cls[i]??'sp');}});
+      for(const f of ['trunk','stone','basalt'] as Family[]){const mesh=meshes[f];for(let i=0;i<mesh.count;i++){mesh.getMatrixAt(i,m);p.setFromMatrixPosition(m);key(f);}}
+      return out;
+    },
     /** Quality tiers of the shared budget manager (0 full … 3 lowest), applied per priority class
      * (world-production/dressing-priority.ts): trees and their far silhouettes are kept at every
      * level; ground plants, deadwood, pebbles and scree shrink then switch off first. */
     setDetail(level:number){const next=Math.max(0,Math.min(3,Math.round(level)));if(next===detail)return;detail=next;farScale=farScaleOf(next);stats.radiusScale=scaleOf('tree');dirty=true;focusCell='';},
     update(fx:number,fz:number,budgetMs=3){
-      if(retired||density<=0)return;
+      if(retired||density<=0)return;lastFx=fx;lastFz=fz;
       const cell=Math.floor(fx/DRESSING_CELL_M)+':'+Math.floor(fz/DRESSING_CELL_M);
       if(cell!==focusCell){focusCell=cell;plan(fx,fz);dirty=true;}
       const t0=performance.now();let made=0;
@@ -280,7 +293,8 @@ export function createDressingView(parent:THREE.Group,seed:number,density:number
         while(canopyQueue.length&&performance.now()-t0<budgetMs*(detail>=2?.5:.8)){const [x,z]=canopyQueue.shift()!,key=x+':'+z;if(canopy.has(key))continue;
           addCanopy(x,z,generateCanopyCell(cctx,seed,x,z,insideWorld));n++;}
         if(n)canopyDirty=true;}
-      if(canopyDirty){if(canopy.size>MAX_CANOPY){const order=[...canopy.entries()].sort((a,b)=>a[1].used-b[1].used);for(const [k]of order.slice(0,canopy.size-MAX_CANOPY))canopy.delete(k);}}
+      // Canopy eviction: farthest cells first (never the ring being drawn).
+      if(canopyDirty&&canopy.size>MAX_CANOPY){const order=[...canopy.entries()].map(([k,c])=>({k,d:Math.hypot(c.x-fx,c.z-fz)})).filter(e=>e.d>canopyRadius()+DRESSING_CELL_M).sort((a,b)=>b.d-a.d);for(const {k}of order.slice(0,canopy.size-MAX_CANOPY))canopy.delete(k);}
       {let near=0;const r=160;for(const [x,z]of queue)if(cellDistance(x,z,fx,fz)<r)near++;for(const key of inFlight.keys()){const [x,z]=key.split(':').map(Number);if(cellDistance(x,z,fx,fz)<r)near++;}stats.nearPending=near;}
       stats.canopyCells=canopy.size;stats.canopyPending=canopyQueue.length+canopyFlight.size;stats.pending=queue.length+inFlight.size;if(made){dirty=true;evict();}
       const now=performance.now();

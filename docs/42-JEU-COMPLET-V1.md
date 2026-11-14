@@ -161,6 +161,41 @@ Diagnostic mesuré (SwiftShader et scripts Node sur l’île), avant les correct
 
 Statut : implémenté et testé (`tests/dressing.test.mjs`, `tests/occlusion.test.mjs`) ; coût GPU à requalifier.
 
+## 3 quinquies. Les objets proches restent affichés (demande du 14 novembre 2026)
+
+**Cause du clignotement des arbres et grosses pierres proches (confirmée par mesure).** Le cache des cellules d’habillage (900 cellules) évinçait selon l’ordre de la dernière reconstruction. Or cet ordre va du plus proche au plus loin : **les cellules autour du joueur étaient évincées en premier**.
+- Le cache se remplit après environ 1 km de trajet, vite atteint en boule ou en planage.
+- Les arbres et rochers proches disparaissaient alors, puis réapparaissaient au changement de cellule, avant d’être de nouveau évincés.
+- Mesure navigateur à (−700, 1020), après 4 km de trajet : **0 arbre ou rocher dessiné dans un rayon de 45 m, contre 141** sur un chargement frais.
+
+**Garantie de proximité :**
+
+| Règle | Implémentation |
+| --- | --- |
+| Éviction des cellules | Les **plus éloignées** du joueur partent en premier, jamais celles du rayon dessiné (`evict`). Même règle pour la canopée lointaine. Cache porté à 1 200 cellules, soit moins de 1 Mio mesuré. |
+| Occultation par le relief | **Rien n’est masqué à moins de 80 m** de la caméra (`OCCLUSION.nearM`). Avant, la règle était de 60 m pour les arbres et 40 m pour les objets placés, dispersée dans le code. |
+| Gros rochers et objets placés | Hystérésis de 12 m sur le changement de LOD et sur le rayon d’affichage : plus d’alternance autour d’un seuil. |
+| Niveau de qualité | Les rayons des arbres et des rochers ne descendent jamais sous ×0,75 et ×0,6. Seuls les plantes de sol, le bois mort et les cailloux s’éteignent (classes de faible priorité). |
+
+**Preuves** (`tools/test-dressing-stability-browser.mjs`, en CI) :
+- après 4 km de trajet, les **mêmes 141** arbres et rochers sont dessinés qu’au chargement frais ;
+- 0 disparition à l’arrêt (4 s) ;
+- 0 disparition d’un arbre ou rocher à moins de 35 m pendant la marche ;
+- avec l’ancienne éviction, le test échoue (0 / 141).
+
+Seules les plantes de sol et le bois mort sortent de leur rayon prévu.
+
+**Lisibilité proche et lointaine** (mesures SwiftShader, niveau de qualité 2, à requalifier sur GPU intégré) :
+- vrais arbres GLB (LOD1, 20 à 60 triangles) jusqu’à **170 m** au lieu de 110 m ;
+- buissons jusqu’à 110 m au lieu de 80 m ;
+- anneau de silhouettes d’arbres jusqu’à **900 m** au lieu de 720 m, la canopée prenant le relais au-delà.
+
+| Vue | Appels de rendu | Triangles | Arbres GLB (LOD0 + LOD1) |
+| --- | --- | --- | --- |
+| Ville | 116 → 116 | 66 k → 71 k (+7 %) | 296 → 526 |
+| Bois | 48 → 48 | 51 k → 56 k (+11 %) | 564 → 815 |
+| Crête | 97 → 98 | 91 k → 91 k | 3 → 6 |
+
 ## 4. Limites connues (honnêtes)
 
 - **Performance non qualifiée** sur GPU intégré. Sous SwiftShader, l’intervalle de présentation est inchangé, mais **le démarrage (+3,8 s) et le tas JS (+19 Mo) régressent** (voir §3).
