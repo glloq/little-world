@@ -47,7 +47,9 @@
     "check:audio-synth": "node --experimental-strip-types tools/audio-synth/build.mjs --all --check && node --experimental-strip-types tools/audio-synth/build-music.mjs --check",
     "test:audio-production": "node tests/audio-production.browser.mjs",
     "generate:world-assets": "node --experimental-strip-types tools/build-world-assets.mjs",
-    "check:world-assets": "node --experimental-strip-types tools/build-world-assets.mjs --check"
+    "check:world-assets": "node --experimental-strip-types tools/build-world-assets.mjs --check",
+    "test:landscapes": "node tools/test-landscapes-browser.mjs",
+    "capture:views": "node tools/capture-world-views.mjs"
   },
   "dependencies": {
     "three": "^0.180.0"

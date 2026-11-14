@@ -512,6 +512,13 @@ function createRegistryAsset(id: string): THREE.Group | null {
   });
   return g;
 }
+/** LOD0 of a registry asset, loaded and cloned (Studio thumbnails); null for other assets. */
+export async function loadAssetPreview(id: string): Promise<THREE.Object3D | null> {
+  const asset = worldAsset(id);
+  if (!asset || asset.group === 'legacy') return null;
+  const scene = await loadModel(asset.lods[0].file);
+  return scene ? scene.clone(true) : null;
+}
 function removeFallback(g: THREE.Group) {
   g.traverse((node) => {
     const m = node as THREE.Mesh;

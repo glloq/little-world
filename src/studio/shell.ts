@@ -26,11 +26,11 @@ const action=(title:string,fn:()=>Promise<unknown>|unknown,className?:string)=>b
 const MODULES:[string,string,string,string,string][]=[
   ['scene','Sélection','➚','Naviguer','V'],['map','Carte globale','▦','Naviguer','M'],
   ['objects','Objets','▣','Construire','B'],['characters','Personnages','☺','Construire',''],['lights','Lumières','✦','Construire','L'],
-  ['terrain','Relief','⛰','Monde','T'],['biomes','Biotopes','✿','Monde',''],['paths','Chemins et rivières','〰','Monde',''],['water','Eau','≈','Monde',''],['zones','Zones','⬠','Monde',''],
+  ['terrain','Relief','⛰','Monde','T'],['biomes','Biotopes','✿','Monde',''],['paths','Chemins et rivières','〰','Monde',''],['water','Eau','≈','Monde',''],['zones','Zones','⬠','Monde',''],['landscapes','Paysages','❦','Monde',''],
   ['dialogues','Dialogues','✉','Logique',''],['interactions','Interactions','⚙','Logique',''],['environment','Environnement','☀','Logique',''],['audio','Audio','♪','Logique',''],
   ['tests','Validation / compilation','✓','Projet',''],
 ];
-const VIEWPORT_MODULES=new Set(['scene','objects','characters','lights','terrain','biomes','polyline','paths','zones']);
+const VIEWPORT_MODULES=new Set(['scene','objects','characters','lights','terrain','biomes','polyline','paths','zones','landscapes']);
 const ALIASES:Record<string,string>={local:'scene',select:'scene'};
 const panelHost=()=>$('panel-host');
 function refreshHeader(){
@@ -77,7 +77,7 @@ async function open(id:string){
 }
 async function ensureViewport(){
   if(viewport)return viewport;const s=session!;const {StudioViewport}=await import('./viewport/editor-viewport.ts');if(session!==s)throw Error('Projet fermé');
-  viewport=await StudioViewport.create($('workspace'),s,{message:status,refreshInspector:scheduleInspector,toolChanged:id=>{if(id==='select'&&activeModule==='polyline'){const back=returnModule;returnModule='scene';void module(back);}else if(id==='select'&&activeModule!=='scene'&&activeModule!=='paths'&&activeModule!=='zones'&&activeModule!=='lights')void module('scene');},
+  viewport=await StudioViewport.create($('workspace'),s,{message:status,refreshInspector:scheduleInspector,toolChanged:id=>{if(id==='select'&&activeModule==='polyline'){const back=returnModule;returnModule='scene';void module(back);}else if(id==='select'&&activeModule!=='scene'&&activeModule!=='paths'&&activeModule!=='zones'&&activeModule!=='lights'&&activeModule!=='landscapes')void module('scene');},
     status:info=>{$('viewport-status').textContent=[info.cursor?`X ${info.cursor.x.toFixed(1)} · Z ${info.cursor.z.toFixed(1)}`:'—',{orbit:'Orbite',free:'Vol libre',top:'Dessus'}[info.mode]??info.mode,info.selected?`${info.selected} sélectionné(s)`:'Aucune sélection',`${info.sectors} secteur(s)`].join('  ·  ');}});
   return viewport;
 }
@@ -138,6 +138,9 @@ async function toolPanel(id:string,v:StudioViewport){
     const ctx={session:s,status,physics:{enabled:()=>v.physicsOverlay,toggle:(on:boolean)=>v.setPhysicsOverlay(on)},focus:(x:number,z:number)=>v.goTo(x,z,30),edit:(target:import('./viewport/polyline-tool.ts').PolylineTarget)=>{void run(async()=>{const {polylineTarget}=await import('./viewport/polyline-tool.ts');polylineTarget.current=target;returnModule=id;await module('polyline');})();}};
     const render=()=>{tools.replaceChildren();(id==='paths'?mountPathsPanel:mountZonesPanel)(tools,ctx);};render();
     const stop=s.commands.subscribe(()=>{if(activeModule===id)render();}),previous=disposePanel;disposePanel=()=>{stop();previous();};
+  }else if(id==='landscapes'){
+    v.setTool('select');const {mountLandscapesPanel}=await import('./landscapes-panel.ts');
+    const stop=mountLandscapesPanel(tools,{session:s,viewport:v,status}),previous=disposePanel;disposePanel=()=>{stop();previous();};
   }else if(id==='lights'){
     v.setTool('select');const {mountLightsPanel}=await import('./lights-panel.ts');
     const stop=mountLightsPanel(tools,{session:s,viewport:v,status,refresh:()=>void inspector()}),previous=disposePanel;disposePanel=()=>{stop();previous();};

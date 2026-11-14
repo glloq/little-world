@@ -13,6 +13,7 @@ export function editDocument(bus:CommandBus,label:string,ids:string[],edit:(draf
       for(const key of new Set([...Object.keys(a),...Object.keys(b)]))diff(a[key],b[key],[...path,key]);
     }else if(JSON.stringify(before)!==JSON.stringify(after))patches.push(after===undefined?bus.removePatch(path):bus.patch(path,after));
   };
-  for(const key of ['world','manifest','chunks','chunkIndex','entityIndex','libraries'] as const)diff(p[key],draft[key],[key]);
+  // `assets`: registry assets join the project catalogue when first placed (World Production).
+  for(const key of ['world','manifest','chunks','chunkIndex','entityIndex','libraries','assets'] as const)diff(p[key],draft[key],[key]);
   return bus.execute(label,patches,ids);
 }

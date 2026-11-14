@@ -77,6 +77,8 @@ jobs:
         run: node tools/run-browser-check.mjs lights
       - name: B1 acceptance walk — obstacles, water, mine, farm, saves (PHYS/WATER/MINE/AGRI)
         run: node tools/run-browser-check.mjs b1
+      - name: World Production landscapes and asset library
+        run: node tools/run-browser-check.mjs landscapes
       - name: B1 Studio edits and « Jouer ici »
         run: node tools/run-browser-check.mjs b1-studio
       - name: IndexedDB integration
