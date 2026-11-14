@@ -11,7 +11,7 @@
 ## 1. Limites validées
 
 - **Jeu solo PC**, Three.js / TypeScript / Vite, **GitHub Pages statique** ; pas de backend obligatoire, serveur de jeu, comptes ou multijoueur.
-- **Une seule carte continue par monde/partie**, jusqu'à **10 × 10 km maximum** comme limite de **format/architecture**, pas performance démontrée. **Prototype actuel : 200 × 600 m**.
+- **Une seule carte continue par monde/partie**, jusqu'à **10 × 10 km maximum** comme limite de **format/architecture**, pas performance démontrée. **Carte jouable actuelle : île 3 × 8 km** (l’ancienne vallée 200 × 600 m n’est plus qu’un fixture de migration).
 - **Exploration paisible avec de nombreuses petites activités facultatives** : collecte/inventaire léger, pêche éventuelle, petites missions, énigmes, dialogues à choix, quelques intérieurs, conséquences persistantes et **plusieurs sauvegardes de partie locales**.
 - **Pas d'humains** : PNJ animaux/créatures uniquement, variantes du personnage joueur quand morphologies/rigs compatibles. **Navigation libre avancée** mais comportements sociaux/routines simples ; pas de combat, survie punitive ou RPG lourd.
 - **Plusieurs éditeurs spécialisés** dans Little World Studio : carte globale, terrain, eau/chemins, biotopes/faune, bâtiments, personnages/PNJ, dialogues, événements/actions, assets et tests. **Un seul projet partagé**, IDs, sélection et Undo/Redo cohérents. Outils génériques avant décors ad hoc.
@@ -191,6 +191,15 @@ Lire **[41 — World Production V1](docs/41-WORLD-PRODUCTION-V1.md)** avant de t
 - La classification du Geography Engine reste l'autorité ; les **profils de biotopes** ne font que choisir espèces/densités/écotones. Pas de données par plante dans les sources.
 - `libraries.landscapes` (facultatif) : un preset écrit des données auteur rééditables ; **retouches manuelles prioritaires** (contenu modifié détaché, suppressions respectées, écrasement seulement confirmé). Toute rivière générée passe la compilation WATER.
 - Cartes `maps/island.project.json` et `maps/production-reference.project.json` **générées** (`npm run generate:island`, `npm run generate:production-reference`, vérifiées en CI).
+
+## Jeu complet V1 — économie, activités, île peuplée, Studio unique (implémenté sur branche)
+
+Lire **[42 — Jeu complet V1](docs/42-JEU-COMPLET-V1.md)** avant de toucher à l’économie, aux comptoirs, à la cueillette/abattage/pêche, à l’escalade, au rendu des mines ou aux presets d’établissements.
+- **Studio = seul éditeur** : l’ancien `/editor/` et la vallée V1 publiée sont retirés ; la vallée reste un **fixture de migration** (`tests/fixtures/legacy-v1-valley.json`). La page d’accueil ouvre l’île.
+- Économie déclarative : pièces = objet `coin` ; comptoir = entité avec état `shop` ; prix dans `src/gameplay/economy.ts`. Coffres = interactions déclaratives (`once`, état persistant), jamais de script.
+- Escalade = mode `climb` du joueur sur le **heightfield extérieur** seulement (endurance, jamais en mine) ; le rendu des mines reste **dérivé de la grille** (relief déplacé dans la roche, collisions = cellules).
+- Cueillette/abattage indexés par `DRESSING_VERSION` : l’augmenter quand la génération de végétation change.
+- Statuts : implémenté/testé sur branche ; **performance non qualifiée** après l’enrichissement de l’île.
 
 ## 2. Séparation des données et des responsabilités
 

@@ -28,7 +28,7 @@ L’environnement cloud de cette réparation ne permet pas de joindre `glloq.git
 Publier le jeu **solo** et son **éditeur** depuis `glloq/little-world` sur GitHub Pages, avec **zéro backend** en fonctionnement.
 
 - **Adresse prévue du jeu :** https://glloq.github.io/little-world/
-- **Adresse envisagée de l'éditeur :** https://glloq.github.io/little-world/editor/ (à valider pendant M0).
+- **Éditeur :** Little World Studio, https://glloq.github.io/little-world/studio/ (l’ancien `/editor/` est retiré, voir [42](42-JEU-COMPLET-V1.md)).
 - **Sources :** dépôt GitHub public.
 - **Contenu :** fichiers statiques HTML, JS, CSS, WASM Rapier, cartes et GLB optimisés.
 - **Hébergement :** Pages uniquement, sans serveur d'app, base de données, WebSocket ni authentification.
