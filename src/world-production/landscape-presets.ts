@@ -155,8 +155,19 @@ export const LANDSCAPE_PRESETS:Record<LandscapePresetId,LandscapePreset>={
       return c;}}),
   'sandy-beach':P({id:'sandy-beach',version:1,label:'Plage de sable',description:'Plage large ou crique, sable sec et humide (rivage), petites dunes et végétation côtière ; palmiers seulement sur option.',profile:'sandy-coast',defaultSize:[420,200],
     params:[...sizeParams(1),{key:'dunes',label:'Largeur des dunes (m)',kind:'number',min:0,max:80,step:2,default:34},{key:'palms',label:'Palmiers (climat chaud)',kind:'boolean',default:false}],
-    produces:['masques : sable (géologie), littoral, dunes','région littoral (palmiers sur option)','diagnostic si l’emprise ne touche pas la mer'],
-    relief:()=>[],
+    produces:['relief : abaissement de la bande côtière (crique/plage) quand la côte est en falaise','masques : sable (géologie), littoral, dunes','région littoral (palmiers sur option)','diagnostic si l’emprise ne touche pas la mer'],
+    relief:(f,_p,height,sea)=>{
+      // Find the shoreline along the footprint axis; on a cliffy coast, lower the coastal band
+      // (a trough along the shore) so that a real beach can exist. Underwater stays underwater.
+      let vc:number|null=null,side=1;const L=f.length;
+      for(let v=-L/2;v<L/2;v+=4){const a=f.toWorld(0,v),b=f.toWorld(0,v+4),ha=height(a.x,a.z),hb=height(b.x,b.z);if((ha<sea)!==(hb<sea)){vc=v+2;side=hb>=sea?1:-1;break;}}
+      if(vc===null)return [];
+      const inland=f.toWorld(0,vc+side*L*.35),depth=Math.min(40,height(inland.x,inland.z)-sea-3);
+      if(depth<1.5)return [];
+      // Basins (not valleys: valleys fade out near the coast) spaced along the shore.
+      const n=Math.max(1,Math.min(3,Math.round(f.width/300))),R=Math.max(L*.55,f.width/n*.62);
+      return Array.from({length:n},(_,i)=>({key:'cove-'+(i+1),id:'',kind:'basin' as const,...f.toWorld((i+.5)/n*f.width-f.width/2,vc!+side*L*.04),radiusM:r1(R),depthM:r1(depth)}));
+    },
     regions:(f,p)=>[{x:f.cx,z:f.cz,width:f.width,length:f.length,rotation:f.rotation,edgeM:r1(Math.min(f.width,f.length)*.2),profile:'sandy-coast',density:num(p,'density',1),...(bool(p,'palms',false)?{palms:true}:{})}],
     content:(env,p)=>{const c=empty(),dunes=num(p,'dunes',34);let sea=0;
       for(let k=0;k<24;k++){const q=env.toWorld((env.rand(k)-.5)*env.width,(env.rand(k+40)-.5)*env.length);if(env.height(q.x,q.z)<env.seaLevel)sea++;}

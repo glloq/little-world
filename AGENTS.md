@@ -184,6 +184,14 @@ Lire **[25 — Agriculture par parcelles LOW-RESOURCE](docs/25-AGRICULTURE-PARCE
 - **Agriculture optionnelle riche** : climat, rotation, fertilité, irrigation, risques parasites/maladies et qualité calculés **par zone**, pas simulateur de fluides/biologie individuelle.
 - Plan **AGRI-0…AGRI-8**, budgets et chiffres de mémoire/cadence **à benchmarker**, aucune phase validée par la seule documentation.
 
+## World Production V1 — registre d'assets, biotopes, presets de paysages (implémenté sur branche)
+
+Lire **[41 — World Production V1](docs/41-WORLD-PRODUCTION-V1.md)** avant de toucher à l'habillage, aux assets, aux presets ou aux cartes `island`/`production-reference`.
+- **Un seul catalogue** : `assets/world-assets.json` est **généré** depuis les vrais GLB (`npm run generate:world-assets`, vérifié en CI) ; usages dans `src/world-production/asset-usage.ts`. Ne pas éditer le JSON à la main, ne pas modifier les GLB d'origine.
+- La classification du Geography Engine reste l'autorité ; les **profils de biotopes** ne font que choisir espèces/densités/écotones. Pas de données par plante dans les sources.
+- `libraries.landscapes` (facultatif) : un preset écrit des données auteur rééditables ; **retouches manuelles prioritaires** (contenu modifié détaché, suppressions respectées, écrasement seulement confirmé). Toute rivière générée passe la compilation WATER.
+- Cartes `maps/island.project.json` et `maps/production-reference.project.json` **générées** (`npm run generate:island`, `npm run generate:production-reference`, vérifiées en CI).
+
 ## 2. Séparation des données et des responsabilités
 
 - Projet auteur : `worldId`, `schemaVersion`, `seed`, dimensions, chunks, overrides, prefabs, entités, dialogues, navigation, interactions.

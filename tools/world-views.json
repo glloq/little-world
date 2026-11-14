@@ -154,9 +154,9 @@
   "label": "Littoral sud et port",
   "world": "maps/island/manifest.json",
   "x": -120,
-  "z": -3440,
+  "z": -3570,
   "yaw": 3.14,
-  "pitch": 0.3,
+  "pitch": 0.32,
   "dist": 45
  },
  {
