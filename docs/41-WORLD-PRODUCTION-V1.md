@@ -182,7 +182,7 @@ Optimisations appliquées : un **BatchedMesh par LOD** pour toutes les espèces 
 
 Rapports bruts : [avant](benchmarks/2026-11-14-route-world-production-before.json), [après](benchmarks/2026-11-14-route-world-production-after.json), [après `?glb=0`](benchmarks/2026-11-14-route-world-production-after-glb0.json).
 
-**Lecture honnête** : sur ce parcours, la végétation GLB elle-même ne coûte rien de mesurable (`?glb=0` donne les mêmes chiffres) ; la dégradation vient du **contenu de l'île** (933 paquets auteur lus au démarrage — limite connue du lecteur, pas encore de streaming des paquets auteur —, chemins, eau, entités, relief plus accidenté). Les « trous » mesurés sont de l'ordre de quelques pixels sur 2 560 points et apparaissent dans les caps tournés vers les nouveaux reliefs côtiers : à investiguer (silhouettes lointaines de falaises). **Aucune cible 30/20 FPS n'est déclarée atteinte** ; SwiftShader n'est pas un GPU intégré.
+**Lecture honnête** : sur ce parcours, la végétation GLB elle-même ne coûte rien de mesurable (`?glb=0` donne les mêmes chiffres) ; la dégradation vient du **contenu de l'île** (939 paquets auteur lus au démarrage — limite connue du lecteur, pas encore de streaming des paquets auteur —, chemins, eau, entités, relief plus accidenté). Les « trous » mesurés sont de l'ordre de quelques pixels sur 2 560 points et apparaissent dans les caps tournés vers les nouveaux reliefs côtiers : à investiguer (silhouettes lointaines de falaises). **Aucune cible 30/20 FPS n'est déclarée atteinte** ; SwiftShader n'est pas un GPU intégré.
 
 Bundles : JS total 1,39 → 1,59 Mio (registre JSON + modules) ; worker géographique inchangé dans son rôle (les profils de biotopes y sont inclus, pas le registre).
 
@@ -198,7 +198,7 @@ Bundles : JS total 1,39 → 1,59 Mio (registre JSON + modules) ; worker géograp
 
 ## 8. Limites restantes
 
-1. **Streaming des paquets auteur** : l'île compte 933 secteurs auteur lus au démarrage (≈ 1,3 Mio) ; à streamer par la priorité caméra existante (R-02/R-06).
+1. **Streaming des paquets auteur** : l'île compte 939 secteurs auteur lus au démarrage (≈ 1,3 Mio) ; à streamer par la priorité caméra existante (R-02/R-06).
 2. **Ressources externes non importées** (réseau) : conifères, modules de falaise/arches/grottes, plantes de dune et volcaniques restent des besoins.
 3. **Liens hydrographiques** entre presets non automatiques (`from`/`to` non posés) ; certains étangs refusés quand la cuvette est trop plate ; une cascade exige une marche nette du relief.
 4. Les **paysages qui se chevauchent** : le premier appliqué garde ses cellules de masque (le second les voit comme corrections).
