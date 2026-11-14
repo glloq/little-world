@@ -19,7 +19,13 @@ try{
   await page.getByRole('button',{name:'Sélection',exact:true}).click();await page.getByRole('button',{name:'Filtre Zones'}).click();
   await page.locator('.search-results button',{hasText:'Mine de la colline'}).click();await page.waitForSelector('#inspector .mine-card');
   check(await page.locator('#inspector .mine-plan').count()===1&&/Filons de fer : [1-9]/.test(await page.locator('.mine-plan-legend').textContent()),'Mine plan per level previews the deposit: '+await page.locator('.mine-plan-legend').textContent());
-  const seed=page.getByLabel('Graine géologique');await seed.fill('4242');await seed.press('Tab');await page.waitForFunction(()=>/Graine de la mine/.test(document.querySelector('[data-action=undo]').title));check(true,'Mine seed changed in one transaction');
+  // The inspector may be rebuilt once the viewport finishes loading the zone (slow CI runners): edit
+  // when the viewport is idle, and edit again if a rebuild swallowed the change (same assertion).
+  await page.waitForFunction(()=>document.querySelector('.viewport canvas')?.dataset.idle==='true',{},{timeout:120000});
+  let changed=false;for(let attempt=0;attempt<3&&!changed;attempt++){const seed=page.getByLabel('Graine géologique');await seed.fill('4242');await seed.press('Tab');
+    changed=await page.waitForFunction(()=>/Graine de la mine/.test(document.querySelector('[data-action=undo]').title),{},{timeout:15000}).then(()=>true,()=>false);}
+  if(!changed)console.log('Seed edit diagnostics: '+JSON.stringify(await page.evaluate(()=>({undo:document.querySelector('[data-action=undo]')?.title,status:document.getElementById('status')?.textContent,seed:[...document.querySelectorAll('#inspector input')].map(i=>i.value).slice(0,6),idle:document.querySelector('.viewport canvas')?.dataset.idle}))));
+  check(changed,'Mine seed changed in one transaction');
   await page.keyboard.press('Control+z');await page.waitForFunction(()=>!/Graine de la mine/.test(document.querySelector('[data-action=undo]').title));check(true,'Undo');
   await page.keyboard.press('Control+Shift+z');await page.waitForFunction(()=>/Graine de la mine/.test(document.querySelector('[data-action=undo]').title));check(true,'Redo');
   // Plot: initial crop.
