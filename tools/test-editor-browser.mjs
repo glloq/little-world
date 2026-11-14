@@ -37,7 +37,7 @@ try{
   const topView=await camera();check(topView.mode==='top'&&topView.zoom>=60&&topView.zoom<=140,'Top view framed for placement ('+Math.round(topView.zoom)+' m)');await idle();
 
   // E3 — library placement with rotation before validation, repeatable, Escape to finish.
-  await page.getByRole('button',{name:'Objets',exact:true}).click();await page.getByRole('button',{name:'Placer : Lanterne'}).click();
+  await page.getByRole('button',{name:'Objets',exact:true}).click();await page.getByRole('button',{name:'Placer : Lanterne',exact:true}).click();
   const A={x:cx-160,y:cy},B={x:cx+160,y:cy};
   await page.mouse.move(A.x,A.y,{steps:3});await page.keyboard.press('r');await page.mouse.click(A.x,A.y);await page.waitForFunction(()=>document.querySelector('.viewport canvas')?.dataset.models==='1');
   await page.mouse.move(B.x,B.y,{steps:3});await page.mouse.click(B.x,B.y);await page.waitForFunction(()=>document.querySelector('.viewport canvas')?.dataset.models==='2');

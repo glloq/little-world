@@ -723,6 +723,27 @@
    ]
   },
   {
+   "id": "structure.chest",
+   "label": "Coffre au trésor",
+   "group": "town",
+   "lods": [
+    {
+     "level": 0,
+     "path": "public/models/world-kit/chest/lod0.glb",
+     "triangles": 80,
+     "bytes": 2172,
+     "sha256": "de8f8d98fe0c397044d8e63348037b3ce9424baaecc6d8bf1affb436d3fe93e0"
+    },
+    {
+     "level": 1,
+     "path": "public/models/world-kit/chest/lod1.glb",
+     "triangles": 32,
+     "bytes": 1416,
+     "sha256": "80e356743a622a1958889d413bcd4c01a39b3de2797c4468560c251acdf3313c"
+    }
+   ]
+  },
+  {
    "id": "structure.crate_stack",
    "label": "Pile de caisses",
    "group": "town",

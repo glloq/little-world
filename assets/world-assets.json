@@ -6,10 +6,10 @@
  "up": "Y",
  "externalAssets": [],
  "totals": {
-  "assets": 96,
-  "glbFiles": 211,
-  "bytes": 1272228,
-  "withUsage": 93
+  "assets": 97,
+  "glbFiles": 213,
+  "bytes": 1275816,
+  "withUsage": 94
  },
  "assets": [
   {
@@ -7071,6 +7071,101 @@
     "habitats": [
      "castle",
      "town"
+    ],
+    "runtimeStatus": "INTEGRATED"
+   }
+  },
+  {
+   "id": "structure.chest",
+   "label": "Coffre au trésor",
+   "group": "town",
+   "source": "assets/world-kit/manifest.json",
+   "sourceId": "structure.chest",
+   "license": "project-original",
+   "origin": "Little World original (feat/little-world-assets ou catalogue historique)",
+   "artStatus": "GENERATED_NOT_REVIEWED",
+   "runtimeStatus": "INTEGRATED",
+   "size": [
+    1.1,
+    1.5,
+    0.77
+   ],
+   "pivot": {
+    "base": "ground",
+    "centred": true
+   },
+   "lods": [
+    {
+     "level": 0,
+     "file": "models/world-kit/chest/lod0.glb",
+     "bytes": 2172,
+     "sha256": "de8f8d98fe0c397044d8e63348037b3ce9424baaecc6d8bf1affb436d3fe93e0",
+     "triangles": 80,
+     "vertices": 50,
+     "nonTriangles": 0,
+     "bounds": {
+      "min": [
+       -0.55,
+       0,
+       -0.4
+      ],
+      "max": [
+       0.55,
+       1.5,
+       0.37
+      ]
+     },
+     "materials": 0,
+     "textures": 0,
+     "vertexColors": true,
+     "animations": 0,
+     "nodes": [
+      "structure.chest"
+     ]
+    },
+    {
+     "level": 1,
+     "file": "models/world-kit/chest/lod1.glb",
+     "bytes": 1416,
+     "sha256": "80e356743a622a1958889d413bcd4c01a39b3de2797c4468560c251acdf3313c",
+     "triangles": 32,
+     "vertices": 20,
+     "nonTriangles": 0,
+     "bounds": {
+      "min": [
+       -0.55,
+       0,
+       -0.35
+      ],
+      "max": [
+       0.55,
+       1.483,
+       0.35
+      ]
+     },
+     "materials": 0,
+     "textures": 0,
+     "vertexColors": true,
+     "animations": 0,
+     "nodes": [
+      "structure.chest"
+     ]
+    }
+   ],
+   "usage": {
+    "role": "prop",
+    "placement": "manual",
+    "collision": "box",
+    "instancing": false,
+    "footprintM": 0.7,
+    "scale": [
+     1,
+     1
+    ],
+    "habitats": [
+     "town",
+     "forest-camp",
+     "castle"
     ],
     "runtimeStatus": "INTEGRATED"
    }

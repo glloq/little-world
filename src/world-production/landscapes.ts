@@ -37,11 +37,11 @@ export interface LandscapeReport {
   diagnostics:string[];chunks:string[];
 }
 type Kind='features'|'water'|'paths'|'entities'|'zones'|LibKind;
-type LibKind='behaviors'|'dialogues'|'objectives'|'items';
-const LIB_KINDS:LibKind[]=['behaviors','dialogues','objectives','items'];
+type LibKind='behaviors'|'dialogues'|'objectives'|'items'|'interactions';
+const LIB_KINDS:LibKind[]=['behaviors','dialogues','objectives','items','interactions'];
 const ALL_KINDS:Kind[]=['features','water','paths','entities','zones',...LIB_KINDS];
 const libraryOf=(p:ProjectDocument,kind:LibKind)=>(p.libraries[kind]??{}) as Record<string,unknown>;
-const KIND_LABEL:Record<Kind,string>={features:'relief',water:'eau',paths:'chemin',entities:'objet',zones:'zone',behaviors:'routine',dialogues:'dialogue',objectives:'quête',items:'objet d’inventaire'};
+const KIND_LABEL:Record<Kind,string>={features:'relief',water:'eau',paths:'chemin',entities:'objet',zones:'zone',behaviors:'routine',dialogues:'dialogue',objectives:'quête',items:'objet d’inventaire',interactions:'interaction'};
 /** Current state of an element (undefined = absent) — the thing fingerprints are taken of. */
 function current(p:ProjectDocument,kind:Kind,id:string):unknown{
   switch(kind){
@@ -158,7 +158,9 @@ export function applyLandscape(draft:ProjectDocument,input:LandscapeInstanceV1,o
     if(!e.character&&!asset&&!draft.assets[e.assetId]){report.diagnostics.push(`Asset absent du registre : ${e.assetId}`);continue;}
     const role=e.assetId.startsWith('architecture.')?'building':'prop',s=e.scale3??[e.scale??1,e.scale??1,e.scale??1];
     const transform={type:'Transform' as const,position:{x:e.x,y:e.y??0,z:e.z},rotation:{x:0,y:Math.sin(e.rotation/2),z:0,w:Math.cos(e.rotation/2)},scale:{x:s[0],y:s[1],z:s[2]}};
-    const state=e.state?{State:{type:'State' as const,initial:{...e.state}}}:{};
+    const state={...(e.state?{State:{type:'State' as const,initial:{...e.state}}}:{}),
+      ...(e.interact?{Interactable:{type:'Interactable' as const,prompt:e.interact.prompt,range:e.interact.range,interactionIds:e.interact.interactionKeys.map(k=>`${inst.id}.${k}`)},
+        ...(e.interact.persist.length?{Persistence:{type:'Persistence' as const,fields:[...e.interact.persist]}}:{})}:{})};
     if(e.character){const c=e.character,behaviorId=`${inst.id}.${c.behaviorKey}`;
       add('entities',id,{id,name:e.name,kind:'character',ownerChunkId:chunkAt(draft.world,e.x,e.z),components:{Transform:transform,Character:{type:'Character',species:c.species,rigId:'squirrel-rigid',appearance:{...c.appearance}},
         Navigation:{type:'Navigation',behaviorId,speed:c.speed,radius:c.radius},BehaviorRef:{type:'BehaviorRef',behaviorId},...(c.dialogueKeys.length?{DialogueActor:{type:'DialogueActor',dialogueIds:c.dialogueKeys.map(k=>`${inst.id}.${k}`)}}:{}),...state}} satisfies EntityDefinitionV3);continue;}

@@ -7638,6 +7638,41 @@
     "persistentState": []
    }
   },
+  "ls-landmark-site-1.treasure": {
+   "id": "ls-landmark-site-1.treasure",
+   "kind": "prop",
+   "name": "Coffre au trésor",
+   "ownerChunkId": "9:17",
+   "position": {
+    "x": -60.4,
+    "y": 0,
+    "z": 448.8
+   },
+   "references": [
+    "structure.chest",
+    "ls-landmark-site-1.treasure-open"
+   ],
+   "logical": {
+    "position": {
+     "x": -60.4,
+     "y": 0,
+     "z": 448.8
+    },
+    "initialState": {
+     "opened": false
+    },
+    "persistentState": [
+     "opened"
+    ],
+    "interactable": {
+     "prompt": "Ouvrir le coffre",
+     "range": 2.2,
+     "interactionIds": [
+      "ls-landmark-site-1.treasure-open"
+     ]
+    }
+   }
+  },
   "ref-lighthouse": {
    "id": "ref-lighthouse",
    "kind": "building",
@@ -8445,6 +8480,11 @@
         "next": "topic-0"
        },
        {
+        "id": "t1",
+        "text": "Un secret ?",
+        "next": "topic-1"
+       },
+       {
         "id": "bye",
         "text": "Au revoir !"
        }
@@ -8453,6 +8493,15 @@
      {
       "id": "topic-0",
       "text": "On raconte que ses racines touchent le cœur du volcan.",
+      "choices": [
+       {
+        "text": "Merci."
+       }
+      ]
+     },
+     {
+      "id": "topic-1",
+      "text": "Faites le tour du monument : ce qui se cache derrière ne se voit pas depuis le sentier.",
       "choices": [
        {
         "text": "Merci."
@@ -8497,7 +8546,40 @@
     "id": "ls-landmark-site-1.hermit-routine"
    }
   },
-  "interactions": {},
+  "interactions": {
+   "ls-landmark-site-1.treasure-open": {
+    "trigger": {
+     "type": "onInteract",
+     "entityId": "ls-landmark-site-1.treasure"
+    },
+    "condition": {
+     "type": "stateEquals",
+     "entityId": "ls-landmark-site-1.treasure",
+     "key": "opened",
+     "value": false
+    },
+    "repeat": "once",
+    "persistent": true,
+    "sequence": [
+     {
+      "type": "giveItem",
+      "itemId": "coin",
+      "quantity": 33
+     },
+     {
+      "type": "setState",
+      "entityId": "ls-landmark-site-1.treasure",
+      "key": "opened",
+      "value": true
+     },
+     {
+      "type": "showText",
+      "text": "Trésor ! +33 pièces."
+     }
+    ],
+    "id": "ls-landmark-site-1.treasure-open"
+   }
+  },
   "activities": {},
   "variables": {},
   "items": {
@@ -9177,6 +9259,7 @@
      "dialogues": {},
      "objectives": {},
      "items": {},
+     "interactions": {},
      "masks": {
       "5:10": {
        "biome": "..............................................................................................................................................................................................................................mm..............mm.............mmm"
@@ -9371,6 +9454,7 @@
      "dialogues": {},
      "objectives": {},
      "items": {},
+     "interactions": {},
      "masks": {
       "12:12": {
        "moisture": ".......................................................................................................................................................................................................................888888888.......888888888.......888888888"
@@ -9461,6 +9545,7 @@
      "dialogues": {},
      "objectives": {},
      "items": {},
+     "interactions": {},
      "masks": {
       "12:11": {
        "moisture": "...............................8..............88..............88..............88...............8............8..8...........88.............8888.8........88888888.......888888888.......888888888......8888888888......8888888888......8888888888.....88888888888",
@@ -9516,6 +9601,7 @@
      "dialogues": {},
      "objectives": {},
      "items": {},
+     "interactions": {},
      "masks": {
       "6:3": {
        "biome": "...............................................................................................................................w.............www............wwww..........wwwwww.......wwwwwwwww....wwwwwwwwwwww..wwwwwwwwwwwwww.wwwwwwwwwwwwwwwwwwwwwwwwwwwwwww",
@@ -9793,6 +9879,7 @@
       "food:apple": "4bec9197e7d70581",
       "coin": "5826bb731b6bc857"
      },
+     "interactions": {},
      "masks": {
       "9:7": {
        "biome": "...........................................ggggg.........ggggggg.......ggggggggg......gggggggggg.....ggggggggggg....gggggggggggg....gggggggggggg...ggggggggggggg...ggggggggggggg..gggggggggggggg..gggggggggggggg.ggggggggggggggggggggggggggggggggggggggggggggggg"
@@ -9855,6 +9942,7 @@
      "dialogues": {},
      "objectives": {},
      "items": {},
+     "interactions": {},
      "masks": {
       "4:5": {
        "geology": "........a..............aa.............aa..............a..............aa............................................................................a............................................................................................................",
@@ -9929,6 +10017,7 @@
      "dialogues": {},
      "objectives": {},
      "items": {},
+     "interactions": {},
      "masks": {
       "17:7": {
        "geology": "...................................................................................................................................................................................................................rrrr..rrr.......rrr....rrgggg...rrr....rrgggg"
@@ -10046,6 +10135,7 @@
      "dialogues": {},
      "objectives": {},
      "items": {},
+     "interactions": {},
      "masks": {}
     }
    },
@@ -10102,6 +10192,7 @@
       "mine:iron": "4485772317c4d588",
       "tool:pickaxe-steel": "93397ae1218f927b"
      },
+     "interactions": {},
      "masks": {}
     }
    },
@@ -10153,6 +10244,7 @@
       "forage:mushroom": "71e96658935f0532",
       "tool:axe": "58e8b6f255efa36d"
      },
+     "interactions": {},
      "masks": {}
     }
    },
@@ -10231,13 +10323,14 @@
       "tool:fishing-rod": "3008acca6c2c76ab",
       "fish:mackerel": "61d67e84412699b6"
      },
+     "interactions": {},
      "masks": {}
     }
    },
    "ls-landmark-site-1": {
     "id": "ls-landmark-site-1",
     "presetId": "landmark-site",
-    "presetVersion": 1,
+    "presetVersion": 2,
     "name": "Point de repère 1",
     "seed": 287880,
     "center": {
@@ -10250,6 +10343,7 @@
     "params": {
      "kind": 0,
      "hermit": true,
+     "treasure": true,
      "density": 1
     },
     "generated": {
@@ -10265,17 +10359,21 @@
       "ls-landmark-site-1.boulder-1": "69aa7b72a7d0477f",
       "ls-landmark-site-1.boulder-2": "80ed58aef248e299",
       "ls-landmark-site-1.boulder-3": "8e2969f649da21be",
-      "ls-landmark-site-1.hermit": "a67cc9c84abad3e0"
+      "ls-landmark-site-1.hermit": "a67cc9c84abad3e0",
+      "ls-landmark-site-1.treasure": "5914206ec30e451c"
      },
      "zones": {},
      "behaviors": {
       "ls-landmark-site-1.hermit-routine": "0b880c59d235afac"
      },
      "dialogues": {
-      "ls-landmark-site-1.hermit-talk": "43ebd59dca15f32b"
+      "ls-landmark-site-1.hermit-talk": "bd5e298f165cd6ae"
      },
      "objectives": {},
      "items": {},
+     "interactions": {
+      "ls-landmark-site-1.treasure-open": "6c4aa405c1fdfc27"
+     },
      "masks": {}
     }
    }
@@ -10654,6 +10752,14 @@
    "file": "models/world-kit/boulder_large/lod0.glb",
    "license": "project-original",
    "source": "Little World original (feat/little-world-assets ou catalogue historique) — assets/world-kit/manifest.json#nature.boulder_large"
+  },
+  "structure.chest": {
+   "id": "structure.chest",
+   "name": "Coffre au trésor",
+   "type": "glb",
+   "file": "models/world-kit/chest/lod0.glb",
+   "license": "project-original",
+   "source": "Little World original (feat/little-world-assets ou catalogue historique) — assets/world-kit/manifest.json#structure.chest"
   },
   "architecture.lighthouse": {
    "id": "architecture.lighthouse",
@@ -21549,11 +21655,63 @@
        "assetId": "nature.boulder_large"
       }
      }
+    },
+    "ls-landmark-site-1.treasure": {
+     "id": "ls-landmark-site-1.treasure",
+     "name": "Coffre au trésor",
+     "kind": "prop",
+     "ownerChunkId": "9:17",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": -60.4,
+        "y": 0,
+        "z": 448.8
+       },
+       "rotation": {
+        "x": 0,
+        "y": 1,
+        "z": 0,
+        "w": 6.123233995736766e-17
+       },
+       "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "structure.chest"
+      },
+      "State": {
+       "type": "State",
+       "initial": {
+        "opened": false
+       }
+      },
+      "Interactable": {
+       "type": "Interactable",
+       "prompt": "Ouvrir le coffre",
+       "range": 2.2,
+       "interactionIds": [
+        "ls-landmark-site-1.treasure-open"
+       ]
+      },
+      "Persistence": {
+       "type": "Persistence",
+       "fields": [
+        "opened"
+       ]
+      }
+     }
     }
    },
    "entityIds": [
     "ls-landmark-site-1.boulder-2",
-    "ls-landmark-site-1.boulder-3"
+    "ls-landmark-site-1.boulder-3",
+    "ls-landmark-site-1.treasure"
    ],
    "terrainEdits": [],
    "terrainRefs": [],

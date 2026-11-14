@@ -129,6 +129,7 @@ export const ASSET_USAGE:Record<string,AssetUsage>={
   'structure.signpost':built('prop',.3,['town','village','prairie'],'manual','none'),
   'structure.barrel':built('prop',.5,['town','port','village'],'manual','box'),
   'structure.crate_stack':built('prop',1,['town','port','mine'],'manual','box'),
+  'structure.chest':built('prop',.7,['town','forest-camp','castle'],'manual','box'),
   'structure.bench':built('prop',1,['town','village'],'manual','none'),
   'structure.fountain':built('prop',2.6,['town'],'anchor','box'),
   'structure.palisade':built('wall',.4,['village','forest-camp','castle'],'line','box'),

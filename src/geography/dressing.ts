@@ -17,7 +17,7 @@ import type {BiotopeId} from '../world-production/asset-usage.ts';
 const rnd=(seed:number,i:number,j:number)=>(hash2(seed,i,j)+1)/2;
 
 /** Bump when the placement rules or the species table change (cache keys, reproducibility). */
-export const DRESSING_VERSION=3;
+export const DRESSING_VERSION=4;
 export type DressingKind='pine'|'oak'|'shrub'|'plant'|'deadwood'|'rock'|'scree'|'pebble'|'basalt';
 export const DRESSING_KINDS:DressingKind[]=['pine','oak','shrub','plant','deadwood','rock','scree','pebble','basalt'];
 /** x, y, z, scale, rotation (rad), tint 0..1, species index (-1 = procedural) per item.
@@ -81,7 +81,9 @@ export function generateDressingCell(ctx:GeoContext,seed:number,cx:number,cz:num
     if(influence?.profile&&r5<influence.weight)profileId=influence.profile;
     const profile=BIOTOPES[profileId],density=influence?(1+(((influence.density??1)-1)*influence.weight)):1;
     const steep=1-smooth(profile.maxSlope*.7,profile.maxSlope*1.1,s.slope),reserved=s.occupation==='reserved'?0:1;
-    const structure=(1-profile.openness)*forestClump(seed,x,z)+profile.openness*copse(seed,x,z);
+    // An authored region above density 1.2 closes the canopy (dense wood): the clump noise only
+    // shapes groves and clearings below that floor.
+    const structure=Math.max((1-profile.openness)*forestClump(seed,x,z)+profile.openness*copse(seed,x,z),influence?Math.min(1,Math.max(0,((influence.density??1)-1.2)*2.5)*influence.weight):0);
     const river=ctx.riverDistance(x,z),alt=s.height-ctx.seaLevel;
     // River banks: riparian trees closer to the water, shingle and reeds on the edge.
     const bank=river<26?1-smooth(6,26,river):0;

@@ -51,6 +51,13 @@ try{
   await page.keyboard.down('KeyF');await page.waitForFunction(()=>window.littleWorldMetrics?.inventory?.['wood:log']>0,{},{timeout:30000}).finally(()=>page.keyboard.up('KeyF'));
   check((await m()).inventory['wood:log']>=2,'Tree felled with several strikes: logs in the bag ('+(await m()).inventory['wood:log']+')');
   await page.waitForTimeout(600);check((await m()).targetId!==treeKey,'Felled tree is no longer a target ('+treeKey+')');
+  // 3. Hidden chest in a wood: E opens it once (coins granted, state persisted in the save).
+  const chest=entities.find(e=>e.id==='ls-woodland-1.treasure'),chp=chest.components.Transform.position;
+  await open(chp.x,chp.z-1.6,0);const coins0=(await m()).inventory.coin;
+  await page.waitForFunction(()=>/coffre/i.test(window.littleWorldMetrics?.target??''),{},{timeout:15000});check(true,'Hidden chest is the target: « Ouvrir le coffre »');
+  await page.keyboard.press('KeyE');await page.waitForFunction(c=>window.littleWorldMetrics?.inventory?.coin>c,coins0,{timeout:10000});
+  const gained=(await m()).inventory.coin-coins0;check(gained>=15,`Chest opened: +${gained} coins`);
+  await page.waitForTimeout(500);await page.keyboard.press('KeyE');await page.waitForTimeout(800);check((await m()).inventory.coin===coins0+gained,'An opened chest gives nothing more');
   check(errors.length===0,errors.join('\n')||'No page errors');
   console.log(JSON.stringify({checks,errors}));
 }finally{await browser.close();}

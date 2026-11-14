@@ -17,7 +17,7 @@ try{
   const undoTitle=()=>page.locator('[data-action=undo]').getAttribute('title');
   await page.getByRole('button',{name:'Paysages',exact:true}).click();
   await page.waitForSelector('.landscape-form select[data-role=preset]');
-  check(await page.locator('.landscape-form select[data-role=preset] option').count()===10,'Ten presets offered in the Studio');
+  const {LANDSCAPE_PRESET_IDS}=await import('../src/world-production/landscape-schema.ts');check(await page.locator('.landscape-form select[data-role=preset] option').count()===LANDSCAPE_PRESET_IDS.length,`All ${LANDSCAPE_PRESET_IDS.length} presets offered in the Studio`);
   check(await page.locator('.viewport canvas').getAttribute('data-footprint')==='4','Footprint drawn on the 3D relief');
   await page.locator('.landscape-form select[data-role=preset]').selectOption('village-clearing');
   for(const [label,value]of [['Centre X (m)','120'],['Centre Z (m)','-260'],['Largeur (m)','240'],['Longueur (m)','240']]){await page.getByLabel(label,{exact:true}).fill(value);await page.getByLabel(label,{exact:true}).press('Tab');}

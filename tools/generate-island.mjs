@@ -16,6 +16,7 @@ import {applyLandscape,newLandscape} from '../src/world-production/landscapes.ts
 import {assetDefinitionFor} from '../src/world-production/registry.ts';
 import {projectGeography} from '../src/studio-core/geo-context.ts';
 import {classifyPoint} from '../src/geography/classify.ts';
+import {ECONOMY_ITEMS} from '../src/gameplay/economy.ts';
 import {compileProjectToDirectory} from './compile-project.mjs';
 
 export const ISLAND={width:3000,length:8000,seed:4242};
@@ -59,7 +60,7 @@ export const ISLAND_LANDSCAPES=[
   ['ancient-ruins',P(1020,1450),[140,140],-.3,{walls:2}],
   ['ancient-ruins',P(-250,-700),[130,130],0,{walls:2}],
   // South — castle town, hamlets, ports, marsh, estuary, beaches.
-  ['castle-town',P(-80,-1550),[560,560],0,{houses:40,cathedral:true}],
+  ['castle-town',P(-80,-1550),[380,380],0,{houses:40,cathedral:true}],
   ['village-clearing',P(-780,-950),[260,260],.4,{houses:3,fields:true,windmill:false,orchard:true}],
   ['village-clearing',P(780,-2650),[260,260],-.3,{houses:3,fields:true,windmill:true,orchard:false}],
   ['marsh-basin',P(-620,-2350),[520,460],0,{ponds:3,depth:3}],
@@ -87,6 +88,17 @@ export const ISLAND_LANDSCAPES=[
   ['landmark-site',P(1000,2700),[120,120],0,{kind:5}],
   ['landmark-site',P(-300,2050),[120,120],0,{kind:6}],
   ['landmark-site',P(-1000,-300),[120,120],0,{kind:5,hermit:false}],
+  // Woods with a clearing and a hidden chest, filling the large bare meadows (density map, WP-G3).
+  ['woodland',P(340,-160),[280,220],.3,{kind:0}],
+  ['woodland',P(900,260),[240,260],-.4,{kind:2}],
+  ['woodland',P(500,-1650),[300,220],.8,{kind:0}],
+  ['woodland',P(-560,-1780),[240,240],0,{kind:1}],
+  ['woodland',P(900,-2420),[260,220],-.2,{kind:2}],
+  ['woodland',P(-230,-2860),[240,200],.5,{kind:0}],
+  ['woodland',P(420,480),[220,200],1.1,{kind:1}],
+  ['woodland',P(900,-480),[240,220],.2,{kind:0}],
+  ['woodland',P(-1000,-900),[220,240],0,{kind:0,treasure:false}],
+  ['woodland',P(120,-2250),[220,200],-.7,{kind:1,treasure:false}],
 ];
 export const ISLAND_PLACES={volcano:P(-120,2650),village:P(-80,-1550),harbour:P(-330,-3560),mine:P(-430,1130),lake:P(80,750),falls:P(-300,1650),beach:P(-120,-3500),forest:P(-700,350),cliff:P(1150,900),marsh:P(-620,-2350)};
 export function buildIsland(){
@@ -105,6 +117,19 @@ export function buildIsland(){
     if(s.underwater||s.occupation!=='none'||!['rock','gravel','basalt'].includes(s.geology)&&!(s.biome==='mountain'||s.biome==='scrub'))continue;
 const kind=['nature.boulder_large','nature.boulder_pile','nature.rock_spire','nature.cliff_block'][k%4];
     place(`island-rock-${placed++}`,'Rocher',kind,x,z,(k*2.4)%6.28);}
+  // Cliff-top treasures: chests above walkable-steep faces (6–35 m), reached by climbing (BotW-like
+  // reward for exploration). Deterministic scan of the relief, spaced out over the island.
+  const H=(x,z)=>ctx.height(x,z),grad=(x,z,e=.5)=>{const gx=(H(x+e,z)-H(x-e,z))/(2*e),gz=(H(x,z+e)-H(x,z-e))/(2*e);return {s:Math.hypot(gx,gz),gx,gz};};
+  const tops=[];scan:for(let z=-3800;z<=3800;z+=6)for(let x=-1450;x<=1450;x+=6){const g=grad(x,z);if(g.s<1.6)continue;const ux=g.gx/g.s,uz=g.gz/g.s,fx=x-ux*3,fz=z-uz*3;
+    if(grad(fx,fz).s>.6||H(fx,fz)<sea+1)continue;let top=null;for(let d=1;d<45;d++){const sx=x+ux*d,sz=z+uz*d;if(grad(sx,sz).s<.5){top={x:sx+ux*3,z:sz+uz*3};break;}}
+    if(!top)continue;const rise=H(top.x,top.z)-H(fx,fz),t=classifyPoint(ctx,top.x,top.z);if(rise<6||rise>35||t.underwater||t.occupation!=='none'||grad(top.x,top.z).s>.5)continue;
+    if(tops.some(o=>Math.hypot(o.x-top.x,o.z-top.z)<380))continue;tops.push({...top,rise,yaw:Math.atan2(-ux,-uz)});if(tops.length>=12)break scan;}
+  const coinDef=ECONOMY_ITEMS.find(i=>i.id==='coin');if(tops.length&&!p.libraries.items.coin)p.libraries.items.coin={id:'coin',name:coinDef.name,category:coinDef.category,maxQuantity:coinDef.maxQuantity,...(coinDef.description?{description:coinDef.description}:{})};
+  tops.forEach((t,i)=>{const id=`island-cliff-treasure-${i}`,act=`island.treasure-${i}`,coins=25+Math.round(t.rise*2);if(!p.assets['structure.chest'])p.assets['structure.chest']=assetDefinitionFor('structure.chest');
+    putEntity(p,{id,name:'Coffre du sommet',kind:'prop',ownerChunkId:chunkAt(p.world,t.x,t.z),components:{Transform:{type:'Transform',position:{x:+t.x.toFixed(2),y:0,z:+t.z.toFixed(2)},rotation:{x:0,y:Math.sin(t.yaw/2),z:0,w:Math.cos(t.yaw/2)},scale:{x:1,y:1,z:1}},Visual:{type:'Visual',assetId:'structure.chest'},
+      State:{type:'State',initial:{opened:false}},Persistence:{type:'Persistence',fields:['opened']},Interactable:{type:'Interactable',prompt:'Ouvrir le coffre',range:2.2,interactionIds:[act]}}});
+    p.libraries.interactions[act]={id:act,trigger:{type:'onInteract',entityId:id},condition:{type:'stateEquals',entityId:id,key:'opened',value:false},repeat:'once',persistent:true,
+      sequence:[{type:'giveItem',itemId:'coin',quantity:coins},{type:'setState',entityId:id,key:'opened',value:true},{type:'showText',text:`Trésor du sommet ! +${coins} pièces.`}]};});
   // Main routes linking towns, camps, ports and landmarks.
   const route=(id,pts,kind='dirt',width=3)=>putPath(p,{id,points:pts.map(([x,z])=>P(x,z)),width,kind,smooth:true});
   route('route-town-port',[[-80,-1830],[-150,-2400],[-260,-3000],[-330,-3330]]);
