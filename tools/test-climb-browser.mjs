@@ -11,12 +11,14 @@ const {parseProject}=await import('../src/studio-core/schema.ts');
 const {projectGeography}=await import('../src/studio-core/geo-context.ts');
 const project=parseProject(JSON.parse(await readFile(new URL('../maps/island.project.json',import.meta.url),'utf8')));
 const {ctx}=projectGeography(project),h=(x,z)=>ctx.height(x,z),grad=(x,z,e=.5)=>{const gx=(h(x+e,z)-h(x-e,z))/(2*e),gz=(h(x,z+e)-h(x,z-e))/(2*e);return {s:Math.hypot(gx,gz),gx,gz};};
-// A cliff 6–20 m high above walkable ground (east cliff of the island), steeper than the 50° walk limit.
-let site=null;
-for(let x=830;x<=1530&&!site;x+=4)for(let z=550;z<=1250&&!site;z+=4){
+// A cliff 6–20 m high above walkable ground, steeper than the 50° walk limit (scan of the island).
+const b=project.world.bounds;let site=null;
+for(let x=b.minX+40;x<=b.maxX-40&&!site;x+=4)for(let z=b.minZ+40;z<=b.maxZ-40&&!site;z+=4){
   const g=grad(x,z);if(g.s<1.5)continue;const ux=g.gx/g.s,uz=g.gz/g.s,fx=x-ux*3,fz=z-uz*3;
   if(grad(fx,fz).s>.6||h(fx,fz)<ctx.seaLevel+1)continue;
-  let top=null;for(let d=0;d<40;d++){const sx=x+ux*d,sz=z+uz*d;if(grad(sx,sz).s<.8){top=h(sx,sz);break;}}
+  let top=null;for(let d=0;d<40;d++){const sx=x+ux*d,sz=z+uz*d;if(grad(sx,sz).s<.8){
+    // A real plateau above the cliff (flat around the arrival point), not a knife-edge crest.
+    const px=sx+ux*6,pz=sz+uz*6;if([[0,0],[4,0],[-4,0],[0,4],[0,-4]].every(([a,c])=>grad(px+a,pz+c).s<.35))top=h(sx,sz);break;}}
   if(top!==null&&top-h(fx,fz)>6&&top-h(fx,fz)<20)site={fx,fz,yaw:Math.atan2(ux,uz),foot:h(fx,fz),top};
 }
 assert.ok(site,'a climbable cliff on the island');
@@ -34,7 +36,9 @@ try{
   check(mid.position[1]>start.position[1]+1.5&&mid.stamina<100,`Height gained while climbing (+${(mid.position[1]-start.position[1]).toFixed(1)} m, stamina ${mid.stamina.toFixed(0)})`);
   check(await page.locator('.ui-stamina:not(.hide)').count()===1,'Stamina meter shown while climbing');
   await page.screenshot({path:'/tmp/little-world-browser/climb.png'}).catch(()=>{});
-  await page.waitForFunction(()=>window.littleWorldMetrics?.mode==='ground',{},{timeout:60000});await page.keyboard.up('KeyW');
+  await page.waitForFunction(()=>window.littleWorldMetrics?.mode==='ground',{},{timeout:60000});
+  // The climb ends on walkable ground: a few more steps onto the plateau.
+  await page.waitForTimeout(1000);await page.keyboard.up('KeyW');
   const end=await m();check(end.position[1]>site.top-2.5,`Ridge reached on foot (${end.position[1].toFixed(1)} m ≥ top ${site.top.toFixed(1)} m)`);
   check(errors.length===0,errors.join('\n')||'No page errors');
   console.log(JSON.stringify({checks,errors}));

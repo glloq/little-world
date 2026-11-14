@@ -23,6 +23,7 @@ import type {
 export type { WorldConfig, Placement, AssetId } from './world-data';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { createAnimatedAssets, dressSailboat } from './world-production/animated-assets.ts';
+import { createHorizonOcclusion } from './render/horizon-occlusion.ts';
 import {
   configureTerrain,
   compiledWaterBodies,
@@ -49,6 +50,8 @@ export interface WorldView {
   animateBoat(speed: number, steer: number, dt: number): void;
   /** Animated asset parts registered (mill rotors/wheels, lighthouse beams). */
   readonly animated: { spinners: number; beams: number };
+  /** Relief occlusion counters (null for the legacy valley). */
+  readonly occlusion: import('./render/horizon-occlusion.ts').OcclusionStats | null;
   redrawDressing(): void;
   root: THREE.Group;
   terrain: THREE.Group;
@@ -518,6 +521,7 @@ function createRegistryAsset(id: string): THREE.Group | null {
   if (!asset || asset.group === 'legacy') return null;
   const g = new THREE.Group();
   g.userData.registryAsset = id;
+  g.userData.height = asset.size[1];
   // Landmarks stay visible far away (cheap LOD2 silhouettes), buildings farther than props.
   const role = asset.usage?.role;
   if (role === 'landmark') g.userData.viewDistance = 2600;
@@ -729,6 +733,10 @@ export function buildWorld(
   // G5: natural dressing (forests, cliff rocks, scree, pebbles, basalt) of generated worlds.
   const dressing: DressingView | null = legacy ? null : createDressingView(root, config.seed, config.density, workers);
   const placed = createPlacedInstances(root, terrainHeight);
+  // Relief occlusion of distant content (generated worlds): refreshed in slices after camera moves.
+  const occlusionOff = typeof location !== 'undefined' && new URLSearchParams(location.search).get('occlusion') === '0';
+  const occlusion = legacy || occlusionOff ? null : createHorizonOcclusion(terrainHeight);
+  const occluded = (x: number, z: number, top: number) => !!occlusion && !occlusion.visible(x, z, top);
   const waterMeshes=new Map<string,{signature:string;mesh:THREE.Mesh}>();
   function refreshWater(){
     const changed:string[]=[],ids=new Set(compiledWaterBodies().map(w=>w.id));
@@ -784,6 +792,7 @@ export function buildWorld(
     setNight(night: number) { animatedAssets.setNight(night); },
     animateBoat(speed: number, steer: number, dt: number) { boatRig?.update(speed, steer, dt); },
     get animated() { return animatedAssets.stats; },
+    get occlusion() { return occlusion ? { ...occlusion.stats } : null; },
     redrawDressing() { dressing?.redraw(); },
     dressing: dressing?.stats ?? null,
     paths: pathView.stats,
@@ -874,6 +883,10 @@ export function buildWorld(
       } else terrainView.update(focus.x, focus.z);
       horizon.update(focus);
       ecology.update(dt, time, focus.x, focus.z);
+      if (camera && occlusion?.update(camera.position)) {
+        dressing?.setOcclusion((x, z, top) => occlusion.visible(x, z, top));
+        placed.setOcclusion(occluded);
+      }
       dressing?.update(focus.x, focus.z);
       placed.update(focus.x, focus.z);
       pathView.update(focus.x, focus.z);
@@ -883,10 +896,10 @@ export function buildWorld(
       lightCamera.z = camera ? camera.position.z : focus.z;
       lightView.update(lightCamera);
       const distance = getTerrainConfig().viewDistance;
-      for (const object of objects.children)
-        object.visible =
-          Math.hypot(object.position.x - focus.x, object.position.z - focus.z) <
-          (object.userData.viewDistance ?? distance);
+      for (const object of objects.children) {
+        const d = Math.hypot(object.position.x - focus.x, object.position.z - focus.z);
+        object.visible = d < (object.userData.viewDistance ?? distance) && !(d > 60 && occluded(object.position.x, object.position.z, object.position.y + (object.userData.height ?? 8) * object.scale.y));
+      }
     },
     dispose() {
       ecology.dispose();

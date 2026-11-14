@@ -42,7 +42,7 @@ Suite de [41 — World Production V1](41-WORLD-PRODUCTION-V1.md). Ce document co
 | 8 | **Trésors cachés** : coffres (interaction déclarative, ouverture unique, état sauvegardé) **au sommet de 12 falaises** (récompense de l’escalade), **derrière les repères** (hors de vue depuis le sentier) et **au cœur des bois** | oui | `treasure()` (presets), `generate-island.mjs` | test navigateur (ouverture, pas de seconde récompense) | non |
 | 11 | **Ancien éditeur et ancienne vallée supprimés** : la page d’accueil ouvre l’île ; le Studio est le seul éditeur ; la vallée V1 reste un **fixture de migration** (`tests/fixtures/legacy-v1-valley.json`) | oui | `index.html`, `src/main.ts` | `published`, `studio`, migration | non |
 
-### Contenu de l’île 3 × 8 km (générée, `npm run generate:island`)
+### Contenu de l’île 3 × 8 km (première passe ; remplacée par l’île 4 × 3 km, §3 ter)
 
 | Élément | Nombre |
 | --- | --- |
@@ -116,6 +116,28 @@ Carte de densité (végétation par cellule de 64 m, paysages, entités) : `docs
 | Appels de dessin | 75,7–76,3 | 75,5 |
 
 Non qualifié sur GPU intégré : les triangles supplémentaires (silhouettes 4–8 triangles) sont le coût assumé de forêts visibles jusqu’à l’horizon.
+
+## 3 ter. Deuxième passe (demande du 14 novembre 2026, H1–H5)
+
+| # | Demande | Implémenté | Testé | Publié |
+| --- | --- | --- | --- | --- |
+| H1 | **Écran de chargement** : barre et étapes (monde, relief, arbres, forêts proches) calculées sur les vrais compteurs ; « Explorer » activé quand la zone de départ est prête (sécurité 25 s) | `src/ui/loading.ts` | `tests/loading.test.mjs`, suite navigateur `environment` (« Chargement… » avant l’amorçage) | non |
+| H1 | **Pas moins forts** : gain 0,4 → 0,18 (repli 0,35 → 0,16), catalogue audio régénéré | `catalog-source.ts` | tests audio | non |
+| H2 | **Moulins** : rotor du moulin à vent et roue du moulin à eau animés par les pivots nommés des GLB (`RotorPivot`, `WheelPivot`) | `world-production/animated-assets.ts` | capture (angle qui change) | non |
+| H2 | **Phare** : faisceau additif tournant, visible la nuit, dégradé vers la pointe | idem | capture de nuit | non |
+| H2 | **Bateaux** : le bateau du joueur porte le modèle `boat.sailboat_small` (gréement et safran suivent la barre) ; barques et voiliers amarrés aux ports | idem + preset `fishing-port` v2 | capture, métrique `boatModel` | non |
+| H3 | **Collisions** : `Collider` écrit dans la source V3 depuis l’usage du registre (bâtiments par emprise, murs/props/rochers par boîte, arbres par tronc) ; troncs des arbres générés enregistrés autour du joueur (36 m), désactivés dès l’abattage | `registry.colliderFor`, `gameplay/tree-colliders.ts` | `tests/colliders.test.mjs` | non |
+| H3 | **Proportions** : personnages ×0,72 (`CHARACTER_SCALE`), corps du joueur 1,35 m × r 0,32, caméra rapprochée : maisons et arbres paraissent ≈ 1,4 × plus grands | `squirrel.ts`, `main.ts` | suites `ui`, `b1`, `economy`, `climb` | non |
+| H4 | **Éclairage** : lanternes de rue (nuit), auberge et une maison sur deux (lampe de porte), feux de camp vacillants — composants `Light` auteur ; nouveau modèle `structure.campfire` ; feux de camp avec rondins tous les ~320 m le long des routes | `registry.lightFor`, `world-production/roadside.ts` | captures de nuit, compteurs de lumières | non |
+| H5 | **Carte 4 × 3 km** à fort relief : nord habité (ports, ville fortifiée, villages, plages) où l’on commence, crête centrale qui coupe la vue vers un sud sauvage (volcan, massif, gorge, mine, hameaux) ; collines partout | `tools/generate-island.mjs` | suites `island`, `economy`, `climb`, `b1`, `landscapes` | non |
+| H5 | **Occultation par le relief** : champ d’horizon par azimut (64 × 24 m jusqu’à 2,4 km), recalculé par tranches après un déplacement ; silhouettes lointaines, canopée, modèles d’arbres au-delà de 60 m, bâtiments et structures sous l’horizon ne sont pas dessinés ; le terrain n’est jamais caché | `src/render/horizon-occlusion.ts` | `tests/occlusion.test.mjs` | non |
+| H5 | **Correction du moteur géographique** : `polylineDistance` renvoyait la distance **au carré** ; crêtes et vallées faisaient √largeur (≈ 18 m pour 320 m) → lames et « dents de scie » ; corrigé, cartes régénérées ; les presets qui tracent de l’eau sont appliqués en dernier (validation WATER sur le relief final) | `geography/archipelago.ts` | tous les tests Node | non |
+
+**Mesures (SwiftShader, régression seulement)** : occultation au sol, vue depuis la ville vers la crête : triangles 65,5 k → 50,6 k (−23 %), instances de végétation 3 723 → 1 722 (−54 %) ; depuis la plage : −13 % de triangles, −41 % d’instances. Parcours de route sur la nouvelle carte (`docs/benchmarks/2026-11-14-route-island-4x3.json`) : p50 66,7 ms, p95 133 ms (contre 150–167), p99 200 ms (contre 250–267), 39 k triangles (contre 48 k), aucun trou d’horizon. Captures : `docs/captures/game-v1/map-4x3/`, carte de densité `docs/captures/island-density.png`.
+
+**Île 4 × 3 km** : 36 paysages, 46 formes de relief, 1 511 entités (1 433 avec collisions, 54 lumières), 32 habitants, 14 quêtes, 9 comptoirs, 66 maisons, 8 bateaux amarrés, 14 feux de camp, 16 coffres cachés, rivière, cascade et lac.
+
+**Limites** : les cuvettes de marais du nord restent sans étang (trop plates sur ce relief, diagnostic du preset) ; les collisions sont des boîtes alignées sur les axes (un bâtiment tourné à 45° bloque un peu plus large que son mur) ; l’occultation est vérifiée sur des vues fixes et un parcours, pas encore en planage continu sur GPU réel.
 
 ## 4. Limites connues (honnêtes)
 

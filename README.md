@@ -7,7 +7,7 @@ Prototype **solo** d'exploration 3D avec **Three.js**, exécutable entièrement 
 ## Essayer le prototype
 
 **GitHub Pages :**
-- Jeu (île 3 × 8 km) : **https://glloq.github.io/little-world/**
+- Jeu (île 4 × 3 km) : **https://glloq.github.io/little-world/**
 - Studio : **https://glloq.github.io/little-world/studio/** — éditeur 3D (clic : sélectionner · clic droit : orienter, + ZQSD/WASD : voler · molette : zoom · F : centrer · 7 : vue du dessus), voir [32 — Éditeur 3D](docs/32-STUDIO-EDITEUR-3D.md)
 - L’ancien « Atelier de cartes » (`/editor/`) et l’ancienne vallée 200 × 600 m sont **retirés** : la page d’accueil ouvre l’île, le Studio est le seul éditeur. Voir [42 — Jeu complet V1](docs/42-JEU-COMPLET-V1.md).
 

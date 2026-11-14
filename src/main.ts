@@ -642,6 +642,7 @@ function draw(now: number) {
         targetId: currentTarget()?.targetId ?? null,
         placed: { ...world.placed.stats },
         animated: { ...world.animated },
+        occlusion: world.occlusion,
         boatModel: world.boat.getObjectByName('Sailboat') ? 'sailboat' : 'procedural',
         boatPosition: [boat.x, boat.y, boat.z],
         paths: { ...world.paths },

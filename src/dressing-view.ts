@@ -77,6 +77,8 @@ export function createDressingView(parent:THREE.Group,seed:number,density:number
   let library:SpeciesLibrary|null=null;const batches:Batch[]=[];
   /** Gameplay filter: elements felled/picked by the player and not grown back are not drawn. */
   let hidden:((cx:number,cz:number,kind:DressingKind,index:number)=>boolean)|null=null;
+  /** Relief occlusion (horizon field): false when (x, z, top) is hidden behind the terrain. */
+  let occlusion:((x:number,z:number,top:number)=>boolean)|null=null;
   const BATCH_CAP=[6000,12000];
   function createBatch(lod:0|1):Batch{
     let verts=0,idx=0;for(const g of library!.species)if(g){const geo=lod?g.lod1:g.lod0;verts+=geo.getAttribute('position').count;idx+=geo.index!.count;}
@@ -173,7 +175,7 @@ export function createDressingView(parent:THREE.Group,seed:number,density:number
           const x=a[i],y=a[i+1],z=a[i+2],s=a[i+3],r=a[i+4],t=a[i+5],sp=a[i+6];
           if(hidden?.(c.cx,c.cz,kind,i/ITEM_STRIDE))continue;
           if(glb&&sp>=0&&library!.species[sp]){
-            const dist=Math.hypot(x-fx,z-fz);if(species(kind,x,y,z,s,r,t,sp,dist))continue;
+            const dist=Math.hypot(x-fx,z-fz);if(dist>60&&occlusion&&!occlusion(x,z,y+library!.species[sp]!.height*s))continue;if(species(kind,x,y,z,s,r,t,sp,dist))continue;
             if(!far&&dist>SPECIES_RADII.pine[1]*scaleOf('tree'))continue;
             if((i/ITEM_STRIDE)%thin!==0)continue;
             // Far silhouette sized and tinted after the real species model.
@@ -196,7 +198,7 @@ export function createDressingView(parent:THREE.Group,seed:number,density:number
     // visible from the heights), same two silhouette families, no extra draw call.
     for(const cell of canopy.values()){const d=Math.hypot(cell.x-fx,cell.z-fz);
       if(d<farRadius()||d>canopyRadius())continue;cell.used=++clock;const a=cell.a,sparse=d>1100,g=sparse?1.3:1;
-      for(let i=0;i<a.length;i+=CANOPY_STRIDE){if(sparse&&(i/CANOPY_STRIDE)%2===1)continue;const x=a[i],y=a[i+1],z=a[i+2],w=a[i+3]*g,h=a[i+4]*g,t=((x*13.1+z*7.7)%1+1)%1;
+      for(let i=0;i<a.length;i+=CANOPY_STRIDE){if(sparse&&(i/CANOPY_STRIDE)%2===1)continue;const x=a[i],y=a[i+1],z=a[i+2],w=a[i+3]*g,h=a[i+4]*g,t=((x*13.1+z*7.7)%1+1)%1;if(occlusion&&!occlusion(x,z,y+h))continue;
         if(a[i+5])write('farCone',x,y,z,w,h,w,t*6.283,mix(0x3d6844,0x4f7a4c,t));else write('farRound',x,y+h*.45,z,w,h*.55,w,t*6.283,mix(0x55804a,0x6f9455,t));}}
     // Pass 2 — gatherable flora (flowers, mushrooms, reeds), then shrubs, then the rest of the
     // ground flora and deadwood: each class within its range and its share of the batches.
@@ -238,6 +240,8 @@ export function createDressingView(parent:THREE.Group,seed:number,density:number
   return {
     stats,
     setHidden(fn:typeof hidden){hidden=fn;dirty=true;},
+    /** New relief-occlusion field (refreshed after camera moves): redraw without hidden items. */
+    setOcclusion(fn:typeof occlusion){occlusion=fn;dirty=true;},
     /** Redraw from cached cells (gameplay changes: felled tree, picked flowers). */redraw(){dirty=true;lastRebuild=0;},
     /** Quality tiers of the shared budget manager (0 full … 3 lowest), applied per priority class
      * (world-production/dressing-priority.ts): trees and their far silhouettes are kept at every

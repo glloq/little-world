@@ -37,7 +37,7 @@ export function productionReferenceArchipelago(){
     landmasses:[{id:'main',name:'Île de référence World Production',outline:blobOutline(-20,40,560,560,26,.5),coastNoiseM:28,coastWavelengthM:320,beachWidthM:60,shoreHeightM:2,lowlandHeightM:5,hillHeightM:5,cliffs:.4}],
     features:[
       {id:'north-highland',kind:'mountain',x:-20,z:430,radiusM:420,heightM:62,roughness:.45},
-      {id:'east-ridge',kind:'ridge',points:[{x:330,z:420},{x:400,z:180},{x:420,z:-40}],widthM:120,heightM:26},
+      {id:'east-ridge',kind:'ridge',points:[{x:330,z:420},{x:400,z:180},{x:420,z:-40}],widthM:60,heightM:26},
     ]};
 }
 export function buildProductionReference(){
@@ -45,7 +45,9 @@ export function buildProductionReference(){
   const p=createProject({name:'Scène de référence World Production',width,length,seed,projectId:'little-world-production-reference-authoring',worldId:'little-world-production-reference',terrain:{kind:'archipelago',version:1,archipelago:productionReferenceArchipelago()}});
   p.world.environment=defaultEnvironment(seed);
   const reports=[];
-  for(const [presetId,center,[w,l],rotation,params]of REFERENCE_LANDSCAPES){
+  // Presets that trace water are applied last: their WATER validation sees the final relief.
+  const WATER_PRESETS=['forest-valley','marsh-basin','river-bend','waterfall-gorge'];
+  for(const [presetId,center,[w,l],rotation,params]of [...REFERENCE_LANDSCAPES].sort((a,b)=>WATER_PRESETS.indexOf(a[0])-WATER_PRESETS.indexOf(b[0]))){
     const inst=newLandscape(p,presetId,center,{width:w,length:l,rotation,params});reports.push(applyLandscape(p,inst));
   }
   // Remarkable places and links that no preset owns (manual authoring, like in the Studio).
