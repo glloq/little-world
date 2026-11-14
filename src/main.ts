@@ -663,7 +663,7 @@ function draw(now: number) {
   );
   environment.update(delta,player.position,budget.level,!!player.space);
   activityView?.update(delta,player.position,player.space);
-  {const night=nightFactor(climate.state(worldClock.time).sunAltitude);world.lights.setEnvironment(night,now/1000);world.setNight(night);}
+  {const climateNow=climate.state(worldClock.time),night=nightFactor(climateNow.sunAltitude);world.lights.setEnvironment(night,now/1000);world.setNight(night);world.setWind(.25+.8*climateNow.wind);}
   world.animateBoat(aboard&&fleet.current===playerBoat?boat.speed:0,aboard&&fleet.current===playerBoat?boatSteer:0,delta);
   if(started&&audio){const env=climate.state(worldClock.time),ground=player.space?{}:groundProbe(player.position.x,player.position.z,now),farm=!player.space&&gameplay?.activities.farmNear(player.position);
     audio.update(now,{nowMs:now,player:{position:player.position,velocity:player.velocity,mode:player.mode,aboard,boatSpeed:Math.abs(boat.speed),space:player.space??null,surface:player.space?'stone':aboard?'wood':ground.surface},
@@ -698,6 +698,7 @@ function draw(now: number) {
         horizon: { ...world.horizon },
         terrainWork: { ...world.terrainWork },
         dressing: world.dressing ? { ...world.dressing } : null,
+        grass: world.grass ? { ...world.grass } : null,
         inventory: gameplay ? { ...gameplay.runtime.state.inventory } : null,
         target: currentTarget()?.primaryAction?.label ?? null,
         targetId: currentTarget()?.targetId ?? null,

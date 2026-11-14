@@ -81,7 +81,7 @@ Lire [18 — Herbes ultra-low-resource](docs/18-GRASS-LOW-RESOURCE.md). **Décis
 - Génération par `seed + biome + cellule`, sans milliers d'IDs d'herbes dans le V3 ; conserver la stabilité géographique lors du streaming.
 - Profils `groundOnly / ultra-économique / équilibré / plus dense` adaptatifs selon **un budget global de végétation/scène**, hystérésis et retour automatique à `groundOnly` si nécessaire.
 - **Aucun brouillard de masquage**, et aucun effet sur collisions, simulation ou gameplay ; cibles CPU < 0,1 ms/frame, GPU < 0,5 ms/frame, 1–4 draw calls et < 2 Mio **à mesurer**.
-- Ne pas annoncer un shader/éditeur `GrassRenderer` livré tant qu'il n'est pas réellement codé, intégré et benchmarké.
+- **Implémenté sur branche** : `src/render/grass.ts` (touffes de 3 triangles, un `InstancedMesh`, vent et passage du joueur en vertex shader, profils pilotés par le budget, `?grass=`). Mesuré sous SwiftShader uniquement ; **temps GPU non qualifié**, pas d’éditeur Studio dédié.
 
 ## Environnement et astres : décision LOW-RESOURCE validée
 

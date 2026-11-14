@@ -200,3 +200,17 @@ export function creaturePosition(
     return candidate;
   return { x: site.x, y: site.y, z: site.z };
 }
+/** Grass tufts (doc 18, render/grass.ts) of generated worlds: grass share of the habitat (same
+ * classification as the terrain colours), share of tall grass and tuft colour per ground
+ * material; null where no grass grows (roads, fields, built, water, bare rock/sand). */
+const GRASS_BY_MATERIAL: Partial<Record<GeoSample['material'], { k: number; tall: number; color: number }>> = {
+  grass: { k: 1, tall: .4, color: 0x7da558 }, 'dry-grass': { k: .9, tall: .55, color: 0xa7a565 },
+  'forest-floor': { k: .45, tall: .2, color: 0x5f8a48 }, dirt: { k: .25, tall: .15, color: 0x8a9a5a }, mud: { k: .5, tall: .6, color: 0x6f9452 },
+};
+export function generatedGrass(x: number, z: number): { share: number; tall: number; color: number } | null {
+  const s = generatedSample(x, z), m = GRASS_BY_MATERIAL[s.material];
+  if (!m) return null;
+  const h = habitatOf(s), slope = 1 - Math.min(1, Math.max(0, (s.slope - .8) / .4));
+  const share = Math.min(1, h.grass * 1.15) * m.k * slope;
+  return share > .02 ? { share, tall: s.biome === 'wetland' ? .7 : s.biome === 'scrub' ? .6 : m.tall, color: m.color } : null;
+}

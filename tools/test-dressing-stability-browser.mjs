@@ -17,8 +17,9 @@ try{
   const errors=[];
   // Reference: fresh load at the target.
   const fresh=await (await browser.newContext({viewport:{width:800,height:500}})).newPage();fresh.on('pageerror',e=>errors.push(e.message));
-  await open(fresh,`spawn=${TARGET}&yaw=0`);const expected=(await near(fresh,45)).filter(TREES_OR_ROCKS).sort();await fresh.close();
+  await open(fresh,`spawn=${TARGET}&yaw=0`);const expected=(await near(fresh,45)).filter(TREES_OR_ROCKS).sort();const grass=await fresh.evaluate(()=>window.littleWorldMetrics.grass);await fresh.close();
   check(expected.length>=8,'Fresh load: '+expected.length+' trees and rocks within 45 m of the target');
+  check(grass&&grass.tufts>100&&grass.calls===1&&grass.triangles===grass.tufts*3,'Grass tufts around the player in one draw call ('+(grass&&grass.tufts)+' tufts, profile '+(grass&&grass.profile)+')');
   // Long trip, then the same spot.
   const page=await (await browser.newContext({viewport:{width:800,height:500}})).newPage();page.on('pageerror',e=>errors.push(e.message));
   await open(page,'spawn=-600,600&yaw=0');

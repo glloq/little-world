@@ -6,6 +6,33 @@
 
 Références : [11 — LOW-RESOURCE](11-LOW-RESOURCE-POLICY.md), [17 — Horizon sans brouillard](17-DISTANT-VIEW-RENDERING.md), [15 — V3 Studio](15-STUDIO-DATA-SCHEMAS-V3.md), [16 — Multijoueur futur](16-FUTURE-MULTIPLAYER.md), [10 — Performance](10-PERFORMANCE-ROADMAP.md).
 
+## État d'implémentation (14 novembre 2026, branche `claude/little-world-production-v1-eym947`)
+
+| Élément | Statut | Où |
+| --- | --- | --- |
+| Couche 1 : sol herbeux par couleurs du terrain | implémenté (existant) | `geography/materials.ts` |
+| Couche 2 : touffes 3D proches | **implémenté et testé**. Touffe = 3 brins (3 triangles), opaque, double face éclairée par la normale montante. **Un seul `InstancedMesh`**, donc 1 appel de rendu. Aucune ombre. | `src/render/grass.ts` |
+| Génération | **implémenté**. Par cellule de 16 m, à partir de `seed + cellule` et de la classification (part d’herbe de l’habitat, matériau du sol, biome), échantillonnée tous les 4 m. Herbe courte (0,15–0,30 m) et haute (0,35–0,70 m). Aucun identifiant par touffe. | `biomes.ts` (`generatedGrass`) |
+| Couche 3 : vent et ploiement au passage du joueur | **implémenté en vertex shader seulement** (uniformes temps, vent, joueur). 0 calcul CPU par touffe et par image, tampon d’instances inchangé à l’arrêt (testé). | idem |
+| Bord du rayon | Les touffes se réduisent jusqu’à leur racine sur le dernier quart du rayon : pas de frontière visible, pas de brouillard. | idem |
+| Profils | `dense` (42 m) / `équilibré` (32 m) / `ultra-économique` (20 m) / `groundOnly`, choisis par le niveau du budget partagé (doc 22), avec un cran de moins en qualité « économie ». Paramètre de test `?grass=dense\|balanced\|ultra\|off`. | `world.ts` |
+| Vent de l’environnement | **implémenté** : force issue de `climate.state().wind` | `main.ts` |
+| Réaction de plusieurs personnages, texture d’influence de foule | non implémenté (après benchmark, comme prévu) | — |
+| Éditeur Studio dédié à l’herbe | non implémenté : l’herbe suit les biotopes et masques existants | — |
+
+**Mesures** (Chromium/SwiftShader, prairie, ville et bois ; **ce ne sont pas des mesures de GPU intégré**) :
+
+| Profil | Touffes (prairie) | Triangles d’herbe | Appels de rendu | Reconstruction du tampon au changement de cellule |
+| --- | --- | --- | --- | --- |
+| groundOnly | 0 | 0 | 0 | — |
+| ultra | 1 307 | 3,9 k | 1 | 0,3 ms |
+| équilibré | 3 622 | 10,9 k | 1 | 0,4 ms |
+| dense | 6 988 | 21 k | 1 | 0,7 ms |
+
+- La reconstruction recopie les matrices précalculées par cellule. Le calcul par touffe coûtait 7,5 ms en profil dense.
+- La génération d’une cellule est étalée sur environ 1 ms par image.
+- Le temps GPU réel, le surdessin et la cible inférieure à 0,5 ms restent **à mesurer** sur le matériel de référence.
+
 ## 1. Principes non négociables
 
 1. **Le sol donne déjà l'impression d'être herbeux.** Herbe courte = couleurs de terrain, variations de biome et motifs précalculés (vertex colors ou texture/atlas simple existant). Aucune géométrie par brin.
