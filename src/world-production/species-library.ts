@@ -76,3 +76,10 @@ export function loadSpeciesLibrary():Promise<SpeciesLibrary>{
   });
   return pending;
 }
+const lodCache=new Map<string,Promise<THREE.BufferGeometry[]|null>>();
+/** Flattened LOD geometries of any registry asset (shared cache, same conventions). */
+export function loadAssetLods(id:string):Promise<THREE.BufferGeometry[]|null>{
+  let p=lodCache.get(id);
+  if(!p){const asset=worldAsset(id);p=asset?Promise.all(asset.lods.map(l=>loadFile(l.file))).then(scenes=>scenes.map(s=>flattenScene(s,groundOffset(asset))),e=>{console.warn('GLB indisponible',id,e);return null;}):Promise.resolve(null);lodCache.set(id,p);}
+  return p;
+}

@@ -10,7 +10,8 @@ import {pathRibbon} from '../paths/path-geometry.ts';
 import {createGeoContext,type GeographySources} from './engine.ts';
 import type {GeoContext} from './classify.ts';
 const lineSet=ribbonDistance;
-export interface ProjectGeography {ctx:GeoContext;sources:GeographySources;legacy:boolean}
+export interface ProjectGeography {ctx:GeoContext;sources:GeographySources;legacy:boolean;
+  /** Relief before water-bed carving (the height WATER profiles are computed on). */source:(x:number,z:number)=>number}
 /** Plain, structured-cloneable inputs of a project's geography (extracted on the main thread,
  * replayed identically by a geography worker). */
 export interface ProjectGeographyInput {
@@ -25,5 +26,5 @@ export function geographyFromInput(input:ProjectGeographyInput):ProjectGeography
   const height=(x:number,z:number)=>carveWaterBeds(source,index,x,z);
   const ctx=createGeoContext(sources,{seaLevel:sea,height,site:field.site,pathDistance,waterDistance,
     water:(x,z,h)=>{const hit=index.query(x,z)[0];if(hit)return hit.level;return !legacy&&h<sea?sea:null;}});
-  return {ctx,sources,legacy};
+  return {ctx,sources,legacy,source};
 }

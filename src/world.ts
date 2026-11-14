@@ -10,6 +10,7 @@ import { createLightView, type LightView } from './lighting/light-view.ts';
 import type { RuntimeLight } from './lighting/light-data.ts';
 import { worldAsset, lodDistances, exclusionRadius } from './world-production/registry.ts';
 import { linearizeVertexColors } from './world-production/species-library.ts';
+import { createPlacedInstances, type PlacedInstances } from './world-production/placed-instances.ts';
 import { createDressingView, type DressingView, type DressingStats } from './dressing-view.ts';
 import { sampleBiome, generatedCover } from './biomes';
 import type {
@@ -38,6 +39,8 @@ import {
  * (E10), to be confirmed on integrated GPUs; the pool never grows with the number of sources. */
 export const LIGHT_POOL = 4, LIGHT_POOL_ECONOMY = 2;
 export interface WorldView {
+  /** World Production: instanced enclosure/dock modules (game runtime). */
+  placed: PlacedInstances;
   root: THREE.Group;
   terrain: THREE.Group;
   wheel: THREE.Group;
@@ -460,6 +463,8 @@ const modelPaths: Partial<Record<AssetId, string>> = {
   'props.crate': 'models/crate.glb',
 };
 const legacyModelPaths = new Set(Object.values(modelPaths));
+const registryMaterial = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
+sharedMaterials.add(registryMaterial);
 const modelLoader = new GLTFLoader();
 const loadingModels = new Map<string, Promise<THREE.Group | null>>();
 function loadModel(path: string): Promise<THREE.Group | null> {
@@ -468,7 +473,12 @@ function loadModel(path: string): Promise<THREE.Group | null> {
     pending = modelLoader
       .loadAsync(import.meta.env.BASE_URL + path)
       .then((gltf) => {
-        if (!legacyModelPaths.has(path)) linearizeVertexColors(gltf.scene); // sRGB COLOR_0 bytes of the library
+        if (!legacyModelPaths.has(path)) {
+          // Library GLBs carry sRGB COLOR_0 bytes and no material (glTF default = metallic,
+          // rendered black without an environment map): one shared flat Lambert material.
+          linearizeVertexColors(gltf.scene);
+          gltf.scene.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh) m.material = registryMaterial; });
+        }
         gltf.scene.traverse((o) => {
           const m = o as THREE.Mesh;
           if (m.geometry) sharedGeometry.add(m.geometry);
@@ -694,6 +704,7 @@ export function buildWorld(
   const ecology = createEcology(root, config.seed, config.density, biomeAt, legacy ? undefined : generatedCover);
   // G5: natural dressing (forests, cliff rocks, scree, pebbles, basalt) of generated worlds.
   const dressing: DressingView | null = legacy ? null : createDressingView(root, config.seed, config.density, workers);
+  const placed = createPlacedInstances(root, terrainHeight);
   const waterMeshes=new Map<string,{signature:string;mesh:THREE.Mesh}>();
   function refreshWater(){
     const changed:string[]=[],ids=new Set(compiledWaterBodies().map(w=>w.id));
@@ -744,6 +755,7 @@ export function buildWorld(
     stats: terrainView.stats,
     horizon: horizon.stats,
     terrainWork: terrainView.work,
+    placed,
     dressing: dressing?.stats ?? null,
     paths: pathView.stats,
     refreshWater,
@@ -833,6 +845,7 @@ export function buildWorld(
       horizon.update(focus);
       ecology.update(dt, time, focus.x, focus.z);
       dressing?.update(focus.x, focus.z);
+      placed.update(focus.x, focus.z);
       pathView.update(focus.x, focus.z);
       if (camera) lightCamera.x = camera.position.x;
       else lightCamera.x = focus.x;
@@ -848,6 +861,7 @@ export function buildWorld(
     dispose() {
       ecology.dispose();
       dressing?.dispose();
+      placed.dispose();
       pathView.dispose();
       lightView.dispose();
       horizon.dispose();

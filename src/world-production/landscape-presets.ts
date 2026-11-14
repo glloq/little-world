@@ -55,6 +55,9 @@ function meander(f:Frame,n:number,amp:number,phase:number,v0=-f.length/2,v1=f.le
   return Array.from({length:n},(_,i)=>{const t=i/(n-1),v=v0+(v1-v0)*t,u=u0+amp*Math.sin(t*Math.PI*2*.9+phase)+amp*.25*hash2(f.seed^0x51,i,7);return f.toWorld(u,v);});
 }
 const P=(p:LandscapePreset)=>p;
+/** Pond centres of a marsh basin (local u, v, radius): same list for relief and content. */
+function pondSpots(f:Frame,p:LandscapeParams){const R=Math.min(f.width,f.length)*.48,rand=(k:number)=>(hash2(f.seed,k,0x5eed)+1)/2;
+  return Array.from({length:Math.round(num(p,'ponds',2))},(_,i)=>{const a=rand(90+i)*6.283,d=R*(.15+.3*rand(100+i));return {u:Math.cos(a)*d,v:Math.sin(a)*d,r:8+rand(110+i)*10};});}
 const sizeParams=(density:number):ParamDef[]=>[{key:'density',label:'Densité de végétation',kind:'number',min:.3,max:1.6,step:.05,default:density}];
 /** Pick up to `count` building spots on gentle, dry ground inside a ring (deterministic). */
 function spots(env:ContentEnv,count:number,ringMin:number,ringMax:number,minGap:number,salt:number,maxSlope=.18):PointXZ[]{
@@ -133,15 +136,15 @@ export const LANDSCAPE_PRESETS:Record<LandscapePresetId,LandscapePreset>={
   'marsh-basin':P({id:'marsh-basin',version:1,label:'Bassin marécageux',description:'Dépression, étangs, roselières, sol détrempé et îlots de terrain praticable.',profile:'marsh',defaultSize:[360,320],
     params:[...sizeParams(1),{key:'ponds',label:'Étangs',kind:'number',min:0,max:4,step:1,default:2},{key:'depth',label:'Profondeur du bassin (m)',kind:'number',min:1,max:10,step:.5,default:3}],
     produces:['relief : cuvette','eau : étangs (lacs à niveau constant)','masques : marais, humidité 9, îlots praticables','région marais'],
-    relief:(f,p)=>[{key:'basin',id:'',kind:'basin',x:f.cx,z:f.cz,radiusM:r1(Math.min(f.width,f.length)*.48),depthM:num(p,'depth',3)}],
+    relief:(f,p)=>[{key:'basin',id:'',kind:'basin',x:f.cx,z:f.cz,radiusM:r1(Math.min(f.width,f.length)*.48),depthM:num(p,'depth',3)},
+      ...pondSpots(f,p).map((q,i)=>({key:'pond-'+(i+1),id:'',kind:'basin' as const,...f.toWorld(q.u,q.v),radiusM:r1(q.r*1.7),depthM:2.8}))],
     regions:(f,p)=>[{x:f.cx,z:f.cz,width:f.width,length:f.length,rotation:f.rotation,edgeM:r1(Math.min(f.width,f.length)*.22),profile:'marsh',density:num(p,'density',1)}],
     content:(env,p)=>{const c=empty(),R=Math.min(env.width,env.length)*.48,islets=Array.from({length:3},(_,i)=>({u:(env.rand(60+i)-.5)*R,v:(env.rand(70+i)-.5)*R,r:10+env.rand(80+i)*10}));
       const isle=(u:number,v:number)=>islets.some(k=>Math.hypot(u-k.u,v-k.v)<k.r);
       c.masks.push({layer:'biome',code:'w',test:(u,v,x,z)=>blob(env,0x51,u,v,R,R,x,z)>0&&!isle(u,v)});
       c.masks.push({layer:'moisture',code:'9',test:(u,v,x,z)=>blob(env,0x51,u,v,R*.85,R*.85,x,z)>0&&!isle(u,v)});
       c.masks.push({layer:'moisture',code:'5',test:(u,v)=>isle(u,v)});
-      for(let i=0;i<Math.round(num(p,'ponds',2));i++){
-        const a=env.rand(90+i)*6.283,d=R*(.15+.3*env.rand(100+i)),u=Math.cos(a)*d,v=Math.sin(a)*d,r=8+env.rand(110+i)*10;
+      for(const [i,{u,v,r}]of pondSpots(env,p).entries()){
         const outline=Array.from({length:9},(_,k)=>{const t=k/9*6.283,rr=r*(1+.22*Math.sin(t*3+i));return env.toWorld(u+Math.cos(t)*rr,v+Math.sin(t)*rr*.8);});
         const ground=Math.min(...outline.map(q=>env.height(q.x,q.z))),centre=env.height(env.toWorld(u,v).x,env.toWorld(u,v).z);
         if(ground-centre<.4){c.diagnostics.push(`Étang ${i+1} : cuvette trop plate, étang non créé.`);continue;}
@@ -163,15 +166,30 @@ export const LANDSCAPE_PRESETS:Record<LandscapePresetId,LandscapePreset>={
   'waterfall-gorge':P({id:'waterfall-gorge',version:1,label:'Gorge et cascade',description:'Gorge rocheuse entaillant une marche du relief, cascade explicite (niveaux haut/bas WATER), bassin inférieur, rochers humides.',profile:'humid-valley',defaultSize:[260,520],
     params:[...sizeParams(1),{key:'drop',label:'Hauteur de la marche (m)',kind:'number',min:4,max:60,step:1,default:16},{key:'pool',label:'Bassin inférieur',kind:'boolean',default:true}],
     produces:['relief : marche + gorge','eau : rivière avec cascade (top/bottom) et bassin (lac)','masques : roche des parois, humidité','région vallée humide'],
-    relief:(f,p)=>{const d=num(p,'drop',16);return [
-      {key:'step',id:'',kind:'plateau',polygon:[f.toWorld(-f.width*.5,f.length*.02),f.toWorld(f.width*.5,f.length*.02),f.toWorld(f.width*.5,f.length*.5),f.toWorld(-f.width*.5,f.length*.5)],heightM:0,edgeM:r1(Math.max(6,d*.6))},
-      {key:'gorge',id:'',kind:'valley',points:[f.toWorld(0,f.length*.5),f.toWorld(f.width*.03,f.length*.1),f.toWorld(-f.width*.02,-f.length*.2),f.toWorld(0,-f.length*.5)],widthM:r1(Math.max(18,f.width*.16)),depthM:r1(d*.35)}];},
+    relief:(f,p,height,sea)=>{const d=num(p,'drop',16),low=f.toWorld(0,-f.length*.2),base=height(low.x,low.z)-sea;return [
+      // Upper half raised to (downstream ground + drop): an abrupt step the gorge cuts through.
+      {key:'step',id:'',kind:'plateau',polygon:[f.toWorld(-f.width*.5,f.length*.02),f.toWorld(f.width*.5,f.length*.02),f.toWorld(f.width*.5,f.length*.5),f.toWorld(-f.width*.5,f.length*.5)],heightM:r1(Math.max(1,base+d)),edgeM:2},
+      {key:'gorge',id:'',kind:'valley',points:[f.toWorld(0,f.length*.5),f.toWorld(f.width*.03,f.length*.1),f.toWorld(-f.width*.02,-f.length*.2),f.toWorld(0,-f.length*.5)],widthM:r1(Math.max(18,f.width*.16)),depthM:r1(d*.35)},
+      ...(bool(p,'pool',true)?[{key:'pool',id:'',kind:'basin' as const,...f.toWorld(-f.width*.02,-f.length*.2),radiusM:r1(Math.max(14,f.width*.11)),depthM:2.5}]:[])];},
     regions:(f,p)=>[{x:f.cx,z:f.cz,width:f.width,length:f.length,rotation:f.rotation,edgeM:r1(Math.min(f.width,f.length)*.2),profile:'humid-valley',density:num(p,'density',1)}],
     content:(env,p)=>{const c=empty(),d=num(p,'drop',16);
-      const pts=[env.toWorld(0,env.length*.46),env.toWorld(env.width*.03,env.length*.12),env.toWorld(env.width*.01,env.length*-.02),env.toWorld(-env.width*.02,-env.length*.2),env.toWorld(0,-env.length*.42)];
-      const top=env.height(pts[1].x,pts[1].z)-.35,bottom=env.height(pts[2].x,pts[2].z)-.35;
-      if(top-bottom>=1)c.water.push({key:'falls-river',points:pts,width:5,level:0,depth:1,profile:{mode:'terrain',offset:-.35},falls:[{at:1,top:r1(top),bottom:r1(Math.min(bottom,top-1))}]});
-      else{c.diagnostics.push('Cascade : marche insuffisante sur le tracé (relief existant plus haut que la marche) — rivière sans cascade créée.');c.water.push({key:'falls-river',points:pts,width:5,level:0,depth:1,profile:{mode:'terrain',offset:-.35}});}
+      // Densified gorge axis; the waterfall sits exactly where the relief steps down most.
+      const axis=[env.toWorld(0,env.length*.46),env.toWorld(env.width*.03,env.length*.12),env.toWorld(-env.width*.02,-env.length*.2),env.toWorld(0,-env.length*.42)];
+      const pts:PointXZ[]=[];for(let i=0;i<axis.length-1;i++)for(let k=0;k<5;k++){const t=k/5;pts.push({x:r1(axis[i].x+(axis[i+1].x-axis[i].x)*t),z:r1(axis[i].z+(axis[i+1].z-axis[i].z)*t)});}pts.push(axis.at(-1)!);
+      // The source is the highest point of the upper reach: never draw a river climbing a slope.
+      const h=pts.map(q=>env.height(q.x,q.z));const peak=h.slice(0,Math.ceil(h.length/2)).reduce((m,v,i,a)=>v>a[m]?i:m,0);pts.splice(0,peak);h.splice(0,peak);
+      let at=1,best=0;for(let i=1;i<pts.length-2;i++){const drop=h[i]-h[i+1];if(drop>best){best=drop;at=i;}}
+      // Refine the steepest segment at 1 m: points just above and just below the step, so that
+      // the explicit fall sits on the step itself (WATER: no relief crossed after the fall).
+      {const a=pts[at],b=pts[at+1],len=Math.hypot(b.x-a.x,b.z-a.z),q=(t:number)=>({x:r1(a.x+(b.x-a.x)*t),z:r1(a.z+(b.z-a.z)*t)}),y=(t:number)=>{const o=q(t);return env.height(o.x,o.z);};
+        const n=Math.max(8,Math.round(len*4));let tb=0,db=-Infinity;for(let k=1;k<=n;k++){const d=y((k-1)/n)-y(k/n);if(d>db){db=d;tb=(k-.5)/n;}}
+        // Walk out from the steepest place until the ground flattens: top lip and foot of the step.
+        const e=.25/len;let t0=tb,t1=tb;
+        while(t0>e&&y(t0-e)-y(t0)>.3)t0-=e;while(t1<1-e&&y(t1)-y(t1+e)>.3)t1+=e;t0=Math.max(.002,t0-e);t1=Math.min(.998,t1+e);
+        const A=q(Math.max(.002,t0)),B=q(Math.min(.998,t1));pts.splice(at+1,0,A,B);h.splice(at+1,0,env.height(A.x,A.z),env.height(B.x,B.z));at++;}
+      const top=r1(h[at]-1),bottom=r1(Math.min(h[at+1]-.35,top-1));
+      if(best>=1.5&&Math.hypot(pts[at+1].x-pts[at].x,pts[at+1].z-pts[at].z)<=2.8)c.water.push({key:'falls-river',points:pts,width:5,level:0,depth:1,profile:{mode:'terrain',offset:-.35},falls:[{at,top,bottom}]});
+      else{c.diagnostics.push('Cascade : aucune marche du relief sur le tracé — rivière sans cascade créée.');c.water.push({key:'falls-river',points:pts,width:5,level:0,depth:1,profile:{mode:'terrain',offset:-.35}});}
       if(bool(p,'pool',true)){const q=env.toWorld(-env.width*.02,-env.length*.2),r=Math.max(9,env.width*.06),outline=Array.from({length:10},(_,k)=>{const t=k/10*6.283;return env.toWorld(-env.width*.02+Math.cos(t)*r,-env.length*.2+Math.sin(t)*r*1.3);});
         const ground=Math.min(...outline.map(o=>env.height(o.x,o.z)));if(ground-env.height(q.x,q.z)>.4)c.water.push({key:'pool',kind:'lake',points:outline,width:4,level:r1(ground-.2),depth:.6});else c.diagnostics.push('Bassin inférieur : fond trop plat, bassin non créé.');}
       c.masks.push({layer:'geology',code:'r',test:(u,v,x,z)=>Math.abs(u)>env.width*.05&&Math.abs(u)<env.width*.16+4*noise(env,0x71,x,z,12)&&v>-env.length*.3&&v<env.length*.15});

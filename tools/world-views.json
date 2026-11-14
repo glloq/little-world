@@ -1,0 +1,11 @@
+[
+ {"name":"ref-panorama","label":"Panorama depuis les hauteurs (sommet nord)","world":"maps/production-reference/manifest.json","x":-20,"z":430,"yaw":3.14,"pitch":0.32,"dist":60},
+ {"name":"ref-forest","label":"Forêt dense de la vallée","world":"maps/production-reference/manifest.json","x":-250,"z":230,"yaw":0.2,"pitch":0.18,"dist":18},
+ {"name":"ref-valley","label":"Vallée forestière","world":"maps/production-reference/manifest.json","x":-280,"z":20,"yaw":0.1,"pitch":0.3,"dist":45},
+ {"name":"ref-river","label":"Rivière, berges et pont","world":"maps/production-reference/manifest.json","x":120,"z":40,"yaw":1.9,"pitch":0.3,"dist":40},
+ {"name":"ref-falls","label":"Gorge et cascade","world":"maps/production-reference/manifest.json","x":138,"z":262,"yaw":0,"pitch":0.12,"dist":28},
+ {"name":"ref-cliff","label":"Falaise depuis sa base","world":"maps/production-reference/manifest.json","x":370,"z":-60,"yaw":1.57,"pitch":0.15,"dist":22},
+ {"name":"ref-coast","label":"Littoral sableux et ponton","world":"maps/production-reference/manifest.json","x":-380,"z":-170,"yaw":-1.57,"pitch":0.3,"dist":40},
+ {"name":"ref-village","label":"Village, champ et moulin","world":"maps/production-reference/manifest.json","x":-60,"z":-230,"yaw":0,"pitch":0.45,"dist":70},
+ {"name":"ref-flight","label":"Vue en planage au-dessus de plusieurs biotopes","world":"maps/production-reference/manifest.json","x":0,"z":-160,"yaw":0.2,"pitch":0.62,"dist":320}
+]

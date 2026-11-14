@@ -152,7 +152,10 @@ const world = buildWorld(definition.config, definition);
 world.setDetail(budget.level, quality.value === 'low');
 // Far plane follows the project diagonal: silhouettes stay visible without fog (near plane unchanged).
 camera.far=horizonFar(getTerrainConfig().width,getTerrainConfig().length);camera.updateProjectionMatrix();
-for (const item of definition.placements) addPlacement(world, item);
+// World Production: repeated structural modules share instanced batches; anything with gameplay
+// state or an interaction keeps its own object (doors, collectibles…).
+const statefulIds = new Set((playable?.gameplay.entities ?? []).filter((e) => e.interactable || Object.keys(e.initialState).length).map((e) => e.id));
+for (const item of definition.placements) if (statefulIds.has(item.id) || !world.placed.add(item)) addPlacement(world, item);
 scene.add(world.root);
 const player = spawnPlayer();
 if(playable)player.position.set(playable.spawn.x,terrainHeight(playable.spawn.x,playable.spawn.z)+playable.spawn.y+.02,playable.spawn.z);
@@ -583,6 +586,7 @@ function draw(now: number) {
         horizon: { ...world.horizon },
         terrainWork: { ...world.terrainWork },
         dressing: world.dressing ? { ...world.dressing } : null,
+        placed: { ...world.placed.stats },
         paths: { ...world.paths },
         lights: { ...world.lights.stats },
         activities: activityView&&gameplay ? { ...activityView.stats, space: player.space ?? null,

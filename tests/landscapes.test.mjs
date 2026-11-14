@@ -24,7 +24,10 @@ function site(p,presetId){
   for(let k=0;k<4000;k++){
     const x=Math.round(((k*7919)%1000)/1000*W*.7-W*.35),z=Math.round(((k*104729)%1000)/1000*L*.7-L*.35),h=ctx.height(x,z);
     if(presetId==='sandy-beach'){if(Math.abs(h-sea)<1.2)return {x,z};continue;}
-    if(h>sea+12&&h<sea+80)return {x,z};
+    if(!(h>sea+12&&h<sea+80))continue;
+    // Water presets need gentle ground (a river must not climb): low relief over the footprint.
+    if(['river-bend','forest-valley'].includes(presetId)){const [w,l]=[240,300];let lo=Infinity,hi=-Infinity;for(let i=-4;i<=4;i++)for(let j=-4;j<=4;j++){const y=ctx.height(x+i*w/9,z+j*l/9);lo=Math.min(lo,y);hi=Math.max(hi,y);}if(hi-lo>12||lo<sea+3)continue;}
+    return {x,z};
   }
   throw Error('no site for '+presetId);
 }
@@ -36,7 +39,7 @@ test('ten presets with complete contracts (id, version, size, parameters, produc
 });
 test('every preset applies to a real project, produces re-editable data and keeps the source valid',()=>{
   for(const id of LANDSCAPE_PRESET_IDS){
-    const p=project(),inst=newLandscape(p,id,site(p,id)),report=applyLandscape(p,inst);
+    const p=project(),small=['river-bend','forest-valley'].includes(id)?{width:240,length:300}:{},inst=newLandscape(p,id,site(p,id),small),report=applyLandscape(p,inst);
     const g=p.libraries.landscapes[inst.id].generated,c=counts(g),masks=Object.keys(g.masks).length;
     assert.ok(report.added>0||masks>0,id+' produced nothing '+JSON.stringify(report));
     parseProject(p); // strict validation of the whole source, including libraries.landscapes
@@ -76,7 +79,7 @@ test('manual corrections win: modified content is kept and detached, deleted con
   const forced=applyLandscape(p,p.libraries.landscapes[inst.id],{overwrite:true});assert.ok(p.libraries.paths[pathId],'overwrite recreates the lane '+JSON.stringify(forced.diagnostics));
 });
 test('undo/redo through the shared command bus restores the exact source; removal keeps modified content',()=>{
-  const p=project(),inst=newLandscape(p,'forest-valley',site(p,'forest-valley')),before=JSON.stringify(p),bus=new CommandBus(p);
+  const p=project(),inst=newLandscape(p,'forest-valley',site(p,'forest-valley'),{width:240,length:300}),before=JSON.stringify(p),bus=new CommandBus(p);
   editDocument(bus,'Appliquer le paysage',landscapeChunkIds(p,inst),draft=>applyLandscape(draft,inst));
   const applied=JSON.stringify(bus.document);assert.notEqual(applied,before);
   bus.undo();assert.equal(JSON.stringify(bus.document),before);bus.redo();assert.equal(JSON.stringify(bus.document),applied);

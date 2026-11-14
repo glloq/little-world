@@ -49,7 +49,8 @@
     "generate:world-assets": "node --experimental-strip-types tools/build-world-assets.mjs",
     "check:world-assets": "node --experimental-strip-types tools/build-world-assets.mjs --check",
     "test:landscapes": "node tools/test-landscapes-browser.mjs",
-    "capture:views": "node tools/capture-world-views.mjs"
+    "capture:views": "node tools/capture-world-views.mjs",
+    "generate:production-reference": "node --experimental-strip-types tools/generate-production-reference.mjs"
   },
   "dependencies": {
     "three": "^0.180.0"

@@ -24,6 +24,8 @@ jobs:
       - run: git diff --exit-code -- maps/beta.project.json public/maps/beta.json public/maps/beta.project.json
       - run: npm run generate:island
       - run: git diff --exit-code -- maps/island.project.json public/maps/island
+      - run: npm run generate:production-reference
+      - run: git diff --exit-code -- maps/production-reference.project.json public/maps/production-reference.project.json public/maps/production-reference
       - run: npm run generate:b1
       - run: git diff --exit-code -- maps/b1-demo.project.json public/maps/b1-demo.project.json public/maps/b1-demo
       - run: npm run compile:map -- maps/default.json public/maps/default.json

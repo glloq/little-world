@@ -18,6 +18,7 @@ import {chunkAt} from '../studio-core/schema.ts';
 import {putZone,removeZone} from '../studio-core/zones.ts';
 import {sectorGrid} from '../studio-core/geo-edits.ts';
 import {projectGeography} from '../studio-core/geo-context.ts';
+import {compileWaterNetwork} from '../water/profile.ts';
 import {hash2} from '../geography/noise.ts';
 import {ARCHIPELAGO_LIMITS} from '../geography/archipelago-params.ts';
 import {assetDefinitionFor} from './registry.ts';
@@ -125,7 +126,19 @@ export function applyLandscape(draft:ProjectDocument,input:LandscapeInstanceV1,o
     next[kind][id]=fingerprint(current(draft,kind,id));owned.get(kind)!.delete(id)?report.updated++:report.added++;
   };
   const clampPoint=(q:{x:number;z:number})=>({x:Math.max(b.minX+1,Math.min(b.maxX-1,q.x)),z:Math.max(b.minZ+1,Math.min(b.maxZ-1,q.z))});
-  for(const {key,...w}of content.water){const id=`${inst.id}.${key}`;add('water',id,{...w,id,points:w.points.map(clampPoint)});}
+  // WATER coherence: a generated river must pass the same hydrographic compilation as the
+  // compiler (descending profile, no relief crossing, consistent falls). Try the reverse
+  // direction (rivers drawn upstream), then without falls; otherwise do not create it.
+  for(const {key,...w}of content.water){
+    const id=`${inst.id}.${key}`,base:WaterBody={...w,id,points:w.points.map(clampPoint)} as WaterBody,others=Object.values(draft.libraries.water).filter(o=>o.id!==id) as WaterBody[];
+    const errors=(cand:WaterBody)=>compileWaterNetwork([...others,cand],after.source,draft.world.seaLevel).at(-1)!.diagnostics.filter(d=>d.severity==='ERROR');
+    const reversed=(cand:WaterBody):WaterBody=>{const {falls:_f,...rest}=cand;return {...rest,points:[...cand.points].reverse()};};
+    const candidates=base.kind==='lake'?[base]:[base,reversed(base),...(base.falls?[{...base,falls:undefined}]:[])];let chosen:WaterBody|null=null,last:string[]=[];
+    for(const cand of candidates){const e=errors(cand);if(!e.length){chosen=cand;break;}last=e.map(d=>d.message);}
+    if(!chosen){report.diagnostics.push(`Eau ${id} non créée (incohérence hydrographique) : ${last[0]}`);continue;}
+    if(chosen!==base)report.diagnostics.push(`Eau ${id} : tracé ${chosen.points[0]===base.points[0]?'sans cascade':'inversé (écoulement vers l’aval)'} pour rester cohérent.`);
+    const {falls,...clean}=chosen;add('water',id,falls?chosen:clean);
+  }
   for(const {key,...path}of content.paths){const id=`${inst.id}.${key}`;add('paths',id,{...path,id,points:path.points.map(clampPoint)});}
   for(const {key,...z}of content.zones){const id=`${inst.id}.${key}`;add('zones',id,{...z,id,polygon:z.polygon.map(clampPoint)});}
   for(const e of content.entities){
