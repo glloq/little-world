@@ -8,7 +8,7 @@ import {makeCollect,makeDeliver,makePuzzle} from '../src/gameplay/templates.ts';
 import {defaultEnvironment} from '../src/environment/climate.ts';
 import {collisionDefinitionsFromProject} from '../src/studio-core/collision-adapter.ts';
 import {parsePlayableWorld} from '../src/gameplay/playable.ts';
-const base=JSON.parse(await readFile(new URL('../maps/default.json',import.meta.url),'utf8'));base.name='Clairière des petits services';base.config.width=1000;base.config.length=1000;
+const base=JSON.parse(await readFile(new URL('../tests/fixtures/legacy-v1-valley.json',import.meta.url),'utf8'));base.name='Clairière des petits services';base.config.width=1000;base.config.length=1000;
 const {project:p}=migrateWorldToV3(base,{projectId:'little-world-beta-authoring',worldId:'little-world-beta'});
 p.world.audio=JSON.parse(await readFile(new URL('../public/audio/default.json',import.meta.url),'utf8'));
 p.world.environment=defaultEnvironment(p.world.seed);

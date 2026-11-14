@@ -57,7 +57,7 @@ if (
   const [input, output] = process.argv.slice(2);
   if (!input || !output) {
     console.error(
-      'Usage: node --experimental-strip-types tools/compile-map.mjs source.json public/maps/default.json',
+      'Usage: node --experimental-strip-types tools/compile-map.mjs source.json public/maps/<carte>.json',
     );
     process.exitCode = 1;
   } else

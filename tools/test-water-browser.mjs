@@ -37,7 +37,5 @@ try{
   const build=await new Promise((ok,ko)=>{const r=db.transaction('builds').objectStore('builds').get(id);r.onsuccess=()=>ok(r.result);r.onerror=()=>ko(r.error);});db.close();
   const manifest=JSON.parse(build.files['manifest.json']),water=manifest.chunks.flatMap(c=>JSON.parse(build.files[c.url]).water);return {spawn:build.spawn,water};});
  check(Math.abs(snapshot.spawn.x+40)<1&&Math.abs(snapshot.spawn.z+183)<2&&snapshot.water[0].profile.mode==='terrain','Playtest starts beside the selected water with its authored profile');await popup.close();
- await page.goto(base+'editor/');await page.waitForFunction(()=>document.querySelector('#editor-message').textContent.startsWith('Prêt'));
- await page.locator('[data-tool="water"]').click();check(await page.locator('#water-mode').inputValue()==='terrain'&&await page.locator('#water-profile').isVisible(),'Legacy editor defaults new streams to relief profiles');
  check(errors.length===0,errors.join('\n'));console.log(JSON.stringify({checks,errors}));
 }finally{await browser.close();}

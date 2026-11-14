@@ -20,7 +20,7 @@ import {createClimate,defaultEnvironment} from './environment/climate.ts';
 import type {GameplayView} from './gameplay/game-view.ts';
 import { addPlacement, buildWorld, configureScene } from './world';
 import { horizonFar } from './horizon-view';
-import { defaultWorld, parseWorld } from './world-data';
+import { defaultWorld } from './world-data';
 import { createNPCSystem } from './npc-view';
 import {
   MAX_OXYGEN,
@@ -104,12 +104,14 @@ renderer.toneMappingExposure = 1.1;
 renderer.domElement.tabIndex=0;
 viewport.appendChild(renderer.domElement);
 const searchParams = new URLSearchParams(window.location.search);
-const isPreview = searchParams.get('preview') === '1',
-  metricsEnabled = searchParams.has('metrics');
+const metricsEnabled = searchParams.has('metrics');
+/** Home page: the published island (complete game). Test maps stay reachable with ?world= / ?beta=1. */
+const DEFAULT_WORLD='maps/island/manifest.json';
+const worldPath=searchParams.get('world')??(searchParams.has('studioPreview')||searchParams.has('studioBuild')||searchParams.get('beta')==='1'?null:DEFAULT_WORLD);
 let definition = defaultWorld();
 let playable:PlayableWorld|null=null,studioTest:StudioPlaytest|null=null,buildScope:string|null=null;
 function bootFailure(error:unknown):never{overlay.setAttribute('aria-busy','false');overlay.querySelector('h1')!.textContent='Impossible d’ouvrir cette partie';overlay.querySelector('p')!.textContent=String(error);start.disabled=true;throw error;}
-if(searchParams.has('studioBuild')||searchParams.has('world')){
+if(searchParams.has('studioBuild')||worldPath){
   // Compiled V3 reader: the same path for published worlds and Studio test builds.
   try{
     const {openCompiledWorld,playableFromCompiled,publishedManifestURL}=await import('./runtime/compiled-world.ts');
@@ -120,7 +122,7 @@ if(searchParams.has('studioBuild')||searchParams.has('world')){
     }else{
       // Optional control viewpoint (audit §6: sea→volcano, rim→coasts…) for reproducible checks.
       const view=(searchParams.get('spawn')??'').split(',').map(Number),spawn=view.length===2&&view.every(Number.isFinite)?{x:view[0],y:0,z:view[1]}:undefined;
-      playable=playableFromCompiled(await openCompiledWorld(publishedManifestURL(import.meta.env.BASE_URL,searchParams.get('world')!)),spawn);
+      playable=playableFromCompiled(await openCompiledWorld(publishedManifestURL(import.meta.env.BASE_URL,worldPath!)),spawn);
     }
     definition=playable.world;
     // Render tile size is a renderer parameter, distinct from authored sectors (benchmarks compare 64/128/256 m).
@@ -133,22 +135,6 @@ if(searchParams.has('studioBuild')||searchParams.has('world')){
     else{const response=await fetch(import.meta.env.BASE_URL+'maps/beta.json');if(!response.ok)throw Error('Monde bêta indisponible');playable=parsePlayableWorld(await response.json());}
     definition=playable.world;
   }catch(error){overlay.setAttribute('aria-busy','false');overlay.querySelector('h1')!.textContent='Impossible d’ouvrir cette partie';overlay.querySelector('p')!.textContent=String(error);start.disabled=true;throw error;}
-}else if (isPreview) {
-  try {
-    const raw = sessionStorage.getItem('little-world-preview');
-    if (raw) definition = parseWorld(JSON.parse(raw));
-  } catch (e) {
-    console.warn('Prévisualisation invalide : carte par défaut utilisée', e);
-  }
-} else {
-  try {
-    const response = await fetch(
-      import.meta.env.BASE_URL + 'maps/default.json',
-    );
-    if (response.ok) definition = parseWorld(await response.json());
-  } catch (e) {
-    console.warn('Carte publiée indisponible : vallée intégrée utilisée', e);
-  }
 }
 const world = buildWorld(definition.config, definition);
 world.setDetail(budget.level, quality.value === 'low');
@@ -163,7 +149,7 @@ const player = spawnPlayer();
 if(playable)player.position.set(playable.spawn.x,terrainHeight(playable.spawn.x,playable.spawn.z)+playable.spawn.y+.02,playable.spawn.z);
 let audio:AudioController|null=null;
 // AUD-V2: the valley uses the V2 catalogue (static files loaded on demand); playable maps may still carry V1 audio (migrated in memory).
-try{const {parseAnyAudioDefinition}=await import('./audio/migrate.ts');let definition=playable?.audio;if(!playable){for(const file of ['audio/catalog.json','audio/default.json']){const response=await fetch(import.meta.env.BASE_URL+file).catch(()=>null);if(response?.ok){definition=parseAnyAudioDefinition(await response.json());break;}}}if(definition){const {createAudioController}=await import('./audio/view.ts');audio=createAudioController(definition,{baseUrl:import.meta.env.BASE_URL});}}catch{console.warn('Audio indisponible : le jeu reste silencieux.');}
+try{const {parseAnyAudioDefinition}=await import('./audio/migrate.ts');let definition=playable?.audio;if(!definition){for(const file of ['audio/catalog.json','audio/default.json']){const response=await fetch(import.meta.env.BASE_URL+file).catch(()=>null);if(response?.ok){definition=parseAnyAudioDefinition(await response.json());break;}}}if(definition){const {createAudioController}=await import('./audio/view.ts');audio=createAudioController(definition,{baseUrl:import.meta.env.BASE_URL});}}catch{console.warn('Audio indisponible : le jeu reste silencieux.');}
 const {createGroundProbe}=await import('./audio/world-probe.ts'),groundProbe=createGroundProbe();
 let gameplay:GameplayView|null=null;
 if(playable){

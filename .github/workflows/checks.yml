@@ -28,7 +28,6 @@ jobs:
       - run: git diff --exit-code -- maps/production-reference.project.json public/maps/production-reference.project.json public/maps/production-reference
       - run: npm run generate:b1
       - run: git diff --exit-code -- maps/b1-demo.project.json public/maps/b1-demo.project.json public/maps/b1-demo
-      - run: npm run compile:map -- maps/default.json public/maps/default.json
       - run: git diff --exit-code -- public/maps
       - run: npm run build
       - run: node tools/verify-static-build.mjs
@@ -41,8 +40,6 @@ jobs:
             sleep 1
           done
           curl -fsS http://127.0.0.1:5173/little-world/ > /dev/null
-      - name: Legacy game and editor browser checks
-        run: node tools/run-browser-check.mjs legacy
       - name: Compiled application startup checks
         run: node tools/run-browser-check.mjs published
       - name: Studio browser checks
