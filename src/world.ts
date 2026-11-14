@@ -871,6 +871,7 @@ export function configureWorldGeography(config: WorldConfig, definition?: WorldD
     grid: { minX: -width / 2, minZ: -length / 2, chunkSizeM: sector, columns: Math.ceil(width / sector), rows: Math.ceil(length / sector) },
     masks: definition?.geography?.masks ?? {},
     zones: definition?.geography?.zones ?? [],
+    landscapes: definition?.geography?.landscapes ?? [],
     biomeStrokes: (definition?.biomes ?? []).map((b) => ({ x: b.x, z: b.z, radius: b.radius, biome: b.biome })),
     buildings: (definition?.placements ?? []).flatMap((p) => { const radius = exclusionRadius(p.assetId, p.scale ?? 1); return radius === null ? [] : [{ x: p.x, z: p.z, radius }]; }),
   });

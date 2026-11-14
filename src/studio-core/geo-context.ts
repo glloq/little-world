@@ -3,6 +3,7 @@
  * loaded sectors only — callers hydrate the sectors they display. Same classification code as
  * the game (createGeoContext), so the map shows what the runtime will compute. */
 import {exclusionRadius} from '../world-production/registry.ts';
+import {landscapeRegions} from '../world-production/landscapes.ts';
 import type {ProjectDocument,TerrainEdit,BiomeEdit} from './types.ts';
 import type {TerrainStroke,WaterBody,PathDefinition,WorldConfig} from '../world-data.ts';
 import {LEGACY_GENERATOR} from '../terrain-generator.ts';
@@ -29,7 +30,7 @@ export function projectGeographyInput(p:ProjectDocument):ProjectGeographyInput{
   for(const c of chunks)for(const id of c.entityIds){const e=c.entities[id];if(!e)continue;const r=resolveEntity(p,e),v=r.components.Visual,t=r.components.Transform;if(v&&t){const radius=exclusionRadius(v.assetId,Math.max(t.scale.x,t.scale.z));if(radius!==null)buildings.push({x:t.position.x,z:t.position.z,radius});}}
   const sources:GeographySources={seed:w.seed,grid:sectorGrid(p),masks,
     zones:Object.values(p.libraries.zones??{}).map(z=>({kind:z.kind,polygon:z.polygon})),
-    biomeStrokes:[...biomes.values()].sort((a,c)=>a.order-c.order).map(e=>({x:e.x,z:e.z,radius:e.radius,biome:e.biome})),buildings};
+    biomeStrokes:[...biomes.values()].sort((a,c)=>a.order-c.order).map(e=>({x:e.x,z:e.z,radius:e.radius,biome:e.biome})),buildings,landscapes:landscapeRegions(p.libraries.landscapes)};
   return {config,generator,edits,waters:Object.values(p.libraries.water) as unknown as WaterBody[],paths:Object.values(p.libraries.paths) as unknown as PathDefinition[],sources};
 }
 export function projectGeography(p:ProjectDocument):ProjectGeography{return geographyFromInput(projectGeographyInput(p));}

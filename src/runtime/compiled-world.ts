@@ -12,6 +12,7 @@ import {defaultEnvironment} from '../environment/climate.ts';
 import {validateAudioLinks} from '../audio/schema.ts';
 import {transformedCollider,type CollisionDefinition} from '../physics/definitions.ts';
 import {createTerrainSource} from '../terrain.ts';
+import {landscapeRegions} from '../world-production/landscapes.ts';
 import type {PlayableWorld} from '../gameplay/playable.ts';
 import type {Point3} from '../gameplay/schema.ts';
 import type {WorldDefinition,WorldConfig,TerrainStroke,BiomeStroke,WaterBody,PathDefinition} from '../world-data.ts';
@@ -58,7 +59,8 @@ export function playableFromCompiled(bundle:CompiledWorldBundle,spawn?:Point3):P
   const biomes=unionById(chunks.map(chunk=>chunk.biomes.edits)).sort((a,b)=>a.order-b.order||a.id.localeCompare(b.id)).map(stripOrder) as BiomeStroke[];
   const masks:Record<string,import('../geography/layers.ts').SectorLayers>={};for(const chunk of chunks)if(chunk.layers)masks[chunk.chunkId]=structuredClone(chunk.layers);
   const zones=Object.values(logic.libraries.zones??{}).map(z=>({kind:z.kind,polygon:z.polygon.map(p=>({...p}))}));
-  const world:WorldDefinition={...(Object.keys(masks).length||zones.length?{geography:{sectorSizeM:manifest.chunkSizeM,masks,zones}}:{}),schemaVersion:2,name:manifest.worldId,config,placements,terrain,biomes,
+  const landscapes=landscapeRegions(logic.libraries.landscapes);
+  const world:WorldDefinition={...(Object.keys(masks).length||zones.length||landscapes.length?{geography:{sectorSizeM:manifest.chunkSizeM,masks,zones,...(landscapes.length?{landscapes}:{})}}:{}),schemaVersion:2,name:manifest.worldId,config,placements,terrain,biomes,
     water:unionById(chunks.map(chunk=>chunk.water as WaterBody[])).map(w=>structuredClone(w)),paths:unionById(chunks.map(chunk=>chunk.paths as PathDefinition[])).map(p=>structuredClone(p)),npcs,...(lights.length?{lights}:{})};
   const components=new Map<string,ComponentMap>(entities.map(entity=>[entity.id,entity.components]));
   const activities=activitiesFromZones(Object.values(logic.libraries.zones??{}),createTerrainSource(config,terrain));

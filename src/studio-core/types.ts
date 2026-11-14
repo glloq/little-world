@@ -64,6 +64,8 @@ export interface ProjectLibraries {
   paths:Record<StableId,PathDefinition>;
   /** Activity zone boundaries (farm plots, mines). Optional: older projects have none. */
   zones?:Record<StableId,ActivityZoneV3>;
+  /** World Production landscape presets (re-editable instances + generation record). Optional. */
+  landscapes?:Record<StableId,import('../world-production/landscape-schema.ts').LandscapeInstanceV1>;
 }
 export interface ActivityZoneV3 {id:StableId;kind:'farm-plot'|'mine';name:string;polygon:PointXZ[];levels?:number;
   /** Mine settings (levels, entrance, stairs, geology). Optional: defaults derived at compile time. */

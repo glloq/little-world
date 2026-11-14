@@ -95,7 +95,7 @@ export interface WorldDefinition {
   /** Runtime-only geography inputs carried from V3 (never read from V1/V2 files). */
   /** Runtime-only local lights projected from V3 Light components (never read from V1/V2 files). */
   lights?: import('./lighting/light-data.ts').RuntimeLight[];
-  geography?: {sectorSizeM: number; masks: Record<string, import('./geography/layers.ts').SectorLayers>; zones: import('./geography/engine.ts').GeoZone[]};
+  geography?: {sectorSizeM: number; masks: Record<string, import('./geography/layers.ts').SectorLayers>; zones: import('./geography/engine.ts').GeoZone[]; landscapes?: import('./world-production/biotopes.ts').LandscapeRegion[]};
 }
 export const DEFAULT_CONFIG = {
   seed: 1284,
