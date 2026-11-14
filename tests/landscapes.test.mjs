@@ -23,7 +23,7 @@ function site(p,presetId){
   const {ctx}=projectGeography(p),sea=p.world.seaLevel;
   for(let k=0;k<4000;k++){
     const x=Math.round(((k*7919)%1000)/1000*W*.7-W*.35),z=Math.round(((k*104729)%1000)/1000*L*.7-L*.35),h=ctx.height(x,z);
-    if(presetId==='sandy-beach'){if(Math.abs(h-sea)<1.2)return {x,z};continue;}
+    if(presetId==='sandy-beach'||presetId==='fishing-port'){if(Math.abs(h-sea)<1.2&&ctx.height(x,z-60)<sea)return {x,z:z+40};continue;}
     if(!(h>sea+12&&h<sea+80))continue;
     // Water presets need gentle ground (a river must not climb): low relief over the footprint.
     if(['river-bend','forest-valley'].includes(presetId)){const [w,l]=[240,300];let lo=Infinity,hi=-Infinity;for(let i=-4;i<=4;i++)for(let j=-4;j<=4;j++){const y=ctx.height(x+i*w/9,z+j*l/9);lo=Math.min(lo,y);hi=Math.max(hi,y);}if(hi-lo>12||lo<sea+3)continue;}
@@ -45,9 +45,10 @@ test('every preset applies to a real project, produces re-editable data and keep
     parseProject(p); // strict validation of the whole source, including libraries.landscapes
     if(['forest-valley','river-bend','marsh-basin','mountain-pass','waterfall-gorge','ancient-ruins','village-clearing'].includes(id))assert.ok(c.features>0,id+' relief');
     if(['river-bend','waterfall-gorge'].includes(id))assert.ok(c.water>0,id+' water '+JSON.stringify(report.diagnostics));
-    if(['ancient-ruins','village-clearing','river-bend'].includes(id))assert.ok(c.entities>0,id+' entities');
-    if(id==='village-clearing'){assert.ok(c.entities>=6&&c.paths>=2,'village content '+JSON.stringify(c));for(const e of Object.keys(g.entities)){const a=p.chunks[p.entityIndex[e].ownerChunkId].entities[e].components.Visual.assetId;assert.ok(p.assets[a],'asset definition added '+a);}}
-    assert.ok(masks>0||id==='mountain-pass','masks '+id);
+    if(['ancient-ruins','village-clearing','river-bend','castle-town','mountain-hamlet','mine-camp','forest-camp','landmark-site'].includes(id))assert.ok(c.entities>0,id+' entities '+JSON.stringify(report.diagnostics));
+    if(['castle-town','mountain-hamlet','mine-camp','forest-camp'].includes(id))assert.ok(Object.keys(g.objectives??{}).length>0&&Object.keys(g.dialogues??{}).length>0,id+' quests');
+    if(id==='village-clearing'){assert.ok(c.entities>=6&&c.paths>=2,'village content '+JSON.stringify(c));for(const e of Object.keys(g.entities)){const a=p.chunks[p.entityIndex[e].ownerChunkId].entities[e].components.Visual?.assetId;if(a)assert.ok(p.assets[a],'asset definition added '+a);}}
+    assert.ok(masks>0||['mountain-pass','fishing-port','mountain-hamlet','mine-camp','landmark-site','forest-camp'].includes(id),'masks '+id);
   }
 });
 test('application is deterministic and a regeneration with the same inputs changes nothing',()=>{

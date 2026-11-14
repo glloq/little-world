@@ -17,7 +17,7 @@ import type {BiotopeId} from '../world-production/asset-usage.ts';
 const rnd=(seed:number,i:number,j:number)=>(hash2(seed,i,j)+1)/2;
 
 /** Bump when the placement rules or the species table change (cache keys, reproducibility). */
-export const DRESSING_VERSION=2;
+export const DRESSING_VERSION=3;
 export type DressingKind='pine'|'oak'|'shrub'|'plant'|'deadwood'|'rock'|'scree'|'pebble'|'basalt';
 export const DRESSING_KINDS:DressingKind[]=['pine','oak','shrub','plant','deadwood','rock','scree','pebble','basalt'];
 /** x, y, z, scale, rotation (rad), tint 0..1, species index (-1 = procedural) per item.

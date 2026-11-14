@@ -10,7 +10,7 @@ import {worldAsset} from './registry.ts';
 import {loadAssetLods} from './species-library.ts';
 import type {Placement} from '../world-data.ts';
 
-export const INSTANCED_ROLES=new Set(['fence','wall','hedge','dock']);
+export const INSTANCED_ROLES=new Set(['fence','wall','hedge','dock','rock','prop']);
 /** LOD radii (m) of instanced structures: benchmark knobs. */
 export const PLACED_RADII={lod0:45,lod1:140};
 export interface PlacedInstanceStats {placements:number;lod0:number;lod1:number;calls:number;rebuilds:number;state:'empty'|'loading'|'ready'}

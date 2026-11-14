@@ -8,7 +8,6 @@
 import {writeFile} from 'node:fs/promises';
 import {createProject,parseProject,chunkAt} from '../src/studio-core/schema.ts';
 import {putEntity,putPath} from '../src/studio-core/source.ts';
-import {putZone} from '../src/studio-core/zones.ts';
 import {blobOutline} from '../src/geography/archipelago-params.ts';
 import {defaultEnvironment} from '../src/environment/climate.ts';
 import {applyLandscape,newLandscape} from '../src/world-production/landscapes.ts';
@@ -27,6 +26,10 @@ export const REFERENCE_LANDSCAPES=[
   ['sandy-beach',{x:-430,z:-170},[420,180],Math.PI/2,{dunes:30,palms:false}],
   ['rocky-cliff',{x:430,z:-60},[300,200],Math.PI/2,{height:30}],
   ['ancient-ruins',{x:-120,z:120},[130,130],.4,{walls:2}],
+  ['mine-camp',{x:325,z:235},[160,160],0,{levels:3}],
+  ['forest-camp',{x:-300,z:320},[150,150],.15,{}],
+  ['fishing-port',{x:-415,z:-120},[220,220],Math.PI/2,{houses:4}],
+  ['landmark-site',{x:-60,z:430},[110,110],0,{kind:0}],
 ];
 export const REFERENCE_VIEWS={volcano:null,forest:{x:-260,z:200},valley:{x:-250,z:120},river:{x:140,z:20},cliff:{x:430,z:-60},coast:{x:-420,z:-170},village:{x:-60,z:-170},falls:{x:140,z:300},mine:{x:330,z:300}};
 export function productionReferenceArchipelago(){
@@ -51,11 +54,6 @@ export function buildProductionReference(){
   const {ctx}=projectGeography(p);
   // Lighthouse on the cliff headland, small dock at the beach.
   place('ref-lighthouse','Phare du cap','architecture.lighthouse',470,-120,.6);
-  const sea=p.world.seaLevel;let dockX=-420;for(let x=-420;x>-640;x-=2)if(ctx.height(x,-170)<sea-.6){dockX=x;break;}
-  for(let i=0;i<6;i++)place(`ref-dock-${i+1}`,`Ponton ${i+1}`,'structure.dock_tile',dockX+6-i*2,-170,Math.PI/2,Math.max(0,sea-ctx.height(dockX+6-i*2,-170)+.2));
-  // Mine entrance at the foot of the east ridge (reserved zone, MINE contract) + path from the village.
-  putZone(p,{id:'ref-mine',kind:'mine',name:'Entrée de la mine',polygon:[{x:300,z:280},{x:350,z:275},{x:355,z:320},{x:305,z:325}],levels:3});
-  place('ref-mine-post-l','Poteau d’entrée de mine','structure.post_rustic',318,276);place('ref-mine-post-r','Poteau d’entrée de mine','structure.post_rustic',334,274);
   putPath(p,{id:'ref-path-mine',points:[{x:-60,z:-170},{x:40,z:-60},{x:200,z:120},{x:300,z:240},{x:325,z:272}],width:2.5,kind:'trail',smooth:true});
   putPath(p,{id:'ref-path-beach',points:[{x:-60,z:-170},{x:-250,z:-150},{x:-400,z:-170}],width:2.5,kind:'dirt',smooth:true});
   putPath(p,{id:'ref-path-ruins',points:[{x:-60,z:-170},{x:-90,z:-20},{x:-120,z:110}],width:2,kind:'trail',smooth:true});

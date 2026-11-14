@@ -13,6 +13,9 @@ import type {LandscapeRegion} from './biotopes.ts';
 import type {LandscapeInstanceV1,LandscapeParams,LandscapePresetId} from './landscape-schema.ts';
 import {fbm,hash2} from '../geography/noise.ts';
 import {traceDownhill} from './hydro-trace.ts';
+import {ECONOMY_ITEMS,COIN} from '../gameplay/economy.ts';
+import {MINE_ITEMS} from '../mine/mine-data.ts';
+import {FARM_ITEMS} from '../farm/farm-data.ts';
 
 export interface ParamDef {key:string;label:string;kind:'number'|'boolean';min?:number;max?:number;step?:number;default:number|boolean}
 export interface Frame {cx:number;cz:number;width:number;length:number;rotation:number;seed:number;
@@ -23,13 +26,21 @@ export interface ContentEnv extends Frame {
   /** Water surface at a point (sea, rivers, lakes) or null. */
   water(x:number,z:number):number|null;
   inWorld(x:number,z:number):boolean;
+  /** Final id of a local key of this instance (dialogue → objective references). */
+  ref(key:string):string;
   /** Seeded uniform 0..1 per integer key. */
   rand(key:number):number;
 }
 export interface MaskRule {layer:MaskLayerId;code:string;test:(u:number,v:number,x:number,z:number)=>boolean}
 /** `rotation` = yaw (rad) of the model; `y` = offset above the terrain (V3 Transform convention). */
-export interface PlannedEntity {key:string;name:string;assetId:string;x:number;z:number;rotation:number;scale?:number;scale3?:[number,number,number];y?:number}
-export interface LandscapeContent {masks:MaskRule[];water:(Omit<WaterBody,'id'>&{key:string})[];paths:(Omit<PathDefinition,'id'>&{key:string})[];entities:PlannedEntity[];zones:(Omit<ActivityZoneV3,'id'>&{key:string})[];diagnostics:string[]}
+export interface PlannedEntity {key:string;name:string;assetId:string;x:number;z:number;rotation:number;scale?:number;scale3?:[number,number,number];y?:number;
+  /** Logical state (e.g. `shop: 'mine'` for a counter). */state?:Record<string,string|number|boolean>;
+  /** An inhabitant (NPC) instead of a model: routine, dialogues (keys of this instance). */
+  character?:{species:'squirrel'|'animal';appearance:import('../character-style.ts').Appearance;behaviorKey:string;dialogueKeys:string[];speed:number;radius:number}}
+export interface LandscapeContent {
+  /** Gameplay library entries (key = local key, or '@id' for a shared global id such as an item). */
+  libraries?:Partial<Record<'behaviors'|'dialogues'|'objectives'|'items',{key:string;value:Record<string,unknown>}[]>>;
+  masks:MaskRule[];water:(Omit<WaterBody,'id'>&{key:string})[];paths:(Omit<PathDefinition,'id'>&{key:string})[];entities:PlannedEntity[];zones:(Omit<ActivityZoneV3,'id'>&{key:string})[];diagnostics:string[]}
 export interface LandscapePreset {
   id:LandscapePresetId;version:number;label:string;description:string;profile:BiotopeId;
   defaultSize:[number,number];params:ParamDef[];
@@ -105,7 +116,7 @@ function bridgeOver(env:ContentEnv,pts:PointXZ[],i:number,width:number,depth:num
 }
 const empty=():LandscapeContent=>({masks:[],water:[],paths:[],entities:[],zones:[],diagnostics:[]});
 
-export const LANDSCAPE_PRESETS:Record<LandscapePresetId,LandscapePreset>={
+const NATURE_PRESETS={
   'forest-valley':P({id:'forest-valley',version:1,label:'Vallée forestière',description:'Vallée creusée, forêt dense, clairières, sous-bois humide, ruisseau facultatif et rochers.',profile:'temperate-forest',defaultSize:[420,700],
     params:[...sizeParams(1.15),{key:'depth',label:'Profondeur de vallée (m)',kind:'number',min:3,max:60,step:1,default:14},{key:'clearings',label:'Clairières',kind:'number',min:0,max:5,step:1,default:3},{key:'stream',label:'Ruisseau',kind:'boolean',default:true}],
     produces:['relief : vallée','masques : forêt, clairières, humidité de fond','eau : ruisseau (profil relief)','région d’habillage forêt'],
@@ -266,7 +277,7 @@ export const LANDSCAPE_PRESETS:Record<LandscapePresetId,LandscapePreset>={
       if(bool(p,'trail',true))c.paths.push({key:'trail',points:[env.toWorld(0,0),env.toWorld(env.width*.15,-env.length*.25),env.toWorld(env.width*.05,-env.length*.49)],width:1.6,kind:'trail',smooth:true});
       return c;}}),
   'village-clearing':P({id:'village-clearing',version:1,label:'Clairière de village',description:'Replat dégagé, maisons du registre, place, chemins, clôtures et haies, verger ; champ et moulin facultatifs.',profile:'prairie',defaultSize:[300,300],
-    params:[...sizeParams(.45),{key:'houses',label:'Maisons',kind:'number',min:1,max:10,step:1,default:5},{key:'fields',label:'Parcelle agricole',kind:'boolean',default:true},{key:'windmill',label:'Moulin à vent',kind:'boolean',default:true},{key:'orchard',label:'Verger',kind:'boolean',default:true}],
+    params:[...sizeParams(.45),{key:'houses',label:'Maisons',kind:'number',min:1,max:10,step:1,default:5},{key:'fields',label:'Parcelle agricole',kind:'boolean',default:true},{key:'windmill',label:'Moulin à vent',kind:'boolean',default:true},{key:'orchard',label:'Verger',kind:'boolean',default:true},{key:'quests',label:'Quêtes',kind:'boolean',default:true}],
     produces:['relief : replat','masques : village, humidité modérée','entités : maisons, moulin, clôtures, haies (registre)','chemins : place et accès','zone : parcelle agricole (AGRI)','régions : prairie claire, verger'],
     relief:(f,_p,height)=>[{key:'terrace',id:'',kind:'plateau',polygon:Array.from({length:10},(_,k)=>{const t=k/10*6.283;return f.toWorld(Math.cos(t)*f.width*.36,Math.sin(t)*f.length*.36);}),heightM:r1(Math.max(1.5,height(f.cx,f.cz))),edgeM:r1(Math.min(f.width,f.length)*.14)}],
     regions:(f,p)=>[{x:f.cx,z:f.cz,width:f.width,length:f.length,rotation:f.rotation,edgeM:r1(Math.min(f.width,f.length)*.2),profile:'prairie',density:num(p,'density',.45)},
@@ -288,12 +299,185 @@ export const LANDSCAPE_PRESETS:Record<LandscapePresetId,LandscapePreset>={
       const o=(u:number,v:number)=>env.toWorld(u,v);
       if(bool(p,'orchard',true))c.entities.push(...enclosure('hedge','nature.hedge_low','Haie du verger',[o(-env.width*.43,env.length*.18),o(-env.width*.17,env.length*.18),o(-env.width*.17,env.length*.38)],0,4));
       if(bool(p,'fields',true)){
-        const f0=env.width*.14,f1=env.width*.42,g0=-env.length*.12,g1=env.length*.12,poly=[o(f0,g0),o(f1,g0),o(f1,g1),o(f0,g1)];
-        if(poly.every(q=>env.inWorld(q.x,q.z)&&env.water(q.x,q.z)===null)){c.zones.push({key:'field',kind:'farm-plot',name:'Champ du village',polygon:poly});c.entities.push(...enclosure('fence','structure.fence_pasture','Clôture du champ',[o(f0-2,g0-2),o(f1+2,g0-2),o(f1+2,g1+2),o(f0-2,g1+2),o(f0-2,g0-2)],0,3,{gate:'structure.fence_gate',corner:'structure.post_rustic'}));}
-        else c.diagnostics.push('Parcelle agricole : emprise dans l’eau ou hors du monde, non créée.');
+        // Small enclosed plots (game-sized) instead of one large field: hedge and dry-stone wall.
+        enclosedField(env,c,'field','Potager du village',env.width*.26,-env.length*.05,18,13,'hedge');
+        enclosedField(env,c,'field-2','Champ du village',env.width*.27,env.length*.16,16,12,'wall');
       }
+      // Farm counter and a farmer with a small quest (orchard fruits).
+      counter(c,'farm-counter','farm','structure.market_stall','Comptoir agricole',o(env.width*.12,-env.length*.12),env.rotation);
+      if(bool(p,'quests',true)&&houses[1])questGiver(env,c,{key:'farmer',name:'Fermière Avoine',x:houses[1].x+3,z:houses[1].z+3,appearance:look(true,false,'scarf','joyful'),title:'Tarte aux pommes',greeting:'Le verger donne bien cette année !',ask:'Cueillez-moi 6 pommes au verger, j’ai une tarte à préparer.',itemId:'food:apple',itemLabel:'pommes',quantity:6,reward:{itemId:COIN,quantity:25,label:'25 pièces'},thanks:'Mmm, la tarte sera parfaite. Merci !'});
       return c;}}),
 };
+
+// ======================= Settlements, inhabitants, quests and landmarks =======================
+type Appearance=import('../character-style.ts').Appearance;
+const look=(hat:boolean,backpack:boolean,neckwear:Appearance['neckwear'],emotion:Appearance['emotion']='happy'):Appearance=>({hat,backpack,neckwear,emotion});
+const ITEM_DEFS:Record<string,Record<string,unknown>>=Object.fromEntries([...ECONOMY_ITEMS.map(({buy:_b,sell:_s,...i})=>i),...MINE_ITEMS,...FARM_ITEMS].map(i=>[i.id,i]));
+/** Item definition shared by every instance (global id, never duplicated). */
+function needItem(c:LandscapeContent,itemId:string){const lib=c.libraries!.items!;if(!lib.some(e=>e.key==='@'+itemId)&&ITEM_DEFS[itemId])lib.push({key:'@'+itemId,value:{...ITEM_DEFS[itemId]}});}
+function libs(c:LandscapeContent){c.libraries??={behaviors:[],dialogues:[],objectives:[],items:[]};for(const k of ['behaviors','dialogues','objectives','items'] as const)c.libraries[k]??=[];return c.libraries as Required<NonNullable<LandscapeContent['libraries']>>;}
+/** An inhabitant with a routine and a simple dialogue (greeting + optional lines). */
+function inhabitant(env:ContentEnv,c:LandscapeContent,o:{key:string;name:string;x:number;z:number;appearance:Appearance;routine?:'idle'|'wander';radius?:number;greeting:string;topics?:[string,string][];species?:'squirrel'|'animal'}){
+  const L=libs(c),dialogueKey=o.key+'-talk',behaviorKey=o.key+'-routine';
+  L.behaviors.push({key:behaviorKey,value:{kind:o.routine??'wander'}});
+  const topics=o.topics??[];
+  L.dialogues.push({key:dialogueKey,value:{actorId:env.ref(o.key),start:'hello',lines:[{id:'hello',text:o.greeting,choices:[...topics.map(([q],i)=>({id:'t'+i,text:q,next:'topic-'+i})),{id:'bye',text:'Au revoir !'}]},...topics.map(([,a],i)=>({id:'topic-'+i,text:a,choices:[{text:'Merci.'}]}))]}});
+  c.entities.push({key:o.key,name:o.name,assetId:'',x:o.x,z:o.z,rotation:0,character:{species:o.species??'squirrel',appearance:o.appearance,behaviorKey,dialogueKeys:[dialogueKey],speed:o.routine==='idle'?0:.9,radius:o.routine==='idle'?0:o.radius??10}});
+}
+/** A fetch quest held by an inhabitant: accept → bring N items → reward (coins or a tool). */
+function questGiver(env:ContentEnv,c:LandscapeContent,o:{key:string;name:string;x:number;z:number;appearance:Appearance;title:string;greeting:string;ask:string;itemId:string;itemLabel:string;quantity:number;reward:{itemId:string;quantity:number;label:string};thanks:string;routine?:'idle'|'wander'}){
+  const L=libs(c),O=env.ref(o.key+'-quest'),dialogueKey=o.key+'-quest-talk',behaviorKey=o.key+'-routine';
+  needItem(c,o.itemId);needItem(c,o.reward.itemId);
+  L.objectives.push({key:o.key+'-quest',value:{name:o.title,initialStatus:'locked',persistent:true,description:`${o.name} : rapporter ${o.quantity} × ${o.itemLabel}. Récompense : ${o.reward.label}.`}});
+  L.behaviors.push({key:behaviorKey,value:{kind:o.routine??'idle'}});
+  const has={type:'hasItem',itemId:o.itemId,quantity:o.quantity},is=(status:string)=>({type:'objectiveState',objectiveId:O,status});
+  L.dialogues.push({key:dialogueKey,value:{actorId:env.ref(o.key),start:'hello',lines:[
+    {id:'hello',text:o.greeting,choices:[
+      {id:'ask',text:'Puis-je vous aider ?',gate:is('locked'),next:'ask'},
+      {id:'give',text:`Voici ${o.quantity} × ${o.itemLabel}.`,gate:{type:'all',conditions:[is('active'),has]},actions:[{type:'takeItem',itemId:o.itemId,quantity:o.quantity},{type:'giveItem',itemId:o.reward.itemId,quantity:o.reward.quantity},{type:'setObjective',objectiveId:O,status:'complete'}],next:'thanks'},
+      {id:'later',text:'Je cherche encore…',gate:{type:'all',conditions:[is('active'),{type:'not',condition:has}]},next:'reminder'},
+      {id:'bye',text:'Au revoir !'}]},
+    {id:'ask',text:o.ask,choices:[{id:'accept',text:'J’accepte.',actions:[{type:'setObjective',objectiveId:O,status:'active'}],next:'accepted'},{id:'refuse',text:'Pas maintenant.'}]},
+    {id:'accepted',text:`Merci ! Rapportez-moi ${o.quantity} × ${o.itemLabel}. ${o.reward.label} vous attend.`,choices:[{text:'À bientôt.'}]},
+    {id:'reminder',text:`Il me faut toujours ${o.quantity} × ${o.itemLabel}.`,choices:[{text:'J’y retourne.'}]},
+    {id:'thanks',text:o.thanks,choices:[{text:'Avec plaisir !'}]}]}});
+  c.entities.push({key:o.key,name:o.name,assetId:'',x:o.x,z:o.z,rotation:0,character:{species:'squirrel',appearance:o.appearance,behaviorKey,dialogueKeys:[dialogueKey],speed:o.routine==='wander'?.8:0,radius:o.routine==='wander'?6:0}});
+}
+/** A counter (shop) entity: model + logical `shop` kind read by the game. */
+function counter(c:LandscapeContent,key:string,kind:string,assetId:string,name:string,q:PointXZ,rotation:number){c.entities.push({key,name,assetId,x:q.x,z:q.z,rotation,state:{shop:kind}});}
+const prop=(c:LandscapeContent,key:string,name:string,assetId:string,q:PointXZ,rotation=0,scale?:number)=>c.entities.push({key,name,assetId,x:q.x,z:q.z,rotation,...(scale?{scale}:{})});
+/** Small farm plot (AGRI zone) enclosed by hedges, fences or walls with a gate. */
+function enclosedField(env:ContentEnv,c:LandscapeContent,key:string,name:string,u:number,v:number,w:number,l:number,style:'hedge'|'fence'|'wall'){
+  const o=(a:number,b:number)=>env.toWorld(u+a,v+b),poly=[o(-w/2,-l/2),o(w/2,-l/2),o(w/2,l/2),o(-w/2,l/2)];
+  if(!poly.every(q=>env.inWorld(q.x,q.z)&&env.water(q.x,q.z)===null)){c.diagnostics.push(`${name} : emprise dans l’eau, non créé.`);return;}
+  c.zones.push({key,kind:'farm-plot',name,polygon:poly});
+  const ring=[o(-w/2-1.5,-l/2-1.5),o(w/2+1.5,-l/2-1.5),o(w/2+1.5,l/2+1.5),o(-w/2-1.5,l/2+1.5),o(-w/2-1.5,-l/2-1.5)];
+  const asset=style==='hedge'?'nature.hedge_dense':style==='wall'?'structure.wall_straight':'structure.fence_split_rail';
+  c.entities.push(...enclosure(key+'-edge',asset,name+' — clôture',ring,0,2,{gate:'structure.fence_gate',corner:style==='wall'?'structure.wall_corner':'structure.post_rustic'}));
+}
+const townParams=(houses:number):ParamDef[]=>[...sizeParams(.4),{key:'houses',label:'Maisons',kind:'number',min:2,max:40,step:1,default:houses},{key:'quests',label:'Quêtes',kind:'boolean',default:true}];
+const ring=(env:ContentEnv,n:number,r0:number,r1:number,gap:number,salt:number)=>spots(env,n,r0,r1,gap,salt,.22);
+const SETTLEMENT_PRESETS={
+  'castle-town':P({id:'castle-town',version:1,label:'Ville au château',description:'Ville fortifiée : donjon et murailles, cathédrale ou église, place du marché, auberge, maisons à colombages, habitants, comptoirs et quêtes ; champs clos hors les murs.',profile:'prairie',defaultSize:[520,520],
+    params:[...townParams(12),{key:'cathedral',label:'Cathédrale (sinon église)',kind:'boolean',default:true}],
+    produces:['relief : replat','entités : château, murailles, cathédrale/église, auberge, maisons, marché, fontaine, mobilier','habitants (PNJ) et dialogues','quêtes (objectifs) et récompenses','comptoirs : marché, auberge','2 champs clos (AGRI)','rues pavées'],
+    relief:(f,_p,height)=>[{key:'terrace',id:'',kind:'plateau',polygon:Array.from({length:12},(_,k)=>{const t=k/12*6.283;return f.toWorld(Math.cos(t)*f.width*.4,Math.sin(t)*f.length*.4);}),heightM:r1(Math.max(2,height(f.cx,f.cz))),edgeM:r1(Math.min(f.width,f.length)*.12)}],
+    regions:(f,p)=>[{x:f.cx,z:f.cz,width:f.width,length:f.length,rotation:f.rotation,edgeM:r1(Math.min(f.width,f.length)*.18),profile:'prairie',density:num(p,'density',.4)}],
+    content:(env,p)=>{const c=empty(),R=Math.min(env.width,env.length)*.4,o=(u:number,v:number)=>env.toWorld(u,v),rot=env.rotation;
+      c.masks.push({layer:'biome',code:'g',test:(u,v,x,z)=>blob(env,0xb1,u,v,R,R,x,z,.08)>0});
+      // Castle on the north side, square walls with corner towers and a gate facing the town.
+      const K=R*.6;prop(c,'keep','Donjon','architecture.castle_keep',o(0,K),rot);
+      const half=26,cx=0,cz=K;
+      for(const [a,b]of [[-1,-1],[1,-1],[1,1],[-1,1]])prop(c,`tower-${a}${b}`,'Tour de muraille','structure.castle_tower',o(cx+a*half,cz+b*half),rot);
+      const wall=(x0:number,z0:number,x1:number,z1:number,key:string)=>{const n=Math.round(Math.hypot(x1-x0,z1-z0)/8),a=o(x0,z0),b=o(x1,z1),yaw=-Math.atan2(b.z-a.z,b.x-a.x);for(let i=0;i<n;i++){const t=(i+.5)/n,q=o(x0+(x1-x0)*t,z0+(z1-z0)*t);c.entities.push({key:`${key}-${i}`,name:'Muraille',assetId:'structure.castle_wall',x:q.x,z:q.z,rotation:yaw});}};
+      wall(cx-half,cz+half,cx+half,cz+half,'wall-n');wall(cx-half,cz-half,cx-half,cz+half,'wall-w');wall(cx+half,cz-half,cx+half,cz+half,'wall-e');
+      wall(cx-half,cz-half,cx-12,cz-half,'wall-sw');wall(cx+12,cz-half,cx+half,cz-half,'wall-se');prop(c,'gate','Porte du château','structure.castle_gate',o(0,cz-half),rot);
+      // Religious landmark, square, market, inn.
+      prop(c,'temple',bool(p,'cathedral',true)?'Cathédrale':'Église',bool(p,'cathedral',true)?'architecture.cathedral':'architecture.church',o(-R*.55,-R*.05),rot+Math.PI/2);
+      prop(c,'fountain','Fontaine de la place','structure.fountain',o(0,-R*.1));
+      counter(c,'market','market','structure.market_stall','Étal du marché',o(9,-R*.1+6),rot+Math.PI);prop(c,'stall-2','Étal','structure.market_stall',o(-9,-R*.1+6),rot+Math.PI);prop(c,'stall-3','Étal','structure.market_stall',o(12,-R*.1-6),rot);
+      prop(c,'inn','Auberge du Gland d’Or','architecture.inn',o(R*.5,-R*.1),rot-Math.PI/2);counter(c,'inn-counter','inn','structure.market_stall','Comptoir de l’auberge',o(R*.5-9,-R*.1+5),rot-Math.PI/2);
+      for(const [i,q]of [o(4,-R*.1-12),o(-5,-R*.1+12),o(R*.5-12,-R*.1-6),o(-R*.4,-R*.35)].entries())prop(c,'lamp-'+i,'Lanterne','structure.lamp_post',q);
+      prop(c,'well','Puits','structure.well',o(R*.25,-R*.45));for(const [i,q]of [o(-4,-R*.1-5),o(4,-R*.1+5)].entries())prop(c,'bench-'+i,'Banc','structure.bench',q,rot+i*Math.PI);
+      prop(c,'sign','Panneau','structure.signpost',o(4,-R*.92),rot);prop(c,'barrels','Tonneaux','structure.barrel',o(R*.5-6,-R*.1-5));prop(c,'crates','Caisses','structure.crate_stack',o(10,-R*.1+10));
+      // Streets first, then houses along both sides of each street, facing it (a real street
+      // layout rather than houses scattered around the square).
+      const sq={u:0,v:-R*.1},streets:[number,number][][]=[[[0,-R*.98],[0,sq.v],[0,cz-half-3]],[[-R*.85,sq.v],[R*.85,sq.v]],[[-R*.6,-R*.6],[R*.6,-R*.6]],[[-R*.6,-R*.6],[-R*.6,sq.v]],[[R*.6,-R*.6],[R*.6,sq.v]]];
+      streets.forEach((st,i)=>c.paths.push({key:'street-'+i,points:st.map(([u,v])=>o(u,v)),width:i===0?4:3,kind:'stone'}));
+      const reserved:[number,number,number][]=[[sq.u,sq.v,20],[-R*.55,-R*.05,24],[R*.5,-R*.1,12],[0,cz,half+8],[R*.25,-R*.45,6]];
+      // Candidate lots along every street, then taken round-robin so that all streets fill evenly.
+      const lots:{q:PointXZ;face:PointXZ}[][]=streets.map(st=>{const out:{q:PointXZ;face:PointXZ}[]=[];for(let i=0;i<st.length-1;i++){const [u0,v0]=st[i],[u1,v1]=st[i+1],len=Math.hypot(u1-u0,v1-v0),du=(u1-u0)/len,dv=(v1-v0)/len;
+        for(let d=8;d<len-6;d+=13)for(const side of [-1,1]){const u=u0+du*d-dv*side*10,v=v0+dv*d+du*side*10;if(reserved.some(([ru,rv,rr])=>Math.hypot(u-ru,v-rv)<rr))continue;out.push({q:o(u,v),face:o(u+dv*side*10,v-du*side*10)});}}return out;});
+      const placedHomes:PointXZ[]=[];let n=0;const max=Math.round(num(p,'houses',12));
+      for(let round=0;n<max&&lots.some(l=>l.length>round);round++)for(const l of lots){if(n>=max)break;const lot=l[round];if(!lot)continue;const q=lot.q;
+        if(!env.inWorld(q.x,q.z)||env.water(q.x,q.z)!==null)continue;const h=env.height(q.x,q.z);if(Math.abs(env.height(q.x+4,q.z)-h)>1.6||Math.abs(env.height(q.x,q.z+4)-h)>1.6)continue;
+        if(placedHomes.some(h2=>Math.hypot(h2.x-q.x,h2.z-q.z)<9))continue;
+        prop(c,'house-'+n,'Maison','architecture.'+['house_timber','house_timber','stone_house','house_blue'][n%4],q,Math.atan2(-(lot.face.x-q.x),-(lot.face.z-q.z)));placedHomes.push(q);n++;}
+      if(n<max)c.diagnostics.push(`Ville : ${n} maison(s) placée(s) sur ${max} (pente, eau ou place libre).`);
+      // Inhabitants and quests.
+      inhabitant(env,c,{key:'merchant',name:'Dame Noisette (marchande)',x:o(9,-R*.1+9).x,z:o(9,-R*.1+9).z,appearance:look(true,false,'scarf'),routine:'idle',greeting:'Bienvenue au marché ! J’achète fruits, champignons, fleurs et récoltes.',topics:[['Que vendez-vous ?','Des outils, des semences et du bois. Parlez au comptoir pour commercer.']]});
+      inhabitant(env,c,{key:'guard',name:'Sire Écorce (garde)',x:o(3,cz-half-6).x,z:o(3,cz-half-6).z,appearance:look(true,false,'pendant','determined'),routine:'wander',radius:6,greeting:'Halte ! Le château est ouvert aux voyageurs honnêtes.',topics:[['Que voit-on des remparts ?','Par temps clair, on aperçoit la fumée du volcan au nord et les voiles du port au sud.']]});
+      inhabitant(env,c,{key:'priest',name:'Frère Gland',x:o(-R*.55+8,-R*.05).x,z:o(-R*.55+8,-R*.05).z,appearance:look(false,false,'pendant','curious'),routine:'idle',greeting:'La paix soit avec vous. Les vitraux racontent l’histoire de l’île.',topics:[['Une légende ?','On dit qu’un arbre immense veille sur la forêt de l’ouest depuis l’origine du monde.']]});
+      for(const [i,[u,v]]of [[-R*.2,-R*.3],[R*.25,R*.05],[-R*.1,R*.15]].entries())inhabitant(env,c,{key:'citizen-'+i,name:['Pipa','Roux','Brindille'][i],x:o(u,v).x,z:o(u,v).z,appearance:look(i===1,i===0,i===2?'scarf':'none'),routine:'wander',radius:14,greeting:['Quelle belle journée pour flâner au marché !','Avez-vous vu la cathédrale ? Les tours dépassent la forêt !','On raconte qu’un poisson doré nage près du port…'][i]});
+      if(bool(p,'quests',true)){
+        questGiver(env,c,{key:'innkeeper',name:'Maître Faîne (aubergiste)',x:o(R*.5-6,-R*.1+8).x,z:o(R*.5-6,-R*.1+8).z,appearance:look(false,false,'scarf','joyful'),title:'Poissons pour l’auberge',greeting:'Bienvenue au Gland d’Or ! La soupe du jour manque de poisson…',ask:'Pourriez-vous me rapporter 5 poissons, n’importe lesquels ? Je vous paierai bien.',itemId:'fish:sardine',itemLabel:'sardines',quantity:5,reward:{itemId:COIN,quantity:45,label:'45 pièces'},thanks:'Merveilleux ! La soupe sera délicieuse. Voici votre dû.'});
+        questGiver(env,c,{key:'carpenter',name:'Maître Aubier (charpentier)',x:o(-R*.3,-R*.55).x,z:o(-R*.3,-R*.55).z,appearance:look(true,true,'none','determined'),title:'Bois pour la charpente',greeting:'La toiture de la halle a besoin de poutres neuves.',ask:'Rapportez-moi 10 bûches. Une hache s’achète au comptoir du bûcheron ou au marché.',itemId:'wood:log',itemLabel:'bûches',quantity:10,reward:{itemId:COIN,quantity:60,label:'60 pièces'},thanks:'Du bon bois ! La halle tiendra cent ans.'});
+        questGiver(env,c,{key:'herbalist',name:'Mélisse (herboriste)',x:o(R*.15,-R*.6).x,z:o(R*.15,-R*.6).z,appearance:look(false,true,'pendant','curious'),title:'Bouquet pour la fête',greeting:'La fête des moissons approche et la place manque de couleurs.',ask:'Cueillez-moi 6 bouquets de fleurs dans les prairies.',itemId:'forage:flower',itemLabel:'bouquets de fleurs',quantity:6,reward:{itemId:COIN,quantity:30,label:'30 pièces'},thanks:'Comme c’est joli ! Merci infiniment.'});
+      }
+      // Small enclosed fields outside the walls.
+      enclosedField(env,c,'field-1','Champ clos ouest',-R*.75,-R*.6,22,16,'hedge');enclosedField(env,c,'field-2','Champ clos est',R*.78,-R*.55,20,14,'wall');
+      return c;}}),
+  'fishing-port':P({id:'fishing-port',version:1,label:'Port de pêche',description:'Village côtier : maisons de pêcheurs, cabanes sur pilotis, ponton, comptoir du port, pêcheurs et quêtes (dont la canne à pêche).',profile:'sandy-coast',defaultSize:[340,300],
+    params:townParams(6),produces:['entités : maisons de pêcheurs, cabanes sur pilotis, ponton, tonneaux, lanternes','comptoir du port','habitants, quêtes (canne à pêche en récompense)','chemins'],
+    relief:()=>[],regions:(f,p)=>[{x:f.cx,z:f.cz,width:f.width,length:f.length,rotation:f.rotation,edgeM:30,profile:'sandy-coast',density:num(p,'density',.4)}],
+    content:(env,p)=>{const c=empty(),o=(u:number,v:number)=>env.toWorld(u,v);
+      // Shoreline along v: first sea point from the land side (v = -L/2 is inland by convention).
+      let shore:number|null=null;for(let v=-env.length/2;v<env.length/2;v+=3){const q=o(0,v);if(env.height(q.x,q.z)<env.seaLevel){shore=v;break;}}
+      if(shore===null){c.diagnostics.push('Port : aucune mer dans l’emprise (orienter l’axe v vers la mer).');return c;}
+      const homes=spots(env,Math.round(num(p,'houses',6)),12,Math.min(env.width,env.length)*.42,12,700,.25).filter(q=>env.toLocal(q.x,q.z).v<shore!-6);
+      const centre=o(0,shore-14);homes.forEach((q,i)=>{prop(c,'house-'+i,'Maison de pêcheur','architecture.house_blue',q,Math.atan2(-(centre.x-q.x),-(centre.z-q.z)));c.paths.push({key:'lane-'+i,points:[centre,q],width:2,kind:'dirt'});});
+      // Pier: dock tiles from the beach into the sea, deck above water.
+      for(let i=0;i<10;i++){const q=o(0,shore-4+i*2),h=env.height(q.x,q.z);c.entities.push({key:'pier-'+i,name:'Ponton '+(i+1),assetId:'structure.dock_tile',x:q.x,z:q.z,rotation:env.rotation,y:Math.max(0,env.seaLevel-h+.2)});}
+      for(const [i,u]of [-14,14].entries()){const q=o(u,shore-1);prop(c,'hut-'+i,'Cabane sur pilotis','structure.pier_hut',q,env.rotation+Math.PI);}
+      counter(c,'port-counter','port','structure.counter_port','Comptoir du port',o(-7,shore-9),env.rotation+Math.PI);
+      for(const [i,q]of [o(6,shore-8),o(-12,shore-14),o(9,shore-16)].entries())prop(c,'barrel-'+i,'Tonneau','structure.barrel',q);prop(c,'crates','Caisses','structure.crate_stack',o(4,shore-11));
+      for(const [i,q]of [o(2,shore-3),o(0,shore+14)].entries())prop(c,'lamp-'+i,'Lanterne','structure.lamp_post',q);
+      c.paths.push({key:'harbour-road',points:[centre,o(0,-env.length/2)],width:3,kind:'dirt',smooth:true});
+      inhabitant(env,c,{key:'harbourmaster',name:'Capitaine Nageoire',x:o(-9,shore-6).x,z:o(-9,shore-6).z,appearance:look(true,false,'scarf','joyful'),routine:'idle',greeting:'Ahoy ! Le comptoir achète tout ce qui nage.',topics:[['Où pêcher ?','Face à la mer depuis le ponton : sardines et maquereaux. Les truites préfèrent les rivières, les carpes les lacs.']]});
+      if(bool(p,'quests',true)){
+        questGiver(env,c,{key:'old-fisher',name:'Vieux Goujon',x:o(10,shore-10).x,z:o(10,shore-10).z,appearance:look(true,false,'none','tired'),title:'La canne du vieux Goujon',greeting:'Mes vieilles pattes ne tiennent plus la ligne…',ask:'Rapportez-moi 4 roseaux du marais pour mes paniers, et je vous donne ma vieille canne à pêche.',itemId:'forage:reed',itemLabel:'roseaux',quantity:4,reward:{itemId:'tool:fishing-rod',quantity:1,label:'Une canne à pêche'},thanks:'Prenez ma canne, et que la mer vous soit généreuse !'});
+        questGiver(env,c,{key:'fishwife',name:'Ondine (poissonnière)',x:o(-14,shore-16).x,z:o(-14,shore-16).z,appearance:look(false,true,'pendant','happy'),title:'Maquereaux du marché',greeting:'Le marché de la ville réclame du poisson frais !',ask:'Pêchez-moi 3 maquereaux en mer, je vous paierai plus que le comptoir.',itemId:'fish:mackerel',itemLabel:'maquereaux',quantity:3,reward:{itemId:COIN,quantity:35,label:'35 pièces'},thanks:'Ils brillent encore ! Voici votre paiement.'});}
+      return c;}}),
+  'mountain-hamlet':P({id:'mountain-hamlet',version:1,label:'Hameau de montagne',description:'Hameau en palissade : cabanes, ferme, tour de guet, petit champ clos, berger et chasseur.',profile:'mountain',defaultSize:[220,220],
+    params:townParams(4),produces:['relief : replat','entités : cabanes, ferme, tour de guet, palissade','champ clos (AGRI)','habitants et quête'],
+    relief:(f,_p,height)=>[{key:'terrace',id:'',kind:'plateau',polygon:Array.from({length:10},(_,k)=>{const t=k/10*6.283;return f.toWorld(Math.cos(t)*f.width*.38,Math.sin(t)*f.length*.38);}),heightM:r1(Math.max(2,height(f.cx,f.cz))),edgeM:r1(Math.min(f.width,f.length)*.15)}],
+    regions:(f,p)=>[{x:f.cx,z:f.cz,width:f.width,length:f.length,rotation:f.rotation,edgeM:25,profile:'mountain',density:num(p,'density',.4)}],
+    content:(env,p)=>{const c=empty(),R=Math.min(env.width,env.length)*.38,o=(u:number,v:number)=>env.toWorld(u,v),centre=o(0,0);
+      const homes=ring(env,Math.round(num(p,'houses',4)),R*.25,R*.7,12,900);homes.forEach((q,i)=>{prop(c,'cabin-'+i,'Cabane','architecture.wooden_cabin',q,Math.atan2(-(centre.x-q.x),-(centre.z-q.z)));c.paths.push({key:'lane-'+i,points:[centre,q],width:2,kind:'trail'});});
+      prop(c,'farm','Ferme','architecture.farmhouse',o(-R*.55,R*.3),env.rotation);prop(c,'tower','Tour de guet','architecture.watchtower',o(R*.6,R*.45));
+      const pal=Array.from({length:17},(_,k)=>{const t=k/16*6.283;return o(Math.cos(t)*R*.95,Math.sin(t)*R*.95);});
+      c.entities.push(...enclosure('palisade','structure.palisade','Palissade',pal,0,9).filter((_,i)=>i%1===0).map(e=>({...e,assetId:'structure.palisade'})));
+      enclosedField(env,c,'field','Champ du hameau',-R*.15,-R*.55,16,12,'fence');prop(c,'well','Puits','structure.well',o(4,4));
+      c.paths.push({key:'track',points:[centre,o(0,-R*1.3)],width:2,kind:'trail',smooth:true});
+      inhabitant(env,c,{key:'hunter',name:'Pistache (chasseuse)',x:o(R*.5,R*.3).x,z:o(R*.5,R*.3).z,appearance:look(true,true,'none','determined'),routine:'wander',radius:10,greeting:'Du haut de la tour, on voit toute l’île.',topics:[['Des conseils ?','Les champignons aiment l’ombre humide des forêts de vallée. Les fleurs, les prairies ensoleillées.']]});
+      if(bool(p,'quests',true))questGiver(env,c,{key:'shepherd',name:'Berger Chardon',x:o(-6,6).x,z:o(-6,6).z,appearance:look(true,false,'scarf','curious'),title:'Champignons du berger',greeting:'Mes brebis sont rentrées, mais mon garde-manger est vide.',ask:'Rapportez-moi 6 champignons de la forêt.',itemId:'forage:mushroom',itemLabel:'champignons',quantity:6,reward:{itemId:COIN,quantity:40,label:'40 pièces'},thanks:'Ça sent bon le sous-bois ! Merci, voyageur.'});
+      return c;}}),
+  'mine-camp':P({id:'mine-camp',version:1,label:'Camp minier',description:'Entrée de mine aménagée : zone MINE (galeries), entrée de grotte, comptoir de la mine (pioches, achat des minerais), mineur et quête.',profile:'mountain',defaultSize:[160,160],
+    params:[...sizeParams(.5),{key:'levels',label:'Niveaux de mine',kind:'number',min:1,max:6,step:1,default:3},{key:'quests',label:'Quêtes',kind:'boolean',default:true}],
+    produces:['zone : mine (MINE)','entités : entrée de grotte, comptoir de la mine, caisses, lanternes','mineur et quête (pioche d’acier)'],
+    relief:()=>[],regions:(f,p)=>[{x:f.cx,z:f.cz,width:f.width,length:f.length,rotation:f.rotation,edgeM:20,profile:'mountain',density:num(p,'density',.5)}],
+    content:(env,p)=>{const c=empty(),o=(u:number,v:number)=>env.toWorld(u,v);
+      const poly=[o(-30,6),o(30,6),o(32,60),o(-28,62)];c.zones.push({key:'mine',kind:'mine',name:'Mine',polygon:poly,levels:Math.round(num(p,'levels',3))});
+      prop(c,'cave','Entrée de la mine','landmark.cave_entrance',o(0,10),env.rotation);
+      counter(c,'mine-counter','mine','structure.counter_mine','Comptoir de la mine',o(-9,-6),env.rotation);
+      for(const [i,q]of [o(8,-4),o(-14,-2)].entries())prop(c,'crates-'+i,'Caisses','structure.crate_stack',q,i);for(const [i,q]of [o(-4,4),o(5,4)].entries())prop(c,'lamp-'+i,'Lanterne','structure.lamp_post',q);
+      c.paths.push({key:'mine-road',points:[o(0,6),o(0,-env.length/2)],width:3,kind:'dirt',smooth:true});
+      inhabitant(env,c,{key:'foreman',name:'Contremaître Silex',x:o(6,-8).x,z:o(6,-8).z,appearance:look(true,true,'none','determined'),routine:'idle',greeting:'La pioche fait tout ! À mains nues, la roche résiste longtemps.',topics:[['La mine ?','Terre, roche, roche dure, fer et cristal : plus c’est précieux, plus c’est dur. Il tombe parfois des éclats en creusant.']]});
+      if(bool(p,'quests',true))questGiver(env,c,{key:'miner',name:'Mineuse Galène',x:o(-4,-10).x,z:o(-4,-10).z,appearance:look(true,false,'scarf','tired'),title:'Le fer de la forge',greeting:'La forge du château attend du minerai…',ask:'Rapportez-moi 5 minerais de fer et je vous offre ma pioche d’acier.',itemId:'mine:iron',itemLabel:'minerais de fer',quantity:5,reward:{itemId:'tool:pickaxe-steel',quantity:1,label:'Une pioche d’acier'},thanks:'Du beau fer ! Cette pioche est à vous, elle fend le cristal.'});
+      return c;}}),
+  'forest-camp':P({id:'forest-camp',version:1,label:'Camp de bûcherons',description:'Clairière de bûcherons : cabane, comptoir du bûcheron (haches, achat du bois, champignons, fleurs), bûcheron et quête.',profile:'temperate-forest',defaultSize:[160,160],
+    params:[...sizeParams(.7),{key:'quests',label:'Quêtes',kind:'boolean',default:true}],produces:['entités : cabane, comptoir du bûcheron, souches, palissade','bûcheron et quête'],
+    relief:()=>[],regions:(f,p)=>[{x:f.cx,z:f.cz,width:f.width,length:f.length,rotation:f.rotation,edgeM:30,profile:'temperate-forest',density:num(p,'density',.7)}],
+    content:(env,p)=>{const c=empty(),o=(u:number,v:number)=>env.toWorld(u,v);
+      c.masks.push({layer:'biome',code:'m',test:(u,v,x,z)=>blob(env,0xc1,u,v,22,22,x,z,.15)>0});
+      prop(c,'cabin','Cabane du bûcheron','architecture.wooden_cabin',o(-10,8),env.rotation);counter(c,'forest-counter','forest','structure.counter_forest','Comptoir du bûcheron',o(6,-4),env.rotation);
+      for(let i=0;i<4;i++)prop(c,'stump-'+i,'Souche','nature.stump_simple',o(-14+i*9,-12+(i%2)*5),i);prop(c,'logs','Troncs','nature.log_fallen',o(12,6),.6);
+      c.paths.push({key:'camp-trail',points:[o(0,0),o(0,-env.length/2)],width:2,kind:'trail',smooth:true});
+      if(bool(p,'quests',true))questGiver(env,c,{key:'woodcutter',name:'Bûcheron Frêne',x:o(2,-8).x,z:o(2,-8).z,appearance:look(true,true,'scarf','joyful'),title:'Le panier du bûcheron',greeting:'Une bonne hache et du respect pour les arbres : voilà le métier.',ask:'Ramassez-moi 3 champignons pour le repas, et je vous prête ma vieille hache.',itemId:'forage:mushroom',itemLabel:'champignons',quantity:3,reward:{itemId:'tool:axe',quantity:1,label:'Une hache'},thanks:'Merci ! Prenez la hache : abattez, mais laissez la forêt repousser.'});
+      return c;}}),
+  'landmark-site':P({id:'landmark-site',version:1,label:'Point de repère',description:'Lieu remarquable visible de loin : arbre-monde, cercle de pierres, obélisque, tour en ruine, arche rocheuse, tour de guet, chapelle ; blocs de pierre et ermite.',profile:'prairie',defaultSize:[120,120],
+    params:[{key:'kind',label:'Repère (0 arbre-monde … 6 chapelle)',kind:'number',min:0,max:6,step:1,default:0},{key:'hermit',label:'Ermite',kind:'boolean',default:true},...sizeParams(1)],produces:['entité repère','gros blocs de pierre','ermite et légende'],
+    relief:()=>[],regions:(f,p)=>[{x:f.cx,z:f.cz,width:f.width,length:f.length,rotation:f.rotation,edgeM:20,density:num(p,'density',1)}],
+    content:(env,p)=>{const c=empty(),o=(u:number,v:number)=>env.toWorld(u,v),k=Math.round(num(p,'kind',0));
+      const kinds:[string,string,string][]=[['landmark.world_tree','Arbre-monde','On raconte que ses racines touchent le cœur du volcan.'],['landmark.standing_stones','Cercle des Anciens','Les pierres s’alignent sur le lever du soleil du premier jour d’été.'],['landmark.obelisk','Obélisque doré','Un message gravé indique la route des trois tours.'],['landmark.ruined_tower','Tour effondrée','Une ancienne vigie gardait ici la côte des pillards.'],['nature.rock_arch','Arche du Géant','Un géant de pierre aurait laissé sa trace en passant.'],['architecture.watchtower','Tour de guet','Du sommet, on compte toutes les tours de l’île.'],['architecture.church','Chapelle isolée','Les pèlerins s’y arrêtent avant de gravir le volcan.']];
+      const [asset,name,lore]=kinds[Math.max(0,Math.min(6,k))];prop(c,'landmark',name,asset,o(0,0),env.rotation);
+      for(let i=0;i<4;i++){const a=env.rand(1200+i)*6.283,d=18+env.rand(1300+i)*20;prop(c,'boulder-'+i,'Gros bloc','nature.'+(i%2?'boulder_large':'boulder_pile'),o(Math.cos(a)*d,Math.sin(a)*d),a,r1(.8+env.rand(1400+i)*.6));}
+      c.paths.push({key:'path',points:[o(0,-8),o(0,-env.length/2)],width:1.8,kind:'trail',smooth:true});
+      if(bool(p,'hermit',true))inhabitant(env,c,{key:'hermit',name:'Ermite Lichen',x:o(8,-10).x,z:o(8,-10).z,appearance:look(true,false,'pendant','curious'),routine:'wander',radius:5,greeting:`Vous voici devant : ${name}.`,topics:[['Une histoire ?',lore]]});
+      return c;}}),
+};
+
+export const LANDSCAPE_PRESETS:Record<LandscapePresetId,LandscapePreset>={...NATURE_PRESETS,...SETTLEMENT_PRESETS};
 export const LANDSCAPE_PRESET_LIST=Object.values(LANDSCAPE_PRESETS);
 export function defaultParams(id:LandscapePresetId):LandscapeParams{return Object.fromEntries(LANDSCAPE_PRESETS[id].params.map(p=>[p.key,p.default]));}
 /** Clamp/complete parameters against the preset definition (unknown keys dropped). */

@@ -36,27 +36,34 @@ export interface LandscapeReport {
   maskCells:{painted:number;erased:number;protected:number;/** Cells left to the generator (same value). */alreadyGenerated:number};
   diagnostics:string[];chunks:string[];
 }
-type Kind='features'|'water'|'paths'|'entities'|'zones';
-const KIND_LABEL:Record<Kind,string>={features:'relief',water:'eau',paths:'chemin',entities:'objet',zones:'zone'};
+type Kind='features'|'water'|'paths'|'entities'|'zones'|LibKind;
+type LibKind='behaviors'|'dialogues'|'objectives'|'items';
+const LIB_KINDS:LibKind[]=['behaviors','dialogues','objectives','items'];
+const ALL_KINDS:Kind[]=['features','water','paths','entities','zones',...LIB_KINDS];
+const libraryOf=(p:ProjectDocument,kind:LibKind)=>(p.libraries[kind]??{}) as Record<string,unknown>;
+const KIND_LABEL:Record<Kind,string>={features:'relief',water:'eau',paths:'chemin',entities:'objet',zones:'zone',behaviors:'routine',dialogues:'dialogue',objectives:'quête',items:'objet d’inventaire'};
 /** Current state of an element (undefined = absent) — the thing fingerprints are taken of. */
 function current(p:ProjectDocument,kind:Kind,id:string):unknown{
   switch(kind){
     case 'features':return p.world.terrain?.kind==='archipelago'?p.world.terrain.archipelago.features.find(f=>f.id===id):undefined;
     case 'water':return p.libraries.water[id];case 'paths':return p.libraries.paths[id];case 'zones':return p.libraries.zones?.[id];
     case 'entities':{const e=p.entityIndex[id];return e?p.chunks[e.ownerChunkId]?.entities[id]:undefined;}
+    default:return libraryOf(p,kind)[id];
   }
 }
 function remove(p:ProjectDocument,kind:Kind,id:string){
   switch(kind){
     case 'features':if(p.world.terrain?.kind==='archipelago'){const a=p.world.terrain.archipelago;p.world.terrain={...p.world.terrain,archipelago:{...a,features:a.features.filter(f=>f.id!==id)}};}break;
     case 'water':removeWater(p,id);break;case 'paths':removePath(p,id);break;case 'zones':removeZone(p,id);break;case 'entities':removeEntity(p,id);break;
+    default:{const next={...libraryOf(p,kind)};delete next[id];(p.libraries as unknown as Record<string,unknown>)[kind]=next;}
   }
 }
 function put(p:ProjectDocument,kind:Kind,value:unknown){
   switch(kind){
     case 'features':{if(p.world.terrain?.kind!=='archipelago')return;const a=p.world.terrain.archipelago,f=value as ReliefFeature;p.world.terrain={...p.world.terrain,archipelago:{...a,features:[...a.features.filter(x=>x.id!==f.id),structuredClone(f)]}};break;}
     case 'water':putWater(p,value as WaterBody);break;case 'paths':putPath(p,value as PathDefinition);break;case 'zones':putZone(p,value as ActivityZoneV3);break;
-    case 'entities':{const e=value as EntityDefinitionV3,asset=assetDefinitionFor(e.components.Visual!.assetId);if(asset&&!p.assets[asset.id])p.assets={...p.assets,[asset.id]:asset};putEntity(p,e);break;}
+    case 'entities':{const e=value as EntityDefinitionV3,asset=e.components.Visual?assetDefinitionFor(e.components.Visual.assetId):undefined;if(asset&&!p.assets[asset.id])p.assets={...p.assets,[asset.id]:asset};putEntity(p,e);break;}
+    default:{const v=value as {id:string};(p.libraries as unknown as Record<string,unknown>)[kind]={...libraryOf(p,kind),[v.id]:structuredClone(v)};}
   }
 }
 /** Sectors an instance may touch (footprint + margin): hydrate them before editing. */
@@ -88,14 +95,17 @@ export function applyLandscape(draft:ProjectDocument,input:LandscapeInstanceV1,o
   const previous:LandscapeGenerated=draft.libraries.landscapes?.[inst.id]?.generated??inst.generated??emptyGenerated();
   const report:LandscapeReport={instanceId:inst.id,added:0,updated:0,removed:0,unchanged:0,conflicts:[],respectedDeletions:[],maskCells:{painted:0,erased:0,protected:0,alreadyGenerated:0},diagnostics:[],chunks:[]};
   const overwrite=!!options.overwrite,next:LandscapeGenerated={...emptyGenerated(),revision:previous.revision+1};
+  const nextOf=(kind:Kind)=>(next[kind]??(next[kind]={})) as Record<string,string>;
   // Phase 1 — release owned content of the previous generation (modified content is detached).
   const owned=new Map<Kind,Set<string>>(),blocked=new Set<string>();
-  for(const kind of ['features','water','paths','entities','zones'] as Kind[]){
+  for(const kind of ALL_KINDS){
     owned.set(kind,new Set());
-    for(const [id,hash]of Object.entries(previous[kind])){
+    for(const [id,hash]of Object.entries(previous[kind]??{})){
       const now=current(draft,kind,id);
       if(now===undefined){if(!overwrite){report.respectedDeletions.push({kind:KIND_LABEL[kind],id});blocked.add(kind+':'+id);}continue;}
       if(fingerprint(now)!==hash&&!overwrite){report.conflicts.push({kind:KIND_LABEL[kind],id});blocked.add(kind+':'+id);continue;}
+      // A library entry still referenced by content kept for the author is not removed.
+      if(LIB_KINDS.includes(kind as LibKind)&&referencedElsewhere(draft,id,inst.id)){blocked.add(kind+':'+id);continue;}
       remove(draft,kind,id);owned.get(kind)!.add(id);
     }
   }
@@ -118,13 +128,13 @@ export function applyLandscape(draft:ProjectDocument,input:LandscapeInstanceV1,o
   }
   // Phase 3 — content on the new relief.
   const after=projectGeography(draft),inWorld=(x:number,z:number)=>x>b.minX+1&&x<b.maxX-1&&z>b.minZ+1&&z<b.maxZ-1;
-  const env:ContentEnv={...frame,height:after.ctx.height,seaLevel:draft.world.seaLevel,inWorld,water:(x,z)=>after.ctx.water(x,z,after.ctx.height(x,z)),rand:k=>(hash2(frame.seed,k,0x5eed)+1)/2};
+  const env:ContentEnv={...frame,height:after.ctx.height,seaLevel:draft.world.seaLevel,inWorld,water:(x,z)=>after.ctx.water(x,z,after.ctx.height(x,z)),rand:k=>(hash2(frame.seed,k,0x5eed)+1)/2,ref:key=>`${inst.id}.${key}`};
   const content:LandscapeContent=preset.content(env,params);report.diagnostics.push(...content.diagnostics);
   const add=(kind:Kind,id:string,value:unknown)=>{
     if(blocked.has(kind+':'+id))return;
     if(current(draft,kind,id)!==undefined){report.conflicts.push({kind:KIND_LABEL[kind],id});return;} // id taken by author content
     try{put(draft,kind,value);}catch(error){report.diagnostics.push(`${KIND_LABEL[kind]} ${id} ignoré : ${error instanceof Error?error.message:String(error)}`);return;}
-    next[kind][id]=fingerprint(current(draft,kind,id));owned.get(kind)!.delete(id)?report.updated++:report.added++;
+    nextOf(kind)[id]=fingerprint(current(draft,kind,id));owned.get(kind)!.delete(id)?report.updated++:report.added++;
   };
   const clampPoint=(q:{x:number;z:number})=>({x:Math.max(b.minX+1,Math.min(b.maxX-1,q.x)),z:Math.max(b.minZ+1,Math.min(b.maxZ-1,q.z))});
   // WATER coherence: a generated river must pass the same hydrographic compilation as the
@@ -142,13 +152,17 @@ export function applyLandscape(draft:ProjectDocument,input:LandscapeInstanceV1,o
   }
   for(const {key,...path}of content.paths){const id=`${inst.id}.${key}`;add('paths',id,{...path,id,points:path.points.map(clampPoint)});}
   for(const {key,...z}of content.zones){const id=`${inst.id}.${key}`;add('zones',id,{...z,id,polygon:z.polygon.map(clampPoint)});}
+  for(const kind of LIB_KINDS)for(const {key,value}of content.libraries?.[kind]??[]){const id=key.startsWith('@')?key.slice(1):`${inst.id}.${key}`;add(kind,id,{...value,id});}
   for(const e of content.entities){
     if(!inWorld(e.x,e.z))continue;const id=`${inst.id}.${e.key}`,asset=assetDefinitionFor(e.assetId);
-    if(!asset&&!draft.assets[e.assetId]){report.diagnostics.push(`Asset absent du registre : ${e.assetId}`);continue;}
+    if(!e.character&&!asset&&!draft.assets[e.assetId]){report.diagnostics.push(`Asset absent du registre : ${e.assetId}`);continue;}
     const role=e.assetId.startsWith('architecture.')?'building':'prop',s=e.scale3??[e.scale??1,e.scale??1,e.scale??1];
-    add('entities',id,{id,name:e.name,kind:role,ownerChunkId:chunkAt(draft.world,e.x,e.z),components:{
-      Transform:{type:'Transform',position:{x:e.x,y:e.y??0,z:e.z},rotation:{x:0,y:Math.sin(e.rotation/2),z:0,w:Math.cos(e.rotation/2)},scale:{x:s[0],y:s[1],z:s[2]}},
-      Visual:{type:'Visual',assetId:e.assetId}}} satisfies EntityDefinitionV3);
+    const transform={type:'Transform' as const,position:{x:e.x,y:e.y??0,z:e.z},rotation:{x:0,y:Math.sin(e.rotation/2),z:0,w:Math.cos(e.rotation/2)},scale:{x:s[0],y:s[1],z:s[2]}};
+    const state=e.state?{State:{type:'State' as const,initial:{...e.state}}}:{};
+    if(e.character){const c=e.character,behaviorId=`${inst.id}.${c.behaviorKey}`;
+      add('entities',id,{id,name:e.name,kind:'character',ownerChunkId:chunkAt(draft.world,e.x,e.z),components:{Transform:transform,Character:{type:'Character',species:c.species,rigId:'squirrel-rigid',appearance:{...c.appearance}},
+        Navigation:{type:'Navigation',behaviorId,speed:c.speed,radius:c.radius},BehaviorRef:{type:'BehaviorRef',behaviorId},...(c.dialogueKeys.length?{DialogueActor:{type:'DialogueActor',dialogueIds:c.dialogueKeys.map(k=>`${inst.id}.${k}`)}}:{}),...state}} satisfies EntityDefinitionV3);continue;}
+    add('entities',id,{id,name:e.name,kind:role,ownerChunkId:chunkAt(draft.world,e.x,e.z),components:{Transform:transform,Visual:{type:'Visual',assetId:e.assetId},...state}} satisfies EntityDefinitionV3);
   }
   // Phase 4 — mask corrections, cell by cell, author corrections first.
   const g=sectorGrid(draft),touched=new Set<string>();
@@ -192,9 +206,10 @@ export function removeLandscape(draft:ProjectDocument,id:string,options:{overwri
   const inst=draft.libraries.landscapes?.[id];
   const report:LandscapeReport={instanceId:id,added:0,updated:0,removed:0,unchanged:0,conflicts:[],respectedDeletions:[],maskCells:{painted:0,erased:0,protected:0,alreadyGenerated:0},diagnostics:[],chunks:[]};
   if(!inst)return report;const g=inst.generated??emptyGenerated();
-  for(const kind of ['features','water','paths','entities','zones'] as Kind[])for(const [eid,hash]of Object.entries(g[kind])){
+  for(const kind of ALL_KINDS)for(const [eid,hash]of Object.entries(g[kind]??{})){
     const now=current(draft,kind,eid);if(now===undefined)continue;
     if(fingerprint(now)!==hash&&!options.overwrite){report.conflicts.push({kind:KIND_LABEL[kind],id:eid});continue;}
+    if(LIB_KINDS.includes(kind as LibKind)&&referencedElsewhere(draft,eid,id))continue;
     remove(draft,kind,eid);report.removed++;
   }
   for(const [chunk,layers]of Object.entries(g.masks))for(const [layer,mask]of Object.entries(layers)){
@@ -212,4 +227,12 @@ export function previewLandscape(p:ProjectDocument,inst:LandscapeInstanceV1,opti
 function clampFeature(f:ReliefFeature,b:{minX:number;maxX:number;minZ:number;maxZ:number}):ReliefFeature{
   const cx=(v:number)=>Math.max(b.minX,Math.min(b.maxX,v)),cz=(v:number)=>Math.max(b.minZ,Math.min(b.maxZ,v)),pt=(q:{x:number;z:number})=>({x:cx(q.x),z:cz(q.z)});
   if('points'in f)return {...f,points:f.points.map(pt)};if('polygon'in f)return {...f,polygon:f.polygon.map(pt)};return {...f,x:cx(f.x),z:cz(f.z)};
+}
+/** True when an id is mentioned by entities or libraries that do not belong to the instance
+ * (content detached for the author, or other authored data): such library entries are kept. */
+function referencedElsewhere(p:ProjectDocument,id:string,instanceId:string):boolean{
+  const needle=JSON.stringify(id);
+  for(const c of Object.values(p.chunks))for(const e of Object.values(c.entities))if(!e.id.startsWith(instanceId+'.')&&JSON.stringify(e.components).includes(needle))return true;
+  for(const [name,lib]of Object.entries(p.libraries)){if(name==='landscapes')continue;for(const [k,v]of Object.entries(lib??{}))if(k!==id&&!k.startsWith(instanceId+'.')&&JSON.stringify(v).includes(needle))return true;}
+  return false;
 }

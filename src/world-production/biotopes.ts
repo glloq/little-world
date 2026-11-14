@@ -9,7 +9,7 @@ import {ASSET_USAGE,type BiotopeId} from './asset-usage.ts';
 
 /** Ordered species table used by dressing items (index stored in the item; append only —
  * changing the order changes DRESSING_VERSION). */
-export const SPECIES_IDS=['nature.broadleaf_round','nature.broadleaf_tall','nature.hazel_thin','nature.sapling_thin','nature.leafless_tree','nature.dead_tree_twisted','nature.palm_thin','nature.palm_curved','nature.fruit_apple','nature.fruit_pear','nature.fruit_plum','nature.fruit_cherry','nature.pine','nature.bush_small','nature.bush_asym','nature.bush_round','nature.bush_irregular','nature.shrub_flowering','nature.shrub_flower','nature.fern_small','nature.wildflowers_patch','nature.flowers_tall','nature.mushrooms_patch','nature.mushroom_tall','nature.moss_patch','nature.reeds_patch','nature.broadleaf_plant','nature.stump_simple','nature.stump_mossy','nature.log_fallen'] as const;
+export const SPECIES_IDS=['nature.broadleaf_round','nature.broadleaf_tall','nature.hazel_thin','nature.sapling_thin','nature.leafless_tree','nature.dead_tree_twisted','nature.palm_thin','nature.palm_curved','nature.fruit_apple','nature.fruit_pear','nature.fruit_plum','nature.fruit_cherry','nature.pine','nature.bush_small','nature.bush_asym','nature.bush_round','nature.bush_irregular','nature.shrub_flowering','nature.shrub_flower','nature.fern_small','nature.wildflowers_patch','nature.flowers_tall','nature.mushrooms_patch','nature.mushroom_tall','nature.moss_patch','nature.reeds_patch','nature.broadleaf_plant','nature.stump_simple','nature.stump_mossy','nature.log_fallen','nature.conifer_tall','nature.conifer_wide'] as const;
 export type SpeciesId=typeof SPECIES_IDS[number];
 /** Kind/crown/scale come from the asset usage table (single source). */
 export const SPECIES=SPECIES_IDS.map(id=>{const u=ASSET_USAGE[id];const kind=u.role==='tree'?'tree':u.role==='shrub'?'shrub':u.role==='deadwood'?'deadwood':'plant';return {id,kind,crown:u.crown??'round',scale:u.scale};});
@@ -40,7 +40,7 @@ const P=(p:BiotopeProfile)=>p;
 export const BIOTOPES:Record<BiotopeId,BiotopeProfile>={
   'temperate-forest':P({id:'temperate-forest',label:'Forêt tempérée',altitude:[2,320],maxSlope:1.05,geology:['soil','gravel'],moisture:[.3,.85],seaDistance:[40,Infinity],freshWater:[0,Infinity],
     trees:.85,shrubs:.42,ground:.55,deadwood:.08,rocks:.06,openness:.25,size:1,transitionM:28,
-    treeMix:{'nature.broadleaf_round':30,'nature.broadleaf_tall':22,'nature.hazel_thin':14,'nature.pine':14,'nature.sapling_thin':6,'nature.leafless_tree':2,'nature.dead_tree_twisted':1},
+    treeMix:{'nature.broadleaf_round':30,'nature.broadleaf_tall':22,'nature.hazel_thin':14,'nature.pine':5,'nature.conifer_tall':8,'nature.conifer_wide':6,'nature.sapling_thin':6,'nature.leafless_tree':2,'nature.dead_tree_twisted':1},
     shrubMix:{'nature.bush_small':4,'nature.bush_asym':3,'nature.shrub_flower':1},
     groundMix:{'nature.fern_small':40,'nature.moss_patch':18,'nature.broadleaf_plant':12,'nature.mushrooms_patch':8,'nature.mushroom_tall':3},
     deadwoodMix:{'nature.stump_simple':3,'nature.stump_mossy':3,'nature.log_fallen':4},
@@ -68,14 +68,14 @@ export const BIOTOPES:Record<BiotopeId,BiotopeProfile>={
     transitions:['humid-valley','temperate-forest','prairie'],variants:['roselière','tourbière']}),
   mountain:P({id:'mountain',label:'Montagne',altitude:[200,1400],maxSlope:1.1,geology:['rock','gravel','soil'],moisture:[0,.8],seaDistance:[60,Infinity],freshWater:[0,Infinity],
     trees:.08,shrubs:.1,ground:.1,deadwood:.02,rocks:.5,openness:.85,size:.85,transitionM:40,
-    treeMix:{'nature.pine':60,'nature.leafless_tree':12,'nature.dead_tree_twisted':14,'nature.hazel_thin':6},
+    treeMix:{'nature.conifer_tall':34,'nature.conifer_wide':22,'nature.pine':12,'nature.leafless_tree':10,'nature.dead_tree_twisted':12,'nature.hazel_thin':5},
     shrubMix:{'nature.bush_irregular':4,'nature.bush_asym':3},
     groundMix:{'nature.moss_patch':8,'nature.fern_small':2,'nature.wildflowers_patch':2},
     deadwoodMix:{'nature.stump_simple':3,'nature.log_fallen':1},
     transitions:['prairie','temperate-forest','volcanic','heath'],variants:['alpage','pierrier']}),
   heath:P({id:'heath',label:'Lande',altitude:[5,500],maxSlope:.9,geology:['soil','gravel'],moisture:[.12,.3],seaDistance:[20,Infinity],freshWater:[0,Infinity],
     trees:.025,shrubs:.38,ground:.14,deadwood:.006,rocks:.14,openness:.95,size:.85,transitionM:26,
-    treeMix:{'nature.pine':5,'nature.dead_tree_twisted':3,'nature.hazel_thin':1},
+    treeMix:{'nature.conifer_wide':4,'nature.pine':2,'nature.dead_tree_twisted':3,'nature.hazel_thin':1},
     shrubMix:{'nature.bush_irregular':5,'nature.bush_asym':4,'nature.bush_small':2},
     groundMix:{'nature.wildflowers_patch':4,'nature.moss_patch':2},
     deadwoodMix:{'nature.stump_simple':1},
@@ -89,7 +89,7 @@ export const BIOTOPES:Record<BiotopeId,BiotopeProfile>={
     transitions:['prairie','rocky-coast','marsh'],variants:['plage large','crique','dune']}),
   'rocky-coast':P({id:'rocky-coast',label:'Littoral rocheux',altitude:[-1,120],maxSlope:1.5,geology:['rock','gravel','sand'],moisture:[0,1],seaDistance:[0,160],freshWater:[0,Infinity],
     trees:.02,shrubs:.06,ground:.05,deadwood:.004,rocks:.35,openness:1,size:.8,transitionM:18,
-    treeMix:{'nature.pine':5,'nature.dead_tree_twisted':1},
+    treeMix:{'nature.conifer_tall':4,'nature.pine':2,'nature.dead_tree_twisted':1},
     shrubMix:{'nature.bush_irregular':3,'nature.bush_asym':2},
     groundMix:{'nature.moss_patch':3,'nature.broadleaf_plant':1},
     deadwoodMix:{'nature.log_fallen':1},

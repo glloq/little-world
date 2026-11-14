@@ -509,6 +509,10 @@ function createRegistryAsset(id: string): THREE.Group | null {
   if (!asset || asset.group === 'legacy') return null;
   const g = new THREE.Group();
   g.userData.registryAsset = id;
+  // Landmarks stay visible far away (cheap LOD2 silhouettes), buildings farther than props.
+  const role = asset.usage?.role;
+  if (role === 'landmark') g.userData.viewDistance = 2600;
+  else if (role === 'building') g.userData.viewDistance = 900;
   const [sx, sy, sz] = asset.size;
   const placeholder = box(g, mat(asset.usage?.role === 'tree' || asset.usage?.role === 'shrub' || asset.usage?.role === 'ground' ? 0x7fa86a : 0xb9a789), Math.max(.2, sx * .8), Math.max(.2, sy), Math.max(.2, sz * .8), 0, sy / 2, 0);
   placeholder.name = 'Placeholder ' + id;
@@ -860,7 +864,7 @@ export function buildWorld(
       for (const object of objects.children)
         object.visible =
           Math.hypot(object.position.x - focus.x, object.position.z - focus.z) <
-          distance;
+          (object.userData.viewDistance ?? distance);
     },
     dispose() {
       ecology.dispose();

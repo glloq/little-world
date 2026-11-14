@@ -15,6 +15,7 @@ import {defaultEnvironment} from '../src/environment/climate.ts';
 import {applyLandscape,newLandscape} from '../src/world-production/landscapes.ts';
 import {assetDefinitionFor} from '../src/world-production/registry.ts';
 import {projectGeography} from '../src/studio-core/geo-context.ts';
+import {classifyPoint} from '../src/geography/classify.ts';
 import {compileProjectToDirectory} from './compile-project.mjs';
 
 export const ISLAND={width:3000,length:8000,seed:4242};
@@ -57,20 +58,37 @@ export const ISLAND_LANDSCAPES=[
   ['ancient-ruins',P(-980,1350),[150,150],.5,{walls:3}],
   ['ancient-ruins',P(1020,1450),[140,140],-.3,{walls:2}],
   ['ancient-ruins',P(-250,-700),[130,130],0,{walls:2}],
-  // South — village, hamlets, fields, marsh, estuary, beaches.
-  ['village-clearing',P(-80,-1550),[440,420],0,{houses:8,fields:true,windmill:true,orchard:true}],
+  // South — castle town, hamlets, ports, marsh, estuary, beaches.
+  ['castle-town',P(-80,-1550),[560,560],0,{houses:40,cathedral:true}],
   ['village-clearing',P(-780,-950),[260,260],.4,{houses:3,fields:true,windmill:false,orchard:true}],
-  ['village-clearing',P(780,-2650),[260,260],-.3,{houses:3,fields:false,windmill:false,orchard:false}],
+  ['village-clearing',P(780,-2650),[260,260],-.3,{houses:3,fields:true,windmill:true,orchard:false}],
   ['marsh-basin',P(-620,-2350),[520,460],0,{ponds:3,depth:3}],
   ['river-bend',P(280,-2800),[380,760],.1,{riverWidth:9,bridge:true}],
   ['sandy-beach',P(-120,-3560),[1000,260],0,{dunes:40}],
   ['sandy-beach',P(-1230,-1600),[700,220],Math.PI/2,{dunes:30}],
   ['sandy-beach',P(1210,-1200),[600,200],-Math.PI/2,{dunes:24}],
   ['sandy-beach',P(-1220,-3560),[380,240],0,{dunes:20,palms:true}],
+  ['fishing-port',P(-330,-3540),[300,300],Math.PI,{houses:7}],
+  ['fishing-port',P(1080,-1150),[260,260],-Math.PI/2,{houses:5}],
   ['rocky-cliff',P(1180,900),[700,240],Math.PI/2,{height:45}],
   ['rocky-cliff',P(-1240,1500),[700,240],-Math.PI/2,{height:50}],
+  // Inhabited places of the centre and the north, camps at the resources.
+  ['mine-camp',P(-430,1130),[160,160],0,{levels:4}],
+  ['forest-camp',P(-560,120),[160,160],.2,{}],
+  ['forest-camp',P(620,700),[160,160],-.4,{}],
+  ['mountain-hamlet',P(-660,2080),[220,220],0,{houses:4}],
+  ['mountain-hamlet',P(820,2260),[220,220],.5,{houses:3}],
+  // Landmarks spread over the island (several hidden behind ridges or in valleys).
+  ['landmark-site',P(-930,640),[120,120],0,{kind:0}],
+  ['landmark-site',P(420,-560),[120,120],0,{kind:1}],
+  ['landmark-site',P(-520,-2930),[120,120],.4,{kind:2}],
+  ['landmark-site',P(-720,3150),[120,120],0,{kind:3,hermit:false}],
+  ['landmark-site',P(1100,-2150),[120,120],-1.2,{kind:4}],
+  ['landmark-site',P(1000,2700),[120,120],0,{kind:5}],
+  ['landmark-site',P(-300,2050),[120,120],0,{kind:6}],
+  ['landmark-site',P(-1000,-300),[120,120],0,{kind:5,hermit:false}],
 ];
-export const ISLAND_PLACES={volcano:P(-120,2650),village:P(-80,-1550),harbour:P(150,-3420),mine:P(-420,1180),lake:P(80,750),falls:P(-300,1650),beach:P(-120,-3500),forest:P(-700,350),cliff:P(1150,900),marsh:P(-620,-2350)};
+export const ISLAND_PLACES={volcano:P(-120,2650),village:P(-80,-1550),harbour:P(-330,-3560),mine:P(-430,1130),lake:P(80,750),falls:P(-300,1650),beach:P(-120,-3500),forest:P(-700,350),cliff:P(1150,900),marsh:P(-620,-2350)};
 export function buildIsland(){
   const {width,length,seed}=ISLAND;
   const p=createProject({name:'Île du volcan',width,length,seed,projectId:'little-world-island-authoring',worldId:'little-world-island',terrain:{kind:'archipelago',version:1,archipelago:islandArchipelago()}});
@@ -79,22 +97,24 @@ export function buildIsland(){
   const place=(id,name,assetId,x,z,ry=0,y=0)=>{const def=assetDefinitionFor(assetId);if(def&&!p.assets[assetId])p.assets[assetId]=def;
     putEntity(p,{id,name,kind:assetId.startsWith('architecture.')?'building':'prop',ownerChunkId:chunkAt(p.world,x,z),components:{Transform:{type:'Transform',position:{x,y,z},rotation:{x:0,y:Math.sin(ry/2),z:0,w:Math.cos(ry/2)},scale:{x:1,y:1,z:1}},Visual:{type:'Visual',assetId}}});};
   const {ctx}=projectGeography(p),sea=p.world.seaLevel;
-  // Natural harbour: a dock line from the south beach into the bay, lighthouses on two capes.
-  const hx=ISLAND_PLACES.harbour.x;let hz=-3300;for(let z=-3300;z>-3800;z-=2)if(ctx.height(hx,z)<sea-.8){hz=z;break;}
-  for(let i=0;i<8;i++){const z=hz+8-i*2;place(`island-dock-${i+1}`,`Ponton du port ${i+1}`,'structure.dock_tile',hx,z,0,Math.max(0,sea-ctx.height(hx,z)+.2));}
   place('island-lighthouse-south','Phare du cap sud','architecture.lighthouse',900,-3180,.8);
   place('island-lighthouse-north','Phare du cap nord','architecture.lighthouse',980,2880,-.6);
-  // Mine at the foot of the western massif (MINE contract: reserved zone), entrance posts.
-  const m=ISLAND_PLACES.mine;
-  putZone(p,{id:'island-mine',kind:'mine',name:'Mine du massif ouest',polygon:[P(m.x-30,m.z-25),P(m.x+30,m.z-28),P(m.x+34,m.z+25),P(m.x-28,m.z+28)],levels:4});
-  place('island-mine-post-l','Poteau d’entrée de mine','structure.post_rustic',m.x-8,m.z-30);place('island-mine-post-r','Poteau d’entrée de mine','structure.post_rustic',m.x+8,m.z-31);
-  // Main routes: village → forest → mine; village → fields/hamlet; village → harbour; village → east hamlet.
-  putPath(p,{id:'route-village-mine',points:[P(-80,-1550),P(-200,-1000),P(-420,-400),P(-600,250),P(-560,800),P(-430,1150)],width:3,kind:'dirt',smooth:true});
-  putPath(p,{id:'route-village-hamlet-w',points:[P(-80,-1550),P(-420,-1250),P(-780,-950)],width:2.5,kind:'dirt',smooth:true});
-  putPath(p,{id:'route-village-harbour',points:[P(-80,-1550),P(0,-2300),P(100,-3000),P(150,-3380)],width:3,kind:'dirt',smooth:true});
-  putPath(p,{id:'route-village-hamlet-e',points:[P(-80,-1550),P(350,-2100),P(780,-2650)],width:2.5,kind:'trail',smooth:true});
-  putPath(p,{id:'route-ruins-centre',points:[P(-420,-400),P(-250,-700)],width:2,kind:'trail',smooth:true});
-  putPath(p,{id:'route-lake-volcano',points:[P(-560,800),P(-100,700),P(80,750),P(150,1200),P(250,1700),P(150,2100)],width:2,kind:'trail',smooth:true});
+  // Big boulders, rock spires and cliff blocks on rocky ground (deterministic, away from paths/water).
+  let placed=0;for(let k=0;k<4000&&placed<140;k++){
+    const x=Math.round(((k*7919)%2851)-1425),z=Math.round(((k*104729)%7801)-3900),s=classifyPoint(ctx,x,z);
+    if(s.underwater||s.occupation!=='none'||!['rock','gravel','basalt'].includes(s.geology)&&!(s.biome==='mountain'||s.biome==='scrub'))continue;
+const kind=['nature.boulder_large','nature.boulder_pile','nature.rock_spire','nature.cliff_block'][k%4];
+    place(`island-rock-${placed++}`,'Rocher',kind,x,z,(k*2.4)%6.28);}
+  // Main routes linking towns, camps, ports and landmarks.
+  const route=(id,pts,kind='dirt',width=3)=>putPath(p,{id,points:pts.map(([x,z])=>P(x,z)),width,kind,smooth:true});
+  route('route-town-port',[[-80,-1830],[-150,-2400],[-260,-3000],[-330,-3330]]);
+  route('route-town-forest-mine',[[-80,-1270],[-250,-700],[-480,-100],[-560,120],[-560,600],[-450,1000]]);
+  route('route-town-hamlet-w',[[-300,-1500],[-560,-1200],[-780,-950]],'dirt',2.5);
+  route('route-town-hamlet-e',[[150,-1700],[450,-2200],[780,-2650]],'trail',2.5);
+  route('route-east-port',[[200,-1500],[600,-1300],[950,-1150]],'dirt',2.5);
+  route('route-centre-north',[[-450,1000],[-300,1500],[-300,1950],[-560,2050]],'trail',2);
+  route('route-lake-east',[[80,750],[400,800],[620,700],[820,1500],[820,2150]],'trail',2);
+  route('route-stones',[[-80,-1270],[200,-900],[420,-620]],'trail',2);
   return {project:parseProject(p),reports};
 }
 if(import.meta.url===`file://${process.argv[1]}`){
