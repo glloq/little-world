@@ -55,12 +55,13 @@ try{
   check(swing.character.action==='TOOL_SWING_HORIZONTAL'&&swing.character.tool==='axe','F on a tree: horizontal swing with the axe in the paw ('+swing.character.action+', '+swing.character.tool+', '+JSON.stringify(swing.info??null)+')');
   await page.keyboard.down('KeyF');await page.waitForFunction(()=>window.littleWorldMetrics?.inventory?.['wood:log']>0,{},{timeout:30000}).finally(()=>page.keyboard.up('KeyF'));
   check((await m()).inventory['wood:log']>0,'Logs gained through the existing gathering logic');
-  await page.waitForTimeout(800);check((await m()).character.tool===null,'Axe put away after the action');
+  // The last swing may still be playing (animation steps are capped at 0.1 s per frame on slow CPU rendering).
+  await page.waitForFunction(()=>window.littleWorldMetrics?.character.tool===null,{},{timeout:5000}).catch(()=>{});check((await m()).character.tool===null,'Axe put away after the action');
   // 5. Fishing at the start beach: rod, cast, line and float.
   // Spawn away from the shore (the player's boat moors seaward of the spawn), then go to the shore spot.
   await open(`&spawn=${shore.x+40},${shore.z-60}&yaw=0`);await page.evaluate(({x,z})=>{window.littleWorldDebug.grant('tool:fishing-rod',1);window.littleWorldDebug.teleport(x,z,0);},shore);
   await page.waitForFunction(()=>/Pêcher|Lancer/.test(window.littleWorldMetrics?.target??''),{},{timeout:15000});
-  await page.waitForTimeout(400);await page.keyboard.press('KeyE');await page.waitForTimeout(200);const cast=await m();
+  await page.waitForTimeout(400);await page.keyboard.press('KeyE');await page.waitForFunction(()=>window.littleWorldMetrics?.character.action==='FISH_CAST',{},{timeout:5000}).catch(()=>{});const cast=await m();
   check(cast.character.action==='FISH_CAST'&&cast.character.tool==='fishing-rod','E at the water: cast with the rod in the paws');
   await page.waitForTimeout(1200);const wait=await m();await page.screenshot({path:out+'/hamster-fishing.png'});
   check(wait.character.fishingLine&&wait.character.tool==='fishing-rod','Line and float out while waiting ('+wait.character.action+')');
