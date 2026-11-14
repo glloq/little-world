@@ -23,6 +23,9 @@ export interface Controls {
   spaceHeld: boolean;
   dive: boolean;
   cameraYaw: number;
+  /** Camera pitch relative to the default view (rad, positive = looking down): underwater, moving
+   * forward follows it (looking down dives down). Optional for older callers. */
+  cameraPitch?: number;
 }
 export interface Player {
   position: THREE.Vector3;
@@ -43,9 +46,16 @@ export interface Player {
   climbDir?:{x:number;z:number};
   /** Roll (ball mode): forward speed (m/s), heading (rad, 0 = +Z) and idle time (s). */
   rollSpeed?:number;rollHeading?:number;rollIdle?:number;
+  /** Diving toggled with Space in the water (second press, oxygen out or reaching the surface ends it). */
+  diving?:boolean;
+  /** Initial descent of a dive (until fully under water). */
+  diveSink?:boolean;
   /** True when the ball was entered by holding the sprint key (released → back on the paws). */
   rollByHold?:boolean;
 }
+/** Swimming tuning: depth of the feet under the water line while swimming (body centre ≈ at the
+ * surface, head out), dive speed (normal / Shift) and the push down when diving with Space. */
+export const SWIM={sink:.48,dive:2.6,diveRun:3.6,divePush:2.4,diveDepth:1} as const;
 export const MAX_OXYGEN = 90;
 export const MAX_STAMINA = 100;
 /** Roll tuning (kinematic ball, not a physics simulation): top speed, acceleration, rolling
@@ -102,24 +112,44 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
   if (p.mode==='climb'||p.mode==='roll'&&!inWater) {
     // Velocity set by climbStep / rollStep; the relief below is followed after the horizontal move.
   } else if (inWater) {
+    // Swimming IN the water: the body centre rides the water line (head and back out), not on top.
+    const surfaceY = atWater - SWIM.sink;
     if (oldMode !== 'swim' && oldMode !== 'dive') {
-      p.mode = 'swim';
-      v.y = 0;
-      pos.y = Math.min(pos.y, atWater + 0.12);
+      p.mode = 'swim';p.diving = false;
+      v.y = Math.max(v.y, -3) * 0.3; // entry splash: falling speed damped, then the float pulls up
+    } else if (keys.jumpPressed) {
+      // Space: dive (with a push down), Space again: back up to the surface.
+      p.diving = !p.diving;p.diveSink = p.diving;
+      if (p.diving) v.y = Math.min(v.y, -SWIM.divePush);
     }
-    const speed = keys.run ? 5.0 : 3.15;
+    if (p.oxygen <= 0) p.diving = false;
+    const underwater = !!p.diving || keys.dive;
+    const speed = underwater ? (keys.run ? SWIM.diveRun : SWIM.dive) : keys.run ? 5.0 : 3.15;
     const smoothing = Math.min(1, dt * 6);
-    v.x += (dx * speed - v.x) * smoothing;
-    v.z += (dz * speed - v.z) * smoothing;
-    let vyTarget = 0;
-    if (keys.dive) vyTarget = -3.2;
-    else if (keys.spaceHeld || p.oxygen <= 0) vyTarget = 3.75;
-    else if (pos.y >= atWater - 0.3) vyTarget = 1.2;
+    let vyTarget: number;
+    if (underwater && !keys.dive) {
+      // 3D swimming: forward follows the camera (looking down dives down), strafing stays level.
+      const tilt = clamp(keys.cameraPitch ?? 0, -1.2, 1.2), level = Math.cos(tilt);
+      // Camera-relative input split: the forward part tilts with the camera, strafing stays level.
+      const fx = forward * sx, fz = forward * cz, ix = -right * cz, iz = right * sx;
+      v.x += ((fx * level + ix) * speed - v.x) * smoothing;
+      v.z += ((fz * level + iz) * speed - v.z) * smoothing;
+      vyTarget = -Math.sin(tilt) * forward * speed;
+      // A dive first goes fully under (head ≈ 0.6 m deep), then floats and follows the camera.
+      if (p.diveSink) { if (pos.y <= surfaceY - SWIM.diveDepth + .05) p.diveSink = false; else vyTarget = Math.min(vyTarget, clamp((surfaceY - SWIM.diveDepth - pos.y) * 3, -2, -.6)); }
+    } else {
+      v.x += (dx * speed - v.x) * smoothing;
+      v.z += (dz * speed - v.z) * smoothing;
+      // Ctrl held sinks; otherwise the float pulls back to the swimming line (fast from deep water).
+      vyTarget = keys.dive ? -3.2 : clamp((surfaceY - pos.y) * 4, -1.5, 3.75);
+    }
     v.y += (vyTarget - v.y) * Math.min(1, dt * 5);
     pos.y += v.y * dt;
-    const floor = ground + 0.45;
-    pos.y = clamp(pos.y, floor, atWater + 0.12);
-    p.mode = pos.y < atWater - 0.55 ? 'dive' : 'swim';
+    const floor = ground + 0.3;
+    pos.y = clamp(pos.y, floor, surfaceY + 0.06);
+    // Rising back to the swimming line ends a dive by itself.
+    if (p.diving && pos.y >= surfaceY - 0.08 && v.y > 0) p.diving = false;
+    p.mode = pos.y < surfaceY - 0.35 ? 'dive' : 'swim';
     if (p.mode === 'dive') p.oxygen = Math.max(0, p.oxygen - dt);
     else p.oxygen = Math.min(MAX_OXYGEN, p.oxygen + dt * 9);
     p.glideReady = false;
@@ -210,9 +240,10 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
     p.mode !== 'swim' &&
     p.mode !== 'dive'
   ) {
-    p.mode = 'swim';
+    p.mode = 'swim';p.diving = false;
     v.y = 0;
-    pos.y = newWater + 0.08;
+    // Entering deep water while walking: the float brings the body to the swimming line (no snap).
+    pos.y = Math.min(pos.y, newWater + 0.08);
     p.glideReady = false;
   }
   // Explicit connections between spaces (mine entrance, stairs, shafts): never implicit.

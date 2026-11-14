@@ -88,8 +88,9 @@ Les tests navigateur utilisent Chromium système s’il existe, sinon celui de P
 | `A` relâché | Fermer le menu (choix conservés localement) |
 | `Espace` au sol | Saut |
 | Relâcher puis réappuyer `Espace` en l'air | Ouvrir/replier la membrane |
-| `Ctrl` dans l'eau | Plonger |
-| `Espace` dans l'eau | Remonter |
+| `Espace` dans l'eau | Plonger ; `Espace` à nouveau : remonter à la surface (le hamster nage à moitié immergé, la tête hors de l'eau) |
+| Avancer sous l'eau | Suit la caméra : regarder vers le bas pour descendre, vers le haut pour remonter |
+| `Ctrl` maintenu dans l'eau | Couler |
 | `P` | Aller au port rapidement (raccourci de test) |
 | `E` | Action principale indiquée en bas de l'écran (ramasser, parler, embarquer/descendre du bateau, creuser, cultiver) ; si l'action est impossible, la raison est affichée |
 | `F` / `C` | Creuser ou agir sur la parcelle / changer de culture |

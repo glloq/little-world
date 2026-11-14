@@ -90,6 +90,8 @@ jobs:
         run: node tools/run-browser-check.mjs dressing-stability
       - name: Docks and boats (walk on docks, board moored boats)
         run: node tools/run-browser-check.mjs boats
+      - name: Swimming and diving (half-submerged, Space dives, camera-steered)
+        run: node tools/run-browser-check.mjs swim
       - name: B1 Studio edits and « Jouer ici »
         run: node tools/run-browser-check.mjs b1-studio
       - name: IndexedDB integration
