@@ -32,7 +32,9 @@ try{
   const start=await m();check(start.mode==='ground'&&start.stamina===100,`At the foot of a ${(site.top-site.foot).toFixed(1)} m cliff, full stamina`);
   await page.keyboard.down('KeyW');
   await page.waitForFunction(()=>window.littleWorldMetrics?.mode==='climb',{},{timeout:15000});check(true,'Pushing into the cliff starts climbing');
-  await page.waitForTimeout(1500);const mid=await m();
+  // Height gain measured when reached (≤ 8 s), not after a fixed delay: on CPU rendering (SwiftShader)
+  // the frame cadence varies and the climb started a variable time before the mode switch was seen.
+  await page.waitForFunction((y0)=>window.littleWorldMetrics?.position[1]>y0+1.5,start.position[1],{timeout:8000}).catch(()=>{});const mid=await m();
   check(mid.position[1]>start.position[1]+1.5&&mid.stamina<100,`Height gained while climbing (+${(mid.position[1]-start.position[1]).toFixed(1)} m, stamina ${mid.stamina.toFixed(0)})`);
   check(await page.locator('.ui-stamina:not(.hide)').count()===1,'Stamina meter shown while climbing');
   await page.screenshot({path:'/tmp/little-world-browser/climb.png'}).catch(()=>{});
