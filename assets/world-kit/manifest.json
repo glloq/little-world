@@ -723,6 +723,27 @@
    ]
   },
   {
+   "id": "structure.campfire",
+   "label": "Feu de camp",
+   "group": "town",
+   "lods": [
+    {
+     "level": 0,
+     "path": "public/models/world-kit/campfire/lod0.glb",
+     "triangles": 274,
+     "bytes": 11572,
+     "sha256": "94efec2c0ca0c70d3d651ae064da308df88878dd5a38a786e1a7dc970ff823b4"
+    },
+    {
+     "level": 1,
+     "path": "public/models/world-kit/campfire/lod1.glb",
+     "triangles": 184,
+     "bytes": 8264,
+     "sha256": "9d898e3f7ab6c7b1771aafd710c971b9d220b17e89555ab70b50ca4fce8f6abb"
+    }
+   ]
+  },
+  {
    "id": "structure.chest",
    "label": "Coffre au trésor",
    "group": "town",

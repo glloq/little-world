@@ -99,6 +99,9 @@ const MODELS={
   'structure.lamp_post':{label:'Lanterne de rue',group:'town',lods:2,build(k,d){k.cyl(.08,.12,3.2,seg(d,6,4),C.iron,[0,0,0]);k.box(.45,.55,.45,C.gold,[0,3.2,0]);k.cone(.4,.35,4,C.iron,[0,3.75,0],[0,Math.PI/4,0]);}},
   'structure.signpost':{label:'Panneau indicateur',group:'town',lods:2,build(k,d){k.box(.18,2.6,.18,C.woodDark,[0,0,0]);k.box(1.4,.35,.08,C.wood,[.5,2,0],[0,0,.05]);if(d===0)k.box(1.2,.3,.08,C.wood,[-.4,1.5,0],[0,.6,-.05]);}},
   'structure.barrel':{label:'Tonneau',group:'town',lods:2,build(k,d){k.cyl(.42,.36,1,seg(d,8,6),C.wood,[0,0,0]);if(d===0)for(const y of [.2,.75])k.cyl(.44,.44,.06,8,C.iron,[0,y,0]);}},
+  'structure.campfire':{label:'Feu de camp',group:'town',lods:2,build(k,d){const n=d?6:9;for(let i=0;i<n;i++){const a=i/n*Math.PI*2;k.rock(.17,0,C.stoneDark,[Math.cos(a)*.62,0,Math.sin(a)*.62],[1,.7,1],31+i);}
+    for(let i=0;i<3;i++){const a=i/3*Math.PI*2;k.cyl(.07,.08,.9,d?4:6,C.woodDark,[Math.cos(a)*.18,.02,Math.sin(a)*.18],[Math.cos(a+.6)*.9,0,Math.sin(a+.6)*.9]);}
+    k.cone(.3,.75,d?4:6,[255,150,60],[0,.08,0]);k.cone(.17,.5,d?4:5,[255,214,110],[0,.12,0]);}},
   'structure.chest':{label:'Coffre au trésor',group:'town',lods:2,build(k,d){k.box(1.1,.6,.7,C.woodDark,[0,0,0]);k.cyl(.35,.35,1.1,seg(d,8,5),C.wood,[0,.6,0],[0,0,Math.PI/2]);if(d===0){for(const x of [-.4,.4])k.box(.08,.92,.74,C.iron,[x,0,0]);k.box(.16,.18,.06,C.gold??[226,165,79],[0,.5,-.37]);}}},
   'structure.crate_stack':{label:'Pile de caisses',group:'town',lods:2,build(k,d){k.box(1,1,1,C.wood,[0,0,0]);k.box(1,1,1,C.woodDark,[1.05,0,.1],[0,.2,0]);k.box(.9,.9,.9,C.wood,[.5,1,0],[0,-.3,0]);}},
   'structure.bench':{label:'Banc',group:'town',lods:2,build(k,d){k.box(1.8,.12,.5,C.wood,[0,.45,0]);for(const x of [-.75,.75])k.box(.12,.45,.45,C.woodDark,[x,0,0]);if(d===0)k.box(1.8,.4,.08,C.wood,[0,.6,.24]);}},

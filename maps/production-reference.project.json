@@ -9630,7 +9630,7 @@
      },
      "paths": {},
      "entities": {
-      "ls-river-bend-1.bridge": "91951a04b11f1e83"
+      "ls-river-bend-1.bridge": "1c8572e84e5d12f2"
      },
      "zones": {},
      "behaviors": {},
@@ -9794,164 +9794,164 @@
       "ls-village-clearing-1.access": "a61d5f49628ae592"
      },
      "entities": {
-      "ls-village-clearing-1.house-1": "cb764ce56a6935d1",
-      "ls-village-clearing-1.house-2": "5fe3c396fbccb61b",
-      "ls-village-clearing-1.house-3": "476104feddc60126",
-      "ls-village-clearing-1.house-4": "3e008fed7c42953d",
-      "ls-village-clearing-1.house-5": "545e293636ac1fb1",
-      "ls-village-clearing-1.garden-1": "26c3a5adef556dc2",
-      "ls-village-clearing-1.garden-2": "835b91a50e505943",
-      "ls-village-clearing-1.garden-3": "71644e89cea14025",
-      "ls-village-clearing-1.garden-c1": "9428232206913fe4",
+      "ls-village-clearing-1.house-1": "c6d1cc8e42e094a3",
+      "ls-village-clearing-1.house-2": "8971a0873340d5f4",
+      "ls-village-clearing-1.house-3": "3c1b466c7a9dce89",
+      "ls-village-clearing-1.house-4": "8833bdbe3c728fbe",
+      "ls-village-clearing-1.house-5": "acbfe6db08dd344d",
+      "ls-village-clearing-1.garden-1": "e065234b23da58e7",
+      "ls-village-clearing-1.garden-2": "74b664e7db24d62b",
+      "ls-village-clearing-1.garden-3": "55ab40730a1a6df0",
+      "ls-village-clearing-1.garden-c1": "71cd869537f3146f",
       "ls-village-clearing-1.garden-gate": "1875f6937b71bc2d",
-      "ls-village-clearing-1.garden-5": "bb2c9362e1c215ea",
-      "ls-village-clearing-1.garden-6": "5204f3881ea85708",
-      "ls-village-clearing-1.garden-7": "cdf58d1da39b9342",
-      "ls-village-clearing-1.garden-8": "a1ee349a93258d94",
-      "ls-village-clearing-1.garden-9": "97a21b439d685f60",
-      "ls-village-clearing-1.garden-c2": "dd043b4fdef57abf",
-      "ls-village-clearing-1.garden-10": "913da9b5059d4e58",
-      "ls-village-clearing-1.garden-11": "3ede046960aa19ae",
-      "ls-village-clearing-1.garden-12": "ccb6ff7198149df5",
-      "ls-village-clearing-1.windmill": "b2f1829678736bcb",
-      "ls-village-clearing-1.hedge-1": "fd6c2d009ae5f5d5",
-      "ls-village-clearing-1.hedge-2": "ac23f3b7d95ab99f",
-      "ls-village-clearing-1.hedge-3": "b528f6694b3e42a1",
-      "ls-village-clearing-1.hedge-5": "c99344fc45d617ab",
-      "ls-village-clearing-1.hedge-6": "e900b5f2001ede27",
-      "ls-village-clearing-1.hedge-7": "7f55798bb38c75f3",
-      "ls-village-clearing-1.hedge-8": "9c58d849c8439642",
-      "ls-village-clearing-1.hedge-9": "b86a916bfa47c074",
-      "ls-village-clearing-1.hedge-10": "555b8ac9139ef317",
-      "ls-village-clearing-1.hedge-11": "4bec71f93bc4f616",
-      "ls-village-clearing-1.hedge-12": "05d36710a04601d3",
-      "ls-village-clearing-1.hedge-13": "ead33c2ccc1ee68c",
-      "ls-village-clearing-1.hedge-14": "9c87ae8659686d1d",
-      "ls-village-clearing-1.hedge-15": "7d5ea56aa8ef839f",
-      "ls-village-clearing-1.hedge-16": "4cc115f2db4414d5",
-      "ls-village-clearing-1.hedge-17": "650cf1c1683652e8",
-      "ls-village-clearing-1.hedge-18": "7986a08534989a5a",
-      "ls-village-clearing-1.hedge-19": "d50c63352c642eb4",
-      "ls-village-clearing-1.hedge-20": "e20f416717659e2d",
-      "ls-village-clearing-1.hedge-21": "b50d8cefff69923e",
-      "ls-village-clearing-1.hedge-22": "71c0ee297fffef5e",
-      "ls-village-clearing-1.hedge-23": "daaffbc5ba7d76de",
-      "ls-village-clearing-1.hedge-24": "04166c294cfcc219",
-      "ls-village-clearing-1.hedge-25": "75eba026b288b80b",
-      "ls-village-clearing-1.hedge-26": "2c4f14ce2d7eab73",
-      "ls-village-clearing-1.hedge-27": "9db3f31951b71c36",
-      "ls-village-clearing-1.hedge-28": "a7c6b3b5d06efc91",
-      "ls-village-clearing-1.hedge-29": "5a3dab01ec531d9b",
-      "ls-village-clearing-1.hedge-30": "a59d22c36107f93d",
-      "ls-village-clearing-1.hedge-31": "6973999016742f41",
-      "ls-village-clearing-1.hedge-32": "719f97fd482f2e9a",
-      "ls-village-clearing-1.hedge-33": "0ee3125d01f8d11b",
-      "ls-village-clearing-1.hedge-34": "b58cbbb1f8098cc7",
-      "ls-village-clearing-1.hedge-35": "b52a706e5a1ad6df",
-      "ls-village-clearing-1.hedge-36": "fbffb9b1feacda5a",
-      "ls-village-clearing-1.hedge-37": "f32e5a818d38c66b",
-      "ls-village-clearing-1.hedge-38": "df14ff560a22adb3",
-      "ls-village-clearing-1.hedge-39": "ff78c436e7c57c16",
-      "ls-village-clearing-1.hedge-40": "edcecc8466dcd375",
-      "ls-village-clearing-1.hedge-41": "da96cc94c8151c31",
-      "ls-village-clearing-1.hedge-42": "95321d28d52849d2",
-      "ls-village-clearing-1.hedge-43": "84db4de5d63de85f",
-      "ls-village-clearing-1.hedge-44": "404797b9c3d5fa63",
-      "ls-village-clearing-1.hedge-45": "ced7471121fa2e58",
-      "ls-village-clearing-1.hedge-46": "daedeb713fbae669",
-      "ls-village-clearing-1.hedge-47": "f8bcd5c58b2cd259",
-      "ls-village-clearing-1.hedge-48": "e8f4af95cecd075e",
-      "ls-village-clearing-1.hedge-49": "ae1e8449788dcc6a",
-      "ls-village-clearing-1.hedge-50": "ede6c74b0d4fcf16",
-      "ls-village-clearing-1.hedge-51": "af5d92b72ac78cdf",
-      "ls-village-clearing-1.hedge-52": "6435164b218f81dc",
-      "ls-village-clearing-1.hedge-53": "e36be19a3edaaefa",
-      "ls-village-clearing-1.hedge-54": "addc116ecaeaa6a0",
-      "ls-village-clearing-1.hedge-55": "cecb3f428c260ace",
-      "ls-village-clearing-1.hedge-56": "b63bac72f9201ed0",
-      "ls-village-clearing-1.hedge-57": "baa3abc21ce46170",
-      "ls-village-clearing-1.hedge-58": "2605adc56488f494",
-      "ls-village-clearing-1.field-edge-1": "92afeee8dd66b4c1",
+      "ls-village-clearing-1.garden-5": "12b42d1c0a5fe8d7",
+      "ls-village-clearing-1.garden-6": "fa943c42ac55592c",
+      "ls-village-clearing-1.garden-7": "9e49250ba6962940",
+      "ls-village-clearing-1.garden-8": "94dd953ced6d49c8",
+      "ls-village-clearing-1.garden-9": "33a0dd6178b5d459",
+      "ls-village-clearing-1.garden-c2": "d7d5654e32f429a0",
+      "ls-village-clearing-1.garden-10": "94a92a5bf556d5f4",
+      "ls-village-clearing-1.garden-11": "2a58697f0080e0bf",
+      "ls-village-clearing-1.garden-12": "9efb508fb6b09562",
+      "ls-village-clearing-1.windmill": "02237251b9d1d8a3",
+      "ls-village-clearing-1.hedge-1": "151137c07d090ca9",
+      "ls-village-clearing-1.hedge-2": "cdafe1778f74060b",
+      "ls-village-clearing-1.hedge-3": "41761429177f0699",
+      "ls-village-clearing-1.hedge-5": "ea46bdbc4830ff51",
+      "ls-village-clearing-1.hedge-6": "b79f9db2b8e9b9cb",
+      "ls-village-clearing-1.hedge-7": "5472e74baf5c65bf",
+      "ls-village-clearing-1.hedge-8": "bf1b2f097488ccd8",
+      "ls-village-clearing-1.hedge-9": "d53b352b6a97f4c3",
+      "ls-village-clearing-1.hedge-10": "cca11c89a4db4536",
+      "ls-village-clearing-1.hedge-11": "acf762b901ac7d39",
+      "ls-village-clearing-1.hedge-12": "30a80dd07942738b",
+      "ls-village-clearing-1.hedge-13": "82121bec26119363",
+      "ls-village-clearing-1.hedge-14": "185ca44611bc8102",
+      "ls-village-clearing-1.hedge-15": "a9a0af2aa738765c",
+      "ls-village-clearing-1.hedge-16": "db30a8b2772dbd9b",
+      "ls-village-clearing-1.hedge-17": "22eb7c81cfc1980f",
+      "ls-village-clearing-1.hedge-18": "608cd045455f3a17",
+      "ls-village-clearing-1.hedge-19": "ec6a4ef5650b6295",
+      "ls-village-clearing-1.hedge-20": "db8c70273b676984",
+      "ls-village-clearing-1.hedge-21": "4610e0af4212d1fb",
+      "ls-village-clearing-1.hedge-22": "52ba40e95a4938b8",
+      "ls-village-clearing-1.hedge-23": "d9824685aae50ed6",
+      "ls-village-clearing-1.hedge-24": "d77da0e9a9c71ecf",
+      "ls-village-clearing-1.hedge-25": "46b98de6bee1d733",
+      "ls-village-clearing-1.hedge-26": "832a0b8e55505c24",
+      "ls-village-clearing-1.hedge-27": "04bfa4d927721c6b",
+      "ls-village-clearing-1.hedge-28": "a15aa875b58e96d6",
+      "ls-village-clearing-1.hedge-29": "003856c109880503",
+      "ls-village-clearing-1.hedge-30": "486809836db6dcb8",
+      "ls-village-clearing-1.hedge-31": "25885f506a215f09",
+      "ls-village-clearing-1.hedge-32": "d224babd736c138a",
+      "ls-village-clearing-1.hedge-33": "488bf21d634d125e",
+      "ls-village-clearing-1.hedge-34": "32db16713299e378",
+      "ls-village-clearing-1.hedge-35": "33a812aec6564137",
+      "ls-village-clearing-1.hedge-36": "660304f1291df765",
+      "ls-village-clearing-1.hedge-37": "43ca92c190936c3a",
+      "ls-village-clearing-1.hedge-38": "d088f8963a86283e",
+      "ls-village-clearing-1.hedge-39": "53b86b76b5a1b21a",
+      "ls-village-clearing-1.hedge-40": "3adbd4c4d1ed3277",
+      "ls-village-clearing-1.hedge-41": "5e0581d4b1b1e772",
+      "ls-village-clearing-1.hedge-42": "40ba86682d1ea25e",
+      "ls-village-clearing-1.hedge-43": "3752a72578b2249d",
+      "ls-village-clearing-1.hedge-44": "8eb6e5f9cfffd37f",
+      "ls-village-clearing-1.hedge-45": "82dd6a5166ef17cf",
+      "ls-village-clearing-1.hedge-46": "ac77fbb1d75da508",
+      "ls-village-clearing-1.hedge-47": "8dbc82058cfa36b9",
+      "ls-village-clearing-1.hedge-48": "0b666f5594442a12",
+      "ls-village-clearing-1.hedge-49": "1195c90964488d76",
+      "ls-village-clearing-1.hedge-50": "1960ae0b7df1acca",
+      "ls-village-clearing-1.hedge-51": "6a1456779699c313",
+      "ls-village-clearing-1.hedge-52": "74c5fb0b6e1c0551",
+      "ls-village-clearing-1.hedge-53": "016c505a86d4ae98",
+      "ls-village-clearing-1.hedge-54": "4538da2ebcc479f2",
+      "ls-village-clearing-1.hedge-55": "0bd40502ee24c88d",
+      "ls-village-clearing-1.hedge-56": "380b4132662ea4b6",
+      "ls-village-clearing-1.hedge-57": "24f657823e805f07",
+      "ls-village-clearing-1.hedge-58": "d0f6bb857973b9c1",
+      "ls-village-clearing-1.field-edge-1": "efae0cb897aa2ea2",
       "ls-village-clearing-1.field-edge-gate": "aef5155711d174c0",
-      "ls-village-clearing-1.field-edge-3": "ef94b3a79b2a4627",
-      "ls-village-clearing-1.field-edge-4": "b329ad80b3765f36",
-      "ls-village-clearing-1.field-edge-5": "4c3a032ee3c878c3",
-      "ls-village-clearing-1.field-edge-6": "33d557797f2069e1",
-      "ls-village-clearing-1.field-edge-7": "befd7d40c02fbcca",
-      "ls-village-clearing-1.field-edge-8": "df9cda3ef302880c",
-      "ls-village-clearing-1.field-edge-9": "3657bce73ce636d6",
-      "ls-village-clearing-1.field-edge-10": "cee6e29e90680938",
-      "ls-village-clearing-1.field-edge-11": "01bf40c1a5e8b901",
-      "ls-village-clearing-1.field-edge-c1": "c8706d820778aefb",
-      "ls-village-clearing-1.field-edge-12": "712281ef6e9a8030",
-      "ls-village-clearing-1.field-edge-13": "5d828ca64f415a4b",
-      "ls-village-clearing-1.field-edge-14": "0014a286b38229c1",
-      "ls-village-clearing-1.field-edge-15": "f32943f6b9dded91",
-      "ls-village-clearing-1.field-edge-16": "172c226a896da06a",
-      "ls-village-clearing-1.field-edge-17": "6fb6a8914c21077d",
-      "ls-village-clearing-1.field-edge-18": "f832eda164c02729",
-      "ls-village-clearing-1.field-edge-19": "17b10aa513f0bcb4",
-      "ls-village-clearing-1.field-edge-c2": "37ebc2e3b63cdda6",
-      "ls-village-clearing-1.field-edge-20": "893c77f55a03900c",
-      "ls-village-clearing-1.field-edge-21": "ccdd09046133ade9",
-      "ls-village-clearing-1.field-edge-22": "8969c49f7076bbaa",
-      "ls-village-clearing-1.field-edge-23": "569fcc1a1a5ef596",
-      "ls-village-clearing-1.field-edge-24": "5df1824af756b4b8",
-      "ls-village-clearing-1.field-edge-25": "5a73450f76dd4a26",
-      "ls-village-clearing-1.field-edge-26": "8c97439052d2086c",
-      "ls-village-clearing-1.field-edge-27": "f3d5d14e28b0396d",
-      "ls-village-clearing-1.field-edge-28": "c773388915c0f604",
-      "ls-village-clearing-1.field-edge-29": "af8541fd724412d7",
-      "ls-village-clearing-1.field-edge-30": "2f6be93e1af39978",
-      "ls-village-clearing-1.field-edge-c3": "07adddcd47ffe964",
-      "ls-village-clearing-1.field-edge-31": "ea2a5d832319ab34",
-      "ls-village-clearing-1.field-edge-32": "4fa9bc5b449f2455",
-      "ls-village-clearing-1.field-edge-33": "a7967f83074cd45f",
-      "ls-village-clearing-1.field-edge-34": "04c9ae42a4ac142a",
-      "ls-village-clearing-1.field-edge-35": "87354a12d492f91c",
-      "ls-village-clearing-1.field-edge-36": "f745e45212f92a52",
-      "ls-village-clearing-1.field-edge-37": "708bf24e40c17001",
-      "ls-village-clearing-1.field-edge-38": "d915182f98546418",
-      "ls-village-clearing-1.field-2-edge-1": "23ecfc0af40229de",
+      "ls-village-clearing-1.field-edge-3": "20f573d709848ccb",
+      "ls-village-clearing-1.field-edge-4": "ed566a30ab59ed15",
+      "ls-village-clearing-1.field-edge-5": "3161681ee5375a05",
+      "ls-village-clearing-1.field-edge-6": "d4a666a9814a340c",
+      "ls-village-clearing-1.field-edge-7": "26e6edf0fb9786fc",
+      "ls-village-clearing-1.field-edge-8": "cc67d42e327dc51d",
+      "ls-village-clearing-1.field-edge-9": "b88bbb178ab92260",
+      "ls-village-clearing-1.field-edge-10": "c157ac8e78a914dd",
+      "ls-village-clearing-1.field-edge-11": "42bb2ab18788c44f",
+      "ls-village-clearing-1.field-edge-c1": "88f7d11a5595fbc9",
+      "ls-village-clearing-1.field-edge-12": "21f63eff1e3c62a3",
+      "ls-village-clearing-1.field-edge-13": "4e2a707653d9f488",
+      "ls-village-clearing-1.field-edge-14": "9cebc396cdc8c6c6",
+      "ls-village-clearing-1.field-edge-15": "34cc5506bcab675c",
+      "ls-village-clearing-1.field-edge-16": "27ab6c3a92cb8c4f",
+      "ls-village-clearing-1.field-edge-17": "dde32aa16bc4ec03",
+      "ls-village-clearing-1.field-edge-18": "031eeaf16f1dd1b4",
+      "ls-village-clearing-1.field-edge-19": "9f8fe2b5eec702a4",
+      "ls-village-clearing-1.field-edge-c2": "a9f73afbd29c105d",
+      "ls-village-clearing-1.field-edge-20": "4fa7fc65184338ff",
+      "ls-village-clearing-1.field-edge-21": "e605267458563aae",
+      "ls-village-clearing-1.field-edge-22": "79c1628f97c10067",
+      "ls-village-clearing-1.field-edge-23": "0647adcaa63c26cb",
+      "ls-village-clearing-1.field-edge-24": "671b0c3aba6d4f5b",
+      "ls-village-clearing-1.field-edge-25": "0e7da23ff683531b",
+      "ls-village-clearing-1.field-edge-26": "a36c5540db27d54a",
+      "ls-village-clearing-1.field-edge-27": "622b67be0b0793f9",
+      "ls-village-clearing-1.field-edge-28": "721c6f799423c621",
+      "ls-village-clearing-1.field-edge-29": "6c82390d7ae94320",
+      "ls-village-clearing-1.field-edge-30": "9e200c0eca928450",
+      "ls-village-clearing-1.field-edge-c3": "25c3c83518f7ab53",
+      "ls-village-clearing-1.field-edge-31": "6eb487d309e7a333",
+      "ls-village-clearing-1.field-edge-32": "d161c8ab72b15dc5",
+      "ls-village-clearing-1.field-edge-33": "7879d4d386c3be50",
+      "ls-village-clearing-1.field-edge-34": "0aff411229e56a8b",
+      "ls-village-clearing-1.field-edge-35": "61eb4c22f10af9e7",
+      "ls-village-clearing-1.field-edge-36": "4c5ac322be6db76e",
+      "ls-village-clearing-1.field-edge-37": "aa76f65ea0497cc2",
+      "ls-village-clearing-1.field-edge-38": "b03688ffb2426c2c",
+      "ls-village-clearing-1.field-2-edge-1": "4246507c6cecc630",
       "ls-village-clearing-1.field-2-edge-gate": "f74029b9d6f5c33e",
-      "ls-village-clearing-1.field-2-edge-3": "21c8cf23078d30e3",
-      "ls-village-clearing-1.field-2-edge-4": "1b8531961b6404e4",
-      "ls-village-clearing-1.field-2-edge-5": "3266db997288cdbb",
-      "ls-village-clearing-1.field-2-edge-6": "634c7e8fa8409f0d",
-      "ls-village-clearing-1.field-2-edge-7": "080843dc6fa404ed",
-      "ls-village-clearing-1.field-2-edge-8": "85c88213216001ff",
-      "ls-village-clearing-1.field-2-edge-9": "d4a46e7c4ed1effb",
-      "ls-village-clearing-1.field-2-edge-10": "120d76d6068fbeb6",
-      "ls-village-clearing-1.field-2-edge-c1": "e6681e17ea0f2108",
-      "ls-village-clearing-1.field-2-edge-11": "48897fad2ce9f442",
-      "ls-village-clearing-1.field-2-edge-12": "70fd63aa8f1a672b",
-      "ls-village-clearing-1.field-2-edge-13": "602488e356c8d305",
-      "ls-village-clearing-1.field-2-edge-14": "9137a4cc84c49a8d",
-      "ls-village-clearing-1.field-2-edge-15": "dd3530ca5a72d6d6",
-      "ls-village-clearing-1.field-2-edge-16": "3eebd9b42d5d7edb",
-      "ls-village-clearing-1.field-2-edge-17": "0bd7367fc6b7d85e",
-      "ls-village-clearing-1.field-2-edge-18": "c5e78cc95cedc780",
-      "ls-village-clearing-1.field-2-edge-c2": "bb18654bfca458b2",
-      "ls-village-clearing-1.field-2-edge-19": "8d2e4e6b2355c45f",
-      "ls-village-clearing-1.field-2-edge-20": "5f03c8c5601b427d",
-      "ls-village-clearing-1.field-2-edge-21": "c656c70efff400a8",
-      "ls-village-clearing-1.field-2-edge-22": "40193e75e28058e0",
-      "ls-village-clearing-1.field-2-edge-23": "8035909529e802b6",
-      "ls-village-clearing-1.field-2-edge-24": "2de52eabec1df849",
-      "ls-village-clearing-1.field-2-edge-25": "7a8c8235d3add210",
-      "ls-village-clearing-1.field-2-edge-26": "504dc1c96ff041b2",
-      "ls-village-clearing-1.field-2-edge-27": "1f3b0300fb67fec8",
-      "ls-village-clearing-1.field-2-edge-28": "d4a573a467e32ff2",
-      "ls-village-clearing-1.field-2-edge-c3": "accba73799503ca4",
-      "ls-village-clearing-1.field-2-edge-29": "a4adba09b3b3cd53",
-      "ls-village-clearing-1.field-2-edge-30": "2bf356dd6afdb54a",
-      "ls-village-clearing-1.field-2-edge-31": "4d41751803fc4a50",
-      "ls-village-clearing-1.field-2-edge-32": "210e003e5fe3a946",
-      "ls-village-clearing-1.field-2-edge-33": "d084562c7b5b53b9",
-      "ls-village-clearing-1.field-2-edge-34": "1fadc4d521291c33",
-      "ls-village-clearing-1.field-2-edge-35": "2e8b299ae0cbdda8",
-      "ls-village-clearing-1.field-2-edge-36": "c21ed7b720962f0e",
-      "ls-village-clearing-1.farm-counter": "d287f8ef3f6c6bb8",
+      "ls-village-clearing-1.field-2-edge-3": "68426d91bdec2f0b",
+      "ls-village-clearing-1.field-2-edge-4": "96b3338007c01711",
+      "ls-village-clearing-1.field-2-edge-5": "738fd19b6fbb8829",
+      "ls-village-clearing-1.field-2-edge-6": "d647ff751d54dcdf",
+      "ls-village-clearing-1.field-2-edge-7": "19e2e05a58eddac6",
+      "ls-village-clearing-1.field-2-edge-8": "51013f895c923794",
+      "ls-village-clearing-1.field-2-edge-9": "ca2a233a6d77cc19",
+      "ls-village-clearing-1.field-2-edge-10": "735f08782117ecc5",
+      "ls-village-clearing-1.field-2-edge-c1": "574569764a234dd9",
+      "ls-village-clearing-1.field-2-edge-11": "3b0f67afca1a7ccd",
+      "ls-village-clearing-1.field-2-edge-12": "fb19bd883b2d2821",
+      "ls-village-clearing-1.field-2-edge-13": "471daf299d10b696",
+      "ls-village-clearing-1.field-2-edge-14": "0809215e9ea818a5",
+      "ls-village-clearing-1.field-2-edge-15": "0b3e9fac8c858df4",
+      "ls-village-clearing-1.field-2-edge-16": "b5398b5226f76b5a",
+      "ls-village-clearing-1.field-2-edge-17": "d50432b95840b564",
+      "ls-village-clearing-1.field-2-edge-18": "81a2c22378d05a77",
+      "ls-village-clearing-1.field-2-edge-c2": "19d9fe060025aeb1",
+      "ls-village-clearing-1.field-2-edge-19": "593de35128c9a663",
+      "ls-village-clearing-1.field-2-edge-20": "240d4fc7d3925a35",
+      "ls-village-clearing-1.field-2-edge-21": "1fc1746871d91077",
+      "ls-village-clearing-1.field-2-edge-22": "9b62a0e7c2f9946b",
+      "ls-village-clearing-1.field-2-edge-23": "857f45834d99b0be",
+      "ls-village-clearing-1.field-2-edge-24": "93091fa126ba2ab7",
+      "ls-village-clearing-1.field-2-edge-25": "d084dbcbce03d69a",
+      "ls-village-clearing-1.field-2-edge-26": "2012b58372d09fa7",
+      "ls-village-clearing-1.field-2-edge-27": "bdf4f85222533dcf",
+      "ls-village-clearing-1.field-2-edge-28": "e83b01ca1765bd39",
+      "ls-village-clearing-1.field-2-edge-c3": "f3fde61e1c8660f0",
+      "ls-village-clearing-1.field-2-edge-29": "1d9bcb53a5930201",
+      "ls-village-clearing-1.field-2-edge-30": "48403197b4936db8",
+      "ls-village-clearing-1.field-2-edge-31": "bd54476ede8e6f97",
+      "ls-village-clearing-1.field-2-edge-32": "fdcd1920cf9e2815",
+      "ls-village-clearing-1.field-2-edge-33": "7a77004ef683a3da",
+      "ls-village-clearing-1.field-2-edge-34": "d2950833512a3a38",
+      "ls-village-clearing-1.field-2-edge-35": "a5de214802adfced",
+      "ls-village-clearing-1.field-2-edge-36": "a63ad9f12ff16431",
+      "ls-village-clearing-1.farm-counter": "552e395595b6a437",
       "ls-village-clearing-1.farmer": "f1da9e3fb4ec5456"
      },
      "zones": {
@@ -10175,52 +10175,52 @@
       "ls-ancient-ruins-1.trail": "76465d860303f35b"
      },
      "entities": {
-      "ls-ancient-ruins-1.wall1-1": "2cbad8c506f87a4f",
-      "ls-ancient-ruins-1.wall1-2": "9c7ddb68a13f4956",
-      "ls-ancient-ruins-1.wall1-e3": "b2ebf4d455a6a1ae",
-      "ls-ancient-ruins-1.wall1-c1": "5e6d2e3283dcadc2",
-      "ls-ancient-ruins-1.wall1-e6": "a04dd6f1fbc85dcf",
-      "ls-ancient-ruins-1.wall1-8": "ef764f52e18db23a",
-      "ls-ancient-ruins-1.wall1-c2": "ab505ca381cc3579",
-      "ls-ancient-ruins-1.wall1-10": "1798871183d56192",
-      "ls-ancient-ruins-1.wall1-11": "0fb0973d9190ab14",
-      "ls-ancient-ruins-1.wall1-e12": "2a4363630dd90850",
-      "ls-ancient-ruins-1.wall1-14": "7d335fe59e2f5171",
-      "ls-ancient-ruins-1.wall1-c3": "9c26d2db07996ab0",
-      "ls-ancient-ruins-1.wall1-16": "599fc5a3e5cc3e86",
-      "ls-ancient-ruins-1.wall1-17": "9f8983bf183fede0",
-      "ls-ancient-ruins-1.wall1-e18": "e7dbb5fab3f3c868",
-      "ls-ancient-ruins-1.wall2-1": "8d5df6b52732bcf8",
-      "ls-ancient-ruins-1.wall2-2": "b95c3db80ba2a191",
-      "ls-ancient-ruins-1.wall2-3": "55ed607fac65b713",
-      "ls-ancient-ruins-1.wall2-e4": "0a42bdbc5818a469",
-      "ls-ancient-ruins-1.wall2-6": "d5192ae3ed556938",
-      "ls-ancient-ruins-1.wall2-7": "6087ee0b1adcd22b",
-      "ls-ancient-ruins-1.wall2-c1": "76ddd3119e42e855",
-      "ls-ancient-ruins-1.wall2-e8": "294e49af6b4ed1a2",
-      "ls-ancient-ruins-1.wall2-10": "dd25f1a3454c8a24",
-      "ls-ancient-ruins-1.wall2-11": "d7386989a010554f",
-      "ls-ancient-ruins-1.wall2-e12": "63a8d4d005f6851b",
-      "ls-ancient-ruins-1.wall2-14": "6263821e7a012106",
-      "ls-ancient-ruins-1.wall2-c2": "314bcb3d15abf290",
-      "ls-ancient-ruins-1.wall2-15": "8fd02ffa4a36f12d",
-      "ls-ancient-ruins-1.wall2-e16": "519e3806568ab889",
-      "ls-ancient-ruins-1.wall2-18": "b80134077c583e65",
-      "ls-ancient-ruins-1.wall2-19": "fed58e984f647830",
-      "ls-ancient-ruins-1.wall2-e20": "cfbaef6249517186",
-      "ls-ancient-ruins-1.wall2-c3": "5189dd00684fb3c7",
-      "ls-ancient-ruins-1.wall2-22": "0e0448dd744b6375",
-      "ls-ancient-ruins-1.wall2-23": "fe2675aea74f272c",
-      "ls-ancient-ruins-1.wall2-e24": "831d6f0d77ba8184",
-      "ls-ancient-ruins-1.wall2-26": "bdcc68b74b5901d3",
-      "ls-ancient-ruins-1.wall2-27": "ced47613cd5739e7",
-      "ls-ancient-ruins-1.stone-1": "cc6e3904918761a6",
-      "ls-ancient-ruins-1.stone-2": "a7217bb74753bb50",
-      "ls-ancient-ruins-1.stone-3": "8ac82f5aa89ce0a5",
-      "ls-ancient-ruins-1.stone-4": "15f5950fd9537a68",
-      "ls-ancient-ruins-1.stone-5": "9ff8651fb27ec56d",
-      "ls-ancient-ruins-1.stone-6": "5f992be6a74a002d",
-      "ls-ancient-ruins-1.stone-7": "218a0d0b2ffbd25c"
+      "ls-ancient-ruins-1.wall1-1": "6f1ef72052112b9f",
+      "ls-ancient-ruins-1.wall1-2": "fb019d91cc62f9a1",
+      "ls-ancient-ruins-1.wall1-e3": "d3dff3316c8b767a",
+      "ls-ancient-ruins-1.wall1-c1": "a1a3ada912972456",
+      "ls-ancient-ruins-1.wall1-e6": "794299022ccaf537",
+      "ls-ancient-ruins-1.wall1-8": "f3c5ba1d79961c2a",
+      "ls-ancient-ruins-1.wall1-c2": "1906c882acd4602e",
+      "ls-ancient-ruins-1.wall1-10": "76e1dff44e0257d3",
+      "ls-ancient-ruins-1.wall1-11": "4a306ea057e5e13a",
+      "ls-ancient-ruins-1.wall1-e12": "7d770fdefdc92d5c",
+      "ls-ancient-ruins-1.wall1-14": "444700b026e3b5e9",
+      "ls-ancient-ruins-1.wall1-c3": "868c694a87a1476f",
+      "ls-ancient-ruins-1.wall1-16": "0a95c4aa9b575b66",
+      "ls-ancient-ruins-1.wall1-17": "2868d20a7f828fe2",
+      "ls-ancient-ruins-1.wall1-e18": "f6e5b6f5af2605b1",
+      "ls-ancient-ruins-1.wall2-1": "952b2a04c5b784a7",
+      "ls-ancient-ruins-1.wall2-2": "f869941d9311908e",
+      "ls-ancient-ruins-1.wall2-3": "a86d21ee0a77258d",
+      "ls-ancient-ruins-1.wall2-e4": "f39ae745a990d410",
+      "ls-ancient-ruins-1.wall2-6": "18cf770ecf0ab5f6",
+      "ls-ancient-ruins-1.wall2-7": "f34e6b6ee47146e4",
+      "ls-ancient-ruins-1.wall2-c1": "cff9dcc274387937",
+      "ls-ancient-ruins-1.wall2-e8": "d603d140af9f4b90",
+      "ls-ancient-ruins-1.wall2-10": "7cf42ab8ca68cc6f",
+      "ls-ancient-ruins-1.wall2-11": "b6980fae74ebd29c",
+      "ls-ancient-ruins-1.wall2-e12": "66d3e1b3846ef366",
+      "ls-ancient-ruins-1.wall2-14": "eda6385973cbe576",
+      "ls-ancient-ruins-1.wall2-c2": "2e56e3c007cc549b",
+      "ls-ancient-ruins-1.wall2-15": "7829d3fbd59af248",
+      "ls-ancient-ruins-1.wall2-e16": "3d92c203c6d7be78",
+      "ls-ancient-ruins-1.wall2-18": "35ae4142aeb70a95",
+      "ls-ancient-ruins-1.wall2-19": "7f050f399721198b",
+      "ls-ancient-ruins-1.wall2-e20": "4971f24bb9311f86",
+      "ls-ancient-ruins-1.wall2-c3": "de8aa8892c97ea8a",
+      "ls-ancient-ruins-1.wall2-22": "7005a87ca25409b7",
+      "ls-ancient-ruins-1.wall2-23": "111a984320f397c8",
+      "ls-ancient-ruins-1.wall2-e24": "2e448a4485c742db",
+      "ls-ancient-ruins-1.wall2-26": "792eab76ac3d2344",
+      "ls-ancient-ruins-1.wall2-27": "65a7f7d678d5e69c",
+      "ls-ancient-ruins-1.stone-1": "753f54f2a85190ef",
+      "ls-ancient-ruins-1.stone-2": "66b0ce1d1d9c992f",
+      "ls-ancient-ruins-1.stone-3": "1d19f19c51d275ad",
+      "ls-ancient-ruins-1.stone-4": "33ce22390ee4bf5a",
+      "ls-ancient-ruins-1.stone-5": "96dd98d541a44f27",
+      "ls-ancient-ruins-1.stone-6": "9a9d8ed4d6a93b68",
+      "ls-ancient-ruins-1.stone-7": "680f4ecd5f0995a4"
      },
      "zones": {},
      "behaviors": {},
@@ -10257,12 +10257,12 @@
       "ls-mine-camp-1.mine-road": "ca03608a8609ec19"
      },
      "entities": {
-      "ls-mine-camp-1.cave": "9d6bd1e6f1a0f570",
-      "ls-mine-camp-1.mine-counter": "89a54b8c86de7626",
-      "ls-mine-camp-1.crates-0": "a7590488ddc6aef6",
-      "ls-mine-camp-1.crates-1": "db7598833c5427c5",
-      "ls-mine-camp-1.lamp-0": "2457097d77d40f65",
-      "ls-mine-camp-1.lamp-1": "05b534a556665b72",
+      "ls-mine-camp-1.cave": "8cf0bbb542e4135e",
+      "ls-mine-camp-1.mine-counter": "de5c2e5fe79255d3",
+      "ls-mine-camp-1.crates-0": "4830771a7c089815",
+      "ls-mine-camp-1.crates-1": "f790ee1dcabeb316",
+      "ls-mine-camp-1.lamp-0": "1b6ab546fe0fa22f",
+      "ls-mine-camp-1.lamp-1": "097f837e791df6b6",
       "ls-mine-camp-1.foreman": "02c39825a0608afd",
       "ls-mine-camp-1.miner": "f6e0c9d9d072a96a"
      },
@@ -10313,13 +10313,13 @@
       "ls-forest-camp-1.camp-trail": "c6fa25578e8cd804"
      },
      "entities": {
-      "ls-forest-camp-1.cabin": "b114bde34dbe1fad",
-      "ls-forest-camp-1.forest-counter": "a3fdb3f3fbc3e2dd",
-      "ls-forest-camp-1.stump-0": "2d8f3c0458bc02b2",
-      "ls-forest-camp-1.stump-1": "bdaf2faffbfc9c06",
-      "ls-forest-camp-1.stump-2": "c90cd2ebe83a78f5",
-      "ls-forest-camp-1.stump-3": "92952ce9f1c53ebd",
-      "ls-forest-camp-1.logs": "85c0dfe0bf6d15e5",
+      "ls-forest-camp-1.cabin": "02771549e733dc23",
+      "ls-forest-camp-1.forest-counter": "24b09ce8dd4722f3",
+      "ls-forest-camp-1.stump-0": "d26c93781289be48",
+      "ls-forest-camp-1.stump-1": "b4748dcbe703c9b0",
+      "ls-forest-camp-1.stump-2": "f9ad96ff8a4cbb07",
+      "ls-forest-camp-1.stump-3": "429b347d3639904b",
+      "ls-forest-camp-1.logs": "114a7a255261aa63",
       "ls-forest-camp-1.woodcutter": "85a886697c791b9e"
      },
      "zones": {},
@@ -10369,9 +10369,9 @@
       "ls-fishing-port-1.harbour-road": "78ead2ebfd3aee80"
      },
      "entities": {
-      "ls-fishing-port-1.house-0": "de70b258d904cd10",
-      "ls-fishing-port-1.house-1": "258bc80f1176343d",
-      "ls-fishing-port-1.house-2": "59c042a503012632",
+      "ls-fishing-port-1.house-0": "513dc953e8d12880",
+      "ls-fishing-port-1.house-1": "d49e6e0a5b9f5174",
+      "ls-fishing-port-1.house-2": "128b681cafd0a398",
       "ls-fishing-port-1.pier-0": "98a2250937a04fa1",
       "ls-fishing-port-1.pier-1": "042054679df1e3e6",
       "ls-fishing-port-1.pier-2": "963dd2ec2d9c9887",
@@ -10382,15 +10382,15 @@
       "ls-fishing-port-1.pier-7": "ebcb227c51cdfc5a",
       "ls-fishing-port-1.pier-8": "3191af8128fb7999",
       "ls-fishing-port-1.pier-9": "b5829ebdf20dfdb4",
-      "ls-fishing-port-1.hut-0": "48f47ff9de70a337",
-      "ls-fishing-port-1.hut-1": "8352ed70e83119e9",
-      "ls-fishing-port-1.port-counter": "ec215709f6b1154e",
-      "ls-fishing-port-1.barrel-0": "26ccba7393bb1792",
-      "ls-fishing-port-1.barrel-1": "04f14f3c564c794c",
-      "ls-fishing-port-1.barrel-2": "ba1eeedb87283701",
-      "ls-fishing-port-1.crates": "320ccde1163b3b73",
-      "ls-fishing-port-1.lamp-0": "053b05dcbcc48cf9",
-      "ls-fishing-port-1.lamp-1": "6ef677ced1ed8a3d",
+      "ls-fishing-port-1.hut-0": "e7ab241645d5142b",
+      "ls-fishing-port-1.hut-1": "ef4ceb43dc705204",
+      "ls-fishing-port-1.port-counter": "af1e7121d61e47fc",
+      "ls-fishing-port-1.barrel-0": "912ba5924d9b2fdf",
+      "ls-fishing-port-1.barrel-1": "eb3015b52a5873c9",
+      "ls-fishing-port-1.barrel-2": "62169756a19445fa",
+      "ls-fishing-port-1.crates": "28cea90fcf63d4fd",
+      "ls-fishing-port-1.lamp-0": "45220d491a2d50ba",
+      "ls-fishing-port-1.lamp-1": "c2b2cbf70cc68169",
       "ls-fishing-port-1.boat-0": "b2bf8d5fd900d85d",
       "ls-fishing-port-1.boat-1": "60c27318079e0644",
       "ls-fishing-port-1.boat-2": "07b40c5e4f0a6c67",
@@ -10450,13 +10450,13 @@
       "ls-landmark-site-1.path": "822d068cc887e8fe"
      },
      "entities": {
-      "ls-landmark-site-1.landmark": "17a0815551eda912",
-      "ls-landmark-site-1.boulder-0": "7e73c6a27dfdd6ef",
-      "ls-landmark-site-1.boulder-1": "69aa7b72a7d0477f",
-      "ls-landmark-site-1.boulder-2": "80ed58aef248e299",
-      "ls-landmark-site-1.boulder-3": "8e2969f649da21be",
+      "ls-landmark-site-1.landmark": "c785677fba910362",
+      "ls-landmark-site-1.boulder-0": "12e8fd895e0ac528",
+      "ls-landmark-site-1.boulder-1": "ae835378ce91e074",
+      "ls-landmark-site-1.boulder-2": "4d72a35369155caa",
+      "ls-landmark-site-1.boulder-3": "a348ce4078baea05",
       "ls-landmark-site-1.hermit": "a67cc9c84abad3e0",
-      "ls-landmark-site-1.treasure": "5914206ec30e451c"
+      "ls-landmark-site-1.treasure": "ffee1bdec9f8ca2e"
      },
      "zones": {},
      "behaviors": {
@@ -11201,6 +11201,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_irregular"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.86,
+        "y": 0.95,
+        "z": 0.48
+       },
+       "layer": "solid"
       }
      }
     },
@@ -11232,6 +11242,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_end"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.99,
+        "y": 0.88,
+        "z": 0.53
+       },
+       "layer": "solid"
       }
      }
     },
@@ -11263,6 +11283,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_irregular"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.86,
+        "y": 0.95,
+        "z": 0.48
+       },
+       "layer": "solid"
       }
      }
     },
@@ -11294,6 +11324,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_corner"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.17,
+        "y": 0.85,
+        "z": 1.17
+       },
+       "layer": "solid"
       }
      }
     },
@@ -11325,6 +11365,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_irregular"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.86,
+        "y": 0.95,
+        "z": 0.48
+       },
+       "layer": "solid"
       }
      }
     },
@@ -11356,6 +11406,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_irregular"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.86,
+        "y": 0.95,
+        "z": 0.48
+       },
+       "layer": "solid"
       }
      }
     },
@@ -11387,6 +11447,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_end"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.99,
+        "y": 0.88,
+        "z": 0.53
+       },
+       "layer": "solid"
       }
      }
     },
@@ -11418,6 +11488,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_moss"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.85,
+        "y": 0.86,
+        "z": 0.49
+       },
+       "layer": "solid"
       }
      }
     },
@@ -11449,6 +11529,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_end"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.99,
+        "y": 0.88,
+        "z": 0.53
+       },
+       "layer": "solid"
       }
      }
     },
@@ -11480,6 +11570,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_corner"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.17,
+        "y": 0.85,
+        "z": 1.17
+       },
+       "layer": "solid"
       }
      }
     },
@@ -11511,6 +11611,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_moss"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.85,
+        "y": 0.86,
+        "z": 0.49
+       },
+       "layer": "solid"
       }
      }
     },
@@ -11542,6 +11652,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_moss"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.85,
+        "y": 0.86,
+        "z": 0.49
+       },
+       "layer": "solid"
       }
      }
     },
@@ -11573,6 +11693,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_end"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.99,
+        "y": 0.88,
+        "z": 0.53
+       },
+       "layer": "solid"
       }
      }
     },
@@ -11604,6 +11734,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_moss"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.85,
+        "y": 0.86,
+        "z": 0.49
+       },
+       "layer": "solid"
       }
      }
     },
@@ -11635,6 +11775,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_moss"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.85,
+        "y": 0.86,
+        "z": 0.49
+       },
+       "layer": "solid"
       }
      }
     },
@@ -11666,6 +11816,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.stump_mossy"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.39,
+        "y": 0.93,
+        "z": 1.28
+       },
+       "layer": "solid"
       }
      }
     },
@@ -11697,6 +11857,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.stump_mossy"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.39,
+        "y": 0.93,
+        "z": 1.28
+       },
+       "layer": "solid"
       }
      }
     },
@@ -11728,6 +11898,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.stump_mossy"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.39,
+        "y": 0.93,
+        "z": 1.28
+       },
+       "layer": "solid"
       }
      }
     },
@@ -11759,6 +11939,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.stump_mossy"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.39,
+        "y": 0.93,
+        "z": 1.28
+       },
+       "layer": "solid"
       }
      }
     }
@@ -11834,6 +12024,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_irregular"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.86,
+        "y": 0.95,
+        "z": 0.48
+       },
+       "layer": "solid"
       }
      }
     },
@@ -11865,6 +12065,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_end"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.99,
+        "y": 0.88,
+        "z": 0.53
+       },
+       "layer": "solid"
       }
      }
     },
@@ -11896,6 +12106,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_corner"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.17,
+        "y": 0.85,
+        "z": 1.17
+       },
+       "layer": "solid"
       }
      }
     },
@@ -11927,6 +12147,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_end"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.99,
+        "y": 0.88,
+        "z": 0.53
+       },
+       "layer": "solid"
       }
      }
     },
@@ -11958,6 +12188,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_irregular"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.86,
+        "y": 0.95,
+        "z": 0.48
+       },
+       "layer": "solid"
       }
      }
     },
@@ -11989,6 +12229,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_corner"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.17,
+        "y": 0.85,
+        "z": 1.17
+       },
+       "layer": "solid"
       }
      }
     },
@@ -12020,6 +12270,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_irregular"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.86,
+        "y": 0.95,
+        "z": 0.48
+       },
+       "layer": "solid"
       }
      }
     },
@@ -12051,6 +12311,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_irregular"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.86,
+        "y": 0.95,
+        "z": 0.48
+       },
+       "layer": "solid"
       }
      }
     },
@@ -12082,6 +12352,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_moss"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.85,
+        "y": 0.86,
+        "z": 0.49
+       },
+       "layer": "solid"
       }
      }
     },
@@ -12113,6 +12393,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_moss"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.85,
+        "y": 0.86,
+        "z": 0.49
+       },
+       "layer": "solid"
       }
      }
     },
@@ -12144,6 +12434,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_moss"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.85,
+        "y": 0.86,
+        "z": 0.49
+       },
+       "layer": "solid"
       }
      }
     },
@@ -12175,6 +12475,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_end"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.99,
+        "y": 0.88,
+        "z": 0.53
+       },
+       "layer": "solid"
       }
      }
     },
@@ -12206,6 +12516,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_moss"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.85,
+        "y": 0.86,
+        "z": 0.49
+       },
+       "layer": "solid"
       }
      }
     },
@@ -12237,6 +12557,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_moss"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.85,
+        "y": 0.86,
+        "z": 0.49
+       },
+       "layer": "solid"
       }
      }
     },
@@ -12268,6 +12598,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_corner"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.17,
+        "y": 0.85,
+        "z": 1.17
+       },
+       "layer": "solid"
       }
      }
     },
@@ -12299,6 +12639,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_end"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.99,
+        "y": 0.88,
+        "z": 0.53
+       },
+       "layer": "solid"
       }
      }
     },
@@ -12330,6 +12680,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_moss"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.85,
+        "y": 0.86,
+        "z": 0.49
+       },
+       "layer": "solid"
       }
      }
     },
@@ -12361,6 +12721,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_moss"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.85,
+        "y": 0.86,
+        "z": 0.49
+       },
+       "layer": "solid"
       }
      }
     },
@@ -12392,6 +12762,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_end"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.99,
+        "y": 0.88,
+        "z": 0.53
+       },
+       "layer": "solid"
       }
      }
     },
@@ -12423,6 +12803,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_moss"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.85,
+        "y": 0.86,
+        "z": 0.49
+       },
+       "layer": "solid"
       }
      }
     },
@@ -12454,6 +12844,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_corner"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.17,
+        "y": 0.85,
+        "z": 1.17
+       },
+       "layer": "solid"
       }
      }
     },
@@ -12485,6 +12885,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_moss"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.85,
+        "y": 0.86,
+        "z": 0.49
+       },
+       "layer": "solid"
       }
      }
     },
@@ -12516,6 +12926,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_end"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.99,
+        "y": 0.88,
+        "z": 0.53
+       },
+       "layer": "solid"
       }
      }
     },
@@ -12547,6 +12967,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_moss"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.85,
+        "y": 0.86,
+        "z": 0.49
+       },
+       "layer": "solid"
       }
      }
     },
@@ -12578,6 +13008,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.stump_mossy"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.39,
+        "y": 0.93,
+        "z": 1.28
+       },
+       "layer": "solid"
       }
      }
     },
@@ -12609,6 +13049,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.stump_mossy"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.39,
+        "y": 0.93,
+        "z": 1.28
+       },
+       "layer": "solid"
       }
      }
     }
@@ -12793,6 +13243,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.stump_mossy"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.39,
+        "y": 0.93,
+        "z": 1.28
+       },
+       "layer": "solid"
       }
      }
     }
@@ -13019,6 +13479,16 @@
        "initial": {
         "shop": "forest"
        }
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 4.89,
+        "y": 3.4,
+        "z": 1.66
+       },
+       "layer": "solid"
       }
      }
     },
@@ -13050,6 +13520,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.stump_simple"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.8,
+        "y": 1.02,
+        "z": 1.56
+       },
+       "layer": "solid"
       }
      }
     },
@@ -13081,6 +13561,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.stump_simple"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.8,
+        "y": 1.02,
+        "z": 1.56
+       },
+       "layer": "solid"
       }
      }
     },
@@ -13112,6 +13602,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.stump_simple"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.8,
+        "y": 1.02,
+        "z": 1.56
+       },
+       "layer": "solid"
       }
      }
     },
@@ -13143,6 +13643,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.stump_simple"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.8,
+        "y": 1.02,
+        "z": 1.56
+       },
+       "layer": "solid"
       }
      }
     },
@@ -13361,6 +13871,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "architecture.wooden_cabin"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 6.06,
+        "y": 5.02,
+        "z": 6.25
+       },
+       "layer": "solid"
       }
      }
     },
@@ -13392,6 +13912,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.log_fallen"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.72,
+        "y": 0.82,
+        "z": 0.79
+       },
+       "layer": "solid"
       }
      }
     }
@@ -13923,6 +14453,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.bridge_stone"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 7.3,
+        "y": 3.21,
+        "z": 2.66
+       },
+       "layer": "solid"
       }
      }
     }
@@ -14498,6 +15038,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "architecture.stone_house"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 6.58,
+        "y": 5.28,
+        "z": 6.27
+       },
+       "layer": "solid"
       }
      }
     },
@@ -14529,6 +15079,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.fence_picket"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.86,
+        "y": 1.42,
+        "z": 0.2
+       },
+       "layer": "solid"
       }
      }
     },
@@ -14560,6 +15120,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.fence_picket"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.86,
+        "y": 1.42,
+        "z": 0.2
+       },
+       "layer": "solid"
       }
      }
     },
@@ -14591,6 +15161,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.fence_picket"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.86,
+        "y": 1.42,
+        "z": 0.2
+       },
+       "layer": "solid"
       }
      }
     },
@@ -14622,6 +15202,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.post_square"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 0.23,
+        "y": 1.71,
+        "z": 0.23
+       },
+       "layer": "solid"
       }
      }
     },
@@ -14684,6 +15274,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.fence_picket"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.86,
+        "y": 1.42,
+        "z": 0.2
+       },
+       "layer": "solid"
       }
      }
     },
@@ -14715,6 +15315,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.fence_picket"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.86,
+        "y": 1.42,
+        "z": 0.2
+       },
+       "layer": "solid"
       }
      }
     },
@@ -14746,6 +15356,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.fence_picket"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.86,
+        "y": 1.42,
+        "z": 0.2
+       },
+       "layer": "solid"
       }
      }
     },
@@ -14777,6 +15397,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.fence_picket"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.86,
+        "y": 1.42,
+        "z": 0.2
+       },
+       "layer": "solid"
       }
      }
     },
@@ -14808,6 +15438,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.fence_picket"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.86,
+        "y": 1.42,
+        "z": 0.2
+       },
+       "layer": "solid"
       }
      }
     },
@@ -14839,6 +15479,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.post_square"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 0.23,
+        "y": 1.71,
+        "z": 0.23
+       },
+       "layer": "solid"
       }
      }
     },
@@ -14870,6 +15520,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.fence_picket"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.86,
+        "y": 1.42,
+        "z": 0.2
+       },
+       "layer": "solid"
       }
      }
     },
@@ -14901,6 +15561,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.fence_picket"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.86,
+        "y": 1.42,
+        "z": 0.2
+       },
+       "layer": "solid"
       }
      }
     },
@@ -14932,6 +15602,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.fence_picket"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.86,
+        "y": 1.42,
+        "z": 0.2
+       },
+       "layer": "solid"
       }
      }
     },
@@ -14963,6 +15643,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_low"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.12,
+        "y": 0.43,
+        "z": 0.8
+       },
+       "layer": "solid"
       }
      }
     },
@@ -14994,6 +15684,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_low"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.12,
+        "y": 0.43,
+        "z": 0.8
+       },
+       "layer": "solid"
       }
      }
     },
@@ -15025,6 +15725,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_low"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.12,
+        "y": 0.43,
+        "z": 0.8
+       },
+       "layer": "solid"
       }
      }
     },
@@ -15056,6 +15766,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_low"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.12,
+        "y": 0.43,
+        "z": 0.8
+       },
+       "layer": "solid"
       }
      }
     },
@@ -15087,6 +15807,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_low"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.12,
+        "y": 0.43,
+        "z": 0.8
+       },
+       "layer": "solid"
       }
      }
     },
@@ -15118,6 +15848,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_low"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.12,
+        "y": 0.43,
+        "z": 0.8
+       },
+       "layer": "solid"
       }
      }
     },
@@ -15149,6 +15889,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_low"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.12,
+        "y": 0.43,
+        "z": 0.8
+       },
+       "layer": "solid"
       }
      }
     },
@@ -15180,6 +15930,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_low"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.12,
+        "y": 0.43,
+        "z": 0.8
+       },
+       "layer": "solid"
       }
      }
     },
@@ -15211,6 +15971,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_low"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.12,
+        "y": 0.43,
+        "z": 0.8
+       },
+       "layer": "solid"
       }
      }
     },
@@ -15242,6 +16012,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_low"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.12,
+        "y": 0.43,
+        "z": 0.8
+       },
+       "layer": "solid"
       }
      }
     },
@@ -15273,6 +16053,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_low"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.12,
+        "y": 0.43,
+        "z": 0.8
+       },
+       "layer": "solid"
       }
      }
     }
@@ -15362,6 +16152,31 @@
       "Visual": {
        "type": "Visual",
        "assetId": "architecture.stone_house"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 6.58,
+        "y": 5.28,
+        "z": 6.27
+       },
+       "layer": "solid"
+      },
+      "Light": {
+       "type": "Light",
+       "kind": "point",
+       "color": "#ffe0aa",
+       "intensity": 22,
+       "range": 11,
+       "offset": {
+        "x": 0,
+        "y": 2.4,
+        "z": -4.17
+       },
+       "enabled": true,
+       "mode": "night",
+       "preset": "fixed-lamp"
       }
      }
     },
@@ -15393,6 +16208,31 @@
       "Visual": {
        "type": "Visual",
        "assetId": "architecture.stone_house"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 6.58,
+        "y": 5.28,
+        "z": 6.27
+       },
+       "layer": "solid"
+      },
+      "Light": {
+       "type": "Light",
+       "kind": "point",
+       "color": "#ffe0aa",
+       "intensity": 22,
+       "range": 11,
+       "offset": {
+        "x": 0,
+        "y": 2.4,
+        "z": -4.17
+       },
+       "enabled": true,
+       "mode": "night",
+       "preset": "fixed-lamp"
       }
      }
     },
@@ -15424,6 +16264,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "architecture.stone_house"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 6.58,
+        "y": 5.28,
+        "z": 6.27
+       },
+       "layer": "solid"
       }
      }
     },
@@ -15455,6 +16305,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_dense"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.05,
+        "y": 1.7,
+        "z": 0.74
+       },
+       "layer": "solid"
       }
      }
     },
@@ -15486,6 +16346,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_dense"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.05,
+        "y": 1.7,
+        "z": 0.74
+       },
+       "layer": "solid"
       }
      }
     },
@@ -15517,6 +16387,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_dense"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.05,
+        "y": 1.7,
+        "z": 0.74
+       },
+       "layer": "solid"
       }
      }
     },
@@ -15548,6 +16428,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_dense"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.05,
+        "y": 1.7,
+        "z": 0.74
+       },
+       "layer": "solid"
       }
      }
     },
@@ -15579,6 +16469,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.post_rustic"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 0.22,
+        "y": 1.62,
+        "z": 0.23
+       },
+       "layer": "solid"
       }
      }
     },
@@ -15610,6 +16510,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_dense"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.05,
+        "y": 1.7,
+        "z": 0.74
+       },
+       "layer": "solid"
       }
      }
     },
@@ -15641,6 +16551,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_dense"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.05,
+        "y": 1.7,
+        "z": 0.74
+       },
+       "layer": "solid"
       }
      }
     },
@@ -15672,6 +16592,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_dense"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.05,
+        "y": 1.7,
+        "z": 0.74
+       },
+       "layer": "solid"
       }
      }
     },
@@ -15703,6 +16633,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_dense"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.05,
+        "y": 1.7,
+        "z": 0.74
+       },
+       "layer": "solid"
       }
      }
     },
@@ -15734,6 +16674,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_dense"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.05,
+        "y": 1.7,
+        "z": 0.74
+       },
+       "layer": "solid"
       }
      }
     },
@@ -15765,6 +16715,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_dense"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.05,
+        "y": 1.7,
+        "z": 0.74
+       },
+       "layer": "solid"
       }
      }
     },
@@ -15796,6 +16756,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_dense"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.05,
+        "y": 1.7,
+        "z": 0.74
+       },
+       "layer": "solid"
       }
      }
     },
@@ -15827,6 +16797,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_straight"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.87,
+        "y": 0.85,
+        "z": 0.5
+       },
+       "layer": "solid"
       }
      }
     },
@@ -15889,6 +16869,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_straight"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.87,
+        "y": 0.85,
+        "z": 0.5
+       },
+       "layer": "solid"
       }
      }
     },
@@ -15920,6 +16910,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_straight"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.87,
+        "y": 0.85,
+        "z": 0.5
+       },
+       "layer": "solid"
       }
      }
     },
@@ -15951,6 +16951,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_corner"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.17,
+        "y": 0.85,
+        "z": 1.17
+       },
+       "layer": "solid"
       }
      }
     },
@@ -15982,6 +16992,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_straight"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.87,
+        "y": 0.85,
+        "z": 0.5
+       },
+       "layer": "solid"
       }
      }
     },
@@ -16013,6 +17033,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_straight"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.87,
+        "y": 0.85,
+        "z": 0.5
+       },
+       "layer": "solid"
       }
      }
     },
@@ -16044,6 +17074,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_straight"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.87,
+        "y": 0.85,
+        "z": 0.5
+       },
+       "layer": "solid"
       }
      }
     },
@@ -16075,6 +17115,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_straight"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.87,
+        "y": 0.85,
+        "z": 0.5
+       },
+       "layer": "solid"
       }
      }
     },
@@ -16106,6 +17156,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_straight"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.87,
+        "y": 0.85,
+        "z": 0.5
+       },
+       "layer": "solid"
       }
      }
     },
@@ -16137,6 +17197,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_straight"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.87,
+        "y": 0.85,
+        "z": 0.5
+       },
+       "layer": "solid"
       }
      }
     },
@@ -16168,6 +17238,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_straight"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.87,
+        "y": 0.85,
+        "z": 0.5
+       },
+       "layer": "solid"
       }
      }
     },
@@ -16199,6 +17279,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_straight"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.87,
+        "y": 0.85,
+        "z": 0.5
+       },
+       "layer": "solid"
       }
      }
     },
@@ -16345,6 +17435,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_low"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.12,
+        "y": 0.43,
+        "z": 0.8
+       },
+       "layer": "solid"
       }
      }
     },
@@ -16376,6 +17476,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_low"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.12,
+        "y": 0.43,
+        "z": 0.8
+       },
+       "layer": "solid"
       }
      }
     },
@@ -16407,6 +17517,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_low"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.12,
+        "y": 0.43,
+        "z": 0.8
+       },
+       "layer": "solid"
       }
      }
     },
@@ -16438,6 +17558,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_low"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.12,
+        "y": 0.43,
+        "z": 0.8
+       },
+       "layer": "solid"
       }
      }
     },
@@ -16469,6 +17599,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_low"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.12,
+        "y": 0.43,
+        "z": 0.8
+       },
+       "layer": "solid"
       }
      }
     },
@@ -16500,6 +17640,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_low"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.12,
+        "y": 0.43,
+        "z": 0.8
+       },
+       "layer": "solid"
       }
      }
     },
@@ -16531,6 +17681,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_low"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.12,
+        "y": 0.43,
+        "z": 0.8
+       },
+       "layer": "solid"
       }
      }
     },
@@ -16562,6 +17722,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_low"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.12,
+        "y": 0.43,
+        "z": 0.8
+       },
+       "layer": "solid"
       }
      }
     },
@@ -16593,6 +17763,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_low"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.12,
+        "y": 0.43,
+        "z": 0.8
+       },
+       "layer": "solid"
       }
      }
     },
@@ -16624,6 +17804,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_low"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.12,
+        "y": 0.43,
+        "z": 0.8
+       },
+       "layer": "solid"
       }
      }
     },
@@ -16655,6 +17845,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_low"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.12,
+        "y": 0.43,
+        "z": 0.8
+       },
+       "layer": "solid"
       }
      }
     },
@@ -16686,6 +17886,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_low"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.12,
+        "y": 0.43,
+        "z": 0.8
+       },
+       "layer": "solid"
       }
      }
     },
@@ -16717,6 +17927,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_low"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.12,
+        "y": 0.43,
+        "z": 0.8
+       },
+       "layer": "solid"
       }
      }
     },
@@ -16748,6 +17968,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_low"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.12,
+        "y": 0.43,
+        "z": 0.8
+       },
+       "layer": "solid"
       }
      }
     },
@@ -16779,6 +18009,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_low"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.12,
+        "y": 0.43,
+        "z": 0.8
+       },
+       "layer": "solid"
       }
      }
     },
@@ -16810,6 +18050,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_low"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.12,
+        "y": 0.43,
+        "z": 0.8
+       },
+       "layer": "solid"
       }
      }
     },
@@ -16841,6 +18091,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_low"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.12,
+        "y": 0.43,
+        "z": 0.8
+       },
+       "layer": "solid"
       }
      }
     },
@@ -16872,6 +18132,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_low"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.12,
+        "y": 0.43,
+        "z": 0.8
+       },
+       "layer": "solid"
       }
      }
     },
@@ -16903,6 +18173,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_low"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.12,
+        "y": 0.43,
+        "z": 0.8
+       },
+       "layer": "solid"
       }
      }
     },
@@ -16934,6 +18214,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_low"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.12,
+        "y": 0.43,
+        "z": 0.8
+       },
+       "layer": "solid"
       }
      }
     },
@@ -16965,6 +18255,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_low"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.12,
+        "y": 0.43,
+        "z": 0.8
+       },
+       "layer": "solid"
       }
      }
     },
@@ -16996,6 +18296,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_low"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.12,
+        "y": 0.43,
+        "z": 0.8
+       },
+       "layer": "solid"
       }
      }
     },
@@ -17027,6 +18337,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_low"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.12,
+        "y": 0.43,
+        "z": 0.8
+       },
+       "layer": "solid"
       }
      }
     }
@@ -17130,6 +18450,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "architecture.wooden_cabin"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 6.06,
+        "y": 5.02,
+        "z": 6.25
+       },
+       "layer": "solid"
       }
      }
     }
@@ -17190,6 +18520,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_dense"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.05,
+        "y": 1.7,
+        "z": 0.74
+       },
+       "layer": "solid"
       }
      }
     },
@@ -17252,6 +18592,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_dense"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.05,
+        "y": 1.7,
+        "z": 0.74
+       },
+       "layer": "solid"
       }
      }
     },
@@ -17283,6 +18633,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_dense"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.05,
+        "y": 1.7,
+        "z": 0.74
+       },
+       "layer": "solid"
       }
      }
     },
@@ -17314,6 +18674,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_dense"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.05,
+        "y": 1.7,
+        "z": 0.74
+       },
+       "layer": "solid"
       }
      }
     },
@@ -17351,6 +18721,16 @@
        "initial": {
         "shop": "farm"
        }
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 3.86,
+        "y": 3.1,
+        "z": 1.93
+       },
+       "layer": "solid"
       }
      }
     }
@@ -17417,6 +18797,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_dense"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.05,
+        "y": 1.7,
+        "z": 0.74
+       },
+       "layer": "solid"
       }
      }
     },
@@ -17448,6 +18838,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_dense"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.05,
+        "y": 1.7,
+        "z": 0.74
+       },
+       "layer": "solid"
       }
      }
     },
@@ -17479,6 +18879,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_dense"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.05,
+        "y": 1.7,
+        "z": 0.74
+       },
+       "layer": "solid"
       }
      }
     },
@@ -17510,6 +18920,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_dense"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.05,
+        "y": 1.7,
+        "z": 0.74
+       },
+       "layer": "solid"
       }
      }
     },
@@ -17541,6 +18961,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_dense"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.05,
+        "y": 1.7,
+        "z": 0.74
+       },
+       "layer": "solid"
       }
      }
     },
@@ -17572,6 +19002,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_dense"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.05,
+        "y": 1.7,
+        "z": 0.74
+       },
+       "layer": "solid"
       }
      }
     },
@@ -17603,6 +19043,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_dense"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.05,
+        "y": 1.7,
+        "z": 0.74
+       },
+       "layer": "solid"
       }
      }
     },
@@ -17634,6 +19084,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.post_rustic"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 0.22,
+        "y": 1.62,
+        "z": 0.23
+       },
+       "layer": "solid"
       }
      }
     },
@@ -17665,6 +19125,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_dense"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.05,
+        "y": 1.7,
+        "z": 0.74
+       },
+       "layer": "solid"
       }
      }
     },
@@ -17696,6 +19166,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_dense"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.05,
+        "y": 1.7,
+        "z": 0.74
+       },
+       "layer": "solid"
       }
      }
     },
@@ -17727,6 +19207,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_dense"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.05,
+        "y": 1.7,
+        "z": 0.74
+       },
+       "layer": "solid"
       }
      }
     },
@@ -17758,6 +19248,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_dense"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.05,
+        "y": 1.7,
+        "z": 0.74
+       },
+       "layer": "solid"
       }
      }
     },
@@ -17789,6 +19289,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_dense"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.05,
+        "y": 1.7,
+        "z": 0.74
+       },
+       "layer": "solid"
       }
      }
     },
@@ -17820,6 +19330,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_dense"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.05,
+        "y": 1.7,
+        "z": 0.74
+       },
+       "layer": "solid"
       }
      }
     },
@@ -17851,6 +19371,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_dense"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.05,
+        "y": 1.7,
+        "z": 0.74
+       },
+       "layer": "solid"
       }
      }
     },
@@ -17882,6 +19412,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_straight"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.87,
+        "y": 0.85,
+        "z": 0.5
+       },
+       "layer": "solid"
       }
      }
     },
@@ -17913,6 +19453,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_straight"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.87,
+        "y": 0.85,
+        "z": 0.5
+       },
+       "layer": "solid"
       }
      }
     },
@@ -17944,6 +19494,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_straight"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.87,
+        "y": 0.85,
+        "z": 0.5
+       },
+       "layer": "solid"
       }
      }
     },
@@ -17975,6 +19535,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_straight"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.87,
+        "y": 0.85,
+        "z": 0.5
+       },
+       "layer": "solid"
       }
      }
     },
@@ -18006,6 +19576,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_straight"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.87,
+        "y": 0.85,
+        "z": 0.5
+       },
+       "layer": "solid"
       }
      }
     },
@@ -18037,6 +19617,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_straight"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.87,
+        "y": 0.85,
+        "z": 0.5
+       },
+       "layer": "solid"
       }
      }
     },
@@ -18068,6 +19658,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_straight"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.87,
+        "y": 0.85,
+        "z": 0.5
+       },
+       "layer": "solid"
       }
      }
     },
@@ -18099,6 +19699,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_straight"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.87,
+        "y": 0.85,
+        "z": 0.5
+       },
+       "layer": "solid"
       }
      }
     },
@@ -18130,6 +19740,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_corner"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.17,
+        "y": 0.85,
+        "z": 1.17
+       },
+       "layer": "solid"
       }
      }
     },
@@ -18161,6 +19781,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_straight"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.87,
+        "y": 0.85,
+        "z": 0.5
+       },
+       "layer": "solid"
       }
      }
     },
@@ -18192,6 +19822,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_straight"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.87,
+        "y": 0.85,
+        "z": 0.5
+       },
+       "layer": "solid"
       }
      }
     },
@@ -18223,6 +19863,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_straight"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.87,
+        "y": 0.85,
+        "z": 0.5
+       },
+       "layer": "solid"
       }
      }
     },
@@ -18254,6 +19904,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_straight"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.87,
+        "y": 0.85,
+        "z": 0.5
+       },
+       "layer": "solid"
       }
      }
     },
@@ -18285,6 +19945,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_straight"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.87,
+        "y": 0.85,
+        "z": 0.5
+       },
+       "layer": "solid"
       }
      }
     },
@@ -18316,6 +19986,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_straight"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.87,
+        "y": 0.85,
+        "z": 0.5
+       },
+       "layer": "solid"
       }
      }
     },
@@ -18347,6 +20027,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_straight"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.87,
+        "y": 0.85,
+        "z": 0.5
+       },
+       "layer": "solid"
       }
      }
     },
@@ -18378,6 +20068,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_straight"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.87,
+        "y": 0.85,
+        "z": 0.5
+       },
+       "layer": "solid"
       }
      }
     },
@@ -18409,6 +20109,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_corner"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.17,
+        "y": 0.85,
+        "z": 1.17
+       },
+       "layer": "solid"
       }
      }
     },
@@ -18440,6 +20150,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_straight"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.87,
+        "y": 0.85,
+        "z": 0.5
+       },
+       "layer": "solid"
       }
      }
     },
@@ -18471,6 +20191,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_straight"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.87,
+        "y": 0.85,
+        "z": 0.5
+       },
+       "layer": "solid"
       }
      }
     },
@@ -18502,6 +20232,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_straight"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.87,
+        "y": 0.85,
+        "z": 0.5
+       },
+       "layer": "solid"
       }
      }
     },
@@ -18533,6 +20273,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_straight"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.87,
+        "y": 0.85,
+        "z": 0.5
+       },
+       "layer": "solid"
       }
      }
     },
@@ -18564,6 +20314,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_straight"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.87,
+        "y": 0.85,
+        "z": 0.5
+       },
+       "layer": "solid"
       }
      }
     },
@@ -18595,6 +20355,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_straight"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.87,
+        "y": 0.85,
+        "z": 0.5
+       },
+       "layer": "solid"
       }
      }
     },
@@ -18626,6 +20396,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_straight"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.87,
+        "y": 0.85,
+        "z": 0.5
+       },
+       "layer": "solid"
       }
      }
     },
@@ -18657,6 +20437,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_straight"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.87,
+        "y": 0.85,
+        "z": 0.5
+       },
+       "layer": "solid"
       }
      }
     }
@@ -18791,6 +20581,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "architecture.windmill_stone"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 10.74,
+        "y": 13.58,
+        "z": 5.54
+       },
+       "layer": "solid"
       }
      }
     },
@@ -18822,6 +20622,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_dense"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.05,
+        "y": 1.7,
+        "z": 0.74
+       },
+       "layer": "solid"
       }
      }
     },
@@ -18853,6 +20663,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_dense"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.05,
+        "y": 1.7,
+        "z": 0.74
+       },
+       "layer": "solid"
       }
      }
     },
@@ -18884,6 +20704,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_dense"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.05,
+        "y": 1.7,
+        "z": 0.74
+       },
+       "layer": "solid"
       }
      }
     },
@@ -18915,6 +20745,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_dense"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.05,
+        "y": 1.7,
+        "z": 0.74
+       },
+       "layer": "solid"
       }
      }
     },
@@ -18946,6 +20786,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_dense"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.05,
+        "y": 1.7,
+        "z": 0.74
+       },
+       "layer": "solid"
       }
      }
     },
@@ -18977,6 +20827,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_dense"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.05,
+        "y": 1.7,
+        "z": 0.74
+       },
+       "layer": "solid"
       }
      }
     },
@@ -19008,6 +20868,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_dense"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.05,
+        "y": 1.7,
+        "z": 0.74
+       },
+       "layer": "solid"
       }
      }
     },
@@ -19039,6 +20909,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.post_rustic"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 0.22,
+        "y": 1.62,
+        "z": 0.23
+       },
+       "layer": "solid"
       }
      }
     },
@@ -19070,6 +20950,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_dense"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.05,
+        "y": 1.7,
+        "z": 0.74
+       },
+       "layer": "solid"
       }
      }
     }
@@ -19133,6 +21023,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_low"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.12,
+        "y": 0.43,
+        "z": 0.8
+       },
+       "layer": "solid"
       }
      }
     },
@@ -19164,6 +21064,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_low"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.12,
+        "y": 0.43,
+        "z": 0.8
+       },
+       "layer": "solid"
       }
      }
     },
@@ -19195,6 +21105,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_low"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.12,
+        "y": 0.43,
+        "z": 0.8
+       },
+       "layer": "solid"
       }
      }
     },
@@ -19226,6 +21146,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_low"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.12,
+        "y": 0.43,
+        "z": 0.8
+       },
+       "layer": "solid"
       }
      }
     },
@@ -19257,6 +21187,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_low"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.12,
+        "y": 0.43,
+        "z": 0.8
+       },
+       "layer": "solid"
       }
      }
     },
@@ -19288,6 +21228,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_low"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.12,
+        "y": 0.43,
+        "z": 0.8
+       },
+       "layer": "solid"
       }
      }
     },
@@ -19319,6 +21269,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_low"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.12,
+        "y": 0.43,
+        "z": 0.8
+       },
+       "layer": "solid"
       }
      }
     },
@@ -19350,6 +21310,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_low"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.12,
+        "y": 0.43,
+        "z": 0.8
+       },
+       "layer": "solid"
       }
      }
     },
@@ -19381,6 +21351,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_low"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.12,
+        "y": 0.43,
+        "z": 0.8
+       },
+       "layer": "solid"
       }
      }
     },
@@ -19412,6 +21392,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_low"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.12,
+        "y": 0.43,
+        "z": 0.8
+       },
+       "layer": "solid"
       }
      }
     },
@@ -19443,6 +21433,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_low"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.12,
+        "y": 0.43,
+        "z": 0.8
+       },
+       "layer": "solid"
       }
      }
     },
@@ -19474,6 +21474,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_low"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.12,
+        "y": 0.43,
+        "z": 0.8
+       },
+       "layer": "solid"
       }
      }
     },
@@ -19505,6 +21515,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_low"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.12,
+        "y": 0.43,
+        "z": 0.8
+       },
+       "layer": "solid"
       }
      }
     },
@@ -19536,6 +21556,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_low"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.12,
+        "y": 0.43,
+        "z": 0.8
+       },
+       "layer": "solid"
       }
      }
     },
@@ -19567,6 +21597,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_low"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.12,
+        "y": 0.43,
+        "z": 0.8
+       },
+       "layer": "solid"
       }
      }
     },
@@ -19598,6 +21638,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_low"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.12,
+        "y": 0.43,
+        "z": 0.8
+       },
+       "layer": "solid"
       }
      }
     },
@@ -19629,6 +21679,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_low"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.12,
+        "y": 0.43,
+        "z": 0.8
+       },
+       "layer": "solid"
       }
      }
     },
@@ -19660,6 +21720,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_low"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.12,
+        "y": 0.43,
+        "z": 0.8
+       },
+       "layer": "solid"
       }
      }
     },
@@ -19691,6 +21761,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_low"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.12,
+        "y": 0.43,
+        "z": 0.8
+       },
+       "layer": "solid"
       }
      }
     },
@@ -19722,6 +21802,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_low"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.12,
+        "y": 0.43,
+        "z": 0.8
+       },
+       "layer": "solid"
       }
      }
     },
@@ -19753,6 +21843,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_low"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.12,
+        "y": 0.43,
+        "z": 0.8
+       },
+       "layer": "solid"
       }
      }
     },
@@ -19784,6 +21884,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_low"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.12,
+        "y": 0.43,
+        "z": 0.8
+       },
+       "layer": "solid"
       }
      }
     },
@@ -19815,6 +21925,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.hedge_low"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 2.12,
+        "y": 0.43,
+        "z": 0.8
+       },
+       "layer": "solid"
       }
      }
     }
@@ -19937,6 +22057,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.pier_hut"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 4.4,
+        "y": 6.45,
+        "z": 4.4
+       },
+       "layer": "solid"
       }
      }
     },
@@ -19974,6 +22104,16 @@
        "initial": {
         "shop": "port"
        }
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 3.68,
+        "y": 3.3,
+        "z": 1.66
+       },
+       "layer": "solid"
       }
      }
     },
@@ -20005,6 +22145,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.barrel"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 0.81,
+        "y": 1,
+        "z": 0.81
+       },
+       "layer": "solid"
       }
      }
     },
@@ -20203,6 +22353,31 @@
       "Visual": {
        "type": "Visual",
        "assetId": "architecture.house_blue"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 6.16,
+        "y": 6.8,
+        "z": 6.2
+       },
+       "layer": "solid"
+      },
+      "Light": {
+       "type": "Light",
+       "kind": "point",
+       "color": "#ffe0aa",
+       "intensity": 22,
+       "range": 11,
+       "offset": {
+        "x": 0,
+        "y": 2.4,
+        "z": -4.13
+       },
+       "enabled": true,
+       "mode": "night",
+       "preset": "fixed-lamp"
       }
      }
     },
@@ -20234,6 +22409,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "architecture.house_blue"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 6.16,
+        "y": 6.8,
+        "z": 6.2
+       },
+       "layer": "solid"
       }
      }
     },
@@ -20420,6 +22605,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.pier_hut"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 4.4,
+        "y": 6.45,
+        "z": 4.4
+       },
+       "layer": "solid"
       }
      }
     },
@@ -20451,6 +22646,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.barrel"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 0.81,
+        "y": 1,
+        "z": 0.81
+       },
+       "layer": "solid"
       }
      }
     },
@@ -20482,6 +22687,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.barrel"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 0.81,
+        "y": 1,
+        "z": 0.81
+       },
+       "layer": "solid"
       }
      }
     },
@@ -20513,6 +22728,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.crate_stack"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.97,
+        "y": 1.9,
+        "z": 1.15
+       },
+       "layer": "solid"
       }
      }
     },
@@ -20544,6 +22769,35 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.lamp_post"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 0.52,
+        "y": 4.1,
+        "z": 0.52
+       },
+       "layer": "solid"
+      },
+      "Light": {
+       "type": "Light",
+       "kind": "point",
+       "color": "#ffb45a",
+       "intensity": 28,
+       "range": 14,
+       "offset": {
+        "x": 0,
+        "y": 3.69,
+        "z": 0
+       },
+       "enabled": true,
+       "mode": "night",
+       "flicker": {
+        "amplitude": 0.08,
+        "speed": 0.6
+       },
+       "preset": "warm-lantern"
       }
      }
     },
@@ -20670,6 +22924,31 @@
       "Visual": {
        "type": "Visual",
        "assetId": "architecture.house_blue"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 6.16,
+        "y": 6.8,
+        "z": 6.2
+       },
+       "layer": "solid"
+      },
+      "Light": {
+       "type": "Light",
+       "kind": "point",
+       "color": "#ffe0aa",
+       "intensity": 22,
+       "range": 11,
+       "offset": {
+        "x": 0,
+        "y": 2.4,
+        "z": -4.13
+       },
+       "enabled": true,
+       "mode": "night",
+       "preset": "fixed-lamp"
       }
      }
     }
@@ -21076,6 +23355,16 @@
        "initial": {
         "shop": "mine"
        }
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 3.91,
+        "y": 2.88,
+        "z": 1.52
+       },
+       "layer": "solid"
       }
      }
     },
@@ -21107,6 +23396,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.crate_stack"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.97,
+        "y": 1.9,
+        "z": 1.15
+       },
+       "layer": "solid"
       }
      }
     },
@@ -21138,6 +23437,35 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.lamp_post"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 0.52,
+        "y": 4.1,
+        "z": 0.52
+       },
+       "layer": "solid"
+      },
+      "Light": {
+       "type": "Light",
+       "kind": "point",
+       "color": "#ffb45a",
+       "intensity": 28,
+       "range": 14,
+       "offset": {
+        "x": 0,
+        "y": 3.69,
+        "z": 0
+       },
+       "enabled": true,
+       "mode": "night",
+       "flicker": {
+        "amplitude": 0.08,
+        "speed": 0.6
+       },
+       "preset": "warm-lantern"
       }
      }
     },
@@ -21249,6 +23577,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "landmark.cave_entrance"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 10.27,
+        "y": 6.49,
+        "z": 12.9
+       },
+       "layer": "solid"
       }
      }
     },
@@ -21280,6 +23618,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.crate_stack"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.97,
+        "y": 1.9,
+        "z": 1.15
+       },
+       "layer": "solid"
       }
      }
     },
@@ -21311,6 +23659,35 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.lamp_post"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 0.52,
+        "y": 4.1,
+        "z": 0.52
+       },
+       "layer": "solid"
+      },
+      "Light": {
+       "type": "Light",
+       "kind": "point",
+       "color": "#ffb45a",
+       "intensity": 28,
+       "range": 14,
+       "offset": {
+        "x": 0,
+        "y": 3.69,
+        "z": 0
+       },
+       "enabled": true,
+       "mode": "night",
+       "flicker": {
+        "amplitude": 0.08,
+        "speed": 0.6
+       },
+       "preset": "warm-lantern"
       }
      }
     },
@@ -21670,6 +24047,35 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.lamp_post"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 0.52,
+        "y": 4.1,
+        "z": 0.52
+       },
+       "layer": "solid"
+      },
+      "Light": {
+       "type": "Light",
+       "kind": "point",
+       "color": "#ffb45a",
+       "intensity": 28,
+       "range": 14,
+       "offset": {
+        "x": 0,
+        "y": 3.69,
+        "z": 0
+       },
+       "enabled": true,
+       "mode": "night",
+       "flicker": {
+        "amplitude": 0.08,
+        "speed": 0.6
+       },
+       "preset": "warm-lantern"
       }
      }
     },
@@ -21864,6 +24270,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.boulder_pile"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 7.23,
+        "y": 2.69,
+        "z": 4.39
+       },
+       "layer": "solid"
       }
      }
     },
@@ -21895,6 +24311,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.boulder_large"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 5.74,
+        "y": 3.1,
+        "z": 7.27
+       },
+       "layer": "solid"
       }
      }
     },
@@ -21946,6 +24372,16 @@
        "fields": [
         "opened"
        ]
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.01,
+        "y": 1.5,
+        "z": 0.71
+       },
+       "layer": "solid"
       }
      }
     }
@@ -22001,6 +24437,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "landmark.world_tree"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 4.05,
+        "y": 8,
+        "z": 4.05
+       },
+       "layer": "solid"
       }
      }
     },
@@ -22032,6 +24478,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.boulder_pile"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 7.23,
+        "y": 2.69,
+        "z": 4.39
+       },
+       "layer": "solid"
       }
      }
     },
@@ -22063,6 +24519,16 @@
       "Visual": {
        "type": "Visual",
        "assetId": "nature.boulder_large"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 5.74,
+        "y": 3.1,
+        "z": 7.27
+       },
+       "layer": "solid"
       }
      }
     },

@@ -508,6 +508,9 @@ export function mergeRigidParts(root: THREE.Object3D): void {
     node.add(mesh);
   }
 }
+/** Characters' size relative to the world (doc 42 §H3): 0.72 makes buildings and trees read
+ * larger around the squirrels; the player's collision body is scaled the same way (main.ts). */
+export const CHARACTER_SCALE = 0.72;
 export function buildSquirrel(): SquirrelModel {
   const body = new THREE.Bone();
   body.name = 'SquirrelBody';
@@ -669,7 +672,7 @@ export function buildSquirrel(): SquirrelModel {
   container.add(shadow, body);
   mergeRigidParts(body);
   // Character height ≈2 m, with model geometry left low-poly and independent of physics.
-  body.scale.setScalar(0.78);
+  body.scale.setScalar(0.78 * CHARACTER_SCALE);
   container.updateMatrixWorld(true);
   const bones: THREE.Bone[] = [];
   body.traverse((node) => {

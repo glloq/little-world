@@ -1,6 +1,6 @@
 import {getTerrainConfig} from './terrain.ts';
 import * as THREE from 'three';
-import { buildSquirrel } from './squirrel.ts';
+import { buildSquirrel, CHARACTER_SCALE } from './squirrel.ts';
 import { createDialogue, type DialogueSession } from './dialogue.ts';
 import {
   createNPCState,
@@ -169,7 +169,7 @@ export function createNPCSystem(
     part(proxyLight, 0.42, 1.35, -0.62, 0.46, 0.85, 0.4);
     part(proxyFur, -0.42, 1.98, 0.24, 0.2, 0.29, 0.15);
     part(proxyFur, 0.42, 1.98, 0.24, 0.2, 0.29, 0.15);
-    if (definition.kind === 'animal') root.scale.setScalar(0.58);
+    root.scale.setScalar(definition.kind === 'animal' ? 0.58 * CHARACTER_SCALE : CHARACTER_SCALE);
     root.visible = false;
     scene.add(root);
     return root;

@@ -66,7 +66,7 @@ export function createGathering(deps:GatherDeps){
     return {ok:true,done:true,message:`+${quantity}`,target:t};
   }
   return {
-    target,act,hiddenAt,
+    target,act,hiddenAt,cell,
     subscribe(l:(t:{x:number;z:number;key:string})=>void){listeners.add(l);return ()=>listeners.delete(l);},
     /** Saved as « key:action:regrow » → time (only elements not grown back yet). */
     serialize():GatherSave{const out:Record<string,number>={};for(const [k,g]of gathered)if(deps.time()-g.t<g.regrow)out[`${k}:${g.action[0]}:${g.regrow}`]=g.t;return {schemaVersion:1,gathered:out};},

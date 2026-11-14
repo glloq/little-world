@@ -6,10 +6,10 @@
  "up": "Y",
  "externalAssets": [],
  "totals": {
-  "assets": 97,
-  "glbFiles": 213,
-  "bytes": 1275816,
-  "withUsage": 96
+  "assets": 98,
+  "glbFiles": 215,
+  "bytes": 1295652,
+  "withUsage": 97
  },
  "assets": [
   {
@@ -6822,6 +6822,102 @@
     "habitats": [
      "riverbank",
      "village"
+    ],
+    "runtimeStatus": "INTEGRATED"
+   }
+  },
+  {
+   "id": "structure.campfire",
+   "label": "Feu de camp",
+   "group": "town",
+   "source": "assets/world-kit/manifest.json",
+   "sourceId": "structure.campfire",
+   "license": "project-original",
+   "origin": "Little World original (feat/little-world-assets ou catalogue historique)",
+   "artStatus": "GENERATED_NOT_REVIEWED",
+   "runtimeStatus": "INTEGRATED",
+   "size": [
+    1.543,
+    0.83,
+    1.529
+   ],
+   "pivot": {
+    "base": "ground",
+    "centred": true
+   },
+   "lods": [
+    {
+     "level": 0,
+     "file": "models/world-kit/campfire/lod0.glb",
+     "bytes": 11572,
+     "sha256": "94efec2c0ca0c70d3d651ae064da308df88878dd5a38a786e1a7dc970ff823b4",
+     "triangles": 274,
+     "vertices": 563,
+     "nonTriangles": 0,
+     "bounds": {
+      "min": [
+       -0.73,
+       0,
+       -0.746
+      ],
+      "max": [
+       0.813,
+       0.83,
+       0.783
+      ]
+     },
+     "materials": 0,
+     "textures": 0,
+     "vertexColors": true,
+     "animations": 0,
+     "nodes": [
+      "structure.campfire"
+     ]
+    },
+    {
+     "level": 1,
+     "file": "models/world-kit/campfire/lod1.glb",
+     "bytes": 8264,
+     "sha256": "9d898e3f7ab6c7b1771aafd710c971b9d220b17e89555ab70b50ca4fce8f6abb",
+     "triangles": 184,
+     "vertices": 390,
+     "nonTriangles": 0,
+     "bounds": {
+      "min": [
+       -0.762,
+       0,
+       -0.722
+      ],
+      "max": [
+       0.813,
+       0.83,
+       0.71
+      ]
+     },
+     "materials": 0,
+     "textures": 0,
+     "vertexColors": true,
+     "animations": 0,
+     "nodes": [
+      "structure.campfire"
+     ]
+    }
+   ],
+   "usage": {
+    "role": "prop",
+    "placement": "manual",
+    "collision": "box",
+    "instancing": false,
+    "footprintM": 1.6,
+    "scale": [
+     1,
+     1
+    ],
+    "habitats": [
+     "town",
+     "forest-camp",
+     "village",
+     "prairie"
     ],
     "runtimeStatus": "INTEGRATED"
    }

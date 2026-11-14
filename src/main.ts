@@ -152,6 +152,8 @@ const statefulIds = new Set((playable?.gameplay.entities ?? []).filter((e) => e.
 for (const item of definition.placements) if (statefulIds.has(item.id) || !world.placed.add(item)) addPlacement(world, item);
 scene.add(world.root);
 const player = spawnPlayer();
+// Smaller character (CHARACTER_SCALE): collision body scaled like the model.
+player.body = { radius: .32, height: 1.35, step: .4 };
 if(playable)player.position.set(playable.spawn.x,terrainHeight(playable.spawn.x,playable.spawn.z)+playable.spawn.y+.02,playable.spawn.z);
 let audio:AudioController|null=null;
 // AUD-V2: the valley uses the V2 catalogue (static files loaded on demand); playable maps may still carry V1 audio (migrated in memory).
@@ -216,7 +218,7 @@ let jumpQueue = 0,
   actionQueue = 0;
 let yaw = 0,
   pitch = 0.32,
-  distance = 13.8;
+  distance = 10.5;
 let started = false;
 let elapsed = 0;
 // Generated worlds start on a coast: face the island centre rather than the open sea.
@@ -373,7 +375,7 @@ renderer.domElement.addEventListener('lostpointercapture', resetCameraDrag);
 renderer.domElement.addEventListener(
   'wheel',
   (e) => {
-    distance = clamp(distance + Math.sign(e.deltaY) * 1.0, 7, 25);
+    distance = clamp(distance + Math.sign(e.deltaY) * 1.0, 5, 22);
   },
   { passive: true },
 );
@@ -392,7 +394,7 @@ const cameraTarget = new THREE.Vector3(),
   cameraDesired = new THREE.Vector3(),audioForward=new THREE.Vector3();
 function updateCamera(dt: number) {
   const target = cameraTarget.copy(renderPosition);
-  target.y += aboard ? 2.9 : 1.85;
+  target.y += aboard ? 2.9 : 1.35;
   const cosPitch = Math.cos(pitch);
   const x = target.x - Math.sin(yaw) * cosPitch * distance;
   const z = target.z - Math.cos(yaw) * cosPitch * distance;
@@ -518,6 +520,7 @@ function tick(dt: number) {
     player.mode = 'ground';
     jumpQueue = 0;
   } else {
+    gameplay?.trees?.update(player.position,player.space);
     simulatePlayer(player, keys, dt,gameplay?.collision);
     // Crossing a mine entrance / stairs: no interpolation through rock.
     if(player.transitioned){previousPlayerPosition.copy(player.position);renderPosition.copy(player.position);}

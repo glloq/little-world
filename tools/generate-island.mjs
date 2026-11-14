@@ -13,10 +13,11 @@ import {putZone} from '../src/studio-core/zones.ts';
 import {blobOutline} from '../src/geography/archipelago-params.ts';
 import {defaultEnvironment} from '../src/environment/climate.ts';
 import {applyLandscape,newLandscape} from '../src/world-production/landscapes.ts';
-import {assetDefinitionFor} from '../src/world-production/registry.ts';
+import {lightFor,colliderFor,assetDefinitionFor} from '../src/world-production/registry.ts';
 import {projectGeography} from '../src/studio-core/geo-context.ts';
 import {classifyPoint} from '../src/geography/classify.ts';
 import {ECONOMY_ITEMS} from '../src/gameplay/economy.ts';
+import {roadsideSpots} from '../src/world-production/roadside.ts';
 import {compileProjectToDirectory} from './compile-project.mjs';
 
 export const ISLAND={width:3000,length:8000,seed:4242};
@@ -107,7 +108,7 @@ export function buildIsland(){
   p.world.environment=defaultEnvironment(seed);
   const reports=ISLAND_LANDSCAPES.map(([presetId,center,[w,l],rotation,params])=>applyLandscape(p,newLandscape(p,presetId,center,{width:w,length:l,rotation,params})));
   const place=(id,name,assetId,x,z,ry=0,y=0)=>{const def=assetDefinitionFor(assetId);if(def&&!p.assets[assetId])p.assets[assetId]=def;
-    putEntity(p,{id,name,kind:assetId.startsWith('architecture.')?'building':'prop',ownerChunkId:chunkAt(p.world,x,z),components:{Transform:{type:'Transform',position:{x,y,z},rotation:{x:0,y:Math.sin(ry/2),z:0,w:Math.cos(ry/2)},scale:{x:1,y:1,z:1}},Visual:{type:'Visual',assetId}}});};
+    putEntity(p,{id,name,kind:assetId.startsWith('architecture.')?'building':'prop',ownerChunkId:chunkAt(p.world,x,z),components:{Transform:{type:'Transform',position:{x,y,z},rotation:{x:0,y:Math.sin(ry/2),z:0,w:Math.cos(ry/2)},scale:{x:1,y:1,z:1}},Visual:{type:'Visual',assetId},...(colliderFor(assetId)?{Collider:colliderFor(assetId)}:{}),...(lightFor(assetId,id)?{Light:lightFor(assetId,id)}:{})}});};
   const {ctx}=projectGeography(p),sea=p.world.seaLevel;
   place('island-lighthouse-south','Phare du cap sud','architecture.lighthouse',900,-3180,.8);
   place('island-lighthouse-north','Phare du cap nord','architecture.lighthouse',980,2880,-.6);
@@ -126,7 +127,7 @@ const kind=['nature.boulder_large','nature.boulder_pile','nature.rock_spire','na
     if(tops.some(o=>Math.hypot(o.x-top.x,o.z-top.z)<380))continue;tops.push({...top,rise,yaw:Math.atan2(-ux,-uz)});if(tops.length>=12)break scan;}
   const coinDef=ECONOMY_ITEMS.find(i=>i.id==='coin');if(tops.length&&!p.libraries.items.coin)p.libraries.items.coin={id:'coin',name:coinDef.name,category:coinDef.category,maxQuantity:coinDef.maxQuantity,...(coinDef.description?{description:coinDef.description}:{})};
   tops.forEach((t,i)=>{const id=`island-cliff-treasure-${i}`,act=`island.treasure-${i}`,coins=25+Math.round(t.rise*2);if(!p.assets['structure.chest'])p.assets['structure.chest']=assetDefinitionFor('structure.chest');
-    putEntity(p,{id,name:'Coffre du sommet',kind:'prop',ownerChunkId:chunkAt(p.world,t.x,t.z),components:{Transform:{type:'Transform',position:{x:+t.x.toFixed(2),y:0,z:+t.z.toFixed(2)},rotation:{x:0,y:Math.sin(t.yaw/2),z:0,w:Math.cos(t.yaw/2)},scale:{x:1,y:1,z:1}},Visual:{type:'Visual',assetId:'structure.chest'},
+    putEntity(p,{id,name:'Coffre du sommet',kind:'prop',ownerChunkId:chunkAt(p.world,t.x,t.z),components:{Transform:{type:'Transform',position:{x:+t.x.toFixed(2),y:0,z:+t.z.toFixed(2)},rotation:{x:0,y:Math.sin(t.yaw/2),z:0,w:Math.cos(t.yaw/2)},scale:{x:1,y:1,z:1}},Visual:{type:'Visual',assetId:'structure.chest'},Collider:colliderFor('structure.chest'),
       State:{type:'State',initial:{opened:false}},Persistence:{type:'Persistence',fields:['opened']},Interactable:{type:'Interactable',prompt:'Ouvrir le coffre',range:2.2,interactionIds:[act]}}});
     p.libraries.interactions[act]={id:act,trigger:{type:'onInteract',entityId:id},condition:{type:'stateEquals',entityId:id,key:'opened',value:false},repeat:'once',persistent:true,
       sequence:[{type:'giveItem',itemId:'coin',quantity:coins},{type:'setState',entityId:id,key:'opened',value:true},{type:'showText',text:`Trésor du sommet ! +${coins} pièces.`}]};});
@@ -140,6 +141,13 @@ const kind=['nature.boulder_large','nature.boulder_pile','nature.rock_spire','na
   route('route-centre-north',[[-450,1000],[-300,1500],[-300,1950],[-560,2050]],'trail',2);
   route('route-lake-east',[[80,750],[400,800],[620,700],[820,1500],[820,2150]],'trail',2);
   route('route-stones',[[-80,-1270],[200,-900],[420,-620]],'trail',2);
+  // Roadside campfires with log seats every ~320 m along the routes (lit, flickering).
+  const authored=Object.values(p.chunks).flatMap(c=>Object.values(c.entities)).map(e=>e.components.Transform.position);let camp=0;
+  for(const path of Object.values(p.libraries.paths).filter(q=>q.id.startsWith('route-'))){
+    for(const s of roadsideSpots(path.points,{spacing:320,offset:7,avoid:authored,ok:(x,z)=>{const c=classifyPoint(ctx,x,z);return !c.underwater&&c.occupation==='none'&&c.slope<.25;}})){
+      const id=`island-camp-${camp++}`;place(id,'Feu de camp','structure.campfire',+s.x.toFixed(2),+s.z.toFixed(2),s.yaw);
+      for(const [k,a]of [[0,.8],[1,2.6]]){const lx=s.x+Math.sin(s.yaw+a)*1.9,lz=s.z+Math.cos(s.yaw+a)*1.9;place(`${id}-seat-${k}`,'Rondin','nature.log_fallen',+lx.toFixed(2),+lz.toFixed(2),s.yaw+a+Math.PI/2);}
+      authored.push({x:s.x,z:s.z});}}
   return {project:parseProject(p),reports};
 }
 if(import.meta.url===`file://${process.argv[1]}`){

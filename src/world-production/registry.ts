@@ -4,6 +4,8 @@
  * (`npm run generate:world-assets`) and validated by tests. */
 import registryData from '../../assets/world-assets.json' with {type:'json'};
 import type {AssetUsage,BiotopeId,AmenityId} from './asset-usage.ts';
+import {lightFromPreset} from '../lighting/light-data.ts';
+import type {LightComponent} from '../studio-core/types.ts';
 
 export interface WorldAssetLod {level:number;file:string;bytes:number;sha256:string;triangles:number;vertices:number;bounds:{min:number[];max:number[]};materials:number;textures:number;vertexColors:boolean;animations:number}
 export interface WorldAsset {
@@ -27,6 +29,30 @@ const CATEGORY_LABEL:Record<string,string>={trees:'Arbres',shrubs:'Arbustes',gro
 export const groupLabel=(group:string)=>CATEGORY_LABEL[group]??group;
 export function placeableWorldAssets():PlaceableAssetEntry[]{
   return WORLD_ASSETS.assets.filter(a=>a.group!=='legacy'&&a.usage).map(a=>({id:a.id,name:a.label,category:groupLabel(a.group),type:'glb' as const,license:a.license,file:a.lods[0].file,source:`${a.origin} — ${a.source}#${a.sourceId}`}));
+}
+/** Logical collider of a registry asset from its usage (doc 42 §H3): buildings and walls block by
+ * their footprint (slightly inset for eaves), props/rocks/hedges by their box, trees and the
+ * world-tree landmark by their trunk only; boats, docks, ground flora: none. Written into the V3
+ * source as a regular `Collider` component (editable, compiled like any authored collider). */
+export function colliderFor(assetId:string):{type:'Collider';shape:'box';size:{x:number;y:number;z:number};layer:'solid'}|null{
+  const a=worldAsset(assetId),u=a?.usage;if(!a||!u||u.collision==='none'||u.role==='dock'||u.role==='boat'||u.role==='ground')return null;
+  const [sx,sy,sz]=a.size,r=(v:number)=>Math.round(v*100)/100;
+  const trunk=u.collision==='trunk'||/tree/.test(assetId);
+  if(trunk){const w=Math.max(.4,Math.min(sx,sz)*(assetId==='landmark.world_tree'?.16:.12));return {type:'Collider',shape:'box',size:{x:r(w),y:r(Math.min(sy,8)),z:r(w)},layer:'solid'};}
+  const inset=u.collision==='footprint'?.88:.92;
+  return {type:'Collider',shape:'box',size:{x:r(Math.max(.2,sx*inset)),y:r(Math.max(.3,sy)),z:r(Math.max(.2,sz*inset))},layer:'solid'};
+}
+/** Authored light of a registry asset (doc 42 §H4), written as a regular `Light` component:
+ * street lamps glow at night, campfires flicker all the time, the inn and one house in two light
+ * their door at night (front = −Z of the kit models). `key` makes the house choice deterministic. */
+export function lightFor(assetId:string,key:string):LightComponent|null{
+  const a=worldAsset(assetId);if(!a)return null;const [,sy,sz]=a.size;
+  if(assetId==='structure.lamp_post')return lightFromPreset('warm-lantern',Math.round(sy*.9*100)/100);
+  if(assetId==='structure.campfire')return lightFromPreset('flickering-fire',.9);
+  const door=(preset:'fixed-lamp'|'warm-lantern')=>({...lightFromPreset(preset,2.4),offset:{x:0,y:2.4,z:-Math.round((sz/2+.6)*100)/100}});
+  if(assetId==='architecture.inn')return door('warm-lantern');
+  if(/^architecture\.(house|cottage|stone_house|farmhouse)/.test(assetId)){let h=2166136261;for(let i=0;i<key.length;i++)h=Math.imul(h^key.charCodeAt(i),16777619);return (h>>>0)%2===0?door('fixed-lamp'):null;}
+  return null;
 }
 /** Indicative cost class for the Studio library (LOD0 triangles). */
 export function costClass(a:WorldAsset):'léger'|'moyen'|'lourd'{const t=a.lods[0].triangles;return t<=200?'léger':t<=800?'moyen':'lourd';}

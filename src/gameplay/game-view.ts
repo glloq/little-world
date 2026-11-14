@@ -8,6 +8,7 @@ import {gameplayDialogueSession} from './dialogue-session.ts';
 import {createGameSaveStore,scopedSaveStorage,parseGameSave,type GameSaveV2} from './save.ts';
 import {createActivityRuntime} from './activity-runtime.ts';
 import {COIN,STARTING_COINS,STARTING_KIT,SHOPS,buy,sell,type ShopKind} from './economy.ts';
+import {createTreeColliders} from './tree-colliders.ts';
 import {createGathering,createFishing,type GatherDeps} from './gathering.ts';
 import type {PlayableActivities} from './activities.ts';
 import type {MovementSpace} from '../physics/collision-world.ts';
@@ -30,6 +31,7 @@ export function createGameplayView(data:GameplayData,options:Options){
  if(runtime.data.items.some(i=>i.id===COIN))runtime.grantItems([{itemId:COIN,quantity:STARTING_COINS},...STARTING_KIT.filter(k=>runtime.data.items.some(i=>i.id===k.itemId))]);
  // Gathering (trees, fruits, mushrooms, flowers) on the procedural dressing of generated worlds.
  const gathering=options.gathering?createGathering({...options.gathering,time:()=>runtime.state.time,grant:changes=>runtime.grantItems(changes),has}):null;
+ const trees=gathering?createTreeColliders({collision,cell:gathering.cell,hidden:gathering.hiddenAt}):null;
  const fishing=createFishing();
  const purse={count:(id:string)=>runtime.state.inventory[id]??0,max:(id:string)=>runtime.data.items.find(i=>i.id===id)?.maxQuantity??0,apply:(changes:{itemId:string;quantity:number}[])=>runtime.grantItems(changes)};
  const itemName=(id:string)=>runtime.data.items.find(i=>i.id===id)?.name??id;
@@ -62,7 +64,7 @@ export function createGameplayView(data:GameplayData,options:Options){
  }
  sync();
  return {
-  runtime,collision,activities,slots,compose,gathering,fishing,trade,purse,itemName,has,
+  runtime,collision,activities,slots,compose,gathering,trees,fishing,trade,purse,itemName,has,
   /** Restores a validated save into the runtime and the activities; returns the warnings. */
   restore(save:GameSaveV2){const warnings=[...runtime.restore(save),...activities.restore(save)];gathering?.restore(save.gathering??null);options.setPosition(save.position,save.space??null);sync();version=-1;for(const l of listeners)l();return warnings;},
   /** Imports an exported slot file (validated) into a free slot of this world. */
