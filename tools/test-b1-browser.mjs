@@ -46,7 +46,7 @@ try{
   const surface=await hold('KeyS',v=>v.act.space===null,60);check(surface.act.space===null&&Math.abs(surface.pos[2]-28.5)<2,'Back on the surface outside the entrance ('+surface.pos.map(n=>n.toFixed(1))+')');
   // 7–9. Farm: choose carrots, sow, water, accelerate the world clock, harvest.
   await moveTo(-164,40,118);await page.keyboard.press('KeyC');await page.waitForTimeout(300);check(/Carotte/.test(await msg()),'Crop chosen with C');
-  await page.waitForFunction(()=>document.querySelector('.ui-activity-card')?.dataset.kind==='farm');check(await card.getByRole('button',{name:'Carotte'}).getAttribute('aria-pressed')==='true','Plot card shows the chosen crop as pressed');
+  await page.waitForFunction(()=>document.querySelector('.ui-activity-card')?.dataset.kind==='farm');check(await page.waitForFunction(()=>[...document.querySelectorAll('.ui-activity-card .ui-chip')].find(b=>b.textContent==='Carotte')?.getAttribute('aria-pressed')==='true',{},{timeout:5000}).then(()=>true,()=>false),'Plot card shows the chosen crop as pressed');
   const other=card.locator('.ui-chip[aria-pressed=false]').first(),otherName=await other.textContent();await other.click();await page.waitForFunction(n=>[...document.querySelectorAll('.ui-activity-card .ui-chip')].find(b=>b.textContent===n)?.getAttribute('aria-pressed')==='true',otherName);
   await card.getByRole('button',{name:'Carotte'}).click();await page.waitForFunction(()=>[...document.querySelectorAll('.ui-activity-card .ui-chip')].find(b=>b.textContent==='Carotte')?.getAttribute('aria-pressed')==='true');check(true,'Crop chips select through the farm runtime ('+otherName+' then Carotte)');
   await page.keyboard.press('KeyF');await page.waitForTimeout(300);check(/Semis/.test(await msg()),'Sown');
