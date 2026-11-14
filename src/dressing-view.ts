@@ -76,7 +76,10 @@ export function createDressingView(parent:THREE.Group,seed:number,density:number
     const ids=library!.species.map(g=>g?mesh.addGeometry(lod?g.lod1:g.lod0):-1),tri=library!.species.map(g=>g?g.triangles[lod]:0);
     root.add(mesh);return {mesh,ids,capacity,added:0,used:0,tri};
   }
-  void loadSpeciesLibrary().then(lib=>{
+  // `?glb=0` (benchmarks, fallback checks): keep the procedural families only.
+  const glbDisabled=typeof location!=='undefined'&&new URLSearchParams(location.search).get('glb')==='0';
+  if(glbDisabled)queueMicrotask(()=>{stats.species.state='failed';});
+  else void loadSpeciesLibrary().then(lib=>{
     if(retired)return;library=lib;stats.species.bytes=lib.bytes;stats.species.loadMs=lib.loadMs;stats.species.failed=lib.failed;
     if(lib.species.every(g=>!g)){stats.species.state='failed';return;}
     batches.push(createBatch(0),createBatch(1));stats.species.state='ready';dirty=true;

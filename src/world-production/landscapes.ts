@@ -12,7 +12,8 @@
 import type {ProjectDocument,EntityDefinitionV3,ActivityZoneV3} from '../studio-core/types.ts';
 import type {WaterBody,PathDefinition} from '../world-data.ts';
 import type {ReliefFeature} from '../geography/archipelago.ts';
-import {MASK_GRID,cellCenter,isEmptyMask,setMaskCell,type MaskLayerId} from '../geography/layers.ts';
+import {MASK_GRID,cellCenter,isEmptyMask,setMaskCell,categoryById,type MaskLayerId} from '../geography/layers.ts';
+import {classifyPoint,type GeoSample} from '../geography/classify.ts';
 import {putEntity,removeEntity,putWater,removeWater,putPath,removePath,ensureChunk} from '../studio-core/source.ts';
 import {chunkAt} from '../studio-core/schema.ts';
 import {putZone,removeZone} from '../studio-core/zones.ts';
@@ -32,7 +33,7 @@ export interface LandscapeReport {
   conflicts:{kind:string;id:string}[];
   /** Author-deleted content not recreated. */
   respectedDeletions:{kind:string;id:string}[];
-  maskCells:{painted:number;erased:number;protected:number};
+  maskCells:{painted:number;erased:number;protected:number;/** Cells left to the generator (same value). */alreadyGenerated:number};
   diagnostics:string[];chunks:string[];
 }
 type Kind='features'|'water'|'paths'|'entities'|'zones';
@@ -85,7 +86,7 @@ export function newLandscape(p:ProjectDocument,presetId:LandscapePresetId,center
 export function applyLandscape(draft:ProjectDocument,input:LandscapeInstanceV1,options:{overwrite?:boolean}={}):LandscapeReport{
   const b=draft.world.bounds,inst=validateLandscape(structuredClone({...input,params:normalizeParams(input.presetId,input.params)}),b),preset=LANDSCAPE_PRESETS[inst.presetId];
   const previous:LandscapeGenerated=draft.libraries.landscapes?.[inst.id]?.generated??inst.generated??emptyGenerated();
-  const report:LandscapeReport={instanceId:inst.id,added:0,updated:0,removed:0,unchanged:0,conflicts:[],respectedDeletions:[],maskCells:{painted:0,erased:0,protected:0},diagnostics:[],chunks:[]};
+  const report:LandscapeReport={instanceId:inst.id,added:0,updated:0,removed:0,unchanged:0,conflicts:[],respectedDeletions:[],maskCells:{painted:0,erased:0,protected:0,alreadyGenerated:0},diagnostics:[],chunks:[]};
   const overwrite=!!options.overwrite,next:LandscapeGenerated={...emptyGenerated(),revision:previous.revision+1};
   // Phase 1 — release owned content of the previous generation (modified content is detached).
   const owned=new Map<Kind,Set<string>>(),blocked=new Set<string>();
@@ -159,9 +160,18 @@ export function applyLandscape(draft:ProjectDocument,input:LandscapeInstanceV1,o
       for(const rule of content.masks)if(rule.test(l.u,l.v,c.x,c.z))painted.set(`${chunk}|${rule.layer}|${i}`,rule.code);
     }
   }
+  // A correction equal to what the Geography Engine already computes is not stored (no duplicated
+  // classification, fewer sector packages): only real differences become mask cells.
+  const samples=new Map<string,GeoSample>();
+  const generated=(chunk:string,i:number,layer:MaskLayerId):string=>{
+    const k=chunk+'|'+i;let s=samples.get(k);if(!s){const c=cellCenter(g,chunk,i);s=classifyPoint(after.ctx,c.x,c.z);samples.set(k,s);}
+    if(layer==='moisture')return String(Math.round(s.moisture*9));
+    return categoryById(layer,s[layer] as string)?.code??'.';
+  };
   for(const [key,code]of painted){
     const [chunk,layer,index]=key.split('|'),i=Number(index),now=maskCode(chunk,layer as MaskLayerId,i),mine=previousCells.get(key);
     if(now!=='.'&&now!==mine&&!overwrite){report.maskCells.protected++;continue;}
+    if(now==='.'&&generated(chunk,i,layer as MaskLayerId)===code){report.maskCells.alreadyGenerated++;continue;}
     if(now!==code){writeCell(chunk,layer as MaskLayerId,i,code);touched.add(chunk);}
     report.maskCells.painted++;
     const rec=next.masks[chunk]??(next.masks[chunk]={});rec[layer as MaskLayerId]=setMaskCell(rec[layer as MaskLayerId],i,code);
@@ -180,7 +190,7 @@ export function applyLandscape(draft:ProjectDocument,input:LandscapeInstanceV1,o
 /** Remove an instance and the content it still owns (modified content is detached). */
 export function removeLandscape(draft:ProjectDocument,id:string,options:{overwrite?:boolean}={}):LandscapeReport{
   const inst=draft.libraries.landscapes?.[id];
-  const report:LandscapeReport={instanceId:id,added:0,updated:0,removed:0,unchanged:0,conflicts:[],respectedDeletions:[],maskCells:{painted:0,erased:0,protected:0},diagnostics:[],chunks:[]};
+  const report:LandscapeReport={instanceId:id,added:0,updated:0,removed:0,unchanged:0,conflicts:[],respectedDeletions:[],maskCells:{painted:0,erased:0,protected:0,alreadyGenerated:0},diagnostics:[],chunks:[]};
   if(!inst)return report;const g=inst.generated??emptyGenerated();
   for(const kind of ['features','water','paths','entities','zones'] as Kind[])for(const [eid,hash]of Object.entries(g[kind])){
     const now=current(draft,kind,eid);if(now===undefined)continue;

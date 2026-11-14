@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {parseProject} from '../src/studio-core/schema.ts';
 import {projectGeography} from '../src/studio-core/geo-context.ts';
+import {classifyPoint} from '../src/geography/classify.ts';
 import {generateDressingCell,DRESSING_CELL_M,ITEM_STRIDE} from '../src/geography/dressing.ts';
 import {openCompiledWorld,playableFromCompiled} from '../src/runtime/compiled-world.ts';
 import {worldAsset} from '../src/world-production/registry.ts';
@@ -24,7 +25,7 @@ test('the sixteen required situations exist in the source',()=>{
   const checks={
     forest:maskCount(p,'biome','f')>500,clearing:maskCount(p,'biome','m')>20,meadow:!!p.libraries.landscapes['ls-village-clearing-1'],valley:features.some(f=>f.kind==='valley'),
     watercourse:water.some(w=>w.kind!=='lake'),waterfall:water.some(w=>w.falls?.length),lake:water.some(w=>w.kind==='lake'),cliff:features.some(f=>f.id.startsWith('ls-rocky-cliff'))&&maskCount(p,'geology','r')>50,
-    beach:maskCount(p,'geology','a')>50,rocky:!!p.libraries.landscapes['ls-rocky-cliff-1'],village:assets.filter(a=>a.startsWith('architecture.')).length>=4,bridge:assets.some(a=>a.startsWith('structure.bridge')),
+    beach:(()=>{const {ctx}=projectGeography(p);let n=0;for(let z=-370;z<=30;z+=10)for(let x=-560;x<=-300;x+=10){const q=classifyPoint(ctx,x,z);if(!q.underwater&&q.geology==='sand')n++;}return n>30;})(),rocky:!!p.libraries.landscapes['ls-rocky-cliff-1'],village:assets.filter(a=>a.startsWith('architecture.')).length>=4,bridge:assets.some(a=>a.startsWith('structure.bridge')),
     path:Object.keys(p.libraries.paths).length>=4,mine:zones.some(z=>z.kind==='mine'),farm:zones.some(z=>z.kind==='farm-plot'),assets:new Set(assets.filter(a=>worldAsset(a))).size>=10,
   };
   for(const [k,ok]of Object.entries(checks))assert.ok(ok,'missing: '+k);

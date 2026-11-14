@@ -5,7 +5,8 @@
  * plus the renderer counters (calls, triangles, dressing instances per LOD). Captures prove
  * reproducibility, not artistic approval. SwiftShader = regression signal, not a GPU bench.
  * Usage: node tools/capture-world-views.mjs <base-url> <output-dir> [views.json]
- *   VIEWS=name1,name2 to filter; CHROMIUM_PATH to choose the browser binary. */
+ *   VIEWS=name1,name2 to filter; CHROMIUM_PATH to choose the browser binary; FORMAT=jpeg,
+ *   WIDTH/HEIGHT for the viewport; QUALITY=high|medium|low for the presentation profile. */
 import {mkdir,writeFile,readFile} from 'node:fs/promises';
 import {existsSync} from 'node:fs';
 import {resolve} from 'node:path';
@@ -33,7 +34,7 @@ try{
     const settled=await page.waitForFunction(()=>{const m=window.littleWorldMetrics;return m&&m.chunks.pending===0&&(!m.dressing||m.dressing.pending===0&&m.dressing.species.state!=='loading');},{},{timeout:45000}).then(()=>true,()=>false);
     await page.waitForTimeout(1500);
     const metrics=await page.evaluate(()=>{const m=window.littleWorldMetrics;return {calls:m.calls,triangles:m.triangles,position:m.position,dressing:m.dressing?{instances:m.dressing.instances,calls:m.dressing.calls,triangles:m.dressing.triangles,cells:m.dressing.cells,species:m.dressing.species}:null,horizon:m.horizon?{triangles:m.horizon.triangles}:null};});
-    const file=resolve(output,`${v.name}.png`);await page.screenshot({path:file});
+    const jpeg=process.env.FORMAT==='jpeg',file=resolve(output,`${v.name}.${jpeg?'jpg':'png'}`);await page.screenshot({path:file,...(jpeg?{type:'jpeg',quality:78}:{})});
     report.push({name:v.name,label:v.label,settled,settleMs:Math.round(performance.now()-t0),metrics,errors});
     console.log(v.name,settled?'ok':'TIMEOUT',JSON.stringify({calls:metrics.calls,triangles:metrics.triangles,lod0:metrics.dressing?.species.lod0,lod1:metrics.dressing?.species.lod1}),errors.length?errors.slice(0,3):'');
     await context.close();

@@ -493,16 +493,6 @@
    "terrainOwners": {},
    "biomeOwners": {}
   },
-  "4:11": {
-   "chunkId": "4:11",
-   "cx": 4,
-   "cz": 11,
-   "revision": 0,
-   "sourceRef": "world/chunks/4_11.json",
-   "dependencies": [],
-   "terrainOwners": {},
-   "biomeOwners": {}
-  },
   "5:11": {
    "chunkId": "5:11",
    "cx": 5,
@@ -1393,32 +1383,12 @@
    "terrainOwners": {},
    "biomeOwners": {}
   },
-  "3:5": {
-   "chunkId": "3:5",
-   "cx": 3,
-   "cz": 5,
-   "revision": 0,
-   "sourceRef": "world/chunks/3_5.json",
-   "dependencies": [],
-   "terrainOwners": {},
-   "biomeOwners": {}
-  },
   "4:5": {
    "chunkId": "4:5",
    "cx": 4,
    "cz": 5,
    "revision": 0,
    "sourceRef": "world/chunks/4_5.json",
-   "dependencies": [],
-   "terrainOwners": {},
-   "biomeOwners": {}
-  },
-  "3:6": {
-   "chunkId": "3:6",
-   "cx": 3,
-   "cz": 6,
-   "revision": 0,
-   "sourceRef": "world/chunks/3_6.json",
    "dependencies": [],
    "terrainOwners": {},
    "biomeOwners": {}
@@ -8548,10 +8518,10 @@
      "zones": {},
      "masks": {
       "5:10": {
-       "biome": "..............................................................................................................................................................................................................................mm............ffmm..........fffmmm"
+       "biome": "..............................................................................................................................................................................................................................mm..............mm.............mmm"
       },
       "6:10": {
-       "biome": "...............................................................................f..............ff............ffff...........fffff..........ffffff........ffffffff......ffffffffff...fffffffffffffffffffffffffffffmmmfffffffffffffmmmmmfffffffffffmmmmmmmfffffffff",
+       "biome": "...............................................................................f..............ff............ffff...........fffff..........ffffff..........ffffff..........ffffff..........ffffff..........ffffffmmm.......ffffffmmmmm.....ffffffmmmmmmm...ffffff",
        "moisture": "...............................................................................7...............7...............7...............7...............7...............7..............77..............77..............77..............77..............77..............77"
       },
       "7:10": {
@@ -8559,16 +8529,13 @@
        "biome": "................................................fffffff.........fffffffff.......fffffffffff.....ffffffffffffff..ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
       },
       "8:10": {
-       "biome": "................................................................................................................ff..............fffff...........fffffff.........ffffffff........ffffffffff......fffffffffff.....ffffffffffff....fffffffffffff...fffffffffffff..."
-      },
-      "4:11": {
-       "biome": "...............................................................................................................................................................................f...............f...............f...............f...............f...............f"
+       "biome": "................................................................................................................ff..............fffff...........fffffff.........fffff...........fffff...........ffffff..........ff..ff..........ff..............ff.............."
       },
       "5:11": {
-       "biome": "........ffffmmmm......ffffffmmmm....fffffffmmmmm...ffffffffmmmmm..fffffffffmmmmm.ffffffffffmmmmm.ffffffffffmmmmmffffffffffffmmmmfffffffffffffmmmfffffffffffffmmfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+       "biome": "............mmmm............mmmm...........mmmmm...........mmmmm...........mmmmm...........mmmmm...........mmmmm............mmmm.............mmm.............mm.............................ffff...........fffff.........fffffff.....fffffffffff..ffffffffffffff"
       },
       "6:11": {
-       "biome": "mmmmmmmfffffffffmmmmmmmfffffffffmmmmmmmfffffffffmmmmmmmmffffffffmmmmmmmmffffffffmmmmmmmfffffffffmmmmmmmfffffffffmmmmmmffffffffffmmmmffffffffffffmmffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+       "biome": "mmmmmmm...ffffffmmmmmmm...ffffffmmmmmmm..fffffffmmmmmmmm.fffffffmmmmmmmmffffffffmmmmmmm.ffffffffmmmmmmmfffffffffmmmmmm.fffffffffmmmm..ffffffffffmm..ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
        "moisture": "..............77.............777.............777.............777.............777.............777.............777.............777............7777............7777............7777............7777............7777............7777...........77777...........77777"
       },
       "7:11": {
@@ -8576,7 +8543,7 @@
        "moisture": "7777777777777...7777777777777...7777777777777...7777777777777...777777777777....777777777777....777777777777....777777777777....777777777777....777777777777....777777777777....77777777777.....77777777777.....77777777777.....77777777777.....77777777777....."
       },
       "8:11": {
-       "biome": "fffffffffffff...fffffffffffff...ffffffffffffff..ffffffffffffff..ffffffffffffff..ffffffffffffff..ffffffffffffff..fffffffffffffff.fffffffffffffff.ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+       "biome": "fff.............ffff.....ffff...fffff...ffffff..ffffffffffffff..ffffffffffff....ffffffffffff....ffffffffffffff..ffffffffffffff..ffffffffffffff..ffffffffffffff..fffffffffffffff.ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
       },
       "9:11": {
        "biome": "................................................................................................................................................................f...............ff..............fff.............ffff............fffff...........ffffff.........."
@@ -8612,11 +8579,11 @@
        "moisture": ".........7777777.........7777777........77777777........77777777........77777777........77777777........77777777........77777777........77777777.......777777777.......777777777.......777777777.......777777777.......777777777.......777777777......7777777777"
       },
       "7:13": {
-       "biome": "fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffmffffffffffffffmmffffffffffffffmm",
+       "biome": "fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff.ffffffffffffff..ffffffffffffff..",
        "moisture": "77777777........77777777........77777777........77777777........77777777........7777777.........7777777.........7777777.........7777777.........7777777.........7777777.........7777777.........777777..........777777..........777777..........777777.........."
       },
       "8:13": {
-       "biome": "fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffmmmmfffffffffffmmmmmmmmffffffffmmmmmmmmmmffffffmmmmmmmmmmffffffmmmmmmmmmmffffff"
+       "biome": "fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff....fffffffffff........ffffffff..........ffffff..........ffffff..........ffffff"
       },
       "9:13": {
        "biome": "ffffffff........ffffffff........ffffffff........ffffffff........fffffff.........fffffff.........fffffff.........fffffff.........fffffff.........fffffff.........fffffff.........fffffff.........fffffff.........fffffff.........fffffff.........fffffff........."
@@ -8632,11 +8599,11 @@
        "moisture": "......7777777777......7777777777......7777777777......7777777777......7777777777......7777777777.....77777777777.....77777777777.....77777777777.....77777777777.....77777777777.....77777777777.....77777777777....777777777777....777777777777....777777777777"
       },
       "7:14": {
-       "biome": "fffffffffffffmmmffffffffffffmmmmffffffffffffmmmmffffffffffffmmmmffffffffffffmmmmffffffffffffmmmmffffffffffffmmmmffffffffffffmmmmffffffffffffmmmmfffffffffffffmmmfffffffffffffffmffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+       "biome": "fffffffffffff...ffffffffffff....ffffffffffff....ffffffffffff....ffffffffffff....ffffffffffff....ffffffffffff....ffffffffffff....ffffffffffff....fffffffffffff...fffffffffffffff.ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
        "moisture": "777777..........777777..........777777..........77777...........77777...........77777...........77777...........77777...........77777...........7777............7777............7777............7777............7777............7777............7777............"
       },
       "8:14": {
-       "biome": "mmmmmmmmmmmfffffmmmmmmmmmmmmmfffmmmmmmmmmmmmmmffmmmmmmmmmmmmmmffmmmmmmmmmmmmmfffmmmmmmmmmmmmmmffmmmmmmmmmmmmmmffmmmmmmmmmmmmmmffmmmmmmmmmmmmmmffmmmmmmmmmmmmffffmmmmmmmmmmffffffmmmmmmmmmffffffffmmmmffffffffffffmmmffffffffffffffffffffffffffffffffffffffffffff"
+       "biome": "...........fffff.............fff..............ff..............ff.............fff..............ff..............ff..............ff..............ff............ffff..........ffffff.........ffffffff....ffffffffffff...ffffffffffffffffffffffffffffffffffffffffffff"
       },
       "9:14": {
        "biome": "fffffff.........fffffff.........ffffff..........ffffff..........ffffff..........ffffff..........ffffff..........ffffff..........ffffff..........ffffff..........ffffff..........ffffff..........ffffff..........ffffff..........ffffff..........ffffff.........."
@@ -8669,11 +8636,11 @@
        "moisture": "...............................................................................................................................................................................................................................................7...............7"
       },
       "6:16": {
-       "biome": "fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffmmmmfffffffffffmmmmmmfffffffffmmmmmmmffffffffmmmmmmmmffffffffmmmmmmmmffffffffmmmmmmmmffffffffmmmmmmmmfffffffffmmmmmmm",
+       "biome": "fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff....fffffffffffm.....fffffffffm......ffffffffmm......ffffffffm.......ffffffffm.......ffffffff........fffffffff.......",
        "moisture": "..77777777777777.777777777777777.777777777777777.777777777777777.777777777777777.777777777777777.777777777777777777777777777777777777777777777777777777777777777777777777777777.777777777777777.777777777777777.777777777777777.777777777777777.777777777777777."
       },
       "7:16": {
-       "biome": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffmfffffffffffffffmfffffffffffffffmfffffffffffffffffffffffffffffffffffffffffffffff",
+       "biome": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff.fffffffffffffff.fffffffffffffff.fffffffffffffffffffffffffffffffffffffffffffffff",
        "moisture": "7...............7...............7...............7..............................................................................................................................................................................................................."
       },
       "8:16": {
@@ -8687,7 +8654,7 @@
        "moisture": "...............7...............7...............7...............7..............77..............77..............77..............77..............77..............77..............77.............777.............777.............777.............777.............777"
       },
       "6:17": {
-       "biome": "ffffffffffmmmmmffffffffffffmmfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+       "biome": "ffffffffff.....ffffffffffff..fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
        "moisture": "777777777777777.77777777777777..77777777777777..77777777777777..77777777777777..77777777777777..77777777777777..77777777777777..7777777777777...7777777777777...7777777777777...7777777777777...7777777777777...7777777777777...777777777777....777777777777...."
       },
       "7:17": {
@@ -8764,11 +8731,11 @@
       },
       "12:15": {
        "moisture": ".......888888888.......888888888.......888888888.......888888888.......888888888.......888888888.......888888888.......888888888.......888888888.......888888888.......888888888.......888888888.......888888888.......888888888.......888888888.......888888888",
-       "geology": "..........rrrrr...........rrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr...........rrrrr...........rrrrr."
+       "geology": "..........rrrrr...........rrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........................rrrrrr..........rrrrrr...........rrrrr...........rrrrr."
       },
       "13:15": {
        "moisture": "8888888888888...8888888888888...8888888888888...8888888888888...8888888888888...8888888888888...8888888888888...8888888888888...8888888888888...8888888888888...8888888888888...8888888888888...8888888888888...8888888888888...8888888888888...8888888888888...",
-       "geology": ".....rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr....."
+       "geology": ".....rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........................rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr....."
       },
       "12:16": {
        "moisture": ".......888888888.......888888888.......888888888.......888888888.......888888888.......888888888.......888888888.......888888888.......888888888.......888888888.......888888888.......888888888.......888888888.......888888888.......888888888.......888888888",
@@ -8827,12 +8794,12 @@
      "zones": {},
      "masks": {
       "12:11": {
-       "moisture": "...............................8..............88.............888.............888.............888............8888...........88888..........888888........88888888.......888888888.......888888888......8888888888......8888888888......8888888888.....88888888888",
+       "moisture": "...............................8..............88..............88..............88...............8............8..8...........88.............8888.8........88888888.......888888888.......888888888......8888888888......8888888888......8888888888.....88888888888",
        "biome": ".............................................................................................................................................................................................................................................................w.."
       },
       "13:11": {
-       "moisture": "8888............88888...........888888..........8888888.........8888888.........8888888.........8888888.........888888..........888888..........888888..........888888..........88888...........888.............88..............8...............................",
-       "biome": "....................................................w...............www.............wwww............wwww............www.............www.............w..........................................................................................................."
+       "moisture": "888.............88888...........8888............8888.88.........8888888.........8888..8.........888..8..........88888...........8.888............8.88...........8...8...........8...8...........88..............88..............8...............................",
+       "biome": "....................................................................ww..............wwww............ww..............w...............w...............w..........................................................................................................."
       },
       "12:12": {
        "moisture": ".....8888888888......8888888888.....8888888888......8888888888......8888888888.....8888888888......8888888888......8888888888......8888888888......8888888888......8888888888......8888888888......8888888888......8888.............888.............888.........",
@@ -8898,7 +8865,7 @@
       },
       "7:4": {
        "biome": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww..wwwwwwwwwwwww.....wwwwwwwwwww......ww.....www",
-       "moisture": "9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999955999999999999955555999999999995555559955555999"
+       "moisture": "999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999995.99999999999995555.999999999995555559955555999"
       },
       "8:4": {
        "biome": "wwwwwwwwww......wwwwwwwwww......wwwwwwwwwww.....wwwwwwwwwww.....wwwwwwwwwwww....wwwwwwwwwwww....wwwwwwwwwwwww...wwwwwwwwwwwwww..wwwwwwwwwwwwww..wwwwwwwwwwwwwww.wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww",
@@ -9254,41 +9221,33 @@
      "entities": {},
      "zones": {},
      "masks": {
-      "3:5": {
-       "geology": "...............................................................................................................................................................................................a...............a...............a...............a..............aa",
-       "biome": "...............................................................................................................................................................................................c...............c...............c...............c..............cc"
-      },
       "4:5": {
-       "geology": ".......aa.............aa.............aaa.............aa.............aa.............aaa............aaa.............aa.............aaa............aaa.............aa..............aa..............a...............a...............a...............a...............",
-       "biome": ".......cc.............cc.............ccc.............cc.............cc.............ccc............ccc.............cc.............ccc............ccc.............cc..............cc..............c...............c...............c...............c..............."
-      },
-      "3:6": {
-       "geology": "..............aa..............aa..............aa..............aa..............aa.............aaa.............aaa.............aaa.............aaa.............aaa.............aaa.............aaa.............aaa.............aaa.............aaa.............aaa",
-       "biome": "..............cc..............cc..............cc..............cc..............cc.............ccc.............ccc.............ccc.............ccc.............ccc.............ccc.............ccc.............ccc.............ccc.............ccc.............ccc"
+       "geology": ".......aa..............a..............aa.............aa..............a...............a.............................................a.............................................a..............................................................................",
+       "biome": ".......cc..............c..............cc.............cc..............c...............c.............................................c.............................................c.............................................................................."
       },
       "4:6": {
-       "geology": "a...............a...............................................................................................................................................................................................................................................",
-       "biome": "c...............c..............................................................................................................................................................................................................................................."
+       "geology": "................a...............................................................................................................................................................................................................................................",
+       "biome": "................c..............................................................................................................................................................................................................................................."
       },
       "3:7": {
-       "geology": ".............aaa............aaaa............aaaa............aaaa............aaaa............aaa.............aaa.............aaa.............aaa............aaaa............aaaa............aaaa............aaaa............aaaa............aaaa...........aaaaa.",
-       "biome": ".............ccc............cccc............cccc............cccc............cccc............ccc.............ccc.............ccc.............ccc............cccc............cccc............cccc............cccc............cccc............cccc...........ccccc."
+       "geology": "...............................a...............a...............a...............a..............................................................................................................................................................a...............a.",
+       "biome": "...............................c...............c...............c...............c..............................................................................................................................................................c...............c."
       },
       "3:8": {
-       "geology": "..........aaaaa...........aaaaa...........aaaaa...........aaaaa...........aaaaa...........aaaaa...........aaaaa...........aaaaa...........aaaaa...........aaaaa...........aaaaa...........aaaaa...........aaaaa...........aaaaa...........aaaaa...........aaaaaa",
-       "biome": "..........ccccc...........ccccc...........ccccc...........ccccc...........ccccc...........ccccc...........ccccc...........ccccc...........ccccc...........ccccc...........ccccc...........ccccc...........ccccc...........ccccc...........ccccc...........cccccc"
+       "geology": "..............a...............a...............a...............a................................................................................................................................................................................................a",
+       "biome": "..............c...............c...............c...............c................................................................................................................................................................................................c"
       },
       "3:9": {
-       "geology": "..........aaaaaa..........aaaaaa..........aaaaaa..........aaaaaa..........aaaaaa..........aaaaaa..........aaaaaa..........aaaaaa..........aaaaaa..........aaaaaa..........aaaaaa..........aaaaaa..........aaaaaa..........aaaaaa..........aaaaaa.........aaaaaaa",
-       "biome": "..........cccccc..........cccccc..........cccccc..........cccccc..........cccccc..........cccccc..........cccccc..........cccccc..........cccccc..........cccccc..........cccccc..........cccccc..........cccccc..........cccccc..........cccccc.........ccccccc"
+       "geology": "...............a...............a...............a...............a...............................................................................................................................................................................................a",
+       "biome": "...............c...............c...............c...............c...............................................................................................................................................................................................c"
       },
       "3:10": {
-       "geology": ".........aaaaaaa........aaaaaaa.........aaaaaaa........aaaaaaa.........aaaaaaa........aaaaaaaa........aaaaaaa........aaaaaaaa........aaaaaaa........aaaaaaaa........aaaaaaaa.......aaaaaaaa.........aaaaaaa.........aaaaaaa.........aaaaaa...........aaaaa......",
-       "biome": ".........ccccccc........ccccccc.........ccccccc........ccccccc.........ccccccc........cccccccc........ccccccc........cccccccc........ccccccc........cccccccc........cccccccc.......cccccccc.........ccccccc.........ccccccc.........cccccc...........ccccc......"
+       "geology": "...............a..............................a..............................a...............a..............................a..............................a...............a..............................a...............a..............a...............a......",
+       "biome": "...............c..............................c..............................c...............c..............................c..............................c...............c..............................c...............c..............c...............c......"
       },
       "3:11": {
-       "geology": "......aaaa............aaa..............aa..............aa...............a.......................................................................................................................................................................................",
-       "biome": "......cccc............ccc..............cc..............cc...............c......................................................................................................................................................................................."
+       "geology": ".........a..............................a...............a...............a.......................................................................................................................................................................................",
+       "biome": ".........c..............................c...............c...............c......................................................................................................................................................................................."
       }
      }
     }
@@ -9321,37 +9280,37 @@
      "zones": {},
      "masks": {
       "17:7": {
-       "geology": "...................................................................................................................................................................................................................rrrrrrrrr.......rrrrrrrrrgggg...rrrrrrrrrgggg"
+       "geology": "...................................................................................................................................................................................................................rrrr..rrr.......rrr....rrgggg...rrr....rrgggg"
       },
       "18:7": {
        "geology": "................................................................................................................................................................................................................................g...............g..............."
       },
       "17:8": {
-       "geology": "..rrrrrrrrrrgggg..rrrrrrrrrrgggg..rrrrrrrrrrgggg..rrrrrrrrrrgggg...rrrrrrrrrgggg...rrrrrrrrrgggg...rrrrrrrrrgggg...rrrrrrrrrgggg...rrrrrrrrrgggg...rrrrrrrrrgggg...rrrrrrrr.gggg...rrrrrrrr.gggg...rrrrrrrr.gggg...rrrrrrrrrgggg...rrrrrrrrrgggg...rrrrrrrrrgggg"
+       "geology": "....rr...rrrgggg.....r.r.rrrgggg.......r.rrrgggg..r......rrrgggg...r.....rrrgggg...rr....rrrgggg...rr.....rrgggg...rr.......gggg...rr.......gggg...rr.......gggg...rr....r..gggg...rr.r.rrr.gggg...rr.r.rrr.gggg...rr.r.rrrrgggg...r....rrrrgggg...r....rrrrgggg"
       },
       "18:8": {
        "geology": "g...............g...............g...............g...............g...............g...............g...............................................................................................................g...............g...............g..............."
       },
       "17:9": {
-       "geology": "...rrrrrrrrrgggg...rrrrrrrrrgggg...rrrrrrrrrgggg...rrrrrrrr.gggg...rrrrrrrr.gggg...rrrrrrrr.gggg..rrrrrrrrr.gggg...rrrrrrrr.gggg...rrrrrrrrrgggg...rrrrrrrrrgggg...rrrrrrrrrgggg...rrrrrrrrrgggg...rrrrrrrrrgggg..rrrrrrrrrrgggg..rrrrrrrrrrgggg..rrrrrrrrrrgggg"
+       "geology": "...r....rrrrgggg...r....rrrrgggg...r....rrrrgggg...r....rrr.gggg...r....rrr.gggg...r.r.rrrr.gggg..rr.r.rrrr.gggg...r...rrrr.gggg.......rrrrrgggg.......rrrrrgggg.......rrrrrgggg.......rrrrrgggg.......rrrrrgggg..r....rrrrrgggg..r...rrrrrrgggg..r.r.rrrrrrgggg"
       },
       "18:9": {
        "geology": "g...............g...............g...............g...............g...............g...............g...............g...............g..............................................................................................................................."
       },
       "17:10": {
-       "geology": "..rrrrrrrrrrgggg..rrrrrrrrr.gggg..rrrrrrrrr.gggg..rrrrrrrrr.gggg..rrrrrrrrr.gggg..rrrrrrrrr.gggg..rrrrrrrrr.gggg...rrrrrrrrrgggg...rrrrrrrrrgggg....rrrrrrrrgggg....rrrrrrrrgggg...rrrrrrrrrgggg..rrrrrrrrrrgggg..rrrrrrrrrrgggg..rrrrrrrrrrgggg..rrrrrrrrrrgggg"
+       "geology": "..r.r.rrrrrrgggg..r....rrrr.gggg..r......rr.gggg..r.......r.gggg..r.........gggg..r....rr...gggg..rr...rr...gggg...r...r...rgggg...r.......rgggg...........rgggg...........rgggg...r......rrgggg..rr..r...rrgggg..rr......rrgggg..rr......rrgggg..rr......rrgggg"
       },
       "18:10": {
        "geology": "................................................................................................................g...............g...............g...............g...............g..............................................................................."
       },
       "17:11": {
-       "geology": "..rrrrrrrrrrgggg..rrrrrrrrrrgggg..rrrrrrrrr.gggg..rrrrrrrrr.ggg...rrrrrrrrr.ggg...rrrrrrrrr.ggg...rrrrrrrrr.ggg...rrrrrrrrr.ggg..rrrrrrrrrr.ggg..rrrrrrrrrr.gggg..rrrrrrrrr.gggg..rrrrrrrrr.gggg..rrrrrrrrr.gggg..rrrrrrrrr.gggg..rrrrrrrrr.gggg..rrrrrrrrr.gggg"
+       "geology": "..rr......rrgggg..rr......rrgggg..rr......r.gggg..rr......r.ggg...rr...r.rr.ggg...rr...r..r.ggg...rr...r..r.ggg...r..r....r.ggg..rr..r....r.ggg..rr..rr...r.gggg..r..rr...r.gggg..r..rr...r.gggg..r..rr...r.gggg..r..rr.r...gggg..r..rrr....gggg..r..r......gggg"
       },
       "18:11": {
        "geology": "................................................................................................................................................................................................g...............g...............g...............g..............."
       },
       "17:12": {
-       "geology": "..rrrrrrrrr.gggg..rrrrrrrrr.gggg..rrrrrrrrrr...................................................................................................................................................................................................................."
+       "geology": "..r..r...r..gggg..r..r...r..gggg....rr.....r...................................................................................................................................................................................................................."
       }
      }
     }
@@ -9695,7 +9654,7 @@
    "waterRefs": [],
    "pathRefs": [],
    "layers": {
-    "biome": "..............................................................................................................................................................................................................................mm............ffmm..........fffmmm"
+    "biome": "..............................................................................................................................................................................................................................mm..............mm.............mmm"
    }
   },
   "6:10": {
@@ -9715,7 +9674,7 @@
    "waterRefs": [],
    "pathRefs": [],
    "layers": {
-    "biome": "...............................................................................f..............ff............ffff...........fffff..........ffffff........ffffffff......ffffffffff...fffffffffffffffffffffffffffffmmmfffffffffffffmmmmmfffffffffffmmmmmmmfffffffff",
+    "biome": "...............................................................................f..............ff............ffff...........fffff..........ffffff..........ffffff..........ffffff..........ffffff..........ffffffmmm.......ffffffmmmmm.....ffffffmmmmmmm...ffffff",
     "moisture": "...............................................................................7...............7...............7...............7...............7...............7..............77..............77..............77..............77..............77..............77"
    }
   },
@@ -9757,27 +9716,7 @@
    "waterRefs": [],
    "pathRefs": [],
    "layers": {
-    "biome": "................................................................................................................ff..............fffff...........fffffff.........ffffffff........ffffffffff......fffffffffff.....ffffffffffff....fffffffffffff...fffffffffffff..."
-   }
-  },
-  "4:11": {
-   "schemaVersion": 3,
-   "chunkId": "4:11",
-   "index": {
-    "cx": 4,
-    "cz": 11
-   },
-   "revision": 0,
-   "entities": {},
-   "entityIds": [],
-   "terrainEdits": [],
-   "terrainRefs": [],
-   "biomeEdits": [],
-   "biomeRefs": [],
-   "waterRefs": [],
-   "pathRefs": [],
-   "layers": {
-    "biome": "...............................................................................................................................................................................f...............f...............f...............f...............f...............f"
+    "biome": "................................................................................................................ff..............fffff...........fffffff.........fffff...........fffff...........ffffff..........ff..ff..........ff..............ff.............."
    }
   },
   "5:11": {
@@ -9797,7 +9736,7 @@
    "waterRefs": [],
    "pathRefs": [],
    "layers": {
-    "biome": "........ffffmmmm......ffffffmmmm....fffffffmmmmm...ffffffffmmmmm..fffffffffmmmmm.ffffffffffmmmmm.ffffffffffmmmmmffffffffffffmmmmfffffffffffffmmmfffffffffffffmmfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    "biome": "............mmmm............mmmm...........mmmmm...........mmmmm...........mmmmm...........mmmmm...........mmmmm............mmmm.............mmm.............mm.............................ffff...........fffff.........fffffff.....fffffffffff..ffffffffffffff"
    }
   },
   "6:11": {
@@ -9817,7 +9756,7 @@
    "waterRefs": [],
    "pathRefs": [],
    "layers": {
-    "biome": "mmmmmmmfffffffffmmmmmmmfffffffffmmmmmmmfffffffffmmmmmmmmffffffffmmmmmmmmffffffffmmmmmmmfffffffffmmmmmmmfffffffffmmmmmmffffffffffmmmmffffffffffffmmffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "biome": "mmmmmmm...ffffffmmmmmmm...ffffffmmmmmmm..fffffffmmmmmmmm.fffffffmmmmmmmmffffffffmmmmmmm.ffffffffmmmmmmmfffffffffmmmmmm.fffffffffmmmm..ffffffffffmm..ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
     "moisture": "..............77.............777.............777.............777.............777.............777.............777.............777............7777............7777............7777............7777............7777............7777...........77777...........77777"
    }
   },
@@ -9861,7 +9800,7 @@
     "ref-path-ruins"
    ],
    "layers": {
-    "biome": "fffffffffffff...fffffffffffff...ffffffffffffff..ffffffffffffff..ffffffffffffff..ffffffffffffff..ffffffffffffff..fffffffffffffff.fffffffffffffff.ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    "biome": "fff.............ffff.....ffff...fffff...ffffff..ffffffffffffff..ffffffffffff....ffffffffffff....ffffffffffffff..ffffffffffffff..ffffffffffffff..ffffffffffffff..fffffffffffffff.ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
    }
   },
   "9:11": {
@@ -11537,7 +11476,7 @@
    "waterRefs": [],
    "pathRefs": [],
    "layers": {
-    "biome": "fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffmffffffffffffffmmffffffffffffffmm",
+    "biome": "fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff.ffffffffffffff..ffffffffffffff..",
     "moisture": "77777777........77777777........77777777........77777777........77777777........7777777.........7777777.........7777777.........7777777.........7777777.........7777777.........7777777.........777777..........777777..........777777..........777777.........."
    }
   },
@@ -11558,7 +11497,7 @@
    "waterRefs": [],
    "pathRefs": [],
    "layers": {
-    "biome": "fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffmmmmfffffffffffmmmmmmmmffffffffmmmmmmmmmmffffffmmmmmmmmmmffffffmmmmmmmmmmffffff"
+    "biome": "fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff....fffffffffff........ffffffff..........ffffff..........ffffff..........ffffff"
    }
   },
   "9:13": {
@@ -11695,7 +11634,7 @@
    "waterRefs": [],
    "pathRefs": [],
    "layers": {
-    "biome": "fffffffffffffmmmffffffffffffmmmmffffffffffffmmmmffffffffffffmmmmffffffffffffmmmmffffffffffffmmmmffffffffffffmmmmffffffffffffmmmmffffffffffffmmmmfffffffffffffmmmfffffffffffffffmffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "biome": "fffffffffffff...ffffffffffff....ffffffffffff....ffffffffffff....ffffffffffff....ffffffffffff....ffffffffffff....ffffffffffff....ffffffffffff....fffffffffffff...fffffffffffffff.ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
     "moisture": "777777..........777777..........777777..........77777...........77777...........77777...........77777...........77777...........77777...........7777............7777............7777............7777............7777............7777............7777............"
    }
   },
@@ -11716,7 +11655,7 @@
    "waterRefs": [],
    "pathRefs": [],
    "layers": {
-    "biome": "mmmmmmmmmmmfffffmmmmmmmmmmmmmfffmmmmmmmmmmmmmmffmmmmmmmmmmmmmmffmmmmmmmmmmmmmfffmmmmmmmmmmmmmmffmmmmmmmmmmmmmmffmmmmmmmmmmmmmmffmmmmmmmmmmmmmmffmmmmmmmmmmmmffffmmmmmmmmmmffffffmmmmmmmmmffffffffmmmmffffffffffffmmmffffffffffffffffffffffffffffffffffffffffffff"
+    "biome": "...........fffff.............fff..............ff..............ff.............fff..............ff..............ff..............ff..............ff............ffff..........ffffff.........ffffffff....ffffffffffff...ffffffffffffffffffffffffffffffffffffffffffff"
    }
   },
   "9:14": {
@@ -11919,7 +11858,7 @@
    "waterRefs": [],
    "pathRefs": [],
    "layers": {
-    "biome": "fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffmmmmfffffffffffmmmmmmfffffffffmmmmmmmffffffffmmmmmmmmffffffffmmmmmmmmffffffffmmmmmmmmffffffffmmmmmmmmfffffffffmmmmmmm",
+    "biome": "fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff....fffffffffffm.....fffffffffm......ffffffffmm......ffffffffm.......ffffffffm.......ffffffff........fffffffff.......",
     "moisture": "..77777777777777.777777777777777.777777777777777.777777777777777.777777777777777.777777777777777.777777777777777777777777777777777777777777777777777777777777777777777777777777.777777777777777.777777777777777.777777777777777.777777777777777.777777777777777."
    }
   },
@@ -11940,7 +11879,7 @@
    "waterRefs": [],
    "pathRefs": [],
    "layers": {
-    "biome": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffmfffffffffffffffmfffffffffffffffmfffffffffffffffffffffffffffffffffffffffffffffff",
+    "biome": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff.fffffffffffffff.fffffffffffffff.fffffffffffffffffffffffffffffffffffffffffffffff",
     "moisture": "7...............7...............7...............7..............................................................................................................................................................................................................."
    }
   },
@@ -12022,7 +11961,7 @@
    "waterRefs": [],
    "pathRefs": [],
    "layers": {
-    "biome": "ffffffffffmmmmmffffffffffffmmfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "biome": "ffffffffff.....ffffffffffff..fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
     "moisture": "777777777777777.77777777777777..77777777777777..77777777777777..77777777777777..77777777777777..77777777777777..77777777777777..7777777777777...7777777777777...7777777777777...7777777777777...7777777777777...7777777777777...777777777777....777777777777...."
    }
   },
@@ -12219,7 +12158,7 @@
    "pathRefs": [],
    "layers": {
     "moisture": ".......888888888.......888888888.......888888888.......888888888.......888888888.......888888888.......888888888.......888888888.......888888888.......888888888.......888888888.......888888888.......888888888.......888888888.......888888888.......888888888",
-    "geology": "..........rrrrr...........rrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr...........rrrrr...........rrrrr."
+    "geology": "..........rrrrr...........rrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........................rrrrrr..........rrrrrr...........rrrrr...........rrrrr."
    }
   },
   "13:15": {
@@ -12243,7 +12182,7 @@
    "pathRefs": [],
    "layers": {
     "moisture": "8888888888888...8888888888888...8888888888888...8888888888888...8888888888888...8888888888888...8888888888888...8888888888888...8888888888888...8888888888888...8888888888888...8888888888888...8888888888888...8888888888888...8888888888888...8888888888888...",
-    "geology": ".....rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr....."
+    "geology": ".....rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr..........................rrrrrr..........rrrrrr..........rrrrrr..........rrrrrr....."
    }
   },
   "13:14": {
@@ -12452,8 +12391,8 @@
     "ref-path-mine"
    ],
    "layers": {
-    "moisture": "8888............88888...........888888..........8888888.........8888888.........8888888.........8888888.........888888..........888888..........888888..........888888..........88888...........888.............88..............8...............................",
-    "biome": "....................................................w...............www.............wwww............wwww............www.............www.............w..........................................................................................................."
+    "moisture": "888.............88888...........8888............8888.88.........8888888.........8888..8.........888..8..........88888...........8.888............8.88...........8...8...........8...8...........88..............88..............8...............................",
+    "biome": "....................................................................ww..............wwww............ww..............w...............w...............w..........................................................................................................."
    }
   },
   "12:11": {
@@ -12478,7 +12417,7 @@
     "ref-path-mine"
    ],
    "layers": {
-    "moisture": "...............................8..............88.............888.............888.............888............8888...........88888..........888888........88888888.......888888888.......888888888......8888888888......8888888888......8888888888.....88888888888",
+    "moisture": "...............................8..............88..............88..............88...............8............8..8...........88.............8888.8........88888888.......888888888.......888888888......8888888888......8888888888......8888888888.....88888888888",
     "biome": ".............................................................................................................................................................................................................................................................w.."
    }
   },
@@ -12712,7 +12651,7 @@
    "pathRefs": [],
    "layers": {
     "biome": "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww..wwwwwwwwwwwww.....wwwwwwwwwww......ww.....www",
-    "moisture": "9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999955999999999999955555999999999995555559955555999"
+    "moisture": "999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999995.99999999999995555.999999999995555559955555999"
    }
   },
   "6:5": {
@@ -20225,27 +20164,6 @@
     "biome": "...............g...............g...............g...............g...............g...............g...............g...............g...............g................................................................................................................"
    }
   },
-  "3:5": {
-   "schemaVersion": 3,
-   "chunkId": "3:5",
-   "index": {
-    "cx": 3,
-    "cz": 5
-   },
-   "revision": 0,
-   "entities": {},
-   "entityIds": [],
-   "terrainEdits": [],
-   "terrainRefs": [],
-   "biomeEdits": [],
-   "biomeRefs": [],
-   "waterRefs": [],
-   "pathRefs": [],
-   "layers": {
-    "geology": "...............................................................................................................................................................................................a...............a...............a...............a..............aa",
-    "biome": "...............................................................................................................................................................................................c...............c...............c...............c..............cc"
-   }
-  },
   "4:5": {
    "schemaVersion": 3,
    "chunkId": "4:5",
@@ -20263,29 +20181,8 @@
    "waterRefs": [],
    "pathRefs": [],
    "layers": {
-    "geology": ".......aa.............aa.............aaa.............aa.............aa.............aaa............aaa.............aa.............aaa............aaa.............aa..............aa..............a...............a...............a...............a...............",
-    "biome": ".......cc.............cc.............ccc.............cc.............cc.............ccc............ccc.............cc.............ccc............ccc.............cc..............cc..............c...............c...............c...............c..............."
-   }
-  },
-  "3:6": {
-   "schemaVersion": 3,
-   "chunkId": "3:6",
-   "index": {
-    "cx": 3,
-    "cz": 6
-   },
-   "revision": 0,
-   "entities": {},
-   "entityIds": [],
-   "terrainEdits": [],
-   "terrainRefs": [],
-   "biomeEdits": [],
-   "biomeRefs": [],
-   "waterRefs": [],
-   "pathRefs": [],
-   "layers": {
-    "geology": "..............aa..............aa..............aa..............aa..............aa.............aaa.............aaa.............aaa.............aaa.............aaa.............aaa.............aaa.............aaa.............aaa.............aaa.............aaa",
-    "biome": "..............cc..............cc..............cc..............cc..............cc.............ccc.............ccc.............ccc.............ccc.............ccc.............ccc.............ccc.............ccc.............ccc.............ccc.............ccc"
+    "geology": ".......aa..............a..............aa.............aa..............a...............a.............................................a.............................................a..............................................................................",
+    "biome": ".......cc..............c..............cc.............cc..............c...............c.............................................c.............................................c.............................................................................."
    }
   },
   "4:6": {
@@ -20305,8 +20202,8 @@
    "waterRefs": [],
    "pathRefs": [],
    "layers": {
-    "geology": "a...............a...............................................................................................................................................................................................................................................",
-    "biome": "c...............c..............................................................................................................................................................................................................................................."
+    "geology": "................a...............................................................................................................................................................................................................................................",
+    "biome": "................c..............................................................................................................................................................................................................................................."
    }
   },
   "3:7": {
@@ -20326,8 +20223,8 @@
    "waterRefs": [],
    "pathRefs": [],
    "layers": {
-    "geology": ".............aaa............aaaa............aaaa............aaaa............aaaa............aaa.............aaa.............aaa.............aaa............aaaa............aaaa............aaaa............aaaa............aaaa............aaaa...........aaaaa.",
-    "biome": ".............ccc............cccc............cccc............cccc............cccc............ccc.............ccc.............ccc.............ccc............cccc............cccc............cccc............cccc............cccc............cccc...........ccccc."
+    "geology": "...............................a...............a...............a...............a..............................................................................................................................................................a...............a.",
+    "biome": "...............................c...............c...............c...............c..............................................................................................................................................................c...............c."
    }
   },
   "3:8": {
@@ -20541,8 +20438,8 @@
    "waterRefs": [],
    "pathRefs": [],
    "layers": {
-    "geology": "..........aaaaa...........aaaaa...........aaaaa...........aaaaa...........aaaaa...........aaaaa...........aaaaa...........aaaaa...........aaaaa...........aaaaa...........aaaaa...........aaaaa...........aaaaa...........aaaaa...........aaaaa...........aaaaaa",
-    "biome": "..........ccccc...........ccccc...........ccccc...........ccccc...........ccccc...........ccccc...........ccccc...........ccccc...........ccccc...........ccccc...........ccccc...........ccccc...........ccccc...........ccccc...........ccccc...........cccccc"
+    "geology": "..............a...............a...............a...............a................................................................................................................................................................................................a",
+    "biome": "..............c...............c...............c...............c................................................................................................................................................................................................c"
    }
   },
   "3:9": {
@@ -20562,8 +20459,8 @@
    "waterRefs": [],
    "pathRefs": [],
    "layers": {
-    "geology": "..........aaaaaa..........aaaaaa..........aaaaaa..........aaaaaa..........aaaaaa..........aaaaaa..........aaaaaa..........aaaaaa..........aaaaaa..........aaaaaa..........aaaaaa..........aaaaaa..........aaaaaa..........aaaaaa..........aaaaaa.........aaaaaaa",
-    "biome": "..........cccccc..........cccccc..........cccccc..........cccccc..........cccccc..........cccccc..........cccccc..........cccccc..........cccccc..........cccccc..........cccccc..........cccccc..........cccccc..........cccccc..........cccccc.........ccccccc"
+    "geology": "...............a...............a...............a...............a...............................................................................................................................................................................................a",
+    "biome": "...............c...............c...............c...............c...............................................................................................................................................................................................c"
    }
   },
   "3:10": {
@@ -20583,8 +20480,8 @@
    "waterRefs": [],
    "pathRefs": [],
    "layers": {
-    "geology": ".........aaaaaaa........aaaaaaa.........aaaaaaa........aaaaaaa.........aaaaaaa........aaaaaaaa........aaaaaaa........aaaaaaaa........aaaaaaa........aaaaaaaa........aaaaaaaa.......aaaaaaaa.........aaaaaaa.........aaaaaaa.........aaaaaa...........aaaaa......",
-    "biome": ".........ccccccc........ccccccc.........ccccccc........ccccccc.........ccccccc........cccccccc........ccccccc........cccccccc........ccccccc........cccccccc........cccccccc.......cccccccc.........ccccccc.........ccccccc.........cccccc...........ccccc......"
+    "geology": "...............a..............................a..............................a...............a..............................a..............................a...............a..............................a...............a..............a...............a......",
+    "biome": "...............c..............................c..............................c...............c..............................c..............................c...............c..............................c...............c..............c...............c......"
    }
   },
   "3:11": {
@@ -20604,8 +20501,8 @@
    "waterRefs": [],
    "pathRefs": [],
    "layers": {
-    "geology": "......aaaa............aaa..............aa..............aa...............a.......................................................................................................................................................................................",
-    "biome": "......cccc............ccc..............cc..............cc...............c......................................................................................................................................................................................."
+    "geology": ".........a..............................a...............a...............a.......................................................................................................................................................................................",
+    "biome": ".........c..............................c...............c...............c......................................................................................................................................................................................."
    }
   },
   "17:7": {
@@ -20625,7 +20522,7 @@
    "waterRefs": [],
    "pathRefs": [],
    "layers": {
-    "geology": "...................................................................................................................................................................................................................rrrrrrrrr.......rrrrrrrrrgggg...rrrrrrrrrgggg"
+    "geology": "...................................................................................................................................................................................................................rrrr..rrr.......rrr....rrgggg...rrr....rrgggg"
    }
   },
   "18:7": {
@@ -20665,7 +20562,7 @@
    "waterRefs": [],
    "pathRefs": [],
    "layers": {
-    "geology": "..rrrrrrrrrrgggg..rrrrrrrrrrgggg..rrrrrrrrrrgggg..rrrrrrrrrrgggg...rrrrrrrrrgggg...rrrrrrrrrgggg...rrrrrrrrrgggg...rrrrrrrrrgggg...rrrrrrrrrgggg...rrrrrrrrrgggg...rrrrrrrr.gggg...rrrrrrrr.gggg...rrrrrrrr.gggg...rrrrrrrrrgggg...rrrrrrrrrgggg...rrrrrrrrrgggg"
+    "geology": "....rr...rrrgggg.....r.r.rrrgggg.......r.rrrgggg..r......rrrgggg...r.....rrrgggg...rr....rrrgggg...rr.....rrgggg...rr.......gggg...rr.......gggg...rr.......gggg...rr....r..gggg...rr.r.rrr.gggg...rr.r.rrr.gggg...rr.r.rrrrgggg...r....rrrrgggg...r....rrrrgggg"
    }
   },
   "18:8": {
@@ -20705,7 +20602,7 @@
    "waterRefs": [],
    "pathRefs": [],
    "layers": {
-    "geology": "...rrrrrrrrrgggg...rrrrrrrrrgggg...rrrrrrrrrgggg...rrrrrrrr.gggg...rrrrrrrr.gggg...rrrrrrrr.gggg..rrrrrrrrr.gggg...rrrrrrrr.gggg...rrrrrrrrrgggg...rrrrrrrrrgggg...rrrrrrrrrgggg...rrrrrrrrrgggg...rrrrrrrrrgggg..rrrrrrrrrrgggg..rrrrrrrrrrgggg..rrrrrrrrrrgggg"
+    "geology": "...r....rrrrgggg...r....rrrrgggg...r....rrrrgggg...r....rrr.gggg...r....rrr.gggg...r.r.rrrr.gggg..rr.r.rrrr.gggg...r...rrrr.gggg.......rrrrrgggg.......rrrrrgggg.......rrrrrgggg.......rrrrrgggg.......rrrrrgggg..r....rrrrrgggg..r...rrrrrrgggg..r.r.rrrrrrgggg"
    }
   },
   "18:9": {
@@ -20779,7 +20676,7 @@
    "waterRefs": [],
    "pathRefs": [],
    "layers": {
-    "geology": "..rrrrrrrrrrgggg..rrrrrrrrr.gggg..rrrrrrrrr.gggg..rrrrrrrrr.gggg..rrrrrrrrr.gggg..rrrrrrrrr.gggg..rrrrrrrrr.gggg...rrrrrrrrrgggg...rrrrrrrrrgggg....rrrrrrrrgggg....rrrrrrrrgggg...rrrrrrrrrgggg..rrrrrrrrrrgggg..rrrrrrrrrrgggg..rrrrrrrrrrgggg..rrrrrrrrrrgggg"
+    "geology": "..r.r.rrrrrrgggg..r....rrrr.gggg..r......rr.gggg..r.......r.gggg..r.........gggg..r....rr...gggg..rr...rr...gggg...r...r...rgggg...r.......rgggg...........rgggg...........rgggg...r......rrgggg..rr..r...rrgggg..rr......rrgggg..rr......rrgggg..rr......rrgggg"
    }
   },
   "18:10": {
@@ -20819,7 +20716,7 @@
    "waterRefs": [],
    "pathRefs": [],
    "layers": {
-    "geology": "..rrrrrrrrrrgggg..rrrrrrrrrrgggg..rrrrrrrrr.gggg..rrrrrrrrr.ggg...rrrrrrrrr.ggg...rrrrrrrrr.ggg...rrrrrrrrr.ggg...rrrrrrrrr.ggg..rrrrrrrrrr.ggg..rrrrrrrrrr.gggg..rrrrrrrrr.gggg..rrrrrrrrr.gggg..rrrrrrrrr.gggg..rrrrrrrrr.gggg..rrrrrrrrr.gggg..rrrrrrrrr.gggg"
+    "geology": "..rr......rrgggg..rr......rrgggg..rr......r.gggg..rr......r.ggg...rr...r.rr.ggg...rr...r..r.ggg...rr...r..r.ggg...r..r....r.ggg..rr..r....r.ggg..rr..rr...r.gggg..r..rr...r.gggg..r..rr...r.gggg..r..rr...r.gggg..r..rr.r...gggg..r..rrr....gggg..r..r......gggg"
    }
   },
   "18:11": {
@@ -20859,7 +20756,7 @@
    "waterRefs": [],
    "pathRefs": [],
    "layers": {
-    "geology": "..rrrrrrrrr.gggg..rrrrrrrrr.gggg..rrrrrrrrrr...................................................................................................................................................................................................................."
+    "geology": "..r..r...r..gggg..r..r...r..gggg....rr.....r...................................................................................................................................................................................................................."
    }
   },
   "15:15": {
