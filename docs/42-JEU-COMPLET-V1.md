@@ -70,10 +70,22 @@ Carte de densité (végétation par cellule de 64 m, paysages, entités) : `docs
 - Navigateur (Chromium/SwiftShader, fonctionnel) : `economy` (14 contrôles : comptoir, achat de hache, revente, abattage, arbre retiré, coffre), `climb` (6), `b1` (22, dont semis par sachet et récolte rendant une graine), `landscapes`, `editor`, `editor-content`, `ui`, `gameplay`, `audio`, `published`, `studio`, `water`.
 - Ville au château, vue à 120 m : ~234 appels, 72 k triangles sous SwiftShader (signal de régression, pas un benchmark GPU).
 - Écureuil : 12 appels / 2 736 triangles par personnage visible (mesure du graphe Three.js, `traverseVisible`).
+- **Parcours de route de l’île** (`tools/benchmark-route.mjs`, scénario `island-3x8`, SwiftShader, même protocole que 41) — `docs/benchmarks/2026-11-14-route-game-v1.json` :
+
+| Mesure | World Production V1 | Jeu complet V1 | Lecture |
+| --- | --- | --- | --- |
+| p50 / p95 / p99 intervalle | 66,7 / 150 / 250 ms | 66,7 / 150 / 250 ms | inchangé |
+| Appels de dessin (moyenne) | 90,3 | 75,7 | −16 % (écureuils fusionnés, modules instanciés) |
+| Triangles (moyenne) | 45,7 k | 43,3 k | −5 % |
+| Démarrage (boot) | 5,6 s | 9,4 s | **+3,8 s : régression** |
+| Tas JS | 29,7 Mo | 48,7 Mo | **+19 Mo : régression** |
+| Trous d’horizon (max) | 0,29 % | 0,29 % | inchangé |
+
+La hausse du démarrage et de la mémoire vient du contenu chargé d’un bloc (1 141 secteurs auteur, interactions, bibliothèques) : c’est la **première tâche de G6** (streaming des paquets auteur par proximité), pas une conséquence du rendu.
 
 ## 4. Limites connues (honnêtes)
 
-- **Performance non qualifiée** sur GPU intégré : la densité accrue (bois, ville, coffres) augmente les instances ; le benchmark de route doit être rejoué (`tools/benchmark-route.mjs`) et comparé à 41 §benchmarks.
+- **Performance non qualifiée** sur GPU intégré. Sous SwiftShader, l’intervalle de présentation est inchangé, mais **le démarrage (+3,8 s) et le tas JS (+19 Mo) régressent** (voir §3).
 - Les modèles du kit sont **GENERATED_NOT_REVIEWED** : validés techniquement, pas artistiquement.
 - L’escalade suit le **heightfield** : les falaises en GLB (blocs, aiguilles) restent des obstacles, pas des parois grimpables.
 - L’animation de l’écureuil reste un rig rigide (pas de skinning pondéré) ; nouvelles poses d’escalade seulement.
@@ -85,7 +97,7 @@ Carte de densité (végétation par cellule de 64 m, paysages, entités) : `docs
 
 | Lot | Contenu | Gate d’acceptation |
 | --- | --- | --- |
-| **G6 — Qualification** | Rejouer benchmark de route et captures de contrôle sur l’île enrichie ; budget d’instances des bois et des villes dans `ResourceBudgetManager` ; GPU intégré réel | p95 mesuré et documenté ; pas de régression > 15 % non expliquée |
+| **G6 — Qualification** | Streaming des paquets auteur par proximité (démarrage et tas revenus au niveau de 41) ; budget d’instances des bois et des villes dans `ResourceBudgetManager` ; GPU intégré réel | boot ≤ 6 s et tas ≤ 32 Mo sous SwiftShader ; p95 mesuré sur GPU intégré |
 | **G7 — Quêtes en chaîne** | Quêtes à étapes (objectifs liés), récompenses d’objets uniques, PNJ qui changent de dialogue après la quête ; éditeur de quête par template dans le Studio | Chaîne de 3 étapes jouée et sauvegardée, éditée sans code |
 | **G8 — Styles de villes** | Ville portuaire en terrasses, village de montagne en pierre, hameau de marais sur pilotis ; variantes de maisons du kit | 3 nouveaux styles générés, revus en capture |
 | **G9 — Falaises GLB grimpables** | Collision et escalade sur blocs/arches/aiguilles (surface de contact verticale), prises visibles | Escalade d’un bloc GLB en test navigateur |
