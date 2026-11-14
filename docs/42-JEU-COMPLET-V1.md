@@ -207,7 +207,7 @@ Seules les plantes de sol et le bois mort sortent de leur rayon prévu.
 - **Débarquement** : sur le ponton ou la rive la plus proche (dans un rayon de 7 m), sinon à la nage.
 - **Preuves** : `tests/fleet.test.mjs` et le test navigateur `boats` (marche sur le ponton, embarquement, 34 m navigués, débarquement).
 
-**Herbes courtes et hautes** : implémentées selon le doc 18 (voir son état d’implémentation). Un appel de rendu ; 3,9 k à 21 k triangles selon le profil ; vent et passage du joueur gérés par le GPU.
+**Herbes courtes et hautes** : implémentées selon le doc 18 (voir son état d’implémentation). Un appel de rendu ; densité doublée, soit 7,8 k à 42 k triangles selon le profil ; vent et passage du joueur gérés par le GPU.
 
 ## 4. Limites connues (honnêtes)
 

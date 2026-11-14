@@ -14,9 +14,9 @@ import * as THREE from 'three';
 export const GRASS_CELL_M = 16;
 /** Profiles (benchmark knobs, doc 18 §profiles): radius (m), tufts per m² at full grass share. */
 export const GRASS_PROFILES = {
-  dense: { radius: 42, density: 1.1 },
-  balanced: { radius: 32, density: .8 },
-  ultra: { radius: 20, density: .5 },
+  dense: { radius: 42, density: 2.2 },
+  balanced: { radius: 32, density: 1.6 },
+  ultra: { radius: 20, density: 1 },
   groundOnly: { radius: 0, density: 0 },
 } as const;
 export type GrassProfile = keyof typeof GRASS_PROFILES;
@@ -55,7 +55,7 @@ export function tuftGeometry(): THREE.BufferGeometry {
  * copy into the shared buffers (a rebuild is a few typed-array copies, no per-tuft maths). */
 interface Cell { cx: number; cz: number; count: number; matrices: Float32Array; colors: Float32Array }
 
-export function createGrass(parent: THREE.Object3D, seed: number, sampler: (x: number, z: number) => GrassSample | null, height: (x: number, z: number) => number, capacity = 12000) {
+export function createGrass(parent: THREE.Object3D, seed: number, sampler: (x: number, z: number) => GrassSample | null, height: (x: number, z: number) => number, capacity = 24000) {
   const geometry = tuftGeometry();
   const uniforms = { uTime: { value: 0 }, uWind: { value: .35 }, uFocus: { value: new THREE.Vector3() }, uRadius: { value: 1 }, uPlayer: { value: new THREE.Vector3(1e6, 0, 1e6) } };
   const material = new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide });

@@ -11,7 +11,7 @@ Références : [11 — LOW-RESOURCE](11-LOW-RESOURCE-POLICY.md), [17 — Horizon
 | Élément | Statut | Où |
 | --- | --- | --- |
 | Couche 1 : sol herbeux par couleurs du terrain | implémenté (existant) | `geography/materials.ts` |
-| Couche 2 : touffes 3D proches | **implémenté et testé**. Touffe = 3 brins (3 triangles), opaque, double face éclairée par la normale montante. **Un seul `InstancedMesh`**, donc 1 appel de rendu. Aucune ombre. | `src/render/grass.ts` |
+| Couche 2 : touffes 3D proches | **implémenté et testé**, densité doublée. Touffe = 3 brins (3 triangles), opaque, double face éclairée par la normale montante. **Un seul `InstancedMesh`**, donc 1 appel de rendu. Aucune ombre. | `src/render/grass.ts` |
 | Génération | **implémenté**. Par cellule de 16 m, à partir de `seed + cellule` et de la classification (part d’herbe de l’habitat, matériau du sol, biome), échantillonnée tous les 4 m. Herbe courte (0,15–0,30 m) et haute (0,35–0,70 m). Aucun identifiant par touffe. | `biomes.ts` (`generatedGrass`) |
 | Couche 3 : vent et ploiement au passage du joueur | **implémenté en vertex shader seulement** (uniformes temps, vent, joueur). 0 calcul CPU par touffe et par image, tampon d’instances inchangé à l’arrêt (testé). | idem |
 | Bord du rayon | Les touffes se réduisent jusqu’à leur racine sur le dernier quart du rayon : pas de frontière visible, pas de brouillard. | idem |
@@ -22,12 +22,16 @@ Références : [11 — LOW-RESOURCE](11-LOW-RESOURCE-POLICY.md), [17 — Horizon
 
 **Mesures** (Chromium/SwiftShader, prairie, ville et bois ; **ce ne sont pas des mesures de GPU intégré**) :
 
+Densité **doublée** le 14 novembre 2026 à la demande : 2,2 / 1,6 / 1,0 touffe par m², contre 1,1 / 0,8 / 0,5 auparavant.
+
 | Profil | Touffes (prairie) | Triangles d’herbe | Appels de rendu | Reconstruction du tampon au changement de cellule |
 | --- | --- | --- | --- | --- |
 | groundOnly | 0 | 0 | 0 | — |
-| ultra | 1 307 | 3,9 k | 1 | 0,3 ms |
-| équilibré | 3 622 | 10,9 k | 1 | 0,4 ms |
-| dense | 6 988 | 21 k | 1 | 0,7 ms |
+| ultra (20 m) | 2 612 | 7,8 k | 1 | 0,2 ms |
+| équilibré (32 m) | 7 249 | 21,7 k | 1 | 0,6 ms |
+| dense (42 m) | 14 016 | 42 k | 1 | 1,0 ms |
+
+Mémoire des tampons d’instances : capacité de 24 000 touffes × 76 octets, soit **1,8 Mio** (cible inférieure à 2 Mio).
 
 - La reconstruction recopie les matrices précalculées par cellule. Le calcul par touffe coûtait 7,5 ms en profil dense.
 - La génération d’une cellule est étalée sur environ 1 ms par image.
