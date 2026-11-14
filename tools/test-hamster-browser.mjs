@@ -29,6 +29,7 @@ try{
   const open=async(query)=>{await page.goto(`${base}?metrics=1${query}`,{waitUntil:'networkidle'});await page.getByRole('button',{name:'Explorer l’île'}).click({timeout:60000});await page.waitForFunction(()=>window.littleWorldMetrics?.chunks.pending===0,{},{timeout:60000});await page.waitForTimeout(600);};
   // 1. The hamster is the player.
   await open('');const start=await m();check(start.character&&start.character.state==='IDLE','The hamster is the player character (state IDLE)');
+  check(start.character.meshes===2,'One skinned mesh for the hamster (+ ground shadow): '+start.character.meshes+' meshes');
   // 2. Roll (inland from the start beach): X, hold forward → ball faster than running; X → back on foot.
   await open('&spawn=60,1180&yaw=3.1416');const road=await m();
   await page.keyboard.press('KeyX');await page.waitForFunction(()=>window.littleWorldMetrics?.mode==='roll',{},{timeout:5000});check(true,'X rolls the hamster into a ball');

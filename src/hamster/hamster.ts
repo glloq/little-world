@@ -38,7 +38,7 @@ const lineMaterial = new THREE.LineBasicMaterial({ color: 0xf4f1e8 });
 const bobberGeometry = new THREE.IcosahedronGeometry(.07, 0), bobberMaterial = new THREE.MeshLambertMaterial({ color: 0xe0463c, flatShading: true });
 
 export function buildHamster(): HamsterCharacter {
-  const rig = buildHamsterRig(), j = rig.joints, animator = new HamsterAnimator(), tools = createToolHolder(rig.sockets.tool);
+  const rig = buildHamsterRig(), j = rig.joints, animator = new HamsterAnimator(), tools = createToolHolder(rig);
   rig.group.scale.setScalar(CHARACTER_SCALE);
   const listeners = new Set<(e: AnimationEvent & { position: THREE.Vector3 }) => void>();
   let facing = 0, lastFacing = 0, aboard = false, actionTool: ToolId | null = null, actionSeq = 0, fishing: { x: number; y: number; z: number; biting: boolean } | null = null, disposed = false;
@@ -52,7 +52,7 @@ export function buildHamster(): HamsterCharacter {
   const tmp = new THREE.Vector3(), tip = new THREE.Vector3(), input: HamsterInput = { mode: 'ground', speed: 0, verticalSpeed: 0, turnRate: 0 };
   const base = { earL: j.EarLeft.rotation.z, earR: j.EarRight.rotation.z };
   function applyAppearance() {
-    for (const [emotion, mesh] of Object.entries(rig.faces)) mesh.visible = emotion === appearance.emotion;
+    for (const [emotion, face] of Object.entries(rig.faces)) face.visible = emotion === appearance.emotion;
     const tucked = animator.pose.tuck > .5;
     rig.accessories.hat.visible = appearance.hat && !tucked; rig.accessories.goggles.visible = !!appearance.goggles && !tucked && !appearance.hat;
     rig.accessories.backpack.visible = appearance.backpack && !tucked;

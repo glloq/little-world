@@ -19,10 +19,12 @@ Le hamster remplace l’écureuil comme **personnage du joueur**. L’écureuil 
 
 ## 2. Modèle et squelette (phase B)
 
-- **Génération procédurale** (`src/hamster/hamster-model.ts`) : primitives low-poly fusionnées **par articulation** en un seul maillage, avec un matériau partagé (`MeshStandardMaterial`, `vertexColors` et `flatShading`), équivalent d’un atlas de couleurs.
-  - Géométries mises en cache et **partagées entre toutes les instances** (joueur, PNJ, export).
+- **Génération procédurale** (`src/hamster/hamster-model.ts`) : tout le hamster (corps, visages, accessoires, outils, membranes) forme **un seul `SkinnedMesh`**, donc **un seul appel de rendu**, avec un matériau partagé (`MeshStandardMaterial`, `vertexColors` et `flatShading`), équivalent d’un atlas de couleurs.
+  - **Liaison rigide** : chaque sommet est lié avec un poids 1 à l’os de sa pièce. Il n’y a pas de mélange de poids, et chaque pièce reste indéformable.
+  - **Pièces facultatives** (8 visages inutilisés, 5 accessoires, 8 outils, 2 membranes) : chacune a son propre os technique. **Échelle 1 = visible, 0 = masquée** : la pièce se réduit à un point (aire nulle, rien n’est dessiné). Les drapeaux `visible` de l’API restent les mêmes (`rig.faces`, `rig.accessories`, `rig.tools`).
+  - Géométrie construite une fois et **partagée par toutes les instances** (joueur, PNJ hamsters). Seul le squelette est propre à chaque personnage.
   - Pas de fourrure, pas de simulation de tissu.
-- **Rig rigide** de **22 os** (`HAMSTER_JOINTS`), sans skinning :
+- **22 os animés** (`HAMSTER_JOINTS`), plus 22 os techniques de visibilité qui ne sont jamais animés :
   - corps (pivot au centre pour la roulade) ;
   - tête, 2 oreilles ;
   - épaules, bras et mains ×2 ;
@@ -31,11 +33,11 @@ Le hamster remplace l’écureuil comme **personnage du joueur**. L’écureuil 
   - 2 os de membranes et la sacoche ;
   - 4 *sockets* : tête (chapeau), visage (lunettes), dos (sac), cou (écharpe/pendentif).
   - Outil : main droite (`sockets.tool`), main gauche secondaire (`sockets.offHand`).
-- **Membranes de planage** : 2 quads dynamiques (4 sommets chacun), invisibles quand elles sont repliées.
-- **Visages** : un petit maillage par émotion (9). Seul celui de l’émotion courante est visible.
+- **Membranes de planage** : un quadrilatère à double face par côté, sur son os ; l’ouverture correspond à l’échelle x (0 = repliée et masquée).
+- **Visages** : une pièce par émotion (9). Seule celle de l’émotion courante est à l’échelle 1.
 - **Accessoires** : chapeau de paille, lunettes d’aviateur, sac à dos, écharpe et pendentif, ainsi que la sacoche toujours portée. Ils se masquent quand le hamster est roulé en boule ; les lunettes se masquent sous le chapeau.
 - **Export GLB** : `npm run assets:hamster` écrit `public/models/hamster.glb`.
-  - Contenu : 22 os, 15 clips échantillonnés depuis l’animateur. Seuls les canaux réellement animés sont gardés.
+  - Contenu : un maillage skinné (7 224 sommets), une skin de 44 os, 15 clips échantillonnés depuis l’animateur. Seuls les canaux réellement animés sont gardés.
   - Sortie **déterministe**, vérifiée en CI par `git diff`.
   - Ce GLB sert d’**échange vers Blender** (doc 20). Le jeu construit le modèle depuis le code et ne charge pas ce fichier.
 
@@ -43,14 +45,14 @@ Le hamster remplace l’écureuil comme **personnage du joueur**. L’écureuil 
 
 | Mesure | Valeur | Source |
 | --- | --- | --- |
-| Triangles visibles (apparence par défaut, membranes repliées) | **854** (cible 800–1500) | `tests/hamster.test.mjs` |
-| Os | **22** (cible 18–22) | idem |
-| Matériaux du corps, du visage et des accessoires | **1** partagé | idem |
-| Appels de rendu du personnage (corps par articulation, visage, ombre) | **14** | `littleWorldMetrics.character`, test navigateur |
-| GLB exporté | **359 Kio**, 15 clips | `npm run assets:hamster` |
+| Triangles visibles (apparence par défaut, membranes repliées) | **960** (cible 800–1500) ; 2 408 dans le tampon partagé avec toutes les options | `tests/hamster.test.mjs` |
+| Os animés | **22** (cible 18–22), plus 22 os techniques de visibilité | idem |
+| Maillages / matériaux du personnage | **1 `SkinnedMesh`**, **1** matériau (plus l’ombre-disque transparente) | idem, `littleWorldMetrics.character.meshes` = 2 |
+| Appels de rendu du personnage | **1** (plus 1 pour l’ombre au sol) ; 14 avant la fusion | test navigateur |
+| GLB exporté | **545 Kio** (attributs de skin), 15 clips | `npm run assets:hamster` |
 | Taille d’un état de présentation JSON | < 400 octets | `tests/hamster.test.mjs` |
 
-Le nombre d’appels pourrait encore baisser en fusionnant les articulations dans un seul `SkinnedMesh`. Ce n’est **pas fait** : le gain n’a pas été mesuré face au coût du skinning sur GPU intégré.
+Coût accepté : le vertex shader traite toujours les 7 224 sommets, y compris ceux des pièces masquées réduites à un point. Ce sont quelques milliers de sommets par hamster contre 13 appels de rendu en moins. Le coût réel du skinning sur GPU intégré reste **à mesurer**.
 
 ## 3. Animations et locomotion (phase C)
 
@@ -121,7 +123,7 @@ Le nombre d’appels pourrait encore baisser en fusionnant les articulations dan
 
 ### Terminées (implémentées et testées)
 
-- Modèle hamster low-poly, rig de 22 os, sockets, 5 accessoires et sacoche, 9 visages ; export GLB déterministe.
+- Modèle hamster low-poly en **un seul maillage skinné** (1 appel de rendu), 22 os animés, sockets, 5 accessoires et sacoche, 9 visages ; export GLB déterministe.
 - Locomotion : marche, course, saut, chute, atterrissage, planage avec membranes, nage, escalade, bateau.
 - Roulade en boule : physique cinématique, pentes, obstacles, sortie automatique ; son et animation.
 - Outils visibles et animés : pioche, hache, canne (ligne et flotteur), arrosoir, sac de semences, pelle.
@@ -148,7 +150,6 @@ Tests correspondants :
 
 - **Synchronisation multijoueur réelle** (sockets, serveur autoritaire) : interdite avant le jalon multijoueur (AGENTS §1 quater). Seul le contrat de données est livré.
 - **Qualification de performance** sur GPU intégré : nécessite le matériel de référence. Les chiffres ci-dessus viennent de Node et de SwiftShader.
-- **Fusion en `SkinnedMesh` unique** (moins d’appels de rendu) : à décider après un benchmark.
 
 ## 7. Commandes
 

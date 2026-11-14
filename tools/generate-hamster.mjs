@@ -1,6 +1,7 @@
 // Node.js 22: node --experimental-strip-types tools/generate-hamster.mjs
 /** Exports the original procedural hamster (doc 43) as public/models/hamster.glb: named joint
- * hierarchy (22 bones), per-joint merged low-poly meshes, sockets, accessories and tools, and
+ * hierarchy (22 animated bones), ONE skinned low-poly mesh (rigid binding), sockets, accessories
+ * and tools on their own bones (scale 0 = hidden), and
  * animation clips SAMPLED from the game's own state machine (same code as the runtime, so the
  * GLB is a faithful reference for Blender/Studio). The game uses the procedural build directly.
  * No Blender, network or texture download required. */
@@ -41,10 +42,7 @@ for (const [name, seconds, mode, velocity, act, warm] of CLIPS) {
   clips.push(new THREE.AnimationClip(name, seconds, kt)); h.dispose();
 }
 const model = reference.rig.group;
-model.userData = { provenance: 'Little World original procedural hamster (doc 43)', rig: 'Rigid articulated joints (22 bones), no weighted skinning', runtime: 'Exported reference asset; the game builds the same model procedurally', tools: 'Tool_* nodes on HandRight (scale 0 = hidden)', appearance: 'Face_<emotion> and accessories: scale 1 = shown, 0 = hidden' };
-// Tools are built on demand at runtime: build them all for the reference export.
-for (const tool of ['pickaxe', 'pickaxe-steel', 'axe', 'fishing-rod', 'shovel', 'hammer', 'watering-can', 'seed-bag']) { reference.play('INTERACT', tool); reference.update({ position: V(), velocity: V(), mode: 'ground', oxygen: 90, glideReady: false }, 0.05, 0); }
-model.traverse((node) => { if (!node.visible) { node.scale.set(0, 0, 0); node.visible = true; } });
+model.userData = { provenance: 'Little World original procedural hamster (doc 43)', rig: 'One skinned mesh, rigid binding (each vertex weight 1 on one bone): 22 animated joints + technical bones of the optional pieces', runtime: 'Exported reference asset; the game builds the same model procedurally', tools: 'Tool_* nodes on HandRight (scale 0 = hidden)', appearance: 'Face_<emotion> and accessories: scale 1 = shown, 0 = hidden' };
 model.updateMatrixWorld(true);
 const data = await new GLTFExporter().parseAsync(model, { binary: true, animations: clips, onlyVisible: false });
 const output = new URL('../public/models/hamster.glb', import.meta.url);
