@@ -6,7 +6,7 @@ import type {ItemDefinition} from '../../gameplay/schema.ts';
 import {el,button} from '../shared/dom.ts';
 
 export const CATEGORY_LABELS:Record<string,string>={nature:'Ressources naturelles',mine:'Minerais et cristaux',farm:'Produits agricoles',tool:'Outils',outil:'Outils',quest:'Objets de mission',mission:'Objets de mission',argent:'Argent',bois:'Bois',cueillette:'Cueillette',poisson:'Poissons',graines:'Graines'};
-const ORDER=['Argent','Outils','Ressources naturelles','Bois','Cueillette','Poissons','Minerais et cristaux','Produits agricoles','Graines','Objets de mission','Objets divers'];
+const ORDER=['Argent','Ressources naturelles','Bois','Cueillette','Poissons','Minerais et cristaux','Produits agricoles','Graines','Outils','Objets de mission','Objets divers'];
 export interface InventoryEntry {id:string;name:string;category:string;categoryLabel:string;quantity:number;max:number;description?:string;delta:number;full:boolean;nearlyFull:boolean;tool:boolean}
 export interface InventoryViewModel {groups:{label:string;entries:InventoryEntry[]}[];kinds:number;total:number;empty:boolean}
 export function inventoryViewModel(items:readonly ItemDefinition[],inventory:Readonly<Record<string,number>>,seen:Readonly<Record<string,number>>):InventoryViewModel{
