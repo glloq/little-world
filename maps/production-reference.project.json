@@ -1033,6 +1033,76 @@
    "terrainOwners": {},
    "biomeOwners": {}
   },
+  "13:11": {
+   "chunkId": "13:11",
+   "cx": 13,
+   "cz": 11,
+   "revision": 0,
+   "sourceRef": "world/chunks/13_11.json",
+   "dependencies": [],
+   "terrainOwners": {},
+   "biomeOwners": {}
+  },
+  "12:11": {
+   "chunkId": "12:11",
+   "cx": 12,
+   "cz": 11,
+   "revision": 0,
+   "sourceRef": "world/chunks/12_11.json",
+   "dependencies": [],
+   "terrainOwners": {},
+   "biomeOwners": {}
+  },
+  "12:10": {
+   "chunkId": "12:10",
+   "cx": 12,
+   "cz": 10,
+   "revision": 0,
+   "sourceRef": "world/chunks/12_10.json",
+   "dependencies": [],
+   "terrainOwners": {},
+   "biomeOwners": {}
+  },
+  "13:10": {
+   "chunkId": "13:10",
+   "cx": 13,
+   "cz": 10,
+   "revision": 0,
+   "sourceRef": "world/chunks/13_10.json",
+   "dependencies": [],
+   "terrainOwners": {},
+   "biomeOwners": {}
+  },
+  "12:9": {
+   "chunkId": "12:9",
+   "cx": 12,
+   "cz": 9,
+   "revision": 0,
+   "sourceRef": "world/chunks/12_9.json",
+   "dependencies": [],
+   "terrainOwners": {},
+   "biomeOwners": {}
+  },
+  "11:9": {
+   "chunkId": "11:9",
+   "cx": 11,
+   "cz": 9,
+   "revision": 0,
+   "sourceRef": "world/chunks/11_9.json",
+   "dependencies": [],
+   "terrainOwners": {},
+   "biomeOwners": {}
+  },
+  "11:10": {
+   "chunkId": "11:10",
+   "cx": 11,
+   "cz": 10,
+   "revision": 0,
+   "sourceRef": "world/chunks/11_10.json",
+   "dependencies": [],
+   "terrainOwners": {},
+   "biomeOwners": {}
+  },
   "12:18": {
    "chunkId": "12:18",
    "cx": 12,
@@ -1049,76 +1119,6 @@
    "cz": 18,
    "revision": 0,
    "sourceRef": "world/chunks/13_18.json",
-   "dependencies": [],
-   "terrainOwners": {},
-   "biomeOwners": {}
-  },
-  "12:11": {
-   "chunkId": "12:11",
-   "cx": 12,
-   "cz": 11,
-   "revision": 0,
-   "sourceRef": "world/chunks/12_11.json",
-   "dependencies": [],
-   "terrainOwners": {},
-   "biomeOwners": {}
-  },
-  "13:11": {
-   "chunkId": "13:11",
-   "cx": 13,
-   "cz": 11,
-   "revision": 0,
-   "sourceRef": "world/chunks/13_11.json",
-   "dependencies": [],
-   "terrainOwners": {},
-   "biomeOwners": {}
-  },
-  "13:10": {
-   "chunkId": "13:10",
-   "cx": 13,
-   "cz": 10,
-   "revision": 0,
-   "sourceRef": "world/chunks/13_10.json",
-   "dependencies": [],
-   "terrainOwners": {},
-   "biomeOwners": {}
-  },
-  "13:9": {
-   "chunkId": "13:9",
-   "cx": 13,
-   "cz": 9,
-   "revision": 0,
-   "sourceRef": "world/chunks/13_9.json",
-   "dependencies": [],
-   "terrainOwners": {},
-   "biomeOwners": {}
-  },
-  "13:8": {
-   "chunkId": "13:8",
-   "cx": 13,
-   "cz": 8,
-   "revision": 0,
-   "sourceRef": "world/chunks/13_8.json",
-   "dependencies": [],
-   "terrainOwners": {},
-   "biomeOwners": {}
-  },
-  "14:10": {
-   "chunkId": "14:10",
-   "cx": 14,
-   "cz": 10,
-   "revision": 0,
-   "sourceRef": "world/chunks/14_10.json",
-   "dependencies": [],
-   "terrainOwners": {},
-   "biomeOwners": {}
-  },
-  "14:11": {
-   "chunkId": "14:11",
-   "cx": 14,
-   "cz": 11,
-   "revision": 0,
-   "sourceRef": "world/chunks/14_11.json",
    "dependencies": [],
    "terrainOwners": {},
    "biomeOwners": {}
@@ -1613,36 +1613,6 @@
    "terrainOwners": {},
    "biomeOwners": {}
   },
-  "11:9": {
-   "chunkId": "11:9",
-   "cx": 11,
-   "cz": 9,
-   "revision": 0,
-   "sourceRef": "world/chunks/11_9.json",
-   "dependencies": [],
-   "terrainOwners": {},
-   "biomeOwners": {}
-  },
-  "11:10": {
-   "chunkId": "11:10",
-   "cx": 11,
-   "cz": 10,
-   "revision": 0,
-   "sourceRef": "world/chunks/11_10.json",
-   "dependencies": [],
-   "terrainOwners": {},
-   "biomeOwners": {}
-  },
-  "12:10": {
-   "chunkId": "12:10",
-   "cx": 12,
-   "cz": 10,
-   "revision": 0,
-   "sourceRef": "world/chunks/12_10.json",
-   "dependencies": [],
-   "terrainOwners": {},
-   "biomeOwners": {}
-  },
   "14:12": {
    "chunkId": "14:12",
    "cx": 14,
@@ -1762,6 +1732,16 @@
    "dependencies": [],
    "terrainOwners": {},
    "biomeOwners": {}
+  },
+  "14:10": {
+   "chunkId": "14:10",
+   "cx": 14,
+   "cz": 10,
+   "revision": 0,
+   "sourceRef": "world/chunks/14_10.json",
+   "dependencies": [],
+   "terrainOwners": {},
+   "biomeOwners": {}
   }
  },
  "entityIndex": {
@@ -1771,18 +1751,18 @@
    "name": "Pont du méandre",
    "ownerChunkId": "13:11",
    "position": {
-    "x": 132.6,
-    "y": 3.6,
-    "z": 41.7
+    "x": 139.2,
+    "y": 0,
+    "z": 29.4
    },
    "references": [
     "structure.bridge_stone"
    ],
    "logical": {
     "position": {
-     "x": 132.6,
-     "y": 3.6,
-     "z": 41.7
+     "x": 139.2,
+     "y": 0,
+     "z": 29.4
     },
     "initialState": {},
     "persistentState": []
@@ -1898,6 +1878,328 @@
      "x": -10.1,
      "y": 0,
      "z": -174.1
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
+  "ls-village-clearing-1.garden-1": {
+   "id": "ls-village-clearing-1.garden-1",
+   "kind": "prop",
+   "name": "Jardin 1",
+   "ownerChunkId": "9:8",
+   "position": {
+    "x": -75.8,
+    "y": 0,
+    "z": -132.1
+   },
+   "references": [
+    "structure.fence_picket"
+   ],
+   "logical": {
+    "position": {
+     "x": -75.8,
+     "y": 0,
+     "z": -132.1
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
+  "ls-village-clearing-1.garden-2": {
+   "id": "ls-village-clearing-1.garden-2",
+   "kind": "prop",
+   "name": "Jardin 2",
+   "ownerChunkId": "9:8",
+   "position": {
+    "x": -75.3,
+    "y": 0,
+    "z": -134
+   },
+   "references": [
+    "structure.fence_picket"
+   ],
+   "logical": {
+    "position": {
+     "x": -75.3,
+     "y": 0,
+     "z": -134
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
+  "ls-village-clearing-1.garden-3": {
+   "id": "ls-village-clearing-1.garden-3",
+   "kind": "prop",
+   "name": "Jardin 3",
+   "ownerChunkId": "9:8",
+   "position": {
+    "x": -74.8,
+    "y": 0,
+    "z": -135.9
+   },
+   "references": [
+    "structure.fence_picket"
+   ],
+   "logical": {
+    "position": {
+     "x": -74.8,
+     "y": 0,
+     "z": -135.9
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
+  "ls-village-clearing-1.garden-c1": {
+   "id": "ls-village-clearing-1.garden-c1",
+   "kind": "prop",
+   "name": "Jardin (angle 1)",
+   "ownerChunkId": "9:8",
+   "position": {
+    "x": -74.6,
+    "y": 0,
+    "z": -136.9
+   },
+   "references": [
+    "structure.post_square"
+   ],
+   "logical": {
+    "position": {
+     "x": -74.6,
+     "y": 0,
+     "z": -136.9
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
+  "ls-village-clearing-1.garden-gate": {
+   "id": "ls-village-clearing-1.garden-gate",
+   "kind": "prop",
+   "name": "Jardin — portillon",
+   "ownerChunkId": "9:8",
+   "position": {
+    "x": -73.6,
+    "y": 0,
+    "z": -136.7
+   },
+   "references": [
+    "structure.fence_gate"
+   ],
+   "logical": {
+    "position": {
+     "x": -73.6,
+     "y": 0,
+     "z": -136.7
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
+  "ls-village-clearing-1.garden-5": {
+   "id": "ls-village-clearing-1.garden-5",
+   "kind": "prop",
+   "name": "Jardin 5",
+   "ownerChunkId": "9:8",
+   "position": {
+    "x": -71.7,
+    "y": 0,
+    "z": -136.2
+   },
+   "references": [
+    "structure.fence_picket"
+   ],
+   "logical": {
+    "position": {
+     "x": -71.7,
+     "y": 0,
+     "z": -136.2
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
+  "ls-village-clearing-1.garden-6": {
+   "id": "ls-village-clearing-1.garden-6",
+   "kind": "prop",
+   "name": "Jardin 6",
+   "ownerChunkId": "9:8",
+   "position": {
+    "x": -69.8,
+    "y": 0,
+    "z": -135.7
+   },
+   "references": [
+    "structure.fence_picket"
+   ],
+   "logical": {
+    "position": {
+     "x": -69.8,
+     "y": 0,
+     "z": -135.7
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
+  "ls-village-clearing-1.garden-7": {
+   "id": "ls-village-clearing-1.garden-7",
+   "kind": "prop",
+   "name": "Jardin 7",
+   "ownerChunkId": "9:8",
+   "position": {
+    "x": -67.8,
+    "y": 0,
+    "z": -135.2
+   },
+   "references": [
+    "structure.fence_picket"
+   ],
+   "logical": {
+    "position": {
+     "x": -67.8,
+     "y": 0,
+     "z": -135.2
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
+  "ls-village-clearing-1.garden-8": {
+   "id": "ls-village-clearing-1.garden-8",
+   "kind": "prop",
+   "name": "Jardin 8",
+   "ownerChunkId": "9:8",
+   "position": {
+    "x": -65.9,
+    "y": 0,
+    "z": -134.7
+   },
+   "references": [
+    "structure.fence_picket"
+   ],
+   "logical": {
+    "position": {
+     "x": -65.9,
+     "y": 0,
+     "z": -134.7
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
+  "ls-village-clearing-1.garden-9": {
+   "id": "ls-village-clearing-1.garden-9",
+   "kind": "prop",
+   "name": "Jardin 9",
+   "ownerChunkId": "9:8",
+   "position": {
+    "x": -64,
+    "y": 0,
+    "z": -134.2
+   },
+   "references": [
+    "structure.fence_picket"
+   ],
+   "logical": {
+    "position": {
+     "x": -64,
+     "y": 0,
+     "z": -134.2
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
+  "ls-village-clearing-1.garden-c2": {
+   "id": "ls-village-clearing-1.garden-c2",
+   "kind": "prop",
+   "name": "Jardin (angle 2)",
+   "ownerChunkId": "9:8",
+   "position": {
+    "x": -63,
+    "y": 0,
+    "z": -134
+   },
+   "references": [
+    "structure.post_square"
+   ],
+   "logical": {
+    "position": {
+     "x": -63,
+     "y": 0,
+     "z": -134
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
+  "ls-village-clearing-1.garden-10": {
+   "id": "ls-village-clearing-1.garden-10",
+   "kind": "prop",
+   "name": "Jardin 10",
+   "ownerChunkId": "9:8",
+   "position": {
+    "x": -63.2,
+    "y": 0,
+    "z": -133
+   },
+   "references": [
+    "structure.fence_picket"
+   ],
+   "logical": {
+    "position": {
+     "x": -63.2,
+     "y": 0,
+     "z": -133
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
+  "ls-village-clearing-1.garden-11": {
+   "id": "ls-village-clearing-1.garden-11",
+   "kind": "prop",
+   "name": "Jardin 11",
+   "ownerChunkId": "9:8",
+   "position": {
+    "x": -63.7,
+    "y": 0,
+    "z": -131.1
+   },
+   "references": [
+    "structure.fence_picket"
+   ],
+   "logical": {
+    "position": {
+     "x": -63.7,
+     "y": 0,
+     "z": -131.1
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
+  "ls-village-clearing-1.garden-12": {
+   "id": "ls-village-clearing-1.garden-12",
+   "kind": "prop",
+   "name": "Jardin 12",
+   "ownerChunkId": "9:8",
+   "position": {
+    "x": -64.2,
+    "y": 0,
+    "z": -129.2
+   },
+   "references": [
+    "structure.fence_picket"
+   ],
+   "logical": {
+    "position": {
+     "x": -64.2,
+     "y": 0,
+     "z": -129.2
     },
     "initialState": {},
     "persistentState": []
@@ -3283,6 +3585,29 @@
     "persistentState": []
    }
   },
+  "ls-village-clearing-1.fence-gate": {
+   "id": "ls-village-clearing-1.fence-gate",
+   "kind": "prop",
+   "name": "Clôture du champ — portillon",
+   "ownerChunkId": "10:7",
+   "position": {
+    "x": -20.5,
+    "y": 0,
+    "z": -200.8
+   },
+   "references": [
+    "structure.fence_gate"
+   ],
+   "logical": {
+    "position": {
+     "x": -20.5,
+     "y": 0,
+     "z": -200.8
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
   "ls-village-clearing-1.fence-4": {
    "id": "ls-village-clearing-1.fence-4",
    "kind": "prop",
@@ -4088,6 +4413,29 @@
     "persistentState": []
    }
   },
+  "ls-village-clearing-1.fence-c1": {
+   "id": "ls-village-clearing-1.fence-c1",
+   "kind": "prop",
+   "name": "Clôture du champ (angle 1)",
+   "ownerChunkId": "11:7",
+   "position": {
+    "x": 51.2,
+    "y": 0,
+    "z": -200.8
+   },
+   "references": [
+    "structure.post_rustic"
+   ],
+   "logical": {
+    "position": {
+     "x": 51.2,
+     "y": 0,
+     "z": -200.8
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
   "ls-village-clearing-1.fence-39": {
    "id": "ls-village-clearing-1.fence-39",
    "kind": "prop",
@@ -4796,6 +5144,29 @@
      "x": 51.2,
      "y": 0,
      "z": -140.2
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
+  "ls-village-clearing-1.fence-c2": {
+   "id": "ls-village-clearing-1.fence-c2",
+   "kind": "prop",
+   "name": "Clôture du champ (angle 2)",
+   "ownerChunkId": "11:8",
+   "position": {
+    "x": 51.2,
+    "y": 0,
+    "z": -139.2
+   },
+   "references": [
+    "structure.post_rustic"
+   ],
+   "logical": {
+    "position": {
+     "x": 51.2,
+     "y": 0,
+     "z": -139.2
     },
     "initialState": {},
     "persistentState": []
@@ -5675,6 +6046,742 @@
     "persistentState": []
    }
   },
+  "ls-village-clearing-1.fence-c3": {
+   "id": "ls-village-clearing-1.fence-c3",
+   "kind": "prop",
+   "name": "Clôture du champ (angle 3)",
+   "ownerChunkId": "10:8",
+   "position": {
+    "x": -25.6,
+    "y": 0,
+    "z": -139.2
+   },
+   "references": [
+    "structure.post_rustic"
+   ],
+   "logical": {
+    "position": {
+     "x": -25.6,
+     "y": 0,
+     "z": -139.2
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
+  "ls-village-clearing-1.fence-108": {
+   "id": "ls-village-clearing-1.fence-108",
+   "kind": "prop",
+   "name": "Clôture du champ 108",
+   "ownerChunkId": "10:8",
+   "position": {
+    "x": -25.6,
+    "y": 0,
+    "z": -140.2
+   },
+   "references": [
+    "structure.fence_pasture"
+   ],
+   "logical": {
+    "position": {
+     "x": -25.6,
+     "y": 0,
+     "z": -140.2
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
+  "ls-village-clearing-1.fence-109": {
+   "id": "ls-village-clearing-1.fence-109",
+   "kind": "prop",
+   "name": "Clôture du champ 109",
+   "ownerChunkId": "10:8",
+   "position": {
+    "x": -25.6,
+    "y": 0,
+    "z": -142.2
+   },
+   "references": [
+    "structure.fence_pasture"
+   ],
+   "logical": {
+    "position": {
+     "x": -25.6,
+     "y": 0,
+     "z": -142.2
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
+  "ls-village-clearing-1.fence-110": {
+   "id": "ls-village-clearing-1.fence-110",
+   "kind": "prop",
+   "name": "Clôture du champ 110",
+   "ownerChunkId": "10:8",
+   "position": {
+    "x": -25.6,
+    "y": 0,
+    "z": -144.2
+   },
+   "references": [
+    "structure.fence_pasture"
+   ],
+   "logical": {
+    "position": {
+     "x": -25.6,
+     "y": 0,
+     "z": -144.2
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
+  "ls-village-clearing-1.fence-111": {
+   "id": "ls-village-clearing-1.fence-111",
+   "kind": "prop",
+   "name": "Clôture du champ 111",
+   "ownerChunkId": "10:8",
+   "position": {
+    "x": -25.6,
+    "y": 0,
+    "z": -146.2
+   },
+   "references": [
+    "structure.fence_pasture"
+   ],
+   "logical": {
+    "position": {
+     "x": -25.6,
+     "y": 0,
+     "z": -146.2
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
+  "ls-village-clearing-1.fence-112": {
+   "id": "ls-village-clearing-1.fence-112",
+   "kind": "prop",
+   "name": "Clôture du champ 112",
+   "ownerChunkId": "10:8",
+   "position": {
+    "x": -25.6,
+    "y": 0,
+    "z": -148.1
+   },
+   "references": [
+    "structure.fence_pasture"
+   ],
+   "logical": {
+    "position": {
+     "x": -25.6,
+     "y": 0,
+     "z": -148.1
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
+  "ls-village-clearing-1.fence-113": {
+   "id": "ls-village-clearing-1.fence-113",
+   "kind": "prop",
+   "name": "Clôture du champ 113",
+   "ownerChunkId": "10:8",
+   "position": {
+    "x": -25.6,
+    "y": 0,
+    "z": -150.1
+   },
+   "references": [
+    "structure.fence_pasture"
+   ],
+   "logical": {
+    "position": {
+     "x": -25.6,
+     "y": 0,
+     "z": -150.1
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
+  "ls-village-clearing-1.fence-114": {
+   "id": "ls-village-clearing-1.fence-114",
+   "kind": "prop",
+   "name": "Clôture du champ 114",
+   "ownerChunkId": "10:8",
+   "position": {
+    "x": -25.6,
+    "y": 0,
+    "z": -152.1
+   },
+   "references": [
+    "structure.fence_pasture"
+   ],
+   "logical": {
+    "position": {
+     "x": -25.6,
+     "y": 0,
+     "z": -152.1
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
+  "ls-village-clearing-1.fence-115": {
+   "id": "ls-village-clearing-1.fence-115",
+   "kind": "prop",
+   "name": "Clôture du champ 115",
+   "ownerChunkId": "10:8",
+   "position": {
+    "x": -25.6,
+    "y": 0,
+    "z": -154.1
+   },
+   "references": [
+    "structure.fence_pasture"
+   ],
+   "logical": {
+    "position": {
+     "x": -25.6,
+     "y": 0,
+     "z": -154.1
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
+  "ls-village-clearing-1.fence-116": {
+   "id": "ls-village-clearing-1.fence-116",
+   "kind": "prop",
+   "name": "Clôture du champ 116",
+   "ownerChunkId": "10:8",
+   "position": {
+    "x": -25.6,
+    "y": 0,
+    "z": -156.1
+   },
+   "references": [
+    "structure.fence_pasture"
+   ],
+   "logical": {
+    "position": {
+     "x": -25.6,
+     "y": 0,
+     "z": -156.1
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
+  "ls-village-clearing-1.fence-117": {
+   "id": "ls-village-clearing-1.fence-117",
+   "kind": "prop",
+   "name": "Clôture du champ 117",
+   "ownerChunkId": "10:8",
+   "position": {
+    "x": -25.6,
+    "y": 0,
+    "z": -158.1
+   },
+   "references": [
+    "structure.fence_pasture"
+   ],
+   "logical": {
+    "position": {
+     "x": -25.6,
+     "y": 0,
+     "z": -158.1
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
+  "ls-village-clearing-1.fence-118": {
+   "id": "ls-village-clearing-1.fence-118",
+   "kind": "prop",
+   "name": "Clôture du champ 118",
+   "ownerChunkId": "10:8",
+   "position": {
+    "x": -25.6,
+    "y": 0,
+    "z": -160.1
+   },
+   "references": [
+    "structure.fence_pasture"
+   ],
+   "logical": {
+    "position": {
+     "x": -25.6,
+     "y": 0,
+     "z": -160.1
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
+  "ls-village-clearing-1.fence-119": {
+   "id": "ls-village-clearing-1.fence-119",
+   "kind": "prop",
+   "name": "Clôture du champ 119",
+   "ownerChunkId": "10:8",
+   "position": {
+    "x": -25.6,
+    "y": 0,
+    "z": -162.1
+   },
+   "references": [
+    "structure.fence_pasture"
+   ],
+   "logical": {
+    "position": {
+     "x": -25.6,
+     "y": 0,
+     "z": -162.1
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
+  "ls-village-clearing-1.fence-120": {
+   "id": "ls-village-clearing-1.fence-120",
+   "kind": "prop",
+   "name": "Clôture du champ 120",
+   "ownerChunkId": "10:8",
+   "position": {
+    "x": -25.6,
+    "y": 0,
+    "z": -164
+   },
+   "references": [
+    "structure.fence_pasture"
+   ],
+   "logical": {
+    "position": {
+     "x": -25.6,
+     "y": 0,
+     "z": -164
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
+  "ls-village-clearing-1.fence-121": {
+   "id": "ls-village-clearing-1.fence-121",
+   "kind": "prop",
+   "name": "Clôture du champ 121",
+   "ownerChunkId": "10:8",
+   "position": {
+    "x": -25.6,
+    "y": 0,
+    "z": -166
+   },
+   "references": [
+    "structure.fence_pasture"
+   ],
+   "logical": {
+    "position": {
+     "x": -25.6,
+     "y": 0,
+     "z": -166
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
+  "ls-village-clearing-1.fence-122": {
+   "id": "ls-village-clearing-1.fence-122",
+   "kind": "prop",
+   "name": "Clôture du champ 122",
+   "ownerChunkId": "10:8",
+   "position": {
+    "x": -25.6,
+    "y": 0,
+    "z": -168
+   },
+   "references": [
+    "structure.fence_pasture"
+   ],
+   "logical": {
+    "position": {
+     "x": -25.6,
+     "y": 0,
+     "z": -168
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
+  "ls-village-clearing-1.fence-123": {
+   "id": "ls-village-clearing-1.fence-123",
+   "kind": "prop",
+   "name": "Clôture du champ 123",
+   "ownerChunkId": "10:8",
+   "position": {
+    "x": -25.6,
+    "y": 0,
+    "z": -170
+   },
+   "references": [
+    "structure.fence_pasture"
+   ],
+   "logical": {
+    "position": {
+     "x": -25.6,
+     "y": 0,
+     "z": -170
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
+  "ls-village-clearing-1.fence-124": {
+   "id": "ls-village-clearing-1.fence-124",
+   "kind": "prop",
+   "name": "Clôture du champ 124",
+   "ownerChunkId": "10:8",
+   "position": {
+    "x": -25.6,
+    "y": 0,
+    "z": -172
+   },
+   "references": [
+    "structure.fence_pasture"
+   ],
+   "logical": {
+    "position": {
+     "x": -25.6,
+     "y": 0,
+     "z": -172
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
+  "ls-village-clearing-1.fence-125": {
+   "id": "ls-village-clearing-1.fence-125",
+   "kind": "prop",
+   "name": "Clôture du champ 125",
+   "ownerChunkId": "10:8",
+   "position": {
+    "x": -25.6,
+    "y": 0,
+    "z": -174
+   },
+   "references": [
+    "structure.fence_pasture"
+   ],
+   "logical": {
+    "position": {
+     "x": -25.6,
+     "y": 0,
+     "z": -174
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
+  "ls-village-clearing-1.fence-126": {
+   "id": "ls-village-clearing-1.fence-126",
+   "kind": "prop",
+   "name": "Clôture du champ 126",
+   "ownerChunkId": "10:8",
+   "position": {
+    "x": -25.6,
+    "y": 0,
+    "z": -176
+   },
+   "references": [
+    "structure.fence_pasture"
+   ],
+   "logical": {
+    "position": {
+     "x": -25.6,
+     "y": 0,
+     "z": -176
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
+  "ls-village-clearing-1.fence-127": {
+   "id": "ls-village-clearing-1.fence-127",
+   "kind": "prop",
+   "name": "Clôture du champ 127",
+   "ownerChunkId": "10:8",
+   "position": {
+    "x": -25.6,
+    "y": 0,
+    "z": -177.9
+   },
+   "references": [
+    "structure.fence_pasture"
+   ],
+   "logical": {
+    "position": {
+     "x": -25.6,
+     "y": 0,
+     "z": -177.9
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
+  "ls-village-clearing-1.fence-128": {
+   "id": "ls-village-clearing-1.fence-128",
+   "kind": "prop",
+   "name": "Clôture du champ 128",
+   "ownerChunkId": "10:8",
+   "position": {
+    "x": -25.6,
+    "y": 0,
+    "z": -179.9
+   },
+   "references": [
+    "structure.fence_pasture"
+   ],
+   "logical": {
+    "position": {
+     "x": -25.6,
+     "y": 0,
+     "z": -179.9
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
+  "ls-village-clearing-1.fence-129": {
+   "id": "ls-village-clearing-1.fence-129",
+   "kind": "prop",
+   "name": "Clôture du champ 129",
+   "ownerChunkId": "10:8",
+   "position": {
+    "x": -25.6,
+    "y": 0,
+    "z": -181.9
+   },
+   "references": [
+    "structure.fence_pasture"
+   ],
+   "logical": {
+    "position": {
+     "x": -25.6,
+     "y": 0,
+     "z": -181.9
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
+  "ls-village-clearing-1.fence-130": {
+   "id": "ls-village-clearing-1.fence-130",
+   "kind": "prop",
+   "name": "Clôture du champ 130",
+   "ownerChunkId": "10:8",
+   "position": {
+    "x": -25.6,
+    "y": 0,
+    "z": -183.9
+   },
+   "references": [
+    "structure.fence_pasture"
+   ],
+   "logical": {
+    "position": {
+     "x": -25.6,
+     "y": 0,
+     "z": -183.9
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
+  "ls-village-clearing-1.fence-131": {
+   "id": "ls-village-clearing-1.fence-131",
+   "kind": "prop",
+   "name": "Clôture du champ 131",
+   "ownerChunkId": "10:8",
+   "position": {
+    "x": -25.6,
+    "y": 0,
+    "z": -185.9
+   },
+   "references": [
+    "structure.fence_pasture"
+   ],
+   "logical": {
+    "position": {
+     "x": -25.6,
+     "y": 0,
+     "z": -185.9
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
+  "ls-village-clearing-1.fence-132": {
+   "id": "ls-village-clearing-1.fence-132",
+   "kind": "prop",
+   "name": "Clôture du champ 132",
+   "ownerChunkId": "10:8",
+   "position": {
+    "x": -25.6,
+    "y": 0,
+    "z": -187.9
+   },
+   "references": [
+    "structure.fence_pasture"
+   ],
+   "logical": {
+    "position": {
+     "x": -25.6,
+     "y": 0,
+     "z": -187.9
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
+  "ls-village-clearing-1.fence-133": {
+   "id": "ls-village-clearing-1.fence-133",
+   "kind": "prop",
+   "name": "Clôture du champ 133",
+   "ownerChunkId": "10:7",
+   "position": {
+    "x": -25.6,
+    "y": 0,
+    "z": -189.9
+   },
+   "references": [
+    "structure.fence_pasture"
+   ],
+   "logical": {
+    "position": {
+     "x": -25.6,
+     "y": 0,
+     "z": -189.9
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
+  "ls-village-clearing-1.fence-134": {
+   "id": "ls-village-clearing-1.fence-134",
+   "kind": "prop",
+   "name": "Clôture du champ 134",
+   "ownerChunkId": "10:7",
+   "position": {
+    "x": -25.6,
+    "y": 0,
+    "z": -191.9
+   },
+   "references": [
+    "structure.fence_pasture"
+   ],
+   "logical": {
+    "position": {
+     "x": -25.6,
+     "y": 0,
+     "z": -191.9
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
+  "ls-village-clearing-1.fence-135": {
+   "id": "ls-village-clearing-1.fence-135",
+   "kind": "prop",
+   "name": "Clôture du champ 135",
+   "ownerChunkId": "10:7",
+   "position": {
+    "x": -25.6,
+    "y": 0,
+    "z": -193.8
+   },
+   "references": [
+    "structure.fence_pasture"
+   ],
+   "logical": {
+    "position": {
+     "x": -25.6,
+     "y": 0,
+     "z": -193.8
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
+  "ls-village-clearing-1.fence-136": {
+   "id": "ls-village-clearing-1.fence-136",
+   "kind": "prop",
+   "name": "Clôture du champ 136",
+   "ownerChunkId": "10:7",
+   "position": {
+    "x": -25.6,
+    "y": 0,
+    "z": -195.8
+   },
+   "references": [
+    "structure.fence_pasture"
+   ],
+   "logical": {
+    "position": {
+     "x": -25.6,
+     "y": 0,
+     "z": -195.8
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
+  "ls-village-clearing-1.fence-137": {
+   "id": "ls-village-clearing-1.fence-137",
+   "kind": "prop",
+   "name": "Clôture du champ 137",
+   "ownerChunkId": "10:7",
+   "position": {
+    "x": -25.6,
+    "y": 0,
+    "z": -197.8
+   },
+   "references": [
+    "structure.fence_pasture"
+   ],
+   "logical": {
+    "position": {
+     "x": -25.6,
+     "y": 0,
+     "z": -197.8
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
+  "ls-village-clearing-1.fence-138": {
+   "id": "ls-village-clearing-1.fence-138",
+   "kind": "prop",
+   "name": "Clôture du champ 138",
+   "ownerChunkId": "10:7",
+   "position": {
+    "x": -25.6,
+    "y": 0,
+    "z": -199.8
+   },
+   "references": [
+    "structure.fence_pasture"
+   ],
+   "logical": {
+    "position": {
+     "x": -25.6,
+     "y": 0,
+     "z": -199.8
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
   "ls-ancient-ruins-1.wall1-1": {
    "id": "ls-ancient-ruins-1.wall1-1",
    "kind": "prop",
@@ -5721,10 +6828,10 @@
     "persistentState": []
    }
   },
-  "ls-ancient-ruins-1.wall1-4": {
-   "id": "ls-ancient-ruins-1.wall1-4",
+  "ls-ancient-ruins-1.wall1-e3": {
+   "id": "ls-ancient-ruins-1.wall1-e3",
    "kind": "prop",
-   "name": "Muret en ruine 1 4",
+   "name": "Muret en ruine 1 — extrémité 3",
    "ownerChunkId": "9:12",
    "position": {
     "x": -119.3,
@@ -5732,7 +6839,7 @@
     "z": 98.8
    },
    "references": [
-    "structure.wall_irregular"
+    "structure.wall_end"
    ],
    "logical": {
     "position": {
@@ -5744,10 +6851,33 @@
     "persistentState": []
    }
   },
-  "ls-ancient-ruins-1.wall1-7": {
-   "id": "ls-ancient-ruins-1.wall1-7",
+  "ls-ancient-ruins-1.wall1-c1": {
+   "id": "ls-ancient-ruins-1.wall1-c1",
    "kind": "prop",
-   "name": "Muret en ruine 1 7",
+   "name": "Muret en ruine 1 (angle 1)",
+   "ownerChunkId": "9:12",
+   "position": {
+    "x": -116.3,
+    "y": 0,
+    "z": 100.1
+   },
+   "references": [
+    "structure.wall_corner"
+   ],
+   "logical": {
+    "position": {
+     "x": -116.3,
+     "y": 0,
+     "z": 100.1
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
+  "ls-ancient-ruins-1.wall1-e6": {
+   "id": "ls-ancient-ruins-1.wall1-e6",
+   "kind": "prop",
+   "name": "Muret en ruine 1 — extrémité 6",
    "ownerChunkId": "9:12",
    "position": {
     "x": -117.6,
@@ -5755,7 +6885,7 @@
     "z": 103.2
    },
    "references": [
-    "structure.wall_irregular"
+    "structure.wall_end"
    ],
    "logical": {
     "position": {
@@ -5785,6 +6915,29 @@
      "x": -118.4,
      "y": 0,
      "z": 105.2
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
+  "ls-ancient-ruins-1.wall1-c2": {
+   "id": "ls-ancient-ruins-1.wall1-c2",
+   "kind": "prop",
+   "name": "Muret en ruine 1 (angle 2)",
+   "ownerChunkId": "9:12",
+   "position": {
+    "x": -119.7,
+    "y": 0,
+    "z": 108.3
+   },
+   "references": [
+    "structure.wall_corner"
+   ],
+   "logical": {
+    "position": {
+     "x": -119.7,
+     "y": 0,
+     "z": 108.3
     },
     "initialState": {},
     "persistentState": []
@@ -5836,10 +6989,10 @@
     "persistentState": []
    }
   },
-  "ls-ancient-ruins-1.wall1-13": {
-   "id": "ls-ancient-ruins-1.wall1-13",
+  "ls-ancient-ruins-1.wall1-e12": {
+   "id": "ls-ancient-ruins-1.wall1-e12",
    "kind": "prop",
-   "name": "Muret en ruine 1 13",
+   "name": "Muret en ruine 1 — extrémité 12",
    "ownerChunkId": "8:12",
    "position": {
     "x": -125.6,
@@ -5847,7 +7000,7 @@
     "z": 105.8
    },
    "references": [
-    "structure.wall_irregular"
+    "structure.wall_end"
    ],
    "logical": {
     "position": {
@@ -5877,6 +7030,29 @@
      "x": -127.3,
      "y": 0,
      "z": 105.1
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
+  "ls-ancient-ruins-1.wall1-c3": {
+   "id": "ls-ancient-ruins-1.wall1-c3",
+   "kind": "prop",
+   "name": "Muret en ruine 1 (angle 3)",
+   "ownerChunkId": "8:12",
+   "position": {
+    "x": -129.9,
+    "y": 0,
+    "z": 104
+   },
+   "references": [
+    "structure.wall_corner"
+   ],
+   "logical": {
+    "position": {
+     "x": -129.9,
+     "y": 0,
+     "z": 104
     },
     "initialState": {},
     "persistentState": []
@@ -5928,10 +7104,10 @@
     "persistentState": []
    }
   },
-  "ls-ancient-ruins-1.wall1-19": {
-   "id": "ls-ancient-ruins-1.wall1-19",
+  "ls-ancient-ruins-1.wall1-e18": {
+   "id": "ls-ancient-ruins-1.wall1-e18",
    "kind": "prop",
-   "name": "Muret en ruine 1 19",
+   "name": "Muret en ruine 1 — extrémité 18",
    "ownerChunkId": "8:12",
    "position": {
     "x": -126.8,
@@ -5939,7 +7115,7 @@
     "z": 96.8
    },
    "references": [
-    "structure.wall_irregular"
+    "structure.wall_end"
    ],
    "logical": {
     "position": {
@@ -6020,6 +7196,29 @@
     "persistentState": []
    }
   },
+  "ls-ancient-ruins-1.wall2-e4": {
+   "id": "ls-ancient-ruins-1.wall2-e4",
+   "kind": "prop",
+   "name": "Muret en ruine 2 — extrémité 4",
+   "ownerChunkId": "9:12",
+   "position": {
+    "x": -116.2,
+    "y": 0,
+    "z": 111.7
+   },
+   "references": [
+    "structure.wall_end"
+   ],
+   "logical": {
+    "position": {
+     "x": -116.2,
+     "y": 0,
+     "z": 111.7
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
   "ls-ancient-ruins-1.wall2-6": {
    "id": "ls-ancient-ruins-1.wall2-6",
    "kind": "prop",
@@ -6066,10 +7265,33 @@
     "persistentState": []
    }
   },
-  "ls-ancient-ruins-1.wall2-9": {
-   "id": "ls-ancient-ruins-1.wall2-9",
+  "ls-ancient-ruins-1.wall2-c1": {
+   "id": "ls-ancient-ruins-1.wall2-c1",
    "kind": "prop",
-   "name": "Muret en ruine 2 9",
+   "name": "Muret en ruine 2 (angle 1)",
+   "ownerChunkId": "9:12",
+   "position": {
+    "x": -111.3,
+    "y": 0,
+    "z": 113.8
+   },
+   "references": [
+    "structure.wall_corner"
+   ],
+   "logical": {
+    "position": {
+     "x": -111.3,
+     "y": 0,
+     "z": 113.8
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
+  "ls-ancient-ruins-1.wall2-e8": {
+   "id": "ls-ancient-ruins-1.wall2-e8",
+   "kind": "prop",
+   "name": "Muret en ruine 2 — extrémité 8",
    "ownerChunkId": "9:12",
    "position": {
     "x": -112.5,
@@ -6077,7 +7299,7 @@
     "z": 116.5
    },
    "references": [
-    "structure.wall_moss"
+    "structure.wall_end"
    ],
    "logical": {
     "position": {
@@ -6135,10 +7357,10 @@
     "persistentState": []
    }
   },
-  "ls-ancient-ruins-1.wall2-13": {
-   "id": "ls-ancient-ruins-1.wall2-13",
+  "ls-ancient-ruins-1.wall2-e12": {
+   "id": "ls-ancient-ruins-1.wall2-e12",
    "kind": "prop",
-   "name": "Muret en ruine 2 13",
+   "name": "Muret en ruine 2 — extrémité 12",
    "ownerChunkId": "9:12",
    "position": {
     "x": -115.5,
@@ -6146,7 +7368,7 @@
     "z": 123.9
    },
    "references": [
-    "structure.wall_moss"
+    "structure.wall_end"
    ],
    "logical": {
     "position": {
@@ -6181,6 +7403,29 @@
     "persistentState": []
    }
   },
+  "ls-ancient-ruins-1.wall2-c2": {
+   "id": "ls-ancient-ruins-1.wall2-c2",
+   "kind": "prop",
+   "name": "Muret en ruine 2 (angle 2)",
+   "ownerChunkId": "9:12",
+   "position": {
+    "x": -116.7,
+    "y": 0,
+    "z": 126.6
+   },
+   "references": [
+    "structure.wall_corner"
+   ],
+   "logical": {
+    "position": {
+     "x": -116.7,
+     "y": 0,
+     "z": 126.6
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
   "ls-ancient-ruins-1.wall2-15": {
    "id": "ls-ancient-ruins-1.wall2-15",
    "kind": "prop",
@@ -6204,10 +7449,10 @@
     "persistentState": []
    }
   },
-  "ls-ancient-ruins-1.wall2-17": {
-   "id": "ls-ancient-ruins-1.wall2-17",
+  "ls-ancient-ruins-1.wall2-e16": {
+   "id": "ls-ancient-ruins-1.wall2-e16",
    "kind": "prop",
-   "name": "Muret en ruine 2 17",
+   "name": "Muret en ruine 2 — extrémité 16",
    "ownerChunkId": "9:12",
    "position": {
     "x": -121.6,
@@ -6215,7 +7460,7 @@
     "z": 124.5
    },
    "references": [
-    "structure.wall_moss"
+    "structure.wall_end"
    ],
    "logical": {
     "position": {
@@ -6273,10 +7518,10 @@
     "persistentState": []
    }
   },
-  "ls-ancient-ruins-1.wall2-21": {
-   "id": "ls-ancient-ruins-1.wall2-21",
+  "ls-ancient-ruins-1.wall2-e20": {
+   "id": "ls-ancient-ruins-1.wall2-e20",
    "kind": "prop",
-   "name": "Muret en ruine 2 21",
+   "name": "Muret en ruine 2 — extrémité 20",
    "ownerChunkId": "8:12",
    "position": {
     "x": -129.3,
@@ -6284,13 +7529,36 @@
     "z": 121.2
    },
    "references": [
-    "structure.wall_moss"
+    "structure.wall_end"
    ],
    "logical": {
     "position": {
      "x": -129.3,
      "y": 0,
      "z": 121.2
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
+  "ls-ancient-ruins-1.wall2-c3": {
+   "id": "ls-ancient-ruins-1.wall2-c3",
+   "kind": "prop",
+   "name": "Muret en ruine 2 (angle 3)",
+   "ownerChunkId": "8:12",
+   "position": {
+    "x": -130.3,
+    "y": 0,
+    "z": 120.8
+   },
+   "references": [
+    "structure.wall_corner"
+   ],
+   "logical": {
+    "position": {
+     "x": -130.3,
+     "y": 0,
+     "z": 120.8
     },
     "initialState": {},
     "persistentState": []
@@ -6342,10 +7610,10 @@
     "persistentState": []
    }
   },
-  "ls-ancient-ruins-1.wall2-25": {
-   "id": "ls-ancient-ruins-1.wall2-25",
+  "ls-ancient-ruins-1.wall2-e24": {
+   "id": "ls-ancient-ruins-1.wall2-e24",
    "kind": "prop",
-   "name": "Muret en ruine 2 25",
+   "name": "Muret en ruine 2 — extrémité 24",
    "ownerChunkId": "8:12",
    "position": {
     "x": -127.6,
@@ -6353,7 +7621,7 @@
     "z": 114.4
    },
    "references": [
-    "structure.wall_moss"
+    "structure.wall_end"
    ],
    "logical": {
     "position": {
@@ -6846,39 +8114,75 @@
      },
      {
       "x": 142.2,
-      "z": 297.1
+      "z": 268.9
      },
      {
-      "x": 140,
-      "z": 274.1
+      "x": 138.7,
+      "z": 245.4
+     },
+     {
+      "x": 135.1,
+      "z": 221.8
      },
      {
       "x": 137.8,
-      "z": 251
-     },
-     {
-      "x": 135.6,
-      "z": 228
-     },
-     {
-      "x": 136.5,
-      "z": 212.2
+      "z": 198.2
      },
      {
       "x": 137.4,
-      "z": 196.3
-     },
-     {
-      "x": 138.2,
-      "z": 180.5
-     },
-     {
-      "x": 139.1,
-      "z": 164.6
+      "z": 174.2
      },
      {
       "x": 140,
-      "z": 148.8
+      "z": 150.6
+     },
+     {
+      "x": 139.6,
+      "z": 126.6
+     },
+     {
+      "x": 139.1,
+      "z": 102.6
+     },
+     {
+      "x": 150.8,
+      "z": 81.6
+     },
+     {
+      "x": 156.5,
+      "z": 58.3
+     },
+     {
+      "x": 140.8,
+      "z": 26.2
+     },
+     {
+      "x": 140.4,
+      "z": 2.2
+     },
+     {
+      "x": 128.4,
+      "z": -17.7
+     },
+     {
+      "x": 111.1,
+      "z": -34.3
+     },
+     {
+      "x": 93.9,
+      "z": -51
+     },
+     {
+      "x": 76.6,
+      "z": -67.6
+     },
+     {
+      "x": 59.6,
+      "z": -67.3
+     },
+     {
+      "x": 72,
+      "z": -46.8
      }
     ],
     "width": 5,
@@ -6953,28 +8257,24 @@
       "z": 150
      },
      {
-      "x": 97.7,
-      "z": 106.7
+      "x": 99.8,
+      "z": 115.7
      },
      {
-      "x": 105.1,
-      "z": 63.3
+      "x": 100.3,
+      "z": 91.9
      },
      {
-      "x": 160.1,
-      "z": 20
+      "x": 111.4,
+      "z": 58.8
      },
      {
-      "x": 176.2,
-      "z": -23.3
+      "x": 138.3,
+      "z": 35.3
      },
      {
-      "x": 175.3,
-      "z": -66.7
-     },
-     {
-      "x": 149.7,
-      "z": -110
+      "x": 140.1,
+      "z": 23.4
      }
     ],
     "width": 6,
@@ -7433,7 +8733,7 @@
       "ls-waterfall-gorge-1.pool": "520cd40bd0412901"
      },
      "water": {
-      "ls-waterfall-gorge-1.falls-river": "44fa8da8ba9d23f4",
+      "ls-waterfall-gorge-1.falls-river": "03a3b6f5ba234a04",
       "ls-waterfall-gorge-1.pool": "fc5251d5f699fa88"
      },
      "paths": {},
@@ -7518,39 +8818,25 @@
       "ls-river-bend-1.bed": "f9536fc4579c4e36"
      },
      "water": {
-      "ls-river-bend-1.river": "0f8963bcbc4aa839"
+      "ls-river-bend-1.river": "1da342db897225e3"
      },
      "paths": {},
      "entities": {
-      "ls-river-bend-1.bridge": "8e862b6e3395daf3"
+      "ls-river-bend-1.bridge": "91951a04b11f1e83"
      },
      "zones": {},
      "masks": {
-      "13:9": {
-       "moisture": "................................................8888888888......88888888888.....88888888888......88888888888.....88888888888......88888888888.....88888888888......88888888888......88888888888.....88888888888......88888888888.....88888888888......8888888888",
-       "biome": "...........................................................................w..............www.............wwww............wwww............wwww.............www.............www..............www.............www..............w...............w...............w.."
-      },
-      "13:10": {
-       "moisture": "......8888888888......8888888888......8888888888......8888888888......8888888888......8888888888......8888888888......8888888888......8888888888......8888888888.....88888888888.....8888888888......8888888888.....88888888888.....8888888888......8888888888..",
-       "biome": "........w..........w....w..........wwwwww..........wwwww...........wwwww.......................................................................................................................................................w..............ww..............ww"
-      },
-      "14:10": {
-       "biome": ".................................................................................................................................................................................w..............ww..............ww..............w...............w..............."
-      },
       "12:11": {
-       "moisture": "...............................................................................8.............888............8888...........88888..........888888........88888888.......888888888......8888888888.....88888888888.....88888888888.....88888888888....888888888888",
-       "biome": "............................................................................................................................................................................................................................................................ww.."
+       "moisture": "...............................8..............88.............888.............888.............888............8888...........88888..........888888........88888888.......888888888.......888888888......8888888888......8888888888......8888888888.....88888888888",
+       "biome": ".............................................................................................................................................................................................................................................................w.."
       },
       "13:11": {
-       "moisture": "...8888888888......8888888888....888888888888...888888888888....888888888888....888888888888....88888888888.....8888888888......888888888.......88888888........888888..........88888...........8888............888.............8...............................",
-       "biome": "..............ww..............ww...............w...w...................................................w..............w..............ww.............w..........................................................................................................."
-      },
-      "14:11": {
-       "biome": "w..............................................................................................................................................................................................................................................................."
+       "moisture": "8888............88888...........888888..........8888888.........8888888.........8888888.........8888888.........888888..........888888..........888888..........888888..........88888...........888.............88..............8...............................",
+       "biome": "....................................................w...............www.............wwww............wwww............www.............www.............w..........................................................................................................."
       },
       "12:12": {
-       "moisture": "....88888888888.....8888888888......888888888.......888888888......8888888888......8888888888......8888888888......8888888888......888888888.......888888888.......8888888888......8888888888......8888888888.......888.............888.............888.........",
-       "biome": "...........www..............ww..................................ww..............ww..............w...............................................................w...............www.............wwwww...........wwwwww...........wwwww.............wwww........."
+       "moisture": ".....8888888888......8888888888.....8888888888......8888888888......8888888888.....8888888888......8888888888......8888888888......8888888888......8888888888......8888888888......8888888888......8888888888......8888.............888.............888.........",
+       "biome": "............ww..............ww..................................ww..............ww..............w...............................................................w...............www.............wwwww...........wwwwww...........wwwww.............wwww........."
       },
       "12:13": {
        "biome": "...wwww.............www.............www.............www.............www.........................................................................................................................................................................................",
@@ -7694,6 +8980,20 @@
       "ls-village-clearing-1.house-3": "476104feddc60126",
       "ls-village-clearing-1.house-4": "3e008fed7c42953d",
       "ls-village-clearing-1.house-5": "545e293636ac1fb1",
+      "ls-village-clearing-1.garden-1": "26c3a5adef556dc2",
+      "ls-village-clearing-1.garden-2": "835b91a50e505943",
+      "ls-village-clearing-1.garden-3": "71644e89cea14025",
+      "ls-village-clearing-1.garden-c1": "9428232206913fe4",
+      "ls-village-clearing-1.garden-gate": "1875f6937b71bc2d",
+      "ls-village-clearing-1.garden-5": "bb2c9362e1c215ea",
+      "ls-village-clearing-1.garden-6": "5204f3881ea85708",
+      "ls-village-clearing-1.garden-7": "cdf58d1da39b9342",
+      "ls-village-clearing-1.garden-8": "a1ee349a93258d94",
+      "ls-village-clearing-1.garden-9": "97a21b439d685f60",
+      "ls-village-clearing-1.garden-c2": "dd043b4fdef57abf",
+      "ls-village-clearing-1.garden-10": "913da9b5059d4e58",
+      "ls-village-clearing-1.garden-11": "3ede046960aa19ae",
+      "ls-village-clearing-1.garden-12": "ccb6ff7198149df5",
       "ls-village-clearing-1.windmill": "b2f1829678736bcb",
       "ls-village-clearing-1.hedge-1": "fd6c2d009ae5f5d5",
       "ls-village-clearing-1.hedge-2": "ac23f3b7d95ab99f",
@@ -7754,6 +9054,7 @@
       "ls-village-clearing-1.hedge-58": "2605adc56488f494",
       "ls-village-clearing-1.fence-1": "15af76714ae3834d",
       "ls-village-clearing-1.fence-2": "3a10618fd5743ea6",
+      "ls-village-clearing-1.fence-gate": "78969ab1ce7c75a6",
       "ls-village-clearing-1.fence-4": "298ace075cb5bd8d",
       "ls-village-clearing-1.fence-5": "d48f33c16207b5b9",
       "ls-village-clearing-1.fence-6": "3ffc6b2bad0c1f7a",
@@ -7789,6 +9090,7 @@
       "ls-village-clearing-1.fence-36": "a5bc45684fbeb857",
       "ls-village-clearing-1.fence-37": "2b691c4ff26bcee9",
       "ls-village-clearing-1.fence-38": "7d904896b8d7cb09",
+      "ls-village-clearing-1.fence-c1": "6c224b9017f21761",
       "ls-village-clearing-1.fence-39": "8fd89e49ed954903",
       "ls-village-clearing-1.fence-40": "e3644e579208f2c4",
       "ls-village-clearing-1.fence-41": "426da5dfb61a825d",
@@ -7820,6 +9122,7 @@
       "ls-village-clearing-1.fence-67": "da5f23ae4a30f578",
       "ls-village-clearing-1.fence-68": "9490d11aa73b66d8",
       "ls-village-clearing-1.fence-69": "fca6e22256df06eb",
+      "ls-village-clearing-1.fence-c2": "a0274e380ad245cf",
       "ls-village-clearing-1.fence-70": "4949be6d5e2ce1ac",
       "ls-village-clearing-1.fence-71": "3186ca1e61657455",
       "ls-village-clearing-1.fence-72": "86d0bea39f8cc166",
@@ -7857,7 +9160,39 @@
       "ls-village-clearing-1.fence-104": "7e499e54cd8f0933",
       "ls-village-clearing-1.fence-105": "42b8e59f7acae305",
       "ls-village-clearing-1.fence-106": "b52da594815af766",
-      "ls-village-clearing-1.fence-107": "6777e632f2b787d6"
+      "ls-village-clearing-1.fence-107": "6777e632f2b787d6",
+      "ls-village-clearing-1.fence-c3": "7e21141c3f68bff7",
+      "ls-village-clearing-1.fence-108": "d089608e39625227",
+      "ls-village-clearing-1.fence-109": "f094530056ea3d98",
+      "ls-village-clearing-1.fence-110": "407c066ab537cd28",
+      "ls-village-clearing-1.fence-111": "6db74ac86c617795",
+      "ls-village-clearing-1.fence-112": "1e3239e3d11e5988",
+      "ls-village-clearing-1.fence-113": "b31d1dbac24312d9",
+      "ls-village-clearing-1.fence-114": "6d10153480db24c9",
+      "ls-village-clearing-1.fence-115": "040a916a6f2d4ba1",
+      "ls-village-clearing-1.fence-116": "4127371c575caa88",
+      "ls-village-clearing-1.fence-117": "60fd6cbaf42ca19b",
+      "ls-village-clearing-1.fence-118": "3ff5400566091ddf",
+      "ls-village-clearing-1.fence-119": "c631461b3b1ae879",
+      "ls-village-clearing-1.fence-120": "9d7c93b8ebb9cb07",
+      "ls-village-clearing-1.fence-121": "f8cb587256aa6691",
+      "ls-village-clearing-1.fence-122": "b0b8ee84bc4962f9",
+      "ls-village-clearing-1.fence-123": "7d6a10213a582528",
+      "ls-village-clearing-1.fence-124": "c0e51ed7ba296664",
+      "ls-village-clearing-1.fence-125": "af5698ed1aca1258",
+      "ls-village-clearing-1.fence-126": "e491259310f4eff2",
+      "ls-village-clearing-1.fence-127": "6750baf173458ebf",
+      "ls-village-clearing-1.fence-128": "c1a6cdc301a1ce2c",
+      "ls-village-clearing-1.fence-129": "6c92e08c81efafdf",
+      "ls-village-clearing-1.fence-130": "ae5c4ff675541769",
+      "ls-village-clearing-1.fence-131": "b327e3dc53d2f250",
+      "ls-village-clearing-1.fence-132": "2f477c9e163abb1e",
+      "ls-village-clearing-1.fence-133": "3a48bd2dbb082ef9",
+      "ls-village-clearing-1.fence-134": "8e5836a8a21818d0",
+      "ls-village-clearing-1.fence-135": "370fccbdf9fe7043",
+      "ls-village-clearing-1.fence-136": "6757f59f81c1e842",
+      "ls-village-clearing-1.fence-137": "bf02af0d65a349b7",
+      "ls-village-clearing-1.fence-138": "5707f3975c10cd35"
      },
      "zones": {
       "ls-village-clearing-1.field": "f7a732ade32b751a"
@@ -8051,34 +9386,41 @@
      "entities": {
       "ls-ancient-ruins-1.wall1-1": "2cbad8c506f87a4f",
       "ls-ancient-ruins-1.wall1-2": "9c7ddb68a13f4956",
-      "ls-ancient-ruins-1.wall1-4": "f0b4c83a53812849",
-      "ls-ancient-ruins-1.wall1-7": "87a75d61aaffd204",
+      "ls-ancient-ruins-1.wall1-e3": "b2ebf4d455a6a1ae",
+      "ls-ancient-ruins-1.wall1-c1": "5e6d2e3283dcadc2",
+      "ls-ancient-ruins-1.wall1-e6": "a04dd6f1fbc85dcf",
       "ls-ancient-ruins-1.wall1-8": "ef764f52e18db23a",
+      "ls-ancient-ruins-1.wall1-c2": "ab505ca381cc3579",
       "ls-ancient-ruins-1.wall1-10": "1798871183d56192",
       "ls-ancient-ruins-1.wall1-11": "0fb0973d9190ab14",
-      "ls-ancient-ruins-1.wall1-13": "b38fed1157849e19",
+      "ls-ancient-ruins-1.wall1-e12": "2a4363630dd90850",
       "ls-ancient-ruins-1.wall1-14": "7d335fe59e2f5171",
+      "ls-ancient-ruins-1.wall1-c3": "9c26d2db07996ab0",
       "ls-ancient-ruins-1.wall1-16": "599fc5a3e5cc3e86",
       "ls-ancient-ruins-1.wall1-17": "9f8983bf183fede0",
-      "ls-ancient-ruins-1.wall1-19": "089a67ba31766bbd",
+      "ls-ancient-ruins-1.wall1-e18": "e7dbb5fab3f3c868",
       "ls-ancient-ruins-1.wall2-1": "8d5df6b52732bcf8",
       "ls-ancient-ruins-1.wall2-2": "b95c3db80ba2a191",
       "ls-ancient-ruins-1.wall2-3": "55ed607fac65b713",
+      "ls-ancient-ruins-1.wall2-e4": "0a42bdbc5818a469",
       "ls-ancient-ruins-1.wall2-6": "d5192ae3ed556938",
       "ls-ancient-ruins-1.wall2-7": "6087ee0b1adcd22b",
-      "ls-ancient-ruins-1.wall2-9": "1b4eea1cb92c7795",
+      "ls-ancient-ruins-1.wall2-c1": "76ddd3119e42e855",
+      "ls-ancient-ruins-1.wall2-e8": "294e49af6b4ed1a2",
       "ls-ancient-ruins-1.wall2-10": "dd25f1a3454c8a24",
       "ls-ancient-ruins-1.wall2-11": "d7386989a010554f",
-      "ls-ancient-ruins-1.wall2-13": "5a216d7b1115f3a9",
+      "ls-ancient-ruins-1.wall2-e12": "63a8d4d005f6851b",
       "ls-ancient-ruins-1.wall2-14": "6263821e7a012106",
+      "ls-ancient-ruins-1.wall2-c2": "314bcb3d15abf290",
       "ls-ancient-ruins-1.wall2-15": "8fd02ffa4a36f12d",
-      "ls-ancient-ruins-1.wall2-17": "a84b28fda5a6c024",
+      "ls-ancient-ruins-1.wall2-e16": "519e3806568ab889",
       "ls-ancient-ruins-1.wall2-18": "b80134077c583e65",
       "ls-ancient-ruins-1.wall2-19": "fed58e984f647830",
-      "ls-ancient-ruins-1.wall2-21": "4c744c817c499c07",
+      "ls-ancient-ruins-1.wall2-e20": "cfbaef6249517186",
+      "ls-ancient-ruins-1.wall2-c3": "5189dd00684fb3c7",
       "ls-ancient-ruins-1.wall2-22": "0e0448dd744b6375",
       "ls-ancient-ruins-1.wall2-23": "fe2675aea74f272c",
-      "ls-ancient-ruins-1.wall2-25": "e2d89c4edc9261d1",
+      "ls-ancient-ruins-1.wall2-e24": "831d6f0d77ba8184",
       "ls-ancient-ruins-1.wall2-26": "bdcc68b74b5901d3",
       "ls-ancient-ruins-1.wall2-27": "ced47613cd5739e7",
       "ls-ancient-ruins-1.stone-1": "cc6e3904918761a6",
@@ -8214,6 +9556,30 @@
    "license": "project-original",
    "source": "Little World original (feat/little-world-assets ou catalogue historique) — assets/buildings/approved.json#architecture.wooden_cabin"
   },
+  "structure.fence_picket": {
+   "id": "structure.fence_picket",
+   "name": "Clôture à piquets",
+   "type": "glb",
+   "file": "models/structures/fences/fence_picket/lod0.glb",
+   "license": "project-original",
+   "source": "Little World original (feat/little-world-assets ou catalogue historique) — assets/structures/fences/manifest.json#fence_picket"
+  },
+  "structure.post_square": {
+   "id": "structure.post_square",
+   "name": "Poteau carré partagé",
+   "type": "glb",
+   "file": "models/structures/fences/post_square/lod0.glb",
+   "license": "project-original",
+   "source": "Little World original (feat/little-world-assets ou catalogue historique) — assets/structures/fences/manifest.json#post_square"
+  },
+  "structure.fence_gate": {
+   "id": "structure.fence_gate",
+   "name": "Portillon en bois",
+   "type": "glb",
+   "file": "models/structures/fences/fence_gate/lod0.glb",
+   "license": "project-original",
+   "source": "Little World original (feat/little-world-assets ou catalogue historique) — assets/structures/fences/manifest.json#fence_gate"
+  },
   "architecture.windmill_stone": {
    "id": "architecture.windmill_stone",
    "name": "Moulin à vent en pierre",
@@ -8238,6 +9604,14 @@
    "license": "project-original",
    "source": "Little World original (feat/little-world-assets ou catalogue historique) — assets/structures/fences/manifest.json#fence_pasture"
   },
+  "structure.post_rustic": {
+   "id": "structure.post_rustic",
+   "name": "Poteau rustique partagé",
+   "type": "glb",
+   "file": "models/structures/fences/post_rustic/lod0.glb",
+   "license": "project-original",
+   "source": "Little World original (feat/little-world-assets ou catalogue historique) — assets/structures/fences/manifest.json#post_rustic"
+  },
   "structure.wall_irregular": {
    "id": "structure.wall_irregular",
    "name": "Muret de pierre irrégulier",
@@ -8245,6 +9619,22 @@
    "file": "models/structures/walls/wall_irregular/lod0.glb",
    "license": "project-original",
    "source": "Little World original (feat/little-world-assets ou catalogue historique) — assets/structures/walls/manifest.json#wall_irregular"
+  },
+  "structure.wall_end": {
+   "id": "structure.wall_end",
+   "name": "Muret avec extrémité finie",
+   "type": "glb",
+   "file": "models/structures/walls/wall_end/lod0.glb",
+   "license": "project-original",
+   "source": "Little World original (feat/little-world-assets ou catalogue historique) — assets/structures/walls/manifest.json#wall_end"
+  },
+  "structure.wall_corner": {
+   "id": "structure.wall_corner",
+   "name": "Muret en angle à 90 degrés",
+   "type": "glb",
+   "file": "models/structures/walls/wall_corner/lod0.glb",
+   "license": "project-original",
+   "source": "Little World original (feat/little-world-assets ou catalogue historique) — assets/structures/walls/manifest.json#wall_corner"
   },
   "structure.wall_moss": {
    "id": "structure.wall_moss",
@@ -8277,14 +9667,6 @@
    "file": "models/structures/dock/tile/lod0.glb",
    "license": "project-original",
    "source": "Little World original (feat/little-world-assets ou catalogue historique) — assets/structures/dock/manifest.json#tile"
-  },
-  "structure.post_rustic": {
-   "id": "structure.post_rustic",
-   "name": "Poteau rustique partagé",
-   "type": "glb",
-   "file": "models/structures/fences/post_rustic/lod0.glb",
-   "license": "project-original",
-   "source": "Little World original (feat/little-world-assets ou catalogue historique) — assets/structures/fences/manifest.json#post_rustic"
   },
   "architecture.watermill_log_stone": {
    "id": "architecture.watermill_log_stone",
@@ -8627,9 +10009,9 @@
       }
      }
     },
-    "ls-ancient-ruins-1.wall1-13": {
-     "id": "ls-ancient-ruins-1.wall1-13",
-     "name": "Muret en ruine 1 13",
+    "ls-ancient-ruins-1.wall1-e12": {
+     "id": "ls-ancient-ruins-1.wall1-e12",
+     "name": "Muret en ruine 1 — extrémité 12",
      "kind": "prop",
      "ownerChunkId": "8:12",
      "components": {
@@ -8654,7 +10036,7 @@
       },
       "Visual": {
        "type": "Visual",
-       "assetId": "structure.wall_irregular"
+       "assetId": "structure.wall_end"
       }
      }
     },
@@ -8686,6 +10068,37 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_irregular"
+      }
+     }
+    },
+    "ls-ancient-ruins-1.wall1-c3": {
+     "id": "ls-ancient-ruins-1.wall1-c3",
+     "name": "Muret en ruine 1 (angle 3)",
+     "kind": "prop",
+     "ownerChunkId": "8:12",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": -129.9,
+        "y": 0,
+        "z": 104
+       },
+       "rotation": {
+        "x": 0,
+        "y": 0.5511056167940974,
+        "z": 0,
+        "w": 0.8344354972902324
+       },
+       "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "structure.wall_corner"
       }
      }
     },
@@ -8751,9 +10164,9 @@
       }
      }
     },
-    "ls-ancient-ruins-1.wall1-19": {
-     "id": "ls-ancient-ruins-1.wall1-19",
-     "name": "Muret en ruine 1 19",
+    "ls-ancient-ruins-1.wall1-e18": {
+     "id": "ls-ancient-ruins-1.wall1-e18",
+     "name": "Muret en ruine 1 — extrémité 18",
      "kind": "prop",
      "ownerChunkId": "8:12",
      "components": {
@@ -8778,7 +10191,7 @@
       },
       "Visual": {
        "type": "Visual",
-       "assetId": "structure.wall_irregular"
+       "assetId": "structure.wall_end"
       }
      }
     },
@@ -8813,9 +10226,9 @@
       }
      }
     },
-    "ls-ancient-ruins-1.wall2-21": {
-     "id": "ls-ancient-ruins-1.wall2-21",
-     "name": "Muret en ruine 2 21",
+    "ls-ancient-ruins-1.wall2-e20": {
+     "id": "ls-ancient-ruins-1.wall2-e20",
+     "name": "Muret en ruine 2 — extrémité 20",
      "kind": "prop",
      "ownerChunkId": "8:12",
      "components": {
@@ -8840,7 +10253,38 @@
       },
       "Visual": {
        "type": "Visual",
-       "assetId": "structure.wall_moss"
+       "assetId": "structure.wall_end"
+      }
+     }
+    },
+    "ls-ancient-ruins-1.wall2-c3": {
+     "id": "ls-ancient-ruins-1.wall2-c3",
+     "name": "Muret en ruine 2 (angle 3)",
+     "kind": "prop",
+     "ownerChunkId": "8:12",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": -130.3,
+        "y": 0,
+        "z": 120.8
+       },
+       "rotation": {
+        "x": 0,
+        "y": 0.5528559914641897,
+        "z": 0,
+        "w": 0.8332768163714551
+       },
+       "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "structure.wall_corner"
       }
      }
     },
@@ -8906,9 +10350,9 @@
       }
      }
     },
-    "ls-ancient-ruins-1.wall2-25": {
-     "id": "ls-ancient-ruins-1.wall2-25",
-     "name": "Muret en ruine 2 25",
+    "ls-ancient-ruins-1.wall2-e24": {
+     "id": "ls-ancient-ruins-1.wall2-e24",
+     "name": "Muret en ruine 2 — extrémité 24",
      "kind": "prop",
      "ownerChunkId": "8:12",
      "components": {
@@ -8933,7 +10377,7 @@
       },
       "Visual": {
        "type": "Visual",
-       "assetId": "structure.wall_moss"
+       "assetId": "structure.wall_end"
       }
      }
     },
@@ -9126,16 +10570,18 @@
    },
    "entityIds": [
     "ls-ancient-ruins-1.wall1-1",
-    "ls-ancient-ruins-1.wall1-13",
+    "ls-ancient-ruins-1.wall1-e12",
     "ls-ancient-ruins-1.wall1-14",
+    "ls-ancient-ruins-1.wall1-c3",
     "ls-ancient-ruins-1.wall1-16",
     "ls-ancient-ruins-1.wall1-17",
-    "ls-ancient-ruins-1.wall1-19",
+    "ls-ancient-ruins-1.wall1-e18",
     "ls-ancient-ruins-1.wall2-19",
-    "ls-ancient-ruins-1.wall2-21",
+    "ls-ancient-ruins-1.wall2-e20",
+    "ls-ancient-ruins-1.wall2-c3",
     "ls-ancient-ruins-1.wall2-22",
     "ls-ancient-ruins-1.wall2-23",
-    "ls-ancient-ruins-1.wall2-25",
+    "ls-ancient-ruins-1.wall2-e24",
     "ls-ancient-ruins-1.wall2-26",
     "ls-ancient-ruins-1.wall2-27",
     "ls-ancient-ruins-1.stone-1",
@@ -9196,9 +10642,9 @@
       }
      }
     },
-    "ls-ancient-ruins-1.wall1-4": {
-     "id": "ls-ancient-ruins-1.wall1-4",
-     "name": "Muret en ruine 1 4",
+    "ls-ancient-ruins-1.wall1-e3": {
+     "id": "ls-ancient-ruins-1.wall1-e3",
+     "name": "Muret en ruine 1 — extrémité 3",
      "kind": "prop",
      "ownerChunkId": "9:12",
      "components": {
@@ -9223,13 +10669,44 @@
       },
       "Visual": {
        "type": "Visual",
-       "assetId": "structure.wall_irregular"
+       "assetId": "structure.wall_end"
       }
      }
     },
-    "ls-ancient-ruins-1.wall1-7": {
-     "id": "ls-ancient-ruins-1.wall1-7",
-     "name": "Muret en ruine 1 7",
+    "ls-ancient-ruins-1.wall1-c1": {
+     "id": "ls-ancient-ruins-1.wall1-c1",
+     "name": "Muret en ruine 1 (angle 1)",
+     "kind": "prop",
+     "ownerChunkId": "9:12",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": -116.3,
+        "y": 0,
+        "z": 100.1
+       },
+       "rotation": {
+        "x": 0,
+        "y": -0.8315693064021884,
+        "z": 0,
+        "w": 0.5554210012682121
+       },
+       "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "structure.wall_corner"
+      }
+     }
+    },
+    "ls-ancient-ruins-1.wall1-e6": {
+     "id": "ls-ancient-ruins-1.wall1-e6",
+     "name": "Muret en ruine 1 — extrémité 6",
      "kind": "prop",
      "ownerChunkId": "9:12",
      "components": {
@@ -9254,7 +10731,7 @@
       },
       "Visual": {
        "type": "Visual",
-       "assetId": "structure.wall_irregular"
+       "assetId": "structure.wall_end"
       }
      }
     },
@@ -9286,6 +10763,37 @@
       "Visual": {
        "type": "Visual",
        "assetId": "structure.wall_irregular"
+      }
+     }
+    },
+    "ls-ancient-ruins-1.wall1-c2": {
+     "id": "ls-ancient-ruins-1.wall1-c2",
+     "name": "Muret en ruine 1 (angle 2)",
+     "kind": "prop",
+     "ownerChunkId": "9:12",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": -119.7,
+        "y": 0,
+        "z": 108.3
+       },
+       "rotation": {
+        "x": 0,
+        "y": 0.9801696882154687,
+        "z": 0,
+        "w": 0.1981599916824556
+       },
+       "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "structure.wall_corner"
       }
      }
     },
@@ -9444,6 +10952,37 @@
       }
      }
     },
+    "ls-ancient-ruins-1.wall2-e4": {
+     "id": "ls-ancient-ruins-1.wall2-e4",
+     "name": "Muret en ruine 2 — extrémité 4",
+     "kind": "prop",
+     "ownerChunkId": "9:12",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": -116.2,
+        "y": 0,
+        "z": 111.7
+       },
+       "rotation": {
+        "x": 0,
+        "y": -0.20019583155155643,
+        "z": 0,
+        "w": 0.9797559027785343
+       },
+       "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "structure.wall_end"
+      }
+     }
+    },
     "ls-ancient-ruins-1.wall2-6": {
      "id": "ls-ancient-ruins-1.wall2-6",
      "name": "Muret en ruine 2 6",
@@ -9506,9 +11045,40 @@
       }
      }
     },
-    "ls-ancient-ruins-1.wall2-9": {
-     "id": "ls-ancient-ruins-1.wall2-9",
-     "name": "Muret en ruine 2 9",
+    "ls-ancient-ruins-1.wall2-c1": {
+     "id": "ls-ancient-ruins-1.wall2-c1",
+     "name": "Muret en ruine 2 (angle 1)",
+     "kind": "prop",
+     "ownerChunkId": "9:12",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": -111.3,
+        "y": 0,
+        "z": 113.8
+       },
+       "rotation": {
+        "x": 0,
+        "y": -0.8332768163714551,
+        "z": 0,
+        "w": 0.5528559914641897
+       },
+       "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "structure.wall_corner"
+      }
+     }
+    },
+    "ls-ancient-ruins-1.wall2-e8": {
+     "id": "ls-ancient-ruins-1.wall2-e8",
+     "name": "Muret en ruine 2 — extrémité 8",
      "kind": "prop",
      "ownerChunkId": "9:12",
      "components": {
@@ -9533,7 +11103,7 @@
       },
       "Visual": {
        "type": "Visual",
-       "assetId": "structure.wall_moss"
+       "assetId": "structure.wall_end"
       }
      }
     },
@@ -9599,9 +11169,9 @@
       }
      }
     },
-    "ls-ancient-ruins-1.wall2-13": {
-     "id": "ls-ancient-ruins-1.wall2-13",
-     "name": "Muret en ruine 2 13",
+    "ls-ancient-ruins-1.wall2-e12": {
+     "id": "ls-ancient-ruins-1.wall2-e12",
+     "name": "Muret en ruine 2 — extrémité 12",
      "kind": "prop",
      "ownerChunkId": "9:12",
      "components": {
@@ -9626,7 +11196,7 @@
       },
       "Visual": {
        "type": "Visual",
-       "assetId": "structure.wall_moss"
+       "assetId": "structure.wall_end"
       }
      }
     },
@@ -9661,6 +11231,37 @@
       }
      }
     },
+    "ls-ancient-ruins-1.wall2-c2": {
+     "id": "ls-ancient-ruins-1.wall2-c2",
+     "name": "Muret en ruine 2 (angle 2)",
+     "kind": "prop",
+     "ownerChunkId": "9:12",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": -116.7,
+        "y": 0,
+        "z": 126.6
+       },
+       "rotation": {
+        "x": 0,
+        "y": 0.9797559027785343,
+        "z": 0,
+        "w": 0.2001958315515564
+       },
+       "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "structure.wall_corner"
+      }
+     }
+    },
     "ls-ancient-ruins-1.wall2-15": {
      "id": "ls-ancient-ruins-1.wall2-15",
      "name": "Muret en ruine 2 15",
@@ -9692,9 +11293,9 @@
       }
      }
     },
-    "ls-ancient-ruins-1.wall2-17": {
-     "id": "ls-ancient-ruins-1.wall2-17",
-     "name": "Muret en ruine 2 17",
+    "ls-ancient-ruins-1.wall2-e16": {
+     "id": "ls-ancient-ruins-1.wall2-e16",
+     "name": "Muret en ruine 2 — extrémité 16",
      "kind": "prop",
      "ownerChunkId": "9:12",
      "components": {
@@ -9719,7 +11320,7 @@
       },
       "Visual": {
        "type": "Visual",
-       "assetId": "structure.wall_moss"
+       "assetId": "structure.wall_end"
       }
      }
     },
@@ -9819,23 +11420,28 @@
    },
    "entityIds": [
     "ls-ancient-ruins-1.wall1-2",
-    "ls-ancient-ruins-1.wall1-4",
-    "ls-ancient-ruins-1.wall1-7",
+    "ls-ancient-ruins-1.wall1-e3",
+    "ls-ancient-ruins-1.wall1-c1",
+    "ls-ancient-ruins-1.wall1-e6",
     "ls-ancient-ruins-1.wall1-8",
+    "ls-ancient-ruins-1.wall1-c2",
     "ls-ancient-ruins-1.wall1-10",
     "ls-ancient-ruins-1.wall1-11",
     "ls-ancient-ruins-1.wall2-1",
     "ls-ancient-ruins-1.wall2-2",
     "ls-ancient-ruins-1.wall2-3",
+    "ls-ancient-ruins-1.wall2-e4",
     "ls-ancient-ruins-1.wall2-6",
     "ls-ancient-ruins-1.wall2-7",
-    "ls-ancient-ruins-1.wall2-9",
+    "ls-ancient-ruins-1.wall2-c1",
+    "ls-ancient-ruins-1.wall2-e8",
     "ls-ancient-ruins-1.wall2-10",
     "ls-ancient-ruins-1.wall2-11",
-    "ls-ancient-ruins-1.wall2-13",
+    "ls-ancient-ruins-1.wall2-e12",
     "ls-ancient-ruins-1.wall2-14",
+    "ls-ancient-ruins-1.wall2-c2",
     "ls-ancient-ruins-1.wall2-15",
-    "ls-ancient-ruins-1.wall2-17",
+    "ls-ancient-ruins-1.wall2-e16",
     "ls-ancient-ruins-1.wall2-18",
     "ls-ancient-ruins-1.stone-4",
     "ls-ancient-ruins-1.stone-5"
@@ -10755,14 +12361,15 @@
    "biomeEdits": [],
    "biomeRefs": [],
    "waterRefs": [
+    "ls-waterfall-gorge-1.falls-river",
     "ls-river-bend-1.river"
    ],
    "pathRefs": [
     "ref-path-mine"
    ],
    "layers": {
-    "moisture": "....88888888888.....8888888888......888888888.......888888888......8888888888......8888888888......8888888888......8888888888......888888888.......888888888.......8888888888......8888888888......8888888888.......888888888888....888888888888....888888888888",
-    "biome": "...........www..............ww..................................ww..............ww..............w...............................................................w...............www.............wwwww...........wwwwww...........wwwww.............wwww........."
+    "moisture": ".....8888888888......8888888888.....8888888888......8888888888......8888888888.....8888888888......8888888888......8888888888......8888888888......8888888888......8888888888......8888888888......8888888888......8888888888888....888888888888....888888888888",
+    "biome": "............ww..............ww..................................ww..............ww..............w...............................................................w...............www.............wwwww...........wwwwww...........wwwww.............wwww........."
    }
   },
   "13:12": {
@@ -10779,13 +12386,202 @@
    "terrainRefs": [],
    "biomeEdits": [],
    "biomeRefs": [],
-   "waterRefs": [],
+   "waterRefs": [
+    "ls-waterfall-gorge-1.falls-river"
+   ],
    "pathRefs": [
     "ref-path-mine"
    ],
    "layers": {
     "moisture": "................................................................................................................................................................................................................8888888888888...8888888888888...8888888888888..."
    }
+  },
+  "13:11": {
+   "schemaVersion": 3,
+   "chunkId": "13:11",
+   "index": {
+    "cx": 13,
+    "cz": 11
+   },
+   "revision": 0,
+   "entities": {
+    "ls-river-bend-1.bridge": {
+     "id": "ls-river-bend-1.bridge",
+     "name": "Pont du méandre",
+     "kind": "prop",
+     "ownerChunkId": "13:11",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": 139.2,
+        "y": 0,
+        "z": 29.4
+       },
+       "rotation": {
+        "x": 0,
+        "y": -0.0749907779748304,
+        "z": 0,
+        "w": 0.9971842273214763
+       },
+       "scale": {
+        "x": 1.084,
+        "y": 1,
+        "z": 1
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "structure.bridge_stone"
+      }
+     }
+    }
+   },
+   "entityIds": [
+    "ls-river-bend-1.bridge"
+   ],
+   "terrainEdits": [],
+   "terrainRefs": [],
+   "biomeEdits": [],
+   "biomeRefs": [],
+   "waterRefs": [
+    "ls-waterfall-gorge-1.falls-river",
+    "ls-river-bend-1.river"
+   ],
+   "pathRefs": [
+    "ref-path-mine"
+   ],
+   "layers": {
+    "moisture": "8888............88888...........888888..........8888888.........8888888.........8888888.........8888888.........888888..........888888..........888888..........888888..........88888...........888.............88..............8...............................",
+    "biome": "....................................................w...............www.............wwww............wwww............www.............www.............w..........................................................................................................."
+   }
+  },
+  "12:11": {
+   "schemaVersion": 3,
+   "chunkId": "12:11",
+   "index": {
+    "cx": 12,
+    "cz": 11
+   },
+   "revision": 0,
+   "entities": {},
+   "entityIds": [],
+   "terrainEdits": [],
+   "terrainRefs": [],
+   "biomeEdits": [],
+   "biomeRefs": [],
+   "waterRefs": [
+    "ls-waterfall-gorge-1.falls-river",
+    "ls-river-bend-1.river"
+   ],
+   "pathRefs": [
+    "ref-path-mine"
+   ],
+   "layers": {
+    "moisture": "...............................8..............88.............888.............888.............888............8888...........88888..........888888........88888888.......888888888.......888888888......8888888888......8888888888......8888888888.....88888888888",
+    "biome": ".............................................................................................................................................................................................................................................................w.."
+   }
+  },
+  "12:10": {
+   "schemaVersion": 3,
+   "chunkId": "12:10",
+   "index": {
+    "cx": 12,
+    "cz": 10
+   },
+   "revision": 0,
+   "entities": {},
+   "entityIds": [],
+   "terrainEdits": [],
+   "terrainRefs": [],
+   "biomeEdits": [],
+   "biomeRefs": [],
+   "waterRefs": [
+    "ls-waterfall-gorge-1.falls-river"
+   ],
+   "pathRefs": [
+    "ref-path-mine"
+   ]
+  },
+  "13:10": {
+   "schemaVersion": 3,
+   "chunkId": "13:10",
+   "index": {
+    "cx": 13,
+    "cz": 10
+   },
+   "revision": 0,
+   "entities": {},
+   "entityIds": [],
+   "terrainEdits": [],
+   "terrainRefs": [],
+   "biomeEdits": [],
+   "biomeRefs": [],
+   "waterRefs": [
+    "ls-waterfall-gorge-1.falls-river"
+   ],
+   "pathRefs": []
+  },
+  "12:9": {
+   "schemaVersion": 3,
+   "chunkId": "12:9",
+   "index": {
+    "cx": 12,
+    "cz": 9
+   },
+   "revision": 0,
+   "entities": {},
+   "entityIds": [],
+   "terrainEdits": [],
+   "terrainRefs": [],
+   "biomeEdits": [],
+   "biomeRefs": [],
+   "waterRefs": [
+    "ls-waterfall-gorge-1.falls-river"
+   ],
+   "pathRefs": []
+  },
+  "11:9": {
+   "schemaVersion": 3,
+   "chunkId": "11:9",
+   "index": {
+    "cx": 11,
+    "cz": 9
+   },
+   "revision": 0,
+   "entities": {},
+   "entityIds": [],
+   "terrainEdits": [],
+   "terrainRefs": [],
+   "biomeEdits": [],
+   "biomeRefs": [],
+   "waterRefs": [
+    "ls-waterfall-gorge-1.falls-river"
+   ],
+   "pathRefs": [
+    "ref-path-mine"
+   ]
+  },
+  "11:10": {
+   "schemaVersion": 3,
+   "chunkId": "11:10",
+   "index": {
+    "cx": 11,
+    "cz": 10
+   },
+   "revision": 0,
+   "entities": {},
+   "entityIds": [],
+   "terrainEdits": [],
+   "terrainRefs": [],
+   "biomeEdits": [],
+   "biomeRefs": [],
+   "waterRefs": [
+    "ls-waterfall-gorge-1.falls-river"
+   ],
+   "pathRefs": [
+    "ref-path-mine"
+   ]
   },
   "12:18": {
    "schemaVersion": 3,
@@ -10825,229 +12621,6 @@
    "pathRefs": [],
    "layers": {
     "moisture": "8888888888888...8888888888888...8888888888888...8888888888888...8888888888888...8888888888888...8888888888888..................................................................................................................................................."
-   }
-  },
-  "12:11": {
-   "schemaVersion": 3,
-   "chunkId": "12:11",
-   "index": {
-    "cx": 12,
-    "cz": 11
-   },
-   "revision": 0,
-   "entities": {},
-   "entityIds": [],
-   "terrainEdits": [],
-   "terrainRefs": [],
-   "biomeEdits": [],
-   "biomeRefs": [],
-   "waterRefs": [
-    "ls-river-bend-1.river"
-   ],
-   "pathRefs": [
-    "ref-path-mine"
-   ],
-   "layers": {
-    "moisture": "...............................................................................8.............888............8888...........88888..........888888........88888888.......888888888......8888888888.....88888888888.....88888888888.....88888888888....888888888888",
-    "biome": "............................................................................................................................................................................................................................................................ww.."
-   }
-  },
-  "13:11": {
-   "schemaVersion": 3,
-   "chunkId": "13:11",
-   "index": {
-    "cx": 13,
-    "cz": 11
-   },
-   "revision": 0,
-   "entities": {
-    "ls-river-bend-1.bridge": {
-     "id": "ls-river-bend-1.bridge",
-     "name": "Pont du méandre",
-     "kind": "prop",
-     "ownerChunkId": "13:11",
-     "components": {
-      "Transform": {
-       "type": "Transform",
-       "position": {
-        "x": 132.6,
-        "y": 3.6,
-        "z": 41.7
-       },
-       "rotation": {
-        "x": 0,
-        "y": 0.8996050166147971,
-        "z": 0,
-        "w": 0.43670449285700125
-       },
-       "scale": {
-        "x": 1.084,
-        "y": 1,
-        "z": 1
-       }
-      },
-      "Visual": {
-       "type": "Visual",
-       "assetId": "structure.bridge_stone"
-      }
-     }
-    }
-   },
-   "entityIds": [
-    "ls-river-bend-1.bridge"
-   ],
-   "terrainEdits": [],
-   "terrainRefs": [],
-   "biomeEdits": [],
-   "biomeRefs": [],
-   "waterRefs": [
-    "ls-river-bend-1.river"
-   ],
-   "pathRefs": [
-    "ref-path-mine"
-   ],
-   "layers": {
-    "moisture": "...8888888888......8888888888....888888888888...888888888888....888888888888....888888888888....88888888888.....8888888888......888888888.......88888888........888888..........88888...........8888............888.............8...............................",
-    "biome": "..............ww..............ww...............w...w...................................................w..............w..............ww.............w..........................................................................................................."
-   }
-  },
-  "13:10": {
-   "schemaVersion": 3,
-   "chunkId": "13:10",
-   "index": {
-    "cx": 13,
-    "cz": 10
-   },
-   "revision": 0,
-   "entities": {},
-   "entityIds": [],
-   "terrainEdits": [],
-   "terrainRefs": [],
-   "biomeEdits": [],
-   "biomeRefs": [],
-   "waterRefs": [
-    "ls-river-bend-1.river"
-   ],
-   "pathRefs": [],
-   "layers": {
-    "moisture": "......8888888888......8888888888......8888888888......8888888888......8888888888......8888888888......8888888888......8888888888......8888888888......8888888888.....88888888888.....8888888888......8888888888.....88888888888.....8888888888......8888888888..",
-    "biome": "........w..........w....w..........wwwwww..........wwwww...........wwwww.......................................................................................................................................................w..............ww..............ww"
-   }
-  },
-  "13:9": {
-   "schemaVersion": 3,
-   "chunkId": "13:9",
-   "index": {
-    "cx": 13,
-    "cz": 9
-   },
-   "revision": 0,
-   "entities": {},
-   "entityIds": [],
-   "terrainEdits": [],
-   "terrainRefs": [],
-   "biomeEdits": [],
-   "biomeRefs": [],
-   "waterRefs": [
-    "ls-river-bend-1.river"
-   ],
-   "pathRefs": [],
-   "layers": {
-    "moisture": "................................................8888888888......88888888888.....88888888888......88888888888.....88888888888......88888888888.....88888888888......88888888888......88888888888.....88888888888......88888888888.....88888888888......8888888888",
-    "biome": "...........................................................................w..............www.............wwww............wwww............wwww.............www.............www..............www.............www..............w...............w...............w.."
-   }
-  },
-  "13:8": {
-   "schemaVersion": 3,
-   "chunkId": "13:8",
-   "index": {
-    "cx": 13,
-    "cz": 8
-   },
-   "revision": 0,
-   "entities": {},
-   "entityIds": [],
-   "terrainEdits": [],
-   "terrainRefs": [],
-   "biomeEdits": [],
-   "biomeRefs": [],
-   "waterRefs": [
-    "ls-river-bend-1.river"
-   ],
-   "pathRefs": []
-  },
-  "14:10": {
-   "schemaVersion": 3,
-   "chunkId": "14:10",
-   "index": {
-    "cx": 14,
-    "cz": 10
-   },
-   "revision": 0,
-   "entities": {
-    "ref-watermill": {
-     "id": "ref-watermill",
-     "name": "Moulin à eau",
-     "kind": "building",
-     "ownerChunkId": "14:10",
-     "components": {
-      "Transform": {
-       "type": "Transform",
-       "position": {
-        "x": 205,
-        "y": 0,
-        "z": -20
-       },
-       "rotation": {
-        "x": 0,
-        "y": -0.5646424733950354,
-        "z": 0,
-        "w": 0.8253356149096783
-       },
-       "scale": {
-        "x": 1,
-        "y": 1,
-        "z": 1
-       }
-      },
-      "Visual": {
-       "type": "Visual",
-       "assetId": "architecture.watermill_log_stone"
-      }
-     }
-    }
-   },
-   "entityIds": [
-    "ref-watermill"
-   ],
-   "terrainEdits": [],
-   "terrainRefs": [],
-   "biomeEdits": [],
-   "biomeRefs": [],
-   "waterRefs": [],
-   "pathRefs": [],
-   "layers": {
-    "biome": ".................................................................................................................................................................................w..............ww..............ww..............w...............w..............."
-   }
-  },
-  "14:11": {
-   "schemaVersion": 3,
-   "chunkId": "14:11",
-   "index": {
-    "cx": 14,
-    "cz": 11
-   },
-   "revision": 0,
-   "entities": {},
-   "entityIds": [],
-   "terrainEdits": [],
-   "terrainRefs": [],
-   "biomeEdits": [],
-   "biomeRefs": [],
-   "waterRefs": [],
-   "pathRefs": [],
-   "layers": {
-    "biome": "w..............................................................................................................................................................................................................................................................."
    }
   },
   "6:3": {
@@ -11438,6 +13011,440 @@
       }
      }
     },
+    "ls-village-clearing-1.garden-1": {
+     "id": "ls-village-clearing-1.garden-1",
+     "name": "Jardin 1",
+     "kind": "prop",
+     "ownerChunkId": "9:8",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": -75.8,
+        "y": 0,
+        "z": -132.1
+       },
+       "rotation": {
+        "x": 0,
+        "y": 0.612216129333213,
+        "z": 0,
+        "w": 0.7906904647105962
+       },
+       "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "structure.fence_picket"
+      }
+     }
+    },
+    "ls-village-clearing-1.garden-2": {
+     "id": "ls-village-clearing-1.garden-2",
+     "name": "Jardin 2",
+     "kind": "prop",
+     "ownerChunkId": "9:8",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": -75.3,
+        "y": 0,
+        "z": -134
+       },
+       "rotation": {
+        "x": 0,
+        "y": 0.612216129333213,
+        "z": 0,
+        "w": 0.7906904647105962
+       },
+       "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "structure.fence_picket"
+      }
+     }
+    },
+    "ls-village-clearing-1.garden-3": {
+     "id": "ls-village-clearing-1.garden-3",
+     "name": "Jardin 3",
+     "kind": "prop",
+     "ownerChunkId": "9:8",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": -74.8,
+        "y": 0,
+        "z": -135.9
+       },
+       "rotation": {
+        "x": 0,
+        "y": 0.612216129333213,
+        "z": 0,
+        "w": 0.7906904647105962
+       },
+       "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "structure.fence_picket"
+      }
+     }
+    },
+    "ls-village-clearing-1.garden-c1": {
+     "id": "ls-village-clearing-1.garden-c1",
+     "name": "Jardin (angle 1)",
+     "kind": "prop",
+     "ownerChunkId": "9:8",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": -74.6,
+        "y": 0,
+        "z": -136.9
+       },
+       "rotation": {
+        "x": 0,
+        "y": -0.12218326369570474,
+        "z": 0,
+        "w": 0.992507556682903
+       },
+       "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "structure.post_square"
+      }
+     }
+    },
+    "ls-village-clearing-1.garden-gate": {
+     "id": "ls-village-clearing-1.garden-gate",
+     "name": "Jardin — portillon",
+     "kind": "prop",
+     "ownerChunkId": "9:8",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": -73.6,
+        "y": 0,
+        "z": -136.7
+       },
+       "rotation": {
+        "x": 0,
+        "y": -0.12218326369570474,
+        "z": 0,
+        "w": 0.992507556682903
+       },
+       "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "structure.fence_gate"
+      }
+     }
+    },
+    "ls-village-clearing-1.garden-5": {
+     "id": "ls-village-clearing-1.garden-5",
+     "name": "Jardin 5",
+     "kind": "prop",
+     "ownerChunkId": "9:8",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": -71.7,
+        "y": 0,
+        "z": -136.2
+       },
+       "rotation": {
+        "x": 0,
+        "y": -0.12218326369570474,
+        "z": 0,
+        "w": 0.992507556682903
+       },
+       "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "structure.fence_picket"
+      }
+     }
+    },
+    "ls-village-clearing-1.garden-6": {
+     "id": "ls-village-clearing-1.garden-6",
+     "name": "Jardin 6",
+     "kind": "prop",
+     "ownerChunkId": "9:8",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": -69.8,
+        "y": 0,
+        "z": -135.7
+       },
+       "rotation": {
+        "x": 0,
+        "y": -0.12218326369570474,
+        "z": 0,
+        "w": 0.992507556682903
+       },
+       "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "structure.fence_picket"
+      }
+     }
+    },
+    "ls-village-clearing-1.garden-7": {
+     "id": "ls-village-clearing-1.garden-7",
+     "name": "Jardin 7",
+     "kind": "prop",
+     "ownerChunkId": "9:8",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": -67.8,
+        "y": 0,
+        "z": -135.2
+       },
+       "rotation": {
+        "x": 0,
+        "y": -0.12218326369570474,
+        "z": 0,
+        "w": 0.992507556682903
+       },
+       "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "structure.fence_picket"
+      }
+     }
+    },
+    "ls-village-clearing-1.garden-8": {
+     "id": "ls-village-clearing-1.garden-8",
+     "name": "Jardin 8",
+     "kind": "prop",
+     "ownerChunkId": "9:8",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": -65.9,
+        "y": 0,
+        "z": -134.7
+       },
+       "rotation": {
+        "x": 0,
+        "y": -0.12218326369570474,
+        "z": 0,
+        "w": 0.992507556682903
+       },
+       "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "structure.fence_picket"
+      }
+     }
+    },
+    "ls-village-clearing-1.garden-9": {
+     "id": "ls-village-clearing-1.garden-9",
+     "name": "Jardin 9",
+     "kind": "prop",
+     "ownerChunkId": "9:8",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": -64,
+        "y": 0,
+        "z": -134.2
+       },
+       "rotation": {
+        "x": 0,
+        "y": -0.12218326369570474,
+        "z": 0,
+        "w": 0.992507556682903
+       },
+       "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "structure.fence_picket"
+      }
+     }
+    },
+    "ls-village-clearing-1.garden-c2": {
+     "id": "ls-village-clearing-1.garden-c2",
+     "name": "Jardin (angle 2)",
+     "kind": "prop",
+     "ownerChunkId": "9:8",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": -63,
+        "y": 0,
+        "z": -134
+       },
+       "rotation": {
+        "x": 0,
+        "y": -0.7906904647105962,
+        "z": 0,
+        "w": 0.612216129333213
+       },
+       "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "structure.post_square"
+      }
+     }
+    },
+    "ls-village-clearing-1.garden-10": {
+     "id": "ls-village-clearing-1.garden-10",
+     "name": "Jardin 10",
+     "kind": "prop",
+     "ownerChunkId": "9:8",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": -63.2,
+        "y": 0,
+        "z": -133
+       },
+       "rotation": {
+        "x": 0,
+        "y": -0.7906904647105962,
+        "z": 0,
+        "w": 0.612216129333213
+       },
+       "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "structure.fence_picket"
+      }
+     }
+    },
+    "ls-village-clearing-1.garden-11": {
+     "id": "ls-village-clearing-1.garden-11",
+     "name": "Jardin 11",
+     "kind": "prop",
+     "ownerChunkId": "9:8",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": -63.7,
+        "y": 0,
+        "z": -131.1
+       },
+       "rotation": {
+        "x": 0,
+        "y": -0.7906904647105962,
+        "z": 0,
+        "w": 0.612216129333213
+       },
+       "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "structure.fence_picket"
+      }
+     }
+    },
+    "ls-village-clearing-1.garden-12": {
+     "id": "ls-village-clearing-1.garden-12",
+     "name": "Jardin 12",
+     "kind": "prop",
+     "ownerChunkId": "9:8",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": -64.2,
+        "y": 0,
+        "z": -129.2
+       },
+       "rotation": {
+        "x": 0,
+        "y": -0.7906904647105962,
+        "z": 0,
+        "w": 0.612216129333213
+       },
+       "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "structure.fence_picket"
+      }
+     }
+    },
     "ls-village-clearing-1.hedge-25": {
      "id": "ls-village-clearing-1.hedge-25",
      "name": "Haie du verger 25",
@@ -11782,6 +13789,20 @@
    },
    "entityIds": [
     "ls-village-clearing-1.house-1",
+    "ls-village-clearing-1.garden-1",
+    "ls-village-clearing-1.garden-2",
+    "ls-village-clearing-1.garden-3",
+    "ls-village-clearing-1.garden-c1",
+    "ls-village-clearing-1.garden-gate",
+    "ls-village-clearing-1.garden-5",
+    "ls-village-clearing-1.garden-6",
+    "ls-village-clearing-1.garden-7",
+    "ls-village-clearing-1.garden-8",
+    "ls-village-clearing-1.garden-9",
+    "ls-village-clearing-1.garden-c2",
+    "ls-village-clearing-1.garden-10",
+    "ls-village-clearing-1.garden-11",
+    "ls-village-clearing-1.garden-12",
     "ls-village-clearing-1.hedge-25",
     "ls-village-clearing-1.hedge-26",
     "ls-village-clearing-1.hedge-27",
@@ -12380,6 +14401,812 @@
        "assetId": "structure.fence_pasture"
       }
      }
+    },
+    "ls-village-clearing-1.fence-c3": {
+     "id": "ls-village-clearing-1.fence-c3",
+     "name": "Clôture du champ (angle 3)",
+     "kind": "prop",
+     "ownerChunkId": "10:8",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": -25.6,
+        "y": 0,
+        "z": -139.2
+       },
+       "rotation": {
+        "x": 0,
+        "y": 0.7071067811865475,
+        "z": 0,
+        "w": 0.7071067811865476
+       },
+       "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "structure.post_rustic"
+      }
+     }
+    },
+    "ls-village-clearing-1.fence-108": {
+     "id": "ls-village-clearing-1.fence-108",
+     "name": "Clôture du champ 108",
+     "kind": "prop",
+     "ownerChunkId": "10:8",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": -25.6,
+        "y": 0,
+        "z": -140.2
+       },
+       "rotation": {
+        "x": 0,
+        "y": 0.7071067811865475,
+        "z": 0,
+        "w": 0.7071067811865476
+       },
+       "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "structure.fence_pasture"
+      }
+     }
+    },
+    "ls-village-clearing-1.fence-109": {
+     "id": "ls-village-clearing-1.fence-109",
+     "name": "Clôture du champ 109",
+     "kind": "prop",
+     "ownerChunkId": "10:8",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": -25.6,
+        "y": 0,
+        "z": -142.2
+       },
+       "rotation": {
+        "x": 0,
+        "y": 0.7071067811865475,
+        "z": 0,
+        "w": 0.7071067811865476
+       },
+       "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "structure.fence_pasture"
+      }
+     }
+    },
+    "ls-village-clearing-1.fence-110": {
+     "id": "ls-village-clearing-1.fence-110",
+     "name": "Clôture du champ 110",
+     "kind": "prop",
+     "ownerChunkId": "10:8",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": -25.6,
+        "y": 0,
+        "z": -144.2
+       },
+       "rotation": {
+        "x": 0,
+        "y": 0.7071067811865475,
+        "z": 0,
+        "w": 0.7071067811865476
+       },
+       "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "structure.fence_pasture"
+      }
+     }
+    },
+    "ls-village-clearing-1.fence-111": {
+     "id": "ls-village-clearing-1.fence-111",
+     "name": "Clôture du champ 111",
+     "kind": "prop",
+     "ownerChunkId": "10:8",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": -25.6,
+        "y": 0,
+        "z": -146.2
+       },
+       "rotation": {
+        "x": 0,
+        "y": 0.7071067811865475,
+        "z": 0,
+        "w": 0.7071067811865476
+       },
+       "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "structure.fence_pasture"
+      }
+     }
+    },
+    "ls-village-clearing-1.fence-112": {
+     "id": "ls-village-clearing-1.fence-112",
+     "name": "Clôture du champ 112",
+     "kind": "prop",
+     "ownerChunkId": "10:8",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": -25.6,
+        "y": 0,
+        "z": -148.1
+       },
+       "rotation": {
+        "x": 0,
+        "y": 0.7071067811865475,
+        "z": 0,
+        "w": 0.7071067811865476
+       },
+       "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "structure.fence_pasture"
+      }
+     }
+    },
+    "ls-village-clearing-1.fence-113": {
+     "id": "ls-village-clearing-1.fence-113",
+     "name": "Clôture du champ 113",
+     "kind": "prop",
+     "ownerChunkId": "10:8",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": -25.6,
+        "y": 0,
+        "z": -150.1
+       },
+       "rotation": {
+        "x": 0,
+        "y": 0.7071067811865475,
+        "z": 0,
+        "w": 0.7071067811865476
+       },
+       "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "structure.fence_pasture"
+      }
+     }
+    },
+    "ls-village-clearing-1.fence-114": {
+     "id": "ls-village-clearing-1.fence-114",
+     "name": "Clôture du champ 114",
+     "kind": "prop",
+     "ownerChunkId": "10:8",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": -25.6,
+        "y": 0,
+        "z": -152.1
+       },
+       "rotation": {
+        "x": 0,
+        "y": 0.7071067811865475,
+        "z": 0,
+        "w": 0.7071067811865476
+       },
+       "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "structure.fence_pasture"
+      }
+     }
+    },
+    "ls-village-clearing-1.fence-115": {
+     "id": "ls-village-clearing-1.fence-115",
+     "name": "Clôture du champ 115",
+     "kind": "prop",
+     "ownerChunkId": "10:8",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": -25.6,
+        "y": 0,
+        "z": -154.1
+       },
+       "rotation": {
+        "x": 0,
+        "y": 0.7071067811865475,
+        "z": 0,
+        "w": 0.7071067811865476
+       },
+       "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "structure.fence_pasture"
+      }
+     }
+    },
+    "ls-village-clearing-1.fence-116": {
+     "id": "ls-village-clearing-1.fence-116",
+     "name": "Clôture du champ 116",
+     "kind": "prop",
+     "ownerChunkId": "10:8",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": -25.6,
+        "y": 0,
+        "z": -156.1
+       },
+       "rotation": {
+        "x": 0,
+        "y": 0.7071067811865475,
+        "z": 0,
+        "w": 0.7071067811865476
+       },
+       "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "structure.fence_pasture"
+      }
+     }
+    },
+    "ls-village-clearing-1.fence-117": {
+     "id": "ls-village-clearing-1.fence-117",
+     "name": "Clôture du champ 117",
+     "kind": "prop",
+     "ownerChunkId": "10:8",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": -25.6,
+        "y": 0,
+        "z": -158.1
+       },
+       "rotation": {
+        "x": 0,
+        "y": 0.7071067811865475,
+        "z": 0,
+        "w": 0.7071067811865476
+       },
+       "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "structure.fence_pasture"
+      }
+     }
+    },
+    "ls-village-clearing-1.fence-118": {
+     "id": "ls-village-clearing-1.fence-118",
+     "name": "Clôture du champ 118",
+     "kind": "prop",
+     "ownerChunkId": "10:8",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": -25.6,
+        "y": 0,
+        "z": -160.1
+       },
+       "rotation": {
+        "x": 0,
+        "y": 0.7071067811865475,
+        "z": 0,
+        "w": 0.7071067811865476
+       },
+       "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "structure.fence_pasture"
+      }
+     }
+    },
+    "ls-village-clearing-1.fence-119": {
+     "id": "ls-village-clearing-1.fence-119",
+     "name": "Clôture du champ 119",
+     "kind": "prop",
+     "ownerChunkId": "10:8",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": -25.6,
+        "y": 0,
+        "z": -162.1
+       },
+       "rotation": {
+        "x": 0,
+        "y": 0.7071067811865475,
+        "z": 0,
+        "w": 0.7071067811865476
+       },
+       "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "structure.fence_pasture"
+      }
+     }
+    },
+    "ls-village-clearing-1.fence-120": {
+     "id": "ls-village-clearing-1.fence-120",
+     "name": "Clôture du champ 120",
+     "kind": "prop",
+     "ownerChunkId": "10:8",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": -25.6,
+        "y": 0,
+        "z": -164
+       },
+       "rotation": {
+        "x": 0,
+        "y": 0.7071067811865475,
+        "z": 0,
+        "w": 0.7071067811865476
+       },
+       "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "structure.fence_pasture"
+      }
+     }
+    },
+    "ls-village-clearing-1.fence-121": {
+     "id": "ls-village-clearing-1.fence-121",
+     "name": "Clôture du champ 121",
+     "kind": "prop",
+     "ownerChunkId": "10:8",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": -25.6,
+        "y": 0,
+        "z": -166
+       },
+       "rotation": {
+        "x": 0,
+        "y": 0.7071067811865475,
+        "z": 0,
+        "w": 0.7071067811865476
+       },
+       "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "structure.fence_pasture"
+      }
+     }
+    },
+    "ls-village-clearing-1.fence-122": {
+     "id": "ls-village-clearing-1.fence-122",
+     "name": "Clôture du champ 122",
+     "kind": "prop",
+     "ownerChunkId": "10:8",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": -25.6,
+        "y": 0,
+        "z": -168
+       },
+       "rotation": {
+        "x": 0,
+        "y": 0.7071067811865475,
+        "z": 0,
+        "w": 0.7071067811865476
+       },
+       "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "structure.fence_pasture"
+      }
+     }
+    },
+    "ls-village-clearing-1.fence-123": {
+     "id": "ls-village-clearing-1.fence-123",
+     "name": "Clôture du champ 123",
+     "kind": "prop",
+     "ownerChunkId": "10:8",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": -25.6,
+        "y": 0,
+        "z": -170
+       },
+       "rotation": {
+        "x": 0,
+        "y": 0.7071067811865475,
+        "z": 0,
+        "w": 0.7071067811865476
+       },
+       "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "structure.fence_pasture"
+      }
+     }
+    },
+    "ls-village-clearing-1.fence-124": {
+     "id": "ls-village-clearing-1.fence-124",
+     "name": "Clôture du champ 124",
+     "kind": "prop",
+     "ownerChunkId": "10:8",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": -25.6,
+        "y": 0,
+        "z": -172
+       },
+       "rotation": {
+        "x": 0,
+        "y": 0.7071067811865475,
+        "z": 0,
+        "w": 0.7071067811865476
+       },
+       "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "structure.fence_pasture"
+      }
+     }
+    },
+    "ls-village-clearing-1.fence-125": {
+     "id": "ls-village-clearing-1.fence-125",
+     "name": "Clôture du champ 125",
+     "kind": "prop",
+     "ownerChunkId": "10:8",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": -25.6,
+        "y": 0,
+        "z": -174
+       },
+       "rotation": {
+        "x": 0,
+        "y": 0.7071067811865475,
+        "z": 0,
+        "w": 0.7071067811865476
+       },
+       "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "structure.fence_pasture"
+      }
+     }
+    },
+    "ls-village-clearing-1.fence-126": {
+     "id": "ls-village-clearing-1.fence-126",
+     "name": "Clôture du champ 126",
+     "kind": "prop",
+     "ownerChunkId": "10:8",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": -25.6,
+        "y": 0,
+        "z": -176
+       },
+       "rotation": {
+        "x": 0,
+        "y": 0.7071067811865475,
+        "z": 0,
+        "w": 0.7071067811865476
+       },
+       "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "structure.fence_pasture"
+      }
+     }
+    },
+    "ls-village-clearing-1.fence-127": {
+     "id": "ls-village-clearing-1.fence-127",
+     "name": "Clôture du champ 127",
+     "kind": "prop",
+     "ownerChunkId": "10:8",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": -25.6,
+        "y": 0,
+        "z": -177.9
+       },
+       "rotation": {
+        "x": 0,
+        "y": 0.7071067811865475,
+        "z": 0,
+        "w": 0.7071067811865476
+       },
+       "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "structure.fence_pasture"
+      }
+     }
+    },
+    "ls-village-clearing-1.fence-128": {
+     "id": "ls-village-clearing-1.fence-128",
+     "name": "Clôture du champ 128",
+     "kind": "prop",
+     "ownerChunkId": "10:8",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": -25.6,
+        "y": 0,
+        "z": -179.9
+       },
+       "rotation": {
+        "x": 0,
+        "y": 0.7071067811865475,
+        "z": 0,
+        "w": 0.7071067811865476
+       },
+       "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "structure.fence_pasture"
+      }
+     }
+    },
+    "ls-village-clearing-1.fence-129": {
+     "id": "ls-village-clearing-1.fence-129",
+     "name": "Clôture du champ 129",
+     "kind": "prop",
+     "ownerChunkId": "10:8",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": -25.6,
+        "y": 0,
+        "z": -181.9
+       },
+       "rotation": {
+        "x": 0,
+        "y": 0.7071067811865475,
+        "z": 0,
+        "w": 0.7071067811865476
+       },
+       "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "structure.fence_pasture"
+      }
+     }
+    },
+    "ls-village-clearing-1.fence-130": {
+     "id": "ls-village-clearing-1.fence-130",
+     "name": "Clôture du champ 130",
+     "kind": "prop",
+     "ownerChunkId": "10:8",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": -25.6,
+        "y": 0,
+        "z": -183.9
+       },
+       "rotation": {
+        "x": 0,
+        "y": 0.7071067811865475,
+        "z": 0,
+        "w": 0.7071067811865476
+       },
+       "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "structure.fence_pasture"
+      }
+     }
+    },
+    "ls-village-clearing-1.fence-131": {
+     "id": "ls-village-clearing-1.fence-131",
+     "name": "Clôture du champ 131",
+     "kind": "prop",
+     "ownerChunkId": "10:8",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": -25.6,
+        "y": 0,
+        "z": -185.9
+       },
+       "rotation": {
+        "x": 0,
+        "y": 0.7071067811865475,
+        "z": 0,
+        "w": 0.7071067811865476
+       },
+       "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "structure.fence_pasture"
+      }
+     }
+    },
+    "ls-village-clearing-1.fence-132": {
+     "id": "ls-village-clearing-1.fence-132",
+     "name": "Clôture du champ 132",
+     "kind": "prop",
+     "ownerChunkId": "10:8",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": -25.6,
+        "y": 0,
+        "z": -187.9
+       },
+       "rotation": {
+        "x": 0,
+        "y": 0.7071067811865475,
+        "z": 0,
+        "w": 0.7071067811865476
+       },
+       "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "structure.fence_pasture"
+      }
+     }
     }
    },
    "entityIds": [
@@ -12400,7 +15227,33 @@
     "ls-village-clearing-1.fence-104",
     "ls-village-clearing-1.fence-105",
     "ls-village-clearing-1.fence-106",
-    "ls-village-clearing-1.fence-107"
+    "ls-village-clearing-1.fence-107",
+    "ls-village-clearing-1.fence-c3",
+    "ls-village-clearing-1.fence-108",
+    "ls-village-clearing-1.fence-109",
+    "ls-village-clearing-1.fence-110",
+    "ls-village-clearing-1.fence-111",
+    "ls-village-clearing-1.fence-112",
+    "ls-village-clearing-1.fence-113",
+    "ls-village-clearing-1.fence-114",
+    "ls-village-clearing-1.fence-115",
+    "ls-village-clearing-1.fence-116",
+    "ls-village-clearing-1.fence-117",
+    "ls-village-clearing-1.fence-118",
+    "ls-village-clearing-1.fence-119",
+    "ls-village-clearing-1.fence-120",
+    "ls-village-clearing-1.fence-121",
+    "ls-village-clearing-1.fence-122",
+    "ls-village-clearing-1.fence-123",
+    "ls-village-clearing-1.fence-124",
+    "ls-village-clearing-1.fence-125",
+    "ls-village-clearing-1.fence-126",
+    "ls-village-clearing-1.fence-127",
+    "ls-village-clearing-1.fence-128",
+    "ls-village-clearing-1.fence-129",
+    "ls-village-clearing-1.fence-130",
+    "ls-village-clearing-1.fence-131",
+    "ls-village-clearing-1.fence-132"
    ],
    "terrainEdits": [],
    "terrainRefs": [],
@@ -13338,6 +16191,37 @@
       }
      }
     },
+    "ls-village-clearing-1.fence-gate": {
+     "id": "ls-village-clearing-1.fence-gate",
+     "name": "Clôture du champ — portillon",
+     "kind": "prop",
+     "ownerChunkId": "10:7",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": -20.5,
+        "y": 0,
+        "z": -200.8
+       },
+       "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "w": 1
+       },
+       "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "structure.fence_gate"
+      }
+     }
+    },
     "ls-village-clearing-1.fence-4": {
      "id": "ls-village-clearing-1.fence-4",
      "name": "Clôture du champ 4",
@@ -13709,11 +16593,198 @@
        "assetId": "structure.fence_pasture"
       }
      }
+    },
+    "ls-village-clearing-1.fence-133": {
+     "id": "ls-village-clearing-1.fence-133",
+     "name": "Clôture du champ 133",
+     "kind": "prop",
+     "ownerChunkId": "10:7",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": -25.6,
+        "y": 0,
+        "z": -189.9
+       },
+       "rotation": {
+        "x": 0,
+        "y": 0.7071067811865475,
+        "z": 0,
+        "w": 0.7071067811865476
+       },
+       "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "structure.fence_pasture"
+      }
+     }
+    },
+    "ls-village-clearing-1.fence-134": {
+     "id": "ls-village-clearing-1.fence-134",
+     "name": "Clôture du champ 134",
+     "kind": "prop",
+     "ownerChunkId": "10:7",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": -25.6,
+        "y": 0,
+        "z": -191.9
+       },
+       "rotation": {
+        "x": 0,
+        "y": 0.7071067811865475,
+        "z": 0,
+        "w": 0.7071067811865476
+       },
+       "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "structure.fence_pasture"
+      }
+     }
+    },
+    "ls-village-clearing-1.fence-135": {
+     "id": "ls-village-clearing-1.fence-135",
+     "name": "Clôture du champ 135",
+     "kind": "prop",
+     "ownerChunkId": "10:7",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": -25.6,
+        "y": 0,
+        "z": -193.8
+       },
+       "rotation": {
+        "x": 0,
+        "y": 0.7071067811865475,
+        "z": 0,
+        "w": 0.7071067811865476
+       },
+       "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "structure.fence_pasture"
+      }
+     }
+    },
+    "ls-village-clearing-1.fence-136": {
+     "id": "ls-village-clearing-1.fence-136",
+     "name": "Clôture du champ 136",
+     "kind": "prop",
+     "ownerChunkId": "10:7",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": -25.6,
+        "y": 0,
+        "z": -195.8
+       },
+       "rotation": {
+        "x": 0,
+        "y": 0.7071067811865475,
+        "z": 0,
+        "w": 0.7071067811865476
+       },
+       "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "structure.fence_pasture"
+      }
+     }
+    },
+    "ls-village-clearing-1.fence-137": {
+     "id": "ls-village-clearing-1.fence-137",
+     "name": "Clôture du champ 137",
+     "kind": "prop",
+     "ownerChunkId": "10:7",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": -25.6,
+        "y": 0,
+        "z": -197.8
+       },
+       "rotation": {
+        "x": 0,
+        "y": 0.7071067811865475,
+        "z": 0,
+        "w": 0.7071067811865476
+       },
+       "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "structure.fence_pasture"
+      }
+     }
+    },
+    "ls-village-clearing-1.fence-138": {
+     "id": "ls-village-clearing-1.fence-138",
+     "name": "Clôture du champ 138",
+     "kind": "prop",
+     "ownerChunkId": "10:7",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": -25.6,
+        "y": 0,
+        "z": -199.8
+       },
+       "rotation": {
+        "x": 0,
+        "y": 0.7071067811865475,
+        "z": 0,
+        "w": 0.7071067811865476
+       },
+       "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "structure.fence_pasture"
+      }
+     }
     }
    },
    "entityIds": [
     "ls-village-clearing-1.fence-1",
     "ls-village-clearing-1.fence-2",
+    "ls-village-clearing-1.fence-gate",
     "ls-village-clearing-1.fence-4",
     "ls-village-clearing-1.fence-5",
     "ls-village-clearing-1.fence-6",
@@ -13725,7 +16796,13 @@
     "ls-village-clearing-1.fence-12",
     "ls-village-clearing-1.fence-13",
     "ls-village-clearing-1.fence-14",
-    "ls-village-clearing-1.fence-15"
+    "ls-village-clearing-1.fence-15",
+    "ls-village-clearing-1.fence-133",
+    "ls-village-clearing-1.fence-134",
+    "ls-village-clearing-1.fence-135",
+    "ls-village-clearing-1.fence-136",
+    "ls-village-clearing-1.fence-137",
+    "ls-village-clearing-1.fence-138"
    ],
    "terrainEdits": [],
    "terrainRefs": [],
@@ -14528,6 +17605,37 @@
       }
      }
     },
+    "ls-village-clearing-1.fence-c2": {
+     "id": "ls-village-clearing-1.fence-c2",
+     "name": "Clôture du champ (angle 2)",
+     "kind": "prop",
+     "ownerChunkId": "11:8",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": 51.2,
+        "y": 0,
+        "z": -139.2
+       },
+       "rotation": {
+        "x": 0,
+        "y": -1,
+        "z": 0,
+        "w": 6.123233995736766e-17
+       },
+       "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "structure.post_rustic"
+      }
+     }
+    },
     "ls-village-clearing-1.fence-70": {
      "id": "ls-village-clearing-1.fence-70",
      "name": "Clôture du champ 70",
@@ -15268,6 +18376,7 @@
     "ls-village-clearing-1.fence-67",
     "ls-village-clearing-1.fence-68",
     "ls-village-clearing-1.fence-69",
+    "ls-village-clearing-1.fence-c2",
     "ls-village-clearing-1.fence-70",
     "ls-village-clearing-1.fence-71",
     "ls-village-clearing-1.fence-72",
@@ -16095,6 +19204,37 @@
       }
      }
     },
+    "ls-village-clearing-1.fence-c1": {
+     "id": "ls-village-clearing-1.fence-c1",
+     "name": "Clôture du champ (angle 1)",
+     "kind": "prop",
+     "ownerChunkId": "11:7",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": 51.2,
+        "y": 0,
+        "z": -200.8
+       },
+       "rotation": {
+        "x": 0,
+        "y": -0.7071067811865475,
+        "z": 0,
+        "w": 0.7071067811865476
+       },
+       "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "structure.post_rustic"
+      }
+     }
+    },
     "ls-village-clearing-1.fence-39": {
      "id": "ls-village-clearing-1.fence-39",
      "name": "Clôture du champ 39",
@@ -16307,6 +19447,7 @@
     "ls-village-clearing-1.fence-36",
     "ls-village-clearing-1.fence-37",
     "ls-village-clearing-1.fence-38",
+    "ls-village-clearing-1.fence-c1",
     "ls-village-clearing-1.fence-39",
     "ls-village-clearing-1.fence-40",
     "ls-village-clearing-1.fence-41",
@@ -17827,63 +20968,6 @@
     "ref-path-mine"
    ]
   },
-  "11:9": {
-   "schemaVersion": 3,
-   "chunkId": "11:9",
-   "index": {
-    "cx": 11,
-    "cz": 9
-   },
-   "revision": 0,
-   "entities": {},
-   "entityIds": [],
-   "terrainEdits": [],
-   "terrainRefs": [],
-   "biomeEdits": [],
-   "biomeRefs": [],
-   "waterRefs": [],
-   "pathRefs": [
-    "ref-path-mine"
-   ]
-  },
-  "11:10": {
-   "schemaVersion": 3,
-   "chunkId": "11:10",
-   "index": {
-    "cx": 11,
-    "cz": 10
-   },
-   "revision": 0,
-   "entities": {},
-   "entityIds": [],
-   "terrainEdits": [],
-   "terrainRefs": [],
-   "biomeEdits": [],
-   "biomeRefs": [],
-   "waterRefs": [],
-   "pathRefs": [
-    "ref-path-mine"
-   ]
-  },
-  "12:10": {
-   "schemaVersion": 3,
-   "chunkId": "12:10",
-   "index": {
-    "cx": 12,
-    "cz": 10
-   },
-   "revision": 0,
-   "entities": {},
-   "entityIds": [],
-   "terrainEdits": [],
-   "terrainRefs": [],
-   "biomeEdits": [],
-   "biomeRefs": [],
-   "waterRefs": [],
-   "pathRefs": [
-    "ref-path-mine"
-   ]
-  },
   "14:12": {
    "schemaVersion": 3,
    "chunkId": "14:12",
@@ -18111,6 +21195,57 @@
    "pathRefs": [
     "ref-path-ruins"
    ]
+  },
+  "14:10": {
+   "schemaVersion": 3,
+   "chunkId": "14:10",
+   "index": {
+    "cx": 14,
+    "cz": 10
+   },
+   "revision": 0,
+   "entities": {
+    "ref-watermill": {
+     "id": "ref-watermill",
+     "name": "Moulin à eau",
+     "kind": "building",
+     "ownerChunkId": "14:10",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": 205,
+        "y": 0,
+        "z": -20
+       },
+       "rotation": {
+        "x": 0,
+        "y": -0.5646424733950354,
+        "z": 0,
+        "w": 0.8253356149096783
+       },
+       "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "architecture.watermill_log_stone"
+      }
+     }
+    }
+   },
+   "entityIds": [
+    "ref-watermill"
+   ],
+   "terrainEdits": [],
+   "terrainRefs": [],
+   "biomeEdits": [],
+   "biomeRefs": [],
+   "waterRefs": [],
+   "pathRefs": []
   }
  }
 }

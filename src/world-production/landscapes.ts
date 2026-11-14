@@ -134,7 +134,7 @@ export function applyLandscape(draft:ProjectDocument,input:LandscapeInstanceV1,o
     const errors=(cand:WaterBody)=>compileWaterNetwork([...others,cand],after.source,draft.world.seaLevel).at(-1)!.diagnostics.filter(d=>d.severity==='ERROR');
     const reversed=(cand:WaterBody):WaterBody=>{const {falls:_f,...rest}=cand;return {...rest,points:[...cand.points].reverse()};};
     const candidates=base.kind==='lake'?[base]:[base,reversed(base),...(base.falls?[{...base,falls:undefined}]:[])];let chosen:WaterBody|null=null,last:string[]=[];
-    for(const cand of candidates){const e=errors(cand);if(!e.length){chosen=cand;break;}last=e.map(d=>d.message);}
+    for(const cand of candidates){const e=errors(cand);if(!e.length){chosen=cand;break;}if(!last.length)last=e.map(d=>d.message);} // report the error of the authored direction
     if(!chosen){report.diagnostics.push(`Eau ${id} non créée (incohérence hydrographique) : ${last[0]}`);continue;}
     if(chosen!==base)report.diagnostics.push(`Eau ${id} : tracé ${chosen.points[0]===base.points[0]?'sans cascade':'inversé (écoulement vers l’aval)'} pour rester cohérent.`);
     const {falls,...clean}=chosen;add('water',id,falls?chosen:clean);

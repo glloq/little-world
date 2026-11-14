@@ -68,7 +68,7 @@ export function generateDressingCell(ctx:GeoContext,seed:number,cx:number,cz:num
     if(s.underwater){
       // Shallow still/marsh water: reed beds (never on the logical water level, only drawn).
       const w=ctx.water(x,z,h);
-      if((s.biome==='wetland'||s.biome==='lake'||s.moisture>.85)&&w!==null&&w-h<.6&&r2<.12){const sp=SPECIES_INDEX['nature.reeds_patch'];pushSpecies(sp,x,h,z,speciesScale(sp,r4),r0*6.283,r1);}
+      if(s.occupation==='none'&&(s.biome==='wetland'||s.biome==='lake'||s.moisture>.85)&&w!==null&&w-h<.6&&r2<.12){const sp=SPECIES_INDEX['nature.reeds_patch'];pushSpecies(sp,x,h,z,speciesScale(sp,r4),r0*6.283,r1);}
       continue;
     }
     const hab=habitatOf(s);

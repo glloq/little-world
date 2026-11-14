@@ -12,6 +12,7 @@ import type {BiotopeId} from './asset-usage.ts';
 import type {LandscapeRegion} from './biotopes.ts';
 import type {LandscapeInstanceV1,LandscapeParams,LandscapePresetId} from './landscape-schema.ts';
 import {fbm,hash2} from '../geography/noise.ts';
+import {traceDownhill} from './hydro-trace.ts';
 
 export interface ParamDef {key:string;label:string;kind:'number'|'boolean';min?:number;max?:number;step?:number;default:number|boolean}
 export interface Frame {cx:number;cz:number;width:number;length:number;rotation:number;seed:number;
@@ -55,6 +56,17 @@ function meander(f:Frame,n:number,amp:number,phase:number,v0=-f.length/2,v1=f.le
   return Array.from({length:n},(_,i)=>{const t=i/(n-1),v=v0+(v1-v0)*t,u=u0+amp*Math.sin(t*Math.PI*2*.9+phase)+amp*.25*hash2(f.seed^0x51,i,7);return f.toWorld(u,v);});
 }
 const P=(p:LandscapePreset)=>p;
+/** Watercourse from the higher end of an axis, traced down the real relief to the sea, a water
+ * body or a pit (never drawn uphill). Null when the course is too short to be a stream. */
+function course(env:ContentEnv,axis:PointXZ[],minLength=120,corridorM=40){
+  const a=axis[0],b=axis.at(-1)!,up=env.height(a.x,a.z)>=env.height(b.x,b.z),ordered=up?axis:[...axis].reverse();
+  // 1. The valley floor: steepest descent kept inside a corridor around the carved axis.
+  {const src=ordered[0],dst=ordered.at(-1)!,t=traceDownhill(src,{height:env.height,seaLevel:env.seaLevel,water:env.water,inWorld:env.inWorld,heading:Math.atan2(dst.z-src.z,dst.x-src.x),maxLengthM:4000,corridor:{axis:ordered,halfWidthM:Math.max(30,corridorM)}});
+    if(t.lengthM>=minLength&&t.points.length>=3&&t.drop>=4)return t;}
+  // 2. Otherwise follow the steepest descent of the relief from the high end.
+  const src=ordered[0],dst=ordered.at(-1)!,t=traceDownhill(src,{height:env.height,seaLevel:env.seaLevel,water:env.water,inWorld:env.inWorld,heading:Math.atan2(dst.z-src.z,dst.x-src.x),maxLengthM:4000});
+  return t.lengthM>=minLength&&t.points.length>=3?t:null;
+}
 /** Pond centres of a marsh basin (local u, v, radius): same list for relief and content. */
 function pondSpots(f:Frame,p:LandscapeParams){const R=Math.min(f.width,f.length)*.48,rand=(k:number)=>(hash2(f.seed,k,0x5eed)+1)/2;
   return Array.from({length:Math.round(num(p,'ponds',2))},(_,i)=>{const a=rand(90+i)*6.283,d=R*(.15+.3*rand(100+i));return {u:Math.cos(a)*d,v:Math.sin(a)*d,r:8+rand(110+i)*10};});}
@@ -70,12 +82,26 @@ function spots(env:ContentEnv,count:number,ringMin:number,ringMax:number,minGap:
   }
   return out;
 }
-/** Segmented enclosure (fence / wall / hedge modules every 2 m) along a polyline. */
-function enclosure(prefix:string,assetId:string,name:string,points:PointXZ[],skipEvery=0,gapAt=-1):PlannedEntity[]{
+/** Segmented enclosure (fence / wall / hedge modules every 2 m) along a polyline. Optional
+ * `corner` module on inner vertices, `gate` module at the `gapAt` position (else a gap), `end`
+ * modules on both sides of skipped modules (broken walls). */
+function enclosure(prefix:string,assetId:string,name:string,points:PointXZ[],skipEvery=0,gapAt=-1,extra:{corner?:string;gate?:string;end?:string}={}):PlannedEntity[]{
   const out:PlannedEntity[]=[];let n=0;
   for(let i=0;i<points.length-1;i++){const a=points[i],b=points[i+1],len=Math.hypot(b.x-a.x,b.z-a.z),steps=Math.max(1,Math.round(len/2)),rot=-Math.atan2(b.z-a.z,b.x-a.x);
-    for(let s=0;s<steps;s++){n++;if(skipEvery&&n%skipEvery===0)continue;if(n===gapAt)continue;const t=(s+.5)/steps;out.push({key:`${prefix}-${n}`,name:`${name} ${n}`,assetId,x:r1(a.x+(b.x-a.x)*t),z:r1(a.z+(b.z-a.z)*t),rotation:rot});}}
+    if(extra.corner&&i>0)out.push({key:`${prefix}-c${i}`,name:`${name} (angle ${i})`,assetId:extra.corner,x:r1(a.x),z:r1(a.z),rotation:rot});
+    for(let s=0;s<steps;s++){n++;const t=(s+.5)/steps,x=r1(a.x+(b.x-a.x)*t),z=r1(a.z+(b.z-a.z)*t);
+      if(n===gapAt){if(extra.gate)out.push({key:`${prefix}-gate`,name:`${name} — portillon`,assetId:extra.gate,x,z,rotation:rot});continue;}
+      if(skipEvery&&n%skipEvery===0){if(extra.end&&s+1<steps){const t2=(s+1.5)/steps;out.push({key:`${prefix}-e${n}`,name:`${name} — extrémité ${n}`,assetId:extra.end,x:r1(a.x+(b.x-a.x)*t2),z:r1(a.z+(b.z-a.z)*t2),rotation:rot});s++;n++;}continue;}
+      out.push({key:`${prefix}-${n}`,name:`${name} ${n}`,assetId,x,z,rotation:rot});}}
   return out;
+}
+/** Bridge across a watercourse between points i and i+1: perpendicular to the flow, stretched
+ * along its span if needed, deck anchors on the lower bank (offset above the carved bed). */
+function bridgeOver(env:ContentEnv,pts:PointXZ[],i:number,width:number,depth:number,asset:{id:string;span:number;anchorY:number},key:string,name:string):PlannedEntity{
+  const a=pts[i],b=pts[i+1],mx=(a.x+b.x)/2,mz=(a.z+b.z)/2,dl=Math.hypot(b.x-a.x,b.z-a.z)||1,px=-(b.z-a.z)/dl,pz=(b.x-a.x)/dl;
+  const stretch=Math.max(1,(width+3)/asset.span),reach=Math.max(asset.span/2*stretch,width/2+2);
+  const bank=Math.min(env.height(mx+px*reach,mz+pz*reach),env.height(mx-px*reach,mz-pz*reach)),bed=env.height(mx,mz)-.35-depth;
+  return {key,name,assetId:asset.id,x:r1(mx),z:r1(mz),rotation:Math.atan2(-pz,px),scale3:[r1(stretch*100)/100,1,1],y:r1(Math.max(0,bank-asset.anchorY-bed))};
 }
 const empty=():LandscapeContent=>({masks:[],water:[],paths:[],entities:[],zones:[],diagnostics:[]});
 
@@ -90,7 +116,10 @@ export const LANDSCAPE_PRESETS:Record<LandscapePresetId,LandscapePreset>={
       c.masks.push({layer:'biome',code:'f',test:(u,v,x,z)=>blob(env,0x11,u,v,env.width*.48,env.length*.48,x,z)>0&&!centres.some(k=>Math.hypot(u-k.u,v-k.v)<k.r*(1+.25*noise(env,0x12,x,z,15)))});
       c.masks.push({layer:'biome',code:'m',test:(u,v,x,z)=>centres.some(k=>Math.hypot(u-k.u,v-k.v)<k.r*(1+.25*noise(env,0x12,x,z,15)))});
       c.masks.push({layer:'moisture',code:'7',test:u=>Math.abs(u)<env.width*.09});
-      if(bool(p,'stream',true))c.water.push({key:'stream',points:axis,width:4,level:0,depth:.8,profile:{mode:'terrain',offset:-.3}});
+      if(bool(p,'stream',true)){const t=course(env,axis);if(t){c.water.push({key:'stream',points:t.points,width:4,level:0,depth:.8,profile:{mode:'terrain',offset:-.3}});
+        // Footbridge (wooden arch) on the middle of the stream.
+        const mid=Math.max(0,Math.min(t.points.length-2,Math.floor(t.points.length/3)));c.entities.push(bridgeOver(env,t.points,mid,4,.8,{id:'structure.bridge_wooden_arch',span:5.6,anchorY:.86},'footbridge','Passerelle du ruisseau'));}
+        else c.diagnostics.push('Ruisseau : pente insuffisante depuis le haut de la vallée, non créé.');}
       return c;}}),
   'river-bend':P({id:'river-bend',version:1,label:'Méandre de rivière',description:'Rivière sinueuse dans un lit creusé, berges humides, galets, arbres riverains, poches de marais, pont facultatif.',profile:'humid-valley',defaultSize:[360,600],
     params:[...sizeParams(1.1),{key:'riverWidth',label:'Largeur de rivière (m)',kind:'number',min:3,max:24,step:1,default:6},{key:'sinuosity',label:'Sinuosité',kind:'number',min:0,max:1,step:.05,default:.6},{key:'bridge',label:'Pont',kind:'boolean',default:true}],
@@ -98,6 +127,9 @@ export const LANDSCAPE_PRESETS:Record<LandscapePresetId,LandscapePreset>={
     relief:(f,p)=>[{key:'bed',id:'',kind:'valley',points:meander(f,7,f.width*.28*num(p,'sinuosity',.6),f.seed%5),widthM:r1(Math.max(30,num(p,'riverWidth',6)*4)),depthM:4}],
     regions:(f,p)=>[{x:f.cx,z:f.cz,width:f.width,length:f.length,rotation:f.rotation,edgeM:r1(Math.min(f.width,f.length)*.2),profile:'humid-valley',density:num(p,'density',1.1)}],
     content:(env,p)=>{const c=empty(),w=num(p,'riverWidth',6),pts=meander(env,7,env.width*.28*num(p,'sinuosity',.6),env.seed%5);
+      const traced=course(env,pts);if(!traced){c.diagnostics.push('Rivière : aucun écoulement descendant depuis l’emprise, non créée.');return c;}
+      const centreIndex=traced.points.reduce((m,q,i,a)=>Math.hypot(q.x-env.cx,q.z-env.cz)<Math.hypot(a[m].x-env.cx,a[m].z-env.cz)?i:m,1);
+      pts.splice(0,pts.length,...traced.points);
       c.water.push({key:'river',points:pts,width:w,level:0,depth:Math.min(3,.8+w*.12),profile:{mode:'terrain',offset:-.35}});
       const near=(x:number,z:number,d:number)=>{for(let i=0;i<pts.length-1;i++){const a=pts[i],b=pts[i+1],dx=b.x-a.x,dz=b.z-a.z,t=Math.max(0,Math.min(1,((x-a.x)*dx+(z-a.z)*dz)/(dx*dx+dz*dz||1)));if(Math.hypot(x-a.x-t*dx,z-a.z-t*dz)<d)return true;}return false;};
       c.masks.push({layer:'moisture',code:'8',test:(_u,_v,x,z)=>near(x,z,w/2+16)});
@@ -105,7 +137,7 @@ export const LANDSCAPE_PRESETS:Record<LandscapePresetId,LandscapePreset>={
       if(bool(p,'bridge',true)){
         // Stone bridge across the river between points 3 and 4, stretched along its span when
         // the river is wider, deck anchors set on the lower bank (offset above the carved bed).
-        const a=pts[3],b=pts[4],mx=(a.x+b.x)/2,mz=(a.z+b.z)/2,dl=Math.hypot(b.x-a.x,b.z-a.z)||1,px=-(b.z-a.z)/dl,pz=(b.x-a.x)/dl;
+        const ci=Math.max(1,Math.min(pts.length-2,centreIndex)),a=pts[ci],b=pts[ci+1],mx=(a.x+b.x)/2,mz=(a.z+b.z)/2,dl=Math.hypot(b.x-a.x,b.z-a.z)||1,px=-(b.z-a.z)/dl,pz=(b.x-a.x)/dl;
         const span=w+3,stretch=Math.max(1,span/8.3),reach=Math.max(4.15*stretch,w/2+2);
         const bank=Math.min(env.height(mx+px*reach,mz+pz*reach),env.height(mx-px*reach,mz-pz*reach)),depth=Math.min(3,.8+w*.12),bed=env.height(mx,mz)-.35-depth;
         c.entities.push({key:'bridge',name:'Pont du méandre',assetId:'structure.bridge_stone',x:r1(mx),z:r1(mz),rotation:Math.atan2(-pz,px),scale3:[r1(stretch*100)/100,1,1],y:r1(Math.max(0,bank-1.64-bed))});
@@ -178,7 +210,7 @@ export const LANDSCAPE_PRESETS:Record<LandscapePresetId,LandscapePreset>={
       const pts:PointXZ[]=[];for(let i=0;i<axis.length-1;i++)for(let k=0;k<5;k++){const t=k/5;pts.push({x:r1(axis[i].x+(axis[i+1].x-axis[i].x)*t),z:r1(axis[i].z+(axis[i+1].z-axis[i].z)*t)});}pts.push(axis.at(-1)!);
       // The source is the highest point of the upper reach: never draw a river climbing a slope.
       const h=pts.map(q=>env.height(q.x,q.z));const peak=h.slice(0,Math.ceil(h.length/2)).reduce((m,v,i,a)=>v>a[m]?i:m,0);pts.splice(0,peak);h.splice(0,peak);
-      let at=1,best=0;for(let i=1;i<pts.length-2;i++){const drop=h[i]-h[i+1];if(drop>best){best=drop;at=i;}}
+      let at=0,best=0;for(let i=0;i<pts.length-2;i++){const drop=h[i]-h[i+1];if(drop>best){best=drop;at=i;}}
       // Refine the steepest segment at 1 m: points just above and just below the step, so that
       // the explicit fall sits on the step itself (WATER: no relief crossed after the fall).
       {const a=pts[at],b=pts[at+1],len=Math.hypot(b.x-a.x,b.z-a.z),q=(t:number)=>({x:r1(a.x+(b.x-a.x)*t),z:r1(a.z+(b.z-a.z)*t)}),y=(t:number)=>{const o=q(t);return env.height(o.x,o.z);};
@@ -187,6 +219,9 @@ export const LANDSCAPE_PRESETS:Record<LandscapePresetId,LandscapePreset>={
         const e=.25/len;let t0=tb,t1=tb;
         while(t0>e&&y(t0-e)-y(t0)>.3)t0-=e;while(t1<1-e&&y(t1)-y(t1+e)>.3)t1+=e;t0=Math.max(.002,t0-e);t1=Math.min(.998,t1+e);
         const A=q(Math.max(.002,t0)),B=q(Math.min(.998,t1));pts.splice(at+1,0,A,B);h.splice(at+1,0,env.height(A.x,A.z),env.height(B.x,B.z));at++;}
+      // Below the fall the water follows the real relief down to the sea, a lake or a pit.
+      {const B=pts[at+1],last=pts.at(-1)!,down=traceDownhill(B,{height:env.height,seaLevel:env.seaLevel,water:env.water,inWorld:env.inWorld,heading:Math.atan2(last.z-B.z,last.x-B.x),maxLengthM:4000,maxPoints:90-(at+2)});
+        pts.splice(at+2,pts.length,...down.points.slice(1));h.splice(at+2,h.length,...down.points.slice(1).map(q=>env.height(q.x,q.z)));}
       const top=r1(h[at]-1),bottom=r1(Math.min(h[at+1]-.35,top-1));
       if(best>=1.5&&Math.hypot(pts[at+1].x-pts[at].x,pts[at+1].z-pts[at].z)<=2.8)c.water.push({key:'falls-river',points:pts,width:5,level:0,depth:1,profile:{mode:'terrain',offset:-.35},falls:[{at,top,bottom}]});
       else{c.diagnostics.push('Cascade : aucune marche du relief sur le tracé — rivière sans cascade créée.');c.water.push({key:'falls-river',points:pts,width:5,level:0,depth:1,profile:{mode:'terrain',offset:-.35}});}
@@ -214,7 +249,7 @@ export const LANDSCAPE_PRESETS:Record<LandscapePresetId,LandscapePreset>={
     content:(env,p)=>{const c=empty(),n=Math.round(num(p,'walls',2));
       for(let i=0;i<n;i++){const u0=(env.rand(200+i)-.5)*env.width*.3,v0=(env.rand(210+i)-.5)*env.length*.3,a=4+env.rand(220+i)*5,b=4+env.rand(230+i)*4;
         const corners=[env.toWorld(u0-a,v0-b),env.toWorld(u0+a,v0-b),env.toWorld(u0+a,v0+b),env.toWorld(u0-a,v0+b),env.toWorld(u0-a,v0-b)];
-        c.entities.push(...enclosure(`wall${i+1}`,i%2?'structure.wall_moss':'structure.wall_irregular',`Muret en ruine ${i+1}`,corners,3+i,5));}
+        c.entities.push(...enclosure(`wall${i+1}`,i%2?'structure.wall_moss':'structure.wall_irregular',`Muret en ruine ${i+1}`,corners,3+i,5,{corner:'structure.wall_corner',end:'structure.wall_end'}));}
       for(let k=0;k<7;k++){const q=env.toWorld((env.rand(240+k)-.5)*env.width*.45,(env.rand(250+k)-.5)*env.length*.45);c.entities.push({key:'stone-'+(k+1),name:'Pierre tombée '+(k+1),assetId:'nature.stump_mossy',x:q.x,z:q.z,rotation:env.rand(260+k)*6.28,scale:r1(.8+env.rand(270+k)*.4)});}
       c.masks.push({layer:'biome',code:'m',test:(u,v,x,z)=>blob(env,0x91,u,v,env.width*.22,env.length*.22,x,z)>0});
       if(bool(p,'trail',true))c.paths.push({key:'trail',points:[env.toWorld(0,0),env.toWorld(env.width*.15,-env.length*.25),env.toWorld(env.width*.05,-env.length*.49)],width:1.6,kind:'trail',smooth:true});
@@ -232,6 +267,9 @@ export const LANDSCAPE_PRESETS:Record<LandscapePresetId,LandscapePreset>={
       // Houses face the square (model front = -Z).
       houses.forEach((q,i)=>c.entities.push({key:'house-'+(i+1),name:'Maison '+(i+1),assetId:i%3===2?'architecture.wooden_cabin':'architecture.stone_house',x:q.x,z:q.z,rotation:Math.atan2(-(square.x-q.x),-(square.z-q.z))}));
       if(houses.length<Math.round(num(p,'houses',5)))c.diagnostics.push(`Village : ${houses.length} emplacement(s) plat(s) trouvé(s) sur ${Math.round(num(p,'houses',5))}.`);
+      // Front garden of the first house: picket fence with a gate facing the square.
+      if(houses[0]){const q=houses[0],d=Math.hypot(square.x-q.x,square.z-q.z)||1,fx=(square.x-q.x)/d,fz=(square.z-q.z)/d,px=-fz,pz=fx,g=(a:number,b:number)=>({x:r1(q.x+fx*a+px*b),z:r1(q.z+fz*a+pz*b)});
+        c.entities.push(...enclosure('garden','structure.fence_picket','Jardin',[g(5,-6),g(11,-6),g(11,6),g(5,6)],0,4,{gate:'structure.fence_gate',corner:'structure.post_square'}));}
       for(const [i,q]of houses.entries())c.paths.push({key:'lane-'+(i+1),points:[square,q],width:2.2,kind:'dirt'});
       c.paths.push({key:'access',points:[square,env.toWorld(0,-env.length*.3),env.toWorld(env.width*.04,-env.length*.49)],width:3,kind:'dirt',smooth:true});
       if(bool(p,'windmill',true)){const m=spots(env,1,R*.75,R*.95,20,400,.12)[0];if(m)c.entities.push({key:'windmill',name:'Moulin à vent',assetId:'architecture.windmill_stone',x:m.x,z:m.z,rotation:env.rand(410)*6.28});}
@@ -240,7 +278,7 @@ export const LANDSCAPE_PRESETS:Record<LandscapePresetId,LandscapePreset>={
       if(bool(p,'orchard',true))c.entities.push(...enclosure('hedge','nature.hedge_low','Haie du verger',[o(-env.width*.43,env.length*.18),o(-env.width*.17,env.length*.18),o(-env.width*.17,env.length*.38)],0,4));
       if(bool(p,'fields',true)){
         const f0=env.width*.14,f1=env.width*.42,g0=-env.length*.12,g1=env.length*.12,poly=[o(f0,g0),o(f1,g0),o(f1,g1),o(f0,g1)];
-        if(poly.every(q=>env.inWorld(q.x,q.z)&&env.water(q.x,q.z)===null)){c.zones.push({key:'field',kind:'farm-plot',name:'Champ du village',polygon:poly});c.entities.push(...enclosure('fence','structure.fence_pasture','Clôture du champ',[o(f0-2,g0-2),o(f1+2,g0-2),o(f1+2,g1+2),o(f0-2,g1+2)],0,3));}
+        if(poly.every(q=>env.inWorld(q.x,q.z)&&env.water(q.x,q.z)===null)){c.zones.push({key:'field',kind:'farm-plot',name:'Champ du village',polygon:poly});c.entities.push(...enclosure('fence','structure.fence_pasture','Clôture du champ',[o(f0-2,g0-2),o(f1+2,g0-2),o(f1+2,g1+2),o(f0-2,g1+2),o(f0-2,g0-2)],0,3,{gate:'structure.fence_gate',corner:'structure.post_rustic'}));}
         else c.diagnostics.push('Parcelle agricole : emprise dans l’eau ou hors du monde, non créée.');
       }
       return c;}}),
