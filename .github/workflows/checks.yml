@@ -29,6 +29,8 @@ jobs:
       - run: npm run generate:b1
       - run: git diff --exit-code -- maps/b1-demo.project.json public/maps/b1-demo.project.json public/maps/b1-demo
       - run: git diff --exit-code -- public/maps
+      - run: npm run assets:hamster
+      - run: git diff --exit-code -- public/models/hamster.glb
       - run: npm run build
       - run: node tools/verify-static-build.mjs
       - run: npx playwright install --with-deps chromium
@@ -82,6 +84,8 @@ jobs:
         run: node tools/run-browser-check.mjs economy
       - name: Cliff climbing (island)
         run: node tools/run-browser-check.mjs climb
+      - name: Hamster player (roll, glide, tools, fishing)
+        run: node tools/run-browser-check.mjs hamster
       - name: B1 Studio edits and « Jouer ici »
         run: node tools/run-browser-check.mjs b1-studio
       - name: IndexedDB integration

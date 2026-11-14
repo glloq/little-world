@@ -205,6 +205,16 @@ Lire **[42 — Jeu complet V1](docs/42-JEU-COMPLET-V1.md)** avant de toucher à 
 - `polylineDistance` renvoie désormais une vraie distance (crêtes/vallées à la largeur saisie) ; appliquer en dernier les presets qui tracent de l’eau.
 - Statuts : implémenté/testé sur branche ; **performance non qualifiée** sur GPU intégré.
 
+## Personnage joueur Hamster V1 (implémenté sur branche)
+
+Lire **[43 — Hamster joueur](docs/43-HAMSTER-JOUEUR.md)** avant de toucher au personnage du joueur, aux animations, aux outils tenus ou à la roulade.
+- Modèle et rig **procéduraux** (`src/hamster/`), 22 os rigides, un matériau partagé, géométries en cache ; le GLB `public/models/hamster.glb` est **généré** (`npm run assets:hamster`, vérifié en CI) pour l’échange Blender, pas chargé par le jeu.
+- La roulade est un **mode de `simulatePlayer`** (pas de moteur physique, pas de second contrôleur) ; le rendu lit le `Player`, ne le modifie jamais.
+- Animations = **tables de données** (`ACTION_DEFS`, `ACTIVITY_ANIMATIONS`) et événements datés ; sons/éclats partent des événements d’animation. Ajouter un outil = une entrée de `TOOL_PARTS` + une ligne d’activité, pas une animation dédiée.
+- Les activités (gathering, fishing, dig, AGRI) restent l’autorité ; l’animation suit une action validée.
+- `PlayerPresentationState` est le **seul** contrat de synchronisation future : pas de sockets ni d’os transmis (§1 quater).
+- PNJ : morphologie `hamster` ⇒ rig `hamster-rigid` (validé par le schéma).
+
 ## 2. Séparation des données et des responsabilités
 
 - Projet auteur : `worldId`, `schemaVersion`, `seed`, dimensions, chunks, overrides, prefabs, entités, dialogues, navigation, interactions.

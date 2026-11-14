@@ -4,6 +4,12 @@
 
 **Documents de cadrage prioritaires :** [12 — Limites du jeu](12-PROJECT-SCOPE.md), [13 — UX du Studio](13-STUDIO-UX-ARCHITECTURE.md), [14 — Décisions techniques validées](14-TECHNICAL-CHOICES.md) et **[15 — Schémas V3 du Studio](15-STUDIO-DATA-SCHEMAS-V3.md)**. Le **200 × 600 m** des jalons M0–M6 est la carte de démonstration ; le monde final est **une carte continue de 10 × 10 km maximum**, performance à qualifier.
 
+## Personnage joueur Hamster V1 (14 novembre 2026)
+
+Détail et état terminé / partiel / bloqué : **[43 — Hamster joueur](43-HAMSTER-JOUEUR.md)**. Implémenté et testé **sur branche** (PR #15) : modèle procédural de 854 triangles et 22 os, export GLB, machines d’animation locomotion et actions, roulade en boule dans la simulation 30 Hz, planage à membranes, outils 3D animés reliés à la mine, l’abattage, la pêche et l’agriculture, événements d’animation reliés aux sons et éclats, contrat d’état de présentation (sans réseau), morphologie `hamster` pour les PNJ du Studio. Ce G10 « outils visibles » est livré pour le joueur.
+
+Restant : action explicite sortir/ranger (`EQUIP`), activités porter/s’asseoir/ramer, panneau d’aperçu des animations dans le Studio, qualification sur GPU intégré.
+
 ## Priorité actualisée — jeu complet V1 (14 novembre 2026)
 
 Nouveaux objectifs et état détaillé : **[42 — Jeu complet V1](42-JEU-COMPLET-V1.md)**. Implémenté et testé **sur branche** (PR #15, non publié sur `main`) : économie (pièces, 6 types de comptoirs), cueillette, abattage, pêche, mine à points de vie et rendu organique, agriculture par semences, escalade avec endurance, écureuil allégé, kit de 37 modèles originaux, ville au château fortifiée, bois et clairières, 28 coffres cachés, suppression de l’ancien éditeur et de l’ancienne vallée (le Studio est le seul éditeur, la page d’accueil ouvre l’île).
