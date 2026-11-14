@@ -30,6 +30,7 @@ import {
   type Controls,
 } from './player';
 import { buildSquirrel } from './squirrel';
+import { createLoadingScreen } from './ui/loading.ts';
 import { createCustomizationMenu } from './customization-menu';
 import { MouseDragOrbit } from './camera-drag';
 import {
@@ -58,6 +59,7 @@ const oxygen = document.querySelector<HTMLElement>('#oxygen')!;
 let gameUi:GameUi|null=null;
 const overlay = document.querySelector<HTMLElement>('#start-overlay')!;
 const start = document.querySelector<HTMLButtonElement>('#start')!;
+const loading = createLoadingScreen(start, start.parentElement!);
 const scene = new THREE.Scene();
 const lighting=configureScene(scene);
 const camera = new THREE.PerspectiveCamera(66, 1, 0.1, 750);
@@ -123,6 +125,7 @@ if(searchParams.has('studioBuild')||worldPath){
     }else{
       // Optional control viewpoint (audit §6: sea→volcano, rim→coasts…) for reproducible checks.
       const view=(searchParams.get('spawn')??'').split(',').map(Number),spawn=view.length===2&&view.every(Number.isFinite)?{x:view[0],y:0,z:view[1]}:undefined;
+      loading.boot(.15);
       playable=playableFromCompiled(await openCompiledWorld(publishedManifestURL(import.meta.env.BASE_URL,worldPath!)),spawn);
     }
     definition=playable.world;
@@ -137,7 +140,9 @@ if(searchParams.has('studioBuild')||worldPath){
     definition=playable.world;
   }catch(error){overlay.setAttribute('aria-busy','false');overlay.querySelector('h1')!.textContent='Impossible d’ouvrir cette partie';overlay.querySelector('p')!.textContent=String(error);start.disabled=true;throw error;}
 }
+loading.boot(.45,'Construction du relief…');
 const world = buildWorld(definition.config, definition);
+loading.boot(.7,'Habitants et objets…');
 world.setDetail(budget.level, quality.value === 'low');
 // Far plane follows the project diagonal: silhouettes stay visible without fog (near plane unchanged).
 camera.far=horizonFar(getTerrainConfig().width,getTerrainConfig().length);camera.updateProjectionMatrix();
@@ -500,13 +505,14 @@ function updateHud() {
     cameraSubmerged(camera.position.x, camera.position.y, camera.position.z),
   );
 }
+let boatSteer=0;
 function tick(dt: number) {
   // Menus (pause, parties, paramètres) pause the world simulation; the frame still renders.
   if (!started || gameUi?.paused) return;
   if(gameplay)gameplay.update(dt);else worldClock.advance(dt);
   const keys = input();
   if (aboard) {
-    updateBoat(boat, { throttle: keys.forward, steer: keys.right }, dt);
+    updateBoat(boat, { throttle: keys.forward, steer: keys.right }, dt);boatSteer=keys.right;
     player.position.set(boat.x, boat.y + 1.02, boat.z);
     player.velocity.set(0, 0, 0);
     player.mode = 'ground';
@@ -592,12 +598,14 @@ function draw(now: number) {
   );
   environment.update(delta,player.position,budget.level,!!player.space);
   activityView?.update(delta,player.position,player.space);
-  world.lights.setEnvironment(nightFactor(climate.state(worldClock.time).sunAltitude),now/1000);
+  {const night=nightFactor(climate.state(worldClock.time).sunAltitude);world.lights.setEnvironment(night,now/1000);world.setNight(night);}
+  world.animateBoat(aboard?boat.speed:0,aboard?boatSteer:0,delta);
   if(started&&audio){const env=climate.state(worldClock.time),ground=player.space?{}:groundProbe(player.position.x,player.position.z,now),farm=!player.space&&gameplay?.activities.farmNear(player.position);
     audio.update(now,{nowMs:now,player:{position:player.position,velocity:player.velocity,mode:player.mode,aboard,boatSpeed:Math.abs(boat.speed),space:player.space??null,surface:player.space?'stone':aboard?'wood':ground.surface},
       world:{time:env.sunAltitude<0?'night':'day',weather:env.weather,wind:env.wind,biome:ground.biome,place:farm?'farm':ground.place,activity:farm?'farming':undefined,submerged:cameraSubmerged(camera.position.x,camera.position.y,camera.position.z),nearWater:waterSurface(player.position.x,player.position.z)!==null||(isLegacyTerrain()&&Math.abs(player.position.x-riverX(player.position.z))<16)}},
       id=>gameplay?.runtime.getEntityPosition(id),budget.level,camera.getWorldDirection(audioForward));}
   world.update(delta, player.position, camera, renderer.domElement.height);
+  if(!loading.ready)loading.update({terrainPending:world.stats.pending,dressingPending:world.dressing?.nearPending??0,speciesState:world.dressing?.species.state??'none'});
   npcs.update(delta, elapsed, player.position); // The river drives the mill: no manual on/off control.
   world.boat.position.set(
     boat.x,
@@ -630,6 +638,9 @@ function draw(now: number) {
         target: currentTarget()?.primaryAction?.label ?? null,
         targetId: currentTarget()?.targetId ?? null,
         placed: { ...world.placed.stats },
+        animated: { ...world.animated },
+        boatModel: world.boat.getObjectByName('Sailboat') ? 'sailboat' : 'procedural',
+        boatPosition: [boat.x, boat.y, boat.z],
         paths: { ...world.paths },
         lights: { ...world.lights.stats },
         activities: activityView&&gameplay ? { ...activityView.stats, space: player.space ?? null,
@@ -691,5 +702,5 @@ camera.position.set(
 );
 camera.lookAt(player.position);
 // The visible start button must not accept a click before asynchronous boot has attached its listeners.
-overlay.setAttribute('aria-busy','false');start.disabled=false;
+overlay.setAttribute('aria-busy','false');loading.boot(1);
 requestAnimationFrame(draw);

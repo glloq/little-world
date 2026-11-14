@@ -22,6 +22,7 @@ import type {
 } from './world-data';
 export type { WorldConfig, Placement, AssetId } from './world-data';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { createAnimatedAssets, dressSailboat } from './world-production/animated-assets.ts';
 import {
   configureTerrain,
   compiledWaterBodies,
@@ -42,6 +43,12 @@ export interface WorldView {
   /** World Production: instanced enclosure/dock modules (game runtime). */
   placed: PlacedInstances;
   setDressingFilter(fn: ((cx: number, cz: number, kind: import('./geography/dressing.ts').DressingKind, index: number) => boolean) | null): void;
+  /** Night factor (0 day … 1 night) for lighthouse beams and lamps. */
+  setNight(night: number): void;
+  /** Sail and rudder of the player's boat (speed m/s, steer −1…1). */
+  animateBoat(speed: number, steer: number, dt: number): void;
+  /** Animated asset parts registered (mill rotors/wheels, lighthouse beams). */
+  readonly animated: { spinners: number; beams: number };
   redrawDressing(): void;
   root: THREE.Group;
   terrain: THREE.Group;
@@ -504,6 +511,8 @@ function loadModel(path: string): Promise<THREE.Group | null> {
  * THREE.LOD with the real LOD files, loaded lazily and shared; a neutral placeholder box of
  * the measured size stands in while loading (clearly procedural). Collisions, interactions
  * and placement never depend on which LOD is drawn. */
+/** Animated parts of registry assets (mill rotors and wheels, lighthouse beams): one registry. */
+const animatedAssets = createAnimatedAssets();
 function createRegistryAsset(id: string): THREE.Group | null {
   const asset = worldAsset(id);
   if (!asset || asset.group === 'legacy') return null;
@@ -525,6 +534,9 @@ function createRegistryAsset(id: string): THREE.Group | null {
     lod.name = 'LOD ' + id;
     scenes.forEach((scene, i) => lod.addLevel(scene!.clone(true), distances[i], 2));
     g.add(lod);
+    animatedAssets.register(g, lod);
+    // After the placeholder is cleared (it would dispose the shared beam material otherwise).
+    if (id === 'architecture.lighthouse') animatedAssets.addBeam(g, sy * 0.86);
   });
   return g;
 }
@@ -699,7 +711,13 @@ export function buildWorld(
     createTrail(root);
     createForest(root, config.seed, config.density);
     ({ wheel, millPosition, boat } = createVillage(root));
-  } else boat = createBoatMesh(root);
+  } else {
+    boat = createBoatMesh(root);
+    // The player's boat wears the sailboat model of the library (procedural hull until loaded).
+    const sail = worldAsset('boat.sailboat_small');
+    if (sail) void loadModel(sail.lods[0].file).then((scene) => { if (scene && boat.parent) boatRig = dressSailboat(boat, scene); });
+  }
+  let boatRig: ReturnType<typeof dressSailboat> | null = null;
   const biomeAt = (x: number, z: number) => {
     const edits = definition?.biomes ?? [];
     for (let i = edits.length - 1; i >= 0; i--)
@@ -763,6 +781,9 @@ export function buildWorld(
     terrainWork: terrainView.work,
     placed,
     setDressingFilter(fn: Parameters<DressingView['setHidden']>[0]) { dressing?.setHidden(fn); },
+    setNight(night: number) { animatedAssets.setNight(night); },
+    animateBoat(speed: number, steer: number, dt: number) { boatRig?.update(speed, steer, dt); },
+    get animated() { return animatedAssets.stats; },
     redrawDressing() { dressing?.redraw(); },
     dressing: dressing?.stats ?? null,
     paths: pathView.stats,
@@ -825,6 +846,7 @@ export function buildWorld(
     update(dt: number, focus = { x: 0, z: 0 }, camera?: THREE.PerspectiveCamera, pixelHeight = 640) {
       time += dt;
       wheel.rotation.x -= dt * 0.33;
+      animatedAssets.update(dt);
       if (camera) {
         // Smoothed focus velocity drives look-ahead; a jump (teleport) resets it.
         const jump = Math.hypot(focus.x - lastFocusX, focus.z - lastFocusZ);

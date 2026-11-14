@@ -30232,6 +30232,98 @@
     "persistentState": []
    }
   },
+  "ls-fishing-port-1.boat-0": {
+   "id": "ls-fishing-port-1.boat-0",
+   "kind": "prop",
+   "name": "Barque",
+   "ownerChunkId": "18:5",
+   "position": {
+    "x": -326,
+    "y": 1.4778931545948546,
+    "z": -3627
+   },
+   "references": [
+    "boat.rowboat_wood"
+   ],
+   "logical": {
+    "position": {
+     "x": -326,
+     "y": 1.4778931545948546,
+     "z": -3627
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
+  "ls-fishing-port-1.boat-1": {
+   "id": "ls-fishing-port-1.boat-1",
+   "kind": "prop",
+   "name": "Barque",
+   "ownerChunkId": "18:5",
+   "position": {
+    "x": -334,
+    "y": 3.5835475269094474,
+    "z": -3631
+   },
+   "references": [
+    "boat.rowboat_wood"
+   ],
+   "logical": {
+    "position": {
+     "x": -334,
+     "y": 3.5835475269094474,
+     "z": -3631
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
+  "ls-fishing-port-1.boat-2": {
+   "id": "ls-fishing-port-1.boat-2",
+   "kind": "prop",
+   "name": "Voilier",
+   "ownerChunkId": "18:5",
+   "position": {
+    "x": -325,
+    "y": 3.286453295980432,
+    "z": -3636
+   },
+   "references": [
+    "boat.sailboat_small"
+   ],
+   "logical": {
+    "position": {
+     "x": -325,
+     "y": 3.286453295980432,
+     "z": -3636
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
+  "ls-fishing-port-1.boat-3": {
+   "id": "ls-fishing-port-1.boat-3",
+   "kind": "prop",
+   "name": "Voilier",
+   "ownerChunkId": "18:5",
+   "position": {
+    "x": -336,
+    "y": 4.063086818221188,
+    "z": -3639
+   },
+   "references": [
+    "boat.sailboat_small"
+   ],
+   "logical": {
+    "position": {
+     "x": -336,
+     "y": 4.063086818221188,
+     "z": -3639
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
   "ls-fishing-port-1.harbourmaster": {
    "id": "ls-fishing-port-1.harbourmaster",
    "kind": "character",
@@ -30738,6 +30830,98 @@
      "x": 1003,
      "y": 0,
      "z": -1150
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
+  "ls-fishing-port-2.boat-0": {
+   "id": "ls-fishing-port-2.boat-0",
+   "kind": "prop",
+   "name": "Barque",
+   "ownerChunkId": "38:44",
+   "position": {
+    "x": 995,
+    "y": 3.0468918350459924,
+    "z": -1146
+   },
+   "references": [
+    "boat.rowboat_wood"
+   ],
+   "logical": {
+    "position": {
+     "x": 995,
+     "y": 3.0468918350459924,
+     "z": -1146
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
+  "ls-fishing-port-2.boat-1": {
+   "id": "ls-fishing-port-2.boat-1",
+   "kind": "prop",
+   "name": "Barque",
+   "ownerChunkId": "39:44",
+   "position": {
+    "x": 999,
+    "y": 3.4596854134799946,
+    "z": -1154
+   },
+   "references": [
+    "boat.rowboat_wood"
+   ],
+   "logical": {
+    "position": {
+     "x": 999,
+     "y": 3.4596854134799946,
+     "z": -1154
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
+  "ls-fishing-port-2.boat-2": {
+   "id": "ls-fishing-port-2.boat-2",
+   "kind": "prop",
+   "name": "Voilier",
+   "ownerChunkId": "39:44",
+   "position": {
+    "x": 1004,
+    "y": 2.808869832002062,
+    "z": -1145
+   },
+   "references": [
+    "boat.sailboat_small"
+   ],
+   "logical": {
+    "position": {
+     "x": 1004,
+     "y": 2.808869832002062,
+     "z": -1145
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
+  "ls-fishing-port-2.boat-3": {
+   "id": "ls-fishing-port-2.boat-3",
+   "kind": "prop",
+   "name": "Voilier",
+   "ownerChunkId": "39:44",
+   "position": {
+    "x": 1007,
+    "y": 1.0545084467077808,
+    "z": -1156
+   },
+   "references": [
+    "boat.sailboat_small"
+   ],
+   "logical": {
+    "position": {
+     "x": 1007,
+     "y": 1.0545084467077808,
+     "z": -1156
     },
     "initialState": {},
     "persistentState": []
@@ -60477,7 +60661,7 @@
    "ls-fishing-port-1": {
     "id": "ls-fishing-port-1",
     "presetId": "fishing-port",
-    "presetVersion": 1,
+    "presetVersion": 2,
     "name": "Port de pêche 1",
     "seed": 139421,
     "center": {
@@ -60533,6 +60717,10 @@
       "ls-fishing-port-1.crates": "08966454f0cf8416",
       "ls-fishing-port-1.lamp-0": "8b18544f17e33517",
       "ls-fishing-port-1.lamp-1": "f223d2199734a5bd",
+      "ls-fishing-port-1.boat-0": "095b05e3ca08e7eb",
+      "ls-fishing-port-1.boat-1": "2704aa99be4de04f",
+      "ls-fishing-port-1.boat-2": "e9b19af08c61f9b8",
+      "ls-fishing-port-1.boat-3": "afd3cc1dc834dc42",
       "ls-fishing-port-1.harbourmaster": "628041aeb552bf0c",
       "ls-fishing-port-1.old-fisher": "6f3935bbca701044",
       "ls-fishing-port-1.fishwife": "147848bdb301f1ca"
@@ -60564,7 +60752,7 @@
    "ls-fishing-port-2": {
     "id": "ls-fishing-port-2",
     "presetId": "fishing-port",
-    "presetVersion": 1,
+    "presetVersion": 2,
     "name": "Port de pêche 2",
     "seed": 147340,
     "center": {
@@ -60606,6 +60794,10 @@
       "ls-fishing-port-2.crates": "d880ccb552adce7a",
       "ls-fishing-port-2.lamp-0": "11a5bf60e70218fe",
       "ls-fishing-port-2.lamp-1": "c9025ddb6620c56a",
+      "ls-fishing-port-2.boat-0": "c7e89ad7f1f7d527",
+      "ls-fishing-port-2.boat-1": "042a4e28a6fee5f0",
+      "ls-fishing-port-2.boat-2": "413ec72cca6b11d5",
+      "ls-fishing-port-2.boat-3": "21b3bb4c6b85c115",
       "ls-fishing-port-2.harbourmaster": "1aabb0f3ded4e7bb",
       "ls-fishing-port-2.old-fisher": "13c0e7f1d7a090d8",
       "ls-fishing-port-2.fishwife": "e4655dfc2d1e44ca"
@@ -63400,6 +63592,22 @@
    "file": "models/world-kit/counter_port/lod0.glb",
    "license": "project-original",
    "source": "Little World original (feat/little-world-assets ou catalogue historique) — assets/world-kit/manifest.json#structure.counter_port"
+  },
+  "boat.rowboat_wood": {
+   "id": "boat.rowboat_wood",
+   "name": "Barque à rames",
+   "type": "glb",
+   "file": "models/boats/rowboat_wood/lod0.glb",
+   "license": "project-original",
+   "source": "Little World original (feat/little-world-assets ou catalogue historique) — assets/boats/manifest.json#boat.rowboat_wood"
+  },
+  "boat.sailboat_small": {
+   "id": "boat.sailboat_small",
+   "name": "Petit voilier",
+   "type": "glb",
+   "file": "models/boats/sailboat_small/lod0.glb",
+   "license": "project-original",
+   "source": "Little World original (feat/little-world-assets ou catalogue historique) — assets/boats/manifest.json#boat.sailboat_small"
   },
   "landmark.cave_entrance": {
    "id": "landmark.cave_entrance",
@@ -104823,6 +105031,130 @@
        "assetId": "structure.lamp_post"
       }
      }
+    },
+    "ls-fishing-port-1.boat-0": {
+     "id": "ls-fishing-port-1.boat-0",
+     "name": "Barque",
+     "kind": "prop",
+     "ownerChunkId": "18:5",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": -326,
+        "y": 1.4778931545948546,
+        "z": -3627
+       },
+       "rotation": {
+        "x": 0,
+        "y": 0.9950041652780257,
+        "z": 0,
+        "w": 0.09983341664682831
+       },
+       "scale": {
+        "x": 1.2,
+        "y": 1.2,
+        "z": 1.2
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "boat.rowboat_wood"
+      }
+     }
+    },
+    "ls-fishing-port-1.boat-1": {
+     "id": "ls-fishing-port-1.boat-1",
+     "name": "Barque",
+     "kind": "prop",
+     "ownerChunkId": "18:5",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": -334,
+        "y": 3.5835475269094474,
+        "z": -3631
+       },
+       "rotation": {
+        "x": 0,
+        "y": 0.9921976672293291,
+        "z": 0,
+        "w": -0.12467473338522762
+       },
+       "scale": {
+        "x": 1.2,
+        "y": 1.2,
+        "z": 1.2
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "boat.rowboat_wood"
+      }
+     }
+    },
+    "ls-fishing-port-1.boat-2": {
+     "id": "ls-fishing-port-1.boat-2",
+     "name": "Voilier",
+     "kind": "prop",
+     "ownerChunkId": "18:5",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": -325,
+        "y": 3.286453295980432,
+        "z": -3636
+       },
+       "rotation": {
+        "x": 0,
+        "y": 0.9950041652780257,
+        "z": 0,
+        "w": 0.09983341664682831
+       },
+       "scale": {
+        "x": 1.4,
+        "y": 1.4,
+        "z": 1.4
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "boat.sailboat_small"
+      }
+     }
+    },
+    "ls-fishing-port-1.boat-3": {
+     "id": "ls-fishing-port-1.boat-3",
+     "name": "Voilier",
+     "kind": "prop",
+     "ownerChunkId": "18:5",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": -336,
+        "y": 4.063086818221188,
+        "z": -3639
+       },
+       "rotation": {
+        "x": 0,
+        "y": 0.9921976672293291,
+        "z": 0,
+        "w": -0.12467473338522762
+       },
+       "scale": {
+        "x": 1.4,
+        "y": 1.4,
+        "z": 1.4
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "boat.sailboat_small"
+      }
+     }
     }
    },
    "entityIds": [
@@ -104839,7 +105171,11 @@
     "ls-fishing-port-1.hut-0",
     "ls-fishing-port-1.hut-1",
     "ls-fishing-port-1.lamp-0",
-    "ls-fishing-port-1.lamp-1"
+    "ls-fishing-port-1.lamp-1",
+    "ls-fishing-port-1.boat-0",
+    "ls-fishing-port-1.boat-1",
+    "ls-fishing-port-1.boat-2",
+    "ls-fishing-port-1.boat-3"
    ],
    "terrainEdits": [],
    "terrainRefs": [],
@@ -107203,6 +107539,37 @@
       }
      }
     },
+    "ls-fishing-port-2.boat-0": {
+     "id": "ls-fishing-port-2.boat-0",
+     "name": "Barque",
+     "kind": "prop",
+     "ownerChunkId": "38:44",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": 995,
+        "y": 3.0468918350459924,
+        "z": -1146
+       },
+       "rotation": {
+        "x": 0,
+        "y": -0.7741670784769464,
+        "z": 0,
+        "w": 0.6329813066769583
+       },
+       "scale": {
+        "x": 1.2,
+        "y": 1.2,
+        "z": 1.2
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "boat.rowboat_wood"
+      }
+     }
+    },
     "ls-fishing-port-2.harbourmaster": {
      "id": "ls-fishing-port-2.harbourmaster",
      "name": "Capitaine Nageoire",
@@ -107381,6 +107748,7 @@
     "ls-fishing-port-2.barrel-2",
     "ls-fishing-port-2.crates",
     "ls-fishing-port-2.lamp-0",
+    "ls-fishing-port-2.boat-0",
     "ls-fishing-port-2.harbourmaster",
     "ls-fishing-port-2.old-fisher",
     "ls-fishing-port-2.fishwife"
@@ -107558,6 +107926,99 @@
        "assetId": "structure.lamp_post"
       }
      }
+    },
+    "ls-fishing-port-2.boat-1": {
+     "id": "ls-fishing-port-2.boat-1",
+     "name": "Barque",
+     "kind": "prop",
+     "ownerChunkId": "39:44",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": 999,
+        "y": 3.4596854134799946,
+        "z": -1154
+       },
+       "rotation": {
+        "x": 0,
+        "y": -0.6134313493560127,
+        "z": 0,
+        "w": 0.7897480481946514
+       },
+       "scale": {
+        "x": 1.2,
+        "y": 1.2,
+        "z": 1.2
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "boat.rowboat_wood"
+      }
+     }
+    },
+    "ls-fishing-port-2.boat-2": {
+     "id": "ls-fishing-port-2.boat-2",
+     "name": "Voilier",
+     "kind": "prop",
+     "ownerChunkId": "39:44",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": 1004,
+        "y": 2.808869832002062,
+        "z": -1145
+       },
+       "rotation": {
+        "x": 0,
+        "y": -0.7741670784769464,
+        "z": 0,
+        "w": 0.6329813066769583
+       },
+       "scale": {
+        "x": 1.4,
+        "y": 1.4,
+        "z": 1.4
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "boat.sailboat_small"
+      }
+     }
+    },
+    "ls-fishing-port-2.boat-3": {
+     "id": "ls-fishing-port-2.boat-3",
+     "name": "Voilier",
+     "kind": "prop",
+     "ownerChunkId": "39:44",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": 1007,
+        "y": 1.0545084467077808,
+        "z": -1156
+       },
+       "rotation": {
+        "x": 0,
+        "y": -0.6134313493560127,
+        "z": 0,
+        "w": 0.7897480481946514
+       },
+       "scale": {
+        "x": 1.4,
+        "y": 1.4,
+        "z": 1.4
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "boat.sailboat_small"
+      }
+     }
     }
    },
    "entityIds": [
@@ -107565,7 +108026,10 @@
     "ls-fishing-port-2.pier-7",
     "ls-fishing-port-2.pier-8",
     "ls-fishing-port-2.pier-9",
-    "ls-fishing-port-2.lamp-1"
+    "ls-fishing-port-2.lamp-1",
+    "ls-fishing-port-2.boat-1",
+    "ls-fishing-port-2.boat-2",
+    "ls-fishing-port-2.boat-3"
    ],
    "terrainEdits": [],
    "terrainRefs": [],

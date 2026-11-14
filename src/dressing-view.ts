@@ -30,7 +30,8 @@ const CAPACITY:Record<Family,number>={trunk:2500,cone:1500,round:2500,stone:3000
 /** Far forest canopy ring (beyond the far silhouettes) per detail level: never switched off. */
 export const CANOPY_RADII=[1800,1600,1400,1100] as const;
 export interface DressingStats {/** GLB species library: loading state, instances per LOD, culling. */species:{state:'loading'|'ready'|'failed';lod0:number;lod1:number;triangles:number;bytes:number;loadMs:number;failed:string[];dropped:number};/** Allocated instance buffers (matrices + colours), bytes. */instanceBytes:number;byFamily:Record<string,number>;triangles:number;cells:number;pending:number;instances:number;calls:number;lastRebuildMs:number;maxCellMs:number;generatedMs:number;bytes:number;radiusScale:number;
-  /** GLB instances drawn per priority class, and instances refused by the class shares (G6). */byClass:Partial<Record<DressingClass,number>>;droppedByClass:Partial<Record<DressingClass,number>>;/** Far canopy cells cached (beyond the silhouette ring) and still to generate. */canopyCells:number;canopyPending:number}
+  /** GLB instances drawn per priority class, and instances refused by the class shares (G6). */byClass:Partial<Record<DressingClass,number>>;droppedByClass:Partial<Record<DressingClass,number>>;/** Far canopy cells cached (beyond the silhouette ring) and still to generate. */canopyCells:number;canopyPending:number;
+  /** Cells still to generate within 160 m of the focus (loading screen); −1 before the first plan. */nearPending:number}
 
 const trianglesOf=(g:THREE.BufferGeometry)=>(g.index?g.index.count:g.getAttribute('position').count)/3;
 /** Far round crown: an octahedron whose lower half is squashed (reads as a canopy, not a diamond). */
@@ -107,7 +108,7 @@ export function createDressingView(parent:THREE.Group,seed:number,density:number
     return true;
   }
   const cache=new Map<string,DressingCell&{used:number;stale?:boolean}>(),MAX_CELLS=900;let clock=0;
-  const stats:DressingStats={species:{state:'loading',lod0:0,lod1:0,triangles:0,bytes:0,loadMs:0,failed:[],dropped:0},instanceBytes:0,byFamily:{},triangles:0,cells:0,pending:0,instances:0,calls:0,lastRebuildMs:0,maxCellMs:0,generatedMs:0,bytes:0,radiusScale:1,byClass:{},droppedByClass:{},canopyCells:0,canopyPending:0};
+  const stats:DressingStats={species:{state:'loading',lod0:0,lod1:0,triangles:0,bytes:0,loadMs:0,failed:[],dropped:0},instanceBytes:0,byFamily:{},triangles:0,cells:0,pending:0,instances:0,calls:0,lastRebuildMs:0,maxCellMs:0,generatedMs:0,bytes:0,radiusScale:1,byClass:{},droppedByClass:{},canopyCells:0,canopyPending:0,nearPending:-1};
   const canopyFlight=new Map<string,GeoTask<Float32Array>>();let canopyDirty=false,queue:[number,number][]=[],focusCell='',dirty=true,lastRebuild=0,farScale=1,detail=0,retired=false;
   const scaleOf=(c:DressingClass)=>classScale(c,detail);
   const included=new Set<string>();
@@ -276,6 +277,7 @@ export function createDressingView(parent:THREE.Group,seed:number,density:number
           addCanopy(x,z,generateCanopyCell(cctx,seed,x,z,insideWorld));n++;}
         if(n)canopyDirty=true;}
       if(canopyDirty){if(canopy.size>MAX_CANOPY){const order=[...canopy.entries()].sort((a,b)=>a[1].used-b[1].used);for(const [k]of order.slice(0,canopy.size-MAX_CANOPY))canopy.delete(k);}}
+      {let near=0;const r=160;for(const [x,z]of queue)if(cellDistance(x,z,fx,fz)<r)near++;for(const key of inFlight.keys()){const [x,z]=key.split(':').map(Number);if(cellDistance(x,z,fx,fz)<r)near++;}stats.nearPending=near;}
       stats.canopyCells=canopy.size;stats.canopyPending=canopyQueue.length+canopyFlight.size;stats.pending=queue.length+inFlight.size;if(made){dirty=true;evict();}
       const now=performance.now();
       // Far canopy arrivals redraw at most once per second (and once when the ring is complete):

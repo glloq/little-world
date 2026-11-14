@@ -9,7 +9,7 @@
   "assets": 97,
   "glbFiles": 213,
   "bytes": 1275816,
-  "withUsage": 94
+  "withUsage": 96
  },
  "assets": [
   {
@@ -1631,7 +1631,7 @@
    "license": "project-original",
    "origin": "Little World original (feat/little-world-assets ou catalogue historique)",
    "artStatus": "ART_APPROVED",
-   "runtimeStatus": "INVENTORIED",
+   "runtimeStatus": "INTEGRATED",
    "size": [
     5.95,
     1.29,
@@ -1704,7 +1704,24 @@
       "OarStarboard"
      ]
     }
-   ]
+   ],
+   "usage": {
+    "role": "boat",
+    "placement": "manual",
+    "collision": "none",
+    "instancing": false,
+    "footprintM": 3,
+    "scale": [
+     1,
+     1
+    ],
+    "habitats": [
+     "sandy-coast",
+     "rocky-coast",
+     "riverbank"
+    ],
+    "runtimeStatus": "INTEGRATED"
+   }
   },
   {
    "id": "boat.sailboat_small",
@@ -1715,7 +1732,7 @@
    "license": "project-original",
    "origin": "Little World original (feat/little-world-assets ou catalogue historique)",
    "artStatus": "ART_APPROVED",
-   "runtimeStatus": "INVENTORIED",
+   "runtimeStatus": "INTEGRATED",
    "size": [
     2.24,
     4.669,
@@ -1794,7 +1811,23 @@
       "RudderPivot"
      ]
     }
-   ]
+   ],
+   "usage": {
+    "role": "boat",
+    "placement": "manual",
+    "collision": "none",
+    "instancing": false,
+    "footprintM": 3,
+    "scale": [
+     1,
+     1
+    ],
+    "habitats": [
+     "sandy-coast",
+     "rocky-coast"
+    ],
+    "runtimeStatus": "INTEGRATED"
+   }
   },
   {
    "id": "landmark.cave_entrance",
@@ -9892,18 +9925,6 @@
   }
  ],
  "diagnostics": [
-  {
-   "severity": "INFO",
-   "code": "ASSET_NO_USAGE",
-   "id": "boat.rowboat_wood",
-   "message": "Pas de règle d’usage géographique : inventorié seulement"
-  },
-  {
-   "severity": "INFO",
-   "code": "ASSET_NO_USAGE",
-   "id": "boat.sailboat_small",
-   "message": "Pas de règle d’usage géographique : inventorié seulement"
-  },
   {
    "severity": "WARNING",
    "code": "ASSET_SINGLE_LOD",

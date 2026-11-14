@@ -26,7 +26,7 @@ export interface PlaceableAssetEntry {id:string;name:string;category:string;type
 const CATEGORY_LABEL:Record<string,string>={trees:'Arbres',shrubs:'Arbustes',ground:'Petites plantes',deadwood:'Bois mort',hedges:'Haies',fences:'Clôtures',walls:'Murets',bridges:'Ponts',dock:'Ponton',buildings:'Bâtiments',boats:'Bateaux',legacy:'Historique'};
 export const groupLabel=(group:string)=>CATEGORY_LABEL[group]??group;
 export function placeableWorldAssets():PlaceableAssetEntry[]{
-  return WORLD_ASSETS.assets.filter(a=>a.group!=='legacy'&&a.group!=='boats'&&a.usage).map(a=>({id:a.id,name:a.label,category:groupLabel(a.group),type:'glb' as const,license:a.license,file:a.lods[0].file,source:`${a.origin} — ${a.source}#${a.sourceId}`}));
+  return WORLD_ASSETS.assets.filter(a=>a.group!=='legacy'&&a.usage).map(a=>({id:a.id,name:a.label,category:groupLabel(a.group),type:'glb' as const,license:a.license,file:a.lods[0].file,source:`${a.origin} — ${a.source}#${a.sourceId}`}));
 }
 /** Indicative cost class for the Studio library (LOD0 triangles). */
 export function costClass(a:WorldAsset):'léger'|'moyen'|'lourd'{const t=a.lods[0].triangles;return t<=200?'léger':t<=800?'moyen':'lourd';}

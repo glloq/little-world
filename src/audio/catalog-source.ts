@@ -32,14 +32,14 @@ const S=(seconds:[number,number])=>seconds;
 const oneshotAmb={loop:false,cooldownMs:1500};
 export const EVENTS:EventSpec[]=[
  // ── Legacy V1 sounds kept under their ids (interaction actions and emitters referencing them keep working).
- {id:'step',category:'legacy',description:'Pas générique V1',trigger:'Repli de player.footstep',context:[],spatial:'joueur',kind:'sample',emitted:true,groups:[{key:'legacy-step',library:['sample-step']}],params:{gain:.35}},
+ {id:'step',category:'legacy',description:'Pas générique V1',trigger:'Repli de player.footstep',context:[],spatial:'joueur',kind:'sample',emitted:true,groups:[{key:'legacy-step',library:['sample-step']}],params:{gain:.16}},
  {id:'collect',category:'legacy',description:'Collecte V1',trigger:'Action playSound des modèles d’interaction',context:[],spatial:'monde',kind:'sample',emitted:true,groups:[{key:'legacy-collect',library:['sample-collect']}],params:{gain:.7}},
  {id:'mission',category:'legacy',description:'Mission V1',trigger:'Action playSound de livraison',context:[],spatial:'monde',kind:'sample',emitted:true,groups:[{key:'legacy-mission',library:['sample-mission']}],params:{gain:.7}},
  {id:'lever',category:'legacy',description:'Mécanisme V1',trigger:'Action playSound levier',context:[],spatial:'monde',kind:'sample',emitted:true,groups:[{key:'legacy-lever',library:['sample-lever']}],params:{gain:.6}},
  {id:'water',category:'legacy',description:'Eau V1 (bruit filtré)',trigger:'Repli de ambience.water.river',context:[],spatial:'boucle globale',kind:'sample',emitted:true,groups:[{key:'legacy-water',library:['sample-water']}],params:{gain:.45}},
  {id:'rain',category:'legacy',description:'Pluie V1 (bruit blanc)',trigger:'Repli de weather.rain',context:[],spatial:'boucle globale',kind:'sample',emitted:true,groups:[{key:'legacy-rain',library:['sample-rain']}],params:{gain:.3}},
  // ── Déplacements
- {id:'player.footstep',category:'movement',description:'Pas du joueur selon la surface',trigger:'Routeur : distance parcourue au sol (0,9 m marche / 1,25 m course, ≥ 200 ms)',context:['surface','movement','intensity','wet'],spatial:'joueur',kind:'sample',emitted:true,fallback:'step',params:{gain:.4},groups:[
+ {id:'player.footstep',category:'movement',description:'Pas du joueur selon la surface',trigger:'Routeur : distance parcourue au sol (0,9 m marche / 1,25 m course, ≥ 200 ms)',context:['surface','movement','intensity','wet'],spatial:'joueur',kind:'sample',emitted:true,fallback:'step',params:{gain:.18},groups:[
   {key:'fs-grass',when:{surface:['grass']},takes:4,wave:1,seconds:S([.15,.3]),brief:'Pas léger de petit animal sur herbe courte : froissement doux, attaque nette, aucune réverbération.'},
   {key:'fs-dirt',when:{surface:['dirt']},takes:4,wave:1,seconds:S([.15,.3]),brief:'Pas sur terre sèche tassée : contact mat, légère poussière, sans grain de gravier.'},
   {key:'fs-stone',when:{surface:['stone']},takes:4,wave:1,seconds:S([.12,.28]),brief:'Pas sur pierre/roche : clic sec et court, petite queue sans écho de grotte (l’écho viendra de l’ambiance).'},
