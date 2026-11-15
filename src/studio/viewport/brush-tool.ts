@@ -67,7 +67,7 @@ export class BrushTool implements Tool {
         await s.change(code==='x'?'Exclure la végétation':'Restaurer la végétation',[...cells.keys()],draft=>{
           const filtered=code==='x'&&brushSettings.maskProtect?protectedCells(draft,'occupation',cells):cells;
           // Restoration only removes an explicit exclusion mask. Do not erase protected farm/road/built cells.
-          const toApply=code==='.'?new Map([...cells].map(([id,indexes])=>[id,indexes.filter(i=>draft.chunks[id]?.layers?.occupation?.[i]==='x')])):filtered;
+          const toApply=code==='.'?new Map<string,number[]>([...cells].map(([id,indexes]):[string,number[]]=>[id,indexes.filter(i=>draft.chunks[id]?.layers?.occupation?.[i]==='x')])):filtered;
           paintMask(draft,'occupation',code,toApply);
         });
         this.ctx.message(code==='x'?'Végétation exclue sur les cellules géographiques du trait.':'Masques de végétation restaurés sur le trait.');
