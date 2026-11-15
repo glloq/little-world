@@ -118,6 +118,7 @@ async function toolPanel(id:string,v:StudioViewport){
     // The placement choice is shared with characters/lights: the Objects module always places an asset.
     const {placementSettings}=await import('./viewport/placement-tool.ts');if(placementSettings.item.kind!=='asset')placementSettings.item={kind:'asset',id:lastAsset};
     v.setTool('place');const {mountLibrary}=await import('./library.ts');tools.append(node('div','BIBLIOTHÈQUE','kicker'),node('h3','Placer des objets'));mountLibrary(tools,s.document.assets,item=>{if(item.kind==='asset')lastAsset=item.id;v.setTool('place');status('Choix conservé : cliquez dans la vue pour placer, autant de fois que nécessaire.');});
+    const {mountAssemblyPanel}=await import('./assemblies-panel.ts');const stop=mountAssemblyPanel(tools,s,v,status),previous=disposePanel;disposePanel=()=>{stop();previous();};
   }else if(id==='characters'){
     const {placementSettings}=await import('./viewport/placement-tool.ts');let name='Nouvel habitant',species:import('../studio-core/types.ts').CharacterSpecies='squirrel';
     const choose=()=>{placementSettings.item={kind:'npc',species,name};v.setTool('place');};choose();
