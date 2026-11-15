@@ -15,7 +15,7 @@ import type {PolylineTarget} from './viewport/polyline-tool.ts';
 import {REGION_PRESETS,newRegion,previewRegion,applyRegion,removeRegion,validateRegionRecipe,
   regionAffectedChunks,type RegionPreset,type RegionRecipeV1,type RegionReport} from '../studio-core/region-recipes.ts';
 import {DEFAULT_REGION_VEGETATION,REGION_TREE_SPECIES,type RegionVegetation} from '../studio-core/region-schema.ts';
-import {regionBatchChunks,previewRegionBatch,applyRegionBatch} from '../studio-core/region-batch.ts';
+import {regionBatchChunks,previewRegionBatch,previewRegionBatchWithDiff,applyRegionBatch,type RegionVisualPreview} from '../studio-core/region-batch.ts';
 
 export interface RegionPanelContext {
   session:StudioSession;viewport:StudioViewport;
@@ -189,16 +189,44 @@ export function mountRegionsPanel(host:HTMLElement,ctx:RegionPanelContext):()=>v
      compositionChoices.append(label);
    }
  }
+ function renderDiff(preview:RegionVisualPreview,regions:RegionRecipeV1[]){
+   const w=440,h=240,canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
+   canvas.style.width='100%';canvas.style.maxWidth=w+'px';canvas.style.border='1px solid #aab7b3';
+   canvas.setAttribute('aria-label','Aperçu cartographique des cellules modifiées');
+   const g=canvas.getContext('2d');if(!g)return;
+   const bounds=p.world.bounds,size=p.world.chunkSizeM,cellSize=size/16;
+   const xy=(x:number,z:number)=>({x:(x-bounds.minX)/(bounds.maxX-bounds.minX)*w,
+     y:(z-bounds.minZ)/(bounds.maxZ-bounds.minZ)*h});
+   g.fillStyle='#e4ece8';g.fillRect(0,0,w,h);
+   for(const region of regions){
+     g.strokeStyle='#697b78';g.lineWidth=1;g.beginPath();
+     region.points.forEach((point,i)=>{const q=xy(point.x,point.z);if(i===0)g.moveTo(q.x,q.y);else g.lineTo(q.x,q.y);});
+     g.closePath();g.stroke();
+   }
+   const palette={painted:'#318e59',cleared:'#c88943',replaced:'#477eb8'};
+   const sx=Math.max(1,cellSize/(bounds.maxX-bounds.minX)*w),
+         sz=Math.max(1,cellSize/(bounds.maxZ-bounds.minZ)*h);
+   for(const cell of preview.diff.cells){
+     const [cx,cz]=cell.chunkId.split(':').map(Number);
+     const x=bounds.minX+(cx*16+(cell.index%16))*cellSize,
+           z=bounds.minZ+(cz*16+Math.floor(cell.index/16))*cellSize;
+     const pos=xy(x,z);g.fillStyle=palette[cell.kind];g.fillRect(pos.x,pos.y,sx,sz);
+   }
+   const legend=node('p','Vert : ajouté · Orange : rétabli · Bleu : remplacé'+
+     (preview.diff.truncated?' · Affichage limité aux 16 384 premières cellules modifiées':''),'muted');
+   compositionResult.append(canvas,legend,node('p',preview.diff.total+' cellules réellement modifiées sur la carte (toutes couches confondues).','muted'));
+ }
  const composePreview=async()=>{
    const items=ordered();
    if(!items.length)throw Error('Sélectionner au moins une région');
    const ids=regionBatchChunks(p,items);
    await s.hydrate(ids);
-   const result=previewRegionBatch(p,items);
+   const result=previewRegionBatchWithDiff(p,items);
    previewSignature=signature(items);
    compositionResult.replaceChildren(node('strong',items.length+' régions · '+result.chunks.length+' secteurs'),
      node('p',summarize({...result.totals,feature:'none',sectors:result.chunks.length,warnings:[]}),'muted'));
    for(const entry of result.reports)compositionResult.append(node('p',entry.name+' : '+summarize(entry.report),'muted'));
+   renderDiff(result,items);
  };
  composition.append(compositionChoices,
    button('Prévisualiser la composition',()=>safe(composePreview)),
@@ -219,6 +247,6 @@ export function mountRegionsPanel(host:HTMLElement,ctx:RegionPanelContext):()=>v
    })),
    compositionResult);
  host.append(summary,reliefHost,hydroHost,composition,list);renderForm();renderList();renderComposition();
- const reliefStop=mountReliefLinesPanel(reliefHost,ctx),hydroStop=mountHydroNetworkPanel(hydroHost,ctx),stop=s.commands.subscribe(()=>renderList());
+ const reliefStop=mountReliefLinesPanel(reliefHost,ctx),hydroStop=mountHydroNetworkPanel(hydroHost,ctx),stop=s.commands.subscribe(()=>{previewSignature='';compositionResult.replaceChildren();renderList();renderComposition();});
  return ()=>{stop();reliefStop();hydroStop();v.showFootprint(null);};
 }
