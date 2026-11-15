@@ -1,7 +1,7 @@
 /** Studio visual assembly panel. Uses the same session/CommandBus as individual objects. */
 import {node,button,field,input,select} from './dom.ts';
 import {libraryAssets} from './library.ts';
-import {assemblyInstanceRoot,instanceMemberIds,overrideAssemblyVisual,updateAssemblyTemplateVisual,assemblyVisualOf} from '../studio-core/assembly-instances.ts';
+import {assemblyInstanceRoot,instanceMemberIds,instanceTreeChunkIds,overrideAssemblyVisual,updateAssemblyTemplateVisual,assemblyVisualOf} from '../studio-core/assembly-instances.ts';
 import type {StudioSession} from './session.ts';
 import type {StudioViewport} from './viewport/editor-viewport.ts';
 import {captureAssembly,assemblyChunkIds,placeAssembly} from '../studio-core/assemblies.ts';
@@ -84,8 +84,7 @@ export function mountAssemblyPanel(host:HTMLElement,session:StudioSession,viewpo
       })),
       button('Sélectionner l’instance entière',()=>run(async()=>{
         const root=await getRoot();
-        const candidate=Object.values(p.entityIndex).filter(e=>e.references.includes(root)).map(e=>e.ownerChunkId);
-        await session.hydrate([p.entityIndex[root].ownerChunkId,...candidate]);
+        await session.hydrate(instanceTreeChunkIds(p,root));
         const members=instanceMemberIds(p,root);
         session.selection.setSelection(members.map(id=>({kind:'entity' as const,id})));
         status(members.length+' éléments du groupe sélectionnés. Déplacer avec le gizmo.');
