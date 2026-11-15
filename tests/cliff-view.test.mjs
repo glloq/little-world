@@ -11,7 +11,7 @@ test('rock faces are deterministic, faceted, finite and bounded per segment',()=
  const args={a:{x:-12,z:0},b:{x:12,z:0},widthM:12,seed:42};
  const first=buildCliffGeometry(args,height,0),second=buildCliffGeometry(args,height,0);
  const pos=first.getAttribute('position'),colors=first.getAttribute('color');
- assert.ok(pos.count>0&&pos.count<150);
+ assert.ok(pos.count>0&&pos.count<=240);
  assert.equal(first.index,null);
  assert.equal(pos.count,colors.count);
  assert.deepEqual([...pos.array],[...second.getAttribute('position').array]);
@@ -49,4 +49,27 @@ test('only rl-cliff ridges generate rock walls',()=>{
  view.refresh({...terrain,archipelago:{...terrain.archipelago,features:[ridge('rl-ridge-not-cliff')]}});
  assert.equal(view.stats.available,0);
  view.dispose();
+});
+
+test('adjacent rock strips share boundary vertices without discontinuity',()=>{
+ const a=buildCliffGeometry({a:{x:0,z:0},b:{x:12,z:0},widthM:12,seed:123,startM:0,endM:12},height,0);
+ const b=buildCliffGeometry({a:{x:12,z:0},b:{x:24,z:0},widthM:12,seed:123,startM:12,endM:24},height,0);
+ const seam=g=>{
+  const positions=g.getAttribute('position'),out=new Set();
+  for(let i=0;i<positions.count;i++)if(Math.abs(positions.getX(i)-12)<1e-5){
+    out.add([positions.getY(i).toFixed(4),positions.getZ(i).toFixed(4)].join(':'));
+  }
+  return [...out].sort();
+ };
+ assert.ok(seam(a).length>=8);
+ assert.deepEqual(seam(a),seam(b));
+ a.dispose();b.dispose();
+});
+test('scree is integrated into the wall draw call and near LOD adds more detail',()=>{
+ const args={a:{x:0,z:0},b:{x:15,z:0},widthM:10,seed:24};
+ const fine=buildCliffGeometry(args,height,0),coarse=buildCliffGeometry(args,height,1);
+ assert.ok(fine.getAttribute('position').count>coarse.getAttribute('position').count);
+ assert.equal(fine.groups.length,0);
+ assert.ok(fine.boundingBox.max.y>fine.boundingBox.min.y);
+ fine.dispose();coarse.dispose();
 });
