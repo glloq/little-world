@@ -54,12 +54,24 @@ try{
  await page.getByRole('button',{name:'Objets',exact:true}).click();
  await page.getByRole('button',{name:'Placer : Lanterne',exact:true}).click();
  await waitTool('place');
- const A={x:cx-125,y:cy+125},B={x:cx+125,y:cy+125};
+ const A={x:cx-160,y:cy},B={x:cx+160,y:cy},modelsBefore=Number(await canvas.getAttribute('data-models'));
  await page.mouse.move(A.x,A.y);await page.mouse.click(A.x,A.y);
+ await page.waitForFunction(n=>Number(document.querySelector('.viewport canvas')?.dataset.models)>n,modelsBefore,{timeout:30000});
  await page.mouse.move(B.x,B.y);await page.mouse.click(B.x,B.y);
+ await page.waitForFunction(n=>Number(document.querySelector('.viewport canvas')?.dataset.models)>=n+2,modelsBefore,{timeout:30000});
+ check(true,'Two visual assets placed through the 3D library');
  await page.keyboard.press('Escape');await waitTool('select');
- await page.mouse.click(A.x,A.y);
- await page.keyboard.down('Shift');await page.mouse.click(B.x,B.y);await page.keyboard.up('Shift');
+ // Choose known new IDs in the authoring list: raycasts on the reference scene can hit
+ // pre-existing props, rocks or procedural geometry at the same screen positions.
+ const getArchive=async()=>{const promise=page.waitForEvent('download');await page.getByRole('button',{name:'Exporter ZIP',exact:true}).click();
+   const d=await promise;return readProjectArchive(new Uint8Array(await readFile(await d.path())));};
+ const placed=(await getArchive()).entityIndex,chosen=Object.values(placed).filter(e=>e.name==='Lanterne').slice(-2).map(e=>e.id);
+ check(chosen.length===2,'Newly placed lantern IDs are persisted in the V3 project');
+ await page.getByRole('button',{name:'Sélection',exact:true}).click();
+ for(const [index,id] of chosen.entries()){
+   await page.getByLabel('Rechercher une entité').fill(id);
+   await page.locator('#tools .search-results button[data-kind=entity]').first().click(index?{modifiers:['Shift']}:{});
+ }
  await page.waitForFunction(()=>document.querySelector('#inspector h3')?.textContent==='2 éléments',{},{timeout:20000});
  await page.getByRole('button',{name:'Objets',exact:true}).click();
  await page.getByRole('button',{name:'Enregistrer la sélection'}).click();
@@ -73,8 +85,7 @@ try{
  await page.screenshot({path:out+'/studio-prefab-placement.png',fullPage:true});
  // Two copies of a prefab: local override on one, shared default change on the other.
  await page.getByRole('button',{name:'Placer au centre de la vue'}).click();
- const exported=async()=>{const promise=page.waitForEvent('download');await page.getByRole('button',{name:'Exporter ZIP',exact:true}).click();
-   const d=await promise;return readProjectArchive(new Uint8Array(await readFile(await d.path())));};
+ const exported=getArchive;
  const before=await exported();
  const members=Object.values(before.chunks).flatMap(chunk=>Object.values(chunk.entities))
    .filter(e=>e.prefabId?.startsWith('assembly-part:'));
