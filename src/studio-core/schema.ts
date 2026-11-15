@@ -138,11 +138,27 @@ function validateLibraries(value:unknown,world:WorldDefinitionV3,entityIds:strin
   if(libs.assemblies!==undefined)for(const [id,raw] of Object.entries(dictionary(libs.assemblies,'Assemblages',1000))){
     const a=object(raw,'Assemblage');keys(a,['id','name','version','items'],'Assemblage');
     if(a.id!==id)throw Error('Assemblage : ID différent de la clé');
-    string(a.id,'ID assemblage');string(a.name,'Nom assemblage',100);integer(a.version,'Version assemblage',1,1);
-    for(const rawItem of array(a.items,'Objets assemblage',100)){
-      const item=object(rawItem,'Objet assemblage');keys(item,['kind','name','dx','dz','components'],'Objet assemblage');
+    string(a.id,'ID assemblage');string(a.name,'Nom assemblage',100);integer(a.version,'Version assemblage',1,2);
+    const items=array(a.items,'Objets assemblage',100);
+    if(a.version===2){
+      const keys=new Set(items.map((v,i)=>(v as {key?:string}).key??'part-'+i));
+      if(keys.size!==items.length)throw Error('Assemblage : clés de composants non uniques');
+      for(const item of items as {key?:string;parentKey?:string}[])
+        if(item.parentKey&&(!keys.has(item.parentKey)||item.parentKey===item.key))throw Error('Assemblage : parent inconnu ou circulaire');
+      for(const item of items as {key?:string;parentKey?:string}[]){
+        const visited=new Set<string>();let cursor=item.parentKey;
+        while(cursor){if(visited.has(cursor))throw Error('Assemblage : hiérarchie cyclique');visited.add(cursor);
+          const parent=items.find((other,i)=>((other as {key?:string}).key??'part-'+i)===cursor) as {parentKey?:string}|undefined;
+          cursor=parent?.parentKey;
+        }
+      }
+    }
+    for(const rawItem of items){
+      const item=object(rawItem,'Objet assemblage');keys(item,['kind','name','dx','dz','key','parentKey','components'],'Objet assemblage');
       if(item.kind!=='prop'&&item.kind!=='building')throw Error('Type objet assemblage invalide');
       string(item.name,'Nom objet assemblage',200);finite(item.dx,'Décalage X',-1e5,1e5);finite(item.dz,'Décalage Z',-1e5,1e5);
+      if(item.key!==undefined)string(item.key,'Clé composant assemblage',100);
+      if(item.parentKey!==undefined)string(item.parentKey,'Parent composant assemblage',100);
       const c=object(item.components,'Composants assemblage');keys(c,['Transform','Visual','Collider'],'Composants assemblage');
       if(!c.Transform||!c.Visual)throw Error('Transform et Visual requis');
       parseComponents(c);
