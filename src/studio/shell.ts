@@ -142,10 +142,13 @@ async function toolPanel(id:string,v:StudioViewport){
     tools.append(controls);
     const {mountScatterPanel}=await import('./scatter-panel.ts');mountScatterPanel(tools,v);
     const {mountPatternPanel}=await import('./pattern-panel.ts');
-    mountPatternPanel(tools,{session:s,status,edit:target=>{void run(async()=>{
-      const {polylineTarget}=await import('./viewport/polyline-tool.ts');polylineTarget.current=target;
-      returnModule='objects';await module('polyline');
-    })();}});
+    const editConstruction=(target:import('./viewport/polyline-tool.ts').PolylineTarget)=>{
+      void run(async()=>{const {polylineTarget}=await import('./viewport/polyline-tool.ts');
+        polylineTarget.current=target;returnModule='objects';await module('polyline');})();
+    };
+    mountPatternPanel(tools,{session:s,status,edit:editConstruction});
+    const {mountConstructionPanel}=await import('./construction-panel.ts');
+    mountConstructionPanel(tools,{session:s,status,edit:editConstruction});
     const {mountAssemblyPanel}=await import('./assemblies-panel.ts');const stop=mountAssemblyPanel(tools,s,v,status),previous=disposePanel;disposePanel=()=>{stop();previous();};
   }else if(id==='characters'){
     const {placementSettings}=await import('./viewport/placement-tool.ts');let name='Nouvel habitant',species:import('../studio-core/types.ts').CharacterSpecies='squirrel';
