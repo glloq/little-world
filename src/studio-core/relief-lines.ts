@@ -32,7 +32,7 @@ export function validateReliefLine(world:ProjectDocument['world'],draft:ReliefLi
  if(!Object.hasOwn(allowed,draft.preset)||!/^rl-(ridge|cliff|valley|pass)-[a-zA-Z0-9-]{1,70}$/.test(draft.id))throw Error('Type de relief ou ID non valide');
  const b=world.bounds;
  if(draft.points.length<2||draft.points.length>ARCHIPELAGO_LIMITS.line)throw Error('Relief : 2 à 32 points requis');
- if(!Number.isFinite(draft.widthM)||draft.widthM<5||draft.widthM>2000||!Number.isFinite(draft.amountM)||draft.amountM<.5||draft.amountM>800)throw Error('Relief : largeur ou amplitude hors limites');
+ if(!Number.isFinite(draft.widthM)||draft.widthM<5||draft.widthM>2000||!Number.isFinite(draft.amountM)||draft.amountM<.5||draft.amountM>((draft.preset==='valley'||draft.preset==='pass')?400:800))throw Error('Relief : largeur ou amplitude hors limites');
  let length=0;
  for(let i=0;i<draft.points.length;i++){
   const q=draft.points[i];
