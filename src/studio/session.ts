@@ -57,5 +57,27 @@ export class StudioSession {
   }catch(error){dirty.forEach(id=>this.dirty.add(id));this.pending=true;this.status=String(error);throw error;}finally{this.saving=null;this.emit();}})();
   await this.saving;if(this.pending)await this.flush();
  }
+ /** Conservative bounded source cache. Only persisted, non-history sectors can be dropped.
+  * Keeps camera sectors, sector dependencies, selection, dirty sectors and all Undo/Redo sectors.
+  * A caller MUST rebuild the runtime view before calling this (it may already hold derived data).
+  * No eviction while a write is pending or underway. */
+ compactHydrated(visible:ReadonlySet<string>,limit=512):number {
+  if(this.pending||this.saving||this.dirty.size)return 0;
+  const keys=Object.keys(this.document.chunks);if(keys.length<=limit)return 0;
+  const pinned=new Set<string>([...visible,...this.commands.historyChunkIds()]);
+  for(const ref of this.selection.selection)if(ref.kind==='entity'){
+    const id=this.document.entityIndex[ref.id]?.ownerChunkId;if(id)pinned.add(id);
+  }
+  const visit=(id:string)=>{if(!this.document.chunkIndex[id])return;
+    for(const dep of this.document.chunkIndex[id].dependencies)if(!pinned.has(dep)){pinned.add(dep);visit(dep);}
+  };
+  for(const id of [...pinned])visit(id);
+  let removed=0;
+  for(const id of keys){if(keys.length-removed<=limit)break;
+    if(pinned.has(id))continue;
+    delete this.document.chunks[id];removed++;
+  }
+  return removed;
+ }
  async fullDocument(){await this.hydrate(Object.keys(this.document.chunkIndex));return this.document;}
 }
