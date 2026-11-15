@@ -38,7 +38,7 @@ export function planGuidedRiver(start:PointXZ,toward:PointXZ,context:GuidedRiver
  const trace=traceDownhill(start,{height:context.height,water:context.water,inWorld:context.inWorld,seaLevel:context.seaLevel,
     heading:Math.atan2(toward.z-start.z,toward.x-start.x),maxLengthM:options.maxLengthM,
     stepM:10,spacingM:18,maxPoints:90,climbM:3});
- if(trace.points.length<2||distance(trace.points[0],trace.points.at(-1)!)<10)throw Error('Aucun cours d’eau descendant praticable trouvé. Modifier la source ou le relief.');
+ if(trace.points.length<2||distance(trace.points[0],trace.points.at(-1)!)<10||trace.drop<.25&&trace.end!=='water'&&trace.end!=='sea')throw Error('Aucun cours d’eau descendant praticable trouvé. Modifier la source ou le relief.');
  const points=trace.points.map(q=>({...q})),warnings:string[]=[];
  let to:WaterLink|undefined;
  if(trace.end==='sea')to={kind:'sea'};
