@@ -123,7 +123,20 @@ async function toolPanel(id:string,v:StudioViewport){
   }else if(id==='objects'){
     // The placement choice is shared with characters/lights: the Objects module always places an asset.
     const {placementSettings}=await import('./viewport/placement-tool.ts');if(placementSettings.item.kind!=='asset')placementSettings.item={kind:'asset',id:lastAsset};
-    v.setTool('place');const {mountLibrary}=await import('./library.ts');tools.append(node('div','BIBLIOTHÈQUE','kicker'),node('h3','Placer des objets'));mountLibrary(tools,s.document.assets,item=>{if(item.kind==='asset')lastAsset=item.id;v.setTool('place');status('Choix conservé : cliquez dans la vue pour placer, autant de fois que nécessaire.');});
+    v.setTool('place');const {mountLibrary}=await import('./library.ts');
+    tools.append(node('div','BIBLIOTHÈQUE','kicker'),node('h3','Placer des objets'));
+    mountLibrary(tools,s.document.assets,item=>{if(item.kind==='asset')lastAsset=item.id;v.setTool('place');status('Choix conservé : cliquez dans la vue pour placer, autant de fois que nécessaire.');});
+    const {transformSettings}=await import('./viewport/select-tool.ts');
+    const snap=node('input');snap.type='checkbox';snap.checked=transformSettings.snap;
+    snap.onchange=()=>{transformSettings.snap=snap.checked;};
+    const controls=node('details','','section-card');controls.open=true;
+    controls.append(node('summary','Précision du placement'),
+      field('Rotation du prochain objet (°)',numberInput(Math.round(placementSettings.yaw*180/Math.PI),val=>{placementSettings.yaw=val*Math.PI/180;},-360,360)),
+      field('Échelle du prochain objet',numberInput(placementSettings.scale,val=>placementSettings.scale=Math.max(.1,Math.min(5,val||1)),.1,5,'0.1')),
+      field('Aimantation du placement',snap),
+      field('Pas de grille du placement (m)',numberInput(transformSettings.grid,val=>transformSettings.grid=Math.max(.1,Math.min(100,val||1)),.1,100)),
+      node('p','R / Maj+R : pivoter par pas de 15° · Échap : quitter le placement · molette/clic droit : orienter la caméra.','muted'));
+    tools.append(controls);
     const {mountScatterPanel}=await import('./scatter-panel.ts');mountScatterPanel(tools,v);
     const {mountPatternPanel}=await import('./pattern-panel.ts');
     mountPatternPanel(tools,{session:s,status,edit:target=>{void run(async()=>{
