@@ -3,7 +3,7 @@
 import {button,node} from './dom.ts';
 import type {RegionPanelContext} from './regions-panel.ts';
 import {projectGeography} from '../studio-core/geo-context.ts';
-import {reviewHydroNetwork,planHydroLink} from '../studio-core/hydro-network-assistant.ts';
+import {reviewHydroNetwork,planHydroLink,planHydroFall} from '../studio-core/hydro-network-assistant.ts';
 import {putWater} from '../studio-core/source.ts';
 import {analyzeWatersheds} from '../studio-core/watershed-analysis.ts';
 import {waterChunkIds,waterEditChunkIds} from '../water/sectors.ts';
@@ -44,10 +44,23 @@ export function mountHydroNetworkPanel(host:HTMLElement,ctx:RegionPanelContext):
    for(const fall of r.falls.slice(0,24)){
      const w=p.libraries.water[fall.riverId],at=w?.points[fall.point-1];
      if(!at)continue;
-     results.append(button('Cascade à examiner : '+fall.riverId+' · point '+fall.point+
-       ' · chute '+fall.dropM.toFixed(1)+' m',()=>ctx.viewport.goTo(at.x,at.z,24)));
+     const row=node('div','','feature-row');
+     row.append(button('Voir cascade : '+fall.riverId+' · point '+fall.point+
+       ' · chute '+fall.dropM.toFixed(1)+' m',()=>ctx.viewport.goTo(at.x,at.z,24)),
+       button('Créer la cascade',()=>safe(async()=>{
+         await hydrate();
+         const fresh=Object.values(p.libraries.water),original=p.libraries.water[fall.riverId];
+         if(!original)throw Error('Rivière introuvable');
+         const geo=projectGeography(p).ctx;
+         const updated=planHydroFall(fresh,fall,geo.height,p.world.seaLevel);
+         const ids=waterEditChunkIds(p,original,updated);
+         await s.change('Cascade '+fall.riverId+' au point '+fall.point,ids,d=>putWater(d,updated));
+         ctx.status('Cascade créée et validée : '+fall.riverId);
+         await inspect();
+       })));
+     results.append(row);
    }
-   if(r.falls.length)results.append(node('p','Les cascades proposées sont des diagnostics : régler leurs niveaux dans Eau avant de les créer.','muted'));
+   if(r.falls.length)results.append(node('p','Les cascades sont des propositions : chaque création est refusée si la validation du réseau échoue.','muted'));
  };
  const basins=node('div','','feature-list');
  const inspectBasins=async()=>{
