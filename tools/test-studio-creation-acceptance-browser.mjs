@@ -3,7 +3,9 @@
 import {chromium} from 'playwright';
 import assert from 'node:assert/strict';
 import {existsSync} from 'node:fs';
-import {mkdir} from 'node:fs/promises';
+import {mkdir,readFile} from 'node:fs/promises';
+import {readProjectArchive} from '../src/studio-core/archive.ts';
+import {resolveEntity} from '../src/studio-core/references.ts';
 const base=process.env.WORLD_URL??'http://127.0.0.1:5173/little-world/';
 const out='/tmp/little-world-browser';await mkdir(out,{recursive:true});
 const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH??(existsSync('/usr/bin/chromium')?'/usr/bin/chromium':undefined),
@@ -69,6 +71,39 @@ try{
  await page.waitForFunction(n=>Number(document.querySelector('.viewport canvas')?.dataset.models)>n,countBefore,{timeout:30000});
  check(true,'Assembly copy inserted from model, with one undoable transaction');
  await page.screenshot({path:out+'/studio-prefab-placement.png',fullPage:true});
+ // Two copies of a prefab: local override on one, shared default change on the other.
+ await page.getByRole('button',{name:'Placer au centre de la vue'}).click();
+ const exported=async()=>{const promise=page.waitForEvent('download');await page.getByRole('button',{name:'Exporter ZIP',exact:true}).click();
+   const d=await promise;return readProjectArchive(new Uint8Array(await readFile(await d.path())));};
+ const before=await exported();
+ const members=Object.values(before.chunks).flatMap(chunk=>Object.values(chunk.entities))
+   .filter(e=>e.prefabId?.startsWith('assembly-part:'));
+ const byPrefab=new Map();
+ for(const member of members){const rows=byPrefab.get(member.prefabId)??[];rows.push(member.id);byPrefab.set(member.prefabId,rows);}
+ const pair=[...byPrefab.values()].find(ids=>ids.length>=2);
+ check(!!pair,'Two independent prefab copies share stable V3 part templates');
+ const selectMember=async(id)=>{
+   await page.getByRole('button',{name:'Sélection',exact:true}).click();
+   await page.getByLabel('Rechercher une entité').fill(id);
+   await page.locator('#tools .search-results button[data-kind=entity]').first().click();
+   await page.getByRole('button',{name:'Objets',exact:true}).click();
+   await page.getByLabel('Modèle visuel de cette pièce').waitFor({timeout:20000});
+ };
+ await selectMember(pair[0]);
+ await page.getByLabel('Modèle visuel de cette pièce').selectOption('structure.fence_picket');
+ await page.getByRole('button',{name:'Modifier uniquement cette instance'}).click();
+ await page.waitForFunction(()=>/Modifier une instance de prefab/.test(document.querySelector('[data-action=undo]')?.title??''),{},{timeout:20000});
+ await selectMember(pair[1]);
+ await page.getByLabel('Modèle visuel de cette pièce').selectOption('structure.wall_straight');
+ await page.getByRole('button',{name:'Modifier le modèle partagé'}).click();
+ await page.waitForFunction(()=>/Modifier un modèle prefab/.test(document.querySelector('[data-action=undo]')?.title??''),{},{timeout:20000});
+ const after=await exported(),visual=id=>{
+   const e=after.entityIndex[id],source=after.chunks[e.ownerChunkId]?.entities[id];
+   assert.ok(source,'Instance source must remain in portable ZIP');return resolveEntity(after,source).components.Visual?.assetId;
+ };
+ check(visual(pair[0])==='structure.fence_picket'&&visual(pair[1])==='structure.wall_straight',
+   'Local prefab override survives subsequent shared-template update and ZIP export');
+ await page.screenshot({path:out+'/studio-prefab-override.png',fullPage:true});
  check(errors.length===0,errors.join('\n')||'No browser page errors');
  console.log(JSON.stringify({checks,errors}));
 }finally{await browser.close();}
