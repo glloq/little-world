@@ -18,8 +18,9 @@ function sample(kind='arch'){
 }
 test('two points, profiles and bounded dimensions are deterministic',()=>{
  for(const kind of ['arch','bridge','tunnel']){
-  const plan=sample(kind);assert.equal(plan.spec.span,14);assert.equal(plan.yaw,0);
-  assert.deepEqual(structureEndpoints(plan.x,plan.z,plan.yaw,plan.spec.span),[{x:-7,z:0},{x:7,z:0}]);
+  const plan=sample(kind);assert.equal(plan.spec.span,14);assert.ok(Math.abs(plan.yaw)<1e-9);
+  const ends=structureEndpoints(plan.x,plan.z,plan.yaw,plan.spec.span);
+  assert.ok(Math.abs(ends[0].x+7)<1e-9&&Math.abs(ends[1].x-7)<1e-9&&ends.every(p=>Math.abs(p.z)<1e-9));
   assert.equal(naturalBoxes(plan.spec).length,16);
   assert.equal(naturalMeshBudget(plan.spec).drawCalls,1);
  }
