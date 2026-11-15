@@ -62,6 +62,8 @@ jobs:
         run: node tools/run-browser-check.mjs audio
       - name: Island lot 1 browser checks
         run: node tools/run-browser-check.mjs island
+      - name: Natural structures Studio acceptance (arch, tunnel, 3D preview and export)
+        run: node tools/run-browser-check.mjs studio-natural-structures
       - name: Studio creation acceptance (walls, vegetation, reusable assemblies)
         run: node tools/run-browser-check.mjs studio-creation-acceptance
       - name: Inspector input persistence browser checks
