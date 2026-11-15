@@ -223,6 +223,21 @@ async function diagnostics(host:HTMLElement){
   const {preflightProject,compileProject,fetchAssetResolver}=await import('../world-compiler/compile.ts'),p=await session!.fullDocument(),options={resolveAsset:fetchAssetResolver(new URL(import.meta.env.BASE_URL,location.origin).href)};
   const checked=await preflightProject(p,options);for(const d of checked.diagnostics){const entry=d.targetId?p.entityIndex[d.targetId]:undefined;const item=entry?button(d.message,()=>{session!.selection.select({kind:'entity',id:entry.id});void module('scene').then(()=>viewport?.focusSelection());},'diagnostic '+d.severity):node('p',d.message,'diagnostic '+d.severity);panel.append(item);}
   if(!checked.diagnostics.some(d=>d.severity==='ERROR'))panel.append(node('p','Aucune erreur détectée.','status-success'));
+  const {authoringIssues}=await import('../studio-core/world-audit.ts');
+  const authored=authoringIssues(p),section=node('details','','section-card');
+  section.open=authored.some(i=>i.severity==='ERROR');
+  section.append(node('summary','Diagnostic de création : '+authored.length+' point(s) à contrôler'),
+    node('p','Contrôles d’intégrité des tracés et limites. Les avertissements n’empêchent pas la compilation.','muted'));
+  for(const issue of authored.slice(0,100)){
+    section.append(button((issue.severity==='ERROR'?'Erreur · ':'À vérifier · ')+issue.message,()=>{
+      const s=session;if(!s)return;
+      if(issue.kind&&issue.id)s.selection.select({kind:issue.kind,id:issue.id});
+      void module('scene').then(()=>viewport?.goTo(issue.x,issue.z,20));
+    },'diagnostic '+issue.severity));
+  }
+  if(authored.length>100)section.append(node('p',(authored.length-100)+' autres points masqués.','muted'));
+  if(!authored.length)section.append(node('p','Aucune incohérence structurelle détectée.','status-success'));
+  panel.append(section);
   panel.append(action('Exporter le monde compilé',async()=>{const compiled=await compileProject(p,options),bytes=writeFilesArchive(compiled.files);download('compiled-world.zip',bytes.buffer as ArrayBuffer,'application/zip');status(`${compiled.manifest.chunks.length} secteurs compilés ; source auteur inchangée.`);}));
 }
 async function preview(){
