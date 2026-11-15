@@ -11,7 +11,7 @@ import type {Tool,ToolContext} from './tools.ts';
 import {strokeDabs,type Dab} from './brush-tool.ts';
 export const scatterSettings={
   palette:[] as string[],radius:12,density:.035,scaleMin:.85,scaleMax:1.15,seed:4242,
-  spacing:2.5
+  spacing:2.5,avoidConflicts:true
 };
 export interface ScatterPoint {x:number;z:number;assetId:string;yaw:number;scale:number}
 const hash=(x:number)=>{x=Math.imul(x^(x>>>16),0x7feb352d);x=Math.imul(x^(x>>>15),0x846ca68b);return (x^(x>>>16))>>>0;};
@@ -55,7 +55,7 @@ export class ScatterTool implements Tool {
     this.busy=true;this.ctx.run(async()=>{try{
       const s=this.ctx.session,p=s.document;
       const eligible=points.filter(q=>q.x>=p.world.bounds.minX&&q.x<=p.world.bounds.maxX&&q.z>=p.world.bounds.minZ&&q.z<=p.world.bounds.maxZ&&
-        checkPlacement(p,q.x,q.z,{ground:terrainHeight,depth:waterDepth,building:q.assetId.startsWith('architecture.'),radius:q.assetId.startsWith('architecture.')?4:1}).level!=='invalid');
+        (check=>check!=='invalid'&&(!scatterSettings.avoidConflicts||check==='ok'))(checkPlacement(p,q.x,q.z,{ground:terrainHeight,depth:waterDepth,building:q.assetId.startsWith('architecture.'),radius:q.assetId.startsWith('architecture.')?4:1}).level));
       const valid=eligible.filter(q=>!!(p.assets[q.assetId]??assetDefinitionFor(q.assetId)));
       if(!valid.length){this.ctx.message('Aucun emplacement valide pour cette palette.',true);return;}
       const ids=[...new Set(valid.map(q=>chunkAt(p.world,q.x,q.z)))];
@@ -71,7 +71,7 @@ export class ScatterTool implements Tool {
             }});
         }
       });
-      this.ctx.message(valid.length+' objets posés en une transaction (Ctrl+Z pour annuler).');
+      this.ctx.message(valid.length+' objets posés sans modifier les éléments existants (Ctrl+Z pour annuler).');
     }finally{this.busy=false;}});
   }
   cancel(){if(!this.painting)return false;this.painting=false;this.pending=[];return true;}
