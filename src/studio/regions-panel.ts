@@ -72,9 +72,11 @@ export function mountRegionsPanel(host:HTMLElement,ctx:RegionPanelContext):()=>v
          field('Transition écologique (m)',numberInput(region.transitionM,x=>set({transitionM:x}),0,150,'5')),
          field('Graine déterministe',numberInput(region.seed,x=>set({seed:Math.round(x)}),0,4294967295,'1')),
          node('h4','B2 — Végétation de cette région'),
-         field('Profil végétal rapide',select('native',
-           Object.entries(ECOLOGY_PROFILES).map(([key,value])=>[key,value.label] as [string,string]),
-           key=>setVegetation(applyEcologyProfile(vegetation,key as EcologyProfile)))),
+         field('Profil végétal rapide',select(
+           Object.entries(ECOLOGY_PROFILES).find(([,profile])=>
+             (['trees','shrubs','ground','deadwood'] as const).every(key=>vegetation[key]===profile.vegetation[key]))?.[0]??'custom',
+           [['custom','Personnalisé'],...Object.entries(ECOLOGY_PROFILES).map(([key,value])=>[key,value.label] as [string,string])],
+           key=>{if(key!=='custom')setVegetation(applyEcologyProfile(vegetation,key as EcologyProfile));})),
          field('Arbres (× profil)',numberInput(vegetation.trees,x=>setVegetation({trees:x}),0,2,'.1')),
          field('Arbustes (× profil)',numberInput(vegetation.shrubs,x=>setVegetation({shrubs:x}),0,2,'.1')),
          field('Plantes basses (× profil)',numberInput(vegetation.ground,x=>setVegetation({ground:x}),0,2,'.1')),
