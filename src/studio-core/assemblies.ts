@@ -29,6 +29,9 @@ export function captureAssembly(project:ProjectDocument, ids:string[],name:strin
     const source=project.chunks[index.ownerChunkId]?.entities[entityId];
     if(!source)throw Error('Charger le secteur de '+entityId);
     const entity=resolveEntity(project,source),t=entity.components.Transform,v=entity.components.Visual;
+    // Natural passages carry local geometry and reversible terrain edits; a visual-only
+    // assembly cannot safely duplicate either. Reject rather than place invisible props.
+    if(entity.components.NaturalStructure)throw Error('Les structures naturelles ne sont pas compatibles avec un assemblage visuel : utilisez leur éditeur dédié.');
     if(!t||!v)continue;
     items.push({kind:source.kind as AssemblyItem['kind'],name:source.name,dx:t.position.x,dz:t.position.z,key:keys.get(entityId),
       ...(source.parentId&&keys.has(source.parentId)?{parentKey:keys.get(source.parentId)}:{}),
