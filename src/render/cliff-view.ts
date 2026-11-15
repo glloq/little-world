@@ -8,10 +8,16 @@ import type {TerrainGeneratorDefinition} from '../terrain-generator.ts';
 
 export const CLIFF_BUDGET={radius:250,hysteresis:30,maxMeshes:32,buildPerUpdate:3,segmentM:18} as const;
 type Cliff=Extract<ReliefFeature,{kind:'ridge'}>;
-interface Segment {key:string;feature:Cliff;a:PointXZ;b:PointXZ;mid:PointXZ;seed:number}
+interface Segment {key:string;feature:Cliff;a:PointXZ;b:PointXZ;mid:PointXZ;seed:number;startM:number;endM:number;normalA:PointXZ;normalB:PointXZ}
 const distance=(a:PointXZ,b:PointXZ)=>Math.hypot(a.x-b.x,a.z-b.z);
 function hash(s:string):number{let h=2166136261;for(let i=0;i<s.length;i++)h=Math.imul(h^s.charCodeAt(i),16777619);return h>>>0;}
 function unit(seed:number):number{let h=seed>>>0;h=Math.imul(h^(h>>>16),0x7feb352d);h=Math.imul(h^(h>>>15),0x846ca68b);return ((h^(h>>>16))>>>0)/4294967295;}
+const lerp=(a:number,b:number,t:number)=>a+(b-a)*t;
+const normal=(a:PointXZ,b:PointXZ):PointXZ=>{const d=distance(a,b)||1;return {x:-(b.z-a.z)/d,z:(b.x-a.x)/d};};
+function tangentNormal(points:PointXZ[],index:number):PointXZ{
+ const before=points[Math.max(0,index-1)],after=points[Math.min(points.length-1,index+1)];
+ return normal(before,after);
+}
 function cliffFeatures(def:TerrainGeneratorDefinition|undefined):Cliff[]{
  return def?.kind==='archipelago'?def.archipelago.features.filter((f):f is Cliff=>f.kind==='ridge'&&f.id.startsWith('rl-cliff-')):[];
 }
@@ -19,55 +25,83 @@ function segmentList(def:TerrainGeneratorDefinition|undefined,worldSeed:number):
  const result:Segment[]=[];
  for(const f of cliffFeatures(def)){
   const seed=hash(f.id)^worldSeed;
+  let cumulative=0;
   for(let edge=1;edge<f.points.length;edge++){
-   const p=f.points[edge-1],q=f.points[edge],n=Math.min(256,Math.max(1,Math.ceil(distance(p,q)/CLIFF_BUDGET.segmentM)));
+   const p=f.points[edge-1],q=f.points[edge],len=distance(p,q);
+   if(len<.01)continue;
+   const n=Math.min(256,Math.max(1,Math.ceil(len/CLIFF_BUDGET.segmentM)));
+   const na=tangentNormal(f.points,edge-1),nb=tangentNormal(f.points,edge);
    for(let i=0;i<n;i++){
-    const a={x:p.x+(q.x-p.x)*i/n,z:p.z+(q.z-p.z)*i/n};
-    const b={x:p.x+(q.x-p.x)*(i+1)/n,z:p.z+(q.z-p.z)*(i+1)/n};
-    result.push({key:f.id+':'+edge+':'+i,feature:f,a,b,mid:{x:(a.x+b.x)/2,z:(a.z+b.z)/2},seed:seed^Math.imul(edge*257+i,0x9e3779b1)});
+    const a={x:lerp(p.x,q.x,i/n),z:lerp(p.z,q.z,i/n)};
+    const b={x:lerp(p.x,q.x,(i+1)/n),z:lerp(p.z,q.z,(i+1)/n)};
+    const mix=(t:number):PointXZ=>{const x=lerp(na.x,nb.x,t),z=lerp(na.z,nb.z,t),d=Math.hypot(x,z)||1;return {x:x/d,z:z/d};};
+    result.push({key:f.id+':'+edge+':'+i,feature:f,a,b,mid:{x:(a.x+b.x)/2,z:(a.z+b.z)/2},
+      seed,startM:cumulative+len*i/n,endM:cumulative+len*(i+1)/n,
+      normalA:mix(i/n),normalB:mix((i+1)/n)});
    }
+   cumulative+=len;
   }
  }
  return result;
 }
-/** Builds one bounded double-sided rock strip. Both sides follow the native ridge.
- * Vertical bands stand proud of the native hill but their foot touches the slope.
- * Non-indexed flat normals, deterministic facet colours and zero textures. */
-export function buildCliffGeometry(segment:{a:PointXZ;b:PointXZ;widthM:number;seed:number},height:(x:number,z:number)=>number,lod:0|1=0):THREE.BufferGeometry{
- const {a,b,widthM,seed}=segment,len=distance(a,b);
- if(!(len>.01&&widthM>=5&&Number.isFinite(widthM)))throw Error('Tronçon de falaise invalide');
- const nx=-(b.z-a.z)/len,nz=(b.x-a.x)/len;
- const stations=lod===0?3:2,columns=lod===0?3:2;
+export interface CliffSlice {a:PointXZ;b:PointXZ;widthM:number;seed:number;startM?:number;endM?:number;normalA?:PointXZ;normalB?:PointXZ}
+const ROCK_PALETTE=[0x797f78,0x92958a,0x626e67,0x9da093,0x77766c].map(hex=>new THREE.Color(hex));
+/** Deterministic global-space strata. Shared boundary stations have identical positions
+ * independent of segment subdivision, LOD, load order and regeneration. */
+export function buildCliffGeometry(s:CliffSlice,height:(x:number,z:number)=>number,lod:0|1=0):THREE.BufferGeometry{
+ const len=distance(s.a,s.b),width=s.widthM;
+ if(!(len>.01&&Number.isFinite(len)&&width>=5&&Number.isFinite(width)))throw Error('Tronçon de falaise invalide');
+ const sta=lod===0?3:2,bands=lod===0?7:4;
+ const na=s.normalA??normal(s.a,s.b),nb=s.normalB??normal(s.a,s.b);
+ const start=s.startM??0,end=s.endM??len;
  const positions:number[]=[],colors:number[]=[];
- const rock=[new THREE.Color(0x757b74),new THREE.Color(0x899086),new THREE.Color(0x626d68),new THREE.Color(0x9a9c90)];
+ const pick=(t:number,v:number,side:number,part:number)=>unit(s.seed^Math.imul(Math.round(t*3)+19,7963)^Math.imul(Math.round(v*53)+11,1543)^Math.imul(side+3,997)^Math.imul(part+1,4591));
+ function vertex(t:number,v:number,side:number):{x:number;y:number;z:number}{
+  const u=lerp(start,end,t),cx=lerp(s.a.x,s.b.x,t),cz=lerp(s.a.z,s.b.z,t);
+  const dx=lerp(na.x,nb.x,t),dz=lerp(na.z,nb.z,t),scale=1/(Math.hypot(dx,dz)||1);
+  const interior=v>0&&v<1&&t>0&&t<1;
+  const rough=interior?(pick(u,v,side,1)-.5)*width*.22:0;
+  const lateral=width*(.11+1.14*v)+rough;
+  const x=cx+dx*scale*side*lateral,z=cz+dz*scale*side*lateral;
+  const centerH=height(cx,cz),native=height(x,z);
+  const footX=cx+dx*scale*side*width*1.25,footZ=cz+dz*scale*side*width*1.25;
+  const footH=height(footX,footZ);
+  // Raise interior geological ribs only where a real native slope exists.
+  const relief=Math.max(0,centerH-footH),rib=interior?relief*(.025+.09*pick(u,v,side,2))*Math.sin(Math.PI*v):0;
+  const desired=lerp(centerH,footH,v===0?0:v===1?1:v*.72)+rib;
+  return {x,y:Math.max(native+.24,desired+.24),z};
+ }
+ function tri(p:{x:number;y:number;z:number},q:typeof p,r:typeof p,color:THREE.Color){
+  positions.push(p.x,p.y,p.z,q.x,q.y,q.z,r.x,r.y,r.z);
+  for(let k=0;k<3;k++)colors.push(color.r,color.g,color.b);
+ }
  for(const side of [-1,1]){
-  const grid:{x:number;y:number;z:number}[][]=[];
-  for(let i=0;i<stations;i++){
-   const t=i/(stations-1),cx=a.x+(b.x-a.x)*t,cz=a.z+(b.z-a.z)*t;
-   const top=height(cx,cz),foot=height(cx+nx*side*widthM*1.25,cz+nz*side*widthM*1.25);
-   const row:{x:number;y:number;z:number}[]=[];
-   for(let j=0;j<columns;j++){
-    const v=j/(columns-1),lateral=widthM*(.10+1.15*v);
-    const random=unit(seed^Math.imul(i+1,1013)^Math.imul(j+1,6197)^Math.imul(side+2,691));
-    const jitter=(i===0||i===stations-1||j===0||j===columns-1)?0:(random-.5)*widthM*.1;
-    const x=cx+nx*side*(lateral+jitter),z=cz+nz*side*(lateral+jitter);
-    // Lift the middle facet above the native ridge to create a real visible wall,
-    // never a floating base; the native heightfield remains collision authority.
-    const desired=top+(foot-top)*(v===0?0:v===1?1:.33);
-    const y=Math.max(height(x,z)+.22,desired+.22);
-    row.push({x,y,z});
-   }
-   grid.push(row);
+  const grid=Array.from({length:sta},(_,i)=>Array.from({length:bands},(_,j)=>vertex(i/(sta-1),j/(bands-1),side)));
+  for(let i=0;i<sta-1;i++)for(let j=0;j<bands-1;j++){
+   const p=grid[i][j],q=grid[i+1][j],r=grid[i+1][j+1],b=grid[i][j+1];
+   // Strata alternate across bands; small colour noise varies faceted rock without a texture.
+   const depth=j/(bands-1),layer=Math.floor(depth*5);
+   const index=(layer+Math.floor(pick(lerp(start,end,(i+.5)/(sta-1)),depth,side,3)*3))%ROCK_PALETTE.length;
+   const base=ROCK_PALETTE[index],shade=.86+.25*pick(lerp(start,end,(i+.5)/(sta-1)),depth,side,4);
+   const color=base.clone().multiplyScalar(shade);
+   if(side===1){tri(p,q,r,color);tri(p,r,b,color);}else{tri(p,r,q,color);tri(p,b,r,color);}
   }
-  function tri(p:{x:number;y:number;z:number},q:typeof p,r:typeof p,colour:THREE.Color){
-   positions.push(p.x,p.y,p.z,q.x,q.y,q.z,r.x,r.y,r.z);
-   for(let k=0;k<3;k++)colors.push(colour.r,colour.g,colour.b);
-  }
-  for(let i=0;i<stations-1;i++)for(let j=0;j<columns-1;j++){
-   const p=grid[i][j],q=grid[i+1][j],r=grid[i+1][j+1],s=grid[i][j+1];
-   const col=rock[Math.floor(unit(seed^Math.imul(i+3,713)^Math.imul(j+7,271)^Math.imul(side+2,4231))*rock.length)];
-   // Each band uses two faceted triangles, no smoothing across geological joints.
-   if(side===1){tri(p,q,r,col);tri(p,r,s,col);}else{tri(p,r,q,col);tri(p,s,r,col);}
+  // Integrated scree apron: a few low-poly shards rooted in the native slope.
+  // No individual draw calls, colliders or vegetation entities.
+  const rocks=lod===0?3:1;
+  for(let i=0;i<rocks;i++){
+   const t=(i+.5)/rocks,u=lerp(start,end,t),cx=lerp(s.a.x,s.b.x,t),cz=lerp(s.a.z,s.b.z,t);
+   const dx=lerp(na.x,nb.x,t),dz=lerp(na.z,nb.z,t),inv=1/(Math.hypot(dx,dz)||1);
+   const radius=width*(1.32+.16*pick(u,0,side,5));
+   const rx=cx+dx*inv*side*radius,rz=cz+dz*inv*side*radius;
+   const size=width*(.09+.10*pick(u,0,side,6));
+   const y=height(rx,rz)+.17,crest=y+size*(.3+.25*pick(u,0,side,7));
+   const tangentX=(s.b.x-s.a.x)/len,tangentZ=(s.b.z-s.a.z)/len;
+   const left={x:rx-tangentX*size,y:height(rx-tangentX*size,rz-tangentZ*size)+.13,z:rz-tangentZ*size};
+   const right={x:rx+tangentX*size,y:height(rx+tangentX*size,rz+tangentZ*size)+.13,z:rz+tangentZ*size};
+   const back={x:rx+dx*inv*side*size*.85,y:height(rx+dx*inv*side*size*.85,rz+dz*inv*side*size*.85)+.13,z:rz+dz*inv*side*size*.85};
+   const peak={x:rx,y:crest,z:rz},colour=ROCK_PALETTE[Math.floor(pick(u,0,side,8)*ROCK_PALETTE.length)];
+   tri(left,right,peak,colour);tri(right,back,peak,colour);tri(back,left,peak,colour);
   }
  }
  const geometry=new THREE.BufferGeometry();
