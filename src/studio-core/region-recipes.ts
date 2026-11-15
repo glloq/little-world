@@ -68,7 +68,7 @@ export function validateRegionRecipe(v:RegionRecipeV1,b:{minX:number;maxX:number
   if(Object.keys(g).some(k=>!['revision','masks','featureHash'].includes(k))||!Number.isSafeInteger(g.revision)||g.revision<0||!g.masks||typeof g.masks!=='object'||Array.isArray(g.masks))throw Error('Région : génération invalide');
   if(Object.keys(g.masks).length>RECORD_LIMIT)throw Error('Région : nombre de secteurs trop grand');
   for(const [sector,layers] of Object.entries(g.masks)){
-   const m=/^(\\d+):(\\d+)$/.exec(sector);
+   const m=/^([0-9]+):([0-9]+)$/.exec(sector);
    if(!m||chunkSizeM&&(Number(m[1])>=Math.ceil((b.maxX-b.minX)/chunkSizeM)||Number(m[2])>=Math.ceil((b.maxZ-b.minZ)/chunkSizeM)))throw Error('Région : secteur généré invalide');
    if(!layers||Object.keys(layers).some(k=>!['geology','moisture','biome','material','occupation'].includes(k)))throw Error('Région : couche suivie inconnue');
    for(const [layer,mask]of Object.entries(layers))if(!validMaskString(layer as MaskLayerId,mask))throw Error('Région : masque généré invalide');
