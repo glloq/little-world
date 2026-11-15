@@ -37,6 +37,7 @@ try{
  await page.getByRole('button',{name:'Tracer une rivière automatique'}).waitFor({state:'visible'});
  check(true,'A: guided downhill river tool is exposed');
   check(await page.getByRole('button',{name:'Escarpement rocheux'}).isVisible(),'A2: native 3D cliff-like ridge tool is exposed');
+  check(await page.getByRole('button',{name:'Analyser le réseau hydrologique'}).isVisible(),'A3: hydrology diagnosis module available');
  await page.getByRole('button',{name:'Dessiner une nouvelle région'}).click();await tool('polyline');
  await page.getByLabel('Nom de la région').fill('Forêt montagneuse');await page.getByLabel('Nom de la région').press('Tab');
  await page.getByLabel('Relief de région').selectOption('plateau');
