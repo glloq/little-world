@@ -55,6 +55,10 @@ function queryFor(kind){
  for(const d of definitions)query.add({id:d.id,shape:d.shape,position:d.position,size:d.size,enabled:()=>true});
  return {query,definitions,plan};
 }
+test('natural subcollider suffix leaves parent IDs intact',()=>{
+ assert.equal(naturalColliderOwner('prefix::natural:label::natural:3'),'prefix::natural:label');
+ assert.equal(naturalColliderOwner('ordinary:prop'),'ordinary:prop');
+});
 test('player may pass below the arch and tunnel, with a roof collision above',()=>{
  for(const kind of ['arch','tunnel']){
   const {query,definitions,plan}=queryFor(kind);assert.equal(definitions.length,16);
