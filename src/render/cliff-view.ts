@@ -84,13 +84,13 @@ export function createCliffView(parent:THREE.Object3D,height:(x:number,z:number)
  const active=new Map<string,{mesh:THREE.Mesh;lod:0|1}>();
  let segments=segmentList(terrain,seed),disposed=false,lastX=Infinity,lastZ=Infinity,dirty=true;
  stats.available=segments.length;
- const release=(key:string)=>{const entry=active.get(key);if(!entry)return;entry.mesh.removeFromParent();entry.mesh.geometry.dispose();active.delete(key);stats.disposed++;};
+ const release=(key:string)=>{const entry=active.get(key);if(!entry)return;entry.mesh.removeFromParent();entry.mesh.geometry.dispose();active.delete(key);stats.disposed++;stats.visible=active.size;};
  const refresh=(definition?:TerrainGeneratorDefinition)=>{
   if(disposed)return;
   for(const k of [...active.keys()])release(k);
-  segments=segmentList(definition,seed);stats.available=segments.length;dirty=true;
+  segments=segmentList(definition,seed);stats.available=segments.length;stats.triangles=0;dirty=true;
  };
- const invalidate=()=>{if(disposed)return;for(const k of [...active.keys()])release(k);dirty=true;};
+ const invalidate=()=>{if(disposed)return;for(const k of [...active.keys()])release(k);stats.triangles=0;dirty=true;};
  const update=(x:number,z:number)=>{
   if(disposed||!Number.isFinite(x)||!Number.isFinite(z))return;
   if(!dirty&&Math.hypot(x-lastX,z-lastZ)<12)return;
