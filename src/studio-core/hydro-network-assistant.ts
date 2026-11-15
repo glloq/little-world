@@ -36,8 +36,9 @@ export function reviewHydroNetwork(waters:readonly WaterBody[],height:(x:number,
    }
    if(nearest)links.push(nearest);
   }
-  if(source.falls?.length)continue;
+  if((source.falls?.length??0)>=8)continue;
   for(let i=1;i<source.points.length-1;i++){
+   if(source.falls?.some(f=>f.at===i))continue;
    const dx=dist(source.points[i-1],source.points[i]);
    if(dx<1)continue;
    const drop=height(source.points[i-1].x,source.points[i-1].z)-height(source.points[i].x,source.points[i].z),slope=drop/dx;
@@ -83,4 +84,23 @@ export function planHydroFall(waters:readonly WaterBody[],candidate:HydroFallAdv
  const errors=compiled.flatMap(w=>w.diagnostics.filter(d=>d.severity==='ERROR').map(d=>w.id+': '+d.message));
  if(errors.length)throw Error('Cascade refusée par le moteur hydrologique : '+errors.join(' ; '));
  return updated;
+}
+
+/** Bounded batch waterfall proposals. Each candidate is checked with the same WATER
+ * compiler against all previously accepted candidates. Does not mutate input. */
+export function planHydroFalls(
+ waters:readonly WaterBody[],candidates:readonly HydroFallAdvice[],
+ height:(x:number,z:number)=>number,seaLevel:number,maxFalls=6
+):{changes:WaterBody[];rejected:{riverId:string;point:number;reason:string}[]}{
+ const limit=Math.min(8,Math.max(1,Math.floor(maxFalls))),current=new Map(waters.map(w=>[w.id,structuredClone(w)]));
+ const changed=new Set<string>(),rejected:{riverId:string;point:number;reason:string}[]=[];
+ const sorted=[...candidates].sort((a,b)=>b.dropM-a.dropM||a.riverId.localeCompare(b.riverId)||a.point-b.point);
+ for(const candidate of sorted.slice(0,64)){
+  if([...changed].reduce((sum,id)=>sum+(current.get(id)?.falls?.length??0)-(waters.find(w=>w.id===id)?.falls?.length??0),0)>=limit)break;
+  try{
+   const updated=planHydroFall([...current.values()],candidate,height,seaLevel);
+   current.set(updated.id,updated);changed.add(updated.id);
+  }catch(error){rejected.push({riverId:candidate.riverId,point:candidate.point,reason:error instanceof Error?error.message:String(error)});}
+ }
+ return {changes:[...changed].sort().map(id=>current.get(id)!),rejected};
 }
