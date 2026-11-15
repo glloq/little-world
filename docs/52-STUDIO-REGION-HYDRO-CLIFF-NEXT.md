@@ -10,19 +10,17 @@ Branche : `feat/studio-creation-workflows-v1`
 
 ## Limites / prochaines étapes
 
-### Véritables falaises rocheuses
+### Falaises rocheuses 3D — première intégration
 
-L'outil `rl-cliff-*` produit encore une crête heightfield, **pas une paroi verticale**. Il ne faut pas présenter ce rendu comme une falaise 3D.
+Les reliefs `rl-cliff-*` conservent leur crête native et gagnent des **faces rocheuses facettées**.
 
-Implémentation recommandée :
+- Nouveau moteur visuel `src/render/cliff-view.ts`, partagé entre le jeu et le Studio via `buildWorld`.
+- Géométrie locale `BufferGeometry` non indexée, normales plates, couleurs de sommet, sans texture ; variation déterministe stable par tronçon.
+- 2 LOD, rayon proche de 250 m, 32 tronçons résidents maximum, jusqu'à 3 constructions par mise à jour. Éviction, `dispose()` et rechargement des reliefs à l'édition/Undo/Redo.
+- Les faces épousent la crête et les flancs échantillonnés sur le heightfield ; le pied est posé sur le terrain. La collision reste le heightfield, **pas de surplomb physique**. Pour arches et tunnels, utiliser les structures naturelles locales.
+- Tests de déterminisme géométrique, LOD, streaming et libération des ressources : `tests/cliff-view.test.mjs`.
 
-1. Garder la crête heightfield comme terrain navigable et support de la géographie.
-2. Construire un **maillage local rocheux** par tronçons du tracé, avec normales facettées, légère variation déterministe des sommets, lèvres supérieures et raccord bas au terrain. Un seul matériau vertex-colors ; géométrie indexée et découpage par secteur.
-3. Utiliser le culling et LOD0/LOD1, avec distance maximale de génération. Cache par signature `seed + feature + terrainRevision + sector + LOD`, libération des buffers à l'éviction.
-4. **Collision** : le heightfield ne représente pas les surplombs. Fournir une collision simplifiée par tronçons, cohérente entre Studio et jeu, avant d'autoriser les passages sous une paroi.
-5. Rafraîchir le maillage à l'édition et l'Undo/Redo ; comparer screenshots de près et de loin, mesurer triangles, draw calls, mémoire GPU et temps de génération.
-
-Ne pas ajouter un maillage permanent sur toute la carte ni un moteur de terrain parallèle. Réutiliser les structures naturelles locales pour arches/tunnels.
+À vérifier dans le navigateur : apparence des raccords haut/bas, transparence ou trous à différents angles, cas de forts virages, budget de draw calls et coût d'invalidation lors des éditions. Aucun benchmark chiffré n'est encore établi.
 
 ### Hydrologie avancée
 
@@ -31,6 +29,7 @@ La D8 est une **analyse approximative** sans remplissage des dépressions (pit f
 ## Contrôles de validation
 
 - `node --experimental-strip-types --test tests/studio-region-batch-watershed.test.mjs`
+- `node --experimental-strip-types --test tests/cliff-view.test.mjs`
 - `npm run typecheck`
 - `npm test`
 - Tests navigateur Studio + vérification visuelle des masques, Undo/Redo, doublons, conflits et export/import V3.
