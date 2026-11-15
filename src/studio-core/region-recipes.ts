@@ -10,7 +10,7 @@ import {regionCells,paintMask,protectedCells,regionChunkIds,type Region} from '.
 import {fingerprint} from '../world-production/landscape-schema.ts';
 import {ARCHIPELAGO_LIMITS} from '../geography/archipelago-params.ts';
 
-import {REGION_PRESETS,validateRegionRecipe,RECORD_LIMIT,MAX_REGIONS,type RegionRecipeV1,type RegionPreset,type RegionReport,type RegionGenerated} from './region-schema.ts';
+import {REGION_PRESETS,validateRegionRecipe,RECORD_LIMIT,MAX_REGIONS,DEFAULT_REGION_VEGETATION,type RegionRecipeV1,type RegionPreset,type RegionReport,type RegionGenerated} from './region-schema.ts';
 export {REGION_PRESETS,validateRegionRecipe} from './region-schema.ts';
 export type {RegionRecipeV1,RegionPreset,RegionReport,RegionGenerated} from './region-schema.ts';
 export function newRegion(p:ProjectDocument,options:Partial<RegionRecipeV1>={}):RegionRecipeV1 {
@@ -20,6 +20,7 @@ export function newRegion(p:ProjectDocument,options:Partial<RegionRecipeV1>={}):
  return {id:'region-'+i,version:1,name:'Nouvelle région '+i,
  points:[{x:cx-half,z:cz-half},{x:cx+half,z:cz-half},{x:cx+half,z:cz+half},{x:cx-half,z:cz+half}],
  preset:'forest',seed:(p.world.seed+i*7919)>>>0,coverage:100,transitionM:24,
+ vegetation:{...DEFAULT_REGION_VEGETATION},
  relief:'none',heightM:100,edgeM:25,...options};
 }
 function pointsRegion(v:RegionRecipeV1):Region{return {kind:'polygon',points:v.points};}
