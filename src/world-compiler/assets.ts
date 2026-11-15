@@ -29,6 +29,7 @@ export function localAssetPath(path:string):boolean {
 }
 const registry=new Map<string,{type:string;file?:string;license:string}>([
   ...catalogue.assets,...characterCatalogue.characters,...placeableWorldAssets(),
+  {id:'procedural.natural_structure',type:'procedural',license:'project-original'},
 ].map(asset=>[asset.id,asset]));
 export async function verifyAssets(project:ProjectDocument,resolver?:AssetResolver):Promise<{assets:CompiledAssetDescriptor[];diagnostics:CompilationDiagnostic[]}>{
   const assets:CompiledAssetDescriptor[]=[],diagnostics:CompilationDiagnostic[]=[];
