@@ -102,3 +102,5 @@ label:has(> input[type=checkbox]){flex-direction:row;align-items:center;justify-
 .guide-step{min-width:0}
 .guide-step h3{margin-top:0}
 .pattern-panel{margin-top:14px;padding-top:12px;border-top:1px solid #d7e3d3}
+
+.library-item .asset-thumbnail-placeholder{width:100%;aspect-ratio:4/3;display:grid;place-items:center;border-radius:7px;background:#eef3ea;color:#75917d;font-size:10px;letter-spacing:.02em;text-align:center}
