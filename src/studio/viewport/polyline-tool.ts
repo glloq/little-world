@@ -41,6 +41,7 @@ export class PolylineTool implements Tool {
         this.group.add(this.ghost);
       }}catch{this.discardGhost();}
     }
+    this.ctx.canvas.dataset.polylinePreview=this.ghost?.name??'';
     const m=new THREE.Matrix4(),scale=Math.max(1,this.ctx.camera.mode==='top'?this.ctx.camera.pose.zoom/90:this.ctx.camera.pose.distance/40);this.handles.count=Math.min(128,this.points.length);
     this.points.slice(0,128).forEach((p,i)=>{m.makeScale(scale,scale,scale).setPosition(p.x,terrainHeight(p.x,p.z)+.6,p.z);this.handles!.setMatrixAt(i,m);});this.handles.instanceMatrix.needsUpdate=true;this.ctx.invalidate(2);
     const remark=this.target?.diagnose&&this.points.length>=this.target.min?this.target.diagnose(this.points):null;this.ctx.canvas.dataset.polylineRemark=remark??'';if(remark)this.ctx.message(remark,true);
