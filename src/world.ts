@@ -1,3 +1,4 @@
+import {naturalMesh} from './structures/natural-mesh.ts';
 import {waterRibbonData} from './water/geometry.ts';
 import * as THREE from 'three';
 import { createTerrainView } from './terrain-view';
@@ -964,7 +965,7 @@ export function addPlacement(
   world: WorldView,
   placement: Placement,
 ): THREE.Group {
-  const a = createAsset(placement.assetId);
+  const a = placement.naturalStructure?naturalMesh(placement.naturalStructure):createAsset(placement.assetId);
   a.position.set(
     placement.x,
     terrainHeight(placement.x, placement.z) + (placement.y ?? 0),
