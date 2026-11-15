@@ -43,7 +43,7 @@ export interface TriggerVolumeComponent {type:'TriggerVolume';shape:'box'|'spher
 export interface ComponentMap {
   Transform?:TransformComponent;Visual?:VisualComponent;Character?:CharacterComponent;Navigation?:NavigationComponent;
   BehaviorRef?:BehaviorRefComponent;DialogueActor?:DialogueActorComponent;State?:StateComponent;Persistence?:PersistenceComponent;
-  Interactable?:InteractableComponent;Collider?:ColliderComponent;Animator?:AnimatorComponent;TriggerVolume?:TriggerVolumeComponent;Light?:LightComponent;
+  Interactable?:InteractableComponent;Collider?:ColliderComponent;Animator?:AnimatorComponent;TriggerVolume?:TriggerVolumeComponent;Light?:LightComponent;NaturalStructure?:import('../structures/natural-structure.ts').NaturalStructureSpec;
 }
 export type ComponentName = keyof ComponentMap;
 export interface PrefabOverride {component:ComponentName;field:string;value:unknown;}
