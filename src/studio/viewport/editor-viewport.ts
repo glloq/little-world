@@ -156,7 +156,7 @@ export class StudioViewport {
   }
   /** Budget decision for a light-carrying entity at the current camera (Studio list). */
   lightStatus(entityId:string):LightStatus{return this.world.lights.statusOf('light:'+entityId);}
-  get diagnostics(){return {models:this.models.size,npcs:this.npcObjects.size,contentSectors:this.contentIds.size,loadedSectors:Object.keys(this.session.document.chunks).length,geometries:this.renderer.info.memory.geometries,textures:this.renderer.info.memory.textures,sceneChildren:this.scene.children.length,toolActivations:this.tools.activations,toolDeactivations:this.tools.deactivations,listeners:this.navigation.listenerCount+5,terrain:{...this.world.stats},horizon:{...this.world.horizon}};}
+  get diagnostics(){return {models:this.models.size,npcs:this.npcObjects.size,contentSectors:this.contentIds.size,loadedSectors:Object.keys(this.session.document.chunks).length,geometries:this.renderer.info.memory.geometries,textures:this.renderer.info.memory.textures,drawCalls:this.renderer.info.render.calls,triangles:this.renderer.info.render.triangles,cliffs:{...this.world.cliffs.stats},sceneChildren:this.scene.children.length,toolActivations:this.tools.activations,toolDeactivations:this.tools.deactivations,listeners:this.navigation.listenerCount+5,terrain:{...this.world.stats},horizon:{...this.world.horizon}};}
   private groundAt(clientX:number,clientY:number):THREE.Vector3|null{
     const r=this.canvas.getBoundingClientRect();if(!r.width)return null;this.pointer.set((clientX-r.left)/r.width*2-1,-(clientY-r.top)/r.height*2+1);this.ray.setFromCamera(this.pointer,this.camera.camera);
     const hit=this.ray.intersectObjects(this.world.terrain.children,true)[0];if(hit)return hit.point;
