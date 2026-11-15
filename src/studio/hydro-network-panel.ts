@@ -6,6 +6,8 @@ import {projectGeography} from '../studio-core/geo-context.ts';
 import {reviewHydroNetwork,planHydroLink,planHydroFall} from '../studio-core/hydro-network-assistant.ts';
 import {putWater} from '../studio-core/source.ts';
 import {analyzeWatersheds} from '../studio-core/watershed-analysis.ts';
+import {proposeWatershedRivers} from '../studio-core/watershed-rivers.ts';
+import {planGuidedRiver} from '../studio-core/guided-river.ts';
 import {waterChunkIds,waterEditChunkIds} from '../water/sectors.ts';
 export function mountHydroNetworkPanel(host:HTMLElement,ctx:RegionPanelContext):()=>void{
  const s=ctx.session,p=s.document,card=node('details','','section-card'),results=node('div','','feature-list');
@@ -73,8 +75,49 @@ export function mountHydroNetworkPanel(host:HTMLElement,ctx:RegionPanelContext):
    }
    for(const warning of result.warnings)basins.append(node('p',warning,'muted'));
  };
+ // A4 — Drainage suggestions are dry-run proposals until an explicit user action.
+ const headwaters=node('div','','feature-list');
+ const inspectHeadwaters=async()=>{
+   await hydrate();
+   const bounds=p.world.bounds,geo=projectGeography(p).ctx;
+   const analysis=analyzeWatersheds(bounds,geo.height,p.world.seaLevel,{maxCells:2048});
+   const context=()=>{const live=projectGeography(p).ctx;return {
+     height:live.height,water:(x:number,z:number)=>live.water(x,z,live.height(x,z)),
+     inWorld:(x:number,z:number)=>x>bounds.minX+1&&x<bounds.maxX-1&&z>bounds.minZ+1&&z<bounds.maxZ-1,
+     seaLevel:p.world.seaLevel,existing:Object.values(p.libraries.water)};};
+   const plans=proposeWatershedRivers(analysis.headwaters,context(),{maxRivers:3,maxLengthM:2000,
+     idPrefix:'watershed-'+p.world.worldId.slice(0,8)+'-'});
+   headwaters.replaceChildren(node('p',analysis.headwaters.length+' sources analysées · '+plans.proposals.length+
+     ' rivière(s) validée(s) · '+plans.rejected.length+' proposition(s) écartée(s)','muted'));
+   headwaters.append(node('p','Prévisualisation sans écriture : les sources proviennent du drainage D8. Les retouches de terrain non chargées peuvent modifier les propositions. Chaque création réévalue le relief et le réseau.','muted'));
+   for(const {source,plan} of plans.proposals){
+     const row=node('div','','feature-row'),points=plan.water.points;
+     row.append(node('strong','Rivière proposée · '+Math.round(plan.trace.lengthM)+' m'),
+       node('p','Bassin amont '+(source.upstreamAreaM2/10000).toFixed(1)+' ha · dénivelé '+plan.trace.drop.toFixed(1)+' m · '+plan.trace.end,'muted'),
+       button('Voir en 3D',()=>{ctx.viewport.showPreviewPolyline(points);ctx.viewport.goTo(source.source.x,source.source.z,90);}),
+       button('Créer cette rivière',()=>safe(async()=>{
+         if(p.libraries.water[plan.water.id])throw Error('Cours d’eau déjà créé : relancer les propositions');
+         await s.hydrate(waterChunkIds(p.world,plan.water));
+         const fresh=planGuidedRiver(source.source,source.toward,context(),{
+           id:plan.water.id,width:plan.water.width,depth:plan.water.depth,maxLengthM:2000});
+         // Do not commit a different river from the one the author previewed.
+         if(JSON.stringify(fresh.water)!==JSON.stringify(plan.water))
+           throw Error('Le terrain ou le réseau a changé : relancer la prévisualisation');
+         await s.change('Créer rivière de bassin versant',waterChunkIds(p.world,fresh.water),
+           draft=>putWater(draft,fresh.water));
+         ctx.viewport.showPreviewPolyline(null);
+         ctx.status('Rivière du bassin versant créée : '+Math.round(fresh.trace.lengthM)+' m.');
+         await inspectHeadwaters();
+       })));
+     headwaters.append(row);
+   }
+   for(const rejected of plans.rejected.slice(0,4))
+     headwaters.append(node('p','Candidat écarté : '+rejected.reason,'muted'));
+ };
+
  card.append(button('Analyser le réseau hydrologique',()=>safe(inspect)),results,
-   button('Analyser les bassins versants',()=>safe(inspectBasins)),basins);
+   button('Analyser les bassins versants',()=>safe(inspectBasins)),basins,
+   button('Proposer des rivières depuis les bassins versants',()=>safe(inspectHeadwaters)),headwaters);
  host.append(card);
- return ()=>{};
+ return ()=>ctx.viewport.showPreviewPolyline(null);
 }
