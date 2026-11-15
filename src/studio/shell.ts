@@ -238,6 +238,8 @@ async function diagnostics(host:HTMLElement){
   if(authored.length>100)section.append(node('p',(authored.length-100)+' autres points masqués.','muted'));
   if(!authored.length)section.append(node('p','Aucune incohérence structurelle détectée.','status-success'));
   panel.append(section);
+  panel.append(button('Inspecter les pentes et collisions en 3D',()=>{void module('scene').then(()=>viewport?.setPhysicsOverlay(true));}),
+    node('p','Le contrôle visuel des pentes utilise les seuils du personnage ; il ne remplace pas un test de parcours en jeu.','muted'));
   panel.append(action('Exporter le monde compilé',async()=>{const compiled=await compileProject(p,options),bytes=writeFilesArchive(compiled.files);download('compiled-world.zip',bytes.buffer as ArrayBuffer,'application/zip');status(`${compiled.manifest.chunks.length} secteurs compilés ; source auteur inchangée.`);}));
 }
 async function preview(){
