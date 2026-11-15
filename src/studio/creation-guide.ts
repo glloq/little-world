@@ -1,6 +1,7 @@
 /** Non-intrusive world authoring checklist; reports actual document counts and opens native modules. */
 import type {StudioSession} from './session.ts';
 import {node,button} from './dom.ts';
+import {geographyReadiness} from '../studio-core/geography-readiness.ts';
 export interface GuideActions {
   open(module:string):void;
   play():void;
@@ -20,7 +21,8 @@ const stages=[
 export function mountCreationGuide(host:HTMLElement,session:StudioSession,actions:GuideActions):void{
   const p=session.document,water=Object.values(p.libraries.water),paths=Object.values(p.libraries.paths),
     zones=Object.values(p.libraries.zones??{}),entities=Object.values(p.entityIndex),
-    assets=Object.keys(p.assets),assemblyCount=Object.keys(p.libraries.assemblies??{}).length;
+    assets=Object.keys(p.assets),assemblyCount=Object.keys(p.libraries.assemblies??{}).length,
+    readiness=geographyReadiness(p);
   const root=node('section','','section-card guide-workspace');
   root.append(node('div','ASSISTANT DE CRÉATION','kicker'),node('h2','De la carte vierge au monde jouable'),
     node('p','Ce parcours est facultatif : vous pouvez changer d’étape à tout moment. Tous les outils modifient la même source V3 avec Annuler/Refaire.','muted'));
@@ -31,10 +33,21 @@ export function mountCreationGuide(host:HTMLElement,session:StudioSession,action
   const list=node('div','','guide-steps');
   for(const stage of stages){
     const box=node('div','','section-card guide-step');
+    const check=readiness.checks.find(c=>c.id===stage.id);
     box.append(node('h3',stage.label),node('p',stage.desc,'muted'),
+      ...(check?[node('p',(check.ready?'Contenu présent · ':'À compléter · ')+check.detail,'muted')]:[]),
       button(stage.action,()=>actions.open(stage.id),'light-button'));
     list.append(box);
   }
+  const production=node('div','','section-card');
+  production.append(node('h3','État de production et ressources'),
+    node('p',readiness.sectors.hydrated+'/'+readiness.sectors.indexed+
+      ' secteurs auteur chargés · '+readiness.counts.reliefFeatures+' reliefs · '+
+      readiness.counts.cliffs+' lignes de falaises · '+readiness.counts.generatedRegions+
+      ' recettes régionales générées','muted'));
+  for(const warning of readiness.warnings)production.append(node('p','Attention : '+warning,'muted'));
+  production.append(node('p','Ces compteurs concernent les sources auteur, pas la VRAM ou les performances GPU. La validation complète reste dans le module de contrôle.','muted'));
+  root.append(production);
   root.append(list,
     node('h3','Prévisualiser la carte'),
     node('p','Une fois les éléments de base en place, testez les déplacements et interactions avec le lecteur de jeu réel.','muted'),
