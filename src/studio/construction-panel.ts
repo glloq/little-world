@@ -42,7 +42,7 @@ export function mountConstructionPanel(host:HTMLElement,ctx:ConstructionContext)
             const eid=crypto.randomUUID(),ownerChunkId=chunkAt(d.world,pose.x,pose.z),collider=colliderFor(id);
             putEntity(d,{id:eid,kind:'prop',name:asset.name,ownerChunkId,components:{
               Transform:{type:'Transform',position:{x:pose.x,y:pose.lift,z:pose.z},
-                rotation:yawQuaternion(pose.yaw),scale:{x:pose.scaleX,y:1,z:1}},
+                rotation:yawQuaternion(-pose.yaw),scale:{x:pose.scaleX,y:1,z:1}},
               Visual:{type:'Visual',assetId:id},
               ...(collider?{Collider:collider}:{})
             }});created.push(eid);
