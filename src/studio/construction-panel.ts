@@ -3,7 +3,7 @@ import {node,button,field,select,numberInput} from './dom.ts';
 import type {StudioSession} from './session.ts';
 import type {PolylineTarget} from './viewport/polyline-tool.ts';
 import {worldAsset,placeableWorldAssets,assetDefinitionFor,colliderFor} from '../world-production/registry.ts';
-import {wallModules,bridgePlan,type ModulePose} from '../studio-core/modular-construction.ts';
+import {wallModules,bridgePlan} from '../studio-core/modular-construction.ts';
 import {chunkAt} from '../studio-core/schema.ts';
 import {putEntity} from '../studio-core/source.ts';
 import {yawQuaternion} from '../studio-core/transforms.ts';
