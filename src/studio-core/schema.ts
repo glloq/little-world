@@ -177,7 +177,7 @@ function validateLibraries(value:unknown,world:WorldDefinitionV3,entityIds:strin
     }
   }
   if(libs.landscapes!==undefined)for(const [id,l]of Object.entries(dictionary(libs.landscapes,'Bibliothèque paysages',LANDSCAPE_LIMITS.instances))){if(validateLandscape(l,world.bounds).id!==id)throw Error('Bibliothèque paysages : ID différent de la clé');}
-  if(libs.regions!==undefined)for(const [id,region]of Object.entries(dictionary(libs.regions,'Bibliothèque régions',250))){if(validateRegionRecipe(region as never,world.bounds).id!==id)throw Error('Bibliothèque régions : ID différent de la clé');}
+  if(libs.regions!==undefined)for(const [id,region]of Object.entries(dictionary(libs.regions,'Bibliothèque régions',250))){if(validateRegionRecipe(region as never,world.bounds,world.chunkSizeM).id!==id)throw Error('Bibliothèque régions : ID différent de la clé');}
   if(libs.zones!==undefined)for(const [id,zone]of Object.entries(dictionary(libs.zones,'Bibliothèque zones',2000))){if(validateZone(zone,world).id!==id)throw Error('Bibliothèque zones : ID différent de la clé');}
   for(const name of ['prefabs','characters','dialogues','behaviors','interactions','activities','variables','items','objectives','water','paths']){
     const dict=dictionary(libs[name],`Bibliothèque ${name}`,10000);
