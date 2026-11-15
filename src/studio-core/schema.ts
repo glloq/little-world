@@ -70,7 +70,7 @@ export function emptyChunk(world:WorldDefinitionV3,id:ChunkId):ChunkSourceV3{ret
 function validateAppearance(value:unknown){const v=object(value,'Apparence');keys(v,['hat','backpack','neckwear','emotion','goggles'],'Apparence');if(v.goggles!==undefined&&typeof v.goggles!=='boolean')throw Error('Lunettes invalides');if(typeof v.hat!=='boolean'||typeof v.backpack!=='boolean'||!['none','pendant','scarf'].includes(String(v.neckwear))||!EMOTIONS.includes(v.emotion as typeof EMOTIONS[number]))throw Error('Apparence invalide');}
 const componentFields:Record<string,readonly string[]>={
   Transform:['type','position','rotation','scale'],Visual:['type','assetId','variant'],Character:['type','species','rigId','appearance'],Navigation:['type','behaviorId','speed','radius','path'],BehaviorRef:['type','behaviorId'],DialogueActor:['type','dialogueIds'],State:['type','initial'],Persistence:['type','fields'],Interactable:['type','prompt','range','interactionIds'],Collider:['type','shape','size','layer'],Animator:['type','clips','initialClip'],TriggerVolume:['type','shape','size','interactionIds'],Light:['type','kind','color','intensity','range','offset','enabled','mode','stateKey','flicker','preset'],
-  NaturalStructure:['type','kind','form','span','width','clearance','thickness','curvature'],
+  NaturalStructure:['type','kind','form','span','width','clearance','thickness','curvature','bankRise'],
 };
 export function parseComponents(value:unknown,world?:WorldDefinitionV3):ComponentMap{
   const components=object(value,'Composants');for(const [name,raw] of Object.entries(components)){
