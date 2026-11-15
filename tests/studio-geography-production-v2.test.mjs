@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {analyzeWatersheds} from '../src/studio-core/watershed-analysis.ts';
 import {proposeWatershedRivers} from '../src/studio-core/watershed-rivers.ts';
+import {proposeBasinLakes} from '../src/studio-core/basin-lakes.ts';
 import {reviewHydroNetwork,planHydroFalls} from '../src/studio-core/hydro-network-assistant.ts';
 import {compileWaterNetwork} from '../src/water/profile.ts';
 import {ECOLOGY_PROFILES,applyEcologyProfile} from '../src/studio-core/ecology-profiles.ts';
@@ -32,6 +33,24 @@ test('headwater river previews are validated without mutating context or sources
  assert.ok(first.proposals.length===1,JSON.stringify(first.rejected));
  assert.ok(first.proposals[0].plan.water.points.length>=2);
  assert.ok(compileWaterNetwork([first.proposals[0].plan.water],height,-100).every(w=>!w.diagnostics.some(d=>d.severity==='ERROR')));
+});
+
+test('proposed shallow basin lakes are bounded, validated and leave original sources intact',()=>{
+ const basins=[{outlet:{x:0,z:0},areaM2:20000,cells:20,kind:'pit'}],
+   height=(x,z)=>12+Math.hypot(x,z)*.3,
+   context={height,seaLevel:-10,bounds:{minX:-200,maxX:200,minZ:-200,maxZ:200},existing:[]};
+ const original=structuredClone(basins);
+ const first=proposeBasinLakes(basins,context);
+ assert.deepEqual(first,proposeBasinLakes(basins,context));
+ assert.deepEqual(basins,original);
+ assert.equal(first.proposals.length,1);
+ const water=first.proposals[0].water;
+ assert.equal(water.kind,'lake');
+ assert.equal(water.points.length,12);
+ assert.ok(water.level<=100&&water.level>height(0,0));
+ assert.ok(compileWaterNetwork([water],height,-10).every(w=>!w.diagnostics.some(d=>d.severity==='ERROR')));
+ const failed=proposeBasinLakes(basins,{...context,height:()=>12});
+ assert.equal(failed.proposals.length,0);
 });
 
 test('fall batch never mutates input and only returns compiler-approved changes',()=>{
