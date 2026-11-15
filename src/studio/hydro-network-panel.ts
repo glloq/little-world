@@ -8,6 +8,7 @@ import {putWater} from '../studio-core/source.ts';
 import {waterChunkIds,waterEditChunkIds} from '../water/sectors.ts';
 export function mountHydroNetworkPanel(host:HTMLElement,ctx:RegionPanelContext):()=>void{
  const s=ctx.session,p=s.document,card=node('details','','section-card'),results=node('div','','feature-list');
+ card.open=true;
  card.append(node('summary','A3 — Contrôle des rivières, lacs et cascades'),
    node('p','Analyser les profils, rechercher les exutoires proches, signaler les fortes pentes. Une connexion n’est créée qu’après vérification complète du réseau.','muted'));
  const safe=(fn:()=>Promise<void>)=>{void fn().catch(e=>ctx.status(e instanceof Error?e.message:String(e),true));};
