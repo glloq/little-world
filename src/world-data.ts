@@ -29,6 +29,8 @@ export interface Placement {
   y?: number;
   quaternion?: [number, number, number, number];
   scale3?: [number, number, number];
+  /** V3-only procedural stone vault, never baked into the terrain mesh. */
+  naturalStructure?:import('./structures/natural-structure.ts').NaturalStructureSpec;
 }
 export interface TerrainStroke {
   id: string;
