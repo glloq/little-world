@@ -149,7 +149,7 @@ export class HamsterAnimator {
         const f = s === 'GLIDE_OPEN' ? smooth(Math.min(1, this.transitionTime / TRANSITIONS.GLIDE_OPEN)) : s === 'GLIDE_CLOSE' ? 1 - smooth(Math.min(1, this.transitionTime / TRANSITIONS.GLIDE_CLOSE)) : 1;
         p.membrane = f; p.shoulderLZ = -1.35 * f; p.shoulderRZ = 1.35 * f; p.shoulderLX = p.shoulderRX = -.35 * f; p.hipLX = p.hipRX = -.6 * f;
         p.bodyRX = .5 * f; p.bodyRZ = bank * 1.6; p.headRX = -.35 * f; p.earL = p.earR = .3 * f; p.squash = 1 - .05 * f; break; }
-      case 'SWIM': p.bodyRX = .35; p.bodyY = Math.sin(t * 3) * .03; p.shoulderLX = st * .8 - .5; p.shoulderRX = -st * .8 - .5; p.hipLX = -st * .6; p.hipRX = st * .6; p.headRX = -.3; break;
+      case 'SWIM': p.bodyRX = input.mode === 'dive' ? Math.max(-.9, Math.min(1.3, .35 + Math.atan2(-input.verticalSpeed, Math.max(speed, .6)) * .9)) : .3; p.bodyY = Math.sin(t * 3) * .03; p.shoulderLX = st * .8 - .5; p.shoulderRX = -st * .8 - .5; p.hipLX = -st * .6; p.hipRX = st * .6; p.headRX = -.3; break;
       case 'CLIMB': { const r = speed > .15 || Math.abs(input.verticalSpeed) > .15 ? st : Math.sin(t * 1.4) * .15;
         p.bodyRX = -.25; p.shoulderLX = -2.4 + r * .45; p.shoulderRX = -2.4 - r * .45; p.hipLX = -.4 - r * .4; p.hipRX = -.4 + r * .4; p.headRX = -.2; break; }
       case 'BOAT': p.bodyY = -.06; p.hipLX = p.hipRX = -1.2; p.squash = .96; p.shoulderLX = p.shoulderRX = -.5; break;

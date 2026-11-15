@@ -285,6 +285,8 @@ function input(): Controls {
     spaceHeld: codeHeld('Space'),
     dive: codeHeld('ControlLeft', 'ControlRight'),
     cameraYaw: yaw,
+    // Underwater, moving forward follows the camera tilt (looking down dives down), from the default view.
+    cameraPitch: pitch - 0.32,
   };
 }
 function isMenuKey(e: KeyboardEvent): boolean {
@@ -720,6 +722,7 @@ function draw(now: number) {
         collisions:gameplay?.collision.stats??null,
         position: player.position.toArray(),
         mode: player.mode,
+        swim: { water: player.space ? null : waterSurface(player.position.x, player.position.z), diving: !!player.diving, oxygen: player.oxygen, pitch },
         character: { state: character.animationState, action: character.action, tool: character.tool, fishingLine: !!character.group.getObjectByName('FishingLine')?.visible, meshes: visibleMeshCount(character.group) },
         stamina: player.stamina ?? MAX_STAMINA,
         camera:{position:camera.position.toArray(),quaternion:camera.quaternion.toArray(),fov:camera.fov,aspect:camera.aspect,far:camera.far},

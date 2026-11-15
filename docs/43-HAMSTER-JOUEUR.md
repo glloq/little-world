@@ -81,6 +81,15 @@ Coût accepté : le vertex shader traite toujours les 7 224 sommets, y compris c
 
 **Planage** : les membranes s’ouvrent et se ferment avec les transitions `GLIDE_*`. L’ombre-disque est masquée en vol.
 
+**Nage et plongée** (`SWIM` dans `player.ts`) :
+- **Nage en surface** : le hamster nage **dans** l’eau, les pieds 0,48 m sous la surface et le centre du corps à la ligne d’eau. La tête et le dos dépassent, il ne se tient plus debout sur l’eau. Un ressort de flottaison le ramène à cette ligne.
+- **Plonger** : `Espace` dans l’eau. Le hamster passe d’abord entièrement sous l’eau (pieds à environ 1,5 m, tête à environ 0,6 m sous la surface), puis reste en flottaison neutre.
+- **Remonter** : `Espace` à nouveau. La plongée se termine aussi d’elle-même en atteignant la surface ou quand l’oxygène est épuisé.
+- **Direction sous l’eau** : avancer suit la caméra (clic-glisser). Regarder vers le bas fait descendre, vers le haut fait monter ; les déplacements latéraux restent à niveau. L’inclinaison est mesurée par rapport à la vue par défaut, et le hamster ne traverse jamais le fond.
+- **Pose** : nez vers le bas en descendant, vers le haut en montant (vitesse verticale).
+- **Commande existante conservée** : `Ctrl` maintenu fait couler.
+- **Preuves** : `tests/swim.test.mjs` et le test navigateur `swim` (entrée dans la mer, plongée de 1,6 m, 2,7 m de plus caméra vers le bas, retour à la surface).
+
 **Caméra** : distance 8 m, bornée entre 4 et 22 m. Le rendu est séparé de la logique : le personnage lit le `Player` simulé et ne le modifie jamais.
 
 ## 4. Outils et activités (phase D)
