@@ -5,6 +5,7 @@ import type {RegionPanelContext} from './regions-panel.ts';
 import {projectGeography} from '../studio-core/geo-context.ts';
 import {reviewHydroNetwork,planHydroLink} from '../studio-core/hydro-network-assistant.ts';
 import {putWater} from '../studio-core/source.ts';
+import {analyzeWatersheds} from '../studio-core/watershed-analysis.ts';
 import {waterChunkIds,waterEditChunkIds} from '../water/sectors.ts';
 export function mountHydroNetworkPanel(host:HTMLElement,ctx:RegionPanelContext):()=>void{
  const s=ctx.session,p=s.document,card=node('details','','section-card'),results=node('div','','feature-list');
@@ -48,7 +49,19 @@ export function mountHydroNetworkPanel(host:HTMLElement,ctx:RegionPanelContext):
    }
    if(r.falls.length)results.append(node('p','Les cascades proposées sont des diagnostics : régler leurs niveaux dans Eau avant de les créer.','muted'));
  };
- card.append(button('Analyser le réseau hydrologique',()=>safe(inspect)),results);
+ const basins=node('div','','feature-list');
+ const inspectBasins=async()=>{
+   const geo=projectGeography(p).ctx;
+   const result=analyzeWatersheds(p.world.bounds,geo.height,p.world.seaLevel,{maxCells:4096,minAreaM2:1000});
+   basins.replaceChildren(node('p',result.sampled+' échantillons · pas '+result.stepM.toFixed(1)+' m · '+result.basins.length+' exutoires principaux','muted'));
+   for(const b of result.basins.slice(0,12)){
+     basins.append(button((b.areaM2/10000).toFixed(1)+' ha · '+(b.kind==='pit'?'cuvette':b.kind==='sea'?'mer':'bord de carte'),
+       ()=>ctx.viewport.goTo(b.outlet.x,b.outlet.z,70)));
+   }
+   for(const warning of result.warnings)basins.append(node('p',warning,'muted'));
+ };
+ card.append(button('Analyser le réseau hydrologique',()=>safe(inspect)),results,
+   button('Analyser les bassins versants',()=>safe(inspectBasins)),basins);
  host.append(card);
  return ()=>{};
 }
