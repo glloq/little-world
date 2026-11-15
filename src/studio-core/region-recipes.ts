@@ -37,7 +37,7 @@ export interface RegionReport {
  painted:number;cleared:number;protected:number;preserved:number;feature:'added'|'updated'|'kept'|'none';
  sectors:number;warnings:string[];
 }
-const RECORD_LIMIT=256,MAX_REGIONS=250,ID=/^[A-Za-z0-9_:.-]{1,48}$/;
+const RECORD_LIMIT=256,MAX_REGIONS=250,ID=/^(?!__proto__$|prototype$|constructor$)[A-Za-z0-9_:.-]{1,40}$/;
 const finite=(v:number,min:number,max:number)=>Number.isFinite(v)&&v>=min&&v<=max;
 function polygonArea(points:readonly PointXZ[]):number{
  let a=0;for(let i=0;i<points.length;i++){const p=points[i],q=points[(i+1)%points.length];a+=p.x*q.z-q.x*p.z;}return Math.abs(a)/2;
@@ -60,14 +60,16 @@ export function validateRegionRecipe(v:RegionRecipeV1,b:{minX:number;maxX:number
   if(j===i+1||(i===0&&j===n-1))continue;
   if(intersects(v.points[i],v.points[(i+1)%n],v.points[j],v.points[(j+1)%n]))throw Error('Région : contour croisé');
  }
- if(!(v.preset in REGION_PRESETS))throw Error('Région : biotope inconnu');
+ if(!Object.prototype.hasOwnProperty.call(REGION_PRESETS,v.preset))throw Error('Région : biotope inconnu');
  if(!Number.isSafeInteger(v.seed)||v.seed<0||v.seed>0xffffffff||!finite(v.coverage,0,100)||!finite(v.transitionM,0,150))throw Error('Région : paramètres écologiques invalides');
  if(!['none','plateau'].includes(v.relief)||!finite(v.heightM,0,1200)||!finite(v.edgeM,2,300))throw Error('Région : paramètres de relief invalides');
  if(v.generated){
   const g=v.generated;
   if(Object.keys(g).some(k=>!['revision','masks','featureHash'].includes(k))||!Number.isSafeInteger(g.revision)||g.revision<0||!g.masks||typeof g.masks!=='object'||Array.isArray(g.masks))throw Error('Région : génération invalide');
   if(Object.keys(g.masks).length>RECORD_LIMIT)throw Error('Région : nombre de secteurs trop grand');
-  for(const layers of Object.values(g.masks)){
+  for(const [sector,layers] of Object.entries(g.masks)){
+   const m=/^(\\d+):(\\d+)$/.exec(sector),size=(b.maxX-b.minX),length=(b.maxZ-b.minZ);
+   if(!m||Number(m[1])>=Math.ceil(size/64)*16||Number(m[2])>=Math.ceil(length/64)*16)throw Error('Région : secteur généré invalide');
    if(!layers||Object.keys(layers).some(k=>!['geology','moisture','biome','material','occupation'].includes(k)))throw Error('Région : couche suivie inconnue');
    for(const [layer,mask]of Object.entries(layers))if(!validMaskString(layer as MaskLayerId,mask))throw Error('Région : masque généré invalide');
   }
