@@ -22,6 +22,15 @@ Les reliefs `rl-cliff-*` conservent leur crête native et gagnent des **faces ro
 
 À vérifier dans le navigateur : apparence des raccords haut/bas, transparence ou trous à différents angles, cas de forts virages, budget de draw calls et coût d'invalidation lors des éditions. Aucun benchmark chiffré n'est encore établi.
 
+### Falaises — finition géologique low-poly
+
+- **Strates** : bandes longitudinales de roches de tons alternés, couleurs de sommet directement dans le maillage (`MeshLambertMaterial` partagé ; aucune texture ni nouveau shader).
+- **Irrégularités** : facettes et nervures verticales déterministes, bornées par la largeur et le dénivelé réel ; points d'extrémité non perturbés.
+- **Éboulis** : petits éclats triangulaires posés sur le heightfield à proximité du pied. Intégration dans le même `BufferGeometry` que la paroi : aucune entité, aucun collider ni draw call supplémentaire par pierre.
+- **Jonctions** : normales du tracé interpolées au raccord des polylignes, coordonnées cumulées sur tout le tracé. Les extrémités voisines conservent les mêmes positions et échantillonnages, indépendamment de l'ordre de chargement.
+- **LOD** : maillage fin 3 stations × 7 bandes et 3 éclats par face ; LOD distant 2 stations × 4 bandes et 1 éclat par face. Les limites de streaming (32 tronçons, 3 constructions par mise à jour) ne changent pas.
+- **Vérification** : tests de déterminisme, raccords entre tronçons, budget géométrique, éviction, destruction et niveaux de détail. Un test navigateur d'inspection à forts virages et aux transitions LOD reste souhaitable avant qualification visuelle définitive.
+
 ### Hydrologie avancée
 
 La D8 est une **analyse approximative** sans remplissage des dépressions (pit filling), sans gestion hydrologique des précipitations ni des fleuves multi-exutoires. Prochaine étape : cuvettes/lacs candidats, routes de drainage et débit dérivé des surfaces de captage ; prévisualiser avant écriture et valider tout changement de profil d'eau.
