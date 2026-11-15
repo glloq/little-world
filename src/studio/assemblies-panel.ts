@@ -1,7 +1,7 @@
 /** Studio visual assembly panel. Uses the same session/CommandBus as individual objects. */
 import {node,button,field,input,select} from './dom.ts';
 import {libraryAssets} from './library.ts';
-import {assemblyInstanceRoot,instanceMemberIds,instanceTreeChunkIds,overrideAssemblyVisual,updateAssemblyTemplateVisual,assemblyVisualOf,setInstanceParent} from '../studio-core/assembly-instances.ts';
+import {instanceMemberIds,instanceTreeChunkIds,overrideAssemblyVisual,updateAssemblyTemplateVisual,assemblyVisualOf,setInstanceParent} from '../studio-core/assembly-instances.ts';
 import type {StudioSession} from './session.ts';
 import type {StudioViewport} from './viewport/editor-viewport.ts';
 import {captureAssembly,assemblyChunkIds,placeAssembly} from '../studio-core/assemblies.ts';
