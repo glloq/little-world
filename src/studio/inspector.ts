@@ -71,6 +71,16 @@ async function buildInspector(host:HTMLElement,ctx:InspectorContext){
   const change=(label:string,edit:(v:TransformValue)=>void)=>{void editQueue.run(async()=>{const current=p.entityIndex[id];if(!current)throw Error('Entité supprimée');await s.hydrate([current.ownerChunkId]);const next=entityTransform(p,id);edit(next);const update={id,transform:next};await s.change(label,transformChunkIds(p,[update]),d=>applyTransforms(d,[update]));ctx.refresh();}).catch(e=>ctx.status(String(e instanceof Error?e.message:e),true));};
   const rename=(name:string)=>{void editQueue.run(async()=>{const current=p.entityIndex[id];if(!current||!name.trim())return;await s.change('Renommer '+source.name,[current.ownerChunkId],d=>{const e=d.chunks[current.ownerChunkId].entities[id];e.name=name.trim().slice(0,100);d.entityIndex[id]={...d.entityIndex[id],name:e.name};});ctx.refresh();}).catch(e=>ctx.status(String(e),true));};
   host.append(field('Nom',input(source.name,rename)));
+  if(resolved.components.NaturalStructure){
+    const n=resolved.components.NaturalStructure;
+    host.append(node('h4','Structure naturelle · '+n.kind),
+      node('p',`Portée ${n.span.toFixed(1)} m · largeur ${n.width.toFixed(1)} m · hauteur libre ${n.clearance.toFixed(1)} m`,'muted'),
+      node('p','Utilisez l’éditeur spécialisé pour déplacer, tourner ou redimensionner : les ouvertures de terrain et les collisions resteront synchronisées.','muted'),
+      button('Modifier dans Structures naturelles',()=>ctx.open('natural')),
+      button('Centrer (F)',ctx.focus),
+      button('Supprimer avec excavation',ctx.remove));
+    return;
+  }
   const position=node('fieldset');position.append(node('legend','Position (m)'));
   for(const axis of ['x','y','z'] as const)position.append(field(axis==='y'?'Position Y (m)':'Position '+axis.toUpperCase()+' (m)',numberInput(round(t.position[axis]),v=>change('Déplacer '+source.name,n=>{n.position[axis]=v;}),-10000,10000)));
   position.append(node('p','Y = hauteur au-dessus du sol.','muted'));
