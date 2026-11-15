@@ -30,7 +30,7 @@ export function mountReliefLinesPanel(host:HTMLElement,ctx:RegionPanelContext):(
        h.append(node('h4','A2 — '+defaults.label),node('p',defaults.help,'muted'),
         field('Largeur de la forme (m)',numberInput(draft.widthM,x=>{draft.widthM=x;refresh();},5,2000,'1')),
         field(draft.preset==='valley'||draft.preset==='pass'?'Profondeur (m)':'Hauteur (m)',
-          numberInput(draft.amountM,x=>{draft.amountM=x;refresh();},draft.preset==='valley'||draft.preset==='pass'?.5:1,draft.preset==='valley'||draft.preset==='pass'?400:800,'1')),
+          numberInput(draft.amountM,x=>{draft.amountM=x;refresh();},(draft.preset==='valley'||draft.preset==='pass')?.5:1,(draft.preset==='valley'||draft.preset==='pass')?400:800,'1')),
         node('p','Échap : abandonner · Entrée : enregistrer · poignées déplaçables. Pour un vrai tunnel ou surplomb, utiliser Structures naturelles.','muted'));
      },
      async commit(pts){
