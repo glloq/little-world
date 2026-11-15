@@ -1,6 +1,7 @@
 import type * as THREE from 'three';
 import type {NPCState} from '../npc.ts';
 import {WorldCollisionQuery} from '../physics/collision-world.ts';
+import {naturalColliderOwner} from '../structures/natural-collision.ts';
 import type {CollisionDefinition} from '../physics/definitions.ts';
 import {terrainHeight,waterSurface} from '../terrain.ts';
 import {createGameplay} from './runtime.ts';
@@ -23,7 +24,7 @@ export interface ObjectTarget {entity:GameplayEntity;name:string;prompt:string;r
 export function createGameplayView(data:GameplayData,options:Options){
  const runtime=createGameplay(data),slots=createGameSaveStore(options.temporary?scopedSaveStorage(sessionStorage,options.saveScope??'test'):undefined);
  const collisionDefinitions=new Map((options.collisions??[]).map(d=>[d.id,d]));
- const collision=new WorldCollisionQuery(terrainHeight,waterSurface);for(const definition of options.collisions??[]){const height=terrainHeight(definition.groundAnchor.x,definition.groundAnchor.z);collision.add({...definition,position:{...definition.position,y:definition.position.y+height},enabled:()=>{const state=runtime.state.entities[definition.id];return state?.open!==true&&state?.collected!==true;}});}
+ const collision=new WorldCollisionQuery(terrainHeight,waterSurface);for(const definition of options.collisions??[]){const height=terrainHeight(definition.groundAnchor.x,definition.groundAnchor.z);collision.add({...definition,position:{...definition.position,y:definition.position.y+height},enabled:()=>{const state=runtime.state.entities[naturalColliderOwner(definition.id)];return state?.open!==true&&state?.collected!==true;}});}
  const has=(itemId:string)=>(runtime.state.inventory[itemId]??0)>0;
  const activities=createActivityRuntime(options.activities??{mines:[],farms:[]},{grant:changes=>runtime.grantItems(changes),has,seedItem:cropId=>runtime.data.items.some(i=>i.id==='seed:'+cropId)?'seed:'+cropId:null,time:()=>runtime.state.time,climate:runtime.climate,collision,ground:terrainHeight,water:waterSurface});
  /** Core gameplay state + active space + activity differences, in one versioned save. */
