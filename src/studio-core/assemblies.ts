@@ -70,6 +70,9 @@ export function registerAssemblyParts(p:ProjectDocument,assembly:AssemblyDefinit
 export function placeAssembly(project:ProjectDocument,assembly:AssemblyDefinition,x:number,z:number,idFactory=()=>crypto.randomUUID(),yaw=0):string[]{
   if(!assembly.items.length||assembly.items.length>100)throw Error('Assemblage vide ou trop grand');
   const b=project.world.bounds,created:string[]=[];
+  const keys=assembly.items.map((item,i)=>item.key??'part-'+i),newIds=assembly.items.map(()=>idFactory());
+  if(new Set(keys).size!==keys.length||new Set(newIds).size!==newIds.length)throw Error('Identifiants d’assemblage dupliqués');
+  const byKey=new Map(keys.map((key,i)=>[key,newIds[i]]));
   for(const item of assembly.items){
     const offset=assemblyOffset(item.dx,item.dz,yaw),px=x+offset.x,pz=z+offset.z;
     if(px<b.minX||px>b.maxX||pz<b.minZ||pz>b.maxZ)throw Error('Assemblage hors limites');
