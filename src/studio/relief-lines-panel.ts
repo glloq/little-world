@@ -11,7 +11,7 @@ export function mountReliefLinesPanel(host:HTMLElement,ctx:RegionPanelContext):(
  const p=ctx.session.document,s=ctx.session,v=ctx.viewport;
  const card=node('details','','section-card'),list=node('div','','feature-list');card.open=true;
  card.append(node('summary','A2 — Reliefs linéaires en 3D'),
-   node('p','Tracer une crête, un escarpement rocheux, une vallée ou un col. Les formes restent dans le heightfield natif, sans maillage supplémentaire.','muted'));
+   node('p','Tracer une crête, une falaise rocheuse, une vallée ou un col. Les falaises ajoutent des faces rocheuses low-poly locales avec LOD, sur le relief heightfield natif.','muted'));
  function open(draft:ReliefLineDraft){
    let height=projectGeography(p).ctx.height;
    const target:PolylineTarget={label:RELIEF_LINE_DEFAULTS[draft.preset].label,points:draft.points,min:2,max:32,color:draft.preset==='valley'||draft.preset==='pass'?0x46a4ca:0xb59a57,
@@ -31,7 +31,7 @@ export function mountReliefLinesPanel(host:HTMLElement,ctx:RegionPanelContext):(
         field('Largeur de la forme (m)',numberInput(draft.widthM,x=>{draft.widthM=x;refresh();},5,2000,'1')),
         field(draft.preset==='valley'||draft.preset==='pass'?'Profondeur (m)':'Hauteur (m)',
           numberInput(draft.amountM,x=>{draft.amountM=x;refresh();},(draft.preset==='valley'||draft.preset==='pass')?.5:1,(draft.preset==='valley'||draft.preset==='pass')?400:800,'1')),
-        node('p','Échap : abandonner · Entrée : enregistrer · poignées déplaçables. Pour un vrai tunnel ou surplomb, utiliser Structures naturelles.','muted'));
+        node('p','Échap : abandonner · Entrée : enregistrer · poignées déplaçables. Les parois suivent la collision du terrain ; pour un vrai tunnel ou surplomb, utiliser Structures naturelles.','muted'));
      },
      async commit(pts){
        const next={...draft,points:pts.map(q=>({...q}))};
