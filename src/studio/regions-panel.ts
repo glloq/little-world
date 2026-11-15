@@ -13,6 +13,7 @@ import type {StudioViewport} from './viewport/editor-viewport.ts';
 import type {PolylineTarget} from './viewport/polyline-tool.ts';
 import {REGION_PRESETS,newRegion,previewRegion,applyRegion,removeRegion,validateRegionRecipe,
   regionAffectedChunks,type RegionPreset,type RegionRecipeV1,type RegionReport} from '../studio-core/region-recipes.ts';
+import {DEFAULT_REGION_VEGETATION,REGION_TREE_SPECIES,type RegionVegetation} from '../studio-core/region-schema.ts';
 
 export interface RegionPanelContext {
   session:StudioSession;viewport:StudioViewport;
@@ -44,6 +45,19 @@ export function mountRegionsPanel(host:HTMLElement,ctx:RegionPanelContext):()=>v
      },
      controls(tools,refresh){
        const set=(value:Partial<RegionRecipeV1>)=>{Object.assign(region,value);refresh();};
+       const vegetation={...DEFAULT_REGION_VEGETATION,...region.vegetation};
+       const keys=Object.keys(vegetation.treeMix??{});
+       let main=keys[0]??'',other=keys[1]??'',ratio=keys.length===2?Math.round(100*(vegetation.treeMix?.[main as keyof typeof vegetation.treeMix]??1)/
+         ((vegetation.treeMix?.[main as keyof typeof vegetation.treeMix]??1)+(vegetation.treeMix?.[other as keyof typeof vegetation.treeMix]??1))):75;
+       const setVegetation=(patch:Partial<RegionVegetation>)=>{Object.assign(vegetation,patch);set({vegetation:{...vegetation}});};
+       const updateMix=()=>{
+         const mix:NonNullable<RegionVegetation['treeMix']>={};
+         if(main)mix[main as keyof typeof mix]=Math.max(1,Math.round(ratio/5));
+         if(other&&other!==main)mix[other as keyof typeof mix]=Math.max(1,Math.round((100-ratio)/5));
+         setVegetation({treeMix:mix});
+       };
+       const speciesChoices:[string,string][]=[['','Espèces du biotope (auto)'],
+         ...REGION_TREE_SPECIES.map(id=>[id,id.replace('nature.','').replaceAll('_',' ')] as [string,string])];
        tools.append(node('h4','A — Contour et relief'),node('p','Tracez un polygone et glissez les poignées. Le plateau optionnel s’ajoute au générateur d’archipel.','muted'),
          field('Nom de la région',input(region.name,val=>set({name:val}))),
          field('Relief de région',select(region.relief,[['none','Conserver le relief'],['plateau','Plateau à altitude constante']],x=>set({relief:x as RegionRecipeV1['relief']}))),
@@ -54,7 +68,15 @@ export function mountRegionsPanel(host:HTMLElement,ctx:RegionPanelContext):()=>v
          field('Couverture du masque (%)',numberInput(region.coverage,x=>set({coverage:x}),0,100,'5')),
          field('Transition écologique (m)',numberInput(region.transitionM,x=>set({transitionM:x}),0,150,'5')),
          field('Graine déterministe',numberInput(region.seed,x=>set({seed:Math.round(x)}),0,4294967295,'1')),
-         node('p','La couverture détermine la proportion de cellules corrigées ; la densité fine et les espèces restent gérées par les biotopes existants. Les masques manuels ne sont pas écrasés.','muted'));
+         node('h4','B2 — Végétation de cette région'),
+         field('Arbres (× profil)',numberInput(vegetation.trees,x=>setVegetation({trees:x}),0,2,'.1')),
+         field('Arbustes (× profil)',numberInput(vegetation.shrubs,x=>setVegetation({shrubs:x}),0,2,'.1')),
+         field('Plantes basses (× profil)',numberInput(vegetation.ground,x=>setVegetation({ground:x}),0,2,'.1')),
+         field('Bois mort (× profil)',numberInput(vegetation.deadwood,x=>setVegetation({deadwood:x}),0,2,'.1')),
+         field('Essence dominante',select(main,speciesChoices,x=>{main=x;updateMix();})),
+         field('Essence secondaire',select(other,speciesChoices,x=>{other=x;updateMix();})),
+         field('Proportion dominante (%)',numberInput(ratio,x=>{ratio=x;updateMix();},5,95,'5')),
+         node('p','0 = catégorie absente, 1 = densité du biotope, 2 = maximum ×2. Les essences sélectionnées sont instanciées sans créer d’objets individuels. La transition adoucit les frontières.','muted'));
      },
      async commit(points){await commit({...region,points:points.map(x=>({...x})),generated:undefined});},
    };
