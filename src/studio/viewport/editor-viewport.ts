@@ -200,7 +200,11 @@ export class StudioViewport {
       const generatorBefore=JSON.stringify(this.definition.config.terrain??null);
       Object.assign(this.definition,next);
       if(generatorBefore!==JSON.stringify(next.config.terrain??null))this.applyGenerator(transaction);
-      this.syncGeography();this.applyTerrain([...next.terrain,...next.biomes] as TerrainStroke[],transaction);this.world.refreshPaths(this.definition.paths);this.syncZones();this.syncModels();this.syncLights();this.tools.active?.sourcesChanged?.();this.reportStatus();this.invalidate(20);
+      this.syncGeography();this.applyTerrain([...next.terrain,...next.biomes] as TerrainStroke[],transaction);this.world.refreshPaths(this.definition.paths);this.syncZones();this.syncModels();this.syncLights();this.tools.active?.sourcesChanged?.();
+      // Evict only clean, unreferenced author sources after the view has consumed them.
+      // Current/Undo/Redo/selected sectors remain pinned; full exports hydrate everything on demand.
+      this.session.compactHydrated(this.contentIds);
+      this.reportStatus();this.invalidate(20);
     }).catch(error=>this.options.message(String(error),true));
   }
   refresh(transaction?:EditTransaction){
