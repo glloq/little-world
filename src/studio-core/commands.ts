@@ -136,6 +136,8 @@ export class CommandBus {
   }
   undo():boolean{if(!this.canUndo)return false;const transaction=this.past[this.past.length-1];this.apply(transaction,true);this.past.pop();this.future.push(transaction);this.sequence++;this.notify(transaction,'undo');return true;}
   redo():boolean{if(!this.canRedo)return false;const transaction=this.future[this.future.length-1];this.apply(transaction,false);this.future.pop();this.past.push(transaction);this.sequence++;this.notify(transaction,'redo');return true;}
+  /** Sectors referenced by undo/redo must remain hydrated until their transactions expire. */
+  historyChunkIds():Set<string>{return new Set([...this.past,...this.future].flatMap(t=>t.affectedChunks));}
   serialize():CommandJournal {
     if(this.gesture)throw Error('Ne pas enregistrer une transaction incomplète');
     return structuredClone({schemaVersion:1,projectId:this.document.manifest.projectId,worldId:this.document.manifest.worldId,sequence:this.sequence,undo:this.past,redo:this.future});
