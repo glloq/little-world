@@ -1,12 +1,13 @@
 import * as THREE from 'three';
 import {terrainHeight} from '../../terrain.ts';
 import {affectedChunkIds} from '../../studio-core/schema.ts';
+import {regionCells,paintMask,protectedCells} from '../../studio-core/geo-edits.ts';
 import {putTerrainEdit,putBiomeEdit} from '../../studio-core/source.ts';
 import type {Tool,ToolContext} from './tools.ts';
 
-export type BrushMode='raise'|'lower'|'flatten'|'smooth'|'forest'|'meadow'|'mountain'|'coast'|'village';
+export type BrushMode='raise'|'lower'|'flatten'|'smooth'|'forest'|'meadow'|'mountain'|'coast'|'village'|'exclude-vegetation'|'restore-vegetation';
 export const BIOME_MODES:BrushMode[]=['forest','meadow','mountain','coast','village'];
-export const brushSettings={radius:10,strength:2,height:null as number|null};
+export const brushSettings={radius:10,strength:2,height:null as number|null,maskProtect:true};
 export interface Dab {x:number;z:number}
 /** Mean ground height in a disc: the target of the "smooth" dab (relaxes bumps towards the
  * local mean, with a softer weight than flattening). Pure and unit-tested. */
@@ -57,6 +58,22 @@ export class BrushTool implements Tool {
   }
   private commit(dabs:Dab[]){
     const s=this.ctx.session,radius=brushSettings.radius,strength=brushSettings.strength,mode=this.mode,biome=BIOME_MODES.includes(mode);this.busy=true;
+    if(mode==='exclude-vegetation'||mode==='restore-vegetation'){
+      const code=mode==='exclude-vegetation'?'x':'.';
+      const regions=dabs.map(d=>regionCells(s.document,{kind:'circle',x:d.x,z:d.z,radius}));
+      const cells=new Map<string,number[]>();
+      for(const region of regions)for(const [id,list] of region)cells.set(id,[...new Set([...(cells.get(id)??[]),...list])]);
+      this.ctx.run(async()=>{try{
+        await s.change(code==='x'?'Exclure la végétation':'Restaurer la végétation',[...cells.keys()],draft=>{
+          const filtered=code==='x'&&brushSettings.maskProtect?protectedCells(draft,'occupation',cells):cells;
+          // Restoration only removes an explicit exclusion mask. Do not erase protected farm/road/built cells.
+          const toApply=code==='.'?new Map([...cells].map(([id,indexes])=>[id,indexes.filter(i=>draft.chunks[id]?.layers?.occupation?.[i]==='x')])):filtered;
+          paintMask(draft,'occupation',code,toApply);
+        });
+        this.ctx.message(code==='x'?'Végétation exclue sur les cellules géographiques du trait.':'Masques de végétation restaurés sur le trait.');
+      }finally{this.busy=false;}});
+      return;
+    }
     const flatHeight=this.flatHeight;
     const targets=dabs.map(d=>mode==='smooth'?localMean(terrainHeight,d.x,d.z,radius):flatHeight);
     this.ctx.run(async()=>{try{
