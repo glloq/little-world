@@ -4,9 +4,11 @@ import {naturalPlan,naturalBoxes,naturalProfile,tunnelExcavation,structureEndpoi
 import {naturalColliders,naturalColliderOwner} from '../src/structures/natural-collision.ts';
 import {naturalMesh,naturalMeshBudget} from '../src/structures/natural-mesh.ts';
 import {WorldCollisionQuery} from '../src/physics/collision-world.ts';
-import {createProject,parseProject,chunkAt} from '../src/studio-core/schema.ts';
+import {createProject,parseProject,chunkAt,affectedChunkIds} from '../src/studio-core/schema.ts';
 import {putEntity,putTerrainEdit} from '../src/studio-core/source.ts';
 import {runtimeContent} from '../src/studio-core/migration.ts';
+import {elementChunkIds,deleteElements} from '../src/studio-core/elements.ts';
+import {applyTransforms,duplicateEntities} from '../src/studio-core/transforms.ts';
 import {CommandBus} from '../src/studio-core/commands.ts';
 import {editDocument} from '../src/studio-core/edit.ts';
 import {compileProject} from '../src/world-compiler/compile.ts';
@@ -60,7 +62,7 @@ test('tunnel excavation is local and recorded as native reversible V3 height edi
  const plan=sample('tunnel'),strokes=tunnelExcavation({x:-7,z:0},{x:7,z:0},plan.spec,height);
  assert.ok(strokes.length>1&&strokes.length<=25);
  const bus=new CommandBus(p),id='natural:demo';
- const chunks=[...new Set(strokes.flatMap(stroke=>[chunkAt(p.world,stroke.x,stroke.z)]))];
+ const chunks=[...new Set(strokes.flatMap(stroke=>affectedChunkIds(p.world,stroke.x,stroke.z,stroke.radius)))];
  editDocument(bus,'Tunnel terrain',chunks,d=>{
    for(const [i,stroke]of strokes.entries())putTerrainEdit(d,{...stroke,id:id+':'+i});
  });
@@ -89,4 +91,30 @@ test('natural procedural source compiles without GLB copy and retains its compon
  assert.ok(result.manifest.assets.some(a=>a.id===NATURAL_ASSET_ID&&a.type==='procedural'));
  const chunk=result.manifest.chunks.find(c=>c.entityIds.includes('natural-2'));
  assert.equal(JSON.parse(result.files[chunk.url]).entities[0].components.NaturalStructure.kind,'bridge');
+});
+
+test('supprimer un tunnel enlève son excavation, Undo restaure les deux sources',()=>{
+ const p=createProject({name:'Tunnel lifecycle',width:500,length:500}),plan=sample('tunnel'),id='tunnel:test';
+ p.assets[NATURAL_ASSET_ID]={id:NATURAL_ASSET_ID,name:'Structure naturelle rocheuse',type:'procedural',license:'project-original',source:'Little World procedural stone vault (local low-poly)'};
+ const strokes=tunnelExcavation({x:-7,z:0},{x:7,z:0},plan.spec,height),chunks=[...new Set(strokes.flatMap(e=>affectedChunkIds(p.world,e.x,e.z,e.radius)))];
+ const bus=new CommandBus(p);
+ editDocument(bus,'Place tunnel',chunks,d=>{
+   for(const [i,stroke]of strokes.entries())putTerrainEdit(d,{...stroke,id:'natural:'+id+':'+i});
+   putEntity(d,{id,kind:'prop',name:'Tunnel traversant',ownerChunkId:chunkAt(d.world,0,0),
+     components:{Transform:{type:'Transform',position:{x:0,y:0,z:0},rotation:{x:0,y:0,z:0,w:1},scale:{x:1,y:1,z:1}},
+     Visual:{type:'Visual',assetId:NATURAL_ASSET_ID},NaturalStructure:plan.spec}});
+ });
+ const before=Object.values(p.chunks).flatMap(c=>c.terrainEdits).length;
+ assert.equal(before,strokes.length);
+ const refs=[{kind:'entity',id}],affected=elementChunkIds(p,refs);
+ assert.ok(affected.length>=chunks.length);
+ const transform=p.chunks[p.entityIndex[id].ownerChunkId].entities[id].components.Transform;
+ assert.throws(()=>applyTransforms(p,[{id,transform:{position:{x:1,y:0,z:0},rotation:transform.rotation,scale:transform.scale}}]),/Structures naturelles/);
+ assert.throws(()=>duplicateEntities(p,[id],{x:12,y:0,z:0}),/Structures naturelles/);
+ editDocument(bus,'Delete tunnel',affected,d=>deleteElements(d,refs));
+ assert.equal(p.entityIndex[id],undefined);
+ assert.equal(Object.values(p.chunks).flatMap(c=>c.terrainEdits).length,0);
+ bus.undo();assert.ok(p.entityIndex[id]);assert.equal(Object.values(p.chunks).flatMap(c=>c.terrainEdits).length,before);
+ bus.redo();assert.equal(p.entityIndex[id],undefined);
+ parseProject(structuredClone(p));
 });
