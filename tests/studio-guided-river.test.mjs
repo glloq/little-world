@@ -26,7 +26,7 @@ test('A river connects to sea when it reaches below sea-level',()=>{
 test('A guided river refuses invalid width, direction and excessive length',()=>{
  const h=(x,z)=>5-x*.05;
  assert.throws(()=>planGuidedRiver({x:5,z:0},{x:6,z:0},config(h),options),/direction/);
- assert.throws(()=>planGuidedRiver({x:5,z:0},{x:45,z:0},config(h),{...options,width:50}),/paramètres/);
+ assert.throws(()=>planGuidedRiver({x:5,z:0},{x:45,z:0},config(h),{...options,width:50}),/[Pp]aramètres/);
  assert.throws(()=>planGuidedRiver({x:5,z:0},{x:45,z:0},config(h),{...options,maxLengthM:5000}),/paramètres/);
 });
 test('A disconnected river is not invented when no downhill path exists',()=>{
