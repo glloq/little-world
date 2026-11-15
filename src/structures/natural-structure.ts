@@ -6,6 +6,8 @@ export type NaturalForm='round'|'pointed'|'flat';
 export interface NaturalStructureSpec {
   type:'NaturalStructure';kind:NaturalKind;form:NaturalForm;
   span:number;width:number;clearance:number;thickness:number;curvature:number;
+  /** Auto-adapt longitudinal bank mismatch for arch/bridge; omitted in older projects. */
+  bankRise?:number;
 }
 export interface PointXZ {x:number;z:number}
 export interface NaturalBox {x:number;z:number;bottom:number;sx:number;sz:number;sy:number}
@@ -16,6 +18,7 @@ export function validateNaturalStructure(s:NaturalStructureSpec):NaturalStructur
   for(const [k,min,max] of [['span',3,40],['width',2.5,20],['clearance',2.3,12],['thickness',.6,5],['curvature',.2,2]] as const){
     const v=s[k];if(typeof v!=='number'||!Number.isFinite(v)||v<min||v>max)throw Error('Structure naturelle : '+k+' hors limites');
   }
+  if(s.bankRise!==undefined&&(!Number.isFinite(s.bankRise)||Math.abs(s.bankRise)>12))throw Error('Différence de niveau des appuis invalide');
   return {...s};
 }
 export function naturalProfile(spec:NaturalStructureSpec,t:number):number {
@@ -35,8 +38,9 @@ export function naturalPlan(a:PointXZ,b:PointXZ,kind:NaturalKind,options:{width:
   const span=spanFromPoints(a,b);
   const spec=validateNaturalStructure({type:'NaturalStructure',kind,span,...options});
   const h0=height(a.x,a.z),h1=height(b.x,b.z);
-  if(!Number.isFinite(h0+h1)||Math.abs(h0-h1)>3)throw Error('Les deux appuis doivent être à moins de 3 m de dénivelé');
-  const x=(a.x+b.x)/2,z=(a.z+b.z)/2,y=kind==='tunnel'?0:Math.max(h0,h1)-height(x,z)-spec.thickness-.3;
+  if(!Number.isFinite(h0+h1)||Math.abs(h0-h1)>12)throw Error('Les deux appuis doivent être à moins de 12 m de dénivelé');
+  if(kind!=='tunnel')spec.bankRise=h1-h0;
+  const x=(a.x+b.x)/2,z=(a.z+b.z)/2,y=kind==='tunnel'?0:(h0+h1)/2-height(x,z)-spec.thickness-.3;
   return {x,z,y,yaw:-Math.atan2(b.z-a.z,b.x-a.x),spec,points:[{...a},{...b}] as [PointXZ,PointXZ]};
 }
 /** Collision decomposition, no single full-span box closing the natural opening.
@@ -49,7 +53,9 @@ export function naturalBoxes(spec:NaturalStructureSpec):NaturalBox[]{
     const lo=-half+i*delta,hi=lo+delta,mid=(lo+hi)/2;
     // Conservatively cover the sloped upper and lower roof faces in a short segment.
     const u0=vaultUnder(spec,lo/half),u1=vaultUnder(spec,hi/half);
-    const lower=Math.min(u0,u1),upper=Math.max(u0,u1)+spec.thickness;
+    const loRise=spec.kind==='tunnel'?0:(spec.bankRise??0)*lo/spec.span,
+      hiRise=spec.kind==='tunnel'?0:(spec.bankRise??0)*hi/spec.span;
+    const lower=Math.min(u0+loRise,u1+hiRise),upper=Math.max(u0+loRise,u1+hiRise)+spec.thickness;
     const tunnel=spec.kind==='tunnel';
     out.push({x:tunnel?0:mid,z:tunnel?mid:0,
       bottom:lower,sx:tunnel?depth:delta+.08,sz:tunnel?delta+.08:depth,sy:upper-lower});
