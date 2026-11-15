@@ -19,6 +19,20 @@ export function instanceCandidateChunkIds(p:ProjectDocument,id:string):string[]{
   const entry=p.entityIndex[id];if(!entry)return [];
   return [...new Set([entry.ownerChunkId,...Object.values(p.entityIndex).filter(e=>e.references.includes(id)).map(e=>e.ownerChunkId)])];
 }
+/** Candidate sectors from lightweight reference indexes; no whole-world hydration required. */
+export function instanceTreeChunkIds(p:ProjectDocument,rootId:string):string[]{
+  const seen=new Set([rootId]),ids=new Set<string>(),entries=Object.values(p.entityIndex);
+  let changed=true;
+  while(changed){
+    changed=false;
+    for(const entry of entries){
+      if(!entry.references.some(id=>seen.has(id))&&!seen.has(entry.id))continue;
+      ids.add(entry.ownerChunkId);
+      if(!seen.has(entry.id)){seen.add(entry.id);changed=true;}
+    }
+  }
+  return [...ids];
+}
 export function instanceMemberIds(p:ProjectDocument,rootId:string):string[]{
   const seen=new Set<string>([rootId]);let grown=true;
   while(grown){grown=false;
@@ -49,6 +63,8 @@ export function updateAssemblyTemplateVisual(p:ProjectDocument,entityId:string,a
   const entry=p.entityIndex[entityId],source=entry&&p.chunks[entry.ownerChunkId]?.entities[entityId];
   if(!source?.prefabId)throw Error('Sélectionner un objet provenant d’un assemblage V2');
   const id=source.prefabId,model=p.libraries.prefabs[id],asset=p.assets[assetId]??assetDefinitionFor(assetId);
+  const affected=Object.values(p.entityIndex).filter(e=>e.references.includes(id));
+  for(const e of affected)if(!p.chunks[e.ownerChunkId]?.entities[e.id])throw Error('Charger tous les secteurs contenant une instance avant modification du modèle');
   if(!model||!asset)throw Error('Modèle partagé ou asset introuvable');
   if(!p.assets[assetId])p.assets={...p.assets,[assetId]:asset};
   const visual={type:'Visual' as const,assetId},collider=colliderFor(assetId);
@@ -56,6 +72,7 @@ export function updateAssemblyTemplateVisual(p:ProjectDocument,entityId:string,a
   if(collider)model.components.Collider=collider;else delete model.components.Collider;
   model.version++;
   // Keep source palette aligned for future copies while preserving overrides on existing copies.
+  for(const e of affected)putEntity(p,p.chunks[e.ownerChunkId].entities[e.id]);
   for(const assembly of Object.values(p.libraries.assemblies??{})){
     if(assembly.version!==2)continue;
     assembly.items.forEach((part,index)=>{
