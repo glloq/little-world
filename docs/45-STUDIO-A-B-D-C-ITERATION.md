@@ -6,11 +6,12 @@ Branche `feat/studio-creation-workflows-v1`, jamais fusionnée automatiquement d
 
 - L'assistant de création propose île, archipel, chapelet d'îlots ou relief doux.
 - Dimensions libres de 500 à 8 000 m, graine, proportion de falaises et option volcan.
+- Le panneau Eau propose « Prolonger le cours d’eau vers l’aval » à partir de sa source ou de son dernier point ; il réutilise `traceDownhill`, limite le tracé à 100 points et ajoute le raccord à la mer lorsque le terrain le permet.
 - Les sources sont des contrats `world.terrain.archipelago` V3 validés, **pas un second moteur**.
 - Un projet neuf se modifie ensuite avec les formes existantes (îles, volcans, crêtes, plateaux, vallées) sur la carte 2D.
 - Les presets de vallées historiques restent disponibles.
 
-**Ce qui reste à développer dans A** : tracés hydrologiques auto-connectés, outil 3D de falaises/plateaux et zones de paysage polygonales avec transitions. Le Studio possède déjà les outils basiques de formes 2D et paysages rectangulaires ; ils ne sont pas remplacés.
+**Ce qui reste à développer dans A** : raccordement automatique multi-réseaux des tracés hydrologiques, outil 3D de falaises/plateaux et zones de paysage polygonales avec transitions. Le Studio possède déjà les outils basiques de formes 2D et paysages rectangulaires ; ils ne sont pas remplacés.
 
 ## B — Biotopes et construction
 
@@ -25,6 +26,7 @@ Branche `feat/studio-creation-workflows-v1`, jamais fusionnée automatiquement d
 
 - Nouveau contrôleur indépendant `studio-core/world-audit.ts`, sans mutation : erreurs de références d'eau manquantes, liens sur soi, connexions distantes, cours d'eau/chemins trop courts, éléments hors carte et zones incomplètes.
 - Intégration au panneau Validation/Compilation ; chaque problème mène à la position concernée dans la vue 3D.
+- Un contrôle ouvre directement la surimpression existante des pentes et collisions, sans créer un nouveau calcul de physique.
 - **Les warnings ne bloquent pas la compilation** et le strict preflight existant reste l'autorité de validité.
 
 **Ce qui reste dans D** : pente et accessibilité du joueur/PNJ, contrôle géométrique 3D et collisions, budget GPU et parcours de playtest instrumenté.
