@@ -22,6 +22,8 @@ export function mountScatterPanel(host:HTMLElement,viewport:StudioViewport):void
     const item=placementSettings.item;if(item.kind!=='asset'||!valid.has(item.id))return;
     if(!scatterSettings.palette.includes(item.id))scatterSettings.palette.push(item.id);render();
   });
+  const conflictFree=node('input');conflictFree.type='checkbox';conflictFree.checked=scatterSettings.avoidConflicts;
+  conflictFree.onchange=()=>{scatterSettings.avoidConflicts=conflictFree.checked;};
   const paint=button('Peindre avec la palette',()=>{
     if(!scatterSettings.palette.length)return;viewport.setTool('scatter');
   },'primary-button');
@@ -31,6 +33,7 @@ export function mountScatterPanel(host:HTMLElement,viewport:StudioViewport):void
     field('Densité (objet/m²)',numberInput(scatterSettings.density,v=>scatterSettings.density=Math.max(.001,Math.min(.2,v||.001)),.001,.2,'0.005')),
     field('Distance minimale (m)',numberInput(scatterSettings.spacing,v=>scatterSettings.spacing=Math.max(.5,Math.min(20,v||.5)),.5,20,'0.5')),
     field('Graine',numberInput(scatterSettings.seed,v=>scatterSettings.seed=Math.round(v||0),0,9999999)),
+    field('Protéger les placements existants (éviter les conflits)',conflictFree),
     paint,single,node('p','Glissez sur le relief pour peindre. Maximum 120 objets par trait ; Ctrl+Z annule le trait. Échap quitte le mode.','muted'));
   host.append(box);render();
 }
