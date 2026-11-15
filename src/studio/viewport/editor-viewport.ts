@@ -20,6 +20,7 @@ import {SelectTool} from './select-tool.ts';
 import {PlacementTool} from './placement-tool.ts';
 import {BrushTool,type BrushMode} from './brush-tool.ts';
 import {ScatterTool} from './scatter-tool.ts';
+import {AssemblyPlacementTool} from './assembly-placement-tool.ts';
 import {PolylineTool} from './polyline-tool.ts';
 import {applySkyLighting,type SkyLighting} from '../../environment/sky-lighting.ts';
 import {entityTransform} from '../../studio-core/transforms.ts';
@@ -85,7 +86,7 @@ export class StudioViewport {
     this.navigation=attachNavigation(this.canvas,this.camera,{pick:(x,y)=>this.groundAt(x,y),heightPx:()=>this.canvas.clientHeight,isActive:()=>this.visible,onInteract:()=>this.invalidate(4),onSettled:()=>this.saveCamera()});
     const context:ToolContext={session,scene:this.scene,canvas:this.canvas,camera:this.camera,selection:this.selection,ground:e=>this.groundAt(e.clientX,e.clientY),objectFor:id=>this.objectFor(id),invalidate:n=>this.invalidate(n),message:options.message,refreshInspector:options.refreshInspector,setTool:id=>{this.setTool(id);options.toolChanged(id);},
       run:action=>{void action().catch(error=>{options.message(String(error instanceof Error?error.message:error),true);this.refresh();});}};
-    this.tools=new ToolManager(context);this.tools.register(new SelectTool());this.tools.register(new PlacementTool());this.tools.register(new ScatterTool());this.tools.register(new PolylineTool());for(const [id,mode]of BRUSH_TOOLS)this.tools.register(new BrushTool(id,mode));
+    this.tools=new ToolManager(context);this.tools.register(new SelectTool());this.tools.register(new PlacementTool());this.tools.register(new ScatterTool());this.tools.register(new AssemblyPlacementTool());this.tools.register(new PolylineTool());for(const [id,mode]of BRUSH_TOOLS)this.tools.register(new BrushTool(id,mode));
     this.canvas.addEventListener('pointerdown',this.onDown);this.canvas.addEventListener('pointermove',this.onMove);this.canvas.addEventListener('pointerup',this.onUp);this.canvas.addEventListener('pointerleave',this.onLeave);
     window.addEventListener('keydown',this.onKey);
     this.unsubscribe.push(session.commands.subscribe(t=>this.refresh(t)),session.selection.subscribe(()=>{this.selection.refresh();this.invalidate(3);this.reportStatus();}));
