@@ -34,7 +34,8 @@ try{
  await page.getByRole('button',{name:'Structures naturelles',exact:true}).click();
  await page.getByRole('button',{name:'Nouvelle arche rocheuse'}).click();await tool('polyline');
  await placePoints();
- await page.waitForFunction(()=>document.querySelector('.viewport canvas')?.dataset.polylinePreview==='NaturalStructure:arch');
+ await page.waitForFunction(()=>document.querySelector('.viewport canvas')?.dataset.polylinePreview==='NaturalStructure:arch',null,{timeout:10000})
+   .catch(async()=>{const state=await page.evaluate(()=>({canvas:{...document.querySelector('.viewport canvas')?.dataset},status:document.querySelector('#status')?.textContent,trace:document.querySelector('#tools')?.textContent?.slice(0,450)}));console.error('Natural arch preview diagnostic:',JSON.stringify(state));throw Error('3D arch ghost absent');});
  check(true,'3D translucent stone arch preview follows the two endpoints');
  await page.getByLabel('Largeur du passage (m)').fill('8');await page.getByLabel('Largeur du passage (m)').press('Tab');
  await page.getByLabel('Courbure').fill('1.5');await page.getByLabel('Courbure').press('Tab');
