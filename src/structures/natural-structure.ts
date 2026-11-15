@@ -20,7 +20,7 @@ export function validateNaturalStructure(s:NaturalStructureSpec):NaturalStructur
 }
 export function naturalProfile(spec:NaturalStructureSpec,t:number):number {
   const u=Math.min(1,Math.abs(t));
-  if(spec.form==='flat')return 1;
+  if(spec.form==='flat')return u<.83?1:Math.max(0,(1-u)/.17);
   if(spec.form==='pointed')return Math.pow(Math.max(0,1-u),spec.curvature*.65);
   return Math.pow(Math.max(0,1-u*u),spec.curvature*.5);
 }
@@ -36,7 +36,7 @@ export function naturalPlan(a:PointXZ,b:PointXZ,kind:NaturalKind,options:{width:
   const spec=validateNaturalStructure({type:'NaturalStructure',kind,span,...options});
   const h0=height(a.x,a.z),h1=height(b.x,b.z);
   if(!Number.isFinite(h0+h1)||Math.abs(h0-h1)>3)throw Error('Les deux appuis doivent être à moins de 3 m de dénivelé');
-  const x=(a.x+b.x)/2,z=(a.z+b.z)/2,y=kind==='tunnel'?0:Math.max(h0,h1)-height(x,z);
+  const x=(a.x+b.x)/2,z=(a.z+b.z)/2,y=kind==='tunnel'?0:Math.max(h0,h1)-height(x,z)-spec.thickness-.3;
   return {x,z,y,yaw:-Math.atan2(b.z-a.z,b.x-a.x),spec,points:[{...a},{...b}] as [PointXZ,PointXZ]};
 }
 /** Collision decomposition, no single full-span box closing the natural opening.
