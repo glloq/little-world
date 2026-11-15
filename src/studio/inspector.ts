@@ -5,6 +5,7 @@ import {node,button,field,input,numberInput,select} from './dom.ts';
 import type {StudioSession} from './session.ts';
 import {resolveEntity} from '../studio-core/references.ts';
 import {applyTransforms,transformChunkIds,entityTransform,type TransformValue} from '../studio-core/transforms.ts';
+import {layoutUpdates,type LayoutMode} from '../studio-core/selection-layout.ts';
 import {updateCharacter,setCharacterPath} from '../studio-core/character-authoring.ts';
 import {applyInteraction,interactionChunkIds} from '../studio-core/interaction-templates.ts';
 import {EMOTIONS,type Emotion,type Neckwear} from '../character-style.ts';
@@ -56,7 +57,10 @@ async function buildInspector(host:HTMLElement,ctx:InspectorContext){
   if(!ids.length){host.append(node('h3','Votre monde'),node('p','Clic : sélectionner · Maj+clic : ajouter · F : centrer · 7 : vue du dessus · clic droit : orienter (+ ZQSD/WASD pour voler) · clic molette : déplacer la vue.','muted'));return;}
   if(ids.length>1){
     host.append(node('h3',`${ids.length} éléments`),node('p',ids.map(id=>p.entityIndex[id].name).join(', '),'selection-tag'),
-      button('Centrer (F)',ctx.focus),button('Aligner au sol',()=>alignAll(ctx,ids)),button('Dupliquer (Ctrl+D)',ctx.duplicate),button('Supprimer (Suppr)',ctx.remove),
+      button('Centrer (F)',ctx.focus),button('Aligner au sol',()=>alignAll(ctx,ids)),
+       button('Aligner X',()=>applyLayout(ctx,ids,'align-x')),button('Aligner Z',()=>applyLayout(ctx,ids,'align-z')),
+       button('Espacer X',()=>applyLayout(ctx,ids,'distribute-x')),button('Espacer Z',()=>applyLayout(ctx,ids,'distribute-z')),
+       button('Dupliquer (Ctrl+D)',ctx.duplicate),button('Supprimer (Suppr)',ctx.remove),
       node('p','Le gizmo déplace, pivote ou met à l’échelle tout le groupe autour de son centre (W / E / R).','muted'));
     return;
   }
@@ -95,6 +99,15 @@ function impactSection(impact:NonNullable<InspectorContext['impact']>){
   box.append(node('strong',impact.items.length?`Relief modifié : ${impact.items.length} point(s) à vérifier`:`Relief modifié : ${impact.touched} élément(s) touché(s), tous cohérents`));
   for(const item of impact.items.slice(0,8))box.append(button((item.severity==='ERROR'?'⛔ ':'⚠ ')+item.message,()=>impact.select(item.ref,item.x,item.z),'diagnostic '+item.severity));
   box.append(button('Masquer',impact.dismiss));return box;
+}
+function applyLayout(ctx:InspectorContext,ids:string[],mode:LayoutMode){
+  void editQueue.run(async()=>{
+    const s=ctx.session;
+    await s.hydrate(ids.map(id=>s.document.entityIndex[id]?.ownerChunkId).filter((x):x is string=>!!x));
+    const updates=layoutUpdates(s.document,ids,mode);
+    await s.change('Organiser '+ids.length+' objets ('+mode+')',transformChunkIds(s.document,updates),d=>applyTransforms(d,updates));
+    ctx.refresh();
+  }).catch(e=>ctx.status(String(e instanceof Error?e.message:e),true));
 }
 function alignAll(ctx:InspectorContext,ids:string[]){
   const s=ctx.session;void editQueue.run(async()=>{const updates=ids.map(id=>{const t=entityTransform(s.document,id);return {id,transform:{...t,position:{...t.position,y:0}}};});await s.change(`Aligner ${ids.length} éléments au sol`,transformChunkIds(s.document,updates),d=>applyTransforms(d,updates));ctx.refresh();}).catch(e=>ctx.status(String(e),true));
