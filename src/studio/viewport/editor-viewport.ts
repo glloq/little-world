@@ -217,6 +217,7 @@ export class StudioViewport {
    * terrain and rebuild only the areas of the changed shapes (whole world if global). */
   private applyGenerator(transaction?:EditTransaction){
     const d=this.definition;configureTerrain(d.config,d.terrain,d.water,d.paths);this.world.refreshWater();
+    this.world.refreshCliffs(d.config.terrain);
     this.canvas.dataset.generatorRevision=String(Number(this.canvas.dataset.generatorRevision??0)+1);
     const change=transaction?terrainChangeRects(transaction.patches):{global:true,rects:[]};
     const b=this.session.document.world.bounds;
