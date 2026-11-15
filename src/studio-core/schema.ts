@@ -134,7 +134,20 @@ export function validateLine(value:unknown,world:WorldDefinitionV3,water:boolean
   if(!water){if(line.kind!==undefined&&!PATH_KINDS.includes(line.kind as PathKind))throw Error('Chemin : type inconnu');if(line.smooth!==undefined&&typeof line.smooth!=='boolean')throw Error('Chemin : courbe invalide');}string(line.id,'ID tracé');finite(line.width,'Largeur',1,40);const points=array(line.points,'Points',100);if(points.length<2)throw Error('Tracé : deux points requis');for(const p of points){const v=object(p,'Point');keys(v,['x','z'],'Point');point(v,world,'Tracé');}if(water){finite(line.level,'Niveau',-20,100);finite(line.depth,'Profondeur',.5,20);validateWaterProfile(line.profile,points.length);validateWaterNetworkFields(line as never);}
 }
 function validateLibraries(value:unknown,world:WorldDefinitionV3,entityIds:string[],chunkIds:string[]):void{
-  const libs=object(value,'Bibliothèques');keys(libs,['prefabs','characters','dialogues','behaviors','interactions','activities','variables','items','objectives','water','paths','zones','landscapes'],'Bibliothèques');
+  const libs=object(value,'Bibliothèques');keys(libs,['prefabs','characters','dialogues','behaviors','interactions','activities','variables','items','objectives','water','paths','zones','landscapes','assemblies'],'Bibliothèques');
+  if(libs.assemblies!==undefined)for(const [id,raw] of Object.entries(dictionary(libs.assemblies,'Assemblages',1000))){
+    const a=object(raw,'Assemblage');keys(a,['id','name','version','items'],'Assemblage');
+    if(a.id!==id)throw Error('Assemblage : ID différent de la clé');
+    string(a.id,'ID assemblage');string(a.name,'Nom assemblage',100);integer(a.version,'Version assemblage',1,1);
+    for(const rawItem of array(a.items,'Objets assemblage',100)){
+      const item=object(rawItem,'Objet assemblage');keys(item,['kind','name','dx','dz','components'],'Objet assemblage');
+      if(item.kind!=='prop'&&item.kind!=='building')throw Error('Type objet assemblage invalide');
+      string(item.name,'Nom objet assemblage',200);finite(item.dx,'Décalage X',-1e5,1e5);finite(item.dz,'Décalage Z',-1e5,1e5);
+      const c=object(item.components,'Composants assemblage');keys(c,['Transform','Visual','Collider'],'Composants assemblage');
+      if(!c.Transform||!c.Visual)throw Error('Transform et Visual requis');
+      parseComponents(c,world);
+    }
+  }
   if(libs.landscapes!==undefined)for(const [id,l]of Object.entries(dictionary(libs.landscapes,'Bibliothèque paysages',LANDSCAPE_LIMITS.instances))){if(validateLandscape(l,world.bounds).id!==id)throw Error('Bibliothèque paysages : ID différent de la clé');}
   if(libs.zones!==undefined)for(const [id,zone]of Object.entries(dictionary(libs.zones,'Bibliothèque zones',2000))){if(validateZone(zone,world).id!==id)throw Error('Bibliothèque zones : ID différent de la clé');}
   for(const name of ['prefabs','characters','dialogues','behaviors','interactions','activities','variables','items','objectives','water','paths']){
