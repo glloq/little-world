@@ -7,14 +7,15 @@ export interface GuideActions {
 }
 const stages=[
   {id:'map',label:'1. Dessiner la géographie',desc:'Définir îles, montagnes, volcans, vallées, plateaux et falaises sur la carte 2D.',action:'Éditer les formes'},
-  {id:'terrain',label:'2. Corriger le relief',desc:'Sculpter les chemins d’accès, berges et plateformes dans la vue 3D.',action:'Sculpter'},
-  {id:'water',label:'3. Ajouter l’eau',desc:'Tracer les lacs et rivières, raccorder les sorties et vérifier les pentes.',action:'Créer les cours d’eau'},
-  {id:'biomes',label:'4. Peindre les biomes',desc:'Définir forêt, prairie, littoral et zones d’aménagement sans poser des milliers d’objets.',action:'Peindre la nature'},
-  {id:'objects',label:'5. Construire et décorer',desc:'Placer des modèles, des assemblages, des lignes de clôtures et des zones remplies.',action:'Ouvrir les objets'},
-  {id:'paths',label:'6. Ajouter les déplacements',desc:'Tracer chemins et accès entre les lieux importants.',action:'Éditer les chemins'},
-  {id:'characters',label:'7. Rendre le monde vivant',desc:'Ajouter des habitants, leurs routines et les interactions.',action:'Créer des habitants'},
-  {id:'zones',label:'8. Définir les activités',desc:'Placer mines, agriculture et régions interactives.',action:'Éditer les zones'},
-  {id:'tests',label:'9. Vérifier avant de jouer',desc:'Contrôler ressources, hydrologie, limites de carte et collisions.',action:'Valider'}
+  {id:'regions',label:'2. Délimiter les grandes régions',desc:'Créer les zones polygonales de forêt, marais, plage et montagne, leur relief et leur recette écologique. Tracer une rivière descendante.',action:'Régions et recettes'},
+  {id:'terrain',label:'3. Corriger le relief',desc:'Sculpter les chemins d’accès, berges et plateformes dans la vue 3D.',action:'Sculpter'},
+  {id:'water',label:'4. Ajouter l’eau',desc:'Terminer les lacs, cascades et connexions hydrologiques.',action:'Créer les cours d’eau'},
+  {id:'biomes',label:'5. Peindre les finitions écologiques',desc:'Retoucher localement les biomes et exclusions sans poser des milliers d’objets.',action:'Peindre la nature'},
+  {id:'objects',label:'6. Construire et décorer',desc:'Placer des modèles, des assemblages, des lignes de clôtures et des zones remplies.',action:'Ouvrir les objets'},
+  {id:'paths',label:'7. Ajouter les déplacements',desc:'Tracer chemins et accès entre les lieux importants.',action:'Éditer les chemins'},
+  {id:'characters',label:'8. Rendre le monde vivant',desc:'Ajouter des habitants, leurs routines et les interactions.',action:'Créer des habitants'},
+  {id:'zones',label:'9. Définir les activités',desc:'Placer mines, agriculture et régions interactives.',action:'Éditer les zones'},
+  {id:'tests',label:'10. Vérifier avant de jouer',desc:'Contrôler ressources, hydrologie, limites de carte et collisions.',action:'Valider'}
 ] as const;
 export function mountCreationGuide(host:HTMLElement,session:StudioSession,actions:GuideActions):void{
   const p=session.document,water=Object.values(p.libraries.water),paths=Object.values(p.libraries.paths),
