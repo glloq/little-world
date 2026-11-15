@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {createProject,parseProject,chunkAt} from '../src/studio-core/schema.ts';
 import {putEntity} from '../src/studio-core/source.ts';
 import {captureAssembly,placeAssembly} from '../src/studio-core/assemblies.ts';
-import {assemblyInstanceRoot,instanceMemberIds,overrideAssemblyVisual,updateAssemblyTemplateVisual} from '../src/studio-core/assembly-instances.ts';
+import {assemblyInstanceRoot,instanceMemberIds,overrideAssemblyVisual,updateAssemblyTemplateVisual,setInstanceParent} from '../src/studio-core/assembly-instances.ts';
 import {resolveEntity} from '../src/studio-core/references.ts';
 function make(){
  const p=createProject({name:'Prefab hierarchy',width:1000,length:1000});
@@ -48,4 +48,20 @@ test('legacy assemblages V1 restent instanciables sans template partagé',()=>{
  const source=p.chunks[p.entityIndex[ids[0]].ownerChunkId].entities[ids[0]];
  assert.equal(source.prefabId,undefined);assert.ok(source.components.Visual);
  parseProject(structuredClone(p));
+});
+
+test('la sélection enfant puis parent conserve un graphe non cyclique',()=>{
+ const p=make(),template=captureAssembly(p,['child','parent'],'Inversé');
+ assert.equal(template.items[0].name,'parent');
+ assert.equal(template.items[1].parentKey,template.items[0].key);
+ const ids=placeAssembly(p,template,50,50,(()=>{let n=0;return ()=>'inverse-'+(++n)})());
+ assert.equal(assemblyInstanceRoot(p,ids[1]),ids[0]);
+});
+test('changer la hiérarchie d’une copie ne modifie pas le prefab partagé',()=>{
+ const p=make(),template=captureAssembly(p,['parent','child'],'Parentage');
+ const first=placeAssembly(p,template,50,50,(()=>{let n=0;return ()=>'first-'+(++n)})());
+ const other=placeAssembly(p,template,100,100,(()=>{let n=0;return ()=>'second-'+(++n)})());
+ assert.throws(()=>setInstanceParent(p,first[0],first[1]),/boucle/);
+ assert.throws(()=>setInstanceParent(p,first[1],other[0]),/autre instance/);
+ assert.equal(p.chunks[p.entityIndex[other[1]].ownerChunkId].entities[other[1]].parentId,other[0]);
 });
