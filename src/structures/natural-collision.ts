@@ -26,6 +26,6 @@ export function naturalColliders(id:string,spec:NaturalStructureSpec,t:Structura
  });
 }
 export function naturalColliderOwner(id:string):string{
- const split=id.indexOf('::natural:');
+ const split=id.lastIndexOf('::natural:');
  return split===-1?id:id.slice(0,split);
 }
