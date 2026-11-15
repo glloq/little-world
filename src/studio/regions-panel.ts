@@ -15,6 +15,7 @@ import type {PolylineTarget} from './viewport/polyline-tool.ts';
 import {REGION_PRESETS,newRegion,previewRegion,applyRegion,removeRegion,validateRegionRecipe,
   regionAffectedChunks,type RegionPreset,type RegionRecipeV1,type RegionReport} from '../studio-core/region-recipes.ts';
 import {DEFAULT_REGION_VEGETATION,REGION_TREE_SPECIES,type RegionVegetation} from '../studio-core/region-schema.ts';
+import {ECOLOGY_PROFILES,applyEcologyProfile,type EcologyProfile} from '../studio-core/ecology-profiles.ts';
 import {regionBatchChunks,previewRegionBatch,previewRegionBatchWithDiff,applyRegionBatch,type RegionVisualPreview} from '../studio-core/region-batch.ts';
 
 export interface RegionPanelContext {
@@ -71,6 +72,9 @@ export function mountRegionsPanel(host:HTMLElement,ctx:RegionPanelContext):()=>v
          field('Transition écologique (m)',numberInput(region.transitionM,x=>set({transitionM:x}),0,150,'5')),
          field('Graine déterministe',numberInput(region.seed,x=>set({seed:Math.round(x)}),0,4294967295,'1')),
          node('h4','B2 — Végétation de cette région'),
+         field('Profil végétal rapide',select('native',
+           Object.entries(ECOLOGY_PROFILES).map(([key,value])=>[key,value.label] as [string,string]),
+           key=>setVegetation(applyEcologyProfile(vegetation,key as EcologyProfile)))),
          field('Arbres (× profil)',numberInput(vegetation.trees,x=>setVegetation({trees:x}),0,2,'.1')),
          field('Arbustes (× profil)',numberInput(vegetation.shrubs,x=>setVegetation({shrubs:x}),0,2,'.1')),
          field('Plantes basses (× profil)',numberInput(vegetation.ground,x=>setVegetation({ground:x}),0,2,'.1')),
