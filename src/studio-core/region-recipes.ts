@@ -47,7 +47,7 @@ function intersects(a:PointXZ,b:PointXZ,c:PointXZ,d:PointXZ){
  const ab=cross(a,b,c),ab2=cross(a,b,d),cd=cross(c,d,a),cd2=cross(c,d,b);
  return ab*ab2<0&&cd*cd2<0;
 }
-export function validateRegionRecipe(v:RegionRecipeV1,b:{minX:number;maxX:number;minZ:number;maxZ:number}):RegionRecipeV1{
+export function validateRegionRecipe(v:RegionRecipeV1,b:{minX:number;maxX:number;minZ:number;maxZ:number},chunkSizeM?:number):RegionRecipeV1{
  if(!v||v.version!==1||typeof v.id!=='string'||!ID.test(v.id)||typeof v.name!=='string'||!v.name.trim()||v.name.length>100)throw Error('Région : identité invalide');
  const keys=['id','version','name','points','preset','seed','coverage','transitionM','relief','heightM','edgeM','generated'];
  if(Object.keys(v).some(k=>!keys.includes(k)))throw Error('Région : champ inconnu');
@@ -68,8 +68,8 @@ export function validateRegionRecipe(v:RegionRecipeV1,b:{minX:number;maxX:number
   if(Object.keys(g).some(k=>!['revision','masks','featureHash'].includes(k))||!Number.isSafeInteger(g.revision)||g.revision<0||!g.masks||typeof g.masks!=='object'||Array.isArray(g.masks))throw Error('Région : génération invalide');
   if(Object.keys(g.masks).length>RECORD_LIMIT)throw Error('Région : nombre de secteurs trop grand');
   for(const [sector,layers] of Object.entries(g.masks)){
-   const m=/^(\\d+):(\\d+)$/.exec(sector),size=(b.maxX-b.minX),length=(b.maxZ-b.minZ);
-   if(!m||Number(m[1])>=Math.ceil(size/64)*16||Number(m[2])>=Math.ceil(length/64)*16)throw Error('Région : secteur généré invalide');
+   const m=/^(\\d+):(\\d+)$/.exec(sector);
+   if(!m||chunkSizeM&&(Number(m[1])>=Math.ceil((b.maxX-b.minX)/chunkSizeM)||Number(m[2])>=Math.ceil((b.maxZ-b.minZ)/chunkSizeM)))throw Error('Région : secteur généré invalide');
    if(!layers||Object.keys(layers).some(k=>!['geology','moisture','biome','material','occupation'].includes(k)))throw Error('Région : couche suivie inconnue');
    for(const [layer,mask]of Object.entries(layers))if(!validMaskString(layer as MaskLayerId,mask))throw Error('Région : masque généré invalide');
   }
@@ -137,7 +137,7 @@ function buildPlan(p:ProjectDocument,v:RegionRecipeV1){
  return {plans,considered};
 }
 export function previewRegion(p:ProjectDocument,v:RegionRecipeV1):{sectors:number;cells:number;protected:number}{
- validateRegionRecipe(v,p.world.bounds);
+ validateRegionRecipe(v,p.world.bounds,p.world.chunkSizeM);
  const {plans,considered}=buildPlan(p,v),old=p.libraries.regions?.[v.id]?.generated?.masks??{};
  let protectedCount=0;
  for(const [id,layers]of plans)for(const [layer,cells]of layers){
@@ -149,7 +149,7 @@ export function previewRegion(p:ProjectDocument,v:RegionRecipeV1):{sectors:numbe
 /** One atomic authoring command. Generated cells are cleared only if still equal to their
  * last recorded values. Manual masks and unrelated regions never get overwritten. */
 export function applyRegion(p:ProjectDocument,input:RegionRecipeV1):RegionReport{
- const v=validateRegionRecipe(structuredClone(input),p.world.bounds),
+ const v=validateRegionRecipe(structuredClone(input),p.world.bounds,p.world.chunkSizeM),
  old=p.libraries.regions?.[v.id],before=old?.generated?.masks??{};
  const {plans}=buildPlan(p,v);
  const report:RegionReport={painted:0,cleared:0,protected:0,preserved:0,feature:'none',sectors:plans.size,warnings:[]};
