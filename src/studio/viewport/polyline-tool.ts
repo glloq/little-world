@@ -7,14 +7,16 @@ export interface PolylineTarget {label:string;points:{x:number;z:number}[];min:n
   /** Live validation (e.g. river profile vs relief, zone contour); null = no remark. */
   diagnose?(points:{x:number;z:number}[]):string|null;
   /** Optional magnet (E8: path ends and points snap onto existing paths). */
-  snap?(point:{x:number;z:number}):{x:number;z:number}|null;}
+  snap?(point:{x:number;z:number}):{x:number;z:number}|null;
+  /** Optional visual ghost. The shared polyline editor owns and disposes its geometry. */
+  preview?(points:{x:number;z:number}[]):THREE.Object3D|null;}
 export const polylineTarget={current:null as PolylineTarget|null};
 /** E5/E6 — click to add points on the ground, drag a handle to move it, Backspace removes
  * the last point, Enter validates, Escape abandons. Navigation stays on right/middle/wheel. */
 export class PolylineTool implements Tool {
   readonly id='polyline';readonly cursor='crosshair';
   private ctx!:ToolContext;private points:{x:number;z:number}[]=[];private target:PolylineTarget|null=null;
-  private group=new THREE.Group();private line:THREE.Line|null=null;private handles:THREE.InstancedMesh|null=null;
+  private group=new THREE.Group();private line:THREE.Line|null=null;private handles:THREE.InstancedMesh|null=null;private ghost:THREE.Object3D|null=null;
   private drag:number|null=null;private down:{x:number;y:number}|null=null;
   activate(ctx:ToolContext){
     this.ctx=ctx;this.target=polylineTarget.current;this.points=this.target?this.target.points.map(p=>({...p})):[];const color=this.target?.color??0xffc04d;
@@ -23,10 +25,19 @@ export class PolylineTool implements Tool {
     this.group.add(this.line,this.handles);ctx.scene.add(this.group);this.redraw();
     ctx.message(this.target?`${this.target.label} : clic = ajouter un point · glisser un point = le déplacer · Retour arrière = retirer · Entrée = valider · Échap = abandonner.`:'Aucun tracé à éditer.',!this.target);
   }
-  deactivate(){for(const o of [this.line,this.handles]){if(!o)continue;o.geometry.dispose();(o.material as THREE.Material).dispose();}this.group.clear();this.group.removeFromParent();this.line=null;this.handles=null;this.target=null;}
+  private discardGhost(){if(!this.ghost)return;this.ghost.traverse(o=>{if(o instanceof THREE.Mesh){o.geometry.dispose();for(const m of Array.isArray(o.material)?o.material:[o.material])m.dispose();}});this.ghost.removeFromParent();this.ghost=null;}
+  deactivate(){this.discardGhost();for(const o of [this.line,this.handles]){if(!o)continue;o.geometry.dispose();(o.material as THREE.Material).dispose();}this.group.clear();this.group.removeFromParent();this.line=null;this.handles=null;this.target=null;}
   private redraw(){
     if(!this.line||!this.handles)return;const pts=this.points.map(p=>new THREE.Vector3(p.x,terrainHeight(p.x,p.z)+.6,p.z));if(this.target?.closed&&pts.length>2)pts.push(pts[0].clone());
     this.line.geometry.dispose();this.line.geometry=new THREE.BufferGeometry().setFromPoints(pts);
+    this.discardGhost();
+    if(this.target?.preview&&this.points.length>=this.target.min){
+      try{this.ghost=this.target.preview(this.points.map(p=>({...p})));if(this.ghost){
+        this.ghost.traverse(o=>{if(o instanceof THREE.Mesh){const materials=Array.isArray(o.material)?o.material:[o.material];
+          for(const m of materials){m.transparent=true;m.opacity=.62;m.depthWrite=false;}}});
+        this.group.add(this.ghost);
+      }}catch{this.discardGhost();}
+    }
     const m=new THREE.Matrix4(),scale=Math.max(1,this.ctx.camera.mode==='top'?this.ctx.camera.pose.zoom/90:this.ctx.camera.pose.distance/40);this.handles.count=Math.min(128,this.points.length);
     this.points.slice(0,128).forEach((p,i)=>{m.makeScale(scale,scale,scale).setPosition(p.x,terrainHeight(p.x,p.z)+.6,p.z);this.handles!.setMatrixAt(i,m);});this.handles.instanceMatrix.needsUpdate=true;this.ctx.invalidate(2);
     const remark=this.target?.diagnose&&this.points.length>=this.target.min?this.target.diagnose(this.points):null;this.ctx.canvas.dataset.polylineRemark=remark??'';if(remark)this.ctx.message(remark,true);
