@@ -39,7 +39,7 @@ export interface ViewportOptions {
 /** Content of nearby sectors is shown; terrain detail, horizon and LOD come from the shared
  * world renderer (camera-prioritised, budgeted). Nothing loads the whole island. */
 const CONTENT_RADIUS=320,REPLAN_DISTANCE=48;
-export const BRUSH_TOOLS:[string,BrushMode][]=[['raise','raise'],['lower','lower'],['flatten','flatten'],['smooth','smooth'],['forest','forest'],['meadow','meadow'],['mountain','mountain'],['coast','coast'],['village','village']];
+export const BRUSH_TOOLS:[string,BrushMode][]=[['raise','raise'],['lower','lower'],['flatten','flatten'],['smooth','smooth'],['forest','forest'],['meadow','meadow'],['mountain','mountain'],['coast','coast'],['village','village'],['exclude-vegetation','exclude-vegetation'],['restore-vegetation','restore-vegetation']];
 /** The Studio's central 3D editing space. Created once per opened project and kept while
  * tools and panels change, so camera, selection and scene are never reset by a tool. */
 export class StudioViewport {
