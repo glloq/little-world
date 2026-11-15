@@ -49,6 +49,14 @@
       "category": "Objets",
       "type": "procedural",
       "license": "project-original"
+    },
+    {
+      "id": "procedural.natural_structure",
+      "name": "Structure naturelle rocheuse",
+      "category": "Nature",
+      "type": "procedural",
+      "license": "project-original",
+      "source": "Little World procedural stone vault (local low-poly)"
     }
   ]
 }
