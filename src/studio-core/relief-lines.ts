@@ -1,6 +1,7 @@
 /** A2 — author native archipelago ridge/valley features with the shared two-or-more
- * point editor. Cliff = narrow ridge, pass = valley cut; neither adds GPU geometry.
- * True vertical overhangs remain the separate Natural Structures tool. */
+ * point editor. Cliff = a narrow native ridge decorated with streamed, faceted
+ * stone walls at runtime; passes remain heightfield cuts. Overhangs and tunnels
+ * remain the separate Natural Structures tool. */
 import type {ProjectDocument} from './types.ts';
 import type {PointXZ,ReliefFeature} from '../geography/archipelago.ts';
 import {ARCHIPELAGO_LIMITS} from '../geography/archipelago-params.ts';
@@ -9,7 +10,7 @@ export interface ReliefLineDraft {id:string;preset:ReliefLinePreset;points:Point
 const PREFIX='rl-';
 export const RELIEF_LINE_DEFAULTS:Record<ReliefLinePreset,{label:string;widthM:number;amountM:number;help:string}>={
  ridge:{label:'Crête montagneuse',widthM:55,amountM:90,help:'Soulèvement progressif autour du tracé.'},
- cliff:{label:'Escarpement rocheux',widthM:10,amountM:75,help:'Crête très étroite : pente abrupte, sans paroi verticale ni surplomb.'},
+ cliff:{label:'Escarpement rocheux',widthM:10,amountM:75,help:'Crête à pente abrupte et parois rocheuses 3D facettées, générées uniquement à proximité. Les collisions suivent le terrain, sans surplomb.'},
  valley:{label:'Vallée',widthM:65,amountM:32,help:'Creusement progressif autour du tracé.'},
  pass:{label:'Col / passage',widthM:42,amountM:45,help:'Découpe un passage abaissé à travers une crête ou un massif.'}
 };
