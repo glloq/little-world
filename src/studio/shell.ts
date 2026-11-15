@@ -139,6 +139,19 @@ async function toolPanel(id:string,v:StudioViewport){
     const {brushSettings}=await import('./viewport/brush-tool.ts');const options:[string,string][]=id==='terrain'?[['raise','Élever'],['lower','Abaisser'],['flatten','Aplanir'],['smooth','Lisser']]:[['forest','Forêt'],['meadow','Prairie'],['mountain','Montagne'],['coast','Côte'],['village','Village']];
     const saved=s.selection.state.activeTool,current=options.some(o=>o[0]===saved)?saved:options[0][0];v.setTool(current);const chips=node('div','','chip-row');
     for(const [tool,label]of options){const b=button(label,()=>{v.setTool(tool);for(const c of chips.children)c.classList.toggle('active',c===b);},'chip'+(tool===current?' active':''));chips.append(b);}
+    if(id==='biomes'){
+      const {ECOLOGY_PALETTES}=await import('./ecology-palettes.ts');
+      const ecological=node('div','','section-card'),palette=select('woodland',ECOLOGY_PALETTES.map(x=>[x.id,x.label] as [string,string]),()=>{});
+      ecological.append(node('h4','Palettes écologiques procédurales'),node('p','L’habillage est généré par les biotopes existants : pas de nouvelles entités pour chaque arbre.','muted'),field('Profil écologique',palette),
+        button('Appliquer la palette au pinceau',()=>{
+          const profile=ECOLOGY_PALETTES.find(p=>p.id===palette.value)!;
+          brushSettings.radius=profile.radius;brushSettings.strength=profile.strength;
+          v.setTool(profile.mode);
+          for(const c of chips.children)c.classList.toggle('active',(c as HTMLElement).textContent===options.find(o=>o[0]===profile.mode)?.[1]);
+          status(profile.label+' : peignez sur le terrain. Les masques et exclusions existants restent respectés.');
+        }));
+      tools.append(ecological);
+    }
     tools.append(node('div',id==='terrain'?'RELIEF':'BIOTOPES','kicker'),node('h3',id==='terrain'?'Pinceaux de relief':'Peindre les biotopes'),chips,field('Rayon du pinceau (m)',numberInput(brushSettings.radius,val=>brushSettings.radius=Math.max(1,Math.min(80,val||1)),1,80)),field(id==='terrain'?'Force / hauteur':'Densité ×2',numberInput(brushSettings.strength,val=>brushSettings.strength=Math.max(.1,Math.min(10,val||1)),.1,10)),
       node('p','Glisser : un trait = une opération annulable. [ ] : rayon · - + : force · clic droit / molette : naviguer · Échap : annuler le trait.','muted'));
   }else if(id==='paths'||id==='zones'){
