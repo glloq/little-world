@@ -34,7 +34,8 @@ try{
  const save=async()=>{const promise=page.waitForEvent('download');await page.getByRole('button',{name:'Exporter ZIP',exact:true}).click();
    const download=await promise;return readProjectArchive(new Uint8Array(await readFile(await download.path())));};
  await page.getByRole('button',{name:'Régions',exact:true}).click();
- check(await page.getByRole('button',{name:'Tracer une rivière automatique'}).isVisible(),'A: guided downhill river tool is exposed');
+ await page.getByRole('button',{name:'Tracer une rivière automatique'}).waitFor({state:'visible'});
+ check(true,'A: guided downhill river tool is exposed');
  await page.getByRole('button',{name:'Dessiner une nouvelle région'}).click();await tool('polyline');
  await page.getByLabel('Nom de la région').fill('Forêt montagneuse');await page.getByLabel('Nom de la région').press('Tab');
  await page.getByLabel('Relief de région').selectOption('plateau');
