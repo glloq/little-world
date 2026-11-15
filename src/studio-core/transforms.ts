@@ -2,7 +2,7 @@
  * (= one Undo/Redo transaction). Stable V3 IDs are kept; owner sectors follow positions. */
 import type {ComponentMap,EntityDefinitionV3,ProjectDocument,TransformComponent,Vector3} from './types.ts';
 import {chunkAt} from './schema.ts';
-import {putEntity,removeEntity} from './source.ts';
+import {putEntity,removeEntity,removeTerrainEdit} from './source.ts';
 import {resolveEntity} from './references.ts';
 import {materializeComponents} from './entity-authoring.ts';
 
@@ -34,6 +34,7 @@ export function applyTransforms(draft:ProjectDocument,updates:TransformUpdate[])
   for(const u of updates){
     const index=draft.entityIndex[u.id];if(!index)throw Error('Entité supprimée : '+u.id);
     const source=draft.chunks[index.ownerChunkId]?.entities[u.id];if(!source)throw Error('Charger le secteur de '+u.id);
+    if(resolveEntity(draft,source).components.NaturalStructure)throw Error('Modifier cette arche, ce pont ou ce tunnel via Structures naturelles pour conserver ouvertures et collisions synchronisées');
     const t=normalized(u.transform);t.position.x=clampX(draft,t.position.x);t.position.z=clampZ(draft,t.position.z);
     const entity=materializeComponents(source,{Transform:t});entity.ownerChunkId=chunkAt(draft.world,t.position.x,t.position.z);putEntity(draft,entity);
   }
@@ -45,7 +46,8 @@ export function duplicateEntities(draft:ProjectDocument,ids:string[],offset:Vect
   const created:string[]=[];
   for(const id of ids){
     const index=draft.entityIndex[id],source=index?draft.chunks[index.ownerChunkId]?.entities[id]:undefined;if(!source)throw Error('Charger le secteur de '+id);
-    const resolved=resolveEntity(draft,source),copy:EntityDefinitionV3=structuredClone(source),copyId=newId();
+    const resolved=resolveEntity(draft,source);if(resolved.components.NaturalStructure)throw Error('Dupliquer via Structures naturelles : une copie de tunnel doit aussi copier son excavation');
+    const copy:EntityDefinitionV3=structuredClone(source),copyId=newId();
     copy.id=copyId;delete copy.parentId;
     for(const key of NOT_DUPLICATED){delete copy.components[key];if(copy.overrides)copy.overrides=copy.overrides.filter(o=>o.component!==key);}
     const t=normalized({...resolved.components.Transform!});t.position.x=clampX(draft,t.position.x+offset.x);t.position.y+=offset.y;t.position.z=clampZ(draft,t.position.z+offset.z);copy.components.Transform=t;
@@ -64,7 +66,16 @@ export function duplicateEntities(draft:ProjectDocument,ids:string[],offset:Vect
 export function duplicateChunkIds(project:ProjectDocument,ids:string[],offset:Vector3):string[]{
   return transformChunkIds(project,ids.map(id=>{const t=entityTransform(project,id);return {id,transform:{...t,position:{x:t.position.x+offset.x,y:t.position.y,z:t.position.z+offset.z}}};}));
 }
-export function deleteEntities(draft:ProjectDocument,ids:string[]):void{for(const id of ids)removeEntity(draft,id);}
+export function deleteEntities(draft:ProjectDocument,ids:string[]):void{
+  for(const id of ids){
+    // Terrain-hole edits follow the entity on deletion; no abandoned excavations remain.
+    const prefix='natural:'+id+':',edits=new Set<string>();
+    for(const meta of Object.values(draft.chunkIndex))
+      for(const eid of Object.keys(meta.terrainOwners??{}))if(eid.startsWith(prefix))edits.add(eid);
+    for(const eid of edits)removeTerrainEdit(draft,eid);
+    removeEntity(draft,id);
+  }
+}
 /** Height offset back to the ground (Transform.position.y is relative to the terrain). */
 export function alignToTerrain(t:TransformValue):TransformValue{return {...t,position:{...t.position,y:0}};}
 /** Yaw (Y) rotation as a quaternion, used by placement and the inspector. */
