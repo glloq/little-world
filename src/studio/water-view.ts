@@ -3,6 +3,7 @@ import {createTerrainSource} from '../terrain.ts';
 import {compileWaterNetwork,validateWaterProfile,validateWaterNetworkFields} from '../water/profile.ts';
 import {drawHydroProfile} from '../water/profile-view.ts';
 import {waterChunkIds,waterEditChunkIds} from '../water/sectors.ts';
+import {traceDownhill} from '../world-production/hydro-trace.ts';
 import {putWater,removeWater} from '../studio-core/source.ts';
 import {button,field,node,numberInput,select} from './dom.ts';
 import type {StudioSession} from './session.ts';
@@ -65,6 +66,19 @@ export function mountWater(host:HTMLElement,tools:HTMLElement,s:StudioSession){
   const choices:[string,string][]=[['','Nouveau cours d’eau'],...Object.values(p.libraries.water).map((w,i)=>[w.id,`Eau ${i+1} · ${w.id.slice(0,6)}`] as [string,string])];
   tools.append(field('Tracé d’eau',select(p.libraries.water[draft.id]?draft.id:'',choices,id=>{draft=id?structuredClone(p.libraries.water[id]):empty();lastId=id;s.selection.select(id?{kind:'water',id}:null);controls();update();})));
   networkControls();
+  if(draft.kind!=='lake')tools.append(button('Prolonger le cours d’eau vers l’aval',()=>{
+    if(!draft.points.length){messages.replaceChildren(node('p','Placer d’abord un point de source sur la carte.','diagnostic WARNING'));return;}
+    const current=draft.points.at(-1)!,before=draft.points.at(-2);
+    const heading=before?Math.atan2(current.z-before.z,current.x-before.x):undefined,height=source();
+    const trace=traceDownhill(current,{height,seaLevel:p.world.seaLevel,
+      inWorld:(x,z)=>x>b.minX+1&&x<b.maxX-1&&z>b.minZ+1&&z<b.maxZ-1,
+      heading,maxPoints:Math.max(2,100-draft.points.length+1),maxLengthM:2500});
+    if(trace.points.length<2){messages.replaceChildren(node('p','Aucun prolongement possible : la pente ou la limite de carte bloque le tracé.','diagnostic WARNING'));return;}
+    draft.points=[...draft.points,...trace.points.slice(1)].slice(0,100);
+    draft.profile={mode:'terrain',offset:-.35};delete draft.falls;
+    if(trace.end==='sea')draft.to={kind:'sea'};
+    controls();update();
+  }));
   const mode=draft.profile?.mode??'constant';
   if(draft.kind!=='lake')tools.append(field('Type d’eau',select(mode,[['terrain','Cours d’eau — relief'],['constant','Plan d’eau — horizontal'],['manual','Profil manuel verrouillé']],v=>{
    if(v==='constant')delete draft.profile;

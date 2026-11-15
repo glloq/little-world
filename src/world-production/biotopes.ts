@@ -6,6 +6,7 @@
  * Pure, deterministic, Three.js-free (also runs in the geography worker). */
 import type {GeoSample,Biome} from '../geography/classify.ts';
 import {ASSET_USAGE,type BiotopeId} from './asset-usage.ts';
+import {compilePolygon,type PointXZ} from '../geography/archipelago.ts';
 
 /** Ordered species table used by dressing items (index stored in the item; append only —
  * changing the order changes DRESSING_VERSION). */
@@ -111,7 +112,8 @@ export const BIOTOPES:Record<BiotopeId,BiotopeProfile>={
 };
 export const BIOTOPE_IDS=Object.keys(BIOTOPES) as BiotopeId[];
 /** Landscape influence at a point (from `libraries.landscapes`): weight 0..1 with a soft edge. */
-export interface LandscapeInfluence {weight:number;profile?:BiotopeId;density?:number;palms?:boolean;orchard?:boolean;ruins?:boolean}
+export interface VegetationTuning {trees:number;shrubs:number;ground:number;deadwood:number;treeMix?:Partial<Record<SpeciesId,number>>}
+export interface LandscapeInfluence {weight:number;profile?:BiotopeId;density?:number;palms?:boolean;orchard?:boolean;ruins?:boolean;vegetation?:VegetationTuning}
 /** Profile of a classified point. The categorical classification stays the authority (author
  * masks included); continuous drivers only split categories into finer profiles. */
 export function profileOf(s:GeoSample,river:number):BiotopeId{
@@ -144,19 +146,58 @@ export function treeMix(profile:BiotopeProfile,influence:LandscapeInfluence|null
   if(!influence?.palms||influence.weight<.5){delete mix['nature.palm_thin'];delete mix['nature.palm_curved'];}
   if(influence?.orchard&&influence.weight>.4)mix={'nature.fruit_apple':5,'nature.fruit_pear':3,'nature.fruit_plum':3,'nature.fruit_cherry':2};
   if(influence?.ruins&&influence.weight>.4)mix={...mix,'nature.dead_tree_twisted':(mix['nature.dead_tree_twisted']??0)+3};
+  // Weighted tree mixtures are optional. Blend normalized weights near polygon boundaries
+  // instead of instantly replacing the native biotope (at most 6 custom species).
+  const user=influence?.vegetation?.treeMix;
+  if(user&&Object.keys(user).length&&influence!.weight>0){
+    const a=Object.values(mix).reduce((n,w)=>n+(w??0),0),b=Object.values(user).reduce((n,w)=>n+(w??0),0);
+    if(b>0){
+      const t=Math.min(1,Math.max(0,influence!.weight)),out:Mix={};
+      for(const id of new Set([...Object.keys(mix),...Object.keys(user)] as SpeciesId[])){
+        const value=(a?((mix[id]??0)/a)*(1-t):0)+((user[id]??0)/b)*t;
+        if(value>1e-6)out[id]=value*100;
+      }
+      mix=out;
+    }
+  }
   return mix;
 }
-/** Rectangular landscape footprint (oriented), carried from `libraries.landscapes` into the
- * geography sources. `edgeM` = soft border where the influence fades (no hard frontier). */
-export interface LandscapeRegion {id:string;x:number;z:number;width:number;length:number;rotation:number;edgeM:number;profile?:BiotopeId;density?:number;palms?:boolean;orchard?:boolean;ruins?:boolean}
-/** Strongest landscape influence at a point (pure). */
-export function landscapeInfluenceAt(regions:readonly LandscapeRegion[],x:number,z:number):LandscapeInfluence|null{
+/** Scenic rectangles and A/B low-cost polygon vegetation modifiers share a sampler. */
+export interface LandscapeRegion {
+ id:string;x:number;z:number;width:number;length:number;rotation:number;edgeM:number;
+ polygon?:PointXZ[];profile?:BiotopeId;density?:number;palms?:boolean;orchard?:boolean;ruins?:boolean;vegetation?:VegetationTuning;
+}
+/** Compile polygon distances and bounding boxes ONCE per geography revision (never per tree).
+ * The per-sample loop first checks cheap AABBs, preventing global 250-region scans of vertices. */
+export function createLandscapeSampler(regions:readonly LandscapeRegion[]):(x:number,z:number)=>LandscapeInfluence|null{
+ const prepared=regions.map(r=>{
+  const poly=r.polygon&&r.polygon.length>=3?r.polygon:null;
+  const xs=poly?.map(p=>p.x),zs=poly?.map(p=>p.z),radius=Math.hypot(r.width,r.length)/2;
+  return {r,sdf:poly?compilePolygon(poly):null,
+    minX:xs?Math.min(...xs):r.x-radius,maxX:xs?Math.max(...xs):r.x+radius,
+    minZ:zs?Math.min(...zs):r.z-radius,maxZ:zs?Math.max(...zs):r.z+radius,
+    cos:Math.cos(r.rotation),sin:Math.sin(r.rotation)};
+ });
+ return (x,z)=>{
   let best:LandscapeInfluence|null=null;
-  for(const r of regions){
-    const c=Math.cos(r.rotation),s=Math.sin(r.rotation),dx=x-r.x,dz=z-r.z,u=Math.abs(dx*c+dz*s),v=Math.abs(-dx*s+dz*c);
-    const ox=u-r.width/2,oz=v-r.length/2;if(ox>0||oz>0)continue;
-    const inside=Math.min(-ox,-oz),t=Math.min(1,inside/Math.max(1,r.edgeM)),weight=t*t*(3-2*t);
-    if(!best||weight>best.weight)best={weight,...(r.profile?{profile:r.profile}:{}),...(r.density!==undefined?{density:r.density}:{}),...(r.palms?{palms:true}:{}),...(r.orchard?{orchard:true}:{}),...(r.ruins?{ruins:true}:{})};
+  for(const e of prepared){
+   if(x<e.minX||x>e.maxX||z<e.minZ||z>e.maxZ)continue;
+   const {r}=e;let inside:number;
+   if(e.sdf){inside=e.sdf(x,z);if(inside<0)continue;}
+   else {
+    const dx=x-r.x,dz=z-r.z,u=Math.abs(dx*e.cos+dz*e.sin),v=Math.abs(-dx*e.sin+dz*e.cos);
+    inside=Math.min(r.width/2-u,r.length/2-v);if(inside<0)continue;
+   }
+   const t=Math.min(1,inside/Math.max(1,r.edgeM)),weight=t*t*(3-2*t);
+   if(!best||weight>best.weight)
+    best={weight,...(r.profile?{profile:r.profile}:{}),...(r.density!==undefined?{density:r.density}:{}),
+      ...(r.palms?{palms:true}:{}),...(r.orchard?{orchard:true}:{}),...(r.ruins?{ruins:true}:{}),
+      ...(r.vegetation?{vegetation:r.vegetation}:{})};
   }
   return best;
+ };
+}
+/** Compatibility for tests and one-off queries; hot paths use precompiled sampler. */
+export function landscapeInfluenceAt(regions:readonly LandscapeRegion[],x:number,z:number):LandscapeInfluence|null{
+ return createLandscapeSampler(regions)(x,z);
 }

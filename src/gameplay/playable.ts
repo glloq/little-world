@@ -3,6 +3,7 @@ import {validateAudioLinks} from '../audio/schema.ts';
 import {parseAnyAudioDefinition,type AnyAudioDefinition} from '../audio/migrate.ts';
 import {playtestSlotPrefix} from './save.ts';
 import {validateCollisionDefinition,type CollisionDefinition} from '../physics/definitions.ts';
+import {naturalColliderOwner} from '../structures/natural-collision.ts';
 /** Runtime input has no authoring database access or Studio module dependency. */
 import {parseWorld,type WorldDefinition} from '../world-data.ts';
 import {parseGameplayData,finite,identifier,record,type GameplayData,type Point3} from './schema.ts';
@@ -16,7 +17,7 @@ export function parsePlayableWorld(value:unknown):PlayableWorld {
  if(Math.abs(spawn.x)>width/2||Math.abs(spawn.z)>length/2)throw Error('Point de départ hors de la carte');
  const rendered=new Set([...world.placements.map(e=>e.id),...world.npcs.map(e=>e.id)]);
  for(const entity of gameplay.entities)if(entity.interactable&&!rendered.has(entity.id))throw Error('Objet interactif sans représentation : '+entity.id);
- if(value.collisions!==undefined){if(!Array.isArray(value.collisions)||value.collisions.length>100000)throw Error('Liste de collisions invalide');const ids=new Set<string>(),entityIds=new Set(gameplay.entities.map(e=>e.id));for(const body of value.collisions){validateCollisionDefinition(body);if(ids.has(body.id)||!entityIds.has(body.id))throw Error('Référence collider invalide');ids.add(body.id);}}
+ if(value.collisions!==undefined){if(!Array.isArray(value.collisions)||value.collisions.length>100000)throw Error('Liste de collisions invalide');const ids=new Set<string>(),entityIds=new Set(gameplay.entities.map(e=>e.id));for(const body of value.collisions){validateCollisionDefinition(body);if(ids.has(body.id)||!entityIds.has(naturalColliderOwner(body.id)))throw Error('Référence collider invalide');ids.add(body.id);}}
  const audio=value.audio!==undefined?parseAnyAudioDefinition(value.audio):undefined;const actions=[...gameplay.interactions.flatMap(i=>i.sequence),...gameplay.dialogues.flatMap(d=>d.lines.flatMap(l=>[...(l.actions??[]),...l.choices.flatMap(c=>c.actions??[])]))];validateAudioLinks(audio,gameplay.entities.map(e=>e.id),actions.filter(a=>a.type==='playSound').map(a=>(a as {soundId:string}).soundId));
  return {schemaVersion:1,kind:'playable-world',...(audio?{audio}:{}),world,gameplay,spawn:{...spawn},...(value.collisions?{collisions:structuredClone(value.collisions) as CollisionDefinition[]}:{} ),...(value.activities!==undefined?{activities:parseActivities(value.activities)}:{})};
 }

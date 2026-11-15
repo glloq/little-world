@@ -25,12 +25,13 @@ const action=(title:string,fn:()=>Promise<unknown>|unknown,className?:string)=>b
 /** Toolbar: [module id, accessible name, icon, group, shortcut]. Viewport modules keep the 3D view. */
 const MODULES:[string,string,string,string,string][]=[
   ['scene','Sélection','➚','Naviguer','V'],['map','Carte globale','▦','Naviguer','M'],
-  ['objects','Objets','▣','Construire','B'],['characters','Personnages','☺','Construire',''],['lights','Lumières','✦','Construire','L'],
-  ['terrain','Relief','⛰','Monde','T'],['biomes','Biotopes','✿','Monde',''],['paths','Chemins et rivières','〰','Monde',''],['water','Eau','≈','Monde',''],['zones','Zones','⬠','Monde',''],['landscapes','Paysages','❦','Monde',''],
+  ['objects','Objets','▣','Construire','B'],['natural','Structures naturelles','◠','Construire',''],['characters','Personnages','☺','Construire',''],['lights','Lumières','✦','Construire','L'],
+  ['terrain','Relief','⛰','Monde','T'],['regions','Régions','◉','Monde',''],['biomes','Biotopes','✿','Monde',''],['paths','Chemins et rivières','〰','Monde',''],['water','Eau','≈','Monde',''],['zones','Zones','⬠','Monde',''],['landscapes','Paysages','❦','Monde',''],
   ['dialogues','Dialogues','✉','Logique',''],['interactions','Interactions','⚙','Logique',''],['environment','Environnement','☀','Logique',''],['audio','Audio','♪','Logique',''],
+  ['guide','Assistant de création','☷','Projet',''],
   ['tests','Validation / compilation','✓','Projet',''],
 ];
-const VIEWPORT_MODULES=new Set(['scene','objects','characters','lights','terrain','biomes','polyline','paths','zones','landscapes']);
+const VIEWPORT_MODULES=new Set(['scene','objects','natural','regions','characters','lights','terrain','biomes','polyline','paths','zones','landscapes']);
 const ALIASES:Record<string,string>={local:'scene',select:'scene'};
 const panelHost=()=>$('panel-host');
 function refreshHeader(){
@@ -61,9 +62,15 @@ async function home(){
   const page=node('div','','home'),head=node('div','','home-heading'),titles=node('div');titles.append(node('div','LITTLE WORLD STUDIO · V3','kicker'),node('h1','Des idées aux petits mondes'),node('p','Créez un projet ou poursuivez votre atelier.','muted'));
   const reference=(file:string)=>async()=>{const response=await fetch(import.meta.env.BASE_URL+'maps/'+file);if(!response.ok)throw Error('Scénario indisponible');const p=parseProject(await response.json());if(!(await store.list()).some(v=>v.projectId===p.manifest.projectId))await store.create(p);await open(p.manifest.projectId);};
   head.append(titles,action('Ouvrir le scénario de référence',reference('beta.project.json')),action('Scène de référence géographique',reference('reference.project.json')),action('Scène de référence World Production',reference('production-reference.project.json')),action('Démonstration B1 (mine, eau, parcelles)',reference('b1-demo.project.json')),action('Importer JSON / ZIP',()=>($('project-file') as HTMLInputElement).click()));page.append(head);
-  const form=node('form','','section-card'),name=input('Mon petit monde',()=>{}),size=select('1000',[['island','Île volcanique · 3 000 × 8 000 m'],['archipelago','Archipel éditable (île, volcan, îlots) · 3 000 × 8 000 m'],['200','Vallée historique · 200 × 600 m'],['1000','Vallée historique · 1 000 × 1 000 m']],()=>{}),seed=numberInput(4242,()=>{},1,9999999),create=button('Créer le projet',()=>{},'primary-button');create.type='submit';
-  form.append(field('Nom du projet',name),field('Modèle et dimensions',size),field('Graine du relief',seed),node('p','Le relief de base est généré par des paramètres (côtes, volcan, massifs, vallées, îlots) éditables sur la carte 2D ; vos retouches et contenus s’ajoutent par-dessus sans le recopier.','muted'),create);
-  form.onsubmit=e=>{e.preventDefault();void run(async()=>{const value=Math.max(1,Math.min(9999999,Math.round(Number(seed.value)||1)));let p;if(size.value==='archipelago'){const {archipelagoPreset}=await import('../geography/archipelago-params.ts');p=createProject({name:name.value,width:3000,length:8000,seed:value,terrain:{kind:'archipelago',version:1,archipelago:archipelagoPreset(3000,8000)}});}else if(size.value==='island'){const {islandPreset}=await import('../terrain-generator.ts');p=createProject({name:name.value,width:3000,length:8000,seed:value,terrain:islandPreset(3000,8000)});}else{const side=Number(size.value);p=createProject({name:name.value,width:side,length:side===200?600:side,seed:value});}await store.create(p);await open(p.manifest.projectId);})();};page.append(form);
+  const form=node('form','','section-card'),name=input('Mon petit monde',()=>{}),size=select('1000',[['island','Île volcanique · 3 000 × 8 000 m'],['archipelago','Archipel éditable (île, volcan, îlots) · 3 000 × 8 000 m'],['chain','Chapelet d’îlots · personnalisable'],['calm','Île douce sans relief majeur · personnalisable'],['200','Vallée historique · 200 × 600 m'],['1000','Vallée historique · 1 000 × 1 000 m']],()=>{}),seed=numberInput(4242,()=>{},1,9999999),create=button('Créer le projet',()=>{},'primary-button');create.type='submit';
+  const width=numberInput(3000,()=>{},500,8000),length=numberInput(8000,()=>{},500,8000),cliffs=numberInput(.35,()=>{},0,1,'0.05');
+  const volcano=node('input');volcano.type='checkbox';volcano.checked=true;
+  const guided=node('details');guided.append(node('summary','Dimensions et géographie initiale'),field('Largeur du monde (m)',width),field('Longueur du monde (m)',length),field('Proportion de falaises (0–1)',cliffs),field('Générer un volcan',volcano),node('p','Les reliefs et contours restent modifiables sur la carte 2D. Les vallées historiques utilisent leurs paramètres fixes.','muted'));
+  form.append(field('Nom du projet',name),field('Modèle et dimensions',size),guided,field('Graine du relief',seed),node('p','Le relief de base est généré par des paramètres (côtes, volcan, massifs, vallées, îlots) éditables sur la carte 2D ; vos retouches et contenus s’ajoutent par-dessus sans le recopier.','muted'),create);
+  form.onsubmit=e=>{e.preventDefault();void run(async()=>{const value=Math.max(1,Math.min(9999999,Math.round(Number(seed.value)||1)));let p;if(['archipelago','island','chain','calm'].includes(size.value)){
+    const {createGuidedWorld}=await import('../studio-core/world-start.ts');
+    p=createGuidedWorld({name:name.value,mode:size.value as import('../studio-core/world-start.ts').WorldStartMode,width:Number(width.value),length:Number(length.value),seed:value,cliffs:Number(cliffs.value),volcano:volcano.checked});
+  }else{const side=Number(size.value);p=createProject({name:name.value,width:side,length:side===200?600:side,seed:value});}await store.create(p);await open(p.manifest.projectId);})();};page.append(form);
   const cards=node('div','','project-cards');for(const p of await store.list()){const card=node('article','','project-card');card.append(node('div','PROJET LOCAL · V3','kicker'),node('h2',p.name),node('p',`Révision ${p.revision} · ${new Date(p.updatedAt).toLocaleString('fr')}`,'muted'),action('Ouvrir le monde',()=>open(p.projectId)));cards.append(card);}page.append(cards);
   panelHost().hidden=false;panelHost().replaceChildren(page);status('Studio V3 : éditeur de monde 3D. La qualification bêta reste en cours.');
 }
@@ -99,6 +106,8 @@ async function module(requested:string){
   else if(id==='audio'){const {mountAudio}=await import('./audio-view.ts');if(mine!==generation)return;disposePanel=mountAudio(host,s,()=>mine===generation).dispose;}
   else if(id==='environment'){const {mountEnvironment}=await import('./environment-view.ts');mountEnvironment(host,s);}
   else if(id==='interactions'){const {mountInteractions}=await import('./interactions-view.ts');await mountInteractions(host,s);$('tools').append(action('Retour à la vue 3D',()=>module('scene')));}
+  else if(id==='guide'){const {mountCreationGuide}=await import('./creation-guide.ts');
+    mountCreationGuide(host,s,{open:target=>void run(()=>module(target))(),play:()=>void run(preview)()});}
   else if(id==='tests')await diagnostics(host);
   else if(id==='dialogues')await dialogues(host,mine);
   await inspector();
@@ -117,7 +126,38 @@ async function toolPanel(id:string,v:StudioViewport){
   }else if(id==='objects'){
     // The placement choice is shared with characters/lights: the Objects module always places an asset.
     const {placementSettings}=await import('./viewport/placement-tool.ts');if(placementSettings.item.kind!=='asset')placementSettings.item={kind:'asset',id:lastAsset};
-    v.setTool('place');const {mountLibrary}=await import('./library.ts');tools.append(node('div','BIBLIOTHÈQUE','kicker'),node('h3','Placer des objets'));mountLibrary(tools,s.document.assets,item=>{if(item.kind==='asset')lastAsset=item.id;v.setTool('place');status('Choix conservé : cliquez dans la vue pour placer, autant de fois que nécessaire.');});
+    v.setTool('place');const {mountLibrary}=await import('./library.ts');
+    tools.append(node('div','BIBLIOTHÈQUE','kicker'),node('h3','Placer des objets'));
+    mountLibrary(tools,s.document.assets,item=>{if(item.kind==='asset')lastAsset=item.id;v.setTool('place');status('Choix conservé : cliquez dans la vue pour placer, autant de fois que nécessaire.');});
+    const {transformSettings}=await import('./viewport/select-tool.ts');
+    const snap=node('input');snap.type='checkbox';snap.checked=transformSettings.snap;
+    snap.onchange=()=>{transformSettings.snap=snap.checked;};
+    const controls=node('details','','section-card');controls.open=true;
+    controls.append(node('summary','Précision du placement'),
+      field('Rotation du prochain objet (°)',numberInput(Math.round(placementSettings.yaw*180/Math.PI),val=>{placementSettings.yaw=val*Math.PI/180;},-360,360)),
+      field('Échelle du prochain objet',numberInput(placementSettings.scale,val=>placementSettings.scale=Math.max(.1,Math.min(5,val||1)),.1,5,'0.1')),
+      field('Aimantation du placement',snap),
+      field('Pas de grille du placement (m)',numberInput(transformSettings.grid,val=>transformSettings.grid=Math.max(.1,Math.min(100,val||1)),.1,100)),
+      node('p','R / Maj+R : pivoter par pas de 15° · Échap : quitter le placement · molette/clic droit : orienter la caméra.','muted'));
+    tools.append(controls);
+    const {mountScatterPanel}=await import('./scatter-panel.ts');mountScatterPanel(tools,v);
+    const {mountPatternPanel}=await import('./pattern-panel.ts');
+    const editConstruction=(target:import('./viewport/polyline-tool.ts').PolylineTarget)=>{
+      void run(async()=>{const {polylineTarget}=await import('./viewport/polyline-tool.ts');
+        polylineTarget.current=target;returnModule='objects';await module('polyline');})();
+    };
+    mountPatternPanel(tools,{session:s,status,edit:editConstruction});
+    const {mountConstructionPanel}=await import('./construction-panel.ts');
+    mountConstructionPanel(tools,{session:s,status,edit:editConstruction});
+    const {mountAssemblyPanel}=await import('./assemblies-panel.ts');const stop=mountAssemblyPanel(tools,s,v,status),previous=disposePanel;disposePanel=()=>{stop();previous();};
+  }else if(id==='natural'){
+    v.setTool('select');
+    const {mountNaturalPanel}=await import('./natural-panel.ts');
+    const stop=mountNaturalPanel(tools,{session:s,viewport:v,status,edit:target=>{
+      void run(async()=>{const {polylineTarget}=await import('./viewport/polyline-tool.ts');
+        polylineTarget.current=target;returnModule='natural';await module('polyline');})();
+    }});
+    const previous=disposePanel;disposePanel=()=>{stop();previous();};
   }else if(id==='characters'){
     const {placementSettings}=await import('./viewport/placement-tool.ts');let name='Nouvel habitant',species:import('../studio-core/types.ts').CharacterSpecies='squirrel';
     const choose=()=>{placementSettings.item={kind:'npc',species,name};v.setTool('place');};choose();
@@ -128,9 +168,26 @@ async function toolPanel(id:string,v:StudioViewport){
       action('Créer un personnage ici',async()=>{const owner=chunkAt(s.document.world,x,z),id=crypto.randomUUID();await s.change('Créer un personnage',[owner],d=>createCharacter(d,{id,name,x,z,species}));s.selection.select({kind:'entity',id});await inspector();}));
     const list=node('div','','search-results');for(const e of Object.values(s.document.entityIndex).filter(e=>e.kind==='character'))list.append(action(e.name,()=>{s.selection.select({kind:'entity',id:e.id});v.focusSelection();}));tools.append(node('h4','Habitants du projet'),list);
   }else if(id==='terrain'||id==='biomes'){
-    const {brushSettings}=await import('./viewport/brush-tool.ts');const options:[string,string][]=id==='terrain'?[['raise','Élever'],['lower','Abaisser'],['flatten','Aplanir'],['smooth','Lisser']]:[['forest','Forêt'],['meadow','Prairie'],['mountain','Montagne'],['coast','Côte'],['village','Village']];
+    const {brushSettings}=await import('./viewport/brush-tool.ts');const options:[string,string][]=id==='terrain'?[['raise','Élever'],['lower','Abaisser'],['flatten','Aplanir'],['smooth','Lisser']]:[['forest','Forêt'],['meadow','Prairie'],['mountain','Montagne'],['coast','Côte'],['village','Village'],['exclude-vegetation','Sans végétation'],['restore-vegetation','Rétablir végétation']];
     const saved=s.selection.state.activeTool,current=options.some(o=>o[0]===saved)?saved:options[0][0];v.setTool(current);const chips=node('div','','chip-row');
     for(const [tool,label]of options){const b=button(label,()=>{v.setTool(tool);for(const c of chips.children)c.classList.toggle('active',c===b);},'chip'+(tool===current?' active':''));chips.append(b);}
+    if(id==='biomes'){
+      const maskProtect=node('input');maskProtect.type='checkbox';maskProtect.checked=brushSettings.maskProtect;
+      maskProtect.onchange=()=>{brushSettings.maskProtect=maskProtect.checked;};
+      tools.append(field('Conserver les corrections d’occupation existantes',maskProtect),
+        node('p','Sans végétation : masque géographique X (aucun arbre, buisson ou herbe généré). Rétablir : efface uniquement les cellules X, sans modifier routes, fermes ni bâtiments.','muted'));
+      const {ECOLOGY_PALETTES}=await import('./ecology-palettes.ts');
+      const ecological=node('div','','section-card'),palette=select('woodland',ECOLOGY_PALETTES.map(x=>[x.id,x.label] as [string,string]),()=>{});
+      ecological.append(node('h4','Palettes écologiques procédurales'),node('p','L’habillage est généré par les biotopes existants : pas de nouvelles entités pour chaque arbre.','muted'),field('Profil écologique',palette),
+        button('Appliquer la palette au pinceau',()=>{
+          const profile=ECOLOGY_PALETTES.find(p=>p.id===palette.value)!;
+          brushSettings.radius=profile.radius;brushSettings.strength=profile.strength;
+          v.setTool(profile.mode);
+          for(const c of chips.children)c.classList.toggle('active',(c as HTMLElement).textContent===options.find(o=>o[0]===profile.mode)?.[1]);
+          status(profile.label+' : peignez sur le terrain. Les masques et exclusions existants restent respectés.');
+        }));
+      tools.append(ecological);
+    }
     tools.append(node('div',id==='terrain'?'RELIEF':'BIOTOPES','kicker'),node('h3',id==='terrain'?'Pinceaux de relief':'Peindre les biotopes'),chips,field('Rayon du pinceau (m)',numberInput(brushSettings.radius,val=>brushSettings.radius=Math.max(1,Math.min(80,val||1)),1,80)),field(id==='terrain'?'Force / hauteur':'Densité ×2',numberInput(brushSettings.strength,val=>brushSettings.strength=Math.max(.1,Math.min(10,val||1)),.1,10)),
       node('p','Glisser : un trait = une opération annulable. [ ] : rayon · - + : force · clic droit / molette : naviguer · Échap : annuler le trait.','muted'));
   }else if(id==='paths'||id==='zones'){
@@ -138,6 +195,14 @@ async function toolPanel(id:string,v:StudioViewport){
     const ctx={session:s,status,physics:{enabled:()=>v.physicsOverlay,toggle:(on:boolean)=>v.setPhysicsOverlay(on)},focus:(x:number,z:number)=>v.goTo(x,z,30),edit:(target:import('./viewport/polyline-tool.ts').PolylineTarget)=>{void run(async()=>{const {polylineTarget}=await import('./viewport/polyline-tool.ts');polylineTarget.current=target;returnModule=id;await module('polyline');})();}};
     const render=()=>{tools.replaceChildren();(id==='paths'?mountPathsPanel:mountZonesPanel)(tools,ctx);};render();
     const stop=s.commands.subscribe(()=>{if(activeModule===id)render();}),previous=disposePanel;disposePanel=()=>{stop();previous();};
+  }else if(id==='regions'){
+    v.setTool('select');
+    const {mountRegionsPanel}=await import('./regions-panel.ts');
+    const stop=mountRegionsPanel(tools,{session:s,viewport:v,status,open:id=>{void run(()=>module(id))();},edit:target=>{
+      void run(async()=>{const {polylineTarget}=await import('./viewport/polyline-tool.ts');
+        polylineTarget.current=target;returnModule='regions';await module('polyline');})();
+    }});
+    const previous=disposePanel;disposePanel=()=>{stop();previous();};
   }else if(id==='landscapes'){
     v.setTool('select');const {mountLandscapesPanel}=await import('./landscapes-panel.ts');
     const stop=mountLandscapesPanel(tools,{session:s,viewport:v,status}),previous=disposePanel;disposePanel=()=>{stop();previous();};
@@ -148,6 +213,7 @@ async function toolPanel(id:string,v:StudioViewport){
     const {polylineTarget}=await import('./viewport/polyline-tool.ts');const target=polylineTarget.current;if(!target){await module('scene');return;}v.setTool('polyline');
     tools.append(node('div','TRACÉ','kicker'),node('h3',target.label),node('p','Clic : ajouter un point · glisser un point : le déplacer · Retour arrière : retirer le dernier · Entrée : valider (une opération) · Échap : abandonner. Clic droit / molette : naviguer.','muted'),
       action('Valider le tracé',()=>{window.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter'}));},'primary-button'),action('Abandonner',()=>{polylineTarget.current=null;const back=returnModule;returnModule='scene';return module(back);}));
+    target.controls?.(tools,()=>{(v.tools.active as {refreshPreview?:()=>void})?.refreshPreview?.();});
   }
 }
 function listPanel(s:StudioSession,host:HTMLElement){
@@ -202,6 +268,23 @@ async function diagnostics(host:HTMLElement){
   const {preflightProject,compileProject,fetchAssetResolver}=await import('../world-compiler/compile.ts'),p=await session!.fullDocument(),options={resolveAsset:fetchAssetResolver(new URL(import.meta.env.BASE_URL,location.origin).href)};
   const checked=await preflightProject(p,options);for(const d of checked.diagnostics){const entry=d.targetId?p.entityIndex[d.targetId]:undefined;const item=entry?button(d.message,()=>{session!.selection.select({kind:'entity',id:entry.id});void module('scene').then(()=>viewport?.focusSelection());},'diagnostic '+d.severity):node('p',d.message,'diagnostic '+d.severity);panel.append(item);}
   if(!checked.diagnostics.some(d=>d.severity==='ERROR'))panel.append(node('p','Aucune erreur détectée.','status-success'));
+  const {authoringIssues}=await import('../studio-core/world-audit.ts');
+  const authored=authoringIssues(p),section=node('details','','section-card');
+  section.open=authored.some(i=>i.severity==='ERROR');
+  section.append(node('summary','Diagnostic de création : '+authored.length+' point(s) à contrôler'),
+    node('p','Contrôles d’intégrité des tracés et limites. Les avertissements n’empêchent pas la compilation.','muted'));
+  for(const issue of authored.slice(0,100)){
+    section.append(button((issue.severity==='ERROR'?'Erreur · ':'À vérifier · ')+issue.message,()=>{
+      const s=session;if(!s)return;
+      if(issue.kind&&issue.id)s.selection.select({kind:issue.kind,id:issue.id});
+      void module('scene').then(()=>viewport?.goTo(issue.x,issue.z,20));
+    },'diagnostic '+issue.severity));
+  }
+  if(authored.length>100)section.append(node('p',(authored.length-100)+' autres points masqués.','muted'));
+  if(!authored.length)section.append(node('p','Aucune incohérence structurelle détectée.','status-success'));
+  panel.append(section);
+  panel.append(button('Inspecter les pentes et collisions en 3D',()=>{void module('scene').then(()=>viewport?.setPhysicsOverlay(true));}),
+    node('p','Le contrôle visuel des pentes utilise les seuils du personnage ; il ne remplace pas un test de parcours en jeu.','muted'));
   panel.append(action('Exporter le monde compilé',async()=>{const compiled=await compileProject(p,options),bytes=writeFilesArchive(compiled.files);download('compiled-world.zip',bytes.buffer as ArrayBuffer,'application/zip');status(`${compiled.manifest.chunks.length} secteurs compilés ; source auteur inchangée.`);}));
 }
 async function preview(){

@@ -43,7 +43,7 @@ export interface TriggerVolumeComponent {type:'TriggerVolume';shape:'box'|'spher
 export interface ComponentMap {
   Transform?:TransformComponent;Visual?:VisualComponent;Character?:CharacterComponent;Navigation?:NavigationComponent;
   BehaviorRef?:BehaviorRefComponent;DialogueActor?:DialogueActorComponent;State?:StateComponent;Persistence?:PersistenceComponent;
-  Interactable?:InteractableComponent;Collider?:ColliderComponent;Animator?:AnimatorComponent;TriggerVolume?:TriggerVolumeComponent;Light?:LightComponent;
+  Interactable?:InteractableComponent;Collider?:ColliderComponent;Animator?:AnimatorComponent;TriggerVolume?:TriggerVolumeComponent;Light?:LightComponent;NaturalStructure?:import('../structures/natural-structure.ts').NaturalStructureSpec;
 }
 export type ComponentName = keyof ComponentMap;
 export interface PrefabOverride {component:ComponentName;field:string;value:unknown;}
@@ -54,6 +54,8 @@ export interface BehaviorDefinition {id:StableId;kind:'idle'|'wander'|'patrol'|'
 export interface CharacterDefinition {id:StableId;name:string;species:CharacterSpecies;rigId:CharacterRigId;appearance:Appearance;}
 /** Only actually implemented declarative gameplay registries are populated. */
 export interface ProjectLibraries {
+  /** Optional project-owned visual assemblies. */
+  assemblies?:Record<StableId,import('./assemblies.ts').AssemblyDefinition>;
   prefabs:Record<StableId,PrefabDefinitionV3>;
   characters:Record<StableId,CharacterDefinition>;
   dialogues:Record<StableId,DialogueDefinitionV3>;
@@ -69,6 +71,8 @@ export interface ProjectLibraries {
   zones?:Record<StableId,ActivityZoneV3>;
   /** World Production landscape presets (re-editable instances + generation record). Optional. */
   landscapes?:Record<StableId,import('../world-production/landscape-schema.ts').LandscapeInstanceV1>;
+  /** Editable A/B geographic region recipes, stored as author-only V3 data. */
+  regions?:Record<StableId,import('./region-schema.ts').RegionRecipeV1>;
 }
 export interface ActivityZoneV3 {id:StableId;kind:'farm-plot'|'mine';name:string;polygon:PointXZ[];levels?:number;
   /** Mine settings (levels, entrance, stairs, geology). Optional: defaults derived at compile time. */

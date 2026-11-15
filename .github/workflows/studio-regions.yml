@@ -1,0 +1,43 @@
+name: Studio regions A/B — focused acceptance
+on:
+  push:
+    branches:
+      - feat/studio-creation-workflows-v1
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  regions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Region source, ecology and hydrography regression tests
+        run: |
+          node --experimental-strip-types --test tests/studio-region-recipes.test.mjs
+          node --experimental-strip-types --test tests/studio-guided-river.test.mjs
+          node --experimental-strip-types --test tests/studio-relief-lines.test.mjs
+          node --experimental-strip-types --test tests/studio-region-vegetation.test.mjs
+          node --experimental-strip-types --test tests/studio-hydro-network-assistant.test.mjs
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - name: Start Studio preview
+        run: |
+          npm run preview -- --host 127.0.0.1 --port 5173 --strictPort > /tmp/little-world-region-preview.log 2>&1 &
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:5173/little-world/ > /dev/null; then break; fi
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:5173/little-world/ > /dev/null
+      - name: Regions A/B browser acceptance
+        run: node tools/run-browser-check.mjs studio-regions
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: studio-region-screenshots
+          path: /tmp/little-world-browser/studio-region-*.png

@@ -1,4 +1,5 @@
 import {landscapeRegions} from '../world-production/landscapes.ts';
+import {regionDressingRegions} from '../studio-core/region-dressing.ts';
 import {runtimeLights,type RuntimeLight} from '../lighting/light-data.ts';
 import {waterTerrainIds} from '../water/sectors.ts';
 import { parseWorld, type WorldDefinition } from '../world-data.ts';
@@ -68,7 +69,7 @@ export function runtimeContent(entities:{id:string;name:string;components:Entity
   for(const entity of entities){
     const c=entity.components,t=c.Transform;if(!t)continue;
     if(c.Character){const n=c.Navigation,behavior=n?libraries.behaviors[n.behaviorId]?.kind:'idle',dialogue=c.DialogueActor?.dialogueIds[0],graph=dialogue?libraries.dialogues[dialogue]:undefined;npcs.push({id:entity.id,name:entity.name,kind:c.Character.species,x:t.position.x,z:t.position.z,behavior:behavior??'idle',radius:n?.radius??0,speed:n?.speed??0,appearance:structuredClone(c.Character.appearance),...(n?.path?{path:structuredClone(n.path)}:{}),...(graph?{dialogue:{start:graph.start,lines:structuredClone(graph.lines)}}:{})});
-    }else if(c.Visual)placements.push({id:entity.id,assetId:c.Visual.assetId as WorldDefinition['placements'][number]['assetId'],x:t.position.x,z:t.position.z,rotation:Math.atan2(2*(t.rotation.w*t.rotation.y+t.rotation.x*t.rotation.z),1-2*(t.rotation.y*t.rotation.y+t.rotation.z*t.rotation.z)),scale:t.scale.x,y:t.position.y,quaternion:[t.rotation.x,t.rotation.y,t.rotation.z,t.rotation.w],scale3:[t.scale.x,t.scale.y,t.scale.z]});
+    }else if(c.Visual)placements.push({id:entity.id,assetId:c.Visual.assetId as WorldDefinition['placements'][number]['assetId'],x:t.position.x,z:t.position.z,rotation:Math.atan2(2*(t.rotation.w*t.rotation.y+t.rotation.x*t.rotation.z),1-2*(t.rotation.y*t.rotation.y+t.rotation.z*t.rotation.z)),scale:t.scale.x,y:t.position.y,quaternion:[t.rotation.x,t.rotation.y,t.rotation.z,t.rotation.w],scale3:[t.scale.x,t.scale.y,t.scale.z],...(c.NaturalStructure?{naturalStructure:structuredClone(c.NaturalStructure)}:{})});
   }
   return {placements,npcs,lights:runtimeLights(entities)};
 }
@@ -77,6 +78,6 @@ export function runtimeContent(entities:{id:string;name:string;components:Entity
 export function geographyOf(project:ProjectDocument,chunks:{chunkId:string;layers?:import('../geography/layers.ts').SectorLayers}[]):WorldDefinition['geography']|undefined{
   const masks:Record<string,import('../geography/layers.ts').SectorLayers>={};for(const c of chunks)if(c.layers&&Object.keys(c.layers).length)masks[c.chunkId]=structuredClone(c.layers);
   const zones=Object.values(project.libraries.zones??{}).map(z=>({kind:z.kind,polygon:z.polygon.map(p=>({...p}))}));
-  const landscapes=landscapeRegions(project.libraries.landscapes);
+  const landscapes=[...landscapeRegions(project.libraries.landscapes),...regionDressingRegions(project.libraries.regions)];
   return Object.keys(masks).length||zones.length||landscapes.length?{sectorSizeM:project.world.chunkSizeM,masks,zones,...(landscapes.length?{landscapes}:{})}:undefined;
 }

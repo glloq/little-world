@@ -1,3 +1,4 @@
+import {validateNaturalStructure} from '../structures/natural-structure.ts';
 import {PATH_KINDS,type PathKind} from '../world-data.ts';
 import {validateWaterProfile,validateWaterNetworkFields} from '../water/profile.ts';
 import {validateAudioLinks} from '../audio/schema.ts';
@@ -8,6 +9,7 @@ import { EMOTIONS } from '../character-style.ts';
 import {parseTerrainGenerator,VERTICAL_ENVELOPE,type TerrainGeneratorDefinition} from '../terrain-generator.ts';
 import {validateZone} from './zones.ts';
 import {validateLandscape,LANDSCAPE_LIMITS} from '../world-production/landscape-schema.ts';
+import {validateRegionRecipe} from './region-schema.ts';
 import {MASK_LAYERS,validMaskString,type MaskLayerId} from '../geography/layers.ts';
 import { validDialogue } from '../dialogue.ts';
 import type { AssetDefinition, BiomeEdit, ChunkId, ChunkSourceV3, ComponentMap, EntityDefinitionV3, ProjectDocument, StudioProjectV3, TerrainEdit, WorldDefinitionV3 } from './types.ts';
@@ -69,6 +71,7 @@ export function emptyChunk(world:WorldDefinitionV3,id:ChunkId):ChunkSourceV3{ret
 function validateAppearance(value:unknown){const v=object(value,'Apparence');keys(v,['hat','backpack','neckwear','emotion','goggles'],'Apparence');if(v.goggles!==undefined&&typeof v.goggles!=='boolean')throw Error('Lunettes invalides');if(typeof v.hat!=='boolean'||typeof v.backpack!=='boolean'||!['none','pendant','scarf'].includes(String(v.neckwear))||!EMOTIONS.includes(v.emotion as typeof EMOTIONS[number]))throw Error('Apparence invalide');}
 const componentFields:Record<string,readonly string[]>={
   Transform:['type','position','rotation','scale'],Visual:['type','assetId','variant'],Character:['type','species','rigId','appearance'],Navigation:['type','behaviorId','speed','radius','path'],BehaviorRef:['type','behaviorId'],DialogueActor:['type','dialogueIds'],State:['type','initial'],Persistence:['type','fields'],Interactable:['type','prompt','range','interactionIds'],Collider:['type','shape','size','layer'],Animator:['type','clips','initialClip'],TriggerVolume:['type','shape','size','interactionIds'],Light:['type','kind','color','intensity','range','offset','enabled','mode','stateKey','flicker','preset'],
+  NaturalStructure:['type','kind','form','span','width','clearance','thickness','curvature','bankRise'],
 };
 export function parseComponents(value:unknown,world?:WorldDefinitionV3):ComponentMap{
   const components=object(value,'Composants');for(const [name,raw] of Object.entries(components)){
@@ -76,6 +79,7 @@ export function parseComponents(value:unknown,world?:WorldDefinitionV3):Componen
     switch(name){
       case 'Transform':{const p=vector(c.position,'Position');if(world)point(p,world,'Position');const q=object(c.rotation,'Quaternion');keys(q,['x','y','z','w'],'Quaternion');for(const key of ['x','y','z','w'])finite(q[key],'Quaternion',-1,1);const norm=Math.hypot(q.x as number,q.y as number,q.z as number,q.w as number);if(Math.abs(norm-1)>.001)throw Error('Quaternion non normalisé');vector(c.scale,'Échelle',.01,100);break;}
       case 'Visual':string(c.assetId,'Asset');if(c.variant!==undefined)string(c.variant,'Variante');break;
+      case 'NaturalStructure':validateNaturalStructure(c as unknown as import('../structures/natural-structure.ts').NaturalStructureSpec);break;
       case 'Character':if(!(CHARACTER_SPECIES as readonly string[]).includes(String(c.species))||c.rigId!==rigForSpecies(String(c.species)))throw Error('Espèce ou rig non pris en charge');validateAppearance(c.appearance);break;
       case 'Navigation':string(c.behaviorId,'Comportement');finite(c.speed,'Vitesse',0,5);finite(c.radius,'Zone',0,100);if(c.path!==undefined)for(const p of array(c.path,'Parcours',100)){const pt=object(p,'Point parcours');keys(pt,['x','z'],'Point parcours');if(world)point(pt,world,'Parcours');else{finite(pt.x,'Parcours');finite(pt.z,'Parcours');}}break;
       case 'BehaviorRef':string(c.behaviorId,'Comportement');break;
@@ -94,7 +98,15 @@ export function parseComponents(value:unknown,world?:WorldDefinitionV3):Componen
 }
 export function parseEntity(value:unknown,world:WorldDefinitionV3):EntityDefinitionV3{
   const e=object(value,'Entité');keys(e,['id','kind','name','ownerChunkId','parentId','prefabId','variantId','components','overrides'],'Entité');string(e.id,'ID entité');string(e.name,'Nom',200);if(!['prop','building','character','trigger','effect'].includes(String(e.kind)))throw Error('Genre entité inconnu');chunkCoordinates(world,string(e.ownerChunkId,'Propriétaire'));for(const key of ['parentId','prefabId','variantId'])if(e[key]!==undefined)string(e[key],key);
-  const c=parseComponents(e.components,world);if(!c.Transform&&!e.prefabId)throw Error('Transform requis');if(c.Transform&&chunkAt(world,c.Transform.position.x,c.Transform.position.z)!==e.ownerChunkId)throw Error('Propriétaire spatial incohérent');if(e.overrides!==undefined)validateOverrides(e.overrides);
+  const c=parseComponents(e.components,world);
+  if(c.NaturalStructure){
+    if(!c.Transform||!c.Visual||c.Visual.assetId!=='procedural.natural_structure')
+      throw Error('Structure naturelle : Transform et asset procedural.natural_structure requis');
+    if(c.Collider)throw Error('Structure naturelle : un collider global condamnerait le passage');
+    if(c.Transform.scale.x!==1||c.Transform.scale.y!==1||c.Transform.scale.z!==1)
+      throw Error('Structure naturelle : régler les dimensions dans le composant, pas avec l’échelle générique');
+  }
+  if(!c.Transform&&!e.prefabId)throw Error('Transform requis');if(c.Transform&&chunkAt(world,c.Transform.position.x,c.Transform.position.z)!==e.ownerChunkId)throw Error('Propriétaire spatial incohérent');if(e.overrides!==undefined)validateOverrides(e.overrides);
   return structuredClone(e) as unknown as EntityDefinitionV3;
 }
 export function validateOverrides(value:unknown):void{
@@ -134,8 +146,38 @@ export function validateLine(value:unknown,world:WorldDefinitionV3,water:boolean
   if(!water){if(line.kind!==undefined&&!PATH_KINDS.includes(line.kind as PathKind))throw Error('Chemin : type inconnu');if(line.smooth!==undefined&&typeof line.smooth!=='boolean')throw Error('Chemin : courbe invalide');}string(line.id,'ID tracé');finite(line.width,'Largeur',1,40);const points=array(line.points,'Points',100);if(points.length<2)throw Error('Tracé : deux points requis');for(const p of points){const v=object(p,'Point');keys(v,['x','z'],'Point');point(v,world,'Tracé');}if(water){finite(line.level,'Niveau',-20,100);finite(line.depth,'Profondeur',.5,20);validateWaterProfile(line.profile,points.length);validateWaterNetworkFields(line as never);}
 }
 function validateLibraries(value:unknown,world:WorldDefinitionV3,entityIds:string[],chunkIds:string[]):void{
-  const libs=object(value,'Bibliothèques');keys(libs,['prefabs','characters','dialogues','behaviors','interactions','activities','variables','items','objectives','water','paths','zones','landscapes'],'Bibliothèques');
+  const libs=object(value,'Bibliothèques');keys(libs,['prefabs','characters','dialogues','behaviors','interactions','activities','variables','items','objectives','water','paths','zones','landscapes','assemblies','regions'],'Bibliothèques');
+  if(libs.assemblies!==undefined)for(const [id,raw] of Object.entries(dictionary(libs.assemblies,'Assemblages',1000))){
+    const a=object(raw,'Assemblage');keys(a,['id','name','version','items'],'Assemblage');
+    if(a.id!==id)throw Error('Assemblage : ID différent de la clé');
+    string(a.id,'ID assemblage');string(a.name,'Nom assemblage',100);integer(a.version,'Version assemblage',1,2);
+    const items=array(a.items,'Objets assemblage',100);
+    if(a.version===2){
+      const keys=new Set(items.map((v,i)=>(v as {key?:string}).key??'part-'+i));
+      if(keys.size!==items.length)throw Error('Assemblage : clés de composants non uniques');
+      for(const item of items as {key?:string;parentKey?:string}[])
+        if(item.parentKey&&(!keys.has(item.parentKey)||item.parentKey===item.key))throw Error('Assemblage : parent inconnu ou circulaire');
+      for(const item of items as {key?:string;parentKey?:string}[]){
+        const visited=new Set<string>();let cursor=item.parentKey;
+        while(cursor){if(visited.has(cursor))throw Error('Assemblage : hiérarchie cyclique');visited.add(cursor);
+          const parent=items.find((other,i)=>((other as {key?:string}).key??'part-'+i)===cursor) as {parentKey?:string}|undefined;
+          cursor=parent?.parentKey;
+        }
+      }
+    }
+    for(const rawItem of items){
+      const item=object(rawItem,'Objet assemblage');keys(item,['kind','name','dx','dz','key','parentKey','components'],'Objet assemblage');
+      if(item.kind!=='prop'&&item.kind!=='building')throw Error('Type objet assemblage invalide');
+      string(item.name,'Nom objet assemblage',200);finite(item.dx,'Décalage X',-1e5,1e5);finite(item.dz,'Décalage Z',-1e5,1e5);
+      if(item.key!==undefined)string(item.key,'Clé composant assemblage',100);
+      if(item.parentKey!==undefined)string(item.parentKey,'Parent composant assemblage',100);
+      const c=object(item.components,'Composants assemblage');keys(c,['Transform','Visual','Collider'],'Composants assemblage');
+      if(!c.Transform||!c.Visual)throw Error('Transform et Visual requis');
+      parseComponents(c);
+    }
+  }
   if(libs.landscapes!==undefined)for(const [id,l]of Object.entries(dictionary(libs.landscapes,'Bibliothèque paysages',LANDSCAPE_LIMITS.instances))){if(validateLandscape(l,world.bounds).id!==id)throw Error('Bibliothèque paysages : ID différent de la clé');}
+  if(libs.regions!==undefined)for(const [id,region]of Object.entries(dictionary(libs.regions,'Bibliothèque régions',250))){if(validateRegionRecipe(region as never,world.bounds,world.chunkSizeM).id!==id)throw Error('Bibliothèque régions : ID différent de la clé');}
   if(libs.zones!==undefined)for(const [id,zone]of Object.entries(dictionary(libs.zones,'Bibliothèque zones',2000))){if(validateZone(zone,world).id!==id)throw Error('Bibliothèque zones : ID différent de la clé');}
   for(const name of ['prefabs','characters','dialogues','behaviors','interactions','activities','variables','items','objectives','water','paths']){
     const dict=dictionary(libs[name],`Bibliothèque ${name}`,10000);

@@ -19,6 +19,8 @@ import {ToolManager,type ToolContext} from './tools.ts';
 import {SelectTool} from './select-tool.ts';
 import {PlacementTool} from './placement-tool.ts';
 import {BrushTool,type BrushMode} from './brush-tool.ts';
+import {ScatterTool} from './scatter-tool.ts';
+import {AssemblyPlacementTool} from './assembly-placement-tool.ts';
 import {PolylineTool} from './polyline-tool.ts';
 import {applySkyLighting,type SkyLighting} from '../../environment/sky-lighting.ts';
 import {entityTransform} from '../../studio-core/transforms.ts';
@@ -37,7 +39,7 @@ export interface ViewportOptions {
 /** Content of nearby sectors is shown; terrain detail, horizon and LOD come from the shared
  * world renderer (camera-prioritised, budgeted). Nothing loads the whole island. */
 const CONTENT_RADIUS=320,REPLAN_DISTANCE=48;
-export const BRUSH_TOOLS:[string,BrushMode][]=[['raise','raise'],['lower','lower'],['flatten','flatten'],['smooth','smooth'],['forest','forest'],['meadow','meadow'],['mountain','mountain'],['coast','coast'],['village','village']];
+export const BRUSH_TOOLS:[string,BrushMode][]=[['raise','raise'],['lower','lower'],['flatten','flatten'],['smooth','smooth'],['forest','forest'],['meadow','meadow'],['mountain','mountain'],['coast','coast'],['village','village'],['exclude-vegetation','exclude-vegetation'],['restore-vegetation','restore-vegetation']];
 /** The Studio's central 3D editing space. Created once per opened project and kept while
  * tools and panels change, so camera, selection and scene are never reset by a tool. */
 export class StudioViewport {
@@ -84,7 +86,7 @@ export class StudioViewport {
     this.navigation=attachNavigation(this.canvas,this.camera,{pick:(x,y)=>this.groundAt(x,y),heightPx:()=>this.canvas.clientHeight,isActive:()=>this.visible,onInteract:()=>this.invalidate(4),onSettled:()=>this.saveCamera()});
     const context:ToolContext={session,scene:this.scene,canvas:this.canvas,camera:this.camera,selection:this.selection,ground:e=>this.groundAt(e.clientX,e.clientY),objectFor:id=>this.objectFor(id),invalidate:n=>this.invalidate(n),message:options.message,refreshInspector:options.refreshInspector,setTool:id=>{this.setTool(id);options.toolChanged(id);},
       run:action=>{void action().catch(error=>{options.message(String(error instanceof Error?error.message:error),true);this.refresh();});}};
-    this.tools=new ToolManager(context);this.tools.register(new SelectTool());this.tools.register(new PlacementTool());this.tools.register(new PolylineTool());for(const [id,mode]of BRUSH_TOOLS)this.tools.register(new BrushTool(id,mode));
+    this.tools=new ToolManager(context);this.tools.register(new SelectTool());this.tools.register(new PlacementTool());this.tools.register(new ScatterTool());this.tools.register(new AssemblyPlacementTool());this.tools.register(new PolylineTool());for(const [id,mode]of BRUSH_TOOLS)this.tools.register(new BrushTool(id,mode));
     this.canvas.addEventListener('pointerdown',this.onDown);this.canvas.addEventListener('pointermove',this.onMove);this.canvas.addEventListener('pointerup',this.onUp);this.canvas.addEventListener('pointerleave',this.onLeave);
     window.addEventListener('keydown',this.onKey);
     this.unsubscribe.push(session.commands.subscribe(t=>this.refresh(t)),session.selection.subscribe(()=>{this.selection.refresh();this.invalidate(3);this.reportStatus();}));
@@ -199,7 +201,11 @@ export class StudioViewport {
       const generatorBefore=JSON.stringify(this.definition.config.terrain??null);
       Object.assign(this.definition,next);
       if(generatorBefore!==JSON.stringify(next.config.terrain??null))this.applyGenerator(transaction);
-      this.syncGeography();this.applyTerrain([...next.terrain,...next.biomes] as TerrainStroke[],transaction);this.world.refreshPaths(this.definition.paths);this.syncZones();this.syncModels();this.syncLights();this.tools.active?.sourcesChanged?.();this.reportStatus();this.invalidate(20);
+      this.syncGeography();this.applyTerrain([...next.terrain,...next.biomes] as TerrainStroke[],transaction);this.world.refreshPaths(this.definition.paths);this.syncZones();this.syncModels();this.syncLights();this.tools.active?.sourcesChanged?.();
+      // Evict only clean, unreferenced author sources after the view has consumed them.
+      // Current/Undo/Redo/selected sectors remain pinned; full exports hydrate everything on demand.
+      this.session.compactHydrated(this.contentIds);
+      this.reportStatus();this.invalidate(20);
     }).catch(error=>this.options.message(String(error),true));
   }
   refresh(transaction?:EditTransaction){
@@ -211,6 +217,7 @@ export class StudioViewport {
    * terrain and rebuild only the areas of the changed shapes (whole world if global). */
   private applyGenerator(transaction?:EditTransaction){
     const d=this.definition;configureTerrain(d.config,d.terrain,d.water,d.paths);this.world.refreshWater();
+    this.world.refreshCliffs(d.config.terrain);
     this.canvas.dataset.generatorRevision=String(Number(this.canvas.dataset.generatorRevision??0)+1);
     const change=transaction?terrainChangeRects(transaction.patches):{global:true,rects:[]};
     const b=this.session.document.world.bounds;
