@@ -3,6 +3,7 @@
  * An ordered batch is committed by StudioSession as one undoable transaction. */
 import type {ProjectDocument} from './types.ts';
 import {applyRegion,regionAffectedChunks,type RegionRecipeV1,type RegionReport} from './region-recipes.ts';
+import {MASK_LAYERS,MASK_GRID} from '../geography/layers.ts';
 
 export interface RegionBatchPreview {
  chunks:string[];
@@ -10,6 +11,9 @@ export interface RegionBatchPreview {
  totals:{painted:number;cleared:number;protected:number;preserved:number};
 }
 export const REGION_BATCH_LIMIT=16;
+export const REGION_DIFF_LIMIT=16384;
+export interface RegionDiffCell {chunkId:string;index:number;kind:'painted'|'cleared'|'replaced'}
+export interface RegionVisualPreview extends RegionBatchPreview {diff:{cells:RegionDiffCell[];total:number;truncated:boolean}}
 export function regionBatchChunks(p:ProjectDocument,recipes:readonly RegionRecipeV1[]):string[]{
  const chunks=new Set<string>();
  for(const recipe of recipes)for(const id of regionAffectedChunks(p,recipe))chunks.add(id);
@@ -30,8 +34,7 @@ export function applyRegionBatch(p:ProjectDocument,recipes:readonly RegionRecipe
 }
 /** Exact non-mutating preview, including overlapping recipes and previous ownership.
  * Only the affected chunks are copied; entity data and other chunks remain shared. */
-export function previewRegionBatch(p:ProjectDocument,recipes:readonly RegionRecipeV1[]):RegionBatchPreview{
- checkBatch(recipes);
+function previewDraft(p:ProjectDocument,recipes:readonly RegionRecipeV1[]):ProjectDocument{
  const chunks=regionBatchChunks(p,recipes);
  const scratch:ProjectDocument={...p,
   chunks:{...p.chunks},
@@ -39,5 +42,35 @@ export function previewRegionBatch(p:ProjectDocument,recipes:readonly RegionReci
   world:{...p.world,terrain:p.world.terrain?structuredClone(p.world.terrain):undefined}
  };
  for(const id of chunks)if(p.chunks[id])scratch.chunks[id]=structuredClone(p.chunks[id]);
- return applyRegionBatch(scratch,recipes);
+ return scratch;
+}
+export function previewRegionBatch(p:ProjectDocument,recipes:readonly RegionRecipeV1[]):RegionBatchPreview{
+ checkBatch(recipes);
+ return applyRegionBatch(previewDraft(p,recipes),recipes);
+}
+/** Exact visual change map, computed from the same simulation as applyRegionBatch.
+ * One point per changed cell (not per layer), bounded to avoid large UI allocations. */
+export function previewRegionBatchWithDiff(p:ProjectDocument,recipes:readonly RegionRecipeV1[]):RegionVisualPreview{
+ checkBatch(recipes);
+ const scratch=previewDraft(p,recipes),summary=applyRegionBatch(scratch,recipes);
+ const cells:RegionDiffCell[]=[];let total=0;
+ for(const id of summary.chunks){
+  const before=p.chunks[id]?.layers,after=scratch.chunks[id]?.layers;
+  if(before===after)continue;
+  for(let index=0;index<MASK_GRID*MASK_GRID;index++){
+   let painted=false,cleared=false,replaced=false;
+   for(const layer of MASK_LAYERS){
+    const oldCode=before?.[layer]?.[index]??'.',newCode=after?.[layer]?.[index]??'.';
+    if(oldCode===newCode)continue;
+    if(oldCode==='.')painted=true;
+    else if(newCode==='.')cleared=true;
+    else replaced=true;
+   }
+   if(!(painted||cleared||replaced))continue;
+   total++;
+   if(cells.length<REGION_DIFF_LIMIT)
+    cells.push({chunkId:id,index,kind:replaced||painted&&cleared?'replaced':painted?'painted':'cleared'});
+  }
+ }
+ return {...summary,diff:{cells,total,truncated:total>cells.length}};
 }
