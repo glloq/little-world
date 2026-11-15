@@ -23,6 +23,11 @@ export function mountAssemblyPanel(host:HTMLElement,session:StudioSession,viewpo
     if(!all.length)list.append(node('p','Aucun assemblage enregistré. Sélectionnez plusieurs objets visuels dans la scène.','muted'));
     for(const group of all){
       const row=node('div','','feature-row'),title=node('strong',group.name+' · '+group.items.length+' objets');
+      const cursorPlace=button('Placer à la souris',()=>{
+        void import('./viewport/assembly-placement-tool.ts').then(({assemblyPlacement})=>{
+          assemblyPlacement.id=group.id;viewport.setTool('assembly');status('Cliquez dans la vue pour poser « '+group.name+' ». Échap pour terminer.');
+        });
+      });
       const place=button('Placer au centre de la vue',()=>run(async()=>{
         const target=viewport.camera.target,ids=assemblyChunkIds(session.document,group,target.x,target.z);
         let created:string[]=[];
@@ -37,7 +42,7 @@ export function mountAssemblyPanel(host:HTMLElement,session:StudioSession,viewpo
         });
         render();
       }));
-      row.append(title,place,remove);list.append(row);
+      row.append(title,cursorPlace,place,remove);list.append(row);
     }
   }
   box.append(node('h3','Assemblages réutilisables'),node('p','Sélectionnez des bâtiments ou accessoires, enregistrez-les, puis placez des copies au centre de la vue. Les interactions liées aux objets ne sont pas copiées.','muted'),field('Intitulé de l’assemblage',nameInput),capture,list);
