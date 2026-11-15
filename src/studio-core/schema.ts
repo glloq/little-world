@@ -9,6 +9,7 @@ import { EMOTIONS } from '../character-style.ts';
 import {parseTerrainGenerator,VERTICAL_ENVELOPE,type TerrainGeneratorDefinition} from '../terrain-generator.ts';
 import {validateZone} from './zones.ts';
 import {validateLandscape,LANDSCAPE_LIMITS} from '../world-production/landscape-schema.ts';
+import {validateRegionRecipe} from './region-recipes.ts';
 import {MASK_LAYERS,validMaskString,type MaskLayerId} from '../geography/layers.ts';
 import { validDialogue } from '../dialogue.ts';
 import type { AssetDefinition, BiomeEdit, ChunkId, ChunkSourceV3, ComponentMap, EntityDefinitionV3, ProjectDocument, StudioProjectV3, TerrainEdit, WorldDefinitionV3 } from './types.ts';
