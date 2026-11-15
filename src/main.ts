@@ -153,7 +153,7 @@ camera.far=horizonFar(getTerrainConfig().width,getTerrainConfig().length);camera
 const statefulIds = new Set((playable?.gameplay.entities ?? []).filter((e) => e.interactable || Object.keys(e.initialState).length).map((e) => e.id));
 // Moored boats (`boat.*` placements) become usable boats of the fleet (see gameplay/fleet.ts).
 const mooredBoats:{id:string;assetId:string;object:THREE.Object3D}[]=[];
-for (const item of definition.placements) if (statefulIds.has(item.id) || !world.placed.add(item)) { const object = addPlacement(world, item); if (item.assetId.startsWith('boat.')) mooredBoats.push({ id: item.id, assetId: item.assetId, object }); }
+for (const item of definition.placements) if (item.naturalStructure || statefulIds.has(item.id) || !world.placed.add(item)) { const object = addPlacement(world, item); if (item.assetId.startsWith('boat.')) mooredBoats.push({ id: item.id, assetId: item.assetId, object }); }
 scene.add(world.root);
 const player = spawnPlayer();
 // Smaller character (CHARACTER_SCALE): collision body scaled like the model.
