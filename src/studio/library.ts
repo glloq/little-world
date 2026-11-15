@@ -42,7 +42,8 @@ async function thumbnailBatch(ids:string[],done:()=>void){
         const box=new THREE.Box3().setFromObject(object),sphere=box.getBoundingSphere(new THREE.Sphere()),camera=new THREE.PerspectiveCamera(35,4/3,.1,500),r=Math.max(.5,sphere.radius);
         camera.position.set(sphere.center.x+r*1.9,sphere.center.y+r*1.3,sphere.center.z+r*2.4);camera.lookAt(sphere.center);
         renderer.render(scene,camera);thumbnails.set(id,canvas.toDataURL('image/png'));object.removeFromParent();
-      }finally{queuedPreviews.delete(id);}
+      }catch{/* One unavailable thumbnail never stops the rest of the catalogue. */thumbnails.set(id,'');}
+      finally{queuedPreviews.delete(id);}
     }
   }finally{renderer.dispose();renderer.forceContextLoss();done();}
 }
@@ -62,8 +63,8 @@ export function mountLibrary(host:HTMLElement,assets:Record<string,AssetDefiniti
     grid.replaceChildren();const current=placementSettings.item;
     facts.textContent=current.kind==='asset'?(list.find(a=>a.id===current.id)?.name??current.id)+' — '+assetFacts(current.id).split('\n').slice(0,2).join(' · '):'Choisissez un modèle 3D dans la bibliothèque.';
     const filtered=list.filter(a=>(!category||(category==='#favorites'?favorites.has(a.id):assetCategory(a.id)===category))&&(a.name+' '+a.id).toLowerCase().includes(query.toLowerCase()));
-    // Start with visible candidates: do not preload every GLB on opening the panel.
-    renderThumbnails(filtered.slice(0,24).map(a=>a.id),()=>{for(const image of grid.querySelectorAll<HTMLImageElement>('img[data-asset-id]')){const url=thumbnails.get(image.dataset.assetId??'');if(url)image.src=url;}});
+    // Progressively render all matches in small batches (visible entries first).
+    renderThumbnails(filtered.map(a=>a.id),()=>{for(const image of grid.querySelectorAll<HTMLImageElement>('img[data-asset-id]')){const url=thumbnails.get(image.dataset.assetId??'');if(url)image.src=url;}});
     for(const a of filtered){
       const b=node('button','','library-item');b.type='button';b.title=a.name+' — '+assetFacts(a.id);b.dataset.assetId=a.id;b.setAttribute('aria-label','Placer : '+a.name);
       const img=node('img');img.alt='';img.loading='lazy';img.dataset.assetId=a.id;img.src=thumbnails.get(a.id)??'';b.append(img,node('span',a.name));
