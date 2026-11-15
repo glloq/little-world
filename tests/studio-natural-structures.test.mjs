@@ -15,6 +15,7 @@ import {applyTransforms,duplicateEntities} from '../src/studio-core/transforms.t
 import {CommandBus} from '../src/studio-core/commands.ts';
 import {editDocument} from '../src/studio-core/edit.ts';
 import {compileProject} from '../src/world-compiler/compile.ts';
+import {playableFromCompiled} from '../src/runtime/compiled-world.ts';
 import {localFileAssetResolver} from '../tools/compile-project.mjs';
 const height=()=>0;
 const options={width:7,clearance:4.5,thickness:1.2,curvature:1,form:'round'};
@@ -101,6 +102,13 @@ test('natural procedural source compiles without GLB copy and retains its compon
  assert.ok(result.manifest.assets.some(a=>a.id===NATURAL_ASSET_ID&&a.type==='procedural'));
  const chunk=result.manifest.chunks.find(c=>c.entityIds.includes('natural-2'));
  assert.equal(JSON.parse(result.files[chunk.url]).entities[0].components.NaturalStructure.kind,'bridge');
+ const playable=playableFromCompiled({manifestURL:'http://localhost/little-world/manifest.json',manifest:result.manifest,
+   logic:JSON.parse(result.files[result.manifest.logic.url]),
+   chunks:result.manifest.chunks.map(d=>JSON.parse(result.files[d.url])),payloadBytes:0},{x:0,y:0,z:0});
+ assert.equal(playable.world.placements.length,1);
+ assert.equal(playable.world.placements[0].naturalStructure?.kind,'bridge');
+ assert.equal(playable.collisions?.length,16);
+ assert.ok(playable.collisions?.every(c=>naturalColliderOwner(c.id)==='natural-2'));
 });
 
 test('supprimer un tunnel enlève son excavation, Undo restaure les deux sources',()=>{
