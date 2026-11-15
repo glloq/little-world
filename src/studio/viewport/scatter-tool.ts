@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import {chunkAt} from '../../studio-core/schema.ts';
 import {putEntity} from '../../studio-core/source.ts';
 import {yawQuaternion} from '../../studio-core/transforms.ts';
-import {assetDefinitionFor} from '../../world-production/registry.ts';
+import {assetDefinitionFor,colliderFor} from '../../world-production/registry.ts';
 import {terrainHeight,waterDepth} from '../../terrain.ts';
 import {checkPlacement} from './placement-rules.ts';
 import type {Tool,ToolContext} from './tools.ts';
@@ -55,7 +55,7 @@ export class ScatterTool implements Tool {
     this.busy=true;this.ctx.run(async()=>{try{
       const s=this.ctx.session,p=s.document;
       const eligible=points.filter(q=>q.x>=p.world.bounds.minX&&q.x<=p.world.bounds.maxX&&q.z>=p.world.bounds.minZ&&q.z<=p.world.bounds.maxZ&&
-        checkPlacement(p,q.x,q.z,{ground:terrainHeight,depth:waterDepth,building:false,radius:1}).level!=='invalid');
+        checkPlacement(p,q.x,q.z,{ground:terrainHeight,depth:waterDepth,building:q.assetId.startsWith('architecture.'),radius:q.assetId.startsWith('architecture.')?4:1}).level!=='invalid');
       const valid=eligible.filter(q=>!!(p.assets[q.assetId]??assetDefinitionFor(q.assetId)));
       if(!valid.length){this.ctx.message('Aucun emplacement valide pour cette palette.',true);return;}
       const ids=[...new Set(valid.map(q=>chunkAt(p.world,q.x,q.z)))];
@@ -66,7 +66,8 @@ export class ScatterTool implements Tool {
           putEntity(d,{id:crypto.randomUUID(),kind:q.assetId.startsWith('architecture.')?'building':'prop',
             name:asset.name,ownerChunkId,components:{
               Transform:{type:'Transform',position:{x:q.x,y:0,z:q.z},rotation:yawQuaternion(q.yaw),scale:{x:q.scale,y:q.scale,z:q.scale}},
-              Visual:{type:'Visual',assetId:q.assetId}
+              Visual:{type:'Visual',assetId:q.assetId},
+              ...(colliderFor(q.assetId)?{Collider:colliderFor(q.assetId)!}:{})
             }});
         }
       });
