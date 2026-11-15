@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createGuidedWorld} from '../src/studio-core/world-start.ts';
 import {newRegion} from '../src/studio-core/region-recipes.ts';
-import {previewRegionBatch,applyRegionBatch,REGION_BATCH_LIMIT} from '../src/studio-core/region-batch.ts';
+import {previewRegionBatch,applyRegionBatch,regionBatchChunks,REGION_BATCH_LIMIT} from '../src/studio-core/region-batch.ts';
 import {analyzeWatersheds} from '../src/studio-core/watershed-analysis.ts';
 const world=()=>{
  const p=createGuidedWorld({name:'Composition',mode:'calm',width:1000,length:1000,seed:42,cliffs:.25,volcano:false});
@@ -15,7 +15,13 @@ const world=()=>{
 };
 const region=(p,id,x,preset)=>newRegion(p,{id,name:id,points:[{x:x-55,z:-55},{x:x+55,z:-55},{x:x+55,z:55},{x:x-55,z:55}],preset,coverage:100,transitionM:0,relief:'none'});
 test('preview of overlapping regions is exact, immutable and deterministic',()=>{
- const p=world(),a=region(p,'region-a',0,'forest'),b=region(p,'region-b',30,'meadow'),before=structuredClone(p);
+ const p=world(),a=region(p,'region-a',0,'forest'),b=region(p,'region-b',30,'meadow');
+ for(const id of regionBatchChunks(p,[a,b]))if(!p.chunks[id]){
+   const [cx,cz]=id.split(':').map(Number);
+   p.chunks[id]={schemaVersion:3,chunkId:id,index:{cx,cz},revision:0,entities:{},entityIds:[],
+     terrainEdits:[],terrainRefs:[],biomeEdits:[],biomeRefs:[],waterRefs:[],pathRefs:[]};
+ }
+ const before=structuredClone(p);
  const first=previewRegionBatch(p,[a,b]),second=previewRegionBatch(p,[a,b]);
  assert.deepEqual(first,second);assert.deepEqual(p,before);
  const applied=applyRegionBatch(p,[a,b]);
