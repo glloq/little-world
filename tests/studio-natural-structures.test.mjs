@@ -4,6 +4,9 @@ import {naturalPlan,naturalBoxes,naturalProfile,tunnelExcavation,structureEndpoi
 import {naturalColliders,naturalColliderOwner} from '../src/structures/natural-collision.ts';
 import {naturalMesh,naturalMeshBudget} from '../src/structures/natural-mesh.ts';
 import {WorldCollisionQuery} from '../src/physics/collision-world.ts';
+import {naturalUnexcavatedHeight} from '../src/studio-core/natural-authoring.ts';
+import {projectGeography} from '../src/studio-core/geo-context.ts';
+import {captureAssembly} from '../src/studio-core/assemblies.ts';
 import {createProject,parseProject,chunkAt,affectedChunkIds} from '../src/studio-core/schema.ts';
 import {putEntity,putTerrainEdit} from '../src/studio-core/source.ts';
 import {runtimeContent} from '../src/studio-core/migration.ts';
@@ -117,4 +120,30 @@ test('supprimer un tunnel enlève son excavation, Undo restaure les deux sources
  bus.undo();assert.ok(p.entityIndex[id]);assert.equal(Object.values(p.chunks).flatMap(c=>c.terrainEdits).length,before);
  bus.redo();assert.equal(p.entityIndex[id],undefined);
  parseProject(structuredClone(p));
+});
+
+test('re-editing a tunnel samples the original height, not its already flattened floor',()=>{
+ const p=createProject({name:'Repeated tunnel edits',width:500,length:500}),id='natural:test';
+ const original=projectGeography(p).ctx.height(0,0);
+ const low=()=>original;
+ const spec=sample('tunnel').spec;
+ const strokes=tunnelExcavation({x:-7,z:0},{x:7,z:0},spec,low);
+ for(const [i,edit] of strokes.entries())putTerrainEdit(p,{...edit,id:'natural:'+id+':'+i,height:original-2});
+ const carved=projectGeography(p).ctx.height(0,0);
+ assert.ok(carved<original,'excavation lowered original terrain');
+ const withoutOwn=naturalUnexcavatedHeight(p,id);
+ assert.ok(withoutOwn);
+ assert.ok(Math.abs(withoutOwn(0,0)-original)<1e-6);
+ const first=tunnelExcavation({x:-7,z:0},{x:7,z:0},spec,withoutOwn);
+ const second=tunnelExcavation({x:-7,z:0},{x:7,z:0},spec,withoutOwn);
+ assert.deepEqual(first,second);
+ assert.ok(first.every(e=>Math.abs(e.height-(original-.25))<1e-6),'floor does not deepen after editing');
+});
+test('visual assemblies cannot silently lose natural vault geometry or terrain linkage',()=>{
+ const p=createProject({name:'Prefab guard',width:500,length:500}),spec=sample('arch').spec;
+ p.assets[NATURAL_ASSET_ID]={id:NATURAL_ASSET_ID,name:'Structure naturelle rocheuse',type:'procedural',license:'project-original',source:'Little World procedural stone vault (local low-poly)'};
+ putEntity(p,{id:'arch',kind:'prop',name:'Arche rocheuse',ownerChunkId:chunkAt(p.world,0,0),
+   components:{Transform:{type:'Transform',position:{x:0,y:0,z:0},rotation:{x:0,y:0,z:0,w:1},scale:{x:1,y:1,z:1}},
+     Visual:{type:'Visual',assetId:NATURAL_ASSET_ID},NaturalStructure:spec}});
+ assert.throws(()=>captureAssembly(p,['arch'],'Unsafe prefab'),/structures naturelles/);
 });
