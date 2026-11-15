@@ -12,6 +12,7 @@ import {gameplayDataFromIndex} from '../gameplay/project-adapter.ts';
 import {defaultEnvironment} from '../environment/climate.ts';
 import {validateAudioLinks} from '../audio/schema.ts';
 import {transformedCollider,type CollisionDefinition} from '../physics/definitions.ts';
+import {naturalColliders} from '../structures/natural-collision.ts';
 import {createTerrainSource} from '../terrain.ts';
 import {landscapeRegions} from '../world-production/landscapes.ts';
 import type {PlayableWorld} from '../gameplay/playable.ts';
@@ -69,7 +70,9 @@ export function playableFromCompiled(bundle:CompiledWorldBundle,spawn?:Point3):P
   gameplay.items=economyItems(activityItems(activities,gameplay.items));
   const rendered=new Set([...placements.map(p=>p.id),...npcs.map(n=>n.id)]);
   for(const entity of gameplay.entities)if(entity.interactable&&!rendered.has(entity.id))throw Error('Objet interactif sans représentation : '+entity.id);
-  const collisions:CollisionDefinition[]=chunks.flatMap(chunk=>chunk.collision.shapes.filter(shape=>shape.collider.layer==='solid').map(shape=>transformedCollider(shape.entityId,shape.collider,shape.transform)));
+  const collisions:CollisionDefinition[]=chunks.flatMap(chunk=>chunk.collision.shapes.filter(shape=>shape.collider.layer==='solid').map(shape=>transformedCollider(shape.entityId,shape.collider,shape.transform))); 
+  for(const entity of entities)if(entity.components.NaturalStructure&&entity.components.Transform)
+    collisions.push(...naturalColliders(entity.id,entity.components.NaturalStructure,entity.components.Transform));
   const actions=[...gameplay.interactions.flatMap(i=>i.sequence),...gameplay.dialogues.flatMap(d=>d.lines.flatMap(l=>[...(l.actions??[]),...l.choices.flatMap(c=>c.actions??[])]))];
   validateAudioLinks(manifest.audio,gameplay.entities.map(e=>e.id),actions.filter(a=>a.type==='playSound').map(a=>(a as {soundId:string}).soundId));
   const start=spawn??defaultSpawn(config,terrain);
