@@ -40,7 +40,7 @@ export function mountAssemblyPanel(host:HTMLElement,session:StudioSession,viewpo
       row.append(title,place,remove);list.append(row);
     }
   }
-  box.append(node('h3','Assemblages réutilisables'),node('p','Sélectionnez des bâtiments ou accessoires, enregistrez-les, puis placez des copies au centre de la vue. Les interactions liées aux objets ne sont pas copiées.','muted'),field('Nom de l’assemblage',nameInput),capture,list);
+  box.append(node('h3','Assemblages réutilisables'),node('p','Sélectionnez des bâtiments ou accessoires, enregistrez-les, puis placez des copies au centre de la vue. Les interactions liées aux objets ne sont pas copiées.','muted'),field('Intitulé de l’assemblage',nameInput),capture,list);
   host.append(box);render();const unsubscribe=session.commands.subscribe(()=>render());
   return ()=>unsubscribe();
 }
