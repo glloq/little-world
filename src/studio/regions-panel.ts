@@ -63,13 +63,16 @@ export function mountRegionsPanel(host:HTMLElement,ctx:RegionPanelContext):()=>v
  /** A — two-point source + preferred direction; actual route follows downhill. */
  function riverTarget():PolylineTarget{
    const options={id:'river-guided-'+crypto.randomUUID(),width:6,depth:2,maxLengthM:1200};
+   let geo=projectGeography(p).ctx,cacheKey='',cached:ReturnType<typeof planGuidedRiver>|null=null;
    const plan=(points:{x:number;z:number}[])=>{
-     const geo=projectGeography(p).ctx,b=p.world.bounds;
-     return planGuidedRiver(points[0],points[1],{
+     const b=p.world.bounds,key=JSON.stringify([points.map(q=>[Math.round(q.x*2)/2,Math.round(q.z*2)/2]),options.width,options.depth,options.maxLengthM]);
+     if(cacheKey===key&&cached)return cached;
+     const result=planGuidedRiver(points[0],points[1],{
        height:geo.height,water:(x,z)=>geo.water(x,z,geo.height(x,z)),
        inWorld:(x,z)=>x>b.minX+1&&x<b.maxX-1&&z>b.minZ+1&&z<b.maxZ-1,
        seaLevel:p.world.seaLevel,existing:Object.values(p.libraries.water)
      },options);
+     cacheKey=key;cached=result;return result;
    };
    return {label:'Cours d’eau guidé par la pente',points:[],min:2,max:2,color:0x398cc8,
      diagnose(points){if(points.length<2)return null;
@@ -77,7 +80,7 @@ export function mountRegionsPanel(host:HTMLElement,ctx:RegionPanelContext):()=>v
      },
      preview(points){
        if(points.length<2)return null;
-       const {water}=plan(points),geo=projectGeography(p).ctx;
+       const {water}=plan(points);
        const verts=water.points.map(q=>new THREE.Vector3(q.x,geo.height(q.x,q.z)+1,q.z));
        const line=new THREE.Line(new THREE.BufferGeometry().setFromPoints(verts),
          new THREE.LineBasicMaterial({color:0x298bc4,depthTest:false,transparent:true,opacity:.8}));
@@ -94,6 +97,7 @@ export function mountRegionsPanel(host:HTMLElement,ctx:RegionPanelContext):()=>v
      async commit(points){
        let suggested=plan(points);
        await s.hydrate(waterChunkIds(p.world,suggested.water));
+       geo=projectGeography(p).ctx;cacheKey='';cached=null;
        suggested=plan(points);
        const ids=waterChunkIds(p.world,suggested.water);
        await s.change('Tracer rivière guidée',ids,d=>putWater(d,suggested.water));
