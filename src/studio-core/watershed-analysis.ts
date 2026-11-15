@@ -16,7 +16,11 @@ export function analyzeWatersheds(
  const nx=Math.max(2,Math.ceil(w/minStep)),nz=Math.max(2,Math.ceil(d/minStep));
  // Adapt dimensions together so a very elongated world cannot exceed the cap.
  const factor=Math.max(1,Math.sqrt(nx*nz/cap));
- const cols=Math.max(2,Math.floor(nx/factor)),rows=Math.max(2,Math.floor(nz/factor));
+ let cols=Math.max(2,Math.floor(nx/factor)),rows=Math.max(2,Math.floor(nz/factor));
+ // A narrow 1:1000 map can still exceed cap after rounding each axis to 2.
+ while(cols*rows>cap){
+  if(cols>=rows&&cols>2)cols--;else if(rows>2)rows--;else break;
+ }
  const sx=w/cols,sz=d/rows,n=cols*rows;
  const heights=new Float64Array(n),next=new Int32Array(n),area=new Int32Array(n);
  const coordinate=(i:number):PointXZ=>({x:minX+((i%cols)+.5)*sx,z:minZ+(Math.floor(i/cols)+.5)*sz});
