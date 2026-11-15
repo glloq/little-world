@@ -1,7 +1,7 @@
 /** Studio visual assembly panel. Uses the same session/CommandBus as individual objects. */
 import {node,button,field,input,select} from './dom.ts';
 import {libraryAssets} from './library.ts';
-import {assemblyInstanceRoot,instanceMemberIds,instanceTreeChunkIds,overrideAssemblyVisual,updateAssemblyTemplateVisual,assemblyVisualOf} from '../studio-core/assembly-instances.ts';
+import {assemblyInstanceRoot,instanceMemberIds,instanceTreeChunkIds,overrideAssemblyVisual,updateAssemblyTemplateVisual,assemblyVisualOf,setInstanceParent} from '../studio-core/assembly-instances.ts';
 import type {StudioSession} from './session.ts';
 import type {StudioViewport} from './viewport/editor-viewport.ts';
 import {captureAssembly,assemblyChunkIds,placeAssembly} from '../studio-core/assemblies.ts';
@@ -88,6 +88,19 @@ export function mountAssemblyPanel(host:HTMLElement,session:StudioSession,viewpo
         const members=instanceMemberIds(p,root);
         session.selection.setSelection(members.map(id=>({kind:'entity' as const,id})));
         status(members.length+' éléments du groupe sélectionnés. Déplacer avec le gizmo.');
+      })),
+      button('Modifier la hiérarchie de cette instance',()=>run(async()=>{
+        const root=await getRoot();
+        await session.hydrate(instanceTreeChunkIds(p,root));
+        const members=instanceMemberIds(p,root).filter(id=>id!==entityId);
+        if(!members.length){status('Aucun autre élément disponible comme parent.',true);return;}
+        let parentId=members[0],label=node('div','','section-card');
+        const parent=select(parentId,members.map(id=>[id,p.entityIndex[id]?.name+' · '+id.slice(0,6)] as const),val=>parentId=val);
+        label.append(field('Nouveau parent de cet objet',parent),button('Appliquer le parent',()=>run(async()=>{
+          await session.change('Modifier le parent de l’instance',[entry.ownerChunkId],draft=>setInstanceParent(draft,entityId,parentId));
+          status('Hiérarchie de cette instance mise à jour ; les autres copies restent inchangées.');
+        })));
+        instanceBox.append(label);
       })));
   }
   box.append(node('h3','Assemblages réutilisables'),node('p','Sélectionnez des bâtiments ou accessoires, enregistrez-les, puis placez des copies au centre de la vue. Les interactions liées aux objets ne sont pas copiées.','muted'),field('Intitulé de l’assemblage',nameInput),capture,list,instanceBox);
