@@ -26,12 +26,12 @@ const action=(title:string,fn:()=>Promise<unknown>|unknown,className?:string)=>b
 const MODULES:[string,string,string,string,string][]=[
   ['scene','Sélection','➚','Naviguer','V'],['map','Carte globale','▦','Naviguer','M'],
   ['objects','Objets','▣','Construire','B'],['natural','Structures naturelles','◠','Construire',''],['characters','Personnages','☺','Construire',''],['lights','Lumières','✦','Construire','L'],
-  ['terrain','Relief','⛰','Monde','T'],['biomes','Biotopes','✿','Monde',''],['paths','Chemins et rivières','〰','Monde',''],['water','Eau','≈','Monde',''],['zones','Zones','⬠','Monde',''],['landscapes','Paysages','❦','Monde',''],
+  ['terrain','Relief','⛰','Monde','T'],['regions','Régions','◉','Monde',''],['biomes','Biotopes','✿','Monde',''],['paths','Chemins et rivières','〰','Monde',''],['water','Eau','≈','Monde',''],['zones','Zones','⬠','Monde',''],['landscapes','Paysages','❦','Monde',''],
   ['dialogues','Dialogues','✉','Logique',''],['interactions','Interactions','⚙','Logique',''],['environment','Environnement','☀','Logique',''],['audio','Audio','♪','Logique',''],
   ['guide','Assistant de création','☷','Projet',''],
   ['tests','Validation / compilation','✓','Projet',''],
 ];
-const VIEWPORT_MODULES=new Set(['scene','objects','natural','characters','lights','terrain','biomes','polyline','paths','zones','landscapes']);
+const VIEWPORT_MODULES=new Set(['scene','objects','natural','regions','characters','lights','terrain','biomes','polyline','paths','zones','landscapes']);
 const ALIASES:Record<string,string>={local:'scene',select:'scene'};
 const panelHost=()=>$('panel-host');
 function refreshHeader(){
@@ -195,6 +195,14 @@ async function toolPanel(id:string,v:StudioViewport){
     const ctx={session:s,status,physics:{enabled:()=>v.physicsOverlay,toggle:(on:boolean)=>v.setPhysicsOverlay(on)},focus:(x:number,z:number)=>v.goTo(x,z,30),edit:(target:import('./viewport/polyline-tool.ts').PolylineTarget)=>{void run(async()=>{const {polylineTarget}=await import('./viewport/polyline-tool.ts');polylineTarget.current=target;returnModule=id;await module('polyline');})();}};
     const render=()=>{tools.replaceChildren();(id==='paths'?mountPathsPanel:mountZonesPanel)(tools,ctx);};render();
     const stop=s.commands.subscribe(()=>{if(activeModule===id)render();}),previous=disposePanel;disposePanel=()=>{stop();previous();};
+  }else if(id==='regions'){
+    v.setTool('select');
+    const {mountRegionsPanel}=await import('./regions-panel.ts');
+    const stop=mountRegionsPanel(tools,{session:s,viewport:v,status,open:id=>{void run(()=>module(id))();},edit:target=>{
+      void run(async()=>{const {polylineTarget}=await import('./viewport/polyline-tool.ts');
+        polylineTarget.current=target;returnModule='regions';await module('polyline');})();
+    }});
+    const previous=disposePanel;disposePanel=()=>{stop();previous();};
   }else if(id==='landscapes'){
     v.setTool('select');const {mountLandscapesPanel}=await import('./landscapes-panel.ts');
     const stop=mountLandscapesPanel(tools,{session:s,viewport:v,status}),previous=disposePanel;disposePanel=()=>{stop();previous();};
