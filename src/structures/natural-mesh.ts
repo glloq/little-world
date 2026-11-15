@@ -1,7 +1,7 @@
 /** Compact low-poly natural stone vault: one mesh / one draw call per instance.
  * Portal opening stays empty in 3D; only arch/vault rock gets triangles. */
 import * as THREE from 'three';
-import {naturalProfile,vaultUnder,validateNaturalStructure,type NaturalStructureSpec} from './natural-structure.ts';
+import {vaultUnder,validateNaturalStructure,type NaturalStructureSpec} from './natural-structure.ts';
 export function naturalMesh(spec:NaturalStructureSpec):THREE.Group {
   validateNaturalStructure(spec);
   const positions:number[]=[],colors:number[]=[];
@@ -40,4 +40,4 @@ export function naturalMesh(spec:NaturalStructureSpec):THREE.Group {
   return group;
 }
 /** Single procedural mesh is an intentionally separate code path from cached GLB assets. */
-export function naturalMeshBudget(spec:NaturalStructureSpec){return {triangles:16*12,drawCalls:1,colliders:16};}
+export function naturalMeshBudget(spec:NaturalStructureSpec){validateNaturalStructure(spec);return {triangles:16*12,drawCalls:1,colliders:16};}
