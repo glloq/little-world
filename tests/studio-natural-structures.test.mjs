@@ -31,7 +31,14 @@ test('two points, profiles and bounded dimensions are deterministic',()=>{
  }
  assert.throws(()=>naturalPlan({x:0,z:0},{x:100,z:0},'arch',options,height));
  assert.throws(()=>naturalPlan({x:0,z:0},{x:8,z:0},'tunnel',{...options,width:100},height));
- assert.throws(()=>naturalPlan({x:0,z:0},{x:8,z:0},'tunnel',options,(x)=>x<5?0:6));
+ assert.throws(()=>naturalPlan({x:0,z:0},{x:8,z:0},'tunnel',options,(x)=>x<5?0:13));
+});
+test('arch automatically adapts left/right roof footings to uneven terrain',()=>{
+ const plan=naturalPlan({x:-7,z:0},{x:7,z:0},'arch',options,x=>x<0?0:6);
+ assert.equal(plan.spec.bankRise,6);
+ const boxes=naturalBoxes(plan.spec);assert.ok(boxes.at(-1).bottom>boxes[0].bottom);
+ const geometry=naturalMesh(plan.spec).children[0].geometry;
+ assert.ok(geometry.getAttribute('position').count>0);geometry.dispose();
 });
 test('real mesh leaves the arch and tunnel open, with bounded triangles and disposal',()=>{
  for(const kind of ['arch','tunnel']){
