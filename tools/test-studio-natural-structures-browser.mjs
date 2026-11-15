@@ -15,6 +15,7 @@ try{
  page.setDefaultTimeout(30000);page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>d.accept());
  await page.goto(base+'studio/');await page.getByLabel('Nom du projet').fill('Structures naturelles navigateur');
  await page.getByLabel('Modèle et dimensions').selectOption('calm');
+ await page.getByText('Dimensions et géographie initiale').click();
  await page.getByLabel('Largeur du monde (m)').fill('1000');await page.getByLabel('Longueur du monde (m)').fill('1000');
  await page.getByRole('button',{name:'Créer le projet',exact:true}).click();
  const canvas=page.locator('.viewport canvas'),tool=t=>page.waitForFunction(t=>document.querySelector('.viewport canvas')?.dataset.tool===t,t);
