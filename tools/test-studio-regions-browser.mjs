@@ -40,7 +40,7 @@ try{
  await page.getByLabel('Nom de la région').fill('Forêt montagneuse');await page.getByLabel('Nom de la région').press('Tab');
  await page.getByLabel('Relief de région').selectOption('plateau');
  await page.getByLabel('Altitude du plateau (m)').fill('130');await page.getByLabel('Altitude du plateau (m)').press('Tab');
- await page.getByLabel('Biotope').selectOption('marsh');
+ await page.getByLabel('Biotope',{exact:true}).selectOption('marsh');
  await page.getByLabel('Transition écologique (m)').fill('0');await page.getByLabel('Transition écologique (m)').press('Tab');
  for(const [x,y]of polygon){await page.mouse.move(x,y);await page.mouse.click(x,y);}
  await canvas.focus();await page.keyboard.press('Enter');
@@ -55,7 +55,7 @@ try{
  await page.screenshot({path:out+'/studio-region-first.png',fullPage:true});
  await page.getByRole('button',{name:'Régions',exact:true}).click();
  await page.getByRole('button',{name:'Modifier',exact:true}).first().click();await tool('polyline');
- await page.getByLabel('Biotope').selectOption('forest');
+ await page.getByLabel('Biotope',{exact:true}).selectOption('forest');
  await canvas.focus();await page.keyboard.press('Enter');
  await page.waitForFunction(()=>document.querySelector('[data-action=undo]')?.title?.includes('Région Forêt montagneuse'),{},{timeout:60000});
  const next=await save(),changed=next.libraries.regions[region.id];
