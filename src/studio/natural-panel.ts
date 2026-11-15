@@ -11,6 +11,7 @@ import {terrainHeight} from '../terrain.ts';
 import {affectedChunkIds,chunkAt} from '../studio-core/schema.ts';
 import {putEntity,putTerrainEdit,removeTerrainEdit} from '../studio-core/source.ts';
 import {yawQuaternion} from '../studio-core/transforms.ts';
+import {naturalUnexcavatedHeight} from '../studio-core/natural-authoring.ts';
 export interface NaturalContext {
   session:StudioSession;viewport:StudioViewport;status(text:string,error?:boolean):void;
   edit(target:PolylineTarget):void;
@@ -36,21 +37,23 @@ export function mountNaturalPanel(host:HTMLElement,ctx:NaturalContext):()=>void 
   function editNatural(id:string){
     run(async()=>{
       const owner=p.entityIndex[id]?.ownerChunkId;if(!owner)throw Error('Structure absente');
-      await s.hydrate([owner]);const source=sourceOf(id),spec=source?.components.NaturalStructure,t=source?.components.Transform;
+      // The previous tunnel's terrain edits must not shift the next saved floor.
+      await s.hydrate([owner,...authoredExcavation(p,id).sectors]);const source=sourceOf(id),spec=source?.components.NaturalStructure,t=source?.components.Transform;
       if(!spec||!t)throw Error('Structure non chargée ou type non compatible');
       Object.assign(settings,{kind:spec.kind,form:spec.form,width:spec.width,clearance:spec.clearance,
         thickness:spec.thickness,curvature:spec.curvature});
-      ctx.edit(makeTarget(id,structureEndpoints(t.position.x,t.position.z,asYaw(t.rotation),spec.span)));
+      ctx.edit(makeTarget(id,structureEndpoints(t.position.x,t.position.z,asYaw(t.rotation),spec.span),
+        naturalUnexcavatedHeight(p,id)??terrainHeight));
     });
   }
-  function makeTarget(id:string|null,initial:PointXZ[]=[]):PolylineTarget{
+  function makeTarget(id:string|null,initial:PointXZ[]=[],height:(x:number,z:number)=>number=terrainHeight):PolylineTarget{
     const settingsSnapshot={...settings};
     // Reference to mutable settings allows live controls to update preview and final mesh
     // without rebuilding the viewport or losing the two selected endpoints.
     const parameters={...settingsSnapshot};
     const calculate=(pts:PointXZ[])=>{
       if(pts.length!==2)throw Error('Placer deux extrémités');
-      return naturalPlan(pts[0],pts[1],parameters.kind,parameters,terrainHeight);
+      return naturalPlan(pts[0],pts[1],parameters.kind,parameters,height);
     };
     return {
       label:(id?'Modifier ':'Créer ')+NATURAL_LABELS[parameters.kind],points:initial,min:2,max:2,color:0x8a9b80,
@@ -73,7 +76,7 @@ export function mountNaturalPanel(host:HTMLElement,ctx:NaturalContext):()=>void 
       },
       async commit(points){
         const plan=calculate(points),entityId=id??crypto.randomUUID(),old=authoredExcavation(p,entityId),
-          before=p.entityIndex[entityId],edits=tunnelExcavation(points[0],points[1],plan.spec,terrainHeight);
+          before=p.entityIndex[entityId],edits=tunnelExcavation(points[0],points[1],plan.spec,height);
         const ids=new Set<string>([...old.sectors,...(before?[before.ownerChunkId]:[]),
           chunkAt(p.world,plan.x,plan.z)]);
         for(const e of edits)for(const cid of affectedChunkIds(p.world,e.x,e.z,e.radius))ids.add(cid);
