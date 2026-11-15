@@ -94,20 +94,30 @@ export function updateAssemblyTemplateVisual(p:ProjectDocument,entityId:string,a
   if(!model||!asset)throw Error('Modèle partagé ou asset introuvable');
   if(!p.assets[assetId])p.assets={...p.assets,[assetId]:asset};
   const visual={type:'Visual' as const,assetId},collider=colliderFor(assetId);
-  model.components={...model.components,Visual:visual};
-  if(collider)model.components.Collider=collider;else delete model.components.Collider;
-  model.version++;
-  // Keep source palette aligned for future copies while preserving overrides on existing copies.
+  // editDocument() copies the libraries container, not every nested prefab.
+  // Never mutate the shared original: changes must be expressed as CommandBus patches.
+  const components={...model.components,Visual:visual};
+  if(collider)components.Collider=collider;
+  else delete components.Collider;
+  p.libraries.prefabs={...p.libraries.prefabs,[id]:{...model,components,version:model.version+1}};
+  // Reindex each hydrated instance against the new shared template; local overrides win.
   for(const e of affected)putEntity(p,p.chunks[e.ownerChunkId].entities[e.id]);
-  for(const assembly of Object.values(p.libraries.assemblies??{})){
+  // Likewise, copy only affected assembly definitions and their part arrays.
+  // Mutating an existing assembly.items in place would leak into the source and break Undo.
+  let assemblies=p.libraries.assemblies;
+  for(const [assemblyId,assembly] of Object.entries(p.libraries.assemblies??{})){
     if(assembly.version!==2)continue;
-    assembly.items.forEach((part,index)=>{
-      if(assemblyPartPrefabId(assembly.id,part.key??'part-'+index)!==id)return;
-      part.components.Visual=structuredClone(visual);
-      if(collider)part.components.Collider=structuredClone(collider);
-      else delete part.components.Collider;
+    const items=assembly.items.map((part,index)=>{
+      if(assemblyPartPrefabId(assembly.id,part.key??'part-'+index)!==id)return part;
+      const partComponents={...part.components,Visual:structuredClone(visual)};
+      if(collider)partComponents.Collider=structuredClone(collider);
+      else delete partComponents.Collider;
+      return {...part,components:partComponents};
     });
+    if(items.every((part,index)=>part===assembly.items[index]))continue;
+    assemblies={...assemblies,[assemblyId]:{...assembly,items}};
   }
+  if(assemblies!==p.libraries.assemblies)p.libraries.assemblies=assemblies;
 }
 export function assemblyVisualOf(p:ProjectDocument,id:string):string {
   const e=p.entityIndex[id],source=e&&p.chunks[e.ownerChunkId]?.entities[id];
