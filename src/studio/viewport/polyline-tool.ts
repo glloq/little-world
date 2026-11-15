@@ -27,7 +27,7 @@ export class PolylineTool implements Tool {
     this.group.add(this.line,this.handles);ctx.scene.add(this.group);this.redraw();
     ctx.message(this.target?`${this.target.label} : clic = ajouter un point · glisser un point = le déplacer · Retour arrière = retirer · Entrée = valider · Échap = abandonner.`:'Aucun tracé à éditer.',!this.target);
   }
-  private discardGhost(){if(!this.ghost)return;this.ghost.traverse(o=>{if(o instanceof THREE.Mesh){o.geometry.dispose();for(const m of Array.isArray(o.material)?o.material:[o.material])m.dispose();}});this.ghost.removeFromParent();this.ghost=null;}
+  private discardGhost(){if(!this.ghost)return;this.ghost.traverse(o=>{if(o instanceof THREE.Mesh||o instanceof THREE.Line||o instanceof THREE.Points){o.geometry.dispose();for(const m of Array.isArray(o.material)?o.material:[o.material])m.dispose();}});this.ghost.removeFromParent();this.ghost=null;}
   deactivate(){this.discardGhost();for(const o of [this.line,this.handles]){if(!o)continue;o.geometry.dispose();(o.material as THREE.Material).dispose();}this.group.clear();this.group.removeFromParent();this.line=null;this.handles=null;this.target=null;}
   refreshPreview(){this.redraw();}
   private redraw(){
