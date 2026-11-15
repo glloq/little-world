@@ -75,7 +75,12 @@ export function overrideAssemblyVisual(p:ProjectDocument,entityId:string,assetId
   copy.components.Visual={type:'Visual',assetId};
   const collider=colliderFor(assetId);
   if(collider)copy.components.Collider=collider;
-  else delete copy.components.Collider;
+  else if(copy.prefabId&&p.libraries.prefabs[copy.prefabId]?.components.Collider){
+    // A null collider cannot override an inherited prefab Collider in V3.
+    // Detach this one instance to avoid retaining an invisible solid obstacle.
+    copy.components=resolveEntity(p,source).components;copy.components.Visual={type:'Visual',assetId};
+    delete copy.components.Collider;delete copy.prefabId;delete copy.variantId;delete copy.overrides;
+  }else delete copy.components.Collider;
   // Local Visual overrides take precedence over shared prefab component defaults.
   if(copy.overrides)copy.overrides=copy.overrides.filter(v=>v.component!=='Visual');
   putEntity(p,copy);
