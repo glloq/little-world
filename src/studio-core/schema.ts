@@ -145,7 +145,7 @@ function validateLibraries(value:unknown,world:WorldDefinitionV3,entityIds:strin
       string(item.name,'Nom objet assemblage',200);finite(item.dx,'Décalage X',-1e5,1e5);finite(item.dz,'Décalage Z',-1e5,1e5);
       const c=object(item.components,'Composants assemblage');keys(c,['Transform','Visual','Collider'],'Composants assemblage');
       if(!c.Transform||!c.Visual)throw Error('Transform et Visual requis');
-      parseComponents(c,world);
+      parseComponents(c);
     }
   }
   if(libs.landscapes!==undefined)for(const [id,l]of Object.entries(dictionary(libs.landscapes,'Bibliothèque paysages',LANDSCAPE_LIMITS.instances))){if(validateLandscape(l,world.bounds).id!==id)throw Error('Bibliothèque paysages : ID différent de la clé');}
