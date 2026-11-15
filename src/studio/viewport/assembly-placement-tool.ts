@@ -1,6 +1,7 @@
 /** Position a visual assembly at the cursor without creating another editor or journal. */
 import * as THREE from 'three';
 import {assemblyChunkIds,placeAssembly} from '../../studio-core/assemblies.ts';
+import {worldAsset} from '../../world-production/registry.ts';
 import type {Tool,ToolContext} from './tools.ts';
 export const assemblyPlacement={id:''};
 export class AssemblyPlacementTool implements Tool {
@@ -15,9 +16,13 @@ export class AssemblyPlacementTool implements Tool {
     const assembly=this.ctx.session.document.libraries.assemblies?.[assemblyPlacement.id];
     if(!assembly)return;
     for(const item of assembly.items){
-      const m=new THREE.Mesh(new THREE.BoxGeometry(1,1,1),
+      const visual=item.components.Visual,dimensions=visual?worldAsset(visual.assetId)?.size:undefined;
+      const t=item.components.Transform!,size=dimensions??[1,1,1];
+      const m=new THREE.Mesh(new THREE.BoxGeometry(...(size as [number,number,number])), 
         new THREE.MeshBasicMaterial({color:0x64b891,transparent:true,opacity:.3,wireframe:true,depthTest:false}));
-      m.position.set(item.dx,.5,item.dz);group.add(m);
+      m.position.set(item.dx,t.position.y+size[1]*Math.abs(t.scale.y)/2,item.dz);
+      m.scale.set(t.scale.x,t.scale.y,t.scale.z);m.quaternion.set(t.rotation.x,t.rotation.y,t.rotation.z,t.rotation.w);
+      group.add(m);
     }
   }
   deactivate(){if(!this.ghost)return;
