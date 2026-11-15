@@ -13,7 +13,9 @@ export function naturalMesh(spec:NaturalStructureSpec):THREE.Group {
   }
   for(let i=0;i<count;i++){
     const c0=-extent+2*extent*i/count,c1=-extent+2*extent*(i+1)/count;
-    const bottom0=vaultUnder(spec,c0/extent),bottom1=vaultUnder(spec,c1/extent);
+    const rise=spec.kind==='tunnel'?0:(spec.bankRise??0);
+    const bottom0=vaultUnder(spec,c0/extent)+rise*c0/spec.span,
+      bottom1=vaultUnder(spec,c1/extent)+rise*c1/spec.span;
     // Slight polygonal unevenness in colour, without GPU textures or random generated state.
     const height0=bottom0+spec.thickness,height1=bottom1+spec.thickness;
     const vertex=(c:number,y:number,d:number)=>transverse?[d,y,c]:[c,y,d];
