@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createProject,parseProject,chunkAt} from '../src/studio-core/schema.ts';
 import {putEntity} from '../src/studio-core/source.ts';
-import {captureAssembly,assemblyChunkIds,placeAssembly} from '../src/studio-core/assemblies.ts';
+import {captureAssembly,assemblyChunkIds,placeAssembly,assemblyOffset} from '../src/studio-core/assemblies.ts';
 import {scatterPoints} from '../src/studio/viewport/scatter-tool.ts';
 import {CommandBus} from '../src/studio-core/commands.ts';
 import {editDocument} from '../src/studio-core/edit.ts';
@@ -39,4 +39,20 @@ test('scatter rejects empty palettes and assembly rejects non-visual selections'
   assert.deepEqual(scatterPoints([{x:0,z:0}],{palette:[],radius:8,density:.04,scaleMin:.8,scaleMax:1.2,seed:42,spacing:2.5}),[]);
   const p=createProject({name:'Empty',width:1000,length:1000});
   assert.throws(()=>captureAssembly(p,[],'Empty'));
+});
+
+test('rotated assembly uses rotated offsets and composition of yaw with authored orientation',()=>{
+  const q=assemblyOffset(10,0,Math.PI/2);
+  assert.ok(Math.abs(q.x)<1e-8&&Math.abs(q.z+10)<1e-8);
+  const p=createProject({name:'Rotate',width:1000,length:1000});
+  box(p,'one',10,0);box(p,'two',20,0);
+  const assembly=captureAssembly(p,['one','two'],'Rotated');
+  const sectorIds=assemblyChunkIds(p,assembly,100,100,Math.PI/2);
+  assert.ok(sectorIds.length>0);
+  const created=placeAssembly(p,assembly,100,100,(()=>{let i=0;return ()=>String(++i)})(),Math.PI/2);
+  const first=p.chunks[p.entityIndex[created[0]].ownerChunkId].entities[created[0]];
+  assert.ok(Math.abs(first.components.Transform.position.x-100)<1e-8);
+  assert.ok(Math.abs(first.components.Transform.position.z-105)<1e-8);
+  assert.ok(Math.abs(first.components.Transform.rotation.y-Math.SQRT1_2)<1e-6);
+  parseProject(structuredClone(p));
 });
