@@ -29,30 +29,44 @@ export function assetFacts(id:string):string{
   return [`${groupLabel(a.group)} · ${x.toFixed(1)} × ${y.toFixed(1)} × ${z.toFixed(1)} m`,`${a.lods.length} LOD · ${a.lods.map(l=>l.triangles).join(' / ')} triangles · coût ${costClass(a)}`,
     `Licence : ${a.license} · art : ${a.artStatus} · runtime : ${a.runtimeStatus}`,...(u?[`Usages : ${u.habitats.join(', ')} · placement ${u.placement}${u.instancing?' · instancié':''}`]:[]),`Source : ${a.source}`].join('\n');
 }
-async function renderThumbnails(ids:string[],done:()=>void){
-  const missing=ids.filter(id=>!thumbnails.has(id));if(!missing.length)return;
-  const previews=new Map<string,THREE.Object3D>();await Promise.all(missing.map(async id=>{const o=await loadAssetPreview(id);if(o)previews.set(id,o);}));
-  const canvas=document.createElement('canvas'),renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,preserveDrawingBuffer:true});renderer.setSize(112,84,false);renderer.outputColorSpace=THREE.SRGBColorSpace;
+// A bounded queue avoids fetching every GLB and holding every preview mesh at once.
+const queuedPreviews=new Set<string>();let previewQueue=Promise.resolve();
+async function thumbnailBatch(ids:string[],done:()=>void){
+  const canvas=document.createElement('canvas'),renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,preserveDrawingBuffer:true});
+  renderer.setSize(112,84,false);renderer.outputColorSpace=THREE.SRGBColorSpace;
   try{
-    for(const id of missing){
-      const scene=new THREE.Scene();configureScene(scene);scene.background=null;const object=previews.get(id)??createAsset(id as AssetId);scene.add(object);
-      const box=new THREE.Box3().setFromObject(object),sphere=box.getBoundingSphere(new THREE.Sphere()),camera=new THREE.PerspectiveCamera(35,4/3,.1,500),r=Math.max(.5,sphere.radius);
-      camera.position.set(sphere.center.x+r*1.9,sphere.center.y+r*1.3,sphere.center.z+r*2.4);camera.lookAt(sphere.center);renderer.render(scene,camera);thumbnails.set(id,canvas.toDataURL('image/png'));
-      object.userData.disposed=true;object.removeFromParent();
+    for(const id of ids){
+      try{
+        const object=await loadAssetPreview(id)??createAsset(id as AssetId),scene=new THREE.Scene();
+        configureScene(scene);scene.background=null;scene.add(object);
+        const box=new THREE.Box3().setFromObject(object),sphere=box.getBoundingSphere(new THREE.Sphere()),camera=new THREE.PerspectiveCamera(35,4/3,.1,500),r=Math.max(.5,sphere.radius);
+        camera.position.set(sphere.center.x+r*1.9,sphere.center.y+r*1.3,sphere.center.z+r*2.4);camera.lookAt(sphere.center);
+        renderer.render(scene,camera);thumbnails.set(id,canvas.toDataURL('image/png'));object.removeFromParent();
+      }finally{queuedPreviews.delete(id);}
     }
-  }finally{renderer.dispose();renderer.forceContextLoss();}
-  done();
+  }finally{renderer.dispose();renderer.forceContextLoss();done();}
+}
+function renderThumbnails(ids:string[],done:()=>void){
+  const missing=ids.filter(id=>!thumbnails.has(id)&&!queuedPreviews.has(id));
+  for(let i=0;i<missing.length;i+=8){
+    const batch=missing.slice(i,i+8);batch.forEach(id=>queuedPreviews.add(id));
+    previewQueue=previewQueue.catch(()=>{}).then(()=>thumbnailBatch(batch,done));
+  }
 }
 export function mountLibrary(host:HTMLElement,assets:Record<string,AssetDefinition>,onChoose:(item:PlaceItem)=>void){
-  const list=Object.values(libraryAssets(assets));void renderThumbnails(list.map(a=>a.id),()=>draw());
-  let query='',category='';const favorites=favoriteIds(),grid=node('div','','library-grid'),tabs=node('div','','chip-row');
+  const list=Object.values(libraryAssets(assets));
+  let query='',category='';const favorites=favoriteIds(),grid=node('div','','library-grid'),tabs=node('div','','chip-row'),facts=node('p','','muted');
   const search=input('',v=>{query=v;draw();});search.placeholder='Rechercher un asset…';search.setAttribute('aria-label','Rechercher un asset');search.oninput=()=>{query=search.value;draw();};
   for(const [key,label]of [['','Tous'],['#favorites','Favoris'],...[...new Set(list.map(a=>assetCategory(a.id)))].map(c=>[c,c])]){const b=node('button',label,'chip');b.type='button';b.onclick=()=>{category=key;for(const c of tabs.children)c.classList.toggle('active',c===b);draw();};if(!key)b.classList.add('active');tabs.append(b);}
   function draw(){
     grid.replaceChildren();const current=placementSettings.item;
-    for(const a of list.filter(a=>(!category||(category==='#favorites'?favorites.has(a.id):assetCategory(a.id)===category))&&(a.name+' '+a.id).toLowerCase().includes(query.toLowerCase()))){
+    facts.textContent=current.kind==='asset'?(list.find(a=>a.id===current.id)?.name??current.id)+' — '+assetFacts(current.id).split('\n').slice(0,2).join(' · '):'Choisissez un modèle 3D dans la bibliothèque.';
+    const filtered=list.filter(a=>(!category||(category==='#favorites'?favorites.has(a.id):assetCategory(a.id)===category))&&(a.name+' '+a.id).toLowerCase().includes(query.toLowerCase()));
+    // Start with visible candidates: do not preload every GLB on opening the panel.
+    renderThumbnails(filtered.slice(0,24).map(a=>a.id),()=>{for(const image of grid.querySelectorAll<HTMLImageElement>('img[data-asset-id]')){const url=thumbnails.get(image.dataset.assetId??'');if(url)image.src=url;}});
+    for(const a of filtered){
       const b=node('button','','library-item');b.type='button';b.title=a.name+' — '+assetFacts(a.id);b.dataset.assetId=a.id;b.setAttribute('aria-label','Placer : '+a.name);
-      const img=node('img');img.alt='';img.src=thumbnails.get(a.id)??'';b.append(img,node('span',a.name));
+      const img=node('img');img.alt='';img.loading='lazy';img.dataset.assetId=a.id;img.src=thumbnails.get(a.id)??'';b.append(img,node('span',a.name));
       if(current.kind==='asset'&&current.id===a.id)b.classList.add('active');
       b.onclick=()=>{placementSettings.item={kind:'asset',id:a.id};onChoose(placementSettings.item);draw();};
       const tile=node('div','','library-tile'),favorite=button(favorites.has(a.id)?'★':'☆',()=>{
@@ -64,5 +78,5 @@ export function mountLibrary(host:HTMLElement,assets:Record<string,AssetDefiniti
     }
     if(!grid.children.length)grid.append(node('p','Aucun asset ne correspond.','muted'));
   }
-  draw();host.append(search,tabs,grid,node('p','Survoler la vue : aperçu vert (valide), orange (à vérifier), rouge (impossible). R / Maj+R : pivoter. Clic : placer, plusieurs fois. Échap : terminer.','muted'));
+  draw();host.append(search,tabs,grid,facts,node('p','Survoler la vue : aperçu vert (valide), orange (à vérifier), rouge (impossible). R / Maj+R : pivoter. Clic : placer, plusieurs fois. Échap : terminer.','muted'));
 }
