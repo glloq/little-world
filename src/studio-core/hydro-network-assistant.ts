@@ -63,3 +63,24 @@ export function planHydroLink(waters:readonly WaterBody[],candidate:HydroLinkAdv
  if(errors.length)throw Error('Raccordement refusé par le moteur hydrologique : '+errors.join(' ; '));
  return updated;
 }
+
+/** Optional explicit waterfall, using terrain profile elevations and the existing WATER compiler.
+ * No fall is saved if it introduces a compiler error; max 8 falls per river. */
+export function planHydroFall(waters:readonly WaterBody[],candidate:HydroFallAdvice,height:(x:number,z:number)=>number,seaLevel:number):WaterBody{
+ const river=waters.find(w=>w.id===candidate.riverId);
+ if(!river||river.kind==='lake'||river.profile?.mode==='manual')throw Error('Cascade automatique réservée aux cours d’eau à profil terrain');
+ const index=candidate.point-1;
+ if(index<1||index>=river.points.length-1||river.falls?.some(f=>f.at===index)||(river.falls?.length??0)>=8)throw Error('Point de cascade invalide ou limite atteinte');
+ const previous=compileWaterNetwork([...waters],height,seaLevel).find(w=>w.id===river.id);
+ if(!previous||previous.diagnostics.some(d=>d.severity==='ERROR'))throw Error('Corriger le réseau hydrologique avant de créer une cascade');
+ const position=river.points[index];
+ const at=previous.points.reduce((best,p)=>Math.hypot(p.x-position.x,p.z-position.z)<Math.hypot(best.x-position.x,best.z-position.z)?p:best);
+ const top=Number(at.level.toFixed(2)),downstream=river.points[index+1];
+ const bottom=Number(Math.min(top-1,height(downstream.x,downstream.z)+(river.profile?.mode==='terrain'?river.profile.offset:-.35)).toFixed(2));
+ if(!Number.isFinite(top)||!Number.isFinite(bottom)||bottom< -50||top>150||top-bottom<1)throw Error('Chute incompatible avec les altitudes autorisées');
+ const updated:WaterBody={...structuredClone(river),falls:[...(river.falls??[]),{at:index,top,bottom}].sort((a,b)=>a.at-b.at)};
+ const compiled=compileWaterNetwork([...waters.filter(w=>w.id!==river.id),updated],height,seaLevel);
+ const errors=compiled.flatMap(w=>w.diagnostics.filter(d=>d.severity==='ERROR').map(d=>w.id+': '+d.message));
+ if(errors.length)throw Error('Cascade refusée par le moteur hydrologique : '+errors.join(' ; '));
+ return updated;
+}
