@@ -13,7 +13,16 @@ export interface AssemblyDefinition {
 }
 export function captureAssembly(project:ProjectDocument, ids:string[],name:string,id=crypto.randomUUID()):AssemblyDefinition {
   if(!name.trim()||name.length>100)throw Error('Nom d’assemblage invalide');
-  const items:AssemblyItem[]=[],included=[...new Set(ids)],keys=new Map(included.map((id,i)=>[id,'part-'+i]));
+  const included=[...new Set(ids)],idSet=new Set(included);
+  const depth=(id:string,seen=new Set<string>()):number=>{
+    if(seen.has(id))throw Error('Hiérarchie cyclique dans la sélection');
+    seen.add(id);
+    const entry=project.entityIndex[id],source=entry&&project.chunks[entry.ownerChunkId]?.entities[id];
+    return source?.parentId&&idSet.has(source.parentId)?1+depth(source.parentId,seen):0;
+  };
+  // Capture parents before descendants regardless of the author's selection order.
+  included.sort((a,b)=>depth(a)-depth(b));
+  const items:AssemblyItem[]=[],keys=new Map(included.map((id,i)=>[id,'part-'+i]));
   for(const entityId of included){
     const index=project.entityIndex[entityId];
     if(!index||!['building','prop'].includes(index.kind))continue;
