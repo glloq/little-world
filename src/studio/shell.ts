@@ -25,13 +25,13 @@ const action=(title:string,fn:()=>Promise<unknown>|unknown,className?:string)=>b
 /** Toolbar: [module id, accessible name, icon, group, shortcut]. Viewport modules keep the 3D view. */
 const MODULES:[string,string,string,string,string][]=[
   ['scene','Sélection','➚','Naviguer','V'],['map','Carte globale','▦','Naviguer','M'],
-  ['objects','Objets','▣','Construire','B'],['characters','Personnages','☺','Construire',''],['lights','Lumières','✦','Construire','L'],
+  ['objects','Objets','▣','Construire','B'],['natural','Structures naturelles','◠','Construire',''],['characters','Personnages','☺','Construire',''],['lights','Lumières','✦','Construire','L'],
   ['terrain','Relief','⛰','Monde','T'],['biomes','Biotopes','✿','Monde',''],['paths','Chemins et rivières','〰','Monde',''],['water','Eau','≈','Monde',''],['zones','Zones','⬠','Monde',''],['landscapes','Paysages','❦','Monde',''],
   ['dialogues','Dialogues','✉','Logique',''],['interactions','Interactions','⚙','Logique',''],['environment','Environnement','☀','Logique',''],['audio','Audio','♪','Logique',''],
   ['guide','Assistant de création','☷','Projet',''],
   ['tests','Validation / compilation','✓','Projet',''],
 ];
-const VIEWPORT_MODULES=new Set(['scene','objects','characters','lights','terrain','biomes','polyline','paths','zones','landscapes']);
+const VIEWPORT_MODULES=new Set(['scene','objects','natural','characters','lights','terrain','biomes','polyline','paths','zones','landscapes']);
 const ALIASES:Record<string,string>={local:'scene',select:'scene'};
 const panelHost=()=>$('panel-host');
 function refreshHeader(){
@@ -150,6 +150,14 @@ async function toolPanel(id:string,v:StudioViewport){
     const {mountConstructionPanel}=await import('./construction-panel.ts');
     mountConstructionPanel(tools,{session:s,status,edit:editConstruction});
     const {mountAssemblyPanel}=await import('./assemblies-panel.ts');const stop=mountAssemblyPanel(tools,s,v,status),previous=disposePanel;disposePanel=()=>{stop();previous();};
+  }else if(id==='natural'){
+    v.setTool('select');
+    const {mountNaturalPanel}=await import('./natural-panel.ts');
+    const stop=mountNaturalPanel(tools,{session:s,viewport:v,status,edit:target=>{
+      void run(async()=>{const {polylineTarget}=await import('./viewport/polyline-tool.ts');
+        polylineTarget.current=target;returnModule='natural';await module('polyline');})();
+    }});
+    const previous=disposePanel;disposePanel=()=>{stop();previous();};
   }else if(id==='characters'){
     const {placementSettings}=await import('./viewport/placement-tool.ts');let name='Nouvel habitant',species:import('../studio-core/types.ts').CharacterSpecies='squirrel';
     const choose=()=>{placementSettings.item={kind:'npc',species,name};v.setTool('place');};choose();
@@ -197,6 +205,7 @@ async function toolPanel(id:string,v:StudioViewport){
     const {polylineTarget}=await import('./viewport/polyline-tool.ts');const target=polylineTarget.current;if(!target){await module('scene');return;}v.setTool('polyline');
     tools.append(node('div','TRACÉ','kicker'),node('h3',target.label),node('p','Clic : ajouter un point · glisser un point : le déplacer · Retour arrière : retirer le dernier · Entrée : valider (une opération) · Échap : abandonner. Clic droit / molette : naviguer.','muted'),
       action('Valider le tracé',()=>{window.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter'}));},'primary-button'),action('Abandonner',()=>{polylineTarget.current=null;const back=returnModule;returnModule='scene';return module(back);}));
+    target.controls?.(tools,()=>{(v.tools.active as {refreshPreview?:()=>void})?.refreshPreview?.();});
   }
 }
 function listPanel(s:StudioSession,host:HTMLElement){
