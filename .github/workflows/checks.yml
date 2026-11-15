@@ -62,6 +62,10 @@ jobs:
         run: node tools/run-browser-check.mjs audio
       - name: Island lot 1 browser checks
         run: node tools/run-browser-check.mjs island
+      - name: Inspector input persistence browser checks
+        run: |
+          node tools/run-browser-check.mjs inspector-editing
+          node tools/run-browser-check.mjs inspector-edit
       - name: Studio 3D editor browser checks
         run: node tools/run-browser-check.mjs editor
       - name: Studio content authoring browser checks
