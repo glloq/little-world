@@ -39,7 +39,7 @@ export class PolylineTool implements Tool {
         this.ghost.traverse(o=>{if(o instanceof THREE.Mesh){const materials=Array.isArray(o.material)?o.material:[o.material];
           for(const m of materials){m.transparent=true;m.opacity=.62;m.depthWrite=false;}}});
         this.group.add(this.ghost);
-      }}catch{this.discardGhost();}
+      }}catch(error){this.discardGhost();this.ctx.canvas.dataset.polylinePreviewError=String(error instanceof Error?error.message:error);}
     }
     this.ctx.canvas.dataset.polylinePreview=this.ghost?.name??'';
     const m=new THREE.Matrix4(),scale=Math.max(1,this.ctx.camera.mode==='top'?this.ctx.camera.pose.zoom/90:this.ctx.camera.pose.distance/40);this.handles.count=Math.min(128,this.points.length);
