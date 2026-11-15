@@ -35,7 +35,7 @@ export function mountRegionsPanel(host:HTMLElement,ctx:RegionPanelContext):()=>v
  };
  const edit=(item:RegionRecipeV1|null)=>{
    const region=structuredClone(item??draft);
-   const target:PolylineTarget={label:'Région : '+region.name,points:region.points.map(x=>({...x})),min:3,max:48,closed:true,color:0x58a86f,
+   const target:PolylineTarget={label:'Région : '+region.name,points:item?region.points.map(x=>({...x})):[],min:3,max:48,closed:true,color:0x58a86f,
      diagnose(points){
        if(points.length<3)return null;
        try{validateRegionRecipe({...region,points,generated:undefined},p.world.bounds);return null;}
