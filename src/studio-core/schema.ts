@@ -97,7 +97,15 @@ export function parseComponents(value:unknown,world?:WorldDefinitionV3):Componen
 }
 export function parseEntity(value:unknown,world:WorldDefinitionV3):EntityDefinitionV3{
   const e=object(value,'Entité');keys(e,['id','kind','name','ownerChunkId','parentId','prefabId','variantId','components','overrides'],'Entité');string(e.id,'ID entité');string(e.name,'Nom',200);if(!['prop','building','character','trigger','effect'].includes(String(e.kind)))throw Error('Genre entité inconnu');chunkCoordinates(world,string(e.ownerChunkId,'Propriétaire'));for(const key of ['parentId','prefabId','variantId'])if(e[key]!==undefined)string(e[key],key);
-  const c=parseComponents(e.components,world);if(!c.Transform&&!e.prefabId)throw Error('Transform requis');if(c.Transform&&chunkAt(world,c.Transform.position.x,c.Transform.position.z)!==e.ownerChunkId)throw Error('Propriétaire spatial incohérent');if(e.overrides!==undefined)validateOverrides(e.overrides);
+  const c=parseComponents(e.components,world);
+  if(c.NaturalStructure){
+    if(!c.Transform||!c.Visual||c.Visual.assetId!=='procedural.natural_structure')
+      throw Error('Structure naturelle : Transform et asset procedural.natural_structure requis');
+    if(c.Collider)throw Error('Structure naturelle : un collider global condamnerait le passage');
+    if(c.Transform.scale.x!==1||c.Transform.scale.y!==1||c.Transform.scale.z!==1)
+      throw Error('Structure naturelle : régler les dimensions dans le composant, pas avec l’échelle générique');
+  }
+  if(!c.Transform&&!e.prefabId)throw Error('Transform requis');if(c.Transform&&chunkAt(world,c.Transform.position.x,c.Transform.position.z)!==e.ownerChunkId)throw Error('Propriétaire spatial incohérent');if(e.overrides!==undefined)validateOverrides(e.overrides);
   return structuredClone(e) as unknown as EntityDefinitionV3;
 }
 export function validateOverrides(value:unknown):void{
