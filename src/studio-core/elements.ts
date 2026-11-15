@@ -67,7 +67,15 @@ export function elementChunkIds(p:ProjectDocument,refs:ElementRef[],offset={x:0,
   const ids=new Set<string>();
   for(const ref of refs){
     const d=elementData(p,ref);
-    if(ref.kind==='entity'){const e=p.entityIndex[ref.id];if(e){ids.add(e.ownerChunkId);for(const id of duplicateChunkIds(p,[ref.id],{x:offset.x,y:0,z:offset.z}))ids.add(id);}}
+    if(ref.kind==='entity'){
+      const e=p.entityIndex[ref.id];if(e){
+        ids.add(e.ownerChunkId);
+        for(const id of duplicateChunkIds(p,[ref.id],{x:offset.x,y:0,z:offset.z}))ids.add(id);
+        const prefix='natural:'+ref.id+':';
+        for(const [cid,meta]of Object.entries(p.chunkIndex))
+          if(Object.keys(meta.terrainOwners??{}).some(id=>id.startsWith(prefix)))ids.add(cid);
+      }
+    }
     else if(ref.kind==='path'&&d){for(const id of lineChunkIds(p.world,d as PathDefinition))ids.add(id);for(const id of lineChunkIds(p.world,shiftLine(d as PathDefinition,offset)))ids.add(id);}
     else if(ref.kind==='water'&&d){for(const id of waterEditChunkIds(p,d as WaterBody,shiftLine(d as WaterBody,offset)))ids.add(id);}
     else if(ref.kind==='terrainEdit'||ref.kind==='biomeEdit'){for(const id of editChunkIds(p,ref.kind,ref.id))ids.add(id);const e=d as TerrainStroke|undefined;if(e)for(const id of affectedChunkIds(p.world,e.x+offset.x,e.z+offset.z,e.radius))ids.add(id);}
