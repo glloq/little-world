@@ -119,6 +119,11 @@ export function mountNaturalPanel(host:HTMLElement,ctx:NaturalContext):()=>void 
     }
   }
   container.append(node('h3','Structures naturelles'),node('p','Arches rocheuses, ponts naturels et tunnels traversants. Terrain heightfield conservé ; voûte locale low-poly, passage réellement ouvert et collisions décomposées.','muted'),
+    button('Modifier la structure sélectionnée',()=>{
+      const ref=s.selection.selection.find(r=>r.kind==='entity');
+      if(!ref){ctx.status('Sélectionnez d’abord une structure naturelle dans le Studio.',true);return;}
+      editNatural(ref.id);
+    }),
     button('Nouvelle arche rocheuse',()=>create('arch')),
     button('Nouveau pont naturel',()=>create('bridge')),
     button('Nouveau tunnel traversant',()=>create('tunnel'),'primary-button'),
