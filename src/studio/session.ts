@@ -1,4 +1,5 @@
 import {waterChunkIds} from '../water/sectors.ts';
+import {planHydrationEviction} from '../studio-core/hydration-budget.ts';
 import {CommandBus} from '../studio-core/commands.ts';
 import {editDocument} from '../studio-core/edit.ts';
 import {SelectionService} from '../studio-core/context.ts';
@@ -72,12 +73,9 @@ export class StudioSession {
     for(const dep of this.document.chunkIndex[id].dependencies)if(!pinned.has(dep)){pinned.add(dep);visit(dep);}
   };
   for(const id of [...pinned])visit(id);
-  let removed=0;
-  for(const id of keys){if(keys.length-removed<=limit)break;
-    if(pinned.has(id))continue;
-    delete this.document.chunks[id];removed++;
-  }
-  return removed;
+  const removed=planHydrationEviction(keys,pinned,limit);
+  for(const id of removed)delete this.document.chunks[id];
+  return removed.length;
  }
  async fullDocument(){await this.hydrate(Object.keys(this.document.chunkIndex));return this.document;}
 }
