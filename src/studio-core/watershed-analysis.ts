@@ -2,7 +2,8 @@
  * Authoring-only, deterministic, no terrain mutation and no runtime GPU cost. */
 import type {PointXZ} from '../geography/archipelago.ts';
 export interface WatershedBasin {outlet:PointXZ;areaM2:number;cells:number;kind:'sea'|'pit'|'border'}
-export interface WatershedResult {resolution:number;stepM:number;basins:WatershedBasin[];sampled:number;warnings:string[]}
+export interface WatershedHeadwater {source:PointXZ;toward:PointXZ;upstreamAreaM2:number;elevationM:number;dropM:number;lengthM:number}
+export interface WatershedResult {resolution:number;stepM:number;basins:WatershedBasin[];headwaters:WatershedHeadwater[];sampled:number;warnings:string[]}
 export function analyzeWatersheds(
  bounds:{minX:number;maxX:number;minZ:number;maxZ:number},
  height:(x:number,z:number)=>number,seaLevel:number,
@@ -42,7 +43,27 @@ export function analyzeWatersheds(
   if(a>=Math.max(0,options.minAreaM2??0))outlets.push({outlet:coordinate(i),areaM2:Math.round(a),cells:area[i],kind});
  }
  outlets.sort((a,b)=>b.areaM2-a.areaM2||a.outlet.x-b.outlet.x||a.outlet.z-b.outlet.z);
- return {resolution:n,stepM:Math.max(sx,sz),basins:outlets.slice(0,32),sampled:n,
+ // Candidate sources are only recommendations. Follow D8 edges to reject short dead ends
+ // before handing them to the real WATER authoring compiler. No second river engine.
+ const minCatchment=Math.max(2,Math.round(n/800)),spacing=Math.max(sx,sz)*3;
+ const headwaters:WatershedHeadwater[]=[];
+ const ranked=order.filter(i=>next[i]>=0&&heights[i]>seaLevel+8&&area[i]>=minCatchment)
+   .sort((a,b)=>area[b]-area[a]||heights[b]-heights[a]||a-b);
+ for(const i of ranked){
+  if(headwaters.length>=12)break;
+  const source=coordinate(i);
+  if(headwaters.some(h=>Math.hypot(h.source.x-source.x,h.source.z-source.z)<Math.max(80,spacing)))continue;
+  let cursor=i,steps=0,length=0;
+  while(next[cursor]>=0&&steps<128&&length<4000){
+   const downstream=next[cursor],a=coordinate(cursor),b=coordinate(downstream);
+   length+=Math.hypot(a.x-b.x,a.z-b.z);cursor=downstream;steps++;
+  }
+  const drop=heights[i]-heights[cursor];
+  if(steps<3||length<Math.max(35,spacing)||drop<3)continue;
+  headwaters.push({source,toward:coordinate(next[i]),upstreamAreaM2:Math.round(area[i]*sx*sz),
+   elevationM:Number(heights[i].toFixed(2)),dropM:Number(drop.toFixed(2)),lengthM:Math.round(length)});
+ }
+ return {resolution:n,stepM:Math.max(sx,sz),basins:outlets.slice(0,32),headwaters,sampled:n,
    warnings:[...(outlets.some(o=>o.kind==='pit')?['Cuvettes détectées : lacs ou corrections manuelles peuvent être nécessaires']:[]),
      'Analyse D8 approximative : relief discrétisé, pas de génération de lac automatique']};
 }
