@@ -1,6 +1,6 @@
 # 45 — Studio A → B → D → C : incréments de création de monde
 
-Branche `feat/studio-creation-workflows-v1`, jamais fusionnée automatiquement dans `main`.
+Document historique du lot A-B-D-C. La branche `feat/studio-creation-workflows-v1` a été fusionnée via la PR #22. Pour le périmètre actuel et les corrections A→H, voir [53 — Production géographique V2](53-STUDIO-GEOGRAPHY-PRODUCTION-V2.md). Les sections « reste » décrivent les limites **au moment de ce lot**, et non un audit actuel.
 
 ## A — Nouveau monde / géographie
 
