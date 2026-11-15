@@ -30,19 +30,30 @@ export function captureAssembly(project:ProjectDocument, ids:string[],name:strin
   for(const item of items){item.dx-=cx;item.dz-=cz;item.components.Transform!.position.x=0;item.components.Transform!.position.z=0;}
   return {id,name:name.trim(),version:1,items};
 }
-export function assemblyChunkIds(project:ProjectDocument,assembly:AssemblyDefinition,x:number,z:number):string[]{
-  return [...new Set(assembly.items.map(item=>chunkAt(project.world,x+item.dx,z+item.dz)))];
+/** Yaw rotation uses the same right-handed Y-up convention as Three.js. */
+export function assemblyOffset(dx:number,dz:number,yaw=0):{x:number;z:number}{
+  const c=Math.cos(yaw),s=Math.sin(yaw);
+  return {x:c*dx+s*dz,z:-s*dx+c*dz};
 }
-export function placeAssembly(project:ProjectDocument,assembly:AssemblyDefinition,x:number,z:number,idFactory=()=>crypto.randomUUID()):string[]{
+export function assemblyChunkIds(project:ProjectDocument,assembly:AssemblyDefinition,x:number,z:number,yaw=0):string[]{
+  return [...new Set(assembly.items.map(item=>{
+    const pos=assemblyOffset(item.dx,item.dz,yaw);return chunkAt(project.world,x+pos.x,z+pos.z);
+  }))];
+}
+export function placeAssembly(project:ProjectDocument,assembly:AssemblyDefinition,x:number,z:number,idFactory=()=>crypto.randomUUID(),yaw=0):string[]{
   if(!assembly.items.length||assembly.items.length>100)throw Error('Assemblage vide ou trop grand');
   const b=project.world.bounds,created:string[]=[];
   for(const item of assembly.items){
-    const px=x+item.dx,pz=z+item.dz;
+    const offset=assemblyOffset(item.dx,item.dz,yaw),px=x+offset.x,pz=z+offset.z;
     if(px<b.minX||px>b.maxX||pz<b.minZ||pz>b.maxZ)throw Error('Assemblage hors limites');
   }
   for(const item of assembly.items){
-    const px=x+item.dx,pz=z+item.dz,ownerChunkId=chunkAt(project.world,px,pz),id=idFactory();
+    const offset=assemblyOffset(item.dx,item.dz,yaw),px=x+offset.x,pz=z+offset.z,ownerChunkId=chunkAt(project.world,px,pz),id=idFactory();
     const t=structuredClone(item.components.Transform!);t.position.x=px;t.position.z=pz;
+    if(yaw!==0){
+      const a=t.rotation,b={x:0,y:Math.sin(yaw/2),z:0,w:Math.cos(yaw/2)};
+      t.rotation={x:b.w*a.x+b.y*a.z,y:b.w*a.y+b.y*a.w,z:b.w*a.z-b.y*a.x,w:b.w*a.w-b.y*a.y};
+    }
     const entity:EntityDefinitionV3={id,kind:item.kind,name:item.name,ownerChunkId,
       components:{Transform:t,Visual:structuredClone(item.components.Visual!),
         ...(item.components.Collider?{Collider:structuredClone(item.components.Collider)}:{})}};
