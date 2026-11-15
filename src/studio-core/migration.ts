@@ -1,4 +1,5 @@
 import {landscapeRegions} from '../world-production/landscapes.ts';
+import {regionDressingRegions} from '../studio-core/region-dressing.ts';
 import {runtimeLights,type RuntimeLight} from '../lighting/light-data.ts';
 import {waterTerrainIds} from '../water/sectors.ts';
 import { parseWorld, type WorldDefinition } from '../world-data.ts';
@@ -77,6 +78,6 @@ export function runtimeContent(entities:{id:string;name:string;components:Entity
 export function geographyOf(project:ProjectDocument,chunks:{chunkId:string;layers?:import('../geography/layers.ts').SectorLayers}[]):WorldDefinition['geography']|undefined{
   const masks:Record<string,import('../geography/layers.ts').SectorLayers>={};for(const c of chunks)if(c.layers&&Object.keys(c.layers).length)masks[c.chunkId]=structuredClone(c.layers);
   const zones=Object.values(project.libraries.zones??{}).map(z=>({kind:z.kind,polygon:z.polygon.map(p=>({...p}))}));
-  const landscapes=landscapeRegions(project.libraries.landscapes);
+  const landscapes=[...landscapeRegions(project.libraries.landscapes),...regionDressingRegions(project.libraries.regions)];
   return Object.keys(masks).length||zones.length||landscapes.length?{sectorSizeM:project.world.chunkSizeM,masks,zones,...(landscapes.length?{landscapes}:{})}:undefined;
 }
