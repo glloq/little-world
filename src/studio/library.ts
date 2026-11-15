@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import {createAsset,configureScene} from '../world.ts';
 import type {AssetId} from '../world-data.ts';
 import type {AssetDefinition} from '../studio-core/types.ts';
-import {node,input} from './dom.ts';
+import {node,input,button} from './dom.ts';
 import {placementSettings,type PlaceItem} from './viewport/placement-tool.ts';
 import {worldAsset,groupLabel,costClass,placeableWorldAssets,assetDefinitionFor} from '../world-production/registry.ts';
 import {loadAssetPreview} from '../world.ts';
@@ -10,6 +10,12 @@ import {loadAssetPreview} from '../world.ts';
 /** E3 — visual catalogue: categories, search, name + thumbnail, one choice reused for
  * successive placements. Thumbnails are rendered once with a short-lived offscreen renderer. */
 const thumbnails=new Map<string,string>();
+const FAVORITES_KEY='little-world-studio-asset-favorites-v1';
+function favoriteIds():Set<string>{
+  try{const values=JSON.parse(localStorage.getItem(FAVORITES_KEY)??'[]');return new Set(Array.isArray(values)?values.filter(x=>typeof x==='string'):[]);}
+  catch{return new Set();}
+}
+function saveFavoriteIds(values:Set<string>){try{localStorage.setItem(FAVORITES_KEY,JSON.stringify([...values]));}catch{/* local preferences are optional */}}
 export const CATEGORIES:Record<string,string>={nature:'Nature',architecture:'Bâtiments',props:'Objets'};
 export function assetCategory(id:string){const a=worldAsset(id);if(a&&a.group!=='legacy')return groupLabel(a.group);return CATEGORIES[id.split('.')[0]]??'Divers';}
 /** One catalogue for manual placement: project assets + the World Production registry. */
@@ -39,16 +45,22 @@ async function renderThumbnails(ids:string[],done:()=>void){
 }
 export function mountLibrary(host:HTMLElement,assets:Record<string,AssetDefinition>,onChoose:(item:PlaceItem)=>void){
   const list=Object.values(libraryAssets(assets));void renderThumbnails(list.map(a=>a.id),()=>draw());
-  let query='',category='';const grid=node('div','','library-grid'),tabs=node('div','','chip-row');
+  let query='',category='';const favorites=favoriteIds(),grid=node('div','','library-grid'),tabs=node('div','','chip-row');
   const search=input('',v=>{query=v;draw();});search.placeholder='Rechercher un asset…';search.setAttribute('aria-label','Rechercher un asset');search.oninput=()=>{query=search.value;draw();};
-  for(const [key,label]of [['','Tous'],...[...new Set(list.map(a=>assetCategory(a.id)))].map(c=>[c,c])]){const b=node('button',label,'chip');b.type='button';b.onclick=()=>{category=key;for(const c of tabs.children)c.classList.toggle('active',c===b);draw();};if(!key)b.classList.add('active');tabs.append(b);}
+  for(const [key,label]of [['','Tous'],['#favorites','Favoris'],...[...new Set(list.map(a=>assetCategory(a.id)))].map(c=>[c,c])]){const b=node('button',label,'chip');b.type='button';b.onclick=()=>{category=key;for(const c of tabs.children)c.classList.toggle('active',c===b);draw();};if(!key)b.classList.add('active');tabs.append(b);}
   function draw(){
     grid.replaceChildren();const current=placementSettings.item;
-    for(const a of list.filter(a=>(!category||assetCategory(a.id)===category)&&(a.name+' '+a.id).toLowerCase().includes(query.toLowerCase()))){
+    for(const a of list.filter(a=>(!category||(category==='#favorites'?favorites.has(a.id):assetCategory(a.id)===category))&&(a.name+' '+a.id).toLowerCase().includes(query.toLowerCase()))){
       const b=node('button','','library-item');b.type='button';b.title=a.name+' — '+assetFacts(a.id);b.dataset.assetId=a.id;b.setAttribute('aria-label','Placer : '+a.name);
       const img=node('img');img.alt='';img.src=thumbnails.get(a.id)??'';b.append(img,node('span',a.name));
       if(current.kind==='asset'&&current.id===a.id)b.classList.add('active');
-      b.onclick=()=>{placementSettings.item={kind:'asset',id:a.id};onChoose(placementSettings.item);draw();};grid.append(b);
+      b.onclick=()=>{placementSettings.item={kind:'asset',id:a.id};onChoose(placementSettings.item);draw();};
+      const tile=node('div','','library-tile'),favorite=button(favorites.has(a.id)?'★':'☆',()=>{
+        if(favorites.has(a.id))favorites.delete(a.id);else favorites.add(a.id);
+        saveFavoriteIds(favorites);draw();
+      },'chip');
+      favorite.title=favorites.has(a.id)?'Retirer des favoris':'Ajouter aux favoris';
+      favorite.setAttribute('aria-label',favorite.title);tile.append(b,favorite);grid.append(tile);
     }
     if(!grid.children.length)grid.append(node('p','Aucun asset ne correspond.','muted'));
   }
