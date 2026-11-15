@@ -2,6 +2,7 @@
  * V3 transaction history and landscape relief generator. No second scene/model. */
 import {node,button,field,input,numberInput,select} from './dom.ts';
 import {mountReliefLinesPanel} from './relief-lines-panel.ts';
+import {mountHydroNetworkPanel} from './hydro-network-panel.ts';
 import * as THREE from 'three';
 import {projectGeography} from '../studio-core/geo-context.ts';
 import {planGuidedRiver} from '../studio-core/guided-river.ts';
@@ -25,7 +26,7 @@ const summarize=(r:RegionReport)=>r.painted+' cellules peintes · '+r.cleared+' 
 const presetChoices=Object.entries(REGION_PRESETS).map(([id,p])=>[id,p.label] as [string,string]);
 export function mountRegionsPanel(host:HTMLElement,ctx:RegionPanelContext):()=>void{
  const p=ctx.session.document,v=ctx.viewport,s=ctx.session;
- const summary=node('div','','section-card'),list=node('div','','feature-list'),reliefHost=node('div');
+ const summary=node('div','','section-card'),list=node('div','','feature-list'),reliefHost=node('div'),hydroHost=node('div');
  let draft=newRegion(p),editing:string|null=null;
  const commit=async(region:RegionRecipeV1)=>{
    const ids=regionAffectedChunks(p,region),old=p.libraries.regions?.[region.id];
@@ -167,7 +168,7 @@ export function mountRegionsPanel(host:HTMLElement,ctx:RegionPanelContext):()=>v
      list.append(row);
    }
  }
- host.append(summary,reliefHost,list);renderForm();renderList();
- const reliefStop=mountReliefLinesPanel(reliefHost,ctx),stop=s.commands.subscribe(()=>renderList());
- return ()=>{stop();reliefStop();v.showFootprint(null);};
+ host.append(summary,reliefHost,hydroHost,list);renderForm();renderList();
+ const reliefStop=mountReliefLinesPanel(reliefHost,ctx),hydroStop=mountHydroNetworkPanel(hydroHost,ctx),stop=s.commands.subscribe(()=>renderList());
+ return ()=>{stop();reliefStop();hydroStop();v.showFootprint(null);};
 }
