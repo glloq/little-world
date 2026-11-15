@@ -8,6 +8,7 @@ Branche : `feat/studio-geography-production-v2` (issue de `main`, non fusionnée
 - `watershed-rivers.ts` : au maximum six propositions, chaque tracé passant dans **le planificateur de rivière guidée et le compilateur WATER existants** ; refus si source déjà occupée, creusement excessif, boucle ou erreur de réseau.
 - Le panneau A3 des régions peut **proposer → voir en 3D → créer** un cours d'eau. L'aperçu ne modifie aucune source. Avant application, hydratation des secteurs concernés et nouveau calcul ; refus si le tracé n'est plus identique.
 - `planHydroFalls` : jusqu'à six nouvelles cascades proposées en lot, chacune validée contre le réseau déjà modifié. Une seule transaction Undo/Redo pour le lot, après confirmation explicite.
+- `basin-lakes.ts` : petits lacs candidats autour des exutoires `pit`, uniquement si toutes les berges locales sont plus hautes que le centre. Aperçu du contour 3D, revalidation du relief avant une création V3 explicite. Aucune excavation silencieuse.
 - Ces algorithmes réutilisent les sources V3, sans données hydrographiques parallèles ni coût en jeu.
 
 ## B — Écologie
@@ -38,4 +39,4 @@ Branche : `feat/studio-geography-production-v2` (issue de `main`, non fusionnée
 - Les cascades sont validées hydrauliquement mais leur rendu et le pied de chute doivent être inspectés en jeu.
 - L'aperçu régional montre les **masques source modifiés**, pas une image WebGL exacte « avant/après » du paysage.
 - Aucun benchmark sur GPU intégré réel ; pas de garantie de 30 FPS.
-- Restent à réaliser : drainage avec remplissage des dépressions, placement assisté de lacs, connexions hydrologiques complexes, filtres d'exclusion de végétation par classe, vrais groupes de transformations, validation de traversabilité.
+- Restent à réaliser : drainage avec remplissage des dépressions, génération de lacs plus grands par contours de débordement (la V2 ne propose que des petites cuvettes), connexions hydrologiques complexes, filtres d'exclusion de végétation par classe, vrais groupes de transformations, validation de traversabilité.
