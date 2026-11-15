@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createGuidedWorld} from '../src/studio-core/world-start.ts';
 import {newRegion} from '../src/studio-core/region-recipes.ts';
-import {previewRegionBatch,applyRegionBatch,regionBatchChunks,REGION_BATCH_LIMIT} from '../src/studio-core/region-batch.ts';
+import {previewRegionBatch,previewRegionBatchWithDiff,applyRegionBatch,regionBatchChunks,REGION_BATCH_LIMIT} from '../src/studio-core/region-batch.ts';
 import {analyzeWatersheds} from '../src/studio-core/watershed-analysis.ts';
 const world=()=>{
  const p=createGuidedWorld({name:'Composition',mode:'calm',width:1000,length:1000,seed:42,cliffs:.25,volcano:false});
@@ -28,6 +28,21 @@ test('preview of overlapping regions is exact, immutable and deterministic',()=>
  assert.deepEqual(first,applied);
  assert.ok(applied.totals.painted>0);assert.ok(applied.totals.protected>0);
 });
+test('visual region preview reports changed map cells without modifying source or ownership',()=>{
+ const p=world(),a=region(p,'region-diff-a',0,'forest');
+ for(const id of regionBatchChunks(p,[a]))if(!p.chunks[id]){
+   const [cx,cz]=id.split(':').map(Number);
+   p.chunks[id]={schemaVersion:3,chunkId:id,index:{cx,cz},revision:0,entities:{},entityIds:[],
+     terrainEdits:[],terrainRefs:[],biomeEdits:[],biomeRefs:[],waterRefs:[],pathRefs:[]};
+ }
+ const before=structuredClone(p),view=previewRegionBatchWithDiff(p,[a]);
+ assert.ok(view.diff.total>0);
+ assert.equal(view.diff.total,view.diff.cells.length);
+ assert.ok(view.diff.cells.every(c=>c.index>=0&&c.index<256));
+ assert.deepEqual(p,before);
+ assert.deepEqual(view,previewRegionBatchWithDiff(p,[a]));
+});
+
 test('batch rejects duplicate ids, unbounded work and invalid recipes without changing source preview',()=>{
  const p=world(),a=region(p,'region-a',0,'forest');
  assert.throws(()=>previewRegionBatch(p,[a,a]),/répétée/);
