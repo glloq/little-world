@@ -144,7 +144,8 @@ test('re-editing a tunnel samples the original height, not its already flattened
  const first=tunnelExcavation({x:-7,z:0},{x:7,z:0},spec,withoutOwn);
  const second=tunnelExcavation({x:-7,z:0},{x:7,z:0},spec,withoutOwn);
  assert.deepEqual(first,second);
- assert.ok(first.every(e=>Math.abs(e.height-(original-.25))<1e-6),'floor does not deepen after editing');
+ const expectedFloor=Math.min(withoutOwn(-7,0),withoutOwn(7,0))-.25;
+ assert.ok(first.every(e=>Math.abs(e.height-expectedFloor)<1e-6),'floor does not deepen after editing');
 });
 test('visual assemblies cannot silently lose natural vault geometry or terrain linkage',()=>{
  const p=createProject({name:'Prefab guard',width:500,length:500}),spec=sample('arch').spec;
