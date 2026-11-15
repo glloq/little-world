@@ -25,8 +25,11 @@ export function naturalMesh(spec:NaturalStructureSpec):THREE.Group {
       tone=palette[(i*7+Math.round(spec.curvature*3))%palette.length];
     // Double-sided stone material; all six prism sides explicitly present, no 'holes' from
     // inverted winding and no triangles across the walk-through opening.
-    quad(a,b,c,d,tone);quad(f,e,h,g,tone);quad(e,a,d,h,tone);quad(b,f,g,c,tone);
+    // Shared internal end caps are invisible; skip them (4 triangles per segment saved).
+    quad(a,b,c,d,tone);quad(f,e,h,g,tone);
     quad(d,c,g,h,tone);quad(e,f,b,a,tone);
+    if(i===0)quad(e,a,d,h,tone);
+    if(i===count-1)quad(b,f,g,c,tone);
   }
   const geometry=new THREE.BufferGeometry();
   geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
@@ -34,10 +37,11 @@ export function naturalMesh(spec:NaturalStructureSpec):THREE.Group {
   geometry.computeVertexNormals();geometry.computeBoundingSphere();
   const material=new THREE.MeshLambertMaterial({vertexColors:true,flatShading:true,side:THREE.DoubleSide});
   const mesh=new THREE.Mesh(geometry,material);
-  mesh.name='Low-poly natural '+spec.kind;mesh.castShadow=true;mesh.receiveShadow=true;
+  mesh.name='Low-poly natural '+spec.kind;// Avoid a second set of shadow-map draw calls on mobile; baked-looking rock tones remain.
+  mesh.castShadow=false;mesh.receiveShadow=true;
   const group=new THREE.Group();group.name='NaturalStructure:'+spec.kind;group.add(mesh);
   group.userData.naturalStructure={...spec,triangles:positions.length/9,drawCalls:1};
   return group;
 }
 /** Single procedural mesh is an intentionally separate code path from cached GLB assets. */
-export function naturalMeshBudget(spec:NaturalStructureSpec){validateNaturalStructure(spec);return {triangles:16*12,drawCalls:1,colliders:16};}
+export function naturalMeshBudget(spec:NaturalStructureSpec){validateNaturalStructure(spec);return {triangles:16*8+4,drawCalls:1,colliders:16};}
