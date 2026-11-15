@@ -28,6 +28,7 @@ const MODULES:[string,string,string,string,string][]=[
   ['objects','Objets','▣','Construire','B'],['characters','Personnages','☺','Construire',''],['lights','Lumières','✦','Construire','L'],
   ['terrain','Relief','⛰','Monde','T'],['biomes','Biotopes','✿','Monde',''],['paths','Chemins et rivières','〰','Monde',''],['water','Eau','≈','Monde',''],['zones','Zones','⬠','Monde',''],['landscapes','Paysages','❦','Monde',''],
   ['dialogues','Dialogues','✉','Logique',''],['interactions','Interactions','⚙','Logique',''],['environment','Environnement','☀','Logique',''],['audio','Audio','♪','Logique',''],
+  ['guide','Assistant de création','☷','Projet',''],
   ['tests','Validation / compilation','✓','Projet',''],
 ];
 const VIEWPORT_MODULES=new Set(['scene','objects','characters','lights','terrain','biomes','polyline','paths','zones','landscapes']);
@@ -105,6 +106,8 @@ async function module(requested:string){
   else if(id==='audio'){const {mountAudio}=await import('./audio-view.ts');if(mine!==generation)return;disposePanel=mountAudio(host,s,()=>mine===generation).dispose;}
   else if(id==='environment'){const {mountEnvironment}=await import('./environment-view.ts');mountEnvironment(host,s);}
   else if(id==='interactions'){const {mountInteractions}=await import('./interactions-view.ts');await mountInteractions(host,s);$('tools').append(action('Retour à la vue 3D',()=>module('scene')));}
+  else if(id==='guide'){const {mountCreationGuide}=await import('./creation-guide.ts');
+    mountCreationGuide(host,s,{open:target=>void run(()=>module(target))(),play:()=>void run(preview)()});}
   else if(id==='tests')await diagnostics(host);
   else if(id==='dialogues')await dialogues(host,mine);
   await inspector();
