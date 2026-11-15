@@ -10,7 +10,7 @@ import {checkPlacement} from './placement-rules.ts';
 import type {Tool,ToolContext} from './tools.ts';
 import {strokeDabs,type Dab} from './brush-tool.ts';
 export const scatterSettings={
-  palette:['nature.pine'] as string[],radius:12,density:.035,scaleMin:.85,scaleMax:1.15,seed:4242,
+  palette:[] as string[],radius:12,density:.035,scaleMin:.85,scaleMax:1.15,seed:4242,
   spacing:2.5
 };
 export interface ScatterPoint {x:number;z:number;assetId:string;yaw:number;scale:number}
