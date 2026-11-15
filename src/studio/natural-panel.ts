@@ -5,7 +5,7 @@ import type {StudioSession} from './session.ts';
 import type {StudioViewport} from './viewport/editor-viewport.ts';
 import type {PolylineTarget} from './viewport/polyline-tool.ts';
 import {NATURAL_ASSET_ID,NATURAL_LABELS,naturalPlan,structureEndpoints,tunnelExcavation,
-  type NaturalKind,type NaturalForm,type NaturalStructureSpec,type PointXZ} from '../structures/natural-structure.ts';
+  type NaturalKind,type NaturalForm,type PointXZ} from '../structures/natural-structure.ts';
 import {naturalMesh,naturalMeshBudget} from '../structures/natural-mesh.ts';
 import {terrainHeight} from '../terrain.ts';
 import {affectedChunkIds,chunkAt} from '../studio-core/schema.ts';
@@ -29,7 +29,6 @@ export function mountNaturalPanel(host:HTMLElement,ctx:NaturalContext):()=>void 
     cards=node('div','','feature-list');
   const settings:{kind:NaturalKind;form:NaturalForm;width:number;clearance:number;thickness:number;curvature:number}=
     {kind:'arch',...DEFAULTS};
-  let selectedId:string|null=null;
   const run=(action:()=>Promise<unknown>)=>{void action().catch(e=>ctx.status(e instanceof Error?e.message:String(e),true));};
   function sourceOf(id:string){
     const entry=p.entityIndex[id];return entry&&p.chunks[entry.ownerChunkId]?.entities[id];
@@ -41,7 +40,6 @@ export function mountNaturalPanel(host:HTMLElement,ctx:NaturalContext):()=>void 
       if(!spec||!t)throw Error('Structure non chargée ou type non compatible');
       Object.assign(settings,{kind:spec.kind,form:spec.form,width:spec.width,clearance:spec.clearance,
         thickness:spec.thickness,curvature:spec.curvature});
-      selectedId=id;
       ctx.edit(makeTarget(id,structureEndpoints(t.position.x,t.position.z,asYaw(t.rotation),spec.span)));
     });
   }
@@ -67,10 +65,10 @@ export function mountNaturalPanel(host:HTMLElement,ctx:NaturalContext):()=>void 
         tools.append(node('h4','Réglages de la structure'),
           field('Structure',select(parameters.kind,[['arch','Arche rocheuse'],['bridge','Pont naturel'],['tunnel','Tunnel traversant']],v=>{parameters.kind=v as NaturalKind;redraw();})),
           field('Forme',select(parameters.form,[['round','Arrondie'],['pointed','Ogivale'],['flat','Plate / polygonale']],v=>{parameters.form=v as NaturalForm;redraw();})),
-          field('Largeur du passage (m)',numberInput(parameters.width,v=>{parameters.width=v;redraw();},2.5,20,.5)),
-          field('Hauteur libre au centre (m)',numberInput(parameters.clearance,v=>{parameters.clearance=v;redraw();},2.3,12,.2)),
-          field('Épaisseur rocheuse (m)',numberInput(parameters.thickness,v=>{parameters.thickness=v;redraw();},.6,5,.2)),
-          field('Courbure',numberInput(parameters.curvature,v=>{parameters.curvature=v;redraw();},.2,2,.1)),
+          field('Largeur du passage (m)',numberInput(parameters.width,v=>{parameters.width=v;redraw();},2.5,20,'.5')),
+          field('Hauteur libre au centre (m)',numberInput(parameters.clearance,v=>{parameters.clearance=v;redraw();},2.3,12,'.2')),
+          field('Épaisseur rocheuse (m)',numberInput(parameters.thickness,v=>{parameters.thickness=v;redraw();},.6,5,'.2')),
+          field('Courbure',numberInput(parameters.curvature,v=>{parameters.curvature=v;redraw();},.2,2,'.1')),
           node('p','Deux points = axe longitudinal. Le tunnel applique une excavation locale au heightfield. Prévisualisation translucide · Entrée pour enregistrer.','muted'));
       },
       async commit(points){
@@ -107,7 +105,7 @@ export function mountNaturalPanel(host:HTMLElement,ctx:NaturalContext):()=>void 
   }
   const create=(kind:NaturalKind)=>{
     Object.assign(settings,{kind,...DEFAULTS});
-    selectedId=null;ctx.edit(makeTarget(null));
+    ctx.edit(makeTarget(null));
   };
   function render(){
     cards.replaceChildren();
