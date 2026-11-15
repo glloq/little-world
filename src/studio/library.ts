@@ -64,10 +64,14 @@ export function mountLibrary(host:HTMLElement,assets:Record<string,AssetDefiniti
     facts.textContent=current.kind==='asset'?(list.find(a=>a.id===current.id)?.name??current.id)+' — '+assetFacts(current.id).split('\n').slice(0,2).join(' · '):'Choisissez un modèle 3D dans la bibliothèque.';
     const filtered=list.filter(a=>(!category||(category==='#favorites'?favorites.has(a.id):assetCategory(a.id)===category))&&(a.name+' '+a.id).toLowerCase().includes(query.toLowerCase()));
     // Progressively render all matches in small batches (visible entries first).
-    renderThumbnails(filtered.map(a=>a.id),()=>{for(const image of grid.querySelectorAll<HTMLImageElement>('img[data-asset-id]')){const url=thumbnails.get(image.dataset.assetId??'');if(url)image.src=url;}});
+    renderThumbnails(filtered.map(a=>a.id),()=>{for(const image of grid.querySelectorAll<HTMLImageElement>('img[data-asset-id]')){const url=thumbnails.get(image.dataset.assetId??'');if(url){image.src=url;image.style.display='block';const placeholder=image.nextElementSibling as HTMLElement|null;if(placeholder)placeholder.style.display='none';}}});
     for(const a of filtered){
       const b=node('button','','library-item');b.type='button';b.title=a.name+' — '+assetFacts(a.id);b.dataset.assetId=a.id;b.setAttribute('aria-label','Placer : '+a.name);
-      const img=node('img');img.alt='';img.loading='lazy';img.dataset.assetId=a.id;img.src=thumbnails.get(a.id)??'';b.append(img,node('span',a.name));
+      const img=node('img');img.alt='';img.loading='lazy';img.dataset.assetId=a.id;
+      const placeholder=node('div','Aperçu 3D','asset-thumbnail-placeholder'),url=thumbnails.get(a.id);
+      if(url){img.src=url;placeholder.style.display='none';}
+      else img.style.display='none';
+      b.append(img,placeholder,node('span',a.name));
       if(current.kind==='asset'&&current.id===a.id)b.classList.add('active');
       b.onclick=()=>{placementSettings.item={kind:'asset',id:a.id};onChoose(placementSettings.item);draw();};
       const tile=node('div','','library-tile'),favorite=button(favorites.has(a.id)?'★':'☆',()=>{
