@@ -71,6 +71,8 @@ export interface ProjectLibraries {
   zones?:Record<StableId,ActivityZoneV3>;
   /** World Production landscape presets (re-editable instances + generation record). Optional. */
   landscapes?:Record<StableId,import('../world-production/landscape-schema.ts').LandscapeInstanceV1>;
+  /** Editable A/B geographic region recipes, stored as author-only V3 data. */
+  regions?:Record<StableId,import('./region-recipes.ts').RegionRecipeV1>;
 }
 export interface ActivityZoneV3 {id:StableId;kind:'farm-plot'|'mine';name:string;polygon:PointXZ[];levels?:number;
   /** Mine settings (levels, entrance, stairs, geology). Optional: defaults derived at compile time. */
