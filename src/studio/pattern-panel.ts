@@ -52,7 +52,7 @@ function createPatternTarget(ctx:PatternPanelContext,mode:'line'|'area'):Polylin
   return {label:mode==='line'?'Répétition le long d’un tracé':'Remplissage régulier d’une zone',points:[],min:mode==='line'?2:3,max:50,
     closed:mode==='area',color:0x7cbf83,diagnose(points){
       if(points.length<(mode==='line'?2:3))return null;
-      try{return pointsFrom(points).length+' objets prévus avant contrôles de placement';}
+      try{pointsFrom(points);return null;}
       catch(e){return String(e instanceof Error?e.message:e);}
     },commit};
 }
