@@ -4,7 +4,7 @@ import {node,button,field,input,numberInput,select} from './dom.ts';
 import type {StudioSession} from './session.ts';
 import type {StudioViewport} from './viewport/editor-viewport.ts';
 import type {PolylineTarget} from './viewport/polyline-tool.ts';
-import {REGION_PRESETS,newRegion,previewRegion,applyRegion,removeRegion,
+import {REGION_PRESETS,newRegion,previewRegion,applyRegion,removeRegion,validateRegionRecipe,
   regionAffectedChunks,type RegionPreset,type RegionRecipeV1,type RegionReport} from '../studio-core/region-recipes.ts';
 
 export interface RegionPanelContext {
@@ -32,7 +32,7 @@ export function mountRegionsPanel(host:HTMLElement,ctx:RegionPanelContext):()=>v
    const target:PolylineTarget={label:'Région : '+region.name,points:region.points.map(x=>({...x})),min:3,max:48,closed:true,color:0x58a86f,
      diagnose(points){
        if(points.length<3)return null;
-       try{previewRegion(p,{...region,points});return null;}
+       try{validateRegionRecipe({...region,points,generated:undefined},p.world.bounds);return null;}
        catch(e){return e instanceof Error?e.message:String(e);}
      },
      controls(tools,refresh){
