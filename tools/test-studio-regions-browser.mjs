@@ -36,11 +36,14 @@ try{
  await page.getByRole('button',{name:'Régions',exact:true}).click();
  await page.getByRole('button',{name:'Tracer une rivière automatique'}).waitFor({state:'visible'});
  check(true,'A: guided downhill river tool is exposed');
+  check(await page.getByRole('button',{name:'Escarpement rocheux'}).isVisible(),'A2: native 3D cliff-like ridge tool is exposed');
  await page.getByRole('button',{name:'Dessiner une nouvelle région'}).click();await tool('polyline');
  await page.getByLabel('Nom de la région').fill('Forêt montagneuse');await page.getByLabel('Nom de la région').press('Tab');
  await page.getByLabel('Relief de région').selectOption('plateau');
  await page.getByLabel('Altitude du plateau (m)').fill('130');await page.getByLabel('Altitude du plateau (m)').press('Tab');
  await page.getByLabel('Biotope',{exact:true}).selectOption('marsh');
+  await page.getByLabel('Arbres (× profil)').fill('0.5');await page.getByLabel('Arbres (× profil)').press('Tab');
+  await page.getByLabel('Essence dominante').selectOption('nature.pine');
  await page.getByLabel('Transition écologique (m)').fill('0');await page.getByLabel('Transition écologique (m)').press('Tab');
  for(const [x,y]of polygon){await page.mouse.move(x,y);await page.mouse.click(x,y);}
  await canvas.focus();await page.keyboard.press('Enter');
@@ -52,6 +55,7 @@ try{
  check(project.world.terrain.archipelago.features.some(f=>f.id===region.id+'.plateau'&&f.heightM===130),'A: editable native plateau relief feature');
  check(Object.values(project.chunks).some(c=>c.layers?.biome?.includes('w')),'B: ecological marsh biome masks actually written to terrain sectors');
  check(region.generated.revision===1,'B: generation ownership revision recorded');
+  check(region.vegetation.trees===0.5&&region.vegetation.treeMix['nature.pine']>0,'B2: tree density and species preference persisted in V3 ZIP');
  await page.screenshot({path:out+'/studio-region-first.png',fullPage:true});
  await page.getByRole('button',{name:'Régions',exact:true}).click();
  await page.getByRole('button',{name:'Modifier',exact:true}).first().click();await tool('polyline');
@@ -60,6 +64,7 @@ try{
  await page.waitForFunction(()=>document.querySelector('[data-action=undo]')?.title?.includes('Région Forêt montagneuse'),{},{timeout:60000});
  const next=await save(),changed=next.libraries.regions[region.id];
  check(changed.generated.revision===2&&changed.preset==='forest','B: regenerate same region in-place, keep stable ID');
+  check(changed.vegetation.trees===0.5,'B2: vegetation tuning preserved through in-place regional regeneration');
  check(Object.values(next.chunks).some(c=>c.layers?.biome?.includes('f')),'B: new biome mask applied');
  await page.getByRole('button',{name:'Annuler',exact:true}).click();
  const rollback=await save();
