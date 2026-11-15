@@ -1,4 +1,4 @@
-import {assetDefinitionFor} from '../../world-production/registry.ts';
+import {assetDefinitionFor,colliderFor,lightFor} from '../../world-production/registry.ts';
 import * as THREE from 'three';
 import {createAsset,removePlacement} from '../../world.ts';
 import {terrainHeight,waterDepth} from '../../terrain.ts';
@@ -15,7 +15,7 @@ import {transformSettings} from './select-tool.ts';
 
 export type PlaceItem={kind:'asset';id:string}|{kind:'npc';species:import('../../studio-core/types.ts').CharacterSpecies;name:string}|{kind:'light';preset:import('../../studio-core/types.ts').LightPreset;name:string};
 /** Library choice shared with the catalogue panel: one choice, many placements. */
-export const placementSettings={item:{kind:'asset',id:'props.crate'} as PlaceItem,yaw:0};
+export const placementSettings={item:{kind:'asset',id:'props.crate'} as PlaceItem,yaw:0,scale:1};
 /** E3 — semi-transparent preview following the cursor, R/Shift+R to rotate before commit,
  * left click to place (repeatable), Escape to leave. One click = one transaction. */
 export class PlacementTool implements Tool {
@@ -44,7 +44,7 @@ export class PlacementTool implements Tool {
     let x=point.x,z=point.z;if(transformSettings.snap){x=Math.round(x/transformSettings.grid)*transformSettings.grid;z=Math.round(z/transformSettings.grid)*transformSettings.grid;}
     const item=placementSettings.item,building=item.kind==='asset'&&item.id.startsWith('architecture.');
     this.check=checkPlacement(this.ctx.session.document,x,z,{ground:terrainHeight,depth:waterDepth,building,radius:building?4:1});
-    ghost.visible=true;ghost.position.set(x,terrainHeight(x,z),z);ghost.rotation.set(0,placementSettings.yaw,0);
+    ghost.visible=true;ghost.position.set(x,terrainHeight(x,z),z);ghost.rotation.set(0,placementSettings.yaw,0);ghost.scale.setScalar(placementSettings.scale);
     // GLB models may finish loading later: (re)apply the preview material on every move.
     const material=this.materials[this.check.level];ghost.traverse(o=>{const m=o as THREE.Mesh;if(m.isMesh)m.material=material;});
     this.ctx.canvas.title=this.check.reason;this.ctx.invalidate(2);
@@ -53,10 +53,12 @@ export class PlacementTool implements Tool {
   pointerUp(e:PointerEvent){
     const start=this.down;this.down=null;if(e.button!==0||!start||Math.hypot(e.clientX-start.x,e.clientY-start.y)>5||!this.ghost?.visible)return;
     if(this.check.level==='invalid'){this.ctx.message('Placement impossible : '+this.check.reason+'.',true);return;}
-    const x=this.ghost.position.x,z=this.ghost.position.z,yaw=placementSettings.yaw,item=placementSettings.item,s=this.ctx.session,owner=chunkAt(s.document.world,x,z),id=crypto.randomUUID(),warning=this.check.level==='warning'?' Attention : '+this.check.reason+'.':'';
+    const x=this.ghost.position.x,z=this.ghost.position.z,yaw=placementSettings.yaw,scale=placementSettings.scale,item=placementSettings.item,s=this.ctx.session,owner=chunkAt(s.document.world,x,z),id=crypto.randomUUID(),warning=this.check.level==='warning'?' Attention : '+this.check.reason+'.':'';
     this.ctx.run(async()=>{
       if(item.kind==='asset'){const known=s.document.assets[item.id],asset=known??assetDefinitionFor(item.id);if(!asset)throw Error('Asset inconnu : '+item.id);
-        await s.change('Placer '+asset.name,[owner],d=>{if(!known)d.assets={...d.assets,[asset.id]:asset};putEntity(d,{id,kind:item.id.startsWith('architecture.')?'building':'prop',name:asset.name,ownerChunkId:owner,components:{Transform:{type:'Transform',position:{x,y:0,z},rotation:yawQuaternion(yaw),scale:{x:1,y:1,z:1}},Visual:{type:'Visual',assetId:item.id}}});});}
+        await s.change('Placer '+asset.name,[owner],d=>{if(!known)d.assets={...d.assets,[asset.id]:asset};putEntity(d,{id,kind:item.id.startsWith('architecture.')?'building':'prop',name:asset.name,ownerChunkId:owner,components:{Transform:{type:'Transform',position:{x,y:0,z},rotation:yawQuaternion(yaw),scale:{x:scale,y:scale,z:scale}},Visual:{type:'Visual',assetId:item.id},
+          ...(colliderFor(item.id)?{Collider:colliderFor(item.id)!}:{}),
+          ...(lightFor(item.id,id)?{Light:lightFor(item.id,id)!}:{})}});});}
       else if(item.kind==='light')await s.change('Placer une lumière',[owner],d=>{createLightEntity(d,{id,name:item.name,x,z,preset:item.preset});});
       else await s.change('Placer un personnage',[owner],d=>{createCharacter(d,{id,name:item.name,x,z,species:item.species});const source=d.chunks[owner].entities[id];source.components.Transform!.rotation=yawQuaternion(yaw);putEntity(d,source);});
       s.selection.select({kind:'entity',id});this.ctx.message('Élément placé. Cliquez encore pour en placer un autre, Échap pour terminer.'+warning);this.ctx.refreshInspector();
