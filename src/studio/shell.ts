@@ -160,10 +160,14 @@ async function toolPanel(id:string,v:StudioViewport){
       action('Créer un personnage ici',async()=>{const owner=chunkAt(s.document.world,x,z),id=crypto.randomUUID();await s.change('Créer un personnage',[owner],d=>createCharacter(d,{id,name,x,z,species}));s.selection.select({kind:'entity',id});await inspector();}));
     const list=node('div','','search-results');for(const e of Object.values(s.document.entityIndex).filter(e=>e.kind==='character'))list.append(action(e.name,()=>{s.selection.select({kind:'entity',id:e.id});v.focusSelection();}));tools.append(node('h4','Habitants du projet'),list);
   }else if(id==='terrain'||id==='biomes'){
-    const {brushSettings}=await import('./viewport/brush-tool.ts');const options:[string,string][]=id==='terrain'?[['raise','Élever'],['lower','Abaisser'],['flatten','Aplanir'],['smooth','Lisser']]:[['forest','Forêt'],['meadow','Prairie'],['mountain','Montagne'],['coast','Côte'],['village','Village']];
+    const {brushSettings}=await import('./viewport/brush-tool.ts');const options:[string,string][]=id==='terrain'?[['raise','Élever'],['lower','Abaisser'],['flatten','Aplanir'],['smooth','Lisser']]:[['forest','Forêt'],['meadow','Prairie'],['mountain','Montagne'],['coast','Côte'],['village','Village'],['exclude-vegetation','Sans végétation'],['restore-vegetation','Rétablir végétation']];
     const saved=s.selection.state.activeTool,current=options.some(o=>o[0]===saved)?saved:options[0][0];v.setTool(current);const chips=node('div','','chip-row');
     for(const [tool,label]of options){const b=button(label,()=>{v.setTool(tool);for(const c of chips.children)c.classList.toggle('active',c===b);},'chip'+(tool===current?' active':''));chips.append(b);}
     if(id==='biomes'){
+      const maskProtect=node('input');maskProtect.type='checkbox';maskProtect.checked=brushSettings.maskProtect;
+      maskProtect.onchange=()=>{brushSettings.maskProtect=maskProtect.checked;};
+      tools.append(field('Conserver les corrections d’occupation existantes',maskProtect),
+        node('p','Sans végétation : masque géographique X (aucun arbre, buisson ou herbe généré). Rétablir : efface uniquement les cellules X, sans modifier routes, fermes ni bâtiments.','muted'));
       const {ECOLOGY_PALETTES}=await import('./ecology-palettes.ts');
       const ecological=node('div','','section-card'),palette=select('woodland',ECOLOGY_PALETTES.map(x=>[x.id,x.label] as [string,string]),()=>{});
       ecological.append(node('h4','Palettes écologiques procédurales'),node('p','L’habillage est généré par les biotopes existants : pas de nouvelles entités pour chaque arbre.','muted'),field('Profil écologique',palette),
