@@ -1,4 +1,5 @@
 import {naturalMesh} from './structures/natural-mesh.ts';
+import {createCliffView,type CliffView} from './render/cliff-view.ts';
 import {createNaturalView,type NaturalView} from './structures/natural-view.ts';
 import {waterRibbonData} from './water/geometry.ts';
 import * as THREE from 'three';
@@ -48,6 +49,9 @@ export interface WorldView {
   placed: PlacedInstances;
   /** Sparse local low-poly vaults, only allocated near player (mobile GPU cap). */
   natural: NaturalView;
+  /** Near-field faceted rock surfaces for authored cliff lines, budgeted and streamed. */
+  cliffs: CliffView;
+  refreshCliffs: (terrain?:import('./terrain-generator.ts').TerrainGeneratorDefinition)=>void;
   setDressingFilter(fn: ((cx: number, cz: number, kind: import('./geography/dressing.ts').DressingKind, index: number) => boolean) | null): void;
   /** Debug/test (metrics mode): natural dressing and placed objects drawn within `r` of (x, z). */
   drawnNear(x: number, z: number, r: number): string[];
@@ -745,6 +749,7 @@ export function buildWorld(
   const dressing: DressingView | null = legacy ? null : createDressingView(root, config.seed, config.density, workers);
   const placed = createPlacedInstances(root, terrainHeight);
   const natural = createNaturalView(root,terrainHeight);
+  const cliffs = createCliffView(root,terrainHeight,config.seed,config.terrain);
   // Doc 18: short and tall grass tufts near the player (generated worlds), 1 draw call, wind in the shader.
   const grass = legacy ? null : createGrass(root, config.seed, generatedGrass, terrainHeight);
   // `?grass=dense|balanced|ultra|off` (benchmarks, captures): fixed profile instead of the budget level.
@@ -807,6 +812,8 @@ export function buildWorld(
     terrainWork: terrainView.work,
     placed,
     natural,
+    cliffs,
+    refreshCliffs(terrain){cliffs.refresh(terrain);},
     setDressingFilter(fn: Parameters<DressingView['setHidden']>[0]) { dressing?.setHidden(fn); },
     drawnNear(x: number, z: number, r: number) { return [...(dressing?.drawnNear(x, z, r) ?? []), ...placed.drawnNear(x, z, r)]; },
     setNight(night: number) { animatedAssets.setNight(night); },
@@ -834,6 +841,7 @@ export function buildWorld(
     },
     refreshTerrain(x, z, radius) {
       terrainView.refresh(x, z, radius);
+      cliffs.invalidate();
       horizon.refresh(x, z, radius);
       ecology.refresh(x, z, radius);
       dressing?.refresh(x, z, radius);
@@ -915,6 +923,7 @@ export function buildWorld(
       grass?.update(dt, { x: focus.x, y: (focus as { y?: number }).y, z: focus.z });
       placed.update(focus.x, focus.z);
       natural.update(focus.x,focus.z);
+      cliffs.update(focus.x,focus.z);
       pathView.update(focus.x, focus.z);
       if (camera) lightCamera.x = camera.position.x;
       else lightCamera.x = focus.x;
@@ -933,6 +942,7 @@ export function buildWorld(
       grass?.dispose();
       placed.dispose();
       natural.dispose();
+      cliffs.dispose();
       pathView.dispose();
       lightView.dispose();
       horizon.dispose();
