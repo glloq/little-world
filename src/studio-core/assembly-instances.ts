@@ -44,6 +44,27 @@ export function instanceMemberIds(p:ProjectDocument,rootId:string):string[]{
   }
   return [...seen];
 }
+/** Change only this instance's hierarchy. World-space transforms remain unchanged.
+ * Parent and child must belong to the same placed assembly, and cycles are rejected. */
+export function setInstanceParent(p:ProjectDocument,childId:string,parentId:string):void{
+  if(childId===parentId)throw Error('Un élément ne peut pas être son propre parent');
+  const childEntry=p.entityIndex[childId],parentEntry=p.entityIndex[parentId];
+  const child=childEntry&&p.chunks[childEntry.ownerChunkId]?.entities[childId];
+  const parent=parentEntry&&p.chunks[parentEntry.ownerChunkId]?.entities[parentId];
+  if(!child?.prefabId||!parent?.prefabId||!child.prefabId.startsWith('assembly-part:')||!parent.prefabId.startsWith('assembly-part:'))
+    throw Error('Les deux objets doivent appartenir à un assemblage chargé');
+  const root=assemblyInstanceRoot(p,childId);
+  if(assemblyInstanceRoot(p,parentId)!==root)throw Error('Le parent choisi appartient à une autre instance');
+  let cursor=parentId;
+  for(let i=0;i<100;i++){
+    if(cursor===childId)throw Error('Cette modification créerait une boucle de parenté');
+    const index=p.entityIndex[cursor],source=index&&p.chunks[index.ownerChunkId]?.entities[cursor];
+    if(!source)throw Error('Charger les secteurs parents');
+    if(!source.parentId)break;
+    cursor=source.parentId;
+  }
+  putEntity(p,{...structuredClone(child),parentId});
+}
 export function overrideAssemblyVisual(p:ProjectDocument,entityId:string,assetId:string):void{
   const item=p.entityIndex[entityId],source=item&&p.chunks[item.ownerChunkId]?.entities[entityId];
   if(!source||!source.prefabId?.startsWith('assembly-part:'))throw Error('Sélectionner un membre d’assemblage chargé');
