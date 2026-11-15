@@ -3,7 +3,7 @@
 import {button,node} from './dom.ts';
 import type {RegionPanelContext} from './regions-panel.ts';
 import {projectGeography} from '../studio-core/geo-context.ts';
-import {reviewHydroNetwork,planHydroLink,planHydroFall} from '../studio-core/hydro-network-assistant.ts';
+import {reviewHydroNetwork,planHydroLink,planHydroFall,planHydroFalls} from '../studio-core/hydro-network-assistant.ts';
 import {putWater} from '../studio-core/source.ts';
 import {analyzeWatersheds} from '../studio-core/watershed-analysis.ts';
 import {proposeWatershedRivers} from '../studio-core/watershed-rivers.ts';
@@ -115,9 +115,43 @@ export function mountHydroNetworkPanel(host:HTMLElement,ctx:RegionPanelContext):
      headwaters.append(node('p','Candidat écarté : '+rejected.reason,'muted'));
  };
 
+ const waterfalls=node('div','','feature-list');
+ const proposeFalls=async()=>{
+   await hydrate();
+   const geo=projectGeography(p).ctx,waters=Object.values(p.libraries.water);
+   const candidates=reviewHydroNetwork(waters,geo.height,p.world.seaLevel).falls;
+   const proposed=planHydroFalls(waters,candidates,geo.height,p.world.seaLevel,6);
+   const count=proposed.changes.reduce((n,w)=>n+(w.falls?.length??0)-(p.libraries.water[w.id]?.falls?.length??0),0);
+   waterfalls.replaceChildren(node('p',count+' cascade(s) proposées sur '+proposed.changes.length+
+     ' rivière(s), '+proposed.rejected.length+' refusée(s) par la validation','muted'));
+   if(count<=0){waterfalls.append(node('p','Aucun emplacement applicable automatiquement. Adapter les profils ou placer les cascades manuellement.','muted'));return;}
+   for(const w of proposed.changes){
+     const previous=p.libraries.water[w.id],old=new Set((previous?.falls??[]).map(f=>f.at));
+     for(const fall of w.falls??[])if(!old.has(fall.at)){
+       const pt=w.points[fall.at];
+       if(pt)waterfalls.append(button('Voir · '+w.id+' · chute '+(fall.top-fall.bottom).toFixed(1)+' m',
+         ()=>ctx.viewport.goTo(pt.x,pt.z,30)));
+     }
+   }
+   waterfalls.append(button('Appliquer les cascades proposées',()=>safe(async()=>{
+     await hydrate();
+     const freshGeo=projectGeography(p).ctx,freshWaters=Object.values(p.libraries.water);
+     const freshAdvice=reviewHydroNetwork(freshWaters,freshGeo.height,p.world.seaLevel).falls;
+     const fresh=planHydroFalls(freshWaters,freshAdvice,freshGeo.height,p.world.seaLevel,6);
+     if(JSON.stringify(fresh.changes)!==JSON.stringify(proposed.changes))
+       throw Error('Les profils ont changé : relancer l’aperçu des cascades');
+     if(!confirm('Créer '+count+' cascade(s) sur '+fresh.changes.length+' rivière(s) dans une transaction annulable ?'))return;
+     const ids=[...new Set(fresh.changes.flatMap(w=>waterEditChunkIds(p,p.libraries.water[w.id],w)))];
+     await s.change('Créer '+count+' cascades automatiques',ids,d=>{for(const w of fresh.changes)putWater(d,w);});
+     ctx.status(count+' cascade(s) créées et validées dans le réseau.');
+     await proposeFalls();
+   })));
+ };
+
  card.append(button('Analyser le réseau hydrologique',()=>safe(inspect)),results,
    button('Analyser les bassins versants',()=>safe(inspectBasins)),basins,
-   button('Proposer des rivières depuis les bassins versants',()=>safe(inspectHeadwaters)),headwaters);
+   button('Proposer des rivières depuis les bassins versants',()=>safe(inspectHeadwaters)),headwaters,
+   button('Proposer des cascades automatiques',()=>safe(proposeFalls)),waterfalls);
  host.append(card);
  return ()=>ctx.viewport.showPreviewPolyline(null);
 }
