@@ -15,6 +15,7 @@ import type {PolylineTarget} from './viewport/polyline-tool.ts';
 import {REGION_PRESETS,newRegion,previewRegion,applyRegion,removeRegion,validateRegionRecipe,
   regionAffectedChunks,type RegionPreset,type RegionRecipeV1,type RegionReport} from '../studio-core/region-recipes.ts';
 import {DEFAULT_REGION_VEGETATION,REGION_TREE_SPECIES,type RegionVegetation} from '../studio-core/region-schema.ts';
+import {regionBatchChunks,previewRegionBatch,applyRegionBatch} from '../studio-core/region-batch.ts';
 
 export interface RegionPanelContext {
   session:StudioSession;viewport:StudioViewport;
@@ -168,7 +169,56 @@ export function mountRegionsPanel(host:HTMLElement,ctx:RegionPanelContext):()=>v
      list.append(row);
    }
  }
- host.append(summary,reliefHost,hydroHost,list);renderForm();renderList();
+ const composition=node('details','','section-card'),compositionResult=node('div','','feature-list');
+ composition.open=false;
+ composition.append(node('summary','Composer plusieurs régions — aperçu avant régénération'),
+   node('p','Cochez les recettes dans l’ordre de la liste. Prévisualisation exacte des masques et conflits, sans modifier la carte. Application en une seule opération annulable (maximum 16 régions).','muted'));
+ const compositionChoices=node('div','','feature-list');
+ let selected=new Set<string>(),previewSignature='';
+ const ordered=()=>Object.values(p.libraries.regions??{}).filter(r=>selected.has(r.id)).sort((a,b)=>a.id.localeCompare(b.id));
+ const signature=(items:RegionRecipeV1[])=>JSON.stringify(items.map(r=>[r.id,r.generated?.revision,r.points,r.preset,r.coverage,r.seed,r.transitionM,r.relief,r.heightM,r.edgeM]));
+ function renderComposition(){
+   const regions=Object.values(p.libraries.regions??{}).sort((a,b)=>a.id.localeCompare(b.id));
+   selected=new Set([...selected].filter(id=>regions.some(r=>r.id===id)));
+   compositionChoices.replaceChildren();
+   for(const region of regions){
+     const label=document.createElement('label'),check=document.createElement('input');
+     check.type='checkbox';check.checked=selected.has(region.id);
+     check.addEventListener('change',()=>{check.checked?selected.add(region.id):selected.delete(region.id);previewSignature='';compositionResult.replaceChildren();});
+     label.append(check,document.createTextNode(' '+region.name+' ('+region.preset+')'));
+     compositionChoices.append(label);
+   }
+ }
+ const composePreview=async()=>{
+   const items=ordered();
+   if(!items.length)throw Error('Sélectionner au moins une région');
+   const ids=regionBatchChunks(p,items);
+   await s.hydrate(ids);
+   const result=previewRegionBatch(p,items);
+   previewSignature=signature(items);
+   compositionResult.replaceChildren(node('strong',items.length+' régions · '+result.chunks.length+' secteurs'),
+     node('p',summarize({...result.totals,feature:'none',sectors:result.chunks.length,warnings:[]}),'muted'));
+   for(const entry of result.reports)compositionResult.append(node('p',entry.name+' : '+summarize(entry.report),'muted'));
+ };
+ composition.append(compositionChoices,
+   button('Prévisualiser la composition',()=>safe(composePreview)),
+   button('Régénérer les régions sélectionnées',()=>safe(async()=>{
+     const items=ordered();
+     if(!items.length)throw Error('Aucune région sélectionnée');
+     if(previewSignature!==signature(items))throw Error('Relancer l’aperçu après modification de la sélection ou des régions');
+     const ids=regionBatchChunks(p,items);
+     await s.hydrate(ids);
+     // Re-check exact dry-run immediately before the write. No hidden regeneration.
+     const check=previewRegionBatch(p,items);
+     if(!confirm('Appliquer '+items.length+' régions sur '+check.chunks.length+' secteurs ? Une seule opération Annuler pourra revenir en arrière.'))return;
+     let result:ReturnType<typeof applyRegionBatch>|undefined;
+     await s.change('Composer '+items.length+' régions',ids,d=>{result=applyRegionBatch(d,items);});
+     previewSignature='';
+     ctx.status('Composition appliquée : '+result!.totals.painted+' cellules peintes, '+result!.totals.protected+' protégées');
+     renderList();renderComposition();
+   })),
+   compositionResult);
+ host.append(summary,reliefHost,hydroHost,composition,list);renderForm();renderList();renderComposition();
  const reliefStop=mountReliefLinesPanel(reliefHost,ctx),hydroStop=mountHydroNetworkPanel(hydroHost,ctx),stop=s.commands.subscribe(()=>renderList());
  return ()=>{stop();reliefStop();hydroStop();v.showFootprint(null);};
 }
