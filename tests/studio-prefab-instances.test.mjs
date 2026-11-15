@@ -5,6 +5,8 @@ import {putEntity} from '../src/studio-core/source.ts';
 import {captureAssembly,placeAssembly} from '../src/studio-core/assemblies.ts';
 import {assemblyInstanceRoot,instanceMemberIds,overrideAssemblyVisual,updateAssemblyTemplateVisual,setInstanceParent} from '../src/studio-core/assembly-instances.ts';
 import {resolveEntity} from '../src/studio-core/references.ts';
+import {CommandBus} from '../src/studio-core/commands.ts';
+import {editDocument} from '../src/studio-core/edit.ts';
 function make(){
  const p=createProject({name:'Prefab hierarchy',width:1000,length:1000});
  for(const [id,x] of [['parent',0],['child',5]]){
@@ -64,4 +66,30 @@ test('changer la hiérarchie d’une copie ne modifie pas le prefab partagé',()
  assert.throws(()=>setInstanceParent(p,first[0],first[1]),/boucle/);
  assert.throws(()=>setInstanceParent(p,first[1],other[0]),/autre instance/);
  assert.equal(p.chunks[p.entityIndex[other[1]].ownerChunkId].entities[other[1]].parentId,other[0]);
+});
+
+test('shared prefab edits generate undoable patches without mutating original nested libraries',()=>{
+ const p=make(),template=captureAssembly(p,['parent','child'],'Transaction prefab');
+ p.libraries.assemblies={[template.id]:template};
+ const a=placeAssembly(p,template,50,50,(()=>{let n=0;return ()=>'one-'+(++n)})());
+ const b=placeAssembly(p,template,100,100,(()=>{let n=0;return ()=>'two-'+(++n)})());
+ overrideAssemblyVisual(p,a[1],'props.crate');
+ const before=structuredClone(p);
+ const bus=new CommandBus(p);
+ const owners=[...new Set(Object.values(p.entityIndex).map(e=>e.ownerChunkId))];
+ const tx=editDocument(bus,'Modifier un modèle prefab',owners,draft=>updateAssemblyTemplateVisual(draft,b[1],'nature.pine'));
+ assert.ok(tx,'Shared template change must produce a real Undo transaction');
+ assert.ok(tx.patches.some(patch=>patch.path[0]==='libraries'&&patch.path[1]==='prefabs'));
+ assert.ok(tx.patches.some(patch=>patch.path[0]==='libraries'&&patch.path[1]==='assemblies'));
+ const visual=id=>{
+  const e=p.entityIndex[id],source=p.chunks[e.ownerChunkId]?.entities[id];
+  return resolveEntity(p,source).components.Visual.assetId;
+ };
+ assert.equal(visual(a[1]),'props.crate');
+ assert.equal(visual(b[1]),'nature.pine');
+ assert.equal(bus.undo(),true);
+ assert.deepEqual(p,before,'Undo must restore prefabs, libraries and entity indices');
+ assert.equal(bus.redo(),true);
+ assert.equal(visual(b[1]),'nature.pine');
+ parseProject(structuredClone(p));
 });
