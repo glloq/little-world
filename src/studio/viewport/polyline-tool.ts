@@ -9,7 +9,9 @@ export interface PolylineTarget {label:string;points:{x:number;z:number}[];min:n
   /** Optional magnet (E8: path ends and points snap onto existing paths). */
   snap?(point:{x:number;z:number}):{x:number;z:number}|null;
   /** Optional visual ghost. The shared polyline editor owns and disposes its geometry. */
-  preview?(points:{x:number;z:number}[]):THREE.Object3D|null;}
+  preview?(points:{x:number;z:number}[]):THREE.Object3D|null;
+  /** Optional live parameters in the shared trace sidebar. */
+  controls?(host:HTMLElement,refresh:()=>void):void;}
 export const polylineTarget={current:null as PolylineTarget|null};
 /** E5/E6 — click to add points on the ground, drag a handle to move it, Backspace removes
  * the last point, Enter validates, Escape abandons. Navigation stays on right/middle/wheel. */
@@ -27,6 +29,7 @@ export class PolylineTool implements Tool {
   }
   private discardGhost(){if(!this.ghost)return;this.ghost.traverse(o=>{if(o instanceof THREE.Mesh){o.geometry.dispose();for(const m of Array.isArray(o.material)?o.material:[o.material])m.dispose();}});this.ghost.removeFromParent();this.ghost=null;}
   deactivate(){this.discardGhost();for(const o of [this.line,this.handles]){if(!o)continue;o.geometry.dispose();(o.material as THREE.Material).dispose();}this.group.clear();this.group.removeFromParent();this.line=null;this.handles=null;this.target=null;}
+  refreshPreview(){this.redraw();}
   private redraw(){
     if(!this.line||!this.handles)return;const pts=this.points.map(p=>new THREE.Vector3(p.x,terrainHeight(p.x,p.z)+.6,p.z));if(this.target?.closed&&pts.length>2)pts.push(pts[0].clone());
     this.line.geometry.dispose();this.line.geometry=new THREE.BufferGeometry().setFromPoints(pts);
