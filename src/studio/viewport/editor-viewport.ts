@@ -118,6 +118,19 @@ export class StudioViewport {
   /** PHYS diagnostics (authoring aid, never exported): solid collision volumes from Collider
    * components, relief points steeper than the walker can climb, mine level outlines. */
   private physicsGroup=new THREE.Group();
+  /** Authoring preview shared by guided and watershed rivers.
+   * A disposable line, not a WaterBody, so exports/Undo/physics remain untouched. */
+  private previewPolyline:THREE.Line|null=null;
+  showPreviewPolyline(points:{x:number;z:number}[]|null,color=0x278fbd){
+    if(this.previewPolyline){this.previewPolyline.geometry.dispose();(this.previewPolyline.material as THREE.Material).dispose();this.previewPolyline.removeFromParent();this.previewPolyline=null;}
+    if(points&&points.length>=2&&points.length<=100){
+      const vertices=points.map(p=>new THREE.Vector3(p.x,terrainHeight(p.x,p.z)+1.6,p.z));
+      const line=new THREE.Line(new THREE.BufferGeometry().setFromPoints(vertices),
+        new THREE.LineBasicMaterial({color,depthTest:false,transparent:true,opacity:.9}));
+      line.renderOrder=24;line.name='Proposed watercourse';this.previewPolyline=line;this.scene.add(line);
+    }
+    this.canvas.dataset.previewPolyline=String(this.previewPolyline?points!.length:0);this.invalidate(10);
+  }
   /** World Production: oriented footprint of a landscape being positioned (authoring aid only). */
   private footprint:THREE.LineLoop|null=null;
   showFootprint(points:{x:number;z:number}[]|null,color=0x3d8bd9){
@@ -308,6 +321,7 @@ export class StudioViewport {
     if(this.disposed)return;this.disposed=true;clearTimeout(this.persist);cancelAnimationFrame(this.frame);this.session.selection.setCamera(this.camera.context());
     for(const stop of this.unsubscribe)stop();this.tools.dispose();this.navigation.dispose();this.resizeObserver.disconnect();
     this.canvas.removeEventListener('pointerdown',this.onDown);this.canvas.removeEventListener('pointermove',this.onMove);this.canvas.removeEventListener('pointerup',this.onUp);this.canvas.removeEventListener('pointerleave',this.onLeave);window.removeEventListener('keydown',this.onKey);
+    this.showPreviewPolyline(null);
     for(const child of this.zoneGroup.children){const line=child as THREE.Line;line.geometry.dispose();(line.material as THREE.Material).dispose();}this.zoneGroup.clear();this.zoneGroup.removeFromParent();
     for(const model of this.models.values())removePlacement(model.object);this.models.clear();for(const m of this.lightMarkers.values())disposeMarker(m.object);this.lightMarkers.clear();this.markerGeometry.dispose();this.rangeGizmo.geometry.dispose();(this.rangeGizmo.material as THREE.Material).dispose();this.npcs.dispose();this.selection.dispose();this.world.dispose();this.renderer.dispose();this.renderer.forceContextLoss();this.element.remove();
   }
