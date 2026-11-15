@@ -84,6 +84,9 @@ export function generateDressingCell(ctx:GeoContext,seed:number,cx:number,cz:num
     if(jd>3){const neighbour=ecotone(x+Math.cos(ja)*jd,z+Math.sin(ja)*jd);if(neighbour)profileId=neighbour;}
     if(influence?.profile&&r5<influence.weight)profileId=influence.profile;
     const profile=BIOTOPES[profileId],density=influence?(1+(((influence.density??1)-1)*influence.weight)):1;
+    const vegetation=influence?.vegetation,blend=(factor:number)=>Math.max(0,Math.min(2,1+((factor-1)*(influence?.weight??0))));
+    const treesFactor=blend(vegetation?.trees??1),shrubsFactor=blend(vegetation?.shrubs??1);
+    const groundFactor=blend(vegetation?.ground??1),deadwoodFactor=blend(vegetation?.deadwood??1);
     const steep=1-smooth(profile.maxSlope*.7,profile.maxSlope*1.1,s.slope),reserved=s.occupation==='reserved'?0:1;
     // An authored region above density 1.2 closes the canopy (dense wood): the clump noise only
     // shapes groves and clearings below that floor.
@@ -94,21 +97,21 @@ export function generateDressingCell(ctx:GeoContext,seed:number,cx:number,cz:num
     if(river<3.5&&r2<.3){push('pebble',x,h,z,.16+.2*r3,r0*6.283,r1);continue;}
     if(river<7&&r2>=.3&&r2<.36){const sp=pickSpecies({'nature.reeds_patch':3,'nature.fern_small':1},r3);pushSpecies(sp,x,h,z,speciesScale(sp,r4),r0*6.283,r1);continue;}
     let mix=treeMix(profile,influence);
-    if(bank>.3&&profile.trees>.02)mix={'nature.broadleaf_tall':4,'nature.hazel_thin':3,'nature.broadleaf_round':2,...(mix['nature.leafless_tree']?{'nature.leafless_tree':1}:{})};
-    const treeShare=Object.keys(mix).length?profile.trees*Math.min(1.35,density*(1+bank*.6))*structure*steep*reserved*.42:0;
+    if(bank>.3&&profile.trees>.02&&!vegetation?.treeMix)mix={'nature.broadleaf_tall':4,'nature.hazel_thin':3,'nature.broadleaf_round':2,...(mix['nature.leafless_tree']?{'nature.leafless_tree':1}:{})};
+    const treeShare=Object.keys(mix).length?profile.trees*Math.min(1.35,density*(1+bank*.6))*structure*steep*reserved*.42*treesFactor:0;
     if(r2<treeShare){const sp=pickSpecies(mix,r3);pushSpecies(sp,x,h,z,speciesScale(sp,rnd(cellSeed^0x77,i,j),profile.size),r3*6.283,rnd(cellSeed^0x31,i,j));continue;}
     let acc=treeShare;
     // Shrubs: more at forest edges and in open profiles, still grouped.
-    const shrubShare=profile.shrubs*.12*steep*density*(.45+.55*Math.max(structure,profile.openness*.6));acc+=shrubShare;
+    const shrubShare=profile.shrubs*.12*steep*density*(.45+.55*Math.max(structure,profile.openness*.6))*shrubsFactor;acc+=shrubShare;
     if(r2<acc){const sp=pickSpecies(profile.shrubMix,r3);pushSpecies(sp,x,h,z,speciesScale(sp,r4),r0*6.283,r1);continue;}
     // Ground flora (GLB patches complement the procedural small plants of ecology.ts).
     let groundMix=profile.groundMix,groundBoost=1;
     if(profileId==='sandy-coast'&&alt>1.5&&alt<6&&s.coast>8){groundBoost=4;groundMix={'nature.broadleaf_plant':3,'nature.reeds_patch':2};} // dune plants
-    acc+=profile.ground*.1*groundBoost*Math.min(1,s.moisture+.4);
+    acc+=profile.ground*.1*groundBoost*Math.min(1,s.moisture+.4)*groundFactor;
     if(r2<acc){const sp=pickSpecies(groundMix,r3);pushSpecies(sp,x,h,z,speciesScale(sp,r4),r0*6.283,r1);continue;}
     // Deadwood under cover; driftwood on the upper beach.
     const drift=profileId==='sandy-coast'&&alt<2.2&&alt>.3?.06:0;
-    acc+=profile.deadwood*.15*(.3+structure)+drift;
+    acc+=(profile.deadwood*.15*(.3+structure)+drift)*deadwoodFactor;
     if(r2<acc){const sp=pickSpecies(drift?{'nature.log_fallen':1}:profile.deadwoodMix,r3);pushSpecies(sp,x,h-.05,z,speciesScale(sp,r4),r0*6.283,r1);continue;}
     // Geology dressing (relief): cliffs, foot boulders, basalt, scree, beach pebbles.
     if(s.geology==='rock'&&(s.slope>.45||s.cliff>.55&&s.coast<160)){if(r2<.22+.25*smooth(.45,1.2,s.slope)){const k=1.2+2.8*r3;push('rock',x,seat(x,z,k,h),z,k,r0*6.283,r1);}continue;}
