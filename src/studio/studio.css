@@ -94,3 +94,11 @@ label:has(> input[type=checkbox]){flex-direction:row;align-items:center;justify-
 .library-tile>.chip{position:absolute;right:5px;bottom:4px;min-width:26px;padding:2px 5px;z-index:1}
 .scatter-panel,.assembly-panel{margin-top:14px;padding-top:12px;border-top:1px solid #d7e3d3}
 .scatter-panel .feature-row,.assembly-panel .feature-row{flex-wrap:wrap;gap:5px}
+
+/* Guided creation remains within the normal Studio workspace and reuses common cards. */
+.guide-workspace{max-width:1020px;margin:0 auto}
+.guide-summary{padding:10px 12px;border:1px solid #d7e3d3;border-radius:10px;background:#f4f8f1}
+.guide-steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;margin:14px 0}
+.guide-step{min-width:0}
+.guide-step h3{margin-top:0}
+.pattern-panel{margin-top:14px;padding-top:12px;border-top:1px solid #d7e3d3}
