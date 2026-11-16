@@ -10,6 +10,8 @@ import {proposeWatershedRivers} from '../studio-core/watershed-rivers.ts';
 import {proposeBasinLakes} from '../studio-core/basin-lakes.ts';
 import {analyzeDepressions} from '../studio-core/depression-fill.ts';
 import {planGuidedRiver} from '../studio-core/guided-river.ts';
+import {planLakeOutflow} from '../studio-core/lake-outflow.ts';
+import {polygonSignedDistance} from '../water/profile.ts';
 import {waterChunkIds,waterEditChunkIds} from '../water/sectors.ts';
 import {drawHydroOverview,type HydroOverviewPolyline,type HydroOverviewMark} from './hydro-preview-map.ts';
 export function mountHydroNetworkPanel(host:HTMLElement,ctx:RegionPanelContext):()=>void{
@@ -184,6 +186,62 @@ export function mountHydroNetworkPanel(host:HTMLElement,ctx:RegionPanelContext):
      lakeCandidates.append(node('p','Cuvette écartée : '+item.reason,'muted'));
  };
 
+ const outflows=node('div','','feature-list');
+ const suggestLakeOutflows=async()=>{
+   await hydrate();
+   const bounds=p.world.bounds,geo=projectGeography(p).ctx;
+   const basinCandidates=analyzeDepressions(bounds,geo.height,p.world.seaLevel,{maxCells:4096,minAreaM2:400}).depressions
+     .filter(b=>!!b.spillway);
+   const existing=Object.values(p.libraries.water);
+   const lakes=existing.filter(w=>w.kind==='lake').slice(0,8);
+   outflows.replaceChildren(node('p',lakes.length+' lac(s) existant(s) · '+basinCandidates.length+' déversoir(s) géographiques','muted'));
+   const context=()=>{
+     const now=projectGeography(p).ctx;
+     return {height:now.height,water:(x:number,z:number)=>now.water(x,z,now.height(x,z)),
+       inWorld:(x:number,z:number)=>x>bounds.minX+1&&x<bounds.maxX-1&&z>bounds.minZ+1&&z<bounds.maxZ-1,
+       seaLevel:p.world.seaLevel,existing:Object.values(p.libraries.water)};
+   };
+   let accepted=0;
+   for(const lake of lakes){
+     if(existing.some(w=>w.from?.kind==='lake'&&w.from.id===lake.id))continue;
+     const basin=basinCandidates.find(b=>polygonSignedDistance(lake.points,b.outlet.x,b.outlet.z)>-30);
+     if(!basin?.spillway)continue;
+     const id='lake-outflow-'+lake.id;
+     try{
+       const planned=planLakeOutflow(lake,basin.spillway,context(),{id,width:Math.min(8,Math.max(2,lake.width)),
+         depth:Math.min(3,Math.max(.5,lake.depth)),maxLengthM:1400});
+       accepted++;
+       const row=node('div','','feature-row');
+       row.append(node('strong','Sortie du lac '+lake.id),
+         node('p',Math.round(planned.trace.lengthM)+' m · fin '+planned.trace.end+' · sortie naturelle estimée (pas de creusement)','muted'),
+         button('Voir la sortie',()=>{
+           ctx.viewport.showPreviewPolyline(planned.water.points,0xe06a38);
+           ctx.viewport.goTo(basin.spillway!.crest.x,basin.spillway!.crest.z,75);
+         }),
+         button('Créer la rivière de sortie',()=>safe(async()=>{
+           if(p.libraries.water[id])throw Error('Rivière déjà présente : relancer les propositions');
+           await s.hydrate(waterChunkIds(p.world,planned.water));
+           const freshGeo=projectGeography(p).ctx;
+           const freshBasins=analyzeDepressions(bounds,freshGeo.height,p.world.seaLevel,{maxCells:4096,minAreaM2:400}).depressions;
+           const freshBasin=freshBasins.find(b=>JSON.stringify(b)===JSON.stringify(basin));
+           const liveLake=p.libraries.water[lake.id];
+           if(!freshBasin?.spillway||!liveLake)throw Error('La cuvette a changé : recalculer les sorties');
+           const latest=planLakeOutflow(liveLake,freshBasin.spillway,context(),{
+             id,width:planned.water.width,depth:planned.water.depth,maxLengthM:1400});
+           if(JSON.stringify(latest.water)!==JSON.stringify(planned.water))
+             throw Error('Le relief ou le réseau a changé : recalculer la sortie');
+           await s.change('Créer sortie de lac '+lake.id,waterChunkIds(p.world,latest.water),d=>putWater(d,latest.water));
+           ctx.viewport.showPreviewPolyline(null);
+           ctx.status('Rivière de sortie du lac créée et reliée au réseau WATER.');
+           await suggestLakeOutflows();
+         })));
+       outflows.append(row);
+     }catch(error){outflows.append(node('p','Lac '+lake.id+' : '+
+       (error instanceof Error?error.message:String(error)),'muted'));}
+   }
+   if(!accepted)outflows.append(node('p','Aucun exutoire compatible trouvé. Vérifier les berges, le déversoir ou tracer une rivière manuellement.','muted'));
+ };
+
  const waterfalls=node('div','','feature-list');
  const proposeFalls=async()=>{
    await hydrate();
@@ -222,7 +280,8 @@ export function mountHydroNetworkPanel(host:HTMLElement,ctx:RegionPanelContext):
    button('Analyser les bassins versants',()=>safe(inspectBasins)),basins,
    button('Proposer des rivières depuis les bassins versants',()=>safe(inspectHeadwaters)),headwaters,
    button('Proposer des cascades automatiques',()=>safe(proposeFalls)),waterfalls,
-   button('Proposer des lacs dans les cuvettes',()=>safe(proposeLakes)),lakeCandidates);
+   button('Proposer des lacs dans les cuvettes',()=>safe(proposeLakes)),lakeCandidates,
+   button('Proposer des sorties de lacs',()=>safe(suggestLakeOutflows)),outflows);
  host.append(card);
  return ()=>ctx.viewport.showPreviewPolyline(null);
 }
