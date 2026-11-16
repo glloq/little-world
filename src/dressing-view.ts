@@ -198,7 +198,8 @@ export function createDressingView(parent:THREE.Group,seed:number,density:number
             if(useHybrid){
               const g0=library!.species[sp]!,h0=g0.height*s,d3=Math.hypot(x-hybridView.x,y-hybridView.y,z-hybridView.z),slot=i/ITEM_STRIDE;
               const mode=representationFor('tree',h0,d3,hybridView,REPRESENTATION_ORDER[modes![slot]-1],true);modes![slot]=REPRESENTATION_ORDER.indexOf(mode)+1;
-              if(mode==='impostor'||mode==='lod2'){tint.setRGB(.88+.22*t,.88+.22*t,.88+.22*t);if(impostors.write(SPECIES[sp].id,x,y,z,s,r,tint,worldAsset(SPECIES[sp].id)?.lods[0].sha256,grow*1.1))continue;}
+              // Very small trees keep their cheaper 3D silhouette; atlas detail is no longer readable.
+              if(mode==='impostor'){tint.setRGB(.88+.22*t,.88+.22*t,.88+.22*t);if(impostors.write(SPECIES[sp].id,x,y,z,s,r,tint,worldAsset(SPECIES[sp].id)?.lods[0].sha256,grow*1.1))continue;}
             }
             // Far silhouette sized and tinted after the real species model.
             const g=library!.species[sp]!,h=g.height*s,w=g.radius*s*grow*1.1,hex=mix(g.crownHex,0x5a7a4a,.25*t);

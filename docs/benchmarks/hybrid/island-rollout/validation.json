@@ -1,0 +1,39 @@
+{
+  "unitTests": 485,
+  "failures": 0,
+  "typecheck": "passed",
+  "build": "passed",
+  "impostorInputs": "current",
+  "developmentProfile": "passed",
+  "staticProfile": "passed",
+  "lateLoadAndSharedOwnership": {
+    "sharedAlive": true,
+    "released": true
+  },
+  "longTrip": {
+    "query": "impostors=trees&impostorSectors=512",
+    "checks": 8,
+    "errors": [],
+    "routeDistanceM": 4838.805437694365,
+    "nearElementsFreshAndAfter": 141,
+    "dressingCells": 1200,
+    "spritesAtReturn": 385,
+    "cachedSectorsAtReturn": 19
+  },
+  "islandMatrix": {
+    "passes": 16,
+    "errors": 0,
+    "fixedTier": 1,
+    "framebuffer": {
+      "width": 768,
+      "height": 512,
+      "pixelRatio": 0.8
+    },
+    "backend": "SwiftShader"
+  },
+  "conservativeVariant": {
+    "passes": 4,
+    "default": "geometry",
+    "activation": "Menu > Paramètres > Affichage > Végétation lointaine > Hybride (expérimental)"
+  }
+}

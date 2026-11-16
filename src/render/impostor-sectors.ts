@@ -47,7 +47,7 @@ export function createImpostorSectors(parent:THREE.Object3D,kind:'trees'|'charac
  const root=new THREE.Group();root.name='Impostors:'+kind;parent.add(root);
  const material=new THREE.ShaderMaterial({vertexShader:vertex,fragmentShader:fragment,side:THREE.DoubleSide,fog:true,uniforms:{atlas:{value:null},metadata:{value:null},grid:{value:new THREE.Vector2(1,1)},metaWidth:{value:1},time:{value:0},night:{value:0}}});
  const sectors=new Map<string,Sector>();let atlas:AtlasResource|null=null,ticket:ReturnType<typeof acquireAtlas>|null=null,enabled=false,dead=false,clock=0,quota=4096,sectorQuota=32,sectorM=256,activeWrites=0,debug=false,generation=0;
- const stats={bufferUploads:0,unchangedSectors:0,state:'off' as 'off'|'loading'|'ready'|'failed',instances:0,sectors:0,cachedSectors:0,calls:0,textureBytes:0,textures:0,uploadBytes:0,totalUploadBytes:0,evictions:0,preparationMs:0};
+ const stats={sectorM,bufferUploads:0,unchangedSectors:0,state:'off' as 'off'|'loading'|'ready'|'failed',instances:0,sectors:0,cachedSectors:0,calls:0,textureBytes:0,textures:0,uploadBytes:0,totalUploadBytes:0,evictions:0,preparationMs:0};
  function removeSector(s:Sector){s.debug?.geometry.dispose();if(s.debug)(s.debug.material as THREE.Material).dispose();s.debug?.removeFromParent();s.geometry.dispose();s.mesh.removeFromParent();}
  function clearSectors(){for(const s of sectors.values())removeSector(s);sectors.clear();}
  function setEnabled(on:boolean){
@@ -73,7 +73,7 @@ export function createImpostorSectors(parent:THREE.Object3D,kind:'trees'|'charac
  }
  return {root,stats,setDebug(on:boolean){debug=on;for(const s of sectors.values()){if(on&&!s.debug){s.debug=new THREE.Box3Helper(new THREE.Box3(),0xff55aa);root.add(s.debug);}if(s.debug){s.debug.visible=on&&s.count>0;s.debug.box.min.set(s.minX-s.maxRadius,s.minY-s.maxRadius,s.minZ-s.maxRadius);s.debug.box.max.set(s.maxX+s.maxRadius,s.maxY+s.maxRadius,s.maxZ+s.maxRadius);}}},get ready(){return enabled&&!!atlas;},setEnabled,
   setBudget(instances:number,activeSectors:number){quota=Math.max(0,instances);sectorQuota=Math.max(1,activeSectors);},
-  setSectorSize(m:number){if(m===sectorM)return;clearSectors();sectorM=m;},
+  setSectorSize(m:number){if(m===sectorM)return;clearSectors();sectorM=m;stats.sectorM=m;},
   begin(){activeWrites=0;stats.instances=0;stats.uploadBytes=stats.bufferUploads=stats.unchangedSectors=0;for(const s of sectors.values()){s.count=0;s.minX=s.minZ=s.minY=Infinity;s.maxX=s.maxZ=s.maxY=-Infinity;s.maxRadius=0;s.dirtyMin.fill(Infinity);s.dirtyMax.fill(0);}},
   /** Returns false to retain the old geometric representation, including missing/stale atlas. */
   write(id:string,x:number,y:number,z:number,scale:number,rotation:number,tint:THREE.Color,sourceHash?:string,width=1):boolean{

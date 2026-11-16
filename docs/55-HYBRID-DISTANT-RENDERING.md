@@ -155,7 +155,7 @@ elle ne doit pas être comparée directement aux vues statiques de cette nouvell
 
 ### Validation fonctionnelle exécutée
 
-- `npm test` : **482 tests, 0 échec**, dont 8 dédiés à la politique, aux données dérivées,
+- `npm test` : **485 tests, 0 échec**, dont 9 dédiés à la politique, aux données dérivées,
   au cache, au tampon de snapshots et au sampler CPU.
 - `npm run typecheck`, `npm run build`, `npm run check:impostors` : réussis.
 - `npm run test:hybrid` : shaders réels dans Chromium, 10/50/100 identités, somme des
@@ -199,9 +199,9 @@ elle ne doit pas être comparée directement aux vues statiques de cette nouvell
 7. Diagnostic Studio : limites des secteurs imposteurs et seuils en pixels affichés ; pas
    d'annotation de chaque arbre ni de coloration universelle des LOD terrain/GLB. Les atlas
    ne se régénèrent jamais pendant un coup de pinceau ; seuls les lots concernés se redessinent.
-8. Mesures SwiftShader uniquement, courtes et avec qualité adaptative. Les compteurs CPU
-   de simulation reprennent le coût du callback présenté existant ; les callbacks rAF non
-   présentés ne sont pas cumulés dans ce chiffre. Cette limite compte sur une machine rapide.
+8. Mesures SwiftShader uniquement, courtes et avec qualité adaptative. Les anciennes matrices CPU
+   reprennent le coût du callback présenté seul ; la passe « île complète » corrige ce compteur
+   et cumule désormais la simulation des callbacks rAF non présentés entre deux rendus.
    La route de référence initiale reste utile pour une régression longue, pas pour prétendre
    qu'une différence de quelques millisecondes sur les vues statiques est significative.
 
@@ -351,3 +351,110 @@ empreintes des atlas, test hybride WebGL/Studio et nouveau test contrôlé réus
 le gameplay et les schémas auteur ne changent pas. À poursuivre sur GPU intégré réel avant
 une activation par défaut ; les prochaines mesures utiles concernent le coût global terrain,
 la soumission GLB et les longues frames de préparation, désormais dominants dans ces vues.
+
+## Intégration sur l'île complète — profil utilisateur et streaming
+
+### Activer le profil
+
+**Menu → Paramètres → Affichage → Végétation lointaine → Hybride (expérimental)**.
+La préférence est mémorisée dans `little-world:ui-preferences:v1` et s'applique aux cartes
+générées suivantes, dont l'île publiée **4 × 3 km**. Pas de configuration par région ni d'atlas
+par biome. Les mondes historiques non éligibles gardent leur géométrie. Le Studio utilise le
+même renderer via son panneau de comparaison temporaire.
+
+Le profil reste facultatif et le mode classique reste le défaut : le gain de 9–36 % du test
+contrôlé concernait la fixture d'arbres sous SwiftShader, **pas la scène complète**. Les mesures
+ci-dessous ne justifient pas encore d'imposer le rendu hybride à tous les utilisateurs.
+
+Le profil utilisateur utilise les **secteurs de 512 m** et les atlas seulement pour les arbres
+dont la politique choisit `impostor`. Les arbres devenus trop petits (`lod2`) reviennent au
+proxy géométrique existant : moins de remplissage texturé inutile et d'instances éloignées.
+Les 256 m restent disponibles pour les diagnostics et les comparaisons (`?impostors=trees&impostorSectors=256`).
+Terrain, côtes, volcans, falaises, bâtiments, activités et joueur local restent en 3D. Le profil
+végétation n'active ni simulateur de personnages ni atlas de monuments.
+
+Les paramètres de diagnostic `?impostors=off|trees|all` prennent le pas sur la préférence au
+chargement, sans la modifier. Un choix effectué ensuite dans Paramètres s'applique immédiatement.
+Les préférences ne sont écrites ni dans les sauvegardes de partie ni dans le projet V3.
+
+### Changements pour les longues distances
+
+- L'hystérésis des arbres est maintenant stockée dans des tableaux **Uint8Array par cellule**,
+  une case par arbre, évincés avec le cache existant. Plus de clés de coordonnées par arbre
+  ni d'effacement global de l'historique au franchissement de 8 192 entrées.
+- Aucun calcul de sélection d'imposteur ni allocation d'historique lorsque le mode est coupé
+  ou que l'atlas manque. Les octets d'historique sont inclus dans l'estimation du cache.
+- La caméra est comparée à la **dernière vue reconstruite**, y compris hauteur du framebuffer.
+  Les petits mouvements successifs, le zoom ou une rotation autour d'un joueur immobile peuvent
+  donc provoquer une mise à jour LOD ; leur différence ne se perd plus à chaque frame.
+- Désactiver un consommateur libère ses secteurs et sa référence d'atlas. Une page encore
+  détenue par un autre consommateur reste valide ; une page sans propriétaire est détruite.
+  Un token de génération empêche un ancien chargement asynchrone de réactiver un mode coupé.
+  Le repli géométrique est reconstruit dès la présentation suivante.
+- Le profil végétation charge **2 100 992 octets GPU estimés**, deux textures partagées pour
+  tous les secteurs. Le parcours entre plusieurs régions ne multiplie pas ces pages. Le retour
+  au mode classique ramène ce cache à zéro quand aucun autre consommateur ne le détient.
+
+### Validation fonctionnelle et statique
+
+`npm run test:hybrid-map` vérifie le réglage réel, la persistance après rechargement, la priorité
+d'une URL de diagnostic, les cycles activation/désactivation, le partage entre consommateurs,
+les chargements tardifs et six points de l'île. Les caches restent dans leurs quotas.
+Le même parcours fonctionne sur le build statique avec :
+
+```sh
+HYBRID_STATIC=1 node tools/test-hybrid-map.mjs http://127.0.0.1:4176/little-world/ /tmp/hybrid-map-static
+DRESSING_QUERY='impostors=trees&impostorSectors=512' npm run test:dressing-stability
+```
+
+Le second test simule un parcours d'environ **4,84 km**, par sauts de 48 m, remplit le cache à
+1 200 cellules puis revient au point de départ. Les mêmes **141 arbres et rochers proches**
+restent présents ; aucun élément proche ne disparaît à l'arrêt ou en marche. La simulation,
+les indices de cueillette/abattage et la génération des positions n'ont pas changé.
+
+Rapports : [profil et propriété des ressources](benchmarks/hybrid/island-rollout/profile.json),
+[build statique](benchmarks/hybrid/island-rollout/static-profile.json),
+[vue de l'île](benchmarks/hybrid/island-rollout/island-hybrid.png).
+
+### Mesures de la carte complète
+
+Le benchmark accepte désormais un fichier de vues. La commande suivante compare les huit
+régions/actions de `tools/island-hybrid-views.json` : forêt, village, volcan, côte, marais,
+panorama, planage et rotation.
+
+```sh
+npm run benchmark:hybrid-island -- http://127.0.0.1:5173/little-world/ /tmp/hybrid-island
+# GPU choisi par Chrome sur une machine équipée ; vérifier le renderer réellement enregistré :
+HYBRID_GPU=default npm run benchmark:hybrid-island -- http://127.0.0.1:5173/little-world/ /tmp/hybrid-island-hardware
+```
+
+La qualité est fixée par `?renderTier=1` dans **le PresentationBudget existant**, uniquement
+pour la comparaison. Le jeu sans ce paramètre conserve son adaptation normale. Le script
+attend la fin des files terrain/habillage, puis mesure après stabilisation. Il enregistre le
+framebuffer réel (ici **768×512** pour un viewport de 960×640), les niveaux de qualité, le
+FPS effectif, les percentiles et les compteurs. Le CPU simulation cumule maintenant également
+les callbacks non présentés. Aucun deuxième contrôleur adaptatif n'est ajouté.
+
+Première matrice : **16 passages, zéro erreur de rendu**, qualité 1 identique des deux côtés.
+[Rapport 256 m](benchmarks/hybrid/island-rollout/comparison-256.json). Exemple forêt :
+46 467 → 39 704 triangles, mais 84 → 89 appels et p50 98,0 → 103,4 ms. Le rendu texturé
+n'apporte donc pas automatiquement un gain de frame sur le monde complet.
+
+Une seconde passe a comparé le profil plus conservateur (atlas lisible uniquement, 512 m)
+sur quatre vues : [rapport 512 m](benchmarks/hybrid/island-rollout/conservative-512.json).
+Elle part du même code de base, avec le filtre de lisibilité ajouté ; les valeurs ci-dessous
+sont des observations SwiftShader de passes distinctes, pas une qualification GPU intégré.
+
+| Vue | Classique : appels / p50 ms | Hybride 256 m : appels / p50 ms | Profil 512 m : appels / p50 ms |
+|---|---:|---:|---:|
+| forest | 84.0 / 98.0 | 89.0 / 103.4 | 89.0 / 101.2 |
+| village | 179.0 / 120.6 | 185.0 / 131.6 | 183.0 / 130.9 |
+| panorama | 141.0 / 113.4 | 150.0 / 120.8 | 146.0 / 113.0 |
+| rotation | 65.0 / 91.7 | 71.6 / 89.3 | 70.1 / 100.8 |
+
+En forêt, la variante conservatrice utilise **739 imposteurs et 7 lots actifs**, contre
+1 133 imposteurs et 12 lots dans la première variante ; au village, 809/9 contre 1 291/12.
+La rotation reste une mesure dynamique sensible au calendrier des frames. Le gain global
+reste non démontré : le profil est intégré et testable sur toute la carte, **pas activé par défaut**.
+L'essai sur GPU intégré réel, avec les mêmes vues et le renderer enregistré, reste le prochain
+critère pour décider d'une activation automatique.

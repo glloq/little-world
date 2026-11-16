@@ -39,6 +39,7 @@ try{
     if(last){const now=new Set(s.k);for(const key of last)if(TREES_OR_ROCKS(key)&&!now.has(key)){const [,x,z]=key.split(':').map(Number);if(Math.hypot(x-s.p[0],z-s.p[2])<35)lost++;}}last=s.k;await page.waitForTimeout(100);}
   await page.keyboard.up('KeyW');
   check(lost===0,'Walking: no tree or rock within 35 m disappears ('+lost+')');
+  if(process.env.DRESSING_QUERY?.includes('impostors=trees')){const h=await page.evaluate(()=>window.littleWorldMetrics.hybrid);check(h.trees.state==='ready'&&h.trees.cachedSectors<=32&&h.trees.instances<=4096&&h.cache.bytes<=12*1024*1024,'Hybrid streaming stays bounded after the trip ('+h.trees.instances+' sprites, '+h.trees.cachedSectors+' cached sectors)');}
   check(errors.length===0,'No page errors');
   console.log(JSON.stringify({checks,errors}));
 }finally{await browser.close();}
