@@ -45,8 +45,8 @@ function segmentList(def:TerrainGeneratorDefinition|undefined,worldSeed:number):
  return result;
 }
 export interface CliffSlice {a:PointXZ;b:PointXZ;widthM:number;seed:number;startM?:number;endM?:number;normalA?:PointXZ;normalB?:PointXZ;capStart?:boolean;capEnd?:boolean;volcanic?:boolean}
-const ROCK_PALETTE=[0x797f78,0x92958a,0x626e67,0x9da093,0x77766c].map(hex=>new THREE.Color(hex));
-const BASALT_PALETTE=[0x42474b,0x57585a,0x393e43,0x67635e,0x48464a].map(hex=>new THREE.Color(hex));
+const ROCK_PALETTE=[0x929083,0x7c837e,0x8b887c].map(hex=>new THREE.Color(hex));
+const BASALT_PALETTE=[0x505455,0x555753,0x4b5053].map(hex=>new THREE.Color(hex));
 /** Deterministic global-space strata. Shared boundary stations have identical positions
  * independent of segment subdivision, LOD, load order and regeneration. */
 export function buildCliffGeometry(s:CliffSlice,height:(x:number,z:number)=>number,lod:0|1=0):THREE.BufferGeometry{
@@ -58,37 +58,52 @@ export function buildCliffGeometry(s:CliffSlice,height:(x:number,z:number)=>numb
  const start=s.startM??0,end=s.endM??len;
  const positions:number[]=[],colors:number[]=[];
  const pick=(t:number,v:number,side:number,part:number)=>unit(s.seed^Math.imul(Math.round(t*3)+19,7963)^Math.imul(Math.round(v*53)+11,1543)^Math.imul(side+3,997)^Math.imul(part+1,4591));
- function vertex(t:number,v:number,side:number):{x:number;y:number;z:number}{
+ type RockPoint={x:number;y:number;z:number;color?:THREE.Color};
+ const phase=unit(s.seed)*Math.PI*2;
+ // Geological columns follow the whole polyline, including shared stations and both LODs.
+ const fracture=(u:number,side:number)=>(Math.sin(u*.44+phase+side*.7)+.35*Math.sin(u*.91+phase*1.7))/1.35;
+ function stoneColor(p:RockPoint,u:number,v:number,side:number):THREE.Color{
+  // World-height layers replace the per-quad lottery: no checkerboard at segment joins.
+  const warp=.55*Math.sin(p.x*.018+p.z*.012+phase);
+  const layer=(p.y+warp)/(s.volcanic?7:4.8)+phase;
+  const vein=Math.max(0,1-Math.abs(Math.sin(layer*Math.PI))/.18);
+  const column=fracture(u,side),foot=v*v*.10;
+  // Intrinsic cavity shading only, not a baked sun direction: compatible with day/night.
+  const cavity=Math.max(0,-column)*Math.sin(Math.PI*v)*.17;
+  const shade=1-foot-cavity-vein*(s.volcanic ? .035 : .08)+Math.max(0,column)*.025;
+  return palette[0].clone().lerp(palette[1],.5+.5*Math.sin(layer*Math.PI)).multiplyScalar(shade);
+ }
+ function vertex(t:number,v:number,side:number):RockPoint{
   const u=lerp(start,end,t),cx=lerp(s.a.x,s.b.x,t),cz=lerp(s.a.z,s.b.z,t);
   const dx=lerp(na.x,nb.x,t),dz=lerp(na.z,nb.z,t),scale=1/(Math.hypot(dx,dz)||1);
-  const interior=v>0&&v<1&&t>0&&t<1;
-  const rough=interior?(pick(u,v,side,1)-.5)*width*.22:0;
+  const column=fracture(u,side),envelope=Math.sin(Math.PI*v);
+  // Reposition existing vertices into long vertical ribs instead of random band bumps.
+  // Boundaries use the same global u; do not zero the relief at every segment end.
+  const rough=column*width*(s.volcanic ? .28 : .22)*envelope;
   const lateral=width*(.11+1.14*v)+rough;
   const x=cx+dx*scale*side*lateral,z=cz+dz*scale*side*lateral;
   const centerH=height(cx,cz),native=height(x,z);
   const footX=cx+dx*scale*side*width*1.25,footZ=cz+dz*scale*side*width*1.25;
   const footH=height(footX,footZ);
   // Raise interior geological ribs only where a real native slope exists.
-  const relief=Math.max(0,centerH-footH),rib=interior?relief*(.025+.09*pick(u,v,side,2))*Math.sin(Math.PI*v):0;
-  const desired=lerp(centerH,footH,v===0?0:v===1?1:v*.72)+rib;
+  const relief=Math.max(0,centerH-footH),rib=relief*(.025+(s.volcanic ? .18 : .12)*Math.max(0,column))*envelope;
+  const desired=lerp(centerH,footH,v===0?0:v===1?1:v*.88)+rib;
   // Blend open ends into native relief; internal stations retain the shared ring.
   const openEnd=t===0&&s.capStart||t===1&&s.capEnd;
-  return {x,y:openEnd?native+.08:Math.max(native+.24,desired+.24),z};
+  const p:RockPoint={x,y:openEnd?native+.08:Math.max(native+.24,desired+.24),z};
+  p.color=stoneColor(p,u,v,side);return p;
  }
- function tri(p:{x:number;y:number;z:number},q:typeof p,r:typeof p,color:THREE.Color){
-  positions.push(p.x,p.y,p.z,q.x,q.y,q.z,r.x,r.y,r.z);
-  for(let k=0;k<3;k++)colors.push(color.r,color.g,color.b);
+ function tri(p:RockPoint,q:RockPoint,r:RockPoint,color?:THREE.Color){
+  for(const point of [p,q,r]){
+   positions.push(point.x,point.y,point.z);
+   const c=color??point.color!;colors.push(c.r,c.g,c.b);
+  }
  }
  for(const side of [-1,1]){
   const grid=Array.from({length:sta},(_,i)=>Array.from({length:bands},(_,j)=>vertex(i/(sta-1),j/(bands-1),side)));
   for(let i=0;i<sta-1;i++)for(let j=0;j<bands-1;j++){
    const p=grid[i][j],q=grid[i+1][j],r=grid[i+1][j+1],b=grid[i][j+1];
-   // Strata alternate across bands; small colour noise varies faceted rock without a texture.
-   const depth=j/(bands-1),layer=Math.floor(depth*5);
-   const index=(layer+Math.floor(pick(lerp(start,end,(i+.5)/(sta-1)),depth,side,3)*3))%palette.length;
-   const base=palette[index],shade=.86+.25*pick(lerp(start,end,(i+.5)/(sta-1)),depth,side,4);
-   const color=base.clone().multiplyScalar(shade);
-   if(side===1){tri(p,q,r,color);tri(p,r,b,color);}else{tri(p,r,q,color);tri(p,b,r,color);}
+   if(side===1){tri(p,q,r);tri(p,r,b);}else{tri(p,r,q);tri(p,b,r);}
   }
   // Integrated scree apron: a few low-poly shards rooted in the native slope.
   // No individual draw calls, colliders or vegetation entities.

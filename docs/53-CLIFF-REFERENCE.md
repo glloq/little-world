@@ -128,9 +128,45 @@ budget commun aux cinq zones, normales plates, couleurs, raccord courbe entre LO
 extrémités ouvertes et couverture d'horizon sur le secteur unique.
 
 Les captures servent à comparer la silhouette, les cassures, les bandes, le pied et
-la transition herbe/terre/roche. Restent à affiner artistiquement : régularité encore
-marquée des bandes, variété des fractures de basalte, densité/lisibilité des petits
-éboulis et douceur du raccord au rebord herbeux. Le plateau reste un relief natif
+la transition herbe/terre/roche. Restent à affiner artistiquement : variété des silhouettes et des fractures de basalte,
+densité/lisibilité des petits éboulis et douceur du raccord au rebord herbeux. Le plateau reste un relief natif
 bordé d'une crête, sans surplomb ; les parois ne constituent pas des colliders séparés.
 Les captures SwiftShader vérifient le rendu et les régressions, pas une performance
 GPU intégrée ni un objectif FPS sur matériel réel.
+
+
+## Essai visuel : couleurs continues et fractures verticales
+
+Le rendu applique maintenant trois ajustements à la génération du même maillage :
+
+- Strates calculées selon l'altitude du monde, légèrement ondulées, avec une palette
+  resserrée et une interpolation par sommet. Les limites des tronçons ne tirent plus
+  une couleur au hasard par quadrilatère : l'effet damier/rayures est atténué.
+- Assombrissement léger du pied et des creux directement dans les vertex colors.
+  C'est une suggestion d'occlusion intrinsèque, sans direction solaire précalculée,
+  SSAO, texture, lumière ou passe de rendu supplémentaire.
+- Déplacement des sommets existants en colonnes cohérentes le long du tracé. Les
+  fractures sont plus profondes pour le basalte. Les coordonnées cumulées conservent
+  la continuité des positions et des couleurs aux jonctions et entre LOD.
+
+Le nombre de triangles, les draw calls des faces rocheuses et la taille des attributs
+restent identiques : **7 128 octets au LOD 0**, **3 240 au LOD 1** par tronçon.
+Les nouvelles opérations s'exécutent seulement à la construction/invalidation du
+maillage ; aucun calcul d'occlusion ni de géologie n'est ajouté à chaque frame.
+Les normales restent plates ; les couleurs peuvent varier à l'intérieur d'une face.
+
+Comparaison aux mêmes points de vue (images initiales conservées au commit `0edac2b`) :
+
+| Avant | Après |
+| --- | --- |
+| ![Droite avant](captures/cliffs/before/cliffs-simple.png) | ![Droite après](captures/cliffs/cliffs-simple.png) |
+| ![Basalte avant](captures/cliffs/before/cliffs-volcanic.png) | ![Basalte après](captures/cliffs/cliffs-volcanic.png) |
+
+Les tests complémentaires vérifient les couleurs communes aux frontières et aux LOD,
+l'orientation des colonnes, l'assombrissement du pied et le budget exact des attributs.
+Les éboulis regroupés et la bande de terre/mousse au rebord restent des pistes pour
+une prochaine itération ; cet essai se concentre sur les trois ajustements ci-dessus.
+
+Validation de cet essai : 447 tests unitaires, TypeScript, build statique, ouverture/
+export ZIP du Studio et sept captures validés. Les compteurs de triangles et de draw
+calls de la scène entière sont identiques à la série initiale pour les sept vues.

@@ -1,5 +1,5 @@
 {
-  "recordedAt": "2026-11-16T05:59:25.377Z",
+  "recordedAt": "2026-11-16T06:15:42.026Z",
   "base": "http://127.0.0.1:5173/little-world/",
   "viewport": {
     "width": 1280,
@@ -11,7 +11,7 @@
       "name": "cliffs-overview",
       "label": "Les cinq zones — vue générale",
       "settled": true,
-      "settleMs": 1666,
+      "settleMs": 1684,
       "metrics": {
         "calls": 42,
         "triangles": 14735,
@@ -41,7 +41,7 @@
             "lod1": 0,
             "triangles": 0,
             "bytes": 154422,
-            "loadMs": 67.40000000002328,
+            "loadMs": 104.30000000004657,
             "failed": [],
             "dropped": 0
           }
@@ -56,7 +56,7 @@
       "name": "cliffs-simple",
       "label": "Droite — strates, pied et raccords",
       "settled": true,
-      "settleMs": 1660,
+      "settleMs": 1919,
       "metrics": {
         "calls": 19,
         "triangles": 43200,
@@ -68,8 +68,8 @@
         "cliffs": {
           "available": 27,
           "visible": 27,
-          "built": 29,
-          "disposed": 2,
+          "built": 32,
+          "disposed": 5,
           "triangles": 1350,
           "lod0": 15,
           "lod1": 12,
@@ -86,7 +86,7 @@
             "lod1": 0,
             "triangles": 0,
             "bytes": 154422,
-            "loadMs": 141,
+            "loadMs": 133.19999999995343,
             "failed": [],
             "dropped": 0
           }
@@ -101,7 +101,7 @@
       "name": "cliffs-broken",
       "label": "Décrochements — jonctions à angles droits",
       "settled": true,
-      "settleMs": 1885,
+      "settleMs": 1752,
       "metrics": {
         "calls": 22,
         "triangles": 43656,
@@ -113,8 +113,8 @@
         "cliffs": {
           "available": 27,
           "visible": 27,
-          "built": 30,
-          "disposed": 3,
+          "built": 27,
+          "disposed": 0,
           "triangles": 1314,
           "lod0": 14,
           "lod1": 13,
@@ -131,7 +131,7 @@
             "lod1": 0,
             "triangles": 0,
             "bytes": 154422,
-            "loadMs": 154,
+            "loadMs": 181.19999999995343,
             "failed": [],
             "dropped": 0
           }
@@ -146,7 +146,7 @@
       "name": "cliffs-curved",
       "label": "Courbe — continuité des tronçons",
       "settled": true,
-      "settleMs": 1676,
+      "settleMs": 1645,
       "metrics": {
         "calls": 20,
         "triangles": 42698,
@@ -158,8 +158,8 @@
         "cliffs": {
           "available": 27,
           "visible": 27,
-          "built": 27,
-          "disposed": 0,
+          "built": 32,
+          "disposed": 5,
           "triangles": 1278,
           "lod0": 13,
           "lod1": 14,
@@ -176,7 +176,7 @@
             "lod1": 0,
             "triangles": 0,
             "bytes": 154422,
-            "loadMs": 198.89999999990687,
+            "loadMs": 109.39999999990687,
             "failed": [],
             "dropped": 0
           }
@@ -191,7 +191,7 @@
       "name": "cliffs-plateau",
       "label": "Plateau — rebord herbeux et roche",
       "settled": true,
-      "settleMs": 1710,
+      "settleMs": 1761,
       "metrics": {
         "calls": 35,
         "triangles": 44568,
@@ -221,7 +221,7 @@
             "lod1": 0,
             "triangles": 0,
             "bytes": 154422,
-            "loadMs": 137.89999999990687,
+            "loadMs": 80.70000000018626,
             "failed": [],
             "dropped": 0
           }
@@ -236,7 +236,7 @@
       "name": "cliffs-volcanic",
       "label": "Volcanique — roche dure sombre",
       "settled": true,
-      "settleMs": 1666,
+      "settleMs": 1655,
       "metrics": {
         "calls": 32,
         "triangles": 38692,
@@ -266,7 +266,7 @@
             "lod1": 0,
             "triangles": 0,
             "bytes": 154422,
-            "loadMs": 130.4000000001397,
+            "loadMs": 100.29999999981374,
             "failed": [],
             "dropped": 0
           }
@@ -281,7 +281,7 @@
       "name": "cliffs-lod",
       "label": "Vue lointaine — LOD 1",
       "settled": true,
-      "settleMs": 1639,
+      "settleMs": 1646,
       "metrics": {
         "calls": 41,
         "triangles": 14532,
@@ -293,8 +293,8 @@
         "cliffs": {
           "available": 27,
           "visible": 27,
-          "built": 41,
-          "disposed": 14,
+          "built": 42,
+          "disposed": 15,
           "triangles": 846,
           "lod0": 1,
           "lod1": 26,
@@ -311,7 +311,7 @@
             "lod1": 0,
             "triangles": 0,
             "bytes": 154422,
-            "loadMs": 132.30000000004657,
+            "loadMs": 129.60000000009313,
             "failed": [],
             "dropped": 0
           }
