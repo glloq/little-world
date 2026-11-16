@@ -68,7 +68,9 @@
     "generate:world-kit": "node tools/assets/generate-world-kit.mjs && npm run generate:world-assets",
     "benchmark:hybrid": "node tools/benchmark-hybrid.mjs",
     "test:hybrid": "node tools/test-hybrid-browser.mjs",
-    "test:impostor-optimization": "node tools/test-impostor-optimization.mjs"
+    "test:impostor-optimization": "node tools/test-impostor-optimization.mjs",
+    "test:hybrid-map": "node tools/test-hybrid-map.mjs",
+    "benchmark:hybrid-island": "HYBRID_VIEWS=tools/island-hybrid-views.json HYBRID_CONFIGS=off,sectors HYBRID_RENDER_TIER=1 HYBRID_WAIT_IDLE=1 node tools/benchmark-hybrid.mjs"
   },
   "dependencies": {
     "three": "^0.180.0"

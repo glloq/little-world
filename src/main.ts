@@ -75,8 +75,9 @@ const renderer = new THREE.WebGLRenderer({
   powerPreference: 'high-performance',
 });
 const quality = document.querySelector<HTMLSelectElement>('#quality')!;
+const renderTier=new URLSearchParams(location.search).get('renderTier');
 const presentation = new FrameClock(),
-  budget = new PresentationBudget();
+  budget = new PresentationBudget(renderTier===null?undefined:Number(renderTier));
 const qualityRatios = { low: 1, medium: 1.35, high: 2 } as const;
 type RenderQuality = keyof typeof qualityRatios;
 const remembered = (() => {
@@ -215,7 +216,7 @@ let activityQueue=0,cropQueue=0,strikeTimer=0;
 world.update(0, player.position);
 {
   const {createGameUi}=await import('./ui/app/game-ui.ts'),c=getTerrainConfig();
-  gameUi=createGameUi({gameplay,npcs,audio,quality:document.querySelector<HTMLSelectElement>('#quality'),temporary:!!(studioTest||buildScope),studioUrl:import.meta.env.BASE_URL+'studio/',
+  gameUi=createGameUi({gameplay,npcs,audio,applyDistantRendering:(value,initial)=>{if(!initial||!searchParams.has('impostors'))world.hybrid.setMode(value==='hybrid'?'trees':'off');},quality:document.querySelector<HTMLSelectElement>('#quality'),temporary:!!(studioTest||buildScope),studioUrl:import.meta.env.BASE_URL+'studio/',
     world:{name:definition.name,buildVersion:gameplay?.runtime.data.buildVersion??'vallée',dayLength:climate.definition.dayLengthSeconds,bounds:{minX:-c.width/2,maxX:c.width/2,minZ:-c.length/2,maxZ:c.length/2},seaLevel:c.seaLevel,height:terrainHeight,water:waterSurface},
     player:()=>({x:player.position.x,y:player.position.y,z:player.position.z,yaw,space:player.space,mode:player.mode,oxygen:player.oxygen,maxOxygen:MAX_OXYGEN,stamina:player.stamina??MAX_STAMINA,maxStamina:MAX_STAMINA,speed:player.velocity.length(),stalled:player.stalled}),
     target:()=>currentTarget(),
@@ -257,6 +258,7 @@ const previousPlayerPosition = player.position.clone(),
   renderPosition = player.position.clone();
 let presentedFrames = 0;
 let lastPresented: number | null = null;
+let pendingSimulationMs=0;
 let frameCount = 0,
   fpsTime = 0;
 const clockDt = presentation.step;
@@ -668,11 +670,12 @@ function draw(now: number) {
     if (previousPlayerPosition.distanceToSquared(player.position) > 100)
       previousPlayerPosition.copy(player.position);
   }
-  const simulationMs = performance.now() - simulationBegin;
+  pendingSimulationMs += performance.now() - simulationBegin;
   if (!frame.render) {
     requestAnimationFrame(draw);
     return;
   }
+  const simulationMs=pendingSimulationMs;pendingSimulationMs=0;
   const wallDrawDelta =
     lastPresented === null ? 0 : (now - lastPresented) / 1000;
   lastPresented = now;
@@ -718,6 +721,7 @@ function draw(now: number) {
     Object.assign(window, {
       littleWorldMetrics: {
         frameId: ++presentedFrames,
+        framebuffer:{width:renderer.domElement.width,height:renderer.domElement.height,pixelRatio:renderer.getPixelRatio()},
         calls: renderer.info.render.calls,
         triangles: renderer.info.render.triangles,
         geometries: renderer.info.memory.geometries,
@@ -787,7 +791,7 @@ window.addEventListener('pagehide',event=>{if(event.persisted)void audio?.engine
 window.addEventListener('pageshow',event=>{if(event.persisted&&started)void audio?.engine.setHidden(document.hidden);});
 document.addEventListener('visibilitychange', () => {
   presentation.reset();
-  lastPresented = null;
+  lastPresented = null;pendingSimulationMs=0;
   fpsTime = 0;
   frameCount = 0;
   keySet.clear();

@@ -3,6 +3,11 @@
 export type Representation='lod0'|'lod1'|'lod2'|'impostor'|'aggregate'|'hidden';
 export type RenderFamily='tree'|'shrub'|'rock'|'building'|'landmark'|'character';
 export interface RepresentationView {x:number;y:number;z:number;fov:number;height:number;quality:number}
+/** Compare against the last rebuilt view, never against the previous animation frame.
+ * This catches gradual zoom/orbit changes while keeping rebuilds bounded. */
+export function representationViewChanged(view:Omit<RepresentationView,'quality'>,planned:Omit<RepresentationView,'quality'>){
+ return Math.hypot(view.x-planned.x,view.z-planned.z)>24||Math.abs(view.y-planned.y)>12||Math.abs(view.fov-planned.fov)>2||view.height!==planned.height;
+}
 export const REPRESENTATION_POLICY:Record<RenderFamily,{pixels:readonly number[];maxM:number;hysteresis:number}>={
  tree:{pixels:[90,32,7,1],maxM:2000,hysteresis:.16},shrub:{pixels:[50,16,5,2],maxM:180,hysteresis:.18},
  rock:{pixels:[90,28,5,1],maxM:1600,hysteresis:.16},building:{pixels:[100,35,8,1],maxM:2400,hysteresis:.15},

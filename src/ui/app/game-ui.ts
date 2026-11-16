@@ -30,14 +30,15 @@ export interface GameUiDeps {
   player():{x:number;y:number;z:number;yaw:number;space?:MovementSpace;mode:string;oxygen:number;maxOxygen:number;stamina:number;maxStamina:number;speed?:number;stalled?:boolean};
   target():TargetDescriptor|null;
   quality:HTMLSelectElement|null;
+  applyDistantRendering?(value:UiPreferences['distantRendering'],initial:boolean):void;
   home():void;studioUrl:string;temporary:boolean;
 }
 export function createGameUi(deps:GameUiDeps){
   const host=el('div','ui-root');host.id='ui-root';document.body.append(host);
-  let prefs=loadPreferences();
+  let prefs=loadPreferences();deps.applyDistantRendering?.(prefs.distantRendering,true);
   const devUrl=/[?&](metrics|dev)(=|&|$)/.test(location.search);
   const applyPrefs=()=>{document.body.classList.toggle('developer',prefs.developer||devUrl);document.body.classList.toggle('reduce-motion',prefs.reduceMotion);};applyPrefs();
-  const updatePrefs=(patch:Partial<UiPreferences>)=>{prefs={...prefs,...patch};if(!savePreferences(prefs))center.notify('warning','Préférences non enregistrées (stockage local indisponible)');applyPrefs();};
+  const updatePrefs=(patch:Partial<UiPreferences>)=>{prefs={...prefs,...patch};if(patch.distantRendering!==undefined)deps.applyDistantRendering?.(prefs.distantRendering,false);if(!savePreferences(prefs))center.notify('warning','Préférences non enregistrées (stockage local indisponible)');applyPrefs();};
   // Notifications: interface sounds from the Audio V2 catalogue, only when not merged.
   const sound=(kind:NoticeKind)=>{const id=kind==='error'||kind==='warning'?'ui.error':kind==='save'?'ui.save':kind==='quest'?'ui.confirm':null;if(id)deps.audio?.emit(id,{source:'ui'});};
   const center=createNotificationCenter(host,sound);

@@ -66,7 +66,11 @@ export class PresentationBudget {
   private stable = 0;
   private averageWork = 0;
   private averageInterval = 0;
+  private fixed = false;
+  /** Explicit benchmark override: the same budget/quotas, without adaptation during A/B. */
+  constructor(fixedLevel?:number){if(fixedLevel!==undefined&&Number.isInteger(fixedLevel)&&fixedLevel>=0&&fixedLevel<=2){this.level=fixedLevel;this.fixed=true;}}
   observe(workMs: number, seconds: number): boolean {
+    if(this.fixed)return false;
     if (!Number.isFinite(workMs) || !Number.isFinite(seconds) || seconds <= 0)
       return false;
     const target = 1000 / this.rate;

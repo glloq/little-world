@@ -65,3 +65,9 @@ test('offline alpha crops retain transparent filtering margin and WebGL bottom-u
  const bad=structuredClone(manifest);bad.pages.trees.crops[0]=[0,0,2,1];assert.throws(()=>parseImpostorManifest(bad));
  const legacy=structuredClone(manifest);for(const p of Object.values(legacy.pages))delete p.crops;assert.doesNotThrow(()=>parseImpostorManifest(legacy));
 });
+
+test('gradual camera zoom invalidates representations from the last rebuilt view, including framebuffer resize',async()=>{
+ const {representationViewChanged}=await import('../src/render/representation-policy.ts');const origin={x:0,y:30,z:0,fov:66,height:720};let planned={...origin},rebuilds=0;
+ for(let i=1;i<=40;i++){const current={...origin,fov:66+i*.25};if(representationViewChanged(current,planned)){rebuilds++;planned=current;}}
+ assert.ok(rebuilds>=2,'small per-frame changes must accumulate instead of leaving stale LODs');assert.equal(representationViewChanged(planned,planned),false);assert.equal(representationViewChanged({...planned,height:1080},planned),true);
+});

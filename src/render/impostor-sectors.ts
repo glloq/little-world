@@ -46,12 +46,24 @@ function store(s:Sector,field:number,index:number,x:number,y:number,z:number,w?:
 export function createImpostorSectors(parent:THREE.Object3D,kind:'trees'|'characters'|'buildings',onReady=()=>{}){
  const root=new THREE.Group();root.name='Impostors:'+kind;parent.add(root);
  const material=new THREE.ShaderMaterial({vertexShader:vertex,fragmentShader:fragment,side:THREE.DoubleSide,fog:true,uniforms:{atlas:{value:null},metadata:{value:null},grid:{value:new THREE.Vector2(1,1)},metaWidth:{value:1},time:{value:0},night:{value:0}}});
- const sectors=new Map<string,Sector>();let atlas:AtlasResource|null=null,ticket:ReturnType<typeof acquireAtlas>|null=null,enabled=false,dead=false,clock=0,quota=4096,sectorQuota=32,sectorM=256,activeWrites=0,debug=false;
+ const sectors=new Map<string,Sector>();let atlas:AtlasResource|null=null,ticket:ReturnType<typeof acquireAtlas>|null=null,enabled=false,dead=false,clock=0,quota=4096,sectorQuota=32,sectorM=256,activeWrites=0,debug=false,generation=0;
  const stats={bufferUploads:0,unchangedSectors:0,state:'off' as 'off'|'loading'|'ready'|'failed',instances:0,sectors:0,cachedSectors:0,calls:0,textureBytes:0,textures:0,uploadBytes:0,totalUploadBytes:0,evictions:0,preparationMs:0};
+ function removeSector(s:Sector){s.debug?.geometry.dispose();if(s.debug)(s.debug.material as THREE.Material).dispose();s.debug?.removeFromParent();s.geometry.dispose();s.mesh.removeFromParent();}
+ function clearSectors(){for(const s of sectors.values())removeSector(s);sectors.clear();}
  function setEnabled(on:boolean){
-  enabled=on;root.visible=on;if(!on){stats.instances=stats.calls=0;stats.state='off';return;}
-  if(atlas){stats.state='ready';onReady();return;}if(ticket)return;stats.state='loading';ticket=acquireAtlas(kind);
-  void ticket.promise.then(value=>{if(dead)return;atlas=value;material.uniforms.atlas.value=value.texture;material.uniforms.metadata.value=value.metadata;material.uniforms.grid.value.set(value.page.columns,value.page.rows);material.uniforms.metaWidth.value=value.page.anchors.length*2;stats.state=enabled?'ready':'off';stats.textureBytes=value.bytes;stats.textures=2;onReady();},()=>{if(dead)return;stats.state='failed';ticket?.release();ticket=null;onReady();});
+  if(dead)return;enabled=on;root.visible=on;
+  if(!on){
+   generation++;ticket?.release();ticket=null;atlas=null;clearSectors();clearUnusedAtlases();
+   material.uniforms.atlas.value=material.uniforms.metadata.value=null;
+   stats.instances=stats.sectors=stats.cachedSectors=stats.calls=stats.textureBytes=stats.textures=stats.uploadBytes=stats.bufferUploads=0;stats.state='off';return;
+  }
+  if(atlas){stats.state='ready';onReady();return;}if(ticket)return;
+  const token=++generation,owner=acquireAtlas(kind);ticket=owner;stats.state='loading';
+  void owner.promise.then(value=>{
+   if(dead||token!==generation)return;atlas=value;material.uniforms.atlas.value=value.texture;material.uniforms.metadata.value=value.metadata;
+   material.uniforms.grid.value.set(value.page.columns,value.page.rows);material.uniforms.metaWidth.value=value.page.anchors.length*2;
+   stats.state='ready';stats.textureBytes=value.bytes;stats.textures=2;onReady();
+  },()=>{if(dead||token!==generation)return;stats.state='failed';owner.release();ticket=null;onReady();});
  }
  function allocate(key:string,cx:number,cz:number):Sector{
   const g=new THREE.InstancedBufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute([-.5,-.5,0,.5,-.5,0,.5,.5,0,-.5,.5,0],3));g.setAttribute('uv',new THREE.Float32BufferAttribute([0,0,1,0,1,1,0,1],2));g.setIndex([0,1,2,0,2,3]);
@@ -61,7 +73,7 @@ export function createImpostorSectors(parent:THREE.Object3D,kind:'trees'|'charac
  }
  return {root,stats,setDebug(on:boolean){debug=on;for(const s of sectors.values()){if(on&&!s.debug){s.debug=new THREE.Box3Helper(new THREE.Box3(),0xff55aa);root.add(s.debug);}if(s.debug){s.debug.visible=on&&s.count>0;s.debug.box.min.set(s.minX-s.maxRadius,s.minY-s.maxRadius,s.minZ-s.maxRadius);s.debug.box.max.set(s.maxX+s.maxRadius,s.maxY+s.maxRadius,s.maxZ+s.maxRadius);}}},get ready(){return enabled&&!!atlas;},setEnabled,
   setBudget(instances:number,activeSectors:number){quota=Math.max(0,instances);sectorQuota=Math.max(1,activeSectors);},
-  setSectorSize(m:number){if(m===sectorM)return;for(const s of sectors.values()){s.debug?.geometry.dispose();if(s.debug)(s.debug.material as THREE.Material).dispose();s.debug?.removeFromParent();s.geometry.dispose();s.mesh.removeFromParent();}sectors.clear();sectorM=m;},
+  setSectorSize(m:number){if(m===sectorM)return;clearSectors();sectorM=m;},
   begin(){activeWrites=0;stats.instances=0;stats.uploadBytes=stats.bufferUploads=stats.unchangedSectors=0;for(const s of sectors.values()){s.count=0;s.minX=s.minZ=s.minY=Infinity;s.maxX=s.maxZ=s.maxY=-Infinity;s.maxRadius=0;s.dirtyMin.fill(Infinity);s.dirtyMax.fill(0);}},
   /** Returns false to retain the old geometric representation, including missing/stale atlas. */
   write(id:string,x:number,y:number,z:number,scale:number,rotation:number,tint:THREE.Color,sourceHash?:string,width=1):boolean{
@@ -69,7 +81,7 @@ export function createImpostorSectors(parent:THREE.Object3D,kind:'trees'|'charac
    const cx=Math.floor(x/sectorM),cz=Math.floor(z/sectorM),key=cx+':'+cz;let s=sectors.get(key);
    if((!s||!s.count)&&activeWrites>=sectorQuota)return false;
    if(!s){
-    if(sectors.size>=IMPOSTOR_LIMITS.maxSectors){const stale=[...sectors].filter(([,s])=>!s.count).sort((a,b)=>a[1].used-b[1].used)[0];if(!stale)return false;stale[1].debug?.geometry.dispose();if(stale[1].debug)(stale[1].debug.material as THREE.Material).dispose();stale[1].debug?.removeFromParent();stale[1].geometry.dispose();stale[1].mesh.removeFromParent();sectors.delete(stale[0]);stats.evictions++;}
+    if(sectors.size>=IMPOSTOR_LIMITS.maxSectors){const stale=[...sectors].filter(([,s])=>!s.count).sort((a,b)=>a[1].used-b[1].used)[0];if(!stale)return false;removeSector(stale[1]);sectors.delete(stale[0]);stats.evictions++;}
     s=allocate(key,cx,cz);
    }
    if(s.count>=IMPOSTOR_LIMITS.maxSectorInstances)return false;if(!s.count)activeWrites++;const index=s.count++;
@@ -95,7 +107,7 @@ export function createImpostorSectors(parent:THREE.Object3D,kind:'trees'|'charac
    if(s.debug){s.debug.visible=enabled&&debug;s.debug.box.min.set(s.minX-s.maxRadius,s.minY-s.maxRadius,s.minZ-s.maxRadius);s.debug.box.max.set(s.maxX+s.maxRadius,s.maxY+s.maxRadius,s.maxZ+s.maxRadius);}
   }stats.sectors=active;stats.calls=active;stats.cachedSectors=sectors.size;stats.totalUploadBytes+=stats.uploadBytes;stats.preparationMs=performance.now()-start;},
   update(time:number,night=0){material.uniforms.time.value=time;material.uniforms.night.value=night;},
-  dispose(){if(dead)return;dead=true;ticket?.release();for(const s of sectors.values()){s.geometry.dispose();s.debug?.geometry.dispose();if(s.debug)(s.debug.material as THREE.Material).dispose();}sectors.clear();material.dispose();root.removeFromParent();atlas=null;clearUnusedAtlases();stats.instances=stats.sectors=stats.calls=stats.textureBytes=stats.textures=0;},
+  dispose(){if(dead)return;setEnabled(false);dead=true;material.dispose();root.removeFromParent();},
   cache:atlasCacheStats,
  };
 }

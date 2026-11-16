@@ -49,7 +49,7 @@ import {
 export const LIGHT_POOL = 4, LIGHT_POOL_ECONOMY = 2;
 export interface WorldView {
   isOccluded(x:number,y:number,z:number):boolean;
-  hybrid:{setDebug(on:boolean):void;setMode(mode:'off'|'trees'|'all'):void;setSectors(on:boolean):void;getMode():string;stats:{trees:ReturnType<typeof createImpostorSectors>['stats']|null;buildings:ReturnType<typeof createImpostorSectors>['stats'];cache:typeof atlasCacheStats}};
+  hybrid:{setDebug(on:boolean):void;setMode(mode:'off'|'trees'|'all'):void;setSectors(on:boolean):void;getMode():string;stats:{mode:string;trees:ReturnType<typeof createImpostorSectors>['stats']|null;buildings:ReturnType<typeof createImpostorSectors>['stats'];cache:typeof atlasCacheStats}};
   /** World Production: instanced enclosure/dock modules (game runtime). */
   placed: PlacedInstances;
   /** Sparse local low-poly vaults, only allocated near player (mobile GPU cap). */
@@ -824,7 +824,7 @@ export function buildWorld(
     natural,
     cliffs,
     isOccluded:(x,y,z)=>occluded(x,z,y),
-    hybrid:{setDebug(on:boolean){dressing?.setDebug(on);buildingImpostors.setDebug(on);},setMode:setHybridMode,setSectors(on:boolean){dressing?.setSectorSize(on?256:512);},getMode:()=>hybridMode,stats:{trees:dressing?.stats.impostors??null,buildings:buildingImpostors.stats,cache:atlasCacheStats}},
+    hybrid:{setDebug(on:boolean){dressing?.setDebug(on);buildingImpostors.setDebug(on);},setMode:setHybridMode,setSectors(on:boolean){dressing?.setSectorSize(on?256:512);},getMode:()=>hybridMode,stats:{get mode(){return hybridMode;},trees:dressing?.stats.impostors??null,buildings:buildingImpostors.stats,cache:atlasCacheStats}},
     refreshCliffs(terrain){cliffs.refresh(terrain);},
     setDressingFilter(fn: Parameters<DressingView['setHidden']>[0]) { dressing?.setHidden(fn); },
     drawnNear(x: number, z: number, r: number) { return [...(dressing?.drawnNear(x, z, r) ?? []), ...placed.drawnNear(x, z, r)]; },

@@ -1,0 +1,10 @@
+[
+ {"name":"forest","world":"maps/island/manifest.json","x":-480,"z":-520,"yaw":0.2,"pitch":0.4,"dist":60},
+ {"name":"village","world":"maps/island/manifest.json","x":-150,"z":650,"yaw":1.5,"pitch":0.3,"dist":60},
+ {"name":"volcano","world":"maps/island/manifest.json","x":1100,"z":-700,"yaw":3.14,"pitch":0.45,"dist":220},
+ {"name":"coast","world":"maps/island/manifest.json","x":1790,"z":-300,"yaw":1.5,"pitch":0.3,"dist":100},
+ {"name":"marsh","world":"maps/island/manifest.json","x":1250,"z":980,"yaw":0.2,"pitch":0.35,"dist":70},
+ {"name":"panorama","world":"maps/island/manifest.json","x":150,"z":-650,"yaw":0.3,"pitch":0.55,"dist":280},
+ {"name":"flight","world":"maps/island/manifest.json","x":-480,"z":-520,"yaw":0.3,"pitch":0.8,"dist":160},
+ {"name":"rotation","world":"maps/island/manifest.json","x":-480,"z":-520,"yaw":0.2,"pitch":0.3,"dist":60}
+]
