@@ -4,7 +4,7 @@
 import {simulatePlayer,MOTION_MODES,type Player,type Controls} from '../player.ts';
 import type {WorldCollisionQuery} from './collision-world.ts';
 export interface MovementCommand {tick:number;input:Controls}
-const fields=['oxygen','glideReady','stamina','climbCooldown','climbDir','rollSpeed','rollHeading','rollIdle','rollByHold','diving','diveSink','glideHeading','glidePitch','glideTurnRate','stalled','space','body'] as const;
+const fields=['oxygen','glideReady','stamina','climbCooldown','climbDir','rollSpeed','rollHeading','rollIdle','rollByHold','diving','diveSink','glideHeading','glidePitch','glideTurnRate','stalled','space','body','runCharge','intentYaw','jumpOrigin','jumpSeq','landingSpeed','landingSeq'] as const;
 export interface MovementSnapshot {version:1;tick:number;position:{x:number;y:number;z:number};velocity:{x:number;y:number;z:number};mode:Player['mode'];yaw:number;state:Partial<Pick<Player,typeof fields[number]>>}
 const point=(v:unknown):v is {x:number;y:number;z:number}=>!!v&&typeof v==='object'&&['x','y','z'].every(k=>typeof (v as Record<string,unknown>)[k]==='number'&&Number.isFinite((v as Record<string,number>)[k])&&Math.abs((v as Record<string,number>)[k])<=100000);
 export function captureMovement(p:Player,tick:number):MovementSnapshot{
@@ -21,6 +21,9 @@ export function restoreMovement(p:Player,s:MovementSnapshot){
   if(!(fields as readonly string[]).includes(k))throw Error('Champ de mouvement inconnu');
   if(['glideReady','rollByHold','diving','diveSink','stalled'].includes(k)){if(typeof v!=='boolean')throw Error('Drapeau invalide');}
   else if(k==='climbDir'){if(!obj||typeof obj.x!=='number'||typeof obj.z!=='number'||!Number.isFinite(obj.x)||!Number.isFinite(obj.z))throw Error('Direction invalide');}
+  else if(k==='jumpOrigin'){if(!['idle','run','roll'].includes(String(v)))throw Error('Origine de saut invalide');}
+  else if(k==='jumpSeq'||k==='landingSeq'){if(!Number.isSafeInteger(v)||Number(v)<0)throw Error('Sequence de mouvement invalide');}
+  else if(k==='runCharge'){if(typeof v!=='number'||!Number.isFinite(v)||v<0||v>1)throw Error('Charge de course invalide');}
   else if(k==='space'){if(!obj||typeof obj.zoneId!=='string'||typeof obj.levelId!=='string')throw Error('Espace invalide');}
   else if(k==='body'){if(!obj||Object.entries(obj).some(([k,n])=>!['radius','height','step','maxSlope'].includes(k)||typeof n!=='number'||!Number.isFinite(n)||n<0||n>10))throw Error('Corps invalide');}
   else if(typeof v!=='number'||!Number.isFinite(v)||Math.abs(v)>100000)throw Error('Nombre de mouvement invalide');
@@ -34,7 +37,7 @@ export function replayMovement(p:Player,s:MovementSnapshot,commands:readonly Mov
  let next=s.tick;
  for(const c of commands){
   if(c.tick!==++next)throw Error('Commandes de mouvement non consécutives');
-  const k=c.input;if(!k||!Number.isFinite(k.cameraYaw)||!Number.isFinite(k.forward)||Math.abs(k.forward)>1||!Number.isFinite(k.right)||Math.abs(k.right)>1||['run','jumpPressed','spaceHeld','dive'].some(f=>typeof k[f as keyof Controls]!=='boolean')||k.cameraPitch!==undefined&&(!Number.isFinite(k.cameraPitch)||Math.abs(k.cameraPitch)>1.6))throw Error('Commande de mouvement invalide');
+  const k=c.input;if(!k||!Number.isFinite(k.cameraYaw)||!Number.isFinite(k.forward)||Math.abs(k.forward)>1||!Number.isFinite(k.right)||Math.abs(k.right)>1||['run','jumpPressed','spaceHeld','dive'].some(f=>typeof k[f as keyof Controls]!=='boolean')||k.cameraPitch!==undefined&&(!Number.isFinite(k.cameraPitch)||Math.abs(k.cameraPitch)>1.6)||k.autoRun!==undefined&&typeof k.autoRun!=='boolean')throw Error('Commande de mouvement invalide');
  }
  restoreMovement(p,s);let tick=s.tick;
  for(const c of commands){if(c.tick!==tick+1)throw Error('Commandes de mouvement non consécutives');simulatePlayer(p,c.input,1/30,collision);tick=c.tick;}
