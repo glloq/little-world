@@ -221,6 +221,33 @@ export function mountRegionsPanel(host:HTMLElement,ctx:RegionPanelContext):()=>v
    const legend=node('p','Vert : ajouté · Orange : rétabli · Bleu : remplacé'+
      (preview.diff.truncated?' · Affichage limité aux 16 384 premières cellules modifiées':''),'muted');
    compositionResult.append(canvas,legend,node('p',preview.diff.total+' cellules réellement modifiées sur la carte (toutes couches confondues).','muted'));
+   if(preview.relief.tested){
+     const canvasHeight=document.createElement('canvas');canvasHeight.width=w;canvasHeight.height=h;
+     canvasHeight.style.width='100%';canvasHeight.style.maxWidth=w+'px';canvasHeight.style.border='1px solid #aab7b3';
+     canvasHeight.setAttribute('aria-label','Aperçu des variations d’altitude des régions');
+     canvasHeight.dataset.reliefSamples=String(preview.relief.tested);
+     const g2=canvasHeight.getContext('2d');
+     if(g2){
+       g2.fillStyle='#f2f3f2';g2.fillRect(0,0,w,h);
+       for(const region of regions){
+         g2.strokeStyle='#919b96';g2.beginPath();
+         region.points.forEach((pt,i)=>{const q=xy(pt.x,pt.z);if(!i)g2.moveTo(q.x,q.y);else g2.lineTo(q.x,q.y);});
+         g2.closePath();g2.stroke();
+       }
+       for(const pt of preview.relief.samples){
+         const q=xy(pt.x,pt.z);
+         g2.fillStyle=pt.deltaM>0?'#c45b35':'#337fb5';
+         g2.globalAlpha=Math.min(.95,.3+Math.abs(pt.deltaM)/(preview.relief.maxAbsDeltaM||1)*.65);
+         g2.fillRect(q.x-2,q.y-2,4,4);
+       }
+       g2.globalAlpha=1;
+     }
+     compositionResult.append(node('h4','Variation du relief — aperçu échantillonné'),canvasHeight,
+       node('p','Rouge : élévation · Bleu : abaissement · '+preview.relief.samples.length+' points modifiés sur '+
+         preview.relief.tested+' échantillons · variation maximale '+preview.relief.maxAbsDeltaM.toFixed(1)+' m'+
+         (preview.relief.skippedChunks?' · '+preview.relief.skippedChunks+' secteurs sous-échantillonnés':'')+
+         '. Les points sont indicatifs, contrairement au différentiel exact des masques.','muted'));
+   }
  }
  const composePreview=async()=>{
    const items=ordered();
