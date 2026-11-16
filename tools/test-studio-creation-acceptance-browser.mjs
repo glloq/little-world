@@ -103,6 +103,12 @@ try{
  };
  await selectMember(pair[0]);
  await page.getByLabel('Modèle visuel de cette pièce').selectOption('structure.fence_picket');
+ // Camera persistence emits a context update after 250 ms; it must not discard the pending choice.
+ await canvas.focus();
+ await page.keyboard.press('Digit7');
+ await page.waitForTimeout(500);
+ check(await page.getByLabel('Modèle visuel de cette pièce').inputValue()==='structure.fence_picket',
+   'Pending prefab visual choice survives a camera context update');
  await page.getByRole('button',{name:'Modifier uniquement cette instance'}).click();
  await page.waitForFunction(()=>/Modifier une instance de prefab/.test(document.querySelector('[data-action=undo]')?.title??''),{},{timeout:20000});
  await selectMember(pair[1]);

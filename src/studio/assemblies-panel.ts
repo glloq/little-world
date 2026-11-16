@@ -109,6 +109,13 @@ export function mountAssemblyPanel(host:HTMLElement,session:StudioSession,viewpo
   }
   box.append(node('h3','Assemblages réutilisables'),node('p','Sélectionnez des bâtiments ou accessoires, enregistrez-les, puis placez des copies au centre de la vue. Les interactions liées aux objets ne sont pas copiées.','muted'),field('Intitulé de l’assemblage',nameInput),capture,list,instanceBox);
   host.append(box);render();renderInstance();
-  const stops=[session.commands.subscribe(()=>{render();renderInstance();}),session.selection.subscribe(()=>renderInstance())];
+  // Camera/tool persistence also emits context events. Rebuilding the form for
+  // those events discards a visual choice that has not been applied yet.
+  let selectionKey=JSON.stringify(session.selection.selection);
+  const stops=[session.commands.subscribe(()=>{render();renderInstance();}),session.selection.subscribe(()=>{
+    const next=JSON.stringify(session.selection.selection);
+    if(next===selectionKey)return;
+    selectionKey=next;renderInstance();
+  })];
   return ()=>stops.forEach(stop=>stop());
 }
