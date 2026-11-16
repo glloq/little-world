@@ -64,6 +64,11 @@ test('priority flood identifies a true enclosed bowl and computes a stable spill
  assert.ok(Math.hypot(pit.outlet.x,pit.outlet.z)<16);
  assert.ok(pit.spillLevelM>15&&pit.spillLevelM<30);
  assert.ok(pit.depthM>5&&pit.areaM2>500);
+ if(pit.spillway){
+  assert.ok(pit.spillway.dropM>.75&&pit.spillway.distanceM>0);
+  assert.ok(height(pit.spillway.crest.x,pit.spillway.crest.z)>=
+    height(pit.spillway.downstream.x,pit.spillway.downstream.z)+.75);
+ }
  const review=proposeBasinLakes(a.depressions,{height,bounds,existing:[],seaLevel:0},{maxLakes:1});
  assert.equal(review.proposals.length,1,JSON.stringify(review.rejected));
  assert.ok(review.proposals[0].water.points.length>=16);
