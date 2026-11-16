@@ -1,5 +1,5 @@
-/** A3 UI: hydrography quality and optional non-destructive endpoint snapping.
- * No automatic waterfall creation: steep stretches are only flagged for review. */
+/** Hydrology authoring: bounded drainage/lake proposals and network-validated batch falls.
+ * All suggestions are non-destructive until the author explicitly commits a V3 transaction. */
 import {button,node} from './dom.ts';
 import type {RegionPanelContext} from './regions-panel.ts';
 import {projectGeography} from '../studio-core/geo-context.ts';
