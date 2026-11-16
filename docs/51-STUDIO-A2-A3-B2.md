@@ -1,5 +1,7 @@
 # 51 — Studio : itérations A2, A3 et B2
 
+> **Note de version :** ce document décrit l'état initial des itérations A2/A3/B2. Les falaises ont ensuite reçu des maillages 3D avec LOD, puis les propositions hydrographiques et aperçus V2 ont été ajoutés. Voir [52](52-STUDIO-REGION-HYDRO-CLIFF-NEXT.md) et [53](53-STUDIO-GEOGRAPHY-PRODUCTION-V2.md).
+
 Branche : `feat/studio-creation-workflows-v1`. Aucun merge dans `main`.
 
 ## A2 — Reliefs linéaires natifs en 3D

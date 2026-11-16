@@ -49,10 +49,12 @@ export function mountAssemblyPanel(host:HTMLElement,session:StudioSession,viewpo
   }
   function renderInstance(){
     instanceBox.replaceChildren();
+    delete instanceBox.dataset.entityId;
     const selected=session.selection.selection.filter(r=>r.kind==='entity');
     if(selected.length!==1)return;
     const entityId=selected[0].id,entry=session.document.entityIndex[entityId],source=entry&&session.document.chunks[entry.ownerChunkId]?.entities[entityId];
     if(!entry||!source?.prefabId?.startsWith('assembly-part:'))return;
+    instanceBox.dataset.entityId=entityId;
     const p=session.document,available=Object.values(libraryAssets(p.assets));
     let chosen=assemblyVisualOf(p,entityId);
     const assetChoice=select(chosen,available.map(a=>[a.id,a.name] as const),val=>chosen=val);
@@ -72,10 +74,12 @@ export function mountAssemblyPanel(host:HTMLElement,session:StudioSession,viewpo
       node('p','Les propriétés de position, rotation et échelle de cet élément restent éditables individuellement dans l’inspecteur.','muted'),
       field('Modèle visuel de cette pièce',assetChoice),
       button('Modifier uniquement cette instance',()=>run(async()=>{
+        if(session.selection.selection.length!==1||session.selection.selection[0].id!==entityId)throw Error('Sélection modifiée : resélectionner cette instance');
         await session.change('Modifier une instance de prefab',[entry.ownerChunkId],draft=>overrideAssemblyVisual(draft,entityId,chosen));
         status('Cette pièce utilise maintenant son propre visuel ; les autres instances restent inchangées.');
       })),
       button('Modifier le modèle partagé',()=>run(async()=>{
+        if(session.selection.selection.length!==1||session.selection.selection[0].id!==entityId)throw Error('Sélection modifiée : resélectionner cette instance');
         const ownersArray=[...owners];
         await session.change('Modifier un modèle prefab',ownersArray,draft=>{
           updateAssemblyTemplateVisual(draft,entityId,chosen);

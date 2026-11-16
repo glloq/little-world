@@ -12,9 +12,11 @@ export function wallModules(points:readonly XZ[],moduleLength:number,limit=120):
   const count=Math.max(1,Math.ceil(length/moduleLength));
   if(count>limit)throw Error('Mur trop long : diviser le tracé en plusieurs sections');
   const stride=length/count;
-  // linePattern samples starts; shift along the local tangent by half a segment.
-  return linePattern(points,stride,limit+1).slice(0,count).map((p,i)=>{
-    const next=linePattern(points,stride,limit+1)[Math.min(count,i+1)];
+  // One sampling pass for the entire spline (previously rebuilt on every module).
+  // This is important when a wall reaches the 120-element transaction cap.
+  const samples=linePattern(points,stride,limit+1);
+  return samples.slice(0,count).map((p,i)=>{
+    const next=samples[Math.min(count,i+1)];
     const yaw=next?Math.atan2(next.z-p.z,next.x-p.x):p.yaw;
     return {x:(p.x+(next?.x??p.x))/2,z:(p.z+(next?.z??p.z))/2,yaw,scaleX:stride/moduleLength,lift:0};
   });

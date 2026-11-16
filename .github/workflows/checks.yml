@@ -5,6 +5,10 @@ on:
     branches-ignore: [main]
 permissions:
   contents: read
+# Keep only the latest commit's expensive browser matrix for each event/ref.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   validate:
     runs-on: ubuntu-latest
@@ -62,6 +66,8 @@ jobs:
         run: node tools/run-browser-check.mjs audio
       - name: Island lot 1 browser checks
         run: node tools/run-browser-check.mjs island
+      - name: Studio geography V2 — basin candidates, previews and region dry-run
+        run: node tools/run-browser-check.mjs studio-geography-v2
       - name: Natural structures Studio acceptance (arch, tunnel, 3D preview and export)
         run: node tools/run-browser-check.mjs studio-natural-structures
       - name: Studio creation acceptance (walls, vegetation, reusable assemblies)
