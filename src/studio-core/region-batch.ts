@@ -4,6 +4,7 @@
 import type {ProjectDocument} from './types.ts';
 import {applyRegion,regionAffectedChunks,type RegionRecipeV1,type RegionReport} from './region-recipes.ts';
 import {MASK_LAYERS,MASK_GRID} from '../geography/layers.ts';
+import {projectGeography} from './geo-context.ts';
 
 export interface RegionBatchPreview {
  chunks:string[];
@@ -13,7 +14,11 @@ export interface RegionBatchPreview {
 export const REGION_BATCH_LIMIT=16;
 export const REGION_DIFF_LIMIT=16384;
 export interface RegionDiffCell {chunkId:string;index:number;kind:'painted'|'cleared'|'replaced'}
-export interface RegionVisualPreview extends RegionBatchPreview {diff:{cells:RegionDiffCell[];total:number;truncated:boolean}}
+export interface RegionReliefSample {x:number;z:number;deltaM:number}
+export interface RegionVisualPreview extends RegionBatchPreview {
+ diff:{cells:RegionDiffCell[];total:number;truncated:boolean};
+ relief:{samples:RegionReliefSample[];tested:number;maxAbsDeltaM:number;skippedChunks:number};
+}
 export function regionBatchChunks(p:ProjectDocument,recipes:readonly RegionRecipeV1[]):string[]{
  const chunks=new Set<string>();
  for(const recipe of recipes)for(const id of regionAffectedChunks(p,recipe))chunks.add(id);
@@ -72,5 +77,28 @@ export function previewRegionBatchWithDiff(p:ProjectDocument,recipes:readonly Re
     cells.push({chunkId:id,index,kind:replaced||painted&&cleared?'replaced':painted?'painted':'cleared'});
   }
  }
- return {...summary,diff:{cells,total,truncated:total>cells.length}};
+ const relief:{samples:RegionReliefSample[];tested:number;maxAbsDeltaM:number;skippedChunks:number}={
+   samples:[],tested:0,maxAbsDeltaM:0,skippedChunks:0
+ };
+ // Only inspect relief when the exact authoring simulation changed a generator
+ // feature. Mask-only compositions need no terrain evaluations at all.
+ if(summary.reports.some(r=>r.report.feature==='added'||r.report.feature==='updated')){
+   const old=projectGeography(p).ctx,next=projectGeography(scratch).ctx;
+   const cap=4096,perChunk=16,stride=Math.max(1,Math.ceil(summary.chunks.length*perChunk/cap)),
+     bounds=p.world.bounds,size=p.world.chunkSizeM,quad=4;
+   relief.skippedChunks=summary.chunks.length-Math.ceil(summary.chunks.length/stride);
+   for(let k=0;k<summary.chunks.length;k+=stride){
+     const [cx,cz]=summary.chunks[k].split(':').map(Number);
+     for(let iz=0;iz<quad;iz++)for(let ix=0;ix<quad;ix++){
+       const x=Math.min(bounds.maxX-.01,bounds.minX+(cx+(ix+.5)/quad)*size),
+         z=Math.min(bounds.maxZ-.01,bounds.minZ+(cz+(iz+.5)/quad)*size);
+       relief.tested++;
+       const delta=next.height(x,z)-old.height(x,z);
+       if(!Number.isFinite(delta))throw Error('Variation de relief non finie pendant la prévisualisation');
+       relief.maxAbsDeltaM=Math.max(relief.maxAbsDeltaM,Math.abs(delta));
+       if(Math.abs(delta)>.25)relief.samples.push({x,z,deltaM:Math.round(delta*100)/100});
+     }
+   }
+ }
+ return {...summary,diff:{cells,total,truncated:total>cells.length},relief};
 }
