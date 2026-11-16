@@ -11,7 +11,7 @@ try{
   const THREE=await import(base+'node_modules/.vite/deps/three.js'),{createImpostorSectors}=await import(base+'src/render/impostor-sectors.ts'),{createGpuTimer}=await import(base+'src/render/perf-sampler.ts');
   const renderer=new THREE.WebGLRenderer({antialias:false,preserveDrawingBuffer:true});renderer.setSize(640,480);document.body.append(renderer.domElement);const scene=new THREE.Scene();scene.background=new THREE.Color(0x123456);const camera=new THREE.PerspectiveCamera(60,640/480,.1,3000),white=new THREE.Color(0xffffff);
   const trees=createImpostorSectors(scene,'trees');trees.setEnabled(true);for(let i=0;i<300&&!trees.ready;i++)await new Promise(r=>setTimeout(r,20));if(!trees.ready)throw Error('Atlas timeout');
-  const fill=(count=1152,change=0,second=0)=>{trees.begin();for(let i=0;i<count;i++)trees.write('nature.broadleaf_round',(i%24)*12-138+(i===0?change:i===1?second:0),0,-40-Math.floor(i/24)*8,1,0,white);trees.end();};
+  const fill=(count=1152,change=0,second=0)=>{trees.begin();for(let i=0;i<count;i++)trees.write('nature.broadleaf_round',(i%24)*12-138+(i===0?change:i===1?second:0),0,-40-Math.floor(i/24)*8,1,i*.13,white);trees.end();};
   camera.position.set(0,24,0);camera.lookAt(0,8,-180);fill();renderer.render(scene,camera);
   const versions=()=>trees.root.children.filter(m=>m.isMesh).map(m=>Object.values(m.geometry.attributes).map(a=>a.version));const beforeVersions=JSON.stringify(versions());fill();const staticUploads=trees.stats.uploadBytes;const stableVersions=beforeVersions===JSON.stringify(versions());renderer.render(scene,camera);fill(1152,.125);const changedUploads=trees.stats.uploadBytes;renderer.render(scene,camera);fill();renderer.render(scene,camera);fill(1152,.125);fill(1152,.125,.125);const pendingRange=trees.root.children.find(m=>m.isMesh&&m.geometry.getAttribute('offset').updateRanges.length)?.geometry.getAttribute('offset').updateRanges.map(r=>({...r}));fill();renderer.render(scene,camera);
   const mesh=trees.root.children.find(m=>m.isMesh),metadata=mesh.material.uniforms.metadata.value,original=new Float32Array(metadata.image.data),gl=renderer.getContext(),timer=createGpuTimer(renderer);
@@ -32,7 +32,7 @@ try{
   timer.dispose();trees.dispose();renderer.dispose();renderer.forceContextLoss();return {rows,images,staticUploads,stableVersions,changedUploads,pendingRange,culling:{tightCalls,looseCalls,differentChannels:cullDifference},renderer:'Chromium SwiftShader; 640x480; fixed camera/atlas/instances; no adaptation'};
  },base);
  for(const [name,png]of Object.entries(result.images))await writeFile(out+'/'+name+'.png',Buffer.from(png,'base64'));delete result.images;
- await writeFile(out+'/results.json',JSON.stringify(result,null,2)+'\n');console.log(JSON.stringify(result,null,2));
+ await writeFile(out+'/results.json',JSON.stringify(result,null,2)+'\n');console.log(JSON.stringify({...result,errors},null,2));
  assert.equal(result.staticUploads,0);assert.equal(result.stableVersions,true);assert.equal(result.changedUploads,12);assert.deepEqual(result.pendingRange,[{start:0,count:6}]);assert.equal(result.culling.tightCalls,0);assert.equal(result.culling.looseCalls,1);assert.equal(result.culling.differentChannels,0);for(const r of result.rows.filter(r=>r.cropped))assert.ok(r.pixels.meanAbsoluteError<.2&&r.pixels.silhouetteDifferenceFraction<.0015,'only subpixel rasterisation differences are allowed');assert.deepEqual(errors,[]);
 
 }finally{await browser.close();}

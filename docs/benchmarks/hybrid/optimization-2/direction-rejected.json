@@ -1,0 +1,157 @@
+{
+  "rows": [
+    {
+      "iteration": 0,
+      "fastDirection": true,
+      "cropped": false,
+      "calls": 4,
+      "triangles": 2304,
+      "gpuMs": {
+        "samples": 56,
+        "mean": 11.923002589285716,
+        "p50": 10.619399,
+        "p95": 20.008858
+      },
+      "submitMs": {
+        "samples": 64,
+        "mean": 0.2249999997438863,
+        "p50": 0.20000000298023224,
+        "p95": 0.4000000059604645
+      }
+    },
+    {
+      "iteration": 1,
+      "fastDirection": true,
+      "cropped": true,
+      "calls": 4,
+      "triangles": 2304,
+      "gpuMs": {
+        "samples": 52,
+        "mean": 9.220407480769232,
+        "p50": 8.487405,
+        "p95": 11.655557
+      },
+      "submitMs": {
+        "samples": 64,
+        "mean": 0.220312500721775,
+        "p50": 0.20000000298023224,
+        "p95": 0.6000000014901161
+      },
+      "pixels": {
+        "channelsOver2": 8065,
+        "maxDelta": 138,
+        "meanAbsoluteError": 0.09035725911458334,
+        "silhouetteDifferenceFraction": 0.0009505208333333334
+      }
+    },
+    {
+      "iteration": 2,
+      "fastDirection": true,
+      "cropped": false,
+      "calls": 4,
+      "triangles": 2304,
+      "gpuMs": {
+        "samples": 58,
+        "mean": 12.070039017241378,
+        "p50": 10.317832,
+        "p95": 23.780932
+      },
+      "submitMs": {
+        "samples": 64,
+        "mean": 0.12499999988358468,
+        "p50": 0.10000000149011612,
+        "p95": 0.29999999701976776
+      }
+    },
+    {
+      "iteration": 3,
+      "fastDirection": true,
+      "cropped": true,
+      "calls": 4,
+      "triangles": 2304,
+      "gpuMs": {
+        "samples": 60,
+        "mean": 9.66072795,
+        "p50": 9.360762,
+        "p95": 13.177264
+      },
+      "submitMs": {
+        "samples": 64,
+        "mean": 0.14687499997671694,
+        "p50": 0.10000000149011612,
+        "p95": 0.29999999701976776
+      },
+      "pixels": {
+        "channelsOver2": 8065,
+        "maxDelta": 138,
+        "meanAbsoluteError": 0.09035725911458334,
+        "silhouetteDifferenceFraction": 0.0009505208333333334
+      }
+    },
+    {
+      "iteration": 4,
+      "fastDirection": false,
+      "cropped": true,
+      "calls": 4,
+      "triangles": 2304,
+      "gpuMs": {
+        "samples": 55,
+        "mean": 9.348181909090911,
+        "p50": 8.186799,
+        "p95": 17.608391
+      },
+      "submitMs": {
+        "samples": 64,
+        "mean": 0.1437499993480742,
+        "p50": 0.10000000149011612,
+        "p95": 0.29999999701976776
+      },
+      "pixels": {
+        "channelsOver2": 8065,
+        "maxDelta": 138,
+        "meanAbsoluteError": 0.09035725911458334,
+        "silhouetteDifferenceFraction": 0.0009505208333333334
+      }
+    },
+    {
+      "iteration": 5,
+      "fastDirection": true,
+      "cropped": true,
+      "calls": 4,
+      "triangles": 2304,
+      "gpuMs": {
+        "samples": 54,
+        "mean": 11.145291981481478,
+        "p50": 9.812202,
+        "p95": 20.077265
+      },
+      "submitMs": {
+        "samples": 64,
+        "mean": 0.17343750048894435,
+        "p50": 0.19999999552965164,
+        "p95": 0.29999999701976776
+      },
+      "pixels": {
+        "channelsOver2": 8065,
+        "maxDelta": 138,
+        "meanAbsoluteError": 0.09035725911458334,
+        "silhouetteDifferenceFraction": 0.0009505208333333334
+      }
+    }
+  ],
+  "staticUploads": 0,
+  "stableVersions": true,
+  "changedUploads": 12,
+  "pendingRange": [
+    {
+      "start": 0,
+      "count": 6
+    }
+  ],
+  "culling": {
+    "tightCalls": 0,
+    "looseCalls": 1,
+    "differentChannels": 0
+  },
+  "renderer": "Chromium SwiftShader; 640x480; fixed camera/atlas/instances; no adaptation"
+}

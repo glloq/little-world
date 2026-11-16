@@ -1,0 +1,103 @@
+{
+  "rows": [
+    {
+      "iteration": 0,
+      "cropped": false,
+      "calls": 4,
+      "triangles": 2304,
+      "gpuMs": {
+        "samples": 55,
+        "mean": 16.901781709090912,
+        "p50": 15.40002,
+        "p95": 27.286817
+      },
+      "submitMs": {
+        "samples": 64,
+        "mean": 0.2515625001396984,
+        "p50": 0.20000000298023224,
+        "p95": 0.5
+      }
+    },
+    {
+      "iteration": 1,
+      "cropped": true,
+      "calls": 4,
+      "triangles": 2304,
+      "gpuMs": {
+        "samples": 55,
+        "mean": 10.394427145454545,
+        "p50": 9.927215,
+        "p95": 14.641299
+      },
+      "submitMs": {
+        "samples": 64,
+        "mean": 0.1953125005820766,
+        "p50": 0.19999999552965164,
+        "p95": 0.30000000447034836
+      },
+      "pixels": {
+        "channelsOver2": 8065,
+        "maxDelta": 138,
+        "meanAbsoluteError": 0.09035725911458334,
+        "silhouetteDifferenceFraction": 0.0009505208333333334
+      }
+    },
+    {
+      "iteration": 2,
+      "cropped": false,
+      "calls": 4,
+      "triangles": 2304,
+      "gpuMs": {
+        "samples": 50,
+        "mean": 15.456864880000001,
+        "p50": 12.904367,
+        "p95": 29.928584
+      },
+      "submitMs": {
+        "samples": 64,
+        "mean": 0.17968750034924597,
+        "p50": 0.19999999552965164,
+        "p95": 0.3999999985098839
+      }
+    },
+    {
+      "iteration": 3,
+      "cropped": true,
+      "calls": 4,
+      "triangles": 2304,
+      "gpuMs": {
+        "samples": 48,
+        "mean": 12.774332208333332,
+        "p50": 11.713783,
+        "p95": 24.710048
+      },
+      "submitMs": {
+        "samples": 64,
+        "mean": 0.17656249937135726,
+        "p50": 0.19999999552965164,
+        "p95": 0.30000000447034836
+      },
+      "pixels": {
+        "channelsOver2": 8065,
+        "maxDelta": 138,
+        "meanAbsoluteError": 0.09035725911458334,
+        "silhouetteDifferenceFraction": 0.0009505208333333334
+      }
+    }
+  ],
+  "staticUploads": 0,
+  "stableVersions": true,
+  "changedUploads": 12,
+  "pendingRange": [
+    {
+      "start": 0,
+      "count": 6
+    }
+  ],
+  "culling": {
+    "tightCalls": 0,
+    "looseCalls": 1,
+    "differentChannels": 0
+  },
+  "renderer": "Chromium SwiftShader; 640x480; fixed camera/atlas/instances; no adaptation"
+}

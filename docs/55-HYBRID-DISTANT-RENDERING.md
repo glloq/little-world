@@ -101,7 +101,7 @@ personnages 1,8 km ; les rayons d'habillage existants peuvent réduire cette por
 | Réservation monuments / simulateur | 64 + 100 instances, 4 + 8 secteurs |
 | Rigs complets du simulateur | 12 / 8 / 4 |
 | Cache de secteurs, par consommateur | 32 maximum ; 512 instances/secteur |
-| Atlas et métadonnées partagés | 5 463 232 octets pour les trois pages actuelles |
+| Atlas et métadonnées partagés | 5 470 592 octets pour les trois pages actuelles |
 | Limite manifeste/cache atlas | 12 Mio, pages ≤ 2 048², ≤ 1 024 frames/page |
 | Historique distant | 100 identités, 12 snapshots/identité, extrapolation ≤ 250 ms |
 
@@ -155,7 +155,7 @@ elle ne doit pas être comparée directement aux vues statiques de cette nouvell
 
 ### Validation fonctionnelle exécutée
 
-- `npm test` : **481 tests, 0 échec**, dont 7 dédiés à la politique, aux données dérivées,
+- `npm test` : **482 tests, 0 échec**, dont 8 dédiés à la politique, aux données dérivées,
   au cache, au tampon de snapshots et au sampler CPU.
 - `npm run typecheck`, `npm run build`, `npm run check:impostors` : réussis.
 - `npm run test:hybrid` : shaders réels dans Chromium, 10/50/100 identités, somme des
@@ -213,7 +213,7 @@ elle ne doit pas être comparée directement aux vues statiques de cette nouvell
 | `src/render/impostor-{manifest,atlas,sectors}.ts` | Contrat dérivé, chargement et rendu par secteurs |
 | `src/render/resource-cache.ts` | Propriété partagée et LRU |
 | `src/render/impostor-baker.ts`, `tools/impostors/bake.html`, `tools/generate-impostors.mjs` | Pipeline hors runtime incrémental |
-| `public/impostors/*` | Trois pages PNG content-addressed et manifeste, 282 482 octets transférés au total |
+| `public/impostors/*` | Trois pages PNG content-addressed et manifeste, 305 149 octets transférés au total |
 | `src/render/{presentation-buffer,remote-characters}.ts` | Injection d'états, interpolation et simulateur |
 | `src/render/{perf-sampler,hybrid-controls}.ts` | Mesures et diagnostics Studio |
 | `src/{world,dressing-view,frame-clock,main,npc-view}.ts` | Intégration aux systèmes existants |
@@ -257,3 +257,97 @@ planage, roulade et simulateurs 10/100. Le script peut regénérer toutes les ca
 La dernière correction de cycle de vie ajoute la destruction d'un chargement qui termine
 après libération de son propriétaire, couverte par un test dédié ; elle ne modifie pas le
 rendu mesuré lorsque les atlas sont détenus. Aucun merge dans `main`.
+
+## Deuxième passe d'optimisation — remplissage, culling et uploads
+
+Les trois changements sont actifs uniquement lorsque les imposteurs sont demandés. Le mode
+par défaut reste `off` : pas de gain global qualifié sur GPU intégré.
+
+1. **Quads recadrés sur l'alpha hors runtime** : le baker conserve les PNG et les ancrages,
+   calcule un rectangle visible par frame avec une marge de filtrage, puis le shader utilise
+   ces coins pour la géométrie et les UV. Aucune baisse de résolution, aucun nouveau matériau,
+   aucun nouveau draw call. Les anciens manifestes sans `crops` gardent le carré complet.
+2. **Bornes issues des instances présentes** : la sphère d'un secteur vient désormais des
+   positions réellement occupées, avec une marge couvrant toutes les vues/frames de chaque
+   asset. Un secteur peu rempli ne traîne plus systématiquement la diagonale d'une cellule
+   entière dans son test de frustum. Les limites de debug s'affichent aussi sans attendre
+   une reconstruction de la forêt.
+3. **Uploads évités ou partiels** : comparaison à la précision Float32, aucune allocation de
+   tableau par instance, seuls les attributs modifiés reçoivent un `needsUpdate`. Les plages
+   en attente sont fusionnées et conservées jusqu'au véritable upload Three.js, même si le
+   secteur reste hors champ. Leur liste reste bornée à une plage par attribut. Les données
+   de teinte/animation immobiles des personnages ne sont plus réenvoyées avec leur position.
+
+Le recadrage réduit la surface moyenne des quads de **76,1 % pour les arbres**, **69,7 % pour
+les monuments** et **85,9 % pour les personnages** dans les atlas actuels. Il s'agit de la
+surface des rectangles par rapport aux carrés initiaux, pas d'une mesure directe de l'overdraw
+sur une caméra quelconque. Le PNG reste identique. Le coût ajouté est **7 360 octets GPU**
+de métadonnées, total partagé **5 470 592 octets**. Toujours deux textures par page ; pas de
+nouvelle texture. Le manifeste passe de 29 809 à 52 476 octets.
+
+### Contrôle reproductible
+
+```sh
+npm run dev
+npm run test:impostor-optimization
+# sortie par défaut : /tmp/impostor-optimization
+```
+
+Fixture de 1 152 arbres, rotations variées, caméra fixe, 640×480, aucune adaptation de qualité,
+A/B/A/B. Les deux modes utilisent le même shader et les mêmes pixels ; seules les bornes UV
+changent. Le readback des pixels se fait hors des boucles chronométrées. Les durées GPU
+viennent des requêtes asynchrones ; les mesures répétées du même résultat ne sont pas
+comptées comme de nouveaux échantillons.
+
+- Lot statique réécrit à l'identique : **0 octet préparé**, versions des attributs inchangées.
+- Une position modifiée : **12 octets préparés** au lieu des quatre attributs du secteur entier.
+- Deux modifications avant rendu : une plage fusionnée de six floats, sans perte du premier
+  changement. Les compteurs désignent les plages préparées ; l'allocation initiale des buffers
+  par le pilote n'est pas incluse.
+- Secteur entièrement hors vue : **1 → 0 appel**, image strictement identique au cas avec
+  anciennes bornes larges.
+- Recadrage : erreur absolue moyenne **0,0904 sur 255** par canal ; **0,095 % environ** des
+  pixels changent de présence sur les contours (voir JSON exact). Ce sont de petites différences
+  de rasterisation/interpolation ; le test impose une erreur moyenne < 0,2 et un écart de masque
+  < 0,15 % de l'image. Les bornes alpha incluent tous les texels non transparents et une marge.
+
+Mesures archivées : [fixture contrôlée](benchmarks/hybrid/optimization-2/controlled/results.json),
+[carrés complets](benchmarks/hybrid/optimization-2/controlled/full.png),
+[quads recadrés](benchmarks/hybrid/optimization-2/controlled/cropped.png).
+
+| Passe | GPU p50 carré (ms) | GPU p50 recadré (ms) | Variation |
+|---|---:|---:|---:|
+| 1 | 15.40 | 9.93 | -35.5 % |
+| 2 | 12.90 | 11.71 | -9.2 % |
+
+Ces valeurs sont celles de **SwiftShader** sur cette fixture ; pas une qualification matérielle.
+
+### Vérification dans le monde complet
+
+Même commande, trois vues, configuration `sectors`, avant/après. **Aucune erreur de rendu**.
+Les workers, le streaming et le budget adaptatif continuent à fonctionner ; ces petites passes
+ne permettent pas d'attribuer toutes les variations aux imposteurs.
+
+| Vue | Appels avant → après | Frame p50 avant → après (ms) |
+|---|---:|---:|
+| forest | 106.8 → 106.8 | 131.0 → 141.1 |
+| panorama | 174.2 → 157.1 | 116.8 → 119.9 |
+| rotation | 84.4 → 83.0 | 90.5 → 101.6 |
+
+Rapports complets : [avant](benchmarks/hybrid/optimization-2/before/matrix.json),
+[après](benchmarks/hybrid/optimization-2/after/matrix.json). Le bilan dans le jeu reste mixte ;
+la réduction des surfaces et des uploads est démontrée, pas une hausse générale des FPS.
+
+### Piste testée puis écartée
+
+Le remplacement des atan du shader statique par une base sin/cos préparée côté CPU et des
+comparaisons de quadrant n'a pas apporté de gain démontré : **8,19 ms → 9,81 ms** de GPU p50
+sur la dernière comparaison contrôlée, avec bruit de mesure. Cette piste n'est pas conservée.
+Le rapport du prototype est [archivé](benchmarks/hybrid/optimization-2/direction-rejected.json).
+Aucun buffer supplémentaire n'a été ajouté pour elle.
+
+Validation de cette passe : **482 tests unitaires**, typecheck, build, vérification des
+empreintes des atlas, test hybride WebGL/Studio et nouveau test contrôlé réussis. Les PNJ,
+le gameplay et les schémas auteur ne changent pas. À poursuivre sur GPU intégré réel avant
+une activation par défaut ; les prochaines mesures utiles concernent le coût global terrain,
+la soumission GLB et les longues frames de préparation, désormais dominants dans ces vues.
