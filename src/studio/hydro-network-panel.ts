@@ -8,6 +8,7 @@ import {putWater} from '../studio-core/source.ts';
 import {analyzeWatersheds} from '../studio-core/watershed-analysis.ts';
 import {proposeWatershedRivers} from '../studio-core/watershed-rivers.ts';
 import {proposeBasinLakes} from '../studio-core/basin-lakes.ts';
+import {analyzeDepressions} from '../studio-core/depression-fill.ts';
 import {planGuidedRiver} from '../studio-core/guided-river.ts';
 import {waterChunkIds,waterEditChunkIds} from '../water/sectors.ts';
 export function mountHydroNetworkPanel(host:HTMLElement,ctx:RegionPanelContext):()=>void{
@@ -120,17 +121,18 @@ export function mountHydroNetworkPanel(host:HTMLElement,ctx:RegionPanelContext):
  const proposeLakes=async()=>{
    await hydrate();
    const bounds=p.world.bounds,geo=projectGeography(p).ctx;
-   const basins=analyzeWatersheds(bounds,geo.height,p.world.seaLevel,{maxCells:4096,minAreaM2:400}).basins;
+   const analysis=analyzeDepressions(bounds,geo.height,p.world.seaLevel,{maxCells:4096,minAreaM2:400});
+   const basins=analysis.depressions;
    const suggestions=proposeBasinLakes(basins,
      {height:geo.height,bounds,existing:Object.values(p.libraries.water),seaLevel:p.world.seaLevel},
      {maxLakes:3,idPrefix:'basin-lake-'+p.world.worldId.slice(0,8)+'-'});
    lakeCandidates.replaceChildren(node('p',suggestions.proposals.length+' petit(s) lac(s) candidat(s) · '+
      suggestions.rejected.length+' cuvette(s) écartée(s)','muted'),
-     node('p','Lacs superficiels calculés sur les berges existantes, sans excavation automatique. Inspection en 3D obligatoire avant application.','muted'));
+     node('p','Niveaux de débordement estimés par remplissage prioritaire du terrain. Le contour du lac suit les berges réelles et est vérifié avant toute création.','muted'));
    for(const suggestion of suggestions.proposals){
      const {basin,water}=suggestion,row=node('div','','feature-row');
      row.append(node('strong','Lac suggéré · '+(basin.areaM2/10000).toFixed(1)+' ha de bassin'),
-       node('p','Niveau '+water.level.toFixed(1)+' m · profondeur maximale proposée '+water.depth.toFixed(1)+' m','muted'),
+       node('p','Niveau '+water.level.toFixed(1)+' m · débordement '+basin.spillLevelM.toFixed(1)+' m · profondeur '+water.depth.toFixed(1)+' m','muted'),
        button('Voir le lac',()=>{
          ctx.viewport.showPreviewPolyline([...water.points,water.points[0]],0x3185c8);
          ctx.viewport.goTo(basin.outlet.x,basin.outlet.z,75);
@@ -139,11 +141,14 @@ export function mountHydroNetworkPanel(host:HTMLElement,ctx:RegionPanelContext):
          if(p.libraries.water[water.id])throw Error('Lac déjà créé : recalculer les propositions');
          await s.hydrate(waterChunkIds(p.world,water));
          const currentGeo=projectGeography(p).ctx;
-         const fresh=proposeBasinLakes([basin],{
+         const newBasins=analyzeDepressions(bounds,currentGeo.height,p.world.seaLevel,{maxCells:4096,minAreaM2:400}).depressions;
+         const stable=newBasins.find(b=>JSON.stringify(b)===JSON.stringify(basin));
+         if(!stable)throw Error('Le bassin versant a changé : recalculer les propositions');
+         const fresh=proposeBasinLakes([stable],{
            height:currentGeo.height,bounds,existing:Object.values(p.libraries.water),seaLevel:p.world.seaLevel},
-           {maxLakes:1,idPrefix:water.id.replace(/0$/,'')});
-         // Retain the original ID and exact geometry to guard against silent terrain changes.
-         if(!fresh.proposals.length||JSON.stringify({...fresh.proposals[0].water,id:water.id})!==JSON.stringify(water))
+           {maxLakes:1});
+         // Compare exactly the shape and water level, independent of a suggested ID.
+         if(!fresh.proposals.length||JSON.stringify({...fresh.proposals[0].water,id:''})!==JSON.stringify({...water,id:''}))
            throw Error('Le terrain ou les berges ont changé : recalculer la proposition');
          await s.change('Créer lac de bassin versant',waterChunkIds(p.world,water),d=>putWater(d,water));
          ctx.viewport.showPreviewPolyline(null);ctx.status('Lac proposé appliqué et validé.');
