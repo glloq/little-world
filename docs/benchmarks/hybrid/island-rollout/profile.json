@@ -1,0 +1,550 @@
+{
+  "ownership": {
+    "sharedAlive": true,
+    "released": true
+  },
+  "checks": "settings, persistence, query precedence, release/reload, island waypoints",
+  "snapshots": [
+    {
+      "label": "enabled-through-settings",
+      "hybrid": {
+        "mode": "trees",
+        "trees": {
+          "sectorM": 512,
+          "bufferUploads": 8,
+          "unchangedSectors": 2,
+          "state": "ready",
+          "instances": 570,
+          "sectors": 4,
+          "cachedSectors": 4,
+          "calls": 4,
+          "textureBytes": 2100992,
+          "textures": 2,
+          "uploadBytes": 2496,
+          "totalUploadBytes": 29640,
+          "evictions": 0,
+          "preparationMs": 0.10000000149011612
+        },
+        "buildings": {
+          "sectorM": 256,
+          "bufferUploads": 0,
+          "unchangedSectors": 0,
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "cache": {
+          "bytes": 2100992,
+          "entries": 1,
+          "loads": 1,
+          "hits": 0,
+          "evictions": 0,
+          "failed": 0
+        }
+      },
+      "calls": 171,
+      "triangles": 102358,
+      "dressing": 73,
+      "position": [
+        -700,
+        4.887490370306238,
+        1020
+      ]
+    },
+    {
+      "label": "persisted-after-reload",
+      "hybrid": {
+        "mode": "trees",
+        "trees": {
+          "sectorM": 512,
+          "bufferUploads": 4,
+          "unchangedSectors": 3,
+          "state": "ready",
+          "instances": 225,
+          "sectors": 4,
+          "cachedSectors": 4,
+          "calls": 4,
+          "textureBytes": 2100992,
+          "textures": 2,
+          "uploadBytes": 300,
+          "totalUploadBytes": 11844,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "buildings": {
+          "sectorM": 256,
+          "bufferUploads": 0,
+          "unchangedSectors": 0,
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "cache": {
+          "bytes": 2100992,
+          "entries": 1,
+          "loads": 1,
+          "hits": 0,
+          "evictions": 0,
+          "failed": 0
+        }
+      },
+      "calls": 170,
+      "triangles": 116233,
+      "dressing": 45,
+      "position": [
+        -700,
+        4.907490370306237,
+        1020
+      ]
+    },
+    {
+      "label": "explicit-geometry-override",
+      "hybrid": {
+        "mode": "off",
+        "trees": {
+          "sectorM": 256,
+          "bufferUploads": 0,
+          "unchangedSectors": 0,
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "buildings": {
+          "sectorM": 256,
+          "bufferUploads": 0,
+          "unchangedSectors": 0,
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "cache": {
+          "bytes": 0,
+          "entries": 0,
+          "loads": 0,
+          "hits": 0,
+          "evictions": 0,
+          "failed": 0
+        }
+      },
+      "calls": 167,
+      "triangles": 118579,
+      "dressing": 50,
+      "position": [
+        -700,
+        4.907490370306237,
+        1020
+      ]
+    },
+    {
+      "label": "disabled-and-released",
+      "hybrid": {
+        "mode": "off",
+        "trees": {
+          "sectorM": 512,
+          "bufferUploads": 0,
+          "unchangedSectors": 0,
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 49948,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "buildings": {
+          "sectorM": 256,
+          "bufferUploads": 0,
+          "unchangedSectors": 0,
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "cache": {
+          "bytes": 0,
+          "entries": 0,
+          "loads": 1,
+          "hits": 0,
+          "evictions": 1,
+          "failed": 0
+        }
+      },
+      "calls": 167,
+      "triangles": 105334,
+      "dressing": 73,
+      "position": [
+        -700,
+        4.887490370306238,
+        1020
+      ]
+    },
+    {
+      "label": "island:-700,1020",
+      "hybrid": {
+        "mode": "trees",
+        "trees": {
+          "sectorM": 512,
+          "bufferUploads": 12,
+          "unchangedSectors": 3,
+          "state": "ready",
+          "instances": 847,
+          "sectors": 6,
+          "cachedSectors": 6,
+          "calls": 6,
+          "textureBytes": 2100992,
+          "textures": 2,
+          "uploadBytes": 3800,
+          "totalUploadBytes": 115828,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "buildings": {
+          "sectorM": 256,
+          "bufferUploads": 0,
+          "unchangedSectors": 0,
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "cache": {
+          "bytes": 2100992,
+          "entries": 1,
+          "loads": 2,
+          "hits": 0,
+          "evictions": 1,
+          "failed": 0
+        }
+      },
+      "calls": 97,
+      "triangles": 82994,
+      "dressing": 127,
+      "position": [
+        -700,
+        4.887490370306238,
+        1020
+      ]
+    },
+    {
+      "label": "island:-420,350",
+      "hybrid": {
+        "mode": "trees",
+        "trees": {
+          "sectorM": 512,
+          "bufferUploads": 11,
+          "unchangedSectors": 1,
+          "state": "ready",
+          "instances": 168,
+          "sectors": 4,
+          "cachedSectors": 8,
+          "calls": 4,
+          "textureBytes": 2100992,
+          "textures": 2,
+          "uploadBytes": 5268,
+          "totalUploadBytes": 153708,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "buildings": {
+          "sectorM": 256,
+          "bufferUploads": 0,
+          "unchangedSectors": 0,
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "cache": {
+          "bytes": 2100992,
+          "entries": 1,
+          "loads": 2,
+          "hits": 0,
+          "evictions": 1,
+          "failed": 0
+        }
+      },
+      "calls": 109,
+      "triangles": 39664,
+      "dressing": 183,
+      "position": [
+        -420,
+        24.79892936602046,
+        350
+      ]
+    },
+    {
+      "label": "island:0,0",
+      "hybrid": {
+        "mode": "trees",
+        "trees": {
+          "sectorM": 512,
+          "bufferUploads": 11,
+          "unchangedSectors": 0,
+          "state": "ready",
+          "instances": 141,
+          "sectors": 3,
+          "cachedSectors": 10,
+          "calls": 3,
+          "textureBytes": 2100992,
+          "textures": 2,
+          "uploadBytes": 3688,
+          "totalUploadBytes": 163224,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "buildings": {
+          "sectorM": 256,
+          "bufferUploads": 0,
+          "unchangedSectors": 0,
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "cache": {
+          "bytes": 2100992,
+          "entries": 1,
+          "loads": 2,
+          "hits": 0,
+          "evictions": 1,
+          "failed": 0
+        }
+      },
+      "calls": 121,
+      "triangles": 45690,
+      "dressing": 235,
+      "position": [
+        0,
+        50.82332881477513,
+        0
+      ]
+    },
+    {
+      "label": "island:650,-450",
+      "hybrid": {
+        "mode": "trees",
+        "trees": {
+          "sectorM": 512,
+          "bufferUploads": 8,
+          "unchangedSectors": 0,
+          "state": "ready",
+          "instances": 8,
+          "sectors": 2,
+          "cachedSectors": 12,
+          "calls": 2,
+          "textureBytes": 2100992,
+          "textures": 2,
+          "uploadBytes": 416,
+          "totalUploadBytes": 163640,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "buildings": {
+          "sectorM": 256,
+          "bufferUploads": 0,
+          "unchangedSectors": 0,
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "cache": {
+          "bytes": 2100992,
+          "entries": 1,
+          "loads": 2,
+          "hits": 0,
+          "evictions": 1,
+          "failed": 0
+        }
+      },
+      "calls": 69,
+      "triangles": 43087,
+      "dressing": 279,
+      "position": [
+        650,
+        25.2428469062762,
+        -450
+      ]
+    },
+    {
+      "label": "island:850,650",
+      "hybrid": {
+        "mode": "trees",
+        "trees": {
+          "sectorM": 512,
+          "bufferUploads": 12,
+          "unchangedSectors": 0,
+          "state": "ready",
+          "instances": 33,
+          "sectors": 3,
+          "cachedSectors": 15,
+          "calls": 3,
+          "textureBytes": 2100992,
+          "textures": 2,
+          "uploadBytes": 924,
+          "totalUploadBytes": 165916,
+          "evictions": 0,
+          "preparationMs": 0.10000000149011612
+        },
+        "buildings": {
+          "sectorM": 256,
+          "bufferUploads": 0,
+          "unchangedSectors": 0,
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "cache": {
+          "bytes": 2100992,
+          "entries": 1,
+          "loads": 2,
+          "hits": 0,
+          "evictions": 1,
+          "failed": 0
+        }
+      },
+      "calls": 46,
+      "triangles": 26843,
+      "dressing": 359,
+      "position": [
+        850,
+        4.957056818164791,
+        650
+      ]
+    },
+    {
+      "label": "island:-700,1020",
+      "hybrid": {
+        "mode": "trees",
+        "trees": {
+          "sectorM": 512,
+          "bufferUploads": 12,
+          "unchangedSectors": 0,
+          "state": "ready",
+          "instances": 654,
+          "sectors": 4,
+          "cachedSectors": 15,
+          "calls": 4,
+          "textureBytes": 2100992,
+          "textures": 2,
+          "uploadBytes": 25840,
+          "totalUploadBytes": 237428,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "buildings": {
+          "sectorM": 256,
+          "bufferUploads": 0,
+          "unchangedSectors": 0,
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "cache": {
+          "bytes": 2100992,
+          "entries": 1,
+          "loads": 2,
+          "hits": 0,
+          "evictions": 1,
+          "failed": 0
+        }
+      },
+      "calls": 55,
+      "triangles": 66005,
+      "dressing": 403,
+      "position": [
+        -700,
+        4.887490370306238,
+        1020
+      ]
+    }
+  ],
+  "errors": []
+}

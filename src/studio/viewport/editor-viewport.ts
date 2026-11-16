@@ -1,3 +1,4 @@
+import {mountHybridControls} from '../../render/hybrid-controls.ts';
 import * as THREE from 'three';
 import {FrameClock} from '../../frame-clock.ts';
 import {buildWorld,configureScene,addPlacement,removePlacement,configureWorldGeography,type WorldView} from '../../world.ts';
@@ -51,6 +52,7 @@ export class StudioViewport {
   private renderer:THREE.WebGLRenderer;
   private scene=new THREE.Scene();
   private world:WorldView;
+  private hybridControls:ReturnType<typeof mountHybridControls>;
   private definition:WorldDefinition;
   private navigation:Navigation;
   private models=new Map<string,{object:THREE.Object3D;signature:string}>();
@@ -76,7 +78,7 @@ export class StudioViewport {
     this.renderer=new THREE.WebGLRenderer({canvas:this.canvas,antialias:true,powerPreference:'low-power'});this.renderer.setPixelRatio(Math.min(devicePixelRatio,1.25));this.renderer.outputColorSpace=THREE.SRGBColorSpace;this.renderer.toneMapping=THREE.ACESFilmicToneMapping;this.renderer.toneMappingExposure=1.1;
     this.sky=configureScene(this.scene);this.skyDay={sun:this.sky.sun.intensity,fill:this.sky.fill.intensity,ambient:this.sky.ambient.intensity,sunColor:this.sky.sun.color.getHex(),sunPosition:this.sky.sun.position.clone(),background:(this.scene.background as THREE.Color).getHex()};
     this.lightGroup.name='LightMarkers';this.scene.add(this.lightGroup);this.rangeGizmo.visible=false;this.rangeGizmo.renderOrder=24;this.scene.add(this.rangeGizmo);
-    this.world=buildWorld(definition.config,definition);this.scene.add(this.world.root);
+    this.world=buildWorld(definition.config,definition);this.scene.add(this.world.root);this.hybridControls=mountHybridControls(this.element,this.world,()=>this.invalidate(120));
     // A project without a saved 3D pose starts on the world's start point (beach, valley entrance).
     const saved=session.selection.state.camera,start=saved.target?saved:{...defaultSpawn(definition.config,definition.terrain),mode:'orbit' as const};
     const b=p.world.bounds;this.camera=new EditorCamera(poseFromContext(start,terrainHeight),session.selection.state.camera.mode==='top'?'top':session.selection.state.camera.mode==='free'?'free':'orbit',{minX:b.minX,maxX:b.maxX,minZ:b.minZ,maxZ:b.maxZ,ground:(x,z)=>terrainHeight(x,z)});
@@ -195,6 +197,7 @@ export class StudioViewport {
       if(Math.hypot(t.x-this.contentCenter.x,t.z-this.contentCenter.z)>REPLAN_DISTANCE)this.syncContent();
       this.tools.active?.frame?.();this.selection.refresh();
       this.renderer.render(this.scene,this.camera.camera);this.remaining--;
+      this.hybridControls.update();this.canvas.dataset.hybrid=JSON.stringify(this.world.hybrid.stats);
       const d=this.canvas.dataset;d.renderCount=String(++this.renderCount);d.pending=String(this.world.stats.pending);d.cameraMode=this.camera.mode;d.camera=JSON.stringify(this.camera.context());d.calls=String(this.renderer.info.render.calls);
       d.triangles=String(this.renderer.info.render.triangles);d.cliffs=JSON.stringify(this.world.cliffs.stats);
       d.waterCount=String(this.world.root.children.filter(o=>o.userData.waterId).length);d.diagnostics=JSON.stringify(this.diagnostics);d.models=String(this.models.size);d.paths=String(this.world.paths.paths);d.pathSectors=String(this.world.paths.sectors);d.pathSignature=this.world.paths.signature;d.contentSectors=String(this.contentIds.size);
@@ -324,7 +327,7 @@ export class StudioViewport {
     this.canvas.removeEventListener('pointerdown',this.onDown);this.canvas.removeEventListener('pointermove',this.onMove);this.canvas.removeEventListener('pointerup',this.onUp);this.canvas.removeEventListener('pointerleave',this.onLeave);window.removeEventListener('keydown',this.onKey);
     this.showPreviewPolyline(null);
     for(const child of this.zoneGroup.children){const line=child as THREE.Line;line.geometry.dispose();(line.material as THREE.Material).dispose();}this.zoneGroup.clear();this.zoneGroup.removeFromParent();
-    for(const model of this.models.values())removePlacement(model.object);this.models.clear();for(const m of this.lightMarkers.values())disposeMarker(m.object);this.lightMarkers.clear();this.markerGeometry.dispose();this.rangeGizmo.geometry.dispose();(this.rangeGizmo.material as THREE.Material).dispose();this.npcs.dispose();this.selection.dispose();this.world.dispose();this.renderer.dispose();this.renderer.forceContextLoss();this.element.remove();
+    for(const model of this.models.values())removePlacement(model.object);this.models.clear();for(const m of this.lightMarkers.values())disposeMarker(m.object);this.lightMarkers.clear();this.markerGeometry.dispose();this.rangeGizmo.geometry.dispose();(this.rangeGizmo.material as THREE.Material).dispose();this.npcs.dispose();this.selection.dispose();this.hybridControls.dispose();this.world.dispose();this.renderer.dispose();this.renderer.forceContextLoss();this.element.remove();
   }
 }
 const clampX=(p:{world:{bounds:{minX:number;maxX:number}}},x:number)=>Math.min(p.world.bounds.maxX,Math.max(p.world.bounds.minX,x));

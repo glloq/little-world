@@ -93,3 +93,8 @@ test('map raster is computed progressively from the existing height/water functi
   assert.equal(calls,21*64,'one height sample per pixel, never the world generator');
   const px=(i,j)=>[...raster.data.slice((j*21+i)*4,(j*21+i)*4+3)];assert.ok(px(10,63)[2]>px(10,63)[0],'water is blue');
 });
+
+test('map-wide hybrid preference persists locally and rejects unknown profiles',()=>{
+ assert.equal(parsePreferences({distantRendering:'hybrid'}).distantRendering,'hybrid');assert.equal(parsePreferences({distantRendering:'unknown'}).distantRendering,'geometry');
+ const data=new Map(),storage={getItem:k=>data.get(k)??null,setItem:(k,v)=>data.set(k,v)};savePreferences({...DEFAULT_PREFERENCES,distantRendering:'hybrid'},storage);assert.equal(loadPreferences(storage).distantRendering,'hybrid');assert.deepEqual([...data.keys()],[UI_PREFERENCES_KEY]);
+});

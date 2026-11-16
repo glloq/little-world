@@ -112,3 +112,8 @@ test('alternating fast and GPU-delayed frames still trigger sustained overload f
   assert.equal(b.level, 2);
   assert.equal(b.rate, 20);
 });
+
+test('explicit comparison tier freezes the existing budget without changing simulation cadence',()=>{
+ const b=new PresentationBudget(1);for(let i=0;i<300;i++)assert.equal(b.observe(150,.15),false);assert.equal(b.level,1);assert.equal(b.rate,30);assert.equal(b.resources.sectors,24);
+ const normal=new PresentationBudget(99);for(let i=0;i<100;i++)normal.observe(150,.15);assert.equal(normal.level,2);
+});

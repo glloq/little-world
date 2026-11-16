@@ -18,6 +18,10 @@ export function settingsPanel(deps:SettingsDeps){
     const check=(label:string,value:boolean,patch:(v:boolean)=>Partial<UiPreferences>)=>{const l=el('label','ui-check'),i=el('input');i.type='checkbox';i.checked=value;i.onchange=()=>deps.update(patch(i.checked));l.append(i,document.createTextNode(label));return l;};
     const display=section('Affichage');
     if(deps.quality){const l=el('label','ui-field','Qualité du rendu');l.append(deps.quality);display.append(l);}
+    const distant=el('select');distant.setAttribute('aria-label','Végétation lointaine');
+    for(const [value,label]of [['geometry','Géométrie classique'],['hybrid','Hybride (expérimental)']]){const option=el('option','',label);option.value=value;distant.append(option);}distant.value=p.distantRendering;
+    distant.onchange=()=>deps.update({distantRendering:distant.value==='hybrid'?'hybrid':'geometry'});
+    const distantLabel=el('label','ui-field','Végétation lointaine');distantLabel.append(distant);display.append(distantLabel,el('p','ui-muted','Le mode hybride s’applique à toute la carte. Son efficacité varie selon la scène et la carte graphique.'));
     display.append(check('Effets visuels de vitesse (champ de vision)',p.speedEffects,v=>({speedEffects:v})),check('Réduire les animations de l’interface',p.reduceMotion,v=>({reduceMotion:v})),check('Mode développeur (statistiques techniques, outils de test)',p.developer,v=>({developer:v})));
     const controls=section('Contrôles');const sens=el('input');sens.type='range';sens.min='0.3';sens.max='2.5';sens.step='0.1';sens.value=String(p.cameraSensitivity);sens.setAttribute('aria-label','Sensibilité de la caméra');sens.oninput=()=>deps.update({cameraSensitivity:Number(sens.value)});
     const sl=el('label','ui-field','Sensibilité de la caméra');sl.append(sens);controls.append(sl,check('Inverser l’axe vertical de la caméra',p.invertY,v=>({invertY:v})));

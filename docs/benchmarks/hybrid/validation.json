@@ -1,0 +1,46 @@
+{
+  "unit": {
+    "command": "npm test",
+    "tests": 481,
+    "failures": 0
+  },
+  "studio": {
+    "command": "npm run test:studio",
+    "checks": 17,
+    "errors": []
+  },
+  "dressing": {
+    "command": "npm run test:dressing-stability",
+    "checks": 7,
+    "errors": []
+  },
+  "hybrid": {
+    "command": "npm run test:hybrid",
+    "actors": [
+      10,
+      50,
+      100
+    ],
+    "snapshotsFor10ActorsPerSecond": {
+      "20Hz": 200,
+      "8Hz": 80,
+      "2Hz": 20
+    },
+    "sectorChanges": 70,
+    "lateLoadDisposed": true,
+    "missingAtlas": "geometric fallback",
+    "atlasBytesAfterDisposal": 0
+  },
+  "static": {
+    "base": "/little-world/",
+    "trees": "ready",
+    "buildings": "ready",
+    "actors": 100,
+    "knownNoise": "root favicon.ico 404, pre-existing"
+  },
+  "matrix": {
+    "passes": 40,
+    "renderErrors": 0,
+    "renderer": "Chromium SwiftShader"
+  }
+}

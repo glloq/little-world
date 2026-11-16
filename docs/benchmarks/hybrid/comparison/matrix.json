@@ -1,0 +1,3809 @@
+{
+  "revision": "0a06a59aaa3054a06ee97cf8c0d4bd046105d507",
+  "date": "2026-11-16T08:03:19.590Z",
+  "renderer": "Chromium SwiftShader; 960x640; CPU submission is NOT GPU time; flight/roll are scripted inputs, not guaranteed gameplay state",
+  "results": [
+    {
+      "scene": "forest",
+      "config": "off",
+      "url": "http://127.0.0.1:5173/little-world/?world=maps%2Fproduction-reference%2Fmanifest.json&spawn=-250%2C230&yaw=0.2&pitch=0.4&dist=60&metrics=1&impostors=off&remoteActors=0&impostorSectors=512",
+      "samples": 24,
+      "intervalMs": {
+        "p50": 155.19999999925494,
+        "p95": 307.6000000005588,
+        "p99": 518.3000000007451
+      },
+      "calls": 103.08333333333333,
+      "triangles": 81649.75,
+      "cpu": {
+        "simulation": 0.7291666665114462,
+        "update": 5.129166666651145,
+        "submit": 2.841666666790843
+      },
+      "perf": {
+        "samples": 30,
+        "frameMs": {
+          "p50": 150,
+          "p95": 516.6999999999998,
+          "p99": 533.1999999999998
+        },
+        "simulationMs": {
+          "p50": 0.39999999944120646,
+          "p95": 1.800000000745058,
+          "p99": 14.799999999813735
+        },
+        "updateMs": {
+          "p50": 7.8999999994412065,
+          "p95": 26.700000000186265,
+          "p99": 31.5
+        },
+        "submitMs": {
+          "p50": 3.1000000005587935,
+          "p95": 355.5,
+          "p99": 494.79999999981374
+        },
+        "longFrames": 26
+      },
+      "gpu": {
+        "available": true,
+        "ms": 86.240188,
+        "disjoint": 0,
+        "pending": 3
+      },
+      "hybrid": {
+        "trees": {
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "buildings": {
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "cache": {
+          "bytes": 0,
+          "entries": 0,
+          "loads": 0,
+          "hits": 0,
+          "evictions": 0,
+          "failed": 0
+        }
+      },
+      "actors": null,
+      "modes": [
+        "ground"
+      ],
+      "errors": []
+    },
+    {
+      "scene": "forest",
+      "config": "trees",
+      "url": "http://127.0.0.1:5173/little-world/?world=maps%2Fproduction-reference%2Fmanifest.json&spawn=-250%2C230&yaw=0.2&pitch=0.4&dist=60&metrics=1&impostors=trees&remoteActors=0&impostorSectors=512",
+      "samples": 23,
+      "intervalMs": {
+        "p50": 143.09999999962747,
+        "p95": 178,
+        "p99": 601.8999999994412
+      },
+      "calls": 105.73913043478261,
+      "triangles": 77776.34782608696,
+      "cpu": {
+        "simulation": 0.4826086955954847,
+        "update": 5.556521739243813,
+        "submit": 3.2999999999352125
+      },
+      "perf": {
+        "samples": 30,
+        "frameMs": {
+          "p50": 166.60000000000036,
+          "p95": 516.6999999999998,
+          "p99": 516.7000000000007
+        },
+        "simulationMs": {
+          "p50": 0.19999999925494194,
+          "p95": 1.800000000745058,
+          "p99": 26.200000000186265
+        },
+        "updateMs": {
+          "p50": 8,
+          "p95": 13.399999999441206,
+          "p99": 26.40000000037253
+        },
+        "submitMs": {
+          "p50": 3,
+          "p95": 286.80000000074506,
+          "p99": 502.59999999962747
+        },
+        "longFrames": 25
+      },
+      "gpu": {
+        "available": true,
+        "ms": 100.479379,
+        "disjoint": 0,
+        "pending": 2
+      },
+      "hybrid": {
+        "trees": {
+          "state": "ready",
+          "instances": 767,
+          "sectors": 4,
+          "cachedSectors": 4,
+          "calls": 4,
+          "textureBytes": 2099072,
+          "textures": 2,
+          "uploadBytes": 39884,
+          "totalUploadBytes": 540696,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "buildings": {
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "cache": {
+          "bytes": 2099072,
+          "entries": 1,
+          "loads": 1,
+          "hits": 0,
+          "evictions": 0,
+          "failed": 0
+        }
+      },
+      "actors": null,
+      "modes": [
+        "ground"
+      ],
+      "errors": []
+    },
+    {
+      "scene": "forest",
+      "config": "sectors",
+      "url": "http://127.0.0.1:5173/little-world/?world=maps%2Fproduction-reference%2Fmanifest.json&spawn=-250%2C230&yaw=0.2&pitch=0.4&dist=60&metrics=1&impostors=trees&remoteActors=0&impostorSectors=256",
+      "samples": 25,
+      "intervalMs": {
+        "p50": 128.29999999981374,
+        "p95": 261.79999999981374,
+        "p99": 511.90000000037253
+      },
+      "calls": 106.4,
+      "triangles": 76904.64,
+      "cpu": {
+        "simulation": 0.5320000000670553,
+        "update": 5.000000000037253,
+        "submit": 3.24399999987334
+      },
+      "perf": {
+        "samples": 30,
+        "frameMs": {
+          "p50": 166.69999999999982,
+          "p95": 416.7000000000003,
+          "p99": 566.6999999999998
+        },
+        "simulationMs": {
+          "p50": 0.2999999998137355,
+          "p95": 1.300000000745058,
+          "p99": 9.699999999254942
+        },
+        "updateMs": {
+          "p50": 5.7999999998137355,
+          "p95": 20.799999999813735,
+          "p99": 25.5
+        },
+        "submitMs": {
+          "p50": 3.6000000005587935,
+          "p95": 290.29999999981374,
+          "p99": 393.29999999981374
+        },
+        "longFrames": 24
+      },
+      "gpu": {
+        "available": true,
+        "ms": 99.781667,
+        "disjoint": 0,
+        "pending": 3
+      },
+      "hybrid": {
+        "trees": {
+          "state": "ready",
+          "instances": 670,
+          "sectors": 4,
+          "cachedSectors": 9,
+          "calls": 4,
+          "textureBytes": 2099072,
+          "textures": 2,
+          "uploadBytes": 34840,
+          "totalUploadBytes": 566800,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "buildings": {
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "cache": {
+          "bytes": 2099072,
+          "entries": 1,
+          "loads": 1,
+          "hits": 0,
+          "evictions": 0,
+          "failed": 0
+        }
+      },
+      "actors": null,
+      "modes": [
+        "ground"
+      ],
+      "errors": []
+    },
+    {
+      "scene": "forest",
+      "config": "actors",
+      "url": "http://127.0.0.1:5173/little-world/?world=maps%2Fproduction-reference%2Fmanifest.json&spawn=-250%2C230&yaw=0.2&pitch=0.4&dist=60&metrics=1&impostors=all&remoteActors=50&impostorSectors=256",
+      "samples": 27,
+      "intervalMs": {
+        "p50": 128.70000000018626,
+        "p95": 162.70000000018626,
+        "p99": 622.5
+      },
+      "calls": 108.44444444444444,
+      "triangles": 75905,
+      "cpu": {
+        "simulation": 0.9814814814124946,
+        "update": 4.7444444446721015,
+        "submit": 3.548148148037769
+      },
+      "perf": {
+        "samples": 30,
+        "frameMs": {
+          "p50": 150,
+          "p95": 533.3000000000002,
+          "p99": 533.4000000000001
+        },
+        "simulationMs": {
+          "p50": 0.7999999998137355,
+          "p95": 1.7000000001862645,
+          "p99": 17.200000000186265
+        },
+        "updateMs": {
+          "p50": 6.800000000745058,
+          "p95": 18.5,
+          "p99": 18.600000000558794
+        },
+        "submitMs": {
+          "p50": 3.099999999627471,
+          "p95": 306.6000000005588,
+          "p99": 519.7999999998137
+        },
+        "longFrames": 25
+      },
+      "gpu": {
+        "available": true,
+        "ms": 87.989424,
+        "disjoint": 0,
+        "pending": 3
+      },
+      "hybrid": {
+        "trees": {
+          "state": "ready",
+          "instances": 670,
+          "sectors": 4,
+          "cachedSectors": 9,
+          "calls": 4,
+          "textureBytes": 2099072,
+          "textures": 2,
+          "uploadBytes": 34840,
+          "totalUploadBytes": 582660,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "buildings": {
+          "state": "ready",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 262400,
+          "textures": 2,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "cache": {
+          "bytes": 5463232,
+          "entries": 3,
+          "loads": 3,
+          "hits": 1,
+          "evictions": 0,
+          "failed": 0
+        }
+      },
+      "actors": {
+        "actors": 50,
+        "full": 0,
+        "impostors": 26,
+        "proxy": 5,
+        "hidden": 19,
+        "snapshots": 6950,
+        "rigs": 0,
+        "updateMs": 0,
+        "atlas": {
+          "state": "ready",
+          "instances": 26,
+          "sectors": 4,
+          "cachedSectors": 4,
+          "calls": 4,
+          "textureBytes": 3101760,
+          "textures": 2,
+          "uploadBytes": 1352,
+          "totalUploadBytes": 75244,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "hz": 20
+      },
+      "modes": [
+        "ground"
+      ],
+      "errors": []
+    },
+    {
+      "scene": "valley",
+      "config": "off",
+      "url": "http://127.0.0.1:5173/little-world/?world=maps%2Fproduction-reference%2Fmanifest.json&spawn=-250%2C120&yaw=0&pitch=0.25&dist=60&metrics=1&impostors=off&remoteActors=0&impostorSectors=512",
+      "samples": 29,
+      "intervalMs": {
+        "p50": 110.90000000037253,
+        "p95": 187.69999999925494,
+        "p99": 511.80000000074506
+      },
+      "calls": 100.65517241379311,
+      "triangles": 75992.27586206897,
+      "cpu": {
+        "simulation": 0.32413793101521404,
+        "update": 3.603448275862069,
+        "submit": 4.351724137969572
+      },
+      "perf": {
+        "samples": 30,
+        "frameMs": {
+          "p50": 149.89999999999986,
+          "p95": 316.70000000000005,
+          "p99": 466.6999999999998
+        },
+        "simulationMs": {
+          "p50": 0.19999999925494194,
+          "p95": 1.6000000005587935,
+          "p99": 29.5
+        },
+        "updateMs": {
+          "p50": 7,
+          "p95": 14.399999999441206,
+          "p99": 27.299999999813735
+        },
+        "submitMs": {
+          "p50": 3.800000000745058,
+          "p95": 166.3999999994412,
+          "p99": 304.3999999994412
+        },
+        "longFrames": 26
+      },
+      "gpu": {
+        "available": true,
+        "ms": 55.252708,
+        "disjoint": 0,
+        "pending": 3
+      },
+      "hybrid": {
+        "trees": {
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "buildings": {
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "cache": {
+          "bytes": 0,
+          "entries": 0,
+          "loads": 0,
+          "hits": 0,
+          "evictions": 0,
+          "failed": 0
+        }
+      },
+      "actors": null,
+      "modes": [
+        "ground"
+      ],
+      "errors": []
+    },
+    {
+      "scene": "valley",
+      "config": "trees",
+      "url": "http://127.0.0.1:5173/little-world/?world=maps%2Fproduction-reference%2Fmanifest.json&spawn=-250%2C120&yaw=0&pitch=0.25&dist=60&metrics=1&impostors=trees&remoteActors=0&impostorSectors=512",
+      "samples": 31,
+      "intervalMs": {
+        "p50": 108.20000000018626,
+        "p95": 206.90000000037253,
+        "p99": 410.09999999962747
+      },
+      "calls": 102.74193548387096,
+      "triangles": 71663.3870967742,
+      "cpu": {
+        "simulation": 0.21612903220398771,
+        "update": 4.470967741953509,
+        "submit": 2.8677419354658453
+      },
+      "perf": {
+        "samples": 30,
+        "frameMs": {
+          "p50": 150,
+          "p95": 350.0999999999999,
+          "p99": 483.3000000000002
+        },
+        "simulationMs": {
+          "p50": 0.10000000055879354,
+          "p95": 0.6000000005587935,
+          "p99": 13.799999999813735
+        },
+        "updateMs": {
+          "p50": 7.3999999994412065,
+          "p95": 18.799999999813735,
+          "p99": 36.40000000037253
+        },
+        "submitMs": {
+          "p50": 3.7000000001862645,
+          "p95": 344.70000000018626,
+          "p99": 345.09999999962747
+        },
+        "longFrames": 23
+      },
+      "gpu": {
+        "available": true,
+        "ms": 76.883492,
+        "disjoint": 0,
+        "pending": 3
+      },
+      "hybrid": {
+        "trees": {
+          "state": "ready",
+          "instances": 892,
+          "sectors": 4,
+          "cachedSectors": 4,
+          "calls": 4,
+          "textureBytes": 2099072,
+          "textures": 2,
+          "uploadBytes": 46384,
+          "totalUploadBytes": 565136,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "buildings": {
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "cache": {
+          "bytes": 2099072,
+          "entries": 1,
+          "loads": 1,
+          "hits": 0,
+          "evictions": 0,
+          "failed": 0
+        }
+      },
+      "actors": null,
+      "modes": [
+        "ground"
+      ],
+      "errors": []
+    },
+    {
+      "scene": "valley",
+      "config": "sectors",
+      "url": "http://127.0.0.1:5173/little-world/?world=maps%2Fproduction-reference%2Fmanifest.json&spawn=-250%2C120&yaw=0&pitch=0.25&dist=60&metrics=1&impostors=trees&remoteActors=0&impostorSectors=256",
+      "samples": 34,
+      "intervalMs": {
+        "p50": 102.80000000074506,
+        "p95": 221.3999999994412,
+        "p99": 349.79999999981374
+      },
+      "calls": 100.61764705882354,
+      "triangles": 70175,
+      "cpu": {
+        "simulation": 0.24411764699856148,
+        "update": 3.8176470588454428,
+        "submit": 3.5029411764596317
+      },
+      "perf": {
+        "samples": 60,
+        "frameMs": {
+          "p50": 116.59999999999945,
+          "p95": 316.60000000000014,
+          "p99": 449.89999999999964
+        },
+        "simulationMs": {
+          "p50": 0.20000000018626451,
+          "p95": 0.7999999998137355,
+          "p99": 18.600000000558794
+        },
+        "updateMs": {
+          "p50": 3.5,
+          "p95": 14.799999999813735,
+          "p99": 28.59999999962747
+        },
+        "submitMs": {
+          "p50": 3.099999999627471,
+          "p95": 141.5,
+          "p99": 394.5
+        },
+        "longFrames": 52
+      },
+      "gpu": {
+        "available": true,
+        "ms": 69.11741,
+        "disjoint": 0,
+        "pending": 3
+      },
+      "hybrid": {
+        "trees": {
+          "state": "ready",
+          "instances": 426,
+          "sectors": 4,
+          "cachedSectors": 11,
+          "calls": 4,
+          "textureBytes": 2099072,
+          "textures": 2,
+          "uploadBytes": 22152,
+          "totalUploadBytes": 561392,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "buildings": {
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "cache": {
+          "bytes": 2099072,
+          "entries": 1,
+          "loads": 1,
+          "hits": 0,
+          "evictions": 0,
+          "failed": 0
+        }
+      },
+      "actors": null,
+      "modes": [
+        "ground"
+      ],
+      "errors": []
+    },
+    {
+      "scene": "valley",
+      "config": "actors",
+      "url": "http://127.0.0.1:5173/little-world/?world=maps%2Fproduction-reference%2Fmanifest.json&spawn=-250%2C120&yaw=0&pitch=0.25&dist=60&metrics=1&impostors=all&remoteActors=50&impostorSectors=256",
+      "samples": 35,
+      "intervalMs": {
+        "p50": 105.1000000005588,
+        "p95": 150,
+        "p99": 418.6000000005588
+      },
+      "calls": 106.05714285714286,
+      "triangles": 71922.74285714286,
+      "cpu": {
+        "simulation": 0.6085714285661067,
+        "update": 5.074285714275071,
+        "submit": 6.285714285714286
+      },
+      "perf": {
+        "samples": 30,
+        "frameMs": {
+          "p50": 133.39999999999964,
+          "p95": 383.29999999999995,
+          "p99": 433.3000000000002
+        },
+        "simulationMs": {
+          "p50": 0.6999999992549419,
+          "p95": 2.5,
+          "p99": 22.40000000037253
+        },
+        "updateMs": {
+          "p50": 5.2999999998137355,
+          "p95": 13.100000000558794,
+          "p99": 14.599999999627471
+        },
+        "submitMs": {
+          "p50": 3,
+          "p95": 353.1000000005588,
+          "p99": 362.6000000005588
+        },
+        "longFrames": 25
+      },
+      "gpu": {
+        "available": true,
+        "ms": 67.005441,
+        "disjoint": 0,
+        "pending": 3
+      },
+      "hybrid": {
+        "trees": {
+          "state": "ready",
+          "instances": 426,
+          "sectors": 4,
+          "cachedSectors": 11,
+          "calls": 4,
+          "textureBytes": 2099072,
+          "textures": 2,
+          "uploadBytes": 22152,
+          "totalUploadBytes": 586352,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "buildings": {
+          "state": "ready",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 262400,
+          "textures": 2,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "cache": {
+          "bytes": 5463232,
+          "entries": 3,
+          "loads": 3,
+          "hits": 1,
+          "evictions": 0,
+          "failed": 0
+        }
+      },
+      "actors": {
+        "actors": 50,
+        "full": 0,
+        "impostors": 26,
+        "proxy": 6,
+        "hidden": 18,
+        "snapshots": 6750,
+        "rigs": 0,
+        "updateMs": 0.19999999925494194,
+        "atlas": {
+          "state": "ready",
+          "instances": 26,
+          "sectors": 2,
+          "cachedSectors": 2,
+          "calls": 2,
+          "textureBytes": 3101760,
+          "textures": 2,
+          "uploadBytes": 1352,
+          "totalUploadBytes": 82108,
+          "evictions": 0,
+          "preparationMs": 0.09999999962747097
+        },
+        "hz": 20
+      },
+      "modes": [
+        "ground"
+      ],
+      "errors": []
+    },
+    {
+      "scene": "cliffs",
+      "config": "off",
+      "url": "http://127.0.0.1:5173/little-world/?world=maps%2Fproduction-reference%2Fmanifest.json&spawn=430%2C-60&yaw=1&pitch=0.3&dist=80&metrics=1&impostors=off&remoteActors=0&impostorSectors=512",
+      "samples": 39,
+      "intervalMs": {
+        "p50": 89,
+        "p95": 176.09999999962747,
+        "p99": 377.69999999925494
+      },
+      "calls": 70.64102564102564,
+      "triangles": 40622.38461538462,
+      "cpu": {
+        "simulation": 0.39487179483358675,
+        "update": 3.1641025641121163,
+        "submit": 4.04358974366616
+      },
+      "perf": {
+        "samples": 60,
+        "frameMs": {
+          "p50": 100,
+          "p95": 283.3000000000002,
+          "p99": 433.1999999999998
+        },
+        "simulationMs": {
+          "p50": 0.20000000018626451,
+          "p95": 0.8000000007450581,
+          "p99": 10.100000000558794
+        },
+        "updateMs": {
+          "p50": 2.900000000372529,
+          "p95": 12.099999999627471,
+          "p99": 13.200000000186265
+        },
+        "submitMs": {
+          "p50": 2.7000000001862645,
+          "p95": 21.5,
+          "p99": 397.09999999962747
+        },
+        "longFrames": 51
+      },
+      "gpu": {
+        "available": true,
+        "ms": 59.110572,
+        "disjoint": 0,
+        "pending": 2
+      },
+      "hybrid": {
+        "trees": {
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "buildings": {
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "cache": {
+          "bytes": 0,
+          "entries": 0,
+          "loads": 0,
+          "hits": 0,
+          "evictions": 0,
+          "failed": 0
+        }
+      },
+      "actors": null,
+      "modes": [
+        "ground"
+      ],
+      "errors": []
+    },
+    {
+      "scene": "cliffs",
+      "config": "trees",
+      "url": "http://127.0.0.1:5173/little-world/?world=maps%2Fproduction-reference%2Fmanifest.json&spawn=430%2C-60&yaw=1&pitch=0.3&dist=80&metrics=1&impostors=trees&remoteActors=0&impostorSectors=512",
+      "samples": 38,
+      "intervalMs": {
+        "p50": 98.20000000018626,
+        "p95": 133.5,
+        "p99": 368.79999999981374
+      },
+      "calls": 70.76315789473684,
+      "triangles": 38250.39473684211,
+      "cpu": {
+        "simulation": 0.21842105260216876,
+        "update": 3.7763157895227013,
+        "submit": 3.9552631578163098
+      },
+      "perf": {
+        "samples": 60,
+        "frameMs": {
+          "p50": 100.10000000000036,
+          "p95": 316.6999999999998,
+          "p99": 400
+        },
+        "simulationMs": {
+          "p50": 0.20000000018626451,
+          "p95": 0.5,
+          "p99": 19.899999999441206
+        },
+        "updateMs": {
+          "p50": 3.099999999627471,
+          "p95": 13,
+          "p99": 26
+        },
+        "submitMs": {
+          "p50": 2.8999999994412065,
+          "p95": 164.5,
+          "p99": 385.90000000037253
+        },
+        "longFrames": 50
+      },
+      "gpu": {
+        "available": true,
+        "ms": 105.424754,
+        "disjoint": 0,
+        "pending": 3
+      },
+      "hybrid": {
+        "trees": {
+          "state": "ready",
+          "instances": 415,
+          "sectors": 4,
+          "cachedSectors": 5,
+          "calls": 4,
+          "textureBytes": 2099072,
+          "textures": 2,
+          "uploadBytes": 21580,
+          "totalUploadBytes": 255632,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "buildings": {
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "cache": {
+          "bytes": 2099072,
+          "entries": 1,
+          "loads": 1,
+          "hits": 0,
+          "evictions": 0,
+          "failed": 0
+        }
+      },
+      "actors": null,
+      "modes": [
+        "ground"
+      ],
+      "errors": []
+    },
+    {
+      "scene": "cliffs",
+      "config": "sectors",
+      "url": "http://127.0.0.1:5173/little-world/?world=maps%2Fproduction-reference%2Fmanifest.json&spawn=430%2C-60&yaw=1&pitch=0.3&dist=80&metrics=1&impostors=trees&remoteActors=0&impostorSectors=256",
+      "samples": 44,
+      "intervalMs": {
+        "p50": 77.29999999981374,
+        "p95": 164.59999999962747,
+        "p99": 349.20000000018626
+      },
+      "calls": 68.31818181818181,
+      "triangles": 37236.38636363636,
+      "cpu": {
+        "simulation": 0.23863636357286436,
+        "update": 2.159090909154408,
+        "submit": 3.3772727272007614
+      },
+      "perf": {
+        "samples": 60,
+        "frameMs": {
+          "p50": 83.39999999999964,
+          "p95": 316.5999999999999,
+          "p99": 366.7000000000003
+        },
+        "simulationMs": {
+          "p50": 0.20000000018626451,
+          "p95": 0.7000000001862645,
+          "p99": 33.299999999813735
+        },
+        "updateMs": {
+          "p50": 3,
+          "p95": 13.099999999627471,
+          "p99": 25
+        },
+        "submitMs": {
+          "p50": 2.3999999994412065,
+          "p95": 192.20000000018626,
+          "p99": 357.59999999962747
+        },
+        "longFrames": 52
+      },
+      "gpu": {
+        "available": true,
+        "ms": 42.714351,
+        "disjoint": 0,
+        "pending": 3
+      },
+      "hybrid": {
+        "trees": {
+          "state": "ready",
+          "instances": 207,
+          "sectors": 4,
+          "cachedSectors": 12,
+          "calls": 4,
+          "textureBytes": 2099072,
+          "textures": 2,
+          "uploadBytes": 10764,
+          "totalUploadBytes": 258700,
+          "evictions": 0,
+          "preparationMs": 0.10000000055879354
+        },
+        "buildings": {
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "cache": {
+          "bytes": 2099072,
+          "entries": 1,
+          "loads": 1,
+          "hits": 0,
+          "evictions": 0,
+          "failed": 0
+        }
+      },
+      "actors": null,
+      "modes": [
+        "ground"
+      ],
+      "errors": []
+    },
+    {
+      "scene": "cliffs",
+      "config": "actors",
+      "url": "http://127.0.0.1:5173/little-world/?world=maps%2Fproduction-reference%2Fmanifest.json&spawn=430%2C-60&yaw=1&pitch=0.3&dist=80&metrics=1&impostors=all&remoteActors=50&impostorSectors=256",
+      "samples": 41,
+      "intervalMs": {
+        "p50": 85.20000000018626,
+        "p95": 131.70000000018626,
+        "p99": 355.29999999981374
+      },
+      "calls": 75.29268292682927,
+      "triangles": 38115.12195121951,
+      "cpu": {
+        "simulation": 0.5048780487168852,
+        "update": 3.1731707317663767,
+        "submit": 2.6682926829359155
+      },
+      "perf": {
+        "samples": 60,
+        "frameMs": {
+          "p50": 100,
+          "p95": 266.6999999999998,
+          "p99": 383.29999999999995
+        },
+        "simulationMs": {
+          "p50": 0.5,
+          "p95": 1.6000000005587935,
+          "p99": 16.299999999813735
+        },
+        "updateMs": {
+          "p50": 3.8999999994412065,
+          "p95": 21.40000000037253,
+          "p99": 30.700000000186265
+        },
+        "submitMs": {
+          "p50": 2.1000000005587935,
+          "p95": 145.6000000005588,
+          "p99": 366.5
+        },
+        "longFrames": 54
+      },
+      "gpu": {
+        "available": true,
+        "ms": 49.409978,
+        "disjoint": 0,
+        "pending": 2
+      },
+      "hybrid": {
+        "trees": {
+          "state": "ready",
+          "instances": 207,
+          "sectors": 4,
+          "cachedSectors": 12,
+          "calls": 4,
+          "textureBytes": 2099072,
+          "textures": 2,
+          "uploadBytes": 10764,
+          "totalUploadBytes": 266968,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "buildings": {
+          "state": "ready",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 262400,
+          "textures": 2,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "cache": {
+          "bytes": 5463232,
+          "entries": 3,
+          "loads": 3,
+          "hits": 1,
+          "evictions": 0,
+          "failed": 0
+        }
+      },
+      "actors": {
+        "actors": 50,
+        "full": 0,
+        "impostors": 18,
+        "proxy": 3,
+        "hidden": 29,
+        "snapshots": 7050,
+        "rigs": 0,
+        "updateMs": 0.09999999962747097,
+        "atlas": {
+          "state": "ready",
+          "instances": 18,
+          "sectors": 2,
+          "cachedSectors": 4,
+          "calls": 2,
+          "textureBytes": 3101760,
+          "textures": 2,
+          "uploadBytes": 936,
+          "totalUploadBytes": 81432,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "hz": 20
+      },
+      "modes": [
+        "ground"
+      ],
+      "errors": []
+    },
+    {
+      "scene": "panorama",
+      "config": "off",
+      "url": "http://127.0.0.1:5173/little-world/?world=maps%2Fproduction-reference%2Fmanifest.json&spawn=0%2C0&yaw=0.3&pitch=0.45&dist=280&metrics=1&impostors=off&remoteActors=0&impostorSectors=512",
+      "samples": 30,
+      "intervalMs": {
+        "p50": 114.79999999981374,
+        "p95": 147.3999999994412,
+        "p99": 426.40000000037253
+      },
+      "calls": 163.4,
+      "triangles": 102513.73333333334,
+      "cpu": {
+        "simulation": 0.9233333333084981,
+        "update": 5.443333333327124,
+        "submit": 3.840000000068297
+      },
+      "perf": {
+        "samples": 30,
+        "frameMs": {
+          "p50": 150,
+          "p95": 316.79999999999995,
+          "p99": 449.90000000000055
+        },
+        "simulationMs": {
+          "p50": 0.10000000055879354,
+          "p95": 1.2000000001862645,
+          "p99": 10.199999999254942
+        },
+        "updateMs": {
+          "p50": 8.200000000186265,
+          "p95": 24.200000000186265,
+          "p99": 35
+        },
+        "submitMs": {
+          "p50": 3.5,
+          "p95": 216.90000000037253,
+          "p99": 294.59999999962747
+        },
+        "longFrames": 25
+      },
+      "gpu": {
+        "available": true,
+        "ms": 60.305063,
+        "disjoint": 0,
+        "pending": 2
+      },
+      "hybrid": {
+        "trees": {
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "buildings": {
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "cache": {
+          "bytes": 0,
+          "entries": 0,
+          "loads": 0,
+          "hits": 0,
+          "evictions": 0,
+          "failed": 0
+        }
+      },
+      "actors": null,
+      "modes": [
+        "ground"
+      ],
+      "errors": []
+    },
+    {
+      "scene": "panorama",
+      "config": "trees",
+      "url": "http://127.0.0.1:5173/little-world/?world=maps%2Fproduction-reference%2Fmanifest.json&spawn=0%2C0&yaw=0.3&pitch=0.45&dist=280&metrics=1&impostors=trees&remoteActors=0&impostorSectors=512",
+      "samples": 29,
+      "intervalMs": {
+        "p50": 109.29999999981374,
+        "p95": 278.09999999962747,
+        "p99": 415.3999999994412
+      },
+      "calls": 162.86206896551724,
+      "triangles": 96687.86206896552,
+      "cpu": {
+        "simulation": 0.3034482759198752,
+        "update": 3.7379310344956043,
+        "submit": 3.293103448211633
+      },
+      "perf": {
+        "samples": 30,
+        "frameMs": {
+          "p50": 133.4000000000001,
+          "p95": 316.60000000000014,
+          "p99": 433.3000000000002
+        },
+        "simulationMs": {
+          "p50": 0.20000000018626451,
+          "p95": 0.6000000005587935,
+          "p99": 14.399999999441206
+        },
+        "updateMs": {
+          "p50": 5.2000000001862645,
+          "p95": 12.700000000186265,
+          "p99": 15
+        },
+        "submitMs": {
+          "p50": 2.7999999998137355,
+          "p95": 200.29999999981374,
+          "p99": 295.20000000018626
+        },
+        "longFrames": 26
+      },
+      "gpu": {
+        "available": true,
+        "ms": 81.923151,
+        "disjoint": 0,
+        "pending": 3
+      },
+      "hybrid": {
+        "trees": {
+          "state": "ready",
+          "instances": 925,
+          "sectors": 4,
+          "cachedSectors": 4,
+          "calls": 4,
+          "textureBytes": 2099072,
+          "textures": 2,
+          "uploadBytes": 48100,
+          "totalUploadBytes": 610740,
+          "evictions": 0,
+          "preparationMs": 0.30000000074505806
+        },
+        "buildings": {
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "cache": {
+          "bytes": 2099072,
+          "entries": 1,
+          "loads": 1,
+          "hits": 0,
+          "evictions": 0,
+          "failed": 0
+        }
+      },
+      "actors": null,
+      "modes": [
+        "ground"
+      ],
+      "errors": []
+    },
+    {
+      "scene": "panorama",
+      "config": "sectors",
+      "url": "http://127.0.0.1:5173/little-world/?world=maps%2Fproduction-reference%2Fmanifest.json&spawn=0%2C0&yaw=0.3&pitch=0.45&dist=280&metrics=1&impostors=trees&remoteActors=0&impostorSectors=256",
+      "samples": 28,
+      "intervalMs": {
+        "p50": 110,
+        "p95": 380.1000000005588,
+        "p99": 495.5
+      },
+      "calls": 168.42857142857142,
+      "triangles": 96800.92857142857,
+      "cpu": {
+        "simulation": 0.2750000000731753,
+        "update": 3.5928571428105767,
+        "submit": 3.9178571427640105
+      },
+      "perf": {
+        "samples": 30,
+        "frameMs": {
+          "p50": 133.29999999999995,
+          "p95": 316.70000000000005,
+          "p99": 416.5
+        },
+        "simulationMs": {
+          "p50": 0.09999999962747097,
+          "p95": 0.7999999998137355,
+          "p99": 11.599999999627471
+        },
+        "updateMs": {
+          "p50": 3.7000000001862645,
+          "p95": 11.400000000372529,
+          "p99": 22.600000000558794
+        },
+        "submitMs": {
+          "p50": 3.2999999998137355,
+          "p95": 271.5,
+          "p99": 298.79999999981374
+        },
+        "longFrames": 25
+      },
+      "gpu": {
+        "available": true,
+        "ms": 86.680901,
+        "disjoint": 0,
+        "pending": 3
+      },
+      "hybrid": {
+        "trees": {
+          "state": "ready",
+          "instances": 490,
+          "sectors": 4,
+          "cachedSectors": 12,
+          "calls": 4,
+          "textureBytes": 2099072,
+          "textures": 2,
+          "uploadBytes": 25480,
+          "totalUploadBytes": 512252,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "buildings": {
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "cache": {
+          "bytes": 2099072,
+          "entries": 1,
+          "loads": 1,
+          "hits": 0,
+          "evictions": 0,
+          "failed": 0
+        }
+      },
+      "actors": null,
+      "modes": [
+        "ground"
+      ],
+      "errors": []
+    },
+    {
+      "scene": "panorama",
+      "config": "actors",
+      "url": "http://127.0.0.1:5173/little-world/?world=maps%2Fproduction-reference%2Fmanifest.json&spawn=0%2C0&yaw=0.3&pitch=0.45&dist=280&metrics=1&impostors=all&remoteActors=50&impostorSectors=256",
+      "samples": 28,
+      "intervalMs": {
+        "p50": 114.09999999962747,
+        "p95": 351.09999999962747,
+        "p99": 486.29999999981374
+      },
+      "calls": 173.14285714285714,
+      "triangles": 101945.35714285714,
+      "cpu": {
+        "simulation": 0.6857142857209381,
+        "update": 5.853571428551471,
+        "submit": 3.5785714285780807
+      },
+      "perf": {
+        "samples": 30,
+        "frameMs": {
+          "p50": 133.4000000000001,
+          "p95": 383.39999999999986,
+          "p99": 433.40000000000055
+        },
+        "simulationMs": {
+          "p50": 0.7000000001862645,
+          "p95": 1.8999999994412065,
+          "p99": 11.599999999627471
+        },
+        "updateMs": {
+          "p50": 4.300000000745058,
+          "p95": 19.5,
+          "p99": 25.700000000186265
+        },
+        "submitMs": {
+          "p50": 2.900000000372529,
+          "p95": 198.70000000018626,
+          "p99": 360.90000000037253
+        },
+        "longFrames": 26
+      },
+      "gpu": {
+        "available": true,
+        "ms": 66.794863,
+        "disjoint": 0,
+        "pending": 3
+      },
+      "hybrid": {
+        "trees": {
+          "state": "ready",
+          "instances": 490,
+          "sectors": 4,
+          "cachedSectors": 12,
+          "calls": 4,
+          "textureBytes": 2099072,
+          "textures": 2,
+          "uploadBytes": 25480,
+          "totalUploadBytes": 562952,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "buildings": {
+          "state": "ready",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 262400,
+          "textures": 2,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "cache": {
+          "bytes": 5463232,
+          "entries": 3,
+          "loads": 3,
+          "hits": 1,
+          "evictions": 0,
+          "failed": 0
+        }
+      },
+      "actors": {
+        "actors": 50,
+        "full": 0,
+        "impostors": 0,
+        "proxy": 50,
+        "hidden": 0,
+        "snapshots": 6750,
+        "rigs": 0,
+        "updateMs": 0.09999999962747097,
+        "atlas": {
+          "state": "ready",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 1,
+          "calls": 0,
+          "textureBytes": 3101760,
+          "textures": 2,
+          "uploadBytes": 0,
+          "totalUploadBytes": 988,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "hz": 20
+      },
+      "modes": [
+        "ground"
+      ],
+      "errors": []
+    },
+    {
+      "scene": "flight",
+      "config": "off",
+      "url": "http://127.0.0.1:5173/little-world/?world=maps%2Fproduction-reference%2Fmanifest.json&spawn=0%2C0&yaw=0.3&pitch=0.8&dist=160&metrics=1&impostors=off&remoteActors=0&impostorSectors=512",
+      "samples": 33,
+      "intervalMs": {
+        "p50": 110.30000000074506,
+        "p95": 195.40000000037253,
+        "p99": 451.20000000018626
+      },
+      "calls": 137.27272727272728,
+      "triangles": 88993.09090909091,
+      "cpu": {
+        "simulation": 0.6666666666948886,
+        "update": 5.02121212127421,
+        "submit": 3.1424242424863307
+      },
+      "perf": {
+        "samples": 60,
+        "frameMs": {
+          "p50": 116.60000000000036,
+          "p95": 333.3000000000002,
+          "p99": 416.6999999999998
+        },
+        "simulationMs": {
+          "p50": 0.39999999944120646,
+          "p95": 1.2000000001862645,
+          "p99": 20.600000000558794
+        },
+        "updateMs": {
+          "p50": 3.7999999998137355,
+          "p95": 16.799999999813735,
+          "p99": 29.899999999441206
+        },
+        "submitMs": {
+          "p50": 3,
+          "p95": 152.79999999981374,
+          "p99": 354.90000000037253
+        },
+        "longFrames": 50
+      },
+      "gpu": {
+        "available": true,
+        "ms": 74.33365,
+        "disjoint": 0,
+        "pending": 3
+      },
+      "hybrid": {
+        "trees": {
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0.09999999962747097
+        },
+        "buildings": {
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "cache": {
+          "bytes": 0,
+          "entries": 0,
+          "loads": 0,
+          "hits": 0,
+          "evictions": 0,
+          "failed": 0
+        }
+      },
+      "actors": null,
+      "modes": [
+        "ground",
+        "air",
+        "glide"
+      ],
+      "errors": []
+    },
+    {
+      "scene": "flight",
+      "config": "trees",
+      "url": "http://127.0.0.1:5173/little-world/?world=maps%2Fproduction-reference%2Fmanifest.json&spawn=0%2C0&yaw=0.3&pitch=0.8&dist=160&metrics=1&impostors=trees&remoteActors=0&impostorSectors=512",
+      "samples": 30,
+      "intervalMs": {
+        "p50": 108.70000000111759,
+        "p95": 388.2999999988824,
+        "p99": 426
+      },
+      "calls": 140.86666666666667,
+      "triangles": 85088.93333333333,
+      "cpu": {
+        "simulation": 0.5100000000869235,
+        "update": 4.473333333122233,
+        "submit": 3.796666666616996
+      },
+      "perf": {
+        "samples": 30,
+        "frameMs": {
+          "p50": 133.30000000000018,
+          "p95": 383.3000000000002,
+          "p99": 383.3000000000002
+        },
+        "simulationMs": {
+          "p50": 0.09999999962747097,
+          "p95": 0.7999999988824129,
+          "p99": 11
+        },
+        "updateMs": {
+          "p50": 6.700000001117587,
+          "p95": 17.199999999254942,
+          "p99": 27.100000001490116
+        },
+        "submitMs": {
+          "p50": 3.100000001490116,
+          "p95": 293.09999999962747,
+          "p99": 372.30000000074506
+        },
+        "longFrames": 25
+      },
+      "gpu": {
+        "available": true,
+        "ms": 104.279045,
+        "disjoint": 0,
+        "pending": 3
+      },
+      "hybrid": {
+        "trees": {
+          "state": "ready",
+          "instances": 973,
+          "sectors": 4,
+          "cachedSectors": 4,
+          "calls": 4,
+          "textureBytes": 2099072,
+          "textures": 2,
+          "uploadBytes": 50596,
+          "totalUploadBytes": 689104,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "buildings": {
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "cache": {
+          "bytes": 2099072,
+          "entries": 1,
+          "loads": 1,
+          "hits": 0,
+          "evictions": 0,
+          "failed": 0
+        }
+      },
+      "actors": null,
+      "modes": [
+        "ground",
+        "air",
+        "glide"
+      ],
+      "errors": []
+    },
+    {
+      "scene": "flight",
+      "config": "sectors",
+      "url": "http://127.0.0.1:5173/little-world/?world=maps%2Fproduction-reference%2Fmanifest.json&spawn=0%2C0&yaw=0.3&pitch=0.8&dist=160&metrics=1&impostors=trees&remoteActors=0&impostorSectors=256",
+      "samples": 27,
+      "intervalMs": {
+        "p50": 130.19999999925494,
+        "p95": 306.5,
+        "p99": 432.8999999985099
+      },
+      "calls": 143.2962962962963,
+      "triangles": 84318.66666666667,
+      "cpu": {
+        "simulation": 0.6037037038002853,
+        "update": 5.937037036995645,
+        "submit": 3.325925925815547
+      },
+      "perf": {
+        "samples": 30,
+        "frameMs": {
+          "p50": 133.39999999999964,
+          "p95": 333.3000000000002,
+          "p99": 433.39999999999964
+        },
+        "simulationMs": {
+          "p50": 0.09999999962747097,
+          "p95": 0.8000000007450581,
+          "p99": 22
+        },
+        "updateMs": {
+          "p50": 4.900000000372529,
+          "p95": 13.599999999627471,
+          "p99": 17.09999999962747
+        },
+        "submitMs": {
+          "p50": 3.399999998509884,
+          "p95": 324.40000000037253,
+          "p99": 337.40000000037253
+        },
+        "longFrames": 24
+      },
+      "gpu": {
+        "available": true,
+        "ms": 89.671353,
+        "disjoint": 0,
+        "pending": 2
+      },
+      "hybrid": {
+        "trees": {
+          "state": "ready",
+          "instances": 502,
+          "sectors": 4,
+          "cachedSectors": 12,
+          "calls": 4,
+          "textureBytes": 2099072,
+          "textures": 2,
+          "uploadBytes": 26104,
+          "totalUploadBytes": 644384,
+          "evictions": 0,
+          "preparationMs": 0.09999999962747097
+        },
+        "buildings": {
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "cache": {
+          "bytes": 2099072,
+          "entries": 1,
+          "loads": 1,
+          "hits": 0,
+          "evictions": 0,
+          "failed": 0
+        }
+      },
+      "actors": null,
+      "modes": [
+        "ground",
+        "air",
+        "glide"
+      ],
+      "errors": []
+    },
+    {
+      "scene": "flight",
+      "config": "actors",
+      "url": "http://127.0.0.1:5173/little-world/?world=maps%2Fproduction-reference%2Fmanifest.json&spawn=0%2C0&yaw=0.3&pitch=0.8&dist=160&metrics=1&impostors=all&remoteActors=50&impostorSectors=256",
+      "samples": 33,
+      "intervalMs": {
+        "p50": 101,
+        "p95": 389.19999999925494,
+        "p99": 470.09999999962747
+      },
+      "calls": 135.5151515151515,
+      "triangles": 85347.06060606061,
+      "cpu": {
+        "simulation": 1.0212121209073248,
+        "update": 4.942424242469397,
+        "submit": 11.869696969617948
+      },
+      "perf": {
+        "samples": 60,
+        "frameMs": {
+          "p50": 116.69999999999982,
+          "p95": 300,
+          "p99": 483.3000000000002
+        },
+        "simulationMs": {
+          "p50": 0.6999999992549419,
+          "p95": 8.400000000372529,
+          "p99": 29
+        },
+        "updateMs": {
+          "p50": 5.400000000372529,
+          "p95": 17.300000000745058,
+          "p99": 18.90000000037253
+        },
+        "submitMs": {
+          "p50": 3.400000000372529,
+          "p95": 195.59999999962747,
+          "p99": 274.90000000037253
+        },
+        "longFrames": 53
+      },
+      "gpu": {
+        "available": true,
+        "ms": 85.727818,
+        "disjoint": 0,
+        "pending": 3
+      },
+      "hybrid": {
+        "trees": {
+          "state": "ready",
+          "instances": 501,
+          "sectors": 4,
+          "cachedSectors": 12,
+          "calls": 4,
+          "textureBytes": 2099072,
+          "textures": 2,
+          "uploadBytes": 26052,
+          "totalUploadBytes": 604916,
+          "evictions": 0,
+          "preparationMs": 0.09999999962747097
+        },
+        "buildings": {
+          "state": "ready",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 262400,
+          "textures": 2,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "cache": {
+          "bytes": 5463232,
+          "entries": 3,
+          "loads": 3,
+          "hits": 1,
+          "evictions": 0,
+          "failed": 0
+        }
+      },
+      "actors": {
+        "actors": 50,
+        "full": 0,
+        "impostors": 0,
+        "proxy": 47,
+        "hidden": 3,
+        "snapshots": 7650,
+        "rigs": 0,
+        "updateMs": 0.2000000011175871,
+        "atlas": {
+          "state": "ready",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 4,
+          "calls": 0,
+          "textureBytes": 3101760,
+          "textures": 2,
+          "uploadBytes": 0,
+          "totalUploadBytes": 50908,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "hz": 20
+      },
+      "modes": [
+        "ground",
+        "air",
+        "glide"
+      ],
+      "errors": []
+    },
+    {
+      "scene": "rotation",
+      "config": "off",
+      "url": "http://127.0.0.1:5173/little-world/?world=maps%2Fproduction-reference%2Fmanifest.json&spawn=-250%2C230&yaw=0.2&pitch=0.3&dist=60&metrics=1&impostors=off&remoteActors=0&impostorSectors=512",
+      "samples": 45,
+      "intervalMs": {
+        "p50": 118.30000000074506,
+        "p95": 194.59999999962747,
+        "p99": 596.7000000011176
+      },
+      "calls": 81.08888888888889,
+      "triangles": 72754.26666666666,
+      "cpu": {
+        "simulation": 0.4755555556466182,
+        "update": 4.444444444278876,
+        "submit": 2.5066666666832234
+      },
+      "perf": {
+        "samples": 60,
+        "frameMs": {
+          "p50": 150,
+          "p95": 450.0999999999999,
+          "p99": 633.3000000000002
+        },
+        "simulationMs": {
+          "p50": 0.40000000037252903,
+          "p95": 0.900000000372529,
+          "p99": 15
+        },
+        "updateMs": {
+          "p50": 4.899999998509884,
+          "p95": 17.800000000745058,
+          "p99": 24.700000001117587
+        },
+        "submitMs": {
+          "p50": 2.699999999254942,
+          "p95": 148.2999999988824,
+          "p99": 515.6999999992549
+        },
+        "longFrames": 52
+      },
+      "gpu": {
+        "available": true,
+        "ms": 104.882846,
+        "disjoint": 0,
+        "pending": 3
+      },
+      "hybrid": {
+        "trees": {
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "buildings": {
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "cache": {
+          "bytes": 0,
+          "entries": 0,
+          "loads": 0,
+          "hits": 0,
+          "evictions": 0,
+          "failed": 0
+        }
+      },
+      "actors": null,
+      "modes": [
+        "ground"
+      ],
+      "errors": []
+    },
+    {
+      "scene": "rotation",
+      "config": "trees",
+      "url": "http://127.0.0.1:5173/little-world/?world=maps%2Fproduction-reference%2Fmanifest.json&spawn=-250%2C230&yaw=0.2&pitch=0.3&dist=60&metrics=1&impostors=trees&remoteActors=0&impostorSectors=512",
+      "samples": 56,
+      "intervalMs": {
+        "p50": 88.60000000149012,
+        "p95": 153.69999999925494,
+        "p99": 446.40000000037253
+      },
+      "calls": 82.26785714285714,
+      "triangles": 68207.05357142857,
+      "cpu": {
+        "simulation": 0.38571428577415645,
+        "update": 5.023214285860637,
+        "submit": 3.2785714283984686
+      },
+      "perf": {
+        "samples": 60,
+        "frameMs": {
+          "p50": 133.30000000000018,
+          "p95": 333.2999999999993,
+          "p99": 533.2000000000007
+        },
+        "simulationMs": {
+          "p50": 0.30000000074505806,
+          "p95": 0.8000000007450581,
+          "p99": 17.300000000745058
+        },
+        "updateMs": {
+          "p50": 5.400000000372529,
+          "p95": 20.90000000037253,
+          "p99": 25.59999999962747
+        },
+        "submitMs": {
+          "p50": 2.699999999254942,
+          "p95": 162.19999999925494,
+          "p99": 475.40000000037253
+        },
+        "longFrames": 53
+      },
+      "gpu": {
+        "available": true,
+        "ms": 79.938155,
+        "disjoint": 0,
+        "pending": 3
+      },
+      "hybrid": {
+        "trees": {
+          "state": "ready",
+          "instances": 879,
+          "sectors": 4,
+          "cachedSectors": 4,
+          "calls": 4,
+          "textureBytes": 2099072,
+          "textures": 2,
+          "uploadBytes": 45708,
+          "totalUploadBytes": 918528,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "buildings": {
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "cache": {
+          "bytes": 2099072,
+          "entries": 1,
+          "loads": 1,
+          "hits": 0,
+          "evictions": 0,
+          "failed": 0
+        }
+      },
+      "actors": null,
+      "modes": [
+        "ground"
+      ],
+      "errors": []
+    },
+    {
+      "scene": "rotation",
+      "config": "sectors",
+      "url": "http://127.0.0.1:5173/little-world/?world=maps%2Fproduction-reference%2Fmanifest.json&spawn=-250%2C230&yaw=0.2&pitch=0.3&dist=60&metrics=1&impostors=trees&remoteActors=0&impostorSectors=256",
+      "samples": 53,
+      "intervalMs": {
+        "p50": 93,
+        "p95": 248.80000000074506,
+        "p99": 524.6999999992549
+      },
+      "calls": 84.26415094339623,
+      "triangles": 68689.83018867925,
+      "cpu": {
+        "simulation": 0.4716981129966817,
+        "update": 3.845283018987415,
+        "submit": 3.6207547169178724
+      },
+      "perf": {
+        "samples": 60,
+        "frameMs": {
+          "p50": 133.30000000000018,
+          "p95": 399.9999999999991,
+          "p99": 566.6999999999998
+        },
+        "simulationMs": {
+          "p50": 0.40000000037252903,
+          "p95": 1.5,
+          "p99": 16.800000000745058
+        },
+        "updateMs": {
+          "p50": 5,
+          "p95": 15.099999999627471,
+          "p99": 36.90000000037253
+        },
+        "submitMs": {
+          "p50": 3.300000000745058,
+          "p95": 218.19999999925494,
+          "p99": 438
+        },
+        "longFrames": 51
+      },
+      "gpu": {
+        "available": true,
+        "ms": 90.524424,
+        "disjoint": 0,
+        "pending": 3
+      },
+      "hybrid": {
+        "trees": {
+          "state": "ready",
+          "instances": 670,
+          "sectors": 4,
+          "cachedSectors": 9,
+          "calls": 4,
+          "textureBytes": 2099072,
+          "textures": 2,
+          "uploadBytes": 34840,
+          "totalUploadBytes": 879112,
+          "evictions": 0,
+          "preparationMs": 0.09999999962747097
+        },
+        "buildings": {
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "cache": {
+          "bytes": 2099072,
+          "entries": 1,
+          "loads": 1,
+          "hits": 0,
+          "evictions": 0,
+          "failed": 0
+        }
+      },
+      "actors": null,
+      "modes": [
+        "ground"
+      ],
+      "errors": []
+    },
+    {
+      "scene": "rotation",
+      "config": "actors",
+      "url": "http://127.0.0.1:5173/little-world/?world=maps%2Fproduction-reference%2Fmanifest.json&spawn=-250%2C230&yaw=0.2&pitch=0.3&dist=60&metrics=1&impostors=all&remoteActors=50&impostorSectors=256",
+      "samples": 58,
+      "intervalMs": {
+        "p50": 90.20000000111759,
+        "p95": 203.5,
+        "p99": 501.59999999962747
+      },
+      "calls": 85.94827586206897,
+      "triangles": 67167.4827586207,
+      "cpu": {
+        "simulation": 0.8931034483529371,
+        "update": 4.186206896500341,
+        "submit": 2.658620689674441
+      },
+      "perf": {
+        "samples": 60,
+        "frameMs": {
+          "p50": 133.30000000000018,
+          "p95": 383.3000000000002,
+          "p99": 466.7000000000007
+        },
+        "simulationMs": {
+          "p50": 0.8999999985098839,
+          "p95": 2.5,
+          "p99": 18.59999999962747
+        },
+        "updateMs": {
+          "p50": 5.199999999254942,
+          "p95": 12.800000000745058,
+          "p99": 21.40000000037253
+        },
+        "submitMs": {
+          "p50": 2.900000000372529,
+          "p95": 203.69999999925494,
+          "p99": 473.5
+        },
+        "longFrames": 51
+      },
+      "gpu": {
+        "available": true,
+        "ms": 88.131476,
+        "disjoint": 0,
+        "pending": 3
+      },
+      "hybrid": {
+        "trees": {
+          "state": "ready",
+          "instances": 672,
+          "sectors": 4,
+          "cachedSectors": 9,
+          "calls": 4,
+          "textureBytes": 2099072,
+          "textures": 2,
+          "uploadBytes": 34944,
+          "totalUploadBytes": 924144,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "buildings": {
+          "state": "ready",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 262400,
+          "textures": 2,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "cache": {
+          "bytes": 5463232,
+          "entries": 3,
+          "loads": 3,
+          "hits": 1,
+          "evictions": 0,
+          "failed": 0
+        }
+      },
+      "actors": {
+        "actors": 50,
+        "full": 0,
+        "impostors": 24,
+        "proxy": 7,
+        "hidden": 19,
+        "snapshots": 10100,
+        "rigs": 0,
+        "updateMs": 0.10000000149011612,
+        "atlas": {
+          "state": "ready",
+          "instances": 24,
+          "sectors": 4,
+          "cachedSectors": 4,
+          "calls": 4,
+          "textureBytes": 3101760,
+          "textures": 2,
+          "uploadBytes": 1248,
+          "totalUploadBytes": 121368,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "hz": 20
+      },
+      "modes": [
+        "ground"
+      ],
+      "errors": []
+    },
+    {
+      "scene": "roll",
+      "config": "off",
+      "url": "http://127.0.0.1:5173/little-world/?world=maps%2Fproduction-reference%2Fmanifest.json&spawn=-250%2C230&yaw=0.2&pitch=0.25&dist=25&metrics=1&impostors=off&remoteActors=0&impostorSectors=512",
+      "samples": 30,
+      "intervalMs": {
+        "p50": 113.90000000037253,
+        "p95": 222.5,
+        "p99": 481.7000000011176
+      },
+      "calls": 86,
+      "triangles": 61389.73333333333,
+      "cpu": {
+        "simulation": 0.7066666667660078,
+        "update": 4.406666666455567,
+        "submit": 3.570000000235935
+      },
+      "perf": {
+        "samples": 30,
+        "frameMs": {
+          "p50": 166.5999999999999,
+          "p95": 383.39999999999964,
+          "p99": 500
+        },
+        "simulationMs": {
+          "p50": 0.19999999925494194,
+          "p95": 1.3999999985098839,
+          "p99": 21.399999998509884
+        },
+        "updateMs": {
+          "p50": 5.800000000745058,
+          "p95": 15,
+          "p99": 29.699999999254942
+        },
+        "submitMs": {
+          "p50": 2.899999998509884,
+          "p95": 153.19999999925494,
+          "p99": 362.69999999925494
+        },
+        "longFrames": 25
+      },
+      "gpu": {
+        "available": true,
+        "ms": 79.441811,
+        "disjoint": 0,
+        "pending": 3
+      },
+      "hybrid": {
+        "trees": {
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "buildings": {
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "cache": {
+          "bytes": 0,
+          "entries": 0,
+          "loads": 0,
+          "hits": 0,
+          "evictions": 0,
+          "failed": 0
+        }
+      },
+      "actors": null,
+      "modes": [
+        "ground",
+        "roll"
+      ],
+      "errors": []
+    },
+    {
+      "scene": "roll",
+      "config": "trees",
+      "url": "http://127.0.0.1:5173/little-world/?world=maps%2Fproduction-reference%2Fmanifest.json&spawn=-250%2C230&yaw=0.2&pitch=0.25&dist=25&metrics=1&impostors=trees&remoteActors=0&impostorSectors=512",
+      "samples": 32,
+      "intervalMs": {
+        "p50": 115.29999999888241,
+        "p95": 248.7000000011176,
+        "p99": 270.90000000037253
+      },
+      "calls": 87.03125,
+      "triangles": 57254.21875,
+      "cpu": {
+        "simulation": 0.5625000000582077,
+        "update": 4.806249999906868,
+        "submit": 3.9687500000582077
+      },
+      "perf": {
+        "samples": 30,
+        "frameMs": {
+          "p50": 166.59999999999945,
+          "p95": 266.70000000000005,
+          "p99": 516.6999999999998
+        },
+        "simulationMs": {
+          "p50": 0.2999999988824129,
+          "p95": 1.400000000372529,
+          "p99": 20
+        },
+        "updateMs": {
+          "p50": 5.599999999627471,
+          "p95": 24.299999998882413,
+          "p99": 33.5
+        },
+        "submitMs": {
+          "p50": 4.199999999254942,
+          "p95": 175.90000000037253,
+          "p99": 248.5
+        },
+        "longFrames": 24
+      },
+      "gpu": {
+        "available": true,
+        "ms": 86.721411,
+        "disjoint": 0,
+        "pending": 3
+      },
+      "hybrid": {
+        "trees": {
+          "state": "ready",
+          "instances": 765,
+          "sectors": 4,
+          "cachedSectors": 4,
+          "calls": 4,
+          "textureBytes": 2099072,
+          "textures": 2,
+          "uploadBytes": 39780,
+          "totalUploadBytes": 617864,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "buildings": {
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "cache": {
+          "bytes": 2099072,
+          "entries": 1,
+          "loads": 1,
+          "hits": 0,
+          "evictions": 0,
+          "failed": 0
+        }
+      },
+      "actors": null,
+      "modes": [
+        "ground",
+        "roll"
+      ],
+      "errors": []
+    },
+    {
+      "scene": "roll",
+      "config": "sectors",
+      "url": "http://127.0.0.1:5173/little-world/?world=maps%2Fproduction-reference%2Fmanifest.json&spawn=-250%2C230&yaw=0.2&pitch=0.25&dist=25&metrics=1&impostors=trees&remoteActors=0&impostorSectors=256",
+      "samples": 31,
+      "intervalMs": {
+        "p50": 120.20000000111759,
+        "p95": 157.80000000074506,
+        "p99": 471.5
+      },
+      "calls": 88.29032258064517,
+      "triangles": 57268.967741935485,
+      "cpu": {
+        "simulation": 0.580645161170152,
+        "update": 7.712903225734349,
+        "submit": 3.9354838710879125
+      },
+      "perf": {
+        "samples": 30,
+        "frameMs": {
+          "p50": 166.69999999999982,
+          "p95": 433.3000000000002,
+          "p99": 516.7000000000007
+        },
+        "simulationMs": {
+          "p50": 0.5,
+          "p95": 1.5,
+          "p99": 14.300000000745058
+        },
+        "updateMs": {
+          "p50": 6.5,
+          "p95": 20.59999999962747,
+          "p99": 32.09999999962747
+        },
+        "submitMs": {
+          "p50": 3.400000000372529,
+          "p95": 202.19999999925494,
+          "p99": 418.40000000037253
+        },
+        "longFrames": 24
+      },
+      "gpu": {
+        "available": true,
+        "ms": 88.84449,
+        "disjoint": 0,
+        "pending": 3
+      },
+      "hybrid": {
+        "trees": {
+          "state": "ready",
+          "instances": 660,
+          "sectors": 4,
+          "cachedSectors": 9,
+          "calls": 4,
+          "textureBytes": 2099072,
+          "textures": 2,
+          "uploadBytes": 34320,
+          "totalUploadBytes": 640640,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "buildings": {
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "cache": {
+          "bytes": 2099072,
+          "entries": 1,
+          "loads": 1,
+          "hits": 0,
+          "evictions": 0,
+          "failed": 0
+        }
+      },
+      "actors": null,
+      "modes": [
+        "ground",
+        "roll"
+      ],
+      "errors": []
+    },
+    {
+      "scene": "roll",
+      "config": "actors",
+      "url": "http://127.0.0.1:5173/little-world/?world=maps%2Fproduction-reference%2Fmanifest.json&spawn=-250%2C230&yaw=0.2&pitch=0.25&dist=25&metrics=1&impostors=all&remoteActors=50&impostorSectors=256",
+      "samples": 32,
+      "intervalMs": {
+        "p50": 114.19999999925494,
+        "p95": 216.40000000037253,
+        "p99": 493.2999999988824
+      },
+      "calls": 91.6875,
+      "triangles": 57125,
+      "cpu": {
+        "simulation": 0.9468750000814907,
+        "update": 6.199999999953434,
+        "submit": 5.306250000139698
+      },
+      "perf": {
+        "samples": 30,
+        "frameMs": {
+          "p50": 166.70000000000005,
+          "p95": 300,
+          "p99": 500
+        },
+        "simulationMs": {
+          "p50": 0.8000000007450581,
+          "p95": 5.5,
+          "p99": 25.5
+        },
+        "updateMs": {
+          "p50": 7.699999999254942,
+          "p95": 30.09999999962747,
+          "p99": 34.20000000111759
+        },
+        "submitMs": {
+          "p50": 3.599999999627471,
+          "p95": 155.7999999988824,
+          "p99": 281.7000000011176
+        },
+        "longFrames": 26
+      },
+      "gpu": {
+        "available": true,
+        "ms": 98.152014,
+        "disjoint": 0,
+        "pending": 3
+      },
+      "hybrid": {
+        "trees": {
+          "state": "ready",
+          "instances": 660,
+          "sectors": 4,
+          "cachedSectors": 9,
+          "calls": 4,
+          "textureBytes": 2099072,
+          "textures": 2,
+          "uploadBytes": 34320,
+          "totalUploadBytes": 636532,
+          "evictions": 0,
+          "preparationMs": 0.10000000149011612
+        },
+        "buildings": {
+          "state": "ready",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 262400,
+          "textures": 2,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "cache": {
+          "bytes": 5463232,
+          "entries": 3,
+          "loads": 3,
+          "hits": 1,
+          "evictions": 0,
+          "failed": 0
+        }
+      },
+      "actors": {
+        "actors": 50,
+        "full": 0,
+        "impostors": 16,
+        "proxy": 6,
+        "hidden": 28,
+        "snapshots": 7300,
+        "rigs": 1,
+        "updateMs": 0.19999999925494194,
+        "atlas": {
+          "state": "ready",
+          "instances": 16,
+          "sectors": 4,
+          "cachedSectors": 4,
+          "calls": 4,
+          "textureBytes": 3101760,
+          "textures": 2,
+          "uploadBytes": 832,
+          "totalUploadBytes": 44824,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "hz": 20
+      },
+      "modes": [
+        "ground",
+        "roll"
+      ],
+      "errors": []
+    },
+    {
+      "scene": "village",
+      "config": "off",
+      "url": "http://127.0.0.1:5173/little-world/?world=maps%2Fproduction-reference%2Fmanifest.json&spawn=-60%2C-170&yaw=1.5&pitch=0.25&dist=35&metrics=1&impostors=off&remoteActors=0&impostorSectors=512",
+      "samples": 26,
+      "intervalMs": {
+        "p50": 141.30000000074506,
+        "p95": 209.19999999925494,
+        "p99": 451.7999999988824
+      },
+      "calls": 113.46153846153847,
+      "triangles": 71957.15384615384,
+      "cpu": {
+        "simulation": 0.273076923062595,
+        "update": 5.850000000200593,
+        "submit": 4.665384615341631
+      },
+      "perf": {
+        "samples": 30,
+        "frameMs": {
+          "p50": 150,
+          "p95": 400,
+          "p99": 516.6000000000004
+        },
+        "simulationMs": {
+          "p50": 0.19999999925494194,
+          "p95": 1,
+          "p99": 27.90000000037253
+        },
+        "updateMs": {
+          "p50": 6.300000000745058,
+          "p95": 18.09999999962747,
+          "p99": 21.40000000037253
+        },
+        "submitMs": {
+          "p50": 4.800000000745058,
+          "p95": 321.59999999962747,
+          "p99": 393.69999999925494
+        },
+        "longFrames": 25
+      },
+      "gpu": {
+        "available": true,
+        "ms": 64.844334,
+        "disjoint": 0,
+        "pending": 3
+      },
+      "hybrid": {
+        "trees": {
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "buildings": {
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "cache": {
+          "bytes": 0,
+          "entries": 0,
+          "loads": 0,
+          "hits": 0,
+          "evictions": 0,
+          "failed": 0
+        }
+      },
+      "actors": null,
+      "modes": [
+        "ground"
+      ],
+      "errors": []
+    },
+    {
+      "scene": "village",
+      "config": "trees",
+      "url": "http://127.0.0.1:5173/little-world/?world=maps%2Fproduction-reference%2Fmanifest.json&spawn=-60%2C-170&yaw=1.5&pitch=0.25&dist=35&metrics=1&impostors=trees&remoteActors=0&impostorSectors=512",
+      "samples": 26,
+      "intervalMs": {
+        "p50": 129.2999999988824,
+        "p95": 241.10000000149012,
+        "p99": 552.0999999996275
+      },
+      "calls": 113.84615384615384,
+      "triangles": 65657.69230769231,
+      "cpu": {
+        "simulation": 0.23461538452941638,
+        "update": 5.565384615355959,
+        "submit": 5.111538461337869
+      },
+      "perf": {
+        "samples": 30,
+        "frameMs": {
+          "p50": 166.69999999999982,
+          "p95": 416.5999999999999,
+          "p99": 550
+        },
+        "simulationMs": {
+          "p50": 0.2000000011175871,
+          "p95": 0.6999999992549419,
+          "p99": 9.400000000372529
+        },
+        "updateMs": {
+          "p50": 5.5,
+          "p95": 20.59999999962747,
+          "p99": 30.5
+        },
+        "submitMs": {
+          "p50": 3.099999999627471,
+          "p95": 334.7000000011176,
+          "p99": 410.09999999962747
+        },
+        "longFrames": 25
+      },
+      "gpu": {
+        "available": true,
+        "ms": 91.193548,
+        "disjoint": 0,
+        "pending": 3
+      },
+      "hybrid": {
+        "trees": {
+          "state": "ready",
+          "instances": 813,
+          "sectors": 4,
+          "cachedSectors": 6,
+          "calls": 4,
+          "textureBytes": 2099072,
+          "textures": 2,
+          "uploadBytes": 42276,
+          "totalUploadBytes": 456872,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "buildings": {
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "cache": {
+          "bytes": 2099072,
+          "entries": 1,
+          "loads": 1,
+          "hits": 0,
+          "evictions": 0,
+          "failed": 0
+        }
+      },
+      "actors": null,
+      "modes": [
+        "ground"
+      ],
+      "errors": []
+    },
+    {
+      "scene": "village",
+      "config": "sectors",
+      "url": "http://127.0.0.1:5173/little-world/?world=maps%2Fproduction-reference%2Fmanifest.json&spawn=-60%2C-170&yaw=1.5&pitch=0.25&dist=35&metrics=1&impostors=trees&remoteActors=0&impostorSectors=256",
+      "samples": 27,
+      "intervalMs": {
+        "p50": 125.59999999962747,
+        "p95": 426,
+        "p99": 467.5
+      },
+      "calls": 116.74074074074075,
+      "triangles": 66307.44444444444,
+      "cpu": {
+        "simulation": 0.23333333322295435,
+        "update": 3.933333333512699,
+        "submit": 4.159259259079893
+      },
+      "perf": {
+        "samples": 30,
+        "frameMs": {
+          "p50": 166.5999999999999,
+          "p95": 333.29999999999995,
+          "p99": 383.39999999999964
+        },
+        "simulationMs": {
+          "p50": 0.2000000011175871,
+          "p95": 0.6999999992549419,
+          "p99": 41.29999999888241
+        },
+        "updateMs": {
+          "p50": 6.300000000745058,
+          "p95": 14.800000000745058,
+          "p99": 18.09999999962747
+        },
+        "submitMs": {
+          "p50": 4,
+          "p95": 241.10000000149012,
+          "p99": 322.7000000011176
+        },
+        "longFrames": 26
+      },
+      "gpu": {
+        "available": true,
+        "ms": 78.317793,
+        "disjoint": 0,
+        "pending": 2
+      },
+      "hybrid": {
+        "trees": {
+          "state": "ready",
+          "instances": 213,
+          "sectors": 4,
+          "cachedSectors": 12,
+          "calls": 4,
+          "textureBytes": 2099072,
+          "textures": 2,
+          "uploadBytes": 11076,
+          "totalUploadBytes": 491244,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "buildings": {
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "cache": {
+          "bytes": 2099072,
+          "entries": 1,
+          "loads": 1,
+          "hits": 0,
+          "evictions": 0,
+          "failed": 0
+        }
+      },
+      "actors": null,
+      "modes": [
+        "ground"
+      ],
+      "errors": []
+    },
+    {
+      "scene": "village",
+      "config": "actors",
+      "url": "http://127.0.0.1:5173/little-world/?world=maps%2Fproduction-reference%2Fmanifest.json&spawn=-60%2C-170&yaw=1.5&pitch=0.25&dist=35&metrics=1&impostors=all&remoteActors=50&impostorSectors=256",
+      "samples": 25,
+      "intervalMs": {
+        "p50": 129.39999999850988,
+        "p95": 444,
+        "p99": 480.30000000074506
+      },
+      "calls": 121.88,
+      "triangles": 69170.76,
+      "cpu": {
+        "simulation": 0.612000000178814,
+        "update": 5.923999999836087,
+        "submit": 4.684000000134111
+      },
+      "perf": {
+        "samples": 30,
+        "frameMs": {
+          "p50": 150,
+          "p95": 383.29999999999995,
+          "p99": 516.6999999999998
+        },
+        "simulationMs": {
+          "p50": 0.7000000011175871,
+          "p95": 2,
+          "p99": 10
+        },
+        "updateMs": {
+          "p50": 7.199999999254942,
+          "p95": 27.699999999254942,
+          "p99": 32.70000000111759
+        },
+        "submitMs": {
+          "p50": 3.400000000372529,
+          "p95": 161.60000000149012,
+          "p99": 357.90000000037253
+        },
+        "longFrames": 25
+      },
+      "gpu": {
+        "available": true,
+        "ms": 86.441142,
+        "disjoint": 0,
+        "pending": 2
+      },
+      "hybrid": {
+        "trees": {
+          "state": "ready",
+          "instances": 213,
+          "sectors": 4,
+          "cachedSectors": 12,
+          "calls": 4,
+          "textureBytes": 2099072,
+          "textures": 2,
+          "uploadBytes": 11076,
+          "totalUploadBytes": 528216,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "buildings": {
+          "state": "ready",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 262400,
+          "textures": 2,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "cache": {
+          "bytes": 5463232,
+          "entries": 3,
+          "loads": 3,
+          "hits": 1,
+          "evictions": 0,
+          "failed": 0
+        }
+      },
+      "actors": {
+        "actors": 50,
+        "full": 0,
+        "impostors": 18,
+        "proxy": 4,
+        "hidden": 28,
+        "snapshots": 6750,
+        "rigs": 1,
+        "updateMs": 0.09999999962747097,
+        "atlas": {
+          "state": "ready",
+          "instances": 18,
+          "sectors": 2,
+          "cachedSectors": 3,
+          "calls": 2,
+          "textureBytes": 3101760,
+          "textures": 2,
+          "uploadBytes": 936,
+          "totalUploadBytes": 48308,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "hz": 20
+      },
+      "modes": [
+        "ground"
+      ],
+      "errors": []
+    },
+    {
+      "scene": "actors10",
+      "config": "off",
+      "url": "http://127.0.0.1:5173/little-world/?world=maps%2Fproduction-reference%2Fmanifest.json&spawn=-250%2C230&yaw=0.2&pitch=0.35&dist=35&metrics=1&impostors=off&remoteActors=0&impostorSectors=512",
+      "samples": 23,
+      "intervalMs": {
+        "p50": 144.60000000149012,
+        "p95": 262.19999999925494,
+        "p99": 543
+      },
+      "calls": 93.30434782608695,
+      "triangles": 68548.04347826086,
+      "cpu": {
+        "simulation": 0.5217391306777364,
+        "update": 6.208695652125322,
+        "submit": 5.186956521609555
+      },
+      "perf": {
+        "samples": 30,
+        "frameMs": {
+          "p50": 183.29999999999973,
+          "p95": 333.3000000000002,
+          "p99": 599.8999999999996
+        },
+        "simulationMs": {
+          "p50": 0.30000000074505806,
+          "p95": 1.099999999627471,
+          "p99": 18.700000001117587
+        },
+        "updateMs": {
+          "p50": 6.800000000745058,
+          "p95": 18,
+          "p99": 21.59999999962747
+        },
+        "submitMs": {
+          "p50": 3.100000001490116,
+          "p95": 141.2999999988824,
+          "p99": 198.2999999988824
+        },
+        "longFrames": 25
+      },
+      "gpu": {
+        "available": true,
+        "ms": 78.578926,
+        "disjoint": 0,
+        "pending": 2
+      },
+      "hybrid": {
+        "trees": {
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "buildings": {
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "cache": {
+          "bytes": 0,
+          "entries": 0,
+          "loads": 0,
+          "hits": 0,
+          "evictions": 0,
+          "failed": 0
+        }
+      },
+      "actors": null,
+      "modes": [
+        "ground"
+      ],
+      "errors": []
+    },
+    {
+      "scene": "actors10",
+      "config": "trees",
+      "url": "http://127.0.0.1:5173/little-world/?world=maps%2Fproduction-reference%2Fmanifest.json&spawn=-250%2C230&yaw=0.2&pitch=0.35&dist=35&metrics=1&impostors=trees&remoteActors=0&impostorSectors=512",
+      "samples": 27,
+      "intervalMs": {
+        "p50": 126.19999999925494,
+        "p95": 263.09999999962747,
+        "p99": 442.7999999988824
+      },
+      "calls": 92,
+      "triangles": 62207.88888888889,
+      "cpu": {
+        "simulation": 0.3999999997516473,
+        "update": 4.918518518408139,
+        "submit": 3.5592592593834356
+      },
+      "perf": {
+        "samples": 30,
+        "frameMs": {
+          "p50": 166.59999999999945,
+          "p95": 383.3000000000002,
+          "p99": 383.3000000000002
+        },
+        "simulationMs": {
+          "p50": 0.2000000011175871,
+          "p95": 1.400000000372529,
+          "p99": 18.90000000037253
+        },
+        "updateMs": {
+          "p50": 6,
+          "p95": 14.699999999254942,
+          "p99": 21.90000000037253
+        },
+        "submitMs": {
+          "p50": 3.700000001117587,
+          "p95": 149.59999999962747,
+          "p99": 374.90000000037253
+        },
+        "longFrames": 26
+      },
+      "gpu": {
+        "available": true,
+        "ms": 58.790833,
+        "disjoint": 0,
+        "pending": 2
+      },
+      "hybrid": {
+        "trees": {
+          "state": "ready",
+          "instances": 753,
+          "sectors": 4,
+          "cachedSectors": 4,
+          "calls": 4,
+          "textureBytes": 2099072,
+          "textures": 2,
+          "uploadBytes": 39156,
+          "totalUploadBytes": 590668,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "buildings": {
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "cache": {
+          "bytes": 2099072,
+          "entries": 1,
+          "loads": 1,
+          "hits": 0,
+          "evictions": 0,
+          "failed": 0
+        }
+      },
+      "actors": null,
+      "modes": [
+        "ground"
+      ],
+      "errors": []
+    },
+    {
+      "scene": "actors10",
+      "config": "sectors",
+      "url": "http://127.0.0.1:5173/little-world/?world=maps%2Fproduction-reference%2Fmanifest.json&spawn=-250%2C230&yaw=0.2&pitch=0.35&dist=35&metrics=1&impostors=trees&remoteActors=0&impostorSectors=256",
+      "samples": 31,
+      "intervalMs": {
+        "p50": 113.29999999888241,
+        "p95": 272.80000000074506,
+        "p99": 448.40000000037253
+      },
+      "calls": 96.58064516129032,
+      "triangles": 63071.3870967742,
+      "cpu": {
+        "simulation": 0.3838709678741232,
+        "update": 4.5516129032137895,
+        "submit": 3.1387096773833036
+      },
+      "perf": {
+        "samples": 30,
+        "frameMs": {
+          "p50": 166.5999999999999,
+          "p95": 466.60000000000036,
+          "p99": 499.89999999999964
+        },
+        "simulationMs": {
+          "p50": 0.10000000149011612,
+          "p95": 1,
+          "p99": 18.299999998882413
+        },
+        "updateMs": {
+          "p50": 5.300000000745058,
+          "p95": 16.5,
+          "p99": 28.09999999962747
+        },
+        "submitMs": {
+          "p50": 3.700000001117587,
+          "p95": 138.09999999962747,
+          "p99": 444.90000000037253
+        },
+        "longFrames": 23
+      },
+      "gpu": {
+        "available": true,
+        "ms": 64.275246,
+        "disjoint": 0,
+        "pending": 3
+      },
+      "hybrid": {
+        "trees": {
+          "state": "ready",
+          "instances": 671,
+          "sectors": 4,
+          "cachedSectors": 9,
+          "calls": 4,
+          "textureBytes": 2099072,
+          "textures": 2,
+          "uploadBytes": 34892,
+          "totalUploadBytes": 593528,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "buildings": {
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "cache": {
+          "bytes": 2099072,
+          "entries": 1,
+          "loads": 1,
+          "hits": 0,
+          "evictions": 0,
+          "failed": 0
+        }
+      },
+      "actors": null,
+      "modes": [
+        "ground"
+      ],
+      "errors": []
+    },
+    {
+      "scene": "actors10",
+      "config": "actors",
+      "url": "http://127.0.0.1:5173/little-world/?world=maps%2Fproduction-reference%2Fmanifest.json&spawn=-250%2C230&yaw=0.2&pitch=0.35&dist=35&metrics=1&impostors=all&remoteActors=10&impostorSectors=256",
+      "samples": 31,
+      "intervalMs": {
+        "p50": 116.09999999962747,
+        "p95": 147.40000000037253,
+        "p99": 493.5
+      },
+      "calls": 94.12903225806451,
+      "triangles": 61080.6129032258,
+      "cpu": {
+        "simulation": 0.5870967739892583,
+        "update": 4.651612903382028,
+        "submit": 5.406451612891209
+      },
+      "perf": {
+        "samples": 30,
+        "frameMs": {
+          "p50": 150.10000000000036,
+          "p95": 483.4000000000001,
+          "p99": 500
+        },
+        "simulationMs": {
+          "p50": 0.5,
+          "p95": 1.400000000372529,
+          "p99": 22.200000001117587
+        },
+        "updateMs": {
+          "p50": 7.699999999254942,
+          "p95": 24.699999999254942,
+          "p99": 26.800000000745058
+        },
+        "submitMs": {
+          "p50": 3.699999999254942,
+          "p95": 259.80000000074506,
+          "p99": 461
+        },
+        "longFrames": 25
+      },
+      "gpu": {
+        "available": true,
+        "ms": 60.875308,
+        "disjoint": 0,
+        "pending": 3
+      },
+      "hybrid": {
+        "trees": {
+          "state": "ready",
+          "instances": 671,
+          "sectors": 4,
+          "cachedSectors": 9,
+          "calls": 4,
+          "textureBytes": 2099072,
+          "textures": 2,
+          "uploadBytes": 34892,
+          "totalUploadBytes": 580840,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "buildings": {
+          "state": "ready",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 262400,
+          "textures": 2,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "cache": {
+          "bytes": 5463232,
+          "entries": 3,
+          "loads": 3,
+          "hits": 1,
+          "evictions": 0,
+          "failed": 0
+        }
+      },
+      "actors": {
+        "actors": 10,
+        "full": 0,
+        "impostors": 7,
+        "proxy": 2,
+        "hidden": 1,
+        "snapshots": 1430,
+        "rigs": 1,
+        "updateMs": 0.09999999962747097,
+        "atlas": {
+          "state": "ready",
+          "instances": 7,
+          "sectors": 2,
+          "cachedSectors": 2,
+          "calls": 2,
+          "textureBytes": 3101760,
+          "textures": 2,
+          "uploadBytes": 364,
+          "totalUploadBytes": 14196,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "hz": 20
+      },
+      "modes": [
+        "ground"
+      ],
+      "errors": []
+    },
+    {
+      "scene": "actors100",
+      "config": "off",
+      "url": "http://127.0.0.1:5173/little-world/?world=maps%2Fproduction-reference%2Fmanifest.json&spawn=-250%2C230&yaw=0.2&pitch=0.35&dist=35&metrics=1&impostors=off&remoteActors=0&impostorSectors=512",
+      "samples": 28,
+      "intervalMs": {
+        "p50": 119.90000000037253,
+        "p95": 155.19999999925494,
+        "p99": 471.59999999962747
+      },
+      "calls": 93.17857142857143,
+      "triangles": 68305.03571428571,
+      "cpu": {
+        "simulation": 0.4464285715616175,
+        "update": 4.7749999999733905,
+        "submit": 2.614285714059536
+      },
+      "perf": {
+        "samples": 30,
+        "frameMs": {
+          "p50": 150,
+          "p95": 466.5999999999999,
+          "p99": 500
+        },
+        "simulationMs": {
+          "p50": 0.19999999925494194,
+          "p95": 1.400000000372529,
+          "p99": 17.200000001117587
+        },
+        "updateMs": {
+          "p50": 6,
+          "p95": 15.399999998509884,
+          "p99": 17.800000000745058
+        },
+        "submitMs": {
+          "p50": 3.899999998509884,
+          "p95": 163.5,
+          "p99": 450.5
+        },
+        "longFrames": 24
+      },
+      "gpu": {
+        "available": true,
+        "ms": 85.274605,
+        "disjoint": 0,
+        "pending": 2
+      },
+      "hybrid": {
+        "trees": {
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0.10000000149011612
+        },
+        "buildings": {
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "cache": {
+          "bytes": 0,
+          "entries": 0,
+          "loads": 0,
+          "hits": 0,
+          "evictions": 0,
+          "failed": 0
+        }
+      },
+      "actors": null,
+      "modes": [
+        "ground"
+      ],
+      "errors": []
+    },
+    {
+      "scene": "actors100",
+      "config": "trees",
+      "url": "http://127.0.0.1:5173/little-world/?world=maps%2Fproduction-reference%2Fmanifest.json&spawn=-250%2C230&yaw=0.2&pitch=0.35&dist=35&metrics=1&impostors=trees&remoteActors=0&impostorSectors=512",
+      "samples": 29,
+      "intervalMs": {
+        "p50": 124.30000000074506,
+        "p95": 282.09999999962747,
+        "p99": 477.09999999962747
+      },
+      "calls": 92.55172413793103,
+      "triangles": 62417.96551724138,
+      "cpu": {
+        "simulation": 0.40344827609329387,
+        "update": 4.7103448275091315,
+        "submit": 4.531034482707238
+      },
+      "perf": {
+        "samples": 30,
+        "frameMs": {
+          "p50": 166.56999999999994,
+          "p95": 516.6999999999998,
+          "p99": 516.6999999999998
+        },
+        "simulationMs": {
+          "p50": 0.19999999925494194,
+          "p95": 1.5,
+          "p99": 21.5
+        },
+        "updateMs": {
+          "p50": 5.699999999254942,
+          "p95": 17.40000000037253,
+          "p99": 23.09999999962747
+        },
+        "submitMs": {
+          "p50": 2.599999999627471,
+          "p95": 235,
+          "p99": 503.09999999962747
+        },
+        "longFrames": 24
+      },
+      "gpu": {
+        "available": true,
+        "ms": 86.393566,
+        "disjoint": 0,
+        "pending": 3
+      },
+      "hybrid": {
+        "trees": {
+          "state": "ready",
+          "instances": 747,
+          "sectors": 4,
+          "cachedSectors": 4,
+          "calls": 4,
+          "textureBytes": 2099072,
+          "textures": 2,
+          "uploadBytes": 38844,
+          "totalUploadBytes": 560300,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "buildings": {
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "cache": {
+          "bytes": 2099072,
+          "entries": 1,
+          "loads": 1,
+          "hits": 0,
+          "evictions": 0,
+          "failed": 0
+        }
+      },
+      "actors": null,
+      "modes": [
+        "ground"
+      ],
+      "errors": []
+    },
+    {
+      "scene": "actors100",
+      "config": "sectors",
+      "url": "http://127.0.0.1:5173/little-world/?world=maps%2Fproduction-reference%2Fmanifest.json&spawn=-250%2C230&yaw=0.2&pitch=0.35&dist=35&metrics=1&impostors=trees&remoteActors=0&impostorSectors=256",
+      "samples": 27,
+      "intervalMs": {
+        "p50": 131.80000000074506,
+        "p95": 160.90000000037253,
+        "p99": 515.0999999996275
+      },
+      "calls": 97.85185185185185,
+      "triangles": 63721.40740740741,
+      "cpu": {
+        "simulation": 0.6037037037312984,
+        "update": 4.207407407117663,
+        "submit": 3.781481481398697
+      },
+      "perf": {
+        "samples": 30,
+        "frameMs": {
+          "p50": 166.5999999999999,
+          "p95": 383.3000000000002,
+          "p99": 483.3000000000002
+        },
+        "simulationMs": {
+          "p50": 0.30000000074505806,
+          "p95": 3.399999998509884,
+          "p99": 43.79999999888241
+        },
+        "updateMs": {
+          "p50": 6,
+          "p95": 19,
+          "p99": 21.90000000037253
+        },
+        "submitMs": {
+          "p50": 3.699999999254942,
+          "p95": 161.2999999988824,
+          "p99": 467
+        },
+        "longFrames": 25
+      },
+      "gpu": {
+        "available": true,
+        "ms": 85.608339,
+        "disjoint": 0,
+        "pending": 3
+      },
+      "hybrid": {
+        "trees": {
+          "state": "ready",
+          "instances": 671,
+          "sectors": 4,
+          "cachedSectors": 9,
+          "calls": 4,
+          "textureBytes": 2099072,
+          "textures": 2,
+          "uploadBytes": 34892,
+          "totalUploadBytes": 563524,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "buildings": {
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "cache": {
+          "bytes": 2099072,
+          "entries": 1,
+          "loads": 1,
+          "hits": 0,
+          "evictions": 0,
+          "failed": 0
+        }
+      },
+      "actors": null,
+      "modes": [
+        "ground"
+      ],
+      "errors": []
+    },
+    {
+      "scene": "actors100",
+      "config": "actors",
+      "url": "http://127.0.0.1:5173/little-world/?world=maps%2Fproduction-reference%2Fmanifest.json&spawn=-250%2C230&yaw=0.2&pitch=0.35&dist=35&metrics=1&impostors=all&remoteActors=100&impostorSectors=256",
+      "samples": 31,
+      "intervalMs": {
+        "p50": 98.19999999925494,
+        "p95": 154,
+        "p99": 454
+      },
+      "calls": 92.54838709677419,
+      "triangles": 60635.06451612903,
+      "cpu": {
+        "simulation": 1.0741935483510456,
+        "update": 3.864516129236548,
+        "submit": 2.883870967633782
+      },
+      "perf": {
+        "samples": 60,
+        "frameMs": {
+          "p50": 133.19999999999982,
+          "p95": 333.4000000000001,
+          "p99": 483.2999999999997
+        },
+        "simulationMs": {
+          "p50": 1.199999999254942,
+          "p95": 4,
+          "p99": 18
+        },
+        "updateMs": {
+          "p50": 4.200000001117587,
+          "p95": 12.5,
+          "p99": 22.800000000745058
+        },
+        "submitMs": {
+          "p50": 2.700000001117587,
+          "p95": 306.69999999925494,
+          "p99": 479
+        },
+        "longFrames": 52
+      },
+      "gpu": {
+        "available": true,
+        "ms": 85.953032,
+        "disjoint": 0,
+        "pending": 3
+      },
+      "hybrid": {
+        "trees": {
+          "state": "ready",
+          "instances": 671,
+          "sectors": 4,
+          "cachedSectors": 9,
+          "calls": 4,
+          "textureBytes": 2099072,
+          "textures": 2,
+          "uploadBytes": 34892,
+          "totalUploadBytes": 688428,
+          "evictions": 0,
+          "preparationMs": 0.09999999962747097
+        },
+        "buildings": {
+          "state": "ready",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 262400,
+          "textures": 2,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "cache": {
+          "bytes": 5463232,
+          "entries": 3,
+          "loads": 3,
+          "hits": 1,
+          "evictions": 0,
+          "failed": 0
+        }
+      },
+      "actors": {
+        "actors": 100,
+        "full": 0,
+        "impostors": 18,
+        "proxy": 17,
+        "hidden": 65,
+        "snapshots": 15400,
+        "rigs": 1,
+        "updateMs": 0.19999999925494194,
+        "atlas": {
+          "state": "ready",
+          "instances": 18,
+          "sectors": 4,
+          "cachedSectors": 4,
+          "calls": 4,
+          "textureBytes": 3101760,
+          "textures": 2,
+          "uploadBytes": 936,
+          "totalUploadBytes": 72124,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "hz": 20
+      },
+      "modes": [
+        "ground"
+      ],
+      "errors": []
+    }
+  ]
+}

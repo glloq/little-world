@@ -1,3 +1,5 @@
+import {PerfSampler,createGpuTimer} from './render/perf-sampler.ts';
+import {createActorSimulator} from './render/remote-characters.ts';
 import {captureMovement} from './physics/movement-state.ts';
 import {classifyPoint} from './geography/classify.ts';
 import {createMaterialSampler} from './physics/surface-material.ts';
@@ -73,8 +75,9 @@ const renderer = new THREE.WebGLRenderer({
   powerPreference: 'high-performance',
 });
 const quality = document.querySelector<HTMLSelectElement>('#quality')!;
+const renderTier=new URLSearchParams(location.search).get('renderTier');
 const presentation = new FrameClock(),
-  budget = new PresentationBudget();
+  budget = new PresentationBudget(renderTier===null?undefined:Number(renderTier));
 const qualityRatios = { low: 1, medium: 1.35, high: 2 } as const;
 type RenderQuality = keyof typeof qualityRatios;
 const remembered = (() => {
@@ -182,7 +185,7 @@ if(playable){
   });
   if(metricsEnabled){const g=gameplay;Object.assign(window,{littleWorldDebug:{/** Developer/test hook (metrics mode only): give items. */grant:(itemId:string,quantity:number)=>g.runtime.grantItems([{itemId,quantity}]),
     /** Developer/test hook: move the player on the ground and turn the camera (heading in rad). */
-    teleport:(x:number,z:number,heading:number)=>{player.space=undefined;player.mode='ground';player.velocity.set(0,0,0);player.position.set(x,terrainHeight(x,z),z);previousPlayerPosition.copy(player.position);yaw=heading;},
+    teleport:(x:number,z:number,heading:number,altitude=0)=>{player.space=undefined;player.mode=altitude>0?'air':'ground';player.glideReady=altitude>0;player.velocity.set(0,0,0);player.position.set(x,terrainHeight(x,z)+altitude,z);previousPlayerPosition.copy(player.position);yaw=heading;},
     /** Developer/test hook: natural dressing and placed objects drawn within r m of the player. */
     drawnNear:(r:number)=>world.drawnNear(player.position.x,player.position.z,r)}});}
   if(gameplay.gathering){const gather=gameplay.gathering;world.setDressingFilter((cx,cz,kind,index)=>gather.hiddenAt(cx,cz,kind,index));gather.subscribe(()=>world.redrawDressing());}
@@ -213,7 +216,7 @@ let activityQueue=0,cropQueue=0,strikeTimer=0;
 world.update(0, player.position);
 {
   const {createGameUi}=await import('./ui/app/game-ui.ts'),c=getTerrainConfig();
-  gameUi=createGameUi({gameplay,npcs,audio,quality:document.querySelector<HTMLSelectElement>('#quality'),temporary:!!(studioTest||buildScope),studioUrl:import.meta.env.BASE_URL+'studio/',
+  gameUi=createGameUi({gameplay,npcs,audio,applyDistantRendering:(value,initial)=>{if(!initial||!searchParams.has('impostors')){world.hybrid.setMode(value==='hybrid'?'trees':'off');if(value==='hybrid')world.hybrid.setSectors(false);}},quality:document.querySelector<HTMLSelectElement>('#quality'),temporary:!!(studioTest||buildScope),studioUrl:import.meta.env.BASE_URL+'studio/',
     world:{name:definition.name,buildVersion:gameplay?.runtime.data.buildVersion??'vallée',dayLength:climate.definition.dayLengthSeconds,bounds:{minX:-c.width/2,maxX:c.width/2,minZ:-c.length/2,maxZ:c.length/2},seaLevel:c.seaLevel,height:terrainHeight,water:waterSurface},
     player:()=>({x:player.position.x,y:player.position.y,z:player.position.z,yaw,space:player.space,mode:player.mode,oxygen:player.oxygen,maxOxygen:MAX_OXYGEN,stamina:player.stamina??MAX_STAMINA,maxStamina:MAX_STAMINA,speed:player.velocity.length(),stalled:player.stalled}),
     target:()=>currentTarget(),
@@ -255,6 +258,7 @@ const previousPlayerPosition = player.position.clone(),
   renderPosition = player.position.clone();
 let presentedFrames = 0;
 let lastPresented: number | null = null;
+let pendingSimulationMs=0;
 let frameCount = 0,
   fpsTime = 0;
 const clockDt = presentation.step;
@@ -652,6 +656,9 @@ function tick(dt: number) {
     else if (target?.targetType === 'shop') { const s = nearShop(); if (s) gameUi?.openShop(s.kind); }
   }
 }
+const perfSampler=new PerfSampler(),gpuTimer=createGpuTimer(renderer,metricsEnabled);
+const actorCount=Number(searchParams.get('remoteActors')??0);
+const remoteActors=[10,50,100].includes(actorCount)?createActorSimulator(scene,actorCount,player.position,terrainHeight,world.isOccluded):null;
 function draw(now: number) {
   const frame = presentation.advance(now, !document.hidden);
   const simulationBegin = performance.now();
@@ -659,14 +666,16 @@ function draw(now: number) {
     previousPlayerPosition.copy(player.position);
     tick(clockDt);
     elapsed += clockDt;
+    remoteActors?.tick(elapsed);
     if (previousPlayerPosition.distanceToSquared(player.position) > 100)
       previousPlayerPosition.copy(player.position);
   }
-  const simulationMs = performance.now() - simulationBegin;
+  pendingSimulationMs += performance.now() - simulationBegin;
   if (!frame.render) {
     requestAnimationFrame(draw);
     return;
   }
+  const simulationMs=pendingSimulationMs;pendingSimulationMs=0;
   const wallDrawDelta =
     lastPresented === null ? 0 : (now - lastPresented) / 1000;
   lastPresented = now;
@@ -677,6 +686,8 @@ function draw(now: number) {
     player.position,
     frame.alpha,
   );
+  // Finalize the current view before LOD/culling and lighting consume it.
+  updateCamera(delta);
   environment.update(delta,player.position,budget.level,!!player.space);
   activityView?.update(delta,player.position,player.space);
   {const climateNow=climate.state(worldClock.time),night=nightFactor(climateNow.sunAltitude);world.lights.setEnvironment(night,now/1000);world.setNight(night);world.setWind(.25+.8*climateNow.wind);}
@@ -687,7 +698,8 @@ function draw(now: number) {
       id=>gameplay?.runtime.getEntityPosition(id),budget.level,camera.getWorldDirection(audioForward));}
   world.update(delta, player.position, camera, renderer.domElement.height);
   if(!loading.ready)loading.update({terrainPending:world.stats.pending,dressingPending:world.dressing?.nearPending??0,speciesState:world.dressing?.species.state??'none'});
-  npcs.update(delta, elapsed, player.position); // The river drives the mill: no manual on/off control.
+  remoteActors?.update(delta,elapsed,camera,renderer.domElement.height,budget.level);
+  npcs.update(delta, elapsed, player.position,camera); // The river drives the mill: no manual on/off control.
   // Boats follow their state (the one in use moves; the player's own boat bobs at its mooring).
   playerBoat&&fleet.sync(playerBoat,elapsed);if(fleet.current&&fleet.current!==playerBoat)fleet.sync(fleet.current,elapsed);
   character.group.position.copy(renderPosition);
@@ -695,23 +707,30 @@ function draw(now: number) {
   if(gameplay){const f=gameplay.fishing.state;character.setFishing(f.phase!=='idle'&&f.castAt?{x:f.castAt.x,y:waterSurface(f.castAt.x,f.castAt.z)??getTerrainConfig().seaLevel,z:f.castAt.z,biting:f.phase==='bite'}:null);}
   character.update(player, delta, elapsed);
   impacts.update(delta);
-  updateCamera(delta);
   updateHud();
   gameUi?.frame(elapsed);
   fpsTime += wallDrawDelta;
   frameCount++;
   const renderBegin = performance.now();
+  gpuTimer.begin();
   renderer.render(scene, camera);
+  gpuTimer.end();
   const renderSubmitMs = performance.now() - renderBegin;
+  if(metricsEnabled)perfSampler.record(wallDrawDelta*1000,simulationMs,renderBegin-begin,renderSubmitMs);
   if (metricsEnabled)
     Object.assign(window, {
       littleWorldMetrics: {
         frameId: ++presentedFrames,
+        framebuffer:{width:renderer.domElement.width,height:renderer.domElement.height,pixelRatio:renderer.getPixelRatio()},
         calls: renderer.info.render.calls,
         triangles: renderer.info.render.triangles,
         geometries: renderer.info.memory.geometries,
         chunks: { ...world.stats },
         cliffs: { ...world.cliffs.stats },
+        hybrid:world.hybrid.stats,
+        remoteActors:remoteActors?.stats??null,
+        perf:presentedFrames%30===0?perfSampler.snapshot():(window as unknown as {littleWorldMetrics?:{perf:unknown}}).littleWorldMetrics?.perf,
+        gpu:{...gpuTimer.stats},
         horizon: { ...world.horizon },
         terrainWork: { ...world.terrainWork },
         dressing: world.dressing ? { ...world.dressing } : null,
@@ -768,11 +787,11 @@ function draw(now: number) {
   }
   requestAnimationFrame(draw);
 }
-window.addEventListener('pagehide',event=>{if(event.persisted)void audio?.engine.setHidden(true);else void audio?.dispose();});
+window.addEventListener('pagehide',event=>{if(event.persisted)void audio?.engine.setHidden(true);else {remoteActors?.dispose();gpuTimer.dispose();void audio?.dispose();}});
 window.addEventListener('pageshow',event=>{if(event.persisted&&started)void audio?.engine.setHidden(document.hidden);});
 document.addEventListener('visibilitychange', () => {
   presentation.reset();
-  lastPresented = null;
+  lastPresented = null;pendingSimulationMs=0;
   fpsTime = 0;
   frameCount = 0;
   keySet.clear();
