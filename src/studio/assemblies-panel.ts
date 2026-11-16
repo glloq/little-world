@@ -49,10 +49,12 @@ export function mountAssemblyPanel(host:HTMLElement,session:StudioSession,viewpo
   }
   function renderInstance(){
     instanceBox.replaceChildren();
+    delete instanceBox.dataset.entityId;
     const selected=session.selection.selection.filter(r=>r.kind==='entity');
     if(selected.length!==1)return;
     const entityId=selected[0].id,entry=session.document.entityIndex[entityId],source=entry&&session.document.chunks[entry.ownerChunkId]?.entities[entityId];
     if(!entry||!source?.prefabId?.startsWith('assembly-part:'))return;
+    instanceBox.dataset.entityId=entityId;
     const p=session.document,available=Object.values(libraryAssets(p.assets));
     let chosen=assemblyVisualOf(p,entityId);
     const assetChoice=select(chosen,available.map(a=>[a.id,a.name] as const),val=>chosen=val);
