@@ -257,3 +257,12 @@ Les [mines 2,5D localisées](24-MINES-MULTILEVEL-LOW-RESOURCE.md) n'exigent **au
 - **NON LIVRÉ PAR CE DOCUMENT :** shaders, module `grass-system`, éditeur d'herbes détaillé, benchmarks, intégration V3/Studio, mode multijoueur.
 
 La cible est une prairie **visuellement convaincante mais graphiquement dispensable**. Le rendu d'herbe ne doit jamais déterminer la cadence, la logique de jeu, la capacité réseau ou la visibilité du monde.
+
+## Implémentation de la couverture unifiée sur la branche hybride
+
+Voir [57 — Couverture végétale](57-GROUND-COVER.md) pour l'audit, le code réellement livré,
+les captures, profils et mesures. Sol détaillé, horizon et touffes partagent désormais les
+couleurs et exclusions du Geography Engine. Les grands motifs de vertex colors restent visibles
+en `groundOnly`, sans géométrie distante ajoutée. Les profils/densités restent inchangés ; la
+préparation est bornée, dépend de la taille projetée et sépare caméra, joueur et second acteur.
+Ces contrôles SwiftShader ne qualifient pas les cibles GPU intégré de ce document.

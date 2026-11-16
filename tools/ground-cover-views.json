@@ -88,5 +88,23 @@
     "yaw": 0.3,
     "pitch": 0.25,
     "dist": 18
+  },
+  {
+    "name": "open-meadow-near",
+    "world": "maps/island/manifest.json",
+    "x": -340,
+    "z": -1200,
+    "yaw": 0.3,
+    "pitch": 0.2,
+    "dist": 8
+  },
+  {
+    "name": "open-meadow-far",
+    "world": "maps/island/manifest.json",
+    "x": -340,
+    "z": -1200,
+    "yaw": 0.3,
+    "pitch": 0.5,
+    "dist": 500
   }
 ]
