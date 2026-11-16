@@ -18,6 +18,8 @@ export interface HamsterInput {
   /** Horizontal speed (m/s), vertical speed (m/s), heading change rate (rad/s, left positive). */
   /** Optional actual travelled distance (model metres), supplied by the local renderer. */
   travel?:number;
+  /** Absolute presentation clock for reconstructed remote rigs only. */
+  animationTime?:number;
   speed: number; verticalSpeed: number; turnRate: number;
   /** On a boat (the motion mode is then 'ground'). */
   aboard?: boolean;
@@ -127,12 +129,13 @@ export class HamsterAnimator {
   }
   update(input: HamsterInput, delta: number): HamsterPose {
     const dt = Number.isFinite(delta) ? Math.max(0, Math.min(delta, .1)) : 0, speed = Number.isFinite(input.speed) ? Math.max(0, input.speed) : 0;
-    this.events.length = 0; this.time += dt; this.transitionTime += dt;
+    this.events.length = 0; this.time = input.animationTime ?? this.time + dt; this.transitionTime += dt;
     this.accel += (((speed - this.lastSpeed) / Math.max(dt, 1e-3)) - this.accel) * Math.min(1, dt * 6); this.lastSpeed = speed;
     this.locomotion(input);
     const p = this.target, t = this.time, s = this.state;
     for (const ch of CHANNELS) p[ch] = ch === 'squash' ? 1 : 0;
     this.stride += dt * (s === 'SWIM' ? 5 : Math.max(3.5, speed * 2.4));
+    if(input.animationTime!==undefined)this.stride=input.animationTime*(s==='SWIM'?5:Math.max(3.5,speed*2.4));
     const st = Math.sin(this.stride);
     p.earL = Math.sin(t * 1.7) * .05; p.earR = Math.sin(t * 1.7 + .9) * .05; p.tailX = Math.sin(t * 2.2) * .1;
     const lean = Math.max(-.2, Math.min(.2, this.accel * .025)), bank = Math.max(-.3, Math.min(.3, -input.turnRate * speed * .03));
@@ -169,7 +172,7 @@ export class HamsterAnimator {
     const blend = 1 - Math.exp(-dt * 16);
     for (const ch of CHANNELS) this.pose[ch] += (p[ch] - this.pose[ch]) * (ch === 'membrane' || ch === 'tuck' ? Math.min(1, blend * 1.4) : blend);
     // Rolling: forward spin integrates distance; afterwards it settles on the nearest full turn.
-    if (s.startsWith('ROLL') && s !== 'ROLL_EXIT') this.pose.roll += (input.travel??speed*dt) / ROLL_RADIUS;
+    if (s.startsWith('ROLL') && s !== 'ROLL_EXIT') this.pose.roll = input.animationTime!==undefined?input.animationTime*speed/ROLL_RADIUS:this.pose.roll+(input.travel??speed*dt)/ROLL_RADIUS;
     else { const turn = Math.PI * 2, rest = Math.round(this.pose.roll / turn) * turn; this.pose.roll += (rest - this.pose.roll) * Math.min(1, dt * 10); }
     if (input.mode !== 'glide' && s !== 'GLIDE_CLOSE') this.pose.membrane = Math.min(this.pose.membrane, Math.max(0, this.pose.membrane - dt * 8));
     return this.pose;

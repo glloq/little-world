@@ -39,3 +39,12 @@ test('corrupt or oversized atlases are rejected before WebGL allocation',()=>{
  const path=structuredClone(manifest);path.pages.trees.image='https://example.test/atlas.png';assert.throws(()=>parseImpostorManifest(path));
  const index=structuredClone(manifest);index.pages.trees.entries[0].first=99999;assert.throws(()=>parseImpostorManifest(index));
 });
+
+test('snapshot interpolation has bounded history and extrapolation, preserves discrete events until their timestamp',async()=>{
+ const {PresentationBuffer}=await import('../src/render/presentation-buffer.ts');
+ const base={v:1,t:0,x:0,y:0,z:0,yaw:Math.PI-.1,mode:'ground',speed:2,verticalSpeed:0,turnRate:0,aboard:false,action:null,actionSeq:0,tool:null,fishing:null};
+ const h=new PresentationBuffer(),out={...base};h.push(base);h.push({...base,t:1,x:10,yaw:-Math.PI+.1,action:'INTERACT',actionSeq:1});
+ h.sample(.5,out);assert.equal(out.x,5);assert.ok(Math.abs(out.yaw-Math.PI)<.001);assert.equal(out.actionSeq,0);
+ h.sample(100,out);assert.equal(out.x,12.5);assert.equal(out.actionSeq,1);
+ assert.equal(h.push({...base,t:1}),false);for(let i=2;i<50;i++)h.push({...base,t:i});assert.equal(h.samples.length,12);assert.equal(h.push(base),false);
+});

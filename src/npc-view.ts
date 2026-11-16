@@ -1,3 +1,4 @@
+import {createImpostorSectors} from './render/impostor-sectors.ts';
 import {getTerrainConfig} from './terrain.ts';
 import * as THREE from 'three';
 import { buildSquirrel, CHARACTER_SCALE } from './squirrel.ts';
@@ -175,6 +176,8 @@ export function createNPCSystem(
     scene.add(root);
     return root;
   }
+  const distant=createImpostorSectors(scene,'characters'),white=new THREE.Color(0xffffff);
+  if(new URLSearchParams(location.search).get('impostors')==='all')distant.setEnabled(true);
   const entries = definitions.map((definition) => {
     const state = createNPCState(definition,bounds),
       hamster = definition.kind === 'hamster' ? buildHamster() : null,
@@ -222,13 +225,14 @@ export function createNPCSystem(
   return {
     dialogue,
     states: entries.map((entry) => entry.state),
-    update(dt: number, time: number, position: NPCPoint) {
+    update(dt: number, time: number, position: NPCPoint,camera?:THREE.PerspectiveCamera) {
       if (disposed) return;
+      distant.begin();distant.update(time);
       for (const entry of entries) {
         const { state, model, hamster, player, proxy, head, arm } = entry;
         updateNPC(state, dt, position, obstacles);
         const tier = npcVisualTier(
-          Math.hypot(position.x - state.x, position.z - state.z),
+          Math.hypot((camera?.position.x??position.x) - state.x, (camera?.position.z??position.z) - state.z),
           state.definition.kind,
         );
         model.group.visible = tier === 'rig';
@@ -238,6 +242,7 @@ export function createNPCSystem(
         const x = THREE.MathUtils.lerp(state.previousX, state.x, alpha),
           y = THREE.MathUtils.lerp(state.previousY, state.y, alpha),
           z = THREE.MathUtils.lerp(state.previousZ, state.z, alpha);
+        if(hamster&&tier==='silhouette'&&distant.write('hamster.'+(state.phase==='work'||state.phase==='greet'?'action':Math.hypot(state.vx,state.vz)>.3?'walk':'idle'),x,y,z,1,state.heading,white)){proxy.visible=false;continue;}
         if (tier === 'silhouette') {
           proxy.position.set(x, y, z);
           proxy.rotation.y = state.heading;
@@ -269,6 +274,7 @@ export function createNPCSystem(
           entry.appliedEmotion = emotion;
         }
       }
+      distant.end();
     },
     interact(position: NPCPoint): boolean {
       if (disposed) return false;
@@ -293,7 +299,7 @@ export function createNPCSystem(
     dispose() {
       if (disposed) return;
       disposed = true;
-      dialogue.dispose();
+      dialogue.dispose();distant.dispose();
       for (const { model, proxy } of entries) {
         model.dispose();
         proxy.removeFromParent();

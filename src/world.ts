@@ -1,5 +1,5 @@
 import {createImpostorSectors} from './render/impostor-sectors.ts';
-import {representationFor,REPRESENTATION_BUDGETS} from './render/representation-policy.ts';
+import {representationFor} from './render/representation-policy.ts';
 import {atlasCacheStats} from './render/impostor-atlas.ts';
 import {naturalMesh} from './structures/natural-mesh.ts';
 import {createCliffView,type CliffView} from './render/cliff-view.ts';
@@ -48,7 +48,7 @@ import {
  * (E10), to be confirmed on integrated GPUs; the pool never grows with the number of sources. */
 export const LIGHT_POOL = 4, LIGHT_POOL_ECONOMY = 2;
 export interface WorldView {
-  hybrid:{setMode(mode:'off'|'trees'|'all'):void;setSectors(on:boolean):void;getMode():string;stats:{trees:ReturnType<typeof createImpostorSectors>['stats']|null;buildings:ReturnType<typeof createImpostorSectors>['stats'];cache:typeof atlasCacheStats}};
+  hybrid:{setDebug(on:boolean):void;setMode(mode:'off'|'trees'|'all'):void;setSectors(on:boolean):void;getMode():string;stats:{trees:ReturnType<typeof createImpostorSectors>['stats']|null;buildings:ReturnType<typeof createImpostorSectors>['stats'];cache:typeof atlasCacheStats}};
   /** World Production: instanced enclosure/dock modules (game runtime). */
   placed: PlacedInstances;
   /** Sparse local low-poly vaults, only allocated near player (mobile GPU cap). */
@@ -751,11 +751,11 @@ export function buildWorld(
   const ecology = createEcology(root, config.seed, config.density, biomeAt, legacy ? undefined : generatedCover);
   // G5: natural dressing (forests, cliff rocks, scree, pebbles, basalt) of generated worlds.
   const dressing: DressingView | null = legacy ? null : createDressingView(root, config.seed, config.density, workers);
-  const buildingImpostors=createImpostorSectors(root,'buildings');
+  const buildingImpostors=createImpostorSectors(root,'buildings');buildingImpostors.setBudget(64,4);
   let hybridMode:'off'|'trees'|'all'='off',hybridNight=0;
   const spriteTint=new THREE.Color(1,1,1);
   const setHybridMode=(mode:'off'|'trees'|'all')=>{hybridMode=mode;dressing?.setImpostors(mode!=='off');buildingImpostors.setEnabled(mode==='all');};
-  if(typeof location!=='undefined'){const mode=new URLSearchParams(location.search).get('impostors');if(mode==='trees'||mode==='all')setHybridMode(mode);}
+  if(typeof location!=='undefined'){const mode=new URLSearchParams(location.search).get('impostors');if(mode==='trees'||mode==='all')setHybridMode(mode);if(new URLSearchParams(location.search).get('impostorSectors')==='512')dressing?.setSectorSize(512);}
   const placed = createPlacedInstances(root, terrainHeight);
   const natural = createNaturalView(root,terrainHeight);
   const cliffs = createCliffView(root,terrainHeight,config.seed,config.terrain);
@@ -822,7 +822,7 @@ export function buildWorld(
     placed,
     natural,
     cliffs,
-    hybrid:{setMode:setHybridMode,setSectors(on:boolean){dressing?.setSectorSize(on?256:512);},getMode:()=>hybridMode,stats:{trees:dressing?.stats.impostors??null,buildings:buildingImpostors.stats,cache:atlasCacheStats}},
+    hybrid:{setDebug(on:boolean){dressing?.setDebug(on);buildingImpostors.setDebug(on);},setMode:setHybridMode,setSectors(on:boolean){dressing?.setSectorSize(on?256:512);},getMode:()=>hybridMode,stats:{trees:dressing?.stats.impostors??null,buildings:buildingImpostors.stats,cache:atlasCacheStats}},
     refreshCliffs(terrain){cliffs.refresh(terrain);},
     setDressingFilter(fn: Parameters<DressingView['setHidden']>[0]) { dressing?.setHidden(fn); },
     drawnNear(x: number, z: number, r: number) { return [...(dressing?.drawnNear(x, z, r) ?? []), ...placed.drawnNear(x, z, r)]; },
@@ -846,7 +846,7 @@ export function buildWorld(
       const pool = economy ? LIGHT_POOL_ECONOMY : LIGHT_POOL;
       lightView.setBudget(level >= 2 ? Math.ceil(pool / 2) : pool, pool);
       ecology.setDetail(level);
-      dressing?.setDetail(economy ? level + 1 : level);const q=REPRESENTATION_BUDGETS[Math.min(2,level)];buildingImpostors.setBudget(q.sprites,q.sectors);
+      dressing?.setDetail(economy ? level + 1 : level);buildingImpostors.setBudget(64,4);
       grass?.setProfile(grassOverride ?? grassProfileFor(level, economy));
     },
     refreshTerrain(x, z, radius) {

@@ -98,6 +98,7 @@ export function buildHamster(): HamsterCharacter {
     get animationState() { return animator.state; }, get action() { return animator.action; }, get tool() { return tools.current; },
     skeleton: rig.skeleton, sockets: rig.sockets,
     update(player, dt, elapsed) {
+      input.animationTime=undefined;
       if (disposed) return;
       const v = player.velocity, speed = Math.hypot(v.x, v.z);
       if (player.mode === 'climb' && player.climbDir) face(player.climbDir.x, player.climbDir.z, dt, 14);
@@ -128,7 +129,7 @@ export function buildHamster(): HamsterCharacter {
       group.position.set(s.x, s.y, s.z); facing = s.yaw; rig.group.rotation.y = facing; lastFacing = facing;
       if (s.actionSeq !== actionSeq && s.action) { actionSeq = s.actionSeq; animator.play(s.action); actionTool = s.tool; }
       fishing = s.fishing ? { ...s.fishing } : null; aboard = s.aboard;
-      input.travel=undefined;input.mode = s.mode; input.speed = s.speed; input.verticalSpeed = s.verticalSpeed; input.turnRate = s.turnRate; input.aboard = s.aboard;
+      input.animationTime=s.t;input.travel=undefined;input.mode = s.mode; input.speed = s.speed; input.verticalSpeed = s.verticalSpeed; input.turnRate = s.turnRate; input.aboard = s.aboard;
       if (fishing && !animator.action && animator.play('FISH_WAIT')) actionTool = 'fishing-rod';
       pose(dt, s.t);
     },

@@ -1,3 +1,5 @@
+import {PerfSampler,createGpuTimer} from './render/perf-sampler.ts';
+import {createActorSimulator} from './render/remote-characters.ts';
 import {captureMovement} from './physics/movement-state.ts';
 import {classifyPoint} from './geography/classify.ts';
 import {createMaterialSampler} from './physics/surface-material.ts';
@@ -652,6 +654,9 @@ function tick(dt: number) {
     else if (target?.targetType === 'shop') { const s = nearShop(); if (s) gameUi?.openShop(s.kind); }
   }
 }
+const perfSampler=new PerfSampler(),gpuTimer=createGpuTimer(renderer);
+const actorCount=Number(searchParams.get('remoteActors')??0);
+const remoteActors=[10,50,100].includes(actorCount)?createActorSimulator(scene,actorCount,player.position,terrainHeight):null;
 function draw(now: number) {
   const frame = presentation.advance(now, !document.hidden);
   const simulationBegin = performance.now();
@@ -659,6 +664,7 @@ function draw(now: number) {
     previousPlayerPosition.copy(player.position);
     tick(clockDt);
     elapsed += clockDt;
+    remoteActors?.tick(elapsed);
     if (previousPlayerPosition.distanceToSquared(player.position) > 100)
       previousPlayerPosition.copy(player.position);
   }
@@ -689,7 +695,8 @@ function draw(now: number) {
       id=>gameplay?.runtime.getEntityPosition(id),budget.level,camera.getWorldDirection(audioForward));}
   world.update(delta, player.position, camera, renderer.domElement.height);
   if(!loading.ready)loading.update({terrainPending:world.stats.pending,dressingPending:world.dressing?.nearPending??0,speciesState:world.dressing?.species.state??'none'});
-  npcs.update(delta, elapsed, player.position); // The river drives the mill: no manual on/off control.
+  remoteActors?.update(delta,elapsed,camera,renderer.domElement.height,budget.level);
+  npcs.update(delta, elapsed, player.position,camera); // The river drives the mill: no manual on/off control.
   // Boats follow their state (the one in use moves; the player's own boat bobs at its mooring).
   playerBoat&&fleet.sync(playerBoat,elapsed);if(fleet.current&&fleet.current!==playerBoat)fleet.sync(fleet.current,elapsed);
   character.group.position.copy(renderPosition);
@@ -702,8 +709,11 @@ function draw(now: number) {
   fpsTime += wallDrawDelta;
   frameCount++;
   const renderBegin = performance.now();
+  gpuTimer.begin();
   renderer.render(scene, camera);
+  gpuTimer.end();
   const renderSubmitMs = performance.now() - renderBegin;
+  perfSampler.record(wallDrawDelta*1000,simulationMs,renderBegin-begin,renderSubmitMs);
   if (metricsEnabled)
     Object.assign(window, {
       littleWorldMetrics: {
@@ -714,6 +724,9 @@ function draw(now: number) {
         chunks: { ...world.stats },
         cliffs: { ...world.cliffs.stats },
         hybrid:world.hybrid.stats,
+        remoteActors:remoteActors?.stats??null,
+        perf:presentedFrames%30===0?perfSampler.snapshot():(window as unknown as {littleWorldMetrics?:{perf:unknown}}).littleWorldMetrics?.perf,
+        gpu:{...gpuTimer.stats},
         horizon: { ...world.horizon },
         terrainWork: { ...world.terrainWork },
         dressing: world.dressing ? { ...world.dressing } : null,
@@ -770,7 +783,7 @@ function draw(now: number) {
   }
   requestAnimationFrame(draw);
 }
-window.addEventListener('pagehide',event=>{if(event.persisted)void audio?.engine.setHidden(true);else void audio?.dispose();});
+window.addEventListener('pagehide',event=>{if(event.persisted)void audio?.engine.setHidden(true);else {remoteActors?.dispose();gpuTimer.dispose();void audio?.dispose();}});
 window.addEventListener('pageshow',event=>{if(event.persisted&&started)void audio?.engine.setHidden(document.hidden);});
 document.addEventListener('visibilitychange', () => {
   presentation.reset();

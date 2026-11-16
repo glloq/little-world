@@ -1,0 +1,11 @@
+/** Ephemeral diagnostics: deliberately outside author data / V3 exports. */
+import type {WorldView} from '../world.ts';
+export function mountHybridControls(host:HTMLElement,world:WorldView,invalidate:()=>void){
+ const panel=document.createElement('details');panel.style.cssText='position:absolute;right:8px;top:8px;z-index:8;background:#18252bee;color:#eee;padding:6px;font:12px monospace;max-width:320px';
+ const summary=document.createElement('summary');summary.textContent='Rendu distant · expérimental';
+ const select=document.createElement('select');select.setAttribute('aria-label','Rendu distant');for(const [value,label]of [['off','Géométrie actuelle'],['trees','Atlas arbres'],['all','Atlas arbres + monuments']]){const o=document.createElement('option');o.value=value;o.textContent=label;select.append(o);}select.value=world.hybrid.getMode();select.onchange=()=>{world.hybrid.setMode(select.value as 'off'|'trees'|'all');invalidate();};
+ const label=document.createElement('label'),sectors=document.createElement('input');sectors.type='checkbox';sectors.checked=true;sectors.onchange=()=>{world.hybrid.setSectors(sectors.checked);invalidate();};label.append(sectors,'Secteurs 256 m (sinon 512 m)');
+ const debugLabel=document.createElement('label'),debug=document.createElement('input');debug.type='checkbox';debug.onchange=()=>{world.hybrid.setDebug(debug.checked);invalidate();};debugLabel.append(debug,'Limites des secteurs imposteurs');
+ const output=document.createElement('pre');output.style.whiteSpace='pre-wrap';panel.append(summary,select,document.createElement('br'),label,document.createElement('br'),debugLabel,output);host.append(panel);
+ return {update(){if(!panel.open)return;const s=world.hybrid.stats,t=s.trees,b=s.buildings;output.textContent=`Arbres ${t?.state??'absents'} : ${t?.instances??0}\nSecteurs ${t?.sectors??0} / cache ${t?.cachedSectors??0}\nMonuments : ${b.instances}\nAtlas partagés : ${(s.cache.bytes/1048576).toFixed(2)} Mio\nUploads : ${t?.uploadBytes??0} octets\nTriangles : 2 / imposteur\nSeuils arbres : 90/32/7/1 px\nSeuils personnages : 32/14/3/0,65 px\nTextures : ${(t?.textures??0)+b.textures} (partagées)\nRepli géométrique si atlas absent`;},dispose(){panel.remove();}};
+}
