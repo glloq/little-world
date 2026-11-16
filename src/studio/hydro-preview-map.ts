@@ -2,7 +2,7 @@
  * tiles, WebGL and project source. Pure projection + one transient Canvas2D draw. */
 import type {PointXZ} from '../geography/archipelago.ts';
 export type OverviewBounds={minX:number;maxX:number;minZ:number;maxZ:number};
-export interface HydroOverviewPolyline {points:readonly PointXZ[];kind:'river'|'lake'|'fall';label?:string}
+export interface HydroOverviewPolyline {points:readonly PointXZ[];kind:'river'|'lake'|'fall'|'spillway';label?:string}
 export interface HydroOverviewMark {point:PointXZ;kind:'pit'|'sea'|'source'|'fall';label?:string}
 export function hydroOverviewProjection(bounds:OverviewBounds,width:number,height:number,padding=12){
  const dx=bounds.maxX-bounds.minX,dz=bounds.maxZ-bounds.minZ;
@@ -26,7 +26,7 @@ export function drawHydroOverview(
   row.points.slice(0,128).forEach((p,i)=>{const pt=project(p);if(i===0)g.moveTo(pt.x,pt.y);else g.lineTo(pt.x,pt.y);});
   if(row.kind==='lake'){
    g.closePath();g.fillStyle='#7bc3e655';g.fill();g.strokeStyle='#217fb4';g.lineWidth=1.8;
-  }else{g.strokeStyle=row.kind==='fall'?'#c49a37':'#2f91bb';g.lineWidth=row.kind==='fall'?2.4:1.8;}
+  }else{g.strokeStyle=row.kind==='fall'?'#c49a37':row.kind==='spillway'?'#e06a38':'#2f91bb';g.lineWidth=row.kind==='fall'||row.kind==='spillway'?2.4:1.8;}
   g.stroke();
  }
  for(const mark of marks.slice(0,128)){
