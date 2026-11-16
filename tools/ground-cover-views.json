@@ -1,0 +1,110 @@
+[
+  {
+    "name": "forest",
+    "world": "maps/island/manifest.json",
+    "x": -480,
+    "z": -520,
+    "yaw": 0.2,
+    "pitch": 0.4,
+    "dist": 60
+  },
+  {
+    "name": "village",
+    "world": "maps/island/manifest.json",
+    "x": -150,
+    "z": 650,
+    "yaw": 1.5,
+    "pitch": 0.3,
+    "dist": 60
+  },
+  {
+    "name": "marsh",
+    "world": "maps/island/manifest.json",
+    "x": 1250,
+    "z": 980,
+    "yaw": 0.2,
+    "pitch": 0.35,
+    "dist": 70
+  },
+  {
+    "name": "panorama",
+    "world": "maps/island/manifest.json",
+    "x": 150,
+    "z": -650,
+    "yaw": 0.3,
+    "pitch": 0.55,
+    "dist": 280
+  },
+  {
+    "name": "flight",
+    "world": "maps/island/manifest.json",
+    "x": -480,
+    "z": -520,
+    "yaw": 0.3,
+    "pitch": 0.8,
+    "dist": 160
+  },
+  {
+    "name": "meadow",
+    "world": "maps/island/manifest.json",
+    "x": -700,
+    "z": 1020,
+    "yaw": 0.3,
+    "pitch": 0.25,
+    "dist": 18
+  },
+  {
+    "name": "dry",
+    "world": "maps/island/manifest.json",
+    "x": 550,
+    "z": -650,
+    "yaw": 0.3,
+    "pitch": 0.35,
+    "dist": 55
+  },
+  {
+    "name": "river",
+    "world": "maps/island/manifest.json",
+    "x": -400,
+    "z": 300,
+    "yaw": 0.3,
+    "pitch": 0.35,
+    "dist": 40
+  },
+  {
+    "name": "slope",
+    "world": "maps/island/manifest.json",
+    "x": 200,
+    "z": -620,
+    "yaw": 0.3,
+    "pitch": 0.35,
+    "dist": 50
+  },
+  {
+    "name": "night",
+    "world": "maps/island/manifest.json",
+    "x": -700,
+    "z": 1020,
+    "yaw": 0.3,
+    "pitch": 0.25,
+    "dist": 18
+  },
+  {
+    "name": "open-meadow-near",
+    "world": "maps/island/manifest.json",
+    "x": -340,
+    "z": -1200,
+    "yaw": 0.3,
+    "pitch": 0.2,
+    "dist": 8
+  },
+  {
+    "name": "open-meadow-far",
+    "world": "maps/island/manifest.json",
+    "x": -340,
+    "z": -1200,
+    "yaw": 0.3,
+    "pitch": 0.5,
+    "dist": 500
+  }
+]

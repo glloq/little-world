@@ -1,0 +1,168 @@
+{
+  "revision": "cdfaa1637e7f355591215290962e857d80886936",
+  "date": "2026-11-16T22:24:43.027Z",
+  "renderer": "Chromium SwiftShader; 960x640 viewport; CPU submission is NOT GPU time; flight/roll modes are reported per row",
+  "results": [
+    {
+      "scene": "open-meadow-far",
+      "config": "groundOnly",
+      "graphics": {
+        "vendor": "Google Inc. (Google)",
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "multiDraw": true
+      },
+      "url": "http://127.0.0.1:4177/little-world/?world=maps%2Fisland%2Fmanifest.json&renderTier=1&spawn=-340%2C-1200&yaw=0.3&pitch=0.5&dist=500&metrics=1&night=0&grass=off&impostors=off&remoteActors=0&impostorSectors=512",
+      "samples": 21,
+      "framebuffer": {
+        "width": 768,
+        "height": 512,
+        "pixelRatio": 0.8
+      },
+      "qualityLevels": [
+        1
+      ],
+      "effectiveFps": 11.620475277428786,
+      "intervalMs": {
+        "p50": 79.5,
+        "p95": 298.20000000298023,
+        "p99": 298.20000000298023
+      },
+      "calls": 133,
+      "triangles": 71587.95238095238,
+      "cpu": {
+        "simulation": 0.24285714434725897,
+        "update": 3.5952380941737268,
+        "submit": 2.761904761904762
+      },
+      "perf": {
+        "samples": 150,
+        "frameMs": {
+          "p50": 83.30000000000018,
+          "p95": 116.60000000000036,
+          "p99": 266.5999999999999
+        },
+        "simulationMs": {
+          "p50": 0.20000000298023224,
+          "p95": 0.5,
+          "p99": 0.6999999955296516
+        },
+        "updateMs": {
+          "p50": 4.200000002980232,
+          "p95": 12.200000002980232,
+          "p99": 18.399999998509884
+        },
+        "submitMs": {
+          "p50": 3.100000001490116,
+          "p95": 6.100000001490116,
+          "p99": 233.60000000149012
+        },
+        "longFrames": 136
+      },
+      "gpu": {
+        "samples": 148,
+        "available": true,
+        "ms": 74.126306,
+        "disjoint": 0,
+        "pending": 4
+      },
+      "hybrid": {
+        "mode": "off",
+        "trees": {
+          "sectorM": 512,
+          "bufferUploads": 0,
+          "unchangedSectors": 0,
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "buildings": {
+          "sectorM": 256,
+          "bufferUploads": 0,
+          "unchangedSectors": 0,
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "cache": {
+          "bytes": 0,
+          "entries": 0,
+          "loads": 0,
+          "hits": 0,
+          "evictions": 0,
+          "failed": 0
+        }
+      },
+      "actors": null,
+      "grass": {
+        "visibleScale": 0,
+        "actors": 0,
+        "generatedMs": 0,
+        "updateMs": 0,
+        "bytes": 1824000,
+        "uploadedBytes": 0,
+        "uploads": 1,
+        "generatedCells": 0,
+        "profile": "groundOnly",
+        "cells": 0,
+        "tufts": 0,
+        "triangles": 0,
+        "calls": 0,
+        "buildMs": 0,
+        "pending": 0
+      },
+      "grassUpdateMs": 0,
+      "placed": {
+        "placements": 1338,
+        "lod0": 0,
+        "lod1": 9,
+        "lod2": 0,
+        "calls": 1,
+        "rebuilds": 5,
+        "staticBuildings": 69,
+        "instanceCreates": 19,
+        "instanceDeletes": 10,
+        "fallbacks": 0,
+        "lod2Capacity": 65,
+        "preparedThisUpdate": 0,
+        "pendingLevels": 0,
+        "maxPrepareMs": 1.2000000029802322,
+        "state": "ready"
+      },
+      "objectCulling": {
+        "tested": 22,
+        "hidden": 5,
+        "nearKept": 0
+      },
+      "preparation": {
+        "lastMs": 0,
+        "maxTileMs": 0.20000000298023224,
+        "totalMs": 6.000000037252903,
+        "lastBuilt": 0,
+        "ready": 0,
+        "inFlight": 0,
+        "maxReady": 6,
+        "maxBuiltPerFrame": 0
+      },
+      "modes": [
+        "ground"
+      ],
+      "errors": []
+    }
+  ]
+}

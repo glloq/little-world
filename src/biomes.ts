@@ -1,5 +1,6 @@
 import {
   insideWorld,
+  terrainRevision,
   isLegacyTerrain,
   mulberry32,
   pathDistance,
@@ -7,7 +8,8 @@ import {
   terrainHeight,
   waterSurface,
 } from './terrain.ts';
-import { classifyAt } from './geography/engine.ts';
+import { classifyAt, geographyRevision, geoContext } from './geography/engine.ts';
+import {groundCover} from './geography/ground-cover.ts';
 import { habitatOf, type GeoSample, type Biome } from './geography/classify.ts';
 
 export const BIOMES = {
@@ -61,9 +63,11 @@ export const ECOLOGY_SECTOR_SIZE = 48;
 /** Classify from the same height/water queries as collisions; authored biomes may override this. */
 /** Generated worlds: the Geography Engine classification (same as terrain colours and the
  * Studio map) drives the small plants; one-entry memo shared by biome, cover and exclusion. */
+let memoRevision=-1,memoTerrainRevision=-1;
 let memoX = NaN, memoZ = NaN, memo: GeoSample | null = null;
 function generatedSample(x: number, z: number, height?: number): GeoSample {
-  if (x !== memoX || z !== memoZ || !memo) { memo = classifyAt(x, z, height === undefined ? undefined : { height }); memoX = x; memoZ = z; }
+  const revision=geographyRevision(),terrainRev=terrainRevision();
+  if (terrainRev!==memoTerrainRevision || revision!==memoRevision || x !== memoX || z !== memoZ || !memo) { memoRevision=revision;memoTerrainRevision=terrainRev; memo = classifyAt(x, z, height === undefined ? undefined : { height }); memoX = x; memoZ = z; }
   return memo;
 }
 const GENERATED_TO_ECOLOGY: Record<Biome, BiomeId> = { meadow: 'meadow', forest: 'forest', wetland: 'forest', mountain: 'mountain', volcanic: 'mountain', scrub: 'meadow', coast: 'coast', river: 'river', lake: 'lake', village: 'village' };
@@ -203,14 +207,8 @@ export function creaturePosition(
 /** Grass tufts (doc 18, render/grass.ts) of generated worlds: grass share of the habitat (same
  * classification as the terrain colours), share of tall grass and tuft colour per ground
  * material; null where no grass grows (roads, fields, built, water, bare rock/sand). */
-const GRASS_BY_MATERIAL: Partial<Record<GeoSample['material'], { k: number; tall: number; color: number }>> = {
-  grass: { k: 1, tall: .4, color: 0x7da558 }, 'dry-grass': { k: .9, tall: .55, color: 0xa7a565 },
-  'forest-floor': { k: .45, tall: .2, color: 0x5f8a48 }, dirt: { k: .25, tall: .15, color: 0x8a9a5a }, mud: { k: .5, tall: .6, color: 0x6f9452 },
-};
 export function generatedGrass(x: number, z: number): { share: number; tall: number; color: number } | null {
-  const s = generatedSample(x, z), m = GRASS_BY_MATERIAL[s.material];
-  if (!m) return null;
-  const h = habitatOf(s), slope = 1 - Math.min(1, Math.max(0, (s.slope - .8) / .4));
-  const share = Math.min(1, h.grass * 1.15) * m.k * slope;
-  return share > .02 ? { share, tall: s.biome === 'wetland' ? .7 : s.biome === 'scrub' ? .6 : m.tall, color: m.color } : null;
+  if(!insideWorld(x,z))return null;
+  const cover=groundCover(generatedSample(x,z),x,z,geoContext().seed);
+  return cover.density>.02?{share:cover.density,tall:cover.tallGrass,color:cover.color}:null;
 }

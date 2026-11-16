@@ -460,3 +460,11 @@ L'essai sur GPU intégré réel, avec les mêmes vues et le renderer enregistré
 critère pour décider d'une activation automatique.
 
 Suite : [préparation, regroupement des bâtiments, culling et lumière partagée](56-RENDER-PREPARATION-CULLING.md).
+
+## Couverture végétale complémentaire
+
+[57 — Couverture végétale proche et distante](57-GROUND-COVER.md) décrit la palette commune
+sol/touffes/horizon, les masses végétales en vertex colors, le contrôle de taille projetée en
+altitude et les deux influences locales. Le terrain conserve ses propres appels de rendu ;
+aucun imposteur d'herbe, nouvel atlas ni changement des budgets d'arbres/bâtiments/personnages.
+Les profils hybrides existants restent facultatifs et utilisent l'éclairage partagé inchangé.

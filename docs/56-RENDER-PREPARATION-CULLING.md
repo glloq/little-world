@@ -156,3 +156,9 @@ Confirmation avec la préparation GLB étalée et la capacité LOD2 limitée : *
 au village, p50 109.3 ms, aucun chargement en attente au moment de l'échantillonnage.
 [Confirmation finale](benchmarks/render-four/staged-confirmation.json). Cette passe reste un signal
 de régression logiciel ; elle ne remplace pas la qualification matérielle.
+
+Suite : [57 — Couverture végétale](57-GROUND-COVER.md). La génération des cellules d'herbe est
+limitée à deux par update, avec uploads progressifs et exclusion des touffes sous-pixel en
+altitude. Les nouvelles couleurs sont préparées avec le terrain/horizon existants, sans appel
+supplémentaire de rendu du sol. Les nouvelles mesures distinguent préparation CPU, buffers CPU,
+uploads WebGL et temps GPU matériel non qualifié.

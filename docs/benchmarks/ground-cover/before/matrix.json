@@ -1,0 +1,1532 @@
+{
+  "revision": "c34057f9a58ab68915c3ea0733f50a80eef2dd0f",
+  "date": "2026-11-16T22:06:45.073Z",
+  "renderer": "Chromium SwiftShader; 960x640 viewport; CPU submission is NOT GPU time; flight/roll modes are reported per row",
+  "results": [
+    {
+      "scene": "forest",
+      "config": "balanced",
+      "graphics": {
+        "vendor": "Google Inc. (Google)",
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "multiDraw": true
+      },
+      "url": "http://127.0.0.1:4177/little-world/?world=maps%2Fisland%2Fmanifest.json&renderTier=1&spawn=-480%2C-520&yaw=0.2&pitch=0.4&dist=60&metrics=1&grass=balanced&impostors=off&remoteActors=0&impostorSectors=512",
+      "samples": 16,
+      "framebuffer": {
+        "width": 768,
+        "height": 512,
+        "pixelRatio": 0.8
+      },
+      "qualityLevels": [
+        1
+      ],
+      "effectiveFps": 10.690613641211653,
+      "intervalMs": {
+        "p50": 88.30000000447035,
+        "p95": 215.10000000149012,
+        "p99": 215.10000000149012
+      },
+      "calls": 84,
+      "triangles": 45975.75,
+      "cpu": {
+        "simulation": 0.21249999944120646,
+        "update": 2.3812500005587935,
+        "submit": 4.731249999254942
+      },
+      "perf": {
+        "samples": 180,
+        "frameMs": {
+          "p50": 83.39999999999964,
+          "p95": 166.69999999999982,
+          "p99": 250
+        },
+        "simulationMs": {
+          "p50": 0.20000000298023224,
+          "p95": 0.5,
+          "p99": 10.5
+        },
+        "updateMs": {
+          "p50": 1.5,
+          "p95": 10.200000002980232,
+          "p99": 18.900000005960464
+        },
+        "submitMs": {
+          "p50": 3.100000001490116,
+          "p95": 12.899999998509884,
+          "p99": 172.29999999701977
+        },
+        "longFrames": 162
+      },
+      "gpu": {
+        "samples": 193,
+        "available": true,
+        "ms": 73.130332,
+        "disjoint": 0,
+        "pending": 1
+      },
+      "hybrid": {
+        "mode": "off",
+        "trees": {
+          "sectorM": 512,
+          "bufferUploads": 0,
+          "unchangedSectors": 0,
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "buildings": {
+          "sectorM": 256,
+          "bufferUploads": 0,
+          "unchangedSectors": 0,
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "cache": {
+          "bytes": 0,
+          "entries": 0,
+          "loads": 0,
+          "hits": 0,
+          "evictions": 0,
+          "failed": 0
+        }
+      },
+      "actors": null,
+      "grass": {
+        "profile": "balanced",
+        "cells": 21,
+        "tufts": 0,
+        "triangles": 0,
+        "calls": 0,
+        "buildMs": 0.10000000149011612,
+        "pending": 0
+      },
+      "placed": {
+        "placements": 1338,
+        "lod0": 0,
+        "lod1": 7,
+        "lod2": 1,
+        "calls": 2,
+        "rebuilds": 7,
+        "staticBuildings": 69,
+        "instanceCreates": 9,
+        "instanceDeletes": 1,
+        "fallbacks": 0,
+        "lod2Capacity": 65,
+        "preparedThisUpdate": 0,
+        "pendingLevels": 0,
+        "maxPrepareMs": 3.0999999940395355,
+        "state": "ready"
+      },
+      "objectCulling": {
+        "tested": 2,
+        "hidden": 1,
+        "nearKept": 0
+      },
+      "preparation": {
+        "lastMs": 0,
+        "maxTileMs": 0.30000000447034836,
+        "totalMs": 6.4000000059604645,
+        "lastBuilt": 0,
+        "ready": 0,
+        "inFlight": 0,
+        "maxReady": 6,
+        "maxBuiltPerFrame": 0
+      },
+      "modes": [
+        "swim"
+      ],
+      "errors": []
+    },
+    {
+      "scene": "village",
+      "config": "balanced",
+      "graphics": {
+        "vendor": "Google Inc. (Google)",
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "multiDraw": true
+      },
+      "url": "http://127.0.0.1:4177/little-world/?world=maps%2Fisland%2Fmanifest.json&renderTier=1&spawn=-150%2C650&yaw=1.5&pitch=0.3&dist=60&metrics=1&grass=balanced&impostors=off&remoteActors=0&impostorSectors=512",
+      "samples": 12,
+      "framebuffer": {
+        "width": 768,
+        "height": 512,
+        "pixelRatio": 0.8
+      },
+      "qualityLevels": [
+        1
+      ],
+      "effectiveFps": 7.207915601853914,
+      "intervalMs": {
+        "p50": 99.60000000149012,
+        "p95": 353.69999999552965,
+        "p99": 353.69999999552965
+      },
+      "calls": 140,
+      "triangles": 65713.66666666667,
+      "cpu": {
+        "simulation": 0.41666666604578495,
+        "update": 4.600000002110998,
+        "submit": 3.7249999983857074
+      },
+      "perf": {
+        "samples": 180,
+        "frameMs": {
+          "p50": 100,
+          "p95": 149.89999999999986,
+          "p99": 233.40000000000146
+        },
+        "simulationMs": {
+          "p50": 0.29999999701976776,
+          "p95": 0.5999999940395355,
+          "p99": 0.8000000044703484
+        },
+        "updateMs": {
+          "p50": 3.399999998509884,
+          "p95": 21.799999997019768,
+          "p99": 30.299999997019768
+        },
+        "submitMs": {
+          "p50": 3.4000000059604645,
+          "p95": 12.600000001490116,
+          "p99": 206
+        },
+        "longFrames": 174
+      },
+      "gpu": {
+        "samples": 189,
+        "available": true,
+        "ms": 99.339987,
+        "disjoint": 0,
+        "pending": 1
+      },
+      "hybrid": {
+        "mode": "off",
+        "trees": {
+          "sectorM": 512,
+          "bufferUploads": 0,
+          "unchangedSectors": 0,
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "buildings": {
+          "sectorM": 256,
+          "bufferUploads": 0,
+          "unchangedSectors": 0,
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "cache": {
+          "bytes": 0,
+          "entries": 0,
+          "loads": 0,
+          "hits": 0,
+          "evictions": 0,
+          "failed": 0
+        }
+      },
+      "actors": null,
+      "grass": {
+        "profile": "balanced",
+        "cells": 22,
+        "tufts": 309,
+        "triangles": 927,
+        "calls": 1,
+        "buildMs": 0.20000000298023224,
+        "pending": 0
+      },
+      "placed": {
+        "placements": 1338,
+        "lod0": 40,
+        "lod1": 189,
+        "lod2": 6,
+        "calls": 3,
+        "rebuilds": 5,
+        "staticBuildings": 69,
+        "instanceCreates": 256,
+        "instanceDeletes": 21,
+        "fallbacks": 0,
+        "lod2Capacity": 65,
+        "preparedThisUpdate": 0,
+        "pendingLevels": 0,
+        "maxPrepareMs": 0.7000000029802322,
+        "state": "ready"
+      },
+      "objectCulling": {
+        "tested": 14,
+        "hidden": 7,
+        "nearKept": 7
+      },
+      "preparation": {
+        "lastMs": 0,
+        "maxTileMs": 0.20000000298023224,
+        "totalMs": 4.299999997019768,
+        "lastBuilt": 0,
+        "ready": 0,
+        "inFlight": 0,
+        "maxReady": 6,
+        "maxBuiltPerFrame": 0
+      },
+      "modes": [
+        "ground"
+      ],
+      "errors": []
+    },
+    {
+      "scene": "marsh",
+      "config": "balanced",
+      "graphics": {
+        "vendor": "Google Inc. (Google)",
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "multiDraw": true
+      },
+      "url": "http://127.0.0.1:4177/little-world/?world=maps%2Fisland%2Fmanifest.json&renderTier=1&spawn=1250%2C980&yaw=0.2&pitch=0.35&dist=70&metrics=1&grass=balanced&impostors=off&remoteActors=0&impostorSectors=512",
+      "samples": 13,
+      "framebuffer": {
+        "width": 768,
+        "height": 512,
+        "pixelRatio": 0.8
+      },
+      "qualityLevels": [
+        1
+      ],
+      "effectiveFps": 8.1588251291566,
+      "intervalMs": {
+        "p50": 107.20000000298023,
+        "p95": 311,
+        "p99": 311
+      },
+      "calls": 90,
+      "triangles": 63724.692307692305,
+      "cpu": {
+        "simulation": 0.21538461515536675,
+        "update": 2.6769230761207066,
+        "submit": 5.353846153960778
+      },
+      "perf": {
+        "samples": 150,
+        "frameMs": {
+          "p50": 100,
+          "p95": 183.29999999999927,
+          "p99": 233.29999999999995
+        },
+        "simulationMs": {
+          "p50": 0.20000000298023224,
+          "p95": 0.4000000059604645,
+          "p99": 6.299999997019768
+        },
+        "updateMs": {
+          "p50": 3.2000000029802322,
+          "p95": 10.699999995529652,
+          "p99": 19.399999998509884
+        },
+        "submitMs": {
+          "p50": 3.1999999955296516,
+          "p95": 23,
+          "p99": 206.10000000149012
+        },
+        "longFrames": 138
+      },
+      "gpu": {
+        "samples": 158,
+        "available": true,
+        "ms": 100.340442,
+        "disjoint": 0,
+        "pending": 1
+      },
+      "hybrid": {
+        "mode": "off",
+        "trees": {
+          "sectorM": 512,
+          "bufferUploads": 0,
+          "unchangedSectors": 0,
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "buildings": {
+          "sectorM": 256,
+          "bufferUploads": 0,
+          "unchangedSectors": 0,
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "cache": {
+          "bytes": 0,
+          "entries": 0,
+          "loads": 0,
+          "hits": 0,
+          "evictions": 0,
+          "failed": 0
+        }
+      },
+      "actors": null,
+      "grass": {
+        "profile": "balanced",
+        "cells": 21,
+        "tufts": 1995,
+        "triangles": 5985,
+        "calls": 1,
+        "buildMs": 0.20000000298023224,
+        "pending": 0
+      },
+      "placed": {
+        "placements": 1338,
+        "lod0": 0,
+        "lod1": 5,
+        "lod2": 4,
+        "calls": 2,
+        "rebuilds": 5,
+        "staticBuildings": 69,
+        "instanceCreates": 19,
+        "instanceDeletes": 10,
+        "fallbacks": 0,
+        "lod2Capacity": 65,
+        "preparedThisUpdate": 0,
+        "pendingLevels": 0,
+        "maxPrepareMs": 1,
+        "state": "ready"
+      },
+      "objectCulling": {
+        "tested": 20,
+        "hidden": 18,
+        "nearKept": 0
+      },
+      "preparation": {
+        "lastMs": 0,
+        "maxTileMs": 0.30000000447034836,
+        "totalMs": 6.600000008940697,
+        "lastBuilt": 0,
+        "ready": 0,
+        "inFlight": 0,
+        "maxReady": 6,
+        "maxBuiltPerFrame": 0
+      },
+      "modes": [
+        "ground"
+      ],
+      "errors": []
+    },
+    {
+      "scene": "panorama",
+      "config": "balanced",
+      "graphics": {
+        "vendor": "Google Inc. (Google)",
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "multiDraw": true
+      },
+      "url": "http://127.0.0.1:4177/little-world/?world=maps%2Fisland%2Fmanifest.json&renderTier=1&spawn=150%2C-650&yaw=0.3&pitch=0.55&dist=280&metrics=1&grass=balanced&impostors=off&remoteActors=0&impostorSectors=512",
+      "samples": 12,
+      "framebuffer": {
+        "width": 768,
+        "height": 512,
+        "pixelRatio": 0.8
+      },
+      "qualityLevels": [
+        1
+      ],
+      "effectiveFps": 7.307028032387703,
+      "intervalMs": {
+        "p50": 106.70000000298023,
+        "p95": 414.40000000596046,
+        "p99": 414.40000000596046
+      },
+      "calls": 141,
+      "triangles": 74008.33333333333,
+      "cpu": {
+        "simulation": 0.24999999875823656,
+        "update": 5.791666667287548,
+        "submit": 4.375000000620882
+      },
+      "perf": {
+        "samples": 180,
+        "frameMs": {
+          "p50": 100,
+          "p95": 183.30000000000018,
+          "p99": 316.60000000000036
+        },
+        "simulationMs": {
+          "p50": 0.20000000298023224,
+          "p95": 0.5999999940395355,
+          "p99": 1.4000000059604645
+        },
+        "updateMs": {
+          "p50": 4.699999995529652,
+          "p95": 18.5,
+          "p99": 44.19999999552965
+        },
+        "submitMs": {
+          "p50": 4.200000002980232,
+          "p95": 17.69999999552965,
+          "p99": 225.10000000149012
+        },
+        "longFrames": 170
+      },
+      "gpu": {
+        "samples": 185,
+        "available": true,
+        "ms": 107.269875,
+        "disjoint": 0,
+        "pending": 4
+      },
+      "hybrid": {
+        "mode": "off",
+        "trees": {
+          "sectorM": 512,
+          "bufferUploads": 0,
+          "unchangedSectors": 0,
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "buildings": {
+          "sectorM": 256,
+          "bufferUploads": 0,
+          "unchangedSectors": 0,
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "cache": {
+          "bytes": 0,
+          "entries": 0,
+          "loads": 0,
+          "hits": 0,
+          "evictions": 0,
+          "failed": 0
+        }
+      },
+      "actors": null,
+      "grass": {
+        "profile": "balanced",
+        "cells": 22,
+        "tufts": 1990,
+        "triangles": 5970,
+        "calls": 1,
+        "buildMs": 0.6000000014901161,
+        "pending": 0
+      },
+      "placed": {
+        "placements": 1338,
+        "lod0": 0,
+        "lod1": 13,
+        "lod2": 4,
+        "calls": 2,
+        "rebuilds": 5,
+        "staticBuildings": 69,
+        "instanceCreates": 22,
+        "instanceDeletes": 5,
+        "fallbacks": 0,
+        "lod2Capacity": 65,
+        "preparedThisUpdate": 0,
+        "pendingLevels": 0,
+        "maxPrepareMs": 1.7000000029802322,
+        "state": "ready"
+      },
+      "objectCulling": {
+        "tested": 9,
+        "hidden": 5,
+        "nearKept": 0
+      },
+      "preparation": {
+        "lastMs": 0,
+        "maxTileMs": 0.29999999701976776,
+        "totalMs": 6.400000020861626,
+        "lastBuilt": 0,
+        "ready": 0,
+        "inFlight": 0,
+        "maxReady": 6,
+        "maxBuiltPerFrame": 0
+      },
+      "modes": [
+        "ground"
+      ],
+      "errors": []
+    },
+    {
+      "scene": "flight",
+      "config": "balanced",
+      "graphics": {
+        "vendor": "Google Inc. (Google)",
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "multiDraw": true
+      },
+      "url": "http://127.0.0.1:4177/little-world/?world=maps%2Fisland%2Fmanifest.json&renderTier=1&spawn=-480%2C-520&yaw=0.3&pitch=0.8&dist=160&metrics=1&grass=balanced&impostors=off&remoteActors=0&impostorSectors=512",
+      "samples": 18,
+      "framebuffer": {
+        "width": 768,
+        "height": 512,
+        "pixelRatio": 0.8
+      },
+      "qualityLevels": [
+        1
+      ],
+      "effectiveFps": 11.11111111111111,
+      "intervalMs": {
+        "p50": 87,
+        "p95": 197.20000000298023,
+        "p99": 197.20000000298023
+      },
+      "calls": 74.94444444444444,
+      "triangles": 42816.11111111111,
+      "cpu": {
+        "simulation": 0.3777777776122093,
+        "update": 4.588888888557752,
+        "submit": 4.15000000057949
+      },
+      "perf": {
+        "samples": 180,
+        "frameMs": {
+          "p50": 83.19999999999982,
+          "p95": 133.29999999999927,
+          "p99": 233.29999999999995
+        },
+        "simulationMs": {
+          "p50": 0.20000000298023224,
+          "p95": 0.5,
+          "p99": 2.600000001490116
+        },
+        "updateMs": {
+          "p50": 1.5,
+          "p95": 11.300000004470348,
+          "p99": 23.399999998509884
+        },
+        "submitMs": {
+          "p50": 2.5,
+          "p95": 11.199999995529652,
+          "p99": 142.89999999850988
+        },
+        "longFrames": 143
+      },
+      "gpu": {
+        "samples": 199,
+        "available": true,
+        "ms": 66.359375,
+        "disjoint": 0,
+        "pending": 1
+      },
+      "hybrid": {
+        "mode": "off",
+        "trees": {
+          "sectorM": 512,
+          "bufferUploads": 0,
+          "unchangedSectors": 0,
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "buildings": {
+          "sectorM": 256,
+          "bufferUploads": 0,
+          "unchangedSectors": 0,
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "cache": {
+          "bytes": 0,
+          "entries": 0,
+          "loads": 0,
+          "hits": 0,
+          "evictions": 0,
+          "failed": 0
+        }
+      },
+      "actors": null,
+      "grass": {
+        "profile": "balanced",
+        "cells": 20,
+        "tufts": 0,
+        "triangles": 0,
+        "calls": 0,
+        "buildMs": 0,
+        "pending": 0
+      },
+      "placed": {
+        "placements": 1338,
+        "lod0": 0,
+        "lod1": 7,
+        "lod2": 1,
+        "calls": 2,
+        "rebuilds": 12,
+        "staticBuildings": 69,
+        "instanceCreates": 9,
+        "instanceDeletes": 1,
+        "fallbacks": 0,
+        "lod2Capacity": 65,
+        "preparedThisUpdate": 0,
+        "pendingLevels": 0,
+        "maxPrepareMs": 2.399999998509884,
+        "state": "ready"
+      },
+      "objectCulling": {
+        "tested": 23,
+        "hidden": 23,
+        "nearKept": 0
+      },
+      "preparation": {
+        "lastMs": 0.10000000149011612,
+        "maxTileMs": 0.20000000298023224,
+        "totalMs": 5.900000013411045,
+        "lastBuilt": 0,
+        "ready": 0,
+        "inFlight": 3,
+        "maxReady": 6,
+        "maxBuiltPerFrame": 1
+      },
+      "modes": [
+        "swim",
+        "air",
+        "glide"
+      ],
+      "errors": []
+    },
+    {
+      "scene": "meadow",
+      "config": "balanced",
+      "graphics": {
+        "vendor": "Google Inc. (Google)",
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "multiDraw": true
+      },
+      "url": "http://127.0.0.1:4177/little-world/?world=maps%2Fisland%2Fmanifest.json&renderTier=1&spawn=-700%2C1020&yaw=0.3&pitch=0.25&dist=18&metrics=1&grass=balanced&impostors=off&remoteActors=0&impostorSectors=512",
+      "samples": 12,
+      "framebuffer": {
+        "width": 768,
+        "height": 512,
+        "pixelRatio": 0.8
+      },
+      "qualityLevels": [
+        1
+      ],
+      "effectiveFps": 7.329912707388655,
+      "intervalMs": {
+        "p50": 113.20000000298023,
+        "p95": 374.6000000014901,
+        "p99": 374.6000000014901
+      },
+      "calls": 81,
+      "triangles": 74514.66666666667,
+      "cpu": {
+        "simulation": 0.4416666670391957,
+        "update": 3.383333332836628,
+        "submit": 5.375
+      },
+      "perf": {
+        "samples": 150,
+        "frameMs": {
+          "p50": 116.70000000000073,
+          "p95": 166.69999999999982,
+          "p99": 233.39999999999986
+        },
+        "simulationMs": {
+          "p50": 0.3999999985098839,
+          "p95": 1.5,
+          "p99": 3.399999998509884
+        },
+        "updateMs": {
+          "p50": 3.600000001490116,
+          "p95": 13.5,
+          "p99": 21.099999994039536
+        },
+        "submitMs": {
+          "p50": 3.5,
+          "p95": 10.399999998509884,
+          "p99": 131.59999999403954
+        },
+        "longFrames": 142
+      },
+      "gpu": {
+        "samples": 158,
+        "available": true,
+        "ms": 130.05661,
+        "disjoint": 0,
+        "pending": 1
+      },
+      "hybrid": {
+        "mode": "off",
+        "trees": {
+          "sectorM": 512,
+          "bufferUploads": 0,
+          "unchangedSectors": 0,
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "buildings": {
+          "sectorM": 256,
+          "bufferUploads": 0,
+          "unchangedSectors": 0,
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "cache": {
+          "bytes": 0,
+          "entries": 0,
+          "loads": 0,
+          "hits": 0,
+          "evictions": 0,
+          "failed": 0
+        }
+      },
+      "actors": null,
+      "grass": {
+        "profile": "balanced",
+        "cells": 22,
+        "tufts": 2092,
+        "triangles": 6276,
+        "calls": 1,
+        "buildMs": 0.19999999552965164,
+        "pending": 0
+      },
+      "placed": {
+        "placements": 1338,
+        "lod0": 0,
+        "lod1": 0,
+        "lod2": 41,
+        "calls": 1,
+        "rebuilds": 5,
+        "staticBuildings": 69,
+        "instanceCreates": 46,
+        "instanceDeletes": 5,
+        "fallbacks": 0,
+        "lod2Capacity": 65,
+        "preparedThisUpdate": 0,
+        "pendingLevels": 0,
+        "maxPrepareMs": 0.9000000059604645,
+        "state": "ready"
+      },
+      "objectCulling": {
+        "tested": 18,
+        "hidden": 18,
+        "nearKept": 5
+      },
+      "preparation": {
+        "lastMs": 0,
+        "maxTileMs": 0.5,
+        "totalMs": 5.599999964237213,
+        "lastBuilt": 0,
+        "ready": 0,
+        "inFlight": 0,
+        "maxReady": 6,
+        "maxBuiltPerFrame": 0
+      },
+      "modes": [
+        "ground"
+      ],
+      "errors": []
+    },
+    {
+      "scene": "dry",
+      "config": "balanced",
+      "graphics": {
+        "vendor": "Google Inc. (Google)",
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "multiDraw": true
+      },
+      "url": "http://127.0.0.1:4177/little-world/?world=maps%2Fisland%2Fmanifest.json&renderTier=1&spawn=550%2C-650&yaw=0.3&pitch=0.35&dist=55&metrics=1&grass=balanced&impostors=off&remoteActors=0&impostorSectors=512",
+      "samples": 8,
+      "framebuffer": {
+        "width": 768,
+        "height": 512,
+        "pixelRatio": 0.8
+      },
+      "qualityLevels": [
+        1
+      ],
+      "effectiveFps": 4.6598322460298975,
+      "intervalMs": {
+        "p50": 162.5,
+        "p95": 502.5,
+        "p99": 502.5
+      },
+      "calls": 95,
+      "triangles": 86911,
+      "cpu": {
+        "simulation": 0.2250000024214387,
+        "update": 4.42499999795109,
+        "submit": 6.887500001117587
+      },
+      "perf": {
+        "samples": 180,
+        "frameMs": {
+          "p50": 183.29999999999927,
+          "p95": 350,
+          "p99": 400
+        },
+        "simulationMs": {
+          "p50": 0.29999999701976776,
+          "p95": 0.7999999970197678,
+          "p99": 2
+        },
+        "updateMs": {
+          "p50": 6.100000001490116,
+          "p95": 19.100000001490116,
+          "p99": 32.30000000447035
+        },
+        "submitMs": {
+          "p50": 3.3000000044703484,
+          "p95": 11.899999998509884,
+          "p99": 153
+        },
+        "longFrames": 166
+      },
+      "gpu": {
+        "samples": 181,
+        "available": true,
+        "ms": 174.979912,
+        "disjoint": 0,
+        "pending": 1
+      },
+      "hybrid": {
+        "mode": "off",
+        "trees": {
+          "sectorM": 512,
+          "bufferUploads": 0,
+          "unchangedSectors": 0,
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "buildings": {
+          "sectorM": 256,
+          "bufferUploads": 0,
+          "unchangedSectors": 0,
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "cache": {
+          "bytes": 0,
+          "entries": 0,
+          "loads": 0,
+          "hits": 0,
+          "evictions": 0,
+          "failed": 0
+        }
+      },
+      "actors": null,
+      "grass": {
+        "profile": "balanced",
+        "cells": 22,
+        "tufts": 8171,
+        "triangles": 24513,
+        "calls": 1,
+        "buildMs": 0.5999999940395355,
+        "pending": 0
+      },
+      "placed": {
+        "placements": 1338,
+        "lod0": 0,
+        "lod1": 30,
+        "lod2": 4,
+        "calls": 2,
+        "rebuilds": 5,
+        "staticBuildings": 69,
+        "instanceCreates": 40,
+        "instanceDeletes": 6,
+        "fallbacks": 0,
+        "lod2Capacity": 65,
+        "preparedThisUpdate": 0,
+        "pendingLevels": 0,
+        "maxPrepareMs": 0.8999999985098839,
+        "state": "ready"
+      },
+      "objectCulling": {
+        "tested": 8,
+        "hidden": 7,
+        "nearKept": 0
+      },
+      "preparation": {
+        "lastMs": 0,
+        "maxTileMs": 0.20000000298023224,
+        "totalMs": 4.699999988079071,
+        "lastBuilt": 0,
+        "ready": 0,
+        "inFlight": 0,
+        "maxReady": 6,
+        "maxBuiltPerFrame": 0
+      },
+      "modes": [
+        "ground"
+      ],
+      "errors": []
+    },
+    {
+      "scene": "river",
+      "config": "balanced",
+      "graphics": {
+        "vendor": "Google Inc. (Google)",
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "multiDraw": true
+      },
+      "url": "http://127.0.0.1:4177/little-world/?world=maps%2Fisland%2Fmanifest.json&renderTier=1&spawn=-400%2C300&yaw=0.3&pitch=0.35&dist=40&metrics=1&grass=balanced&impostors=off&remoteActors=0&impostorSectors=512",
+      "samples": 10,
+      "framebuffer": {
+        "width": 768,
+        "height": 512,
+        "pixelRatio": 0.8
+      },
+      "qualityLevels": [
+        1
+      ],
+      "effectiveFps": 5.856705928276531,
+      "intervalMs": {
+        "p50": 137.39999999850988,
+        "p95": 365.6000000014901,
+        "p99": 365.6000000014901
+      },
+      "calls": 110,
+      "triangles": 78508.2,
+      "cpu": {
+        "simulation": 0.2700000010430813,
+        "update": 8.879999999701976,
+        "submit": 6.089999999850988
+      },
+      "perf": {
+        "samples": 180,
+        "frameMs": {
+          "p50": 150,
+          "p95": 516.6999999999998,
+          "p99": 1050.0999999999985
+        },
+        "simulationMs": {
+          "p50": 0.30000000447034836,
+          "p95": 0.7000000029802322,
+          "p99": 13
+        },
+        "updateMs": {
+          "p50": 7.899999998509884,
+          "p95": 27.69999999552965,
+          "p99": 35.600000001490116
+        },
+        "submitMs": {
+          "p50": 4.299999997019768,
+          "p95": 19.799999997019768,
+          "p99": 231.80000000447035
+        },
+        "longFrames": 168
+      },
+      "gpu": {
+        "samples": 186,
+        "available": true,
+        "ms": 128.487853,
+        "disjoint": 0,
+        "pending": 1
+      },
+      "hybrid": {
+        "mode": "off",
+        "trees": {
+          "sectorM": 512,
+          "bufferUploads": 0,
+          "unchangedSectors": 0,
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "buildings": {
+          "sectorM": 256,
+          "bufferUploads": 0,
+          "unchangedSectors": 0,
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "cache": {
+          "bytes": 0,
+          "entries": 0,
+          "loads": 0,
+          "hits": 0,
+          "evictions": 0,
+          "failed": 0
+        }
+      },
+      "actors": null,
+      "grass": {
+        "profile": "balanced",
+        "cells": 19,
+        "tufts": 4982,
+        "triangles": 14946,
+        "calls": 1,
+        "buildMs": 0.5,
+        "pending": 0
+      },
+      "placed": {
+        "placements": 1338,
+        "lod0": 0,
+        "lod1": 1,
+        "lod2": 41,
+        "calls": 2,
+        "rebuilds": 5,
+        "staticBuildings": 69,
+        "instanceCreates": 46,
+        "instanceDeletes": 4,
+        "fallbacks": 0,
+        "lod2Capacity": 65,
+        "preparedThisUpdate": 0,
+        "pendingLevels": 0,
+        "maxPrepareMs": 0.6000000014901161,
+        "state": "ready"
+      },
+      "objectCulling": {
+        "tested": 17,
+        "hidden": 1,
+        "nearKept": 0
+      },
+      "preparation": {
+        "lastMs": 0,
+        "maxTileMs": 3.5,
+        "totalMs": 10.200000002980232,
+        "lastBuilt": 0,
+        "ready": 0,
+        "inFlight": 0,
+        "maxReady": 6,
+        "maxBuiltPerFrame": 0
+      },
+      "modes": [
+        "ground"
+      ],
+      "errors": []
+    },
+    {
+      "scene": "slope",
+      "config": "balanced",
+      "graphics": {
+        "vendor": "Google Inc. (Google)",
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "multiDraw": true
+      },
+      "url": "http://127.0.0.1:4177/little-world/?world=maps%2Fisland%2Fmanifest.json&renderTier=1&spawn=200%2C-620&yaw=0.3&pitch=0.35&dist=50&metrics=1&grass=balanced&impostors=off&remoteActors=0&impostorSectors=512",
+      "samples": 14,
+      "framebuffer": {
+        "width": 768,
+        "height": 512,
+        "pixelRatio": 0.8
+      },
+      "qualityLevels": [
+        1
+      ],
+      "effectiveFps": 8.92121877571604,
+      "intervalMs": {
+        "p50": 113.89999999850988,
+        "p95": 295,
+        "p99": 295
+      },
+      "calls": 109,
+      "triangles": 71573,
+      "cpu": {
+        "simulation": 0.15000000170298985,
+        "update": 4.4857142849692275,
+        "submit": 5.050000000745058
+      },
+      "perf": {
+        "samples": 180,
+        "frameMs": {
+          "p50": 116.59999999999854,
+          "p95": 200,
+          "p99": 250.09999999999994
+        },
+        "simulationMs": {
+          "p50": 0.20000000298023224,
+          "p95": 0.5,
+          "p99": 1.3999999985098839
+        },
+        "updateMs": {
+          "p50": 4.799999997019768,
+          "p95": 17,
+          "p99": 37.899999998509884
+        },
+        "submitMs": {
+          "p50": 3.2999999970197678,
+          "p95": 17.600000001490116,
+          "p99": 225.10000000149012
+        },
+        "longFrames": 167
+      },
+      "gpu": {
+        "samples": 188,
+        "available": true,
+        "ms": 98.813505,
+        "disjoint": 0,
+        "pending": 1
+      },
+      "hybrid": {
+        "mode": "off",
+        "trees": {
+          "sectorM": 512,
+          "bufferUploads": 0,
+          "unchangedSectors": 0,
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "buildings": {
+          "sectorM": 256,
+          "bufferUploads": 0,
+          "unchangedSectors": 0,
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "cache": {
+          "bytes": 0,
+          "entries": 0,
+          "loads": 0,
+          "hits": 0,
+          "evictions": 0,
+          "failed": 0
+        }
+      },
+      "actors": null,
+      "grass": {
+        "profile": "balanced",
+        "cells": 23,
+        "tufts": 2084,
+        "triangles": 6252,
+        "calls": 1,
+        "buildMs": 0.8000000044703484,
+        "pending": 0
+      },
+      "placed": {
+        "placements": 1338,
+        "lod0": 0,
+        "lod1": 13,
+        "lod2": 1,
+        "calls": 2,
+        "rebuilds": 5,
+        "staticBuildings": 69,
+        "instanceCreates": 20,
+        "instanceDeletes": 6,
+        "fallbacks": 0,
+        "lod2Capacity": 65,
+        "preparedThisUpdate": 0,
+        "pendingLevels": 0,
+        "maxPrepareMs": 1.2000000029802322,
+        "state": "ready"
+      },
+      "objectCulling": {
+        "tested": 8,
+        "hidden": 7,
+        "nearKept": 0
+      },
+      "preparation": {
+        "lastMs": 0,
+        "maxTileMs": 0.5,
+        "totalMs": 6.099999979138374,
+        "lastBuilt": 0,
+        "ready": 0,
+        "inFlight": 0,
+        "maxReady": 6,
+        "maxBuiltPerFrame": 0
+      },
+      "modes": [
+        "ground"
+      ],
+      "errors": []
+    },
+    {
+      "scene": "night",
+      "config": "balanced",
+      "graphics": {
+        "vendor": "Google Inc. (Google)",
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "multiDraw": true
+      },
+      "url": "http://127.0.0.1:4177/little-world/?world=maps%2Fisland%2Fmanifest.json&renderTier=1&spawn=-700%2C1020&yaw=0.3&pitch=0.25&dist=18&metrics=1&night=1&grass=balanced&impostors=off&remoteActors=0&impostorSectors=512",
+      "samples": 7,
+      "framebuffer": {
+        "width": 768,
+        "height": 512,
+        "pixelRatio": 0.8
+      },
+      "qualityLevels": [
+        1
+      ],
+      "effectiveFps": 3.36417157275021,
+      "intervalMs": {
+        "p50": 242.80000000447035,
+        "p95": 616.7000000029802,
+        "p99": 616.7000000029802
+      },
+      "calls": 80,
+      "triangles": 74130.57142857143,
+      "cpu": {
+        "simulation": 0.48571428656578064,
+        "update": 5.042857141367027,
+        "submit": 6.442857143070016
+      },
+      "perf": {
+        "samples": 150,
+        "frameMs": {
+          "p50": 199.90000000000146,
+          "p95": 533.3999999999978,
+          "p99": 733.2999999999993
+        },
+        "simulationMs": {
+          "p50": 0.5,
+          "p95": 1.4000000059604645,
+          "p99": 2.7999999970197678
+        },
+        "updateMs": {
+          "p50": 9.199999995529652,
+          "p95": 26.80000000447035,
+          "p99": 38.30000000447035
+        },
+        "submitMs": {
+          "p50": 3.7000000029802322,
+          "p95": 22.80000000447035,
+          "p99": 217.89999999850988
+        },
+        "longFrames": 137
+      },
+      "gpu": {
+        "samples": 154,
+        "available": true,
+        "ms": 183.851448,
+        "disjoint": 0,
+        "pending": 1
+      },
+      "hybrid": {
+        "mode": "off",
+        "trees": {
+          "sectorM": 512,
+          "bufferUploads": 0,
+          "unchangedSectors": 0,
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "buildings": {
+          "sectorM": 256,
+          "bufferUploads": 0,
+          "unchangedSectors": 0,
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "cache": {
+          "bytes": 0,
+          "entries": 0,
+          "loads": 0,
+          "hits": 0,
+          "evictions": 0,
+          "failed": 0
+        }
+      },
+      "actors": null,
+      "grass": {
+        "profile": "balanced",
+        "cells": 22,
+        "tufts": 2092,
+        "triangles": 6276,
+        "calls": 1,
+        "buildMs": 0.3999999985098839,
+        "pending": 0
+      },
+      "grassUpdateMs": 0,
+      "placed": {
+        "placements": 1338,
+        "lod0": 0,
+        "lod1": 0,
+        "lod2": 41,
+        "calls": 1,
+        "rebuilds": 5,
+        "staticBuildings": 69,
+        "instanceCreates": 46,
+        "instanceDeletes": 5,
+        "fallbacks": 0,
+        "lod2Capacity": 65,
+        "preparedThisUpdate": 0,
+        "pendingLevels": 0,
+        "maxPrepareMs": 1,
+        "state": "ready"
+      },
+      "objectCulling": {
+        "tested": 18,
+        "hidden": 18,
+        "nearKept": 5
+      },
+      "preparation": {
+        "lastMs": 0,
+        "maxTileMs": 0.30000000447034836,
+        "totalMs": 4.899999991059303,
+        "lastBuilt": 0,
+        "ready": 0,
+        "inFlight": 0,
+        "maxReady": 6,
+        "maxBuiltPerFrame": 0
+      },
+      "modes": [
+        "ground"
+      ],
+      "errors": []
+    }
+  ],
+  "note": "First nine views recorded before production changes; night view rerun with night=1. Environment paused in night and after captures; slow daylight cycle runs in first nine before captures. NPCs, birds and wind are not frozen.",
+  "sourceState": "Tracked source baseline c34057f. Unused ground-cover file was present during build but not imported. Night entry replaced by its corrected night=1 capture."
+}

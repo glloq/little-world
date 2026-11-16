@@ -1,0 +1,275 @@
+{
+  "revision": "c34057f",
+  "count": 100000,
+  "materialMix": [
+    "grass",
+    "dry-grass",
+    "forest-floor",
+    "mud",
+    "rock"
+  ],
+  "beforeMs": 3.8741290000000106,
+  "afterMs": 12.212083000000007,
+  "method": "7 measured alternating runs after warmup, CPU only, colour generation not frame update",
+  "runs": [
+    {
+      "name": "before",
+      "ms": 3.8741290000000106
+    },
+    {
+      "name": "after",
+      "ms": 14.730339999999998
+    },
+    {
+      "name": "before",
+      "ms": 4.944417999999999
+    },
+    {
+      "name": "after",
+      "ms": 13.205658
+    },
+    {
+      "name": "before",
+      "ms": 4.859902000000005
+    },
+    {
+      "name": "after",
+      "ms": 14.537264000000008
+    },
+    {
+      "name": "before",
+      "ms": 4.584482999999977
+    },
+    {
+      "name": "after",
+      "ms": 12.212083000000007
+    },
+    {
+      "name": "before",
+      "ms": 2.834868
+    },
+    {
+      "name": "after",
+      "ms": 11.845098000000007
+    },
+    {
+      "name": "before",
+      "ms": 2.7674969999999917
+    },
+    {
+      "name": "after",
+      "ms": 11.812831999999986
+    },
+    {
+      "name": "before",
+      "ms": 2.827095999999983
+    },
+    {
+      "name": "after",
+      "ms": 11.784447999999998
+    }
+  ],
+  "tile": {
+    "bounds": {
+      "minX": -384,
+      "maxX": -320,
+      "minZ": -1216,
+      "maxZ": -1152
+    },
+    "lods": [
+      {
+        "lod": 0,
+        "vertices": 1089,
+        "beforeMs": 5.783634000000006,
+        "afterMs": 4.894934000000035,
+        "runs": [
+          {
+            "name": "before",
+            "ms": 9.931007999999906
+          },
+          {
+            "name": "after",
+            "ms": 7.668811000000005
+          },
+          {
+            "name": "before",
+            "ms": 7.260364000000095
+          },
+          {
+            "name": "after",
+            "ms": 6.755435000000034
+          },
+          {
+            "name": "before",
+            "ms": 5.946996000000013
+          },
+          {
+            "name": "after",
+            "ms": 4.880652999999938
+          },
+          {
+            "name": "before",
+            "ms": 5.493822000000023
+          },
+          {
+            "name": "after",
+            "ms": 5.081541000000016
+          },
+          {
+            "name": "before",
+            "ms": 5.783634000000006
+          },
+          {
+            "name": "after",
+            "ms": 4.894934000000035
+          },
+          {
+            "name": "before",
+            "ms": 5.560631999999941
+          },
+          {
+            "name": "after",
+            "ms": 4.640054999999961
+          },
+          {
+            "name": "before",
+            "ms": 5.3644709999999804
+          },
+          {
+            "name": "after",
+            "ms": 4.381272000000081
+          }
+        ]
+      },
+      {
+        "lod": 1,
+        "vertices": 289,
+        "beforeMs": 1.4239730000000463,
+        "afterMs": 1.2266200000000254,
+        "runs": [
+          {
+            "name": "before",
+            "ms": 1.42693799999995
+          },
+          {
+            "name": "after",
+            "ms": 1.2439460000000508
+          },
+          {
+            "name": "before",
+            "ms": 1.696608000000083
+          },
+          {
+            "name": "after",
+            "ms": 1.363743999999997
+          },
+          {
+            "name": "before",
+            "ms": 1.67631700000004
+          },
+          {
+            "name": "after",
+            "ms": 1.2266200000000254
+          },
+          {
+            "name": "before",
+            "ms": 1.3213010000000622
+          },
+          {
+            "name": "after",
+            "ms": 1.1858899999999721
+          },
+          {
+            "name": "before",
+            "ms": 1.336082000000033
+          },
+          {
+            "name": "after",
+            "ms": 1.2784070000000156
+          },
+          {
+            "name": "before",
+            "ms": 1.4239730000000463
+          },
+          {
+            "name": "after",
+            "ms": 1.1992300000000569
+          },
+          {
+            "name": "before",
+            "ms": 1.3670080000000553
+          },
+          {
+            "name": "after",
+            "ms": 1.1904469999999492
+          }
+        ]
+      },
+      {
+        "lod": 2,
+        "vertices": 81,
+        "beforeMs": 0.39082999999993717,
+        "afterMs": 0.36277800000004845,
+        "runs": [
+          {
+            "name": "before",
+            "ms": 1.5531550000000607
+          },
+          {
+            "name": "after",
+            "ms": 0.4440390000000889
+          },
+          {
+            "name": "before",
+            "ms": 0.3482170000000906
+          },
+          {
+            "name": "after",
+            "ms": 0.36277800000004845
+          },
+          {
+            "name": "before",
+            "ms": 0.3471749999999929
+          },
+          {
+            "name": "after",
+            "ms": 0.33153199999992466
+          },
+          {
+            "name": "before",
+            "ms": 0.430199000000016
+          },
+          {
+            "name": "after",
+            "ms": 0.4110099999999193
+          },
+          {
+            "name": "before",
+            "ms": 0.39894199999991997
+          },
+          {
+            "name": "after",
+            "ms": 0.33033100000000104
+          },
+          {
+            "name": "before",
+            "ms": 0.3532749999999396
+          },
+          {
+            "name": "after",
+            "ms": 0.38931700000000546
+          },
+          {
+            "name": "before",
+            "ms": 0.39082999999993717
+          },
+          {
+            "name": "after",
+            "ms": 0.32971900000006826
+          }
+        ]
+      }
+    ],
+    "note": "CPU generation on the real island; historical builders use the current bit-equivalent LinearColor helper. No GPU upload or worker message cost."
+  }
+}

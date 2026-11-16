@@ -34,3 +34,26 @@ test('GRASS — no per-frame CPU work once built: the instance buffer is not rew
   assert.equal(g.mesh.instanceMatrix.version,v,'only uniforms change (wind, player) — vertex shader');
   assert.ok(GRASS_PROFILES.dense.radius<=45,'grass stays local (doc 18)');g.dispose();
 });
+test('GRASS — projected subpixel tufts stop preparing at altitude and recover on landing',()=>{
+ const g=build('balanced'),view={position:{x:5,y:900,z:5},fov:60,height:640};
+ for(let i=0;i<60;i++)g.update(1/30,{x:5,y:900,z:5},50,view);
+ assert.equal(g.stats.tufts,0);assert.equal(g.stats.pending,0);assert.equal(g.stats.visibleScale,0);assert.equal(g.stats.actors,0);
+ const generated=g.stats.generatedCells;g.update(1/30,{x:500,y:900,z:500},50,view);assert.equal(g.stats.generatedCells,generated);
+ view.position.y=4;for(let i=0;i<40;i++)g.update(1/30,{x:5,y:2,z:5},50,view);
+ assert.ok(g.stats.tufts>0);assert.equal(g.stats.visibleScale,1);g.dispose();
+});
+test('GRASS — low detached camera prepares its own cells; actors remain separate and bounded',()=>{
+ const g=build('balanced'),view={position:{x:200,y:4,z:200},fov:60,height:640};
+ for(let i=0;i<40;i++)g.update(1/30,{x:0,y:2,z:0},50,view,[{x:201,y:2,z:201},{x:800,y:2,z:800}]);
+ assert.ok(g.mesh.instanceMatrix.array[12]>150);assert.equal(g.stats.actors,1);
+ g.update(1/30,{x:200,y:2,z:200},50,view,[{x:201,y:2,z:201},{x:202,y:2,z:202}]);assert.equal(g.stats.actors,2);
+ g.setProfile('ultra');g.update(1/30,{x:200,y:2,z:200},50,view,[{x:201,y:2,z:201}]);assert.equal(g.stats.actors,1);g.dispose();
+});
+test('GRASS — two cells maximum per update, exact exclusion edges and local refresh preserve distant cells',()=>{
+ const sampler=(x,z)=>x<1.3?null:meadow(),g=createGrass(new THREE.Group(),42,sampler,()=>2,24000,true);g.setProfile('balanced');
+ g.update(1/30,{x:5,y:2,z:5},50);assert.ok(g.stats.generatedCells<=2);assert.ok(g.stats.tufts>0,'partial preparation already visible');
+ for(let i=0;i<40;i++)g.update(1/30,{x:5,y:2,z:5},50);
+ for(let i=0;i<g.stats.tufts;i++)assert.ok(g.mesh.instanceMatrix.array[i*16+12]>=1.3,'no 4 m grid spill');
+ const before=g.stats.generatedCells;g.refresh(0,0,1);for(let i=0;i<40;i++)g.update(1/30,{x:5,y:2,z:5},50);
+ assert.ok(g.stats.generatedCells-before<before,'only nearby cells rebuilt');assert.ok(g.stats.bytes<5*1024*1024);g.dispose();
+});

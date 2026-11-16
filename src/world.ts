@@ -89,6 +89,7 @@ export interface WorldView {
   grass: GrassStats | null;
   /** Wind strength of the environment (grass sway in the shader). */
   setWind(strength: number): void;
+  setGrassActors(actors:readonly import('./render/grass.ts').GrassActor[]):void;
   /** Path surfaces (sectors built, triangles, pending). */
   paths: PathViewStats;
   /** `economy` (lowest quality setting) shifts the natural dressing one tier down. */
@@ -768,10 +769,11 @@ export function buildWorld(
   const natural = createNaturalView(root,terrainHeight);
   const cliffs = createCliffView(root,terrainHeight,config.seed,config.terrain);
   // Doc 18: short and tall grass tufts near the player (generated worlds), 1 draw call, wind in the shader.
-  const grass = legacy ? null : createGrass(root, config.seed, generatedGrass, terrainHeight);
+  const grass = legacy ? null : createGrass(root, config.seed, generatedGrass, terrainHeight,24000,true);
+  let grassActors:readonly import('./render/grass.ts').GrassActor[]=[];
   // `?grass=dense|balanced|ultra|off` (benchmarks, captures): fixed profile instead of the budget level.
   const grassParam = typeof location !== 'undefined' ? new URLSearchParams(location.search).get('grass') : null;
-  const grassOverride = grassParam === 'off' ? 'groundOnly' : grassParam === 'dense' || grassParam === 'balanced' || grassParam === 'ultra' ? grassParam : null;
+  const grassOverride = (grassParam === 'off'||grassParam==='groundOnly') ? 'groundOnly' : grassParam === 'dense' || grassParam === 'balanced' || grassParam === 'ultra' ? grassParam : null;
   if (grassOverride) grass?.setProfile(grassOverride);
   // Relief occlusion of distant content (generated worlds): refreshed in slices after camera moves.
   const occlusionOff = typeof location !== 'undefined' && new URLSearchParams(location.search).get('occlusion') === '0';
@@ -847,6 +849,7 @@ export function buildWorld(
     dressing: dressing?.stats ?? null,
     grass: grass?.stats ?? null,
     setWind(strength: number) { grass?.setWind(strength); },
+    setGrassActors(actors){grassActors=actors;},
     paths: pathView.stats,
     refreshWater,
     refreshPaths,
@@ -946,7 +949,7 @@ export function buildWorld(
       if(atlasLight)impostorIllumination(atlasLight,atlasColor);
       dressing?.updateImpostors(time,hybridNight);buildingImpostors.update(time,hybridNight);
       dressing?.update(focus.x, focus.z);
-      grass?.update(dt, { x: focus.x, y: (focus as { y?: number }).y, z: focus.z });
+      grass?.update(dt, { x: focus.x, y: (focus as { y?: number }).y, z: focus.z },1,camera?{position:camera.position,fov:camera.fov,height:pixelHeight}:undefined,grassActors);
       placed.update(focus.x, focus.z,camera?.position);
       natural.update(focus.x,focus.z);
       cliffs.update(camera?.position.x??focus.x,camera?.position.z??focus.z);

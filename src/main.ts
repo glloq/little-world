@@ -662,6 +662,8 @@ const perfSampler=new PerfSampler(),gpuTimer=createGpuTimer(renderer,metricsEnab
 const actorCount=Number(searchParams.get('remoteActors')??0);
 const remoteActors=[10,50,100].includes(actorCount)?createActorSimulator(scene,actorCount,player.position,terrainHeight,world.isOccluded):null;
 remoteActors?.renderer.setLighting(world.atlasIllumination);
+const grassActors:import('./render/grass.ts').GrassActor[]=[];
+world.setGrassActors(grassActors);
 function draw(now: number) {
   const frame = presentation.advance(now, !document.hidden);
   const simulationBegin = performance.now();
@@ -699,6 +701,9 @@ function draw(now: number) {
     audio.update(now,{nowMs:now,player:{position:player.position,velocity:player.velocity,mode:player.mode,aboard,boatSpeed:Math.abs(boat.speed),space:player.space??null,surface:player.space?'stone':aboard?'wood':ground.surface},
       world:{time:env.sunAltitude<0?'night':'day',weather:env.weather,wind:env.wind,biome:ground.biome,place:farm?'farm':ground.place,activity:farm?'farming':undefined,submerged:cameraSubmerged(camera.position.x,camera.position.y,camera.position.z),nearWater:waterSurface(player.position.x,player.position.z)!==null||(isLegacyTerrain()&&Math.abs(player.position.x-riverX(player.position.z))<16)}},
       id=>gameplay?.runtime.getEntityPosition(id),budget.level,camera.getWorldDirection(audioForward));}
+  grassActors.length=0;
+  for(const state of npcs.states)if(Math.hypot(state.x-player.position.x,state.z-player.position.z)<44)grassActors.push(state);
+  remoteActors?.renderer.collectGrassActors(grassActors,player.position);
   world.update(delta, player.position, camera, renderer.domElement.height);
   if(!loading.ready)loading.update({terrainPending:world.stats.pending,dressingPending:world.dressing?.nearPending??0,speciesState:world.dressing?.species.state??'none'});
   remoteActors?.update(delta,elapsed,camera,renderer.domElement.height,budget.level);

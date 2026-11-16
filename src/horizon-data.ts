@@ -28,14 +28,17 @@ export function horizonBlockData(bounds:Bounds,grid:HorizonGrid,column:number,ro
   const clampX=(x:number)=>Math.min(bounds.width/2,Math.max(-bounds.width/2,x)),clampZ=(z:number)=>Math.min(bounds.length/2,Math.max(-bounds.length/2,z));
   const w=cellsX+3,heights=new Float32Array(w*(cellsZ+3));
   for(let j=0;j<cellsZ+3;j++)for(let i=0;i<w;i++)heights[j*w+i]=height(clampX(minX+(i-1)*step),clampZ(minZ+(j-1)*step));
-  const count=(cellsX+1)*(cellsZ+1),positions=new Float32Array(count*3),normals=new Float32Array(count*3),colors=new Float32Array(count*3),color=new LinearColor();
+  const count=(cellsX+1)*(cellsZ+1),positions=new Float32Array(count*3),normals=new Float32Array(count*3),colors=new Float32Array(count*3),color=new LinearColor(),surfaceNormal={x:0,y:1,z:0};
   let k=0;
   for(let j=0;j<=cellsZ;j++)for(let i=0;i<=cellsX;i++,k++){
     const x=clampX(minX+i*step),z=clampZ(minZ+j*step),c=(j+1)*w+i+1,h=heights[c];
     const sea=!legacy&&h<bounds.seaLevel,y=sea?bounds.seaLevel:h;
     let nx=0,nz=0;if(!sea){nx=(heights[c-1]-heights[c+1])/(2*step);nz=(heights[c-w]-heights[c+w])/(2*step);}
     const n=Math.hypot(nx,1,nz),o=k*3;normals[o]=nx/n;normals[o+1]=1/n;normals[o+2]=nz/n;positions[o]=x;positions[o+1]=y;positions[o+2]=z;
-    if(sea)color.setHex(SEA_COLOR);else surfaceColor(x,z,h,Math.max(Math.abs(heights[c+1]-h),Math.abs(heights[c+w]-h))*2/step,color);
+    if(sea)color.setHex(SEA_COLOR);else {
+      surfaceColor(x,z,h,Math.max(Math.abs(heights[c+1]-h),Math.abs(heights[c+w]-h))*2/step,color,legacy||height!==terrainHeight?undefined:surfaceNormal);
+      if(!legacy&&height===terrainHeight){normals[o]=surfaceNormal.x;normals[o+1]=surfaceNormal.y;normals[o+2]=surfaceNormal.z;}
+    }
     colors[o]=color.r;colors[o+1]=color.g;colors[o+2]=color.b;
   }
   const index=count>65535?new Uint32Array(cellsX*cellsZ*6):new Uint16Array(cellsX*cellsZ*6);let t=0;
