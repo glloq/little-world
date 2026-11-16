@@ -46,7 +46,7 @@ export function analyzeDepressions(
  let nx=Math.max(2,Math.ceil(width/step)),nz=Math.max(2,Math.ceil(depth/step));
  const factor=Math.max(1,Math.sqrt(nx*nz/cap));
  nx=Math.max(2,Math.floor(nx/factor));nz=Math.max(2,Math.floor(nz/factor));
- while(nx*nz>cap){if(nx>=nz&&nx>2)nx--;else if(nz>2)nz--;else break;}
+ while(nx*nz>cap){if(nx>=nz)nx=Math.max(2,Math.floor(cap/nz));else nz=Math.max(2,Math.floor(cap/nx));}
  const n=nx*nz,dx=width/nx,dz=depth/nz,coordinate=(i:number):PointXZ=>({
    x:minX+(i%nx+.5)*dx,z:minZ+(Math.floor(i/nx)+.5)*dz
  });
