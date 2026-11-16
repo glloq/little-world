@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {analyzeWatersheds} from '../src/studio-core/watershed-analysis.ts';
 import {proposeWatershedRivers} from '../src/studio-core/watershed-rivers.ts';
 import {proposeBasinLakes} from '../src/studio-core/basin-lakes.ts';
+import {planLakeOutflow} from '../src/studio-core/lake-outflow.ts';
 import {hydroOverviewProjection} from '../src/studio/hydro-preview-map.ts';
 import {analyzeDepressions} from '../src/studio-core/depression-fill.ts';
 import {reviewHydroNetwork,planHydroFalls} from '../src/studio-core/hydro-network-assistant.ts';
@@ -100,6 +101,22 @@ test('priority flood refuses false pits on open sloping terrain and obeys cap',(
  assert.ok(skinny.sampled<=256);
  const extreme=analyzeDepressions({minX:0,maxX:3,minZ:0,maxZ:1e9},(x,z)=>100-z*1e-8,0,{maxCells:256});
  assert.ok(extreme.sampled<=256);
+});
+test('optional overflow river starts at lake edge and stays linked to the native WATER network',()=>{
+ const height=(x,z)=>50-x*.1;
+ const lake={id:'source-lake',kind:'lake',points:[{x:-2,z:-3},{x:2,z:-3},{x:2,z:3},{x:-2,z:3}],width:6,level:50,depth:3};
+ const context={height,water:()=>null,inWorld:(x,z)=>x>-400&&x<400&&z>-400&&z<400,
+   seaLevel:-20,existing:[lake]};
+ const original=structuredClone(lake),spillway={crest:{x:2.4,z:0},downstream:{x:12,z:0},dropM:1,distanceM:12};
+ const planned=planLakeOutflow(lake,spillway,context,{id:'source-outflow',width:5,depth:1.5,maxLengthM:180});
+ assert.equal(planned.water.from.kind,'lake');
+ assert.equal(planned.water.from.id,'source-lake');
+ assert.ok(planned.water.points.length>=3&&planned.water.points[1].x>2);
+ assert.deepEqual(lake,original);
+ const checked=compileWaterNetwork([lake,planned.water],height,-20);
+ assert.ok(checked.every(w=>!w.diagnostics.some(d=>d.severity==='ERROR')),JSON.stringify(checked.map(w=>w.diagnostics)));
+ assert.throws(()=>planLakeOutflow(lake,{...spillway,crest:{x:200,z:0}},context,
+   {id:'not-near-shore',width:5,depth:1.5,maxLengthM:180}),/éloigné/);
 });
 test('fall batch never mutates input and only returns compiler-approved changes',()=>{
  const height=(x,z)=>100-z*.25;
