@@ -52,3 +52,7 @@ test('snapshot interpolation has bounded history and extrapolation, preserves di
 test('CPU sampler retains a bounded window and separates simulation, update and submission',async()=>{
  const {PerfSampler}=await import('../src/render/perf-sampler.ts');const p=new PerfSampler(4);for(let i=0;i<10;i++)p.record(i*10,1,2,3);const s=p.snapshot();assert.equal(s.samples,4);assert.equal(s.frameMs.p50,80);assert.equal(s.simulationMs.p99,1);assert.equal(s.updateMs.p99,2);assert.equal(s.submitMs.p99,3);assert.equal(s.longFrames,4);
 });
+
+test('a resource released while loading is disposed when its late result arrives',async()=>{
+ let resolve,disposed=0;const cache=new SharedResourceCache(1024);const ticket=cache.acquire('late',()=>new Promise(r=>resolve=r));ticket.release();cache.trim(0);resolve({bytes:80,dispose(){disposed++;}});await ticket.promise;assert.equal(disposed,1);assert.equal(cache.stats.bytes,0);assert.equal(cache.stats.entries,0);
+});

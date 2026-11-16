@@ -7,7 +7,7 @@ export class SharedResourceCache<T extends {bytes:number;dispose():void}>{
  acquire(key:string,load:()=>Promise<T>){
   let e=this.entries.get(key);if(e){this.stats.hits++;e.refs++;e.used=++this.clock;}
   else{const entry={refs:1,used:++this.clock,promise:null as unknown as Promise<T>,value:undefined as T|undefined,failed:false};e=entry;this.entries.set(key,e);this.stats.loads++;
-   entry.promise=load().then(value=>{entry.value=value;this.stats.bytes+=value.bytes;this.trim();return value;},error=>{entry.failed=true;this.stats.failed++;if(!entry.refs)this.entries.delete(key);throw error;});}
+   entry.promise=load().then(value=>{if(!entry.refs){value.dispose();this.entries.delete(key);this.stats.entries=this.entries.size;return value;}entry.value=value;this.stats.bytes+=value.bytes;this.trim();return value;},error=>{entry.failed=true;this.stats.failed++;if(!entry.refs)this.entries.delete(key);throw error;});}
   this.stats.entries=this.entries.size;let released=false;
   return {promise:e.promise,release:()=>{if(released)return;released=true;e!.refs--;e!.used=++this.clock;if(!e!.refs&&e!.failed)this.entries.delete(key);this.trim();}};
  }
