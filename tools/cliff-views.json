@@ -1,0 +1,72 @@
+[
+ {
+  "name": "cliffs-overview",
+  "label": "Les cinq zones — vue générale",
+  "world": "maps/cliff-reference/manifest.json",
+  "x": 0,
+  "z": 0,
+  "yaw": 3.14,
+  "pitch": 1.0,
+  "dist": 245
+ },
+ {
+  "name": "cliffs-simple",
+  "label": "Droite — strates, pied et raccords",
+  "world": "maps/cliff-reference/manifest.json",
+  "x": -85,
+  "z": -78,
+  "yaw": 3.14,
+  "pitch": 0.18,
+  "dist": 64
+ },
+ {
+  "name": "cliffs-broken",
+  "label": "Décrochements — jonctions à angles droits",
+  "world": "maps/cliff-reference/manifest.json",
+  "x": -10,
+  "z": -80,
+  "yaw": 3.4,
+  "pitch": 0.25,
+  "dist": 68
+ },
+ {
+  "name": "cliffs-curved",
+  "label": "Courbe — continuité des tronçons",
+  "world": "maps/cliff-reference/manifest.json",
+  "x": 77,
+  "z": -91,
+  "yaw": 3.14,
+  "pitch": 0.2,
+  "dist": 76
+ },
+ {
+  "name": "cliffs-plateau",
+  "label": "Plateau — rebord herbeux et roche",
+  "world": "maps/cliff-reference/manifest.json",
+  "x": -79,
+  "z": 80,
+  "yaw": 3.14,
+  "pitch": 0.24,
+  "dist": 74
+ },
+ {
+  "name": "cliffs-volcanic",
+  "label": "Volcanique — roche dure sombre",
+  "world": "maps/cliff-reference/manifest.json",
+  "x": 63,
+  "z": 74,
+  "yaw": 3.14,
+  "pitch": 0.2,
+  "dist": 69
+ },
+ {
+  "name": "cliffs-lod",
+  "label": "Vue lointaine — LOD 1",
+  "world": "maps/cliff-reference/manifest.json",
+  "x": 0,
+  "z": -40,
+  "yaw": 3.14,
+  "pitch": 0.45,
+  "dist": 230
+ }
+]

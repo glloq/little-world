@@ -1,0 +1,326 @@
+{
+  "recordedAt": "2026-11-16T06:15:42.026Z",
+  "base": "http://127.0.0.1:5173/little-world/",
+  "viewport": {
+    "width": 1280,
+    "height": 720
+  },
+  "renderer": "Chromium headless + SwiftShader (logiciel) — non qualifiant GPU",
+  "views": [
+    {
+      "name": "cliffs-overview",
+      "label": "Les cinq zones — vue générale",
+      "settled": true,
+      "settleMs": 1684,
+      "metrics": {
+        "calls": 42,
+        "triangles": 14735,
+        "position": [
+          0,
+          6,
+          0
+        ],
+        "cliffs": {
+          "available": 27,
+          "visible": 27,
+          "built": 36,
+          "disposed": 9,
+          "triangles": 1134,
+          "lod0": 9,
+          "lod1": 18,
+          "pending": 0
+        },
+        "dressing": {
+          "instances": 0,
+          "calls": 0,
+          "triangles": 0,
+          "cells": 0,
+          "species": {
+            "state": "ready",
+            "lod0": 0,
+            "lod1": 0,
+            "triangles": 0,
+            "bytes": 154422,
+            "loadMs": 104.30000000004657,
+            "failed": [],
+            "dropped": 0
+          }
+        },
+        "horizon": {
+          "triangles": 0
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "cliffs-simple",
+      "label": "Droite — strates, pied et raccords",
+      "settled": true,
+      "settleMs": 1919,
+      "metrics": {
+        "calls": 19,
+        "triangles": 43200,
+        "position": [
+          -85,
+          29,
+          -78
+        ],
+        "cliffs": {
+          "available": 27,
+          "visible": 27,
+          "built": 32,
+          "disposed": 5,
+          "triangles": 1350,
+          "lod0": 15,
+          "lod1": 12,
+          "pending": 0
+        },
+        "dressing": {
+          "instances": 0,
+          "calls": 0,
+          "triangles": 0,
+          "cells": 0,
+          "species": {
+            "state": "ready",
+            "lod0": 0,
+            "lod1": 0,
+            "triangles": 0,
+            "bytes": 154422,
+            "loadMs": 133.19999999995343,
+            "failed": [],
+            "dropped": 0
+          }
+        },
+        "horizon": {
+          "triangles": 0
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "cliffs-broken",
+      "label": "Décrochements — jonctions à angles droits",
+      "settled": true,
+      "settleMs": 1752,
+      "metrics": {
+        "calls": 22,
+        "triangles": 43656,
+        "position": [
+          -10,
+          30.753048327204937,
+          -80
+        ],
+        "cliffs": {
+          "available": 27,
+          "visible": 27,
+          "built": 27,
+          "disposed": 0,
+          "triangles": 1314,
+          "lod0": 14,
+          "lod1": 13,
+          "pending": 0
+        },
+        "dressing": {
+          "instances": 0,
+          "calls": 0,
+          "triangles": 0,
+          "cells": 0,
+          "species": {
+            "state": "ready",
+            "lod0": 0,
+            "lod1": 0,
+            "triangles": 0,
+            "bytes": 154422,
+            "loadMs": 181.19999999995343,
+            "failed": [],
+            "dropped": 0
+          }
+        },
+        "horizon": {
+          "triangles": 0
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "cliffs-curved",
+      "label": "Courbe — continuité des tronçons",
+      "settled": true,
+      "settleMs": 1645,
+      "metrics": {
+        "calls": 20,
+        "triangles": 42698,
+        "position": [
+          77,
+          30.246157759823856,
+          -91
+        ],
+        "cliffs": {
+          "available": 27,
+          "visible": 27,
+          "built": 32,
+          "disposed": 5,
+          "triangles": 1278,
+          "lod0": 13,
+          "lod1": 14,
+          "pending": 0
+        },
+        "dressing": {
+          "instances": 0,
+          "calls": 0,
+          "triangles": 0,
+          "cells": 0,
+          "species": {
+            "state": "ready",
+            "lod0": 0,
+            "lod1": 0,
+            "triangles": 0,
+            "bytes": 154422,
+            "loadMs": 109.39999999990687,
+            "failed": [],
+            "dropped": 0
+          }
+        },
+        "horizon": {
+          "triangles": 0
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "cliffs-plateau",
+      "label": "Plateau — rebord herbeux et roche",
+      "settled": true,
+      "settleMs": 1761,
+      "metrics": {
+        "calls": 35,
+        "triangles": 44568,
+        "position": [
+          -79,
+          32,
+          80
+        ],
+        "cliffs": {
+          "available": 27,
+          "visible": 24,
+          "built": 24,
+          "disposed": 0,
+          "triangles": 1008,
+          "lod0": 8,
+          "lod1": 16,
+          "pending": 0
+        },
+        "dressing": {
+          "instances": 0,
+          "calls": 0,
+          "triangles": 0,
+          "cells": 0,
+          "species": {
+            "state": "ready",
+            "lod0": 0,
+            "lod1": 0,
+            "triangles": 0,
+            "bytes": 154422,
+            "loadMs": 80.70000000018626,
+            "failed": [],
+            "dropped": 0
+          }
+        },
+        "horizon": {
+          "triangles": 0
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "cliffs-volcanic",
+      "label": "Volcanique — roche dure sombre",
+      "settled": true,
+      "settleMs": 1655,
+      "metrics": {
+        "calls": 32,
+        "triangles": 38692,
+        "position": [
+          63,
+          34.13782059620266,
+          74
+        ],
+        "cliffs": {
+          "available": 27,
+          "visible": 27,
+          "built": 27,
+          "disposed": 0,
+          "triangles": 954,
+          "lod0": 4,
+          "lod1": 23,
+          "pending": 0
+        },
+        "dressing": {
+          "instances": 0,
+          "calls": 0,
+          "triangles": 0,
+          "cells": 0,
+          "species": {
+            "state": "ready",
+            "lod0": 0,
+            "lod1": 0,
+            "triangles": 0,
+            "bytes": 154422,
+            "loadMs": 100.29999999981374,
+            "failed": [],
+            "dropped": 0
+          }
+        },
+        "horizon": {
+          "triangles": 0
+        }
+      },
+      "errors": []
+    },
+    {
+      "name": "cliffs-lod",
+      "label": "Vue lointaine — LOD 1",
+      "settled": true,
+      "settleMs": 1646,
+      "metrics": {
+        "calls": 41,
+        "triangles": 14532,
+        "position": [
+          0,
+          6,
+          -40
+        ],
+        "cliffs": {
+          "available": 27,
+          "visible": 27,
+          "built": 42,
+          "disposed": 15,
+          "triangles": 846,
+          "lod0": 1,
+          "lod1": 26,
+          "pending": 0
+        },
+        "dressing": {
+          "instances": 0,
+          "calls": 0,
+          "triangles": 0,
+          "cells": 0,
+          "species": {
+            "state": "ready",
+            "lod0": 0,
+            "lod1": 0,
+            "triangles": 0,
+            "bytes": 154422,
+            "loadMs": 129.60000000009313,
+            "failed": [],
+            "dropped": 0
+          }
+        },
+        "horizon": {
+          "triangles": 0
+        }
+      },
+      "errors": []
+    }
+  ]
+}

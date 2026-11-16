@@ -923,7 +923,7 @@ export function buildWorld(
       grass?.update(dt, { x: focus.x, y: (focus as { y?: number }).y, z: focus.z });
       placed.update(focus.x, focus.z);
       natural.update(focus.x,focus.z);
-      cliffs.update(focus.x,focus.z);
+      cliffs.update(camera?.position.x??focus.x,camera?.position.z??focus.z);
       pathView.update(focus.x, focus.z);
       if (camera) lightCamera.x = camera.position.x;
       else lightCamera.x = focus.x;

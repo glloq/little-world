@@ -92,7 +92,13 @@ export function createHorizonView(root:THREE.Group,bounds:HorizonBounds,coverage
       coverage.forEachActive((column,row)=>{if(column>=0&&row>=0&&column<columns&&row<rows)mask[row*columns+column]=255;});
       // Only blocks containing a tile whose coverage changed are re-indexed.
       const span=grid.spacing*grid.blockCells,dirty=new Set<string>();
-      for(let t=0;t<mask.length;t++)if(mask[t]!==previous[t]){const x=-bounds.width/2+(t%columns+.5)*tile,z=-bounds.length/2+(Math.floor(t/columns)+.5)*tile;dirty.add(Math.floor((x+bounds.width/2)/span)+':'+Math.floor((z+bounds.length/2)/span));}
+      for(let t=0;t<mask.length;t++)if(mask[t]!==previous[t]){
+        // A large render tile can cover several horizon blocks (the compact cliff lab
+        // uses one 280 m tile). Re-index every intersecting block, not only its centre.
+        const x0=(t%columns)*tile,z0=Math.floor(t/columns)*tile;
+        const x1=Math.min(bounds.width,x0+tile),z1=Math.min(bounds.length,z0+tile);
+        for(let r=Math.floor(z0/span);r<Math.ceil(z1/span);r++)for(let c=Math.floor(x0/span);c<Math.ceil(x1/span);c++)dirty.add(c+':'+r);
+      }
       for(const key of dirty){const block=blocks.get(key);if(block)reindex(block);}
       rebuildNear();measure();stats.coverageUpdates++;
     },

@@ -28,7 +28,7 @@ Les reliefs `rl-cliff-*` conservent leur crête native et gagnent des **faces ro
 - **Irrégularités** : facettes et nervures verticales déterministes, bornées par la largeur et le dénivelé réel ; points d'extrémité non perturbés.
 - **Éboulis** : petits éclats triangulaires posés sur le heightfield à proximité du pied. Intégration dans le même `BufferGeometry` que la paroi : aucune entité, aucun collider ni draw call supplémentaire par pierre.
 - **Jonctions** : normales du tracé interpolées au raccord des polylignes, coordonnées cumulées sur tout le tracé. Les extrémités voisines conservent les mêmes positions et échantillonnages, indépendamment de l'ordre de chargement.
-- **LOD** : maillage fin 3 stations × 7 bandes et 3 éclats par face ; LOD distant 2 stations × 4 bandes et 1 éclat par face. Les limites de streaming (32 tronçons, 3 constructions par mise à jour) ne changent pas.
+- **LOD** : maillage fin 3 stations × 7 bandes et 3 éclats par face ; LOD distant 2 stations × 7 bandes (anneaux communs pour les raccords mixtes) et 1 éclat par face. Les limites de streaming (32 tronçons, 3 constructions par mise à jour) ne changent pas.
 - **Vérification** : tests de déterminisme, raccords entre tronçons, budget géométrique, éviction, destruction et niveaux de détail. Un test navigateur d'inspection à forts virages et aux transitions LOD reste souhaitable avant qualification visuelle définitive.
 
 ### Hydrologie avancée
@@ -44,3 +44,5 @@ La D8 est une **analyse approximative** sans remplissage des dépressions (pit f
 - Tests navigateur Studio + vérification visuelle des masques, Undo/Redo, doublons, conflits et export/import V3.
 
 Ces commandes doivent être exécutées par la CI ou un checkout local ; une modification distante via l'API GitHub ne démontre pas leur réussite.
+
+La scène de référence dédiée, les vues et les mesures sont décrites dans [53 — Laboratoire de falaises](53-CLIFF-REFERENCE.md).
