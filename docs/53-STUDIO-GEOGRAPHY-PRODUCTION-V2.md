@@ -8,7 +8,8 @@ Branche : `feat/studio-geography-production-v2` (issue de `main`, non fusionnée
 - `watershed-rivers.ts` : au maximum six propositions, chaque tracé passant dans **le planificateur de rivière guidée et le compilateur WATER existants** ; refus si source déjà occupée, creusement excessif, boucle ou erreur de réseau.
 - Le panneau A3 des régions peut **proposer → voir en 3D → créer** un cours d'eau. L'aperçu ne modifie aucune source. Avant application, hydratation des secteurs concernés et nouveau calcul ; refus si le tracé n'est plus identique.
 - `planHydroFalls` : jusqu'à six nouvelles cascades proposées en lot, chacune validée contre le réseau déjà modifié. Une seule transaction Undo/Redo pour le lot, après confirmation explicite.
-- `basin-lakes.ts` : petits lacs candidats autour des exutoires `pit`, uniquement si toutes les berges locales sont plus hautes que le centre. Aperçu du contour 3D, revalidation du relief avant une création V3 explicite. Aucune excavation silencieuse.
+- `depression-fill.ts` : remplissage prioritaire borné (priority-flood, coût O(n log n)), estimation du **niveau de débordement**, de la profondeur et de la surface des cuvettes. Distinct du D8 original et sans mutation du relief.
+- `basin-lakes.ts` : propositions de lacs selon ce niveau, contour étoilé de 20 sommets suivant les berges réellement échantillonnées. Contrôle des bords et refus des ouvertures non fermées ; aperçu 3D et revalidation intégrale après hydratation avant création V3 explicite. Aucune excavation silencieuse.
 - Ces algorithmes réutilisent les sources V3, sans données hydrographiques parallèles ni coût en jeu.
 
 ## B — Écologie
@@ -31,12 +32,15 @@ Branche : `feat/studio-geography-production-v2` (issue de `main`, non fusionnée
 
 - `geographyReadiness` : métriques auteur non destructives (secteurs indexés/chargés, reliefs, falaises, régions, hydro, objets, chemins) et avertissements de budget.
 - Diagnostics du viewport enrichis : draw calls, triangles et budget des falaises.
-- Tests Node : échantillonnage D8 sur carte allongée, déterminisme, planification sans mutation, profils écologiques, budgets et placement des murs, prévisualisation exacte des régions.
+- Tests Node : échantillonnage D8 et priority-flood sur cartes allongées, cuvettes fermées vs pentes ouvertes, déterminisme, planification sans mutation, profils écologiques, budgets et placement des murs, prévisualisation exacte des régions.
+- Tests navigateur Studio géographie V2 : panneaux des propositions hydrologiques, contrôle d'export non destructif, aperçu des compositions régionales.
+- Action GitHub : annulation des matrices navigateur dépassées à chaque nouveau commit, séparément par événement PR/push.
+- Éditeur de prefab : protection des actions contre une sélection périmée ; test navigateur lié à l'ID sélectionné, diagnostic des valeurs exportées.
 
 ## Limites non résolues
 
-- Le D8 ne comble pas les cuvettes et ne simule pas les précipitations : les candidats sont **indicatifs**, et des sources peuvent ne produire aucune rivière valide. Certains secteurs de terrain éloignés ne sont pas hydratés lors de l'analyse initiale ; la revalidation de l'application est obligatoire.
+- Le D8 de tracé des rivières ne suit **pas encore** les déversoirs trouvés par priority-flood et ne simule ni précipitations ni débits. Les cuvettes ont maintenant une estimation de débordement, mais **pas** de véritable calcul hydrologique continu. Certains secteurs éloignés peuvent être non hydratés lors de l'analyse initiale ; l'application exige une revalidation.
 - Les cascades sont validées hydrauliquement mais leur rendu et le pied de chute doivent être inspectés en jeu.
 - L'aperçu régional montre les **masques source modifiés**, pas une image WebGL exacte « avant/après » du paysage.
 - Aucun benchmark sur GPU intégré réel ; pas de garantie de 30 FPS.
-- Restent à réaliser : drainage avec remplissage des dépressions, génération de lacs plus grands par contours de débordement (la V2 ne propose que des petites cuvettes), connexions hydrologiques complexes, filtres d'exclusion de végétation par classe, vrais groupes de transformations, validation de traversabilité.
+- Restent à réaliser : routage fluvial suivant les déversoirs et les lacs, représentation non étoilée des grands lacs avec îles, connexions hydrologiques complexes, filtres d'exclusion de végétation par classe, vrais groupes de transformations, validation de traversabilité.
