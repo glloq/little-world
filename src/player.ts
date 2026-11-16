@@ -16,6 +16,8 @@ export interface Controls {
   forward: number;
   right: number;
   run: boolean;
+  /** Opt-in gradual upright run; Shift remains the roll control. */
+  autoRun?: boolean;
   jumpPressed: boolean;
   /** Roll toggle pressed this step (hamster ball mode). Optional for older callers. */
   rollPressed?: boolean;
@@ -56,6 +58,13 @@ export interface Player {
   rollByHold?:boolean;
   /** Physical facing, retained at rest; render smoothing never writes it. */
   heading?:number;
+  /** Desired ground direction for responsive turn animation (independent of camera rendering). */
+  intentYaw?:number;
+  /** Duration of uninterrupted forward movement, for upright auto-acceleration (0..1). */
+  runCharge?:number;
+  /** Take-off origin, impact speed and event counters: visual cues, not gameplay authority. */
+  jumpOrigin?:'idle'|'run'|'roll';jumpSeq?:number;
+  landingSpeed?:number;landingSeq?:number;
   /** Replayable flight intention/state; independent from the render camera. */
   glideHeading?:number;glidePitch?:number;glideTurnRate?:number;stalled?:boolean;
 }
@@ -92,6 +101,11 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
   // Camera looks toward +Z at yaw=0: screen-right is world -X.
   const dx = forward * sx - right * cz;
   const dz = forward * cz + right * sx;
+  if(len>.1)p.intentYaw=Math.atan2(dx,dz);
+  if(keys.autoRun){
+    const forwardCharge=p.mode==='ground'&&keys.forward>.65&&len>.75&&!keys.rollHeld&&!keys.rollPressed;
+    p.runCharge=clamp((p.runCharge??0)+(forwardCharge?dt/1.15:-dt*2),0,1);
+  }
   const body={...DEFAULT_BODY,...p.body};p.transitioned=undefined;
   const relief=collision?(x:number,z:number)=>collision.reliefHeight(x,z):terrainHeight;
   p.stamina=p.stamina??MAX_STAMINA;p.climbCooldown=Math.max(0,(p.climbCooldown??0)-dt);
@@ -169,6 +183,8 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
       v.y = 0;
       p.glideReady = false;
       if (keys.jumpPressed) {
+        p.jumpOrigin=Math.hypot(v.x,v.z)>MOTION.walk*.75?'run':'idle';
+        p.jumpSeq=(p.jumpSeq??0)+1;
         p.mode = 'air';
         v.y = 7.1;
         p.glideReady = true;
@@ -190,7 +206,9 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
       // Vertical integration is swept together with XZ below when collisions are available.
       if(!collision)pos.y+=v.y*dt;
     } else {
-      groundVelocity(v,dx,dz,keys.run?MOTION.run:MOTION.walk,dt);
+      const charge=p.runCharge??0,blend=charge*charge*(3-2*charge);
+      const uprightTarget=keys.autoRun?MOTION.walk+(MOTION.run-MOTION.walk)*blend:keys.run?MOTION.run:MOTION.walk;
+      groundVelocity(v,dx,dz,uprightTarget,dt);
     }
     p.oxygen = Math.min(MAX_OXYGEN, p.oxygen + dt * 14);
   }
@@ -202,7 +220,7 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
     const moved=collision.sweep(from,pos,body.radius,body.height,{space:p.space,body});
     pos.set(moved.position.x,moved.position.y,moved.position.z);
     if(moved.blockedY&&(p.mode==='air'||p.mode==='glide')){
-      if(v.y<0){p.mode='ground';p.glideReady=false;}else if(p.mode==='glide')p.mode='air';
+      if(v.y<0){p.landingSpeed=-v.y;p.landingSeq=(p.landingSeq??0)+1;p.mode='ground';p.glideReady=false;}else if(p.mode==='glide')p.mode='air';
       v.y=0;
     }
     if(moved.blockedX)v.x=0;if(moved.blockedZ)v.z=0;
@@ -224,6 +242,7 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
   else if (p.mode !== 'glide' && p.mode !== 'air') p.stamina = Math.min(MAX_STAMINA, p.stamina + CLIMB.regen * dt);
   if ((p.mode === 'air' || p.mode === 'glide') && pos.y < newGround) {
     pos.y = newGround;
+    p.landingSpeed=Math.max(0,-v.y);p.landingSeq=(p.landingSeq??0)+1;
     v.y = 0;
     p.mode = 'ground';
     p.glideReady = false;
@@ -269,7 +288,7 @@ function climbStep(p:Player,keys:Controls,dt:number,maxSlope:number,forward:numb
  * moderate share of gravity. Jump leaves the ball keeping the momentum; a stop leaves it too. */
 function rollStep(p:Player,keys:Controls,dt:number,dx:number,dz:number,len:number,relief:(x:number,z:number)=>number,material:GroundMaterial,flatSupport:boolean){
  const pos=p.position,v=p.velocity;let speed=Math.hypot(v.x,v.z),heading=speed>.05?Math.atan2(v.x,v.z):p.rollHeading??keys.cameraYaw;
- if(keys.jumpPressed){p.mode='air';v.y=Math.max(0,v.y)+ROLL.jump;p.glideReady=true;return;}
+ if(keys.jumpPressed){p.jumpOrigin='roll';p.jumpSeq=(p.jumpSeq??0)+1;p.mode='air';v.y=Math.max(0,v.y)+ROLL.jump;p.glideReady=true;return;}
  const surface=SURFACE_MOTION[material];
  if(len>.1){
   const want=Math.atan2(dx,dz),delta=angleDelta(heading,want),align=Math.cos(delta);
