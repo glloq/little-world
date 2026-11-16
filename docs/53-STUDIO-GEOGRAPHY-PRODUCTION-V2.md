@@ -23,6 +23,7 @@ Branche : `feat/studio-geography-production-v2` (issue de `main`, non fusionnée
 ## D / E — Ergonomie et aperçu avant régénération
 
 - Nouvelle ligne 3D jetable de prévisualisation hydrologique (aucun collider, aucun export).
+- Vue globale **Canvas2D** des lacs proposés, sources de bassins, cours d'eau et cascades, sans nouvelle scène WebGL, sans textures ni recalcul du relief. Projection géographique proportionnelle contrôlée en tests.
 - Régions : **mini-carte des cellules réellement modifiées** après simulation exacte (vert ajouté, orange effacé, bleu remplacé). Les conflits et les cellules protégées restent présentés par les comptes de validation. Le calcul utilise les mêmes `applyRegionBatch` / masques que l'écriture.
 - Maximum 16 384 cellules visuelles ; nombre total exact conservé. Pas de copie globale du monde, uniquement les secteurs impliqués.
 - Le moindre changement confirmé invalide la prévisualisation, qui doit être régénérée avant l'application.
