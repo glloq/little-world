@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {analyzeWatersheds} from '../src/studio-core/watershed-analysis.ts';
 import {proposeWatershedRivers} from '../src/studio-core/watershed-rivers.ts';
 import {proposeBasinLakes} from '../src/studio-core/basin-lakes.ts';
+import {analyzeDepressions} from '../src/studio-core/depression-fill.ts';
 import {reviewHydroNetwork,planHydroFalls} from '../src/studio-core/hydro-network-assistant.ts';
 import {compileWaterNetwork} from '../src/water/profile.ts';
 import {ECOLOGY_PROFILES,applyEcologyProfile} from '../src/studio-core/ecology-profiles.ts';
@@ -53,6 +54,28 @@ test('proposed shallow basin lakes are bounded, validated and leave original sou
  assert.equal(failed.proposals.length,0);
 });
 
+test('priority flood identifies a true enclosed bowl and computes a stable spill level',()=>{
+ const bounds={minX:-100,maxX:100,minZ:-100,maxZ:100},height=(x,z)=>8+Math.hypot(x,z)*.15;
+ const a=analyzeDepressions(bounds,height,0,{maxCells:2048,minAreaM2:300});
+ assert.ok(a.sampled<=2048&&a.depressions.length>=1);
+ assert.deepEqual(a,analyzeDepressions(bounds,height,0,{maxCells:2048,minAreaM2:300}));
+ const pit=a.depressions[0];
+ assert.ok(Math.hypot(pit.outlet.x,pit.outlet.z)<16);
+ assert.ok(pit.spillLevelM>15&&pit.spillLevelM<30);
+ assert.ok(pit.depthM>5&&pit.areaM2>500);
+ const review=proposeBasinLakes(a.depressions,{height,bounds,existing:[],seaLevel:0},{maxLakes:1});
+ assert.equal(review.proposals.length,1,JSON.stringify(review.rejected));
+ assert.ok(review.proposals[0].water.points.length>=16);
+ assert.ok(review.proposals[0].water.points.every(p=>height(p.x,p.z)>=review.proposals[0].water.level-.5));
+ assert.deepEqual(review,proposeBasinLakes(a.depressions,{height,bounds,existing:[],seaLevel:0},{maxLakes:1}));
+});
+test('priority flood refuses false pits on open sloping terrain and obeys cap',()=>{
+ const bounds={minX:0,maxX:400,minZ:0,maxZ:400};
+ const drainage=analyzeDepressions(bounds,(x,z)=>100-x*.12-z*.08,0,{maxCells:400});
+ assert.equal(drainage.depressions.length,0);
+ const skinny=analyzeDepressions({minX:0,maxX:4,minZ:0,maxZ:10000},(x,z)=>100-z*.01,0,{maxCells:256});
+ assert.ok(skinny.sampled<=256);
+});
 test('fall batch never mutates input and only returns compiler-approved changes',()=>{
  const height=(x,z)=>100-z*.25;
  const waters=[{id:'river-a',kind:'river',points:[{x:0,z:0},{x:0,z:30},{x:0,z:60},{x:0,z:90}],width:6,depth:2,level:100,profile:{mode:'terrain',offset:-.35}}];
