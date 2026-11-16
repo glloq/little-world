@@ -5,6 +5,8 @@
 import type {PointXZ} from '../geography/archipelago.ts';
 export interface DepressionCandidate {
  outlet:PointXZ;spillLevelM:number;bottomM:number;depthM:number;
+ /** Optional route from the high spill crest to a definitely lower downstream cell. */
+ spillway?:{crest:PointXZ;downstream:PointXZ;dropM:number;distanceM:number};
  areaM2:number;cells:number;kind:'pit';
 }
 export interface DepressionAnalysis {
@@ -49,7 +51,7 @@ export function analyzeDepressions(
    x:minX+(i%nx+.5)*dx,z:minZ+(Math.floor(i/nx)+.5)*dz
  });
  const terrain=new Float64Array(n),filled=new Float64Array(n);
- const seen=new Uint8Array(n),queue=new MinHeap();
+ const seen=new Uint8Array(n),queue=new MinHeap(),parent=new Int32Array(n).fill(-1);
  for(let i=0;i<n;i++){
   const p=coordinate(i),y=height(p.x,p.z);
   if(!Number.isFinite(y))throw Error('Relief non fini durant le calcul des cuvettes');
@@ -68,7 +70,7 @@ export function analyzeDepressions(
   for(const [ox,oz] of DIRS){
    const xx=x+ox,zz=z+oz;if(xx<0||xx>=nx||zz<0||zz>=nz)continue;
    const i=zz*nx+xx;if(seen[i])continue;
-   seen[i]=1;filled[i]=Math.max(level,terrain[i]);
+   seen[i]=1;parent[i]=index;filled[i]=Math.max(level,terrain[i]);
    queue.push({index:i,level:filled[i]});
   }
  }
@@ -93,8 +95,24 @@ export function analyzeDepressions(
   }
   const area=count*dx*dz;
   if(area<minArea)continue;
+  // Follow the priority-flood predecessor chain OUT of the depression to identify
+  // the natural overflow crest. A river must start downstream of this crest,
+  // never climb from the basin bottom across the lake shore.
+  let cursor=low,crest=-1,downstream=-1,travel=0;
+  for(let walked=0;walked<n&&parent[cursor]>=0;walked++){
+   const next=parent[cursor],a=coordinate(cursor),b=coordinate(next);
+   travel+=Math.hypot(a.x-b.x,a.z-b.z);
+   if(terrain[cursor]>=spill-.35&&crest<0)crest=cursor;
+   if(crest>=0&&terrain[next]<spill-.75){downstream=next;break;}
+   cursor=next;
+  }
+  const spillway=crest>=0&&downstream>=0&&terrain[crest]-terrain[downstream]>.75
+    ?{crest:coordinate(crest),downstream:coordinate(downstream),
+      dropM:+(terrain[crest]-terrain[downstream]).toFixed(2),distanceM:Math.round(travel)}
+    :undefined;
   depressions.push({outlet:coordinate(low),spillLevelM:+spill.toFixed(3),bottomM:+bottom.toFixed(3),
-    depthM:+(spill-bottom).toFixed(3),areaM2:Math.round(area),cells:count,kind:'pit'});
+    depthM:+(spill-bottom).toFixed(3),areaM2:Math.round(area),cells:count,kind:'pit',
+    ...(spillway?{spillway}:{})});
  }
  depressions.sort((a,b)=>b.areaM2-a.areaM2||b.depthM-a.depthM||a.outlet.x-b.outlet.x||a.outlet.z-b.outlet.z);
  const limit=Math.min(32,Math.max(1,Math.floor(options.maxResults??12)));
