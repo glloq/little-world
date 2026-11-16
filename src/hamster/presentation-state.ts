@@ -15,6 +15,9 @@ export interface PlayerPresentationState {
   x: number; y: number; z: number; yaw: number;
   mode: MotionMode; speed: number; verticalSpeed: number; turnRate: number; aboard: boolean;
   action: ActionName | null; actionSeq: number; tool: ToolId | null;
+  /** Optional V1 extension: continuous motion phases and visual context; legacy packets remain valid. */
+  stridePhase?:number;rollPhase?:number;turnIntent?:number;
+  jumpKind?:'idle'|'run'|'roll';landingSpeed?:number;
   fishing: { x: number; y: number; z: number; biting: boolean } | null;
 }
 const finite = (v: unknown, lim = 1e6) => typeof v === 'number' && Number.isFinite(v) && Math.abs(v) <= lim;
@@ -27,11 +30,21 @@ export function parsePresentationState(value: unknown): PlayerPresentationState 
   if (s.action !== null && !(ACTIONS as readonly string[]).includes(s.action)) throw Error('Action invalide');
   if (s.tool !== null && !(TOOL_IDS as readonly string[]).includes(s.tool)) throw Error('Outil invalide');
   if (s.fishing !== null && (!s.fishing || !finite(s.fishing.x) || !finite(s.fishing.y) || !finite(s.fishing.z) || typeof s.fishing.biting !== 'boolean')) throw Error('Pêche invalide');
-  return { v: 1, t: s.t, x: s.x, y: s.y, z: s.z, yaw: s.yaw, mode: s.mode, speed: s.speed, verticalSpeed: s.verticalSpeed, turnRate: s.turnRate, aboard: s.aboard, action: s.action, actionSeq: s.actionSeq, tool: s.tool, fishing: s.fishing ? { ...s.fishing } : null };
+  for(const key of ['stridePhase','rollPhase','turnIntent','landingSpeed'] as const)
+    if(s[key]!==undefined&&!finite(s[key],1e8))throw Error('Cue invalide : '+key);
+  if(s.jumpKind!==undefined&&!['idle','run','roll'].includes(s.jumpKind))throw Error('Type de saut invalide');
+  return { v: 1, t: s.t, x: s.x, y: s.y, z: s.z, yaw: s.yaw, mode: s.mode, speed: s.speed, verticalSpeed: s.verticalSpeed, turnRate: s.turnRate, aboard: s.aboard, action: s.action, actionSeq: s.actionSeq, tool: s.tool, fishing: s.fishing ? { ...s.fishing } : null,
+    ...(s.stridePhase!==undefined?{stridePhase:s.stridePhase}:{}),
+    ...(s.rollPhase!==undefined?{rollPhase:s.rollPhase}:{}),
+    ...(s.turnIntent!==undefined?{turnIntent:s.turnIntent}:{}),
+    ...(s.jumpKind!==undefined?{jumpKind:s.jumpKind}:{}),
+    ...(s.landingSpeed!==undefined?{landingSpeed:s.landingSpeed}:{}) };
 }
 /** Linear interpolation of two samples (angles by the shortest path; discrete fields from `b`). */
 export function interpolatePresentation(a: PlayerPresentationState, b: PlayerPresentationState, time: number): PlayerPresentationState {
   const u = b.t > a.t ? Math.max(0, Math.min(1, (time - a.t) / (b.t - a.t))) : 1, l = (p: number, q: number) => p + (q - p) * u;
   const dyaw = Math.atan2(Math.sin(b.yaw - a.yaw), Math.cos(b.yaw - a.yaw));
-  return { ...b, t: time, x: l(a.x, b.x), y: l(a.y, b.y), z: l(a.z, b.z), yaw: a.yaw + dyaw * u, speed: l(a.speed, b.speed), verticalSpeed: l(a.verticalSpeed, b.verticalSpeed), turnRate: l(a.turnRate, b.turnRate) };
+  return { ...b, t: time, x: l(a.x, b.x), y: l(a.y, b.y), z: l(a.z, b.z), yaw: a.yaw + dyaw * u, speed: l(a.speed, b.speed), verticalSpeed: l(a.verticalSpeed, b.verticalSpeed), turnRate: l(a.turnRate, b.turnRate),
+    ...(a.stridePhase!==undefined&&b.stridePhase!==undefined?{stridePhase:l(a.stridePhase,b.stridePhase)}:{}),
+    ...(a.rollPhase!==undefined&&b.rollPhase!==undefined?{rollPhase:l(a.rollPhase,b.rollPhase)}:{}) };
 }
