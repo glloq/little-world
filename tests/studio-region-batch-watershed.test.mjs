@@ -43,6 +43,19 @@ test('visual region preview reports changed map cells without modifying source o
  assert.deepEqual(view,previewRegionBatchWithDiff(p,[a]));
 });
 
+test('regional plateau preview samples elevation changes without modifying authoring sources',()=>{
+ const p=world(),a={...region(p,'region-plateau',0,'mountain'),relief:'plateau',heightM:600,edgeM:10};
+ const before=structuredClone(p),view=previewRegionBatchWithDiff(p,[a]);
+ assert.ok(view.relief.tested>0&&view.relief.tested<=4096);
+ assert.ok(view.relief.maxAbsDeltaM>.25);
+ assert.ok(view.relief.samples.length>0);
+ assert.ok(view.relief.samples.some(v=>v.deltaM>0));
+ assert.deepEqual(p,before);
+ assert.deepEqual(view,previewRegionBatchWithDiff(p,[a]));
+ const maskOnly=previewRegionBatchWithDiff(p,[region(p,'region-only',0,'forest')]);
+ assert.equal(maskOnly.relief.tested,0,'Biotope-only changes must not sample terrain');
+});
+
 test('batch rejects duplicate ids, unbounded work and invalid recipes without changing source preview',()=>{
  const p=world(),a=region(p,'region-a',0,'forest');
  assert.throws(()=>previewRegionBatch(p,[a,a]),/répétée/);
