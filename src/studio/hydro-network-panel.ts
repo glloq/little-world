@@ -132,7 +132,7 @@ export function mountHydroNetworkPanel(host:HTMLElement,ctx:RegionPanelContext):
    for(const suggestion of suggestions.proposals){
      const {basin,water}=suggestion,row=node('div','','feature-row');
      row.append(node('strong','Lac suggéré · '+(basin.areaM2/10000).toFixed(1)+' ha de bassin'),
-       node('p','Niveau '+water.level.toFixed(1)+' m · débordement '+basin.spillLevelM.toFixed(1)+' m · profondeur '+water.depth.toFixed(1)+' m','muted'),
+       node('p','Niveau '+water.level.toFixed(1)+' m · débordement '+('spillLevelM' in basin?basin.spillLevelM.toFixed(1):'?')+' m · profondeur '+water.depth.toFixed(1)+' m','muted'),
        button('Voir le lac',()=>{
          ctx.viewport.showPreviewPolyline([...water.points,water.points[0]],0x3185c8);
          ctx.viewport.goTo(basin.outlet.x,basin.outlet.z,75);
