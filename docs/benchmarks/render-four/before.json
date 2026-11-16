@@ -1,0 +1,227 @@
+{
+  "revision": "bd9d6489e21bad852856a30a0f114825f3a31256",
+  "date": "2026-11-16T20:45:17.155Z",
+  "renderer": "Chromium SwiftShader; 960x640 viewport; CPU submission is NOT GPU time; flight/roll modes are reported per row",
+  "results": [
+    {
+      "scene": "forest",
+      "config": "off",
+      "graphics": {
+        "vendor": "Google Inc. (Google)",
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
+      },
+      "url": "http://127.0.0.1:5173/little-world/?world=maps%2Fisland%2Fmanifest.json&renderTier=1&spawn=-480%2C-520&yaw=0.2&pitch=0.4&dist=60&metrics=1&impostors=off&remoteActors=0&impostorSectors=512",
+      "samples": 37,
+      "framebuffer": {
+        "width": 768,
+        "height": 512,
+        "pixelRatio": 0.8
+      },
+      "qualityLevels": [
+        1
+      ],
+      "effectiveFps": 9.706905384647825,
+      "intervalMs": {
+        "p50": 98.5,
+        "p95": 132.70000000298023,
+        "p99": 274
+      },
+      "calls": 84,
+      "triangles": 46322.7027027027,
+      "cpu": {
+        "simulation": 0.17567567507157456,
+        "update": 2.427027027550581,
+        "submit": 3.675675675877043
+      },
+      "perf": {
+        "samples": 210,
+        "frameMs": {
+          "p50": 100,
+          "p95": 133.3000000000029,
+          "p99": 249.8800000000001
+        },
+        "simulationMs": {
+          "p50": 0.29999999701976776,
+          "p95": 0.7000000029802322,
+          "p99": 3
+        },
+        "updateMs": {
+          "p50": 1.6999999955296516,
+          "p95": 15.600000001490116,
+          "p99": 24.5
+        },
+        "submitMs": {
+          "p50": 3.600000001490116,
+          "p95": 13.799999997019768,
+          "p99": 32.399999998509884
+        },
+        "longFrames": 202
+      },
+      "gpu": {
+        "samples": 224,
+        "available": true,
+        "ms": 83.157339,
+        "disjoint": 0,
+        "pending": 1
+      },
+      "hybrid": {
+        "mode": "off",
+        "trees": {
+          "sectorM": 512,
+          "bufferUploads": 0,
+          "unchangedSectors": 0,
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "buildings": {
+          "sectorM": 256,
+          "bufferUploads": 0,
+          "unchangedSectors": 0,
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "cache": {
+          "bytes": 0,
+          "entries": 0,
+          "loads": 0,
+          "hits": 0,
+          "evictions": 0,
+          "failed": 0
+        }
+      },
+      "actors": null,
+      "modes": [
+        "swim"
+      ],
+      "errors": []
+    },
+    {
+      "scene": "village",
+      "config": "off",
+      "graphics": {
+        "vendor": "Google Inc. (Google)",
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
+      },
+      "url": "http://127.0.0.1:5173/little-world/?world=maps%2Fisland%2Fmanifest.json&renderTier=1&spawn=-150%2C650&yaw=1.5&pitch=0.3&dist=60&metrics=1&impostors=off&remoteActors=0&impostorSectors=512",
+      "samples": 29,
+      "framebuffer": {
+        "width": 768,
+        "height": 512,
+        "pixelRatio": 0.8
+      },
+      "qualityLevels": [
+        1
+      ],
+      "effectiveFps": 7.636294215500925,
+      "intervalMs": {
+        "p50": 123.29999999701977,
+        "p95": 245.39999999850988,
+        "p99": 247.70000000298023
+      },
+      "calls": 179,
+      "triangles": 66176.37931034483,
+      "cpu": {
+        "simulation": 0.3689655176010625,
+        "update": 6.617241379002045,
+        "submit": 5.672413793617282
+      },
+      "perf": {
+        "samples": 210,
+        "frameMs": {
+          "p50": 116.60000000000218,
+          "p95": 183.30000000000018,
+          "p99": 233.30000000000018
+        },
+        "simulationMs": {
+          "p50": 0.3999999985098839,
+          "p95": 0.7000000029802322,
+          "p99": 1.2999999970197678
+        },
+        "updateMs": {
+          "p50": 3.7000000029802322,
+          "p95": 20.200000002980232,
+          "p99": 31.5
+        },
+        "submitMs": {
+          "p50": 4.4000000059604645,
+          "p95": 18.299999997019768,
+          "p99": 170
+        },
+        "longFrames": 201
+      },
+      "gpu": {
+        "samples": 211,
+        "available": true,
+        "ms": 121.455681,
+        "disjoint": 0,
+        "pending": 1
+      },
+      "hybrid": {
+        "mode": "off",
+        "trees": {
+          "sectorM": 512,
+          "bufferUploads": 0,
+          "unchangedSectors": 0,
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "buildings": {
+          "sectorM": 256,
+          "bufferUploads": 0,
+          "unchangedSectors": 0,
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "cache": {
+          "bytes": 0,
+          "entries": 0,
+          "loads": 0,
+          "hits": 0,
+          "evictions": 0,
+          "failed": 0
+        }
+      },
+      "actors": null,
+      "modes": [
+        "ground"
+      ],
+      "errors": []
+    }
+  ]
+}
