@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {analyzeWatersheds} from '../src/studio-core/watershed-analysis.ts';
 import {proposeWatershedRivers} from '../src/studio-core/watershed-rivers.ts';
 import {proposeBasinLakes} from '../src/studio-core/basin-lakes.ts';
+import {hydroOverviewProjection} from '../src/studio/hydro-preview-map.ts';
 import {analyzeDepressions} from '../src/studio-core/depression-fill.ts';
 import {reviewHydroNetwork,planHydroFalls} from '../src/studio-core/hydro-network-assistant.ts';
 import {compileWaterNetwork} from '../src/water/profile.ts';
@@ -117,4 +118,14 @@ test('long modular walls use one bounded sampling pass and keep geometry',()=>{
  assert.ok(Math.abs(poses[0].x-.5)<1e-6);
  assert.ok(Math.abs(poses.at(-1).x-119.5)<1e-6);
  assert.ok(poses.every(p=>Math.abs(p.yaw)<1e-8&&p.scaleX===1));
+});
+
+test('2D hydro overview preserves geographical aspect ratio and stays in bounds',()=>{
+ const bounds={minX:-1500,maxX:1500,minZ:-4000,maxZ:4000};
+ const project=hydroOverviewProjection(bounds,420,230);
+ const a=project({x:-1500,z:-4000}),b=project({x:1500,z:4000});
+ assert.ok(a.x>=12&&a.y>=12&&b.x<=420-12+1e-8&&b.y<=230-12+1e-8);
+ assert.ok(Math.abs((b.x-a.x)/(b.y-a.y)-3000/8000)<1e-10);
+ assert.deepEqual(project({x:0,z:0}),{x:210,y:115});
+ assert.throws(()=>hydroOverviewProjection(bounds,12,12),/invalide/);
 });
