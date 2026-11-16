@@ -66,6 +66,8 @@ jobs:
         run: node tools/run-browser-check.mjs audio
       - name: Island lot 1 browser checks
         run: node tools/run-browser-check.mjs island
+      - name: Studio geography V2 — basin candidates, previews and region dry-run
+        run: node tools/run-browser-check.mjs studio-geography-v2
       - name: Natural structures Studio acceptance (arch, tunnel, 3D preview and export)
         run: node tools/run-browser-check.mjs studio-natural-structures
       - name: Studio creation acceptance (walls, vegetation, reusable assemblies)
