@@ -77,6 +77,21 @@ test('priority flood identifies a true enclosed bowl and computes a stable spill
  assert.ok(review.proposals[0].water.points.every(p=>height(p.x,p.z)>=review.proposals[0].water.level-.5));
  assert.deepEqual(review,proposeBasinLakes(a.depressions,{height,bounds,existing:[],seaLevel:0},{maxLakes:1}));
 });
+test('closed volcanic bowl exposes a downstream spillway without routing a river uphill',()=>{
+ const bounds={minX:-100,maxX:100,minZ:-100,maxZ:100};
+ const height=(x,z)=>{
+  if(x>=0)return 8+(100-x)*.05+Math.abs(z)*.01;
+  const r=Math.hypot(x+50,z);
+  return 8+r*.08+10*Math.exp(-((r-30)/7)**2);
+ };
+ const result=analyzeDepressions(bounds,height,0,{maxCells:4096,minDepthM:1.5,minAreaM2:200});
+ const basin=result.depressions.find(b=>b.spillway);
+ assert.ok(basin,'A ringed depression must reveal a downstream spillway after priority flooding');
+ assert.ok(height(basin.spillway.crest.x,basin.spillway.crest.z)>
+   height(basin.spillway.downstream.x,basin.spillway.downstream.z)+.75);
+ assert.ok(basin.spillway.distanceM>0);
+ assert.ok(basin.spillLevelM>basin.bottomM+1.5);
+});
 test('priority flood refuses false pits on open sloping terrain and obeys cap',()=>{
  const bounds={minX:0,maxX:400,minZ:0,maxZ:400};
  const drainage=analyzeDepressions(bounds,(x,z)=>100-x*.12-z*.08,0,{maxCells:400});
