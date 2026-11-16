@@ -55,8 +55,17 @@ try{
  await region.click();
  await page.waitForFunction(()=>document.querySelector('.viewport canvas')?.dataset.tool==='polyline',null,{timeout:20000});
  await canvas.focus();await page.keyboard.press('Digit7');
- await page.waitForTimeout(500);
+ await page.waitForTimeout(550);
  const box=await canvas.boundingBox(),cx=box.x+box.width/2,cy=box.y+box.height/2;
+ const camera=async()=>JSON.parse(await canvas.getAttribute('data-camera'));
+ for(let i=0;i<30;i++){
+  const zoom=(await camera()).zoom;
+  if(zoom>=100&&zoom<=160)break;
+  await page.mouse.move(cx,cy);await page.mouse.wheel(0,zoom<100?100:-100);
+  await page.waitForTimeout(60);
+ }
+ await page.waitForFunction(()=>document.querySelector('.viewport canvas')?.dataset.idle==='true'&&
+   document.querySelector('.viewport canvas')?.dataset.pending==='0',null,{timeout:120000});
  for(const [x,y] of [[cx-50,cy-45],[cx+50,cy-45],[cx+50,cy+45],[cx-50,cy+45]])await page.mouse.click(x,y);
  await canvas.focus();await page.keyboard.press('Enter');
  await page.waitForFunction(()=>/Région Nouvelle région/.test(document.querySelector('[data-action=undo]')?.title??''),null,{timeout:60000});
