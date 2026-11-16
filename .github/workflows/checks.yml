@@ -5,6 +5,10 @@ on:
     branches-ignore: [main]
 permissions:
   contents: read
+# Keep only the latest commit's expensive browser matrix for each event/ref.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   validate:
     runs-on: ubuntu-latest
