@@ -83,7 +83,7 @@ test('closed volcanic bowl exposes a downstream spillway without routing a river
  const height=(x,z)=>{
   if(x>=0)return 8+(100-x)*.05+Math.abs(z)*.01;
   const r=Math.hypot(x+50,z);
-  return 8+r*.08+10*Math.exp(-((r-30)/7)**2);
+  return 8+r*.08+10*Math.exp(-(((r-30)/7)**2));
  };
  const result=analyzeDepressions(bounds,height,0,{maxCells:4096,minDepthM:1.5,minAreaM2:200});
  const basin=result.depressions.find(b=>b.spillway);
