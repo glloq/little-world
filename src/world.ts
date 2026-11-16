@@ -1,3 +1,6 @@
+import {createImpostorSectors} from './render/impostor-sectors.ts';
+import {representationFor,REPRESENTATION_BUDGETS} from './render/representation-policy.ts';
+import {atlasCacheStats} from './render/impostor-atlas.ts';
 import {naturalMesh} from './structures/natural-mesh.ts';
 import {createCliffView,type CliffView} from './render/cliff-view.ts';
 import {createNaturalView,type NaturalView} from './structures/natural-view.ts';
@@ -45,6 +48,7 @@ import {
  * (E10), to be confirmed on integrated GPUs; the pool never grows with the number of sources. */
 export const LIGHT_POOL = 4, LIGHT_POOL_ECONOMY = 2;
 export interface WorldView {
+  hybrid:{setMode(mode:'off'|'trees'|'all'):void;setSectors(on:boolean):void;getMode():string;stats:{trees:ReturnType<typeof createImpostorSectors>['stats']|null;buildings:ReturnType<typeof createImpostorSectors>['stats'];cache:typeof atlasCacheStats}};
   /** World Production: instanced enclosure/dock modules (game runtime). */
   placed: PlacedInstances;
   /** Sparse local low-poly vaults, only allocated near player (mobile GPU cap). */
@@ -747,6 +751,11 @@ export function buildWorld(
   const ecology = createEcology(root, config.seed, config.density, biomeAt, legacy ? undefined : generatedCover);
   // G5: natural dressing (forests, cliff rocks, scree, pebbles, basalt) of generated worlds.
   const dressing: DressingView | null = legacy ? null : createDressingView(root, config.seed, config.density, workers);
+  const buildingImpostors=createImpostorSectors(root,'buildings');
+  let hybridMode:'off'|'trees'|'all'='off',hybridNight=0;
+  const spriteTint=new THREE.Color(1,1,1);
+  const setHybridMode=(mode:'off'|'trees'|'all')=>{hybridMode=mode;dressing?.setImpostors(mode!=='off');buildingImpostors.setEnabled(mode==='all');};
+  if(typeof location!=='undefined'){const mode=new URLSearchParams(location.search).get('impostors');if(mode==='trees'||mode==='all')setHybridMode(mode);}
   const placed = createPlacedInstances(root, terrainHeight);
   const natural = createNaturalView(root,terrainHeight);
   const cliffs = createCliffView(root,terrainHeight,config.seed,config.terrain);
@@ -813,10 +822,11 @@ export function buildWorld(
     placed,
     natural,
     cliffs,
+    hybrid:{setMode:setHybridMode,setSectors(on:boolean){dressing?.setSectorSize(on?256:512);},getMode:()=>hybridMode,stats:{trees:dressing?.stats.impostors??null,buildings:buildingImpostors.stats,cache:atlasCacheStats}},
     refreshCliffs(terrain){cliffs.refresh(terrain);},
     setDressingFilter(fn: Parameters<DressingView['setHidden']>[0]) { dressing?.setHidden(fn); },
     drawnNear(x: number, z: number, r: number) { return [...(dressing?.drawnNear(x, z, r) ?? []), ...placed.drawnNear(x, z, r)]; },
-    setNight(night: number) { animatedAssets.setNight(night); },
+    setNight(night: number) {hybridNight=night; animatedAssets.setNight(night); },
     animateBoat(speed: number, steer: number, dt: number) { boatRig?.update(speed, steer, dt); },
     get animated() { return animatedAssets.stats; },
     get occlusion() { return occlusion ? { ...occlusion.stats } : null; },
@@ -836,7 +846,7 @@ export function buildWorld(
       const pool = economy ? LIGHT_POOL_ECONOMY : LIGHT_POOL;
       lightView.setBudget(level >= 2 ? Math.ceil(pool / 2) : pool, pool);
       ecology.setDetail(level);
-      dressing?.setDetail(economy ? level + 1 : level);
+      dressing?.setDetail(economy ? level + 1 : level);const q=REPRESENTATION_BUDGETS[Math.min(2,level)];buildingImpostors.setBudget(q.sprites,q.sectors);
       grass?.setProfile(grassOverride ?? grassProfileFor(level, economy));
     },
     refreshTerrain(x, z, radius) {
@@ -919,6 +929,8 @@ export function buildWorld(
         dressing?.setOcclusion((x, z, top) => occlusion.visible(x, z, top));
         placed.setOcclusion(occluded);
       }
+      if(camera)dressing?.setView({x:camera.position.x,y:camera.position.y,z:camera.position.z,fov:camera.fov,height:pixelHeight});
+      dressing?.updateImpostors(time,hybridNight);buildingImpostors.update(time,hybridNight);
       dressing?.update(focus.x, focus.z);
       grass?.update(dt, { x: focus.x, y: (focus as { y?: number }).y, z: focus.z });
       placed.update(focus.x, focus.z);
@@ -930,14 +942,22 @@ export function buildWorld(
       lightCamera.y = camera ? camera.position.y : terrainHeight(focus.x, focus.z) + 30;
       lightCamera.z = camera ? camera.position.z : focus.z;
       lightView.update(lightCamera);
+      buildingImpostors.begin();
       const distance = getTerrainConfig().viewDistance;
       for (const object of objects.children) {
         const d = Math.hypot(object.position.x - focus.x, object.position.z - focus.z);
+        const assetId=object.userData.registryAsset as string|undefined,asset=assetId?worldAsset(assetId):undefined;
+        const candidate=hybridMode==='all'&&asset&&['architecture.castle_keep','architecture.church'].includes(asset.id)&&Math.abs(object.rotation.x)+Math.abs(object.rotation.z)<.01;
+        if(candidate&&camera){const dist3=Math.hypot(object.position.x-camera.position.x,object.position.y-camera.position.y,object.position.z-camera.position.z),view={fov:camera.fov,height:pixelHeight,quality:detailLevel};
+          const representation=representationFor('building',asset.size[1]*object.scale.y,dist3,view,object.userData.representation??'hidden',true);object.userData.representation=representation;
+          if(representation==='impostor'&&!occluded(object.position.x,object.position.z,object.position.y+asset.size[1]*object.scale.y)&&buildingImpostors.write(asset.id,object.position.x,object.position.y,object.position.z,object.scale.y,object.rotation.y,spriteTint,asset.lods[0].sha256)){object.visible=false;continue;}
+        }
         object.visible = d < (object.userData.viewDistance ?? distance) && !(d > 60 && occluded(object.position.x, object.position.z, object.position.y + (object.userData.height ?? 8) * object.scale.y));
       }
+      buildingImpostors.end();
     },
     dispose() {
-      ecology.dispose();
+      buildingImpostors.dispose();ecology.dispose();
       dressing?.dispose();
       grass?.dispose();
       placed.dispose();

@@ -58,6 +58,8 @@
     "test:swim": "node tools/test-swim-browser.mjs",
     "capture:views": "node tools/capture-world-views.mjs",
     "generate:production-reference": "node --experimental-strip-types tools/generate-production-reference.mjs",
+    "generate:impostors": "node tools/generate-impostors.mjs",
+    "check:impostors": "node tools/generate-impostors.mjs --check",
     "generate:motion": "node --experimental-strip-types tools/generate-motion-reference.mjs",
     "test:motion": "node tools/test-motion-browser.mjs",
     "generate:cliffs": "node --experimental-strip-types tools/generate-cliff-reference.mjs",

@@ -713,6 +713,7 @@ function draw(now: number) {
         geometries: renderer.info.memory.geometries,
         chunks: { ...world.stats },
         cliffs: { ...world.cliffs.stats },
+        hybrid:world.hybrid.stats,
         horizon: { ...world.horizon },
         terrainWork: { ...world.terrainWork },
         dressing: world.dressing ? { ...world.dressing } : null,

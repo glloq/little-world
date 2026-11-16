@@ -1,3 +1,4 @@
+import {REPRESENTATION_BUDGETS} from './render/representation-policy.ts';
 /** Fixed 30Hz simulation, independently paced presentation and bounded pause recovery. */
 export class FrameClock {
   readonly step = 1 / 30;
@@ -58,6 +59,7 @@ export class FrameClock {
 }
 /** Sustained overload reduces resolution, then detail, then presentation; it never changes simulation. */
 export class PresentationBudget {
+  get resources(){return REPRESENTATION_BUDGETS[this.level];}
   level = 0;
   rate: 30 | 20 = 30;
   private overload = 0;
