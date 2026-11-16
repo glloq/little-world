@@ -49,6 +49,7 @@ export function buildHamster(): HamsterCharacter {
   const bobber = new THREE.Mesh(bobberGeometry, bobberMaterial); bobber.visible = false; bobber.name = 'FishingFloat';
   const extras = new THREE.Group(); extras.name = 'HamsterWorldExtras'; extras.add(line, bobber);
   const group = new THREE.Group(); group.name = 'PlayerHamster'; group.add(rig.group, extras);
+  const lastPosition=new THREE.Vector3();let located=false;
   const tmp = new THREE.Vector3(), tip = new THREE.Vector3(), input: HamsterInput = { mode: 'ground', speed: 0, verticalSpeed: 0, turnRate: 0 };
   const base = { earL: j.EarLeft.rotation.z, earR: j.EarRight.rotation.z };
   function applyAppearance() {
@@ -101,8 +102,10 @@ export function buildHamster(): HamsterCharacter {
       const v = player.velocity, speed = Math.hypot(v.x, v.z);
       if (player.mode === 'climb' && player.climbDir) face(player.climbDir.x, player.climbDir.z, dt, 14);
       else if (speed > .4) face(v.x, v.z, dt, player.mode === 'roll' ? 4 : 9);
+      else if(player.heading!==undefined)face(Math.sin(player.heading),Math.cos(player.heading),dt,9);
       rig.group.rotation.y = facing;
       const turn = dt > 0 ? Math.atan2(Math.sin(facing - lastFacing), Math.cos(facing - lastFacing)) / dt : 0; lastFacing = facing;
+      const travelled=located?group.position.distanceTo(lastPosition):0;lastPosition.copy(group.position);located=true;input.travel=travelled<10?travelled/CHARACTER_SCALE:0;
       input.mode = player.mode; input.speed = speed; input.verticalSpeed = v.y; input.turnRate = turn; input.aboard = aboard;
       if (fishing && !animator.action && animator.play('FISH_WAIT')) actionTool = 'fishing-rod';
       pose(dt, elapsed);
@@ -125,7 +128,7 @@ export function buildHamster(): HamsterCharacter {
       group.position.set(s.x, s.y, s.z); facing = s.yaw; rig.group.rotation.y = facing; lastFacing = facing;
       if (s.actionSeq !== actionSeq && s.action) { actionSeq = s.actionSeq; animator.play(s.action); actionTool = s.tool; }
       fishing = s.fishing ? { ...s.fishing } : null; aboard = s.aboard;
-      input.mode = s.mode; input.speed = s.speed; input.verticalSpeed = s.verticalSpeed; input.turnRate = s.turnRate; input.aboard = s.aboard;
+      input.travel=undefined;input.mode = s.mode; input.speed = s.speed; input.verticalSpeed = s.verticalSpeed; input.turnRate = s.turnRate; input.aboard = s.aboard;
       if (fishing && !animator.action && animator.play('FISH_WAIT')) actionTool = 'fishing-rod';
       pose(dt, s.t);
     },

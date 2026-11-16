@@ -1,0 +1,32 @@
+[
+ {
+  "scenario": "relief",
+  "p50Us": 4.03,
+  "p95Us": 11.9,
+  "p99Us": 42.87
+ },
+ {
+  "scenario": "400 obstacles",
+  "p50Us": 57.33,
+  "p95Us": 128.28,
+  "p99Us": 226.95
+ },
+ {
+  "scenario": "mine gallery (grid provider)",
+  "p50Us": 3.92,
+  "p95Us": 10.87,
+  "p99Us": 25.41
+ },
+ {
+  "scenario": "dynamic roll slope",
+  "p50Us": 6.17,
+  "p95Us": 13.29,
+  "p99Us": 31.82
+ },
+ {
+  "scenario": "energy glider",
+  "p50Us": 6.41,
+  "p95Us": 8.86,
+  "p99Us": 26.08
+ }
+]

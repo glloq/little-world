@@ -87,3 +87,5 @@ body:not(.developer) .ui-settings-section .audio-controls>p{display:none}
 .ui-shop-coins{font-weight:600}.ui-shop-section{margin:10px 0}
 .ui-shop-row{display:grid;grid-template-columns:1fr auto auto auto auto;gap:8px;align-items:center;padding:6px 4px;border-bottom:1px solid var(--ui-line)}
 .ui-shop-price{font-variant-numeric:tabular-nums;font-weight:600}
+
+.ui-motion-speed{position:fixed;left:1rem;bottom:1rem;padding:.35rem .7rem;border-radius:1rem;background:rgba(248,250,235,.86);color:#354537;font-size:.85rem;pointer-events:none;font-variant-numeric:tabular-nums}

@@ -24,10 +24,11 @@ const CLIPS = [
 const reference = buildHamster(), clips = [];
 for (const [name, seconds, mode, velocity, act, warm] of CLIPS) {
   const h = buildHamster(), player = { position: V(), velocity, mode: 'ground', oxygen: 90, glideReady: false, climbDir: { x: 0, z: 1 } };
-  if (warm) { player.mode = warm; for (let i = 0; i < 20; i++) h.update(player, 1 / FPS, i / FPS); }
+  if (warm) { player.mode = warm; for (let i = 0; i < 20; i++) { player.position.addScaledVector(velocity,1/FPS); h.group.position.copy(player.position); h.update(player, 1 / FPS, i / FPS); } }
   player.mode = mode; if (act) h.play(act[0], act[1]);
   const times = [], tracks = new Map();
   for (let f = 0; f <= Math.round(seconds * FPS); f++) {
+    if(f)player.position.addScaledVector(velocity,1/FPS);h.group.position.copy(player.position);
     h.update(player, f ? 1 / FPS : 0, f / FPS); times.push(f / FPS);
     for (const joint of HAMSTER_JOINTS) { const b = h.rig.joints[joint]; let t = tracks.get(joint); if (!t) tracks.set(joint, t = { p: [], q: [], s: [] }); t.p.push(...b.position.toArray()); t.q.push(...b.quaternion.toArray()); t.s.push(...b.scale.toArray()); }
   }

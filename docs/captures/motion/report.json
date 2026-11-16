@@ -1,0 +1,151 @@
+{
+  "checks": [
+    "Scène V3 ouverte depuis le Studio avec ses quatre structures",
+    "Roulade intégrée avec Shift",
+    "Saut puis ouverture avec élan",
+    "Piqué à la souris : descente et accélération",
+    "Cabré à la souris : remontée temporaire",
+    "Virage progressif piloté par la caméra",
+    "Commande D cohérente avec la droite écran en planage",
+    "Effets désactivés : FOV revenu à 66°, préférence conservée et simulation en pause"
+  ],
+  "errors": [],
+  "samples": {
+    "roll": {
+      "mode": "roll",
+      "position": [
+        90,
+        72,
+        -74.44333333333333
+      ],
+      "velocity": [
+        0,
+        0,
+        9.400000000000011
+      ],
+      "flight": {
+        "turnRate": 0,
+        "stalled": false
+      },
+      "tick": 71,
+      "fov": 66.18230335292441,
+      "calls": 45,
+      "triangles": 19464
+    },
+    "deploy": {
+      "mode": "glide",
+      "position": [
+        90,
+        73.15315422564483,
+        -71.6956447772175
+      ],
+      "velocity": [
+        0,
+        1.9910793362810701,
+        8.827226219335994
+      ],
+      "flight": {
+        "heading": 0,
+        "pitch": 0.22184849296397244,
+        "turnRate": 0,
+        "stalled": false
+      },
+      "tick": 80,
+      "fov": 66.31447506067929,
+      "calls": 44,
+      "triangles": 19450
+    },
+    "dive": {
+      "mode": "glide",
+      "position": [
+        90,
+        57.630012965295684,
+        -38.69691678015357
+      ],
+      "velocity": [
+        0,
+        -12.970318155335976,
+        14.309269234208958
+      ],
+      "flight": {
+        "heading": 0,
+        "pitch": -0.7363549945467618,
+        "turnRate": 0,
+        "stalled": false
+      },
+      "tick": 180,
+      "fov": 69.35207668762013,
+      "calls": 41,
+      "triangles": 13290
+    },
+    "pullUp": {
+      "mode": "glide",
+      "position": [
+        90,
+        56.53193514111876,
+        -13.78794581123736
+      ],
+      "velocity": [
+        0,
+        4.5888850036984055,
+        7.0041300254506496
+      ],
+      "flight": {
+        "heading": 0,
+        "pitch": 0.58,
+        "turnRate": 0,
+        "stalled": false
+      },
+      "tick": 231,
+      "fov": 67.28281632936955,
+      "calls": 30,
+      "triangles": 9456
+    },
+    "turn": {
+      "mode": "glide",
+      "position": [
+        89.40867292331424,
+        57.93499867095447,
+        -11.198976237027843
+      ],
+      "velocity": [
+        -1.5987649693417572,
+        0.5812014237486004,
+        3.1279947642852055
+      ],
+      "flight": {
+        "heading": -0.47250000000000003,
+        "pitch": 0.1639629057688782,
+        "turnRate": 0,
+        "stalled": true
+      },
+      "tick": 248,
+      "fov": 66.24636475883263,
+      "calls": 32,
+      "triangles": 8474
+    },
+    "keyboardTurn": {
+      "mode": "glide",
+      "position": [
+        88.80416909717444,
+        57.96144251650619,
+        -10.423187613693086
+      ],
+      "velocity": [
+        -2.3328341042020897,
+        -0.04527224934508641,
+        2.187667820653546
+      ],
+      "flight": {
+        "heading": -0.8175,
+        "pitch": -0.014154925592205214,
+        "turnRate": -1.15,
+        "stalled": true
+      },
+      "tick": 257,
+      "fov": 66.10013439134676,
+      "calls": 32,
+      "triangles": 8474
+    }
+  }
+}

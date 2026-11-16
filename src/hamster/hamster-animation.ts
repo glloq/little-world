@@ -16,6 +16,8 @@ export type AnimationEventName = 'equip' | 'unequip' | 'impact' | 'grab' | 'rele
 export interface HamsterInput {
   mode: MotionMode;
   /** Horizontal speed (m/s), vertical speed (m/s), heading change rate (rad/s, left positive). */
+  /** Optional actual travelled distance (model metres), supplied by the local renderer. */
+  travel?:number;
   speed: number; verticalSpeed: number; turnRate: number;
   /** On a boat (the motion mode is then 'ground'). */
   aboard?: boolean;
@@ -148,7 +150,7 @@ export class HamsterAnimator {
       case 'GLIDE_OPEN': case 'GLIDE_LOOP': case 'GLIDE_CLOSE': {
         const f = s === 'GLIDE_OPEN' ? smooth(Math.min(1, this.transitionTime / TRANSITIONS.GLIDE_OPEN)) : s === 'GLIDE_CLOSE' ? 1 - smooth(Math.min(1, this.transitionTime / TRANSITIONS.GLIDE_CLOSE)) : 1;
         p.membrane = f; p.shoulderLZ = -1.35 * f; p.shoulderRZ = 1.35 * f; p.shoulderLX = p.shoulderRX = -.35 * f; p.hipLX = p.hipRX = -.6 * f;
-        p.bodyRX = .5 * f; p.bodyRZ = bank * 1.6; p.headRX = -.35 * f; p.earL = p.earR = .3 * f; p.squash = 1 - .05 * f; break; }
+        p.bodyRX = (.5-Math.max(-.7,Math.min(.7,Math.atan2(input.verticalSpeed,Math.max(speed,.1)))))*f; p.bodyRZ = bank * 1.6; p.headRX = -.35 * f; p.earL = p.earR = .3 * f; p.squash = 1 - .05 * f; break; }
       case 'SWIM': p.bodyRX = input.mode === 'dive' ? Math.max(-.9, Math.min(1.3, .35 + Math.atan2(-input.verticalSpeed, Math.max(speed, .6)) * .9)) : .3; p.bodyY = Math.sin(t * 3) * .03; p.shoulderLX = st * .8 - .5; p.shoulderRX = -st * .8 - .5; p.hipLX = -st * .6; p.hipRX = st * .6; p.headRX = -.3; break;
       case 'CLIMB': { const r = speed > .15 || Math.abs(input.verticalSpeed) > .15 ? st : Math.sin(t * 1.4) * .15;
         p.bodyRX = -.25; p.shoulderLX = -2.4 + r * .45; p.shoulderRX = -2.4 - r * .45; p.hipLX = -.4 - r * .4; p.hipRX = -.4 + r * .4; p.headRX = -.2; break; }
@@ -167,7 +169,7 @@ export class HamsterAnimator {
     const blend = 1 - Math.exp(-dt * 16);
     for (const ch of CHANNELS) this.pose[ch] += (p[ch] - this.pose[ch]) * (ch === 'membrane' || ch === 'tuck' ? Math.min(1, blend * 1.4) : blend);
     // Rolling: forward spin integrates distance; afterwards it settles on the nearest full turn.
-    if (s.startsWith('ROLL') && s !== 'ROLL_EXIT') this.pose.roll += speed * dt / ROLL_RADIUS;
+    if (s.startsWith('ROLL') && s !== 'ROLL_EXIT') this.pose.roll += (input.travel??speed*dt) / ROLL_RADIUS;
     else { const turn = Math.PI * 2, rest = Math.round(this.pose.roll / turn) * turn; this.pose.roll += (rest - this.pose.roll) * Math.min(1, dt * 10); }
     if (input.mode !== 'glide' && s !== 'GLIDE_CLOSE') this.pose.membrane = Math.min(this.pose.membrane, Math.max(0, this.pose.membrane - dt * 8));
     return this.pose;

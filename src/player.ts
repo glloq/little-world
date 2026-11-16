@@ -1,3 +1,5 @@
+import {MOTION,ROLL,groundVelocity,airVelocity,glideVelocity,SURFACE_MOTION,angleDelta,type GroundMaterial} from './physics/motion.ts';
+export {ROLL,GLIDE,MOTION,SURFACE_MOTION} from './physics/motion.ts';
 import {DEFAULT_BODY,type WorldCollisionQuery,type MovementSpace,type BodyDimensions} from './physics/collision-world.ts';
 import * as THREE from 'three';
 import {
@@ -24,7 +26,7 @@ export interface Controls {
   dive: boolean;
   cameraYaw: number;
   /** Camera pitch relative to the default view (rad, positive = looking down): underwater, moving
-   * forward follows it (looking down dives down). Optional for older callers. */
+   * forward follows it (looking down dives down). Gliding uses the same camera intention. */
   cameraPitch?: number;
 }
 export interface Player {
@@ -52,15 +54,16 @@ export interface Player {
   diveSink?:boolean;
   /** True when the ball was entered by holding the sprint key (released → back on the paws). */
   rollByHold?:boolean;
+  /** Physical facing, retained at rest; render smoothing never writes it. */
+  heading?:number;
+  /** Replayable flight intention/state; independent from the render camera. */
+  glideHeading?:number;glidePitch?:number;glideTurnRate?:number;stalled?:boolean;
 }
 /** Swimming tuning: depth of the feet under the water line while swimming (body centre ≈ at the
  * surface, head out), dive speed (normal / Shift) and the push down when diving with Space. */
 export const SWIM={sink:.48,dive:2.6,diveRun:3.6,divePush:2.4,diveDepth:1} as const;
 export const MAX_OXYGEN = 90;
 export const MAX_STAMINA = 100;
-/** Roll tuning (kinematic ball, not a physics simulation): top speed, acceleration, rolling
- * friction, braking, turn rate (rad/s), share of gravity felt on slopes, jump-off speed. */
-export const ROLL={max:11,accel:5,friction:1.2,brake:9,turnRate:1.8,slopeGravity:.5,jump:6.5,minEnter:0,exitSpeed:.6,exitIdle:.35} as const;
 /** Climbing tuning: vertical gain while pushing up, lateral speed, stamina use per second. */
 export const CLIMB={up:1.8,side:1.4,drainMove:11,drainHang:4,regen:28,minStart:12,grabReach:1.5} as const;
 /** Uphill gradient of the outdoor relief at (x,z): slope ratio and unit direction. */
@@ -78,6 +81,7 @@ export function spawnPlayer(): Player {
 }
 
 export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:WorldCollisionQuery): void {
+  if(!Number.isFinite(dt)||dt<=0||dt>.25)throw Error('Pas de mouvement invalide');
   const { position: pos, velocity: v } = p;
   const oldMode = p.mode;
   const len = Math.hypot(keys.forward, keys.right);
@@ -98,11 +102,11 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
   const inWater = deepEnough && pos.y <= atWater + 0.42;
   // Roll: from the ground (not in water, not on a boat). X toggles the ball; holding the sprint
   // key (Shift) while moving rolls to go fast and releasing it unrolls (momentum kept).
-  const enterRoll=(byHold:boolean)=>{p.mode='roll';p.rollByHold=byHold;p.rollSpeed=Math.max(Math.hypot(v.x,v.z),2.5);p.rollHeading=len>0?Math.atan2(dx,dz):Math.hypot(v.x,v.z)>.3?Math.atan2(v.x,v.z):keys.cameraYaw;p.rollIdle=0;};
+  const enterRoll=(byHold:boolean)=>{p.mode='roll';p.rollByHold=byHold;p.rollSpeed=Math.hypot(v.x,v.z);p.rollHeading=len>0?Math.atan2(dx,dz):Math.hypot(v.x,v.z)>.3?Math.atan2(v.x,v.z):keys.cameraYaw;p.rollIdle=0;};
   if(keys.rollPressed){if(p.mode==='ground'&&!inWater)enterRoll(false);else if(p.mode==='roll')p.mode='ground';}
   else if(keys.rollHeld&&len>.3&&p.mode==='ground'&&!inWater)enterRoll(true);
   else if(p.mode==='roll'&&p.rollByHold&&!keys.rollHeld)p.mode='ground';
-  if(p.mode==='roll'&&!inWater)rollStep(p,keys,dt,dx,dz,len,relief);
+  if(p.mode==='roll'&&!inWater)rollStep(p,keys,dt,dx,dz,len,relief,collision?.materialAt(pos,p.space)??'grass',!!p.space||ground-relief(pos.x,pos.z)>.2);
   // Climbing (outdoor relief only): steeper than the walkable slope, pushed into, with stamina.
   if(p.mode!=='climb'&&!p.space&&p.climbCooldown<=0&&p.stamina>=CLIMB.minStart&&len>.3&&(p.mode==='ground'||p.mode==='air'||p.mode==='glide')){
     const ax=pos.x+dx*.6,az=pos.z+dz*.6,g=reliefGradient(ax,az,relief),hAhead=relief(ax,az);
@@ -176,41 +180,34 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
     if (p.mode === 'air' || p.mode === 'glide') {
       if (keys.jumpPressed && p.glideReady && oldMode !== 'ground' && oldMode !== 'climb' && oldMode !== 'roll') {
         p.mode = p.mode === 'glide' ? 'air' : 'glide';
+        p.glideHeading=undefined;p.glidePitch=undefined;
       }
       if (p.mode === 'glide') {
-        const forwardSpeed = 10.4,
-          a = Math.min(1, dt * 2.1);
-        v.x += (dx * forwardSpeed - v.x) * a;
-        v.z += (dz * forwardSpeed - v.z) * a;
-        v.y = Math.max(-2.8, v.y - 5.0 * dt);
-        v.y = Math.min(v.y, 2.8);
+        glideVelocity(p,keys.cameraYaw-right*.35,keys.cameraPitch??0,Math.max(0,-forward),dt);
       } else {
-        v.y -= 17.2 * dt;
-        const speed = keys.run ? 7.2 : 5.2;
-        const a = Math.min(1, dt * 1.9);
-        v.x += (dx * speed - v.x) * a;
-        v.z += (dz * speed - v.z) * a;
+        airVelocity(v,dx,dz,keys.run?7.2:5.2,dt);
       }
-      const before=pos.y;pos.y += v.y * dt;
-      const nextGround = floorAt(before);
-      if (pos.y <= nextGround && v.y <= 0) {
-        pos.y = nextGround;
-        v.y = 0;
-        p.mode = 'ground';
-        p.glideReady = false;
-      }
+      // Vertical integration is swept together with XZ below when collisions are available.
+      if(!collision)pos.y+=v.y*dt;
     } else {
-      const speed = keys.run ? 8.7 : 4.65;
-      const a = Math.min(1, dt * 10);
-      v.x += (dx * speed - v.x) * a;
-      v.z += (dz * speed - v.z) * a;
+      groundVelocity(v,dx,dz,keys.run?MOTION.run:MOTION.walk,dt);
     }
     p.oxygen = Math.min(MAX_OXYGEN, p.oxygen + dt * 14);
   }
   const from=collision?{x:pos.x,y:pos.y,z:pos.z}:null;
+  if(collision&&(p.mode==='air'||p.mode==='glide'))pos.y+=v.y*dt;
   pos.x += v.x * dt;
   pos.z += v.z * dt;
-  if(collision&&from){const moved=collision.move(from,pos,body.radius,body.height,{space:p.space,body});pos.x=moved.position.x;pos.z=moved.position.z;if(moved.blockedX)v.x=0;if(moved.blockedZ)v.z=0;if(p.mode==='roll'&&(moved.blockedX||moved.blockedZ)){p.rollSpeed=(p.rollSpeed??0)*.35;p.rollHeading=Math.atan2(v.x,v.z)||p.rollHeading;}}
+  if(collision&&from){
+    const moved=collision.sweep(from,pos,body.radius,body.height,{space:p.space,body});
+    pos.set(moved.position.x,moved.position.y,moved.position.z);
+    if(moved.blockedY&&(p.mode==='air'||p.mode==='glide')){
+      if(v.y<0){p.mode='ground';p.glideReady=false;}else if(p.mode==='glide')p.mode='air';
+      v.y=0;
+    }
+    if(moved.blockedX)v.x=0;if(moved.blockedZ)v.z=0;
+    if(p.mode==='roll'&&(moved.blockedX||moved.blockedZ)){p.rollSpeed=Math.hypot(v.x,v.z);p.rollHeading=Math.atan2(v.x,v.z)||p.rollHeading;}
+  }
   if (!insideWorld(pos.x, pos.z)) {
     const bounds = getTerrainConfig();
     pos.x = clamp(pos.x, -bounds.width / 2 + 3, bounds.width / 2 - 3);
@@ -221,8 +218,8 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
   const surface=collision?.surfaceAt(pos,p.space,body.radius,{step:body.step});
   const newGround = surface?.floorY??terrainHeight(pos.x, pos.z);
   if(surface?.ceilingY!==null&&surface?.ceilingY!==undefined&&pos.y+body.height>surface.ceilingY){pos.y=Math.max(newGround,surface.ceilingY-body.height);v.y=Math.min(0,v.y);if(pos.y>newGround+.06)p.mode='air';}
-  if (p.mode === 'ground') pos.y = Math.max(pos.y, newGround);
-  if (p.mode === 'roll') { if (pos.y - newGround > .45) { p.mode = 'air'; p.glideReady = true; } else { pos.y = newGround; v.y = 0; } }
+  if(p.mode==='ground'){if(pos.y-newGround>.45){p.mode='air';p.glideReady=true;}else pos.y=newGround;}
+  if (p.mode === 'roll') { if (pos.y - newGround > .45) { p.mode = 'air'; p.glideReady = true; } else {const gain=newGround-(from?.y??pos.y);pos.y=newGround;v.y=gain/dt;} }
   if (p.mode === 'climb') pos.y = newGround;
   else if (p.mode !== 'glide' && p.mode !== 'air') p.stamina = Math.min(MAX_STAMINA, p.stamina + CLIMB.regen * dt);
   if ((p.mode === 'air' || p.mode === 'glide') && pos.y < newGround) {
@@ -248,6 +245,8 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
   }
   // Explicit connections between spaces (mine entrance, stairs, shafts): never implicit.
   const transition=collision?.transitionAt(pos,p.space);
+  if(p.mode!=='glide'){p.stalled=false;p.glideHeading=undefined;p.glidePitch=undefined;p.glideTurnRate=0;}
+  if(Math.hypot(v.x,v.z)>.01)p.heading=Math.atan2(v.x,v.z);
   if(transition){p.space=transition.to??undefined;pos.set(transition.arrival.x,transition.arrival.y,transition.arrival.z);v.set(0,0,0);p.mode='ground';p.glideReady=false;p.transitioned=transition.id;}
 }
 
@@ -268,22 +267,28 @@ function climbStep(p:Player,keys:Controls,dt:number,maxSlope:number,forward:numb
 /** One roll step: heading turns toward the input at a limited rate, speed accelerates toward the
  * top speed with input, rolls on (friction) without, brakes when pushed backwards; slopes add a
  * moderate share of gravity. Jump leaves the ball keeping the momentum; a stop leaves it too. */
-function rollStep(p:Player,keys:Controls,dt:number,dx:number,dz:number,len:number,relief:(x:number,z:number)=>number){
-  const pos=p.position,v=p.velocity;let speed=p.rollSpeed??0,heading=p.rollHeading??0;
-  if(keys.jumpPressed){p.mode='air';v.y=ROLL.jump;p.glideReady=true;return;}
-  const hx=Math.sin(heading),hz=Math.cos(heading);
-  if(len>.1){
-    const want=Math.atan2(dx,dz),delta=Math.atan2(Math.sin(want-heading),Math.cos(want-heading)),align=(dx*hx+dz*hz)/Math.max(1e-6,Math.hypot(dx,dz));
-    // Almost stopped: the ball simply turns toward the input; moving: pushing backwards brakes.
-    if(speed<1.5){heading=want;speed=Math.min(ROLL.max,speed+ROLL.accel*dt*Math.min(1,len));}
-    else if(align<-.3)speed=Math.max(0,speed-ROLL.brake*dt);
-    else{heading+=Math.max(-ROLL.turnRate*dt,Math.min(ROLL.turnRate*dt,delta));speed=Math.min(ROLL.max,speed+ROLL.accel*dt*Math.min(1,len));}
-    p.rollIdle=0;
-  }else{speed=Math.max(0,speed-ROLL.friction*dt);p.rollIdle=(p.rollIdle??0)+dt;}
-  // Slope along the heading: downhill speeds up, uphill slows down (moderate, bounded).
-  const e=1,slope=(relief(pos.x+hx*e,pos.z+hz*e)-relief(pos.x-hx*e,pos.z-hz*e))/(2*e);
-  speed=Math.max(0,Math.min(ROLL.max*1.25,speed-9.81*ROLL.slopeGravity*Math.max(-1,Math.min(1,slope))*dt));
-  p.rollSpeed=speed;p.rollHeading=heading;
-  v.set(Math.sin(heading)*speed,0,Math.cos(heading)*speed);
-  if(speed<ROLL.exitSpeed&&(p.rollIdle??0)>ROLL.exitIdle){p.mode='ground';v.set(0,0,0);}
+function rollStep(p:Player,keys:Controls,dt:number,dx:number,dz:number,len:number,relief:(x:number,z:number)=>number,material:GroundMaterial,flatSupport:boolean){
+ const pos=p.position,v=p.velocity;let speed=Math.hypot(v.x,v.z),heading=speed>.05?Math.atan2(v.x,v.z):p.rollHeading??keys.cameraYaw;
+ if(keys.jumpPressed){p.mode='air';v.y=Math.max(0,v.y)+ROLL.jump;p.glideReady=true;return;}
+ const surface=SURFACE_MOTION[material];
+ if(len>.1){
+  const want=Math.atan2(dx,dz),delta=angleDelta(heading,want),align=Math.cos(delta);
+  if(speed<1.5){heading=want;speed=Math.min(ROLL.max,speed+ROLL.accel*dt*Math.min(1,len));}
+  else if(align<-.3)speed=Math.max(0,speed-ROLL.brake*dt);
+  else{
+   const rate=ROLL.turnRate*surface.grip/(1+speed*.035),turn=Math.max(-rate*dt,Math.min(rate*dt,delta));
+   heading+=turn;speed*=Math.exp(-ROLL.turnLoss*Math.abs(turn));
+   const driveLimit=ROLL.max/(1+Math.abs(turn/dt)*.35);
+   if(speed<driveLimit)speed=Math.min(driveLimit,speed+ROLL.accel*dt*Math.min(1,len));
+  }
+  p.rollIdle=0;
+ }else p.rollIdle=(p.rollIdle??0)+dt;
+ speed=Math.max(0,speed-ROLL.friction*surface.friction*(len>.1?.25:1)*dt);
+ // Gravity projected onto the heightfield tangent plane. It also turns a freely rolling ball.
+ const gx=flatSupport?0:relief(pos.x+.5,pos.z)-relief(pos.x-.5,pos.z),gz=flatSupport?0:relief(pos.x,pos.z+.5)-relief(pos.x,pos.z-.5);
+ const gravity=MOTION.gravity*ROLL.slopeGravity*dt/(1+gx*gx+gz*gz);
+ v.x=Math.sin(heading)*speed-gx*gravity;v.z=Math.cos(heading)*speed-gz*gravity;
+ speed=Math.hypot(v.x,v.z);if(speed>ROLL.downhillMax){const k=ROLL.downhillMax/speed;v.x*=k;v.z*=k;speed=ROLL.downhillMax;}
+ p.rollSpeed=speed;p.rollHeading=speed>.01?Math.atan2(v.x,v.z):heading;
+ if(speed<ROLL.exitSpeed&&(p.rollIdle??0)>ROLL.exitIdle&&gx*v.x+gz*v.z>=-1e-4){p.mode='ground';v.set(0,0,0);}
 }

@@ -24,7 +24,8 @@ test('ROLL — turns less sharply than walking, rolls on then stops by itself wi
 });
 test('ROLL — slopes: downhill speeds up, uphill slows; obstacles slow down; jump keeps momentum; cliffs and water exit',()=>{
   const down=new WorldCollisionQuery((x,z)=>-z*.25,()=>null),up=new WorldCollisionQuery((x,z)=>z*.25,()=>null);
-  const a=actor(0,0,0),b=actor(0,0,0);for(const [p,q]of [[a,down],[b,up]]){simulatePlayer(p,{...keys,forward:1,rollPressed:true},1/30,q);run(p,q,1.5,{});}
+  const a=actor(0,0,0),b=actor(0,0,0);a.velocity.z=b.velocity.z=4; // Same real launch momentum, no synthetic roll-entry impulse.
+  for(const [p,q]of [[a,down],[b,up]]){simulatePlayer(p,{...keys,forward:1,rollPressed:true},1/30,q);run(p,q,1.5,{});}
   assert.ok(a.rollSpeed>b.rollSpeed+1,'downhill '+a.rollSpeed.toFixed(2)+' > uphill '+(b.rollSpeed??0).toFixed(2));
   const q=flat();q.add({id:'wall',shape:'box',position:{x:0,y:0,z:6},size:{x:20,y:3,z:1},enabled:()=>true});
   const w=actor();simulatePlayer(w,{...keys,forward:1,rollPressed:true},1/30,q);run(w,q,2,{forward:1});assert.ok(w.position.z<5.6&&w.rollSpeed<3,'the wall stops the ball, no tunnelling: '+w.position.z.toFixed(2));

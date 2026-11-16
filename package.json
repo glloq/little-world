@@ -58,6 +58,8 @@
     "test:swim": "node tools/test-swim-browser.mjs",
     "capture:views": "node tools/capture-world-views.mjs",
     "generate:production-reference": "node --experimental-strip-types tools/generate-production-reference.mjs",
+    "generate:motion": "node --experimental-strip-types tools/generate-motion-reference.mjs",
+    "test:motion": "node tools/test-motion-browser.mjs",
     "generate:cliffs": "node --experimental-strip-types tools/generate-cliff-reference.mjs",
     "test:cliffs": "node tools/test-cliffs-browser.mjs",
     "capture:cliffs": "CLEAN_CAPTURE=1 node tools/capture-world-views.mjs http://127.0.0.1:5173/little-world/ /tmp/little-world-cliffs tools/cliff-views.json",

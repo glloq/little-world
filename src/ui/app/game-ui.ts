@@ -27,7 +27,7 @@ export interface GameUiDeps {
   npcs:{states:readonly {x:number;z:number;definition:{id:string;name:string}}[];dialogue:{isOpen:boolean}};
   audio:AudioController|null;
   world:{name:string;buildVersion:string;dayLength:number;bounds:{minX:number;maxX:number;minZ:number;maxZ:number};seaLevel:number;height(x:number,z:number):number;water(x:number,z:number):number|null};
-  player():{x:number;y:number;z:number;yaw:number;space?:MovementSpace;mode:string;oxygen:number;maxOxygen:number;stamina:number;maxStamina:number};
+  player():{x:number;y:number;z:number;yaw:number;space?:MovementSpace;mode:string;oxygen:number;maxOxygen:number;stamina:number;maxStamina:number;speed?:number;stalled?:boolean};
   target():TargetDescriptor|null;
   quality:HTMLSelectElement|null;
   home():void;studioUrl:string;temporary:boolean;
@@ -81,7 +81,7 @@ export function createGameUi(deps:GameUiDeps){
   const hint=el('p','ui-hint hide','Z Q S D : se déplacer · Maj : rouler vite en boule · avancer contre une falaise : grimper · E : agir · I : sac · J : journal · M : carte · Échap : menu');
   // Stamina (climbing): shown while climbing or while it refills.
   const stamina=el('div','ui-oxygen ui-stamina hide');stamina.setAttribute('role','meter');stamina.setAttribute('aria-label','Endurance');const stFill=el('span','ui-meter-fill');stamina.append(el('span','','Endurance'),el('span','ui-meter-track'));stamina.lastElementChild!.append(stFill);
-  host.append(quick,tool,oxygen,stamina,hint);
+  const velocity=el('div','ui-motion-speed hide');velocity.setAttribute('aria-label','Vitesse de déplacement');host.append(quick,tool,oxygen,stamina,hint,velocity);
   // The start hint never covers a panel or a modal.
   ui.onChange(id=>{if(id)hint.classList.add('hide');});
   const card=activityCard(host,(plotId,cropId)=>{const name=a?.selectCrop(plotId,cropId);if(name){center.notify('info','Culture choisie : '+name);deps.audio?.emit('farm.seedbag',{source:'player'});}});
@@ -124,6 +124,7 @@ export function createGameUi(deps:GameUiDeps){
       const plot=!p.space?a?.farmNear(p):null,view=plot?a?.farmView(plot.zone.id):null,preview=plot?a?.farmPreview(plot.zone.id):null;
       card.update(nav?miningViewModel(nav,p.yaw,wall):null,view&&preview?farmingViewModel({...view,plotId:plot!.zone.id},preview):null);
       if(g){const c=g.runtime.state.inventory[COIN]??0,txt=`${c} pièces`;if(purse.textContent!==txt)purse.textContent=txt;}
+      const fast=p.mode==='roll'||p.mode==='glide';velocity.classList.toggle('hide',!fast||ui.blocking);if(fast)velocity.textContent=`${((p.speed??0)*3.6).toFixed(0)} km/h${p.stalled?' · Décrochage':''}`;
       const swim=p.mode==='swim'||p.mode==='dive';oxygen.classList.toggle('hide',!swim);if(swim){oxyFill.style.width=Math.round(p.oxygen/p.maxOxygen*100)+'%';oxygen.setAttribute('aria-valuenow',String(Math.round(p.oxygen)));}
       const tired=p.mode==='climb'||p.stamina<p.maxStamina-.5;stamina.classList.toggle('hide',!tired||swim);if(tired){stFill.style.width=Math.round(p.stamina/p.maxStamina*100)+'%';stamina.setAttribute('aria-valuenow',String(Math.round(p.stamina)));stamina.classList.toggle('ui-low',p.stamina<25);}
     },
