@@ -19,7 +19,7 @@ export function analyzeWatersheds(
  let cols=Math.max(2,Math.floor(nx/factor)),rows=Math.max(2,Math.floor(nz/factor));
  // A narrow 1:1000 map can still exceed cap after rounding each axis to 2.
  while(cols*rows>cap){
-  if(cols>=rows&&cols>2)cols--;else if(rows>2)rows--;else break;
+  if(cols>=rows)cols=Math.max(2,Math.floor(cap/rows));else rows=Math.max(2,Math.floor(cap/cols));
  }
  const sx=w/cols,sz=d/rows,n=cols*rows;
  const heights=new Float64Array(n),next=new Int32Array(n),area=new Int32Array(n);
