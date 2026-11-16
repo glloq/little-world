@@ -39,6 +39,8 @@ try{
  check(true,'Priority-flood lake candidates are visible in Studio');
  await hydro('Proposer des cascades automatiques','cascade(s) proposées');
  check(true,'Batch waterfall suggestions are validated and displayed');
+ await hydro('Proposer des sorties de lacs','lac(s) existant(s)');
+ check(true,'Lake overflow suggestions are available without creating a water entity');
  const overview=page.locator('canvas[aria-label="Carte d’ensemble des propositions hydrologiques"]');
  const metrics=JSON.parse((await overview.getAttribute('data-overview'))??'{}');
  check(Number.isFinite(metrics.lines)&&Number.isFinite(metrics.markers),
