@@ -677,6 +677,8 @@ function draw(now: number) {
     player.position,
     frame.alpha,
   );
+  // Finalize the current view before LOD/culling and lighting consume it.
+  updateCamera(delta);
   environment.update(delta,player.position,budget.level,!!player.space);
   activityView?.update(delta,player.position,player.space);
   {const climateNow=climate.state(worldClock.time),night=nightFactor(climateNow.sunAltitude);world.lights.setEnvironment(night,now/1000);world.setNight(night);world.setWind(.25+.8*climateNow.wind);}
@@ -695,7 +697,6 @@ function draw(now: number) {
   if(gameplay){const f=gameplay.fishing.state;character.setFishing(f.phase!=='idle'&&f.castAt?{x:f.castAt.x,y:waterSurface(f.castAt.x,f.castAt.z)??getTerrainConfig().seaLevel,z:f.castAt.z,biting:f.phase==='bite'}:null);}
   character.update(player, delta, elapsed);
   impacts.update(delta);
-  updateCamera(delta);
   updateHud();
   gameUi?.frame(elapsed);
   fpsTime += wallDrawDelta;
