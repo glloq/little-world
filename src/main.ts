@@ -1,3 +1,6 @@
+import {captureMovement} from './physics/movement-state.ts';
+import {classifyPoint} from './geography/classify.ts';
+import {createMaterialSampler} from './physics/surface-material.ts';
 import {MINE_MATERIALS} from './mine/mine-data.ts';
 import type {GameUi} from './ui/app/game-ui.ts';
 import {resolveTarget,objectTarget,npcTarget,boatTarget,mineWallTarget,farmPlotTarget,shopTarget,gatherTarget,fishingTarget,type TargetDescriptor} from './ui/interactions/targets.ts';
@@ -202,6 +205,8 @@ const {nightFactor}=await import('./lighting/light-data.ts');
 }
 world.lights.setEnvironment(nightFactor(climate.state(worldClock.time).sunAltitude),0);
 // Mines and farm plots: procedural stand-ins, lanterns join the E10 light pool.
+// Geography sampled on demand after 2 m, not every simulation tick or render frame.
+if(gameplay)gameplay.collision.setMaterialSampler(createMaterialSampler((x,z)=>classifyPoint(geoContext(),x,z).material));
 const activityView=gameplay&&(gameplay.activities.mines.size||gameplay.activities.farms.size)?(await import('./activity-view.ts')).createActivityView(scene,gameplay.activities,terrainHeight):null;
 if(activityView&&!searchParams.has('lightBench'))world.refreshLights([...(definition.lights??[]),...activityView.lights]);
 let activityQueue=0,cropQueue=0,strikeTimer=0;
@@ -210,7 +215,7 @@ world.update(0, player.position);
   const {createGameUi}=await import('./ui/app/game-ui.ts'),c=getTerrainConfig();
   gameUi=createGameUi({gameplay,npcs,audio,quality:document.querySelector<HTMLSelectElement>('#quality'),temporary:!!(studioTest||buildScope),studioUrl:import.meta.env.BASE_URL+'studio/',
     world:{name:definition.name,buildVersion:gameplay?.runtime.data.buildVersion??'vallée',dayLength:climate.definition.dayLengthSeconds,bounds:{minX:-c.width/2,maxX:c.width/2,minZ:-c.length/2,maxZ:c.length/2},seaLevel:c.seaLevel,height:terrainHeight,water:waterSurface},
-    player:()=>({x:player.position.x,y:player.position.y,z:player.position.z,yaw,space:player.space,mode:player.mode,oxygen:player.oxygen,maxOxygen:MAX_OXYGEN,stamina:player.stamina??MAX_STAMINA,maxStamina:MAX_STAMINA}),
+    player:()=>({x:player.position.x,y:player.position.y,z:player.position.z,yaw,space:player.space,mode:player.mode,oxygen:player.oxygen,maxOxygen:MAX_OXYGEN,stamina:player.stamina??MAX_STAMINA,maxStamina:MAX_STAMINA,speed:player.velocity.length(),stalled:player.stalled}),
     target:()=>currentTarget(),
     home:()=>{started=false;gameUi?.controller.close();keySet.clear();overlay.classList.remove('hide');start.focus();}});
 }
@@ -390,7 +395,7 @@ renderer.domElement.addEventListener('pointermove', (e) => {
   // Camera sensitivity / vertical inversion: player preferences (Paramètres › Contrôles).
   const prefs=gameUi?.preferences,k=prefs?.cameraSensitivity??1;
   yaw -= movement.dx * 0.00315 * k;
-  pitch = clamp(pitch - movement.dy * 0.0024 * k * (prefs?.invertY ? -1 : 1), -0.12, 1.03);
+  pitch = clamp(pitch - movement.dy * 0.0024 * k * (prefs?.invertY ? -1 : 1), player.mode==='glide'?-.45:-.12, player.mode==='glide'?1.3:1.03);
 });
 renderer.domElement.addEventListener('pointerup', (e) => {
   orbitDrag.end(e.pointerId);
@@ -433,6 +438,9 @@ function updateCamera(dt: number) {
   if(player.space&&gameplay){const inside=gameplay.activities.cameraInMine(target,player.space,yaw,pitch,distance);if(inside){desired.set(inside.x,inside.y,inside.z);camera.position.copy(desired);camera.lookAt(target);return;}}
   camera.position.lerp(desired, Math.min(1, dt * 6));
   camera.lookAt(target);
+  const effects=gameUi?.preferences.speedEffects!==false&&!gameUi?.preferences.reduceMotion;
+  const targetFov=66+(effects&&(player.mode==='roll'||player.mode==='glide')?Math.min(7,Math.max(0,player.velocity.length()-8)*.35):0);
+  if(Math.abs(camera.fov-targetFov)>.005){camera.fov+=(targetFov-camera.fov)*(1-Math.exp(-dt*3));camera.updateProjectionMatrix();}
 }
 /** Contextual target: the same ordered sources decide what the HUD shows and what E does
  * (boat → usable object → inhabitant → boat to board → mine wall → farm plot → unusable object). */
@@ -568,7 +576,7 @@ function updateHud() {
     cameraSubmerged(camera.position.x, camera.position.y, camera.position.z),
   );
 }
-let boatSteer=0;
+let boatSteer=0,motionTick=0;
 function tick(dt: number) {
   // Menus (pause, parties, paramètres) pause the world simulation; the frame still renders.
   if (!started || gameUi?.paused) return;
@@ -582,7 +590,7 @@ function tick(dt: number) {
     jumpQueue = 0;
   } else {
     gameplay?.trees?.update(player.position,player.space);
-    simulatePlayer(player, keys, dt,gameplay?.collision);
+    simulatePlayer(player, keys, dt,gameplay?.collision);motionTick++;
     // Crossing a mine entrance / stairs: no interpolation through rock.
     if(player.transitioned){previousPlayerPosition.copy(player.position);renderPosition.copy(player.position);}
     if (keys.jumpPressed) jumpQueue = Math.max(0, jumpQueue - 1);
@@ -729,6 +737,7 @@ function draw(now: number) {
         collisions:gameplay?.collision.stats??null,
         position: player.position.toArray(),
         mode: player.mode,
+        movement:captureMovement(player,motionTick),velocity:player.velocity.toArray(),flight:{heading:player.glideHeading,pitch:player.glidePitch,turnRate:player.glideTurnRate,stalled:player.stalled},
         swim: { water: player.space ? null : waterSurface(player.position.x, player.position.z), diving: !!player.diving, oxygen: player.oxygen, pitch },
         character: { state: character.animationState, action: character.action, tool: character.tool, fishingLine: !!character.group.getObjectByName('FishingLine')?.visible, meshes: visibleMeshCount(character.group) },
         stamina: player.stamina ?? MAX_STAMINA,

@@ -1,3 +1,4 @@
+import type {GroundMaterial} from './motion.ts';
 /** Gameplay-only queries: no mesh, camera, LOD or renderer dependency.
  * PHYS-1: swept kinematic motion (sub-steps ≤ 0.2 m), steppable obstacle tops, slope limit,
  * ceilings / headroom, push-out of moving obstacles, stacked spaces (rectangular layers or
@@ -32,6 +33,12 @@ const sameSpace=(a:MovementSpace|null|undefined,b:MovementSpace|null|undefined)=
 const SUBSTEP=.2;
 /** Sparse grid broadphase; axis-aligned boxes, sphere envelopes conservative in XZ. */
 export class WorldCollisionQuery {
+ private material:((x:number,z:number)=>GroundMaterial)|null=null;
+ setMaterialSampler(sample:(x:number,z:number)=>GroundMaterial){this.material=sample;}
+ materialAt(position:Point3,space?:MovementSpace):GroundMaterial{return space?'rock':this.material?.(position.x,position.z)??'grass';}
+ private candidates=new Set<string>();
+ private sortedIds:string[]=[];
+ private cachedBounds=new Map<string,Bounds>();
  private bodies=new Map<string,CollisionBody>();
  private cells=new Map<string,Set<string>>();
  private memberships=new Map<string,string[]>();
@@ -50,9 +57,9 @@ export class WorldCollisionQuery {
  private bounds(body:CollisionBody):Bounds {const p=body.position,s=body.size;return {minX:p.x-s.x/2,maxX:p.x+s.x/2,minZ:p.z-s.z/2,maxZ:p.z+s.z/2,minY:p.y,maxY:p.y+s.y};}
  add(body:CollisionBody){
   if(!body.id||!validPoint(body.position)||!validPoint(body.size)||[body.size.x,body.size.y,body.size.z].some(n=>n<=0||n>100000)||!['box','sphere'].includes(body.shape)||typeof body.enabled!=='function')throw Error('Collider logique invalide');
-  this.remove(body.id);const copy={...body,position:{...body.position},size:{...body.size}},bounds=this.bounds(copy),cellCount=(Math.floor(bounds.maxX/this.cellSize)-Math.floor(bounds.minX/this.cellSize)+1)*(Math.floor(bounds.maxZ/this.cellSize)-Math.floor(bounds.minZ/this.cellSize)+1),keys=cellCount>1024?[]:this.keys(bounds);if(cellCount>1024)this.large.add(body.id);this.bodies.set(body.id,copy);this.memberships.set(body.id,keys);for(const key of keys){const cell=this.cells.get(key)??new Set<string>();cell.add(body.id);this.cells.set(key,cell);}
+  this.remove(body.id);const copy={...body,position:{...body.position},size:{...body.size}},bounds=this.bounds(copy),cellCount=(Math.floor(bounds.maxX/this.cellSize)-Math.floor(bounds.minX/this.cellSize)+1)*(Math.floor(bounds.maxZ/this.cellSize)-Math.floor(bounds.minZ/this.cellSize)+1),keys=cellCount>1024?[]:this.keys(bounds);if(cellCount>1024)this.large.add(body.id);this.bodies.set(body.id,copy);this.cachedBounds.set(body.id,bounds);this.memberships.set(body.id,keys);for(const key of keys){const cell=this.cells.get(key)??new Set<string>();cell.add(body.id);this.cells.set(key,cell);}
  }
- remove(id:string){this.large.delete(id);for(const key of this.memberships.get(id)??[]){const cell=this.cells.get(key);cell?.delete(id);if(!cell?.size)this.cells.delete(key);}this.memberships.delete(id);this.bodies.delete(id);}
+ remove(id:string){this.cachedBounds.delete(id);this.large.delete(id);for(const key of this.memberships.get(id)??[]){const cell=this.cells.get(key);cell?.delete(id);if(!cell?.size)this.cells.delete(key);}this.memberships.delete(id);this.bodies.delete(id);}
  moveBody(id:string,position:Point3){const body=this.bodies.get(id);if(body)this.add({...body,position});}
  addLayer(layer:SurfaceLayer){
   if(!layer.id||!layer.zoneId||!layer.levelId||![layer.minX,layer.maxX,layer.minZ,layer.maxZ,layer.floorY,layer.ceilingY].every(finite)||layer.minX>=layer.maxX||layer.minZ>=layer.maxZ||layer.ceilingY-layer.floorY<1)throw Error('Surface superposée invalide');
@@ -82,8 +89,10 @@ export class WorldCollisionQuery {
  }
  private gather(minX:number,maxX:number,minZ:number,maxZ:number,space?:MovementSpace|null):Bounds[]{
   const out=this.scratch;out.length=0;const area={minX,maxX,minZ,maxZ};
-  const ids=new Set<string>(this.large);for(const k of this.keys(area))for(const id of this.cells.get(k)??[])ids.add(id);
-  for(const id of [...ids].sort()){const b=this.bodies.get(id)!;if(b.enabled())out.push(this.bounds(b));}
+  const ids=this.candidates;ids.clear();for(const id of this.large)ids.add(id);
+  for(let x=Math.floor(area.minX/this.cellSize);x<=Math.floor(area.maxX/this.cellSize);x++)for(let z=Math.floor(area.minZ/this.cellSize);z<=Math.floor(area.maxZ/this.cellSize);z++)for(const id of this.cells.get(x+':'+z)??[])ids.add(id);
+  const sorted=this.sortedIds;sorted.length=0;for(const id of ids)sorted.push(id);sorted.sort();
+  for(const id of sorted){const b=this.bodies.get(id)!;if(b.enabled())out.push(this.cachedBounds.get(id)!);}
   const provider=space?this.providers.get(space.zoneId):undefined;if(provider&&space)provider.solids(space.levelId,minX,maxX,minZ,maxZ,out);
   return out;
  }
@@ -136,6 +145,31 @@ export class WorldCollisionQuery {
   }
   const s=this.surfaceAt({x,y:feet,z},space??undefined,radius,{step,fromY:options.fromY});
   return {position:{x,y:desired.y,z},blockedX,blockedZ,floorY:s.floorY,ceilingY:s.ceilingY,pushed};
+ }
+ /** Full XYZ sweep using the existing spatial query, including landing on thin roofs and
+  * upward contacts. At high speed, vertical steps are bounded just like horizontal steps.
+  * No render mesh or raycast; this method keeps the old horizontal move API compatible. */
+ sweep(from:Point3,desired:Point3,radius=.4,height=1.8,options:MoveOptions={}):MoveResult&{blockedY:boolean}{
+  if(!validPoint(from)||!validPoint(desired))throw Error('Balayage invalide');
+  const dx=desired.x-from.x,dy=desired.y-from.y,dz=desired.z-from.z;
+  if(Math.max(Math.abs(dx),Math.abs(dy),Math.abs(dz))>128)throw Error('Balayage trop long ; utiliser une transition');
+  const steps=Math.max(1,Math.ceil(Math.max(Math.hypot(dx,dz),Math.abs(dy))/SUBSTEP));
+  const cursor={...from},next={...from},sweepOptions={...options,fromY:from.y};let bx=false,bz=false,by=false,pushed=false;
+  const step=options.body?.step??DEFAULT_BODY.step;
+  for(let i=1;i<=steps;i++){
+   next.x=from.x+dx*i/steps;next.z=from.z+dz*i/steps;next.y=by?cursor.y:from.y+dy*i/steps;
+   const before=this.surfaceAt(cursor,options.space,radius,{step:0});
+   if(dy>0&&before.ceilingY!==null&&next.y+height>before.ceilingY){next.y=Math.max(before.floorY,before.ceilingY-height);by=true;}
+   sweepOptions.fromY=cursor.y;const moved=this.move(cursor,next,radius,height,sweepOptions);
+   cursor.x=moved.position.x;cursor.z=moved.position.z;
+   // A descending body can land on the top crossed this sub-step, even if the final
+   // frame position would otherwise have gone below a thin platform.
+   if(dy<=0&&next.y<=moved.floorY&&moved.floorY<=cursor.y+step+.02){cursor.y=moved.floorY;by=true;}
+   else cursor.y=next.y;
+   bx ||= moved.blockedX;bz ||= moved.blockedZ;pushed ||= moved.pushed;
+  }
+  const sample=this.surfaceAt(cursor,options.space,radius);
+  return {position:cursor,blockedX:bx,blockedZ:bz,blockedY:by,pushed,floorY:sample.floorY,ceilingY:sample.ceilingY};
  }
  /** Relief slope (grounded only) and headroom of the destination of one sub-step. */
  private passable(x:number,z:number,fx:number,fz:number,currentBase:number,feet:number,body:BodyDimensions,space:MovementSpace|null){

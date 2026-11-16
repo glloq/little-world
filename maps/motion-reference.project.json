@@ -1,0 +1,1174 @@
+{
+  "manifest": {
+    "schemaVersion": 3,
+    "projectId": "little-world-motion-reference-authoring",
+    "worldId": "little-world-motion-reference",
+    "name": "Déplacements — pente, roulade et planeur",
+    "assetCatalogVersion": "1",
+    "createdWith": "little-world-studio-v3",
+    "revision": 0,
+    "sourceManifest": {
+      "worldRef": "world/world.json",
+      "chunkIndexRef": "world/chunk-index.json",
+      "entityIndexRef": "world/entity-index.json",
+      "librariesRef": "library/index.json",
+      "assetCatalogRef": "assets/catalog.json"
+    }
+  },
+  "world": {
+    "schemaVersion": 3,
+    "worldId": "little-world-motion-reference",
+    "seed": 6201,
+    "generatorVersion": "1",
+    "bounds": {
+      "minX": -200,
+      "maxX": 200,
+      "minZ": -300,
+      "maxZ": 300
+    },
+    "seaLevel": 0,
+    "chunkSizeM": 64,
+    "coordinateSystem": "meters-y-up",
+    "chunkIndexRef": "world/chunk-index.json",
+    "density": 0,
+    "viewDistance": 240,
+    "editSequence": 0,
+    "terrain": {
+      "kind": "archipelago",
+      "version": 1,
+      "archipelago": {
+        "seabedDepthM": 8,
+        "detailM": 0,
+        "landmasses": [
+          {
+            "id": "lab",
+            "name": "Banc de déplacements",
+            "outline": [
+              {
+                "x": -199,
+                "z": -299
+              },
+              {
+                "x": 199,
+                "z": -299
+              },
+              {
+                "x": 199,
+                "z": 299
+              },
+              {
+                "x": -199,
+                "z": 299
+              }
+            ],
+            "coastNoiseM": 0,
+            "coastWavelengthM": 100,
+            "beachWidthM": 4,
+            "shoreHeightM": 2,
+            "lowlandHeightM": 6,
+            "hillHeightM": 0,
+            "cliffs": 0
+          }
+        ],
+        "features": [
+          {
+            "id": "lab-ground",
+            "kind": "plateau",
+            "polygon": [
+              {
+                "x": -194,
+                "z": -294
+              },
+              {
+                "x": 194,
+                "z": -294
+              },
+              {
+                "x": 194,
+                "z": 294
+              },
+              {
+                "x": -194,
+                "z": 294
+              }
+            ],
+            "heightM": 6,
+            "edgeM": 3
+          },
+          {
+            "id": "slope-deck",
+            "kind": "plateau",
+            "polygon": [
+              {
+                "x": -155,
+                "z": -260
+              },
+              {
+                "x": -25,
+                "z": -260
+              },
+              {
+                "x": -25,
+                "z": -180
+              },
+              {
+                "x": -155,
+                "z": -180
+              }
+            ],
+            "heightM": 66,
+            "edgeM": 110
+          },
+          {
+            "id": "launch-ramp",
+            "kind": "ridge",
+            "points": [
+              {
+                "x": -140,
+                "z": -45
+              },
+              {
+                "x": -40,
+                "z": -45
+              }
+            ],
+            "heightM": 12,
+            "widthM": 28
+          },
+          {
+            "id": "cliff-deck",
+            "kind": "plateau",
+            "polygon": [
+              {
+                "x": 35,
+                "z": -250
+              },
+              {
+                "x": 155,
+                "z": -250
+              },
+              {
+                "x": 155,
+                "z": -70
+              },
+              {
+                "x": 35,
+                "z": -70
+              }
+            ],
+            "heightM": 72,
+            "edgeM": 4
+          },
+          {
+            "id": "lab-pool",
+            "kind": "basin",
+            "x": 125,
+            "z": 210,
+            "radiusM": 40,
+            "depthM": 4
+          }
+        ]
+      }
+    },
+    "environment": {
+      "schemaVersion": 1,
+      "generatorVersion": 1,
+      "weatherSeed": 6201,
+      "dayLengthSeconds": 86400,
+      "initialDayPhase": 0.36,
+      "weatherPeriodSeconds": 180
+    }
+  },
+  "chunkIndex": {
+    "1:1": {
+      "chunkId": "1:1",
+      "cx": 1,
+      "cz": 1,
+      "revision": 0,
+      "sourceRef": "world/chunks/1_1.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "2:1": {
+      "chunkId": "2:1",
+      "cx": 2,
+      "cz": 1,
+      "revision": 0,
+      "sourceRef": "world/chunks/2_1.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "1:2": {
+      "chunkId": "1:2",
+      "cx": 1,
+      "cz": 2,
+      "revision": 0,
+      "sourceRef": "world/chunks/1_2.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "2:2": {
+      "chunkId": "2:2",
+      "cx": 2,
+      "cz": 2,
+      "revision": 0,
+      "sourceRef": "world/chunks/2_2.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "1:3": {
+      "chunkId": "1:3",
+      "cx": 1,
+      "cz": 3,
+      "revision": 0,
+      "sourceRef": "world/chunks/1_3.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "2:3": {
+      "chunkId": "2:3",
+      "cx": 2,
+      "cz": 3,
+      "revision": 0,
+      "sourceRef": "world/chunks/2_3.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "1:4": {
+      "chunkId": "1:4",
+      "cx": 1,
+      "cz": 4,
+      "revision": 0,
+      "sourceRef": "world/chunks/1_4.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "2:4": {
+      "chunkId": "2:4",
+      "cx": 2,
+      "cz": 4,
+      "revision": 0,
+      "sourceRef": "world/chunks/2_4.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "1:5": {
+      "chunkId": "1:5",
+      "cx": 1,
+      "cz": 5,
+      "revision": 0,
+      "sourceRef": "world/chunks/1_5.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "2:5": {
+      "chunkId": "2:5",
+      "cx": 2,
+      "cz": 5,
+      "revision": 0,
+      "sourceRef": "world/chunks/2_5.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "1:6": {
+      "chunkId": "1:6",
+      "cx": 1,
+      "cz": 6,
+      "revision": 0,
+      "sourceRef": "world/chunks/1_6.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "2:6": {
+      "chunkId": "2:6",
+      "cx": 2,
+      "cz": 6,
+      "revision": 0,
+      "sourceRef": "world/chunks/2_6.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "1:7": {
+      "chunkId": "1:7",
+      "cx": 1,
+      "cz": 7,
+      "revision": 0,
+      "sourceRef": "world/chunks/1_7.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "2:7": {
+      "chunkId": "2:7",
+      "cx": 2,
+      "cz": 7,
+      "revision": 0,
+      "sourceRef": "world/chunks/2_7.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "1:8": {
+      "chunkId": "1:8",
+      "cx": 1,
+      "cz": 8,
+      "revision": 0,
+      "sourceRef": "world/chunks/1_8.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "2:8": {
+      "chunkId": "2:8",
+      "cx": 2,
+      "cz": 8,
+      "revision": 0,
+      "sourceRef": "world/chunks/2_8.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "3:6": {
+      "chunkId": "3:6",
+      "cx": 3,
+      "cz": 6,
+      "revision": 0,
+      "sourceRef": "world/chunks/3_6.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "4:7": {
+      "chunkId": "4:7",
+      "cx": 4,
+      "cz": 7,
+      "revision": 0,
+      "sourceRef": "world/chunks/4_7.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "5:7": {
+      "chunkId": "5:7",
+      "cx": 5,
+      "cz": 7,
+      "revision": 0,
+      "sourceRef": "world/chunks/5_7.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "4:8": {
+      "chunkId": "4:8",
+      "cx": 4,
+      "cz": 8,
+      "revision": 0,
+      "sourceRef": "world/chunks/4_8.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    },
+    "5:8": {
+      "chunkId": "5:8",
+      "cx": 5,
+      "cz": 8,
+      "revision": 0,
+      "sourceRef": "world/chunks/5_8.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    }
+  },
+  "entityIndex": {
+    "arch-left": {
+      "id": "arch-left",
+      "kind": "prop",
+      "name": "Pilier gauche",
+      "ownerChunkId": "1:6",
+      "position": {
+        "x": -87,
+        "y": 0,
+        "z": 120
+      },
+      "references": [
+        "props.crate"
+      ],
+      "logical": {
+        "position": {
+          "x": -87,
+          "y": 0,
+          "z": 120
+        },
+        "initialState": {},
+        "persistentState": []
+      }
+    },
+    "arch-right": {
+      "id": "arch-right",
+      "kind": "prop",
+      "name": "Pilier droit",
+      "ownerChunkId": "1:6",
+      "position": {
+        "x": -73,
+        "y": 0,
+        "z": 120
+      },
+      "references": [
+        "props.crate"
+      ],
+      "logical": {
+        "position": {
+          "x": -73,
+          "y": 0,
+          "z": 120
+        },
+        "initialState": {},
+        "persistentState": []
+      }
+    },
+    "arch-top": {
+      "id": "arch-top",
+      "kind": "prop",
+      "name": "Traverse de passage",
+      "ownerChunkId": "1:6",
+      "position": {
+        "x": -80,
+        "y": 12,
+        "z": 120
+      },
+      "references": [
+        "props.crate"
+      ],
+      "logical": {
+        "position": {
+          "x": -80,
+          "y": 12,
+          "z": 120
+        },
+        "initialState": {},
+        "persistentState": []
+      }
+    },
+    "thin-roof": {
+      "id": "thin-roof",
+      "kind": "prop",
+      "name": "Plateforme fine (atterrissage et plafond)",
+      "ownerChunkId": "3:6",
+      "position": {
+        "x": 45,
+        "y": 8,
+        "z": 120
+      },
+      "references": [
+        "props.crate"
+      ],
+      "logical": {
+        "position": {
+          "x": 45,
+          "y": 8,
+          "z": 120
+        },
+        "initialState": {},
+        "persistentState": []
+      }
+    }
+  },
+  "libraries": {
+    "prefabs": {},
+    "characters": {},
+    "dialogues": {},
+    "behaviors": {},
+    "interactions": {},
+    "activities": {},
+    "variables": {},
+    "items": {},
+    "objectives": {},
+    "water": {
+      "lab-water": {
+        "id": "lab-water",
+        "kind": "lake",
+        "points": [
+          {
+            "x": 108,
+            "z": 193
+          },
+          {
+            "x": 142,
+            "z": 193
+          },
+          {
+            "x": 142,
+            "z": 227
+          },
+          {
+            "x": 108,
+            "z": 227
+          }
+        ],
+        "width": 1,
+        "level": 4,
+        "depth": 2
+      }
+    },
+    "paths": {
+      "lab-route": {
+        "id": "lab-route",
+        "points": [
+          {
+            "x": -90,
+            "z": -205
+          },
+          {
+            "x": -90,
+            "z": -45
+          },
+          {
+            "x": -90,
+            "z": 40
+          },
+          {
+            "x": -80,
+            "z": 120
+          },
+          {
+            "x": -90,
+            "z": 210
+          }
+        ],
+        "kind": "dirt",
+        "width": 3,
+        "smooth": false
+      }
+    }
+  },
+  "assets": {
+    "nature.pine": {
+      "id": "nature.pine",
+      "name": "Sapin",
+      "type": "glb",
+      "file": "models/pine.glb",
+      "license": "project-original",
+      "source": "Little World original generated low-poly geometry"
+    },
+    "nature.oak": {
+      "id": "nature.oak",
+      "name": "Arbre feuillu",
+      "type": "procedural",
+      "license": "project-original",
+      "source": "Little World original procedural geometry"
+    },
+    "nature.rock": {
+      "id": "nature.rock",
+      "name": "Rocher",
+      "type": "glb",
+      "file": "models/rock.glb",
+      "license": "project-original",
+      "source": "Little World original generated low-poly geometry"
+    },
+    "architecture.cottage": {
+      "id": "architecture.cottage",
+      "name": "Maison de vallée",
+      "type": "procedural",
+      "license": "project-original",
+      "source": "Little World original procedural geometry"
+    },
+    "props.crate": {
+      "id": "props.crate",
+      "name": "Caisse en bois",
+      "type": "glb",
+      "file": "models/crate.glb",
+      "license": "project-original",
+      "source": "Little World original generated low-poly geometry"
+    },
+    "props.lantern": {
+      "id": "props.lantern",
+      "name": "Lanterne",
+      "type": "procedural",
+      "license": "project-original",
+      "source": "Little World original procedural geometry"
+    }
+  },
+  "chunks": {
+    "1:1": {
+      "schemaVersion": 3,
+      "chunkId": "1:1",
+      "index": {
+        "cx": 1,
+        "cz": 1
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [
+        "lab-route"
+      ]
+    },
+    "2:1": {
+      "schemaVersion": 3,
+      "chunkId": "2:1",
+      "index": {
+        "cx": 2,
+        "cz": 1
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [
+        "lab-route"
+      ]
+    },
+    "1:2": {
+      "schemaVersion": 3,
+      "chunkId": "1:2",
+      "index": {
+        "cx": 1,
+        "cz": 2
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [
+        "lab-route"
+      ]
+    },
+    "2:2": {
+      "schemaVersion": 3,
+      "chunkId": "2:2",
+      "index": {
+        "cx": 2,
+        "cz": 2
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [
+        "lab-route"
+      ]
+    },
+    "1:3": {
+      "schemaVersion": 3,
+      "chunkId": "1:3",
+      "index": {
+        "cx": 1,
+        "cz": 3
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [
+        "lab-route"
+      ]
+    },
+    "2:3": {
+      "schemaVersion": 3,
+      "chunkId": "2:3",
+      "index": {
+        "cx": 2,
+        "cz": 3
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [
+        "lab-route"
+      ]
+    },
+    "1:4": {
+      "schemaVersion": 3,
+      "chunkId": "1:4",
+      "index": {
+        "cx": 1,
+        "cz": 4
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [
+        "lab-route"
+      ]
+    },
+    "2:4": {
+      "schemaVersion": 3,
+      "chunkId": "2:4",
+      "index": {
+        "cx": 2,
+        "cz": 4
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [
+        "lab-route"
+      ]
+    },
+    "1:5": {
+      "schemaVersion": 3,
+      "chunkId": "1:5",
+      "index": {
+        "cx": 1,
+        "cz": 5
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [
+        "lab-route"
+      ]
+    },
+    "2:5": {
+      "schemaVersion": 3,
+      "chunkId": "2:5",
+      "index": {
+        "cx": 2,
+        "cz": 5
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [
+        "lab-route"
+      ]
+    },
+    "1:6": {
+      "schemaVersion": 3,
+      "chunkId": "1:6",
+      "index": {
+        "cx": 1,
+        "cz": 6
+      },
+      "revision": 0,
+      "entities": {
+        "arch-left": {
+          "id": "arch-left",
+          "name": "Pilier gauche",
+          "kind": "prop",
+          "ownerChunkId": "1:6",
+          "components": {
+            "Transform": {
+              "type": "Transform",
+              "position": {
+                "x": -87,
+                "y": 0,
+                "z": 120
+              },
+              "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0,
+                "w": 1
+              },
+              "scale": {
+                "x": 1.6666666666666667,
+                "y": 10,
+                "z": 2.5
+              }
+            },
+            "Visual": {
+              "type": "Visual",
+              "assetId": "props.crate"
+            },
+            "Collider": {
+              "type": "Collider",
+              "shape": "box",
+              "size": {
+                "x": 1.2,
+                "y": 1.2,
+                "z": 1.2
+              },
+              "layer": "solid"
+            }
+          }
+        },
+        "arch-right": {
+          "id": "arch-right",
+          "name": "Pilier droit",
+          "kind": "prop",
+          "ownerChunkId": "1:6",
+          "components": {
+            "Transform": {
+              "type": "Transform",
+              "position": {
+                "x": -73,
+                "y": 0,
+                "z": 120
+              },
+              "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0,
+                "w": 1
+              },
+              "scale": {
+                "x": 1.6666666666666667,
+                "y": 10,
+                "z": 2.5
+              }
+            },
+            "Visual": {
+              "type": "Visual",
+              "assetId": "props.crate"
+            },
+            "Collider": {
+              "type": "Collider",
+              "shape": "box",
+              "size": {
+                "x": 1.2,
+                "y": 1.2,
+                "z": 1.2
+              },
+              "layer": "solid"
+            }
+          }
+        },
+        "arch-top": {
+          "id": "arch-top",
+          "name": "Traverse de passage",
+          "kind": "prop",
+          "ownerChunkId": "1:6",
+          "components": {
+            "Transform": {
+              "type": "Transform",
+              "position": {
+                "x": -80,
+                "y": 12,
+                "z": 120
+              },
+              "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0,
+                "w": 1
+              },
+              "scale": {
+                "x": 13.333333333333334,
+                "y": 1.6666666666666667,
+                "z": 2.5
+              }
+            },
+            "Visual": {
+              "type": "Visual",
+              "assetId": "props.crate"
+            },
+            "Collider": {
+              "type": "Collider",
+              "shape": "box",
+              "size": {
+                "x": 1.2,
+                "y": 1.2,
+                "z": 1.2
+              },
+              "layer": "solid"
+            }
+          }
+        }
+      },
+      "entityIds": [
+        "arch-left",
+        "arch-right",
+        "arch-top"
+      ],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [
+        "lab-route"
+      ]
+    },
+    "2:6": {
+      "schemaVersion": 3,
+      "chunkId": "2:6",
+      "index": {
+        "cx": 2,
+        "cz": 6
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [
+        "lab-route"
+      ]
+    },
+    "1:7": {
+      "schemaVersion": 3,
+      "chunkId": "1:7",
+      "index": {
+        "cx": 1,
+        "cz": 7
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [
+        "lab-route"
+      ]
+    },
+    "2:7": {
+      "schemaVersion": 3,
+      "chunkId": "2:7",
+      "index": {
+        "cx": 2,
+        "cz": 7
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [
+        "lab-route"
+      ]
+    },
+    "1:8": {
+      "schemaVersion": 3,
+      "chunkId": "1:8",
+      "index": {
+        "cx": 1,
+        "cz": 8
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [
+        "lab-route"
+      ]
+    },
+    "2:8": {
+      "schemaVersion": 3,
+      "chunkId": "2:8",
+      "index": {
+        "cx": 2,
+        "cz": 8
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [
+        "lab-route"
+      ]
+    },
+    "3:6": {
+      "schemaVersion": 3,
+      "chunkId": "3:6",
+      "index": {
+        "cx": 3,
+        "cz": 6
+      },
+      "revision": 0,
+      "entities": {
+        "thin-roof": {
+          "id": "thin-roof",
+          "name": "Plateforme fine (atterrissage et plafond)",
+          "kind": "prop",
+          "ownerChunkId": "3:6",
+          "components": {
+            "Transform": {
+              "type": "Transform",
+              "position": {
+                "x": 45,
+                "y": 8,
+                "z": 120
+              },
+              "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0,
+                "w": 1
+              },
+              "scale": {
+                "x": 20,
+                "y": 0.125,
+                "z": 20
+              }
+            },
+            "Visual": {
+              "type": "Visual",
+              "assetId": "props.crate"
+            },
+            "Collider": {
+              "type": "Collider",
+              "shape": "box",
+              "size": {
+                "x": 1.2,
+                "y": 1.2,
+                "z": 1.2
+              },
+              "layer": "solid"
+            }
+          }
+        }
+      },
+      "entityIds": [
+        "thin-roof"
+      ],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": []
+    },
+    "4:7": {
+      "schemaVersion": 3,
+      "chunkId": "4:7",
+      "index": {
+        "cx": 4,
+        "cz": 7
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [
+        "lab-water"
+      ],
+      "pathRefs": []
+    },
+    "5:7": {
+      "schemaVersion": 3,
+      "chunkId": "5:7",
+      "index": {
+        "cx": 5,
+        "cz": 7
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [
+        "lab-water"
+      ],
+      "pathRefs": []
+    },
+    "4:8": {
+      "schemaVersion": 3,
+      "chunkId": "4:8",
+      "index": {
+        "cx": 4,
+        "cz": 8
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [
+        "lab-water"
+      ],
+      "pathRefs": []
+    },
+    "5:8": {
+      "schemaVersion": 3,
+      "chunkId": "5:8",
+      "index": {
+        "cx": 5,
+        "cz": 8
+      },
+      "revision": 0,
+      "entities": {},
+      "entityIds": [],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [
+        "lab-water"
+      ],
+      "pathRefs": []
+    }
+  }
+}

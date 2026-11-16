@@ -21,6 +21,13 @@ Studio → **Scène de référence Falaises** : cinq parois sur 280 × 280 m, po
 et captures automatisées (`npm run test:cliffs`). Voir le
 [guide et les budgets](docs/53-CLIFF-REFERENCE.md).
 
+### Déplacements dynamiques
+
+Roulade sensible aux pentes et aux sols, planeur piloté au clic-glisser avec échange
+altitude/vitesse. Studio → **Scène de référence Déplacements** ;
+`npm run test:motion` pour le parcours automatisé.
+[Commandes, réglages, audit et limites](docs/54-DYNAMIC-MOVEMENT.md).
+
 ### Lancer en local
 
 Pré-requis : **Node.js 22** et npm.
