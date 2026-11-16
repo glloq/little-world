@@ -6,7 +6,7 @@ import type {WaterBody} from '../world-data.ts';
 import type {WatershedBasin} from './watershed-analysis.ts';
 import type {DepressionCandidate} from './depression-fill.ts';
 import {compileWaterNetwork} from '../water/profile.ts';
-export interface BasinLakeProposal {basin:WatershedBasin;water:WaterBody;rimMinM:number}
+export interface BasinLakeProposal {basin:WatershedBasin|DepressionCandidate;water:WaterBody;rimMinM:number}
 export interface BasinLakeReview {proposals:BasinLakeProposal[];rejected:{outlet:{x:number;z:number};reason:string}[]}
 const dist=(a:{x:number;z:number},b:{x:number;z:number})=>Math.hypot(a.x-b.x,a.z-b.z);
 /** Radial star-shaped lake outline. Every ray searches the actual native terrain for a
