@@ -98,6 +98,7 @@ try{
    await page.getByLabel('Rechercher une entité').fill(id);
    await page.locator('#tools .search-results button[data-kind=entity]').first().click();
    await page.getByRole('button',{name:'Objets',exact:true}).click();
+   await page.waitForFunction(id=>document.querySelector('.assembly-panel [data-entity-id]')?.getAttribute('data-entity-id')===id,id,{timeout:20000});
    await page.getByLabel('Modèle visuel de cette pièce').waitFor({timeout:20000});
  };
  await selectMember(pair[0]);
@@ -112,8 +113,9 @@ try{
    const e=after.entityIndex[id],source=after.chunks[e.ownerChunkId]?.entities[id];
    assert.ok(source,'Instance source must remain in portable ZIP');return resolveEntity(after,source).components.Visual?.assetId;
  };
- check(visual(pair[0])==='structure.fence_picket'&&visual(pair[1])==='structure.wall_straight',
-   'Local prefab override survives subsequent shared-template update and ZIP export');
+ const local=visual(pair[0]),shared=visual(pair[1]);
+ check(local==='structure.fence_picket'&&shared==='structure.wall_straight',
+   'Local prefab override survives subsequent shared-template update and ZIP export (local='+local+', shared='+shared+')');
  await page.screenshot({path:out+'/studio-prefab-override.png',fullPage:true});
  check(errors.length===0,errors.join('\n')||'No browser page errors');
  console.log(JSON.stringify({checks,errors}));
