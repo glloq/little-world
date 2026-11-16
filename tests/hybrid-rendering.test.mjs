@@ -56,3 +56,12 @@ test('CPU sampler retains a bounded window and separates simulation, update and 
 test('a resource released while loading is disposed when its late result arrives',async()=>{
  let resolve,disposed=0;const cache=new SharedResourceCache(1024);const ticket=cache.acquire('late',()=>new Promise(r=>resolve=r));ticket.release();cache.trim(0);resolve({bytes:80,dispose(){disposed++;}});await ticket.promise;assert.equal(disposed,1);assert.equal(cache.stats.bytes,0);assert.equal(cache.stats.entries,0);
 });
+
+test('offline alpha crops retain transparent filtering margin and WebGL bottom-up coordinates',async()=>{
+ const {atlasCrops}=await import('../src/render/atlas-crop.ts');const pixels=new Uint8ClampedArray(16*16*4);pixels[(2*16+6)*4+3]=255;
+ // Image row 2 belongs to the upper atlas tile (tile index 2), not index 0.
+ const crops=atlasCrops(pixels,16,16,8,2,4);assert.deepEqual(crops[0],[0,0,1,1]);assert.deepEqual(crops[2],[5/8,4/8,1,7/8]);
+ const p=manifest.pages.trees;assert.ok(p.crops.length===p.anchors.length);assert.ok(p.crops.some(c=>(c[2]-c[0])*(c[3]-c[1])<.5));
+ const bad=structuredClone(manifest);bad.pages.trees.crops[0]=[0,0,2,1];assert.throws(()=>parseImpostorManifest(bad));
+ const legacy=structuredClone(manifest);for(const p of Object.values(legacy.pages))delete p.crops;assert.doesNotThrow(()=>parseImpostorManifest(legacy));
+});

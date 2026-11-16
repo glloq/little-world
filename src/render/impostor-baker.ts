@@ -1,3 +1,4 @@
+import {atlasCrops} from './atlas-crop.ts';
 /** Offline-only browser baker, loaded by tools/impostors/bake.html, never the game bundle. */
 import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
@@ -29,6 +30,7 @@ export async function bakeAtlas(request:{tile:number;views:number;elevations:num
    }
    entries.push({id:item.id,first,views,elevations,frames:item.frames,fps:item.fps,sourceHash:item.sourceHash});object.removeFromParent();hamster?.dispose();geometry?.dispose();material?.dispose();
   }
-  return {png:renderer.domElement.toDataURL('image/png').split(',')[1],width:columns*tile,height:rows*tile,tile,columns,rows,anchors,entries};
+  const copy=document.createElement('canvas');copy.width=columns*tile;copy.height=rows*tile;const context=copy.getContext('2d')!;context.drawImage(renderer.domElement,0,0);const crops=atlasCrops(context.getImageData(0,0,copy.width,copy.height).data,copy.width,copy.height,tile,columns,anchors.length);
+  return {crops,png:renderer.domElement.toDataURL('image/png').split(',')[1],width:columns*tile,height:rows*tile,tile,columns,rows,anchors,entries};
  }finally{renderer.dispose();renderer.forceContextLoss();}
 }

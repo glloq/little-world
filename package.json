@@ -67,7 +67,8 @@
     "capture:cliffs": "CLEAN_CAPTURE=1 node tools/capture-world-views.mjs http://127.0.0.1:5173/little-world/ /tmp/little-world-cliffs tools/cliff-views.json",
     "generate:world-kit": "node tools/assets/generate-world-kit.mjs && npm run generate:world-assets",
     "benchmark:hybrid": "node tools/benchmark-hybrid.mjs",
-    "test:hybrid": "node tools/test-hybrid-browser.mjs"
+    "test:hybrid": "node tools/test-hybrid-browser.mjs",
+    "test:impostor-optimization": "node tools/test-impostor-optimization.mjs"
   },
   "dependencies": {
     "three": "^0.180.0"
