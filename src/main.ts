@@ -184,7 +184,7 @@ if(playable){
   });
   if(metricsEnabled){const g=gameplay;Object.assign(window,{littleWorldDebug:{/** Developer/test hook (metrics mode only): give items. */grant:(itemId:string,quantity:number)=>g.runtime.grantItems([{itemId,quantity}]),
     /** Developer/test hook: move the player on the ground and turn the camera (heading in rad). */
-    teleport:(x:number,z:number,heading:number)=>{player.space=undefined;player.mode='ground';player.velocity.set(0,0,0);player.position.set(x,terrainHeight(x,z),z);previousPlayerPosition.copy(player.position);yaw=heading;},
+    teleport:(x:number,z:number,heading:number,altitude=0)=>{player.space=undefined;player.mode=altitude>0?'air':'ground';player.glideReady=altitude>0;player.velocity.set(0,0,0);player.position.set(x,terrainHeight(x,z)+altitude,z);previousPlayerPosition.copy(player.position);yaw=heading;},
     /** Developer/test hook: natural dressing and placed objects drawn within r m of the player. */
     drawnNear:(r:number)=>world.drawnNear(player.position.x,player.position.z,r)}});}
   if(gameplay.gathering){const gather=gameplay.gathering;world.setDressingFilter((cx,cz,kind,index)=>gather.hiddenAt(cx,cz,kind,index));gather.subscribe(()=>world.redrawDressing());}
@@ -654,9 +654,9 @@ function tick(dt: number) {
     else if (target?.targetType === 'shop') { const s = nearShop(); if (s) gameUi?.openShop(s.kind); }
   }
 }
-const perfSampler=new PerfSampler(),gpuTimer=createGpuTimer(renderer);
+const perfSampler=new PerfSampler(),gpuTimer=createGpuTimer(renderer,metricsEnabled);
 const actorCount=Number(searchParams.get('remoteActors')??0);
-const remoteActors=[10,50,100].includes(actorCount)?createActorSimulator(scene,actorCount,player.position,terrainHeight):null;
+const remoteActors=[10,50,100].includes(actorCount)?createActorSimulator(scene,actorCount,player.position,terrainHeight,world.isOccluded):null;
 function draw(now: number) {
   const frame = presentation.advance(now, !document.hidden);
   const simulationBegin = performance.now();
@@ -713,7 +713,7 @@ function draw(now: number) {
   renderer.render(scene, camera);
   gpuTimer.end();
   const renderSubmitMs = performance.now() - renderBegin;
-  perfSampler.record(wallDrawDelta*1000,simulationMs,renderBegin-begin,renderSubmitMs);
+  if(metricsEnabled)perfSampler.record(wallDrawDelta*1000,simulationMs,renderBegin-begin,renderSubmitMs);
   if (metricsEnabled)
     Object.assign(window, {
       littleWorldMetrics: {

@@ -193,7 +193,7 @@ export function createDressingView(parent:THREE.Group,seed:number,density:number
             // Only replace a real species when its atlas entry is ready and source-current.
             const g0=library!.species[sp]!,h0=g0.height*s,d3=Math.hypot(x-hybridView.x,y-hybridView.y,z-hybridView.z);
             const key=sp+':'+x+':'+z,mode=representationFor('tree',h0,d3,{...hybridView,quality:detail},treeModes.get(key),true);if(treeModes.size>8192)treeModes.clear();treeModes.set(key,mode);
-            if(hybridEnabled&&(mode==='impostor'||mode==='lod2')){tint.setRGB(.88+.22*t,.88+.22*t,.88+.22*t);if(impostors.write(SPECIES[sp].id,x,y,z,s,r,tint,worldAsset(SPECIES[sp].id)?.lods[0].sha256))continue;}
+            if(hybridEnabled&&(mode==='impostor'||mode==='lod2')){tint.setRGB(.88+.22*t,.88+.22*t,.88+.22*t);if(impostors.write(SPECIES[sp].id,x,y,z,s,r,tint,worldAsset(SPECIES[sp].id)?.lods[0].sha256,grow*1.1))continue;}
             // Far silhouette sized and tinted after the real species model.
             const g=library!.species[sp]!,h=g.height*s,w=g.radius*s*grow*1.1,hex=mix(g.crownHex,0x5a7a4a,.25*t);
             if(SPECIES[sp].crown==='cone')write('farCone',x,y,z,w,h,w,r,hex);else write('farRound',x,y+h*.58,z,w,h*.42,w,r,hex);

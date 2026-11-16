@@ -48,3 +48,7 @@ test('snapshot interpolation has bounded history and extrapolation, preserves di
  h.sample(100,out);assert.equal(out.x,12.5);assert.equal(out.actionSeq,1);
  assert.equal(h.push({...base,t:1}),false);for(let i=2;i<50;i++)h.push({...base,t:i});assert.equal(h.samples.length,12);assert.equal(h.push(base),false);
 });
+
+test('CPU sampler retains a bounded window and separates simulation, update and submission',async()=>{
+ const {PerfSampler}=await import('../src/render/perf-sampler.ts');const p=new PerfSampler(4);for(let i=0;i<10;i++)p.record(i*10,1,2,3);const s=p.snapshot();assert.equal(s.samples,4);assert.equal(s.frameMs.p50,80);assert.equal(s.simulationMs.p99,1);assert.equal(s.updateMs.p99,2);assert.equal(s.submitMs.p99,3);assert.equal(s.longFrames,4);
+});

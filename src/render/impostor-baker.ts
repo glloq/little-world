@@ -17,7 +17,7 @@ export async function bakeAtlas(request:{tile:number;views:number;elevations:num
    if(item.file){const gltf=await loader.loadAsync(import.meta.env.BASE_URL+item.file);geometry=flattenScene(gltf.scene,item.lift??0);material=new THREE.MeshLambertMaterial({vertexColors:true,flatShading:true});object=new THREE.Mesh(geometry,material);gltf.scene.traverse(n=>{const m=n as THREE.Mesh;if(m.isMesh){m.geometry.dispose();for(const a of Array.isArray(m.material)?m.material:[m.material])a.dispose();}});}
    else{hamster=buildHamster();object=hamster.group;for(let n=0;n<30;n++){actor.position.addScaledVector(actor.velocity,1/30);object.position.copy(actor.position);hamster.update(actor,1/30,n/30);}if(item.action)hamster.play('INTERACT');object.position.set(0,0,0);hamster.rig.shadow.visible=false;}
    scene.add(object);object.updateMatrixWorld(true);
-   const bounds=new THREE.Box3().setFromObject(object),centre=bounds.getCenter(new THREE.Vector3()),span=item.file?Math.max(...bounds.getSize(new THREE.Vector3()).toArray())*1.4:5.6;
+   const bounds=new THREE.Box3().setFromObject(object),centre=bounds.getCenter(new THREE.Vector3()),span=item.file?Math.max(...bounds.getSize(new THREE.Vector3()).toArray())*1.4:2.8;
    camera.left=camera.bottom=-span/2;camera.right=camera.top=span/2;camera.updateProjectionMatrix();const first=anchors.length;
    for(let frame=0;frame<item.frames;frame++){
     if(hamster){for(let n=0;n<(frame?Math.round(30/item.fps):1);n++){actor.position.addScaledVector(actor.velocity,1/30);object.position.copy(actor.position);hamster.update(actor,1/30,frame/Math.max(1,item.fps));}object.position.set(0,0,0);hamster.rig.shadow.visible=false;object.updateMatrixWorld(true);}

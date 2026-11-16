@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import {acquireAtlas,atlasCacheStats,clearUnusedAtlases,type AtlasResource} from './impostor-atlas.ts';
 import {IMPOSTOR_LIMITS} from './impostor-manifest.ts';
 const vertex=`
-attribute vec3 offset; attribute vec3 shape; attribute vec3 tint; attribute vec3 animation;
+attribute vec3 offset; attribute vec4 shape; attribute vec3 tint; attribute vec3 animation;
 uniform sampler2D metadata;uniform vec2 grid;uniform float metaWidth;uniform float time;
 varying vec2 vAtlasUv;varying vec3 vTint;
 #include <fog_pars_vertex>
@@ -22,7 +22,7 @@ void main(){
  vec2 uvCell=vec2(mod(index,grid.x),floor(index/grid.x));vAtlasUv=(uvCell+uv)/grid;vTint=tint;
  vec3 right=vec3(viewMatrix[0][0],viewMatrix[1][0],viewMatrix[2][0]);
  vec3 up=vec3(viewMatrix[0][1],viewMatrix[1][1],viewMatrix[2][1]);
- vec2 local=(uv-meta.xy)*meta.z*shape.x;
+ vec2 local=(uv-meta.xy)*meta.z*shape.x;local.x*=shape.w;
  vec4 mvPosition=viewMatrix*vec4(center+right*local.x+up*local.y,1.);
  gl_Position=projectionMatrix*mvPosition;
  #include <fog_vertex>
@@ -44,11 +44,11 @@ export function createImpostorSectors(parent:THREE.Object3D,kind:'trees'|'charac
  function setEnabled(on:boolean){
   enabled=on;root.visible=on;if(!on){stats.instances=stats.calls=0;stats.state='off';return;}
   if(atlas){stats.state='ready';onReady();return;}if(ticket)return;stats.state='loading';ticket=acquireAtlas(kind);
-  void ticket.promise.then(value=>{if(dead)return;atlas=value;material.uniforms.atlas.value=value.texture;material.uniforms.metadata.value=value.metadata;material.uniforms.grid.value.set(value.page.columns,value.page.rows);material.uniforms.metaWidth.value=value.page.anchors.length;stats.state=enabled?'ready':'off';stats.textureBytes=value.bytes;stats.textures=2;onReady();},()=>{if(dead)return;stats.state='failed';onReady();});
+  void ticket.promise.then(value=>{if(dead)return;atlas=value;material.uniforms.atlas.value=value.texture;material.uniforms.metadata.value=value.metadata;material.uniforms.grid.value.set(value.page.columns,value.page.rows);material.uniforms.metaWidth.value=value.page.anchors.length;stats.state=enabled?'ready':'off';stats.textureBytes=value.bytes;stats.textures=2;onReady();},()=>{if(dead)return;stats.state='failed';ticket?.release();ticket=null;onReady();});
  }
  function allocate(key:string,cx:number,cz:number):Sector{
   const g=new THREE.InstancedBufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute([-.5,-.5,0,.5,-.5,0,.5,.5,0,-.5,.5,0],3));g.setAttribute('uv',new THREE.Float32BufferAttribute([0,0,1,0,1,1,0,1],2));g.setIndex([0,1,2,0,2,3]);
-  const arrays=['offset','shape','tint','animation'].map(name=>{const a=new Float32Array(IMPOSTOR_LIMITS.maxSectorInstances*3);g.setAttribute(name,new THREE.InstancedBufferAttribute(a,3).setUsage(THREE.DynamicDrawUsage));return a;});
+  const arrays=['offset','shape','tint','animation'].map(name=>{const size=name==='shape'?4:3,a=new Float32Array(IMPOSTOR_LIMITS.maxSectorInstances*size);g.setAttribute(name,new THREE.InstancedBufferAttribute(a,size).setUsage(THREE.DynamicDrawUsage));return a;});
   const mesh=new THREE.Mesh(g,material);mesh.name=kind+' sector '+key;mesh.castShadow=mesh.receiveShadow=false;root.add(mesh);
   const s={mesh,geometry:g,arrays,count:0,used:++clock,minY:Infinity,maxY:-Infinity,maxSpan:0};g.boundingSphere=new THREE.Sphere(new THREE.Vector3((cx+.5)*sectorM,0,(cz+.5)*sectorM),sectorM);sectors.set(key,s);return s;
  }
@@ -57,7 +57,7 @@ export function createImpostorSectors(parent:THREE.Object3D,kind:'trees'|'charac
   setSectorSize(m:number){if(m===sectorM)return;for(const s of sectors.values()){s.debug?.geometry.dispose();if(s.debug)(s.debug.material as THREE.Material).dispose();s.debug?.removeFromParent();s.geometry.dispose();s.mesh.removeFromParent();}sectors.clear();sectorM=m;},
   begin(){activeWrites=0;stats.instances=0;stats.uploadBytes=0;for(const s of sectors.values()){s.count=0;s.minY=Infinity;s.maxY=-Infinity;s.maxSpan=0;}},
   /** Returns false to retain the old geometric representation, including missing/stale atlas. */
-  write(id:string,x:number,y:number,z:number,scale:number,rotation:number,tint:THREE.Color,sourceHash?:string):boolean{
+  write(id:string,x:number,y:number,z:number,scale:number,rotation:number,tint:THREE.Color,sourceHash?:string,width=1):boolean{
    if(!enabled||!atlas||stats.instances>=quota)return false;const entry=atlas.entries.get(id);if(!entry||sourceHash&&entry.sourceHash!==sourceHash)return false;
    const cx=Math.floor(x/sectorM),cz=Math.floor(z/sectorM),key=cx+':'+cz;let s=sectors.get(key);
    if((!s||!s.count)&&activeWrites>=sectorQuota)return false;
@@ -66,12 +66,12 @@ export function createImpostorSectors(parent:THREE.Object3D,kind:'trees'|'charac
     s=allocate(key,cx,cz);
    }
    if(s.count>=IMPOSTOR_LIMITS.maxSectorInstances)return false;if(!s.count)activeWrites++;const o=s.count++*3;
-   s.arrays[0].set([x,y,z],o);s.arrays[1].set([scale,rotation,entry.first],o);s.arrays[2].set([tint.r,tint.g,tint.b],o);s.arrays[3].set([entry.frames,entry.fps,entry.elevations.length],o);
-   s.minY=Math.min(s.minY,y);s.maxY=Math.max(s.maxY,y);s.maxSpan=Math.max(s.maxSpan,atlas.page.anchors[entry.first][2]*scale);s.used=++clock;stats.instances++;return true;
+   s.arrays[0].set([x,y,z],o);s.arrays[1].set([scale,rotation,entry.first,width],(s.count-1)*4);s.arrays[2].set([tint.r,tint.g,tint.b],o);s.arrays[3].set([entry.frames,entry.fps,entry.elevations.length],o);
+   s.minY=Math.min(s.minY,y);s.maxY=Math.max(s.maxY,y);s.maxSpan=Math.max(s.maxSpan,atlas.page.anchors[entry.first][2]*scale*Math.max(1,width));s.used=++clock;stats.instances++;return true;
   },
   end(){const start=performance.now();let active=0;for(const s of sectors.values()){
    s.mesh.visible=enabled&&s.count>0;if(debug&&!s.debug){s.debug=new THREE.Box3Helper(new THREE.Box3(),0xff55aa);root.add(s.debug);}if(s.debug){s.debug.visible=enabled&&debug&&s.count>0;const c=s.geometry.boundingSphere!.center;s.debug.box.min.set(c.x-sectorM/2,s.minY,c.z-sectorM/2);s.debug.box.max.set(c.x+sectorM/2,s.maxY+s.maxSpan,c.z+sectorM/2);}s.geometry.instanceCount=s.count;if(!s.count)continue;active++;
-   for(const attr of ['offset','shape','tint','animation']){const a=s.geometry.getAttribute(attr) as THREE.InstancedBufferAttribute;a.clearUpdateRanges();a.addUpdateRange(0,s.count*3);a.needsUpdate=true;stats.uploadBytes+=s.count*12;}
+   for(const attr of ['offset','shape','tint','animation']){const a=s.geometry.getAttribute(attr) as THREE.InstancedBufferAttribute;a.clearUpdateRanges();a.addUpdateRange(0,s.count*a.itemSize);a.needsUpdate=true;stats.uploadBytes+=s.count*a.itemSize*4;}
    const sphere=s.geometry.boundingSphere!;sphere.center.y=(s.minY+s.maxY)/2;sphere.radius=Math.hypot(sectorM,sectorM,s.maxY-s.minY)/2+s.maxSpan;
   }stats.sectors=active;stats.calls=active;stats.cachedSectors=sectors.size;stats.totalUploadBytes+=stats.uploadBytes;stats.preparationMs=performance.now()-start;},
   update(time:number,night=0){material.uniforms.time.value=time;material.uniforms.night.value=night;},

@@ -48,6 +48,7 @@ import {
  * (E10), to be confirmed on integrated GPUs; the pool never grows with the number of sources. */
 export const LIGHT_POOL = 4, LIGHT_POOL_ECONOMY = 2;
 export interface WorldView {
+  isOccluded(x:number,y:number,z:number):boolean;
   hybrid:{setDebug(on:boolean):void;setMode(mode:'off'|'trees'|'all'):void;setSectors(on:boolean):void;getMode():string;stats:{trees:ReturnType<typeof createImpostorSectors>['stats']|null;buildings:ReturnType<typeof createImpostorSectors>['stats'];cache:typeof atlasCacheStats}};
   /** World Production: instanced enclosure/dock modules (game runtime). */
   placed: PlacedInstances;
@@ -822,6 +823,7 @@ export function buildWorld(
     placed,
     natural,
     cliffs,
+    isOccluded:(x,y,z)=>occluded(x,z,y),
     hybrid:{setDebug(on:boolean){dressing?.setDebug(on);buildingImpostors.setDebug(on);},setMode:setHybridMode,setSectors(on:boolean){dressing?.setSectorSize(on?256:512);},getMode:()=>hybridMode,stats:{trees:dressing?.stats.impostors??null,buildings:buildingImpostors.stats,cache:atlasCacheStats}},
     refreshCliffs(terrain){cliffs.refresh(terrain);},
     setDressingFilter(fn: Parameters<DressingView['setHidden']>[0]) { dressing?.setHidden(fn); },
@@ -947,7 +949,7 @@ export function buildWorld(
       for (const object of objects.children) {
         const d = Math.hypot(object.position.x - focus.x, object.position.z - focus.z);
         const assetId=object.userData.registryAsset as string|undefined,asset=assetId?worldAsset(assetId):undefined;
-        const candidate=hybridMode==='all'&&asset&&['architecture.castle_keep','architecture.church'].includes(asset.id)&&Math.abs(object.rotation.x)+Math.abs(object.rotation.z)<.01;
+        const candidate=hybridMode==='all'&&asset&&['architecture.castle_keep','architecture.church'].includes(asset.id)&&Math.abs(object.rotation.x)+Math.abs(object.rotation.z)<.01&&object.scale.y>0&&Math.abs(object.scale.x-object.scale.y)+Math.abs(object.scale.z-object.scale.y)<.001;
         if(candidate&&camera){const dist3=Math.hypot(object.position.x-camera.position.x,object.position.y-camera.position.y,object.position.z-camera.position.z),view={fov:camera.fov,height:pixelHeight,quality:detailLevel};
           const representation=representationFor('building',asset.size[1]*object.scale.y,dist3,view,object.userData.representation??'hidden',true);object.userData.representation=representation;
           if(representation==='impostor'&&!occluded(object.position.x,object.position.z,object.position.y+asset.size[1]*object.scale.y)&&buildingImpostors.write(asset.id,object.position.x,object.position.y,object.position.z,object.scale.y,object.rotation.y,spriteTint,asset.lods[0].sha256)){object.visible=false;continue;}
