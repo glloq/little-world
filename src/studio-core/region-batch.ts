@@ -43,10 +43,16 @@ function previewDraft(p:ProjectDocument,recipes:readonly RegionRecipeV1[]):Proje
  const chunks=regionBatchChunks(p,recipes);
  const scratch:ProjectDocument={...p,
   chunks:{...p.chunks},
+  // paintMask/ensureChunk may create chunkIndex metadata; isolate it from the
+  // original document so dry-run previews cannot leak sector registrations.
+  chunkIndex:{...p.chunkIndex},
   libraries:{...p.libraries,regions:structuredClone(p.libraries.regions??{})},
   world:{...p.world,terrain:p.world.terrain?structuredClone(p.world.terrain):undefined}
  };
- for(const id of chunks)if(p.chunks[id])scratch.chunks[id]=structuredClone(p.chunks[id]);
+ for(const id of chunks){
+  if(p.chunks[id])scratch.chunks[id]=structuredClone(p.chunks[id]);
+  if(p.chunkIndex[id])scratch.chunkIndex[id]=structuredClone(p.chunkIndex[id]);
+ }
  return scratch;
 }
 export function previewRegionBatch(p:ProjectDocument,recipes:readonly RegionRecipeV1[]):RegionBatchPreview{
