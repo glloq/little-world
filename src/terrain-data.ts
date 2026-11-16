@@ -1,7 +1,7 @@
 /** Pure tile geometry data (no Three.js): runs on the main thread or in a geography worker
  * with identical results. Normals and colours are already packed for the GPU. */
 import type { TerrainLOD, WorldChunk } from './chunks.ts';
-import { terrainHeight } from './terrain.ts';
+import { terrainHeight, isLegacyTerrain } from './terrain.ts';
 import { surfaceColor } from './geography/surface.ts';
 import { LinearColor } from './render/linear-color.ts';
 import { indexArray, packColorArray, packNormalArray } from './render/pack.ts';
@@ -42,12 +42,12 @@ export function createChunkData(
   }
   function vertex(x: number, z: number, skirt = false): number {
     // Neighbour first: the generator memoizes the last point, reused by the colour classification.
-    const east = terrainHeight(x + 2, z), h = terrainHeight(x, z);
+    const legacy=isLegacyTerrain(),east=legacy?terrainHeight(x+2,z):0,h=terrainHeight(x,z);
     positions.push(x, h - (skirt ? 12 : 0), z);
     heights.push(h);
     const slope = Math.abs(east - h);
     surfaceColor(x, z, h, slope, color);
-    color.multiplyScalar(
+    if(legacy)color.multiplyScalar(
       0.92 +
         0.07 * Math.sin(x * 0.275 + z * 0.165) +
         0.035 * Math.sin(x + z * 0.7),

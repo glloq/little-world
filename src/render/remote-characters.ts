@@ -18,6 +18,9 @@ export function createRemoteCharacters(parent:THREE.Object3D,isOccluded?:(x:numb
  const frustum=new THREE.Frustum(),viewMatrix=new THREE.Matrix4(),sphere=new THREE.Sphere(new THREE.Vector3(),2);
  const stats={actors:0,full:0,impostors:0,proxy:0,hidden:0,snapshots:0,rigs:0,updateMs:0,atlas:sprites.stats};
  return {stats,setLighting:sprites.setLighting,
+  collectGrassActors(out:import('./grass.ts').GrassActor[],focus:{x:number;z:number}) {
+   for(const e of entries.values())if(e.mode!=='hidden'&&Math.hypot(e.state.x-focus.x,e.state.z-focus.z)<44)out.push(e.state);
+  },
   push(id:string,state:PlayerPresentationState,appearance?:Appearance){let e=entries.get(id);if(!e){if(entries.size>=100)return false;e={history:new PresentationBuffer(),state:emptyPresentation(),mode:'hidden',rig:null,last:0,appearance:{...(appearance??DEFAULT_APPEARANCE)}};entries.set(id,e);}if(appearance){e.appearance={...appearance};e.rig?.setAppearance(e.appearance);}if(e.history.push(state)){stats.snapshots++;return true;}return false;},
   remove(id:string){const e=entries.get(id);e?.rig?.dispose();entries.delete(id);},
   update(dt:number,time:number,camera:THREE.PerspectiveCamera,height:number,quality:number,delay=.15){
