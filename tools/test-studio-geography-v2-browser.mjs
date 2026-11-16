@@ -39,6 +39,10 @@ try{
  check(true,'Priority-flood lake candidates are visible in Studio');
  await hydro('Proposer des cascades automatiques','cascade(s) proposées');
  check(true,'Batch waterfall suggestions are validated and displayed');
+ const overview=page.locator('canvas[aria-label="Carte d’ensemble des propositions hydrologiques"]');
+ const metrics=JSON.parse((await overview.getAttribute('data-overview'))??'{}');
+ check(Number.isFinite(metrics.lines)&&Number.isFinite(metrics.markers),
+   'World overview draws proposal geometry without WebGL/terrain tile rebuild');
  const save=async()=>{
   const download=page.waitForEvent('download');await page.getByRole('button',{name:'Exporter ZIP',exact:true}).click();
   const file=await download;return readProjectArchive(new Uint8Array(await readFile(await file.path())));
