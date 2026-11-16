@@ -11,12 +11,24 @@ import {proposeBasinLakes} from '../studio-core/basin-lakes.ts';
 import {analyzeDepressions} from '../studio-core/depression-fill.ts';
 import {planGuidedRiver} from '../studio-core/guided-river.ts';
 import {waterChunkIds,waterEditChunkIds} from '../water/sectors.ts';
+import {drawHydroOverview,type HydroOverviewPolyline,type HydroOverviewMark} from './hydro-preview-map.ts';
 export function mountHydroNetworkPanel(host:HTMLElement,ctx:RegionPanelContext):()=>void{
  const s=ctx.session,p=s.document,card=node('details','','section-card'),results=node('div','','feature-list');
  card.open=true;
  card.append(node('summary','A3 — Contrôle des rivières, lacs et cascades'),
    node('p','Analyser les profils, rechercher les exutoires proches, signaler les fortes pentes. Une connexion n’est créée qu’après vérification complète du réseau.','muted'));
- const safe=(fn:()=>Promise<void>)=>{void fn().catch(e=>ctx.status(e instanceof Error?e.message:String(e),true));};
+ const preview=document.createElement('canvas');preview.width=420;preview.height=230;
+ preview.style.width='100%';preview.style.maxWidth='420px';
+ preview.setAttribute('aria-label','Carte d’ensemble des propositions hydrologiques');
+ const draw=(proposed:HydroOverviewPolyline[]=[],markers:HydroOverviewMark[]=[])=>{
+   const existing:HydroOverviewPolyline[]=Object.values(p.libraries.water).map(w=>({
+     points:w.points,kind:w.kind==='lake'?'lake':'river'
+   }));
+   drawHydroOverview(preview,p.world.bounds,[...existing,...proposed],markers);
+ };
+ card.append(preview,node('p','Vue 2D des cours d’eau, bassins et lacs proposés · les tracés verts indiquent les sources candidates. Aucune modification de la carte.','muted'));
+ draw();
+ const safe=(fn:()=>Promise<void>)=>{void fn().catch(e=>ctx.status(String(e instanceof Error?e.message:e),true));};
  const hydrate=async()=>{
    const ids=new Set<string>();
    for(const w of Object.values(p.libraries.water))for(const id of waterChunkIds(p.world,w))if(p.chunkIndex[id])ids.add(id);
@@ -25,6 +37,7 @@ export function mountHydroNetworkPanel(host:HTMLElement,ctx:RegionPanelContext):
  const inspect=async()=>{
    await hydrate();
    const geo=projectGeography(p).ctx,waters=Object.values(p.libraries.water),r=reviewHydroNetwork(waters,geo.height,p.world.seaLevel);
+   draw([],r.links.map(link=>({point:link.snapped,kind:'source'})));
    results.replaceChildren(node('p',waters.length+' étendue(s) d’eau · '+r.diagnostics.length+' diagnostic(s) · '+r.links.length+' raccordement(s) candidat(s) · '+r.falls.length+' pente(s) à vérifier','muted'));
    for(const {id,diagnostic} of r.diagnostics.slice(0,24))results.append(node('p',id+' : '+diagnostic.message,'diagnostic '+diagnostic.severity));
    for(const link of r.links){
@@ -70,6 +83,7 @@ export function mountHydroNetworkPanel(host:HTMLElement,ctx:RegionPanelContext):
  const inspectBasins=async()=>{
    const geo=projectGeography(p).ctx;
    const result=analyzeWatersheds(p.world.bounds,geo.height,p.world.seaLevel,{maxCells:4096,minAreaM2:1000});
+   draw([],result.basins.slice(0,32).map(b=>({point:b.outlet,kind:b.kind==='sea'?'sea':'pit'})));
    basins.replaceChildren(node('p',result.sampled+' échantillons · pas '+result.stepM.toFixed(1)+' m · '+result.basins.length+' exutoires principaux','muted'));
    for(const b of result.basins.slice(0,12)){
      basins.append(button((b.areaM2/10000).toFixed(1)+' ha · '+(b.kind==='pit'?'cuvette':b.kind==='sea'?'mer':'bord de carte'),
@@ -89,6 +103,8 @@ export function mountHydroNetworkPanel(host:HTMLElement,ctx:RegionPanelContext):
      seaLevel:p.world.seaLevel,existing:Object.values(p.libraries.water)};};
    const plans=proposeWatershedRivers(analysis.headwaters,context(),{maxRivers:3,maxLengthM:2000,
      idPrefix:'watershed-'+p.world.worldId.slice(0,8)+'-'});
+   draw(plans.proposals.map(({plan})=>({points:plan.water.points,kind:'river'})),
+     plans.proposals.map(({source})=>({point:source.source,kind:'source'})));
    headwaters.replaceChildren(node('p',analysis.headwaters.length+' sources analysées · '+plans.proposals.length+
      ' rivière(s) validée(s) · '+plans.rejected.length+' proposition(s) écartée(s)','muted'));
    headwaters.append(node('p','Prévisualisation sans écriture : les sources proviennent du drainage D8. Les retouches de terrain non chargées peuvent modifier les propositions. Chaque création réévalue le relief et le réseau.','muted'));
@@ -126,6 +142,8 @@ export function mountHydroNetworkPanel(host:HTMLElement,ctx:RegionPanelContext):
    const suggestions=proposeBasinLakes(basins,
      {height:geo.height,bounds,existing:Object.values(p.libraries.water),seaLevel:p.world.seaLevel},
      {maxLakes:3,idPrefix:'basin-lake-'+p.world.worldId.slice(0,8)+'-'});
+   draw(suggestions.proposals.map(({water})=>({points:water.points,kind:'lake'})),
+     analysis.depressions.map(b=>({point:b.outlet,kind:'pit'})));
    lakeCandidates.replaceChildren(node('p',suggestions.proposals.length+' petit(s) lac(s) candidat(s) · '+
      suggestions.rejected.length+' cuvette(s) écartée(s)','muted'),
      node('p','Niveaux de débordement estimés par remplissage prioritaire du terrain. Le contour du lac suit les berges réelles et est vérifié avant toute création.','muted'));
@@ -167,6 +185,7 @@ export function mountHydroNetworkPanel(host:HTMLElement,ctx:RegionPanelContext):
    const candidates=reviewHydroNetwork(waters,geo.height,p.world.seaLevel).falls;
    const proposed=planHydroFalls(waters,candidates,geo.height,p.world.seaLevel,6);
    const count=proposed.changes.reduce((n,w)=>n+(w.falls?.length??0)-(p.libraries.water[w.id]?.falls?.length??0),0);
+   draw([],proposed.changes.flatMap(w=>(w.falls??[]).map(f=>({point:w.points[f.at],kind:'fall' as const}))));
    waterfalls.replaceChildren(node('p',count+' cascade(s) proposées sur '+proposed.changes.length+
      ' rivière(s), '+proposed.rejected.length+' refusée(s) par la validation','muted'));
    if(count<=0){waterfalls.append(node('p','Aucun emplacement applicable automatiquement. Adapter les profils ou placer les cascades manuellement.','muted'));return;}
