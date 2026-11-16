@@ -142,8 +142,10 @@ export function mountHydroNetworkPanel(host:HTMLElement,ctx:RegionPanelContext):
    const suggestions=proposeBasinLakes(basins,
      {height:geo.height,bounds,existing:Object.values(p.libraries.water),seaLevel:p.world.seaLevel},
      {maxLakes:3,idPrefix:'basin-lake-'+p.world.worldId.slice(0,8)+'-'});
-   draw(suggestions.proposals.map(({water})=>({points:water.points,kind:'lake' as const})),
-     analysis.depressions.map(b=>({point:b.outlet,kind:'pit' as const})));
+   draw([
+     ...suggestions.proposals.map(({water})=>({points:water.points,kind:'lake' as const})),
+     ...analysis.depressions.filter(b=>b.spillway).map(b=>({points:[b.spillway!.crest,b.spillway!.downstream],kind:'spillway' as const}))
+   ],analysis.depressions.map(b=>({point:b.outlet,kind:'pit' as const})));
    lakeCandidates.replaceChildren(node('p',suggestions.proposals.length+' petit(s) lac(s) candidat(s) · '+
      suggestions.rejected.length+' cuvette(s) écartée(s)','muted'),
      node('p','Niveaux de débordement estimés par remplissage prioritaire du terrain. Le contour du lac suit les berges réelles et est vérifié avant toute création.','muted'));
@@ -151,6 +153,10 @@ export function mountHydroNetworkPanel(host:HTMLElement,ctx:RegionPanelContext):
      const {basin,water}=suggestion,row=node('div','','feature-row');
      row.append(node('strong','Lac suggéré · '+(basin.areaM2/10000).toFixed(1)+' ha de bassin'),
        node('p','Niveau '+water.level.toFixed(1)+' m · débordement '+('spillLevelM' in basin?basin.spillLevelM.toFixed(1):'?')+' m · profondeur '+water.depth.toFixed(1)+' m','muted'),
+       ...('spillway' in basin&&basin.spillway?[button('Voir le déversoir naturel',()=>{
+         ctx.viewport.showPreviewPolyline([basin.spillway!.crest,basin.spillway!.downstream],0xe06a38);
+         ctx.viewport.goTo(basin.spillway!.crest.x,basin.spillway!.crest.z,65);
+       })]:[]),
        button('Voir le lac',()=>{
          ctx.viewport.showPreviewPolyline([...water.points,water.points[0]],0x3185c8);
          ctx.viewport.goTo(basin.outlet.x,basin.outlet.z,75);
