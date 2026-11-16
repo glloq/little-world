@@ -17,23 +17,32 @@ export const PLACED_RADII={lod0:45,lod1:140,rockMin:400,rockPerMetre:60,hysteres
 /** Cull radius of a placement: natural rocks are landmarks of the relief (boulders, spires, cliff
  * blocks up to ~12 m): they stay drawn (LOD1) far beyond the small structures, scaled by their size. */
 export function placedCullRadius(assetId:string,height:number):number{if(STATIC_BUILDINGS.has(assetId))return 900;return worldAsset(assetId)?.usage?.role==='rock'?Math.max(PLACED_RADII.rockMin,PLACED_RADII.rockPerMetre*height):PLACED_RADII.lod1;}
-export interface PlacedInstanceStats {placements:number;lod0:number;lod1:number;lod2:number;calls:number;rebuilds:number;staticBuildings:number;instanceCreates:number;instanceDeletes:number;fallbacks:number;state:'empty'|'loading'|'ready'}
+export interface PlacedInstanceStats {placements:number;lod0:number;lod1:number;lod2:number;calls:number;rebuilds:number;staticBuildings:number;instanceCreates:number;instanceDeletes:number;fallbacks:number;lod2Capacity:number;preparedThisUpdate:number;pendingLevels:number;maxPrepareMs:number;state:'empty'|'loading'|'ready'}
 export function eligibleForInstancing(assetId:string):boolean{const a=worldAsset(assetId);return !!a&&!!a.usage&&(INSTANCED_ROLES.has(a.usage.role)||STATIC_BUILDINGS.has(assetId));}
 export function createPlacedInstances(parent:THREE.Object3D,ground:(x:number,z:number)=>number,load:typeof loadAssetLods=loadAssetLods){
   let occluded:((x:number,z:number,top:number)=>boolean)|null=null;
-  const items:{assetId:string;matrix:THREE.Matrix4;x:number;y:number;z:number;top:number;cull:number;level:number;instance:number;batch:number;building:boolean;distances:number[];fallback:THREE.Mesh|null}[]=[],stats:PlacedInstanceStats={placements:0,lod0:0,lod1:0,lod2:0,calls:0,rebuilds:0,staticBuildings:0,instanceCreates:0,instanceDeletes:0,fallbacks:0,state:'empty'};
+  const items:{assetId:string;matrix:THREE.Matrix4;x:number;y:number;z:number;top:number;cull:number;level:number;instance:number;batch:number;building:boolean;distances:number[];fallback:THREE.Mesh|null}[]=[],stats:PlacedInstanceStats={placements:0,lod0:0,lod1:0,lod2:0,calls:0,rebuilds:0,staticBuildings:0,instanceCreates:0,instanceDeletes:0,fallbacks:0,lod2Capacity:0,preparedThisUpdate:0,pendingLevels:0,maxPrepareMs:0,state:'empty'};
   const material=new THREE.MeshLambertMaterial({vertexColors:true,flatShading:true});
   const fallbackMaterial=new THREE.MeshLambertMaterial({color:0xb9a789,flatShading:true}),fallbackGeometry=new Map<string,THREE.BoxGeometry>();
   const active:number[][]=[[],[],[]];let batches:THREE.BatchedMesh[]=[],geometryIds:Map<string,number[]>=new Map(),focusX=NaN,focusZ=NaN,cameraX=NaN,cameraY=NaN,cameraZ=NaN,disposed=false,loading:Promise<void>|null=null;
+  const preparation:(()=>void)[]=[];
   async function build(){
     const ids=[...new Set(items.map(i=>i.assetId))],lods=await Promise.all(ids.map(id=>load(id)));if(disposed)return;
-    const levels=items.some(i=>i.building)?[0,1,2]:[0,1];
-    const per=levels.map(level=>{let v=0,ix=0;ids.forEach((_,k)=>{const g=lods[k]?.[Math.min(level,(lods[k]?.length??1)-1)];if(g){v+=g.getAttribute('position').count;ix+=g.index!.count;}});return {v,ix};});
-    batches=levels.map(level=>{const b=new THREE.BatchedMesh(Math.max(1,items.length),Math.max(3,per[level].v),Math.max(3,per[level].ix),material);b.name='Placed structures LOD'+level;b.perObjectFrustumCulled=true;b.sortObjects=false;b.frustumCulled=false;b.castShadow=b.receiveShadow=false;parent.add(b);return b;});
-    ids.forEach((id,k)=>{const l=lods[k];if(!l)return;geometryIds.set(id,levels.map(level=>batches[level].addGeometry(l[Math.min(level,l.length-1)])));});
-    for(const it of items)if(it.fallback&&geometryIds.has(it.assetId)){it.fallback.removeFromParent();it.fallback=null;}
-    stats.fallbacks=items.filter(i=>i.fallback).length;stats.state='ready';focusX=NaN;
+    const levels=items.some(i=>i.building&&i.distances.length>2)?[0,1,2]:[0,1];
+    const per=levels.map(level=>{let v=0,ix=0;ids.forEach((id,k)=>{if(level===2&&(!STATIC_BUILDINGS.has(id)||(worldAsset(id)?.lods.length??0)<3))return;const g=lods[k]?.[Math.min(level,(lods[k]?.length??1)-1)];if(g){v+=g.getAttribute('position').count;ix+=g.index!.count;}});return {v,ix};});
+    ids.forEach((id,k)=>{if(lods[k])geometryIds.set(id,levels.map(()=>-1));});
+    for(const level of levels)preparation.push(()=>{
+      const capacity=level===2?items.filter(i=>i.building&&i.distances.length>2).length:items.length;if(level===2)stats.lod2Capacity=capacity;
+      const b=new THREE.BatchedMesh(Math.max(1,capacity),Math.max(3,per[level].v),Math.max(3,per[level].ix),material);b.name='Placed structures LOD'+level;b.perObjectFrustumCulled=true;b.sortObjects=false;b.frustumCulled=false;b.castShadow=b.receiveShadow=false;parent.add(b);batches.push(b);
+      ids.forEach((id,k)=>{const l=lods[k];if(!l||level===2&&(!STATIC_BUILDINGS.has(id)||l.length<3))return;geometryIds.get(id)![level]=b.addGeometry(l[Math.min(level,l.length-1)]);});
+    });
+    stats.pendingLevels=preparation.length;
   }
+  function prepareNext(){
+    const job=preparation.shift();if(!job)return;const start=performance.now();job();stats.preparedThisUpdate=1;stats.pendingLevels=preparation.length;stats.maxPrepareMs=Math.max(stats.maxPrepareMs,performance.now()-start);focusX=NaN;
+    if(!preparation.length){for(const it of items)if(it.fallback&&geometryIds.has(it.assetId)){it.fallback.removeFromParent();it.fallback=null;}stats.fallbacks=items.filter(i=>i.fallback).length;stats.state='ready';}
+  }
+
   /** LOD level with hysteresis (no popping back and forth around a threshold while walking). */
   const HYST=PLACED_RADII.hysteresis;
   function levelOf(it:{cull:number;level:number;building:boolean;distances:number[]},d:number){
@@ -63,16 +72,16 @@ export function createPlacedInstances(parent:THREE.Object3D,ground:(x:number,z:n
     /** Relief occlusion (horizon field): hidden structures are left out at the next rebuild. */
     setOcclusion(fn:((x:number,z:number,top:number)=>boolean)|null){occluded=fn;focusX=NaN;},
     update(fx:number,fz:number,camera?:{x:number;y:number;z:number}){
-      if(disposed)return;
-      if(stats.state!=='ready'){for(const it of items)if(it.fallback)it.fallback.visible=Math.hypot(it.x-fx,it.z-fz)<it.cull;return;}
+      if(disposed)return;stats.preparedThisUpdate=0;prepareNext();
+      if(!batches.length){for(const it of items)if(it.fallback)it.fallback.visible=Math.hypot(it.x-fx,it.z-fz)<it.cull;return;}
       if(Math.hypot(fx-focusX,fz-focusZ)<16&&(!camera||Math.hypot(camera.x-cameraX,camera.y-cameraY,camera.z-cameraZ)<12))return;focusX=fx;focusZ=fz;cameraX=camera?.x??NaN;cameraY=camera?.y??NaN;cameraZ=camera?.z??NaN;stats.rebuilds++;
       const counts=[0,0,0];
       for(const it of items){
         const d=Math.hypot(it.x-fx,it.z-fz),visualDistance=it.building&&camera?Math.hypot(it.x-camera.x,it.y-camera.y,it.z-camera.z):d;
         const level=d>=it.cull+(it.building?0:HYST)?-1:levelOf(it,visualDistance);it.level=level;
         const visible=level>=0&&!(d>80&&occluded?.(it.x,it.z,it.top));
-        if(it.fallback)it.fallback.visible=visible;
-        const g=geometryIds.get(it.assetId),target=visible&&g?Math.min(level,batches.length-1):-1;
+        const g=geometryIds.get(it.assetId),target=visible&&g&&batches[level]&&g[level]>=0?level:-1;
+        if(it.fallback)it.fallback.visible=visible&&target<0;
         if(target!==it.batch){
           if(it.instance>=0){batches[it.batch].deleteInstance(it.instance);stats.instanceDeletes++;}
           it.instance=-1;it.batch=target;
@@ -84,7 +93,7 @@ export function createPlacedInstances(parent:THREE.Object3D,ground:(x:number,z:n
       for(const it of items)if(it.batch>=0)active[it.batch].push(it.instance);
       stats.lod0=counts[0];stats.lod1=counts[1];stats.lod2=counts[2];stats.calls=counts.filter(Boolean).length;batches.forEach((b,k)=>b.visible=counts[k]>0);
     },
-    dispose(){disposed=true;for(const it of items)it.fallback?.removeFromParent();for(const g of fallbackGeometry.values())g.dispose();fallbackMaterial.dispose();for(const b of batches){b.removeFromParent();b.dispose();}material.dispose();},
+    dispose(){disposed=true;preparation.length=0;stats.pendingLevels=0;for(const it of items)it.fallback?.removeFromParent();for(const g of fallbackGeometry.values())g.dispose();fallbackMaterial.dispose();for(const b of batches){b.removeFromParent();b.dispose();}material.dispose();},
   };
 }
 export type PlacedInstances=ReturnType<typeof createPlacedInstances>;

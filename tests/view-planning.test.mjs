@@ -78,3 +78,8 @@ test('simultaneous worker completions wait for the integration budget; stale que
  v.refresh(0,0,1000);v.update(0,0,focus());assert.equal(v.stats.built,0,'edited results queued before refresh cannot be applied');await flush(false);v.update(0,0,focus());assert.equal(v.work.lastBuilt,2);assert.ok(v.work.inFlight<=6);
  for(const m of v.terrain.children)assert.notEqual(m.geometry.userData.minSurfaceY,99999);v.dispose();assert.equal(v.work.ready,0);
 });
+
+test('individual worker failures make bounded synchronous progress instead of retrying indefinitely',async()=>{
+ const pool={available:true,run(){return {promise:Promise.reject(new Error('fixture failure')),cancel(){}};}};
+ const v=createTerrainView(new THREE.Group(),{width:512,length:512,chunkSize:64,viewDistance:180},{workers:pool,maxBuildsPerUpdate:2});v.update(0,0,focus());await new Promise(r=>setTimeout(r,0));v.update(0,0,focus());assert.equal(v.work.lastBuilt,2);assert.equal(v.stats.built,2);v.dispose();
+});
