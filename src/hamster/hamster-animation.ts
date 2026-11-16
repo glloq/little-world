@@ -100,7 +100,7 @@ export class HamsterAnimator {
   private previous: MotionMode = 'ground';
   private transitionTime = 0;
   private time = 0; private stride = 0; private lastSpeed = 0; private accel = 0;
-  private airborneRoll=false; private lastLandingSeq=-1; private lastJumpSeq=-1;
+  private airborneRoll=false; private lastLandingSeq=-1;
   /** Read-only continuous gait phase for future remote reconstruction. */
   get stridePhase(){return this.stride;}
   private act: { name: ActionName; t: number; def: ActionDefinition; fired: number } | null = null;
@@ -149,7 +149,6 @@ export class HamsterAnimator {
       }
       this.lastLandingSeq=input.landingSeq;
     }
-    if(input.jumpSeq!==undefined)this.lastJumpSeq=input.jumpSeq;
     const pending=(s:LocomotionState)=>this.state===s&&this.transitionTime<TRANSITIONS[s as keyof typeof TRANSITIONS];
     if(pending('ROLL_ENTER')||pending('ROLL_EXIT')||pending('ROLL_LAND')||pending('GLIDE_OPEN')||pending('GLIDE_CLOSE')||pending('LAND')||(pending('JUMP')&&mode==='air'))return;
     this.state=input.aboard?'BOAT':mode==='roll'?'ROLL_LOOP':mode==='glide'?'GLIDE_LOOP'
