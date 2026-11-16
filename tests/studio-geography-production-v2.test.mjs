@@ -22,6 +22,8 @@ test('D8 headwater suggestions are reproducible and bounded on slender worlds',(
  assert.ok(a.headwaters.every(h=>h.upstreamAreaM2>0&&h.dropM>=3&&h.lengthM>=35));
  const narrow=analyzeWatersheds({minX:0,maxX:4,minZ:0,maxZ:10000},(x,z)=>100-z*.01,-50,{maxCells:256});
  assert.ok(narrow.sampled<=256);
+ const extreme=analyzeWatersheds({minX:0,maxX:3,minZ:0,maxZ:1e9},(x,z)=>100-z*1e-8,-50,{maxCells:256});
+ assert.ok(extreme.sampled<=256);
 });
 
 test('headwater river previews are validated without mutating context or sources',()=>{
@@ -81,6 +83,8 @@ test('priority flood refuses false pits on open sloping terrain and obeys cap',(
  assert.equal(drainage.depressions.length,0);
  const skinny=analyzeDepressions({minX:0,maxX:4,minZ:0,maxZ:10000},(x,z)=>100-z*.01,0,{maxCells:256});
  assert.ok(skinny.sampled<=256);
+ const extreme=analyzeDepressions({minX:0,maxX:3,minZ:0,maxZ:1e9},(x,z)=>100-z*1e-8,0,{maxCells:256});
+ assert.ok(extreme.sampled<=256);
 });
 test('fall batch never mutates input and only returns compiler-approved changes',()=>{
  const height=(x,z)=>100-z*.25;
