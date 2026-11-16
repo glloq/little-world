@@ -47,7 +47,7 @@ export function createActorSimulator(parent:THREE.Object3D,count:number,origin:{
  const renderer=createRemoteCharacters(parent,isOccluded),sample=emptyPresentation();let next=0;
  const stats={...renderer.stats,hz:20};
  return {stats,renderer,
-  tick(time:number){const hz=[20,8,2][Math.floor(time/12)%3];stats.hz=hz;if(time<next)return;next=time+1/hz;
+  tick(time:number){const hz=[20,8,2][Math.floor(time/12)%3];stats.hz=hz;if(time<next)return;next+=1/hz;if(next<time-1/hz)next=time+1/hz;
    for(let i=0;i<count;i++){const phase=time*.12+i*2.399,r=8+i*2.3;sample.t=time;sample.x=origin.x+Math.sin(phase)*r;sample.z=origin.z+Math.cos(phase)*r;sample.y=ground(sample.x,sample.z);sample.yaw=phase+Math.PI/2;sample.speed=r*.12;sample.mode=i%9===3?'roll':i%9===4?'glide':i%9===5?'swim':i%9===6?'air':'ground';sample.verticalSpeed=sample.mode==='air'?2:0;if(sample.mode==='glide')sample.y+=12;sample.action=i%9===7?'INTERACT':null;sample.actionSeq=Math.floor(time/3);renderer.push('simulated-'+i,sample);}
   },
   update(dt:number,time:number,camera:THREE.PerspectiveCamera,height:number,quality:number){renderer.update(dt,time,camera,height,quality,Math.max(.1,1.2/stats.hz));Object.assign(stats,renderer.stats);},
