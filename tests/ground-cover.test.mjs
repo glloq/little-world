@@ -44,6 +44,7 @@ test('tufts share ground-cover colour/density and immediately see Studio mask re
 });
 test('shared detail LOD and horizon vertices have identical packed colours without changing the relief',()=>{
  setup();const bounds={width:1024,length:1024,seaLevel:0},grid=horizonGrid(1024,1024),horizon=horizonBlockData(bounds,grid,0,0);
+ const detailNormals=new Map();
  const boundsTile={minX:192,maxX:256,minZ:128,maxZ:192},byPoint=new Map();
  for(const lod of [0,1,2]){
   const d=createChunkData(boundsTile,lod);
@@ -51,6 +52,7 @@ test('shared detail LOD and horizon vertices have identical packed colours witho
    const x=d.positions[i*3],z=d.positions[i*3+2],key=x+':'+z,color=Array.from(d.colors.slice(i*3,i*3+3));
    assert.ok(Math.abs(d.positions[i*3+1]-terrainHeight(x,z))<1e-4);
    if(byPoint.has(key))assert.deepEqual(color,byPoint.get(key));else byPoint.set(key,color);
+   detailNormals.set(key,Array.from(d.normals.slice(i*3,i*3+3)));
   }
  }
  // Horizon block containing this tile (8 m grid, blocks of 256 m).
@@ -58,7 +60,9 @@ test('shared detail LOD and horizon vertices have identical packed colours witho
  for(let i=0;i<block.positions.length/3;i++){
   const key=block.positions[i*3]+':'+block.positions[i*3+2],expected=byPoint.get(key);if(!expected)continue;
   const color=Array.from(block.colors.slice(i*3,i*3+3),v=>Math.round(Math.max(0,Math.min(1,v))*65535));
-  assert.deepEqual(color,expected);compared++;
+  assert.deepEqual(color,expected);
+  const normals=Array.from(block.normals.slice(i*3,i*3+3),v=>Math.round(Math.max(-1,Math.min(1,v))*32767));
+  assert.deepEqual(normals,detailNormals.get(key),'same lighting normal at the detail/horizon boundary');compared++;
  }
  assert.ok(compared>0,'actually compared shared horizon vertices');assert.ok(horizon.index.length>0);
 });

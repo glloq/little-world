@@ -29,7 +29,7 @@ export function createChunkData(
     colors: number[] = [],
     normals: number[] = [],
     indices: number[] = [];
-  const color = new LinearColor();
+  const color = new LinearColor(),surfaceNormal={x:0,y:1,z:0};
   // Per-vertex results kept for the skirts: a skirt vertex samples exactly the same (x, z) as
   // its edge vertex, so its height, colour and normal are copied instead of recomputed.
   const heights: number[] = [];
@@ -46,18 +46,18 @@ export function createChunkData(
     positions.push(x, h - (skirt ? 12 : 0), z);
     heights.push(h);
     const slope = Math.abs(east - h);
-    surfaceColor(x, z, h, slope, color);
+    surfaceColor(x, z, h, slope, color,surfaceNormal);
     if(legacy)color.multiplyScalar(
       0.92 +
         0.07 * Math.sin(x * 0.275 + z * 0.165) +
         0.035 * Math.sin(x + z * 0.7),
     );
     colors.push(color.r, color.g, color.b);
-    // Analytic finite-difference normals are independent of local LOD and match across boundaries.
-    const nx = terrainHeight(x - 0.25, z) - terrainHeight(x + 0.25, z);
-    const nz = terrainHeight(x, z - 0.25) - terrainHeight(x, z + 0.25);
-    const magnitude = Math.hypot(nx, 0.5, nz);
-    normals.push(nx / magnitude, 0.5 / magnitude, nz / magnitude);
+    // Canonical surface normals are shared with the horizon; the valley keeps its old shading.
+    if(legacy){
+      const nx=terrainHeight(x-.25,z)-terrainHeight(x+.25,z),nz=terrainHeight(x,z-.25)-terrainHeight(x,z+.25),magnitude=Math.hypot(nx,.5,nz);
+      normals.push(nx/magnitude,.5/magnitude,nz/magnitude);
+    }else normals.push(surfaceNormal.x,surfaceNormal.y,surfaceNormal.z);
     return positions.length / 3 - 1;
   }
   for (let iz = 0; iz <= cellsZ; iz++)
