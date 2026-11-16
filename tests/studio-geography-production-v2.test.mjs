@@ -85,7 +85,7 @@ test('closed volcanic bowl exposes a downstream spillway without routing a river
   const r=Math.hypot(x+50,z);
   return 8+r*.08+10*Math.exp(-(((r-30)/7)**2));
  };
- const result=analyzeDepressions(bounds,height,0,{maxCells:4096,minDepthM:1.5,minAreaM2:200});
+ const result=analyzeDepressions(bounds,height,0,{stepM:3,maxCells:4096,minDepthM:1.5,minAreaM2:200});
  const basin=result.depressions.find(b=>b.spillway);
  assert.ok(basin,'A ringed depression must reveal a downstream spillway after priority flooding');
  assert.ok(height(basin.spillway.crest.x,basin.spillway.crest.z)>
