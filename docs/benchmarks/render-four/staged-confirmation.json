@@ -1,0 +1,150 @@
+{
+  "revision": "e8424d291871b32ea8635823b323aed3ba31cb3f",
+  "date": "2026-11-16T21:25:15.890Z",
+  "renderer": "Chromium SwiftShader; 960x640 viewport; CPU submission is NOT GPU time; flight/roll modes are reported per row",
+  "results": [
+    {
+      "scene": "village",
+      "config": "off",
+      "graphics": {
+        "vendor": "Google Inc. (Google)",
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "multiDraw": true
+      },
+      "url": "http://127.0.0.1:5173/little-world/?world=maps%2Fisland%2Fmanifest.json&renderTier=1&spawn=-150%2C650&yaw=1.5&pitch=0.3&dist=60&metrics=1&impostors=off&remoteActors=0&impostorSectors=512",
+      "samples": 33,
+      "framebuffer": {
+        "width": 768,
+        "height": 512,
+        "pixelRatio": 0.8
+      },
+      "qualityLevels": [
+        1
+      ],
+      "effectiveFps": 8.323795650803866,
+      "intervalMs": {
+        "p50": 109.29999999701977,
+        "p95": 140.10000000149012,
+        "p99": 395.1000000014901
+      },
+      "calls": 140,
+      "triangles": 67355.84848484848,
+      "cpu": {
+        "simulation": 0.24848484812360822,
+        "update": 5.0606060606060606,
+        "submit": 4.63939393966487
+      },
+      "perf": {
+        "samples": 210,
+        "frameMs": {
+          "p50": 116.60000000000036,
+          "p95": 166.70000000000073,
+          "p99": 233.39999999999964
+        },
+        "simulationMs": {
+          "p50": 0.30000000447034836,
+          "p95": 0.6000000014901161,
+          "p99": 0.8999999985098839
+        },
+        "updateMs": {
+          "p50": 3.5,
+          "p95": 19.200000002980232,
+          "p99": 30.899999998509884
+        },
+        "submitMs": {
+          "p50": 3.899999998509884,
+          "p95": 17.5,
+          "p99": 189.79999999701977
+        },
+        "longFrames": 201
+      },
+      "gpu": {
+        "samples": 216,
+        "available": true,
+        "ms": 163.06853,
+        "disjoint": 0,
+        "pending": 1
+      },
+      "hybrid": {
+        "mode": "off",
+        "trees": {
+          "sectorM": 512,
+          "bufferUploads": 0,
+          "unchangedSectors": 0,
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "buildings": {
+          "sectorM": 256,
+          "bufferUploads": 0,
+          "unchangedSectors": 0,
+          "state": "off",
+          "instances": 0,
+          "sectors": 0,
+          "cachedSectors": 0,
+          "calls": 0,
+          "textureBytes": 0,
+          "textures": 0,
+          "uploadBytes": 0,
+          "totalUploadBytes": 0,
+          "evictions": 0,
+          "preparationMs": 0
+        },
+        "cache": {
+          "bytes": 0,
+          "entries": 0,
+          "loads": 0,
+          "hits": 0,
+          "evictions": 0,
+          "failed": 0
+        }
+      },
+      "actors": null,
+      "placed": {
+        "placements": 1338,
+        "lod0": 40,
+        "lod1": 189,
+        "lod2": 6,
+        "calls": 3,
+        "rebuilds": 5,
+        "staticBuildings": 69,
+        "instanceCreates": 256,
+        "instanceDeletes": 21,
+        "fallbacks": 0,
+        "lod2Capacity": 65,
+        "preparedThisUpdate": 0,
+        "pendingLevels": 0,
+        "maxPrepareMs": 1.6999999955296516,
+        "state": "ready"
+      },
+      "objectCulling": {
+        "tested": 14,
+        "hidden": 7,
+        "nearKept": 7
+      },
+      "preparation": {
+        "lastMs": 0,
+        "maxTileMs": 0.30000000447034836,
+        "totalMs": 4.799999997019768,
+        "lastBuilt": 0,
+        "ready": 0,
+        "inFlight": 0,
+        "maxReady": 6,
+        "maxBuiltPerFrame": 0
+      },
+      "modes": [
+        "ground"
+      ],
+      "errors": []
+    }
+  ]
+}

@@ -69,3 +69,17 @@ test('worker results that land after a replan never leave the queue stuck (key, 
   assert.equal(view.stats.pending,0,'queue drained');
   view.dispose();
 });
+
+test('simultaneous worker completions wait for the integration budget; stale queued data is discarded on edit',async()=>{
+ const {createChunkData}=await import('../src/terrain-data.ts');const jobs=[];const pool={available:true,run(job){let resolve;const promise=new Promise(r=>resolve=r);const e={job,resolve};jobs.push(e);return {promise,cancel(){}};}};
+ const flush=async sentinel=>{for(const e of jobs.splice(0)){const result=createChunkData(e.job.chunk,e.job.lod);if(sentinel)result.minSurfaceY=99999;e.resolve({result,stale:false});}await new Promise(r=>setTimeout(r,0));};
+ const v=createTerrainView(new THREE.Group(),{width:512,length:512,chunkSize:64,viewDistance:180},{workers:pool,maxBuildsPerUpdate:2,buildBudgetMs:100});v.update(0,0,focus());await flush(true);
+ assert.equal(v.stats.built,0,'completion callbacks must not create geometry outside update');assert.ok(v.work.ready<=6&&v.work.ready>2);
+ v.refresh(0,0,1000);v.update(0,0,focus());assert.equal(v.stats.built,0,'edited results queued before refresh cannot be applied');await flush(false);v.update(0,0,focus());assert.equal(v.work.lastBuilt,2);assert.ok(v.work.inFlight<=6);
+ for(const m of v.terrain.children)assert.notEqual(m.geometry.userData.minSurfaceY,99999);v.dispose();assert.equal(v.work.ready,0);
+});
+
+test('individual worker failures make bounded synchronous progress instead of retrying indefinitely',async()=>{
+ const pool={available:true,run(){return {promise:Promise.reject(new Error('fixture failure')),cancel(){}};}};
+ const v=createTerrainView(new THREE.Group(),{width:512,length:512,chunkSize:64,viewDistance:180},{workers:pool,maxBuildsPerUpdate:2});v.update(0,0,focus());await new Promise(r=>setTimeout(r,0));v.update(0,0,focus());assert.equal(v.work.lastBuilt,2);assert.equal(v.stats.built,2);v.dispose();
+});

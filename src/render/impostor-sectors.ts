@@ -29,9 +29,9 @@ void main(){
  #include <fog_vertex>
 }`;
 const fragment=`
-uniform sampler2D atlas;uniform float night;varying vec2 vAtlasUv;varying vec3 vTint;
+uniform sampler2D atlas;uniform float night;uniform vec3 illumination;uniform float lit;varying vec2 vAtlasUv;varying vec3 vTint;
 #include <fog_pars_fragment>
-void main(){vec4 c=texture2D(atlas,vAtlasUv);if(c.a<.5)discard;gl_FragColor=vec4(c.rgb*vTint*(1.-night*.72),1.);
+void main(){vec4 c=texture2D(atlas,vAtlasUv);if(c.a<.5)discard;gl_FragColor=vec4(c.rgb*vTint*mix(vec3(1.-night*.72),illumination,lit),1.);
 #include <tonemapping_fragment>
 #include <colorspace_fragment>
 #include <fog_fragment>
@@ -45,7 +45,7 @@ function store(s:Sector,field:number,index:number,x:number,y:number,z:number,w?:
 }
 export function createImpostorSectors(parent:THREE.Object3D,kind:'trees'|'characters'|'buildings',onReady=()=>{}){
  const root=new THREE.Group();root.name='Impostors:'+kind;parent.add(root);
- const material=new THREE.ShaderMaterial({vertexShader:vertex,fragmentShader:fragment,side:THREE.DoubleSide,fog:true,uniforms:{atlas:{value:null},metadata:{value:null},grid:{value:new THREE.Vector2(1,1)},metaWidth:{value:1},time:{value:0},night:{value:0}}});
+ const material=new THREE.ShaderMaterial({vertexShader:vertex,fragmentShader:fragment,side:THREE.DoubleSide,fog:true,uniforms:{atlas:{value:null},metadata:{value:null},grid:{value:new THREE.Vector2(1,1)},metaWidth:{value:1},time:{value:0},night:{value:0},illumination:{value:new THREE.Color(1,1,1)},lit:{value:0}}});
  const sectors=new Map<string,Sector>();let atlas:AtlasResource|null=null,ticket:ReturnType<typeof acquireAtlas>|null=null,enabled=false,dead=false,clock=0,quota=4096,sectorQuota=32,sectorM=256,activeWrites=0,debug=false,generation=0;
  const stats={sectorM,bufferUploads:0,unchangedSectors:0,state:'off' as 'off'|'loading'|'ready'|'failed',instances:0,sectors:0,cachedSectors:0,calls:0,textureBytes:0,textures:0,uploadBytes:0,totalUploadBytes:0,evictions:0,preparationMs:0};
  function removeSector(s:Sector){s.debug?.geometry.dispose();if(s.debug)(s.debug.material as THREE.Material).dispose();s.debug?.removeFromParent();s.geometry.dispose();s.mesh.removeFromParent();}
@@ -106,6 +106,7 @@ export function createImpostorSectors(parent:THREE.Object3D,kind:'trees'|'charac
    if(debug&&!s.debug){s.debug=new THREE.Box3Helper(new THREE.Box3(),0xff55aa);root.add(s.debug);}
    if(s.debug){s.debug.visible=enabled&&debug;s.debug.box.min.set(s.minX-s.maxRadius,s.minY-s.maxRadius,s.minZ-s.maxRadius);s.debug.box.max.set(s.maxX+s.maxRadius,s.maxY+s.maxRadius,s.maxZ+s.maxRadius);}
   }stats.sectors=active;stats.calls=active;stats.cachedSectors=sectors.size;stats.totalUploadBytes+=stats.uploadBytes;stats.preparationMs=performance.now()-start;},
+  setLighting(color:THREE.Color|null){material.uniforms.lit.value=color?1:0;if(color)material.uniforms.illumination.value=color;},
   update(time:number,night=0){material.uniforms.time.value=time;material.uniforms.night.value=night;},
   dispose(){if(dead)return;setEnabled(false);dead=true;material.dispose();root.removeFromParent();},
   cache:atlasCacheStats,

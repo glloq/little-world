@@ -1,0 +1,48 @@
+{
+  "baseline": {
+    "calls": 40,
+    "triangles": 3200
+  },
+  "batched": {
+    "calls": 1,
+    "triangles": 3200
+  },
+  "meanPixelError": 0,
+  "stableInstances": true,
+  "multiDraw": true,
+  "states": [
+    {
+      "name": "day",
+      "correction": [
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "name": "sunset",
+      "correction": [
+        0.4011985143120733,
+        0.4132456493858433,
+        0.4226149182564008
+      ]
+    },
+    {
+      "name": "cloudy",
+      "correction": [
+        0.914382950721051,
+        0.9253933554851835,
+        0.9341276276081301
+      ]
+    },
+    {
+      "name": "night",
+      "correction": [
+        0.18992869881599753,
+        0.19700594121247195,
+        0.2019781875428928
+      ]
+    }
+  ],
+  "errors": []
+}

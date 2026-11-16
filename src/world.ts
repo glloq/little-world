@@ -1,3 +1,6 @@
+import {impostorIllumination} from './render/impostor-lighting.ts';
+import type {SkyLighting} from './environment/sky-lighting.ts';
+import {assetInFrustum} from './render/asset-culling.ts';
 import {createImpostorSectors} from './render/impostor-sectors.ts';
 import {representationFor} from './render/representation-policy.ts';
 import {atlasCacheStats} from './render/impostor-atlas.ts';
@@ -48,6 +51,9 @@ import {
  * (E10), to be confirmed on integrated GPUs; the pool never grows with the number of sources. */
 export const LIGHT_POOL = 4, LIGHT_POOL_ECONOMY = 2;
 export interface WorldView {
+  readonly atlasIllumination:THREE.Color|null;
+  setImpostorLighting(lighting:SkyLighting):void;
+  objectCulling:{tested:number;hidden:number;nearKept:number};
   isOccluded(x:number,y:number,z:number):boolean;
   hybrid:{setDebug(on:boolean):void;setMode(mode:'off'|'trees'|'all'):void;setSectors(on:boolean):void;getMode():string;stats:{mode:string;trees:ReturnType<typeof createImpostorSectors>['stats']|null;buildings:ReturnType<typeof createImpostorSectors>['stats'];cache:typeof atlasCacheStats}};
   /** World Production: instanced enclosure/dock modules (game runtime). */
@@ -556,7 +562,7 @@ function createRegistryAsset(id: string): THREE.Group | null {
     removeFallback(g);
     const lod = new THREE.LOD();
     lod.name = 'LOD ' + id;
-    scenes.forEach((scene, i) => lod.addLevel(scene!.clone(true), distances[i], 2));
+    scenes.forEach((scene, i) => lod.addLevel(scene!.clone(true), distances[i], .02));
     g.add(lod);
     animatedAssets.register(g, lod);
     // After the placeholder is cleared (it would dispose the shared beam material otherwise).
@@ -723,7 +729,7 @@ export function buildWorld(
   // Generation is time-sliced (ms) rather than a fixed count; the shared level adapts LOD.
   // Geography workers (null in Node or when unavailable: synchronous main-thread path).
   const workers = geoWorkerPool();
-  const terrainView = createTerrainView(root, getTerrainConfig(), { buildBudgetMs: 4, maxBuildsPerUpdate: 8, workers });
+  const terrainView = createTerrainView(root, getTerrainConfig(), { buildBudgetMs: 4, maxBuildsPerUpdate: 2, workers });
   const terrain = terrainView.terrain;
   const horizon = createHorizonView(root, getTerrainConfig(), terrainView, workers);
   // The demonstration valley decor is tied to the legacy generator; generated worlds
@@ -753,6 +759,7 @@ export function buildWorld(
   // G5: natural dressing (forests, cliff rocks, scree, pebbles, basalt) of generated worlds.
   const dressing: DressingView | null = legacy ? null : createDressingView(root, config.seed, config.density, workers);
   const buildingImpostors=createImpostorSectors(root,'buildings');buildingImpostors.setBudget(64,4);
+  let atlasLight:SkyLighting|null=null;const atlasColor=new THREE.Color(1,1,1);
   let hybridMode:'off'|'trees'|'all'='off',hybridNight=0;
   const spriteTint=new THREE.Color(1,1,1);
   const setHybridMode=(mode:'off'|'trees'|'all')=>{hybridMode=mode;dressing?.setImpostors(mode!=='off');buildingImpostors.setEnabled(mode==='all');};
@@ -807,11 +814,15 @@ export function buildWorld(
   const forward = new THREE.Vector3(),
     frustum = new THREE.Frustum(),
     projection = new THREE.Matrix4();
+  const objectCulling={tested:0,hidden:0,nearKept:0};
   const objects = new THREE.Group();
   objects.name = 'PlacedAssets';
   root.add(objects);
   return {
     root,
+    objectCulling,
+    get atlasIllumination(){return atlasLight?atlasColor:null;},
+    setImpostorLighting(lighting){atlasLight=lighting;dressing?.setLighting(atlasColor);buildingImpostors.setLighting(atlasColor);},
     terrain,
     wheel,
     millPosition,
@@ -932,10 +943,11 @@ export function buildWorld(
         placed.setOcclusion(occluded);
       }
       if(camera)dressing?.setView({x:camera.position.x,y:camera.position.y,z:camera.position.z,fov:camera.fov,height:pixelHeight});
+      if(atlasLight)impostorIllumination(atlasLight,atlasColor);
       dressing?.updateImpostors(time,hybridNight);buildingImpostors.update(time,hybridNight);
       dressing?.update(focus.x, focus.z);
       grass?.update(dt, { x: focus.x, y: (focus as { y?: number }).y, z: focus.z });
-      placed.update(focus.x, focus.z);
+      placed.update(focus.x, focus.z,camera?.position);
       natural.update(focus.x,focus.z);
       cliffs.update(camera?.position.x??focus.x,camera?.position.z??focus.z);
       pathView.update(focus.x, focus.z);
@@ -946,6 +958,7 @@ export function buildWorld(
       lightView.update(lightCamera);
       buildingImpostors.begin();
       const distance = getTerrainConfig().viewDistance;
+      objectCulling.tested=objectCulling.hidden=objectCulling.nearKept=0;
       for (const object of objects.children) {
         const d = Math.hypot(object.position.x - focus.x, object.position.z - focus.z);
         const assetId=object.userData.registryAsset as string|undefined,asset=assetId?worldAsset(assetId):undefined;
@@ -955,6 +968,10 @@ export function buildWorld(
           if(representation==='impostor'&&!occluded(object.position.x,object.position.z,object.position.y+asset.size[1]*object.scale.y)&&buildingImpostors.write(asset.id,object.position.x,object.position.y,object.position.z,object.scale.y,object.rotation.y,spriteTint,asset.lods[0].sha256)){object.visible=false;continue;}
         }
         object.visible = d < (object.userData.viewDistance ?? distance) && !(d > 60 && occluded(object.position.x, object.position.z, object.position.y + (object.userData.height ?? 8) * object.scale.y));
+        if(object.visible&&camera&&asset){
+          if(Math.hypot(object.position.x-camera.position.x,object.position.y-camera.position.y,object.position.z-camera.position.z)<=80)objectCulling.nearKept++;
+          else {objectCulling.tested++;if(!assetInFrustum(asset.id,object,frustum)){object.visible=false;objectCulling.hidden++;}}
+        }
       }
       buildingImpostors.end();
     },

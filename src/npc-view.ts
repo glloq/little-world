@@ -224,6 +224,7 @@ export function createNPCSystem(
   }
   return {
     dialogue,
+    setLighting(color:THREE.Color|null){distant.setLighting(color);},
     states: entries.map((entry) => entry.state),
     update(dt: number, time: number, position: NPCPoint,camera?:THREE.PerspectiveCamera) {
       if (disposed) return;

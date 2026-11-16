@@ -458,3 +458,5 @@ La rotation reste une mesure dynamique sensible au calendrier des frames. Le gai
 reste non démontré : le profil est intégré et testable sur toute la carte, **pas activé par défaut**.
 L'essai sur GPU intégré réel, avec les mêmes vues et le renderer enregistré, reste le prochain
 critère pour décider d'une activation automatique.
+
+Suite : [préparation, regroupement des bâtiments, culling et lumière partagée](56-RENDER-PREPARATION-CULLING.md).

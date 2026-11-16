@@ -1,0 +1,37 @@
+{
+  "unitTests": 493,
+  "failures": 0,
+  "typecheck": "passed",
+  "build": "passed",
+  "atlasInputs": "current",
+  "controlled": {
+    "houses": 40,
+    "drawCallsBefore": 40,
+    "drawCallsAfter": 1,
+    "trianglesBeforeAndAfter": 3200,
+    "meanPixelError": 0,
+    "multiDraw": true
+  },
+  "limits": {
+    "terrainMeshesPerUpdate": 2,
+    "terrainOutstandingCreditsIncludingReady": 6,
+    "GLBLodBatchesPreparedPerUpdate": 1,
+    "distantBuildingCapacityOnIsland": 65
+  },
+  "browsers": {
+    "hybrid": "passed",
+    "mapProfile": "passed",
+    "longTrip": {
+      "checks": 8,
+      "nearLoss": 0,
+      "spritesAtReturn": 392,
+      "cachedSectors": 19
+    },
+    "studio": {
+      "checks": 17,
+      "errors": []
+    },
+    "staticProfile": "passed"
+  },
+  "scope": "renderer only; shared atlas lighting is approximate; shaders retain discrete atlas angles; no snow implementation"
+}
