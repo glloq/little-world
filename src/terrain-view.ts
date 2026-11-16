@@ -58,7 +58,7 @@ export interface TerrainStats {
   turn: number;
   replans: number;
 }
-export interface TerrainWorkStats {lastMs:number;maxTileMs:number;totalMs:number;lastBuilt:number}
+export interface TerrainWorkStats {lastMs:number;maxTileMs:number;totalMs:number;lastBuilt:number;ready:number;inFlight:number;maxReady:number}
 export interface TerrainView {
   terrain: THREE.Group;
   stats: TerrainStats;
@@ -121,7 +121,7 @@ export function createTerrainView(
     turn: 0,
     replans: 0,
   };
-  const work: TerrainWorkStats = { lastMs: 0, maxTileMs: 0, totalMs: 0, lastBuilt: 0 };
+  const work: TerrainWorkStats = { lastMs: 0, maxTileMs: 0, totalMs: 0, lastBuilt: 0, ready:0, inFlight:0, maxReady:0 };
   const maxResident = Math.max(
     16,
     Math.min(
@@ -146,29 +146,28 @@ export function createTerrainView(
    * replanned camera keeps priority over older requests. */
   const inFlight = new Map<string, { chunk: PlannedChunk; task: GeoTask<ChunkData> }>();
   const MAX_IN_FLIGHT = 6;
+  const completed=new Map<string,ChunkData>(),failed=new Set<string>();
+  let desiredKeys=new Set<string>();
   function dispatch(): void {
     for (const [k, job] of inFlight)
-      if (!desired.some((d) => key(d, d.lod) === k)) { job.task.cancel(); inFlight.delete(k); }
+      if (!desiredKeys.has(k)) { job.task.cancel(); inFlight.delete(k);completed.delete(k);failed.delete(k); }
     for (let i = 0; i < pending.length && inFlight.size < MAX_IN_FLIGHT; i++) {
       const chunk = pending[i], k = key(chunk, chunk.lod);
       // Already built (e.g. by a request issued before a replan): show it, never wait for it.
       const ready = cache.get(k);
       if (ready) { pending.splice(i--, 1); show(ready); continue; }
-      if (inFlight.has(k)) continue;
+      if (inFlight.has(k)||failed.has(k)) continue;
       const task = pool!.run<ChunkData>({ kind: 'tile', chunk: { minX: chunk.minX, maxX: chunk.maxX, minZ: chunk.minZ, maxZ: chunk.maxZ }, lod: chunk.lod }, i);
       inFlight.set(k, { chunk, task });
       task.promise.then(({ result, stale }) => {
         if (inFlight.get(k)?.task !== task) return;
-        inFlight.delete(k);
-        if (dead || stale || cache.has(k)) return;
-        // A replan may have queued a new object for the same tile: match by key, not identity.
-        const index = pending.findIndex((c) => key(c, c.lod) === k);
-        if (index >= 0) pending.splice(index, 1);
-        build(chunk, result);
-        work.lastBuilt++;
+        if (dead || stale || cache.has(k)||!desiredKeys.has(k)) {inFlight.delete(k);return;}
+        // Worker callbacks only enqueue data. Integration and GPU-buffer preparation happen
+        // under the same update budget as synchronous tiles, never in a microtask burst.
+        completed.set(k,result);work.ready=completed.size;work.maxReady=Math.max(work.maxReady,completed.size);
       }, () => {
         // Worker failure: the tile is built on the main thread by the synchronous path.
-        if (inFlight.get(k)?.task === task) inFlight.delete(k);
+        if (inFlight.get(k)?.task === task) {inFlight.delete(k);failed.add(k);}
       });
     }
   }
@@ -201,7 +200,8 @@ export function createTerrainView(
     record.used = ++sequence;
   }
   function apply(plan: PlannedChunk[]): void {
-    desired = plan;
+    desired = plan;desiredKeys=new Set(plan.map(c=>key(c,c.lod)));
+    for(const k of failed)if(!desiredKeys.has(k))failed.delete(k);
     stats.replans++;
     const wanted = new Set(desired.map((chunk) => chunk.id));
     for (const [id, record] of active)
@@ -257,7 +257,7 @@ export function createTerrainView(
     cache.set(key(chunk, chunk.lod), record);
     bytes += record.bytes;
     stats.built++;
-    if (desired.some((d) => d.id === chunk.id && d.lod === chunk.lod)) show(record);
+    if (desiredKeys.has(key(chunk,chunk.lod))) show(record);
     const spent = performance.now() - begin;
     work.maxTileMs = Math.max(work.maxTileMs, spent);
   }
@@ -274,7 +274,7 @@ export function createTerrainView(
   function updateStats(frustum?: THREE.Frustum): void {
     stats.active = active.size;
     stats.resident = cache.size;
-    stats.pending = pending.length;
+    stats.pending = pending.length;work.ready=completed.size;work.inFlight=inFlight.size;
     stats.bytes = bytes;
     stats.triangles = 0;
     let visible = 0;
@@ -304,11 +304,14 @@ export function createTerrainView(
       const begin = performance.now();
       let built = 0;
       if (pool?.available) dispatch();
-      else
-        while (pending.length && built < maxBuilds && (built === 0 || performance.now() - begin < budgetMs)) {
-          build(pending.shift()!);
-          built++;
-        }
+      while(pending.length&&built<maxBuilds&&(built===0||performance.now()-begin<budgetMs)){
+        const index=pool?.available?pending.findIndex(c=>completed.has(key(c,c.lod))||failed.has(key(c,c.lod))):0;
+        if(index<0)break;
+        const chunk=pending.splice(index,1)[0],k=key(chunk,chunk.lod),data=completed.get(k);
+        completed.delete(k);failed.delete(k);inFlight.get(k)?.task.cancel();inFlight.delete(k);
+        build(chunk,data);built++;
+      }
+      if(pool?.available)dispatch();
       work.lastBuilt = built;
       work.lastMs = performance.now() - begin;
       work.totalMs += work.lastMs;
@@ -326,7 +329,7 @@ export function createTerrainView(
           cache.delete(key(record.chunk, record.lod));
         } else release(record);
       }
-      for (const [k, job] of inFlight) if (touched(job.chunk)) { job.task.cancel(); inFlight.delete(k); }
+      for (const [k, job] of inFlight) if (touched(job.chunk)) { job.task.cancel(); inFlight.delete(k);completed.delete(k);failed.delete(k); }
       if (lastFocus) replanView(lastFocus);
       else
         replan(
@@ -341,7 +344,7 @@ export function createTerrainView(
       for (const record of [...cache.values()]) release(record);
       for (const record of active.values()) if (record.stale) retireStale(record);
       for (const job of inFlight.values()) job.task.cancel();
-      inFlight.clear();
+      inFlight.clear();completed.clear();failed.clear();
       material.dispose();
       pending = [];
       desired = [];

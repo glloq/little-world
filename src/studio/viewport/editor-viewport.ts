@@ -78,12 +78,12 @@ export class StudioViewport {
     this.renderer=new THREE.WebGLRenderer({canvas:this.canvas,antialias:true,powerPreference:'low-power'});this.renderer.setPixelRatio(Math.min(devicePixelRatio,1.25));this.renderer.outputColorSpace=THREE.SRGBColorSpace;this.renderer.toneMapping=THREE.ACESFilmicToneMapping;this.renderer.toneMappingExposure=1.1;
     this.sky=configureScene(this.scene);this.skyDay={sun:this.sky.sun.intensity,fill:this.sky.fill.intensity,ambient:this.sky.ambient.intensity,sunColor:this.sky.sun.color.getHex(),sunPosition:this.sky.sun.position.clone(),background:(this.scene.background as THREE.Color).getHex()};
     this.lightGroup.name='LightMarkers';this.scene.add(this.lightGroup);this.rangeGizmo.visible=false;this.rangeGizmo.renderOrder=24;this.scene.add(this.rangeGizmo);
-    this.world=buildWorld(definition.config,definition);this.scene.add(this.world.root);this.hybridControls=mountHybridControls(this.element,this.world,()=>this.invalidate(120));
+    this.world=buildWorld(definition.config,definition);this.world.setImpostorLighting(this.sky);this.scene.add(this.world.root);this.hybridControls=mountHybridControls(this.element,this.world,()=>this.invalidate(120));
     // A project without a saved 3D pose starts on the world's start point (beach, valley entrance).
     const saved=session.selection.state.camera,start=saved.target?saved:{...defaultSpawn(definition.config,definition.terrain),mode:'orbit' as const};
     const b=p.world.bounds;this.camera=new EditorCamera(poseFromContext(start,terrainHeight),session.selection.state.camera.mode==='top'?'top':session.selection.state.camera.mode==='free'?'free':'orbit',{minX:b.minX,maxX:b.maxX,minZ:b.minZ,maxZ:b.maxZ,ground:(x,z)=>terrainHeight(x,z)});
     this.camera.setFar(horizonFar(b.maxX-b.minX,b.maxZ-b.minZ));
-    this.npcs=createNPCSystem(this.scene,[],[]);
+    this.npcs=createNPCSystem(this.scene,[],[]);this.npcs.setLighting(this.world.atlasIllumination);
     this.selection=new SelectionController(this.scene,session,()=>[...[...this.models.values()].map(m=>m.object),...[...this.npcObjects.values()].flat(),...[...this.lightMarkers.values()].map(m=>m.object)],id=>this.objectFor(id),e=>this.groundAt(e.clientX,e.clientY));
     this.navigation=attachNavigation(this.canvas,this.camera,{pick:(x,y)=>this.groundAt(x,y),heightPx:()=>this.canvas.clientHeight,isActive:()=>this.visible,onInteract:()=>this.invalidate(4),onSettled:()=>this.saveCamera()});
     const context:ToolContext={session,scene:this.scene,canvas:this.canvas,camera:this.camera,selection:this.selection,ground:e=>this.groundAt(e.clientX,e.clientY),objectFor:id=>this.objectFor(id),invalidate:n=>this.invalidate(n),message:options.message,refreshInspector:options.refreshInspector,setTool:id=>{this.setTool(id);options.toolChanged(id);},
@@ -316,7 +316,7 @@ export class StudioViewport {
     }
     const npcs=this.definition.npcs.filter(n=>this.contentIds.has(p.entityIndex[n.id]?.ownerChunkId??'')),signature=JSON.stringify(npcs);
     if(signature!==this.npcSignature){
-      this.npcs.dispose();this.npcs=createNPCSystem(this.scene,npcs,[]);this.npcSignature=signature;this.npcObjects.clear();
+      this.npcs.dispose();this.npcs=createNPCSystem(this.scene,npcs,[]);this.npcs.setLighting(this.world.atlasIllumination);this.npcSignature=signature;this.npcObjects.clear();
       for(const n of npcs){const objects=[this.scene.getObjectByName('NPC:'+n.id),this.scene.getObjectByName('NPC silhouette:'+n.id)].filter((o):o is THREE.Object3D=>!!o);for(const o of objects)o.userData.entityId=n.id;this.npcObjects.set(n.id,objects);}
     }
     this.selection.refresh();

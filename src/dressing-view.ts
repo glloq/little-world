@@ -263,6 +263,7 @@ export function createDressingView(parent:THREE.Group,seed:number,density:number
   }
   return {
     stats,
+    setLighting(color:THREE.Color|null){impostors.setLighting(color);},
     setDebug(on:boolean){impostors.setDebug(on);},
     setImpostors(on:boolean){if(on===hybridEnabled)return;hybridEnabled=on;impostors.setEnabled(on);dirty=true;lastRebuild=0;},
     setView(view:Omit<typeof hybridView,'quality'>){if(hybridEnabled&&representationViewChanged(view,plannedView))dirty=true;Object.assign(hybridView,view);},

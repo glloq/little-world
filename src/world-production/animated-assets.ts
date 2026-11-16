@@ -28,10 +28,12 @@ export function createAnimatedAssets(){
     register(owner:THREE.Object3D,scene:THREE.Object3D){
       const byName=new Map<string,THREE.Object3D[]>();
       scene.traverse(n=>{if(PIVOT_MOTION[n.name]){const list=byName.get(n.name)??[];list.push(n);byName.set(n.name,list);}});
+      if(byName.size)owner.userData.dynamicVisual=true;
       for(const [name,nodes]of byName)spinners.push({owner,nodes,...PIVOT_MOTION[name]});
     },
     /** Rotating beam at the lamp room of a lighthouse (height in the asset's frame). */
     addBeam(owner:THREE.Object3D,height:number){
+      owner.userData.dynamicVisual=true;
       const {geometry,material,glow}=beamParts(),pivot=new THREE.Group();pivot.name='LighthouseBeam';pivot.position.y=height;
       const a=new THREE.Mesh(geometry,material),b=new THREE.Mesh(geometry,material);b.rotation.y=Math.PI;a.renderOrder=b.renderOrder=5;a.frustumCulled=b.frustumCulled=false;
       const lamp=new THREE.Mesh(new THREE.SphereGeometry(.7,8,6),glow);pivot.add(a,b);owner.add(pivot,lamp);lamp.position.y=height;pivot.visible=false;

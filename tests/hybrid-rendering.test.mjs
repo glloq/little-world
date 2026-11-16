@@ -71,3 +71,10 @@ test('gradual camera zoom invalidates representations from the last rebuilt view
  for(let i=1;i<=40;i++){const current={...origin,fov:66+i*.25};if(representationViewChanged(current,planned)){rebuilds++;planned=current;}}
  assert.ok(rebuilds>=2,'small per-frame changes must accumulate instead of leaving stale LODs');assert.equal(representationViewChanged(planned,planned),false);assert.equal(representationViewChanged({...planned,height:1080},planned),true);
 });
+
+test('atlas correction follows the shared sun, clouds and night without double darkening',async()=>{
+ const THREE=await import('three'),{impostorIllumination}=await import('../src/render/impostor-lighting.ts'),{applySkyLighting}=await import('../src/environment/sky-lighting.ts');const l={ambient:new THREE.HemisphereLight(0xfaf7e9,0x678c7c,2.15),sun:new THREE.DirectionalLight(0xffeed3,2.35),fill:new THREE.DirectionalLight(0xd8f0ff,.65)},out=new THREE.Color(),background=new THREE.Color();
+ impostorIllumination(l,out);assert.ok(out.toArray().every(v=>Math.abs(v-1)<1e-6));applySkyLighting(l,background,1,.5,1);impostorIllumination(l,out);assert.ok(out.r<1&&out.b<1,'clouds reduce illumination');
+ applySkyLighting(l,background,-1,0,0);impostorIllumination(l,out);assert.ok(out.toArray().every(v=>v<.3),'night does not retain noon brightness');
+ l.sun.intensity=l.ambient.intensity=l.fill.intensity=0;impostorIllumination(l,out);assert.deepEqual(out.toArray(),[0,0,0],'unlit sprites must not glow');
+});

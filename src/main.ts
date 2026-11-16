@@ -150,6 +150,7 @@ if(searchParams.has('studioBuild')||worldPath){
 }
 loading.boot(.45,'Construction du relief…');
 const world = buildWorld(definition.config, definition);
+world.setImpostorLighting(lighting);
 loading.boot(.7,'Habitants et objets…');
 world.setDetail(budget.level, quality.value === 'low');
 // Far plane follows the project diagonal: silhouettes stay visible without fog (near plane unchanged).
@@ -191,6 +192,7 @@ if(playable){
   if(gameplay.gathering){const gather=gameplay.gathering;world.setDressingFilter((cx,cz,kind,index)=>gather.hiddenAt(cx,cz,kind,index));gather.subscribe(()=>world.redrawDressing());}
 }
 const npcs = createNPCSystem(scene, definition.npcs,isLegacyTerrain()?undefined:[],gameplay?.dialogueSession);
+npcs.setLighting(world.atlasIllumination);
 gameplay?.attachNPCs(npcs.states);
 const worldClock=gameplay?.runtime.clock??new WorldClock(),climate=gameplay?.runtime.climate??createClimate(defaultEnvironment(definition.config.seed));
 const {createEnvironmentView}=await import('./environment/view.ts');
@@ -659,6 +661,7 @@ function tick(dt: number) {
 const perfSampler=new PerfSampler(),gpuTimer=createGpuTimer(renderer,metricsEnabled);
 const actorCount=Number(searchParams.get('remoteActors')??0);
 const remoteActors=[10,50,100].includes(actorCount)?createActorSimulator(scene,actorCount,player.position,terrainHeight,world.isOccluded):null;
+remoteActors?.renderer.setLighting(world.atlasIllumination);
 function draw(now: number) {
   const frame = presentation.advance(now, !document.hidden);
   const simulationBegin = performance.now();
@@ -739,6 +742,7 @@ function draw(now: number) {
         target: currentTarget()?.primaryAction?.label ?? null,
         targetId: currentTarget()?.targetId ?? null,
         placed: { ...world.placed.stats },
+        objectCulling:{...world.objectCulling},
         animated: { ...world.animated },
         occlusion: world.occlusion,
         boatModel: world.boat.getObjectByName('Sailboat') ? 'sailboat' : 'procedural',
