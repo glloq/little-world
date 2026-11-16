@@ -15,6 +15,12 @@ Prototype **solo** d'exploration 3D avec **Three.js**, exécutable entièrement 
 
 Les publications sont suivies dans [Build and deploy Little World](https://github.com/glloq/little-world/actions). Le build est 100 % statique et utilise `/little-world/` comme préfixe.
 
+### Laboratoire de falaises
+
+Studio → **Scène de référence Falaises** : cinq parois sur 280 × 280 m, points de vue
+et captures automatisées (`npm run test:cliffs`). Voir le
+[guide et les budgets](docs/53-CLIFF-REFERENCE.md).
+
 ### Lancer en local
 
 Pré-requis : **Node.js 22** et npm.

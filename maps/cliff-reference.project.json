@@ -1,0 +1,659 @@
+{
+  "manifest": {
+    "schemaVersion": 3,
+    "projectId": "little-world-cliff-reference-authoring",
+    "worldId": "little-world-cliff-reference",
+    "name": "Falaises — laboratoire low-poly",
+    "assetCatalogVersion": "1",
+    "createdWith": "little-world-studio-v3",
+    "revision": 0,
+    "sourceManifest": {
+      "worldRef": "world/world.json",
+      "chunkIndexRef": "world/chunk-index.json",
+      "entityIndexRef": "world/entity-index.json",
+      "librariesRef": "library/index.json",
+      "assetCatalogRef": "assets/catalog.json"
+    }
+  },
+  "world": {
+    "schemaVersion": 3,
+    "worldId": "little-world-cliff-reference",
+    "seed": 5207,
+    "generatorVersion": "1",
+    "bounds": {
+      "minX": -140,
+      "maxX": 140,
+      "minZ": -140,
+      "maxZ": 140
+    },
+    "seaLevel": 0,
+    "chunkSizeM": 280,
+    "coordinateSystem": "meters-y-up",
+    "chunkIndexRef": "world/chunk-index.json",
+    "density": 0,
+    "viewDistance": 240,
+    "editSequence": 0,
+    "terrain": {
+      "kind": "archipelago",
+      "version": 1,
+      "archipelago": {
+        "seabedDepthM": 8,
+        "detailM": 0,
+        "landmasses": [
+          {
+            "id": "lab",
+            "name": "Socle du laboratoire",
+            "outline": [
+              {
+                "x": -139,
+                "z": -139
+              },
+              {
+                "x": 139,
+                "z": -139
+              },
+              {
+                "x": 139,
+                "z": 139
+              },
+              {
+                "x": -139,
+                "z": 139
+              }
+            ],
+            "coastNoiseM": 0,
+            "coastWavelengthM": 100,
+            "beachWidthM": 4,
+            "shoreHeightM": 2,
+            "lowlandHeightM": 6,
+            "hillHeightM": 0,
+            "cliffs": 0
+          }
+        ],
+        "features": [
+          {
+            "id": "lab-ground",
+            "kind": "plateau",
+            "polygon": [
+              {
+                "x": -134,
+                "z": -134
+              },
+              {
+                "x": 134,
+                "z": -134
+              },
+              {
+                "x": 134,
+                "z": 134
+              },
+              {
+                "x": -134,
+                "z": 134
+              }
+            ],
+            "heightM": 6,
+            "edgeM": 3
+          },
+          {
+            "id": "lab-plateau",
+            "kind": "plateau",
+            "polygon": [
+              {
+                "x": -104,
+                "z": 35
+              },
+              {
+                "x": -54,
+                "z": 35
+              },
+              {
+                "x": -54,
+                "z": 80
+              },
+              {
+                "x": -104,
+                "z": 80
+              }
+            ],
+            "heightM": 24,
+            "edgeM": 7
+          },
+          {
+            "id": "lab-volcano",
+            "kind": "volcano",
+            "x": 64,
+            "z": 68,
+            "radiusM": 47,
+            "heightM": 10,
+            "craterRadiusM": 7,
+            "craterDepthM": 2
+          },
+          {
+            "id": "rl-cliff-lab-simple",
+            "kind": "ridge",
+            "points": [
+              {
+                "x": -115,
+                "z": -78
+              },
+              {
+                "x": -55,
+                "z": -78
+              }
+            ],
+            "widthM": 9,
+            "heightM": 23
+          },
+          {
+            "id": "rl-cliff-lab-broken",
+            "kind": "ridge",
+            "points": [
+              {
+                "x": -28,
+                "z": -90
+              },
+              {
+                "x": -12,
+                "z": -90
+              },
+              {
+                "x": -12,
+                "z": -78
+              },
+              {
+                "x": 8,
+                "z": -78
+              },
+              {
+                "x": 23,
+                "z": -90
+              }
+            ],
+            "widthM": 8,
+            "heightM": 29
+          },
+          {
+            "id": "rl-cliff-lab-curved",
+            "kind": "ridge",
+            "points": [
+              {
+                "x": 48,
+                "z": -70
+              },
+              {
+                "x": 55,
+                "z": -84
+              },
+              {
+                "x": 69,
+                "z": -92
+              },
+              {
+                "x": 85,
+                "z": -92
+              },
+              {
+                "x": 99,
+                "z": -84
+              },
+              {
+                "x": 106,
+                "z": -70
+              }
+            ],
+            "widthM": 9,
+            "heightM": 25
+          },
+          {
+            "id": "rl-cliff-lab-plateau",
+            "kind": "ridge",
+            "points": [
+              {
+                "x": -103,
+                "z": 57
+              },
+              {
+                "x": -103,
+                "z": 80
+              },
+              {
+                "x": -79,
+                "z": 80
+              },
+              {
+                "x": -55,
+                "z": 80
+              },
+              {
+                "x": -55,
+                "z": 57
+              }
+            ],
+            "widthM": 7,
+            "heightM": 8
+          },
+          {
+            "id": "rl-cliff-lab-volcanic",
+            "kind": "ridge",
+            "points": [
+              {
+                "x": 38,
+                "z": 75
+              },
+              {
+                "x": 51,
+                "z": 71
+              },
+              {
+                "x": 60,
+                "z": 78
+              },
+              {
+                "x": 73,
+                "z": 69
+              },
+              {
+                "x": 87,
+                "z": 75
+              }
+            ],
+            "widthM": 7,
+            "heightM": 32
+          }
+        ]
+      }
+    },
+    "environment": {
+      "schemaVersion": 1,
+      "generatorVersion": 1,
+      "weatherSeed": 5207,
+      "dayLengthSeconds": 86400,
+      "initialDayPhase": 0.36,
+      "weatherPeriodSeconds": 86400
+    }
+  },
+  "chunkIndex": {
+    "0:0": {
+      "chunkId": "0:0",
+      "cx": 0,
+      "cz": 0,
+      "revision": 0,
+      "sourceRef": "world/chunks/0_0.json",
+      "dependencies": [],
+      "terrainOwners": {},
+      "biomeOwners": {}
+    }
+  },
+  "entityIndex": {
+    "lab-rock-0": {
+      "id": "lab-rock-0",
+      "kind": "prop",
+      "name": "Repère rocheux 1",
+      "ownerChunkId": "0:0",
+      "position": {
+        "x": -119,
+        "y": 0,
+        "z": 24
+      },
+      "references": [
+        "nature.rock"
+      ],
+      "logical": {
+        "position": {
+          "x": -119,
+          "y": 0,
+          "z": 24
+        },
+        "initialState": {},
+        "persistentState": []
+      }
+    },
+    "lab-rock-1": {
+      "id": "lab-rock-1",
+      "kind": "prop",
+      "name": "Repère rocheux 2",
+      "ownerChunkId": "0:0",
+      "position": {
+        "x": -32,
+        "y": 0,
+        "z": 110
+      },
+      "references": [
+        "nature.rock"
+      ],
+      "logical": {
+        "position": {
+          "x": -32,
+          "y": 0,
+          "z": 110
+        },
+        "initialState": {},
+        "persistentState": []
+      }
+    },
+    "lab-rock-2": {
+      "id": "lab-rock-2",
+      "kind": "prop",
+      "name": "Repère rocheux 3",
+      "ownerChunkId": "0:0",
+      "position": {
+        "x": 118,
+        "y": 0,
+        "z": -5
+      },
+      "references": [
+        "nature.rock"
+      ],
+      "logical": {
+        "position": {
+          "x": 118,
+          "y": 0,
+          "z": -5
+        },
+        "initialState": {},
+        "persistentState": []
+      }
+    },
+    "lab-rock-3": {
+      "id": "lab-rock-3",
+      "kind": "prop",
+      "name": "Repère rocheux 4",
+      "ownerChunkId": "0:0",
+      "position": {
+        "x": 23,
+        "y": 0,
+        "z": 12
+      },
+      "references": [
+        "nature.rock"
+      ],
+      "logical": {
+        "position": {
+          "x": 23,
+          "y": 0,
+          "z": 12
+        },
+        "initialState": {},
+        "persistentState": []
+      }
+    }
+  },
+  "libraries": {
+    "prefabs": {},
+    "characters": {},
+    "dialogues": {},
+    "behaviors": {},
+    "interactions": {},
+    "activities": {},
+    "variables": {},
+    "items": {},
+    "objectives": {},
+    "water": {},
+    "paths": {
+      "lab-loop": {
+        "id": "lab-loop",
+        "points": [
+          {
+            "x": -120,
+            "z": 0
+          },
+          {
+            "x": -80,
+            "z": -35
+          },
+          {
+            "x": 0,
+            "z": -38
+          },
+          {
+            "x": 105,
+            "z": -35
+          },
+          {
+            "x": 120,
+            "z": 15
+          },
+          {
+            "x": 110,
+            "z": 110
+          },
+          {
+            "x": 0,
+            "z": 120
+          },
+          {
+            "x": -120,
+            "z": 110
+          },
+          {
+            "x": -120,
+            "z": 0
+          }
+        ],
+        "kind": "dirt",
+        "width": 3,
+        "smooth": true
+      },
+      "lab-crossing": {
+        "id": "lab-crossing",
+        "points": [
+          {
+            "x": 0,
+            "z": -38
+          },
+          {
+            "x": 0,
+            "z": 0
+          },
+          {
+            "x": 0,
+            "z": 120
+          }
+        ],
+        "kind": "trail",
+        "width": 3,
+        "smooth": false
+      }
+    }
+  },
+  "assets": {
+    "nature.pine": {
+      "id": "nature.pine",
+      "name": "Sapin",
+      "type": "glb",
+      "file": "models/pine.glb",
+      "license": "project-original",
+      "source": "Little World original generated low-poly geometry"
+    },
+    "nature.oak": {
+      "id": "nature.oak",
+      "name": "Arbre feuillu",
+      "type": "procedural",
+      "license": "project-original",
+      "source": "Little World original procedural geometry"
+    },
+    "nature.rock": {
+      "id": "nature.rock",
+      "name": "Rocher",
+      "type": "glb",
+      "file": "models/rock.glb",
+      "license": "project-original",
+      "source": "Little World original generated low-poly geometry"
+    },
+    "architecture.cottage": {
+      "id": "architecture.cottage",
+      "name": "Maison de vallée",
+      "type": "procedural",
+      "license": "project-original",
+      "source": "Little World original procedural geometry"
+    },
+    "props.crate": {
+      "id": "props.crate",
+      "name": "Caisse en bois",
+      "type": "glb",
+      "file": "models/crate.glb",
+      "license": "project-original",
+      "source": "Little World original generated low-poly geometry"
+    },
+    "props.lantern": {
+      "id": "props.lantern",
+      "name": "Lanterne",
+      "type": "procedural",
+      "license": "project-original",
+      "source": "Little World original procedural geometry"
+    }
+  },
+  "chunks": {
+    "0:0": {
+      "schemaVersion": 3,
+      "chunkId": "0:0",
+      "index": {
+        "cx": 0,
+        "cz": 0
+      },
+      "revision": 0,
+      "entities": {
+        "lab-rock-0": {
+          "id": "lab-rock-0",
+          "name": "Repère rocheux 1",
+          "kind": "prop",
+          "ownerChunkId": "0:0",
+          "components": {
+            "Transform": {
+              "type": "Transform",
+              "position": {
+                "x": -119,
+                "y": 0,
+                "z": 24
+              },
+              "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0,
+                "w": 1
+              },
+              "scale": {
+                "x": 1,
+                "y": 1,
+                "z": 1
+              }
+            },
+            "Visual": {
+              "type": "Visual",
+              "assetId": "nature.rock"
+            }
+          }
+        },
+        "lab-rock-1": {
+          "id": "lab-rock-1",
+          "name": "Repère rocheux 2",
+          "kind": "prop",
+          "ownerChunkId": "0:0",
+          "components": {
+            "Transform": {
+              "type": "Transform",
+              "position": {
+                "x": -32,
+                "y": 0,
+                "z": 110
+              },
+              "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0,
+                "w": 1
+              },
+              "scale": {
+                "x": 1,
+                "y": 1,
+                "z": 1
+              }
+            },
+            "Visual": {
+              "type": "Visual",
+              "assetId": "nature.rock"
+            }
+          }
+        },
+        "lab-rock-2": {
+          "id": "lab-rock-2",
+          "name": "Repère rocheux 3",
+          "kind": "prop",
+          "ownerChunkId": "0:0",
+          "components": {
+            "Transform": {
+              "type": "Transform",
+              "position": {
+                "x": 118,
+                "y": 0,
+                "z": -5
+              },
+              "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0,
+                "w": 1
+              },
+              "scale": {
+                "x": 1,
+                "y": 1,
+                "z": 1
+              }
+            },
+            "Visual": {
+              "type": "Visual",
+              "assetId": "nature.rock"
+            }
+          }
+        },
+        "lab-rock-3": {
+          "id": "lab-rock-3",
+          "name": "Repère rocheux 4",
+          "kind": "prop",
+          "ownerChunkId": "0:0",
+          "components": {
+            "Transform": {
+              "type": "Transform",
+              "position": {
+                "x": 23,
+                "y": 0,
+                "z": 12
+              },
+              "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 0,
+                "w": 1
+              },
+              "scale": {
+                "x": 1,
+                "y": 1,
+                "z": 1
+              }
+            },
+            "Visual": {
+              "type": "Visual",
+              "assetId": "nature.rock"
+            }
+          }
+        }
+      },
+      "entityIds": [
+        "lab-rock-0",
+        "lab-rock-1",
+        "lab-rock-2",
+        "lab-rock-3"
+      ],
+      "terrainEdits": [],
+      "terrainRefs": [],
+      "biomeEdits": [],
+      "biomeRefs": [],
+      "waterRefs": [],
+      "pathRefs": [
+        "lab-loop",
+        "lab-crossing"
+      ]
+    }
+  }
+}

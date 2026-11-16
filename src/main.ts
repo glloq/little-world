@@ -703,6 +703,7 @@ function draw(now: number) {
         triangles: renderer.info.render.triangles,
         geometries: renderer.info.memory.geometries,
         chunks: { ...world.stats },
+        cliffs: { ...world.cliffs.stats },
         horizon: { ...world.horizon },
         terrainWork: { ...world.terrainWork },
         dressing: world.dressing ? { ...world.dressing } : null,
