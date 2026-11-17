@@ -53,8 +53,8 @@ try{
   await page.getByRole('button',{name:'Sauvegarder',exact:true}).click();await page.waitForFunction(()=>document.querySelector('#save-status').textContent==='Sauvegardé localement');
   // « Jouer ici » at night: same sources, bounded dynamic lights, no shader recompilation while moving.
   const popup=context.waitForEvent('page');await page.getByRole('button',{name:'Jouer ici'}).click();const game=await popup;watch(game);
-  await game.waitForSelector('#start:not([disabled])',{timeout:60000});const url=new URL(game.url());url.searchParams.set('metrics','1');url.searchParams.set('night','1');await game.goto(url.toString());
-  await game.waitForSelector('#start:not([disabled])',{timeout:60000});await game.locator('#start').click();
+  await game.locator('#start-overlay').waitFor({state:'hidden',timeout:60000});const url=new URL(game.url());url.searchParams.set('metrics','1');url.searchParams.set('night','1');await game.goto(url.toString());
+  await game.locator('#start-overlay').waitFor({state:'hidden',timeout:60000});await game.locator('#start-overlay').waitFor({state:'hidden'});
   await game.waitForFunction(()=>window.littleWorldMetrics?.lights?.sources>=0,{},{timeout:60000});await game.waitForTimeout(1500);
   const runtime=await game.evaluate(()=>({...window.littleWorldMetrics.lights,programs:window.littleWorldMetrics.programs}));
   check(runtime.sources===9,`« Jouer ici » receives the same 9 light sources (${runtime.sources})`);
