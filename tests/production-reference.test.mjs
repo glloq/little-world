@@ -10,7 +10,7 @@ import {worldAsset} from '../src/world-production/registry.ts';
 import {SPECIES} from '../src/world-production/biotopes.ts';
 import {buildProductionReference,REFERENCE_LANDSCAPES,REFERENCE_VIEWS} from '../tools/generate-production-reference.mjs';
 
-const committed=parseProject(JSON.parse(await readFile(new URL('../maps/production-reference.project.json',import.meta.url),'utf8')));
+const committed=parseProject(JSON.parse(await readFile(new URL('../tests/fixtures/legacy-maps/authoring/production-reference.project.json',import.meta.url),'utf8')));
 const entities=p=>Object.values(p.chunks).flatMap(c=>Object.values(c.entities));
 const maskCount=(p,layer,code)=>Object.values(p.chunks).reduce((n,c)=>n+[...(c.layers?.[layer]??'')].filter(v=>v===code).length,0);
 
@@ -43,7 +43,7 @@ test('vegetation of the reference region uses library species, none on roads, fi
   assert.ok(seen.size>=12,'species diversity '+seen.size);
 });
 test('compiled reference world is readable and carries landscapes, water network and entities',async()=>{
-  const root=new URL('../public/maps/production-reference/',import.meta.url);
+  const root=new URL('../tests/fixtures/legacy-maps/published/production-reference/',import.meta.url);
   const fetcher=async url=>{const u=new URL(String(url));try{return new Response(await readFile(new URL(u.pathname.replace(/^\//,''),root)));}catch{return new Response('',{status:404});}};
   const bundle=await openCompiledWorld('file:///manifest.json',fetcher),playable=playableFromCompiled(bundle);
   assert.ok(playable.world.geography.landscapes.length>=REFERENCE_LANDSCAPES.length);

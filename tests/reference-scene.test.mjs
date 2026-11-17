@@ -8,7 +8,7 @@ import {generateDressingCell,DRESSING_CELL_M,ITEM_STRIDE} from '../src/geography
 import {openCompiledWorld,playableFromCompiled} from '../src/runtime/compiled-world.ts';
 import {buildReferenceProject,REFERENCE,REFERENCE_SITES} from '../tools/generate-reference.mjs';
 
-const source=parseProject(JSON.parse(await readFile(new URL('../maps/reference.project.json',import.meta.url),'utf8')));
+const source=parseProject(JSON.parse(await readFile(new URL('../tests/fixtures/legacy-maps/authoring/reference.project.json',import.meta.url),'utf8')));
 const {ctx}=projectGeography(source),W=REFERENCE.width,L=REFERENCE.length;
 const at=(c)=>classifyPoint(ctx,c.x,c.z);
 test('reference scene source is reproducible',()=>{
@@ -41,7 +41,7 @@ test('dressing respects the reference zones (no trees in the field, the mine ent
   assert.ok((forest.items.pine.length+forest.items.oak.length)/ITEM_STRIDE>15,'the forest is wooded');
 });
 test('the published reference world carries masks, zones and generator to the game',async()=>{
-  const root=new URL('../public/maps/reference/',import.meta.url);
+  const root=new URL('../tests/fixtures/legacy-maps/published/reference/',import.meta.url);
   const bundle=await openCompiledWorld('http://localhost/maps/reference/manifest.json',async url=>{const path=new URL(url).pathname.replace(/^\/maps\/reference\//,'');try{return new Response(await readFile(new URL(path,root)));}catch{return new Response('',{status:404});}});
   const play=playableFromCompiled(bundle);
   assert.equal(play.world.config.terrain.kind,'archipelago');assert.ok(Object.keys(play.world.geography.masks).length>5);assert.equal(play.world.geography.zones.length,2);

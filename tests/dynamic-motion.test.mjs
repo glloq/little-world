@@ -101,11 +101,11 @@ test('movement checkpoints replay exactly across rendering frequencies and prese
  const bad=structuredClone(expected);bad.velocity.x=NaN;assert.throws(()=>restoreMovement(restored,bad));
 });
 test('motion lab source is reproducible and portable through V3',async()=>{
- const p=buildMotionReference();assert.deepEqual(p,JSON.parse(await readFile(new URL('../maps/motion-reference.project.json',import.meta.url),'utf8')));
+ const p=buildMotionReference();assert.deepEqual(p,JSON.parse(await readFile(new URL('../tests/fixtures/legacy-maps/authoring/motion-reference.project.json',import.meta.url),'utf8')));
  assert.deepEqual(readProjectArchive(writeProjectArchive(p)).world,p.world);
  assert.ok(p.world.terrain.archipelago.features.some(f=>f.id==='launch-ramp'));
  assert.equal(Object.keys(p.entityIndex).length,4);
- const root=new URL('../public/maps/motion-reference/',import.meta.url),fetcher=async url=>{try{return new Response(await readFile(new URL(new URL(url).pathname.slice(1),root)));}catch{return new Response('',{status:404});}};
+ const root=new URL('../tests/fixtures/legacy-maps/published/motion-reference/',import.meta.url),fetcher=async url=>{try{return new Response(await readFile(new URL(new URL(url).pathname.slice(1),root)));}catch{return new Response('',{status:404});}};
  const playable=playableFromCompiled(await openCompiledWorld('file:///manifest.json',fetcher));
  assert.equal(playable.collisions.length,4);assert.ok(Math.abs(playable.collisions.find(c=>c.id==='thin-roof').size.y-.15)<1e-9);assert.deepEqual(playable.world.config.terrain,p.world.terrain);
 });
