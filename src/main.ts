@@ -388,19 +388,19 @@ function input(): Controls {
       swimStrokePressed:false,
     };
   }
-  // Touch joystick steers the glider directly, not the camera.
+  // Touch joystick uses the same positive-right convention as keyboard D (the camera faces -X at yaw 0).
   const shiftHeld=codeHeld('ShiftLeft','ShiftRight'),touchAccelerateHeld=!!mobileTouch?.accelerateHeld;
   return {
     forward: clamp(
       Number(codeHeld('KeyW', 'KeyZ', 'ArrowUp')) - Number(codeHeld('KeyS', 'ArrowDown')) + (mobileTouch?.axis.forward??0),-1,1),
     right: clamp(
-      Number(codeHeld('KeyD', 'ArrowRight')) - Number(codeHeld('KeyA', 'KeyQ', 'ArrowLeft')) - (mobileTouch?.axis.right??0),-1,1),
+      Number(codeHeld('KeyD', 'ArrowRight')) - Number(codeHeld('KeyA', 'KeyQ', 'ArrowLeft')) + (mobileTouch?.axis.right??0),-1,1),
     run:shiftHeld||touchAccelerateHeld,
     autoRun: true,
     jumpAssist: true,
     jumpPressed: jumpQueue > 0,
     rollPressed: rollQueue > 0,
-    rollHeld:shiftHeld,
+    rollHeld:shiftHeld||!!(mobileTouch?.accelerateHeld&&Math.hypot(mobileTouch.axis.forward,mobileTouch.axis.right)>.3),
     spaceHeld: codeHeld('Space')||!!mobileTouch?.jumpHeld,
     dive: codeHeld('ControlLeft', 'ControlRight'),
     cameraYaw: yaw,
