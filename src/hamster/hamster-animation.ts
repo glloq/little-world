@@ -24,6 +24,8 @@ export interface HamsterInput {
   turnIntent?:number;
   jumpKind?:'idle'|'run'|'roll'; jumpSeq?:number;
   landingSpeed?:number; landingSeq?:number;
+  /** Terrain presentation only; no forces, IK solver or allocations per frame. */
+  groundPitch?:number;groundRoll?:number;rollSlip?:number;
   /** Absolute presentation clock for reconstructed remote rigs only. */
   animationTime?:number;
   speed: number; verticalSpeed: number; turnRate: number;
@@ -37,12 +39,13 @@ export interface HamsterPose {
   roll: number; tuck: number;
   headRX: number; headRY: number; headRZ: number; earL: number; earR: number;
   shoulderLX: number; shoulderLZ: number; shoulderRX: number; shoulderRZ: number;
-  hipLX: number; hipRX: number; footLX: number; footRX: number; tailX: number;
+  hipLX: number; hipRX: number; footLX: number; footRX: number;
+  footLY: number; footRY: number; tailX: number;
   /** Glide membranes 0 (folded) … 1 (spread). */ membrane: number;
 }
-const CHANNELS = ['bodyY', 'bodyRX', 'bodyRY', 'bodyRZ', 'squash', 'tuck', 'headRX', 'headRY', 'headRZ', 'earL', 'earR', 'shoulderLX', 'shoulderLZ', 'shoulderRX', 'shoulderRZ', 'hipLX', 'hipRX', 'footLX', 'footRX', 'tailX', 'membrane'] as const;
+const CHANNELS = ['bodyY', 'bodyRX', 'bodyRY', 'bodyRZ', 'squash', 'tuck', 'headRX', 'headRY', 'headRZ', 'earL', 'earR', 'shoulderLX', 'shoulderLZ', 'shoulderRX', 'shoulderRZ', 'hipLX', 'hipRX', 'footLX', 'footRX', 'footLY', 'footRY', 'tailX', 'membrane'] as const;
 type Channel = typeof CHANNELS[number];
-const restPose = (): HamsterPose => ({ bodyY: 0, bodyRX: 0, bodyRY: 0, bodyRZ: 0, squash: 1, roll: 0, tuck: 0, headRX: 0, headRY: 0, headRZ: 0, earL: 0, earR: 0, shoulderLX: 0, shoulderLZ: 0, shoulderRX: 0, shoulderRZ: 0, hipLX: 0, hipRX: 0, footLX: 0, footRX: 0, tailX: 0, membrane: 0 });
+const restPose = (): HamsterPose => ({ bodyY: 0, bodyRX: 0, bodyRY: 0, bodyRZ: 0, squash: 1, roll: 0, tuck: 0, headRX: 0, headRY: 0, headRZ: 0, earL: 0, earR: 0, shoulderLX: 0, shoulderLZ: 0, shoulderRX: 0, shoulderRZ: 0, hipLX: 0, hipRX: 0, footLX: 0, footRX: 0, footLY: 0, footRY: 0, tailX: 0, membrane: 0 });
 /** Radius of the ball in roll (model metres) — the visual roll angle follows distance / radius. */
 export const ROLL_RADIUS = .62;
 /** Durations of the locomotion transitions (s). */
@@ -195,8 +198,9 @@ export class HamsterAnimator {
           :s==='ROLL_EXIT'?1-smooth(clamp(this.transitionTime/TRANSITIONS.ROLL_EXIT,0,1)):1;
         p.tuck=f;p.squash=1-.07*f;p.headRX=.35*f;p.earL=p.earR=-.5*f;
         p.shoulderLX=p.shoulderRX=-.6*f;p.hipLX=p.hipRX=.7*f;
-        p.bodyRY=clamp(turn*.13,-.3,.3)*f;
-        p.bodyRZ=(bank*.9+clamp(turn*speed*.014,-.24,.24))*f;
+        const skid=clamp(input.rollSlip??0,-1,1);
+        p.bodyRY=(clamp(turn*.13,-.3,.3)+skid*.13)*f;
+        p.bodyRZ=(bank*.9+clamp(turn*speed*.014,-.24,.24)+skid*.22)*f;
         if(s==='ROLL_LAND')p.squash-=.12*Math.sin(Math.PI*clamp(this.transitionTime/TRANSITIONS.ROLL_LAND,0,1));
         break;
       }
@@ -224,6 +228,14 @@ export class HamsterAnimator {
       case 'CLIMB': { const r = speed > .15 || Math.abs(input.verticalSpeed) > .15 ? st : Math.sin(t * 1.4) * .15;
         p.bodyRX = -.25; p.shoulderLX = -2.4 + r * .45; p.shoulderRX = -2.4 - r * .45; p.hipLX = -.4 - r * .4; p.hipRX = -.4 + r * .4; p.headRX = -.2; break; }
       case 'BOAT': p.bodyY = -.06; p.hipLX = p.hipRX = -1.2; p.squash = .96; p.shoulderLX = p.shoulderRX = -.5; break;
+    }
+    // Cheap, bounded stance correction on real heightfields only. No extra bone,
+    // collision query, IK or root motion: all channels remain presentation-only.
+    if(input.mode==='ground'&&(s==='IDLE'||s==='WALK'||s==='RUN'||s==='LAND')){
+      const pitch=clamp(input.groundPitch??0,-.4,.4),cross=clamp(input.groundRoll??0,-.4,.4);
+      p.footLX+=pitch*.55;p.footRX+=pitch*.55;
+      p.footLY=Math.max(0,-cross)*.2;p.footRY=Math.max(0,cross)*.2;
+      p.bodyRX+=pitch*.12;p.bodyRZ+=cross*.15;
     }
     // Action layer: blended in/out, timed events.
     if (this.act) {
