@@ -222,8 +222,8 @@ if(playable){
     activities:playable.activities,getSpace:()=>player.space,
     getGas:()=>gasLevel(player),
     getGasProgress:()=>structuredClone(flightProgress),
-    setGasProgress:value=>{flightProgress=value;player.gasCapacityLevel=value.capacityLevel;player.gasPowerLevel=value.powerLevel;player.gasControlLevel=value.controlLevel;},
-    setGas:value=>{player.gasReserve=value;player.gasBoosting=false;player.gasPulseClock=0;player.gasPulseSeq=0;player.gasThrust=0;player.gasPulseRemaining=0;player.gasCooldown=0;player.gasBoostHeld=false;player.gasRepeatArmed=false;},
+    setGasProgress:value=>{flightProgress={...value,currentFlightDistance:0,currentFlightNoGas:0,currentCombo:0,lastPulseAt:-1};player.gasCapacityLevel=value.capacityLevel;player.gasPowerLevel=value.powerLevel;player.gasControlLevel=value.controlLevel;},
+    setGas:value=>{player.gasReserve=value;player.gasBoosting=false;player.gasPulseClock=0;player.gasPulseSeq=0;player.gasThrust=0;player.gasPulseRemaining=0;player.gasCooldown=0;player.gasBoostHeld=false;player.gasRepeatArmed=false;gasVisualSeq=0;lastFlightPulseSeq=0;boostWindActive=false;},
     ...(isLegacyTerrain()?{}:{gathering:{ctx:geoContext,seed:definition.config.seed,inside:(x:number,z:number)=>Math.abs(x)<=(definition.config.width??200)/2&&Math.abs(z)<=(definition.config.length??600)/2}}),
     setPosition:(p,space)=>{stopFlightCourse();player.space=space??undefined;player.position.set(p.x,p.y,p.z);player.velocity.set(0,0,0);player.mode='air';player.oxygen=MAX_OXYGEN;player.glideReady=false;player.coyoteLeft=0;player.jumpBufferLeft=0;aboard=false;keySet.clear();jumpQueue=0;actionQueue=0;npcs.dialogue.close();previousPlayerPosition.copy(player.position);renderPosition.copy(player.position);updateCamera(1);}
   });
@@ -295,7 +295,7 @@ const flightRings=createFlightRings(scene);
 let flightCourse:FlightCourseSession|null=null,lastCourseHudAt=-1;
 const flightCourseHud=document.createElement('div');
 flightCourseHud.className='flight-course-hud';flightCourseHud.hidden=true;
-flightCourseHud.setAttribute('role','status');document.body.append(flightCourseHud);
+flightCourseHud.setAttribute('role','timer');flightCourseHud.setAttribute('aria-live','off');document.body.append(flightCourseHud);
 function stopFlightCourse(){flightCourse=null;flightRings.clear();flightCourseHud.hidden=true;}
 const customization = createCustomizationMenu(
   document.querySelector<HTMLElement>('#appearance-menu')!,
