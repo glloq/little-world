@@ -140,8 +140,9 @@ export interface ViewPlannedChunk extends PlannedChunk {
 export const INTEREST = {
   /** Extra angle around the frustum kept for quick turns (rad). */
   turnMargin: 0.3,
-  /** Movement prediction horizon (s) and its maximum shift (fraction of view distance). */
+  /** Minimum prediction horizon (seconds); high-speed motion extends this to 4 s. */
   lookahead: 2,
+  maxLookahead: 4,
   maxAheadShift: 0.5,
   referenceFocal: 493,
   /** Low-priority ring kept around the player for quick U-turns (fraction of view distance). */
@@ -165,9 +166,11 @@ export function planView(
   if (!values.every((v) => Number.isFinite(v))) return [];
   const { width, length, chunkSize, viewDistance } = config;
   const safety = safetyRadius(config);
-  const shift = Math.min(1, (viewDistance * INTEREST.maxAheadShift) / (Math.hypot(focus.velocityX, focus.velocityZ) * INTEREST.lookahead || 1));
-  const aheadX = focus.playerX + focus.velocityX * INTEREST.lookahead * shift,
-    aheadZ = focus.playerZ + focus.velocityZ * INTEREST.lookahead * shift;
+  const speed=Math.hypot(focus.velocityX,focus.velocityZ);
+  const horizon=Math.min(INTEREST.maxLookahead,INTEREST.lookahead+Math.max(0,speed-8)*.08);
+  const shift = Math.min(1, (viewDistance * INTEREST.maxAheadShift) / (speed * horizon || 1));
+  const aheadX = focus.playerX + focus.velocityX * horizon * shift,
+    aheadZ = focus.playerZ + focus.velocityZ * horizon * shift;
   const moving = Math.hypot(focus.velocityX, focus.velocityZ) > 1;
   const forward = Math.hypot(focus.forwardX, focus.forwardZ) || 1,
     fx = focus.forwardX / forward,
@@ -219,6 +222,8 @@ export function viewChanged(previous: ViewFocus | null, next: ViewFocus, chunkSi
   if (Math.hypot(next.playerX - previous.playerX, next.playerZ - previous.playerZ) > chunkSize / 8) return true;
   if (Math.hypot(next.cameraX - previous.cameraX, next.cameraZ - previous.cameraZ) > chunkSize / 8) return true;
   if (Math.abs(next.cameraY - previous.cameraY) > 12) return true;
+  // Boost or sharp turns can move the predicted load zone before the player crosses a tile threshold.
+  if(Math.hypot(next.velocityX-previous.velocityX,next.velocityZ-previous.velocityZ)>5)return true;
   if (next.quality !== previous.quality || Math.abs(next.focalPx - previous.focalPx) > 20) return true;
   const a = Math.atan2(previous.forwardX, previous.forwardZ),
     b = Math.atan2(next.forwardX, next.forwardZ);
