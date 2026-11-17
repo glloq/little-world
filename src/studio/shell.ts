@@ -1,7 +1,7 @@
 import './studio.css';
 import {button,field,input,node,numberInput,select,download} from './dom.ts';
 import {ProjectStore} from '../studio-core/project-store.ts';
-import {createProject,parseProject,chunkAt} from '../studio-core/schema.ts';
+import {parseProject,chunkAt} from '../studio-core/schema.ts';
 import {migrateWorldToV3,toRuntimeWorld} from '../studio-core/migration.ts';
 import {readProjectArchive,writeProjectArchive,writeFilesArchive} from '../studio-core/archive.ts';
 import {resolveEntity} from '../studio-core/references.ts';
