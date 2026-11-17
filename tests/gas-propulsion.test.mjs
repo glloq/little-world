@@ -17,7 +17,7 @@ test('flight-only gate, pulse counter and bounded reserve',()=>{
  const p={gasReserve:4};
  assert.equal(gasBoostStep(p,true,false,dt),0);
  assert.equal(p.gasReserve,4);
- assert.equal(gasBoostStep(p,true,true,dt),GAS.acceleration);
+ const first=gasBoostStep(p,true,true,dt);assert.ok(first>0&&first<GAS.acceleration,'thrust ramps instead of kicking instantly');
  assert.equal(p.gasPulseSeq,1);
  let n=0;while(p.gasReserve>0&&n++<50)gasBoostStep(p,true,true,dt);
  assert.equal(p.gasReserve,0);
@@ -27,6 +27,23 @@ test('flight-only gate, pulse counter and bounded reserve',()=>{
  assert.equal(refillGas(p,150),100);
  assert.equal(refillGas(p,5),0);
  assert.equal(gasLevel({}),GAS.initial);
+});
+test('sustained boost reaches 120 km/h and releasing preserves momentum',()=>{
+ const p={velocity:{x:0,y:-2,z:18}},gasReserve:GAS.initial;
+ let peak=0;
+ for(let i=0;i<120;i++){
+  const thrust=gasBoostStep(p,true,true,dt);
+  glideVelocity(p,0,0,0,dt,GLIDE,thrust);
+  peak=Math.max(peak,Math.hypot(p.velocity.x,p.velocity.y,p.velocity.z));
+ }
+ assert.ok(peak>=120/3.6-1e-6,'boost should reach 120 km/h with the initial tank');
+ assert.ok(peak<=GLIDE.max+1e-9);
+ const before=Math.hypot(p.velocity.x,p.velocity.y,p.velocity.z);
+ gasBoostStep(p,false,true,dt);
+ for(let i=0;i<15;i++)glideVelocity(p,0,0,0,dt);
+ const after=Math.hypot(p.velocity.x,p.velocity.y,p.velocity.z);
+ assert.equal(p.gasThrust,0);
+ assert.ok(after<before&&after>before-5,'release dissipates speed gradually');
 });
 test('thrust adds kinetic energy only while fueled; speed cap still applies',()=>{
  const unpowered={velocity:{x:0,y:-2,z:12}},powered={velocity:{x:0,y:-2,z:12}};
