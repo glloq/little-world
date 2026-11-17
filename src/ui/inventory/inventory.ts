@@ -21,8 +21,7 @@ export interface InventoryDeps {items():readonly ItemDefinition[];inventory():Re
 /** Panel renderer; `seen` is updated when the panel closes (the « new » marks then clear). */
 export function inventoryPanel(deps:InventoryDeps){
   let seen:Record<string,number>={},selected:string|null=null;
-  return {
-    render(body:HTMLElement){
+  const render=(body:HTMLElement)=>{
       const vm=inventoryViewModel(deps.items(),deps.inventory(),seen);body.replaceChildren();
       const all=vm.groups.flatMap(g=>g.entries),equipment=all.filter(e=>e.tool||['cosmetic','accessory','equipment','instrument'].includes(e.category));
       const resources=vm.groups.map(g=>({...g,entries:g.entries.filter(e=>!equipment.some(t=>t.id===e.id))})).filter(g=>g.entries.length);
@@ -50,7 +49,7 @@ export function inventoryPanel(deps:InventoryDeps){
         if(e.tool){const inHand=deps.selectedTool()===e.id;detail.append(button(inHand?'Ranger':'Équiper',()=>{deps.selectTool(inHand?null:e.id);show(e);},'ui-button ui-primary'));}
         else if(equipment.some(t=>t.id===e.id)){detail.append(el('p','ui-muted','Équipement cosmétique prévu : action non disponible pour cet objet.'));}
         const gas=foodGasValue(e.id);
-        if(gas&&deps.consume){const action=button('Manger (+'+gas+' gaz)',()=>{if(deps.consume?.(e.id))this.render(body);},'ui-button');
+        if(gas&&deps.consume){const action=button('Manger (+'+gas+' gaz)',()=>{if(deps.consume?.(e.id))render(body);},'ui-button');
           action.disabled=(deps.gasLevel?.()??100)>=100;detail.append(action);}
         for(const card of layout.querySelectorAll<HTMLButtonElement>('[data-item]'))card.setAttribute('aria-pressed',String(card.dataset.item===e.id));
       }
@@ -72,7 +71,8 @@ export function inventoryPanel(deps:InventoryDeps){
       right.append(slots,detail);layout.append(left,right);body.append(layout);
       if(all.length){const current=all.find(e=>e.id===selected)??all[0];show(current);}
       else detail.append(el('p','ui-empty','Sélectionnez un objet pour voir son usage.'));
-    },
+  };
+  return {render,
     /** Called when the panel closes: what was displayed is now « seen ». */
     markSeen(){seen={...deps.inventory()};},
   };
