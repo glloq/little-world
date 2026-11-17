@@ -18,11 +18,11 @@ const step=(p,q,n,k={})=>{for(let i=0;i<n;i++)simulatePlayer(p,{...input,...k},1
 test('glider dive exchanges height for speed, pull-up spends momentum and cannot gain energy',()=>{
  const p=actor(500);p.mode='glide';p.velocity.z=12;p.glideReady=true;const q=flat();
  const start=movementEnergy(p.position.y,p.velocity),energy=[start];
- step(p,q,60,{forward:1});const diveSpeed=p.velocity.length(),low=p.position.y;
+ step(p,q,60,{forward:1,cameraPitch:.85});const diveSpeed=p.velocity.length(),low=p.position.y;
  assert.ok(diveSpeed>16&&p.velocity.y<0,'dive accelerates');
  let peak=low,up=false;
  for(let i=0;i<240;i++){
-  const before=movementEnergy(p.position.y,p.velocity);simulatePlayer(p,{...input,forward:-1},1/30,q);
+  const before=movementEnergy(p.position.y,p.velocity);simulatePlayer(p,{...input,forward:1,cameraPitch:-.75},1/30,q);
   assert.ok(movementEnergy(p.position.y,p.velocity)<=before+1e-7,'steering never creates energy');
   up ||= p.velocity.y>1;peak=Math.max(peak,p.position.y);energy.push(movementEnergy(p.position.y,p.velocity));
  }
