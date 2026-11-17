@@ -170,7 +170,9 @@ try{
   verify(await boostButton.isVisible()&&await boostButton.isEnabled(),'Acceleration remains available on the ground');
   await mobilePage.evaluate(()=>{
     const p=window.littleWorldMetrics.position;
-    window.littleWorldDebug.teleport(p[0],p[2],0,45);
+    // Leave enough airtime for SwiftShader/CI scheduling before the touch tap.
+    // 45 m can be consumed while Playwright dispatches the input on a busy runner.
+    window.littleWorldDebug.teleport(p[0],p[2],0,150);
   });
   await mobilePage.waitForFunction(()=>window.littleWorldMetrics?.mode==='air');
   verify(!(await boostButton.isEnabled()),'Acceleration is disabled during free fall');

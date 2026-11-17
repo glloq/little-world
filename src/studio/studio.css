@@ -115,3 +115,58 @@ label:has(> input[type=checkbox]){flex-direction:row;align-items:center;justify-
 .hamster-motion-stage canvas{display:block;width:100%;height:100%;cursor:grab}
 .hamster-motion-stage canvas:active{cursor:grabbing}
 .hamster-motion-lab>button{margin-right:8px}
+
+
+/* ---- Guided Studio welcome: deliberately separate from the full editor chrome ---- */
+#studio:not(.in-project){grid-template-columns:0 0 minmax(280px,1fr) 0}
+#studio:not(.in-project) #tools{display:none}
+.welcome-home{padding:28px clamp(16px,4vw,52px);max-width:1320px;margin:0 auto}
+.welcome-heading{margin-bottom:24px}
+.welcome-heading h1{margin:8px 0 5px;font-size:clamp(28px,3vw,39px)}
+.welcome-heading p{margin:0;font-size:13px}
+.welcome-entry-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:20px 0}
+.welcome-entry{min-height:156px;padding:22px;display:flex;flex-direction:column;align-items:flex-start;text-align:left;gap:10px;
+  border:1px solid #d8e4d4;background:#fffef9;border-radius:18px;box-shadow:0 6px 24px #29443809;color:#294438}
+.welcome-entry:hover,.welcome-choice:hover{border-color:#79a88a;background:#f2f8ef}
+.welcome-entry strong{font-size:17px}.welcome-entry .muted{font-size:12px}
+.welcome-entry-icon{display:grid;place-items:center;width:40px;height:40px;border-radius:11px;background:#e3eee0;color:#467a5e;font-size:24px}
+.welcome-recent{margin:30px 0 20px}.welcome-between{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.welcome-between h2{margin:8px 0;font-size:20px}
+.welcome-project-link{display:flex;align-items:center;justify-content:space-between;text-align:left;width:100%;margin:7px 0;background:#fffef9;
+  border:1px solid #d8e4d4;padding:13px 16px;border-radius:11px;color:#34533e}
+.welcome-template{background:#fffef9;border:1px solid #d8e4d4;border-radius:16px;padding:20px}
+.welcome-template h2{font-size:20px;margin:9px 0}.welcome-template .primary-button{margin-top:12px}
+.welcome-progress{display:flex;gap:8px;margin:18px 0 22px}
+.welcome-step{flex:1;padding:12px;background:#f3f7f0;border:1px solid #dce6d8;border-radius:10px;font-size:12px;color:#53705c;box-shadow:none}
+.welcome-step.active{background:#e0eee0;border-color:#75a583;color:#2f6245;font-weight:700}
+.welcome-layout{display:grid;grid-template-columns:minmax(270px,.9fr) minmax(360px,1.4fr);gap:20px;align-items:start}
+.welcome-controls,.welcome-preview{background:#fffefa;border:1px solid #d6e2d3;border-radius:17px;padding:20px;min-width:0}
+.welcome-controls h2,.welcome-preview h2{font-size:20px;margin:0 0 12px}
+.welcome-controls h3{font-size:15px;margin:18px 0 8px}
+.welcome-mode-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}
+.welcome-choice{display:flex;flex-direction:column;gap:7px;text-align:left;align-items:flex-start;min-height:83px;padding:12px;
+  border-radius:11px;border:1px solid #d6e2d3;background:#fafcf6;color:#294438}
+.welcome-choice strong{font-size:13px}.welcome-choice .muted{font-size:11px;line-height:1.5}
+.welcome-choice.active{border:2px solid #477d60;background:#ebf4e8;padding:11px}
+.welcome-check{flex-direction:row;align-items:center;font-size:13px}
+.welcome-check input{width:auto}
+#panel-host .welcome-terrain-canvas{width:100%;height:auto;aspect-ratio:10/7;display:block;border:1px solid #dce6d8;
+  border-radius:11px;background:#e1edf0;touch-action:manipulation}
+#panel-host .welcome-terrain-canvas.placing{cursor:crosshair}
+.welcome-actions{display:flex;flex-wrap:wrap;gap:6px}
+.welcome-footer{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:16px 0 35px}
+.welcome-footer button{min-width:130px}
+@media(max-width:920px){.welcome-layout{grid-template-columns:1fr}.welcome-preview{order:-1}.welcome-home{padding:18px}}
+@media(max-width:560px){.welcome-entry-grid,.welcome-mode-grid{grid-template-columns:1fr}.welcome-entry{min-height:110px}
+  .welcome-progress{gap:4px}.welcome-step{font-size:11px;padding:9px 4px}.welcome-controls,.welcome-preview{padding:13px}}
+
+/* Optional expert shortcuts are kept below the visual entry cards. */
+.welcome-legacy{margin-top:85px;padding-top:20px;border-top:1px solid #dce6da;opacity:.87}
+.welcome-legacy h2{font-size:18px;margin:8px 0}
+.welcome-direct{display:grid;grid-template-columns:repeat(3,minmax(150px,1fr));gap:6px 14px;align-items:end}
+.welcome-direct details{grid-column:1/-1;margin:4px 0}.welcome-direct details label{display:inline-flex;flex-direction:column;margin:5px 16px 5px 0}
+.welcome-direct details input{max-width:170px}
+.welcome-direct>.primary-button{grid-column:3;align-self:end;margin-bottom:11px}
+.welcome-quick-templates{display:flex;flex-wrap:wrap;gap:6px}
+.welcome-quick-templates button{font-size:11px}
+@media(max-width:650px){.welcome-direct{grid-template-columns:1fr}.welcome-direct>.primary-button{grid-column:1}}
