@@ -270,7 +270,7 @@ test('different foot support on a raised narrow block uses only two local obstac
  const a=new HamsterAnimator();
  for(let i=0;i<12;i++)a.update(input('ground',0,{footSupportLeft:p.footSupportLeft/.72,footSupportRight:p.footSupportRight/.72}),1/30);
  assert.ok(a.pose.footLY<a.pose.footRY-.10,'procedural left paw drops below right');
- const flat=actor();simulatePlayer(flat,{...keys},1/30,world);
+ const flat=actor();flat.position.set(-3,0,0);simulatePlayer(flat,{...keys},1/30,world);
  assert.equal(flat.footSupportLeft,undefined,'no extra foot samples for non-raised support');
 });
 
