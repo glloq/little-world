@@ -32,6 +32,8 @@ altitude/vitesse. scénario technique de régression ;
 
 **Vol rapide expérimental (branche de fonctionnalité) :** boost progressif, pointe à 122,4 km/h, caméra de vitesse et anticipation des secteurs. Voir [62 — Vol rapide et performances](docs/62-HIGH-SPEED-FLIGHT.md).
 
+**Étude et roadmap du futur boost aérien à impulsions :** système à 10/14 boosts au départ, évolution jusqu'à 20, puissance progressive, skins, sons humoristiques et défis de vol. **Documentation uniquement sur la branche dédiée ; fonctionnalité non implémentée.** Voir [étude de gameplay](docs/FLIGHT-BOOST-GAMEPLAY-STUDY.md) et [roadmap d'implémentation FLB-0 à FLB-5](docs/FLIGHT-BOOST-IMPLEMENTATION-ROADMAP.md).
+
 ### Lancer en local
 
 Pré-requis : **Node.js 22** et npm.
