@@ -4,7 +4,7 @@
 import {simulatePlayer,MOTION_MODES,type Player,type Controls} from '../player.ts';
 import type {WorldCollisionQuery} from './collision-world.ts';
 export interface MovementCommand {tick:number;input:Controls}
-const fields=['oxygen','glideReady','stamina','climbCooldown','climbDir','rollSpeed','rollHeading','rollIdle','rollByHold','diving','diveSink','glideHeading','glidePitch','glideTurnRate','stalled','space','body','runCharge','intentYaw','jumpOrigin','jumpSeq','landingSpeed','landingSeq','coyoteLeft','coyoteFrom','jumpBufferLeft','groundPitch','groundRoll','rollSlip','landingKind','landingSlide','footSupportLeft','footSupportRight'] as const;
+const fields=['oxygen','glideReady','stamina','climbCooldown','climbDir','rollSpeed','rollHeading','rollIdle','rollByHold','diving','diveSink','glideHeading','glidePitch','glideTurnRate','stalled','space','body','runCharge','intentYaw','jumpOrigin','jumpSeq','landingSpeed','landingSeq','coyoteLeft','coyoteFrom','jumpBufferLeft','groundPitch','groundRoll','rollSlip','landingKind','landingSlide','footSupportLeft','footSupportRight','gasReserve','gasBoosting','gasPulseSeq','gasPulseClock'] as const;
 export interface MovementSnapshot {version:1;tick:number;position:{x:number;y:number;z:number};velocity:{x:number;y:number;z:number};mode:Player['mode'];yaw:number;state:Partial<Pick<Player,typeof fields[number]>>}
 const point=(v:unknown):v is {x:number;y:number;z:number}=>!!v&&typeof v==='object'&&['x','y','z'].every(k=>typeof (v as Record<string,unknown>)[k]==='number'&&Number.isFinite((v as Record<string,number>)[k])&&Math.abs((v as Record<string,number>)[k])<=100000);
 export function captureMovement(p:Player,tick:number):MovementSnapshot{
@@ -19,12 +19,15 @@ export function restoreMovement(p:Player,s:MovementSnapshot){
  for(const [k,v]of Object.entries(s.state)){
   const obj=v&&typeof v==='object'?v as Record<string,unknown>:null;
   if(!(fields as readonly string[]).includes(k))throw Error('Champ de mouvement inconnu');
-  if(['glideReady','rollByHold','diving','diveSink','stalled'].includes(k)){if(typeof v!=='boolean')throw Error('Drapeau invalide');}
+  if(['glideReady','rollByHold','diving','diveSink','stalled','gasBoosting'].includes(k)){if(typeof v!=='boolean')throw Error('Drapeau invalide');}
   else if(k==='climbDir'){if(!obj||typeof obj.x!=='number'||typeof obj.z!=='number'||!Number.isFinite(obj.x)||!Number.isFinite(obj.z))throw Error('Direction invalide');}
   else if(k==='jumpOrigin'||k==='coyoteFrom'){if(!['idle','run','roll'].includes(String(v)))throw Error('Origine de saut invalide');}
   else if(k==='landingKind'){if(!['idle','run','roll','glide'].includes(String(v)))throw Error('Réception invalide');}
   else if(k==='landingSlide'){if(typeof v!=='number'||!Number.isFinite(v)||v<0||v>1)throw Error('Glissade invalide');}
   else if(k==='footSupportLeft'||k==='footSupportRight'){if(typeof v!=='number'||!Number.isFinite(v)||Math.abs(v)>.5)throw Error('Appui pied invalide');}
+  else if(k==='gasReserve'){if(typeof v!=='number'||!Number.isFinite(v)||v<0||v>100)throw Error('Gaz invalide');}
+  else if(k==='gasPulseClock'){if(typeof v!=='number'||!Number.isFinite(v)||v<0||v>.21)throw Error('Cycle de gaz invalide');}
+  else if(k==='gasPulseSeq'){if(!Number.isSafeInteger(v)||Number(v)<0)throw Error('Séquence de gaz invalide');}
   else if(k==='jumpSeq'||k==='landingSeq'){if(!Number.isSafeInteger(v)||Number(v)<0)throw Error('Sequence de mouvement invalide');}
   else if(k==='runCharge'){if(typeof v!=='number'||!Number.isFinite(v)||v<0||v>1)throw Error('Charge de course invalide');}
   else if(k==='coyoteLeft'||k==='jumpBufferLeft'){if(typeof v!=='number'||!Number.isFinite(v)||v<0||v>.25)throw Error('Durée de saut invalide');}
@@ -42,7 +45,7 @@ export function replayMovement(p:Player,s:MovementSnapshot,commands:readonly Mov
  let next=s.tick;
  for(const c of commands){
   if(c.tick!==++next)throw Error('Commandes de mouvement non consécutives');
-  const k=c.input;if(!k||!Number.isFinite(k.cameraYaw)||!Number.isFinite(k.forward)||Math.abs(k.forward)>1||!Number.isFinite(k.right)||Math.abs(k.right)>1||['run','jumpPressed','spaceHeld','dive'].some(f=>typeof k[f as keyof Controls]!=='boolean')||k.cameraPitch!==undefined&&(!Number.isFinite(k.cameraPitch)||Math.abs(k.cameraPitch)>1.6)||k.autoRun!==undefined&&typeof k.autoRun!=='boolean'||k.jumpAssist!==undefined&&typeof k.jumpAssist!=='boolean')throw Error('Commande de mouvement invalide');
+  const k=c.input;if(!k||!Number.isFinite(k.cameraYaw)||!Number.isFinite(k.forward)||Math.abs(k.forward)>1||!Number.isFinite(k.right)||Math.abs(k.right)>1||['run','jumpPressed','spaceHeld','dive'].some(f=>typeof k[f as keyof Controls]!=='boolean')||k.cameraPitch!==undefined&&(!Number.isFinite(k.cameraPitch)||Math.abs(k.cameraPitch)>1.6)||k.autoRun!==undefined&&typeof k.autoRun!=='boolean'||k.jumpAssist!==undefined&&typeof k.jumpAssist!=='boolean'||k.boostHeld!==undefined&&typeof k.boostHeld!=='boolean')throw Error('Commande de mouvement invalide');
  }
  restoreMovement(p,s);let tick=s.tick;
  for(const c of commands){if(c.tick!==tick+1)throw Error('Commandes de mouvement non consécutives');simulatePlayer(p,c.input,1/30,collision);tick=c.tick;}

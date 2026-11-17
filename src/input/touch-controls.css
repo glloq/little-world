@@ -37,3 +37,10 @@ body.touch-mode #viewport canvas{touch-action:none}
  body.touch-mode .ui-quickbar{left:calc(144px + env(safe-area-inset-left))}
  .touch-actions{right:calc(130px + env(safe-area-inset-right))}
 }
+
+/* Boost at the right edge above the minimap, visually separated from other buttons. */
+.touch-boost[hidden]{display:none!important}
+.touch-boost{position:fixed;right:calc(24px + env(safe-area-inset-right));bottom:calc(174px + env(safe-area-inset-bottom));width:72px;height:64px;border-radius:20px;background:rgba(219,242,223,.94);border:2px solid #47825f;color:#23513a;font-weight:800;font-size:15px;letter-spacing:.02em}
+.touch-boost.pressed{background:#2f7652;color:white}
+@media (orientation:portrait){.touch-boost{bottom:calc(180px + env(safe-area-inset-bottom));right:calc(16px + env(safe-area-inset-right))}}
+@media (max-height:390px) and (orientation:landscape){.touch-boost{width:64px;height:56px;bottom:calc(161px + env(safe-area-inset-bottom))}}

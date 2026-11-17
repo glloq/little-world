@@ -40,3 +40,11 @@ La vue tactile est pensée pour le mode **paysage**.
 - Calibrer la taille des boutons selon les pouces/tailles d'écran et la sensibilité du joystick.
 - Mode configuration des commandes tactiles et accessibilité mobile.
 - Mesurer le GPU, la température et l'autonomie sur un téléphone réel avant d'annoncer une prise en charge mobile officielle.
+
+## Boost au gaz en vol (fusion `feat/glide-gas-boost`)
+
+- Le bouton « Boost » est situé sur le bord droit, au-dessus de la minimap et à l'écart du groupe des actions.
+- Il est visible et activable uniquement en mode `glide`, avec une réserve de gaz strictement positive.
+- Maintenir le bouton renseigne `Controls.boostHeld`, exactement comme le clic droit sur PC. La simulation `gasBoostStep` conserve la responsabilité des dépenses, accélérations et impulsions : aucun système de poussée supplémentaire.
+- Relâchement de touche, annulation de pointeur, perte de focus, ouverture d'un panneau, épuisement du gaz ou fin du plané réinitialisent `boostHeld`. Le bouton disparaît hors plané.
+- Les tests doivent vérifier l'apparition du bouton, l'épuisement de gaz pendant le maintien et l'arrêt immédiat au relâchement.

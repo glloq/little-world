@@ -33,7 +33,8 @@ export interface GameUiDeps {
   environment?():{dayPhase:number;weather:'clear'|'cloudy'|'rain'};
   landmarks?:readonly {id:string;label:string;x:number;z:number}[];
   world:{name:string;buildVersion:string;dayLength:number;bounds:{minX:number;maxX:number;minZ:number;maxZ:number};seaLevel:number;height(x:number,z:number):number;water(x:number,z:number):number|null};
-  player():{x:number;y:number;z:number;yaw:number;space?:MovementSpace;mode:string;oxygen:number;maxOxygen:number;stamina:number;maxStamina:number;speed?:number;stalled?:boolean};
+  eatFood?(id:string):{ok:boolean;message:string};
+  player():{gas?:number;maxGas?:number;x:number;y:number;z:number;yaw:number;space?:MovementSpace;mode:string;oxygen:number;maxOxygen:number;stamina:number;maxStamina:number;speed?:number;stalled?:boolean};
   target():TargetDescriptor|null;
   quality:HTMLSelectElement|null;
   applyDistantRendering?(value:UiPreferences['distantRendering'],initial:boolean):void;
@@ -51,7 +52,8 @@ export function createGameUi(deps:GameUiDeps){
   const ui=new UiController(host),g=deps.gameplay,a=g?.activities;
   // Panels.
   let selectedTool:string|null=null,restoring=false;
-  const inventory=inventoryPanel({items:()=>g?.runtime.data.items??[],inventory:()=>g?.runtime.state.inventory??{},selectedTool:()=>selectedTool,selectTool:id=>{selectedTool=id;renderTool();}});
+  const inventory=inventoryPanel({items:()=>g?.runtime.data.items??[],inventory:()=>g?.runtime.state.inventory??{},selectedTool:()=>selectedTool,selectTool:id=>{selectedTool=id;renderTool();},gasLevel:()=>deps.player().gas??0,
+    consume:deps.eatFood?(id)=>{const result=deps.eatFood!(id);center.notify(result.ok?'success':'warning',result.message);return result.ok;}:undefined});
   ui.register('inventory','Sac',{render:b=>inventory.render(b),onClose:()=>{inventory.markSeen();deps.audio?.emit('ui.inventory.close',{source:'ui'});}});
   ui.register('journal','Journal',{render:b=>journalPanel({objectives:()=>g?.runtime.data.objectives??[],status:()=>g?.runtime.state.objectives??{},activities:()=>g?.runtime.data.activities??[]}).render(b)});
   const waypoints=createWaypointStore(g?.runtime.data.worldId??deps.world.name,deps.world.bounds,deps.temporary);
@@ -123,11 +125,13 @@ export function createGameUi(deps:GameUiDeps){
   const minimap=createMinimap(mapDeps,mapRaster,()=>ui.open('map'));
   const tool=el('div','ui-tool hide'),oxygen=el('div','ui-oxygen hide');oxygen.setAttribute('role','meter');oxygen.setAttribute('aria-label','Oxygène');
   const oxyFill=el('span','ui-meter-fill');oxygen.append(el('span','','Oxygène'),el('span','ui-meter-track'));oxygen.lastElementChild!.append(oxyFill);
-  const hint=el('p','ui-hint hide','Z Q S D : se déplacer · Maj : rouler vite en boule · E : agir · I : sac · J : journal · M : carte · Échap : menu');
+  const hint=el('p','ui-hint hide','Z Q S D : se déplacer · Espace : planer · Clic droit en vol : propulsion · Maj : rouler vite en boule · E : agir · I : sac · J : journal · M : carte · Échap : menu');
   const stamina=el('div','ui-oxygen ui-stamina hide');stamina.setAttribute('role','meter');stamina.setAttribute('aria-label','Endurance');
   const stFill=el('span','ui-meter-fill');stamina.append(el('span','','Endurance'),el('span','ui-meter-track'));stamina.lastElementChild!.append(stFill);
   const velocity=el('div','ui-motion-speed hide');velocity.setAttribute('aria-label','Vitesse de déplacement');
-  host.append(quick,minimap.element,tool,oxygen,stamina,hint,velocity);
+  const gas=el('div','ui-oxygen ui-gas hide');gas.setAttribute('role','meter');gas.setAttribute('aria-label','Réserve de gaz');
+  const gasFill=el('span','ui-meter-fill');gas.append(el('span','','Gaz · clic droit'),el('span','ui-meter-track'));gas.lastElementChild!.append(gasFill);
+  host.append(quick,minimap.element,tool,oxygen,stamina,gas,hint,velocity);
   // The start hint never covers a panel or a modal.
   ui.onChange(id=>{if(id){hint.classList.add('hide');hideAudioPopover();}});
   const card=activityCard(host,(plotId,cropId)=>{const name=a?.selectCrop(plotId,cropId);if(name){center.notify('info','Culture choisie : '+name);deps.audio?.emit('farm.seedbag',{source:'player'});}});
@@ -177,6 +181,8 @@ export function createGameUi(deps:GameUiDeps){
        const muted=!!deps.audio?.engine.settings.muted,iconName=muted?'mute':'volume';
        if(soundButton.dataset.icon!==iconName){soundButton.replaceChildren(hudIcon(iconName));soundButton.dataset.icon=iconName;soundButton.title=muted?'Son coupé · ouvrir le mixeur':'Régler le son';}
        minimap.update();
+      gas.classList.toggle('hide',p.mode!=='glide'||ui.blocking);
+      if(p.mode==='glide'){gasFill.style.width=Math.round((p.gas??0)/(p.maxGas??100)*100)+'%';gas.setAttribute('aria-valuenow',String(Math.round(p.gas??0)));}
       const fast=p.mode==='roll'||p.mode==='glide';velocity.classList.toggle('hide',!fast||ui.blocking);if(fast)velocity.textContent=`${((p.speed??0)*3.6).toFixed(0)} km/h${p.stalled?' · Décrochage':''}`;
       const swim=p.mode==='swim'||p.mode==='dive';oxygen.classList.toggle('hide',!swim);if(swim){oxyFill.style.width=Math.round(p.oxygen/p.maxOxygen*100)+'%';oxygen.setAttribute('aria-valuenow',String(Math.round(p.oxygen)));}
       const tired=p.mode==='climb'||p.stamina<p.maxStamina-.5;stamina.classList.toggle('hide',!tired||swim);if(tired){stFill.style.width=Math.round(p.stamina/p.maxStamina*100)+'%';stamina.setAttribute('aria-valuenow',String(Math.round(p.stamina)));stamina.classList.toggle('ui-low',p.stamina<25);}

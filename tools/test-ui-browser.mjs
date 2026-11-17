@@ -142,6 +142,35 @@ try{
   await mobilePage.keyboard.press('Escape');
   await mobilePage.locator('.touch-joystick').waitFor({state:'visible'});
   verify(true,'Touch controls resume when returning to the world');
+  // Gas boost from the latest main merge: press-and-hold only while gliding.
+  const boostButton=mobilePage.locator('.touch-boost');
+  verify(!(await boostButton.isVisible()),'Gas boost is hidden while grounded');
+  await mobilePage.evaluate(()=>{
+    const p=window.littleWorldMetrics.position;
+    window.littleWorldDebug.teleport(p[0],p[2],0,45);
+  });
+  await mobilePage.waitForFunction(()=>window.littleWorldMetrics?.mode==='air');
+  await mobilePage.getByRole('button',{name:'Saut'}).tap();
+  await mobilePage.waitForFunction(()=>window.littleWorldMetrics?.mode==='glide');
+  await boostButton.waitFor({state:'visible'});
+  verify(await boostButton.isEnabled(),'Gas boost appears and can be held while gliding');
+  const gasBefore=await mobilePage.evaluate(()=>window.littleWorldMetrics.movement.state.gasReserve);
+  const boostRect=await boostButton.boundingBox();
+  assert.ok(boostRect,'Boost button has a screen rect');
+  await mobilePage.mouse.move(boostRect.x+boostRect.width/2,boostRect.y+boostRect.height/2);
+  await mobilePage.mouse.down();
+  await mobilePage.waitForFunction(level=>window.littleWorldMetrics?.movement?.state?.gasReserve<level-.5,gasBefore);
+  const gasAfter=await mobilePage.evaluate(()=>window.littleWorldMetrics.movement.state.gasReserve);
+  verify(gasAfter<gasBefore,'Holding mobile boost consumes the existing gas reserve');
+  await mobilePage.mouse.up();
+  await mobilePage.waitForFunction(()=>window.littleWorldMetrics?.movement?.state?.gasBoosting===false);
+  verify(true,'Releasing mobile boost stops gas propulsion');
+  await mobilePage.evaluate(()=>{
+    const p=window.littleWorldMetrics.position;
+    window.littleWorldDebug.teleport(p[0],p[2],0);
+  });
+  await boostButton.waitFor({state:'hidden'});
+  verify(true,'Gas boost disappears when landing');
   verify(mobileErrors.length===0,mobileErrors.join('\\n')||'Mobile HUD has no JavaScript errors');
   await phone.close();
   verify(errors.length===0,errors.join('\n')||'No page errors');console.log(JSON.stringify({checks,errors}));

@@ -15,6 +15,9 @@ export interface TouchControls {
   readonly jumpHeld:boolean;
   readonly rollHeld:boolean;
   readonly diveHeld:boolean;
+  /** Press-and-hold boost, only in glide with gas available. */
+  readonly boostHeld:boolean;
+  setBoostAvailable(available:boolean):void;
   setEnabled(enabled:boolean):void;
   reset():void;
   dispose():void;
@@ -27,7 +30,7 @@ export function createTouchControls(callbacks:{jump():void;action():void}):Touch
   const actions=document.createElement('div');actions.className='touch-actions';
   root.append(stick,actions);document.body.append(root);
   let enabled=false,pointer:number|null=null,axis:JoystickAxis={forward:0,right:0};
-  let jumpHeld=false,rollHeld=false,diveHeld=false;
+  let jumpHeld=false,rollHeld=false,diveHeld=false,boostHeld=false,boostAvailable=false;
   const active=new Map<HTMLButtonElement,number>();
   const clearJoystick=()=>{pointer=null;axis={forward:0,right:0};thumb.style.transform='translate(-50%, -50%)';};
   function updateStick(e:PointerEvent){
@@ -48,7 +51,7 @@ export function createTouchControls(callbacks:{jump():void;action():void}):Touch
     const b=document.createElement('button');b.type='button';b.className='touch-action '+className;b.textContent=label;
     b.setAttribute('aria-label',label);actions.append(b);
     b.addEventListener('pointerdown',e=>{
-      if(!enabled||e.button!==0||active.has(b))return;
+      if(!enabled||e.button!==0||active.has(b)||b.disabled||b.hidden)return;
       active.set(b,e.pointerId);apply(true);trigger?.();b.setPointerCapture(e.pointerId);b.classList.add('pressed');e.preventDefault();
     });
     const release=(e:PointerEvent)=>{if(active.get(b)!==e.pointerId)return;active.delete(b);apply(false);b.classList.remove('pressed');};
@@ -61,8 +64,21 @@ export function createTouchControls(callbacks:{jump():void;action():void}):Touch
   hold('Agir','touch-interact',()=>{},callbacks.action);
   hold('Rouler','touch-roll',v=>{rollHeld=v;});
   hold('Plonger','touch-dive',v=>{diveHeld=v;});
+  const boost=hold('Boost','touch-boost',v=>{boostHeld=v;});
+  boost.setAttribute('aria-label','Boost en plané (maintenir)');
+  boost.title='Boost au gaz, seulement en plané';
+  boost.hidden=true;boost.disabled=true;
+  const setBoostAvailable=(available:boolean)=>{
+    if(boostAvailable===available)return;
+    boostAvailable=available;boost.hidden=!available;boost.disabled=!available;
+    if(!available){
+      const id=active.get(boost);
+      if(id!==undefined){active.delete(boost);if(boost.hasPointerCapture(id))boost.releasePointerCapture(id);}
+      boost.classList.remove('pressed');boostHeld=false;
+    }
+  };
   const reset=()=>{
-    clearJoystick();jumpHeld=false;rollHeld=false;diveHeld=false;
+    clearJoystick();jumpHeld=false;rollHeld=false;diveHeld=false;boostHeld=false;
     for(const b of active.keys())b.classList.remove('pressed');
     active.clear();
   };
@@ -75,6 +91,8 @@ export function createTouchControls(callbacks:{jump():void;action():void}):Touch
     get jumpHeld(){return jumpHeld;},
     get rollHeld(){return rollHeld;},
     get diveHeld(){return diveHeld;},
+    get boostHeld(){return boostHeld;},
+    setBoostAvailable,
     setEnabled(value:boolean){if(enabled===value)return;enabled=value;root.hidden=!value;if(!value)reset();},
     reset,
     dispose(){reset();window.removeEventListener('blur',onBlur);document.removeEventListener('visibilitychange',onVisibility);root.remove();},
