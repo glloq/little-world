@@ -82,7 +82,7 @@ const scene = new THREE.Scene();
 const lighting=configureScene(scene);
 const camera = new THREE.PerspectiveCamera(66, 1, 0.1, 750);
 const renderer = new THREE.WebGLRenderer({
-  antialias: true,
+  antialias: !touchCapable, // Avoid expensive MSAA on low-end mobile GPUs.
   powerPreference: 'high-performance',
 });
 const quality = document.querySelector<HTMLSelectElement>('#quality')!;
@@ -99,6 +99,7 @@ const remembered = (() => {
   }
 })();
 if (remembered && remembered in qualityRatios) quality.value = remembered;
+else if(touchCapable)quality.value='low'; // Safe first launch; explicit preferences always win.
 function applyQuality() {
   const mode = quality.value as RenderQuality;
   renderer.setPixelRatio(
@@ -275,6 +276,7 @@ const keySet = new Set<string>();
 let rightBoostDown=false;
 let rollQueue = 0;
 let jumpQueue = 0,
+  touchStrokeQueue = 0,
   actionQueue = 0;
 let yaw = 0,
   pitch = 0.32,
@@ -283,7 +285,8 @@ let started = false;
 let elapsed = 0;
 // Mobile controls contribute directly to the existing deterministic player input.
 if(touchCapable){
-  mobileTouch=createTouchControls({jump:()=>{jumpQueue++;},action:()=>{actionQueue++;}});
+  mobileTouch=createTouchControls({jump:()=>{if(aboard)actionQueue++;else if(player.mode==='swim'||player.mode==='dive')touchStrokeQueue=1;else jumpQueue++;},action:()=>{actionQueue++;},roll:()=>{rollQueue++;}});
+  const intro=overlay.querySelector<HTMLElement>('.start-card small');if(intro)intro.textContent='Téléphone : paysage conseillé · joystick gauche · Saut et Accélération à droite';
   mobileLandscape=createMobileLandscape(blocked=>{if(blocked)mobileTouch?.setEnabled(false);});
 }
 // Generated worlds start on a coast: face the island centre rather than the open sea.
@@ -323,25 +326,29 @@ function input(): Controls {
       dive: false,
       cameraYaw: yaw,
       boostHeld:false,
+      swimStrokePressed:false,
     };
   }
+  // In mobile glide, joystick deflection changes camera yaw/pitch, not forward/brake.
+  const mobileGliding=!!mobileTouch&&player.mode==='glide';
   return {
     forward: clamp(
-      Number(codeHeld('KeyW', 'KeyZ', 'ArrowUp')) - Number(codeHeld('KeyS', 'ArrowDown')) + (mobileTouch?.axis.forward??0),-1,1),
+      Number(codeHeld('KeyW', 'KeyZ', 'ArrowUp')) - Number(codeHeld('KeyS', 'ArrowDown')) + (mobileGliding?0:mobileTouch?.axis.forward??0),-1,1),
     right: clamp(
-      Number(codeHeld('KeyD', 'ArrowRight')) - Number(codeHeld('KeyA', 'KeyQ', 'ArrowLeft')) + (mobileTouch?.axis.right??0),-1,1),
-    run: codeHeld('ShiftLeft', 'ShiftRight')||!!mobileTouch?.rollHeld,
+      Number(codeHeld('KeyD', 'ArrowRight')) - Number(codeHeld('KeyA', 'KeyQ', 'ArrowLeft')) + (mobileGliding?0:mobileTouch?.axis.right??0),-1,1),
+    run: codeHeld('ShiftLeft', 'ShiftRight')||!!mobileTouch?.accelerateHeld,
     autoRun: true,
     jumpAssist: true,
     jumpPressed: jumpQueue > 0,
     rollPressed: rollQueue > 0,
-    rollHeld: codeHeld('ShiftLeft', 'ShiftRight')||!!mobileTouch?.rollHeld,
+    rollHeld: codeHeld('ShiftLeft', 'ShiftRight'),
     spaceHeld: codeHeld('Space')||!!mobileTouch?.jumpHeld,
     dive: codeHeld('ControlLeft', 'ControlRight')||!!mobileTouch?.diveHeld,
     cameraYaw: yaw,
     // Underwater, moving forward follows the camera tilt (looking down dives down), from the default view.
     cameraPitch: pitch - 0.32,
-    boostHeld:rightBoostDown||!!mobileTouch?.boostHeld,
+    boostHeld:rightBoostDown||(player.mode==='glide'&&!!mobileTouch?.accelerateHeld),
+    swimStrokePressed:touchStrokeQueue>0,
   };
 }
 function isMenuKey(e: KeyboardEvent): boolean {
@@ -395,6 +402,7 @@ window.addEventListener('keydown', (e) => {
     player.mode = 'ground';
     player.oxygen = MAX_OXYGEN;
     player.glideReady = false;
+    touchStrokeQueue=0;
     player.gasReserve=GAS.initial;player.gasBoosting=false;player.gasPulseClock=0;player.gasPulseSeq=0;gasVisualSeq=0;rightBoostDown=false;
     player.coyoteLeft=0;player.jumpBufferLeft=0;
     previousPlayerPosition.copy(player.position);
@@ -636,13 +644,18 @@ let boatSteer=0,motionTick=0;
 function tick(dt: number) {
   // Mobile input: immediately release controls when a menu opens or the boost stops being valid.
   mobileTouch?.setEnabled(started&&!gameUi?.blocking&&!customization.isOpen&&!npcs.dialogue.isOpen&&!mobileLandscape?.blocked);
-  mobileTouch?.setBoostAvailable(player.mode==='glide'&&gasLevel(player)>0);
+  mobileTouch?.setMode(player.mode,aboard,gasLevel(player)>0);
   // Menus (pause, parties, paramètres) pause the world simulation; the frame still renders.
   if (!started || gameUi?.paused||mobileLandscape?.blocked) return;
   if(gameplay)gameplay.update(dt);else worldClock.advance(dt);
+  // Glide camera steering from the left thumb leaves the right thumb free for boost/jump.
+  if(mobileTouch&&player.mode==='glide'&&!gameUi?.blocking&&!customization.isOpen&&!npcs.dialogue.isOpen){
+    yaw+=mobileTouch.axis.right*1.2*dt;
+    pitch=clamp(pitch-mobileTouch.axis.forward*.95*dt,-.45,1.3);
+  }
   const keys = input();
   if (aboard) {
-    updateBoat(boat, { throttle: keys.forward, steer: keys.right }, dt);boatSteer=keys.right;
+    updateBoat(boat, { throttle: mobileTouch?.accelerateHeld?Math.max(1,keys.forward):keys.forward, steer: keys.right }, dt);boatSteer=keys.right;
     player.position.set(boat.x, boat.y + 1.02, boat.z);
     player.velocity.set(0, 0, 0);
     player.mode = 'ground';
@@ -653,6 +666,7 @@ function tick(dt: number) {
     // Crossing a mine entrance / stairs: no interpolation through rock.
     if(player.transitioned){previousPlayerPosition.copy(player.position);renderPosition.copy(player.position);}
     if (keys.jumpPressed) jumpQueue = Math.max(0, jumpQueue - 1);
+    if(keys.swimStrokePressed)touchStrokeQueue=0;
     rollQueue = 0;
   }
   // F: activity in front (dig, fell/pick, farm). Holding F repeats strikes (≈ 3.5 per second).
