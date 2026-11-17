@@ -82,7 +82,7 @@ export interface Player {
   /** Replayable flight intention/state; independent from the render camera. */
   glideHeading?:number;glidePitch?:number;glideTurnRate?:number;stalled?:boolean;
   /** Fuel and visual event sequence owned by simulation. */
-  gasReserve?:number;gasBoosting?:boolean;gasPulseSeq?:number;gasPulseClock?:number;
+  gasReserve?:number;gasBoosting?:boolean;gasPulseSeq?:number;gasPulseClock?:number;gasThrust?:number;
 }
 /** Swimming tuning: depth of the feet under the water line while swimming (body centre ≈ at the
  * surface, head out), dive speed (normal / Shift) and the push down when diving with Space. */
@@ -104,7 +104,7 @@ export function spawnPlayer(): Player {
     mode: 'ground',
     oxygen: MAX_OXYGEN,
     glideReady: false,
-    gasReserve:GAS.initial,gasBoosting:false,gasPulseSeq:0,gasPulseClock:0,
+    gasReserve:GAS.initial,gasBoosting:false,gasPulseSeq:0,gasPulseClock:0,gasThrust:0,
   };
 }
 
