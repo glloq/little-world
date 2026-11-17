@@ -3,7 +3,7 @@ import {advanceSpeedCamera,speedCameraState,createSpeedStreaks} from './render/s
 import {createActorSimulator} from './render/remote-characters.ts';
 import {captureMovement} from './physics/movement-state.ts';
 import {createTouchControls,type TouchControls} from './input/touch-controls.ts';
-import {shouldPreventGameplayKeyDefault,shouldSuppressGameplayContextMenu,flightBoostHeld} from './input/gameplay-input.ts';
+import {isEditableGameTarget,shouldPreventGameplayKeyDefault,shouldSuppressGameplayContextMenu,flightBoostHeld} from './input/gameplay-input.ts';
 import {createMobileLandscape,isPhoneTouchDevice} from './input/mobile-landscape.ts';
 import './input/touch-controls.css';
 import {classifyPoint} from './geography/classify.ts';
@@ -365,9 +365,6 @@ function input(): Controls {
     swimStrokePressed:touchStrokeQueue>0,
   };
 }
-function isEditableInput(target:EventTarget|null):boolean{
-  return target instanceof Element&&!!target.closest('input,textarea,select,[contenteditable="true"],[contenteditable=""],[role="textbox"]');
-}
 function gameplayInputActive():boolean{
   return started&&!gameUi?.blocking&&!customization.isOpen&&!npcs.dialogue.isOpen&&!mobileLandscape?.blocked;
 }
@@ -389,7 +386,7 @@ gameUi?.controller.onChange(id=>{if(id)clearGameplayInput();});
 window.addEventListener('keydown', (e) => {
   // Player interface first: panels, Escape (menu), I / J / M. Consumed keys never reach the game.
   if(gameUi?.handleKey(e,started&&!customization.isOpen))return;
-  if(gameUi?.blocking||isEditableInput(e.target)||!started)return;
+  if(gameUi?.blocking||isEditableGameTarget(e.target)||!started||mobileLandscape?.blocked)return;
   // Space remains the gameplay action even if a HUD button still has focus.
   // Enter and arrow-key navigation on focused controls stay available.
   if(e.target instanceof Element&&e.target.closest('button,summary,a')&&['Enter','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))return;
@@ -445,7 +442,7 @@ window.addEventListener('keydown', (e) => {
   }
 });
 window.addEventListener('keyup', (e) => {
-  if(shouldPreventGameplayKeyDefault(e.code,gameplayInputActive(),isEditableInput(e.target)))e.preventDefault();
+  if(shouldPreventGameplayKeyDefault(e.code,gameplayInputActive(),isEditableGameTarget(e.target)))e.preventDefault();
   if (e.key.toLowerCase() === 'a') customization.close();
   keySet.delete(e.code);
 });
@@ -458,7 +455,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden)clearGamepl
 // not to the canvas or HTML HUD overlays. Capture before the target's own handlers.
 document.addEventListener('contextmenu',e=>{
   const onSurface=e.target instanceof Element&&!!e.target.closest('#viewport,#ui-root');
-  if(shouldSuppressGameplayContextMenu(started,onSurface,isEditableInput(e.target)))e.preventDefault();
+  if(shouldSuppressGameplayContextMenu(started,onSurface,isEditableGameTarget(e.target)))e.preventDefault();
 },{capture:true});
 renderer.domElement.addEventListener('pointerdown', (e) => {
   if (!started || customization.isOpen || gameUi?.blocking || npcs.dialogue.isOpen) return;
