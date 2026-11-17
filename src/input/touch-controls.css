@@ -1,0 +1,39 @@
+/* Touch controls — only enabled at runtime for coarse-pointer phone-sized screens. */
+.touch-controls[hidden],.touch-portrait-guide[hidden]{display:none!important}
+.touch-controls{position:fixed;inset:0;z-index:36;pointer-events:none;color:#294b38;user-select:none;-webkit-user-select:none}
+.touch-joystick,.touch-action{pointer-events:auto;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
+.touch-joystick{position:fixed;left:calc(14px + env(safe-area-inset-left));bottom:calc(14px + env(safe-area-inset-bottom));width:134px;height:134px;border-radius:50%;border:2px solid #cbd9c6;background:rgba(255,252,239,.35);box-shadow:inset 0 0 0 11px rgba(255,252,239,.22);display:grid;place-items:center}
+.touch-joystick:before{content:'';position:absolute;width:67%;height:67%;border:1px solid rgba(45,80,58,.42);border-radius:50%}
+.touch-joystick-thumb{position:absolute;top:50%;left:50%;width:48px;height:48px;transform:translate(-50%,-50%);border:2px solid #c8dbcb;border-radius:50%;background:rgba(53,117,86,.82);box-shadow:0 3px 9px rgba(28,61,47,.22);will-change:transform}
+.touch-actions{position:fixed;right:calc(142px + env(safe-area-inset-right));bottom:calc(17px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(2,56px);gap:8px;pointer-events:none}
+.touch-action{height:54px;min-width:54px;padding:2px;border-radius:16px;border:1px solid #b9d3bf;background:rgba(255,252,239,.86);box-shadow:0 2px 9px rgba(28,61,47,.15);color:#2c513e;font:600 12px/1.1 system-ui,sans-serif;white-space:normal}
+.touch-action.pressed{background:#427c60;color:white;border-color:#2f654d}
+.touch-jump{grid-column:1}.touch-interact{grid-column:2}
+.touch-roll{grid-column:1}.touch-dive{grid-column:2}
+.touch-portrait-guide{position:fixed;inset:0;z-index:120;background:#1e3428ed;display:grid;place-items:center;padding:20px;color:#fff;touch-action:pan-y}
+.touch-portrait-content{max-width:370px;text-align:center;background:#2e503e;border:1px solid #739781;border-radius:20px;padding:22px;box-shadow:0 8px 32px #1118}
+.touch-portrait-content h2{font:700 21px system-ui;margin:6px 0 9px}
+.touch-portrait-content p{font:14px/1.45 system-ui;margin:0 0 16px}
+.touch-rotate-glyph{font:52px/1 system-ui}
+.touch-portrait-content button{font:600 14px system-ui;min-height:44px;padding:9px 13px;margin:4px;border-radius:12px;border:1px solid #b9d3bf;background:#fffdf4;color:#294b38}
+.touch-portrait-content .touch-continue-portrait{background:transparent;color:#fff;border-color:#739781}
+body.touch-mode .ui-quickbar{left:calc(162px + env(safe-area-inset-left));bottom:calc(16px + env(safe-area-inset-bottom))}
+body.touch-mode .ui-hint{display:none!important}
+body.touch-mode .ui-minimap{right:calc(10px + env(safe-area-inset-right));bottom:calc(12px + env(safe-area-inset-bottom));width:120px}
+body.touch-mode .ui-minimap canvas{width:110px;height:110px}
+body.touch-mode .ui-tool{bottom:150px}
+body.touch-mode .ui-activity-card{bottom:160px}
+body.touch-mode{overscroll-behavior:none}
+body.touch-mode #viewport canvas{touch-action:none}
+@media(orientation:portrait){
+ body.touch-mode .ui-quickbar{bottom:auto;top:66px;left:10px}
+ body.touch-mode .ui-minimap{bottom:auto;top:66px}
+ body.touch-mode .touch-actions{right:calc(12px + env(safe-area-inset-right))}
+ body.touch-mode .ui-tool{bottom:146px}
+}
+@media(max-height:390px) and (orientation:landscape){
+ .touch-joystick{width:118px;height:118px}
+ .touch-joystick-thumb{width:43px;height:43px}
+ body.touch-mode .ui-quickbar{left:calc(144px + env(safe-area-inset-left))}
+ .touch-actions{right:calc(130px + env(safe-area-inset-right))}
+}
