@@ -48,7 +48,7 @@ try{
   await hudMaster.fill('0.8');
   await page.getByRole('button',{name:'Régler le volume'}).click();
   verify(!(await page.locator('.ui-audio-popover').isVisible()),'Speaker closes its mixer');
-  const statsHidden=await page.evaluate(()=>{document.body.classList.remove('developer');const v=getComputedStyle(document.querySelector('.hud-stats')).display==='none';document.body.classList.add('developer');return v;});
+  const statsHidden=await page.evaluate(()=>{document.body.classList.remove('developer');const v=getComputedStyle(document.querySelector('.hud-debug')).display==='none';document.body.classList.add('developer');return v;});
   verify(statsHidden,'Technical statistics hidden unless developer mode');
   // 2. Contextual prompt from the gameplay target.
   await page.keyboard.down('KeyW');await page.waitForTimeout(300);await page.keyboard.up('KeyW');
