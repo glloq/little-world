@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type {WorldClock} from './clock.ts';
-import type {ClimateHistory} from './climate.ts';
+import type {ClimateHistory,WeatherKind} from './climate.ts';
 import {applySkyLighting,type SkyLighting as Lighting} from './sky-lighting.ts';
 import './view.css';
 /** One shared lighting state and one bounded local GPU rain batch. No mesh traversal. */
@@ -12,7 +12,18 @@ export function createEnvironmentView(scene:THREE.Scene,lighting:Lighting,clock:
  const uniforms={time:{value:0},anchor:{value:new THREE.Vector3()}};
  const material=new THREE.ShaderMaterial({uniforms,transparent:true,depthWrite:false,vertexShader:`uniform float time;uniform vec3 anchor;void main(){vec3 p=position;p.y=mod(position.y-time*16.0,24.0)-4.0;p.x+=sin(time*.4)*.4;vec4 view=modelViewMatrix*vec4(p+anchor,1.0);gl_Position=projectionMatrix*view;gl_PointSize=clamp(35.0/-view.z,1.0,3.0);}`,fragmentShader:`void main(){if(abs(gl_PointCoord.x-.5)>.2)discard;gl_FragColor=vec4(.72,.83,.88,.55);}`});
  const rain=new THREE.Points(geometry,material);rain.frustumCulled=false;rain.visible=false;rain.renderOrder=2;scene.add(rain);
- const panel=document.createElement('details');panel.className='environment-controls';const summary=document.createElement('summary'),timeLabel=document.createElement('span'),weatherLabel=document.createElement('span'),label=document.createElement('label'),rate=document.createElement('select');summary.textContent='Heure et météo';label.textContent='Vitesse du monde';rate.setAttribute('aria-label','Vitesse du monde');for(const [value,text]of [['0','Pause'],['1','×1'],['60','×60'],['240','×240']])rate.add(new Option(text,value));rate.value='1';rate.onchange=()=>clock.setRate(Number(rate.value));label.append(rate);panel.append(summary,timeLabel,weatherLabel,label);document.body.append(panel);
+ const panel=document.createElement('details');panel.className='environment-controls';panel.open=true;
+ const summary=document.createElement('summary'),timeLabel=document.createElement('span'),weatherLabel=document.createElement('span'),label=document.createElement('label'),rate=document.createElement('select');
+ summary.textContent='Simulation météo et heure';label.textContent='Vitesse du monde';rate.setAttribute('aria-label','Vitesse du monde');
+ for(const [value,text]of [['0','Pause'],['1','×1'],['60','×60'],['240','×240']])rate.add(new Option(text,value));
+ rate.value='1';rate.onchange=()=>clock.setRate(Number(rate.value));label.append(rate);
+ const weatherSetting=document.createElement('label'),weatherSelect=document.createElement('select');
+ weatherSetting.textContent='Forcer la météo (test uniquement)';weatherSelect.setAttribute('aria-label','Forcer la météo');
+ for(const [value,text]of [['auto','Automatique'],['clear','Soleil'],['cloudy','Nuages'],['rain','Pluie']])weatherSelect.add(new Option(text,value));
+ weatherSelect.onchange=()=>climate.setPreviewWeather(weatherSelect.value==='auto'?null:weatherSelect.value as WeatherKind);
+ weatherSetting.append(weatherSelect);
+ const note=document.createElement('small');note.textContent='Aperçu temporaire, non enregistré dans les sauvegardes.';
+ panel.append(summary,timeLabel,weatherLabel,label,weatherSetting,note);document.body.append(panel);
  let visualTime=0,lastLabel='';
  /** `underground`: inside a mine, the sky no longer lights the scene (local lanterns do). */
  function update(dt:number,position:{x:number;y:number;z:number},detail:number,underground=false){
@@ -25,5 +36,5 @@ export function createEnvironmentView(scene:THREE.Scene,lighting:Lighting,clock:
   if(text!==lastLabel){lastLabel=text;timeLabel.textContent=text.split(' · ')[0];weatherLabel.textContent={clear:'Temps clair',cloudy:'Ciel couvert',rain:'Pluie'}[state.weather]+` · ${state.temperatureC} °C`;panel.dataset.weather=state.weather;panel.dataset.time=String(clock.time);}
   if(Number(rate.value)!==clock.rate)rate.value=String(clock.rate);
  }
- return {update,get metrics(){return {time:clock.time,rate:clock.rate,weather:climate.state(clock.time).weather,rainParticles:rain.visible?geometry.drawRange.count:0};},dispose(){panel.remove();rain.removeFromParent();geometry.dispose();material.dispose();}};
+ return {update,controls:panel,get metrics(){return {time:clock.time,rate:clock.rate,weather:climate.state(clock.time).weather,rainParticles:rain.visible?geometry.drawRange.count:0};},dispose(){panel.remove();rain.removeFromParent();geometry.dispose();material.dispose();}};
 }
