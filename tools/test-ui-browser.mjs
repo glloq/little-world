@@ -127,7 +127,60 @@ try{
   // 15. Back to the start screen from the menu, then play again.
   await page.keyboard.press('Escape');await ui.panel('pause').getByRole('button',{name:'Retour à l’accueil'}).click();await page.getByRole('button',{name:'Explorer l’île'}).waitFor({state:'visible'});verify(true,'Menu returns to the start screen');
   await page.getByRole('button',{name:'Explorer l’île'}).click();const t1=await envTime();await page.waitForTimeout(600);verify(await envTime()>t1,'Playing again resumes the world');
-  // 16. Real mobile viewport: joystick is touch-only, analog, resets on release, and menus block movement.
+  // 16. Desktop input regression: game focus, Space, context menu and contextual boost.
+  const sceneCanvas=page.locator('#viewport canvas');
+  // Accessible minimap label changes when a waypoint is active; class is stable.
+  const mapShortcut=page.locator('.ui-minimap');
+  await mapShortcut.click();await ui.panel('map').waitFor();
+  await page.keyboard.press('Escape');
+  verify(await sceneCanvas.evaluate(e=>document.activeElement===e),'Closing a HUD-opened map returns focus to the game canvas');
+  await page.keyboard.press('Space');
+  verify(await page.locator('.ui-panel:not([hidden])').count()===0,'Space after closing the map does not reopen the previously focused button');
+  await page.getByRole('button',{name:'Sac (I)'}).click();await page.keyboard.press('Escape');
+  verify(await sceneCanvas.evaluate(e=>document.activeElement===e),'Closing inventory also restores canvas focus');
+  await mapShortcut.focus();await page.keyboard.press('Space');
+  verify(await page.locator('.ui-panel:not([hidden])').count()===0,'Space never activates a focused HUD shortcut while gameplay is active');
+  await page.keyboard.press('Enter');await ui.panel('map').waitFor();
+  verify(true,'Enter still activates the focused HUD shortcut for keyboard accessibility');
+  await page.keyboard.press('Escape');
+  await page.getByRole('button',{name:'Régler le volume'}).click();
+  await page.keyboard.press('Escape');
+  verify(await sceneCanvas.evaluate(e=>document.activeElement===e),'Closing the audio popover restores canvas focus');
+  const contextMenu=await page.evaluate(()=>{
+    const inspect=target=>{
+      const event=new MouseEvent('contextmenu',{bubbles:true,cancelable:true,button:2});
+      target.dispatchEvent(event);return event.defaultPrevented;
+    };
+    const edit=document.createElement('input');document.querySelector('#ui-root').append(edit);
+    const results={canvas:inspect(document.querySelector('#viewport canvas')),hud:inspect(document.querySelector('.ui-minimap')),page:inspect(document.body),editable:inspect(edit)};
+    edit.remove();return results;
+  });
+  verify(contextMenu.canvas&&contextMenu.hud&&contextMenu.page&&!contextMenu.editable,'Context menu is blocked across the running game (including body/HUD), except editable fields');
+
+  await page.evaluate(()=>{const p=window.littleWorldMetrics.position;window.littleWorldDebug.teleport(p[0],p[2],0,180);});
+  await page.waitForFunction(()=>window.littleWorldMetrics?.mode==='air');
+  await page.keyboard.press('Space');
+  await page.waitForFunction(()=>window.littleWorldMetrics?.mode==='glide');
+  const shiftGas=await page.evaluate(()=>window.littleWorldMetrics.movement.state.gasReserve);
+  await page.keyboard.down('Shift');
+  await page.waitForFunction(value=>window.littleWorldMetrics?.movement?.state?.gasReserve<value-.5,shiftGas);
+  await page.keyboard.up('Shift');
+  verify(await page.evaluate(()=>window.littleWorldMetrics.movement.state.gasReserve)<shiftGas,'Shift activates the existing gas boost while gliding');
+  await page.waitForFunction(()=>window.littleWorldMetrics?.movement?.state?.gasBoosting===false);
+  // Right click is deliberately NOT a game binding: Firefox can force its native menu with Shift+right.
+  const rightGas=await page.evaluate(()=>window.littleWorldMetrics.movement.state.gasReserve);
+  await page.mouse.move(400,390);await page.mouse.down({button:'right'});
+  await page.waitForTimeout(450);
+  await page.mouse.up({button:'right'});
+  verify(Math.abs((await page.evaluate(()=>window.littleWorldMetrics.movement.state.gasReserve))-rightGas)<1e-6,
+    'Right mouse no longer consumes flight gas; Shift is the sole desktop boost binding');
+  const rightPointer=await page.evaluate(()=>{
+    const node=document.querySelector('#viewport canvas'),event=new PointerEvent('pointerdown',{bubbles:true,cancelable:true,button:2});
+    node.dispatchEvent(event);return event.defaultPrevented;
+  });
+  verify(rightPointer,'Secondary pointerdown is cancelled on the running game canvas');
+
+  // 17. Real mobile viewport: joystick is touch-only, analog, resets on release, and menus block movement.
   verify(await page.locator('.touch-controls').count()===0,'Desktop build does not create the phone joystick');
   const phone=await browser.newContext({viewport:{width:844,height:390},screen:{width:844,height:390},isMobile:true,hasTouch:true,deviceScaleFactor:1});
   const mobilePage=await phone.newPage(),mobileErrors=[];

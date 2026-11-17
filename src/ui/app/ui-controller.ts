@@ -11,7 +11,7 @@ interface Registered extends PanelOptions {id:string;title:string;root:HTMLEleme
 export class UiController {
   private panels=new Map<string,Registered>();private current:Registered|null=null;private previousFocus:HTMLElement|null=null;
   private modal:HTMLElement|null=null;private host:HTMLElement;private listeners=new Set<(id:string|null)=>void>();
-  constructor(host:HTMLElement){this.host=host;}
+  constructor(host:HTMLElement,private readonly focusGameplay?:()=>boolean){this.host=host;}
   register(id:string,title:string,options:PanelOptions){
     const root=el('section','ui-panel');root.hidden=true;root.dataset.panel=id;root.setAttribute('role','dialog');root.setAttribute('aria-modal','true');root.setAttribute('aria-label',title);
     const head=el('header','ui-panel-head'),body=el('div','ui-panel-body');head.append(el('h2','',title),button('Fermer · Échap',()=>this.close(),'ui-button ui-close'));
@@ -33,7 +33,11 @@ export class UiController {
   toggle(id:string){if(this.current?.id===id)this.close();else this.open(id);}
   /** Re-render the open panel (state changed while it is visible). */
   refresh(id?:string){if(this.current&&(!id||this.current.id===id)){const focused=document.activeElement as HTMLElement|null,key=focused?.dataset.focusKey;this.current.render(this.current.body);if(key)this.current.body.querySelector<HTMLElement>(`[data-focus-key="${CSS.escape(key)}"]`)?.focus();}}
-  close(){if(!this.current)return;this.hide(this.current);this.current=null;this.previousFocus?.focus?.();this.previousFocus=null;for(const l of this.listeners)l(null);}
+  close(){if(!this.current)return;this.hide(this.current);this.current=null;
+    // Returning to a previously clicked HUD button makes Space activate that button again.
+    // Prefer the gameplay canvas after dismissing a panel; fall back for non-play contexts.
+    if(!this.focusGameplay?.())this.previousFocus?.focus?.();
+    this.previousFocus=null;for(const l of this.listeners)l(null);}
   private hide(p:Registered){p.root.hidden=true;p.onClose?.();}
   /** In-app confirmation for destructive operations (never window.confirm). */
   confirm(text:string,confirmLabel:string,cancelLabel='Annuler'):Promise<boolean>{
