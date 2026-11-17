@@ -82,9 +82,9 @@ export function createGameUi(deps:GameUiDeps){
   if(g){const shop=shopPanel({kind:()=>shopKind,inventory:()=>g.runtime.state.inventory,name:id=>g.itemName(id),max:id=>g.purse.max(id),trade:(k,id,q,m)=>g.trade(k,id,q,m),notify:(ok,t)=>{center.notify(ok?'success':'warning',t);deps.audio?.emit(ok?'ui.confirm':'ui.error',{source:'ui'});}});
     ui.register('shop','Comptoir',{pauses:true,render:b=>{const h=b.closest('.ui-panel')?.querySelector('h2');if(h&&shopKind)h.textContent=SHOPS[shopKind].name;shop.render(b);}});}
   let closeAudioPopover=()=>{};
-  ui.register('settings','Paramètres',{pauses:true,render:b=>{closeAudioPopover();settingsPanel({preferences:()=>prefs,update:updatePrefs,quality:deps.quality,audioPanel:document.querySelector<HTMLDetailsElement>('.audio-controls')}).render(b);},
+  ui.register('settings','Paramètres',{pauses:true,render:b=>{closeAudioPopover();settingsPanel({preferences:()=>prefs,update:updatePrefs,quality:deps.quality,audioPanel:deps.audio?.panel??null}).render(b);},
     // The audio panel goes back to its developer place when the settings close.
-    onClose:()=>{const audio=document.querySelector<HTMLDetailsElement>('.audio-controls');if(audio){audio.open=false;const advanced=audio.querySelector<HTMLDetailsElement>('.audio-mixer-advanced');if(advanced)advanced.open=false;document.body.append(audio);}}});
+    onClose:()=>{const audio=deps.audio?.panel;if(audio){audio.open=false;const advanced=audio.querySelector<HTMLDetailsElement>('.audio-mixer-advanced');if(advanced)advanced.open=false;document.body.append(audio);}}});
   ui.register('pause','Menu',{pauses:true,render:b=>pauseMenu({has:id=>ui.has(id),open:id=>ui.open(id),resume:()=>ui.close(),home:()=>{host.classList.add('ui-await-start');deps.home();},studioUrl:deps.studioUrl,worldName:deps.world.name,temporary:deps.temporary}).render(b)});
   // Non-blocking HUD. The map, sound engine and gameplay state remain the single sources of truth.
   const prompt=document.querySelector<HTMLElement>('#action')??el('div','action-toast');prompt.id='action';prompt.classList.add('ui-prompt','hide');host.append(prompt);
@@ -95,22 +95,26 @@ export function createGameUi(deps:GameUiDeps){
   topLeft.append(menu);if(g)topLeft.append(purse);
   const weather=el('div','ui-weather-chip');weather.setAttribute('aria-label','Météo et heure du monde');
   const soundButton=button('',()=>toggleAudioPopover(),'ui-hud-button ui-sound-button','Volume du jeu');
-  soundButton.setAttribute('aria-label','Régler le volume');soundButton.setAttribute('aria-expanded','false');soundButton.append(hudIcon('volume'));soundButton.disabled=!deps.audio;
+  soundButton.setAttribute('aria-label','Régler le volume');soundButton.setAttribute('aria-expanded','false');soundButton.setAttribute('aria-controls','ui-audio-popover');soundButton.append(hudIcon('volume'));
   topRight.append(weather,soundButton);top.append(topLeft,topRight);host.append(top);
-  const audioPopover=el('div','ui-audio-popover');audioPopover.hidden=true;host.append(audioPopover);
+  const audioPopover=el('div','ui-audio-popover');audioPopover.id='ui-audio-popover';audioPopover.hidden=true;host.append(audioPopover);
   function hideAudioPopover(){
     if(audioPopover.hidden)return;
     audioPopover.hidden=true;soundButton.setAttribute('aria-expanded','false');
-    const mixer=audioPopover.querySelector<HTMLDetailsElement>('.audio-controls');
-    if(mixer){mixer.open=false;document.body.append(mixer);}
+    const mixer=deps.audio?.panel;
+    if(mixer&&audioPopover.contains(mixer)){mixer.open=false;document.body.append(mixer);}
   }
   closeAudioPopover=hideAudioPopover;
   function toggleAudioPopover(){
-    if(!deps.audio)return;
     if(!audioPopover.hidden){hideAudioPopover();return;}
-    const mixer=document.querySelector<HTMLDetailsElement>('.audio-controls');
-    if(!mixer)return;
-    audioPopover.replaceChildren(mixer);mixer.open=true;
+    const mixer=deps.audio?.panel;
+    if(mixer){
+      audioPopover.replaceChildren(el('h3','ui-audio-title','Son'),mixer);
+      mixer.open=true;
+      if(!deps.audio!.engine.settings.muted)void deps.audio!.engine.unlock();
+    }else{
+      audioPopover.replaceChildren(el('h3','ui-audio-title','Son'),el('p','ui-muted','Aucun son disponible pour ce monde. Les réglages audio sont inactifs.'));
+    }
     audioPopover.hidden=false;soundButton.setAttribute('aria-expanded','true');
   }
   document.addEventListener('pointerdown',e=>{
@@ -125,15 +129,13 @@ export function createGameUi(deps:GameUiDeps){
   const minimap=createMinimap(mapDeps,mapRaster,()=>ui.open('map'));
   const tool=el('div','ui-tool hide'),oxygen=el('div','ui-oxygen hide');oxygen.setAttribute('role','meter');oxygen.setAttribute('aria-label','Oxygène');
   const oxyFill=el('span','ui-meter-fill');oxygen.append(el('span','','Oxygène'),el('span','ui-meter-track'));oxygen.lastElementChild!.append(oxyFill);
-  const hint=el('p','ui-hint hide','Z Q S D : se déplacer · Espace : planer · Clic droit en vol : propulsion · Maj : rouler vite en boule · E : agir · I : sac · J : journal · M : carte · Échap : menu');
   const stamina=el('div','ui-oxygen ui-stamina hide');stamina.setAttribute('role','meter');stamina.setAttribute('aria-label','Endurance');
   const stFill=el('span','ui-meter-fill');stamina.append(el('span','','Endurance'),el('span','ui-meter-track'));stamina.lastElementChild!.append(stFill);
   const velocity=el('div','ui-motion-speed hide');velocity.setAttribute('aria-label','Vitesse de déplacement');
   const gas=el('div','ui-oxygen ui-gas hide');gas.setAttribute('role','meter');gas.setAttribute('aria-label','Réserve de gaz');
   const gasFill=el('span','ui-meter-fill');gas.append(el('span','',document.body.classList.contains('touch-mode')?'Gaz · Boost':'Gaz · clic droit'),el('span','ui-meter-track'));gas.lastElementChild!.append(gasFill);
-  host.append(quick,minimap.element,tool,oxygen,stamina,gas,hint,velocity);
-  // The start hint never covers a panel or a modal.
-  ui.onChange(id=>{if(id){hint.classList.add('hide');hideAudioPopover();}});
+  host.append(quick,minimap.element,tool,oxygen,stamina,gas,velocity);
+  ui.onChange(id=>{if(id)hideAudioPopover();});
   const card=activityCard(host,(plotId,cropId)=>{const name=a?.selectCrop(plotId,cropId);if(name){center.notify('info','Culture choisie : '+name);deps.audio?.emit('farm.seedbag',{source:'player'});}});
   function renderTool(){const item=g?.runtime.data.items.find(i=>i.id===selectedTool);tool.textContent=item?'En main : '+item.name:'';tool.classList.toggle('hide',!item);}
   // Gameplay changes → notifications (gains, missions) and open panel refresh.
@@ -152,7 +154,7 @@ export function createGameUi(deps:GameUiDeps){
     controller:ui,notify:(kind:NoticeKind,text:string)=>center.notify(kind,text),center,
     get preferences(){return prefs;},
     get blocking(){return ui.blocking;},get paused(){return ui.paused;},
-    started(){host.classList.remove('ui-await-start');hint.classList.remove('hide');setTimeout(()=>hint.classList.add('hide'),prefs.reduceMotion?6000:9000);},
+    started(){host.classList.remove('ui-await-start');},
     /** Keys of the interface. Returns true when consumed (the game must ignore it). */
     handleKey(e:KeyboardEvent,inGame:boolean):boolean{
       if(ui.handleKey(e))return true;

@@ -27,12 +27,25 @@ try{
 
   // 1. Minimal HUD: quick bar, no technical statistics outside developer mode.
   verify(await page.getByRole('navigation',{name:'Accès rapide'}).isVisible(),'Quick bar visible (Sac, Journal)');
+  verify(await page.evaluate(()=>{
+    const quick=document.querySelector('.ui-quickbar')?.getBoundingClientRect(),map=document.querySelector('.ui-minimap')?.getBoundingClientRect();
+    return !!quick&&!!map&&quick.left>=innerWidth/2&&quick.bottom<map.top&&quick.right<=innerWidth;
+  }),'Sac and Journal appear on the right above the minimap');
+  verify(await page.locator('.ui-hint,.hud-title,.hud-help').filter({visible:true}).count()===0,'Old help and legacy HUD blocks no longer appear');
   verify(await page.locator('.ui-purse').textContent().then(t=>t.includes('🪙')),'Coin balance uses the real HUD');
   verify(await page.locator('.ui-weather-chip').textContent().then(t=>/\d\d:\d\d/.test(t)),'HUD shows the simulated clock');
   verify(await page.getByRole('button',{name:'Ouvrir la carte du monde (M)'}).isVisible(),'Minimap is visible');
   await page.getByRole('button',{name:'Régler le volume'}).click();
   verify(await page.locator('.ui-audio-popover').isVisible(),'Speaker opens the existing mixer');
   verify(await page.locator('.ui-audio-popover').getByLabel('Volume général').count()===1,'One shared master volume');
+  verify(await page.getByRole('button',{name:'Activer / reprendre le son'}).count()===0,'Redundant sound activation button is gone');
+  await page.locator('.ui-audio-popover').getByLabel('Couper le son',{exact:true}).check();
+  verify(await page.evaluate(()=>JSON.parse(localStorage.getItem('little-world:audio:v1')).muted)===true,'Speaker provides working mute');
+  await page.locator('.ui-audio-popover').getByLabel('Couper le son',{exact:true}).uncheck();
+  const hudMaster=page.locator('.ui-audio-popover').getByLabel('Volume général',{exact:true});
+  await hudMaster.fill('0.37');
+  verify(await page.evaluate(()=>JSON.parse(localStorage.getItem('little-world:audio:v1')).master)===0.37,'Speaker changes the actual master volume');
+  await hudMaster.fill('0.8');
   await page.getByRole('button',{name:'Régler le volume'}).click();
   verify(!(await page.locator('.ui-audio-popover').isVisible()),'Speaker closes its mixer');
   const statsHidden=await page.evaluate(()=>{document.body.classList.remove('developer');const v=getComputedStyle(document.querySelector('.hud-stats')).display==='none';document.body.classList.add('developer');return v;});

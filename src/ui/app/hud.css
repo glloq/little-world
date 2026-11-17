@@ -12,7 +12,7 @@
 .ui-purse-count{font-variant-numeric:tabular-nums}
 .ui-coin-emoji{font-size:20px}
 .ui-weather-chip{min-height:43px;display:flex;align-items:center;padding:7px 15px;border:1px solid #cbd9c6;border-radius:999px;background:rgba(255,252,239,.95);box-shadow:0 3px 12px rgba(30,54,38,.12);font-weight:650;font-variant-numeric:tabular-nums;white-space:nowrap}
-.ui-quickbar{left:16px;right:auto;bottom:16px;z-index:10;gap:8px}
+.ui-quickbar{left:auto;right:16px;bottom:244px;z-index:10;gap:8px}
 .ui-quick{min-height:46px;padding:8px 12px;border-radius:12px;gap:8px}
 .ui-quick-label{font-size:13px;font-weight:600}
 .ui-quick kbd{font-size:11px}
@@ -22,6 +22,7 @@
 .ui-minimap-title svg{width:14px;height:14px}
 .ui-audio-popover{position:fixed;top:69px;right:16px;z-index:25;width:min(290px,calc(100vw - 32px));max-height:calc(100vh - 95px);overflow:auto;border:1px solid #cbd9c6;border-radius:15px;background:#fffdf4;box-shadow:0 7px 23px rgba(30,54,38,.18);padding:12px 15px}
 .ui-audio-popover[hidden]{display:none}
+.ui-audio-title{font:650 16px/1.2 system-ui,sans-serif;color:#2c513e;margin:0 0 11px}
 .ui-audio-popover .audio-controls,.ui-settings-section .audio-controls{position:static!important;display:block!important;width:auto;min-width:0;max-width:none;max-height:none;padding:0;border:0;background:none;box-shadow:none;overflow:visible;font:inherit}
 .ui-audio-popover .audio-controls>summary,.ui-settings-section .audio-controls>summary{display:none}
 .audio-mixer{display:grid;gap:9px}
@@ -33,12 +34,12 @@
 .audio-mixer .audio-mixer-advanced summary{font-size:13px;font-weight:600;cursor:pointer}
 .audio-mixer .audio-mixer-advanced[open] summary{margin-bottom:9px}
 .audio-mixer .audio-status{font-size:11px;color:#677c6d}
+body:not(.developer) .ui-audio-popover .audio-status,body:not(.developer) .ui-settings-section .audio-status{display:none}
 .audio-mixer button{min-height:32px;padding:6px 9px;font:inherit}
 .ui-root .ui-notifications{top:74px;z-index:20}
 .ui-root .ui-quest-banner{top:74px;z-index:22}
 .ui-root .ui-activity-card{top:76px;left:16px;z-index:8}
 .ui-root .ui-tool{left:16px;bottom:76px}
-.ui-root .ui-hint{bottom:83px}
 .ui-root .ui-prompt{z-index:15}
 body:not(.developer) .environment-controls{display:none!important}
 /* Developer climate controls live below the top HUD; never overlap its weather/audio chips.
@@ -63,7 +64,7 @@ body.developer .environment-controls{top:76px!important;right:16px!important}
  .ui-hud-button{width:38px;height:38px}
  .ui-purse,.ui-weather-chip{min-height:38px;font-size:13px;padding:5px 9px}
  .ui-coin-emoji{font-size:16px}
- .ui-quickbar{left:10px;bottom:10px}
+ .ui-quickbar{left:auto;right:10px;bottom:194px}
  .ui-quick{min-height:42px;padding:8px}
  .ui-quick-label{display:none}
  .ui-minimap{right:10px;bottom:10px;width:145px}
@@ -71,7 +72,6 @@ body.developer .environment-controls{top:76px!important;right:16px!important}
  .ui-root .ui-activity-card{top:auto;bottom:178px}
  .ui-root .ui-tool{bottom:62px;left:10px}
  .ui-audio-popover{top:58px;right:10px}
- .ui-root .ui-hint{bottom:170px}
 }
 @media(max-width:410px){
  .ui-weather-chip{font-size:12px;padding:5px 7px}
@@ -79,5 +79,6 @@ body.developer .environment-controls{top:76px!important;right:16px!important}
  .ui-hud-icon{width:18px;height:18px}
  .ui-minimap{width:118px}
  .ui-minimap canvas{width:108px;height:108px}
+ .ui-quickbar{bottom:168px}
 }
 @media(prefers-reduced-motion:reduce){.ui-hud-button,.ui-minimap,.ui-quick{transition:none!important}}
