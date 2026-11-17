@@ -156,9 +156,13 @@ export class HamsterAnimator {
       if(this.lastJumpSeq>=0&&input.jumpSeq>this.lastJumpSeq&&mode==='air'){
         if(input.jumpKind==='roll'){
           this.airborneRoll=true;
-          if(this.state!=='ROLL_AIR'){this.state='ROLL_AIR';this.transitionTime=0;this.emit('jump');}
+          if(this.state!=='ROLL_AIR'){
+            this.state='ROLL_AIR';this.transitionTime=0;
+            if(!this.events.some(e=>e.name==='jump'))this.emit('jump');
+          }
         }else if(this.state!=='JUMP'){
-          this.state='JUMP';this.transitionTime=0;this.emit('jump');
+          this.state='JUMP';this.transitionTime=0;
+          if(!this.events.some(e=>e.name==='jump'))this.emit('jump');
         }
       }
       this.lastJumpSeq=input.jumpSeq;
