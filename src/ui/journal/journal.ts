@@ -37,7 +37,7 @@ export function journalPanel(deps:JournalDeps){
         const toggle=button('',()=>{expanded=expanded===q.id?null:q.id;this.render(body);},'ui-quest-toggle');
         toggle.dataset.focusKey='quest:'+q.id;toggle.setAttribute('aria-expanded',String(open));
         toggle.setAttribute('aria-label',(open?'Masquer':'Afficher')+' la mission '+q.name);
-        toggle.append(el('span','ui-quest-symbol',q.status==='complete'?'✓':'✦'),el('span','ui-quest-title',q.name),el('span','ui-quest-chevron',open?'−':'+'));
+        toggle.append(el('span','ui-quest-symbol',q.status==='complete'?'✓ ':'✦ '),el('span','ui-quest-title',q.name),el('span','ui-quest-chevron',open?'−':'+'));
         card.append(toggle);
         if(open){
           const info=el('div','ui-quest-expanded');
