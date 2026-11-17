@@ -282,6 +282,12 @@ const gasEffects=createGasEffects(scene);const gasOrigin=new THREE.Vector3();let
 const customization = createCustomizationMenu(
   document.querySelector<HTMLElement>('#appearance-menu')!,
   (appearance) => character.setAppearance(appearance),
+  {
+    status:()=>flightProgress,
+    selectSkin:id=>{if(flightProgress.unlockedSkins.includes(id))flightProgress.selectedSkin=id;},
+    selectSound:id=>{if(flightProgress.unlockedSounds.includes(id))flightProgress.selectedSound=id;},
+    previewSound:id=>audio?.emit('player.boost.pulse',{source:'ui',context:{state:id,intensity:'medium'}})
+  },
 );
 let boat = spawnBoat();
 if(!isLegacyTerrain()){
