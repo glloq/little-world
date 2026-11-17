@@ -15,12 +15,13 @@ test('ROLL — toggle enters the ball, accelerates progressively above running s
   assert.ok(early<p.rollSpeed,'progressive acceleration');assert.ok(p.rollSpeed>8.7&&p.rollSpeed<=ROLL.max+1e-9,'faster than running, capped: '+p.rollSpeed.toFixed(2));
   simulatePlayer(p,{...keys,forward:1,rollPressed:true},1/30,q);assert.equal(p.mode,'ground','second press leaves the roll');
 });
-test('ROLL — turns less sharply than walking, rolls on then stops by itself without getting stuck',()=>{
+test('ROLL — turns progressively and a manually selected ball remains active when it stops',()=>{
   const q=flat(),p=actor();simulatePlayer(p,{...keys,forward:1,rollPressed:true},1/30,q);run(p,q,2,{forward:1});
   const h0=p.rollHeading;run(p,q,.5,{right:1});const turned=Math.abs(p.rollHeading-h0);assert.ok(turned<=ROLL.turnRate*.5+1e-6&&turned>.5,'limited turn rate: '+turned.toFixed(2));
   const z=p.position.z;run(p,q,1,{});assert.equal(p.mode,'roll');assert.ok(p.position.z!==z,'rolls on without input');
-  run(p,q,14,{});assert.equal(p.mode,'ground','stops and leaves the ball');
-  run(p,q,1,{forward:1});assert.ok(Math.hypot(p.velocity.x,p.velocity.z)>3,'walks again right after the roll');
+  run(p,q,14,{});assert.equal(p.mode,'roll','stopped manual ball remains selected until an explicit toggle');
+  simulatePlayer(p,{...keys,rollPressed:true},1/30,q);assert.equal(p.mode,'ground');
+  run(p,q,1,{forward:1});assert.ok(Math.hypot(p.velocity.x,p.velocity.z)>3,'walks again after leaving the ball');
 });
 test('ROLL — slopes: downhill speeds up, uphill slows; obstacles slow down; jump keeps momentum; cliffs and water exit',()=>{
   const down=new WorldCollisionQuery((x,z)=>-z*.25,()=>null),up=new WorldCollisionQuery((x,z)=>z*.25,()=>null);
