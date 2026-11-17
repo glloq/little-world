@@ -17,8 +17,8 @@ const actor=(mode='glide',vx=-7,vy=0,vz=0)=>({
 
 test('lateral jump deploys along original velocity, regardless of camera direction',()=>{
  const q=floor(),a=actor('air',-7,7.1),b=actor('air',-7,7.1);
- simulatePlayer(a,{...idle,jumpPressed:true,cameraYaw:0,cameraPitch:-1.1},dt,q);
- simulatePlayer(b,{...idle,jumpPressed:true,cameraYaw:Math.PI,cameraPitch:1.1},dt,q);
+ simulatePlayer(a,{...idle,jumpPressed:true,cameraYaw:0},dt,q);
+ simulatePlayer(b,{...idle,jumpPressed:true,cameraYaw:Math.PI},dt,q);
  assert.equal(a.mode,'glide');assert.equal(b.mode,'glide');
  assert.ok(a.velocity.x<0&&Math.abs(a.velocity.x)>Math.abs(a.velocity.z)*3);
  assert.ok(Math.abs(a.glideHeading+Math.PI/2)<1e-6,'initial heading follows lateral launch');
@@ -26,25 +26,29 @@ test('lateral jump deploys along original velocity, regardless of camera directi
  assert.equal(a.glideDeploymentUsed,true);
  assert.ok(a.glideDeploymentRemaining>0);
  for(let i=0;i<30;i++){
-  simulatePlayer(a,{...idle,cameraYaw:Math.PI/2,cameraPitch:-1},dt,q);
-  simulatePlayer(b,{...idle,cameraYaw:-Math.PI/2,cameraPitch:1},dt,q);
+  simulatePlayer(a,{...idle,cameraYaw:Math.PI/2},dt,q);
+  simulatePlayer(b,{...idle,cameraYaw:-Math.PI/2},dt,q);
  }
  assert.deepEqual(a.velocity,b.velocity,'free-look remains passive while flying');
  assert.ok(a.velocity.x<0,'no unexpected reversal after deployment');
 });
 
-test('directional inputs steer and pitch the glider independently of the view',()=>{
+test('horizontal steering stays independent, vertical camera aiming controls dive and climb',()=>{
  const q=floor(),neutral=actor('glide',0,0,18),turn=actor('glide',0,0,18),
- dive=actor('glide',0,0,18),climb=actor('glide',0,0,18);
+ dive=actor('glide',0,0,18),climb=actor('glide',0,0,18),forward=actor('glide',0,0,18);
  for(let i=0;i<35;i++){
   simulatePlayer(neutral,{...idle,cameraYaw:i*.15},dt,q);
   simulatePlayer(turn,{...idle,right:1,cameraYaw:i*.15},dt,q);
-  simulatePlayer(dive,{...idle,forward:1,cameraPitch:-.9},dt,q);
-  simulatePlayer(climb,{...idle,forward:-1,cameraPitch:.9},dt,q);
+  simulatePlayer(dive,{...idle,forward:1,cameraPitch:.8},dt,q);
+  simulatePlayer(climb,{...idle,forward:1,cameraPitch:-.7},dt,q);
+  simulatePlayer(forward,{...idle,forward:1,cameraYaw:i*.15},dt,q);
  }
  assert.ok(turn.velocity.x<-3,'D induces a right turn in the existing coordinate convention');
- assert.ok(Math.abs(neutral.velocity.x)<1e-8,'camera rotation gives zero steering');
- assert.ok(dive.velocity.y<climb.velocity.y,'forward dives and backward climbs');
+ assert.ok(Math.abs(neutral.velocity.x)<1e-8,'camera yaw rotation gives zero steering');
+ assert.ok(dive.velocity.y<climb.velocity.y,'looking down dives, looking up climbs');
+ assert.ok(climb.velocity.y>0,'looking above the horizon trades speed for altitude');
+ assert.ok(dive.velocity.y<-4,'looking below the horizon creates a deliberate dive');
+ assert.ok(Math.abs(forward.velocity.y-neutral.velocity.y)<1e-9,'upward phone stick must not force a dive');
  assert.ok(turn.velocity.length()<neutral.velocity.length(),'intentional turn still costs energy');
 });
 
@@ -93,7 +97,7 @@ test('visual camera recenters only after inactivity, and never during drag',()=>
  assert.equal(camera.yaw,Math.PI,'camera waits at high speed for 1 second');
  for(let i=0;i<110;i++)step();
  assert.ok(Math.abs(camera.yaw)<.01,'camera follows velocity behind player');
- assert.ok(Math.abs(camera.pitch-.32)<.01,'camera also regains comfortable elevation');
+ assert.equal(camera.pitch,1,'idle yaw recenter preserves the flight pitch aim');
  camera.yaw=Math.PI;step(true);
  assert.equal(camera.yaw,Math.PI);assert.equal(camera.idleSeconds,0);
  for(let i=0;i<20;i++)step(false,false);
@@ -158,4 +162,21 @@ test('new airborne boost state survives deterministic snapshots and rejects inva
  assert.deepEqual(x,y);assert.equal(x.state.airBoostUsed,true);
  const broken=structuredClone(x);broken.state.groundBoostCharge=1;
  assert.throws(()=>restoreMovement(actor(),broken),/Charge de décollage/);
+});
+
+test('higher gas impulse gains substantially more altitude without touching the view heading',()=>{
+ const q=floor(),withBoost=actor('glide',0,-4,20),coast=actor('glide',0,-4,20);
+ withBoost.gasReserve=42;coast.gasReserve=42;
+ withBoost.position.y=coast.position.y=15;
+ simulatePlayer(withBoost,{...idle,boostHeld:true,forward:1},dt,q);
+ simulatePlayer(coast,{...idle,forward:1},dt,q);
+ assert.ok(withBoost.velocity.y>9,'new pulse produces a strong upward velocity');
+ assert.equal(withBoost.gasPulseSeq,1);
+ for(let i=0;i<30;i++){
+  simulatePlayer(withBoost,{...idle,forward:1},dt,q);
+  simulatePlayer(coast,{...idle,forward:1},dt,q);
+ }
+ assert.ok(withBoost.position.y>coast.position.y+4,'boost produces a pronounced climb');
+ assert.ok(withBoost.position.y>15,'boost actually raises the hamster');
+ assert.ok(Math.abs(withBoost.velocity.x)<1e-9,'boost does not steer horizontally');
 });

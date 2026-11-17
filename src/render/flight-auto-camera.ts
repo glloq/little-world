@@ -1,10 +1,10 @@
-/** Camera-only auto follow: never feed these angles back into player flight steering.
- * Stateless with respect to world simulation; called at presentation frequency. */
+/** Automatic horizontal follow. The camera pitch is a deliberate glider control,
+ * so only yaw is recentered after inactivity. Called at presentation frequency. */
 import {angleDelta} from '../physics/motion.ts';
 export interface FlightCameraFollow {
   yaw:number;pitch:number;idleSeconds:number;wasGliding:boolean;
 }
-export const FLIGHT_CAMERA={idleDelay:2,fastIdleDelay:1,fastSpeed:18,followRate:2.5,restPitch:.32} as const;
+export const FLIGHT_CAMERA={idleDelay:2,fastIdleDelay:1,fastSpeed:18,followRate:2.5} as const;
 export function advanceFlightAutoCamera(
   s:FlightCameraFollow,dt:number,gliding:boolean,dragging:boolean,enabled:boolean,
   velocityX:number,velocityZ:number,facingYaw:number,boosting:boolean,
@@ -19,5 +19,5 @@ export function advanceFlightAutoCamera(
   const target=horizontalSpeed>2?Math.atan2(velocityX,velocityZ):facingYaw;
   const smooth=1-Math.exp(-FLIGHT_CAMERA.followRate*Math.min(Math.max(dt,0),.1));
   s.yaw+=angleDelta(s.yaw,target)*smooth;
-  s.pitch+=(FLIGHT_CAMERA.restPitch-s.pitch)*smooth;
+  // Do not reset s.pitch: otherwise the idle camera would unintentionally pitch the glider.
 }

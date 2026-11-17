@@ -1,4 +1,4 @@
-/** Real independent flight keyboard steering and passive camera drag through published V3 reader. */
+/** Real keyboard horizontal flight steering and vertical camera-aiming through published V3 reader. */
 import {chromium} from 'playwright';
 import {existsSync} from 'node:fs';
 import {mkdir,writeFile} from 'node:fs/promises';
@@ -21,12 +21,17 @@ try{
  await page.keyboard.up('KeyW');await page.keyboard.up('ShiftLeft');s=await sample();assert.equal(s.mode,'glide');record.samples.deploy=s;record.checks.push('Saut puis ouverture avec élan');
  await ticks(50);assert.equal((await sample()).mode,'glide','clear the cliff rim before diving');
  const canvas=page.locator('#viewport canvas');await canvas.scrollIntoViewIfNeeded();
- await page.keyboard.down('KeyW');await ticks(40);await page.keyboard.up('KeyW');
- s=await sample();assert.equal(s.mode,'glide');assert.ok(s.velocity[1]<-4,'W/Z makes the glider dive');assert.ok(Math.hypot(...s.velocity)>Math.hypot(...record.samples.deploy.velocity));record.samples.dive=s;record.checks.push('Piqué au clavier : descente et accélération');
+ // Keeping W/forward after take-off must no longer pitch the planeur straight down.
+ await page.keyboard.down('KeyW');await ticks(35);await page.keyboard.up('KeyW');
+ s=await sample();assert.equal(s.mode,'glide','forward input does not force a ground collision');record.checks.push('Avancer en plané ne commande plus un piqué');
+ // Mouse drag is now the ONLY vertical flight aim. Keep the drag active while sampling,
+ // so the idle horizontal follow never overrides the user intention.
+ await page.mouse.move(640,500);await page.mouse.down();await page.mouse.move(640,245,{steps:12});await ticks(40);
+ s=await sample();assert.equal(s.mode,'glide');assert.ok(s.velocity[1]<-4,'looking down causes a deliberate dive');assert.ok(Math.hypot(...s.velocity)>Math.hypot(...record.samples.deploy.velocity));record.samples.dive=s;record.checks.push('Viser vers le bas : descente et accélération');
  await page.screenshot({path:out+'/dive.png'});
- await page.keyboard.down('KeyS');await ticks(40);await page.keyboard.up('KeyS');
- s=await sample();assert.equal(s.mode,'glide');assert.ok(s.velocity[1]>0,'S makes the glider climb');record.samples.pullUp=s;record.checks.push('Cabré au clavier : remontée temporaire');
- await page.screenshot({path:out+'/pull-up.png'});
+ await page.mouse.move(640,780,{steps:12});await ticks(40);
+ s=await sample();assert.equal(s.mode,'glide');assert.ok(s.velocity[1]>0,'looking up trades speed for altitude');record.samples.pullUp=s;record.checks.push('Viser vers le haut : remontée temporaire');
+ await page.mouse.up();await page.screenshot({path:out+'/pull-up.png'});
  const heading=s.flight.heading;
  await page.mouse.move(640,400);await page.mouse.down();await page.mouse.move(790,400);await page.mouse.up();await ticks(15);
  s=await sample();assert.ok(Math.abs(s.flight.heading-heading)<.01,'horizontal camera drag does not steer flight');record.samples.turn=s;record.checks.push('Caméra libre : aucun virage physique sans commande');

@@ -2,11 +2,11 @@
 
 ## Décisions de gameplay
 
-Le moteur reste déterministe à 30 Hz et conserve le système de propulsion par **impulsions consommant du gaz**. Une impulsion dispose dorénavant d'une composante **ascendante**, pour éviter que le boost ne propulse le hamster vers le sol en plané.
+Le moteur reste déterministe à 30 Hz et conserve le système de propulsion par **impulsions consommant du gaz**. Le boost du planeur fournit dorénavant une remontée volontairement plus marquée, sans modifier les réserves ni les niveaux de puissance. Une impulsion dispose dorénavant d'une composante **ascendante**, pour éviter que le boost ne propulse le hamster vers le sol en plané.
 
 | Action | Comportement |
 |---|---|
-| Boost en plané | Nouvelle impulsion : vitesse verticale relevée à au moins **5,5 m/s**, puis poussée normale en conservant la direction et l'énergie du vol |
+| Boost en plané | Nouvelle impulsion : vitesse verticale relevée à au moins **14 m/s**, puis poussée normale en conservant la direction et l'énergie du vol |
 | Boost en chute libre | **Double saut** : une impulsion alimentée en gaz, relance verticale à au moins **6,2 m/s** et poussée verticale sur le reste du pulse |
 | Boost immobile au sol | Maintien 0,35 s : décollage vertical à **7,5 m/s**, consommation d'une impulsion ; ouverture du planeur avec Saut ensuite |
 | Boost en course au sol | Contrôle d'accélération et roulade, **pas de décollage involontaire** |
@@ -42,3 +42,11 @@ Le bouton contextuel **Agir** n'apparaît que lorsqu'une interaction existe, et 
 - Tests exploratoires : impulsion très proche du sol, pente forte, plafond / passage sous un pont, continuité de propulsion lors de l'ouverture du planeur, déploiement à faible vitesse, collision à 60 m/s.
 
 La nouvelle logique n'est active que pendant une simulation de jeu et n'altère pas les sauvegardes du monde ni les données du Studio.
+
+## Correctif de visée verticale et caméra tactile
+
+- En plané, `cameraPitch` pilote l'assiette verticale : regarder vers le haut fait cabrer et regarder vers le bas fait piquer. Le lacet reste **indépendant** de la caméra.
+- Joystick mobile vers le haut / touche W ou Z : maintien de l'élan, **aucun piqué imposé**. Joystick vers le bas / S : aérofrein sans création d'énergie.
+- Sur smartphone, inversion du signe de rotation **horizontale de la caméra tactile uniquement** ; le sens du joystick gauche/droite demeure identique au clavier.
+- Le recentrage automatique ne modifie plus le pitch : recentrer verticalement annulerait la visée de hauteur et pourrait entraîner une chute involontaire.
+- Le seuil de vitesse maximale reste `GLIDE.max = 60 m/s`, avec un pulse de gaz payé une seule fois.

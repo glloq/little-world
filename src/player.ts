@@ -98,7 +98,7 @@ export const MAX_STAMINA = 100;
 /** Input forgiveness calibrated for 30 Hz; only enabled when jumpAssist is true. */
 export const JUMP_ASSIST={coyote:.10,buffer:.13,nearLanding:.65,maxPrediction:1.4} as const;
 /** Boost carries the hamster upwards instead of driving it into the ground. */
-export const BOOST_LIFT={stationaryHold:.35,launchVy:7.5,airVy:6.2,glideVy:5.5,airThrustVertical:.55} as const;
+export const BOOST_LIFT={stationaryHold:.35,launchVy:7.5,airVy:6.2,glideVy:14,airThrustVertical:.55} as const;
 /** Climbing tuning: vertical gain while pushing up, lateral speed, stamina use per second. */
 export const CLIMB={up:1.8,side:1.4,drainMove:11,drainHang:4,regen:28,minStart:12,grabReach:1.5} as const;
 /** Uphill gradient of the outdoor relief at (x,z): slope ratio and unit direction. */
@@ -310,12 +310,16 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
         const previousPulse=p.gasPulseSeq??0;
         const gasAcceleration=gasBoostStep(p,keys.boostHeld===true,true,dt);gasTicked=true;
         if((p.gasPulseSeq??0)>previousPulse){
-          // Lift once per gas pulse, even when deploying during a descending glide.
+          // Strong upward arcade lift on each new gas pulse, even while diving.
           v.y=Math.max(v.y,BOOST_LIFT.glideVy);
           p.glidePitch=Math.atan2(v.y,Math.max(Math.hypot(v.x,v.z),.01));
         }
-        const flightPitch=forward>=0?forward*.85:forward*.65;
-        glideVelocity(p,glideSteeringYaw(p,right,dt),flightPitch,0,dt,undefined,gasAcceleration,gasMastery(p));
+        // Camera vertical aim controls dive/climb. Forward input must never force a
+        // dive (notably when the phone stick is pushed up after launching).
+        // Pulling back instead adds aerodynamic braking, without free propulsion.
+        const flightPitch=clamp(keys.cameraPitch??0,-.77,.98);
+        const flightBrake=Math.max(0,-forward);
+        glideVelocity(p,glideSteeringYaw(p,right,dt),flightPitch,flightBrake,dt,undefined,gasAcceleration,gasMastery(p));
         glideDeploymentStep(p,dt);
       } else {
         const previousPulse=p.gasPulseSeq??0;
