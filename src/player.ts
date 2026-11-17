@@ -430,7 +430,9 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
     p.stalled=false;p.glideHeading=undefined;p.glidePitch=undefined;p.glideTurnRate=0;p.glideDeploymentRemaining=0;
   }
   if(p.mode==='ground'||p.mode==='swim'||p.mode==='dive'||p.mode==='climb'){
-    p.glideDeploymentUsed=false;p.airBoostUsed=false;p.groundBoostCharge=0;
+    p.glideDeploymentUsed=false;p.airBoostUsed=false;
+    // Keep the standing hold timer across grounded ticks; other modes clear it.
+    if(p.mode!=='ground')p.groundBoostCharge=0;
   }
   if(Math.hypot(v.x,v.z)>.01)p.heading=Math.atan2(v.x,v.z);
   if(transition){p.space=transition.to??undefined;pos.set(transition.arrival.x,transition.arrival.y,transition.arrival.z);v.set(0,0,0);p.mode='ground';p.glideReady=false;p.transitioned=transition.id;p.coyoteLeft=0;p.jumpBufferLeft=0;p.footSupportLeft=undefined;p.footSupportRight=undefined;p.glideDeploymentUsed=false;p.glideDeploymentRemaining=0;p.airBoostUsed=false;p.groundBoostCharge=0;gasBoostStep(p,keys.run===true||keys.boostHeld===true,false,0);}
