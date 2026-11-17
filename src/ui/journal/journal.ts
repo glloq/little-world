@@ -34,7 +34,9 @@ export function journalPanel(deps:JournalDeps){
       for(const q of list){
         const card=el('article','ui-quest');card.dataset.status=q.status;
         const open=expanded===q.id;
-        const toggle=button('',()=>{expanded=expanded===q.id?null:q.id;this.render(body);},'ui-quest-toggle');
+        const toggle=button('',()=>{expanded=expanded===q.id?null:q.id;this.render(body);
+          const next=[...body.querySelectorAll<HTMLButtonElement>('.ui-quest-toggle')].find(el=>el.dataset.focusKey==='quest:'+q.id);
+          next?.focus();},'ui-quest-toggle');
         toggle.dataset.focusKey='quest:'+q.id;toggle.setAttribute('aria-expanded',String(open));
         toggle.setAttribute('aria-label',(open?'Masquer':'Afficher')+' la mission '+q.name);
         toggle.append(el('span','ui-quest-symbol',q.status==='complete'?'✓ ':'✦ '),el('span','ui-quest-title',q.name),el('span','ui-quest-chevron',open?'−':'+'));
