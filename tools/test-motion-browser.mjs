@@ -12,7 +12,7 @@ try{
  const page=await browser.newPage({viewport:{width:1280,height:800}});
  page.on('pageerror',e=>record.errors.push(e.message));page.on('response',r=>{if(r.status()>=400)record.errors.push(r.status()+' '+r.url());});
  const url=new URL(base);url.search='?world=maps/motion-reference/manifest.json&spawn=90,-84&yaw=0&pitch=.32&metrics=1';
- await page.goto(url.href);await page.locator('#start').click();
+ await page.goto(url.href);await page.locator('#start-overlay').waitFor({state:'hidden'});
  const ticks=async n=>{const t=await page.evaluate(()=>window.littleWorldMetrics.movement.tick);await page.waitForFunction(t=>window.littleWorldMetrics.movement.tick>=t,t+n,{timeout:30000});};
  const sample=()=>page.evaluate(()=>{const m=window.littleWorldMetrics;return {mode:m.mode,position:m.position,velocity:m.velocity,flight:m.flight,tick:m.movement.tick,fov:m.camera.fov,calls:m.calls,triangles:m.triangles};});
  await ticks(2);await page.screenshot({path:out+'/scene.png'});await page.keyboard.down('KeyW');await page.keyboard.down('ShiftLeft');await ticks(60);
