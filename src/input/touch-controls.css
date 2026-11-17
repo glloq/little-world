@@ -1,15 +1,20 @@
-/* Touch controls — only enabled at runtime for coarse-pointer phone-sized screens. */
-.touch-controls[hidden],.touch-portrait-guide[hidden]{display:none!important}
+/* Mobile gameplay layout: safe-area-aware, two-thumb controls, no WebGL overlay copies.
+ * Desktop remains entirely unchanged because all HUD overrides require body.touch-mode. */
+.touch-controls[hidden],.touch-portrait-guide[hidden],.touch-action[hidden]{display:none!important}
 .touch-controls{position:fixed;inset:0;z-index:36;pointer-events:none;color:#294b38;user-select:none;-webkit-user-select:none}
 .touch-joystick,.touch-action{pointer-events:auto;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
-.touch-joystick{position:fixed;left:calc(14px + env(safe-area-inset-left));bottom:calc(14px + env(safe-area-inset-bottom));width:134px;height:134px;border-radius:50%;border:2px solid #cbd9c6;background:rgba(255,252,239,.35);box-shadow:inset 0 0 0 11px rgba(255,252,239,.22);display:grid;place-items:center}
+.touch-joystick{position:fixed;left:calc(14px + env(safe-area-inset-left));bottom:calc(14px + env(safe-area-inset-bottom));width:126px;height:126px;border-radius:50%;border:2px solid rgba(185,214,193,.85);background:rgba(255,252,239,.25);box-shadow:inset 0 0 0 11px rgba(255,252,239,.15);display:grid;place-items:center}
 .touch-joystick:before{content:'';position:absolute;width:67%;height:67%;border:1px solid rgba(45,80,58,.42);border-radius:50%}
-.touch-joystick-thumb{position:absolute;top:50%;left:50%;width:48px;height:48px;transform:translate(-50%,-50%);border:2px solid #c8dbcb;border-radius:50%;background:rgba(53,117,86,.82);box-shadow:0 3px 9px rgba(28,61,47,.22);will-change:transform}
-.touch-actions{position:fixed;right:calc(142px + env(safe-area-inset-right));bottom:calc(17px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(2,56px);gap:8px;pointer-events:none}
-.touch-action{height:54px;min-width:54px;padding:2px;border-radius:16px;border:1px solid #b9d3bf;background:rgba(255,252,239,.86);box-shadow:0 2px 9px rgba(28,61,47,.15);color:#2c513e;font:600 12px/1.1 system-ui,sans-serif;white-space:normal}
+.touch-joystick-thumb{position:absolute;top:50%;left:50%;width:46px;height:46px;transform:translate(-50%,-50%);border:2px solid #c8dbcb;border-radius:50%;background:rgba(53,117,86,.85);box-shadow:0 3px 9px rgba(28,61,47,.22);will-change:transform}
+.touch-actions{position:fixed;right:calc(14px + env(safe-area-inset-right));bottom:calc(14px + env(safe-area-inset-bottom));width:182px;height:147px;pointer-events:none}
+.touch-action{position:absolute;min-width:48px;min-height:48px;padding:4px;border-radius:18px;border:1px solid #b9d3bf;background:rgba(255,252,239,.79);box-shadow:0 2px 9px rgba(28,61,47,.15);color:#2c513e;font:700 12px/1.15 system-ui,sans-serif;white-space:normal}
 .touch-action.pressed{background:#427c60;color:white;border-color:#2f654d}
-.touch-jump{grid-column:1}.touch-interact{grid-column:2}
-.touch-roll{grid-column:1}.touch-dive{grid-column:2}
+.touch-action:disabled{opacity:.38;box-shadow:none}
+.touch-jump{right:0;bottom:0;width:84px;height:84px;border-radius:50%;background:rgba(242,249,238,.88);font-size:13px}
+.touch-accelerate{right:96px;bottom:0;width:76px;height:76px;border-radius:50%;background:rgba(217,240,218,.87);border-color:#74a487}
+.touch-interact{right:0;bottom:93px;width:53px;height:53px}
+.touch-roll,.touch-dive{right:64px;bottom:96px;width:59px;height:49px;border-radius:14px}
+.touch-controls[data-mode=glide] .touch-accelerate{border:2px solid #47825f}
 .touch-portrait-guide{position:fixed;inset:0;z-index:120;background:#1e3428ed;display:grid;place-items:center;padding:20px;color:#fff;touch-action:pan-y}
 .touch-portrait-content{max-width:370px;text-align:center;background:#2e503e;border:1px solid #739781;border-radius:20px;padding:22px;box-shadow:0 8px 32px #1118}
 .touch-portrait-content h2{font:700 21px system-ui;margin:6px 0 9px}
@@ -17,29 +22,59 @@
 .touch-rotate-glyph{font:52px/1 system-ui}
 .touch-portrait-content button{font:600 14px system-ui;min-height:44px;padding:9px 13px;margin:4px;border-radius:12px;border:1px solid #b9d3bf;background:#fffdf4;color:#294b38}
 .touch-portrait-content .touch-continue-portrait{background:transparent;color:#fff;border-color:#739781}
-body.touch-mode .ui-quickbar{left:calc(162px + env(safe-area-inset-left));right:auto;bottom:calc(16px + env(safe-area-inset-bottom))}
-body.touch-mode .ui-minimap{right:calc(10px + env(safe-area-inset-right));bottom:calc(12px + env(safe-area-inset-bottom));width:120px}
-body.touch-mode .ui-minimap canvas{width:110px;height:110px}
-body.touch-mode .ui-tool{bottom:150px}
-body.touch-mode .ui-activity-card{bottom:160px}
 body.touch-mode{overscroll-behavior:none}
 body.touch-mode #viewport canvas{touch-action:none}
-@media(orientation:portrait){
- body.touch-mode .ui-quickbar{bottom:auto;top:66px;left:10px}
- body.touch-mode .ui-minimap{bottom:auto;top:66px}
- body.touch-mode .touch-actions{right:calc(12px + env(safe-area-inset-right))}
- body.touch-mode .ui-tool{bottom:146px}
-}
+/* Top: menu, backpack, journal, map. Sound remains available inside Settings. */
+body.touch-mode .ui-hud-top{top:calc(10px + env(safe-area-inset-top));left:calc(12px + env(safe-area-inset-left));right:calc(12px + env(safe-area-inset-right))}
+body.touch-mode .ui-hud-top .ui-purse,body.touch-mode .ui-hud-top>.ui-hud-group:last-child{display:none}
+body.touch-mode .ui-hud-button{width:42px;height:42px}
+body.touch-mode .ui-quickbar{top:calc(10px + env(safe-area-inset-top));right:calc(66px + env(safe-area-inset-right));left:auto;bottom:auto;gap:7px}
+body.touch-mode .ui-quick{width:42px;height:42px;min-height:42px;padding:0;display:grid;place-items:center}
+body.touch-mode .ui-quick kbd,body.touch-mode .ui-quick .ui-quick-label{display:none}
+body.touch-mode .ui-minimap{top:calc(10px + env(safe-area-inset-top));right:calc(12px + env(safe-area-inset-right));left:auto;bottom:auto;width:42px;height:42px;padding:0;display:grid;place-items:center;gap:0;border-radius:12px}
+body.touch-mode .ui-minimap canvas{display:none}
+body.touch-mode .ui-minimap-title{font-size:0;line-height:0;gap:0}
+body.touch-mode .ui-minimap-title svg{width:20px;height:20px}
+/* Keep game information outside thumb zones; avoid an opaque horizontal debug bar. */
+body.touch-mode .ui-root .ui-notifications{top:calc(60px + env(safe-area-inset-top));right:calc(12px + env(safe-area-inset-right));max-width:min(230px,36vw);z-index:20}
+body.touch-mode .ui-root .ui-notifications .ui-notice{font-size:11px;padding:5px 8px}
+body.touch-mode .ui-root .ui-quest-banner{top:calc(62px + env(safe-area-inset-top));max-width:48vw;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+body.touch-mode .ui-root .ui-prompt{bottom:calc(18px + env(safe-area-inset-bottom));max-width:min(350px,48vw);padding:6px 10px;font-size:12px;pointer-events:none}
+body.touch-mode .ui-root .ui-tool{top:calc(60px + env(safe-area-inset-top));left:calc(12px + env(safe-area-inset-left));bottom:auto;max-width:190px;padding:5px 8px;font-size:11px}
+body.touch-mode .ui-root .ui-activity-card{top:auto;left:calc(12px + env(safe-area-inset-left));bottom:calc(154px + env(safe-area-inset-bottom));width:min(250px,34vw);max-height:min(146px,34vh);overflow:auto;padding:7px 9px;font-size:11px}
+body.touch-mode .ui-root .ui-oxygen{left:50%;top:calc(64px + env(safe-area-inset-top));bottom:auto;transform:translateX(-50%);width:min(160px,28vw);font-size:11px}
+body.touch-mode .ui-root .ui-stamina{top:calc(93px + env(safe-area-inset-top))}
+body.touch-mode .ui-root .ui-motion-speed{top:calc(103px + env(safe-area-inset-top));left:50%;bottom:auto;transform:translateX(-50%);background:transparent;color:#fff;text-shadow:0 1px 3px #142719;font-size:11px;padding:0;white-space:nowrap}
+body.touch-mode .ui-panel{width:min(680px,calc(100vw - 24px));max-height:calc(100dvh - 20px)}
+body.touch-mode .ui-panel-head{padding:9px 12px}
+body.touch-mode .ui-panel-head h2{font-size:19px}
+body.touch-mode .ui-panel-body{padding:10px 12px 12px}
+body.touch-mode .start-card{max-height:calc(100dvh - 30px);overflow:auto;padding:18px 22px;margin:10px}
+body.touch-mode .start-card h1{font-size:30px;margin:5px 0}
+body.touch-mode .start-card p{font-size:12px;line-height:1.4;margin-bottom:14px}
+body.touch-mode .start-card .primary-button{min-height:48px}
 @media(max-height:390px) and (orientation:landscape){
- .touch-joystick{width:118px;height:118px}
- .touch-joystick-thumb{width:43px;height:43px}
- body.touch-mode .ui-quickbar{left:calc(144px + env(safe-area-inset-left))}
- .touch-actions{right:calc(130px + env(safe-area-inset-right))}
+ .touch-joystick{width:112px;height:112px}
+ .touch-joystick-thumb{width:41px;height:41px}
+ .touch-actions{width:174px;height:138px}
+ .touch-jump{width:78px;height:78px}
+ .touch-accelerate{right:88px;width:70px;height:70px}
+ .touch-interact{bottom:87px;width:49px;height:49px}
+ .touch-roll,.touch-dive{bottom:88px;right:60px;width:54px;height:48px}
+ body.touch-mode .ui-root .ui-activity-card{bottom:calc(138px + env(safe-area-inset-bottom))}
 }
-
-/* Boost at the right edge above the minimap, visually separated from other buttons. */
-.touch-boost[hidden]{display:none!important}
-.touch-boost{position:fixed;right:calc(24px + env(safe-area-inset-right));bottom:calc(174px + env(safe-area-inset-bottom));width:72px;height:64px;border-radius:20px;background:rgba(219,242,223,.94);border:2px solid #47825f;color:#23513a;font-weight:800;font-size:15px;letter-spacing:.02em}
-.touch-boost.pressed{background:#2f7652;color:white}
-@media (orientation:portrait){.touch-boost{bottom:calc(180px + env(safe-area-inset-bottom));right:calc(16px + env(safe-area-inset-right))}}
-@media (max-height:390px) and (orientation:landscape){.touch-boost{width:64px;height:56px;bottom:calc(161px + env(safe-area-inset-bottom))}}
+@media(orientation:portrait){
+ .touch-joystick{width:106px;height:106px}
+ .touch-joystick-thumb{width:39px;height:39px}
+ .touch-actions{width:158px;height:133px}
+ .touch-jump{width:74px;height:74px}
+ .touch-accelerate{right:81px;width:65px;height:65px;font-size:11px}
+ .touch-interact{bottom:80px;width:48px;height:48px}
+ .touch-roll,.touch-dive{right:55px;bottom:80px;width:50px;height:48px}
+ body.touch-mode .ui-root .ui-prompt{bottom:calc(152px + env(safe-area-inset-bottom));max-width:calc(100vw - 30px)}
+ body.touch-mode .ui-root .ui-activity-card{bottom:calc(151px + env(safe-area-inset-bottom));width:min(180px,48vw)}
+ body.touch-mode .ui-root .ui-notifications{max-width:60vw}
+ body.touch-mode .ui-root .ui-oxygen{width:135px;top:calc(118px + env(safe-area-inset-top))}
+ body.touch-mode .ui-root .ui-motion-speed{top:calc(160px + env(safe-area-inset-top))}
+}
+@media(prefers-reduced-motion:reduce){.touch-joystick-thumb{will-change:auto}}
