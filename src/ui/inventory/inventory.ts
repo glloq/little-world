@@ -43,6 +43,7 @@ export function inventoryPanel(deps:InventoryDeps){
       const layout=el('div','ui-inventory'),left=el('section','ui-inventory-list'),right=el('aside','ui-inventory-equipment');
       left.setAttribute('aria-label','Ressources');right.setAttribute('aria-label','Équipement');
       left.append(el('h3','ui-group','Ressources'));
+      if(vm.empty)left.append(el('p','ui-empty','Votre sac est vide. Ramassez des ressources, creusez ou récoltez pour le remplir.'));
       const detail=el('div','ui-inventory-detail');
       function show(e:InventoryEntry){
         selected=e.id;detail.replaceChildren(el('h3','',e.name),el('p','ui-muted',e.categoryLabel),el('p','',e.description??'Aucune description.'),el('p','ui-muted','Quantité : '+e.quantity+' / '+e.max));
@@ -64,7 +65,7 @@ export function inventoryPanel(deps:InventoryDeps){
       }
       if(resources.length)for(const g of resources){left.append(el('h4','ui-group',g.label));const grid=el('div','ui-item-grid');
         for(const e of g.entries)grid.append(card(e));left.append(grid);}
-      else left.append(el('p','ui-empty','Aucune ressource. Collectez ou récoltez pour remplir le sac.'));
+      else if(!vm.empty)left.append(el('p','ui-empty','Aucune ressource. Les objets collectés sont dans la colonne équipement.'));
       right.append(el('h3','ui-group','À utiliser / équiper'));
       const slots=el('div','ui-equipment-grid');for(const e of equipment)slots.append(card(e));
       if(!equipment.length)slots.append(el('p','ui-empty','Aucun outil ni accessoire pour le moment.'));
