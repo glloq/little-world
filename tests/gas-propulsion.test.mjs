@@ -82,7 +82,7 @@ test('no boost means no free kinetic energy',()=>{
  const v=p=>Math.hypot(p.velocity.x,p.velocity.y,p.velocity.z);
  assert.ok(v(powered)>v(unpowered));
  assert.ok(movementEnergy(100,powered.velocity)>movementEnergy(100,unpowered.velocity));
- assert.ok(movementEnergy(100,unpowered.velocity)<before);
+ assert.ok(movementEnergy(100+unpowered.velocity.y*dt,unpowered.velocity)<before,'account for the altitude traversed during this integration tick');
  for(let i=0;i<500;i++)glideVelocity(powered,0,0,0,dt,GLIDE,5);
  assert.ok(v(powered)<=GLIDE.max+1e-9);
 });
