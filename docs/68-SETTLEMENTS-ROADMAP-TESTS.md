@@ -3,6 +3,8 @@
 **Statut de l'ensemble : SPECIFIED (documentation).** Branche `docs/studio-settlements-collision-roadmap` depuis `main`.  
 Ce document **n'atteste aucune implémentation du générateur**, ni aucune qualification moteur ou GPU ; il définit le plan de travail dans Studio.
 
+**SET-0 — audit statique effectué (17/11/2026) :** [69 — rapport de lecture du code `main`](69-SETTLEMENTS-SET0-AUDIT.md) et [70 — contrats techniques retenus](70-SETTLEMENTS-TECHNICAL-CONTRACTS.md). **Pas de test exécutable ni benchmark** dans ce lot ; les gates CT-0 à CT-9 restent ouverts. SET-1 et au-delà restent non implémentés.
+
 ## 1. Dépendances et règles de développement
 
 Principes :
@@ -120,7 +122,8 @@ En cas de blocage G2/G3, **ne pas rendre l'objet jouable** : conserver le placem
 
 | Lot | SPECIFIED | IMPLEMENTED | TESTED | BENCHMARKED | RELEASED |
 | --- | --- | --- | --- | --- | --- |
-| SET-0…SET-12 | Oui (présent document) | Non vérifié / à faire | Non | Non | Non |
+| SET-0 audit statique et contrats | Oui + rapport [69](69-SETTLEMENTS-SET0-AUDIT.md) / contrats [70](70-SETTLEMENTS-TECHNICAL-CONTRACTS.md) | Audit documentaire réalisé ; tests baseline encore requis | Non exécutés | Non | Non |
+| SET-1…SET-12 | Oui (présent document) | Non implémentés | Non | Non | Non |
 
 Les futures PR préciseront les chemins modifiés, tests exécutés, mesures avant/après, choix/risques, statut exact et ce qui reste incomplet. **Aucun merge vers `main` dans cette branche de documentation.**
 
