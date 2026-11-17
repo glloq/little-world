@@ -143,3 +143,7 @@ body:not(.developer) .hud-debug,.start-overlay:not(.hide)~.hud-debug{display:non
 .appearance-boost-controls{display:grid;grid-template-columns:1fr 1fr;gap:9px}
 .appearance-boost-select{display:grid;gap:4px;font-size:11px;color:#52745b}
 .appearance-boost-select select{width:100%;min-width:0;border:1px solid #bbceb6;background:#f8f9f1;border-radius:8px;padding:7px;color:#324a39;font:inherit}
+
+.appearance-boost-challenges{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin:6px 0 7px}
+.appearance-boost-challenges .appearance-choice{padding:7px 6px;text-align:center;font-size:10px;min-height:43px;line-height:1.2}
+@media(max-width:440px){.appearance-boost-challenges{grid-template-columns:1fr 1fr}}
