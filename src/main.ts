@@ -200,6 +200,11 @@ try{
   // Keep authored audio and supplement global boost cues without overriding world assets.
   if(definition&&builtin)definition=mergeAudioCatalogs(toAudioCatalog(definition),toAudioCatalog(builtin));
   else definition??=builtin;
+  const boostResponse=await fetch(import.meta.env.BASE_URL+'audio/boost-catalog.json').catch(()=>null);
+  if(boostResponse?.ok){
+    const boostCatalog=parseAnyAudioDefinition(await boostResponse.json());
+    definition=definition?mergeAudioCatalogs(toAudioCatalog(definition),toAudioCatalog(boostCatalog)):boostCatalog;
+  }
   if(definition){const {createAudioController}=await import('./audio/view.ts');audio=createAudioController(definition,{baseUrl:import.meta.env.BASE_URL});}
  }catch{console.warn('Audio indisponible : le jeu reste silencieux.');}
 const {createGroundProbe}=await import('./audio/world-probe.ts'),groundProbe=createGroundProbe();
