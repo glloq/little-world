@@ -103,6 +103,29 @@ Scénarios de recette visuelle : 1) départ bref et course continue, 2) virage s
 
 **Limite volontaire :** il s'agit d'un aperçu d'animation du hamster, pas encore d'un éditeur de keyframes ni d'un solveur IK sur les collisions complètes.
 
+## Lot V2.3 — transitions rapides, snapshots distants et banc de rendu
+
+**Implémenté sur la branche de fonctionnalité ; aucune synchronisation réseau ajoutée.**
+
+- **Roulade → saut → plané → chute** : le passage en mode `glide` libère explicitement l'état de boule aérienne, évitant qu'un ancien `ROLL_AIR` revienne après la fermeture des membranes. Test unitaire sur la séquence complète.
+- **Intervalles distants 10/20 FPS** : les snapshots de présentation V1 peuvent désormais inclure `jumpSeq` et `landingSeq`, des compteurs de la simulation strictement validés et non interpolés. Ils permettent au rig distant de récupérer un saut ou une réception dont les images intermédiaires ont été perdues. Les effets d'animation restent purement visuels, sans événement d'autorité et sans retransmission des os ; les anciens snapshots restent acceptés.
+- **Lab Studio 30 Hz fixe / rendu 20 ou 30 FPS** : un ordonnanceur pur `motion-lab-clock.ts` maintient la même progression de simulation même si les draw calls sont espacés, avec backlog plafonné pour l'onglet suspendu. Le laboratoire n'ajoute aucun appel de simulation à la boucle de jeu.
+- **Inspection précise** : timeline de 0 à 3,20 s, saut vers un instant de la séquence avec reconstruction déterministe depuis son origine, pause/reprise et avancement d'un pas `1/30 s`. Une séquence `ROLL_AIR` puis `ROLL_LAND` peut être inspectée à une image près.
+- **Instrumentation légère** : `renderer.info.render.calls`, triangles et temps CPU de `renderer.render` moyenné sur 60 images ; dimensions et `devicePixelRatio` bornés. Ces chiffres **ne mesurent pas la durée GPU** ni les FPS réels sur une puce intégrée.
+- **Tests** : invariant 30 ticks/s sous entrées 20/30/60 FPS, récupération des événements distants sans répétition, retour du plané, budget visuel et navigation/fermeture du laboratoire.
+
+Commandes ciblées :
+
+```bash
+npm test
+npm run build
+npm run assets:hamster
+npm run check:impostors
+node tools/test-hamster-motion-lab-browser.mjs # après démarrage de la preview compilée
+```
+
+**Qualification encore nécessaire :** exécuter le navigateur sur l'ordinateur avec GPU intégré cible. Les résultats GitHub Actions Chromium/SwiftShader ne sont pas représentatifs d'une mesure GPU matérielle. Vérifier les interactions clavier/souris, la silhouette à distance et les transitions en mouvement sur relief très irrégulier.
+
 ## Prochaines améliorations à qualifier visuellement
 
 - Recalage fin du contact des pattes sur les obstacles et marches (la correction de pente heightfield est désormais en place, sans solveur IK).
