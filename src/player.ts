@@ -67,6 +67,10 @@ export interface Player {
   /** Take-off origin, impact speed and event counters: visual cues, not gameplay authority. */
   jumpOrigin?:'idle'|'run'|'roll';jumpSeq?:number;
   landingSpeed?:number;landingSeq?:number;
+  /** Landing type and normalized slide are presentation-only. */
+  landingKind?:'idle'|'run'|'roll'|'glide';landingSlide?:number;
+  /** Local near-body foot support offsets (metres), optional on a 3D platform. */
+  footSupportLeft?:number;footSupportRight?:number;
   /** Saved tick-based jump forgiveness state. No visual state can mutate it. */
   coyoteLeft?:number;coyoteFrom?:'idle'|'run'|'roll';jumpBufferLeft?:number;
   /** Lightweight presentation cues: surface pitch/roll and roll steering residual. */
@@ -101,6 +105,15 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
   if(!Number.isFinite(dt)||dt<=0||dt>.25)throw Error('Pas de mouvement invalide');
   const { position: pos, velocity: v } = p;
   const oldMode = p.mode;
+  // Record the contact before a collision resets vertical velocity; never change momentum.
+  const recordLanding=()=>{
+    const horizontal=Math.hypot(v.x,v.z),impact=Math.max(0,-v.y);
+    const material=collision?.materialAt(pos,p.space)??'grass',surface=SURFACE_MOTION[material];
+    p.landingKind=oldMode==='glide'||p.mode==='glide'?'glide':p.jumpOrigin==='roll'?'roll':horizontal>MOTION.walk*.9?'run':'idle';
+    p.landingSpeed=impact;
+    p.landingSlide=clamp(((horizontal-3)*.12+(impact-5)*.025)*(1.25-.17*surface.friction),0,1);
+    p.landingSeq=(p.landingSeq??0)+1;
+  };
   const len = Math.hypot(keys.forward, keys.right);
   const forward = len > 0 ? keys.forward / Math.max(1, len) : 0;
   const right = len > 0 ? keys.right / Math.max(1, len) : 0;
@@ -235,6 +248,7 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
       }
     } else if (p.mode === 'ground') {
       p.mode = 'air';
+      p.jumpOrigin=undefined; // Stepping off a ledge is not a previous rolling jump.
       p.glideReady = true;
     }
     if (p.mode === 'air' || p.mode === 'glide') {
@@ -264,7 +278,7 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
     const moved=collision.sweep(from,pos,body.radius,body.height,{space:p.space,body});
     pos.set(moved.position.x,moved.position.y,moved.position.z);
     if(moved.blockedY&&(p.mode==='air'||p.mode==='glide')){
-      if(v.y<0){p.landingSpeed=-v.y;p.landingSeq=(p.landingSeq??0)+1;p.mode='ground';p.glideReady=false;}else if(p.mode==='glide')p.mode='air';
+      if(v.y<0){recordLanding();p.mode='ground';p.glideReady=false;}else if(p.mode==='glide')p.mode='air';
       v.y=0;
     }
     if(moved.blockedX)v.x=0;if(moved.blockedZ)v.z=0;
@@ -281,12 +295,12 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
   const newGround = surface?.floorY??terrainHeight(pos.x, pos.z);
   if(surface?.ceilingY!==null&&surface?.ceilingY!==undefined&&pos.y+body.height>surface.ceilingY){pos.y=Math.max(newGround,surface.ceilingY-body.height);v.y=Math.min(0,v.y);if(pos.y>newGround+.06)p.mode='air';}
   if(p.mode==='ground'){if(pos.y-newGround>.45){p.mode='air';p.glideReady=true;}else pos.y=newGround;}
-  if (p.mode === 'roll') { if (pos.y - newGround > .45) { p.mode = 'air'; p.glideReady = true; } else {const gain=newGround-(from?.y??pos.y);pos.y=newGround;v.y=gain/dt;} }
+  if (p.mode === 'roll') { if (pos.y - newGround > .45) { p.jumpOrigin='roll';p.mode = 'air'; p.glideReady = true; } else {const gain=newGround-(from?.y??pos.y);pos.y=newGround;v.y=gain/dt;} }
   if (p.mode === 'climb') pos.y = newGround;
   else if (p.mode !== 'glide' && p.mode !== 'air') p.stamina = Math.min(MAX_STAMINA, p.stamina + CLIMB.regen * dt);
   if ((p.mode === 'air' || p.mode === 'glide') && pos.y < newGround) {
     pos.y = newGround;
-    p.landingSpeed=Math.max(0,-v.y);p.landingSeq=(p.landingSeq??0)+1;
+    recordLanding();
     v.y = 0;
     p.mode = 'ground';
     p.glideReady = false;
@@ -323,11 +337,27 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
     p.groundPitch=clamp(Math.atan2(up-down,2*half),-.4,.4);
     p.groundRoll=clamp(Math.atan2(right-left,2*half),-.4,.4);
   }else{p.groundPitch=0;p.groundRoll=0;}
+  // The ordinary heightfield gives a smooth support plane. Only on raised obstacle
+  // tops do we spend two narrow contact queries to adjust each foot independently.
+  // These cues affect bones only: the collision body and velocity remain untouched.
+  const obstacleContact=!!collision&&p.mode==='ground'&&!p.space
+    &&!(newWater!==null&&newWater-newGround>.62)
+    &&newGround-relief(pos.x,pos.z)>.12;
+  if(obstacleContact&&collision){
+    const yaw=p.heading??p.intentYaw??0,sideX=Math.cos(yaw)*.22,sideZ=-Math.sin(yaw)*.22;
+    const forwardX=Math.sin(yaw)*.08,forwardZ=Math.cos(yaw)*.08;
+    const foot=(sign:number)=>{
+      const sample=collision.surfaceAt({x:pos.x+forwardX+sideX*sign,y:newGround,z:pos.z+forwardZ+sideZ*sign},
+        p.space,.025,{step:body.step,fromY:newGround});
+      return clamp(sample.floorY-newGround,-.25,.12);
+    };
+    p.footSupportLeft=foot(-1);p.footSupportRight=foot(1);
+  }else{p.footSupportLeft=undefined;p.footSupportRight=undefined;}
   // Explicit connections between spaces (mine entrance, stairs, shafts): never implicit.
   const transition=collision?.transitionAt(pos,p.space);
   if(p.mode!=='glide'){p.stalled=false;p.glideHeading=undefined;p.glidePitch=undefined;p.glideTurnRate=0;}
   if(Math.hypot(v.x,v.z)>.01)p.heading=Math.atan2(v.x,v.z);
-  if(transition){p.space=transition.to??undefined;pos.set(transition.arrival.x,transition.arrival.y,transition.arrival.z);v.set(0,0,0);p.mode='ground';p.glideReady=false;p.transitioned=transition.id;p.coyoteLeft=0;p.jumpBufferLeft=0;}
+  if(transition){p.space=transition.to??undefined;pos.set(transition.arrival.x,transition.arrival.y,transition.arrival.z);v.set(0,0,0);p.mode='ground';p.glideReady=false;p.transitioned=transition.id;p.coyoteLeft=0;p.jumpBufferLeft=0;p.footSupportLeft=undefined;p.footSupportRight=undefined;}
 }
 
 /** One climbing step: forward = up the slope, sideways along it; jump leaps off (glide possible),
