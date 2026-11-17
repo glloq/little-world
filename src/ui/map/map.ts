@@ -130,7 +130,7 @@ export function mapPanel(deps:MapDeps,raster:MapRaster=createMapRaster(deps),way
       canvas.addEventListener('keydown',e=>{const step=60/ppm;if(e.key==='+'||e.key==='=')zoom(1.25);else if(e.key==='-')zoom(.8);else if(e.key==='ArrowLeft')cx-=step;else if(e.key==='ArrowRight')cx+=step;else if(e.key==='ArrowUp')cz-=step;else if(e.key==='ArrowDown')cz+=step;else if(e.key==='0')fit();else return;e.preventDefault();e.stopPropagation();draw();});
       const layout=el('div','ui-map-layout'),main=el('div','ui-map-main'),side=el('aside','ui-map-sidebar');
       const tools=el('div','ui-row ui-map-tools');
-      const mapTool=(symbol:string,name:string,handler:()=>void)=>button(symbol,handler,'ui-button ui-map-tool',name);
+      const mapTool=(symbol:string,name:string,handler:()=>void)=>{const control=button(symbol,handler,'ui-button ui-map-tool',name);control.setAttribute('aria-label',name);return control;};
       tools.append(mapTool('⤢','Vue générale',()=>{focusTarget=null;fit();draw();}),mapTool('◎','Autour de moi',()=>{focusTarget=null;local();draw();}),mapTool('+','Zoomer',()=>zoom(1.25)),mapTool('−','Dézoomer',()=>zoom(.8)));
       if(waypoints)tools.append(mapTool('⌖','Placer un repère',()=>{addMode=true;form?.replaceChildren(el('p','ui-muted','Cliquez sur la carte pour placer un repère.'));}));
       const reliefToggle=mapTool('▥','Afficher les dénivelés',()=>{reliefMode=!reliefMode;reliefToggle.setAttribute('aria-pressed',String(reliefMode));reliefToggle.setAttribute('aria-label',reliefMode?'Afficher la carte normale':'Afficher les dénivelés');draw();});
