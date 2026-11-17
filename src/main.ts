@@ -64,11 +64,9 @@ import {
 } from './boat';
 
 const viewport = document.querySelector<HTMLElement>('#viewport')!;
-const status = document.querySelector<HTMLElement>('#status')!;
-const coords = document.querySelector<HTMLElement>('#coords')!;
 const fps = document.querySelector<HTMLElement>('#fps')!;
-const renderMetrics = document.querySelector<HTMLElement>('#render-metrics')!;
-const oxygen = document.querySelector<HTMLElement>('#oxygen')!;
+const devSpeed = document.querySelector<HTMLElement>('#dev-speed')!;
+const devMemory = document.querySelector<HTMLElement>('#memory')!;
 /** Player interface (src/ui): created once the world, gameplay and NPCs exist. */
 let gameUi:GameUi|null=null;
 // Detect phone controls before the HUD is constructed, so its gas hint uses the Boost label.
@@ -241,7 +239,7 @@ world.update(0, player.position);
       id:'asset:'+p.id,label:/lighthouse/i.test(p.assetId)?'Phare':/(port|harbor)/i.test(p.assetId)?'Port':/inn/i.test(p.assetId)?'Auberge':/market/i.test(p.assetId)?'Marché':/windmill|watermill/i.test(p.assetId)?'Moulin':'Village',x:p.x,z:p.z,
     })),
   ];
-  gameUi=createGameUi({gameplay,npcs,audio,environment:()=>{const state=climate.state(worldClock.time);return {weather:state.weather,dayPhase:state.dayPhase};},landmarks,applyDistantRendering:(value,initial)=>{if(!initial||!searchParams.has('impostors')){world.hybrid.setMode(value==='hybrid'?'trees':'off');if(value==='hybrid')world.hybrid.setSectors(false);}},quality:document.querySelector<HTMLSelectElement>('#quality'),temporary:!!(studioTest||buildScope),studioUrl:import.meta.env.BASE_URL+'studio/',
+  gameUi=createGameUi({gameplay,npcs,audio,environmentControls:environment.controls,environment:()=>{const state=climate.state(worldClock.time);return {weather:state.weather,dayPhase:state.dayPhase};},landmarks,applyDistantRendering:(value,initial)=>{if(!initial||!searchParams.has('impostors')){world.hybrid.setMode(value==='hybrid'?'trees':'off');if(value==='hybrid')world.hybrid.setSectors(false);}},quality:document.querySelector<HTMLSelectElement>('#quality'),temporary:!!(studioTest||buildScope),studioUrl:import.meta.env.BASE_URL+'studio/',
     world:{name:definition.name,buildVersion:gameplay?.runtime.data.buildVersion??'vallée',dayLength:climate.definition.dayLengthSeconds,bounds:{minX:-c.width/2,maxX:c.width/2,minZ:-c.length/2,maxZ:c.length/2},seaLevel:c.seaLevel,height:terrainHeight,water:waterSurface},
     eatFood:(itemId)=>{
       const points=foodGasValue(itemId);
@@ -629,27 +627,13 @@ function runFarm(){
   const farmEvent={plant:'farm.plant',water:'farm.water',harvest:'farm.harvest',clear:'farm.clear'}[intent.type]??'farm.plant';audio?.emit(r.ok?farmEvent:'ui.error',{context:{place:'farm',activity:'farming',objectKind:crop??undefined,state:intent.type},position:player.position,source:'player'});
 }
 function updateHud() {
-  const labels: Record<string, string> = {
-    ground: 'Au sol',
-    air: 'En l’air',
-    glide: 'En planage',
-    swim: 'Nage',
-    dive: 'Plongée',
-    climb: 'Escalade',
-    roll: 'En boule',
-  };
-  status.textContent = aboard ? 'Navigation en bateau' : labels[player.mode];
-  coords.textContent = `X ${player.position.x.toFixed(0)} m · Z ${player.position.z.toFixed(0)} m · H ${player.position.y.toFixed(1)} m`;
-  oxygen.textContent = `Oxygène : ${Math.round(player.oxygen)} / ${MAX_OXYGEN} s`;
-  oxygen.classList.toggle(
-    'hide',
-    player.mode !== 'dive' && player.mode !== 'swim',
-  );
-  // A submerged squirrel does NOT imply a submerged camera.
-  document.body.classList.toggle(
-    'underwater',
-    cameraSubmerged(camera.position.x, camera.position.y, camera.position.z),
-  );
+  if(document.body.classList.contains('developer')){
+    const speed=Math.round(player.velocity.length()*3.6);
+    const label='Vitesse : '+speed+' km/h';
+    if(devSpeed.textContent!==label)devSpeed.textContent=label;
+  }
+  // A submerged hamster does not imply a submerged camera.
+  document.body.classList.toggle('underwater',cameraSubmerged(camera.position.x,camera.position.y,camera.position.z));
 }
 let boatSteer=0,motionTick=0,nextTouchTargetAt=0;
 function tick(dt: number) {
@@ -890,7 +874,8 @@ function draw(now: number) {
     });
   if (fpsTime >= 0.8) {
     fps.textContent = `FPS : ${Math.round(frameCount / fpsTime)}`;
-    renderMetrics.textContent = `Rendu : ${renderer.info.render.calls} appels · ${Math.round(renderer.info.render.triangles / 1000)}k triangles · ${world.stats.active} secteurs`;
+    const heap=(performance as Performance & {memory?:{usedJSHeapSize:number}}).memory?.usedJSHeapSize;
+    devMemory.textContent=heap===undefined?'Mémoire : non disponible':'Mémoire : '+(heap/1048576).toFixed(1)+' Mio';
     fpsTime = 0;
     frameCount = 0;
   }
