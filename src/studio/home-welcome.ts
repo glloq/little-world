@@ -150,6 +150,8 @@ export function mountWelcome(host:HTMLElement,actions:WelcomeActions){
       ['archipelago','Archipel éditable (île, volcan, îlots) · personnalisable'],
       ['chain','Chapelet d’îlots · personnalisable'],
       ['calm','Île douce sans relief majeur · personnalisable'],
+      // Compact user-created terrain, not an installed showcase map (water authoring regressions).
+      ['200','Terrain compact · 200 × 600 m'],
       ['1000','Terrain libre · 1 000 × 1 000 m'],
     ],()=>{}),seed=numberInput(4242,()=>{},1,9999999,'1');
     const width=numberInput(4000,()=>{},500,8000,'1'),length=numberInput(3000,()=>{},500,8000,'1'),cliffs=numberInput(.35,()=>{},0,1,'0.05');

@@ -26,3 +26,10 @@ test('every browser test opening a legacy shortcut explicitly requests fixture m
     }
   }
 });
+
+test('compact 200 × 600 m authoring remains available without adding another public example',async()=>{
+  const source=await readFile(file('src/studio/home-welcome.ts'),'utf8');
+  assert.match(source,/\['200','Terrain compact · 200 × 600 m'\]/);
+  assert.match(source,/length:size\.value==='200'\?600:1000/);
+  assert.doesNotMatch(source,/Vallée historique/);
+});
