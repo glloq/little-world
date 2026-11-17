@@ -147,3 +147,12 @@ body:not(.developer) .hud-debug,.start-overlay:not(.hide)~.hud-debug{display:non
 .appearance-boost-challenges{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin:6px 0 7px}
 .appearance-boost-challenges .appearance-choice{padding:7px 6px;text-align:center;font-size:10px;min-height:43px;line-height:1.2}
 @media(max-width:440px){.appearance-boost-challenges{grid-template-columns:1fr 1fr}}
+
+/* Optional solo flight time trial: compact HUD, independent from normal movement overlay. */
+.flight-course-hud{position:fixed;left:50%;top:70px;transform:translateX(-50%);z-index:15;
+  width:max-content;max-width:min(680px,calc(100vw - 24px));padding:8px 14px;border:1px solid #cbd9c6;
+  border-radius:13px;background:rgba(255,252,239,.94);color:#365a43;
+  font:650 13px/1.4 system-ui,sans-serif;text-align:center;pointer-events:none;
+  box-shadow:0 3px 12px rgba(30,54,38,.12);font-variant-numeric:tabular-nums}
+.flight-course-hud[hidden]{display:none!important}
+@media(max-width:760px){.flight-course-hud{top:62px;font-size:11px;padding:6px 9px}}
