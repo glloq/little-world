@@ -1,3 +1,4 @@
+import {projectGeography} from './geo-context.ts';
 /** Environmental masks on owned native recipe cells; no global runtime biome grid. */
 import {newRegion,type RegionRecipeV1} from './region-recipes.ts';
 import {generatorField} from '../terrain-generator.ts';
@@ -21,11 +22,12 @@ export function alignNaturalBiomes(p:ProjectDocument,skip:ReadonlySet<string>=ne
  const selected=new Set(r.landscapes.map(l=>l.kind)),style=r.islandStyle!,field=generatorField(p.world.terrain!,{width:r.width,length:r.length,seed:r.seed,seaLevel:p.world.seaLevel},()=>0),
   waters=Object.values(p.libraries.water),size=p.world.chunkSizeM,cell=size/16,minor=Math.min(r.width,r.length),wind=(shapeSeed(r.seed,'natural-wind')%628)/100,
   shelves=p.world.terrain?.kind==='archipelago'?p.world.terrain.archipelago.features.filter(f=>f.kind==='plateau').map(f=>compilePolygon(f.kind==='plateau'?f.polygon:[])):[];
+ const height=Object.values(p.chunks).some(c=>c.terrainEdits.length)?projectGeography(p).source:field.height;
  const recipes=Object.values(p.libraries.regions??{}).filter(q=>q.id.startsWith('composition-')&&!skip.has(q.id));
  for(const [id,chunk]of Object.entries(p.chunks)){
   const owners=recipes.filter(q=>q.generated?.masks[id]?.biome);if(!owners.length)continue;
   const [cx,cz]=id.split(':').map(Number),ox=p.world.bounds.minX+cx*size,oz=p.world.bounds.minZ+cz*size,heights=new Float64Array(18*18);
-  for(let z=0;z<18;z++)for(let x=0;x<18;x++)heights[z*18+x]=field.height(ox+(x-.5)*cell,oz+(z-.5)*cell);
+  for(let z=0;z<18;z++)for(let x=0;x<18;x++)heights[z*18+x]=height(ox+(x-.5)*cell,oz+(z-.5)*cell);
   for(const owner of owners){
    const owned=owner.generated!.masks[id],layers:Partial<Record<MaskLayerId,string[]>>={},records:Partial<Record<MaskLayerId,string[]>>={};
    for(let i=0;i<256;i++){

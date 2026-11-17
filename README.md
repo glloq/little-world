@@ -212,3 +212,7 @@ Le nouveau défaut propose [six styles d’îles V4](docs/66-ISLAND-STYLES-V4.md
 massif central ou latéral, volcan, caldera fragmentée et plateaux locaux. Les points hauts
 structurent les versants, puis le drainage et les milieux. Altitude, orientation, vues de pente
 et coupes du terrain sont disponibles dans le Studio. Mesures : `npm run benchmark:styles`.
+
+Avant création, [retoucher le brouillon 2D](docs/68-COMPOSITION-DRAFT-FIRST-IMPLEMENTATION.md)
+permet de modifier côte, relief, hauteurs et eau, avec historique et reprise locale.
+Le projet créé conserve exactement le plan retouché. Vérification : `npm run test:composition-draft`.

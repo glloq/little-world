@@ -1,0 +1,42 @@
+/** Actual pre-creation editing, persistence, undo and exact exported source. */
+import {chromium} from 'playwright';import {existsSync} from 'node:fs';import {readFile,mkdir,writeFile} from 'node:fs/promises';import assert from 'node:assert/strict';
+import {readProjectArchive} from '../src/studio-core/archive.ts';import {fingerprint} from '../src/world-production/landscape-schema.ts';
+const browser=await chromium.launch({headless:true,executablePath:existsSync('/usr/bin/chromium')?'/usr/bin/chromium':undefined,args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']});let checks=0;const check=(v,msg)=>{assert.ok(v,msg);checks++;console.log('OK',msg);};
+const artifacts='/tmp/little-world-draft';await mkdir(artifacts,{recursive:true});
+try{
+ const page=await browser.newPage({viewport:{width:1500,height:1050}}),errors=[];page.on('pageerror',e=>errors.push(e.message));
+ const current=()=>page.evaluate(async()=>{const {compositionDraftStore}=await import('/little-world/src/studio/composition-draft-editor.ts');const list=await compositionDraftStore.list(),p=(await compositionDraftStore.loadProject(list[0].projectId)).document;return p.world.terrain;});
+ await page.goto('http://127.0.0.1:5173/little-world/studio/');await page.getByRole('button',{name:'Créer un monde',exact:true}).click();await page.getByLabel('Modèle insulaire',{exact:true}).selectOption('gentle');await page.waitForFunction(()=>document.querySelector('.welcome-terrain-canvas')?.dataset.planHash);
+ await page.getByRole('button',{name:'Retoucher le brouillon 2D',exact:true}).click();const dialog=page.getByRole('dialog',{name:'Retoucher le brouillon 2D'});await dialog.waitFor();
+ const original=await current();check(await dialog.locator('canvas[aria-label="Carte 2D par couches"]').count()===1,'La carte native est disponible avant création');
+ await dialog.locator('.layer-row[data-layer=altitude] .layer-name').click();await dialog.locator('button[data-tool=shape]').click();
+ const canvas=dialog.locator('canvas[aria-label="Carte 2D par couches"]');await page.waitForFunction(()=>document.querySelector('dialog canvas')?.dataset.view);
+ const box=await canvas.boundingBox(),view=JSON.parse(await canvas.getAttribute('data-view')),p=original.archipelago.landmasses[0].outline[0],sx=box.x+view.width/2+(p.x-view.cx)*view.ppm,sy=box.y+view.height/2+(p.z-view.cz)*view.ppm;
+ await page.mouse.move(sx,sy);await page.mouse.down();await page.mouse.move(sx+16,sy,{steps:5});await page.mouse.up();
+ await page.waitForFunction(()=>!Array.from(document.querySelectorAll('dialog button')).find(b=>b.textContent==='Annuler la retouche')?.disabled);
+ check(true,'Un point de côte se déplace directement sur la carte');
+ await page.getByRole('button',{name:'Annuler la retouche',exact:true}).click();await page.getByRole('button',{name:'Rétablir la retouche',exact:true}).click();
+ const massif=original.archipelago.features.find(f=>f.id==='composition-main-massif');await page.mouse.click(box.x+view.width/2+(massif.x-view.cx)*view.ppm,box.y+view.height/2+(massif.z-view.cz)*view.ppm);
+ await dialog.getByLabel('Hauteur (m)',{exact:true}).evaluate((el,value)=>{el.value=String(value);el.dispatchEvent(new Event('change',{bubbles:true}));},Math.round(massif.heightM+5));
+ await page.waitForFunction(async value=>{const {compositionDraftStore}=await import('/little-world/src/studio/composition-draft-editor.ts');const list=await compositionDraftStore.list(),p=(await compositionDraftStore.loadProject(list[0].projectId)).document;return p.world.terrain.archipelago.features.find(f=>f.id==='composition-main-massif').heightM===value;},Math.round(massif.heightM+5));
+ check(true,'La hauteur d’un massif est retouchable avant création');
+ await page.getByRole('button',{name:'Rivières et lacs',exact:true}).click();check(await dialog.getByLabel('Tracé d’eau',{exact:true}).count()===1,'Les cours d’eau disposent de leur éditeur et de leur profil dans le brouillon');
+ const receiver=await dialog.getByLabel('Tracé d’eau',{exact:true}).locator('option').nth(1).getAttribute('value');await dialog.getByLabel('Tracé d’eau',{exact:true}).selectOption(receiver);
+ await dialog.getByLabel('Largeur (m)',{exact:true}).fill('7');await dialog.getByLabel('Largeur (m)',{exact:true}).press('Tab');
+ check(await page.getByRole('button',{name:'Valider le plan',exact:true}).isDisabled(),'Un tracé d’eau non appliqué bloque la confirmation');
+ await page.getByRole('button',{name:'Côte, relief et zones',exact:true}).click();check(await dialog.getByLabel('Tracé d’eau',{exact:true}).count()===1,'Le changement de vue ne perd pas le tracé en cours');
+ await page.getByRole('button',{name:'Appliquer le tracé',exact:true}).click();await dialog.getByText(/Tracé appliqué/).waitFor();
+ await page.getByRole('button',{name:'Côte, relief et zones',exact:true}).click();await page.screenshot({path:artifacts+'/editing.png',fullPage:true});
+ await page.getByRole('button',{name:'Fermer et garder le brouillon',exact:true}).click();await dialog.waitFor({state:'detached'});const edited=await current();check(fingerprint(edited)!==fingerprint(original),'Undo puis Redo conserve réellement la côte retouchée');
+ const count=await page.evaluate(async()=>{const {ProjectStore}=await import('/little-world/src/studio-core/project-store.ts');return (await new ProjectStore().list()).length;});check(count===0,'Le brouillon ne crée aucun projet dans le catalogue principal');
+ await page.reload();await page.getByRole('button',{name:/Reprendre le brouillon :/}).click();await dialog.waitFor();await page.getByRole('button',{name:'Valider le plan',exact:true}).click();await dialog.waitFor({state:'detached'});
+ check(await page.getByRole('button',{name:'Créer et ouvrir le monde',exact:true}).isEnabled(),'Le brouillon est repris après rechargement et validé');
+ await page.getByRole('button',{name:'Autre variation',exact:true}).click();await page.getByRole('button',{name:'Garder le plan retouché',exact:true}).click();check(true,'Changer la graine ne remplace pas silencieusement les retouches');
+ await page.getByLabel('Nom du projet',{exact:true}).fill('Île retouchée');await page.getByRole('button',{name:'Créer et ouvrir le monde',exact:true}).click();await page.locator('.viewport canvas').waitFor();
+ const event=page.waitForEvent('download');await page.getByRole('button',{name:'Exporter ZIP',exact:true}).click();const download=await event,persisted=readProjectArchive(new Uint8Array(await readFile(await download.path())));
+ check(Object.values(persisted.libraries.water).some(w=>w.width===7),'La modification de rivière est conservée dans le projet final');
+ check(fingerprint(persisted.world.terrain)===fingerprint(edited),'Le projet créé contient exactement la géométrie retouchée, sans régénération');
+ const remaining=await page.evaluate(async()=>{const {compositionDraftStore}=await import('/little-world/src/studio/composition-draft-editor.ts');return (await compositionDraftStore.list()).length;});check(remaining===0,'Le brouillon validé est retiré du stockage séparé après création');
+ const orphanCount=await page.evaluate(()=>new Promise((resolve,reject)=>{const r=indexedDB.open('little-world-studio-composition-drafts-v1');r.onsuccess=async()=>{const db=r.result,names=[...db.objectStoreNames],tx=db.transaction(names,'readonly');let sum=0,remaining=names.length;for(const name of names){const q=tx.objectStore(name).count();q.onsuccess=()=>{sum+=q.result;if(!--remaining){db.close();resolve(sum);}};}tx.onerror=()=>reject(tx.error);};r.onerror=reject;}));check(orphanCount===0,'Les secteurs et checkpoints du brouillon sont aussi supprimés sans toucher au projet créé');check(errors.length===0,errors.join('\n'));
+ await writeFile(artifacts+'/report.json',JSON.stringify({checks,errors},null,2));console.log({checks,errors});
+}finally{await browser.close();}

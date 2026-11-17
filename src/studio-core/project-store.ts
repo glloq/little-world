@@ -41,6 +41,14 @@ export class ProjectStore {
       r.onblocked=()=>{this.db=null;reject(new ProjectStorageError('Fermez les autres onglets Studio pour mettre à jour le stockage'));};
     });return this.db;
   }
+  /** Remove one stored project and its history in this database only. */
+  async remove(projectId:string):Promise<void>{
+    const db=await this.open(),tx=db.transaction([...stores],'readwrite'),done=completion(tx);
+    for(const name of ['projects','journals','contexts'] as const)tx.objectStore(name).delete(projectId);
+    tx.objectStore('chunks').delete(range(projectId));tx.objectStore('checkpoints').delete(range(projectId));
+    tx.objectStore('checkpointChunks').delete(IDBKeyRange.bound([projectId,'',''],[projectId,'\uffff','\uffff']));
+    await done;
+  }
   async list():Promise<ProjectSummary[]> {
     const db=await this.open(),tx=db.transaction('projects','readonly'),done=completion(tx);
     const values=await request(tx.objectStore('projects').getAll()) as HeaderRecord[];await done;

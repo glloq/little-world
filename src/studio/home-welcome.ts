@@ -1,3 +1,4 @@
+import {compositionDraftStore} from './composition-draft-store.ts';
 import {islandStyleControls} from './island-style-controls.ts';
 import {ISLAND_STYLES} from '../studio-core/island-styles.ts';
 /** Accessible, progressive Studio welcome flow. Preview samples the production relief
@@ -108,12 +109,13 @@ export function drawWelcomePreview(canvas:HTMLCanvasElement,project:ProjectDocum
   ctx.font='12px system-ui';ctx.fillText(Math.round(width/1000*10)/10+' × '+Math.round(length/1000*10)/10+' km',14,canvas.height-10);
   return rect;
 }
+async function openCompositionDraft(plan:WorldComposition,id?:string){return (await import('./composition-draft-editor.ts')).editCompositionDraft(plan,id);}
 export function mountWelcome(host:HTMLElement,actions:WelcomeActions){
   const testFixtures=new URLSearchParams(location.search).has('testFixtures');
   let config:WelcomeConfig={...DEFAULT_WELCOME_CONFIG};
   let step=0,section:'home'|'wizard'|'templates'|'projects'='home',name='Mon petit monde';
   let renderId=0,busy=false,previewMode:'biomes'|'altitude'|'slope'|'water'='biomes';
-  let requirements=structuredClone(DEFAULT_MAP_REQUIREMENTS),cachedKey='',cachedPlan:WorldComposition|null=null;
+  let requirements=structuredClone(DEFAULT_MAP_REQUIREMENTS),cachedKey='',cachedPlan:WorldComposition|null=null,draftEdited=false;
   const title=(text:string,description:string)=>{
     const h=node('div','','welcome-heading');
     h.append(node('div','LITTLE WORLD STUDIO','kicker'),node('h1',text),node('p',description,'muted'));return h;
@@ -140,10 +142,15 @@ export function mountWelcome(host:HTMLElement,actions:WelcomeActions){
     for(const [label,description,key] of cards){
       const b=button('',()=>{},'welcome-entry');
       b.setAttribute('aria-label',label);b.append(node('span',key==='create'?'◒':key==='templates'?'▤':key==='blank'?'▱':'↺','welcome-entry-icon'),node('strong',label),node('span',description,'muted'));
-      b.onclick=()=>{if(key==='templates')section='templates';else if(key==='projects')section='projects';else{section='wizard';step=0;requirements=structuredClone(DEFAULT_MAP_REQUIREMENTS);config={...DEFAULT_WELCOME_CONFIG,...(key==='blank'?{mode:'blank' as const,volcano:false,relief:'gentle' as const,width:1000,length:1000}:{})};}render();};
+      b.onclick=()=>{if(key==='templates')section='templates';else if(key==='projects')section='projects';else{section='wizard';step=0;requirements=structuredClone(DEFAULT_MAP_REQUIREMENTS);cachedPlan=null;cachedKey='';draftEdited=false;config={...DEFAULT_WELCOME_CONFIG,...(key==='blank'?{mode:'blank' as const,volcano:false,relief:'gentle' as const,width:1000,length:1000}:{})};}render();};
       choices.append(b);
     }
     page.append(choices);
+    const drafts=node('section');page.append(drafts);
+    void compositionDraftStore.list().then(list=>{if(!drafts.isConnected)return;for(const draft of list)drafts.append(button('Reprendre le brouillon : '+draft.name,async()=>{
+     try{const stored=await compositionDraftStore.loadProject(draft.projectId),base=composeWorld(stored.document.world.generation!),plan=await openCompositionDraft(base,draft.projectId);if(plan){requirements=structuredClone(plan.project.world.generation!);cachedKey=JSON.stringify(requirements);cachedPlan=plan;draftEdited=true;section='wizard';step=3;render();}}
+     catch(e){actions.report(String(e),true);}
+    }));}).catch(e=>actions.report(String(e),true));
     if(actions.projects.length){
       const recent=node('section','','welcome-recent');
       const row=node('div','','welcome-between');row.append(node('h2','Vos derniers mondes'),button('Tout voir',()=>{section='projects';render();}));recent.append(row);
@@ -276,8 +283,14 @@ export function mountWelcome(host:HTMLElement,actions:WelcomeActions){
         if(blank){await actions.create(buildWelcomeProject(config,name));return;}
         if(!cachedPlan||cachedKey!==JSON.stringify(requirements))throw Error('Attendre le nouvel aperçu');
         await actions.create(projectFromComposition(cachedPlan,name));
+        void compositionDraftStore.remove(cachedPlan.project.manifest.projectId).catch(e=>actions.report(String(e),true));
       })();},'primary-button');create.disabled=true;foot.append(create);
     }
+    if(!blank)foot.append(button('Retoucher le brouillon 2D',async()=>{
+     if(!cachedPlan||cachedKey!==JSON.stringify(requirements))return;
+     try{const plan=await openCompositionDraft(cachedPlan);if(plan){cachedPlan=plan;draftEdited=true;render();}}
+     catch(e){actions.report(String(e),true);}
+    }));
     page.append(foot);host.replaceChildren(page);
     const token=++renderId;
     requestAnimationFrame(()=>{
@@ -287,7 +300,12 @@ export function mountWelcome(host:HTMLElement,actions:WelcomeActions){
         if(blank)project=buildWelcomeProject(config,'Aperçu');
         else{
           const key=JSON.stringify(requirements);
-          if(key!==cachedKey||!cachedPlan){cachedPlan=composeWorld(requirements);cachedKey=key;}
+          if(key!==cachedKey&&cachedPlan&&draftEdited){
+           note.textContent='Des paramètres ont changé. Le brouillon retouché est conservé.';
+           messages.replaceChildren(button('Remplacer les retouches par la nouvelle génération',()=>{draftEdited=false;cachedPlan=null;render();}),button('Garder le plan retouché',()=>{requirements=structuredClone(cachedPlan!.project.world.generation!);render();}));
+           if(create)create.disabled=true;return;
+          }
+          if(key!==cachedKey||!cachedPlan){cachedPlan=composeWorld(requirements);cachedKey=key;draftEdited=false;}
           project=cachedPlan.project;
           messages.replaceChildren(...cachedPlan.diagnostics.map(d=>node('p',d.message,'diagnostic '+d.severity)));
         }
