@@ -14,7 +14,7 @@ try{
   const m=()=>page.evaluate(()=>window.littleWorldMetrics);
   // Port of the north coast: dock tiles at x 300, z 1390 → 1408 (beach → sea), boats moored along it.
   await page.goto(base+'?metrics=1&spawn=300,1386&yaw=0',{waitUntil:'domcontentloaded'});
-  await page.waitForSelector('#start:not([disabled])',{timeout:120000});await page.locator('#start').click();
+  await page.locator('#start-overlay').waitFor({state:'hidden',timeout:120000});await page.locator('#start-overlay').waitFor({state:'hidden'});
   await page.waitForFunction(()=>window.littleWorldMetrics?.chunks.pending===0,{},{timeout:120000});await page.waitForTimeout(800);
   const start=await m();check(start.boats.count>=9,'Fleet: the player boat and the moored boats ('+start.boats.count+')');
   // 1. Walk along the dock (north): on the deck, not in the water.
