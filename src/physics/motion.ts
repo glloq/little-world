@@ -41,7 +41,7 @@ export function glideVelocity(p:FlightState,yaw:number,cameraPitch:number,brake:
  pitch=clamp(pitch,-tuning.maxDive,tuning.maxClimb);
  // Induced drag dominates near stall; parasitic drag dominates at speed. Both dissipate
  // energy, leaving enough powered thrust to reach the configured 34 m/s cap.
- const induced=MOTION.gravity/tuning.finesse*.85*(tuning.minCruise/Math.max(speed,tuning.stall))**2;
+ const induced=MOTION.gravity/tuning.finesse*(tuning.minCruise/Math.max(speed,tuning.stall))**2;
  const drag=tuning.drag+induced+tuning.speedDrag*speed*speed+clamp(brake,0,1)*1.5;
  const work=drag*Math.max(speed,.1)*dt+tuning.turnLoss*Math.abs(turn)*speed*speed;
  const verticalGravity=MOTION.gravity*Math.sin(pitch);
