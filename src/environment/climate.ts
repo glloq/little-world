@@ -17,9 +17,10 @@ export function createClimate(definition:EnvironmentDefinition){
  const d=parseEnvironmentDefinition(definition),pattern=Array.from({length:16},(_,slot)=>{let hash=Math.imul(d.weatherSeed^(slot+1),0x45d9f3b);hash=Math.imul(hash^(hash>>>16),0x45d9f3b);return kinds[(hash>>>0)%kinds.length];});
  const cycleLength=pattern.length*d.weatherPeriodSeconds;
  const cycleCounts={clear:0,cloudy:0,rain:0};for(const kind of pattern)cycleCounts[kind]+=d.weatherPeriodSeconds;
+ let previewWeather:WeatherKind|null=null;
  const validTime=(time:number)=>{if(!Number.isFinite(time)||time<0||time>1e9)throw Error('Instant climatique invalide');};
  function state(time:number):EnvironmentState {
-  validTime(time);const dayPhase=(time/d.dayLengthSeconds+d.initialDayPhase)%1,weather=pattern[Math.floor(time/d.weatherPeriodSeconds)%pattern.length],profile=profiles[weather];
+  validTime(time);const dayPhase=(time/d.dayLengthSeconds+d.initialDayPhase)%1,weather=previewWeather??pattern[Math.floor(time/d.weatherPeriodSeconds)%pattern.length],profile=profiles[weather];
   return {worldTime:time,dayPhase,sunAltitude:Math.sin(2*Math.PI*(dayPhase-.25)),weather,cloudCover:profile.cloudCover,temperatureC:profile.temperatureC,rainfallMmPerHour:profile.rainfallMmPerHour,wind:profile.wind};
  }
  function prefix(time:number){
@@ -32,6 +33,7 @@ export function createClimate(definition:EnvironmentDefinition){
   for(const kind of kinds){const hours=weatherSeconds[kind]/3600,p=profiles[kind];degreeHours+=Math.max(0,p.temperatureC-baseTemperatureC)*hours;rainfallMm+=p.rainfallMmPerHour*hours;evaporationMm+=p.evaporationMmPerHour*hours;}
   return {schemaVersion:1,generatorVersion:1,from,to,seconds:to-from,degreeHours,rainfallMm,evaporationMm,weatherSeconds};
  }
- return {definition:d,state,summarize};
+ // Temporary developer override: only state/rendering, never deterministic climate integrals or save data.
+ return {definition:d,state,summarize,setPreviewWeather:(value:WeatherKind|null)=>{previewWeather=value;},get previewWeather(){return previewWeather;}};
 }
 export type ClimateHistory=ReturnType<typeof createClimate>;
