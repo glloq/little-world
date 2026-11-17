@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import {simulatePlayer,MOTION,MAX_OXYGEN} from '../src/player.ts';
 import {WorldCollisionQuery} from '../src/physics/collision-world.ts';
 import {HamsterAnimator,GAIT_RADIANS_PER_METER} from '../src/hamster/hamster-animation.ts';
+import {MotionLabClock,LAB_SIM_HZ} from '../src/hamster/motion-lab-clock.ts';
 import {captureMovement,replayMovement} from '../src/physics/movement-state.ts';
 import {parsePresentationState,interpolatePresentation} from '../src/hamster/presentation-state.ts';
 
@@ -290,4 +291,69 @@ test('V1 remote packets and deterministic replay include optional landing and fo
  assert.deepEqual(replayMovement(actor(),snap,[],q),snap,'replay snapshot preserves cues');
  const corrupt=structuredClone(snap);corrupt.state.footSupportLeft=3;
  assert.throws(()=>replayMovement(actor(),corrupt,[],q),/Appui pied invalide/);
+});
+
+test('V2.3 — optional remote jump and landing counters reject bad packets without changing V1',()=>{
+ const base={v:1,t:0,x:0,y:0,z:0,yaw:0,mode:'ground',speed:0,verticalSpeed:0,turnRate:0,aboard:false,action:null,actionSeq:0,tool:null,fishing:null};
+ assert.deepEqual(parsePresentationState(base),base,'legacy packet stays byte-compatible');
+ const first=parsePresentationState({...base,jumpSeq:2,landingSeq:1});
+ const next=parsePresentationState({...base,t:.1,jumpSeq:3,landingSeq:2});
+ assert.equal(interpolatePresentation(first,next,.05).landingSeq,2,'event counts are discrete, never lerped');
+ for(const bad of [{jumpSeq:-1},{landingSeq:1.25},{jumpSeq:Infinity},{landingSeq:NaN}]){
+  assert.throws(()=>parsePresentationState({...base,...bad}),/Séquence de mouvement invalide/);
+ }
+});
+
+test('V2.3 — missed frames recover a jump and a ground landing once (no duplicate events)',()=>{
+ const anim=new HamsterAnimator(),ground=input('ground',3,{jumpSeq:0,landingSeq:0});
+ anim.update(ground,1/30);
+ const mid=input('air',8,{verticalSpeed:5,jumpKind:'roll',jumpSeq:1,landingSeq:0});
+ anim.update(mid,1/30);
+ assert.equal(anim.state,'ROLL_AIR','a rolling launch is reconstructed even without a roll-mode frame');
+ assert.equal(anim.events.filter(e=>e.name==='jump').length,1);
+ anim.update(mid,1/30);
+ assert.equal(anim.events.filter(e=>e.name==='jump').length,0,'same event count never emits twice');
+ // A remote 10Hz stream may drop the entire airborne phase on a short jump.
+ const lost=new HamsterAnimator();
+ lost.update(ground,1/30);
+ lost.update({...ground,jumpSeq:1,landingSeq:1,landingKind:'run',landingSpeed:8},1/30);
+ assert.equal(lost.state,'LAND','landing recovered despite ground->ground packet stream');
+ assert.equal(lost.events.filter(e=>e.name==='land').length,1);
+ lost.update({...ground,jumpSeq:1,landingSeq:1,landingKind:'run',landingSpeed:8},1/30);
+ assert.equal(lost.events.filter(e=>e.name==='land').length,0);
+});
+
+test('V2.3 — opening a glider after rolling releases the ball in the next fall',()=>{
+ const a=new HamsterAnimator();
+ a.update(input('roll',8),1/30);
+ a.update(input('air',8,{jumpKind:'roll',jumpSeq:1,verticalSpeed:5}),1/30);
+ assert.equal(a.state,'ROLL_AIR');
+ a.update(input('glide',10,{verticalSpeed:-2,jumpSeq:1}),1/30);
+ assert.equal(a.state,'GLIDE_OPEN');
+ for(let i=0;i<10;i++)a.update(input('glide',10,{verticalSpeed:-2,jumpSeq:1}),1/30);
+ a.update(input('air',8,{verticalSpeed:-4,jumpSeq:1}),1/30);
+ for(let i=0;i<12;i++)a.update(input('air',8,{verticalSpeed:-4,jumpSeq:1}),1/30);
+ assert.equal(a.state,'FALL','closing glider must not resurrect the old rolling pose');
+ assert.ok(a.pose.tuck<.1);
+});
+
+test('V2.3 — fixed clock produces exactly 30 animation steps at 20/30/60 display cadence',()=>{
+ assert.equal(LAB_SIM_HZ,30);
+ for(const fps of [20,30,60]){
+  const clock=new MotionLabClock(),times=[];
+  let frames=0;
+  for(let i=0;i<fps;i++){
+   if(clock.advance(1/fps,20,(dt,t)=>{assert.ok(Math.abs(dt-1/30)<1e-12);times.push(t);}))frames++;
+  }
+  assert.equal(clock.ticks,30,'30 simulation ticks at '+fps+' FPS');
+  assert.ok(Math.abs(clock.elapsed-1)<1e-8);
+  assert.equal(frames,20,'20 actual renders at '+fps+' display FPS');
+  assert.ok(times.every((t,i)=>Math.abs(t-(i+1)/30)<1e-8));
+ }
+ const clock=new MotionLabClock();let updates=0;
+ clock.advance(10,30,()=>updates++);
+ assert.ok(updates<=clock.maxTicksPerFrame,'suspended tabs cannot schedule unbounded simulation');
+ clock.reset();assert.equal(clock.ticks,0);assert.equal(clock.elapsed,0);
+ assert.throws(()=>clock.advance(NaN,20,()=>{}),/Delta/);
+ assert.throws(()=>clock.advance(.02,25,()=>{}),/Cadence/);
 });
