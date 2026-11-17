@@ -99,9 +99,9 @@ try{
   check(lantern&&Math.abs(lantern.components.Transform.rotation.y-Math.sin(Math.PI/24))<1e-6,'Exported ZIP contains the authored rotation');
   // Play here, then back to the Studio with camera and selection.
   const popup=context.waitForEvent('page');await page.getByRole('button',{name:'Jouer ici'}).click();const game=await popup;game.on('pageerror',e=>errors.push(e.message));
-  await game.waitForSelector('#start:not([disabled])',{timeout:60000});check(new URL(game.url()).searchParams.has('studioBuild'),'Play here opens the compiled test copy');
+  await game.locator('#start-overlay').waitFor({state:'hidden',timeout:60000});check(new URL(game.url()).searchParams.has('studioBuild'),'Play here opens the compiled test copy');
   const debugUrl=new URL(game.url());debugUrl.searchParams.set('metrics','1');await game.goto(debugUrl.toString());
-  await game.waitForSelector('#start:not([disabled])',{timeout:60000});await game.locator('#start').click();
+  await game.locator('#start-overlay').waitFor({state:'hidden',timeout:60000});await game.locator('#start-overlay').waitFor({state:'hidden'});
   await game.waitForFunction(()=>Number.isFinite(window.littleWorldMetrics?.position?.[0])&&Number.isFinite(window.littleWorldMetrics?.position?.[2]));
   const [gx,gz]=await game.evaluate(()=>[window.littleWorldMetrics.position[0],window.littleWorldMetrics.position[2]]);
   check(Math.hypot(gx-camSaved.target.x,gz-camSaved.target.z)<40,'The game starts where the author was looking');
