@@ -18,7 +18,7 @@ export interface WelcomeConfig {
   volcanoAt?:{x:number;z:number}|null;
 }
 export const DEFAULT_WELCOME_CONFIG:WelcomeConfig={
-  mode:'island',width:3000,length:8000,seed:4242,relief:'balanced',volcano:true,
+  mode:'island',width:4000,length:3000,seed:4242,relief:'balanced',volcano:true,
 };
 const PRESETS:Record<ReliefPreset,{cliffs:number;scale:number}>={
   gentle:{cliffs:.08,scale:.55},
