@@ -127,13 +127,13 @@ try{
   const stick=mobilePage.locator('.touch-joystick'),bounds=await stick.boundingBox();
   assert.ok(bounds,'Joystick has a screen rect');
   const cx=bounds.x+bounds.width/2,cy=bounds.y+bounds.height/2;
-  const before=await mobilePage.evaluate(()=>window.littleWorldMetrics.position);
+  const mobileBefore=await mobilePage.evaluate(()=>window.littleWorldMetrics.position);
   await mobilePage.mouse.move(cx,cy);await mobilePage.mouse.down();
   await mobilePage.mouse.move(cx,cy-42,{steps:5});
   verify(await stick.locator('.touch-joystick-thumb').evaluate(e=>e.style.transform!=='translate(-50%, -50%)'),'Joystick thumb follows its pointer');
   await mobilePage.waitForTimeout(750);await mobilePage.mouse.up();
-  const after=await mobilePage.evaluate(()=>window.littleWorldMetrics.position);
-  verify(Math.hypot(after[0]-before[0],after[2]-before[2])>.03,'Joystick moves the player through the real simulation');
+  const mobileAfter=await mobilePage.evaluate(()=>window.littleWorldMetrics.position);
+  verify(Math.hypot(mobileAfter[0]-mobileBefore[0],mobileAfter[2]-mobileBefore[2])>.03,'Joystick moves the player through the real simulation');
   verify(await stick.locator('.touch-joystick-thumb').evaluate(e=>e.style.transform==='translate(-50%, -50%)'),'Releasing the joystick resets input to zero');
   await mobilePage.getByRole('button',{name:'Sac (I)'}).click();
   await mobilePage.locator('.ui-panel[data-panel="inventory"]').waitFor({state:'visible'});
