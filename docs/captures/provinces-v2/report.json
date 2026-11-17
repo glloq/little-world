@@ -1,0 +1,2156 @@
+{
+  "summary": {
+    "node": "v24.22.1",
+    "seeds": 30,
+    "ready": 30,
+    "unique": 30,
+    "generationMs": {
+      "p50": 179.56298800000013,
+      "max": 373.6070619999999
+    },
+    "previewMs": {
+      "p50": 17.100000000093132,
+      "max": 44.10000000009313
+    },
+    "maxFeatures": 16,
+    "maxSectors": 359,
+    "maxSourceBytes": 793384,
+    "minBiomeCoverage": 0.9743589743589743,
+    "minOffRiverBiomeCoverage": 0.9673629242819843,
+    "minTerracedLandShare": 0.7076923076923077,
+    "interiorSubseaSamples": 0,
+    "memoryNote": "heapDeltaBytes is observed JS heap delta, includes GC noise; sourceBytes measures serialized V3 sources, not GPU memory."
+  },
+  "rows": [
+    {
+      "seed": 101,
+      "requirements": {
+        "version": 1,
+        "compositionVersion": 2,
+        "type": "archipelago",
+        "width": 4000,
+        "length": 3000,
+        "seed": 101,
+        "landscapes": [
+          {
+            "kind": "mountain",
+            "required": true
+          },
+          {
+            "kind": "forest",
+            "required": true
+          },
+          {
+            "kind": "meadow",
+            "required": true
+          },
+          {
+            "kind": "marsh",
+            "required": true
+          },
+          {
+            "kind": "coast",
+            "required": true
+          }
+        ],
+        "rivers": 1,
+        "tributaries": 0,
+        "lakes": false,
+        "waterfalls": false,
+        "relief": "gentle",
+        "cliffs": 0.1,
+        "terraces": 1,
+        "diversity": 0.65,
+        "biomeMode": "automatic",
+        "sequence": [
+          "mountain",
+          "forest",
+          "meadow",
+          "marsh",
+          "coast"
+        ]
+      },
+      "family": "central-valley",
+      "ready": true,
+      "diagnostics": [
+        "WATER_LINK_BELOW",
+        "WATER_STEEP"
+      ],
+      "generationMs": 373.6070619999999,
+      "features": 7,
+      "sectors": 351,
+      "surveyCells": 972,
+      "sourceBytes": 662460,
+      "coverage": {
+        "sampled": 2304,
+        "landSamples": 976,
+        "biomeCoverage": 0.9805327868852459,
+        "offRiverBiomeCoverage": 0.9752925877763329,
+        "terracedLandShare": 0.8913934426229508,
+        "interiorSubseaSamples": 0
+      },
+      "heapDeltaBytes": 17134896,
+      "signature": "8df447e97bbbb1ce",
+      "previewMs": 44.10000000009313
+    },
+    {
+      "seed": 8020,
+      "requirements": {
+        "version": 1,
+        "compositionVersion": 2,
+        "type": "island",
+        "width": 4000,
+        "length": 3000,
+        "seed": 8020,
+        "landscapes": [
+          {
+            "kind": "mountain",
+            "required": true
+          },
+          {
+            "kind": "forest",
+            "required": true
+          },
+          {
+            "kind": "meadow",
+            "required": true
+          },
+          {
+            "kind": "marsh",
+            "required": true
+          },
+          {
+            "kind": "coast",
+            "required": true
+          }
+        ],
+        "rivers": 1,
+        "tributaries": 0,
+        "lakes": false,
+        "waterfalls": false,
+        "relief": "balanced",
+        "cliffs": 0.4,
+        "terraces": 2,
+        "diversity": 0.65,
+        "biomeMode": "automatic",
+        "sequence": [
+          "mountain",
+          "forest",
+          "meadow",
+          "marsh",
+          "coast"
+        ]
+      },
+      "family": "central-valley",
+      "ready": true,
+      "diagnostics": [
+        "WATER_LINK_BELOW",
+        "WATER_STEEP"
+      ],
+      "generationMs": 232.61452300000008,
+      "features": 9,
+      "sectors": 352,
+      "surveyCells": 972,
+      "sourceBytes": 736421,
+      "coverage": {
+        "sampled": 2304,
+        "landSamples": 944,
+        "biomeCoverage": 1,
+        "offRiverBiomeCoverage": 1,
+        "terracedLandShare": 0.736228813559322,
+        "interiorSubseaSamples": 0
+      },
+      "heapDeltaBytes": -1330976,
+      "signature": "ee889c46c8c6b259",
+      "previewMs": 27.300000000046566
+    },
+    {
+      "seed": 15939,
+      "requirements": {
+        "version": 1,
+        "compositionVersion": 2,
+        "type": "island",
+        "width": 4000,
+        "length": 3000,
+        "seed": 15939,
+        "landscapes": [
+          {
+            "kind": "mountain",
+            "required": true
+          },
+          {
+            "kind": "forest",
+            "required": true
+          },
+          {
+            "kind": "meadow",
+            "required": true
+          },
+          {
+            "kind": "marsh",
+            "required": true
+          },
+          {
+            "kind": "coast",
+            "required": true
+          }
+        ],
+        "rivers": 1,
+        "tributaries": 0,
+        "lakes": true,
+        "waterfalls": false,
+        "relief": "rugged",
+        "cliffs": 0.8,
+        "terraces": 3,
+        "diversity": 0.65,
+        "biomeMode": "automatic",
+        "sequence": [
+          "mountain",
+          "forest",
+          "meadow",
+          "marsh",
+          "coast"
+        ]
+      },
+      "family": "split-plateau",
+      "ready": true,
+      "diagnostics": [
+        "WATER_LINK_BELOW",
+        "WATER_STEEP"
+      ],
+      "generationMs": 213.826503,
+      "features": 12,
+      "sectors": 355,
+      "surveyCells": 972,
+      "sourceBytes": 734679,
+      "coverage": {
+        "sampled": 2304,
+        "landSamples": 949,
+        "biomeCoverage": 1,
+        "offRiverBiomeCoverage": 1,
+        "terracedLandShare": 0.7323498419388831,
+        "interiorSubseaSamples": 0
+      },
+      "heapDeltaBytes": 24147296,
+      "signature": "092aefec039f4c5b",
+      "previewMs": 26.399999999906868
+    },
+    {
+      "seed": 23858,
+      "requirements": {
+        "version": 1,
+        "compositionVersion": 2,
+        "type": "archipelago",
+        "width": 4000,
+        "length": 3000,
+        "seed": 23858,
+        "landscapes": [
+          {
+            "kind": "mountain",
+            "required": true
+          },
+          {
+            "kind": "forest",
+            "required": true
+          },
+          {
+            "kind": "meadow",
+            "required": true
+          },
+          {
+            "kind": "marsh",
+            "required": true
+          },
+          {
+            "kind": "coast",
+            "required": true
+          }
+        ],
+        "rivers": 1,
+        "tributaries": 0,
+        "lakes": false,
+        "waterfalls": false,
+        "relief": "gentle",
+        "cliffs": 0.1,
+        "terraces": 4,
+        "diversity": 0.65,
+        "biomeMode": "automatic",
+        "sequence": [
+          "mountain",
+          "forest",
+          "meadow",
+          "marsh",
+          "coast"
+        ]
+      },
+      "family": "split-plateau",
+      "ready": true,
+      "diagnostics": [
+        "WATER_LINK_BELOW",
+        "WATER_STEEP"
+      ],
+      "generationMs": 191.67075,
+      "features": 10,
+      "sectors": 354,
+      "surveyCells": 972,
+      "sourceBytes": 735580,
+      "coverage": {
+        "sampled": 2304,
+        "landSamples": 966,
+        "biomeCoverage": 0.979296066252588,
+        "offRiverBiomeCoverage": 0.9739243807040417,
+        "terracedLandShare": 0.7256728778467909,
+        "interiorSubseaSamples": 0
+      },
+      "heapDeltaBytes": -16927320,
+      "signature": "4882f205d19b13e6",
+      "previewMs": 21.5
+    },
+    {
+      "seed": 31777,
+      "requirements": {
+        "version": 1,
+        "compositionVersion": 2,
+        "type": "island",
+        "width": 4000,
+        "length": 3000,
+        "seed": 31777,
+        "landscapes": [
+          {
+            "kind": "mountain",
+            "required": true
+          },
+          {
+            "kind": "forest",
+            "required": true
+          },
+          {
+            "kind": "meadow",
+            "required": true
+          },
+          {
+            "kind": "marsh",
+            "required": true
+          },
+          {
+            "kind": "coast",
+            "required": true
+          }
+        ],
+        "rivers": 1,
+        "tributaries": 0,
+        "lakes": false,
+        "waterfalls": false,
+        "relief": "balanced",
+        "cliffs": 0.4,
+        "terraces": 5,
+        "diversity": 0.65,
+        "biomeMode": "automatic",
+        "sequence": [
+          "mountain",
+          "forest",
+          "meadow",
+          "marsh",
+          "coast"
+        ]
+      },
+      "family": "central-valley",
+      "ready": true,
+      "diagnostics": [
+        "WATER_LINK_BELOW",
+        "WATER_STEEP"
+      ],
+      "generationMs": 358.66594699999996,
+      "features": 13,
+      "sectors": 356,
+      "surveyCells": 972,
+      "sourceBytes": 729423,
+      "coverage": {
+        "sampled": 2304,
+        "landSamples": 948,
+        "biomeCoverage": 1,
+        "offRiverBiomeCoverage": 1,
+        "terracedLandShare": 0.739451476793249,
+        "interiorSubseaSamples": 0
+      },
+      "heapDeltaBytes": 42208624,
+      "signature": "8df5e44acba26b7f",
+      "previewMs": 31.5
+    },
+    {
+      "seed": 39696,
+      "requirements": {
+        "version": 1,
+        "compositionVersion": 2,
+        "type": "island",
+        "width": 4000,
+        "length": 3000,
+        "seed": 39696,
+        "landscapes": [
+          {
+            "kind": "mountain",
+            "required": true
+          },
+          {
+            "kind": "forest",
+            "required": true
+          },
+          {
+            "kind": "meadow",
+            "required": true
+          },
+          {
+            "kind": "marsh",
+            "required": true
+          },
+          {
+            "kind": "coast",
+            "required": true
+          }
+        ],
+        "rivers": 1,
+        "tributaries": 0,
+        "lakes": true,
+        "waterfalls": false,
+        "relief": "rugged",
+        "cliffs": 0.8,
+        "terraces": 6,
+        "diversity": 0.65,
+        "biomeMode": "automatic",
+        "sequence": [
+          "mountain",
+          "forest",
+          "meadow",
+          "marsh",
+          "coast"
+        ]
+      },
+      "family": "central-valley",
+      "ready": true,
+      "diagnostics": [
+        "WATER_LINK_BELOW",
+        "WATER_STEEP"
+      ],
+      "generationMs": 185.66824500000007,
+      "features": 15,
+      "sectors": 354,
+      "surveyCells": 972,
+      "sourceBytes": 755232,
+      "coverage": {
+        "sampled": 2304,
+        "landSamples": 946,
+        "biomeCoverage": 1,
+        "offRiverBiomeCoverage": 1,
+        "terracedLandShare": 0.7431289640591966,
+        "interiorSubseaSamples": 0
+      },
+      "heapDeltaBytes": -9357344,
+      "signature": "01000aa15b8f949b",
+      "previewMs": 18.800000000046566
+    },
+    {
+      "seed": 47615,
+      "requirements": {
+        "version": 1,
+        "compositionVersion": 2,
+        "type": "archipelago",
+        "width": 4000,
+        "length": 3000,
+        "seed": 47615,
+        "landscapes": [
+          {
+            "kind": "mountain",
+            "required": true
+          },
+          {
+            "kind": "forest",
+            "required": true
+          },
+          {
+            "kind": "meadow",
+            "required": true
+          },
+          {
+            "kind": "marsh",
+            "required": true
+          },
+          {
+            "kind": "coast",
+            "required": true
+          }
+        ],
+        "rivers": 1,
+        "tributaries": 0,
+        "lakes": false,
+        "waterfalls": false,
+        "relief": "gentle",
+        "cliffs": 0.1,
+        "terraces": 1,
+        "diversity": 0.65,
+        "biomeMode": "automatic",
+        "sequence": [
+          "mountain",
+          "forest",
+          "meadow",
+          "marsh",
+          "coast"
+        ]
+      },
+      "family": "winding-valley",
+      "ready": true,
+      "diagnostics": [
+        "WATER_LINK_BELOW",
+        "WATER_STEEP"
+      ],
+      "generationMs": 185.1551830000003,
+      "features": 7,
+      "sectors": 352,
+      "surveyCells": 972,
+      "sourceBytes": 718801,
+      "coverage": {
+        "sampled": 2304,
+        "landSamples": 967,
+        "biomeCoverage": 0.9793174767321613,
+        "offRiverBiomeCoverage": 0.9744245524296675,
+        "terracedLandShare": 0.8945191313340227,
+        "interiorSubseaSamples": 0
+      },
+      "heapDeltaBytes": -15611616,
+      "signature": "20dd2a486372a95a",
+      "previewMs": 22.600000000093132
+    },
+    {
+      "seed": 55534,
+      "requirements": {
+        "version": 1,
+        "compositionVersion": 2,
+        "type": "island",
+        "width": 4000,
+        "length": 3000,
+        "seed": 55534,
+        "landscapes": [
+          {
+            "kind": "mountain",
+            "required": true
+          },
+          {
+            "kind": "forest",
+            "required": true
+          },
+          {
+            "kind": "meadow",
+            "required": true
+          },
+          {
+            "kind": "marsh",
+            "required": true
+          },
+          {
+            "kind": "coast",
+            "required": true
+          }
+        ],
+        "rivers": 1,
+        "tributaries": 0,
+        "lakes": false,
+        "waterfalls": false,
+        "relief": "balanced",
+        "cliffs": 0.4,
+        "terraces": 2,
+        "diversity": 0.65,
+        "biomeMode": "automatic",
+        "sequence": [
+          "mountain",
+          "forest",
+          "meadow",
+          "marsh",
+          "coast"
+        ]
+      },
+      "family": "central-valley",
+      "ready": true,
+      "diagnostics": [
+        "WATER_LINK_BELOW",
+        "WATER_STEEP"
+      ],
+      "generationMs": 177.91405600000007,
+      "features": 10,
+      "sectors": 351,
+      "surveyCells": 972,
+      "sourceBytes": 748783,
+      "coverage": {
+        "sampled": 2304,
+        "landSamples": 952,
+        "biomeCoverage": 1,
+        "offRiverBiomeCoverage": 1,
+        "terracedLandShare": 0.7289915966386554,
+        "interiorSubseaSamples": 0
+      },
+      "heapDeltaBytes": 51293872,
+      "signature": "e490b8a88b431d07",
+      "previewMs": 13.100000000093132
+    },
+    {
+      "seed": 63453,
+      "requirements": {
+        "version": 1,
+        "compositionVersion": 2,
+        "type": "island",
+        "width": 4000,
+        "length": 3000,
+        "seed": 63453,
+        "landscapes": [
+          {
+            "kind": "mountain",
+            "required": true
+          },
+          {
+            "kind": "forest",
+            "required": true
+          },
+          {
+            "kind": "meadow",
+            "required": true
+          },
+          {
+            "kind": "marsh",
+            "required": true
+          },
+          {
+            "kind": "coast",
+            "required": true
+          }
+        ],
+        "rivers": 1,
+        "tributaries": 0,
+        "lakes": true,
+        "waterfalls": false,
+        "relief": "rugged",
+        "cliffs": 0.8,
+        "terraces": 3,
+        "diversity": 0.65,
+        "biomeMode": "automatic",
+        "sequence": [
+          "mountain",
+          "forest",
+          "meadow",
+          "marsh",
+          "coast"
+        ]
+      },
+      "family": "split-plateau",
+      "ready": true,
+      "diagnostics": [
+        "WATER_LINK_BELOW",
+        "WATER_STEEP"
+      ],
+      "generationMs": 184.63995799999975,
+      "features": 13,
+      "sectors": 354,
+      "surveyCells": 972,
+      "sourceBytes": 748331,
+      "coverage": {
+        "sampled": 2304,
+        "landSamples": 946,
+        "biomeCoverage": 1,
+        "offRiverBiomeCoverage": 1,
+        "terracedLandShare": 0.7293868921775899,
+        "interiorSubseaSamples": 0
+      },
+      "heapDeltaBytes": -9829960,
+      "signature": "a2dd10fad083b017",
+      "previewMs": 13.199999999953434
+    },
+    {
+      "seed": 71372,
+      "requirements": {
+        "version": 1,
+        "compositionVersion": 2,
+        "type": "archipelago",
+        "width": 4000,
+        "length": 3000,
+        "seed": 71372,
+        "landscapes": [
+          {
+            "kind": "mountain",
+            "required": true
+          },
+          {
+            "kind": "forest",
+            "required": true
+          },
+          {
+            "kind": "meadow",
+            "required": true
+          },
+          {
+            "kind": "marsh",
+            "required": true
+          },
+          {
+            "kind": "coast",
+            "required": true
+          }
+        ],
+        "rivers": 1,
+        "tributaries": 0,
+        "lakes": false,
+        "waterfalls": false,
+        "relief": "gentle",
+        "cliffs": 0.1,
+        "terraces": 4,
+        "diversity": 0.65,
+        "biomeMode": "automatic",
+        "sequence": [
+          "mountain",
+          "forest",
+          "meadow",
+          "marsh",
+          "coast"
+        ]
+      },
+      "family": "winding-valley",
+      "ready": true,
+      "diagnostics": [
+        "WATER_LINK_BELOW",
+        "WATER_STEEP"
+      ],
+      "generationMs": 177.86427099999992,
+      "features": 10,
+      "sectors": 352,
+      "surveyCells": 972,
+      "sourceBytes": 705292,
+      "coverage": {
+        "sampled": 2304,
+        "landSamples": 975,
+        "biomeCoverage": 0.9743589743589743,
+        "offRiverBiomeCoverage": 0.9673629242819843,
+        "terracedLandShare": 0.717948717948718,
+        "interiorSubseaSamples": 0
+      },
+      "heapDeltaBytes": -27533112,
+      "signature": "b58cae35ff20b802",
+      "previewMs": 25.300000000046566
+    },
+    {
+      "seed": 79291,
+      "requirements": {
+        "version": 1,
+        "compositionVersion": 2,
+        "type": "island",
+        "width": 4000,
+        "length": 3000,
+        "seed": 79291,
+        "landscapes": [
+          {
+            "kind": "mountain",
+            "required": true
+          },
+          {
+            "kind": "forest",
+            "required": true
+          },
+          {
+            "kind": "meadow",
+            "required": true
+          },
+          {
+            "kind": "marsh",
+            "required": true
+          },
+          {
+            "kind": "coast",
+            "required": true
+          }
+        ],
+        "rivers": 1,
+        "tributaries": 0,
+        "lakes": false,
+        "waterfalls": false,
+        "relief": "balanced",
+        "cliffs": 0.4,
+        "terraces": 5,
+        "diversity": 0.65,
+        "biomeMode": "automatic",
+        "sequence": [
+          "mountain",
+          "forest",
+          "meadow",
+          "marsh",
+          "coast"
+        ]
+      },
+      "family": "split-plateau",
+      "ready": true,
+      "diagnostics": [
+        "WATER_LINK_BELOW",
+        "WATER_STEEP"
+      ],
+      "generationMs": 190.53603300000032,
+      "features": 12,
+      "sectors": 351,
+      "surveyCells": 972,
+      "sourceBytes": 735528,
+      "coverage": {
+        "sampled": 2304,
+        "landSamples": 955,
+        "biomeCoverage": 1,
+        "offRiverBiomeCoverage": 1,
+        "terracedLandShare": 0.7298429319371728,
+        "interiorSubseaSamples": 0
+      },
+      "heapDeltaBytes": -7478752,
+      "signature": "e61587e6b85daf46",
+      "previewMs": 14.099999999860302
+    },
+    {
+      "seed": 87210,
+      "requirements": {
+        "version": 1,
+        "compositionVersion": 2,
+        "type": "island",
+        "width": 4000,
+        "length": 3000,
+        "seed": 87210,
+        "landscapes": [
+          {
+            "kind": "mountain",
+            "required": true
+          },
+          {
+            "kind": "forest",
+            "required": true
+          },
+          {
+            "kind": "meadow",
+            "required": true
+          },
+          {
+            "kind": "marsh",
+            "required": true
+          },
+          {
+            "kind": "coast",
+            "required": true
+          }
+        ],
+        "rivers": 1,
+        "tributaries": 0,
+        "lakes": true,
+        "waterfalls": false,
+        "relief": "rugged",
+        "cliffs": 0.8,
+        "terraces": 6,
+        "diversity": 0.65,
+        "biomeMode": "automatic",
+        "sequence": [
+          "mountain",
+          "forest",
+          "meadow",
+          "marsh",
+          "coast"
+        ]
+      },
+      "family": "central-valley",
+      "ready": true,
+      "diagnostics": [
+        "WATER_LINK_BELOW",
+        "WATER_STEEP"
+      ],
+      "generationMs": 201.984919,
+      "features": 16,
+      "sectors": 353,
+      "surveyCells": 972,
+      "sourceBytes": 746347,
+      "coverage": {
+        "sampled": 2304,
+        "landSamples": 952,
+        "biomeCoverage": 1,
+        "offRiverBiomeCoverage": 1,
+        "terracedLandShare": 0.7415966386554622,
+        "interiorSubseaSamples": 0
+      },
+      "heapDeltaBytes": -7752632,
+      "signature": "0bb64477f44d7240",
+      "previewMs": 14.199999999953434
+    },
+    {
+      "seed": 95129,
+      "requirements": {
+        "version": 1,
+        "compositionVersion": 2,
+        "type": "archipelago",
+        "width": 4000,
+        "length": 3000,
+        "seed": 95129,
+        "landscapes": [
+          {
+            "kind": "mountain",
+            "required": true
+          },
+          {
+            "kind": "forest",
+            "required": true
+          },
+          {
+            "kind": "meadow",
+            "required": true
+          },
+          {
+            "kind": "marsh",
+            "required": true
+          },
+          {
+            "kind": "coast",
+            "required": true
+          }
+        ],
+        "rivers": 1,
+        "tributaries": 0,
+        "lakes": false,
+        "waterfalls": false,
+        "relief": "gentle",
+        "cliffs": 0.1,
+        "terraces": 1,
+        "diversity": 0.65,
+        "biomeMode": "automatic",
+        "sequence": [
+          "mountain",
+          "forest",
+          "meadow",
+          "marsh",
+          "coast"
+        ]
+      },
+      "family": "multiple-massifs",
+      "ready": true,
+      "diagnostics": [
+        "WATER_LINK_BELOW",
+        "WATER_STEEP"
+      ],
+      "generationMs": 182.77689800000007,
+      "features": 9,
+      "sectors": 352,
+      "surveyCells": 972,
+      "sourceBytes": 726866,
+      "coverage": {
+        "sampled": 2304,
+        "landSamples": 977,
+        "biomeCoverage": 0.9764585465711362,
+        "offRiverBiomeCoverage": 0.9696969696969697,
+        "terracedLandShare": 0.8863868986693961,
+        "interiorSubseaSamples": 0
+      },
+      "heapDeltaBytes": -19833680,
+      "signature": "f431dfd6869f4fcb",
+      "previewMs": 24.399999999906868
+    },
+    {
+      "seed": 103048,
+      "requirements": {
+        "version": 1,
+        "compositionVersion": 2,
+        "type": "island",
+        "width": 4000,
+        "length": 3000,
+        "seed": 103048,
+        "landscapes": [
+          {
+            "kind": "mountain",
+            "required": true
+          },
+          {
+            "kind": "forest",
+            "required": true
+          },
+          {
+            "kind": "meadow",
+            "required": true
+          },
+          {
+            "kind": "marsh",
+            "required": true
+          },
+          {
+            "kind": "coast",
+            "required": true
+          }
+        ],
+        "rivers": 1,
+        "tributaries": 0,
+        "lakes": false,
+        "waterfalls": false,
+        "relief": "balanced",
+        "cliffs": 0.4,
+        "terraces": 2,
+        "diversity": 0.65,
+        "biomeMode": "automatic",
+        "sequence": [
+          "mountain",
+          "forest",
+          "meadow",
+          "marsh",
+          "coast"
+        ]
+      },
+      "family": "central-valley",
+      "ready": true,
+      "diagnostics": [
+        "WATER_LINK_BELOW",
+        "WATER_STEEP"
+      ],
+      "generationMs": 172.730454,
+      "features": 10,
+      "sectors": 353,
+      "surveyCells": 972,
+      "sourceBytes": 752653,
+      "coverage": {
+        "sampled": 2304,
+        "landSamples": 949,
+        "biomeCoverage": 1,
+        "offRiverBiomeCoverage": 1,
+        "terracedLandShare": 0.7144362486828241,
+        "interiorSubseaSamples": 0
+      },
+      "heapDeltaBytes": -9977016,
+      "signature": "d958a321ff365a15",
+      "previewMs": 11.400000000139698
+    },
+    {
+      "seed": 110967,
+      "requirements": {
+        "version": 1,
+        "compositionVersion": 2,
+        "type": "island",
+        "width": 4000,
+        "length": 3000,
+        "seed": 110967,
+        "landscapes": [
+          {
+            "kind": "mountain",
+            "required": true
+          },
+          {
+            "kind": "forest",
+            "required": true
+          },
+          {
+            "kind": "meadow",
+            "required": true
+          },
+          {
+            "kind": "marsh",
+            "required": true
+          },
+          {
+            "kind": "coast",
+            "required": true
+          }
+        ],
+        "rivers": 1,
+        "tributaries": 0,
+        "lakes": true,
+        "waterfalls": false,
+        "relief": "rugged",
+        "cliffs": 0.8,
+        "terraces": 3,
+        "diversity": 0.65,
+        "biomeMode": "automatic",
+        "sequence": [
+          "mountain",
+          "forest",
+          "meadow",
+          "marsh",
+          "coast"
+        ]
+      },
+      "family": "multiple-massifs",
+      "ready": true,
+      "diagnostics": [
+        "WATER_LINK_BELOW",
+        "WATER_STEEP"
+      ],
+      "generationMs": 179.56298800000013,
+      "features": 14,
+      "sectors": 358,
+      "surveyCells": 972,
+      "sourceBytes": 769516,
+      "coverage": {
+        "sampled": 2304,
+        "landSamples": 949,
+        "biomeCoverage": 1,
+        "offRiverBiomeCoverage": 1,
+        "terracedLandShare": 0.7165437302423604,
+        "interiorSubseaSamples": 0
+      },
+      "heapDeltaBytes": 62450360,
+      "signature": "23390fce5977c005",
+      "previewMs": 18.899999999906868
+    },
+    {
+      "seed": 118886,
+      "requirements": {
+        "version": 1,
+        "compositionVersion": 2,
+        "type": "archipelago",
+        "width": 4000,
+        "length": 3000,
+        "seed": 118886,
+        "landscapes": [
+          {
+            "kind": "mountain",
+            "required": true
+          },
+          {
+            "kind": "forest",
+            "required": true
+          },
+          {
+            "kind": "meadow",
+            "required": true
+          },
+          {
+            "kind": "marsh",
+            "required": true
+          },
+          {
+            "kind": "coast",
+            "required": true
+          }
+        ],
+        "rivers": 1,
+        "tributaries": 0,
+        "lakes": false,
+        "waterfalls": false,
+        "relief": "gentle",
+        "cliffs": 0.1,
+        "terraces": 4,
+        "diversity": 0.65,
+        "biomeMode": "automatic",
+        "sequence": [
+          "mountain",
+          "forest",
+          "meadow",
+          "marsh",
+          "coast"
+        ]
+      },
+      "family": "central-valley",
+      "ready": true,
+      "diagnostics": [
+        "WATER_LINK_BELOW",
+        "WATER_STEEP"
+      ],
+      "generationMs": 166.63297699999976,
+      "features": 11,
+      "sectors": 352,
+      "surveyCells": 972,
+      "sourceBytes": 718082,
+      "coverage": {
+        "sampled": 2304,
+        "landSamples": 975,
+        "biomeCoverage": 0.9764102564102564,
+        "offRiverBiomeCoverage": 0.9698558322411533,
+        "terracedLandShare": 0.7076923076923077,
+        "interiorSubseaSamples": 0
+      },
+      "heapDeltaBytes": -27315384,
+      "signature": "3ae148dc937a1290",
+      "previewMs": 14.600000000093132
+    },
+    {
+      "seed": 126805,
+      "requirements": {
+        "version": 1,
+        "compositionVersion": 2,
+        "type": "island",
+        "width": 4000,
+        "length": 3000,
+        "seed": 126805,
+        "landscapes": [
+          {
+            "kind": "mountain",
+            "required": true
+          },
+          {
+            "kind": "forest",
+            "required": true
+          },
+          {
+            "kind": "meadow",
+            "required": true
+          },
+          {
+            "kind": "marsh",
+            "required": true
+          },
+          {
+            "kind": "coast",
+            "required": true
+          }
+        ],
+        "rivers": 1,
+        "tributaries": 0,
+        "lakes": false,
+        "waterfalls": false,
+        "relief": "balanced",
+        "cliffs": 0.4,
+        "terraces": 5,
+        "diversity": 0.65,
+        "biomeMode": "automatic",
+        "sequence": [
+          "mountain",
+          "forest",
+          "meadow",
+          "marsh",
+          "coast"
+        ]
+      },
+      "family": "central-valley",
+      "ready": true,
+      "diagnostics": [
+        "WATER_LINK_BELOW",
+        "WATER_STEEP"
+      ],
+      "generationMs": 165.9451810000005,
+      "features": 12,
+      "sectors": 352,
+      "surveyCells": 972,
+      "sourceBytes": 711056,
+      "coverage": {
+        "sampled": 2304,
+        "landSamples": 952,
+        "biomeCoverage": 1,
+        "offRiverBiomeCoverage": 1,
+        "terracedLandShare": 0.7300420168067226,
+        "interiorSubseaSamples": 0
+      },
+      "heapDeltaBytes": 34847048,
+      "signature": "e30cd5e39b4dd47f",
+      "previewMs": 12.5
+    },
+    {
+      "seed": 134724,
+      "requirements": {
+        "version": 1,
+        "compositionVersion": 2,
+        "type": "island",
+        "width": 4000,
+        "length": 3000,
+        "seed": 134724,
+        "landscapes": [
+          {
+            "kind": "mountain",
+            "required": true
+          },
+          {
+            "kind": "forest",
+            "required": true
+          },
+          {
+            "kind": "meadow",
+            "required": true
+          },
+          {
+            "kind": "marsh",
+            "required": true
+          },
+          {
+            "kind": "coast",
+            "required": true
+          }
+        ],
+        "rivers": 1,
+        "tributaries": 0,
+        "lakes": true,
+        "waterfalls": false,
+        "relief": "rugged",
+        "cliffs": 0.8,
+        "terraces": 6,
+        "diversity": 0.65,
+        "biomeMode": "automatic",
+        "sequence": [
+          "mountain",
+          "forest",
+          "meadow",
+          "marsh",
+          "coast"
+        ]
+      },
+      "family": "winding-valley",
+      "ready": true,
+      "diagnostics": [
+        "WATER_LINK_BELOW",
+        "WATER_STEEP"
+      ],
+      "generationMs": 179.55061000000023,
+      "features": 15,
+      "sectors": 355,
+      "surveyCells": 972,
+      "sourceBytes": 703815,
+      "coverage": {
+        "sampled": 2304,
+        "landSamples": 951,
+        "biomeCoverage": 1,
+        "offRiverBiomeCoverage": 1,
+        "terracedLandShare": 0.7434279705573081,
+        "interiorSubseaSamples": 0
+      },
+      "heapDeltaBytes": -28047632,
+      "signature": "8f55033f9c9b601d",
+      "previewMs": 19.899999999906868
+    },
+    {
+      "seed": 142643,
+      "requirements": {
+        "version": 1,
+        "compositionVersion": 2,
+        "type": "archipelago",
+        "width": 4000,
+        "length": 3000,
+        "seed": 142643,
+        "landscapes": [
+          {
+            "kind": "mountain",
+            "required": true
+          },
+          {
+            "kind": "forest",
+            "required": true
+          },
+          {
+            "kind": "meadow",
+            "required": true
+          },
+          {
+            "kind": "marsh",
+            "required": true
+          },
+          {
+            "kind": "coast",
+            "required": true
+          }
+        ],
+        "rivers": 1,
+        "tributaries": 0,
+        "lakes": false,
+        "waterfalls": false,
+        "relief": "gentle",
+        "cliffs": 0.1,
+        "terraces": 1,
+        "diversity": 0.65,
+        "biomeMode": "automatic",
+        "sequence": [
+          "mountain",
+          "forest",
+          "meadow",
+          "marsh",
+          "coast"
+        ]
+      },
+      "family": "winding-valley",
+      "ready": true,
+      "diagnostics": [
+        "WATER_LINK_BELOW",
+        "WATER_STEEP"
+      ],
+      "generationMs": 176.56855600000017,
+      "features": 8,
+      "sectors": 358,
+      "surveyCells": 972,
+      "sourceBytes": 715796,
+      "coverage": {
+        "sampled": 2304,
+        "landSamples": 974,
+        "biomeCoverage": 0.9763860369609856,
+        "offRiverBiomeCoverage": 0.9700520833333334,
+        "terracedLandShare": 0.8901437371663244,
+        "interiorSubseaSamples": 0
+      },
+      "heapDeltaBytes": -24248624,
+      "signature": "a0a2be7bd2da0306",
+      "previewMs": 11.899999999906868
+    },
+    {
+      "seed": 150562,
+      "requirements": {
+        "version": 1,
+        "compositionVersion": 2,
+        "type": "island",
+        "width": 4000,
+        "length": 3000,
+        "seed": 150562,
+        "landscapes": [
+          {
+            "kind": "mountain",
+            "required": true
+          },
+          {
+            "kind": "forest",
+            "required": true
+          },
+          {
+            "kind": "meadow",
+            "required": true
+          },
+          {
+            "kind": "marsh",
+            "required": true
+          },
+          {
+            "kind": "coast",
+            "required": true
+          }
+        ],
+        "rivers": 1,
+        "tributaries": 0,
+        "lakes": false,
+        "waterfalls": false,
+        "relief": "balanced",
+        "cliffs": 0.4,
+        "terraces": 2,
+        "diversity": 0.65,
+        "biomeMode": "automatic",
+        "sequence": [
+          "mountain",
+          "forest",
+          "meadow",
+          "marsh",
+          "coast"
+        ]
+      },
+      "family": "split-plateau",
+      "ready": true,
+      "diagnostics": [
+        "WATER_LINK_BELOW",
+        "WATER_STEEP"
+      ],
+      "generationMs": 173.83872100000008,
+      "features": 9,
+      "sectors": 351,
+      "surveyCells": 972,
+      "sourceBytes": 731395,
+      "coverage": {
+        "sampled": 2304,
+        "landSamples": 948,
+        "biomeCoverage": 1,
+        "offRiverBiomeCoverage": 1,
+        "terracedLandShare": 0.7246835443037974,
+        "interiorSubseaSamples": 0
+      },
+      "heapDeltaBytes": 49092240,
+      "signature": "14feb95a1e7ceca6",
+      "previewMs": 11
+    },
+    {
+      "seed": 158481,
+      "requirements": {
+        "version": 1,
+        "compositionVersion": 2,
+        "type": "island",
+        "width": 4000,
+        "length": 3000,
+        "seed": 158481,
+        "landscapes": [
+          {
+            "kind": "mountain",
+            "required": true
+          },
+          {
+            "kind": "forest",
+            "required": true
+          },
+          {
+            "kind": "meadow",
+            "required": true
+          },
+          {
+            "kind": "marsh",
+            "required": true
+          },
+          {
+            "kind": "coast",
+            "required": true
+          }
+        ],
+        "rivers": 1,
+        "tributaries": 0,
+        "lakes": true,
+        "waterfalls": false,
+        "relief": "rugged",
+        "cliffs": 0.8,
+        "terraces": 3,
+        "diversity": 0.65,
+        "biomeMode": "automatic",
+        "sequence": [
+          "mountain",
+          "forest",
+          "meadow",
+          "marsh",
+          "coast"
+        ]
+      },
+      "family": "split-plateau",
+      "ready": true,
+      "diagnostics": [
+        "WATER_LINK_BELOW",
+        "WATER_STEEP"
+      ],
+      "generationMs": 181.98016300000018,
+      "features": 13,
+      "sectors": 357,
+      "surveyCells": 972,
+      "sourceBytes": 793384,
+      "coverage": {
+        "sampled": 2304,
+        "landSamples": 945,
+        "biomeCoverage": 1,
+        "offRiverBiomeCoverage": 1,
+        "terracedLandShare": 0.7248677248677249,
+        "interiorSubseaSamples": 0
+      },
+      "heapDeltaBytes": 10749360,
+      "signature": "b5f6ce18a741b6a8",
+      "previewMs": 17.100000000093132
+    },
+    {
+      "seed": 166400,
+      "requirements": {
+        "version": 1,
+        "compositionVersion": 2,
+        "type": "archipelago",
+        "width": 4000,
+        "length": 3000,
+        "seed": 166400,
+        "landscapes": [
+          {
+            "kind": "mountain",
+            "required": true
+          },
+          {
+            "kind": "forest",
+            "required": true
+          },
+          {
+            "kind": "meadow",
+            "required": true
+          },
+          {
+            "kind": "marsh",
+            "required": true
+          },
+          {
+            "kind": "coast",
+            "required": true
+          }
+        ],
+        "rivers": 1,
+        "tributaries": 0,
+        "lakes": false,
+        "waterfalls": false,
+        "relief": "gentle",
+        "cliffs": 0.1,
+        "terraces": 4,
+        "diversity": 0.65,
+        "biomeMode": "automatic",
+        "sequence": [
+          "mountain",
+          "forest",
+          "meadow",
+          "marsh",
+          "coast"
+        ]
+      },
+      "family": "split-plateau",
+      "ready": true,
+      "diagnostics": [
+        "WATER_LINK_BELOW",
+        "WATER_STEEP"
+      ],
+      "generationMs": 174.65934500000003,
+      "features": 10,
+      "sectors": 352,
+      "surveyCells": 972,
+      "sourceBytes": 736359,
+      "coverage": {
+        "sampled": 2304,
+        "landSamples": 972,
+        "biomeCoverage": 0.9804526748971193,
+        "offRiverBiomeCoverage": 0.9757653061224489,
+        "terracedLandShare": 0.7160493827160493,
+        "interiorSubseaSamples": 0
+      },
+      "heapDeltaBytes": -12953464,
+      "signature": "a4b9ed6cb1a3d1ab",
+      "previewMs": 13
+    },
+    {
+      "seed": 174319,
+      "requirements": {
+        "version": 1,
+        "compositionVersion": 2,
+        "type": "island",
+        "width": 4000,
+        "length": 3000,
+        "seed": 174319,
+        "landscapes": [
+          {
+            "kind": "mountain",
+            "required": true
+          },
+          {
+            "kind": "forest",
+            "required": true
+          },
+          {
+            "kind": "meadow",
+            "required": true
+          },
+          {
+            "kind": "marsh",
+            "required": true
+          },
+          {
+            "kind": "coast",
+            "required": true
+          }
+        ],
+        "rivers": 1,
+        "tributaries": 0,
+        "lakes": false,
+        "waterfalls": false,
+        "relief": "balanced",
+        "cliffs": 0.4,
+        "terraces": 5,
+        "diversity": 0.65,
+        "biomeMode": "automatic",
+        "sequence": [
+          "mountain",
+          "forest",
+          "meadow",
+          "marsh",
+          "coast"
+        ]
+      },
+      "family": "central-valley",
+      "ready": true,
+      "diagnostics": [
+        "WATER_LINK_BELOW",
+        "WATER_STEEP"
+      ],
+      "generationMs": 179.59175099999993,
+      "features": 12,
+      "sectors": 353,
+      "surveyCells": 972,
+      "sourceBytes": 749998,
+      "coverage": {
+        "sampled": 2304,
+        "landSamples": 945,
+        "biomeCoverage": 1,
+        "offRiverBiomeCoverage": 1,
+        "terracedLandShare": 0.7365079365079366,
+        "interiorSubseaSamples": 0
+      },
+      "heapDeltaBytes": -10771344,
+      "signature": "3a3e02d4f88804c2",
+      "previewMs": 13.100000000093132
+    },
+    {
+      "seed": 182238,
+      "requirements": {
+        "version": 1,
+        "compositionVersion": 2,
+        "type": "island",
+        "width": 4000,
+        "length": 3000,
+        "seed": 182238,
+        "landscapes": [
+          {
+            "kind": "mountain",
+            "required": true
+          },
+          {
+            "kind": "forest",
+            "required": true
+          },
+          {
+            "kind": "meadow",
+            "required": true
+          },
+          {
+            "kind": "marsh",
+            "required": true
+          },
+          {
+            "kind": "coast",
+            "required": true
+          }
+        ],
+        "rivers": 1,
+        "tributaries": 0,
+        "lakes": true,
+        "waterfalls": false,
+        "relief": "rugged",
+        "cliffs": 0.8,
+        "terraces": 6,
+        "diversity": 0.65,
+        "biomeMode": "automatic",
+        "sequence": [
+          "mountain",
+          "forest",
+          "meadow",
+          "marsh",
+          "coast"
+        ]
+      },
+      "family": "central-valley",
+      "ready": true,
+      "diagnostics": [
+        "WATER_LINK_BELOW",
+        "WATER_STEEP"
+      ],
+      "generationMs": 177.09318500000063,
+      "features": 15,
+      "sectors": 353,
+      "surveyCells": 972,
+      "sourceBytes": 730222,
+      "coverage": {
+        "sampled": 2304,
+        "landSamples": 952,
+        "biomeCoverage": 1,
+        "offRiverBiomeCoverage": 1,
+        "terracedLandShare": 0.740546218487395,
+        "interiorSubseaSamples": 0
+      },
+      "heapDeltaBytes": -19119232,
+      "signature": "42d30cbea43ea65e",
+      "previewMs": 19.800000000046566
+    },
+    {
+      "seed": 190157,
+      "requirements": {
+        "version": 1,
+        "compositionVersion": 2,
+        "type": "archipelago",
+        "width": 4000,
+        "length": 3000,
+        "seed": 190157,
+        "landscapes": [
+          {
+            "kind": "mountain",
+            "required": true
+          },
+          {
+            "kind": "forest",
+            "required": true
+          },
+          {
+            "kind": "meadow",
+            "required": true
+          },
+          {
+            "kind": "marsh",
+            "required": true
+          },
+          {
+            "kind": "coast",
+            "required": true
+          }
+        ],
+        "rivers": 1,
+        "tributaries": 0,
+        "lakes": false,
+        "waterfalls": false,
+        "relief": "gentle",
+        "cliffs": 0.1,
+        "terraces": 1,
+        "diversity": 0.65,
+        "biomeMode": "automatic",
+        "sequence": [
+          "mountain",
+          "forest",
+          "meadow",
+          "marsh",
+          "coast"
+        ]
+      },
+      "family": "winding-valley",
+      "ready": true,
+      "diagnostics": [
+        "WATER_LINK_BELOW",
+        "WATER_STEEP"
+      ],
+      "generationMs": 166.5875020000003,
+      "features": 7,
+      "sectors": 354,
+      "surveyCells": 972,
+      "sourceBytes": 704702,
+      "coverage": {
+        "sampled": 2304,
+        "landSamples": 969,
+        "biomeCoverage": 0.978328173374613,
+        "offRiverBiomeCoverage": 0.9713114754098361,
+        "terracedLandShare": 0.8947368421052632,
+        "interiorSubseaSamples": 0
+      },
+      "heapDeltaBytes": 31712928,
+      "signature": "79b46cb3405b2bc9",
+      "previewMs": 13.199999999953434
+    },
+    {
+      "seed": 198076,
+      "requirements": {
+        "version": 1,
+        "compositionVersion": 2,
+        "type": "island",
+        "width": 4000,
+        "length": 3000,
+        "seed": 198076,
+        "landscapes": [
+          {
+            "kind": "mountain",
+            "required": true
+          },
+          {
+            "kind": "forest",
+            "required": true
+          },
+          {
+            "kind": "meadow",
+            "required": true
+          },
+          {
+            "kind": "marsh",
+            "required": true
+          },
+          {
+            "kind": "coast",
+            "required": true
+          }
+        ],
+        "rivers": 1,
+        "tributaries": 0,
+        "lakes": false,
+        "waterfalls": false,
+        "relief": "balanced",
+        "cliffs": 0.4,
+        "terraces": 2,
+        "diversity": 0.65,
+        "biomeMode": "automatic",
+        "sequence": [
+          "mountain",
+          "forest",
+          "meadow",
+          "marsh",
+          "coast"
+        ]
+      },
+      "family": "winding-valley",
+      "ready": true,
+      "diagnostics": [
+        "WATER_LINK_BELOW",
+        "WATER_STEEP"
+      ],
+      "generationMs": 170.08582800000022,
+      "features": 9,
+      "sectors": 354,
+      "surveyCells": 972,
+      "sourceBytes": 731115,
+      "coverage": {
+        "sampled": 2304,
+        "landSamples": 946,
+        "biomeCoverage": 1,
+        "offRiverBiomeCoverage": 1,
+        "terracedLandShare": 0.7389006342494715,
+        "interiorSubseaSamples": 0
+      },
+      "heapDeltaBytes": -24579240,
+      "signature": "df4c9993b1a1dec6",
+      "previewMs": 11
+    },
+    {
+      "seed": 205995,
+      "requirements": {
+        "version": 1,
+        "compositionVersion": 2,
+        "type": "island",
+        "width": 4000,
+        "length": 3000,
+        "seed": 205995,
+        "landscapes": [
+          {
+            "kind": "mountain",
+            "required": true
+          },
+          {
+            "kind": "forest",
+            "required": true
+          },
+          {
+            "kind": "meadow",
+            "required": true
+          },
+          {
+            "kind": "marsh",
+            "required": true
+          },
+          {
+            "kind": "coast",
+            "required": true
+          }
+        ],
+        "rivers": 1,
+        "tributaries": 0,
+        "lakes": true,
+        "waterfalls": false,
+        "relief": "rugged",
+        "cliffs": 0.8,
+        "terraces": 3,
+        "diversity": 0.65,
+        "biomeMode": "automatic",
+        "sequence": [
+          "mountain",
+          "forest",
+          "meadow",
+          "marsh",
+          "coast"
+        ]
+      },
+      "family": "winding-valley",
+      "ready": true,
+      "diagnostics": [
+        "WATER_LINK_BELOW",
+        "WATER_STEEP"
+      ],
+      "generationMs": 172.83817799999997,
+      "features": 13,
+      "sectors": 353,
+      "surveyCells": 972,
+      "sourceBytes": 752036,
+      "coverage": {
+        "sampled": 2304,
+        "landSamples": 951,
+        "biomeCoverage": 1,
+        "offRiverBiomeCoverage": 1,
+        "terracedLandShare": 0.7234490010515248,
+        "interiorSubseaSamples": 0
+      },
+      "heapDeltaBytes": 52622936,
+      "signature": "7eedfe64ee1f0969",
+      "previewMs": 19
+    },
+    {
+      "seed": 213914,
+      "requirements": {
+        "version": 1,
+        "compositionVersion": 2,
+        "type": "archipelago",
+        "width": 4000,
+        "length": 3000,
+        "seed": 213914,
+        "landscapes": [
+          {
+            "kind": "mountain",
+            "required": true
+          },
+          {
+            "kind": "forest",
+            "required": true
+          },
+          {
+            "kind": "meadow",
+            "required": true
+          },
+          {
+            "kind": "marsh",
+            "required": true
+          },
+          {
+            "kind": "coast",
+            "required": true
+          }
+        ],
+        "rivers": 1,
+        "tributaries": 0,
+        "lakes": false,
+        "waterfalls": false,
+        "relief": "gentle",
+        "cliffs": 0.1,
+        "terraces": 4,
+        "diversity": 0.65,
+        "biomeMode": "automatic",
+        "sequence": [
+          "mountain",
+          "forest",
+          "meadow",
+          "marsh",
+          "coast"
+        ]
+      },
+      "family": "multiple-massifs",
+      "ready": true,
+      "diagnostics": [
+        "WATER_LINK_BELOW",
+        "WATER_STEEP"
+      ],
+      "generationMs": 178.7571170000001,
+      "features": 12,
+      "sectors": 353,
+      "surveyCells": 972,
+      "sourceBytes": 764195,
+      "coverage": {
+        "sampled": 2304,
+        "landSamples": 970,
+        "biomeCoverage": 0.9845360824742269,
+        "offRiverBiomeCoverage": 0.9810844892812106,
+        "terracedLandShare": 0.7164948453608248,
+        "interiorSubseaSamples": 0
+      },
+      "heapDeltaBytes": -4944624,
+      "signature": "cba8fa48496cde79",
+      "previewMs": 15
+    },
+    {
+      "seed": 221833,
+      "requirements": {
+        "version": 1,
+        "compositionVersion": 2,
+        "type": "island",
+        "width": 4000,
+        "length": 3000,
+        "seed": 221833,
+        "landscapes": [
+          {
+            "kind": "mountain",
+            "required": true
+          },
+          {
+            "kind": "forest",
+            "required": true
+          },
+          {
+            "kind": "meadow",
+            "required": true
+          },
+          {
+            "kind": "marsh",
+            "required": true
+          },
+          {
+            "kind": "coast",
+            "required": true
+          }
+        ],
+        "rivers": 1,
+        "tributaries": 0,
+        "lakes": false,
+        "waterfalls": false,
+        "relief": "balanced",
+        "cliffs": 0.4,
+        "terraces": 5,
+        "diversity": 0.65,
+        "biomeMode": "automatic",
+        "sequence": [
+          "mountain",
+          "forest",
+          "meadow",
+          "marsh",
+          "coast"
+        ]
+      },
+      "family": "multiple-massifs",
+      "ready": true,
+      "diagnostics": [
+        "WATER_LINK_BELOW",
+        "WATER_STEEP"
+      ],
+      "generationMs": 185.7199559999999,
+      "features": 14,
+      "sectors": 352,
+      "surveyCells": 972,
+      "sourceBytes": 789131,
+      "coverage": {
+        "sampled": 2304,
+        "landSamples": 951,
+        "biomeCoverage": 1,
+        "offRiverBiomeCoverage": 1,
+        "terracedLandShare": 0.7350157728706624,
+        "interiorSubseaSamples": 0
+      },
+      "heapDeltaBytes": 10447736,
+      "signature": "0572790e41df01bb",
+      "previewMs": 20.199999999953434
+    },
+    {
+      "seed": 229752,
+      "requirements": {
+        "version": 1,
+        "compositionVersion": 2,
+        "type": "island",
+        "width": 4000,
+        "length": 3000,
+        "seed": 229752,
+        "landscapes": [
+          {
+            "kind": "mountain",
+            "required": true
+          },
+          {
+            "kind": "forest",
+            "required": true
+          },
+          {
+            "kind": "meadow",
+            "required": true
+          },
+          {
+            "kind": "marsh",
+            "required": true
+          },
+          {
+            "kind": "coast",
+            "required": true
+          }
+        ],
+        "rivers": 1,
+        "tributaries": 0,
+        "lakes": true,
+        "waterfalls": false,
+        "relief": "rugged",
+        "cliffs": 0.8,
+        "terraces": 6,
+        "diversity": 0.65,
+        "biomeMode": "automatic",
+        "sequence": [
+          "mountain",
+          "forest",
+          "meadow",
+          "marsh",
+          "coast"
+        ]
+      },
+      "family": "central-valley",
+      "ready": true,
+      "diagnostics": [
+        "WATER_LINK_BELOW",
+        "WATER_STEEP"
+      ],
+      "generationMs": 170.7016739999999,
+      "features": 16,
+      "sectors": 359,
+      "surveyCells": 972,
+      "sourceBytes": 723842,
+      "coverage": {
+        "sampled": 2304,
+        "landSamples": 947,
+        "biomeCoverage": 1,
+        "offRiverBiomeCoverage": 1,
+        "terracedLandShare": 0.7444561774023232,
+        "interiorSubseaSamples": 0
+      },
+      "heapDeltaBytes": -29941952,
+      "signature": "2696481a4ccb4dac",
+      "previewMs": 16
+    }
+  ]
+}

@@ -1,35 +1,51 @@
-/** Curved river-bank ribbons + lateral slope regions, through native ownership masks. */
+/** V2 ecological provinces cover the island; WATER is one input, not their outline. */
 import {LANDSCAPES,type Landscape,type MapRequirements} from './map-requirements.ts';
 import {newRegion,type RegionRecipeV1,type RegionPreset} from './region-recipes.ts';
-import {randomStream} from './world-terrain-planner.ts';
-import {shapeSeed,type PointXZ} from '../geography/archipelago.ts';
+import {landscapeOrder,randomStream} from './world-terrain-planner.ts';
+import {planLegacyWorldBiomes,RIVER_BIOME_SPAN} from './world-biome-legacy.ts';
+import {shapeSeed,compilePolygon,polylineDistance,type PointXZ} from '../geography/archipelago.ts';
+import {generatorField} from '../terrain-generator.ts';
+import type {GeographicProvince} from './world-provinces.ts';
 import type {ProjectDocument} from './types.ts';
-export const RIVER_BIOME_SPAN=.96;
-const preset:Record<Landscape,RegionPreset>={mountain:'mountain',hills:'scrub',plain:'meadow',plateau:'scrub',forest:'forest',meadow:'meadow',marsh:'marsh',lake:'marsh',coast:'coast',volcanic:'volcanic'};
-export function planWorldBiomes(p:ProjectDocument,r:MapRequirements,axis:PointXZ[]):RegionRecipeV1[]{
- const rng=randomStream(shapeSeed(r.seed,'biomes')),recipes:RegionRecipeV1[]=[];
- const order=r.biomeMode==='custom'?r.sequence:[...r.landscapes.map(l=>l.kind)].sort((a,b)=>['mountain','volcanic','hills','plateau','forest','plain','meadow','lake','marsh','coast'].indexOf(a)-['mountain','volcanic','hills','plateau','forest','plain','meadow','lake','marsh','coast'].indexOf(b));
- const b=p.world.bounds,clip=(q:PointXZ)=>({x:Math.max(b.minX+.1,Math.min(b.maxX-.1,q.x)),z:Math.max(b.minZ+.1,Math.min(b.maxZ-.1,q.z))});
- const width=Math.min(r.width,r.length)*.037;
- for(const [i,kind]of order.entries()){
-  // Equal arc-length river sections, cropped before the offshore mouth.
-  const from=Math.floor(i/order.length*axis.length*RIVER_BIOME_SPAN),to=Math.max(from+1,Math.floor((i+1)/order.length*axis.length*RIVER_BIOME_SPAN));
-  const line=axis.slice(from,to+1),left:PointXZ[]=[],right:PointXZ[]=[];
-  for(let j=0;j<line.length;j++){
-   const before=line[Math.max(0,j-1)],after=line[Math.min(line.length-1,j+1)],dx=after.x-before.x,dz=after.z-before.z,len=Math.hypot(dx,dz)||1,w=width*(.85+rng()*.3);
-   left.push(clip({x:line[j].x-dz/len*w,z:line[j].z+dx/len*w}));right.push(clip({x:line[j].x+dz/len*w,z:line[j].z-dx/len*w}));
-  }
-  // Native recipe <=48 vertices; bank ribbons follow the same corridor as WATER.
-  const points=[...left,...right.reverse()];
-  const stride=Math.max(1,Math.ceil(points.length/46)),poly=points.filter((_,k)=>k%stride===0);
-  recipes.push(newRegion(p,{id:'composition-region-'+i,name:LANDSCAPES[kind],preset:preset[kind],points:poly,seed:shapeSeed(r.seed,'biome-'+kind),coverage:100,transitionM:Math.min(35,width*.2),vegetation:{trees:kind==='forest'?1.1:.35,shrubs:.7,ground:.6,deadwood:.35}}));
+export {RIVER_BIOME_SPAN};
+const presets:Record<Landscape,RegionPreset>={mountain:'mountain',hills:'scrub',plain:'meadow',plateau:'scrub',forest:'forest',meadow:'meadow',marsh:'marsh',lake:'marsh',coast:'coast',volcanic:'volcanic'};
+export interface ProvinceEnvironment {altitudeM:number;slope:number;waterDistanceM:number;humidity:number;exposure:number;coastM:number}
+/** Cheap terrain/environment sampling shared by planning and acceptance tests. */
+export function provinceEnvironment(p:ProjectDocument,province:GeographicProvince,axis:PointXZ[]):ProvinceEnvironment{
+ const r=p.world.generation!,field=generatorField(p.world.terrain!,{width:r.width,length:r.length,seed:r.seed,seaLevel:p.world.seaLevel},()=>0);
+ const inside=compilePolygon(province.polygon),nearby=axis.filter(q=>inside(q.x,q.z)>=0);
+ const point=nearby.length?nearby[Math.floor(nearby.length/2)]:province.center;
+ const d=Math.max(3,Math.min(r.width,r.length)/200),dx=(field.height(point.x+d,point.z)-field.height(point.x-d,point.z))/(2*d),dz=(field.height(point.x,point.z+d)-field.height(point.x,point.z-d))/(2*d);
+ const altitudeM=field.height(point.x,point.z),slope=Math.hypot(dx,dz),waterDistanceM=r.rivers?polylineDistance(axis,point.x,point.z):Math.max(0,field.coast(point.x,point.z));
+ const wind=randomStream(shapeSeed(r.seed,'climate-v2'))()*Math.PI*2,exposure=slope<.001?.5:.5+.5*(dx*Math.cos(wind)+dz*Math.sin(wind))/slope;
+ const humidity=Math.max(0,Math.min(1,.2+.55*Math.exp(-waterDistanceM/180)+.2*(1-exposure)-Math.max(0,altitudeM-100)/1500));
+ return {altitudeM,slope,waterDistanceM,humidity,exposure,coastM:field.coast(point.x,point.z)};
+}
+export function biomeSuitability(kind:Landscape,e:ProvinceEnvironment):number{
+ switch(kind){
+  case 'forest':return e.humidity*2.2+(1-e.exposure)*.7+Math.min(.3,e.altitudeM/400)-e.slope*.5;
+  case 'meadow':return 1.2-e.slope*.8+e.exposure*.4-Math.max(0,e.altitudeM-120)/200;
+  case 'plain':return 1.5-e.slope*3-Math.max(0,e.altitudeM-35)/120;
+  case 'plateau':return 1-e.slope*2+Math.min(.8,e.altitudeM/150);
+  case 'marsh':case 'lake':return e.altitudeM>35||e.waterDistanceM>200?-5:1+e.humidity*2-e.slope*3;
+  case 'coast':return e.coastM>180?-5:2-e.coastM/180;
+  case 'mountain':return Math.min(2,e.altitudeM/100)+e.slope;
+  case 'hills':return 1-Math.abs(e.slope-.2)+Math.min(.5,e.altitudeM/150);
+  case 'volcanic':return e.altitudeM/200;
  }
- // Side regions break the upstream/downstream stripe pattern on banks and slopes.
- for(let i=0;i<2&&order.length;i++){
-  const kind=order[(i+Math.floor(rng()*order.length))%order.length],q=axis[Math.floor(axis.length*(.25+i*.23))],next=axis[Math.floor(axis.length*(.25+i*.23))+1],len=Math.hypot(next.x-q.x,next.z-q.z)||1;
-  const sign=i?1:-1,c={x:q.x-(next.z-q.z)/len*width*3*sign,z:q.z+(next.x-q.x)/len*width*3*sign};
-  const points=Array.from({length:12},(_,k)=>{const a=k*Math.PI/6,rad=width*(.8+rng()*.18);return clip({x:c.x+Math.cos(a)*rad,z:c.z+Math.sin(a)*rad});});
-  recipes.push(newRegion(p,{id:'composition-side-region-'+i,name:LANDSCAPES[kind]+' · versant',preset:preset[kind],points,seed:shapeSeed(r.seed,'lateral-'+i),transitionM:20}));
+}
+export function planWorldBiomes(p:ProjectDocument,r:MapRequirements,axis:PointXZ[],provinces:GeographicProvince[]=[]):RegionRecipeV1[]{
+ if((r.compositionVersion??1)===1)return planLegacyWorldBiomes(p,r,axis);
+ const order=landscapeOrder(r),recipes:RegionRecipeV1[]=[];
+ if(!order.length)return recipes;
+ for(const province of provinces){
+  const env=provinceEnvironment(p,province,axis);
+  const kind=province.station!==undefined?order[province.station]:[...order].sort((a,b)=>biomeSuitability(b,env)-biomeSuitability(a,env))[0];
+  const index=province.station,recipe=newRegion(p,{id:index!==undefined?'composition-region-'+index:'composition-side-region-'+province.id,
+   name:index!==undefined?LANDSCAPES[kind]:LANDSCAPES[kind]+' · versant',preset:presets[kind],points:province.polygon,
+   seed:shapeSeed(r.seed,'province-biome-'+province.id),coverage:100,transitionM:Math.min(45,Math.min(r.width,r.length)*.012),
+   vegetation:{trees:kind==='forest'?.8+env.humidity*.4:kind==='mountain'||kind==='coast'?.12:.3,shrubs:.5+env.humidity*.35,ground:kind==='marsh'?.9:.65,deadwood:kind==='forest'?.5:.2}});
+  recipes.push(recipe);
  }
  return recipes;
 }

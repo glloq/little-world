@@ -3,13 +3,14 @@ import {createProject,parseProject} from './schema.ts';
 import {validateMapRequirements,LANDSCAPES,type MapRequirements} from './map-requirements.ts';
 import {planWorldTerrain} from './world-terrain-planner.ts';
 import {planWorldHydro} from './world-hydro-planner.ts';
-import {planWorldBiomes,RIVER_BIOME_SPAN} from './world-biome-planner.ts';
+import {planWorldBiomes,provinceEnvironment,RIVER_BIOME_SPAN} from './world-biome-planner.ts';
 import {generatorField} from '../terrain-generator.ts';
 import {putWater} from './source.ts';
+import {compositionCoverage,type CompositionCoverage} from './world-composition-quality.ts';
 import {applyRegionBatch} from './region-batch.ts';
 import type {ProjectDocument} from './types.ts';
 export interface CompositionDiagnostic {severity:'ERROR'|'WARNING';code:string;message:string}
-export interface WorldComposition {project:ProjectDocument;ready:boolean;diagnostics:CompositionDiagnostic[];family:string;metrics:{generationMs:number;features:number;sectors:number;surveyCells:number;sourceBytes:number}}
+export interface WorldComposition {project:ProjectDocument;ready:boolean;diagnostics:CompositionDiagnostic[];family:string;metrics:{generationMs:number;features:number;sectors:number;surveyCells:number;sourceBytes:number;coverage?:CompositionCoverage}}
 export function composeWorld(input:MapRequirements,name='Mon petit monde'):WorldComposition {
  const started=performance.now(),r=validateMapRequirements(input),diagnostics:CompositionDiagnostic[]=[];
  let planned=planWorldTerrain(r);
@@ -34,10 +35,15 @@ export function composeWorld(input:MapRequirements,name='Mon petit monde'):World
  if((r.lakes||r.landscapes.some(l=>l.kind==='lake'))&&!hydro.waters.some(w=>w.kind==='lake'))diagnostics.push({severity:r.landscapes.some(l=>l.kind==='lake'&&l.required)?'ERROR':'WARNING',code:'LAKE_NOT_PLANNED',message:'Aucun bassin fermé avec déversoir validé dans cette composition. Ajouter le lac avec l’outil Bassins ou choisir une autre composition.'});
  if(r.waterfalls&&!hydro.waters.some(w=>w.falls?.length))diagnostics.push({severity:'WARNING',code:'FALL_NOT_PLANNED',message:'Les ruptures sont des rapides en pente ; aucune cascade verticale validée. Utiliser l’assistant Cascades après création.'});
  if(r.biomeMode==='custom'&&r.sequence.includes('lake'))diagnostics.push({severity:'WARNING',code:'LATERAL_LAKE',message:'Le lac proposé est un bassin latéral fermé ; la rivière ne le traverse pas. Pour un lac dans la succession, raccorder un déversoir avec l’outil Eau.'});
- const recipes=planWorldBiomes(project,r,planned.axis);
- if(r.biomeMode==='custom')for(const [i,kind]of r.sequence.entries()){
+ const recipes=planWorldBiomes(project,r,planned.axis,planned.provinces);
+ if(r.biomeMode==='custom'&&(r.compositionVersion??1)===1)for(const [i,kind]of r.sequence.entries()){
   const at=planned.axis[Math.min(planned.axis.length-1,Math.round((i+.5)/r.sequence.length*planned.axis.length*RIVER_BIOME_SPAN))],altitude=field.height(at.x,at.z);
   if((kind==='marsh'&&altitude>25)||(kind==='coast'&&field.coast(at.x,at.z)>200))diagnostics.push({severity:r.landscapes.some(l=>l.kind===kind&&l.required)?'ERROR':'WARNING',code:'SEQUENCE_INCOMPATIBLE',message:LANDSCAPES[kind]+' demandé trop en amont : déplacer ce paysage vers l’aval ou ajuster le relief.'});
+ }
+ if((r.compositionVersion??1)===2&&r.biomeMode==='custom')for(const province of planned.provinces){
+  if(province.station===undefined)continue;
+  const kind=r.sequence[province.station],env=provinceEnvironment(project,province,planned.axis);
+  if((kind==='marsh'&&env.altitudeM>35)||(kind==='coast'&&env.coastM>220))diagnostics.push({severity:r.landscapes.some(l=>l.kind===kind&&l.required)?'ERROR':'WARNING',code:'SEQUENCE_INCOMPATIBLE',message:LANDSCAPES[kind]+' incompatible avec cet étage du relief : modifier la succession ou choisir une autre graine.'});
  }
  if(recipes.length)applyRegionBatch(project,recipes);
  for(const l of r.landscapes){
@@ -45,8 +51,9 @@ export function composeWorld(input:MapRequirements,name='Mon petit monde'):World
   if(!recipes.some(recipe=>recipe.name===LANDSCAPES[l.kind]))diagnostics.push({severity:l.required?'ERROR':'WARNING',code:'LANDSCAPE_MISSING',message:'Paysage absent de la succession : '+LANDSCAPES[l.kind]});
  }
  const normalized=parseProject(JSON.parse(JSON.stringify(project)));
+ const coverage=(r.compositionVersion??1)===2?compositionCoverage(normalized,planned.axis):undefined;
  return {project:normalized,ready:!diagnostics.some(d=>d.severity==='ERROR'),diagnostics,family:planned.family,
-  metrics:{generationMs:performance.now()-started,features:planned.terrain.features.length,sectors:Object.keys(project.chunks).length,surveyCells:hydro.survey.sampled,sourceBytes:new TextEncoder().encode(JSON.stringify(project)).length}};
+  metrics:{generationMs:performance.now()-started,features:planned.terrain.features.length,sectors:Object.keys(project.chunks).length,surveyCells:hydro.survey.sampled,sourceBytes:new TextEncoder().encode(JSON.stringify(project)).length,...(coverage?{coverage}:{})}};
 }
 /** Exact already-previewed source: never rerun the generator on confirmation. */
 export function projectFromComposition(plan:WorldComposition,name:string):ProjectDocument {

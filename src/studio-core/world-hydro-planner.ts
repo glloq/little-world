@@ -12,7 +12,9 @@ import type {Bounds} from './types.ts';
 export function planWorldHydro(r:MapRequirements,axis:PointXZ[],height:(x:number,z:number)=>number,bounds:Bounds,lakeCenter?:PointXZ){
  const waters:WaterBody[]=[],diagnostics:HydroDiagnostic[]=[];
  if(r.rivers){
-  const river:WaterBody={id:'composition-river-0',kind:'river',points:axis,width:Math.max(4,Math.min(14,Math.min(r.width,r.length)*.004)),depth:2,
+  const seaIndex=(r.compositionVersion??1)===2?axis.findIndex(q=>height(q.x,q.z)<-.6):-1;
+  const points=seaIndex>0?axis.slice(0,seaIndex+1):axis;
+  const river:WaterBody={id:'composition-river-0',kind:'river',points,width:Math.max(4,Math.min(14,Math.min(r.width,r.length)*.004)),depth:2,
    level:height(axis[0].x,axis[0].z)-.35,profile:{mode:'terrain',offset:-.35},to:{kind:'sea'}};
   const c=compileWaterNetwork([river],height,0)[0];
   // Never hide a local climb behind WATER's monotonizing correction.
