@@ -8,6 +8,7 @@
 import { MOTION_MODES, type MotionMode } from '../player.ts';
 import { ACTIONS, type ActionName } from './hamster-animation.ts';
 import { TOOL_IDS, type ToolId } from './tools.ts';
+import {FLIGHT_SKINS,type FlightSkin} from '../gameplay/flight-progress.ts';
 
 export interface PlayerPresentationState {
   v: 1;
@@ -23,7 +24,7 @@ export interface PlayerPresentationState {
   groundPitch?:number;groundRoll?:number;rollSlip?:number;
   landingKind?:'idle'|'run'|'roll'|'glide';landingSlide?:number;
   footSupportLeft?:number;footSupportRight?:number;
-  gasBoosting?:boolean;gasPulseSeq?:number;
+  gasBoosting?:boolean;gasPulseSeq?:number;gasSkinId?:FlightSkin;gasSoundId?:FlightSkin;
   fishing: { x: number; y: number; z: number; biting: boolean } | null;
 }
 const finite = (v: unknown, lim = 1e6) => typeof v === 'number' && Number.isFinite(v) && Math.abs(v) <= lim;
@@ -43,6 +44,8 @@ export function parsePresentationState(value: unknown): PlayerPresentationState 
     if(s[key]!==undefined&&(!Number.isSafeInteger(s[key])||s[key]!<0))throw Error('Séquence de mouvement invalide : '+key);
   if(s.gasBoosting!==undefined&&typeof s.gasBoosting!=='boolean')throw Error('Drapeau de propulsion invalide');
   if(s.gasPulseSeq!==undefined&&(!Number.isSafeInteger(s.gasPulseSeq)||s.gasPulseSeq<0))throw Error('Séquence de propulsion invalide');
+  if(s.gasSkinId!==undefined&&!FLIGHT_SKINS.includes(s.gasSkinId))throw Error('Skin de propulsion invalide');
+  if(s.gasSoundId!==undefined&&!FLIGHT_SKINS.includes(s.gasSoundId))throw Error('Son de propulsion invalide');
   if(s.landingKind!==undefined&&!['idle','run','roll','glide'].includes(s.landingKind))throw Error('Type de réception invalide');
   if(s.landingSlide!==undefined&&(!finite(s.landingSlide,1)||s.landingSlide<0))throw Error('Glissade invalide');
   for(const key of ['footSupportLeft','footSupportRight'] as const)
@@ -62,6 +65,8 @@ export function parsePresentationState(value: unknown): PlayerPresentationState 
     ...(s.rollSlip!==undefined?{rollSlip:s.rollSlip}:{}),
     ...(s.gasBoosting!==undefined?{gasBoosting:s.gasBoosting}:{}),
     ...(s.gasPulseSeq!==undefined?{gasPulseSeq:s.gasPulseSeq}:{}),
+    ...(s.gasSkinId!==undefined?{gasSkinId:s.gasSkinId}:{}),
+    ...(s.gasSoundId!==undefined?{gasSoundId:s.gasSoundId}:{}),
     ...(s.landingKind!==undefined?{landingKind:s.landingKind}:{}),
     ...(s.landingSlide!==undefined?{landingSlide:s.landingSlide}:{}),
     ...(s.footSupportLeft!==undefined?{footSupportLeft:s.footSupportLeft}:{}),

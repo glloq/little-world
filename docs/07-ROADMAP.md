@@ -2,6 +2,8 @@
 
 # 07 — Feuille de route — Little World Solo / GitHub Pages
 
+> **Chantier en branche expérimentale — Boost aérien à impulsions :** [étude de gameplay, réserve, progression, skins et audio](FLIGHT-BOOST-GAMEPLAY-STUDY.md) et [suivi de réalisation FLB-0 à FLB-5](FLIGHT-BOOST-IMPLEMENTATION-ROADMAP.md). Propulsion, niveaux, 25 sons procéduraux, six skins et trois défis solo **codés** sur `feat/flight-boost-gameplay-roadmap` ; plafond expérimental de 216 km/h, non qualifié sur matériel cible. Ne pas confondre cette branche avec `main`.
+
 **Statut : suivi du prototype initial et plan du jeu final — 12 novembre 2026.**
 
 **Documents de cadrage prioritaires :** [12 — Limites du jeu](12-PROJECT-SCOPE.md), [13 — UX du Studio](13-STUDIO-UX-ARCHITECTURE.md), [14 — Décisions techniques validées](14-TECHNICAL-CHOICES.md) et **[15 — Schémas V3 du Studio](15-STUDIO-DATA-SCHEMAS-V3.md)**. Le **200 × 600 m** des jalons M0–M6 est la carte de démonstration ; le monde final est **une carte continue de 10 × 10 km maximum**, performance à qualifier.

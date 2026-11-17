@@ -8,6 +8,18 @@ import {
   type Emotion,
 } from './character-style.ts';
 
+import {FLIGHT_SKINS,type FlightSkin,type FlightProgress} from './gameplay/flight-progress.ts';
+import {FLIGHT_COURSES,COURSE_LABELS,type FlightCourseId} from './gameplay/flight-courses.ts';
+
+export interface BoostCustomization {
+ status():Readonly<FlightProgress>;
+ selectSkin(id:FlightSkin):void;
+ selectSound(id:FlightSkin):void;
+ previewSound?(id:FlightSkin):void;
+ startCourse?(id:FlightCourseId):string;
+}
+const BOOST_TITLES:Readonly<Record<FlightSkin,string>>={classic:'Classique',cheese:'Fromage',potato:'Patate',hazelnut:'Noisette',magic:'Magique',rainbow:'Arc-en-ciel'};
+
 const accessories: readonly {
   id: Accessory;
   icon: string;
@@ -50,6 +62,7 @@ export interface CustomizationMenu {
 export function createCustomizationMenu(
   root: HTMLElement,
   onChange: (appearance: Appearance) => void,
+  boost?:BoostCustomization,
 ): CustomizationMenu {
   let appearance = loadAppearance();
   let opened = false;
@@ -59,6 +72,42 @@ export function createCustomizationMenu(
   const emotionList = root.querySelector<HTMLElement>('#appearance-emotions');
   if (!accessoryList || !emotionList)
     throw new Error('Appearance menu containers missing');
+  // The existing A-held hamster panel also owns propulsion skins and sounds.
+  // Options are created once and only refreshed when the panel opens.
+  const select=(name:string,action:(id:FlightSkin)=>void)=>{
+    const label=document.createElement('label');label.className='appearance-boost-select';
+    const title=document.createElement('span');title.textContent=name;
+    const input=document.createElement('select');input.setAttribute('aria-label',name);
+    for(const id of FLIGHT_SKINS){const option=document.createElement('option');option.value=id;option.textContent=BOOST_TITLES[id];input.append(option);}
+    input.addEventListener('change',()=>action(input.value as FlightSkin));
+    label.append(title,input);return {label,input};
+  };
+  let refreshBoost=()=>{};
+  if(boost){
+    const section=document.createElement('section');section.className='appearance-boost';
+    const heading=document.createElement('h3');heading.textContent='Propulsion';
+    const levels=document.createElement('small');levels.className='appearance-boost-levels';
+    const skin=select('Effet visuel',id=>{if(boost.status().unlockedSkins.includes(id))boost.selectSkin(id);refreshBoost();});
+    const sound=select('Son du pet',id=>{if(boost.status().unlockedSounds.includes(id)){boost.selectSound(id);boost.previewSound?.(id);}refreshBoost();});
+    const line=document.createElement('div');line.className='appearance-boost-controls';line.append(skin.label,sound.label);
+    const courseTitle=document.createElement('h3');courseTitle.textContent='Défis de vol';
+    const courseButtons=document.createElement('div');courseButtons.className='appearance-boost-challenges';
+    const courseResult=document.createElement('small');courseResult.className='appearance-boost-levels';
+    for(const id of FLIGHT_COURSES){
+      const button=document.createElement('button');button.type='button';button.className='appearance-choice';
+      button.textContent=COURSE_LABELS[id];
+      button.addEventListener('click',()=>{courseResult.textContent=boost.startCourse?.(id)??'Parcours indisponible';});
+      courseButtons.append(button);
+    }
+    section.append(heading,levels,line,courseTitle,courseButtons,courseResult);
+    root.querySelector('.appearance-footer')?.before(section);
+    refreshBoost=()=>{
+      const p=boost.status();skin.input.value=p.selectedSkin;sound.input.value=p.selectedSound;
+      levels.textContent='Réserve niveau '+(p.capacityLevel+1)+' · Puissance '+(p.powerLevel+1)+' · Maîtrise '+(p.controlLevel+1);
+      for(const option of Array.from(skin.input.options)){const id=option.value as FlightSkin,available=p.unlockedSkins.includes(id);option.disabled=!available;option.textContent=BOOST_TITLES[id]+(available?'':' (à débloquer)');}
+      for(const option of Array.from(sound.input.options)){const id=option.value as FlightSkin,available=p.unlockedSounds.includes(id);option.disabled=!available;option.textContent=BOOST_TITLES[id]+(available?'':' (à débloquer)');}
+    };
+  }
   function update(value: Appearance): void {
     appearance = value;
     storeAppearance(value);
@@ -129,6 +178,7 @@ export function createCustomizationMenu(
     open() {
       if (opened) return;
       opened = true;
+      refreshBoost();
       root.classList.remove('hide');
       root.setAttribute('aria-hidden', 'false');
       document.body.classList.add('appearance-open');

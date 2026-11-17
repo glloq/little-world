@@ -8,7 +8,7 @@ export function advanceSpeedCamera(s:SpeedCameraState,
   input:{speed:number;mode:string;boosting:boolean;turnRate:number;enabled:boolean},dt:number):void{
   const step=clamp(Number.isFinite(dt)?dt:0,0,.25);
   const active=input.enabled&&(input.mode==='glide'||input.mode==='roll');
-  const speed=clamp(Number.isFinite(input.speed)?input.speed:0,0,40);
+  const speed=clamp(Number.isFinite(input.speed)?input.speed:0,0,60);
   const boost=active&&input.mode==='glide'&&input.boosting;
   const targetFov=66+(active?Math.min(10,Math.max(0,speed-8)*.4)+(boost?1:0):0);
   const targetDistance=active&&input.mode==='glide'?Math.min(3,Math.max(0,speed-11)*.13)+(boost?0.6:0):0;
@@ -27,10 +27,10 @@ export function createSpeedStreaks(camera:THREE.PerspectiveCamera){
   const matrix=new THREE.Matrix4();let phase=0;
   return {
     update(speed:number,gliding:boolean,enabled:boolean,dt:number){
-      const intensity=enabled&&gliding?clamp((speed-14)/18,0,1):0;
+      const intensity=enabled&&gliding?clamp((speed-14)/34,0,1):0;
       const visible=Math.floor(intensity*count);
       if(visible===0){mesh.visible=false;mesh.count=0;return;}
-      phase=(phase+Math.min(.25,Math.max(0,dt))*(.7+Math.min(40,speed)*.09))%1;
+      phase=(phase+Math.min(.25,Math.max(0,dt))*(.7+Math.min(60,speed)*.07))%1;
       for(let i=0;i<visible;i++){
         const side=i%2===0?-1:1;
         const row=Math.floor(i/2),drift=(phase+row*.173)%1;

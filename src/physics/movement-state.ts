@@ -5,7 +5,7 @@ import {simulatePlayer,MOTION_MODES,type Player,type Controls} from '../player.t
 import {GAS} from './gas-propulsion.ts';
 import type {WorldCollisionQuery} from './collision-world.ts';
 export interface MovementCommand {tick:number;input:Controls}
-const fields=['oxygen','glideReady','stamina','climbCooldown','climbDir','rollSpeed','rollHeading','rollIdle','rollByHold','diving','diveSink','glideHeading','glidePitch','glideTurnRate','stalled','space','body','runCharge','intentYaw','jumpOrigin','jumpSeq','landingSpeed','landingSeq','coyoteLeft','coyoteFrom','jumpBufferLeft','groundPitch','groundRoll','rollSlip','landingKind','landingSlide','footSupportLeft','footSupportRight','gasReserve','gasBoosting','gasPulseSeq','gasPulseClock','gasThrust'] as const;
+const fields=['oxygen','glideReady','stamina','climbCooldown','climbDir','rollSpeed','rollHeading','rollIdle','rollByHold','diving','diveSink','glideHeading','glidePitch','glideTurnRate','stalled','space','body','runCharge','intentYaw','jumpOrigin','jumpSeq','landingSpeed','landingSeq','coyoteLeft','coyoteFrom','jumpBufferLeft','groundPitch','groundRoll','rollSlip','landingKind','landingSlide','footSupportLeft','footSupportRight','gasReserve','gasCapacityLevel','gasPowerLevel','gasControlLevel','gasBoosting','gasPulseSeq','gasPulseClock','gasThrust','gasPulseRemaining','gasCooldown','gasBoostHeld','gasRepeatArmed'] as const;
 export interface MovementSnapshot {version:1;tick:number;position:{x:number;y:number;z:number};velocity:{x:number;y:number;z:number};mode:Player['mode'];yaw:number;state:Partial<Pick<Player,typeof fields[number]>>}
 const point=(v:unknown):v is {x:number;y:number;z:number}=>!!v&&typeof v==='object'&&['x','y','z'].every(k=>typeof (v as Record<string,unknown>)[k]==='number'&&Number.isFinite((v as Record<string,number>)[k])&&Math.abs((v as Record<string,number>)[k])<=100000);
 export function captureMovement(p:Player,tick:number):MovementSnapshot{
@@ -20,14 +20,16 @@ export function restoreMovement(p:Player,s:MovementSnapshot){
  for(const [k,v]of Object.entries(s.state)){
   const obj=v&&typeof v==='object'?v as Record<string,unknown>:null;
   if(!(fields as readonly string[]).includes(k))throw Error('Champ de mouvement inconnu');
-  if(['glideReady','rollByHold','diving','diveSink','stalled','gasBoosting'].includes(k)){if(typeof v!=='boolean')throw Error('Drapeau invalide');}
+  if(['glideReady','rollByHold','diving','diveSink','stalled','gasBoosting','gasBoostHeld','gasRepeatArmed'].includes(k)){if(typeof v!=='boolean')throw Error('Drapeau invalide');}
   else if(k==='climbDir'){if(!obj||typeof obj.x!=='number'||typeof obj.z!=='number'||!Number.isFinite(obj.x)||!Number.isFinite(obj.z))throw Error('Direction invalide');}
   else if(k==='jumpOrigin'||k==='coyoteFrom'){if(!['idle','run','roll'].includes(String(v)))throw Error('Origine de saut invalide');}
   else if(k==='landingKind'){if(!['idle','run','roll','glide'].includes(String(v)))throw Error('Réception invalide');}
   else if(k==='landingSlide'){if(typeof v!=='number'||!Number.isFinite(v)||v<0||v>1)throw Error('Glissade invalide');}
   else if(k==='footSupportLeft'||k==='footSupportRight'){if(typeof v!=='number'||!Number.isFinite(v)||Math.abs(v)>.5)throw Error('Appui pied invalide');}
-  else if(k==='gasReserve'){if(typeof v!=='number'||!Number.isFinite(v)||v<0||v>100)throw Error('Gaz invalide');}
+  else if(k==='gasReserve'){if(typeof v!=='number'||!Number.isFinite(v)||v<0||v>GAS.max)throw Error('Gaz invalide');}
   else if(k==='gasPulseClock'){if(typeof v!=='number'||!Number.isFinite(v)||v<0||v>.21)throw Error('Cycle de gaz invalide');}
+  else if(k==='gasPulseRemaining'||k==='gasCooldown'){if(typeof v!=='number'||!Number.isFinite(v)||v<0||v>GAS.cooldownSeconds+1e-6)throw Error('Temps de propulsion invalide');}
+  else if(k==='gasCapacityLevel'||k==='gasPowerLevel'||k==='gasControlLevel'){const max=k==='gasControlLevel'?2:3;if(!Number.isInteger(v)||Number(v)<0||Number(v)>max)throw Error('Niveau de propulsion invalide');}
   else if(k==='gasThrust'){if(typeof v!=='number'||!Number.isFinite(v)||v<0||v>GAS.acceleration)throw Error('Poussée de gaz invalide');}
   else if(k==='gasPulseSeq'){if(!Number.isSafeInteger(v)||Number(v)<0)throw Error('Séquence de gaz invalide');}
   else if(k==='jumpSeq'||k==='landingSeq'){if(!Number.isSafeInteger(v)||Number(v)<0)throw Error('Sequence de mouvement invalide');}
