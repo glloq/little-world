@@ -291,6 +291,21 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
     p.mode = 'ground';
     p.glideReady = false;
   }
+  // Water is evaluated after horizontal motion as well, to avoid passing through the banks.
+  const newWater = collision?collision.waterAt(pos,p.space):waterSurface(pos.x, pos.z);
+  if (
+    newWater !== null &&
+    newWater - newGround > 0.62 &&
+    pos.y <= newWater + 0.25 &&
+    p.mode !== 'swim' &&
+    p.mode !== 'dive'
+  ) {
+    p.mode = 'swim';p.diving = false;
+    v.y = 0;
+    // Entering deep water while walking: the float brings the body to the swimming line (no snap).
+    pos.y = Math.min(pos.y, newWater + 0.08);
+    p.glideReady = false;
+  }
   // Buffered jump can fire on the SAME tick as physical landing. Its impulse is
   // integrated next tick; no synthetic teleport, double-jump or extra glide toggle.
   if(assisted&&p.mode==='ground'&&!jumpHandled&&(p.jumpBufferLeft??0)>0){
@@ -308,21 +323,6 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
     p.groundPitch=clamp(Math.atan2(up-down,2*half),-.4,.4);
     p.groundRoll=clamp(Math.atan2(right-left,2*half),-.4,.4);
   }else{p.groundPitch=0;p.groundRoll=0;}
-  // Water is evaluated after horizontal motion as well, to avoid passing through the banks.
-  const newWater = collision?collision.waterAt(pos,p.space):waterSurface(pos.x, pos.z);
-  if (
-    newWater !== null &&
-    newWater - newGround > 0.62 &&
-    pos.y <= newWater + 0.25 &&
-    p.mode !== 'swim' &&
-    p.mode !== 'dive'
-  ) {
-    p.mode = 'swim';p.diving = false;
-    v.y = 0;
-    // Entering deep water while walking: the float brings the body to the swimming line (no snap).
-    pos.y = Math.min(pos.y, newWater + 0.08);
-    p.glideReady = false;
-  }
   // Explicit connections between spaces (mine entrance, stairs, shafts): never implicit.
   const transition=collision?.transitionAt(pos,p.space);
   if(p.mode!=='glide'){p.stalled=false;p.glideHeading=undefined;p.glidePitch=undefined;p.glideTurnRate=0;}
