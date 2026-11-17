@@ -27,4 +27,19 @@ export function createAudioController(definition:AnyAudioDefinition,options:{bas
  mixer.append(advanced);
  const activate=document.createElement('button');activate.textContent='Activer / reprendre le son';activate.type='button';activate.onclick=()=>void engine.unlock();
  mixer.append(activate,status);panel.append(mixer);document.body.append(panel);
-
+  // Business events → semantic sound events; the engine stays the only owner of voices and budgets.
+ const router=new AudioEventRouter(sound=>{void engine.playEvent(sound.eventId,{context:sound.context,position:sound.position,source:sound.source});});
+ const visibility=()=>{void engine.setHidden(document.hidden);};document.addEventListener('visibilitychange',visibility);let lastUpdate=0;
+ return {engine,router,start:()=>engine.unlock(),
+  /** Declarative `playSound` actions (V1 ids and V2 event ids). */
+  playSound:(id:string,position?:Point)=>{void engine.playEvent(id,{position,context:router.context});},
+  /** Gameplay event with optional context (mine material, crop, species…). */
+  emit:(eventId:string,params:{context?:SoundContext;position?:Point;source?:'player'|'world'|'ui'}={})=>router.emit(eventId,params),
+  cue:(cueId:string)=>engine.triggerCue(cueId,router.context),
+  update(now:number,frame:AudioFrame,entityPosition:(id:string)=>Point|undefined,level:number,forward={x:0,y:0,z:1}){
+   const loops=router.observe(frame);
+   if(now-lastUpdate>200){lastUpdate=now;engine.updateScene(frame.player.position,entityPosition,{night:frame.world.time==='night',rain:frame.world.weather==='rain',water:frame.world.nearWater},level,forward,{context:router.context,loops});const m=engine.metrics;status.textContent=m.muted?'Son coupé':`${m.status} · ${m.voices} voix · ${Math.round(m.pcmBytes/1024)} Kio PCM${m.cue?' · '+m.cue:''}`;}
+  },async dispose(){document.removeEventListener('visibilitychange',visibility);panel.remove();await engine.dispose();}
+ };
+}
+export type AudioController=ReturnType<typeof createAudioController>;
