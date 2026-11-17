@@ -7,6 +7,7 @@ import type {GameplayView} from '../../gameplay/game-view.ts';
 import type {MovementSpace} from '../../physics/collision-world.ts';
 import type {AudioController} from '../../audio/view.ts';
 import {UiController} from './ui-controller.ts';
+import {isEditableGameTarget} from '../../input/gameplay-input.ts';
 import {loadPreferences,savePreferences,type UiPreferences} from './preferences.ts';
 import {createNotificationCenter,type NoticeKind} from '../notifications/notifications.ts';
 import {inventoryPanel} from '../inventory/inventory.ts';
@@ -39,7 +40,7 @@ export interface GameUiDeps {
   target():TargetDescriptor|null;
   quality:HTMLSelectElement|null;
   applyDistantRendering?(value:UiPreferences['distantRendering'],initial:boolean):void;
-  home():void;studioUrl:string;temporary:boolean;
+  home():void;studioUrl:string;temporary:boolean;focusGameplay():boolean;
 }
 export function createGameUi(deps:GameUiDeps){
   const host=el('div','ui-root');host.id='ui-root';host.classList.add('ui-await-start');document.body.append(host);
@@ -50,12 +51,13 @@ export function createGameUi(deps:GameUiDeps){
   // Notifications: interface sounds from the Audio V2 catalogue, only when not merged.
   const sound=(kind:NoticeKind)=>{const id=kind==='error'||kind==='warning'?'ui.error':kind==='save'?'ui.save':kind==='quest'?'ui.confirm':null;if(id)deps.audio?.emit(id,{source:'ui'});};
   const center=createNotificationCenter(host,sound);
-  const ui=new UiController(host),g=deps.gameplay,a=g?.activities;
+  const ui=new UiController(host,deps.focusGameplay),g=deps.gameplay,a=g?.activities;
   // Panels.
   let selectedTool:string|null=null,restoring=false;
   const inventory=inventoryPanel({items:()=>g?.runtime.data.items??[],inventory:()=>g?.runtime.state.inventory??{},selectedTool:()=>selectedTool,selectTool:id=>{selectedTool=id;renderTool();},gasLevel:()=>deps.player().gas??0,
     consume:deps.eatFood?(id)=>{const result=deps.eatFood!(id);center.notify(result.ok?'success':'warning',result.message);return result.ok;}:undefined});
   ui.register('inventory','Sac',{render:b=>inventory.render(b),onClose:()=>{inventory.markSeen();deps.audio?.emit('ui.inventory.close',{source:'ui'});}});
+
   const waypoints=createWaypointStore(g?.runtime.data.worldId??deps.world.name,deps.world.bounds,deps.temporary);
   const markers=():MapMarker[]=>{
     const out:MapMarker[]=[];
@@ -119,15 +121,16 @@ export function createGameUi(deps:GameUiDeps){
   soundButton.setAttribute('aria-label','Régler le volume');soundButton.setAttribute('aria-expanded','false');soundButton.setAttribute('aria-controls','ui-audio-popover');soundButton.append(hudIcon('volume'));
   topRight.append(weather,soundButton);top.append(topLeft,topRight);host.append(top);
   const audioPopover=el('div','ui-audio-popover');audioPopover.id='ui-audio-popover';audioPopover.hidden=true;host.append(audioPopover);
-  function hideAudioPopover(){
+  function hideAudioPopover(focusGame=false){
     if(audioPopover.hidden)return;
     audioPopover.hidden=true;soundButton.setAttribute('aria-expanded','false');
     const mixer=deps.audio?.panel;
     if(mixer&&audioPopover.contains(mixer)){mixer.open=false;document.body.append(mixer);}
+    if(focusGame&&!ui.blocking)deps.focusGameplay();
   }
   closeAudioPopover=hideAudioPopover;
   function toggleAudioPopover(){
-    if(!audioPopover.hidden){hideAudioPopover();return;}
+    if(!audioPopover.hidden){hideAudioPopover(true);return;}
     const mixer=deps.audio?.panel;
     if(mixer){
       audioPopover.replaceChildren(el('h3','ui-audio-title','Son'),mixer);
@@ -154,7 +157,7 @@ export function createGameUi(deps:GameUiDeps){
   const stFill=el('span','ui-meter-fill');stamina.append(el('span','','Endurance'),el('span','ui-meter-track'));stamina.lastElementChild!.append(stFill);
   const velocity=el('div','ui-motion-speed hide');velocity.setAttribute('aria-label','Vitesse de déplacement');
   const gas=el('div','ui-oxygen ui-gas hide');gas.setAttribute('role','meter');gas.setAttribute('aria-label','Réserve de gaz');
-  const gasFill=el('span','ui-meter-fill');gas.append(el('span','',document.body.classList.contains('touch-mode')?'Gaz · Boost':'Gaz · clic droit'),el('span','ui-meter-track'));gas.lastElementChild!.append(gasFill);
+  const gasFill=el('span','ui-meter-fill');gas.append(el('span','',document.body.classList.contains('touch-mode')?'Gaz · Boost':'Gaz · clic droit / Shift'),el('span','ui-meter-track'));gas.lastElementChild!.append(gasFill);
   host.append(quick,minimap.element,tool,oxygen,stamina,gas,velocity);
   ui.onChange(id=>{if(id)hideAudioPopover();});
   const card=activityCard(host,(plotId,cropId)=>{const name=a?.selectCrop(plotId,cropId);if(name){center.notify('info','Culture choisie : '+name);deps.audio?.emit('farm.seedbag',{source:'player'});}});
@@ -179,9 +182,9 @@ export function createGameUi(deps:GameUiDeps){
     /** Keys of the interface. Returns true when consumed (the game must ignore it). */
     handleKey(e:KeyboardEvent,inGame:boolean):boolean{
       if(ui.handleKey(e))return true;
-      if(e.key==='Escape'&&!audioPopover.hidden){e.preventDefault();hideAudioPopover();return true;}
+      if(e.key==='Escape'&&!audioPopover.hidden){e.preventDefault();hideAudioPopover(true);return true;}
       // A key already handled elsewhere (e.g. Escape closing an NPC dialogue) never also opens a panel.
-      if(e.defaultPrevented)return false;if(!inGame||deps.npcs.dialogue.isOpen||e.ctrlKey||e.metaKey||e.altKey||e.repeat)return false;
+      if(e.defaultPrevented||isEditableGameTarget(e.target))return false;if(!inGame||deps.npcs.dialogue.isOpen||e.ctrlKey||e.metaKey||e.altKey||e.repeat)return false;
       const k=e.key.toLowerCase();
       if(e.key==='Escape'){e.preventDefault();ui.open('pause');return true;}
       if(k==='i'&&g){e.preventDefault();ui.open('inventory');deps.audio?.emit('ui.inventory.open',{source:'ui'});return true;}

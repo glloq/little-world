@@ -4,6 +4,7 @@
 import type {ProjectDocument} from './types.ts';
 import type {MapRequirements} from './map-requirements.ts';
 import {composeWorld,projectFromComposition} from './world-composition.ts';
+import {alignSteppedBiomes} from './world-biome-boundaries.ts';
 import {applyRegionBatch,regionBatchChunks} from './region-batch.ts';
 import {removeRegion} from './region-recipes.ts';
 import {removeWater,putWater} from './source.ts';
@@ -18,10 +19,11 @@ export function previewWorldRecomposition(p:ProjectDocument,next:MapRequirements
  if(!p.world.generation)throw Error('Ce projet ancien ne contient pas de besoins de génération. Créer un nouveau monde guidé.');
  if(Object.keys(p.chunkIndex).some(id=>!p.chunks[id]))throw Error('Charger les secteurs avant de comparer la composition');
  const scratch=structuredClone(p),beforeHash=sourceHash(p);
- let affected:string[]=[];
+ let affected:string[]=[],skipBoundaries=new Set<string>();
  if(mode==='biomes'){
   const recipes=Object.values(p.libraries.regions??{}).filter(r=>r.id.startsWith('composition-'));
   if(!recipes.length)throw Error('Aucune région générée à rafraîchir');
+  if(p.world.generation.compositionVersion===3){const baseline=composeWorld(p.world.generation).project;for(const recipe of recipes){const old=baseline.libraries.regions?.[recipe.id];if(!old||fingerprint(recipeSource(recipe))!==fingerprint(recipeSource(old)))skipBoundaries.add(recipe.id);}}
   affected=regionBatchChunks(scratch,recipes);applyRegionBatch(scratch,recipes);
  }else{
   if(next.width!==p.world.generation.width||next.length!==p.world.generation.length)throw Error('Redimensionner nécessite un nouveau projet : secteurs et retouches conservés ici');
@@ -42,6 +44,7 @@ export function previewWorldRecomposition(p:ProjectDocument,next:MapRequirements
   if(recipes.length)applyRegionBatch(scratch,recipes);
   affected=[...new Set([...Object.keys(p.chunkIndex),...Object.keys(scratch.chunkIndex)])];
  }
+ alignSteppedBiomes(scratch,skipBoundaries);
  const hydro=compileWaterNetwork(Object.values(scratch.libraries.water),projectGeography(scratch).source,scratch.world.seaLevel);
  const errors=hydro.flatMap(w=>w.diagnostics.filter(d=>d.severity==='ERROR'||d.code==='WATER_LOCAL_RISE'));
  if(errors.length)throw Error('Recomposition incompatible avec l’eau conservée : '+errors.map(d=>d.message).join(' '));

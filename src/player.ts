@@ -33,7 +33,7 @@ export interface Controls {
   /** Camera pitch relative to the default view (rad, positive = looking down): underwater, moving
    * forward follows it (looking down dives down). Gliding uses the same camera intention. */
   cameraPitch?: number;
-  /** Right mouse button, active in glide only. */boostHeld?:boolean;
+  /** Flight gas boost via right mouse, Shift or mobile accelerate; active in glide only. */boostHeld?:boolean;
   /** One mobile swim stroke (edge-triggered), leaving PC Space dive unchanged. */swimStrokePressed?:boolean;
 }
 export interface Player {
