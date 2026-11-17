@@ -42,8 +42,8 @@ try{
   // « Jouer ici »: the edited sources are played; playing does not touch the project.
   await page.getByRole('button',{name:'Sélection',exact:true}).click();
   const popup=context.waitForEvent('page');await page.getByRole('button',{name:'Jouer ici'}).click();const game=await popup;game.on('pageerror',e=>errors.push(e.message));
-  await game.waitForSelector('#start:not([disabled])',{timeout:120000});const url=new URL(game.url());url.searchParams.set('metrics','1');await game.goto(url.toString());
-  await game.waitForSelector('#start:not([disabled])',{timeout:120000});await game.locator('#start').click();await game.waitForFunction(()=>window.littleWorldMetrics?.activities?.plots,{},{timeout:120000});
+  await game.locator('#start-overlay').waitFor({state:'hidden',timeout:120000});const url=new URL(game.url());url.searchParams.set('metrics','1');await game.goto(url.toString());
+  await game.locator('#start-overlay').waitFor({state:'hidden',timeout:120000});await game.locator('#start-overlay').waitFor({state:'hidden'});await game.waitForFunction(()=>window.littleWorldMetrics?.activities?.plots,{},{timeout:120000});
   const plots=await game.evaluate(()=>window.littleWorldMetrics.activities.plots);check(plots['plot-west'].crop==='wheat'&&plots['plot-east'].crop==='carrot','« Jouer ici » plays the edited plot sources: '+JSON.stringify(plots));
   await game.close();
   await page.getByRole('button',{name:'Filtre Zones'}).click();await page.locator('.search-results button',{hasText:'Champ de l’ouest'}).click();await page.waitForSelector('#inspector .farm-card');
