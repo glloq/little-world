@@ -44,7 +44,8 @@ import {
 import { buildHamster } from './hamster/hamster.ts';
 import { createImpactEffects, type ImpactKind } from './hamster/impact-effects.ts';
 import {createGasEffects} from './hamster/gas-effects.ts';
-import {GAS,gasLevel,refillGas} from './physics/gas-propulsion.ts';
+import {GAS,gasLevel,gasCapacity,gasShots,gasMaxShots,refillGas} from './physics/gas-propulsion.ts';
+import {newFlightProgress,advanceFlight,type FlightProgress} from './gameplay/flight-progress.ts';
 import {foodGasValue} from './gameplay/food-effects.ts';
 import { createLoadingScreen } from './ui/loading.ts';
 import { createCustomizationMenu } from './customization-menu';
@@ -185,6 +186,7 @@ for (const item of definition.placements) {
 }
 scene.add(world.root);
 const player = spawnPlayer();
+let flightProgress:FlightProgress=newFlightProgress();
 // Smaller character (CHARACTER_SCALE): collision body scaled like the model.
 player.body = { radius: .32, height: 1.35, step: .4 };
 if(playable)player.position.set(playable.spawn.x,terrainHeight(playable.spawn.x,playable.spawn.z)+playable.spawn.y+.02,playable.spawn.z);
@@ -197,7 +199,10 @@ if(playable){
   const {createGameplayView}=await import('./gameplay/game-view.ts');
   gameplay=createGameplayView(playable.gameplay,{onSound:(id,p)=>audio?.playSound(id,p),collisions:playable.collisions,temporary:!!(studioTest||buildScope),saveScope:studioTest?.snapshotId??buildScope??undefined,getPosition:()=>({x:player.position.x,y:player.position.y,z:player.position.z}),objects:world.objects,showInfo,
     activities:playable.activities,getSpace:()=>player.space,
-    getGas:()=>gasLevel(player),setGas:value=>{player.gasReserve=value;player.gasBoosting=false;player.gasPulseClock=0;player.gasPulseSeq=0;player.gasThrust=0;},
+    getGas:()=>gasLevel(player),
+    getGasProgress:()=>structuredClone(flightProgress),
+    setGasProgress:value=>{flightProgress=value;player.gasCapacityLevel=value.capacityLevel;player.gasPowerLevel=value.powerLevel;player.gasControlLevel=value.controlLevel;},
+    setGas:value=>{player.gasReserve=value;player.gasBoosting=false;player.gasPulseClock=0;player.gasPulseSeq=0;player.gasThrust=0;player.gasPulseRemaining=0;player.gasCooldown=0;player.gasBoostHeld=false;player.gasRepeatArmed=false;},
     ...(isLegacyTerrain()?{}:{gathering:{ctx:geoContext,seed:definition.config.seed,inside:(x:number,z:number)=>Math.abs(x)<=(definition.config.width??200)/2&&Math.abs(z)<=(definition.config.length??600)/2}}),
     setPosition:(p,space)=>{player.space=space??undefined;player.position.set(p.x,p.y,p.z);player.velocity.set(0,0,0);player.mode='air';player.oxygen=MAX_OXYGEN;player.glideReady=false;player.coyoteLeft=0;player.jumpBufferLeft=0;aboard=false;keySet.clear();jumpQueue=0;actionQueue=0;npcs.dialogue.close();previousPlayerPosition.copy(player.position);renderPosition.copy(player.position);updateCamera(1);}
   });
@@ -251,12 +256,12 @@ world.update(0, player.position);
       const points=foodGasValue(itemId);
       if(!gameplay||!points)return {ok:false,message:'Cet objet ne peut pas être mangé.'};
       if(player.mode!=='ground'||aboard)return {ok:false,message:'Mangez au sol avant de décoller.'};
-      if(gasLevel(player)>=GAS.max)return {ok:false,message:'La réserve de gaz est déjà pleine.'};
+      if(gasLevel(player)>=gasCapacity(player))return {ok:false,message:'La réserve de gaz est déjà pleine.'};
       if(!gameplay.purse.apply([{itemId,quantity:-1}]))return {ok:false,message:'Aliment indisponible.'};
       const gained=refillGas(player,points);
       return {ok:true,message:'+'+Math.round(gained)+' gaz !'};
     },
-    player:()=>({gas:gasLevel(player),maxGas:GAS.max,x:player.position.x,y:player.position.y,z:player.position.z,yaw,space:player.space,mode:player.mode,oxygen:player.oxygen,maxOxygen:MAX_OXYGEN,stamina:player.stamina??MAX_STAMINA,maxStamina:MAX_STAMINA,speed:player.velocity.length(),stalled:player.stalled}),
+    player:()=>({gas:gasLevel(player),maxGas:gasCapacity(player),gasShots:gasShots(player),gasMaxShots:gasMaxShots(player),gasCooldown:player.gasCooldown??0,x:player.position.x,y:player.position.y,z:player.position.z,yaw,space:player.space,mode:player.mode,oxygen:player.oxygen,maxOxygen:MAX_OXYGEN,stamina:player.stamina??MAX_STAMINA,maxStamina:MAX_STAMINA,speed:player.velocity.length(),stalled:player.stalled}),
     target:()=>currentTarget(),
     home:()=>{started=false;mobileTouch?.setEnabled(false);mobileLandscape?.stop();gameUi?.controller.close();keySet.clear();overlay.classList.remove('hide');start.focus();}});
 }
@@ -418,7 +423,8 @@ window.addEventListener('keydown', (e) => {
     player.oxygen = MAX_OXYGEN;
     player.glideReady = false;
     touchStrokeQueue=0;
-    player.gasReserve=GAS.initial;player.gasBoosting=false;player.gasPulseClock=0;player.gasPulseSeq=0;player.gasThrust=0;gasVisualSeq=0;
+    player.gasReserve=GAS.initial;player.gasBoosting=false;player.gasPulseClock=0;player.gasPulseSeq=0;player.gasThrust=0;
+    player.gasPulseRemaining=0;player.gasCooldown=0;player.gasBoostHeld=false;player.gasRepeatArmed=false;gasVisualSeq=0;
     player.coyoteLeft=0;player.jumpBufferLeft=0;
     previousPlayerPosition.copy(player.position);
     renderPosition.copy(player.position);
@@ -654,11 +660,11 @@ function updateHud() {
   // A submerged hamster does not imply a submerged camera.
   document.body.classList.toggle('underwater',cameraSubmerged(camera.position.x,camera.position.y,camera.position.z));
 }
-let boatSteer=0,motionTick=0,nextTouchTargetAt=0;
+let boatSteer=0,motionTick=0,nextTouchTargetAt=0,lastFlightPulseSeq=0;
 function tick(dt: number) {
   // Mobile input: immediately release controls when a menu opens or the boost stops being valid.
   mobileTouch?.setEnabled(started&&!gameUi?.blocking&&!customization.isOpen&&!npcs.dialogue.isOpen&&!mobileLandscape?.blocked);
-  mobileTouch?.setMode(player.mode,aboard,gasLevel(player)>0);
+  mobileTouch?.setMode(player.mode,aboard,gasShots(player)>0);
   // Interaction may change without changing movement mode. Throttle target queries
   // to 8 Hz; the action itself still resolves the target again when pressed.
   if(mobileTouch&&elapsed>=nextTouchTargetAt){
@@ -685,6 +691,12 @@ function tick(dt: number) {
   } else {
     gameplay?.trees?.update(player.position,player.space);
     simulatePlayer(player, keys, dt,gameplay?.collision);motionTick++;
+    const seq=player.gasPulseSeq??0;
+    const newPulse=seq!==lastFlightPulseSeq&&seq>0;
+    lastFlightPulseSeq=seq;
+    const unlock=advanceFlight(flightProgress,{gliding:player.mode==='glide',distance:player.position.distanceTo(previousPlayerPosition),speed:player.velocity.length(),pulse:newPulse,time:elapsed});
+    player.gasCapacityLevel=flightProgress.capacityLevel;player.gasPowerLevel=flightProgress.powerLevel;player.gasControlLevel=flightProgress.controlLevel;
+    if(unlock)showInfo(unlock,'success');
     // Crossing a mine entrance / stairs: no interpolation through rock.
     if(player.transitioned){previousPlayerPosition.copy(player.position);renderPosition.copy(player.position);}
     if (keys.jumpPressed) jumpQueue = Math.max(0, jumpQueue - 1);
@@ -818,8 +830,8 @@ function draw(now: number) {
   if(player.mode==='glide'&&player.gasBoosting&&player.gasPulseSeq!==gasVisualSeq){
     character.rig.joints.Tail.getWorldPosition(gasOrigin);
     gasEffects.spawn(gasOrigin,player.velocity);
-    // Temporary lightweight sound from existing audio catalogue; dedicated fart takes later.
-    if((player.gasPulseSeq??0)%2===1)audio?.emit('player.glide.deploy',{position:player.position,source:'player'});
+    // Exactly one sound and VFX per accepted simulation pulse, not per key or frame.
+    audio?.emit('player.boost.pulse',{position:player.position,source:'player',context:{state:flightProgress.selectedSound,intensity:player.velocity.length()>35?'heavy':'medium'}});
   }
   gasVisualSeq=player.gasPulseSeq??0;
   gasEffects.update(delta);
