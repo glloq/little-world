@@ -192,7 +192,16 @@ player.body = { radius: .32, height: 1.35, step: .4 };
 if(playable)player.position.set(playable.spawn.x,terrainHeight(playable.spawn.x,playable.spawn.z)+playable.spawn.y+.02,playable.spawn.z);
 let audio:AudioController|null=null;
 // AUD-V2: the valley uses the V2 catalogue (static files loaded on demand); playable maps may still carry V1 audio (migrated in memory).
-try{const {parseAnyAudioDefinition}=await import('./audio/migrate.ts');let definition=playable?.audio;if(!definition){for(const file of ['audio/catalog.json','audio/default.json']){const response=await fetch(import.meta.env.BASE_URL+file).catch(()=>null);if(response?.ok){definition=parseAnyAudioDefinition(await response.json());break;}}}if(definition){const {createAudioController}=await import('./audio/view.ts');audio=createAudioController(definition,{baseUrl:import.meta.env.BASE_URL});}}catch{console.warn('Audio indisponible : le jeu reste silencieux.');}
+try{
+  const {parseAnyAudioDefinition,toAudioCatalog,mergeAudioCatalogs}=await import('./audio/migrate.ts');
+  const baseAudio=await fetch(import.meta.env.BASE_URL+'audio/catalog.json').catch(()=>null);
+  const builtin=baseAudio?.ok?parseAnyAudioDefinition(await baseAudio.json()):undefined;
+  let definition=playable?.audio;
+  // Keep authored audio and supplement global boost cues without overriding world assets.
+  if(definition&&builtin)definition=mergeAudioCatalogs(toAudioCatalog(definition),toAudioCatalog(builtin));
+  else definition??=builtin;
+  if(definition){const {createAudioController}=await import('./audio/view.ts');audio=createAudioController(definition,{baseUrl:import.meta.env.BASE_URL});}
+ }catch{console.warn('Audio indisponible : le jeu reste silencieux.');}
 const {createGroundProbe}=await import('./audio/world-probe.ts'),groundProbe=createGroundProbe();
 let gameplay:GameplayView|null=null;
 if(playable){
@@ -269,7 +278,7 @@ world.update(0, player.position);
 const character = buildHamster();
 scene.add(character.group);
 const impacts = createImpactEffects(scene);
-const gasEffects=createGasEffects(scene);const gasOrigin=new THREE.Vector3();let gasVisualSeq=0;
+const gasEffects=createGasEffects(scene);const gasOrigin=new THREE.Vector3();let gasVisualSeq=0,boostWindActive=false;
 const customization = createCustomizationMenu(
   document.querySelector<HTMLElement>('#appearance-menu')!,
   (appearance) => character.setAppearance(appearance),
@@ -827,13 +836,17 @@ function draw(now: number) {
     joints.EarRight.rotation.z+=.13;
     joints.Tail.rotation.x+=.2;
   }
-  if(player.mode==='glide'&&player.gasBoosting&&player.gasPulseSeq!==gasVisualSeq){
+  if(started&&player.gasPulseSeq!==gasVisualSeq){
     character.rig.joints.Tail.getWorldPosition(gasOrigin);
     gasEffects.spawn(gasOrigin,player.velocity,6,flightProgress.selectedSkin);
     // Exactly one sound and VFX per accepted simulation pulse, not per key or frame.
     audio?.emit('player.boost.pulse',{position:player.position,source:'player',context:{state:flightProgress.selectedSound,intensity:player.velocity.length()>35?'heavy':'medium'}});
+    if(flightProgress.currentCombo>=3)audio?.emit('player.boost.combo',{source:'player'});
   }
   gasVisualSeq=player.gasPulseSeq??0;
+  const flightFast=started&&player.mode==='glide'&&player.velocity.length()>40;
+  if(flightFast&&!boostWindActive){audio?.emit('player.boost.wind',{source:'player'});boostWindActive=true;}
+  else if(!flightFast&&player.velocity.length()<30)boostWindActive=false;
   gasEffects.update(delta);
   impacts.update(delta);
   updateHud();
