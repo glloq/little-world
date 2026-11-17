@@ -10,13 +10,10 @@
   <div id="app">
     <div id="viewport"></div>
     <!-- Developer panel (technical statistics): hidden unless developer mode (Paramètres, ?metrics or ?dev). -->
-    <aside class="hud-stats panel dev-only" aria-label="Statistiques techniques">
-      <span class="status-dot"></span><span id="status">Initialisation…</span>
-      <div class="mini-separator"></div>
-      <div id="coords">Position : —</div>
-      <div id="oxygen">Oxygène : —</div>
-      <div id="fps">FPS : —</div>
-      <div id="render-metrics">Rendu : —</div>
+    <aside class="hud-debug dev-only" aria-label="Performances de développement" aria-live="off">
+      <span id="dev-speed">Vitesse : —</span>
+      <span id="fps">FPS : —</span>
+      <span id="memory">Mémoire : —</span>
     </aside>
     <!-- Render quality selector, shown in Paramètres › Affichage. -->
     <div id="ui-templates" hidden>
@@ -55,7 +52,6 @@
         <h1>Une île à explorer</h1>
         <p>Incarne un écureuil volant. Explore l’île, ses villages, son château et ses mines ; pêche, cueille, abats du bois, commerce aux comptoirs et aide les habitants.</p>
         <button id="start" class="primary-button" type="button" disabled data-label="Explorer l’île">Chargement…</button>
-        <a class="light-button" href="studio/">Ouvrir Little World Studio</a>
         <small>PC, clavier et souris · aucun compte requis · Échap : menu</small>
       </div>
     </div>
