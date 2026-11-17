@@ -30,6 +30,21 @@ try{
   check(cost.calls>0&&cost.calls<=8,'Preview keeps draw calls low ('+cost.calls+')');
   check(cost.tris>0&&cost.tris<100000,'Low-poly renderer stays within generous triangle ceiling ('+cost.tris+')');
   check(Number.isFinite(cost.cpu)&&cost.cpu>=0,'CPU render time is instrumented (GPU time excluded)');
+  await page.getByLabel('Séquence').selectOption('roll-jump');
+  const scrub=async(value)=>page.getByLabel('Temps dans la séquence (secondes)').evaluate((el,v)=>{
+    el.value=String(v);el.dispatchEvent(new Event('input',{bubbles:true}));
+  },value);
+  await scrub(.9);
+  await page.getByText(/État : ROLL_AIR/).waitFor({timeout:15000});
+  check(true,'Timeline positions exactly inside the airborne rolling phase');
+  await scrub(1.83);
+  await page.getByText(/État : ROLL_LAND/).waitFor({timeout:15000});
+  check(true,'Timeline can inspect the short rolling-landing transition');
+  const t0=Number(await page.getByLabel('Temps dans la séquence (secondes)').inputValue());
+  await page.getByRole('button',{name:'Avancer de 1/30 s'}).click();
+  const t1=Number(await page.getByLabel('Temps dans la séquence (secondes)').inputValue());
+  check(t1>t0&&t1-t0<.04,'Single-frame stepping advances one simulation tick');
+  await page.getByRole('button',{name:'Reprendre'}).click();
   await page.getByLabel('Séquence').selectOption('roll');
   await page.getByText(/État : ROLL_/).waitFor({timeout:15000});
   check(true,'Rolling uses the real animator state machine');
