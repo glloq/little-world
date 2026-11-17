@@ -220,5 +220,7 @@ Le générateur de colonies (maisons, villages, villes, camps, ports, terriers e
 - [66 — Implantation intelligente, routes, chemins, parcelles et métiers](docs/66-SETTLEMENTS-PLACEMENT-NETWORK.md)
 - [67 — Collisions 3D, accès, grottes, portes et interactions joueur](docs/67-SETTLEMENTS-COLLISIONS-INTERACTIONS.md)
 - [68 — Roadmap SET-0 à SET-12, tests et gates de qualification](docs/68-SETTLEMENTS-ROADMAP-TESTS.md)
+- [69 — SET-0 : audit du code existant (état présent, lacunes, risques)](docs/69-SETTLEMENTS-SET0-AUDIT.md)
+- [70 — SET-0 : contrats techniques retenus et gates bloquants](docs/70-SETTLEMENTS-TECHNICAL-CONTRACTS.md)
 
 Ce chantier réutilise les contrats V3, le CommandBus, les chemins, la géographie et les systèmes d'interactions existants ; il n'ajoute pas de second moteur ni de simulation économique en temps réel.
