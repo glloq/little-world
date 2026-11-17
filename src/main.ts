@@ -46,6 +46,8 @@ import { createImpactEffects, type ImpactKind } from './hamster/impact-effects.t
 import {createGasEffects} from './hamster/gas-effects.ts';
 import {GAS,gasLevel,gasCapacity,gasShots,gasMaxShots,refillGas} from './physics/gas-propulsion.ts';
 import {newFlightProgress,advanceFlight,type FlightProgress} from './gameplay/flight-progress.ts';
+import {beginFlightCourse,stepFlightCourse,COURSE_LABELS,type FlightCourseSession} from './gameplay/flight-courses.ts';
+import {createFlightRings} from './render/flight-rings.ts';
 import {foodGasValue} from './gameplay/food-effects.ts';
 import { createLoadingScreen } from './ui/loading.ts';
 import { createCustomizationMenu } from './customization-menu';
@@ -218,7 +220,7 @@ if(playable){
     setGasProgress:value=>{flightProgress=value;player.gasCapacityLevel=value.capacityLevel;player.gasPowerLevel=value.powerLevel;player.gasControlLevel=value.controlLevel;},
     setGas:value=>{player.gasReserve=value;player.gasBoosting=false;player.gasPulseClock=0;player.gasPulseSeq=0;player.gasThrust=0;player.gasPulseRemaining=0;player.gasCooldown=0;player.gasBoostHeld=false;player.gasRepeatArmed=false;},
     ...(isLegacyTerrain()?{}:{gathering:{ctx:geoContext,seed:definition.config.seed,inside:(x:number,z:number)=>Math.abs(x)<=(definition.config.width??200)/2&&Math.abs(z)<=(definition.config.length??600)/2}}),
-    setPosition:(p,space)=>{player.space=space??undefined;player.position.set(p.x,p.y,p.z);player.velocity.set(0,0,0);player.mode='air';player.oxygen=MAX_OXYGEN;player.glideReady=false;player.coyoteLeft=0;player.jumpBufferLeft=0;aboard=false;keySet.clear();jumpQueue=0;actionQueue=0;npcs.dialogue.close();previousPlayerPosition.copy(player.position);renderPosition.copy(player.position);updateCamera(1);}
+    setPosition:(p,space)=>{stopFlightCourse();player.space=space??undefined;player.position.set(p.x,p.y,p.z);player.velocity.set(0,0,0);player.mode='air';player.oxygen=MAX_OXYGEN;player.glideReady=false;player.coyoteLeft=0;player.jumpBufferLeft=0;aboard=false;keySet.clear();jumpQueue=0;actionQueue=0;npcs.dialogue.close();previousPlayerPosition.copy(player.position);renderPosition.copy(player.position);updateCamera(1);}
   });
   if(metricsEnabled){const g=gameplay;Object.assign(window,{littleWorldDebug:{/** Developer/test hook (metrics mode only): give items. */grant:(itemId:string,quantity:number)=>g.runtime.grantItems([{itemId,quantity}]),
     /** Developer/test hook: move the player on the ground and turn the camera (heading in rad). */
@@ -277,13 +279,19 @@ world.update(0, player.position);
     },
     player:()=>({gas:gasLevel(player),maxGas:gasCapacity(player),gasShots:gasShots(player),gasMaxShots:gasMaxShots(player),gasCooldown:player.gasCooldown??0,x:player.position.x,y:player.position.y,z:player.position.z,yaw,space:player.space,mode:player.mode,oxygen:player.oxygen,maxOxygen:MAX_OXYGEN,stamina:player.stamina??MAX_STAMINA,maxStamina:MAX_STAMINA,speed:player.velocity.length(),stalled:player.stalled}),
     target:()=>currentTarget(),
-    home:()=>{started=false;mobileTouch?.setEnabled(false);mobileLandscape?.stop();gameUi?.controller.close();keySet.clear();overlay.classList.remove('hide');start.focus();}});
+    home:()=>{stopFlightCourse();started=false;mobileTouch?.setEnabled(false);mobileLandscape?.stop();gameUi?.controller.close();keySet.clear();overlay.classList.remove('hide');start.focus();}});
 }
 // The player is the hamster (doc 43); NPCs keep their own rigs.
 const character = buildHamster();
 scene.add(character.group);
 const impacts = createImpactEffects(scene);
 const gasEffects=createGasEffects(scene);const gasOrigin=new THREE.Vector3();let gasVisualSeq=0,boostWindActive=false;
+const flightRings=createFlightRings(scene);
+let flightCourse:FlightCourseSession|null=null,lastCourseHudAt=-1;
+const flightCourseHud=document.createElement('div');
+flightCourseHud.className='flight-course-hud';flightCourseHud.hidden=true;
+flightCourseHud.setAttribute('role','status');document.body.append(flightCourseHud);
+function stopFlightCourse(){flightCourse=null;flightRings.clear();flightCourseHud.hidden=true;}
 const customization = createCustomizationMenu(
   document.querySelector<HTMLElement>('#appearance-menu')!,
   (appearance) => character.setAppearance(appearance),
@@ -291,7 +299,17 @@ const customization = createCustomizationMenu(
     status:()=>flightProgress,
     selectSkin:id=>{if(flightProgress.unlockedSkins.includes(id))flightProgress.selectedSkin=id;},
     selectSound:id=>{if(flightProgress.unlockedSounds.includes(id))flightProgress.selectedSound=id;},
-    previewSound:id=>audio?.emit('player.boost.pulse',{source:'ui',context:{state:id,intensity:'medium'}})
+    previewSound:id=>audio?.emit('player.boost.pulse',{source:'ui',context:{state:id,intensity:'medium'}}),
+    startCourse:id=>{
+      if(player.mode!=='glide'||aboard)return 'Déployez le planeur avant de lancer un défi';
+      const config=getTerrainConfig(),heading=player.glideHeading??yaw;
+      const course=beginFlightCourse(id,player.position,heading,terrainHeight,
+        {minX:-config.width/2,maxX:config.width/2,minZ:-config.length/2,maxZ:config.length/2},player.gasPulseSeq??0);
+      if(!course)return 'Parcours hors carte : orientez-vous vers le centre de l’île';
+      stopFlightCourse();flightCourse=course;flightRings.show(course.rings,heading);
+      customization.close();renderer.domElement.focus({preventScroll:true});
+      return COURSE_LABELS[id]+' lancé';
+    }
   },
 );
 let boat = spawnBoat();
@@ -433,6 +451,7 @@ window.addEventListener('keydown', (e) => {
   if (e.code === 'KeyF' && !e.repeat) activityQueue++;
   if (e.code === 'KeyC') cropQueue++;
   if (e.code === 'KeyR' && started) {
+    stopFlightCourse();
     const reset = spawnPlayer();
     player.space = undefined;
     if(playable)reset.position.set(playable.spawn.x,terrainHeight(playable.spawn.x,playable.spawn.z)+playable.spawn.y+.02,playable.spawn.z);
@@ -444,7 +463,7 @@ window.addEventListener('keydown', (e) => {
     player.glideReady = false;
     touchStrokeQueue=0;
     player.gasReserve=GAS.initial;player.gasBoosting=false;player.gasPulseClock=0;player.gasPulseSeq=0;player.gasThrust=0;
-    player.gasPulseRemaining=0;player.gasCooldown=0;player.gasBoostHeld=false;player.gasRepeatArmed=false;gasVisualSeq=0;
+    player.gasPulseRemaining=0;player.gasCooldown=0;player.gasBoostHeld=false;player.gasRepeatArmed=false;gasVisualSeq=0;lastFlightPulseSeq=0;
     player.coyoteLeft=0;player.jumpBufferLeft=0;
     previousPlayerPosition.copy(player.position);
     renderPosition.copy(player.position);
@@ -717,6 +736,17 @@ function tick(dt: number) {
     const unlock=advanceFlight(flightProgress,{gliding:player.mode==='glide',distance:player.position.distanceTo(previousPlayerPosition),speed:player.velocity.length(),pulse:newPulse,time:elapsed});
     player.gasCapacityLevel=flightProgress.capacityLevel;player.gasPowerLevel=flightProgress.powerLevel;player.gasControlLevel=flightProgress.controlLevel;
     if(unlock)showInfo(unlock,'success');
+    if(flightCourse){
+      const result=stepFlightCourse(flightCourse,{position:player.position,previous:previousPlayerPosition,velocity:player.velocity,
+        mode:player.mode,pulseSeq:player.gasPulseSeq??0,dt});
+      if(result===1)flightRings.advance(flightCourse.nextRing);
+      else if(result===2){
+        const id=flightCourse.id,seconds=flightCourse.elapsed,previous=flightProgress.records[id];
+        if(previous===null||seconds<previous)flightProgress.records[id]=seconds;
+        showInfo('Défi réussi : '+COURSE_LABELS[id]+' · '+seconds.toFixed(1)+' s','success');
+        stopFlightCourse();
+      }else if(result===-1){showInfo('Défi interrompu : '+COURSE_LABELS[flightCourse.id],'warning');stopFlightCourse();}
+    }
     // Crossing a mine entrance / stairs: no interpolation through rock.
     if(player.transitioned){previousPlayerPosition.copy(player.position);renderPosition.copy(player.position);}
     if (keys.jumpPressed) jumpQueue = Math.max(0, jumpQueue - 1);
@@ -861,6 +891,15 @@ function draw(now: number) {
   gasEffects.update(delta);
   impacts.update(delta);
   updateHud();
+  if(elapsed-lastCourseHudAt>.2){
+    lastCourseHudAt=elapsed;
+    flightCourseHud.hidden=!flightCourse;
+    if(flightCourse){
+      const s=flightCourse,desc=s.id==='rings'?'Anneaux : '+s.nextRing+'/'+s.rings.length:
+        s.id==='dive'?'Remonter de 22 m après un piqué':'Distance : '+Math.floor(s.distance)+'/450 m';
+      flightCourseHud.textContent=COURSE_LABELS[s.id]+' · '+s.elapsed.toFixed(1)+' s · '+desc+' · Pets : '+s.usedPulses;
+    }
+  }
   gameUi?.frame(elapsed);
   fpsTime += wallDrawDelta;
   frameCount++;
@@ -942,7 +981,7 @@ function draw(now: number) {
   }
   requestAnimationFrame(draw);
 }
-window.addEventListener('pagehide',event=>{if(event.persisted)void audio?.engine.setHidden(true);else {remoteActors?.dispose();gasEffects.dispose();speedStreaks.dispose();gpuTimer.dispose();void audio?.dispose();}});
+window.addEventListener('pagehide',event=>{if(event.persisted)void audio?.engine.setHidden(true);else {remoteActors?.dispose();gasEffects.dispose();flightRings.dispose();flightCourseHud.remove();speedStreaks.dispose();gpuTimer.dispose();void audio?.dispose();}});
 window.addEventListener('pageshow',event=>{if(event.persisted&&started)void audio?.engine.setHidden(document.hidden);});
 document.addEventListener('visibilitychange', () => {
   presentation.reset();
