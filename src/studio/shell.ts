@@ -28,6 +28,7 @@ const MODULES:[string,string,string,string,string][]=[
   ['objects','Objets','▣','Construire','B'],['natural','Structures naturelles','◠','Construire',''],['characters','Personnages','☺','Construire',''],['lights','Lumières','✦','Construire','L'],
   ['terrain','Relief','⛰','Monde','T'],['regions','Régions','◉','Monde',''],['biomes','Biotopes','✿','Monde',''],['paths','Chemins et rivières','〰','Monde',''],['water','Eau','≈','Monde',''],['zones','Zones','⬠','Monde',''],['landscapes','Paysages','❦','Monde',''],
   ['dialogues','Dialogues','✉','Logique',''],['interactions','Interactions','⚙','Logique',''],['environment','Environnement','☀','Logique',''],['audio','Audio','♪','Logique',''],['motion-lab','Animations du hamster','◉','Logique',''],
+  ['composition','Recomposer le monde','◒','Projet',''],
   ['guide','Assistant de création','☷','Projet',''],
   ['tests','Validation / compilation','✓','Projet',''],
 ];
@@ -109,6 +110,7 @@ async function module(requested:string){
   else if(id==='water'){const {mountWater}=await import('./water-view.ts');if(mine!==generation)return;disposePanel=mountWater(host,$('tools'),s).dispose;}
   else if(id==='audio'){const {mountAudio}=await import('./audio-view.ts');if(mine!==generation)return;disposePanel=mountAudio(host,s,()=>mine===generation).dispose;}
   else if(id==='motion-lab'){const {mountHamsterMotionLab}=await import('./hamster-motion-lab.ts');if(mine!==generation)return;disposePanel=mountHamsterMotionLab(host).dispose;}
+  else if(id==='composition'){const {mountCompositionPanel}=await import('./composition-panel.ts');if(mine!==generation)return;disposePanel=mountCompositionPanel(host,s,status);}
   else if(id==='environment'){const {mountEnvironment}=await import('./environment-view.ts');mountEnvironment(host,s);}
   else if(id==='interactions'){const {mountInteractions}=await import('./interactions-view.ts');await mountInteractions(host,s);$('tools').append(action('Retour à la vue 3D',()=>module('scene')));}
   else if(id==='guide'){const {mountCreationGuide}=await import('./creation-guide.ts');

@@ -170,3 +170,6 @@ label:has(> input[type=checkbox]){flex-direction:row;align-items:center;justify-
 .welcome-quick-templates{display:flex;flex-wrap:wrap;gap:6px}
 .welcome-quick-templates button{font-size:11px}
 @media(max-width:650px){.welcome-direct{grid-template-columns:1fr}.welcome-direct>.primary-button{grid-column:1}}
+.welcome-legend{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0;font-size:12px}
+.welcome-preview [role=status]{font-size:13px}
+.welcome-preview details{margin-top:12px;font-size:12px}

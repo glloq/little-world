@@ -193,3 +193,10 @@ docs/                       # Conception, objectifs et registre de décisions
 - [Agriculture LOW-RESOURCE : parcelles, croissance différée, rendu LOD et gestion des cultures](docs/25-AGRICULTURE-PARCELS-LOW-RESOURCE.md)- [Eau LOW-RESOURCE : rivières en pente, lacs, cascades, plongée et océan LOD](docs/21-WATER-HYDROLOGY-LOW-RESOURCE.md)
 
 **Licence de code :** à définir. Les premiers GLB ont été créés spécifiquement pour Little World ; aucun asset tiers n'est incorporé à ce stade.
+
+### Génération géographique guidée
+
+Studio → **Créer un monde** propose une composition éditable avec terrasses,
+rivière descendante et régions successives. Les critères obligatoires non satisfaits
+bloquent la création ; l'aperçu et le projet sauvegardé utilisent le même plan.
+Voir [architecture, exemples de graines et limites](docs/62-GUIDED-WORLD-COMPOSITION.md).

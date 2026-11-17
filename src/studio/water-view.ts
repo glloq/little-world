@@ -1,3 +1,4 @@
+import {WATER_ALTITUDE} from '../water/profile.ts';
 import type {WaterBody} from '../world-data.ts';
 import {createTerrainSource} from '../terrain.ts';
 import {compileWaterNetwork,validateWaterProfile,validateWaterNetworkFields} from '../water/profile.ts';
@@ -57,7 +58,7 @@ export function mountWater(host:HTMLElement,tools:HTMLElement,s:StudioSession){
   tools.append(field('Sort de',select(encode(draft.from),links.filter(l=>l[0]!=='sea'),v=>{const l=decode(v);if(l)draft.from=l;else delete draft.from;update();})),
    field('Se jette dans',select(encode(draft.to),links,v=>{const l=decode(v);if(l)draft.to=l;else delete draft.to;update();})));
   const falls=node('div','','water-falls');falls.append(node('h4','Cascades (niveaux haut et bas explicites)'));
-  for(const [k,f] of (draft.falls??[]).entries()){const row=node('div','','water-point');row.append(field(`Cascade ${k+1} au point`,numberInput(f.at+1,v=>{f.at=Math.round(v)-1;update();},2,Math.max(2,draft.points.length-1),'1')),field('Haut (m)',numberInput(f.top,v=>{f.top=v;update();},-50,150)),field('Bas (m)',numberInput(f.bottom,v=>{f.bottom=v;update();},-50,150)),button('Retirer la cascade',()=>{draft.falls=draft.falls!.filter(x=>x!==f);if(!draft.falls.length)delete draft.falls;controls();update();}));falls.append(row);}
+  for(const [k,f] of (draft.falls??[]).entries()){const row=node('div','','water-point');row.append(field(`Cascade ${k+1} au point`,numberInput(f.at+1,v=>{f.at=Math.round(v)-1;update();},2,Math.max(2,draft.points.length-1),'1')),field('Haut (m)',numberInput(f.top,v=>{f.top=v;update();},WATER_ALTITUDE.min,WATER_ALTITUDE.max)),field('Bas (m)',numberInput(f.bottom,v=>{f.bottom=v;update();},WATER_ALTITUDE.min,WATER_ALTITUDE.max)),button('Retirer la cascade',()=>{draft.falls=draft.falls!.filter(x=>x!==f);if(!draft.falls.length)delete draft.falls;controls();update();}));falls.append(row);}
   if(draft.points.length>=3)falls.append(button('Ajouter une cascade',()=>{const at=Math.floor(draft.points.length/2),c=compileWaterNetwork([draft],source(),p.world.seaLevel)[0],q=draft.points[at],near=c.points.reduce((a,v)=>Math.hypot(v.x-q.x,v.z-q.z)<Math.hypot(a.x-q.x,a.z-q.z)?v:a,c.points[0]),top=Math.floor(near.level*10)/10;draft.falls=[...(draft.falls??[]),{at,top,bottom:Math.round((top-3)*10)/10}];controls();update();}));
   tools.append(falls);
  }
@@ -89,7 +90,7 @@ export function mountWater(host:HTMLElement,tools:HTMLElement,s:StudioSession){
   const change=(fn:()=>void)=>{fn();update();};
   tools.append(field('Largeur (m)',numberInput(draft.width,v=>change(()=>draft.width=v),1,40)),field('Profondeur (m)',numberInput(draft.depth,v=>change(()=>draft.depth=v),.5,20)));
   if(draft.profile?.mode==='terrain')tools.append(field('Décalage eau / terrain (m)',numberInput(draft.profile.offset,v=>change(()=>{if(draft.profile?.mode==='terrain')draft.profile.offset=v;}),-10,10)));
-  if(!draft.profile)tools.append(field('Altitude du plan d’eau (m)',numberInput(draft.level,v=>change(()=>draft.level=v),-20,100)));
+  if(!draft.profile)tools.append(field('Altitude du plan d’eau (m)',numberInput(draft.level,v=>change(()=>draft.level=v),WATER_ALTITUDE.min,WATER_ALTITUDE.max)));
   tools.append(button('Inverser amont / aval',()=>{draft.points.reverse();if(draft.profile?.mode==='manual')draft.profile.levels.reverse();controls();update();}),button('Retirer le dernier point',()=>{draft.points.pop();if(draft.profile?.mode==='manual')draft.profile.levels.pop();controls();update();}));
   tools.append(button('Appliquer le tracé',async()=>{
    if(committing)return;committing=true;
@@ -108,7 +109,7 @@ export function mountWater(host:HTMLElement,tools:HTMLElement,s:StudioSession){
   for(const [i,point] of draft.points.entries()){
    const row=node('div','','water-point');row.append(node('strong',`Point ${i+1}`));
    for(const axis of ['x','z'] as const)row.append(field(`Point ${i+1} ${axis.toUpperCase()}`,numberInput(point[axis],v=>change(()=>point[axis]=v),axis==='x'?b.minX+.1:b.minZ+.1,axis==='x'?b.maxX-.1:b.maxZ-.1)));
-   if(draft.profile?.mode==='manual')row.append(field(`Point ${i+1} altitude`,numberInput(draft.profile.levels[i],v=>change(()=>{if(draft.profile?.mode==='manual')draft.profile.levels[i]=v;}),-50,150)));
+   if(draft.profile?.mode==='manual')row.append(field(`Point ${i+1} altitude`,numberInput(draft.profile.levels[i],v=>change(()=>{if(draft.profile?.mode==='manual')draft.profile.levels[i]=v;}),WATER_ALTITUDE.min,WATER_ALTITUDE.max)));
    tools.append(row);
   }
 

@@ -1,8 +1,12 @@
 /** Accessible, progressive Studio welcome flow. Preview samples the production relief
  * generator from exactly the same in-memory draft saved at confirmation. */
 import {button,field,input,node,numberInput,select} from './dom.ts';
-import {buildWelcomeProject,DEFAULT_WELCOME_CONFIG,type WelcomeConfig,type WelcomeMode,type ReliefPreset} from '../studio-core/world-onboarding.ts';
-import {generatorField} from '../terrain-generator.ts';
+import {buildWelcomeProject,DEFAULT_WELCOME_CONFIG,type WelcomeConfig,type ReliefPreset} from '../studio-core/world-onboarding.ts';
+import {fingerprint} from '../world-production/landscape-schema.ts';
+import {projectGeography} from '../studio-core/geo-context.ts';
+import {BIOMES_V} from '../geography/layers.ts';
+import {composeWorld,projectFromComposition,type WorldComposition} from '../studio-core/world-composition.ts';
+import {DEFAULT_MAP_REQUIREMENTS,LANDSCAPES,type Landscape,type MapRequirements} from '../studio-core/map-requirements.ts';
 import {createGuidedWorld,type WorldStartMode} from '../studio-core/world-start.ts';
 import {createProject} from '../studio-core/schema.ts';
 import type {ProjectDocument} from '../studio-core/types.ts';
@@ -28,24 +32,11 @@ const fixtureShortcuts=[
   ['Scène de référence Déplacements','motion-reference.project.json'],
   ['Démonstration B1 (mine, eau, parcelles)','b1-demo.project.json'],
 ] as const;
-const modes:readonly {id:WelcomeMode;name:string;detail:string}[]=[
-  {id:'island',name:'Grande île',detail:'Une île entourée de côtes et un relief central.'},
-  {id:'archipelago',name:'Archipel',detail:'Une île principale et plusieurs îlots.'},
-  {id:'chain',name:'Chaîne d’îlots',detail:'Des îles séparées à explorer.'},
-  {id:'calm',name:'Paysage doux',detail:'Des côtes, des collines et peu de relief.'},
-  {id:'blank',name:'Terrain simple',detail:'Une surface plane, sans objets ni relief imposé.'},
-];
 const reliefs:readonly {id:ReliefPreset;name:string;detail:string}[]=[
   {id:'gentle',name:'Doux',detail:'Quelques collines et pentes légères'},
   {id:'balanced',name:'Varié',detail:'Montagnes et relief équilibré'},
   {id:'rugged',name:'Accidenté',detail:'Falaises et relief marqué'},
 ];
-function choice(title:string,detail:string,active:boolean,fn:()=>void){
-  const e=button('',()=>{},'welcome-choice');e.textContent='';
-  e.classList.toggle('active',active);e.setAttribute('aria-pressed',String(active));
-  e.append(node('strong',title),node('span',detail,'muted'));
-  e.onclick=fn;return e;
-}
 function previewRect(c:HTMLCanvasElement,config:WelcomeConfig){
   const margin=25,scale=Math.min((c.width-margin*2)/config.width,(c.height-margin*2)/config.length);
   const w=config.width*scale,h=config.length*scale;
@@ -62,7 +53,7 @@ export function drawWelcomePreview(canvas:HTMLCanvasElement,project:ProjectDocum
   const tc=tmp.getContext('2d');if(!tc)throw Error('Aperçu 2D indisponible');
   const image=tc.createImageData(nx,nz),heights=new Float32Array(nx*nz);
   const def=project.world.terrain;if(!def)throw Error('Relief non disponible');
-  const field=generatorField(def,{seed:project.world.seed,seaLevel:project.world.seaLevel,width,length},()=>0);
+  const field=projectGeography(project).ctx;
   for(let y=0;y<nz;y++)for(let x=0;x<nx;x++){
     const wx=bounds.minX+(x+.5)/nx*width,wz=bounds.minZ+(y+.5)/nz*length;
     heights[y*nx+x]=field.height(wx,wz);
@@ -81,6 +72,9 @@ export function drawWelcomePreview(canvas:HTMLCanvasElement,project:ProjectDocum
     else if(h<220)color=[118,129,100];
     else if(h<400)color=[142,145,136];
     else color=[207,209,204];
+    const wx=bounds.minX+(x+.5)/nx*width,wz=bounds.minZ+(y+.5)/nz*length;
+    const biome=BIOMES_V.find(b=>b.code===field.mask('biome',wx,wz));
+    if(biome&&h>0)color=color.map((v,k)=>Math.round(v*.45+((biome.color>>((2-k)*8))&255)*.55)) as [number,number,number];
     const off=id*4;
     for(let k=0;k<3;k++)image.data[off+k]=Math.max(0,Math.min(255,Math.round(color[k]*shade)));
     image.data[off+3]=255;
@@ -90,6 +84,14 @@ export function drawWelcomePreview(canvas:HTMLCanvasElement,project:ProjectDocum
   ctx.fillStyle='#e1edf0';ctx.fillRect(0,0,canvas.width,canvas.height);
   ctx.imageSmoothingEnabled=true;ctx.drawImage(tmp,rect.x,rect.y,rect.w,rect.h);
   ctx.strokeStyle='#b4cbbf';ctx.lineWidth=2;ctx.strokeRect(rect.x,rect.y,rect.w,rect.h);
+  const projectPoint=(p:{x:number;z:number})=>({x:rect.x+(p.x-bounds.minX)/width*rect.w,y:rect.y+(p.z-bounds.minZ)/length*rect.h});
+  const line=(points:{x:number;z:number}[],color:string,closed=false)=>{ctx.beginPath();points.forEach((p,i)=>{const q=projectPoint(p);if(i)ctx.lineTo(q.x,q.y);else ctx.moveTo(q.x,q.y);});if(closed)ctx.closePath();ctx.strokeStyle=color;ctx.lineWidth=1;ctx.stroke();};
+  if(def.kind==='archipelago')for(const f of def.archipelago.features){
+    if(f.kind==='plateau'){ctx.setLineDash([3,3]);line(f.polygon,'#795e40',true);ctx.setLineDash([]);}
+    if(f.kind==='ridge'||f.kind==='valley')line(f.points,f.kind==='valley'?'#927443':'#5d5550');
+    if(f.kind==='mountain'||f.kind==='volcano'){const q=projectPoint(f);ctx.fillStyle='#504c48';ctx.fillText(f.kind==='volcano'?'▲ V':'▲',q.x,q.y);}
+  }
+  for(const w of Object.values(project.libraries.water)){line(w.points,'#1677c4',w.kind==='lake');if(w.kind==='lake'){ctx.fillStyle='#459bd8';ctx.fill();}for(const fall of w.falls??[]){const q=projectPoint(w.points[fall.at]);ctx.fillStyle='#fff';ctx.fillRect(q.x-2,q.y-2,5,5);}}
   ctx.font='15px system-ui';ctx.fillStyle='#294438';ctx.fillText('N',rect.x+rect.w/2-5,Math.max(16,rect.y-6));
   ctx.font='12px system-ui';ctx.fillText(Math.round(width/1000*10)/10+' × '+Math.round(length/1000*10)/10+' km',14,canvas.height-10);
   return rect;
@@ -98,7 +100,8 @@ export function mountWelcome(host:HTMLElement,actions:WelcomeActions){
   const testFixtures=new URLSearchParams(location.search).has('testFixtures');
   let config:WelcomeConfig={...DEFAULT_WELCOME_CONFIG};
   let step=0,section:'home'|'wizard'|'templates'|'projects'='home',name='Mon petit monde';
-  let placing:'mountain'|'volcano'|null=null,renderId=0,busy=false,showAdvanced=false;
+  let renderId=0,busy=false;
+  let requirements=structuredClone(DEFAULT_MAP_REQUIREMENTS),cachedKey='',cachedPlan:WorldComposition|null=null;
   const title=(text:string,description:string)=>{
     const h=node('div','','welcome-heading');
     h.append(node('div','LITTLE WORLD STUDIO','kicker'),node('h1',text),node('p',description,'muted'));return h;
@@ -112,7 +115,7 @@ export function mountWelcome(host:HTMLElement,actions:WelcomeActions){
     page.append(title(heading,description));
     return page;
   };
-  const back=()=>{section='home';placing=null;render();};
+  const back=()=>{section='home';render();};
   function showHome(){
     const page=top('Des idées aux petits mondes','Choisissez un point de départ. Vous pourrez tout modifier ensuite.');
     const choices=node('div','','welcome-entry-grid');
@@ -125,7 +128,7 @@ export function mountWelcome(host:HTMLElement,actions:WelcomeActions){
     for(const [label,description,key] of cards){
       const b=button('',()=>{},'welcome-entry');
       b.setAttribute('aria-label',label);b.append(node('span',key==='create'?'◒':key==='templates'?'▤':key==='blank'?'▱':'↺','welcome-entry-icon'),node('strong',label),node('span',description,'muted'));
-      b.onclick=()=>{if(key==='templates')section='templates';else if(key==='projects')section='projects';else{section='wizard';step=0;config={...DEFAULT_WELCOME_CONFIG,...(key==='blank'?{mode:'blank' as const,volcano:false,relief:'gentle' as const,width:1000,length:1000}:{})};}render();};
+      b.onclick=()=>{if(key==='templates')section='templates';else if(key==='projects')section='projects';else{section='wizard';step=0;requirements=structuredClone(DEFAULT_MAP_REQUIREMENTS);config={...DEFAULT_WELCOME_CONFIG,...(key==='blank'?{mode:'blank' as const,volcano:false,relief:'gentle' as const,width:1000,length:1000}:{})};}render();};
       choices.append(b);
     }
     page.append(choices);
@@ -194,107 +197,96 @@ export function mountWelcome(host:HTMLElement,actions:WelcomeActions){
     page.append(grid,button('Importer un projet JSON / ZIP',actions.importFile));host.replaceChildren(page);
   }
   function showWizard(){
-    const page=top('Imaginez votre paysage','Trois étapes courtes. Aucun projet n’est créé avant votre confirmation.');
+    const page=top('Imaginez votre paysage','Quatre étapes. Le plan affiché est enregistré uniquement après confirmation.');
     page.append(button('← Accueil',back));
+    const blank=config.mode==='blank';
     const progress=node('div','','welcome-progress');
-    for(let i=0;i<3;i++){
-      const b=button((i+1)+'. '+['Choisir','Personnaliser','Créer'][i],()=>{step=i;render();},'welcome-step');
-      b.classList.toggle('active',i===step);b.setAttribute('aria-current',i===step?'step':'false');progress.append(b);
-    }
-    page.append(progress);
+    ['Monde','Paysages','Organisation','Aperçu et création'].forEach((label,i)=>{
+      const b=button((i+1)+'. '+label,()=>{step=i;render();},'welcome-step');b.classList.toggle('active',i===step);b.setAttribute('aria-current',i===step?'step':'false');progress.append(b);
+    });page.append(progress);
     const main=node('div','','welcome-layout'),controls=node('section','','welcome-controls'),preview=node('section','','welcome-preview');
-    const heading=(s:string)=>controls.append(node('h2',s));
-      if(step===0){
-      heading('Quel type de monde ?');
-      controls.append(node('p','Choisissez une forme de départ : tous les reliefs seront ensuite éditables.','muted'));
-      const grid=node('div','','welcome-mode-grid');for(const m of modes)grid.append(choice(m.name,m.detail,config.mode===m.id,()=>{const previous=config.mode;config.mode=m.id;if(m.id==='blank'||m.id==='calm'){config.volcano=false;config.volcanoAt=null;}else if(previous==='blank'||previous==='calm')config.volcano=true;if(m.id==='blank')config.mountain=null;render();}));controls.append(grid);
+    const change=<K extends keyof MapRequirements>(key:K,value:MapRequirements[K])=>{requirements={...requirements,[key]:value};render();};
+    const checkbox=(label:string,checked:boolean,fn:(v:boolean)=>void)=>{const el=node('input');el.type='checkbox';el.checked=checked;el.onchange=()=>fn(el.checked);return field(label,el);};
+    if(blank&&(step===1||step===2)){controls.append(node('h2','Terrain simple'),node('p','Sans régions ni eau générées. Vous pourrez les créer avec les outils du Studio.','muted'));}
+    else if(step===0){
+      controls.append(node('h2','Choisir le monde'));
+      if(!blank)controls.append(field('Type géographique',select(requirements.type,[['island','Grande île'],['archipelago','Archipel'],['valley','Grande vallée — non prise en charge'],['continental','Région continentale — non prise en charge']],v=>change('type',v as MapRequirements['type']))));
+      else controls.append(node('p','Terrain simple sans composition automatique.'));
+      controls.append(field('Largeur (m)',numberInput(blank?config.width:requirements.width,v=>{config.width=v;change('width',v);},500,8000,'1')),
+        field('Longueur (m)',numberInput(blank?config.length:requirements.length,v=>{config.length=v;change('length',v);},500,8000,'1')));
+      if(!blank)controls.append(field('Relief général',select(requirements.relief,reliefs.map(r=>[r.id,r.name] as const),v=>change('relief',v as ReliefPreset))));
     }else if(step===1){
-      heading('Quel relief souhaitez-vous ?');
-      if(config.mode!=='blank'){
-        const group=node('div','','welcome-mode-grid');
-        for(const p of reliefs)group.append(choice(p.name,p.detail,config.relief===p.id,()=>{config.relief=p.id;render();}));
-        controls.append(group);
-        const toggle=node('label','','welcome-check'),check=node('input');check.type='checkbox';check.checked=config.volcano;
-        check.onchange=()=>{config.volcano=check.checked;config.volcanoAt=null;render();};
-        toggle.append(check,node('span','Ajouter un volcan'));controls.append(toggle);
-      }else controls.append(node('p','Le terrain de départ restera plat. Vous ajouterez ses formes depuis le Studio.','muted'));
-      controls.append(node('h3','Dimensions du monde'));
-      const dimensions=String(config.width)+'x'+String(config.length);
-      const sizes=select(['1000x1000','3000x3000','4000x3000','3000x8000','8000x8000'].includes(dimensions)?dimensions:'custom',[
-        ['1000x1000','1 × 1 km — Compact'],['3000x3000','3 × 3 km — Moyen'],['4000x3000','4 × 3 km — Île officielle'],['3000x8000','3 × 8 km — Grand'],
-        ['8000x8000','8 × 8 km — Très grand'],['custom','Dimensions personnalisées'],
-      ],v=>{if(v!=='custom'){const [w,l]=v.split('x').map(Number);config.width=w;config.length=l;config.mountain=null;config.volcanoAt=null;showAdvanced=false;render();}else{showAdvanced=true;render();}});
-      controls.append(field('Taille de la carte',sizes));
-      const advanced=node('details'),summary=node('summary','Réglages avancés (facultatifs)');advanced.open=showAdvanced||sizes.value==='custom';
-      advanced.append(summary);
-      const width=numberInput(config.width,()=>{},500,8000,'1'),length=numberInput(config.length,()=>{},500,8000,'1');
-      const seed=numberInput(config.seed,()=>{},1,9999999,'1');
-      width.onchange=()=>{config.width=Number(width.value);config.mountain=null;config.volcanoAt=null;showAdvanced=true;render();};
-      length.onchange=()=>{config.length=Number(length.value);config.mountain=null;config.volcanoAt=null;showAdvanced=true;render();};
-      seed.onchange=()=>{config.seed=Number(seed.value);showAdvanced=true;render();};
-      advanced.append(field('Largeur (m)',width),field('Longueur (m)',length),field('Graine de génération',seed));
+      controls.append(node('h2','Choisir les paysages'),node('p','Les paysages obligatoires manquants empêchent la création.','muted'));
+      for(const [kind,label]of Object.entries(LANDSCAPES) as [Landscape,string][]){
+        const selected=requirements.landscapes.find(l=>l.kind===kind),row=node('div','','welcome-between');
+        row.append(checkbox(label,!!selected,v=>{
+          const landscapes=requirements.landscapes.filter(l=>l.kind!==kind);if(v)landscapes.push({kind,required:false});
+          requirements={...requirements,landscapes,sequence:v?[...requirements.sequence,kind]:requirements.sequence.filter(k=>k!==kind)};render();
+        }));
+        if(selected)row.append(checkbox(label+' obligatoire',selected.required,v=>change('landscapes',requirements.landscapes.map(l=>l.kind===kind?{...l,required:v}:l))));
+        controls.append(row);
+      }
+    }else if(step===2){
+      controls.append(node('h2','Organiser les paysages'),field('Organisation des biomes',select(requirements.biomeMode,[['automatic','Automatique'],['custom','Succession personnalisée']],v=>change('biomeMode',v as MapRequirements['biomeMode']))));
+      if(requirements.biomeMode==='custom')requirements.sequence.forEach((kind,i)=>{
+        const row=node('div','','welcome-between');row.append(node('span',LANDSCAPES[kind]));
+        for(const [delta,label]of [[-1,'Monter'],[1,'Descendre']] as const){const b=button(label+' '+LANDSCAPES[kind],()=>{const order=[...requirements.sequence];[order[i],order[i+delta]]=[order[i+delta],order[i]];change('sequence',order);});b.disabled=i+delta<0||i+delta>=requirements.sequence.length;row.append(b);}controls.append(row);
+      });
+      controls.append(field('Rivières principales',numberInput(requirements.rivers,v=>change('rivers',v),0,6,'1')),
+        field('Niveaux de terrasses',numberInput(requirements.terraces,v=>change('terraces',v),1,6,'1')),
+        field('Importance des falaises',numberInput(requirements.cliffs,v=>change('cliffs',v),0,1,'.05')));
+      const advanced=node('details');advanced.append(node('summary','Réglages avancés (facultatifs)'),
+        field('Affluents raccordés',numberInput(requirements.tributaries,v=>change('tributaries',v),0,6,'1')),
+        field('Diversité géographique',numberInput(requirements.diversity,v=>change('diversity',v),0,1,'.05')),
+        checkbox('Souhaiter un lac',requirements.lakes,v=>change('lakes',v)),checkbox('Souhaiter des cascades',requirements.waterfalls,v=>change('waterfalls',v)));
       controls.append(advanced);
     }else{
-      heading('Votre monde est prêt à être créé');
-      controls.append(node('p','Le relief visible ici sera celui de votre nouveau projet. La décoration, les rivières et les biotopes pourront être ajoutés ensuite dans le Studio.','muted'));
-      const projectName=input(name,v=>{name=v;});projectName.maxLength=100;
-      controls.append(field('Nom du projet',projectName));
-      if(config.mode!=='blank'){
-        controls.append(node('h3','Composition rapide (facultative)'));
-        const placeBar=node('div','','welcome-actions');
-        const mountain=button(placing==='mountain'?'Cliquez sur la carte…':'Placer une montagne',()=>{placing='mountain';render();});
-        const volcano=button(placing==='volcano'?'Cliquez sur la carte…':'Déplacer le volcan',()=>{placing='volcano';render();});
-        volcano.disabled=!config.volcano;
-        placeBar.append(mountain,volcano);controls.append(placeBar);
-        if(config.mountain||config.volcanoAt)controls.append(button('Réinitialiser les placements',()=>{config.mountain=null;config.volcanoAt=null;placing=null;render();}));
-        if(placing)controls.append(node('p','Cliquez sur la carte à droite pour '+(placing==='mountain'?'ajouter une montagne.':'déplacer le volcan.'),'muted'));
-      }
+      controls.append(node('h2','Aperçu et création'),field('Nom du projet',input(name,v=>{name=v;})),node('p','Relief, eau et régions restent éditables dans le Studio. Les végétaux sont procéduraux et instanciés.','muted'));
     }
-    const header=node('div','','welcome-between');
-    header.append(node('h2','Aperçu du relief'),button('Autre variation',()=>{config.seed=Math.floor(Math.random()*9999999)+1;render();}));
-    const canvas=node('canvas');canvas.width=600;canvas.height=420;
-    canvas.className='welcome-terrain-canvas';canvas.setAttribute('aria-label','Aperçu topographique du terrain calculé');
-    const note=node('p','Aperçu calculé à basse résolution avec le véritable générateur. Aucun enregistrement avant création.','muted');
-    preview.append(header,canvas,note);
-    if(step===2&&config.mode!=='blank'){
-      canvas.classList.toggle('placing',placing!==null);
-      canvas.onclick=e=>{
-        if(!placing)return;
-        const rect=previewRect(canvas,config),bounds=canvas.getBoundingClientRect();
-        const px=(e.clientX-bounds.left)*canvas.width/bounds.width,py=(e.clientY-bounds.top)*canvas.height/bounds.height;
-        if(px<rect.x||px>rect.x+rect.w||py<rect.y||py>rect.y+rect.h)return;
-        const x=(px-rect.x)/rect.w*config.width-config.width/2,z=(py-rect.y)/rect.h*config.length-config.length/2;
-        if(placing==='mountain')config.mountain={x,z};else config.volcanoAt={x,z};
-        placing=null;render();
-      };
-    }
+    const seed=numberInput(blank?config.seed:requirements.seed,v=>{config.seed=v;change('seed',v);},1,9999999,'1');
+    controls.append(field('Graine de génération',seed));
+    const header=node('div','','welcome-between');header.append(node('h2','Aperçu du monde'),button('Autre variation',()=>{config.seed=Math.floor(Math.random()*9999999)+1;change('seed',config.seed);}));
+    const canvas=node('canvas');canvas.width=600;canvas.height=420;canvas.className='welcome-terrain-canvas';canvas.setAttribute('aria-label','Aperçu topographique du terrain calculé');
+    const note=node('p','Calcul du plan…','muted'),messages=node('div');messages.setAttribute('role','status');
+    const details=node('details'),statistics=node('p','','muted');details.append(node('summary','Détails du calcul'),statistics);
+    preview.append(header,canvas,note,messages,details);
+    const legend=node('p','Altitude ombrée · Bleu : eau · Pointillés bruns : terrasses et escarpements · ▲ : massifs','muted');preview.append(legend);
+    const colors=node('div','','welcome-legend');for(const biome of BIOMES_V.slice(0,7)){const item=node('span',biome.label);item.style.borderLeft='12px solid #'+biome.color.toString(16).padStart(6,'0');item.style.padding='0 8px';colors.append(item);}preview.append(colors);
     main.append(controls,preview);page.append(main);
     const foot=node('div','','welcome-footer');
-    if(step>0)foot.append(button('← Retour',()=>{step--;placing=null;render();}));
-    else foot.append(node('span','Modifiez librement votre choix.','muted'));
-    if(step<2)foot.append(button('Continuer →',()=>{step++;render();},'primary-button'));
-    else {
-      const create=button('Créer et ouvrir le monde',()=>{name=projectNameValue();void safe(async()=>{const p=buildWelcomeProject(config,name);await actions.create(p);})();},'primary-button');
-      create.disabled=busy;foot.append(create);
+    if(step>0)foot.append(button('← Retour',()=>{step--;render();}));
+    let create:HTMLButtonElement|null=null;
+    if(step<3)foot.append(button('Continuer →',()=>{step++;render();},'primary-button'));
+    else{
+      create=button('Créer et ouvrir le monde',()=>{void safe(async()=>{
+        if(blank){await actions.create(buildWelcomeProject(config,name));return;}
+        if(!cachedPlan||cachedKey!==JSON.stringify(requirements))throw Error('Attendre le nouvel aperçu');
+        await actions.create(projectFromComposition(cachedPlan,name));
+      })();},'primary-button');create.disabled=true;foot.append(create);
     }
-    function projectNameValue(){const el=controls.querySelector<HTMLInputElement>('input[aria-label="Nom du projet"]');return el?.value.trim()??name;}
     page.append(foot);host.replaceChildren(page);
     const token=++renderId;
-    // Defer the synchronous sampling so the UI can paint the controls first.
     requestAnimationFrame(()=>{
       if(token!==renderId||!canvas.isConnected)return;
       try{
-        const p=buildWelcomeProject(config,'Aperçu');
-        const rect=drawWelcomePreview(canvas,p);
-        const ctx=canvas.getContext('2d')!;
-        const features=p.world.terrain?.kind==='archipelago'?p.world.terrain.archipelago.features:[];
-        const marker=(x:number,z:number,label:string)=>{
-          const sx=rect.x+(x/config.width+.5)*rect.w,sy=rect.y+(z/config.length+.5)*rect.h;
-          ctx.beginPath();ctx.fillStyle='#fff';ctx.strokeStyle='#324d3e';ctx.lineWidth=2;ctx.arc(sx,sy,6,0,Math.PI*2);ctx.fill();ctx.stroke();
-          ctx.fillStyle='#243d2f';ctx.font='bold 12px system-ui';ctx.fillText(label,sx+10,sy+4);
-        };
-        if(step===2)for(const f of features)if(f.kind==='volcano'||(f.kind==='mountain'&&f.id==='welcome-mountain'))marker(f.x,f.z,f.kind==='volcano'?'Volcan':'Montagne');
-      }catch(e){const ctx=canvas.getContext('2d');if(ctx){ctx.clearRect(0,0,canvas.width,canvas.height);ctx.fillStyle='#9b493e';ctx.font='14px system-ui';ctx.fillText(e instanceof Error?e.message:String(e),18,40);}note.textContent='Corrigez les paramètres avant de continuer.';}
+        let project:ProjectDocument;
+        if(blank)project=buildWelcomeProject(config,'Aperçu');
+        else{
+          const key=JSON.stringify(requirements);
+          if(key!==cachedKey||!cachedPlan){cachedPlan=composeWorld(requirements);cachedKey=key;}
+          project=cachedPlan.project;
+          messages.replaceChildren(...cachedPlan.diagnostics.map(d=>node('p',d.message,'diagnostic '+d.severity)));
+        }
+        const start=performance.now();drawWelcomePreview(canvas,project);
+        canvas.dataset.planSeed=String(project.world.seed);
+        canvas.dataset.planHash=fingerprint({terrain:project.world.terrain,water:project.libraries.water,regions:project.libraries.regions});
+        canvas.dataset.waterCount=String(Object.keys(project.libraries.water).length);
+        const metrics=!blank?cachedPlan?.metrics:null;
+        statistics.textContent=metrics?`Plan ${Math.round(metrics.generationMs)} ms · Aperçu ${Math.round(performance.now()-start)} ms · ${metrics.features}/64 formes · ${metrics.sectors} secteurs · ${Math.round(metrics.sourceBytes/1024)} Kio de sources`:'Terrain simple sans composition automatique.';
+        const families:Record<string,string>={'central-valley':'Vallée centrale','winding-valley':'Vallée sinueuse','split-plateau':'Plateau découpé','multiple-massifs':'Massifs multiples'};
+        note.textContent=blank?'Aucun enregistrement avant confirmation.':`${families[cachedPlan!.family]} · Graine ${project.world.seed} · Eau et biomes du projet calculé.`;
+        if(create)create.disabled=busy||(!blank&&!cachedPlan?.ready);
+      }catch(e){note.textContent=e instanceof Error?e.message:String(e);if(create)create.disabled=true;}
     });
   }
   function render(){

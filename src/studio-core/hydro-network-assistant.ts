@@ -3,7 +3,7 @@
  * Waterfalls are flagged as candidates, never silently added to source documents. */
 import type {WaterBody,WaterLink} from '../world-data.ts';
 import type {PointXZ} from '../geography/archipelago.ts';
-import {compileWaterNetwork,type HydroDiagnostic} from '../water/profile.ts';
+import {WATER_ALTITUDE,compileWaterNetwork,type HydroDiagnostic} from '../water/profile.ts';
 export interface HydroLinkAdvice {sourceId:string;targetId:string;targetKind:'lake'|'river';distanceM:number;snapped:PointXZ}
 export interface HydroFallAdvice {riverId:string;point:number;dropM:number;slope:number}
 export interface HydroReview {diagnostics:{id:string;diagnostic:HydroDiagnostic}[];links:HydroLinkAdvice[];falls:HydroFallAdvice[]}
@@ -78,7 +78,7 @@ export function planHydroFall(waters:readonly WaterBody[],candidate:HydroFallAdv
  const at=previous.points.reduce((best,p)=>Math.hypot(p.x-position.x,p.z-position.z)<Math.hypot(best.x-position.x,best.z-position.z)?p:best);
  const top=Number(at.level.toFixed(2)),downstream=river.points[index+1];
  const bottom=Number(Math.min(top-1,height(downstream.x,downstream.z)+(river.profile?.mode==='terrain'?river.profile.offset:-.35)).toFixed(2));
- if(!Number.isFinite(top)||!Number.isFinite(bottom)||bottom< -50||top>150||top-bottom<1)throw Error('Chute incompatible avec les altitudes autorisées');
+ if(!Number.isFinite(top)||!Number.isFinite(bottom)||bottom<WATER_ALTITUDE.min||top>WATER_ALTITUDE.max||top-bottom<1)throw Error('Chute incompatible avec les altitudes autorisées');
  const updated:WaterBody={...structuredClone(river),falls:[...(river.falls??[]),{at:index,top,bottom}].sort((a,b)=>a.at-b.at)};
  const compiled=compileWaterNetwork([...waters.filter(w=>w.id!==river.id),updated],height,seaLevel);
  const errors=compiled.flatMap(w=>w.diagnostics.filter(d=>d.severity==='ERROR').map(d=>w.id+': '+d.message));

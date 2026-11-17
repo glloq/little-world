@@ -4,7 +4,7 @@
 import type {WaterBody,WaterLink} from '../world-data.ts';
 import type {PointXZ} from '../geography/archipelago.ts';
 import {traceDownhill,type TraceResult} from '../world-production/hydro-trace.ts';
-import {compileWaterNetwork} from '../water/profile.ts';
+import {WATER_ALTITUDE,compileWaterNetwork} from '../water/profile.ts';
 export interface GuidedRiverContext {
  height(x:number,z:number):number;
  water(x:number,z:number):number|null;
@@ -51,8 +51,9 @@ export function planGuidedRiver(start:PointXZ,toward:PointXZ,context:GuidedRiver
  }
  else warnings.push('Fin '+trace.end+' : créer un lac de réception ou prolonger le tracé');
  const water:WaterBody={id:options.id,kind:'river',points,width:options.width,depth:options.depth,
-   level:Math.max(-20,Math.min(100,context.height(start.x,start.z)-.35)),
+   level:context.height(start.x,start.z)-.35,
    profile:{mode:'terrain',offset:-.35},...(to?{to}:{})};
+ if(water.level<WATER_ALTITUDE.min||water.level>WATER_ALTITUDE.max)throw Error('Source hors enveloppe verticale WATER');
  const compiled=compileWaterNetwork([...context.existing,water],context.height,context.seaLevel).at(-1)!;
  const errors=compiled.diagnostics.filter(d=>d.severity==='ERROR');
  if(errors.length)throw Error('Rivière non applicable : '+errors.map(d=>d.message).join(' '));

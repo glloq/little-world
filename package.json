@@ -73,7 +73,9 @@
     "benchmark:hybrid-island": "HYBRID_VIEWS=tools/island-hybrid-views.json HYBRID_CONFIGS=off,sectors HYBRID_RENDER_TIER=1 HYBRID_WAIT_IDLE=1 node tools/benchmark-hybrid.mjs",
     "test:render-budget": "node tools/test-render-budget.mjs",
     "benchmark:ground-cover": "node tools/benchmark-ground-cover.mjs",
-    "test:ground-cover": "node tools/test-ground-cover.mjs"
+    "test:ground-cover": "node tools/test-ground-cover.mjs",
+    "test:composition": "node --experimental-strip-types tools/test-world-composition-browser.mjs",
+    "benchmark:composition": "node --experimental-strip-types tools/benchmark-world-composition.mjs"
   },
   "dependencies": {
     "three": "^0.180.0"

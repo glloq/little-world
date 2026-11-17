@@ -10,7 +10,7 @@ try{
  await page.goto(base+'studio/');await page.getByText('Des idées aux petits mondes').waitFor();
  await page.getByRole('button',{name:'Créer un monde'}).click();await page.locator('.welcome-terrain-canvas').waitFor();
  await page.waitForFunction(()=>{const c=document.querySelector('.welcome-terrain-canvas');if(!c)return false;const d=c.getContext('2d').getImageData(0,0,c.width,c.height).data;return d.some(v=>v!==0);});
- await page.getByRole('button',{name:'Continuer →'}).click();await page.getByRole('button',{name:'Continuer →'}).click();
+ for(let step=0;step<3;step++)await page.getByRole('button',{name:'Continuer →'}).click();
  await page.getByLabel('Nom du projet').fill('Atelier navigateur');await page.getByRole('button',{name:'Créer et ouvrir le monde'}).click();await page.locator('.viewport canvas').waitFor();check(await page.locator('#breadcrumbs').textContent()==='Atelier navigateur / scene','Create and open in the 3D editing space');
  await page.getByRole('button',{name:'Objets',exact:true}).click();await page.getByRole('button',{name:'Placer : Caisse en bois',exact:true}).click();
  const canvas=page.locator('.viewport canvas');await page.waitForFunction(()=>document.querySelector('.viewport canvas')?.dataset.idle==='true');const cb=await canvas.boundingBox();await page.mouse.move(cb.x+cb.width/2,cb.y+cb.height*.6,{steps:3});await page.mouse.click(cb.x+cb.width/2,cb.y+cb.height*.6);await page.getByLabel('Nom',{exact:true}).waitFor();await page.getByLabel('Nom',{exact:true}).fill('Caisse test');await page.getByLabel('Nom',{exact:true}).press('Tab');await page.getByRole('button',{name:'Sauvegarder',exact:true}).click();await page.waitForFunction(()=>document.querySelector('#save-status').textContent==='Sauvegardé localement');

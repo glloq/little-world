@@ -5,7 +5,7 @@
 import type {WaterBody} from '../world-data.ts';
 import type {WatershedBasin} from './watershed-analysis.ts';
 import type {DepressionCandidate} from './depression-fill.ts';
-import {compileWaterNetwork} from '../water/profile.ts';
+import {WATER_ALTITUDE,compileWaterNetwork} from '../water/profile.ts';
 export interface BasinLakeProposal {basin:WatershedBasin|DepressionCandidate;water:WaterBody;rimMinM:number}
 export interface BasinLakeReview {proposals:BasinLakeProposal[];rejected:{outlet:{x:number;z:number};reason:string}[]}
 const dist=(a:{x:number;z:number},b:{x:number;z:number})=>Math.hypot(a.x-b.x,a.z-b.z);
@@ -59,8 +59,8 @@ export function proposeBasinLakes(
   const center=basin.outlet,middle=ctx.height(center.x,center.z);
   let points:{x:number;z:number}[],rim:number,level:number;
   if('spillLevelM' in basin){
-   level=Math.round(Math.min(100,basin.spillLevelM-.6)*10)/10;
-   if(!Number.isFinite(level)||level< -20||level<=middle+.6){
+   level=Math.round((basin.spillLevelM-.6)*10)/10;
+   if(!Number.isFinite(level)||level<WATER_ALTITUDE.min||level>WATER_ALTITUDE.max||level<=middle+.6){
     rejected.push({outlet:center,reason:'Débordement trop faible ou niveau incompatible avec V3'});continue;
    }
    const contour=shoreline(center,level,basin.areaM2,ctx.height,ctx.bounds);
@@ -75,7 +75,7 @@ export function proposeBasinLakes(
     rejected.push({outlet:center,reason:'Cuvette trop proche de la limite du monde'});continue;
    }
    rim=Math.min(...points.map(p=>ctx.height(p.x,p.z)));
-   level=Math.round(Math.min(100,rim-.6)*10)/10;
+   level=Math.round((rim-.6)*10)/10;
   }
   if([...ctx.existing,...proposals.map(p=>p.water)].some(w=>w.points.some(p=>dist(p,center)<Math.max(20,Math.sqrt(basin.areaM2/Math.PI)*.3)))){
    rejected.push({outlet:center,reason:'Plan d’eau déjà proche'});continue;
@@ -83,7 +83,7 @@ export function proposeBasinLakes(
   if(!Number.isFinite(middle)||!Number.isFinite(rim)||rim<middle+1.5){
    rejected.push({outlet:center,reason:'Berge trop basse ou cuvette non confirmée sur le relief précis'});continue;
   }
-  if(level< -20||level<=middle+.5){
+  if(level<WATER_ALTITUDE.min||level>WATER_ALTITUDE.max||level<=middle+.5){
    rejected.push({outlet:center,reason:'Niveau du lac incompatible avec le relief ou les limites V3'});continue;
   }
   const water:WaterBody={id:(options.idPrefix??'basin-lake-')+index,kind:'lake',points,width:6,
