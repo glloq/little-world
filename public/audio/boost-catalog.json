@@ -1,0 +1,960 @@
+{
+  "schemaVersion": 2,
+  "meta": {
+    "catalogVersion": "boost-pulses-1",
+    "description": "25 sons originaux procéduraux, à qualifier artistiquement, indépendants du catalogue généré."
+  },
+  "patchIds": [
+    "flute",
+    "pluck",
+    "harp",
+    "bell",
+    "soft-drum"
+  ],
+  "assets": {
+    "boost-classic-01": {
+      "id": "boost-classic-01",
+      "name": "Propulsion classic — variante 1",
+      "kind": "procedural",
+      "format": "procedural",
+      "status": "LISTENING_REVIEW",
+      "license": "CC0-1.0",
+      "source": "Little World — procedural original boost design, 2026-11-17",
+      "usage": "sfx",
+      "procedural": {
+        "generator": "tone",
+        "seconds": 0.18,
+        "gain": 0.3,
+        "attack": 0.008,
+        "decay": 7,
+        "frequency": 100,
+        "harmonics": [
+          1,
+          0.32,
+          0.12
+        ],
+        "sweep": -8
+      },
+      "duration": 0.18,
+      "generatorVersion": "lw-boost-procedural-1",
+      "notes": "Jouable sans fichier externe ; écoute et validation artistique encore requises."
+    },
+    "boost-classic-02": {
+      "id": "boost-classic-02",
+      "name": "Propulsion classic — variante 2",
+      "kind": "procedural",
+      "format": "procedural",
+      "status": "LISTENING_REVIEW",
+      "license": "CC0-1.0",
+      "source": "Little World — procedural original boost design, 2026-11-17",
+      "usage": "sfx",
+      "procedural": {
+        "generator": "tone",
+        "seconds": 0.215,
+        "gain": 0.3,
+        "attack": 0.008,
+        "decay": 7,
+        "frequency": 118,
+        "harmonics": [
+          1,
+          0.32,
+          0.12
+        ],
+        "sweep": -7
+      },
+      "duration": 0.215,
+      "generatorVersion": "lw-boost-procedural-1",
+      "notes": "Jouable sans fichier externe ; écoute et validation artistique encore requises."
+    },
+    "boost-classic-03": {
+      "id": "boost-classic-03",
+      "name": "Propulsion classic — variante 3",
+      "kind": "procedural",
+      "format": "procedural",
+      "status": "LISTENING_REVIEW",
+      "license": "CC0-1.0",
+      "source": "Little World — procedural original boost design, 2026-11-17",
+      "usage": "sfx",
+      "procedural": {
+        "generator": "tone",
+        "seconds": 0.25,
+        "gain": 0.3,
+        "attack": 0.008,
+        "decay": 7,
+        "frequency": 136,
+        "harmonics": [
+          1,
+          0.32,
+          0.12
+        ],
+        "sweep": -6
+      },
+      "duration": 0.25,
+      "generatorVersion": "lw-boost-procedural-1",
+      "notes": "Jouable sans fichier externe ; écoute et validation artistique encore requises."
+    },
+    "boost-classic-04": {
+      "id": "boost-classic-04",
+      "name": "Propulsion classic — variante 4",
+      "kind": "procedural",
+      "format": "procedural",
+      "status": "LISTENING_REVIEW",
+      "license": "CC0-1.0",
+      "source": "Little World — procedural original boost design, 2026-11-17",
+      "usage": "sfx",
+      "procedural": {
+        "generator": "tone",
+        "seconds": 0.28500000000000003,
+        "gain": 0.3,
+        "attack": 0.008,
+        "decay": 7,
+        "frequency": 154,
+        "harmonics": [
+          1,
+          0.32,
+          0.12
+        ],
+        "sweep": -5
+      },
+      "duration": 0.28500000000000003,
+      "generatorVersion": "lw-boost-procedural-1",
+      "notes": "Jouable sans fichier externe ; écoute et validation artistique encore requises."
+    },
+    "boost-classic-05": {
+      "id": "boost-classic-05",
+      "name": "Propulsion classic — variante 5",
+      "kind": "procedural",
+      "format": "procedural",
+      "status": "LISTENING_REVIEW",
+      "license": "CC0-1.0",
+      "source": "Little World — procedural original boost design, 2026-11-17",
+      "usage": "sfx",
+      "procedural": {
+        "generator": "tone",
+        "seconds": 0.32,
+        "gain": 0.3,
+        "attack": 0.008,
+        "decay": 7,
+        "frequency": 172,
+        "harmonics": [
+          1,
+          0.32,
+          0.12
+        ],
+        "sweep": -4
+      },
+      "duration": 0.32,
+      "generatorVersion": "lw-boost-procedural-1",
+      "notes": "Jouable sans fichier externe ; écoute et validation artistique encore requises."
+    },
+    "boost-heavy-01": {
+      "id": "boost-heavy-01",
+      "name": "Propulsion heavy — variante 1",
+      "kind": "procedural",
+      "format": "procedural",
+      "status": "LISTENING_REVIEW",
+      "license": "CC0-1.0",
+      "source": "Little World — procedural original boost design, 2026-11-17",
+      "usage": "sfx",
+      "procedural": {
+        "generator": "tone",
+        "seconds": 0.33,
+        "gain": 0.42,
+        "attack": 0.008,
+        "decay": 7,
+        "frequency": 63,
+        "harmonics": [
+          1,
+          0.55,
+          0.22
+        ],
+        "sweep": -12
+      },
+      "duration": 0.33,
+      "generatorVersion": "lw-boost-procedural-1",
+      "notes": "Jouable sans fichier externe ; écoute et validation artistique encore requises."
+    },
+    "boost-heavy-02": {
+      "id": "boost-heavy-02",
+      "name": "Propulsion heavy — variante 2",
+      "kind": "procedural",
+      "format": "procedural",
+      "status": "LISTENING_REVIEW",
+      "license": "CC0-1.0",
+      "source": "Little World — procedural original boost design, 2026-11-17",
+      "usage": "sfx",
+      "procedural": {
+        "generator": "tone",
+        "seconds": 0.365,
+        "gain": 0.42,
+        "attack": 0.008,
+        "decay": 7,
+        "frequency": 74,
+        "harmonics": [
+          1,
+          0.55,
+          0.22
+        ],
+        "sweep": -10
+      },
+      "duration": 0.365,
+      "generatorVersion": "lw-boost-procedural-1",
+      "notes": "Jouable sans fichier externe ; écoute et validation artistique encore requises."
+    },
+    "boost-heavy-03": {
+      "id": "boost-heavy-03",
+      "name": "Propulsion heavy — variante 3",
+      "kind": "procedural",
+      "format": "procedural",
+      "status": "LISTENING_REVIEW",
+      "license": "CC0-1.0",
+      "source": "Little World — procedural original boost design, 2026-11-17",
+      "usage": "sfx",
+      "procedural": {
+        "generator": "tone",
+        "seconds": 0.4,
+        "gain": 0.42,
+        "attack": 0.008,
+        "decay": 7,
+        "frequency": 85,
+        "harmonics": [
+          1,
+          0.55,
+          0.22
+        ],
+        "sweep": -8
+      },
+      "duration": 0.4,
+      "generatorVersion": "lw-boost-procedural-1",
+      "notes": "Jouable sans fichier externe ; écoute et validation artistique encore requises."
+    },
+    "boost-heavy-04": {
+      "id": "boost-heavy-04",
+      "name": "Propulsion heavy — variante 4",
+      "kind": "procedural",
+      "format": "procedural",
+      "status": "LISTENING_REVIEW",
+      "license": "CC0-1.0",
+      "source": "Little World — procedural original boost design, 2026-11-17",
+      "usage": "sfx",
+      "procedural": {
+        "generator": "tone",
+        "seconds": 0.43500000000000005,
+        "gain": 0.42,
+        "attack": 0.008,
+        "decay": 7,
+        "frequency": 96,
+        "harmonics": [
+          1,
+          0.55,
+          0.22
+        ],
+        "sweep": -6
+      },
+      "duration": 0.43500000000000005,
+      "generatorVersion": "lw-boost-procedural-1",
+      "notes": "Jouable sans fichier externe ; écoute et validation artistique encore requises."
+    },
+    "boost-cheese-01": {
+      "id": "boost-cheese-01",
+      "name": "Propulsion cheese — variante 1",
+      "kind": "procedural",
+      "format": "procedural",
+      "status": "LISTENING_REVIEW",
+      "license": "CC0-1.0",
+      "source": "Little World — procedural original boost design, 2026-11-17",
+      "usage": "sfx",
+      "procedural": {
+        "generator": "tone",
+        "seconds": 0.22,
+        "gain": 0.25,
+        "attack": 0.008,
+        "decay": 7,
+        "frequency": 240,
+        "harmonics": [
+          1,
+          0.32,
+          0.12
+        ],
+        "sweep": 9
+      },
+      "duration": 0.22,
+      "generatorVersion": "lw-boost-procedural-1",
+      "notes": "Jouable sans fichier externe ; écoute et validation artistique encore requises."
+    },
+    "boost-cheese-02": {
+      "id": "boost-cheese-02",
+      "name": "Propulsion cheese — variante 2",
+      "kind": "procedural",
+      "format": "procedural",
+      "status": "LISTENING_REVIEW",
+      "license": "CC0-1.0",
+      "source": "Little World — procedural original boost design, 2026-11-17",
+      "usage": "sfx",
+      "procedural": {
+        "generator": "tone",
+        "seconds": 0.25,
+        "gain": 0.25,
+        "attack": 0.008,
+        "decay": 7,
+        "frequency": 285,
+        "harmonics": [
+          1,
+          0.32,
+          0.12
+        ],
+        "sweep": 5
+      },
+      "duration": 0.25,
+      "generatorVersion": "lw-boost-procedural-1",
+      "notes": "Jouable sans fichier externe ; écoute et validation artistique encore requises."
+    },
+    "boost-cheese-03": {
+      "id": "boost-cheese-03",
+      "name": "Propulsion cheese — variante 3",
+      "kind": "procedural",
+      "format": "procedural",
+      "status": "LISTENING_REVIEW",
+      "license": "CC0-1.0",
+      "source": "Little World — procedural original boost design, 2026-11-17",
+      "usage": "sfx",
+      "procedural": {
+        "generator": "tone",
+        "seconds": 0.28,
+        "gain": 0.25,
+        "attack": 0.008,
+        "decay": 7,
+        "frequency": 330,
+        "harmonics": [
+          1,
+          0.32,
+          0.12
+        ],
+        "sweep": 1
+      },
+      "duration": 0.28,
+      "generatorVersion": "lw-boost-procedural-1",
+      "notes": "Jouable sans fichier externe ; écoute et validation artistique encore requises."
+    },
+    "boost-potato-01": {
+      "id": "boost-potato-01",
+      "name": "Propulsion potato — variante 1",
+      "kind": "procedural",
+      "format": "procedural",
+      "status": "LISTENING_REVIEW",
+      "license": "CC0-1.0",
+      "source": "Little World — procedural original boost design, 2026-11-17",
+      "usage": "sfx",
+      "procedural": {
+        "generator": "noise",
+        "seconds": 0.3,
+        "gain": 0.24,
+        "attack": 0.008,
+        "decay": 9,
+        "color": "brown",
+        "lowpass": 0.09
+      },
+      "duration": 0.3,
+      "generatorVersion": "lw-boost-procedural-1",
+      "notes": "Jouable sans fichier externe ; écoute et validation artistique encore requises."
+    },
+    "boost-potato-02": {
+      "id": "boost-potato-02",
+      "name": "Propulsion potato — variante 2",
+      "kind": "procedural",
+      "format": "procedural",
+      "status": "LISTENING_REVIEW",
+      "license": "CC0-1.0",
+      "source": "Little World — procedural original boost design, 2026-11-17",
+      "usage": "sfx",
+      "procedural": {
+        "generator": "noise",
+        "seconds": 0.33499999999999996,
+        "gain": 0.24,
+        "attack": 0.008,
+        "decay": 9,
+        "color": "brown",
+        "lowpass": 0.125
+      },
+      "duration": 0.33499999999999996,
+      "generatorVersion": "lw-boost-procedural-1",
+      "notes": "Jouable sans fichier externe ; écoute et validation artistique encore requises."
+    },
+    "boost-potato-03": {
+      "id": "boost-potato-03",
+      "name": "Propulsion potato — variante 3",
+      "kind": "procedural",
+      "format": "procedural",
+      "status": "LISTENING_REVIEW",
+      "license": "CC0-1.0",
+      "source": "Little World — procedural original boost design, 2026-11-17",
+      "usage": "sfx",
+      "procedural": {
+        "generator": "noise",
+        "seconds": 0.37,
+        "gain": 0.24,
+        "attack": 0.008,
+        "decay": 9,
+        "color": "brown",
+        "lowpass": 0.16
+      },
+      "duration": 0.37,
+      "generatorVersion": "lw-boost-procedural-1",
+      "notes": "Jouable sans fichier externe ; écoute et validation artistique encore requises."
+    },
+    "boost-hazelnut-01": {
+      "id": "boost-hazelnut-01",
+      "name": "Propulsion hazelnut — variante 1",
+      "kind": "procedural",
+      "format": "procedural",
+      "status": "LISTENING_REVIEW",
+      "license": "CC0-1.0",
+      "source": "Little World — procedural original boost design, 2026-11-17",
+      "usage": "sfx",
+      "procedural": {
+        "generator": "tone",
+        "seconds": 0.12,
+        "gain": 0.3,
+        "attack": 0.008,
+        "decay": 7,
+        "frequency": 170,
+        "harmonics": [
+          1,
+          0.32,
+          0.12
+        ],
+        "sweep": -4
+      },
+      "duration": 0.12,
+      "generatorVersion": "lw-boost-procedural-1",
+      "notes": "Jouable sans fichier externe ; écoute et validation artistique encore requises."
+    },
+    "boost-hazelnut-02": {
+      "id": "boost-hazelnut-02",
+      "name": "Propulsion hazelnut — variante 2",
+      "kind": "procedural",
+      "format": "procedural",
+      "status": "LISTENING_REVIEW",
+      "license": "CC0-1.0",
+      "source": "Little World — procedural original boost design, 2026-11-17",
+      "usage": "sfx",
+      "procedural": {
+        "generator": "tone",
+        "seconds": 0.145,
+        "gain": 0.3,
+        "attack": 0.008,
+        "decay": 7,
+        "frequency": 206,
+        "harmonics": [
+          1,
+          0.32,
+          0.12
+        ],
+        "sweep": -4
+      },
+      "duration": 0.145,
+      "generatorVersion": "lw-boost-procedural-1",
+      "notes": "Jouable sans fichier externe ; écoute et validation artistique encore requises."
+    },
+    "boost-hazelnut-03": {
+      "id": "boost-hazelnut-03",
+      "name": "Propulsion hazelnut — variante 3",
+      "kind": "procedural",
+      "format": "procedural",
+      "status": "LISTENING_REVIEW",
+      "license": "CC0-1.0",
+      "source": "Little World — procedural original boost design, 2026-11-17",
+      "usage": "sfx",
+      "procedural": {
+        "generator": "tone",
+        "seconds": 0.16999999999999998,
+        "gain": 0.3,
+        "attack": 0.008,
+        "decay": 7,
+        "frequency": 242,
+        "harmonics": [
+          1,
+          0.32,
+          0.12
+        ],
+        "sweep": -4
+      },
+      "duration": 0.16999999999999998,
+      "generatorVersion": "lw-boost-procedural-1",
+      "notes": "Jouable sans fichier externe ; écoute et validation artistique encore requises."
+    },
+    "boost-magic-01": {
+      "id": "boost-magic-01",
+      "name": "Propulsion magic — variante 1",
+      "kind": "procedural",
+      "format": "procedural",
+      "status": "LISTENING_REVIEW",
+      "license": "CC0-1.0",
+      "source": "Little World — procedural original boost design, 2026-11-17",
+      "usage": "sfx",
+      "procedural": {
+        "generator": "tone",
+        "seconds": 0.24,
+        "gain": 0.23,
+        "attack": 0.008,
+        "decay": 7,
+        "frequency": 430,
+        "harmonics": [
+          1,
+          0.32,
+          0.12
+        ],
+        "sweep": 6
+      },
+      "duration": 0.24,
+      "generatorVersion": "lw-boost-procedural-1",
+      "notes": "Jouable sans fichier externe ; écoute et validation artistique encore requises."
+    },
+    "boost-magic-02": {
+      "id": "boost-magic-02",
+      "name": "Propulsion magic — variante 2",
+      "kind": "procedural",
+      "format": "procedural",
+      "status": "LISTENING_REVIEW",
+      "license": "CC0-1.0",
+      "source": "Little World — procedural original boost design, 2026-11-17",
+      "usage": "sfx",
+      "procedural": {
+        "generator": "tone",
+        "seconds": 0.27999999999999997,
+        "gain": 0.23,
+        "attack": 0.008,
+        "decay": 7,
+        "frequency": 510,
+        "harmonics": [
+          1,
+          0.32,
+          0.12
+        ],
+        "sweep": 8
+      },
+      "duration": 0.27999999999999997,
+      "generatorVersion": "lw-boost-procedural-1",
+      "notes": "Jouable sans fichier externe ; écoute et validation artistique encore requises."
+    },
+    "boost-magic-03": {
+      "id": "boost-magic-03",
+      "name": "Propulsion magic — variante 3",
+      "kind": "procedural",
+      "format": "procedural",
+      "status": "LISTENING_REVIEW",
+      "license": "CC0-1.0",
+      "source": "Little World — procedural original boost design, 2026-11-17",
+      "usage": "sfx",
+      "procedural": {
+        "generator": "tone",
+        "seconds": 0.32,
+        "gain": 0.23,
+        "attack": 0.008,
+        "decay": 7,
+        "frequency": 590,
+        "harmonics": [
+          1,
+          0.32,
+          0.12
+        ],
+        "sweep": 10
+      },
+      "duration": 0.32,
+      "generatorVersion": "lw-boost-procedural-1",
+      "notes": "Jouable sans fichier externe ; écoute et validation artistique encore requises."
+    },
+    "boost-wind-01": {
+      "id": "boost-wind-01",
+      "name": "Propulsion wind — variante 1",
+      "kind": "procedural",
+      "format": "procedural",
+      "status": "LISTENING_REVIEW",
+      "license": "CC0-1.0",
+      "source": "Little World — procedural original boost design, 2026-11-17",
+      "usage": "sfx",
+      "procedural": {
+        "generator": "noise",
+        "seconds": 1.25,
+        "gain": 0.13,
+        "attack": 0.12,
+        "decay": 3,
+        "color": "brown",
+        "lowpass": 0.2
+      },
+      "duration": 1.25,
+      "generatorVersion": "lw-boost-procedural-1",
+      "notes": "Jouable sans fichier externe ; écoute et validation artistique encore requises."
+    },
+    "boost-wind-02": {
+      "id": "boost-wind-02",
+      "name": "Propulsion wind — variante 2",
+      "kind": "procedural",
+      "format": "procedural",
+      "status": "LISTENING_REVIEW",
+      "license": "CC0-1.0",
+      "source": "Little World — procedural original boost design, 2026-11-17",
+      "usage": "sfx",
+      "procedural": {
+        "generator": "noise",
+        "seconds": 1.6,
+        "gain": 0.13,
+        "attack": 0.12,
+        "decay": 3,
+        "color": "brown",
+        "lowpass": 0.30000000000000004
+      },
+      "duration": 1.6,
+      "generatorVersion": "lw-boost-procedural-1",
+      "notes": "Jouable sans fichier externe ; écoute et validation artistique encore requises."
+    },
+    "boost-combo-01": {
+      "id": "boost-combo-01",
+      "name": "Propulsion combo — variante 1",
+      "kind": "procedural",
+      "format": "procedural",
+      "status": "LISTENING_REVIEW",
+      "license": "CC0-1.0",
+      "source": "Little World — procedural original boost design, 2026-11-17",
+      "usage": "sfx",
+      "procedural": {
+        "generator": "tone",
+        "seconds": 0.14,
+        "gain": 0.2,
+        "attack": 0.008,
+        "decay": 7,
+        "frequency": 520,
+        "harmonics": [
+          1,
+          0.32,
+          0.12
+        ],
+        "sweep": 4
+      },
+      "duration": 0.14,
+      "generatorVersion": "lw-boost-procedural-1",
+      "notes": "Jouable sans fichier externe ; écoute et validation artistique encore requises."
+    },
+    "boost-combo-02": {
+      "id": "boost-combo-02",
+      "name": "Propulsion combo — variante 2",
+      "kind": "procedural",
+      "format": "procedural",
+      "status": "LISTENING_REVIEW",
+      "license": "CC0-1.0",
+      "source": "Little World — procedural original boost design, 2026-11-17",
+      "usage": "sfx",
+      "procedural": {
+        "generator": "tone",
+        "seconds": 0.14,
+        "gain": 0.2,
+        "attack": 0.008,
+        "decay": 7,
+        "frequency": 620,
+        "harmonics": [
+          1,
+          0.32,
+          0.12
+        ],
+        "sweep": 4
+      },
+      "duration": 0.14,
+      "generatorVersion": "lw-boost-procedural-1",
+      "notes": "Jouable sans fichier externe ; écoute et validation artistique encore requises."
+    }
+  },
+  "scores": {},
+  "events": {
+    "player.boost.pulse": {
+      "id": "player.boost.pulse",
+      "category": "movement",
+      "description": "Boost aérien low-resource du hamster",
+      "bus": "sfx",
+      "variants": [
+        {
+          "assetId": "boost-classic-01",
+          "weight": 1,
+          "when": {
+            "state": [
+              "classic"
+            ]
+          }
+        },
+        {
+          "assetId": "boost-classic-02",
+          "weight": 1,
+          "when": {
+            "state": [
+              "classic"
+            ]
+          }
+        },
+        {
+          "assetId": "boost-classic-03",
+          "weight": 1,
+          "when": {
+            "state": [
+              "classic"
+            ]
+          }
+        },
+        {
+          "assetId": "boost-classic-04",
+          "weight": 1,
+          "when": {
+            "state": [
+              "classic"
+            ]
+          }
+        },
+        {
+          "assetId": "boost-classic-05",
+          "weight": 1,
+          "when": {
+            "state": [
+              "classic"
+            ]
+          }
+        },
+        {
+          "assetId": "boost-heavy-01",
+          "weight": 1,
+          "when": {
+            "state": [
+              "classic"
+            ],
+            "intensity": [
+              "heavy"
+            ]
+          }
+        },
+        {
+          "assetId": "boost-heavy-02",
+          "weight": 1,
+          "when": {
+            "state": [
+              "classic"
+            ],
+            "intensity": [
+              "heavy"
+            ]
+          }
+        },
+        {
+          "assetId": "boost-heavy-03",
+          "weight": 1,
+          "when": {
+            "state": [
+              "classic"
+            ],
+            "intensity": [
+              "heavy"
+            ]
+          }
+        },
+        {
+          "assetId": "boost-heavy-04",
+          "weight": 1,
+          "when": {
+            "state": [
+              "classic"
+            ],
+            "intensity": [
+              "heavy"
+            ]
+          }
+        },
+        {
+          "assetId": "boost-cheese-01",
+          "weight": 1,
+          "when": {
+            "state": [
+              "cheese"
+            ]
+          }
+        },
+        {
+          "assetId": "boost-cheese-02",
+          "weight": 1,
+          "when": {
+            "state": [
+              "cheese"
+            ]
+          }
+        },
+        {
+          "assetId": "boost-cheese-03",
+          "weight": 1,
+          "when": {
+            "state": [
+              "cheese"
+            ]
+          }
+        },
+        {
+          "assetId": "boost-potato-01",
+          "weight": 1,
+          "when": {
+            "state": [
+              "potato"
+            ]
+          }
+        },
+        {
+          "assetId": "boost-potato-02",
+          "weight": 1,
+          "when": {
+            "state": [
+              "potato"
+            ]
+          }
+        },
+        {
+          "assetId": "boost-potato-03",
+          "weight": 1,
+          "when": {
+            "state": [
+              "potato"
+            ]
+          }
+        },
+        {
+          "assetId": "boost-hazelnut-01",
+          "weight": 1,
+          "when": {
+            "state": [
+              "hazelnut"
+            ]
+          }
+        },
+        {
+          "assetId": "boost-hazelnut-02",
+          "weight": 1,
+          "when": {
+            "state": [
+              "hazelnut"
+            ]
+          }
+        },
+        {
+          "assetId": "boost-hazelnut-03",
+          "weight": 1,
+          "when": {
+            "state": [
+              "hazelnut"
+            ]
+          }
+        },
+        {
+          "assetId": "boost-magic-01",
+          "weight": 1,
+          "when": {
+            "state": [
+              "magic",
+              "rainbow"
+            ]
+          }
+        },
+        {
+          "assetId": "boost-magic-02",
+          "weight": 1,
+          "when": {
+            "state": [
+              "magic",
+              "rainbow"
+            ]
+          }
+        },
+        {
+          "assetId": "boost-magic-03",
+          "weight": 1,
+          "when": {
+            "state": [
+              "magic",
+              "rainbow"
+            ]
+          }
+        }
+      ],
+      "gain": 0.65,
+      "pitch": 1,
+      "pitchJitter": 0.35,
+      "gainJitter": 0.1,
+      "cooldownMs": 0,
+      "priority": 8,
+      "maxInstances": 2,
+      "steal": "oldest",
+      "spatial": false,
+      "radius": 50,
+      "loop": false,
+      "repeat": "avoid-repeat",
+      "maxLatencyMs": 250,
+      "tags": {
+        "caption": "Propulsion !"
+      }
+    },
+    "player.boost.combo": {
+      "id": "player.boost.combo",
+      "category": "movement",
+      "description": "Petit signal humoristique d'enchaînement de pets",
+      "bus": "sfx",
+      "variants": [
+        {
+          "assetId": "boost-combo-01",
+          "weight": 1
+        },
+        {
+          "assetId": "boost-combo-02",
+          "weight": 1
+        }
+      ],
+      "gain": 0.29,
+      "pitch": 1,
+      "pitchJitter": 0.35,
+      "gainJitter": 0.1,
+      "cooldownMs": 550,
+      "priority": 5,
+      "maxInstances": 1,
+      "steal": "oldest",
+      "spatial": false,
+      "radius": 50,
+      "loop": false,
+      "repeat": "avoid-repeat",
+      "maxLatencyMs": 250
+    },
+    "player.boost.wind": {
+      "id": "player.boost.wind",
+      "category": "movement",
+      "description": "Souffle de vitesse déclenché sur franchissement de seuil",
+      "bus": "sfx",
+      "variants": [
+        {
+          "assetId": "boost-wind-01",
+          "weight": 1
+        },
+        {
+          "assetId": "boost-wind-02",
+          "weight": 1
+        }
+      ],
+      "gain": 0.28,
+      "pitch": 1,
+      "pitchJitter": 0.35,
+      "gainJitter": 0.1,
+      "cooldownMs": 1700,
+      "priority": 4,
+      "maxInstances": 1,
+      "steal": "oldest",
+      "spatial": false,
+      "radius": 50,
+      "loop": false,
+      "repeat": "avoid-repeat",
+      "maxLatencyMs": 250
+    }
+  },
+  "music": {
+    "cues": {}
+  },
+  "ambience": {},
+  "emitters": []
+}

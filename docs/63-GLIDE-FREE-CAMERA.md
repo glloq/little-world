@@ -30,9 +30,9 @@ La caméra ne pilote plus l'appareil et le joystick mobile ne fait plus tourner 
 | Durée | 0,25 s |
 | Gain de vitesse avant total | +2 m/s |
 | Gain de vitesse verticale total | +0,8 m/s |
-| Limite de vitesse résultante | 34 m/s |
+| Limite de vitesse résultante | 60 m/s |
 
-Ce gain est réparti sur les ticks de simulation ; il suit le cap physique, et sa norme est plafonnée. Le joueur n'obtient pas un deuxième gain en fermant/réouvrant le planeur dans un même saut. La recharge ne se fait qu'après contact réel au sol, eau ou escalade, pas à chaque changement de mode air/plané. La propulsion à gaz reste indépendante et conserve sa consommation.
+Ce gain est réparti sur les ticks de simulation ; il suit le cap physique, et sa norme est plafonnée. Le joueur n'obtient pas un deuxième gain en fermant/réouvrant le planeur dans un même saut. La recharge ne se fait qu'après contact réel au sol, eau ou escalade, pas à chaque changement de mode air/plané. La propulsion à gaz reste indépendante : les impulsions et les évolutions de capacité, puissance et contrôle du main actuel sont conservées.
 
 L'énergie supplémentaire au déploiement est *intentionnelle* (effet arcade limité), contrairement à la traînée et aux échanges altitude/vitesse du vol normal. Les champs `glideDeploymentUsed` et `glideDeploymentRemaining` sont capturés et validés pour les snapshots de simulation et le rejeu.
 
@@ -46,6 +46,6 @@ npm run build
 npm run test:motion
 ```
 
-Tests ajoutés : décollage latéral avec caméra à l'opposé, caméra libre pendant 30 ticks, virage commandé, différence piqué/cabré, assistance unique, réarmement après contact, plafond 34 m/s, sérialisation/rejeux et auto-suivi désactivable.
+Tests ajoutés : décollage latéral avec caméra à l'opposé, caméra libre pendant 30 ticks, virage commandé, différence piqué/cabré, assistance unique, réarmement après contact, plafond 60 m/s, sérialisation/rejeux et auto-suivi désactivable.
 
 Mesures à vérifier sur matériel réel : ressenti du gain vertical, perte d'énergie aux virages, confort du recentrage rapide, orientation du joystick mobile et stabilité des collisions à 120 km/h.
