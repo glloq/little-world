@@ -481,5 +481,6 @@ function rollStep(p:Player,keys:Controls,dt:number,dx:number,dz:number,len:numbe
  v.x=Math.sin(heading)*speed-gx*gravity;v.z=Math.cos(heading)*speed-gz*gravity;
  speed=Math.hypot(v.x,v.z);if(speed>ROLL.downhillMax){const k=ROLL.downhillMax/speed;v.x*=k;v.z*=k;speed=ROLL.downhillMax;}
  p.rollSpeed=speed;p.rollHeading=speed>.01?Math.atan2(v.x,v.z):heading;
- if(speed<ROLL.exitSpeed&&(p.rollIdle??0)>ROLL.exitIdle&&gx*v.x+gz*v.z>=-1e-4){p.mode='ground';v.set(0,0,0);}
+ // A manually toggled ball remains selected until the player toggles it off.
+  if(p.rollByHold&&speed<ROLL.exitSpeed&&(p.rollIdle??0)>ROLL.exitIdle&&gx*v.x+gz*v.z>=-1e-4){p.mode='ground';v.set(0,0,0);}
 }
