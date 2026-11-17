@@ -1,5 +1,7 @@
 # 56 — Audit gameplay solo / multijoueur futur et feuille de route
 
+> **Mise en œuvre complémentaire :** [58 — Hamster Motion V2](58-HAMSTER-MOTION-V2.md) (branche `feat/hamster-motion-v2`) : amélioration des animations sans changer l'autorité physique. Les statuts ci-dessous décrivent l'audit initial et ne remplacent pas la validation du nouveau travail.
+
 **Date de référence : 16 novembre 2026.**  
 **Nature : audit statique du code, des documents, des branches Git et des résultats CI connus ; aucune exécution locale des tests, aucun benchmark matériel effectués pour cet audit.**  
 **Base examinée : `main` @ `b761b237f3d6a7f214affa66bac6e0ec66fbe960` (fusion de la PR #25, mouvements dynamiques).**  
