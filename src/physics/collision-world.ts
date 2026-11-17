@@ -25,7 +25,7 @@ export interface TransitionVolume {id:string;from:MovementSpace|null;to:Movement
 export interface BodyDimensions {radius:number;height:number;step:number;maxSlope:number}
 /** Default walker: 0.4 m radius, 1.8 m tall, 0.45 m step, slope up to tan 50°. */
 export const DEFAULT_BODY:BodyDimensions={radius:.4,height:1.8,step:.45,maxSlope:Math.tan(50*Math.PI/180)};
-export interface MoveOptions {space?:MovementSpace;body?:Partial<BodyDimensions>;grounded?:boolean;fromY?:number}
+export interface MoveOptions {space?:MovementSpace;body?:Partial<BodyDimensions>;grounded?:boolean;fromY?:number;/** Internal: caller has already divided the segment into ≤0.2 m sweeps. */singleStep?:boolean}
 export interface MoveResult {position:Point3;blockedX:boolean;blockedZ:boolean;floorY:number;ceilingY:number|null;pushed:boolean}
 const finite=(n:number)=>Number.isFinite(n)&&Math.abs(n)<=100000;
 const validPoint=(p:Point3)=>p&&finite(p.x)&&finite(p.y)&&finite(p.z);
@@ -126,7 +126,9 @@ export class WorldCollisionQuery {
    const px=Math.min(x+radius-b.minX,b.maxX-(x-radius)),pz=Math.min(z+radius-b.minZ,b.maxZ-(z-radius));
    if(px<pz)x=x-b.minX<b.maxX-x?b.minX-radius:b.maxX+radius;else z=z-b.minZ<b.maxZ-z?b.minZ-radius:b.maxZ+radius;pushed=true;
   }
-  const dx=desired.x-from.x,dz=desired.z-from.z,steps=Math.max(1,Math.ceil(Math.hypot(dx,dz)/SUBSTEP));
+  const dx=desired.x-from.x,dz=desired.z-from.z,segmentLength=Math.hypot(dx,dz);
+   // After a blocked sweep cursor may lag behind its target: retain subdivision then.
+   const steps=options.singleStep&&segmentLength<=SUBSTEP*1.01?1:Math.max(1,Math.ceil(segmentLength/SUBSTEP));
   let currentBase=this.base(x,z,feet,space).floorY;
   for(let i=1;i<=steps;i++){
    const tx=from.x+dx*i/steps,tz=from.z+dz*i/steps;
@@ -154,7 +156,7 @@ export class WorldCollisionQuery {
   const dx=desired.x-from.x,dy=desired.y-from.y,dz=desired.z-from.z;
   if(Math.max(Math.abs(dx),Math.abs(dy),Math.abs(dz))>128)throw Error('Balayage trop long ; utiliser une transition');
   const steps=Math.max(1,Math.ceil(Math.max(Math.hypot(dx,dz),Math.abs(dy))/SUBSTEP));
-  const cursor={...from},next={...from},sweepOptions={...options,fromY:from.y};let bx=false,bz=false,by=false,pushed=false;
+  const cursor={...from},next={...from},sweepOptions={...options,fromY:from.y,singleStep:true};let bx=false,bz=false,by=false,pushed=false;
   const step=options.body?.step??DEFAULT_BODY.step;
   for(let i=1;i<=steps;i++){
    next.x=from.x+dx*i/steps;next.z=from.z+dz*i/steps;next.y=by?cursor.y:from.y+dy*i/steps;

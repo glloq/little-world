@@ -30,6 +30,8 @@ altitude/vitesse. scénario technique de régression ;
 `npm run test:motion` pour le parcours automatisé sur le build de validation.
 [Commandes, réglages, audit et limites](docs/54-DYNAMIC-MOVEMENT.md).
 
+**Vol rapide expérimental (branche de fonctionnalité) :** boost progressif, pointe à 122,4 km/h, caméra de vitesse et anticipation des secteurs. Voir [62 — Vol rapide et performances](docs/62-HIGH-SPEED-FLIGHT.md).
+
 ### Lancer en local
 
 Pré-requis : **Node.js 22** et npm.

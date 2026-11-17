@@ -2,9 +2,10 @@
  * Enough state for deterministic local replay/ghosts or a future authority correction.
  * No transport, prediction scheduler, race rules or server is installed here. */
 import {simulatePlayer,MOTION_MODES,type Player,type Controls} from '../player.ts';
+import {GAS} from './gas-propulsion.ts';
 import type {WorldCollisionQuery} from './collision-world.ts';
 export interface MovementCommand {tick:number;input:Controls}
-const fields=['oxygen','glideReady','stamina','climbCooldown','climbDir','rollSpeed','rollHeading','rollIdle','rollByHold','diving','diveSink','glideHeading','glidePitch','glideTurnRate','stalled','space','body','runCharge','intentYaw','jumpOrigin','jumpSeq','landingSpeed','landingSeq','coyoteLeft','coyoteFrom','jumpBufferLeft','groundPitch','groundRoll','rollSlip','landingKind','landingSlide','footSupportLeft','footSupportRight','gasReserve','gasBoosting','gasPulseSeq','gasPulseClock'] as const;
+const fields=['oxygen','glideReady','stamina','climbCooldown','climbDir','rollSpeed','rollHeading','rollIdle','rollByHold','diving','diveSink','glideHeading','glidePitch','glideTurnRate','stalled','space','body','runCharge','intentYaw','jumpOrigin','jumpSeq','landingSpeed','landingSeq','coyoteLeft','coyoteFrom','jumpBufferLeft','groundPitch','groundRoll','rollSlip','landingKind','landingSlide','footSupportLeft','footSupportRight','gasReserve','gasBoosting','gasPulseSeq','gasPulseClock','gasThrust'] as const;
 export interface MovementSnapshot {version:1;tick:number;position:{x:number;y:number;z:number};velocity:{x:number;y:number;z:number};mode:Player['mode'];yaw:number;state:Partial<Pick<Player,typeof fields[number]>>}
 const point=(v:unknown):v is {x:number;y:number;z:number}=>!!v&&typeof v==='object'&&['x','y','z'].every(k=>typeof (v as Record<string,unknown>)[k]==='number'&&Number.isFinite((v as Record<string,number>)[k])&&Math.abs((v as Record<string,number>)[k])<=100000);
 export function captureMovement(p:Player,tick:number):MovementSnapshot{
@@ -27,6 +28,7 @@ export function restoreMovement(p:Player,s:MovementSnapshot){
   else if(k==='footSupportLeft'||k==='footSupportRight'){if(typeof v!=='number'||!Number.isFinite(v)||Math.abs(v)>.5)throw Error('Appui pied invalide');}
   else if(k==='gasReserve'){if(typeof v!=='number'||!Number.isFinite(v)||v<0||v>100)throw Error('Gaz invalide');}
   else if(k==='gasPulseClock'){if(typeof v!=='number'||!Number.isFinite(v)||v<0||v>.21)throw Error('Cycle de gaz invalide');}
+  else if(k==='gasThrust'){if(typeof v!=='number'||!Number.isFinite(v)||v<0||v>GAS.acceleration)throw Error('Poussée de gaz invalide');}
   else if(k==='gasPulseSeq'){if(!Number.isSafeInteger(v)||Number(v)<0)throw Error('Séquence de gaz invalide');}
   else if(k==='jumpSeq'||k==='landingSeq'){if(!Number.isSafeInteger(v)||Number(v)<0)throw Error('Sequence de mouvement invalide');}
   else if(k==='runCharge'){if(typeof v!=='number'||!Number.isFinite(v)||v<0||v>1)throw Error('Charge de course invalide');}

@@ -3,7 +3,7 @@
 export interface Velocity {x:number;y:number;z:number}
 export interface FlightState {velocity:Velocity;glideHeading?:number;glidePitch?:number;glideTurnRate?:number;stalled?:boolean}
 export const MOTION={gravity:17.2,fallMax:48,walk:4.65,run:8.7,groundAcceleration:28,groundBrake:18,airDrag:.035,airTurn:1.9} as const;
-export const GLIDE={minCruise:11,max:34,stall:6,finesse:8,pitchRate:1.25,turnRate:1.15,maxDive:1.05,maxClimb:.58,diveEfficiency:1,drag:.10,speedDrag:.0007,turnLoss:.12,stallPitch:.7} as const;
+export const GLIDE={minCruise:11,max:34,stall:6,finesse:8,pitchRate:1.25,turnRate:1.15,maxDive:1.05,maxClimb:.58,diveEfficiency:1,drag:.10,speedDrag:.0025,turnLoss:.12,stallPitch:.7} as const;
 export const ROLL={max:11,downhillMax:18,accel:5,friction:1.2,brake:9,turnRate:1.8,turnLoss:.12,slopeGravity:.5,jump:6.5,minEnter:0,exitSpeed:.6,exitIdle:.35} as const;
 export type GroundMaterial='grass'|'rock'|'sand'|'mud'|'wood';
 export const SURFACE_MOTION:Record<GroundMaterial,{friction:number;grip:number}>={grass:{friction:1,grip:1},rock:{friction:.65,grip:.85},sand:{friction:2.1,grip:.8},mud:{friction:2.8,grip:.55},wood:{friction:.8,grip:.95}};
@@ -30,14 +30,19 @@ export function glideVelocity(p:FlightState,yaw:number,cameraPitch:number,brake:
  const v=p.velocity,speed=Math.hypot(v.x,v.y,v.z),horizontal=Math.hypot(v.x,v.z);
  let heading=p.glideHeading??(horizontal>.1?Math.atan2(v.x,v.z):yaw);
  let pitch=p.glidePitch??Math.atan2(v.y,Math.max(horizontal,.01));
- const turn=clamp(angleDelta(heading,yaw),-tuning.turnRate*dt,tuning.turnRate*dt);heading+=turn;
+ // At high speed the turn radius grows: steering must not snap a 120 km/h glider sideways.
+ const maxTurn=tuning.turnRate*dt/(1+Math.max(0,speed-15)*.022);
+ const turn=clamp(angleDelta(heading,yaw),-maxTurn,maxTurn);heading+=turn;
  const stall=clamp((tuning.stall-speed)/tuning.stall,0,1);
  let target=clamp(-cameraPitch-Math.atan(1/tuning.finesse),-tuning.maxDive,tuning.maxClimb);
  target=target*(1-stall)-tuning.stallPitch*stall;
  pitch+=clamp(target-pitch,-tuning.pitchRate*dt,tuning.pitchRate*dt);
  // Stall sinks rather than granting forward speed; recovering requires altitude.
  pitch=clamp(pitch,-tuning.maxDive,tuning.maxClimb);
- const drag=tuning.drag+MOTION.gravity/tuning.finesse*(speed/tuning.minCruise)**2+tuning.speedDrag*speed*speed+clamp(brake,0,1)*1.5;
+ // Induced drag dominates near stall; parasitic drag dominates at speed. Both dissipate
+ // energy, leaving enough powered thrust to reach the configured 34 m/s cap.
+ const induced=MOTION.gravity/tuning.finesse*(tuning.minCruise/Math.max(speed,tuning.stall))**2;
+ const drag=tuning.drag+induced+tuning.speedDrag*speed*speed+clamp(brake,0,1)*1.5;
  const work=drag*Math.max(speed,.1)*dt+tuning.turnLoss*Math.abs(turn)*speed*speed;
  const verticalGravity=MOTION.gravity*Math.sin(pitch);
  const a=verticalGravity*dt*(verticalGravity<0?clamp(tuning.diveEfficiency,0,1):1);

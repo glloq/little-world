@@ -1,5 +1,7 @@
 # Déplacements dynamiques : roulade et planeur
 
+> Extension expérimentale : [62 — Vol rapide, boost et streaming](62-HIGH-SPEED-FLIGHT.md). Cette extension conserve la simulation à 30 Hz mais remplace certains réglages de traînée et d'effets de caméra décrits ci-dessous.
+
 Implémentation sur `feat/dynamic-movement`, sans fusion ni publication dans `main`.
 Le contrôleur du jeu utilise ces règles dans **tous les mondes**, y compris les tests
 lancés depuis le Studio. Aucun moteur physique, serveur ou paquet supplémentaire.
