@@ -227,7 +227,7 @@ world.update(0, player.position);
     eatFood:(itemId)=>{
       const points=foodGasValue(itemId);
       if(!gameplay||!points)return {ok:false,message:'Cet objet ne peut pas être mangé.'};
-      if(player.mode==='glide'||aboard)return {ok:false,message:'Mangez au sol avant de décoller.'};
+      if(player.mode!=='ground'||aboard)return {ok:false,message:'Mangez au sol avant de décoller.'};
       if(gasLevel(player)>=GAS.max)return {ok:false,message:'La réserve de gaz est déjà pleine.'};
       if(!gameplay.purse.apply([{itemId,quantity:-1}]))return {ok:false,message:'Aliment indisponible.'};
       const gained=refillGas(player,points);
@@ -431,6 +431,8 @@ renderer.domElement.addEventListener('pointermove', (e) => {
   pitch = clamp(pitch - movement.dy * 0.0024 * k * (prefs?.invertY ? -1 : 1), player.mode==='glide'?-.45:-.12, player.mode==='glide'?1.3:1.03);
 });
 renderer.domElement.addEventListener('pointerup', (e) => {
+  // Right-button release must not cancel an active left-button camera drag.
+  if(e.button!==0)return;
   orbitDrag.end(e.pointerId);
   if (!orbitDrag.active) resetCameraDrag();
 });

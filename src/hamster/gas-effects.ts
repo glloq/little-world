@@ -4,7 +4,7 @@ const COUNT=24;
 export function createGasEffects(scene:THREE.Object3D){
   const mesh=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(.11,0),
     new THREE.MeshBasicMaterial({color:0xc8d69c,transparent:true,opacity:.75,depthWrite:false}),COUNT);
-  mesh.name='GlideGasPuffs';mesh.count=0;mesh.frustumCulled=false;mesh.castShadow=false;mesh.receiveShadow=false;scene.add(mesh);
+  mesh.name='GlideGasPuffs';mesh.count=0;mesh.visible=false;mesh.frustumCulled=false;mesh.castShadow=false;mesh.receiveShadow=false;scene.add(mesh);
   const life=new Float32Array(COUNT),x=new Float32Array(COUNT),y=new Float32Array(COUNT),z=new Float32Array(COUNT);
   const vx=new Float32Array(COUNT),vy=new Float32Array(COUNT),vz=new Float32Array(COUNT);
   const transform=new THREE.Matrix4();let cursor=0,alive=0;
@@ -17,7 +17,7 @@ export function createGasEffects(scene:THREE.Object3D){
         vx[k]=-velocity.x/h*(.8+Math.random()*.8)+(Math.random()-.5)*.5;
         vy[k]=.25+Math.random()*.65;vz[k]=-velocity.z/h*(.8+Math.random()*.8)+(Math.random()-.5)*.5;
       }
-      alive=COUNT;
+      alive=COUNT;mesh.visible=true;
     },
     update(dt:number){
       if(!alive)return;let count=0;
@@ -28,7 +28,7 @@ export function createGasEffects(scene:THREE.Object3D){
         const scale=Math.min(2.2,(.55-remaining)*3.5+.25)*Math.min(1,remaining*5);
         transform.makeScale(scale,scale,scale).setPosition(x[i],y[i],z[i]);mesh.setMatrixAt(i,transform);count++;
       }
-      mesh.count=COUNT;mesh.instanceMatrix.needsUpdate=true;alive=count;if(!count)mesh.count=0;
+      mesh.count=COUNT;mesh.instanceMatrix.needsUpdate=true;alive=count;if(!count){mesh.count=0;mesh.visible=false;}
     },
     dispose(){scene.remove(mesh);mesh.geometry.dispose();(mesh.material as THREE.Material).dispose();mesh.dispose();}
   };
