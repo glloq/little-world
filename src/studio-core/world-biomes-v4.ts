@@ -17,16 +17,18 @@ export function naturalRegions(p:ProjectDocument):RegionRecipeV1[]{
    points:[{x,z},{x:right,z},{x:right,z:top},{x,z:top}],seed:shapeSeed(p.world.seed,'natural-region-'+recipes.length)}));
  }return recipes;
 }
-export function alignNaturalBiomes(p:ProjectDocument,skip:ReadonlySet<string>=new Set()):void{
- const r=p.world.generation;if(r?.compositionVersion!==4)return;
+export function alignNaturalBiomes(p:ProjectDocument,skip:ReadonlySet<string>=new Set(),rects?:readonly {minX:number;maxX:number;minZ:number;maxZ:number}[]):void{
+ const r=p.world.generation;if(!r||(r.compositionVersion??1)<4)return;
  const selected=new Set(r.landscapes.map(l=>l.kind)),style=r.islandStyle!,field=generatorField(p.world.terrain!,{width:r.width,length:r.length,seed:r.seed,seaLevel:p.world.seaLevel},()=>0),
   waters=Object.values(p.libraries.water),size=p.world.chunkSizeM,cell=size/16,minor=Math.min(r.width,r.length),wind=(shapeSeed(r.seed,'natural-wind')%628)/100,
   shelves=p.world.terrain?.kind==='archipelago'?p.world.terrain.archipelago.features.filter(f=>f.kind==='plateau').map(f=>compilePolygon(f.kind==='plateau'?f.polygon:[])):[];
  const height=Object.values(p.chunks).some(c=>c.terrainEdits.length)?projectGeography(p).source:field.height;
+ const sitePolygons=Object.values(p.libraries.terrainPlans??{}).flatMap(plan=>plan.sites.filter(s=>s.kind!=='lake').map(site=>{const f=p.world.terrain?.kind==='archipelago'?p.world.terrain.archipelago.features.find(f=>f.id===site.featureId):undefined;return {site,inside:f?.kind==='plateau'?compilePolygon(f.polygon):()=>-1};}));
  const recipes=Object.values(p.libraries.regions??{}).filter(q=>q.id.startsWith('composition-')&&!skip.has(q.id));
  for(const [id,chunk]of Object.entries(p.chunks)){
   const owners=recipes.filter(q=>q.generated?.masks[id]?.biome);if(!owners.length)continue;
   const [cx,cz]=id.split(':').map(Number),ox=p.world.bounds.minX+cx*size,oz=p.world.bounds.minZ+cz*size,heights=new Float64Array(18*18);
+  if(rects&&!rects.some(r=>ox<r.maxX&&ox+size>r.minX&&oz<r.maxZ&&oz+size>r.minZ))continue;
   for(let z=0;z<18;z++)for(let x=0;x<18;x++)heights[z*18+x]=height(ox+(x-.5)*cell,oz+(z-.5)*cell);
   for(const owner of owners){
    const owned=owner.generated!.masks[id],layers:Partial<Record<MaskLayerId,string[]>>={},records:Partial<Record<MaskLayerId,string[]>>={};
@@ -57,8 +59,9 @@ export function alignNaturalBiomes(p:ProjectDocument,skip:ReadonlySet<string>=ne
      if(selected.has('marsh')&&h<35&&slope<.12&&waterDistance<Math.min(220,minor*.07))code='w';
      if(selected.has('coast')&&coast<Math.min(55,minor*.025))code='c';
     }
+    const reservation=sitePolygons.find(s=>s.inside(x,z)>=0);if(reservation&&h>0)code=reservation.site.kind==='farm'?'m':'c';
     const material:Record<string,string>={m:'g',f:'f',s:'y',n:'r',v:'b',w:'m',c:'s','.':'.'},geology=code==='v'?'b':code==='n'?'r':code==='c'?'a':code==='.'?'.':'s',moisture=code==='.'?'.':code==='w'?'9':code==='v'?'2':String(Math.max(1,Math.min(8,Math.round(humid*8))));
-    for(const [layer,value]of [['biome',code],['material',material[code]],['moisture',moisture],['geology',geology]] as [MaskLayerId,string][]){
+    for(const [layer,value]of [['biome',code],['material',material[code]],['moisture',moisture],['geology',geology],...((p.world.generation?.compositionVersion??1)>=5||sitePolygons.length?[['occupation',reservation?(reservation.site.farmZoneId?'f':'p'):'.']]:[])] as [MaskLayerId,string][]){
      const before=owned[layer]?.[i]??'.',current=chunk.layers?.[layer]?.[i]??'.';
      if(current!=='.'&&(before==='.'||current!==before))continue;
      (layers[layer]??=Array.from(chunk.layers?.[layer]??EMPTY_MASK))[i]=value;

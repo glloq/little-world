@@ -12,8 +12,8 @@ import {analyzeWatersheds} from './watershed-analysis.ts';
 import {proposeWatershedRivers} from './watershed-rivers.ts';
 import type {MapRequirements} from './map-requirements.ts';
 import type {Bounds} from './types.ts';
-export function planWorldHydro(r:MapRequirements,axis:PointXZ[],height:(x:number,z:number)=>number,bounds:Bounds,lakeCenter?:PointXZ){
- if(r.compositionVersion===4)return planNaturalHydro(r,height,bounds);
+export function planWorldHydro(r:MapRequirements,axis:PointXZ[],height:(x:number,z:number)=>number,bounds:Bounds,lakeCenter?:PointXZ,existing:WaterBody[]=[],avoid?:(x:number,z:number)=>boolean){
+ if((r.compositionVersion??1)>=4)return planNaturalHydro(r,height,bounds,existing,avoid);
  const waters:WaterBody[]=[],diagnostics:HydroDiagnostic[]=[];
  if(r.rivers){
   const seaIndex=(r.compositionVersion??1)>=2?axis.findIndex(q=>height(q.x,q.z)<-.6):-1;

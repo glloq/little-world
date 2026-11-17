@@ -3,7 +3,7 @@
  * variations with a preview before commit. Every committed change is one transaction on
  * `world.terrain` (undoable, validated by the V3 world schema). The generator stays the
  * single terrain authority; author corrections (masks, edits) are kept untouched. */
-import {node,button,field,download} from '../dom.ts';
+import {node,button,field,download,select} from '../dom.ts';
 import type {StudioSession} from '../session.ts';
 import {archipelagoField,featureBounds,landmassBounds,FEATURE_LABELS,type ArchipelagoParams,type Landmass,type ReliefFeature,type PointXZ,type FeatureKind} from '../../geography/archipelago.ts';
 import {archipelagoPreset,isletChainPreset,islandToArchipelago,parseArchipelago,blobOutline,ARCHIPELAGO_LIMITS} from '../../geography/archipelago-params.ts';
@@ -173,6 +173,8 @@ export function createShapeTool(env:ShapeEnv){
       }
       box.append(node('p',adding?'Cliquez sur la carte pour placer : '+(ADDABLE.find(k=>k[0]===adding)?.[1]):'Glisser une poignée : déplacer · double-clic sur un contour : ajouter un point · Suppr : retirer.','muted'));
       const add=node('div','','chip-row');for(const [kind,label]of ADDABLE){const c=button('+ '+label,()=>{adding=adding===kind?null:kind;env.refreshPanel();},'chip'+(adding===kind?' active':''));c.dataset.add=kind;add.append(c);}box.append(add);
+      const siteNames=new Map(Object.values(p.libraries.terrainPlans??{}).flatMap(plan=>plan.sites.map(s=>[s.featureId,s.name] as const)));
+      box.append(field('Forme sélectionnée',select(selected?.id??'',[['','Choisir une forme'],...a.landmasses.map(l=>[l.id,l.name] as [string,string]),...a.features.map((f,i)=>[f.id,siteNames.get(f.id)??FEATURE_LABELS[f.kind]+' '+(i+1)] as [string,string])],id=>{selected=id?{type:a.landmasses.some(l=>l.id===id)?'landmass':'feature',id}:null;vertex=null;adding=null;variation=null;env.refreshPanel();env.redraw();})));
       const target=selected&&find(a,selected);
       if(selected&&target){
         const isLand=selected.type==='landmass',kind=isLand?'landmass':(target as ReliefFeature).kind,fields=isLand?LAND_FIELDS:FEATURE_FIELDS[kind as FeatureKind];

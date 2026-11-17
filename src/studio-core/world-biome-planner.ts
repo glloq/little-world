@@ -36,7 +36,7 @@ export function biomeSuitability(kind:Landscape,e:ProvinceEnvironment):number{
  }
 }
 export function planWorldBiomes(p:ProjectDocument,r:MapRequirements,axis:PointXZ[],provinces:GeographicProvince[]=[]):RegionRecipeV1[]{
- if(r.compositionVersion===4)return naturalRegions(p);
+ if((r.compositionVersion??1)>=4)return naturalRegions(p);
  if((r.compositionVersion??1)===1)return planLegacyWorldBiomes(p,r,axis);
  const order=landscapeOrder(r),recipes:RegionRecipeV1[]=[];
  if(!order.length)return recipes;

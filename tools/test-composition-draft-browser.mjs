@@ -1,3 +1,4 @@
+import {waitForBrowserCondition} from './poll-browser.mjs';
 /** Actual pre-creation editing, persistence, undo and exact exported source. */
 import {chromium} from 'playwright';import {existsSync} from 'node:fs';import {readFile,mkdir,writeFile} from 'node:fs/promises';import assert from 'node:assert/strict';
 import {readProjectArchive} from '../src/studio-core/archive.ts';import {fingerprint} from '../src/world-production/landscape-schema.ts';
@@ -17,8 +18,9 @@ try{
  check(true,'Un point de côte se déplace directement sur la carte');
  await page.getByRole('button',{name:'Annuler la retouche',exact:true}).click();await page.getByRole('button',{name:'Rétablir la retouche',exact:true}).click();
  const massif=original.archipelago.features.find(f=>f.id==='composition-main-massif');await page.mouse.click(box.x+view.width/2+(massif.x-view.cx)*view.ppm,box.y+view.height/2+(massif.z-view.cz)*view.ppm);
+ await dialog.getByLabel('Forme sélectionnée',{exact:true}).selectOption('composition-main-massif');
  await dialog.getByLabel('Hauteur (m)',{exact:true}).evaluate((el,value)=>{el.value=String(value);el.dispatchEvent(new Event('change',{bubbles:true}));},Math.round(massif.heightM+5));
- await page.waitForFunction(async value=>{const {compositionDraftStore}=await import('/little-world/src/studio/composition-draft-editor.ts');const list=await compositionDraftStore.list(),p=(await compositionDraftStore.loadProject(list[0].projectId)).document;return p.world.terrain.archipelago.features.find(f=>f.id==='composition-main-massif').heightM===value;},Math.round(massif.heightM+5));
+ await waitForBrowserCondition(page,async value=>{const {compositionDraftStore}=await import('/little-world/src/studio/composition-draft-editor.ts');const list=await compositionDraftStore.list(),p=(await compositionDraftStore.loadProject(list[0].projectId)).document;return p.world.terrain.archipelago.features.find(f=>f.id==='composition-main-massif').heightM===value;},Math.round(massif.heightM+5));
  check(true,'La hauteur d’un massif est retouchable avant création');
  await page.getByRole('button',{name:'Rivières et lacs',exact:true}).click();check(await dialog.getByLabel('Tracé d’eau',{exact:true}).count()===1,'Les cours d’eau disposent de leur éditeur et de leur profil dans le brouillon');
  const receiver=await dialog.getByLabel('Tracé d’eau',{exact:true}).locator('option').nth(1).getAttribute('value');await dialog.getByLabel('Tracé d’eau',{exact:true}).selectOption(receiver);

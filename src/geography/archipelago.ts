@@ -28,7 +28,7 @@ export type ReliefFeature=WithVariant<
   |({id:string;kind:'volcano'}&VolcanoParams)
   |{id:string;kind:'mountain'|'hill';x:number;z:number;radiusM:number;heightM:number;roughness:number}
   |{id:string;kind:'basin';x:number;z:number;radiusM:number;depthM:number}
-  |{id:string;kind:'plateau';polygon:PointXZ[];heightM:number;edgeM:number}
+  |{id:string;kind:'plateau';polygon:PointXZ[];heightM:number;edgeM:number;surface?:boolean}
   |{id:string;kind:'ridge';points:PointXZ[];widthM:number;heightM:number}
   |{id:string;kind:'valley';points:PointXZ[];widthM:number;depthM:number}>;
 export type FeatureKind=ReliefFeature['kind'];
@@ -108,7 +108,7 @@ export function archipelagoField(world:GeoWorld,p:ArchipelagoParams):GeneratorFi
   const masses=p.landmasses.map((l,index)=>({l,index,sdf:compilePolygon(l.outline),box:landmassBounds(l,falloff),seed:shapeSeed(seed,l.id,l.variant),freq:1/l.coastWavelengthM,hill:1/Math.max(80,l.coastWavelengthM*.45)}));
   // Features grouped by composition stage once (no per-sample filtering/allocation).
   const stage=(kinds:FeatureKind[])=>p.features.filter(f=>kinds.includes(f.kind)).map(f=>({f,box:featureBounds(f),seed:shapeSeed(seed,f.id,f.variant),sdf:f.kind==='plateau'?compilePolygon(f.polygon):null}));
-  const plateaus=stage(['plateau']),raises=stage(['mountain','hill','ridge']),cuts=stage(['basin','valley']),volcanoes=stage(['volcano']);
+  const allPlateaus=stage(['plateau']),plateaus=allPlateaus.filter(({f})=>f.kind!=='plateau'||!f.surface),platforms=allPlateaus.filter(({f})=>f.kind==='plateau'&&f.surface),raises=stage(['mountain','hill','ridge']),cuts=stage(['basin','valley']),volcanoes=stage(['volcano']);
   /** Best coast value and the land mass providing it. */
   // Direct-mapped cache of exact results: height() then site() at the same point (tile and
   // horizon colouring, map pixels, dressing) reuse the coast instead of recomputing it.
@@ -148,6 +148,7 @@ export function archipelagoField(world:GeoWorld,p:ArchipelagoParams):GeneratorFi
       const angle=Math.atan2(z-f.z,x-f.x),gully=1-.12*Math.abs(valueNoise(fs,angle*7+3,dv*.004))*smooth(f.craterRadiusM,f.radiusM*.6,dv);
       const cone=volcanoProfile(f,dv)*gully,merge=smooth(f.radiusM,f.radiusM*.55,dv);h=Math.max(h,lerp(h,sea-1+cone+(coast<0?0:(h-sea+1)*.35),merge));
     }
+    for(const {f,box,sdf}of platforms){if(f.kind!=='plateau'||!inBox(box,x,z))continue;h=lerp(h,sea+f.heightM,smooth(-f.edgeM,0,sdf!(x,z)));}
     if(p.coastalReliefFadeM!==undefined)h=coast<0?baseHeight:lerp(baseHeight,h,smooth(0,p.coastalReliefFadeM,coast));
     return inland>0&&p.detailM?h+p.detailM*fbm(seed^0xd37a,x/38,z/38,2)*inland:h;
   }

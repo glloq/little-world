@@ -94,7 +94,7 @@ export function drawWelcomePreview(canvas:HTMLCanvasElement,project:ProjectDocum
   // Show real visible height contours, never hidden feature footprints or construction axes.
   if(def.kind==='archipelago'){
     const shelves=def.archipelago.features.filter(f=>f.kind==='plateau'&&f.id.startsWith('composition-terrace-')).map(f=>f.kind==='plateau'?f.heightM:0).sort((a,b)=>a-b);
-    const levels=project.world.generation?.compositionVersion===4?Array.from({length:5},(_,i)=>(i+1)*project.world.generation!.islandStyle!.altitudeM/6):shelves.slice(1).map((h,i)=>(h+shelves[i])/2);
+    const levels=(project.world.generation?.compositionVersion??1)>=4?Array.from({length:5},(_,i)=>(i+1)*project.world.generation!.islandStyle!.altitudeM/6):shelves.slice(1).map((h,i)=>(h+shelves[i])/2);
     ctx.strokeStyle='#846744';ctx.lineWidth=.8;ctx.beginPath();
     for(const level of levels)for(let y=0;y<nz-1;y++)for(let x=0;x<nx-1;x++){
       const corners=[{x,y,h:heights[y*nx+x]},{x:x+1,y,h:heights[y*nx+x+1]},{x:x+1,y:y+1,h:heights[(y+1)*nx+x+1]},{x,y:y+1,h:heights[(y+1)*nx+x]}],hits:{x:number;y:number}[]=[];
@@ -105,6 +105,13 @@ export function drawWelcomePreview(canvas:HTMLCanvasElement,project:ProjectDocum
     for(const f of def.archipelago.features)if(f.kind==='mountain'||f.kind==='volcano'){const q=projectPoint(f);ctx.fillStyle='#504c48';ctx.fillText(f.kind==='volcano'?'▲ V':'▲',q.x,q.y);}
   }
   for(const w of Object.values(project.libraries.water)){line(w.points,'#1677c4',w.kind==='lake',Math.max(1,Math.min(3,w.width/width*rect.w)));if(w.kind==='lake'){ctx.fillStyle='#459bd8';ctx.fill();}for(const fall of w.falls??[]){const q=projectPoint(w.points[fall.at]);ctx.fillStyle='#fff';ctx.fillRect(q.x-2,q.y-2,5,5);}}
+  for(const path of Object.values(project.libraries.paths))line(path.points,'#9b512a',false,Math.max(1.3,path.width/width*rect.w));
+  for(const zone of Object.values(project.libraries.zones??{}))if(zone.kind==='farm-plot'){line(zone.polygon,'#c18d24',true,1);ctx.fillStyle='#e0bd4f66';ctx.fill();}
+  for(const plan of Object.values(project.libraries.terrainPlans??{}))for(const site of plan.sites){
+   const f=def.kind==='archipelago'?def.archipelago.features.find(f=>f.id===site.featureId):undefined;
+   if(f?.kind==='plateau'){ctx.setLineDash([4,3]);line(f.polygon,site.kind==='harbor'?'#28788b':'#8c8237',true,1);ctx.setLineDash([]);}
+   const q=projectPoint(site.entry);ctx.fillStyle='#503b24';ctx.font='11px system-ui';ctx.fillText(site.kind==='harbor'?'Port · réserve':site.name,q.x+3,q.y-4);
+  }
   ctx.font='15px system-ui';ctx.fillStyle='#294438';ctx.fillText('N',rect.x+rect.w/2-5,Math.max(16,rect.y-6));
   ctx.font='12px system-ui';ctx.fillText(Math.round(width/1000*10)/10+' × '+Math.round(length/1000*10)/10+' km',14,canvas.height-10);
   return rect;
@@ -233,8 +240,8 @@ export function mountWelcome(host:HTMLElement,actions:WelcomeActions){
       else controls.append(node('p','Terrain simple sans composition automatique.'));
       controls.append(field('Largeur (m)',numberInput(blank?config.width:requirements.width,v=>{config.width=v;change('width',v);},500,8000,'1')),
         field('Longueur (m)',numberInput(blank?config.length:requirements.length,v=>{config.length=v;change('length',v);},500,8000,'1')));
-      if(!blank&&requirements.compositionVersion===4)controls.append(islandStyleControls(requirements,next=>{requirements=next;render();}));
-      if(!blank&&requirements.compositionVersion!==4)controls.append(field('Relief général',select(requirements.relief,reliefs.map(r=>[r.id,r.name] as const),v=>change('relief',v as ReliefPreset))));
+      if(!blank&&(requirements.compositionVersion??1)>=4)controls.append(islandStyleControls(requirements,next=>{requirements=next;render();}));
+      if(!blank&&(requirements.compositionVersion??1)<4)controls.append(field('Relief général',select(requirements.relief,reliefs.map(r=>[r.id,r.name] as const),v=>change('relief',v as ReliefPreset))));
     }else if(step===1){
       controls.append(node('h2','Choisir les paysages'),node('p','Les paysages obligatoires manquants empêchent la création.','muted'));
       for(const [kind,label]of Object.entries(LANDSCAPES) as [Landscape,string][]){
@@ -253,8 +260,8 @@ export function mountWelcome(host:HTMLElement,actions:WelcomeActions){
         for(const [delta,label]of [[-1,'Monter'],[1,'Descendre']] as const){const b=button(label+' '+LANDSCAPES[kind],()=>{const order=[...requirements.sequence];[order[i],order[i+delta]]=[order[i+delta],order[i]];change('sequence',order);});b.disabled=i+delta<0||i+delta>=requirements.sequence.length;row.append(b);}controls.append(row);
       });
       controls.append(field('Rivières principales',numberInput(requirements.rivers,v=>change('rivers',v),0,6,'1')),
-        ...(requirements.compositionVersion!==4||requirements.islandStyle!.plateaus>0?[field('Importance des falaises',numberInput(requirements.cliffs,v=>change('cliffs',v),0,1,'.05'))]:[]));
-      if(requirements.compositionVersion!==4)controls.append(field('Niveaux de terrasses',numberInput(requirements.terraces,v=>change('terraces',v),requirements.compositionVersion===3?3:1,6,'1')));
+        ...((requirements.compositionVersion??1)<4||requirements.islandStyle!.plateaus>0?[field('Importance des falaises',numberInput(requirements.cliffs,v=>change('cliffs',v),0,1,'.05'))]:[]));
+      if((requirements.compositionVersion??1)<4)controls.append(field('Niveaux de terrasses',numberInput(requirements.terraces,v=>change('terraces',v),requirements.compositionVersion===3?3:1,6,'1')));
       const advanced=node('details');advanced.append(node('summary','Réglages avancés (facultatifs)'),
         field('Affluents raccordés',numberInput(requirements.tributaries,v=>change('tributaries',v),0,6,'1')),
         field('Diversité géographique',numberInput(requirements.diversity,v=>change('diversity',v),0,1,'.05')),
@@ -315,7 +322,7 @@ export function mountWelcome(host:HTMLElement,actions:WelcomeActions){
         canvas.dataset.waterCount=String(Object.keys(project.libraries.water).length);
         const metrics=!blank?cachedPlan?.metrics:null;
         statistics.textContent=metrics?`Plan ${Math.round(metrics.generationMs)} ms · Aperçu ${Math.round(performance.now()-start)} ms · ${metrics.features}/64 formes · ${metrics.sectors} secteurs · ${Math.round(metrics.sourceBytes/1024)} Kio de sources${metrics.coverage?' · Biomes hors rivière '+Math.round(metrics.coverage.offRiverBiomeCoverage*100)+' %':''}`:'Terrain simple sans composition automatique.';
-        const families:Record<string,string>={'central-valley':'Vallée centrale','winding-valley':'Vallée sinueuse','split-plateau':'Plateau découpé','multiple-massifs':'Massifs multiples'};
+        const families:Record<string,string>={'central-valley':'Vallée centrale','winding-valley':'Vallée sinueuse','split-plateau':'Plateau découpé','multiple-massifs':'Massifs multiples','crescent':'Île en croissant','turtle':'Île tortue'};
         if(metrics?.natural)statistics.textContent+=` · Sommet ${metrics.natural.maxAltitudeM} m · ${metrics.natural.landmasses} terre(s) · Basses terres ${Math.round(metrics.natural.lowlandShare*100)} %`;
         note.textContent=blank?'Aucun enregistrement avant confirmation.':`${families[cachedPlan!.family]??ISLAND_STYLES[requirements.islandStyle?.model??'central-massif'].name} · Graine ${project.world.seed} · Eau et biomes du projet calculé.`;
         if(create)create.disabled=busy||(!blank&&!cachedPlan?.ready);

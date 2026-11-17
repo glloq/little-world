@@ -3,15 +3,15 @@ import {analyzeWatersheds} from './watershed-analysis.ts';
 import {planGuidedRiver} from './guided-river.ts';
 import {planTerraceFalls} from './world-terrace-falls.ts';
 import {compileWaterNetwork,type HydroDiagnostic} from '../water/profile.ts';
-import {polylineDistance,type PointXZ} from '../geography/archipelago.ts';
+import {polylineDistance,compilePolygon,type PointXZ} from '../geography/archipelago.ts';
 import type {MapRequirements} from './map-requirements.ts';
 import type {Bounds} from './types.ts';
 import type {WaterBody} from '../world-data.ts';
-export function planNaturalHydro(r:MapRequirements,height:(x:number,z:number)=>number,bounds:Bounds){
- const survey=analyzeWatersheds(bounds,height,0,{maxCells:4096}),waters:WaterBody[]=[],diagnostics:HydroDiagnostic[]=[];
+export function planNaturalHydro(r:MapRequirements,height:(x:number,z:number)=>number,bounds:Bounds,existing:WaterBody[]=[],avoid?:(x:number,z:number)=>boolean){
+ const survey=analyzeWatersheds(bounds,height,0,{maxCells:4096}),waters:WaterBody[]=[...existing],diagnostics:HydroDiagnostic[]=[];
  const candidates=[...survey.headwaters].sort((a,b)=>b.elevationM-a.elevationM);
  const minor=Math.min(bounds.maxX-bounds.minX,bounds.maxZ-bounds.minZ);
- const inWorld=(x:number,z:number)=>x>bounds.minX&&x<bounds.maxX&&z>bounds.minZ&&z<bounds.maxZ;
+ const inWorld=(x:number,z:number)=>x>bounds.minX&&x<bounds.maxX&&z>bounds.minZ&&z<bounds.maxZ&&!avoid?.(x,z);
  // Survey supplies basin candidates; refine high slope sources in bounded extra directions.
  const sources:{source:PointXZ;toward:PointXZ}[]=[...candidates];
  for(const source of candidates.slice(0,6))for(const angle of [-1,1]){
@@ -34,12 +34,12 @@ export function planNaturalHydro(r:MapRequirements,height:(x:number,z:number)=>n
   if(toward){sources.push({source:{x:p.x,z:p.z},toward});added++;}
  }
  if(r.rivers||r.tributaries)for(const [i,c]of sources.entries()){
-  if(waters.length>=r.rivers+r.tributaries)break;
+  if(waters.filter(w=>w.kind!=='lake').length>=r.rivers+r.tributaries)break;
   if(waters.some(w=>polylineDistance(w.points,c.source.x,c.source.z)<50))continue;
   try{
    const plan=planGuidedRiver(c.source,c.toward,{height,inWorld,seaLevel:0,existing:waters,
     // Detect an existing carved channel footprint, including when its surface is below raw terrain.
-    water:(x,z)=>waters.some(w=>polylineDistance(w.points,x,z)<Math.max(4,w.width/2))?height(x,z)+1:null},
+    water:(x,z)=>waters.some(w=>w.kind==='lake'?compilePolygon(w.points)(x,z)>=0:polylineDistance(w.points,x,z)<Math.max(4,w.width/2))?height(x,z)+1:null},
     {id:'composition-river-'+i,width:Math.max(2,Math.min(9,Math.min(r.width,r.length)*.002)),depth:1.5,maxLengthM:4000});
    const w=plan.water;if(!w.to||plan.trace.lengthM<60)continue;
    if(w.to.kind==='sea'&&waters.filter(q=>q.to?.kind==='sea').length>=r.rivers)continue;

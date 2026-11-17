@@ -54,6 +54,8 @@ export interface BehaviorDefinition {id:StableId;kind:'idle'|'wander'|'patrol'|'
 export interface CharacterDefinition {id:StableId;name:string;species:CharacterSpecies;rigId:CharacterRigId;appearance:Appearance;}
 /** Only actually implemented declarative gameplay registries are populated. */
 export interface ProjectLibraries {
+  /** Authoring-only reservations and references to native access paths. */
+  terrainPlans?:Record<StableId,import('./terrain-sites.ts').TerrainPlanV1>;
   /** Optional project-owned visual assemblies. */
   assemblies?:Record<StableId,import('./assemblies.ts').AssemblyDefinition>;
   prefabs:Record<StableId,PrefabDefinitionV3>;

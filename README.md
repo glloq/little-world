@@ -23,6 +23,10 @@ Les anciennes cartes de falaises, mouvements, géographie, B1 et bêta sont des 
 
 Voir [la stratégie de démonstration 4 × 3 km](docs/61-SHOWCASE-ISLAND-4X3.md) et [les budgets des falaises](docs/53-CLIFF-REFERENCE.md).
 
+### Îles composées et brouillon 2D
+
+Sur `feat/stepped-island-identity` : silhouettes naturelles, croissant et tortue, réservations de port/champs/lac, accès à pied vérifiés et édition groupée avant création. Les accès impossibles sont signalés ; les bâtiments et quais restent à réaliser. Voir [les fonctionnalités, limites et captures V5](docs/74-COMPOSED-ISLANDS-V5.md).
+
 ### Déplacements dynamiques
 
 Roulade sensible aux pentes et aux sols, planeur piloté au clic-glisser avec échange

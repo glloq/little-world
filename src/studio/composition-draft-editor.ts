@@ -1,3 +1,4 @@
+import {mountTerrainSites} from './terrain-sites-view.ts';
 /** A persisted authoring draft using the existing 2D and WATER editors, without runtime. */
 import {StudioSession} from './session.ts';
 import {compositionDraftStore} from './composition-draft-store.ts';
@@ -22,10 +23,11 @@ export async function editCompositionDraft(base:WorldComposition,resumeId?:strin
    catch(e){apply.disabled=true;messages.replaceChildren(node('p',String(e),'diagnostic ERROR'));}
    undo.disabled=!session.commands.canUndo;redo.disabled=!session.commands.canRedo;
   }
-  function view(kind:'map'|'water'){
+  function view(kind:'map'|'water'|'sites'){
    if(pendingWater){status.textContent='Appliquer ou abandonner le tracé d’eau avant de changer de vue.';return;}
    disposeView();tools.replaceChildren();map.replaceChildren();
    if(kind==='map'){const editor=mountGeoMap(map,tools,session,{draft:true,onPick:()=>{},open3D:()=>{status.textContent='La vue 3D sera disponible après création.';},status:message=>{status.textContent=message;}});disposeView=()=>editor.dispose();}
+   else if(kind==='sites'){const editor=mountTerrainSites(map,tools,session,message=>{status.textContent=message;});disposeView=()=>editor.dispose();}
    else {const editor=mountWater(map,tools,session,{onPending:pending=>{pendingWater=pending;discardWater.hidden=!pending;apply.disabled=pending;clearTimeout(timer);timer=setTimeout(validate,180);}});disposeView=()=>editor.dispose();}
   }
   async function close(use:boolean){
@@ -36,7 +38,7 @@ export async function editCompositionDraft(base:WorldComposition,resumeId?:strin
    }catch(e){dialog.inert=false;working=false;status.textContent=String(e);validate();}
   }
   const discardWater=button('Abandonner le tracé non appliqué',()=>{pendingWater=false;discardWater.hidden=true;view('water');validate();});discardWater.hidden=true;
-  toolbar.append(discardWater,button('Côte, relief et zones',()=>view('map')),button('Rivières et lacs',()=>view('water')),undo,redo,
+  toolbar.append(...(Object.keys(session.document.libraries.terrainPlans??{}).length?[button('Zones utiles et accès',()=>view('sites'))]:[]),discardWater,button('Côte, relief et zones',()=>view('map')),button('Rivières et lacs',()=>view('water')),undo,redo,
    button('Rafraîchir les biomes',async()=>{
     if(working||pendingWater)return;working=true;apply.disabled=true;
     try{const p=session.document,preview=previewWorldRecomposition(p,p.world.generation!,'biomes');await session.change('Rafraîchir les biomes du brouillon',preview.chunks,d=>applyWorldRecomposition(d,preview));status.textContent='Biomes rafraîchis ; retouches conservées.';}catch(e){status.textContent=String(e);}finally{working=false;validate();}
