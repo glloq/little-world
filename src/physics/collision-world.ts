@@ -126,7 +126,9 @@ export class WorldCollisionQuery {
    const px=Math.min(x+radius-b.minX,b.maxX-(x-radius)),pz=Math.min(z+radius-b.minZ,b.maxZ-(z-radius));
    if(px<pz)x=x-b.minX<b.maxX-x?b.minX-radius:b.maxX+radius;else z=z-b.minZ<b.maxZ-z?b.minZ-radius:b.maxZ+radius;pushed=true;
   }
-  const dx=desired.x-from.x,dz=desired.z-from.z,steps=options.singleStep?1:Math.max(1,Math.ceil(Math.hypot(dx,dz)/SUBSTEP));
+  const dx=desired.x-from.x,dz=desired.z-from.z,segmentLength=Math.hypot(dx,dz);
+   // After a blocked sweep cursor may lag behind its target: retain subdivision then.
+   const steps=options.singleStep&&segmentLength<=SUBSTEP*1.01?1:Math.max(1,Math.ceil(segmentLength/SUBSTEP));
   let currentBase=this.base(x,z,feet,space).floorY;
   for(let i=1;i<=steps;i++){
    const tx=from.x+dx*i/steps,tz=from.z+dz*i/steps;
