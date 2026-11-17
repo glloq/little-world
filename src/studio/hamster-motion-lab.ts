@@ -36,9 +36,25 @@ export function mountHamsterMotionLab(host:HTMLElement):{dispose():void}{
   let playing=true,elapsed=0,orbit=.55,disposed=false,frame=0,last=0,needsDraw=true;
   const clock=new MotionLabClock(),sampleTimes=new Float32Array(60);
   let samples=0,sampleIndex=0;
-  const pause=button('Pause',()=>{playing=!playing;pause.textContent=playing?'Pause':'Reprendre';});
+  const seek=node('input');seek.type='range';seek.min='0';seek.max='3.2';seek.step=String(1/30);seek.value='0';
+  seek.setAttribute('aria-label','Temps dans la séquence (secondes)');
+  const timeLabel=node('span','0,00 / 3,20 s','muted');
+  const scrub=node('div','','hamster-motion-scrub');scrub.append(seek,timeLabel);
+  const pause=button('Pause',()=>{playing=!playing;pause.textContent=playing?'Pause':'Reprendre';last=0;});
   const restart=button('Recommencer',()=>restartSequence());
-  root.append(controls,stage,pause,restart,status,info);
+  const oneTick=button('Avancer de 1/30 s',()=>{
+    playing=false;pause.textContent='Reprendre';
+    clock.advance(1/30,Number(renderRate.value) as MotionLabRenderHz,sample);
+    updateScrub();needsDraw=true;last=0;
+  });
+  seek.oninput=()=>{
+    const target=Math.round(Number(seek.value)*30);
+    playing=false;pause.textContent='Reprendre';
+    restartSequence();
+    for(let i=0;i<target;i++)clock.advance(1/30,Number(renderRate.value) as MotionLabRenderHz,sample);
+    updateScrub();needsDraw=true;last=0;
+  };
+  root.append(controls,stage,scrub,pause,restart,oneTick,status,info);
   host.replaceChildren(root);
 
   const renderer=new THREE.WebGLRenderer({antialias:false,powerPreference:'low-power',alpha:true});
@@ -52,8 +68,10 @@ export function mountHamsterMotionLab(host:HTMLElement):{dispose():void}{
   const floor=new THREE.Mesh(new THREE.PlaneGeometry(2000,2000),new THREE.MeshLambertMaterial({color:0xd8dbd2}));
   floor.rotation.x=-Math.PI/2;floor.position.y=-.015;scene.add(floor);
   let character=buildHamster();scene.add(character.group);
+  function updateScrub(){seek.value=String(clock.elapsed%3.2);timeLabel.textContent=(clock.elapsed%3.2).toFixed(2).replace('.',',')+' / 3,20 s';}
   function restartSequence(){
     clock.reset();elapsed=0;sampleTimes.fill(0);samples=0;sampleIndex=0;needsDraw=true;
+    updateScrub();
     if(disposed)return;
     character.dispose();character=buildHamster();scene.add(character.group);
     player.position.set(0,0,0);player.velocity.set(0,0,0);
@@ -153,6 +171,7 @@ export function mountHamsterMotionLab(host:HTMLElement):{dispose():void}{
     if(document.hidden){last=0;return;}
     const dt=last?Math.min((now-last)/1000,.1):1/30;last=now;
     const due=playing?clock.advance(dt,Number(renderRate.value) as MotionLabRenderHz,sample):false;
+    if(playing&&due)updateScrub();
     if(due||needsDraw){draw();needsDraw=false;}
   }
   sample(0,0);
