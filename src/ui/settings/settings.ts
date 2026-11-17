@@ -26,6 +26,6 @@ export function settingsPanel(deps:SettingsDeps){
     const controls=section('Contrôles');const sens=el('input');sens.type='range';sens.min='0.3';sens.max='2.5';sens.step='0.1';sens.value=String(p.cameraSensitivity);sens.setAttribute('aria-label','Sensibilité de la caméra');sens.oninput=()=>deps.update({cameraSensitivity:Number(sens.value)});
     const sl=el('label','ui-field','Sensibilité de la caméra');sl.append(sens);controls.append(sl,check('Inverser l’axe vertical de la caméra',p.invertY,v=>({invertY:v})));
     const keys=el('dl','ui-keys');for(const [k,label]of KEY_BINDINGS){const dt=el('dt');dt.append(kbd(k));keys.append(dt,el('dd','',label));}controls.append(keys,el('p','ui-muted','La réaffectation des touches n’est pas encore disponible.'));
-    const audio=section('Son');if(deps.audioPanel){deps.audioPanel.open=true;audio.append(deps.audioPanel);}else audio.append(el('p','ui-muted','Le son n’est pas disponible pour ce monde.'));
+    const audio=section('Son');if(deps.audioPanel){deps.audioPanel.open=true;const advanced=deps.audioPanel.querySelector<HTMLDetailsElement>('.audio-mixer-advanced');if(advanced)advanced.open=true;audio.append(deps.audioPanel);}else audio.append(el('p','ui-muted','Le son n’est pas disponible pour ce monde.'));
   }};
 }

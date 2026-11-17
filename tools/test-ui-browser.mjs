@@ -26,7 +26,15 @@ try{
   await boot();
 
   // 1. Minimal HUD: quick bar, no technical statistics outside developer mode.
-  verify(await page.getByRole('navigation',{name:'Accès rapide'}).isVisible(),'Quick bar visible (Sac, Journal, Carte, Menu)');
+  verify(await page.getByRole('navigation',{name:'Accès rapide'}).isVisible(),'Quick bar visible (Sac, Journal)');
+  verify(await page.locator('.ui-purse').textContent().then(t=>t.includes('🪙')),'Coin balance uses the real HUD');
+  verify(await page.locator('.ui-weather-chip').textContent().then(t=>/\d\d:\d\d/.test(t)),'HUD shows the simulated clock');
+  verify(await page.getByRole('button',{name:'Ouvrir la carte du monde (M)'}).isVisible(),'Minimap is visible');
+  await page.getByRole('button',{name:'Régler le volume'}).click();
+  verify(await page.locator('.ui-audio-popover').isVisible(),'Speaker opens the existing mixer');
+  verify(await page.locator('.ui-audio-popover').getByLabel('Volume général').count()===1,'One shared master volume');
+  await page.getByRole('button',{name:'Régler le volume'}).click();
+  verify(!(await page.locator('.ui-audio-popover').isVisible()),'Speaker closes its mixer');
   const statsHidden=await page.evaluate(()=>{document.body.classList.remove('developer');const v=getComputedStyle(document.querySelector('.hud-stats')).display==='none';document.body.classList.add('developer');return v;});
   verify(statsHidden,'Technical statistics hidden unless developer mode');
   // 2. Contextual prompt from the gameplay target.
@@ -59,6 +67,11 @@ try{
   // 8. Map: player position, markers, raster completes progressively.
   await page.keyboard.press('KeyM');const canvas=page.locator('.ui-map-canvas');await canvas.waitFor();await page.waitForFunction(()=>document.querySelector('.ui-map-canvas')?.dataset.progress==='1',null,{timeout:30000});
   const mapData=await canvas.evaluate(c=>({...c.dataset}));const [mx,mz]=mapData.player.split(',').map(Number);verify(Math.abs(mx+20)<=1&&Math.abs(mz+176)<=1.5&&Number(mapData.markers)>0,'Map shows the player at '+mapData.player+' with '+mapData.markers+' markers');
+  await page.getByRole('button',{name:'Placer un repère'}).click();await canvas.click();
+  await ui.panel('map').getByLabel('Nom du repère').fill('Belvédère');
+  await ui.panel('map').getByRole('button',{name:'Enregistrer'}).click();
+  verify((await ui.panel('map').locator('.ui-map-entry').allTextContents()).some(t=>t.includes('Belvédère')),'Custom map waypoint is displayed');
+  verify(await page.evaluate(()=>Object.keys(localStorage).some(k=>k.startsWith('little-world:waypoints:v1:world:'))),'Custom waypoint persisted separately from saves');
   await page.getByRole('button',{name:'Autour de moi'}).click();await canvas.focus();await page.keyboard.press('+');await page.keyboard.press('ArrowLeft');verify(await ui.panel('map').isVisible(),'Map keyboard zoom/pan stays in the map');await shot('carte');await page.keyboard.press('Escape');verify(!(await ui.panel('map').isVisible()),'Escape closes the map');
   // 9. Pause menu: world paused, keyboard focus on « Reprendre ».
   await page.keyboard.press('Escape');await ui.panel('pause').waitFor();
