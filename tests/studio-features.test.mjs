@@ -26,7 +26,7 @@ test('zone contract: closed simple polygon inside the world, mines with 1–8 le
   assert.throws(()=>validateZone({id:'z5',kind:'volcano',name:'X',polygon:square(0,0,20)},p.world),/type/);
 });
 test('zones are optional V3 library data: old projects stay valid, new ones round-trip and compile',async()=>{
-  const old=parseProject(JSON.parse(await readFile(new URL('../maps/beta.project.json',import.meta.url),'utf8')));assert.equal(old.libraries.zones,undefined);
+  const old=parseProject(JSON.parse(await readFile(new URL('../tests/fixtures/legacy-maps/authoring/beta.project.json',import.meta.url),'utf8')));assert.equal(old.libraries.zones,undefined);
   const p=createProject({name:'Zones',width:1000,length:1000}),bus=new CommandBus(p);
   editDocument(bus,'Champ',[],d=>putZone(d,{id:'zone:a',kind:'farm-plot',name:'Champ',polygon:square(0,0,30)}));
   editDocument(bus,'Mine',[],d=>putZone(d,{id:'zone:b',kind:'mine',name:'Mine',polygon:square(100,100,20),levels:3}));
