@@ -190,7 +190,7 @@ Lire **[41 — World Production V1](docs/41-WORLD-PRODUCTION-V1.md)** avant de t
 - **Un seul catalogue** : `assets/world-assets.json` est **généré** depuis les vrais GLB (`npm run generate:world-assets`, vérifié en CI) ; usages dans `src/world-production/asset-usage.ts`. Ne pas éditer le JSON à la main, ne pas modifier les GLB d'origine.
 - La classification du Geography Engine reste l'autorité ; les **profils de biotopes** ne font que choisir espèces/densités/écotones. Pas de données par plante dans les sources.
 - `libraries.landscapes` (facultatif) : un preset écrit des données auteur rééditables ; **retouches manuelles prioritaires** (contenu modifié détaché, suppressions respectées, écrasement seulement confirmé). Toute rivière générée passe la compilation WATER.
-- Cartes `maps/island.project.json` et `maps/production-reference.project.json` **générées** (`npm run generate:island`, `npm run generate:production-reference`, vérifiées en CI).
+- La carte officielle `maps/island.project.json` est générée (`npm run generate:island`) ; la carte de régression production est désormais sous `tests/fixtures/legacy-maps/authoring/production-reference.project.json` (générée par `npm run generate:production-reference`, vérifiée en CI).
 
 ## Jeu complet V1 — économie, activités, île peuplée, Studio unique (implémenté sur branche)
 
@@ -258,3 +258,11 @@ Lire **[43 — Hamster joueur](docs/43-HAMSTER-JOUEUR.md)** avant de toucher au 
 - Aucune assertion de fonctionnalité livrée sans preuve par tests et/ou validation visuelle appropriée.
 
 **Priorité recommandée : Studio Core → formats et carte sectorisés → outils relief/eau/biotopes → NPC/navigation → dialogues/interactions → activités/sauvegardes → QA/performance**, avec incréments exécutables à chaque étape.
+
+## Carte officielle et isolation des fixtures (novembre 2026)
+
+- **Un seul exemple public** : l’île 4 × 3 km, source générée `maps/island.project.json`, runtime `public/maps/island/`, générateur `npm run generate:island`.
+- **Studio** : seul ce monde est proposé dans « Explorer un monde prêt ». `vite.config.ts` expose la source comme `maps/island.project.json` dans le build et en développement, sans copie versionnée supplémentaire.
+- Les anciennes scènes de référence sont maintenant des **fixtures de régression**, sous `tests/fixtures/legacy-maps/{authoring,published}`, absentes des répertoires de cartes publiques.
+- Les tests navigateur peuvent les utiliser seulement après `node tools/stage-test-maps.mjs dist/maps` avec `studio/?testFixtures=1` sur le build de validation ; **ne jamais ajouter cette étape dans le workflow GitHub Pages**.
+- Les prochains ajouts de contenu destinés aux joueurs se font sur le générateur de l’île officielle et sont mesurés avant/après. Voir `docs/61-SHOWCASE-ISLAND-4X3.md`.

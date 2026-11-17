@@ -62,8 +62,8 @@ export function buildReferenceProject(){
 }
 if(import.meta.url===`file://${process.argv[1]}`){
   const project=buildReferenceProject();
-  await writeFile(new URL('../maps/reference.project.json',import.meta.url),JSON.stringify(project,null,2)+'\n');
-  await writeFile(new URL('../public/maps/reference.project.json',import.meta.url),JSON.stringify(project)+'\n');
-  const result=await compileProjectToDirectory(project,new URL('../public/maps/reference',import.meta.url).pathname);
+  await writeFile(new URL('../tests/fixtures/legacy-maps/authoring/reference.project.json',import.meta.url),JSON.stringify(project,null,2)+'\n');
+  await writeFile(new URL('../tests/fixtures/legacy-maps/published/reference.project.json',import.meta.url),JSON.stringify(project)+'\n');
+  const result=await compileProjectToDirectory(project,new URL('../tests/fixtures/legacy-maps/published/reference',import.meta.url).pathname);
   console.log(JSON.stringify({worldId:result.manifest.worldId,buildVersion:result.manifest.buildVersion,authoredChunks:result.manifest.chunks.length,written:result.written},null,2));
 }

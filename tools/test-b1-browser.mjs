@@ -11,7 +11,7 @@ import {readFile,mkdir} from 'node:fs/promises';
 import {playerUi} from './ui-test-helpers.mjs';
 import assert from 'node:assert/strict';
 const base=process.env.WORLD_URL??'http://127.0.0.1:5173/little-world/',out='/tmp/little-world-browser';await mkdir(out,{recursive:true});
-const project=JSON.parse(await readFile(new URL('../maps/b1-demo.project.json',import.meta.url),'utf8')),mine=project.libraries.zones['zone-mine'].mine;
+const project=JSON.parse(await readFile(new URL('../tests/fixtures/legacy-maps/authoring/b1-demo.project.json',import.meta.url),'utf8')),mine=project.libraries.zones['zone-mine'].mine;
 const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH??(existsSync('/usr/bin/chromium')?'/usr/bin/chromium':undefined),args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
 let checks=0;const check=(ok,label)=>{assert.ok(ok,'FAILED: '+label);checks++;console.log('OK: '+label);};
 const SLOT='little-world:game-save:v1:little-world-b1-demo:slot-1';

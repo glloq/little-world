@@ -16,14 +16,18 @@ export interface WelcomeActions {
   importFile():void;
   report(message:string,error?:boolean):void;
 }
+/** The only official showcase; smaller technical worlds remain isolated test fixtures. */
 const templates=[
-  {file:'beta.project.json',title:'Vallée de démonstration',desc:'Découvrir un monde déjà préparé.'},
-  {file:'reference.project.json',title:'Géographie de référence',desc:'Tester les reliefs et les paysages.'},
-  {file:'production-reference.project.json',title:'Monde naturel',desc:'Explorer les biotopes et le décor.'},
-  {file:'cliff-reference.project.json',title:'Falaises',desc:'Observer plusieurs types de parois.'},
-  {file:'motion-reference.project.json',title:'Déplacements',desc:'Tester les mouvements du personnage.'},
-  {file:'b1-demo.project.json',title:'Mine, eau et agriculture',desc:'Exemple de mécaniques de jeu.'},
+  {file:'island.project.json',title:'Île du volcan — 4 × 3 km',desc:'Explorer et modifier le monde officiel : reliefs, falaises, biomes, villages et activités.'},
 ];
+const fixtureShortcuts=[
+  ['Ouvrir le scénario de référence','beta.project.json'],
+  ['Scène de référence géographique','reference.project.json'],
+  ['Scène de référence World Production','production-reference.project.json'],
+  ['Scène de référence Falaises','cliff-reference.project.json'],
+  ['Scène de référence Déplacements','motion-reference.project.json'],
+  ['Démonstration B1 (mine, eau, parcelles)','b1-demo.project.json'],
+] as const;
 const modes:readonly {id:WelcomeMode;name:string;detail:string}[]=[
   {id:'island',name:'Grande île',detail:'Une île entourée de côtes et un relief central.'},
   {id:'archipelago',name:'Archipel',detail:'Une île principale et plusieurs îlots.'},
@@ -91,6 +95,7 @@ export function drawWelcomePreview(canvas:HTMLCanvasElement,project:ProjectDocum
   return rect;
 }
 export function mountWelcome(host:HTMLElement,actions:WelcomeActions){
+  const testFixtures=new URLSearchParams(location.search).has('testFixtures');
   let config:WelcomeConfig={...DEFAULT_WELCOME_CONFIG};
   let step=0,section:'home'|'wizard'|'templates'|'projects'='home',name='Mon petit monde';
   let placing:'mountain'|'volcano'|null=null,renderId=0,busy=false,showAdvanced=false;
@@ -141,14 +146,15 @@ export function mountWelcome(host:HTMLElement,actions:WelcomeActions){
     advanced.append(node('h2','Accès avancé · création directe'),node('p','Pour les anciens modèles et les utilisateurs qui connaissent déjà leurs paramètres.','muted'));
     const form=node('form','','welcome-direct');
     const directName=input('Mon petit monde',()=>{}),size=select('1000',[
-      ['island','Île volcanique · 3 000 × 8 000 m'],
-      ['archipelago','Archipel éditable (île, volcan, îlots) · 3 000 × 8 000 m'],
+      ['island','Île volcanique · 4 000 × 3 000 m'],
+      ['archipelago','Archipel éditable (île, volcan, îlots) · personnalisable'],
       ['chain','Chapelet d’îlots · personnalisable'],
       ['calm','Île douce sans relief majeur · personnalisable'],
-      ['200','Vallée historique · 200 × 600 m'],
-      ['1000','Vallée historique · 1 000 × 1 000 m'],
+      // Compact user-created terrain, not an installed showcase map (water authoring regressions).
+      ['200','Terrain compact · 200 × 600 m'],
+      ['1000','Terrain libre · 1 000 × 1 000 m'],
     ],()=>{}),seed=numberInput(4242,()=>{},1,9999999,'1');
-    const width=numberInput(3000,()=>{},500,8000,'1'),length=numberInput(8000,()=>{},500,8000,'1'),cliffs=numberInput(.35,()=>{},0,1,'0.05');
+    const width=numberInput(4000,()=>{},500,8000,'1'),length=numberInput(3000,()=>{},500,8000,'1'),cliffs=numberInput(.35,()=>{},0,1,'0.05');
     const volcano=node('input');volcano.type='checkbox';volcano.checked=true;
     const opts=node('details'); // Keep legacy click-to-expand behavior for authoring workflows.
     opts.append(node('summary','Dimensions et géographie initiale'),
@@ -164,16 +170,11 @@ export function mountWelcome(host:HTMLElement,actions:WelcomeActions){
       await actions.create(p);
     })();};
     const references=node('div','','welcome-quick-templates');
-    const shortcuts=[
-      ['Ouvrir le scénario de référence','beta.project.json'],
-      ['Scène de référence géographique','reference.project.json'],
-      ['Scène de référence World Production','production-reference.project.json'],
-      ['Scène de référence Falaises','cliff-reference.project.json'],
-      ['Scène de référence Déplacements','motion-reference.project.json'],
-      ['Démonstration B1 (mine, eau, parcelles)','b1-demo.project.json'],
-    ] as const;
+    const shortcuts:readonly (readonly [string,string])[]=testFixtures
+      ?[['Ouvrir l’île officielle (4 × 3 km)','island.project.json'],...fixtureShortcuts]
+      :[['Ouvrir l’île officielle (4 × 3 km)','island.project.json']];
     for(const [label,file] of shortcuts)references.append(button(label,()=>{void safe(()=>actions.template(file))();}));
-    advanced.append(form,node('h3','Raccourcis des scènes de référence'),references);
+    advanced.append(form,node('h3',testFixtures?'Scénarios techniques de régression':'Carte de référence'),references);
     page.append(advanced);
     host.replaceChildren(page);
   }
@@ -182,7 +183,7 @@ export function mountWelcome(host:HTMLElement,actions:WelcomeActions){
     page.append(button('← Accueil',back));
     const grid=node('div','','welcome-entry-grid');
     if(which==='templates'){
-      for(const t of templates){
+      for(const t of (testFixtures?[...templates,...fixtureShortcuts.map(([title,file])=>({file,title,desc:'Fixture technique réservée aux tests automatisés.'}))]:templates)){
         const card=node('article','','welcome-template');
         card.append(node('div','MONDE PRÉPARÉ','kicker'),node('h2',t.title),node('p',t.desc,'muted'),button('Ouvrir ce monde',()=>{void safe(()=>actions.template(t.file))();},'primary-button'));grid.append(card);
       }
@@ -219,8 +220,8 @@ export function mountWelcome(host:HTMLElement,actions:WelcomeActions){
       }else controls.append(node('p','Le terrain de départ restera plat. Vous ajouterez ses formes depuis le Studio.','muted'));
       controls.append(node('h3','Dimensions du monde'));
       const dimensions=String(config.width)+'x'+String(config.length);
-      const sizes=select(['1000x1000','3000x3000','3000x8000','8000x8000'].includes(dimensions)?dimensions:'custom',[
-        ['1000x1000','1 × 1 km — Compact'],['3000x3000','3 × 3 km — Moyen'],['3000x8000','3 × 8 km — Grand'],
+      const sizes=select(['1000x1000','3000x3000','4000x3000','3000x8000','8000x8000'].includes(dimensions)?dimensions:'custom',[
+        ['1000x1000','1 × 1 km — Compact'],['3000x3000','3 × 3 km — Moyen'],['4000x3000','4 × 3 km — Île officielle'],['3000x8000','3 × 8 km — Grand'],
         ['8000x8000','8 × 8 km — Très grand'],['custom','Dimensions personnalisées'],
       ],v=>{if(v!=='custom'){const [w,l]=v.split('x').map(Number);config.width=w;config.length=l;config.mountain=null;config.volcanoAt=null;showAdvanced=false;render();}else{showAdvanced=true;render();}});
       controls.append(field('Taille de la carte',sizes));

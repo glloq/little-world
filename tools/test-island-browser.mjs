@@ -1,4 +1,4 @@
-/** Lot 1 checks for the 3 × 8 km island, runnable against the production preview:
+/** Lot 1 checks for the 4 × 3 km island, runnable against the production preview:
  * published compiled world, far geography without holes, rotation, and the Studio
  * create → compiled test copy → return path. No source module is imported by pages.
  */
@@ -51,7 +51,7 @@ try{
   studio.on('pageerror',e=>errors.push(e.message));studio.on('dialog',d=>d.accept());
   await studio.goto(base+'studio/');await studio.getByLabel('Nom du projet').fill('Île navigateur');
   await studio.getByLabel('Modèle et dimensions').selectOption('island');await studio.getByRole('button',{name:'Créer le projet',exact:true}).click();
-  await studio.locator('.viewport canvas').waitFor();check(await studio.locator('#breadcrumbs').textContent()==='Île navigateur / scene','Studio creates a 3 × 8 km island project');
+  await studio.locator('.viewport canvas').waitFor();check(await studio.locator('#breadcrumbs').textContent()==='Île navigateur / scene','Studio creates a 4 × 3 km island project');
   await studio.screenshot({path:out+'/island-studio-map.png'});
   const popup=studio.context().waitForEvent('page');await studio.getByRole('button',{name:'Jouer ici'}).click();const game=await popup;
   game.on('pageerror',e=>errors.push(e.message));await game.waitForLoadState();
@@ -59,7 +59,7 @@ try{
   await game.waitForSelector('#start:not([disabled])',{timeout:30000});await game.locator('#start').click();
   await game.waitForFunction(()=>document.querySelector('#coords')?.textContent?.includes('Z'),{},{timeout:30000});
   const z=Number(/Z (-?\d+)/.exec(await game.locator('#coords').textContent())?.[1]);
-  check(z>3000,'Island test copy starts on the southern beach (Z '+z+')');
+  check(z>1000&&z<1500,'Island test copy starts on the northern beach of the 4 × 3 km world (Z '+z+')');
   await game.screenshot({path:out+'/island-playtest.png'});await game.close();
   check(await studio.locator('#breadcrumbs').textContent()==='Île navigateur / scene','Returning keeps the Studio context');
   check(errors.length===0,errors.join('\n'));

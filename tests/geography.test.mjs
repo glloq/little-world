@@ -86,7 +86,7 @@ test('mask painting, local restoration and transport to compiled worlds',async()
   assert.equal(sectorGrid(p).columns,16);
 });
 test('older projects and maps stay valid (no layers, island and valley generators)',async()=>{
-  parseProject(JSON.parse(await readFile(new URL('../maps/beta.project.json',import.meta.url),'utf8')));
+  parseProject(JSON.parse(await readFile(new URL('../tests/fixtures/legacy-maps/authoring/beta.project.json',import.meta.url),'utf8')));
   parseProject(JSON.parse(await readFile(new URL('../maps/island.project.json',import.meta.url),'utf8')));
   const p=createProject({name:'Ancien'});assert.equal(toRuntimeWorld(p).geography,undefined);
   const f=archipelagoField(world,preset);assert.ok(slopeAt(f.height,0,0)>=0);

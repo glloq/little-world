@@ -36,8 +36,8 @@ export function buildCliffReference(){
 }
 if(import.meta.url===`file://${process.argv[1]}`){
  const project=buildCliffReference();
- await writeFile(new URL('../maps/cliff-reference.project.json',import.meta.url),JSON.stringify(project,null,2)+'\n');
- await writeFile(new URL('../public/maps/cliff-reference.project.json',import.meta.url),JSON.stringify(project)+'\n');
- const result=await compileProjectToDirectory(project,new URL('../public/maps/cliff-reference/',import.meta.url).pathname);
+ await writeFile(new URL('../tests/fixtures/legacy-maps/authoring/cliff-reference.project.json',import.meta.url),JSON.stringify(project,null,2)+'\n');
+ await writeFile(new URL('../tests/fixtures/legacy-maps/published/cliff-reference.project.json',import.meta.url),JSON.stringify(project)+'\n');
+ const result=await compileProjectToDirectory(project,new URL('../tests/fixtures/legacy-maps/published/cliff-reference/',import.meta.url).pathname);
  console.log(JSON.stringify({worldId:result.manifest.worldId,chunks:result.manifest.chunks.length,written:result.written},null,2));
 }

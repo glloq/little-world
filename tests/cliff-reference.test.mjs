@@ -9,14 +9,14 @@ import {openCompiledWorld,playableFromCompiled} from '../src/runtime/compiled-wo
 import {createTerrainSource} from '../src/terrain.ts';
 import {createCliffView,buildCliffGeometry,CLIFF_BUDGET} from '../src/render/cliff-view.ts';
 
-const root=new URL('../public/maps/cliff-reference/',import.meta.url);
-const committed=parseProject(JSON.parse(await readFile(new URL('../maps/cliff-reference.project.json',import.meta.url),'utf8')));
+const root=new URL('../tests/fixtures/legacy-maps/published/cliff-reference/',import.meta.url);
+const committed=parseProject(JSON.parse(await readFile(new URL('../tests/fixtures/legacy-maps/authoring/cliff-reference.project.json',import.meta.url),'utf8')));
 const ground=p=>createTerrainSource({seed:p.world.seed,width:280,length:280,seaLevel:0,density:0,terrain:p.world.terrain},[]);
 
 test('cliff lab is reproducible, compact and round-trips through the ordinary V3 ZIP',async()=>{
  const p=buildCliffReference();
  assert.deepEqual(p,committed);
- assert.deepEqual(JSON.parse(await readFile(new URL('../public/maps/cliff-reference.project.json',import.meta.url),'utf8')),p);
+ assert.deepEqual(JSON.parse(await readFile(new URL('../tests/fixtures/legacy-maps/published/cliff-reference.project.json',import.meta.url),'utf8')),p);
  const restored=readProjectArchive(writeProjectArchive(p));
  assert.deepEqual(restored.world,p.world);
  assert.deepEqual(restored.libraries,p.libraries);

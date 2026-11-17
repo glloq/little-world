@@ -15,7 +15,7 @@ function memoryFetcher(files){
   return async url=>{const path=new URL(url).pathname.replace(/^\/worlds\/test\//,'');return path in files?new Response(files[path]):new Response('',{status:404});};
 }
 test('compiled reader reproduces the Studio source projection of the reference scenario',async()=>{
-  const project=parseProject(JSON.parse(await readFile(new URL('../maps/beta.project.json',import.meta.url),'utf8')));
+  const project=parseProject(JSON.parse(await readFile(new URL('../tests/fixtures/legacy-maps/authoring/beta.project.json',import.meta.url),'utf8')));
   const compiled=await compileProject(project,{resolveAsset});
   const bundle=await openCompiledWorld('http://localhost/worlds/test/manifest.json',memoryFetcher(compiled.files));
   const playable=playableFromCompiled(bundle,{x:-24,y:0,z:-183});
@@ -44,7 +44,7 @@ test('an island without authored packages opens with its generated relief and a 
   assert.deepEqual(defaultSpawn(runtimeConfig(compiled.manifest),[]),playable.spawn);
 });
 test('compiled reader rejects tampered resources, oversize payloads and unsafe paths',async()=>{
-  const project=parseProject(JSON.parse(await readFile(new URL('../maps/beta.project.json',import.meta.url),'utf8')));
+  const project=parseProject(JSON.parse(await readFile(new URL('../tests/fixtures/legacy-maps/authoring/beta.project.json',import.meta.url),'utf8')));
   const compiled=await compileProject(project,{resolveAsset}),files={...compiled.files};
   const chunk=compiled.manifest.chunks[0];files[chunk.url]=files[chunk.url].replace('"','" ');
   await assert.rejects(openCompiledWorld('http://localhost/worlds/test/manifest.json',memoryFetcher(files)),/hash|size/);

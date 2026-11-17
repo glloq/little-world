@@ -78,8 +78,8 @@ export function buildB1Project(){
 }
 if(import.meta.url===`file://${process.argv[1]}`){
   const project=buildB1Project();
-  await writeFile(new URL('../maps/b1-demo.project.json',import.meta.url),JSON.stringify(project,null,2)+'\n');
-  await writeFile(new URL('../public/maps/b1-demo.project.json',import.meta.url),JSON.stringify(project)+'\n');
-  const result=await compileProjectToDirectory(project,new URL('../public/maps/b1-demo',import.meta.url).pathname);
+  await writeFile(new URL('../tests/fixtures/legacy-maps/authoring/b1-demo.project.json',import.meta.url),JSON.stringify(project,null,2)+'\n');
+  await writeFile(new URL('../tests/fixtures/legacy-maps/published/b1-demo.project.json',import.meta.url),JSON.stringify(project)+'\n');
+  const result=await compileProjectToDirectory(project,new URL('../tests/fixtures/legacy-maps/published/b1-demo',import.meta.url).pathname);
   console.log(JSON.stringify({worldId:result.manifest.worldId,buildVersion:result.manifest.buildVersion,authoredChunks:result.manifest.chunks.length,written:result.written,lake:project.libraries.water.lake.level},null,2));
 }

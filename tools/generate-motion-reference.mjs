@@ -28,8 +28,8 @@ export function buildMotionReference(){
 }
 if(import.meta.url===`file://${process.argv[1]}`){
  const p=buildMotionReference();
- await writeFile(new URL('../maps/motion-reference.project.json',import.meta.url),JSON.stringify(p,null,2)+'\n');
- await writeFile(new URL('../public/maps/motion-reference.project.json',import.meta.url),JSON.stringify(p)+'\n');
- const r=await compileProjectToDirectory(p,new URL('../public/maps/motion-reference/',import.meta.url).pathname);
+ await writeFile(new URL('../tests/fixtures/legacy-maps/authoring/motion-reference.project.json',import.meta.url),JSON.stringify(p,null,2)+'\n');
+ await writeFile(new URL('../tests/fixtures/legacy-maps/published/motion-reference.project.json',import.meta.url),JSON.stringify(p)+'\n');
+ const r=await compileProjectToDirectory(p,new URL('../tests/fixtures/legacy-maps/published/motion-reference/',import.meta.url).pathname);
  console.log(JSON.stringify({world:r.manifest.worldId,chunks:r.manifest.chunks.length,written:r.written.length}));
 }

@@ -146,7 +146,7 @@ test('V2 audio is accepted by Studio projects, link validation and the portable 
  const v1project=createProject({name:'Audio V1'});v1project.world.audio=v1;assert.equal(parseProject(v1project).world.audio.schemaVersion,1,'V1 projects stay V1 until the author migrates');
 });
 test('the beta map (V1 audio) still loads and converts in memory',async()=>{
- const beta=await json('../public/maps/beta.json');assert.equal(beta.audio.schemaVersion,1);const c=toAudioCatalog(beta.audio);assert.equal(c.schemaVersion,2);assert.deepEqual(Object.keys(beta.audio.sounds).every(id=>c.events[id]),true);
+ const beta=await json('../tests/fixtures/legacy-maps/published/beta.json');assert.equal(beta.audio.schemaVersion,1);const c=toAudioCatalog(beta.audio);assert.equal(c.schemaVersion,2);assert.deepEqual(Object.keys(beta.audio.sounds).every(id=>c.events[id]),true);
 });
 test('installing the shipped catalogue on a migrated V1 project keeps every author value and adds missing ids only',async()=>{
  const {mergeAudioCatalogs}=await import('../src/audio/migrate.ts');const custom=structuredClone(v1);custom.sounds.collect.gain=.2;custom.emitters=[{id:'e',position:{x:0,y:0,z:0},soundId:'water',radius:10,loop:true,priority:1}];

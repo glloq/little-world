@@ -20,7 +20,7 @@ class FakeWorker {
   postMessage(m){this.posted.push(m.type==='job'?m.job.kind:m.type);const msg=structuredClone(m);setTimeout(()=>{if(this.broken){this.onerror?.({message:'boom'});return;}const out=handleGeoMessage(msg);if(out)this.onmessage?.({data:out.reply});},1);}
   terminate(){}
 }
-const p=parseProject(JSON.parse(await readFile(new URL('../maps/reference.project.json',import.meta.url),'utf8')));
+const p=parseProject(JSON.parse(await readFile(new URL('../tests/fixtures/legacy-maps/authoring/reference.project.json',import.meta.url),'utf8')));
 const def=toRuntimeWorld(p),c=def.config,W=c.width,L=c.length;
 function configure(edits=def.terrain){configureTerrain(c,edits,def.water,def.paths);configureGeography({seed:c.seed,grid:{minX:-W/2,minZ:-L/2,chunkSizeM:64,columns:Math.ceil(W/64),rows:Math.ceil(L/64)},masks:def.geography.masks,zones:def.geography.zones,biomeStrokes:[],buildings:[]});}
 

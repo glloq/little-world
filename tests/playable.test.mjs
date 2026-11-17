@@ -5,7 +5,7 @@ import {parsePlayableWorld,loadPlaytest,savePlaytest} from '../src/gameplay/play
 import {createGameplay} from '../src/gameplay/runtime.ts';
 import {gameplayDialogueSession} from '../src/gameplay/dialogue-session.ts';
 import {scopedSaveStorage,createGameSaveStore,playtestSlotPrefix} from '../src/gameplay/save.ts';
-const bundle=JSON.parse(await readFile(new URL('../public/maps/beta.json',import.meta.url),'utf8'));
+const bundle=JSON.parse(await readFile(new URL('../tests/fixtures/legacy-maps/published/beta.json',import.meta.url),'utf8'));
 function storage(){const values=new Map();return {get length(){return values.size;},key(i){return [...values.keys()][i]??null;},getItem(k){return values.get(k)??null;},setItem(k,v){values.set(k,v);},removeItem(k){values.delete(k);}};}
 test('reference playable content supports choice, collection, delivery and ordered puzzle, then save/resume',()=>{
  const content=parsePlayableWorld(bundle),r=createGameplay(content.gameplay),talk=gameplayDialogueSession(r,'woodland-animal');assert.match(talk.line.text,/gland/);assert.equal(talk.choose(0),true);assert.equal(r.state.objectives.delivery,'active');

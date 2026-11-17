@@ -14,7 +14,7 @@ let checks=0;const check=(condition,message)=>{assert.ok(condition,'FAILED: '+me
 try{
  const page=await browser.newPage({viewport:{width:1440,height:900}}),errors=[];
  page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>d.accept());
- await page.goto(base+'studio/');
+ await page.goto(base+'studio/?testFixtures=1');
  await page.getByRole('button',{name:'Scène de référence géographique'}).click();
  const canvas=page.locator('.viewport canvas'),waitTool=tool=>page.waitForFunction(t=>document.querySelector('.viewport canvas')?.dataset.tool===t,tool,{timeout:20000});
  const idle=()=>page.waitForFunction(()=>document.querySelector('.viewport canvas')?.dataset.idle==='true'&&document.querySelector('.viewport canvas')?.dataset.pending==='0',{},{timeout:120000});
