@@ -6,7 +6,7 @@ Le moteur reste déterministe à 30 Hz et conserve le système de propulsion par
 
 | Action | Comportement |
 |---|---|
-| Boost en plané | Nouvelle impulsion : vitesse verticale relevée à au moins **11 m/s**, puis poussée normale en conservant la direction et l'énergie du vol |
+| Boost en plané | Nouvelle impulsion : vitesse verticale relevée à au moins **14 m/s**, puis poussée normale en conservant la direction et l'énergie du vol |
 | Boost en chute libre | **Double saut** : une impulsion alimentée en gaz, relance verticale à au moins **6,2 m/s** et poussée verticale sur le reste du pulse |
 | Boost immobile au sol | Maintien 0,35 s : décollage vertical à **7,5 m/s**, consommation d'une impulsion ; ouverture du planeur avec Saut ensuite |
 | Boost en course au sol | Contrôle d'accélération et roulade, **pas de décollage involontaire** |
