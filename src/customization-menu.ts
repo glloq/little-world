@@ -9,12 +9,14 @@ import {
 } from './character-style.ts';
 
 import {FLIGHT_SKINS,type FlightSkin,type FlightProgress} from './gameplay/flight-progress.ts';
+import {FLIGHT_COURSES,COURSE_LABELS,type FlightCourseId} from './gameplay/flight-courses.ts';
 
 export interface BoostCustomization {
  status():Readonly<FlightProgress>;
  selectSkin(id:FlightSkin):void;
  selectSound(id:FlightSkin):void;
  previewSound?(id:FlightSkin):void;
+ startCourse?(id:FlightCourseId):string;
 }
 const BOOST_TITLES:Readonly<Record<FlightSkin,string>>={classic:'Classique',cheese:'Fromage',potato:'Patate',hazelnut:'Noisette',magic:'Magique',rainbow:'Arc-en-ciel'};
 
@@ -88,7 +90,16 @@ export function createCustomizationMenu(
     const skin=select('Effet visuel',id=>{if(boost.status().unlockedSkins.includes(id))boost.selectSkin(id);refreshBoost();});
     const sound=select('Son du pet',id=>{if(boost.status().unlockedSounds.includes(id)){boost.selectSound(id);boost.previewSound?.(id);}refreshBoost();});
     const line=document.createElement('div');line.className='appearance-boost-controls';line.append(skin.label,sound.label);
-    section.append(heading,levels,line);
+    const courseTitle=document.createElement('h3');courseTitle.textContent='Défis de vol';
+    const courseButtons=document.createElement('div');courseButtons.className='appearance-boost-challenges';
+    const courseResult=document.createElement('small');courseResult.className='appearance-boost-levels';
+    for(const id of FLIGHT_COURSES){
+      const button=document.createElement('button');button.type='button';button.className='appearance-choice';
+      button.textContent=COURSE_LABELS[id];
+      button.addEventListener('click',()=>{courseResult.textContent=boost.startCourse?.(id)??'Parcours indisponible';});
+      courseButtons.append(button);
+    }
+    section.append(heading,levels,line,courseTitle,courseButtons,courseResult);
     root.querySelector('.appearance-footer')?.before(section);
     refreshBoost=()=>{
       const p=boost.status();skin.input.value=p.selectedSkin;sound.input.value=p.selectedSound;
