@@ -28,7 +28,7 @@ try{
   const page=await browser.newPage({viewport:{width:1000,height:640}}),errors=[];page.on('pageerror',e=>errors.push(e.message));
   const m=()=>page.evaluate(()=>window.littleWorldMetrics);
   await page.goto(`${base}?world=maps/island/manifest.json&metrics=1&spawn=${site.fx.toFixed(2)},${site.fz.toFixed(2)}&yaw=${site.yaw.toFixed(3)}`,{waitUntil:'networkidle'});
-  await page.locator('#start').click();await page.waitForFunction(()=>window.littleWorldMetrics?.chunks.pending===0,{},{timeout:60000});await page.waitForTimeout(800);
+  await page.locator('#start-overlay').waitFor({state:'hidden'});await page.waitForFunction(()=>window.littleWorldMetrics?.chunks.pending===0,{},{timeout:60000});await page.waitForTimeout(800);
   const start=await m();check(start.mode==='ground'&&start.stamina===100,`At the foot of a ${(site.top-site.foot).toFixed(1)} m cliff, full stamina`);
   await page.keyboard.down('KeyW');
   await page.waitForFunction(()=>window.littleWorldMetrics?.mode==='climb',{},{timeout:15000});check(true,'Pushing into the cliff starts climbing');

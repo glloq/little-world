@@ -22,7 +22,7 @@ try{
   const inPanel=()=>page.evaluate(()=>!!document.activeElement?.closest('.ui-panel:not([hidden]),.ui-modal'));
   const envTime=()=>page.evaluate(()=>window.littleWorldMetrics.environment.time);
   async function moveTo(x,z){await ui.save();const raw=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)),SLOT(1));raw.position={x,y:raw.position.y,z};await ui.importSave(raw,'position.json');await ui.load();await page.waitForFunction(([x,z])=>{const p=window.littleWorldMetrics?.position;return p&&Math.abs(p[0]-x)<.2&&Math.abs(p[2]-z)<.2;},[x,z]);await page.waitForTimeout(400);}
-  const boot=async()=>{await page.goto(base+'?beta=1&metrics');await page.getByRole('button',{name:'Explorer l’île'}).click();await page.waitForFunction(()=>window.littleWorldMetrics?.frameId>3);};
+  const boot=async()=>{await page.goto(base+'?beta=1&metrics');await page.locator('#start-overlay').waitFor({state:'hidden'});await page.waitForFunction(()=>window.littleWorldMetrics?.frameId>3);};
   await boot();
 
   // 1. Minimal HUD: quick bar, no technical statistics outside developer mode.
@@ -125,8 +125,8 @@ try{
   const fits=await page.evaluate(()=>[...document.querySelectorAll('.ui-panel:not([hidden]),.ui-quickbar,#action')].filter(n=>!n.classList.contains('hide')).every(n=>{const r=n.getBoundingClientRect();return r.left>=0&&r.top>=0&&r.right<=innerWidth&&r.bottom<=innerHeight;}));
   verify(fits,'Panels, quick bar and prompt fit a 720 × 540 viewport');await shot('petit-ecran');await page.keyboard.press('Escape');await page.setViewportSize({width:1280,height:800});
   // 15. Back to the start screen from the menu, then play again.
-  await page.keyboard.press('Escape');await ui.panel('pause').getByRole('button',{name:'Retour à l’accueil'}).click();await page.getByRole('button',{name:'Explorer l’île'}).waitFor({state:'visible'});verify(true,'Menu returns to the start screen');
-  await page.getByRole('button',{name:'Explorer l’île'}).click();const t1=await envTime();await page.waitForTimeout(600);verify(await envTime()>t1,'Playing again resumes the world');
+  await page.keyboard.press('Escape');await ui.panel('pause').getByRole('button',{name:'Retour à l’accueil'}).click();await page.getByRole('button',{name:'Reprendre l’exploration'}).waitFor({state:'visible'});verify(true,'Menu returns to the start screen');
+  await page.getByRole('button',{name:'Reprendre l’exploration'}).click();const t1=await envTime();await page.waitForTimeout(600);verify(await envTime()>t1,'Playing again resumes the world');
   // 16. Desktop input regression: game focus, Space, context menu and contextual boost.
   const sceneCanvas=page.locator('#viewport canvas');
   // Accessible minimap label changes when a waypoint is active; class is stable.
@@ -187,7 +187,7 @@ try{
   mobilePage.on('pageerror',e=>mobileErrors.push(e.message));
   await mobilePage.goto(base+'?beta=1&metrics');
   verify(await mobilePage.locator('#quality').inputValue()==='low','Phone first launch defaults to economical rendering');
-  await mobilePage.getByRole('button',{name:'Explorer l’île'}).click();
+  await mobilePage.locator('#start-overlay').waitFor({state:'hidden'});
   await mobilePage.locator('.touch-joystick').waitFor({state:'visible'});
   verify(await mobilePage.locator('.touch-controls').isVisible(),'Phone-sized coarse pointer activates joystick and action buttons');
   verify(await mobilePage.getByRole('button',{name:'Saut'}).isVisible()&&await mobilePage.getByRole('button',{name:'Courir'}).isVisible(),'Phone keeps jump and acceleration as separate primary buttons');

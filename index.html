@@ -47,12 +47,23 @@
     <div id="action" class="ui-prompt hide" role="status" aria-live="polite"></div>
     <div id="start-overlay" class="start-overlay" aria-busy="true">
       <div class="start-card">
-        <div class="start-sun">✦</div>
-        <div class="section-kicker">UNE PETITE AVENTURE</div>
-        <h1>Une île à explorer</h1>
-        <p>Incarne un écureuil volant. Explore l’île, ses villages, son château et ses mines ; pêche, cueille, abats du bois, commerce aux comptoirs et aide les habitants.</p>
-        <button id="start" class="primary-button" type="button" disabled data-label="Explorer l’île">Chargement…</button>
-        <small>PC, clavier et souris · aucun compte requis · Échap : menu</small>
+        <div class="start-hamster" aria-hidden="true">
+          <svg viewBox="0 0 180 155" xmlns="http://www.w3.org/2000/svg" focusable="false">
+            <path fill="currentColor" d="M48 52C30 43 26 17 39 12c16-7 32 13 34 33h34c5-23 23-38 36-30 13 9 5 33-11 42 14 13 23 32 23 52 0 28-30 43-65 43-40 0-68-17-68-45 0-23 10-41 26-55Z"/>
+            <ellipse cx="49" cy="138" rx="23" ry="12" fill="currentColor"/>
+            <ellipse cx="131" cy="138" rx="23" ry="12" fill="currentColor"/>
+            <ellipse cx="36" cy="108" rx="17" ry="13" fill="currentColor"/>
+            <ellipse cx="145" cy="108" rx="17" ry="13" fill="currentColor"/>
+            <circle cx="68" cy="77" r="5" class="start-hamster-eye"/>
+            <circle cx="113" cy="77" r="5" class="start-hamster-eye"/>
+            <path d="m85 92 5 5 5-5Z" class="start-hamster-nose"/>
+          </svg>
+        </div>
+        <div class="start-error" role="alert" hidden>
+          <h1>Impossible d’ouvrir cette partie</h1>
+          <p></p>
+        </div>
+        <button id="start" class="primary-button" type="button" hidden disabled>Reprendre l’exploration</button>
       </div>
     </div>
   </div>

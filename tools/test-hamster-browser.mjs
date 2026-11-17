@@ -26,7 +26,7 @@ let checks=0;const check=(ok,label)=>{assert.ok(ok,'FAILED: '+label);checks++;co
 try{
   const page=await browser.newPage({viewport:{width:1000,height:640}}),errors=[];page.on('pageerror',e=>errors.push(e.message));
   const m=()=>page.evaluate(()=>window.littleWorldMetrics);
-  const open=async(query)=>{await page.goto(`${base}?metrics=1${query}`,{waitUntil:'networkidle'});await page.getByRole('button',{name:'Explorer l’île'}).click({timeout:60000});await page.waitForFunction(()=>window.littleWorldMetrics?.chunks.pending===0,{},{timeout:60000});await page.waitForTimeout(600);};
+  const open=async(query)=>{await page.goto(`${base}?metrics=1${query}`,{waitUntil:'networkidle'});await page.locator('#start-overlay').waitFor({state:'hidden',timeout:60000});await page.waitForFunction(()=>window.littleWorldMetrics?.chunks.pending===0,{},{timeout:60000});await page.waitForTimeout(600);};
   // 1. The hamster is the player.
   await open('');const start=await m();check(start.character&&start.character.state==='IDLE','The hamster is the player character (state IDLE)');
   check(start.character.meshes===2,'One skinned mesh for the hamster (+ ground shadow): '+start.character.meshes+' meshes');

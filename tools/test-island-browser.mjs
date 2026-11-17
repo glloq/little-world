@@ -25,7 +25,7 @@ try{
   const context=await browser.newContext({viewport:{width:960,height:640}}),page=await context.newPage();
   page.on('pageerror',e=>errors.push(e.message));page.on('response',r=>{if(r.status()>=400)errors.push(`HTTP ${r.status()}: ${r.url()}`);});
   await page.goto(base+'?world=maps/island/manifest.json&metrics=1&spawn=0,1250&yaw=3.14159',{waitUntil:'networkidle'});
-  await page.waitForSelector('#start:not([disabled])',{timeout:30000});await page.locator('#start').click();
+  await page.locator('#start-overlay').waitFor({state:'hidden',timeout:30000});await page.locator('#start-overlay').waitFor({state:'hidden'});
   await page.waitForFunction(()=>window.littleWorldMetrics?.chunks.pending===0,{},{timeout:30000});
   let m=await page.evaluate(()=>window.littleWorldMetrics);
   check(m.legacyTerrain===false&&m.horizon.blocks===12&&m.horizon.oceanVisible,'Published island opens through the compiled reader with its horizon and ocean');
@@ -58,7 +58,7 @@ try{
   check(new URL(game.url()).searchParams.has('studioBuild'),'Test copy opens a compiled build, not a V2 snapshot');
   // Test metrics replace the removed floating position panel; enable them only in the test tab.
   const debugUrl=new URL(game.url());debugUrl.searchParams.set('metrics','1');await game.goto(debugUrl.toString());
-  await game.waitForSelector('#start:not([disabled])',{timeout:30000});await game.locator('#start').click();
+  await game.locator('#start-overlay').waitFor({state:'hidden',timeout:30000});await game.locator('#start-overlay').waitFor({state:'hidden'});
   await game.waitForFunction(()=>Number.isFinite(window.littleWorldMetrics?.position?.[2]),{},{timeout:30000});
   const z=await game.evaluate(()=>window.littleWorldMetrics.position[2]);
   check(z>1000&&z<1500,'Island test copy starts on the northern beach of the 4 × 3 km world (Z '+z+')');
