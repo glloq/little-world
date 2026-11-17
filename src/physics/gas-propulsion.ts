@@ -14,7 +14,7 @@ export interface GasState {
  gasPulseRemaining?:number;gasCooldown?:number;gasBoostHeld?:boolean;gasRepeatArmed?:boolean;
 }
 const clamp=(v:number,lo:number,hi:number)=>Math.max(lo,Math.min(hi,v));
-const level=(value:number|undefined,max:number):number=>Number.isInteger(value)&&value!>=0?Math.min(value!,max):0;
+const level=(value:number|undefined,max:number):number=>typeof value==='number'&&Number.isInteger(value)&&value>=0?Math.min(value,max):0;
 export const gasCapacity=(p:GasState):number=>GAS_CAPACITIES[level(p.gasCapacityLevel,GAS_CAPACITIES.length-1)];
 export const gasPower=(p:GasState):number=>GAS_POWERS[level(p.gasPowerLevel,GAS_POWERS.length-1)];
 export const gasMastery=(p:GasState):number=>GAS_MASTERY[level(p.gasControlLevel,GAS_MASTERY.length-1)];
