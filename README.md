@@ -222,5 +222,7 @@ Le générateur de colonies (maisons, villages, villes, camps, ports, terriers e
 - [68 — Roadmap SET-0 à SET-12, tests et gates de qualification](docs/68-SETTLEMENTS-ROADMAP-TESTS.md)
 - [69 — SET-0 : audit du code existant (état présent, lacunes, risques)](docs/69-SETTLEMENTS-SET0-AUDIT.md)
 - [70 — SET-0 : contrats techniques retenus et gates bloquants](docs/70-SETTLEMENTS-TECHNICAL-CONTRACTS.md)
+- [71 — Roadmap accélérée : implémentation progressive, petites PR et tests](docs/71-SETTLEMENTS-FAST-TRACK.md)
+- [72 — Parcours Studio intuitif : cinq réglages, aperçu, génération et édition](docs/72-SETTLEMENTS-STUDIO-UX.md)
 
 Ce chantier réutilise les contrats V3, le CommandBus, les chemins, la géographie et les systèmes d'interactions existants ; il n'ajoute pas de second moteur ni de simulation économique en temps réel.
