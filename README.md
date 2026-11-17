@@ -1,6 +1,6 @@
 # Little World
 
-Prototype **solo** d'exploration 3D avec **Three.js**, exécutable entièrement dans un navigateur PC. La vallée montagneuse actuelle mesure **200 × 600 m** ; l'architecture cible prépare **une carte continue pouvant atteindre 10 × 10 km (100 km² au maximum)**, sans considérer cette taille comme déjà implémentée.
+Prototype **solo** d'exploration 3D avec **Three.js**, exécutable entièrement dans un navigateur PC. Le monde de démonstration jouable et éditable mesure **4 × 3 km** ; l'architecture cible prépare **une carte continue pouvant atteindre 10 × 10 km (100 km² au maximum)**, sans considérer cette taille comme déjà implémentée.
 
 > **Statut : prototype technique jouable en développement.** La première version est volontairement simple, avec graphismes et physique provisoires. La campagne avancée est sur `feat/studio-v3` ; le site publié depuis `main` peut rester antérieur. La disponibilité de la dernière révision dépend du déploiement GitHub Actions.
 
@@ -15,17 +15,19 @@ Prototype **solo** d'exploration 3D avec **Three.js**, exécutable entièrement 
 
 Les publications sont suivies dans [Build and deploy Little World](https://github.com/glloq/little-world/actions). Le build est 100 % statique et utilise `/little-world/` comme préfixe.
 
-### Laboratoire de falaises
+### Démonstration officielle et scénarios techniques
 
-Studio → **Scène de référence Falaises** : cinq parois sur 280 × 280 m, points de vue
-et captures automatisées (`npm run test:cliffs`). Voir le
-[guide et les budgets](docs/53-CLIFF-REFERENCE.md).
+La seule carte exemple publiée est **Île du volcan — 4 × 3 km**. Dans Studio → **Explorer un monde prêt**, une copie de cette carte complète est éditable.
+
+Les anciennes cartes de falaises, mouvements, géographie, B1 et bêta sont des **fixtures de régression non publiées** (`tests/fixtures/legacy-maps/`). Les tests navigateur les utilisent après `node tools/stage-test-maps.mjs dist/maps` sur un build isolé, via `studio/?testFixtures=1`. Elles ne sont plus des modèles proposés au public.
+
+Voir [la stratégie de démonstration 4 × 3 km](docs/61-SHOWCASE-ISLAND-4X3.md) et [les budgets des falaises](docs/53-CLIFF-REFERENCE.md).
 
 ### Déplacements dynamiques
 
 Roulade sensible aux pentes et aux sols, planeur piloté au clic-glisser avec échange
-altitude/vitesse. Studio → **Scène de référence Déplacements** ;
-`npm run test:motion` pour le parcours automatisé.
+altitude/vitesse. scénario technique de régression ;
+`npm run test:motion` pour le parcours automatisé sur le build de validation.
 [Commandes, réglages, audit et limites](docs/54-DYNAMIC-MOVEMENT.md).
 
 ### Lancer en local
@@ -58,7 +60,7 @@ Ce périmètre complet reste **un objectif confirmé** ; les fonctions livrées 
 
 ## Campagne de développement
 
-- Terrain en secteurs chargés progressivement, trois LOD et cache borné ; cartes synthétiques jusqu’à **2 × 2 km**. La carte par défaut reste la vallée de 200 × 600 m.
+- Terrain en secteurs chargés progressivement, trois LOD et cache borné ; cartes synthétiques jusqu’à **2 × 2 km**. La carte publiée et la référence du Studio sont l'île 4 × 3 km.
 - Écureuil articulé avec 14 os, 13 états animés interpolés, 9 expressions et accessoires ; GLB original exportable. Le rig est rigide, sans skinning pondéré ; le jeu utilise sa version procédurale.
 - Quatre PNJ de démonstration, activités selon la distance, navigation simple et dialogues à choix/flags locaux.
 - Sept biotopes et dix modèles écologiques procéduraux instanciés : flore, oiseaux, papillons et poissons contraints à l’eau.

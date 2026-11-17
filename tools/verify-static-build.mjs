@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {readFile, stat} from 'node:fs/promises';
+import {readFile, readdir, stat} from 'node:fs/promises';
 import {resolve, sep} from 'node:path';
 
 // Reject publishing the source tree even when every HTML page exists.
@@ -24,9 +24,11 @@ export async function verifyStaticBuild(directory = 'dist') {
       assert.ok((await stat(file)).isFile(), `Ressource absente : ${url}`);
     }
   }
-  for (const asset of ['models/pine.glb', 'models/rock.glb', 'models/crate.glb', 'maps/island/manifest.json']) {
+  for (const asset of ['models/pine.glb', 'models/rock.glb', 'models/crate.glb', 'maps/island/manifest.json', 'maps/island.project.json']) {
     assert.ok((await stat(resolve(root, asset))).isFile(), `Ressource absente : ${asset}`);
   }
+  // Never accidentally deploy the regression fixtures to GitHub Pages.
+  assert.deepEqual((await readdir(resolve(root,'maps'))).sort(),['island','island.project.json']);
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === resolve(new URL(import.meta.url).pathname)) {

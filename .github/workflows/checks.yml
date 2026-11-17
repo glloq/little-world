@@ -26,19 +26,21 @@ jobs:
       - run: git diff --exit-code -- public/audio assets/audio docs/38-AUDIO-V2-INVENTAIRE.md
       - run: npm run check:audio-synth
       - run: npm run generate:beta
-      - run: git diff --exit-code -- maps/beta.project.json public/maps/beta.json public/maps/beta.project.json
+      - run: git diff --exit-code -- tests/fixtures/legacy-maps/authoring/beta.project.json tests/fixtures/legacy-maps/published/beta.json tests/fixtures/legacy-maps/published/beta.project.json
       - run: npm run generate:island
       - run: git diff --exit-code -- maps/island.project.json public/maps/island
       - run: npm run generate:production-reference
-      - run: git diff --exit-code -- maps/production-reference.project.json public/maps/production-reference.project.json public/maps/production-reference
+      - run: git diff --exit-code -- tests/fixtures/legacy-maps/authoring/production-reference.project.json tests/fixtures/legacy-maps/published/production-reference.project.json tests/fixtures/legacy-maps/published/production-reference
       - run: npm run generate:b1
-      - run: git diff --exit-code -- maps/b1-demo.project.json public/maps/b1-demo.project.json public/maps/b1-demo
+      - run: git diff --exit-code -- tests/fixtures/legacy-maps/authoring/b1-demo.project.json tests/fixtures/legacy-maps/published/b1-demo.project.json tests/fixtures/legacy-maps/published/b1-demo
       - run: git diff --exit-code -- public/maps
       - run: npm run assets:hamster
       - run: git diff --exit-code -- public/models/hamster.glb
       - run: npm run build
       - run: node tools/verify-static-build.mjs
       - run: npx playwright install --with-deps chromium
+      - name: Stage regression fixtures in CI preview only (never on Pages)
+        run: node tools/stage-test-maps.mjs dist/maps
       - name: Start production preview
         run: |
           npm run preview -- --host 127.0.0.1 --port 5173 --strictPort > /tmp/little-world-preview.log 2>&1 &
