@@ -2,14 +2,15 @@
  * authoring projects. Audio levels stay owned by the audio engine (its own storage). */
 /** (Render quality keeps its historical key `little-world-quality`, owned by the game loop.) */
 export type DistantRendering='geometry'|'hybrid';
-export interface UiPreferences {distantRendering:DistantRendering;cameraSensitivity:number;invertY:boolean;reduceMotion:boolean;speedEffects:boolean;developer:boolean}
+export interface UiPreferences {distantRendering:DistantRendering;cameraSensitivity:number;invertY:boolean;reduceMotion:boolean;speedEffects:boolean;autoCenterFlightCamera:boolean;developer:boolean}
 export const UI_PREFERENCES_KEY='little-world:ui-preferences:v1';
-export const DEFAULT_PREFERENCES:UiPreferences={distantRendering:'geometry',cameraSensitivity:1,invertY:false,reduceMotion:false,speedEffects:true,developer:false};
+export const DEFAULT_PREFERENCES:UiPreferences={distantRendering:'geometry',cameraSensitivity:1,invertY:false,reduceMotion:false,speedEffects:true,autoCenterFlightCamera:true,developer:false};
 export function parsePreferences(value:unknown):UiPreferences{
   const v=(value&&typeof value==='object'?value:{}) as Partial<UiPreferences>,out={...DEFAULT_PREFERENCES};
   if(typeof v.cameraSensitivity==='number'&&Number.isFinite(v.cameraSensitivity))out.cameraSensitivity=Math.min(2.5,Math.max(.3,v.cameraSensitivity));
   if(typeof v.invertY==='boolean')out.invertY=v.invertY;if(typeof v.reduceMotion==='boolean')out.reduceMotion=v.reduceMotion;if(typeof v.developer==='boolean')out.developer=v.developer;
   if(typeof v.speedEffects==='boolean')out.speedEffects=v.speedEffects;
+  if(typeof v.autoCenterFlightCamera==='boolean')out.autoCenterFlightCamera=v.autoCenterFlightCamera;
   if(v.distantRendering==='geometry'||v.distantRendering==='hybrid')out.distantRendering=v.distantRendering;
   return out;
 }
