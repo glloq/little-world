@@ -107,3 +107,106 @@ test('optional remote presentation phases are validated and interpolated; legacy
  assert.throws(()=>parsePresentationState({...base,rollPhase:Infinity}),/Cue invalide/);
  assert.throws(()=>parsePresentationState({...base,jumpKind:'flap'}),/Type de saut/);
 });
+
+test('MV-03 — coyote jump after walking off a cliff preserves the motor jump and expires',()=>{
+ const edge=new WorldCollisionQuery((_x,z)=>z<1?0:-12,()=>null);
+ const p=actor();p.position.z=.5;p.velocity.z=7;
+ for(let i=0;i<25&&p.mode!=='air';i++)simulatePlayer(p,{...keys,forward:1,jumpAssist:true},1/30,edge);
+ assert.equal(p.mode,'air','left the edge');
+ assert.ok((p.coyoteLeft??0)>0,'last grounded support grants a short grace window');
+ simulatePlayer(p,{...keys,forward:1,jumpAssist:true,jumpPressed:true},1/30,edge);
+ assert.equal(p.mode,'air');assert.equal(p.jumpSeq,1);assert.ok(p.velocity.y>4);
+ assert.ok((p.coyoteLeft??0)===0,'coyote consumed');
+ const late=actor();late.position.z=.5;late.velocity.z=7;
+ for(let i=0;i<18;i++)simulatePlayer(late,{...keys,forward:1,jumpAssist:true},1/30,edge);
+ assert.equal(late.mode,'air');
+ simulatePlayer(late,{...keys,jumpAssist:true,jumpPressed:true},1/30,edge);
+ assert.equal(late.jumpSeq,undefined,'no late coyote motor jump');
+});
+
+test('MV-03 — short press just before landing buffers jump instead of opening glider',()=>{
+ const p=actor();p.mode='air';p.position.y=.55;p.velocity.y=-6;p.glideReady=true;
+ simulatePlayer(p,{...keys,jumpAssist:true,jumpPressed:true},1/30,q);
+ assert.equal(p.mode,'air','not a near-ground glide toggle');
+ assert.ok((p.jumpBufferLeft??0)>0,'input retained for the approaching landing');
+ for(let i=0;i<25&&!p.jumpSeq;i++)simulatePlayer(p,{...keys,jumpAssist:true},1/30,q);
+ assert.equal(p.jumpSeq,1,'one takeoff following the physical landing');
+ assert.equal(p.mode,'air');assert.ok(p.velocity.y>0);
+ assert.equal(p.jumpBufferLeft,0,'buffer consumed exactly once');
+ assert.equal(p.landingSeq,1);
+});
+
+test('MV-03 — second Space above the floor still deploys the glider',()=>{
+ const p=actor();
+ simulatePlayer(p,{...keys,jumpAssist:true,jumpPressed:true},1/30,q);
+ assert.equal(p.mode,'air');assert.equal(p.jumpSeq,1);
+ simulatePlayer(p,{...keys,jumpAssist:true},1/30,q);
+ simulatePlayer(p,{...keys,jumpAssist:true,jumpPressed:true},1/30,q);
+ assert.equal(p.mode,'glide');assert.equal(p.jumpSeq,1,'deploy does not jump again');
+});
+
+test('MV-03 — buffered input never jumps out of deep water or from a teleport',()=>{
+ const water=new WorldCollisionQuery(()=>-2,()=>0),p=actor();
+ p.mode='air';p.position.y=.2;p.velocity.y=-4;p.glideReady=true;
+ simulatePlayer(p,{...keys,jumpAssist:true,jumpPressed:true},1/30,water);
+ assert.equal(p.mode,'swim');
+ assert.equal(p.jumpSeq,undefined,'no ground jump on water contact');
+ const tr=actor();tr.jumpBufferLeft=.12;tr.coyoteLeft=.1;
+ // A transition into a mine must clear stale jump forgiveness.
+ const port=new WorldCollisionQuery(()=>0,()=>null);
+ port.addTransition({id:'entry',from:null,to:{zoneId:'cave',levelId:'l0'},minX:-1,maxX:1,minZ:-1,maxZ:1,minY:-1,maxY:3,arrival:{x:0,y:1,z:2}});
+ simulatePlayer(tr,{...keys,jumpAssist:true},1/30,port);
+ assert.equal(tr.jumpBufferLeft,0);assert.equal(tr.coyoteLeft,0);
+});
+
+test('MV-06 — low grip creates stronger signed skid cue, animations bank without changing velocity',()=>{
+ const make=material=>{
+  const world=new WorldCollisionQuery(()=>0,()=>null);world.setMaterialSampler(()=>material);
+  const p=actor();p.mode='roll';p.velocity.z=9;
+  simulatePlayer(p,{...keys,forward:0,right:1,jumpAssist:true},1/30,world);
+  return p;
+ };
+ const grass=make('grass'),mud=make('mud');
+ assert.ok(Math.abs(mud.rollSlip)>Math.abs(grass.rollSlip),'mud should have more visible residual steering');
+ assert.ok(Math.abs(mud.rollSlip)<=1);
+ const neutral=new HamsterAnimator(),skidding=new HamsterAnimator();
+ for(let i=0;i<20;i++){
+  neutral.update(input('roll',8,{travel:.25,rollSlip:0}),1/30);
+  skidding.update(input('roll',8,{travel:.25,rollSlip:.85}),1/30);
+ }
+ assert.ok(skidding.pose.bodyRZ-neutral.pose.bodyRZ>.1,'cosmetic lean from skid');
+});
+
+test('terrain foot tilt is bounded and absent on bridges; two feet compensate independently',()=>{
+ const ramp=new WorldCollisionQuery((x,z)=>x*.12+z*.22,()=>null);
+ const p=actor();
+ for(let i=0;i<12;i++)simulatePlayer(p,{...keys,forward:1},1/30,ramp);
+ assert.ok(p.groundPitch>.1&&p.groundPitch<.4,'forward grade detected');
+ assert.ok(p.groundRoll>.05,'cross-slope detected');
+ const a=new HamsterAnimator();
+ for(let i=0;i<10;i++)a.update(input('ground',3,{groundPitch:p.groundPitch,groundRoll:p.groundRoll}),1/30);
+ assert.ok(a.pose.footRY>a.pose.footLY,'higher foot is lifted on cross-slope');
+ assert.ok(a.pose.footLX>0,'ankles counter terrain pitch');
+ const deck=new WorldCollisionQuery((x,z)=>x*.12+z*.22,()=>null);
+ deck.add({id:'deck',shape:'box',position:{x:0,y:9,z:0},size:{x:20,y:1,z:20},enabled:()=>true});
+ const upper=actor();upper.position.y=10;
+ simulatePlayer(upper,keys,1/30,deck);
+ assert.equal(upper.groundPitch,0,'bridge contact never copies underlying terrain pitch');
+ assert.equal(upper.groundRoll,0);
+});
+
+test('assist replay preserves timers and validates malformed optional snapshots and inputs',()=>{
+ const p=actor();p.coyoteLeft=.08;p.coyoteFrom='roll';p.jumpBufferLeft=.09;
+ p.groundPitch=.2;p.groundRoll=-.1;p.rollSlip=.6;
+ const snap=captureMovement(p,0),copy=actor();
+ assert.deepEqual(replayMovement(copy,snap,[],q),snap);
+ for(const [field,value] of [['coyoteLeft',.9],['jumpBufferLeft',-1],['rollSlip',2],['coyoteFrom','glide']]){
+  const bad=structuredClone(snap);bad.state[field]=value;
+  assert.throws(()=>replayMovement(actor(),bad,[],q),'reject '+field);
+ }
+ assert.throws(()=>replayMovement(actor(),snap,[{tick:1,input:{...keys,jumpAssist:'yes'}}],q),/Commande de mouvement/);
+ const raw={v:1,t:0,x:0,y:0,z:0,yaw:0,mode:'roll',speed:8,verticalSpeed:0,turnRate:0,aboard:false,action:null,actionSeq:0,tool:null,fishing:null,rollSlip:.6,groundPitch:.15,groundRoll:.2};
+ assert.deepEqual(parsePresentationState(raw),raw);
+ assert.equal(interpolatePresentation({...raw,t:0,rollSlip:0},{...raw,t:1,rollSlip:.6},.5).rollSlip,.3);
+ assert.throws(()=>parsePresentationState({...raw,rollSlip:NaN}),/Cue de surface/);
+});
