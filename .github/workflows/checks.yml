@@ -51,6 +51,8 @@ jobs:
         run: node tools/run-browser-check.mjs published
       - name: Studio browser checks
         run: node tools/run-browser-check.mjs studio
+      - name: Studio hamster motion lab (presets, WebGL and project isolation)
+        run: node tools/test-hamster-motion-lab-browser.mjs
       - name: Gameplay and saves browser checks
         run: node tools/run-browser-check.mjs gameplay
       - name: Player interface browser checks
@@ -101,8 +103,6 @@ jobs:
         run: node tools/run-browser-check.mjs climb
       - name: Hamster player (roll, glide, tools, fishing)
         run: node tools/run-browser-check.mjs hamster
-      - name: Studio hamster motion lab (presets, WebGL and project isolation)
-        run: node tools/test-hamster-motion-lab-browser.mjs
       - name: Near trees and rocks stay drawn (cache eviction)
         run: node tools/run-browser-check.mjs dressing-stability
       - name: Docks and boats (walk on docks, board moored boats)
