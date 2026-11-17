@@ -249,7 +249,7 @@ export function mountWelcome(host:HTMLElement,actions:WelcomeActions){
           ctx.beginPath();ctx.fillStyle='#fff';ctx.strokeStyle='#324d3e';ctx.lineWidth=2;ctx.arc(sx,sy,6,0,Math.PI*2);ctx.fill();ctx.stroke();
           ctx.fillStyle='#243d2f';ctx.font='bold 12px system-ui';ctx.fillText(label,sx+10,sy+4);
         };
-        if(step===2)for(const f of features)if(f.kind==='volcano'||f.id==='welcome-mountain')marker(f.x,f.z,f.kind==='volcano'?'Volcan':'Montagne');
+        if(step===2)for(const f of features)if(f.kind==='volcano'||(f.kind==='mountain'&&f.id==='welcome-mountain'))marker(f.x,f.z,f.kind==='volcano'?'Volcan':'Montagne');
       }catch(e){const ctx=canvas.getContext('2d');if(ctx){ctx.clearRect(0,0,canvas.width,canvas.height);ctx.fillStyle='#9b493e';ctx.font='14px system-ui';ctx.fillText(e instanceof Error?e.message:String(e),18,40);}note.textContent='Corrigez les paramètres avant de continuer.';}
     });
   }
