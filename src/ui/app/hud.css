@@ -41,6 +41,10 @@
 .ui-root .ui-hint{bottom:83px}
 .ui-root .ui-prompt{z-index:15}
 body:not(.developer) .environment-controls{display:none!important}
+/* Developer climate controls live below the top HUD; never overlap its weather/audio chips.
+ * Keep this test-only panel clickable without raising it over the normal game HUD. */
+body.developer .environment-controls{top:76px!important;right:16px!important}
+
 .ui-map-filters{display:flex;flex-wrap:wrap;gap:5px 12px;margin:7px 0}
 .ui-map-filter{font-size:12px;display:flex;align-items:center;gap:5px;cursor:pointer}
 .ui-map-filter input{accent-color:#3f7a5d}
