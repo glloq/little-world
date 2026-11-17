@@ -18,11 +18,11 @@ const step=(p,q,n,k={})=>{for(let i=0;i<n;i++)simulatePlayer(p,{...input,...k},1
 test('glider dive exchanges height for speed, pull-up spends momentum and cannot gain energy',()=>{
  const p=actor(500);p.mode='glide';p.velocity.z=12;p.glideReady=true;const q=flat();
  const start=movementEnergy(p.position.y,p.velocity),energy=[start];
- step(p,q,60,{cameraPitch:.75});const diveSpeed=p.velocity.length(),low=p.position.y;
+ step(p,q,60,{forward:1});const diveSpeed=p.velocity.length(),low=p.position.y;
  assert.ok(diveSpeed>16&&p.velocity.y<0,'dive accelerates');
  let peak=low,up=false;
  for(let i=0;i<240;i++){
-  const before=movementEnergy(p.position.y,p.velocity);simulatePlayer(p,{...input,cameraPitch:-.8},1/30,q);
+  const before=movementEnergy(p.position.y,p.velocity);simulatePlayer(p,{...input,forward:-1},1/30,q);
   assert.ok(movementEnergy(p.position.y,p.velocity)<=before+1e-7,'steering never creates energy');
   up ||= p.velocity.y>1;peak=Math.max(peak,p.position.y);energy.push(movementEnergy(p.position.y,p.velocity));
  }
@@ -45,17 +45,25 @@ test('neutral gliding sinks gently; stall recovers by falling, never by injectin
 test('turning is progressive and dissipates energy; closing and reopening wings adds no energy',()=>{
  const p=actor(200);p.mode='glide';p.velocity.z=18;p.glideReady=true;const q=flat();
  simulatePlayer(p,{...input,cameraYaw:Math.PI},1/30,q);
- assert.ok(Math.abs(p.glideHeading)<=GLIDE.turnRate/30+1e-9);
+ assert.ok(Math.abs(p.glideHeading)<1e-10,'camera orbit alone cannot steer flight');
  assert.ok(p.velocity.z>0,'cannot reverse instantly');
  const right=actor(200);right.mode='glide';right.velocity.z=18;simulatePlayer(right,{...input,right:1},1/30,q);assert.ok(right.velocity.x<0,'D keeps the existing screen-right convention in flight');
  const a={velocity:{x:0,y:0,z:18}},b={velocity:{x:0,y:0,z:18}};
  glideVelocity(a,0,0,0,1/30);glideVelocity(b,1,0,0,1/30);
  assert.ok(b.velocity.x*b.velocity.x+b.velocity.y*b.velocity.y+b.velocity.z*b.velocity.z<a.velocity.x*a.velocity.x+a.velocity.y*a.velocity.y+a.velocity.z*a.velocity.z);
- for(let i=0;i<30;i++){
-  const e=movementEnergy(p.position.y,p.velocity);
-  simulatePlayer(p,{...input,jumpPressed:true,cameraPitch:-.7},1/30,q);
-  assert.ok(movementEnergy(p.position.y,p.velocity)<=e+.4,'no deploy speed boost');
- }
+ // Reopening after the initial impulse is not a second propulsion exploit.
+ const assisted=actor(200);assisted.mode='air';assisted.velocity.z=18;assisted.glideReady=true;
+ simulatePlayer(assisted,{...input,jumpPressed:true},1/30,q);
+ assert.equal(assisted.mode,'glide');assert.equal(assisted.glideDeploymentUsed,true);
+ assert.ok(assisted.glideDeploymentRemaining>0);
+ step(assisted,q,10);
+ assert.equal(assisted.glideDeploymentRemaining,0);
+ simulatePlayer(assisted,{...input,jumpPressed:true},1/30,q);
+ assert.equal(assisted.mode,'air');
+ simulatePlayer(assisted,input,1/30,q);
+ simulatePlayer(assisted,{...input,jumpPressed:true},1/30,q);
+ assert.equal(assisted.mode,'glide');
+ assert.equal(assisted.glideDeploymentRemaining,0,'no second assist during the same jump');
 });
 test('roll → jump → deploy → landing preserves momentum without an entry kick',()=>{
  const q=flat(),p=actor();simulatePlayer(p,{...input,rollPressed:true},1/30,q);

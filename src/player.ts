@@ -1,6 +1,6 @@
-import {MOTION,ROLL,groundVelocity,airVelocity,glideVelocity,SURFACE_MOTION,angleDelta,type GroundMaterial} from './physics/motion.ts';
+import {MOTION,ROLL,GLIDE_DEPLOY,groundVelocity,airVelocity,glideVelocity,glideSteeringYaw,glideDeploymentStep,SURFACE_MOTION,angleDelta,type GroundMaterial} from './physics/motion.ts';
 export {ROLL,GLIDE,MOTION,SURFACE_MOTION} from './physics/motion.ts';
-import {GAS,gasBoostStep} from './physics/gas-propulsion.ts';
+import {GAS,gasBoostStep,gasMastery} from './physics/gas-propulsion.ts';
 import {DEFAULT_BODY,type WorldCollisionQuery,type MovementSpace,type BodyDimensions} from './physics/collision-world.ts';
 import * as THREE from 'three';
 import {
@@ -31,9 +31,9 @@ export interface Controls {
   dive: boolean;
   cameraYaw: number;
   /** Camera pitch relative to the default view (rad, positive = looking down): underwater, moving
-   * forward follows it (looking down dives down). Gliding uses the same camera intention. */
+   * forward follows it (looking down dives down). Flight controls are independent of the camera. */
   cameraPitch?: number;
-  /** Flight gas boost via right mouse, Shift or mobile accelerate; active in glide only. */boostHeld?:boolean;
+  /** Pulse boost via Shift or the separate mobile Boost control; glide only. */boostHeld?:boolean;
   /** One mobile swim stroke (edge-triggered), leaving PC Space dive unchanged. */swimStrokePressed?:boolean;
 }
 export interface Player {
@@ -81,8 +81,12 @@ export interface Player {
   groundPitch?:number;groundRoll?:number;rollSlip?:number;
   /** Replayable flight intention/state; independent from the render camera. */
   glideHeading?:number;glidePitch?:number;glideTurnRate?:number;stalled?:boolean;
+  /** First deployment per take-off, persisted in deterministic replay. */
+  glideDeploymentUsed?:boolean;glideDeploymentRemaining?:number;
   /** Fuel and visual event sequence owned by simulation. */
-  gasReserve?:number;gasBoosting?:boolean;gasPulseSeq?:number;gasPulseClock?:number;gasThrust?:number;
+  gasReserve?:number;gasCapacityLevel?:number;gasPowerLevel?:number;gasControlLevel?:number;
+  gasBoosting?:boolean;gasPulseSeq?:number;gasPulseClock?:number;gasThrust?:number;
+  gasPulseRemaining?:number;gasCooldown?:number;gasBoostHeld?:boolean;gasRepeatArmed?:boolean;
 }
 /** Swimming tuning: depth of the feet under the water line while swimming (body centre ≈ at the
  * surface, head out), dive speed (normal / Shift) and the push down when diving with Space. */
@@ -104,7 +108,10 @@ export function spawnPlayer(): Player {
     mode: 'ground',
     oxygen: MAX_OXYGEN,
     glideReady: false,
-    gasReserve:GAS.initial,gasBoosting:false,gasPulseSeq:0,gasPulseClock:0,gasThrust:0,
+    glideDeploymentUsed:false,glideDeploymentRemaining:0,
+    gasReserve:GAS.initial,gasCapacityLevel:0,gasPowerLevel:0,gasControlLevel:0,
+    gasBoosting:false,gasPulseSeq:0,gasPulseClock:0,gasThrust:0,
+    gasPulseRemaining:0,gasCooldown:0,gasBoostHeld:false,gasRepeatArmed:false,
   };
 }
 
@@ -112,6 +119,7 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
   if(!Number.isFinite(dt)||dt<=0||dt>.25)throw Error('Pas de mouvement invalide');
   const { position: pos, velocity: v } = p;
   const oldMode = p.mode;
+  let gasTicked=false;
   // Record the contact before a collision resets vertical velocity; never change momentum.
   const recordLanding=()=>{
     const horizontal=Math.hypot(v.x,v.z),impact=Math.max(0,-v.y);
@@ -120,6 +128,7 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
     p.landingSpeed=impact;
     p.landingSlide=clamp(((horizontal-3)*.12+(impact-5)*.025)*(1.25-.17*surface.friction),0,1);
     p.landingSeq=(p.landingSeq??0)+1;
+    p.glideDeploymentUsed=false;p.glideDeploymentRemaining=0;
   };
   const len = Math.hypot(keys.forward, keys.right);
   const forward = len > 0 ? keys.forward / Math.max(1, len) : 0;
@@ -245,6 +254,7 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
     const grounded = pos.y <= ground + 0.06 && v.y <= 0;
     if (grounded) {
       p.mode = 'ground';
+      p.glideDeploymentUsed=false;p.glideDeploymentRemaining=0;
       pos.y = ground;
       v.y = 0;
       p.glideReady = false;
@@ -268,11 +278,18 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
     if (p.mode === 'air' || p.mode === 'glide') {
       if (keys.jumpPressed && !jumpHandled && p.glideReady && oldMode !== 'ground' && oldMode !== 'climb' && oldMode !== 'roll') {
         p.mode = p.mode === 'glide' ? 'air' : 'glide';
-        p.glideHeading=undefined;p.glidePitch=undefined;
+        p.glideHeading=Math.hypot(v.x,v.z)>.1?Math.atan2(v.x,v.z):(p.heading??p.intentYaw??keys.cameraYaw);
+        p.glidePitch=undefined;
+        if(p.mode==='glide'&&!p.glideDeploymentUsed){
+          p.glideDeploymentUsed=true;p.glideDeploymentRemaining=GLIDE_DEPLOY.duration;
+        }else p.glideDeploymentRemaining=0;
       }
       if (p.mode === 'glide') {
-        const gasAcceleration=gasBoostStep(p,keys.boostHeld===true,true,dt);
-        glideVelocity(p,keys.cameraYaw-right*.35,keys.cameraPitch??0,Math.max(0,-forward),dt,undefined,gasAcceleration);
+        const gasAcceleration=gasBoostStep(p,keys.boostHeld===true,true,dt);gasTicked=true;
+        // Orbit camera never changes flight heading or consumes kinetic energy.
+        const flightPitch=forward>=0?forward*.85:forward*.65;
+        glideVelocity(p,glideSteeringYaw(p,right,dt),flightPitch,0,dt,undefined,gasAcceleration,gasMastery(p));
+        glideDeploymentStep(p,dt);
       } else {
         airVelocity(v,dx,dz,keys.run?7.2:5.2,dt);
       }
@@ -370,9 +387,10 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
   }else{p.footSupportLeft=undefined;p.footSupportRight=undefined;}
   // Explicit connections between spaces (mine entrance, stairs, shafts): never implicit.
   const transition=collision?.transitionAt(pos,p.space);
-  if(p.mode!=='glide'){gasBoostStep(p,false,false,dt);p.stalled=false;p.glideHeading=undefined;p.glidePitch=undefined;p.glideTurnRate=0;}
+  if(p.mode!=='glide'){gasBoostStep(p,keys.run===true||keys.boostHeld===true,false,gasTicked?0:dt);p.stalled=false;p.glideHeading=undefined;p.glidePitch=undefined;p.glideTurnRate=0;p.glideDeploymentRemaining=0;}
+  if(p.mode==='ground'||p.mode==='swim'||p.mode==='dive'||p.mode==='climb')p.glideDeploymentUsed=false;
   if(Math.hypot(v.x,v.z)>.01)p.heading=Math.atan2(v.x,v.z);
-  if(transition){p.space=transition.to??undefined;pos.set(transition.arrival.x,transition.arrival.y,transition.arrival.z);v.set(0,0,0);p.mode='ground';p.glideReady=false;p.transitioned=transition.id;p.coyoteLeft=0;p.jumpBufferLeft=0;p.footSupportLeft=undefined;p.footSupportRight=undefined;}
+  if(transition){p.space=transition.to??undefined;pos.set(transition.arrival.x,transition.arrival.y,transition.arrival.z);v.set(0,0,0);p.mode='ground';p.glideReady=false;p.transitioned=transition.id;p.coyoteLeft=0;p.jumpBufferLeft=0;p.footSupportLeft=undefined;p.footSupportRight=undefined;p.glideDeploymentUsed=false;p.glideDeploymentRemaining=0;gasBoostStep(p,keys.run===true||keys.boostHeld===true,false,0);}
 }
 
 /** One climbing step: forward = up the slope, sideways along it; jump leaps off (glide possible),

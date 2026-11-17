@@ -135,7 +135,7 @@ test('procedural UI sounds are deterministic, bounded and short',()=>{
  const c=parseAudioDefinitionV2(catalog);for(const a of Object.values(c.assets).filter(a=>a.kind==='procedural')){const x=renderProcedural(a.procedural,48000),y=renderProcedural(a.procedural,48000);assert.deepEqual(x,y);assert.ok(x.length<=4*48000);assert.ok(Math.max(...x.map(Math.abs))<=1&&Math.max(...x.map(Math.abs))>.01);}
 });
 test('every event the game router or runtime emits exists in the shipped catalogue and silent ones are diagnosed, not thrown',async()=>{
- const c=parseAudioDefinitionV2(catalog),sources=['../src/audio/router.ts','../src/main.ts'].map(f=>readFile(new URL(f,import.meta.url),'utf8'));const text=(await Promise.all(sources)).join('\n');
+ const {mergeAudioCatalogs}=await import('../src/audio/migrate.ts');const boost=await json('../public/audio/boost-catalog.json');const c=mergeAudioCatalogs(parseAudioDefinitionV2(catalog),parseAudioDefinitionV2(boost)),sources=['../src/audio/router.ts','../src/main.ts'].map(f=>readFile(new URL(f,import.meta.url),'utf8'));const text=(await Promise.all(sources)).join('\n');
  const ids=new Set([...text.matchAll(/'((?:player|water|boat|mine|farm|npc|ui|interaction)\.[a-z.]+)'/g)].map(m=>m[1]));assert.ok(ids.size>=15);for(const id of ids)assert.ok(c.events[id],'missing event '+id);
  const silent=diagnoseAudioCatalog(c).filter(d=>d.code==='event-silent').map(d=>d.ref);for(const id of silent)assert.equal(eventAvailability(c,id).playable,false);
 });

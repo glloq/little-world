@@ -56,9 +56,11 @@ try{
   const popup=studio.context().waitForEvent('page');await studio.getByRole('button',{name:'Jouer ici'}).click();const game=await popup;
   game.on('pageerror',e=>errors.push(e.message));await game.waitForLoadState();
   check(new URL(game.url()).searchParams.has('studioBuild'),'Test copy opens a compiled build, not a V2 snapshot');
+  // Test metrics replace the removed floating position panel; enable them only in the test tab.
+  const debugUrl=new URL(game.url());debugUrl.searchParams.set('metrics','1');await game.goto(debugUrl.toString());
   await game.waitForSelector('#start:not([disabled])',{timeout:30000});await game.locator('#start').click();
-  await game.waitForFunction(()=>document.querySelector('#coords')?.textContent?.includes('Z'),{},{timeout:30000});
-  const z=Number(/Z (-?\d+)/.exec(await game.locator('#coords').textContent())?.[1]);
+  await game.waitForFunction(()=>Number.isFinite(window.littleWorldMetrics?.position?.[2]),{},{timeout:30000});
+  const z=await game.evaluate(()=>window.littleWorldMetrics.position[2]);
   check(z>1000&&z<1500,'Island test copy starts on the northern beach of the 4 × 3 km world (Z '+z+')');
   await game.screenshot({path:out+'/island-playtest.png'});await game.close();
   check(await studio.locator('#breadcrumbs').textContent()==='Île navigateur / scene','Returning keeps the Studio context');

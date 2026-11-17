@@ -100,8 +100,11 @@ try{
   // Play here, then back to the Studio with camera and selection.
   const popup=context.waitForEvent('page');await page.getByRole('button',{name:'Jouer ici'}).click();const game=await popup;game.on('pageerror',e=>errors.push(e.message));
   await game.waitForSelector('#start:not([disabled])',{timeout:60000});check(new URL(game.url()).searchParams.has('studioBuild'),'Play here opens the compiled test copy');
-  await game.locator('#start').click();await game.waitForFunction(()=>/X -?\d+/.test(document.querySelector('#coords')?.textContent??''));
-  const [gx,gz]=[...(await game.locator('#coords').textContent()).matchAll(/-?\d+/g)].map(m=>Number(m[0]));check(Math.hypot(gx-camSaved.target.x,gz-camSaved.target.z)<40,'The game starts where the author was looking');
+  const debugUrl=new URL(game.url());debugUrl.searchParams.set('metrics','1');await game.goto(debugUrl.toString());
+  await game.waitForSelector('#start:not([disabled])',{timeout:60000});await game.locator('#start').click();
+  await game.waitForFunction(()=>Number.isFinite(window.littleWorldMetrics?.position?.[0])&&Number.isFinite(window.littleWorldMetrics?.position?.[2]));
+  const [gx,gz]=await game.evaluate(()=>[window.littleWorldMetrics.position[0],window.littleWorldMetrics.position[2]]);
+  check(Math.hypot(gx-camSaved.target.x,gz-camSaved.target.z)<40,'The game starts where the author was looking');
   await game.screenshot({path:out+'/editor-playtest.png'});await game.close();
   const back=await camera();check(Math.hypot(back.target.x-camSaved.target.x,back.target.z-camSaved.target.z)<1&&(await title())==='Lanterne','Returning to the Studio keeps camera and selection');
   await page.screenshot({path:out+'/editor-scene.png'});

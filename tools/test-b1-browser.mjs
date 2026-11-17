@@ -19,9 +19,17 @@ try{
   const page=await browser.newPage({viewport:{width:1100,height:700}}),errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>d.accept());
   const url=base+'?world=maps/b1-demo/manifest.json&metrics&yaw=0&spawn=-40,296';
   const boot=async()=>{await page.goto(url);await page.locator('#start:not([disabled])').click({timeout:120000});await page.waitForFunction(()=>window.littleWorldMetrics?.activities,{},{timeout:120000});await page.waitForTimeout(800);};
-  const m=()=>page.evaluate(()=>{const v=window.littleWorldMetrics;return {pos:v.position,mode:document.querySelector('#status')?.textContent,act:v.activities};});
+  const m=()=>page.evaluate(()=>{const v=window.littleWorldMetrics;return {pos:v.position,mode:v.mode,act:v.activities};});
   const msg=()=>page.locator('.ui-notifications').textContent();
   const ui=playerUi(page),save=()=>ui.save(),load=()=>ui.load(),inventory=()=>ui.bag();
+  const setClockRate=async(rate)=>{
+    await page.getByRole('button',{name:'Menu (Échap)'}).click();
+    await page.locator('.ui-panel[data-panel="pause"]').getByRole('button',{name:'Paramètres'}).click();
+    const modal=page.locator('.ui-panel[data-panel="settings"]');
+    await modal.getByLabel('Vitesse du monde').selectOption(rate);
+    await modal.getByRole('button',{name:'Fermer · Échap'}).click();
+    await page.waitForFunction(value=>window.littleWorldMetrics?.environment?.rate===Number(value),rate);
+  };
   /** Teleport through the save file (position + active space), then load it. */
   async function moveTo(x,y,z,space=null){await save();await page.evaluate(([k,x,y,z,space])=>{const raw=JSON.parse(localStorage.getItem(k));raw.position={x,y,z};raw.space=space;localStorage.setItem(k,JSON.stringify(raw));},[SLOT,x,y,z,space]);await load();await page.waitForTimeout(600);}
   async function hold(key,until,seconds=20){await page.keyboard.down(key);let v;for(let i=0;i<seconds*5;i++){await page.waitForTimeout(200);v=await m();if(until(v))break;}await page.keyboard.up(key);return v;}
@@ -29,8 +37,8 @@ try{
   // 1. Obstacles: the crate row stops the squirrel, which stays on the ground.
   const blocked=await hold('KeyW',v=>v.pos[2]>299.5,4);check(blocked.pos[2]<299.1&&blocked.pos[2]>297,'A solid crate stops the walk at z = '+blocked.pos[2].toFixed(2));
   // 2. Water: into the lake (swimming), then back out on foot.
-  await moveTo(20,40,4);const swim=await hold('KeyS',v=>/Nage|Plongée/.test(v.mode),20);check(/Nage/.test(swim.mode),'Enters the lake and swims ('+swim.mode+')');
-  const dry=await hold('KeyW',v=>/Au sol/.test(v.mode),25);check(/Au sol/.test(dry.mode),'Walks back out of the water');
+  await moveTo(20,40,4);const swim=await hold('KeyS',v=>v.mode==='swim'||v.mode==='dive',20);check(swim.mode==='swim','Enters the lake and swims ('+swim.mode+')');
+  const dry=await hold('KeyW',v=>v.mode==='ground',25);check(dry.mode==='ground','Walks back out of the water');
   // 3–4. Mine: entrance, then down two levels by the stairs.
   await moveTo(172.5,45,22);const inside=await hold('KeyW',v=>v.act.space?.levelId==='level-3',40);
   check(inside.act.space?.levelId==='level-3'&&Math.abs(inside.pos[1]-mine.levels[2].floorY)<.05,'Entered the mine and went down to level 3 (y '+inside.pos[1].toFixed(1)+')');
@@ -51,9 +59,9 @@ try{
   await card.getByRole('button',{name:'Carotte'}).click();await page.waitForFunction(()=>[...document.querySelectorAll('.ui-activity-card .ui-chip')].find(b=>b.textContent==='Carotte')?.getAttribute('aria-pressed')==='true');check(true,'Crop chips select through the farm runtime ('+otherName+' then Carotte)');
   await page.keyboard.press('KeyF');await page.waitForTimeout(300);check(/Semis/.test(await msg()),'Sown');
   await page.keyboard.press('KeyF');await page.waitForTimeout(300);check(/arrosée/.test(await msg()),'Watered from the irrigation point');
-  await page.locator('.environment-controls summary').click();await page.getByLabel('Vitesse du monde').selectOption('240');
+  await setClockRate('240');
   let plot;for(let i=0;i<60;i++){await page.waitForTimeout(1500);plot=(await m()).act.plots['plot-west'];if(plot.stage==='mature')break;if(plot.moisture<.45){await page.keyboard.press('KeyF');}}
-  await page.getByLabel('Vitesse du monde').selectOption('1');check(plot.stage==='mature','Carrots grew to maturity with the world clock ('+JSON.stringify(plot)+')');
+  await setClockRate('1');check(plot.stage==='mature','Carrots grew to maturity with the world clock ('+JSON.stringify(plot)+')');
   await page.keyboard.press('KeyF');await page.waitForTimeout(400);check(/\+\d+ Carotte/.test(await msg()),'Harvested (inventory gain notification): '+(await msg()));
   const before=await m();const beforeBag=await inventory();check(/Carotte/.test(beforeBag),'Carrots in the bag');
   // 10–11. Save, reload the page, load: everything restored.

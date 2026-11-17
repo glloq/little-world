@@ -23,3 +23,16 @@ test('wind lines are a fixed GPU pool and stay invisible without flight or speed
  fx.update(34,true,false,1/30);assert.equal(mesh.count,0);
  fx.dispose();assert.equal(camera.children.length,0);
 });
+
+test('60 m/s glider uses swept collisions rather than skipping a thin obstacle',async()=>{
+ const {simulatePlayer}=await import('../src/player.ts');
+ const {WorldCollisionQuery}=await import('../src/physics/collision-world.ts');
+ const world=new WorldCollisionQuery(()=>0,()=>null);
+ world.add({id:'flight-wall',position:{x:0,y:0,z:8},size:{x:8,y:80,z:.03},shape:'box',enabled:()=>true});
+ for(const speed of [34,60]){
+  const p={position:new THREE.Vector3(0,35,0),velocity:new THREE.Vector3(0,0,speed),mode:'glide',oxygen:90,glideReady:true,gasReserve:150};
+  const controls={forward:0,right:0,run:false,jumpPressed:false,spaceHeld:false,dive:false,cameraYaw:0,cameraPitch:0};
+  for(let i=0;i<20;i++)simulatePlayer(p,controls,1/30,world);
+  assert.ok(p.position.z<8,'wall collision failed at '+speed+'m/s, z='+p.position.z);
+ }
+});
