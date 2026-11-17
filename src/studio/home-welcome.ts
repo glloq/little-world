@@ -35,7 +35,7 @@ const reliefs:readonly {id:ReliefPreset;name:string;detail:string}[]=[
   {id:'rugged',name:'Accidenté',detail:'Falaises et relief marqué'},
 ];
 function choice(title:string,detail:string,active:boolean,fn:()=>void){
-  const e=button('','','welcome-choice');e.textContent='';
+  const e=button('',()=>{},'welcome-choice');e.textContent='';
   e.classList.toggle('active',active);e.setAttribute('aria-pressed',String(active));
   e.append(node('strong',title),node('span',detail,'muted'));
   e.onclick=fn;return e;
@@ -116,7 +116,7 @@ export function mountWelcome(host:HTMLElement,actions:WelcomeActions){
       ['Reprendre un projet','Retrouvez vos mondes enregistrés dans ce navigateur.','projects'],
     ];
     for(const [label,description,key] of cards){
-      const b=button('','','welcome-entry');
+      const b=button('',()=>{},'welcome-entry');
       b.setAttribute('aria-label',label);b.append(node('span',key==='create'?'◒':key==='templates'?'▤':key==='blank'?'▱':'↺','welcome-entry-icon'),node('strong',label),node('span',description,'muted'));
       b.onclick=()=>{if(key==='templates')section='templates';else if(key==='projects')section='projects';else{section='wizard';step=0;config={...DEFAULT_WELCOME_CONFIG,...(key==='blank'?{mode:'blank' as const,volcano:false,relief:'gentle' as const,width:1000,length:1000}:{})};}render();};
       choices.append(b);
