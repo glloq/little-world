@@ -138,8 +138,14 @@ try{
   await mobilePage.locator('.touch-joystick').waitFor({state:'visible'});
   verify(await mobilePage.locator('.touch-controls').isVisible(),'Phone-sized coarse pointer activates joystick and action buttons');
   verify(await mobilePage.getByRole('button',{name:'Saut'}).isVisible()&&await mobilePage.getByRole('button',{name:'Courir'}).isVisible(),'Phone keeps jump and acceleration as separate primary buttons');
-  verify(await mobilePage.getByRole('button',{name:'Agir'}).isVisible()&&await mobilePage.getByRole('button',{name:'Rouler'}).isVisible(),'Ground actions are contextual and accessible');
-  verify(!(await mobilePage.getByRole('button',{name:'Plonger'}).isVisible()),'Dive is hidden outside water');
+  verify(await mobilePage.locator('.touch-action').count()===3,'Only two permanent buttons and one contextual action are created');
+  verify(await mobilePage.locator('.touch-roll,.touch-dive').count()===0,'Roll and dive never add extra buttons');
+  await mobilePage.waitForTimeout(450);
+  verify(await mobilePage.evaluate(()=>{
+    const action=document.querySelector('.touch-interact');
+    const usable=!!window.littleWorldMetrics?.targetId&&document.querySelector('#action')?.dataset.enabled==='true';
+    return !!action&& (getComputedStyle(action).display!=='none')===usable;
+  }),'Object action appears only for a usable nearby target');
   verify(await mobilePage.evaluate(()=>{
     const visible=s=>{const n=document.querySelector(s);return n&&getComputedStyle(n).display!=='none';};
     const bounds=s=>document.querySelector(s)?.getBoundingClientRect();
@@ -158,6 +164,24 @@ try{
   const mobileAfter=await mobilePage.evaluate(()=>window.littleWorldMetrics.position);
   verify(Math.hypot(mobileAfter[0]-mobileBefore[0],mobileAfter[2]-mobileBefore[2])>.03,'Joystick moves the player through the real simulation');
   verify(await stick.locator('.touch-joystick-thumb').evaluate(e=>e.style.transform==='translate(-50%, -50%)'),'Releasing the joystick resets input to zero');
+  // Check both mobile horizontal directions against a fixed yaw=0 baseline.
+  await mobilePage.evaluate(()=>{const p=window.littleWorldMetrics.position;window.littleWorldDebug.teleport(p[0],p[2],0);});
+  await mobilePage.waitForFunction(()=>window.littleWorldMetrics.mode==='ground');
+  const x0=await mobilePage.evaluate(()=>window.littleWorldMetrics.position[0]);
+  await mobilePage.mouse.move(cx,cy);await mobilePage.mouse.down();
+  await mobilePage.mouse.move(cx+44,cy,{steps:4});
+  await mobilePage.waitForTimeout(650);await mobilePage.mouse.up();
+  const x1=await mobilePage.evaluate(()=>window.littleWorldMetrics.position[0]);
+  verify(x1>x0+.04,'Right on the mobile joystick follows the corrected horizontal mapping');
+  // A rightward swipe on the scene must change the touch camera in the intended direction.
+  await mobilePage.evaluate(()=>{const p=window.littleWorldMetrics.position;window.littleWorldDebug.teleport(p[0],p[2],0);});
+  await mobilePage.waitForTimeout(500);
+  const cameraBefore=await mobilePage.evaluate(()=>window.littleWorldMetrics.camera.position[0]-window.littleWorldMetrics.position[0]);
+  await mobilePage.mouse.move(360,156);await mobilePage.mouse.down();
+  await mobilePage.mouse.move(420,156,{steps:5});
+  await mobilePage.waitForTimeout(350);await mobilePage.mouse.up();
+  const cameraAfter=await mobilePage.evaluate(()=>window.littleWorldMetrics.camera.position[0]-window.littleWorldMetrics.position[0]);
+  verify(cameraAfter<cameraBefore-.2,'Dragging right rotates the mobile camera with the corrected touch direction');
   await mobilePage.getByRole('button',{name:'Sac (I)'}).click();
   await mobilePage.locator('.ui-panel[data-panel="inventory"]').waitFor({state:'visible'});
   await mobilePage.locator('.touch-controls').waitFor({state:'hidden'});

@@ -8,8 +8,8 @@ La bêta reste orientée **PC**, conformément à `AGENTS.md`. Cette branche ajo
 
 - Téléphone détecté par un pointeur principal `coarse` et un écran dont le plus petit côté mesure au plus **750 pixels CSS**.
 - **Joystick analogique** en bas à gauche ; direction écran relative à la caméra. Zone morte **14 %** ; amplitude maximum 1 ; déplacement proportionnel à l'écartement du centre. Un seul `pointerId` propriétaire du joystick.
-- **Deux boutons principaux permanents** à droite : Saut/Planeur/Brasse (appui ponctuel) et Accélération (maintien). Les petites commandes contextuelles sont Agir, Rouler (bascule) et Plonger (maintien, visible dans l'eau).
-- **Caméra** : glissement libre sur la scène 3D. En plané sur téléphone, le joystick gauche pilote désormais les intentions de lacet et tangage de la caméra, tandis que le pouce droit reste sur l'accélérateur. Les captures de pointeurs restent indépendantes.
+- **Deux boutons principaux permanents** à droite : Saut/Planeur/Brasse (appui ponctuel) et Accélération (maintien). **Agir apparaît seulement si un objet proche propose une action utilisable.** Aucun bouton distinct Rouler/Plonger.
+- **Caméra** : glissement libre sur la scène 3D, direction horizontale corrigée pour le tactile sans modifier la souris PC. En plané, le joystick gauche pilote désormais les intentions de lacet et tangage (signe horizontal corrigé), tandis que le pouce droit reste sur l'accélérateur. Les captures de pointeurs restent indépendantes.
 - Menu, Sac, Journal et Carte sont regroupés en haut. La minimap devient un raccourci Carte sans rendu canvas inutile sur téléphone ; Son reste dans Paramètres.
 - L'adaptateur renseigne les `Controls` existants, plus `swimStrokePressed` (impulsion déterministe). Au sol, Accélération fait courir sans imposer la boule ; en roulade elle renforce la motricité ; dans l'eau elle accélère la nage ; en plané elle utilise la réserve de gaz existante. Le PC conserve Space pour basculer plongée/remontée.
 - Aucune synthèse de `KeyboardEvent`, pas de polling DOM, pas de boucle animation/rafraîchissement propre au joystick, aucun asset téléchargé.
@@ -54,9 +54,18 @@ La vue tactile est pensée pour le mode **paysage**.
 - Détection téléphone : pointeur principal grossier et petit côté de l'écran ≤ 750 pixels CSS ; aucune commande tactile créée sur PC.
 - Premier démarrage mobile en qualité `low` (sans MSAA) **uniquement si le joueur n'a jamais choisi de qualité** ; le choix conservé localement reste prioritaire.
 - L'écran d'accueil explique les contrôles mobiles. Au lancement, demander le mode paysage via plein écran + verrouillage si pris en charge ; conserver le choix explicite de continuer en portrait si refus navigateur.
-- Zones de pouces fixes et séparées : joystick à gauche ; Saut/Action + Accélération à droite, interaction et roulade/plongée en petits boutons au-dessus.
+- Zones de pouces fixes et séparées : joystick à gauche ; Saut/Planeur/Brasse + Accélération à droite. Un unique petit bouton Agir apparaît au-dessus uniquement près d'une interaction utilisable. Double appui Accélération : basculer roulade au sol ou plongée/remontée dans l'eau.
 - Barre de tête : menu / Sac / Journal / Carte. Éviter minimap et débogage flottants sur les commandes ; météo, monnaie et son secondaire dans les menus.
 - Sans texture supplémentaire et sans nouvelle boucle de simulation ; pas de dépendance d'interface tierce.
-- Contrat nage : une brasse déclenche une impulsion bornée (0,32 s), sans répétition automatique ; accélération par maintien. Plonger reste une commande séparée en eau.
+- Contrat nage : une brasse déclenche une impulsion bornée (0,32 s), sans répétition automatique ; accélération par maintien. Double appui rapide sur Accélération (≤ 340 ms) : plonger/remonter, sans troisième bouton. Le PC conserve ses touches.
 - Contrat vol : le joystick gauche agit sur les intentions de caméra (yaw/pitch, angles bornés et intégrés à 30 Hz) ; le moteur conserve la rotation progressive, la finesse, l'énergie et le décrochage.
 - À qualifier sur appareils réels : multitouch simultané joystick + accélérateur, retour d'écran verrouillé, Safari iOS, écrans très étroits, clavier virtuel et échauffement GPU.
+
+## Correction tactile droite/gauche et réduction des boutons
+
+- Horizontal mobile (sol/eau/bateau) : inversion de la contribution analogique tactile seule, sans toucher au clavier PC.
+- Caméra au doigt : signe horizontal inversé sur téléphone uniquement ; les préférences de sensibilité et d'inversion verticale sont respectées.
+- Plané : le joystick gauche utilise le signe de lacet corrigé afin de tourner dans le sens attendu.
+- **Deux commandes visibles en permanence.** La troisième, « Agir », est conditionnée par une `primaryAction.enabled` trouvée à proximité, recalculée à 8 Hz. L'appui résout toujours la cible à nouveau au moment d'agir.
+- Rouler ou sortir de la boule : double-tap Accélération au sol. En eau, double-tap Accélération bascule plongée/remontée. Le maintien seul reste une accélération ordinaire.
+- Aucun changement du comportement souris/clavier PC, ni nouvelle animation, géométrie ou boucle permanente.

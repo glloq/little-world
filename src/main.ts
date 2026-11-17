@@ -285,7 +285,7 @@ let started = false;
 let elapsed = 0;
 // Mobile controls contribute directly to the existing deterministic player input.
 if(touchCapable){
-  mobileTouch=createTouchControls({jump:()=>{if(aboard)actionQueue++;else if(player.mode==='swim'||player.mode==='dive')touchStrokeQueue=1;else jumpQueue++;},action:()=>{actionQueue++;},roll:()=>{rollQueue++;}});
+  mobileTouch=createTouchControls({jump:()=>{if(aboard)actionQueue++;else if(player.mode==='swim'||player.mode==='dive')touchStrokeQueue=1;else jumpQueue++;},action:()=>{actionQueue++;},alternate:()=>{if(player.mode==='ground'||player.mode==='roll')rollQueue++;else if(player.mode==='swim'||player.mode==='dive')jumpQueue++;}});
   const intro=overlay.querySelector<HTMLElement>('.start-card small');if(intro)intro.textContent='Téléphone : paysage conseillé · joystick gauche · Saut et Accélération à droite';
   // Restore touch controls immediately after the player accepts portrait or rotates back.
   // Do not wait for a simulation tick: that tick may still be paused by the orientation guide.
@@ -339,7 +339,7 @@ function input(): Controls {
     forward: clamp(
       Number(codeHeld('KeyW', 'KeyZ', 'ArrowUp')) - Number(codeHeld('KeyS', 'ArrowDown')) + (mobileGliding?0:mobileTouch?.axis.forward??0),-1,1),
     right: clamp(
-      Number(codeHeld('KeyD', 'ArrowRight')) - Number(codeHeld('KeyA', 'KeyQ', 'ArrowLeft')) + (mobileGliding?0:mobileTouch?.axis.right??0),-1,1),
+      Number(codeHeld('KeyD', 'ArrowRight')) - Number(codeHeld('KeyA', 'KeyQ', 'ArrowLeft')) - (mobileGliding?0:mobileTouch?.axis.right??0),-1,1),
     run: codeHeld('ShiftLeft', 'ShiftRight')||!!mobileTouch?.accelerateHeld,
     autoRun: true,
     jumpAssist: true,
@@ -347,7 +347,7 @@ function input(): Controls {
     rollPressed: rollQueue > 0,
     rollHeld: codeHeld('ShiftLeft', 'ShiftRight'),
     spaceHeld: codeHeld('Space')||!!mobileTouch?.jumpHeld,
-    dive: codeHeld('ControlLeft', 'ControlRight')||!!mobileTouch?.diveHeld,
+    dive: codeHeld('ControlLeft', 'ControlRight'),
     cameraYaw: yaw,
     // Underwater, moving forward follows the camera tilt (looking down dives down), from the default view.
     cameraPitch: pitch - 0.32,
@@ -457,7 +457,8 @@ renderer.domElement.addEventListener('pointermove', (e) => {
   }
   // Camera sensitivity / vertical inversion: player preferences (Paramètres › Contrôles).
   const prefs=gameUi?.preferences,k=prefs?.cameraSensitivity??1;
-  yaw -= movement.dx * 0.00315 * k;
+  // Touch drag rotates the camera toward the finger. Preserve desktop mouse orbit.
+  yaw += movement.dx * 0.00315 * k * (touchCapable?1:-1);
   pitch = clamp(pitch - movement.dy * 0.0024 * k * (prefs?.invertY ? -1 : 1), player.mode==='glide'?-.45:-.12, player.mode==='glide'?1.3:1.03);
 });
 renderer.domElement.addEventListener('pointerup', (e) => {
@@ -644,17 +645,25 @@ function updateHud() {
     cameraSubmerged(camera.position.x, camera.position.y, camera.position.z),
   );
 }
-let boatSteer=0,motionTick=0;
+let boatSteer=0,motionTick=0,nextTouchTargetAt=0;
 function tick(dt: number) {
   // Mobile input: immediately release controls when a menu opens or the boost stops being valid.
   mobileTouch?.setEnabled(started&&!gameUi?.blocking&&!customization.isOpen&&!npcs.dialogue.isOpen&&!mobileLandscape?.blocked);
   mobileTouch?.setMode(player.mode,aboard,gasLevel(player)>0);
+  // Interaction may change without changing movement mode. Throttle target queries
+  // to 8 Hz; the action itself still resolves the target again when pressed.
+  if(mobileTouch&&elapsed>=nextTouchTargetAt){
+    const target=aboard?null:currentTarget();
+    mobileTouch.setInteractTarget(target?.primaryAction??null);
+    nextTouchTargetAt=elapsed+.125;
+  }
   // Menus (pause, parties, paramètres) pause the world simulation; the frame still renders.
   if (!started || gameUi?.paused||mobileLandscape?.blocked) return;
   if(gameplay)gameplay.update(dt);else worldClock.advance(dt);
   // Glide camera steering from the left thumb leaves the right thumb free for boost/jump.
   if(mobileTouch&&player.mode==='glide'&&!gameUi?.blocking&&!customization.isOpen&&!npcs.dialogue.isOpen){
-    yaw+=mobileTouch.axis.right*1.2*dt;
+    // Match mobile right/left direction with the on-screen touch controls.
+    yaw-=mobileTouch.axis.right*1.2*dt;
     pitch=clamp(pitch-mobileTouch.axis.forward*.95*dt,-.45,1.3);
   }
   const keys = input();
