@@ -150,7 +150,7 @@ export function mountWelcome(host:HTMLElement,actions:WelcomeActions){
     ],()=>{}),seed=numberInput(4242,()=>{},1,9999999,'1');
     const width=numberInput(3000,()=>{},500,8000,'1'),length=numberInput(8000,()=>{},500,8000,'1'),cliffs=numberInput(.35,()=>{},0,1,'0.05');
     const volcano=node('input');volcano.type='checkbox';volcano.checked=true;
-    const opts=node('details');opts.open=true;
+    const opts=node('details'); // Keep legacy click-to-expand behavior for authoring workflows.
     opts.append(node('summary','Dimensions et géographie initiale'),
       field('Largeur du monde (m)',width),field('Longueur du monde (m)',length),
       field('Proportion de falaises (0–1)',cliffs),field('Générer un volcan',volcano));
