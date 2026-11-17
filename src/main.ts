@@ -1,5 +1,6 @@
 import {PerfSampler,createGpuTimer} from './render/perf-sampler.ts';
 import {advanceSpeedCamera,speedCameraState,createSpeedStreaks} from './render/speed-effects.ts';
+import {advanceFlightAutoCamera,type FlightCameraFollow} from './render/flight-auto-camera.ts';
 import {createActorSimulator} from './render/remote-characters.ts';
 import {captureMovement} from './physics/movement-state.ts';
 import {createTouchControls,type TouchControls} from './input/touch-controls.ts';
@@ -304,6 +305,7 @@ if(touchCapable){
 if(playable&&!isLegacyTerrain()){const yawParam=Number(searchParams.get('yaw'));yaw=searchParams.has('yaw')&&Number.isFinite(yawParam)?yawParam:Math.atan2(-player.position.x,-player.position.z);}
 // Reproducible control viewpoints (World Production captures): camera pitch and distance.
 {const p=Number(searchParams.get('pitch')),d=Number(searchParams.get('dist'));if(searchParams.has('pitch')&&Number.isFinite(p))pitch=Math.max(-.3,Math.min(1.4,p));if(searchParams.has('dist')&&Number.isFinite(d))distance=Math.max(2,Math.min(600,d));}
+const flightCameraFollow:FlightCameraFollow={yaw,pitch,idleSeconds:0,wasGliding:false};
 const previousPlayerPosition = player.position.clone(),
   renderPosition = player.position.clone();
 let presentedFrames = 0;
@@ -339,14 +341,13 @@ function input(): Controls {
       swimStrokePressed:false,
     };
   }
-  // In mobile glide, joystick deflection changes camera yaw/pitch, not forward/brake.
-  const mobileGliding=!!mobileTouch&&player.mode==='glide';
+  // The joystick always controls movement/pilot intentions; never rotates the camera.
   const shiftHeld=codeHeld('ShiftLeft','ShiftRight'),touchAccelerateHeld=!!mobileTouch?.accelerateHeld;
   return {
     forward: clamp(
-      Number(codeHeld('KeyW', 'KeyZ', 'ArrowUp')) - Number(codeHeld('KeyS', 'ArrowDown')) + (mobileGliding?0:mobileTouch?.axis.forward??0),-1,1),
+      Number(codeHeld('KeyW', 'KeyZ', 'ArrowUp')) - Number(codeHeld('KeyS', 'ArrowDown')) + (mobileTouch?.axis.forward??0),-1,1),
     right: clamp(
-      Number(codeHeld('KeyD', 'ArrowRight')) - Number(codeHeld('KeyA', 'KeyQ', 'ArrowLeft')) - (mobileGliding?0:mobileTouch?.axis.right??0),-1,1),
+      Number(codeHeld('KeyD', 'ArrowRight')) - Number(codeHeld('KeyA', 'KeyQ', 'ArrowLeft')) - (mobileTouch?.axis.right??0),-1,1),
     run:shiftHeld||touchAccelerateHeld,
     autoRun: true,
     jumpAssist: true,
@@ -514,6 +515,14 @@ function showInfo(text: string, kind:'info'|'success'|'warning'='info') {
 const cameraTarget = new THREE.Vector3(),
   cameraDesired = new THREE.Vector3(),audioForward=new THREE.Vector3();
 function updateCamera(dt: number) {
+  // Presentation-only yaw/pitch recovery after camera drag is released.
+  flightCameraFollow.yaw=yaw;flightCameraFollow.pitch=pitch;
+  advanceFlightAutoCamera(
+    flightCameraFollow,dt,player.mode==='glide'&&gameplayInputActive()&&!gameUi?.paused,
+    orbitDrag.active,gameUi?.preferences.autoCenterFlightCamera!==false,
+    player.velocity.x,player.velocity.z,player.heading??yaw,!!player.gasBoosting
+  );
+  yaw=flightCameraFollow.yaw;pitch=flightCameraFollow.pitch;
   const effects=gameUi?.preferences.speedEffects!==false&&!gameUi?.preferences.reduceMotion;
   advanceSpeedCamera(speedCue,{speed:player.velocity.length(),mode:player.mode,boosting:!!player.gasBoosting,turnRate:player.glideTurnRate??0,enabled:effects},dt);
   const target = cameraTarget.copy(renderPosition);
@@ -669,12 +678,7 @@ function tick(dt: number) {
   // Menus (pause, parties, paramètres) pause the world simulation; the frame still renders.
   if (!started || gameUi?.paused||mobileLandscape?.blocked) return;
   if(gameplay)gameplay.update(dt);else worldClock.advance(dt);
-  // Glide camera steering from the left thumb leaves the right thumb free for boost/jump.
-  if(mobileTouch&&player.mode==='glide'&&!gameUi?.blocking&&!customization.isOpen&&!npcs.dialogue.isOpen){
-    // Match mobile right/left direction with the on-screen touch controls.
-    yaw-=mobileTouch.axis.right*1.2*dt;
-    pitch=clamp(pitch-mobileTouch.axis.forward*.95*dt,-.45,1.3);
-  }
+  // Airborne mobile steering now reaches the player simulation, not the orbit camera.
   const keys = input();
   if (aboard) {
     updateBoat(boat, { throttle: mobileTouch?.accelerateHeld?Math.max(1,keys.forward):keys.forward, steer: keys.right }, dt);boatSteer=keys.right;
