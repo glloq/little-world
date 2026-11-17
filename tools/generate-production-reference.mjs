@@ -67,8 +67,8 @@ export function buildProductionReference(){
 if(import.meta.url===`file://${process.argv[1]}`){
   const {project,reports}=buildProductionReference();
   for(const r of reports)if(r.diagnostics.length)console.warn(r.instanceId,r.diagnostics);
-  await writeFile(new URL('../maps/production-reference.project.json',import.meta.url),JSON.stringify(project,null,1)+'\n');
-  await writeFile(new URL('../public/maps/production-reference.project.json',import.meta.url),JSON.stringify(project)+'\n');
-  const result=await compileProjectToDirectory(project,new URL('../public/maps/production-reference',import.meta.url).pathname);
+  await writeFile(new URL('../tests/fixtures/legacy-maps/authoring/production-reference.project.json',import.meta.url),JSON.stringify(project,null,1)+'\n');
+  await writeFile(new URL('../tests/fixtures/legacy-maps/published/production-reference.project.json',import.meta.url),JSON.stringify(project)+'\n');
+  const result=await compileProjectToDirectory(project,new URL('../tests/fixtures/legacy-maps/published/production-reference',import.meta.url).pathname);
   console.log(JSON.stringify({worldId:result.manifest.worldId,landscapes:Object.keys(project.libraries.landscapes).length,entities:Object.keys(project.entityIndex).length,water:Object.keys(project.libraries.water).length,paths:Object.keys(project.libraries.paths).length,authoredChunks:result.manifest.chunks.length,written:result.written},null,1));
 }
