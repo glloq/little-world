@@ -3,6 +3,7 @@ import {advanceSpeedCamera,speedCameraState,createSpeedStreaks} from './render/s
 import {createActorSimulator} from './render/remote-characters.ts';
 import {captureMovement} from './physics/movement-state.ts';
 import {createTouchControls,type TouchControls} from './input/touch-controls.ts';
+import {shouldPreventGameplayKeyDefault,shouldSuppressGameplayContextMenu,flightBoostHeld} from './input/gameplay-input.ts';
 import {createMobileLandscape,isPhoneTouchDevice} from './input/mobile-landscape.ts';
 import './input/touch-controls.css';
 import {classifyPoint} from './geography/classify.ts';
@@ -241,7 +242,11 @@ world.update(0, player.position);
       id:'asset:'+p.id,label:/lighthouse/i.test(p.assetId)?'Phare':/(port|harbor)/i.test(p.assetId)?'Port':/inn/i.test(p.assetId)?'Auberge':/market/i.test(p.assetId)?'Marché':/windmill|watermill/i.test(p.assetId)?'Moulin':'Village',x:p.x,z:p.z,
     })),
   ];
-  gameUi=createGameUi({gameplay,npcs,audio,environment:()=>{const state=climate.state(worldClock.time);return {weather:state.weather,dayPhase:state.dayPhase};},landmarks,applyDistantRendering:(value,initial)=>{if(!initial||!searchParams.has('impostors')){world.hybrid.setMode(value==='hybrid'?'trees':'off');if(value==='hybrid')world.hybrid.setSectors(false);}},quality:document.querySelector<HTMLSelectElement>('#quality'),temporary:!!(studioTest||buildScope),studioUrl:import.meta.env.BASE_URL+'studio/',
+  gameUi=createGameUi({gameplay,npcs,audio,focusGameplay:()=>{
+    if(!started||!overlay.classList.contains('hide')||customization.isOpen||npcs.dialogue.isOpen)return false;
+    renderer.domElement.focus({preventScroll:true});
+    return document.activeElement===renderer.domElement;
+  },environment:()=>{const state=climate.state(worldClock.time);return {weather:state.weather,dayPhase:state.dayPhase};},landmarks,applyDistantRendering:(value,initial)=>{if(!initial||!searchParams.has('impostors')){world.hybrid.setMode(value==='hybrid'?'trees':'off');if(value==='hybrid')world.hybrid.setSectors(false);}},quality:document.querySelector<HTMLSelectElement>('#quality'),temporary:!!(studioTest||buildScope),studioUrl:import.meta.env.BASE_URL+'studio/',
     world:{name:definition.name,buildVersion:gameplay?.runtime.data.buildVersion??'vallée',dayLength:climate.definition.dayLengthSeconds,bounds:{minX:-c.width/2,maxX:c.width/2,minZ:-c.length/2,maxZ:c.length/2},seaLevel:c.seaLevel,height:terrainHeight,water:waterSurface},
     eatFood:(itemId)=>{
       const points=foodGasValue(itemId);
@@ -339,25 +344,32 @@ function input(): Controls {
   }
   // In mobile glide, joystick deflection changes camera yaw/pitch, not forward/brake.
   const mobileGliding=!!mobileTouch&&player.mode==='glide';
+  const shiftHeld=codeHeld('ShiftLeft','ShiftRight'),touchAccelerateHeld=!!mobileTouch?.accelerateHeld;
   return {
     forward: clamp(
       Number(codeHeld('KeyW', 'KeyZ', 'ArrowUp')) - Number(codeHeld('KeyS', 'ArrowDown')) + (mobileGliding?0:mobileTouch?.axis.forward??0),-1,1),
     right: clamp(
       Number(codeHeld('KeyD', 'ArrowRight')) - Number(codeHeld('KeyA', 'KeyQ', 'ArrowLeft')) - (mobileGliding?0:mobileTouch?.axis.right??0),-1,1),
-    run: codeHeld('ShiftLeft', 'ShiftRight')||!!mobileTouch?.accelerateHeld,
+    run:shiftHeld||touchAccelerateHeld,
     autoRun: true,
     jumpAssist: true,
     jumpPressed: jumpQueue > 0,
     rollPressed: rollQueue > 0,
-    rollHeld: codeHeld('ShiftLeft', 'ShiftRight'),
+    rollHeld:shiftHeld,
     spaceHeld: codeHeld('Space')||!!mobileTouch?.jumpHeld,
     dive: codeHeld('ControlLeft', 'ControlRight'),
     cameraYaw: yaw,
     // Underwater, moving forward follows the camera tilt (looking down dives down), from the default view.
     cameraPitch: pitch - 0.32,
-    boostHeld:rightBoostDown||(player.mode==='glide'&&!!mobileTouch?.accelerateHeld),
+    boostHeld:flightBoostHeld(player.mode,rightBoostDown,shiftHeld,touchAccelerateHeld),
     swimStrokePressed:touchStrokeQueue>0,
   };
+}
+function isEditableInput(target:EventTarget|null):boolean{
+  return target instanceof Element&&!!target.closest('input,textarea,select,[contenteditable="true"],[contenteditable=""],[role="textbox"]');
+}
+function gameplayInputActive():boolean{
+  return started&&!gameUi?.blocking&&!customization.isOpen&&!npcs.dialogue.isOpen&&!mobileLandscape?.blocked;
 }
 function isMenuKey(e: KeyboardEvent): boolean {
   return e.key.toLowerCase() === 'a' && !e.altKey && !e.ctrlKey && !e.metaKey;
@@ -367,32 +379,33 @@ function resetCameraDrag(): void {
   orbitDrag.cancel();
   renderer.domElement.classList.remove('dragging-camera');
 }
+function clearGameplayInput():void{
+  keySet.clear();rightBoostDown=false;
+  rollQueue=0;jumpQueue=0;touchStrokeQueue=0;actionQueue=0;activityQueue=0;cropQueue=0;
+  mobileTouch?.reset();resetCameraDrag();
+}
+// Switching to any UI panel releases held movement and boost keys immediately.
+gameUi?.controller.onChange(id=>{if(id)clearGameplayInput();});
 window.addEventListener('keydown', (e) => {
   // Player interface first: panels, Escape (menu), I / J / M. Consumed keys never reach the game.
   if(gameUi?.handleKey(e,started&&!customization.isOpen))return;
-  if(e.target instanceof Element&&e.target.closest('button,summary,a')&&['Space','Enter','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))return;
-  if(gameUi?.blocking||e.target instanceof HTMLInputElement||e.target instanceof HTMLTextAreaElement||e.target instanceof HTMLSelectElement)return;
+  if(gameUi?.blocking||isEditableInput(e.target)||!started)return;
+  // Space remains the gameplay action even if a HUD button still has focus.
+  // Enter and arrow-key navigation on focused controls stay available.
+  if(e.target instanceof Element&&e.target.closest('button,summary,a')&&['Enter','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))return;
   // Read the typed character: AZERTY 'A' is physically KeyQ, QWERTY 'A' is KeyA.
   if (isMenuKey(e)) {
     e.preventDefault();
     if (started) {
       customization.open();
-      resetCameraDrag();
-      keySet.delete(e.code);
-      jumpQueue = 0;
-      actionQueue = 0;
+      clearGameplayInput();
     }
     return;
   }
   if (e.code === 'Escape') npcs.dialogue.close();
   if (npcs.dialogue.isOpen) return;
   if (customization.isOpen) return;
-  if (
-    ['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(
-      e.code,
-    )
-  )
-    e.preventDefault();
+  if(shouldPreventGameplayKeyDefault(e.code,gameplayInputActive(),false))e.preventDefault();
   if (e.repeat) return;
   keySet.add(e.code);
   if (e.code === 'Space') jumpQueue++;
@@ -432,22 +445,25 @@ window.addEventListener('keydown', (e) => {
   }
 });
 window.addEventListener('keyup', (e) => {
+  if(shouldPreventGameplayKeyDefault(e.code,gameplayInputActive(),isEditableInput(e.target)))e.preventDefault();
   if (e.key.toLowerCase() === 'a') customization.close();
   keySet.delete(e.code);
 });
 window.addEventListener('blur', () => {
-  keySet.clear();
-  rightBoostDown=false;
-  mobileTouch?.reset();
-  jumpQueue = 0;
-  actionQueue = 0;
+  clearGameplayInput();
   customization.close();
-  resetCameraDrag();
 });
-renderer.domElement.addEventListener('contextmenu',e=>e.preventDefault());
+document.addEventListener('visibilitychange',()=>{if(document.hidden)clearGameplayInput();});
+// Context menus belong to the browser outside the game (and in editable fields),
+// not to the canvas or HTML HUD overlays. Capture before the target's own handlers.
+document.addEventListener('contextmenu',e=>{
+  const onSurface=e.target instanceof Element&&!!e.target.closest('#viewport,#ui-root');
+  if(shouldSuppressGameplayContextMenu(started,onSurface,isEditableInput(e.target)))e.preventDefault();
+},{capture:true});
 renderer.domElement.addEventListener('pointerdown', (e) => {
   if (!started || customization.isOpen || gameUi?.blocking || npcs.dialogue.isOpen) return;
-  if(e.button===2){rightBoostDown=true;e.preventDefault();return;}
+  renderer.domElement.focus({preventScroll:true});
+  if(e.button===2){rightBoostDown=player.mode==='glide';e.preventDefault();return;}
   if (!orbitDrag.begin(e.pointerId, e.button, e.clientX, e.clientY)) return;
   renderer.domElement.classList.add('dragging-camera');
   renderer.domElement.setPointerCapture(e.pointerId);
