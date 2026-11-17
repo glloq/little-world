@@ -5,6 +5,8 @@
 import * as THREE from 'three';
 import {buildHamster} from '../hamster/hamster.ts';
 import type {Player,MotionMode} from '../player.ts';
+import {CHARACTER_SCALE} from '../squirrel.ts';
+import {MotionLabClock,type MotionLabRenderHz} from '../hamster/motion-lab-clock.ts';
 import {node,button,field,select,numberInput} from './dom.ts';
 
 const PRESETS=[
@@ -23,17 +25,36 @@ export function mountHamsterMotionLab(host:HTMLElement):{dispose():void}{
     status=node('p','Initialisation de la prévisualisation','muted');
   root.append(node('div','PERSONNAGE · ANIMATION','kicker'),node('h2','Laboratoire de mouvements du hamster'),
     node('p','Visualisez les transitions sur le même rig que le jeu. Les réglages sont purement visuels et non enregistrés.','muted'));
-  const chosen=select('walk',PRESETS,()=>{elapsed=0;character.group.position.set(0,0,0);});
+  const chosen=select('walk',PRESETS,()=>restartSequence());
   const speed=numberInput(8,()=>{},0,18,'0.5');
   const impact=numberInput(10,()=>{},0,20,'0.5');
   const tilt=numberInput(12,()=>{},-35,35,'1');
   const slip=numberInput(.75,()=>{},-1,1,'0.05');
+  const renderRate=select('30',[['30','30 images/s'],['20','20 images/s (faible GPU)']],()=>{needsDraw=true;});
   controls.append(field('Séquence',chosen),field('Vitesse (m/s)',speed),
-    field('Impact (m/s)',impact),field('Pente (°)',tilt),field('Dérapage (-1…1)',slip));
-  let playing=true,elapsed=0,orbit=.55,disposed=false,frame=0,last=0,accum=0;
-  const pause=button('Pause',()=>{playing=!playing;pause.textContent=playing?'Pause':'Reprendre';});
-  const restart=button('Recommencer',()=>{elapsed=0;});
-  root.append(controls,stage,pause,restart,status,info);
+    field('Impact (m/s)',impact),field('Pente (°)',tilt),field('Dérapage (-1…1)',slip),field('Cadence de rendu',renderRate));
+  let playing=true,elapsed=0,orbit=.55,disposed=false,frame=0,last=0,needsDraw=true;
+  const clock=new MotionLabClock(),sampleTimes=new Float32Array(60);
+  let samples=0,sampleIndex=0;
+  const seek=node('input');seek.type='range';seek.min='0';seek.max='3.2';seek.step=String(1/30);seek.value='0';
+  seek.setAttribute('aria-label','Temps dans la séquence (secondes)');
+  const timeLabel=node('span','0,00 / 3,20 s','muted');
+  const scrub=node('div','','hamster-motion-scrub');scrub.append(seek,timeLabel);
+  const pause=button('Pause',()=>{playing=!playing;pause.textContent=playing?'Pause':'Reprendre';last=0;});
+  const restart=button('Recommencer',()=>restartSequence());
+  const oneTick=button('Avancer de 1/30 s',()=>{
+    playing=false;pause.textContent='Reprendre';
+    clock.advance(1/30,Number(renderRate.value) as MotionLabRenderHz,sample);
+    updateScrub();needsDraw=true;last=0;
+  });
+  seek.oninput=()=>{
+    const target=Math.round(Number(seek.value)*30);
+    playing=false;pause.textContent='Reprendre';
+    restartSequence();
+    for(let i=0;i<target;i++)clock.advance(1/30,Number(renderRate.value) as MotionLabRenderHz,sample);
+    updateScrub();needsDraw=true;last=0;
+  };
+  root.append(controls,stage,scrub,pause,restart,oneTick,status,info);
   host.replaceChildren(root);
 
   const renderer=new THREE.WebGLRenderer({antialias:false,powerPreference:'low-power',alpha:true});
@@ -46,7 +67,17 @@ export function mountHamsterMotionLab(host:HTMLElement):{dispose():void}{
   const sunlight=new THREE.DirectionalLight(0xffffff,2.2);sunlight.position.set(-4,7,6);scene.add(sunlight);
   const floor=new THREE.Mesh(new THREE.PlaneGeometry(2000,2000),new THREE.MeshLambertMaterial({color:0xd8dbd2}));
   floor.rotation.x=-Math.PI/2;floor.position.y=-.015;scene.add(floor);
-  const character=buildHamster();scene.add(character.group);
+  let character=buildHamster();scene.add(character.group);
+  function updateScrub(){seek.value=String(clock.elapsed%3.2);timeLabel.textContent=(clock.elapsed%3.2).toFixed(2).replace('.',',')+' / 3,20 s';}
+  function restartSequence(){
+    clock.reset();elapsed=0;sampleTimes.fill(0);samples=0;sampleIndex=0;needsDraw=true;
+    updateScrub();
+    if(disposed)return;
+    character.dispose();character=buildHamster();scene.add(character.group);
+    player.position.set(0,0,0);player.velocity.set(0,0,0);
+    player.landingSeq=0;player.jumpSeq=0;last=0;
+    sample(0,0);
+  }
   const camera=new THREE.PerspectiveCamera(43,1,.1,80);
   const player:Player={position:new THREE.Vector3(),velocity:new THREE.Vector3(),mode:'ground',oxygen:90,glideReady:false};
   const clamp=(x:number,a:number,b:number)=>Math.max(a,Math.min(b,x));
@@ -61,11 +92,12 @@ export function mountHamsterMotionLab(host:HTMLElement):{dispose():void}{
   const canvas=renderer.domElement;
   canvas.style.touchAction='pan-y';
   canvas.onpointerdown=e=>{dragging=true;lastX=e.clientX;canvas.setPointerCapture(e.pointerId);};
-  canvas.onpointermove=e=>{if(dragging){orbit+=clamp((e.clientX-lastX)*.01,-.25,.25);lastX=e.clientX;}};
+  canvas.onpointermove=e=>{if(dragging){orbit+=clamp((e.clientX-lastX)*.01,-.25,.25);lastX=e.clientX;needsDraw=true;}};
   canvas.onpointerup=()=>{dragging=false;};
   canvas.onpointercancel=()=>{dragging=false;};
 
-  function render(dt:number){
+  function sample(dt:number,simTime:number){
+    elapsed=simTime;
     const id=chosen.value,u=elapsed%3.2;
     const baseSpeed=numeric(speed,8,0,18),impactSpeed=numeric(impact,10,0,20);
     const slope=numeric(tilt,12,-35,35)*Math.PI/180;
@@ -106,25 +138,43 @@ export function mountHamsterMotionLab(host:HTMLElement):{dispose():void}{
     player.landingSlide=landingSlide;player.landingSpeed=impactSpeed;
     player.landingSeq=landingKind?Math.floor(elapsed/3.2)+1:Math.floor(elapsed/3.2);
     player.velocity.set(0,vertical,horizontal);
-    // Physical displacement is simulated only as a visual reference for distance-synced gait.
-    player.position.set(0,height,elapsed*horizontal*.33);
+    // Distance-driven gait uses exact fixed-step travel. Vertical movement is a
+    // visual reference only, never submitted to gameplay collision/physics.
+    if(dt>0)player.position.z+=horizontal*dt*CHARACTER_SCALE;
+    player.position.y=height;
     character.group.position.copy(player.position);
     character.update(player,dt,elapsed);
+  }
+  function draw(){
     const targetZ=player.position.z;
     camera.position.set(Math.sin(orbit)*3.3,2.3,Math.cos(orbit)*3.3+targetZ);
-    camera.lookAt(0,1+height*.35,targetZ);
+    camera.lookAt(0,1+player.position.y*.35,targetZ);
+    const started=performance.now();
     renderer.render(scene,camera);
-    status.textContent='État : '+character.animationState+' · '+horizontal.toFixed(1)+' m/s · rendu limité à 30 FPS';
+    const renderMs=performance.now()-started;
+    sampleTimes[sampleIndex++%sampleTimes.length]=renderMs;
+    samples=Math.min(samples+1,sampleTimes.length);
+    let total=0;for(let i=0;i<samples;i++)total+=sampleTimes[i];
+    const mean=samples?total/samples:0;
+    stage.dataset.drawCalls=String(renderer.info.render.calls);
+    stage.dataset.triangles=String(renderer.info.render.triangles);
+    stage.dataset.cpuRenderMs=mean.toFixed(2);
+    stage.dataset.simHz='30';
+    stage.dataset.renderHz=renderRate.value;
+    status.textContent='État : '+character.animationState+' · 30 Hz simulation / '+renderRate.value+
+      ' Hz affichage · '+renderer.info.render.calls+' draw calls · '+renderer.info.render.triangles+
+      ' triangles · CPU rendu moy. '+mean.toFixed(1)+' ms (hors temps GPU)';
   }
   function loop(now:number){
     if(disposed)return;
     frame=requestAnimationFrame(loop);
-    const dt=last?Math.min((now-last)/1000,.1):1/30;last=now;accum+=dt;
-    if(accum<1/30)return;
-    const step=Math.min(.1,accum);accum=0;
-    if(playing)elapsed+=step;
-    if(!document.hidden)render(playing?step:0);
+    if(document.hidden){last=0;return;}
+    const dt=last?Math.min((now-last)/1000,.1):1/30;last=now;
+    const due=playing?clock.advance(dt,Number(renderRate.value) as MotionLabRenderHz,sample):false;
+    if(playing&&due)updateScrub();
+    if(due||needsDraw){draw();needsDraw=false;}
   }
+  sample(0,0);
   frame=requestAnimationFrame(loop);
   return {dispose(){
     if(disposed)return;disposed=true;cancelAnimationFrame(frame);observer.disconnect();

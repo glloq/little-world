@@ -139,6 +139,8 @@ export function buildHamster(): HamsterCharacter {
       return { v: 1, t, x: w.x, y: w.y, z: w.z, yaw: facing, mode: input.mode as PlayerPresentationState['mode'], speed: input.speed, verticalSpeed: input.verticalSpeed, turnRate: input.turnRate, aboard, action: animator.action, actionSeq, tool: animator.toolOut ? actionTool : fishing ? 'fishing-rod' : null, fishing: fishing ? { ...fishing } : null,
         stridePhase:animator.stridePhase,rollPhase:animator.pose.roll,turnIntent:input.turnIntent??0,
         ...(input.jumpKind?{jumpKind:input.jumpKind}:{}),...(input.landingSpeed!==undefined?{landingSpeed:input.landingSpeed}:{}),
+        ...(input.jumpSeq!==undefined?{jumpSeq:input.jumpSeq}:{}),
+        ...(input.landingSeq!==undefined?{landingSeq:input.landingSeq}:{}),
         groundPitch:input.groundPitch??0,groundRoll:input.groundRoll??0,rollSlip:input.rollSlip??0,
         ...(input.landingKind?{landingKind:input.landingKind}:{}),
         ...(input.landingSlide!==undefined?{landingSlide:input.landingSlide}:{}),
@@ -151,7 +153,8 @@ export function buildHamster(): HamsterCharacter {
       if (s.actionSeq !== actionSeq && s.action) { actionSeq = s.actionSeq; animator.play(s.action); actionTool = s.tool; }
       fishing = s.fishing ? { ...s.fishing } : null; aboard = s.aboard;
       input.animationTime=s.t;input.travel=undefined;input.stridePhase=s.stridePhase;input.rollPhase=s.rollPhase;
-      input.turnIntent=s.turnIntent??0;input.jumpKind=s.jumpKind;input.landingSpeed=s.landingSpeed;
+      input.turnIntent=s.turnIntent??0;input.jumpKind=s.jumpKind;input.jumpSeq=s.jumpSeq;
+      input.landingSpeed=s.landingSpeed;input.landingSeq=s.landingSeq;
       input.landingKind=s.landingKind;input.landingSlide=s.landingSlide;
       input.footSupportLeft=s.footSupportLeft;input.footSupportRight=s.footSupportRight;
       input.groundPitch=s.groundPitch??0;input.groundRoll=s.groundRoll??0;input.rollSlip=s.rollSlip??0;
