@@ -2,6 +2,8 @@
 
 # 07 — Feuille de route — Little World Solo / GitHub Pages
 
+> **Nouveau chantier (spécifié, non implémenté) — Boost aérien à impulsions :** [étude de gameplay, réserve, progression, skins et audio](FLIGHT-BOOST-GAMEPLAY-STUDY.md) et [roadmap d'implémentation FLB-0 à FLB-5](FLIGHT-BOOST-IMPLEMENTATION-ROADMAP.md). Impulsions cumulables, commande Shift/Boost mobile existante, capacité 14→20 impulsions, plafond 216 km/h seulement après qualification collisions/streaming/performance. Ne pas confondre ce plan avec le boost continu actuellement implémenté.
+
 **Statut : suivi du prototype initial et plan du jeu final — 12 novembre 2026.**
 
 **Documents de cadrage prioritaires :** [12 — Limites du jeu](12-PROJECT-SCOPE.md), [13 — UX du Studio](13-STUDIO-UX-ARCHITECTURE.md), [14 — Décisions techniques validées](14-TECHNICAL-CHOICES.md) et **[15 — Schémas V3 du Studio](15-STUDIO-DATA-SCHEMAS-V3.md)**. Le **200 × 600 m** des jalons M0–M6 est la carte de démonstration ; le monde final est **une carte continue de 10 × 10 km maximum**, performance à qualifier.
