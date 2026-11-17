@@ -9,6 +9,7 @@ import {saveSlotViewModel} from '../src/ui/saves/saves.ts';
 import {parsePreferences,loadPreferences,savePreferences,DEFAULT_PREFERENCES,UI_PREFERENCES_KEY} from '../src/ui/app/preferences.ts';
 import {miningViewModel,farmingViewModel} from '../src/ui/activities/activity-card.ts';
 import {createMapRaster} from '../src/ui/map/map.ts';
+import {createWaypointStore,parseWaypointState,MAX_WAYPOINTS} from '../src/ui/map/waypoints.ts';
 
 test('notifications merge repeated gains, keep priorities and expire', () => {
   const q=new NotificationQueue();
@@ -97,4 +98,25 @@ test('map raster is computed progressively from the existing height/water functi
 test('map-wide hybrid preference persists locally and rejects unknown profiles',()=>{
  assert.equal(parsePreferences({distantRendering:'hybrid'}).distantRendering,'hybrid');assert.equal(parsePreferences({distantRendering:'unknown'}).distantRendering,'geometry');
  const data=new Map(),storage={getItem:k=>data.get(k)??null,setItem:(k,v)=>data.set(k,v)};savePreferences({...DEFAULT_PREFERENCES,distantRendering:'hybrid'},storage);assert.equal(loadPreferences(storage).distantRendering,'hybrid');assert.deepEqual([...data.keys()],[UI_PREFERENCES_KEY]);
+});
+
+test('waypoint storage rejects invalid input and scopes play/preview independently',()=>{
+ const bounds={minX:-100,maxX:100,minZ:-200,maxZ:200},store=new Map(),storage={getItem:k=>store.get(k)??null,setItem:(k,v)=>store.set(k,v)};
+ assert.deepEqual(parseWaypointState({version:2,points:[{id:'fake',label:'bad',x:0,z:0}]},bounds),{version:1,points:[],activeId:null});
+ assert.deepEqual(parseWaypointState({version:1,points:[{id:'bad',label:'Outside',x:150,z:0},{id:'good',label:'Village',x:20,z:0}],activeId:'bad'},bounds).points.map(p=>p.id),['good']);
+ const points=createWaypointStore('map-a',bounds,false,storage),preview=createWaypointStore('map-a',bounds,true,storage);
+ assert.notEqual(points.key,preview.key);
+ const pin=points.add('  Mon repère  ',10,-12);assert.equal(pin?.label,'Mon repère');
+ assert.equal(points.activeId,pin?.id);assert.equal(points.points.length,1);assert.equal(preview.points.length,0);
+ assert.equal(createWaypointStore('map-a',bounds,false,storage).active?.id,pin?.id,'waypoints survive a reload');
+ assert.equal(points.add('Outside',999,0),null);assert.equal(points.remove('unknown'),false);
+ assert.equal(points.activate(null),true);assert.equal(points.activeId,null);
+ assert.equal(points.remove(pin.id),true);assert.equal(points.points.length,0);
+});
+test('waypoints have a bounded count and cannot silently duplicate ids',()=>{
+ const bounds={minX:0,maxX:10,minZ:0,maxZ:10},store=createWaypointStore('limit-test',bounds,false,null);
+ for(let i=0;i<MAX_WAYPOINTS;i++)assert.ok(store.add('Repère '+i,i%10,i%10));
+ assert.equal(store.points.length,MAX_WAYPOINTS);assert.equal(new Set(store.points.map(p=>p.id)).size,MAX_WAYPOINTS);
+ assert.equal(store.add('Un de plus',2,2),null);
+ assert.equal(store.activate('inconnu'),false);
 });
