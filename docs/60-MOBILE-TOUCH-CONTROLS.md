@@ -8,10 +8,10 @@ La bêta reste orientée **PC**, conformément à `AGENTS.md`. Cette branche ajo
 
 - Téléphone détecté par un pointeur principal `coarse` et un écran dont le plus petit côté mesure au plus **750 pixels CSS**.
 - **Joystick analogique** en bas à gauche ; direction écran relative à la caméra. Zone morte **14 %** ; amplitude maximum 1 ; déplacement proportionnel à l'écartement du centre. Un seul `pointerId` propriétaire du joystick.
-- **Boutons tactiles** à droite : Saut/plané (appui et maintien), Agir, Rouler (maintenir), Plonger (maintenir).
-- **Caméra** : glissement sur la scène 3D via le contrôleur de caméra existant. Le joystick et les actions ont leur capture de pointeur indépendante.
-- Sac et Journal restent accessibles ; minimap compacte en bas à droite en paysage.
-- **Pas de modification** de `simulatePlayer` : l'adaptateur renseigne `Controls.forward/right/jumpPressed/spaceHeld/rollHeld/dive` dans la simulation déterministe existante.
+- **Deux boutons principaux permanents** à droite : Saut/Planeur/Brasse (appui ponctuel) et Accélération (maintien). Les petites commandes contextuelles sont Agir, Rouler (bascule) et Plonger (maintien, visible dans l'eau).
+- **Caméra** : glissement libre sur la scène 3D. En plané sur téléphone, le joystick gauche pilote désormais les intentions de lacet et tangage de la caméra, tandis que le pouce droit reste sur l'accélérateur. Les captures de pointeurs restent indépendantes.
+- Menu, Sac, Journal et Carte sont regroupés en haut. La minimap devient un raccourci Carte sans rendu canvas inutile sur téléphone ; Son reste dans Paramètres.
+- L'adaptateur renseigne les `Controls` existants, plus `swimStrokePressed` (impulsion déterministe). Au sol, Accélération fait courir sans imposer la boule ; en roulade elle renforce la motricité ; dans l'eau elle accélère la nage ; en plané elle utilise la réserve de gaz existante. Le PC conserve Space pour basculer plongée/remontée.
 - Aucune synthèse de `KeyboardEvent`, pas de polling DOM, pas de boucle animation/rafraîchissement propre au joystick, aucun asset téléchargé.
 - Reset explicite sur `pointerup`, `pointercancel`, perte de capture, perte de focus, onglet masqué et UI bloquante ; les boutons et le joystick disparaissent dans les panneaux.
 - PC avec souris : **aucun joystick créé**.
@@ -43,8 +43,20 @@ La vue tactile est pensée pour le mode **paysage**.
 
 ## Boost au gaz en vol (fusion `feat/glide-gas-boost`)
 
-- Le bouton « Boost » est situé sur le bord droit, au-dessus de la minimap et à l'écart du groupe des actions.
-- Il est visible et activable uniquement en mode `glide`, avec une réserve de gaz strictement positive.
-- Maintenir le bouton renseigne `Controls.boostHeld`, exactement comme le clic droit sur PC. La simulation `gasBoostStep` conserve la responsabilité des dépenses, accélérations et impulsions : aucun système de poussée supplémentaire.
-- Relâchement de touche, annulation de pointeur, perte de focus, ouverture d'un panneau, épuisement du gaz ou fin du plané réinitialisent `boostHeld`. Le bouton disparaît hors plané.
+- Le bouton d'accélération occupe toujours le même emplacement à droite, quel que soit le mode.
+- Il se nomme « Boost » et consomme le gaz uniquement en mode `glide`, avec une réserve strictement positive ; il est désactivé en chute libre.
+- Maintenir le bouton renseigne `Controls.boostHeld` en plané, exactement comme le clic droit sur PC. La simulation `gasBoostStep` conserve la responsabilité des dépenses, accélérations et impulsions : aucun système de poussée supplémentaire.
+- Relâchement de touche, annulation de pointeur, perte de focus, ouverture d'un panneau, épuisement du gaz ou fin du plané réinitialisent la poussée. Le bouton reste affiché, changeant de fonction selon l'activité.
 - Les tests doivent vérifier l'apparition du bouton, l'épuisement de gaz pendant le maintien et l'arrêt immédiat au relâchement.
+
+## Implantation mobile V2 et ouverture sur téléphone
+
+- Détection téléphone : pointeur principal grossier et petit côté de l'écran ≤ 750 pixels CSS ; aucune commande tactile créée sur PC.
+- Premier démarrage mobile en qualité `low` (sans MSAA) **uniquement si le joueur n'a jamais choisi de qualité** ; le choix conservé localement reste prioritaire.
+- L'écran d'accueil explique les contrôles mobiles. Au lancement, demander le mode paysage via plein écran + verrouillage si pris en charge ; conserver le choix explicite de continuer en portrait si refus navigateur.
+- Zones de pouces fixes et séparées : joystick à gauche ; Saut/Action + Accélération à droite, interaction et roulade/plongée en petits boutons au-dessus.
+- Barre de tête : menu / Sac / Journal / Carte. Éviter minimap et débogage flottants sur les commandes ; météo, monnaie et son secondaire dans les menus.
+- Sans texture supplémentaire et sans nouvelle boucle de simulation ; pas de dépendance d'interface tierce.
+- Contrat nage : une brasse déclenche une impulsion bornée (0,32 s), sans répétition automatique ; accélération par maintien. Plonger reste une commande séparée en eau.
+- Contrat vol : le joystick gauche agit sur les intentions de caméra (yaw/pitch, angles bornés et intégrés à 30 Hz) ; le moteur conserve la rotation progressive, la finesse, l'énergie et le décrochage.
+- À qualifier sur appareils réels : multitouch simultané joystick + accélérateur, retour d'écran verrouillé, Safari iOS, écrans très étroits, clavier virtuel et échauffement GPU.
