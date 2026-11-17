@@ -206,7 +206,7 @@ export function mountWelcome(host:HTMLElement,actions:WelcomeActions){
       if(step===0){
       heading('Quel type de monde ?');
       controls.append(node('p','Choisissez une forme de départ : tous les reliefs seront ensuite éditables.','muted'));
-      const grid=node('div','','welcome-mode-grid');for(const m of modes)grid.append(choice(m.name,m.detail,config.mode===m.id,()=>{config.mode=m.id;if(m.id==='blank'){config.volcano=false;config.mountain=null;config.volcanoAt=null;}render();}));controls.append(grid);
+      const grid=node('div','','welcome-mode-grid');for(const m of modes)grid.append(choice(m.name,m.detail,config.mode===m.id,()=>{const previous=config.mode;config.mode=m.id;if(m.id==='blank'||m.id==='calm'){config.volcano=false;config.volcanoAt=null;}else if(previous==='blank'||previous==='calm')config.volcano=true;if(m.id==='blank')config.mountain=null;render();}));controls.append(grid);
     }else if(step===1){
       heading('Quel relief souhaitez-vous ?');
       if(config.mode!=='blank'){
