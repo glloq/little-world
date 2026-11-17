@@ -132,4 +132,4 @@ Une colonie générée est acceptable lorsque :
 - les collisions et interactions fonctionnent indépendamment du LOD ;
 - les scènes de validation passent les gates de [68](68-SETTLEMENTS-ROADMAP-TESTS.md).
 
-**Documents d'exécution :** [66](66-SETTLEMENTS-PLACEMENT-NETWORK.md), [67](67-SETTLEMENTS-COLLISIONS-INTERACTIONS.md), [68](68-SETTLEMENTS-ROADMAP-TESTS.md).
+**Documents d'exécution :** [66](66-SETTLEMENTS-PLACEMENT-NETWORK.md), [67](67-SETTLEMENTS-COLLISIONS-INTERACTIONS.md), [68](68-SETTLEMENTS-ROADMAP-TESTS.md). **SET-0 audité statiquement :** [69 — état du code](69-SETTLEMENTS-SET0-AUDIT.md), [70 — contrats techniques retenus](70-SETTLEMENTS-TECHNICAL-CONTRACTS.md). Aucun test physique ou benchmark n'est qualifié par ces documents.
