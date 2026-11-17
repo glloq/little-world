@@ -9,6 +9,8 @@ import {saveSlotViewModel} from '../src/ui/saves/saves.ts';
 import {parsePreferences,loadPreferences,savePreferences,DEFAULT_PREFERENCES,UI_PREFERENCES_KEY} from '../src/ui/app/preferences.ts';
 import {miningViewModel,farmingViewModel} from '../src/ui/activities/activity-card.ts';
 import {createMapRaster} from '../src/ui/map/map.ts';
+import {joystickAxis} from '../src/input/touch-controls.ts';
+import {isPhoneTouchDevice} from '../src/input/mobile-landscape.ts';
 import {createWaypointStore,parseWaypointState,MAX_WAYPOINTS} from '../src/ui/map/waypoints.ts';
 
 test('notifications merge repeated gains, keep priorities and expire', () => {
@@ -119,4 +121,25 @@ test('waypoints have a bounded count and cannot silently duplicate ids',()=>{
  assert.equal(store.points.length,MAX_WAYPOINTS);assert.equal(new Set(store.points.map(p=>p.id)).size,MAX_WAYPOINTS);
  assert.equal(store.add('Un de plus',2,2),null);
  assert.equal(store.activate('inconnu'),false);
+});
+
+test('mobile joystick maps touch displacement to bounded analog movement with deadzone',()=>{
+ assert.deepEqual(joystickAxis(0,0,50),{forward:0,right:0});
+ assert.deepEqual(joystickAxis(1,1,50),{forward:0,right:0});
+ assert.deepEqual(joystickAxis(0,-50,50),{forward:1,right:0});
+ assert.deepEqual(joystickAxis(50,0,50),{forward:0,right:1});
+ assert.equal(joystickAxis(0,1000,50).forward,-1,'displacement is capped');
+ assert.equal(joystickAxis(1000,0,50).right,1,'touch outside ring is capped');
+ const diagonal=joystickAxis(30,-30,50);
+ assert.ok(diagonal.forward>.5&&diagonal.right>.5);
+ assert.ok(Math.hypot(diagonal.forward,diagonal.right)<=1+1e-10,'diagonal input does not exceed magnitude one');
+ assert.deepEqual(joystickAxis(NaN,5,50),{forward:0,right:0});
+ assert.deepEqual(joystickAxis(2,2,0),{forward:0,right:0});
+});
+test('mobile controls are gated to coarse pointers on phone-sized screens',()=>{
+ const device=(width,height,coarse)=>({screen:{width,height},matchMedia:()=>({matches:coarse})});
+ assert.equal(isPhoneTouchDevice(device(390,844,true)),true);
+ assert.equal(isPhoneTouchDevice(device(844,390,true)),true);
+ assert.equal(isPhoneTouchDevice(device(1280,800,true)),false);
+ assert.equal(isPhoneTouchDevice(device(390,844,false)),false);
 });

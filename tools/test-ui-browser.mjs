@@ -114,5 +114,64 @@ try{
   // 15. Back to the start screen from the menu, then play again.
   await page.keyboard.press('Escape');await ui.panel('pause').getByRole('button',{name:'Retour à l’accueil'}).click();await page.getByRole('button',{name:'Explorer l’île'}).waitFor({state:'visible'});verify(true,'Menu returns to the start screen');
   await page.getByRole('button',{name:'Explorer l’île'}).click();const t1=await envTime();await page.waitForTimeout(600);verify(await envTime()>t1,'Playing again resumes the world');
+  // 16. Real mobile viewport: joystick is touch-only, analog, resets on release, and menus block movement.
+  verify(await page.locator('.touch-controls').count()===0,'Desktop build does not create the phone joystick');
+  const phone=await browser.newContext({viewport:{width:844,height:390},screen:{width:844,height:390},isMobile:true,hasTouch:true,deviceScaleFactor:1});
+  const mobilePage=await phone.newPage(),mobileErrors=[];
+  mobilePage.on('pageerror',e=>mobileErrors.push(e.message));
+  await mobilePage.goto(base+'?beta=1&metrics');
+  await mobilePage.getByRole('button',{name:'Explorer l’île'}).click();
+  await mobilePage.locator('.touch-joystick').waitFor({state:'visible'});
+  verify(await mobilePage.locator('.touch-controls').isVisible(),'Phone-sized coarse pointer activates joystick and action buttons');
+  verify(await mobilePage.getByRole('button',{name:'Saut'}).isVisible()&&await mobilePage.getByRole('button',{name:'Agir'}).isVisible(),'Phone has touch jump and interact controls');
+  const stick=mobilePage.locator('.touch-joystick'),bounds=await stick.boundingBox();
+  assert.ok(bounds,'Joystick has a screen rect');
+  const cx=bounds.x+bounds.width/2,cy=bounds.y+bounds.height/2;
+  const mobileBefore=await mobilePage.evaluate(()=>window.littleWorldMetrics.position);
+  await mobilePage.mouse.move(cx,cy);await mobilePage.mouse.down();
+  await mobilePage.mouse.move(cx,cy-42,{steps:5});
+  verify(await stick.locator('.touch-joystick-thumb').evaluate(e=>e.style.transform!=='translate(-50%, -50%)'),'Joystick thumb follows its pointer');
+  await mobilePage.waitForTimeout(750);await mobilePage.mouse.up();
+  const mobileAfter=await mobilePage.evaluate(()=>window.littleWorldMetrics.position);
+  verify(Math.hypot(mobileAfter[0]-mobileBefore[0],mobileAfter[2]-mobileBefore[2])>.03,'Joystick moves the player through the real simulation');
+  verify(await stick.locator('.touch-joystick-thumb').evaluate(e=>e.style.transform==='translate(-50%, -50%)'),'Releasing the joystick resets input to zero');
+  await mobilePage.getByRole('button',{name:'Sac (I)'}).click();
+  await mobilePage.locator('.ui-panel[data-panel="inventory"]').waitFor({state:'visible'});
+  await mobilePage.locator('.touch-controls').waitFor({state:'hidden'});
+  verify(true,'Opening an inventory panel disables touch movement');
+  await mobilePage.keyboard.press('Escape');
+  await mobilePage.locator('.touch-joystick').waitFor({state:'visible'});
+  verify(true,'Touch controls resume when returning to the world');
+  // Gas boost from the latest main merge: press-and-hold only while gliding.
+  const boostButton=mobilePage.locator('.touch-boost');
+  verify(!(await boostButton.isVisible()),'Gas boost is hidden while grounded');
+  await mobilePage.evaluate(()=>{
+    const p=window.littleWorldMetrics.position;
+    window.littleWorldDebug.teleport(p[0],p[2],0,45);
+  });
+  await mobilePage.waitForFunction(()=>window.littleWorldMetrics?.mode==='air');
+  await mobilePage.getByRole('button',{name:'Saut'}).tap();
+  await mobilePage.waitForFunction(()=>window.littleWorldMetrics?.mode==='glide');
+  await boostButton.waitFor({state:'visible'});
+  verify(await boostButton.isEnabled(),'Gas boost appears and can be held while gliding');
+  const gasBefore=await mobilePage.evaluate(()=>window.littleWorldMetrics.movement.state.gasReserve);
+  const boostRect=await boostButton.boundingBox();
+  assert.ok(boostRect,'Boost button has a screen rect');
+  await mobilePage.mouse.move(boostRect.x+boostRect.width/2,boostRect.y+boostRect.height/2);
+  await mobilePage.mouse.down();
+  await mobilePage.waitForFunction(level=>window.littleWorldMetrics?.movement?.state?.gasReserve<level-.5,gasBefore);
+  const gasAfter=await mobilePage.evaluate(()=>window.littleWorldMetrics.movement.state.gasReserve);
+  verify(gasAfter<gasBefore,'Holding mobile boost consumes the existing gas reserve');
+  await mobilePage.mouse.up();
+  await mobilePage.waitForFunction(()=>window.littleWorldMetrics?.movement?.state?.gasBoosting===false);
+  verify(true,'Releasing mobile boost stops gas propulsion');
+  await mobilePage.evaluate(()=>{
+    const p=window.littleWorldMetrics.position;
+    window.littleWorldDebug.teleport(p[0],p[2],0);
+  });
+  await boostButton.waitFor({state:'hidden'});
+  verify(true,'Gas boost disappears when landing');
+  verify(mobileErrors.length===0,mobileErrors.join('\\n')||'Mobile HUD has no JavaScript errors');
+  await phone.close();
   verify(errors.length===0,errors.join('\n')||'No page errors');console.log(JSON.stringify({checks,errors}));
 }finally{await browser.close();}

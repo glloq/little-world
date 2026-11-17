@@ -1,6 +1,9 @@
 import {PerfSampler,createGpuTimer} from './render/perf-sampler.ts';
 import {createActorSimulator} from './render/remote-characters.ts';
 import {captureMovement} from './physics/movement-state.ts';
+import {createTouchControls,type TouchControls} from './input/touch-controls.ts';
+import {createMobileLandscape,isPhoneTouchDevice} from './input/mobile-landscape.ts';
+import './input/touch-controls.css';
 import {classifyPoint} from './geography/classify.ts';
 import {createMaterialSampler} from './physics/surface-material.ts';
 import {MINE_MATERIALS} from './mine/mine-data.ts';
@@ -67,6 +70,11 @@ const renderMetrics = document.querySelector<HTMLElement>('#render-metrics')!;
 const oxygen = document.querySelector<HTMLElement>('#oxygen')!;
 /** Player interface (src/ui): created once the world, gameplay and NPCs exist. */
 let gameUi:GameUi|null=null;
+// Detect phone controls before the HUD is constructed, so its gas hint uses the Boost label.
+const touchCapable=isPhoneTouchDevice();
+if(touchCapable)document.body.classList.add('touch-mode');
+let mobileTouch:TouchControls|null=null;
+let mobileLandscape:ReturnType<typeof createMobileLandscape>|null=null;
 const overlay = document.querySelector<HTMLElement>('#start-overlay')!;
 const start = document.querySelector<HTMLButtonElement>('#start')!;
 const loading = createLoadingScreen(start, start.parentElement!);
@@ -241,7 +249,7 @@ world.update(0, player.position);
     },
     player:()=>({gas:gasLevel(player),maxGas:GAS.max,x:player.position.x,y:player.position.y,z:player.position.z,yaw,space:player.space,mode:player.mode,oxygen:player.oxygen,maxOxygen:MAX_OXYGEN,stamina:player.stamina??MAX_STAMINA,maxStamina:MAX_STAMINA,speed:player.velocity.length(),stalled:player.stalled}),
     target:()=>currentTarget(),
-    home:()=>{started=false;rightBoostDown=false;gameUi?.controller.close();keySet.clear();overlay.classList.remove('hide');start.focus();}});
+    home:()=>{started=false;rightBoostDown=false;mobileTouch?.setEnabled(false);mobileLandscape?.stop();gameUi?.controller.close();keySet.clear();overlay.classList.remove('hide');start.focus();}});
 }
 // The player is the hamster (doc 43); NPCs keep their own rigs.
 const character = buildHamster();
@@ -273,6 +281,11 @@ let yaw = 0,
   distance = 8;
 let started = false;
 let elapsed = 0;
+// Mobile controls contribute directly to the existing deterministic player input.
+if(touchCapable){
+  mobileTouch=createTouchControls({jump:()=>{jumpQueue++;},action:()=>{actionQueue++;}});
+  mobileLandscape=createMobileLandscape(blocked=>{if(blocked)mobileTouch?.setEnabled(false);});
+}
 // Generated worlds start on a coast: face the island centre rather than the open sea.
 if(playable&&!isLegacyTerrain()){const yawParam=Number(searchParams.get('yaw'));yaw=searchParams.has('yaw')&&Number.isFinite(yawParam)?yawParam:Math.atan2(-player.position.x,-player.position.z);}
 // Reproducible control viewpoints (World Production captures): camera pitch and distance.
@@ -313,24 +326,22 @@ function input(): Controls {
     };
   }
   return {
-    forward:
-      Number(codeHeld('KeyW', 'KeyZ', 'ArrowUp')) -
-      Number(codeHeld('KeyS', 'ArrowDown')),
-    right:
-      Number(codeHeld('KeyD', 'ArrowRight')) -
-      Number(codeHeld('KeyA', 'KeyQ', 'ArrowLeft')),
-    run: codeHeld('ShiftLeft', 'ShiftRight'),
+    forward: clamp(
+      Number(codeHeld('KeyW', 'KeyZ', 'ArrowUp')) - Number(codeHeld('KeyS', 'ArrowDown')) + (mobileTouch?.axis.forward??0),-1,1),
+    right: clamp(
+      Number(codeHeld('KeyD', 'ArrowRight')) - Number(codeHeld('KeyA', 'KeyQ', 'ArrowLeft')) + (mobileTouch?.axis.right??0),-1,1),
+    run: codeHeld('ShiftLeft', 'ShiftRight')||!!mobileTouch?.rollHeld,
     autoRun: true,
     jumpAssist: true,
     jumpPressed: jumpQueue > 0,
     rollPressed: rollQueue > 0,
-    rollHeld: codeHeld('ShiftLeft', 'ShiftRight'),
-    spaceHeld: codeHeld('Space'),
-    dive: codeHeld('ControlLeft', 'ControlRight'),
+    rollHeld: codeHeld('ShiftLeft', 'ShiftRight')||!!mobileTouch?.rollHeld,
+    spaceHeld: codeHeld('Space')||!!mobileTouch?.jumpHeld,
+    dive: codeHeld('ControlLeft', 'ControlRight')||!!mobileTouch?.diveHeld,
     cameraYaw: yaw,
     // Underwater, moving forward follows the camera tilt (looking down dives down), from the default view.
     cameraPitch: pitch - 0.32,
-    boostHeld:rightBoostDown,
+    boostHeld:rightBoostDown||!!mobileTouch?.boostHeld,
   };
 }
 function isMenuKey(e: KeyboardEvent): boolean {
@@ -411,6 +422,7 @@ window.addEventListener('keyup', (e) => {
 window.addEventListener('blur', () => {
   keySet.clear();
   rightBoostDown=false;
+  mobileTouch?.reset();
   jumpQueue = 0;
   actionQueue = 0;
   customization.close();
@@ -457,6 +469,8 @@ start.addEventListener('click', () => {
   void audio?.start();
   overlay.classList.add('hide');
   gameUi?.started();
+  mobileLandscape?.start();
+  mobileTouch?.setEnabled(!mobileLandscape?.blocked);
   renderer.domElement.focus();
 });
 /** Messages from gameplay effects and actions go through the single notification manager. */
@@ -620,8 +634,11 @@ function updateHud() {
 }
 let boatSteer=0,motionTick=0;
 function tick(dt: number) {
+  // Mobile input: immediately release controls when a menu opens or the boost stops being valid.
+  mobileTouch?.setEnabled(started&&!gameUi?.blocking&&!customization.isOpen&&!npcs.dialogue.isOpen&&!mobileLandscape?.blocked);
+  mobileTouch?.setBoostAvailable(player.mode==='glide'&&gasLevel(player)>0);
   // Menus (pause, parties, paramètres) pause the world simulation; the frame still renders.
-  if (!started || gameUi?.paused) return;
+  if (!started || gameUi?.paused||mobileLandscape?.blocked) return;
   if(gameplay)gameplay.update(dt);else worldClock.advance(dt);
   const keys = input();
   if (aboard) {
@@ -860,6 +877,7 @@ document.addEventListener('visibilitychange', () => {
   frameCount = 0;
   rightBoostDown=false;
   keySet.clear();
+  mobileTouch?.reset();
   jumpQueue = 0;
   actionQueue = 0;
   customization.close();
