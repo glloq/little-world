@@ -1,7 +1,7 @@
 /** Start-up loading screen (doc 42 §H1). The world is built and streamed behind the start card;
- * this module only reports progress and keeps « Explorer » disabled until the area around the
- * spawn is ready (terrain tiles, near dressing, species models), or after a safety timeout so a
- * slow machine is never locked out. Progress is computed from real counters, never simulated. */
+ * this module reports live progress until the spawn is ready (terrain tiles, near
+ * dressing, species models), or a safety timeout prevents a permanent loading screen.
+ * Progress is computed from real counters, never simulated. */
 export interface LoadingSample {
   /** Boot phase reached (0 → 1) while reading and building the world. */boot:number;
   terrainPending:number;
@@ -26,8 +26,9 @@ export function createLoadingScreen(start:HTMLButtonElement,host:HTMLElement){
   const text=document.createElement('small');text.className='loading-text';
   const stages=document.createElement('ul');stages.className='loading-stages';stages.setAttribute('aria-label','Étapes de chargement');
   const tip=document.createElement('p');tip.className='loading-tip';tip.setAttribute('aria-live','off');
-  box.append(track,text,stages,tip);host.insertBefore(box,start);
-  const label=start.dataset.label??start.textContent??'',began=performance.now(),max={terrain:0,dressing:0};
+  // The joke is the main message; the progress bar always stays at the bottom.
+  box.append(tip,stages,text,track);host.insertBefore(box,start);
+  const began=performance.now(),max={terrain:0,dressing:0};
   let boot=0,done=false,tipTimer:ReturnType<typeof setTimeout>|null=null,lastTip=-1;
   let sample:Omit<LoadingSample,'boot'>={terrainPending:0,dressingPending:-1,speciesState:'none'};
   const stagesData=()=>[
@@ -51,8 +52,8 @@ export function createLoadingScreen(start:HTMLButtonElement,host:HTMLElement){
   function show(st:LoadingState){
     const pct=Math.round(st.fraction*100);fill.style.width=pct+'%';box.setAttribute('aria-valuenow',String(pct));text.textContent=st.ready?'Monde prêt':`${st.label} ${pct} %`;
     showStages();
-    if(st.ready&&!done){done=true;if(tipTimer!==null)clearTimeout(tipTimer);start.disabled=false;start.textContent=label+' ';const arrow=document.createElement('span');arrow.setAttribute('aria-hidden','true');arrow.textContent='→';start.append(arrow);box.classList.add('loading-done');}
-    else if(!st.ready){start.disabled=true;start.textContent=`Chargement… ${pct} %`;}
+    if(st.ready&&!done){done=true;if(tipTimer!==null)clearTimeout(tipTimer);start.disabled=false;box.classList.add('loading-done');}
+    else if(!st.ready){start.disabled=true;}
   }
   show({fraction:0,label:'Lecture du monde…',ready:false});nextTip();
   return {
