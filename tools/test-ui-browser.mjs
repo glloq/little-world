@@ -187,7 +187,7 @@ try{
   mobilePage.on('pageerror',e=>mobileErrors.push(e.message));
   await mobilePage.goto(base+'?beta=1&metrics');
   verify(await mobilePage.locator('#quality').inputValue()==='low','Phone first launch defaults to economical rendering');
-  await mobilePage.getByRole('button',{name:'Explorer l’île'}).click();
+  await mobilePage.locator('#start-overlay').waitFor({state:'hidden'});
   await mobilePage.locator('.touch-joystick').waitFor({state:'visible'});
   verify(await mobilePage.locator('.touch-controls').isVisible(),'Phone-sized coarse pointer activates joystick and action buttons');
   verify(await mobilePage.getByRole('button',{name:'Saut'}).isVisible()&&await mobilePage.getByRole('button',{name:'Courir'}).isVisible(),'Phone keeps jump and acceleration as separate primary buttons');
