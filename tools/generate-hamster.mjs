@@ -16,6 +16,15 @@ const FPS = 30, V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 /** [clip, seconds, motion mode, velocity, optional action (activity, tool), warm-up mode] */
 const CLIPS = [
   ['IDLE', 2, 'ground', V()], ['WALK', 1, 'ground', V(0, 0, 3.5)], ['RUN', .8, 'ground', V(0, 0, 8)],
+  ['TURN_LEFT', .6, 'ground', V(), null, 'ground'], ['TURN_RIGHT', .6, 'ground', V(), null, 'ground'],
+  ['JUMP_IDLE', .45, 'air', V(0, 6, 0), null, 'ground'],
+  ['JUMP_RUN', .45, 'air', V(0, 6, 8), null, 'ground'],
+  ['ROLL_ENTER', .35, 'roll', V(0, 0, 7), null, 'ground'],
+  ['ROLL_EXIT', .35, 'ground', V(0, 0, 5), null, 'roll'],
+  ['ROLL_AIR', .65, 'air', V(0, 5, 8), null, 'roll'],
+  ['ROLL_LAND', .35, 'roll', V(0, 0, 7), null, 'roll-air'],
+  ['LAND_SOFT', .35, 'ground', V(), null, 'air'],
+  ['LAND_HARD', .35, 'ground', V(), null, 'air'],
   ['ROLL_LOOP', 1, 'roll', V(0, 0, 9), null, 'roll'], ['GLIDE_LOOP', 1.5, 'glide', V(0, -2, 9), null, 'glide'], ['SWIM', 1.2, 'swim', V(0, 0, 2.5), null, 'swim'],
   ['FALL', .6, 'air', V(0, -5, 3), null, 'air'], ['CLIMB', 1, 'climb', V(0, 1.5, .5), null, 'climb'],
   ['TOOL_SWING_VERTICAL', .45, 'ground', V(), ['mine', 'pickaxe']], ['TOOL_SWING_HORIZONTAL', .45, 'ground', V(), ['fell', 'axe']],
@@ -24,8 +33,26 @@ const CLIPS = [
 const reference = buildHamster(), clips = [];
 for (const [name, seconds, mode, velocity, act, warm] of CLIPS) {
   const h = buildHamster(), player = { position: V(), velocity, mode: 'ground', oxygen: 90, glideReady: false, climbDir: { x: 0, z: 1 } };
-  if (warm) { player.mode = warm; for (let i = 0; i < 20; i++) { player.position.addScaledVector(velocity,1/FPS); h.group.position.copy(player.position); h.update(player, 1 / FPS, i / FPS); } }
-  player.mode = mode; if (act) h.play(act[0], act[1]);
+  if (warm) {
+    player.mode = warm==='roll-air'?'roll':warm;
+    for (let i = 0; i < 20; i++) {
+      player.position.addScaledVector(velocity,1/FPS); h.group.position.copy(player.position);
+      h.update(player, 1 / FPS, i / FPS);
+    }
+    if(warm==='roll-air'){
+      player.mode='air';player.jumpOrigin='roll';
+      for(let i=0;i<6;i++){player.position.addScaledVector(velocity,1/FPS);h.group.position.copy(player.position);h.update(player,1/FPS,(20+i)/FPS);}
+    }
+  }
+  player.mode=mode;
+  if(name==='TURN_LEFT')player.intentYaw=1.6;
+  if(name==='TURN_RIGHT')player.intentYaw=-1.6;
+  if(name==='JUMP_IDLE')player.jumpOrigin='idle';
+  if(name==='JUMP_RUN')player.jumpOrigin='run';
+  if(name==='ROLL_AIR')player.jumpOrigin='roll';
+  if(name==='LAND_HARD')player.landingSpeed=12;
+  if(name==='LAND_SOFT')player.landingSpeed=3;
+  if(act)h.play(act[0],act[1]);
   const times = [], tracks = new Map();
   for (let f = 0; f <= Math.round(seconds * FPS); f++) {
     if(f)player.position.addScaledVector(velocity,1/FPS);h.group.position.copy(player.position);
