@@ -171,7 +171,8 @@ export function createGameUi(deps:GameUiDeps){
     /** HUD refresh, throttled to 4 Hz (prompt, activity card, oxygen). */
     frame(time:number){
       if(time-lastFrame<.25)return;lastFrame=time;const p=deps.player();
-      const target=ui.blocking||deps.npcs.dialogue.isOpen?null:deps.target(),text=target?promptText(target):'';
+      const target=ui.blocking||deps.npcs.dialogue.isOpen?null:deps.target(),rawText=target?promptText(target):'';
+      const text=document.body.classList.contains('touch-mode')?rawText.replace(/^\[[^\]]+\]\s*/,''):rawText;
       if(text!==promptKey){promptKey=text;prompt.textContent=text;prompt.classList.toggle('hide',!text);prompt.dataset.enabled=String(!!target?.primaryAction?.enabled);prompt.dataset.type=target?.targetType??'';}
       const nav=a?.mineNavigation(p,p.space),wall=nav&&target?.targetType==='mine-wall'?{materialName:target.displayName,ok:!!target.primaryAction?.enabled,reason:target.disabledReason,rewardName:(target.contextData?.resource as string|null)??undefined}:null;
       const plot=!p.space?a?.farmNear(p):null,view=plot?a?.farmView(plot.zone.id):null,preview=plot?a?.farmPreview(plot.zone.id):null;

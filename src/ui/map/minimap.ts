@@ -16,7 +16,7 @@ export function createMinimap(deps:MapDeps,raster:MapRaster,open:()=>void){
     base.getContext('2d')?.putImageData(new ImageData(raster.data,raster.width,raster.height),0,0);
   }
   function update(){
-    if(!ctx||removed)return;
+    if(!ctx||removed||document.body.classList.contains('touch-mode'))return; // Mobile displays a map shortcut, not the 180px raster.
     const player=deps.player(),zoom=SIZE/VISIBLE_METRES;
     ctx.fillStyle='#d2ded2';ctx.fillRect(0,0,SIZE,SIZE);
     if(base&&raster.done){ctx.imageSmoothingEnabled=true;ctx.drawImage(base,(b.minX-player.x)*zoom+SIZE/2,(b.minZ-player.z)*zoom+SIZE/2,worldWidth*zoom,worldDepth*zoom);}

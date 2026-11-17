@@ -78,3 +78,6 @@ body.touch-mode .start-card .primary-button{min-height:48px}
  body.touch-mode .ui-root .ui-motion-speed{top:calc(160px + env(safe-area-inset-top))}
 }
 @media(prefers-reduced-motion:reduce){.touch-joystick-thumb{will-change:auto}}
+
+/* Technical statistics never cover mobile actions. */
+body.touch-mode .hud-stats{display:none!important}
