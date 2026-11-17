@@ -34,8 +34,8 @@ try {
     }
   }
   await page.goto(base.href);
-  await page.waitForFunction(() => document.querySelector('#start')?.disabled === false);
-  await page.locator('#start').click();
+  await page.locator('#start-overlay').waitFor({state:'hidden'});
+  await page.locator('#start-overlay').waitFor({state:'hidden'});
   await page.waitForFunction(() => /FPS : [1-9]\d*/.test(document.querySelector('#fps')?.textContent ?? ''));
   assert.ok(await page.locator('#viewport canvas').isVisible(), 'Scène du jeu invisible');
   await page.screenshot({path: `${artifacts}/published-game.png`});
