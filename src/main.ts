@@ -529,8 +529,8 @@ renderer.domElement.addEventListener('pointermove', (e) => {
   }
   // Camera sensitivity / vertical inversion: player preferences (Paramètres › Contrôles).
   const prefs=gameUi?.preferences,k=prefs?.cameraSensitivity??1;
-  // Touch drag rotates the camera toward the finger. Preserve desktop mouse orbit.
-  yaw += movement.dx * 0.00315 * k * (touchCapable?1:-1);
+  // Same horizontal orbit direction on touch and desktop. Flight yaw remains independent.
+  yaw -= movement.dx * 0.00315 * k;
   pitch = clamp(pitch - movement.dy * 0.0024 * k * (prefs?.invertY ? -1 : 1), player.mode==='glide'?-.45:-.12, player.mode==='glide'?1.3:1.03);
 });
 renderer.domElement.addEventListener('pointerup', (e) => {
