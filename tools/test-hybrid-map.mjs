@@ -17,7 +17,7 @@ try{
  },base);assert.deepEqual(ownership,{sharedAlive:true,released:true});await page.unroute('**/impostors/trees.*.png');
  }
  const url=new URL('?metrics=1&spawn=-700,1020&dist=50',base).href;
- const start=async u=>{await page.goto(u);await page.locator('#start:not([disabled])').click({timeout:120000});await page.waitForFunction(()=>window.littleWorldMetrics?.frameId>3,null,{timeout:120000});};
+ const start=async u=>{await page.goto(u);await page.locator('#start-overlay').waitFor({state:'hidden',timeout:120000});await page.waitForFunction(()=>window.littleWorldMetrics?.frameId>3,null,{timeout:120000});};
  const state=()=>page.evaluate(()=>window.littleWorldMetrics.hybrid.trees.state),record=async label=>{snapshots.push({label,...await page.evaluate(()=>({hybrid:window.littleWorldMetrics.hybrid,calls:window.littleWorldMetrics.calls,triangles:window.littleWorldMetrics.triangles,dressing:window.littleWorldMetrics.dressing.cells,position:window.littleWorldMetrics.position}))});};
  async function select(value){await page.getByRole('button',{name:'Menu (Échap)',exact:true}).click();await page.getByRole('button',{name:'Paramètres',exact:true}).click();await page.getByLabel('Végétation lointaine',{exact:true}).selectOption(value);await page.locator('.ui-panel[data-panel="settings"]').getByRole('button',{name:'Fermer · Échap'}).click();}
  await start(url);assert.equal(await state(),'off');await select('hybrid');await page.waitForFunction(()=>window.littleWorldMetrics.hybrid.trees.state==='ready'&&window.littleWorldMetrics.hybrid.trees.instances>0,null,{timeout:90000});await record('enabled-through-settings');assert.equal(snapshots.at(-1).hybrid.trees.sectorM,512);
