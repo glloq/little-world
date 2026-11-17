@@ -26,7 +26,7 @@ export function airVelocity(v:Velocity,dx:number,dz:number,speed:number,dt:numbe
  * Steering rotates velocity without thrust. The positive quadratic root accounts for the
  * height traversed by the integration's final velocity: climbing spends kinetic energy,
  * diving gains speed, drag/turns only remove energy. No minimum-speed injection. */
-export function glideVelocity(p:FlightState,yaw:number,cameraPitch:number,brake:number,dt:number,tuning:Readonly<Record<keyof typeof GLIDE,number>>=GLIDE){
+export function glideVelocity(p:FlightState,yaw:number,cameraPitch:number,brake:number,dt:number,tuning:Readonly<Record<keyof typeof GLIDE,number>>=GLIDE,boostAcceleration=0){
  const v=p.velocity,speed=Math.hypot(v.x,v.y,v.z),horizontal=Math.hypot(v.x,v.z);
  let heading=p.glideHeading??(horizontal>.1?Math.atan2(v.x,v.z):yaw);
  let pitch=p.glidePitch??Math.atan2(v.y,Math.max(horizontal,.01));
@@ -41,7 +41,7 @@ export function glideVelocity(p:FlightState,yaw:number,cameraPitch:number,brake:
  const work=drag*Math.max(speed,.1)*dt+tuning.turnLoss*Math.abs(turn)*speed*speed;
  const verticalGravity=MOTION.gravity*Math.sin(pitch);
  const a=verticalGravity*dt*(verticalGravity<0?clamp(tuning.diveEfficiency,0,1):1);
- const next=Math.min(tuning.max,Math.max(0,Math.sqrt(a*a+Math.max(0,speed*speed-2*work))-a));
+ const next=Math.min(tuning.max,Math.max(0,Math.sqrt(a*a+Math.max(0,(speed+Math.max(0,boostAcceleration)*dt)**2-2*work))-a));
  const h=Math.cos(pitch)*next;v.x=Math.sin(heading)*h;v.z=Math.cos(heading)*h;v.y=Math.sin(pitch)*next;
  p.glideHeading=heading;p.glidePitch=pitch;p.glideTurnRate=turn/dt;p.stalled=speed<tuning.stall;
 }
