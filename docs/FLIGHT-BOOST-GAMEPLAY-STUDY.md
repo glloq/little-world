@@ -1,6 +1,6 @@
 # Étude — Propulsion aérienne à impulsions et gameplay du hamster
 
-**Statut : SPECIFIED (proposition de conception, non implémentée).**  
+**Statut : étude fonctionnelle servant de référence à une implémentation expérimentale (voir la roadmap pour les preuves et limites).**  
 **Référence :** branche feat/flight-boost-gameplay-roadmap, audit de main du 17 novembre 2026.  
 **Roadmap exécutable :** [FLIGHT-BOOST-IMPLEMENTATION-ROADMAP.md](FLIGHT-BOOST-IMPLEMENTATION-ROADMAP.md).  
 **Références :** [54 — Mouvement dynamique](54-DYNAMIC-MOVEMENT.md), [62 — Vol rapide](62-HIGH-SPEED-FLIGHT.md), [37 — Audio V2](37-AUDIO-V2-CATALOGUE.md), [22 — Budget ressources](22-RESOURCE-BUDGET-MANAGER.md), [16 — Multijoueur futur](16-FUTURE-MULTIPLAYER.md).
