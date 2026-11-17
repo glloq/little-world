@@ -11,19 +11,21 @@ export function joystickAxis(dx:number,dy:number,radius:number,deadzone=.14):Joy
 }
 export interface TouchControls {
   readonly axis:Readonly<JoystickAxis>;
-  readonly jumpHeld:boolean;readonly accelerateHeld:boolean;readonly diveHeld:boolean;
+  readonly jumpHeld:boolean;readonly accelerateHeld:boolean;
   setMode(mode:string,aboard:boolean,gasAvailable:boolean):void;
+  setInteractTarget(action:{label:string;enabled:boolean}|null):void;
   setEnabled(enabled:boolean):void;reset():void;dispose():void;
 }
-export function createTouchControls(callbacks:{jump():void;action():void;roll():void}):TouchControls {
+export function createTouchControls(callbacks:{jump():void;action():void;alternate():void}):TouchControls {
   const root=document.createElement('div');root.className='touch-controls';root.hidden=true;
   root.setAttribute('aria-label','Commandes tactiles du joueur');
   const stick=document.createElement('div');stick.className='touch-joystick';stick.setAttribute('aria-label','Joystick de déplacement ou pilotage en vol');
   const thumb=document.createElement('span');thumb.className='touch-joystick-thumb';stick.append(thumb);
   const actions=document.createElement('div');actions.className='touch-actions';root.append(stick,actions);document.body.append(root);
   let enabled=false,pointer:number|null=null,axis:JoystickAxis={forward:0,right:0};
-  let jumpHeld=false,accelerateHeld=false,diveHeld=false;
-  let previousMode='',previousAboard=false,previousGas=false;
+  let jumpHeld=false,accelerateHeld=false;
+  let previousMode='',previousAboard=false,previousGas=false,lastAccelTap=-Infinity;
+  let interactionKey='';
   const active=new Map<HTMLButtonElement,number>();
   function clearJoystick(){
     const id=pointer;pointer=null;axis={forward:0,right:0};thumb.style.transform='translate(-50%, -50%)';
@@ -56,10 +58,16 @@ export function createTouchControls(callbacks:{jump():void;action():void;roll():
     return b;
   }
   const jump=hold('Saut','touch-jump',v=>{jumpHeld=v;},callbacks.jump);
-  const accelerate=hold('Courir','touch-accelerate',v=>{accelerateHeld=v;});
+  const accelerate=hold('Courir','touch-accelerate',v=>{accelerateHeld=v;},()=>{
+    // Double-tap the speed button to toggle an alternate movement mode:
+    // rolling on land or diving/surfacing in water. Single hold still accelerates.
+    const now=performance.now();
+    if(now-lastAccelTap<=340&&(previousMode==='ground'||previousMode==='roll'||previousMode==='swim'||previousMode==='dive'))
+      callbacks.alternate();
+    lastAccelTap=now;
+  });
   const interact=hold('Agir','touch-interact',()=>{},callbacks.action);
-  const roll=hold('Rouler','touch-roll',()=>{},callbacks.roll);
-  const dive=hold('Plonger','touch-dive',v=>{diveHeld=v;});
+  interact.hidden=true;interact.disabled=true;
   function cancel(b:HTMLButtonElement,apply:(value:boolean)=>void){
     const id=active.get(b);if(id!==undefined){active.delete(b);apply(false);b.classList.remove('pressed');if(b.hasPointerCapture(id))b.releasePointerCapture(id);}
   }
@@ -68,6 +76,7 @@ export function createTouchControls(callbacks:{jump():void;action():void;roll():
   }
   function setMode(mode:string,aboard:boolean,gasAvailable:boolean){
     if(mode===previousMode&&aboard===previousAboard&&gasAvailable===previousGas)return;
+    if(mode!==previousMode||aboard!==previousAboard)lastAccelTap=-Infinity;
     previousMode=mode;previousAboard=aboard;previousGas=gasAvailable;
     const water=mode==='swim'||mode==='dive',rolling=mode==='roll',flight=mode==='glide';
     label(jump,aboard?'Quitter':water?'Brasse':flight?'Replier':mode==='air'?'Planeur':'Saut');
@@ -76,24 +85,32 @@ export function createTouchControls(callbacks:{jump():void;action():void;roll():
     if(!accelerateAvailable)cancel(accelerate,v=>{accelerateHeld=v;});
     accelerate.disabled=!accelerateAvailable;
     accelerate.setAttribute('aria-label',flight&&!gasAvailable?'Boost (réserve vide)':accelerate.textContent??'Accélérer');
-    roll.hidden=aboard||!(mode==='ground'||rolling);
-    dive.hidden=!water;interact.hidden=aboard;
-    if(roll.hidden)cancel(roll,()=>{});
-    if(dive.hidden)cancel(dive,v=>{diveHeld=v;});
+    interact.hidden=aboard||!interactionKey;
     if(interact.hidden)cancel(interact,()=>{});
     root.dataset.mode=aboard?'boat':mode;
   }
+  function setInteractTarget(action:{label:string;enabled:boolean}|null){
+    // Only a usable nearby target gets an action button. Disabled/remote targets
+    // keep their explanatory world prompt, but occupy no mobile thumb space.
+    const key=action?.enabled?action.label:'';
+    if(interactionKey===key)return;
+    interactionKey=key;label(interact,'Agir');interact.title=key;
+    interact.setAttribute('aria-label',key?'Agir : '+key:'Agir');
+    interact.hidden=previousAboard||!key;interact.disabled=!key;
+    if(!key)cancel(interact,()=>{});
+  }
   function reset(){
+    lastAccelTap=-Infinity;
     clearJoystick();
     for(const [b,id] of active){b.classList.remove('pressed');if(b.hasPointerCapture(id))b.releasePointerCapture(id);}
-    active.clear();jumpHeld=false;accelerateHeld=false;diveHeld=false;
+    active.clear();jumpHeld=false;accelerateHeld=false;
   }
   const onBlur=()=>reset(),onVisibility=()=>{if(document.hidden)reset();};
   window.addEventListener('blur',onBlur);document.addEventListener('visibilitychange',onVisibility);
   return {
     get axis(){return axis;},get jumpHeld(){return jumpHeld;},
-    get accelerateHeld(){return accelerateHeld;},get diveHeld(){return diveHeld;},
-    setMode,setEnabled(value:boolean){if(enabled===value)return;enabled=value;root.hidden=!value;if(!value)reset();},
+    get accelerateHeld(){return accelerateHeld;},
+    setMode,setInteractTarget,setEnabled(value:boolean){if(enabled===value)return;enabled=value;root.hidden=!value;if(!value)reset();},
     reset,dispose(){reset();window.removeEventListener('blur',onBlur);document.removeEventListener('visibilitychange',onVisibility);root.remove();},
   };
 }
