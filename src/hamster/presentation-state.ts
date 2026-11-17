@@ -19,6 +19,8 @@ export interface PlayerPresentationState {
   stridePhase?:number;rollPhase?:number;turnIntent?:number;
   jumpKind?:'idle'|'run'|'roll';landingSpeed?:number;
   groundPitch?:number;groundRoll?:number;rollSlip?:number;
+  landingKind?:'idle'|'run'|'roll'|'glide';landingSlide?:number;
+  footSupportLeft?:number;footSupportRight?:number;
   fishing: { x: number; y: number; z: number; biting: boolean } | null;
 }
 const finite = (v: unknown, lim = 1e6) => typeof v === 'number' && Number.isFinite(v) && Math.abs(v) <= lim;
@@ -34,6 +36,10 @@ export function parsePresentationState(value: unknown): PlayerPresentationState 
   for(const key of ['stridePhase','rollPhase','turnIntent','landingSpeed'] as const)
     if(s[key]!==undefined&&!finite(s[key],1e8))throw Error('Cue invalide : '+key);
   if(s.jumpKind!==undefined&&!['idle','run','roll'].includes(s.jumpKind))throw Error('Type de saut invalide');
+  if(s.landingKind!==undefined&&!['idle','run','roll','glide'].includes(s.landingKind))throw Error('Type de réception invalide');
+  if(s.landingSlide!==undefined&&(!finite(s.landingSlide,1)||s.landingSlide<0))throw Error('Glissade invalide');
+  for(const key of ['footSupportLeft','footSupportRight'] as const)
+    if(s[key]!==undefined&&!finite(s[key],.5))throw Error('Appui pied invalide : '+key);
   for(const key of ['groundPitch','groundRoll','rollSlip'] as const)
     if(s[key]!==undefined&&(!finite(s[key],1)||Math.abs(s[key]!)>1))throw Error('Cue de surface invalide : '+key);
   return { v: 1, t: s.t, x: s.x, y: s.y, z: s.z, yaw: s.yaw, mode: s.mode, speed: s.speed, verticalSpeed: s.verticalSpeed, turnRate: s.turnRate, aboard: s.aboard, action: s.action, actionSeq: s.actionSeq, tool: s.tool, fishing: s.fishing ? { ...s.fishing } : null,
@@ -44,7 +50,11 @@ export function parsePresentationState(value: unknown): PlayerPresentationState 
     ...(s.landingSpeed!==undefined?{landingSpeed:s.landingSpeed}:{}),
     ...(s.groundPitch!==undefined?{groundPitch:s.groundPitch}:{}),
     ...(s.groundRoll!==undefined?{groundRoll:s.groundRoll}:{}),
-    ...(s.rollSlip!==undefined?{rollSlip:s.rollSlip}:{}) };
+    ...(s.rollSlip!==undefined?{rollSlip:s.rollSlip}:{}),
+    ...(s.landingKind!==undefined?{landingKind:s.landingKind}:{}),
+    ...(s.landingSlide!==undefined?{landingSlide:s.landingSlide}:{}),
+    ...(s.footSupportLeft!==undefined?{footSupportLeft:s.footSupportLeft}:{}),
+    ...(s.footSupportRight!==undefined?{footSupportRight:s.footSupportRight}:{}) };
 }
 /** Linear interpolation of two samples (angles by the shortest path; discrete fields from `b`). */
 export function interpolatePresentation(a: PlayerPresentationState, b: PlayerPresentationState, time: number): PlayerPresentationState {
@@ -55,5 +65,8 @@ export function interpolatePresentation(a: PlayerPresentationState, b: PlayerPre
     ...(a.rollPhase!==undefined&&b.rollPhase!==undefined?{rollPhase:l(a.rollPhase,b.rollPhase)}:{}),
     ...(a.groundPitch!==undefined&&b.groundPitch!==undefined?{groundPitch:l(a.groundPitch,b.groundPitch)}:{}),
     ...(a.groundRoll!==undefined&&b.groundRoll!==undefined?{groundRoll:l(a.groundRoll,b.groundRoll)}:{}),
-    ...(a.rollSlip!==undefined&&b.rollSlip!==undefined?{rollSlip:l(a.rollSlip,b.rollSlip)}:{}) };
+    ...(a.rollSlip!==undefined&&b.rollSlip!==undefined?{rollSlip:l(a.rollSlip,b.rollSlip)}:{}),
+    ...(a.landingSlide!==undefined&&b.landingSlide!==undefined?{landingSlide:l(a.landingSlide,b.landingSlide)}:{}),
+    ...(a.footSupportLeft!==undefined&&b.footSupportLeft!==undefined?{footSupportLeft:l(a.footSupportLeft,b.footSupportLeft)}:{}),
+    ...(a.footSupportRight!==undefined&&b.footSupportRight!==undefined?{footSupportRight:l(a.footSupportRight,b.footSupportRight)}:{}) };
 }
