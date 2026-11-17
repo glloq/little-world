@@ -5,7 +5,7 @@ Cette évolution complète [54 — Déplacements dynamiques](54-DYNAMIC-MOVEMENT
 ## Comportement et commandes
 
 - Au sol et en chute libre, la direction des déplacements reste relative à la caméra.
-- En **plané**, Q/D (A/D) font tourner le hamster autour de sa direction physique actuelle. Z/S (W/S) commandent respectivement le piqué / le cabré. Les commandes sur joystick mobile utilisent les mêmes entrées. Le clic-glisser n'agit que sur la caméra.
+- En **plané**, Q/D (A/D) font tourner le hamster autour de sa direction physique actuelle. L'inclinaison de la caméra (clic-glisser ou glisser sur smartphone) vise l'altitude : regarder vers le haut fait cabrer, regarder vers le bas provoque le piqué. Z/W ou joystick vers le haut **ne forcent plus de piqué** ; S ou joystick vers le bas sert d'aérofrein.
 - Le pilotage conserve l'inertie et les pertes énergétiques liées aux *virages réellement commandés* ; tourner la caméra ne provoque jamais de virage ni de perte d'énergie.
 - Au premier déploiement, le cap vient de la vitesse horizontale réelle. Si celle-ci est trop faible, le dernier cap du joueur est utilisé, puis seulement l'orientation actuelle de la caméra comme ultime repli.
 - Le pilotage est volontairement *relatif* à la trajectoire, plutôt qu'un verrouillage du planeur sur la direction de visée.
@@ -15,11 +15,11 @@ Cette évolution complète [54 — Déplacements dynamiques](54-DYNAMIC-MOVEMENT
 Dans `src/render/flight-auto-camera.ts`, l'auto-suivi est **exclusivement une transformation de présentation** :
 
 - délai de 2 s sans clic-glisser, ou 1 s quand la vitesse horizontale dépasse 18 m/s ou pendant un boost ;
-- retour doux derrière la vitesse horizontale réelle et vers le pitch de confort de 0,32 rad ;
+- retour doux en lacet derrière la vitesse horizontale réelle ; l'inclinaison verticale choisie par l'utilisateur est préservée pour ne pas changer involontairement la trajectoire ;
 - interruption immédiate pendant un glisser, remise à zéro hors plané / dans les menus ;
 - option `autoCenterFlightCamera` activée par défaut, stockée dans les préférences locales de l'interface, jamais dans les sauvegardes.
 
-La caméra ne pilote plus l'appareil et le joystick mobile ne fait plus tourner la caméra directement.
+La caméra pilote **uniquement l'assiette verticale** du planeur. Son orientation horizontale ne pilote pas le cap : joystick Q/D ou commandes clavier restent les seules commandes de virage. Le joystick mobile ne tourne pas directement la caméra.
 
 ## Impulsion de première ouverture
 
