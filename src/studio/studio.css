@@ -159,3 +159,14 @@ label:has(> input[type=checkbox]){flex-direction:row;align-items:center;justify-
 @media(max-width:920px){.welcome-layout{grid-template-columns:1fr}.welcome-preview{order:-1}.welcome-home{padding:18px}}
 @media(max-width:560px){.welcome-entry-grid,.welcome-mode-grid{grid-template-columns:1fr}.welcome-entry{min-height:110px}
   .welcome-progress{gap:4px}.welcome-step{font-size:11px;padding:9px 4px}.welcome-controls,.welcome-preview{padding:13px}}
+
+/* Optional expert shortcuts are kept below the visual entry cards. */
+.welcome-legacy{margin-top:85px;padding-top:20px;border-top:1px solid #dce6da;opacity:.87}
+.welcome-legacy h2{font-size:18px;margin:8px 0}
+.welcome-direct{display:grid;grid-template-columns:repeat(3,minmax(150px,1fr));gap:6px 14px;align-items:end}
+.welcome-direct details{grid-column:1/-1;margin:4px 0}.welcome-direct details label{display:inline-flex;flex-direction:column;margin:5px 16px 5px 0}
+.welcome-direct details input{max-width:170px}
+.welcome-direct>.primary-button{grid-column:3;align-self:end;margin-bottom:11px}
+.welcome-quick-templates{display:flex;flex-wrap:wrap;gap:6px}
+.welcome-quick-templates button{font-size:11px}
+@media(max-width:650px){.welcome-direct{grid-template-columns:1fr}.welcome-direct>.primary-button{grid-column:1}}
