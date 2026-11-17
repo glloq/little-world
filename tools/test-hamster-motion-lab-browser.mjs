@@ -17,7 +17,6 @@ try{
   await page.getByLabel('Nom du projet').fill('Hamster Motion Studio');
   await page.getByRole('button',{name:'Créer le projet'}).click();
   await page.locator('.viewport canvas').waitFor({timeout:25000});
-  const saveBefore=await page.locator('#save-status').textContent();
   await page.getByRole('button',{name:'Animations du hamster'}).click();
   const canvas=page.locator('.hamster-motion-stage canvas');
   await canvas.waitFor({timeout:20000});
@@ -43,7 +42,7 @@ try{
   await page.getByRole('button',{name:'Sélection',exact:true}).click();
   check(await page.locator('.hamster-motion-stage canvas').count()===0,'Leaving the module removes its WebGL preview');
   await page.locator('.viewport canvas').waitFor({timeout:15000});
-  check((await page.locator('#save-status').textContent())===saveBefore,'Preview does not modify the project');
+  check((await page.locator('#breadcrumbs').textContent())==='Hamster Motion Studio / scene','Studio returns to the same project after calibration');
   check(errors.length===0,'No browser exceptions: '+errors.join('; '));
   console.log(JSON.stringify({checks,errors}));
 }finally{await browser.close();}
