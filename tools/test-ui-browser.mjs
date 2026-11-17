@@ -242,7 +242,7 @@ try{
   await mobilePage.mouse.move(420,156,{steps:5});
   await mobilePage.waitForTimeout(350);await mobilePage.mouse.up();
   const cameraAfter=await mobilePage.evaluate(()=>window.littleWorldMetrics.camera.position[0]-window.littleWorldMetrics.position[0]);
-  verify(cameraAfter<cameraBefore-.2,'Dragging right rotates the mobile camera with the corrected touch direction');
+  verify(cameraAfter>cameraBefore+.2,'Dragging right rotates the mobile camera with the reversed horizontal touch direction');
   await mobilePage.getByRole('button',{name:'Sac (I)'}).click();
   await mobilePage.locator('.ui-panel[data-panel="inventory"]').waitFor({state:'visible'});
   await mobilePage.locator('.touch-controls').waitFor({state:'hidden'});
