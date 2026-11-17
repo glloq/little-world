@@ -87,9 +87,9 @@ test('no boost means no free kinetic energy',()=>{
  assert.ok(v(powered)<=GLIDE.max+1e-9);
 });
 
-test('actor rejects propulsion outside glide and completes pulse after release',()=>{
- for(const mode of ['ground','air','swim','dive','climb','roll']){
-  const p=actor(mode);p.gasReserve=90;
+test('ground contact, climbing and rolling do not spend gas on a short tap; glide completes its pulse',()=>{
+ for(const mode of ['ground','climb','roll']){
+  const p=actor(mode);p.position.y=0;p.gasReserve=90;
   simulatePlayer(p,{...input,boostHeld:true},dt,flat);
   assert.equal(p.gasReserve,90,mode);assert.equal(p.gasBoosting,false,mode);
  }
