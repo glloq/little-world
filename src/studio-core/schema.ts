@@ -9,6 +9,7 @@ import { EMOTIONS } from '../character-style.ts';
 import {parseTerrainGenerator,VERTICAL_ENVELOPE,type TerrainGeneratorDefinition} from '../terrain-generator.ts';
 import {validateZone} from './zones.ts';
 import {validateLandscape,LANDSCAPE_LIMITS} from '../world-production/landscape-schema.ts';
+import {validateMapRequirements} from './map-requirements.ts';
 import {validateRegionRecipe} from './region-schema.ts';
 import {MASK_LAYERS,validMaskString,type MaskLayerId} from '../geography/layers.ts';
 import { validDialogue } from '../dialogue.ts';
@@ -38,8 +39,9 @@ export function parseManifest(value:unknown):StudioProjectV3{
   return structuredClone(v) as unknown as StudioProjectV3;
 }
 export function parseWorldV3(value:unknown):WorldDefinitionV3{
-  const v=object(value,'Monde');keys(v,['schemaVersion','worldId','seed','generatorVersion','bounds','seaLevel','chunkSizeM','coordinateSystem','chunkIndexRef','density','viewDistance','editSequence','environment','audio','terrain'],'Monde');
+  const v=object(value,'Monde');keys(v,['schemaVersion','worldId','seed','generatorVersion','bounds','seaLevel','chunkSizeM','coordinateSystem','chunkIndexRef','density','viewDistance','editSequence','environment','audio','terrain','generation'],'Monde');
   if(v.schemaVersion!==3||v.generatorVersion!=='1'||v.coordinateSystem!=='meters-y-up')throw Error('Version ou coordonnées de monde incompatibles');
+  if(v.generation!==undefined)validateMapRequirements(v.generation);
   if(v.audio!==undefined)parseAnyAudioDefinition(v.audio);
   if(v.environment!==undefined)parseEnvironmentDefinition(v.environment);
   string(v.worldId,'ID monde');integer(v.editSequence,'Séquence retouches');integer(v.seed,'Graine',1,9999999);finite(v.seaLevel,'Mer',-20,20);finite(v.chunkSizeM,'Taille de secteur',16,512);finite(v.density,'Densité',0,2);finite(v.viewDistance,'Distance visible',64,800);localPath(v.chunkIndexRef,'Index secteurs');
@@ -143,7 +145,7 @@ import { ReferenceIndex, entityIndexEntry, resolveEntity } from './references.ts
 function dictionary(value:unknown,label:string,max=100000):Record<string,unknown>{const v=object(value,label);if(Object.keys(v).length>max)throw Error(`${label} trop grand`);for(const key of Object.keys(v))string(key,`Clé ${label}`);return v;}
 export function validateLine(value:unknown,world:WorldDefinitionV3,water:boolean):void{
   const line=object(value,'Tracé');keys(line,water?['id','points','width','level','depth','profile','kind','from','to','falls']:['id','points','width','kind','smooth'],'Tracé');
-  if(!water){if(line.kind!==undefined&&!PATH_KINDS.includes(line.kind as PathKind))throw Error('Chemin : type inconnu');if(line.smooth!==undefined&&typeof line.smooth!=='boolean')throw Error('Chemin : courbe invalide');}string(line.id,'ID tracé');finite(line.width,'Largeur',1,40);const points=array(line.points,'Points',100);if(points.length<2)throw Error('Tracé : deux points requis');for(const p of points){const v=object(p,'Point');keys(v,['x','z'],'Point');point(v,world,'Tracé');}if(water){finite(line.level,'Niveau',-20,100);finite(line.depth,'Profondeur',.5,20);validateWaterProfile(line.profile,points.length);validateWaterNetworkFields(line as never);}
+  if(!water){if(line.kind!==undefined&&!PATH_KINDS.includes(line.kind as PathKind))throw Error('Chemin : type inconnu');if(line.smooth!==undefined&&typeof line.smooth!=='boolean')throw Error('Chemin : courbe invalide');}string(line.id,'ID tracé');finite(line.width,'Largeur',1,40);const points=array(line.points,'Points',100);if(points.length<2)throw Error('Tracé : deux points requis');for(const p of points){const v=object(p,'Point');keys(v,['x','z'],'Point');point(v,world,'Tracé');}if(water){finite(line.level,'Niveau',VERTICAL_ENVELOPE.min,VERTICAL_ENVELOPE.max);finite(line.depth,'Profondeur',.5,20);validateWaterProfile(line.profile,points.length);validateWaterNetworkFields(line as never);}
 }
 function validateLibraries(value:unknown,world:WorldDefinitionV3,entityIds:string[],chunkIds:string[]):void{
   const libs=object(value,'Bibliothèques');keys(libs,['prefabs','characters','dialogues','behaviors','interactions','activities','variables','items','objectives','water','paths','zones','landscapes','assemblies','regions'],'Bibliothèques');

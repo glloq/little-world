@@ -1,3 +1,4 @@
+import {WATER_ALTITUDE} from './water/profile.ts';
 import {validateWaterProfile, validateWaterNetworkFields, type WaterProfile} from './water/profile.ts';
 /** Versioned authoring data shared by the editor, game and static-map compiler. */
 import catalogue from '../assets/catalog.json' with { type: 'json' };
@@ -247,7 +248,7 @@ export function parseWorld(value: unknown): WorldDefinition {
     !list(
       value.water,
       100,
-      (p) => line(p,v=>num(v.x,-config.width/2,config.width/2)&&num(v.z,-config.length/2,config.length/2)) && num(p.level, -20, 100) && num(p.depth, 0.5, 20),
+      (p) => line(p,v=>num(v.x,-config.width/2,config.width/2)&&num(v.z,-config.length/2,config.length/2)) && num(p.level, WATER_ALTITUDE.min, WATER_ALTITUDE.max) && num(p.depth, 0.5, 20),
     )
   )
     throw Error('Volumes d’eau invalides');

@@ -1,3 +1,5 @@
+import {VERTICAL_ENVELOPE} from '../terrain-generator.ts';
+export const WATER_ALTITUDE=VERTICAL_ENVELOPE;
 import type {WaterBody} from '../world-data.ts';
 export type WaterProfile = {mode:'terrain';offset:number}|{mode:'manual';levels:number[]};
 export interface HydroPoint {x:number;z:number;distance:number;ground:number;level:number}
@@ -15,7 +17,7 @@ export function validateWaterProfile(value:unknown,count:number):void {
  if(Object.keys(p).some(k=>!allowed.includes(k)))throw Error('Champ de profil d’eau inconnu');
  if(p.mode==='terrain'){if(!finite(p.offset,-10,10))throw Error('Décalage du profil d’eau invalide');}
  else if(p.mode==='manual'){
-  if(!Array.isArray(p.levels)||p.levels.length!==count||!p.levels.every(v=>finite(v,-50,150)))throw Error('Une altitude finie par point est requise');
+  if(!Array.isArray(p.levels)||p.levels.length!==count||!p.levels.every(v=>finite(v,WATER_ALTITUDE.min,WATER_ALTITUDE.max)))throw Error('Une altitude finie par point est requise');
   if(p.levels.some((v,i,a)=>i>0&&v>a[i-1]+1e-6))throw Error('Le profil manuel doit descendre de l’amont vers l’aval');
  }else throw Error('Mode de profil d’eau inconnu');
 }
@@ -25,7 +27,7 @@ export function validateWaterNetworkFields(w:WaterBody):void{
  if(w.kind!==undefined&&w.kind!=='lake'&&w.kind!=='river')throw Error('Type d’eau inconnu');
  if(w.kind==='lake'){if(w.points.length<3)throw Error('Lac : trois sommets au moins');if(w.profile!==undefined||w.from!==undefined||w.to!==undefined||w.falls!==undefined)throw Error('Lac : niveau constant, sans profil, lien ni cascade');return;}
  link(w.from,'Source');link(w.to,'Exutoire');if(w.from?.kind==='sea')throw Error('Une rivière ne peut pas sortir de la mer');
- if(w.falls!==undefined){if(!Array.isArray(w.falls)||w.falls.length>8)throw Error('Cascades invalides');for(const f of w.falls){if(!f||!Number.isInteger(f.at)||f.at<1||f.at>=w.points.length-1||!finite(f.top,-50,150)||!finite(f.bottom,-50,150)||f.top-f.bottom<1)throw Error('Cascade : point intermédiaire, niveau haut au moins 1 m au-dessus du bas');}
+ if(w.falls!==undefined){if(!Array.isArray(w.falls)||w.falls.length>8)throw Error('Cascades invalides');for(const f of w.falls){if(!f||!Number.isInteger(f.at)||f.at<1||f.at>=w.points.length-1||!finite(f.top,WATER_ALTITUDE.min,WATER_ALTITUDE.max)||!finite(f.bottom,WATER_ALTITUDE.min,WATER_ALTITUDE.max)||f.top-f.bottom<1)throw Error('Cascade : point intermédiaire, niveau haut au moins 1 m au-dessus du bas');}
   if(new Set(w.falls.map(f=>f.at)).size!==w.falls.length)throw Error('Deux cascades au même point');}
 }
 /** Signed distance to a closed outline: positive inside. */
