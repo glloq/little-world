@@ -38,6 +38,9 @@ import {
 } from './player';
 import { buildHamster } from './hamster/hamster.ts';
 import { createImpactEffects, type ImpactKind } from './hamster/impact-effects.ts';
+import {createGasEffects} from './hamster/gas-effects.ts';
+import {GAS,gasLevel,refillGas} from './physics/gas-propulsion.ts';
+import {foodGasValue} from './gameplay/food-effects.ts';
 import { createLoadingScreen } from './ui/loading.ts';
 import { createCustomizationMenu } from './customization-menu';
 import { MouseDragOrbit } from './camera-drag';
@@ -181,6 +184,7 @@ if(playable){
   const {createGameplayView}=await import('./gameplay/game-view.ts');
   gameplay=createGameplayView(playable.gameplay,{onSound:(id,p)=>audio?.playSound(id,p),collisions:playable.collisions,temporary:!!(studioTest||buildScope),saveScope:studioTest?.snapshotId??buildScope??undefined,getPosition:()=>({x:player.position.x,y:player.position.y,z:player.position.z}),objects:world.objects,showInfo,
     activities:playable.activities,getSpace:()=>player.space,
+    getGas:()=>gasLevel(player),setGas:value=>{player.gasReserve=value;player.gasBoosting=false;player.gasPulseClock=0;player.gasPulseSeq=0;},
     ...(isLegacyTerrain()?{}:{gathering:{ctx:geoContext,seed:definition.config.seed,inside:(x:number,z:number)=>Math.abs(x)<=(definition.config.width??200)/2&&Math.abs(z)<=(definition.config.length??600)/2}}),
     setPosition:(p,space)=>{player.space=space??undefined;player.position.set(p.x,p.y,p.z);player.velocity.set(0,0,0);player.mode='air';player.oxygen=MAX_OXYGEN;player.glideReady=false;player.coyoteLeft=0;player.jumpBufferLeft=0;aboard=false;keySet.clear();jumpQueue=0;actionQueue=0;npcs.dialogue.close();previousPlayerPosition.copy(player.position);renderPosition.copy(player.position);updateCamera(1);}
   });
@@ -220,7 +224,16 @@ world.update(0, player.position);
   const {createGameUi}=await import('./ui/app/game-ui.ts'),c=getTerrainConfig();
   gameUi=createGameUi({gameplay,npcs,audio,applyDistantRendering:(value,initial)=>{if(!initial||!searchParams.has('impostors')){world.hybrid.setMode(value==='hybrid'?'trees':'off');if(value==='hybrid')world.hybrid.setSectors(false);}},quality:document.querySelector<HTMLSelectElement>('#quality'),temporary:!!(studioTest||buildScope),studioUrl:import.meta.env.BASE_URL+'studio/',
     world:{name:definition.name,buildVersion:gameplay?.runtime.data.buildVersion??'vallée',dayLength:climate.definition.dayLengthSeconds,bounds:{minX:-c.width/2,maxX:c.width/2,minZ:-c.length/2,maxZ:c.length/2},seaLevel:c.seaLevel,height:terrainHeight,water:waterSurface},
-    player:()=>({x:player.position.x,y:player.position.y,z:player.position.z,yaw,space:player.space,mode:player.mode,oxygen:player.oxygen,maxOxygen:MAX_OXYGEN,stamina:player.stamina??MAX_STAMINA,maxStamina:MAX_STAMINA,speed:player.velocity.length(),stalled:player.stalled}),
+    eatFood:(itemId)=>{
+      const points=foodGasValue(itemId);
+      if(!gameplay||!points)return {ok:false,message:'Cet objet ne peut pas être mangé.'};
+      if(player.mode==='glide'||aboard)return {ok:false,message:'Mangez au sol avant de décoller.'};
+      if(gasLevel(player)>=GAS.max)return {ok:false,message:'La réserve de gaz est déjà pleine.'};
+      if(!gameplay.purse.apply([{itemId,quantity:-1}]))return {ok:false,message:'Aliment indisponible.'};
+      const gained=refillGas(player,points);
+      return {ok:true,message:'+'+Math.round(gained)+' gaz !'};
+    },
+    player:()=>({gas:gasLevel(player),maxGas:GAS.max,x:player.position.x,y:player.position.y,z:player.position.z,yaw,space:player.space,mode:player.mode,oxygen:player.oxygen,maxOxygen:MAX_OXYGEN,stamina:player.stamina??MAX_STAMINA,maxStamina:MAX_STAMINA,speed:player.velocity.length(),stalled:player.stalled}),
     target:()=>currentTarget(),
     home:()=>{started=false;gameUi?.controller.close();keySet.clear();overlay.classList.remove('hide');start.focus();}});
 }
@@ -228,6 +241,7 @@ world.update(0, player.position);
 const character = buildHamster();
 scene.add(character.group);
 const impacts = createImpactEffects(scene);
+const gasEffects=createGasEffects(scene);const gasOrigin=new THREE.Vector3();let gasVisualSeq=0;
 const customization = createCustomizationMenu(
   document.querySelector<HTMLElement>('#appearance-menu')!,
   (appearance) => character.setAppearance(appearance),
@@ -244,6 +258,7 @@ const fleet = createFleet(gameplay?.collision ?? null);
 const playerBoat = fleet.add({ id: 'player-boat', assetId: 'boat.sailboat_small', state: boat, object: world.boat, yOffset: 0, hull: { beam: 2.6, length: 6.2, height: 1.6 } });
 for (const m of mooredBoats) { const size = worldAsset(m.assetId)?.size ?? [2, 1.3, 5]; fleet.addMoored(m.id, m.assetId, m.object, waterSurface(m.object.position.x, m.object.position.z) ?? getTerrainConfig().seaLevel, size as [number, number, number]); }
 const keySet = new Set<string>();
+let rightBoostDown=false;
 let rollQueue = 0;
 let jumpQueue = 0,
   actionQueue = 0;
@@ -278,7 +293,8 @@ function codeHeld(...codes: string[]): boolean {
   return codes.some((c) => keySet.has(c));
 }
 function input(): Controls {
-  if (customization.isOpen || npcs.dialogue.isOpen || gameUi?.blocking)
+  if (customization.isOpen || npcs.dialogue.isOpen || gameUi?.blocking){
+    rightBoostDown=false;
     return {
       forward: 0,
       right: 0,
@@ -287,7 +303,9 @@ function input(): Controls {
       spaceHeld: false,
       dive: false,
       cameraYaw: yaw,
+      boostHeld:false,
     };
+  }
   return {
     forward:
       Number(codeHeld('KeyW', 'KeyZ', 'ArrowUp')) -
@@ -306,6 +324,7 @@ function input(): Controls {
     cameraYaw: yaw,
     // Underwater, moving forward follows the camera tilt (looking down dives down), from the default view.
     cameraPitch: pitch - 0.32,
+    boostHeld:rightBoostDown,
   };
 }
 function isMenuKey(e: KeyboardEvent): boolean {
@@ -359,6 +378,7 @@ window.addEventListener('keydown', (e) => {
     player.mode = 'ground';
     player.oxygen = MAX_OXYGEN;
     player.glideReady = false;
+    player.gasReserve=GAS.initial;player.gasBoosting=false;player.gasPulseClock=0;player.gasPulseSeq=0;gasVisualSeq=0;rightBoostDown=false;
     player.coyoteLeft=0;player.jumpBufferLeft=0;
     previousPlayerPosition.copy(player.position);
     renderPosition.copy(player.position);
@@ -384,13 +404,16 @@ window.addEventListener('keyup', (e) => {
 });
 window.addEventListener('blur', () => {
   keySet.clear();
+  rightBoostDown=false;
   jumpQueue = 0;
   actionQueue = 0;
   customization.close();
   resetCameraDrag();
 });
+renderer.domElement.addEventListener('contextmenu',e=>e.preventDefault());
 renderer.domElement.addEventListener('pointerdown', (e) => {
   if (!started || customization.isOpen || gameUi?.blocking || npcs.dialogue.isOpen) return;
+  if(e.button===2){rightBoostDown=true;e.preventDefault();return;}
   if (!orbitDrag.begin(e.pointerId, e.button, e.clientX, e.clientY)) return;
   renderer.domElement.classList.add('dragging-camera');
   renderer.domElement.setPointerCapture(e.pointerId);
@@ -411,7 +434,8 @@ renderer.domElement.addEventListener('pointerup', (e) => {
   orbitDrag.end(e.pointerId);
   if (!orbitDrag.active) resetCameraDrag();
 });
-renderer.domElement.addEventListener('pointercancel', resetCameraDrag);
+window.addEventListener('pointerup',e=>{if(e.button===2)rightBoostDown=false;});
+renderer.domElement.addEventListener('pointercancel',()=>{rightBoostDown=false;resetCameraDrag();});
 renderer.domElement.addEventListener('lostpointercapture', resetCameraDrag);
 renderer.domElement.addEventListener(
   'wheel',
@@ -718,6 +742,14 @@ function draw(now: number) {
   character.setAboard(aboard);
   if(gameplay){const f=gameplay.fishing.state;character.setFishing(f.phase!=='idle'&&f.castAt?{x:f.castAt.x,y:waterSurface(f.castAt.x,f.castAt.z)??getTerrainConfig().seaLevel,z:f.castAt.z,biting:f.phase==='bite'}:null);}
   character.update(player, delta, elapsed);
+  if(player.mode==='glide'&&player.gasBoosting&&player.gasPulseSeq!==gasVisualSeq){
+    character.rig.joints.Tail.getWorldPosition(gasOrigin);
+    gasEffects.spawn(gasOrigin,player.velocity);
+    // Temporary lightweight sound from existing audio catalogue; dedicated fart takes later.
+    audio?.emit('player.glide.deploy',{position:player.position,source:'player'});
+  }
+  gasVisualSeq=player.gasPulseSeq??0;
+  gasEffects.update(delta);
   impacts.update(delta);
   updateHud();
   gameUi?.frame(elapsed);
@@ -800,7 +832,7 @@ function draw(now: number) {
   }
   requestAnimationFrame(draw);
 }
-window.addEventListener('pagehide',event=>{if(event.persisted)void audio?.engine.setHidden(true);else {remoteActors?.dispose();gpuTimer.dispose();void audio?.dispose();}});
+window.addEventListener('pagehide',event=>{if(event.persisted)void audio?.engine.setHidden(true);else {remoteActors?.dispose();gasEffects.dispose();gpuTimer.dispose();void audio?.dispose();}});
 window.addEventListener('pageshow',event=>{if(event.persisted&&started)void audio?.engine.setHidden(document.hidden);});
 document.addEventListener('visibilitychange', () => {
   presentation.reset();

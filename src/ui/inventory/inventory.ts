@@ -3,6 +3,7 @@
  * capacity from `maxQuantity`. « New » marks quantities above what the player last saw (UI
  * session state, not saved). Nothing here changes the inventory: usage goes through actions. */
 import type {ItemDefinition} from '../../gameplay/schema.ts';
+import {foodGasValue} from '../../gameplay/food-effects.ts';
 import {el,button} from '../shared/dom.ts';
 
 export const CATEGORY_LABELS:Record<string,string>={nature:'Ressources naturelles',mine:'Minerais et cristaux',farm:'Produits agricoles',tool:'Outils',outil:'Outils',quest:'Objets de mission',mission:'Objets de mission',argent:'Argent',bois:'Bois',cueillette:'Cueillette',poisson:'Poissons',graines:'Graines'};
@@ -16,7 +17,7 @@ export function inventoryViewModel(items:readonly ItemDefinition[],inventory:Rea
     const list=groups.get(label)??[];list.push(entry);groups.set(label,list);}
   return {groups:[...groups].sort(([a],[b])=>ORDER.indexOf(a)-ORDER.indexOf(b)).map(([label,entries])=>({label,entries:entries.sort((x,y)=>x.name.localeCompare(y.name,'fr'))})),kinds,total,empty:kinds===0};
 }
-export interface InventoryDeps {items():readonly ItemDefinition[];inventory():Readonly<Record<string,number>>;selectedTool():string|null;selectTool(id:string|null):void}
+export interface InventoryDeps {items():readonly ItemDefinition[];inventory():Readonly<Record<string,number>>;selectedTool():string|null;selectTool(id:string|null):void;gasLevel?:()=>number;consume?:(id:string)=>boolean}
 /** Panel renderer; `seen` is updated when the panel closes (the « new » marks then clear). */
 export function inventoryPanel(deps:InventoryDeps){
   let seen:Record<string,number>={},selected:string|null=null;
@@ -29,6 +30,9 @@ export function inventoryPanel(deps:InventoryDeps){
       if(!selected||!vm.groups.some(g=>g.entries.some(e=>e.id===selected)))selected=vm.groups[0].entries[0].id;
       const show=(e:InventoryEntry)=>{selected=e.id;detail.replaceChildren(el('h3','',e.name),el('p','ui-muted',e.categoryLabel),el('p','',e.description??'Pas de description.'),el('p','',`Quantité : ${e.quantity} / ${e.max}`+(e.full?' — sac plein pour cet objet':'')));
         if(e.tool){const inHand=deps.selectedTool()===e.id;detail.append(button(inHand?'Ranger':'Prendre en main',()=>{deps.selectTool(inHand?null:e.id);show(e);}))}
+        const gas=foodGasValue(e.id);
+        if(gas&&deps.consume){const b=button('Manger (+'+gas+' gaz)',()=>{if(deps.consume?.(e.id))show(e);},'ui-button');
+          b.disabled=(deps.gasLevel?.()??100)>=100;detail.append(b);}
         for(const b of list.querySelectorAll('button'))b.setAttribute('aria-pressed',String(b.dataset.item===e.id));};
       for(const g of vm.groups){list.append(el('h3','ui-group',g.label));const grid=el('div','ui-item-grid');
         for(const e of g.entries){const card=button('',()=>show(e),'ui-item');card.dataset.item=e.id;card.dataset.focusKey='item:'+e.id;card.setAttribute('aria-label',`${e.name}, ${e.quantity}${e.delta?`, nouveau +${e.delta}`:''}${e.full?', plein':''}`);
