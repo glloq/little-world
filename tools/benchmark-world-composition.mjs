@@ -9,9 +9,10 @@ import {existsSync} from 'node:fs';
 const output=process.argv[2]??'/tmp/little-world-composition-benchmark';await mkdir(output,{recursive:true});
 const rows=[];
 for(let i=0;i<30;i++){
- const seed=101+i*7919,requirements={...structuredClone(DEFAULT_MAP_REQUIREMENTS),seed,terraces:1+i%6,cliffs:[.1,.4,.8][i%3],relief:['gentle','balanced','rugged'][i%3],type:i%3===0?'archipelago':'island',lakes:i%3===2};
+ const seed=101+i*7919,requirements={...structuredClone(DEFAULT_MAP_REQUIREMENTS),seed,terraces:3+i%4,cliffs:[.1,.4,.8][i%3],relief:['gentle','balanced','rugged'][i%3],type:i%3===0?'archipelago':'island',lakes:i%3===2};
+ if(i%3===2)requirements.landscapes.push({kind:'volcanic',required:true});
  const before=process.memoryUsage().heapUsed,plan=composeWorld(requirements);
- rows.push({seed,requirements,family:plan.family,ready:plan.ready,diagnostics:plan.diagnostics.map(d=>d.code),...plan.metrics,heapDeltaBytes:process.memoryUsage().heapUsed-before,signature:fingerprint(plan.project.world.terrain)});
+ rows.push({seed,requirements,family:plan.family,ready:plan.ready,diagnostics:plan.diagnostics.map(d=>d.code),...plan.metrics,heapDeltaBytes:process.memoryUsage().heapUsed-before,signature:fingerprint(plan.project.world.terrain),tributaries:Object.values(plan.project.libraries.water).filter(w=>w.to?.kind==='river').length,waterfalls:Object.values(plan.project.libraries.water).reduce((n,w)=>n+(w.falls?.length??0),0)});
 }
 const browser=await chromium.launch({headless:true,executablePath:existsSync('/usr/bin/chromium')?'/usr/bin/chromium':undefined,args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
 try{
@@ -29,6 +30,6 @@ try{
  }
 }finally{await browser.close();}
 const sorted=key=>rows.map(r=>r[key]).sort((a,b)=>a-b),gen=sorted('generationMs'),preview=sorted('previewMs');
-const summary={node:process.version,seeds:rows.length,ready:rows.filter(r=>r.ready).length,unique: new Set(rows.map(r=>r.signature)).size,generationMs:{p50:gen[15],max:gen.at(-1)},previewMs:{p50:preview[15],max:preview.at(-1)},maxFeatures:Math.max(...rows.map(r=>r.features)),maxSectors:Math.max(...rows.map(r=>r.sectors)),maxSourceBytes:Math.max(...rows.map(r=>r.sourceBytes)),...(rows.every(r=>r.coverage)?{minBiomeCoverage:Math.min(...rows.map(r=>r.coverage.biomeCoverage)),minOffRiverBiomeCoverage:Math.min(...rows.map(r=>r.coverage.offRiverBiomeCoverage)),minTerracedLandShare:Math.min(...rows.map(r=>r.coverage.terracedLandShare)),interiorSubseaSamples:rows.reduce((n,r)=>n+r.coverage.interiorSubseaSamples,0)}:{}),memoryNote:'heapDeltaBytes is observed JS heap delta, includes GC noise; sourceBytes measures serialized V3 sources, not GPU memory.'};
+const summary={node:process.version,seeds:rows.length,ready:rows.filter(r=>r.ready).length,unique: new Set(rows.map(r=>r.signature)).size,generationMs:{p50:gen[15],max:gen.at(-1)},previewMs:{p50:preview[15],max:preview.at(-1)},minTributaries:Math.min(...rows.map(r=>r.tributaries)),minWaterfalls:Math.min(...rows.map(r=>r.waterfalls)),maxFeatures:Math.max(...rows.map(r=>r.features)),maxSectors:Math.max(...rows.map(r=>r.sectors)),maxSourceBytes:Math.max(...rows.map(r=>r.sourceBytes)),...(rows.every(r=>r.coverage)?{minBiomeCoverage:Math.min(...rows.map(r=>r.coverage.biomeCoverage)),minOffRiverBiomeCoverage:Math.min(...rows.map(r=>r.coverage.offRiverBiomeCoverage)),minTerracedLandShare:Math.min(...rows.map(r=>r.coverage.terracedLandShare)),interiorSubseaSamples:rows.reduce((n,r)=>n+r.coverage.interiorSubseaSamples,0)}:{}),memoryNote:'heapDeltaBytes is observed JS heap delta, includes GC noise; sourceBytes measures serialized V3 sources, not GPU memory.'};
 await writeFile(join(output,'report.json'),JSON.stringify({summary,rows},null,2));console.log(JSON.stringify(summary,null,2));
 if(summary.ready!==rows.length)process.exitCode=1;

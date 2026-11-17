@@ -47,5 +47,13 @@ export function planWorldBiomes(p:ProjectDocument,r:MapRequirements,axis:PointXZ
    vegetation:{trees:kind==='forest'?.8+env.humidity*.4:kind==='mountain'||kind==='coast'?.12:.3,shrubs:.5+env.humidity*.35,ground:kind==='marsh'?.9:.65,deadwood:kind==='forest'?.5:.2}});
   recipes.push(recipe);
  }
+ if(r.compositionVersion===3&&r.biomeMode==='automatic'&&r.landscapes.some(l=>l.kind==='volcanic')){
+  const volcano=p.world.terrain?.kind==='archipelago'?p.world.terrain.archipelago.features.find(f=>f.kind==='volcano'):undefined;
+  if(volcano&&volcano.kind==='volcano'){
+   const side=provinces.filter(q=>q.station===undefined).sort((a,b)=>Math.hypot(a.center.x-volcano.x,a.center.z-volcano.z)-Math.hypot(b.center.x-volcano.x,b.center.z-volcano.z))[0];
+   const region=side?recipes.find(q=>q.id==='composition-side-region-'+side.id):undefined;
+   if(region){region.name=LANDSCAPES.volcanic;region.preset='volcanic';region.vegetation={trees:.05,shrubs:.1,ground:.15,deadwood:0};}
+  }
+ }
  return recipes;
 }

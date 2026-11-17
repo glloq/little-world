@@ -7,6 +7,7 @@ import {planWorldBiomes,provinceEnvironment,RIVER_BIOME_SPAN} from './world-biom
 import {generatorField} from '../terrain-generator.ts';
 import {putWater} from './source.ts';
 import {compositionCoverage,type CompositionCoverage} from './world-composition-quality.ts';
+import {alignSteppedBiomes} from './world-biome-boundaries.ts';
 import {applyRegionBatch} from './region-batch.ts';
 import type {ProjectDocument} from './types.ts';
 export interface CompositionDiagnostic {severity:'ERROR'|'WARNING';code:string;message:string}
@@ -14,6 +15,7 @@ export interface WorldComposition {project:ProjectDocument;ready:boolean;diagnos
 export function composeWorld(input:MapRequirements,name='Mon petit monde'):WorldComposition {
  const started=performance.now(),r=validateMapRequirements(input),diagnostics:CompositionDiagnostic[]=[];
  let planned=planWorldTerrain(r);
+ if(r.compositionVersion===3&&r.terraces<3)diagnostics.push({severity:'ERROR',code:'TERRACE_LEVELS_REQUIRED',message:'L’île étagée demande au moins 3 niveaux. Augmenter les terrasses ou choisir la composition en provinces.'});
  const project=createProject({name,width:r.width,length:r.length,seed:r.seed,chunkSizeM:128,terrain:{kind:'archipelago',version:1,archipelago:planned.terrain}});
  project.world.generation=r;
  if(r.type==='valley'||r.type==='continental')diagnostics.push({severity:'ERROR',code:'WORLD_TYPE_UNSUPPORTED',message:'Cette version compose des îles et archipels. Choisir une île pour un exutoire marin valide.'});
@@ -40,18 +42,19 @@ export function composeWorld(input:MapRequirements,name='Mon petit monde'):World
   const at=planned.axis[Math.min(planned.axis.length-1,Math.round((i+.5)/r.sequence.length*planned.axis.length*RIVER_BIOME_SPAN))],altitude=field.height(at.x,at.z);
   if((kind==='marsh'&&altitude>25)||(kind==='coast'&&field.coast(at.x,at.z)>200))diagnostics.push({severity:r.landscapes.some(l=>l.kind===kind&&l.required)?'ERROR':'WARNING',code:'SEQUENCE_INCOMPATIBLE',message:LANDSCAPES[kind]+' demandé trop en amont : déplacer ce paysage vers l’aval ou ajuster le relief.'});
  }
- if((r.compositionVersion??1)===2&&r.biomeMode==='custom')for(const province of planned.provinces){
+ if((r.compositionVersion??1)>=2&&r.biomeMode==='custom')for(const province of planned.provinces){
   if(province.station===undefined)continue;
   const kind=r.sequence[province.station],env=provinceEnvironment(project,province,planned.axis);
   if((kind==='marsh'&&env.altitudeM>35)||(kind==='coast'&&env.coastM>220))diagnostics.push({severity:r.landscapes.some(l=>l.kind===kind&&l.required)?'ERROR':'WARNING',code:'SEQUENCE_INCOMPATIBLE',message:LANDSCAPES[kind]+' incompatible avec cet étage du relief : modifier la succession ou choisir une autre graine.'});
  }
  if(recipes.length)applyRegionBatch(project,recipes);
+ alignSteppedBiomes(project);
  for(const l of r.landscapes){
   if(l.kind==='lake')continue;
   if(!recipes.some(recipe=>recipe.name===LANDSCAPES[l.kind]))diagnostics.push({severity:l.required?'ERROR':'WARNING',code:'LANDSCAPE_MISSING',message:'Paysage absent de la succession : '+LANDSCAPES[l.kind]});
  }
  const normalized=parseProject(JSON.parse(JSON.stringify(project)));
- const coverage=(r.compositionVersion??1)===2?compositionCoverage(normalized,planned.axis):undefined;
+ const coverage=(r.compositionVersion??1)>=2?compositionCoverage(normalized,planned.axis):undefined;
  return {project:normalized,ready:!diagnostics.some(d=>d.severity==='ERROR'),diagnostics,family:planned.family,
   metrics:{generationMs:performance.now()-started,features:planned.terrain.features.length,sectors:Object.keys(project.chunks).length,surveyCells:hydro.survey.sampled,sourceBytes:new TextEncoder().encode(JSON.stringify(project)).length,...(coverage?{coverage}:{})}};
 }

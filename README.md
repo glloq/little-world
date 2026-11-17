@@ -204,3 +204,6 @@ Voir [architecture, exemples de graines et limites](docs/62-GUIDED-WORLD-COMPOSI
 La composition en [provinces, plateaux et plaines](docs/63-GEOGRAPHIC-PROVINCES-V2.md)
 étend les biomes sur toute l'île. Les anciens mondes conservent leur version ;
 le panneau « Recomposer le monde » permet une comparaison avant changement.
+
+Le nouveau défaut V3 compose des [îles en étages aux contours organiques](docs/64-ORGANIC-STEPPED-ISLANDS.md),
+avec des plateaux arrondis, des biomes liés au relief, deux affluents et des cascades.

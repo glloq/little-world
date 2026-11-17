@@ -11,8 +11,8 @@ export function mountCompositionPanel(host:HTMLElement,session:StudioSession,sta
  function invalidate(){preview=null;apply.disabled=true;output.replaceChildren(node('p','Recalculer l’aperçu avant application.','muted'));}
  host.append(node('h2','Recomposer le monde'),node('p','La recomposition globale est protégée si le relief, l’eau, les régions ou des objets ont été retouchés. Le rafraîchissement des biomes respecte les cellules manuelles et les régions supprimées.','muted'));
  if(!session.document.world.generation){host.append(node('p','Projet ancien : besoins absents. La création guidée reste disponible depuis l’accueil.'));return ()=>{};}
- let version:1|2=session.document.world.generation.compositionVersion??1;
- const versionInput=select(String(version),[['1','Composition initiale'],['2','Provinces, plateaux et vallées']],value=>{version=Number(value) as 1|2;invalidate();});
+ let version:1|2|3=session.document.world.generation.compositionVersion??1;
+ const versionInput=select(String(version),[['1','Composition initiale'],['2','Provinces, plateaux et vallées'],['3','Île en étages et réseau de ruisseaux']],value=>{version=Number(value) as 1|2|3;invalidate();});
  const seedInput=numberInput(seed,v=>{seed=v;invalidate();},1,9999999,'1');
  host.append(field('Mode de recomposition',select(mode,[['full','Composition globale'],['biomes','Rafraîchir les biomes actuels']],v=>{mode=v as typeof mode;seedInput.disabled=mode==='biomes';versionInput.disabled=mode==='biomes';invalidate();})),field('Nouvelle graine',seedInput),field('Génération du relief',versionInput),
   button('Comparer avant / après',async()=>{

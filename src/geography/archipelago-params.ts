@@ -20,10 +20,10 @@ export function parseArchipelago(value:unknown,world:{width:number;length:number
   const ids=new Set<string>(),unique=(v:string)=>{if(ids.has(v))throw Error('Archipel : identifiant dupliqué '+v);ids.add(v);return v;};
   const minor=Math.min(world.width,world.length);
   const landmasses:Landmass[]=value.landmasses.map(raw=>{
-    if(!record(raw))throw Error('Terre invalide');only(raw,['id','name','outline','coastNoiseM','coastWavelengthM','beachWidthM','shoreHeightM','lowlandHeightM','hillHeightM','cliffs','variant'],'Terre');
+    if(!record(raw))throw Error('Terre invalide');only(raw,['id','name','outline','coastNoiseM','coastWavelengthM','beachWidthM','shoreHeightM','lowlandHeightM','hillHeightM','cliffs','cliffVariation','variant'],'Terre');
     if(typeof raw.name!=='string'||!raw.name.trim()||raw.name.length>80)throw Error('Terre : nom requis');
     return {id:unique(id(raw.id,'Terre')),name:raw.name,outline:points(raw.outline,'Contour',3,ARCHIPELAGO_LIMITS.outline,world),coastNoiseM:num(raw.coastNoiseM,'irrégularité de côte',0,600),coastWavelengthM:num(raw.coastWavelengthM,'longueur d’onde de côte',50,5000),
-      beachWidthM:num(raw.beachWidthM,'plage',2,400),shoreHeightM:num(raw.shoreHeightM,'rivage',.5,80),lowlandHeightM:num(raw.lowlandHeightM,'plaine',0,400),hillHeightM:num(raw.hillHeightM,'collines',0,300),cliffs:num(raw.cliffs,'falaises',0,1),...variant(raw)};
+      beachWidthM:num(raw.beachWidthM,'plage',2,400),shoreHeightM:num(raw.shoreHeightM,'rivage',.5,80),lowlandHeightM:num(raw.lowlandHeightM,'plaine',0,400),hillHeightM:num(raw.hillHeightM,'collines',0,300),cliffs:num(raw.cliffs,'falaises',0,1),...(raw.cliffVariation!==undefined?{cliffVariation:num(raw.cliffVariation,'variation des falaises',0,1)}:{}),...variant(raw)};
   });
   const features:ReliefFeature[]=value.features.map(raw=>{
     if(!record(raw))throw Error('Forme invalide');const fid=unique(id(raw.id,'Forme'));

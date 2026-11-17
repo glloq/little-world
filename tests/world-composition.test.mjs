@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {composeWorld,projectFromComposition} from '../src/studio-core/world-composition.ts';
-import {DEFAULT_MAP_REQUIREMENTS as defaults,validateMapRequirements} from '../src/studio-core/map-requirements.ts';
+import {PROVINCE_MAP_REQUIREMENTS as defaults,validateMapRequirements} from '../src/studio-core/map-requirements.ts';
 import {RIVER_BIOME_SPAN} from '../src/studio-core/world-biome-planner.ts';
 import {planWorldTerrain} from '../src/studio-core/world-terrain-planner.ts';
 import {parseProject,createProject,validateLine} from '../src/studio-core/schema.ts';

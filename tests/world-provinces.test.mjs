@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {DEFAULT_MAP_REQUIREMENTS as defaults,validateMapRequirements} from '../src/studio-core/map-requirements.ts';
+import {PROVINCE_MAP_REQUIREMENTS as defaults,validateMapRequirements} from '../src/studio-core/map-requirements.ts';
 import {planWorldTerrain} from '../src/studio-core/world-terrain-planner.ts';
 import {provinceEnvironment} from '../src/studio-core/world-biome-planner.ts';
 import {composeWorld} from '../src/studio-core/world-composition.ts';
@@ -25,7 +25,7 @@ test('V1 saved requirements reproduce published geography; the new version is ex
   assert.deepEqual(p.project.libraries,explicit.project.libraries);
  }
  assert.equal(defaults.compositionVersion,2);
- assert.throws(()=>validateMapRequirements(req({compositionVersion:3})));
+ assert.throws(()=>validateMapRequirements(req({compositionVersion:4})));
 });
 test('provinces partition the full island in two dimensions; broad terraces replace the water ribbon',()=>{
  const r=req(),plan=planWorldTerrain(r),sum=plan.provinces.reduce((a,c)=>a+polygonArea(c.polygon),0);
