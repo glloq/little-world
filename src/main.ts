@@ -287,7 +287,11 @@ let elapsed = 0;
 if(touchCapable){
   mobileTouch=createTouchControls({jump:()=>{if(aboard)actionQueue++;else if(player.mode==='swim'||player.mode==='dive')touchStrokeQueue=1;else jumpQueue++;},action:()=>{actionQueue++;},roll:()=>{rollQueue++;}});
   const intro=overlay.querySelector<HTMLElement>('.start-card small');if(intro)intro.textContent='Téléphone : paysage conseillé · joystick gauche · Saut et Accélération à droite';
-  mobileLandscape=createMobileLandscape(blocked=>{if(blocked)mobileTouch?.setEnabled(false);});
+  // Restore touch controls immediately after the player accepts portrait or rotates back.
+  // Do not wait for a simulation tick: that tick may still be paused by the orientation guide.
+  mobileLandscape=createMobileLandscape(blocked=>{
+    mobileTouch?.setEnabled(!blocked&&started&&!gameUi?.blocking&&!customization.isOpen&&!npcs.dialogue.isOpen);
+  });
 }
 // Generated worlds start on a coast: face the island centre rather than the open sea.
 if(playable&&!isLegacyTerrain()){const yawParam=Number(searchParams.get('yaw'));yaw=searchParams.has('yaw')&&Number.isFinite(yawParam)?yawParam:Math.atan2(-player.position.x,-player.position.z);}

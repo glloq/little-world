@@ -198,7 +198,9 @@ try{
   await mobilePage.setViewportSize({width:390,height:844});
   await mobilePage.getByRole('dialog',{name:'Orientation de l’écran recommandée'}).waitFor({state:'visible'});
   await mobilePage.getByRole('button',{name:'Continuer en portrait'}).click();
-  verify(await mobilePage.locator('.touch-joystick').isVisible(),'If the browser cannot lock rotation, portrait play remains possible by choice');
+  // Input readiness is an observable post-transition state, not a same-event-loop assertion.
+  await mobilePage.locator('.touch-joystick').waitFor({state:'visible',timeout:5000});
+  verify(await mobilePage.locator('.touch-controls').isVisible(),'If the browser cannot lock rotation, portrait play remains possible by choice');
   await mobilePage.setViewportSize({width:844,height:390});
   await mobilePage.getByRole('dialog',{name:'Orientation de l’écran recommandée'}).waitFor({state:'hidden'});
   verify(mobileErrors.length===0,mobileErrors.join('\\n')||'Mobile HUD has no JavaScript errors');
