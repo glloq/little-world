@@ -1,4 +1,5 @@
 import {PerfSampler,createGpuTimer} from './render/perf-sampler.ts';
+import {advanceSpeedCamera,speedCameraState,createSpeedStreaks} from './render/speed-effects.ts';
 import {createActorSimulator} from './render/remote-characters.ts';
 import {captureMovement} from './physics/movement-state.ts';
 import {createTouchControls,type TouchControls} from './input/touch-controls.ts';
@@ -81,6 +82,9 @@ const loading = createLoadingScreen(start, start.parentElement!);
 const scene = new THREE.Scene();
 const lighting=configureScene(scene);
 const camera = new THREE.PerspectiveCamera(66, 1, 0.1, 750);
+// Camera-attached speed streaks use one fixed instanced draw call, with no postprocessing.
+scene.add(camera);
+const speedCue=speedCameraState(),speedStreaks=createSpeedStreaks(camera);
 const renderer = new THREE.WebGLRenderer({
   antialias: !touchCapable, // Avoid expensive MSAA on low-end mobile GPUs.
   powerPreference: 'high-performance',
@@ -407,7 +411,7 @@ window.addEventListener('keydown', (e) => {
     player.oxygen = MAX_OXYGEN;
     player.glideReady = false;
     touchStrokeQueue=0;
-    player.gasReserve=GAS.initial;player.gasBoosting=false;player.gasPulseClock=0;player.gasPulseSeq=0;gasVisualSeq=0;rightBoostDown=false;
+    player.gasReserve=GAS.initial;player.gasBoosting=false;player.gasPulseClock=0;player.gasPulseSeq=0;player.gasThrust=0;gasVisualSeq=0;rightBoostDown=false;
     player.coyoteLeft=0;player.jumpBufferLeft=0;
     previousPlayerPosition.copy(player.position);
     renderPosition.copy(player.position);
@@ -493,13 +497,16 @@ function showInfo(text: string, kind:'info'|'success'|'warning'='info') {
 const cameraTarget = new THREE.Vector3(),
   cameraDesired = new THREE.Vector3(),audioForward=new THREE.Vector3();
 function updateCamera(dt: number) {
+  const effects=gameUi?.preferences.speedEffects!==false&&!gameUi?.preferences.reduceMotion;
+  advanceSpeedCamera(speedCue,{speed:player.velocity.length(),mode:player.mode,boosting:!!player.gasBoosting,turnRate:player.glideTurnRate??0,enabled:effects},dt);
   const target = cameraTarget.copy(renderPosition);
   target.y += aboard ? 2.9 : 1.35;
+  const followDistance=distance+speedCue.extraDistance;
   const cosPitch = Math.cos(pitch);
-  const x = target.x - Math.sin(yaw) * cosPitch * distance;
-  const z = target.z - Math.cos(yaw) * cosPitch * distance;
+  const x = target.x - Math.sin(yaw) * cosPitch * followDistance;
+  const z = target.z - Math.cos(yaw) * cosPitch * followDistance;
   let y = Math.max(
-    target.y + Math.sin(pitch) * distance,
+    target.y + Math.sin(pitch) * followDistance,
     terrainHeight(x, z) + 1.8,
   );
   const desired = cameraDesired.set(x, y, z);
@@ -507,9 +514,8 @@ function updateCamera(dt: number) {
   if(player.space&&gameplay){const inside=gameplay.activities.cameraInMine(target,player.space,yaw,pitch,distance);if(inside){desired.set(inside.x,inside.y,inside.z);camera.position.copy(desired);camera.lookAt(target);return;}}
   camera.position.lerp(desired, Math.min(1, dt * 6));
   camera.lookAt(target);
-  const effects=gameUi?.preferences.speedEffects!==false&&!gameUi?.preferences.reduceMotion;
-  const targetFov=66+(effects&&(player.mode==='roll'||player.mode==='glide')?Math.min(7,Math.max(0,player.velocity.length()-8)*.35):0);
-  if(Math.abs(camera.fov-targetFov)>.005){camera.fov+=(targetFov-camera.fov)*(1-Math.exp(-dt*3));camera.updateProjectionMatrix();}
+  camera.rotateZ(speedCue.bank);
+  if(Math.abs(camera.fov-speedCue.fov)>.005){camera.fov=speedCue.fov;camera.updateProjectionMatrix();}
 }
 /** Contextual target: the same ordered sources decide what the HUD shows and what E does
  * (boat → usable object → inhabitant → boat to board → mine wall → farm plot → unusable object). */
@@ -773,6 +779,7 @@ function draw(now: number) {
   );
   // Finalize the current view before LOD/culling and lighting consume it.
   updateCamera(delta);
+  speedStreaks.update(player.velocity.length(),player.mode==='glide',started&&!gameUi?.paused&&gameUi?.preferences.speedEffects!==false&&!gameUi?.preferences.reduceMotion,delta);
   environment.update(delta,player.position,budget.level,!!player.space);
   activityView?.update(delta,player.position,player.space);
   {const climateNow=climate.state(worldClock.time),night=nightFactor(climateNow.sunAltitude);world.lights.setEnvironment(night,now/1000);world.setNight(night);world.setWind(.25+.8*climateNow.wind);}
@@ -784,7 +791,7 @@ function draw(now: number) {
   grassActors.length=0;
   for(const state of npcs.states)if(Math.hypot(state.x-player.position.x,state.z-player.position.z)<44)grassActors.push(state);
   remoteActors?.renderer.collectGrassActors(grassActors,player.position);
-  world.update(delta, player.position, camera, renderer.domElement.height);
+  world.update(delta, player.position, camera, renderer.domElement.height, player.velocity);
   if(!loading.ready)loading.update({terrainPending:world.stats.pending,dressingPending:world.dressing?.nearPending??0,speciesState:world.dressing?.species.state??'none'});
   remoteActors?.update(delta,elapsed,camera,renderer.domElement.height,budget.level);
   npcs.update(delta, elapsed, player.position,camera); // The river drives the mill: no manual on/off control.
@@ -895,7 +902,7 @@ function draw(now: number) {
   }
   requestAnimationFrame(draw);
 }
-window.addEventListener('pagehide',event=>{if(event.persisted)void audio?.engine.setHidden(true);else {remoteActors?.dispose();gasEffects.dispose();gpuTimer.dispose();void audio?.dispose();}});
+window.addEventListener('pagehide',event=>{if(event.persisted)void audio?.engine.setHidden(true);else {remoteActors?.dispose();gasEffects.dispose();speedStreaks.dispose();gpuTimer.dispose();void audio?.dispose();}});
 window.addEventListener('pageshow',event=>{if(event.persisted&&started)void audio?.engine.setHidden(document.hidden);});
 document.addEventListener('visibilitychange', () => {
   presentation.reset();
