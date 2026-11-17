@@ -1,6 +1,6 @@
 # Roadmap de réalisation — Boost aérien à impulsions (FLB)
 
-**Statut : ROADMAP / NOT IMPLEMENTED.** La présente branche contient **la documentation**, pas les modifications gameplay.  
+**Statut : implémentation expérimentale en branche, gates de qualification partiellement ouverts.** Ne pas confondre code poussé, tests automatiques et performances sur appareil cible.  
 **Source fonctionnelle :** [Étude du boost et du fun de vol](FLIGHT-BOOST-GAMEPLAY-STUDY.md).  
 **Bases :** main du 17 novembre 2026 ; ré-auditer main et les branches actives avant chaque lot.  
 **Contrainte :** ne pas merger par défaut ; ne pas remplacer la roadmap générale [07](07-ROADMAP.md), ni la campagne [62](62-HIGH-SPEED-FLIGHT.md).
