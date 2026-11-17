@@ -198,14 +198,19 @@ try{
   const {parseAnyAudioDefinition,toAudioCatalog,mergeAudioCatalogs}=await import('./audio/migrate.ts');
   const baseAudio=await fetch(import.meta.env.BASE_URL+'audio/catalog.json').catch(()=>null);
   const builtin=baseAudio?.ok?parseAnyAudioDefinition(await baseAudio.json()):undefined;
-  let definition=playable?.audio;
-  // Keep authored audio and supplement global boost cues without overriding world assets.
-  if(definition&&builtin)definition=mergeAudioCatalogs(toAudioCatalog(definition),toAudioCatalog(builtin));
-  else definition??=builtin;
+  // A world-specific catalog is authoritative, including the version used by V1 migration.
+  // Only supply built-in audio when the world provides none; never replace a V1 beta soundtrack.
+  let definition=playable?.audio??builtin;
   const boostResponse=await fetch(import.meta.env.BASE_URL+'audio/boost-catalog.json').catch(()=>null);
   if(boostResponse?.ok){
     const boostCatalog=parseAnyAudioDefinition(await boostResponse.json());
-    definition=definition?mergeAudioCatalogs(toAudioCatalog(definition),toAudioCatalog(boostCatalog)):boostCatalog;
+    if(definition){
+      const original=toAudioCatalog(definition);
+      const merged=mergeAudioCatalogs(original,toAudioCatalog(boostCatalog));
+      // Preserve diagnostics / version contracts for existing worlds and Studio browser tests.
+      merged.meta=original.meta??{catalogVersion:'migrated-v1'};
+      definition=merged;
+    }else definition=boostCatalog;
   }
   if(definition){const {createAudioController}=await import('./audio/view.ts');audio=createAudioController(definition,{baseUrl:import.meta.env.BASE_URL});}
  }catch{console.warn('Audio indisponible : le jeu reste silencieux.');}
