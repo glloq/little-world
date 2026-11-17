@@ -23,6 +23,13 @@ try{
   await page.getByText(/État : WALK/).waitFor({timeout:25000});
   check((await canvas.evaluate(el=>el.width))>=280,'Preview allocates a bounded Three.js canvas');
   check(await page.getByLabel('Séquence').inputValue()==='walk','Walking preset is the default');
+  await page.getByLabel('Cadence de rendu').selectOption('20');
+  await page.waitForFunction(()=>document.querySelector('.hamster-motion-stage')?.dataset.renderHz==='20');
+  const cost=await page.locator('.hamster-motion-stage').evaluate(el=>({sim:Number(el.dataset.simHz),hz:Number(el.dataset.renderHz),calls:Number(el.dataset.drawCalls),tris:Number(el.dataset.triangles),cpu:Number(el.dataset.cpuRenderMs)}));
+  check(cost.sim===30&&cost.hz===20,'Fixed 30Hz animation with a selectable 20Hz GPU budget');
+  check(cost.calls>0&&cost.calls<=8,'Preview keeps draw calls low ('+cost.calls+')');
+  check(cost.tris>0&&cost.tris<100000,'Low-poly renderer stays within generous triangle ceiling ('+cost.tris+')');
+  check(Number.isFinite(cost.cpu)&&cost.cpu>=0,'CPU render time is instrumented (GPU time excluded)');
   await page.getByLabel('Séquence').selectOption('roll');
   await page.getByText(/État : ROLL_/).waitFor({timeout:15000});
   check(true,'Rolling uses the real animator state machine');
@@ -37,6 +44,9 @@ try{
   await page.getByRole('button',{name:'Pause',exact:true}).click();
   check(await page.getByRole('button',{name:'Reprendre'}).count()===1,'Preview can be paused');
   await page.getByRole('button',{name:'Reprendre'}).click();
+  await page.getByLabel('Cadence de rendu').selectOption('30');
+  await page.waitForFunction(()=>document.querySelector('.hamster-motion-stage')?.dataset.renderHz==='30');
+  check(true,'30Hz display mode can be restored without reloading the scene');
   await mkdir('/tmp/little-world-browser',{recursive:true});
   await page.screenshot({path:'/tmp/little-world-browser/hamster-motion-lab.png'});
   await page.getByRole('button',{name:'Sélection',exact:true}).click();
