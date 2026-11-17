@@ -21,7 +21,7 @@ try{
   const m=()=>page.evaluate(()=>window.littleWorldMetrics);
   // Heading north-east: the player's boat moors straight north of the spawn (and boats are solid).
   await page.goto(`${base}?metrics=1&spawn=${spot.x},${spot.z}&yaw=0.7`,{waitUntil:'domcontentloaded'});
-  await page.waitForSelector('#start:not([disabled])',{timeout:120000});await page.locator('#start').click();
+  await page.locator('#start-overlay').waitFor({state:'hidden',timeout:120000});await page.locator('#start-overlay').waitFor({state:'hidden'});
   await page.waitForFunction(()=>window.littleWorldMetrics?.chunks.pending===0,{},{timeout:120000});await page.waitForTimeout(600);
   // 1. Walk into the sea: swimming IN the water.
   await page.keyboard.down('KeyW');await page.waitForFunction(()=>window.littleWorldMetrics?.mode==='swim',{},{timeout:15000}).catch(()=>{});
