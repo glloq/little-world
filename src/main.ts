@@ -829,7 +829,7 @@ function draw(now: number) {
   }
   if(player.mode==='glide'&&player.gasBoosting&&player.gasPulseSeq!==gasVisualSeq){
     character.rig.joints.Tail.getWorldPosition(gasOrigin);
-    gasEffects.spawn(gasOrigin,player.velocity);
+    gasEffects.spawn(gasOrigin,player.velocity,6,flightProgress.selectedSkin);
     // Exactly one sound and VFX per accepted simulation pulse, not per key or frame.
     audio?.emit('player.boost.pulse',{position:player.position,source:'player',context:{state:flightProgress.selectedSound,intensity:player.velocity.length()>35?'heavy':'medium'}});
   }
