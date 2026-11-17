@@ -34,6 +34,7 @@ export interface Controls {
    * forward follows it (looking down dives down). Gliding uses the same camera intention. */
   cameraPitch?: number;
   /** Right mouse button, active in glide only. */boostHeld?:boolean;
+  /** One mobile swim stroke (edge-triggered), leaving PC Space dive unchanged. */swimStrokePressed?:boolean;
 }
 export interface Player {
   position: THREE.Vector3;
@@ -75,6 +76,7 @@ export interface Player {
   footSupportLeft?:number;footSupportRight?:number;
   /** Saved tick-based jump forgiveness state. No visual state can mutate it. */
   coyoteLeft?:number;coyoteFrom?:'idle'|'run'|'roll';jumpBufferLeft?:number;
+  swimStrokeClock?:number;swimStrokeSeq?:number;
   /** Lightweight presentation cues: surface pitch/roll and roll steering residual. */
   groundPitch?:number;groundRoll?:number;rollSlip?:number;
   /** Replayable flight intention/state; independent from the render camera. */
@@ -198,23 +200,29 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
       if (p.diving) v.y = Math.min(v.y, -SWIM.divePush);
     }
     if (p.oxygen <= 0) p.diving = false;
+    // Brasse: short deterministic speed pulse, independent of PC Space dive toggling.
+    if(keys.swimStrokePressed){p.swimStrokeClock=.32;p.swimStrokeSeq=(p.swimStrokeSeq??0)+1;}
+    else p.swimStrokeClock=Math.max(0,(p.swimStrokeClock??0)-dt);
+    const stroke=(p.swimStrokeClock??0)/.32;
+    const strokeForward=stroke>0&&len<.14?1:forward,strokeRight=stroke>0&&len<.14?0:right;
+    const strokeDx=stroke>0&&len<.14?sx:dx,strokeDz=stroke>0&&len<.14?cz:dz;
     const underwater = !!p.diving || keys.dive;
-    const speed = underwater ? (keys.run ? SWIM.diveRun : SWIM.dive) : keys.run ? 5.0 : 3.15;
+    const speed = (underwater ? (keys.run ? SWIM.diveRun : SWIM.dive) : keys.run ? 5.0 : 3.15)+stroke*2.5;
     const smoothing = Math.min(1, dt * 6);
     let vyTarget: number;
     if (underwater && !keys.dive) {
       // 3D swimming: forward follows the camera (looking down dives down), strafing stays level.
       const tilt = clamp(keys.cameraPitch ?? 0, -1.2, 1.2), level = Math.cos(tilt);
       // Camera-relative input split: the forward part tilts with the camera, strafing stays level.
-      const fx = forward * sx, fz = forward * cz, ix = -right * cz, iz = right * sx;
+      const fx = strokeForward * sx, fz = strokeForward * cz, ix = -strokeRight * cz, iz = strokeRight * sx;
       v.x += ((fx * level + ix) * speed - v.x) * smoothing;
       v.z += ((fz * level + iz) * speed - v.z) * smoothing;
-      vyTarget = -Math.sin(tilt) * forward * speed;
+      vyTarget = -Math.sin(tilt) * strokeForward * speed;
       // A dive first goes fully under (head ≈ 0.6 m deep), then floats and follows the camera.
       if (p.diveSink) { if (pos.y <= surfaceY - SWIM.diveDepth + .05) p.diveSink = false; else vyTarget = Math.min(vyTarget, clamp((surfaceY - SWIM.diveDepth - pos.y) * 3, -2, -.6)); }
     } else {
-      v.x += (dx * speed - v.x) * smoothing;
-      v.z += (dz * speed - v.z) * smoothing;
+      v.x += (strokeDx * speed - v.x) * smoothing;
+      v.z += (strokeDz * speed - v.z) * smoothing;
       // Ctrl held sinks; otherwise the float pulls back to the swimming line (fast from deep water).
       vyTarget = keys.dive ? -3.2 : clamp((surfaceY - pos.y) * 4, -1.5, 3.75);
     }
@@ -229,6 +237,7 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
     else p.oxygen = Math.min(MAX_OXYGEN, p.oxygen + dt * 9);
     p.glideReady = false;
   } else {
+    p.swimStrokeClock=0;
     if (oldMode === 'swim' || oldMode === 'dive') {
       p.mode = 'air';
       v.y = Math.max(0, v.y);
@@ -271,7 +280,7 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
       if(!collision)pos.y+=v.y*dt;
     } else {
       const charge=p.runCharge??0,blend=charge*charge*(3-2*charge);
-      const uprightTarget=keys.autoRun?MOTION.walk+(MOTION.run-MOTION.walk)*blend:keys.run?MOTION.run:MOTION.walk;
+      const uprightTarget=keys.run?MOTION.run:keys.autoRun?MOTION.walk+(MOTION.run-MOTION.walk)*blend:MOTION.walk;
       groundVelocity(v,dx,dz,uprightTarget,dt);
     }
     p.oxygen = Math.min(MAX_OXYGEN, p.oxygen + dt * 14);
@@ -390,13 +399,13 @@ function rollStep(p:Player,keys:Controls,dt:number,dx:number,dz:number,len:numbe
  let slipTarget=0;
  if(len>.1){
   const want=Math.atan2(dx,dz),delta=angleDelta(heading,want),align=Math.cos(delta);
-  if(speed<1.5){heading=want;speed=Math.min(ROLL.max,speed+ROLL.accel*dt*Math.min(1,len));}
+  if(speed<1.5){heading=want;speed=Math.min(ROLL.max+(keys.run?2:0),speed+ROLL.accel*dt*Math.min(1,len)*(keys.run?1.4:1));}
   else if(align<-.3)speed=Math.max(0,speed-ROLL.brake*dt);
   else{
    const rate=ROLL.turnRate*surface.grip/(1+speed*.035),turn=Math.max(-rate*dt,Math.min(rate*dt,delta));
    heading+=turn;speed*=Math.exp(-ROLL.turnLoss*Math.abs(turn));
-   const driveLimit=ROLL.max/(1+Math.abs(turn/dt)*.35);
-   if(speed<driveLimit)speed=Math.min(driveLimit,speed+ROLL.accel*dt*Math.min(1,len));
+   const driveLimit=(ROLL.max+(keys.run?2:0))/(1+Math.abs(turn/dt)*.35);
+   if(speed<driveLimit)speed=Math.min(driveLimit,speed+ROLL.accel*(keys.run?1.4:1)*dt*Math.min(1,len));
   }
   // Remaining steering error is the (signed) visual skid; low-grip surfaces amplify it.
   const residual=angleDelta(heading,want);
