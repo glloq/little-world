@@ -10,10 +10,12 @@ export function isEditableGameTarget(target:EventTarget|null):boolean{
 export function shouldPreventGameplayKeyDefault(code:string,active:boolean,editing:boolean):boolean{
   return active&&!editing&&RESERVED_GAME_KEYS.has(code);
 }
-export function shouldSuppressGameplayContextMenu(running:boolean,onGameSurface:boolean,editing:boolean):boolean{
-  return running&&onGameSurface&&!editing;
+/** The entire running game owns its context menu, regardless of the DOM hit target.
+ * Firefox deliberately bypasses this for Shift+right-click, so right-click is not a game binding. */
+export function shouldSuppressGameplayContextMenu(running:boolean,editing:boolean):boolean{
+  return running&&!editing;
 }
-/** Shift is the same contextual acceleration button on ground, water and in flight. */
-export function flightBoostHeld(mode:string,rightMouseHeld:boolean,shiftHeld:boolean,touchAccelerateHeld:boolean):boolean{
-  return mode==='glide'&&(rightMouseHeld||shiftHeld||touchAccelerateHeld);
+/** Shift on desktop or the existing acceleration button on touch devices. */
+export function flightBoostHeld(mode:string,shiftHeld:boolean,touchAccelerateHeld:boolean):boolean{
+  return mode==='glide'&&(shiftHeld||touchAccelerateHeld);
 }
