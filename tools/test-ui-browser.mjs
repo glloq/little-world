@@ -129,7 +129,8 @@ try{
   await page.getByRole('button',{name:'Explorer l’île'}).click();const t1=await envTime();await page.waitForTimeout(600);verify(await envTime()>t1,'Playing again resumes the world');
   // 16. Desktop input regression: game focus, Space, context menu and contextual boost.
   const sceneCanvas=page.locator('#viewport canvas');
-  const mapShortcut=page.getByRole('button',{name:'Ouvrir la carte du monde (M)'});
+  // Accessible minimap label changes when a waypoint is active; class is stable.
+  const mapShortcut=page.locator('.ui-minimap');
   await mapShortcut.click();await ui.panel('map').waitFor();
   await page.keyboard.press('Escape');
   verify(await sceneCanvas.evaluate(e=>document.activeElement===e),'Closing a HUD-opened map returns focus to the game canvas');
