@@ -5,6 +5,23 @@
 **Bases :** main du 17 novembre 2026 ; ré-auditer main et les branches actives avant chaque lot.  
 **Contrainte :** ne pas merger par défaut ; ne pas remplacer la roadmap générale [07](07-ROADMAP.md), ni la campagne [62](62-HIGH-SPEED-FLIGHT.md).
 
+## État de la branche (17 novembre 2026)
+
+| Lot | État du code | Validation / restant |
+| --- | --- | --- |
+| FLB-0 | Audit des modules de main et du dépôt réalisé | **PARTIAL** : baseline de référence instrumentée GPU/CPU non mesurée |
+| FLB-1 | **IMPLEMENTED** : impulsion 0,20 s, coût 14, délai 0,55 s, réserve 150/200 puis 224/252/280, puissance 10/11/12/14 m/s, cap 60 m/s, snapshot/replay | Tests dédiés + collision fine ajoutés ; performance et réglages à qualifier |
+| FLB-2 | **IMPLEMENTED** : Shift/bouton Boost existants, compteur segmenté, cooldown, caméra et traînées bornées | Vérification tactile et ressenti à grande vitesse sur appareil réel à approfondir |
+| FLB-3 | **IMPLEMENTED (prototype)** : six effets de couleurs/silhouettes, pool 24 instances, pack audio V2 indépendant avec 25 générateurs procéduraux, sélecteurs et previews | Audio marqué LISTENING_REVIEW (écoute artistique non effectuée), profilage CPU/GPU/audio réel non effectué |
+| FLB-4 | **IMPLEMENTED (prototype)** : déblocages par exploration/distance/impulsions, sauvegardes V1/V2 migrées, cosmétiques, trois arbres d'amélioration | Récompenses PNJ et recettes fromage/patate/noisette restent du contenu ultérieur facultatif |
+| FLB-5 | **IMPLEMENTED (prototype)** : trois défis solo, cinq anneaux instanciés, chrono et records persistants, tests de logique | **NOT QUALIFIED** : sessions de ressenti, collision/streaming à grande vitesse et validation 30/20 FPS sur GPU intégré réel |
+
+Les scripts CI contrôlent tests unitaires, build, génération audio et tests navigateur ; **une CI verte ne prouve pas les FPS sur matériel cible**. Le cap 60 m/s est actif **sur cette branche expérimentale uniquement** et ne doit pas être considéré prêt pour une fusion de production.
+
+**Décisions d'implémentation :** les bonus combo +5 % restent désactivés ; la conservation physique de la vitesse est déjà le bénéfice du combo. Pour éviter de rompre la génération audio reproductible, les sons de boost se trouvent dans public/audio/boost-catalog.json, fusionnés en mémoire avec le catalogue propre au monde, et non dans le fichier public/audio/catalog.json généré par script. Les variantes sont des synthèses procédurales originales, non 25 échantillons WAV acoustiques.
+
+**Écarts volontaires par rapport au plan initial :** déblocages actuellement automatiques par progression de vol plutôt que missions PNJ ; pas de fantôme de course ni de compétition multijoueur ; contenu alimentaire inédit non créé. Ce sont des extensions futures, sans blocage des mécaniques de vol livrées.
+
 ## 0. Stratégie de livraison
 
 Le programme comporte **6 lots séquencés**, chacun autonome, petit et testable. Chaque PR de code doit annoncer le statut **SPECIFIED → IMPLEMENTED → TESTED → BENCHMARKED → RELEASED** (aucune revendication de performance sans mesure réelle).
