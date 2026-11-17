@@ -18,6 +18,8 @@ export interface PlayerPresentationState {
   /** Optional V1 extension: continuous motion phases and visual context; legacy packets remain valid. */
   stridePhase?:number;rollPhase?:number;turnIntent?:number;
   jumpKind?:'idle'|'run'|'roll';landingSpeed?:number;
+  /** Optional monotone simulation events; remote render can miss intermediate air/ground frames. */
+  jumpSeq?:number;landingSeq?:number;
   groundPitch?:number;groundRoll?:number;rollSlip?:number;
   landingKind?:'idle'|'run'|'roll'|'glide';landingSlide?:number;
   footSupportLeft?:number;footSupportRight?:number;
@@ -36,6 +38,8 @@ export function parsePresentationState(value: unknown): PlayerPresentationState 
   for(const key of ['stridePhase','rollPhase','turnIntent','landingSpeed'] as const)
     if(s[key]!==undefined&&!finite(s[key],1e8))throw Error('Cue invalide : '+key);
   if(s.jumpKind!==undefined&&!['idle','run','roll'].includes(s.jumpKind))throw Error('Type de saut invalide');
+  for(const key of ['jumpSeq','landingSeq'] as const)
+    if(s[key]!==undefined&&(!Number.isSafeInteger(s[key])||s[key]!<0))throw Error('Séquence de mouvement invalide : '+key);
   if(s.landingKind!==undefined&&!['idle','run','roll','glide'].includes(s.landingKind))throw Error('Type de réception invalide');
   if(s.landingSlide!==undefined&&(!finite(s.landingSlide,1)||s.landingSlide<0))throw Error('Glissade invalide');
   for(const key of ['footSupportLeft','footSupportRight'] as const)
@@ -47,6 +51,8 @@ export function parsePresentationState(value: unknown): PlayerPresentationState 
     ...(s.rollPhase!==undefined?{rollPhase:s.rollPhase}:{}),
     ...(s.turnIntent!==undefined?{turnIntent:s.turnIntent}:{}),
     ...(s.jumpKind!==undefined?{jumpKind:s.jumpKind}:{}),
+    ...(s.jumpSeq!==undefined?{jumpSeq:s.jumpSeq}:{}),
+    ...(s.landingSeq!==undefined?{landingSeq:s.landingSeq}:{}),
     ...(s.landingSpeed!==undefined?{landingSpeed:s.landingSpeed}:{}),
     ...(s.groundPitch!==undefined?{groundPitch:s.groundPitch}:{}),
     ...(s.groundRoll!==undefined?{groundRoll:s.groundRoll}:{}),
