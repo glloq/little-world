@@ -24,6 +24,7 @@ import {activityCard,miningViewModel,farmingViewModel} from '../activities/activ
 import {promptText,type TargetDescriptor} from '../interactions/targets.ts';
 import {el,button,kbd} from '../shared/dom.ts';
 import './ui.css';
+import './hud.css';
 
 export interface GameUiDeps {
   gameplay:GameplayView|null;
@@ -39,7 +40,7 @@ export interface GameUiDeps {
   home():void;studioUrl:string;temporary:boolean;
 }
 export function createGameUi(deps:GameUiDeps){
-  const host=el('div','ui-root');host.id='ui-root';document.body.append(host);
+  const host=el('div','ui-root');host.id='ui-root';host.classList.add('ui-await-start');document.body.append(host);
   let prefs=loadPreferences();deps.applyDistantRendering?.(prefs.distantRendering,true);
   const devUrl=/[?&](metrics|dev)(=|&|$)/.test(location.search);
   const applyPrefs=()=>{document.body.classList.toggle('developer',prefs.developer||devUrl);document.body.classList.toggle('reduce-motion',prefs.reduceMotion);};applyPrefs();
@@ -82,7 +83,7 @@ export function createGameUi(deps:GameUiDeps){
   ui.register('settings','Paramètres',{pauses:true,render:b=>{closeAudioPopover();settingsPanel({preferences:()=>prefs,update:updatePrefs,quality:deps.quality,audioPanel:document.querySelector<HTMLDetailsElement>('.audio-controls')}).render(b);},
     // The audio panel goes back to its developer place when the settings close.
     onClose:()=>{const audio=document.querySelector<HTMLDetailsElement>('.audio-controls');if(audio){audio.open=false;document.body.append(audio);}}});
-  ui.register('pause','Menu',{pauses:true,render:b=>pauseMenu({has:id=>ui.has(id),open:id=>ui.open(id),resume:()=>ui.close(),home:deps.home,studioUrl:deps.studioUrl,worldName:deps.world.name,temporary:deps.temporary}).render(b)});
+  ui.register('pause','Menu',{pauses:true,render:b=>pauseMenu({has:id=>ui.has(id),open:id=>ui.open(id),resume:()=>ui.close(),home:()=>{host.classList.add('ui-await-start');deps.home();},studioUrl:deps.studioUrl,worldName:deps.world.name,temporary:deps.temporary}).render(b)});
   // Non-blocking HUD. The map, sound engine and gameplay state remain the single sources of truth.
   const prompt=document.querySelector<HTMLElement>('#action')??el('div','action-toast');prompt.id='action';prompt.classList.add('ui-prompt','hide');host.append(prompt);
   const top=el('header','ui-hud-top'),topLeft=el('div','ui-hud-group'),topRight=el('div','ui-hud-group');
@@ -147,7 +148,7 @@ export function createGameUi(deps:GameUiDeps){
     controller:ui,notify:(kind:NoticeKind,text:string)=>center.notify(kind,text),center,
     get preferences(){return prefs;},
     get blocking(){return ui.blocking;},get paused(){return ui.paused;},
-    started(){hint.classList.remove('hide');setTimeout(()=>hint.classList.add('hide'),prefs.reduceMotion?6000:9000);},
+    started(){host.classList.remove('ui-await-start');hint.classList.remove('hide');setTimeout(()=>hint.classList.add('hide'),prefs.reduceMotion?6000:9000);},
     /** Keys of the interface. Returns true when consumed (the game must ignore it). */
     handleKey(e:KeyboardEvent,inGame:boolean):boolean{
       if(ui.handleKey(e))return true;
