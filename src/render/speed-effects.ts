@@ -11,7 +11,7 @@ export function advanceSpeedCamera(s:SpeedCameraState,
   const speed=clamp(Number.isFinite(input.speed)?input.speed:0,0,40);
   const boost=active&&input.mode==='glide'&&input.boosting;
   const targetFov=66+(active?Math.min(10,Math.max(0,speed-8)*.4)+(boost?1:0):0);
-  const targetDistance=active&&input.mode==='glide'?Math.min(3,Math.max(0,speed-11)*.13)+(boost?.6:0):0;
+  const targetDistance=active&&input.mode==='glide'?Math.min(3,Math.max(0,speed-11)*.13)+(boost?0.6:0):0;
   const targetBank=active&&input.mode==='glide'?clamp((Number.isFinite(input.turnRate)?input.turnRate:0)*.06,-.075,.075):0;
   s.fov+=(targetFov-s.fov)*(1-Math.exp(-step*(targetFov>s.fov?5:3)));
   s.extraDistance+=(targetDistance-s.extraDistance)*(1-Math.exp(-step*3.5));
