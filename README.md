@@ -211,3 +211,14 @@ le panneau « Recomposer le monde » permet une comparaison avant changement.
 
 Le nouveau défaut V3 compose des [îles en étages aux contours organiques](docs/64-ORGANIC-STEPPED-ISLANDS.md),
 avec des plateaux arrondis, des biomes liés au relief, deux affluents et des cascades.
+
+## Génération de colonies — conception et roadmap
+
+Le générateur de colonies (maisons, villages, villes, camps, ports, terriers et grottes) est **spécifié mais non implémenté** sur la branche de documentation `docs/studio-settlements-collision-roadmap` :
+
+- [65 — Catalogue architectural, styles, richesse, morphologies et UX Studio](docs/65-SETTLEMENTS-STUDIO-SPEC.md)
+- [66 — Implantation intelligente, routes, chemins, parcelles et métiers](docs/66-SETTLEMENTS-PLACEMENT-NETWORK.md)
+- [67 — Collisions 3D, accès, grottes, portes et interactions joueur](docs/67-SETTLEMENTS-COLLISIONS-INTERACTIONS.md)
+- [68 — Roadmap SET-0 à SET-12, tests et gates de qualification](docs/68-SETTLEMENTS-ROADMAP-TESTS.md)
+
+Ce chantier réutilise les contrats V3, le CommandBus, les chemins, la géographie et les systèmes d'interactions existants ; il n'ajoute pas de second moteur ni de simulation économique en temps réel.
