@@ -28,7 +28,7 @@ check(characters.length>=20&&quests>=8,`Island inhabited: ${characters.length} N
 try{
   const page=await browser.newPage({viewport:{width:1100,height:700}}),errors=[];page.on('pageerror',e=>errors.push(e.message));
   const m=()=>page.evaluate(()=>window.littleWorldMetrics);
-  const open=async(x,z,yaw)=>{await page.goto(`${base}?world=maps/island/manifest.json&metrics=1&spawn=${x.toFixed(1)},${z.toFixed(1)}&yaw=${yaw.toFixed(3)}`,{waitUntil:'networkidle'});await page.locator('#start').click();await page.waitForFunction(()=>window.littleWorldMetrics?.chunks.pending===0,{},{timeout:60000});await page.waitForTimeout(800);};
+  const open=async(x,z,yaw)=>{await page.goto(`${base}?world=maps/island/manifest.json&metrics=1&spawn=${x.toFixed(1)},${z.toFixed(1)}&yaw=${yaw.toFixed(3)}`,{waitUntil:'networkidle'});await page.locator('#start-overlay').waitFor({state:'hidden'});await page.waitForFunction(()=>window.littleWorldMetrics?.chunks.pending===0,{},{timeout:60000});await page.waitForTimeout(800);};
   // 1. Counter: stand 1.8 m in front of it, facing it.
   const fx=cp.x,fz=cp.z-1.8;await open(fx,fz,Math.atan2(cp.x-fx,cp.z-fz));
   check((await m()).inventory.coin===40,'New game starts with 40 coins');
