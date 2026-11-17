@@ -9,6 +9,8 @@ import {saveSlotViewModel} from '../src/ui/saves/saves.ts';
 import {parsePreferences,loadPreferences,savePreferences,DEFAULT_PREFERENCES,UI_PREFERENCES_KEY} from '../src/ui/app/preferences.ts';
 import {miningViewModel,farmingViewModel} from '../src/ui/activities/activity-card.ts';
 import {createMapRaster} from '../src/ui/map/map.ts';
+import {LOADING_TIPS,loadingState} from '../src/ui/loading.ts';
+import {createClimate,defaultEnvironment} from '../src/environment/climate.ts';
 import {joystickAxis} from '../src/input/touch-controls.ts';
 import {isPhoneTouchDevice} from '../src/input/mobile-landscape.ts';
 import {createWaypointStore,parseWaypointState,MAX_WAYPOINTS} from '../src/ui/map/waypoints.ts';
@@ -142,4 +144,33 @@ test('mobile controls are gated to coarse pointers on phone-sized screens',()=>{
  assert.equal(isPhoneTouchDevice(device(844,390,true)),true);
  assert.equal(isPhoneTouchDevice(device(1280,800,true)),false);
  assert.equal(isPhoneTouchDevice(device(390,844,false)),false);
+});
+
+test('loading tips vary across five topics and progress lists real counters',()=>{
+  assert.ok(LOADING_TIPS.length>=15);
+  for(const topic of [/fromage|brie|camembert/i,/patate|pomme de terre/i,/hamster/i,/pet|gaz/i,/noix|noisette/i])
+    assert.ok(LOADING_TIPS.some(t=>topic.test(t)),'missing loading joke family: '+topic);
+  const pending={terrain:0,dressing:0};
+  const first=loadingState({boot:1,terrainPending:3,dressingPending:4,speciesState:'loading'},pending,1000);
+  assert.equal(first.ready,false);assert.ok(first.fraction<1);
+  const final=loadingState({boot:1,terrainPending:0,dressingPending:0,speciesState:'ready'},pending,1500);
+  assert.equal(final.ready,true);
+});
+
+test('relief layer reuses map height samples without extra work',()=>{
+  let calls=0;const raster=createMapRaster({bounds:{minX:0,maxX:200,minZ:0,maxZ:200},height:(x,z)=>{calls++;return z*.8;},water:()=>null,seaLevel:0},32);
+  while(!raster.done)raster.step(0);
+  assert.equal(calls,raster.width*raster.height);
+  assert.equal(raster.reliefData.length,raster.data.length);
+  assert.equal(raster.reliefData[3],255);
+  const lower=raster.reliefData[0],higher=raster.reliefData[(raster.width*(raster.height-1))*4];
+  assert.ok(higher>lower,'higher elevations should appear lighter');
+});
+
+test('developer weather preview does not change deterministic history or saved climate definition',()=>{
+  const climate=createClimate(defaultEnvironment(187));
+  const baseline=climate.summarize(0,600),original=climate.state(200).weather;
+  climate.setPreviewWeather('rain');assert.equal(climate.state(200).weather,'rain');
+  assert.deepEqual(climate.summarize(0,600),baseline);
+  climate.setPreviewWeather(null);assert.equal(climate.state(200).weather,original);
 });
