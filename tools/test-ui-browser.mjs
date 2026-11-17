@@ -152,10 +152,10 @@ try{
       target.dispatchEvent(event);return event.defaultPrevented;
     };
     const edit=document.createElement('input');document.querySelector('#ui-root').append(edit);
-    const results={canvas:inspect(document.querySelector('#viewport canvas')),hud:inspect(document.querySelector('.ui-minimap')),editable:inspect(edit)};
+    const results={canvas:inspect(document.querySelector('#viewport canvas')),hud:inspect(document.querySelector('.ui-minimap')),page:inspect(document.body),editable:inspect(edit)};
     edit.remove();return results;
   });
-  verify(contextMenu.canvas&&contextMenu.hud&&!contextMenu.editable,'Context menu is blocked on 3D/HUD but left native in an editable field');
+  verify(contextMenu.canvas&&contextMenu.hud&&contextMenu.page&&!contextMenu.editable,'Context menu is blocked across the running game (including body/HUD), except editable fields');
 
   await page.evaluate(()=>{const p=window.littleWorldMetrics.position;window.littleWorldDebug.teleport(p[0],p[2],0,180);});
   await page.waitForFunction(()=>window.littleWorldMetrics?.mode==='air');
@@ -167,13 +167,18 @@ try{
   await page.keyboard.up('Shift');
   verify(await page.evaluate(()=>window.littleWorldMetrics.movement.state.gasReserve)<shiftGas,'Shift activates the existing gas boost while gliding');
   await page.waitForFunction(()=>window.littleWorldMetrics?.movement?.state?.gasBoosting===false);
+  // Right click is deliberately NOT a game binding: Firefox can force its native menu with Shift+right.
   const rightGas=await page.evaluate(()=>window.littleWorldMetrics.movement.state.gasReserve);
   await page.mouse.move(400,390);await page.mouse.down({button:'right'});
-  await page.waitForFunction(value=>window.littleWorldMetrics?.movement?.state?.gasReserve<value-.5,rightGas);
+  await page.waitForTimeout(450);
   await page.mouse.up({button:'right'});
-  verify(await page.evaluate(()=>window.littleWorldMetrics.movement.state.gasReserve)<rightGas,'Right mouse continues to boost while gliding');
-  await page.waitForFunction(()=>window.littleWorldMetrics?.movement?.state?.gasBoosting===false);
-  verify(true,'Releasing right mouse ends the flight boost');
+  verify(Math.abs((await page.evaluate(()=>window.littleWorldMetrics.movement.state.gasReserve))-rightGas)<1e-6,
+    'Right mouse no longer consumes flight gas; Shift is the sole desktop boost binding');
+  const rightPointer=await page.evaluate(()=>{
+    const node=document.querySelector('#viewport canvas'),event=new PointerEvent('pointerdown',{bubbles:true,cancelable:true,button:2});
+    node.dispatchEvent(event);return event.defaultPrevented;
+  });
+  verify(rightPointer,'Secondary pointerdown is cancelled on the running game canvas');
 
   // 17. Real mobile viewport: joystick is touch-only, analog, resets on release, and menus block movement.
   verify(await page.locator('.touch-controls').count()===0,'Desktop build does not create the phone joystick');

@@ -12,18 +12,17 @@ test('gameplay captures Space and arrows, but leaves menus, text editing and oth
     assert.equal(shouldPreventGameplayKeyDefault(code,true,false),false,code);
   }
 });
-test('native context menu is suppressed only on non-editable game surfaces while running',()=>{
-  assert.equal(shouldSuppressGameplayContextMenu(true,true,false),true);
-  assert.equal(shouldSuppressGameplayContextMenu(false,true,false),false);
-  assert.equal(shouldSuppressGameplayContextMenu(true,false,false),false);
-  assert.equal(shouldSuppressGameplayContextMenu(true,true,true),false);
+test('context menu is disabled across game DOM while running, except editable fields',()=>{
+  assert.equal(shouldSuppressGameplayContextMenu(true,false),true);
+  assert.equal(shouldSuppressGameplayContextMenu(true,true),false);
+  assert.equal(shouldSuppressGameplayContextMenu(false,false),false);
+  assert.equal(shouldSuppressGameplayContextMenu(false,true),false);
 });
-test('Shift and right mouse share the flight boost but not ground or water actions',()=>{
+test('Shift and mobile accelerate boost only when gliding, never the secondary mouse button',()=>{
   for(const mode of ['ground','roll','swim','dive','air','climb']){
-    assert.equal(flightBoostHeld(mode,true,true,true),false,mode);
+    assert.equal(flightBoostHeld(mode,true,true),false,mode);
   }
-  assert.equal(flightBoostHeld('glide',false,false,false),false);
-  for(const held of [[true,false,false],[false,true,false],[false,false,true]]){
-    assert.equal(flightBoostHeld('glide',...held),true,held.join(','));
-  }
+  assert.equal(flightBoostHeld('glide',false,false),false);
+  assert.equal(flightBoostHeld('glide',true,false),true);
+  assert.equal(flightBoostHeld('glide',false,true),true);
 });
