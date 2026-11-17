@@ -1,3 +1,5 @@
+import {alignNaturalBiomes} from './world-biomes-v4.ts';
+import {naturalQuality,type NaturalQuality} from './world-natural-quality.ts';
 /** Author-only composition. The validated plan is the preview AND the saved document. */
 import {createProject,parseProject} from './schema.ts';
 import {validateMapRequirements,LANDSCAPES,type MapRequirements} from './map-requirements.ts';
@@ -11,7 +13,7 @@ import {alignSteppedBiomes} from './world-biome-boundaries.ts';
 import {applyRegionBatch} from './region-batch.ts';
 import type {ProjectDocument} from './types.ts';
 export interface CompositionDiagnostic {severity:'ERROR'|'WARNING';code:string;message:string}
-export interface WorldComposition {project:ProjectDocument;ready:boolean;diagnostics:CompositionDiagnostic[];family:string;metrics:{generationMs:number;features:number;sectors:number;surveyCells:number;sourceBytes:number;coverage?:CompositionCoverage}}
+export interface WorldComposition {project:ProjectDocument;ready:boolean;diagnostics:CompositionDiagnostic[];family:string;metrics:{generationMs:number;features:number;sectors:number;surveyCells:number;sourceBytes:number;coverage?:CompositionCoverage;natural?:NaturalQuality}}
 export function composeWorld(input:MapRequirements,name='Mon petit monde'):WorldComposition {
  const started=performance.now(),r=validateMapRequirements(input),diagnostics:CompositionDiagnostic[]=[];
  let planned=planWorldTerrain(r);
@@ -23,7 +25,7 @@ export function composeWorld(input:MapRequirements,name='Mon petit monde'):World
  let hydro=planWorldHydro(r,planned.axis,field.height,project.world.bounds,planned.lakeCenter);
  // Bounded corrections: keep topology/sub-seeds, sharpen only the terrace joins,
  // then recompile the actual WATER network; never relax validation to accept it.
- for(let attempt=1;attempt<=2&&r.rivers>0&&!hydro.waters.some(w=>w.to?.kind==='sea');attempt++){
+ for(let attempt=1;attempt<=2&&r.compositionVersion!==4&&r.rivers>0&&!hydro.waters.some(w=>w.to?.kind==='sea');attempt++){
   planned=planWorldTerrain(r,attempt);
   project.world.terrain={kind:'archipelago',version:1,archipelago:planned.terrain};
   field=generatorField(project.world.terrain,{width:r.width,length:r.length,seed:r.seed,seaLevel:0},()=>0);
@@ -31,9 +33,10 @@ export function composeWorld(input:MapRequirements,name='Mon petit monde'):World
  }
  diagnostics.push(...hydro.diagnostics);
  for(const w of hydro.waters)putWater(project,w);
+ const demandSeverity=r.compositionVersion===4&&r.islandStyle?.hydrology==='preferred'?'WARNING':'ERROR';
  const main=hydro.waters.filter(w=>w.to?.kind==='sea').length,branches=hydro.waters.filter(w=>w.to?.kind==='river').length;
- if(main<r.rivers)diagnostics.push({severity:'ERROR',code:'RIVERS_MISSING',message:`${main}/${r.rivers} rivière(s) principale(s) valide(s). Réduire le nombre demandé ou changer de graine.`});
- if(branches<r.tributaries)diagnostics.push({severity:'ERROR',code:'TRIBUTARIES_MISSING',message:`${branches}/${r.tributaries} affluent(s) raccordé(s). Réduire la demande ou modifier le relief.`});
+ if(main<r.rivers)diagnostics.push({severity:demandSeverity,code:'RIVERS_MISSING',message:`${main}/${r.rivers} rivière(s) principale(s) valide(s). Réduire le nombre demandé ou changer de graine.`});
+ if(branches<r.tributaries)diagnostics.push({severity:demandSeverity,code:'TRIBUTARIES_MISSING',message:`${branches}/${r.tributaries} affluent(s) raccordé(s). Réduire la demande ou modifier le relief.`});
  if((r.lakes||r.landscapes.some(l=>l.kind==='lake'))&&!hydro.waters.some(w=>w.kind==='lake'))diagnostics.push({severity:r.landscapes.some(l=>l.kind==='lake'&&l.required)?'ERROR':'WARNING',code:'LAKE_NOT_PLANNED',message:'Aucun bassin fermé avec déversoir validé dans cette composition. Ajouter le lac avec l’outil Bassins ou choisir une autre composition.'});
  if(r.waterfalls&&!hydro.waters.some(w=>w.falls?.length))diagnostics.push({severity:'WARNING',code:'FALL_NOT_PLANNED',message:'Les ruptures sont des rapides en pente ; aucune cascade verticale validée. Utiliser l’assistant Cascades après création.'});
  if(r.biomeMode==='custom'&&r.sequence.includes('lake'))diagnostics.push({severity:'WARNING',code:'LATERAL_LAKE',message:'Le lac proposé est un bassin latéral fermé ; la rivière ne le traverse pas. Pour un lac dans la succession, raccorder un déversoir avec l’outil Eau.'});
@@ -47,16 +50,19 @@ export function composeWorld(input:MapRequirements,name='Mon petit monde'):World
   const kind=r.sequence[province.station],env=provinceEnvironment(project,province,planned.axis);
   if((kind==='marsh'&&env.altitudeM>35)||(kind==='coast'&&env.coastM>220))diagnostics.push({severity:r.landscapes.some(l=>l.kind===kind&&l.required)?'ERROR':'WARNING',code:'SEQUENCE_INCOMPATIBLE',message:LANDSCAPES[kind]+' incompatible avec cet étage du relief : modifier la succession ou choisir une autre graine.'});
  }
- if(recipes.length)applyRegionBatch(project,recipes);
- alignSteppedBiomes(project);
+ for(let i=0;i<recipes.length;i+=16)applyRegionBatch(project,recipes.slice(i,i+16));
+ alignSteppedBiomes(project);alignNaturalBiomes(project);
+ const natural=r.compositionVersion===4?naturalQuality(project):undefined;
  for(const l of r.landscapes){
   if(l.kind==='lake')continue;
-  if(!recipes.some(recipe=>recipe.name===LANDSCAPES[l.kind]))diagnostics.push({severity:l.required?'ERROR':'WARNING',code:'LANDSCAPE_MISSING',message:'Paysage absent de la succession : '+LANDSCAPES[l.kind]});
+  if(natural?(natural.biomeShare[l.kind]??0)<.001:!recipes.some(recipe=>recipe.name===LANDSCAPES[l.kind]))diagnostics.push({severity:l.required?'ERROR':'WARNING',code:'LANDSCAPE_MISSING',message:'Paysage absent ou de surface insuffisante : '+LANDSCAPES[l.kind]});
  }
+ if(r.compositionVersion===4&&r.islandStyle?.model==='caldera'&&r.type!=='archipelago')diagnostics.push({severity:'ERROR',code:'STYLE_TYPE',message:'La caldera fragmentée nécessite le type Archipel.'});
+ if(r.compositionVersion===4&&r.biomeMode==='custom')diagnostics.push({severity:'WARNING',code:'ENVIRONMENTAL_SEQUENCE',message:'La succession est une préférence par altitude sur les versants ; les milieux incompatibles avec le terrain ne sont pas imposés.'});
  const normalized=parseProject(JSON.parse(JSON.stringify(project)));
  const coverage=(r.compositionVersion??1)>=2?compositionCoverage(normalized,planned.axis):undefined;
  return {project:normalized,ready:!diagnostics.some(d=>d.severity==='ERROR'),diagnostics,family:planned.family,
-  metrics:{generationMs:performance.now()-started,features:planned.terrain.features.length,sectors:Object.keys(project.chunks).length,surveyCells:hydro.survey.sampled,sourceBytes:new TextEncoder().encode(JSON.stringify(project)).length,...(coverage?{coverage}:{})}};
+  metrics:{generationMs:performance.now()-started,features:planned.terrain.features.length,sectors:Object.keys(project.chunks).length,surveyCells:hydro.survey.sampled,sourceBytes:new TextEncoder().encode(JSON.stringify(project)).length,...(coverage?{coverage}:{}),...(natural?{natural}:{})}};
 }
 /** Exact already-previewed source: never rerun the generator on confirmation. */
 export function projectFromComposition(plan:WorldComposition,name:string):ProjectDocument {

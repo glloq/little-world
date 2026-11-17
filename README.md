@@ -207,5 +207,8 @@ La composition en [provinces, plateaux et plaines](docs/63-GEOGRAPHIC-PROVINCES-
 étend les biomes sur toute l'île. Les anciens mondes conservent leur version ;
 le panneau « Recomposer le monde » permet une comparaison avant changement.
 
-Le nouveau défaut V3 compose des [îles en étages aux contours organiques](docs/64-ORGANIC-STEPPED-ISLANDS.md),
-avec des plateaux arrondis, des biomes liés au relief, deux affluents et des cascades.
+La composition V3 conserve les [îles en étages aux contours organiques](docs/64-ORGANIC-STEPPED-ISLANDS.md).
+Le nouveau défaut propose [six styles d’îles V4](docs/66-ISLAND-STYLES-V4.md) : île douce,
+massif central ou latéral, volcan, caldera fragmentée et plateaux locaux. Les points hauts
+structurent les versants, puis le drainage et les milieux. Altitude, orientation, vues de pente
+et coupes du terrain sont disponibles dans le Studio. Mesures : `npm run benchmark:styles`.

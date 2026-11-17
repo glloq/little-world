@@ -1,3 +1,4 @@
+import {planNaturalHydro} from './world-hydro-v4.ts';
 /** Native WATER from the composed drainage corridor; D8 surveys the final terrain.
  * All samples, including between control points, pass through the shared compiler. */
 import {compileWaterNetwork,type HydroDiagnostic} from '../water/profile.ts';
@@ -12,6 +13,7 @@ import {proposeWatershedRivers} from './watershed-rivers.ts';
 import type {MapRequirements} from './map-requirements.ts';
 import type {Bounds} from './types.ts';
 export function planWorldHydro(r:MapRequirements,axis:PointXZ[],height:(x:number,z:number)=>number,bounds:Bounds,lakeCenter?:PointXZ){
+ if(r.compositionVersion===4)return planNaturalHydro(r,height,bounds);
  const waters:WaterBody[]=[],diagnostics:HydroDiagnostic[]=[];
  if(r.rivers){
   const seaIndex=(r.compositionVersion??1)>=2?axis.findIndex(q=>height(q.x,q.z)<-.6):-1;

@@ -75,7 +75,8 @@
     "benchmark:ground-cover": "node tools/benchmark-ground-cover.mjs",
     "test:ground-cover": "node tools/test-ground-cover.mjs",
     "test:composition": "node --experimental-strip-types tools/test-world-composition-browser.mjs",
-    "benchmark:composition": "node --experimental-strip-types tools/benchmark-world-composition.mjs"
+    "benchmark:composition": "node --experimental-strip-types tools/benchmark-world-composition.mjs",
+    "benchmark:styles": "node --experimental-strip-types tools/benchmark-island-styles.mjs"
   },
   "dependencies": {
     "three": "^0.180.0"

@@ -1,3 +1,4 @@
+import {alignNaturalBiomes} from './world-biomes-v4.ts';
 /** Recomposition is a dry-run first, preserving native mask ownership and manual work.
  * Full reshaping is refused when generated relief/water/recipes or terrain were edited.
  * Region-only refresh uses the existing authored recipes, including manual polygons. */
@@ -23,8 +24,8 @@ export function previewWorldRecomposition(p:ProjectDocument,next:MapRequirements
  if(mode==='biomes'){
   const recipes=Object.values(p.libraries.regions??{}).filter(r=>r.id.startsWith('composition-'));
   if(!recipes.length)throw Error('Aucune région générée à rafraîchir');
-  if(p.world.generation.compositionVersion===3){const baseline=composeWorld(p.world.generation).project;for(const recipe of recipes){const old=baseline.libraries.regions?.[recipe.id];if(!old||fingerprint(recipeSource(recipe))!==fingerprint(recipeSource(old)))skipBoundaries.add(recipe.id);}}
-  affected=regionBatchChunks(scratch,recipes);applyRegionBatch(scratch,recipes);
+  if((p.world.generation.compositionVersion??1)>=3){const baseline=composeWorld(p.world.generation).project;for(const recipe of recipes){const old=baseline.libraries.regions?.[recipe.id];if(!old||fingerprint(recipeSource(recipe))!==fingerprint(recipeSource(old)))skipBoundaries.add(recipe.id);}}
+  affected=regionBatchChunks(scratch,recipes);for(let i=0;i<recipes.length;i+=16)applyRegionBatch(scratch,recipes.slice(i,i+16));
  }else{
   if(next.width!==p.world.generation.width||next.length!==p.world.generation.length)throw Error('Redimensionner nécessite un nouveau projet : secteurs et retouches conservés ici');
   const original=composeWorld(p.world.generation).project;
@@ -41,10 +42,10 @@ export function previewWorldRecomposition(p:ProjectDocument,next:MapRequirements
   scratch.world={...scratch.world,seed:generated.world.seed,terrain:generated.world.terrain,generation:generated.world.generation};
   for(const water of Object.values(generated.libraries.water))putWater(scratch,water);
   const recipes=Object.values(generated.libraries.regions??{}).map(r=>{const copy=structuredClone(r);delete copy.generated;return copy;});
-  if(recipes.length)applyRegionBatch(scratch,recipes);
+  for(let i=0;i<recipes.length;i+=16)applyRegionBatch(scratch,recipes.slice(i,i+16));
   affected=[...new Set([...Object.keys(p.chunkIndex),...Object.keys(scratch.chunkIndex)])];
  }
- alignSteppedBiomes(scratch,skipBoundaries);
+ alignSteppedBiomes(scratch,skipBoundaries);alignNaturalBiomes(scratch,skipBoundaries);
  const hydro=compileWaterNetwork(Object.values(scratch.libraries.water),projectGeography(scratch).source,scratch.world.seaLevel);
  const errors=hydro.flatMap(w=>w.diagnostics.filter(d=>d.severity==='ERROR'||d.code==='WATER_LOCAL_RISE'));
  if(errors.length)throw Error('Recomposition incompatible avec l’eau conservée : '+errors.map(d=>d.message).join(' '));

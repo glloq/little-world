@@ -25,7 +25,7 @@ test('V1 saved requirements reproduce published geography; the new version is ex
   assert.deepEqual(p.project.libraries,explicit.project.libraries);
  }
  assert.equal(defaults.compositionVersion,2);
- assert.throws(()=>validateMapRequirements(req({compositionVersion:4})));
+ assert.throws(()=>validateMapRequirements(req({compositionVersion:5})));
 });
 test('provinces partition the full island in two dimensions; broad terraces replace the water ribbon',()=>{
  const r=req(),plan=planWorldTerrain(r),sum=plan.provinces.reduce((a,c)=>a+polygonArea(c.polygon),0);

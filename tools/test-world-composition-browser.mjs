@@ -22,6 +22,13 @@ try{
  check(true,'Une autre graine change réellement la composition');
  await page.getByLabel('Graine de génération',{exact:true}).fill('4242');await page.getByLabel('Graine de génération',{exact:true}).press('Tab');
  await page.waitForFunction(()=>document.querySelector('.welcome-terrain-canvas')?.dataset.planSeed==='4242');
+ for(const model of ['gentle','side-massif','volcanic','caldera','stepped','central-massif']){
+  await page.getByLabel('Modèle insulaire',{exact:true}).selectOption(model);
+  await page.waitForFunction(()=>document.querySelector('.welcome-terrain-canvas')?.dataset.planHash);
+  check(await page.getByLabel('Modèle insulaire',{exact:true}).inputValue()===model,'Modèle sélectionnable : '+model);
+ }
+ await page.getByLabel('Vue de l’aperçu',{exact:true}).selectOption('altitude');
+ check(await page.getByLabel('Coupes du relief nord-sud et est-ouest').count()===1,'Le relief dispose de coupes réelles et d’une vue altitude');
  await page.getByLabel('Type géographique',{exact:true}).selectOption('continental');
  for(let i=0;i<3;i++)await page.getByRole('button',{name:'Continuer →',exact:true}).click();
  await page.getByText(/Cette version compose des îles/).waitFor();
@@ -31,7 +38,7 @@ try{
  await page.getByRole('button',{name:'Monter Forêt',exact:true}).click();await page.getByRole('button',{name:'Descendre Forêt',exact:true}).click();
  await page.getByRole('button',{name:'4. Aperçu et création',exact:true}).click();
  await page.getByRole('button',{name:'Créer et ouvrir le monde',exact:true}).waitFor();
- await page.waitForFunction(()=>Number(document.querySelector('.welcome-terrain-canvas')?.dataset.waterCount)>=3);
+ await page.waitForFunction(()=>Number(document.querySelector('.welcome-terrain-canvas')?.dataset.waterCount)>=1);
  const expected=await canvas().getAttribute('data-plan-hash');
  const count=await page.evaluate(()=>new Promise((resolve,reject)=>{const r=indexedDB.open('little-world-studio-v3');r.onsuccess=()=>{const db=r.result,q=db.transaction('projects').objectStore('projects').count();q.onsuccess=()=>{resolve(q.result);db.close();};q.onerror=reject;};r.onerror=reject;}));
  check(count===0,'Variations et aperçus ne créent aucun projet IndexedDB');
@@ -42,18 +49,20 @@ try{
  const exporting=page.waitForEvent('download');await page.getByRole('button',{name:'Exporter ZIP',exact:true}).click();
  const download=await exporting,p=readProjectArchive(new Uint8Array(await readFile(await download.path())));
  check(expected===fingerprint({terrain:p.world.terrain,water:p.libraries.water,regions:p.libraries.regions}),'Le ZIP exporté contient exactement le plan affiché');
- check(p.world.generation.seed===4242&&Object.keys(p.libraries.water).length>=3,'Les besoins typés et la rivière native sont enregistrés');
+ check(p.world.generation.seed===4242&&Object.keys(p.libraries.water).length>=1,'Les besoins typés et la rivière native sont enregistrés');
  const coverage=compositionCoverage(p,planWorldTerrain(p.world.generation).axis);
- check(p.world.generation.compositionVersion===3&&coverage.offRiverBiomeCoverage>.85,'Les provinces et leurs biomes couvrent réellement les terrains hors rivière');
+ check(p.world.generation.compositionVersion===4&&coverage.offRiverBiomeCoverage>.85,'Les provinces et leurs biomes couvrent réellement les terrains hors rivière');
  await page.getByRole('button',{name:'Recomposer le monde',exact:true}).click();
- check(await page.getByLabel('Génération du relief',{exact:true}).inputValue()==='3','La version du générateur est conservée dans la recomposition');
+ check(await page.getByLabel('Modèle insulaire',{exact:true}).inputValue()==='central-massif','Le style est conservé dans la recomposition');
+ check(await page.getByLabel('Génération du relief',{exact:true}).inputValue()==='4','La version du générateur est conservée dans la recomposition');
+ await page.getByLabel('Modèle insulaire',{exact:true}).selectOption('caldera');
  await page.getByLabel('Nouvelle graine',{exact:true}).fill('222');await page.getByLabel('Nouvelle graine',{exact:true}).press('Tab');
  await page.getByRole('button',{name:'Comparer avant / après',exact:true}).click();
  await page.getByRole('button',{name:'Appliquer la composition',exact:true}).waitFor();
  await page.waitForFunction(()=>!Array.from(document.querySelectorAll('button')).find(b=>b.textContent==='Appliquer la composition')?.disabled);
  await page.screenshot({path:artifacts+'/recomposition.png',fullPage:true});
  await page.getByRole('button',{name:'Appliquer la composition',exact:true}).click();await page.waitForFunction(()=>document.querySelector('[data-action=undo]')?.title.includes('Recomposer le monde'));
- const updatedDownload=page.waitForEvent('download');await page.getByRole('button',{name:'Exporter ZIP',exact:true}).click();const updated=await updatedDownload;const after=readProjectArchive(new Uint8Array(await readFile(await updated.path())));check(after.world.generation.seed===222,'La recomposition confirmée enregistre la nouvelle graine');
+ const updatedDownload=page.waitForEvent('download');await page.getByRole('button',{name:'Exporter ZIP',exact:true}).click();const updated=await updatedDownload;const after=readProjectArchive(new Uint8Array(await readFile(await updated.path())));check(after.world.generation.seed===222&&after.world.generation.islandStyle.model==='caldera','La recomposition confirmée enregistre la nouvelle graine et le nouveau style');
  check(await page.getByRole('button',{name:'Annuler',exact:true}).isEnabled(),'La recomposition passe dans l’historique commun');
  await page.getByRole('button',{name:'Annuler',exact:true}).click();
  check(errors.length===0,errors.join('\n'));

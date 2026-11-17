@@ -14,7 +14,7 @@ function points(v:unknown,label:string,min:number,max:number,world:{width:number
 function variant(raw:Record<string,unknown>):{variant?:number}{if(raw.variant===undefined)return {};const v=num(raw.variant,'variante',0,999999);if(!Number.isInteger(v))throw Error('Archipel : variante entière attendue');return {variant:v};}
 export const ARCHIPELAGO_LIMITS={landmasses:12,outline:64,features:64,line:32} as const;
 export function parseArchipelago(value:unknown,world:{width:number;length:number}):ArchipelagoParams{
-  if(!record(value))throw Error('Archipel invalide');only(value,['seabedDepthM','detailM','landmasses','features'],'Archipel');
+  if(!record(value))throw Error('Archipel invalide');only(value,['seabedDepthM','detailM','landmasses','features','coastalReliefFadeM'],'Archipel');
   if(!Array.isArray(value.landmasses)||value.landmasses.length<1||value.landmasses.length>ARCHIPELAGO_LIMITS.landmasses)throw Error('Archipel : 1 à 12 terres');
   if(!Array.isArray(value.features)||value.features.length>ARCHIPELAGO_LIMITS.features)throw Error('Archipel : 64 formes au maximum');
   const ids=new Set<string>(),unique=(v:string)=>{if(ids.has(v))throw Error('Archipel : identifiant dupliqué '+v);ids.add(v);return v;};
@@ -39,7 +39,7 @@ export function parseArchipelago(value:unknown,world:{width:number;length:number
       default:throw Error('Forme de relief inconnue');
     }
   });
-  return {seabedDepthM:num(value.seabedDepthM,'fond marin',2,200),detailM:num(value.detailM,'détail',0,20),landmasses,features};
+  return {...(value.coastalReliefFadeM!==undefined?{coastalReliefFadeM:num(value.coastalReliefFadeM,'fondu du relief côtier',2,400)}:{}),seabedDepthM:num(value.seabedDepthM,'fond marin',2,200),detailM:num(value.detailM,'détail',0,20),landmasses,features};
 }
 /** Closed outline of an ellipse-like land mass with a few reproducible bulges. */
 export function blobOutline(cx:number,cz:number,rx:number,rz:number,count=20,phase=0):PointXZ[]{
