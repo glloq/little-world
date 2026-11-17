@@ -81,7 +81,7 @@ export interface WorldView {
   millPosition: THREE.Vector3;
   boat: THREE.Group;
   objects: THREE.Group;
-  update: (dt: number, focus?: { x: number; z: number }, camera?: THREE.PerspectiveCamera, pixelHeight?: number) => void;
+  update: (dt: number, focus?: { x: number; z: number }, camera?: THREE.PerspectiveCamera, pixelHeight?: number, physicalVelocity?: {x:number;z:number}) => void;
   terrainWork: import('./terrain-view').TerrainWorkStats;
   /** Natural dressing of generated worlds (null for the historical valley). */
   dressing: DressingStats | null;
@@ -910,14 +910,17 @@ export function buildWorld(
         }
       });
     },
-    update(dt: number, focus = { x: 0, z: 0 }, camera?: THREE.PerspectiveCamera, pixelHeight = 640) {
+    update(dt: number, focus = { x: 0, z: 0 }, camera?: THREE.PerspectiveCamera, pixelHeight = 640, physicalVelocity?: {x:number;z:number}) {
       time += dt;
       wheel.rotation.x -= dt * 0.33;
       animatedAssets.update(dt);
       if (camera) {
         // Smoothed focus velocity drives look-ahead; a jump (teleport) resets it.
         const jump = Math.hypot(focus.x - lastFocusX, focus.z - lastFocusZ);
-        if (dt > 0 && Number.isFinite(jump) && jump < 50) {
+        if(dt>0&&Number.isFinite(jump)&&jump<50&&physicalVelocity&&Number.isFinite(physicalVelocity.x)&&Number.isFinite(physicalVelocity.z)){
+          // Predict with authoritative simulation velocity, not render-frame displacement.
+          velocityX=physicalVelocity.x;velocityZ=physicalVelocity.z;
+        }else if (dt > 0 && Number.isFinite(jump) && jump < 50) {
           const mix = Math.min(1, dt * 4);
           velocityX += ((focus.x - lastFocusX) / dt - velocityX) * mix;
           velocityZ += ((focus.z - lastFocusZ) / dt - velocityZ) * mix;
