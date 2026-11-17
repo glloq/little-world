@@ -8,7 +8,7 @@ export function joystickAxis(dx:number,dy:number,radius:number,deadzone=.14):Joy
   const distance=Math.hypot(dx,dy),cut=Math.min(.9,Math.max(0,deadzone));
   if(distance<=radius*cut)return {forward:0,right:0};
   const strength=Math.min(1,(distance/radius-cut)/(1-cut));
-  return {right:dx/distance*strength,forward:-dy/distance*strength};
+  return {right:dx===0?0:dx/distance*strength,forward:dy===0?0:-dy/distance*strength};
 }
 export interface TouchControls {
   readonly axis:Readonly<JoystickAxis>;
