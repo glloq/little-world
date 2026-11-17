@@ -7,6 +7,7 @@ import type {GameplayView} from '../../gameplay/game-view.ts';
 import type {MovementSpace} from '../../physics/collision-world.ts';
 import type {AudioController} from '../../audio/view.ts';
 import {UiController} from './ui-controller.ts';
+import {isEditableGameTarget} from '../../input/gameplay-input.ts';
 import {loadPreferences,savePreferences,type UiPreferences} from './preferences.ts';
 import {createNotificationCenter,type NoticeKind} from '../notifications/notifications.ts';
 import {inventoryPanel} from '../inventory/inventory.ts';
@@ -161,7 +162,7 @@ export function createGameUi(deps:GameUiDeps){
       if(ui.handleKey(e))return true;
       if(e.key==='Escape'&&!audioPopover.hidden){e.preventDefault();hideAudioPopover(true);return true;}
       // A key already handled elsewhere (e.g. Escape closing an NPC dialogue) never also opens a panel.
-      if(e.defaultPrevented)return false;if(!inGame||deps.npcs.dialogue.isOpen||e.ctrlKey||e.metaKey||e.altKey||e.repeat)return false;
+      if(e.defaultPrevented||isEditableGameTarget(e.target))return false;if(!inGame||deps.npcs.dialogue.isOpen||e.ctrlKey||e.metaKey||e.altKey||e.repeat)return false;
       const k=e.key.toLowerCase();
       if(e.key==='Escape'){e.preventDefault();ui.open('pause');return true;}
       if(k==='i'&&g){e.preventDefault();ui.open('inventory');deps.audio?.emit('ui.inventory.open',{source:'ui'});return true;}
