@@ -1,4 +1,5 @@
 /** Lightweight, persistent, optional solo-flight progression. No renderer, clock, or networking. */
+import {FLIGHT_COURSES,type FlightCourseId} from './flight-courses.ts';
 export const FLIGHT_SKINS=['classic','cheese','potato','hazelnut','magic','rainbow'] as const;
 export type FlightSkin=typeof FLIGHT_SKINS[number];
 export const FLIGHT_CHALLENGES=['first-flight','speed-demon','long-flight','combo-four'] as const;
@@ -11,14 +12,14 @@ export interface FlightProgress {
  totalDistance:number;bestFlightDistance:number;currentFlightDistance:number;
  pulsesUsed:number;maxSpeed:number;bestCombo:number;currentCombo:number;
  currentFlightNoGas:number;lastPulseAt:number;
- achievements:FlightChallenge[];
+ achievements:FlightChallenge[];records:Record<FlightCourseId,number|null>;
 }
 export const newFlightProgress=():FlightProgress=>({
  version:1,capacityLevel:0,powerLevel:0,controlLevel:0,
  selectedSkin:'classic',selectedSound:'classic',unlockedSkins:['classic'],unlockedSounds:['classic'],
  totalDistance:0,bestFlightDistance:0,currentFlightDistance:0,pulsesUsed:0,maxSpeed:0,
  bestCombo:0,currentCombo:0,currentFlightNoGas:0,lastPulseAt:-1,
- achievements:[]
+ achievements:[],records:{rings:null,dive:null,economy:null}
 });
 const bounded=(v:unknown,max:number):v is number=>typeof v==='number'&&Number.isFinite(v)&&v>=0&&v<=max;
 const limited=(v:unknown,max:number):v is number=>Number.isInteger(v)&&bounded(v,max);
@@ -37,7 +38,10 @@ export function parseFlightProgress(raw:unknown):FlightProgress{
  const unlocked=(v:unknown):v is FlightSkin[]=>Array.isArray(v)&&v.length>=1&&v.length<=FLIGHT_SKINS.length&&v.every(skin)&&new Set(v).size===v.length&&v.includes('classic');
  if(!unlocked(p.unlockedSkins)||!unlocked(p.unlockedSounds)||!p.unlockedSkins.includes(p.selectedSkin as FlightSkin)||!p.unlockedSounds.includes(p.selectedSound as FlightSkin))throw Error('Cosmétique de propulsion invalide');
  if(!Array.isArray(p.achievements)||p.achievements.length>FLIGHT_CHALLENGES.length||!p.achievements.every(challenge)||new Set(p.achievements).size!==p.achievements.length)throw Error('Récompenses de vol invalides');
- return structuredClone(p) as unknown as FlightProgress;
+ const records=p.records??{rings:null,dive:null,economy:null};
+ if(typeof records!=='object'||records===null||Array.isArray(records)||Object.keys(records).some(id=>!FLIGHT_COURSES.includes(id as FlightCourseId))||
+   FLIGHT_COURSES.some(id=>((records as Record<string,unknown>)[id]!==null)&&!bounded((records as Record<string,unknown>)[id],600)))throw Error('Records de vol invalides');
+ return structuredClone({...p,records}) as unknown as FlightProgress;
 }
 /** Track genuine fixed-step flight. Returns a single progress message only on an unlock. */
 export function advanceFlight(p:FlightProgress,step:{gliding:boolean;distance:number;speed:number;pulse:boolean;time:number}):string|null{
