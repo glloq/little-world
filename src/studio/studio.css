@@ -104,3 +104,14 @@ label:has(> input[type=checkbox]){flex-direction:row;align-items:center;justify-
 .pattern-panel{margin-top:14px;padding-top:12px;border-top:1px solid #d7e3d3}
 
 .library-item .asset-thumbnail-placeholder{width:100%;aspect-ratio:4/3;display:grid;place-items:center;border-radius:7px;background:#eef3ea;color:#75917d;font-size:10px;letter-spacing:.02em;text-align:center}
+
+/* Opt-in procedural character animation lab. Zero cost outside this panel. */
+.hamster-motion-lab{max-width:980px;margin:0 auto;padding:18px 24px;display:block}
+.hamster-motion-controls{display:flex;flex-wrap:wrap;align-items:end;gap:12px;margin:14px 0}
+.hamster-motion-controls label{display:flex;flex-direction:column;gap:5px;min-width:130px;flex:1}
+.hamster-motion-controls label:first-child{min-width:200px;flex:2}
+.hamster-motion-controls input,.hamster-motion-controls select{width:100%;max-width:100%;box-sizing:border-box}
+.hamster-motion-stage{width:100%;height:380px;background:#f4f5f7;border:1px solid #c7ccc9;border-radius:8px;overflow:hidden;margin:8px 0 12px}
+.hamster-motion-stage canvas{display:block;width:100%;height:100%;cursor:grab}
+.hamster-motion-stage canvas:active{cursor:grabbing}
+.hamster-motion-lab>button{margin-right:8px}
