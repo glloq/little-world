@@ -83,6 +83,26 @@ Scénarios de recette visuelle : 1) départ bref et course continue, 2) virage s
 - Modes de réception contextualisés : récupération de roulade sur les pentes, glissade à l'impact, éventuel micro-rebond purement visuel sans création d'énergie.
 - Outil de prévisualisation et de réglage des transitions dans le Studio, avec export GLB déterministe et mesures sur PC intégré.
 
+## Lot V2.2 — récupération de saut, support 3D et outil de calibration
+
+**Sur la branche `feat/hamster-motion-v2`, sans fusion dans `main`.**
+
+- **Réceptions contextuelles** : la simulation produit `landingKind` (`idle`, `run`, `roll`, `glide`) et `landingSlide` borné [0, 1], dérivés de la vitesse horizontale, de l'impact et du matériau. Ces valeurs **n'appliquent ni poussée ni freinage** et ne modifient pas l'autorité du joueur.
+- **Reprise après saut en boule** : l'animateur passe par `ROLL_LAND` lorsque la réception fait suite à une roulade. La compression, la glissade et le retour progressif des pattes sont visuels ; `LAND` conserve un comportement distinct pour la course et le plané.
+- **Amorti visuel** : petit rebond limité au corps, sans impulsion verticale et sans déplacement de la capsule.
+- **Contact sur une marche/plateforme** : en complément de `groundPitch` et `groundRoll` sur le heightfield, seulement si le joueur repose sur un obstacle 3D surélevé, deux sondes étroites sous les pieds calculent `footSupportLeft` / `footSupportRight`. Chaque pied peut descendre indépendamment. Les requêtes sont évitées sur un sol normal, dans l'eau et en l'air ; pas de solveur IK général.
+- **États distants / replays** : les quatre nouveaux paramètres restent optionnels et validés, avec interpolation des valeurs continues. Aucun os ni calcul de collision distant n'est transmis. Compatibilité de présentation V1 conservée.
+- **Studio — Animations du hamster** : nouveau module `Logique > Animations du hamster`, chargé uniquement à l'ouverture. Douze scènes de pose/transitions (repos, marche, course, demi-tour, roulade, dérapage, saut en boule, saut en course, plané, réception, pente, marche), réglages vitesse/impact/pente/dérapage, pause/reprise, caméra rotative à la souris. Le module utilise le rig procédural existant ; il n'écrit **aucun** document ni monde. Renderer WebGL limité en cadence, résolution et mémoire, détruit à la fermeture.
+
+### Vérifications V2.2
+
+- `npm test` inclut les tests unitaires de récupération après roulade, réception du plané, influence du matériau sans freinage physique, support différencié des pieds, réutilisation des snapshots V1 et validation des cues.
+- `node tools/test-hamster-motion-lab-browser.mjs` parcourt le Studio et vérifie plusieurs presets, les contrôles, l'absence de mutations du projet et la fermeture du canvas.
+- `npm run assets:hamster` puis `IMPOSTOR_GROUP=characters npm run generate:impostors` régénèrent le GLB et l'atlas pour conserver la correspondance avec l'animateur.
+- **Qualification visuelle restant à faire :** pieds sur marches irrégulières, cadence réelle sur GPU intégré, récupération sur sols fortement inclinés et transitions à 20 FPS.
+
+**Limite volontaire :** il s'agit d'un aperçu d'animation du hamster, pas encore d'un éditeur de keyframes ni d'un solveur IK sur les collisions complètes.
+
 ## Prochaines améliorations à qualifier visuellement
 
 - Recalage fin du contact des pattes sur les obstacles et marches (la correction de pente heightfield est désormais en place, sans solveur IK).

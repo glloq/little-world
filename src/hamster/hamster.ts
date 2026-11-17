@@ -117,6 +117,9 @@ export function buildHamster(): HamsterCharacter {
       input.turnIntent=player.intentYaw===undefined?0:Math.atan2(Math.sin(player.intentYaw-facing),Math.cos(player.intentYaw-facing));
       input.jumpKind=player.jumpOrigin;input.jumpSeq=player.jumpSeq;
       input.landingSpeed=player.landingSpeed;input.landingSeq=player.landingSeq;
+      input.landingKind=player.landingKind;input.landingSlide=player.landingSlide;
+      input.footSupportLeft=player.footSupportLeft===undefined?undefined:player.footSupportLeft/CHARACTER_SCALE;
+      input.footSupportRight=player.footSupportRight===undefined?undefined:player.footSupportRight/CHARACTER_SCALE;
       input.groundPitch=player.groundPitch??0;input.groundRoll=player.groundRoll??0;
       input.rollSlip=player.rollSlip??0;
       if (fishing && !animator.action && animator.play('FISH_WAIT')) actionTool = 'fishing-rod';
@@ -136,7 +139,11 @@ export function buildHamster(): HamsterCharacter {
       return { v: 1, t, x: w.x, y: w.y, z: w.z, yaw: facing, mode: input.mode as PlayerPresentationState['mode'], speed: input.speed, verticalSpeed: input.verticalSpeed, turnRate: input.turnRate, aboard, action: animator.action, actionSeq, tool: animator.toolOut ? actionTool : fishing ? 'fishing-rod' : null, fishing: fishing ? { ...fishing } : null,
         stridePhase:animator.stridePhase,rollPhase:animator.pose.roll,turnIntent:input.turnIntent??0,
         ...(input.jumpKind?{jumpKind:input.jumpKind}:{}),...(input.landingSpeed!==undefined?{landingSpeed:input.landingSpeed}:{}),
-        groundPitch:input.groundPitch??0,groundRoll:input.groundRoll??0,rollSlip:input.rollSlip??0 };
+        groundPitch:input.groundPitch??0,groundRoll:input.groundRoll??0,rollSlip:input.rollSlip??0,
+        ...(input.landingKind?{landingKind:input.landingKind}:{}),
+        ...(input.landingSlide!==undefined?{landingSlide:input.landingSlide}:{}),
+        ...(input.footSupportLeft!==undefined?{footSupportLeft:input.footSupportLeft}:{}),
+        ...(input.footSupportRight!==undefined?{footSupportRight:input.footSupportRight}:{}) };
     },
     applyPresentation(s, dt) {
       if (disposed) return;
@@ -145,6 +152,8 @@ export function buildHamster(): HamsterCharacter {
       fishing = s.fishing ? { ...s.fishing } : null; aboard = s.aboard;
       input.animationTime=s.t;input.travel=undefined;input.stridePhase=s.stridePhase;input.rollPhase=s.rollPhase;
       input.turnIntent=s.turnIntent??0;input.jumpKind=s.jumpKind;input.landingSpeed=s.landingSpeed;
+      input.landingKind=s.landingKind;input.landingSlide=s.landingSlide;
+      input.footSupportLeft=s.footSupportLeft;input.footSupportRight=s.footSupportRight;
       input.groundPitch=s.groundPitch??0;input.groundRoll=s.groundRoll??0;input.rollSlip=s.rollSlip??0;
       input.mode=s.mode;input.speed=s.speed;input.verticalSpeed=s.verticalSpeed;input.turnRate=s.turnRate;input.aboard=s.aboard;
       if (fishing && !animator.action && animator.play('FISH_WAIT')) actionTool = 'fishing-rod';

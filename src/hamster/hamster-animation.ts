@@ -24,6 +24,9 @@ export interface HamsterInput {
   turnIntent?:number;
   jumpKind?:'idle'|'run'|'roll'; jumpSeq?:number;
   landingSpeed?:number; landingSeq?:number;
+  /** Ground contact context (optional for legacy and remote presentation). */
+  landingKind?:'idle'|'run'|'roll'|'glide';landingSlide?:number;
+  footSupportLeft?:number;footSupportRight?:number;
   /** Terrain presentation only; no forces, IK solver or allocations per frame. */
   groundPitch?:number;groundRoll?:number;rollSlip?:number;
   /** Absolute presentation clock for reconstructed remote rigs only. */
@@ -49,7 +52,7 @@ const restPose = (): HamsterPose => ({ bodyY: 0, bodyRX: 0, bodyRY: 0, bodyRZ: 0
 /** Radius of the ball in roll (model metres) — the visual roll angle follows distance / radius. */
 export const ROLL_RADIUS = .62;
 /** Durations of the locomotion transitions (s). */
-export const TRANSITIONS = { ROLL_ENTER: .16, ROLL_EXIT: .18, ROLL_LAND: .12, GLIDE_OPEN: .25, GLIDE_CLOSE: .2, JUMP: .15, LAND: .2 } as const;
+export const TRANSITIONS = { ROLL_ENTER: .16, ROLL_EXIT: .18, ROLL_LAND: .18, GLIDE_OPEN: .25, GLIDE_CLOSE: .2, JUMP: .15, LAND: .2 } as const;
 const clamp = (v:number,min:number,max:number) => Math.max(min,Math.min(max,v));
 /** Angular gait progress per model metre travelled; footsteps do not run when blocked. */
 export const GAIT_RADIANS_PER_METER=2.2;
@@ -115,7 +118,7 @@ export class HamsterAnimator {
   /** True while an action can show an object in the paws (any action, outside the ball). The
    * character decides which object (tool, seed bag or nothing); `def.tool` says whether the action
    * uses the equipped tool when none is given. */
-  get toolOut(): boolean { return !!this.act && this.state !== 'ROLL_LOOP' && this.state !== 'ROLL_ENTER'; }
+  get toolOut(): boolean { return !!this.act && !this.state.startsWith('ROLL'); }
   /** Starts an action (restarts it if already running). Refused while rolling or gliding. */
   play(name: ActionName): boolean {
     if (this.state.startsWith('ROLL') || this.state.startsWith('GLIDE') || this.state === 'SWIM') return false;
@@ -128,7 +131,7 @@ export class HamsterAnimator {
     if(mode!==was){
       if(mode==='air'&&was==='roll')this.airborneRoll=true;
       if(mode==='roll')this.state=this.airborneRoll?'ROLL_LAND':'ROLL_ENTER';
-      else if(mode==='ground'&&(was==='air'||was==='glide'))this.state='LAND';
+      else if(mode==='ground'&&(was==='air'||was==='glide'))this.state=input.landingKind==='roll'?'ROLL_LAND':'LAND';
       else if(mode==='ground'&&was==='roll')this.state='ROLL_EXIT';
       else if(mode==='air'&&was==='roll')this.state='ROLL_AIR';
       else if(mode==='glide')this.state='GLIDE_OPEN';
@@ -147,8 +150,8 @@ export class HamsterAnimator {
     // A 20 FPS presentation can skip a 30 Hz airborne frame. Contact counters still
     // deliver the visual landing once; they never create gameplay events.
     if(input.landingSeq!==undefined&&input.landingSeq!==this.lastLandingSeq){
-      if(this.lastLandingSeq>=0&&mode==='ground'&&this.state!=='LAND'){
-        this.state='LAND';this.transitionTime=0;this.emit('land');
+      if((this.lastLandingSeq>=0||input.landingSeq>0)&&mode==='ground'&&this.state!=='LAND'&&this.state!=='ROLL_LAND'){
+        this.state=input.landingKind==='roll'?'ROLL_LAND':'LAND';this.transitionTime=0;this.emit('land');
       }
       this.lastLandingSeq=input.landingSeq;
     }
@@ -195,13 +198,22 @@ export class HamsterAnimator {
       }
       case 'ROLL_ENTER': case 'ROLL_LOOP': case 'ROLL_EXIT': case 'ROLL_AIR': case 'ROLL_LAND': {
         const f=s==='ROLL_ENTER'?smooth(clamp(this.transitionTime/TRANSITIONS.ROLL_ENTER,0,1))
-          :s==='ROLL_EXIT'?1-smooth(clamp(this.transitionTime/TRANSITIONS.ROLL_EXIT,0,1)):1;
+          :s==='ROLL_EXIT'?1-smooth(clamp(this.transitionTime/TRANSITIONS.ROLL_EXIT,0,1))
+          :s==='ROLL_LAND'&&input.mode==='ground'?1-smooth(clamp(this.transitionTime/TRANSITIONS.ROLL_LAND,0,1)):1;
         p.tuck=f;p.squash=1-.07*f;p.headRX=.35*f;p.earL=p.earR=-.5*f;
         p.shoulderLX=p.shoulderRX=-.6*f;p.hipLX=p.hipRX=.7*f;
         const skid=clamp(input.rollSlip??0,-1,1);
         p.bodyRY=(clamp(turn*.13,-.3,.3)+skid*.13)*f;
         p.bodyRZ=(bank*.9+clamp(turn*speed*.014,-.24,.24)+skid*.22)*f;
-        if(s==='ROLL_LAND')p.squash-=.12*Math.sin(Math.PI*clamp(this.transitionTime/TRANSITIONS.ROLL_LAND,0,1));
+        if(s==='ROLL_LAND'){
+          const u=clamp(this.transitionTime/TRANSITIONS.ROLL_LAND,0,1);
+          const slide=clamp(input.landingSlide??0,0,1);
+          p.squash-=.14*Math.sin(Math.PI*u)*(.5+.5*slide);
+          p.bodyY+=.025*Math.max(0,Math.sin((u-.38)*Math.PI))*slide;
+          p.bodyRX+=slide*.13*(1-u);
+          // The roll recovers onto the feet without changing the physics mode.
+          p.hipLX=p.hipRX=.7*f+.3*(1-f);
+        }
         break;
       }
       case 'JUMP': {
@@ -216,8 +228,13 @@ export class HamsterAnimator {
         const impact=clamp(input.landingSpeed??4,0,20),amplitude=clamp(.08+impact*.012,.08,.25);
         const u=clamp(this.transitionTime/TRANSITIONS.LAND,0,1);
         p.squash=1-amplitude*Math.sin(Math.PI*u);
-        p.bodyRX=impact>8?.14:.04;p.hipLX=p.hipRX=.35+impact*.015;
-        p.shoulderLZ=-.25;p.shoulderRZ=.25;
+        const slide=clamp(input.landingSlide??0,0,1),glide=input.landingKind==='glide';
+        p.bodyRX=(impact>8?.14:.04)+slide*.18+(glide?.07:0);
+        p.bodyRZ=clamp(input.turnRate*.05,-.2,.2)*slide;
+        p.bodyY=.022*Math.max(0,Math.sin((u-.35)*Math.PI))*clamp(impact/14,0,1);
+        p.hipLX=p.hipRX=.35+impact*.015;
+        p.footLX=-slide*.2;p.footRX=-slide*.2;
+        p.shoulderLZ=-.25-slide*.23;p.shoulderRZ=.25+slide*.23;
         break;
       }
       case 'GLIDE_OPEN': case 'GLIDE_LOOP': case 'GLIDE_CLOSE': {
@@ -234,7 +251,8 @@ export class HamsterAnimator {
     if(input.mode==='ground'&&(s==='IDLE'||s==='WALK'||s==='RUN'||s==='LAND')){
       const pitch=clamp(input.groundPitch??0,-.4,.4),cross=clamp(input.groundRoll??0,-.4,.4);
       p.footLX+=pitch*.55;p.footRX+=pitch*.55;
-      p.footLY=Math.max(0,-cross)*.2;p.footRY=Math.max(0,cross)*.2;
+      p.footLY=input.footSupportLeft!==undefined?clamp(input.footSupportLeft,-.4,.2):Math.max(0,-cross)*.2;
+      p.footRY=input.footSupportRight!==undefined?clamp(input.footSupportRight,-.4,.2):Math.max(0,cross)*.2;
       p.bodyRX+=pitch*.12;p.bodyRZ+=cross*.15;
     }
     // Action layer: blended in/out, timed events.
