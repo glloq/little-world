@@ -24,22 +24,54 @@ export function inventoryPanel(deps:InventoryDeps){
   return {
     render(body:HTMLElement){
       const vm=inventoryViewModel(deps.items(),deps.inventory(),seen);body.replaceChildren();
-      if(vm.empty){body.append(el('p','ui-empty','Votre sac est vide. Ramassez des ressources, creusez ou récoltez pour le remplir.'));return;}
-      body.append(el('p','ui-muted',`${vm.kinds} sorte(s) d’objets · ${vm.total} au total`));
-      const layout=el('div','ui-inventory'),list=el('div','ui-inventory-list'),detail=el('aside','ui-inventory-detail');layout.append(list,detail);body.append(layout);
-      if(!selected||!vm.groups.some(g=>g.entries.some(e=>e.id===selected)))selected=vm.groups[0].entries[0].id;
-      const show=(e:InventoryEntry)=>{selected=e.id;detail.replaceChildren(el('h3','',e.name),el('p','ui-muted',e.categoryLabel),el('p','',e.description??'Pas de description.'),el('p','',`Quantité : ${e.quantity} / ${e.max}`+(e.full?' — sac plein pour cet objet':'')));
-        if(e.tool){const inHand=deps.selectedTool()===e.id;detail.append(button(inHand?'Ranger':'Prendre en main',()=>{deps.selectTool(inHand?null:e.id);show(e);}))}
+      const all=vm.groups.flatMap(g=>g.entries),equipment=all.filter(e=>e.tool||['cosmetic','accessory','equipment','instrument'].includes(e.category));
+      const resources=vm.groups.map(g=>({...g,entries:g.entries.filter(e=>!equipment.some(t=>t.id===e.id))})).filter(g=>g.entries.length);
+      const icon=(e:InventoryEntry)=>{
+        const text=(e.id+' '+e.name).toLowerCase();
+        if(/pêche|peche|fishing|canne/.test(text))return '🎣';
+        if(/pioche|pickaxe/.test(text))return '⛏';
+        if(/pelle|shovel/.test(text))return '♠';
+        if(/marteau|hammer/.test(text))return '⚒';
+        if(/musique|music|flûte|flute/.test(text))return '♫';
+        if(/noisette|noix|nut/.test(text))return '◉';
+        if(/patate|pomme.de.terre/.test(text))return '🥔';
+        if(/fromage|cheese/.test(text))return '◩';
+        if(/poisson|fish/.test(text))return '♓';
+        if(/bois|wood|log/.test(text))return '▤';
+        return {mine:'◆',nature:'❀',farm:'❧',graines:'✿',argent:'●',bois:'▤',cueillette:'❀',poisson:'♓',quest:'✦',mission:'✦'}[e.category]??'⬡';
+      };
+      body.append(el('p','ui-inventory-count',vm.empty?'Sac vide':vm.kinds+' types · '+vm.total+' objets'));
+      const layout=el('div','ui-inventory'),left=el('section','ui-inventory-list'),right=el('aside','ui-inventory-equipment');
+      left.setAttribute('aria-label','Ressources');right.setAttribute('aria-label','Équipement');
+      left.append(el('h3','ui-group','Ressources'));
+      const detail=el('div','ui-inventory-detail');
+      function show(e:InventoryEntry){
+        selected=e.id;detail.replaceChildren(el('h3','',e.name),el('p','ui-muted',e.categoryLabel),el('p','',e.description??'Aucune description.'),el('p','ui-muted','Quantité : '+e.quantity+' / '+e.max));
+        if(e.tool){const inHand=deps.selectedTool()===e.id;detail.append(button(inHand?'Ranger':'Équiper',()=>{deps.selectTool(inHand?null:e.id);show(e);},'ui-button ui-primary'));}
+        else if(equipment.some(t=>t.id===e.id)){detail.append(el('p','ui-muted','Équipement cosmétique prévu : action non disponible pour cet objet.'));}
         const gas=foodGasValue(e.id);
-        if(gas&&deps.consume){const b=button('Manger (+'+gas+' gaz)',()=>{if(deps.consume?.(e.id))show(e);},'ui-button');
-          b.disabled=(deps.gasLevel?.()??100)>=100;detail.append(b);}
-        for(const b of list.querySelectorAll('button'))b.setAttribute('aria-pressed',String(b.dataset.item===e.id));};
-      for(const g of vm.groups){list.append(el('h3','ui-group',g.label));const grid=el('div','ui-item-grid');
-        for(const e of g.entries){const card=button('',()=>show(e),'ui-item');card.dataset.item=e.id;card.dataset.focusKey='item:'+e.id;card.setAttribute('aria-label',`${e.name}, ${e.quantity}${e.delta?`, nouveau +${e.delta}`:''}${e.full?', plein':''}`);
-          card.append(el('span','ui-item-name',e.name),el('span','ui-item-qty','×'+e.quantity));if(e.delta)card.append(el('span','ui-badge','+'+e.delta));if(e.nearlyFull)card.append(el('span','ui-badge ui-warn',e.full?'plein':'presque plein'));
-          grid.append(card);}
-        list.append(grid);}
-      const current=vm.groups.flatMap(g=>g.entries).find(e=>e.id===selected);if(current)show(current);
+        if(gas&&deps.consume){const action=button('Manger (+'+gas+' gaz)',()=>{if(deps.consume?.(e.id))this.render(body);},'ui-button');
+          action.disabled=(deps.gasLevel?.()??100)>=100;detail.append(action);}
+        for(const card of layout.querySelectorAll<HTMLButtonElement>('[data-item]'))card.setAttribute('aria-pressed',String(card.dataset.item===e.id));
+      }
+      function card(e:InventoryEntry){
+        const item=button('',()=>show(e),'ui-item');item.dataset.item=e.id;item.dataset.focusKey='item:'+e.id;
+        item.setAttribute('aria-label',e.name+', quantité '+e.quantity+(e.delta?', nouveau +'+e.delta:''));
+        item.append(el('span','ui-item-symbol',icon(e)),el('span','ui-item-name',e.name),el('span','ui-item-qty','×'+e.quantity));
+        if(e.delta)item.append(el('span','ui-badge','+'+e.delta));
+        if(e.nearlyFull)item.append(el('span','ui-badge ui-warn',e.full?'Plein':'Presque plein'));
+        if(deps.selectedTool()===e.id)item.classList.add('ui-equipped');
+        return item;
+      }
+      if(resources.length)for(const g of resources){left.append(el('h4','ui-group',g.label));const grid=el('div','ui-item-grid');
+        for(const e of g.entries)grid.append(card(e));left.append(grid);}
+      else left.append(el('p','ui-empty','Aucune ressource. Collectez ou récoltez pour remplir le sac.'));
+      right.append(el('h3','ui-group','À utiliser / équiper'));
+      const slots=el('div','ui-equipment-grid');for(const e of equipment)slots.append(card(e));
+      if(!equipment.length)slots.append(el('p','ui-empty','Aucun outil ni accessoire pour le moment.'));
+      right.append(slots,detail);layout.append(left,right);body.append(layout);
+      if(all.length){const current=all.find(e=>e.id===selected)??all[0];show(current);}
+      else detail.append(el('p','ui-empty','Sélectionnez un objet pour voir son usage.'));
     },
     /** Called when the panel closes: what was displayed is now « seen ». */
     markSeen(){seen={...deps.inventory()};},
