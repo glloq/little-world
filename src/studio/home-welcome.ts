@@ -91,7 +91,7 @@ export function drawWelcomePreview(canvas:HTMLCanvasElement,project:ProjectDocum
 export function mountWelcome(host:HTMLElement,actions:WelcomeActions){
   let config:WelcomeConfig={...DEFAULT_WELCOME_CONFIG};
   let step=0,section:'home'|'wizard'|'templates'|'projects'='home',name='Mon petit monde';
-  let placing:'mountain'|'volcano'|null=null,renderId=0,busy=false;
+  let placing:'mountain'|'volcano'|null=null,renderId=0,busy=false,showAdvanced=false;
   const title=(text:string,description:string)=>{
     const h=node('div','','welcome-heading');
     h.append(node('div','LITTLE WORLD STUDIO','kicker'),node('h1',text),node('p',description,'muted'));return h;
@@ -160,10 +160,7 @@ export function mountWelcome(host:HTMLElement,actions:WelcomeActions){
     page.append(progress);
     const main=node('div','','welcome-layout'),controls=node('section','','welcome-controls'),preview=node('section','','welcome-preview');
     const heading=(s:string)=>controls.append(node('h2',s));
-    const toggleChoice=(id:WelcomeMode,label:string,detail:string)=>{
-      controls.append(choice(label,detail,config.mode===id,()=>{config.mode=id;if(id==='blank'){config.volcano=false;config.mountain=null;config.volcanoAt=null;}render();}));
-    };
-    if(step===0){
+      if(step===0){
       heading('Quel type de monde ?');
       controls.append(node('p','Choisissez une forme de départ : tous les reliefs seront ensuite éditables.','muted'));
       const grid=node('div','','welcome-mode-grid');for(const m of modes)grid.append(choice(m.name,m.detail,config.mode===m.id,()=>{config.mode=m.id;if(m.id==='blank'){config.volcano=false;config.mountain=null;config.volcanoAt=null;}render();}));controls.append(grid);
@@ -178,18 +175,19 @@ export function mountWelcome(host:HTMLElement,actions:WelcomeActions){
         toggle.append(check,node('span','Ajouter un volcan'));controls.append(toggle);
       }else controls.append(node('p','Le terrain de départ restera plat. Vous ajouterez ses formes depuis le Studio.','muted'));
       controls.append(node('h3','Dimensions du monde'));
-      const sizes=select(String(config.width)+'x'+String(config.length),[
+      const dimensions=String(config.width)+'x'+String(config.length);
+      const sizes=select(['1000x1000','3000x3000','3000x8000','8000x8000'].includes(dimensions)?dimensions:'custom',[
         ['1000x1000','1 × 1 km — Compact'],['3000x3000','3 × 3 km — Moyen'],['3000x8000','3 × 8 km — Grand'],
         ['8000x8000','8 × 8 km — Très grand'],['custom','Dimensions personnalisées'],
-      ],v=>{if(v!=='custom'){const [w,l]=v.split('x').map(Number);config.width=w;config.length=l;config.mountain=null;config.volcanoAt=null;render();}else advanced.open=true;});
+      ],v=>{if(v!=='custom'){const [w,l]=v.split('x').map(Number);config.width=w;config.length=l;config.mountain=null;config.volcanoAt=null;showAdvanced=false;render();}else{showAdvanced=true;render();}});
       controls.append(field('Taille de la carte',sizes));
-      const advanced=node('details'),summary=node('summary','Réglages avancés (facultatifs)');
+      const advanced=node('details'),summary=node('summary','Réglages avancés (facultatifs)');advanced.open=showAdvanced||sizes.value==='custom';
       advanced.append(summary);
       const width=numberInput(config.width,()=>{},500,8000,'1'),length=numberInput(config.length,()=>{},500,8000,'1');
       const seed=numberInput(config.seed,()=>{},1,9999999,'1');
-      width.onchange=()=>{config.width=Number(width.value);config.mountain=null;config.volcanoAt=null;render();};
-      length.onchange=()=>{config.length=Number(length.value);config.mountain=null;config.volcanoAt=null;render();};
-      seed.onchange=()=>{config.seed=Number(seed.value);render();};
+      width.onchange=()=>{config.width=Number(width.value);config.mountain=null;config.volcanoAt=null;showAdvanced=true;render();};
+      length.onchange=()=>{config.length=Number(length.value);config.mountain=null;config.volcanoAt=null;showAdvanced=true;render();};
+      seed.onchange=()=>{config.seed=Number(seed.value);showAdvanced=true;render();};
       advanced.append(field('Largeur (m)',width),field('Longueur (m)',length),field('Graine de génération',seed));
       controls.append(advanced);
     }else{
