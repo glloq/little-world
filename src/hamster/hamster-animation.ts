@@ -106,7 +106,7 @@ export class HamsterAnimator {
   private previous: MotionMode = 'ground';
   private transitionTime = 0;
   private time = 0; private stride = 0; private lastSpeed = 0; private accel = 0;
-  private airborneRoll=false; private lastLandingSeq=-1;
+  private airborneRoll=false; private lastJumpSeq=-1; private lastLandingSeq=-1;
   /** Read-only continuous gait phase for future remote reconstruction. */
   get stridePhase(){return this.stride;}
   private act: { name: ActionName; t: number; def: ActionDefinition; fired: number } | null = null;
@@ -130,6 +130,9 @@ export class HamsterAnimator {
     const mode=input.mode, was=this.previous;
     if(mode!==was){
       if(mode==='air'&&was==='roll')this.airborneRoll=true;
+      // Opening membranes releases the rolling tuck: closing the glider must not
+      // unexpectedly resurrect ROLL_AIR without a new roll takeoff.
+      if(mode==='glide')this.airborneRoll=false;
       if(mode==='roll')this.state=this.airborneRoll?'ROLL_LAND':'ROLL_ENTER';
       else if(mode==='ground'&&(was==='air'||was==='glide'))this.state=input.landingKind==='roll'?'ROLL_LAND':'LAND';
       else if(mode==='ground'&&was==='roll')this.state='ROLL_EXIT';
@@ -146,6 +149,19 @@ export class HamsterAnimator {
       this.previous=mode;this.transitionTime=0;
       if(mode==='ground'||mode==='roll'&&was!=='air')this.airborneRoll=false;
       if(mode==='roll'||mode==='glide'||mode==='swim'||mode==='dive')this.act=null;
+    }
+    // Monotone counters allow low-rate remote snapshots to recover a jump even
+    // if the renderer missed the exact ground -> air frame. Never drive physics.
+    if(input.jumpSeq!==undefined&&input.jumpSeq!==this.lastJumpSeq){
+      if(this.lastJumpSeq>=0&&input.jumpSeq>this.lastJumpSeq&&mode==='air'){
+        if(input.jumpKind==='roll'){
+          this.airborneRoll=true;
+          if(this.state!=='ROLL_AIR'){this.state='ROLL_AIR';this.transitionTime=0;this.emit('jump');}
+        }else if(this.state!=='JUMP'){
+          this.state='JUMP';this.transitionTime=0;this.emit('jump');
+        }
+      }
+      this.lastJumpSeq=input.jumpSeq;
     }
     // A 20 FPS presentation can skip a 30 Hz airborne frame. Contact counters still
     // deliver the visual landing once; they never create gameplay events.
