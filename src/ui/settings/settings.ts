@@ -6,7 +6,7 @@ import {el,kbd} from '../shared/dom.ts';
 import type {UiPreferences} from '../app/preferences.ts';
 
 export const KEY_BINDINGS:[string,string][]=[
-  ['Z Q S D / W A S D / flèches','Se déplacer'],['Clic + glisser','Tourner la caméra · molette : distance'],['Shift (maintenir)','Accélérer : roulade au sol, nage rapide, boost en planage'],['X','Se mettre en boule / en sortir'],['Espace','Sauter / planer · dans l’eau : plonger, puis remonter'],['Souris (sous l’eau)','Avancer suit la caméra : regarder vers le bas pour descendre'],['Souris (en planage)','Clic-glisser : piquer, cabrer et tourner · S : freiner'],['Clic droit (planage)','Boost aérien (alternative à Shift)'],['Ctrl (maintenir)','Couler'],
+  ['Z Q S D / W A S D / flèches','Se déplacer'],['Clic + glisser','Tourner la caméra · molette : distance'],['Shift (maintenir)','Accélérer : roulade au sol, nage rapide, boost en planage'],['X','Se mettre en boule / en sortir'],['Espace','Sauter / planer · dans l’eau : plonger, puis remonter'],['Souris (sous l’eau)','Avancer suit la caméra : regarder vers le bas pour descendre'],['Souris (en planage)','Clic-glisser : piquer, cabrer et tourner · S : freiner'],['Ctrl (maintenir)','Couler'],
   ['E','Action principale (parler, ramasser, embarquer, creuser, cultiver)'],['F','Creuser / agir sur la parcelle'],['C','Changer de culture'],['A (maintenir)','Accessoires et émotions'],
   ['I','Sac'],['J','Journal'],['M','Carte'],['Échap','Fermer · menu'],['R','Retour au point de départ'],
 ];

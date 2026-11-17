@@ -157,7 +157,7 @@ export function createGameUi(deps:GameUiDeps){
   const stFill=el('span','ui-meter-fill');stamina.append(el('span','','Endurance'),el('span','ui-meter-track'));stamina.lastElementChild!.append(stFill);
   const velocity=el('div','ui-motion-speed hide');velocity.setAttribute('aria-label','Vitesse de déplacement');
   const gas=el('div','ui-oxygen ui-gas hide');gas.setAttribute('role','meter');gas.setAttribute('aria-label','Réserve de gaz');
-  const gasFill=el('span','ui-meter-fill');gas.append(el('span','',document.body.classList.contains('touch-mode')?'Gaz · Boost':'Gaz · clic droit / Shift'),el('span','ui-meter-track'));gas.lastElementChild!.append(gasFill);
+  const gasFill=el('span','ui-meter-fill');gas.append(el('span','',document.body.classList.contains('touch-mode')?'Gaz · Boost':'Gaz · Shift'),el('span','ui-meter-track'));gas.lastElementChild!.append(gasFill);
   host.append(quick,minimap.element,tool,oxygen,stamina,gas,velocity);
   ui.onChange(id=>{if(id)hideAudioPopover();});
   const card=activityCard(host,(plotId,cropId)=>{const name=a?.selectCrop(plotId,cropId);if(name){center.notify('info','Culture choisie : '+name);deps.audio?.emit('farm.seedbag',{source:'player'});}});
