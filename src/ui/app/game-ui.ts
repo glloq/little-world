@@ -36,7 +36,7 @@ export interface GameUiDeps {
   landmarks?:readonly {id:string;label:string;x:number;z:number}[];
   world:{name:string;buildVersion:string;dayLength:number;bounds:{minX:number;maxX:number;minZ:number;maxZ:number};seaLevel:number;height(x:number,z:number):number;water(x:number,z:number):number|null};
   eatFood?(id:string):{ok:boolean;message:string};
-  player():{gas?:number;maxGas?:number;x:number;y:number;z:number;yaw:number;space?:MovementSpace;mode:string;oxygen:number;maxOxygen:number;stamina:number;maxStamina:number;speed?:number;stalled?:boolean};
+  player():{gas?:number;maxGas?:number;gasShots?:number;gasMaxShots?:number;gasCooldown?:number;x:number;y:number;z:number;yaw:number;space?:MovementSpace;mode:string;oxygen:number;maxOxygen:number;stamina:number;maxStamina:number;speed?:number;stalled?:boolean};
   target():TargetDescriptor|null;
   quality:HTMLSelectElement|null;
   applyDistantRendering?(value:UiPreferences['distantRendering'],initial:boolean):void;
@@ -156,8 +156,10 @@ export function createGameUi(deps:GameUiDeps){
   const stamina=el('div','ui-oxygen ui-stamina hide');stamina.setAttribute('role','meter');stamina.setAttribute('aria-label','Endurance');
   const stFill=el('span','ui-meter-fill');stamina.append(el('span','','Endurance'),el('span','ui-meter-track'));stamina.lastElementChild!.append(stFill);
   const velocity=el('div','ui-motion-speed hide');velocity.setAttribute('aria-label','Vitesse de déplacement');
-  const gas=el('div','ui-oxygen ui-gas hide');gas.setAttribute('role','meter');gas.setAttribute('aria-label','Réserve de gaz');
-  const gasFill=el('span','ui-meter-fill');gas.append(el('span','',document.body.classList.contains('touch-mode')?'Gaz · Boost':'Gaz · Shift'),el('span','ui-meter-track'));gas.lastElementChild!.append(gasFill);
+  const gas=el('div','ui-oxygen ui-gas hide');gas.setAttribute('role','meter');gas.setAttribute('aria-label','Impulsions de propulsion disponibles');
+  const gasLabel=el('span','ui-gas-label','Boosts');const gasSlots=el('div','ui-gas-slots');
+  const gasSegments=Array.from({length:20},()=>{const segment=el('span','ui-gas-slot');gasSlots.append(segment);return segment;});
+  const gasCooldownLabel=el('span','ui-gas-status','Shift · Propulsion prête');gas.append(gasLabel,gasSlots,gasCooldownLabel);
   host.append(quick,minimap.element,tool,oxygen,stamina,gas,velocity);
   ui.onChange(id=>{if(id)hideAudioPopover();});
   const card=activityCard(host,(plotId,cropId)=>{const name=a?.selectCrop(plotId,cropId);if(name){center.notify('info','Culture choisie : '+name);deps.audio?.emit('farm.seedbag',{source:'player'});}});
@@ -209,7 +211,14 @@ export function createGameUi(deps:GameUiDeps){
        if(soundButton.dataset.icon!==iconName){soundButton.replaceChildren(hudIcon(iconName));soundButton.dataset.icon=iconName;soundButton.title=muted?'Son coupé · ouvrir le mixeur':'Régler le son';}
        minimap.update();
       gas.classList.toggle('hide',p.mode!=='glide'||ui.blocking);
-      if(p.mode==='glide'){gasFill.style.width=Math.round((p.gas??0)/(p.maxGas??100)*100)+'%';gas.setAttribute('aria-valuenow',String(Math.round(p.gas??0)));}
+      if(p.mode==='glide'){
+        const n=p.gasShots??0,max=p.gasMaxShots??14,cd=p.gasCooldown??0;
+        gasLabel.textContent='Boosts · '+n+'/'+max;
+        gasCooldownLabel.textContent=cd>.01?'Recharge · '+cd.toFixed(1)+' s':n>0?'Propulsion prête':'Rechargez en mangeant';
+        for(let i=0;i<gasSegments.length;i++){gasSegments[i].hidden=i>=max;gasSegments[i].classList.toggle('ready',i<n);}
+        gas.classList.toggle('ui-gas-wait',cd>.01);
+        gas.setAttribute('aria-valuenow',String(n));gas.setAttribute('aria-valuemax',String(max));
+      }
       const fast=p.mode==='roll'||p.mode==='glide';velocity.classList.toggle('hide',!fast||ui.blocking);if(fast)velocity.textContent=`${((p.speed??0)*3.6).toFixed(0)} km/h${p.stalled?' · Décrochage':''}`;
       const swim=p.mode==='swim'||p.mode==='dive';oxygen.classList.toggle('hide',!swim);if(swim){oxyFill.style.width=Math.round(p.oxygen/p.maxOxygen*100)+'%';oxygen.setAttribute('aria-valuenow',String(Math.round(p.oxygen)));}
       const tired=p.mode==='climb'||p.stamina<p.maxStamina-.5;stamina.classList.toggle('hide',!tired||swim);if(tired){stFill.style.width=Math.round(p.stamina/p.maxStamina*100)+'%';stamina.setAttribute('aria-valuenow',String(Math.round(p.stamina)));stamina.classList.toggle('ui-low',p.stamina<25);}
