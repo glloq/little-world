@@ -3,6 +3,8 @@
 import {button,field,input,node,numberInput,select} from './dom.ts';
 import {buildWelcomeProject,DEFAULT_WELCOME_CONFIG,type WelcomeConfig,type WelcomeMode,type ReliefPreset} from '../studio-core/world-onboarding.ts';
 import {generatorField} from '../terrain-generator.ts';
+import {createGuidedWorld,type WorldStartMode} from '../studio-core/world-start.ts';
+import {createProject} from '../studio-core/schema.ts';
 import type {ProjectDocument} from '../studio-core/types.ts';
 import type {ProjectSummary} from '../studio-core/project-store.ts';
 
@@ -128,10 +130,51 @@ export function mountWelcome(host:HTMLElement,actions:WelcomeActions){
       for(const p of actions.projects.slice(0,3)){
         const b=button(p.name,()=>{void safe(()=>actions.open(p.projectId))();},'welcome-project-link');
         b.append(node('span','Révision '+p.revision+' · '+new Date(p.updatedAt).toLocaleDateString('fr-FR'),'muted'));recent.append(b);
+        recent.append(button('Ouvrir le monde',()=>{void safe(()=>actions.open(p.projectId))();}));
       }
       page.append(recent);
     }
     page.append(button('Importer un projet JSON / ZIP',actions.importFile,'light-button'));
+    // Keep direct access for existing authors and browser test recipes. This is
+    // deliberately below the visual beginner flow, not the primary creation UI.
+    const advanced=node('section','','welcome-legacy');
+    advanced.append(node('h2','Accès avancé · création directe'),node('p','Pour les anciens modèles et les utilisateurs qui connaissent déjà leurs paramètres.','muted'));
+    const form=node('form','','welcome-direct');
+    const directName=input('Mon petit monde',()=>{}),size=select('1000',[
+      ['island','Île volcanique · 3 000 × 8 000 m'],
+      ['archipelago','Archipel éditable (île, volcan, îlots) · 3 000 × 8 000 m'],
+      ['chain','Chapelet d’îlots · personnalisable'],
+      ['calm','Île douce sans relief majeur · personnalisable'],
+      ['200','Vallée historique · 200 × 600 m'],
+      ['1000','Vallée historique · 1 000 × 1 000 m'],
+    ],()=>{}),seed=numberInput(4242,()=>{},1,9999999,'1');
+    const width=numberInput(3000,()=>{},500,8000,'1'),length=numberInput(8000,()=>{},500,8000,'1'),cliffs=numberInput(.35,()=>{},0,1,'0.05');
+    const volcano=node('input');volcano.type='checkbox';volcano.checked=true;
+    const opts=node('details');opts.open=true;
+    opts.append(node('summary','Dimensions et géographie initiale'),
+      field('Largeur du monde (m)',width),field('Longueur du monde (m)',length),
+      field('Proportion de falaises (0–1)',cliffs),field('Générer un volcan',volcano));
+    const submit=node('button','Créer le projet','primary-button');submit.type='submit';
+    form.append(field('Nom du projet',directName),field('Modèle et dimensions',size),opts,field('Graine du relief',seed),submit);
+    form.onsubmit=e=>{e.preventDefault();void safe(async()=>{
+      const value=Math.round(Number(seed.value));
+      const p=['island','archipelago','chain','calm'].includes(size.value)
+        ?createGuidedWorld({name:directName.value,mode:size.value as WorldStartMode,width:Number(width.value),length:Number(length.value),seed:value,cliffs:Number(cliffs.value),volcano:volcano.checked})
+        :createProject({name:directName.value,width:Number(size.value),length:size.value==='200'?600:1000,seed:value});
+      await actions.create(p);
+    })();};
+    const references=node('div','','welcome-quick-templates');
+    const shortcuts=[
+      ['Ouvrir le scénario de référence','beta.project.json'],
+      ['Scène de référence géographique','reference.project.json'],
+      ['Scène de référence World Production','production-reference.project.json'],
+      ['Scène de référence Falaises','cliff-reference.project.json'],
+      ['Scène de référence Déplacements','motion-reference.project.json'],
+      ['Démonstration B1 (mine, eau, parcelles)','b1-demo.project.json'],
+    ] as const;
+    for(const [label,file] of shortcuts)references.append(button(label,()=>{void safe(()=>actions.template(file))();}));
+    advanced.append(form,node('h3','Raccourcis des scènes de référence'),references);
+    page.append(advanced);
     host.replaceChildren(page);
   }
   function showCatalog(which:'projects'|'templates'){
