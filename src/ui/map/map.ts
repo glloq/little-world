@@ -4,8 +4,9 @@
  * heading, markers (mines, plots, inhabitants, active missions). « Visited » marks are session
  * interface state: no save contract stores discoveries yet, so nothing is persisted. */
 import {el,button} from '../shared/dom.ts';
+import type {WaypointStore} from './waypoints.ts';
 
-export interface MapMarker {id:string;kind:'mine'|'farm'|'npc'|'quest';label:string;x:number;z:number}
+export interface MapMarker {id:string;kind:'mine'|'farm'|'npc'|'quest'|'poi'|'waypoint';label:string;x:number;z:number;active?:boolean}
 export interface MapDeps {bounds:{minX:number;maxX:number;minZ:number;maxZ:number};height(x:number,z:number):number;water(x:number,z:number):number|null;seaLevel:number;markers():MapMarker[];player():{x:number;z:number;yaw:number}}
 /** Raster of the world (z grows downwards, north = −Z at the top), filled row by row. */
 export function createMapRaster(deps:Pick<MapDeps,'bounds'|'height'|'water'|'seaLevel'>,maxSide=256){
@@ -24,43 +25,110 @@ export function createMapRaster(deps:Pick<MapDeps,'bounds'|'height'|'water'|'sea
         row++;}
       return row>=height;}};
 }
-type Raster=ReturnType<typeof createMapRaster>;
-const COLORS:Record<MapMarker['kind'],string>={mine:'#7a4f2e',farm:'#c9952f',npc:'#3b6fa0',quest:'#c4472f'};
-const ICONS:Record<MapMarker['kind'],string>={mine:'⛏',farm:'❀',npc:'●',quest:'!'};
-export function mapPanel(deps:MapDeps){
-  let raster:Raster|null=null,frame=0,canvas:HTMLCanvasElement|null=null,ppm=0,cx=0,cz=0,visited=new Set<string>();
-  const b=deps.bounds,fit=()=>{if(!canvas)return;ppm=Math.min(canvas.width/(b.maxX-b.minX),canvas.height/(b.maxZ-b.minZ))*.95;cx=(b.minX+b.maxX)/2;cz=(b.minZ+b.maxZ)/2;};
-  const local=()=>{const p=deps.player();ppm=4;cx=p.x;cz=p.z;};
+export type MapRaster=ReturnType<typeof createMapRaster>;
+
+const COLORS:Record<MapMarker['kind'],string>={mine:'#7a4f2e',farm:'#c9952f',npc:'#3b6fa0',quest:'#c4472f',poi:'#46745c',waypoint:'#a24f76'};
+const ICONS:Record<MapMarker['kind'],string>={mine:'⛏',farm:'✿',npc:'●',quest:'!',poi:'⌂',waypoint:'◆'};
+const FILTERS:[MapMarker['kind'],string][]=[['quest','Missions'],['waypoint','Repères'],['poi','Lieux'],['mine','Mines'],['farm','Parcelles'],['npc','Habitants']];
+/** The exact same raster object can be used simultaneously by map and minimap. */
+export function mapPanel(deps:MapDeps,raster:MapRaster=createMapRaster(deps),waypoints?:WaypointStore){
+  let frame=0,canvas:HTMLCanvasElement|null=null,ppm=0,cx=0,cz=0,visited=new Set<string>();
+  let image:HTMLCanvasElement|null=null,addMode=false;
+  const enabled=new Set<MapMarker['kind']>(FILTERS.map(([kind])=>kind));
+  const b=deps.bounds;
+  const fit=()=>{if(!canvas)return;ppm=Math.min(canvas.width/(b.maxX-b.minX),canvas.height/(b.maxZ-b.minZ))*.95;cx=(b.minX+b.maxX)/2;cz=(b.minZ+b.maxZ)/2;};
+  const local=()=>{if(!canvas)return;const p=deps.player();ppm=Math.min(canvas.width,canvas.height)/310;cx=p.x;cz=p.z;};
   const toScreen=(x:number,z:number)=>({x:(x-cx)*ppm+canvas!.width/2,y:(z-cz)*ppm+canvas!.height/2});
-  let image:HTMLCanvasElement|null=null;
+  const fromScreen=(x:number,y:number)=>({x:cx+(x-canvas!.width/2)/ppm,z:cz+(y-canvas!.height/2)/ppm});
+  const visibleMarkers=()=>deps.markers().filter(m=>enabled.has(m.kind));
+  const distance=(x:number,z:number)=>{const p=deps.player();return Math.round(Math.hypot(x-p.x,z-p.z))+' m';};
+  let details:HTMLElement|null=null,form:HTMLElement|null=null,pointList:HTMLElement|null=null;
   function draw(){
-    if(!canvas||!raster)return;const g=canvas.getContext('2d');if(!g)return;g.fillStyle='#bcd8dc';g.fillRect(0,0,canvas.width,canvas.height);
-    image??=document.createElement('canvas');if(image.width!==raster.width){image.width=raster.width;image.height=raster.height;}image.getContext('2d')?.putImageData(new ImageData(raster.data,raster.width,raster.height),0,0);
-    const a=toScreen(b.minX,b.minZ),c=toScreen(b.maxX,b.maxZ);g.imageSmoothingEnabled=true;g.drawImage(image,a.x,a.y,c.x-a.x,c.y-a.y);
-    const p=deps.player();
-    for(const m of deps.markers()){if(Math.hypot(m.x-p.x,m.z-p.z)<35)visited.add(m.id);const s=toScreen(m.x,m.z);if(s.x<-20||s.y<-20||s.x>canvas.width+20||s.y>canvas.height+20)continue;
-      g.fillStyle=COLORS[m.kind];g.globalAlpha=visited.has(m.id)||m.kind==='quest'?1:.65;g.beginPath();g.arc(s.x,s.y,m.kind==='npc'?5:8,0,Math.PI*2);g.fill();g.globalAlpha=1;g.fillStyle='#fff';g.font='bold 10px system-ui';g.textAlign='center';g.textBaseline='middle';g.fillText(ICONS[m.kind],s.x,s.y+.5);
-      if(ppm>.5||m.kind==='quest'){g.fillStyle='#22382e';g.font='11px system-ui';g.fillText(m.label+(visited.has(m.id)?' ✓':''),s.x,s.y-14);}}
-    // Player: arrow along the camera heading (forward = (sin yaw, cos yaw)).
-    const s=toScreen(p.x,p.z),ang=Math.atan2(Math.sin(p.yaw),Math.cos(p.yaw));g.save();g.translate(s.x,s.y);g.rotate(-ang+Math.PI);g.fillStyle='#ffffff';g.strokeStyle='#1f5f4b';g.lineWidth=2.5;g.beginPath();g.moveTo(0,-11);g.lineTo(8,9);g.lineTo(0,4);g.lineTo(-8,9);g.closePath();g.fill();g.stroke();g.restore();
-    canvas.dataset.player=`${Math.round(p.x)},${Math.round(p.z)}`;canvas.dataset.progress=raster.done?'1':raster.progress.toFixed(2);canvas.dataset.markers=String(deps.markers().length);canvas.dataset.visited=String(visited.size);
+    if(!canvas)return;const g=canvas.getContext('2d');if(!g)return;
+    g.fillStyle='#bcd8dc';g.fillRect(0,0,canvas.width,canvas.height);
+    if(raster.done){
+      image??=document.createElement('canvas');
+      if(image.width!==raster.width||image.height!==raster.height){image.width=raster.width;image.height=raster.height;}
+      if(!image.dataset.ready){image.getContext('2d')?.putImageData(new ImageData(raster.data,raster.width,raster.height),0,0);image.dataset.ready='1';}
+      const a=toScreen(b.minX,b.minZ),c=toScreen(b.maxX,b.maxZ);
+      g.imageSmoothingEnabled=true;g.drawImage(image,a.x,a.y,c.x-a.x,c.y-a.y);
+    }
+    const p=deps.player(),markers=visibleMarkers(),active=markers.find(m=>m.active);
+    if(active){const a=toScreen(active.x,active.z),s=toScreen(p.x,p.z);g.save();g.strokeStyle='#b34e79';g.lineWidth=2;g.setLineDash([6,5]);g.beginPath();g.moveTo(s.x,s.y);g.lineTo(a.x,a.y);g.stroke();g.restore();}
+    for(const m of markers){
+      if(Math.hypot(m.x-p.x,m.z-p.z)<35)visited.add(m.id);
+      const s=toScreen(m.x,m.z);if(s.x<-20||s.y<-20||s.x>canvas.width+20||s.y>canvas.height+20)continue;
+      g.fillStyle=COLORS[m.kind];g.globalAlpha=visited.has(m.id)||m.kind==='quest'||m.kind==='waypoint'?1:.8;
+      g.beginPath();g.arc(s.x,s.y,m.active?10:m.kind==='npc'?5:8,0,Math.PI*2);g.fill();g.globalAlpha=1;
+      g.fillStyle='#fff';g.font='bold 10px system-ui';g.textAlign='center';g.textBaseline='middle';g.fillText(ICONS[m.kind],s.x,s.y+.5);
+      if(ppm>.5||m.kind==='quest'||m.active){g.fillStyle='#22382e';g.font='11px system-ui';g.fillText(m.label+(visited.has(m.id)?' ✓':''),s.x,s.y-15);}
+    }
+    const s=toScreen(p.x,p.z);g.save();g.translate(s.x,s.y);g.rotate(Math.PI-p.yaw);
+    g.fillStyle='#ffffff';g.strokeStyle='#1f5f4b';g.lineWidth=2.5;
+    g.beginPath();g.moveTo(0,-11);g.lineTo(8,9);g.lineTo(0,4);g.lineTo(-8,9);g.closePath();g.fill();g.stroke();g.restore();
+    canvas.dataset.player=`${Math.round(p.x)},${Math.round(p.z)}`;canvas.dataset.progress=raster.done?'1':raster.progress.toFixed(2);
+    canvas.dataset.markers=String(markers.length);canvas.dataset.visited=String(visited.size);
   }
-  function loop(){frame=0;if(!canvas?.isConnected||!raster)return;const done=raster.step(6);draw();if(!done)frame=requestAnimationFrame(loop);}
+  function loop(){frame=0;if(!canvas?.isConnected)return;const done=raster.step(6);draw();if(!done)frame=requestAnimationFrame(loop);}
+  function renderPointList(){
+    if(!pointList||!details)return;
+    pointList.replaceChildren();
+    const all=visibleMarkers().filter(m=>m.kind!=='npc').sort((a,c)=>Number(!!c.active)-Number(!!a.active)||Math.hypot(a.x-deps.player().x,a.z-deps.player().z)-Math.hypot(c.x-deps.player().x,c.z-deps.player().z));
+    for(const m of all.slice(0,80)){
+      const row=el('div','ui-map-entry'),name=el('span','',`${ICONS[m.kind]} ${m.label} · ${distance(m.x,m.z)}`);
+      const follow=button(m.active?'Ne plus suivre':'Viser',()=>{
+        if(m.kind==='waypoint'){waypoints?.activate(m.active?null:m.id);}
+        else if(waypoints){const selected=waypoints.add(m.label,m.x,m.z);if(!selected){details!.textContent='Limite de repères atteinte : 24.';return;}}
+        draw();renderPointList();
+      },'ui-button',m.active?'Désactiver ce repère':'Choisir cette destination');
+      row.append(name,follow);
+      if(m.kind==='waypoint')row.append(button('×',()=>{waypoints?.remove(m.id);draw();renderPointList();},'ui-button','Supprimer le repère'));
+      pointList.append(row);
+    }
+    if(!all.length)pointList.append(el('p','ui-empty','Aucun lieu affiché pour ces filtres.'));
+    const goal=waypoints?.active;details.textContent=goal?`Destination : ${goal.label} · ${distance(goal.x,goal.z)}`:'Aucune destination sélectionnée.';
+  }
+  function markAt(pos:{x:number;z:number}){
+    if(!form)return;
+    form.replaceChildren();const text=el('p','ui-muted',`Nouveau repère · X ${pos.x.toFixed(0)}, Z ${pos.z.toFixed(0)}`);
+    const label=el('input');label.type='text';label.maxLength=48;label.value='Mon repère';label.setAttribute('aria-label','Nom du repère');
+    const confirm=button('Enregistrer',()=>{
+      const created=waypoints?.add(label.value,pos.x,pos.z);
+      if(created){form?.replaceChildren();addMode=false;draw();renderPointList();}
+      else form?.append(el('p','ui-alert','Nom invalide ou 24 repères déjà enregistrés.'));
+    },'ui-button ui-primary');
+    const cancel=button('Annuler',()=>{addMode=false;form?.replaceChildren();});
+    form.append(text,label,confirm,cancel);label.focus();
+  }
   return {
     render(body:HTMLElement){
-      body.replaceChildren();raster??=createMapRaster(deps);const view=el('canvas','ui-map-canvas');canvas=view;canvas.setAttribute('aria-label','Carte du monde');canvas.tabIndex=0;
-      const r=body.getBoundingClientRect();canvas.width=Math.max(320,Math.round(Math.min(window.innerWidth*.86,1100)));canvas.height=Math.max(240,Math.round(Math.min(window.innerHeight*.66,720)));void r;fit();
+      body.replaceChildren();const view=el('canvas','ui-map-canvas');canvas=view;canvas.setAttribute('aria-label','Carte du monde');canvas.tabIndex=0;
+      canvas.width=Math.max(320,Math.round(Math.min(window.innerWidth*.84,1100)));canvas.height=Math.max(240,Math.round(Math.min(window.innerHeight*.52,620)));fit();
       const zoom=(f:number,ax=view.width/2,ay=view.height/2)=>{const wx=(ax-canvas!.width/2)/ppm+cx,wz=(ay-canvas!.height/2)/ppm+cz;ppm=Math.min(16,Math.max(.02,ppm*f));cx=wx-(ax-canvas!.width/2)/ppm;cz=wz-(ay-canvas!.height/2)/ppm;draw();};
       canvas.addEventListener('wheel',e=>{e.preventDefault();const rect=canvas!.getBoundingClientRect();zoom(e.deltaY<0?1.25:.8,(e.clientX-rect.left)*canvas!.width/rect.width,(e.clientY-rect.top)*canvas!.height/rect.height);},{passive:false});
-      let drag:{x:number;y:number}|null=null;canvas.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY};canvas!.setPointerCapture(e.pointerId);});
-      canvas.addEventListener('pointermove',e=>{if(!drag)return;const rect=canvas!.getBoundingClientRect(),k=canvas!.width/rect.width;cx-=(e.clientX-drag.x)*k/ppm;cz-=(e.clientY-drag.y)*k/ppm;drag={x:e.clientX,y:e.clientY};draw();});
-      canvas.addEventListener('pointerup',()=>{drag=null;});
+      let drag:{x:number;y:number;distance:number}|null=null;
+      const localPointer=(e:PointerEvent)=>{const r=canvas!.getBoundingClientRect();return {x:(e.clientX-r.left)*canvas!.width/r.width,y:(e.clientY-r.top)*canvas!.height/r.height};};
+      canvas.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY,distance:0};canvas!.setPointerCapture(e.pointerId);});
+      canvas.addEventListener('pointermove',e=>{if(!drag)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;drag.distance+=Math.hypot(dx,dy);
+        if(drag.distance>4&&!addMode){const k=canvas!.width/canvas!.getBoundingClientRect().width;cx-=dx*k/ppm;cz-=dy*k/ppm;draw();}
+        drag.x=e.clientX;drag.y=e.clientY;
+      });
+      canvas.addEventListener('pointerup',e=>{if(drag&&drag.distance<5){const pos=localPointer(e);if(addMode){const world=fromScreen(pos.x,pos.y);markAt(world);}
+        else{const near=visibleMarkers().map(m=>({m,d:Math.hypot(toScreen(m.x,m.z).x-pos.x,toScreen(m.x,m.z).y-pos.y)})).filter(v=>v.d<13).sort((a,b)=>a.d-b.d)[0];if(near){details!.textContent=near.m.label+' · '+distance(near.m.x,near.m.z);}}}
+        drag=null;});
+      canvas.addEventListener('pointercancel',()=>{drag=null;});
       canvas.addEventListener('keydown',e=>{const step=60/ppm;if(e.key==='+'||e.key==='=')zoom(1.25);else if(e.key==='-')zoom(.8);else if(e.key==='ArrowLeft')cx-=step;else if(e.key==='ArrowRight')cx+=step;else if(e.key==='ArrowUp')cz-=step;else if(e.key==='ArrowDown')cz+=step;else if(e.key==='0')fit();else return;e.preventDefault();e.stopPropagation();draw();});
-      const tools=el('div','ui-row ui-map-tools');tools.append(button('Vue générale',()=>{fit();draw();}),button('Autour de moi',()=>{local();draw();}),button('+',()=>zoom(1.25),'ui-button','Zoomer'),button('−',()=>zoom(.8),'ui-button','Dézoomer'));
-      const legend=el('p','ui-muted','⛏ mine · ❀ parcelle · ● habitant · ! mission en cours · ✓ visité pendant cette session · Glisser pour déplacer, molette ou + / − pour zoomer, flèches pour parcourir.');
-      body.append(tools,canvas,legend);cancelAnimationFrame(frame);frame=requestAnimationFrame(loop);
+      const tools=el('div','ui-row ui-map-tools');
+      tools.append(button('Vue générale',()=>{fit();draw();}),button('Autour de moi',()=>{local();draw();}),button('+',()=>zoom(1.25),'ui-button','Zoomer'),button('−',()=>zoom(.8),'ui-button','Dézoomer'));
+      if(waypoints)tools.append(button('Placer un repère',()=>{addMode=true;form?.replaceChildren(el('p','ui-muted','Cliquez sur la carte pour placer un repère.'));},'ui-button ui-primary'));
+      const filters=el('div','ui-map-filters');
+      for(const [kind,name] of FILTERS){const l=el('label','ui-map-filter'),input=el('input');input.type='checkbox';input.checked=enabled.has(kind);input.onchange=()=>{if(input.checked)enabled.add(kind);else enabled.delete(kind);draw();renderPointList();};l.append(input,document.createTextNode(name));filters.append(l);}
+      form=el('div','ui-row ui-map-form');details=el('p','ui-map-target');pointList=el('div','ui-map-points');
+      const legend=el('p','ui-muted','Clic sur un lieu : informations · Glisser : déplacer · Molette : zoom · Clic sur « Placer un repère », puis sur la carte.');
+      body.append(tools,filters,form,view,details,pointList,legend);
+      renderPointList();cancelAnimationFrame(frame);frame=requestAnimationFrame(loop);
     },
-    close(){cancelAnimationFrame(frame);frame=0;canvas=null;},
+    close(){cancelAnimationFrame(frame);frame=0;canvas=null;form=null;details=null;pointList=null;addMode=false;},
     get raster(){return raster;},
   };
 }
