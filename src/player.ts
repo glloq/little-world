@@ -18,6 +18,8 @@ export interface Controls {
   run: boolean;
   /** Opt-in gradual upright run; Shift remains the roll control. */
   autoRun?: boolean;
+  /** Opt-in coyote time and landing jump buffer; legacy callers retain their input semantics. */
+  jumpAssist?: boolean;
   jumpPressed: boolean;
   /** Roll toggle pressed this step (hamster ball mode). Optional for older callers. */
   rollPressed?: boolean;
@@ -65,6 +67,10 @@ export interface Player {
   /** Take-off origin, impact speed and event counters: visual cues, not gameplay authority. */
   jumpOrigin?:'idle'|'run'|'roll';jumpSeq?:number;
   landingSpeed?:number;landingSeq?:number;
+  /** Saved tick-based jump forgiveness state. No visual state can mutate it. */
+  coyoteLeft?:number;coyoteFrom?:'idle'|'run'|'roll';jumpBufferLeft?:number;
+  /** Lightweight presentation cues: surface pitch/roll and roll steering residual. */
+  groundPitch?:number;groundRoll?:number;rollSlip?:number;
   /** Replayable flight intention/state; independent from the render camera. */
   glideHeading?:number;glidePitch?:number;glideTurnRate?:number;stalled?:boolean;
 }
@@ -73,6 +79,8 @@ export interface Player {
 export const SWIM={sink:.48,dive:2.6,diveRun:3.6,divePush:2.4,diveDepth:1} as const;
 export const MAX_OXYGEN = 90;
 export const MAX_STAMINA = 100;
+/** Input forgiveness calibrated for 30 Hz; only enabled when jumpAssist is true. */
+export const JUMP_ASSIST={coyote:.10,buffer:.13,nearLanding:.65,maxPrediction:1.4} as const;
 /** Climbing tuning: vertical gain while pushing up, lateral speed, stamina use per second. */
 export const CLIMB={up:1.8,side:1.4,drainMove:11,drainHang:4,regen:28,minStart:12,grabReach:1.5} as const;
 /** Uphill gradient of the outdoor relief at (x,z): slope ratio and unit direction. */
@@ -103,8 +111,9 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
   const dz = forward * cz + right * sx;
   if(len>.1)p.intentYaw=Math.atan2(dx,dz);
   if(keys.autoRun){
-    const forwardCharge=p.mode==='ground'&&keys.forward>.65&&len>.75&&!keys.rollHeld&&!keys.rollPressed;
-    p.runCharge=clamp((p.runCharge??0)+(forwardCharge?dt/1.15:-dt*2),0,1);
+    const forwardCharge=(p.mode==='ground'||p.mode==='air')&&keys.forward>.65&&len>.75&&!keys.rollHeld&&!keys.rollPressed;
+    // Preserve earned speed charge through a jump; do not gain sprint charge while airborne.
+    p.runCharge=clamp((p.runCharge??0)+(forwardCharge?(p.mode==='ground'?dt/1.15:0):-dt*2),0,1);
   }
   const body={...DEFAULT_BODY,...p.body};p.transitioned=undefined;
   const relief=collision?(x:number,z:number)=>collision.reliefHeight(x,z):terrainHeight;
@@ -114,13 +123,43 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
   const ground = floorAt();
   const deepEnough = atWater !== null && atWater - ground > 0.62;
   const inWater = deepEnough && pos.y <= atWater + 0.42;
+  const assisted=keys.jumpAssist===true;
+  let jumpHandled=false;
+  if(assisted){
+    p.coyoteLeft=Math.max(0,(p.coyoteLeft??0)-dt);
+    p.jumpBufferLeft=Math.max(0,(p.jumpBufferLeft??0)-dt);
+    if(inWater||oldMode==='swim'||oldMode==='dive'||oldMode==='climb'){
+      p.coyoteLeft=0;p.jumpBufferLeft=0;
+    }
+    const coyote=oldMode==='air'&&p.coyoteLeft>0&&!inWater;
+    const height=pos.y-ground;
+    const bufferRange=Math.min(JUMP_ASSIST.maxPrediction,Math.max(JUMP_ASSIST.nearLanding,-v.y*JUMP_ASSIST.buffer));
+    // Late airborne key presses near the floor request the next grounded jump, not a glide.
+    if(keys.jumpPressed&&oldMode==='air'&&!coyote&&v.y<=0&&height>.06&&height<=bufferRange){
+      p.jumpBufferLeft=JUMP_ASSIST.buffer;jumpHandled=true;
+    }
+    if(keys.jumpPressed&&coyote){
+      p.jumpOrigin=p.coyoteFrom??'idle';p.jumpSeq=(p.jumpSeq??0)+1;
+      v.y=Math.max(v.y,p.jumpOrigin==='roll'?ROLL.jump:7.1);
+      p.glideReady=true;p.coyoteLeft=0;p.jumpBufferLeft=0;jumpHandled=true;
+    }
+  }
   // Roll: from the ground (not in water, not on a boat). X toggles the ball; holding the sprint
   // key (Shift) while moving rolls to go fast and releasing it unrolls (momentum kept).
   const enterRoll=(byHold:boolean)=>{p.mode='roll';p.rollByHold=byHold;p.rollSpeed=Math.hypot(v.x,v.z);p.rollHeading=len>0?Math.atan2(dx,dz):Math.hypot(v.x,v.z)>.3?Math.atan2(v.x,v.z):keys.cameraYaw;p.rollIdle=0;};
   if(keys.rollPressed){if(p.mode==='ground'&&!inWater)enterRoll(false);else if(p.mode==='roll')p.mode='ground';}
   else if(keys.rollHeld&&len>.3&&p.mode==='ground'&&!inWater)enterRoll(true);
   else if(p.mode==='roll'&&p.rollByHold&&!keys.rollHeld)p.mode='ground';
-  if(p.mode==='roll'&&!inWater)rollStep(p,keys,dt,dx,dz,len,relief,collision?.materialAt(pos,p.space)??'grass',!!p.space||ground-relief(pos.x,pos.z)>.2);
+  if(p.mode==='roll'&&!inWater){
+    rollStep(p,keys,dt,dx,dz,len,relief,collision?.materialAt(pos,p.space)??'grass',!!p.space||ground-relief(pos.x,pos.z)>.2);
+    if(assisted){
+      if(p.mode==='roll'){
+        p.coyoteLeft=JUMP_ASSIST.coyote;p.coyoteFrom='roll';
+      }else if(keys.jumpPressed){
+        p.coyoteLeft=0;p.jumpBufferLeft=0;jumpHandled=true;
+      }
+    }
+  }else if(p.mode!=='air')p.rollSlip=0;
   // Climbing (outdoor relief only): steeper than the walkable slope, pushed into, with stamina.
   if(p.mode!=='climb'&&!p.space&&p.climbCooldown<=0&&p.stamina>=CLIMB.minStart&&len>.3&&(p.mode==='ground'||p.mode==='air'||p.mode==='glide')){
     const ax=pos.x+dx*.6,az=pos.z+dz*.6,g=reliefGradient(ax,az,relief),hAhead=relief(ax,az);
@@ -182,19 +221,24 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
       pos.y = ground;
       v.y = 0;
       p.glideReady = false;
-      if (keys.jumpPressed) {
+      if(assisted){
+        p.coyoteLeft=JUMP_ASSIST.coyote;
+        p.coyoteFrom=Math.hypot(v.x,v.z)>MOTION.walk*.75?'run':'idle';
+      }
+      if (keys.jumpPressed || assisted&&(p.jumpBufferLeft??0)>0) {
         p.jumpOrigin=Math.hypot(v.x,v.z)>MOTION.walk*.75?'run':'idle';
         p.jumpSeq=(p.jumpSeq??0)+1;
-        p.mode = 'air';
+        p.mode = 'air';jumpHandled=true;
         v.y = 7.1;
         p.glideReady = true;
+        if(assisted){p.coyoteLeft=0;p.jumpBufferLeft=0;}
       }
     } else if (p.mode === 'ground') {
       p.mode = 'air';
       p.glideReady = true;
     }
     if (p.mode === 'air' || p.mode === 'glide') {
-      if (keys.jumpPressed && p.glideReady && oldMode !== 'ground' && oldMode !== 'climb' && oldMode !== 'roll') {
+      if (keys.jumpPressed && !jumpHandled && p.glideReady && oldMode !== 'ground' && oldMode !== 'climb' && oldMode !== 'roll') {
         p.mode = p.mode === 'glide' ? 'air' : 'glide';
         p.glideHeading=undefined;p.glidePitch=undefined;
       }
@@ -247,6 +291,23 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
     p.mode = 'ground';
     p.glideReady = false;
   }
+  // Buffered jump can fire on the SAME tick as physical landing. Its impulse is
+  // integrated next tick; no synthetic teleport, double-jump or extra glide toggle.
+  if(assisted&&p.mode==='ground'&&!jumpHandled&&(p.jumpBufferLeft??0)>0){
+    p.jumpOrigin=Math.hypot(v.x,v.z)>MOTION.walk*.75?'run':'idle';
+    p.jumpSeq=(p.jumpSeq??0)+1;p.mode='air';v.y=7.1;p.glideReady=true;
+    p.jumpBufferLeft=0;p.coyoteLeft=0;jumpHandled=true;
+  }
+  // Cosmetic slope samples only for genuine terrain contact, not decks or underground spaces.
+  const heightfieldContact=p.mode==='ground'&&!p.space&&Math.abs(newGround-relief(pos.x,pos.z))<.12;
+  if(heightfieldContact){
+    const heading=p.heading??p.intentYaw??0;
+    const fx=Math.sin(heading),fz=Math.cos(heading),sx=Math.cos(heading),sz=-Math.sin(heading),half=.25;
+    const up=relief(pos.x+fx*half,pos.z+fz*half),down=relief(pos.x-fx*half,pos.z-fz*half);
+    const left=relief(pos.x-sx*half,pos.z-sz*half),right=relief(pos.x+sx*half,pos.z+sz*half);
+    p.groundPitch=clamp(Math.atan2(up-down,2*half),-.4,.4);
+    p.groundRoll=clamp(Math.atan2(right-left,2*half),-.4,.4);
+  }else{p.groundPitch=0;p.groundRoll=0;}
   // Water is evaluated after horizontal motion as well, to avoid passing through the banks.
   const newWater = collision?collision.waterAt(pos,p.space):waterSurface(pos.x, pos.z);
   if (
@@ -266,7 +327,7 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
   const transition=collision?.transitionAt(pos,p.space);
   if(p.mode!=='glide'){p.stalled=false;p.glideHeading=undefined;p.glidePitch=undefined;p.glideTurnRate=0;}
   if(Math.hypot(v.x,v.z)>.01)p.heading=Math.atan2(v.x,v.z);
-  if(transition){p.space=transition.to??undefined;pos.set(transition.arrival.x,transition.arrival.y,transition.arrival.z);v.set(0,0,0);p.mode='ground';p.glideReady=false;p.transitioned=transition.id;}
+  if(transition){p.space=transition.to??undefined;pos.set(transition.arrival.x,transition.arrival.y,transition.arrival.z);v.set(0,0,0);p.mode='ground';p.glideReady=false;p.transitioned=transition.id;p.coyoteLeft=0;p.jumpBufferLeft=0;}
 }
 
 /** One climbing step: forward = up the slope, sideways along it; jump leaps off (glide possible),
@@ -290,6 +351,7 @@ function rollStep(p:Player,keys:Controls,dt:number,dx:number,dz:number,len:numbe
  const pos=p.position,v=p.velocity;let speed=Math.hypot(v.x,v.z),heading=speed>.05?Math.atan2(v.x,v.z):p.rollHeading??keys.cameraYaw;
  if(keys.jumpPressed){p.jumpOrigin='roll';p.jumpSeq=(p.jumpSeq??0)+1;p.mode='air';v.y=Math.max(0,v.y)+ROLL.jump;p.glideReady=true;return;}
  const surface=SURFACE_MOTION[material];
+ let slipTarget=0;
  if(len>.1){
   const want=Math.atan2(dx,dz),delta=angleDelta(heading,want),align=Math.cos(delta);
   if(speed<1.5){heading=want;speed=Math.min(ROLL.max,speed+ROLL.accel*dt*Math.min(1,len));}
@@ -300,8 +362,12 @@ function rollStep(p:Player,keys:Controls,dt:number,dx:number,dz:number,len:numbe
    const driveLimit=ROLL.max/(1+Math.abs(turn/dt)*.35);
    if(speed<driveLimit)speed=Math.min(driveLimit,speed+ROLL.accel*dt*Math.min(1,len));
   }
+  // Remaining steering error is the (signed) visual skid; low-grip surfaces amplify it.
+  const residual=angleDelta(heading,want);
+  slipTarget=clamp(residual*.55*Math.min(1,speed/7)*(1.5-surface.grip),-1,1);
   p.rollIdle=0;
  }else p.rollIdle=(p.rollIdle??0)+dt;
+ p.rollSlip=(p.rollSlip??0)+(slipTarget-(p.rollSlip??0))*Math.min(1,dt*9);
  speed=Math.max(0,speed-ROLL.friction*surface.friction*(len>.1?.25:1)*dt);
  // Gravity projected onto the heightfield tangent plane. It also turns a freely rolling ball.
  const gx=flatSupport?0:relief(pos.x+.5,pos.z)-relief(pos.x-.5,pos.z),gz=flatSupport?0:relief(pos.x,pos.z+.5)-relief(pos.x,pos.z-.5);
