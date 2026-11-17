@@ -70,6 +70,8 @@ export function buildHamster(): HamsterCharacter {
     j.ShoulderLeft.rotation.set(p.shoulderLX, 0, p.shoulderLZ); j.ShoulderRight.rotation.set(p.shoulderRX, 0, p.shoulderRZ);
     j.HipLeft.rotation.x = p.hipLX; j.HipRight.rotation.x = p.hipRX;
     j.FootLeft.rotation.x = p.footLX; j.FootRight.rotation.x = p.footRX;
+    j.FootLeft.position.y=REST.FootLeft[1]+p.footLY;
+    j.FootRight.position.y=REST.FootRight[1]+p.footRY;
     j.Tail.rotation.x = p.tailX;
     // Roll: paws retract into the ball (scaled down and pulled toward the centre).
     const limb = 1 - .85 * p.tuck;
@@ -115,6 +117,8 @@ export function buildHamster(): HamsterCharacter {
       input.turnIntent=player.intentYaw===undefined?0:Math.atan2(Math.sin(player.intentYaw-facing),Math.cos(player.intentYaw-facing));
       input.jumpKind=player.jumpOrigin;input.jumpSeq=player.jumpSeq;
       input.landingSpeed=player.landingSpeed;input.landingSeq=player.landingSeq;
+      input.groundPitch=player.groundPitch??0;input.groundRoll=player.groundRoll??0;
+      input.rollSlip=player.rollSlip??0;
       if (fishing && !animator.action && animator.play('FISH_WAIT')) actionTool = 'fishing-rod';
       pose(dt, elapsed);
     },
@@ -131,7 +135,8 @@ export function buildHamster(): HamsterCharacter {
       const w = rig.group.getWorldPosition(tmp);
       return { v: 1, t, x: w.x, y: w.y, z: w.z, yaw: facing, mode: input.mode as PlayerPresentationState['mode'], speed: input.speed, verticalSpeed: input.verticalSpeed, turnRate: input.turnRate, aboard, action: animator.action, actionSeq, tool: animator.toolOut ? actionTool : fishing ? 'fishing-rod' : null, fishing: fishing ? { ...fishing } : null,
         stridePhase:animator.stridePhase,rollPhase:animator.pose.roll,turnIntent:input.turnIntent??0,
-        ...(input.jumpKind?{jumpKind:input.jumpKind}:{}),...(input.landingSpeed!==undefined?{landingSpeed:input.landingSpeed}:{}) };
+        ...(input.jumpKind?{jumpKind:input.jumpKind}:{}),...(input.landingSpeed!==undefined?{landingSpeed:input.landingSpeed}:{}),
+        groundPitch:input.groundPitch??0,groundRoll:input.groundRoll??0,rollSlip:input.rollSlip??0 };
     },
     applyPresentation(s, dt) {
       if (disposed) return;
@@ -140,6 +145,7 @@ export function buildHamster(): HamsterCharacter {
       fishing = s.fishing ? { ...s.fishing } : null; aboard = s.aboard;
       input.animationTime=s.t;input.travel=undefined;input.stridePhase=s.stridePhase;input.rollPhase=s.rollPhase;
       input.turnIntent=s.turnIntent??0;input.jumpKind=s.jumpKind;input.landingSpeed=s.landingSpeed;
+      input.groundPitch=s.groundPitch??0;input.groundRoll=s.groundRoll??0;input.rollSlip=s.rollSlip??0;
       input.mode=s.mode;input.speed=s.speed;input.verticalSpeed=s.verticalSpeed;input.turnRate=s.turnRate;input.aboard=s.aboard;
       if (fishing && !animator.action && animator.play('FISH_WAIT')) actionTool = 'fishing-rod';
       pose(dt, s.t);
