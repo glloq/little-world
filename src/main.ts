@@ -235,7 +235,7 @@ world.update(0, player.position);
     },
     player:()=>({gas:gasLevel(player),maxGas:GAS.max,x:player.position.x,y:player.position.y,z:player.position.z,yaw,space:player.space,mode:player.mode,oxygen:player.oxygen,maxOxygen:MAX_OXYGEN,stamina:player.stamina??MAX_STAMINA,maxStamina:MAX_STAMINA,speed:player.velocity.length(),stalled:player.stalled}),
     target:()=>currentTarget(),
-    home:()=>{started=false;gameUi?.controller.close();keySet.clear();overlay.classList.remove('hide');start.focus();}});
+    home:()=>{started=false;rightBoostDown=false;gameUi?.controller.close();keySet.clear();overlay.classList.remove('hide');start.focus();}});
 }
 // The player is the hamster (doc 43); NPCs keep their own rigs.
 const character = buildHamster();
@@ -742,11 +742,22 @@ function draw(now: number) {
   character.setAboard(aboard);
   if(gameplay){const f=gameplay.fishing.state;character.setFishing(f.phase!=='idle'&&f.castAt?{x:f.castAt.x,y:waterSurface(f.castAt.x,f.castAt.z)??getTerrainConfig().seaLevel,z:f.castAt.z,biting:f.phase==='bite'}:null);}
   character.update(player, delta, elapsed);
+  // Hero-only pose overlay. Does not change the authoritative rig animation,
+  // procedural GLB, other players or distant impostor hashes.
+  if(player.mode==='glide'&&player.gasBoosting){
+    const joints=character.rig.joints;
+    joints.HamsterBody.scale.y*=.95+Math.sin(elapsed*30)*.012;
+    joints.HamsterBody.rotation.x-=.07;
+    joints.Head.rotation.x+=.055;
+    joints.EarLeft.rotation.z-=.13;
+    joints.EarRight.rotation.z+=.13;
+    joints.Tail.rotation.x+=.2;
+  }
   if(player.mode==='glide'&&player.gasBoosting&&player.gasPulseSeq!==gasVisualSeq){
     character.rig.joints.Tail.getWorldPosition(gasOrigin);
     gasEffects.spawn(gasOrigin,player.velocity);
     // Temporary lightweight sound from existing audio catalogue; dedicated fart takes later.
-    audio?.emit('player.glide.deploy',{position:player.position,source:'player'});
+    if((player.gasPulseSeq??0)%2===1)audio?.emit('player.glide.deploy',{position:player.position,source:'player'});
   }
   gasVisualSeq=player.gasPulseSeq??0;
   gasEffects.update(delta);
@@ -839,6 +850,7 @@ document.addEventListener('visibilitychange', () => {
   lastPresented = null;pendingSimulationMs=0;
   fpsTime = 0;
   frameCount = 0;
+  rightBoostDown=false;
   keySet.clear();
   jumpQueue = 0;
   actionQueue = 0;
