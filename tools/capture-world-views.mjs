@@ -29,7 +29,7 @@ try{
     const url=new URL(base);url.searchParams.set('metrics','1');url.searchParams.set('world',v.world);url.searchParams.set('spawn',`${v.x},${v.z}`);
     for(const k of ['yaw','pitch','dist'])if(v[k]!==undefined)url.searchParams.set(k,String(v[k]));
     if(v.night)url.searchParams.set('night','1');
-    await page.goto(url.href,{waitUntil:'networkidle'});await page.locator('#start').click();
+    await page.goto(url.href,{waitUntil:'networkidle'});await page.locator('#start-overlay').waitFor({state:'hidden'});
     const t0=performance.now();
     const settled=await page.waitForFunction(()=>{const m=window.littleWorldMetrics;return m&&m.chunks.pending===0&&(!m.cliffs||m.cliffs.pending===0)&&(!m.dressing||m.dressing.pending===0&&!m.dressing.canopyPending&&m.dressing.species.state!=='loading');},{},{timeout:60000}).then(()=>true,()=>false);
     if(!settled){await page.screenshot({path:resolve(output,v.name+'-unsettled.png')});throw Error(v.name+': scene did not settle; '+errors.join(' | '));}
