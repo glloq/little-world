@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {composeWorld,projectFromComposition} from '../src/studio-core/world-composition.ts';
-import {DEFAULT_MAP_REQUIREMENTS as defaults,validateMapRequirements} from '../src/studio-core/map-requirements.ts';
+import {PROVINCE_MAP_REQUIREMENTS as defaults,validateMapRequirements} from '../src/studio-core/map-requirements.ts';
 import {RIVER_BIOME_SPAN} from '../src/studio-core/world-biome-planner.ts';
 import {planWorldTerrain} from '../src/studio-core/world-terrain-planner.ts';
 import {parseProject,createProject,validateLine} from '../src/studio-core/schema.ts';
@@ -43,6 +43,7 @@ test('30 seeds, three 4x3 km configurations: valid descending WATER, different m
   const p=plan.project,water=Object.values(p.libraries.water),compiled=compileWaterNetwork(water,projectGeography(p).source,0);
   assert.ok(water.length>=r.rivers);assert.equal(water[0].to.kind,'sea');
   for(const river of compiled){assert.equal(river.diagnostics.some(d=>d.severity==='ERROR'||d.code==='WATER_LOCAL_RISE'),false);for(let j=1;j<river.points.length;j++)assert.ok(river.points[j].level<=river.points[j-1].level+1e-6);}
+  assert.ok(plan.metrics.coverage.biomeCoverage>.8);assert.ok(plan.metrics.coverage.offRiverBiomeCoverage>.8);assert.ok(plan.metrics.coverage.terracedLandShare>.55);assert.equal(plan.metrics.coverage.interiorSubseaSamples,0);
   assert.ok(plan.metrics.features<=64);assert.ok(plan.metrics.surveyCells<=1024);assert.ok(plan.metrics.sectors<=512);assert.ok(plan.metrics.sourceBytes<2*1024*1024);
   for(const region of Object.values(p.libraries.regions)){assert.ok(Object.keys(region.generated.masks).length<=256);assert.ok(region.points.length<=48);}
   signatures.add(fingerprint(p.world.terrain));families.add(plan.family);
@@ -50,10 +51,10 @@ test('30 seeds, three 4x3 km configurations: valid descending WATER, different m
  assert.equal(signatures.size,30);assert.ok(families.size>=3);
  const base=planWorldTerrain(req()),ecology=planWorldTerrain(req({biomeMode:'custom',sequence:['forest'],landscapes:[{kind:'forest',required:true},{kind:'mountain',required:true}]}));
  assert.deepEqual(base.axis,ecology.axis);assert.deepEqual(base.terrain,ecology.terrain);
- const adjacent=planWorldTerrain(req({seed:4243}));assert.ok(Math.hypot(adjacent.axis[0].x-base.axis[0].x,adjacent.axis[0].z-base.axis[0].z)>100,'Adjacent seeds move the drainage corridor, not just noise');
+ const adjacent=planWorldTerrain(req({seed:4243}));assert.ok(base.axis.reduce((sum,p,i)=>sum+Math.hypot(p.x-adjacent.axis[i].x,p.z-adjacent.axis[i].z),0)/base.axis.length>100,'Adjacent seeds move the drainage corridor, not just noise');
 });
 test('ordered biome masks cover the actual river and lateral terrain; native terraces decrease',()=>{
- const plan=composeWorld(req({biomeMode:'custom',sequence:['mountain','forest','meadow','marsh','coast']})),p=plan.project;
+ const plan=composeWorld(req({compositionVersion:1,biomeMode:'custom',sequence:['mountain','forest','meadow','marsh','coast']})),p=plan.project;
  const expected=['mountain','forest','meadow','marsh','coast'];
  const regions=Object.values(p.libraries.regions).filter(r=>r.id.startsWith('composition-region-'));
  assert.deepEqual(regions.map(r=>r.preset),expected);
@@ -67,7 +68,7 @@ test('ordered biome masks cover the actual river and lateral terrain; native ter
  assert.ok(Object.keys(p.libraries.regions).some(id=>id.includes('side-region')));
  const shelves=p.world.terrain.archipelago.features.filter(f=>f.id.startsWith('composition-terrace-'));
  assert.equal(shelves.length,3);assert.ok(shelves.every((f,i)=>i===0||f.heightM<shelves[i-1].heightM));
- const coastRegression=composeWorld(req({biomeMode:'custom',seed:222}));assert.equal(coastRegression.ready,true,'Coastal sequence must reach the actual mouth across variations');
+ const coastRegression=composeWorld(req({compositionVersion:1,biomeMode:'custom',seed:222}));assert.equal(coastRegression.ready,true,'Coastal sequence must reach the actual mouth across variations');
 });
 test('mountain WATER altitude envelope, manual profiles and waterfalls validate and compile',async()=>{
  assert.deepEqual(WATER_ALTITUDE,{min:-300,max:1500});

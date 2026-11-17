@@ -19,6 +19,8 @@ export interface Landmass {
   beachWidthM:number;shoreHeightM:number;lowlandHeightM:number;hillHeightM:number;
   /** 0 = gentle beaches everywhere, 1 = cliffs everywhere; varies naturally along the coast. */
   cliffs:number;
+  /** Optional amplitude of coastal cliff variation; absent preserves V1/V2 noise. */
+  cliffVariation?:number;
   /** Local re-seed of the coast noise ("Varier"); absent = 0. */
   variant?:number;
 }
@@ -119,7 +121,7 @@ export function archipelagoField(world:GeoWorld,p:ArchipelagoParams):GeneratorFi
     for(const m of masses){if(!inBox(m.box,x,z))continue;const c=m.sdf(x,z)+fbm(m.seed^0x51ed,x*m.freq,z*m.freq,3)*m.l.coastNoiseM;if(c>best){best=c;mass=m;}}
     cx[slot]=x;cz[slot]=z;cc[slot]=best;cm[slot]=mass?mass.index:-1;memo.coast=best;memo.mass=mass;return memo;
   }
-  const cliffOf=(m:typeof masses[number],x:number,z:number)=>clamp(m.l.cliffs+.6*valueNoise(m.seed^0xc11f,x/650,z/650),0,1);
+  const cliffOf=(m:typeof masses[number],x:number,z:number)=>clamp(m.l.cliffs+(m.l.cliffVariation??.6)*valueNoise(m.seed^0xc11f,x/650,z/650),0,1);
   function height(x:number,z:number):number{
     const {coast,mass}=coastOf(x,z);let h:number,inland=0;
     if(coast<0||!mass)h=sea-1-p.seabedDepthM*smooth(0,falloff,-coast);

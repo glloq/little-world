@@ -202,3 +202,10 @@ Studio → **Créer un monde** propose une composition éditable avec terrasses,
 rivière descendante et régions successives. Les critères obligatoires non satisfaits
 bloquent la création ; l'aperçu et le projet sauvegardé utilisent le même plan.
 Voir [architecture, exemples de graines et limites](docs/62-GUIDED-WORLD-COMPOSITION.md).
+
+La composition en [provinces, plateaux et plaines](docs/63-GEOGRAPHIC-PROVINCES-V2.md)
+étend les biomes sur toute l'île. Les anciens mondes conservent leur version ;
+le panneau « Recomposer le monde » permet une comparaison avant changement.
+
+Le nouveau défaut V3 compose des [îles en étages aux contours organiques](docs/64-ORGANIC-STEPPED-ISLANDS.md),
+avec des plateaux arrondis, des biomes liés au relief, deux affluents et des cascades.
