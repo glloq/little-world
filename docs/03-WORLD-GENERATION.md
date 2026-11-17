@@ -1,5 +1,8 @@
 # 03 — Génération, format et compilation d'une carte continue
 
+> **Cible supplémentaire — ARCHIPEL (SPECIFIED)** : chaque île reste une carte continue générée et compilée indépendamment ; le **registre d'îles jouables statiques** est distinct d'un archipel géographique contenu dans une seule carte. Première livraison par exemples compilés GitHub Pages sans réseau. Voir [74](74-ISLAND-MANIFEST-REGISTRY.md) et [79](79-ISLAND-ROADMAP-VALIDATION.md).
+
+
 **Statut : spécification cible ; prototype de vallée 200 × 600 m existant.**
 **Périmètre :** carte continue jusqu'à **10 × 10 km maximum** (100 km²), sans garantie de pouvoir la charger intégralement en mémoire.
 
@@ -180,3 +183,13 @@ Le [contrat AGRI 25](25-AGRICULTURE-PARCELS-LOW-RESOURCE.md) complète la carte 
 8. Vérifier les budgets de [11 — LOW-RESOURCE](11-LOW-RESOURCE-POLICY.md) : cible 30 FPS, secours 20 FPS.
 
 Voir [13 — Studio](13-STUDIO-UX-ARCHITECTURE.md) pour les flux d'édition.
+
+## Nouveau mode de publication d'îles d'exemple (cible ISL-1)
+
+- Produire des îles **indépendamment** depuis Studio/compilateur avec recettes et seeds fixes, versions et identifiants stables ; aucune régénération aléatoire silencieuse au chargement du navigateur.
+- Valider avant publication : schémas, ressources, ancrages de débarquement, collisions et chemins, limites d'assets et de mémoire.
+- Générer un **registre statique versionné** qui pointe vers les manifests/chunks de chacune ; conserver l'île 4 × 3 km comme exemple compatible.
+- La carte globale de l'archipel ne représente pas un immense terrain continu : seul le monde cible est chargé après le voyage.
+- Le workflow GitHub Pages reste **export → commit/PR → build CI → publication**, sans écriture publique depuis le navigateur ; l'économie et les mutations solo restent locales.
+- Contrats : [74](74-ISLAND-MANIFEST-REGISTRY.md), [79](79-ISLAND-ROADMAP-VALIDATION.md).
+

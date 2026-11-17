@@ -1,5 +1,8 @@
 # Little World — instructions pour Codex et autres agents de développement
 
+> **Évolution ARCHIPEL (SPECIFIED, non livrée) :** consulter en priorité [73 — décisions](docs/73-ARCHIPEL-VISION-DECISIONS.md), [74 — manifestes](docs/74-ISLAND-MANIFEST-REGISTRY.md), [75 — voyages](docs/75-ISLAND-TRAVEL-FERRIES-PORTS.md), [76 — autonomie](docs/76-ISLAND-AUTONOMY-ECONOMY-TRADE.md), [77 — communautés](docs/77-ISLAND-COMMUNITY-CONSTRUCTION.md), [78 — UX](docs/78-ISLAND-STUDIO-PLAYER-UX.md), [79 — roadmap](docs/79-ISLAND-ROADMAP-VALIDATION.md). **Premier livrable : plusieurs îles d'exemple STATIQUES compilées et navigables sur GitHub Pages, en SOLO.** Le multijoueur est à préparer dans les contrats, **pas à activer ni à rendre obligatoire**. Aucun serveur/compte/WebSocket exigé. Une carte géographique continue **par île active**, une seule île 3D chargée par client ; le catalogue regroupe des îles distinctes, et non un heightfield géant.
+
+
 > **Rendu panoramique sans brouillard :** [17 — Horizon lointain, LOD et imposteurs](docs/17-DISTANT-VIEW-RENDERING.md). Priorité à la silhouette réelle, au proxy 3D lointain et aux gains mesurables ; ne pas masquer les distances par du fog.
 >
 > **Lire d'abord** : [Périmètre final](docs/12-PROJECT-SCOPE.md), [Architecture UX du Studio](docs/13-STUDIO-UX-ARCHITECTURE.md), **[Contrats V3 du Studio](docs/15-STUDIO-DATA-SCHEMAS-V3.md)**, **[Décisions techniques validées](docs/14-TECHNICAL-CHOICES.md)**, [Décisions](docs/DECISIONS.md), [Budget LOW-RESOURCE](docs/11-LOW-RESOURCE-POLICY.md), puis [Architecture technique](docs/05-TECHNICAL-ARCHITECTURE.md) et [Roadmap](docs/07-ROADMAP.md).
@@ -11,7 +14,7 @@
 ## 1. Limites validées
 
 - **Jeu solo PC**, Three.js / TypeScript / Vite, **GitHub Pages statique** ; pas de backend obligatoire, serveur de jeu, comptes ou multijoueur.
-- **Une seule carte continue par monde/partie**, jusqu'à **10 × 10 km maximum** comme limite de **format/architecture**, pas performance démontrée. **Carte jouable actuelle : île 4 × 3 km** (l’ancienne vallée 200 × 600 m n’est plus qu’un fixture de migration).
+- **Une carte continue par île active**, jusqu'à **10 × 10 km maximum** comme limite de **format/architecture**, pas performance démontrée. **Carte jouable actuelle : île 4 × 3 km** (l’ancienne vallée 200 × 600 m n’est plus qu’un fixture de migration).
 - **Exploration paisible avec de nombreuses petites activités facultatives** : collecte/inventaire léger, pêche éventuelle, petites missions, énigmes, dialogues à choix, quelques intérieurs, conséquences persistantes et **plusieurs sauvegardes de partie locales**.
 - **Pas d'humains** : PNJ animaux/créatures uniquement, variantes du personnage joueur quand morphologies/rigs compatibles. **Navigation libre avancée** mais comportements sociaux/routines simples ; pas de combat, survie punitive ou RPG lourd.
 - **Plusieurs éditeurs spécialisés** dans Little World Studio : carte globale, terrain, eau/chemins, biotopes/faune, bâtiments, personnages/PNJ, dialogues, événements/actions, assets et tests. **Un seul projet partagé**, IDs, sélection et Undo/Redo cohérents. Outils génériques avant décors ad hoc.
@@ -266,3 +269,14 @@ Lire **[43 — Hamster joueur](docs/43-HAMSTER-JOUEUR.md)** avant de toucher au 
 - Les anciennes scènes de référence sont maintenant des **fixtures de régression**, sous `tests/fixtures/legacy-maps/{authoring,published}`, absentes des répertoires de cartes publiques.
 - Les tests navigateur peuvent les utiliser seulement après `node tools/stage-test-maps.mjs dist/maps` avec `studio/?testFixtures=1` sur le build de validation ; **ne jamais ajouter cette étape dans le workflow GitHub Pages**.
 - Les prochains ajouts de contenu destinés aux joueurs se font sur le générateur de l’île officielle et sont mesurés avant/après. Voir `docs/61-SHOWCASE-ISLAND-4X3.md`.
+
+## ARCHIPEL — règles d'implémentation statique-first (18/11/2026)
+
+- **Contrats de référence** : docs/73 à docs/79. Ne pas traiter ces spécifications comme des fonctionnalités livrées.
+- **ISL-1/2/3** : îles d'exemple pré-générées et prévalidées + registre compilé, voyage solo et fenêtres de navette ; testable sur GitHub Pages sans socket, login, backend ni BDD.
+- **Une seule scène d'île active par client** : libérer l'île source, charger l'île destination, sauvegarder par islandId, rollback si l'île cible est absente ou incompatible ; éviter deux mondes complets en mémoire.
+- **Compatibilité** : l'île 4 × 3 km existante et ses sauvegardes demeurent utilisables. Ne pas modifier destructivement V3 ni les migrations V1/V2 ; ajouter des IDs et versions d'îles explicites.
+- **Simulation** : états logiques et rattrapage local déterministe, sans WebGL hors île active. Ne pas faire croire qu'un monde tourne réellement sans navigateur sur GitHub Pages. Les échanges serveur partagés restent futurs.
+- **Règles communautaires** : préparer contrats de parcelles/permissions/chantiers, ne pas implémenter d'autorité réseau avant jalon approuvé ; le placement réutilise le Studio SET et les entités V3, pas un second moteur.
+- **Travail en branche et qualification** : avancer par lots ISL-0…ISL-7, mesurer mémoire/rendu, conserver les tests Pages/Studio, distinguer SPECIFIED, IMPLEMENTED, TESTED, RELEASED.
+

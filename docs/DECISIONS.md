@@ -1,5 +1,8 @@
 # Registre de décisions — Little World
 
+> **Décisions ARCHIPEL du 18 novembre 2026 :** [73 — vision validée](73-ARCHIPEL-VISION-DECISIONS.md), [74–78 — contrats](74-ISLAND-MANIFEST-REGISTRY.md), [79 — roadmap](79-ISLAND-ROADMAP-VALIDATION.md). La stratégie de première livraison reste **GitHub Pages statique solo**, multijoueur préparé mais non activé.
+
+
 **Mise à jour : 12 novembre 2026 — limites du jeu et de Little World Studio validées.**
 
 **Références de développement :** [12 — Périmètre et choix G/M/P/I/E/C/Q](12-PROJECT-SCOPE.md), [13 — UX et modèles Studio](13-STUDIO-UX-ARCHITECTURE.md), **[14 — Décisions techniques transversales validées](14-TECHNICAL-CHOICES.md)**, **[15 — Schémas V3 et contrats entre éditeurs](15-STUDIO-DATA-SCHEMAS-V3.md)**, [11 — LOW-RESOURCE](11-LOW-RESOURCE-POLICY.md).
@@ -345,3 +348,24 @@ Voir [35](35-STUDIO-E7-E10-SELECTION-ROUTES-ECLAIRAGE.md).
 - Sélection typée commune (`entity | path | water | zone | terrainEdit | biomeEdit`) ; verrouillage = préférence Studio, non exportée.
 - Chemins : un outil, quatre profils optionnels (`kind`, `smooth`), géométrie déterministe sectorisée, aucun collider ni objet par planche.
 - Lumières : composant V3 `Light` (ponctuelle, sans ombre), pool fixe de `PointLight` (4 normal / 2 économie, valeurs de départ non qualifiées sur GPU) + halos en un seul `Points` ; sélection par grille et hystérésis, intégrée au `PresentationBudget` existant (pas de second automate).
+
+## VALIDÉ — ARCHIPEL / îles statiques d'abord (18 novembre 2026)
+
+| ID | Décision et portée |
+| --- | --- |
+| ISL-D01 | Registre d'îles jouables **pré-générées, validées et statiques** pour la première livraison GitHub Pages |
+| ISL-D02 | Jeu **solo sans serveur, comptes, WebSocket ni multijoueur actif** pendant les lots d'essai ISL-1…ISL-6 |
+| ISL-D03 | Une carte géographique continue par île, une île 3D active à la fois, transition avec déchargement |
+| ISL-D04 | Carte d'archipel : uniquement îles validées/publiées et destinations accessibles selon les règles |
+| ISL-D05 | Cinématique barque/rameur vers grand bateau pour masquer le chargement |
+| ISL-D06 | Îles spécialisées et développables progressivement, niveau d'île ≠ autonomie ≠ accessibilité maritime |
+| ISL-D07 | Communautés configurables publiques/privées/invitées, avec/sans propriétaire, parcelles et projets communs |
+| ISL-D08 | Plans de bâtiments achetables/débloquables, matériaux consommés par chantier, moteur de placement Studio réutilisé |
+| ISL-D09 | Simulation d'île absente sans rendu 3D ; en solo Pages, rattrapage local à la réouverture, **pas** serveur réel |
+| ISL-D10 | Commerce/imports/exports maritimes ; transaction inter-joueurs réellement partagée reportée au serveur futur |
+| ISL-D11 | Niveau 0 sans port : bateau un jour/semaine de jeu ; grand port maximum : service permanent |
+| ISL-D12 | Cloche à l'arrivée et 5 min de jeu avant départ ; marqueur bateau sur carte joueur seulement présent |
+| ISL-D13 | Gouvernance et économie communes préparées dans les contrats, **réseau à implémenter uniquement après décision dédiée** |
+
+**Statut de mise en œuvre : SPECIFIED, NON IMPLEMENTED.** Les détails de tarifs, fréquence des niveaux intermédiaires, durée du jour et gouvernance sont à calibrer ; voir [73](73-ARCHIPEL-VISION-DECISIONS.md) à [79](79-ISLAND-ROADMAP-VALIDATION.md).
+

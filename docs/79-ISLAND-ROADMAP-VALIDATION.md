@@ -1,0 +1,73 @@
+# 79 — Roadmap d'archipel : lots, dépendances, tests et gates
+
+**Statut : ROADMAP / SPECIFIED — aucun lot implémenté au titre de ce document.** La démo actuelle 4 × 3 km reste le cas de non-régression. Références [73](73-ARCHIPEL-VISION-DECISIONS.md) à [78](78-ISLAND-STUDIO-PLAYER-UX.md), [07 — Roadmap](07-ROADMAP.md), [16 — Future Multiplayer](16-FUTURE-MULTIPLAYER.md).
+
+## 0. Priorités de release
+
+**Livraison A : SOLO STATIQUE sur GitHub Pages, SANS multijoueur**. Des îles d'exemple générées et validées à l'avance, cataloguées et chargées à la demande, avec voyage scénarisé. Les mécanismes d'autonomie, de construction et de commerce peuvent être testés **en simulation locale** sans partager l'état entre joueurs.
+
+**Livraison B : progression solo persistante**. Construction simplifiée, travaux/économie locaux, publication d'îles via pipeline Studio/CI, toujours sans serveur.
+
+**Livraison C : multijoueur, uniquement après décision explicite**. Serveur autoritaire, comptes, gouvernance, persistance inter-joueurs, coop et échanges réellement partagés. Aucun code réseau ne devient une dépendance préalable de A/B.
+
+## 1. Lots recommandés
+
+| Lot | Cible | Travail | Critère bloquant |
+| --- | --- | --- | --- |
+| ISL-0 | P0 | Audit formats actuels, objets Studio, loaders, sauvegardes, assets, chemins | état réel confirmé, baselines et contrats existants identifiés |
+| ISL-1 | P0 | IslandManifest + registry statique, IDs/version/anchors, île démo 4 × 3 km + exemples | génération reproductible, validation stricte, aucun contenu invalide publié |
+| ISL-2 | P0 | WorldTransition solo, chargement/déchargement, scène bateau | A→B→A, inventaire conservé, pas de fuite GPU/RAM, rollback sûr |
+| ISL-3 | P0 | FerrySchedule, niveaux de ports, carte, cloches | niveau 0 un jour/semaine, niveau max permanent, -5 min sans doublon |
+| ISL-4 | P1 | IslandSimulation pure et événements d'économie testables localement | rattrapage borné, idempotence, inventaires cohérents |
+| ISL-5 | P1 | Construction solo depuis plans/ressources, partage des règles de placement | placements valides, sauvegarde versionnée, aucun deuxième Studio |
+| ISL-6 | P1 | Intégration UX Studio/jeu, presets, outils de publication et diagnostics | parcours sans JSON manuel, CI Pages, mise à jour d'exemples sans casse |
+| ISL-7 | FUTUR | Contrats coop activés, serveur et gouvernance | décision d'ouverture multi + sécurité/charge/transactions validées |
+
+Les lots ISL-1 à ISL-3 doivent rester démontrables dans un build Vite statique. ISL-4 et ISL-5 sont des simulations locales testables, non une simulation d'archipel partagé.
+
+## 2. Découpage des responsabilités (noms indicatifs)
+
+- **ArchipelagoRegistry/IslandManifest** : index compilé et validation.
+- **WorldTransition** : cycle de vie scène et restauration.
+- **FerrySchedule/TravelController** : fenêtres, liaisons et embarquement.
+- **IslandSimulation** : fonctions pures, événements, rattrapage, stocks.
+- **ConstructionCommands/PermissionPolicy** : règles métiers partagées ; adapter l'interface actuelle.
+- **IslandSaveAdapter** : mutations locales, versionnage, migration.
+- Futur **IslandAuthority** : serveur propriétaire des mutations, transactions et horloge.
+
+Respecter les modules existants (Studio V3, economy, audio, boats, gameplay, save, ResourceBudgetManager). Ne pas dupliquer routes, colliders, comportements de bateau, inventaire ni moteur de transactions.
+
+## 3. Tests fonctionnels automatisés
+
+1. Création de deux îles d'exemple avec seeds/version fixes ; digests stables et valeurs différentes attendues.
+2. Statuts de publication et rejet d'îles non validées ; absence d'ancres de débarquement bloque.
+3. Transition aller-retour A→B→A conserve progression, inventaire et états ; rafraîchissement/échec de téléchargement rollback.
+4. Niveaux ports 0–4 et calendrier sur frontières de semaine ; cloches à l'arrivée et à -5 min de jeu jouées une fois au maximum.
+5. Marqueur carte visible uniquement selon état canonique ; menu destination explique les verrouillages.
+6. Simulation locale hors écran : replay déterministe, non-négativité, conservation stocks, livraisons et production idempotentes, délai borné.
+7. Placement de bâtiment : même solveur que Studio, portes/collisions/nav stables ; sauvegarde et migration.
+8. Tests de permissions dans moteur pur (sans serveur), et tests de commandes concurrentes pour la future version autoritaire.
+9. Régressions : démarrage de l'île 4 × 3 km, déplacement, planage, eau, carte, audio, Studio, import/export.
+10. Perf : CPU/JS heap/VRAM proxy, objets Three.js non libérés, temps transition et téléchargement ; mesures navigateur et GPU intégré avant qualification.
+
+## 4. Politique de statuts
+
+Sur chaque tâche : **DECIDED / SPECIFIED / IMPLEMENTED / TESTED / QUALIFIED / RELEASED**, nom de branche/PR, commande de test et limites. Une capture de simulation ou un test SwiftShader ne qualifie pas les FPS sur GPU réel. Aucun libellé « multijoueur disponible » avant serveur, authentification et tests de concurrence.
+
+## 5. Gates de publication
+
+- **G0 Documentation** : décisions sans contradiction, formats versionnés, limites solo explicites dans README/AGENTS/docs 12–16.
+- **G1 Catalogue** : au moins deux îles compilées, validées et localisables ; île référence 4 × 3 inchangée.
+- **G2 Voyage** : fallback et mémoire ; aucune route vers monde invalide.
+- **G3 Desserte** : horloges/événements cohérents carte/cloches, au moins niveau 0 et maximum.
+- **G4 Autonomie** : modèle pur et reprises déterministes sans réseau ; informer que le monde n'évolue pas activement hors client.
+- **G5 Construction** : intégration avec assets/placement/économie ; sauvegarde solo fiable.
+- **G6 Multi (futur)** : autorité serveur, transactions idempotentes, permissions, charge, restauration, protection anti-abus et compatibilité des clients ; **bloqué jusqu'à demande expresse**.
+
+## 6. Exclusions actuelles
+
+Pas de serveur Node de jeu, WebSocket, comptes, matchmaking, base partagée, vote réseau effectif, îles générées par visiteurs sur GitHub Pages, routes commerciales avec transaction entre joueurs. Le pilote solo doit rester publiable comme fichiers statiques à chaque jalon.
+
+## 7. Livrables attendus par lot
+
+Code TypeScript + tests unitaires/Browser et rapport de mesures ; docs API et décisions mises à jour ; preuves de compatibilité des sauvegardes ; démo statique sur branche avant merge dans main.

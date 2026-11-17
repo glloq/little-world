@@ -123,3 +123,11 @@ Essai réalisé dans une copie jetable : un Ogg Vorbis de 0,25 s enregistré pou
 | Portes/coffres/UI/émetteurs WaterNetwork, outils/agriculture avancée, montures | événements définis | **non émis** (fonctions de jeu absentes) | — | — |
 
 **Non exécuté dans cet environnement** : Firefox (non installé — le repli de positionnement listener/panner reste testé en unitaire), écoute humaine, mesures CPU audio/glitches sur PC à GPU intégré, déploiement GitHub Pages réel (build statique, chemins base-aware et `verify-static-build` vérifiés localement). Les budgets restent des hypothèses à calibrer (doc 22/23).
+
+
+## Extension audio — cloches des navettes (cible ISL-3)
+
+Réserver les événements sémantiques **ferry.arrived** et **ferry.departure-warning** (départ dans **5 minutes de jeu**), avec sons distincts, source spatiale près du quai, respect mode muet/autoplay, portée et budget polyphonie existants. La sonnerie se déclenche **une seule fois par (callId, eventType)** si le joueur est présent dans la fenêtre audible ; **aucun replay rétroactif** à la reconnexion/entrée en zone. Ne pas jouer des sons dans les îles déchargées.
+
+Événements/horaires émanent du même FerrySchedule que la carte joueur, et non d'une minuterie audio. Le son de départ effectif est optionnel, non une obligation décidée. Aucun fichier audio ou code n'est livré par cette annexe. Voir [75](75-ISLAND-TRAVEL-FERRIES-PORTS.md).
+
