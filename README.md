@@ -218,3 +218,18 @@ et coupes du terrain sont disponibles dans le Studio. Mesures : `npm run benchma
 Avant création, [retoucher le brouillon 2D](docs/68-COMPOSITION-DRAFT-FIRST-IMPLEMENTATION.md)
 permet de modifier côte, relief, hauteurs et eau, avec historique et reprise locale.
 Le projet créé conserve exactement le plan retouché. Vérification : `npm run test:composition-draft`.
+
+## Génération de colonies — conception et roadmap
+
+Le générateur de colonies (maisons, villages, villes, camps, ports, terriers et grottes) est **spécifié mais non implémenté** sur la branche de documentation `docs/studio-settlements-collision-roadmap` :
+
+- [65 — Catalogue architectural, styles, richesse, morphologies et UX Studio](docs/65-SETTLEMENTS-STUDIO-SPEC.md)
+- [66 — Implantation intelligente, routes, chemins, parcelles et métiers](docs/66-SETTLEMENTS-PLACEMENT-NETWORK.md)
+- [67 — Collisions 3D, accès, grottes, portes et interactions joueur](docs/67-SETTLEMENTS-COLLISIONS-INTERACTIONS.md)
+- [68 — Roadmap SET-0 à SET-12, tests et gates de qualification](docs/68-SETTLEMENTS-ROADMAP-TESTS.md)
+- [69 — SET-0 : audit du code existant (état présent, lacunes, risques)](docs/69-SETTLEMENTS-SET0-AUDIT.md)
+- [70 — SET-0 : contrats techniques retenus et gates bloquants](docs/70-SETTLEMENTS-TECHNICAL-CONTRACTS.md)
+- [71 — Roadmap accélérée : implémentation progressive, petites PR et tests](docs/71-SETTLEMENTS-FAST-TRACK.md)
+- [72 — Parcours Studio intuitif : cinq réglages, aperçu, génération et édition](docs/72-SETTLEMENTS-STUDIO-UX.md)
+
+Ce chantier réutilise les contrats V3, le CommandBus, les chemins, la géographie et les systèmes d'interactions existants ; il n'ajoute pas de second moteur ni de simulation économique en temps réel.
