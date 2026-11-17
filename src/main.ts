@@ -297,6 +297,7 @@ function input(): Controls {
       Number(codeHeld('KeyA', 'KeyQ', 'ArrowLeft')),
     run: codeHeld('ShiftLeft', 'ShiftRight'),
     autoRun: true,
+    jumpAssist: true,
     jumpPressed: jumpQueue > 0,
     rollPressed: rollQueue > 0,
     rollHeld: codeHeld('ShiftLeft', 'ShiftRight'),
