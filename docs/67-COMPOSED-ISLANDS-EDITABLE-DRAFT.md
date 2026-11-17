@@ -2,6 +2,8 @@
 
 Statut : besoins et architecture proposés après les six styles V4. Les fonctionnalités décrites ici ne sont pas encore implémentées. Ce document complète l’audit 65 ; il ne remplace pas les générations existantes.
 
+Le [premier lot de brouillon 2D](68-COMPOSITION-DRAFT-FIRST-IMPLEMENTATION.md) est désormais implémenté. Les prochains lots suivent aussi la [coordination terrain/établissements/collisions](73-TERRAIN-SETTLEMENTS-ALIGNMENT.md), fondée sur la branche `docs/studio-settlements-collision-roadmap` demandée par l’auteur.
+
 ## Trois choix indépendants
 
 Le modèle actuel associe encore une silhouette et une organisation du relief. Séparer progressivement trois décisions :
