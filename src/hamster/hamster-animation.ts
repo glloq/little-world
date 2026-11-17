@@ -29,6 +29,7 @@ export interface HamsterInput {
   footSupportLeft?:number;footSupportRight?:number;
   /** Terrain presentation only; no forces, IK solver or allocations per frame. */
   groundPitch?:number;groundRoll?:number;rollSlip?:number;
+  /** Cosmetic cue supplied by movement state. */gasBoosting?:boolean;gasPulseSeq?:number;
   /** Absolute presentation clock for reconstructed remote rigs only. */
   animationTime?:number;
   speed: number; verticalSpeed: number; turnRate: number;
@@ -260,7 +261,12 @@ export class HamsterAnimator {
       case 'GLIDE_OPEN': case 'GLIDE_LOOP': case 'GLIDE_CLOSE': {
         const f = s === 'GLIDE_OPEN' ? smooth(Math.min(1, this.transitionTime / TRANSITIONS.GLIDE_OPEN)) : s === 'GLIDE_CLOSE' ? 1 - smooth(Math.min(1, this.transitionTime / TRANSITIONS.GLIDE_CLOSE)) : 1;
         p.membrane = f; p.shoulderLZ = -1.35 * f; p.shoulderRZ = 1.35 * f; p.shoulderLX = p.shoulderRX = -.35 * f; p.hipLX = p.hipRX = -.6 * f;
-        p.bodyRX = (.5-Math.max(-.7,Math.min(.7,Math.atan2(input.verticalSpeed,Math.max(speed,.1)))))*f; p.bodyRZ = bank * 1.6; p.headRX = -.35 * f; p.earL = p.earR = .3 * f; p.squash = 1 - .05 * f; break; }
+        p.bodyRX = (.5-Math.max(-.7,Math.min(.7,Math.atan2(input.verticalSpeed,Math.max(speed,.1)))))*f; p.bodyRZ = bank * 1.6; p.headRX = -.35 * f; p.earL = p.earR = .3 * f; p.squash = 1 - .05 * f;
+        if(input.gasBoosting&&input.mode==='glide'){
+          const tremor=Math.sin(t*31)*.018;p.squash-=.055+tremor;
+          p.bodyRX-=.095;p.headRX+=.07;p.earL-=.16;p.earR-=.16;p.tailX+=.28;
+        }
+        break; }
       case 'SWIM': p.bodyRX = input.mode === 'dive' ? Math.max(-.9, Math.min(1.3, .35 + Math.atan2(-input.verticalSpeed, Math.max(speed, .6)) * .9)) : .3; p.bodyY = Math.sin(t * 3) * .03; p.shoulderLX = st * .8 - .5; p.shoulderRX = -st * .8 - .5; p.hipLX = -st * .6; p.hipRX = st * .6; p.headRX = -.3; break;
       case 'CLIMB': { const r = speed > .15 || Math.abs(input.verticalSpeed) > .15 ? st : Math.sin(t * 1.4) * .15;
         p.bodyRX = -.25; p.shoulderLX = -2.4 + r * .45; p.shoulderRX = -2.4 - r * .45; p.hipLX = -.4 - r * .4; p.hipRX = -.4 + r * .4; p.headRX = -.2; break; }
