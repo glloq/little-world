@@ -1,4 +1,4 @@
-/** Real keyboard + drag steering through the published V3 reader; no actor teleport hook. */
+/** Real independent flight keyboard steering and passive camera drag through published V3 reader. */
 import {chromium} from 'playwright';
 import {existsSync} from 'node:fs';
 import {mkdir,writeFile} from 'node:fs/promises';
@@ -21,14 +21,16 @@ try{
  await page.keyboard.up('KeyW');await page.keyboard.up('ShiftLeft');s=await sample();assert.equal(s.mode,'glide');record.samples.deploy=s;record.checks.push('Saut puis ouverture avec élan');
  await ticks(50);assert.equal((await sample()).mode,'glide','clear the cliff rim before diving');
  const canvas=page.locator('#viewport canvas');await canvas.scrollIntoViewIfNeeded();
- await page.mouse.move(640,500);await page.mouse.down();await page.mouse.move(640,245,{steps:12});await page.mouse.up();await ticks(40);
- s=await sample();assert.equal(s.mode,'glide');assert.ok(s.velocity[1]<-4,'camera-down drag causes a dive');assert.ok(Math.hypot(...s.velocity)>Math.hypot(...record.samples.deploy.velocity));record.samples.dive=s;record.checks.push('Piqué à la souris : descente et accélération');
+ await page.keyboard.down('KeyW');await ticks(40);await page.keyboard.up('KeyW');
+ s=await sample();assert.equal(s.mode,'glide');assert.ok(s.velocity[1]<-4,'W/Z makes the glider dive');assert.ok(Math.hypot(...s.velocity)>Math.hypot(...record.samples.deploy.velocity));record.samples.dive=s;record.checks.push('Piqué au clavier : descente et accélération');
  await page.screenshot({path:out+'/dive.png'});
- await page.mouse.move(640,150);await page.mouse.down();await page.mouse.move(640,780,{steps:12});await page.mouse.up();await ticks(40);
- s=await sample();assert.equal(s.mode,'glide');assert.ok(s.velocity[1]>0,'camera-up drag causes a temporary climb');record.samples.pullUp=s;record.checks.push('Cabré à la souris : remontée temporaire');
+ await page.keyboard.down('KeyS');await ticks(40);await page.keyboard.up('KeyS');
+ s=await sample();assert.equal(s.mode,'glide');assert.ok(s.velocity[1]>0,'S makes the glider climb');record.samples.pullUp=s;record.checks.push('Cabré au clavier : remontée temporaire');
  await page.screenshot({path:out+'/pull-up.png'});
- await page.mouse.move(640,400);await page.mouse.down();await page.mouse.move(790,400);await page.mouse.up();await ticks(15);s=await sample();assert.ok(s.flight.heading<-.15&&s.velocity[0]<0,'horizontal camera drag steers flight');record.samples.turn=s;record.checks.push('Virage progressif piloté par la caméra');
- const heading=s.flight.heading;await page.keyboard.down('KeyD');await ticks(8);await page.keyboard.up('KeyD');s=await sample();assert.ok(s.flight.heading<heading-.1,'D steers toward screen-right, consistently with mouse drag');record.samples.keyboardTurn=s;record.checks.push('Commande D cohérente avec la droite écran en planage');
+ const heading=s.flight.heading;
+ await page.mouse.move(640,400);await page.mouse.down();await page.mouse.move(790,400);await page.mouse.up();await ticks(15);
+ s=await sample();assert.ok(Math.abs(s.flight.heading-heading)<.01,'horizontal camera drag does not steer flight');record.samples.turn=s;record.checks.push('Caméra libre : aucun virage physique sans commande');
+ await page.keyboard.down('KeyD');await ticks(8);await page.keyboard.up('KeyD');s=await sample();assert.ok(s.flight.heading<heading-.1,'D turns right independently of camera orientation');record.samples.keyboardTurn=s;record.checks.push('Commande D : virage réel indépendant de la caméra');
  // The menu preference changes only presentation; the physics keeps running after resume.
  await page.keyboard.press('Escape');await page.getByRole('button',{name:'Paramètres',exact:true}).click();
  const effects=page.getByLabel('Effets visuels de vitesse (champ de vision)');await effects.uncheck();
