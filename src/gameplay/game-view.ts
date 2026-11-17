@@ -6,6 +6,7 @@ import type {CollisionDefinition} from '../physics/definitions.ts';
 import {terrainHeight,waterSurface} from '../terrain.ts';
 import {createGameplay} from './runtime.ts';
 import {GAS} from '../physics/gas-propulsion.ts';
+import {newFlightProgress,type FlightProgress} from './flight-progress.ts';
 import {gameplayDialogueSession} from './dialogue-session.ts';
 import {createGameSaveStore,scopedSaveStorage,parseGameSave,type GameSaveV2} from './save.ts';
 import {createActivityRuntime} from './activity-runtime.ts';
@@ -16,7 +17,7 @@ import type {PlayableActivities} from './activities.ts';
 import type {MovementSpace} from '../physics/collision-world.ts';
 import type {GameplayData,GameplayEntity,Point3} from './schema.ts';
 
-interface Options {gathering?:Omit<GatherDeps,'time'|'grant'|'has'>;onSound?:(id:string,position?:{x:number;y:number;z:number})=>void;collisions?:CollisionDefinition[];temporary:boolean;saveScope?:string;getPosition:()=>Point3;setPosition:(p:Point3,space?:MovementSpace|null)=>void;activities?:PlayableActivities;getSpace?:()=>MovementSpace|undefined;getGas?:()=>number;setGas?:(value:number)=>void;showInfo:(text:string)=>void;objects:THREE.Group}
+interface Options {gathering?:Omit<GatherDeps,'time'|'grant'|'has'>;onSound?:(id:string,position?:{x:number;y:number;z:number})=>void;collisions?:CollisionDefinition[];temporary:boolean;saveScope?:string;getPosition:()=>Point3;setPosition:(p:Point3,space?:MovementSpace|null)=>void;activities?:PlayableActivities;getSpace?:()=>MovementSpace|undefined;getGas?:()=>number;setGas?:(value:number)=>void;getGasProgress?:()=>FlightProgress;setGasProgress?:(value:FlightProgress)=>void;showInfo:(text:string)=>void;objects:THREE.Group}
 /** Interactive object near the player, usable or not (the reason comes from the runtime state). */
 export interface ObjectTarget {entity:GameplayEntity;name:string;prompt:string;range:number;usable:boolean;reason?:string;distance:number}
 /** Gameplay controller of a playable world: logical runtime, collisions, activities, save
@@ -38,7 +39,7 @@ export function createGameplayView(data:GameplayData,options:Options){
  const purse={count:(id:string)=>runtime.state.inventory[id]??0,max:(id:string)=>runtime.data.items.find(i=>i.id===id)?.maxQuantity??0,apply:(changes:{itemId:string;quantity:number}[])=>runtime.grantItems(changes)};
  const itemName=(id:string)=>runtime.data.items.find(i=>i.id===id)?.name??id;
  function trade(kind:ShopKind,itemId:string,quantity:number,mode:'buy'|'sell'){const shop=SHOPS[kind];return mode==='buy'?buy(shop,itemId,quantity,purse,itemName):sell(shop,itemId,quantity,purse,itemName);}
- const compose=(slotId:string):GameSaveV2=>({...runtime.save(slotId,options.getPosition()),space:options.getSpace?.()??null,gasReserve:options.getGas?.()??GAS.initial,...activities.serialize(),...(gathering?{gathering:gathering.serialize()}:{})});
+ const compose=(slotId:string):GameSaveV2=>({...runtime.save(slotId,options.getPosition()),space:options.getSpace?.()??null,gasReserve:options.getGas?.()??GAS.initial,flightProgress:options.getGasProgress?.()??newFlightProgress(),...activities.serialize(),...(gathering?{gathering:gathering.serialize()}:{})});
  let npcs:readonly NPCState[]=[],version=-1,disposed=false;const listeners=new Set<()=>void>();
  const entityIds=new Set(runtime.data.entities.map(e=>e.id)),targets=runtime.data.entities.filter(e=>e.interactable),interactions=new Map<string,typeof runtime.data.interactions>();
  for(const i of runtime.data.interactions)if(i.trigger.type==='onInteract'){const list=interactions.get(i.trigger.entityId)??[];list.push(i);interactions.set(i.trigger.entityId,list);}
@@ -68,7 +69,7 @@ export function createGameplayView(data:GameplayData,options:Options){
  return {
   runtime,collision,activities,slots,compose,gathering,trees,fishing,trade,purse,itemName,has,
   /** Restores a validated save into the runtime and the activities; returns the warnings. */
-  restore(save:GameSaveV2){const warnings=[...runtime.restore(save),...activities.restore(save)];gathering?.restore(save.gathering??null);options.setPosition(save.position,save.space??null);options.setGas?.(save.gasReserve??GAS.initial);sync();version=-1;for(const l of listeners)l();return warnings;},
+  restore(save:GameSaveV2){const warnings=[...runtime.restore(save),...activities.restore(save)];gathering?.restore(save.gathering??null);options.setPosition(save.position,save.space??null);options.setGasProgress?.(save.flightProgress??newFlightProgress());options.setGas?.(save.gasReserve??GAS.legacyInitial);sync();version=-1;for(const l of listeners)l();return warnings;},
   /** Imports an exported slot file (validated) into a free slot of this world. */
   async importSave(raw:unknown){const parsed=parseGameSave(raw);if(parsed.worldId!==data.worldId)throw Error('Sauvegarde d’un autre monde');const value={...parsed};if(!['slot-1','slot-2','slot-3'].includes(value.slotId)){const used=new Set((await slots.list(data.worldId)).map(v=>v.slotId)),free=['slot-1','slot-2','slot-3'].find(id=>!used.has(id));if(!free)throw Error('Libérez un emplacement pour importer cette partie');value.slotId=free;}await slots.save(value);return value.slotId;},
   temporary:options.temporary,describe,
