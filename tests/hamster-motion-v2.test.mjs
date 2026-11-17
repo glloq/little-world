@@ -210,3 +210,84 @@ test('assist replay preserves timers and validates malformed optional snapshots 
  assert.equal(interpolatePresentation({...raw,t:0,rollSlip:0},{...raw,t:1,rollSlip:.6},.5).rollSlip,.3);
  assert.throws(()=>parsePresentationState({...raw,rollSlip:NaN}),/Cue de surface/);
 });
+
+test('landing after a rolling jump has a distinct, self-recovering ball contact pose',()=>{
+ const p=actor();p.mode='roll';p.position.y=.02;p.velocity.set(0,0,8);
+ simulatePlayer(p,{...keys,jumpPressed:true,rollHeld:true},1/30,q);
+ assert.equal(p.jumpOrigin,'roll');assert.equal(p.mode,'air');
+ for(let i=0;i<100&&p.mode!=='ground';i++)simulatePlayer(p,{...keys},1/30,q);
+ assert.equal(p.mode,'ground');assert.equal(p.landingKind,'roll');
+ assert.ok(p.landingSlide>=0&&p.landingSlide<=1);
+ const a=new HamsterAnimator();
+ a.update(input('roll',8,{travel:.3}),1/30);
+ for(let i=0;i<10;i++)a.update(input('air',8,{jumpKind:'roll',travel:.2,verticalSpeed:-3}),1/30);
+ a.update(input('ground',8,{landingKind:'roll',landingSpeed:7,landingSlide:p.landingSlide,landingSeq:1}),1/30);
+ assert.equal(a.state,'ROLL_LAND');
+ let last=a.pose.tuck;
+ for(let i=0;i<12;i++)a.update(input('ground',4,{landingKind:'roll',landingSpeed:7,landingSlide:p.landingSlide,landingSeq:1}),1/30);
+ assert.ok(a.pose.tuck<last,'tuck decreases as the hamster recovers');
+ assert.ok(a.state==='WALK'||a.state==='IDLE','recovery ends without changing the physical mode');
+});
+
+test('glide and high-speed landings expose contextual visual slide without changing physical braking',()=>{
+ const world=new WorldCollisionQuery(()=>0,()=>null);world.setMaterialSampler(()=> 'grass');
+ const p=actor();p.mode='glide';p.glideReady=true;p.position.y=.15;p.velocity.set(0,-10,11);
+ for(let i=0;i<50&&p.mode!=='ground';i++)simulatePlayer(p,{...keys},1/30,world);
+ assert.equal(p.mode,'ground');assert.equal(p.landingKind,'glide');
+ assert.ok(p.landingSpeed>0);
+ assert.ok(p.landingSlide>0,'visual recovery based on impact and horizontal speed');
+ const grass=actor(),sand=actor();
+ grass.mode=sand.mode='air';grass.position.y=sand.position.y=.1;
+ grass.velocity.set(0,-8,9);sand.velocity.set(0,-8,9);
+ const sandWorld=new WorldCollisionQuery(()=>0,()=>null);sandWorld.setMaterialSampler(()=> 'sand');
+ simulatePlayer(grass,{...keys},1/30,world);
+ simulatePlayer(sand,{...keys},1/30,sandWorld);
+ assert.equal(grass.mode,'ground');assert.equal(sand.mode,'ground');
+ assert.ok(grass.landingSlide>sand.landingSlide,'surface friction attenuates cosmetic slide');
+ assert.ok(Math.abs(grass.velocity.z-sand.velocity.z)<1e-9,'visual slide does not apply any braking force');
+ const a=new HamsterAnimator(),b=new HamsterAnimator();
+ for(let i=0;i<10;i++){
+  a.update(input('air',9,{verticalSpeed:-6}),1/30);
+  b.update(input('air',9,{verticalSpeed:-6}),1/30);
+ }
+ for(let i=0;i<4;i++){
+  a.update(input('ground',9,{landingKind:'glide',landingSlide:1,landingSpeed:12}),1/30);
+  b.update(input('ground',9,{landingKind:'idle',landingSlide:0,landingSpeed:12}),1/30);
+ }
+ assert.equal(a.state,'LAND');
+ assert.ok(a.pose.bodyRX>b.pose.bodyRX+.05,'gliding skid visibly tilts the body');
+});
+
+test('different foot support on a raised narrow block uses only two local obstacle contact queries',()=>{
+ const world=new WorldCollisionQuery(()=>0,()=>null);
+ world.add({id:'narrow-step',shape:'box',position:{x:.29,y:0,z:0},size:{x:.4,y:.3,z:2},enabled:()=>true});
+ const p=actor();p.position.set(0,.3,0);p.heading=0;
+ simulatePlayer(p,{...keys},1/30,world);
+ assert.equal(p.mode,'ground');
+ assert.ok(p.footSupportLeft!==undefined&&p.footSupportRight!==undefined);
+ assert.ok(p.footSupportLeft<-.14,'left foot is above the lower ground');
+ assert.ok(Math.abs(p.footSupportRight)<.05,'right foot is supported on the small block');
+ const a=new HamsterAnimator();
+ for(let i=0;i<12;i++)a.update(input('ground',0,{footSupportLeft:p.footSupportLeft/.72,footSupportRight:p.footSupportRight/.72}),1/30);
+ assert.ok(a.pose.footLY<a.pose.footRY-.10,'procedural left paw drops below right');
+ const flat=actor();simulatePlayer(flat,{...keys},1/30,world);
+ assert.equal(flat.footSupportLeft,undefined,'no extra foot samples for non-raised support');
+});
+
+test('V1 remote packets and deterministic replay include optional landing and foot data',()=>{
+ const packet={v:1,t:0,x:0,y:0,z:0,yaw:0,mode:'ground',speed:4,verticalSpeed:0,turnRate:0,aboard:false,action:null,actionSeq:0,tool:null,fishing:null,
+  landingKind:'roll',landingSlide:.7,footSupportLeft:-.2,footSupportRight:.03};
+ assert.deepEqual(parsePresentationState(packet),packet);
+ const later={...packet,t:1,landingSlide:.3,footSupportLeft:0};
+ const mid=interpolatePresentation(packet,later,.5);
+ assert.ok(Math.abs(mid.footSupportLeft+.1)<1e-9);
+ assert.equal(mid.landingKind,'roll');
+ for(const bad of [{landingSlide:-.1},{landingSlide:1.2},{landingKind:'hover'},{footSupportLeft:-2}]){
+  assert.throws(()=>parsePresentationState({...packet,...bad}));
+ }
+ const p=actor();p.landingKind='glide';p.landingSlide=.9;p.footSupportLeft=-.2;p.footSupportRight=.02;
+ const snap=captureMovement(p,0);
+ assert.deepEqual(replayMovement(actor(),snap,[],q),snap,'replay snapshot preserves cues');
+ const corrupt=structuredClone(snap);corrupt.state.footSupportLeft=3;
+ assert.throws(()=>replayMovement(actor(),corrupt,[],q),/Appui pied invalide/);
+});
