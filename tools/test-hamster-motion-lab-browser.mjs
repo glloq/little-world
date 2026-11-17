@@ -22,7 +22,7 @@ try{
   await canvas.waitFor({timeout:20000});
   await page.getByText(/État : WALK/).waitFor({timeout:25000});
   check((await canvas.evaluate(el=>el.width))>=280,'Preview allocates a bounded Three.js canvas');
-  check(await page.getByLabel('Séquence').inputValue()==='walk','Walking preset is the default');
+  check(await page.getByLabel('Séquence',{exact:true}).inputValue()==='walk','Walking preset is the default');
   await page.getByLabel('Cadence de rendu').selectOption('20');
   await page.waitForFunction(()=>document.querySelector('.hamster-motion-stage')?.dataset.renderHz==='20');
   const cost=await page.locator('.hamster-motion-stage').evaluate(el=>({sim:Number(el.dataset.simHz),hz:Number(el.dataset.renderHz),calls:Number(el.dataset.drawCalls),tris:Number(el.dataset.triangles),cpu:Number(el.dataset.cpuRenderMs)}));
@@ -30,7 +30,7 @@ try{
   check(cost.calls>0&&cost.calls<=8,'Preview keeps draw calls low ('+cost.calls+')');
   check(cost.tris>0&&cost.tris<100000,'Low-poly renderer stays within generous triangle ceiling ('+cost.tris+')');
   check(Number.isFinite(cost.cpu)&&cost.cpu>=0,'CPU render time is instrumented (GPU time excluded)');
-  await page.getByLabel('Séquence').selectOption('roll-jump');
+  await page.getByLabel('Séquence',{exact:true}).selectOption('roll-jump');
   const scrub=async(value)=>page.getByLabel('Temps dans la séquence (secondes)').evaluate((el,v)=>{
     el.value=String(v);el.dispatchEvent(new Event('input',{bubbles:true}));
   },value);
@@ -45,13 +45,13 @@ try{
   const t1=Number(await page.getByLabel('Temps dans la séquence (secondes)').inputValue());
   check(t1>t0&&t1-t0<.04,'Single-frame stepping advances one simulation tick');
   await page.getByRole('button',{name:'Reprendre'}).click();
-  await page.getByLabel('Séquence').selectOption('roll');
+  await page.getByLabel('Séquence',{exact:true}).selectOption('roll');
   await page.getByText(/État : ROLL_/).waitFor({timeout:15000});
   check(true,'Rolling uses the real animator state machine');
-  await page.getByLabel('Séquence').selectOption('glide');
+  await page.getByLabel('Séquence',{exact:true}).selectOption('glide');
   await page.getByText(/État : GLIDE_/).waitFor({timeout:15000});
   check(true,'Gliding opens the real membranes state');
-  await page.getByLabel('Séquence').selectOption('step');
+  await page.getByLabel('Séquence',{exact:true}).selectOption('step');
   await page.getByText(/État : WALK/).waitFor({timeout:15000});
   await page.getByLabel('Pente (°)').fill('20');
   await page.getByLabel('Dérapage (-1…1)').fill('0.5');
