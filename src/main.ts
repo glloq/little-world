@@ -141,7 +141,7 @@ const DEFAULT_WORLD='maps/island/manifest.json';
 const worldPath=searchParams.get('world')??(searchParams.has('studioPreview')||searchParams.has('studioBuild')||searchParams.get('beta')==='1'?null:DEFAULT_WORLD);
 let definition = defaultWorld();
 let playable:PlayableWorld|null=null,studioTest:StudioPlaytest|null=null,buildScope:string|null=null;
-function bootFailure(error:unknown):never{overlay.setAttribute('aria-busy','false');overlay.querySelector('h1')!.textContent='Impossible d’ouvrir cette partie';overlay.querySelector('p')!.textContent=String(error);start.disabled=true;throw error;}
+function bootFailure(error:unknown):never{overlay.setAttribute('aria-busy','false');overlay.dataset.state='error';const message=overlay.querySelector<HTMLElement>('.start-error');if(message){message.hidden=false;message.querySelector('p')!.textContent=String(error);}start.disabled=true;throw error;}
 if(searchParams.has('studioBuild')||worldPath){
   // Compiled V3 reader: the same path for published worlds and Studio test builds.
   try{
@@ -166,7 +166,7 @@ if(searchParams.has('studioBuild')||worldPath){
     if(searchParams.has('studioPreview')){studioTest=loadPlaytest(searchParams.get('studioPreview')!);playable=studioTest.content;}
     else{const response=await fetch(import.meta.env.BASE_URL+'maps/beta.json');if(!response.ok)throw Error('Monde bêta indisponible');playable=parsePlayableWorld(await response.json());}
     definition=playable.world;
-  }catch(error){overlay.setAttribute('aria-busy','false');overlay.querySelector('h1')!.textContent='Impossible d’ouvrir cette partie';overlay.querySelector('p')!.textContent=String(error);start.disabled=true;throw error;}
+  }catch(error){bootFailure(error);}
 }
 loading.boot(.45,'Construction du relief…');
 const world = buildWorld(definition.config, definition);
@@ -285,7 +285,7 @@ world.update(0, player.position);
     },
     player:()=>({gas:gasLevel(player),maxGas:gasCapacity(player),gasShots:gasShots(player),gasMaxShots:gasMaxShots(player),gasCooldown:player.gasCooldown??0,x:player.position.x,y:player.position.y,z:player.position.z,yaw,space:player.space,mode:player.mode,oxygen:player.oxygen,maxOxygen:MAX_OXYGEN,stamina:player.stamina??MAX_STAMINA,maxStamina:MAX_STAMINA,speed:player.velocity.length(),stalled:player.stalled}),
     target:()=>currentTarget(),
-    home:()=>{stopFlightCourse();started=false;mobileTouch?.setEnabled(false);mobileLandscape?.stop();gameUi?.controller.close();keySet.clear();overlay.classList.remove('hide');start.focus();}});
+    home:()=>{stopFlightCourse();started=false;mobileTouch?.setEnabled(false);mobileLandscape?.stop();gameUi?.controller.close();keySet.clear();overlay.classList.remove('hide');overlay.classList.add('home-mode');start.hidden=false;start.focus();}});
 }
 // The player is the hamster (doc 43); NPCs keep their own rigs.
 const character = buildHamster();
@@ -342,7 +342,6 @@ let elapsed = 0;
 // Mobile controls contribute directly to the existing deterministic player input.
 if(touchCapable){
   mobileTouch=createTouchControls({jump:()=>{if(aboard)actionQueue++;else if(player.mode==='swim'||player.mode==='dive')touchStrokeQueue=1;else jumpQueue++;},action:()=>{actionQueue++;},alternate:()=>{if(player.mode==='ground'||player.mode==='roll')rollQueue++;else if(player.mode==='swim'||player.mode==='dive')jumpQueue++;}});
-  const intro=overlay.querySelector<HTMLElement>('.start-card small');if(intro)intro.textContent='Téléphone : paysage conseillé · joystick gauche · Saut et Accélération à droite';
   // Restore touch controls immediately after the player accepts portrait or rotates back.
   // Do not wait for a simulation tick: that tick may still be paused by the orientation guide.
   mobileLandscape=createMobileLandscape(blocked=>{
@@ -549,15 +548,29 @@ renderer.domElement.addEventListener(
   },
   { passive: true },
 );
-start.addEventListener('click', () => {
-  started = true;
+// Browser audio may require a gesture. Autostart video/gameplay first, then unlock
+// audio on the player's first real pointer or keyboard interaction (no autoplay errors).
+function unlockGameAudio(){
+  window.removeEventListener('pointerdown',unlockGameAudio,true);
+  window.removeEventListener('keydown',unlockGameAudio,true);
   void audio?.start();
-  overlay.classList.add('hide');
+}
+function beginGame(fromGesture=false){
+  if(started)return;
+  started=true;
+  if(fromGesture)unlockGameAudio();
+  else{
+    window.addEventListener('pointerdown',unlockGameAudio,true);
+    window.addEventListener('keydown',unlockGameAudio,true);
+  }
+  overlay.classList.add('hide');overlay.classList.remove('home-mode');
+  start.hidden=true;
   gameUi?.started();
   mobileLandscape?.start();
   mobileTouch?.setEnabled(!mobileLandscape?.blocked);
-  renderer.domElement.focus();
-});
+  renderer.domElement.focus({preventScroll:true});
+}
+start.addEventListener('click',()=>beginGame(true));
 /** Messages from gameplay effects and actions go through the single notification manager. */
 function showInfo(text: string, kind:'info'|'success'|'warning'='info') {
   gameUi?.notify(kind,text);
@@ -866,7 +879,7 @@ function draw(now: number) {
   for(const state of npcs.states)if(Math.hypot(state.x-player.position.x,state.z-player.position.z)<44)grassActors.push(state);
   remoteActors?.renderer.collectGrassActors(grassActors,player.position);
   world.update(delta, player.position, camera, renderer.domElement.height, player.velocity);
-  if(!loading.ready)loading.update({terrainPending:world.stats.pending,dressingPending:world.dressing?.nearPending??0,speciesState:world.dressing?.species.state??'none'});
+  if(!loading.ready&&loading.update({terrainPending:world.stats.pending,dressingPending:world.dressing?.nearPending??0,speciesState:world.dressing?.species.state??'none'}))beginGame();
   remoteActors?.update(delta,elapsed,camera,renderer.domElement.height,budget.level);
   npcs.update(delta, elapsed, player.position,camera); // The river drives the mill: no manual on/off control.
   // Boats follow their state (the one in use moves; the player's own boat bobs at its mooring).
@@ -1011,6 +1024,6 @@ camera.position.set(
   player.position.z - 24,
 );
 camera.lookAt(player.position);
-// The visible start button must not accept a click before asynchronous boot has attached its listeners.
+// Gameplay starts automatically when the first rendered spawn area is ready.
 overlay.setAttribute('aria-busy','false');loading.boot(1);
 requestAnimationFrame(draw);
