@@ -25,12 +25,13 @@ export function createAudioController(definition:AnyAudioDefinition,options:{bas
  advanced.className='audio-mixer-advanced';advancedTitle.textContent='Mixage avancé';advanced.append(advancedTitle);
  for(const [key,title] of [['music','Musique'],['sfx','Effets'],['ambience','Ambiance']] as const)advanced.append(volumeLabel(key,title));
  mixer.append(advanced);
- const activate=document.createElement('button');activate.textContent='Activer / reprendre le son';activate.type='button';activate.onclick=()=>void engine.unlock();
- mixer.append(activate,status);panel.append(mixer);document.body.append(panel);
+ // The Play gesture, the HUD speaker and unmute resume the engine.
+ // Do not show a redundant "resume audio" button in the compact mixer.
+ mixer.append(status);panel.append(mixer);document.body.append(panel);
   // Business events → semantic sound events; the engine stays the only owner of voices and budgets.
  const router=new AudioEventRouter(sound=>{void engine.playEvent(sound.eventId,{context:sound.context,position:sound.position,source:sound.source});});
  const visibility=()=>{void engine.setHidden(document.hidden);};document.addEventListener('visibilitychange',visibility);let lastUpdate=0;
- return {engine,router,start:()=>engine.unlock(),
+ return {engine,router,panel,start:()=>engine.unlock(),
   /** Declarative `playSound` actions (V1 ids and V2 event ids). */
   playSound:(id:string,position?:Point)=>{void engine.playEvent(id,{position,context:router.context});},
   /** Gameplay event with optional context (mine material, crop, species…). */
