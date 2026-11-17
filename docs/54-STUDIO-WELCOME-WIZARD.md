@@ -10,6 +10,8 @@ L'accueil sépare quatre intentions :
 3. **Partir de zéro** : terrain côtier simple et plat, sans formes de relief ni objets.
 4. **Reprendre un projet** : liste des projets locaux, avec import JSON/ZIP toujours disponible.
 
+Une section secondaire « Accès avancé », placée sous les choix principaux, conserve la création directe (y compris les vallées historiques) et les raccourcis des anciennes scènes pour les auteurs expérimentés.
+
 Le créateur affiche, avant toute sauvegarde, une vraie carte du relief issue de `generatorField()`.
 Le brouillon passe dans `buildWelcomeProject()` pour l'aperçu **et** lors de la confirmation.
 Le projet V3 n'est créé dans IndexedDB que sur « Créer et ouvrir le monde ».
