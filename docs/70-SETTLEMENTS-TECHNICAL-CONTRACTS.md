@@ -4,6 +4,8 @@
 **Base du diagnostic : `main` @ `4ea35031b078296b4e94d4c565718499bcb405fd`, 17 novembre 2026.**  
 Voir [69 — audit factuel](69-SETTLEMENTS-SET0-AUDIT.md), [65 — périmètre](65-SETTLEMENTS-STUDIO-SPEC.md), [66 — implantation](66-SETTLEMENTS-PLACEMENT-NETWORK.md), [67 — physique](67-SETTLEMENTS-COLLISIONS-INTERACTIONS.md).
 
+**Mise en œuvre par résultats utilisateur :** [71 — roadmap accélérée](71-SETTLEMENTS-FAST-TRACK.md) et [72 — interface Studio](72-SETTLEMENTS-STUDIO-UX.md). Ces documents ne changent pas les contrats bloquants décrits ici.
+
 ## 0. Sens de « validation »
 
 - **RETAINED** : choix technique retenu pour SET-1 après confrontation au code ; pas une preuve de réussite d'exécution.
