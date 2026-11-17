@@ -29,7 +29,7 @@ test('flight-only gate, pulse counter and bounded reserve',()=>{
  assert.equal(gasLevel({}),GAS.initial);
 });
 test('sustained boost reaches 120 km/h and releasing preserves momentum',()=>{
- const p={velocity:{x:0,y:-2,z:18}},gasReserve:GAS.initial;
+ const p={velocity:{x:0,y:-2,z:18},gasReserve:GAS.initial};
  let peak=0;
  for(let i=0;i<120;i++){
   const thrust=gasBoostStep(p,true,true,dt);
