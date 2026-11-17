@@ -225,7 +225,15 @@ try{
   await mobilePage.mouse.move(cx+44,cy,{steps:4});
   await mobilePage.waitForTimeout(650);await mobilePage.mouse.up();
   const x1=await mobilePage.evaluate(()=>window.littleWorldMetrics.position[0]);
-  verify(x1>x0+.04,'Right on the mobile joystick follows the corrected horizontal mapping');
+  verify(x1<x0-.04,'Right on the mobile joystick matches keyboard D (world -X at yaw 0)');
+  // A single short press toggles the ball; no double-tap gesture is required.
+  await mobilePage.getByRole('button',{name:'Courir'}).tap();
+  await mobilePage.waitForFunction(()=>window.littleWorldMetrics?.mode==='roll');
+  await mobilePage.waitForTimeout(450);
+  verify(await mobilePage.evaluate(()=>window.littleWorldMetrics.mode==='roll'),'One short tap selects a persistent roll even at rest');
+  await mobilePage.getByRole('button',{name:'Accélérer'}).tap();
+  await mobilePage.waitForFunction(()=>window.littleWorldMetrics?.mode==='ground');
+  verify(true,'A second single tap exits the ball');
   // A rightward swipe on the scene must change the touch camera in the intended direction.
   await mobilePage.evaluate(()=>{const p=window.littleWorldMetrics.position;window.littleWorldDebug.teleport(p[0],p[2],0);});
   await mobilePage.waitForTimeout(500);
@@ -252,7 +260,8 @@ try{
     window.littleWorldDebug.teleport(p[0],p[2],0,150);
   });
   await mobilePage.waitForFunction(()=>window.littleWorldMetrics?.mode==='air');
-  verify(!(await boostButton.isEnabled()),'Acceleration is disabled during free fall');
+  await mobilePage.waitForFunction(()=>document.querySelector('.touch-accelerate')?.textContent==='Boost');
+  verify(await boostButton.isEnabled(),'Boost is available in freefall for an aerial double jump');
   await mobilePage.getByRole('button',{name:'Planeur'}).tap();
   await mobilePage.waitForFunction(()=>window.littleWorldMetrics?.mode==='glide');
   await mobilePage.waitForFunction(()=>document.querySelector('.touch-accelerate')?.textContent==='Boost');

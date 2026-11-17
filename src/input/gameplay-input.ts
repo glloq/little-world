@@ -15,7 +15,8 @@ export function shouldPreventGameplayKeyDefault(code:string,active:boolean,editi
 export function shouldSuppressGameplayContextMenu(running:boolean,editing:boolean):boolean{
   return running&&!editing;
 }
-/** Shift on desktop or the existing acceleration button on touch devices. */
+/** The same acceleration input launches when stationary, provides a double jump in air,
+ * and powers the glider; motion-state-specific gating stays in the deterministic simulator. */
 export function flightBoostHeld(mode:string,shiftHeld:boolean,touchAccelerateHeld:boolean):boolean{
-  return mode==='glide'&&(shiftHeld||touchAccelerateHeld);
+  return (mode==='ground'||mode==='air'||mode==='glide')&&(shiftHeld||touchAccelerateHeld);
 }

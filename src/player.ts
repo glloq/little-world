@@ -1,6 +1,6 @@
 import {MOTION,ROLL,GLIDE_DEPLOY,groundVelocity,airVelocity,glideVelocity,glideSteeringYaw,glideDeploymentStep,SURFACE_MOTION,angleDelta,type GroundMaterial} from './physics/motion.ts';
 export {ROLL,GLIDE,MOTION,SURFACE_MOTION} from './physics/motion.ts';
-import {GAS,gasBoostStep,gasMastery} from './physics/gas-propulsion.ts';
+import {GAS,gasBoostStep,gasMastery,gasShots} from './physics/gas-propulsion.ts';
 import {DEFAULT_BODY,type WorldCollisionQuery,type MovementSpace,type BodyDimensions} from './physics/collision-world.ts';
 import * as THREE from 'three';
 import {
@@ -83,6 +83,8 @@ export interface Player {
   glideHeading?:number;glidePitch?:number;glideTurnRate?:number;stalled?:boolean;
   /** First deployment per take-off, persisted in deterministic replay. */
   glideDeploymentUsed?:boolean;glideDeploymentRemaining?:number;
+  /** Fixed-step airborne secondary jump and charge for intentional stationary gas launch. */
+  airBoostUsed?:boolean;groundBoostCharge?:number;
   /** Fuel and visual event sequence owned by simulation. */
   gasReserve?:number;gasCapacityLevel?:number;gasPowerLevel?:number;gasControlLevel?:number;
   gasBoosting?:boolean;gasPulseSeq?:number;gasPulseClock?:number;gasThrust?:number;
@@ -95,6 +97,8 @@ export const MAX_OXYGEN = 90;
 export const MAX_STAMINA = 100;
 /** Input forgiveness calibrated for 30 Hz; only enabled when jumpAssist is true. */
 export const JUMP_ASSIST={coyote:.10,buffer:.13,nearLanding:.65,maxPrediction:1.4} as const;
+/** Boost carries the hamster upwards instead of driving it into the ground. */
+export const BOOST_LIFT={stationaryHold:.35,launchVy:7.5,airVy:6.2,glideVy:5.5,airThrustVertical:.55} as const;
 /** Climbing tuning: vertical gain while pushing up, lateral speed, stamina use per second. */
 export const CLIMB={up:1.8,side:1.4,drainMove:11,drainHang:4,regen:28,minStart:12,grabReach:1.5} as const;
 /** Uphill gradient of the outdoor relief at (x,z): slope ratio and unit direction. */
@@ -108,7 +112,7 @@ export function spawnPlayer(): Player {
     mode: 'ground',
     oxygen: MAX_OXYGEN,
     glideReady: false,
-    glideDeploymentUsed:false,glideDeploymentRemaining:0,
+    glideDeploymentUsed:false,glideDeploymentRemaining:0,airBoostUsed:false,groundBoostCharge:0,
     gasReserve:GAS.initial,gasCapacityLevel:0,gasPowerLevel:0,gasControlLevel:0,
     gasBoosting:false,gasPulseSeq:0,gasPulseClock:0,gasThrust:0,
     gasPulseRemaining:0,gasCooldown:0,gasBoostHeld:false,gasRepeatArmed:false,
@@ -129,6 +133,7 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
     p.landingSlide=clamp(((horizontal-3)*.12+(impact-5)*.025)*(1.25-.17*surface.friction),0,1);
     p.landingSeq=(p.landingSeq??0)+1;
     p.glideDeploymentUsed=false;p.glideDeploymentRemaining=0;
+    p.airBoostUsed=false;p.groundBoostCharge=0;
   };
   const len = Math.hypot(keys.forward, keys.right);
   const forward = len > 0 ? keys.forward / Math.max(1, len) : 0;
@@ -176,7 +181,10 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
   // Roll: from the ground (not in water, not on a boat). X toggles the ball; holding the sprint
   // key (Shift) while moving rolls to go fast and releasing it unrolls (momentum kept).
   const enterRoll=(byHold:boolean)=>{p.mode='roll';p.rollByHold=byHold;p.rollSpeed=Math.hypot(v.x,v.z);p.rollHeading=len>0?Math.atan2(dx,dz):Math.hypot(v.x,v.z)>.3?Math.atan2(v.x,v.z):keys.cameraYaw;p.rollIdle=0;};
-  if(keys.rollPressed){if(p.mode==='ground'&&!inWater)enterRoll(false);else if(p.mode==='roll')p.mode='ground';}
+  if(keys.rollPressed){
+    if(p.mode==='ground'&&!inWater)enterRoll(false);
+    else if(p.mode==='roll'){if(p.rollByHold)p.rollByHold=false;else p.mode='ground';}
+  }
   else if(keys.rollHeld&&len>.3&&p.mode==='ground'&&!inWater)enterRoll(true);
   else if(p.mode==='roll'&&p.rollByHold&&!keys.rollHeld)p.mode='ground';
   if(p.mode==='roll'&&!inWater){
@@ -255,6 +263,7 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
     if (grounded) {
       p.mode = 'ground';
       p.glideDeploymentUsed=false;p.glideDeploymentRemaining=0;
+      p.airBoostUsed=false;
       pos.y = ground;
       v.y = 0;
       p.glideReady = false;
@@ -275,6 +284,19 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
       p.jumpOrigin=undefined; // Stepping off a ledge is not a previous rolling jump.
       p.glideReady = true;
     }
+    // Holding acceleration while standing still launches a gas-powered hop.
+    // A quick mobile tap still selects the roll mode; moving never charges this launch.
+    if(p.mode==='ground'&&!inWater&&len<.15&&!keys.rollPressed&&keys.boostHeld&&gasShots(p)>0){
+      p.groundBoostCharge=Math.min(BOOST_LIFT.stationaryHold,(p.groundBoostCharge??0)+dt);
+      if(p.groundBoostCharge>=BOOST_LIFT.stationaryHold-1e-8){
+        p.mode='air';p.jumpOrigin='idle';p.jumpSeq=(p.jumpSeq??0)+1;
+        p.glideReady=true;v.y=Math.max(v.y,BOOST_LIFT.launchVy);
+        p.coyoteLeft=0;p.jumpBufferLeft=0;jumpHandled=true;
+        // The ground-held button becomes a fresh airborne gas pulse on launch.
+        gasBoostStep(p,false,false,0);
+      }
+    }else p.groundBoostCharge=0;
+    if(p.mode!=='ground')p.groundBoostCharge=0;
     if (p.mode === 'air' || p.mode === 'glide') {
       if (keys.jumpPressed && !jumpHandled && p.glideReady && oldMode !== 'ground' && oldMode !== 'climb' && oldMode !== 'roll') {
         p.mode = p.mode === 'glide' ? 'air' : 'glide';
@@ -285,13 +307,27 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
         }else p.glideDeploymentRemaining=0;
       }
       if (p.mode === 'glide') {
+        const previousPulse=p.gasPulseSeq??0;
         const gasAcceleration=gasBoostStep(p,keys.boostHeld===true,true,dt);gasTicked=true;
-        // Orbit camera never changes flight heading or consumes kinetic energy.
+        if((p.gasPulseSeq??0)>previousPulse){
+          // Lift once per gas pulse, even when deploying during a descending glide.
+          v.y=Math.max(v.y,BOOST_LIFT.glideVy);
+          p.glidePitch=Math.atan2(v.y,Math.max(Math.hypot(v.x,v.z),.01));
+        }
         const flightPitch=forward>=0?forward*.85:forward*.65;
         glideVelocity(p,glideSteeringYaw(p,right,dt),flightPitch,0,dt,undefined,gasAcceleration,gasMastery(p));
         glideDeploymentStep(p,dt);
       } else {
+        const previousPulse=p.gasPulseSeq??0;
+        // One gas-powered double jump in freefall per take-off; gliding remains
+        // eligible for repeated pulses from the regular consumable gas reserve.
+        const acceleration=gasBoostStep(p,keys.boostHeld===true&&!p.airBoostUsed,true,dt);
+        gasTicked=true;
+        if((p.gasPulseSeq??0)>previousPulse){
+          p.airBoostUsed=true;v.y=Math.max(v.y,BOOST_LIFT.airVy);
+        }
         airVelocity(v,dx,dz,keys.run?7.2:5.2,dt);
+        if(p.airBoostUsed&&acceleration>0)v.y+=acceleration*dt*BOOST_LIFT.airThrustVertical;
       }
       // Vertical integration is swept together with XZ below when collisions are available.
       if(!collision)pos.y+=v.y*dt;
@@ -387,10 +423,19 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
   }else{p.footSupportLeft=undefined;p.footSupportRight=undefined;}
   // Explicit connections between spaces (mine entrance, stairs, shafts): never implicit.
   const transition=collision?.transitionAt(pos,p.space);
-  if(p.mode!=='glide'){gasBoostStep(p,keys.run===true||keys.boostHeld===true,false,gasTicked?0:dt);p.stalled=false;p.glideHeading=undefined;p.glidePitch=undefined;p.glideTurnRate=0;p.glideDeploymentRemaining=0;}
-  if(p.mode==='ground'||p.mode==='swim'||p.mode==='dive'||p.mode==='climb')p.glideDeploymentUsed=false;
+  if(p.mode!=='glide'){
+    // The old ground gate must not cancel a gas pulse already running in freefall.
+    if(!gasTicked)gasBoostStep(p,keys.run===true||keys.boostHeld===true,false,dt);
+    else if(p.mode!=='air')gasBoostStep(p,false,false,0);
+    p.stalled=false;p.glideHeading=undefined;p.glidePitch=undefined;p.glideTurnRate=0;p.glideDeploymentRemaining=0;
+  }
+  if(p.mode==='ground'||p.mode==='swim'||p.mode==='dive'||p.mode==='climb'){
+    p.glideDeploymentUsed=false;p.airBoostUsed=false;
+    // Keep the standing hold timer across grounded ticks; other modes clear it.
+    if(p.mode!=='ground')p.groundBoostCharge=0;
+  }
   if(Math.hypot(v.x,v.z)>.01)p.heading=Math.atan2(v.x,v.z);
-  if(transition){p.space=transition.to??undefined;pos.set(transition.arrival.x,transition.arrival.y,transition.arrival.z);v.set(0,0,0);p.mode='ground';p.glideReady=false;p.transitioned=transition.id;p.coyoteLeft=0;p.jumpBufferLeft=0;p.footSupportLeft=undefined;p.footSupportRight=undefined;p.glideDeploymentUsed=false;p.glideDeploymentRemaining=0;gasBoostStep(p,keys.run===true||keys.boostHeld===true,false,0);}
+  if(transition){p.space=transition.to??undefined;pos.set(transition.arrival.x,transition.arrival.y,transition.arrival.z);v.set(0,0,0);p.mode='ground';p.glideReady=false;p.transitioned=transition.id;p.coyoteLeft=0;p.jumpBufferLeft=0;p.footSupportLeft=undefined;p.footSupportRight=undefined;p.glideDeploymentUsed=false;p.glideDeploymentRemaining=0;p.airBoostUsed=false;p.groundBoostCharge=0;gasBoostStep(p,keys.run===true||keys.boostHeld===true,false,0);}
 }
 
 /** One climbing step: forward = up the slope, sideways along it; jump leaps off (glide possible),
@@ -438,5 +483,6 @@ function rollStep(p:Player,keys:Controls,dt:number,dx:number,dz:number,len:numbe
  v.x=Math.sin(heading)*speed-gx*gravity;v.z=Math.cos(heading)*speed-gz*gravity;
  speed=Math.hypot(v.x,v.z);if(speed>ROLL.downhillMax){const k=ROLL.downhillMax/speed;v.x*=k;v.z*=k;speed=ROLL.downhillMax;}
  p.rollSpeed=speed;p.rollHeading=speed>.01?Math.atan2(v.x,v.z):heading;
- if(speed<ROLL.exitSpeed&&(p.rollIdle??0)>ROLL.exitIdle&&gx*v.x+gz*v.z>=-1e-4){p.mode='ground';v.set(0,0,0);}
+ // A manually toggled ball remains selected until the player toggles it off.
+  if(p.rollByHold&&speed<ROLL.exitSpeed&&(p.rollIdle??0)>ROLL.exitIdle&&gx*v.x+gz*v.z>=-1e-4){p.mode='ground';v.set(0,0,0);}
 }

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {simulatePlayer,MAX_OXYGEN} from '../src/player.ts';
+import {simulatePlayer,MAX_OXYGEN,BOOST_LIFT} from '../src/player.ts';
 import {GLIDE,GLIDE_DEPLOY,glideDeploymentStep} from '../src/physics/motion.ts';
 import {WorldCollisionQuery} from '../src/physics/collision-world.ts';
 import {captureMovement,replayMovement,restoreMovement} from '../src/physics/movement-state.ts';
@@ -100,4 +100,62 @@ test('visual camera recenters only after inactivity, and never during drag',()=>
  assert.equal(camera.yaw,Math.PI,'setting disables auto-follow');
  advanceFlightAutoCamera(camera,dt,false,false,true,0,20,0,false);
  assert.equal(camera.wasGliding,false);
+});
+
+test('a gas pulse lifts a glider close to terrain instead of driving it into the ground',()=>{
+ const q=floor(),p=actor('glide',0,-7,16);p.position.y=.8;p.gasReserve=56;
+ const start=p.position.y;
+ simulatePlayer(p,{...idle,boostHeld:true},dt,q);
+ assert.equal(p.mode,'glide');
+ assert.ok(p.velocity.y>0,'gas pulse actively arrests the descent');
+ assert.equal(p.gasPulseSeq,1);
+ for(let i=0;i<12;i++)simulatePlayer(p,{...idle,boostHeld:false},dt,q);
+ assert.equal(p.mode,'glide','boost does not drop the hamster directly on the ground');
+ assert.ok(p.position.y>start+.35,'gas pulse generates positive altitude');
+});
+test('stationary hold on Boost takes off, consumes one gas pulse, and preserves glide availability',()=>{
+ const q=floor(),p=actor('ground',0,0,0);p.position.y=0;p.gasReserve=56;
+ for(let i=0;i<9;i++)simulatePlayer(p,{...idle,boostHeld:true,run:true},dt,q);
+ assert.equal(p.mode,'ground','quick tap never makes a gas launch');
+ assert.equal(p.gasReserve,56);
+ for(let i=0;i<3;i++)simulatePlayer(p,{...idle,boostHeld:true,run:true},dt,q);
+ assert.equal(p.mode,'air','holding still launches vertically');
+ assert.ok(p.velocity.y>BOOST_LIFT.launchVy-1,'launch maintains positive vertical speed');
+ assert.equal(p.gasPulseSeq,1);
+ assert.equal(p.gasReserve,42);
+ assert.equal(p.airBoostUsed,true,'launch consumes the freefall bonus for this take-off');
+ assert.equal(p.glideReady,true);
+ simulatePlayer(p,{...idle,jumpPressed:true},dt,q);
+ assert.equal(p.mode,'glide','can deploy the wings after gas launch');
+});
+test('freefall gas boost acts as a single double jump; later pulses are reserved for the glider',()=>{
+ const q=floor(),p=actor('air',0,-3,9);p.gasReserve=70;
+ simulatePlayer(p,{...idle,boostHeld:true},dt,q);
+ assert.equal(p.gasPulseSeq,1);assert.equal(p.airBoostUsed,true);
+ assert.ok(p.velocity.y>0,'air boost reverses a modest fall');
+ for(let i=0;i<24;i++)simulatePlayer(p,{...idle,boostHeld:false},dt,q);
+ const first=p.gasPulseSeq;
+ for(let i=0;i<10;i++)simulatePlayer(p,{...idle,boostHeld:true},dt,q);
+ assert.equal(p.gasPulseSeq,first,'freefall cannot trigger infinite extra jumps');
+ simulatePlayer(p,{...idle,jumpPressed:true,boostHeld:false},dt,q);
+ assert.equal(p.mode,'glide');
+ simulatePlayer(p,{...idle,boostHeld:true},dt,q);
+ assert.ok(p.gasPulseSeq>first,'ordinary powered glide still has multiple consumable pulses');
+});
+test('mobile short tap converts held roll into a persistent ball, and a second tap leaves it',()=>{
+ const q=floor(),p=actor('ground',0,0,0);p.position.y=0;
+ simulatePlayer(p,{...idle,forward:1,rollHeld:true},dt,q);
+ assert.equal(p.mode,'roll');assert.equal(p.rollByHold,true);
+ simulatePlayer(p,{...idle,forward:1,rollHeld:false,rollPressed:true},dt,q);
+ assert.equal(p.mode,'roll');assert.equal(p.rollByHold,false,'tap locks the ball instead of cancelling it');
+ simulatePlayer(p,{...idle,rollPressed:true},dt,q);
+ assert.equal(p.mode,'ground','one more tap unlocks the ball');
+});
+test('new airborne boost state survives deterministic snapshots and rejects invalid charge',()=>{
+ const p=actor('air',0,1,9),q=floor();p.gasReserve=70;
+ const start=captureMovement(p,0),tape=Array.from({length:24},(_,i)=>({tick:i+1,input:{...idle,boostHeld:i>=2&&i<8,jumpPressed:i===14}}));
+ const x=replayMovement(p,start,tape,q),y=replayMovement(actor('air',0,1,9),start,tape,q);
+ assert.deepEqual(x,y);assert.equal(x.state.airBoostUsed,true);
+ const broken=structuredClone(x);broken.state.groundBoostCharge=1;
+ assert.throws(()=>restoreMovement(actor(),broken),/Charge de décollage/);
 });
