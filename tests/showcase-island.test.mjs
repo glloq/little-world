@@ -16,3 +16,13 @@ test('Studio advertises only one example and isolated fixtures remain available 
   assert.match(visible,/island\.project\.json/);
   assert.equal((await readdir(file('tests/fixtures/legacy-maps/authoring/'))).length,6);
 });
+
+test('every browser test opening a legacy shortcut explicitly requests fixture mode',async()=>{
+  const tools=(await readdir(file('tools/'))).filter(n=>/^test-.*-browser\.mjs$/.test(n));
+  for(const name of tools){
+    const source=await readFile(file('tools/'+name),'utf8');
+    if(/getByRole\('button',\{name:'(?:Ouvrir le scénario de référence|Scène de référence|Démonstration B1)/.test(source)){
+      assert.match(source,/testFixtures=1/,'Missing isolated fixture mode: '+name);
+    }
+  }
+});

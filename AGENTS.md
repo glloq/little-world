@@ -190,7 +190,7 @@ Lire **[41 — World Production V1](docs/41-WORLD-PRODUCTION-V1.md)** avant de t
 - **Un seul catalogue** : `assets/world-assets.json` est **généré** depuis les vrais GLB (`npm run generate:world-assets`, vérifié en CI) ; usages dans `src/world-production/asset-usage.ts`. Ne pas éditer le JSON à la main, ne pas modifier les GLB d'origine.
 - La classification du Geography Engine reste l'autorité ; les **profils de biotopes** ne font que choisir espèces/densités/écotones. Pas de données par plante dans les sources.
 - `libraries.landscapes` (facultatif) : un preset écrit des données auteur rééditables ; **retouches manuelles prioritaires** (contenu modifié détaché, suppressions respectées, écrasement seulement confirmé). Toute rivière générée passe la compilation WATER.
-- Cartes `maps/island.project.json` et `maps/production-reference.project.json` **générées** (`npm run generate:island`, `npm run generate:production-reference`, vérifiées en CI).
+- La carte officielle `maps/island.project.json` est générée (`npm run generate:island`) ; la carte de régression production est désormais sous `tests/fixtures/legacy-maps/authoring/production-reference.project.json` (générée par `npm run generate:production-reference`, vérifiée en CI).
 
 ## Jeu complet V1 — économie, activités, île peuplée, Studio unique (implémenté sur branche)
 
