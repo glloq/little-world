@@ -36,3 +36,20 @@ test('SWIM — out of oxygen the dive ends and the hamster rises; Ctrl held stil
   const q=sea(),p=run(actor(),q,1.5);press(p,q);run(p,q,1);p.oxygen=0;run(p,q,2.5);assert.equal(p.diving,false);assert.equal(p.mode,'swim');
   const c=run(actor(),q,1.5);run(c,q,1.5,{dive:true});assert.equal(c.mode,'dive');run(c,q,2.5);assert.equal(c.mode,'swim','released: back up');
 });
+
+test('SWIM — mobile Brasse gives a finite pulse without toggling dive',()=>{
+  const q=sea(),stroked=run(actor(),q,1.5),idle=run(actor(),q,1.5);
+  simulatePlayer(stroked,{...keys,swimStrokePressed:true},1/30,q);
+  simulatePlayer(idle,keys,1/30,q);
+  run(stroked,q,.25);run(idle,q,.25);
+  assert.ok(stroked.position.z>idle.position.z+.15,'stroke advances the swimmer');
+  assert.equal(stroked.diving,false,'stroke does not toggle the legacy dive state');
+  assert.equal(stroked.swimStrokeSeq,1,'one tap generates one stroke');
+  run(stroked,q,1);
+  assert.equal(stroked.swimStrokeClock,0,'stroke ends without a repeating input');
+});
+test('SWIM — separate acceleration increases swim speed, without requiring roll',()=>{
+  const q=sea(),quick=run(actor(),q,1),slow=run(actor(),q,1);
+  run(quick,q,.7,{forward:1,run:true});run(slow,q,.7,{forward:1});
+  assert.ok(quick.position.z>slow.position.z+.3,'accelerate increases water movement');
+});

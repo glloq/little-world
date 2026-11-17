@@ -133,10 +133,20 @@ try{
   const mobilePage=await phone.newPage(),mobileErrors=[];
   mobilePage.on('pageerror',e=>mobileErrors.push(e.message));
   await mobilePage.goto(base+'?beta=1&metrics');
+  verify(await mobilePage.locator('#quality').inputValue()==='low','Phone first launch defaults to economical rendering');
   await mobilePage.getByRole('button',{name:'Explorer l’île'}).click();
   await mobilePage.locator('.touch-joystick').waitFor({state:'visible'});
   verify(await mobilePage.locator('.touch-controls').isVisible(),'Phone-sized coarse pointer activates joystick and action buttons');
-  verify(await mobilePage.getByRole('button',{name:'Saut'}).isVisible()&&await mobilePage.getByRole('button',{name:'Agir'}).isVisible(),'Phone has touch jump and interact controls');
+  verify(await mobilePage.getByRole('button',{name:'Saut'}).isVisible()&&await mobilePage.getByRole('button',{name:'Courir'}).isVisible(),'Phone keeps jump and acceleration as separate primary buttons');
+  verify(await mobilePage.getByRole('button',{name:'Agir'}).isVisible()&&await mobilePage.getByRole('button',{name:'Rouler'}).isVisible(),'Ground actions are contextual and accessible');
+  verify(!(await mobilePage.getByRole('button',{name:'Plonger'}).isVisible()),'Dive is hidden outside water');
+  verify(await mobilePage.evaluate(()=>{
+    const visible=s=>{const n=document.querySelector(s);return n&&getComputedStyle(n).display!=='none';};
+    const bounds=s=>document.querySelector(s)?.getBoundingClientRect();
+    const a=bounds('.touch-joystick'),b=bounds('.touch-actions'),m=bounds('.ui-minimap'),q=bounds('.ui-quickbar');
+    return visible('.ui-quickbar')&&a&&b&&m&&q&&a.right<b.left&&m.bottom<b.top&&q.right<m.left&&
+      document.querySelector('.ui-minimap canvas')&&getComputedStyle(document.querySelector('.ui-minimap canvas')).display==='none';
+  }),'Phone HUD moves map and quick actions to the top without covering thumb zones');
   const stick=mobilePage.locator('.touch-joystick'),bounds=await stick.boundingBox();
   assert.ok(bounds,'Joystick has a screen rect');
   const cx=bounds.x+bounds.width/2,cy=bounds.y+bounds.height/2;
@@ -155,18 +165,19 @@ try{
   await mobilePage.keyboard.press('Escape');
   await mobilePage.locator('.touch-joystick').waitFor({state:'visible'});
   verify(true,'Touch controls resume when returning to the world');
-  // Gas boost from the latest main merge: press-and-hold only while gliding.
-  const boostButton=mobilePage.locator('.touch-boost');
-  verify(!(await boostButton.isVisible()),'Gas boost is hidden while grounded');
+  // Ground acceleration stays available; flight boost reuses the same physical button.
+  const boostButton=mobilePage.locator('.touch-accelerate');
+  verify(await boostButton.isVisible()&&await boostButton.isEnabled(),'Acceleration remains available on the ground');
   await mobilePage.evaluate(()=>{
     const p=window.littleWorldMetrics.position;
     window.littleWorldDebug.teleport(p[0],p[2],0,45);
   });
   await mobilePage.waitForFunction(()=>window.littleWorldMetrics?.mode==='air');
-  await mobilePage.getByRole('button',{name:'Saut'}).tap();
+  verify(!(await boostButton.isEnabled()),'Acceleration is disabled during free fall');
+  await mobilePage.getByRole('button',{name:'Planeur'}).tap();
   await mobilePage.waitForFunction(()=>window.littleWorldMetrics?.mode==='glide');
-  await boostButton.waitFor({state:'visible'});
-  verify(await boostButton.isEnabled(),'Gas boost appears and can be held while gliding');
+  await mobilePage.waitForFunction(()=>document.querySelector('.touch-accelerate')?.textContent==='Boost');
+  verify(await boostButton.isEnabled(),'The acceleration button becomes gas boost only while gliding');
   const gasBefore=await mobilePage.evaluate(()=>window.littleWorldMetrics.movement.state.gasReserve);
   const boostRect=await boostButton.boundingBox();
   assert.ok(boostRect,'Boost button has a screen rect');
@@ -182,8 +193,14 @@ try{
     const p=window.littleWorldMetrics.position;
     window.littleWorldDebug.teleport(p[0],p[2],0);
   });
-  await boostButton.waitFor({state:'hidden'});
-  verify(true,'Gas boost disappears when landing');
+  await mobilePage.waitForFunction(()=>document.querySelector('.touch-accelerate')?.textContent==='Courir');
+  verify(await boostButton.isVisible()&&await boostButton.isEnabled(),'On landing the same button becomes normal acceleration');
+  await mobilePage.setViewportSize({width:390,height:844});
+  await mobilePage.getByRole('dialog',{name:'Orientation de l’écran recommandée'}).waitFor({state:'visible'});
+  await mobilePage.getByRole('button',{name:'Continuer en portrait'}).click();
+  verify(await mobilePage.locator('.touch-joystick').isVisible(),'If the browser cannot lock rotation, portrait play remains possible by choice');
+  await mobilePage.setViewportSize({width:844,height:390});
+  await mobilePage.getByRole('dialog',{name:'Orientation de l’écran recommandée'}).waitFor({state:'hidden'});
   verify(mobileErrors.length===0,mobileErrors.join('\\n')||'Mobile HUD has no JavaScript errors');
   await phone.close();
   verify(errors.length===0,errors.join('\n')||'No page errors');console.log(JSON.stringify({checks,errors}));
