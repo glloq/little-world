@@ -57,11 +57,37 @@ Il faut régénérer **le GLB et l'atlas d'imposteurs des personnages** après m
 
 Scénarios de recette visuelle : 1) départ bref et course continue, 2) virage sur place et à vitesse élevée, 3) entrée en boule / demi-tour, 4) sortie et reprise de course, 5) saut arrêté, 6) saut lancé, 7) saut en boule avec rotation continue, 8) réception après plané, 9) réception sur pente, 10) joueur distant reconstruit à 10 Hz et rendu à 20/30 FPS.
 
+
+## Lot V2.1 — tolérance de saut, terrain et dérapage
+
+**Implémenté en branche, à valider visuellement sur le matériel cible.**
+
+- **MV-03 — Coyote time** : `Controls.jumpAssist` est facultatif; avec l'option activée dans le jeu, un appui dans les 100 ms suivant la perte d'un support reste un saut moteur. L'origine `ground/run/roll` est conservée. Hors de cette fenêtre, Espace garde sa sémantique de déploiement du planeur.
+- **MV-03 — Jump buffer** : une pression dans les 130 ms avant l'atterrissage, seulement quand le joueur descend suffisamment près du sol, est mémorisée et consommée une fois au contact. L'ouverture du planeur n'est pas déclenchée par cette pression. Les appuis plus haut en l'air continuent à déployer/replier le planeur. Les états eau, escalade et téléportation ne réutilisent pas un ancien appui.
+- **Accélération debout** : `runCharge` est conservée si le joueur maintient sa direction en l'air; elle n'augmente pas pendant le vol. Cela évite de retrouver artificiellement la vitesse de marche après un saut lancé.
+- **MV-06 — Dérapage en roulade** : `rollSlip` est calculé à partir de l'erreur directionnelle restante, de la vitesse et du facteur d'adhérence de la surface. La simulation reste autoritaire pour le cap, la friction et la vitesse; le skid n'agit **que** sur l'assiette et la rotation visuelle.
+- **Contact des pieds sur pente** : `groundPitch`/`groundRoll` sont évalués à partir de quatre échantillons du heightfield en contact proche. La correction demeure faible (rotation des chevilles et décalage vertical de chaque pied), désactivée sur les structures surélevées, les espaces souterrains, dans l'eau et en vol. **Pas d'IK complète** ni de nouveau bone.
+- **Compatibilité V1** : `jumpAssist` et les champs de présentation `rollSlip`, `groundPitch`, `groundRoll` sont optionnels. Les timers de saut, le mode d'origine et les cues physiques sont inclus dans les snapshots de replay et validés. Aucun réseau serveur n'est ajouté.
+
+### Invariants supplémentaires
+
+1. Aucun saut supplémentaire autorisé après expiration des timers : 100 ms / 130 ms sont des fenêtres maximales, non des impulsions réitérées.
+2. Le saut anticipé est incompatible avec une réception dans l'eau; pas de saut gratuit à la sortie du plané ou dans une galerie sans support.
+3. Aucune requête géométrique supplémentaire par animation de PNJ distant : le réglage de pose consomme seulement des nombres déjà calculés ou reçus.
+4. Sur les ponts et autres surfaces 3D, l'orientation du terrain visible en dessous ne doit pas pencher les chevilles du hamster.
+5. Test manuel nécessaire sur une piste de descente avec surfaces herbe/roche/sable/boue : valeurs `rollSlip` à affiner selon le ressenti.
+
+### Prochain lot recommandé
+
+- Stabilisation fine de l'appui des pieds, éventuellement un mini-solveur à deux points **seulement pour le héros proche**, sous garde-fous GPU/CPU.
+- Modes de réception contextualisés : récupération de roulade sur les pentes, glissade à l'impact, éventuel micro-rebond purement visuel sans création d'énergie.
+- Outil de prévisualisation et de réglage des transitions dans le Studio, avec export GLB déterministe et mesures sur PC intégré.
+
 ## Prochaines améliorations à qualifier visuellement
 
-- Recalage fin du contact des pattes en sol irrégulier (pas de solveur IK généralisé avant benchmark).
-- Correction du dérapage en roulade avec un cue d'adhérence mesuré par la simulation.
-- Coyote time et jump buffer `MV-03` à intégrer en cohérence avec le double appui Espace du plané.
+- Recalage fin du contact des pattes sur les obstacles et marches (la correction de pente heightfield est désormais en place, sans solveur IK).
+- Calibration perceptuelle du dérapage en roulade et de la rotation des pieds selon l'adhérence mesurée.
+- Ajustement des fenêtres d'assistance `MV-03` après essais à 20/30 FPS, avec contrôle de l'ouverture du planeur.
 - Réception avec glissade/micro-rebond sans gain d'énergie ni blocage de commande.
 - Aperçu Studio de chaque animation, outils de calibration et régénération complète des clips GLB.
 - Tests GPU intégré et vues avec plusieurs personnages à 30/20 FPS.
