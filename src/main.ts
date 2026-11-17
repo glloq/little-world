@@ -70,6 +70,9 @@ const renderMetrics = document.querySelector<HTMLElement>('#render-metrics')!;
 const oxygen = document.querySelector<HTMLElement>('#oxygen')!;
 /** Player interface (src/ui): created once the world, gameplay and NPCs exist. */
 let gameUi:GameUi|null=null;
+// Detect phone controls before the HUD is constructed, so its gas hint uses the Boost label.
+const touchCapable=isPhoneTouchDevice();
+if(touchCapable)document.body.classList.add('touch-mode');
 let mobileTouch:TouchControls|null=null;
 let mobileLandscape:ReturnType<typeof createMobileLandscape>|null=null;
 const overlay = document.querySelector<HTMLElement>('#start-overlay')!;
@@ -279,8 +282,7 @@ let yaw = 0,
 let started = false;
 let elapsed = 0;
 // Mobile controls contribute directly to the existing deterministic player input.
-if(isPhoneTouchDevice()){
-  document.body.classList.add('touch-mode');
+if(touchCapable){
   mobileTouch=createTouchControls({jump:()=>{jumpQueue++;},action:()=>{actionQueue++;}});
   mobileLandscape=createMobileLandscape(blocked=>{if(blocked)mobileTouch?.setEnabled(false);});
 }
