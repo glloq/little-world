@@ -13,7 +13,7 @@ const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH??(
 try{
  const page=await browser.newPage({viewport:{width:1440,height:900}}),errors=[];
  page.on('pageerror',e=>errors.push(e.message));
- await page.goto(new URL('studio/',process.env.WORLD_URL??'http://127.0.0.1:5173/little-world/').href);
+ await page.goto(new URL('studio/?testFixtures=1',process.env.WORLD_URL??'http://127.0.0.1:5173/little-world/').href);
  await page.getByRole('button',{name:'Scène de référence Falaises',exact:true}).click();
  await page.waitForFunction(()=>{const c=document.querySelector('.viewport canvas');if(!c?.dataset.cliffs)return false;const s=JSON.parse(c.dataset.cliffs);return s.visible===s.available&&s.visible>0&&s.pending===0;},{},{timeout:60000});
  const download=page.waitForEvent('download');await page.getByRole('button',{name:'Exporter ZIP',exact:true}).click();

@@ -9,7 +9,7 @@ const browser=await chromium.launch({headless:true,executablePath:process.env.CH
 let checks=0;const check=(ok,label)=>{assert.ok(ok,'FAILED: '+label);checks++;console.log('OK: '+label);};
 try{
   const context=await browser.newContext({viewport:{width:1440,height:900}}),page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>d.accept());
-  await page.goto(base+'studio/');await page.getByRole('button',{name:'Démonstration B1 (mine, eau, parcelles)'}).click();
+  await page.goto(base+'studio/?testFixtures=1');await page.getByRole('button',{name:'Démonstration B1 (mine, eau, parcelles)'}).click();
   const canvas=page.locator('.viewport canvas'),undoTitle=()=>page.locator('[data-action=undo]').getAttribute('title');
   await page.waitForFunction(()=>document.querySelector('.viewport canvas')?.dataset.idle==='true',{},{timeout:120000});
   // PHYS diagnostics in the Zones module.

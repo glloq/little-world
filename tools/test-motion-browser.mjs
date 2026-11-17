@@ -8,7 +8,7 @@ await mkdir(out,{recursive:true});
 const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH??(existsSync('/usr/bin/chromium')?'/usr/bin/chromium':undefined),args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
 const record={checks:[],errors:[],samples:{}};
 try{
- const studio=await browser.newPage({viewport:{width:1280,height:800}});await studio.goto(new URL('studio/',base).href);await studio.getByRole('button',{name:'Scène de référence Déplacements',exact:true}).click();await studio.waitForFunction(()=>{const c=document.querySelector('.viewport canvas');return c&&c.dataset.pending==='0'&&Number(c.dataset.models)===4;},{},{timeout:60000});record.checks.push('Scène V3 ouverte depuis le Studio avec ses quatre structures');await studio.close();
+ const studio=await browser.newPage({viewport:{width:1280,height:800}});await studio.goto(new URL('studio/?testFixtures=1',base).href);await studio.getByRole('button',{name:'Scène de référence Déplacements',exact:true}).click();await studio.waitForFunction(()=>{const c=document.querySelector('.viewport canvas');return c&&c.dataset.pending==='0'&&Number(c.dataset.models)===4;},{},{timeout:60000});record.checks.push('Scène V3 ouverte depuis le Studio avec ses quatre structures');await studio.close();
  const page=await browser.newPage({viewport:{width:1280,height:800}});
  page.on('pageerror',e=>record.errors.push(e.message));page.on('response',r=>{if(r.status()>=400)record.errors.push(r.status()+' '+r.url());});
  const url=new URL(base);url.search='?world=maps/motion-reference/manifest.json&spawn=90,-84&yaw=0&pitch=.32&metrics=1';
