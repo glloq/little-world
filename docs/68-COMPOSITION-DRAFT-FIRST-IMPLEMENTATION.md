@@ -1,6 +1,6 @@
 # Brouillon 2D avant création — premier lot
 
-Statut : implémenté et vérifié sur `feat/stepped-island-identity`. Les 22 commits de `main` ont été intégrés sans conflit au début de ce lot. Aucun déploiement ni remplacement de la carte officielle.
+Statut : implémenté et vérifié sur `feat/stepped-island-identity`. Les 22 commits de `main` ont été intégrés sans conflit au début de ce lot. La synchronisation finale inclut aussi les commits supplémentaires de `main` jusqu’à `4ea3503`. Aucun déploiement ni remplacement de la carte officielle.
 
 Ce lot livre la première étape du [plan d’îles composées](67-COMPOSED-ISLANDS-EDITABLE-DRAFT.md). Il prépare les futures silhouettes en croissant et en tortue ; ces deux nouveaux générateurs, les réservations de port et les passages automatiques ne sont pas encore implémentés.
 
@@ -40,7 +40,7 @@ La sauvegarde est locale au navigateur, avec les mêmes contraintes de quota que
 
 ## Vérifications
 
-- **584 tests automatisés réussis** : incluent les cinq nouveaux tests du brouillon, les six styles, les contours invalides, les altitudes avec retouches et l’interdiction de confirmer une eau montante.
+- **604 tests automatisés réussis** : incluent les cinq nouveaux tests du brouillon, les six styles, les contours invalides, les altitudes avec retouches et l’interdiction de confirmer une eau montante.
 - **15 contrôles navigateur du nouveau parcours** : déplacement de côte, hauteur, Undo/Redo, édition d’eau et protection de son état non appliqué, reprise après rechargement, protection contre la nouvelle graine, ZIP exact et nettoyage du stockage séparé. Commande : `npm run test:composition-draft`.
 - **18 contrôles de composition** : création, archive, recomposition et changement de style existants conservés.
 - **30 contrôles de carte globale** : exécutés sur un aperçu statique isolé avec les fixtures historiques préparées par `tools/stage-test-maps.mjs dist/maps`. La première exécution en développement s’arrêtait sur l’ancienne scène de référence non préparée ; l’exécution avec les fixtures réussit intégralement.
