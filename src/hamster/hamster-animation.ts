@@ -8,7 +8,7 @@
  * rebuilt from a compact presentation state, see presentation-state.ts). */
 import type { MotionMode } from '../player.ts';
 
-export const LOCOMOTION_STATES = ['IDLE', 'WALK', 'RUN', 'ROLL_ENTER', 'ROLL_LOOP', 'ROLL_EXIT', 'JUMP', 'FALL', 'LAND', 'GLIDE_OPEN', 'GLIDE_LOOP', 'GLIDE_CLOSE', 'SWIM', 'CLIMB', 'BOAT'] as const;
+export const LOCOMOTION_STATES = ['IDLE', 'WALK', 'RUN', 'ROLL_ENTER', 'ROLL_LOOP', 'ROLL_EXIT', 'ROLL_AIR', 'ROLL_LAND', 'JUMP', 'FALL', 'LAND', 'GLIDE_OPEN', 'GLIDE_LOOP', 'GLIDE_CLOSE', 'SWIM', 'CLIMB', 'BOAT'] as const;
 export type LocomotionState = typeof LOCOMOTION_STATES[number];
 export const ACTIONS = ['EQUIP', 'UNEQUIP', 'TOOL_SWING_VERTICAL', 'TOOL_SWING_HORIZONTAL', 'TOOL_DIG', 'WATERING', 'PICKUP', 'CARRY', 'FISH_CAST', 'FISH_WAIT', 'FISH_REEL', 'INTERACT', 'SIT'] as const;
 export type ActionName = typeof ACTIONS[number];
@@ -18,6 +18,14 @@ export interface HamsterInput {
   /** Horizontal speed (m/s), vertical speed (m/s), heading change rate (rad/s, left positive). */
   /** Optional actual travelled distance (model metres), supplied by the local renderer. */
   travel?:number;
+  /** Continuous local phases; optional for backward-compatible remote presentation. */
+  stridePhase?:number; rollPhase?:number;
+  /** Signed angle to movement intent, positive for an anticlockwise turn. */
+  turnIntent?:number;
+  jumpKind?:'idle'|'run'|'roll'; jumpSeq?:number;
+  landingSpeed?:number; landingSeq?:number;
+  /** Terrain presentation only; no forces, IK solver or allocations per frame. */
+  groundPitch?:number;groundRoll?:number;rollSlip?:number;
   /** Absolute presentation clock for reconstructed remote rigs only. */
   animationTime?:number;
   speed: number; verticalSpeed: number; turnRate: number;
@@ -31,16 +39,20 @@ export interface HamsterPose {
   roll: number; tuck: number;
   headRX: number; headRY: number; headRZ: number; earL: number; earR: number;
   shoulderLX: number; shoulderLZ: number; shoulderRX: number; shoulderRZ: number;
-  hipLX: number; hipRX: number; tailX: number;
+  hipLX: number; hipRX: number; footLX: number; footRX: number;
+  footLY: number; footRY: number; tailX: number;
   /** Glide membranes 0 (folded) … 1 (spread). */ membrane: number;
 }
-const CHANNELS = ['bodyY', 'bodyRX', 'bodyRY', 'bodyRZ', 'squash', 'tuck', 'headRX', 'headRY', 'headRZ', 'earL', 'earR', 'shoulderLX', 'shoulderLZ', 'shoulderRX', 'shoulderRZ', 'hipLX', 'hipRX', 'tailX', 'membrane'] as const;
+const CHANNELS = ['bodyY', 'bodyRX', 'bodyRY', 'bodyRZ', 'squash', 'tuck', 'headRX', 'headRY', 'headRZ', 'earL', 'earR', 'shoulderLX', 'shoulderLZ', 'shoulderRX', 'shoulderRZ', 'hipLX', 'hipRX', 'footLX', 'footRX', 'footLY', 'footRY', 'tailX', 'membrane'] as const;
 type Channel = typeof CHANNELS[number];
-const restPose = (): HamsterPose => ({ bodyY: 0, bodyRX: 0, bodyRY: 0, bodyRZ: 0, squash: 1, roll: 0, tuck: 0, headRX: 0, headRY: 0, headRZ: 0, earL: 0, earR: 0, shoulderLX: 0, shoulderLZ: 0, shoulderRX: 0, shoulderRZ: 0, hipLX: 0, hipRX: 0, tailX: 0, membrane: 0 });
+const restPose = (): HamsterPose => ({ bodyY: 0, bodyRX: 0, bodyRY: 0, bodyRZ: 0, squash: 1, roll: 0, tuck: 0, headRX: 0, headRY: 0, headRZ: 0, earL: 0, earR: 0, shoulderLX: 0, shoulderLZ: 0, shoulderRX: 0, shoulderRZ: 0, hipLX: 0, hipRX: 0, footLX: 0, footRX: 0, footLY: 0, footRY: 0, tailX: 0, membrane: 0 });
 /** Radius of the ball in roll (model metres) — the visual roll angle follows distance / radius. */
 export const ROLL_RADIUS = .62;
 /** Durations of the locomotion transitions (s). */
-export const TRANSITIONS = { ROLL_ENTER: .18, ROLL_EXIT: .2, GLIDE_OPEN: .25, GLIDE_CLOSE: .2, JUMP: .15, LAND: .2 } as const;
+export const TRANSITIONS = { ROLL_ENTER: .16, ROLL_EXIT: .18, ROLL_LAND: .12, GLIDE_OPEN: .25, GLIDE_CLOSE: .2, JUMP: .15, LAND: .2 } as const;
+const clamp = (v:number,min:number,max:number) => Math.max(min,Math.min(max,v));
+/** Angular gait progress per model metre travelled; footsteps do not run when blocked. */
+export const GAIT_RADIANS_PER_METER=2.2;
 
 type Key = Partial<Record<Channel, number>> & { t: number };
 export interface ActionDefinition {
@@ -91,6 +103,9 @@ export class HamsterAnimator {
   private previous: MotionMode = 'ground';
   private transitionTime = 0;
   private time = 0; private stride = 0; private lastSpeed = 0; private accel = 0;
+  private airborneRoll=false; private lastLandingSeq=-1;
+  /** Read-only continuous gait phase for future remote reconstruction. */
+  get stridePhase(){return this.stride;}
   private act: { name: ActionName; t: number; def: ActionDefinition; fired: number } | null = null;
   private actionWeight = 0;
   private readonly actionPose: Partial<Record<Channel, number>> = {};
@@ -109,23 +124,40 @@ export class HamsterAnimator {
   stop(name?: ActionName) { if (!name || this.act?.name === name) this.act = null; }
   private emit(name: AnimationEventName, action?: ActionName) { this.events.push(action ? { name, action } : { name }); }
   private locomotion(input: HamsterInput) {
-    const mode = input.mode;
-    if (mode !== this.previous) {
-      const was = this.previous;
-      this.state = mode === 'roll' ? 'ROLL_ENTER' : was === 'roll' ? 'ROLL_EXIT'
-        : mode === 'glide' ? 'GLIDE_OPEN' : was === 'glide' ? 'GLIDE_CLOSE'
-        : mode === 'ground' && was === 'air' ? 'LAND'
-        : mode === 'air' && input.verticalSpeed > 0 && (was === 'ground' || was === 'climb') ? 'JUMP' : this.state;
-      if (mode === 'roll') this.emit('roll-start'); if (was === 'roll') this.emit('roll-stop');
-      if (mode === 'glide') this.emit('glide-open'); if (was === 'glide') this.emit('glide-close');
-      if (this.state === 'LAND') this.emit('land'); if (this.state === 'JUMP') this.emit('jump');
-      this.previous = mode; this.transitionTime = 0;
-      if (mode === 'roll' || mode === 'glide' || mode === 'swim' || mode === 'dive') this.act = null;
+    const mode=input.mode, was=this.previous;
+    if(mode!==was){
+      if(mode==='air'&&was==='roll')this.airborneRoll=true;
+      if(mode==='roll')this.state=this.airborneRoll?'ROLL_LAND':'ROLL_ENTER';
+      else if(mode==='ground'&&(was==='air'||was==='glide'))this.state='LAND';
+      else if(mode==='ground'&&was==='roll')this.state='ROLL_EXIT';
+      else if(mode==='air'&&was==='roll')this.state='ROLL_AIR';
+      else if(mode==='glide')this.state='GLIDE_OPEN';
+      else if(mode==='air'&&was==='glide')this.state='GLIDE_CLOSE';
+      else if(mode==='air'&&input.verticalSpeed>0&&(was==='ground'||was==='climb'))this.state='JUMP';
+      if(mode==='roll')this.emit('roll-start');
+      if(was==='roll')this.emit('roll-stop');
+      if(mode==='glide')this.emit('glide-open');
+      if(was==='glide')this.emit('glide-close');
+      if(this.state==='LAND'||this.state==='ROLL_LAND')this.emit('land');
+      if(this.state==='JUMP'||(mode==='air'&&was==='roll'))this.emit('jump');
+      this.previous=mode;this.transitionTime=0;
+      if(mode==='ground'||mode==='roll'&&was!=='air')this.airborneRoll=false;
+      if(mode==='roll'||mode==='glide'||mode==='swim'||mode==='dive')this.act=null;
     }
-    const pending = (s: LocomotionState) => this.state === s && this.transitionTime < TRANSITIONS[s as keyof typeof TRANSITIONS];
-    if (pending('ROLL_ENTER') || pending('ROLL_EXIT') || pending('GLIDE_OPEN') || pending('GLIDE_CLOSE') || pending('JUMP') || pending('LAND')) return;
-    this.state = input.aboard ? 'BOAT' : mode === 'roll' ? 'ROLL_LOOP' : mode === 'glide' ? 'GLIDE_LOOP' : mode === 'swim' || mode === 'dive' ? 'SWIM' : mode === 'climb' ? 'CLIMB'
-      : mode === 'air' ? (input.verticalSpeed > 0 ? 'JUMP' : 'FALL') : input.speed < .3 ? 'IDLE' : input.speed > 6 ? 'RUN' : 'WALK';
+    // A 20 FPS presentation can skip a 30 Hz airborne frame. Contact counters still
+    // deliver the visual landing once; they never create gameplay events.
+    if(input.landingSeq!==undefined&&input.landingSeq!==this.lastLandingSeq){
+      if(this.lastLandingSeq>=0&&mode==='ground'&&this.state!=='LAND'){
+        this.state='LAND';this.transitionTime=0;this.emit('land');
+      }
+      this.lastLandingSeq=input.landingSeq;
+    }
+    const pending=(s:LocomotionState)=>this.state===s&&this.transitionTime<TRANSITIONS[s as keyof typeof TRANSITIONS];
+    if(pending('ROLL_ENTER')||pending('ROLL_EXIT')||pending('ROLL_LAND')||pending('GLIDE_OPEN')||pending('GLIDE_CLOSE')||pending('LAND')||(pending('JUMP')&&mode==='air'))return;
+    this.state=input.aboard?'BOAT':mode==='roll'?'ROLL_LOOP':mode==='glide'?'GLIDE_LOOP'
+      :mode==='swim'||mode==='dive'?'SWIM':mode==='climb'?'CLIMB'
+      :mode==='air'?(this.airborneRoll?'ROLL_AIR':input.verticalSpeed>0?'JUMP':'FALL')
+      :input.speed<.3?'IDLE':input.speed>6?'RUN':'WALK';
   }
   update(input: HamsterInput, delta: number): HamsterPose {
     const dt = Number.isFinite(delta) ? Math.max(0, Math.min(delta, .1)) : 0, speed = Number.isFinite(input.speed) ? Math.max(0, input.speed) : 0;
@@ -134,22 +166,60 @@ export class HamsterAnimator {
     this.locomotion(input);
     const p = this.target, t = this.time, s = this.state;
     for (const ch of CHANNELS) p[ch] = ch === 'squash' ? 1 : 0;
-    this.stride += dt * (s === 'SWIM' ? 5 : Math.max(3.5, speed * 2.4));
-    if(input.animationTime!==undefined)this.stride=input.animationTime*(s==='SWIM'?5:Math.max(3.5,speed*2.4));
+    if(input.stridePhase!==undefined&&Number.isFinite(input.stridePhase))this.stride=input.stridePhase;
+    else if(s==='WALK'||s==='RUN'||s==='IDLE')this.stride+=Math.max(0,input.travel??speed*dt/.72)*GAIT_RADIANS_PER_METER;
+    else this.stride+=dt*(s==='SWIM'?5:Math.max(3.5,speed*2.4));
     const st = Math.sin(this.stride);
+    const turn=clamp(input.turnIntent??input.turnRate*.12,-Math.PI,Math.PI);
     p.earL = Math.sin(t * 1.7) * .05; p.earR = Math.sin(t * 1.7 + .9) * .05; p.tailX = Math.sin(t * 2.2) * .1;
     const lean = Math.max(-.2, Math.min(.2, this.accel * .025)), bank = Math.max(-.3, Math.min(.3, -input.turnRate * speed * .03));
     switch (s) {
-      case 'IDLE': p.squash = 1 + Math.sin(t * 2.4) * .018; p.headRY = Math.sin(t * .5) * .12; p.headRX = Math.sin(t * .8) * .04; break;
-      case 'WALK': case 'RUN': { const run = s === 'RUN';
-        p.bodyY = Math.abs(st) * (run ? .07 : .035); p.bodyRX = (run ? .12 : .04) + lean; p.bodyRZ = bank + st * (run ? .05 : .03);
-        p.shoulderLX = st * (run ? .7 : .45); p.shoulderRX = -p.shoulderLX; p.hipLX = -st * (run ? .8 : .5); p.hipRX = -p.hipLX; p.earL += run ? -.25 : -.08; p.earR = p.earL; break; }
-      case 'ROLL_ENTER': case 'ROLL_LOOP': case 'ROLL_EXIT': {
-        const f = s === 'ROLL_ENTER' ? smooth(Math.min(1, this.transitionTime / TRANSITIONS.ROLL_ENTER)) : s === 'ROLL_EXIT' ? 1 - smooth(Math.min(1, this.transitionTime / TRANSITIONS.ROLL_EXIT)) : 1;
-        p.tuck = f; p.squash = 1 - .06 * f; p.headRX = .35 * f; p.earL = p.earR = -.5 * f; p.shoulderLX = p.shoulderRX = -.6 * f; p.hipLX = p.hipRX = .7 * f; p.bodyRZ = bank * .6; break; }
-      case 'JUMP': p.squash = this.transitionTime < .08 ? .9 : 1.06; p.shoulderLZ = -.5; p.shoulderRZ = .5; p.hipLX = p.hipRX = .5; p.earL = p.earR = -.2; break;
+      case 'IDLE': {
+        p.squash=1+Math.sin(t*2.4)*.018;p.headRY=Math.sin(t*.5)*.12+turn*.2;p.headRX=Math.sin(t*.8)*.04;
+        if(Math.abs(turn)>.12){p.hipLX=Math.sin(t*10)*.22*Math.sign(turn);p.hipRX=-p.hipLX;p.bodyRY=clamp(turn*.18,-.25,.25);}
+        break;
+      }
+      case 'WALK': case 'RUN': {
+        const run=s==='RUN',amplitude=run?.83:.52;
+        p.bodyY=Math.abs(st)*(run?.075:.038);
+        p.bodyRX=(run?.14:.045)+lean;
+        p.bodyRY=clamp(turn*.18,-.3,.3);
+        p.bodyRZ=bank+st*(run?.05:.03);
+        p.shoulderLX=st*(run?.66:.43);p.shoulderRX=-p.shoulderLX;
+        p.hipLX=-st*amplitude;p.hipRX=-p.hipLX;
+        // Ankle counter-rotation keeps the small feet closer to the ground plane.
+        p.footLX=-p.hipLX*.5;p.footRX=-p.hipRX*.5;
+        p.headRY=clamp(turn*.22,-.3,.3);p.headRZ=-bank*.25;
+        p.earL+=run?-.23:-.07;p.earR=p.earL;
+        break;
+      }
+      case 'ROLL_ENTER': case 'ROLL_LOOP': case 'ROLL_EXIT': case 'ROLL_AIR': case 'ROLL_LAND': {
+        const f=s==='ROLL_ENTER'?smooth(clamp(this.transitionTime/TRANSITIONS.ROLL_ENTER,0,1))
+          :s==='ROLL_EXIT'?1-smooth(clamp(this.transitionTime/TRANSITIONS.ROLL_EXIT,0,1)):1;
+        p.tuck=f;p.squash=1-.07*f;p.headRX=.35*f;p.earL=p.earR=-.5*f;
+        p.shoulderLX=p.shoulderRX=-.6*f;p.hipLX=p.hipRX=.7*f;
+        const skid=clamp(input.rollSlip??0,-1,1);
+        p.bodyRY=(clamp(turn*.13,-.3,.3)+skid*.13)*f;
+        p.bodyRZ=(bank*.9+clamp(turn*speed*.014,-.24,.24)+skid*.22)*f;
+        if(s==='ROLL_LAND')p.squash-=.12*Math.sin(Math.PI*clamp(this.transitionTime/TRANSITIONS.ROLL_LAND,0,1));
+        break;
+      }
+      case 'JUMP': {
+        const running=input.jumpKind==='run';
+        p.squash=this.transitionTime<.08?(running?.94:.86):1.06;
+        p.bodyRX=running?.16:-.08;p.shoulderLZ=running?-.75:-.5;p.shoulderRZ=-p.shoulderLZ;
+        p.hipLX=running?.85:.5;p.hipRX=running?.15:.5;p.earL=p.earR=-.2;
+        break;
+      }
       case 'FALL': p.shoulderLZ = -.9; p.shoulderRZ = .9; p.shoulderLX = p.shoulderRX = -.4; p.hipLX = p.hipRX = -.3; p.earL = p.earR = .25; p.squash = 1.04; break;
-      case 'LAND': p.squash = 1 - .14 * Math.sin(Math.PI * Math.min(1, this.transitionTime / TRANSITIONS.LAND)); p.hipLX = p.hipRX = .4; break;
+      case 'LAND': {
+        const impact=clamp(input.landingSpeed??4,0,20),amplitude=clamp(.08+impact*.012,.08,.25);
+        const u=clamp(this.transitionTime/TRANSITIONS.LAND,0,1);
+        p.squash=1-amplitude*Math.sin(Math.PI*u);
+        p.bodyRX=impact>8?.14:.04;p.hipLX=p.hipRX=.35+impact*.015;
+        p.shoulderLZ=-.25;p.shoulderRZ=.25;
+        break;
+      }
       case 'GLIDE_OPEN': case 'GLIDE_LOOP': case 'GLIDE_CLOSE': {
         const f = s === 'GLIDE_OPEN' ? smooth(Math.min(1, this.transitionTime / TRANSITIONS.GLIDE_OPEN)) : s === 'GLIDE_CLOSE' ? 1 - smooth(Math.min(1, this.transitionTime / TRANSITIONS.GLIDE_CLOSE)) : 1;
         p.membrane = f; p.shoulderLZ = -1.35 * f; p.shoulderRZ = 1.35 * f; p.shoulderLX = p.shoulderRX = -.35 * f; p.hipLX = p.hipRX = -.6 * f;
@@ -158,6 +228,14 @@ export class HamsterAnimator {
       case 'CLIMB': { const r = speed > .15 || Math.abs(input.verticalSpeed) > .15 ? st : Math.sin(t * 1.4) * .15;
         p.bodyRX = -.25; p.shoulderLX = -2.4 + r * .45; p.shoulderRX = -2.4 - r * .45; p.hipLX = -.4 - r * .4; p.hipRX = -.4 + r * .4; p.headRX = -.2; break; }
       case 'BOAT': p.bodyY = -.06; p.hipLX = p.hipRX = -1.2; p.squash = .96; p.shoulderLX = p.shoulderRX = -.5; break;
+    }
+    // Cheap, bounded stance correction on real heightfields only. No extra bone,
+    // collision query, IK or root motion: all channels remain presentation-only.
+    if(input.mode==='ground'&&(s==='IDLE'||s==='WALK'||s==='RUN'||s==='LAND')){
+      const pitch=clamp(input.groundPitch??0,-.4,.4),cross=clamp(input.groundRoll??0,-.4,.4);
+      p.footLX+=pitch*.55;p.footRX+=pitch*.55;
+      p.footLY=Math.max(0,-cross)*.2;p.footRY=Math.max(0,cross)*.2;
+      p.bodyRX+=pitch*.12;p.bodyRZ+=cross*.15;
     }
     // Action layer: blended in/out, timed events.
     if (this.act) {
@@ -172,8 +250,13 @@ export class HamsterAnimator {
     const blend = 1 - Math.exp(-dt * 16);
     for (const ch of CHANNELS) this.pose[ch] += (p[ch] - this.pose[ch]) * (ch === 'membrane' || ch === 'tuck' ? Math.min(1, blend * 1.4) : blend);
     // Rolling: forward spin integrates distance; afterwards it settles on the nearest full turn.
-    if (s.startsWith('ROLL') && s !== 'ROLL_EXIT') this.pose.roll = input.animationTime!==undefined?input.animationTime*speed/ROLL_RADIUS:this.pose.roll+(input.travel??speed*dt)/ROLL_RADIUS;
-    else { const turn = Math.PI * 2, rest = Math.round(this.pose.roll / turn) * turn; this.pose.roll += (rest - this.pose.roll) * Math.min(1, dt * 10); }
+    if(s.startsWith('ROLL')&&s!=='ROLL_EXIT'){
+      if(input.rollPhase!==undefined&&Number.isFinite(input.rollPhase))this.pose.roll=input.rollPhase;
+      else this.pose.roll+=Math.max(0,input.travel??speed*dt/.72)/ROLL_RADIUS;
+    }else{
+      const fullTurn=Math.PI*2,rest=Math.round(this.pose.roll/fullTurn)*fullTurn;
+      this.pose.roll+=(rest-this.pose.roll)*Math.min(1,dt*12);
+    }
     if (input.mode !== 'glide' && s !== 'GLIDE_CLOSE') this.pose.membrane = Math.min(this.pose.membrane, Math.max(0, this.pose.membrane - dt * 8));
     return this.pose;
   }

@@ -1,3 +1,5 @@
+> **Campagne Hamster Motion V2 en branche :** [58 — Animation réactive du hamster](58-HAMSTER-MOTION-V2.md) — marche/course bipède, virages, roulade aérienne, réceptions, phases réseau; ne remplace pas la roadmap de mouvements physiques [54](54-DYNAMIC-MOVEMENT.md).
+
 # 07 — Feuille de route — Little World Solo / GitHub Pages
 
 **Statut : suivi du prototype initial et plan du jeu final — 12 novembre 2026.**
