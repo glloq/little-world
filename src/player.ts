@@ -225,7 +225,7 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
         p.coyoteLeft=JUMP_ASSIST.coyote;
         p.coyoteFrom=Math.hypot(v.x,v.z)>MOTION.walk*.75?'run':'idle';
       }
-      if (keys.jumpPressed || assisted&&(p.jumpBufferLeft??0)>0) {
+      if ((keys.jumpPressed&&!jumpHandled) || (assisted&&(p.jumpBufferLeft??0)>0)) {
         p.jumpOrigin=Math.hypot(v.x,v.z)>MOTION.walk*.75?'run':'idle';
         p.jumpSeq=(p.jumpSeq??0)+1;
         p.mode = 'air';jumpHandled=true;
