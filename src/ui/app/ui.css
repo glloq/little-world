@@ -76,8 +76,6 @@ body:not(.developer) .dev-only{display:none!important}
 /* Developer-only climate controls are in hud.css.
    The legacy standalone mixer never floats on the game; HUD and Settings share it. */
 body>.audio-controls{display:none!important}
-/* Developer statistics never cover the quick bar; the audio engine status line is technical. */
-body.developer .hud-stats{bottom:68px}
 .ui-notifications .ui-notice{position:static;transform:none;white-space:normal;max-width:min(380px,calc(100vw - 32px));box-sizing:border-box;text-align:left}
 .ui-shop-coins{font-weight:600}.ui-shop-section{margin:10px 0}
 .ui-shop-row{display:grid;grid-template-columns:1fr auto auto auto auto;gap:8px;align-items:center;padding:6px 4px;border-bottom:1px solid var(--ui-line)}

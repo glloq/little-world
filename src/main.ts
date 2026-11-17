@@ -856,7 +856,7 @@ function draw(now: number) {
     });
   if (fpsTime >= 0.8) {
     fps.textContent = `FPS : ${Math.round(frameCount / fpsTime)}`;
-    renderMetrics.textContent = `Rendu : ${renderer.info.render.calls} appels · ${Math.round(renderer.info.render.triangles / 1000)}k triangles · ${world.stats.active} secteurs`;
+    renderMetrics.textContent = `${renderer.info.render.calls} draw · ${Math.round(renderer.info.render.triangles / 1000)}k tris`;
     fpsTime = 0;
     frameCount = 0;
   }

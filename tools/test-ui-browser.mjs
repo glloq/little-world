@@ -25,7 +25,17 @@ try{
   const boot=async()=>{await page.goto(base+'?beta=1&metrics');await page.getByRole('button',{name:'Explorer l’île'}).click();await page.waitForFunction(()=>window.littleWorldMetrics?.frameId>3);};
   await boot();
 
-  // 1. Minimal HUD: quick bar, no technical statistics outside developer mode.
+  // 1. Minimal HUD: no legacy debug card; the optional developer metrics occupy minimal space.
+  verify(await page.locator('.hud-stats').evaluate(n=>{
+    const css=getComputedStyle(n),r=n.getBoundingClientRect();
+    const menu=document.querySelector('.ui-hud-group')?.getBoundingClientRect();
+    const right=document.querySelector('.ui-hud-top .ui-hud-group:last-child')?.getBoundingClientRect();
+    const overlaps=a=>a&&r.left<a.right&&r.right>a.left&&r.top<a.bottom&&r.bottom>a.top;
+    return r.top>=0&&r.top<55&&r.bottom<55&&r.width<550&&
+      css.backgroundColor==='rgba(0, 0, 0, 0)'&&css.pointerEvents==='none'&&
+      css.boxShadow==='none'&&!overlaps(menu)&&!overlaps(right);
+  }),'Developer debug metrics are unobtrusive, transparent and do not cover HUD actions');
+  verify(await page.locator('.hud-stats > :visible').count()===3,'Only FPS, player position and draw budget are visible');
   verify(await page.getByRole('navigation',{name:'Accès rapide'}).isVisible(),'Quick bar visible (Sac, Journal)');
   verify(await page.evaluate(()=>{
     const quick=document.querySelector('.ui-quickbar')?.getBoundingClientRect(),map=document.querySelector('.ui-minimap')?.getBoundingClientRect();
@@ -122,6 +132,10 @@ try{
   await page.waitForFunction(()=>document.querySelector('.game-slot-row[data-slot="slot-3"]')?.dataset.state==='empty');verify(await page.evaluate(k=>localStorage.getItem(k)===null,SLOT(3)),'Deleted slot removed from storage');await ui.resume();
   // 14. Small resolution: panels and HUD stay inside the viewport.
   await page.setViewportSize({width:720,height:540});await page.keyboard.press('KeyI');await ui.panel('inventory').waitFor();
+  verify(await page.locator('.hud-stats').evaluate(n=>{
+    const box=n.getBoundingClientRect();
+    return box.top>=48&&box.bottom<78&&getComputedStyle(n.querySelector('#coords')).display==='none'&&getComputedStyle(n.querySelector('#render-metrics')).display==='none';
+  }),'Narrow screens show only compact FPS beneath the main header');
   const fits=await page.evaluate(()=>[...document.querySelectorAll('.ui-panel:not([hidden]),.ui-quickbar,#action')].filter(n=>!n.classList.contains('hide')).every(n=>{const r=n.getBoundingClientRect();return r.left>=0&&r.top>=0&&r.right<=innerWidth&&r.bottom<=innerHeight;}));
   verify(fits,'Panels, quick bar and prompt fit a 720 × 540 viewport');await shot('petit-ecran');await page.keyboard.press('Escape');await page.setViewportSize({width:1280,height:800});
   // 15. Back to the start screen from the menu, then play again.

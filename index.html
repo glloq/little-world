@@ -9,14 +9,14 @@
 <body class="game-page">
   <div id="app">
     <div id="viewport"></div>
-    <!-- Developer panel (technical statistics): hidden unless developer mode (Paramètres, ?metrics or ?dev). -->
-    <aside class="hud-stats panel dev-only" aria-label="Statistiques techniques">
-      <span class="status-dot"></span><span id="status">Initialisation…</span>
-      <div class="mini-separator"></div>
-      <div id="coords">Position : —</div>
-      <div id="oxygen">Oxygène : —</div>
-      <div id="fps">FPS : —</div>
-      <div id="render-metrics">Rendu : —</div>
+    <!-- Minimal non-interactive debug readout. Hidden in normal play; no opaque panel. -->
+    <aside class="hud-stats dev-only" aria-label="Statistiques techniques">
+      <span id="fps">FPS : —</span>
+      <span id="coords">X — · Z — · H —</span>
+      <span id="render-metrics">Rendu : —</span>
+      <!-- Keep legacy developer selectors for diagnostics without displaying duplicate HUD data. -->
+      <span id="status" hidden>Initialisation…</span>
+      <span id="oxygen" hidden>Oxygène : —</span>
     </aside>
     <!-- Render quality selector, shown in Paramètres › Affichage. -->
     <div id="ui-templates" hidden>

@@ -58,3 +58,7 @@ Branche de travail : `feat/player-hud-redesign`. Cette itération ne fusionne ri
 - Contractualiser des POI nommés (« ville », « port », etc.) dans le modèle auteur et le compilateur plutôt que de déduire les catégories de noms d'assets.
 - Associer explicitement les repères à chaque emplacement de sauvegarde (migration sauvegarde + import/export).
 - Ajouter une boussole facultative et une aide d'orientation quand la minimap est masquée.
+
+## Affichage debug discret (PC)
+
+Le mode développeur (`Paramètres → Mode développeur`, `?metrics` ou `?dev`) affiche uniquement **FPS, position X/Z/H et draw calls/triangles** en texte translucide en haut, au centre, sans panneau opaque, ombre portée de carte, ni capture de clics. Sur écran intermédiaire, seuls FPS et coordonnées restent visibles ; sur téléphone seul FPS est affiché. Le statut et l'oxygène hérités restent présents en éléments invisibles pour compatibilité avec les diagnostics, et l'oxygène utile reste dans la jauge du HUD. La version normale reste dépourvue de statistiques.
