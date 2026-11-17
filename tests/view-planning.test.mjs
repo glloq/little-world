@@ -35,6 +35,15 @@ test('movement prediction preloads tiles along the trajectory even when looking 
   assert.ok(!still.some(c=>c.reason==='ahead'));
   assert.ok(moving.filter(c=>c.reason==='ahead').every(c=>c.distance>0));
 });
+test('120 km/h extends prediction while keeping the same bounded world radius',()=>{
+ const sideways={forwardX:1,forwardZ:0,cameraX:-13,cameraZ:0};
+ const slow=planView(config,focus({...sideways,velocityZ:-9}));
+ const fast=planView(config,focus({...sideways,velocityZ:-34}));
+ const tail=p=>Math.min(...p.filter(c=>c.reason==='ahead').map(c=>center(c).z));
+ assert.ok(tail(fast)<tail(slow)-45,'high-speed glide preloads more distance ahead');
+ assert.ok(fast.length<200,'prediction must not expand to the whole world');
+ assert.equal(viewChanged(focus({...sideways,velocityZ:-9}),focus({...sideways,velocityZ:-34}),64),true);
+});
 test('altitude, projected size and the shared quality level coarsen LOD',()=>{
   const count=(plan,lod)=>plan.filter(c=>c.lod===lod).length;
   const ground=planView(config,focus()),high=planView(config,focus({cameraY:300,groundY:2}));
