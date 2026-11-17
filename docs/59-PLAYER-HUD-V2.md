@@ -6,7 +6,10 @@ Branche de travail : `feat/player-hud-redesign`. Cette itération ne fusionne ri
 - Aucune information technique permanente dans le jeu normal : le monde 3D reste visible.
 - HUD haut gauche : menu (Échap), bourse (🪙 + montant provenant de `inventory[COIN]`).
 - HUD haut droit : météo (☀️/☁️/🌧️) et heure fictive depuis `climate.state(clock.time).dayPhase`, haut-parleur.
-- Bas gauche : icônes SVG du Sac (I) et du Journal (J).
+- PC, bas à droite au-dessus de la minimap : icônes SVG du Sac (I) et du Journal (J). Sur téléphone, la disposition tactile reste adaptée au joystick à gauche.
+- Suppression de l'ancien bandeau temporaire des raccourcis, toujours documentés dans Paramètres → Contrôles.
+- Bouton Son actif : accès au mixeur existant (muet, volume général, réglages avancés). Il tente de reprendre l'audio au clic ; en l'absence de catalogue sonore, il présente un état explicite plutôt qu'un bouton désactivé.
+- Le bouton redondant « Activer / reprendre le son » et le mixeur flottant hors HUD ont été supprimés. Un seul mixeur est partagé avec les Paramètres et réutilise l'AudioEngine.
 - Bas droit : minimap cliquable (M) ouvrant la carte principale.
 - Les jauges (oxygène, endurance, vitesse, activité) n'apparaissent que selon le contexte.
 - SVG locaux (sans bibliothèque, fonts ou textures externes), panneaux sobres et animations très limitées.

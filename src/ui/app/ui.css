@@ -33,12 +33,11 @@
 @keyframes ui-in{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
 .reduce-motion .ui-notice{animation:none}
 @media (prefers-reduced-motion:reduce){.ui-notice{animation:none}}
-/* Quick bar, bottom right. */
-.ui-quickbar{position:fixed;right:16px;bottom:16px;display:flex;gap:6px}
+/* Quick bar positioning is owned by hud.css (single source of truth). */
+.ui-quickbar{position:fixed;display:flex;gap:6px}
 .ui-quick{display:flex;align-items:center;gap:6px;border:1px solid var(--ui-line);background:rgba(255,253,244,.94);border-radius:10px;padding:6px 10px;min-height:38px;cursor:pointer;color:var(--ui-ink);font:inherit}
 .ui-quick kbd,.ui-keys kbd{font-size:11px;padding:1px 5px;border-radius:5px;background:var(--ui-chip);border:1px solid var(--ui-line)}
 .ui-tool{position:fixed;left:16px;bottom:16px;background:rgba(255,253,244,.94);border:1px solid var(--ui-line);border-radius:10px;padding:6px 10px}
-.ui-hint{position:fixed;left:50%;bottom:76px;transform:translateX(-50%);background:rgba(255,253,244,.94);border-radius:10px;padding:6px 12px;margin:0;font-size:13px;color:var(--ui-muted)}
 .ui-oxygen{position:fixed;left:50%;bottom:76px;transform:translateX(-50%);display:grid;gap:3px;width:200px;font-size:12px;color:#f3faf6;text-shadow:0 1px 2px #0006}
 /* Meters (growth, moisture, oxygen): text + bar, never colour alone. */
 .ui-meter{display:grid;gap:3px;font-size:12px}.ui-meter-track{display:block;height:7px;border-radius:5px;background:#dfe7da;overflow:hidden}.ui-meter-fill{display:block;height:100%;background:var(--ui-accent)}
@@ -74,17 +73,12 @@ body:not(.developer) .dev-only{display:none!important}
 .npc-choice-locked{opacity:.6;cursor:not-allowed}
 @media (max-width:760px){.ui-inventory{grid-template-columns:1fr}.ui-inventory-detail{border-left:0;padding-left:0;border-top:1px solid var(--ui-line)}.ui-quick span{display:none}.ui-activity-card{top:auto;bottom:70px}}
 
-/* Existing environment / audio panels: time and weather stay as a discreet chip; the world speed
-   selector and the raw audio panel are test tools (developer mode). */
-.environment-controls{top:16px!important;right:16px!important}
-body:not(.developer) .environment-controls label{display:none}
-body:not(.developer)>.audio-controls{display:none}
-.ui-notifications{top:64px}
+/* Developer-only climate controls are in hud.css.
+   The legacy standalone mixer never floats on the game; HUD and Settings share it. */
+body>.audio-controls{display:none!important}
 /* Developer statistics never cover the quick bar; the audio engine status line is technical. */
 body.developer .hud-stats{bottom:68px}
-body:not(.developer) .ui-settings-section .audio-controls>p{display:none}
 .ui-notifications .ui-notice{position:static;transform:none;white-space:normal;max-width:min(380px,calc(100vw - 32px));box-sizing:border-box;text-align:left}
-.ui-purse{position:fixed;left:16px;top:16px;padding:6px 12px;border-radius:999px;background:var(--ui-bg);border:1px solid var(--ui-line);font-weight:600;font-size:13px;box-shadow:var(--ui-shadow)}
 .ui-shop-coins{font-weight:600}.ui-shop-section{margin:10px 0}
 .ui-shop-row{display:grid;grid-template-columns:1fr auto auto auto auto;gap:8px;align-items:center;padding:6px 4px;border-bottom:1px solid var(--ui-line)}
 .ui-shop-price{font-variant-numeric:tabular-nums;font-weight:600}
