@@ -82,3 +82,13 @@ body.developer .environment-controls{top:76px!important;right:16px!important}
  .ui-quickbar{bottom:168px}
 }
 @media(prefers-reduced-motion:reduce){.ui-hud-button,.ui-minimap,.ui-quick{transition:none!important}}
+
+
+/* Developer diagnostics are an unobtrusive top strip, not a minimap overlay. */
+.hud-debug{z-index:9}
+body>.environment-controls{display:none!important}
+.ui-settings-section .environment-controls{display:block!important;position:static!important;min-width:0!important;max-width:100%;margin:8px 0;padding:9px 12px;box-shadow:none;background:#f4f7ef;border:1px solid var(--ui-line)}
+.ui-settings-section .environment-controls>span{display:inline-block;margin:5px 10px 4px 0}
+.ui-settings-section .environment-controls label{display:grid;gap:5px;margin-top:7px}
+.ui-settings-section .environment-controls select{max-width:100%;font:inherit}
+.ui-settings-section .environment-controls small{display:block;font-size:11px;color:var(--ui-muted);margin-top:8px}
