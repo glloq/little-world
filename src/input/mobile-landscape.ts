@@ -29,7 +29,9 @@ export function createMobileLandscape(onBlockingChange:(blocked:boolean)=>void){
       if(!document.fullscreenElement&&document.documentElement.requestFullscreen){
         await document.documentElement.requestFullscreen();enteredFullscreen=true;
       }
-      if(screen.orientation?.lock){await screen.orientation.lock('landscape');update();return true;}
+      // Some TypeScript DOM releases do not declare ScreenOrientation.lock yet.
+      const orientation=screen.orientation as ScreenOrientation&{lock?:(mode:'landscape')=>Promise<void>};
+      if(orientation?.lock){await orientation.lock('landscape');update();return true;}
     }catch{/* Fullscreen and orientation lock are permission/browser-dependent. */}
     update();return false;
   }
