@@ -5,6 +5,8 @@ Ce document **n'atteste aucune implémentation du générateur**, ni aucune qual
 
 **SET-0 — audit statique effectué (17/11/2026) :** [69 — rapport de lecture du code `main`](69-SETTLEMENTS-SET0-AUDIT.md) et [70 — contrats techniques retenus](70-SETTLEMENTS-TECHNICAL-CONTRACTS.md). **Pas de test exécutable ni benchmark** dans ce lot ; les gates CT-0 à CT-9 restent ouverts. SET-1 et au-delà restent non implémentés.
 
+**Chemin critique d'implémentation rapide :** [71 — Fast-track F0 à F8](71-SETTLEMENTS-FAST-TRACK.md), avec les parcours Studio et réglages définis dans [72 — UX de génération](72-SETTLEMENTS-STUDIO-UX.md). Cette roadmap générale conserve tous les gates techniques ; la Fast-track priorise les livraisons complètes et les premières PR.
+
 ## 1. Dépendances et règles de développement
 
 Principes :
