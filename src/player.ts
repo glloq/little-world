@@ -1,4 +1,4 @@
-import {MOTION,ROLL,groundVelocity,airVelocity,glideVelocity,SURFACE_MOTION,angleDelta,type GroundMaterial} from './physics/motion.ts';
+import {MOTION,ROLL,GLIDE_DEPLOY,groundVelocity,airVelocity,glideVelocity,glideSteeringYaw,glideDeploymentStep,SURFACE_MOTION,angleDelta,type GroundMaterial} from './physics/motion.ts';
 export {ROLL,GLIDE,MOTION,SURFACE_MOTION} from './physics/motion.ts';
 import {GAS,gasBoostStep} from './physics/gas-propulsion.ts';
 import {DEFAULT_BODY,type WorldCollisionQuery,type MovementSpace,type BodyDimensions} from './physics/collision-world.ts';
@@ -31,9 +31,9 @@ export interface Controls {
   dive: boolean;
   cameraYaw: number;
   /** Camera pitch relative to the default view (rad, positive = looking down): underwater, moving
-   * forward follows it (looking down dives down). Gliding uses the same camera intention. */
+   * forward follows it (looking down dives down). Flight controls are independent of the camera. */
   cameraPitch?: number;
-  /** Flight gas boost via right mouse, Shift or mobile accelerate; active in glide only. */boostHeld?:boolean;
+  /** Flight gas boost via Shift or mobile accelerate; active in glide only. */boostHeld?:boolean;
   /** One mobile swim stroke (edge-triggered), leaving PC Space dive unchanged. */swimStrokePressed?:boolean;
 }
 export interface Player {
@@ -81,6 +81,8 @@ export interface Player {
   groundPitch?:number;groundRoll?:number;rollSlip?:number;
   /** Replayable flight intention/state; independent from the render camera. */
   glideHeading?:number;glidePitch?:number;glideTurnRate?:number;stalled?:boolean;
+  /** Replayable first-open bonus; never reset by folding the wings in mid-air. */
+  glideDeploymentUsed?:boolean;glideDeploymentRemaining?:number;
   /** Fuel and visual event sequence owned by simulation. */
   gasReserve?:number;gasBoosting?:boolean;gasPulseSeq?:number;gasPulseClock?:number;gasThrust?:number;
 }
@@ -104,6 +106,7 @@ export function spawnPlayer(): Player {
     mode: 'ground',
     oxygen: MAX_OXYGEN,
     glideReady: false,
+    glideDeploymentUsed:false,glideDeploymentRemaining:0,
     gasReserve:GAS.initial,gasBoosting:false,gasPulseSeq:0,gasPulseClock:0,gasThrust:0,
   };
 }
@@ -120,6 +123,7 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
     p.landingSpeed=impact;
     p.landingSlide=clamp(((horizontal-3)*.12+(impact-5)*.025)*(1.25-.17*surface.friction),0,1);
     p.landingSeq=(p.landingSeq??0)+1;
+    p.glideDeploymentUsed=false;p.glideDeploymentRemaining=0;
   };
   const len = Math.hypot(keys.forward, keys.right);
   const forward = len > 0 ? keys.forward / Math.max(1, len) : 0;
@@ -245,6 +249,7 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
     const grounded = pos.y <= ground + 0.06 && v.y <= 0;
     if (grounded) {
       p.mode = 'ground';
+      p.glideDeploymentUsed=false;p.glideDeploymentRemaining=0;
       pos.y = ground;
       v.y = 0;
       p.glideReady = false;
@@ -268,11 +273,19 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
     if (p.mode === 'air' || p.mode === 'glide') {
       if (keys.jumpPressed && !jumpHandled && p.glideReady && oldMode !== 'ground' && oldMode !== 'climb' && oldMode !== 'roll') {
         p.mode = p.mode === 'glide' ? 'air' : 'glide';
-        p.glideHeading=undefined;p.glidePitch=undefined;
+        p.glideHeading=Math.hypot(v.x,v.z)>.1?Math.atan2(v.x,v.z):(p.heading??p.intentYaw??keys.cameraYaw);
+        p.glidePitch=undefined;
+        if(p.mode==='glide'&&!p.glideDeploymentUsed){
+          p.glideDeploymentUsed=true;p.glideDeploymentRemaining=GLIDE_DEPLOY.duration;
+        }else p.glideDeploymentRemaining=0;
       }
       if (p.mode === 'glide') {
         const gasAcceleration=gasBoostStep(p,keys.boostHeld===true,true,dt);
-        glideVelocity(p,keys.cameraYaw-right*.35,keys.cameraPitch??0,Math.max(0,-forward),dt,undefined,gasAcceleration);
+        // Z/S adjust dive/climb; Q/D steer relative to the actual flight heading.
+        // Camera orbit never creates hidden turns or energy losses.
+        const flightPitch=forward>=0?forward*.85:forward*.65;
+        glideVelocity(p,glideSteeringYaw(p,right,dt),flightPitch,0,dt,undefined,gasAcceleration);
+        glideDeploymentStep(p,dt);
       } else {
         airVelocity(v,dx,dz,keys.run?7.2:5.2,dt);
       }
@@ -370,7 +383,8 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
   }else{p.footSupportLeft=undefined;p.footSupportRight=undefined;}
   // Explicit connections between spaces (mine entrance, stairs, shafts): never implicit.
   const transition=collision?.transitionAt(pos,p.space);
-  if(p.mode!=='glide'){gasBoostStep(p,false,false,dt);p.stalled=false;p.glideHeading=undefined;p.glidePitch=undefined;p.glideTurnRate=0;}
+  if(p.mode!=='glide'){gasBoostStep(p,false,false,dt);p.stalled=false;p.glideHeading=undefined;p.glidePitch=undefined;p.glideTurnRate=0;p.glideDeploymentRemaining=0;}
+  if(p.mode==='ground'||p.mode==='swim'||p.mode==='dive'||p.mode==='climb')p.glideDeploymentUsed=false;
   if(Math.hypot(v.x,v.z)>.01)p.heading=Math.atan2(v.x,v.z);
   if(transition){p.space=transition.to??undefined;pos.set(transition.arrival.x,transition.arrival.y,transition.arrival.z);v.set(0,0,0);p.mode='ground';p.glideReady=false;p.transitioned=transition.id;p.coyoteLeft=0;p.jumpBufferLeft=0;p.footSupportLeft=undefined;p.footSupportRight=undefined;}
 }
