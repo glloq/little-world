@@ -454,7 +454,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden)clearGamepl
 // Context menus belong to the browser outside the game (and in editable fields),
 // not to the canvas or HTML HUD overlays. Capture before the target's own handlers.
 document.addEventListener('contextmenu',e=>{
-  const onSurface=e.target instanceof Element&&!!e.target.closest('#viewport,#ui-root');
+  const onSurface=e.target instanceof Element&&!!e.target.closest('#app,#ui-root,.touch-controls,.npc-dialogue');
   if(shouldSuppressGameplayContextMenu(started,onSurface,isEditableGameTarget(e.target)))e.preventDefault();
 },{capture:true});
 renderer.domElement.addEventListener('pointerdown', (e) => {
