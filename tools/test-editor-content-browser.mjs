@@ -48,7 +48,7 @@ try{
   await page.getByRole('button',{name:'Sélection',exact:true}).click();await page.getByLabel('Rechercher une entité').fill('Lanterne');await page.locator('#tools .search-results button').first().click();await page.waitForFunction(()=>document.querySelector('#inspector h3')?.textContent==='Lanterne');
   await page.getByRole('button',{name:'Sauvegarder',exact:true}).click();await page.waitForFunction(()=>document.querySelector('#save-status').textContent==='Sauvegardé localement');await page.screenshot({path:out+'/editor-village.png'});
   const before=await camera();const popup=context.waitForEvent('page');await page.getByRole('button',{name:'Jouer ici'}).click();const game=await popup;game.on('pageerror',e=>errors.push(e.message));
-  await game.waitForSelector('#start:not([disabled])',{timeout:60000});await game.locator('#start').click();
+  await game.locator('#start-overlay').waitFor({state:'hidden',timeout:60000});await game.locator('#start-overlay').waitFor({state:'hidden'});
   await game.waitForFunction(()=>/Ramasser/.test(document.querySelector('#action')?.textContent??''),{},{timeout:20000});check(true,'In the game, the new collectable offers its interaction');
   await game.keyboard.press('KeyE');await game.waitForFunction(()=>!/Ramasser/.test(document.querySelector('#action')?.textContent??'')||document.querySelector('#action')?.classList.contains('hide'),{},{timeout:10000});check(true,'Pressing E collects it (prompt consumed)');
   await game.close();const after=await camera();check(Math.hypot(after.target.x-before.target.x,after.target.z-before.target.z)<1&&(await title())==='Lanterne','Back in the Studio: same camera and selection');
