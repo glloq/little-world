@@ -43,8 +43,8 @@ try{
   await page.getByRole('button',{name:'Sauvegarder',exact:true}).click();await page.waitForFunction(()=>document.querySelector('#save-status').textContent==='Sauvegardé localement');
   // Play here: same network in the compiled test copy.
   const popup=context.waitForEvent('page');await page.getByRole('button',{name:'Jouer ici'}).click();const game=await popup;game.on('pageerror',e=>errors.push(e.message));game.on('console',m=>{if(m.type()==='error'&&/Shader|WebGLProgram/.test(m.text()))errors.push(m.text().slice(0,300));});
-  await game.waitForSelector('#start:not([disabled])',{timeout:60000});const url=new URL(game.url());url.searchParams.set('metrics','1');await game.goto(url.toString());
-  await game.waitForSelector('#start:not([disabled])',{timeout:60000});await game.locator('#start').click();
+  await game.locator('#start-overlay').waitFor({state:'hidden',timeout:60000});const url=new URL(game.url());url.searchParams.set('metrics','1');await game.goto(url.toString());
+  await game.locator('#start-overlay').waitFor({state:'hidden',timeout:60000});await game.locator('#start-overlay').waitFor({state:'hidden'});
   await game.waitForFunction(()=>window.littleWorldMetrics?.paths?.paths>=0,{},{timeout:60000});
   const runtime=await game.evaluate(()=>window.littleWorldMetrics.paths);
   check(runtime.paths===3&&runtime.signature===signature,`« Jouer ici » renders the same path network (signature ${runtime.signature} = ${signature})`);
