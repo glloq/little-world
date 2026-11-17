@@ -31,7 +31,8 @@ export function createMinimap(deps:MapDeps,raster:MapRaster,open:()=>void){
     ctx.fillStyle='#fffdf4';ctx.strokeStyle='#315e49';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,-9);ctx.lineTo(7,7);ctx.lineTo(0,3);ctx.lineTo(-7,7);ctx.closePath();ctx.fill();ctx.stroke();ctx.restore();
   }
   function build(){
-    frame=0;if(removed||raster.done)return;
+    frame=0;if(removed)return;
+    if(raster.done){background();update();return;}
     raster.step(4);
     if(raster.done){background();update();}else{update();frame=requestAnimationFrame(build);}
   }
