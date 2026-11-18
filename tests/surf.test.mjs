@@ -2,6 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createSurfWaveField,validateSurfZone} from '../src/surf/wave-field.ts';
 import {stepSurf,SURF_MOTION} from '../src/surf/surf-controller.ts';
+import {createSurfFeatureState,stepSurfFeatures,validateSurfFeature} from '../src/surf/surf-features.ts';
+import {makeDemoSurfRace} from '../src/surf/surf-race-demo.ts';
+import {advanceRace,beginRace} from '../src/gameplay/races.ts';
 const zone={id:'surf:test',minX:-200,maxX:200,minZ:-200,maxZ:200,
  dirX:0,dirZ:1,seaLevel:0,amplitude:1,wavelength:25,speed:5,seed:13,shoreFadeDepth:3,edgeFade:8};
 const field=createSurfWaveField(zone,()=>-12);
@@ -63,4 +66,26 @@ test('surf can launch a controlled jump and land back on the wave',()=>{
  for(let tick=2;tick<250&&p.surfAirborne;tick++)event=stepSurf(p,{...input,paddle:false,jumpPressed:false},mock,tick,1/30);
  assert.equal(event.kind,'land');assert.equal(p.mode,'surf');assert.equal(p.surfAirborne,false);
  assert.equal(p.surfLandingSeq,1);
+});
+
+test('boost and jump ramp trigger only on the 30 Hz gameplay tick and respect cooldown',()=>{
+ const f={id:'surf-feature:boost',kind:'boost',x:0,z:0,dirX:0,dirZ:1,radius:3,power:5,cooldownTicks:150};
+ const ramp={...f,id:'surf-feature:ramp',kind:'ramp',power:1.5};
+ assert.equal(validateSurfFeature(f),f);
+ const state=createSurfFeatureState(),p={position:{x:0,y:.1,z:0},velocity:{x:0,y:0,z:5},mode:'surf',surfStage:'ride'};
+ assert.equal(stepSurfFeatures(p,[f],state,1)[0].kind,'boost');
+ assert.ok(p.velocity.z>9);
+ assert.equal(stepSurfFeatures(p,[f],state,2).length,0);
+ assert.equal(stepSurfFeatures(p,[ramp],state,3)[0].kind,'ramp');
+ assert.equal(p.mode,'air');assert.equal(p.surfAirborne,true);assert.ok(p.velocity.y>0);
+});
+test('surf race uses existing checkpoint timer, checks airborne origin',()=>{
+ const demo={zone,start:{x:0,z:-120},heading:0};
+ const race=makeDemoSurfRace(demo,'surf-fixture');
+ assert.equal(race.kind,'surf');assert.equal(race.gates.length,4);
+ const session=beginRace(race,0);
+ const gate=race.gates[0],before={x:gate.center.x,y:gate.center.y,z:gate.center.z-1},after={...before,z:gate.center.z+1};
+ assert.equal(advanceRace(session,{tick:1,previous:before,position:after,mode:'surf',pulseSeq:0}).kind,'started');
+ const other=beginRace(race,0);
+ assert.equal(advanceRace(other,{tick:1,previous:before,position:after,mode:'air',pulseSeq:0}).kind,'failed');
 });
