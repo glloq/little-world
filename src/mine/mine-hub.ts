@@ -53,6 +53,18 @@ export function mineHubCell(hub:MineHubLayout,ix:number,iz:number):boolean {
 /** Gradual extra height in the reception, returning smoothly to the authored gallery
  * ceiling at the borders. Reused by both mesher and physical ceiling query.
  * Keep total level clearance <= 4.7 m: even 6 m authored floors stay unchanged. */
+/** Elevator shaft is a continuous, visible vertical void. Each intermediate floor
+ * has an opening above AND below. The first floor is open below only; the last
+ * floor is open above only. The movable platform is drawn in the hub prefab. */
+export function mineShaftOpening(hub:MineHubLayout,levels:number,face:'floor'|'ceiling',
+  ix:number,iz:number):boolean {
+  if(face==='floor'&&hub.levelIndex>=levels-1)return false;
+  if(face==='ceiling'&&hub.levelIndex===0)return false;
+  const dx=ix+.5-hub.shaft.x,dz=iz+.5-hub.shaft.z;
+  const s=Math.sin(hub.heading),c=Math.cos(hub.heading),
+    side=dx*c-dz*s,forward=dx*s+dz*c;
+  return Math.abs(side)<=1.65&&Math.abs(forward)<=1.6;
+}
 export function mineHubRoofRise(hub:MineHubLayout,x:number,z:number):number {
   const dx=x-hub.shaft.x,dz=z-hub.shaft.z,
     s=Math.sin(hub.heading),c=Math.cos(hub.heading),
