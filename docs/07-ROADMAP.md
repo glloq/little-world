@@ -4,6 +4,8 @@
 
 
 # 07 — Feuille de route — Little World Solo / GitHub Pages
+> **Nouvelle campagne moteur/performance 4–8 Go (novembre 2026) :** [80 — matériel ancien et qualité Auto](80-OLD-PC-HARDWARE-AUTO-QUALITY.md), [81 — audit ciblé CPU/GPU/streaming](81-RENDER-PERFORMANCE-CODE-AUDIT.md), [82 — OPT-0…OPT-9, roadmap et gates](82-PERFORMANCE-GRAPHICS-IMPLEMENTATION-ROADMAP.md). Ces documents complètent le budget [22 — PERF](22-RESOURCE-BUDGET-MANAGER.md) et la roadmap artistique [PR #29](https://github.com/glloq/little-world/pull/29) ; **aucun travail runtime n'est déclaré livré par l'ajout documentaire**.
+
 
 > **Chantier en branche expérimentale — Boost aérien à impulsions :** [étude de gameplay, réserve, progression, skins et audio](FLIGHT-BOOST-GAMEPLAY-STUDY.md) et [suivi de réalisation FLB-0 à FLB-5](FLIGHT-BOOST-IMPLEMENTATION-ROADMAP.md). Propulsion, niveaux, 25 sons procéduraux, six skins et trois défis solo **codés** sur `feat/flight-boost-gameplay-roadmap` ; plafond expérimental de 216 km/h, non qualifié sur matériel cible. Ne pas confondre cette branche avec `main`.
 

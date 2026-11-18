@@ -85,7 +85,8 @@ export function sell(shop:ShopDefinition,itemId:string,quantity:number,purse:Pur
   if(!shop.buys.includes(itemId))return {ok:false,reason:'Ce comptoir n’achète pas cet article'};
   const price=priceOf(itemId).sell;if(!price||!Number.isInteger(quantity)||quantity<1)return {ok:false,reason:'Quantité ou prix invalide'};
   if(purse.count(itemId)<quantity)return {ok:false,reason:'Vous n’en avez pas assez'};
-  const gain=Math.min(price*quantity,purse.max(COIN)-purse.count(COIN));if(gain<=0)return {ok:false,reason:'Bourse pleine'};
+  const gain=price*quantity;if(!Number.isSafeInteger(gain)||gain<=0)return {ok:false,reason:'Montant invalide'};
+  if(gain>purse.max(COIN)-purse.count(COIN))return {ok:false,reason:'Bourse pleine : vente refusée sans retirer les objets'};
   const changes=[{itemId,quantity:-quantity},{itemId:COIN,quantity:gain}];if(!purse.apply(changes))return {ok:false,reason:'Transaction refusée'};
   return {ok:true,message:`Vendu : ${quantity} × ${name(itemId)} (+${gain} pièces)`,changes};
 }
