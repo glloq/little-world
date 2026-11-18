@@ -131,12 +131,20 @@ export class MineState {
     if(Math.hypot(req.from.x-(req.ix+.5),req.from.z-(req.iz+.5))>DIG_REACH||req.from.y<l.floorY-.5||req.from.y>l.floorY+l.height)return fail('Trop loin');
     return {ok:true,material,reward:info.item?{itemId:info.item,quantity:1}:null};
   }
-  dig(req:DigRequest,grant:(reward:{itemId:string;quantity:number})=>boolean):DigResult{
+  dig(req:DigRequest,grant:(reward:{itemId:string;quantity:number})=>boolean,bonus=0):DigResult{
     const cached=this.requests.get(req.requestId);if(cached)return cached;
     const fail=(reason:string):DigResult=>({ok:false,reason});
     const verdict=this.check(req);if(!verdict.ok)return fail(verdict.reason);
-    const level=this.grid.levelIndex(req.levelId),material=verdict.material,reward=verdict.reward;
-    if(reward&&!grant(reward))return fail('Inventaire plein');
+    const level=this.grid.levelIndex(req.levelId),material=verdict.material;
+    let reward=verdict.reward;
+    if(reward){
+      // One optional bonus from a precisely timed hit, capped to one per cell.
+      // If capacity permits only the base ore, never block an otherwise valid dig.
+      const extra=bonus>0?1:0;
+      const enriched={...reward,quantity:reward.quantity+extra};
+      if(extra&&grant(enriched))reward=enriched;
+      else if(!grant(reward))return fail('Inventaire plein');
+    }
     // Commit: cell + revision (the reward has been accepted in the same step).
     const cx=Math.floor(req.ix/MINE_CHUNK),cz=Math.floor(req.iz/MINE_CHUNK),key=chunkKey(cx,cz);
     let c=this.chunks[level].get(key);if(!c)this.chunks[level].set(key,c={bits:new Uint32Array(MINE_CHUNK),revision:0});
@@ -148,16 +156,31 @@ export class MineState {
   }
   /** Damage already dealt to a wall cell (0 when intact). */
   damageAt(level:number,ix:number,iz:number){return this.damage.get(`${this.grid.levels[level].id}:${ix}:${iz}`)??0;}
-  /** One strike of `power` on a wall cell: accumulates damage (cells have 20 … 500 hp), may break
-   * off a fragment of the resource, and digs the cell (full reward) when the damage reaches its
-   * hit points. Same validation as `dig`; the fragment is granted before anything is written. */
+  /** One mining strike. A deterministic per-cell bonus is evaluated ONLY when
+   * cumulative damage first crosses 50% of the rock HP. Weak tools no longer
+   * get dozens of resource rolls while steel pickaxes get only a few.
+   * The damage threshold survives save/reload without an additional save field. */
   strike(req:DigRequest,power:number,grant:(reward:{itemId:string;quantity:number})=>boolean):StrikeResult{
     const verdict=this.check(req);if(!verdict.ok)return {ok:false,reason:verdict.reason};
-    const level=this.grid.levelIndex(req.levelId),info=MINE_MATERIALS[verdict.material],key=`${req.levelId}:${req.ix}:${req.iz}`,dealt=(this.damage.get(key)??0)+Math.max(1,power);
-    if(dealt>=info.hp){this.damage.delete(key);return this.dig(req,grant);}
+    const level=this.grid.levelIndex(req.levelId),info=MINE_MATERIALS[verdict.material],
+      key=`${req.levelId}:${req.ix}:${req.iz}`,before=this.damage.get(key)??0,
+      dealt=before+Math.max(1,Math.floor(Number.isFinite(power)?power:1)),
+      threshold=Math.ceil(info.hp*.5),
+      bonus=!!info.item&&before<threshold&&dealt>=threshold&&
+        strikeNoise(level,req.ix,req.iz,0)<info.fragment;
+    if(dealt>=info.hp){
+      const done=this.dig(req,grant,bonus?1:0);
+      // Keep damage on an inventory refusal so the player can retry.
+      if(done.ok)this.damage.delete(key);
+      return done;
+    }
     let fragment:{itemId:string;quantity:number}|null=null;
-    if(info.item&&strikeNoise(level,req.ix,req.iz,dealt)<info.fragment){fragment={itemId:info.item,quantity:1};if(!grant(fragment))fragment=null;}
-    this.damage.set(key,dealt);if(this.damage.size>256)this.damage.delete(this.damage.keys().next().value!);
+    if(bonus&&info.item){
+      const extra={itemId:info.item,quantity:1};
+      if(grant(extra))fragment=extra;
+    }
+    this.damage.set(key,dealt);
+    if(this.damage.size>256)this.damage.delete(this.damage.keys().next().value!);
     return {ok:true,partial:true,material:verdict.material,progress:dealt/info.hp,fragment};
   }
   /** Differences only: excavated bitsets per level/chunk (base64) + revisions + recent request ids. */
@@ -178,7 +201,7 @@ export class MineState {
     return warnings;
   }
 }
-/** Deterministic 0..1 noise of a strike (fragments do not depend on the frame rate or order). */
+/** Stable per-cell ore quality. Never depend on tool power, strike count or frame rate. */
 function strikeNoise(level:number,ix:number,iz:number,dealt:number){let h=Math.imul(ix,0x27d4eb2d)^Math.imul(iz,0x165667b1)^Math.imul(level+1,0x9e3779b1)^Math.imul(dealt,0x85ebca6b);h=Math.imul(h^(h>>>15),0x2c1b3c6d);h^=h>>>13;return (h>>>0)/4294967296;}
 function encodeBits(bits:Uint32Array){const bytes=new Uint8Array(bits.buffer.slice(0));let s='';for(const b of bytes)s+=String.fromCharCode(b);return btoa(s);}
 function decodeBits(text:string){const s=atob(text);if(s.length!==MINE_CHUNK*4)throw Error('Chunk de mine corrompu');const bytes=new Uint8Array(s.length);for(let i=0;i<s.length;i++)bytes[i]=s.charCodeAt(i);return new Uint32Array(bytes.buffer);}
