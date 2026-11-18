@@ -426,7 +426,7 @@ world.update(0, player.position);
       coins:()=>gameplay!.purse.count('coin'),
       max:id=>gameplay!.purse.max(id),
       owned:id=>gameplay!.purse.count(id),
-      canUse:()=>!!cargoService&&merchantNear(),
+      canUse:()=>!!cargoService&&(portN1Layout?merchantNear():canBoardFerry()),
       buy:(lotId,quantity,revision)=>{
         if(!cargoService)return {ok:false,reason:'Comptoir import indisponible : stockage du fret suspendu'};
         const result=cargoService.buy(lotId,quantity,revision);
