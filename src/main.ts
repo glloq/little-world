@@ -11,7 +11,7 @@ import {classifyPoint} from './geography/classify.ts';
 import {createMaterialSampler} from './physics/surface-material.ts';
 import {MINE_MATERIALS} from './mine/mine-data.ts';
 import type {GameUi} from './ui/app/game-ui.ts';
-import {resolveTarget,objectTarget,npcTarget,boatTarget,ferryTarget,mineWallTarget,farmPlotTarget,shopTarget,gatherTarget,fishingTarget,type TargetDescriptor} from './ui/interactions/targets.ts';
+import {resolveTarget,objectTarget,npcTarget,boatTarget,ferryTarget,maritimeTradeTarget,mineWallTarget,farmPlotTarget,shopTarget,gatherTarget,fishingTarget,type TargetDescriptor} from './ui/interactions/targets.ts';
 import {SHOPS,type ShopKind} from './gameplay/economy.ts';
 import {geoContext} from './geography/engine.ts';
 import {MATERIAL_BY_MINE_KEY} from './audio/context.ts';
@@ -33,6 +33,8 @@ import {loadPortableCheckpoint,savePortableCheckpoint,withPortableItems} from '.
 import {ferryStatus,ferryEventsBetween,worldGameMinute} from './archipelago/ferry-schedule.ts';
 import {createCargoService} from './archipelago/cargo-logistics.ts';
 import {createFerryView} from './archipelago/ferry-view.ts';
+import {planPortN1,portActorPresence} from './archipelago/port-n1-plan.ts';
+import {createPortN1View} from './archipelago/port-n1-view.ts';
 import {withFerryBells} from './archipelago/ferry-audio.ts';
 import {showFerryCinematic,holdFerryArrival} from './ui/ferry/ferry-cinematic.ts';
 import {worldAsset} from './world-production/registry.ts';
@@ -297,8 +299,18 @@ let lastCargoMinute=worldGameMinute(worldClock.time,climate.definition.dayLength
 // One ferry per published island for the solo trial. A valid water landing is mandatory.
 const ferryAnchor=activeIsland?definition.placements.filter(p=>/(dock|harbor|port)/i.test(p.assetId)).sort(
   (a,b)=>Math.hypot(a.x-player.position.x,a.z-player.position.z)-Math.hypot(b.x-player.position.x,b.z-player.position.z))[0]:undefined;
+// Port N1 is an optional deterministic addition to published generated islands. No
+// random object near the player when neither a safe shore nor an approach exists.
+const portN1Layout=activeIsland&&!isLegacyTerrain()?planPortN1({
+  origin:{x:player.position.x,z:player.position.z},
+  anchors:definition.placements.filter(p=>/(dock|harbor|port|pier)/i.test(p.assetId))
+    .map(p=>({x:p.x,z:p.z})),
+  width:getTerrainConfig().width,length:getTerrainConfig().length,
+  seaLevel:getTerrainConfig().seaLevel,height:terrainHeight,depth:waterDepth,
+}):null;
 const ferryDock=(()=>{
   if(!activeIsland)return null;
+  if(portN1Layout)return {...portN1Layout.boat};
   const x=ferryAnchor?.x??player.position.x,z=ferryAnchor?.z??player.position.z;
   for(const radius of [6,10,15,22,32,45,60,80,110,145])for(let i=0;i<20;i++){
     const a=i*Math.PI/10,px=x+Math.cos(a)*radius,pz=z+Math.sin(a)*radius;
@@ -306,11 +318,18 @@ const ferryDock=(()=>{
   }
   return null;
 })();
-// Boarding remains on the walkable shore/quay, not six metres offshore under the rowboat.
-const ferryBoardingPoint=activeIsland?{x:ferryAnchor?.x??player.position.x,z:ferryAnchor?.z??player.position.z}:null;
-const ferryView=ferryDock?createFerryView(scene,ferryDock):null;
+// The boarding, oar-hand and trade locations never share the same interaction socket.
+const ferryBoardingPoint=activeIsland?(portN1Layout?.boarding??
+  {x:ferryAnchor?.x??player.position.x,z:ferryAnchor?.z??player.position.z}):null;
+const portN1View=portN1Layout?createPortN1View(scene,portN1Layout,import.meta.env.BASE_URL):null;
+const ferryView=portN1View??(ferryDock?createFerryView(scene,ferryDock):null);
 const canBoardFerry=()=>!!ferryBoardingPoint&&!!ferryDock&&!player.space&&!aboard&&
-  Math.hypot(player.position.x-ferryBoardingPoint.x,player.position.z-ferryBoardingPoint.z)<4.5;
+  Math.hypot(player.position.x-ferryBoardingPoint.x,player.position.z-ferryBoardingPoint.z)<(portN1Layout?2.8:4.5)&&
+  (!portN1Layout||Math.abs(player.position.y-portN1Layout.boarding.y)<2.4);
+const merchantPresent=()=>!!portN1Layout&&portActorPresence(1,ferryNow.present).merchant;
+const merchantNear=()=>!!portN1Layout&&!player.space&&!aboard&&merchantPresent()&&
+  Math.hypot(player.position.x-portN1Layout.trade.x,player.position.z-portN1Layout.trade.z)<3.3&&
+  Math.abs(player.position.y-portN1Layout.trade.y)<2.4;
 function islandURL(path:string):string{
   const url=new URL(location.href);
   url.searchParams.set('world',path);
@@ -405,7 +424,7 @@ world.update(0, player.position);
       coins:()=>gameplay!.purse.count('coin'),
       max:id=>gameplay!.purse.max(id),
       owned:id=>gameplay!.purse.count(id),
-      canUse:()=>!!cargoService&&canBoardFerry(),
+      canUse:()=>!!cargoService&&merchantNear(),
       buy:(lotId,quantity,revision)=>{
         if(!cargoService)return {ok:false,reason:'Comptoir import indisponible : stockage du fret suspendu'};
         const result=cargoService.buy(lotId,quantity,revision);
@@ -831,6 +850,8 @@ function currentTarget():TargetDescriptor|null{
   return resolveTarget([
     ()=>aboard?boatTarget(true):null,
     ()=>{const o=gameplay?.describe(player.position);if(!o)return null;const t=objectTarget(o);if(!o.usable){unusable=t;return null;}return t;},
+    // An authored port N1 has its own merchant socket; ferry boarding remains separate.
+    ()=>merchantNear()?maritimeTradeTarget():null,
     // A counter the player faces wins over a shopkeeper standing next to it.
     ()=>{const s=nearShop(true);return s?shopTarget({entityId:s.id,name:SHOPS[s.kind].name}):null;},
     // Ferry boards from a small, identifiable quay point. The nearby captain remains
@@ -838,6 +859,7 @@ function currentTarget():TargetDescriptor|null{
     ()=>{if(!ferryDock||aboard||player.space)return null;
       const shore=ferryBoardingPoint?Math.hypot(player.position.x-ferryBoardingPoint.x,player.position.z-ferryBoardingPoint.z):Infinity;
       const d=Math.hypot(player.position.x-ferryDock.x,player.position.z-ferryDock.z);
+      if(portN1Layout)return ferryNow.present&&canBoardFerry()?ferryTarget(true):null;
       return (shore<2.5||(d<3.5&&Math.abs(player.position.y-ferryDock.y)<4))?ferryTarget(ferryNow.present):null;},
     ()=>{const n=npcs.talker(player.position);return n?npcTarget(n):null;},
     ()=>fleet.nearest(player.position.x,player.position.y,player.position.z)?boatTarget(false):null,
@@ -968,6 +990,8 @@ function tick(dt: number) {
       // The business system said no: tell why (never act on a disabled target).
       showInfo(target.primaryAction.disabledReason ?? 'Impossible pour le moment', 'warning');
       audio?.emit('ui.error', { source: 'ui' });
+    } else if (target?.targetType === 'maritime-trade') {
+      gameUi?.openMaritimeTrade();
     } else if (target?.targetType === 'ferry') {
       gameUi?.openFerry();
     } else if (target?.targetType === 'boat' && aboard) {
@@ -1067,7 +1091,7 @@ function draw(now: number) {
   npcs.update(delta, elapsed, player.position,camera); // The river drives the mill: no manual on/off control.
   // Boats follow their state (the one in use moves; the player's own boat bobs at its mooring).
   playerBoat&&fleet.sync(playerBoat,elapsed);if(fleet.current&&fleet.current!==playerBoat)fleet.sync(fleet.current,elapsed);
-  ferryView?.update(elapsed);
+  if(portN1View)portN1View.update(elapsed,player.position);else ferryView?.update(elapsed);
   character.group.position.copy(renderPosition);
   character.setAboard(aboard);
   if(gameplay){const f=gameplay.fishing.state;character.setFishing(f.phase!=='idle'&&f.castAt?{x:f.castAt.x,y:waterSurface(f.castAt.x,f.castAt.z)??getTerrainConfig().seaLevel,z:f.castAt.z,biting:f.phase==='bite'}:null);}
