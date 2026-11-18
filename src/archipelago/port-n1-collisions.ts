@@ -20,7 +20,7 @@ export function attachPortN1Collisions(world:WorldCollisionQuery,port:PortN1Layo
   };
   // Each real dock tile has a continuous 2 x 2 m deck at seaLevel + 0.8 m.
   // The top is a walkable collision surface, even above submerged terrain.
-  for(let i=0;i<3;i++)add('deck-'+i,0,1+2*i,
+  for(let i=0;i<port.dockCells;i++)add('deck-'+i,0,1+2*i,
     port.dockBaseY+.72,1.94,.28,1.94);
   // Four post proxies + the merchant's counter only, rear open.
   const y=port.stand.y;
