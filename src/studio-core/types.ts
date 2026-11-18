@@ -73,6 +73,8 @@ export interface ProjectLibraries {
   paths:Record<StableId,PathDefinition>;
   /** Activity zone boundaries (farm plots, mines). Optional: older projects have none. */
   zones?:Record<StableId,ActivityZoneV3>;
+  /** Fixed author-owned courses, optional for older projects. */
+  races?:Record<StableId,import('../gameplay/races.ts').RaceDefinition>;
   /** World Production landscape presets (re-editable instances + generation record). Optional. */
   landscapes?:Record<StableId,import('../world-production/landscape-schema.ts').LandscapeInstanceV1>;
   /** Editable A/B geographic region recipes, stored as author-only V3 data. */

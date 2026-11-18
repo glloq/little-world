@@ -20,11 +20,13 @@ export interface RaceDefinition {
   classification:'practice'|'standard'|'free';
   gates:readonly RaceGate[];
   maxTicks:number;
+  /** Fixed authored races start on crossing gate 0; generated practice races start on launch. */
+  startOnFirstGate?:boolean;
 }
 export interface RaceSession {
   definition:RaceDefinition;
   status:'running'|'finished'|'failed';
-  startTick:number;lastTick:number;nextGate:number;
+  startTick:number;lastTick:number;nextGate:number;started:boolean;
   finishSeconds:number|null;usedPulses:number;lastPulseSeq:number;
 }
 export interface RaceStep {
@@ -32,6 +34,7 @@ export interface RaceStep {
   pulseSeq:number;transitioned?:boolean;
 }
 export type RaceEvent =
+ | {kind:'started';gateIndex:number}
  | {kind:'checkpoint';gateIndex:number}
  | {kind:'finish';gateIndex:number;seconds:number}
  | {kind:'failed';reason:string};
@@ -45,6 +48,7 @@ export function validateRace(def:RaceDefinition,bounds?:RaceBounds):RaceDefiniti
      !['flight','roll','mixed'].includes(def.kind)||
      !['practice','standard','free'].includes(def.classification)||
      !Number.isSafeInteger(def.maxTicks)||def.maxTicks<30||def.maxTicks>30*900||
+     (def.startOnFirstGate!==undefined&&typeof def.startOnFirstGate!=='boolean')||
      !Array.isArray(def.gates)||def.gates.length<2||def.gates.length>24)throw Error('Circuit invalide');
   const ids=new Set<string>();
   for(let i=0;i<def.gates.length;i++){
@@ -85,11 +89,11 @@ export function beginRace(def:RaceDefinition,startTick:number,pulseSeq=0):RaceSe
   validateRace(def);
   if(!Number.isSafeInteger(startTick)||startTick<0||!Number.isSafeInteger(pulseSeq)||pulseSeq<0)
     throw Error('Départ de course invalide');
-  return {definition:def,status:'running',startTick,lastTick:startTick,nextGate:0,
+  return {definition:def,status:'running',startTick,lastTick:startTick,nextGate:0,started:!def.startOnFirstGate,
     finishSeconds:null,usedPulses:0,lastPulseSeq:pulseSeq};
 }
 export function raceElapsedSeconds(s:RaceSession):number{
-  return s.finishSeconds??Math.max(0,(s.lastTick-s.startTick)/RACE_TICK_HZ);
+  return s.finishSeconds??(s.started?Math.max(0,(s.lastTick-s.startTick)/RACE_TICK_HZ):0);
 }
 /** Advance exactly once per fixed 30 Hz tick. Returns authoritative gate/finish events. */
 export function advanceRace(s:RaceSession,step:RaceStep):RaceEvent|null{
@@ -102,23 +106,25 @@ export function advanceRace(s:RaceSession,step:RaceStep):RaceEvent|null{
   if(!Number.isSafeInteger(step.pulseSeq)||step.pulseSeq<s.lastPulseSeq)
     return fail('Compteur de propulsion invalide');
   s.usedPulses+=step.pulseSeq-s.lastPulseSeq;s.lastPulseSeq=step.pulseSeq;
-  if(step.tick-s.startTick>s.definition.maxTicks)return fail('Temps maximal dépassé');
+  if(s.started&&step.tick-s.startTick>s.definition.maxTicks)return fail('Temps maximal dépassé');
+  if(!s.started&&step.tick-s.startTick>30*30)return fail('Départ non franchi après 30 secondes');
   const accepted=s.definition.kind==='flight'?['glide']:
     s.definition.kind==='roll'?['ground','roll','air']:['ground','roll','air','glide'];
   if(!accepted.includes(step.mode))return fail('Mode de déplacement interdit');
-  let lastFraction=-1,passed=-1,finishFraction=0;
+  let lastFraction=-1,passed=-1,finishFraction=0,startedThisTick=false;
   while(s.nextGate<s.definition.gates.length){
     const gate=s.definition.gates[s.nextGate];
     if(gate.allowedModes&&!gate.allowedModes.includes(step.mode as RaceMotionMode))break;
     const fraction=gateCrossing(gate,step.previous,step.position);
     if(fraction===null||fraction+1e-8<lastFraction)break;
     lastFraction=fraction;finishFraction=fraction;passed=s.nextGate++;
+    if(!s.started&&passed===0){s.started=true;s.startTick=step.tick-1+fraction;startedThisTick=true;}
   }
   if(passed<0)return null;
   if(s.nextGate===s.definition.gates.length){
     s.status='finished';
-    s.finishSeconds=(step.tick-s.startTick-1+finishFraction)/RACE_TICK_HZ;
+    s.finishSeconds=(step.tick-1+finishFraction-s.startTick)/RACE_TICK_HZ;
     return {kind:'finish',gateIndex:passed,seconds:s.finishSeconds};
   }
-  return {kind:'checkpoint',gateIndex:passed};
+  return startedThisTick?{kind:'started',gateIndex:passed}:{kind:'checkpoint',gateIndex:passed};
 }
