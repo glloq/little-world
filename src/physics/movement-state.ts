@@ -5,7 +5,7 @@ import {simulatePlayer,MOTION_MODES,type Player,type Controls} from '../player.t
 import {GAS} from './gas-propulsion.ts';
 import type {WorldCollisionQuery} from './collision-world.ts';
 export interface MovementCommand {tick:number;input:Controls}
-const fields=['oxygen','glideReady','stamina','climbCooldown','climbDir','rollSpeed','rollHeading','rollIdle','rollByHold','diving','diveSink','glideHeading','glidePitch','glideTurnRate','stalled','glideDeploymentUsed','glideDeploymentRemaining','airBoostUsed','groundBoostCharge','space','body','runCharge','intentYaw','jumpOrigin','jumpSeq','landingSpeed','landingSeq','coyoteLeft','coyoteFrom','jumpBufferLeft','groundPitch','groundRoll','rollSlip','landingKind','landingSlide','footSupportLeft','footSupportRight','gasReserve','gasCapacityLevel','gasPowerLevel','gasControlLevel','gasBoosting','gasPulseSeq','gasPulseClock','gasThrust','gasPulseRemaining','gasCooldown','gasBoostHeld','gasRepeatArmed'] as const;
+const fields=['oxygen','glideReady','stamina','climbCooldown','climbDir','rollSpeed','rollHeading','rollIdle','rollByHold','diving','diveSink','glideHeading','glidePitch','glideTurnRate','stalled','glideDeploymentUsed','glideDeploymentRemaining','airBoostUsed','groundBoostCharge','space','body','runCharge','intentYaw','jumpOrigin','jumpSeq','landingSpeed','landingSeq','coyoteLeft','coyoteFrom','jumpBufferLeft','groundPitch','groundRoll','rollSlip','landingKind','landingSlide','footSupportLeft','footSupportRight','gasReserve','gasCapacityLevel','gasPowerLevel','gasControlLevel','gasBoosting','gasPulseSeq','gasPulseClock','gasThrust','gasPulseRemaining','gasCooldown','gasBoostHeld','gasRepeatArmed','snowHeading','snowEdge','snowEquipment'] as const;
 export interface MovementSnapshot {version:1;tick:number;position:{x:number;y:number;z:number};velocity:{x:number;y:number;z:number};mode:Player['mode'];yaw:number;state:Partial<Pick<Player,typeof fields[number]>>}
 const point=(v:unknown):v is {x:number;y:number;z:number}=>!!v&&typeof v==='object'&&['x','y','z'].every(k=>typeof (v as Record<string,unknown>)[k]==='number'&&Number.isFinite((v as Record<string,number>)[k])&&Math.abs((v as Record<string,number>)[k])<=100000);
 export function captureMovement(p:Player,tick:number):MovementSnapshot{
@@ -21,6 +21,7 @@ export function restoreMovement(p:Player,s:MovementSnapshot){
   const obj=v&&typeof v==='object'?v as Record<string,unknown>:null;
   if(!(fields as readonly string[]).includes(k))throw Error('Champ de mouvement inconnu');
   if(['glideReady','rollByHold','diving','diveSink','stalled','gasBoosting','gasBoostHeld','gasRepeatArmed','glideDeploymentUsed','airBoostUsed'].includes(k)){if(typeof v!=='boolean')throw Error('Drapeau invalide');}
+  else if(k==='snowEquipment'){if(v!=='snowboard'&&v!=='skis')throw Error('Équipement neige invalide');}
   else if(k==='climbDir'){if(!obj||typeof obj.x!=='number'||typeof obj.z!=='number'||!Number.isFinite(obj.x)||!Number.isFinite(obj.z))throw Error('Direction invalide');}
   else if(k==='jumpOrigin'||k==='coyoteFrom'){if(!['idle','run','roll'].includes(String(v)))throw Error('Origine de saut invalide');}
   else if(k==='landingKind'){if(!['idle','run','roll','glide'].includes(String(v)))throw Error('Réception invalide');}

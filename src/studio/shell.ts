@@ -27,12 +27,12 @@ const MODULES:[string,string,string,string,string][]=[
   ['scene','Sélection','➚','Naviguer','V'],['map','Carte globale','▦','Naviguer','M'],
   ['objects','Objets','▣','Construire','B'],['settlements','Villages & villes','⌂','Construire',''],['natural','Structures naturelles','◠','Construire',''],['characters','Personnages','☺','Construire',''],['lights','Lumières','✦','Construire','L'],
   ['terrain','Relief','⛰','Monde','T'],['regions','Régions','◉','Monde',''],['biomes','Biotopes','✿','Monde',''],['paths','Chemins et rivières','〰','Monde',''],['water','Eau','≈','Monde',''],['zones','Zones','⬠','Monde',''],['landscapes','Paysages','❦','Monde',''],
-  ['dialogues','Dialogues','✉','Logique',''],['interactions','Interactions','⚙','Logique',''],['environment','Environnement','☀','Logique',''],['audio','Audio','♪','Logique',''],['motion-lab','Animations du hamster','◉','Logique',''],
+  ['races','Courses','⚑','Logique',''],['dialogues','Dialogues','✉','Logique',''],['interactions','Interactions','⚙','Logique',''],['environment','Environnement','☀','Logique',''],['audio','Audio','♪','Logique',''],['motion-lab','Animations du hamster','◉','Logique',''],
   ['composition','Recomposer le monde','◒','Projet',''],
   ['guide','Assistant de création','☷','Projet',''],
   ['tests','Validation / compilation','✓','Projet',''],
 ];
-const VIEWPORT_MODULES=new Set(['scene','objects','natural','regions','characters','lights','terrain','biomes','polyline','paths','zones','landscapes']);
+const VIEWPORT_MODULES=new Set(['scene','objects','natural','regions','characters','lights','terrain','biomes','polyline','paths','zones','races','landscapes']);
 const ALIASES:Record<string,string>={local:'scene',select:'scene'};
 const panelHost=()=>$('panel-host');
 function refreshHeader(){
@@ -89,7 +89,7 @@ async function open(id:string){
 }
 async function ensureViewport(){
   if(viewport)return viewport;const s=session!;const {StudioViewport}=await import('./viewport/editor-viewport.ts');if(session!==s)throw Error('Projet fermé');
-  viewport=await StudioViewport.create($('workspace'),s,{message:status,refreshInspector:scheduleInspector,toolChanged:id=>{if(id==='select'&&activeModule==='polyline'){const back=returnModule;returnModule='scene';void module(back);}else if(id==='select'&&activeModule!=='scene'&&activeModule!=='paths'&&activeModule!=='zones'&&activeModule!=='lights'&&activeModule!=='landscapes')void module('scene');},
+  viewport=await StudioViewport.create($('workspace'),s,{message:status,refreshInspector:scheduleInspector,toolChanged:id=>{if(id==='select'&&activeModule==='polyline'){const back=returnModule;returnModule='scene';void module(back);}else if(id==='select'&&activeModule!=='scene'&&activeModule!=='paths'&&activeModule!=='zones'&&activeModule!=='races'&&activeModule!=='lights'&&activeModule!=='landscapes')void module('scene');},
     status:info=>{$('viewport-status').textContent=[info.cursor?`X ${info.cursor.x.toFixed(1)} · Z ${info.cursor.z.toFixed(1)}`:'—',{orbit:'Orbite',free:'Vol libre',top:'Dessus'}[info.mode]??info.mode,info.selected?`${info.selected} sélectionné(s)`:'Aucune sélection',`${info.sectors} secteur(s)`].join('  ·  ');}});
   return viewport;
 }
@@ -203,6 +203,16 @@ async function toolPanel(id:string,v:StudioViewport){
     const ctx={session:s,status,physics:{enabled:()=>v.physicsOverlay,toggle:(on:boolean)=>v.setPhysicsOverlay(on)},focus:(x:number,z:number)=>v.goTo(x,z,30),edit:(target:import('./viewport/polyline-tool.ts').PolylineTarget)=>{void run(async()=>{const {polylineTarget}=await import('./viewport/polyline-tool.ts');polylineTarget.current=target;returnModule=id;await module('polyline');})();}};
     const render=()=>{tools.replaceChildren();(id==='paths'?mountPathsPanel:mountZonesPanel)(tools,ctx);};render();
     const stop=s.commands.subscribe(()=>{if(activeModule===id)render();}),previous=disposePanel;disposePanel=()=>{stop();previous();};
+  }else if(id==='races'){
+    v.setTool('select');
+    const {mountRacesPanel}=await import('./races-panel.ts');
+    const ctx={session:s,viewport:v,status,edit:(target:import('./viewport/polyline-tool.ts').PolylineTarget)=>{
+      void run(async()=>{const {polylineTarget}=await import('./viewport/polyline-tool.ts');
+        polylineTarget.current=target;returnModule='races';await module('polyline');})();
+    }};
+    const render=()=>{tools.replaceChildren();mountRacesPanel(tools,ctx);};render();
+    const stop=s.commands.subscribe(()=>{if(activeModule==='races')render();}),previous=disposePanel;
+    disposePanel=()=>{stop();v.setRacePreview(null);previous();};
   }else if(id==='regions'){
     v.setTool('select');
     const {mountRegionsPanel}=await import('./regions-panel.ts');

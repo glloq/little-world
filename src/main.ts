@@ -11,9 +11,16 @@ import {classifyPoint} from './geography/classify.ts';
 import {createMaterialSampler} from './physics/surface-material.ts';
 import {MINE_MATERIALS} from './mine/mine-data.ts';
 import type {GameUi} from './ui/app/game-ui.ts';
+import {createFishingHud} from './ui/fishing/fishing-hud.ts';
+import {createFishingEffects} from './render/fishing-effects.ts';
+import {withFishingSounds} from './gameplay/fishing-audio.ts';
 import {resolveTarget,objectTarget,npcTarget,boatTarget,ferryTarget,maritimeTradeTarget,mineWallTarget,farmPlotTarget,shopTarget,mineLiftTarget,gatherTarget,fishingTarget,type TargetDescriptor} from './ui/interactions/targets.ts';
 import {SHOPS,type ShopKind} from './gameplay/economy.ts';
-import {geoContext} from './geography/engine.ts';
+import {geoContext,setPreviewSnowline} from './geography/engine.ts';
+import {findDemoPiste} from './snow/snow-pistes.ts';
+import {boardLift,liftRideStep,type SkiLift,type LiftRide} from './snow/ski-lift.ts';
+import {createSkiLiftView} from './snow/ski-lift-view.ts';
+import type {SnowEquipment} from './snow/snow-slide.ts';
 import {MATERIAL_BY_MINE_KEY} from './audio/context.ts';
 import { geoWorkerPool } from './geography/geo-workers.ts';
 import type {AudioController} from './audio/view.ts';
@@ -55,12 +62,21 @@ import {
   type Controls,
 } from './player';
 import { buildHamster } from './hamster/hamster.ts';
+import {createSnowCharacterView} from './snow/snow-character-view.ts';
+import {createMineRhythmHud,type MineRhythmSample} from './ui/activities/mine-rhythm-hud.ts';
+import {createMineHelmet} from './hamster/mine-helmet.ts';
 import { createImpactEffects, type ImpactKind } from './hamster/impact-effects.ts';
 import {createGasEffects} from './hamster/gas-effects.ts';
 import {GAS,gasLevel,gasCapacity,gasShots,gasMaxShots,refillGas} from './physics/gas-propulsion.ts';
 import {newFlightProgress,advanceFlight,type FlightProgress} from './gameplay/flight-progress.ts';
 import {beginFlightCourse,stepFlightCourse,COURSE_LABELS,type FlightCourseSession} from './gameplay/flight-courses.ts';
 import {createFlightRings} from './render/flight-rings.ts';
+import {createRaceGates} from './render/race-gates.ts';
+import {createRaceTrackSampler} from './gameplay/race-track.ts';
+import {createRaceTrackView} from './render/race-track-view.ts';
+import {advanceRace,beginRace,raceElapsedSeconds,type RaceSession,type RaceDefinition} from './gameplay/races.ts';
+import {makeDemoRace,type DemoRaceId} from './gameplay/race-demos.ts';
+import {readRaceBest,writeRaceBest} from './gameplay/race-records.ts';
 import {foodGasValue} from './gameplay/food-effects.ts';
 import { createLoadingScreen } from './ui/loading.ts';
 import { createCustomizationMenu } from './customization-menu';
@@ -95,6 +111,7 @@ let mobileLandscape:ReturnType<typeof createMobileLandscape>|null=null;
 const overlay = document.querySelector<HTMLElement>('#start-overlay')!;
 const start = document.querySelector<HTMLButtonElement>('#start')!;
 const loading = createLoadingScreen(start, start.parentElement!);
+const fishingHud=createFishingHud();
 const scene = new THREE.Scene();
 const lighting=configureScene(scene);
 const camera = new THREE.PerspectiveCamera(66, 1, 0.1, 750);
@@ -253,7 +270,7 @@ try{
       definition=merged;
     }else definition=boostCatalog;
   }
-  if(definition){const {createAudioController}=await import('./audio/view.ts');audio=createAudioController(activeIsland?withFerryBells(toAudioCatalog(definition)):definition,{baseUrl:import.meta.env.BASE_URL});}
+  if(definition){const {createAudioController}=await import('./audio/view.ts');const catalogue=toAudioCatalog(definition);audio=createAudioController(withFishingSounds(activeIsland?withFerryBells(catalogue):catalogue),{baseUrl:import.meta.env.BASE_URL});}
  }catch{console.warn('Audio indisponible : le jeu reste silencieux.');}
 const {createGroundProbe}=await import('./audio/world-probe.ts'),groundProbe=createGroundProbe();
 let gameplay:GameplayView|null=null;
@@ -266,11 +283,11 @@ if(playable){
     setGasProgress:value=>{flightProgress={...value,currentFlightDistance:0,currentFlightNoGas:0,currentCombo:0,lastPulseAt:-1};player.gasCapacityLevel=value.capacityLevel;player.gasPowerLevel=value.powerLevel;player.gasControlLevel=value.controlLevel;},
     setGas:value=>{player.gasReserve=value;player.gasBoosting=false;player.gasPulseClock=0;player.gasPulseSeq=0;player.gasThrust=0;player.gasPulseRemaining=0;player.gasCooldown=0;player.gasBoostHeld=false;player.gasRepeatArmed=false;gasVisualSeq=0;lastFlightPulseSeq=0;boostWindActive=false;},
     ...(isLegacyTerrain()?{}:{gathering:{ctx:geoContext,seed:definition.config.seed,inside:(x:number,z:number)=>Math.abs(x)<=(definition.config.width??200)/2&&Math.abs(z)<=(definition.config.length??600)/2}}),
-    setPosition:(p,space)=>{stopFlightCourse();player.space=space??undefined;player.position.set(p.x,p.y,p.z);player.velocity.set(0,0,0);player.mode='air';player.oxygen=MAX_OXYGEN;player.glideReady=false;player.coyoteLeft=0;player.jumpBufferLeft=0;aboard=false;keySet.clear();jumpQueue=0;actionQueue=0;npcs.dialogue.close();previousPlayerPosition.copy(player.position);renderPosition.copy(player.position);updateCamera(1);}
+    setPosition:(p,space)=>{gameplay?.fishing.cancel();stopFlightCourse();stopRace();player.space=space??undefined;player.position.set(p.x,p.y,p.z);player.velocity.set(0,0,0);player.mode='air';player.oxygen=MAX_OXYGEN;player.glideReady=false;player.coyoteLeft=0;player.jumpBufferLeft=0;aboard=false;keySet.clear();jumpQueue=0;actionQueue=0;npcs.dialogue.close();previousPlayerPosition.copy(player.position);renderPosition.copy(player.position);updateCamera(1);}
   });
   if(metricsEnabled){const g=gameplay;Object.assign(window,{littleWorldDebug:{/** Developer/test hook (metrics mode only): give items. */grant:(itemId:string,quantity:number)=>g.runtime.grantItems([{itemId,quantity}]),
     /** Developer/test hook: move the player on the ground and turn the camera (heading in rad). */
-    teleport:(x:number,z:number,heading:number,altitude=0)=>{player.space=undefined;player.mode=altitude>0?'air':'ground';player.glideReady=altitude>0;player.coyoteLeft=0;player.jumpBufferLeft=0;player.velocity.set(0,0,0);player.position.set(x,terrainHeight(x,z)+altitude,z);previousPlayerPosition.copy(player.position);yaw=heading;},
+    teleport:(x:number,z:number,heading:number,altitude=0)=>{gameplay?.fishing.cancel();player.space=undefined;player.mode=altitude>0?'air':'ground';player.glideReady=altitude>0;player.coyoteLeft=0;player.jumpBufferLeft=0;player.velocity.set(0,0,0);player.position.set(x,terrainHeight(x,z)+altitude,z);previousPlayerPosition.copy(player.position);yaw=heading;},
     /** Developer/test hook: natural dressing and placed objects drawn within r m of the player. */
     drawnNear:(r:number)=>world.drawnNear(player.position.x,player.position.z,r)}});}
   if(gameplay.gathering){const gather=gameplay.gathering;world.setDressingFilter((cx,cz,kind,index)=>gather.hiddenAt(cx,cz,kind,index));gather.subscribe(()=>world.redrawDressing());}
@@ -358,6 +375,8 @@ async function travelToIsland(destination:PublishedIsland):Promise<{ok:boolean;m
       inventory,items:g.runtime.data.items.filter(item=>(inventory[item.id]??0)>0),
       gasReserve:save.gasReserve??gasLevel(player),
       flightProgress:save.flightProgress??flightProgress,
+      equippedItemId:save.equippedItemId??null,
+      ...(save.loadout?{loadout:save.loadout}:{}),
     });
     checkpointWritten=true;
     clearGameplayInput();
@@ -387,8 +406,43 @@ const {nightFactor}=await import('./lighting/light-data.ts');
 }
 world.lights.setEnvironment(nightFactor(climate.state(worldClock.time).sunAltitude),0);
 // Mines and farm plots: procedural stand-ins, lanterns join the E10 light pool.
+// Optional alpine preview (or published alpine island): never mutates the reference map.
+const snowDemo=(searchParams.get('snowDemo')==='1'||activeIsland?.id==='snow-cimes')&&!isLegacyTerrain();
+const snowBounds={minX:-(definition.config.width??200)/2,maxX:(definition.config.width??200)/2,
+  minZ:-(definition.config.length??600)/2,maxZ:(definition.config.length??600)/2};
+const snowPiste=snowDemo?findDemoPiste(terrainHeight,snowBounds,definition.config.seaLevel??0):null;
+let snowEquipment:SnowEquipment='snowboard';
+let snowLiftRide:LiftRide|null=null;
+const snowLift:SkiLift|null=snowPiste?{id:'alpine-preview-chair',speed:2.8,seatSpacing:14,capacity:2,
+  path:snowPiste.slice().reverse().filter((_,i)=>i%4===0||i===snowPiste.length-1)
+    .map(p=>({x:p.x,y:terrainHeight(p.x,p.z)+3.5,z:p.z}))}:null;
+if(snowPiste){
+  const lower=snowPiste[snowPiste.length-1];
+  setPreviewSnowline(terrainHeight(lower.x,lower.z)-8);
+  player.position.set(lower.x,terrainHeight(lower.x,lower.z)+.05,lower.z);
+  player.velocity.set(0,0,0);player.mode='ground';
+}
+const snowLiftView=snowLift?createSkiLiftView(scene,snowLift):null;
 // Geography sampled on demand after 2 m, not every simulation tick or render frame.
-if(gameplay)gameplay.collision.setMaterialSampler(createMaterialSampler((x,z)=>classifyPoint(geoContext(),x,z).material));
+const authoredTracks=(playable?.races??[]).flatMap(r=>r.track?[r.track]:[]);
+const raceTrackSamplers=authoredTracks.map(track=>({track,sampler:createRaceTrackSampler(track,{height:terrainHeight})}));
+const raceTrackView=createRaceTrackView(scene,authoredTracks,terrainHeight);
+if(gameplay){
+  const naturalMaterial=createMaterialSampler((x,z)=>classifyPoint(geoContext(),x,z).material);
+  const sampleRoad=(x:number,z:number)=>{
+    let best:typeof raceTrackSamplers[number]|null=null,peak=-Infinity;
+    for(const entry of raceTrackSamplers){
+      const sample=entry.sampler.sample(x,z);
+      if(sample&&sample.y>peak){best=entry;peak=sample.y;}
+    }
+    return {entry:best,y:best?peak:null};
+  };
+  gameplay.collision.setOutdoorCourseSurface((x,z)=>sampleRoad(x,z).y);
+  gameplay.collision.setMaterialSampler((x,z)=>{
+    const t=sampleRoad(x,z).entry;
+    return t?(t.track.material==='wood'?'wood':t.track.material==='stone'?'rock':'grass'):naturalMaterial(x,z);
+  });
+}
 const activityView=gameplay&&(gameplay.activities.mines.size||gameplay.activities.farms.size)?(await import('./activity-view.ts')).createActivityView(scene,gameplay.activities,terrainHeight):null;
 if(activityView&&!searchParams.has('lightBench'))world.refreshLights([...(definition.lights??[]),...activityView.lights]);
 let activityQueue=0,cropQueue=0,strikeTimer=0;
@@ -396,6 +450,7 @@ world.update(0, player.position);
 {
   const {createGameUi}=await import('./ui/app/game-ui.ts'),c=getTerrainConfig();
   const landmarks=[
+    ...(playable?.races??[]).map(r=>({id:'race:'+r.id,label:'Course : '+r.name,x:r.gates[0].center.x,z:r.gates[0].center.z})),
     ...definition.biomes.filter(b=>b.biome==='village').slice(0,30).map((b,i)=>({id:'village:'+i,label:'Village',x:b.x,z:b.z})),
     ...definition.placements.filter(p=>/(lighthouse|harbor|port|market|inn|windmill|watermill|town|village)/i.test(p.assetId)).slice(0,50).map(p=>({
       id:'asset:'+p.id,label:/lighthouse/i.test(p.assetId)?'Phare':/(port|harbor)/i.test(p.assetId)?'Port':/inn/i.test(p.assetId)?'Auberge':/market/i.test(p.assetId)?'Marché':/windmill|watermill/i.test(p.assetId)?'Moulin':'Village',x:p.x,z:p.z,
@@ -417,6 +472,38 @@ world.update(0, player.position);
       const gained=refillGas(player,points);
       return {ok:true,message:'+'+Math.round(gained)+' gaz !'};
     },
+    canEatFood:(itemId)=>{
+      if(!foodGasValue(itemId))return 'Cet objet ne peut pas être mangé.';
+      if(player.mode!=='ground'||aboard)return 'Mangez au sol avant de décoller.';
+      if(gasLevel(player)>=gasCapacity(player))return 'La réserve de gaz est déjà pleine.';
+      if(!gameplay?.has(itemId))return 'Cet aliment n’est plus dans le sac.';
+      return null;
+    },
+    eatFoods:(items:{itemId:string;quantity:number;gas:number}[])=>{
+      if(!gameplay||!Array.isArray(items)||items.length===0||items.length>100)
+        return {ok:false,message:'Sélection alimentaire invalide.'};
+      if(player.mode!=='ground'||aboard)
+        return {ok:false,message:'Mangez au sol avant de décoller.'};
+      const available=gasCapacity(player)-gasLevel(player);
+      if(available<=0)return {ok:false,message:'La réserve de gaz est déjà pleine.'};
+      const quantities=new Map<string,number>();let total=0;
+      for(const item of items){
+        const gas=foodGasValue(item.itemId);
+        if(gas<=0||!Number.isSafeInteger(item.quantity)||item.quantity<1||item.quantity>9999)
+          return {ok:false,message:'La sélection contient un objet non comestible.'};
+        const next=(quantities.get(item.itemId)??0)+item.quantity;
+        if(next>(gameplay.runtime.state.inventory[item.itemId]??0))
+          return {ok:false,message:'Stock insuffisant pour '+gameplay.itemName(item.itemId)+'.'};
+        quantities.set(item.itemId,next);
+        total+=gas*item.quantity;
+      }
+      if(total<=0||!Number.isFinite(total))return {ok:false,message:'Aucune recharge possible.'};
+      const changes=[...quantities].map(([itemId,quantity])=>({itemId,quantity:-quantity}));
+      if(!gameplay.purse.apply(changes))return {ok:false,message:'Consommation refusée : stock modifié.'};
+      const gain=refillGas(player,total);
+      return {ok:true,message:'+'+Math.round(gain)+' gaz · '+[...quantities.values()].reduce((n,q)=>n+q,0)+' aliments consommés.'};
+    },
+    headgear:{equipped:()=>gameplay?.equipment.head==='tool:miners-helmet',setEquipped:value=>{gameplay?.equipment.setHead(value?'tool:miners-helmet':null);}},
     mineHub:gameplay?{
       view:()=>gameplay!.activities.mineLiftView(player.position,player.space),
       travel:async(levelId:string)=>{
@@ -473,19 +560,80 @@ world.update(0, player.position);
       travel:travelToIsland,
     }:undefined,
     target:()=>currentTarget(),
-    home:()=>{stopFlightCourse();started=false;mobileTouch?.setEnabled(false);mobileLandscape?.stop();gameUi?.controller.close();keySet.clear();overlay.classList.remove('hide');overlay.classList.add('home-mode');start.hidden=false;start.focus();}});
+    races:{
+      start:(id)=>id.startsWith('race:')?startAuthoredRace(id):startDemoRace(id as DemoRaceId),
+      available:()=>((playable?.races??[]).map(r=>({id:r.id,name:r.name,distance:Math.round(Math.hypot(player.position.x-r.gates[0].center.x,player.position.y-r.gates[0].center.y,player.position.z-r.gates[0].center.z))}))),
+      active:()=>raceSession?.definition.name??null,
+      abort:()=>{stopRace();return 'Course interrompue';}
+    },
+    home:()=>{stopFlightCourse();stopRace();started=false;mobileTouch?.setEnabled(false);mobileLandscape?.stop();gameUi?.controller.close();keySet.clear();overlay.classList.remove('hide');overlay.classList.add('home-mode');start.hidden=false;start.focus();}});
 }
 // The player is the hamster (doc 43); NPCs keep their own rigs.
 const character = buildHamster();
+const snowCharacterView=createSnowCharacterView(character);
 scene.add(character.group);
+const mineHelmet=createMineHelmet(character.rig.sockets.head);
+let queuedMineStrike:MineRhythmSample|null=null;
+const mineRhythmHud=createMineRhythmHud(document.body,sample=>{
+  if(!started||gameUi?.blocking||!player.space||aboard)return;
+  queuedMineStrike=sample;activityQueue=Math.max(activityQueue,1);
+});
+let nextMineRhythmTargetAt=0;
 const impacts = createImpactEffects(scene);
+const fishingEffects = createFishingEffects(scene,character.group);
+let nextFishingReelAt=0,lastFishingStrainAt=-Infinity;
+let fishingFloatSoundDue=-1;
 const gasEffects=createGasEffects(scene);const gasOrigin=new THREE.Vector3();let gasVisualSeq=0,boostWindActive=false;
 const flightRings=createFlightRings(scene);
+const raceGates=createRaceGates(scene);
+let raceSession:RaceSession|null=null;
+const raceHud=document.createElement('div');
+raceHud.className='flight-course-hud race-course-hud';raceHud.hidden=true;
+raceHud.setAttribute('role','timer');raceHud.setAttribute('aria-live','off');document.body.append(raceHud);
 let flightCourse:FlightCourseSession|null=null,lastCourseHudAt=-1;
 const flightCourseHud=document.createElement('div');
 flightCourseHud.className='flight-course-hud';flightCourseHud.hidden=true;
 flightCourseHud.setAttribute('role','timer');flightCourseHud.setAttribute('aria-live','off');document.body.append(flightCourseHud);
 function stopFlightCourse(){flightCourse=null;flightRings.clear();flightCourseHud.hidden=true;}
+function startAuthoredRace(id:string):{ok:boolean;message:string}{
+  const race:RaceDefinition|undefined=playable?.races?.find(r=>r.id===id);
+  if(!race)return {ok:false,message:'Circuit indisponible'};
+  if(!started||aboard||player.space)return {ok:false,message:'Revenez au monde extérieur pour participer'};
+  const start=race.gates[0],pos=player.position;
+  const distance=Math.hypot(pos.x-start.center.x,pos.y-start.center.y,pos.z-start.center.z);
+  if(distance>32)return {ok:false,message:'Rejoignez la porte de départ : '+Math.ceil(distance)+' m'};
+  const side=(pos.x-start.center.x)*start.normal.x+(pos.z-start.center.z)*start.normal.z;
+  if(side>1)return {ok:false,message:'Placez-vous avant la porte de départ'};
+  if(race.kind==='flight'&&player.mode!=='glide')
+    return {ok:false,message:'Déployez le planeur pour cette course'};
+  if(race.kind!=='flight'&&!['roll','ground'].includes(player.mode))
+    return {ok:false,message:'Revenez au sol avant le départ'};
+  stopFlightCourse();stopRace();
+  raceSession=beginRace(race,motionTick,player.gasPulseSeq??0);
+  raceGates.show(race.gates);
+  raceHud.textContent=race.name+' · Traversez la porte de départ pour lancer le chrono';
+  raceHud.hidden=false;
+  return {ok:true,message:race.name+' : départ prêt, franchissez la première porte'};
+}
+function stopRace(){raceSession=null;raceGates.clear();raceHud.hidden=true;}
+function startDemoRace(id:DemoRaceId):{ok:boolean;message:string}{
+  if(!started||aboard||player.space)return {ok:false,message:'Course indisponible pendant le voyage ou dans une mine'};
+  const need=id==='flight'?'glide':'roll';
+  if(need==='glide'&&player.mode!=='glide')return {ok:false,message:'Déployez le planeur avant de lancer cette course'};
+  if(need==='roll'&&player.mode!=='roll'&&player.mode!=='ground')return {ok:false,message:'Revenez au sol avant le départ de la course'};
+  const c=getTerrainConfig(),heading=id==='flight'?player.glideHeading??yaw:player.rollHeading??yaw;
+  const definition=makeDemoRace(id,player.position,heading,terrainHeight,
+    {minX:-c.width/2,maxX:c.width/2,minZ:-c.length/2,maxZ:c.length/2},
+    activeIsland?.id??gameplay?.runtime.data.worldId??'legacy');
+  if(!definition)return {ok:false,message:'Circuit hors carte : dirigez-vous vers une zone plus dégagée'};
+  stopFlightCourse();stopRace();
+  raceSession=beginRace(definition,motionTick,player.gasPulseSeq??0);
+  raceGates.show(definition.gates);
+  const best=readRaceBest(localStorage,definition,gameplay?.runtime.data.buildVersion??'');
+  raceHud.textContent=definition.name+' · 0,0 s · 0/'+definition.gates.length+(best!==null?' · Record local '+best.toFixed(2)+' s':'');
+  raceHud.hidden=false;
+  return {ok:true,message:definition.name+' · entraînement lancé'};
+}
 const customization = createCustomizationMenu(
   document.querySelector<HTMLElement>('#appearance-menu')!,
   (appearance) => character.setAppearance(appearance),
@@ -500,7 +648,7 @@ const customization = createCustomizationMenu(
       const course=beginFlightCourse(id,player.position,heading,terrainHeight,
         {minX:-config.width/2,maxX:config.width/2,minZ:-config.length/2,maxZ:config.length/2},player.gasPulseSeq??0);
       if(!course)return 'Parcours hors carte : orientez-vous vers le centre de l’île';
-      stopFlightCourse();flightCourse=course;flightRings.show(course.rings,heading);
+      stopFlightCourse();stopRace();flightCourse=course;flightRings.show(course.rings,heading);
       customization.close();renderer.domElement.focus({preventScroll:true});
       return COURSE_LABELS[id]+' lancé';
     }
@@ -533,6 +681,7 @@ if(touchCapable){
   // Restore touch controls immediately after the player accepts portrait or rotates back.
   // Do not wait for a simulation tick: that tick may still be paused by the orientation guide.
   mobileLandscape=createMobileLandscape(blocked=>{
+    if(blocked){gameplay?.fishing.cancel();fishingHud.hide();fishingEffects.reset();fishingFloatSoundDue=-1;}
     mobileTouch?.setEnabled(!blocked&&started&&!gameUi?.blocking&&!customization.isOpen&&!npcs.dialogue.isOpen);
   });
 }
@@ -563,7 +712,7 @@ function codeHeld(...codes: string[]): boolean {
   return codes.some((c) => keySet.has(c));
 }
 function input(): Controls {
-  if (customization.isOpen || npcs.dialogue.isOpen || gameUi?.blocking){
+  if (customization.isOpen || npcs.dialogue.isOpen || gameUi?.blocking || gameplay?.fishing.state.phase==='reeling'){
     return {
       forward: 0,
       right: 0,
@@ -596,6 +745,7 @@ function input(): Controls {
     cameraPitch: pitch - 0.32,
     boostHeld:flightBoostHeld(player.mode,shiftHeld,touchAccelerateHeld),
     swimStrokePressed:touchStrokeQueue>0,
+    snowEquipment:snowDemo?snowEquipment:gameplay?.equipment.hands==='tool:snowboard'?'snowboard':gameplay?.equipment.hands==='tool:skis'?'skis':null,
   };
 }
 function gameplayInputActive():boolean{
@@ -610,9 +760,10 @@ function resetCameraDrag(): void {
   renderer.domElement.classList.remove('dragging-camera');
 }
 function clearGameplayInput():void{
+  gameplay?.fishing.cancel();fishingHud.hide();fishingEffects.reset();fishingFloatSoundDue=-1;
   keySet.clear();
   rollQueue=0;jumpQueue=0;touchStrokeQueue=0;actionQueue=0;activityQueue=0;cropQueue=0;
-  mobileTouch?.reset();resetCameraDrag();
+  queuedMineStrike=null;mobileTouch?.reset();resetCameraDrag();
 }
 // Switching to any UI panel releases held movement and boost keys immediately.
 gameUi?.controller.onChange(id=>{if(id)clearGameplayInput();});
@@ -640,11 +791,18 @@ window.addEventListener('keydown', (e) => {
   keySet.add(e.code);
   if (e.code === 'Space') jumpQueue++;
   if (e.code === 'KeyX') rollQueue++;
-  if (e.code === 'KeyE') actionQueue++;
-  if (e.code === 'KeyF' && !e.repeat) activityQueue++;
+  if (e.code === 'KeyE'){
+    if(currentTarget()?.targetType==='mine-wall')queuedMineStrike=mineRhythmHud.sample(performance.now());
+    actionQueue++;
+  }
+  if (e.code === 'KeyF' && !e.repeat){
+    queuedMineStrike=mineRhythmHud.sample(performance.now());
+    activityQueue++;
+  }
   if (e.code === 'KeyC') cropQueue++;
+  if (e.code === 'KeyB'&&snowDemo){snowEquipment=snowEquipment==='snowboard'?'skis':'snowboard';showInfo('Équipement : '+(snowEquipment==='skis'?'skis':'snowboard'));}
   if (e.code === 'KeyR' && started) {
-    stopFlightCourse();
+    stopFlightCourse();stopRace();
     const reset = spawnPlayer();
     player.space = undefined;
     if(playable)reset.position.set(playable.spawn.x,terrainHeight(playable.spawn.x,playable.spawn.z)+playable.spawn.y+.02,playable.spawn.z);
@@ -849,7 +1007,7 @@ function flushImpact(at?:{x:number;y:number;z:number}){
 }
 character.onEvent((e)=>{
   if(e.name==='impact'||e.name==='grab')flushImpact(e.position);
-  else if(e.name==='release'){audio?.emit('fishing.cast',{position:player.position,source:'player'});setTimeout(()=>audio?.emit('fishing.float',{position:player.position,source:'player'}),450);}
+  else if(e.name==='release'&&gameplay?.fishing.state.phase==='waiting'){audio?.emit('fishing.cast',{position:player.position,source:'player'});fishingFloatSoundDue=elapsed+.45;}
   else if(e.name==='reel')audio?.emit('fishing.reel',{position:player.position,source:'player'});
   else if(e.name==='roll-start')audio?.emit('player.roll.start',{position:player.position,source:'player'});
   else if(e.name==='roll-stop')audio?.emit('player.roll.stop',{position:player.position,source:'player'});
@@ -864,20 +1022,86 @@ function runGather(){
   const fell=r.target?.rule.action==='fell';onImpact(fell?{sound:'tool.chop',kind:'wood'}:{sound:'farm.pick',kind:'leaf',count:3});
   if(!character.play(fell?'fell':'pick'))flushImpact();
 }
-/** Fishing: cast (E), wait for the bite, strike (E) in time. */
+/** Fishing: use the existing contextual E action, then hold/release to reel. */
 function runFishing(){
-  if(!gameplay)return;const f=gameplay.fishing,now=elapsed;
-  if(f.state.phase==='idle'){const spot=fishingSpot();if(!spot)return;if(!gameplay.has('tool:fishing-rod')){showInfo('Il faut une canne à pêche','warning');return;}character.play('fish-cast');f.cast(spot.kind,spot,now);showInfo('Ligne lancée… attendez que ça morde.');return;}
-  const biting=f.state.phase==='bite',fish=f.strike();character.play('fish-reel');if(!fish){showInfo(biting?'Raté !':'Ligne relevée (trop tôt).','warning');return;}
-  if(!gameplay.runtime.grantItems([{itemId:fish,quantity:1}]))showInfo('Sac plein','warning');
+  if(!gameplay)return;
+  const fishing=gameplay.fishing;
+  if(fishing.state.phase==='idle'){
+    const spot=fishingSpot();
+    if(!spot)return;
+    if(!gameplay.has('tool:fishing-rod')){showInfo('Il faut une canne à pêche','warning');return;}
+    player.velocity.set(0,0,0);
+    character.play('fish-cast');
+    fishing.cast(spot.kind,spot,elapsed);
+    showInfo('Ligne lancée… attendez que ça morde.');
+    return;
+  }
+  if(fishing.state.phase==='waiting'){
+    fishing.cancel();showInfo('Ligne relevée.');return;
+  }
+  if(fishing.state.phase==='bite'){
+    if(!fishing.hook()){showInfo('Ferrage raté.','warning');return;}
+    player.velocity.set(0,0,0);
+    character.play('fish-reel');nextFishingReelAt=elapsed+.78;
+    showInfo('Moulinez avec E, relâchez si la ligne est trop tendue.');
+  }
 }
 function updateFishing(){
-  if(!gameplay)return;const f=gameplay.fishing;if(f.state.phase==='idle')return;
-  if(f.state.castAt&&(Math.hypot(f.state.castAt.x-player.position.x,f.state.castAt.z-player.position.z)>8||player.mode!=='ground')){f.cancel();showInfo('Ligne relevée.');return;}
-  const r=f.update(elapsed);if(r==='bite'){showInfo('Ça mord ! Appuyez sur E','success');audio?.emit('fishing.bite',{position:player.position,source:'player'});}else if(r==='lost')showInfo('Le poisson s’est échappé…','warning');
+  if(!gameplay)return;
+  const f=gameplay.fishing;
+  if(fishingFloatSoundDue>=0&&elapsed>=fishingFloatSoundDue){
+    fishingFloatSoundDue=-1;
+    if(f.state.phase!=='idle'&&f.state.castAt){
+      const at={x:f.state.castAt.x,y:waterSurface(f.state.castAt.x,f.state.castAt.z)??getTerrainConfig().seaLevel,z:f.state.castAt.z};
+      audio?.emit('fishing.float',{position:at,source:'player'});fishingEffects.burst(at,'cast');
+    }
+  }
+  if(f.state.phase==='idle')return;
+  if(f.state.castAt&&(Math.hypot(f.state.castAt.x-player.position.x,f.state.castAt.z-player.position.z)>8||player.mode!=='ground'||player.space||aboard)){
+    f.cancel();showInfo('Ligne relevée.');return;
+  }
+  const reelHeld=gameplayInputActive()&&(keySet.has('KeyE')||!!mobileTouch?.interactHeld);
+  const wasReeling=f.state.phase==='reeling',previousTension=f.state.tension;
+  const castAt=f.state.castAt;
+  const waterAt=castAt?{x:castAt.x,y:waterSurface(castAt.x,castAt.z)??getTerrainConfig().seaLevel,z:castAt.z}:null;
+  const result=f.update(elapsed,reelHeld);
+  if(wasReeling&&f.state.phase==='reeling'){
+    if(reelHeld&&elapsed>=nextFishingReelAt){
+      character.play('fish-reel');nextFishingReelAt=elapsed+.78;
+    }
+    if(previousTension<.72&&f.state.tension>=.72&&elapsed-lastFishingStrainAt>=1.1){
+      lastFishingStrainAt=elapsed;
+      audio?.emit('fishing.strain',{position:waterAt??player.position,source:'player',context:{intensity:'heavy',surface:'water'}});
+      if(waterAt)fishingEffects.burst(waterAt,'strain');
+    }
+  }
+  if(result==='bite'){
+    showInfo('Ça mord ! Appuyez sur E','success');
+    audio?.emit('fishing.bite',{position:waterAt??player.position,source:'player'});
+    if(waterAt){fishingEffects.burst(waterAt,'bite');impacts.spawn(waterAt,'water',3);}
+  }else if(result==='lost'){
+    showInfo('Le poisson s’est échappé…','warning');
+    audio?.emit('fishing.escape',{position:waterAt??player.position,source:'player'});
+    if(waterAt){fishingEffects.burst(waterAt,'escaped');impacts.spawn(waterAt,'water',4);}
+  }else if(result==='caught'){
+    const item=f.takeCatch(); // Idempotent: only this transition can claim the fish.
+    if(!item)return;
+    if(waterAt){fishingEffects.burst(waterAt,'caught');impacts.spawn(waterAt,'water',6);}
+    if(gameplay.runtime.grantItems([{itemId:item,quantity:1}])){
+      showInfo(gameplay.itemName(item)+' attrapé !','success');
+      fishingEffects.displayCatch(item);
+      audio?.emit('fishing.catch',{position:player.position,source:'player',context:{species:item}});
+      character.play('fish-reel');
+    }else{showInfo('Sac plein : poisson relâché.','warning');audio?.emit('fishing.escape',{position:waterAt??player.position,source:'player'});}
+  }
 }
 function currentTarget():TargetDescriptor|null{
   if(!started)return null;
+  // Active fishing owns E regardless of nearby boats, shops, NPCs or other targets.
+  if(gameplay&&gameplay.fishing.state.phase!=='idle'){
+    const f=gameplay.fishing.state;
+    return fishingTarget({phase:f.phase,water:f.water?WATER_NAMES[f.water]:'',ok:true});
+  }
   let unusable:TargetDescriptor|null=null;
   return resolveTarget([
     ()=>aboard?boatTarget(true):null,
@@ -910,15 +1134,25 @@ function currentTarget():TargetDescriptor|null{
 }
 /** Digging the wall in front (F, or E when it is the target): validated by the mine. */
 function runDig(){
-  if(!gameplay||!player.space)return;const a=gameplay.activities,forward=forwardOf(),target=a.mineTarget(player.position,player.space,forward),r=a.dig(player.position,player.space,forward);
+  if(!gameplay||!player.space)return;
+  const a=gameplay.activities,forward=forwardOf(),target=a.mineTarget(player.position,player.space,forward);
+  const captured=queuedMineStrike;queuedMineStrike=null;
+  const key=target?`${target.mineId}:${target.level}:${target.ix}:${target.iz}`:null;
+  const accuracy=captured&&captured.key===key?captured.quality:'normal';
+  const r=a.dig(player.position,player.space,forward,accuracy);
   // Audio follows the validated business result (never mesh changes).
   const material=target?MATERIAL_BY_MINE_KEY[MINE_MATERIALS[target.material]?.key]:undefined,context={material,tool:'pickaxe',place:'mine' as const};
   const tool=gameplay.has('tool:pickaxe-steel')?'pickaxe-steel':gameplay.has('tool:pickaxe')?'pickaxe':null;
   onImpact({sound:'mine.tool.strike',context,kind:target?.material===5?'crystal':target?.material===4?'iron':material==='soil'?'soil':'stone',extra:r.ok?['mine.hit']:[]});
   if(!character.play('mine',tool))flushImpact();
-  if(r.ok){audio?.emit('mine.cell.excavated',{context,position:player.position,source:'player'});
-    // A reward is announced by the inventory notification (« +1 Pierre », merged); otherwise say what happened.
-    if(r.message.startsWith('+')/* dig() reports a reward as « +1 item » */){audio?.emit(material==='crystal'?'mine.resource.crystal':'mine.resource.collect',{context,source:'player'});if(material==='crystal')audio?.cue('discovery');}else showInfo(r.message,'success');}
+  if(r.ok){
+    if(!r.partial)audio?.emit('mine.cell.excavated',{context,position:player.position,source:'player'});
+    // The gain notifier displays new loot; do not announce a false cell break.
+    if(r.message.startsWith('+')){
+      audio?.emit(material==='crystal'?'mine.resource.crystal':'mine.resource.collect',{context,source:'player'});
+      if(material==='crystal'&&!r.partial)audio?.cue('discovery');
+    }else if(!r.partial)showInfo(r.message,'success');
+  }
   else{audio?.emit('mine.action.denied',{context,source:'player'});showInfo(r.message,'warning');}
 }
 /** Next action on the plot under the player (F, or E when it is the target): validated by AGRI. */
@@ -982,7 +1216,20 @@ function tick(dt: number) {
   }
   // In glide, mobile input now reaches the flight simulation directly.
   const keys = input();
-  if (aboard) {
+  if(snowLiftRide?.phase==='waiting'&&snowLift&&Math.hypot(player.position.x-snowLift.path[0].x,player.position.z-snowLift.path[0].z)>5){snowLiftRide=null;showInfo('Embarquement annulé');}
+  const chair=snowLift&&snowLiftRide?liftRideStep(snowLift,snowLiftRide,elapsed):null;
+  if(chair?.finished&&snowLift){
+    const top=snowLift.path[snowLift.path.length-1];
+    player.position.set(top.x,terrainHeight(top.x,top.z)+.05,top.z);player.velocity.set(0,0,0);player.mode='ground';
+    snowLiftRide=null;jumpQueue=0;showInfo('Arrivée au sommet');
+  } else if(chair?.pose){
+    player.position.set(chair.pose.x,chair.pose.y,chair.pose.z);player.velocity.set(0,0,0);player.mode='ground';
+    jumpQueue=0;actionQueue=0;
+  } else if(snowLiftRide?.phase==='waiting'&&snowLift){
+    // The rider stays on the boarding platform until the reserved seat arrives.
+    const base=snowLift.path[0];player.position.set(base.x,terrainHeight(base.x,base.z)+.05,base.z);
+    player.velocity.set(0,0,0);player.mode='ground';jumpQueue=0;
+  } else if (aboard) {
     updateBoat(boat, { throttle: mobileTouch?.accelerateHeld?Math.max(1,keys.forward):keys.forward, steer: keys.right }, dt);boatSteer=keys.right;
     player.position.set(boat.x, boat.y + 1.02, boat.z);
     player.velocity.set(0, 0, 0);
@@ -1005,8 +1252,21 @@ function tick(dt: number) {
         const id=flightCourse.id,seconds=flightCourse.elapsed,previous=flightProgress.records[id];
         if(previous===null||seconds<previous)flightProgress.records[id]=seconds;
         showInfo('Défi réussi : '+COURSE_LABELS[id]+' · '+seconds.toFixed(1)+' s','success');
-        stopFlightCourse();
-      }else if(result===-1){showInfo('Défi interrompu : '+COURSE_LABELS[flightCourse.id],'warning');stopFlightCourse();}
+        stopFlightCourse();stopRace();
+      }else if(result===-1){showInfo('Défi interrompu : '+COURSE_LABELS[flightCourse.id],'warning');stopFlightCourse();stopRace();}
+    }
+    if(raceSession){
+      const event=advanceRace(raceSession,{tick:motionTick,previous:previousPlayerPosition,position:player.position,
+        mode:player.mode,pulseSeq:player.gasPulseSeq??0,transitioned:!!player.transitioned});
+      if(event?.kind==='checkpoint'||event?.kind==='started'){
+        raceGates.advance(raceSession.nextGate);
+        if(event.kind==='started')showInfo('Départ validé : chronomètre lancé','success');
+      }
+      else if(event?.kind==='finish'){
+        const race=raceSession.definition,isBest=writeRaceBest(localStorage,race,event.seconds,gameplay?.runtime.data.buildVersion??'');
+        showInfo('Course terminée : '+race.name+' · '+event.seconds.toFixed(2)+' s'+(isBest?' · Nouveau record local !':''),'success');
+        stopRace();
+      }else if(event?.kind==='failed'){showInfo('Course arrêtée : '+event.reason,'warning');stopRace();}
     }
     // Crossing a mine entrance / stairs: no interpolation through rock.
     if(player.transitioned){previousPlayerPosition.copy(player.position);renderPosition.copy(player.position);}
@@ -1015,10 +1275,10 @@ function tick(dt: number) {
     rollQueue = 0;
   }
   // F: activity in front (dig, fell/pick, farm). Holding F repeats strikes (≈ 3.5 per second).
-  if(gameplay&&!aboard&&keySet.has('KeyF')){strikeTimer-=dt;if(strikeTimer<=0){strikeTimer=.28;activityQueue=Math.max(activityQueue,1);}}else strikeTimer=0;
-  if(activityQueue>0&&gameplay&&!aboard&&player.mode!=='roll'){activityQueue=0;if(player.space)runDig();else if(gameplay.activities.farmNear(player.position))runFarm();else runGather();}
+  if(gameplay&&!aboard&&gameplay.fishing.state.phase!=='reeling'&&keySet.has('KeyF')){strikeTimer-=dt;if(strikeTimer<=0){strikeTimer=.28;activityQueue=Math.max(activityQueue,1);}}else strikeTimer=0;
+  if(activityQueue>0&&gameplay&&!aboard&&player.mode!=='roll'&&gameplay.fishing.state.phase!=='reeling'){activityQueue=0;if(player.space)runDig();else if(gameplay.activities.farmNear(player.position))runFarm();else runGather();}
   updateFishing();
-  if(cropQueue>0&&gameplay){cropQueue=0;const plot=gameplay.activities.farmNear(player.position,player.space);if(plot){const name=gameplay.activities.cycleCrop(plot.zone.id);if(name){showInfo('Culture choisie : '+name);audio?.emit('farm.seedbag',{source:'player'});}}}
+  if(cropQueue>0&&gameplay&&gameplay.fishing.state.phase!=='reeling'){cropQueue=0;const plot=gameplay.activities.farmNear(player.position,player.space);if(plot){const name=gameplay.activities.cycleCrop(plot.zone.id);if(name){showInfo('Culture choisie : '+name);audio?.emit('farm.seedbag',{source:'player'});}}}
   if (actionQueue > 0) {
     actionQueue = 0;
     const target = currentTarget();
@@ -1026,6 +1286,11 @@ function tick(dt: number) {
       // The business system said no: tell why (never act on a disabled target).
       showInfo(target.primaryAction.disabledReason ?? 'Impossible pour le moment', 'warning');
       audio?.emit('ui.error', { source: 'ui' });
+    } else if(snowLiftRide?.phase==='waiting'){
+      snowLiftRide=null;showInfo('Embarquement annulé');
+    } else if(snowLift&&!snowLiftRide&&!aboard&&!player.space&&Math.hypot(player.position.x-snowLift.path[0].x,player.position.z-snowLift.path[0].z)<4){
+      snowLiftRide=boardLift(snowLift,player.position,elapsed);
+      if(snowLiftRide)showInfo('Télésiège : attente du prochain siège');
     } else if (target?.targetType === 'maritime-trade') {
       gameUi?.openMaritimeTrade();
     } else if (target?.targetType === 'ferry') {
@@ -1113,6 +1378,20 @@ function draw(now: number) {
   speedStreaks.update(player.velocity.length(),player.mode==='glide',started&&!gameUi?.paused&&gameUi?.preferences.speedEffects!==false&&!gameUi?.preferences.reduceMotion,delta);
   environment.update(delta,player.position,budget.level,!!player.space);
   activityView?.update(delta,player.position,player.space);
+  // Sampling at ~11 Hz avoids per-frame target queries on older PCs.
+  if(now>=nextMineRhythmTargetAt){
+    nextMineRhythmTargetAt=now+90;
+    const preview=started&&!gameUi?.blocking&&player.space&&gameplay
+      ?gameplay.activities.digPreview(player.position,player.space,forwardOf()):null;
+    mineRhythmHud.setTarget(preview?.ok?{
+      key:`${preview.target.mineId}:${preview.target.level}:${preview.target.ix}:${preview.target.iz}`,
+      material:preview.target.material,name:preview.materialName,
+      hitsToReward:preview.hitsToReward,
+      durabilityRemaining:preview.durabilityRemaining,
+      durabilityMax:preview.durabilityMax,
+    }:null,now);
+  }
+  mineRhythmHud.tick(now);
   {const climateNow=climate.state(worldClock.time),night=nightFactor(climateNow.sunAltitude);world.lights.setEnvironment(night,now/1000);world.setNight(night);world.setWind(.25+.8*climateNow.wind);}
   world.animateBoat(aboard&&fleet.current===playerBoat?boat.speed:0,aboard&&fleet.current===playerBoat?boatSteer:0,delta);
   if(started&&audio){const env=climate.state(worldClock.time),ground=player.space?{}:groundProbe(player.position.x,player.position.z,now),farm=!player.space&&gameplay?.activities.farmNear(player.position);
@@ -1130,10 +1409,16 @@ function draw(now: number) {
   // Boats follow their state (the one in use moves; the player's own boat bobs at its mooring).
   playerBoat&&fleet.sync(playerBoat,elapsed);if(fleet.current&&fleet.current!==playerBoat)fleet.sync(fleet.current,elapsed);
   if(portN1View)portN1View.update(elapsed,player.position);else ferryView?.update(elapsed);
+  snowLiftView?.update(elapsed);
   character.group.position.copy(renderPosition);
   character.setAboard(aboard);
   if(gameplay){const f=gameplay.fishing.state;character.setFishing(f.phase!=='idle'&&f.castAt?{x:f.castAt.x,y:waterSurface(f.castAt.x,f.castAt.z)??getTerrainConfig().seaLevel,z:f.castAt.z,biting:f.phase==='bite'}:null);}
   character.update(player, delta, elapsed);
+  snowCharacterView.update(player);
+  // Mining headgear follows the animated head bone (including turning/looking).
+  // One spotlight, zero shadow maps; off outside mines and without the item.
+  mineHelmet.setActive(!!player.space&&gameplay?.equipment.head==='tool:miners-helmet');
+  fishingEffects.update(gameplay?.fishing.state??null,elapsed,delta);
   // Hero-only pose overlay. Does not change the authoritative rig animation,
   // procedural GLB, other players or distant impostor hashes.
   if(player.mode==='glide'&&player.gasBoosting){
@@ -1159,6 +1444,8 @@ function draw(now: number) {
   gasEffects.update(delta);
   impacts.update(delta);
   updateHud();
+  const fishingView=gameplay?.fishing.state??null;
+  fishingHud.update(fishingView,touchCapable,fishingView?.fish&&gameplay?gameplay.itemName(fishingView.fish):undefined);
   if(elapsed-lastCourseHudAt>.2){
     lastCourseHudAt=elapsed;
     flightCourseHud.hidden=!flightCourse;
@@ -1166,6 +1453,12 @@ function draw(now: number) {
       const s=flightCourse,desc=s.id==='rings'?'Anneaux : '+s.nextRing+'/'+s.rings.length:
         s.id==='dive'?'Remonter de 22 m après un piqué':'Distance : '+Math.floor(s.distance)+'/450 m';
       flightCourseHud.textContent=COURSE_LABELS[s.id]+' · '+s.elapsed.toFixed(1)+' s · '+desc+' · Pets : '+s.usedPulses;
+    }
+    raceHud.hidden=!raceSession;
+    if(raceSession){
+      const s=raceSession;
+      raceHud.textContent=s.definition.name+' · '+(s.started?raceElapsedSeconds(s).toFixed(1)+' s':'Prêt au départ')+' · Portes : '+
+        s.nextGate+'/'+s.definition.gates.length+' · Boosts : '+s.usedPulses;
     }
   }
   gameUi?.frame(elapsed);
@@ -1251,7 +1544,7 @@ function draw(now: number) {
   }
   requestAnimationFrame(draw);
 }
-window.addEventListener('pagehide',event=>{if(event.persisted)void audio?.engine.setHidden(true);else {detachPortCollisions?.();ferryView?.dispose();remoteActors?.dispose();gasEffects.dispose();flightRings.dispose();flightCourseHud.remove();speedStreaks.dispose();gpuTimer.dispose();void audio?.dispose();}});
+window.addEventListener('pagehide',event=>{if(event.persisted)void audio?.engine.setHidden(true);else {detachPortCollisions?.();ferryView?.dispose();remoteActors?.dispose();mineRhythmHud.dispose();mineHelmet.dispose();gasEffects.dispose();flightRings.dispose();raceGates.dispose();raceTrackView.dispose();flightCourseHud.remove();raceHud.remove();fishingHud.dispose();fishingEffects.dispose();speedStreaks.dispose();gpuTimer.dispose();void audio?.dispose();}});
 window.addEventListener('pageshow',event=>{if(event.persisted&&started)void audio?.engine.setHidden(document.hidden);});
 document.addEventListener('visibilitychange', () => {
   presentation.reset();
@@ -1299,14 +1592,17 @@ if(incomingTransit&&gameplay&&playable){
     const position={x:landing.x,y:terrainHeight(landing.x,landing.z)+landing.y+.08,z:landing.z};
     gameplay.restore({...base,slotId:'slot-ferry-auto',time:incomingTransit.worldSeconds,position,space:null,
       inventory:{...incomingTransit.traveler.inventory},gasReserve:incomingTransit.traveler.gasReserve,
-      flightProgress:incomingTransit.traveler.flightProgress});
+      flightProgress:incomingTransit.traveler.flightProgress,
+      equippedItemId:incomingTransit.traveler.equippedItemId??null,
+      loadout:incomingTransit.traveler.loadout});
     // The destination slot holds local activity state; a separate portable checkpoint holds
     // the complete bag across refreshes. Neither one is the short-lived ferry ticket.
     await gameplay.slots.save(gameplay.compose('slot-ferry-auto'));
     savePortableCheckpoint(localStorage,activeIsland!.id,playable.gameplay.worldId,{
       inventory:{...gameplay.runtime.state.inventory},
       items:gameplay.runtime.data.items.filter(item=>(gameplay!.runtime.state.inventory[item.id]??0)>0),
-      gasReserve:gasLevel(player),flightProgress,
+      gasReserve:gasLevel(player),flightProgress,equippedItemId:gameplay.equipment.hands,
+      ...(gameplay.compose('slot-ferry-auto').loadout?{loadout:gameplay.compose('slot-ferry-auto').loadout}:{}),
     });
     ferryMinute=worldGameMinute(worldClock.time,climate.definition.dayLengthSeconds);
     ferryNow=ferryStatus(ferryMinute,activeIsland!.portLevel);
@@ -1324,7 +1620,9 @@ if(!incomingTransit&&retainedPortable&&gameplay&&playable){
     const base=saved??gameplay.compose('slot-ferry-auto');
     gameplay.restore(saved??{...base,inventory:{...retainedPortable.traveler.inventory},
       gasReserve:retainedPortable.traveler.gasReserve,
-      flightProgress:retainedPortable.traveler.flightProgress});
+      flightProgress:retainedPortable.traveler.flightProgress,
+      equippedItemId:retainedPortable.traveler.equippedItemId??null,
+      loadout:retainedPortable.traveler.loadout});
     ferryMinute=worldGameMinute(worldClock.time,climate.definition.dayLengthSeconds);
     ferryNow=ferryStatus(ferryMinute,activeIsland!.portLevel);
     ferryView?.setPresent(ferryNow.present);
@@ -1348,7 +1646,8 @@ if(activeIsland&&gameplay&&(incomingTransit||retainedPortable)){
           inventory:{...snapshot.inventory},
           items:g.runtime.data.items.filter(item=>(snapshot.inventory[item.id]??0)>0),
           gasReserve:snapshot.gasReserve??gasLevel(player),
-          flightProgress:snapshot.flightProgress??flightProgress,
+          flightProgress:snapshot.flightProgress??flightProgress,equippedItemId:snapshot.equippedItemId??null,
+          ...(snapshot.loadout?{loadout:snapshot.loadout}:{}),
         });
       }while(dirty);
       warned=false;

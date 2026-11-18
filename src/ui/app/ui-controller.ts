@@ -6,6 +6,7 @@ export interface PanelOptions {
   /** Pauses the world simulation while open (menus); inventory/journal/map do not. */pauses?:boolean;
   /** Renders the panel body each time it opens (and on refresh while open). */render(body:HTMLElement):void;
   onClose?():void;
+  /** Lets a panel consume Escape for an internal mode before closing. */onEscape?():boolean;
 }
 interface Registered extends PanelOptions {id:string;title:string;root:HTMLElement;body:HTMLElement}
 export class UiController {
@@ -52,7 +53,7 @@ export class UiController {
   /** Keys while a panel is open: Escape closes, Tab stays inside. Returns true when consumed. */
   handleKey(e:KeyboardEvent):boolean{
     if(this.modal)return true;if(!this.current)return false;
-    if(e.key==='Escape'){e.preventDefault();this.close();return true;}
+    if(e.key==='Escape'){e.preventDefault();if(!this.current.onEscape?.())this.close();return true;}
     trapFocus(this.current.root,e);return true;
   }
 }

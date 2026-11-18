@@ -1,7 +1,8 @@
 /** Hamster player character — model and rig (doc 43). Original procedural low-poly model, built
  * from DATA: each joint lists its parts (primitive, colour, transform); the parts of one joint are
- * merged into ONE vertex-coloured mesh, cached and shared by every hamster built (no per-instance
- * geometry except the two glide membranes). Rigid articulated joints (no weighted skinning),
+ * merged into ONE vertex-coloured mesh, cached and shared by every hamster built.
+ * The runtime model has no body membranes: the old reference GLB can explicitly request them.
+ * Rigid articulated joints (no weighted skinning),
  * 22 bones, named sockets for tools and accessories. Model units: metres before CHARACTER_SCALE;
  * +Z forward, +Y up; the round body (head included, as on a real hamster) is ~1.25 m tall.
  * Pure geometry/scene building: animation lives in hamster-animation.ts. */
@@ -162,13 +163,13 @@ const ACCESSORY_PIECES: Record<AccessoryId, { bone: string; socket: HamsterJoint
   hat: { bone: 'Acc_StrawHat', socket: 'SocketHead', parts: HAT }, goggles: { bone: 'Acc_Goggles', socket: 'SocketFace', parts: GOGGLES, at: [0, .2, -.07], rx: -.5 },
   backpack: { bone: 'Acc_Backpack', socket: 'SocketBack', parts: BACKPACK }, scarf: { bone: 'Acc_Scarf', socket: 'SocketNeck', parts: SCARF }, pendant: { bone: 'Acc_Pendant', socket: 'SocketNeck', parts: PENDANT },
 };
-function pieces(): Piece[] {
+function pieces(includeLegacyMembranes: boolean): Piece[] {
   const list: Piece[] = [];
   for (const name of HAMSTER_JOINTS) { const parts = JOINT_PARTS[name]; if (parts) list.push({ bone: name, parent: '', parts, shown: true }); }
   for (const emotion of EMOTIONS) list.push({ bone: 'Face_' + emotion, parent: 'Head', parts: faceParts(emotion), shown: emotion === 'happy' });
   for (const id of ACCESSORY_IDS) { const a = ACCESSORY_PIECES[id]; list.push({ bone: a.bone, parent: a.socket, parts: a.parts, at: a.at, rx: a.rx, shown: false }); }
   for (const id of TOOL_IDS) list.push({ bone: 'Tool_' + id, parent: 'HandRight', parts: TOOL_PARTS[id], shown: false });
-  list.push({ bone: 'MembraneLeft', parent: '', membrane: -1, shown: false }, { bone: 'MembraneRight', parent: '', membrane: 1, shown: false });
+  if(includeLegacyMembranes)list.push({ bone: 'MembraneLeft', parent: '', membrane: -1, shown: false }, { bone: 'MembraneRight', parent: '', membrane: 1, shown: false });
   return list;
 }
 /** Glide membrane, fully spread, in its bone frame (pivot on the body side): shoulder, wrist, ankle,
@@ -180,10 +181,12 @@ function membraneGeometry(sx: number) {
   const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.BufferAttribute(col, 3)); return g;
 }
 /** Shared skinned geometry: every vertex bound with weight 1 to the bone of its piece (rigid). */
-let shared: { geometry: THREE.BufferGeometry; boneNames: string[]; triangles: number[] } | null = null;
-function skinnedGeometry(boneNames: string[], restWorld: Map<string, THREE.Matrix4>) {
-  if (shared) return shared;
-  const list = pieces(), geos: THREE.BufferGeometry[] = [], triangles: number[] = [];
+type SharedRigGeometry = { geometry: THREE.BufferGeometry; boneNames: string[]; triangles: number[] };
+const shared: Partial<Record<'runtime'|'legacy', SharedRigGeometry>> = {};
+function skinnedGeometry(boneNames: string[], restWorld: Map<string, THREE.Matrix4>, includeLegacyMembranes: boolean) {
+  const variant = includeLegacyMembranes ? 'legacy' : 'runtime';
+  if (shared[variant]) return shared[variant]!;
+  const list = pieces(includeLegacyMembranes), geos: THREE.BufferGeometry[] = [], triangles: number[] = [];
   for (const piece of list) {
     const source = piece.membrane ? membraneGeometry(piece.membrane) : mergeParts('hamster:' + piece.bone, piece.parts!);
     const g = new THREE.BufferGeometry(); g.setAttribute('position', source.getAttribute('position').clone()); g.setAttribute('color', source.getAttribute('color').clone());
@@ -195,23 +198,24 @@ function skinnedGeometry(boneNames: string[], restWorld: Map<string, THREE.Matri
   }
   const geometry = mergeGeometries(geos, false)!; for (const g of geos) g.dispose();
   geometry.computeVertexNormals(); geometry.computeBoundingSphere();
-  return shared = { geometry, boneNames, triangles };
+  return shared[variant] = { geometry, boneNames, triangles };
 }
 const toggle = (bone: THREE.Bone): PartToggle => ({ get visible() { return bone.scale.x > 0; }, set visible(v: boolean) { bone.scale.setScalar(v ? 1 : 0); } });
 
-export function buildHamsterRig(): HamsterRig {
+export function buildHamsterRig(options: { legacyBodyMembranes?: boolean } = {}): HamsterRig {
+  const legacyBodyMembranes = options.legacyBodyMembranes === true;
   const bones = new Map<string, THREE.Bone>();
   const bone = (name: string) => { const b = new THREE.Bone(); b.name = name; bones.set(name, b); return b; };
   for (const name of HAMSTER_JOINTS) bone(name).position.set(...REST[name]);
   for (const name of HAMSTER_JOINTS) { const parent = PARENT[name]; if (parent) bones.get(parent)!.add(bones.get(name)!); }
-  const list = pieces();
+  const list = pieces(legacyBodyMembranes);
   for (const piece of list) if (piece.parent) { const b = bone(piece.bone); if (piece.at) b.position.set(...piece.at); if (piece.rx) b.rotation.x = piece.rx; bones.get(piece.parent)!.add(b); }
   const joints = Object.fromEntries(HAMSTER_JOINTS.map((n) => [n, bones.get(n)!])) as Record<HamsterJoint, THREE.Bone>;
   joints.Satchel.rotation.set(0, .55, 0);
   // Rest pose (every piece shown) → bind matrices, then hide the optional pieces.
   const root = joints.HamsterBody; root.updateMatrixWorld(true);
   const boneNames = [...bones.keys()], restWorld = new Map(boneNames.map((n) => [n, bones.get(n)!.matrixWorld.clone()]));
-  const { geometry, triangles } = skinnedGeometry(boneNames, restWorld);
+  const { geometry, triangles } = skinnedGeometry(boneNames, restWorld, legacyBodyMembranes);
   const mesh = new THREE.SkinnedMesh(geometry, hamsterMaterial); mesh.name = 'HamsterMesh'; mesh.add(root);
   const skeleton = new THREE.Skeleton(boneNames.map((n) => bones.get(n)!));
   mesh.bind(skeleton, new THREE.Matrix4());

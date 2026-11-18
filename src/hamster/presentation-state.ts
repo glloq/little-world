@@ -25,6 +25,8 @@ export interface PlayerPresentationState {
   landingKind?:'idle'|'run'|'roll'|'glide';landingSlide?:number;
   footSupportLeft?:number;footSupportRight?:number;
   gasBoosting?:boolean;gasPulseSeq?:number;gasSkinId?:FlightSkin;gasSoundId?:FlightSkin;
+  /** Optional glider presentation cues (render only, never flight authority). */
+  glideStalled?:boolean;glideBrake?:number;glidePitch?:number;glideTurnRate?:number;
   fishing: { x: number; y: number; z: number; biting: boolean } | null;
 }
 const finite = (v: unknown, lim = 1e6) => typeof v === 'number' && Number.isFinite(v) && Math.abs(v) <= lim;
@@ -43,6 +45,10 @@ export function parsePresentationState(value: unknown): PlayerPresentationState 
   for(const key of ['jumpSeq','landingSeq'] as const)
     if(s[key]!==undefined&&(!Number.isSafeInteger(s[key])||s[key]!<0))throw Error('Séquence de mouvement invalide : '+key);
   if(s.gasBoosting!==undefined&&typeof s.gasBoosting!=='boolean')throw Error('Drapeau de propulsion invalide');
+  if(s.glideStalled!==undefined&&typeof s.glideStalled!=='boolean')throw Error('Drapeau de décrochage invalide');
+  for(const key of ['glideBrake','glidePitch','glideTurnRate'] as const){
+    if(s[key]!==undefined&&(!finite(s[key],3)||key==='glideBrake'&&(s[key]!<0||s[key]!>1)))throw Error('Cue de planeur invalide : '+key);
+  }
   if(s.gasPulseSeq!==undefined&&(!Number.isSafeInteger(s.gasPulseSeq)||s.gasPulseSeq<0))throw Error('Séquence de propulsion invalide');
   if(s.gasSkinId!==undefined&&!FLIGHT_SKINS.includes(s.gasSkinId))throw Error('Skin de propulsion invalide');
   if(s.gasSoundId!==undefined&&!FLIGHT_SKINS.includes(s.gasSoundId))throw Error('Son de propulsion invalide');
@@ -63,6 +69,10 @@ export function parsePresentationState(value: unknown): PlayerPresentationState 
     ...(s.groundPitch!==undefined?{groundPitch:s.groundPitch}:{}),
     ...(s.groundRoll!==undefined?{groundRoll:s.groundRoll}:{}),
     ...(s.rollSlip!==undefined?{rollSlip:s.rollSlip}:{}),
+    ...(s.glideStalled!==undefined?{glideStalled:s.glideStalled}:{}),
+    ...(s.glideBrake!==undefined?{glideBrake:s.glideBrake}:{}),
+    ...(s.glidePitch!==undefined?{glidePitch:s.glidePitch}:{}),
+    ...(s.glideTurnRate!==undefined?{glideTurnRate:s.glideTurnRate}:{}),
     ...(s.gasBoosting!==undefined?{gasBoosting:s.gasBoosting}:{}),
     ...(s.gasPulseSeq!==undefined?{gasPulseSeq:s.gasPulseSeq}:{}),
     ...(s.gasSkinId!==undefined?{gasSkinId:s.gasSkinId}:{}),
@@ -83,6 +93,9 @@ export function interpolatePresentation(a: PlayerPresentationState, b: PlayerPre
     ...(a.groundRoll!==undefined&&b.groundRoll!==undefined?{groundRoll:l(a.groundRoll,b.groundRoll)}:{}),
     ...(a.rollSlip!==undefined&&b.rollSlip!==undefined?{rollSlip:l(a.rollSlip,b.rollSlip)}:{}),
     ...(a.landingSlide!==undefined&&b.landingSlide!==undefined?{landingSlide:l(a.landingSlide,b.landingSlide)}:{}),
+    ...(a.glideBrake!==undefined&&b.glideBrake!==undefined?{glideBrake:l(a.glideBrake,b.glideBrake)}:{}),
+    ...(a.glidePitch!==undefined&&b.glidePitch!==undefined?{glidePitch:l(a.glidePitch,b.glidePitch)}:{}),
+    ...(a.glideTurnRate!==undefined&&b.glideTurnRate!==undefined?{glideTurnRate:l(a.glideTurnRate,b.glideTurnRate)}:{}),
     ...(a.footSupportLeft!==undefined&&b.footSupportLeft!==undefined?{footSupportLeft:l(a.footSupportLeft,b.footSupportLeft)}:{}),
     ...(a.footSupportRight!==undefined&&b.footSupportRight!==undefined?{footSupportRight:l(a.footSupportRight,b.footSupportRight)}:{}) };
 }

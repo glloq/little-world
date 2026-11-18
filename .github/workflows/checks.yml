@@ -28,6 +28,8 @@ jobs:
       - run: npm run generate:beta
       - run: git diff --exit-code -- tests/fixtures/legacy-maps/authoring/beta.project.json tests/fixtures/legacy-maps/published/beta.json tests/fixtures/legacy-maps/published/beta.project.json
       - run: npm run generate:island
+      - name: Inspect race placement on actual 4x3 km island (read-only)
+        run: node --experimental-strip-types tools/report-race-terrain.mjs
       - run: git diff --exit-code -- maps/island.project.json public/maps/island
       - run: npm run generate:production-reference
       - run: git diff --exit-code -- tests/fixtures/legacy-maps/authoring/production-reference.project.json tests/fixtures/legacy-maps/published/production-reference.project.json tests/fixtures/legacy-maps/published/production-reference
@@ -63,6 +65,8 @@ jobs:
         run: node tools/run-browser-check.mjs gameplay
       - name: Player interface browser checks
         run: node tools/run-browser-check.mjs ui
+      - name: Studio race courses compile and runtime smoke test
+        run: node --experimental-strip-types tools/test-races-browser.mjs
       - name: Environment browser checks
         run: node tools/run-browser-check.mjs environment
       - name: Local viewport browser checks

@@ -64,7 +64,8 @@ export function playableFromCompiled(bundle:CompiledWorldBundle,spawn?:Point3):P
   const masks:Record<string,import('../geography/layers.ts').SectorLayers>={};for(const chunk of chunks)if(chunk.layers)masks[chunk.chunkId]=structuredClone(chunk.layers);
   const zones=Object.values(logic.libraries.zones??{}).map(z=>({kind:z.kind,polygon:z.polygon.map(p=>({...p}))}));
   const landscapes=[...landscapeRegions(logic.libraries.landscapes),...regionDressingRegions(logic.libraries.regions)];
-  const world:WorldDefinition={...(Object.keys(masks).length||zones.length||landscapes.length?{geography:{sectorSizeM:manifest.chunkSizeM,masks,zones,...(landscapes.length?{landscapes}:{})}}:{}),schemaVersion:2,name:manifest.worldId,config,placements,terrain,biomes,
+  const raceRoads=Object.values(logic.libraries.races??{}).flatMap(r=>r.track?[structuredClone(r.track)]:[]);
+  const world:WorldDefinition={...(Object.keys(masks).length||zones.length||landscapes.length||raceRoads.length?{geography:{sectorSizeM:manifest.chunkSizeM,masks,zones,...(landscapes.length?{landscapes}:{}),...(raceRoads.length?{races:raceRoads}:{})}}:{}),schemaVersion:2,name:manifest.worldId,config,placements,terrain,biomes,
     water:unionById(chunks.map(chunk=>chunk.water as WaterBody[])).map(w=>structuredClone(w)),paths:unionById(chunks.map(chunk=>chunk.paths as PathDefinition[])).map(p=>structuredClone(p)),npcs,...(lights.length?{lights}:{})};
   const components=new Map<string,ComponentMap>(entities.map(entity=>[entity.id,entity.components]));
   const activities=activitiesFromZones(Object.values(logic.libraries.zones??{}),createTerrainSource(config,terrain));
@@ -78,9 +79,10 @@ export function playableFromCompiled(bundle:CompiledWorldBundle,spawn?:Point3):P
   for(const entity of entities)if(entity.components.Habitat&&entity.components.Transform)collisions.push(...habitatColliders(entity.id,entity.components.Transform));
   const actions=[...gameplay.interactions.flatMap(i=>i.sequence),...gameplay.dialogues.flatMap(d=>d.lines.flatMap(l=>[...(l.actions??[]),...l.choices.flatMap(c=>c.actions??[])]))];
   validateAudioLinks(manifest.audio,gameplay.entities.map(e=>e.id),actions.filter(a=>a.type==='playSound').map(a=>(a as {soundId:string}).soundId));
+  const races=Object.values(logic.libraries.races??{}).map(r=>structuredClone(r));
   const start=spawn??defaultSpawn(config,terrain);
   if(Math.abs(start.x)>(config.width??0)/2||Math.abs(start.z)>(config.length??0)/2)throw Error('Point de départ hors de la carte');
-  return {schemaVersion:1,kind:'playable-world',...(manifest.audio?{audio:manifest.audio}:{}),world,gameplay,collisions,spawn:{...start},...(activities.mines.length||activities.farms.length?{activities}:{})};
+  return {schemaVersion:1,kind:'playable-world',...(manifest.audio?{audio:manifest.audio}:{}),world,gameplay,collisions,spawn:{...start},...(activities.mines.length||activities.farms.length?{activities}:{}),...(races.length?{races}:{})};
 }
 /** Published worlds: a same-origin relative manifest path such as `maps/island/manifest.json`. */
 export function publishedManifestURL(base:string,path:string):string{

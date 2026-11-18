@@ -3,7 +3,8 @@
  * hierarchy (22 animated bones), ONE skinned low-poly mesh (rigid binding), sockets, accessories
  * and tools on their own bones (scale 0 = hidden), and
  * animation clips SAMPLED from the game's own state machine (same code as the runtime, so the
- * GLB is a faithful reference for Blender/Studio). The game uses the procedural build directly.
+ * GLB is a stable legacy body reference for Blender/Studio). The game uses the procedural build
+ * with a backpack V-glider instead of body membranes; this legacy export stays unchanged.
  * No Blender, network or texture download required. */
 import { mkdir, writeFile } from 'node:fs/promises';
 import * as THREE from 'three';
@@ -30,9 +31,9 @@ const CLIPS = [
   ['TOOL_SWING_VERTICAL', .45, 'ground', V(), ['mine', 'pickaxe']], ['TOOL_SWING_HORIZONTAL', .45, 'ground', V(), ['fell', 'axe']],
   ['TOOL_DIG', .5, 'ground', V(), ['farm-clear', 'shovel']], ['PICKUP', .4, 'ground', V(), ['pick', null]], ['FISH_CAST', .6, 'ground', V(), ['fish-cast', 'fishing-rod']], ['FISH_REEL', .7, 'ground', V(), ['fish-reel', 'fishing-rod']], ['INTERACT', .45, 'ground', V(), ['talk', null]],
 ];
-const reference = buildHamster(), clips = [];
+const reference = buildHamster({legacyGlb:true}), clips = [];
 for (const [name, seconds, mode, velocity, act, warm] of CLIPS) {
-  const h = buildHamster(), player = { position: V(), velocity, mode: 'ground', oxygen: 90, glideReady: false, climbDir: { x: 0, z: 1 } };
+  const h = buildHamster({legacyGlb:true}), player = { position: V(), velocity, mode: 'ground', oxygen: 90, glideReady: false, climbDir: { x: 0, z: 1 } };
   if (warm) {
     player.mode = warm==='roll-air'?'roll':warm;
     for (let i = 0; i < 20; i++) {

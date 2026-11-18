@@ -13,7 +13,9 @@ import '../ferry/ferry.css';
 import {isEditableGameTarget} from '../../input/gameplay-input.ts';
 import {loadPreferences,savePreferences,type UiPreferences} from './preferences.ts';
 import {createNotificationCenter,type NoticeKind} from '../notifications/notifications.ts';
-import {inventoryPanel} from '../inventory/inventory.ts';
+import {inventoryPanelV3} from '../inventory/inventory-v3.ts';
+import {createInstrumentPanel} from '../instruments/instrument-panel.ts';
+import {instrumentForItem} from '../../instruments/definitions.ts';
 import {journalPanel,questChanges} from '../journal/journal.ts';
 import {createMapRaster,mapPanel,type MapMarker,type MapDeps} from '../map/map.ts';
 import {createMinimap} from '../map/minimap.ts';
@@ -21,6 +23,7 @@ import {createMineMapPanel,type MineMapSnapshot} from '../map/mine-map.ts';
 import {mineHubLayout} from '../../mine/mine-hub.ts';
 import {createWaypointStore} from '../map/waypoints.ts';
 import {hudIcon} from '../shared/icons.ts';
+import {DEMO_RACES} from '../../gameplay/race-demos.ts';
 import {savesPanel} from '../saves/saves.ts';
 import {settingsPanel} from '../settings/settings.ts';
 import {pauseMenu} from '../menus/pause.ts';
@@ -31,6 +34,7 @@ import {promptText,type TargetDescriptor} from '../interactions/targets.ts';
 import {el,button,kbd} from '../shared/dom.ts';
 import './ui.css';
 import './hud.css';
+import '../inventory/inventory-v3.css';
 
 export interface GameUiDeps {
   gameplay:GameplayView|null;
@@ -41,12 +45,21 @@ export interface GameUiDeps {
   landmarks?:readonly {id:string;label:string;x:number;z:number}[];
   ferry?:FerryPanelDeps & {dock:{x:number;z:number}};
   importTrade?:ImportStandPanelDeps;
+  headgear?:{equipped():boolean;setEquipped(value:boolean):void};
+  races?:{
+    start(id:string):{ok:boolean;message:string};
+    available():readonly {id:string;name:string;distance:number}[];
+    active():string|null;
+    abort():string;
+  };
   mineHub?:{
     view():{mineId:string;name:string;currentLevel:string;excavations:number;stops:{id:string;name:string;unlocked:boolean;required:number;current:boolean}[]}|null;
     travel(levelId:string):Promise<{ok:boolean;message?:string;reason?:string}>;
   };
   world:{name:string;buildVersion:string;dayLength:number;bounds:{minX:number;maxX:number;minZ:number;maxZ:number};seaLevel:number;height(x:number,z:number):number;water(x:number,z:number):number|null};
   eatFood?(id:string):{ok:boolean;message:string};
+  eatFoods?(items:{itemId:string;quantity:number;gas:number}[]):{ok:boolean;message:string};
+  canEatFood?(id:string):string|null;
   player():{gas?:number;maxGas?:number;gasShots?:number;gasMaxShots?:number;gasCooldown?:number;x:number;y:number;z:number;yaw:number;space?:MovementSpace;mode:string;oxygen:number;maxOxygen:number;stamina:number;maxStamina:number;speed?:number;stalled?:boolean};
   target():TargetDescriptor|null;
   quality:HTMLSelectElement|null;
@@ -76,10 +89,21 @@ export function createGameUi(deps:GameUiDeps){
   mineLoading.append(mineLoadingCard);host.append(mineLoading);
 
   // Panels.
-  let selectedTool:string|null=null,restoring=false;
-  const inventory=inventoryPanel({items:()=>g?.runtime.data.items??[],inventory:()=>g?.runtime.state.inventory??{},selectedTool:()=>selectedTool,selectTool:id=>{selectedTool=id;renderTool();},gasLevel:()=>deps.player().gas??0,gasCapacity:()=>deps.player().maxGas??200,
-    consume:deps.eatFood?(id)=>{const result=deps.eatFood!(id);center.notify(result.ok?'success':'warning',result.message);return result.ok;}:undefined});
-  ui.register('inventory','Sac',{render:b=>inventory.render(b),onClose:()=>{inventory.markSeen();deps.audio?.emit('ui.inventory.close',{source:'ui'});}});
+  let restoring=false;
+  const instrumentPanel=createInstrumentPanel({
+    equipped:()=>instrumentForItem(g?.equipment.hands),
+    noteOn:(patch,note)=>deps.audio?.engine.instrumentNoteOn(patch,note)??false,
+    noteOff:note=>deps.audio?.engine.instrumentNoteOff(note),
+    allNotesOff:()=>deps.audio?.engine.instrumentAllNotesOff(),
+    unlock:()=>deps.audio?.start()??Promise.resolve(false),
+  });
+  if(g)ui.register('instrument','Jouer de la musique',{render:b=>instrumentPanel.render(b),onClose:()=>instrumentPanel.close()});
+  const inventory=inventoryPanelV3({worldId:g?.runtime.data.worldId,favoriteSlots:()=>g?.equipment.favorites??null,setFavoriteSlots:ids=>g?.equipment.setFavorites(ids)??false,items:()=>g?.runtime.data.items??[],inventory:()=>g?.runtime.state.inventory??{},selectedTool:()=>g?.equipment.hands??null,selectTool:id=>{const ok=g?.equipment.setHands(id);renderTool();return ok;},playInstrument:id=>{if(g?.equipment.hands===id)ui.open('instrument');},headgear:deps.headgear,gasLevel:()=>deps.player().gas??0,gasCapacity:()=>deps.player().maxGas??200,
+    canConsume:deps.canEatFood,
+    consume:deps.eatFood?(id)=>{const result=deps.eatFood!(id);center.notify(result.ok?'success':'warning',result.message);return result.ok;}:undefined,
+    consumeBatch:deps.eatFoods,
+    confirm:(message,label)=>ui.confirm(message,label),notify:message=>center.notify('info',message)});
+  ui.register('inventory','Sac',{render:b=>inventory.render(b),onEscape:()=>inventory.cancelSelection(),onClose:()=>{inventory.markSeen();deps.audio?.emit('ui.inventory.close',{source:'ui'});}});
 
   const waypoints=createWaypointStore(g?.runtime.data.worldId??deps.world.name,deps.world.bounds,deps.temporary);
   const markers=():MapMarker[]=>{
@@ -201,6 +225,40 @@ export function createGameUi(deps:GameUiDeps){
   ui.register('settings','Paramètres',{pauses:true,render:b=>{closeAudioPopover();settingsPanel({preferences:()=>prefs,update:updatePrefs,quality:deps.quality,audioPanel:deps.audio?.panel??null,environmentControls:deps.environmentControls??null,showDeveloper:prefs.developer||devUrl}).render(b);},
     // The audio panel goes back to its developer place when the settings close.
     onClose:()=>{const audio=deps.audio?.panel;if(audio){audio.open=false;const advanced=audio.querySelector<HTMLDetailsElement>('.audio-mixer-advanced');if(advanced)advanced.open=false;document.body.append(audio);}if(deps.environmentControls)document.body.append(deps.environmentControls);}});
+  if(deps.races)ui.register('races','Courses',{pauses:true,render:b=>{
+    b.replaceChildren(el('p','ui-muted','Trois circuits de démonstration à générer devant le hamster. Les temps sont personnels et propres au tracé exact : aucun classement compétitif.'));
+    const active=deps.races!.active();
+    if(active){
+      b.append(el('p','ui-badge-line','Course active : '+active),
+        button('Abandonner la course',()=>{deps.races!.abort();ui.refresh('races');},'ui-button'));
+    }
+    const fixed=deps.races!.available();
+    if(fixed.length){
+      b.append(el('h3','','Circuits fixes de l’île'),
+        el('p','ui-muted','Ces courses ont un départ permanent. Rejoignez-le puis franchissez la première porte pour lancer le chronomètre.'));
+      for(const race of fixed){
+        const row=el('div','ui-race-option'),
+          title=el('strong','',race.name),
+          desc=el('p','ui-muted',race.distance+' m du départ · visible sur la carte');
+        const launch=button('Lancer',()=>{
+          const result=deps.races!.start(race.id);
+          if(result.ok){ui.close();center.notify('info',result.message);}
+          else center.notify('warning',result.message);
+        },'ui-button ui-primary');
+        row.append(title,desc,launch);b.append(row);
+      }
+    }
+    b.append(el('h3','','Circuits d’entraînement'));
+    for(const demo of DEMO_RACES){
+      const row=el('div','ui-race-option'),title=el('strong','',demo.name),desc=el('p','ui-muted',demo.description);
+      const launch=button('Lancer',()=>{
+        const result=deps.races!.start(demo.id);
+        if(result.ok){ui.close();center.notify('info',result.message);}
+        else center.notify('warning',result.message);
+      },'ui-button ui-primary');
+      row.append(title,desc,launch);b.append(row);
+    }
+  }});
   ui.register('pause','Menu',{pauses:true,render:b=>pauseMenu({has:id=>ui.has(id),open:id=>ui.open(id),resume:()=>ui.close(),home:()=>{host.classList.add('ui-await-start');deps.home();},studioUrl:deps.studioUrl,worldName:deps.world.name,temporary:deps.temporary}).render(b)});
   // Non-blocking HUD. The map, sound engine and gameplay state remain the single sources of truth.
   const prompt=document.querySelector<HTMLElement>('#action')??el('div','action-toast');prompt.id='action';prompt.classList.add('ui-prompt','hide');host.append(prompt);
@@ -238,9 +296,9 @@ export function createGameUi(deps:GameUiDeps){
     if(!audioPopover.hidden&&!audioPopover.contains(e.target as Node)&&!soundButton.contains(e.target as Node))hideAudioPopover();
   });
   const quick=el('nav','ui-quickbar');quick.setAttribute('aria-label','Accès rapide');
-  for(const [id,label,key,icon] of [['inventory','Sac','I','backpack'],['journal','Journal','J','journal']] as const){
-    if(id==='inventory'&&!g)continue;
-    const b=button('',()=>ui.toggle(id),'ui-quick');b.append(hudIcon(icon),el('span','ui-quick-label',label),kbd(key));
+  for(const [id,label,key,icon] of [['inventory','Sac','I','backpack'],['journal','Journal','J','journal'],['races','Courses','','flag']] as const){
+    if(id==='inventory'&&!g||id==='races'&&!deps.races)continue;
+    const b=button('',()=>ui.toggle(id),'ui-quick');b.append(hudIcon(icon),el('span','ui-quick-label',label));if(key)b.append(kbd(key));
     b.setAttribute('aria-label',label+' ('+key+')');b.dataset.panel=id;quick.append(b);
   }
   const minimap=createMinimap(mapDeps,mapRaster,()=>ui.open('map'),mineMapContext);
@@ -256,7 +314,8 @@ export function createGameUi(deps:GameUiDeps){
   host.append(quick,minimap.element,tool,oxygen,stamina,gas,velocity);
   ui.onChange(id=>{if(id)hideAudioPopover();});
   const card=activityCard(host,(plotId,cropId)=>{const name=a?.selectCrop(plotId,cropId);if(name){center.notify('info','Culture choisie : '+name);deps.audio?.emit('farm.seedbag',{source:'player'});}});
-  function renderTool(){const item=g?.runtime.data.items.find(i=>i.id===selectedTool);tool.textContent=item?'En main : '+item.name:'';tool.classList.toggle('hide',!item);}
+  function renderTool(){const item=g?.runtime.data.items.find(i=>i.id===g?.equipment.hands);tool.textContent=item?'En main : '+item.name:'';tool.classList.toggle('hide',!item);}
+  renderTool();
   // Gameplay changes → notifications (gains, missions) and open panel refresh.
   let lastInventory:Record<string,number>={...(g?.runtime.state.inventory??{})},lastObjectives={...(g?.runtime.state.objectives??{})};
   function snapshot(){lastInventory={...(g?.runtime.state.inventory??{})};lastObjectives={...(g?.runtime.state.objectives??{})};}
@@ -265,7 +324,8 @@ export function createGameUi(deps:GameUiDeps){
     if(restoring)return;
     const inv=g.runtime.state.inventory;for(const [id,q] of Object.entries(inv)){const d=q-(lastInventory[id]??0);if(d>0)center.gain(id,g.runtime.data.items.find(i=>i.id===id)?.name??id,d);}
     for(const text of questChanges(g.runtime.data.objectives,lastObjectives,g.runtime.state.objectives))center.quest(text);
-    snapshot();if(ui.active==='inventory'||ui.active==='journal')ui.refresh();
+    snapshot();renderTool();if(ui.active==='journal'||ui.active==='inventory'&&!inventory.isInteracting())ui.refresh();
+    if(ui.active==='instrument'&&!instrumentForItem(g.equipment.hands))ui.close();
   });
   let lastFrame=-1,promptKey='';
   return {

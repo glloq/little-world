@@ -32,6 +32,8 @@ export class AudioEngine {
  private analyser:AnalyserNode|null=null;
  private buses:Partial<Record<Bus,GainNode>>={};
  private voices=new Map<number,Voice>();
+ /** Held performer notes are tracked separately from scheduled background-score voices. */
+ private heldInstrumentNotes=new Map<number,number>();
  private buffers=new Map<string,{buffer:AudioBuffer;bytes:number;used:number}>();
  private decoding=new Map<string,Promise<AudioBuffer|null>>();
  private decodeQueue:(()=>void)[]=[];
@@ -101,14 +103,14 @@ export class AudioEngine {
  private stop(v:Voice,at=this.context?.currentTime??0,fade=0){if(v.retiring)return;v.retiring=true;const tau=fade>0?fade/3:.004;v.fade=fade;try{v.gain.gain.cancelScheduledValues(at);v.gain.gain.setTargetAtTime(0,at,tau);v.source.stop(at+Math.max(.02,tau*6));}catch{/* Already ended. */}}
  /** At most 4 slow ambience fades at once: flickering zones must not pile up nodes. */
  private limitFades(){const fading=[...this.voices.values()].filter(v=>v.retiring&&v.fade).sort((a,b)=>a.start-b.start);while(fading.length>4){const v=fading.shift()!;v.fade=0;try{const at=this.context?.currentTime??0;v.gain.gain.cancelScheduledValues(at);v.gain.gain.setTargetAtTime(0,at,.004);v.source.stop(at+.03);}catch{/* Already ended. */}}}
- private stopAll(){for(const v of this.voices.values())this.stop(v);this.ambient.clear();this.playedEntries.clear();}
- private clean(v:Voice){if(!this.voices.delete(v.id))return;v.source.disconnect();v.gain.disconnect();v.panner?.disconnect();for(const [key,id]of this.ambient)if(id===v.id)this.ambient.delete(key);this.trimBuffers(0);}
+ private stopAll(){for(const v of this.voices.values())this.stop(v);this.heldInstrumentNotes.clear();this.ambient.clear();this.playedEntries.clear();}
+ private clean(v:Voice){if(!this.voices.delete(v.id))return;for(const [note,id] of this.heldInstrumentNotes)if(id===v.id)this.heldInstrumentNotes.delete(note);v.source.disconnect();v.gain.disconnect();v.panner?.disconnect();for(const [key,id]of this.ambient)if(id===v.id)this.ambient.delete(key);this.trimBuffers(0);}
  /** Nodes counted against the hard cap; slow ambience fades (≤ 2 layers) do not block gameplay sounds. */
  private nodeCount(){let n=0;for(const v of this.voices.values())if(!(v.retiring&&v.fade))n++;return n;}
  private allocate(bus:Bus,priority:number,at:number):number|null {
   if(!this.ready||!this.context)return null;
   const active=[...this.voices.values()].filter(v=>!v.retiring),same=active.filter(v=>v.bus==='music');let victim:Voice|undefined;const nodes=this.nodeCount();
-  if(bus==='music'&&same.length>=this.budget.maxMusicVoices)victim=same.sort((a,b)=>a.end-b.end)[0];
+  if(bus==='music'&&same.length>=this.budget.maxMusicVoices){victim=same.filter(v=>v.priority<=priority).sort((a,b)=>a.priority-b.priority||a.end-b.end)[0];if(!victim){this.dropped++;return null;}}
   else if(active.length>=this.budget.maxTotalVoices)victim=active.filter(v=>v.priority<=priority).sort((a,b)=>a.priority-b.priority||a.end-b.end)[0];
   if((victim||active.length>=this.budget.maxTotalVoices)&&(!victim||nodes>=this.budget.maxTotalVoices+2)){this.dropped++;return null;}
   if(nodes>=this.budget.maxTotalVoices+2){this.dropped++;return null;}
@@ -122,6 +124,28 @@ export class AudioEngine {
   source.type=patch.wave;source.frequency.setValueAtTime(440*2**((note-69)/12),start);if(patchId==='soft-drum')source.frequency.exponentialRampToValueAtTime(55,start+.06);
   volume.gain.setValueAtTime(0,start);const attackEnd=Math.min(off,start+patch.attack);volume.gain.linearRampToValueAtTime(peak,attackEnd);volume.gain.exponentialRampToValueAtTime(Math.max(.0001,peak*patch.sustain),Math.min(off,attackEnd+patch.decay));volume.gain.setTargetAtTime(0,off,Math.max(.004,patch.release/4));source.connect(volume);volume.connect(this.buses.music!);this.register(source,volume,'music',2,start,off+patch.release,{group});source.start(start);source.stop(off+patch.release+.02);this.scheduled++;
  }
+ /** Hold a MIDI note for a currently equipped player instrument. The shared music budget
+  * prioritises player notes above automatically scheduled background music. */
+ instrumentNoteOn(patchId:PatchId,note:number,velocity=.8):boolean{
+  if(!Number.isInteger(note)||note<0||note>127||!Number.isFinite(velocity)||velocity<=0||velocity>1||!Object.hasOwn(PATCHES,patchId))return false;
+  const c=this.context;if(!c||!this.ready||this.levels.music<=0)return false;
+  this.instrumentNoteOff(note);
+  const at=this.allocate('music',9,c.currentTime+.003);if(at===null)return false;
+  const patch=PATCHES[patchId],source=c.createOscillator(),gain=c.createGain(),peak=patch.gain*velocity;
+  source.type=patch.wave;source.frequency.setValueAtTime(440*2**((note-69)/12),at);
+  gain.gain.setValueAtTime(0,at);
+  gain.gain.linearRampToValueAtTime(peak,at+patch.attack);
+  gain.gain.exponentialRampToValueAtTime(Math.max(.0001,peak*patch.sustain),at+patch.attack+patch.decay);
+  source.connect(gain);gain.connect(this.buses.music!);
+  const voice=this.register(source,gain,'music',9,at,Infinity);
+  this.heldInstrumentNotes.set(note,voice.id);source.start(at);this.scheduled++;
+  return true;
+ }
+ instrumentNoteOff(note:number):void{
+  const id=this.heldInstrumentNotes.get(note);if(id===undefined)return;
+  this.heldInstrumentNotes.delete(note);const v=this.voices.get(id);if(v)this.stop(v,undefined,.045);
+ }
+ instrumentAllNotesOff():void{for(const note of [...this.heldInstrumentNotes.keys()])this.instrumentNoteOff(note);}
  private diagnose(message:string){if(this.diagnosticLog.includes(message))return;this.diagnosticLog.push(message);if(this.diagnosticLog.length>40)this.diagnosticLog.shift();}
  private usable=(a:AudioAssetV2)=>assetPlayable(a)&&!this.unavailable.has(a.id);
  private scoreAvailable(id:string){const s=this.catalog.scores[id];return !!s&&this.usable(this.catalog.assets[s.assetId]);}

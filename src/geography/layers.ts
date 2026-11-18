@@ -19,6 +19,7 @@ export const MATERIALS:CategoryValue[]=[
   {code:'d',id:'dirt',label:'Terre',color:0x8a6a45},{code:'s',id:'sand',label:'Sable',color:0xead796},{code:'p',id:'pebbles',label:'Galets',color:0xb9b3a4},
   {code:'r',id:'rock',label:'Roche',color:0x777a80},{code:'v',id:'gravel',label:'Gravier',color:0xa9a291},{code:'b',id:'basalt',label:'Basalte',color:0x3a3537},
   {code:'a',id:'ash',label:'Cendre',color:0x958a84},{code:'m',id:'mud',label:'Boue',color:0x6b5b44},
+  {code:'N',id:'snow',label:'Neige damée',color:0xe7f0f7},{code:'I',id:'ice',label:'Glace',color:0xb6dce8},
 ];
 export const OCCUPATION:CategoryValue[]=[
   {code:'b',id:'built',label:'Bâti / village',color:0xd2693c},{code:'f',id:'farm',label:'Agricole',color:0xe5b83c},{code:'r',id:'road',label:'Chemin',color:0xa07850},

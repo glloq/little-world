@@ -3,6 +3,10 @@ import * as THREE from 'three';
 import {FrameClock} from '../../frame-clock.ts';
 import {buildWorld,configureScene,addPlacement,removePlacement,configureWorldGeography,type WorldView} from '../../world.ts';
 import {configureTerrain,terrainHeight} from '../../terrain.ts';
+import {createRaceGates} from '../../render/race-gates.ts';
+import {createRaceTrackMesh} from '../../render/race-track-view.ts';
+import type {RaceTrack} from '../../gameplay/race-track.ts';
+import type {RaceGate} from '../../gameplay/races.ts';
 import {terrainChangeRects} from '../../studio-core/geo-edits.ts';
 import {horizonFar} from '../../horizon-view.ts';
 import {createNPCSystem} from '../../npc-view.ts';
@@ -51,6 +55,8 @@ export class StudioViewport {
   readonly tools:ToolManager;
   private renderer:THREE.WebGLRenderer;
   private scene=new THREE.Scene();
+  private racePreview:ReturnType<typeof createRaceGates>|null=null;
+  private raceTrackPreview:THREE.Mesh|null=null;
   private world:WorldView;
   private hybridControls:ReturnType<typeof mountHybridControls>;
   private definition:WorldDefinition;
@@ -106,6 +112,22 @@ export class StudioViewport {
   setVisible(visible:boolean){this.visible=visible;this.element.hidden=!visible;if(visible){this.resize();this.invalidate(10);}}
   setTool(id:string){this.tools.activate(this.tools.has(id)?id:'select');if(this.session.selection.state.activeTool!==this.tools.active!.id)this.session.selection.setTool(this.tools.active!.id);this.canvas.dataset.tool=this.tools.active!.id;}
   focusSelection(){const b=this.selection.bounds();if(b)this.camera.focus(b.center,b.radius);else if(this.cursor)this.camera.focus({x:this.cursor.x,y:terrainHeight(this.cursor.x,this.cursor.z),z:this.cursor.z},10);this.invalidate(30);this.saveCamera();}
+  /** Course authoring preview; presentation only, no collider or logical state. */
+  setRacePreview(gates:readonly RaceGate[]|null){
+    if(!gates){this.racePreview?.clear();this.invalidate(3);return;}
+    this.racePreview??=createRaceGates(this.scene);
+    this.racePreview.show(gates);this.invalidate(3);
+  }
+  setRaceTrackPreview(track:RaceTrack|null){
+    if(this.raceTrackPreview){
+      this.raceTrackPreview.removeFromParent();
+      this.raceTrackPreview.geometry.dispose();
+      (this.raceTrackPreview.material as THREE.Material).dispose();
+      this.raceTrackPreview=null;
+    }
+    if(track){this.raceTrackPreview=createRaceTrackMesh(track,terrainHeight);this.scene.add(this.raceTrackPreview);}
+    this.invalidate(3);
+  }
   goTo(x:number,z:number,radius=12){const p=this.session.document;x=clampX(p,x);z=clampZ(p,z);this.camera.moveTarget(x,z);this.camera.focus({x,y:terrainHeight(x,z),z},radius);this.invalidate(30);this.saveCamera();}
   objectFor(id:string):THREE.Object3D|undefined{return this.models.get(id)?.object??this.npcObjects.get(id)?.find(o=>o.visible)??this.npcObjects.get(id)?.[0]??this.lightMarkers.get(id)?.object;}
   /** E10 — night preview: the runtime's own midnight sky values and lights at full night
@@ -252,6 +274,16 @@ export class StudioViewport {
       if(next.get(id)===previous.get(id))continue;
       if(id==='#landscapes'){for(const regions of [previous.get(id),next.get(id)])for(const r of JSON.parse(regions??'[]') as {x:number;z:number;width:number;length:number}[])this.world.refreshTerrain(r.x,r.z,Math.hypot(r.width,r.length)/2+8);continue;}
       if(id==='#zones'){for(const zones of [previous.get(id),next.get(id)])for(const z of JSON.parse(zones??'[]') as {polygon:{x:number;z:number}[]}[]){const xs=z.polygon.map(q=>q.x),zs=z.polygon.map(q=>q.z),x0=Math.min(...xs),x1=Math.max(...xs),z0=Math.min(...zs),z1=Math.max(...zs);this.world.refreshTerrain((x0+x1)/2,(z0+z1)/2,Math.hypot(x1-x0,z1-z0)/2+4);}continue;}
+      if(id==='#races'){
+        for(const json of [previous.get(id),next.get(id)])for(const track of JSON.parse(json??'[]') as RaceTrack[]){
+          if(track.points.length<2)continue;
+          const xs=track.points.map(p=>p.x),zs=track.points.map(p=>p.z),
+            minX=Math.min(...xs),maxX=Math.max(...xs),minZ=Math.min(...zs),maxZ=Math.max(...zs);
+          this.world.refreshTerrain((minX+maxX)/2,(minZ+maxZ)/2,
+            Math.hypot(maxX-minX,maxZ-minZ)/2+track.width/2+12);
+        }
+        continue;
+      }
       const [cx,cz]=id.split(':').map(Number);this.world.refreshTerrain(b.minX+(cx+.5)*size,b.minZ+(cz+.5)*size,size*.72+4);
     }
   }
@@ -325,7 +357,7 @@ export class StudioViewport {
     if(this.disposed)return;this.disposed=true;clearTimeout(this.persist);cancelAnimationFrame(this.frame);this.session.selection.setCamera(this.camera.context());
     for(const stop of this.unsubscribe)stop();this.tools.dispose();this.navigation.dispose();this.resizeObserver.disconnect();
     this.canvas.removeEventListener('pointerdown',this.onDown);this.canvas.removeEventListener('pointermove',this.onMove);this.canvas.removeEventListener('pointerup',this.onUp);this.canvas.removeEventListener('pointerleave',this.onLeave);window.removeEventListener('keydown',this.onKey);
-    this.showPreviewPolyline(null);
+    this.showPreviewPolyline(null);this.racePreview?.dispose();this.racePreview=null;this.setRaceTrackPreview(null);
     for(const child of this.zoneGroup.children){const line=child as THREE.Line;line.geometry.dispose();(line.material as THREE.Material).dispose();}this.zoneGroup.clear();this.zoneGroup.removeFromParent();
     for(const model of this.models.values())removePlacement(model.object);this.models.clear();for(const m of this.lightMarkers.values())disposeMarker(m.object);this.lightMarkers.clear();this.markerGeometry.dispose();this.rangeGizmo.geometry.dispose();(this.rangeGizmo.material as THREE.Material).dispose();this.npcs.dispose();this.selection.dispose();this.hybridControls.dispose();this.world.dispose();this.renderer.dispose();this.renderer.forceContextLoss();this.element.remove();
   }
@@ -341,5 +373,5 @@ function rangeGeometry(){
 }
 function geographySignatures(d:WorldDefinition):Map<string,string>{
   const out=new Map<string,string>();for(const [id,layers]of Object.entries(d.geography?.masks??{}))out.set(id,JSON.stringify(layers));
-  out.set('#zones',JSON.stringify(d.geography?.zones??[]));out.set('#landscapes',JSON.stringify(d.geography?.landscapes??[]));return out;
+  out.set('#zones',JSON.stringify(d.geography?.zones??[]));out.set('#landscapes',JSON.stringify(d.geography?.landscapes??[]));out.set('#races',JSON.stringify(d.geography?.races??[]));return out;
 }

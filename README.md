@@ -182,6 +182,8 @@ docs/                       # Conception, objectifs et registre de décisions
 - [Architecture](docs/05-TECHNICAL-ARCHITECTURE.md)
 - [Assets](docs/06-ASSET-PIPELINE.md)
 - [Feuille de route](docs/07-ROADMAP.md)
+- [Pêche : mini-jeu de tension — conception et audit des systèmes actuels](docs/FISHING-MINIGAME-TECHNICAL-DESIGN.md)
+- [Pêche : roadmap FISH-0 à FISH-7, tests et suivi de livraison](docs/FISHING-MINIGAME-ROADMAP.md)
 - [GitHub Pages](docs/08-GITHUB-PAGES.md)
 - [Registre des décisions](docs/DECISIONS.md)
 - [Plan de test navigateur](docs/09-BROWSER-TEST-PLAN.md)
