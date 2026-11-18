@@ -82,6 +82,14 @@ body.developer .hud-stats{bottom:68px}
 .ui-shop-coins{font-weight:600}.ui-shop-section{margin:10px 0}
 .ui-shop-row{display:grid;grid-template-columns:1fr auto auto auto auto;gap:8px;align-items:center;padding:6px 4px;border-bottom:1px solid var(--ui-line)}
 .ui-shop-price{font-variant-numeric:tabular-nums;font-weight:600}
+.ui-shop-tabs{margin:10px 0;gap:6px}.ui-shop-tabs .ui-button[aria-pressed=true]{font-weight:700}
+.ui-shop-section[data-station]{padding:9px 11px;margin:10px 0;border:1px solid var(--ui-line);border-radius:12px;background:var(--ui-chip)}
+.ui-shop-section[data-station] .ui-shop-row{grid-template-columns:minmax(0,1fr) auto;gap:10px;padding:10px 3px}
+.ui-shop-craft-details{min-width:0}.ui-shop-craft-details p{font-size:12px;line-height:1.4;margin:4px 0}
+.ui-shop-craft-actions{justify-content:flex-end}.ui-shop-batch{min-width:22px;text-align:center;font-variant-numeric:tabular-nums}
+@media(max-width:650px){.ui-shop-section[data-station] .ui-shop-row{grid-template-columns:minmax(0,1fr)}
+.ui-shop-craft-actions{justify-content:flex-start}}
+
 
 .ui-motion-speed{position:fixed;left:1rem;bottom:1rem;padding:.35rem .7rem;border-radius:1rem;background:rgba(248,250,235,.86);color:#354537;font-size:.85rem;pointer-events:none;font-variant-numeric:tabular-nums}
 
