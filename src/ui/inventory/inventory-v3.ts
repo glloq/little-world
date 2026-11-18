@@ -211,7 +211,6 @@ export function inventoryPanelV3(deps:InventoryV3Deps){
     ensureFavorites(all);
     // A sold or consumed stack cannot remain selected; favourites keep their IDs but show empty.
     for(const id of checked)if(!all.some(x=>x.id===id))checked.delete(id);
-    if(!checked.size)multi=false;
     if(!all.some(x=>x.id===selectedId))selectedId=all[0]?.id??null;
     body.replaceChildren();
     const shell=el('div','ui-bag-v3');
