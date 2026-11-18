@@ -44,6 +44,32 @@ export class MineGrid {
           if(k>=0&&this.mask[k]&&mineHubCell(hub,ix,iz))this.open[l][k]=1;
         }
     }
+    // From the centre arch, connect the reception to the nearest authored gallery on
+    // EVERY level. Author maps can place galleries far away from the shared shaft
+    // (e.g. level 3 of B1). Without this path the arch could face solid rock.
+    for(let l=0;l<this.levels.length;l++){
+      const hub=mineHubLayout(zone,l),candidates=zone.mine.galleries.filter(g=>g.levelId===hub.levelId);
+      let target:{x:number;z:number}|null=null,shortest=Infinity;
+      for(const g of candidates){
+        const x=g.maxX-g.minX<1?(g.minX+g.maxX)/2:
+          Math.max(g.minX+.5,Math.min(g.maxX-.5,hub.gallery.x));
+        const z=g.maxZ-g.minZ<1?(g.minZ+g.maxZ)/2:
+          Math.max(g.minZ+.5,Math.min(g.maxZ-.5,hub.gallery.z));
+        const d=(x-hub.gallery.x)**2+(z-hub.gallery.z)**2;
+        if(d<shortest){shortest=d;target={x,z};}
+      }
+      if(!target)continue;
+      const dx=target.x-hub.gallery.x,dz=target.z-hub.gallery.z,
+        steps=Math.max(1,Math.ceil(Math.hypot(dx,dz)*2));
+      for(let t=0;t<=steps;t++){
+        const x=hub.gallery.x+dx*t/steps,z=hub.gallery.z+dz*t/steps;
+        for(let a=-1;a<=1;a++)for(let b=-1;b<=1;b++){
+          if(a*a+b*b>2)continue;
+          const ix=Math.floor(x+a),iz=Math.floor(z+b),k=this.cell(ix,iz);
+          if(k>=0&&this.mask[k])this.open[l][k]=1;
+        }
+      }
+    }
     // The level-1 rear doorway must connect to the existing surface portal at floor
     // height without a lift, load screen or exterior terrain excavation.
     const rear=mineHubLayout(zone,0).surfaceExit;
