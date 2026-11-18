@@ -50,12 +50,14 @@ export function createActivityView(parent:THREE.Object3D,activities:ActivityRunt
       if(level===0)initialiseHub(id,holder,level); // Built during game boot: no hitch at mine entry.
       const sx=Math.sin(hub.heading),sz=Math.cos(hub.heading),
         rx=Math.cos(hub.heading),rz=-Math.sin(hub.heading);
+      // Pool-lit locations follow the actual V3 layout (counter + lift),
+      // never the former narrow reception positions.
       lantern(id+':hub:'+hub.levelId+':shop',
-        hub.shaft.x-rx*2.4-sx*2,hub.floorY+2.7,
-        hub.shaft.z-rz*2.4-sz*2,'always');
+        hub.counter.x+rx*1.0,hub.floorY+2.5,
+        hub.counter.z+rz*1.0,'always');
       lantern(id+':hub:'+hub.levelId+':lift',
-        hub.shaft.x+rx*1+sx*1.6,hub.floorY+2.7,
-        hub.shaft.z+rz*1+sz*1.6,'always');
+        hub.shaft.x+rx*.35+sx*1.45,hub.floorY+2.65,
+        hub.shaft.z+rz*.35+sz*1.45,'always');
     }
     mineMarkers.set(id,markers);
   }
