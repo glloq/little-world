@@ -203,3 +203,17 @@ test('MINE-HUB V2: same asset, level-specific ore pictograms and no exit below',
   assert.ok(all.some(icons=>icons.length>0),'mineral signs must not be empty everywhere');
   for(const material of materials)material.dispose();
 });
+
+test('MINE-HUB V2: each level entrance is joined to its authored remote gallery',()=>{
+  const z=zone();
+  z.mine.galleries=z.mine.galleries.filter(g=>g.levelId!=='level-3');
+  z.mine.galleries.push({levelId:'level-3',minX:10,maxX:14,minZ:29,maxZ:34});
+  const state=new MineState(new MineGrid(z)),hub=mineHubLayout(z,2);
+  const target={x:10.5,z:29.5},dx=target.x-hub.gallery.x,dz=target.z-hub.gallery.z,
+    n=Math.ceil(Math.hypot(dx,dz)*2);
+  for(let i=0;i<=n;i++){
+    const x=hub.gallery.x+dx*i/n,z=hub.gallery.z+dz*i/n;
+    assert.ok(state.isOpen(2,Math.floor(x),Math.floor(z)),
+      'level 3 reaches the distant extraction gallery at sample '+i);
+  }
+});
