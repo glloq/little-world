@@ -28,9 +28,9 @@ test('steering changes downhill heading but never exceeds speed cap',()=>{
  assert.ok(p.velocity.x<0);assert.ok(Math.hypot(p.velocity.x,p.velocity.z)<=26+1e-6);
 });
 test('piste inspection rejects cliffs and accepts a continuous descent',()=>{
- const good=validatePiste([{x:0,z:0},{x:0,z:120}],8,downhill);
- assert.equal(good.ok,false); // uphill start, drop is negative
- const valid=validatePiste([{x:0,z:120},{x:0,z:0}],8,downhill,{minDrop:20});
+ const uphill=validatePiste([{x:0,z:120},{x:0,z:0}],8,downhill);
+ assert.equal(uphill.ok,false); // uphill start, drop is negative
+ const valid=validatePiste([{x:0,z:0},{x:0,z:120}],8,downhill,{minDrop:20});
  assert.equal(valid.ok,true,valid.diagnostics.join('; '));
  const cliff=validatePiste([{x:0,z:0},{x:0,z:120}],8,(_,z)=>120-z*2,{minDrop:0});
  assert.equal(cliff.ok,false);
