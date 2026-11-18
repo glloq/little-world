@@ -58,6 +58,8 @@ import {
   type Controls,
 } from './player';
 import { buildHamster } from './hamster/hamster.ts';
+import {createMineRhythmHud,type MineRhythmSample} from './ui/activities/mine-rhythm-hud.ts';
+import {createMineHelmet} from './hamster/mine-helmet.ts';
 import { createImpactEffects, type ImpactKind } from './hamster/impact-effects.ts';
 import {createGasEffects} from './hamster/gas-effects.ts';
 import {GAS,gasLevel,gasCapacity,gasShots,gasMaxShots,refillGas} from './physics/gas-propulsion.ts';
@@ -396,6 +398,7 @@ if(gameplay)gameplay.collision.setMaterialSampler(createMaterialSampler((x,z)=>c
 const activityView=gameplay&&(gameplay.activities.mines.size||gameplay.activities.farms.size)?(await import('./activity-view.ts')).createActivityView(scene,gameplay.activities,terrainHeight):null;
 if(activityView&&!searchParams.has('lightBench'))world.refreshLights([...(definition.lights??[]),...activityView.lights]);
 let activityQueue=0,cropQueue=0,strikeTimer=0;
+let helmetEquipped=false; // Independent inventory head slot; no tool or boost override.
 world.update(0, player.position);
 {
   const {createGameUi}=await import('./ui/app/game-ui.ts'),c=getTerrainConfig();
@@ -421,6 +424,7 @@ world.update(0, player.position);
       const gained=refillGas(player,points);
       return {ok:true,message:'+'+Math.round(gained)+' gaz !'};
     },
+    headgear:{equipped:()=>helmetEquipped,setEquipped:value=>{helmetEquipped=value;}},
     mineHub:gameplay?{
       view:()=>gameplay!.activities.mineLiftView(player.position,player.space),
       travel:async(levelId:string)=>{
@@ -482,6 +486,13 @@ world.update(0, player.position);
 // The player is the hamster (doc 43); NPCs keep their own rigs.
 const character = buildHamster();
 scene.add(character.group);
+const mineHelmet=createMineHelmet(character.rig.sockets.head);
+let queuedMineStrike:MineRhythmSample|null=null;
+const mineRhythmHud=createMineRhythmHud(document.body,sample=>{
+  if(!started||gameUi?.blocking||!player.space||aboard)return;
+  queuedMineStrike=sample;activityQueue=Math.max(activityQueue,1);
+});
+let nextMineRhythmTargetAt=0;
 const impacts = createImpactEffects(scene);
 const fishingEffects = createFishingEffects(scene,character.group);
 let nextFishingReelAt=0,lastFishingStrainAt=-Infinity;
@@ -621,7 +632,7 @@ function clearGameplayInput():void{
   gameplay?.fishing.cancel();fishingHud.hide();fishingEffects.reset();fishingFloatSoundDue=-1;
   keySet.clear();
   rollQueue=0;jumpQueue=0;touchStrokeQueue=0;actionQueue=0;activityQueue=0;cropQueue=0;
-  mobileTouch?.reset();resetCameraDrag();
+  queuedMineStrike=null;mobileTouch?.reset();resetCameraDrag();
 }
 // Switching to any UI panel releases held movement and boost keys immediately.
 gameUi?.controller.onChange(id=>{if(id)clearGameplayInput();});
@@ -649,8 +660,14 @@ window.addEventListener('keydown', (e) => {
   keySet.add(e.code);
   if (e.code === 'Space') jumpQueue++;
   if (e.code === 'KeyX') rollQueue++;
-  if (e.code === 'KeyE') actionQueue++;
-  if (e.code === 'KeyF' && !e.repeat) activityQueue++;
+  if (e.code === 'KeyE'){
+    if(currentTarget()?.targetType==='mine-wall')queuedMineStrike=mineRhythmHud.sample(performance.now());
+    actionQueue++;
+  }
+  if (e.code === 'KeyF' && !e.repeat){
+    queuedMineStrike=mineRhythmHud.sample(performance.now());
+    activityQueue++;
+  }
   if (e.code === 'KeyC') cropQueue++;
   if (e.code === 'KeyR' && started) {
     stopFlightCourse();
@@ -987,15 +1004,25 @@ function currentTarget():TargetDescriptor|null{
 }
 /** Digging the wall in front (F, or E when it is the target): validated by the mine. */
 function runDig(){
-  if(!gameplay||!player.space)return;const a=gameplay.activities,forward=forwardOf(),target=a.mineTarget(player.position,player.space,forward),r=a.dig(player.position,player.space,forward);
+  if(!gameplay||!player.space)return;
+  const a=gameplay.activities,forward=forwardOf(),target=a.mineTarget(player.position,player.space,forward);
+  const captured=queuedMineStrike;queuedMineStrike=null;
+  const key=target?`${target.mineId}:${target.level}:${target.ix}:${target.iz}`:null;
+  const accuracy=captured&&captured.key===key?captured.quality:'normal';
+  const r=a.dig(player.position,player.space,forward,accuracy);
   // Audio follows the validated business result (never mesh changes).
   const material=target?MATERIAL_BY_MINE_KEY[MINE_MATERIALS[target.material]?.key]:undefined,context={material,tool:'pickaxe',place:'mine' as const};
   const tool=gameplay.has('tool:pickaxe-steel')?'pickaxe-steel':gameplay.has('tool:pickaxe')?'pickaxe':null;
   onImpact({sound:'mine.tool.strike',context,kind:target?.material===5?'crystal':target?.material===4?'iron':material==='soil'?'soil':'stone',extra:r.ok?['mine.hit']:[]});
   if(!character.play('mine',tool))flushImpact();
-  if(r.ok){audio?.emit('mine.cell.excavated',{context,position:player.position,source:'player'});
-    // A reward is announced by the inventory notification (« +1 Pierre », merged); otherwise say what happened.
-    if(r.message.startsWith('+')/* dig() reports a reward as « +1 item » */){audio?.emit(material==='crystal'?'mine.resource.crystal':'mine.resource.collect',{context,source:'player'});if(material==='crystal')audio?.cue('discovery');}else showInfo(r.message,'success');}
+  if(r.ok){
+    if(!r.partial)audio?.emit('mine.cell.excavated',{context,position:player.position,source:'player'});
+    // The gain notifier displays new loot; do not announce a false cell break.
+    if(r.message.startsWith('+')){
+      audio?.emit(material==='crystal'?'mine.resource.crystal':'mine.resource.collect',{context,source:'player'});
+      if(material==='crystal'&&!r.partial)audio?.cue('discovery');
+    }else if(!r.partial)showInfo(r.message,'success');
+  }
   else{audio?.emit('mine.action.denied',{context,source:'player'});showInfo(r.message,'warning');}
 }
 /** Next action on the plot under the player (F, or E when it is the target): validated by AGRI. */
@@ -1190,6 +1217,20 @@ function draw(now: number) {
   speedStreaks.update(player.velocity.length(),player.mode==='glide',started&&!gameUi?.paused&&gameUi?.preferences.speedEffects!==false&&!gameUi?.preferences.reduceMotion,delta);
   environment.update(delta,player.position,budget.level,!!player.space);
   activityView?.update(delta,player.position,player.space);
+  // Sampling at ~11 Hz avoids per-frame target queries on older PCs.
+  if(now>=nextMineRhythmTargetAt){
+    nextMineRhythmTargetAt=now+90;
+    const preview=started&&!gameUi?.blocking&&player.space&&gameplay
+      ?gameplay.activities.digPreview(player.position,player.space,forwardOf()):null;
+    mineRhythmHud.setTarget(preview?.ok?{
+      key:`${preview.target.mineId}:${preview.target.level}:${preview.target.ix}:${preview.target.iz}`,
+      material:preview.target.material,name:preview.materialName,
+      hitsToReward:preview.hitsToReward,
+      durabilityRemaining:preview.durabilityRemaining,
+      durabilityMax:preview.durabilityMax,
+    }:null,now);
+  }
+  mineRhythmHud.tick(now);
   {const climateNow=climate.state(worldClock.time),night=nightFactor(climateNow.sunAltitude);world.lights.setEnvironment(night,now/1000);world.setNight(night);world.setWind(.25+.8*climateNow.wind);}
   world.animateBoat(aboard&&fleet.current===playerBoat?boat.speed:0,aboard&&fleet.current===playerBoat?boatSteer:0,delta);
   if(started&&audio){const env=climate.state(worldClock.time),ground=player.space?{}:groundProbe(player.position.x,player.position.z,now),farm=!player.space&&gameplay?.activities.farmNear(player.position);
@@ -1211,6 +1252,9 @@ function draw(now: number) {
   character.setAboard(aboard);
   if(gameplay){const f=gameplay.fishing.state;character.setFishing(f.phase!=='idle'&&f.castAt?{x:f.castAt.x,y:waterSurface(f.castAt.x,f.castAt.z)??getTerrainConfig().seaLevel,z:f.castAt.z,biting:f.phase==='bite'}:null);}
   character.update(player, delta, elapsed);
+  // Mining headgear follows the animated head bone (including turning/looking).
+  // One spotlight, zero shadow maps; off outside mines and without the item.
+  mineHelmet.setActive(!!player.space&&helmetEquipped&&!!gameplay?.has('tool:miners-helmet'));
   fishingEffects.update(gameplay?.fishing.state??null,elapsed,delta);
   // Hero-only pose overlay. Does not change the authoritative rig animation,
   // procedural GLB, other players or distant impostor hashes.
@@ -1331,7 +1375,7 @@ function draw(now: number) {
   }
   requestAnimationFrame(draw);
 }
-window.addEventListener('pagehide',event=>{if(event.persisted)void audio?.engine.setHidden(true);else {detachPortCollisions?.();ferryView?.dispose();remoteActors?.dispose();gasEffects.dispose();flightRings.dispose();flightCourseHud.remove();fishingHud.dispose();fishingEffects.dispose();speedStreaks.dispose();gpuTimer.dispose();void audio?.dispose();}});
+window.addEventListener('pagehide',event=>{if(event.persisted)void audio?.engine.setHidden(true);else {detachPortCollisions?.();ferryView?.dispose();remoteActors?.dispose();mineRhythmHud.dispose();mineHelmet.dispose();gasEffects.dispose();flightRings.dispose();flightCourseHud.remove();fishingHud.dispose();fishingEffects.dispose();speedStreaks.dispose();gpuTimer.dispose();void audio?.dispose();}});
 window.addEventListener('pageshow',event=>{if(event.persisted&&started)void audio?.engine.setHidden(document.hidden);});
 document.addEventListener('visibilitychange', () => {
   presentation.reset();

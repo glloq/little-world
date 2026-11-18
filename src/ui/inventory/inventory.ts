@@ -23,7 +23,7 @@ export function inventoryViewModel(items:readonly ItemDefinition[],inventory:Rea
     const list=groups.get(label)??[];list.push(entry);groups.set(label,list);}
   return {groups:[...groups].sort(([a],[b])=>ORDER.indexOf(a)-ORDER.indexOf(b)).map(([label,entries])=>({label,entries:entries.sort((x,y)=>x.name.localeCompare(y.name,'fr'))})),kinds,total,empty:kinds===0};
 }
-export interface InventoryDeps {items():readonly ItemDefinition[];inventory():Readonly<Record<string,number>>;selectedTool():string|null;selectTool(id:string|null):void;gasLevel?:()=>number;gasCapacity?:()=>number;consume?:(id:string)=>boolean}
+export interface InventoryDeps {items():readonly ItemDefinition[];inventory():Readonly<Record<string,number>>;selectedTool():string|null;selectTool(id:string|null):void;headgear?:{equipped():boolean;setEquipped(value:boolean):void};gasLevel?:()=>number;gasCapacity?:()=>number;consume?:(id:string)=>boolean}
 /** Panel renderer; `seen` is updated when the panel closes (the « new » marks then clear). */
 export function inventoryPanel(deps:InventoryDeps){
   let seen:Record<string,number>={},selected:string|null=null;
@@ -35,6 +35,7 @@ export function inventoryPanel(deps:InventoryDeps){
         if(FOOD_ICONS[e.id])return FOOD_ICONS[e.id];
         const text=(e.id+' '+e.name).toLowerCase();
         if(/pêche|peche|fishing|canne/.test(text))return '🎣';
+        if(/casque|helmet/.test(text))return '⛑';
         if(/pioche|pickaxe/.test(text))return '⛏';
         if(/pelle|shovel/.test(text))return '♠';
         if(/marteau|hammer/.test(text))return '⚒';
@@ -54,7 +55,13 @@ export function inventoryPanel(deps:InventoryDeps){
       const detail=el('div','ui-inventory-detail');
       function show(e:InventoryEntry){
         selected=e.id;detail.replaceChildren(el('h3','',e.name),el('p','ui-muted',e.categoryLabel),el('p','',e.description??'Aucune description.'),el('p','ui-muted','Quantité : '+e.quantity+' / '+e.max));
-        if(e.tool){const inHand=deps.selectedTool()===e.id;detail.append(button(inHand?'Ranger':'Équiper',()=>{deps.selectTool(inHand?null:e.id);show(e);},'ui-button ui-primary'));}
+        if(e.id==='tool:miners-helmet'&&deps.headgear){
+          // Separate head slot: putting on a helmet never replaces the pickaxe.
+          const wearing=deps.headgear.equipped();
+          detail.append(button(wearing?'Retirer le casque':'Équiper le casque',()=>{
+            deps.headgear!.setEquipped(!wearing);show(e);
+          },'ui-button ui-primary'));
+        }else if(e.tool){const inHand=deps.selectedTool()===e.id;detail.append(button(inHand?'Ranger':'Équiper',()=>{deps.selectTool(inHand?null:e.id);show(e);},'ui-button ui-primary'));}
         else if(equipment.some(t=>t.id===e.id)){detail.append(el('p','ui-muted','Équipement cosmétique prévu : action non disponible pour cet objet.'));}
         const gas=foodGasValue(e.id);
         if(gas&&deps.consume){
@@ -73,7 +80,7 @@ export function inventoryPanel(deps:InventoryDeps){
         const gas=foodGasValue(e.id);if(gas)item.append(el('span','ui-item-gas','+'+gas+' gaz'));
         if(e.delta)item.append(el('span','ui-badge','+'+e.delta));
         if(e.nearlyFull)item.append(el('span','ui-badge ui-warn',e.full?'Plein':'Presque plein'));
-        if(deps.selectedTool()===e.id)item.classList.add('ui-equipped');
+        if(deps.selectedTool()===e.id||e.id==='tool:miners-helmet'&&deps.headgear?.equipped())item.classList.add('ui-equipped');
         return item;
       }
       if(resources.length)for(const g of resources){left.append(el('h4','ui-group',g.label));const grid=el('div','ui-item-grid');

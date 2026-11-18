@@ -177,6 +177,23 @@ export function createMineHubView(hub:MineHubLayout,solid:THREE.Material,glow:TH
     stone(x,.18,z+.43,.42,.32,.46,0x89827b,.25);
   }
   ball(2.65,1.77,2.60,.12,.17,.13,0xffc66b,true);
+  // Layered natural rock shelves at the outer edges of the hall. They share
+  // the two merged hub meshes, not individual draw calls or collision shapes.
+  // Keep the aisle, extraction threshold and lift doors clear.
+  for(const [x,z,r,shade] of [
+    [-9.05,-5.35,.72,0x76736c],[-8.96,4.12,.64,0x8c877e],
+    [2.76,-4.95,.76,0x77716d],[2.79,4.52,.54,0x91867b],
+    [-8.78,-3.25,.42,0x625e5d],[2.81,-2.15,.38,0x5d5956],
+  ] as const){
+    stone(x,.24,z,r,.44,r*.88,shade,.38);
+    stone(x,1.04,z,r*.84,.96,r*.72,shade,.81);
+    stone(x,1.91,z,r*.57,.54,r*.49,0x67615e,.15);
+  }
+  // Subtle coloured geological inclusions only on the side walls.
+  for(const [i,kind] of resources.slice(0,3).entries()){
+    const x=i%2===0?-9.00:2.75,z=-1.1+i*1.27;
+    ore(kind,x,1.55,z,1.15);
+  }
   // No second physics system or decorative mesh blocking either entrance.
   const body=new THREE.Mesh(merged(parts),solid);
   body.castShadow=false;body.receiveShadow=false;

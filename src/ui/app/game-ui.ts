@@ -41,6 +41,7 @@ export interface GameUiDeps {
   landmarks?:readonly {id:string;label:string;x:number;z:number}[];
   ferry?:FerryPanelDeps & {dock:{x:number;z:number}};
   importTrade?:ImportStandPanelDeps;
+  headgear?:{equipped():boolean;setEquipped(value:boolean):void};
   mineHub?:{
     view():{mineId:string;name:string;currentLevel:string;excavations:number;stops:{id:string;name:string;unlocked:boolean;required:number;current:boolean}[]}|null;
     travel(levelId:string):Promise<{ok:boolean;message?:string;reason?:string}>;
@@ -77,7 +78,7 @@ export function createGameUi(deps:GameUiDeps){
 
   // Panels.
   let selectedTool:string|null=null,restoring=false;
-  const inventory=inventoryPanel({items:()=>g?.runtime.data.items??[],inventory:()=>g?.runtime.state.inventory??{},selectedTool:()=>selectedTool,selectTool:id=>{selectedTool=id;renderTool();},gasLevel:()=>deps.player().gas??0,gasCapacity:()=>deps.player().maxGas??200,
+  const inventory=inventoryPanel({items:()=>g?.runtime.data.items??[],inventory:()=>g?.runtime.state.inventory??{},selectedTool:()=>selectedTool,selectTool:id=>{selectedTool=id;renderTool();},headgear:deps.headgear,gasLevel:()=>deps.player().gas??0,gasCapacity:()=>deps.player().maxGas??200,
     consume:deps.eatFood?(id)=>{const result=deps.eatFood!(id);center.notify(result.ok?'success':'warning',result.message);return result.ok;}:undefined});
   ui.register('inventory','Sac',{render:b=>inventory.render(b),onClose:()=>{inventory.markSeen();deps.audio?.emit('ui.inventory.close',{source:'ui'});}});
 
