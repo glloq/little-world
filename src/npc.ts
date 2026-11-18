@@ -33,6 +33,8 @@ export interface NPCDefinition {
   name: string;
   /** Morphology (squirrel rig, small animal, or the hamster rig of doc 43). */
   kind: 'squirrel' | 'animal' | 'hamster';
+  /** Optional authored visual scale (small inhabitants reuse the same rig). */
+  scale?: number;
   x: number;
   z: number;
   behavior: 'idle' | 'wander' | 'patrol' | 'work';
@@ -96,6 +98,7 @@ export function validNPC(
     d.name.length > 0 &&
     d.name.length <= 80 &&
     (d.kind === 'squirrel' || d.kind === 'animal' || d.kind === 'hamster') &&
+    (d.scale===undefined||(finite(d.scale)&&d.scale>=.5&&d.scale<=1.5)) &&
     point(d, bounds) &&
     ['idle', 'wander', 'patrol', 'work'].includes(d.behavior) &&
     finite(d.radius) &&
