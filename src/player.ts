@@ -188,7 +188,8 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
   const snowMaterial=collision?.materialAt(pos,p.space)??'grass';
   const snowReady=!inWater&&!p.space&&!!keys.snowEquipment&&(snowMaterial==='snow'||snowMaterial==='ice');
   if(p.mode==='snow'&&!snowReady)p.mode='ground';
-  if(p.mode==='ground'&&snowReady){p.mode='snow';p.snowHeading=Math.hypot(v.x,v.z)>.1?Math.atan2(v.x,v.z):keys.cameraYaw;p.snowEquipment=keys.snowEquipment??undefined;}
+  if(p.mode==='ground'&&snowReady){p.mode='snow';p.snowHeading=Math.hypot(v.x,v.z)>.1?Math.atan2(v.x,v.z):keys.cameraYaw;}
+  if(p.mode==='snow'&&snowReady)p.snowEquipment=keys.snowEquipment??undefined;
   const enterRoll=(byHold:boolean)=>{p.mode='roll';p.rollByHold=byHold;p.rollSpeed=Math.hypot(v.x,v.z);p.rollHeading=len>0?Math.atan2(dx,dz):Math.hypot(v.x,v.z)>.3?Math.atan2(v.x,v.z):keys.cameraYaw;p.rollIdle=0;};
   if(keys.rollPressed&&p.mode!=='snow'&&!snowReady){
     if(p.mode==='ground'&&!inWater)enterRoll(false);
