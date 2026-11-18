@@ -106,6 +106,12 @@ Cible UX : sélection unique « Commerce portuaire » → niveau 1–5 → palet
 
 **État de livraison** : design documenté seulement. Rendus de concept présentés/validés dans la discussion, **non inclus comme assets versionnés**. La création et la revue des GLB sont une étape séparée.
 
+## Prototype interactif de validation (18/11/2026)
+
+Le fichier [examples/port-trade-l1-preview.html](../examples/port-trade-l1-preview.html) est un **visualiseur autonome d'architecture N1**, ouvrable localement dans un navigateur, sans serveur ni bibliothèque externe. Il permet rotation libre, zoom, cinq palettes de biomes, visibilité du ponton, des accessoires et de l'enseigne, ainsi qu'une capture PNG.
+
+**Statut** : **prototype géométrique interactif de validation uniquement**. Le rendu utilise une scène 3D projetée sur Canvas 2D ; **ce n'est pas un GLB/asset de production**, ni un prefab Studio, ni une intégration au gameplay. Les formes, proportions, couleurs et emblème attendent la validation visuelle du joueur avant l'implémentation Three.js/GLB.
+
 ## 8. Ordre recommandé
 
 1. **Graphique d'abord** : planche neutre N1–N3 et logo commun ; verrouiller les silhouettes et le ratio d'échelle.
