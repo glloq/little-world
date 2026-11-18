@@ -49,7 +49,7 @@ test('dig: accessibility, reach, reward granted once, inventory full, protected 
   assert.match(edge.dig({requestId:'b',levelId:'level-1',ix:-21,iz:6,from:{x:-19.5,y:edge.grid.levels[0].floorY,z:6.5}},()=>true).reason,/protégée/);
   // Chunk border: digging x = 31 (last column of chunk 0) also dirties chunk 1.
   const border=new MineState(new MineGrid({id:'b',name:'b',polygon:[{x:20,z:0},{x:50,z:0},{x:50,z:30},{x:20,z:30}],mine:{...defaultMineSettings([{x:20,z:0},{x:50,z:0},{x:50,z:30},{x:20,z:30}],1,30),connectors:[],galleries:[{levelId:'level-1',minX:28,maxX:31,minZ:21,maxZ:25}]}}));
-  const r=border.dig({requestId:'x',levelId:'level-1',ix:31,iz:23,from:{x:30.5,y:border.grid.levels[0].floorY,z:23.5}},()=>true);assert.equal(r.ok,true);assert.deepEqual(r.chunks.sort(),['0,0','1,0']);
+  const r=border.dig({requestId:'x',levelId:'level-1',ix:31,iz:10,from:{x:32.5,y:border.grid.levels[0].floorY,z:10.5}},()=>true);assert.equal(r.ok,true);assert.deepEqual(r.chunks.sort(),['0,0','1,0']);
 });
 test('persistence: only differences saved; excavations and exhausted ores survive reload and geology changes',()=>{
   const state=new MineState(new MineGrid(zone()));const dug=[];
@@ -243,8 +243,8 @@ test('MINE-HUB V3: reception has a wide clear aisle, with objects kept to the si
     // The 3.5 m-wide central path is clear from rear to extraction arch.
     const center=mineHubLayout(z,level);
     const x=center.gallery.x-Math.sin(center.heading)*(5.3-t),
-      z=center.gallery.z-Math.cos(center.heading)*(5.3-t);
-    assert.ok(grid.initiallyOpen(level,Math.floor(x),Math.floor(z)),
+      pz=center.gallery.z-Math.cos(center.heading)*(5.3-t);
+    assert.ok(grid.initiallyOpen(level,Math.floor(x),Math.floor(pz)),
       'unobstructed central floor '+level+' at '+t);
   }
 });
