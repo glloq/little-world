@@ -14,6 +14,7 @@ Ce journal complète [90 — architecture](90-SURF-ARCHITECTURE-CONTRACTS.md), [
 | Intégration mode `surf` à 30 Hz et replay whitelist | `src/player.ts`, `src/physics/movement-state.ts` | PROTOTYPE |
 | Shader de houle et maillage 3 m, prise en charge NearSea | `src/render/surf-water-view.ts`, `src/horizon-view.ts`, `src/world.ts` | PROTOTYPE, raccord et iGPU non qualifiés |
 | Tube 3D procédural qui se ferme avant la plage ; volume jouable, traversée, wipeout | `src/surf/surf-barrel.ts`, `src/render/surf-barrel-view.ts`, `src/player.ts` | PROTOTYPE, maillage borné et tests ajoutés ; rendu navigateur non qualifié |
+| Brassage en surface lors de la fermeture ou d'une nage dans le tube, impulsion vers la côte et roulade aquatique, plongée immunisée | `src/surf/barrel-wash.ts`, `src/render/surf-tumble-pose.ts`, `src/player.ts` | Premier incrément, tests unitaires ajoutés, sensation à qualifier |
 | Planche low-poly + objet `tool:surfboard` équipable et disponible au démarrage d'une zone surf | `src/render/surf-board-view.ts`, `src/surf/surf-items.ts`, `src/gameplay/game-view.ts`, `src/main.ts` | Prototype intégré au sac et aux anciennes sauvegardes ; animations complètes à faire |
 | Site de surf de démo, sans changer les cartes | `src/surf/surf-demo.ts` | PROTOTYPE; peut ne trouver aucune zone |
 | Modules boost/ramp/buoy à cooldown tick, détection balayée, verrou d'entrée et filtre d'altitude | `src/surf/surf-features.ts`, `src/surf/surf-demo-features.ts`, `src/render/surf-features-view.ts` | PROTOTYPE et tests unitaires |
