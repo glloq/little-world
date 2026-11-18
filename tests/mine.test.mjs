@@ -389,3 +389,46 @@ test('mine helmet: one shadowless head-following lamp with a separate equipment 
   helmet.setActive(false);assert.equal(helmet.active,false);assert.equal(cap.visible,false);
   helmet.dispose();assert.equal(head.children.length,0);
 });
+
+test('mine V6: milestone inventory refusal does not consume a strike or reward',()=>{
+  const state=new MineState(new MineGrid(zone())),wall=wallCell(state,0,m=>m>=2&&m<=5);
+  assert.ok(wall);const interval=mineHitsPerResult(state.material(0,wall.ix,wall.iz));
+  const req=(n)=>({requestId:'m'+n,levelId:'level-1',ix:wall.ix,iz:wall.iz,
+    from:from(state,0,wall.stand.ix,wall.stand.iz)});
+  for(let i=0;i<interval-1;i++){
+    const r=state.strike(req(i),1,()=>{throw Error('early loot')});
+    assert.ok(r.ok&&r.partial);
+  }
+  let attempted=0;
+  const rejected=state.strike(req(interval-1),1,()=>{attempted++;return false;});
+  assert.equal(rejected.ok,false);
+  assert.equal(state.hitCountAt(0,wall.ix,wall.iz),interval-1);
+  assert.equal(state.damageAt(0,wall.ix,wall.iz),interval-1);
+  let granted=0;
+  const accepted=state.strike(req(interval-1),1,()=>{granted++;return true;});
+  assert.ok(accepted.ok&&accepted.partial&&accepted.fragment);
+  assert.equal(granted,1);assert.equal(attempted,1);
+  assert.deepEqual(state.strike(req(interval-1),1,()=>{throw Error('double loot');}),accepted);
+  assert.equal(state.hitCountAt(0,wall.ix,wall.iz),interval);
+});
+test('mine V6: partial progress saves before any cell was excavated',()=>{
+  const z=zone(),q=new WorldCollisionQuery(()=>30,()=>null);
+  const runtime=createActivityRuntime({mines:[z],farms:[]},{
+    grant:()=>true,has:()=>false,time:()=>0,climate:{},
+    collision:q,ground:()=>30,water:()=>null,
+  });
+  const state=runtime.mines.get(z.id).state,wall=wallCell(state,0,m=>m>=2&&m<=5);
+  assert.ok(wall);
+  const pos=from(state,0,wall.stand.ix,wall.stand.iz),
+    f={x:wall.ix-wall.stand.ix,z:wall.iz-wall.stand.iz};
+  const r=runtime.dig(pos,{zoneId:z.id,levelId:'level-1'},f);
+  assert.equal(r.ok,true);assert.equal(state.excavatedCount,0);
+  const saved=runtime.serialize();
+  assert.ok(saved.mines[z.id],'damage saved before any excavation');
+  const data=parseMineSave(saved.mines[z.id]);
+  assert.ok(data.hits&&Object.values(data.hits).some(v=>v===1));
+  runtime.restore(saved);
+  const restored=runtime.mines.get(z.id).state;
+  assert.equal(restored.hitCountAt(0,wall.ix,wall.iz),1);
+  assert.ok(restored.damageAt(0,wall.ix,wall.iz)>0);
+});
