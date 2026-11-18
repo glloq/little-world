@@ -99,7 +99,7 @@ export function createRaceTrackSampler(track:RaceTrack,env:TrackEnvironment):Rac
     rise+=Math.tan(Math.abs(bankDeg)*Math.PI/180)*(track.width/2+Math.sign(bankDeg)*lateral)*blend;
    }else if(f.kind==='ramp'){
     // Rising kicker and an intentionally sharp release lip.
-    rise+=f.height*smooth(u);
+    rise+=f.height*Math.pow(u,1.35); // Positive lip slope launches a rolling ball when ground drops away.
    }else if(f.kind==='bumps'){
     rise+=f.height*Math.sin(2*Math.PI*u)**2;
    }else if(f.kind==='bridge'){
@@ -140,12 +140,25 @@ export interface TrackDiagnostic {severity:'WARNING'|'ERROR';code:string;message
 export function trackDiagnostics(track:RaceTrack,env:TrackEnvironment):TrackDiagnostic[]{
  const s=createRaceTrackSampler(track,env),out:TrackDiagnostic[]=[];
  const line=s.line;
+ // The authored bend is the reliable sharp-corner detector, even when its sampling
+ // spacing aliases the short inside segment of a hairpin.
+ for(let i=1;i<track.points.length-1;i++){
+  const a=track.points[i-1],b=track.points[i],c=track.points[i+1];
+  const ax=b.x-a.x,az=b.z-a.z,bx=c.x-b.x,bz=c.z-b.z;
+  const lenA=Math.hypot(ax,az),lenB=Math.hypot(bx,bz);
+  if(lenA<1e-5||lenB<1e-5)continue;
+  const angle=Math.acos(limit((ax*bx+az*bz)/(lenA*lenB),-1,1));
+  const radius=angle>1e-3?Math.min(lenA,lenB)/(2*Math.sin(angle/2)):Infinity;
+  if(radius<track.width*.85){
+   out.push({severity:'WARNING',code:'TRACK_TIGHT_TURN',message:'Virage trop serré pour une roulade rapide : élargir la courbe ou ajouter un relevé',distance:Math.round(line.at(-1)!.d*i/(track.points.length-1))});break;
+  }
+ }
  // In tight bends, classic flat wide roads may overlap: warn before placing a costly mesh.
  for(let i=3;i<line.length-3;i+=3){
   const a=line[i-3],b=line[i],c=line[i+3],ax=b.x-a.x,az=b.z-a.z,bx=c.x-b.x,bz=c.z-b.z;
   const angle=Math.abs(Math.atan2(ax*bz-az*bx,ax*bx+az*bz));
   const arc=Math.hypot(c.x-a.x,c.z-a.z)/2,radius=angle>1e-3?arc/angle:Infinity;
-  if(radius<track.width*.85){out.push({severity:'WARNING',code:'TRACK_TIGHT_TURN',message:'Virage très serré : élargir la courbe ou ajouter un relevé',distance:b.d});break;}
+  if(radius<track.width*.85&&!out.some(d=>d.code==='TRACK_TIGHT_TURN')){out.push({severity:'WARNING',code:'TRACK_TIGHT_TURN',message:'Virage très serré : élargir la courbe ou ajouter un relevé',distance:b.d});break;}
  }
  for(let d=2;d<s.length;d+=3){
   const a=s.station(d-2,0),b=s.station(d,0),slope=Math.abs(b.y-a.y)/2;

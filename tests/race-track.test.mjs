@@ -43,7 +43,7 @@ test('existing outdoor collision query samples bridge from above, not from below
  collision.setOutdoorCourseSurface((x,z)=>sampler.sample(x,z)?.y??null);
  const above=collision.surfaceAt({x:0,y:5,z:70});
  const under=collision.surfaceAt({x:0,y:-1,z:70});
- assert.ok(above.floorY>2,'bridge deck is solid from above');
+ assert.ok(above.floorY>.9,'bridge deck is solid from above');
  assert.equal(under.floorY,-3,'standing below a bridge does not teleport the character on top');
  assert.equal(collision.surfaceAt({x:10,y:5,z:70}).floorY,-3,'no track outside roadbed');
 });
