@@ -144,6 +144,7 @@ export interface NPCLifeOptions {
   paths:readonly ResidentPath[];
   /** Reuse the active world's collision broadphase for short path segments. */
   walkable?:ResidentWalkable;
+  weather?:()=> 'clear'|'cloudy'|'rain';
 }
 export function createNPCSystem(
   scene: THREE.Scene,
@@ -165,9 +166,9 @@ export function createNPCSystem(
       const context=residentContextForHour(routine.role,hour);
       if(state.phase==='walk'){
         const [,end]=residentShift(routine.role);
-        return {...context,phase:hour>=end?'to-home' as const:'to-work' as const};
+        return {...context,weather:lifeOptions.weather?.(),phase:hour>=end?'to-home' as const:'to-work' as const};
       }
-      return context;
+      return {...context,weather:lifeOptions.weather?.()};
     });
   });
   let disposed = false;
