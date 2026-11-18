@@ -131,7 +131,7 @@ de la vitesse de frappe.
 | Inférieure à 25 % | 0 | Roche intacte |
 | 25 à 49 % | 1 | 2 fines fissures angulaires |
 | 50 à 74 % | 2 | 5 segments, fissures ramifiées |
-| 75 à 99 % | 3 | 8 segments, fracture plus large |
+| 75 à 99 % | 3 | 8 segments, fracture plus large et 2 éclats facettés |
 | 100 % | Destruction | Bloc réellement retiré et passage ouvert |
 
 **Lissage naturel suivant le matériau :** une terre à 2 points ne
