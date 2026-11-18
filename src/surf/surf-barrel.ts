@@ -109,7 +109,7 @@ export function stepSurfBarrel(actor:SurfBarrelActor,field:SurfWaveField,
   if(sample.clearance<SURFER_CLEARANCE){
    actor.mode='swim';actor.surfStage=undefined;actor.surfAirborne=false;
    actor.velocity.x*=.4;actor.velocity.z*=.4;actor.velocity.y=0;
-   actor.position.y=(field.height(x,z,tick)??zone.seaLevel)-.45;
+   actor.position.y=Math.min((field.height(x,z,tick)??zone.seaLevel)-.45,zone.seaLevel-.32);
    actor.surfWipeoutSeq=(actor.surfWipeoutSeq??0)+1;
    actor.barrelCrashSeq=(actor.barrelCrashSeq??0)+1;
    actor.barrelCooldownUntilTick=tick+COOLDOWN_TICKS;
@@ -136,7 +136,7 @@ export function stepSurfBarrel(actor:SurfBarrelActor,field:SurfWaveField,
  if(!shallow||!inClosingPath)return 'none';
  actor.mode='swim';actor.surfStage=undefined;actor.surfAirborne=false;
  actor.velocity.x*=.4;actor.velocity.z*=.4;actor.velocity.y=0;
- actor.position.y=(field.height(x,z,tick)??zone.seaLevel)-.45;
+ actor.position.y=Math.min((field.height(x,z,tick)??zone.seaLevel)-.45,zone.seaLevel-.32);
  actor.surfWipeoutSeq=(actor.surfWipeoutSeq??0)+1;
  actor.barrelCrashSeq=(actor.barrelCrashSeq??0)+1;
  actor.barrelCooldownUntilTick=tick+COOLDOWN_TICKS;
