@@ -167,9 +167,9 @@ export function createActivityRuntime(activities:PlayableActivities,deps:Deps){
       liftDistance=Math.hypot(dx,dz);
     const e=m.zone.mine.entrance,x=e.x-position.x,z=e.z-position.z,
       exitDistance=Math.hypot(x,z);
-    const out=level===0&&exitDistance<=liftDistance
-      ?{label:'Sortie de la mine',distance:exitDistance,angle:Math.atan2(x,z)}
-      :{label:'Monte-charge',distance:liftDistance,angle:Math.atan2(dx,dz)};
+    const out=level===0
+      ?{label:'Sortie vers l’île (derrière le hall)',distance:exitDistance,angle:Math.atan2(x,z)}
+      :{label:'Monte-charge vers le niveau 1',distance:liftDistance,angle:Math.atan2(dx,dz)};
     return {mineId:m.zone.id,mineName:m.zone.name,levelIndex:level,
       levelName:m.state.grid.levels[level].name,levelCount:m.state.grid.levels.length,
       passage:liftDistance<3?{label:'Monte-charge : choisir un étage',distance:liftDistance}:null,
