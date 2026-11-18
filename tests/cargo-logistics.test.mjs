@@ -146,3 +146,32 @@ test('one persistent ledger survives changing islands and refuses buying when st
   assert.equal(fresh.buy(lot.lotId,1,undefined,'purchase-commit').ok,false);
   assert.equal(fresh.serialize().purchases.length,1);
 });
+
+
+test('committed cargo receipt contains the post-payment bag and survives a failed world-slot write',()=>{
+  const disk=storage(),wallet=purse({coin:200}),time={value:55};
+  const make=()=>createCargoService(disk,{islandId:'volcano-island',worldId:'world:volcano',
+    purse:wallet,inventory:()=>wallet.values,itemName:id=>id,gameMinute:()=>time.value});
+  const cargo=make(),stand=cargo.view();
+  const lot=stand.offers.find(x=>x.itemId==='wood:log');
+  assert.ok(lot);
+  const bought=cargo.buy(lot.lotId,1,stand.revision,'buy-durable');
+  assert.equal(bought.ok,true);
+  const checkpoint=cargo.buyerCheckpoint();
+  assert.ok(checkpoint);
+  assert.equal(checkpoint.worldId,'world:volcano');
+  assert.equal(checkpoint.islandId,'volcano-island');
+  assert.equal(checkpoint.revision,bought.revision);
+  assert.equal(checkpoint.inventory.coin,wallet.values.coin);
+  assert.equal(checkpoint.inventory['wood:log'],1);
+  // Simulate a browser crash before the gameplay slot is written: the single committed
+  // cargo record is enough to restore the exact wallet, not apply the purchase twice.
+  const afterCrash=make();
+  assert.deepEqual(afterCrash.buyerCheckpoint(),checkpoint);
+  assert.equal(afterCrash.view().offers.find(x=>x.lotId===lot.lotId).quantity,
+    lot.quantity-1);
+  assert.equal(afterCrash.buy(lot.lotId,1,undefined,'buy-durable').ok,false);
+  const corrupted={...JSON.parse(disk.getItem(CARGO_STORAGE_KEY)),
+    buyerCheckpoint:{...checkpoint,inventory:{coin:-3}}};
+  assert.throws(()=>parseCargoState(corrupted),/Inventaire de reprise invalide/);
+});
