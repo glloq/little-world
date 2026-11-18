@@ -4,7 +4,9 @@
  */
 import {chromium} from 'playwright';
 import {mkdirSync,writeFileSync,existsSync} from 'node:fs';
-const dir='/tmp/little-world-browser';mkdirSync(dir,{recursive:true});
+import {tmpdir,totalmem} from 'node:os';
+import {join} from 'node:path';
+const dir=join(tmpdir(),'little-world-browser');mkdirSync(dir,{recursive:true});
 const base=process.env.SURF_URL??new URL('?surfDemo=1&metrics=1',
  process.env.WORLD_URL??'http://127.0.0.1:5173/little-world/').toString();
 const native=process.env.SURF_NATIVE_GPU==='1';
@@ -49,10 +51,13 @@ try{
  const software=/swiftshader|llvmpipe|softpipe|software|microsoft basic/i.test(hardware.renderer);
  const integrated=/intel.*(uhd|iris|hd graphics)|amd.*(radeon|vega|graphics)|radeon.*(integrated|graphics)/i
  .test(hardware.renderer);
+ const ramGiB=totalmem()/1073741824;
  const hardwareEligible=native&&!software&&integrated;
+ const targetHardwareEligible=hardwareEligible&&ramGiB>=3.5&&ramGiB<=8.5;
  report={schemaVersion:1,kind:'surf-performance-measurement',
   url:base,hardware,nativeRequested:native,softwareRenderer:software,
-  qualifiedIntegratedGpu:hardwareEligible&&fps>=20&&p95<=50&&errors.length===0,
+  qualifiedIntegratedGpu:targetHardwareEligible&&fps>=20&&p95<=50&&errors.length===0,
+  physicalRamGiB:ramGiB,targetRam4to8GiB:ramGiB>=3.5&&ramGiB<=8.5,
   source:'Chromium Playwright captured live renderer statistics',
   fixedSimulationHz:30,wallSeconds:seconds,samples:samples.length,
   averagePresentedFps:fps,p95FrameWorkMs:p95,minPresentedFpsTarget:20,idealFpsTarget:30,
@@ -61,7 +66,8 @@ try{
   surfZoneCount:(await page.evaluate(()=>window.littleWorldMetrics))?.surf?.zones??0,
   finalPosition:last.position,errors,samples};
  console.log(JSON.stringify({...report,samples:undefined},null,2));
- if(!hardwareEligible)console.log('NOT GPU-QUALIFIED: rerun SURF_NATIVE_GPU=1 on a known 4–8GB integrated-GPU PC.');
+ if(!targetHardwareEligible)console.log('NOT GPU-QUALIFIED: rerun SURF_NATIVE_GPU=1 on a real 4–8GB Intel/AMD integrated-GPU PC.');
+ console.log('Surf benchmark artifacts: '+dir);
  if(errors.length)throw Error('Surf browser had '+errors.length+' page errors.');
 }finally{
  if(report)writeFileSync(dir+'/surf-benchmark.json',JSON.stringify(report,null,2)+'\n');
