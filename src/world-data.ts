@@ -77,6 +77,7 @@ export interface WaterBody {
 export type PathKind = 'trail' | 'dirt' | 'stone' | 'wood';
 export const PATH_KINDS: PathKind[] = ['trail', 'dirt', 'stone', 'wood'];
 export interface PathDefinition {
+  supportId?:string;
   id: string;
   points: { x: number; z: number }[];
   width: number;
@@ -98,7 +99,7 @@ export interface WorldDefinition {
   /** Runtime-only geography inputs carried from V3 (never read from V1/V2 files). */
   /** Runtime-only local lights projected from V3 Light components (never read from V1/V2 files). */
   lights?: import('./lighting/light-data.ts').RuntimeLight[];
-  geography?: {sectorSizeM: number; masks: Record<string, import('./geography/layers.ts').SectorLayers>; zones: import('./geography/engine.ts').GeoZone[]; landscapes?: import('./world-production/biotopes.ts').LandscapeRegion[]; races?:import('./gameplay/race-track.ts').RaceTrack[]};
+  geography?: {ski?:{points:{x:number;z:number}[];widthM:number};snowLineM?:number;sectorSizeM: number; masks: Record<string, import('./geography/layers.ts').SectorLayers>; zones: import('./geography/engine.ts').GeoZone[]; landscapes?: import('./world-production/biotopes.ts').LandscapeRegion[]; races?:import('./gameplay/race-track.ts').RaceTrack[]};
 }
 export const DEFAULT_CONFIG = {
   seed: 1284,
@@ -253,7 +254,7 @@ export function parseWorld(value: unknown): WorldDefinition {
   )
     throw Error('Volumes d’eau invalides');
   for(const w of value.water as WaterBody[]){validateWaterProfile(w.profile,w.points.length);validateWaterNetworkFields(w);}
-  if (!list(value.paths, 100, (p) => line(p) && (p.kind === undefined || PATH_KINDS.includes(p.kind as PathKind)) && (p.smooth === undefined || typeof p.smooth === 'boolean'))) throw Error('Chemins invalides');
+  if (!list(value.paths, 100, (p) => line(p) && (p.kind === undefined || PATH_KINDS.includes(p.kind as PathKind)) && (p.smooth === undefined || typeof p.smooth === 'boolean') && (p.supportId === undefined || typeof p.supportId === 'string'))) throw Error('Chemins invalides');
   if (!validateNPCs(value.npcs, config))
     throw Error('PNJ ou dialogues invalides');
   if (

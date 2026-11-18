@@ -10,14 +10,15 @@ export const ISLAND_STYLES={
 } as const;
 export type IslandModel=keyof typeof ISLAND_STYLES;
 export interface IslandStyle {
- version:1;silhouette?:'natural'|'crescent'|'turtle';model:IslandModel;orientation:number;elongation:number;altitudeM:number;
+ version:1;calderaShape?:'regular'|'organic'|'dominant';silhouette?:'natural'|'crescent'|'turtle';model:IslandModel;orientation:number;elongation:number;altitudeM:number;
  valleys:number;plateaus:number;hydrology:'preferred'|'required';volcanism:'ancient'|'active';
 }
 export function validateIslandStyle(value:unknown):asserts value is IslandStyle {
  if(!value||typeof value!=='object'||Array.isArray(value))throw Error('Choisir un style insulaire');
- const v=value as IslandStyle,keys=['version','silhouette','model','orientation','elongation','altitudeM','valleys','plateaus','hydrology','volcanism'];
+ const v=value as IslandStyle,keys=['version','calderaShape','silhouette','model','orientation','elongation','altitudeM','valleys','plateaus','hydrology','volcanism'];
  const num=(n:number,a:number,b:number)=>typeof n==='number'&&Number.isFinite(n)&&n>=a&&n<=b;
  if(Object.keys(v).some(k=>!keys.includes(k))||v.version!==1||!Object.hasOwn(ISLAND_STYLES,v.model)||
+  (v.calderaShape!==undefined&&!['regular','organic','dominant'].includes(v.calderaShape))||
   (v.silhouette!==undefined&&!['natural','crescent','turtle'].includes(v.silhouette))||!num(v.orientation,0,359)||!num(v.elongation,1,2.5)||!num(v.altitudeM,30,1000)||!num(v.valleys,0,1)||!num(v.plateaus,0,1)||
   !['preferred','required'].includes(v.hydrology)||!['ancient','active'].includes(v.volcanism))throw Error('Paramètres du style insulaire invalides');
 }
@@ -29,6 +30,6 @@ export function selectIslandStyle(r:MapRequirements,model:IslandModel):MapRequir
  return {...r,compositionVersion:r.compositionVersion===5?5:4,type:model==='caldera'?'archipelago':'island',biomeMode:'automatic',sequence:kinds,
   landscapes:kinds.map(kind=>({kind,required:kind==='coast'})),rivers:model==='gentle'?1:2,tributaries:0,
   waterfalls:model==='stepped',lakes:false,cliffs:low?.1:.25,terraces:1,
-  islandStyle:{version:1,...(r.compositionVersion===5?{silhouette:model==='caldera'?'natural' as const:r.islandStyle?.silhouette??'natural' as const}:{}),model,orientation:r.islandStyle?.orientation??0,elongation:style.elongation,altitudeM:style.altitude,
+  islandStyle:{version:1,...(r.compositionVersion===5&&model==='caldera'?{calderaShape:'dominant' as const}:{}),...(r.compositionVersion===5?{silhouette:model==='caldera'?'natural' as const:r.islandStyle?.silhouette??'natural' as const}:{}),model,orientation:r.islandStyle?.orientation??0,elongation:style.elongation,altitudeM:style.altitude,
    valleys:model==='gentle'?.2:.4,plateaus:model==='stepped'?.45:0,hydrology:'preferred',volcanism:'ancient'}};
 }

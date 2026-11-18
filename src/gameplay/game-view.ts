@@ -1,3 +1,4 @@
+import {accessibleShop} from './shop-access.ts';
 import {InteractionNeighborhood} from './interaction-neighborhood.ts';
 import type * as THREE from 'three';
 import type {NPCState} from '../npc.ts';
@@ -91,6 +92,9 @@ export function createGameplayView(data:GameplayData,options:Options){
  /** Legacy type-only trade calls still route to a single deterministic counter identifier. */
  function trade(kind:ShopKind,itemId:string,quantity:number,mode:'buy'|'sell',
    counterId?:string,expectedRevision?:number){
+   const authored=counterId?runtime.data.entities.find(e=>e.id===counterId&&e.shopAccess):undefined;
+   const access=authored?accessibleShop(authored,options.getPosition(),collision):null;
+   if(authored?access?.kind!==kind:!counterId&&!nearbyShop(options.getPosition(),undefined,kind))return {ok:false as const,reason:'Rejoignez le côté d’usage du comptoir.'};
    return markets.trade(kind,counterId??'legacy:'+kind,itemId,quantity,mode,undefined,expectedRevision);
  }
  let equippedHands:string|null=null;
@@ -104,7 +108,9 @@ export function createGameplayView(data:GameplayData,options:Options){
  const models=new Map(options.objects.children.filter(m=>m.userData.placementId).map(m=>[m.userData.placementId as string,{object:m,rotation:m.rotation.y}]));
  // Data positions are terrain-relative author coordinates. Runtime queries use actual Y.
  for(const entity of runtime.data.entities)if(entity.position)runtime.setEntityPosition(entity.id,{...entity.position,y:terrainHeight(entity.position.x,entity.position.z)+entity.position.y});
- for(const entity of targets)if(entity.position)targetIndex.set(entity.id,entity.position);
+ const shopIndex=new InteractionNeighborhood(),shopTargets=new Map(runtime.data.entities.filter(e=>typeof e.initialState.shop==='string').map(e=>[e.id,e]));
+ for(const entity of targets)if(entity.position)targetIndex.set(entity.id,entity.position);for(const e of shopTargets.values())if(e.position)shopIndex.set(e.id,{x:e.position.x+(e.shopAccess?.offset.x??0),z:e.position.z+(e.shopAccess?.offset.z??0)});
+ function nearbyShop(position:Point3,facing?:{x:number;z:number},kind?:ShopKind){let best:ReturnType<typeof accessibleShop>=null;for(const id of shopIndex.nearby(position,8)){const e=shopTargets.get(id);if(!e||runtime.state.entities[id]?.collected===true)continue;const target=accessibleShop(e,position,collision,facing);if(target&&(!kind||target.kind===kind)&&(!best||target.distance<best.distance))best=target;}return best;}
  function sync(){
   for(const [id,model] of models){const state=runtime.state.entities[id];if(!state)continue;model.object.visible=state.collected!==true;model.object.rotation.y=model.rotation+(state.open===true?Math.PI/2:0);}
  }
@@ -118,7 +124,7 @@ export function createGameplayView(data:GameplayData,options:Options){
  }
  function describe(position:Point3):ObjectTarget|null{
   let best:ObjectTarget|null=null;
-  for(const id of targetIndex.nearby(position)){const entity=targetById.get(id)!;if(!entity.interactable||!entity.position||runtime.state.entities[entity.id]?.collected===true)continue;
+  for(const id of targetIndex.nearby(position)){const entity=targetById.get(id);if(!entity?.interactable||!entity.position||runtime.state.entities[entity.id]?.collected===true)continue;
    const d=Math.hypot(position.x-entity.position.x,position.y-entity.position.y,position.z-entity.position.z);if(d>entity.interactable.range||(best&&d>=best.distance))continue;
    if(collision.occluded({...position,y:position.y+1.2},{...entity.position,y:entity.position.y+1.2},[entity.id]))continue;
    const reason=reasonFor(entity.id);best={entity,name:entity.name??entity.interactable.prompt,prompt:entity.interactable.prompt,range:entity.interactable.range,usable:!reason,reason,distance:d};
@@ -127,7 +133,7 @@ export function createGameplayView(data:GameplayData,options:Options){
  }
  sync();
  return {
-  runtime,collision,activities,slots,compose,gathering,trees,fishing,trade,workshops,markets,purse,itemName,has,equipment,
+  runtime,collision,activities,slots,compose,gathering,trees,fishing,trade,nearbyShop,workshops,markets,purse,itemName,has,equipment,
   get cargoPurchaseRevision(){return cargoPurchaseRevision;},
   acknowledgeCargoPurchase(revision:number){
     if(!Number.isSafeInteger(revision)||revision<0||revision>1_000_000_000)

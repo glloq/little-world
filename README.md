@@ -27,11 +27,11 @@ Voir [la stratégie de démonstration 4 × 3 km](docs/61-SHOWCASE-ISLAND-4X3.md)
 
 ### Îles composées et brouillon 2D
 
-Sur `feat/stepped-island-identity` : silhouettes naturelles, croissant et tortue, réservations de port/champs/lac, accès à pied vérifiés et édition groupée avant création. Les accès impossibles sont signalés ; les bâtiments et quais restent à réaliser. Voir [les fonctionnalités, limites et captures V5](docs/74-COMPOSED-ISLANDS-V5.md).
+Sur `feat/stepped-island-identity` : silhouettes naturelles, croissant et tortue, réservations de port/champs/lac, accès à pied vérifiés et édition groupée avant création. Les accès impossibles sont signalés. La création peut désormais inclure un port N1 bâti et un village : [caldeira, port et quartiers organiques](docs/89-COMPLETE-ISLAND-START-CALDERA-PORT-VILLAGES.md). Voir [les fonctionnalités, limites et captures V5](docs/74-COMPOSED-ISLANDS-V5.md).
 
 ### Villages et villes dans le Studio
 
-Sur la même branche, **Construire → Villages & villes** permet de prévisualiser, créer et modifier des implantations de surface de 8 à 80 maisons : rues partagées, portes indépendantes, verrous et régénération préservant les retouches. [Fonctionnalités, captures et limites de cette première version](docs/75-SETTLEMENTS-SURFACE-V1.md).
+Sur la même branche, **Construire → Villages & villes** permet de prévisualiser, créer et modifier des implantations de surface de 8 à 80 maisons : rues partagées, portes indépendantes, verrous et régénération préservant les retouches. [Fonctionnalités, captures et limites de cette première version](docs/75-SETTLEMENTS-SURFACE-V1.md). Une option ajoute désormais une place, des équipements selon l’activité et un comptoir utilisable : [livraison des services](docs/76-SETTLEMENTS-SERVICES-V1.md).
 
 ### Déplacements dynamiques
 
@@ -246,6 +246,10 @@ Le générateur de colonies (maisons, villages, villes, camps, ports, terriers e
 
 Ce chantier réutilise les contrats V3, le CommandBus, les chemins, la géographie et les systèmes d'interactions existants ; il n'ajoute pas de second moteur ni de simulation économique en temps réel.
 
+Le placement propose également un centre d’activité, des rues concentriques irrégulières et des profils de densité village/ville/ville fortifiée (implantation seulement), avec retouches directes sur le plan : [organisation organique et limites](docs/77-ORGANIC-SETTLEMENT-PLACEMENT.md).
+
+Les villages peuvent aussi suivre une rue sinueuse, un flanc de montagne, une rivière ou un rivage de pêche : [modèles adaptés au site](docs/78-CONTEXTUAL-SETTLEMENT-PATTERNS.md).
+
 
 ## Archipel multi-îles — roadmap, mode SOLO statique d'abord
 
@@ -264,3 +268,11 @@ Ce chantier réutilise les contrats V3, le CommandBus, les chemins, la géograph
 ### Traversée inter-îles (pilote solo)
 
 Sur la branche `feat/archipelago-real-island-travel`, deux îles d'exemple **compilées** sont prévues dans le build GitHub Pages : l'île officielle 4 × 3 km et une île forestière issue du projet de référence Studio. Le rameur permet le trajet aller-retour selon la présence de la navette. Chaque déplacement sauvegarde l'île quittée dans un slot de voyage dédié et transfère le sac, le boost et l'horloge ; la navigation complète décharge la scène précédente. Le multijoueur reste désactivé. Le statut final dépend de la validation CI et navigateur.
+
+Les villages de rivière peuvent proposer un petit pont vers une seconde rive, des services variés et un habitant avec dialogue ; le raccord maritime reprend les modules N1 de main : [livraison et limites](docs/88-VILLAGES-RIVER-LIFE-MAIN-INTEGRATION.md).
+
+Les nouvelles implantations proposent des jardins joueur et des champs PNJ ; les abords du port reçoivent cabanes et bateaux de rive. La caldeira peut privilégier une grande île principale : [fonctionnalités, captures et limites](docs/90-SETTLEMENT-GARDENS-COAST-DOMINANT-CALDERA.md).
+
+La création guidée V5 propose maintenant des circuits de roulade adaptés au relief, un profil alpin avec descente de ski enregistrée et une sélection de musique : [fonctionnement, captures et limites](docs/91-GUIDED-ACTIVITIES-RACES-ALPINE-MUSIC.md).
+
+Dans **Validation / compilation**, « Auditer le contenu jouable » affiche la répartition des activités et les secteurs à inspecter. [Audit du Studio, copie enrichie de l’île principale et plan vers des mondes complets](docs/92-COMPLETE-WORLDS-STUDIO-AUDIT.md). Les rapports et le brouillon se régénèrent avec `node tools/audit-island-playability.mjs` ; la carte officielle reste inchangée.

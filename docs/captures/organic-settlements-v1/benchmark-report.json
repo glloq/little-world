@@ -1,0 +1,395 @@
+{
+  "kind": "Native-source CPU qualification, no GPU/FPS claim",
+  "summary": {
+    "cases": 24,
+    "valid": 24,
+    "fullTargets": 16,
+    "maxPlanMs": 7179.331958,
+    "maxCommitAndValidationMs": 2109.4857790000005,
+    "maxSourceBytes": 214341
+  },
+  "rows": [
+    {
+      "form": "village",
+      "pattern": "organic",
+      "seed": 4242,
+      "targetBuildings": 12,
+      "orientation": 0,
+      "density": "balanced",
+      "houses": 12,
+      "sourceBytes": 54733,
+      "planMs": 220.191462,
+      "commitAndValidationMs": 628.522651,
+      "errors": [],
+      "warnings": []
+    },
+    {
+      "form": "village",
+      "pattern": "organic",
+      "seed": 12161,
+      "targetBuildings": 12,
+      "orientation": 45,
+      "density": "loose",
+      "houses": 12,
+      "sourceBytes": 55419,
+      "planMs": 135.385311,
+      "commitAndValidationMs": 385.125575,
+      "errors": [],
+      "warnings": [
+        "SET_RING_GAP"
+      ]
+    },
+    {
+      "form": "village",
+      "pattern": "organic",
+      "seed": 4242,
+      "targetBuildings": 60,
+      "orientation": 0,
+      "density": "balanced",
+      "houses": 60,
+      "sourceBytes": 210343,
+      "planMs": 806.0268659999999,
+      "commitAndValidationMs": 1663.852798,
+      "errors": [],
+      "warnings": []
+    },
+    {
+      "form": "village",
+      "pattern": "organic",
+      "seed": 12161,
+      "targetBuildings": 60,
+      "orientation": 45,
+      "density": "loose",
+      "houses": 60,
+      "sourceBytes": 213346,
+      "planMs": 900.787319,
+      "commitAndValidationMs": 2109.4857790000005,
+      "errors": [],
+      "warnings": []
+    },
+    {
+      "form": "town",
+      "pattern": "organic",
+      "seed": 4242,
+      "targetBuildings": 12,
+      "orientation": 0,
+      "density": "balanced",
+      "houses": 12,
+      "sourceBytes": 54667,
+      "planMs": 61.00366500000018,
+      "commitAndValidationMs": 223.12132699999984,
+      "errors": [],
+      "warnings": []
+    },
+    {
+      "form": "town",
+      "pattern": "organic",
+      "seed": 12161,
+      "targetBuildings": 12,
+      "orientation": 45,
+      "density": "loose",
+      "houses": 12,
+      "sourceBytes": 54217,
+      "planMs": 59.448129999999765,
+      "commitAndValidationMs": 316.34896800000024,
+      "errors": [],
+      "warnings": [
+        "SET_RING_GAP"
+      ]
+    },
+    {
+      "form": "town",
+      "pattern": "organic",
+      "seed": 4242,
+      "targetBuildings": 60,
+      "orientation": 0,
+      "density": "balanced",
+      "houses": 52,
+      "sourceBytes": 180112,
+      "planMs": 7179.331958,
+      "commitAndValidationMs": 1989.7690469999998,
+      "errors": [],
+      "warnings": [
+        "SET_PARTIAL"
+      ]
+    },
+    {
+      "form": "town",
+      "pattern": "organic",
+      "seed": 12161,
+      "targetBuildings": 60,
+      "orientation": 45,
+      "density": "loose",
+      "houses": 56,
+      "sourceBytes": 192833,
+      "planMs": 6023.426123999998,
+      "commitAndValidationMs": 1777.9129470000007,
+      "errors": [],
+      "warnings": [
+        "SET_PARTIAL"
+      ]
+    },
+    {
+      "form": "fortified",
+      "pattern": "organic",
+      "seed": 4242,
+      "targetBuildings": 12,
+      "orientation": 0,
+      "density": "balanced",
+      "houses": 12,
+      "sourceBytes": 54293,
+      "planMs": 34.3523099999984,
+      "commitAndValidationMs": 221.93899000000238,
+      "errors": [],
+      "warnings": []
+    },
+    {
+      "form": "fortified",
+      "pattern": "organic",
+      "seed": 12161,
+      "targetBuildings": 12,
+      "orientation": 45,
+      "density": "loose",
+      "houses": 12,
+      "sourceBytes": 55073,
+      "planMs": 37.24073900000076,
+      "commitAndValidationMs": 196.3376300000018,
+      "errors": [],
+      "warnings": []
+    },
+    {
+      "form": "fortified",
+      "pattern": "organic",
+      "seed": 4242,
+      "targetBuildings": 60,
+      "orientation": 0,
+      "density": "balanced",
+      "houses": 48,
+      "sourceBytes": 168086,
+      "planMs": 5601.034123000001,
+      "commitAndValidationMs": 1050.8156989999989,
+      "errors": [],
+      "warnings": [
+        "SET_PARTIAL"
+      ]
+    },
+    {
+      "form": "fortified",
+      "pattern": "organic",
+      "seed": 12161,
+      "targetBuildings": 60,
+      "orientation": 45,
+      "density": "loose",
+      "houses": 56,
+      "sourceBytes": 192990,
+      "planMs": 3603.6458710000006,
+      "commitAndValidationMs": 1255.554419,
+      "errors": [],
+      "warnings": [
+        "SET_PARTIAL"
+      ]
+    },
+    {
+      "form": "village",
+      "pattern": "clusters",
+      "seed": 4242,
+      "targetBuildings": 12,
+      "orientation": 0,
+      "density": "balanced",
+      "houses": 12,
+      "sourceBytes": 55104,
+      "planMs": 96.93110100000195,
+      "commitAndValidationMs": 240.98113699999521,
+      "errors": [],
+      "warnings": []
+    },
+    {
+      "form": "village",
+      "pattern": "clusters",
+      "seed": 12161,
+      "targetBuildings": 12,
+      "orientation": 45,
+      "density": "loose",
+      "houses": 12,
+      "sourceBytes": 57037,
+      "planMs": 117.66283199999452,
+      "commitAndValidationMs": 286.532643999999,
+      "errors": [],
+      "warnings": []
+    },
+    {
+      "form": "village",
+      "pattern": "clusters",
+      "seed": 4242,
+      "targetBuildings": 60,
+      "orientation": 0,
+      "density": "balanced",
+      "houses": 60,
+      "sourceBytes": 211262,
+      "planMs": 470.9345570000005,
+      "commitAndValidationMs": 978.5086640000009,
+      "errors": [],
+      "warnings": []
+    },
+    {
+      "form": "village",
+      "pattern": "clusters",
+      "seed": 12161,
+      "targetBuildings": 60,
+      "orientation": 45,
+      "density": "loose",
+      "houses": 60,
+      "sourceBytes": 214341,
+      "planMs": 470.4936729999972,
+      "commitAndValidationMs": 923.017194,
+      "errors": [],
+      "warnings": []
+    },
+    {
+      "form": "town",
+      "pattern": "clusters",
+      "seed": 4242,
+      "targetBuildings": 12,
+      "orientation": 0,
+      "density": "balanced",
+      "houses": 12,
+      "sourceBytes": 54649,
+      "planMs": 37.61430399999517,
+      "commitAndValidationMs": 196.2071300000025,
+      "errors": [],
+      "warnings": []
+    },
+    {
+      "form": "town",
+      "pattern": "clusters",
+      "seed": 12161,
+      "targetBuildings": 12,
+      "orientation": 45,
+      "density": "loose",
+      "houses": 12,
+      "sourceBytes": 55094,
+      "planMs": 34.0278330000001,
+      "commitAndValidationMs": 280.80077499999607,
+      "errors": [],
+      "warnings": []
+    },
+    {
+      "form": "town",
+      "pattern": "clusters",
+      "seed": 4242,
+      "targetBuildings": 60,
+      "orientation": 0,
+      "density": "balanced",
+      "houses": 55,
+      "sourceBytes": 189325,
+      "planMs": 3601.898930000003,
+      "commitAndValidationMs": 958.7786930000002,
+      "errors": [],
+      "warnings": [
+        "SET_PARTIAL"
+      ]
+    },
+    {
+      "form": "town",
+      "pattern": "clusters",
+      "seed": 12161,
+      "targetBuildings": 60,
+      "orientation": 45,
+      "density": "loose",
+      "houses": 59,
+      "sourceBytes": 206948,
+      "planMs": 439.3365479999993,
+      "commitAndValidationMs": 1101.500774,
+      "errors": [],
+      "warnings": [
+        "SET_PARTIAL"
+      ]
+    },
+    {
+      "form": "fortified",
+      "pattern": "clusters",
+      "seed": 4242,
+      "targetBuildings": 12,
+      "orientation": 0,
+      "density": "balanced",
+      "houses": 12,
+      "sourceBytes": 54240,
+      "planMs": 54.563563999996404,
+      "commitAndValidationMs": 222.74578499999916,
+      "errors": [],
+      "warnings": []
+    },
+    {
+      "form": "fortified",
+      "pattern": "clusters",
+      "seed": 12161,
+      "targetBuildings": 12,
+      "orientation": 45,
+      "density": "loose",
+      "houses": 12,
+      "sourceBytes": 55111,
+      "planMs": 33.68078599999717,
+      "commitAndValidationMs": 321.3209790000037,
+      "errors": [],
+      "warnings": []
+    },
+    {
+      "form": "fortified",
+      "pattern": "clusters",
+      "seed": 4242,
+      "targetBuildings": 60,
+      "orientation": 0,
+      "density": "balanced",
+      "houses": 52,
+      "sourceBytes": 180495,
+      "planMs": 4021.473821000007,
+      "commitAndValidationMs": 899.3449609999952,
+      "errors": [],
+      "warnings": [
+        "SET_PARTIAL"
+      ]
+    },
+    {
+      "form": "fortified",
+      "pattern": "clusters",
+      "seed": 12161,
+      "targetBuildings": 60,
+      "orientation": 45,
+      "density": "loose",
+      "houses": 58,
+      "sourceBytes": 198734,
+      "planMs": 2960.8802090000027,
+      "commitAndValidationMs": 894.8284959999946,
+      "errors": [],
+      "warnings": [
+        "SET_PARTIAL"
+      ]
+    }
+  ],
+  "natural": [
+    {
+      "silhouette": "crescent",
+      "seed": 4242,
+      "examined": 1,
+      "houses": 12,
+      "valid": true,
+      "center": {
+        "x": 0,
+        "z": -900
+      },
+      "ms": 735.9708060000048
+    },
+    {
+      "silhouette": "turtle",
+      "seed": 4242,
+      "examined": 2,
+      "houses": 12,
+      "valid": true,
+      "center": {
+        "x": 600,
+        "z": 600
+      },
+      "ms": 1412.0082059999986
+    }
+  ]
+}

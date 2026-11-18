@@ -1,3 +1,4 @@
+import {projectShopAccess} from './shop-access.ts';
 import {defaultEnvironment,type EnvironmentDefinition} from '../environment/climate.ts';
 import type {ProjectDocument,EntityIndexEntry,ComponentMap,ProjectLibraries} from '../studio-core/types.ts';
 import {parseGameplayData,type GameplayData,type GameplayEntity} from './schema.ts';
@@ -11,7 +12,8 @@ export function gameplayDataFromIndex(input:{entityIndex:Record<string,EntityInd
   const {entityIndex,components:local,libraries}=input;
   const entities:GameplayEntity[]=Object.values(entityIndex).map(index=>{
     const components=local.get(index.id),logical=index.logical;
-    return {id:index.id,name:index.name,ownerChunkId:index.ownerChunkId,position:logical?.position??index.position,
+    const shopAccess=logical?.shopAccess??(components?.ShopAccess&&components.Transform?projectShopAccess(components.ShopAccess,components.Transform):undefined);
+    return {...(shopAccess?{shopAccess}:{}),id:index.id,name:index.name,ownerChunkId:index.ownerChunkId,position:logical?.position??index.position,
       initialState:logical?.initialState??components?.State?.initial??{},persistentState:logical?.persistentState??components?.Persistence?.fields??[],dialogueIds:(index.references??[]).filter(id=>!!libraries.dialogues[id]),
       ...((logical?.interactable??components?.Interactable)?{interactable:logical?.interactable??components?.Interactable}:{})};
   });

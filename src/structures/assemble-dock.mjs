@@ -1,3 +1,4 @@
+import {dockGridLayout} from './dock-layout.ts';
 /** Little World — Dock kit v1
  * Deterministic modular assembly for a 2 m × 2 m grid.
  * Requires `three@^0.180.0` and its GLTFLoader, already used by Little World.
@@ -129,12 +130,10 @@ export async function assembleDock({ cells, assetBaseUrl, lod = 0, bollards = []
     bollardMatrices.push(matrix(2 * x + ox, DOCK_DECK_Y, 2 * z + oz));
   }
 
-  for (const { gx, gz, rotation } of cellMap.values()) {
-    tiles.push(matrix(gx * 2, 0, gz * 2, rotation));
-    for (const dx of [-1, 1]) for (const dz of [-1, 1]) {
-      const px = gx * 2 + dx, pz = gz * 2 + dz;
-      posts.set(index(px, pz), matrix(px, 0, pz)); // one support at each shared corner
-    }
+  const layout=dockGridLayout([...cellMap.values()]);
+  for(const pose of layout.tiles)tiles.push(matrix(pose.x,0,pose.z,pose.rotation));
+  for(const pose of layout.posts)posts.set(index(pose.x,pose.z),matrix(pose.x,0,pose.z));
+  for (const { gx, gz } of cellMap.values()) {
     for (const [sideName, side] of Object.entries(SIDES)) {
       if (cellMap.has(index(gx + side.dx, gz + side.dz))) continue;
       if (exemptEdges.has(`${index(gx, gz)}:${sideName}`)) continue;

@@ -41,6 +41,8 @@ export interface LightComponent {type:'Light';kind:'point';color:string;intensit
   flicker?:{amplitude:number;speed:number};preset?:LightPreset;}
 export interface TriggerVolumeComponent {type:'TriggerVolume';shape:'box'|'sphere';size:Vector3;interactionIds:StableId[];}
 export interface ComponentMap {
+ ShopAccess?:import('../gameplay/shop-access.ts').ShopAccessComponent;
+  Bridge?:import('../settlements/bridge.ts').BridgeComponent;
   Habitat?:import('../settlements/habitat.ts').HabitatComponent;
   Transform?:TransformComponent;Visual?:VisualComponent;Character?:CharacterComponent;Navigation?:NavigationComponent;
   BehaviorRef?:BehaviorRefComponent;DialogueActor?:DialogueActorComponent;State?:StateComponent;Persistence?:PersistenceComponent;
@@ -74,6 +76,7 @@ export interface ProjectLibraries {
   /** Activity zone boundaries (farm plots, mines). Optional: older projects have none. */
   zones?:Record<StableId,ActivityZoneV3>;
   /** Fixed author-owned courses, optional for older projects. */
+  alpine?:Record<StableId,import('../snow/ski-area.ts').SkiAreaV1>;
   races?:Record<StableId,import('../gameplay/races.ts').RaceDefinition>;
   /** Optional authored surf areas. Empty legacy projects retain flat sea physics. */
   surfZones?:Record<StableId,import('../surf/wave-field.ts').SurfZone>;
@@ -90,7 +93,7 @@ export interface ActivityZoneV3 {id:StableId;kind:'farm-plot'|'mine';name:string
   /** Farm plot settings (crops, rows, soil, irrigation). Optional: defaults derived at compile time. */
   farm?:import('../farm/farm-data.ts').FarmSettingsV3;}
 export interface AssetDefinition {id:AssetId;name:string;type:'glb'|'procedural';file?:string;license:string;source:string;}
-export interface EntityIndexEntry {id:StableId;kind:EntityDefinitionV3['kind'];name:string;ownerChunkId:ChunkId;position:Vector3;references:StableId[];logical?:{position?:Vector3;initialState?:Record<string,StateValue>;persistentState?:string[];interactable?:{prompt:string;range:number;interactionIds:string[]}};}
+export interface EntityIndexEntry {id:StableId;kind:EntityDefinitionV3['kind'];name:string;ownerChunkId:ChunkId;position:Vector3;references:StableId[];logical?:{shopAccess?:import('../gameplay/shop-access.ts').ShopAccessPose;position?:Vector3;initialState?:Record<string,StateValue>;persistentState?:string[];interactable?:{prompt:string;range:number;interactionIds:string[]}};}
 export interface ChunkMetadata {chunkId:ChunkId;cx:number;cz:number;revision:number;sourceRef:string;dependencies:ChunkId[];terrainOwners?:Record<StableId,ChunkId>;biomeOwners?:Record<StableId,ChunkId>;}
 export interface ChunkSourceV3 {
   schemaVersion:3;chunkId:ChunkId;index:{cx:number;cz:number};revision:number;

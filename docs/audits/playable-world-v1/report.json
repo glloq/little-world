@@ -1,0 +1,525 @@
+{
+  "baseSource": "maps/island.project.json",
+  "baseSHA256": "5d85e0aaa4a5b52d26f7fd1484ba449be54d064577c2d76c953e8b3795aa900e",
+  "officialUnchanged": true,
+  "changes": [
+    {
+      "kind": "quest-copy",
+      "id": "ls-castle-town-1.innkeeper-quest",
+      "description": "Consigne alignée sur les cinq sardines réellement requises."
+    },
+    {
+      "kind": "audio",
+      "description": "Catalogue contextuel V2 existant, aucune ressource audio nouvelle."
+    },
+    {
+      "kind": "shop-access",
+      "id": "ls-castle-town-1.market",
+      "x": -159,
+      "z": 640.85
+    },
+    {
+      "kind": "shop-access",
+      "id": "ls-castle-town-1.inn-counter",
+      "x": -179.15,
+      "z": 646
+    },
+    {
+      "kind": "shop-access",
+      "id": "ls-village-clearing-1.farm-counter",
+      "x": -1110.3266677782722,
+      "z": 700.4986578688909
+    },
+    {
+      "kind": "shop-access",
+      "id": "ls-village-clearing-2.farm-counter",
+      "x": 971.2353684443219,
+      "z": 618.9460265483799
+    },
+    {
+      "kind": "shop-access",
+      "id": "ls-forest-camp-1.forest-counter",
+      "x": -893.69733866159,
+      "z": -204.66013315568247
+    },
+    {
+      "kind": "shop-access",
+      "id": "ls-forest-camp-2.forest-counter",
+      "x": 1305.1682550269259,
+      "z": -128.76318298200866
+    },
+    {
+      "kind": "farm",
+      "at": "ls-castle-town-1",
+      "player": 2,
+      "npc": 5
+    },
+    {
+      "kind": "farm",
+      "at": "ls-village-clearing-1",
+      "player": 2,
+      "npc": 3
+    },
+    {
+      "kind": "farm",
+      "at": "ls-village-clearing-2",
+      "player": 2,
+      "npc": 3
+    },
+    {
+      "kind": "farm",
+      "at": "ls-mountain-hamlet-2",
+      "player": 1,
+      "npc": 3
+    },
+    {
+      "kind": "mine-settings",
+      "id": "ls-mine-camp-1.mine",
+      "levels": 4
+    },
+    {
+      "kind": "race",
+      "style": "flat",
+      "score": 100,
+      "lengthM": 156,
+      "dropM": 0,
+      "start": {
+        "x": 1688.08,
+        "z": -745.74
+      }
+    },
+    {
+      "kind": "race",
+      "style": "downhill",
+      "score": 73,
+      "lengthM": 215,
+      "dropM": 88,
+      "start": {
+        "x": 61.82,
+        "z": -283.56
+      }
+    }
+  ],
+  "omitted": [
+    {
+      "kind": "shop-access",
+      "id": "ls-fishing-port-1.port-counter",
+      "reason": "Aucun point d’usage frontal sec et libre validé sans déplacer le comptoir."
+    },
+    {
+      "kind": "shop-access",
+      "id": "ls-fishing-port-2.port-counter",
+      "reason": "Aucun point d’usage frontal sec et libre validé sans déplacer le comptoir."
+    },
+    {
+      "kind": "shop-access",
+      "id": "ls-mine-camp-1.mine-counter",
+      "reason": "Aucun point d’usage frontal sec et libre validé sans déplacer le comptoir."
+    },
+    {
+      "kind": "farm",
+      "at": "ls-mountain-hamlet-1",
+      "diagnostics": [
+        "Parcelles : 0/1 pour le joueur, 0 pour les habitants ; terrain disponible insuffisant pour compléter."
+      ]
+    },
+    {
+      "kind": "ski",
+      "reason": "Aucun couloir non volcanique validé ; pas de neige forcée sur un relief incompatible."
+    }
+  ],
+  "before": {
+    "stats": {
+      "sourceEntities": 1511,
+      "npcs": 32,
+      "lights": 54,
+      "colliders": 1453,
+      "dialogues": 32,
+      "quests": 14,
+      "activitiesLibrary": 0,
+      "shops": 9,
+      "shopsWithUsePose": 0,
+      "farms": 8,
+      "playerFarms": 0,
+      "npcFarms": 0,
+      "mines": 1,
+      "races": 0,
+      "skiAreas": 0,
+      "modularSettlements": 0,
+      "landscapes": 36,
+      "nativePorts": 0,
+      "explicitAudio": false,
+      "paths": 54,
+      "chunks": 745,
+      "assets": 65
+    },
+    "coverage": {
+      "dryCells": 875,
+      "sampledLandKm2": 8.75,
+      "nearActivePercent": 48,
+      "largestGapM": 831
+    },
+    "localBudget": {
+      "cellM": 250,
+      "maxEntities": 242,
+      "maxNPCs": 10,
+      "maxLights": 26,
+      "gpuMeasured": false
+    },
+    "paths": {
+      "inspectedSegments": 512,
+      "uninspectedSegments": 23,
+      "uninspectedPaths": 1,
+      "flagged": [
+        {
+          "id": "ls-fishing-port-1.lane-0",
+          "x": 300,
+          "z": 1380
+        },
+        {
+          "id": "ls-fishing-port-1.lane-1",
+          "x": 300,
+          "z": 1380
+        },
+        {
+          "id": "ls-fishing-port-1.lane-2",
+          "x": 300,
+          "z": 1380
+        },
+        {
+          "id": "ls-fishing-port-1.lane-3",
+          "x": 300,
+          "z": 1380
+        },
+        {
+          "id": "ls-fishing-port-1.lane-4",
+          "x": 300,
+          "z": 1380
+        },
+        {
+          "id": "ls-fishing-port-1.lane-5",
+          "x": 300,
+          "z": 1380
+        },
+        {
+          "id": "ls-fishing-port-1.harbour-road",
+          "x": 300,
+          "z": 1380
+        },
+        {
+          "id": "ls-fishing-port-2.lane-0",
+          "x": 1810,
+          "z": 520
+        },
+        {
+          "id": "ls-fishing-port-2.lane-1",
+          "x": 1810,
+          "z": 520
+        },
+        {
+          "id": "ls-fishing-port-2.lane-2",
+          "x": 1810,
+          "z": 520
+        },
+        {
+          "id": "ls-fishing-port-2.lane-3",
+          "x": 1810,
+          "z": 520
+        },
+        {
+          "id": "ls-fishing-port-2.lane-4",
+          "x": 1810,
+          "z": 520
+        },
+        {
+          "id": "ls-fishing-port-2.harbour-road",
+          "x": 1810,
+          "z": 520
+        },
+        {
+          "id": "ls-mountain-pass-1.trail",
+          "x": 252.8,
+          "z": -1136.4
+        },
+        {
+          "id": "ls-mine-camp-1.mine-road",
+          "x": -1000,
+          "z": -844
+        },
+        {
+          "id": "ls-mountain-hamlet-1.track",
+          "x": -1350,
+          "z": -1000
+        },
+        {
+          "id": "ls-ancient-ruins-1.trail",
+          "x": -1620,
+          "z": -320
+        },
+        {
+          "id": "ls-landmark-site-2.path",
+          "x": 470,
+          "z": 52
+        },
+        {
+          "id": "ls-landmark-site-3.path",
+          "x": 1503.1,
+          "z": 1142.6
+        },
+        {
+          "id": "ls-landmark-site-4.path",
+          "x": -1000,
+          "z": -1258
+        },
+        {
+          "id": "ls-landmark-site-6.path",
+          "x": -300,
+          "z": -1088
+        },
+        {
+          "id": "ls-landmark-site-7.path",
+          "x": -1500,
+          "z": -708
+        },
+        {
+          "id": "route-town-village-e",
+          "x": 100,
+          "z": 640
+        },
+        {
+          "id": "route-village-e-port",
+          "x": 1020,
+          "z": 640
+        },
+        {
+          "id": "route-town-south",
+          "x": -150,
+          "z": 420
+        },
+        {
+          "id": "route-pass-hamlet",
+          "x": -300,
+          "z": -380
+        },
+        {
+          "id": "route-mine-hamlet-w",
+          "x": -1040,
+          "z": -880
+        },
+        {
+          "id": "route-west-coast",
+          "x": -1080,
+          "z": 720
+        }
+      ]
+    }
+  },
+  "after": {
+    "stats": {
+      "sourceEntities": 1511,
+      "npcs": 32,
+      "lights": 54,
+      "colliders": 1453,
+      "dialogues": 32,
+      "quests": 14,
+      "activitiesLibrary": 0,
+      "shops": 9,
+      "shopsWithUsePose": 6,
+      "farms": 29,
+      "playerFarms": 7,
+      "npcFarms": 14,
+      "mines": 1,
+      "races": 2,
+      "skiAreas": 0,
+      "modularSettlements": 0,
+      "landscapes": 36,
+      "nativePorts": 0,
+      "explicitAudio": true,
+      "paths": 54,
+      "chunks": 745,
+      "assets": 65
+    },
+    "coverage": {
+      "dryCells": 875,
+      "sampledLandKm2": 8.75,
+      "nearActivePercent": 55,
+      "largestGapM": 831
+    },
+    "localBudget": {
+      "cellM": 250,
+      "maxEntities": 242,
+      "maxNPCs": 10,
+      "maxLights": 26,
+      "gpuMeasured": false
+    },
+    "paths": {
+      "inspectedSegments": 512,
+      "uninspectedSegments": 23,
+      "uninspectedPaths": 1,
+      "flagged": [
+        {
+          "id": "ls-fishing-port-1.lane-0",
+          "x": 300,
+          "z": 1380
+        },
+        {
+          "id": "ls-fishing-port-1.lane-1",
+          "x": 300,
+          "z": 1380
+        },
+        {
+          "id": "ls-fishing-port-1.lane-2",
+          "x": 300,
+          "z": 1380
+        },
+        {
+          "id": "ls-fishing-port-1.lane-3",
+          "x": 300,
+          "z": 1380
+        },
+        {
+          "id": "ls-fishing-port-1.lane-4",
+          "x": 300,
+          "z": 1380
+        },
+        {
+          "id": "ls-fishing-port-1.lane-5",
+          "x": 300,
+          "z": 1380
+        },
+        {
+          "id": "ls-fishing-port-1.harbour-road",
+          "x": 300,
+          "z": 1380
+        },
+        {
+          "id": "ls-fishing-port-2.lane-0",
+          "x": 1810,
+          "z": 520
+        },
+        {
+          "id": "ls-fishing-port-2.lane-1",
+          "x": 1810,
+          "z": 520
+        },
+        {
+          "id": "ls-fishing-port-2.lane-2",
+          "x": 1810,
+          "z": 520
+        },
+        {
+          "id": "ls-fishing-port-2.lane-3",
+          "x": 1810,
+          "z": 520
+        },
+        {
+          "id": "ls-fishing-port-2.lane-4",
+          "x": 1810,
+          "z": 520
+        },
+        {
+          "id": "ls-fishing-port-2.harbour-road",
+          "x": 1810,
+          "z": 520
+        },
+        {
+          "id": "ls-mountain-pass-1.trail",
+          "x": 252.8,
+          "z": -1136.4
+        },
+        {
+          "id": "ls-mine-camp-1.mine-road",
+          "x": -1000,
+          "z": -844
+        },
+        {
+          "id": "ls-mountain-hamlet-1.track",
+          "x": -1350,
+          "z": -1000
+        },
+        {
+          "id": "ls-ancient-ruins-1.trail",
+          "x": -1620,
+          "z": -320
+        },
+        {
+          "id": "ls-landmark-site-2.path",
+          "x": 470,
+          "z": 52
+        },
+        {
+          "id": "ls-landmark-site-3.path",
+          "x": 1503.1,
+          "z": 1142.6
+        },
+        {
+          "id": "ls-landmark-site-4.path",
+          "x": -1000,
+          "z": -1258
+        },
+        {
+          "id": "ls-landmark-site-6.path",
+          "x": -300,
+          "z": -1088
+        },
+        {
+          "id": "ls-landmark-site-7.path",
+          "x": -1500,
+          "z": -708
+        },
+        {
+          "id": "route-town-village-e",
+          "x": 100,
+          "z": 640
+        },
+        {
+          "id": "route-village-e-port",
+          "x": 1020,
+          "z": 640
+        },
+        {
+          "id": "route-town-south",
+          "x": -150,
+          "z": 420
+        },
+        {
+          "id": "route-pass-hamlet",
+          "x": -300,
+          "z": -380
+        },
+        {
+          "id": "route-mine-hamlet-w",
+          "x": -1040,
+          "z": -880
+        },
+        {
+          "id": "route-west-coast",
+          "x": -1080,
+          "z": 720
+        }
+      ]
+    }
+  },
+  "payload": {
+    "publishedBaseline": {
+      "manifest": 581274,
+      "chunks": 2029494,
+      "logic": 760993,
+      "uniqueAssetBytes": 496068
+    },
+    "draft": {
+      "manifest": 820379,
+      "chunks": 2040646,
+      "logic": 778096,
+      "uniqueAssetBytes": 496068
+    }
+  },
+  "limits": [
+    "Distances horizontales, pas une preuve de parcours",
+    "Quêtes : graphe structurel sans simulation des conditions",
+    "Pêche et collecte libres non comptées dans la proximité",
+    "Support de ponts et collisions complexes à vérifier en jeu",
+    "Surf non implémenté ; ski et remontée prototypes",
+    "Villages historiques conservés ; aucune conversion destructive en villages modulaires"
+  ]
+}

@@ -1,5 +1,7 @@
 # Villages et villes de surface V1 — premier parcours utilisable
 
+> Suite implémentée : [76 — places, équipements et comptoirs](76-SETTLEMENTS-SERVICES-V1.md). Les statuts ci-dessous décrivent la première livraison.
+
 18 novembre 2026. Branche `feat/stepped-island-identity`. **Implémentation locale, non déployée.** Ce lot suit les [contrats 70](70-SETTLEMENTS-TECHNICAL-CONTRACTS.md), le [fast-track 71](71-SETTLEMENTS-FAST-TRACK.md), l’[UX 72](72-SETTLEMENTS-STUDIO-UX.md) et la [coordination terrain 73](73-TERRAIN-SETTLEMENTS-ALIGNMENT.md). Il ne clôture pas toute la roadmap SET.
 
 ## Utilisation dans le Studio
@@ -79,3 +81,5 @@ npm run benchmark:settlements
 ```
 
 Les tests navigateur utilisent le serveur de développement sous `/little-world/` (`WORLD_URL` configurable). Le benchmark et les captures écrivent sous `/tmp/little-world-settlements` par défaut. La fixture de plaine est technique, indépendante de la carte officielle ; aucune génération du monde publié ni modification de ses fichiers n’est incluse.
+
+Évolution du placement : [77 — implantation organique et édition directe](77-ORGANIC-SETTLEMENT-PLACEMENT.md). Les descriptions du modèle aligné ci-dessus restent celles de la livraison initiale.

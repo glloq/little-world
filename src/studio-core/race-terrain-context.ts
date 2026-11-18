@@ -1,3 +1,4 @@
+import {skiCorridorContains} from '../snow/ski-area.ts';
 /** Authored project terrain for race planning; never uses the mutable runtime terrain singleton.
  * Studio must hydrate all source chunks before creating this context. */
 import {projectGeography} from './geo-context.ts';
@@ -6,7 +7,7 @@ import {createRaceTrackSampler} from '../gameplay/race-track.ts';
 import {collisionDefinitionsFromProject} from './collision-adapter.ts';
 import type {RaceTerrainEnvironment} from './race-terrain-planner.ts';
 export function projectRaceTerrainEnvironment(project:ProjectDocument,exceptRaceId?:string):RaceTerrainEnvironment{
- const ctx=projectGeography(project).ctx;
+ const ctx=projectGeography(exceptRaceId?{...project,libraries:{...project.libraries,races:Object.fromEntries(Object.entries(project.libraries.races??{}).filter(([id])=>id!==exceptRaceId))}}:project).ctx;
  const others=Object.values(project.libraries.races??{}).filter(r=>r.id!==exceptRaceId);
  const roads=others.flatMap(r=>r.track?[createRaceTrackSampler(r.track,{height:ctx.height})]:[]);
  const gates=others.flatMap(r=>r.gates.map(g=>({x:g.center.x,z:g.center.z,width:g.width})));
@@ -35,6 +36,7 @@ export function projectRaceTerrainEnvironment(project:ProjectDocument,exceptRace
   bounds:project.world.bounds,seaLevel:project.world.seaLevel,
   height:ctx.height,water:(x,z,h)=>ctx.water(x,z,h),
   occupation:(x,z)=>{
+   if(project.libraries.alpine&&skiCorridorContains(project.libraries.alpine['composition-alpine'],x,z))return 'piste alpine';
    if(roads.some(s=>s.sample(x,z)!==null))return 'course existante';
    if(gates.some(g=>Math.hypot(x-g.x,z-g.z)<g.width/2+3))return 'départ / arrivée existants';
    if(occupiedByCollider(x,z))return 'collision solide existante';

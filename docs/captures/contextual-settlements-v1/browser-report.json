@@ -1,0 +1,30 @@
+{
+  "checks": 21,
+  "errors": [],
+  "profiles": [
+    {
+      "pattern": "street",
+      "houses": 20,
+      "paths": 25,
+      "activity": "mixed"
+    },
+    {
+      "pattern": "mountain",
+      "houses": 20,
+      "paths": 25,
+      "activity": "mixed"
+    },
+    {
+      "pattern": "river",
+      "houses": 17,
+      "paths": 22,
+      "activity": "mixed"
+    },
+    {
+      "pattern": "fishing",
+      "houses": 20,
+      "paths": 25,
+      "activity": "fishing"
+    }
+  ]
+}

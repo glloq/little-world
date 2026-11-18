@@ -1,8 +1,22 @@
 # Little World — instructions pour Codex et autres agents de développement
 
+> **Mondes complets / audit :** lire [92 — contenu, accès, quêtes, profils et reprise de l’île principale](docs/92-COMPLETE-WORLDS-STUDIO-AUDIT.md). La proximité d’activité et une compilation valide ne certifient pas la jouabilité. Enrichir par des pôles complémentaires et préserver les sources historiques ; les copies de comparaison ne remplacent pas la carte officielle.
+
+> **Activités guidées :** lire [91 — courses, ski enregistré et musique](docs/91-GUIDED-ACTIVITIES-RACES-ALPINE-MUSIC.md). Réutiliser les planificateurs et le moteur neige de main ; les descentes de ski restent un prototype sans compétition. Préserver les sources retouchées et l’identité du monde lors de la recomposition.
+
+> **Parcelles et rivage :** lire [90 — jardins joueur/PNJ, décor côtier et caldeira dominante](docs/90-SETTLEMENT-GARDENS-COAST-DOMINANT-CALDERA.md). Respecter la provenance des zones et les droits agricoles ; conserver les formes historiques `regular`/`organic`.
+
+> **Création complète :** lire [89 — caldeira, port natif et villages](docs/89-COMPLETE-ISLAND-START-CALDERA-PORT-VILLAGES.md). Ce lot complète le document 88 : port N1 source dès création, quartiers organiques et raccord explicite. Préserver la géométrie historique sans option organique.
+
+
+> **Suite villages / synchronisation main :** lire [88 — ponts, vie locale et ports existants](docs/88-VILLAGES-RIVER-LIFE-MAIN-INTEGRATION.md). Les petits ponts générés ont un support V3 explicite ; les grands ponts restent hors lot. Le raccord N1 réutilise le survey/runtime de main, sans inventer un cargo ni générer un nouveau port indépendant.
+
+> **Implantation organique :** lire [77 — placement autour d’un point d’intérêt](docs/77-ORGANIC-SETTLEMENT-PLACEMENT.md). Lire aussi [78 — modèles contextuels](docs/78-CONTEXTUAL-SETTLEMENT-PATTERNS.md) pour village-rue, montagne, rivière et pêcheurs, guidés par le terrain/eau natifs. Le profil fortifié règle la compacité seulement ; les enceintes restent à livrer. Sans `recipe.layout`, conserver l’ancien comportement et les retouches/verrous.
+
+> **Établissements de surface V1 :** lire [75 — implémentation et limites](docs/75-SETTLEMENTS-SURFACE-V1.md) avant de modifier les villages. Maisons procédurales creuses et portes V3 indépendantes, `Habitat` et `libraries.settlements` facultatifs ; conserver les références, verrous et retouches. Lire aussi [76 — places et services](docs/76-SETTLEMENTS-SERVICES-V1.md) : équipements optionnels avec provenance/verrous, poses `ShopAccess`, échanges revérifiés côté runtime. Les ports bâtis, ponts, grottes et villes denses de la roadmap restent à livrer.
+
 > **Évolution ARCHIPEL (SPECIFIED, non livrée) :** consulter en priorité [73 — décisions](docs/73-ARCHIPEL-VISION-DECISIONS.md), [74 — manifestes](docs/74-ISLAND-MANIFEST-REGISTRY.md), [75 — voyages](docs/75-ISLAND-TRAVEL-FERRIES-PORTS.md), [76 — autonomie](docs/76-ISLAND-AUTONOMY-ECONOMY-TRADE.md), [77 — communautés](docs/77-ISLAND-COMMUNITY-CONSTRUCTION.md), [78 — UX](docs/78-ISLAND-STUDIO-PLAYER-UX.md), [79 — roadmap](docs/79-ISLAND-ROADMAP-VALIDATION.md). **Premier livrable : plusieurs îles d'exemple STATIQUES compilées et navigables sur GitHub Pages, en SOLO.** Le multijoueur est à préparer dans les contrats, **pas à activer ni à rendre obligatoire**. Aucun serveur/compte/WebSocket exigé. Une carte géographique continue **par île active**, une seule île 3D chargée par client ; le catalogue regroupe des îles distinctes, et non un heightfield géant.
 
-> **Établissements de surface V1 :** lire [75 — implémentation et limites](docs/75-SETTLEMENTS-SURFACE-V1.md) avant de modifier les villages. Maisons procédurales creuses et portes V3 indépendantes, `Habitat` et `libraries.settlements` facultatifs ; conserver les références, verrous et retouches. Les ports bâtis, ponts, grottes et villes denses de la roadmap restent à livrer.
 
 > **Terrain et établissements :** pour les prochains lots de génération d’îles, zones utiles, ports et accès, lire [73 — coordination terrain/établissements/collisions](docs/73-TERRAIN-SETTLEMENTS-ALIGNMENT.md). La branche `docs/studio-settlements-collision-roadmap` est une référence cible demandée par l’auteur ; ses contrats sont documentés, pas une preuve d’implémentation. Préparer des réservations et accès compatibles, sans réseau de chemins ou moteur physique parallèle.
 

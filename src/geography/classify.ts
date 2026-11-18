@@ -13,6 +13,7 @@ export type Material='grass'|'dry-grass'|'forest-floor'|'dirt'|'sand'|'pebbles'|
 export type Occupation='none'|'built'|'farm'|'road'|'reserved'|'exclusion';
 export interface GeoContext {
   seed:number;seaLevel:number; snowLineM?:number;
+  skiSurface?(x:number,z:number):boolean;
   height(x:number,z:number):number;
   /** Water surface at the point (rivers, lakes, sea) or null. */
   water(x:number,z:number,height:number):number|null;
@@ -75,6 +76,7 @@ export function biomeAt(ctx:GeoContext,x:number,z:number,h:number,slope:number,m
   return forest>.12?'forest':'meadow';
 }
 export function materialAt(ctx:GeoContext,x:number,z:number,s:{geology:Geology;biome:Biome;moisture:number;occupation:Occupation;cliff:number;slope:number;height?:number}):Material{
+  if(ctx.skiSurface?.(x,z))return 'snow';
   const code=ctx.mask('material',x,z);if(code&&code!=='.')return categoryOf('material',code)!.id as Material;
   if(ctx.snowLineM!==undefined&&s.height!==undefined&&s.height>=ctx.snowLineM&&s.slope<.9&&s.occupation==='none')return 'snow';
   if(s.occupation==='road')return 'dirt';if(s.occupation==='built')return 'gravel';if(s.occupation==='farm')return 'dirt';

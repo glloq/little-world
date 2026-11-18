@@ -309,6 +309,14 @@ async function diagnostics(host:HTMLElement){
   panel.append(section);
   panel.append(button('Inspecter les pentes et collisions en 3D',()=>{void module('scene').then(()=>viewport?.setPhysicsOverlay(true));}),
     node('p','Le contrôle visuel des pentes utilise les seuils du personnage ; il ne remplace pas un test de parcours en jeu.','muted'));
+  const content=node('section','','section-card'),contentOutput=node('div');let radiusM=250;
+  content.append(node('h3','Contenu jouable et espaces calmes'),node('p','Mesure les entrées d’activités enregistrées et les zones éloignées. La collecte procédurale et la pêche libre ne sont pas inventoriées ; la proximité ne prouve pas l’accès à pied.','muted'),field('Rayon de proximité des activités (m)',numberInput(radiusM,v=>{radiusM=v;},50,1000,'50')),button('Auditer le contenu jouable',async()=>{contentOutput.replaceChildren(node('p','Analyse du contenu…'));await new Promise<void>(resolve=>requestAnimationFrame(()=>resolve()));try{const {auditPlayability}=await import('../studio-core/playability-audit.ts'),report=auditPlayability(await session!.fullDocument(),{radiusM});contentOutput.replaceChildren(node('p',`${report.stats.quests} objectifs · ${report.stats.npcs} PNJ · ${report.stats.shops} commerces · ${report.stats.farms} parcelles · ${report.stats.mines} mines · ${report.stats.races} circuits · ${report.stats.skiAreas} descentes ski`),node('p',`${report.coverage.nearActivePercent} % des cellules terrestres à moins de ${report.method.radiusM} m d’une entrée d’activité. Grille : ${Math.round(report.method.spacingX)} × ${Math.round(report.method.spacingZ)} m.`, 'muted'));
+   const canvas=node('canvas');canvas.width=640;canvas.height=Math.round(640*(report.bounds.maxZ-report.bounds.minZ)/(report.bounds.maxX-report.bounds.minX));canvas.style.width='100%';canvas.setAttribute('aria-label','Répartition du contenu jouable');const ctx=canvas.getContext('2d')!;
+   const w=report.bounds.maxX-report.bounds.minX,h=report.bounds.maxZ-report.bounds.minZ;for(const cell of report.cells){ctx.fillStyle=!cell.land?'#397d9c':cell.activeDistanceM!==null&&cell.activeDistanceM<=report.method.radiusM?'#98bc89':'#d4ae79';ctx.fillRect((cell.x-report.bounds.minX-report.method.spacingX/2)/w*canvas.width,(report.bounds.maxZ-cell.z-report.method.spacingZ/2)/h*canvas.height,canvas.width/report.method.nx+1,canvas.height/report.method.nz+1);}for(const a of report.anchors){ctx.fillStyle='#304958';ctx.beginPath();ctx.arc((a.x-report.bounds.minX)/w*canvas.width,(report.bounds.maxZ-a.z)/h*canvas.height,2,0,Math.PI*2);ctx.fill();}contentOutput.append(canvas,node('p','Vert : proximité d’une activité · ocre : secteur à inspecter ou à conserver calme · points : entrées enregistrées.','muted'));
+   for(const finding of report.findings.slice(0,24))contentOutput.append(button(finding.message,()=>{void module('scene').then(()=>viewport?.goTo(finding.x,finding.z,35));}));
+   for(const gap of report.gaps.slice(0,8))contentOutput.append(button(`Inspecter (${Math.round(gap.x)}, ${Math.round(gap.z)}) · activité à ${gap.activeDistanceM??'plus de 1 000'} m`,()=>{void module('scene').then(()=>viewport?.goTo(gap.x,gap.z,70));}));
+   contentOutput.append(node('p',`Charge source maximale par case de 250 m : ${report.localBudget.maxEntities} entités, ${report.localBudget.maxNPCs} PNJ, ${report.localBudget.maxLights} lumières. Ce comptage ne mesure pas les FPS.`, 'muted'));
+  }catch(e){contentOutput.replaceChildren(node('p',String(e),'diagnostic ERROR'));}}),contentOutput);panel.append(content);
   panel.append(action('Exporter le monde compilé',async()=>{const compiled=await compileProject(p,options),bytes=writeFilesArchive(compiled.files);download('compiled-world.zip',bytes.buffer as ArrayBuffer,'application/zip');status(`${compiled.manifest.chunks.length} secteurs compilés ; source auteur inchangée.`);}));
 }
 async function preview(){
@@ -318,12 +326,13 @@ async function preview(){
   const selected=s.selection.state.selected,entry=selected?p.entityIndex[selected.id]:undefined,camera=s.selection.state.camera;
   const water=selected?.kind==='water'?p.libraries.water[selected.id]:undefined,waterFocus=water?.points[Math.floor(water.points.length/2)];
   const settlementEntry=selected?Object.values(p.libraries.settlements??{}).flatMap(s=>s.buildings).find(b=>b.id===selected.id||b.doorId===selected.id)?.entry:undefined;
-  const focus=settlementEntry??entry?.position??waterFocus??camera.target??(camera.x!==0||camera.z!==0?camera:null);
+  const usage=entry?.logical?.shopAccess,serviceEntry=usage&&entry?{x:entry.position.x+usage.offset.x+usage.forward.x*.7,z:entry.position.z+usage.offset.z+usage.forward.z*.7}:undefined;
+  const focus=settlementEntry??serviceEntry??entry?.position??waterFocus??camera.target??(camera.x!==0||camera.z!==0?camera:null);
   const {compileProject,fetchAssetResolver}=await import('../world-compiler/compile.ts'),{saveTestBuild}=await import('../runtime/build-store.ts');
   status('Compilation de la copie de test…');
   const compiled=await compileProject(p,{resolveAsset:fetchAssetResolver(new URL(import.meta.env.BASE_URL,location.origin).href)});
   let spawn;
-  if(focus){const b=p.world.bounds;spawn={x:Math.max(b.minX+4,Math.min(b.maxX-4,focus.x)),y:0,z:Math.max(b.minZ+15,Math.min(b.maxZ-15,focus.z-(settlementEntry?0:3)))};}
+  if(focus){const b=p.world.bounds;spawn={x:Math.max(b.minX+4,Math.min(b.maxX-4,focus.x)),y:0,z:Math.max(b.minZ+15,Math.min(b.maxZ-15,focus.z-(settlementEntry||serviceEntry?0:3)))};}
   else{const {defaultSpawn,runtimeConfig}=await import('../runtime/compiled-world.ts');spawn=defaultSpawn(runtimeConfig(compiled.manifest),Object.values(p.chunks).flatMap(c=>c.terrainEdits));}
   const build=await saveTestBuild({projectId:p.manifest.projectId,spawn,files:compiled.files});
   status(`Copie de test compilée (${compiled.manifest.chunks.length} secteurs auteur) : actions et slots temporaires, projet auteur conservé.`);

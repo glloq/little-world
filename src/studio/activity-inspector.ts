@@ -48,7 +48,7 @@ function farmSection(zone:ActivityZoneV3,apply:Apply,status:(t:string,e?:boolean
   const f=zone.farm,edit=(label:string,change:(next:FarmSettingsV3)=>void)=>{const next=structuredClone(f);change(next);try{validateFarmSettings(next);apply(label,{farm:next});}catch(e){status(String(e instanceof Error?e.message:e),true);}};
   const crops=node('div','','chip-row');
   for(const c of Object.values(CROPS)){const b=node('input');b.type='checkbox';b.checked=f.crops.includes(c.id);b.onchange=()=>edit('Cultures autorisées',n=>{n.crops=b.checked?[...n.crops,c.id]:n.crops.filter(x=>x!==c.id);if(n.initialCrop&&!n.crops.includes(n.initialCrop))n.initialCrop=null;});crops.append(field(c.name,b));}
-  box.append(node('h4','Cultures autorisées'),crops,
+  box.append(field('Attribution',select(f.assignment??'player',[['player','Joueur'],['npc','Habitants (PNJ)']],v=>edit('Attribution de la parcelle',n=>{n.assignment=v as 'player'|'npc';}))),node('h4','Cultures autorisées'),crops,
     field('Culture initiale',select(f.initialCrop??'',[['','Aucune (parcelle vide)'],...f.crops.map(c=>[c,CROPS[c].name] as [string,string])],v=>edit('Culture initiale',n=>{n.initialCrop=v||null;}))),
     field('Orientation des rangs (°)',numberInput(deg(f.rowAngle),v=>edit('Orientation des rangs',n=>{n.rowAngle=rad(v);}),-360,360,'1')),
     field('Fertilité du sol (0–1)',numberInput(f.soil.fertility,v=>edit('Fertilité du sol',n=>{n.soil.fertility=Math.max(0,Math.min(1,v));}),0,1,'.05')),

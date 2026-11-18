@@ -1,3 +1,6 @@
+import {generateWorldActivities} from './world-activities.ts';
+import {generateBirthPort,validateBirthPort} from './birth-port.ts';
+import {generateWelcomeVillage} from './welcome-village.ts';
 import {compilePolygon} from '../geography/archipelago.ts';
 import {planTerrainSites} from './terrain-site-planner.ts';
 import {planTerrainAccess,validateTerrainAccess} from './terrain-access.ts';
@@ -45,6 +48,8 @@ export function composeWorld(input:MapRequirements,name='Mon petit monde'):World
  if((r.lakes||r.landscapes.some(l=>l.kind==='lake'))&&!hydro.waters.some(w=>w.kind==='lake'))diagnostics.push({severity:r.landscapes.some(l=>l.kind==='lake'&&l.required)?'ERROR':'WARNING',code:'LAKE_NOT_PLANNED',message:'Aucun bassin fermé avec déversoir validé dans cette composition. Ajouter le lac avec l’outil Bassins ou choisir une autre composition.'});
  if(r.waterfalls&&!hydro.waters.some(w=>w.falls?.length))diagnostics.push({severity:'WARNING',code:'FALL_NOT_PLANNED',message:'Les ruptures sont des rapides en pente ; aucune cascade verticale validée. Utiliser l’assistant Cascades après création.'});
  if(r.biomeMode==='custom'&&r.sequence.includes('lake'))diagnostics.push({severity:'WARNING',code:'LATERAL_LAKE',message:'Le lac proposé est un bassin latéral fermé ; la rivière ne le traverse pas. Pour un lac dans la succession, raccorder un déversoir avec l’outil Eau.'});
+ if(r.maritimePort){const port=generateBirthPort(project);if(!port)diagnostics.push({severity:'ERROR',code:'MARITIME_PORT_MISSING',message:'Aucun port N1 praticable : choisir une autre graine, un relief plus doux ou désactiver le départ maritime.'});else if(r.welcomeVillage&&r.welcomeVillage!=='none'){const count=generateWelcomeVillage(project,port,r.welcomeVillage),target=r.welcomeVillage==='hamlet'?12:24;if(!count)diagnostics.push({severity:'WARNING',code:'WELCOME_VILLAGE_MISSING',message:'Port créé ; aucun village ne tient sur les replats voisins.'});else if(count<target)diagnostics.push({severity:'WARNING',code:'WELCOME_VILLAGE_PARTIAL',message:count+'/'+target+' maisons possibles près du port ; les accès restent validés.'});}}
+ generateWorldActivities(project,diagnostics);
  const recipes=planWorldBiomes(project,r,planned.axis,planned.provinces);
  if(r.biomeMode==='custom'&&(r.compositionVersion??1)===1)for(const [i,kind]of r.sequence.entries()){
   const at=planned.axis[Math.min(planned.axis.length-1,Math.round((i+.5)/r.sequence.length*planned.axis.length*RIVER_BIOME_SPAN))],altitude=field.height(at.x,at.z);
@@ -64,6 +69,7 @@ export function composeWorld(input:MapRequirements,name='Mon petit monde'):World
  }
  if((r.compositionVersion??1)>=4&&r.islandStyle?.model==='caldera'&&r.type!=='archipelago')diagnostics.push({severity:'ERROR',code:'STYLE_TYPE',message:'La caldera fragmentée nécessite le type Archipel.'});
  if((r.compositionVersion??1)>=4&&r.biomeMode==='custom')diagnostics.push({severity:'WARNING',code:'ENVIRONMENTAL_SEQUENCE',message:'La succession est une préférence par altitude sur les versants ; les milieux incompatibles avec le terrain ne sont pas imposés.'});
+ diagnostics.push(...validateBirthPort(project));
  const normalized=parseProject(JSON.parse(JSON.stringify(project)));
  const coverage=(r.compositionVersion??1)>=2?compositionCoverage(normalized,planned.axis):undefined;
  return {project:normalized,ready:!diagnostics.some(d=>d.severity==='ERROR'),diagnostics,family:planned.family,
