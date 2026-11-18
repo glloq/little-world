@@ -33,7 +33,7 @@ function surfWaterGeometry(zone:SurfZone,ground:(x:number,z:number)=>number,
    const edge=Math.min(x-zone.minX,zone.maxX-x,z-zone.minZ,zone.maxZ-z);
    positions.set([x,zone.seaLevel+.02,z],index*3);
    envelope[index]=Number.isFinite(depth)&&depth>.05?smooth(depth/fadeDepth)*smooth(edge/edgeFade):0;
-   wet[index]=Number.isFinite(depth)&&depth>.04?1:0;
+   wet[index]=Number.isFinite(depth)&&depth>.05?1:0;
   }
  }
  for(let j=0;j<nz;j++)for(let i=0;i<nx;i++){
@@ -99,7 +99,10 @@ export function createSurfWaterView(parent:THREE.Object3D,field:SurfWaveField,
   update(tick:number,alpha=0){
    // Render interpolates the previous and current fixed-tick wave exactly as the
    // hamster's renderPosition does; a new water physics sample uses integer tick.
-   material.uniforms.uTime.value=(Math.max(0,tick-1)+Math.max(0,Math.min(1,alpha)))/30;
+   const seconds=(Math.max(0,tick-1)+Math.max(0,Math.min(1,alpha)))/30;
+   // The wave repeats every wavelength/speed seconds. Wrapping preserves
+   // the same crest while avoiding float32 phase jitter on long play sessions.
+   material.uniforms.uTime.value=seconds%(z.wavelength/z.speed);
   },
   setDetail(budgetLevel:number,focus:{x:number;z:number}){
    const level=surfWaterTier(z,focus,budgetLevel);
