@@ -11,6 +11,9 @@ import {classifyPoint} from './geography/classify.ts';
 import {createMaterialSampler} from './physics/surface-material.ts';
 import {MINE_MATERIALS} from './mine/mine-data.ts';
 import type {GameUi} from './ui/app/game-ui.ts';
+import {createFishingHud} from './ui/fishing/fishing-hud.ts';
+import {createFishingEffects} from './render/fishing-effects.ts';
+import {withFishingSounds} from './gameplay/fishing-audio.ts';
 import {resolveTarget,objectTarget,npcTarget,boatTarget,ferryTarget,maritimeTradeTarget,mineWallTarget,farmPlotTarget,shopTarget,mineLiftTarget,gatherTarget,fishingTarget,type TargetDescriptor} from './ui/interactions/targets.ts';
 import {SHOPS,type ShopKind} from './gameplay/economy.ts';
 import {geoContext} from './geography/engine.ts';
@@ -95,6 +98,7 @@ let mobileLandscape:ReturnType<typeof createMobileLandscape>|null=null;
 const overlay = document.querySelector<HTMLElement>('#start-overlay')!;
 const start = document.querySelector<HTMLButtonElement>('#start')!;
 const loading = createLoadingScreen(start, start.parentElement!);
+const fishingHud=createFishingHud();
 const scene = new THREE.Scene();
 const lighting=configureScene(scene);
 const camera = new THREE.PerspectiveCamera(66, 1, 0.1, 750);
@@ -253,7 +257,7 @@ try{
       definition=merged;
     }else definition=boostCatalog;
   }
-  if(definition){const {createAudioController}=await import('./audio/view.ts');audio=createAudioController(activeIsland?withFerryBells(toAudioCatalog(definition)):definition,{baseUrl:import.meta.env.BASE_URL});}
+  if(definition){const {createAudioController}=await import('./audio/view.ts');const catalogue=toAudioCatalog(definition);audio=createAudioController(withFishingSounds(activeIsland?withFerryBells(catalogue):catalogue),{baseUrl:import.meta.env.BASE_URL});}
  }catch{console.warn('Audio indisponible : le jeu reste silencieux.');}
 const {createGroundProbe}=await import('./audio/world-probe.ts'),groundProbe=createGroundProbe();
 let gameplay:GameplayView|null=null;
@@ -266,11 +270,11 @@ if(playable){
     setGasProgress:value=>{flightProgress={...value,currentFlightDistance:0,currentFlightNoGas:0,currentCombo:0,lastPulseAt:-1};player.gasCapacityLevel=value.capacityLevel;player.gasPowerLevel=value.powerLevel;player.gasControlLevel=value.controlLevel;},
     setGas:value=>{player.gasReserve=value;player.gasBoosting=false;player.gasPulseClock=0;player.gasPulseSeq=0;player.gasThrust=0;player.gasPulseRemaining=0;player.gasCooldown=0;player.gasBoostHeld=false;player.gasRepeatArmed=false;gasVisualSeq=0;lastFlightPulseSeq=0;boostWindActive=false;},
     ...(isLegacyTerrain()?{}:{gathering:{ctx:geoContext,seed:definition.config.seed,inside:(x:number,z:number)=>Math.abs(x)<=(definition.config.width??200)/2&&Math.abs(z)<=(definition.config.length??600)/2}}),
-    setPosition:(p,space)=>{stopFlightCourse();player.space=space??undefined;player.position.set(p.x,p.y,p.z);player.velocity.set(0,0,0);player.mode='air';player.oxygen=MAX_OXYGEN;player.glideReady=false;player.coyoteLeft=0;player.jumpBufferLeft=0;aboard=false;keySet.clear();jumpQueue=0;actionQueue=0;npcs.dialogue.close();previousPlayerPosition.copy(player.position);renderPosition.copy(player.position);updateCamera(1);}
+    setPosition:(p,space)=>{gameplay?.fishing.cancel();stopFlightCourse();player.space=space??undefined;player.position.set(p.x,p.y,p.z);player.velocity.set(0,0,0);player.mode='air';player.oxygen=MAX_OXYGEN;player.glideReady=false;player.coyoteLeft=0;player.jumpBufferLeft=0;aboard=false;keySet.clear();jumpQueue=0;actionQueue=0;npcs.dialogue.close();previousPlayerPosition.copy(player.position);renderPosition.copy(player.position);updateCamera(1);}
   });
   if(metricsEnabled){const g=gameplay;Object.assign(window,{littleWorldDebug:{/** Developer/test hook (metrics mode only): give items. */grant:(itemId:string,quantity:number)=>g.runtime.grantItems([{itemId,quantity}]),
     /** Developer/test hook: move the player on the ground and turn the camera (heading in rad). */
-    teleport:(x:number,z:number,heading:number,altitude=0)=>{player.space=undefined;player.mode=altitude>0?'air':'ground';player.glideReady=altitude>0;player.coyoteLeft=0;player.jumpBufferLeft=0;player.velocity.set(0,0,0);player.position.set(x,terrainHeight(x,z)+altitude,z);previousPlayerPosition.copy(player.position);yaw=heading;},
+    teleport:(x:number,z:number,heading:number,altitude=0)=>{gameplay?.fishing.cancel();player.space=undefined;player.mode=altitude>0?'air':'ground';player.glideReady=altitude>0;player.coyoteLeft=0;player.jumpBufferLeft=0;player.velocity.set(0,0,0);player.position.set(x,terrainHeight(x,z)+altitude,z);previousPlayerPosition.copy(player.position);yaw=heading;},
     /** Developer/test hook: natural dressing and placed objects drawn within r m of the player. */
     drawnNear:(r:number)=>world.drawnNear(player.position.x,player.position.z,r)}});}
   if(gameplay.gathering){const gather=gameplay.gathering;world.setDressingFilter((cx,cz,kind,index)=>gather.hiddenAt(cx,cz,kind,index));gather.subscribe(()=>world.redrawDressing());}
@@ -479,6 +483,9 @@ world.update(0, player.position);
 const character = buildHamster();
 scene.add(character.group);
 const impacts = createImpactEffects(scene);
+const fishingEffects = createFishingEffects(scene,character.group);
+let nextFishingReelAt=0,lastFishingStrainAt=-Infinity;
+let fishingFloatSoundDue=-1;
 const gasEffects=createGasEffects(scene);const gasOrigin=new THREE.Vector3();let gasVisualSeq=0,boostWindActive=false;
 const flightRings=createFlightRings(scene);
 let flightCourse:FlightCourseSession|null=null,lastCourseHudAt=-1;
@@ -533,6 +540,7 @@ if(touchCapable){
   // Restore touch controls immediately after the player accepts portrait or rotates back.
   // Do not wait for a simulation tick: that tick may still be paused by the orientation guide.
   mobileLandscape=createMobileLandscape(blocked=>{
+    if(blocked){gameplay?.fishing.cancel();fishingHud.hide();fishingEffects.reset();fishingFloatSoundDue=-1;}
     mobileTouch?.setEnabled(!blocked&&started&&!gameUi?.blocking&&!customization.isOpen&&!npcs.dialogue.isOpen);
   });
 }
@@ -563,7 +571,7 @@ function codeHeld(...codes: string[]): boolean {
   return codes.some((c) => keySet.has(c));
 }
 function input(): Controls {
-  if (customization.isOpen || npcs.dialogue.isOpen || gameUi?.blocking){
+  if (customization.isOpen || npcs.dialogue.isOpen || gameUi?.blocking || gameplay?.fishing.state.phase==='reeling'){
     return {
       forward: 0,
       right: 0,
@@ -610,6 +618,7 @@ function resetCameraDrag(): void {
   renderer.domElement.classList.remove('dragging-camera');
 }
 function clearGameplayInput():void{
+  gameplay?.fishing.cancel();fishingHud.hide();fishingEffects.reset();fishingFloatSoundDue=-1;
   keySet.clear();
   rollQueue=0;jumpQueue=0;touchStrokeQueue=0;actionQueue=0;activityQueue=0;cropQueue=0;
   mobileTouch?.reset();resetCameraDrag();
@@ -851,7 +860,7 @@ function flushImpact(at?:{x:number;y:number;z:number}){
 }
 character.onEvent((e)=>{
   if(e.name==='impact'||e.name==='grab')flushImpact(e.position);
-  else if(e.name==='release'){audio?.emit('fishing.cast',{position:player.position,source:'player'});setTimeout(()=>audio?.emit('fishing.float',{position:player.position,source:'player'}),450);}
+  else if(e.name==='release'&&gameplay?.fishing.state.phase==='waiting'){audio?.emit('fishing.cast',{position:player.position,source:'player'});fishingFloatSoundDue=elapsed+.45;}
   else if(e.name==='reel')audio?.emit('fishing.reel',{position:player.position,source:'player'});
   else if(e.name==='roll-start')audio?.emit('player.roll.start',{position:player.position,source:'player'});
   else if(e.name==='roll-stop')audio?.emit('player.roll.stop',{position:player.position,source:'player'});
@@ -866,20 +875,86 @@ function runGather(){
   const fell=r.target?.rule.action==='fell';onImpact(fell?{sound:'tool.chop',kind:'wood'}:{sound:'farm.pick',kind:'leaf',count:3});
   if(!character.play(fell?'fell':'pick'))flushImpact();
 }
-/** Fishing: cast (E), wait for the bite, strike (E) in time. */
+/** Fishing: use the existing contextual E action, then hold/release to reel. */
 function runFishing(){
-  if(!gameplay)return;const f=gameplay.fishing,now=elapsed;
-  if(f.state.phase==='idle'){const spot=fishingSpot();if(!spot)return;if(!gameplay.has('tool:fishing-rod')){showInfo('Il faut une canne à pêche','warning');return;}character.play('fish-cast');f.cast(spot.kind,spot,now);showInfo('Ligne lancée… attendez que ça morde.');return;}
-  const biting=f.state.phase==='bite',fish=f.strike();character.play('fish-reel');if(!fish){showInfo(biting?'Raté !':'Ligne relevée (trop tôt).','warning');return;}
-  if(!gameplay.runtime.grantItems([{itemId:fish,quantity:1}]))showInfo('Sac plein','warning');
+  if(!gameplay)return;
+  const fishing=gameplay.fishing;
+  if(fishing.state.phase==='idle'){
+    const spot=fishingSpot();
+    if(!spot)return;
+    if(!gameplay.has('tool:fishing-rod')){showInfo('Il faut une canne à pêche','warning');return;}
+    player.velocity.set(0,0,0);
+    character.play('fish-cast');
+    fishing.cast(spot.kind,spot,elapsed);
+    showInfo('Ligne lancée… attendez que ça morde.');
+    return;
+  }
+  if(fishing.state.phase==='waiting'){
+    fishing.cancel();showInfo('Ligne relevée.');return;
+  }
+  if(fishing.state.phase==='bite'){
+    if(!fishing.hook()){showInfo('Ferrage raté.','warning');return;}
+    player.velocity.set(0,0,0);
+    character.play('fish-reel');nextFishingReelAt=elapsed+.78;
+    showInfo('Moulinez avec E, relâchez si la ligne est trop tendue.');
+  }
 }
 function updateFishing(){
-  if(!gameplay)return;const f=gameplay.fishing;if(f.state.phase==='idle')return;
-  if(f.state.castAt&&(Math.hypot(f.state.castAt.x-player.position.x,f.state.castAt.z-player.position.z)>8||player.mode!=='ground')){f.cancel();showInfo('Ligne relevée.');return;}
-  const r=f.update(elapsed);if(r==='bite'){showInfo('Ça mord ! Appuyez sur E','success');audio?.emit('fishing.bite',{position:player.position,source:'player'});}else if(r==='lost')showInfo('Le poisson s’est échappé…','warning');
+  if(!gameplay)return;
+  const f=gameplay.fishing;
+  if(fishingFloatSoundDue>=0&&elapsed>=fishingFloatSoundDue){
+    fishingFloatSoundDue=-1;
+    if(f.state.phase!=='idle'&&f.state.castAt){
+      const at={x:f.state.castAt.x,y:waterSurface(f.state.castAt.x,f.state.castAt.z)??getTerrainConfig().seaLevel,z:f.state.castAt.z};
+      audio?.emit('fishing.float',{position:at,source:'player'});fishingEffects.burst(at,'cast');
+    }
+  }
+  if(f.state.phase==='idle')return;
+  if(f.state.castAt&&(Math.hypot(f.state.castAt.x-player.position.x,f.state.castAt.z-player.position.z)>8||player.mode!=='ground'||player.space||aboard)){
+    f.cancel();showInfo('Ligne relevée.');return;
+  }
+  const reelHeld=gameplayInputActive()&&(keySet.has('KeyE')||!!mobileTouch?.interactHeld);
+  const wasReeling=f.state.phase==='reeling',previousTension=f.state.tension;
+  const castAt=f.state.castAt;
+  const waterAt=castAt?{x:castAt.x,y:waterSurface(castAt.x,castAt.z)??getTerrainConfig().seaLevel,z:castAt.z}:null;
+  const result=f.update(elapsed,reelHeld);
+  if(wasReeling&&f.state.phase==='reeling'){
+    if(reelHeld&&elapsed>=nextFishingReelAt){
+      character.play('fish-reel');nextFishingReelAt=elapsed+.78;
+    }
+    if(previousTension<.72&&f.state.tension>=.72&&elapsed-lastFishingStrainAt>=1.1){
+      lastFishingStrainAt=elapsed;
+      audio?.emit('fishing.strain',{position:waterAt??player.position,source:'player',context:{intensity:'heavy',surface:'water'}});
+      if(waterAt)fishingEffects.burst(waterAt,'strain');
+    }
+  }
+  if(result==='bite'){
+    showInfo('Ça mord ! Appuyez sur E','success');
+    audio?.emit('fishing.bite',{position:waterAt??player.position,source:'player'});
+    if(waterAt){fishingEffects.burst(waterAt,'bite');impacts.spawn(waterAt,'water',3);}
+  }else if(result==='lost'){
+    showInfo('Le poisson s’est échappé…','warning');
+    audio?.emit('fishing.escape',{position:waterAt??player.position,source:'player'});
+    if(waterAt){fishingEffects.burst(waterAt,'escaped');impacts.spawn(waterAt,'water',4);}
+  }else if(result==='caught'){
+    const item=f.takeCatch(); // Idempotent: only this transition can claim the fish.
+    if(!item)return;
+    if(waterAt){fishingEffects.burst(waterAt,'caught');impacts.spawn(waterAt,'water',6);}
+    if(gameplay.runtime.grantItems([{itemId:item,quantity:1}])){
+      showInfo(gameplay.itemName(item)+' attrapé !','success');
+      fishingEffects.displayCatch(item);
+      audio?.emit('fishing.catch',{position:player.position,source:'player',context:{species:item}});
+      character.play('fish-reel');
+    }else{showInfo('Sac plein : poisson relâché.','warning');audio?.emit('fishing.escape',{position:waterAt??player.position,source:'player'});}
+  }
 }
 function currentTarget():TargetDescriptor|null{
   if(!started)return null;
+  // Active fishing owns E regardless of nearby boats, shops, NPCs or other targets.
+  if(gameplay&&gameplay.fishing.state.phase!=='idle'){
+    const f=gameplay.fishing.state;
+    return fishingTarget({phase:f.phase,water:f.water?WATER_NAMES[f.water]:'',ok:true});
+  }
   let unusable:TargetDescriptor|null=null;
   return resolveTarget([
     ()=>aboard?boatTarget(true):null,
@@ -1017,10 +1092,10 @@ function tick(dt: number) {
     rollQueue = 0;
   }
   // F: activity in front (dig, fell/pick, farm). Holding F repeats strikes (≈ 3.5 per second).
-  if(gameplay&&!aboard&&keySet.has('KeyF')){strikeTimer-=dt;if(strikeTimer<=0){strikeTimer=.28;activityQueue=Math.max(activityQueue,1);}}else strikeTimer=0;
-  if(activityQueue>0&&gameplay&&!aboard&&player.mode!=='roll'){activityQueue=0;if(player.space)runDig();else if(gameplay.activities.farmNear(player.position))runFarm();else runGather();}
+  if(gameplay&&!aboard&&gameplay.fishing.state.phase!=='reeling'&&keySet.has('KeyF')){strikeTimer-=dt;if(strikeTimer<=0){strikeTimer=.28;activityQueue=Math.max(activityQueue,1);}}else strikeTimer=0;
+  if(activityQueue>0&&gameplay&&!aboard&&player.mode!=='roll'&&gameplay.fishing.state.phase!=='reeling'){activityQueue=0;if(player.space)runDig();else if(gameplay.activities.farmNear(player.position))runFarm();else runGather();}
   updateFishing();
-  if(cropQueue>0&&gameplay){cropQueue=0;const plot=gameplay.activities.farmNear(player.position,player.space);if(plot){const name=gameplay.activities.cycleCrop(plot.zone.id);if(name){showInfo('Culture choisie : '+name);audio?.emit('farm.seedbag',{source:'player'});}}}
+  if(cropQueue>0&&gameplay&&gameplay.fishing.state.phase!=='reeling'){cropQueue=0;const plot=gameplay.activities.farmNear(player.position,player.space);if(plot){const name=gameplay.activities.cycleCrop(plot.zone.id);if(name){showInfo('Culture choisie : '+name);audio?.emit('farm.seedbag',{source:'player'});}}}
   if (actionQueue > 0) {
     actionQueue = 0;
     const target = currentTarget();
@@ -1136,6 +1211,7 @@ function draw(now: number) {
   character.setAboard(aboard);
   if(gameplay){const f=gameplay.fishing.state;character.setFishing(f.phase!=='idle'&&f.castAt?{x:f.castAt.x,y:waterSurface(f.castAt.x,f.castAt.z)??getTerrainConfig().seaLevel,z:f.castAt.z,biting:f.phase==='bite'}:null);}
   character.update(player, delta, elapsed);
+  fishingEffects.update(gameplay?.fishing.state??null,elapsed,delta);
   // Hero-only pose overlay. Does not change the authoritative rig animation,
   // procedural GLB, other players or distant impostor hashes.
   if(player.mode==='glide'&&player.gasBoosting){
@@ -1161,6 +1237,8 @@ function draw(now: number) {
   gasEffects.update(delta);
   impacts.update(delta);
   updateHud();
+  const fishingView=gameplay?.fishing.state??null;
+  fishingHud.update(fishingView,touchCapable,fishingView?.fish&&gameplay?gameplay.itemName(fishingView.fish):undefined);
   if(elapsed-lastCourseHudAt>.2){
     lastCourseHudAt=elapsed;
     flightCourseHud.hidden=!flightCourse;
@@ -1253,7 +1331,7 @@ function draw(now: number) {
   }
   requestAnimationFrame(draw);
 }
-window.addEventListener('pagehide',event=>{if(event.persisted)void audio?.engine.setHidden(true);else {detachPortCollisions?.();ferryView?.dispose();remoteActors?.dispose();gasEffects.dispose();flightRings.dispose();flightCourseHud.remove();speedStreaks.dispose();gpuTimer.dispose();void audio?.dispose();}});
+window.addEventListener('pagehide',event=>{if(event.persisted)void audio?.engine.setHidden(true);else {detachPortCollisions?.();ferryView?.dispose();remoteActors?.dispose();gasEffects.dispose();flightRings.dispose();flightCourseHud.remove();fishingHud.dispose();fishingEffects.dispose();speedStreaks.dispose();gpuTimer.dispose();void audio?.dispose();}});
 window.addEventListener('pageshow',event=>{if(event.persisted&&started)void audio?.engine.setHidden(document.hidden);});
 document.addEventListener('visibilitychange', () => {
   presentation.reset();

@@ -11,7 +11,7 @@ export function joystickAxis(dx:number,dy:number,radius:number,deadzone=.14):Joy
 }
 export interface TouchControls {
   readonly axis:Readonly<JoystickAxis>;
-  readonly jumpHeld:boolean;readonly accelerateHeld:boolean;
+  readonly jumpHeld:boolean;readonly accelerateHeld:boolean;readonly interactHeld:boolean;
   setMode(mode:string,aboard:boolean,gasAvailable:boolean):void;
   setInteractTarget(action:{label:string;enabled:boolean}|null):void;
   setEnabled(enabled:boolean):void;reset():void;dispose():void;
@@ -23,7 +23,7 @@ export function createTouchControls(callbacks:{jump():void;action():void;alterna
   const thumb=document.createElement('span');thumb.className='touch-joystick-thumb';stick.append(thumb);
   const actions=document.createElement('div');actions.className='touch-actions';root.append(stick,actions);document.body.append(root);
   let enabled=false,pointer:number|null=null,axis:JoystickAxis={forward:0,right:0};
-  let jumpHeld=false,accelerateHeld=false;
+  let jumpHeld=false,accelerateHeld=false,interactHeld=false;
   let previousMode='',previousAboard=false,previousGas=false;
   let interactionKey='';
   const active=new Map<HTMLButtonElement,number>();
@@ -65,7 +65,7 @@ export function createTouchControls(callbacks:{jump():void;action():void;alterna
   const accelerate=hold('Courir','touch-accelerate',v=>{accelerateHeld=v;},undefined,startMode=>{
     if(startMode==='ground'||startMode==='roll')callbacks.alternate();
   });
-  const interact=hold('Agir','touch-interact',()=>{},callbacks.action);
+  const interact=hold('Agir','touch-interact',v=>{interactHeld=v;},callbacks.action);
   interact.hidden=true;interact.disabled=true;
   function cancel(b:HTMLButtonElement,apply:(value:boolean)=>void){
     const id=active.get(b);if(id!==undefined){active.delete(b);apply(false);b.classList.remove('pressed');if(b.hasPointerCapture(id))b.releasePointerCapture(id);}
@@ -84,7 +84,7 @@ export function createTouchControls(callbacks:{jump():void;action():void;alterna
     accelerate.disabled=!accelerateAvailable;
     accelerate.setAttribute('aria-label',(flight||airborne)&&!gasAvailable?'Boost (réserve vide)':accelerate.textContent??'Accélérer');
     interact.hidden=aboard||!interactionKey;
-    if(interact.hidden)cancel(interact,()=>{});
+    if(interact.hidden)cancel(interact,v=>{interactHeld=v;});
     root.dataset.mode=aboard?'boat':mode;
   }
   function setInteractTarget(action:{label:string;enabled:boolean}|null){
@@ -92,21 +92,21 @@ export function createTouchControls(callbacks:{jump():void;action():void;alterna
     // keep their explanatory world prompt, but occupy no mobile thumb space.
     const key=action?.enabled?action.label:'';
     if(interactionKey===key)return;
-    interactionKey=key;label(interact,'Agir');interact.title=key;
+    interactionKey=key;label(interact,/mouliner/i.test(key)?'Mouliner':/ferrer/i.test(key)?'Ferrer':/pêcher/i.test(key)?'Pêcher':'Agir');interact.title=key;
     interact.setAttribute('aria-label',key?'Agir : '+key:'Agir');
     interact.hidden=previousAboard||!key;interact.disabled=!key;
-    if(!key)cancel(interact,()=>{});
+    if(!key)cancel(interact,v=>{interactHeld=v;});
   }
   function reset(){
     clearJoystick();
     for(const [b,id] of active){b.classList.remove('pressed');if(b.hasPointerCapture(id))b.releasePointerCapture(id);}
-    active.clear();jumpHeld=false;accelerateHeld=false;
+    active.clear();jumpHeld=false;accelerateHeld=false;interactHeld=false;
   }
   const onBlur=()=>reset(),onVisibility=()=>{if(document.hidden)reset();};
   window.addEventListener('blur',onBlur);document.addEventListener('visibilitychange',onVisibility);
   return {
     get axis(){return axis;},get jumpHeld(){return jumpHeld;},
-    get accelerateHeld(){return accelerateHeld;},
+    get accelerateHeld(){return accelerateHeld;},get interactHeld(){return interactHeld;},
     setMode,setInteractTarget,setEnabled(value:boolean){if(enabled===value)return;enabled=value;root.hidden=!value;if(!value)reset();},
     reset,dispose(){reset();window.removeEventListener('blur',onBlur);document.removeEventListener('visibilitychange',onVisibility);root.remove();},
   };

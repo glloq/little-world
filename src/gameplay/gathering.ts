@@ -83,19 +83,6 @@ export function parseGatherSave(value:unknown):GatherSave{
   return structuredClone(v);
 }
 
-/** Fishing: cast towards water, wait for a bite, strike in time. Fish depends on the water. */
-export type WaterKind='sea'|'river'|'lake';
-const FISH:Record<WaterKind,[string,number][]>={sea:[['fish:sardine',5],['fish:mackerel',4],['fish:seabass',2],['fish:golden',.15]],river:[['fish:trout',5],['fish:perch',3],['fish:golden',.1]],lake:[['fish:carp',5],['fish:perch',4],['fish:golden',.1]]};
-export interface FishingState {phase:'idle'|'waiting'|'bite';water:WaterKind|null;until:number;castAt:{x:number;z:number}|null}
-export function createFishing(rand:()=>number=Math.random){
-  const s:FishingState={phase:'idle',water:null,until:0,castAt:null};
-  return {
-    state:s,
-    cast(water:WaterKind,at:{x:number;z:number},now:number){s.phase='waiting';s.water=water;s.castAt=at;s.until=now+2+rand()*5;},
-    /** Advance with real time (seconds); returns 'bite' when a fish takes the bait, 'lost' when missed. */
-    update(now:number):'bite'|'lost'|null{if(s.phase==='waiting'&&now>=s.until){s.phase='bite';s.until=now+1.3;return 'bite';}if(s.phase==='bite'&&now>=s.until){s.phase='idle';return 'lost';}return null;},
-    /** Strike: during a bite returns the fish caught (weighted by water), otherwise null (too early). */
-    strike():string|null{if(s.phase!=='bite'){s.phase='idle';return null;}s.phase='idle';const list=FISH[s.water??'sea'],total=list.reduce((t,[,w])=>t+w,0);let r=rand()*total;for(const [id,w]of list){r-=w;if(r<0)return id;}return list[0][0];},
-    cancel(){s.phase='idle';},
-  };
-}
+// Backward-compatible module path while consumers migrate to fishing.ts.
+export {createFishing} from './fishing.ts';
+export type {WaterKind,FishingState} from './fishing.ts';
