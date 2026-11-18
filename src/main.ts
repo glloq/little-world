@@ -26,6 +26,7 @@ import {createSurfFeaturesView} from './render/surf-features-view.ts';
 import {createSurfWaveField} from './surf/wave-field.ts';
 import {createSurfWaterView} from './render/surf-water-view.ts';
 import {createSurfBoardView} from './render/surf-board-view.ts';
+import {createSurfHud} from './ui/surf/surf-hud.ts';
 import {boardLift,liftRideStep,type SkiLift,type LiftRide} from './snow/ski-lift.ts';
 import {createSkiLiftView} from './snow/ski-lift-view.ts';
 import type {SnowEquipment} from './snow/snow-slide.ts';
@@ -440,6 +441,8 @@ const surfField=surfSite?createSurfWaveField(surfSite.zone,terrainHeight):
 const surfRace=surfSite?makeDemoSurfRace(surfSite,activeIsland?.id??gameplay?.runtime.data.worldId??'surf-demo'):null;
 const surfWaterView=surfField?createSurfWaterView(scene,surfField,terrainHeight):null;
 const surfBoardView=surfField?createSurfBoardView(scene):null;
+const surfHud=surfField?createSurfHud(document.body):null;
+let nextSurfHudAt=0;
 const surfFeatures=surfSite?makeDemoSurfFeatures(surfSite):(playable?.surfFeatures??[]).filter(f=>surfField&&f.x>=surfField.zone.minX&&f.x<=surfField.zone.maxX&&f.z>=surfField.zone.minZ&&f.z<=surfField.zone.maxZ);
 const surfFeatureState=createSurfFeatureState();
 const surfFeatureView=surfField&&surfFeatures.length?createSurfFeaturesView(scene,surfFeatures,surfField.zone.seaLevel):null;
@@ -1465,6 +1468,14 @@ function draw(now: number) {
   character.update(player, delta, elapsed);
   snowCharacterView.update(player);
   surfBoardView?.update(player,renderPosition);
+  if(surfHud&&now>=nextSurfHudAt){
+    nextSurfHudAt=now+160;
+    surfHud.update(player.mode==='surf'||player.surfAirborne?{
+      stage:player.surfAirborne?'air':player.surfStage??'paddle',
+      speedMps:Math.hypot(player.velocity.x,player.velocity.z),
+      crest:surfField?.sample(player.position.x,player.position.z,motionTick)?.crest??null,
+    }:null);
+  }
   // Mining headgear follows the animated head bone (including turning/looking).
   // One spotlight, zero shadow maps; off outside mines and without the item.
   mineHelmet.setActive(!!player.space&&gameplay?.equipment.head==='tool:miners-helmet');
@@ -1600,7 +1611,7 @@ function draw(now: number) {
   }
   requestAnimationFrame(draw);
 }
-window.addEventListener('pagehide',event=>{if(event.persisted)void audio?.engine.setHidden(true);else {detachPortCollisions?.();ferryView?.dispose();remoteActors?.dispose();mineRhythmHud.dispose();mineHelmet.dispose();gasEffects.dispose();flightRings.dispose();raceGates.dispose();raceTrackView.dispose();flightCourseHud.remove();raceHud.remove();fishingHud.dispose();fishingEffects.dispose();speedStreaks.dispose();surfWaterView?.dispose();surfBoardView?.dispose();surfFeatureView?.dispose();gpuTimer.dispose();void audio?.dispose();}});
+window.addEventListener('pagehide',event=>{if(event.persisted)void audio?.engine.setHidden(true);else {detachPortCollisions?.();ferryView?.dispose();remoteActors?.dispose();mineRhythmHud.dispose();mineHelmet.dispose();gasEffects.dispose();flightRings.dispose();raceGates.dispose();raceTrackView.dispose();flightCourseHud.remove();raceHud.remove();fishingHud.dispose();fishingEffects.dispose();speedStreaks.dispose();surfWaterView?.dispose();surfBoardView?.dispose();surfFeatureView?.dispose();surfHud?.dispose();gpuTimer.dispose();void audio?.dispose();}});
 window.addEventListener('pageshow',event=>{if(event.persisted&&started)void audio?.engine.setHidden(document.hidden);});
 document.addEventListener('visibilitychange', () => {
   presentation.reset();
