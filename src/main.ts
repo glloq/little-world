@@ -440,9 +440,9 @@ const surfField=surfSite?createSurfWaveField(surfSite.zone,terrainHeight):
 const surfRace=surfSite?makeDemoSurfRace(surfSite,activeIsland?.id??gameplay?.runtime.data.worldId??'surf-demo'):null;
 const surfWaterView=surfField?createSurfWaterView(scene,surfField,terrainHeight):null;
 const surfBoardView=surfField?createSurfBoardView(scene):null;
-const surfFeatures=surfSite?makeDemoSurfFeatures(surfSite):[];
+const surfFeatures=surfSite?makeDemoSurfFeatures(surfSite):(playable?.surfFeatures??[]).filter(f=>surfField&&f.x>=surfField.zone.minX&&f.x<=surfField.zone.maxX&&f.z>=surfField.zone.minZ&&f.z<=surfField.zone.maxZ);
 const surfFeatureState=createSurfFeatureState();
-const surfFeatureView=surfSite?createSurfFeaturesView(scene,surfFeatures,surfSite.zone.seaLevel):null;
+const surfFeatureView=surfField&&surfFeatures.length?createSurfFeaturesView(scene,surfFeatures,surfField.zone.seaLevel):null;
 if(surfField)world.setSurfArea(surfField.zone);
 if(surfSite&&surfField){
   const startWave=surfField.sample(surfSite.start.x,surfSite.start.z,0);
