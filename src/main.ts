@@ -400,6 +400,7 @@ world.update(0, player.position);
     ...definition.placements.filter(p=>/(lighthouse|harbor|port|market|inn|windmill|watermill|town|village)/i.test(p.assetId)).slice(0,50).map(p=>({
       id:'asset:'+p.id,label:/lighthouse/i.test(p.assetId)?'Phare':/(port|harbor)/i.test(p.assetId)?'Port':/inn/i.test(p.assetId)?'Auberge':/market/i.test(p.assetId)?'Marché':/windmill|watermill/i.test(p.assetId)?'Moulin':'Village',x:p.x,z:p.z,
     })),
+    ...(portN1Layout?[{id:'maritime:trade-n1',label:'Comptoir maritime',x:portN1Layout.trade.x,z:portN1Layout.trade.z}]:[]),
   ];
   gameUi=createGameUi({gameplay,npcs,audio,focusGameplay:()=>{
     if(!started||!overlay.classList.contains('hide')||customization.isOpen||npcs.dialogue.isOpen)return false;

@@ -187,3 +187,7 @@ Le schéma validé des `ProjectDocument`, `libraries`, `MapRequirements` et `Pub
 - Correction des **meshes N2/N3** : accepter ces fichiers comme **bases visuelles**, qualifier et versionner des corrections séparément, pas modifier les fichiers approuvés silencieusement.
 
 **Ordre de la prochaine intervention de code recommandé :** `PTC-P0` + `P1` + une **implantation de démonstration N1** ; seulement après validation des points de vue et de la circulation, généraliser N2/N3. Ce plan est une spécification de mise en œuvre, et **ne prétend pas que les stands sont déjà placés sur les îles**.
+
+## Première implémentation runtime N1 (branche feat/port-n1-generated-islands)
+
+Le lot [87 — port N1 runtime sur les îles publiées](87-MARITIME-PORT-N1-RUNTIME.md) assemble le GLB stand N1 V1, le kit ponton 2 m, la barque existante `boat.rowboat_wood` et deux hamsters. **C'est un prototype jouable calculé lors du chargement des îles publiées**, pas encore une recette persistée dans le Studio V3. Les sites hors côte validée restent inchangés. Les niveaux N2/N3, leurs permanences commerciales et la progression automatique ne sont pas implémentés par ce lot.

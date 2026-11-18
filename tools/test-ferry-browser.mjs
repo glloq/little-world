@@ -54,6 +54,8 @@ try{
   // ECO-7: if the new N1 merchant was placed, import trade is activated at
   // the stand (not by speaking to the rower). Legacy maps retain the old quay UI.
   const maritime=await page.evaluate(()=>window.littleWorldMetrics.maritimePort);
+  assert.equal(maritime?.active,true,'The published volcano island must display the real N1 harbour example');
+  console.log('MARITIME_PORT_N1 '+JSON.stringify(maritime));
   if(maritime?.active){
     await page.keyboard.press('Escape');
     await page.evaluate(point=>window.littleWorldDebug.teleport(point.x,point.z,0),maritime.trade??maritime.stand);
@@ -61,6 +63,13 @@ try{
     assert.match(await page.locator('#action').textContent()??'',/Commercer/i);
     await page.keyboard.press('KeyE');
     const merchant=page.locator('[data-panel="maritime-trade"]');
+    await merchant.waitFor({state:'visible'});
+    // Real WebGL screenshot: the dock, approved stand, two hamster actors and rowboat.
+    await page.keyboard.press('Escape');
+    await page.evaluate(point=>window.littleWorldDebug.teleport(point.x,point.z,Math.PI),maritime.trade);
+    await page.waitForTimeout(1200);
+    await page.screenshot({path:'/tmp/little-world-browser/port-n1-real-assets.png'});
+    await page.keyboard.press('KeyE');
     await merchant.waitFor({state:'visible'});
     await merchant.getByRole('button',{name:/Voir les importations/}).click();
   }else{
