@@ -335,7 +335,7 @@ export const DEFAULT_NPCS: NPCDefinition[] = [
   {
     id: 'miller',
     name: 'Noisette · meunière',
-    kind: 'hamster',
+    kind: 'squirrel',
     x: riverX(-57) - 18,
     z: -39,
     behavior: 'work',
@@ -350,7 +350,7 @@ export const DEFAULT_NPCS: NPCDefinition[] = [
   {
     id: 'villager',
     name: 'Miel · du village',
-    kind: 'hamster',
+    kind: 'squirrel',
     x: -39,
     z: 87,
     behavior: 'patrol',
@@ -370,7 +370,7 @@ export const DEFAULT_NPCS: NPCDefinition[] = [
   {
     id: 'fisher',
     name: 'Galet · pêcheur',
-    kind: 'hamster',
+    kind: 'squirrel',
     x: -31,
     z: 174,
     behavior: 'idle',
