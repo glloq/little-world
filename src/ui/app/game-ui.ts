@@ -13,7 +13,8 @@ import '../ferry/ferry.css';
 import {isEditableGameTarget} from '../../input/gameplay-input.ts';
 import {loadPreferences,savePreferences,type UiPreferences} from './preferences.ts';
 import {createNotificationCenter,type NoticeKind} from '../notifications/notifications.ts';
-import {inventoryPanel} from '../inventory/inventory.ts';
+import {inventoryPanelV3} from '../inventory/inventory-v3.ts';
+import '../inventory/inventory-v3.css';
 import {createInstrumentPanel} from '../instruments/instrument-panel.ts';
 import {instrumentForItem} from '../../instruments/definitions.ts';
 import {journalPanel,questChanges} from '../journal/journal.ts';
@@ -50,6 +51,8 @@ export interface GameUiDeps {
   };
   world:{name:string;buildVersion:string;dayLength:number;bounds:{minX:number;maxX:number;minZ:number;maxZ:number};seaLevel:number;height(x:number,z:number):number;water(x:number,z:number):number|null};
   eatFood?(id:string):{ok:boolean;message:string};
+  eatFoods?(items:{itemId:string;quantity:number;gas:number}[]):{ok:boolean;message:string};
+  canEatFood?(id:string):string|null;
   player():{gas?:number;maxGas?:number;gasShots?:number;gasMaxShots?:number;gasCooldown?:number;x:number;y:number;z:number;yaw:number;space?:MovementSpace;mode:string;oxygen:number;maxOxygen:number;stamina:number;maxStamina:number;speed?:number;stalled?:boolean};
   target():TargetDescriptor|null;
   quality:HTMLSelectElement|null;
@@ -88,8 +91,11 @@ export function createGameUi(deps:GameUiDeps){
     unlock:()=>deps.audio?.start()??Promise.resolve(false),
   });
   if(g)ui.register('instrument','Jouer de la musique',{render:b=>instrumentPanel.render(b),onClose:()=>instrumentPanel.close()});
-  const inventory=inventoryPanel({items:()=>g?.runtime.data.items??[],inventory:()=>g?.runtime.state.inventory??{},selectedTool:()=>g?.equipment.hands??null,selectTool:id=>{g?.equipment.setHands(id);renderTool();},playInstrument:id=>{if(g?.equipment.hands===id)ui.open('instrument');},headgear:deps.headgear,gasLevel:()=>deps.player().gas??0,gasCapacity:()=>deps.player().maxGas??200,
-    consume:deps.eatFood?(id)=>{const result=deps.eatFood!(id);center.notify(result.ok?'success':'warning',result.message);return result.ok;}:undefined});
+  const inventory=inventoryPanelV3({worldId:g?.runtime.data.worldId,items:()=>g?.runtime.data.items??[],inventory:()=>g?.runtime.state.inventory??{},selectedTool:()=>g?.equipment.hands??null,selectTool:id=>{const ok=g?.equipment.setHands(id);renderTool();return ok;},playInstrument:id=>{if(g?.equipment.hands===id)ui.open('instrument');},headgear:deps.headgear,gasLevel:()=>deps.player().gas??0,gasCapacity:()=>deps.player().maxGas??200,
+    canConsume:deps.canEatFood,
+    consume:deps.eatFood?(id)=>{const result=deps.eatFood!(id);center.notify(result.ok?'success':'warning',result.message);return result.ok;}:undefined,
+    consumeBatch:deps.eatFoods,
+    confirm:(message,label)=>ui.confirm(message,label),notify:message=>center.notify('info',message)});
   ui.register('inventory','Sac',{render:b=>inventory.render(b),onClose:()=>{inventory.markSeen();deps.audio?.emit('ui.inventory.close',{source:'ui'});}});
 
   const waypoints=createWaypointStore(g?.runtime.data.worldId??deps.world.name,deps.world.bounds,deps.temporary);
@@ -277,7 +283,7 @@ export function createGameUi(deps:GameUiDeps){
     if(restoring)return;
     const inv=g.runtime.state.inventory;for(const [id,q] of Object.entries(inv)){const d=q-(lastInventory[id]??0);if(d>0)center.gain(id,g.runtime.data.items.find(i=>i.id===id)?.name??id,d);}
     for(const text of questChanges(g.runtime.data.objectives,lastObjectives,g.runtime.state.objectives))center.quest(text);
-    snapshot();renderTool();if(ui.active==='inventory'||ui.active==='journal')ui.refresh();
+    snapshot();renderTool();if(ui.active==='journal'||ui.active==='inventory'&&!inventory.isDragging())ui.refresh();
     if(ui.active==='instrument'&&!instrumentForItem(g.equipment.hands))ui.close();
   });
   let lastFrame=-1,promptKey='';
