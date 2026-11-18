@@ -1,12 +1,11 @@
 /** A portable, locally persisted player bag independent of the currently loaded island.
  * Only the island's own world state belongs to its per-world save. No server or Three.js.
  */
-import {parseItem,type ItemDefinition} from '../gameplay/schema.ts';
+import {identifier,parseItem,type ItemDefinition} from '../gameplay/schema.ts';
 import {parseTraveler,type TravelStore,type TravelerState} from './transit.ts';
 
 export const PORTABLE_TRAVELER_KEY='little-world:portable-traveler:v1';
 const ISLAND=/^[a-z][a-z0-9-]{1,47}$/;
-const WORLD=/^[a-zA-Z0-9:._-]{1,128}$/;
 
 export interface PortableTravelerCheckpoint {
   schemaVersion:1;
@@ -42,7 +41,7 @@ export function parsePortableCheckpoint(raw:unknown):PortableTravelerCheckpoint 
   if(!raw||typeof raw!=='object'||Array.isArray(raw))throw Error('Sauvegarde portable invalide');
   const v=raw as Record<string,unknown>;
   if(v.schemaVersion!==1||typeof v.islandId!=='string'||!ISLAND.test(v.islandId)||
-    typeof v.worldId!=='string'||!WORLD.test(v.worldId))throw Error('Identité portable invalide');
+    !identifier(v.worldId))throw Error('Identité portable invalide');
   return {schemaVersion:1,islandId:v.islandId,worldId:v.worldId,traveler:parseTraveler(v.traveler)};
 }
 
