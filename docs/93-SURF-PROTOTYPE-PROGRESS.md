@@ -2,7 +2,7 @@
 
 **Branche :** `docs/surf-island-full-plan` — PR #83 (brouillon). **Statut : implémentation prototype, non qualifiée en navigateur / sur PC ancien.**
 
-Ce journal complète [90 — architecture](90-SURF-ARCHITECTURE-CONTRACTS.md), [91 — île/activités](91-SURF-ISLAND-STUDIO-ACTIVITIES.md), [92 — roadmap](92-SURF-IMPLEMENTATION-ROADMAP.md). Il distingue les fonctionnalités codées des objectifs non livrés.
+Ce journal complète [90 — architecture](90-SURF-ARCHITECTURE-CONTRACTS.md), [91 — île/activités](91-SURF-ISLAND-STUDIO-ACTIVITIES.md), [92 — roadmap](92-SURF-IMPLEMENTATION-ROADMAP.md) et [94 — tubes low-poly](94-SURF-BARREL-LOWPOLY.md). Il distingue les fonctionnalités codées des objectifs non livrés.
 
 ## Implémentation ajoutée sur la branche
 
@@ -13,6 +13,7 @@ Ce journal complète [90 — architecture](90-SURF-ARCHITECTURE-CONTRACTS.md), [
 | Saut de crête, réception, wipeout et nage de repli | `src/surf/surf-controller.ts`, `src/player.ts` | PROTOTYPE, collisions à éprouver |
 | Intégration mode `surf` à 30 Hz et replay whitelist | `src/player.ts`, `src/physics/movement-state.ts` | PROTOTYPE |
 | Shader de houle et maillage 3 m, prise en charge NearSea | `src/render/surf-water-view.ts`, `src/horizon-view.ts`, `src/world.ts` | PROTOTYPE, raccord et iGPU non qualifiés |
+| Tube 3D procédural qui se ferme avant la plage ; volume jouable, traversée, wipeout | `src/surf/surf-barrel.ts`, `src/render/surf-barrel-view.ts`, `src/player.ts` | PROTOTYPE, maillage borné et tests ajoutés ; rendu navigateur non qualifié |
 | Planche low-poly + objet `tool:surfboard` équipable et disponible au démarrage d'une zone surf | `src/render/surf-board-view.ts`, `src/surf/surf-items.ts`, `src/gameplay/game-view.ts`, `src/main.ts` | Prototype intégré au sac et aux anciennes sauvegardes ; animations complètes à faire |
 | Site de surf de démo, sans changer les cartes | `src/surf/surf-demo.ts` | PROTOTYPE; peut ne trouver aucune zone |
 | Modules boost/ramp/buoy à cooldown tick, détection balayée, verrou d'entrée et filtre d'altitude | `src/surf/surf-features.ts`, `src/surf/surf-demo-features.ts`, `src/render/surf-features-view.ts` | PROTOTYPE et tests unitaires |
@@ -20,16 +21,16 @@ Ce journal complète [90 — architecture](90-SURF-ARCHITECTURE-CONTRACTS.md), [
 | Studio V3 : surfZones et surfFeatures facultatifs, validation/compilation, modules d'édition | `src/studio-core/{types,schema}.ts`, `src/studio/{shell,surf-panel}.ts`, `src/runtime/compiled-world.ts`, `src/gameplay/playable.ts` | Premier incrément, UX à éprouver |
 | Studio Courses : mode surf + altitude à partir du niveau marin | `src/studio-core/race-authoring.ts`, `src/studio/races-panel.ts` | Premier incrément |
 | HUD contextuel surf et audio de base | `src/ui/surf/surf-hud.ts`, `src/audio/router.ts` | HUD de rame/crête/saut implémenté ; nouveaux événements sonores surf non créés |
-| Tests surf | `tests/surf.test.mjs` | Tests unitaires, CI en cours de qualification |
+| Tests surf | `tests/surf.test.mjs`, `tests/surf-barrel.test.mjs` | Tests unitaires et géométrie, CI à qualifier |
 
 ## Démarrer le prototype dans le navigateur
 
 1. Installer et lancer : `npm ci`, `npm run dev`.
 2. Ouvrir un monde généré avec `?surfDemo=1`, par exemple `/?surfDemo=1` si l'île par défaut est disponible.
 3. Si un site maritime profond compatible est trouvé, le hamster démarre sur une planche en mer et les vagues apparaissent. Sur une carte sans site compatible, un avertissement console est émis et le jeu reste utilisable.
-4. ZQSD/WASD : cap et rame avant la prise de vague ; Shift : propulsion supplémentaire en paddle ou pumping en ride ; Ctrl : frein ; Espace : saut de crête ; B : ranger/reprendre la planche après chute.
+4. ZQSD/WASD : cap et rame avant la prise de vague ; Shift : propulsion supplémentaire en paddle ou pumping en ride ; Ctrl : frein ; Espace : saut de crête ; B : ranger/reprendre la planche après chute. Dans une baie avec tube activé, suivre la crête latéralement et ressortir avant que l'ouverture ne se referme.
 5. Ouvrir **Courses**, sélectionner **Surf — descente vers la plage** : quatre checkpoints et chrono local. Un boost, un tremplin et une bouée sont placés automatiquement près du couloir (leur position est un prototype).
-6. Option Studio : `Surf` dans le groupe Monde, créer une zone sur la mer à la caméra puis placer des modules de boost/ramp/bouée. Dans `Courses`, créer un circuit de type Surf. La compilation V3 transporte zones et modules vers le runtime.
+6. Option Studio : `Surf` dans le groupe Monde, créer une zone sur la mer à la caméra, régler **Intensité du tube 3D** (0–1), puis placer des modules de boost/ramp/bouée. Dans `Courses`, créer un circuit de type Surf. La compilation V3 transporte zones et modules vers le runtime.
 
 **La commande `B` est encore un raccourci de mise en planche.** Dans une zone créée par Studio, la planche doit être possédée et équipée depuis le sac ; dans `?surfDemo=1`, elle est autorisée sans inventaire pour les tests. Un véritable bouton d'action contextuelle reste à intégrer avant publication. Aucun raccourci réseau ou accès à un serveur requis.
 
@@ -44,7 +45,7 @@ Ce journal complète [90 — architecture](90-SURF-ARCHITECTURE-CONTRACTS.md), [
 ## Limitations techniques majeures (suite prioritaire)
 
 1. **SurfZone V1** : rectangle axis-aligned, une seule zone active à la fois dans le runtime (la première zone compilée), hors laboratoire. Évolution : zones polygonales, sélection spatiale, continuité et bathymétrie.
-2. **Vagues V1** : surface de hauteur univoque sans tube 3D, hauteur asymétrique mais simplifiée; calibration CPU/GPU, rive et physique à améliorer. Le renderer utilise un pas de 3 m minimum et limite la grille à 160 segments par axe, avant un vrai LOD adaptatif.
+2. **Vagues/tubes V1** : hauteur univoque pour l'eau + lèvre 3D indépendante et tube jouable optionnel (≤ 2 400 triangles). Calibration CPU/GPU, clairance du hamster, rive, écume et caméra dans le tube restent à qualifier. Le renderer d'eau utilise un pas de 3 m minimum et limite la grille à 160 segments par axe.
 3. **Glisse V1** : impulsions de rame, virage et pumping heuristiques, réglages de sensations à mesurer; contrôle aérien limité, collisions/propagation des impacts non qualifiées.
 4. **Équipement** : objet `tool:surfboard` dans le catalogue et achat au port, équipable depuis le sac. L'animation, les skins, la location, l'aide contextuelle et la pose 3D du hamster restent à compléter.
 5. **Obstacles** : déclenchement par segment balayé et cooldown avec verrou d'entrée déjà ajouté ; collisions visuelles/physiques détaillées, trajectoires de réception et implantation automatique encore à qualifier.
