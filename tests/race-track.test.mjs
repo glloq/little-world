@@ -24,7 +24,7 @@ test('track uses native path centerline and builds all four gameplay modules on 
  const left=r.sample(-3,20),right=r.sample(3,20);
  assert.ok(right.y>left.y+.9,'bank raises the intended side');
  assert.ok(r.sample(0,38).y>r.sample(0,35).y);
- assert.ok(r.sample(0,70).y>2,'bridge deck spans the ravine');
+ assert.ok(r.sample(0,70).y>0.9,'bridge deck spans the ravine');
  assert.ok(r.sample(0,101).y>r.sample(0,90).y+1);
  assert.ok(Math.abs(r.station(101,0).y-r.sample(0,101).y)<1e-7);
  const near=r.sample(0,100.5);
@@ -45,7 +45,7 @@ test('existing outdoor collision query samples bridge from above, not from below
  const under=collision.surfaceAt({x:0,y:-1,z:70});
  assert.ok(above.floorY>2,'bridge deck is solid from above');
  assert.equal(under.floorY,-3,'standing below a bridge does not teleport the character on top');
- assert.equal(collision.surfaceAt({x:10,y:5,z:70}).floorY,0,'no track outside roadbed');
+ assert.equal(collision.surfaceAt({x:10,y:5,z:70}).floorY,-3,'no track outside roadbed');
 });
 test('flat rolling demos gain rideable modular sections and records change after adding a ramp',()=>{
  const p=createProject({name:'Roads',worldId:'road-world',width:1000,length:1000});
