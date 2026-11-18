@@ -31,7 +31,7 @@ export const COUNTER_WORKSHOPS:Record<ShopKind,readonly {type:string;title:strin
 };
 
 export function workshopStationId(counterId:string,stationType:string):string{
-  if(!counterId||counterId.length>128||!/^[a-zA-Z0-9:._-]+$/.test(counterId))throw Error('Comptoir invalide');
+  if(!counterId||counterId.length>128||/[\u0000-\u001f]/.test(counterId))throw Error('Comptoir invalide');
   if(!/^[a-z0-9-]{1,32}$/.test(stationType))throw Error('Type d’atelier invalide');
   // Stable across refreshes, no long entity IDs in the persisted job IDs.
   let hash=2166136261;
@@ -98,7 +98,7 @@ export function createShopWorkshops(deps:WorkshopControllerDeps){
   }
 
   function collect(kind:ShopKind,counterId:string,jobId:string,requestId?:string):WorkshopActionResult{
-    const station=stations(kind,counterId).find(s=>s.stationId===jobId.slice(0,jobId.lastIndexOf(':')));
+    const station=stations(kind,counterId).find(s=>jobId.startsWith(s.stationId+':'));
     if(!station)return {ok:false,reason:'Fabrication d’un autre comptoir'};
     const state=states.get(station.stationId);
     if(!state)return {ok:false,reason:'Fabrication inconnue'};
