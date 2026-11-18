@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createProject,parseProject} from '../src/studio-core/schema.ts';
+import {createProject,parseProject,chunkAt} from '../src/studio-core/schema.ts';
+import {putEntity} from '../src/studio-core/source.ts';
 import {projectGeography} from '../src/studio-core/geo-context.ts';
 import {projectRaceTerrainEnvironment} from '../src/studio-core/race-terrain-context.ts';
 import {findRaceTerrainPlacements,inspectRaceTerrain,raceFromTerrainPlacement} from '../src/studio-core/race-terrain-planner.ts';
@@ -75,4 +76,17 @@ test('real V3 source adapter uses the project geography, not the mutable runtime
   assert.equal(adapter.height(q.x,q.z),geo.height(q.x,q.z));
   assert.equal(adapter.water(q.x,q.z,adapter.height(q.x,q.z)),geo.water(q.x,q.z,geo.height(q.x,q.z)));
  }
+});
+
+test('static physical colliders exclude a route even without a vegetation exclusion asset',()=>{
+ const p=createProject({name:'Test collisions',worldId:'collider-world',width:800,length:800});
+ putEntity(p,{id:'solid-prop',kind:'prop',name:'Bloc solide',ownerChunkId:chunkAt(p.world,0,0),
+   components:{
+     Transform:{type:'Transform',position:{x:0,y:0,z:0},rotation:{x:0,y:0,z:0,w:1},scale:{x:1,y:1,z:1}},
+     Collider:{type:'Collider',shape:'box',size:{x:16,y:4,z:12},layer:'solid'}
+   }});
+ const env=projectRaceTerrainEnvironment(p);
+ assert.equal(env.occupation(0,0),'collision solide existante');
+ assert.equal(env.occupation(12,0),'none');
+ assert.equal(env.occupation(0,30),'none');
 });
