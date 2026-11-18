@@ -29,7 +29,7 @@ Sur `feat/stepped-island-identity` : silhouettes naturelles, croissant et tortue
 
 ### Villages et villes dans le Studio
 
-Sur la même branche, **Construire → Villages & villes** permet de prévisualiser, créer et modifier des implantations de surface de 8 à 80 maisons : rues partagées, portes indépendantes, verrous et régénération préservant les retouches. [Fonctionnalités, captures et limites de cette première version](docs/75-SETTLEMENTS-SURFACE-V1.md).
+Sur la même branche, **Construire → Villages & villes** permet de prévisualiser, créer et modifier des implantations de surface de 8 à 80 maisons : rues partagées, portes indépendantes, verrous et régénération préservant les retouches. [Fonctionnalités, captures et limites de cette première version](docs/75-SETTLEMENTS-SURFACE-V1.md). Une option ajoute désormais une place, des équipements selon l’activité et un comptoir utilisable : [livraison des services](docs/76-SETTLEMENTS-SERVICES-V1.md).
 
 ### Déplacements dynamiques
 

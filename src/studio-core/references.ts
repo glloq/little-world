@@ -1,3 +1,4 @@
+import {projectShopAccess} from '../gameplay/shop-access.ts';
 import type { ComponentMap, Diagnostic, EntityDefinitionV3, EntityIndexEntry, ProjectDocument, StableId } from './types.ts';
 import { parseComponents, validateOverrides } from './schema.ts';
 import { gameplayReferences } from '../gameplay/schema.ts';
@@ -36,7 +37,7 @@ export function resolveEntity(project:ProjectDocument,entity:EntityDefinitionV3)
 export function entityIndexEntry(entity:EntityDefinitionV3):EntityIndexEntry{
   const c=entity.components,position=c.Transform?.position;if(!position)throw Error('Position entité absente');
   return {id:entity.id,kind:entity.kind,name:entity.name,ownerChunkId:entity.ownerChunkId,position:{...position},references:collectEntityReferences(entity),
-    logical:{position:{...position},initialState:structuredClone(c.State?.initial??{}),persistentState:[...(c.Persistence?.fields??[])],...(c.Interactable?{interactable:{prompt:c.Interactable.prompt,range:c.Interactable.range,interactionIds:[...c.Interactable.interactionIds]}}:{})}};
+    logical:{...(c.ShopAccess&&c.Transform?{shopAccess:projectShopAccess(c.ShopAccess,c.Transform)}:{}),position:{...position},initialState:structuredClone(c.State?.initial??{}),persistentState:[...(c.Persistence?.fields??[])],...(c.Interactable?{interactable:{prompt:c.Interactable.prompt,range:c.Interactable.range,interactionIds:[...c.Interactable.interactionIds]}}:{})}};
 }
 /** Lightweight global registry. Loaded state is independent of logical existence. */
 export class ReferenceIndex {
@@ -62,7 +63,7 @@ export class ReferenceIndex {
     for(const [name,library]of Object.entries(p.libraries))for(const [id,value]of Object.entries(library)){
       this.add({id,kind:name,ownerChunkId:'global',locator:`library/${name}/${id}`},true);
       if(name==='dialogues'&&(value as {actorId?:string}).actorId)this.link(id,(value as {actorId:string}).actorId);
-      if(name==='settlements'){const s=value as import('../settlements/schema.ts').SettlementInstance;for(const b of s.buildings)for(const target of [b.id,b.doorId,b.interactionId])this.link(id,target);for(const target of Object.keys(s.pathHashes))this.link(id,target);}
+      if(name==='settlements'){const s=value as import('../settlements/schema.ts').SettlementInstance;for(const b of s.buildings)for(const target of [b.id,b.doorId,b.interactionId])this.link(id,target);for(const target of Object.keys(s.pathHashes))this.link(id,target);for(const a of s.amenities??[])this.link(id,a.id);}
       if(name==='prefabs'){const components=(value as {components:ComponentMap}).components;if(components.Visual)this.link(id,components.Visual.assetId);}
     }
     for(const asset of Object.values(p.assets))this.add({id:asset.id,kind:'asset',ownerChunkId:'global',locator:`assets/${asset.id}`},true);

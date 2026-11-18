@@ -302,12 +302,13 @@ async function preview(){
   const selected=s.selection.state.selected,entry=selected?p.entityIndex[selected.id]:undefined,camera=s.selection.state.camera;
   const water=selected?.kind==='water'?p.libraries.water[selected.id]:undefined,waterFocus=water?.points[Math.floor(water.points.length/2)];
   const settlementEntry=selected?Object.values(p.libraries.settlements??{}).flatMap(s=>s.buildings).find(b=>b.id===selected.id||b.doorId===selected.id)?.entry:undefined;
-  const focus=settlementEntry??entry?.position??waterFocus??camera.target??(camera.x!==0||camera.z!==0?camera:null);
+  const usage=entry?.logical?.shopAccess,serviceEntry=usage&&entry?{x:entry.position.x+usage.offset.x+usage.forward.x*.7,z:entry.position.z+usage.offset.z+usage.forward.z*.7}:undefined;
+  const focus=settlementEntry??serviceEntry??entry?.position??waterFocus??camera.target??(camera.x!==0||camera.z!==0?camera:null);
   const {compileProject,fetchAssetResolver}=await import('../world-compiler/compile.ts'),{saveTestBuild}=await import('../runtime/build-store.ts');
   status('Compilation de la copie de test…');
   const compiled=await compileProject(p,{resolveAsset:fetchAssetResolver(new URL(import.meta.env.BASE_URL,location.origin).href)});
   let spawn;
-  if(focus){const b=p.world.bounds;spawn={x:Math.max(b.minX+4,Math.min(b.maxX-4,focus.x)),y:0,z:Math.max(b.minZ+15,Math.min(b.maxZ-15,focus.z-(settlementEntry?0:3)))};}
+  if(focus){const b=p.world.bounds;spawn={x:Math.max(b.minX+4,Math.min(b.maxX-4,focus.x)),y:0,z:Math.max(b.minZ+15,Math.min(b.maxZ-15,focus.z-(settlementEntry||serviceEntry?0:3)))};}
   else{const {defaultSpawn,runtimeConfig}=await import('../runtime/compiled-world.ts');spawn=defaultSpawn(runtimeConfig(compiled.manifest),Object.values(p.chunks).flatMap(c=>c.terrainEdits));}
   const build=await saveTestBuild({projectId:p.manifest.projectId,spawn,files:compiled.files});
   status(`Copie de test compilée (${compiled.manifest.chunks.length} secteurs auteur) : actions et slots temporaires, projet auteur conservé.`);

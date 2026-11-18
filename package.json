@@ -81,7 +81,9 @@
     "benchmark:composition": "node --experimental-strip-types tools/benchmark-world-composition.mjs",
     "benchmark:styles": "node --experimental-strip-types tools/benchmark-island-styles.mjs",
     "test:settlements": "node --experimental-strip-types tools/test-settlements-browser.mjs",
-    "benchmark:settlements": "node --experimental-strip-types tools/benchmark-settlements.mjs"
+    "benchmark:settlements": "node --experimental-strip-types tools/benchmark-settlements.mjs",
+    "test:settlement-services": "node --experimental-strip-types tools/test-settlement-services-browser.mjs",
+    "benchmark:settlement-services": "node --experimental-strip-types tools/benchmark-settlement-services.mjs"
   },
   "dependencies": {
     "three": "^0.180.0"

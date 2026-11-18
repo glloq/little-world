@@ -1,0 +1,435 @@
+{
+  "kind": "CPU/source qualification on a technical plain; no GPU/FPS qualification",
+  "summary": {
+    "cases": 24,
+    "valid": 24,
+    "fullHouses": 24,
+    "maxAmenities": 4,
+    "maxColliders": 3043,
+    "maxSourceBytes": 269234,
+    "maxPlanMs": 45.359009999999984,
+    "maxCommitAndValidationMs": 1704.2074250000005
+  },
+  "rows": [
+    {
+      "activity": "mixed",
+      "targetBuildings": 12,
+      "orientation": 0,
+      "houses": 12,
+      "amenities": [
+        "counter",
+        "well",
+        "bench"
+      ],
+      "warnings": [],
+      "errors": [],
+      "planMs": 45.359009999999984,
+      "commitAndValidationMs": 192.953774,
+      "colliders": 458,
+      "sourceBytes": 44723
+    },
+    {
+      "activity": "mixed",
+      "targetBuildings": 12,
+      "orientation": 45,
+      "houses": 12,
+      "amenities": [
+        "counter",
+        "well",
+        "bench"
+      ],
+      "warnings": [],
+      "errors": [],
+      "planMs": 11.446234000000004,
+      "commitAndValidationMs": 172.14518100000004,
+      "colliders": 458,
+      "sourceBytes": 47946
+    },
+    {
+      "activity": "mixed",
+      "targetBuildings": 60,
+      "orientation": 0,
+      "houses": 60,
+      "amenities": [
+        "counter",
+        "well",
+        "bench"
+      ],
+      "warnings": [],
+      "errors": [],
+      "planMs": 20.473132000000078,
+      "commitAndValidationMs": 1087.0028929999999,
+      "colliders": 2282,
+      "sourceBytes": 182751
+    },
+    {
+      "activity": "mixed",
+      "targetBuildings": 60,
+      "orientation": 45,
+      "houses": 60,
+      "amenities": [
+        "counter",
+        "well",
+        "bench"
+      ],
+      "warnings": [],
+      "errors": [],
+      "planMs": 20.490005999999994,
+      "commitAndValidationMs": 1093.438516,
+      "colliders": 2282,
+      "sourceBytes": 199367
+    },
+    {
+      "activity": "mixed",
+      "targetBuildings": 80,
+      "orientation": 0,
+      "houses": 80,
+      "amenities": [
+        "counter",
+        "well",
+        "bench"
+      ],
+      "warnings": [],
+      "errors": [],
+      "planMs": 16.63443099999995,
+      "commitAndValidationMs": 1527.6916150000002,
+      "colliders": 3042,
+      "sourceBytes": 240260
+    },
+    {
+      "activity": "mixed",
+      "targetBuildings": 80,
+      "orientation": 45,
+      "houses": 80,
+      "amenities": [
+        "counter",
+        "well",
+        "bench"
+      ],
+      "warnings": [],
+      "errors": [],
+      "planMs": 20.788902999999664,
+      "commitAndValidationMs": 1704.2074250000005,
+      "colliders": 3042,
+      "sourceBytes": 263195
+    },
+    {
+      "activity": "agriculture",
+      "targetBuildings": 12,
+      "orientation": 0,
+      "houses": 12,
+      "amenities": [
+        "counter",
+        "well",
+        "bench",
+        "mill"
+      ],
+      "warnings": [],
+      "errors": [],
+      "planMs": 2.549210999999559,
+      "commitAndValidationMs": 135.24321299999974,
+      "colliders": 459,
+      "sourceBytes": 47034
+    },
+    {
+      "activity": "agriculture",
+      "targetBuildings": 12,
+      "orientation": 45,
+      "houses": 12,
+      "amenities": [
+        "counter",
+        "well",
+        "bench",
+        "mill"
+      ],
+      "warnings": [],
+      "errors": [],
+      "planMs": 2.4481779999996434,
+      "commitAndValidationMs": 134.6115749999999,
+      "colliders": 459,
+      "sourceBytes": 51235
+    },
+    {
+      "activity": "agriculture",
+      "targetBuildings": 60,
+      "orientation": 0,
+      "houses": 60,
+      "amenities": [
+        "counter",
+        "well",
+        "bench",
+        "mill"
+      ],
+      "warnings": [],
+      "errors": [],
+      "planMs": 9.986064000000624,
+      "commitAndValidationMs": 999.9894809999996,
+      "colliders": 2283,
+      "sourceBytes": 185225
+    },
+    {
+      "activity": "agriculture",
+      "targetBuildings": 60,
+      "orientation": 45,
+      "houses": 60,
+      "amenities": [
+        "counter",
+        "well",
+        "bench",
+        "mill"
+      ],
+      "warnings": [],
+      "errors": [],
+      "planMs": 10.9909260000004,
+      "commitAndValidationMs": 956.5246450000004,
+      "colliders": 2283,
+      "sourceBytes": 205093
+    },
+    {
+      "activity": "agriculture",
+      "targetBuildings": 80,
+      "orientation": 0,
+      "houses": 80,
+      "amenities": [
+        "counter",
+        "well",
+        "bench",
+        "mill"
+      ],
+      "warnings": [],
+      "errors": [],
+      "planMs": 12.765823999998247,
+      "commitAndValidationMs": 1396.8561210000007,
+      "colliders": 3043,
+      "sourceBytes": 244192
+    },
+    {
+      "activity": "agriculture",
+      "targetBuildings": 80,
+      "orientation": 45,
+      "houses": 80,
+      "amenities": [
+        "counter",
+        "well",
+        "bench",
+        "mill"
+      ],
+      "warnings": [],
+      "errors": [],
+      "planMs": 13.656225000000632,
+      "commitAndValidationMs": 1303.5197869999993,
+      "colliders": 3043,
+      "sourceBytes": 268036
+    },
+    {
+      "activity": "forest",
+      "targetBuildings": 12,
+      "orientation": 0,
+      "houses": 12,
+      "amenities": [
+        "counter",
+        "well",
+        "bench",
+        "fire"
+      ],
+      "warnings": [],
+      "errors": [],
+      "planMs": 2.959188999999242,
+      "commitAndValidationMs": 138.56565800000135,
+      "colliders": 459,
+      "sourceBytes": 47664
+    },
+    {
+      "activity": "forest",
+      "targetBuildings": 12,
+      "orientation": 45,
+      "houses": 12,
+      "amenities": [
+        "counter",
+        "well",
+        "bench",
+        "fire"
+      ],
+      "warnings": [],
+      "errors": [],
+      "planMs": 2.1300370000008115,
+      "commitAndValidationMs": 161.7784069999998,
+      "colliders": 459,
+      "sourceBytes": 50691
+    },
+    {
+      "activity": "forest",
+      "targetBuildings": 60,
+      "orientation": 0,
+      "houses": 60,
+      "amenities": [
+        "counter",
+        "well",
+        "bench",
+        "fire"
+      ],
+      "warnings": [],
+      "errors": [],
+      "planMs": 12.512755000001562,
+      "commitAndValidationMs": 914.0560979999991,
+      "colliders": 2283,
+      "sourceBytes": 187623
+    },
+    {
+      "activity": "forest",
+      "targetBuildings": 60,
+      "orientation": 45,
+      "houses": 60,
+      "amenities": [
+        "counter",
+        "well",
+        "bench",
+        "fire"
+      ],
+      "warnings": [],
+      "errors": [],
+      "planMs": 10.59943199999907,
+      "commitAndValidationMs": 1033.3423540000003,
+      "colliders": 2283,
+      "sourceBytes": 204444
+    },
+    {
+      "activity": "forest",
+      "targetBuildings": 80,
+      "orientation": 0,
+      "houses": 80,
+      "amenities": [
+        "counter",
+        "well",
+        "bench",
+        "fire"
+      ],
+      "warnings": [],
+      "errors": [],
+      "planMs": 12.207738999999492,
+      "commitAndValidationMs": 1407.907228,
+      "colliders": 3043,
+      "sourceBytes": 246816
+    },
+    {
+      "activity": "forest",
+      "targetBuildings": 80,
+      "orientation": 45,
+      "houses": 80,
+      "amenities": [
+        "counter",
+        "well",
+        "bench",
+        "fire"
+      ],
+      "warnings": [],
+      "errors": [],
+      "planMs": 17.071045000000595,
+      "commitAndValidationMs": 1395.2581119999995,
+      "colliders": 3043,
+      "sourceBytes": 269234
+    },
+    {
+      "activity": "commerce",
+      "targetBuildings": 12,
+      "orientation": 0,
+      "houses": 12,
+      "amenities": [
+        "counter",
+        "well",
+        "bench"
+      ],
+      "warnings": [],
+      "errors": [],
+      "planMs": 2.3993289999998524,
+      "commitAndValidationMs": 132.59460200000103,
+      "colliders": 458,
+      "sourceBytes": 44726
+    },
+    {
+      "activity": "commerce",
+      "targetBuildings": 12,
+      "orientation": 45,
+      "houses": 12,
+      "amenities": [
+        "counter",
+        "well",
+        "bench"
+      ],
+      "warnings": [],
+      "errors": [],
+      "planMs": 2.1717620000017632,
+      "commitAndValidationMs": 156.45817499999976,
+      "colliders": 458,
+      "sourceBytes": 47949
+    },
+    {
+      "activity": "commerce",
+      "targetBuildings": 60,
+      "orientation": 0,
+      "houses": 60,
+      "amenities": [
+        "counter",
+        "well",
+        "bench"
+      ],
+      "warnings": [],
+      "errors": [],
+      "planMs": 10.322860000000219,
+      "commitAndValidationMs": 909.5563719999991,
+      "colliders": 2282,
+      "sourceBytes": 182754
+    },
+    {
+      "activity": "commerce",
+      "targetBuildings": 60,
+      "orientation": 45,
+      "houses": 60,
+      "amenities": [
+        "counter",
+        "well",
+        "bench"
+      ],
+      "warnings": [],
+      "errors": [],
+      "planMs": 10.558686999997008,
+      "commitAndValidationMs": 1019.8549020000028,
+      "colliders": 2282,
+      "sourceBytes": 199370
+    },
+    {
+      "activity": "commerce",
+      "targetBuildings": 80,
+      "orientation": 0,
+      "houses": 80,
+      "amenities": [
+        "counter",
+        "well",
+        "bench"
+      ],
+      "warnings": [],
+      "errors": [],
+      "planMs": 12.597320000000764,
+      "commitAndValidationMs": 1321.2311809999992,
+      "colliders": 3042,
+      "sourceBytes": 240263
+    },
+    {
+      "activity": "commerce",
+      "targetBuildings": 80,
+      "orientation": 45,
+      "houses": 80,
+      "amenities": [
+        "counter",
+        "well",
+        "bench"
+      ],
+      "warnings": [],
+      "errors": [],
+      "planMs": 14.025212000000465,
+      "commitAndValidationMs": 1418.773423999999,
+      "colliders": 3042,
+      "sourceBytes": 263198
+    }
+  ]
+}

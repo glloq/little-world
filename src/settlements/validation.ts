@@ -1,3 +1,5 @@
+import {SHOPS} from '../gameplay/economy.ts';
+import {serviceEntry} from './services.ts';
 import type { ProjectDocument } from '../studio-core/types.ts';
 import type { PathDefinition } from '../world-data.ts';
 import { resolveEntity } from '../studio-core/references.ts';
@@ -98,14 +100,14 @@ export function validateSettlements(p: ProjectDocument, onlyId?: string): Settle
                     error('SET_ACCESS_TERRAIN', 'Une rue ou un accès ne respecte plus l’eau, la pente ou la largeur.', path.id);
                     break;
                 }
-                const length = Math.hypot(b.x - a.x, b.z - a.z), steps = Math.max(1, Math.ceil(length / 24));
-                for (let j = 0; j < steps; j++) {
-                    const from = { x: a.x + (b.x - a.x) * j / steps, z: a.z + (b.z - a.z) * j / steps }, to = { x: a.x + (b.x - a.x) * (j + 1) / steps, z: a.z + (b.z - a.z) * (j + 1) / steps }, moved = query.sweep({ ...from, y: c.height(from.x, from.z) }, { ...to, y: c.height(to.x, to.z) }, path.width / 2, 1.8);
-                    if (moved.blockedX || moved.blockedZ || moved.pushed || Math.hypot(moved.position.x - to.x, moved.position.z - to.z) > .05) {
-                        error('SET_ACCESS_OBSTACLE', 'Un obstacle solide ou une hauteur libre insuffisante coupe un accès du village.', path.id);
-                        break;
-                    }
+                const length=Math.hypot(b.x-a.x,b.z-a.z),steps=Math.max(1,Math.ceil(length/24)),strips=Math.max(1,Math.ceil(path.width/4)),stripWidth=path.width/strips,nx=length?-(b.z-a.z)/length:0,nz=length?(b.x-a.x)/length:0;
+                let blocked=false;
+                for(let k=0;k<strips&&!blocked;k++){const offset=-path.width/2+(k+.5)*stripWidth;
+                    for(let j=0;j<steps;j++){const from={x:a.x+(b.x-a.x)*j/steps+nx*offset,z:a.z+(b.z-a.z)*j/steps+nz*offset},to={x:a.x+(b.x-a.x)*(j+1)/steps+nx*offset,z:a.z+(b.z-a.z)*(j+1)/steps+nz*offset},moved=query.sweep({...from,y:c.height(from.x,from.z)},{...to,y:c.height(to.x,to.z)},stripWidth/2,1.8);
+                        if(moved.blockedX||moved.blockedZ||moved.pushed||Math.hypot(moved.position.x-to.x,moved.position.z-to.z)>.05){blocked=true;break;}}
                 }
+                if(blocked)error('SET_ACCESS_OBSTACLE','Un obstacle solide ou une hauteur libre insuffisante coupe un accès du village.',path.id);
+
             }
         const graph = settlementTransportGraph(paths, c.height), adj = new Map<string, string[]>();
         for (const edge of graph.edges) {
@@ -120,6 +122,7 @@ export function validateSettlements(p: ProjectDocument, onlyId?: string): Settle
             visited.add(id);
             pending.push(...adj.get(id) ?? []);
         }
+        for(const a of s.amenities??[]){const i=p.entityIndex[a.id],e=i?p.chunks[i.ownerChunkId]?.entities[a.id]:undefined;if(!e){error('SET_AMENITY_MISSING','Un équipement référencé est absent.',a.id);continue;}if(a.role==='counter'&&(!e.components.ShopAccess||typeof e.components.State?.initial.shop!=='string'||!Object.hasOwn(SHOPS,e.components.State.initial.shop)))error('SET_SERVICE_UNUSABLE','Le comptoir a perdu son type commercial ou sa pose d’usage.',a.id);if(e.components.ShopAccess){const current=serviceEntry(e);if(Math.hypot(current.x-a.entry.x,current.z-a.entry.z)>.05)error('SET_SERVICE_MOVED','Le comptoir a été déplacé : recalculer son accès.',a.id);}const node=graph.nodes.find(n=>Math.hypot(n.position.x-a.entry.x,n.position.z-a.entry.z)<.05);if(!node||!visited.has(node.id))error('SET_SERVICE_DISCONNECTED','Un équipement ne rejoint plus la place et les rues.',a.id);}
         for (const b of s.buildings) {
             const idx = p.entityIndex[b.id], source = idx ? p.chunks[idx.ownerChunkId]?.entities[b.id] : undefined;
             if (!source) {

@@ -1,3 +1,4 @@
+import {planServices,amenityChanged} from './services.ts';
 import { makeDoor } from '../gameplay/templates.ts';
 /** Bounded surface settlement planner. Native entities/paths are the sole geometric source. */
 import type { ProjectDocument, EntityDefinitionV3, TransformComponent } from '../studio-core/types.ts';
@@ -10,7 +11,7 @@ import { inspectGroundSegment, planGroundRoute } from '../paths/terrain-route.ts
 import { collisionDefinitionsFromProject } from '../studio-core/collision-adapter.ts';
 import { WorldCollisionQuery } from '../physics/collision-world.ts';
 import { HOUSE, HABITAT_STYLES, housePoint, HABITAT_ASSETS, habitatColliders } from './habitat.ts';
-import { validateSettlementRecipe, type SettlementRecipe, type BuildingRecord } from './schema.ts';
+import { validateSettlementRecipe, type SettlementRecipe, type BuildingRecord,type AmenityRecord } from './schema.ts';
 export interface SettlementDiagnostic {
     severity: 'ERROR' | 'WARNING' | 'INFO';
     code: string;
@@ -24,6 +25,7 @@ export interface SettlementPlan {
     entities: EntityDefinitionV3[];
     paths: PathDefinition[];
     buildings: BuildingRecord[];
+    amenities?:AmenityRecord[];
     diagnostics: SettlementDiagnostic[];
     preserved: string[];
     removed: string[];
@@ -34,9 +36,11 @@ export function sourceEntity(p: ProjectDocument, id: string) { const i = p.entit
 export function buildingChanged(p: ProjectDocument, b: BuildingRecord) { return b.locked || fingerprint(p.libraries.interactions[b.interactionId]) !== fingerprint(makeDoor(b.interactionId, b.doorId)) || Object.entries(b.entityHashes).some(([id, h]) => fingerprint(sourceEntity(p, id)) !== h); }
 export function settlementPoint(r: SettlementRecipe, x: number, z: number) { const a = r.orientation * Math.PI / 180; return { x: r.center.x + x * Math.cos(a) + z * Math.sin(a), z: r.center.z - x * Math.sin(a) + z * Math.cos(a) }; }
 export function planSettlement(p: ProjectDocument, raw: SettlementRecipe): SettlementPlan {
+    if(Object.keys(p.chunkIndex).some(id=>!p.chunks[id]))throw Error('Charger tous les secteurs avant de calculer une implantation.');
     const started = performance.now(), r = validateSettlementRecipe(raw, p.world), previous = p.libraries.settlements?.[r.id], c = settlementTerrain(p), diagnostics: SettlementDiagnostic[] = [], entities: EntityDefinitionV3[] = [], paths: PathDefinition[] = [], buildings: BuildingRecord[] = [], preserved: string[] = [], removed: string[] = [];
     const protectedBuildings = new Map((previous?.buildings ?? []).filter(b => buildingChanged(p, b)).map(b => [b.slot, b]));
     const removable = new Set((previous?.buildings ?? []).filter(b => !protectedBuildings.has(b.slot)).flatMap(b => [b.id, b.doorId]));
+    for(const a of previous?.amenities??[])if(!amenityChanged(p,a))removable.add(a.id);
     const obstacles = collisionDefinitionsFromProject(p).filter(d => !removable.has(d.ownerId ?? d.id)); // protected footprints are checked separately below
     const query = new WorldCollisionQuery(c.height, () => null);
     for (const d of obstacles)
@@ -141,6 +145,9 @@ export function planSettlement(p: ProjectDocument, raw: SettlementRecipe): Settl
             if (path)
                 paths.push(structuredClone(path));
         }
+    for(const e of entities)if(e.components.Habitat&&e.components.Transform)for(const d of habitatColliders(e.id,e.components.Transform))query.add({...d,position:{...d.position,y:d.position.y+c.height(d.groundAnchor.x,d.groundAnchor.z)},enabled:()=>true});
+    const amenities=planServices(p,r,roadZ,c,query,entities,paths,diagnostics,preserved,nativePath);
+    for(const a of previous?.amenities??[])if(!amenities.some(v=>v.id===a.id)&&!amenityChanged(p,a))removed.push(a.id);
     // Optional local connection to the nearest authored road, rather than one remote route per house.
     if (r.useExisting) {
         for (const e of entities)
@@ -169,6 +176,6 @@ export function planSettlement(p: ProjectDocument, raw: SettlementRecipe): Settl
             paths.push(structuredClone(p.libraries.paths[id]));
             preserved.push(id);
         }
-    return { recipe: r, sourceHash: settlementSourceHash(p), recipeHash: fingerprint(r), entities, paths, buildings, diagnostics, preserved: [...new Set(preserved)], removed, generationMs: performance.now() - started };
+    return { recipe: r, sourceHash: settlementSourceHash(p), recipeHash: fingerprint(r), entities, paths, buildings,...(r.services||previous?.amenities?{amenities}:{}), diagnostics, preserved: [...new Set(preserved)], removed, generationMs: performance.now() - started };
 }
 export { HABITAT_ASSETS };

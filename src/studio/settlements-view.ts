@@ -1,9 +1,10 @@
+import {worldAsset} from '../world-production/registry.ts';
 /** One Studio module: native sources, Canvas preview and the shared viewport/history. */
 import { node, button, field, input, numberInput, select } from './dom.ts';
 import type { StudioSession } from './session.ts';
 import { newSettlement, type SettlementRecipe } from '../settlements/schema.ts';
 import { planSettlement, type SettlementPlan } from '../settlements/planner.ts';
-import { applySettlement, previewSettlementProject, settlementChunkIds, lockSettlementBuilding, removeSettlement, removeSettlementBuilding } from '../settlements/authoring.ts';
+import { applySettlement, previewSettlementProject, settlementChunkIds, lockSettlementBuilding, removeSettlement, removeSettlementBuilding,lockSettlementAmenity,removeSettlementAmenity } from '../settlements/authoring.ts';
 import { validateSettlements } from '../settlements/validation.ts';
 import { terrainAccessContext } from '../studio-core/terrain-access.ts';
 import { fingerprint } from '../world-production/landscape-schema.ts';
@@ -73,8 +74,7 @@ export function mountSettlements(host: HTMLElement, s: StudioSession, options: {
         const entities = plan?.entities ?? Object.values(p.chunks).flatMap(c => Object.values(c.entities));
         for (const e of entities) {
             const t = e.components.Transform;
-            if (!t || !e.components.Habitat)
-                continue;
+            if(!t)continue;if(!e.components.Habitat){if(e.id.includes('-service-')){const size=worldAsset(e.components.Visual?.assetId??'')?.size??[2,2,2];c.save();c.translate(px(t.position.x),pz(t.position.z));c.rotate(-2*Math.atan2(t.rotation.y,t.rotation.w));c.fillStyle=e.components.State?.initial.shop?'#d39851':'#608db0';c.fillRect(-size[0]/2/span*canvas.width,-size[2]/2/depth*canvas.height,size[0]/span*canvas.width,size[2]/depth*canvas.height);c.restore();c.fillStyle='#23382e';c.font='11px sans-serif';c.fillText(e.name,px(t.position.x)+5,pz(t.position.z)-6);}continue;}
             const a = 2 * Math.atan2(t.rotation.y, t.rotation.w);
             c.save();
             c.translate(px(t.position.x), pz(t.position.z));
@@ -99,7 +99,7 @@ export function mountSettlements(host: HTMLElement, s: StudioSession, options: {
     function showPlan() {
         if (!plan)
             return;
-        result.replaceChildren(node('strong', `${plan.buildings.length} maisons · ${plan.paths.filter(v => !v.id.includes('-access-')).length} voies partagées · ${plan.paths.filter(v => v.id.includes('-access-')).length} accès privés`), node('p', `${plan.preserved.length} éléments protégés · ${plan.removed.length} suppressions · calcul ${Math.round(plan.generationMs)} ms`, 'muted'), ...plan.diagnostics.map(d => node('p', d.message, 'diagnostic ' + d.severity)));
+        result.replaceChildren(node('strong', `${plan.buildings.length} maisons · ${plan.amenities?.length??0} équipements · ${plan.paths.filter(v => !v.id.includes('-access-')).length} voies partagées · ${plan.paths.filter(v => v.id.includes('-access-')&&!v.id.includes('-civic-')).length} accès privés · ${plan.paths.filter(v=>v.id.includes('-civic-access-')).length} accès aux équipements`), node('p', `${plan.preserved.length} éléments protégés · ${plan.removed.length} suppressions · calcul ${Math.round(plan.generationMs)} ms`, 'muted'), ...plan.diagnostics.map(d => node('p', d.message, 'diagnostic ' + d.severity)));
         const commit = button(p.libraries.settlements?.[recipe.id] ? 'Appliquer les changements' : 'Créer dans le monde', () => void run(async () => { const current = plan!; await s.change('Créer / modifier ' + recipe.name, settlementChunkIds(p, current), d => applySettlement(d, current)); recipe = structuredClone(p.libraries.settlements![recipe.id].recipe); plan = null; result.replaceChildren(node('p', 'Implantation enregistrée · une opération annulable.', 'status-success'), button('Modifier dans Studio', () => { const id = p.libraries.settlements![recipe.id].buildings[0]?.id; if (id)
             s.selection.select({ kind: 'entity', id }); options.open3D(); }), button('Jouer ici', () => { const b = p.libraries.settlements?.[recipe.id]?.buildings[0]; if (b)
             s.selection.select({ kind: 'entity', id: b.id }); options.play(); })); }), 'primary-button');
@@ -148,8 +148,9 @@ export function mountSettlements(host: HTMLElement, s: StudioSession, options: {
         }
         if (step === 3) {
             const sizes = recipe.form === 'hamlet' ? [8, 12, 15] : recipe.form === 'village' ? [20, 40, 60] : [60, 70, 80];
-            form.append(field('Taille', select(String(recipe.targetBuildings), sizes.map((v, i) => [String(v), ['Petite', 'Moyenne', 'Grande'][i] + ' · ' + v + ' maisons']), v => update({ targetBuildings: Number(v) }))), field('Style architectural', select(recipe.style, [['auto', 'Automatique / mixte'], ['timber', 'Bois'], ['stone', 'Pierre'], ['white', 'Enduit clair']], v => update({ style: v as SettlementRecipe['style'] }))), field('Richesse', select(String(recipe.wealth), [['0', 'Modeste'], ['1', 'Équilibrée'], ['2', 'Prospère']], v => update({ wealth: Number(v) as 0 | 1 | 2 }))), field('Activité dominante', select(recipe.activity, [['mixed', 'Mixte'], ['agriculture', 'Agriculture'], ['forest', 'Forêt']], v => update({ activity: v as SettlementRecipe['activity'] }))), node('p', 'L’activité adapte l’espacement et les noms ; elle n’ajoute pas automatiquement de métiers ou de PNJ.', 'muted'));
+            form.append(field('Taille', select(String(recipe.targetBuildings), sizes.map((v, i) => [String(v), ['Petite', 'Moyenne', 'Grande'][i] + ' · ' + v + ' maisons']), v => update({ targetBuildings: Number(v) }))), field('Style architectural', select(recipe.style, [['auto', 'Automatique / mixte'], ['timber', 'Bois'], ['stone', 'Pierre'], ['white', 'Enduit clair']], v => update({ style: v as SettlementRecipe['style'] }))), field('Richesse', select(String(recipe.wealth), [['0', 'Modeste'], ['1', 'Équilibrée'], ['2', 'Prospère']], v => update({ wealth: Number(v) as 0 | 1 | 2 }))), field('Activité dominante', select(recipe.activity, [['mixed', 'Mixte'], ['agriculture', 'Agriculture'], ['forest', 'Forêt'],['mine','Mine'],['fishing','Pêche'],['commerce','Commerce']], v => update({ activity: v as SettlementRecipe['activity'] }))), node('p', 'Les équipements dépendent de l’activité et des ressources proches. Aucun PNJ ni économie simulée n’est ajouté.', 'muted'));
         }
+        if(step===3){const services=node('input');services.type='checkbox';services.checked=!!recipe.services;services.onchange=()=>{update({services:services.checked,radius:services.checked?Math.max(110,recipe.radius):recipe.radius});render();};form.append(field('Ajouter une place et des équipements',services));}
         const advanced = node('details');
         advanced.append(node('summary', 'Plus de réglages'), field('Nom de l’implantation', input(recipe.name, v => update({ name: v }))), field('Centre X (m)', numberInput(recipe.center.x, x => update({ center: { ...recipe.center, x } }), b.minX, b.maxX)), field('Centre Z (m)', numberInput(recipe.center.z, z => update({ center: { ...recipe.center, z } }), b.minZ, b.maxZ)), field('Rayon (m)', numberInput(recipe.radius, radius => update({ radius }), 20, 600)), field('Orientation des rues (°)', numberInput(recipe.orientation, orientation => update({ orientation }), -360, 360)), field('Graine de l’implantation', numberInput(recipe.seed, seed => update({ seed }), 0, 0xffffffff, '1')));
         form.append(advanced);
@@ -177,6 +178,7 @@ export function mountSettlements(host: HTMLElement, s: StudioSession, options: {
                 lock.onchange = () => void run(async () => { await s.change('Verrouiller une maison', [], d => lockSettlementBuilding(d, s0.id, b.id, lock.checked)); plan = null; });
                 row.append(field('Verrouiller cette maison', lock), button('Modifier cette maison en 3D', options.open3D), button('Supprimer cette maison', () => void run(async () => { await s.change('Supprimer une maison', Object.keys(p.chunkIndex), d => removeSettlementBuilding(d, s0.id, b.id)); plan = null; })));
             }
+            if(s0.amenities?.length){const picker=select('',[['','Choisir un équipement'],...s0.amenities.map(a=>[a.id,p.entityIndex[a.id]?.name??a.id] as const)],id=>{if(id){s.selection.select({kind:'entity',id});render();}});row.append(field('Équipement à modifier',picker));const a=s0.amenities.find(a=>a.id===selected);if(a){const lock=node('input');lock.type='checkbox';lock.checked=a.locked;lock.onchange=()=>void run(async()=>{await s.change('Verrouiller un équipement',[],d=>lockSettlementAmenity(d,s0.id,a.id,lock.checked));plan=null;});row.append(field('Verrouiller cet équipement',lock),button('Modifier cet équipement en 3D',options.open3D),button('Supprimer cet équipement',()=>void run(async()=>{await s.change('Supprimer un équipement',Object.keys(p.chunkIndex),d=>removeSettlementAmenity(d,s0.id,a.id));plan=null;})));}}
             list.append(row);
         }
         list.append(button('Nouvelle implantation', () => { recipe = fresh(); plan = null; step = 1; result.replaceChildren(); render(); }));

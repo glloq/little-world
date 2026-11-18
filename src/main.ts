@@ -600,10 +600,7 @@ const itemName=(id?:string)=>id?gameplay?.runtime.data.items.find(i=>i.id===id)?
 const WATER_NAMES:Record<string,string>={sea:'Mer',river:'Rivière',lake:'Lac'};
 /** Shop counter entity near the player (entity state `shop` = kind of counter). */
 function nearShop(facing=false):{id:string;kind:ShopKind}|null{
-  if(!gameplay||player.space)return null;let best:{id:string;kind:ShopKind}|null=null,bd=3.2;const f=forwardOf();
-  for(const e of gameplay.runtime.data.entities){const kind=e.initialState.shop;if(typeof kind!=='string'||!(kind in SHOPS)||!e.position)continue;const dx=e.position.x-player.position.x,dz=e.position.z-player.position.z,d=Math.hypot(dx,dz);
-    if(facing&&d>.5&&(dx*f.x+dz*f.z)/d<.6)continue;if(d<bd){bd=d;best={id:e.id,kind:kind as ShopKind};}}
-  return best;
+  if(!gameplay||player.space)return null;return gameplay.nearbyShop(player.position,facing?forwardOf():undefined);
 }
 /** Water surface 2.5–6 m in front of a standing player (sea, river or lake). */
 function fishingSpot():{kind:'sea'|'river'|'lake';x:number;z:number}|null{
