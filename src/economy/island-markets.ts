@@ -25,6 +25,11 @@ export interface MarketView {
   shopId:string;islandId:string;shopKind:ShopKind;revision:number;
   cashCoins:number;buy:MarketOffer[];sell:MarketOffer[];
 }
+export interface MarketSaleLine {itemId:string;quantity:number}
+export interface MarketSellBatchRequest {
+ shopId:string;shopKind:ShopKind;islandId:string;
+ lines:readonly MarketSaleLine[];requestId:string;expectedRevision?:number;
+}
 export type MarketTradeResult=
   |{ok:true;message:string;changes:{itemId:string;quantity:number}[];revision:number}
   |{ok:false;reason:string};
@@ -153,7 +158,8 @@ export function marketView(state:MarketStateV1):MarketView{
   })).filter(o=>o.unitPrice>0);
   const sell=catalog.buys.map(itemId=>({
     itemId,unitPrice:marketUnitPrices(state.islandId,itemId).sell??0,
-    available:Math.floor(state.cashCoins/Math.max(1,marketUnitPrices(state.islandId,itemId).sell??1)),
+    available:Math.min(Math.floor(state.cashCoins/Math.max(1,marketUnitPrices(state.islandId,itemId).sell??1)),
+      MAX_STOCK-(state.stock[itemId]??0)),
   })).filter(o=>o.unitPrice>0);
   return {shopId:state.shopId,islandId:state.islandId,shopKind:state.shopKind,
     revision:state.revision,cashCoins:state.cashCoins,buy,sell};
@@ -207,6 +213,48 @@ export function executeMarketTrade(state:MarketStateV1,request:MarketPurchase,pu
       (buying?' (−': ' (+')+total+' pièces)'};
 }
 
+/** All-or-nothing sale of several inventory stacks, with one inventory apply and one revision. */
+export function executeMarketSellBatch(state:MarketStateV1,request:MarketSellBatchRequest,purse:Purse,
+ name=(itemId:string)=>itemId):MarketTradeResult{
+ if(state.shopId!==request.shopId||state.shopKind!==request.shopKind||state.islandId!==request.islandId)
+   return {ok:false,reason:'Comptoir différent du devis'};
+ if(!id(request.requestId)||state.appliedRequestIds.includes(request.requestId)||
+    state.appliedRequestIds.length>=TRADE_REQUEST_HISTORY_LIMIT)
+   return {ok:false,reason:'Commande déjà traitée ou journal complet'};
+ if(request.expectedRevision!==undefined&&request.expectedRevision!==state.revision)
+   return {ok:false,reason:'Prix ou stock modifié, veuillez actualiser'};
+ if(!Array.isArray(request.lines)||request.lines.length<1||request.lines.length>50)
+   return {ok:false,reason:'Sélection de vente invalide'};
+ const catalog=new Set(marketCatalog(state.shopKind).buys),seen=new Set<string>();
+ let gain=0;
+ const changes:{itemId:string;quantity:number}[]=[];
+ for(const line of request.lines){
+   if(!line||!id(line.itemId)||!ints(line.quantity,1,99)||seen.has(line.itemId)||
+     !catalog.has(line.itemId))return {ok:false,reason:'Article ou quantité non accepté'};
+   seen.add(line.itemId);
+   const unit=marketUnitPrices(state.islandId,line.itemId).sell;
+   if(!unit)return {ok:false,reason:'Prix indisponible'};
+   if(purse.count(line.itemId)<line.quantity)return {ok:false,reason:'Stock du sac insuffisant'};
+   if((state.stock[line.itemId]??0)+line.quantity>MAX_STOCK)
+     return {ok:false,reason:'Réserve du comptoir pleine'};
+   const subtotal=unit*line.quantity;
+   if(!Number.isSafeInteger(subtotal)||!Number.isSafeInteger(gain+subtotal))
+     return {ok:false,reason:'Montant invalide'};
+   gain+=subtotal;
+   changes.push({itemId:line.itemId,quantity:-line.quantity});
+ }
+ if(gain>state.cashCoins)return {ok:false,reason:'Budget de rachat insuffisant'};
+ if(purse.count(COIN)+gain>purse.max(COIN))return {ok:false,reason:'Bourse pleine'};
+ changes.push({itemId:COIN,quantity:gain});
+ if(!purse.apply(changes))return {ok:false,reason:'Transaction refusée par l’inventaire'};
+ state.cashCoins-=gain;
+ for(const line of request.lines)state.stock[line.itemId]=(state.stock[line.itemId]??0)+line.quantity;
+ state.appliedRequestIds.push(request.requestId);state.revision++;
+ return {ok:true,changes,revision:state.revision,
+   message:'Vendu : '+request.lines.map(line=>line.quantity+' × '+name(line.itemId)).join(', ')+
+     ' (+'+gain+' pièces)'};
+}
+
 export interface MarketServiceDeps {
   islandId:string;
   purse:Purse;
@@ -231,6 +279,14 @@ export function createIslandMarkets(deps:MarketServiceDeps){
     if(result.ok)deps.onChange();
     return result;
   }
+  function sellBatch(kind:ShopKind,shopId:string,lines:readonly MarketSaleLine[],
+    requestId='market-'+crypto.randomUUID(),expectedRevision?:number):MarketTradeResult{
+    const state=ensure(kind,shopId);
+    const result=executeMarketSellBatch(state,{shopId,shopKind:kind,islandId:deps.islandId,
+      lines,requestId,expectedRevision},deps.purse,deps.itemName);
+    if(result.ok)deps.onChange();
+    return result;
+  }
   function serialize():Record<string,MarketStateV1>{
     const saved:Record<string,MarketStateV1>=Object.create(null);
     for(const [shopId,state] of markets)saved[shopId]=parseMarketState(state);
@@ -246,6 +302,6 @@ export function createIslandMarkets(deps:MarketServiceDeps){
     }
     markets.clear();for(const [id,state] of restored)markets.set(id,state);
   }
-  return {view:(kind:ShopKind,shopId:string)=>marketView(ensure(kind,shopId)),trade,
+  return {view:(kind:ShopKind,shopId:string)=>marketView(ensure(kind,shopId)),trade,sellBatch,
     serialize,restore,get size(){return markets.size;}};
 }
