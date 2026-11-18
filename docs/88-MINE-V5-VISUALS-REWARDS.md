@@ -47,73 +47,77 @@ de fragments évoluent dans ce premier lot.
 - **Non inclus** : sauvegarde persistante de l'état équipé, batterie et amélioration
   de puissance/portée du casque.
 
-### M1/M2 — Slider rythmé et extraction progressive : implémentés en V6
+### M1/M2 — Cycles de récolte / durabilité V7 (implémenté)
 
-Le minage conserve la **même grille 2,5D et les mêmes points de vie** :
-chaque frappe applique les dégâts de la pioche à la cellule visée ; la cellule
-ne disparaît **que lorsque ses PV atteignent zéro**. Aucun mesh ou panneau
-ne décide de la récompense.
+Le bloc demeure dans **la grille 2,5D d'origine**. Le minage est désormais
+décomposé en trois compteurs distincts : frappes, travail du cycle et
+durabilité restante. **Aucune frappe isolée n'ouvre un cube de la mine**.
 
-**Slider temps réel**, compact et sans modal : lorsque le joueur vise une
-paroi, le curseur effectue un aller-retour. La partie centrale est optimale.
-Le matériau définit la durée d'un cycle ainsi que la largeur des zones.
+- Le slider suit un mouvement aller-retour, avec fréquence et fenêtres
+  de réussite différentes pour Terre (900 ms), Pierre (1 150 ms), roche
+  dure (1 480 ms), fer (1 680 ms), cristal (1 920 ms).
+- Les frappes produisent un travail entier : **normal = 3**,
+  **bonne = 4**, **parfaite = 5** ; seuil de récolte = **15**.
+  La récolte tombe après **5 normales / 4 bonnes / 3 parfaites**
+  (ou une combinaison de 3–5 frappes). L'excédent de travail est conservé.
+- À **chaque récolte**, le bloc perd exactement **1 point de durabilité**.
+  Un lot donne surtout **1 terre ou 1 pierre**. Sur un filon de fer/cristal,
+  un seul bonus précieux intermédiaire peut survenir au deuxième lot,
+  avec une chance très basse augmentée par la précision.
+- Seul le **dernier lot, lorsque la durabilité atteint zéro**, retire
+  la cellule du modèle, met à jour le chunk et agrandit physiquement la
+  galerie. Il attribue **2 unités** du matériau du bloc, ou **3 unités
+  avec une pioche en acier**, si le sac a de la place. Si seule une unité
+  peut être stockée, elle est quand même récoltée.
+- Le player peut utiliser **F / E ponctuellement** ou le bouton tactile
+  pour synchroniser sa frappe ; **F maintenu** conserve son creusement
+  automatique (normales uniquement). Une erreur de timing ne pénalise pas
+  le rendement de base.
+- Le HUD indique la solidité **N/max**, la matière du bloc et une
+  estimation des frappes jusqu'au prochain lot. Aucun rendu WebGL
+  additionnel, aucune ressource attribuée par l'interface.
 
-| Matière | Période complète | Coups par résultat intermédiaire |
+#### Durabilité initiale proposée
+
+| Matière | Durabilité | Lots nécessaires avant ouverture |
 |---|---:|---:|
-| Terre | 900 ms | 3 |
-| Roche | 1150 ms | 4 |
-| Roche dure | 1480 ms | 5 |
-| Fer | 1680 ms | 4 |
-| Cristal | 1920 ms | 5 |
+| Terre | 2 | 2 |
+| Pierre | 3 | 3 |
+| Roche dure | 5 | 5 |
+| Fer | 7 | 7 |
+| Cristal | 11 | 11 |
 
-- **F ou E ponctuel** au moment idéal : frappe parfaite à **×1,30 de puissance**.
-  Fenêtre plus large : bonne frappe à **×1,15**.
-- **F maintenu** : creusement automatique conservé, puissance normale ×1 ;
-  le joueur n'a pas besoin de participer au mini-jeu.
-- **Tactile** : bouton *Frapper* sur le slider, même mécanique que le clavier.
-- **Erreur de timing** : puissance normale, pas de pénalité de ressource.
-  La frappe reste valide et compte dans le creusement.
-- Le slider et sa cible sont mis à jour dans le moteur de présentation existant.
-  Environ 11 évaluations de cible/s, simple position CSS du curseur par frame,
-  aucun second rendu 3D.
+La difficulté influe sur la **durabilité** et la **vitesse du slider** ;
+la compétence influence le nombre de coups par lot. L'ancien champ
+`hp` (20–500) ne sert plus au minage V7, mais reste réservé à la
+migration des sauvegardes historiques.
 
-**Récompenses** : un résultat est accordé toutes les **3 à 5 frappes
-validées sur la même cellule** avant sa destruction. Le résultat
-est majoritairement **Terre** (`mine:earth`) ou **Pierre**
-(`mine:stone`), en quantité 1 ; ce sont des ressources de déblai.
-Pour le fer et le cristal, le **deuxième** cycle peut exceptionnellement
-fournir une unité du minerai réel, avec une chance améliorée par une
-bonne ou parfaite frappe (fer 5 % de base, cristal 1,2 % de base ;
-multiplicateurs 1,4 et 2,25). Au plus **un bonus rare intermédiaire
-par cellule**, quelle que soit la vitesse de la pioche.
+#### Persistance / validité / anti-rejeu
 
-Une cellule entièrement excavée fournit **une seule fois** son minerai
-principal comme avant ; pour la terre, cette ressource principale devient
-`mine:earth`. La progression en PV, l'accessibilité, la portée, la
-détection des chunks et l'occupation restent inchangées.
+- `MineState` persiste `miningVersion:2`, `damage` (nombre de
+  points de durabilité déjà consommés), `hits` (coups validés par
+  cellule) et `work` (progression entière de 0 à 14 avant le lot).
+  Les informations sont bornées à 256 cellules en cours.
+- Les anciennes sauvegardes de mine sans `miningVersion` sont migrées :
+  la progression historique en PV est proportionnellement convertie
+  en durabilité consommée et travail résiduel ; les excavations
+  enregistrées demeurent excavées.
+- Le moteur valide la position, la cellule adjacente accessible et le
+  sac **avant** de valider le lot. Si l'inventaire refuse le lot,
+  aucun coup, progression ou durabilité n'est consommé.
+- Les requêtes de frappe validées sont dédupliquées par identifiant
+  (y compris après sauvegarde/rechargement). Les minerais ne sont
+  jamais réattribués à la simple réouverture de la carte ou d'un
+  menu.
+- Le score de timing demeure calculé côté client pendant la bêta
+  solo. Une version multijoueur devra faire valider le rythme et la
+  frappe par une autorité serveur.
 
-**Persistance et économie**
-
-- `MineState` conserve maintenant `damage` et `hits` (counters acceptés)
-  par `levelId:ix:iz`, tous deux plafonnés à 256 cellules en cours.
-- Les sauvegardes antérieures, sans `hits`, restent lisibles. Les mines
-  partiellement travaillées sont désormais écrites **même quand aucune
-  cellule n'a encore été excavée**.
-- Une demande de frappe (`requestId`) déjà acceptée ne rejoue pas
-  le gain, y compris après rechargement ; elle reste dans la fenêtre
-  de déduplication persistée.
-- Si le sac refuse un gain intermédiaire, ni les dégâts ni le compteur de
-  coups ne sont engagés. Le joueur peut libérer de la place et reprendre.
-- Les valeurs monétaires des débris sont limitées à 1 pièce/unité.
-  Les faibles outils peuvent créer plus de déblais communs car ils
-  nécessitent davantage de coups, mais **pas plus de tirages rares**.
-- Le score de timing est local pour l'instant. En multijoueur, le
-  serveur devra valider les timestamps/rythmes de frappes avant de
-  retenir une précision améliorée.
-
-**Étapes futures** : affichage de fissures correspondant aux dégâts,
-petites particules aux frappes précises, retour visuel « excellent »,
-réglages d'accessibilité et benchmark minerai/minute sur chaque outil.
+**Prochaines améliorations** : fissures et marques 3D visuellement
+proportionnelles à la durabilité, particules faibles lors des récoltes,
+meilleur retour sonore « frappe parfaite », essais de rendement
+ressource/heure selon matériaux et difficulté. Mesurer les performances
+et contrôler le scénario navigateur B1 avant merge.
 
 ## Contrôles avant merge
 
