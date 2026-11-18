@@ -120,9 +120,9 @@ test('floating obstacles ignore high flights above them',()=>{
 test('demo surf finder locates ocean within island bounds',()=>{
  const site=findDemoSurfSite((_,z)=>z<0?4:-9,{minX:-700,maxX:700,minZ:-700,maxZ:700},0,11);
  assert.ok(site,'site in offshore band');
- assert.ok(site.start.z<0,'start in deep water');
+ assert.ok(site.start.z>0,'start in offshore water (synthetic sea is z >= 0)');
  assert.ok(site.zone.minZ>=-700&&site.zone.maxZ<=700);
- assert.ok(site.zone.dirZ>0,'waves approach the positive-z coast');
+ assert.ok(site.zone.dirZ<0,'waves approach the negative-z coast');
 });
 test('the starter surfboard uses the existing tool equipment category',()=>{
  assert.equal(SURFBOARD_ID,'tool:surfboard');
