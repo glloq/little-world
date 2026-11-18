@@ -10,6 +10,8 @@ import {terrainHeight} from '../terrain.ts';
 import {installShowcaseRaces} from '../studio-core/race-demo-layouts.ts';
 import {trackDiagnostics,trackLength,validateRaceTrack,type RaceTrack,type TrackFeatureKind} from '../gameplay/race-track.ts';
 import {availableTrackFeature,roadbedFromGates} from '../gameplay/race-track-presets.ts';
+import {findRaceTerrainPlacements,inspectRaceTerrain,raceFromTerrainPlacement,type PlacementCandidate,type PlacementStyle} from '../studio-core/race-terrain-planner.ts';
+import {projectRaceTerrainEnvironment} from '../studio-core/race-terrain-context.ts';
 
 export interface RacePanelContext {
  session:StudioSession;viewport:StudioViewport;
@@ -90,6 +92,73 @@ export function mountRacesPanel(host:HTMLElement,ctx:RacePanelContext){
      }catch(e){ctx.status(String(e instanceof Error?e.message:e),true);}
    }),
    node('p','Clic = ajouter une porte ; glisser = déplacer ; Entrée = valider ; Échap = annuler. Ajustez ensuite les dimensions et les altitudes des portes.','muted'));
+ // Opt-in planner: no source mutation until the author explicitly accepts a proposal.
+ const planner=node('details','','section-card');planner.open=true;
+ let searchStyle:PlacementStyle='downhill',targetLength=210,trackWidth=8,searchRadius=260;
+ const results=node('div','','feature-list');
+ const mode=select(searchStyle,[['downhill','Descente avec dénivelé'],['flat','Piste sur terrain relativement plat']],v=>{searchStyle=v as PlacementStyle;});
+ const lengthControl=numberInput(targetLength,v=>{targetLength=v;},90,360);
+ const widthControl=numberInput(trackWidth,v=>{trackWidth=v;},5,12);
+ const radiusControl=numberInput(searchRadius,v=>{searchRadius=v;},60,450);
+ const action=button('Analyser le relief autour de la vue',async()=>{
+   try{
+     results.replaceChildren(node('p','Analyse des pentes et des passages libres…','muted'));
+     await ctx.session.fullDocument(); // All terrain edits and masks, not the viewport's partial chunk cache.
+     const env=projectRaceTerrainEnvironment(ctx.session.document),anchor=ctx.viewport.camera.target;
+     const search=findRaceTerrainPlacements(env,{anchor:{x:anchor.x,z:anchor.z},style:searchStyle,
+       targetLength, width:trackWidth,radius:searchRadius,maxResults:3});
+     results.replaceChildren(node('p',search.checked+' tracés analysés · '+search.candidates.length+' proposition(s) admissible(s).','muted'));
+     if(!search.candidates.length){
+       const reason=Object.entries(search.rejected).sort((a,b)=>b[1]-a[1]).slice(0,4)
+         .map(([code,count])=>code+' : '+count).join(' ; ');
+       results.append(node('p','Aucun passage fiable ici ('+reason+'). Élargissez la zone ou déplacez la vue vers un plateau / versant dégagé.','muted'));
+     }
+     const display=(proposal:PlacementCandidate,index:number)=>{
+       const card=node('div','','feature-row');
+       const text=proposal.style==='downhill'?'Descente':'Plat';
+       card.append(node('strong','Proposition '+(index+1)+' · '+text+' · score '+proposal.score+'/100'),
+         node('p',Math.round(proposal.metrics.lengthM)+' m · '+proposal.metrics.dropM.toFixed(1)+' m de dénivelé · pente max '+Math.round(proposal.metrics.maxSlope*100)+' % · '+proposal.track.features.length+' éléments préplacés','muted'),
+         node('p',proposal.notes.join(' · ')||'Tracé simple sans module : vous pouvez en ajouter ensuite.','muted'),
+         button('Voir sur le terrain',()=>{
+           const entry=proposal.track.points[0],finish=proposal.track.points.at(-1)!;
+           ctx.viewport.goTo((entry.x+finish.x)/2,(entry.z+finish.z)/2,Math.max(45,proposal.metrics.lengthM*.7));
+           const r=raceFromTerrainPlacement(ctx.session.document.world,'race:preview','Aperçu du parcours',proposal,env);
+           ctx.viewport.setRacePreview(r.gates);
+           ctx.viewport.setRaceTrackPreview(r.track??null);
+         }),
+         button('Créer cette piste',async()=>{
+           try{
+             await ctx.session.fullDocument();
+             const latest=projectRaceTerrainEnvironment(ctx.session.document);
+             const checked=inspectRaceTerrain(proposal.track,latest,proposal.style);
+             if(!checked.valid)throw Error('Le relief ou les zones disponibles ont changé : relancez la recherche ('+checked.issues[0].message+').');
+             const id='race:'+crypto.randomUUID(),name=(proposal.style==='downhill'?'Descente':'Circuit plat')+' · '+Math.round(proposal.metrics.lengthM)+' m';
+             const created=raceFromTerrainPlacement(ctx.session.document.world,id,name,proposal,latest);
+             await ctx.session.change('Créer un circuit implanté sur le relief réel',[],draft=>putAuthoredRace(draft,created));
+             ctx.status('Piste créée dans le projet : '+name+'. Tester la roulade et les réceptions avec « Jouer ici ».');
+             results.replaceChildren(node('p','Circuit enregistré. Relancez l’analyse pour d’autres emplacements.','muted'));
+           }catch(error){ctx.status(String(error instanceof Error?error.message:error),true);}
+         },'primary-button'));
+       return card;
+     };
+     for(let i=0;i<search.candidates.length;i++)results.append(display(search.candidates[i],i));
+     if(search.candidates.length){
+       const first=search.candidates[0],race=raceFromTerrainPlacement(ctx.session.document.world,'race:preview','Aperçu',first,env);
+       ctx.viewport.setRacePreview(race.gates);ctx.viewport.setRaceTrackPreview(race.track??null);
+     }
+     ctx.status(search.candidates.length?
+       'Propositions calculées avec le relief du projet V3. Examinez la trajectoire puis validez un seul circuit.':
+       'Aucun circuit sûr trouvé dans la zone sélectionnée. Agrandissez le rayon ou changez de secteur.',!search.candidates.length);
+   }catch(error){results.replaceChildren(node('p',String(error instanceof Error?error.message:error),'muted'));ctx.status(String(error),true);}
+ },'primary-button');
+ planner.append(node('summary','Implantation intelligente sur le relief'),
+   node('p','Recherche locale bornée dans le relief exact du projet, sans modifier l’île. Vérifie les limites, l’eau, les zones occupées, la pente, le dévers et les zones de réception.','muted'),
+   field('Type de circuit',mode),
+   field('Longueur cible (m)',lengthControl),
+   field('Largeur (m)',widthControl),
+   field('Rayon de recherche (m)',radiusControl),
+   action,results);
+ host.append(planner);
  const list=node('div','','feature-list');
  for(const race of races){
    const row=node('div','','feature-row'),head=node('strong',race.name+' · '+modes.find(x=>x[0]===race.kind)?.[1]);
