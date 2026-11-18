@@ -2,7 +2,7 @@
  * The engine identifies a target, the business systems say which actions are possible (and
  * why not), the interface shows one primary action; the command is executed by the same
  * business method. Descriptors are presentation models, never a second source of truth. */
-export type TargetType='object'|'npc'|'boat'|'mine-wall'|'farm-plot'|'gather'|'fishing'|'shop'|'ferry'|'maritime-trade';
+export type TargetType='object'|'npc'|'boat'|'mine-wall'|'farm-plot'|'gather'|'fishing'|'shop'|'mine-lift'|'ferry'|'maritime-trade';
 export interface InteractionAction {id:string;key:string;label:string;enabled:boolean;disabledReason?:string}
 export interface TargetDescriptor {
   targetId:string;targetType:TargetType;displayName:string;
@@ -40,7 +40,12 @@ export function farmPlotTarget(v:{zoneId:string;zoneName:string;intent:{type:str
   if(v.intent.type==='plant'&&v.choices>1)actions.push(action('choose-crop','Changer de culture',true,undefined,'C'));
   return {targetId:v.zoneId,targetType:'farm-plot',displayName:v.zoneName,primaryAction:primary,availableActions:actions,...(v.ok?{}:{disabledReason:v.reason})};
 }
-/** The maritime trader is spatially separate from boarding the ferry. */
+export function mineLiftTarget(mineId:string,levelId:string):TargetDescriptor{
+  const primary=action('mine-lift','Choisir un étage');
+  return {targetId:'mine-lift:'+mineId+':'+levelId,targetType:'mine-lift',
+    displayName:'Monte-charge',primaryAction:primary,availableActions:[primary],interactionRange:2.1};
+}
+/** Maritime merchant trades, while the ferryman independently handles travel. */
 export function maritimeTradeTarget():TargetDescriptor{
   const primary=action('maritime-trade','Commercer');
   return {targetId:'maritime:merchant',targetType:'maritime-trade',displayName:'Comptoir maritime',

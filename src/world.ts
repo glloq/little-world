@@ -78,6 +78,8 @@ export interface WorldView {
   readonly occlusion: import('./render/horizon-occlusion.ts').OcclusionStats | null;
   redrawDressing(): void;
   root: THREE.Group;
+  /** Hide exterior meshes while underground, preserving the fixed local light pool. */
+  setUnderground(underground:boolean):void;
   terrain: THREE.Group;
   wheel: THREE.Group;
   millPosition: THREE.Vector3;
@@ -828,8 +830,24 @@ export function buildWorld(
   const objects = new THREE.Group();
   objects.name = 'PlacedAssets';
   root.add(objects);
+  // Exterior terrain/vegetation/placed assets should never intersect the cave
+  // interior visually. Their render groups are hidden only when underground,
+  // while LocalLights (the pooled unshadowed mine lanterns) stay enabled.
+  let underground=false;
+  const outsideVisibility=new Map<THREE.Object3D,boolean>();
+  function setUnderground(active:boolean){
+    if(active===underground)return;
+    underground=active;
+    for(const child of root.children){
+      if(child.name==='LocalLights')continue;
+      if(active){outsideVisibility.set(child,child.visible);child.visible=false;}
+      else {child.visible=outsideVisibility.get(child)??child.visible;}
+    }
+    if(!active)outsideVisibility.clear();
+  }
   return {
     root,
+    setUnderground,
     objectCulling,
     get atlasIllumination(){return atlasLight?atlasColor:null;},
     setImpostorLighting(lighting){atlasLight=lighting;dressing?.setLighting(atlasColor);buildingImpostors.setLighting(atlasColor);},

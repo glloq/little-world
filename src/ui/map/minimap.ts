@@ -2,8 +2,9 @@
  * no second 3D scene, no terrain regeneration and no per-frame canvas work. */
 import {hudIcon} from '../shared/icons.ts';
 import type {MapDeps,MapMarker,MapRaster} from './map.ts';
+import {drawMineMinimap,type MineMapSnapshot} from './mine-map.ts';
 const SIZE=180,VISIBLE_METRES=310;
-export function createMinimap(deps:MapDeps,raster:MapRaster,open:()=>void){
+export function createMinimap(deps:MapDeps,raster:MapRaster,open:()=>void,mine?:()=>MineMapSnapshot|null){
   const root=document.createElement('button');root.type='button';root.className='ui-minimap';root.setAttribute('aria-label','Ouvrir la carte du monde (M)');root.title='Ouvrir la carte · M';
   const canvas=document.createElement('canvas');canvas.width=SIZE;canvas.height=SIZE;canvas.setAttribute('aria-hidden','true');
   const label=document.createElement('span');label.className='ui-minimap-title';const labelText=document.createTextNode('Carte · M');label.append(hudIcon('map'),labelText);
@@ -17,6 +18,16 @@ export function createMinimap(deps:MapDeps,raster:MapRaster,open:()=>void){
   }
   function update(){
     if(!ctx||removed||document.body.classList.contains('touch-mode'))return; // Mobile displays a map shortcut, not the 180px raster.
+    const underground=mine?.();
+    if(underground){
+      drawMineMinimap(ctx,underground);
+      const label='Mine · '+underground.levelName+' · M';
+      if(labelText.textContent!==label)labelText.textContent=label;
+      root.setAttribute('aria-label','Ouvrir le plan de la mine, '+underground.levelName+' (M)');
+      root.title='Plan de la mine · M';
+      return;
+    }
+    root.title='Carte de l’île · M';
     const player=deps.player(),zoom=SIZE/VISIBLE_METRES;
     ctx.fillStyle='#d2ded2';ctx.fillRect(0,0,SIZE,SIZE);
     if(base&&raster.done){ctx.imageSmoothingEnabled=true;ctx.drawImage(base,(b.minX-player.x)*zoom+SIZE/2,(b.minZ-player.z)*zoom+SIZE/2,worldWidth*zoom,worldDepth*zoom);}

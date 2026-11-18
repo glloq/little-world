@@ -1,0 +1,49 @@
+name: Capture mine hub (real game)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feat/mine-hub-levels-v1
+    paths:
+      - src/mine/**
+      - src/activity-view.ts
+      - src/gameplay/activity-runtime.ts
+      - tools/capture-mine-hub-browser.mjs
+      - .github/workflows/mine-hub-capture.yml
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Stage test map for local Vite preview
+        run: |
+          npm run generate:b1
+          mkdir -p public/maps/b1-demo
+          cp -a tests/fixtures/legacy-maps/published/b1-demo/. public/maps/b1-demo/
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Start the actual game on localhost
+        run: |
+          (npm run dev -- --host 127.0.0.1 --port 5173 > /tmp/mine-vite.log 2>&1 &)
+          for i in $(seq 1 45); do
+            if curl -sf http://127.0.0.1:5173/little-world/ >/dev/null; then break; fi
+            sleep 1
+          done
+          curl -sf http://127.0.0.1:5173/little-world/ >/dev/null
+      - name: Capture reception and gallery from the running game
+        run: node --experimental-strip-types tools/capture-mine-hub-browser.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mine-hub-real-game
+          path: /tmp/little-world-mine-preview
+          retention-days: 7
+          if-no-files-found: error

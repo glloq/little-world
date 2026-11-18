@@ -11,7 +11,7 @@ import {classifyPoint} from './geography/classify.ts';
 import {createMaterialSampler} from './physics/surface-material.ts';
 import {MINE_MATERIALS} from './mine/mine-data.ts';
 import type {GameUi} from './ui/app/game-ui.ts';
-import {resolveTarget,objectTarget,npcTarget,boatTarget,ferryTarget,maritimeTradeTarget,mineWallTarget,farmPlotTarget,shopTarget,gatherTarget,fishingTarget,type TargetDescriptor} from './ui/interactions/targets.ts';
+import {resolveTarget,objectTarget,npcTarget,boatTarget,ferryTarget,maritimeTradeTarget,mineWallTarget,farmPlotTarget,shopTarget,mineLiftTarget,gatherTarget,fishingTarget,type TargetDescriptor} from './ui/interactions/targets.ts';
 import {SHOPS,type ShopKind} from './gameplay/economy.ts';
 import {geoContext} from './geography/engine.ts';
 import {MATERIAL_BY_MINE_KEY} from './audio/context.ts';
@@ -417,6 +417,29 @@ world.update(0, player.position);
       const gained=refillGas(player,points);
       return {ok:true,message:'+'+Math.round(gained)+' gaz !'};
     },
+    mineHub:gameplay?{
+      view:()=>gameplay!.activities.mineLiftView(player.position,player.space),
+      travel:async(levelId:string)=>{
+        // Validate access before showing any loading screen; entering the mine's
+        // surface portal or walking into a gallery remains an instant transition.
+        const result=gameplay!.activities.mineLiftTravel(player.position,player.space,levelId);
+        if(!result.ok)return {ok:false,reason:result.reason};
+        gameUi?.beginMineLoading('Monte-charge · '+levelId);
+        try{
+          // Warm the new floor's visible chunks while the old floor remains active.
+          await activityView?.preloadMineLevel(result.space.zoneId,result.space.levelId,
+            result.position,(done,total)=>gameUi?.mineLoadingProgress(done,total));
+          player.space=result.space;
+          player.position.set(result.position.x,result.position.y,result.position.z);
+          player.velocity.set(0,0,0);player.mode='ground';player.glideReady=false;
+          player.transitioned='mine:lift:'+levelId;
+          previousPlayerPosition.copy(player.position);renderPosition.copy(player.position);
+          return {ok:true,message:result.message};
+        }catch(error){
+          return {ok:false,reason:'Chargement de cet étage impossible : '+String(error)};
+        }finally{gameUi?.endMineLoading();}
+      },
+    }:undefined,
     player:()=>({gas:gasLevel(player),maxGas:gasCapacity(player),gasShots:gasShots(player),gasMaxShots:gasMaxShots(player),gasCooldown:player.gasCooldown??0,x:player.position.x,y:player.position.y,z:player.position.z,yaw,space:player.space,mode:player.mode,oxygen:player.oxygen,maxOxygen:MAX_OXYGEN,stamina:player.stamina??MAX_STAMINA,maxStamina:MAX_STAMINA,speed:player.velocity.length(),stalled:player.stalled}),
     importTrade:activeIsland&&ferryDock&&cargoService&&gameplay?{
       view:()=>cargoService?cargoService.view():{
@@ -783,7 +806,16 @@ const itemName=(id?:string)=>id?gameplay?.runtime.data.items.find(i=>i.id===id)?
 const WATER_NAMES:Record<string,string>={sea:'Mer',river:'Rivière',lake:'Lac'};
 /** Shop counter entity near the player (entity state `shop` = kind of counter). */
 function nearShop(facing=false):{id:string;kind:ShopKind}|null{
-  if(!gameplay||player.space)return null;let best:{id:string;kind:ShopKind}|null=null,bd=3.2;const f=forwardOf();
+  if(!gameplay)return null;
+  // The visual minekeeper is a reception prefab, not a surface entity. Reuse
+  // the existing mine shop and give each floor a stable logical counter ID.
+  if(player.space){const hub=gameplay.activities.mineHubNear(player.position,player.space,'shop');
+    if(!hub)return null;
+    if(facing){const dx=hub.counter.x-player.position.x,dz=hub.counter.z-player.position.z,d=Math.hypot(dx,dz);
+      const dir=forwardOf();if(d>.5&&(dx*dir.x+dz*dir.z)/d<.35)return null;}
+    return {id:hub.counterId,kind:'mine'};
+  }
+  let best:{id:string;kind:ShopKind}|null=null,bd=3.2;const f=forwardOf();
   for(const e of gameplay.runtime.data.entities){const kind=e.initialState.shop;if(typeof kind!=='string'||!(kind in SHOPS)||!e.position)continue;const dx=e.position.x-player.position.x,dz=e.position.z-player.position.z,d=Math.hypot(dx,dz);
     if(facing&&d>.5&&(dx*f.x+dz*f.z)/d<.6)continue;if(d<bd){bd=d;best={id:e.id,kind:kind as ShopKind};}}
   return best;
@@ -851,11 +883,15 @@ function currentTarget():TargetDescriptor|null{
   let unusable:TargetDescriptor|null=null;
   return resolveTarget([
     ()=>aboard?boatTarget(true):null,
-    // The maritime counter is a visible anchored merchant, not the ferry captain.
+    // Merchant trade is independent from ferry boarding.
     ()=>merchantNear()?maritimeTradeTarget():null,
     ()=>{const o=gameplay?.describe(player.position);if(!o)return null;const t=objectTarget(o);if(!o.usable){unusable=t;return null;}return t;},
     // A counter the player faces wins over a shopkeeper standing next to it.
     ()=>{const s=nearShop(true);return s?shopTarget({entityId:s.id,name:SHOPS[s.kind].name}):null;},
+    // Each floor has a mine shaft: explicit interaction, never an automatic stair bypass.
+    ()=>{if(!gameplay||!player.space)return null;
+      const hub=gameplay.activities.mineHubNear(player.position,player.space,'lift');
+      return hub?mineLiftTarget(hub.mineId,hub.levelId):null;},
     // Ferry boards from a small, identifiable quay point. The nearby captain remains
     // talkable a few metres away; the ferry must win only inside the boarding radius.
     ()=>{if(!ferryDock||aboard||player.space)return null;
@@ -1038,6 +1074,7 @@ function tick(dt: number) {
     else if (target?.targetType === 'gather') runGather();
     else if (target?.targetType === 'fishing') runFishing();
     else if (target?.targetType === 'shop') { const s = nearShop(); if (s) gameUi?.openShop(s.kind,s.id); }
+    else if (target?.targetType === 'mine-lift') gameUi?.openMineLift();
   }
 }
 const perfSampler=new PerfSampler(),gpuTimer=createGpuTimer(renderer,metricsEnabled);
@@ -1087,6 +1124,7 @@ function draw(now: number) {
   grassActors.length=0;
   for(const state of npcs.states)if(Math.hypot(state.x-player.position.x,state.z-player.position.z)<44)grassActors.push(state);
   remoteActors?.renderer.collectGrassActors(grassActors,player.position);
+  world.setUnderground(!!player.space);
   world.update(delta, player.position, camera, renderer.domElement.height, player.velocity);
   if(!loading.ready&&loading.update({terrainPending:world.stats.pending,dressingPending:world.dressing?.nearPending??0,speciesState:world.dressing?.species.state??'none'}))beginGame();
   remoteActors?.update(delta,elapsed,camera,renderer.domElement.height,budget.level);
