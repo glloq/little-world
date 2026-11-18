@@ -75,3 +75,27 @@ test('contextual conversations preserve existing author choices, actions and clo
   assert.equal(flags.gift,true);
   assert.equal(session.closed,true);
 });
+
+test('children play along an already-qualified home-to-square route without random wandering',()=>{
+  const child={...farmer,role:'child'};
+  const route=residentRoute([child.home,{x:0,z:6},child.work]);
+  const a=residentPoseAt(child,route,timeAtHour(11),1200,.36,1);
+  const b=residentPoseAt(child,route,timeAtHour(11.1),1200,.36,1);
+  assert.equal(a.phase,'work');
+  assert.equal(b.phase,'work');
+  assert.ok(a.position.z>=4&&a.position.z<=12);
+  assert.ok(b.position.z>=4&&b.position.z<=12);
+  assert.notEqual(a.position.z,b.position.z);
+});
+
+test('pedestrian router does not invent junctions on unqualified bridge decks',()=>{
+  const router=createResidentRouter([{supportId:'bridge-1',points:[{x:0,z:0},{x:0,z:50}]}],()=>true);
+  assert.equal(router.nodes,0);
+  assert.equal(router.route({x:0,z:-3},{x:0,z:52}),null);
+});
+
+test('spatial hash resolves distant negative-coordinate footpaths',()=>{
+  const router=createResidentRouter([{points:[{x:-240,z:-130},{x:-240,z:-80},{x:-180,z:-80}]}],()=>true);
+  const route=router.route({x:-240,z:-135},{x:-175,z:-80});
+  assert.ok(route&&route.length>105&&route.length<125);
+});
