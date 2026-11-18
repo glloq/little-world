@@ -91,7 +91,7 @@ export function createGameUi(deps:GameUiDeps){
     unlock:()=>deps.audio?.start()??Promise.resolve(false),
   });
   if(g)ui.register('instrument','Jouer de la musique',{render:b=>instrumentPanel.render(b),onClose:()=>instrumentPanel.close()});
-  const inventory=inventoryPanelV3({worldId:g?.runtime.data.worldId,items:()=>g?.runtime.data.items??[],inventory:()=>g?.runtime.state.inventory??{},selectedTool:()=>g?.equipment.hands??null,selectTool:id=>{const ok=g?.equipment.setHands(id);renderTool();return ok;},playInstrument:id=>{if(g?.equipment.hands===id)ui.open('instrument');},headgear:deps.headgear,gasLevel:()=>deps.player().gas??0,gasCapacity:()=>deps.player().maxGas??200,
+  const inventory=inventoryPanelV3({worldId:g?.runtime.data.worldId,favoriteSlots:()=>g?.equipment.favorites??null,setFavoriteSlots:ids=>g?.equipment.setFavorites(ids)??false,items:()=>g?.runtime.data.items??[],inventory:()=>g?.runtime.state.inventory??{},selectedTool:()=>g?.equipment.hands??null,selectTool:id=>{const ok=g?.equipment.setHands(id);renderTool();return ok;},playInstrument:id=>{if(g?.equipment.hands===id)ui.open('instrument');},headgear:deps.headgear,gasLevel:()=>deps.player().gas??0,gasCapacity:()=>deps.player().maxGas??200,
     canConsume:deps.canEatFood,
     consume:deps.eatFood?(id)=>{const result=deps.eatFood!(id);center.notify(result.ok?'success':'warning',result.message);return result.ok;}:undefined,
     consumeBatch:deps.eatFoods,
