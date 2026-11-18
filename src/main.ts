@@ -296,6 +296,7 @@ const worldClock=gameplay?.runtime.clock??new WorldClock(),climate=gameplay?.run
 const npcs = createNPCSystem(scene, definition.npcs,isLegacyTerrain()?undefined:[],gameplay?.dialogueSession,{
   worldTime:()=>worldClock.time,dayLengthSeconds:climate.definition.dayLengthSeconds,
   initialDayPhase:climate.definition.initialDayPhase,paths:definition.paths,
+  weather:()=>climate.state(worldClock.time).weather,
   walkable:(x,z)=>{
     const collision=gameplay?.collision;if(!collision)return true;
     const ground=terrainHeight(x,z);
