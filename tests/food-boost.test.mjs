@@ -2,11 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {FOOD_GAS,foodGasValue} from '../src/gameplay/food-effects.ts';
 import {ECONOMY_ITEMS,STARTING_KIT,economyItems} from '../src/gameplay/economy.ts';
+import {PRODUCTION_ITEMS} from '../src/economy/starter-catalog.ts';
 import {FARM_ITEMS} from '../src/farm/farm-data.ts';
 import {GAS,gasCapacity,gasShots,refillGas,upgradeGas} from '../src/physics/gas-propulsion.ts';
 
 test('edible boost values have explicit IDs in the runtime item catalogue',()=>{
-  const known=new Map(economyItems(FARM_ITEMS).map(item=>[item.id,item]));
+  const known=new Map([...economyItems(FARM_ITEMS),...PRODUCTION_ITEMS].map(item=>[item.id,item]));
   for(const [id,gas] of Object.entries(FOOD_GAS)){
     assert.ok(known.has(id),'missing food item '+id);
     assert.ok(Number.isInteger(gas)&&gas>0&&gas<=gasCapacity({}),'invalid gas '+id);

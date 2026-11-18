@@ -955,7 +955,7 @@ function tick(dt: number) {
     else if (target?.targetType === 'farm-plot') runFarm();
     else if (target?.targetType === 'gather') runGather();
     else if (target?.targetType === 'fishing') runFishing();
-    else if (target?.targetType === 'shop') { const s = nearShop(); if (s) gameUi?.openShop(s.kind); }
+    else if (target?.targetType === 'shop') { const s = nearShop(); if (s) gameUi?.openShop(s.kind,s.id); }
   }
 }
 const perfSampler=new PerfSampler(),gpuTimer=createGpuTimer(renderer,metricsEnabled);

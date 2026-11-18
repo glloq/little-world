@@ -12,6 +12,10 @@ import {gameplayDialogueSession} from './dialogue-session.ts';
 import {createGameSaveStore,scopedSaveStorage,parseGameSave,type GameSaveV2} from './save.ts';
 import {createActivityRuntime} from './activity-runtime.ts';
 import {COIN,STARTING_COINS,STARTING_KIT,SHOPS,buy,sell,type ShopKind} from './economy.ts';
+import {PRODUCTION_ITEMS} from '../economy/starter-catalog.ts';
+import {MINE_ITEMS} from '../mine/mine-data.ts';
+import {FARM_ITEMS} from '../farm/farm-data.ts';
+import {createShopWorkshops} from '../economy/workshop-services.ts';
 import {createTreeColliders} from './tree-colliders.ts';
 import {createGathering,createFishing,type GatherDeps} from './gathering.ts';
 import type {PlayableActivities} from './activities.ts';
@@ -25,7 +29,12 @@ export interface ObjectTarget {entity:GameplayEntity;name:string;prompt:string;r
  * composition. Presentation (panels, prompts, notifications) lives in `src/ui`; every change of
  * state goes through the runtime methods, which validate it. */
 export function createGameplayView(data:GameplayData,options:Options){
- const runtime=createGameplay(data),slots=createGameSaveStore(options.temporary?scopedSaveStorage(sessionStorage,options.saveScope??'test'):undefined);
+ // Register stable crafted product definitions in the gameplay runtime of old and new maps.
+ // The compiled world/Studio source stays immutable: crafting uses the same inventory authority.
+ const existing=new Set(data.items.map(i=>i.id));
+ const sharedItems=[...MINE_ITEMS,...FARM_ITEMS,...PRODUCTION_ITEMS];
+ const runtime=createGameplay({...data,items:[...data.items,...sharedItems.filter(i=>!existing.has(i.id))]}),
+   slots=createGameSaveStore(options.temporary?scopedSaveStorage(sessionStorage,options.saveScope??'test'):undefined);
  const collisionDefinitions=new Map((options.collisions??[]).map(d=>[d.id,d]));
  const collision=new WorldCollisionQuery(terrainHeight,waterSurface);for(const definition of options.collisions??[]){const height=terrainHeight(definition.groundAnchor.x,definition.groundAnchor.z);collision.add({...definition,position:{...definition.position,y:definition.position.y+height},enabled:()=>{const state=runtime.state.entities[definition.ownerId??naturalColliderOwner(definition.id)];return (definition.ownerId!==undefined||state?.open!==true)&&state?.collected!==true;}});}
  const has=(itemId:string)=>(runtime.state.inventory[itemId]??0)>0;
@@ -39,9 +48,13 @@ export function createGameplayView(data:GameplayData,options:Options){
  const fishing=createFishing();
  const purse={count:(id:string)=>runtime.state.inventory[id]??0,max:(id:string)=>runtime.data.items.find(i=>i.id===id)?.maxQuantity??0,apply:(changes:{itemId:string;quantity:number}[])=>runtime.grantItems(changes)};
  const itemName=(id:string)=>runtime.data.items.find(i=>i.id===id)?.name??id;
+ const listeners=new Set<()=>void>();
+ const workshops=createShopWorkshops({items:runtime.data.items,purse,
+   elapsedSeconds:()=>runtime.state.time,dayLengthSeconds:runtime.climate.definition.dayLengthSeconds,
+   onChange:()=>{for(const listener of listeners)listener();}});
  function trade(kind:ShopKind,itemId:string,quantity:number,mode:'buy'|'sell'){const shop=SHOPS[kind];return mode==='buy'?buy(shop,itemId,quantity,purse,itemName):sell(shop,itemId,quantity,purse,itemName);}
- const compose=(slotId:string):GameSaveV2=>({...runtime.save(slotId,options.getPosition()),space:options.getSpace?.()??null,gasReserve:options.getGas?.()??GAS.initial,flightProgress:options.getGasProgress?.()??newFlightProgress(),...activities.serialize(),...(gathering?{gathering:gathering.serialize()}:{})});
- let npcs:readonly NPCState[]=[],version=-1,disposed=false;const listeners=new Set<()=>void>();
+ const compose=(slotId:string):GameSaveV2=>({...runtime.save(slotId,options.getPosition()),space:options.getSpace?.()??null,gasReserve:options.getGas?.()??GAS.initial,flightProgress:options.getGasProgress?.()??newFlightProgress(),...activities.serialize(),workshops:workshops.serialize(),...(gathering?{gathering:gathering.serialize()}:{})});
+ let npcs:readonly NPCState[]=[],version=-1,disposed=false;
  const entityIds=new Set(runtime.data.entities.map(e=>e.id)),targets=runtime.data.entities.filter(e=>e.interactable),interactions=new Map<string,typeof runtime.data.interactions>();
  for(const i of runtime.data.interactions)if(i.trigger.type==='onInteract'){const list=interactions.get(i.trigger.entityId)??[];list.push(i);interactions.set(i.trigger.entityId,list);}
  const targetIndex=new InteractionNeighborhood(),targetById=new Map(targets.map(e=>[e.id,e]));
@@ -71,9 +84,9 @@ export function createGameplayView(data:GameplayData,options:Options){
  }
  sync();
  return {
-  runtime,collision,activities,slots,compose,gathering,trees,fishing,trade,purse,itemName,has,
+  runtime,collision,activities,slots,compose,gathering,trees,fishing,trade,workshops,purse,itemName,has,
   /** Restores a validated save into the runtime and the activities; returns the warnings. */
-  restore(save:GameSaveV2){const warnings=[...runtime.restore(save),...activities.restore(save)];gathering?.restore(save.gathering??null);options.setPosition(save.position,save.space??null);options.setGasProgress?.(save.flightProgress??newFlightProgress());options.setGas?.(save.gasReserve??GAS.legacyInitial);sync();version=-1;for(const l of listeners)l();return warnings;},
+  restore(save:GameSaveV2){const warnings=[...runtime.restore(save),...activities.restore(save)];workshops.restore(save.workshops??{});gathering?.restore(save.gathering??null);options.setPosition(save.position,save.space??null);options.setGasProgress?.(save.flightProgress??newFlightProgress());options.setGas?.(save.gasReserve??GAS.legacyInitial);sync();version=-1;for(const l of listeners)l();return warnings;},
   /** Imports an exported slot file (validated) into a free slot of this world. */
   async importSave(raw:unknown){const parsed=parseGameSave(raw);if(parsed.worldId!==data.worldId)throw Error('Sauvegarde d’un autre monde');const value={...parsed};if(!['slot-1','slot-2','slot-3'].includes(value.slotId)){const used=new Set((await slots.list(data.worldId)).map(v=>v.slotId)),free=['slot-1','slot-2','slot-3'].find(id=>!used.has(id));if(!free)throw Error('Libérez un emplacement pour importer cette partie');value.slotId=free;}await slots.save(value);return value.slotId;},
   temporary:options.temporary,describe,
@@ -84,7 +97,7 @@ export function createGameplayView(data:GameplayData,options:Options){
   interact(position:Point3){runtime.state.playerPosition={...position};const target=describe(position);return target?.usable?runtime.interact(target.entity.id,position):false;},
   update(dt:number){
    if(disposed)return;runtime.state.playerPosition={...options.getPosition()};for(const npc of npcs)if(entityIds.has(npc.definition.id)){runtime.setEntityPosition(npc.definition.id,{x:npc.x,y:npc.y,z:npc.z});if(targetById.has(npc.definition.id))targetIndex.set(npc.definition.id,{x:npc.x,z:npc.z});const body=collisionDefinitions.get(npc.definition.id);if(body)collision.moveBody(body.id,{x:npc.x+body.position.x-body.groundAnchor.x,y:npc.y+body.position.y,z:npc.z+body.position.z-body.groundAnchor.z});}
-   runtime.update(dt);for(const effect of runtime.drainEffects()){
+   runtime.update(dt);workshops.advanceDue();for(const effect of runtime.drainEffects()){
     if(effect.type==='showText')options.showInfo(effect.text);
     else if(effect.type==='playSound')options.onSound?.(effect.soundId,effect.entityId?runtime.data.entities.find(e=>e.id===effect.entityId)?.position:undefined);
     else if(effect.type==='startDialogue')options.showInfo('Approchez du personnage pour ouvrir sa conversation.');
