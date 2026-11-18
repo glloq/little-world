@@ -33,6 +33,7 @@ export async function attachMineStand(model:THREE.Group,hub:MineHubLayout):Promi
   if(!base||!model.parent)return false;
   const stand=base.clone(true);
   stand.name='MineStand:approved-port-trade-N1';
+  stand.userData.mineId=hub.mineId;stand.userData.mineLevelId=hub.levelId;
   removeMaritimeSign(stand);
   // The world kit's front is -Z. Turn it toward the free centre aisle (local +X).
   stand.rotation.y=-Math.PI/2;
