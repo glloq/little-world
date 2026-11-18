@@ -6,7 +6,7 @@
 import {el,button} from '../shared/dom.ts';
 import type {WaypointStore} from './waypoints.ts';
 
-export interface MapMarker {id:string;kind:'mine'|'farm'|'npc'|'quest'|'poi'|'waypoint';label:string;x:number;z:number;active?:boolean}
+export interface MapMarker {id:string;kind:'mine'|'farm'|'npc'|'quest'|'poi'|'waypoint'|'ferry';label:string;x:number;z:number;active?:boolean}
 export interface MapDeps {bounds:{minX:number;maxX:number;minZ:number;maxZ:number};height(x:number,z:number):number;water(x:number,z:number):number|null;seaLevel:number;markers():MapMarker[];player():{x:number;z:number;yaw:number}}
 /** Raster of the world (z grows downwards, north = −Z at the top), filled row by row. */
 export function createMapRaster(deps:Pick<MapDeps,'bounds'|'height'|'water'|'seaLevel'>,maxSide=256){
@@ -32,9 +32,9 @@ export function createMapRaster(deps:Pick<MapDeps,'bounds'|'height'|'water'|'sea
 }
 export type MapRaster=ReturnType<typeof createMapRaster>;
 
-const COLORS:Record<MapMarker['kind'],string>={mine:'#7a4f2e',farm:'#c9952f',npc:'#3b6fa0',quest:'#c4472f',poi:'#46745c',waypoint:'#a24f76'};
-const ICONS:Record<MapMarker['kind'],string>={mine:'⛏',farm:'✿',npc:'●',quest:'!',poi:'⌂',waypoint:'◆'};
-const FILTERS:[MapMarker['kind'],string][]=[['quest','Missions'],['waypoint','Repères'],['poi','Lieux'],['mine','Mines'],['farm','Parcelles'],['npc','Habitants']];
+const COLORS:Record<MapMarker['kind'],string>={mine:'#7a4f2e',farm:'#c9952f',npc:'#3b6fa0',quest:'#c4472f',poi:'#46745c',waypoint:'#a24f76',ferry:'#285986'};
+const ICONS:Record<MapMarker['kind'],string>={mine:'⛏',farm:'✿',npc:'●',quest:'!',poi:'⌂',waypoint:'◆',ferry:'⛵'};
+const FILTERS:[MapMarker['kind'],string][]=[['quest','Missions'],['waypoint','Repères'],['poi','Lieux'],['mine','Mines'],['farm','Parcelles'],['npc','Habitants'],['ferry','Bateau de voyage']];
 /** The exact same raster object can be used simultaneously by map and minimap. */
 export function mapPanel(deps:MapDeps,raster:MapRaster=createMapRaster(deps),waypoints?:WaypointStore){
   let frame=0,canvas:HTMLCanvasElement|null=null,ppm=0,cx=0,cz=0,visited=new Set<string>();

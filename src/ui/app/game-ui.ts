@@ -7,6 +7,8 @@ import type {GameplayView} from '../../gameplay/game-view.ts';
 import type {MovementSpace} from '../../physics/collision-world.ts';
 import type {AudioController} from '../../audio/view.ts';
 import {UiController} from './ui-controller.ts';
+import {renderFerryPanel,type FerryPanelDeps} from '../ferry/ferry-panel.ts';
+import '../ferry/ferry.css';
 import {isEditableGameTarget} from '../../input/gameplay-input.ts';
 import {loadPreferences,savePreferences,type UiPreferences} from './preferences.ts';
 import {createNotificationCenter,type NoticeKind} from '../notifications/notifications.ts';
@@ -34,6 +36,7 @@ export interface GameUiDeps {
   environment?():{dayPhase:number;weather:'clear'|'cloudy'|'rain'};
   environmentControls?:HTMLDetailsElement|null;
   landmarks?:readonly {id:string;label:string;x:number;z:number}[];
+  ferry?:FerryPanelDeps & {dock:{x:number;z:number}};
   world:{name:string;buildVersion:string;dayLength:number;bounds:{minX:number;maxX:number;minZ:number;maxZ:number};seaLevel:number;height(x:number,z:number):number;water(x:number,z:number):number|null};
   eatFood?(id:string):{ok:boolean;message:string};
   player():{gas?:number;maxGas?:number;gasShots?:number;gasMaxShots?:number;gasCooldown?:number;x:number;y:number;z:number;yaw:number;space?:MovementSpace;mode:string;oxygen:number;maxOxygen:number;stamina:number;maxStamina:number;speed?:number;stalled?:boolean};
@@ -68,12 +71,14 @@ export function createGameUi(deps:GameUiDeps){
     if(g){const s=g.runtime.state;for(const act of g.runtime.data.activities??[]){if(!act.objectiveId||s.objectives[act.objectiveId]!=='active')continue;
       for(const iid of act.interactionIds){const i=g.runtime.data.interactions.find(x=>x.id===iid),eid=i?.trigger.type==='onInteract'?i.trigger.entityId:undefined,p=eid?g.runtime.getEntityPosition(eid):undefined;if(p&&s.entities[eid!]?.collected!==true)out.push({id:'quest:'+iid,kind:'quest',label:act.name,x:p.x,z:p.z});}}}
     for(const l of deps.landmarks??[])out.push({id:'poi:'+l.id,kind:'poi',label:l.label,x:l.x,z:l.z});
+    if(deps.ferry?.state().present)out.push({id:'ferry:'+deps.ferry.currentIslandId,kind:'ferry',label:'Bateau de voyage',...deps.ferry.dock});
     for(const w of waypoints.points)out.push({id:w.id,kind:'waypoint',label:w.label,x:w.x,z:w.z,active:waypoints.activeId===w.id});
     return out;
   };
   const mapDeps:MapDeps={bounds:deps.world.bounds,height:deps.world.height,water:deps.world.water,seaLevel:deps.world.seaLevel,markers,player:()=>{const p=deps.player();return {x:p.x,z:p.z,yaw:p.yaw};}};
   const mapRaster=createMapRaster(mapDeps),map=mapPanel(mapDeps,mapRaster,waypoints);
   ui.register('map','Carte',{render:b=>map.render(b),onClose:()=>map.close()});
+  if(deps.ferry)ui.register('ferry','Voyage entre les îles',{pauses:true,render:b=>renderFerryPanel(b,deps.ferry!)});
   const questLocation=(id:string):{x:number;z:number;label:string}|null=>{
     if(!g)return null;
     const starts=(action:{type:string;objectiveId?:string;status?:string})=>action.type==='setObjective'&&action.objectiveId===id&&action.status==='active';
@@ -176,6 +181,7 @@ export function createGameUi(deps:GameUiDeps){
   });
   let lastFrame=-1,promptKey='';
   return {
+    /** Opens the maritime choice panel only for a real, published ferry stop. */openFerry(){if(deps.ferry)ui.open('ferry');},
     /** Opens the counter panel of a shop entity. */openShop(kind:ShopKind){shopKind=kind;ui.open('shop');},
     controller:ui,notify:(kind:NoticeKind,text:string)=>center.notify(kind,text),center,
     get preferences(){return prefs;},
