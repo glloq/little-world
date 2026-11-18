@@ -108,8 +108,9 @@ export function createGameUi(deps:GameUiDeps){
   // Counters (mine, forest, port, market, farm, inn): one panel, catalogue chosen by the counter.
   let shopKind:ShopKind|null=null,shopCounterId:string|null=null;
   if(g){const shop=shopPanel({kind:()=>shopKind,counterId:()=>shopCounterId,production:g.workshops,
+      market:g.markets,
       inventory:()=>g.runtime.state.inventory,name:id=>g.itemName(id),max:id=>g.purse.max(id),
-      trade:(k,id,q,m)=>g.trade(k,id,q,m),
+      trade:(k,id,q,m,expectedRevision)=>g.trade(k,id,q,m,shopCounterId??undefined,expectedRevision),
       notify:(ok,t)=>{center.notify(ok?'success':'warning',t);deps.audio?.emit(ok?'ui.confirm':'ui.error',{source:'ui'});}});
     // Workshop jobs advance in game time while this panel is open, without unblocking movement.
     ui.register('shop','Comptoir',{pauses:false,render:b=>{const h=b.closest('.ui-panel')?.querySelector('h2');if(h&&shopKind)h.textContent=SHOPS[shopKind].name;shop.render(b);}});}
