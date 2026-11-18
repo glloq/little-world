@@ -7,7 +7,7 @@
 import type {MaskLayerId} from '../geography/layers.ts';
 import {MASK_LAYERS,validMaskString} from '../geography/layers.ts';
 
-export const LANDSCAPE_PRESET_IDS=['forest-valley','river-bend','rocky-cliff','sandy-beach','marsh-basin','mountain-pass','waterfall-gorge','volcanic-field','ancient-ruins','village-clearing','castle-town','fishing-port','mountain-hamlet','mine-camp','forest-camp','landmark-site','woodland'] as const;
+export const LANDSCAPE_PRESET_IDS=['forest-valley','river-bend','rocky-cliff','sandy-beach','marsh-basin','mountain-pass','alpine-resort','waterfall-gorge','volcanic-field','ancient-ruins','village-clearing','castle-town','fishing-port','mountain-hamlet','mine-camp','forest-camp','landmark-site','woodland'] as const;
 export type LandscapePresetId=typeof LANDSCAPE_PRESET_IDS[number];
 export type LandscapeParams=Record<string,number|boolean>;
 /** What an instance produced (ids → canonical hash at generation time) and, per sector and
