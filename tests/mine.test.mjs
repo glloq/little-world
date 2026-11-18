@@ -5,6 +5,7 @@ import {existsSync} from 'node:fs';
 import {defaultMineSettings,validateMineSettings,geologyAt,MINE_CHUNK,MINE_MATERIALS} from '../src/mine/mine-data.ts';
 import {MineGrid,MineState,parseMineSave} from '../src/mine/mine-state.ts';
 import {mineChunkGeometry,WALL_ROWS,MINE_RELIEF} from '../src/mine/mine-mesher.ts';
+import {mineCrackStage,mineCrackStrokeCount,mineCrackAffectedChunks,mineCrackColor} from '../src/mine/mine-cracks.ts';
 import {mineSpaceProvider,mineTransitions} from '../src/mine/mine-collision.ts';
 import {WorldCollisionQuery} from '../src/physics/collision-world.ts';
 import {simulatePlayer,MAX_OXYGEN} from '../src/player.ts';
@@ -444,4 +445,64 @@ test('mine V6: partial progress saves before any cell was excavated',()=>{
   assert.equal(restored.hitCountAt(0,wall.ix,wall.iz),1);
   assert.equal(restored.damageAt(0,wall.ix,wall.iz),0);
   assert.equal(restored.workAt(0,wall.ix,wall.iz),3);
+});
+
+test('mine fissures: three visual thresholds, intact and destroyed, all material durabilities',()=>{
+  for(const material of [1,2,3,4,5]){
+    const max=mineBlockDurability(material);
+    assert.equal(mineCrackStage(material,0),0,'intact material '+material);
+    assert.equal(mineCrackStage(material,max),0,'destroyed material '+material);
+    let previous=0;
+    for(let consumed=1;consumed<max;consumed++){
+      const stage=mineCrackStage(material,consumed);
+      assert.ok(stage>=previous&&stage<=3);
+      assert.equal(stage,
+        consumed/max>=.75?3:consumed/max>=.5?2:consumed/max>=.25?1:0);
+      previous=stage;
+    }
+  }
+  assert.deepEqual([0,1,2,3].map(mineCrackStrokeCount),[0,2,5,8]);
+  assert.notEqual(mineCrackColor(5),mineCrackColor(4),'crystal and iron fissures use separate palettes');
+  assert.deepEqual(mineCrackAffectedChunks(31,31).sort(),['0,0','0,1','1,0']);
+  assert.deepEqual(mineCrackAffectedChunks(-32,-32).sort(),['-1,-1','-1,-2','-2,-1']);
+});
+test('mine fissures: each durability threshold changes actual merged chunk geometry, without opening the cell',()=>{
+  const state=new MineState(new MineGrid(zone())),w=wallCell(state,0,m=>m>=3&&m<=5);
+  assert.ok(w,'reachable block with enough durability to display all stages');
+  const material=state.material(0,w.ix,w.iz),max=mineBlockDurability(material),
+    cx=Math.floor(w.stand.ix/MINE_CHUNK),cz=Math.floor(w.stand.iz/MINE_CHUNK);
+  const initial=mineChunkGeometry(state,0,cx,cz);
+  let n=0,lastQuads=initial.quads,lastStage=0,stageChanges=0;
+  const req=()=>({requestId:'crack-test-'+n++,levelId:'level-1',ix:w.ix,iz:w.iz,
+    from:from(state,0,w.stand.ix,w.stand.iz)});
+  while(state.durabilityAt(0,w.ix,w.iz)>1&&n<max*3){
+    const before=state.damageAt(0,w.ix,w.iz),
+      result=state.strike(req(),8,()=>true,'perfect');
+    assert.ok(result.ok&&result.partial);
+    const after=state.damageAt(0,w.ix,w.iz),stage=mineCrackStage(material,after);
+    const geo=mineChunkGeometry(state,0,cx,cz);
+    assert.equal(state.isOpen(0,w.ix,w.iz),false);
+    assert.equal(result.crackChanged,stage!==lastStage);
+    if(stage!==lastStage){
+      stageChanges++;
+      assert.ok(after>before&&geo.quads>lastQuads,
+        'a stage adds dark crack ribbons inside the original chunk draw call');
+      const repeated=mineChunkGeometry(state,0,cx,cz);
+      assert.deepEqual(repeated.positions,geo.positions,'stable geometry across rebuilds');
+      assert.deepEqual(repeated.colors,geo.colors,'stable per-material colours');
+      lastStage=stage;
+    }else{
+      assert.equal(geo.quads,lastQuads,'no geometrical change between thresholds');
+    }
+    lastQuads=geo.quads;
+  }
+  assert.equal(stageChanges,3,'hard rock or valuable ore reaches all three visual stages');
+  // Final cycle removes the cell, not merely its fissures.
+  for(let steps=0;steps<4&&!state.isOpen(0,w.ix,w.iz);steps++){
+    const done=state.strike(req(),8,()=>true,'perfect');
+    assert.equal(done.ok,true);
+  }
+  assert.equal(state.isOpen(0,w.ix,w.iz),true);
+  assert.equal(state.excavatedCount,1);
+  assert.equal(state.damageAt(0,w.ix,w.iz),0);
 });
