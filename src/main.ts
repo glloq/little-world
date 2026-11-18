@@ -55,6 +55,7 @@ import {
   type Controls,
 } from './player';
 import { buildHamster } from './hamster/hamster.ts';
+import {createMineHelmet} from './hamster/mine-helmet.ts';
 import { createImpactEffects, type ImpactKind } from './hamster/impact-effects.ts';
 import {createGasEffects} from './hamster/gas-effects.ts';
 import {GAS,gasLevel,gasCapacity,gasShots,gasMaxShots,refillGas} from './physics/gas-propulsion.ts';
@@ -392,6 +393,7 @@ if(gameplay)gameplay.collision.setMaterialSampler(createMaterialSampler((x,z)=>c
 const activityView=gameplay&&(gameplay.activities.mines.size||gameplay.activities.farms.size)?(await import('./activity-view.ts')).createActivityView(scene,gameplay.activities,terrainHeight):null;
 if(activityView&&!searchParams.has('lightBench'))world.refreshLights([...(definition.lights??[]),...activityView.lights]);
 let activityQueue=0,cropQueue=0,strikeTimer=0;
+let helmetEquipped=false; // Independent inventory head slot; no tool or boost override.
 world.update(0, player.position);
 {
   const {createGameUi}=await import('./ui/app/game-ui.ts'),c=getTerrainConfig();
@@ -417,6 +419,7 @@ world.update(0, player.position);
       const gained=refillGas(player,points);
       return {ok:true,message:'+'+Math.round(gained)+' gaz !'};
     },
+    headgear:{equipped:()=>helmetEquipped,setEquipped:value=>{helmetEquipped=value;}},
     mineHub:gameplay?{
       view:()=>gameplay!.activities.mineLiftView(player.position,player.space),
       travel:async(levelId:string)=>{
@@ -478,6 +481,7 @@ world.update(0, player.position);
 // The player is the hamster (doc 43); NPCs keep their own rigs.
 const character = buildHamster();
 scene.add(character.group);
+const mineHelmet=createMineHelmet(character.rig.sockets.head);
 const impacts = createImpactEffects(scene);
 const gasEffects=createGasEffects(scene);const gasOrigin=new THREE.Vector3();let gasVisualSeq=0,boostWindActive=false;
 const flightRings=createFlightRings(scene);
@@ -1136,6 +1140,10 @@ function draw(now: number) {
   character.setAboard(aboard);
   if(gameplay){const f=gameplay.fishing.state;character.setFishing(f.phase!=='idle'&&f.castAt?{x:f.castAt.x,y:waterSurface(f.castAt.x,f.castAt.z)??getTerrainConfig().seaLevel,z:f.castAt.z,biting:f.phase==='bite'}:null);}
   character.update(player, delta, elapsed);
+  // Mining headgear follows the animated head bone (including turning/looking).
+  // One spotlight, zero shadow maps; off outside mines and without the item.
+  mineHelmet.setActive(!!player.space&&helmetEquipped&&!!gameplay?.has('tool:miners-helmet'));
+
   // Hero-only pose overlay. Does not change the authoritative rig animation,
   // procedural GLB, other players or distant impostor hashes.
   if(player.mode==='glide'&&player.gasBoosting){
@@ -1253,7 +1261,7 @@ function draw(now: number) {
   }
   requestAnimationFrame(draw);
 }
-window.addEventListener('pagehide',event=>{if(event.persisted)void audio?.engine.setHidden(true);else {detachPortCollisions?.();ferryView?.dispose();remoteActors?.dispose();gasEffects.dispose();flightRings.dispose();flightCourseHud.remove();speedStreaks.dispose();gpuTimer.dispose();void audio?.dispose();}});
+window.addEventListener('pagehide',event=>{if(event.persisted)void audio?.engine.setHidden(true);else {detachPortCollisions?.();ferryView?.dispose();remoteActors?.dispose();mineHelmet.dispose();gasEffects.dispose();flightRings.dispose();flightCourseHud.remove();speedStreaks.dispose();gpuTimer.dispose();void audio?.dispose();}});
 window.addEventListener('pageshow',event=>{if(event.persisted&&started)void audio?.engine.setHidden(document.hidden);});
 document.addEventListener('visibilitychange', () => {
   presentation.reset();
