@@ -24,6 +24,7 @@ try{
  await page.getByRole('heading',{name:'Circuits fixes du monde'}).waitFor();
  assert.match(await page.locator('#tools').textContent(),/Circuit Studio témoin/);
  // An editable gate height is owned by the shared Studio history, not the runtime.
+ await page.getByText('Réglage des 3 checkpoints').click();
  const width=page.getByLabel('Largeur (m)').first();
  await width.fill('11');
  await width.press('Tab');
