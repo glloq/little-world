@@ -32,7 +32,7 @@ réorganise les volumes au lieu d'empiler les mêmes objets.
   (terrain, végétation, bâtiments, impostors) dans la mine, **sans couper la
   réserve d'éclairages `LocalLights`**. Retour normal à la surface quand le
   joueur quitte le niveau 1. Aucun second moteur de rendu.
-- **Performance** : 1 mesh fusionné pour les solides et 1 pour l'émission,
+- **Performance** : 1 mesh fusionné pour les solides procéduraux et 1 pour l'émission (le stand maritime N1 ajoute ses propres sous-meshes),
   pas de nouveaux points lumineux avec ombres, chunks conservés en streaming.
   Décor sans colliders supplémentaires ; la grille reste seule autorité.
 - Le premier étage est préparé à l'ouverture du jeu ; l'habillage des étages
