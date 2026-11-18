@@ -31,6 +31,7 @@ import {beginTransit,pendingTransit,clearTransit,FERRY_RECOVERY_KEY,
   } from './archipelago/transit.ts';
 import {loadPortableCheckpoint,savePortableCheckpoint,withPortableItems} from './archipelago/portable-inventory.ts';
 import {ferryStatus,ferryEventsBetween,worldGameMinute} from './archipelago/ferry-schedule.ts';
+import {createCargoService} from './archipelago/cargo-logistics.ts';
 import {createFerryView} from './archipelago/ferry-view.ts';
 import {withFerryBells} from './archipelago/ferry-audio.ts';
 import {showFerryCinematic,holdFerryArrival} from './ui/ferry/ferry-cinematic.ts';
@@ -275,6 +276,24 @@ const npcs = createNPCSystem(scene, definition.npcs,isLegacyTerrain()?undefined:
 npcs.setLighting(world.atlasIllumination);
 gameplay?.attachNPCs(npcs.states);
 const worldClock=gameplay?.runtime.clock??new WorldClock(),climate=gameplay?.runtime.climate??createClimate(defaultEnvironment(definition.config.seed));
+// A single durable cargo ledger covers the published offline archipelago; its author
+// reserves are consumed without creating any offscreen Three.js world.
+let cargoService:ReturnType<typeof createCargoService>|null=null;
+if(activeIsland&&archipelago&&gameplay&&!studioTest&&!buildScope){
+  try{
+    cargoService=createCargoService(localStorage,{
+      islandId:activeIsland.id,
+      gameMinute:()=>worldGameMinute(worldClock.time,climate.definition.dayLengthSeconds),
+      purse:gameplay.purse,itemName:gameplay.itemName,
+      worldId:gameplay.runtime.data.worldId,
+      inventory:()=>gameplay!.runtime.state.inventory,
+    });
+  }catch(error){
+    console.warn('Le registre des cargaisons n’a pas pu être chargé :',error);
+    showInfo('Comptoir d’import indisponible : stockage local de fret à vérifier.');
+  }
+}
+let lastCargoMinute=worldGameMinute(worldClock.time,climate.definition.dayLengthSeconds);
 // One ferry per published island for the solo trial. A valid water landing is mandatory.
 const ferryAnchor=activeIsland?definition.placements.filter(p=>/(dock|harbor|port)/i.test(p.assetId)).sort(
   (a,b)=>Math.hypot(a.x-player.position.x,a.z-player.position.z)-Math.hypot(b.x-player.position.x,b.z-player.position.z))[0]:undefined;
@@ -378,6 +397,31 @@ world.update(0, player.position);
       return {ok:true,message:'+'+Math.round(gained)+' gaz !'};
     },
     player:()=>({gas:gasLevel(player),maxGas:gasCapacity(player),gasShots:gasShots(player),gasMaxShots:gasMaxShots(player),gasCooldown:player.gasCooldown??0,x:player.position.x,y:player.position.y,z:player.position.z,yaw,space:player.space,mode:player.mode,oxygen:player.oxygen,maxOxygen:MAX_OXYGEN,stamina:player.stamina??MAX_STAMINA,maxStamina:MAX_STAMINA,speed:player.velocity.length(),stalled:player.stalled}),
+    importTrade:activeIsland&&ferryDock&&cargoService&&gameplay?{
+      view:()=>cargoService?cargoService.view():{
+        islandId:activeIsland.id,revision:0,offers:[],inTransit:0,nextArrivalMinute:null,
+      },
+      name:id=>gameplay!.itemName(id),
+      coins:()=>gameplay!.purse.count('coin'),
+      max:id=>gameplay!.purse.max(id),
+      owned:id=>gameplay!.purse.count(id),
+      canUse:()=>!!cargoService&&canBoardFerry(),
+      buy:(lotId,quantity,revision)=>{
+        if(!cargoService)return {ok:false,reason:'Comptoir import indisponible : stockage du fret suspendu'};
+        const result=cargoService.buy(lotId,quantity,revision);
+        if(result.ok){
+          // The import ledger has committed the buyer's full bag in the same write as
+          // the sold lot. The game save acknowledges this revision when successfully saved.
+          gameplay!.acknowledgeCargoPurchase(result.revision);
+          void gameplay!.slots.save(gameplay!.compose('slot-ferry-auto')).catch(error=>{
+            console.warn('Sauvegarde après achat maritime impossible :',error);
+            gameUi?.notify('warning','Achat réalisé, mais sauvegarde locale indisponible : exportez la partie.');
+          });
+        }
+        return result;
+      },
+      notify:(ok,message)=>gameUi?.notify(ok?'success':'warning',message),
+    }:undefined,
     ferry:activeIsland&&ferryDock&&archipelago?{
       currentIslandId:activeIsland.id,islands:archipelago.islands,
       dock:{x:ferryDock.x,z:ferryDock.z},state:()=>ferryNow,canBoard:canBoardFerry,
@@ -852,6 +896,18 @@ function tick(dt: number) {
   // Menus (pause, parties, paramètres) pause the world simulation; the frame still renders.
   if (!started || gameUi?.paused||mobileLandscape?.blocked) return;
   if(gameplay)gameplay.update(dt);else worldClock.advance(dt);
+  if(cargoService){
+    const cargoMinute=worldGameMinute(worldClock.time,climate.definition.dayLengthSeconds);
+    if(cargoMinute!==lastCargoMinute){
+      lastCargoMinute=cargoMinute;
+      try{cargoService.advance();}catch(error){
+        console.warn('Impossible d’avancer le fret maritime :',error);
+        // A failed localStorage write is reported, not interpreted as a free shipment.
+        cargoService=null;
+        gameUi?.notify('warning','Fret maritime suspendu : sauvegarde locale indisponible.');
+      }
+    }
+  }
   if(ferryDock&&activeIsland){
     const minute=worldGameMinute(worldClock.time,climate.definition.dayLengthSeconds);
     if(minute!==ferryMinute){
@@ -1243,6 +1299,37 @@ if(activeIsland&&gameplay&&(incomingTransit||retainedPortable)){
     if(debounce!==null)clearTimeout(debounce);
     debounce=setTimeout(()=>{debounce=null;void saveTravelProgress();},1000);
   });
+}
+// Recover a previously committed import receipt before starting the game. The cargo
+// ledger owns the checkout and its post-purchase bag in ONE localStorage record, while
+// the regular game slot is acknowledged separately. A crash between these two writes
+// can therefore never silently consume imported goods without returning them to the bag.
+if(cargoService&&gameplay&&activeIsland){
+  try{
+    const receipt=cargoService.buyerCheckpoint();
+    if(receipt&&receipt.islandId===activeIsland.id&&
+        receipt.worldId===gameplay.runtime.data.worldId){
+      if(incomingTransit){
+        // A returning traveller's *current* bag takes precedence over an old local receipt.
+        // Mark the receipt as acknowledged so it cannot overwrite the returned cargo later.
+        gameplay.acknowledgeCargoPurchase(receipt.revision);
+        await gameplay.slots.save(gameplay.compose('slot-ferry-auto'));
+      }else{
+        const saved=await gameplay.slots.load(gameplay.runtime.data.worldId,'slot-ferry-auto');
+        const base=saved??gameplay.compose('slot-ferry-auto');
+        const needsRecovery=(base.cargoPurchaseRevision??0)<receipt.revision;
+        gameplay.restore(needsRecovery?{...base,inventory:{...receipt.inventory},
+          cargoPurchaseRevision:receipt.revision}:base);
+        await gameplay.slots.save(gameplay.compose('slot-ferry-auto'));
+        ferryMinute=worldGameMinute(worldClock.time,climate.definition.dayLengthSeconds);
+        ferryNow=ferryStatus(ferryMinute,activeIsland.portLevel);
+        ferryView?.setPresent(ferryNow.present);
+      }
+    }
+  }catch(error){
+    console.error('Impossible de reprendre le paiement maritime :',error);
+    bootFailure(error);
+  }
 }
 // Gameplay starts automatically when the first rendered spawn area is ready.
 overlay.setAttribute('aria-busy','false');loading.boot(1);
