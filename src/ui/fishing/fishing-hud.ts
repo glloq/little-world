@@ -10,6 +10,7 @@ export function createFishingHud(){
     <div class="fishing-meter-label"><span>Tension de la ligne</span><span class="fishing-tension-text">0 %</span></div>
     <div class="fishing-meter fishing-tension-track" role="progressbar" aria-label="Tension de la ligne" aria-valuemin="0" aria-valuemax="100"><div class="fishing-tension"></div></div>`;
   document.body.append(root);
+  const heading=root.querySelector<HTMLElement>('.fishing-heading strong')!;
   const progress=root.querySelector<HTMLElement>('.fishing-progress')!;
   const tension=root.querySelector<HTMLElement>('.fishing-tension')!;
   const progressText=root.querySelector<HTMLElement>('.fishing-progress-text')!;
@@ -17,17 +18,20 @@ export function createFishingHud(){
   const tip=root.querySelector<HTMLElement>('.fishing-tip')!;
   const bars=root.querySelectorAll<HTMLElement>('[role="progressbar"]');
   return {
-    update(state:FishingState|null,touch=false){
+    update(state:FishingState|null,touch=false,fishName?:string){
       const active=state?.phase==='reeling';
       root.hidden=!active;
       if(!active||!state)return;
       const p=Math.round(state.progress*100),t=Math.round(state.tension*100);
+      const title=fishName?'Au bout de la ligne : '+fishName:'Un poisson est au bout !';
+      if(heading.textContent!==title)heading.textContent=title;
       progress.style.width=p+'%';tension.style.width=t+'%';
       if(progressText.textContent!==p+' %')progressText.textContent=p+' %';
       if(tensionText.textContent!==t+' %')tensionText.textContent=t+' %';
       bars[0].setAttribute('aria-valuenow',String(p));bars[1].setAttribute('aria-valuenow',String(t));
       root.classList.toggle('fishing-danger',t>=75);
-      tip.textContent=t>=75?'Attention : relâcher !':touch?'Maintenez Agir pour mouliner':'Maintenez E pour mouliner';
+      const hint=t>=75?'Attention : relâcher !':touch?'Maintenez Agir pour mouliner':'Maintenez E pour mouliner';
+      if(tip.textContent!==hint)tip.textContent=hint;
     },
     hide(){root.hidden=true;},
     dispose(){root.remove();},
