@@ -96,7 +96,7 @@ export function createGameUi(deps:GameUiDeps){
     consume:deps.eatFood?(id)=>{const result=deps.eatFood!(id);center.notify(result.ok?'success':'warning',result.message);return result.ok;}:undefined,
     consumeBatch:deps.eatFoods,
     confirm:(message,label)=>ui.confirm(message,label),notify:message=>center.notify('info',message)});
-  ui.register('inventory','Sac',{render:b=>inventory.render(b),onClose:()=>{inventory.markSeen();deps.audio?.emit('ui.inventory.close',{source:'ui'});}});
+  ui.register('inventory','Sac',{render:b=>inventory.render(b),onEscape:()=>inventory.cancelSelection(),onClose:()=>{inventory.markSeen();deps.audio?.emit('ui.inventory.close',{source:'ui'});}});
 
   const waypoints=createWaypointStore(g?.runtime.data.worldId??deps.world.name,deps.world.bounds,deps.temporary);
   const markers=():MapMarker[]=>{
@@ -283,7 +283,7 @@ export function createGameUi(deps:GameUiDeps){
     if(restoring)return;
     const inv=g.runtime.state.inventory;for(const [id,q] of Object.entries(inv)){const d=q-(lastInventory[id]??0);if(d>0)center.gain(id,g.runtime.data.items.find(i=>i.id===id)?.name??id,d);}
     for(const text of questChanges(g.runtime.data.objectives,lastObjectives,g.runtime.state.objectives))center.quest(text);
-    snapshot();renderTool();if(ui.active==='journal'||ui.active==='inventory'&&!inventory.isDragging())ui.refresh();
+    snapshot();renderTool();if(ui.active==='journal'||ui.active==='inventory'&&!inventory.isInteracting())ui.refresh();
     if(ui.active==='instrument'&&!instrumentForItem(g.equipment.hands))ui.close();
   });
   let lastFrame=-1,promptKey='';
