@@ -80,8 +80,13 @@ try{
   assert.equal(afterReload.importLots['volcano-island'].find(x=>x.itemId==='wood:log').quantity,4,
     'Reload never duplicates imported stock');
   assert.equal(afterReload.purchases.length,1,'Reload does not purchase twice');
-  await page.waitForTimeout(500);
-  await page.keyboard.press('KeyE');
+  // Camera orientation is intentionally NOT persisted as part of the wallet receipt:
+  // opening ferry schedules from the map remains valid regardless of spawn heading.
+  await page.keyboard.press('KeyM');
+  await map.waitFor({state:'visible'});
+  await map.getByRole('button',{name:'Options de carte'}).click();
+  await map.locator('.ui-map-entry').filter({hasText:'Bateau de voyage'})
+    .getByRole('button',{name:'Horaires',exact:true}).click();
   await panel.waitFor({state:'visible'});
   const trial=panel.getByRole('button',{name:/cinématique de voyage/i});
   await trial.click();
