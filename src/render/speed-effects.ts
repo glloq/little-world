@@ -7,7 +7,7 @@ const clamp=(v:number,lo:number,hi:number)=>Math.max(lo,Math.min(hi,v));
 export function advanceSpeedCamera(s:SpeedCameraState,
   input:{speed:number;mode:string;boosting:boolean;turnRate:number;enabled:boolean},dt:number):void{
   const step=clamp(Number.isFinite(dt)?dt:0,0,.25);
-  const active=input.enabled&&(input.mode==='glide'||input.mode==='roll');
+  const active=input.enabled&&(input.mode==='glide'||input.mode==='roll'||input.mode==='snow');
   const speed=clamp(Number.isFinite(input.speed)?input.speed:0,0,60);
   const boost=active&&input.mode==='glide'&&input.boosting;
   const targetFov=66+(active?Math.min(10,Math.max(0,speed-8)*.4)+(boost?1:0):0);
