@@ -18,7 +18,7 @@ export function findDemoSurfSite(height:(x:number,z:number)=>number,
     let coast=-1;
     for(let d=0;d<1450;d+=10){
       const x=baseX+out.x*d,z=baseZ+out.z*d;
-      if(!inside(x,z,310))break;
+      if(!inside(x,z))break;
       if(height(x,z)<seaLevel-.12){coast=d;break;}
     }
     if(coast<0)continue;
