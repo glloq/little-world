@@ -70,8 +70,18 @@ try{
   const ledger=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),CARGO_STORAGE_KEY);
   const remaining=ledger.importLots['volcano-island'].find(x=>x.itemId==='wood:log');
   assert.equal(remaining.quantity,4,'Import lot debited once after purchase');
+  // Simulate an interrupted local gameplay save *after* the cargo ledger committed.
+  // The durable receipt in the cargo ledger must recover the wallet on the next boot.
+  await page.waitForFunction(()=>Object.keys(localStorage).some(k=>
+    k.startsWith('little-world:game-save:v1:')&&k.endsWith(':slot-ferry-auto')),
+    {},{timeout:10000});
+  await page.evaluate(()=>{
+    for(const key of Object.keys(localStorage))
+      if(key.startsWith('little-world:game-save:v1:')&&key.endsWith(':slot-ferry-auto'))
+        localStorage.removeItem(key);
+  });
   // Crash/reload recovery: cargo and the post-payment bag must agree, without a second
-  // purchase or a default 40-coin restart. The ferry boarding position is saved too.
+  // purchase or a default 40-coin restart, even with the world slot missing.
   await page.reload({waitUntil:'domcontentloaded'});
   await page.locator('#start-overlay').waitFor({state:'hidden',timeout:120000});
   await page.waitForFunction(()=>window.littleWorldMetrics?.inventory?.['wood:log']===1
@@ -80,6 +90,9 @@ try{
   assert.equal(afterReload.importLots['volcano-island'].find(x=>x.itemId==='wood:log').quantity,4,
     'Reload never duplicates imported stock');
   assert.equal(afterReload.purchases.length,1,'Reload does not purchase twice');
+  assert.ok(await page.evaluate(()=>Object.keys(localStorage).some(k=>
+    k.startsWith('little-world:game-save:v1:')&&k.endsWith(':slot-ferry-auto'))),
+    'World slot is reconstructed from the committed import receipt');
   // Camera orientation is intentionally NOT persisted as part of the wallet receipt:
   // opening ferry schedules from the map remains valid regardless of spawn heading.
   await page.keyboard.press('KeyM');
