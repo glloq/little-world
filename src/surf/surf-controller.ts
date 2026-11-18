@@ -76,8 +76,8 @@ export function stepSurf(actor:SurfActor,input:SurfInput,field:SurfWaveField,tic
     const paddleHeld=input.paddle||input.forward>.15;
     if(paddleHeld&&actor.surfPaddleClock<=0){
       const strength=clamp(1-speed0/SURF_MOTION.paddleMax,.08,1);
-      v.x+=Math.sin(heading)*SURF_MOTION.paddleAccel*strength;
-      v.z+=Math.cos(heading)*SURF_MOTION.paddleAccel*strength;
+      v.x+=Math.sin(heading)*SURF_MOTION.paddleAccel*SURF_MOTION.paddleCycle*strength;
+      v.z+=Math.cos(heading)*SURF_MOTION.paddleAccel*SURF_MOTION.paddleCycle*strength;
       actor.surfPaddleClock=SURF_MOTION.paddleCycle;event='paddle';
     }
     const downhill=-(at.gradientX*at.directionX+at.gradientZ*at.directionZ);
