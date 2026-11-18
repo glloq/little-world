@@ -776,7 +776,7 @@ function input(): Controls {
     boostHeld:flightBoostHeld(player.mode,shiftHeld,touchAccelerateHeld),
     swimStrokePressed:touchStrokeQueue>0,
     snowEquipment:snowDemo?snowEquipment:gameplay?.equipment.hands==='tool:snowboard'?'snowboard':gameplay?.equipment.hands==='tool:skis'?'skis':null,
-    surfEnabled:!!surfField,surfActionPressed:surfQueue>0,
+    surfEnabled:!!surfField&&(surfDemo||gameplay?.equipment.hands==='tool:surfboard'),surfActionPressed:surfQueue>0,
     surfPaddleHeld:!!surfField&&shiftHeld,surfPump:!!surfField&&shiftHeld&&player.surfStage==='ride',
   };
 }
@@ -835,7 +835,9 @@ window.addEventListener('keydown', (e) => {
   if (e.code === 'KeyB'&&snowDemo){snowEquipment=snowEquipment==='snowboard'?'skis':'snowboard';showInfo('Équipement : '+(snowEquipment==='skis'?'skis':'snowboard'));}
   else if(e.code==='KeyB'&&surfField){
     if(player.mode==='surf'){player.mode='swim';player.surfStage=undefined;player.surfAirborne=false;showInfo('Planche rangée : nage');}
-    else {surfQueue=1;showInfo('Planche de surf : ramez avec Z/Shift, sautez avec Espace');}
+    else if(surfDemo||gameplay?.equipment.hands==='tool:surfboard'){
+      surfQueue=1;showInfo('Planche de surf : ramez avec Z/Shift, sautez avec Espace');
+    }else showInfo('Équipez la planche de surf depuis votre sac avant de monter dessus.');
   }
   if (e.code === 'KeyR' && started) {
     stopFlightCourse();stopRace();
