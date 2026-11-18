@@ -155,7 +155,7 @@ export function createGameUi(deps:GameUiDeps){
       trade:(k,id,q,m,expectedRevision)=>g.trade(k,id,q,m,shopCounterId??undefined,expectedRevision),
       notify:(ok,t)=>{center.notify(ok?'success':'warning',t);deps.audio?.emit(ok?'ui.confirm':'ui.error',{source:'ui'});}});
     // Workshop jobs advance in game time while this panel is open, without unblocking movement.
-    ui.register('shop','Comptoir',{pauses:false,render:b=>{const h=b.closest('.ui-panel')?.querySelector('h2');if(h&&shopKind)h.textContent=SHOPS[shopKind].name;shop.render(b);if(shopKind==='mine'&&deps.mineHub){const row=el('div','ui-row ui-shop-tabs');row.append(button('Accès aux niveaux',()=>ui.open('mine-lift'),'ui-button ui-primary'),button('Conseils du mineur',()=>ui.open('mine-advice'),'ui-button'));b.prepend(row);}});}
+    ui.register('shop','Comptoir',{pauses:false,render:b=>{const h=b.closest('.ui-panel')?.querySelector('h2');if(h&&shopKind)h.textContent=SHOPS[shopKind].name;shop.render(b);if(shopKind==='mine'&&deps.mineHub){const row=el('div','ui-row ui-shop-tabs');row.append(button('Accès aux niveaux',()=>ui.open('mine-lift'),'ui-button ui-primary'),button('Conseils du mineur',()=>ui.open('mine-advice'),'ui-button'));b.prepend(row);}}});}
   let closeAudioPopover=()=>{};
   ui.register('settings','Paramètres',{pauses:true,render:b=>{closeAudioPopover();settingsPanel({preferences:()=>prefs,update:updatePrefs,quality:deps.quality,audioPanel:deps.audio?.panel??null,environmentControls:deps.environmentControls??null,showDeveloper:prefs.developer||devUrl}).render(b);},
     // The audio panel goes back to its developer place when the settings close.
