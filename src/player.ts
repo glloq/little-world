@@ -1,4 +1,5 @@
 import {MOTION,ROLL,GLIDE_DEPLOY,groundVelocity,airVelocity,glideVelocity,glideSteeringYaw,glideDeploymentStep,SURFACE_MOTION,angleDelta,type GroundMaterial} from './physics/motion.ts';
+import {stepSnowSlide,type SnowEquipment} from './snow/snow-slide.ts';
 export {ROLL,GLIDE,MOTION,SURFACE_MOTION} from './physics/motion.ts';
 import {GAS,gasBoostStep,gasMastery,gasShots} from './physics/gas-propulsion.ts';
 import {DEFAULT_BODY,type WorldCollisionQuery,type MovementSpace,type BodyDimensions} from './physics/collision-world.ts';
@@ -11,7 +12,7 @@ import {
   waterSurface,
 } from './terrain.ts';
 
-export const MOTION_MODES = ['ground', 'air', 'glide', 'swim', 'dive', 'climb', 'roll'] as const;
+export const MOTION_MODES = ['ground', 'air', 'glide', 'swim', 'dive', 'climb', 'roll', 'snow'] as const;
 export type MotionMode = (typeof MOTION_MODES)[number];
 export interface Controls {
   forward: number;
@@ -35,6 +36,7 @@ export interface Controls {
   cameraPitch?: number;
   /** Pulse boost via Shift or the separate mobile Boost control; glide only. */boostHeld?:boolean;
   /** One mobile swim stroke (edge-triggered), leaving PC Space dive unchanged. */swimStrokePressed?:boolean;
+  snowEquipment?:SnowEquipment|null;
 }
 export interface Player {
   position: THREE.Vector3;
@@ -55,6 +57,7 @@ export interface Player {
   climbDir?:{x:number;z:number};
   /** Roll (ball mode): forward speed (m/s), heading (rad, 0 = +Z) and idle time (s). */
   rollSpeed?:number;rollHeading?:number;rollIdle?:number;
+  snowHeading?:number;snowEdge?:number;snowEquipment?:SnowEquipment;
   /** Diving toggled with Space in the water (second press, oxygen out or reaching the surface ends it). */
   diving?:boolean;
   /** Initial descent of a dive (until fully under water). */
@@ -182,14 +185,22 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
   }
   // Roll: from the ground (not in water, not on a boat). X toggles the ball; holding the sprint
   // key (Shift) while moving rolls to go fast and releasing it unrolls (momentum kept).
+  const snowMaterial=collision?.materialAt(pos,p.space)??'grass';
+  const snowReady=!inWater&&!p.space&&!!keys.snowEquipment&&(snowMaterial==='snow'||snowMaterial==='ice');
+  if(p.mode==='snow'&&!snowReady)p.mode='ground';
+  if(p.mode==='ground'&&snowReady){p.mode='snow';p.snowHeading=Math.hypot(v.x,v.z)>.1?Math.atan2(v.x,v.z):keys.cameraYaw;}
+  if(p.mode==='snow'&&snowReady)p.snowEquipment=keys.snowEquipment??undefined;
   const enterRoll=(byHold:boolean)=>{p.mode='roll';p.rollByHold=byHold;p.rollSpeed=Math.hypot(v.x,v.z);p.rollHeading=len>0?Math.atan2(dx,dz):Math.hypot(v.x,v.z)>.3?Math.atan2(v.x,v.z):keys.cameraYaw;p.rollIdle=0;};
-  if(keys.rollPressed){
+  if(keys.rollPressed&&p.mode!=='snow'&&!snowReady){
     if(p.mode==='ground'&&!inWater)enterRoll(false);
     else if(p.mode==='roll'){if(p.rollByHold)p.rollByHold=false;else p.mode='ground';}
   }
-  else if(keys.rollHeld&&len>.3&&p.mode==='ground'&&!inWater)enterRoll(true);
+  else if(keys.rollHeld&&len>.3&&p.mode==='ground'&&!inWater&&!snowReady)enterRoll(true);
   else if(p.mode==='roll'&&p.rollByHold&&!keys.rollHeld)p.mode='ground';
-  if(p.mode==='roll'&&!inWater){
+  if(p.mode==='snow'&&!inWater){
+    if(keys.jumpPressed){p.jumpOrigin='run';p.jumpSeq=(p.jumpSeq??0)+1;p.mode='air';v.y=Math.max(0,v.y)+6.8;p.glideReady=true;jumpHandled=true;}
+    else stepSnowSlide(p,{right:keys.right,forward:keys.forward,brake:keys.dive,cameraYaw:keys.cameraYaw},relief,snowMaterial==='ice'?'ice':'snow',p.snowEquipment??'snowboard',dt);
+  }else if(p.mode==='roll'&&!inWater){
     rollStep(p,keys,dt,dx,dz,len,relief,collision?.materialAt(pos,p.space)??'grass',!!p.space||ground-relief(pos.x,pos.z)>.2);
     if(assisted){
       if(p.mode==='roll'){
@@ -205,7 +216,7 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
     if(g.slope>body.maxSlope&&g.x*dx+g.z*dz>.5&&hAhead>pos.y+.3&&pos.y-relief(pos.x,pos.z)<CLIMB.grabReach&&(atWater===null||atWater<pos.y)){p.mode='climb';p.climbDir={x:g.x,z:g.z};v.set(0,0,0);p.glideReady=false;}
   }
   if(p.mode==='climb'){climbStep(p,keys,dt,body.maxSlope,forward,right,relief);if(p.mode==='climb')body.maxSlope=1e3;}
-  if (p.mode==='climb'||p.mode==='roll'&&!inWater) {
+  if (p.mode==='climb'||p.mode==='roll'&&!inWater||p.mode==='snow'&&!inWater) {
     // Velocity set by climbStep / rollStep; the relief below is followed after the horizontal move.
   } else if (inWater) {
     // Swimming IN the water: the body centre rides the water line (head and back out), not on top.
@@ -370,7 +381,7 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
   const newGround = surface?.floorY??terrainHeight(pos.x, pos.z);
   if(surface?.ceilingY!==null&&surface?.ceilingY!==undefined&&pos.y+body.height>surface.ceilingY){pos.y=Math.max(newGround,surface.ceilingY-body.height);v.y=Math.min(0,v.y);if(pos.y>newGround+.06)p.mode='air';}
   if(p.mode==='ground'){if(pos.y-newGround>.45){p.mode='air';p.glideReady=true;}else pos.y=newGround;}
-  if (p.mode === 'roll') { if (pos.y - newGround > .45) { p.jumpOrigin='roll';p.mode = 'air'; p.glideReady = true; } else {const gain=newGround-(from?.y??pos.y);pos.y=newGround;v.y=gain/dt;} }
+  if (p.mode === 'roll'||p.mode==='snow') { if (pos.y - newGround > .45) { p.jumpOrigin=p.mode==='roll'?'roll':'run';p.mode = 'air'; p.glideReady = true; } else {const gain=newGround-(from?.y??pos.y);pos.y=newGround;v.y=gain/dt;} }
   if (p.mode === 'climb') pos.y = newGround;
   else if (p.mode !== 'glide' && p.mode !== 'air') p.stamina = Math.min(MAX_STAMINA, p.stamina + CLIMB.regen * dt);
   if ((p.mode === 'air' || p.mode === 'glide') && pos.y < newGround) {
@@ -403,7 +414,7 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
     p.jumpBufferLeft=0;p.coyoteLeft=0;jumpHandled=true;
   }
   // Cosmetic slope samples only for genuine terrain contact, not decks or underground spaces.
-  const heightfieldContact=p.mode==='ground'&&!p.space&&Math.abs(newGround-relief(pos.x,pos.z))<.12;
+  const heightfieldContact=(p.mode==='ground'||p.mode==='snow')&&!p.space&&Math.abs(newGround-relief(pos.x,pos.z))<.12;
   if(heightfieldContact){
     const heading=p.heading??p.intentYaw??0;
     const fx=Math.sin(heading),fz=Math.cos(heading),sx=Math.cos(heading),sz=-Math.sin(heading),half=.25;

@@ -6,7 +6,7 @@ import {setLinearHex} from '../render/linear-color.ts';
 import {groundCover,COVER_PALETTE} from './ground-cover.ts';
 export const MATERIAL_COLORS:Record<Material,number>={
   ...COVER_PALETTE,sand:0xd8cba0,pebbles:0xb3ae9f,
-  rock:0x8f8f86,gravel:0xa39f8f,basalt:0x5f5b58,ash:0x8b837b,
+  rock:0x8f8f86,gravel:0xa39f8f,basalt:0x5f5b58,ash:0x8b837b,snow:0xe7f1f8,ice:0xb9ddea,
 };
 export const SEABED_COLOR=0x9fb7a8;
 /** Colours as converted by the output's setHex (colour management), cached per material. */
@@ -24,6 +24,8 @@ export function materialColor(s:GeoSample,seaLevel:number,out:{setHex(hex:number
   const alt=s.height-seaLevel,light=Math.min(.12,Math.max(0,(alt-150)/2500)),wet=(s.moisture-.5)*.06;
   let k=1;
   switch(s.material){
+    case 'snow':k=.985+.025*valueNoise(77,x*.18,z*.18);break;
+    case 'ice':k=.97+.02*valueNoise(77,x*.12,z*.12);break;
     case 'sand':k=alt<.7?.86:1+.03*valueNoise(77,x*.7,z*.7);break;
     case 'rock':k=.9+.08*Math.sin(s.height*.9+valueNoise(77,x*.05,z*.05)*2)-.08*Math.min(1,Math.max(0,s.slope-.8));break;
     case 'basalt':k=.92+.1*valueNoise(77,x*.4,z*.4);break;

@@ -16,7 +16,11 @@ import {createFishingEffects} from './render/fishing-effects.ts';
 import {withFishingSounds} from './gameplay/fishing-audio.ts';
 import {resolveTarget,objectTarget,npcTarget,boatTarget,ferryTarget,maritimeTradeTarget,mineWallTarget,farmPlotTarget,shopTarget,mineLiftTarget,gatherTarget,fishingTarget,type TargetDescriptor} from './ui/interactions/targets.ts';
 import {SHOPS,type ShopKind} from './gameplay/economy.ts';
-import {geoContext} from './geography/engine.ts';
+import {geoContext,setPreviewSnowline} from './geography/engine.ts';
+import {findDemoPiste} from './snow/snow-pistes.ts';
+import {boardLift,liftRideStep,type SkiLift,type LiftRide} from './snow/ski-lift.ts';
+import {createSkiLiftView} from './snow/ski-lift-view.ts';
+import type {SnowEquipment} from './snow/snow-slide.ts';
 import {MATERIAL_BY_MINE_KEY} from './audio/context.ts';
 import { geoWorkerPool } from './geography/geo-workers.ts';
 import type {AudioController} from './audio/view.ts';
@@ -58,6 +62,7 @@ import {
   type Controls,
 } from './player';
 import { buildHamster } from './hamster/hamster.ts';
+import {createSnowCharacterView} from './snow/snow-character-view.ts';
 import {createMineRhythmHud,type MineRhythmSample} from './ui/activities/mine-rhythm-hud.ts';
 import {createMineHelmet} from './hamster/mine-helmet.ts';
 import { createImpactEffects, type ImpactKind } from './hamster/impact-effects.ts';
@@ -395,6 +400,23 @@ const {nightFactor}=await import('./lighting/light-data.ts');
 }
 world.lights.setEnvironment(nightFactor(climate.state(worldClock.time).sunAltitude),0);
 // Mines and farm plots: procedural stand-ins, lanterns join the E10 light pool.
+// Optional alpine preview (or published alpine island): never mutates the reference map.
+const snowDemo=(searchParams.get('snowDemo')==='1'||activeIsland?.id==='snow-cimes')&&!isLegacyTerrain();
+const snowBounds={minX:-(definition.config.width??200)/2,maxX:(definition.config.width??200)/2,
+  minZ:-(definition.config.length??600)/2,maxZ:(definition.config.length??600)/2};
+const snowPiste=snowDemo?findDemoPiste(terrainHeight,snowBounds,definition.config.seaLevel??0):null;
+let snowEquipment:SnowEquipment='snowboard';
+let snowLiftRide:LiftRide|null=null;
+const snowLift:SkiLift|null=snowPiste?{id:'alpine-preview-chair',speed:2.8,seatSpacing:14,capacity:2,
+  path:snowPiste.slice().reverse().filter((_,i)=>i%4===0||i===snowPiste.length-1)
+    .map(p=>({x:p.x,y:terrainHeight(p.x,p.z)+3.5,z:p.z}))}:null;
+if(snowPiste){
+  const lower=snowPiste[snowPiste.length-1];
+  setPreviewSnowline(terrainHeight(lower.x,lower.z)-8);
+  player.position.set(lower.x,terrainHeight(lower.x,lower.z)+.05,lower.z);
+  player.velocity.set(0,0,0);player.mode='ground';
+}
+const snowLiftView=snowLift?createSkiLiftView(scene,snowLift):null;
 // Geography sampled on demand after 2 m, not every simulation tick or render frame.
 if(gameplay)gameplay.collision.setMaterialSampler(createMaterialSampler((x,z)=>classifyPoint(geoContext(),x,z).material));
 const activityView=gameplay&&(gameplay.activities.mines.size||gameplay.activities.farms.size)?(await import('./activity-view.ts')).createActivityView(scene,gameplay.activities,terrainHeight):null;
@@ -517,6 +539,7 @@ world.update(0, player.position);
 }
 // The player is the hamster (doc 43); NPCs keep their own rigs.
 const character = buildHamster();
+const snowCharacterView=createSnowCharacterView(character);
 scene.add(character.group);
 const mineHelmet=createMineHelmet(character.rig.sockets.head);
 let queuedMineStrike:MineRhythmSample|null=null;
@@ -647,6 +670,7 @@ function input(): Controls {
     cameraPitch: pitch - 0.32,
     boostHeld:flightBoostHeld(player.mode,shiftHeld,touchAccelerateHeld),
     swimStrokePressed:touchStrokeQueue>0,
+    snowEquipment:snowDemo?snowEquipment:gameplay?.equipment.hands==='tool:snowboard'?'snowboard':gameplay?.equipment.hands==='tool:skis'?'skis':null,
   };
 }
 function gameplayInputActive():boolean{
@@ -701,6 +725,7 @@ window.addEventListener('keydown', (e) => {
     activityQueue++;
   }
   if (e.code === 'KeyC') cropQueue++;
+  if (e.code === 'KeyB'&&snowDemo){snowEquipment=snowEquipment==='snowboard'?'skis':'snowboard';showInfo('Équipement : '+(snowEquipment==='skis'?'skis':'snowboard'));}
   if (e.code === 'KeyR' && started) {
     stopFlightCourse();
     const reset = spawnPlayer();
@@ -1118,7 +1143,20 @@ function tick(dt: number) {
   }
   // In glide, mobile input now reaches the flight simulation directly.
   const keys = input();
-  if (aboard) {
+  if(snowLiftRide?.phase==='waiting'&&snowLift&&Math.hypot(player.position.x-snowLift.path[0].x,player.position.z-snowLift.path[0].z)>5){snowLiftRide=null;showInfo('Embarquement annulé');}
+  const chair=snowLift&&snowLiftRide?liftRideStep(snowLift,snowLiftRide,elapsed):null;
+  if(chair?.finished&&snowLift){
+    const top=snowLift.path[snowLift.path.length-1];
+    player.position.set(top.x,terrainHeight(top.x,top.z)+.05,top.z);player.velocity.set(0,0,0);player.mode='ground';
+    snowLiftRide=null;jumpQueue=0;showInfo('Arrivée au sommet');
+  } else if(chair?.pose){
+    player.position.set(chair.pose.x,chair.pose.y,chair.pose.z);player.velocity.set(0,0,0);player.mode='ground';
+    jumpQueue=0;actionQueue=0;
+  } else if(snowLiftRide?.phase==='waiting'&&snowLift){
+    // The rider stays on the boarding platform until the reserved seat arrives.
+    const base=snowLift.path[0];player.position.set(base.x,terrainHeight(base.x,base.z)+.05,base.z);
+    player.velocity.set(0,0,0);player.mode='ground';jumpQueue=0;
+  } else if (aboard) {
     updateBoat(boat, { throttle: mobileTouch?.accelerateHeld?Math.max(1,keys.forward):keys.forward, steer: keys.right }, dt);boatSteer=keys.right;
     player.position.set(boat.x, boat.y + 1.02, boat.z);
     player.velocity.set(0, 0, 0);
@@ -1162,6 +1200,11 @@ function tick(dt: number) {
       // The business system said no: tell why (never act on a disabled target).
       showInfo(target.primaryAction.disabledReason ?? 'Impossible pour le moment', 'warning');
       audio?.emit('ui.error', { source: 'ui' });
+    } else if(snowLiftRide?.phase==='waiting'){
+      snowLiftRide=null;showInfo('Embarquement annulé');
+    } else if(snowLift&&!snowLiftRide&&!aboard&&!player.space&&Math.hypot(player.position.x-snowLift.path[0].x,player.position.z-snowLift.path[0].z)<4){
+      snowLiftRide=boardLift(snowLift,player.position,elapsed);
+      if(snowLiftRide)showInfo('Télésiège : attente du prochain siège');
     } else if (target?.targetType === 'maritime-trade') {
       gameUi?.openMaritimeTrade();
     } else if (target?.targetType === 'ferry') {
@@ -1280,10 +1323,12 @@ function draw(now: number) {
   // Boats follow their state (the one in use moves; the player's own boat bobs at its mooring).
   playerBoat&&fleet.sync(playerBoat,elapsed);if(fleet.current&&fleet.current!==playerBoat)fleet.sync(fleet.current,elapsed);
   if(portN1View)portN1View.update(elapsed,player.position);else ferryView?.update(elapsed);
+  snowLiftView?.update(elapsed);
   character.group.position.copy(renderPosition);
   character.setAboard(aboard);
   if(gameplay){const f=gameplay.fishing.state;character.setFishing(f.phase!=='idle'&&f.castAt?{x:f.castAt.x,y:waterSurface(f.castAt.x,f.castAt.z)??getTerrainConfig().seaLevel,z:f.castAt.z,biting:f.phase==='bite'}:null);}
   character.update(player, delta, elapsed);
+  snowCharacterView.update(player);
   // Mining headgear follows the animated head bone (including turning/looking).
   // One spotlight, zero shadow maps; off outside mines and without the item.
   mineHelmet.setActive(!!player.space&&gameplay?.equipment.head==='tool:miners-helmet');
