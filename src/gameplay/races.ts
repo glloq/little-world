@@ -1,7 +1,7 @@
 /** Shared, rendering-independent race rules. Suitable for solo simulation and future server authority. */
 import {validateRaceTrack,type RaceTrack} from './race-track.ts';
-export type RaceKind='flight'|'roll'|'mixed';
-export type RaceMotionMode='ground'|'roll'|'air'|'glide';
+export type RaceKind='flight'|'roll'|'mixed'|'surf';
+export type RaceMotionMode='ground'|'roll'|'air'|'glide'|'surf';
 export interface RacePoint {x:number;y:number;z:number}
 export interface RaceBounds {minX:number;maxX:number;minZ:number;maxZ:number}
 export interface RaceGate {
@@ -34,7 +34,7 @@ export interface RaceSession {
 }
 export interface RaceStep {
   tick:number;previous:RacePoint;position:RacePoint;mode:string;
-  pulseSeq:number;transitioned?:boolean;
+  pulseSeq:number;transitioned?:boolean;surfAirborne?:boolean;
 }
 export type RaceEvent =
  | {kind:'started';gateIndex:number}
@@ -45,10 +45,10 @@ export const RACE_TICK_HZ=30;
 const finite=(v:number)=>Number.isFinite(v)&&Math.abs(v)<=100000;
 const finitePoint=(p:RacePoint)=>!!p&&finite(p.x)&&finite(p.y)&&finite(p.z);
 const distance=(a:RacePoint,b:RacePoint)=>Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z);
-const allowed:readonly RaceMotionMode[]=['ground','roll','air','glide'];
+const allowed:readonly RaceMotionMode[]=['ground','roll','air','glide','surf'];
 export function validateRace(def:RaceDefinition,bounds?:RaceBounds):RaceDefinition{
   if(!def||def.version!==1||!def.id||!def.name||!def.worldId||!def.layoutKey||
-     !['flight','roll','mixed'].includes(def.kind)||
+     !['flight','roll','mixed','surf'].includes(def.kind)||
      !['practice','standard','free'].includes(def.classification)||
      !Number.isSafeInteger(def.maxTicks)||def.maxTicks<30||def.maxTicks>30*900||
      (def.startOnFirstGate!==undefined&&typeof def.startOnFirstGate!=='boolean')||
@@ -68,7 +68,7 @@ export function validateRace(def:RaceDefinition,bounds?:RaceBounds):RaceDefiniti
     if(i&&distance(g.center,def.gates[i-1].center)<3)throw Error('Checkpoints superposés');
     ids.add(g.id);
   }
-  if(def.track){if(def.kind==='flight')throw Error('Piste : réservée à la roulade ou aux courses mixtes');validateRaceTrack(def.track,bounds);}
+  if(def.track){if(def.kind==='flight'||def.kind==='surf')throw Error('Piste : réservée à la roulade ou aux courses mixtes');validateRaceTrack(def.track,bounds);}
   return def;
 }
 /** Exact crossing of the gate's oriented plane by the physical movement segment.
@@ -113,8 +113,10 @@ export function advanceRace(s:RaceSession,step:RaceStep):RaceEvent|null{
   if(s.started&&step.tick-s.startTick>s.definition.maxTicks)return fail('Temps maximal dépassé');
   if(!s.started&&step.tick-s.startTick>30*30)return fail('Départ non franchi après 30 secondes');
   const accepted=s.definition.kind==='flight'?['glide']:
-    s.definition.kind==='roll'?['ground','roll','air']:['ground','roll','air','glide'];
-  if(!accepted.includes(step.mode))return fail('Mode de déplacement interdit');
+    s.definition.kind==='roll'?['ground','roll','air']:
+    s.definition.kind==='surf'?['surf','air']:['ground','roll','air','glide'];
+  if(!accepted.includes(step.mode)||s.definition.kind==='surf'&&step.mode==='air'&&!step.surfAirborne)
+    return fail('Mode de déplacement interdit');
   let lastFraction=-1,passed=-1,finishFraction=0,startedThisTick=false;
   while(s.nextGate<s.definition.gates.length){
     const gate=s.definition.gates[s.nextGate];

@@ -80,7 +80,7 @@ export function gatesFromTrace(points:readonly {x:number;z:number}[],kind:RaceKi
    const y=previous?gHeight+(previous.center.y-oldGround):gHeight+(flight?12:1.6);
    return {id:previous?.id??'gate-'+(i+1),center:{x:p.x,y,z:p.z},normal:{x:dx/d,y:0,z:dz/d},
      shape,width:previous?.width??(flight?16:9),height:previous?.height??(flight?16:5),
-     allowedModes:previous?.allowedModes??(flight?['glide']:['roll'])};
+     allowedModes:previous?.allowedModes??(kind==='surf'?['surf','air']:flight?['glide']:['roll'])};
  });
 }
 export function authoredRaceFromTrace(world:WorldDefinitionV3,options:{
