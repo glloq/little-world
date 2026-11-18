@@ -41,7 +41,7 @@ test('ripples and reeling line reuse a bounded pool, dispose cleanly, and stop w
   const effects=createFishingEffects(scene,hamster);
   try{
     assert.equal(scene.children.length,3,'only three rings allocated');
-    assert.equal(hamster.children.length,3,'one extra line');
+    assert.equal(hamster.children.length,4,'one extra line and one reusable catch model');
     effects.burst({x:3,y:0,z:0},'bite');
     const initial={phase:'reeling',castAt:{x:3,z:0},water:'lake',fish:'fish:perch',tension:.52,progress:.4};
     effects.update(initial,.25,1/30);
@@ -57,7 +57,13 @@ test('ripples and reeling line reuse a bounded pool, dispose cleanly, and stop w
     }
     assert.equal(hamster.getObjectByName('FishingReelLine'),line);
     assert.equal(scene.children.filter(o=>o.visible).length,0,'ripples fade without frame allocations');
-    effects.reset();assert.equal(line.visible,false);
+    effects.displayCatch('fish:golden');
+    const preview=hamster.getObjectByName('FishingCatchDisplay');
+    assert.equal(preview.visible,true,'fish preview shown only after landing');
+    assert.equal(preview.children.length,3,'small reusable model (body, tail, eye)');
+    effects.update(null,8,1/30);
+    assert.equal(preview.visible,true);
+    effects.reset();assert.equal(line.visible,false);assert.equal(preview.visible,false);
     effects.update(null,9,1/30);assert.equal(line.visible,false);
   }finally{
     effects.dispose();originalGeometry.dispose();original.material.dispose();
@@ -65,4 +71,5 @@ test('ripples and reeling line reuse a bounded pool, dispose cleanly, and stop w
   }
   assert.equal(scene.children.length,0,'pooled ring geometry removed');
   assert.equal(hamster.getObjectByName('FishingReelLine'),undefined,'line overlay removed');
+  assert.equal(hamster.getObjectByName('FishingCatchDisplay'),undefined,'catch preview removed');
 });
