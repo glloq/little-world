@@ -1,5 +1,7 @@
 import {MOTION,ROLL,GLIDE_DEPLOY,groundVelocity,airVelocity,glideVelocity,glideSteeringYaw,glideDeploymentStep,SURFACE_MOTION,angleDelta,type GroundMaterial} from './physics/motion.ts';
 import {stepSnowSlide,type SnowEquipment} from './snow/snow-slide.ts';
+import {stepSurf,type SurfStage} from './surf/surf-controller.ts';
+import type {SurfWaveField} from './surf/wave-field.ts';
 export {ROLL,GLIDE,MOTION,SURFACE_MOTION} from './physics/motion.ts';
 import {GAS,gasBoostStep,gasMastery,gasShots} from './physics/gas-propulsion.ts';
 import {DEFAULT_BODY,type WorldCollisionQuery,type MovementSpace,type BodyDimensions} from './physics/collision-world.ts';
@@ -12,7 +14,7 @@ import {
   waterSurface,
 } from './terrain.ts';
 
-export const MOTION_MODES = ['ground', 'air', 'glide', 'swim', 'dive', 'climb', 'roll', 'snow'] as const;
+export const MOTION_MODES = ['ground', 'air', 'glide', 'swim', 'dive', 'climb', 'roll', 'snow', 'surf'] as const;
 export type MotionMode = (typeof MOTION_MODES)[number];
 export interface Controls {
   forward: number;
@@ -37,6 +39,8 @@ export interface Controls {
   /** Pulse boost via Shift or the separate mobile Boost control; glide only. */boostHeld?:boolean;
   /** One mobile swim stroke (edge-triggered), leaving PC Space dive unchanged. */swimStrokePressed?:boolean;
   snowEquipment?:SnowEquipment|null;
+  /** Optional surf activity; missing means the ordinary swimming rules remain unchanged. */
+  surfEnabled?:boolean;surfActionPressed?:boolean;surfPaddleHeld?:boolean;surfPump?:boolean;
 }
 export interface Player {
   position: THREE.Vector3;
@@ -58,6 +62,9 @@ export interface Player {
   /** Roll (ball mode): forward speed (m/s), heading (rad, 0 = +Z) and idle time (s). */
   rollSpeed?:number;rollHeading?:number;rollIdle?:number;
   snowHeading?:number;snowEdge?:number;snowEquipment?:SnowEquipment;
+  /** Replayed surf state; the ocean shader never owns physics. */
+  surfStage?:SurfStage;surfHeading?:number;surfAirborne?:boolean;surfWaveId?:number;
+  surfPaddleClock?:number;surfJumpSeq?:number;surfLandingSeq?:number;surfWipeoutSeq?:number;
   /** Diving toggled with Space in the water (second press, oxygen out or reaching the surface ends it). */
   diving?:boolean;
   /** Initial descent of a dive (until fully under water). */
@@ -124,7 +131,8 @@ export function spawnPlayer(): Player {
   };
 }
 
-export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:WorldCollisionQuery): void {
+export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:WorldCollisionQuery,
+  surfField?:SurfWaveField,surfTick=0): void {
   if(!Number.isFinite(dt)||dt<=0||dt>.25)throw Error('Pas de mouvement invalide');
   const { position: pos, velocity: v } = p;
   const oldMode = p.mode;
@@ -162,6 +170,40 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
   const ground = floorAt();
   const deepEnough = atWater !== null && atWater - ground > 0.62;
   const inWater = deepEnough && pos.y <= atWater + 0.42;
+  // Explicit opt-in only: normal swimming, fishing, boats and older islands use flat water.
+  const surfReady=!!surfField&&keys.surfEnabled===true&&!p.space&&deepEnough;
+  if(surfReady&&(p.mode==='surf'||p.surfAirborne||keys.surfActionPressed&&inWater)){
+    const from={x:pos.x,y:pos.y,z:pos.z};
+    if(p.mode!=='surf'&&!p.surfAirborne){
+      p.mode='surf';p.surfStage='paddle';p.surfHeading=keys.cameraYaw;
+      p.diving=false;p.glideReady=false;v.y=0;
+    }
+    const event=stepSurf(p,{forward:keys.forward,right:keys.right,
+      cameraYaw:keys.cameraYaw,paddle:keys.surfPaddleHeld===true||keys.forward>.25,
+      pump:keys.surfPump===true,jumpPressed:keys.jumpPressed,brake:keys.dive},surfField!,surfTick,dt);
+    if(event.kind==='jump'){p.jumpSeq=(p.jumpSeq??0)+1;p.jumpOrigin='run';}
+    if(event.kind==='land')p.landingSeq=(p.landingSeq??0)+1;
+    if(collision){
+      const moved=collision.sweep(from,pos,body.radius,body.height,{space:p.space,body});
+      pos.set(moved.position.x,moved.position.y,moved.position.z);
+      if(moved.blockedX)v.x=0;if(moved.blockedZ)v.z=0;
+      if(moved.blockedY&&p.surfAirborne&&v.y<0){p.surfAirborne=false;p.mode='ground';p.surfStage=undefined;v.y=0;}
+    }
+    if(!insideWorld(pos.x,pos.z)){
+      const b=getTerrainConfig();
+      pos.x=clamp(pos.x,-b.width/2+3,b.width/2-3);
+      pos.z=clamp(pos.z,-b.length/2+3,b.length/2-3);
+      v.x*=.15;v.z*=.15;p.mode='swim';p.surfAirborne=false;p.surfStage=undefined;
+    }
+    if(p.mode==='surf'&&(collision?.waterAt(pos,p.space)??waterSurface(pos.x,pos.z))===null){
+      p.mode='ground';p.surfStage=undefined;v.y=0;
+    }
+    if(p.mode==='surf'||p.surfAirborne)p.heading=p.surfHeading;
+    p.glideReady=false;p.coyoteLeft=0;p.jumpBufferLeft=0;
+    p.oxygen=Math.min(MAX_OXYGEN,p.oxygen+dt*9);
+    return;
+  }
+  if(p.mode==='surf'){p.mode='swim';p.surfStage=undefined;p.surfAirborne=false;}
   const assisted=keys.jumpAssist===true;
   let jumpHandled=false;
   if(assisted){
