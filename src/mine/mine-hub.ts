@@ -32,6 +32,12 @@ export function mineHubLayout(zone:MineZone,levelIndex:number):MineHubLayout {
     heading,shaft,counter:at(6.65,.15),keeper:at(7.72,.15),gallery:at(3.85,5.3),
     surfaceExit:levelIndex===0?at(3.85,-6.45):null};
 }
+/** A short straight opening makes the gallery visibly continue past the timber portal.
+ * Its far end may join the authored galleries via a bend. No loading screen. */
+export function mineHubGalleryApproach(hub:MineHubLayout):{x:number;z:number}{
+  return {x:hub.gallery.x+Math.sin(hub.heading)*5.8,
+    z:hub.gallery.z+Math.cos(hub.heading)*5.8};
+}
 /** Floor-space reservations on the player's authorised excavation grid.
  * This only opens cells INSIDE the existing mine polygon, not the exterior heightfield.
  * Broad faceted walls/props must remain inside this void (logical bounds stay canonical). */
