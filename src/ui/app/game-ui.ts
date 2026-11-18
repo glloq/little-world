@@ -17,6 +17,8 @@ import {inventoryPanel} from '../inventory/inventory.ts';
 import {journalPanel,questChanges} from '../journal/journal.ts';
 import {createMapRaster,mapPanel,type MapMarker,type MapDeps} from '../map/map.ts';
 import {createMinimap} from '../map/minimap.ts';
+import {createMineMapPanel,type MineMapSnapshot} from '../map/mine-map.ts';
+import {mineHubLayout} from '../../mine/mine-hub.ts';
 import {createWaypointStore} from '../map/waypoints.ts';
 import {hudIcon} from '../shared/icons.ts';
 import {savesPanel} from '../saves/saves.ts';
@@ -39,6 +41,10 @@ export interface GameUiDeps {
   landmarks?:readonly {id:string;label:string;x:number;z:number}[];
   ferry?:FerryPanelDeps & {dock:{x:number;z:number}};
   importTrade?:ImportStandPanelDeps;
+  mineHub?:{
+    view():{mineId:string;name:string;currentLevel:string;excavations:number;stops:{id:string;name:string;unlocked:boolean;required:number;current:boolean}[]}|null;
+    travel(levelId:string):Promise<{ok:boolean;message?:string;reason?:string}>;
+  };
   world:{name:string;buildVersion:string;dayLength:number;bounds:{minX:number;maxX:number;minZ:number;maxZ:number};seaLevel:number;height(x:number,z:number):number;water(x:number,z:number):number|null};
   eatFood?(id:string):{ok:boolean;message:string};
   player():{gas?:number;maxGas?:number;gasShots?:number;gasMaxShots?:number;gasCooldown?:number;x:number;y:number;z:number;yaw:number;space?:MovementSpace;mode:string;oxygen:number;maxOxygen:number;stamina:number;maxStamina:number;speed?:number;stalled?:boolean};
@@ -57,6 +63,18 @@ export function createGameUi(deps:GameUiDeps){
   const sound=(kind:NoticeKind)=>{const id=kind==='error'||kind==='warning'?'ui.error':kind==='save'?'ui.save':kind==='quest'?'ui.confirm':null;if(id)deps.audio?.emit(id,{source:'ui'});};
   const center=createNotificationCenter(host,sound);
   const ui=new UiController(host,deps.focusGameplay),g=deps.gameplay,a=g?.activities;
+  // Only the elevator displays a transition overlay; walking into a gallery is seamless.
+  const mineLoading=el('div','ui-mine-loading');mineLoading.hidden=true;
+  mineLoading.setAttribute('role','status');mineLoading.setAttribute('aria-live','polite');
+  const mineLoadingCard=el('div','ui-mine-loading-card'),
+    mineLoadingTitle=el('strong','','Changement de niveau'),
+    mineLoadingText=el('p','','Préparation de la galerie…'),
+    mineLoadingTrack=el('div','ui-mine-loading-track'),
+    mineLoadingFill=el('span','ui-mine-loading-fill');
+  mineLoadingTrack.append(mineLoadingFill);
+  mineLoadingCard.append(mineLoadingTitle,mineLoadingText,mineLoadingTrack);
+  mineLoading.append(mineLoadingCard);host.append(mineLoading);
+
   // Panels.
   let selectedTool:string|null=null,restoring=false;
   const inventory=inventoryPanel({items:()=>g?.runtime.data.items??[],inventory:()=>g?.runtime.state.inventory??{},selectedTool:()=>selectedTool,selectTool:id=>{selectedTool=id;renderTool();},gasLevel:()=>deps.player().gas??0,gasCapacity:()=>deps.player().maxGas??200,
@@ -78,8 +96,18 @@ export function createGameUi(deps:GameUiDeps){
     return out;
   };
   const mapDeps:MapDeps={bounds:deps.world.bounds,height:deps.world.height,water:deps.world.water,seaLevel:deps.world.seaLevel,markers,onMarkerAction:marker=>{if(marker.kind==='ferry'&&deps.ferry)ui.open('ferry');},player:()=>{const p=deps.player();return {x:p.x,z:p.z,yaw:p.yaw};}};
+  const mineMapContext=():MineMapSnapshot|null=>{
+    const p=deps.player(),space=p.space,m=space?a?.mines.get(space.zoneId):null;
+    if(!m||!space)return null;
+    const level=m.state.grid.levelIndex(space.levelId);
+    if(level<0)return null;
+    return {mineId:space.zoneId,mineName:m.zone.name,level,levelName:m.zone.mine.levels[level].name,
+      state:m.state,hub:mineHubLayout(m.zone,level),player:{x:p.x,z:p.z,yaw:p.yaw}};
+  };
+  const mineMap=createMineMapPanel(mineMapContext);
   const mapRaster=createMapRaster(mapDeps),map=mapPanel(mapDeps,mapRaster,waypoints);
-  ui.register('map','Carte',{render:b=>map.render(b),onClose:()=>map.close()});
+  ui.register('map','Carte',{render:b=>mineMapContext()?mineMap.render(b):map.render(b),
+    onClose:()=>{mineMap.close();map.close();}});
   if(deps.ferry)ui.register('ferry','Voyage entre les îles',{pauses:true,
     render:b=>renderFerryPanel(b,{...deps.ferry!,...(deps.importTrade?{importStand:{
       canUse:()=>deps.importTrade!.canUse(),
@@ -114,6 +142,37 @@ export function createGameUi(deps:GameUiDeps){
     restore:save=>{restoring=true;try{return g.restore(save);}finally{restoring=false;snapshot();}},exportCurrent:()=>g.compose('slot-export'),importFile:raw=>g.importSave(raw),
     confirm:(t,l)=>ui.confirm(t,l),closePanels:()=>ui.close(),notify:(k,t)=>center.notify(k,t)});
     ui.register('saves','Parties',{pauses:true,render:b=>saves.render(b)});}
+  // Mine reception: the same worker offers trade, a short tutorial and validated lift access.
+  if(deps.mineHub){
+    ui.register('mine-lift','Monte-charge de la mine',{pauses:true,render:b=>{
+      b.replaceChildren();const view=deps.mineHub!.view();
+      if(!view){b.append(el('p','ui-muted','Approchez du comptoir ou du monte-charge.'));return;}
+      b.append(el('p','ui-muted',view.name+' · '+view.excavations+' blocs extraits'));
+      for(const stop of view.stops){
+        const line=el('div','ui-shop-row');
+        line.append(el('span','ui-shop-name',stop.name+(stop.current?' · Vous êtes ici':'')));
+        const action=button(stop.current?'Actuel':stop.unlocked?'Rejoindre':'Verrouillé',()=>{
+          void deps.mineHub!.travel(stop.id).then(result=>{
+            center.notify(result.ok?'success':'warning',
+              result.ok?result.message??'Arrivée à destination':result.reason??'Accès refusé');
+            if(!result.ok)ui.refresh('mine-lift');
+          }).catch(error=>{center.notify('warning','Monte-charge indisponible : '+String(error));ui.refresh('mine-lift');});
+        },'ui-button'+(stop.unlocked&&!stop.current?' ui-primary':''));
+        action.disabled=stop.current||!stop.unlocked;
+        if(!stop.unlocked)action.title='Extraire '+stop.required+' blocs au total pour débloquer cet étage';
+        line.append(action);
+        if(!stop.unlocked)line.append(el('span','ui-muted',stop.required+' blocs requis'));
+        b.append(line);
+      }
+    }});
+    ui.register('mine-advice','Conseils du contremaître',{pauses:false,render:b=>{
+      b.replaceChildren();
+      const view=deps.mineHub!.view();
+      b.append(el('p','ui-muted','Équipez une pioche depuis votre sac (I). Approchez une paroi et frappez avec E ou F. Les fissures indiquent la progression du creusement.'),
+        el('p','ui-muted','Les minerais extraits peuvent être vendus ici sans ressortir de la mine. Les étages inférieurs se débloquent au fil de vos excavations.'),
+        el('p','ui-muted','Progression : '+(view?.excavations??0)+' blocs extraits.'));
+    }});
+  }
   // Counters (mine, forest, port, market, farm, inn): one panel, catalogue chosen by the counter.
   let shopKind:ShopKind|null=null,shopCounterId:string|null=null;
   if(g){const shop=shopPanel({kind:()=>shopKind,counterId:()=>shopCounterId,production:g.workshops,
@@ -122,9 +181,8 @@ export function createGameUi(deps:GameUiDeps){
       trade:(k,id,q,m,expectedRevision)=>g.trade(k,id,q,m,shopCounterId??undefined,expectedRevision),
       notify:(ok,t)=>{center.notify(ok?'success':'warning',t);deps.audio?.emit(ok?'ui.confirm':'ui.error',{source:'ui'});}});
     // Workshop jobs advance in game time while this panel is open, without unblocking movement.
-    ui.register('shop','Comptoir',{pauses:false,render:b=>{const h=b.closest('.ui-panel')?.querySelector('h2');if(h&&shopKind)h.textContent=SHOPS[shopKind].name;shop.render(b);}});}
-  // The same merchant provides local port services and actual delivered import lots.
-  // Travel is never opened from this control: the oarsman has a distinct quay socket.
+    ui.register('shop','Comptoir',{pauses:false,render:b=>{const h=b.closest('.ui-panel')?.querySelector('h2');if(h&&shopKind)h.textContent=SHOPS[shopKind].name;shop.render(b);if(shopKind==='mine'&&deps.mineHub){const row=el('div','ui-row ui-shop-tabs');row.append(button('Accès aux niveaux',()=>ui.open('mine-lift'),'ui-button ui-primary'),button('Conseils du mineur',()=>ui.open('mine-advice'),'ui-button'));b.prepend(row);}}});}
+  // Trade at the published maritime N1 merchant remains separate from ferry travel.
   if(g&&deps.ferry)ui.register('maritime-trade','Commerce maritime',{pauses:false,render:b=>{
     b.replaceChildren(el('p','ui-group','Comptoir maritime'),
       el('p','ui-muted','Achats et ventes au comptoir, ou marchandises réellement livrées par cargo.'));
@@ -185,7 +243,7 @@ export function createGameUi(deps:GameUiDeps){
     const b=button('',()=>ui.toggle(id),'ui-quick');b.append(hudIcon(icon),el('span','ui-quick-label',label),kbd(key));
     b.setAttribute('aria-label',label+' ('+key+')');b.dataset.panel=id;quick.append(b);
   }
-  const minimap=createMinimap(mapDeps,mapRaster,()=>ui.open('map'));
+  const minimap=createMinimap(mapDeps,mapRaster,()=>ui.open('map'),mineMapContext);
   const tool=el('div','ui-tool hide'),oxygen=el('div','ui-oxygen hide');oxygen.setAttribute('role','meter');oxygen.setAttribute('aria-label','Oxygène');
   const oxyFill=el('span','ui-meter-fill');oxygen.append(el('span','','Oxygène'),el('span','ui-meter-track'));oxygen.lastElementChild!.append(oxyFill);
   const stamina=el('div','ui-oxygen ui-stamina hide');stamina.setAttribute('role','meter');stamina.setAttribute('aria-label','Endurance');
@@ -215,12 +273,25 @@ export function createGameUi(deps:GameUiDeps){
     /** Opens the counter panel of a specific entity; each entity owns its own jobs. */
     openShop(kind:ShopKind,counterId?:string){shopKind=kind;shopCounterId=counterId??null;ui.open('shop');},
     openMaritimeTrade(){if(ui.has('maritime-trade'))ui.open('maritime-trade');},
+    openMineLift(){if(deps.mineHub)ui.open('mine-lift');},
+    beginMineLoading(title:string){
+      ui.close();mineLoadingTitle.textContent=title;mineLoadingText.textContent='Préparation de la galerie…';
+      mineLoadingFill.style.width='0%';mineLoading.hidden=false;
+    },
+    mineLoadingProgress(done:number,total:number){
+      const progress=Math.round(Math.max(0,Math.min(1,done/Math.max(1,total)))*100);
+      mineLoadingFill.style.width=progress+'%';
+      mineLoadingText.textContent='Préparation du niveau : '+progress+' %';
+    },
+    endMineLoading(){mineLoading.hidden=true;deps.focusGameplay();},
+
     controller:ui,notify:(kind:NoticeKind,text:string)=>center.notify(kind,text),center,
     get preferences(){return prefs;},
-    get blocking(){return ui.blocking;},get paused(){return ui.paused;},
+    get blocking(){return ui.blocking||!mineLoading.hidden;},get paused(){return ui.paused||!mineLoading.hidden;},
     started(){host.classList.remove('ui-await-start');},
     /** Keys of the interface. Returns true when consumed (the game must ignore it). */
     handleKey(e:KeyboardEvent,inGame:boolean):boolean{
+      if(!mineLoading.hidden){e.preventDefault();return true;}
       if(ui.handleKey(e))return true;
       if(e.key==='Escape'&&!audioPopover.hidden){e.preventDefault();hideAudioPopover(true);return true;}
       // A key already handled elsewhere (e.g. Escape closing an NPC dialogue) never also opens a panel.
@@ -235,7 +306,7 @@ export function createGameUi(deps:GameUiDeps){
     /** HUD refresh, throttled to 4 Hz (prompt, activity card, oxygen). */
     frame(time:number){
       if(time-lastFrame<.25)return;lastFrame=time;const p=deps.player();
-      const target=ui.blocking||deps.npcs.dialogue.isOpen?null:deps.target(),rawText=target?promptText(target):'';
+      const target=ui.blocking||!mineLoading.hidden||deps.npcs.dialogue.isOpen?null:deps.target(),rawText=target?promptText(target):'';
       const text=document.body.classList.contains('touch-mode')?rawText.replace(/^\[[^\]]+\]\s*/,''):rawText;
       if(text!==promptKey){promptKey=text;prompt.textContent=text;prompt.classList.toggle('hide',!text);prompt.dataset.enabled=String(!!target?.primaryAction?.enabled);prompt.dataset.type=target?.targetType??'';}
       const nav=a?.mineNavigation(p,p.space),wall=nav&&target?.targetType==='mine-wall'?{materialName:target.displayName,ok:!!target.primaryAction?.enabled,reason:target.disabledReason,rewardName:(target.contextData?.resource as string|null)??undefined}:null;
@@ -248,7 +319,7 @@ export function createGameUi(deps:GameUiDeps){
        const muted=!!deps.audio?.engine.settings.muted,iconName=muted?'mute':'volume';
        if(soundButton.dataset.icon!==iconName){soundButton.replaceChildren(hudIcon(iconName));soundButton.dataset.icon=iconName;soundButton.title=muted?'Son coupé · ouvrir le mixeur':'Régler le son';}
        minimap.update();
-       if(ui.active==='map')map.refresh();
+       if(ui.active==='map'){if(mineMapContext())mineMap.refresh();else map.refresh();}
       gas.classList.toggle('hide',p.mode!=='glide'||ui.blocking);
       if(p.mode==='glide'){
         const n=p.gasShots??0,max=p.gasMaxShots??14,cd=p.gasCooldown??0;

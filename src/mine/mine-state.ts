@@ -7,6 +7,7 @@
  *    the reward atomically (reward callback must accept first) and is idempotent per requestId.
  * Pure: no Three.js, no storage. */
 import {MINE_CHUNK,MINE_MATERIALS,geologyAt,insidePolygon,type MineZone,type MineLevelV3} from './mine-data.ts';
+import {mineHubCell,mineHubLayout,mineHubGalleryApproach} from './mine-hub.ts';
 
 export interface DigRequest {requestId:string;levelId:string;ix:number;iz:number;from:{x:number;y:number;z:number};expectedRevision?:number}
 export type DigResult={ok:true;material:number;reward:{itemId:string;quantity:number}|null;chunks:string[];revision:number}|{ok:false;reason:string};
@@ -32,6 +33,64 @@ export class MineGrid {
     // Entrance corridor on the top level (3 cells wide, 4 deep along the heading).
     const e=zone.mine.entrance,hx=Math.sin(e.heading),hz=Math.cos(e.heading);
     for(let d=0;d<5;d++)for(let s=-1;s<=1;s++){const x=Math.floor(e.x+hx*d+hz*s),z=Math.floor(e.z+hz*d-hx*s),k=this.cell(x,z);if(k>=0&&this.mask[k])this.open[0][k]=1;}
+    // MINE-HUB V1: identical reception space on every floor. Clip at authoring polygon;
+    // the persistent excavation bitsets remain independent of these initial void cells.
+    for(let l=0;l<this.levels.length;l++){
+      const hub=mineHubLayout(zone,l);
+      // The new 13×14 m hall extends 10 m laterally. Rotate-safe 29×29 bounds,
+      // still bounded independent of the mine's possible 512×512 cell extent.
+      for(let iz=Math.floor(hub.shaft.z)-14;iz<=Math.floor(hub.shaft.z)+14;iz++)
+        for(let ix=Math.floor(hub.shaft.x)-14;ix<=Math.floor(hub.shaft.x)+14;ix++){
+          const k=this.cell(ix,iz);
+          if(k>=0&&this.mask[k]&&mineHubCell(hub,ix,iz))this.open[l][k]=1;
+        }
+    }
+    // Keep 5.8 m of unobstructed extraction tunnel behind EVERY arch, then
+    // connect it to the nearest authored gallery. Previously the immediate bend
+    // looked like a solid rock wall right behind the timber lintel.
+    for(let l=0;l<this.levels.length;l++){
+      const hub=mineHubLayout(zone,l),approach=mineHubGalleryApproach(hub),
+        candidates=zone.mine.galleries.filter(g=>g.levelId===hub.levelId);
+      let target:{x:number;z:number}|null=null,shortest=Infinity;
+      for(const g of candidates){
+        const x=g.maxX-g.minX<1?(g.minX+g.maxX)/2:
+          Math.max(g.minX+.5,Math.min(g.maxX-.5,approach.x));
+        const z=g.maxZ-g.minZ<1?(g.minZ+g.maxZ)/2:
+          Math.max(g.minZ+.5,Math.min(g.maxZ-.5,approach.z));
+        const d=(x-approach.x)**2+(z-approach.z)**2;
+        if(d<shortest){shortest=d;target={x,z};}
+      }
+      const segment=(a:{x:number;z:number},b:{x:number;z:number})=>{
+        const dx=b.x-a.x,dz=b.z-a.z,steps=Math.max(1,Math.ceil(Math.hypot(dx,dz)*2));
+        for(let t=0;t<=steps;t++){
+          const x=a.x+dx*t/steps,z=a.z+dz*t/steps;
+          // Six-metre extraction mouth. It spans the real timber arch, so players
+          // pass through the visually intended opening rather than a smaller hole.
+          for(let offX=-3;offX<=3;offX++)for(let offZ=-3;offZ<=3;offZ++){
+            if(offX*offX+offZ*offZ>9)continue;
+            const ix=Math.floor(x+offX),iz=Math.floor(z+offZ),k=this.cell(ix,iz);
+            if(k>=0&&this.mask[k])this.open[l][k]=1;
+          }
+        }
+      };
+      segment(hub.gallery,approach);
+      if(target)segment(approach,target);
+    }
+    // The level-1 rear doorway must connect to the existing surface portal at floor
+    // height without a lift, load screen or exterior terrain excavation.
+    const rear=mineHubLayout(zone,0).surfaceExit;
+    if(rear){
+      const sx=e.x+hx*3,sz=e.z+hz*3,dx=rear.x-sx,dz=rear.z-sz;
+      const steps=Math.max(1,Math.ceil(Math.hypot(dx,dz)*2));
+      for(let t=0;t<=steps;t++){
+        const x=sx+dx*t/steps,z=sz+dz*t/steps;
+        for(let a=-1;a<=1;a++)for(let b=-1;b<=1;b++){
+          if(a*a+b*b>2)continue;
+          const ix=Math.floor(x+a),iz=Math.floor(z+b),k=this.cell(ix,iz);
+          if(k>=0&&this.mask[k])this.open[0][k]=1;
+        }
+      }
+    }
     // Stair landings: 3 × 5 cells around each connector, on both levels.
     for(const c of zone.mine.connectors)for(const l of [this.index.get(c.upper)!,this.index.get(c.lower)!])opened(l,Math.floor(c.x)-1,Math.floor(c.x)+2,Math.floor(c.z)-2,Math.floor(c.z)+3);
   }

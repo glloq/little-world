@@ -2,12 +2,13 @@
  * occupancy grid: no collider object per cell, correct at any LOD or culling state. */
 import type {SpaceProvider,TransitionVolume,Bounds} from '../physics/collision-world.ts';
 import type {MineState} from './mine-state.ts';
+import {mineHubLayout,mineHubRoofRise} from './mine-hub.ts';
 
 export function mineSpaceProvider(state:MineState):SpaceProvider{
-  const grid=state.grid;
+  const grid=state.grid,hubs=grid.levels.map((_,i)=>mineHubLayout(grid.zone,i));
   return {
     floor:id=>grid.levels[grid.levelIndex(id)]?.floorY??0,
-    column(id,x,z){const l=grid.levelIndex(id);if(l<0)return null;const ix=Math.floor(x),iz=Math.floor(z);if(!state.isOpen(l,ix,iz))return null;const level=grid.levels[l];return {floorY:level.floorY,ceilingY:level.floorY+level.height};},
+    column(id,x,z){const l=grid.levelIndex(id);if(l<0)return null;const ix=Math.floor(x),iz=Math.floor(z);if(!state.isOpen(l,ix,iz))return null;const level=grid.levels[l];return {floorY:level.floorY,ceilingY:level.floorY+level.height+mineHubRoofRise(hubs[l],x,z)};},
     solids(id,minX,maxX,minZ,maxZ,out:Bounds[]){const l=grid.levelIndex(id);if(l<0)return;for(let ix=Math.floor(minX);ix<=Math.floor(maxX);ix++)for(let iz=Math.floor(minZ);iz<=Math.floor(maxZ);iz++)if(!state.isOpen(l,ix,iz))out.push({minX:ix,maxX:ix+1,minZ:iz,maxZ:iz+1,minY:-1e5,maxY:1e5});},
   };
 }
