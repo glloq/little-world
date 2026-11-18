@@ -61,6 +61,16 @@ try{
   const sacText=await sac.textContent();verify(/Ressources naturelles/.test(sacText)&&/Gland/.test(sacText)&&/× ?1|1 ?\/ ?9/.test(sacText),'Sac lists Gland under its business category with quantity: '+sacText.slice(0,120));
   verify(await inPanel(),'Focus moves into the panel');for(let i=0;i<12;i++)await page.keyboard.press('Tab');verify(await inPanel(),'Tab stays inside the open panel');
   await sac.locator('.ui-item[data-item="acorn"]').click();verify(/Gland/.test(await sac.locator('.ui-inventory-detail').textContent()),'Item details shown on selection');await shot('sac');
+  verify(await sac.locator('.ui-bag-layout').count()===1,'Bag V3 has the three-zone layout');
+  verify(await sac.locator('.ui-bag-slot').count()===10,'Ten fixed favourite slots appear without a gear scrollbar');
+  verify(await sac.locator('[data-hamster-target]').count()===5,'Hamster has five drop zones');
+  await sac.getByRole('button',{name:'Activer la sélection multiple'}).click();
+  verify(await sac.locator('.ui-bag-check').count()>0,'Multi-select reveals checkboxes on every visible stock object');
+  await sac.locator('.ui-item[data-item="acorn"]').first().click();
+  verify(await sac.locator('.ui-bag-checked[data-item="acorn"]').count()===1,'Click toggles selected stack');
+  await page.keyboard.press('Escape');
+  verify(await sac.isVisible(),'First Escape exits multi-select without closing bag');
+
   const t0=await envTime();await page.waitForTimeout(600);verify(await envTime()>t0,'Sac does not pause the world');
   await page.keyboard.press('Escape');verify(!(await sac.isVisible()),'Escape closes the panel');
   // 5. Journal before the mission: empty state.
