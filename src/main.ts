@@ -1462,7 +1462,7 @@ function draw(now: number) {
   if(gameplay){const f=gameplay.fishing.state;character.setFishing(f.phase!=='idle'&&f.castAt?{x:f.castAt.x,y:waterSurface(f.castAt.x,f.castAt.z)??getTerrainConfig().seaLevel,z:f.castAt.z,biting:f.phase==='bite'}:null);}
   character.update(player, delta, elapsed);
   snowCharacterView.update(player);
-  surfBoardView?.update(player);
+  surfBoardView?.update(player,renderPosition);
   // Mining headgear follows the animated head bone (including turning/looking).
   // One spotlight, zero shadow maps; off outside mines and without the item.
   mineHelmet.setActive(!!player.space&&gameplay?.equipment.head==='tool:miners-helmet');
