@@ -26,7 +26,7 @@ const ICONS:Readonly<Record<string,string>>={
   'farm:pumpkin':'🎃','food:potato':'🥔','food:chanterelle':'🍄',
   'food:cepe':'🍄','food:cheese':'🧀','food:bread':'🍞','food:jam':'🍯','food:soup':'🥣',
   'tool:pickaxe':'⛏','tool:pickaxe-steel':'⛏','tool:axe':'🪓',
-  'tool:miners-helmet':'⛑','tool:fishing-rod':'🎣',
+  'tool:miners-helmet':'⛑','tool:fishing-rod':'🎣','tool:surfboard':'🏄',
   'instrument:flute':'♫','instrument:ocarina':'♫','instrument:ukulele':'♫',
 };
 const FALLBACK:Readonly<Record<string,string>>={mine:'◆',nature:'❀',farm:'❧',graines:'✿',argent:'●',bois:'▤',cueillette:'❀',poisson:'♓',quest:'✦',mission:'✦',outil:'⚒',instrument:'♫'};
