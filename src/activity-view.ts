@@ -11,6 +11,7 @@ import type {RuntimeLight} from './lighting/light-data.ts';
 import {mineChunkGeometry} from './mine/mine-mesher.ts';
 import {mineHubLayout,mineLevelResourceIcons} from './mine/mine-hub.ts';
 import {createMineHubView} from './mine/mine-hub-view.ts';
+import {attachMineStand} from './mine/mine-stand-asset.ts';
 import {MINE_CHUNK,insidePolygon,type MineZone} from './mine/mine-data.ts';
 import {CROPS,type FarmZone} from './farm/farm-data.ts';
 
@@ -26,12 +27,16 @@ export function createActivityView(parent:THREE.Object3D,activities:ActivityRunt
   const mineMarkers=new Map<string,THREE.Group[]>(),lights:RuntimeLight[]=[];
   const box=(g:THREE.Object3D,m:THREE.Material,sx:number,sy:number,sz:number,x:number,y:number,z:number)=>{const b=new THREE.Mesh(new THREE.BoxGeometry(sx,sy,sz),m);b.position.set(x,y,z);g.add(b);return b;};
   const lantern=(id:string,x:number,y:number,z:number,mode:'always'|'night')=>lights.push({id:'light:activity:'+id,entityId:'activity:'+id,x,y,z,offset:{x:0,y:0,z:0},color:'#ffd39a',intensity:9,range:9,mode,flicker:{amplitude:.08,speed:.6},follow:false,absolute:true});
-  const initialiseHub=(id:string,marker:THREE.Group,level:number)=>{
-    if(!marker.userData.lazyMineHub)return;
-    const m=activities.mines.get(id)!;
-    marker.add(createMineHubView(mineHubLayout(m.zone,level),hubMaterial,hubGlowMaterial,
-      mineLevelResourceIcons(m.state,level)));
+  const initialiseHub=(id:string,marker:THREE.Group,level:number):Promise<boolean>=>{
+    if(!marker.userData.lazyMineHub)return Promise.resolve(true);
+    const m=activities.mines.get(id)!,hub=mineHubLayout(m.zone,level);
+    const view=createMineHubView(hub,hubMaterial,hubGlowMaterial,
+      mineLevelResourceIcons(m.state,level),m.zone.mine.levels.length);
+    marker.add(view);
     marker.userData.lazyMineHub=false;
+    // The actual stand is the maritime N1 asset; it is reused unchanged and
+    // attached during game startup / under the elevator's loading overlay.
+    return attachMineStand(view,hub);
   };
   // Entrance (surface frame + dark opening) and stairs markers of each mine, built once.
   for(const [id,{zone}] of activities.mines){
@@ -47,7 +52,7 @@ export function createActivityView(parent:THREE.Object3D,activities:ActivityRunt
       holder.name='MineHubSlot:'+id+':'+hub.levelId;
       holder.userData={mineId:id,levelId:hub.levelId,lazyMineHub:true};
       holder.visible=false;root.add(holder);markers.push(holder);
-      if(level===0)initialiseHub(id,holder,level); // Built during game boot: no hitch at mine entry.
+      if(level===0)void initialiseHub(id,holder,level); // Built during game boot: no hitch at mine entry.
       const sx=Math.sin(hub.heading),sz=Math.cos(hub.heading),
         rx=Math.cos(hub.heading),rz=-Math.sin(hub.heading);
       // Pool-lit locations follow the actual V3 layout (counter + lift),
@@ -97,7 +102,7 @@ export function createActivityView(parent:THREE.Object3D,activities:ActivityRunt
       // Display one frame before assembling the destination reception and its chunks.
       await new Promise<void>(resolve=>requestAnimationFrame(()=>resolve()));
       const holder=(mineMarkers.get(mineId)??[]).find(v=>v.userData.levelId===levelId);
-      if(holder)initialiseHub(mineId,holder,level);
+      if(holder)await initialiseHub(mineId,holder,level);
       for(let i=0;i<pending.length;i+=BUILDS_PER_FRAME){
         for(const v of pending.slice(i,i+BUILDS_PER_FRAME))ensureChunk(mineId,level,v.cx,v.cz);
         onProgress(Math.min(total,i+BUILDS_PER_FRAME),total);
@@ -115,7 +120,7 @@ export function createActivityView(parent:THREE.Object3D,activities:ActivityRunt
     for(const [id,m] of activities.mines){
       const active=space?.zoneId===id?m.state.grid.levelIndex(space.levelId):-1;
       for(const marker of mineMarkers.get(id)??[]){const l=m.zone.mine.levels.findIndex(v=>v.id===marker.userData.levelId);marker.visible=active>=0&&l===active;
-        if(marker.visible&&marker.userData.lazyMineHub)initialiseHub(id,marker,l);}
+        if(marker.visible&&marker.userData.lazyMineHub)void initialiseHub(id,marker,l);}
       if(active<0)continue;
       for(const level of [active,active-1,active+1]){if(level<0||level>=m.state.grid.levels.length)continue;
         for(let cx=Math.floor((p.x-CHUNK_RADIUS)/MINE_CHUNK);cx<=Math.floor((p.x+CHUNK_RADIUS)/MINE_CHUNK);cx++)for(let cz=Math.floor((p.z-CHUNK_RADIUS)/MINE_CHUNK);cz<=Math.floor((p.z+CHUNK_RADIUS)/MINE_CHUNK);cz++){
@@ -154,7 +159,7 @@ export function createActivityView(parent:THREE.Object3D,activities:ActivityRunt
   return {
     stats,lights,preloadMineLevel,
     update(dt:number,p:{x:number;y:number;z:number},space?:MovementSpace){updateMines(p,space);updateFarms(p,dt);},
-    dispose(){unsubscribe();for(const v of chunks.values())v.mesh.geometry.dispose();root.traverse(o=>{const m=o as THREE.Mesh;if(m.geometry&&!Object.values(plantGeometry).includes(m.geometry))m.geometry.dispose();});for(const g of Object.values(plantGeometry))g.dispose();for(const v of farmViews.values())(v.soil.material as THREE.Material).dispose();[mineMaterial,wood,dark,stone,plantMaterial,hubMaterial,hubGlowMaterial].forEach(m=>m.dispose());root.removeFromParent();},
+    dispose(){unsubscribe();for(const v of chunks.values())v.mesh.geometry.dispose();root.traverse(o=>{const m=o as THREE.Mesh;if(m.geometry&&!m.userData.mineSharedStandGeometry&&!Object.values(plantGeometry).includes(m.geometry))m.geometry.dispose();});for(const g of Object.values(plantGeometry))g.dispose();for(const v of farmViews.values())(v.soil.material as THREE.Material).dispose();[mineMaterial,wood,dark,stone,plantMaterial,hubMaterial,hubGlowMaterial].forEach(m=>m.dispose());root.removeFromParent();},
   };
 }
 function centreOf(zone:FarmZone,ground:(x:number,z:number)=>number){const x=zone.polygon.reduce((s,p)=>s+p.x,0)/zone.polygon.length,z=zone.polygon.reduce((s,p)=>s+p.z,0)/zone.polygon.length;return new THREE.Vector3(x,ground(x,z),z);}
