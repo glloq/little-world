@@ -20,6 +20,9 @@ import {geoContext,setPreviewSnowline} from './geography/engine.ts';
 import {findDemoPiste} from './snow/snow-pistes.ts';
 import {findDemoSurfSite} from './surf/surf-demo.ts';
 import {makeDemoSurfRace} from './surf/surf-race-demo.ts';
+import {makeDemoSurfFeatures} from './surf/surf-demo-features.ts';
+import {createSurfFeatureState,stepSurfFeatures} from './surf/surf-features.ts';
+import {createSurfFeaturesView} from './render/surf-features-view.ts';
 import {createSurfWaveField} from './surf/wave-field.ts';
 import {createSurfWaterView} from './render/surf-water-view.ts';
 import {createSurfBoardView} from './render/surf-board-view.ts';
@@ -437,6 +440,9 @@ const surfField=surfSite?createSurfWaveField(surfSite.zone,terrainHeight):
 const surfRace=surfSite?makeDemoSurfRace(surfSite,activeIsland?.id??gameplay?.runtime.data.worldId??'surf-demo'):null;
 const surfWaterView=surfField?createSurfWaterView(scene,surfField,terrainHeight):null;
 const surfBoardView=surfField?createSurfBoardView(scene):null;
+const surfFeatures=surfSite?makeDemoSurfFeatures(surfSite):[];
+const surfFeatureState=createSurfFeatureState();
+const surfFeatureView=surfSite?createSurfFeaturesView(scene,surfFeatures,surfSite.zone.seaLevel):null;
 if(surfField)world.setSurfArea(surfField.zone);
 if(surfSite&&surfField){
   const startWave=surfField.sample(surfSite.start.x,surfSite.start.z,0);
@@ -1271,6 +1277,12 @@ function tick(dt: number) {
     gameplay?.trees?.update(player.position,player.space);
     simulatePlayer(player, keys, dt,gameplay?.collision,surfField??undefined,motionTick+1);motionTick++;
     if(keys.surfActionPressed)surfQueue=0;
+    if(surfFeatures.length){
+      for(const event of stepSurfFeatures(player,surfFeatures,surfFeatureState,motionTick)){
+        if(event.kind==='ramp'){player.jumpSeq=(player.jumpSeq??0)+1;player.glideReady=false;}
+        showInfo(event.kind==='boost'?'Courant accélérateur !':event.kind==='ramp'?'Tremplin aquatique !':'Bouée touchée');
+      }
+    }
     const seq=player.gasPulseSeq??0;
     const newPulse=seq!==lastFlightPulseSeq&&seq>0;
     lastFlightPulseSeq=seq;
@@ -1580,7 +1592,7 @@ function draw(now: number) {
   }
   requestAnimationFrame(draw);
 }
-window.addEventListener('pagehide',event=>{if(event.persisted)void audio?.engine.setHidden(true);else {detachPortCollisions?.();ferryView?.dispose();remoteActors?.dispose();mineRhythmHud.dispose();mineHelmet.dispose();gasEffects.dispose();flightRings.dispose();raceGates.dispose();raceTrackView.dispose();flightCourseHud.remove();raceHud.remove();fishingHud.dispose();fishingEffects.dispose();speedStreaks.dispose();surfWaterView?.dispose();surfBoardView?.dispose();gpuTimer.dispose();void audio?.dispose();}});
+window.addEventListener('pagehide',event=>{if(event.persisted)void audio?.engine.setHidden(true);else {detachPortCollisions?.();ferryView?.dispose();remoteActors?.dispose();mineRhythmHud.dispose();mineHelmet.dispose();gasEffects.dispose();flightRings.dispose();raceGates.dispose();raceTrackView.dispose();flightCourseHud.remove();raceHud.remove();fishingHud.dispose();fishingEffects.dispose();speedStreaks.dispose();surfWaterView?.dispose();surfBoardView?.dispose();surfFeatureView?.dispose();gpuTimer.dispose();void audio?.dispose();}});
 window.addEventListener('pageshow',event=>{if(event.persisted&&started)void audio?.engine.setHidden(document.hidden);});
 document.addEventListener('visibilitychange', () => {
   presentation.reset();
