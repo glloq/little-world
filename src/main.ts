@@ -456,6 +456,7 @@ let nextSurfHudAt=0;
 const surfFeatures=surfSite?makeDemoSurfFeatures(surfSite):(playable?.surfFeatures??[]).filter(f=>surfFields.some(field=>f.x>=field.zone.minX&&f.x<=field.zone.maxX&&f.z>=field.zone.minZ&&f.z<=field.zone.maxZ));
 const surfFeatureState=createSurfFeatureState();
 let seenBarrelSuccess=0,seenBarrelCrash=0,seenBarrelTumble=0;
+let lastSurfPaddleSoundTick=-30;
 const surfFeatureView=surfFields.length&&surfFeatures.length?createSurfFeaturesView(scene,surfFeatures,surfFields[0].zone.seaLevel):null;
 if(surfFields.length)world.setSurfAreas(surfFields.map(field=>field.zone));
 if(surfSite&&surfFields.length){
@@ -850,7 +851,13 @@ window.addEventListener('keydown', (e) => {
   if (e.code === 'KeyC') cropQueue++;
   if (e.code === 'KeyB'&&snowDemo){snowEquipment=snowEquipment==='snowboard'?'skis':'snowboard';showInfo('Équipement : '+(snowEquipment==='skis'?'skis':'snowboard'));}
   else if(e.code==='KeyB'&&surfField){
-    if(player.mode==='surf'){player.mode='swim';player.surfStage=undefined;player.surfAirborne=false;showInfo('Planche rangée : nage');}
+    if(player.mode==='surf'){
+      player.mode='swim';player.surfStage=undefined;player.surfAirborne=false;
+      const water=waterSurface(player.position.x,player.position.z);
+      if(water!==null)player.position.y=Math.min(player.position.y,water-.38);
+      player.velocity.y=0;
+      showInfo('Planche rangée : nage');
+    }
     else if(surfDemo||gameplay?.equipment.hands==='tool:surfboard'){
       surfQueue=1;showInfo('Planche de surf : ramez avec Z/Shift, sautez avec Espace');
     }else showInfo('Équipez la planche de surf depuis votre sac avant de monter dessus.');
@@ -1297,7 +1304,22 @@ function tick(dt: number) {
     jumpQueue = 0;
   } else {
     gameplay?.trees?.update(player.position,player.space);
+    const previousSurfStage=player.surfStage;
+    const previousSurfPaddle=player.surfPaddleClock??0;
+    const previousSurfJump=player.surfJumpSeq??0;
+    const previousSurfLanding=player.surfLandingSeq??0;
+    const previousSurfWipeout=player.surfWipeoutSeq??0;
     simulatePlayer(player, keys, dt,gameplay?.collision,surfField??undefined,motionTick+1);motionTick++;
+    if((player.surfPaddleClock??0)>previousSurfPaddle+.08&&motionTick-lastSurfPaddleSoundTick>=15){
+      audio?.emit('water.swim',{position:player.position,source:'player'});lastSurfPaddleSoundTick=motionTick;
+    }
+    if(previousSurfStage!=='ride'&&player.surfStage==='ride'){
+      showInfo('Vague prise ! Dirigez et conservez votre vitesse.');
+      audio?.emit('water.lap',{position:player.position,source:'player'});
+    }
+    if((player.surfJumpSeq??0)>previousSurfJump)audio?.emit('player.jump',{position:player.position,source:'player'});
+    if((player.surfLandingSeq??0)>previousSurfLanding)audio?.emit('player.land',{position:player.position,source:'player'});
+    if((player.surfWipeoutSeq??0)>previousSurfWipeout)audio?.emit('water.enter',{position:player.position,source:'player'});
     if(keys.surfActionPressed)surfQueue=0;
     if(player.barrelEntryTick===motionTick)showInfo('Tube ! Suivez la crête pour ressortir avant la fermeture.');
     if((player.barrelSuccessSeq??0)>seenBarrelSuccess){seenBarrelSuccess=player.barrelSuccessSeq??0;showInfo('Tube traversé !','success');}
