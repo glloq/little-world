@@ -29,7 +29,7 @@ export function parseArchipelagoRegistry(raw: unknown): ArchipelagoRegistry {
   return { schemaVersion: 1, islands };
 }
 export async function loadArchipelagoRegistry(baseUrl: string, fetcher: typeof fetch = fetch): Promise<ArchipelagoRegistry> {
-  const response = await fetcher(baseUrl + 'maps/archipelago.json');
+  const response = await fetcher(baseUrl + 'archipelago/catalog.json');
   if (!response.ok) throw new Error('Catalogue maritime indisponible : HTTP ' + response.status);
   return parseArchipelagoRegistry(await response.json());
 }
