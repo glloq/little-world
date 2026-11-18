@@ -167,3 +167,12 @@ body:not(.developer) .hud-debug,.start-overlay:not(.hide)~.hud-debug{display:non
   box-shadow:0 3px 12px rgba(30,54,38,.12);font-variant-numeric:tabular-nums}
 .flight-course-hud[hidden]{display:none!important}
 @media(max-width:760px){.flight-course-hud{top:62px;font-size:11px;padding:6px 9px}}
+
+/* Surf hints complement, but never replace, the shared race/checkpoint HUD. */
+.surf-hud{position:fixed;left:50%;top:117px;transform:translateX(-50%);z-index:15;
+  max-width:min(680px,calc(100vw - 20px));padding:6px 12px;border-radius:11px;
+  background:rgba(16,68,83,.80);color:#f7fcfa;border:1px solid rgba(218,250,255,.38);
+  font:600 12px/1.4 system-ui,sans-serif;text-align:center;font-variant-numeric:tabular-nums;
+  pointer-events:none;box-shadow:0 2px 8px rgba(8,44,55,.16)}
+.surf-hud[hidden]{display:none!important}
+@media(max-width:760px){.surf-hud{top:101px;font-size:11px;padding:5px 8px}}
