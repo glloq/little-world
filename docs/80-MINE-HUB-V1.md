@@ -19,7 +19,8 @@ réorganise les volumes au lieu d'empiler les mêmes objets.
   échantillons des minerais de l'étage, petit bandeau de toile et outils au mur.
   Suppression du grand toit à 4 poteaux et des caisses dans la circulation.
 - **Centre** : grande arche (~4,3 m de poutre, plus de 3,5 m de passage),
-  symboles 3D pierre/fer/cristal adaptés à la géologie, départ de rails **après** le seuil.
+  symboles 3D pierre/fer/cristal adaptés à la géologie, rails prolongeant **après** le seuil
+  un tronçon minier initial d'environ **5,8 m** avant son raccordement aux galeries auteur.
 - **Droite** : plateforme de monte-charge ouverte, poulie arrière et trois appuis
   latéraux au maximum ; suppression de la cage et du gros panneau frontal.
 - **Arrière** : arche de sortie ouverte vers l'île **uniquement au niveau 1**.
@@ -27,6 +28,10 @@ réorganise les volumes au lieu d'empiler les mêmes objets.
 - **Voûte de réception relevée** au centre jusqu'à +1,10 m (hauteur totale plafonnée
   à 4,7 m, décroissance douce près des murs), avec cohérence entre
   `mine-mesher.ts` et `mine-collision.ts`.
+- **Visibilité** : `world.setUnderground(true)` masque les groupes extérieurs
+  (terrain, végétation, bâtiments, impostors) dans la mine, **sans couper la
+  réserve d'éclairages `LocalLights`**. Retour normal à la surface quand le
+  joueur quitte le niveau 1. Aucun second moteur de rendu.
 - **Performance** : 1 mesh fusionné pour les solides et 1 pour l'émission,
   pas de nouveaux points lumineux avec ombres, chunks conservés en streaming.
   Décor sans colliders supplémentaires ; la grille reste seule autorité.
