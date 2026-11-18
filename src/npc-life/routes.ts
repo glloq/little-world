@@ -25,11 +25,15 @@ function safeSegment(a:ResidentPoint,b:ResidentPoint,walk:ResidentWalkable):bool
  */
 export function createResidentRouter(paths:readonly ResidentPath[],walk:ResidentWalkable,maxNodes=16000):ResidentRouter{
   const nodes:Node[]=[],index=new Map<string,number>();
+  const CELL=32,cells=new Map<string,number[]>();
+  const cellKey=(x:number,z:number)=>Math.floor(x/CELL)+':'+Math.floor(z/CELL);
   let truncated=false;
   function node(p:ResidentPoint):number{
     const k=key(p),known=index.get(k);if(known!==undefined)return known;
     if(nodes.length>=maxNodes){truncated=true;return -1;}
-    const id=nodes.length;index.set(k,id);nodes.push({point:{x:p.x,z:p.z},links:[]});return id;
+    const id=nodes.length;index.set(k,id);nodes.push({point:{x:p.x,z:p.z},links:[]});
+    const ck=cellKey(p.x,p.z),bucket=cells.get(ck)??[];bucket.push(id);cells.set(ck,bucket);
+    return id;
   }
   function edge(a:number,b:number){
     if(a<0||b<0||a===b)return;
@@ -39,7 +43,9 @@ export function createResidentRouter(paths:readonly ResidentPath[],walk:Resident
     if(!nodes[b].links.some(e=>e.to===a))nodes[b].links.push({to:a,distance});
   }
   for(const path of paths){
-    if(!Array.isArray(path.points)||path.points.length<2)continue;
+    // Elevated bridge paths require their own support-floor contract; until then
+    // treating an X/Z crossing as a pedestrian junction would be unsafe.
+    if(path.supportId||!Array.isArray(path.points)||path.points.length<2)continue;
     for(let i=1;i<path.points.length;i++){
       const a=path.points[i-1],b=path.points[i],length=dist(a,b);
       if(!Number.isFinite(length)||length>2000||!length)continue;
@@ -76,8 +82,16 @@ export function createResidentRouter(paths:readonly ResidentPath[],walk:Resident
     return null;
   }
   function nearest(p:ResidentPoint):number{
-    const matches=nodes.map((n,id)=>({id,d:dist(n.point,p)})).filter(x=>x.d<=65).sort((a,b)=>a.d-b.d||a.id-b.id).slice(0,16);
-    for(const c of matches)if(safeSegment(p,nodes[c.id].point,walk))return c.id;
+    const near:{id:number;d:number}[]=[];
+    const cx=Math.floor(p.x/CELL),cz=Math.floor(p.z/CELL);
+    for(let x=cx-3;x<=cx+3;x++)for(let z=cz-3;z<=cz+3;z++){
+      for(const id of cells.get(x+':'+z)??[]){
+        const d=dist(nodes[id].point,p);
+        if(d<=65)near.push({id,d});
+      }
+    }
+    near.sort((a,b)=>a.d-b.d||a.id-b.id);
+    for(const candidate of near.slice(0,16))if(safeSegment(p,nodes[candidate.id].point,walk))return candidate.id;
     return -1;
   }
   return {
