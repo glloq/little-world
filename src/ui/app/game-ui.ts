@@ -39,6 +39,10 @@ export interface GameUiDeps {
   landmarks?:readonly {id:string;label:string;x:number;z:number}[];
   ferry?:FerryPanelDeps & {dock:{x:number;z:number}};
   importTrade?:ImportStandPanelDeps;
+  mineHub?:{
+    view():{mineId:string;name:string;currentLevel:string;excavations:number;stops:{id:string;name:string;unlocked:boolean;required:number;current:boolean}[]}|null;
+    travel(levelId:string):{ok:boolean;message?:string;reason?:string};
+  };
   world:{name:string;buildVersion:string;dayLength:number;bounds:{minX:number;maxX:number;minZ:number;maxZ:number};seaLevel:number;height(x:number,z:number):number;water(x:number,z:number):number|null};
   eatFood?(id:string):{ok:boolean;message:string};
   player():{gas?:number;maxGas?:number;gasShots?:number;gasMaxShots?:number;gasCooldown?:number;x:number;y:number;z:number;yaw:number;space?:MovementSpace;mode:string;oxygen:number;maxOxygen:number;stamina:number;maxStamina:number;speed?:number;stalled?:boolean};
@@ -114,6 +118,35 @@ export function createGameUi(deps:GameUiDeps){
     restore:save=>{restoring=true;try{return g.restore(save);}finally{restoring=false;snapshot();}},exportCurrent:()=>g.compose('slot-export'),importFile:raw=>g.importSave(raw),
     confirm:(t,l)=>ui.confirm(t,l),closePanels:()=>ui.close(),notify:(k,t)=>center.notify(k,t)});
     ui.register('saves','Parties',{pauses:true,render:b=>saves.render(b)});}
+  // Mine reception: the same worker offers trade, a short tutorial and validated lift access.
+  if(deps.mineHub){
+    ui.register('mine-lift','Monte-charge de la mine',{pauses:true,render:b=>{
+      b.replaceChildren();const view=deps.mineHub!.view();
+      if(!view){b.append(el('p','ui-muted','Approchez du comptoir ou du monte-charge.'));return;}
+      b.append(el('p','ui-muted',view.name+' · '+view.excavations+' blocs extraits'));
+      for(const stop of view.stops){
+        const line=el('div','ui-shop-row');
+        line.append(el('span','ui-shop-name',stop.name+(stop.current?' · Vous êtes ici':'')));
+        const action=button(stop.current?'Actuel':stop.unlocked?'Rejoindre':'Verrouillé',()=>{
+          const result=deps.mineHub!.travel(stop.id);
+          center.notify(result.ok?'success':'warning',result.ok?result.message??'Arrivée à destination':result.reason??'Accès refusé');
+          if(result.ok)ui.close();else ui.refresh('mine-lift');
+        },'ui-button'+(stop.unlocked&&!stop.current?' ui-primary':''));
+        action.disabled=stop.current||!stop.unlocked;
+        if(!stop.unlocked)action.title='Extraire '+stop.required+' blocs au total pour débloquer cet étage';
+        line.append(action);
+        if(!stop.unlocked)line.append(el('span','ui-muted',stop.required+' blocs requis'));
+        b.append(line);
+      }
+    }});
+    ui.register('mine-advice','Conseils du contremaître',{pauses:false,render:b=>{
+      b.replaceChildren();
+      const view=deps.mineHub!.view();
+      b.append(el('p','ui-muted','Équipez une pioche depuis votre sac (I). Approchez une paroi et frappez avec E ou F. Les fissures indiquent la progression du creusement.'),
+        el('p','ui-muted','Les minerais extraits peuvent être vendus ici sans ressortir de la mine. Les étages inférieurs se débloquent au fil de vos excavations.'),
+        el('p','ui-muted','Progression : '+(view?.excavations??0)+' blocs extraits.'));
+    }});
+  }
   // Counters (mine, forest, port, market, farm, inn): one panel, catalogue chosen by the counter.
   let shopKind:ShopKind|null=null,shopCounterId:string|null=null;
   if(g){const shop=shopPanel({kind:()=>shopKind,counterId:()=>shopCounterId,production:g.workshops,
@@ -122,7 +155,7 @@ export function createGameUi(deps:GameUiDeps){
       trade:(k,id,q,m,expectedRevision)=>g.trade(k,id,q,m,shopCounterId??undefined,expectedRevision),
       notify:(ok,t)=>{center.notify(ok?'success':'warning',t);deps.audio?.emit(ok?'ui.confirm':'ui.error',{source:'ui'});}});
     // Workshop jobs advance in game time while this panel is open, without unblocking movement.
-    ui.register('shop','Comptoir',{pauses:false,render:b=>{const h=b.closest('.ui-panel')?.querySelector('h2');if(h&&shopKind)h.textContent=SHOPS[shopKind].name;shop.render(b);}});}
+    ui.register('shop','Comptoir',{pauses:false,render:b=>{const h=b.closest('.ui-panel')?.querySelector('h2');if(h&&shopKind)h.textContent=SHOPS[shopKind].name;shop.render(b);if(shopKind==='mine'&&deps.mineHub){const row=el('div','ui-row ui-shop-tabs');row.append(button('Accès aux niveaux',()=>ui.open('mine-lift'),'ui-button ui-primary'),button('Conseils du mineur',()=>ui.open('mine-advice'),'ui-button'));b.prepend(row);}});}
   let closeAudioPopover=()=>{};
   ui.register('settings','Paramètres',{pauses:true,render:b=>{closeAudioPopover();settingsPanel({preferences:()=>prefs,update:updatePrefs,quality:deps.quality,audioPanel:deps.audio?.panel??null,environmentControls:deps.environmentControls??null,showDeveloper:prefs.developer||devUrl}).render(b);},
     // The audio panel goes back to its developer place when the settings close.
@@ -198,6 +231,7 @@ export function createGameUi(deps:GameUiDeps){
     /** Opens the maritime choice panel only for a real, published ferry stop. */openFerry(){if(deps.ferry)ui.open('ferry');},
     /** Opens the counter panel of a specific entity; each entity owns its own jobs. */
     openShop(kind:ShopKind,counterId?:string){shopKind=kind;shopCounterId=counterId??null;ui.open('shop');},
+    openMineLift(){if(deps.mineHub)ui.open('mine-lift');},
     controller:ui,notify:(kind:NoticeKind,text:string)=>center.notify(kind,text),center,
     get preferences(){return prefs;},
     get blocking(){return ui.blocking;},get paused(){return ui.paused;},
