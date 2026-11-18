@@ -448,7 +448,7 @@ let surfField=surfFieldAt(player.position.x,player.position.z);
 const surfRace=surfSite?makeDemoSurfRace(surfSite,activeIsland?.id??gameplay?.runtime.data.worldId??'surf-demo'):null;
 const surfWaterViews=surfFields.map(f=>createSurfWaterView(scene,f,terrainHeight));
 const surfBarrelViews=surfFields.map(f=>f.zone.barrelStrength?createSurfBarrelView(scene,f,terrainHeight):null);
-let surfWaterView=surfWaterViews[0]??null;
+let surfWaterView:ReturnType<typeof createSurfWaterView>|null=surfWaterViews[0]??null;
 let surfBarrelView=surfBarrelViews[0]??null;
 const surfBoardView=surfFields.length?createSurfBoardView(scene):null;
 const surfHud=surfFields.length?createSurfHud(document.body):null;
