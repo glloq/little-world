@@ -250,10 +250,10 @@ test('MINE-HUB V3: reception has a wide clear aisle, with objects kept to the si
 });
 test('MINE-HUB V3: higher reception roof agrees with the physical ceiling and fades at edges',()=>{
   const z=zone(),state=new MineState(new MineGrid(z)),provider=mineSpaceProvider(state),hub=mineHubLayout(z,0);
-  const x=hub.gallery.x,z=hub.shaft.z;
-  const rise=mineHubRoofRise(hub,x,z);
+  const x=hub.gallery.x,pz=hub.shaft.z;
+  const rise=mineHubRoofRise(hub,x,pz);
   assert.ok(rise>.8,'centre of large hall has additional roof clearance');
-  const column=provider.column(hub.levelId,x,z);
+  const column=provider.column(hub.levelId,x,pz);
   assert.ok(column&&Math.abs(column.ceilingY-(hub.floorY+hub.height+rise))<1e-6);
   assert.equal(mineHubRoofRise(hub,hub.shaft.x+12,hub.shaft.z),0,
     'roof reverts to authored height outside the hall');
