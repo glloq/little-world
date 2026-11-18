@@ -8,7 +8,7 @@
  * rebuilt from a compact presentation state, see presentation-state.ts). */
 import type { MotionMode } from '../player.ts';
 
-export const LOCOMOTION_STATES = ['IDLE', 'WALK', 'RUN', 'ROLL_ENTER', 'ROLL_LOOP', 'ROLL_EXIT', 'ROLL_AIR', 'ROLL_LAND', 'JUMP', 'FALL', 'LAND', 'GLIDE_OPEN', 'GLIDE_LOOP', 'GLIDE_CLOSE', 'SWIM', 'CLIMB', 'BOAT', 'SNOW'] as const;
+export const LOCOMOTION_STATES = ['IDLE', 'WALK', 'RUN', 'ROLL_ENTER', 'ROLL_LOOP', 'ROLL_EXIT', 'ROLL_AIR', 'ROLL_LAND', 'JUMP', 'FALL', 'LAND', 'GLIDE_OPEN', 'GLIDE_LOOP', 'GLIDE_CLOSE', 'SWIM', 'CLIMB', 'BOAT'] as const;
 export type LocomotionState = typeof LOCOMOTION_STATES[number];
 export const ACTIONS = ['EQUIP', 'UNEQUIP', 'TOOL_SWING_VERTICAL', 'TOOL_SWING_HORIZONTAL', 'TOOL_DIG', 'WATERING', 'PICKUP', 'CARRY', 'FISH_CAST', 'FISH_WAIT', 'FISH_REEL', 'INTERACT', 'SIT'] as const;
 export type ActionName = typeof ACTIONS[number];
@@ -177,7 +177,7 @@ export class HamsterAnimator {
     }
     const pending=(s:LocomotionState)=>this.state===s&&this.transitionTime<TRANSITIONS[s as keyof typeof TRANSITIONS];
     if(pending('ROLL_ENTER')||pending('ROLL_EXIT')||pending('ROLL_LAND')||pending('GLIDE_OPEN')||pending('GLIDE_CLOSE')||pending('LAND')||(pending('JUMP')&&mode==='air'))return;
-    this.state=input.aboard?'BOAT':mode==='snow'?'SNOW':mode==='roll'?'ROLL_LOOP':mode==='glide'?'GLIDE_LOOP'
+    this.state=input.aboard?'BOAT':mode==='roll'?'ROLL_LOOP':mode==='glide'?'GLIDE_LOOP'
       :mode==='swim'||mode==='dive'?'SWIM':mode==='climb'?'CLIMB'
       :mode==='air'?(this.airborneRoll?'ROLL_AIR':input.verticalSpeed>0?'JUMP':'FALL')
       :input.speed<.3?'IDLE':input.speed>6?'RUN':'WALK';
@@ -261,11 +261,6 @@ export class HamsterAnimator {
         const f = s === 'GLIDE_OPEN' ? smooth(Math.min(1, this.transitionTime / TRANSITIONS.GLIDE_OPEN)) : s === 'GLIDE_CLOSE' ? 1 - smooth(Math.min(1, this.transitionTime / TRANSITIONS.GLIDE_CLOSE)) : 1;
         p.membrane = f; p.shoulderLZ = -1.35 * f; p.shoulderRZ = 1.35 * f; p.shoulderLX = p.shoulderRX = -.35 * f; p.hipLX = p.hipRX = -.6 * f;
         p.bodyRX = (.5-Math.max(-.7,Math.min(.7,Math.atan2(input.verticalSpeed,Math.max(speed,.1)))))*f; p.bodyRZ = bank * 1.6; p.headRX = -.35 * f; p.earL = p.earR = .3 * f; p.squash = 1 - .05 * f; break; }
-      case 'SNOW': {
-        p.bodyRX=.16;p.bodyRY=clamp(turn*.16,-.2,.2);p.bodyRZ=clamp(-input.turnRate*.06,-.27,.27);
-        p.hipLX=p.hipRX=-.28;p.shoulderLX=-.23;p.shoulderRX=.23;
-        p.headRX=-.10;p.earL=p.earR=-.07;break;
-      }
       case 'SWIM': p.bodyRX = input.mode === 'dive' ? Math.max(-.9, Math.min(1.3, .35 + Math.atan2(-input.verticalSpeed, Math.max(speed, .6)) * .9)) : .3; p.bodyY = Math.sin(t * 3) * .03; p.shoulderLX = st * .8 - .5; p.shoulderRX = -st * .8 - .5; p.hipLX = -st * .6; p.hipRX = st * .6; p.headRX = -.3; break;
       case 'CLIMB': { const r = speed > .15 || Math.abs(input.verticalSpeed) > .15 ? st : Math.sin(t * 1.4) * .15;
         p.bodyRX = -.25; p.shoulderLX = -2.4 + r * .45; p.shoulderRX = -2.4 - r * .45; p.hipLX = -.4 - r * .4; p.hipRX = -.4 + r * .4; p.headRX = -.2; break; }
