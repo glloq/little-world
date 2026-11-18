@@ -3,6 +3,8 @@ import * as THREE from 'three';
 import {FrameClock} from '../../frame-clock.ts';
 import {buildWorld,configureScene,addPlacement,removePlacement,configureWorldGeography,type WorldView} from '../../world.ts';
 import {configureTerrain,terrainHeight} from '../../terrain.ts';
+import {createRaceGates} from '../../render/race-gates.ts';
+import type {RaceGate} from '../../gameplay/races.ts';
 import {terrainChangeRects} from '../../studio-core/geo-edits.ts';
 import {horizonFar} from '../../horizon-view.ts';
 import {createNPCSystem} from '../../npc-view.ts';
@@ -51,6 +53,7 @@ export class StudioViewport {
   readonly tools:ToolManager;
   private renderer:THREE.WebGLRenderer;
   private scene=new THREE.Scene();
+  private racePreview:ReturnType<typeof createRaceGates>|null=null;
   private world:WorldView;
   private hybridControls:ReturnType<typeof mountHybridControls>;
   private definition:WorldDefinition;
@@ -106,6 +109,12 @@ export class StudioViewport {
   setVisible(visible:boolean){this.visible=visible;this.element.hidden=!visible;if(visible){this.resize();this.invalidate(10);}}
   setTool(id:string){this.tools.activate(this.tools.has(id)?id:'select');if(this.session.selection.state.activeTool!==this.tools.active!.id)this.session.selection.setTool(this.tools.active!.id);this.canvas.dataset.tool=this.tools.active!.id;}
   focusSelection(){const b=this.selection.bounds();if(b)this.camera.focus(b.center,b.radius);else if(this.cursor)this.camera.focus({x:this.cursor.x,y:terrainHeight(this.cursor.x,this.cursor.z),z:this.cursor.z},10);this.invalidate(30);this.saveCamera();}
+  /** Course authoring preview; presentation only, no collider or logical state. */
+  setRacePreview(gates:readonly RaceGate[]|null){
+    if(!gates){this.racePreview?.clear();this.invalidate(3);return;}
+    this.racePreview??=createRaceGates(this.scene);
+    this.racePreview.show(gates);this.invalidate(3);
+  }
   goTo(x:number,z:number,radius=12){const p=this.session.document;x=clampX(p,x);z=clampZ(p,z);this.camera.moveTarget(x,z);this.camera.focus({x,y:terrainHeight(x,z),z},radius);this.invalidate(30);this.saveCamera();}
   objectFor(id:string):THREE.Object3D|undefined{return this.models.get(id)?.object??this.npcObjects.get(id)?.find(o=>o.visible)??this.npcObjects.get(id)?.[0]??this.lightMarkers.get(id)?.object;}
   /** E10 — night preview: the runtime's own midnight sky values and lights at full night
