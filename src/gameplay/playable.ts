@@ -4,6 +4,7 @@ import {parseAnyAudioDefinition,type AnyAudioDefinition} from '../audio/migrate.
 import {playtestSlotPrefix} from './save.ts';
 import {validateRace,type RaceDefinition} from './races.ts';
 import {validateSurfZone,type SurfZone} from '../surf/wave-field.ts';
+import {validateSurfFeature,type SurfFeature} from '../surf/surf-features.ts';
 import {validateCollisionDefinition,type CollisionDefinition} from '../physics/definitions.ts';
 import {naturalColliderOwner} from '../structures/natural-collision.ts';
 /** Runtime input has no authoring database access or Studio module dependency. */
@@ -12,7 +13,7 @@ import {parseGameplayData,finite,identifier,record,type GameplayData,type Point3
 export interface PlayableWorld {schemaVersion:1;kind:'playable-world';audio?:AnyAudioDefinition;collisions?:CollisionDefinition[];world:WorldDefinition;gameplay:GameplayData;spawn:Point3;
   /** Mines and farm plots (runtime projection of activity zones). */activities?:import('./activities.ts').PlayableActivities;
   /** Optional fixed circuits compiled from a Studio project. */races?:RaceDefinition[];
-  /** Optional local swells, separate from flat hydrographic water. */surfZones?:SurfZone[];}
+  /** Optional local swells, separate from flat hydrographic water. */surfZones?:SurfZone[];surfFeatures?:SurfFeature[];}
 export interface StudioPlaytest {schemaVersion:1;kind:'studio-playtest';snapshotId:string;projectId:string;createdAt:number;content:PlayableWorld;}
 export function parsePlayableWorld(value:unknown):PlayableWorld {
  if(!record(value)||value.schemaVersion!==1||value.kind!=='playable-world'||!record(value.spawn)||!finite(value.spawn.x,-10000,10000)||!finite(value.spawn.y,-10000,10000)||!finite(value.spawn.z,-10000,10000))throw Error('Monde jouable invalide');
@@ -41,8 +42,19 @@ export function parsePlayableWorld(value:unknown):PlayableWorld {
      ids.add(zone.id);return structuredClone(zone);
    });
  })();
+ const surfFeatures:SurfFeature[]|undefined=value.surfFeatures===undefined?undefined:(()=>{
+   if(!Array.isArray(value.surfFeatures)||value.surfFeatures.length>200)throw Error('Modules surf invalides');
+   const ids=new Set<string>();
+   return value.surfFeatures.map(raw=>{
+     const f=validateSurfFeature(raw as SurfFeature);
+     if(ids.has(f.id)||f.x< -width/2||f.x>width/2||f.z< -length/2||f.z>length/2||
+        !(surfZones??[]).some(zone=>f.x>=zone.minX&&f.x<=zone.maxX&&f.z>=zone.minZ&&f.z<=zone.maxZ))
+       throw Error('Module surf hors de zone');
+     ids.add(f.id);return structuredClone(f);
+   });
+ })();
  const audio=value.audio!==undefined?parseAnyAudioDefinition(value.audio):undefined;const actions=[...gameplay.interactions.flatMap(i=>i.sequence),...gameplay.dialogues.flatMap(d=>d.lines.flatMap(l=>[...(l.actions??[]),...l.choices.flatMap(c=>c.actions??[])]))];validateAudioLinks(audio,gameplay.entities.map(e=>e.id),actions.filter(a=>a.type==='playSound').map(a=>(a as {soundId:string}).soundId));
- return {schemaVersion:1,kind:'playable-world',...(audio?{audio}:{}),world,gameplay,spawn:{...spawn},...(value.collisions?{collisions:structuredClone(value.collisions) as CollisionDefinition[]}:{} ),...(value.activities!==undefined?{activities:parseActivities(value.activities)}:{}),...(races?{races}:{}),...(surfZones?{surfZones}:{})};
+ return {schemaVersion:1,kind:'playable-world',...(audio?{audio}:{}),world,gameplay,spawn:{...spawn},...(value.collisions?{collisions:structuredClone(value.collisions) as CollisionDefinition[]}:{} ),...(value.activities!==undefined?{activities:parseActivities(value.activities)}:{}),...(races?{races}:{}),...(surfZones?{surfZones}:{}),...(surfFeatures?{surfFeatures}:{})};
 }
 const PREFIX='little-world:studio-playtest:v1:';
 export function savePlaytest(value:Omit<StudioPlaytest,'schemaVersion'|'kind'|'snapshotId'|'createdAt'>,storage:Storage=sessionStorage):StudioPlaytest {
