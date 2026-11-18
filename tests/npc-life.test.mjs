@@ -19,7 +19,7 @@ test('resident profiles are strictly declarative and versioned',()=>{
 
 test('simulated day phase gives stable deterministic home/work/commute positions',()=>{
   const route=residentRoute([farmer.home,{x:0,z:6},farmer.work]);
-  assert.equal(residentHour(0,1200,.36),8.64);
+  assert.ok(Math.abs(residentHour(0,1200,.36)-8.64)<1e-10);
   const at=h=>residentPoseAt(farmer,route,timeAtHour(h),1200,.36,1);
   assert.equal(at(4).phase,'home');
   assert.equal(at(4).position.z,0);
