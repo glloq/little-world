@@ -7,6 +7,7 @@ import type {WorldCollisionQuery,MovementSpace,Point3} from '../physics/collisio
 import type {PlayableActivities} from './activities.ts';
 import {MINE_MATERIALS,insidePolygon,type MineZone} from '../mine/mine-data.ts';
 import {MineGrid,MineState,DIG_REACH,type MineSaveState} from '../mine/mine-state.ts';
+import {mineHitsPerResult,type StrikeAccuracy} from '../mine/mine-rhythm.ts';
 import {mineHubLayout,mineHubCounterId,mineRequiredExcavations,mineLevelUnlocked} from '../mine/mine-hub.ts';
 import {mineSpaceProvider,mineTransitions} from '../mine/mine-collision.ts';
 import {CROPS,type FarmZone} from '../farm/farm-data.ts';
@@ -42,14 +43,14 @@ export function createActivityRuntime(activities:PlayableActivities,deps:Deps){
     for(let d=.3;d<=DIG_REACH;d+=.2){const ix=Math.floor(position.x+fx*d),iz=Math.floor(position.z+fz*d);if(m.state.isOpen(level,ix,iz))continue;return {mineId:m.zone.id,level,ix,iz,material:m.state.material(level,ix,iz)};}
     return null;
   }
-  function dig(position:Point3,space:MovementSpace|undefined,forward:{x:number;z:number}):{ok:boolean;message:string;partial?:boolean;progress?:number}{
+  function dig(position:Point3,space:MovementSpace|undefined,forward:{x:number;z:number},quality:StrikeAccuracy='normal'):{ok:boolean;message:string;partial?:boolean;progress?:number;hits?:number;nextResult?:number}{
     const t=mineTarget(position,space,forward);if(!t||!space)return {ok:false,message:'Aucune paroi à portée'};
     const m=mines.get(t.mineId)!,tool=pickPower(id=>deps.has?.(id)??false);
-    const r=m.state.strike({requestId:requestId('dig'),levelId:space.levelId,ix:t.ix,iz:t.iz,from:position},tool.power,reward=>deps.grant([reward]));
+    const r=m.state.strike({requestId:requestId('dig'),levelId:space.levelId,ix:t.ix,iz:t.iz,from:position},tool.power,reward=>deps.grant([reward]),quality);
     if(!r.ok)return {ok:false,message:r.reason};
-    if('partial'in r)return {ok:true,partial:true,progress:r.progress,message:r.fragment?`+1 ${nameOf(r.fragment.itemId)} (éclat)`:`${MINE_MATERIALS[r.material].name} : ${Math.round(r.progress*100)} % (${tool.tool})`};
+    if('partial'in r)return {ok:true,partial:true,progress:r.progress,hits:r.hits,nextResult:r.nextResult,message:r.fragment?`+${r.fragment.quantity} ${nameOf(r.fragment.itemId)} (extraction)`:`${MINE_MATERIALS[r.material].name} : ${Math.round(r.progress*100)} % · récolte dans ${r.nextResult} coup(s)`};
     notify({kind:'mine',mineId:t.mineId,level:t.level,chunks:r.chunks});
-    return {ok:true,message:r.reward?`+1 ${nameOf(r.reward.itemId)}`:`${MINE_MATERIALS[r.material].name} déblayée`};
+    return {ok:true,message:r.reward?`+${r.reward.quantity} ${nameOf(r.reward.itemId)}`:`${MINE_MATERIALS[r.material].name} déblayée`};
   }
   /** Plot the player stands on or next to (surface only). */
   function farmNear(position:Point3,space?:MovementSpace){
@@ -104,7 +105,7 @@ export function createActivityRuntime(activities:PlayableActivities,deps:Deps){
     const t=mineTarget(position,space,forward);if(!t||!space)return null;const m=mines.get(t.mineId)!;
     const verdict=m.state.check({levelId:space.levelId,ix:t.ix,iz:t.iz,from:position});
     const info=MINE_MATERIALS[t.material],tool=pickPower(id=>deps.has?.(id)??false);
-    return {target:t,materialName:info.name,reward:verdict.ok?verdict.reward:null,ok:verdict.ok,reason:verdict.ok?undefined:verdict.reason,progress:m.state.damageAt(t.level,t.ix,t.iz)/Math.max(1,info.hp),strikesLeft:Math.ceil((info.hp-m.state.damageAt(t.level,t.ix,t.iz))/tool.power),tool:tool.tool};
+    return {target:t,materialName:info.name,reward:verdict.ok?verdict.reward:null,ok:verdict.ok,reason:verdict.ok?undefined:verdict.reason,progress:m.state.damageAt(t.level,t.ix,t.iz)/Math.max(1,info.hp),strikesLeft:Math.ceil((info.hp-m.state.damageAt(t.level,t.ix,t.iz))/tool.power),hitsToReward:mineHitsPerResult(t.material)-m.state.hitCountAt(t.level,t.ix,t.iz)%mineHitsPerResult(t.material),tool:tool.tool};
   }
   /** UI preview of the next plot action: the farm rules run on a copy of the state. */
   /** Sowing needs a seed packet of the selected crop when the economy defines seeds. */
