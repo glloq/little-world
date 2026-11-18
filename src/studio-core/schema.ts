@@ -192,8 +192,8 @@ function validateLibraries(value:unknown,world:WorldDefinitionV3,entityIds:strin
   if(libs.surfZones!==undefined)for(const [id,raw]of Object.entries(dictionary(libs.surfZones,'Zones surf',32))){
     const zone=object(raw,'Zone surf');keys(zone,['id','minX','maxX','minZ','maxZ','dirX','dirZ','seaLevel','amplitude','wavelength','speed','seed','shoreFadeDepth','edgeFade'],'Zone surf');
     validateSurfZone(zone as unknown as SurfZone);
-    if(zone.id!==id||zone.minX as number<world.bounds.minX||zone.maxX as number>world.bounds.maxX||
-      zone.minZ as number<world.bounds.minZ||zone.maxZ as number>world.bounds.maxZ||
+    if(zone.id!==id||(zone.minX as number)<world.bounds.minX||(zone.maxX as number)>world.bounds.maxX||
+      (zone.minZ as number)<world.bounds.minZ||(zone.maxZ as number)>world.bounds.maxZ||
       zone.seaLevel!==world.seaLevel)throw Error('Zone surf : limites ou niveau marin invalides');
   }
   for(const name of ['prefabs','characters','dialogues','behaviors','interactions','activities','variables','items','objectives','water','paths']){
