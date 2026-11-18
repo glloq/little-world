@@ -139,26 +139,24 @@ export class MineState {
     if(Math.hypot(req.from.x-(req.ix+.5),req.from.z-(req.iz+.5))>DIG_REACH||req.from.y<l.floorY-.5||req.from.y>l.floorY+l.height)return fail('Trop loin');
     return {ok:true,material,reward:info.item?{itemId:info.item,quantity:1}:null};
   }
-  dig(req:DigRequest,grant:(reward:{itemId:string;quantity:number})=>boolean,bonus=0):DigResult{
+  dig(req:DigRequest,grant:(reward:{itemId:string;quantity:number})=>boolean):DigResult{
     const cached=this.requests.get(req.requestId);
     if(cached)return 'partial'in cached?{ok:false,reason:'Demande déjà traitée'}:cached;
     const fail=(reason:string):DigResult=>({ok:false,reason});
     const verdict=this.check(req);if(!verdict.ok)return fail(verdict.reason);
     const level=this.grid.levelIndex(req.levelId),material=verdict.material;
-    let reward=verdict.reward;
-    if(reward){
-      // One optional bonus from a precisely timed hit, capped to one per cell.
-      // If capacity permits only the base ore, never block an otherwise valid dig.
-      const extra=bonus>0?1:0;
-      const enriched={...reward,quantity:reward.quantity+extra};
-      if(extra&&grant(enriched))reward=enriched;
-      else if(!grant(reward))return fail('Inventaire plein');
-    }
+    const reward=verdict.reward;
+    // Digging the final cell grants only its authored material.
+    // 3–5 strike bonuses were handled earlier by strike(), never here.
+    if(reward&&!grant(reward))return fail('Inventaire plein');
     // Commit: cell + revision (the reward has been accepted in the same step).
     const cx=Math.floor(req.ix/MINE_CHUNK),cz=Math.floor(req.iz/MINE_CHUNK),key=chunkKey(cx,cz);
     let c=this.chunks[level].get(key);if(!c)this.chunks[level].set(key,c={bits:new Uint32Array(MINE_CHUNK),revision:0});
     const lx=req.ix-cx*MINE_CHUNK,lz=req.iz-cz*MINE_CHUNK;c.bits[lz]|=1<<lx;c.revision++;this.revision++;
     const chunks=new Set([key]);if(lx===0)chunks.add(chunkKey(cx-1,cz));if(lx===MINE_CHUNK-1)chunks.add(chunkKey(cx+1,cz));if(lz===0)chunks.add(chunkKey(cx,cz-1));if(lz===MINE_CHUNK-1)chunks.add(chunkKey(cx,cz+1));
+    // Direct dig calls and completed strikes both consume partial progress.
+    this.damage.delete(`${req.levelId}:${req.ix}:${req.iz}`);
+    this.hits.delete(`${req.levelId}:${req.ix}:${req.iz}`);
     const result:DigResult={ok:true,material,reward,chunks:[...chunks],revision:c.revision};
     this.remember(req.requestId,result);
     return result;
