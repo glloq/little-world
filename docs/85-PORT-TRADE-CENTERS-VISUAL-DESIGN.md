@@ -1,7 +1,15 @@
 # 85 — Identité graphique des commerces portuaires : cinq niveaux low-poly
 
-**Statut : DESIGN APPROUVÉ / OBJECTIF GRAPHIQUE — aucune modélisation 3D ni intégration runtime livrée par ce document.**
+**Statut : DESIGN APPROUVÉ ; MODÈLE GLB N1 V1 DE RÉFÉRENCE VERSIONNÉ ; aucune intégration runtime livrée.**
 **Décision du 18 novembre 2026.** Références : [75 — transports et ports](75-ISLAND-TRAVEL-FERRIES-PORTS.md), [76 — économie insulaire](76-ISLAND-AUTONOMY-ECONOMY-TRADE.md), [80 — audit du commerce](80-ECONOMY-TRADE-CRAFT-AUDIT.md), [82 — roadmap économique](82-ECONOMY-PRODUCTION-ROADMAP.md), [06 — pipeline assets](06-ASSET-PIPELINE.md), [11 — low-resource](11-LOW-RESOURCE-POLICY.md), [20 — Blender/Studio](20-BLENDER-STUDIO-INTERCHANGE.md), [75 — établissements V1](75-SETTLEMENTS-SURFACE-V1.md).
+
+## 0 bis. Baseline 3D N1 V1 validée — 18 novembre 2026
+
+Le **GLB low-poly de stand ouvert** fourni dans le prototype précédent a été **retenu comme base de la V1** : [modèle versionné](../public/models/commerce-portuaire/port-trade-n1-v1.glb), [visualiseur](../examples/port-trade-n1-v1-viewer.html) et [manifeste SHA-256](../assets/commerce-portuaire/n1-v1.json).
+
+Identité du modèle : quatre poteaux et entretoises en bois, toile rayée avec légère courbure et feston modélisés, comptoir sans objets à vendre, caisses vides, panneau à caisse hexagonale, **zone libre pour le PNJ vendeur derrière le comptoir**. Cinq meshes, **2 362 triangles**, zéro texture. Dimensions indicatives **3,38 × 2,23 × 3,00 m** (largeur × profondeur × hauteur), à recaler sur l'échelle réelle des personnages.
+
+**Statut précis : VALIDÉ COMME BASE ARTISTIQUE**, *pas* « intégré au jeu » ni « qualifié sur vieux PC ». Des modifications futures peuvent être proposées sous nouvelle version **N1 V1.1 ou V2**, sans remplacer cette référence immuable. Les objectifs de LOD, collisions, Studio et commerce restent à réaliser et tester.
 
 ## 1. Objectif et périmètre
 
@@ -104,7 +112,7 @@ Cible UX : sélection unique « Commerce portuaire » → niveau 1–5 → palet
 - **VIS-6** : assets réutilisables/LOD, budget CPU-GPU évalué sur scène chargée, aucune promesse de FPS avant mesure.
 - **VIS-7** : si intégration Studio : placement, sauvegarde, réouverture, Undo/Redo, interactions et migration des anciens projets sans perte.
 
-**État de livraison** : design documenté seulement. Rendus de concept présentés/validés dans la discussion, **non inclus comme assets versionnés**. La création et la revue des GLB sont une étape séparée.
+**État de livraison** : N1 V1 de référence (GLB) versionné, design des N2–N5 documenté. N1 non intégré au jeu/Studio ; LOD et tests de performance manquants. La production des autres GLB reste à faire.
 
 ## Prototype interactif de validation (18/11/2026)
 

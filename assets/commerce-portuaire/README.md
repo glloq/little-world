@@ -1,6 +1,16 @@
 # Commerces portuaires — brief de production low-poly
 
-**Statut : OBJECTIF / ASSETS À PRODUIRE.** Design normatif : [docs/85 — Identité commerciale](../../docs/85-PORT-TRADE-CENTERS-VISUAL-DESIGN.md). Cette arborescence ne contient pas encore de GLB ni de prefab livré.
+**Statut : N1 V1 BASE GRAPHIQUE APPROUVÉE ; N2–N5 À PRODUIRE.** Design normatif : [docs/85 — Identité commerciale](../../docs/85-PORT-TRADE-CENTERS-VISUAL-DESIGN.md). Cette famille contient désormais un GLB N1 V1 de référence, mais aucun prefab runtime/Studio livré.
+
+## N1 V1 — modèle de base validé (18 novembre 2026)
+
+Le **modèle 3D actuel a été retenu comme base visuelle V1 du niveau 1**. Cette décision valide la direction artistique, pas l'intégration au moteur.
+
+- **GLB versionné** : [`public/models/commerce-portuaire/port-trade-n1-v1.glb`](../../public/models/commerce-portuaire/port-trade-n1-v1.glb) ; 2 362 triangles, 5 meshes (structure, toile, comptoir, caisses, enseigne), couleurs par sommet, **aucune texture**.
+- **Visualiseur de validation** : [`examples/port-trade-n1-v1-viewer.html`](../../examples/port-trade-n1-v1-viewer.html), autonome, avec rotation/zoom et palettes de biomes.
+- **Manifeste de référence** : [`n1-v1.json`](n1-v1.json) (SHA-256 et caractéristiques). **Ne pas modifier silencieusement ce GLB** : toute variante implique une nouvelle version et une revue artistique.
+- **Silhouette retenue** : stand à quatre poteaux, toile rayée réellement modélisée avec plis et bordure, renforts en bois, comptoir vide, caisses vides, panneau hexagonal commercial, aucune marchandise ; accès arrière libre pour le PNJ.
+- **Restant avant intégration** : valider échelle PNJ et collisions en jeu, sockets d'interaction, LOD, palettes et catalogage Studio. **PTC-1 partiel** : modèle V1 versionné, pas encore LOD/runtime validé.
 
 ## Famille unique, 5 modèles
 
@@ -43,7 +53,7 @@ Les rendus de référence de la discussion servent de direction artistique **uni
 
 ## Démonstrateur N1 utilisable dans un navigateur
 
-Le prototype de validation [examples/port-trade-l1-preview.html](../../examples/port-trade-l1-preview.html) est un **fichier HTML autonome** : ouvrir dans Firefox ou Chrome et utiliser glisser/zoom. Il présente un N1 ouvert à toile et permet de tester les cinq palettes, le logo, les accessoires et le ponton ; il propose un export PNG. Il ne contient pas de GLB et ne constitue pas une livraison des jalons PTC-1…5.
+Le prototype de validation [examples/port-trade-l1-preview.html](../../examples/port-trade-l1-preview.html) est un **fichier HTML autonome** : ouvrir dans Firefox ou Chrome et utiliser glisser/zoom. Il présente un N1 ouvert à toile et permet de tester les cinq palettes, le logo, les accessoires et le ponton ; il propose un export PNG. Il s'agit du tout premier prototype, conservé pour historique. Le **visualiseur GLB de référence N1 V1** est désormais celui du lien ci-dessus. Les jalons LOD/runtime restent ouverts.
 
 ## Jalons d'exécution
 
@@ -56,4 +66,4 @@ Le prototype de validation [examples/port-trade-l1-preview.html](../../examples/
 | **PTC-4** | Intégration catalogue/Studio/docks | Placement, interaction, sauvegardes, export |
 | **PTC-5** | Mesures et tests en îles statiques | Profil matériel bas, pas de régression visuelle ni de fuite de ressources |
 
-Aucun jalon PTC n'est déclaré terminé à la création de ce document.
+**PTC-0** : direction graphique adoptée ; **PTC-1** : GLB N1 V1 de base livré, **LOD/intégration non qualifiés** ; **PTC-2 à PTC-5** : à réaliser.
