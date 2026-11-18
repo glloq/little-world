@@ -2,6 +2,9 @@
 
 **Statut : ROADMAP / SPECIFIED (18/11/2026) — documentation seule, aucune fonctionnalité nouvelle prétendue livrée.**  
 **Branche de conception** : `docs/quest-director-island-generation-roadmap`, créée sur `main@f84c16cd` (PR #75 fusionnée).  
+
+**Dépendance PNJ étendue (non livrée)** : [96 — audit des déplacements/horaires/dialogues](96-NPC-LIFE-DIALOGUES-SCHEDULE-AUDIT.md), [97 — lots NPC-0 à NPC-10](97-NPC-LIFE-IMPLEMENTATION-ROADMAP.md). Q3–Q5 peuvent commencer avec des donneurs fixes ; avant Q7–Q9, le générateur doit savoir quel PNJ possède un rôle et où/comment le retrouver (domicile, poste, disponibilité) et refuser un donneur inaccessible. Les gestes professionnels ne prouvent jamais une récolte/production du joueur.
+
 Références : [93 — Audit/choix](93-QUESTS-AUDIT-ISLAND-INTEGRATION.md), [94 — Contrats](94-QUESTS-DATA-EVENTS-REWARDS.md), [92 — Mondes complets/audit jouabilité](92-COMPLETE-WORLDS-STUDIO-AUDIT.md), [91 — Activités guidées](91-GUIDED-ACTIVITIES-RACES-ALPINE-MUSIC.md), [81–82 — Économie/roadmap](81-ECONOMY-PRODUCTION-CONTRACTS.md), [79 — Archipel](79-ISLAND-ROADMAP-VALIDATION.md).
 
 ## 0. Définition de terminé
