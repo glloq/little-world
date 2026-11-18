@@ -3,9 +3,11 @@
  * No transport, prediction scheduler, race rules or server is installed here. */
 import {simulatePlayer,MOTION_MODES,type Player,type Controls} from '../player.ts';
 import {GAS} from './gas-propulsion.ts';
+import type {SurfWaveField} from '../surf/wave-field.ts';
 import type {WorldCollisionQuery} from './collision-world.ts';
 export interface MovementCommand {tick:number;input:Controls}
-const fields=['oxygen','glideReady','stamina','climbCooldown','climbDir','rollSpeed','rollHeading','rollIdle','rollByHold','diving','diveSink','glideHeading','glidePitch','glideTurnRate','stalled','glideDeploymentUsed','glideDeploymentRemaining','airBoostUsed','groundBoostCharge','space','body','runCharge','intentYaw','jumpOrigin','jumpSeq','landingSpeed','landingSeq','coyoteLeft','coyoteFrom','jumpBufferLeft','groundPitch','groundRoll','rollSlip','landingKind','landingSlide','footSupportLeft','footSupportRight','gasReserve','gasCapacityLevel','gasPowerLevel','gasControlLevel','gasBoosting','gasPulseSeq','gasPulseClock','gasThrust','gasPulseRemaining','gasCooldown','gasBoostHeld','gasRepeatArmed','snowHeading','snowEdge','snowEquipment','surfStage','surfHeading','surfAirborne','surfWaveId','surfPaddleClock','surfJumpSeq','surfLandingSeq','surfWipeoutSeq'] as const;
+const fields=['oxygen','glideReady','stamina','climbCooldown','climbDir','rollSpeed','rollHeading','rollIdle','rollByHold','diving','diveSink','glideHeading','glidePitch','glideTurnRate','stalled','glideDeploymentUsed','glideDeploymentRemaining','airBoostUsed','groundBoostCharge','space','body','runCharge','intentYaw','jumpOrigin','jumpSeq','landingSpeed','landingSeq','coyoteLeft','coyoteFrom','jumpBufferLeft','groundPitch','groundRoll','rollSlip','landingKind','landingSlide','footSupportLeft','footSupportRight','gasReserve','gasCapacityLevel','gasPowerLevel','gasControlLevel','gasBoosting','gasPulseSeq','gasPulseClock','gasThrust','gasPulseRemaining','gasCooldown','gasBoostHeld','gasRepeatArmed','snowHeading','snowEdge','snowEquipment','surfStage','surfHeading','surfAirborne','surfWaveId','surfPaddleClock','surfJumpSeq','surfLandingSeq','surfWipeoutSeq',
+ 'barrelWaveIndex','barrelEntryTick','barrelEntryAcross','barrelSuccessSeq','barrelCrashSeq','barrelCooldownUntilTick'] as const;
 export interface MovementSnapshot {version:1;tick:number;position:{x:number;y:number;z:number};velocity:{x:number;y:number;z:number};mode:Player['mode'];yaw:number;state:Partial<Pick<Player,typeof fields[number]>>}
 const point=(v:unknown):v is {x:number;y:number;z:number}=>!!v&&typeof v==='object'&&['x','y','z'].every(k=>typeof (v as Record<string,unknown>)[k]==='number'&&Number.isFinite((v as Record<string,number>)[k])&&Math.abs((v as Record<string,number>)[k])<=100000);
 export function captureMovement(p:Player,tick:number):MovementSnapshot{
@@ -25,7 +27,9 @@ export function restoreMovement(p:Player,s:MovementSnapshot){
    else if(k==='surfStage'){if(!['paddle','ride','air'].includes(String(v)))throw Error('Phase surf invalide');}
    else if(k==='surfPaddleClock'){if(typeof v!=='number'||!Number.isFinite(v)||v<0||v>.27)throw Error('Rame surf invalide');}
    else if(k==='surfWaveId'){if(!Number.isSafeInteger(v)||Math.abs(Number(v))>1e8)throw Error('Crête surf invalide');}
-   else if(['surfJumpSeq','surfLandingSeq','surfWipeoutSeq'].includes(k)){if(!Number.isSafeInteger(v)||Number(v)<0)throw Error('Événement surf invalide');}
+   else if(['surfJumpSeq','surfLandingSeq','surfWipeoutSeq','barrelEntryTick','barrelSuccessSeq','barrelCrashSeq','barrelCooldownUntilTick'].includes(k)){if(!Number.isSafeInteger(v)||Number(v)<0)throw Error('Événement surf invalide');}
+   else if(k==='barrelWaveIndex'){if(!Number.isSafeInteger(v)||Math.abs(Number(v))>1e8)throw Error('Vague de tube invalide');}
+   else if(k==='barrelEntryAcross'){if(typeof v!=='number'||!Number.isFinite(v)||Math.abs(v)>1e5)throw Error('Position latérale du tube invalide');}
   else if(k==='climbDir'){if(!obj||typeof obj.x!=='number'||typeof obj.z!=='number'||!Number.isFinite(obj.x)||!Number.isFinite(obj.z))throw Error('Direction invalide');}
   else if(k==='jumpOrigin'||k==='coyoteFrom'){if(!['idle','run','roll'].includes(String(v)))throw Error('Origine de saut invalide');}
   else if(k==='landingKind'){if(!['idle','run','roll','glide'].includes(String(v)))throw Error('Réception invalide');}
@@ -52,13 +56,15 @@ export function restoreMovement(p:Player,s:MovementSnapshot){
 }
 /** Caller supplies the same collision/surface source and ordered inputs as the authority.
  * Steps are always 30 Hz, irrespective of how often the samples will be rendered. */
-export function replayMovement(p:Player,s:MovementSnapshot,commands:readonly MovementCommand[],collision?:WorldCollisionQuery){
+export function replayMovement(p:Player,s:MovementSnapshot,commands:readonly MovementCommand[],collision?:WorldCollisionQuery,
+ surfField?:SurfWaveField){
  let next=s.tick;
  for(const c of commands){
   if(c.tick!==++next)throw Error('Commandes de mouvement non consécutives');
-  const k=c.input;if(!k||!Number.isFinite(k.cameraYaw)||!Number.isFinite(k.forward)||Math.abs(k.forward)>1||!Number.isFinite(k.right)||Math.abs(k.right)>1||['run','jumpPressed','spaceHeld','dive'].some(f=>typeof k[f as keyof Controls]!=='boolean')||k.cameraPitch!==undefined&&(!Number.isFinite(k.cameraPitch)||Math.abs(k.cameraPitch)>1.6)||k.autoRun!==undefined&&typeof k.autoRun!=='boolean'||k.jumpAssist!==undefined&&typeof k.jumpAssist!=='boolean'||k.boostHeld!==undefined&&typeof k.boostHeld!=='boolean')throw Error('Commande de mouvement invalide');
+  const k=c.input;if(!k||!Number.isFinite(k.cameraYaw)||!Number.isFinite(k.forward)||Math.abs(k.forward)>1||!Number.isFinite(k.right)||Math.abs(k.right)>1||['run','jumpPressed','spaceHeld','dive'].some(f=>typeof k[f as keyof Controls]!=='boolean')||k.cameraPitch!==undefined&&(!Number.isFinite(k.cameraPitch)||Math.abs(k.cameraPitch)>1.6)||k.autoRun!==undefined&&typeof k.autoRun!=='boolean'||k.jumpAssist!==undefined&&typeof k.jumpAssist!=='boolean'||k.boostHeld!==undefined&&typeof k.boostHeld!=='boolean'||
+ ['surfEnabled','surfActionPressed','surfPaddleHeld','surfPump'].some(f=>k[f as keyof Controls]!==undefined&&typeof k[f as keyof Controls]!=='boolean'))throw Error('Commande de mouvement invalide');
  }
  restoreMovement(p,s);let tick=s.tick;
- for(const c of commands){if(c.tick!==tick+1)throw Error('Commandes de mouvement non consécutives');simulatePlayer(p,c.input,1/30,collision);tick=c.tick;}
+ for(const c of commands){if(c.tick!==tick+1)throw Error('Commandes de mouvement non consécutives');simulatePlayer(p,c.input,1/30,collision,surfField,c.tick);tick=c.tick;}
  return captureMovement(p,tick);
 }
