@@ -99,3 +99,27 @@ test('spatial hash resolves distant negative-coordinate footpaths',()=>{
   const route=router.route({x:-240,z:-135},{x:-175,z:-80});
   assert.ok(route&&route.length>105&&route.length<125);
 });
+
+test('every historic squirrel villager maps to the existing player hamster rig; wildlife remains wildlife',async()=>{
+  const {visualNPCSpecies,isHumanoidNPC}=await import('../src/npc-life/species.ts');
+  assert.equal(visualNPCSpecies('squirrel'),'hamster');
+  assert.equal(visualNPCSpecies('hamster'),'hamster');
+  assert.equal(visualNPCSpecies('animal'),'animal');
+  assert.equal(isHumanoidNPC('squirrel'),true);
+  assert.equal(isHumanoidNPC('animal'),false);
+  const {DEFAULT_NPCS}=await import('../src/npc.ts');
+  assert.ok(DEFAULT_NPCS.every(n=>n.kind!=='squirrel'));
+  assert.ok(DEFAULT_NPCS.some(n=>n.kind==='hamster'));
+});
+
+test('profession gestures are deterministic and only triggered at sparse intervals',async()=>{
+  const {residentGesture,shouldPlayResidentGesture}=await import('../src/npc-life/gestures.ts');
+  assert.equal(residentGesture('farmer').activity,'farm-water');
+  assert.equal(residentGesture('fisher').activity,'fish-cast');
+  assert.equal(residentGesture('woodcutter').activity,'fell');
+  assert.equal(residentGesture('child'),null);
+  const g=residentGesture('farmer');
+  assert.ok(shouldPlayResidentGesture(0,-1,g));
+  assert.equal(shouldPlayResidentGesture(2,0,g),false);
+  assert.equal(shouldPlayResidentGesture(7.1,0,g),true);
+});
