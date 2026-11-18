@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Little World — Validation 3D du stand d'échange N1</title>
+<style>
+:root{font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;color:#e9edf3;background:#101820}*{box-sizing:border-box}body{margin:0;min-height:100vh;overflow:hidden}button{font:inherit;cursor:pointer}main{display:grid;grid-template-columns:minmax(0,1fr) 310px;min-height:100vh;background:#101820}.stage{position:relative;min-width:0;overflow:hidden;background:radial-gradient(ellipse at 52% 33%,#b9d9df 0%,#799fa9 44%,#2d525e 100%)}canvas{width:100%;height:100%;display:block;touch-action:none;cursor:grab}canvas:active{cursor:grabbing}.top{position:absolute;top:22px;left:24px;right:20px;display:flex;align-items:flex-start;justify-content:space-between;pointer-events:none;gap:12px}.crumb{font-size:11px;font-weight:750;letter-spacing:.13em;color:#274653}.heading{font-weight:780;font-size:clamp(22px,3vw,35px);color:#152e37;line-height:1.13;margin:5px 0 8px}.sub{font-size:13px;color:#345d69;max-width:440px;line-height:1.5}.tag{background:#e6f8f2;border:1px solid #9bd4bf;color:#18725f;border-radius:30px;font-size:11px;font-weight:800;letter-spacing:.04em;padding:9px 12px;white-space:nowrap}.hint{position:absolute;bottom:20px;left:24px;background:#14313bbc;color:#e9f8f7;padding:10px 14px;border-radius:11px;font-size:12px;border:1px solid #ffffff24;backdrop-filter:blur(7px)}aside{background:#16222c;border-left:1px solid #ffffff17;padding:27px 23px;overflow-y:auto;max-height:100vh}.smallcap{text-transform:uppercase;font-size:10px;font-weight:780;letter-spacing:.16em;color:#8dabb5}.sidebarTitle{font-size:20px;font-weight:800;margin:8px 0 6px}.muted{font-size:12px;color:#99b0ba;line-height:1.6;margin:0}.rule{height:1px;background:#ffffff1b;margin:22px 0}.groupTitle{font-size:13px;font-weight:750;margin:0 0 11px}.palettes{display:grid;gap:7px}.palette{width:100%;background:#22313c;border:1px solid #ffffff20;border-radius:10px;color:#e9f3f6;padding:8px 11px;display:flex;gap:10px;align-items:center;text-align:left}.palette[aria-pressed=true]{border-color:#8cc5bb;background:#2b4249;box-shadow:inset 0 0 0 1px #8cc5bb4b}.swatch{display:inline-block;width:28px;height:24px;border-radius:6px;border:2px solid #ffffff65;flex-shrink:0}.palette span:nth-child(2){flex:1;font-size:12px;font-weight:650}.palette .check{color:#a5dfcd;opacity:0}.palette[aria-pressed=true] .check{opacity:1}.toggles{display:grid;gap:12px}.toggle{display:flex;align-items:center;gap:9px;font-size:12px;color:#e7f3f2;cursor:pointer}.toggle input{accent-color:#8cc7b5;width:16px;height:16px}.actions{display:grid;gap:8px;margin-top:18px}.action{background:#29424d;color:#eff8fa;border:1px solid #49717c;border-radius:10px;padding:11px 12px;font-size:12px;font-weight:700}.action.primary{background:#83c5b1;color:#163b35;border-color:#83c5b1}.list{font-size:12px;color:#b5cbd1;line-height:1.9;padding-left:18px;margin:10px 0}.ok{color:#a6e1ca}.footer{font-size:11px;line-height:1.55;color:#7e9ba6;padding-bottom:12px}#error{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#2e3d42;color:white;padding:24px;border-radius:12px;max-width:390px;display:none}@media(max-width:780px){body{overflow:auto}main{display:flex;flex-direction:column;min-height:100vh}.stage{height:58vh;min-height:420px}aside{max-height:none;padding:22px}.top{top:16px;left:16px}.tag{display:none}.hint{left:15px;bottom:10px;font-size:11px}.palettes{grid-template-columns:repeat(2,minmax(0,1fr))}.heading{font-size:23px}.sub{font-size:11px}}
+</style>
+</head>
+<body><main>
+<section class="stage"><canvas id="view" aria-label="Maquette 3D du stand d'échange niveau 1, rotation et zoom interactifs"></canvas><div class="top"><div><div class="crumb">LITTLE WORLD / COMMERCE PORTUAIRE</div><h1 class="heading">Stand d'échange <span style="font-weight:430">N1</span></h1><div class="sub">Quatre poteaux, une toile tendue, un comptoir ouvert.<br>Prototype architectural de validation, pas un mesh final.</div></div><div class="tag">PROTOTYPE 3D</div></div><div class="hint">↔ Glisser pour tourner &nbsp; · &nbsp; Molette pour zoomer &nbsp; · &nbsp; Tactile compatible</div><div id="error"></div></section>
+<aside>
+ <div class="smallcap">CONCEPTION / 01 — 05</div><div class="sidebarTitle">Stand marchand ouvert</div><p class="muted">Base commune des centres d'échange sur toutes les îles. Aucun mur ni toiture rigide : la toile est le toit.</p>
+ <div class="rule"></div><div class="groupTitle">Palette du biome</div>
+ <div class="palettes" id="palettes">
+  <button class="palette" data-id="tropical" aria-pressed="true"><span class="swatch" style="background:linear-gradient(90deg,#d76556 50%,#fff0d4 50%)"></span><span>Tropical</span><b class="check">✓</b></button>
+  <button class="palette" data-id="forest" aria-pressed="false"><span class="swatch" style="background:linear-gradient(90deg,#62905c 50%,#f2e9ce 50%)"></span><span>Forêt</span><b class="check">✓</b></button>
+  <button class="palette" data-id="mountain" aria-pressed="false"><span class="swatch" style="background:linear-gradient(90deg,#537eaa 50%,#edf0e9 50%)"></span><span>Montagne</span><b class="check">✓</b></button>
+  <button class="palette" data-id="marsh" aria-pressed="false"><span class="swatch" style="background:linear-gradient(90deg,#aa8c53 50%,#e9dfbc 50%)"></span><span>Marais</span><b class="check">✓</b></button>
+  <button class="palette" data-id="volcano" aria-pressed="false"><span class="swatch" style="background:linear-gradient(90deg,#b35a40 50%,#f4d39c 50%)"></span><span>Volcan</span><b class="check">✓</b></button>
+ </div>
+ <div class="rule"></div><div class="groupTitle">Afficher dans la scène</div>
+ <div class="toggles"><label class="toggle"><input id="dock" type="checkbox" checked>Ponton et eau (contexte)</label><label class="toggle"><input id="props" type="checkbox" checked>Caisses, sacs et marchandises</label><label class="toggle"><input id="sign" type="checkbox" checked>Enseigne commerciale commune</label><label class="toggle"><input id="rotate" type="checkbox">Rotation automatique</label></div>
+ <div class="actions"><button id="reset" class="action">Réinitialiser la vue</button><button id="capture" class="action primary">Enregistrer une capture PNG</button></div>
+ <div class="rule"></div><div class="groupTitle">Critères à vérifier</div>
+ <ul class="list"><li><span class="ok">✓</span> Stand réellement ouvert sur 4 faces</li><li><span class="ok">✓</span> Toit uniquement en toile</li><li><span class="ok">✓</span> Emblème « caisse dans hexagone »</li><li><span class="ok">✓</span> Même géométrie pour chaque biome</li><li>Proportions et visibilité à valider</li></ul>
+ <div class="footer">Rendu géométrique 3D autonome sur Canvas 2D. Les volumes, le logo et les proportions sont des propositions modifiables avant création du GLB optimisé.</div>
+</aside>
+</main>
+<script>
+(()=>{
+'use strict';
+const canvas=document.getElementById('view'),error=document.getElementById('error');
+const ctx=canvas.getContext('2d',{alpha:false});if(!ctx){error.style.display='block';error.textContent='Canvas 2D indisponible.';return;}
+const P={tropical:{cloth:'#d76556',ivory:'#fff0d4',wood:'#a46a42',wood2:'#80502f',deck:'#a37c59',water:'#4b9bae',sign:'#88512b'},forest:{cloth:'#66945c',ivory:'#f4eccd',wood:'#765238',wood2:'#5b392c',deck:'#937151',water:'#588d8a',sign:'#785031'},mountain:{cloth:'#567fa8',ivory:'#f0f0e5',wood:'#77563d',wood2:'#554436',deck:'#877b70',water:'#6e9fb2',sign:'#645043'},marsh:{cloth:'#a58c58',ivory:'#e8dec0',wood:'#786e59',wood2:'#615a46',deck:'#87806b',water:'#668f87',sign:'#706048'},volcano:{cloth:'#b15740',ivory:'#f0d09c',wood:'#784a3a',wood2:'#563a34',deck:'#6f5c54',water:'#3d788a',sign:'#684333'}};
+let chosen='tropical',showDock=true,showProps=true,showSign=true,autospin=false,sceneCount=0,vertices=new Float32Array(0);
+const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));const hex=(v)=>{const t=v.replace('#','');return [0,2,4].map(i=>parseInt(t.slice(i,i+2),16)/255)};const mix=(a,b,t)=>a.map((x,i)=>x*(1-t)+b[i]*t);const dark=(v,t)=>mix(hex(v),[0,0,0],t);let data=[];
+function tri(a,b,c,col){const u=[b[0]-a[0],b[1]-a[1],b[2]-a[2]],v=[c[0]-a[0],c[1]-a[1],c[2]-a[2]],n=[u[1]*v[2]-u[2]*v[1],u[2]*v[0]-u[0]*v[2],u[0]*v[1]-u[1]*v[0]],len=Math.hypot(...n)||1;for(let i=0;i<3;i++)n[i]/=len;const rgb=typeof col==='string'?hex(col):col;for(const q of [a,b,c])data.push(...q,...n,...rgb)}
+function quad(a,b,c,d,color){tri(a,b,c,color);tri(a,c,d,color)}
+function box(x,y,z,w,h,d,color){const x0=x-w/2,x1=x+w/2,y0=y-h/2,y1=y+h/2,z0=z-d/2,z1=z+d/2;quad([x0,y0,z1],[x1,y0,z1],[x1,y1,z1],[x0,y1,z1],color);quad([x1,y0,z0],[x0,y0,z0],[x0,y1,z0],[x1,y1,z0],color);quad([x0,y1,z1],[x1,y1,z1],[x1,y1,z0],[x0,y1,z0],mix(hex(color),[1,1,1],.08));quad([x0,y0,z0],[x1,y0,z0],[x1,y0,z1],[x0,y0,z1],color);quad([x1,y0,z1],[x1,y0,z0],[x1,y1,z0],[x1,y1,z1],color);quad([x0,y0,z0],[x0,y0,z1],[x0,y1,z1],[x0,y1,z0],color)}
+function rod(a,b,r,color){const d=b.map((x,i)=>x-a[i]);let len=Math.hypot(...d);if(len<1e-5)return;const v=d.map(x=>x/len),base=Math.abs(v[1])<.9?[0,1,0]:[1,0,0];const right=[base[1]*v[2]-base[2]*v[1],base[2]*v[0]-base[0]*v[2],base[0]*v[1]-base[1]*v[0]];let norm=Math.hypot(...right);for(let i=0;i<3;i++)right[i]/=norm;const up=[v[1]*right[2]-v[2]*right[1],v[2]*right[0]-v[0]*right[2],v[0]*right[1]-v[1]*right[0]];let ring=[];for(let j=0;j<5;j++){const t=j*Math.PI/2;ring.push([right[0]*Math.cos(t)*r+up[0]*Math.sin(t)*r,right[1]*Math.cos(t)*r+up[1]*Math.sin(t)*r,right[2]*Math.cos(t)*r+up[2]*Math.sin(t)*r])}for(let j=0;j<4;j++)quad(a.map((x,i)=>x+ring[j][i]),a.map((x,i)=>x+ring[j+1][i]),b.map((x,i)=>x+ring[j+1][i]),b.map((x,i)=>x+ring[j][i]),color)}
+function polygonXY(cx,cy,z,r,steps,color){const pts=Array.from({length:steps},(_,i)=>[cx+Math.cos(i*2*Math.PI/steps+Math.PI/6)*r,cy+Math.sin(i*2*Math.PI/steps+Math.PI/6)*r,z]);for(let i=0;i<steps;i++)tri([cx,cy,z],pts[i],pts[(i+1)%steps],color)}
+function ellipse(cx,cy,cz,rx,ry,rz,c,n=8,rings=4){const segments=[];for(let j=0;j<=rings;j++){const th=Math.PI*j/rings;segments.push(Array.from({length:n},(_,i)=>[cx+Math.sin(th)*Math.cos(i*2*Math.PI/n)*rx,cy+Math.cos(th)*ry,cz+Math.sin(th)*Math.sin(i*2*Math.PI/n)*rz]))}for(let j=0;j<rings;j++)for(let i=0;i<n;i++)quad(segments[j][i],segments[j+1][i],segments[j+1][(i+1)%n],segments[j][(i+1)%n],c)}
+function cylinder(x,y,z,r,h,color,steps=8){let top=[],bottom=[];for(let i=0;i<steps;i++){const t=i*2*Math.PI/steps;top.push([x+Math.cos(t)*r,y+h/2,z+Math.sin(t)*r]);bottom.push([x+Math.cos(t)*r,y-h/2,z+Math.sin(t)*r])}for(let i=0;i<steps;i++){const k=(i+1)%steps;quad(bottom[i],bottom[k],top[k],top[i],color);tri([x,y+h/2,z],top[i],top[k],color)}}
+function crate(x,y,z,w,c){box(x,y,z,w,w,w,c);const br='#6d452d';for(const dx of [-.37,.37])box(x+dx*w,y,z+w/2+.008,.07*w,.86*w,.035*w,br);for(const dy of [-.37,.37])box(x,y+dy*w,z+w/2+.014,w,.06*w,.03*w,br);rod([x-w*.34,y-w*.34,z+w*.52],[x+w*.34,y+w*.34,z+w*.52],.021*w,br);rod([x-w*.34,y+w*.34,z+w*.52],[x+w*.34,y-w*.34,z+w*.52],.02*w,br)}
+function emblem(p){const cx=1.44,cy=1.67,z=.94;polygonXY(cx,cy,z,.32,6,p.wood2);polygonXY(cx,cy,z+.011,.275,6,'#f2dca8');polygonXY(cx,cy,z+.022,.227,6,p.sign);const cream='#fff3d8',zz=z+.04,point=(x,y)=>[cx+x,cy+y,zz];const seg=(a,b)=>rod(point(...a),point(...b),.014,cream);for(const [a,b] of [[[-.15,.085],[0,.18]],[[0,.18],[.15,.085]],[[-.15,.085],[0,0]],[[.15,.085],[0,0]],[[-.15,.085],[-.15,-.095]],[[.15,.085],[.15,-.095]],[[0,0],[0,-.19]],[[-.15,-.095],[0,-.19]],[[.15,-.095],[0,-.19]]])seg(a,b);rod([1.15,2.1,.75],[1.58,2.1,.75],.045,p.wood2);rod([1.44,2.09,.76],[1.44,1.97,.88],.014,'#c5b18e')}
+function build(){const p=P[chosen];data=[];if(showDock){box(0,-.31,0,35,.1,35,p.water);box(0,-.09,0,4.65,.16,3.75,p.wood2);for(let k=0;k<11;k++)box(-2.0+k*.39,-.005,0,.365,.09,3.68,k%3===0?p.wood2:p.deck);for(let x of [-2.12,2.12])for(let z of [-1.65,1.65]){box(x,-.33,z,.25,.82,.25,p.wood2);box(x,.13,z,.31,.16,.31,p.wood)}for(let z of [-1.69,1.69]){box(0,.03,z,4.1,.07,.08,p.wood2)}}else{box(0,-.18,0,4.5,.21,3.4,'#b5b9a2');box(0,-.066,0,4.1,.02,3.0,'#aaa78d')}
+// Four clearly exposed wooden posts, no wall geometry.
+for(let x of [-1.06,1.06])for(let z of [-.77,.77]){box(x,1.08,z,.14,2.2,.14,p.wood2);box(x,.13,z,.20,.16,.2,p.wood)}
+for(let z of [-.77,.77])box(0,2.13,z,2.26,.105,.13,p.wood2);
+// Fully fabric canopy: seven alternating bands and scalloped textile hems.
+const bands=8,xMin=-1.25,xMax=1.25;for(let i=0;i<bands;i++){const xa=xMin+(xMax-xMin)*i/bands,xb=xMin+(xMax-xMin)*(i+1)/bands;const c=i%2?p.ivory:p.cloth;quad([xa,2.13,-1.01],[xb,2.13,-1.01],[xb,2.47,0],[xa,2.47,0],c);quad([xa,2.47,0],[xb,2.47,0],[xb,2.13,1.01],[xa,2.13,1.01],c);quad([xa,2.13,1.01],[xb,2.13,1.01],[xb,1.99,1.035],[xa,1.99,1.035],c);quad([xb,2.13,-1.01],[xa,2.13,-1.01],[xa,1.99,-1.035],[xb,1.99,-1.035],c);}
+rod([-1.29,2.49,0],[1.29,2.49,0],.045,p.wood2);
+// Open wooden tabletop, no closed front panel.
+box(0,1.04,.37,1.90,.13,.63,p.wood);for(const x of [-.79,.79])for(const z of [.15,.60])box(x,.48,z,.11,.91,.11,p.wood2);
+box(0,.39,-.49,1.54,.08,.28,p.wood);for(const x of [-.67,.67])box(x,.52,-.49,.09,.8,.09,p.wood2);
+if(showProps){crate(-1.49,.33,.39,.53,p.wood);crate(-1.54,.20,-.32,.34,p.wood);ellipse(.88,.23,.72,.28,.29,.24,'#dfc9a5',9,5);rod([.78,.43,.75],[.91,.55,.72],.028,'#c0a07a');for(const a of [[-.37,1.17,.27],[-.02,1.15,.31],[.30,1.15,.34]])ellipse(a[0],a[1],a[2],.12,.115,.13,['#d7a651','#6c9053','#ca7b51'][Math.round((a[0]+.37)/.33)]);crate(.52,.37,-.53,.34,p.wood);}
+if(showSign)emblem(p);
+vertices=new Float32Array(data);sceneCount=vertices.length/9;}
+function normalize(v){const d=Math.hypot(...v)||1;return v.map(x=>x/d)}function subtract(a,b){return a.map((x,i)=>x-b[i])}function cross(a,b){return [a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]]}
+function lookAt(eye,target,up){const z=normalize(subtract(eye,target)),x=normalize(cross(up,z)),y=cross(z,x);return new Float32Array([x[0],y[0],z[0],0,x[1],y[1],z[1],0,x[2],y[2],z[2],0,-x.reduce((s,v,i)=>s+v*eye[i],0),-y.reduce((s,v,i)=>s+v*eye[i],0),-z.reduce((s,v,i)=>s+v*eye[i],0),1])}
+function perspective(fovy,aspect,near,far){const f=1/Math.tan(fovy/2);return new Float32Array([f/aspect,0,0,0,0,f,0,0,0,0,(far+near)/(near-far),-1,0,0,2*far*near/(near-far),0])}
+let yaw=.72,pitch=.32,dist=7.6,drag=false,lastX=0,lastY=0;
+let lastFrame=0;
+function draw(t){
+ requestAnimationFrame(draw);
+ if(t-lastFrame<28)return;lastFrame=t;
+ if(autospin&&!drag)yaw+=.009;
+ const bounds=canvas.getBoundingClientRect(),ratio=Math.min(window.devicePixelRatio||1,1.7),w=Math.max(1,Math.round(bounds.width*ratio)),h=Math.max(1,Math.round(bounds.height*ratio));
+ if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;}
+ const bg=ctx.createLinearGradient(0,0,0,h);bg.addColorStop(0,'#b6d5d9');bg.addColorStop(1,showDock?'#5194a2':'#b0b6a9');ctx.fillStyle=bg;ctx.fillRect(0,0,w,h);
+ const eye=[dist*Math.sin(yaw)*Math.cos(pitch),1.11+dist*Math.sin(pitch),dist*Math.cos(yaw)*Math.cos(pitch)];
+ const view=lookAt(eye,[0,1.03,0],[0,1,0]);const f=.5*Math.min(w,h)/Math.tan(Math.PI/6);
+ const light=normalize([-.43,.85,.55]);const polygons=[];
+ for(let i=0;i<vertices.length;i+=27){const xy=[],depths=[];let visible=true;
+   for(let k=0;k<3;k++){const q=i+k*9,px=vertices[q],py=vertices[q+1],pz=vertices[q+2];
+     const vx=view[0]*px+view[4]*py+view[8]*pz+view[12];
+     const vy=view[1]*px+view[5]*py+view[9]*pz+view[13];
+     const vz=view[2]*px+view[6]*py+view[10]*pz+view[14];
+     if(vz>=-.08){visible=false;break;}
+     xy.push([w*.5+vx*f/(-vz),h*.54-vy*f/(-vz)]);depths.push(-vz);
+   }
+   if(!visible)continue;
+   const n=[vertices[i+3],vertices[i+4],vertices[i+5]],lam=clamp(.72+.33*Math.max(0,n.reduce((s,x,k)=>s+x*light[k],0)),0,1.08);
+   const rgb=[vertices[i+6],vertices[i+7],vertices[i+8]].map(c=>Math.round(clamp(c*lam*255,0,255)));
+   polygons.push({xy,depth:(depths[0]+depths[1]+depths[2])/3,col:`rgb(${rgb.join(',')})`});
+ }
+ polygons.sort((a,b)=>b.depth-a.depth);
+ for(const face of polygons){const q=face.xy;ctx.beginPath();ctx.moveTo(q[0][0],q[0][1]);ctx.lineTo(q[1][0],q[1][1]);ctx.lineTo(q[2][0],q[2][1]);ctx.closePath();ctx.fillStyle=face.col;ctx.fill();}
+}
+canvas.addEventListener('pointerdown',e=>{drag=true;lastX=e.clientX;lastY=e.clientY;canvas.setPointerCapture(e.pointerId)});canvas.addEventListener('pointermove',e=>{if(!drag)return;yaw-=(e.clientX-lastX)*.009;pitch=clamp(pitch+(e.clientY-lastY)*.006,-.20,1.31);lastX=e.clientX;lastY=e.clientY});canvas.addEventListener('pointerup',()=>drag=false);canvas.addEventListener('pointercancel',()=>drag=false);canvas.addEventListener('wheel',e=>{e.preventDefault();dist=clamp(dist*Math.exp(e.deltaY*.001),3.1,16)},{passive:false});
+document.querySelectorAll('.palette').forEach(b=>b.addEventListener('click',()=>{chosen=b.dataset.id;document.querySelectorAll('.palette').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));build()}));for(const [id,fn]of [['dock',v=>showDock=v],['props',v=>showProps=v],['sign',v=>showSign=v]])document.getElementById(id).addEventListener('change',e=>{fn(e.target.checked);build()});document.getElementById('rotate').addEventListener('change',e=>autospin=e.target.checked);document.getElementById('reset').addEventListener('click',()=>{yaw=.72;pitch=.32;dist=7.6});document.getElementById('capture').addEventListener('click',()=>{const a=document.createElement('a');a.download=`little-world-stand-n1-${chosen}.png`;a.href=canvas.toDataURL('image/png');a.click()});build();requestAnimationFrame(draw);
+})()
+</script></body></html>
