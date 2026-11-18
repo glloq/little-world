@@ -46,8 +46,11 @@ export class WorldCollisionQuery {
  private providers=new Map<string,SpaceProvider>();
  private transitions:TransitionVolume[]=[];
  private terrain:(x:number,z:number)=>number;
- /** Outdoor relief height (the base heightfield, without obstacles). */
- reliefHeight(x:number,z:number){return this.terrain(x,z);}
+ /** Optional authored bridge/bank/ramp floor. Null outside the course; no separate world collision. */
+ private outdoorCourse:((x:number,z:number)=>number|null)|null=null;
+ setOutdoorCourseSurface(sample:((x:number,z:number)=>number|null)|null){this.outdoorCourse=sample;}
+ /** Ground gradient for rolling; the same course surface feeds rendering and floor contact. */
+ reliefHeight(x:number,z:number){return this.outdoorCourse?.(x,z)??this.terrain(x,z);}
  private water:(x:number,z:number)=>number|null;
  private large=new Set<string>();
  private scratch:Bounds[]=[];
@@ -79,7 +82,12 @@ export class WorldCollisionQuery {
  }
  /** Base floor/ceiling of the space (terrain outside, layer or provider column underground). */
  private base(x:number,z:number,y:number,space?:MovementSpace|null):{floorY:number;ceilingY:number|null}{
-  if(!space)return {floorY:this.terrain(x,z),ceilingY:null};
+  if(!space){
+    const base=this.terrain(x,z),deck=this.outdoorCourse?.(x,z)??null;
+    // A raised bridge is a surface approached from above; do not teleport animals
+    // walking underneath onto its deck.
+    return {floorY:deck!==null&&deck<=y+.45?Math.max(base,deck):base,ceilingY:null};
+  }
   const provider=this.providers.get(space.zoneId);
   if(provider){const c=provider.column(space.levelId,x,z);return c??{floorY:provider.floor(space.levelId),ceilingY:provider.floor(space.levelId)};}
   let best:SurfaceLayer|undefined,lowest:SurfaceLayer|undefined;
