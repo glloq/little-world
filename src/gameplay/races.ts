@@ -1,4 +1,5 @@
 /** Shared, rendering-independent race rules. Suitable for solo simulation and future server authority. */
+import {validateRaceTrack,type RaceTrack} from './race-track.ts';
 export type RaceKind='flight'|'roll'|'mixed';
 export type RaceMotionMode='ground'|'roll'|'air'|'glide';
 export interface RacePoint {x:number;y:number;z:number}
@@ -19,6 +20,8 @@ export interface RaceDefinition {
   /** Practice courses do not participate in competitive leaderboards. */
   classification:'practice'|'standard'|'free';
   gates:readonly RaceGate[];
+  /** Optional 2.5D rolling route, separate from the checkpoint path. */
+  track?:RaceTrack;
   maxTicks:number;
   /** Fixed authored races start on crossing gate 0; generated practice races start on launch. */
   startOnFirstGate?:boolean;
@@ -65,6 +68,7 @@ export function validateRace(def:RaceDefinition,bounds?:RaceBounds):RaceDefiniti
     if(i&&distance(g.center,def.gates[i-1].center)<3)throw Error('Checkpoints superposés');
     ids.add(g.id);
   }
+  if(def.track){if(def.kind==='flight')throw Error('Piste : réservée à la roulade ou aux courses mixtes');validateRaceTrack(def.track,bounds);}
   return def;
 }
 /** Exact crossing of the gate's oriented plane by the physical movement segment.

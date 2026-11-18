@@ -1,15 +1,16 @@
 /** Versioned, project-owned courses. Mutations belong to Studio's shared CommandBus. */
 import type {ProjectDocument,WorldDefinitionV3} from './types.ts';
 import {validateRace,type RaceDefinition,type RaceGate,type RaceKind} from '../gameplay/races.ts';
+import {validateRaceTrack} from '../gameplay/race-track.ts';
 const isObj=(v:unknown):v is Record<string,unknown>=>!!v&&typeof v==='object'&&!Array.isArray(v);
 const only=(v:Record<string,unknown>,keys:readonly string[],label:string)=>{
  for(const k of Object.keys(v))if(!keys.includes(k))throw Error(label+' : champ inconnu '+k);
 };
 const limits=(n:unknown,min:number,max:number)=>typeof n==='number'&&Number.isFinite(n)&&n>=min&&n<=max;
 const pathLength=(points:readonly {x:number;z:number}[])=>points.slice(1).reduce((total,p,i)=>total+Math.hypot(p.x-points[i].x,p.z-points[i].z),0);
-export function sourceRaceKey(race:Pick<RaceDefinition,'kind'|'gates'|'maxTicks'|'worldId'|'id'>):string{
+export function sourceRaceKey(race:Pick<RaceDefinition,'kind'|'gates'|'track'|'maxTicks'|'worldId'|'id'>):string{
  // Fast stable dual hash of author-owned gameplay geometry. It is NOT a server signature.
- const source=JSON.stringify([race.worldId,race.id,race.kind,race.maxTicks,race.gates]);
+ const source=JSON.stringify([race.worldId,race.id,race.kind,race.maxTicks,race.gates,race.track??null]);
  let a=2166136261,b=2246822519;
  for(let i=0;i<source.length;i++){
   const c=source.charCodeAt(i);a=Math.imul(a^c,16777619);b=Math.imul(b^c,3266489917);
@@ -19,7 +20,7 @@ export function sourceRaceKey(race:Pick<RaceDefinition,'kind'|'gates'|'maxTicks'
 /** Strict at the importer/compiled boundary; optional field on old V3 projects. */
 export function validateAuthoredRace(raw:unknown,world:WorldDefinitionV3):RaceDefinition{
  if(!isObj(raw))throw Error('Circuit : objet attendu');
- only(raw,['id','name','version','worldId','layoutKey','kind','classification','gates','maxTicks','startOnFirstGate'],'Circuit');
+ only(raw,['id','name','version','worldId','layoutKey','kind','classification','gates','maxTicks','startOnFirstGate','track'],'Circuit');
  if(typeof raw.id!=='string'||!/^race:[a-zA-Z0-9_-]{1,100}$/.test(raw.id)||
     typeof raw.name!=='string'||raw.name.trim().length<2||raw.name.length>100||
     raw.worldId!==world.worldId||raw.startOnFirstGate!==true||raw.classification!=='practice')
@@ -33,6 +34,21 @@ export function validateAuthoredRace(raw:unknown,world:WorldDefinitionV3):RaceDe
      if(!isObj(point))throw Error('Checkpoint : position ou orientation absente');
      only(point,['x','y','z'],'Point checkpoint');
    }
+ }
+ if(raw.track!==undefined){
+   if(!isObj(raw.track))throw Error('Piste : objet attendu');
+   only(raw.track,['width','material','smooth','points','features'],'Piste');
+   if(!Array.isArray(raw.track.points))throw Error('Piste : points absents');
+   for(const point of raw.track.points){
+     if(!isObj(point))throw Error('Piste : point invalide');
+     only(point,['x','z'],'Point de piste');
+   }
+   if(!Array.isArray(raw.track.features))throw Error('Piste : modules absents');
+   for(const feature of raw.track.features){
+     if(!isObj(feature))throw Error('Piste : module invalide');
+     only(feature,['id','kind','at','length','height','bankDeg'],'Module de piste');
+   }
+   validateRaceTrack(raw.track as unknown as import('../gameplay/race-track.ts').RaceTrack,world.bounds);
  }
  const race=validateRace(raw as unknown as RaceDefinition,world.bounds);
  if(race.layoutKey!==sourceRaceKey(race))throw Error('Circuit : empreinte du tracé invalide');
@@ -74,7 +90,7 @@ export function authoredRaceFromTrace(world:WorldDefinitionV3,options:{
  const gates=gatesFromTrace(options.points,options.kind,options.height,options.old);
  const race:RaceDefinition={id:options.id,name:options.name,kind:options.kind,worldId:world.worldId,
    version:1,layoutKey:'',classification:'practice',startOnFirstGate:true,
-   gates,maxTicks:options.old?.maxTicks??30*180};
+   gates,maxTicks:options.old?.maxTicks??30*180,...(options.old?.track?{track:structuredClone(options.old.track)}:{})};
  race.layoutKey=sourceRaceKey(race);
  return validateAuthoredRace(race,world);
 }
