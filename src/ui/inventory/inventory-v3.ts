@@ -16,6 +16,9 @@ export interface InventoryV3Deps extends InventoryDeps {
   consumeBatch?:(items:FoodLine[])=>{ok:boolean;message:string};
   confirm?:(text:string,confirmLabel:string)=>Promise<boolean>;
   notify?:(message:string)=>void;
+  /** Handoff selected item IDs; the bag never executes merchant transactions. */
+  canSellNearby?:(ids:readonly string[])=>boolean;
+  openSale?:(ids:readonly string[])=>boolean;
 }
 const FILTERS:readonly {id:InventoryFilter;label:string}[]=[
   {id:'all',label:'Tout'},{id:'food',label:'Aliments'},
@@ -327,6 +330,11 @@ export function inventoryPanelV3(deps:InventoryV3Deps){
       const plan=planFoodConsumption(selected,deps.inventory(),(deps.gasCapacity?.()??200)-(deps.gasLevel?.()??0));
       const eat=button('Manger sélection · +'+plan.gain+' gaz',()=>{void consumeSelection();},'ui-button ui-primary');
       eat.disabled=!edible||!plan.lines.length;actions.append(eat);
+      if(selected.length&&deps.canSellNearby?.(selected)){
+        actions.append(button('Vendre au comptoir',()=>{
+          if(!deps.openSale?.(selected))report('Aucun comptoir de rachat accessible.');
+        },'ui-button'));
+      }
     }else if(selectedItem){
       const title=el('div','ui-bag-selected');title.append(el('strong','',selectedItem.name),el('span','ui-muted','×'+selectedItem.quantity+(foodGasValue(selectedItem.id)?' · +'+foodGasValue(selectedItem.id)+' gaz':'')));
       actions.append(title);
@@ -353,6 +361,11 @@ export function inventoryPanelV3(deps:InventoryV3Deps){
           },'ui-button'));
         }
         if(selectedItem.category==='instrument'&&equipped&&deps.playInstrument)actions.append(button('Jouer',()=>deps.playInstrument?.(selectedItem.id),'ui-button'));
+      }
+      if(deps.canSellNearby?.([selectedItem.id])){
+        actions.append(button('Vendre',()=>{
+          if(!deps.openSale?.([selectedItem.id]))report('Cet objet ne peut pas être vendu ici.');
+        },'ui-button'));
       }
       actions.append(el('span','ui-bag-description',selectedItem.description??selectedItem.categoryLabel));
     }else actions.append(el('span','ui-muted','Sélectionnez un objet.'));
