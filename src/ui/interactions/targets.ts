@@ -56,7 +56,7 @@ export function gatherTarget(g:{key:string;label:string;name:string;ok:boolean;r
   const primary=action('gather',g.label+(g.progress?` (${g.progress})`:''),g.ok,g.reason);
   return {targetId:g.key,targetType:'gather',displayName:g.name,primaryAction:primary,availableActions:[primary,{...primary,id:'gather-f',key:'F'}],...(g.ok?{}:{disabledReason:g.reason})};
 }
-export function fishingTarget(f:{phase:'idle'|'waiting'|'bite';water:string;ok:boolean;reason?:string}):TargetDescriptor{
-  const label=f.phase==='bite'?'Ferrer !':f.phase==='waiting'?'Attendre la touche… (E : relever)':'Pêcher';const primary=action('fish',label,f.ok,f.reason);
+export function fishingTarget(f:{phase:'idle'|'waiting'|'bite'|'reeling'|'landed';water:string;ok:boolean;reason?:string}):TargetDescriptor{
+  const label=f.phase==='reeling'?'Maintenir E : mouliner':f.phase==='landed'?'Poisson capturé':f.phase==='bite'?'Ferrer !':f.phase==='waiting'?'Attendre la touche… (E : relever)':'Pêcher';const primary=action('fish',label,f.ok,f.reason);
   return {targetId:'fishing',targetType:'fishing',displayName:f.phase==='idle'?f.water:'',primaryAction:primary,availableActions:[primary],...(f.ok?{}:{disabledReason:f.reason})};
 }

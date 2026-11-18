@@ -6,6 +6,9 @@
 
 
 # 07 — Feuille de route — Little World Solo / GitHub Pages
+
+> **FISH — Mini-jeu de pêche à tension (implémentation en revue sur PR #77, non qualifiée intégralement)** : [conception et audit du code](FISHING-MINIGAME-TECHNICAL-DESIGN.md) + [roadmap FISH-0 à FISH-7 et matrice de validation](FISHING-MINIGAME-ROADMAP.md). Réutiliser la canne, les 7 espèces, les 3 milieux, le HUD et le gameplay existants ; ajouter le maintien de la touche E / bouton mobile, la simulation de tension, la capture atomique et les tests. Premier jalon : noyau pur déterministe, puis intégration PC/mobile et qualification.
+
 > **Nouvelle campagne moteur/performance 4–8 Go (novembre 2026) :** [80 — matériel ancien et qualité Auto](80-OLD-PC-HARDWARE-AUTO-QUALITY.md), [81 — audit ciblé CPU/GPU/streaming](81-RENDER-PERFORMANCE-CODE-AUDIT.md), [82 — OPT-0…OPT-9, roadmap et gates](82-PERFORMANCE-GRAPHICS-IMPLEMENTATION-ROADMAP.md). Ces documents complètent le budget [22 — PERF](22-RESOURCE-BUDGET-MANAGER.md) et la roadmap artistique [PR #29](https://github.com/glloq/little-world/pull/29) ; **aucun travail runtime n'est déclaré livré par l'ajout documentaire**.
 
 
