@@ -7,7 +7,7 @@ import {mineChunkGeometry,WALL_ROWS,MINE_RELIEF} from '../src/mine/mine-mesher.t
 import {mineSpaceProvider,mineTransitions} from '../src/mine/mine-collision.ts';
 import {WorldCollisionQuery} from '../src/physics/collision-world.ts';
 import {simulatePlayer,MAX_OXYGEN} from '../src/player.ts';
-import {mineHubLayout,mineHubCounterId,mineRequiredExcavations,mineLevelUnlocked} from '../src/mine/mine-hub.ts';
+import {mineHubLayout,mineHubCounterId,mineRequiredExcavations,mineLevelUnlocked,mineLevelResourceIcons} from '../src/mine/mine-hub.ts';
 import {createMineHubView} from '../src/mine/mine-hub-view.ts';
 import {createActivityRuntime} from '../src/gameplay/activity-runtime.ts';
 
@@ -157,4 +157,49 @@ test('MINE-HUB: low-poly visuals merge geometry and remain detached from mine co
     assert.ok(child.geometry.getAttribute('position').count>50);
     child.geometry.dispose();}
   solid.dispose();glow.dispose();
+});
+
+test('MINE-HUB V2: island exit is behind the gallery only on floor 1, connected without lift',()=>{
+  const z=zone(),state=new MineState(new MineGrid(z)),entry=z.mine.entrance;
+  const h0=mineHubLayout(z,0),h1=mineHubLayout(z,1),h2=mineHubLayout(z,2);
+  assert.ok(h0.surfaceExit,'first level owns the rear exit');
+  assert.equal(h1.surfaceExit,null);
+  assert.equal(h2.surfaceExit,null);
+  const axis={x:Math.sin(entry.heading),z:Math.cos(entry.heading)};
+  const projection=(point)=>((point.x-h0.shaft.x)*axis.x+(point.z-h0.shaft.z)*axis.z);
+  assert.ok(projection(h0.surfaceExit)<0&&projection(h0.gallery)>0,
+    'surface exit is behind the hall, opposite the extraction gallery');
+  assert.equal(h0.surfaceExit.y,undefined,'rear opening is a planar floor passage, not a stair');
+  const dx=h0.surfaceExit.x-entry.x,dz=h0.surfaceExit.z-entry.z;
+  // Validate a walkable 1 m cell route, not merely a decorative sign.
+  const steps=Math.ceil(Math.hypot(dx,dz)*2);
+  for(let i=0;i<=steps;i++){
+    const t=i/steps,x=entry.x+dx*t,z=entry.z+dz*t;
+    if(state.grid.inZone(Math.floor(x),Math.floor(z)))
+      assert.ok(state.isOpen(0,Math.floor(x),Math.floor(z)),'rear corridor cell open '+i);
+  }
+  const q=new WorldCollisionQuery(()=>30,()=>null);
+  const runtime=createActivityRuntime({mines:[z],farms:[]},{
+    grant:()=>true,time:()=>0,has:()=>true,climate:{},collision:q,ground:()=>30,water:()=>null
+  });
+  assert.equal(q.stats.transitions,2,'only surface enter / exit transitions, no elevator auto trigger');
+  assert.equal(q.transitionAt({x:entry.x,y:state.grid.levels[1].floorY,z:entry.z},
+    {zoneId:z.id,levelId:h1.levelId}),null,'lower level cannot leave for the island');
+  assert.ok(runtime.mineNavigation({x:h0.surfaceExit.x,y:h0.floorY,z:h0.surfaceExit.z},
+    {zoneId:z.id,levelId:h0.levelId}));
+});
+test('MINE-HUB V2: same asset, level-specific ore pictograms and no exit below',()=>{
+  const z=zone(),state=new MineState(new MineGrid(z));
+  const materials=[new THREE.MeshLambertMaterial({vertexColors:true}),new THREE.MeshBasicMaterial({vertexColors:true})];
+  const all=[0,1,2].map(l=>{
+    const icons=mineLevelResourceIcons(state,l),hub=mineHubLayout(z,l),scene=createMineHubView(hub,...materials,icons);
+    assert.ok(icons.every(v=>['stone','iron','crystal'].includes(v)));
+    assert.deepEqual(scene.userData.resourceIcons,icons);
+    assert.equal(scene.userData.hasRearExit,l===0);
+    assert.equal(scene.children.length,2,'same merged, two-material art pipeline');
+    scene.traverse(child=>{if(child.isMesh)child.geometry.dispose();});
+    return icons;
+  });
+  assert.ok(all.some(icons=>icons.length>0),'mineral signs must not be empty everywhere');
+  for(const material of materials)material.dispose();
 });
