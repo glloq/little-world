@@ -104,3 +104,7 @@
   .ui-hamster-target{min-width:31px;min-height:31px;font-size:14px}
 }
 @media(prefers-reduced-motion:reduce){.ui-hamster-target{transition:none}}
+
+.ui-bag-categories{margin:0 0 6px;font-size:10px;color:var(--ui-muted);line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ui-bag-current-category{font-size:10px;color:var(--ui-muted)}
+.ui-bag-v3 .ui-bag-check{line-height:16px}
