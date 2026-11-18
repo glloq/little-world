@@ -241,7 +241,7 @@ export function advanceCargo(state:CargoStateV1,gameMinute:number,
     }
     events++;changed=true;
   }
-  if(gameMinute>state.lastObservedMinute){state.lastObservedMinute=gameMinute;changed=true;}
+  if(gameMinute>state.lastObservedMinute)state.lastObservedMinute=gameMinute;
   if(changed)state.revision++;
   const pending=nextEvent(state,routes);
   return {events,pending:!!pending&&pending.minute<=gameMinute};
@@ -312,7 +312,7 @@ export function createCargoService(storage:CargoStorage,args:{
     if(candidate.revision!==state.revision){
       storage.setItem(CARGO_STORAGE_KEY,JSON.stringify(candidate));
       state=candidate;args.onChange?.();
-    }
+    }else state=candidate;
     return result;
   }
   function buy(lotId:string,quantity:number,expectedRevision?:number,requestId='import-'+crypto.randomUUID()):CargoResult{
