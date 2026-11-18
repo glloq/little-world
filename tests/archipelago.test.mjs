@@ -40,3 +40,16 @@ test('time uses game-clock seconds, not browser wall time',()=>{
  assert.throws(()=>worldGameMinute(NaN,1200));
  assert.throws(()=>ferryStatus(-1,0));
 });
+
+test('ferry bell events pass the real Audio V2 schema and retain the published catalogue',async()=>{
+ const {readFileSync}=await import('node:fs');
+ const {parseAudioDefinitionV2}=await import('../src/audio/catalog.ts');
+ const {withFerryBells}=await import('../src/archipelago/ferry-audio.ts');
+ const published=JSON.parse(readFileSync(new URL('../public/audio/catalog.json',import.meta.url),'utf8'));
+ const original=parseAudioDefinitionV2(published);
+ const combined=parseAudioDefinitionV2(withFerryBells(original));
+ assert.equal(combined.meta.catalogVersion,original.meta.catalogVersion);
+ assert.ok(combined.events['ferry.arrived']);
+ assert.ok(combined.events['ferry.departure-warning']);
+ assert.equal(Object.keys(combined.events).length,Object.keys(original.events).length+2);
+});
