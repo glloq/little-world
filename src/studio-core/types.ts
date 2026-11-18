@@ -75,6 +75,8 @@ export interface ProjectLibraries {
   zones?:Record<StableId,ActivityZoneV3>;
   /** Fixed author-owned courses, optional for older projects. */
   races?:Record<StableId,import('../gameplay/races.ts').RaceDefinition>;
+  /** Optional authored surf areas. Empty legacy projects retain flat sea physics. */
+  surfZones?:Record<StableId,import('../surf/wave-field.ts').SurfZone>;
   /** World Production landscape presets (re-editable instances + generation record). Optional. */
   landscapes?:Record<StableId,import('../world-production/landscape-schema.ts').LandscapeInstanceV1>;
   /** Editable A/B geographic region recipes, stored as author-only V3 data. */
