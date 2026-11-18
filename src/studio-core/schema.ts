@@ -12,6 +12,7 @@ import {parseTerrainGenerator,VERTICAL_ENVELOPE,type TerrainGeneratorDefinition}
 import {validateZone} from './zones.ts';
 import {validateAuthoredRace} from './race-authoring.ts';
 import {validateSurfZone,type SurfZone} from '../surf/wave-field.ts';
+import {validateSurfFeature,type SurfFeature} from '../surf/surf-features.ts';
 import {validateLandscape,LANDSCAPE_LIMITS} from '../world-production/landscape-schema.ts';
 import {validateMapRequirements} from './map-requirements.ts';
 import {validateRegionRecipe} from './region-schema.ts';
@@ -153,7 +154,7 @@ export function validateLine(value:unknown,world:WorldDefinitionV3,water:boolean
   if(!water){if(line.kind!==undefined&&!PATH_KINDS.includes(line.kind as PathKind))throw Error('Chemin : type inconnu');if(line.smooth!==undefined&&typeof line.smooth!=='boolean')throw Error('Chemin : courbe invalide');}string(line.id,'ID tracé');finite(line.width,'Largeur',1,40);const points=array(line.points,'Points',100);if(points.length<2)throw Error('Tracé : deux points requis');for(const p of points){const v=object(p,'Point');keys(v,['x','z'],'Point');point(v,world,'Tracé');}if(water){finite(line.level,'Niveau',VERTICAL_ENVELOPE.min,VERTICAL_ENVELOPE.max);finite(line.depth,'Profondeur',.5,20);validateWaterProfile(line.profile,points.length);validateWaterNetworkFields(line as never);}
 }
 function validateLibraries(value:unknown,world:WorldDefinitionV3,entityIds:string[],chunkIds:string[]):void{
-  const libs=object(value,'Bibliothèques');keys(libs,['prefabs','characters','dialogues','behaviors','interactions','activities','variables','items','objectives','water','paths','zones','races','surfZones','landscapes','assemblies','regions','terrainPlans','settlements'],'Bibliothèques');
+  const libs=object(value,'Bibliothèques');keys(libs,['prefabs','characters','dialogues','behaviors','interactions','activities','variables','items','objectives','water','paths','zones','races','surfZones','surfFeatures','landscapes','assemblies','regions','terrainPlans','settlements'],'Bibliothèques');
   if(libs.assemblies!==undefined)for(const [id,raw] of Object.entries(dictionary(libs.assemblies,'Assemblages',1000))){
     const a=object(raw,'Assemblage');keys(a,['id','name','version','items'],'Assemblage');
     if(a.id!==id)throw Error('Assemblage : ID différent de la clé');
@@ -195,6 +196,18 @@ function validateLibraries(value:unknown,world:WorldDefinitionV3,entityIds:strin
     if(zone.id!==id||(zone.minX as number)<world.bounds.minX||(zone.maxX as number)>world.bounds.maxX||
       (zone.minZ as number)<world.bounds.minZ||(zone.maxZ as number)>world.bounds.maxZ||
       zone.seaLevel!==world.seaLevel)throw Error('Zone surf : limites ou niveau marin invalides');
+  }
+  if(libs.surfFeatures!==undefined)for(const [id,raw]of Object.entries(dictionary(libs.surfFeatures,'Modules surf',200))){
+    const f=object(raw,'Module surf');
+    keys(f,['id','kind','x','z','dirX','dirZ','radius','power','cooldownTicks'],'Module surf');
+    validateSurfFeature(f as unknown as SurfFeature);
+    const x=f.x as number,z=f.z as number;
+    if(f.id!==id||x<world.bounds.minX||x>world.bounds.maxX||z<world.bounds.minZ||z>world.bounds.maxZ)
+      throw Error('Module surf hors du monde');
+    if(!Object.values(libs.surfZones??{}).some(raw=>{
+      const zone=raw as SurfZone;
+      return x>=zone.minX&&x<=zone.maxX&&z>=zone.minZ&&z<=zone.maxZ;
+    }))throw Error('Module surf sans zone de vagues');
   }
   for(const name of ['prefabs','characters','dialogues','behaviors','interactions','activities','variables','items','objectives','water','paths']){
     const dict=dictionary(libs[name],`Bibliothèque ${name}`,10000);
