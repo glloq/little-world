@@ -9,10 +9,10 @@ import {categoryOf,MOISTURE_CODES} from './layers.ts';
 
 export type Geology='soil'|'sand'|'rock'|'basalt'|'ash'|'gravel';
 export type Biome='meadow'|'forest'|'wetland'|'mountain'|'volcanic'|'scrub'|'coast'|'river'|'lake'|'village';
-export type Material='grass'|'dry-grass'|'forest-floor'|'dirt'|'sand'|'pebbles'|'rock'|'gravel'|'basalt'|'ash'|'mud';
+export type Material='grass'|'dry-grass'|'forest-floor'|'dirt'|'sand'|'pebbles'|'rock'|'gravel'|'basalt'|'ash'|'mud'|'snow'|'ice';
 export type Occupation='none'|'built'|'farm'|'road'|'reserved'|'exclusion';
 export interface GeoContext {
-  seed:number;seaLevel:number;
+  seed:number;seaLevel:number; snowLineM?:number;
   height(x:number,z:number):number;
   /** Water surface at the point (rivers, lakes, sea) or null. */
   water(x:number,z:number,height:number):number|null;
@@ -74,8 +74,9 @@ export function biomeAt(ctx:GeoContext,x:number,z:number,h:number,slope:number,m
   const forest=fbm((ctx.seed^0xf0e5)>>>0,x/320,z/320,3)+(moisture-.5)*1.1-smooth(180,320,alt)*.6-smooth(.6,1,slope)*.4;
   return forest>.12?'forest':'meadow';
 }
-export function materialAt(ctx:GeoContext,x:number,z:number,s:{geology:Geology;biome:Biome;moisture:number;occupation:Occupation;cliff:number;slope:number}):Material{
+export function materialAt(ctx:GeoContext,x:number,z:number,s:{geology:Geology;biome:Biome;moisture:number;occupation:Occupation;cliff:number;slope:number;height?:number}):Material{
   const code=ctx.mask('material',x,z);if(code&&code!=='.')return categoryOf('material',code)!.id as Material;
+  if(ctx.snowLineM!==undefined&&s.height!==undefined&&s.height>=ctx.snowLineM&&s.slope<.9&&s.occupation==='none')return 'snow';
   if(s.occupation==='road')return 'dirt';if(s.occupation==='built')return 'gravel';if(s.occupation==='farm')return 'dirt';
   switch(s.geology){
     case 'sand':return s.cliff>.35?'pebbles':'sand';
@@ -97,7 +98,7 @@ export function classifyPoint(ctx:GeoContext,x:number,z:number,known?:{height?:n
   const water=ctx.water(x,z,height),underwater=water!==null&&water>height;
   const moisture=moistureAt(ctx,x,z,height,slope,coast,water),geology=geologyAt(ctx,x,z,height,slope,coast,cliff,volcanic);
   const biome=biomeAt(ctx,x,z,height,slope,moisture,geology,volcanic,water),occupation=occupationAt(ctx,x,z);
-  const material=materialAt(ctx,x,z,{geology,biome,moisture,occupation,cliff,slope});
+  const material=materialAt(ctx,x,z,{geology,biome,moisture,occupation,cliff,slope,height});
   return {height,slope,coast,cliff,volcanic,moisture,geology,biome,material,occupation,underwater};
 }
 /** Vegetation habitat: what may grow at a classified point (never on roads, buildings,
@@ -105,6 +106,7 @@ export function classifyPoint(ctx:GeoContext,x:number,z:number,known?:{height?:n
 export interface Habitat {trees:number;shrubs:number;flowers:number;grass:number;rocks:number;reeds:number}
 export function habitatOf(s:GeoSample):Habitat{
   const none:Habitat={trees:0,shrubs:0,flowers:0,grass:0,rocks:0,reeds:0};
+  if(s.material==='snow'||s.material==='ice')return none;
   if(s.underwater)return {...none,reeds:s.biome==='wetland'||s.biome==='lake'?.6:0};
   if(s.occupation==='road'||s.occupation==='built'||s.occupation==='farm'||s.occupation==='exclusion')return none;
   const reserved=s.occupation==='reserved'?0:1,steep=1-smooth(.7,1.1,s.slope);
