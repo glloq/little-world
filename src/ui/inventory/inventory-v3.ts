@@ -73,7 +73,7 @@ export function inventoryPanelV3(deps:InventoryV3Deps){
   let seen:Record<string,number>={};
   let filter:InventoryFilter='all',selectedId:string|null=null,multi=false;
   const checked=new Set<string>();
-  let favorites=readFavorites(),pointer:ActivePointer|null=null,suppressClick:string|null=null;
+  let favorites=readFavorites(),pointer:ActivePointer|null=null,suppressClick:{id:string;until:number}|null=null;
   let visualEffect:'eat'|'equip'|null=null;
   let bodyRef:HTMLElement|null=null;
   const report=(message:string)=>deps.notify?.(message);
@@ -100,21 +100,34 @@ export function inventoryPanelV3(deps:InventoryV3Deps){
       const equipment=items.filter(x=>isEquipment(x)&&equipSlot(x)!==null);
       equipment.slice(0,FAVORITE_COUNT).forEach((e,i)=>{favorites![i]=e.id;});
     }
+    // Sanitize an earlier global localStorage layout before migrating it to the game save.
+    const known=new Map(deps.items().map(item=>[item.id,item]));
+    const already=new Set<string>();
+    favorites=favorites.map(id=>{
+      if(!id)return null;
+      const item=known.get(id);
+      if(!item||!isEquipment(item)||already.has(id))return null;
+      already.add(id);return id;
+    });
     if(deps.setFavoriteSlots){
       if(!deps.setFavoriteSlots(favorites))report('Favoris non enregistrés : objets incompatibles.');
     }else writeFavorites(favorites);
+  }
+  function persistFavorites(next:(string|null)[]):boolean{
+    if(deps.setFavoriteSlots){
+      if(!deps.setFavoriteSlots(next)){report('Modification des favoris refusée.');return false;}
+    }else writeFavorites(next);
+    favorites=next;renderCurrent();return true;
   }
   function assignFavorite(id:string,index:number){
     const entry=deps.items().find(x=>x.id===id);
     if(!entry||!isEquipment(entry)||(deps.inventory()[id]??0)<=0){report('Cet objet ne peut pas être ajouté aux favoris.');return;}
     if(!favorites||index<0||index>=FAVORITE_COUNT)return;
-    const previous=favorites.indexOf(id);
-    if(previous>=0)favorites[previous]=null;
-    favorites[index]=id;
-    if(deps.setFavoriteSlots){
-      if(!deps.setFavoriteSlots(favorites)){report('Modification des favoris refusée.');renderCurrent();return;}
-    }else writeFavorites(favorites);
-    renderCurrent();
+    const next=[...favorites],previous=next.indexOf(id);
+    if(previous===index)return;
+    if(previous>=0)next[previous]=next[index]; // Moving an existing favourite swaps positions.
+    next[index]=id;
+    persistFavorites(next);
   }
   function renderCurrent(){
     if(!bodyRef)return;
@@ -205,12 +218,12 @@ export function inventoryPanelV3(deps:InventoryV3Deps){
     node.addEventListener('pointerup',e=>{
       const p=pointer;if(!p||p.id!==id||p.pointerId!==e.pointerId)return;
       const dragged=p.dragging;
-      if(dragged){suppressClick=id;drop(id,e.clientX,e.clientY);setTimeout(()=>{if(suppressClick===id)suppressClick=null;},0);}
+      if(dragged){suppressClick={id,until:performance.now()+800};drop(id,e.clientX,e.clientY);}
       clearPointer();
     });
     node.addEventListener('pointercancel',()=>clearPointer());
     node.addEventListener('click',e=>{
-      if(suppressClick===id){suppressClick=null;e.preventDefault();return;}
+      if(suppressClick){const block=suppressClick.id===id&&performance.now()<suppressClick.until;suppressClick=null;if(block){e.preventDefault();return;}}
       if(multi){if(checked.has(id))checked.delete(id);else checked.add(id);renderCurrent();return;}
       if(e.shiftKey){multi=true;checked.add(id);selectedId=id;renderCurrent();return;}
       selectedId=id;renderCurrent();
@@ -337,6 +350,10 @@ export function inventoryPanelV3(deps:InventoryV3Deps){
       if(target){
         const equipped=target==='hands'?deps.selectedTool()===selectedItem.id:target==='head'&&!!deps.headgear?.equipped();
         actions.append(button(equipped?'Ranger':'Équiper',()=>equip(selectedItem.id,target),'ui-button ui-primary'));
+        if(favorites?.includes(selectedItem.id))actions.append(button('Retirer des favoris',()=>{
+          if(!favorites)return;
+          const next=[...favorites];next[next.indexOf(selectedItem.id)]=null;persistFavorites(next);
+        },'ui-button'));
         if(target==='hands'){
           const idx=favorites?.indexOf(selectedItem.id)??-1;
           if(idx<0)actions.append(button('Ajouter aux favoris',()=>{
