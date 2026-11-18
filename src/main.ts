@@ -19,6 +19,7 @@ import {SHOPS,type ShopKind} from './gameplay/economy.ts';
 import {geoContext,setPreviewSnowline} from './geography/engine.ts';
 import {findDemoPiste} from './snow/snow-pistes.ts';
 import {findDemoSurfSite} from './surf/surf-demo.ts';
+import {makeDemoSurfRace} from './surf/surf-race-demo.ts';
 import {createSurfWaveField} from './surf/wave-field.ts';
 import {createSurfWaterView} from './render/surf-water-view.ts';
 import {createSurfBoardView} from './render/surf-board-view.ts';
@@ -431,6 +432,7 @@ const snowLiftView=snowLift?createSkiLiftView(scene,snowLift):null;
 const surfDemo=searchParams.get('surfDemo')==='1'&&!snowDemo&&!isLegacyTerrain();
 const surfSite=surfDemo?findDemoSurfSite(terrainHeight,snowBounds,definition.config.seaLevel??0,definition.config.seed):null;
 const surfField=surfSite?createSurfWaveField(surfSite.zone,terrainHeight):null;
+const surfRace=surfSite?makeDemoSurfRace(surfSite,activeIsland?.id??gameplay?.runtime.data.worldId??'surf-demo'):null;
 const surfWaterView=surfField?createSurfWaterView(scene,surfField,terrainHeight):null;
 const surfBoardView=surfField?createSurfBoardView(scene):null;
 if(surfSite&&surfField){
@@ -580,7 +582,7 @@ world.update(0, player.position);
     target:()=>currentTarget(),
     races:{
       start:(id)=>id.startsWith('race:')?startAuthoredRace(id):startDemoRace(id as DemoRaceId),
-      available:()=>((playable?.races??[]).map(r=>({id:r.id,name:r.name,distance:Math.round(Math.hypot(player.position.x-r.gates[0].center.x,player.position.y-r.gates[0].center.y,player.position.z-r.gates[0].center.z))}))),
+      available:()=>((surfRace?[...playable?.races??[],surfRace]:playable?.races??[]).map(r=>({id:r.id,name:r.name,distance:Math.round(Math.hypot(player.position.x-r.gates[0].center.x,player.position.y-r.gates[0].center.y,player.position.z-r.gates[0].center.z))}))),
       active:()=>raceSession?.definition.name??null,
       abort:()=>{stopRace();return 'Course interrompue';}
     },
@@ -614,7 +616,7 @@ flightCourseHud.className='flight-course-hud';flightCourseHud.hidden=true;
 flightCourseHud.setAttribute('role','timer');flightCourseHud.setAttribute('aria-live','off');document.body.append(flightCourseHud);
 function stopFlightCourse(){flightCourse=null;flightRings.clear();flightCourseHud.hidden=true;}
 function startAuthoredRace(id:string):{ok:boolean;message:string}{
-  const race:RaceDefinition|undefined=playable?.races?.find(r=>r.id===id);
+  const race:RaceDefinition|undefined=(id===surfRace?.id?surfRace:playable?.races?.find(r=>r.id===id))??undefined;
   if(!race)return {ok:false,message:'Circuit indisponible'};
   if(!started||aboard||player.space)return {ok:false,message:'Revenez au monde extérieur pour participer'};
   const start=race.gates[0],pos=player.position;
@@ -624,7 +626,9 @@ function startAuthoredRace(id:string):{ok:boolean;message:string}{
   if(side>1)return {ok:false,message:'Placez-vous avant la porte de départ'};
   if(race.kind==='flight'&&player.mode!=='glide')
     return {ok:false,message:'Déployez le planeur pour cette course'};
-  if(race.kind!=='flight'&&!['roll','ground'].includes(player.mode))
+  if(race.kind==='surf'&&player.mode!=='surf')
+    return {ok:false,message:'Montez sur votre planche pour cette course'};
+  if(race.kind!=='flight'&&race.kind!=='surf'&&!['roll','ground'].includes(player.mode))
     return {ok:false,message:'Revenez au sol avant le départ'};
   stopFlightCourse();stopRace();
   raceSession=beginRace(race,motionTick,player.gasPulseSeq??0);
@@ -1284,7 +1288,8 @@ function tick(dt: number) {
     }
     if(raceSession){
       const event=advanceRace(raceSession,{tick:motionTick,previous:previousPlayerPosition,position:player.position,
-        mode:player.mode,pulseSeq:player.gasPulseSeq??0,transitioned:!!player.transitioned});
+        mode:player.mode,pulseSeq:player.gasPulseSeq??0,transitioned:!!player.transitioned,
+        surfAirborne:player.surfAirborne===true});
       if(event?.kind==='checkpoint'||event?.kind==='started'){
         raceGates.advance(raceSession.nextGate);
         if(event.kind==='started')showInfo('Départ validé : chronomètre lancé','success');
