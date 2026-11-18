@@ -18,6 +18,10 @@ import {resolveTarget,objectTarget,npcTarget,boatTarget,ferryTarget,maritimeTrad
 import {SHOPS,type ShopKind} from './gameplay/economy.ts';
 import {geoContext,setPreviewSnowline} from './geography/engine.ts';
 import {findDemoPiste} from './snow/snow-pistes.ts';
+import {findDemoSurfSite} from './surf/surf-demo.ts';
+import {createSurfWaveField} from './surf/wave-field.ts';
+import {createSurfWaterView} from './render/surf-water-view.ts';
+import {createSurfBoardView} from './render/surf-board-view.ts';
 import {boardLift,liftRideStep,type SkiLift,type LiftRide} from './snow/ski-lift.ts';
 import {createSkiLiftView} from './snow/ski-lift-view.ts';
 import type {SnowEquipment} from './snow/snow-slide.ts';
@@ -423,6 +427,20 @@ if(snowPiste){
   player.velocity.set(0,0,0);player.mode='ground';
 }
 const snowLiftView=snowLift?createSkiLiftView(scene,snowLift):null;
+// Non-destructive surf laboratory (?surfDemo=1). Island authoring/compilation follows later.
+const surfDemo=searchParams.get('surfDemo')==='1'&&!snowDemo&&!isLegacyTerrain();
+const surfSite=surfDemo?findDemoSurfSite(terrainHeight,snowBounds,definition.config.seaLevel??0,definition.config.seed):null;
+const surfField=surfSite?createSurfWaveField(surfSite.zone,terrainHeight):null;
+const surfWaterView=surfField?createSurfWaterView(scene,surfField,terrainHeight):null;
+const surfBoardView=surfField?createSurfBoardView(scene):null;
+if(surfSite&&surfField){
+  world.setSurfArea(surfSite.zone);
+  const startWave=surfField.sample(surfSite.start.x,surfSite.start.z,0);
+  player.position.set(surfSite.start.x,(startWave?.height??surfSite.zone.seaLevel)+.12,surfSite.start.z);
+  player.velocity.set(0,0,0);player.mode='surf';player.surfStage='paddle';
+  player.surfHeading=surfSite.heading;player.heading=surfSite.heading;player.glideReady=false;
+} else if(surfDemo) console.warn('Surf : aucune plage maritime compatible avec la démonstration.');
+
 // Geography sampled on demand after 2 m, not every simulation tick or render frame.
 const authoredTracks=(playable?.races??[]).flatMap(r=>r.track?[r.track]:[]);
 const raceTrackSamplers=authoredTracks.map(track=>({track,sampler:createRaceTrackSampler(track,{height:terrainHeight})}));
@@ -666,7 +684,7 @@ const fleet = createFleet(gameplay?.collision ?? null);
 const playerBoat = fleet.add({ id: 'player-boat', assetId: 'boat.sailboat_small', state: boat, object: world.boat, yOffset: 0, hull: { beam: 2.6, length: 6.2, height: 1.6 } });
 for (const m of mooredBoats) { const size = worldAsset(m.assetId)?.size ?? [2, 1.3, 5]; fleet.addMoored(m.id, m.assetId, m.object, waterSurface(m.object.position.x, m.object.position.z) ?? getTerrainConfig().seaLevel, size as [number, number, number]); }
 const keySet = new Set<string>();
-let rollQueue = 0;
+let rollQueue = 0,surfQueue=0;
 let jumpQueue = 0,
   touchStrokeQueue = 0,
   actionQueue = 0;
@@ -686,7 +704,7 @@ if(touchCapable){
   });
 }
 // Generated worlds start on a coast: face the island centre rather than the open sea.
-if(playable&&!isLegacyTerrain()){const yawParam=Number(searchParams.get('yaw'));yaw=searchParams.has('yaw')&&Number.isFinite(yawParam)?yawParam:Math.atan2(-player.position.x,-player.position.z);}
+if(playable&&!isLegacyTerrain()){const yawParam=Number(searchParams.get('yaw'));yaw=searchParams.has('yaw')&&Number.isFinite(yawParam)?yawParam:surfSite?.heading??Math.atan2(-player.position.x,-player.position.z);}
 // Reproducible control viewpoints (World Production captures): camera pitch and distance.
 {const p=Number(searchParams.get('pitch')),d=Number(searchParams.get('dist'));if(searchParams.has('pitch')&&Number.isFinite(p))pitch=Math.max(-.3,Math.min(1.4,p));if(searchParams.has('dist')&&Number.isFinite(d))distance=Math.max(2,Math.min(600,d));}
 const flightCameraFollow:FlightCameraFollow={yaw,pitch,idleSeconds:0,wasGliding:false};
@@ -746,6 +764,8 @@ function input(): Controls {
     boostHeld:flightBoostHeld(player.mode,shiftHeld,touchAccelerateHeld),
     swimStrokePressed:touchStrokeQueue>0,
     snowEquipment:snowDemo?snowEquipment:gameplay?.equipment.hands==='tool:snowboard'?'snowboard':gameplay?.equipment.hands==='tool:skis'?'skis':null,
+    surfEnabled:!!surfField,surfActionPressed:surfQueue>0,
+    surfPaddleHeld:!!surfField&&shiftHeld,surfPump:!!surfField&&shiftHeld&&player.surfStage==='ride',
   };
 }
 function gameplayInputActive():boolean{
@@ -762,7 +782,7 @@ function resetCameraDrag(): void {
 function clearGameplayInput():void{
   gameplay?.fishing.cancel();fishingHud.hide();fishingEffects.reset();fishingFloatSoundDue=-1;
   keySet.clear();
-  rollQueue=0;jumpQueue=0;touchStrokeQueue=0;actionQueue=0;activityQueue=0;cropQueue=0;
+  rollQueue=0;surfQueue=0;jumpQueue=0;touchStrokeQueue=0;actionQueue=0;activityQueue=0;cropQueue=0;
   queuedMineStrike=null;mobileTouch?.reset();resetCameraDrag();
 }
 // Switching to any UI panel releases held movement and boost keys immediately.
@@ -801,6 +821,10 @@ window.addEventListener('keydown', (e) => {
   }
   if (e.code === 'KeyC') cropQueue++;
   if (e.code === 'KeyB'&&snowDemo){snowEquipment=snowEquipment==='snowboard'?'skis':'snowboard';showInfo('Équipement : '+(snowEquipment==='skis'?'skis':'snowboard'));}
+  else if(e.code==='KeyB'&&surfField){
+    if(player.mode==='surf'){player.mode='swim';player.surfStage=undefined;player.surfAirborne=false;showInfo('Planche rangée : nage');}
+    else {surfQueue=1;showInfo('Planche de surf : ramez avec Z/Shift, sautez avec Espace');}
+  }
   if (e.code === 'KeyR' && started) {
     stopFlightCourse();stopRace();
     const reset = spawnPlayer();
@@ -1239,7 +1263,8 @@ function tick(dt: number) {
     jumpQueue = 0;
   } else {
     gameplay?.trees?.update(player.position,player.space);
-    simulatePlayer(player, keys, dt,gameplay?.collision);motionTick++;
+    simulatePlayer(player, keys, dt,gameplay?.collision,surfField??undefined,motionTick+1);motionTick++;
+    if(keys.surfActionPressed)surfQueue=0;
     const seq=player.gasPulseSeq??0;
     const newPulse=seq!==lastFlightPulseSeq&&seq>0;
     lastFlightPulseSeq=seq;
@@ -1405,6 +1430,7 @@ function draw(now: number) {
   remoteActors?.renderer.collectGrassActors(grassActors,player.position);
   world.setUnderground(!!player.space);
   world.update(delta, player.position, camera, renderer.domElement.height, player.velocity);
+  surfWaterView?.update(motionTick,frame.alpha);
   if(!loading.ready&&loading.update({terrainPending:world.stats.pending,dressingPending:world.dressing?.nearPending??0,speciesState:world.dressing?.species.state??'none'}))beginGame();
   remoteActors?.update(delta,elapsed,camera,renderer.domElement.height,budget.level);
   npcs.update(delta, elapsed, player.position,camera); // The river drives the mill: no manual on/off control.
@@ -1417,6 +1443,7 @@ function draw(now: number) {
   if(gameplay){const f=gameplay.fishing.state;character.setFishing(f.phase!=='idle'&&f.castAt?{x:f.castAt.x,y:waterSurface(f.castAt.x,f.castAt.z)??getTerrainConfig().seaLevel,z:f.castAt.z,biting:f.phase==='bite'}:null);}
   character.update(player, delta, elapsed);
   snowCharacterView.update(player);
+  surfBoardView?.update(player);
   // Mining headgear follows the animated head bone (including turning/looking).
   // One spotlight, zero shadow maps; off outside mines and without the item.
   mineHelmet.setActive(!!player.space&&gameplay?.equipment.head==='tool:miners-helmet');
@@ -1546,7 +1573,7 @@ function draw(now: number) {
   }
   requestAnimationFrame(draw);
 }
-window.addEventListener('pagehide',event=>{if(event.persisted)void audio?.engine.setHidden(true);else {detachPortCollisions?.();ferryView?.dispose();remoteActors?.dispose();mineRhythmHud.dispose();mineHelmet.dispose();gasEffects.dispose();flightRings.dispose();raceGates.dispose();raceTrackView.dispose();flightCourseHud.remove();raceHud.remove();fishingHud.dispose();fishingEffects.dispose();speedStreaks.dispose();gpuTimer.dispose();void audio?.dispose();}});
+window.addEventListener('pagehide',event=>{if(event.persisted)void audio?.engine.setHidden(true);else {detachPortCollisions?.();ferryView?.dispose();remoteActors?.dispose();mineRhythmHud.dispose();mineHelmet.dispose();gasEffects.dispose();flightRings.dispose();raceGates.dispose();raceTrackView.dispose();flightCourseHud.remove();raceHud.remove();fishingHud.dispose();fishingEffects.dispose();speedStreaks.dispose();surfWaterView?.dispose();surfBoardView?.dispose();gpuTimer.dispose();void audio?.dispose();}});
 window.addEventListener('pageshow',event=>{if(event.persisted&&started)void audio?.engine.setHidden(document.hidden);});
 document.addEventListener('visibilitychange', () => {
   presentation.reset();
