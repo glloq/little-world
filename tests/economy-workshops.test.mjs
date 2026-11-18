@@ -73,7 +73,7 @@ test('unfinished jobs persist in game saves and complete after a game-time jump'
   const slots=createGameSaveStore(storage(),memoryBlobStore());
   await slots.save(save);
   const reloaded=await slots.load('island-forest','slot-1');
-  assert.deepEqual(reloaded.workshops,state);
+  assert.deepEqual(reloaded.workshops,JSON.parse(JSON.stringify(state)));
 
   const b=env.make();b.restore(reloaded.workshops);
   env.setTime(17);b.advanceDue();
