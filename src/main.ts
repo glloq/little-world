@@ -67,7 +67,7 @@ import {newFlightProgress,advanceFlight,type FlightProgress} from './gameplay/fl
 import {beginFlightCourse,stepFlightCourse,COURSE_LABELS,type FlightCourseSession} from './gameplay/flight-courses.ts';
 import {createFlightRings} from './render/flight-rings.ts';
 import {createRaceGates} from './render/race-gates.ts';
-import {advanceRace,beginRace,raceElapsedSeconds,type RaceSession} from './gameplay/races.ts';
+import {advanceRace,beginRace,raceElapsedSeconds,type RaceSession,type RaceDefinition} from './gameplay/races.ts';
 import {makeDemoRace,type DemoRaceId} from './gameplay/race-demos.ts';
 import {readRaceBest,writeRaceBest} from './gameplay/race-records.ts';
 import {foodGasValue} from './gameplay/food-effects.ts';
@@ -408,6 +408,7 @@ world.update(0, player.position);
 {
   const {createGameUi}=await import('./ui/app/game-ui.ts'),c=getTerrainConfig();
   const landmarks=[
+    ...(playable?.races??[]).map(r=>({id:'race:'+r.id,label:'Course : '+r.name,x:r.gates[0].center.x,z:r.gates[0].center.z})),
     ...definition.biomes.filter(b=>b.biome==='village').slice(0,30).map((b,i)=>({id:'village:'+i,label:'Village',x:b.x,z:b.z})),
     ...definition.placements.filter(p=>/(lighthouse|harbor|port|market|inn|windmill|watermill|town|village)/i.test(p.assetId)).slice(0,50).map(p=>({
       id:'asset:'+p.id,label:/lighthouse/i.test(p.assetId)?'Phare':/(port|harbor)/i.test(p.assetId)?'Port':/inn/i.test(p.assetId)?'Auberge':/market/i.test(p.assetId)?'Marché':/windmill|watermill/i.test(p.assetId)?'Moulin':'Village',x:p.x,z:p.z,
@@ -487,7 +488,8 @@ world.update(0, player.position);
     }:undefined,
     target:()=>currentTarget(),
     races:{
-      start:(id)=>startDemoRace(id),
+      start:(id)=>id.startsWith('race:')?startAuthoredRace(id):startDemoRace(id as DemoRaceId),
+      available:()=>((playable?.races??[]).map(r=>({id:r.id,name:r.name,distance:Math.round(Math.hypot(player.position.x-r.gates[0].center.x,player.position.y-r.gates[0].center.y,player.position.z-r.gates[0].center.z))}))),
       active:()=>raceSession?.definition.name??null,
       abort:()=>{stopRace();return 'Course interrompue';}
     },
@@ -519,6 +521,26 @@ const flightCourseHud=document.createElement('div');
 flightCourseHud.className='flight-course-hud';flightCourseHud.hidden=true;
 flightCourseHud.setAttribute('role','timer');flightCourseHud.setAttribute('aria-live','off');document.body.append(flightCourseHud);
 function stopFlightCourse(){flightCourse=null;flightRings.clear();flightCourseHud.hidden=true;}
+function startAuthoredRace(id:string):{ok:boolean;message:string}{
+  const race:RaceDefinition|undefined=playable?.races?.find(r=>r.id===id);
+  if(!race)return {ok:false,message:'Circuit indisponible'};
+  if(!started||aboard||player.space)return {ok:false,message:'Revenez au monde extérieur pour participer'};
+  const start=race.gates[0],pos=player.position;
+  const distance=Math.hypot(pos.x-start.center.x,pos.y-start.center.y,pos.z-start.center.z);
+  if(distance>32)return {ok:false,message:'Rejoignez la porte de départ : '+Math.ceil(distance)+' m'};
+  const side=(pos.x-start.center.x)*start.normal.x+(pos.z-start.center.z)*start.normal.z;
+  if(side>1)return {ok:false,message:'Placez-vous avant la porte de départ'};
+  if(race.kind==='flight'&&player.mode!=='glide')
+    return {ok:false,message:'Déployez le planeur pour cette course'};
+  if(race.kind!=='flight'&&!['roll','ground'].includes(player.mode))
+    return {ok:false,message:'Revenez au sol avant le départ'};
+  stopFlightCourse();stopRace();
+  raceSession=beginRace(race,motionTick,player.gasPulseSeq??0);
+  raceGates.show(race.gates);
+  raceHud.textContent=race.name+' · Traversez la porte de départ pour lancer le chrono';
+  raceHud.hidden=false;
+  return {ok:true,message:race.name+' : départ prêt, franchissez la première porte'};
+}
 function stopRace(){raceSession=null;raceGates.clear();raceHud.hidden=true;}
 function startDemoRace(id:DemoRaceId):{ok:boolean;message:string}{
   if(!started||aboard||player.space)return {ok:false,message:'Course indisponible pendant le voyage ou dans une mine'};
@@ -1149,7 +1171,10 @@ function tick(dt: number) {
     if(raceSession){
       const event=advanceRace(raceSession,{tick:motionTick,previous:previousPlayerPosition,position:player.position,
         mode:player.mode,pulseSeq:player.gasPulseSeq??0,transitioned:!!player.transitioned});
-      if(event?.kind==='checkpoint')raceGates.advance(raceSession.nextGate);
+      if(event?.kind==='checkpoint'||event?.kind==='started'){
+        raceGates.advance(raceSession.nextGate);
+        if(event.kind==='started')showInfo('Départ validé : chronomètre lancé','success');
+      }
       else if(event?.kind==='finish'){
         const race=raceSession.definition,isBest=writeRaceBest(localStorage,race,event.seconds);
         showInfo('Course terminée : '+race.name+' · '+event.seconds.toFixed(2)+' s'+(isBest?' · Nouveau record local !':''),'success');
@@ -1338,7 +1363,7 @@ function draw(now: number) {
     raceHud.hidden=!raceSession;
     if(raceSession){
       const s=raceSession;
-      raceHud.textContent=s.definition.name+' · '+raceElapsedSeconds(s).toFixed(1)+' s · Portes : '+
+      raceHud.textContent=s.definition.name+' · '+(s.started?raceElapsedSeconds(s).toFixed(1)+' s':'Prêt au départ')+' · Portes : '+
         s.nextGate+'/'+s.definition.gates.length+' · Boosts : '+s.usedPulses;
     }
   }

@@ -46,7 +46,8 @@ export interface GameUiDeps {
   importTrade?:ImportStandPanelDeps;
   headgear?:{equipped():boolean;setEquipped(value:boolean):void};
   races?:{
-    start(id:DemoRaceId):{ok:boolean;message:string};
+    start(id:string):{ok:boolean;message:string};
+    available():readonly {id:string;name:string;distance:number}[];
     active():string|null;
     abort():string;
   };
@@ -225,6 +226,23 @@ export function createGameUi(deps:GameUiDeps){
       b.append(el('p','ui-badge-line','Course active : '+active),
         button('Abandonner la course',()=>{deps.races!.abort();ui.refresh('races');},'ui-button'));
     }
+    const fixed=deps.races!.available();
+    if(fixed.length){
+      b.append(el('h3','','Circuits fixes de l’île'),
+        el('p','ui-muted','Ces courses ont un départ permanent. Rejoignez-le puis franchissez la première porte pour lancer le chronomètre.'));
+      for(const race of fixed){
+        const row=el('div','ui-race-option'),
+          title=el('strong','',race.name),
+          desc=el('p','ui-muted',race.distance+' m du départ · visible sur la carte');
+        const launch=button('Lancer',()=>{
+          const result=deps.races!.start(race.id);
+          if(result.ok){ui.close();center.notify('info',result.message);}
+          else center.notify('warning',result.message);
+        },'ui-button ui-primary');
+        row.append(title,desc,launch);b.append(row);
+      }
+    }
+    b.append(el('h3','','Circuits d’entraînement'));
     for(const demo of DEMO_RACES){
       const row=el('div','ui-race-option'),title=el('strong','',demo.name),desc=el('p','ui-muted',demo.description);
       const launch=button('Lancer',()=>{
