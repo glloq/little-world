@@ -1,3 +1,4 @@
+import {networkPattern} from '../settlements/neighborhood-network.ts';
 import {isCorridor} from '../settlements/corridor.ts';
 /** Direct manipulation of the draft recipe. Source changes still use the shared Studio commit. */
 import type { SettlementRecipe } from '../settlements/schema.ts';
@@ -46,7 +47,7 @@ export function placementTool(canvas: HTMLCanvasElement, ctx: {
         const plan = ctx.plan();
         if (r.layout?.pattern !== 'linear' && r.layout) {
             const d = layoutDimensions(r);
-            for (let lane = 0; !isCorridor(r) && lane < d.lanes; lane++)
+            for (let lane = 0; !isCorridor(r) && !networkPattern(r) && lane < d.lanes; lane++)
                 all.push({ kind: 'module', ...moduleCenter(r, lane), z: moduleCenter(r, lane).z + (lane === 0 ? 8 : 0), index: lane });
             for (const b of plan?.buildings ?? []) {
                 if (plan?.preserved.includes(b.id))

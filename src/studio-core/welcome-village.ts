@@ -1,0 +1,8 @@
+import type {ProjectDocument} from './types.ts';import type {PortN1Layout} from '../archipelago/port-n1-plan.ts';import {newSettlement} from '../settlements/schema.ts';import {DEFAULT_SETTLEMENT_LAYOUT} from '../settlements/layout.ts';import {planSettlement} from '../settlements/planner.ts';import {applySettlement,previewSettlementProject} from '../settlements/authoring.ts';import {validateSettlements} from '../settlements/validation.ts';
+export function generateWelcomeVillage(p:ProjectDocument,port:PortN1Layout,size:'hamlet'|'village'){
+ const co=Math.cos(port.heading),si=Math.sin(port.heading);let best:ReturnType<typeof planSettlement>|null=null;
+ search:for(const inland of [35,60,90])for(const side of [0,-35,35]){const center={x:port.shore.x+side*co-inland*si,z:port.shore.z-side*si-inland*co},r={...newSettlement(p.world,'composition-welcome-village',center),form:size,targetBuildings:size==='hamlet'?12:24,radius:size==='hamlet'?95:135,routeToPath:'composition-port-approach',services:true,localLife:true,variedServices:true,activity:'fishing' as const,layout:{...DEFAULT_SETTLEMENT_LAYOUT,pattern:'network' as const}};
+  if(center.x<p.world.bounds.minX||center.x>p.world.bounds.maxX||center.z<p.world.bounds.minZ||center.z>p.world.bounds.maxZ)continue;
+  const plan=planSettlement(p,r);if(plan.diagnostics.some(d=>d.severity==='ERROR')||best&&plan.buildings.length<=best.buildings.length||validateSettlements(previewSettlementProject(p,plan)).some(d=>d.severity==='ERROR'))continue;best=plan;if(plan.buildings.length===r.targetBuildings)break search;
+ }if(best&&best.buildings.length>=4){applySettlement(p,best);return best.buildings.length;}return 0;
+}

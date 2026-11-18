@@ -8,7 +8,7 @@ import {composeWorld,projectFromComposition} from './world-composition.ts';
 import {alignSteppedBiomes} from './world-biome-boundaries.ts';
 import {applyRegionBatch,regionBatchChunks} from './region-batch.ts';
 import {removeRegion} from './region-recipes.ts';
-import {removeWater,putWater,removePath,putPath} from './source.ts';
+import {removeWater,putWater,removePath,putPath,removeEntity,putEntity} from './source.ts';
 import {parseProject} from './schema.ts';
 import {fingerprint} from '../world-production/landscape-schema.ts';
 import {compileWaterNetwork} from '../water/profile.ts';
@@ -29,7 +29,9 @@ export function previewWorldRecomposition(p:ProjectDocument,next:MapRequirements
  }else{
   if(next.width!==p.world.generation.width||next.length!==p.world.generation.length)throw Error('Redimensionner nécessite un nouveau projet : secteurs et retouches conservés ici');
   const original=composeWorld(p.world.generation).project;
-  if(fingerprint(p.world.terrain)!==fingerprint(original.world.terrain)||Object.values(p.chunks).some(c=>c.terrainEdits.length)||Object.keys(p.entityIndex).length)
+  const allEntities=(project:ProjectDocument)=>Object.fromEntries(Object.values(project.chunks).flatMap(c=>Object.entries(c.entities)));
+  const originalEntities=allEntities(original),currentEntities=allEntities(p);
+  if(fingerprint(p.world.terrain)!==fingerprint(original.world.terrain)||Object.values(p.chunks).some(c=>c.terrainEdits.length)||fingerprint(currentEntities)!==fingerprint(originalEntities))
    throw Error('Relief retouché ou objets placés : recomposition globale protégée. Rafraîchir seulement les biomes ou créer un nouveau projet.');
   const generatedWater=Object.fromEntries(Object.entries(p.libraries.water).filter(([id])=>id.startsWith('composition-')));
   if(fingerprint(generatedWater)!==fingerprint(original.libraries.water))throw Error('Eau générée modifiée ou supprimée : recomposition globale protégée');
@@ -38,9 +40,21 @@ export function previewWorldRecomposition(p:ProjectDocument,next:MapRequirements
   if(fingerprint(regions)!==fingerprint(originals))throw Error('Régions générées retouchées ou supprimées : recomposition globale protégée');
   if(fingerprint(p.libraries.terrainPlans??{})!==fingerprint(original.libraries.terrainPlans??{}))throw Error('Zones utiles retouchées ou verrouillées : recomposition globale protégée');
   if(fingerprint(p.libraries.zones??{})!==fingerprint(original.libraries.zones??{}))throw Error('Parcelles ou zones de mine retouchées : recomposition globale protégée');
-  const ownedPaths=Object.fromEntries(Object.entries(p.libraries.paths).filter(([id])=>id.startsWith('composition-access-')));
+  const ownedPaths=Object.fromEntries(Object.keys(original.libraries.paths).filter(id=>p.libraries.paths[id]).map(id=>[id,p.libraries.paths[id]]));
   if(fingerprint(ownedPaths)!==fingerprint(original.libraries.paths))throw Error('Accès générés retouchés ou supprimés : recomposition globale protégée');
+  if(fingerprint(p.libraries.settlements??{})!==fingerprint(original.libraries.settlements??{}))throw Error('Village généré retouché ou verrouillé : recomposition protégée');
+  for(const [id,d]of Object.entries(original.libraries.interactions))if(fingerprint(p.libraries.interactions[id])!==fingerprint(d))throw Error('Interaction générée retouchée : recomposition protégée');
+  for(const [id,d]of Object.entries(original.libraries.dialogues))if(fingerprint(p.libraries.dialogues[id])!==fingerprint(d))throw Error('Dialogue généré retouché : recomposition protégée');
   const plan=composeWorld(next,p.manifest.name),generated=projectFromComposition(plan,p.manifest.name);
+  for(const id of Object.keys(generated.libraries.paths))if(p.libraries.paths[id]&&!original.libraries.paths[id])throw Error('Un chemin manuel occupe un identifiant de génération');
+  for(const id of Object.keys(originalEntities))removeEntity(scratch,id);
+  scratch.assets={...generated.assets,...scratch.assets};
+  for(const id of Object.keys(original.libraries.dialogues))delete scratch.libraries.dialogues[id];
+  scratch.libraries.dialogues={...scratch.libraries.dialogues,...generated.libraries.dialogues};
+  for(const id of Object.keys(original.libraries.interactions))delete scratch.libraries.interactions[id];
+  scratch.libraries.interactions={...scratch.libraries.interactions,...generated.libraries.interactions};
+  if(generated.libraries.settlements)scratch.libraries.settlements=structuredClone(generated.libraries.settlements);else delete scratch.libraries.settlements;
+  for(const chunk of Object.values(generated.chunks))for(const entity of Object.values(chunk.entities))putEntity(scratch,entity);
   for(const id of Object.keys(ownedPaths))removePath(scratch,id);
   if(generated.libraries.terrainPlans)scratch.libraries.terrainPlans=structuredClone(generated.libraries.terrainPlans);else delete scratch.libraries.terrainPlans;
   for(const path of Object.values(generated.libraries.paths))putPath(scratch,path);
@@ -63,5 +77,5 @@ export function previewWorldRecomposition(p:ProjectDocument,next:MapRequirements
 export function applyWorldRecomposition(p:ProjectDocument,preview:RecompositionPreview):void {
  if(sourceHash(p)!==preview.beforeHash)throw Error('Le projet a changé depuis l’aperçu. Recalculer la comparaison.');
  const next=structuredClone(preview.project);
- p.world=next.world;p.libraries=next.libraries;p.chunkIndex=next.chunkIndex;p.chunks=next.chunks;
+ p.world=next.world;p.entityIndex=next.entityIndex;p.assets=next.assets;p.libraries=next.libraries;p.chunkIndex=next.chunkIndex;p.chunks=next.chunks;
 }

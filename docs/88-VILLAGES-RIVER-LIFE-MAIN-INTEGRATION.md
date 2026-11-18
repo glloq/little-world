@@ -56,3 +56,6 @@ L’exemple de village qualifié contient 14 maisons sur la cible de 20, une aub
 ![Village sur deux rives](captures/river-town-evolution-v1/preview.png)
 
 [Vue Studio](captures/river-town-evolution-v1/studio.png) · [Jeu compilé](captures/river-town-evolution-v1/playtest.png) · [Port N1 de main, test maritime distinct](captures/river-town-evolution-v1/port-n1-runtime.png)
+
+
+Suite : [89 — port natif dès création, caldeira variable et quartiers organiques](89-COMPLETE-ISLAND-START-CALDERA-PORT-VILLAGES.md). Le raccord N1 décrit ici est désormais complété par la génération source du port.

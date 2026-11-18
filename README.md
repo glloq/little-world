@@ -27,7 +27,7 @@ Voir [la stratégie de démonstration 4 × 3 km](docs/61-SHOWCASE-ISLAND-4X3.md)
 
 ### Îles composées et brouillon 2D
 
-Sur `feat/stepped-island-identity` : silhouettes naturelles, croissant et tortue, réservations de port/champs/lac, accès à pied vérifiés et édition groupée avant création. Les accès impossibles sont signalés ; les bâtiments et quais restent à réaliser. Voir [les fonctionnalités, limites et captures V5](docs/74-COMPOSED-ISLANDS-V5.md).
+Sur `feat/stepped-island-identity` : silhouettes naturelles, croissant et tortue, réservations de port/champs/lac, accès à pied vérifiés et édition groupée avant création. Les accès impossibles sont signalés. La création peut désormais inclure un port N1 bâti et un village : [caldeira, port et quartiers organiques](docs/89-COMPLETE-ISLAND-START-CALDERA-PORT-VILLAGES.md). Voir [les fonctionnalités, limites et captures V5](docs/74-COMPOSED-ISLANDS-V5.md).
 
 ### Villages et villes dans le Studio
 

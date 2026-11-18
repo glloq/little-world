@@ -1,3 +1,4 @@
+import {validateBirthPort} from '../studio-core/birth-port.ts';
 import {validateSettlements} from '../settlements/validation.ts';
 import {validateTerrainAccess} from '../studio-core/terrain-access.ts';
 import {createTerrainSource} from '../terrain.ts';
@@ -42,7 +43,7 @@ export async function preflightProject(input:unknown,options:CompileOptions={}):
    for(const water of compileWaterNetwork(Object.values(project.libraries.water),source,project.world.seaLevel))for(const d of water.diagnostics)diagnostics.push({...d,targetId:water.id});
   }
   if(Object.keys(project.libraries.terrainPlans??{}).length)diagnostics.push(...validateTerrainAccess(project));
-  diagnostics.push(...validateSettlements(project));
+  diagnostics.push(...validateSettlements(project),...validateBirthPort(project));
   const verified=await verifyAssets(project,options.resolveAsset);diagnostics.push(...verified.diagnostics);
   diagnostics.push({severity:'INFO',code:'DESCRIPTOR_COMPILATION',message:'Output contains source/runtime entity, analytic terrain, collision and navigation descriptors; GPU meshes, terrain LOD geometry and navmeshes are not baked.'});
   return {project,diagnostics,assets:verified.assets};

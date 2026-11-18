@@ -1,3 +1,4 @@
+import {portAsset} from './archipelago/port-assets.ts';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {houseBoxes,HOUSE} from './settlements/habitat.ts';
 import {impostorIllumination} from './render/impostor-lighting.ts';
@@ -575,6 +576,8 @@ function createRegistryAsset(id: string): THREE.Group | null {
 }
 /** LOD0 of a registry asset, loaded and cloned (Studio thumbnails); null for other assets. */
 export async function loadAssetPreview(id: string): Promise<THREE.Object3D | null> {
+  const maritime=portAsset(id);if(maritime?.file){const model=await loadModel(maritime.file);return model?.clone(true)??null;}
+
   const asset = worldAsset(id);
   if (!asset || asset.group === 'legacy') return null;
   const scene = await loadModel(asset.lods[0].file);
@@ -591,6 +594,7 @@ function removeFallback(g: THREE.Group) {
   g.clear();
 }
 export function createAsset(id: AssetId): THREE.Group {
+  const maritime=portAsset(id);if(maritime?.file){const group=new THREE.Group();group.userData.viewDistance=900;void loadModel(maritime.file).then(model=>{if(model&&!group.userData.disposed)group.add(model.clone(true));});return group;}
   const registry = createRegistryAsset(id);
   if (registry) return registry;
   const g = new THREE.Group();

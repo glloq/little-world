@@ -9,7 +9,7 @@ import type {Player} from '../player.ts';
 import {assembleDock} from '../structures/assemble-dock.mjs';
 import {portActorPresence,type PortN1Layout} from './port-n1-plan.ts';
 
-export function createPortN1View(scene:THREE.Scene,plan:PortN1Layout,baseUrl:string){
+export function createPortN1View(scene:THREE.Scene,plan:PortN1Layout,baseUrl:string,authoredGeometry=false){
   const root=new THREE.Group();root.name='port-n1-generated';
   root.position.set(plan.shore.x,0,plan.shore.z);root.rotation.y=plan.heading;
   scene.add(root);
@@ -22,6 +22,7 @@ export function createPortN1View(scene:THREE.Scene,plan:PortN1Layout,baseUrl:str
   const boat=createAsset('boat.rowboat_wood');boat.name='Ferry rowboat (approved GLB LOD)';
   boat.position.copy(absolute(plan.boat));root.add(boat);
   // Preserve original GLB: it has no cargo, and its hexagonal sign is already modelled.
+  if(!authoredGeometry){
   const stall=new THREE.Group();stall.name='Trade stand N1 V1 (approved GLB)';
   stall.position.copy(absolute(plan.stand));root.add(stall);
   const loader=new GLTFLoader();
@@ -56,6 +57,7 @@ export function createPortN1View(scene:THREE.Scene,plan:PortN1Layout,baseUrl:str
       }
     }
   }).catch(error=>{if(!disposed)console.warn('Ponton N1 indisponible',error);});
+  }
   const merchant=buildHamster(),rower=buildHamster();
   merchant.group.name='Merchant (N1 / ferry hours)';
   rower.group.name='Rower (on quay)';

@@ -1,3 +1,4 @@
+import {neighborhoodNetwork,networkPattern} from './neighborhood-network.ts';
 import {settlementMaritimePort} from './maritime-port.ts';
 import {localLife} from './local-life.ts';
 import {riverCrossing} from './river-crossing.ts';
@@ -46,6 +47,7 @@ export function settlementPoint(r: SettlementRecipe, x: number, z: number) { con
 export function planSettlement(p: ProjectDocument, raw: SettlementRecipe): SettlementPlan {
     if(Object.keys(p.chunkIndex).some(id=>!p.chunks[id]))throw Error('Charger tous les secteurs avant de calculer une implantation.');
     const started = performance.now(), r = validateSettlementRecipe(raw, p.world), previous = p.libraries.settlements?.[r.id], baseTerrain=settlementTerrain(p),c = layoutContext(r,baseTerrain), diagnostics: SettlementDiagnostic[] = [], entities: EntityDefinitionV3[] = [], paths: PathDefinition[] = [], buildings: BuildingRecord[] = [], preserved: string[] = [], removed: string[] = [];
+    if(r.routeToPath&&!p.libraries.paths[r.routeToPath])diagnostics.push({severity:'ERROR',code:'SET_TARGET_PATH_MISSING',message:'La route à rejoindre est absente.'});
     const protectedBuildings = new Map((previous?.buildings ?? []).filter(b => buildingChanged(p, b)).map(b => [b.slot, b]));
     const removable = new Set((previous?.buildings ?? []).filter(b => !protectedBuildings.has(b.slot)).flatMap(b => [b.id, b.doorId]));
     for(const a of previous?.amenities??[])if(!amenityChanged(p,a))removable.add(a.id);
@@ -90,12 +92,13 @@ export function planSettlement(p: ProjectDocument, raw: SettlementRecipe): Settl
         const a=points[i],n=Math.max(1,Math.ceil(Math.hypot(b.x-a.x,b.z-a.z)/24));
         for(let j=0;j<n;j++){const from={x:a.x+(b.x-a.x)*j/n,z:a.z+(b.z-a.z)*j/n},to={x:a.x+(b.x-a.x)*(j+1)/n,z:a.z+(b.z-a.z)*(j+1)/n},m=query.sweep({...from,y:c.height(from.x,from.z)},{...to,y:c.height(to.x,to.z)},width/2,1.8);if(m.blockedX||m.blockedZ||m.pushed||Math.hypot(m.position.x-to.x,m.position.z-to.z)>.05)return false;}return true;
     });
-    if(isCorridor(r)){const spine=corridorStreet(p,r,c,clearStreet);if(spine.reason)diagnostics.push({severity:'ERROR',code:'SET_CONTEXT_SITE',message:spine.reason});else paths.push(nativePath(r.id+'-street-0',spine.points,streetWidth));}
+    if(networkPattern(r)){const network=neighborhoodNetwork(r,c,clearStreet);for(const road of network)paths.push(nativePath(road.id,road.points,streetWidth));if(!network.length)diagnostics.push({severity:'ERROR',code:'SET_NETWORK_SITE',message:'Aucun quartier praticable dans cette zone.'});}
+    else if(isCorridor(r)){const spine=corridorStreet(p,r,c,clearStreet);if(spine.reason)diagnostics.push({severity:'ERROR',code:'SET_CONTEXT_SITE',message:spine.reason});else paths.push(nativePath(r.id+'-street-0',spine.points,streetWidth));}
     else for(let lane=0;lane<lanes;lane++){
         if(organic){const points=organicStreet(r,lane,{...c,wet:(x,z)=>c.wet(x,z)||query.intersectsVolume({minX:x-.45,maxX:x+.45,minZ:z-.45,maxZ:z+.45,minY:c.height(x,z)+.2,maxY:c.height(x,z)+1.8})},clearStreet);if(points)paths.push(nativePath(r.id+'-street-'+lane,points,streetWidth));else diagnostics.push({severity:'ERROR',code:'SET_ORGANIC_ROAD',message:'Aucune courbe praticable dans cette zone. Réduire la taille, tourner l’implantation ou choisir un autre emplacement.'});}
         else{const x=(lane-(lanes-1)/2)*gap;addRoad(r.id+'-street-'+lane,settlementPoint(r,x,roadZ),settlementPoint(r,x,half+10),3.5);}
     }
-    if(organic&&!isCorridor(r)){const ring=organicArcs(r,paths,{...c,wet:(x,z)=>c.wet(x,z)||query.intersectsVolume({minX:x-.45,maxX:x+.45,minZ:z-.45,maxZ:z+.45,minY:c.height(x,z)+.2,maxY:c.height(x,z)+1.8})},clearStreet);for(const arc of ring.arcs)paths.push(nativePath(arc.id,arc.points,streetWidth));if(ring.omitted)diagnostics.push({severity:'WARNING',code:'SET_RING_GAP',message:'Certains passages périphériques ne tiennent pas dans le terrain. Les accès sont vérifiés par les autres rues.'});}
+    if(organic&&!isCorridor(r)&&!networkPattern(r)){const ring=organicArcs(r,paths,{...c,wet:(x,z)=>c.wet(x,z)||query.intersectsVolume({minX:x-.45,maxX:x+.45,minZ:z-.45,maxZ:z+.45,minY:c.height(x,z)+.2,maxY:c.height(x,z)+1.8})},clearStreet);for(const arc of ring.arcs)paths.push(nativePath(arc.id,arc.points,streetWidth));if(ring.omitted)diagnostics.push({severity:'WARNING',code:'SET_RING_GAP',message:'Certains passages périphériques ne tiennent pas dans le terrain. Les accès sont vérifiés par les autres rues.'});}
     else if(!organic&&lanes>1)addRoad(r.id+'-cross',lanePoint(r,0,roadZ),lanePoint(r,lanes-1,roadZ),3.5);
     if(r.layout?.pattern==='river'&&r.layout.riverBanks&&r.layout.riverBanks!=='single'){
         const crossing=riverCrossing(p,r,c,paths,clearStreet);
@@ -187,13 +190,14 @@ export function planSettlement(p: ProjectDocument, raw: SettlementRecipe): Settl
                 for (const d of habitatColliders(e.id, e.components.Transform))
                     query.add({ ...d, position: { ...d.position, y: d.position.y + c.height(d.groundAnchor.x, d.groundAnchor.z) }, enabled: () => true });
         const routing = { ...baseTerrain, wet: (x: number, z: number) => baseTerrain.wet(x, z) || query.intersectsVolume({ minX: x - .45, maxX: x + .45, minZ: z - .45, maxZ: z + .45, minY: c.height(x, z) + .2, maxY: c.height(x, z) + 1.8 }) };
-        const own = new Set(Object.keys(previous?.pathHashes ?? {})), origin = organic?(paths.find(p=>p.id===r.id+'-street-0')?.points.at(-1)??r.center):settlementPoint(r,0,roadZ), near = Object.values(p.libraries.paths).filter(v => !own.has(v.id) && !v.id.includes('-access-')).flatMap(path => path.points).map(q => ({ q, d: Math.hypot(q.x - origin.x, q.z - origin.z) })).filter(v => v.d > 3 && v.d < Math.min(r.radius * 2, 300)).sort((a, b) => a.d - b.d)[0];
+        const own = new Set(Object.keys(previous?.pathHashes ?? {})), origin = organic?(paths.find(p=>p.id===r.id+'-street-0')?.points.at(-1)??r.center):settlementPoint(r,0,roadZ), near = Object.values(p.libraries.paths).filter(v => !own.has(v.id) && (!v.id.includes('-access-')||v.id===r.routeToPath)&&(!r.routeToPath||v.id===r.routeToPath)).flatMap(path => path.points).map(q => ({ q, d: Math.hypot(q.x - origin.x, q.z - origin.z) })).filter(v => v.d > 3 && v.d < Math.min(r.radius * 2, 300)).sort((a, b) => a.d - b.d)[0];
+        if(r.routeToPath&&!near)diagnostics.push({severity:'ERROR',code:'SET_TARGET_PATH_DISTANCE',message:'La route choisie est trop éloignée pour un raccord local.'});
         if (near) {
             const route = planGroundRoute(origin, near.q, routing, { maxSlope: .35, widthM: 3, maxCells: 4096 });
             if (route.points.length)
                 paths.push(nativePath(r.id + '-regional', route.points, 3));
             else
-                diagnostics.push({ severity: 'WARNING', code: 'SET_REGIONAL_ACCESS', message: 'La route voisine ne peut pas être rejointe à pied depuis cette implantation.' });
+                diagnostics.push({ severity: r.routeToPath?'ERROR':'WARNING', code: 'SET_REGIONAL_ACCESS', message: 'La route voisine ne peut pas être rejointe à pied depuis cette implantation.' });
         }
     }
     if (!buildings.length)

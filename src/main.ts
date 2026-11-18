@@ -33,7 +33,7 @@ import {loadPortableCheckpoint,savePortableCheckpoint,withPortableItems} from '.
 import {ferryStatus,ferryEventsBetween,worldGameMinute} from './archipelago/ferry-schedule.ts';
 import {createCargoService} from './archipelago/cargo-logistics.ts';
 import {createFerryView} from './archipelago/ferry-view.ts';
-import {planPortN1,portActorPresence,authoredPortAnchors} from './archipelago/port-n1-plan.ts';
+import {planPortN1,portActorPresence,authoredPortAnchors,authoredPortLayout} from './archipelago/port-n1-plan.ts';
 import {createPortN1View} from './archipelago/port-n1-view.ts';
 import {attachPortN1Collisions} from './archipelago/port-n1-collisions.ts';
 import {withFerryBells} from './archipelago/ferry-audio.ts';
@@ -302,12 +302,13 @@ const ferryAnchor=activeIsland?definition.placements.filter(p=>/(dock|harbor|por
   (a,b)=>Math.hypot(a.x-player.position.x,a.z-player.position.z)-Math.hypot(b.x-player.position.x,b.z-player.position.z))[0]:undefined;
 // Port N1 is an optional deterministic addition to published generated islands. No
 // random object near the player when neither a safe shore nor an approach exists.
-const portN1Layout=activeIsland&&!isLegacyTerrain()?planPortN1({
+const savedPort=authoredPortLayout(gameplay?.runtime.data.entities??[]);
+const portN1Layout=savedPort??(activeIsland&&!isLegacyTerrain()?planPortN1({
   origin:{x:player.position.x,z:player.position.z},
   anchors:[...authoredPortAnchors(gameplay?.runtime.data.entities??[]),...definition.placements.filter(p=>/(dock|harbor|port|pier)/i.test(p.assetId)).map(p=>({x:p.x,z:p.z}))],
   width:getTerrainConfig().width,length:getTerrainConfig().length,
   seaLevel:getTerrainConfig().seaLevel,height:terrainHeight,depth:waterDepth,
-}):null;
+}):null);
 const ferryDock=(()=>{
   if(!activeIsland)return null;
   if(portN1Layout)return {...portN1Layout.boat};
@@ -321,8 +322,8 @@ const ferryDock=(()=>{
 // The boarding, oar-hand and trade locations never share the same interaction socket.
 const ferryBoardingPoint=activeIsland?(portN1Layout?.boarding??
   {x:ferryAnchor?.x??player.position.x,z:ferryAnchor?.z??player.position.z}):null;
-const portN1View=portN1Layout?createPortN1View(scene,portN1Layout,import.meta.env.BASE_URL):null;
-const detachPortCollisions=portN1Layout&&gameplay?attachPortN1Collisions(gameplay.collision,portN1Layout):null;
+const portN1View=portN1Layout?createPortN1View(scene,portN1Layout,import.meta.env.BASE_URL,!!savedPort):null;
+const detachPortCollisions=portN1Layout&&!savedPort&&gameplay?attachPortN1Collisions(gameplay.collision,portN1Layout):null;
 const ferryView=portN1View??(ferryDock?createFerryView(scene,ferryDock):null);
 const canBoardFerry=()=>!!ferryBoardingPoint&&!!ferryDock&&!player.space&&!aboard&&
   Math.hypot(player.position.x-ferryBoardingPoint.x,player.position.z-ferryBoardingPoint.z)<(portN1Layout?2.8:4.5);

@@ -1,5 +1,8 @@
 # Little World — instructions pour Codex et autres agents de développement
 
+> **Création complète :** lire [89 — caldeira, port natif et villages](docs/89-COMPLETE-ISLAND-START-CALDERA-PORT-VILLAGES.md). Ce lot complète le document 88 : port N1 source dès création, quartiers organiques et raccord explicite. Préserver la géométrie historique sans option organique.
+
+
 > **Suite villages / synchronisation main :** lire [88 — ponts, vie locale et ports existants](docs/88-VILLAGES-RIVER-LIFE-MAIN-INTEGRATION.md). Les petits ponts générés ont un support V3 explicite ; les grands ponts restent hors lot. Le raccord N1 réutilise le survey/runtime de main, sans inventer un cargo ni générer un nouveau port indépendant.
 
 > **Implantation organique :** lire [77 — placement autour d’un point d’intérêt](docs/77-ORGANIC-SETTLEMENT-PLACEMENT.md). Lire aussi [78 — modèles contextuels](docs/78-CONTEXTUAL-SETTLEMENT-PATTERNS.md) pour village-rue, montagne, rivière et pêcheurs, guidés par le terrain/eau natifs. Le profil fortifié règle la compacité seulement ; les enceintes restent à livrer. Sans `recipe.layout`, conserver l’ancien comportement et les retouches/verrous.

@@ -24,7 +24,7 @@ export function mountCompositionPanel(host:HTMLElement,session:StudioSession,sta
   button('Comparer avant / après',async()=>{
    if(busy)return;busy=true;invalidate();
    try{
-    const p=await session.fullDocument(),next={...structuredClone(nextRequirements),seed,compositionVersion:version};if(version<5){delete next.layout;if(next.islandStyle)delete next.islandStyle.silhouette;}if(version<4)delete next.islandStyle;
+    const p=await session.fullDocument(),next={...structuredClone(nextRequirements),seed,compositionVersion:version};if(version<5){delete next.maritimePort;delete next.welcomeVillage;delete next.layout;if(next.islandStyle)delete next.islandStyle.silhouette;}if(version<4)delete next.islandStyle;
     const result=previewWorldRecomposition(p,next,mode);if(disposed)return;
     preview=result;output.replaceChildren(node('p',result.summary));
     for(const [label,source]of [['Avant',p],['Après',result.project]] as const){const canvas=node('canvas');canvas.width=480;canvas.height=320;canvas.style.width='100%';canvas.setAttribute('aria-label',label+' recomposition');drawWelcomePreview(canvas,source);output.append(node('h3',label),canvas);}

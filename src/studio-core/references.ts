@@ -64,7 +64,7 @@ export class ReferenceIndex {
       this.add({id,kind:name,ownerChunkId:'global',locator:`library/${name}/${id}`},true);
       if(name==='paths'&&(value as import('../world-data.ts').PathDefinition).supportId)this.link(id,(value as import('../world-data.ts').PathDefinition).supportId!);
       if(name==='dialogues'&&(value as {actorId?:string}).actorId)this.link(id,(value as {actorId:string}).actorId);
-      if(name==='settlements'){const s=value as import('../settlements/schema.ts').SettlementInstance;for(const b of s.buildings)for(const target of [b.id,b.doorId,b.interactionId])this.link(id,target);for(const target of Object.keys(s.pathHashes))this.link(id,target);for(const a of s.amenities??[])this.link(id,a.id);}
+      if(name==='settlements'){const s=value as import('../settlements/schema.ts').SettlementInstance;if(s.recipe.routeToPath)this.link(id,s.recipe.routeToPath);for(const b of s.buildings)for(const target of [b.id,b.doorId,b.interactionId])this.link(id,target);for(const target of Object.keys(s.pathHashes))this.link(id,target);for(const a of s.amenities??[])this.link(id,a.id);}
       if(name==='prefabs'){const components=(value as {components:ComponentMap}).components;if(components.Visual)this.link(id,components.Visual.assetId);}
     }
     for(const asset of Object.values(p.assets))this.add({id:asset.id,kind:'asset',ownerChunkId:'global',locator:`assets/${asset.id}`},true);
