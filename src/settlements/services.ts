@@ -39,7 +39,7 @@ export function planServices(p: ProjectDocument, r: SettlementRecipe, roadZ: num
         ...(r.activity === 'agriculture' ? [{ role: 'mill', asset: 'architecture.windmill_stone', x: -21, z: squareZ - 19, yaw: Math.PI }] : []),
         ...(r.variedServices?[{role:'inn',asset:'architecture.inn',x:25,z:squareZ-24,yaw:Math.PI,shop:'inn' as const},{role:'workshop',asset:r.activity==='agriculture'?'architecture.farmhouse':r.activity==='fishing'?'structure.pier_hut':'architecture.wooden_cabin',x:-27,z:squareZ+23,yaw:0}]:[]),
         ...(r.activity === 'forest' ? [{ role: 'fire', asset: 'structure.campfire', x: -19, z: squareZ - 16, yaw: Math.PI }] : [])];
-    const preservedRecords = (old?.amenities ?? []).filter(a => !['bridge','host','harbor','shore-hut','shore-boat'].includes(a.role)&&amenityChanged(p, a));
+    const preservedRecords = (old?.amenities ?? []).filter(a => !['bridge','host','resident','harbor','shore-hut','shore-boat'].includes(a.role)&&amenityChanged(p, a));
     for (const a of preservedRecords) {
         const index = p.entityIndex[a.id], e = index ? p.chunks[index.ownerChunkId]?.entities[a.id] : undefined;
         if (!e) {

@@ -287,9 +287,13 @@ try{
  }catch{console.warn('Audio indisponible : le jeu reste silencieux.');}
 const {createGroundProbe}=await import('./audio/world-probe.ts'),groundProbe=createGroundProbe();
 let gameplay:GameplayView|null=null;
+let npcActorActions:null|{moveTo:(id:string,p:{x:number;y:number;z:number})=>boolean;talkTo:(id:string,p:{x:number;z:number})=>boolean}=null;
 if(playable){
   const {createGameplayView}=await import('./gameplay/game-view.ts');
-  gameplay=createGameplayView(playable.gameplay,{surfStarter:searchParams.get('surfDemo')==='1'||!!playable?.surfZones?.length,islandId:activeIsland?.id,onSound:(id,p)=>audio?.playSound(id,p),collisions:playable.collisions,temporary:!!(studioTest||buildScope),saveScope:studioTest?.snapshotId??buildScope??undefined,getPosition:()=>({x:player.position.x,y:player.position.y,z:player.position.z}),objects:world.objects,showInfo,
+  gameplay=createGameplayView(playable.gameplay,{surfStarter:searchParams.get('surfDemo')==='1'||!!playable?.surfZones?.length,islandId:activeIsland?.id,
+    onNpcMoveTo:(id,p)=>npcActorActions?.moveTo(id,p)??false,
+    onNpcStartDialogue:(id)=>npcActorActions?.talkTo(id,{x:player.position.x,z:player.position.z})??false,
+    onSound:(id,p)=>audio?.playSound(id,p),collisions:playable.collisions,temporary:!!(studioTest||buildScope),saveScope:studioTest?.snapshotId??buildScope??undefined,getPosition:()=>({x:player.position.x,y:player.position.y,z:player.position.z}),objects:world.objects,showInfo,
     activities:playable.activities,getSpace:()=>player.space,
     getGas:()=>gasLevel(player),
     getGasProgress:()=>structuredClone(flightProgress),
@@ -305,10 +309,22 @@ if(playable){
     drawnNear:(r:number)=>world.drawnNear(player.position.x,player.position.z,r)}});}
   if(gameplay.gathering){const gather=gameplay.gathering;world.setDressingFilter((cx,cz,kind,index)=>gather.hiddenAt(cx,cz,kind,index));gather.subscribe(()=>world.redrawDressing());}
 }
-const npcs = createNPCSystem(scene, definition.npcs,isLegacyTerrain()?undefined:[],gameplay?.dialogueSession);
+const worldClock=gameplay?.runtime.clock??new WorldClock(),climate=gameplay?.runtime.climate??createClimate(defaultEnvironment(definition.config.seed));
+const npcs = createNPCSystem(scene, definition.npcs,isLegacyTerrain()?undefined:[],gameplay?.dialogueSession,{
+  worldTime:()=>worldClock.time,dayLengthSeconds:climate.definition.dayLengthSeconds,
+  initialDayPhase:climate.definition.initialDayPhase,paths:definition.paths,
+  weather:()=>climate.state(worldClock.time).weather,
+  walkable:(x,z)=>{
+    const collision=gameplay?.collision;if(!collision)return true;
+    const ground=terrainHeight(x,z);
+    return !collision.intersectsVolume({
+      minX:x-.25,maxX:x+.25,minZ:z-.25,maxZ:z+.25,minY:ground+.5,maxY:ground+1.5,
+    });
+  },
+});
+npcActorActions=npcs;
 npcs.setLighting(world.atlasIllumination);
 gameplay?.attachNPCs(npcs.states);
-const worldClock=gameplay?.runtime.clock??new WorldClock(),climate=gameplay?.runtime.climate??createClimate(defaultEnvironment(definition.config.seed));
 // A single durable cargo ledger covers the published offline archipelago; its author
 // reserves are consumed without creating any offscreen Three.js world.
 let cargoService:ReturnType<typeof createCargoService>|null=null;
@@ -1637,6 +1653,7 @@ function draw(now: number) {
           plots: Object.fromEntries([...gameplay.activities.farms.keys()].map(id=>{const v=gameplay!.activities.farmView(id)!;return [id,{crop:v.cropId,stage:v.stage,growth:+v.growth.toFixed(3),moisture:+v.moisture.toFixed(3)}];})) } : null,
         programs: renderer.info.programs?.length ?? 0,
         workers: geoWorkerPool()?.stats ? { ...geoWorkerPool()!.stats } : null,
+        npcLife:npcs.lifeStats,
         environment:environment.metrics,
         audio:audio?.engine.metrics??null,
         collisions:gameplay?.collision.stats??null,
