@@ -425,6 +425,37 @@ world.update(0, player.position);
       const gained=refillGas(player,points);
       return {ok:true,message:'+'+Math.round(gained)+' gaz !'};
     },
+    canEatFood:(itemId)=>{
+      if(!foodGasValue(itemId))return 'Cet objet ne peut pas être mangé.';
+      if(player.mode!=='ground'||aboard)return 'Mangez au sol avant de décoller.';
+      if(gasLevel(player)>=gasCapacity(player))return 'La réserve de gaz est déjà pleine.';
+      if(!gameplay?.has(itemId))return 'Cet aliment n’est plus dans le sac.';
+      return null;
+    },
+    eatFoods:(items:{itemId:string;quantity:number;gas:number}[])=>{
+      if(!gameplay||!Array.isArray(items)||items.length===0||items.length>100)
+        return {ok:false,message:'Sélection alimentaire invalide.'};
+      if(player.mode!=='ground'||aboard)
+        return {ok:false,message:'Mangez au sol avant de décoller.'};
+      const available=gasCapacity(player)-gasLevel(player);
+      if(available<=0)return {ok:false,message:'La réserve de gaz est déjà pleine.'};
+      const quantities=new Map<string,number>();let total=0;
+      for(const item of items){
+        const gas=foodGasValue(item.itemId);
+        if(gas<=0||!Number.isSafeInteger(item.quantity)||item.quantity<1||item.quantity>9999)
+          return {ok:false,message:'La sélection contient un objet non comestible.'};
+        const next=(quantities.get(item.itemId)??0)+item.quantity;
+        if(next>(gameplay.runtime.state.inventory[item.itemId]??0))
+          return {ok:false,message:'Stock insuffisant pour '+gameplay.itemName(item.itemId)+'.'};
+        quantities.set(item.itemId,next);
+        total+=gas*item.quantity;
+      }
+      if(total<=0||!Number.isFinite(total))return {ok:false,message:'Aucune recharge possible.'};
+      const changes=[...quantities].map(([itemId,quantity])=>({itemId,quantity:-quantity}));
+      if(!gameplay.purse.apply(changes))return {ok:false,message:'Consommation refusée : stock modifié.'};
+      const gain=refillGas(player,total);
+      return {ok:true,message:'+'+Math.round(gain)+' gaz · '+[...quantities.values()].reduce((n,q)=>n+q,0)+' aliments consommés.'};
+    },
     headgear:{equipped:()=>helmetEquipped,setEquipped:value=>{helmetEquipped=value;}},
     mineHub:gameplay?{
       view:()=>gameplay!.activities.mineLiftView(player.position,player.space),
