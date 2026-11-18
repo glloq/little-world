@@ -7,6 +7,9 @@ import {mineChunkGeometry,WALL_ROWS,MINE_RELIEF} from '../src/mine/mine-mesher.t
 import {mineSpaceProvider,mineTransitions} from '../src/mine/mine-collision.ts';
 import {WorldCollisionQuery} from '../src/physics/collision-world.ts';
 import {simulatePlayer,MAX_OXYGEN} from '../src/player.ts';
+import {mineHubLayout,mineHubCounterId,mineRequiredExcavations,mineLevelUnlocked} from '../src/mine/mine-hub.ts';
+import {createMineHubView} from '../src/mine/mine-hub-view.ts';
+import {createActivityRuntime} from '../src/gameplay/activity-runtime.ts';
 
 const polygon=[{x:-20,z:0},{x:20,z:0},{x:20,z:40},{x:-20,z:40}];
 const zone=(seed=11)=>({id:'mine-a',name:'Mine',polygon,mine:defaultMineSettings(polygon,3,30,seed)});
@@ -97,4 +100,61 @@ test('mesher: organic relief is crack-free and never intrudes into the walkable 
       const key=gx+':'+gz+':'+Math.round((y-L.floorY)/L.height*100);const prev=seen.get(key);
       if(prev)assert.ok(Math.abs(prev[0]-x)<1e-6&&Math.abs(prev[1]-y)<1e-6&&Math.abs(prev[2]-z)<1e-6,'shared vertex '+key);else seen.set(key,[x,y,z]);}}
   assert.ok(displaced>50,'walls are not flat ('+displaced+' displaced vertices)');
+});
+
+test('MINE-HUB: identical three-floor reception layout, one shaft and stable shop IDs',()=>{
+  const z=zone(),state=new MineState(new MineGrid(z));
+  const hubs=z.mine.levels.map((_,i)=>mineHubLayout(z,i));
+  assert.equal(new Set(hubs.map(h=>h.shaft.x+':'+h.shaft.z)).size,1,'vertical shaft aligned');
+  assert.equal(new Set(hubs.map(h=>h.floorY)).size,3,'level-specific altitude');
+  assert.equal(new Set(hubs.map(h=>mineHubCounterId(z.id,h.levelId))).size,3,'unique counter per floor');
+  for(let l=0;l<hubs.length;l++){
+    const h=hubs[l];
+    assert.ok(state.isOpen(l,Math.floor(h.shaft.x),Math.floor(h.shaft.z)),'lift floor open');
+    assert.ok(state.isOpen(l,Math.floor(h.counter.x),Math.floor(h.counter.z)),'counter floor open');
+    assert.ok(state.isOpen(l,Math.floor(h.gallery.x),Math.floor(h.gallery.z)),'gallery remains walkable');
+  }
+});
+test('MINE-HUB: progress gates are deterministic and stairs cannot bypass the runtime lift',()=>{
+  assert.equal(mineRequiredExcavations(0),0);
+  assert.equal(mineRequiredExcavations(1),12);
+  assert.equal(mineRequiredExcavations(2),40);
+  assert.equal(mineLevelUnlocked(2,39),false);
+  assert.equal(mineLevelUnlocked(2,40),true);
+  const z=zone(),q=new WorldCollisionQuery(()=>30,()=>null);
+  const a=createActivityRuntime({mines:[z],farms:[]},{
+    grant:()=>true,has:()=>true,time:()=>0,climate:{},
+    collision:q,ground:()=>30,water:()=>null,
+  });
+  const hub=mineHubLayout(z,0),point={x:hub.counter.x,y:hub.floorY,z:hub.counter.z},
+    space={zoneId:z.id,levelId:hub.levelId};
+  assert.ok(a.mineHubNear(point,space,'shop'));
+  const view=a.mineLiftView(point,space);assert.ok(view);
+  assert.equal(view.stops.length,3);
+  assert.equal(view.stops[0].unlocked,true);
+  assert.equal(view.stops[1].unlocked,false);
+  assert.equal(a.mineLiftTravel(point,space,z.mine.levels[1].id).ok,false,'cannot bypass gates');
+  const connector=z.mine.connectors[0],stairPoint={x:connector.x,y:hub.floorY,z:connector.z};
+  assert.equal(q.transitionAt(stairPoint,space),null,'no automatic stair transition');
+  assert.ok(q.stats.transitions<=2,'only entrance and exit registered');
+  const m=a.mines.get(z.id).state;
+  for(let i=0;i<12;i++){const w=wallCell(m,0);assert.ok(w,'diggable wall '+i);
+    assert.equal(m.dig({requestId:'hub-'+i,levelId:space.levelId,ix:w.ix,iz:w.iz,
+      from:from(m,0,w.stand.ix,w.stand.iz)},()=>true).ok,true);}
+  const result=a.mineLiftTravel(point,space,z.mine.levels[1].id);
+  assert.equal(result.ok,true);
+  if(result.ok){assert.equal(result.space.levelId,z.mine.levels[1].id);
+    assert.equal(result.position.y,z.mine.levels[1].floorY);}
+});
+test('MINE-HUB: low-poly visuals merge geometry and remain detached from mine collisions',()=>{
+  const hub=mineHubLayout(zone(),0),solid=new THREE.MeshLambertMaterial({vertexColors:true}),
+    glow=new THREE.MeshBasicMaterial({vertexColors:true});
+  const model=createMineHubView(hub,solid,glow);
+  assert.equal(model.children.length,2,'only two draw submissions for the hub');
+  assert.equal(model.userData.levelId,hub.levelId);
+  for(const child of model.children){assert.ok(child.isMesh);
+    assert.ok(child.geometry.getAttribute('color'));
+    assert.ok(child.geometry.getAttribute('position').count>50);
+    child.geometry.dispose();}
+  solid.dispose();glow.dispose();
 });
