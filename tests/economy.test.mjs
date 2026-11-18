@@ -57,10 +57,13 @@ test('gathering: trees need an axe and several strikes, give logs, stay felled u
   time+=t.rule.regrowSeconds+1;assert.equal(g2.hiddenAt(t.cx,t.cz,t.kind,t.index),false,'grows back');
   assert.equal(ruleFor('nature.fruit_apple','oak',true).yields.itemId,'food:apple');assert.equal(ruleFor('nature.mushrooms_patch','plant',true).yields.itemId,'forage:mushroom');
 });
-test('fishing: bite window, strike in time catches a fish of that water, too early catches nothing',()=>{
+test('fishing: hooking a bite starts tension minigame but no immediate loot',()=>{
   let r=.5;const f=createFishing(()=>r);
-  f.cast('river',{x:0,z:0},0);assert.equal(f.strike(),null,'too early');
-  f.cast('river',{x:0,z:0},0);assert.equal(f.update(10),'bite');r=.1;assert.equal(f.strike(),'fish:trout');
+  f.cast('river',{x:0,z:0},0);assert.equal(f.hook(),false,'too early');
+  f.cast('river',{x:0,z:0},0);assert.equal(f.update(10),'bite');r=.1;assert.equal(f.hook(),true);
+  assert.equal(f.state.phase,'reeling');assert.equal(f.state.fish,'fish:trout');
+  assert.equal(f.takeCatch(),null,'no early loot');
+  f.cancel();assert.equal(f.state.phase,'idle');
   f.cast('sea',{x:0,z:0},0);f.update(10);assert.equal(f.update(20),'lost');
 });
 
