@@ -108,8 +108,8 @@ test('every historic squirrel villager maps to the existing player hamster rig; 
   assert.equal(isHumanoidNPC('squirrel'),true);
   assert.equal(isHumanoidNPC('animal'),false);
   const {DEFAULT_NPCS}=await import('../src/npc.ts');
-  assert.ok(DEFAULT_NPCS.every(n=>n.kind!=='squirrel'));
-  assert.ok(DEFAULT_NPCS.some(n=>n.kind==='hamster'));
+  assert.ok(DEFAULT_NPCS.some(n=>n.kind==='squirrel')); // historical source is preserved
+  assert.ok(DEFAULT_NPCS.filter(n=>n.kind!=='animal').every(n=>visualNPCSpecies(n.kind)==='hamster'));
 });
 
 test('profession gestures are deterministic and only triggered at sparse intervals',async()=>{
