@@ -1,3 +1,5 @@
+import {islandStyleControls} from './island-style-controls.ts';
+import {selectIslandStyle} from '../studio-core/island-styles.ts';
 import {button,field,node,numberInput,select} from './dom.ts';
 import type {StudioSession} from './session.ts';
 import {drawWelcomePreview} from './home-welcome.ts';
@@ -11,14 +13,18 @@ export function mountCompositionPanel(host:HTMLElement,session:StudioSession,sta
  function invalidate(){preview=null;apply.disabled=true;output.replaceChildren(node('p','Recalculer l’aperçu avant application.','muted'));}
  host.append(node('h2','Recomposer le monde'),node('p','La recomposition globale est protégée si le relief, l’eau, les régions ou des objets ont été retouchés. Le rafraîchissement des biomes respecte les cellules manuelles et les régions supprimées.','muted'));
  if(!session.document.world.generation){host.append(node('p','Projet ancien : besoins absents. La création guidée reste disponible depuis l’accueil.'));return ()=>{};}
- let version:1|2|3=session.document.world.generation.compositionVersion??1;
- const versionInput=select(String(version),[['1','Composition initiale'],['2','Provinces, plateaux et vallées'],['3','Île en étages et réseau de ruisseaux']],value=>{version=Number(value) as 1|2|3;invalidate();});
+ let nextRequirements=structuredClone(session.document.world.generation);
+ let version:1|2|3|4|5=session.document.world.generation.compositionVersion??1;
+ const versionInput=select(String(version),[['1','Composition initiale'],['2','Provinces, plateaux et vallées'],['3','Île en étages et réseau de ruisseaux'],['4','Styles insulaires naturels'],['5','Silhouettes et zones utiles']],value=>{version=Number(value) as 1|2|3|4|5;if(version>=4&&!nextRequirements.islandStyle)nextRequirements=selectIslandStyle(nextRequirements,'central-massif');renderStyle();invalidate();});
+ const styleHost=node('div');let styleBox:HTMLFieldSetElement|undefined;
+ function renderStyle(){styleHost.replaceChildren();if(version<4)return;styleBox=islandStyleControls({...nextRequirements,compositionVersion:version},next=>{nextRequirements=next;version=next.compositionVersion??4;versionInput.value=String(version);renderStyle();invalidate();});styleBox.disabled=mode==='biomes';styleHost.append(styleBox);}
+ renderStyle();
  const seedInput=numberInput(seed,v=>{seed=v;invalidate();},1,9999999,'1');
- host.append(field('Mode de recomposition',select(mode,[['full','Composition globale'],['biomes','Rafraîchir les biomes actuels']],v=>{mode=v as typeof mode;seedInput.disabled=mode==='biomes';versionInput.disabled=mode==='biomes';invalidate();})),field('Nouvelle graine',seedInput),field('Génération du relief',versionInput),
+ host.append(field('Mode de recomposition',select(mode,[['full','Composition globale'],['biomes','Rafraîchir les biomes actuels']],v=>{mode=v as typeof mode;seedInput.disabled=mode==='biomes';versionInput.disabled=mode==='biomes';if(styleBox)styleBox.disabled=mode==='biomes';invalidate();})),field('Nouvelle graine',seedInput),field('Génération du relief',versionInput),styleHost,
   button('Comparer avant / après',async()=>{
    if(busy)return;busy=true;invalidate();
    try{
-    const p=await session.fullDocument(),next={...p.world.generation!,seed,compositionVersion:version};
+    const p=await session.fullDocument(),next={...structuredClone(nextRequirements),seed,compositionVersion:version};if(version<5){delete next.layout;if(next.islandStyle)delete next.islandStyle.silhouette;}if(version<4)delete next.islandStyle;
     const result=previewWorldRecomposition(p,next,mode);if(disposed)return;
     preview=result;output.replaceChildren(node('p',result.summary));
     for(const [label,source]of [['Avant',p],['Après',result.project]] as const){const canvas=node('canvas');canvas.width=480;canvas.height=320;canvas.style.width='100%';canvas.setAttribute('aria-label',label+' recomposition');drawWelcomePreview(canvas,source);output.append(node('h3',label),canvas);}

@@ -1,3 +1,5 @@
+import {moveHabitatDoor} from '../settlements/habitat-edit.ts';
+import {housePoint,HOUSE} from '../settlements/habitat.ts';
 /** Pure authoring operations on entity transforms, run inside one StudioSession.change
  * (= one Undo/Redo transaction). Stable V3 IDs are kept; owner sectors follow positions. */
 import type {ComponentMap,EntityDefinitionV3,ProjectDocument,TransformComponent,Vector3} from './types.ts';
@@ -18,7 +20,7 @@ export function entityTransform(project:ProjectDocument,id:string):TransformValu
 /** Sectors to hydrate/clone for a set of updates: current owners and destination owners. */
 export function transformChunkIds(project:ProjectDocument,updates:TransformUpdate[]):string[]{
   const ids=new Set<string>();
-  for(const u of updates){const index=project.entityIndex[u.id];if(index)ids.add(index.ownerChunkId);ids.add(chunkAt(project.world,clampX(project,u.transform.position.x),clampZ(project,u.transform.position.z)));}
+  for(const u of updates){const index=project.entityIndex[u.id];if(index)ids.add(index.ownerChunkId);ids.add(chunkAt(project.world,clampX(project,u.transform.position.x),clampZ(project,u.transform.position.z)));const house=index?project.chunks[index.ownerChunkId]?.entities[u.id]:undefined;if(house?.components.Habitat){const d=project.entityIndex[house.components.Habitat.doorId];if(d)ids.add(d.ownerChunkId);const point=housePoint({...u.transform,type:'Transform'},0,0,-HOUSE.depth/2);ids.add(chunkAt(project.world,clampX(project,point.x),clampZ(project,point.z)));}}
   return [...ids];
 }
 const clampX=(p:ProjectDocument,x:number)=>Math.min(p.world.bounds.maxX,Math.max(p.world.bounds.minX,x));
@@ -35,8 +37,9 @@ export function applyTransforms(draft:ProjectDocument,updates:TransformUpdate[])
     const index=draft.entityIndex[u.id];if(!index)throw Error('Entité supprimée : '+u.id);
     const source=draft.chunks[index.ownerChunkId]?.entities[u.id];if(!source)throw Error('Charger le secteur de '+u.id);
     if(resolveEntity(draft,source).components.NaturalStructure)throw Error('Modifier cette arche, ce pont ou ce tunnel via Structures naturelles pour conserver ouvertures et collisions synchronisées');
+    if(source.parentId){const parent=draft.entityIndex[source.parentId],h=parent?draft.chunks[parent.ownerChunkId]?.entities[source.parentId]?.components.Habitat:undefined;if(h?.doorId===source.id){if(updates.some(v=>v.id===source.parentId))continue;throw Error('Déplacer la maison pour conserver sa porte et son ouverture.');}}
     const t=normalized(u.transform);t.position.x=clampX(draft,t.position.x);t.position.z=clampZ(draft,t.position.z);
-    const entity=materializeComponents(source,{Transform:t});entity.ownerChunkId=chunkAt(draft.world,t.position.x,t.position.z);putEntity(draft,entity);
+    const entity=materializeComponents(source,{Transform:t});entity.ownerChunkId=chunkAt(draft.world,t.position.x,t.position.z);putEntity(draft,entity);moveHabitatDoor(draft,entity.id,t);
   }
 }
 /** Components describing logic or identity-bound links are not duplicated: copies get the look
@@ -46,7 +49,7 @@ export function duplicateEntities(draft:ProjectDocument,ids:string[],offset:Vect
   const created:string[]=[];
   for(const id of ids){
     const index=draft.entityIndex[id],source=index?draft.chunks[index.ownerChunkId]?.entities[id]:undefined;if(!source)throw Error('Charger le secteur de '+id);
-    const resolved=resolveEntity(draft,source);if(resolved.components.NaturalStructure)throw Error('Dupliquer via Structures naturelles : une copie de tunnel doit aussi copier son excavation');
+    const resolved=resolveEntity(draft,source);if(resolved.components.Habitat)throw Error('Ajouter une maison via Villages & villes pour conserver sa porte et son accès.');if(resolved.components.NaturalStructure)throw Error('Dupliquer via Structures naturelles : une copie de tunnel doit aussi copier son excavation');
     const copy:EntityDefinitionV3=structuredClone(source),copyId=newId();
     copy.id=copyId;delete copy.parentId;
     for(const key of NOT_DUPLICATED){delete copy.components[key];if(copy.overrides)copy.overrides=copy.overrides.filter(o=>o.component!==key);}
@@ -68,6 +71,7 @@ export function duplicateChunkIds(project:ProjectDocument,ids:string[],offset:Ve
 }
 export function deleteEntities(draft:ProjectDocument,ids:string[]):void{
   for(const id of ids){
+    const i=draft.entityIndex[id],e=i?draft.chunks[i.ownerChunkId]?.entities[id]:undefined;if(e?.components.Habitat||e?.parentId&&draft.entityIndex[e.parentId]?.references.includes(id))throw Error('Supprimer cette maison depuis Villages & villes pour retirer aussi sa porte et son accès.');
     // Terrain-hole edits follow the entity on deletion; no abandoned excavations remain.
     const prefix='natural:'+id+':',edits=new Set<string>();
     for(const meta of Object.values(draft.chunkIndex))

@@ -1,3 +1,5 @@
+> **Historique** : ce document décrit le prototype initial (75/100). Pour les valeurs en vigueur (réserve 150/200→280, coût 14/impulsion et nouveaux aliments), consulter [70 — Aliments et recharge](70-FOOD-BOOST-RECHARGE.md) et `src/physics/gas-propulsion.ts`.
+
 # 59 — Propulsion au gaz en vol (prototype)
 Branche : `feat/glide-gas-boost`, basée sur `main` commit `31ffb4b`. Pas de merge.
 ## Contrat

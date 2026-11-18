@@ -1,5 +1,5 @@
 import type {Point3} from './collision-world.ts';
-export interface CollisionDefinition {id:string;shape:'box'|'sphere';position:Point3;size:Point3;groundAnchor:{x:number;z:number};}
+export interface CollisionDefinition {id:string;ownerId?:string;shape:'box'|'sphere';position:Point3;size:Point3;groundAnchor:{x:number;z:number};}
 export function validateCollisionDefinition(v:CollisionDefinition){if(!v||typeof v.id!=='string'||!v.id.length||v.id.length>128||!['box','sphere'].includes(v.shape)||!v.position||!v.size||!v.groundAnchor||![v.position.x,v.position.y,v.position.z,v.size.x,v.size.y,v.size.z,v.groundAnchor.x,v.groundAnchor.z].every(n=>Number.isFinite(n)&&Math.abs(n)<=100000)||[v.size.x,v.size.y,v.size.z].some(n=>n<=0))throw Error('Définition de collision invalide');}
 /** Conservative world AABB of the typed collider, derived from author transforms, never visual meshes. */
 export function transformedCollider(id:string,collider:{shape:'box'|'sphere';size:Point3},transform:{position:Point3;rotation:{x:number;y:number;z:number;w:number};scale:Point3}):CollisionDefinition {

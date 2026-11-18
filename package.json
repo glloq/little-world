@@ -75,7 +75,13 @@
     "benchmark:ground-cover": "node tools/benchmark-ground-cover.mjs",
     "test:ground-cover": "node tools/test-ground-cover.mjs",
     "test:composition": "node --experimental-strip-types tools/test-world-composition-browser.mjs",
-    "benchmark:composition": "node --experimental-strip-types tools/benchmark-world-composition.mjs"
+    "test:composition-draft": "node tools/test-composition-draft-browser.mjs",
+    "test:composed-islands": "node tools/test-composed-islands-browser.mjs",
+    "benchmark:composed-islands": "node --experimental-strip-types tools/benchmark-composed-islands.mjs",
+    "benchmark:composition": "node --experimental-strip-types tools/benchmark-world-composition.mjs",
+    "benchmark:styles": "node --experimental-strip-types tools/benchmark-island-styles.mjs",
+    "test:settlements": "node --experimental-strip-types tools/test-settlements-browser.mjs",
+    "benchmark:settlements": "node --experimental-strip-types tools/benchmark-settlements.mjs"
   },
   "dependencies": {
     "three": "^0.180.0"

@@ -78,6 +78,7 @@ export function lodDistances(a:WorldAsset):number[]{const r=Math.max(...a.size);
  * their measured footprint plus a small margin (doors, eaves, paths around). */
 export function exclusionRadius(assetId:string,scale=1):number|null{
   const a=worldAsset(assetId);
+  if(assetId.startsWith('settlement.house_'))return 6*scale;
   if(!a||a.group==='legacy')return assetId.startsWith('architecture.')?6*scale:null;
   const u=a.usage;if(!u)return null;
   if(u.role==='building'||u.role==='landmark')return (u.footprintM+2)*scale;

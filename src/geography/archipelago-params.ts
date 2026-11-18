@@ -14,7 +14,7 @@ function points(v:unknown,label:string,min:number,max:number,world:{width:number
 function variant(raw:Record<string,unknown>):{variant?:number}{if(raw.variant===undefined)return {};const v=num(raw.variant,'variante',0,999999);if(!Number.isInteger(v))throw Error('Archipel : variante entière attendue');return {variant:v};}
 export const ARCHIPELAGO_LIMITS={landmasses:12,outline:64,features:64,line:32} as const;
 export function parseArchipelago(value:unknown,world:{width:number;length:number}):ArchipelagoParams{
-  if(!record(value))throw Error('Archipel invalide');only(value,['seabedDepthM','detailM','landmasses','features'],'Archipel');
+  if(!record(value))throw Error('Archipel invalide');only(value,['seabedDepthM','detailM','landmasses','features','coastalReliefFadeM'],'Archipel');
   if(!Array.isArray(value.landmasses)||value.landmasses.length<1||value.landmasses.length>ARCHIPELAGO_LIMITS.landmasses)throw Error('Archipel : 1 à 12 terres');
   if(!Array.isArray(value.features)||value.features.length>ARCHIPELAGO_LIMITS.features)throw Error('Archipel : 64 formes au maximum');
   const ids=new Set<string>(),unique=(v:string)=>{if(ids.has(v))throw Error('Archipel : identifiant dupliqué '+v);ids.add(v);return v;};
@@ -33,13 +33,13 @@ export function parseArchipelago(value:unknown,world:{width:number;length:number
         if(v.craterRadiusM>=v.radiusM)throw Error('Volcan : cratère trop large');if(v.craterDepthM>v.heightM)throw Error('Volcan : cratère trop profond');return v;}
       case 'mountain':case 'hill':only(raw,['id','kind','x','z','radiusM','heightM','roughness','variant'],'Massif');return {id:fid,kind:raw.kind,...center(),radiusM:num(raw.radiusM,'rayon',10,minor),heightM:num(raw.heightM,'hauteur',1,1200),roughness:num(raw.roughness,'rugosité',0,1),...variant(raw)};
       case 'basin':only(raw,['id','kind','x','z','radiusM','depthM','variant'],'Cuvette');return {id:fid,kind:'basin',...center(),radiusM:num(raw.radiusM,'rayon',10,minor),depthM:num(raw.depthM,'profondeur',.5,300),...variant(raw)};
-      case 'plateau':only(raw,['id','kind','polygon','heightM','edgeM','variant'],'Plateau');return {id:fid,kind:'plateau',polygon:points(raw.polygon,'Plateau',3,ARCHIPELAGO_LIMITS.outline,world),heightM:num(raw.heightM,'altitude',0,1200),edgeM:num(raw.edgeM,'bordure',2,600),...variant(raw)};
+      case 'plateau':if(raw.surface!==undefined&&typeof raw.surface!=='boolean')throw Error('Plateau : surface invalide');only(raw,['id','kind','polygon','heightM','edgeM','surface','variant'],'Plateau');return {id:fid,kind:'plateau',polygon:points(raw.polygon,'Plateau',3,ARCHIPELAGO_LIMITS.outline,world),heightM:num(raw.heightM,'altitude',0,1200),edgeM:num(raw.edgeM,'bordure',2,600),...(raw.surface!==undefined?{surface:raw.surface}:{}),...variant(raw)};
       case 'ridge':only(raw,['id','kind','points','widthM','heightM','variant'],'Crête');return {id:fid,kind:'ridge',points:points(raw.points,'Crête',2,ARCHIPELAGO_LIMITS.line,world),widthM:num(raw.widthM,'largeur',5,2000),heightM:num(raw.heightM,'hauteur',1,800),...variant(raw)};
       case 'valley':only(raw,['id','kind','points','widthM','depthM','variant'],'Vallée');return {id:fid,kind:'valley',points:points(raw.points,'Vallée',2,ARCHIPELAGO_LIMITS.line,world),widthM:num(raw.widthM,'largeur',5,2000),depthM:num(raw.depthM,'profondeur',.5,400),...variant(raw)};
       default:throw Error('Forme de relief inconnue');
     }
   });
-  return {seabedDepthM:num(value.seabedDepthM,'fond marin',2,200),detailM:num(value.detailM,'détail',0,20),landmasses,features};
+  return {...(value.coastalReliefFadeM!==undefined?{coastalReliefFadeM:num(value.coastalReliefFadeM,'fondu du relief côtier',2,400)}:{}),seabedDepthM:num(value.seabedDepthM,'fond marin',2,200),detailM:num(value.detailM,'détail',0,20),landmasses,features};
 }
 /** Closed outline of an ellipse-like land mass with a few reproducible bulges. */
 export function blobOutline(cx:number,cz:number,rx:number,rz:number,count=20,phase=0):PointXZ[]{

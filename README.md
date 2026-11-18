@@ -2,7 +2,6 @@
 
 > **Archipel futur — stratégie statique d'abord :** [73 — décisions](docs/73-ARCHIPEL-VISION-DECISIONS.md) et [79 — roadmap](docs/79-ISLAND-ROADMAP-VALIDATION.md). La prochaine étape vise plusieurs **îles d'exemple pré-générées et validées**, accessibles via des voyages dans un build **GitHub Pages sans serveur ni multijoueur**. Le site actuel demeure un prototype solo avec une île 4 × 3 km ; ce système inter-îles n'est **pas encore implémenté**.
 
-
 Prototype **solo** d'exploration 3D avec **Three.js**, exécutable entièrement dans un navigateur PC. Le monde de démonstration jouable et éditable mesure **4 × 3 km** ; l'architecture cible prépare **une carte continue pouvant atteindre 10 × 10 km (100 km² au maximum)**, sans considérer cette taille comme déjà implémentée.
 
 > **Statut : prototype technique jouable en développement.** La première version est volontairement simple, avec graphismes et physique provisoires. La campagne avancée est sur `feat/studio-v3` ; le site publié depuis `main` peut rester antérieur. La disponibilité de la dernière révision dépend du déploiement GitHub Actions.
@@ -25,6 +24,14 @@ La seule carte exemple publiée est **Île du volcan — 4 × 3 km**. Dans Studi
 Les anciennes cartes de falaises, mouvements, géographie, B1 et bêta sont des **fixtures de régression non publiées** (`tests/fixtures/legacy-maps/`). Les tests navigateur les utilisent après `node tools/stage-test-maps.mjs dist/maps` sur un build isolé, via `studio/?testFixtures=1`. Elles ne sont plus des modèles proposés au public.
 
 Voir [la stratégie de démonstration 4 × 3 km](docs/61-SHOWCASE-ISLAND-4X3.md) et [les budgets des falaises](docs/53-CLIFF-REFERENCE.md).
+
+### Îles composées et brouillon 2D
+
+Sur `feat/stepped-island-identity` : silhouettes naturelles, croissant et tortue, réservations de port/champs/lac, accès à pied vérifiés et édition groupée avant création. Les accès impossibles sont signalés ; les bâtiments et quais restent à réaliser. Voir [les fonctionnalités, limites et captures V5](docs/74-COMPOSED-ISLANDS-V5.md).
+
+### Villages et villes dans le Studio
+
+Sur la même branche, **Construire → Villages & villes** permet de prévisualiser, créer et modifier des implantations de surface de 8 à 80 maisons : rues partagées, portes indépendantes, verrous et régénération préservant les retouches. [Fonctionnalités, captures et limites de cette première version](docs/75-SETTLEMENTS-SURFACE-V1.md).
 
 ### Déplacements dynamiques
 
@@ -212,8 +219,15 @@ La composition en [provinces, plateaux et plaines](docs/63-GEOGRAPHIC-PROVINCES-
 étend les biomes sur toute l'île. Les anciens mondes conservent leur version ;
 le panneau « Recomposer le monde » permet une comparaison avant changement.
 
-Le nouveau défaut V3 compose des [îles en étages aux contours organiques](docs/64-ORGANIC-STEPPED-ISLANDS.md),
-avec des plateaux arrondis, des biomes liés au relief, deux affluents et des cascades.
+La composition V3 conserve les [îles en étages aux contours organiques](docs/64-ORGANIC-STEPPED-ISLANDS.md).
+Le nouveau défaut propose [six styles d’îles V4](docs/66-ISLAND-STYLES-V4.md) : île douce,
+massif central ou latéral, volcan, caldera fragmentée et plateaux locaux. Les points hauts
+structurent les versants, puis le drainage et les milieux. Altitude, orientation, vues de pente
+et coupes du terrain sont disponibles dans le Studio. Mesures : `npm run benchmark:styles`.
+
+Avant création, [retoucher le brouillon 2D](docs/68-COMPOSITION-DRAFT-FIRST-IMPLEMENTATION.md)
+permet de modifier côte, relief, hauteurs et eau, avec historique et reprise locale.
+Le projet créé conserve exactement le plan retouché. Vérification : `npm run test:composition-draft`.
 
 ## Génération de colonies — conception et roadmap
 
@@ -230,6 +244,7 @@ Le générateur de colonies (maisons, villages, villes, camps, ports, terriers e
 
 Ce chantier réutilise les contrats V3, le CommandBus, les chemins, la géographie et les systèmes d'interactions existants ; il n'ajoute pas de second moteur ni de simulation économique en temps réel.
 
+
 ## Archipel multi-îles — roadmap, mode SOLO statique d'abord
 
 **Pas encore livré.** La prochaine évolution proposera plusieurs îles de démonstration **pré-générées et validées**, sélectionnables depuis une carte maritime, avec chargement de chaque île à la demande et cinématique de bateau. Le build sera toujours statique et jouable depuis GitHub Pages sans serveur ni connexion multijoueur. Un seul monde 3D demeure actif à la fois.
@@ -243,4 +258,3 @@ Ce chantier réutilise les contrats V3, le CommandBus, les chemins, la géograph
 - [79 — Roadmap, gates et preuve de livraison](docs/79-ISLAND-ROADMAP-VALIDATION.md)
 
 **Important :** la construction coopérative, l'économie inter-joueurs et la persistance partagée nécessiteront plus tard un backend autoritaire ; leurs contrats sont préparés, **aucun serveur/WebSocket/compte ne doit être introduit au stade des démos GitHub Pages**. En solo, l'économie d'une île absente peut faire un rattrapage local à la reprise, pas une simulation active sans navigateur.
-

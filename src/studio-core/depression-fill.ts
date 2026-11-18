@@ -14,7 +14,7 @@ export interface DepressionAnalysis {
 }
 type GridBounds={minX:number;maxX:number;minZ:number;maxZ:number};
 type Node={index:number;level:number};
-class MinHeap {
+export class MinHeap {
  private nodes:Node[]=[];
  get length(){return this.nodes.length;}
  push(value:Node):void{

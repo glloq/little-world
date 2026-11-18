@@ -1,0 +1,28 @@
+{
+  "rows": [
+    {
+      "silhouette": "crescent",
+      "seed": 4242,
+      "candidates": 11,
+      "placed": 12,
+      "committed": true,
+      "center": {
+        "x": 0,
+        "z": -940
+      },
+      "diagnostics": []
+    },
+    {
+      "silhouette": "turtle",
+      "seed": 4242,
+      "candidates": 15,
+      "placed": 12,
+      "committed": true,
+      "center": {
+        "x": 640,
+        "z": 500
+      },
+      "diagnostics": []
+    }
+  ]
+}

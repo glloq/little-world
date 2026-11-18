@@ -1,7 +1,7 @@
 /** Rounded native polygons. No new terrain primitive or dense persistent grid. */
 import type {PointXZ} from '../geography/archipelago.ts';
 import {cutPolygon} from './world-provinces.ts';
-export function roundOutline(input:PointXZ[],count=64):PointXZ[]{
+export function roundOutline(input:PointXZ[],count=64,passes=20):PointXZ[]{
  let points=input.map(p=>({...p}));
  const lengths=points.map((p,i)=>Math.hypot(p.x-points[(i+1)%points.length].x,p.z-points[(i+1)%points.length].z)),total=lengths.reduce((a,b)=>a+b,0),out:PointXZ[]=[];
  let edge=0,offset=0;
@@ -11,7 +11,7 @@ export function roundOutline(input:PointXZ[],count=64):PointXZ[]{
  }
  points=out;
  // Smooth at a scale larger than one native polygon segment, including clipped tips.
- for(let pass=0;pass<20;pass++)points=points.map((p,i)=>{const a=points[(i+points.length-1)%points.length],b=points[(i+1)%points.length];return {x:a.x*.25+p.x*.5+b.x*.25,z:a.z*.25+p.z*.5+b.z*.25};});
+ for(let pass=0;pass<passes;pass++)points=points.map((p,i)=>{const a=points[(i+points.length-1)%points.length],b=points[(i+1)%points.length];return {x:a.x*.25+p.x*.5+b.x*.25,z:a.z*.25+p.z*.5+b.z*.25};});
  return points;
 }
 export function intersectOutline(subject:PointXZ[],boundary:PointXZ[]):PointXZ[]{

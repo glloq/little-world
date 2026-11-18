@@ -1,3 +1,5 @@
+import {validateSettlements} from '../settlements/validation.ts';
+import {validateTerrainAccess} from '../studio-core/terrain-access.ts';
 import {createTerrainSource} from '../terrain.ts';
 import {compileWaterNetwork} from '../water/profile.ts';
 import {parseProject} from '../studio-core/schema.ts';
@@ -39,6 +41,8 @@ export async function preflightProject(input:unknown,options:CompileOptions={}):
    // Whole hydrographic network: links between rivers, lakes and the sea are checked too.
    for(const water of compileWaterNetwork(Object.values(project.libraries.water),source,project.world.seaLevel))for(const d of water.diagnostics)diagnostics.push({...d,targetId:water.id});
   }
+  if(Object.keys(project.libraries.terrainPlans??{}).length)diagnostics.push(...validateTerrainAccess(project));
+  diagnostics.push(...validateSettlements(project));
   const verified=await verifyAssets(project,options.resolveAsset);diagnostics.push(...verified.diagnostics);
   diagnostics.push({severity:'INFO',code:'DESCRIPTOR_COMPILATION',message:'Output contains source/runtime entity, analytic terrain, collision and navigation descriptors; GPU meshes, terrain LOD geometry and navmeshes are not baked.'});
   return {project,diagnostics,assets:verified.assets};

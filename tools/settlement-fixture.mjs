@@ -1,0 +1,3 @@
+/** Isolated regression fixture; never staged as a public map. */
+import { createProject } from '../src/studio-core/schema.ts';
+export function flatSettlementProject() { const p = createProject({ name: 'Settlement fixture', width: 800, length: 800, seed: 42, terrain: { kind: 'archipelago', version: 1, archipelago: { seabedDepthM: 30, detailM: 0, landmasses: [{ id: 'plain', name: 'Plaine', outline: [{ x: -350, z: -350 }, { x: 350, z: -350 }, { x: 350, z: 350 }, { x: -350, z: 350 }], coastNoiseM: 0, coastWavelengthM: 200, beachWidthM: 10, shoreHeightM: 12, lowlandHeightM: 12, hillHeightM: 0, cliffs: 0 }], features: [] } } }); p.assets = {}; return p; }
