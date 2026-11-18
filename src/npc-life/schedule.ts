@@ -65,17 +65,27 @@ export function residentPoseAt(routine:ResidentRoutineV1,route:ResidentRoute,tim
   const hour=residentHour(time,dayLengthSeconds,initialDayPhase),[depart,returnAt]=residentShift(routine.role);
   const travelHours=route.length/speed/dayLengthSeconds*24;
   if(!finite(travelHours)||travelHours>Math.max(.01,(returnAt-depart)/2))throw Error('Trajet professionnel trop long pour le service');
-  let phase:ResidentPhase,travelDistance=0,nextAtHour:number;
+  let phase:ResidentPhase,travelDistance=0,nextAtHour:number,reverseDirection=false;
   if(hour<depart){phase='home';nextAtHour=depart;}
   else if(hour<depart+travelHours){phase='to-work';travelDistance=(hour-depart)/travelHours*route.length;nextAtHour=depart+travelHours;}
-  else if(hour<returnAt){phase='work';travelDistance=route.length;nextAtHour=returnAt;}
-  else if(hour<returnAt+travelHours){phase='to-home';travelDistance=route.length-(hour-returnAt)/travelHours*route.length;nextAtHour=returnAt+travelHours;}
+  else if(hour<returnAt){
+    phase='work';travelDistance=route.length;nextAtHour=returnAt;
+    // Children's daytime games reuse the last eight metres of their *validated*
+    // house-to-square footpath. No random wandering into ponds or buildings.
+    if(routine.role==='child'&&route.length>=4){
+      const span=Math.min(8,route.length),elapsed=(hour-depart-travelHours)*dayLengthSeconds/24;
+      const cycle=(elapsed*Math.min(1.6,speed*1.4))%(2*span);
+      const offset=cycle<=span?cycle:2*span-cycle;
+      travelDistance=route.length-offset;reverseDirection=cycle<span;
+    }
+  }
+  else if(hour<returnAt+travelHours){phase='to-home';travelDistance=route.length-(hour-returnAt)/travelHours*route.length;nextAtHour=returnAt+travelHours;reverseDirection=true;}
   else {phase='home';nextAtHour=24+depart;}
   const position=positionOnResidentRoute(route,travelDistance);
   const ahead=positionOnResidentRoute(route,Math.min(route.length,travelDistance+.05));
   const behind=positionOnResidentRoute(route,Math.max(0,travelDistance-.05));
-  const dirX=phase==='to-home'?behind.x-ahead.x:ahead.x-behind.x;
-  const dirZ=phase==='to-home'?behind.z-ahead.z:ahead.z-behind.z;
+  const dirX=reverseDirection?behind.x-ahead.x:ahead.x-behind.x;
+  const dirZ=reverseDirection?behind.z-ahead.z:ahead.z-behind.z;
   const heading=Math.hypot(dirX,dirZ)>.0001?Math.atan2(dirX,dirZ):0;
   return {phase,position,hour,heading,nextAtHour};
 }
