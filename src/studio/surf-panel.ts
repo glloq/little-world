@@ -2,6 +2,7 @@
 import {node,button,field,numberInput,select,input} from './dom.ts';
 import {projectRaceTerrainEnvironment} from '../studio-core/race-terrain-context.ts';
 import {validateSurfZone,type SurfZone} from '../surf/wave-field.ts';
+import {validateSurfFeature,type SurfFeature, type SurfFeatureKind} from '../surf/surf-features.ts';
 import type {StudioSession} from './session.ts';
 import type {StudioViewport} from './viewport/editor-viewport.ts';
 
@@ -77,4 +78,44 @@ export function mountSurfPanel(host:HTMLElement,ctx:SurfPanelContext):void{
  }
  if(!zones.length)list.append(node('p','Aucune zone de surf : les eaux restent calmes et leur physique historique est conservée.','muted'));
  host.append(node('h4','Zones du projet ('+zones.length+'/32)'),list);
+ // Every module is authored relative to a validated, active wave zone.
+ let featureKind:SurfFeatureKind='boost',featurePower=5;
+ const addFeature=button('Placer un module à la caméra',async()=>{
+  try{
+   const point=ctx.viewport.camera.target,zone=zones.find(z=>
+     point.x>=z.minX&&point.x<=z.maxX&&point.z>=z.minZ&&point.z<=z.maxZ);
+   if(!zone)throw Error('Placez la caméra au-dessus d’une zone surf existante');
+   const env=projectRaceTerrainEnvironment(ctx.session.document);
+   if(env.height(point.x,point.z)>zone.seaLevel-.8)throw Error('Module surf trop près du rivage ou hors de l’eau');
+   const f:SurfFeature={id:'surf-feature:'+crypto.randomUUID(),kind:featureKind,
+     x:point.x,z:point.z,dirX:zone.dirX,dirZ:zone.dirZ,
+     radius:featureKind==='ramp'?4.5:featureKind==='boost'?5:2,
+     power:featureKind==='buoy'?0:featurePower,cooldownTicks:featureKind==='buoy'?25:150};
+   validateSurfFeature(f);
+   if(Object.keys(ctx.session.document.libraries.surfFeatures??{}).length>=200)throw Error('200 modules surf maximum');
+   await ctx.session.change('Ajouter module surf',[],draft=>{
+     draft.libraries.surfFeatures={...(draft.libraries.surfFeatures??{}),[f.id]:f};
+   });
+   ctx.status('Module aquatique ajouté à la zone de surf.');
+  }catch(e){ctx.status(String(e instanceof Error?e.message:e),true);}
+ },'primary-button');
+ host.append(node('h4','Modules aquatiques'),
+   node('p','Les modules sont statiques et déclenchent leurs effets à 30 Hz. Le joueur peut les utiliser hors d’une course.','muted'),
+   field('Type de module',select(featureKind,[['boost','Anneau accélérateur'],['ramp','Tremplin'],['buoy','Bouée']],v=>featureKind=v as SurfFeatureKind)),
+   field('Puissance / impulsion',numberInput(featurePower,v=>featurePower=v,0,25)),
+   addFeature);
+ const features=Object.values(p.libraries.surfFeatures??{});
+ for(const f of features){
+   const row=node('div','','feature-row');
+   row.append(node('strong',f.kind+' · '+f.id),
+     button('Voir',()=>ctx.viewport.goTo(f.x,f.z,35)),
+     field('Puissance',numberInput(f.power,v=>void ctx.session.change('Puissance module surf',[],draft=>{
+       (draft.libraries.surfFeatures??={})[f.id]=validateSurfFeature({...f,power:v});
+     }).catch(e=>ctx.status(String(e),true)),0,25)),
+     button('Supprimer',()=>void ctx.session.change('Supprimer module surf',[],draft=>{
+       if(draft.libraries.surfFeatures)delete draft.libraries.surfFeatures[f.id];
+     }).catch(e=>ctx.status(String(e),true))));
+   host.append(row);
+ }
+
 }
