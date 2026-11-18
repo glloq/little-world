@@ -221,9 +221,9 @@ export function createNPCSystem(
       proxy = silhouette(definition);
     // Actual character rigs are allocated only when first seen nearby, not for
     // every citizen of the island. All hamsters share geometry/material caches.
-    const hamster:null|ReturnType<typeof buildHamster>=null,
-      model:null|ReturnType<typeof buildSquirrel>|ReturnType<typeof buildHamster>=null;
-    const head:THREE.Object3D|null=null,arm:THREE.Object3D|null=null;
+    let hamster:ReturnType<typeof buildHamster>|null=null;
+    let model:ReturnType<typeof buildSquirrel>|ReturnType<typeof buildHamster>|null=null;
+    let head:THREE.Object3D|null=null,arm:THREE.Object3D|null=null;
     const player: Player = {
       position: new THREE.Vector3(),
       velocity: new THREE.Vector3(),
