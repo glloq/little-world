@@ -92,7 +92,7 @@ export function createTouchControls(callbacks:{jump():void;action():void;alterna
     // keep their explanatory world prompt, but occupy no mobile thumb space.
     const key=action?.enabled?action.label:'';
     if(interactionKey===key)return;
-    interactionKey=key;label(interact,'Agir');interact.title=key;
+    interactionKey=key;label(interact,/mouliner/i.test(key)?'Mouliner':/ferrer/i.test(key)?'Ferrer':/pêcher/i.test(key)?'Pêcher':'Agir');interact.title=key;
     interact.setAttribute('aria-label',key?'Agir : '+key:'Agir');
     interact.hidden=previousAboard||!key;interact.disabled=!key;
     if(!key)cancel(interact,v=>{interactHeld=v;});
