@@ -26,7 +26,7 @@ export interface HamsterCharacter {
   /** Plays the animation of a gameplay activity (mine, fell, pick, fish-cast…) or a raw action. */
   play(activityOrAction: string, tool?: ToolId | null): boolean;
   /** Fishing float target (world) and bite state, or null when the line is in. */
-  setFishing(f: { x: number; y: number; z: number; biting: boolean } | null): void;
+  setFishing(f: { x: number; y: number; z: number; biting: boolean; tension?:number } | null): void;
   onEvent(listener: (e: AnimationEvent & { position: THREE.Vector3 }) => void): () => void;
   /** Compact state for a future replication layer (see presentation-state.ts). */
   presentation(t: number): PlayerPresentationState;
@@ -41,7 +41,7 @@ export function buildHamster(): HamsterCharacter {
   const rig = buildHamsterRig(), j = rig.joints, animator = new HamsterAnimator(), tools = createToolHolder(rig);
   rig.group.scale.setScalar(CHARACTER_SCALE);
   const listeners = new Set<(e: AnimationEvent & { position: THREE.Vector3 }) => void>();
-  let facing = 0, lastFacing = 0, aboard = false, actionTool: ToolId | null = null, actionSeq = 0, fishing: { x: number; y: number; z: number; biting: boolean } | null = null, disposed = false;
+  let facing = 0, lastFacing = 0, aboard = false, actionTool: ToolId | null = null, actionSeq = 0, fishing: { x: number; y: number; z: number; biting: boolean; tension?:number } | null = null, disposed = false;
   let appearance = { ...DEFAULT_APPEARANCE } as Appearance;
   // Fishing line (2 points) and float, only shown while the line is out.
   const linePositions = new Float32Array(6), lineGeometry = new THREE.BufferGeometry(); lineGeometry.setAttribute('position', new THREE.BufferAttribute(linePositions, 3));
@@ -80,12 +80,14 @@ export function buildHamster(): HamsterCharacter {
     rig.setMembranes(p.membrane);
     rig.shadow.visible = input.mode === 'ground' || input.mode === 'roll';
     applyAppearance();
+    // Visual tension only: gentle counter-lean, no physical rope or new mesh.
+    if(fishing?.tension)j.ShoulderRight.rotation.x-=Math.min(1,fishing.tension)*.14;
     // Tool: shown by actions that use one, and while the fishing line is out.
     const want: ToolId | null = animator.toolOut ? actionTool : fishing ? 'fishing-rod' : null;
     tools.show(want);
     group.updateMatrixWorld(true);
     if (fishing && tools.rodTip(tip)) {
-      const bob = fishing.biting ? -.12 + Math.sin(elapsed * 22) * .05 : Math.sin(elapsed * 2.4) * .03;
+      const bob = fishing.biting ? -.12 + Math.sin(elapsed * 22) * .05 : Math.sin(elapsed * 2.4) * .03 - (fishing.tension??0)*.04;
       // The line and float live in this character's group: world points → group frame.
       const o = group.position; bobber.position.set(fishing.x - o.x, fishing.y + .03 + bob - o.y, fishing.z - o.z); bobber.visible = true;
       linePositions.set([tip.x - o.x, tip.y - o.y, tip.z - o.z, fishing.x - o.x, fishing.y + .06 + bob - o.y, fishing.z - o.z]); lineGeometry.getAttribute('position').needsUpdate = true; lineGeometry.computeBoundingSphere(); line.visible = true;
