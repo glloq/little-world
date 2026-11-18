@@ -4,6 +4,9 @@
 **Base vérifiée : `main` au commit `f84c16cdbaa6faeacbe5ee00de9edc5a9f53f19d` (18/11/2026), après merge de la PR #75 `feat/stepped-island-identity`.**  
 À lire avec [92 — Audit de contenu jouable](92-COMPLETE-WORLDS-STUDIO-AUDIT.md), [91 — Activités guidées](91-GUIDED-ACTIVITIES-RACES-ALPINE-MUSIC.md), [89 — Port/villages](89-COMPLETE-ISLAND-START-CALDERA-PORT-VILLAGES.md), [75 — Voyage](75-ISLAND-TRAVEL-FERRIES-PORTS.md), [76 — Autonomie](76-ISLAND-AUTONOMY-ECONOMY-TRADE.md), [81 — Économie](81-ECONOMY-PRODUCTION-CONTRACTS.md), [94 — Contrats de quêtes](94-QUESTS-DATA-EVENTS-REWARDS.md) et [95 — Roadmap](95-QUESTS-IMPLEMENTATION-ROADMAP.md).
 
+**Extension PNJ / vie locale (spécifiée, non implémentée)** : [96 — audit des horaires, dialogues et navigation](96-NPC-LIFE-DIALOGUES-SCHEDULE-AUDIT.md) et [97 — roadmap NPC-0 à NPC-10](97-NPC-LIFE-IMPLEMENTATION-ROADMAP.md). L'intégration QuestDirector doit utiliser les rôles/horaires de l'unique état de vie logique, sans créer un deuxième système de dialogue, sans exécuter de déplacement hors écran à chaque frame, et sans valider une quête par la seule animation d'un métier.
+
+
 ## 0. But produit et non-objectifs
 
 Chaque île doit pouvoir proposer via les PNJ une sélection **diversifiée, réalisable, facultative et persistante** de missions : faire découvrir le monde et chaque activité **réellement jouable**, progresser de la rencontre vers la collecte, la livraison, la transformation, les courses et les voyages, puis attribuer pièces, ressources, outils et récompenses régionales. Les missions ne doivent pas imposer une profession ni bloquer les actions libres du joueur.
