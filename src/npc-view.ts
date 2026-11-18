@@ -365,7 +365,7 @@ export function createNPCSystem(
           state.definition.kind,
         );
         if(tier==='rig'&&!entry.model){
-          const hamster=state.definition.kind==='hamster'?buildHamster({npc:true}):null,
+          const hamster=state.definition.kind==='hamster'?buildHamster():null,
             model=hamster??buildSquirrel();
           model.setAppearance(state.definition.appearance);
           if(state.definition.kind==='animal')model.group.scale.setScalar(.58);
