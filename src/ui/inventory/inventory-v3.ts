@@ -3,6 +3,7 @@
  */
 import {foodGasValue} from '../../gameplay/food-effects.ts';
 import {el,button} from '../shared/dom.ts';
+import {itemIcon} from '../shared/item-icons.ts';
 import {inventoryViewModel,type InventoryDeps,type InventoryEntry} from './inventory.ts';
 import {equipSlot,isEquipment,matchesInventoryFilter,planFoodConsumption,FAVORITE_COUNT,type InventoryFilter,type EquipTarget,type FoodLine} from './inventory-logic.ts';
 
@@ -15,22 +16,14 @@ export interface InventoryV3Deps extends InventoryDeps {
   consumeBatch?:(items:FoodLine[])=>{ok:boolean;message:string};
   confirm?:(text:string,confirmLabel:string)=>Promise<boolean>;
   notify?:(message:string)=>void;
+  /** Handoff selected item IDs; the bag never executes merchant transactions. */
+  canSellNearby?:(ids:readonly string[])=>boolean;
+  openSale?:(ids:readonly string[])=>boolean;
 }
 const FILTERS:readonly {id:InventoryFilter;label:string}[]=[
   {id:'all',label:'Tout'},{id:'food',label:'Aliments'},
   {id:'resources',label:'Ressources'},{id:'equipment',label:'Équipements'},
 ];
-const ICONS:Readonly<Record<string,string>>={
-  'food:apple':'🍎','food:pear':'🍐','food:plum':'●','food:cherry':'🍒',
-  'food:berry':'🫐','food:hazelnut':'🌰','food:walnut':'🌰','farm:carrot':'🥕',
-  'farm:pumpkin':'🎃','food:potato':'🥔','food:chanterelle':'🍄',
-  'food:cepe':'🍄','food:cheese':'🧀','food:bread':'🍞','food:jam':'🍯','food:soup':'🥣',
-  'tool:pickaxe':'⛏','tool:pickaxe-steel':'⛏','tool:axe':'🪓',
-  'tool:miners-helmet':'⛑','tool:fishing-rod':'🎣',
-  'instrument:flute':'♫','instrument:ocarina':'♫','instrument:ukulele':'♫',
-};
-const FALLBACK:Readonly<Record<string,string>>={mine:'◆',nature:'❀',farm:'❧',graines:'✿',argent:'●',bois:'▤',cueillette:'❀',poisson:'♓',quest:'✦',mission:'✦',outil:'⚒',instrument:'♫'};
-function icon(item:Pick<InventoryEntry,'id'|'category'>):string{return ICONS[item.id]??FALLBACK[item.category]??'⬡';}
 function storageKey():string{return 'little-world:inventory-v3:favorites';}
 function readFavorites():Array<string|null>|null{
   try{
@@ -207,7 +200,7 @@ export function inventoryPanelV3(deps:InventoryV3Deps){
         p.dragging=true;
         node.setPointerCapture(e.pointerId);
         const item=deps.items().find(i=>i.id===id);
-        p.ghost=el('div','ui-drag-ghost',(item?ICONS[item.id]??'⬡':'⬡')+' '+(item?.name??id));
+        p.ghost=el('div','ui-drag-ghost',(item?itemIcon(item):'⬡')+' '+(item?.name??id));
         document.body.append(p.ghost);
         document.body.classList.add('ui-inventory-dragging');
         highlightZones(id);
@@ -261,7 +254,7 @@ export function inventoryPanelV3(deps:InventoryV3Deps){
       card.type='button';card.dataset.item=e.id;card.dataset.focusKey='item:'+e.id;
       card.setAttribute('aria-label',e.name+', quantité '+e.quantity);
       card.setAttribute('aria-pressed',String(selectedId===e.id));
-      const symbol=el('span','ui-item-symbol',icon(e)),name=el('span','ui-item-name',e.name),qty=el('span','ui-item-qty','×'+e.quantity);
+      const symbol=el('span','ui-item-symbol',itemIcon(e)),name=el('span','ui-item-name',e.name),qty=el('span','ui-item-qty','×'+e.quantity);
       card.append(symbol,name,qty);
       if(e.delta)card.append(el('span','ui-badge','+'+e.delta));
       if(multi){if(checked.has(e.id))card.classList.add('ui-bag-checked');card.append(el('span','ui-bag-check',checked.has(e.id)?'☑':'☐'));}
@@ -307,7 +300,7 @@ export function inventoryPanelV3(deps:InventoryV3Deps){
       stage.append(b);
     }
     const hands=deps.selectedTool();
-    if(hands){const gear=deps.items().find(i=>i.id===hands);if(gear){const badge=el('span','ui-hamster-equipped ui-hamster-equipped-hands',icon({id:gear.id,category:gear.category}));badge.title='En main : '+gear.name;badge.setAttribute('aria-label',badge.title);badge.dataset.equippedPreview='hands';stage.append(badge);}}
+    if(hands){const gear=deps.items().find(i=>i.id===hands);if(gear){const badge=el('span','ui-hamster-equipped ui-hamster-equipped-hands',itemIcon({id:gear.id,category:gear.category}));badge.title='En main : '+gear.name;badge.setAttribute('aria-label',badge.title);badge.dataset.equippedPreview='hands';stage.append(badge);}}
     if(deps.headgear?.equipped()){
       const badge=el('span','ui-hamster-equipped ui-hamster-equipped-head','⛑');badge.title='Casque de mineur porté';badge.setAttribute('aria-label',badge.title);badge.dataset.equippedPreview='head';stage.append(badge);
     }
@@ -337,6 +330,11 @@ export function inventoryPanelV3(deps:InventoryV3Deps){
       const plan=planFoodConsumption(selected,deps.inventory(),(deps.gasCapacity?.()??200)-(deps.gasLevel?.()??0));
       const eat=button('Manger sélection · +'+plan.gain+' gaz',()=>{void consumeSelection();},'ui-button ui-primary');
       eat.disabled=!edible||!plan.lines.length;actions.append(eat);
+      if(selected.length&&deps.canSellNearby?.(selected)){
+        actions.append(button('Vendre au comptoir',()=>{
+          if(!deps.openSale?.(selected))report('Aucun comptoir de rachat accessible.');
+        },'ui-button'));
+      }
     }else if(selectedItem){
       const title=el('div','ui-bag-selected');title.append(el('strong','',selectedItem.name),el('span','ui-muted','×'+selectedItem.quantity+(foodGasValue(selectedItem.id)?' · +'+foodGasValue(selectedItem.id)+' gaz':'')));
       actions.append(title);
@@ -363,6 +361,11 @@ export function inventoryPanelV3(deps:InventoryV3Deps){
           },'ui-button'));
         }
         if(selectedItem.category==='instrument'&&equipped&&deps.playInstrument)actions.append(button('Jouer',()=>deps.playInstrument?.(selectedItem.id),'ui-button'));
+      }
+      if(deps.canSellNearby?.([selectedItem.id])){
+        actions.append(button('Vendre',()=>{
+          if(!deps.openSale?.([selectedItem.id]))report('Cet objet ne peut pas être vendu ici.');
+        },'ui-button'));
       }
       actions.append(el('span','ui-bag-description',selectedItem.description??selectedItem.categoryLabel));
     }else actions.append(el('span','ui-muted','Sélectionnez un objet.'));
