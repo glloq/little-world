@@ -29,6 +29,7 @@
     "test:instruments": "node tools/test-instruments-browser.mjs",
     "test:water": "node tools/test-water-browser.mjs",
     "test:surf": "node tools/test-surf-browser.mjs",
+    "benchmark:surf": "node tools/benchmark-surf-browser.mjs",
     "test:complete-island-start": "node tools/test-complete-island-start-browser.mjs",
     "benchmark:complete-island-start": "node tools/benchmark-complete-island-start.mjs",
     "test:island": "node tools/test-island-browser.mjs",
