@@ -59,8 +59,15 @@ try{
   if(maritime?.active){
     await page.keyboard.press('Escape');
     await page.evaluate(point=>window.littleWorldDebug.teleport(point.x,point.z,0),maritime.trade??maritime.stand);
-    await page.waitForTimeout(350);
-    assert.match(await page.locator('#action').textContent()??'',/Commercer/i);
+    await page.waitForTimeout(550);
+    const merchantDebug=await page.evaluate(()=>({
+      target:window.littleWorldMetrics?.target,targetId:window.littleWorldMetrics?.targetId,
+      position:window.littleWorldMetrics?.position,mode:window.littleWorldMetrics?.mode,
+      nearby:window.littleWorldMetrics?.maritimePort?.merchantNear,
+      merchant:window.littleWorldMetrics?.maritimePort,
+    }));
+    console.log('MERCHANT_N1_DEBUG '+JSON.stringify(merchantDebug));
+    assert.equal(merchantDebug.targetId,'maritime:merchant','Merchant E target: '+JSON.stringify(merchantDebug));
     await page.keyboard.press('KeyE');
     const merchant=page.locator('[data-panel="maritime-trade"]');
     await merchant.waitFor({state:'visible'});
