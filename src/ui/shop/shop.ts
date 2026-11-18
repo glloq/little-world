@@ -3,12 +3,35 @@
  */
 import {SHOPS,COIN,priceOf,type ShopKind} from '../../gameplay/economy.ts';
 import type {WorkshopServiceView,WorkshopActionResult} from '../../economy/workshop-services.ts';
+import type {MarketView} from '../../economy/island-markets.ts';
 import {el,button} from '../shared/dom.ts';
 
-export interface ShopLine {itemId:string;name:string;price:number;owned:number;canAct:boolean;reason?:string}
-export interface ShopViewModel {name:string;greeting:string;coins:number;buy:ShopLine[];sell:ShopLine[]}
-export function shopViewModel(kind:ShopKind,inventory:Readonly<Record<string,number>>,name:(id:string)=>string,max:(id:string)=>number):ShopViewModel{
+export interface ShopLine {itemId:string;name:string;price:number;owned:number;canAct:boolean;reason?:string;
+  /** Physical seller stock (buy) or maximum units the merchant can afford (sell). */
+  available?:number}
+export interface ShopViewModel {name:string;greeting:string;coins:number;buy:ShopLine[];sell:ShopLine[];
+  marketBudget?:number;islandId?:string;revision?:number}
+export function shopViewModel(kind:ShopKind,inventory:Readonly<Record<string,number>>,name:(id:string)=>string,max:(id:string)=>number,market?:MarketView):ShopViewModel{
   const shop=SHOPS[kind],coins=inventory[COIN]??0;
+  if(market){
+    const buy=market.buy.map(offer=>{
+      const owned=inventory[offer.itemId]??0,full=owned>=max(offer.itemId),
+        unavailable=offer.available<1,expensive=coins<offer.unitPrice;
+      return {itemId:offer.itemId,name:name(offer.itemId),price:offer.unitPrice,owned,
+        available:offer.available,canAct:!unavailable&&!expensive&&!full,
+        ...(unavailable?{reason:'Rupture de stock'}:full?{reason:'Sac plein'}:expensive?{reason:'Pièces insuffisantes'}:{})};
+    });
+    const sell=market.sell.map(offer=>{
+      const owned=inventory[offer.itemId]??0,
+        broke=market.cashCoins<offer.unitPrice,
+        full=coins+offer.unitPrice>max(COIN);
+      return {itemId:offer.itemId,name:name(offer.itemId),price:offer.unitPrice,owned,
+        available:offer.available,canAct:owned>0&&!broke&&!full,
+        ...(owned===0?{reason:'Aucun en stock'}:broke?{reason:'Budget du marchand insuffisant'}:full?{reason:'Bourse pleine'}:{})};
+    });
+    return {name:shop.name,greeting:shop.greeting,coins,buy,sell,
+      islandId:market.islandId,marketBudget:market.cashCoins,revision:market.revision};
+  }
   const buy=shop.sells.map(id=>{const price=priceOf(id).buy??0,owned=inventory[id]??0,full=owned>=max(id);return {itemId:id,name:name(id),price,owned,canAct:price>0&&coins>=price&&!full,...(full?{reason:id.startsWith('tool:')?'Déjà possédé':'Sac plein'}:coins<price?{reason:'Pas assez de pièces'}:{})};});
   const sell=shop.buys.map(id=>{const price=priceOf(id).sell??0,owned=inventory[id]??0;return {itemId:id,name:name(id),price,owned,canAct:owned>0&&price>0,...(owned?{}:{reason:'Aucun en stock'})};});
   return {name:shop.name,greeting:shop.greeting,coins,buy,sell};
@@ -20,7 +43,8 @@ export interface ShopDeps {
   inventory():Readonly<Record<string,number>>;
   name(id:string):string;
   max(id:string):number;
-  trade(kind:ShopKind,itemId:string,quantity:number,mode:'buy'|'sell'):{ok:boolean;message?:string;reason?:string};
+  trade(kind:ShopKind,itemId:string,quantity:number,mode:'buy'|'sell',expectedRevision?:number):{ok:boolean;message?:string;reason?:string};
+  market?:{view(kind:ShopKind,counterId:string):MarketView};
   production?:{
     list(kind:ShopKind,counterId:string):WorkshopServiceView[];
     start(kind:ShopKind,counterId:string,recipeId:string,batches:number):WorkshopActionResult;
@@ -43,10 +67,14 @@ export function shopPanel(deps:ShopDeps){
       body.replaceChildren();
       if(!kind){body.append(el('p','ui-empty','Aucun comptoir à proximité.'));return;}
       if(counterId!==lastCounter){lastCounter=counterId;mode='trade';batchByRecipe.clear();}
-      const inventory=deps.inventory(),vm=shopViewModel(kind,inventory,deps.name,deps.max);
+      const inventory=deps.inventory(),snapshot=counterId?deps.market?.view(kind,counterId):undefined,
+        vm=shopViewModel(kind,inventory,deps.name,deps.max,snapshot);
       const available=!!counterId&&!!deps.production;
       const workstations=available?deps.production!.list(kind,counterId!):[];
-      body.append(el('p','ui-muted','« '+vm.greeting+' »'),el('p','ui-shop-coins',`Bourse : ${vm.coins} pièces`));
+      body.append(el('p','ui-muted','« '+vm.greeting+' »'),el('p','ui-shop-coins',
+        `Bourse : ${vm.coins} pièces`+(vm.marketBudget!==undefined?
+          ` · Caisse marchand : ${vm.marketBudget} pièces`:'')));
+      if(vm.islandId)body.append(el('p','ui-muted',`Prix de l’île : ${vm.islandId} · Stock limité`));
       if(workstations.length){
         const tabs=el('div','ui-row ui-shop-tabs');
         for(const [tab,label] of [['trade','Acheter / vendre'],['craft','Transformer']] as const){
@@ -57,17 +85,31 @@ export function shopPanel(deps:ShopDeps){
         body.append(tabs);
       }else mode='trade';
 
-      const act=(id:string,q:number,way:'buy'|'sell')=>{const r=deps.trade(kind,id,q,way);report(r);self.render(body);};
+      const act=(id:string,q:number,way:'buy'|'sell')=>{
+        const r=deps.trade(kind,id,q,way,vm.revision);report(r);self.render(body);
+      };
       const table=(title:string,lines:ShopLine[],way:'buy'|'sell')=>{
         const box=el('section','ui-shop-section');box.append(el('h3','ui-group',title));
         if(!lines.length)box.append(el('p','ui-muted','Rien pour le moment.'));
         for(const line of lines){
           const row=el('div','ui-shop-row');row.dataset.item=line.itemId;
           row.append(el('span','ui-shop-name',line.name),el('span','ui-shop-price',`${line.price} p.`),
-            el('span','ui-muted',way==='sell'?`×${line.owned}`:line.owned?'possédé ×'+line.owned:''));
+            el('span','ui-muted',way==='sell'?
+              `×${line.owned}`+(line.available!==undefined?` · rachat ≤${line.available}`:''):
+              `Stock : ${line.available??'∞'}`+(line.owned?' · possédé ×'+line.owned:'')));
           const one=button(way==='buy'?'Acheter':'Vendre 1',()=>act(line.itemId,1,way),'ui-button');
           one.disabled=!line.canAct;if(line.reason)one.title=line.reason;row.append(one);
-          if(way==='sell'&&line.owned>1){const all=button('Tout vendre',()=>act(line.itemId,line.owned,way),'ui-button');row.append(all);}
+          if(way==='buy'&&line.available!==undefined&&line.available>=5){
+            const batch=button('Acheter 5',()=>act(line.itemId,5,way),'ui-button');
+            batch.disabled=line.available<5||(inventory[COIN]??0)<5*line.price||
+              line.owned+5>deps.max(line.itemId);row.append(batch);
+          }
+          if(way==='sell'&&line.owned>1){
+            const all=button('Tout vendre',()=>act(line.itemId,line.owned,way),'ui-button');
+            all.disabled=line.available!==undefined&&line.owned>line.available;
+            if(all.disabled)all.title='Le marchand ne peut pas payer cette quantité';
+            row.append(all);
+          }
           box.append(row);
         }
         return box;
