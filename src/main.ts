@@ -1539,6 +1539,12 @@ function draw(now: number) {
         dressing: world.dressing ? { ...world.dressing } : null,
         grass: world.grass ? { ...world.grass } : null,
         inventory: gameplay ? { ...gameplay.runtime.state.inventory } : null,
+        surf:surfField?{
+          zoneId:surfField.zone.id,stage:player.surfStage??null,airborne:!!player.surfAirborne,
+          wave:surfField.sample(player.position.x,player.position.z,motionTick),
+          boardVisible:!!surfBoardView&&scene.getObjectByName('HamsterSurfboard')?.visible===true,
+          features:surfFeatures.length,patchTriangles:surfWaterView?.mesh.geometry.index?.count?surfWaterView.mesh.geometry.index.count/3:0,
+        }:null,
         target: currentTarget()?.primaryAction?.label ?? null,
         targetId: currentTarget()?.targetId ?? null,
         placed: { ...world.placed.stats },
