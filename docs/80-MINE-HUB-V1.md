@@ -6,6 +6,43 @@ Référence visuelle approuvée le 18 novembre 2026 : **hall creusé dans la roc
 
 **Chaque étage reprend la même organisation**, à une altitude différente. Le **passage vers l’île est une arche au fond du hall, derrière la zone de réception et face à la galerie**, présente **uniquement au niveau 1**, jamais en hauteur au-dessus de l'entrée de minage. Les étages 2+ n'ont aucune sortie vers la surface. Le même *rôle* de contremaître est représenté par un hamster local à chaque réception, sans PNJ IA lourd supplémentaire. Les niveaux partagent une unique logique de progression du joueur et un axe de monte-charge vertical ; chaque comptoir possède un identifiant stable.
 
+## V3 — hall élargi, circulation libérée (révision du 18/11/2026)
+
+**Correctif graphique avant merge** : la première capture réelle montrait une cabine trop proche
+de la caméra, un comptoir dissimulé et une arche étroite. Le nouveau prefab
+`mine-hub-view.ts` réutilise les composants originaux et le maillage minier, mais
+réorganise les volumes au lieu d'empiler les mêmes objets.
+
+- **Réception ~13 × 14 m**, à coins irréguliers, générée dans la grille 2,5D ; pas
+  de salle distincte à charger avant d'aller miner. Allée centrale libre de **3,5 m**.
+- **Gauche** : comptoir contre la paroi (x local ≈ −6,65 m), contremaître derrière,
+  échantillons des minerais de l'étage, petit bandeau de toile et outils au mur.
+  Suppression du grand toit à 4 poteaux et des caisses dans la circulation.
+- **Centre** : grande arche (~4,3 m de poutre, plus de 3,5 m de passage),
+  symboles 3D pierre/fer/cristal adaptés à la géologie, départ de rails **après** le seuil.
+- **Droite** : plateforme de monte-charge ouverte, poulie arrière et trois appuis
+  latéraux au maximum ; suppression de la cage et du gros panneau frontal.
+- **Arrière** : arche de sortie ouverte vers l'île **uniquement au niveau 1**.
+  Les étages 2 et 3 gardent l'emplacement d'accueil, sans issue vers la surface.
+- **Voûte de réception relevée** au centre jusqu'à +1,10 m (hauteur totale plafonnée
+  à 4,7 m, décroissance douce près des murs), avec cohérence entre
+  `mine-mesher.ts` et `mine-collision.ts`.
+- **Performance** : 1 mesh fusionné pour les solides et 1 pour l'émission,
+  pas de nouveaux points lumineux avec ombres, chunks conservés en streaming.
+  Décor sans colliders supplémentaires ; la grille reste seule autorité.
+- Le premier étage est préparé à l'ouverture du jeu ; l'habillage des étages
+  suivants est préparé pendant le **seul chargement du monte-charge**.
+  La circulation au même niveau reste instantanée.
+
+**Limite d'implantation** : l'ouverture est rognée par le polygone minier existant.
+Les toutes petites zones auteur exigent une validation dimensionnelle dans Studio ;
+aucun élément hors zone ne doit devenir un obstacle invisible. Les cartes tests
+de mine larges (~40 m et plus) accueillent l'organisation complète.
+
+Validation : `npm test`, `npm run build`, `npm run test:b1` et le scénario
+`tools/capture-mine-hub-browser.mjs` (captures réelles Chromium du hall et des étages
+1/2/3, sans substitution par des images générées).
+
 ## Plan de circulation validé
 
 De la gauche vers la droite : **stand du contremaître**, **entrée de la galerie de minage (en face)**, **monte-charge**. Derrière le joueur, sur le même sol, **arche ouverte vers la sortie de l'île au niveau 1 uniquement**. Aucune porte opaque ne ferme ce passage.
