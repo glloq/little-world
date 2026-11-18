@@ -27,8 +27,11 @@ de fragments évoluent dans ce premier lot.
   à la frontière des chunks.
 - Cache temporaire des sommets par chunk afin de réutiliser les mêmes sommets
   entre quads (per-cell, per-row).
-- **Non inclus** : assets rochers 3D secondaires, strates de couleurs dédiées,
-  effondrements visuels, LOD décoratif (prochaine passe graphique).
+- Le prefab commun des réceptions reçoit aussi de **petites formations rocheuses
+  facettées** et des inclusions minérales sur ses murs latéraux, fusionnées avec
+  les mêmes deux meshes. Le chemin central et le monte-charge restent dégagés.
+- **Non inclus** : décor rocheux généralisé à toutes les galeries, strates de
+  couleurs dédiées, effondrements visuels et LOD décoratif (prochaine passe).
 
 ### G3 — Casque : V1 implémentée
 
