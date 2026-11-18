@@ -7,7 +7,7 @@ export function createMaterialSampler(read:(x:number,z:number)=>string){
   const cx=Math.floor(x/2),cz=Math.floor(z/2);
   if(cx!==lastX||cz!==lastZ){
    const m=read(cx*2+1,cz*2+1);lastX=cx;lastZ=cz;
-   value=m==='mud'?'mud':m==='sand'?'sand':m==='wood'?'wood':m==='rock'||m==='basalt'||m==='gravel'||m==='pebbles'?'rock':'grass';
+   value=m==='snow'?'snow':m==='ice'?'ice':m==='mud'?'mud':m==='sand'?'sand':m==='wood'?'wood':m==='rock'||m==='basalt'||m==='gravel'||m==='pebbles'?'rock':'grass';
   }
   return value;
  };
