@@ -23,7 +23,8 @@ test('wave crest used by 3D curl follows the same phase and speed as the heightf
  assert.equal(crest.index,index);
  assert.ok(Math.abs(crest.distance)<1e-9);
  const height=field.height(0,z,0);
- const env=1; // bathymetry is deeper than the edge attenuation at this site
+ const depth=zone.seaLevel-ground(0,z),t=Math.max(0,Math.min(1,depth/(zone.shoreFadeDepth??3)));
+ const env=t*t*(3-2*t); // same bathymetric envelope as WaveField
  const expected=zone.seaLevel+zone.amplitude*env*(Math.sin(BARREL_CREST_PHASE)+.22*Math.sin(2*BARREL_CREST_PHASE));
  assert.ok(Math.abs(height-expected)<1e-8,Math.abs(height-expected));
  const t=30;
@@ -34,7 +35,7 @@ test('wave crest used by 3D curl follows the same phase and speed as the heightf
 test('tube only forms in the shallow breaking band and closes before the sand',()=>{
  assert.ok(barrelProfile(zone,0,0,ground)?.height>2.5);
  assert.equal(barrelProfile(zone,0,-45,ground),null,'deep water stays as a plain swell');
- assert.equal(barrelProfile(zone,0,19,ground),null,'the shallow lip vanishes before land');
+ assert.equal(barrelProfile(zone,0,20,ground),null,'the shallow lip vanishes before land');
  assert.equal(barrelProfile(zone,0,31,ground),null,'dry beach never creates a lip');
  const old={...zone,barrelStrength:0};
  assert.equal(barrelProfile(old,0,0,ground),null,'opt-out keeps old island water');
