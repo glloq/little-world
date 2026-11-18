@@ -8,17 +8,17 @@ const ROLE_LABEL:Record<ResidentRole,string>={
 const CONTEXT_CHOICE:DialogueChoice={text:'Que faites-vous dans la journée ?'};
 const BACK_CHOICE:DialogueChoice={text:'Revenir à la conversation'};
 /** Adds one optional conversational topic without altering any authored dialogue actions or IDs. */
-export function residentDialogue(base:DialogueSession|undefined,role:ResidentRole,context:()=>{phase:ResidentPhase;hour:number}):DialogueSession{
+export function residentDialogue(base:DialogueSession|undefined,role:ResidentRole,context:()=>{phase:ResidentPhase;hour:number;weather?:'clear'|'cloudy'|'rain'}):DialogueSession{
   let expanded=false,closed=false;
   return {
     get line():DialogueLine{
       if(!expanded)return base?.line??{id:'resident:hello',text:'Bonjour ! Que voulez-vous savoir ?',choices:[CONTEXT_CHOICE]};
-      const {phase,hour}=context(),activity=ROLE_LABEL[role];
+      const {phase,hour,weather}=context(),activity=ROLE_LABEL[role];
       const message=phase==='home'?'Il est '+Math.floor(hour)+' h. Je suis au repos ; je vais bientôt retrouver '+activity+'.':
         phase==='to-work'?'Je vais vers '+activity+'. On peut discuter pendant le chemin.':
         phase==='to-home'?'Je reviens de '+activity+'. À demain !':
         "Je m'occupe de "+activity+" aujourd'hui.";
-      return {id:'resident:context',text:message,choices:[BACK_CHOICE]};
+      return {id:'resident:context',text:message+(weather==='rain'?' Il pleut sur le village.':weather==='cloudy'?' Le ciel est couvert.':''),choices:[BACK_CHOICE]};
     },
     get choices(){if(expanded)return [BACK_CHOICE];return [...(base?.choices??[]),CONTEXT_CHOICE];},
     get locked(){return expanded?[]:base?.locked??[];},
