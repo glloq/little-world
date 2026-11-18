@@ -49,22 +49,26 @@ test('full reel breaks strong fish; cancellation resets all state',()=>{
   assert.equal(f.state.phase,'idle');assert.equal(f.state.castAt,null);
   assert.equal(f.state.tension,0);
 });
-test('every species can be landed with tension management',()=>{
+test('every species can be selected and landed with tension management',()=>{
   for(const [habitat,list] of Object.entries(FISH_BY_WATER)){
-    for(const [species] of list){
-      const f=createFishing(()=>0);
-      f.cast(habitat,{x:0,z:0},0);f.update(2);f.hook();
-      // Selection is independently verified by manipulating the random draw for each table.
-      // The combat parameters must remain finite in all profiles.
+    const total=list.reduce((n,[,weight])=>n+weight,0);
+    let offset=0;
+    for(const [species,weight] of list){
+      const draws=[0,(offset+weight/2)/total,.25];offset+=weight;
+      const f=createFishing(()=>draws.shift()??0);
+      f.cast(habitat,{x:0,z:0},0);
+      assert.equal(f.update(2),'bite');assert.ok(f.hook());
+      assert.equal(f.state.fish,species,habitat+' habitat selection');
       const p=FISH_PROFILES[species];
       assert.ok(p.gain>0&&p.pull>0&&p.relax>0&&p.frequency>0);
       let now=2,finished=false;
       for(let i=0;i<1800;i++){
         now+=1/30;const held=f.state.tension<.58;
-        const r=f.update(now,held);
-        if(r){assert.equal(r,'caught');finished=true;break;}
+        const result=f.update(now,held);
+        if(result){assert.equal(result,'caught',habitat+' '+species);finished=true;break;}
       }
       assert.ok(finished,habitat+' '+species);
+      assert.equal(f.takeCatch(),species);assert.equal(f.takeCatch(),null);
     }
   }
 });
