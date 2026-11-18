@@ -91,6 +91,13 @@ export function createGameUi(deps:GameUiDeps){
 
   // Panels.
   let restoring=false;
+  let openShopFromBag:(ids:readonly string[])=>boolean=()=>false;
+  const nearbyBuyback=(ids:readonly string[])=>{
+    const nearby=g?.nearbyShop(deps.player());
+    if(!nearby||!g)return null;
+    const offers=g.markets.view(nearby.kind,nearby.id).sell;
+    return ids.some(id=>(g.runtime.state.inventory[id]??0)>0&&offers.some(o=>o.itemId===id))?nearby:null;
+  };
   const instrumentPanel=createInstrumentPanel({
     equipped:()=>instrumentForItem(g?.equipment.hands),
     noteOn:(patch,note)=>deps.audio?.engine.instrumentNoteOn(patch,note)??false,
@@ -103,7 +110,8 @@ export function createGameUi(deps:GameUiDeps){
     canConsume:deps.canEatFood,
     consume:deps.eatFood?(id)=>{const result=deps.eatFood!(id);center.notify(result.ok?'success':'warning',result.message);return result.ok;}:undefined,
     consumeBatch:deps.eatFoods,
-    confirm:(message,label)=>ui.confirm(message,label),notify:message=>center.notify('info',message)});
+    confirm:(message,label)=>ui.confirm(message,label),notify:message=>center.notify('info',message),
+    canSellNearby:ids=>!!nearbyBuyback(ids),openSale:ids=>openShopFromBag(ids)});
   ui.register('inventory','Sac',{render:b=>inventory.render(b),onEscape:()=>inventory.cancelSelection(),onClose:()=>{inventory.markSeen();deps.audio?.emit('ui.inventory.close',{source:'ui'});}});
 
   const waypoints=createWaypointStore(g?.runtime.data.worldId??deps.world.name,deps.world.bounds,deps.temporary);
@@ -207,6 +215,10 @@ export function createGameUi(deps:GameUiDeps){
       sellBatch:(k,lines,revision)=>g.sellBatch(k,lines,shopCounterId??undefined,revision),
       trade:(k,id,q,m,expectedRevision)=>g.trade(k,id,q,m,shopCounterId??undefined,expectedRevision),
       notify:(ok,t)=>{center.notify(ok?'success':'warning',t);deps.audio?.emit(ok?'ui.confirm':'ui.error',{source:'ui'});}});
+    openShopFromBag=ids=>{
+      const nearby=nearbyBuyback(ids);if(!nearby)return false;
+      shop.prefillSale(ids);shopKind=nearby.kind;shopCounterId=nearby.id;ui.open('shop');return true;
+    };
     // Workshop jobs advance in game time while this panel is open, without unblocking movement.
     ui.register('shop','Comptoir',{pauses:false,onEscape:()=>shop.cancelSelection(),render:b=>{const h=b.closest('.ui-panel')?.querySelector('h2');if(h&&shopKind)h.textContent=SHOPS[shopKind].name;shop.render(b);if(shopKind==='mine'&&deps.mineHub){const row=el('div','ui-row ui-shop-tabs');row.append(button('Accès aux niveaux',()=>ui.open('mine-lift'),'ui-button ui-primary'),button('Conseils du mineur',()=>ui.open('mine-advice'),'ui-button'));b.querySelector('.ui-shop-v3')?.prepend(row);}}});}
   // Trade at the published maritime N1 merchant remains separate from ferry travel.
