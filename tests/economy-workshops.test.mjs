@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {ECONOMY_ITEMS} from '../src/gameplay/economy.ts';
+import {MINE_ITEMS} from '../src/mine/mine-data.ts';
+import {FARM_ITEMS} from '../src/farm/farm-data.ts';
 import {PRODUCTION_ITEMS} from '../src/economy/starter-catalog.ts';
 import {workshopStationId,createShopWorkshops} from '../src/economy/workshop-services.ts';
 import {parseGameSave,createGameSaveStore} from '../src/gameplay/save.ts';
@@ -22,7 +24,7 @@ function bag(initial={},limits={}){
 function service(purse){
   let time=10,changes=0;
   const make=()=>createShopWorkshops({
-    items:[...ECONOMY_ITEMS,...PRODUCTION_ITEMS],
+    items:[...ECONOMY_ITEMS,...MINE_ITEMS,...FARM_ITEMS,...PRODUCTION_ITEMS],
     purse,elapsedSeconds:()=>time,dayLengthSeconds:1440,
     onChange:()=>{changes++;},
   });
