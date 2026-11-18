@@ -10,7 +10,7 @@ const base=process.env.WORLD_URL??'http://127.0.0.1:5173/little-world/';
 const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH??(existsSync('/usr/bin/chromium')?'/usr/bin/chromium':undefined),args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
 let checks=0;const check=(ok,label)=>{assert.ok(ok,'FAILED: '+label);checks++;console.log('OK: '+label);};
 const TARGET=[-700,1020],TREES_OR_ROCKS=k=>!/^(ground|deadwood|gather|shrub):/.test(k);
-async function open(page,query){await page.goto(base+'?metrics=1&'+(process.env.DRESSING_QUERY?process.env.DRESSING_QUERY+'&':'')+query,{waitUntil:'domcontentloaded'});await page.waitForSelector('#start:not([disabled])',{timeout:120000});await page.locator('#start').click();
+async function open(page,query){await page.goto(base+'?metrics=1&'+(process.env.DRESSING_QUERY?process.env.DRESSING_QUERY+'&':'')+query,{waitUntil:'domcontentloaded'});await page.locator('#start-overlay').waitFor({state:'hidden',timeout:120000});await page.locator('#start-overlay').waitFor({state:'hidden'});
   await page.waitForFunction(()=>window.littleWorldMetrics?.chunks.pending===0&&window.littleWorldMetrics?.dressing?.pending===0,{},{timeout:120000});await page.waitForTimeout(1200);}
 const near=(page,r)=>page.evaluate(r=>window.littleWorldDebug.drawnNear(r),r);
 try{

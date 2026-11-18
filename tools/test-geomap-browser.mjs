@@ -82,7 +82,7 @@ try{
   await page.locator('.layer-row[data-layer=occupation] .layer-name').click();await ready();
   check(await page.locator('.layer-row[data-layer=occupation].active').count()===1,'Reference scene opens in the Studio with its layers');
   const game=await browser.newPage({viewport:{width:960,height:640}});const gameErrors=[];game.on('pageerror',e=>gameErrors.push(e.message));
-  await game.goto(base+'?world=maps/reference/manifest.json&metrics');await game.locator('#start:not([disabled])').click({timeout:60000});
+  await game.goto(base+'?world=maps/reference/manifest.json&metrics');await game.locator('#start-overlay').waitFor({state:'hidden',timeout:60000});
   await game.waitForFunction(()=>window.littleWorldMetrics?.dressing?.instances>0,{},{timeout:120000});
   check(gameErrors.length===0,'Published reference world plays with natural dressing '+gameErrors.join(' '));
   check(errors.length===0,errors.join('\n')||'No page errors');

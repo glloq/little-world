@@ -7,6 +7,9 @@ import type {GameplayView} from '../../gameplay/game-view.ts';
 import type {MovementSpace} from '../../physics/collision-world.ts';
 import type {AudioController} from '../../audio/view.ts';
 import {UiController} from './ui-controller.ts';
+import {renderFerryPanel,type FerryPanelDeps} from '../ferry/ferry-panel.ts';
+import {renderImportStand,type ImportStandPanelDeps} from '../ferry/import-stand.ts';
+import '../ferry/ferry.css';
 import {isEditableGameTarget} from '../../input/gameplay-input.ts';
 import {loadPreferences,savePreferences,type UiPreferences} from './preferences.ts';
 import {createNotificationCenter,type NoticeKind} from '../notifications/notifications.ts';
@@ -34,6 +37,8 @@ export interface GameUiDeps {
   environment?():{dayPhase:number;weather:'clear'|'cloudy'|'rain'};
   environmentControls?:HTMLDetailsElement|null;
   landmarks?:readonly {id:string;label:string;x:number;z:number}[];
+  ferry?:FerryPanelDeps & {dock:{x:number;z:number}};
+  importTrade?:ImportStandPanelDeps;
   world:{name:string;buildVersion:string;dayLength:number;bounds:{minX:number;maxX:number;minZ:number;maxZ:number};seaLevel:number;height(x:number,z:number):number;water(x:number,z:number):number|null};
   eatFood?(id:string):{ok:boolean;message:string};
   player():{gas?:number;maxGas?:number;gasShots?:number;gasMaxShots?:number;gasCooldown?:number;x:number;y:number;z:number;yaw:number;space?:MovementSpace;mode:string;oxygen:number;maxOxygen:number;stamina:number;maxStamina:number;speed?:number;stalled?:boolean};
@@ -54,7 +59,7 @@ export function createGameUi(deps:GameUiDeps){
   const ui=new UiController(host,deps.focusGameplay),g=deps.gameplay,a=g?.activities;
   // Panels.
   let selectedTool:string|null=null,restoring=false;
-  const inventory=inventoryPanel({items:()=>g?.runtime.data.items??[],inventory:()=>g?.runtime.state.inventory??{},selectedTool:()=>selectedTool,selectTool:id=>{selectedTool=id;renderTool();},gasLevel:()=>deps.player().gas??0,
+  const inventory=inventoryPanel({items:()=>g?.runtime.data.items??[],inventory:()=>g?.runtime.state.inventory??{},selectedTool:()=>selectedTool,selectTool:id=>{selectedTool=id;renderTool();},gasLevel:()=>deps.player().gas??0,gasCapacity:()=>deps.player().maxGas??200,
     consume:deps.eatFood?(id)=>{const result=deps.eatFood!(id);center.notify(result.ok?'success':'warning',result.message);return result.ok;}:undefined});
   ui.register('inventory','Sac',{render:b=>inventory.render(b),onClose:()=>{inventory.markSeen();deps.audio?.emit('ui.inventory.close',{source:'ui'});}});
 
@@ -68,12 +73,21 @@ export function createGameUi(deps:GameUiDeps){
     if(g){const s=g.runtime.state;for(const act of g.runtime.data.activities??[]){if(!act.objectiveId||s.objectives[act.objectiveId]!=='active')continue;
       for(const iid of act.interactionIds){const i=g.runtime.data.interactions.find(x=>x.id===iid),eid=i?.trigger.type==='onInteract'?i.trigger.entityId:undefined,p=eid?g.runtime.getEntityPosition(eid):undefined;if(p&&s.entities[eid!]?.collected!==true)out.push({id:'quest:'+iid,kind:'quest',label:act.name,x:p.x,z:p.z});}}}
     for(const l of deps.landmarks??[])out.push({id:'poi:'+l.id,kind:'poi',label:l.label,x:l.x,z:l.z});
+    if(deps.ferry?.state().present)out.push({id:'ferry:'+deps.ferry.currentIslandId,kind:'ferry',label:'Bateau de voyage',...deps.ferry.dock});
     for(const w of waypoints.points)out.push({id:w.id,kind:'waypoint',label:w.label,x:w.x,z:w.z,active:waypoints.activeId===w.id});
     return out;
   };
-  const mapDeps:MapDeps={bounds:deps.world.bounds,height:deps.world.height,water:deps.world.water,seaLevel:deps.world.seaLevel,markers,player:()=>{const p=deps.player();return {x:p.x,z:p.z,yaw:p.yaw};}};
+  const mapDeps:MapDeps={bounds:deps.world.bounds,height:deps.world.height,water:deps.world.water,seaLevel:deps.world.seaLevel,markers,onMarkerAction:marker=>{if(marker.kind==='ferry'&&deps.ferry)ui.open('ferry');},player:()=>{const p=deps.player();return {x:p.x,z:p.z,yaw:p.yaw};}};
   const mapRaster=createMapRaster(mapDeps),map=mapPanel(mapDeps,mapRaster,waypoints);
   ui.register('map','Carte',{render:b=>map.render(b),onClose:()=>map.close()});
+  if(deps.ferry)ui.register('ferry','Voyage entre les îles',{pauses:true,
+    render:b=>renderFerryPanel(b,{...deps.ferry!,...(deps.importTrade?{importStand:{
+      canUse:()=>deps.importTrade!.canUse(),
+      available:()=>deps.importTrade!.view().offers.length,
+      open:()=>ui.open('imports'),
+    }}:{})})});
+  if(deps.ferry&&deps.importTrade)ui.register('imports','Comptoir des importations',
+    {pauses:false,render:b=>renderImportStand(b,deps.importTrade!)});
   const questLocation=(id:string):{x:number;z:number;label:string}|null=>{
     if(!g)return null;
     const starts=(action:{type:string;objectiveId?:string;status?:string})=>action.type==='setObjective'&&action.objectiveId===id&&action.status==='active';
@@ -101,9 +115,30 @@ export function createGameUi(deps:GameUiDeps){
     confirm:(t,l)=>ui.confirm(t,l),closePanels:()=>ui.close(),notify:(k,t)=>center.notify(k,t)});
     ui.register('saves','Parties',{pauses:true,render:b=>saves.render(b)});}
   // Counters (mine, forest, port, market, farm, inn): one panel, catalogue chosen by the counter.
-  let shopKind:ShopKind|null=null;
-  if(g){const shop=shopPanel({kind:()=>shopKind,inventory:()=>g.runtime.state.inventory,name:id=>g.itemName(id),max:id=>g.purse.max(id),trade:(k,id,q,m)=>g.trade(k,id,q,m),notify:(ok,t)=>{center.notify(ok?'success':'warning',t);deps.audio?.emit(ok?'ui.confirm':'ui.error',{source:'ui'});}});
-    ui.register('shop','Comptoir',{pauses:true,render:b=>{const h=b.closest('.ui-panel')?.querySelector('h2');if(h&&shopKind)h.textContent=SHOPS[shopKind].name;shop.render(b);}});}
+  let shopKind:ShopKind|null=null,shopCounterId:string|null=null;
+  if(g){const shop=shopPanel({kind:()=>shopKind,counterId:()=>shopCounterId,production:g.workshops,
+      market:g.markets,
+      inventory:()=>g.runtime.state.inventory,name:id=>g.itemName(id),max:id=>g.purse.max(id),
+      trade:(k,id,q,m,expectedRevision)=>g.trade(k,id,q,m,shopCounterId??undefined,expectedRevision),
+      notify:(ok,t)=>{center.notify(ok?'success':'warning',t);deps.audio?.emit(ok?'ui.confirm':'ui.error',{source:'ui'});}});
+    // Workshop jobs advance in game time while this panel is open, without unblocking movement.
+    ui.register('shop','Comptoir',{pauses:false,render:b=>{const h=b.closest('.ui-panel')?.querySelector('h2');if(h&&shopKind)h.textContent=SHOPS[shopKind].name;shop.render(b);}});}
+  // The same merchant provides local port services and actual delivered import lots.
+  // Travel is never opened from this control: the oarsman has a distinct quay socket.
+  if(g&&deps.ferry)ui.register('maritime-trade','Commerce maritime',{pauses:false,render:b=>{
+    b.replaceChildren(el('p','ui-group','Comptoir maritime'),
+      el('p','ui-muted','Achats et ventes au comptoir, ou marchandises réellement livrées par cargo.'));
+    const local=button('Acheter et vendre au comptoir',()=>{
+      shopKind='port';shopCounterId='maritime:'+deps.ferry!.currentIslandId;ui.open('shop');
+    },'ui-button ui-primary');
+    b.append(local);
+    if(deps.importTrade){
+      const imports=button('Voir les importations'+(deps.importTrade.view().offers.length?' · '+deps.importTrade.view().offers.length+' lot(s)':''),
+        ()=>ui.open('imports'),'ui-button');
+      imports.disabled=!deps.importTrade.canUse();
+      b.append(imports);
+    }
+  }});
   let closeAudioPopover=()=>{};
   ui.register('settings','Paramètres',{pauses:true,render:b=>{closeAudioPopover();settingsPanel({preferences:()=>prefs,update:updatePrefs,quality:deps.quality,audioPanel:deps.audio?.panel??null,environmentControls:deps.environmentControls??null,showDeveloper:prefs.developer||devUrl}).render(b);},
     // The audio panel goes back to its developer place when the settings close.
@@ -176,7 +211,10 @@ export function createGameUi(deps:GameUiDeps){
   });
   let lastFrame=-1,promptKey='';
   return {
-    /** Opens the counter panel of a shop entity. */openShop(kind:ShopKind){shopKind=kind;ui.open('shop');},
+    /** Opens the maritime choice panel only for a real, published ferry stop. */openFerry(){if(deps.ferry)ui.open('ferry');},
+    /** Opens the counter panel of a specific entity; each entity owns its own jobs. */
+    openShop(kind:ShopKind,counterId?:string){shopKind=kind;shopCounterId=counterId??null;ui.open('shop');},
+    openMaritimeTrade(){if(ui.has('maritime-trade'))ui.open('maritime-trade');},
     controller:ui,notify:(kind:NoticeKind,text:string)=>center.notify(kind,text),center,
     get preferences(){return prefs;},
     get blocking(){return ui.blocking;},get paused(){return ui.paused;},
@@ -210,6 +248,7 @@ export function createGameUi(deps:GameUiDeps){
        const muted=!!deps.audio?.engine.settings.muted,iconName=muted?'mute':'volume';
        if(soundButton.dataset.icon!==iconName){soundButton.replaceChildren(hudIcon(iconName));soundButton.dataset.icon=iconName;soundButton.title=muted?'Son coupé · ouvrir le mixeur':'Régler le son';}
        minimap.update();
+       if(ui.active==='map')map.refresh();
       gas.classList.toggle('hide',p.mode!=='glide'||ui.blocking);
       if(p.mode==='glide'){
         const n=p.gasShots??0,max=p.gasMaxShots??14,cd=p.gasCooldown??0;

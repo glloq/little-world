@@ -10,7 +10,17 @@ export const COIN='coin';
 /** Starting purse of a new game (enough for one basic tool). */
 export const STARTING_COINS=40;
 /** A new game also starts with a few seed packets so the first field can be sown at once. */
-export const STARTING_KIT=[{itemId:'seed:wheat',quantity:3},{itemId:'seed:carrot',quantity:2}];
+/** Small starter buffet for testing food-to-boost, granted once on new games only. */
+export const STARTING_KIT=[
+  {itemId:'seed:wheat',quantity:3},{itemId:'seed:carrot',quantity:2},
+  {itemId:'food:apple',quantity:2},{itemId:'food:pear',quantity:2},
+  {itemId:'food:plum',quantity:2},{itemId:'food:cherry',quantity:3},
+  {itemId:'food:berry',quantity:3},{itemId:'food:hazelnut',quantity:4},
+  {itemId:'food:walnut',quantity:2},{itemId:'farm:carrot',quantity:2},
+  {itemId:'farm:pumpkin',quantity:1},{itemId:'food:potato',quantity:2},
+  {itemId:'food:chanterelle',quantity:2},{itemId:'food:cepe',quantity:1},
+  {itemId:'food:cheese',quantity:1},
+];
 export type ToolId='tool:axe'|'tool:pickaxe'|'tool:pickaxe-steel'|'tool:fishing-rod';
 interface Priced extends ItemDefinition {buy?:number;sell?:number}
 /** Core item catalogue (merged into every playable world, project items win on id clashes). */
@@ -25,6 +35,13 @@ export const ECONOMY_ITEMS:Priced[]=[
   {id:'food:pear',name:'Poire',category:'cueillette',maxQuantity:999,sell:2,buy:4},
   {id:'food:plum',name:'Prune',category:'cueillette',maxQuantity:999,sell:2,buy:4},
   {id:'food:cherry',name:'Cerises',category:'cueillette',maxQuantity:999,sell:3,buy:5},
+  {id:'food:berry',name:'Baies sauvages',category:'cueillette',maxQuantity:999,sell:1,buy:3,description:'Petite collation trouvée dans les buissons.'},
+  {id:'food:hazelnut',name:'Noisette',category:'cueillette',maxQuantity:999,sell:1,buy:3,description:'Petite réserve d’énergie à croquer.'},
+  {id:'food:walnut',name:'Noix',category:'cueillette',maxQuantity:999,sell:2,buy:4,description:'Une collation nourrissante.'},
+  {id:'food:potato',name:'Pomme de terre cuite',category:'farm',maxQuantity:999,sell:4,buy:8,description:'Patate cuite, prête à manger.'},
+  {id:'food:chanterelle',name:'Girolle comestible',category:'cueillette',maxQuantity:999,sell:4,buy:7,description:'Champignon identifié comme comestible dans le jeu.'},
+  {id:'food:cepe',name:'Cèpe comestible',category:'cueillette',maxQuantity:999,sell:5,buy:9,description:'Champignon identifié comme comestible dans le jeu.'},
+  {id:'food:cheese',name:'Morceau de fromage',category:'farm',maxQuantity:999,sell:7,buy:12,description:'Une bonne ration à emporter.'},
   {id:'forage:mushroom',name:'Champignon',category:'cueillette',maxQuantity:999,sell:4,buy:7,description:'Pousse sous le couvert des forêts humides.'},
   {id:'forage:flower',name:'Bouquet de fleurs',category:'cueillette',maxQuantity:999,sell:2,buy:4},
   {id:'forage:reed',name:'Roseaux',category:'cueillette',maxQuantity:999,sell:1,buy:2},
@@ -68,7 +85,8 @@ export function sell(shop:ShopDefinition,itemId:string,quantity:number,purse:Pur
   if(!shop.buys.includes(itemId))return {ok:false,reason:'Ce comptoir n’achète pas cet article'};
   const price=priceOf(itemId).sell;if(!price||!Number.isInteger(quantity)||quantity<1)return {ok:false,reason:'Quantité ou prix invalide'};
   if(purse.count(itemId)<quantity)return {ok:false,reason:'Vous n’en avez pas assez'};
-  const gain=Math.min(price*quantity,purse.max(COIN)-purse.count(COIN));if(gain<=0)return {ok:false,reason:'Bourse pleine'};
+  const gain=price*quantity;if(!Number.isSafeInteger(gain)||gain<=0)return {ok:false,reason:'Montant invalide'};
+  if(gain>purse.max(COIN)-purse.count(COIN))return {ok:false,reason:'Bourse pleine : vente refusée sans retirer les objets'};
   const changes=[{itemId,quantity:-quantity},{itemId:COIN,quantity:gain}];if(!purse.apply(changes))return {ok:false,reason:'Transaction refusée'};
   return {ok:true,message:`Vendu : ${quantity} × ${name(itemId)} (+${gain} pièces)`,changes};
 }

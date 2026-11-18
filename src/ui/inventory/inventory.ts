@@ -8,6 +8,12 @@ import {el,button} from '../shared/dom.ts';
 
 export const CATEGORY_LABELS:Record<string,string>={nature:'Ressources naturelles',mine:'Minerais et cristaux',farm:'Produits agricoles',tool:'Outils',outil:'Outils',quest:'Objets de mission',mission:'Objets de mission',argent:'Argent',bois:'Bois',cueillette:'Cueillette',poisson:'Poissons',graines:'Graines'};
 const ORDER=['Argent','Ressources naturelles','Bois','Cueillette','Poissons','Minerais et cristaux','Produits agricoles','Graines','Outils','Objets de mission','Objets divers'];
+const FOOD_ICONS:Readonly<Record<string,string>>={
+  'food:apple':'🍎','food:pear':'🍐','food:plum':'🟣','food:cherry':'🍒',
+  'food:berry':'🫐','food:hazelnut':'🌰','food:walnut':'🌰','farm:carrot':'🥕',
+  'farm:pumpkin':'🎃','food:potato':'🥔','food:chanterelle':'🍄',
+  'food:cepe':'🍄','food:cheese':'🧀',
+};
 export interface InventoryEntry {id:string;name:string;category:string;categoryLabel:string;quantity:number;max:number;description?:string;delta:number;full:boolean;nearlyFull:boolean;tool:boolean}
 export interface InventoryViewModel {groups:{label:string;entries:InventoryEntry[]}[];kinds:number;total:number;empty:boolean}
 export function inventoryViewModel(items:readonly ItemDefinition[],inventory:Readonly<Record<string,number>>,seen:Readonly<Record<string,number>>):InventoryViewModel{
@@ -17,7 +23,7 @@ export function inventoryViewModel(items:readonly ItemDefinition[],inventory:Rea
     const list=groups.get(label)??[];list.push(entry);groups.set(label,list);}
   return {groups:[...groups].sort(([a],[b])=>ORDER.indexOf(a)-ORDER.indexOf(b)).map(([label,entries])=>({label,entries:entries.sort((x,y)=>x.name.localeCompare(y.name,'fr'))})),kinds,total,empty:kinds===0};
 }
-export interface InventoryDeps {items():readonly ItemDefinition[];inventory():Readonly<Record<string,number>>;selectedTool():string|null;selectTool(id:string|null):void;gasLevel?:()=>number;consume?:(id:string)=>boolean}
+export interface InventoryDeps {items():readonly ItemDefinition[];inventory():Readonly<Record<string,number>>;selectedTool():string|null;selectTool(id:string|null):void;gasLevel?:()=>number;gasCapacity?:()=>number;consume?:(id:string)=>boolean}
 /** Panel renderer; `seen` is updated when the panel closes (the « new » marks then clear). */
 export function inventoryPanel(deps:InventoryDeps){
   let seen:Record<string,number>={},selected:string|null=null;
@@ -26,6 +32,7 @@ export function inventoryPanel(deps:InventoryDeps){
       const all=vm.groups.flatMap(g=>g.entries),equipment=all.filter(e=>e.tool||['cosmetic','accessory','equipment','instrument'].includes(e.category));
       const resources=vm.groups.map(g=>({...g,entries:g.entries.filter(e=>!equipment.some(t=>t.id===e.id))})).filter(g=>g.entries.length);
       const icon=(e:InventoryEntry)=>{
+        if(FOOD_ICONS[e.id])return FOOD_ICONS[e.id];
         const text=(e.id+' '+e.name).toLowerCase();
         if(/pêche|peche|fishing|canne/.test(text))return '🎣';
         if(/pioche|pickaxe/.test(text))return '⛏';
@@ -50,14 +57,20 @@ export function inventoryPanel(deps:InventoryDeps){
         if(e.tool){const inHand=deps.selectedTool()===e.id;detail.append(button(inHand?'Ranger':'Équiper',()=>{deps.selectTool(inHand?null:e.id);show(e);},'ui-button ui-primary'));}
         else if(equipment.some(t=>t.id===e.id)){detail.append(el('p','ui-muted','Équipement cosmétique prévu : action non disponible pour cet objet.'));}
         const gas=foodGasValue(e.id);
-        if(gas&&deps.consume){const action=button('Manger (+'+gas+' gaz)',()=>{if(deps.consume?.(e.id))render(body);},'ui-button');
-          action.disabled=(deps.gasLevel?.()??100)>=100;detail.append(action);}
+        if(gas&&deps.consume){
+          const level=deps.gasLevel?.()??0,max=deps.gasCapacity?.()??200;
+          const gained=Math.max(0,Math.min(gas,max-level));
+          detail.append(el('p','ui-muted','Recharge : +'+gas+' gaz · Réserve '+Math.round(level)+' / '+Math.round(max)));
+          const action=button('Manger (+'+Math.round(gained)+' gaz)',()=>{if(deps.consume?.(e.id))render(body);},'ui-button');
+          action.disabled=gained<=0;detail.append(action);
+        }
         for(const card of layout.querySelectorAll<HTMLButtonElement>('[data-item]'))card.setAttribute('aria-pressed',String(card.dataset.item===e.id));
       }
       function card(e:InventoryEntry){
         const item=button('',()=>show(e),'ui-item');item.dataset.item=e.id;item.dataset.focusKey='item:'+e.id;
         item.setAttribute('aria-label',e.name+', quantité '+e.quantity+(e.delta?', nouveau +'+e.delta:''));
         item.append(el('span','ui-item-symbol',icon(e)),el('span','ui-item-name',e.name),el('span','ui-item-qty','×'+e.quantity));
+        const gas=foodGasValue(e.id);if(gas)item.append(el('span','ui-item-gas','+'+gas+' gaz'));
         if(e.delta)item.append(el('span','ui-badge','+'+e.delta));
         if(e.nearlyFull)item.append(el('span','ui-badge ui-warn',e.full?'Plein':'Presque plein'));
         if(deps.selectedTool()===e.id)item.classList.add('ui-equipped');

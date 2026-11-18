@@ -1,4 +1,6 @@
 # 11 — Politique globale LOW-RESOURCE (Little World)
+> **Cibles matérielles complémentaires (18 novembre 2026) :** [80 — PC 4 Go (compatibilité expérimentale) et 8 Go (référence) / qualité automatique](80-OLD-PC-HARDWARE-AUTO-QUALITY.md), [81 — audit du rendu](81-RENDER-PERFORMANCE-CODE-AUDIT.md), [82 — OPT-0…OPT-9 et qualification](82-PERFORMANCE-GRAPHICS-IMPLEMENTATION-ROADMAP.md). Le profil historique 8 Go / 1600×900 reste une ambition à mesurer ; **4 Go ne devient pas une garantie minimum**. Les optimisations de travail inutile passent avant les pertes visuelles.
+
 
 **Statut : objectifs de conception validés pour les fréquences ; autres budgets provisoires à calibrer.**
 
@@ -353,3 +355,14 @@ Référence : [16 — Multijoueur futur, AOI et foules](16-FUTURE-MULTIPLAYER.md
 - **Provisoire à mesurer :** tous les plafonds numériques de mémoire, poids, draw calls, triangles et seuils de dégradation.
 - **Hors V1 :** backend et multijoueur.
 - Toute optimisation doit préserver les comportements et les contrôles validés (écureuil, accessoires, planage, nage, plongée, bateau et éditeur).
+
+
+## Budget extension ARCHIPEL (spécifié, à mesurer)
+
+- **Une seule île WebGL active par client** ; pas d'accumulation de scènes, chunks ou matériaux/sons lors des voyages. La scène barque/navire est indépendante, minimale et recyclable.
+- Les îles d'exemple sont des assets statiques compilés et chargés uniquement lors de la demande ; le registre doit rester petit (métadonnées sans meshes).
+- La simulation économique, écologique et le calendrier de desserte ne chargent **jamais** des arbres/PNJ/maisons 3D d'îles absentes. Calcul déterministe sur événements datés ; rattrapage borné.
+- Sur GitHub Pages, **aucun calcul réel ne tourne en absence de client** ; reconstituer au retour sans rendre tous les états intermédiaires.
+- Mesurer temps de transition, téléchargements, retained heap, draw calls, geometries/textures après A→B→A et charge du catalogue. Les limites exactes sont des **cibles à benchmarker**, pas des garanties.
+- Aucun serveur requis pour ces tests ; la charge du multijoueur futur devra être évaluée séparément. Voir [75](75-ISLAND-TRAVEL-FERRIES-PORTS.md), [76](76-ISLAND-AUTONOMY-ECONOMY-TRADE.md), [79](79-ISLAND-ROADMAP-VALIDATION.md).
+

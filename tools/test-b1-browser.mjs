@@ -18,7 +18,7 @@ const SLOT='little-world:game-save:v1:little-world-b1-demo:slot-1';
 try{
   const page=await browser.newPage({viewport:{width:1100,height:700}}),errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>d.accept());
   const url=base+'?world=maps/b1-demo/manifest.json&metrics&yaw=0&spawn=-40,296';
-  const boot=async()=>{await page.goto(url);await page.locator('#start:not([disabled])').click({timeout:120000});await page.waitForFunction(()=>window.littleWorldMetrics?.activities,{},{timeout:120000});await page.waitForTimeout(800);};
+  const boot=async()=>{await page.goto(url);await page.locator('#start-overlay').waitFor({state:'hidden',timeout:120000});await page.waitForFunction(()=>window.littleWorldMetrics?.activities,{},{timeout:120000});await page.waitForTimeout(800);};
   const m=()=>page.evaluate(()=>{const v=window.littleWorldMetrics;return {pos:v.position,mode:v.mode,act:v.activities};});
   const msg=()=>page.locator('.ui-notifications').textContent();
   const ui=playerUi(page),save=()=>ui.save(),load=()=>ui.load(),inventory=()=>ui.bag();

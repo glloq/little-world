@@ -197,3 +197,11 @@ L'hébergement **reste GitHub Pages** pour le jeu solo et pour les **éditeurs s
 Voir [12 — Périmètre du projet](12-PROJECT-SCOPE.md) et [13 — UX Studio](13-STUDIO-UX-ARCHITECTURE.md).
 
 **Statut : objectif d'architecture.** La branche actuelle possède un compilateur de données statiques et un terrain à chargement local, testés sur des scènes synthétiques jusqu’à 2 × 2 km. La compilation/streaming complète de 100 km² et les éditeurs spécialisés restent à développer.
+
+
+## Extension ARCHIPEL — publication sans backend (cible)
+
+Les futurs exemples d'îles seront **générés/validés/compilés à l'avance** puis inclus dans le build Vite/GitHub Pages avec un registry JSON et des manifests/chunks versionnés. Les URI doivent respecter import.meta.env.BASE_URL ; pas de chemin absolu depuis la racine github.io. La carte et le voyage peuvent lire ces fichiers statiques avec fetch, sans aucun backend, WebSocket, compte ou API d'écriture.
+
+Le navigateur solo peut stocker des sauvegardes et mutations locales (IndexedDB/export), **mais ne peut pas publier une île pour tous les joueurs ni maintenir un état commun en l'absence de serveur**. Publication éditoriale : export Studio → validation CI → commit/PR → build Pages. Voir [74](74-ISLAND-MANIFEST-REGISTRY.md) et [79](79-ISLAND-ROADMAP-VALIDATION.md).
+

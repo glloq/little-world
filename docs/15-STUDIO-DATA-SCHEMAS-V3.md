@@ -1,5 +1,8 @@
 # 15 — Little World Studio : schémas V3 et contrats entre éditeurs
 
+> **Complément schémas ARCHIPEL (18 novembre 2026), cible non implémentée :** préserver source Studio / monde compilé / état de partie V3 ; y ajouter un registre statique, des identifiants stables d'îles et des snapshots/deltas par île suivant [74](74-ISLAND-MANIFEST-REGISTRY.md). **Ne pas rendre le jeu solo dépendant d'une API réseau** et ne pas transformer les entités V3 en second modèle incompatible.
+
+
 **Décision architecturale validée le 12 novembre 2026.** Ce document précise les choix déjà approuvés pour le Studio et le jeu final ; il **ne signifie pas que le format V3 ou les éditeurs spécialisés sont implémentés**.
 
 **Références de périmètre :** [12 — Limites du jeu](12-PROJECT-SCOPE.md), [13 — UX Studio](13-STUDIO-UX-ARCHITECTURE.md), [14 — Choix techniques](14-TECHNICAL-CHOICES.md), [11 — LOW-RESOURCE](11-LOW-RESOURCE-POLICY.md).
@@ -640,3 +643,13 @@ src/
 ### Transition compatible des profils de cours d’eau
 
 L’incrément [29 — Eau et profils](29-WATER-PROFILES.md) étend les `WaterBody` conservés dans `libraries.water` avec un champ optionnel `profile` : `{mode: "terrain", offset: number}` ou `{mode: "manual", levels: number[]}`. Sans ce champ, `level` reste horizontal. Il n’existe pas de second réseau auteur parallèle : les échantillons, le lit, l’index et les rubans sont dérivés de cette source. La migration V1/V2 conserve IDs, modes et niveaux ; ce contrat transitoire n’est pas le graphe `WaterNetworkDefinitionV3` complet.
+
+## Extension ARCHIPEL V1 — contrats de référencement (cible, pas migration exécutée)
+
+- Préserver les modèles séparés **projet auteur → île compilée → sauvegarde joueur**. Un **ArchipelagoRegistry** référence plusieurs îles compilées et leurs liaisons sans fusionner leur géographie.
+- Ajouter **islandId, contentVersion, generatorVersion, seed, arrivalAnchors, registryVersion** aux contrats appropriés sans casser les champs existants ni imposer une deuxième entité V3.
+- Conserver les références de construction sous forme **prefabId + version + transform + instanceId stable**. Les modifications joueur sont des **deltas runtime**, pas des commandes d'édition auteur.
+- Une sauvegarde ancienne sans islandId migre explicitement vers l'île officielle par défaut. Exiger tests aller-retour des exports, sauvegardes et références après changement d'île.
+- Les politiques de communauté, transactions et stocks communs sont des **types préparatoires** ; aucune dépendance obligatoire au serveur dans les lecteurs solo.
+- Source de vérité du format proposé : [74](74-ISLAND-MANIFEST-REGISTRY.md). L'implémentation doit adapter ces exemples aux types réels après audit, sans recopier les schémas dans plusieurs modules.
+

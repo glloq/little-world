@@ -338,3 +338,11 @@ La [spécification 23](23-MIDI-AUDIO-LOW-RESOURCE.md) ajoute un **éditeur audio
 - Plusieurs niveaux géographiques indépendants dans une même partie.
 - Terrain voxel illimité / création d'îles océaniques dynamiques par le joueur.
 - Garantie 100 km² à 30 FPS avant réalisation de benchmarks.
+
+
+## Extension ARCHIPEL — auteur Studio et construction joueur
+
+**Studio auteur** : générer et prévisualiser une île complète selon thème/ressources, choisir zone d'arrivée, valider, compiler et publier dans un registre statique. **Joueur** : palette simplifiée de plans/matériaux, parcelles et chantiers, sans modification libre du relief, et sans exposer les outils auteur.
+
+Un moteur commun doit conserver catalogue/prefabs, placement, collisions, ancrages, graphe de routes, Undo/Redo auteur et diagnostics. **Les mutations de construction du joueur sont des états de partie/sauvegarde**, pas des retouches destructives des sources auteur. En bêta GitHub Pages : solo local et pas de contrôle serveur requis ; les menus de coopération sont différés. Voir [77](77-ISLAND-COMMUNITY-CONSTRUCTION.md), [78](78-ISLAND-STUDIO-PLAYER-UX.md) et [70 — SET](70-SETTLEMENTS-TECHNICAL-CONTRACTS.md).
+

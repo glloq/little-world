@@ -27,6 +27,15 @@ export async function verifyStaticBuild(directory = 'dist') {
   for (const asset of ['models/pine.glb', 'models/rock.glb', 'models/crate.glb', 'maps/island/manifest.json', 'maps/island.project.json']) {
     assert.ok((await stat(resolve(root, asset))).isFile(), `Ressource absente : ${asset}`);
   }
+
+  // Keep the published map allowlist intact: the second island lives in /archipelago.
+  const catalog=JSON.parse(await readFile(resolve(root,'archipelago/catalog.json'),'utf8'));
+  assert.equal(catalog.schemaVersion,1,'Version du registre invalide');
+  assert.equal(catalog.islands.length,2,'Deux îles jouables attendues');
+  const manifest=JSON.parse(await readFile(resolve(root,'archipelago/worlds/forest-valley/manifest.json'),'utf8'));
+  assert.equal(manifest.worldId,'little-world-production-reference','Mauvaise île d’exemple');
+  for(const chunk of manifest.chunks)assert.ok((await stat(resolve(root,'archipelago/worlds/forest-valley',chunk.url))).isFile(),'Secteur absent : '+chunk.url);
+  assert.ok((await stat(resolve(root,'archipelago/worlds/forest-valley',manifest.logic.url))).isFile(),'Logique de l’île absente');
   // Never accidentally deploy the regression fixtures to GitHub Pages.
   assert.deepEqual((await readdir(resolve(root,'maps'))).sort(),['island','island.project.json']);
 }

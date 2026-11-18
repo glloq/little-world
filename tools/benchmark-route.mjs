@@ -85,7 +85,7 @@ try{
     if(scenario.kind==='v2-preview')url.searchParams.set('preview','1');else for(const [k,v] of Object.entries(scenario.query))url.searchParams.set(k,v);
     for(const [k,v] of new URLSearchParams(process.env.BENCHMARK_EXTRA_QUERY??''))url.searchParams.set(k,v);
     await page.goto(url.href,{waitUntil:'networkidle'});
-    await page.locator('#start').click();
+    await page.locator('#start-overlay').waitFor({state:'hidden'});
     const bootMs=performance.now()-begin;
     // Settle: queue drained, or 25 s timeout recorded as such.
     const settled=await page.waitForFunction(()=>window.littleWorldMetrics?.chunks.pending===0,{},{timeout:25000}).then(()=>true,()=>false);

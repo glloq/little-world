@@ -1,6 +1,13 @@
+> **Chantier PTC — commerces portuaires (N1/N2/N3 bases graphiques retenues ; implantation non implémentée)** : [85 — identité low-poly en cinq niveaux](85-PORT-TRADE-CENTERS-VISUAL-DESIGN.md) et [brief de production des assets](../assets/commerce-portuaire/README.md). N1 stand entièrement ouvert avec toile, N2 cabane en bois, N3 bâtiment en dur, N4 halle, N5 grand centre d’échange ; même emblème de caisse hexagonale et variantes colorées par biome. **Ne pas confondre avec les ports 0–4** et GLB N1/N2 disponibles comme bases visuelles, N3 GLB de référence avec réserves ; aucune intégration runtime/Studio ni qualification LOD. [86 — implantation sur les îles, rameur + marchand selon l'escale](86-MARITIME-TRADE-PLACEMENT-N1-N3.md) (plan non implémenté).
+
 > **Campagne Hamster Motion V2 en branche :** [58 — Animation réactive du hamster](58-HAMSTER-MOTION-V2.md) — marche/course bipède, virages, roulade aérienne, réceptions, phases réseau; ne remplace pas la roadmap de mouvements physiques [54](54-DYNAMIC-MOVEMENT.md).
 
+> **Nouveau chantier ISL-0…ISL-7 :** [79 — roadmap archipel](79-ISLAND-ROADMAP-VALIDATION.md). D'abord **îles statiques d'exemple + voyages solo sur GitHub Pages**, puis construction et simulation locale ; **multijoueur bloqué jusqu'à une décision dédiée**. Le cadrage ne vaut pas implémentation.
+
+
 # 07 — Feuille de route — Little World Solo / GitHub Pages
+> **Nouvelle campagne moteur/performance 4–8 Go (novembre 2026) :** [80 — matériel ancien et qualité Auto](80-OLD-PC-HARDWARE-AUTO-QUALITY.md), [81 — audit ciblé CPU/GPU/streaming](81-RENDER-PERFORMANCE-CODE-AUDIT.md), [82 — OPT-0…OPT-9, roadmap et gates](82-PERFORMANCE-GRAPHICS-IMPLEMENTATION-ROADMAP.md). Ces documents complètent le budget [22 — PERF](22-RESOURCE-BUDGET-MANAGER.md) et la roadmap artistique [PR #29](https://github.com/glloq/little-world/pull/29) ; **aucun travail runtime n'est déclaré livré par l'ajout documentaire**.
+
 
 > **Chantier en branche expérimentale — Boost aérien à impulsions :** [étude de gameplay, réserve, progression, skins et audio](FLIGHT-BOOST-GAMEPLAY-STUDY.md) et [suivi de réalisation FLB-0 à FLB-5](FLIGHT-BOOST-IMPLEMENTATION-ROADMAP.md). Propulsion, niveaux, 25 sons procéduraux, six skins et trois défis solo **codés** sur `feat/flight-boost-gameplay-roadmap` ; plafond expérimental de 216 km/h, non qualifié sur matériel cible. Ne pas confondre cette branche avec `main`.
 
@@ -412,3 +419,21 @@ Pour chaque jalon : commit/PR, tests automatisés, captures ou essai navigateur,
 | Éditeur trop complexe | Outils simples puis raffinements |
 | Assets tiers non redistribuables | Vérification fichier par fichier avant commit |
 | Écureuil volant difficile à trouver sous licence | Proxy puis modélisation / rig original |
+
+## Axe ISL — archipel statique puis simulation locale, multijoueur reporté
+
+Voir [79](79-ISLAND-ROADMAP-VALIDATION.md) pour les gates et preuves par lot.
+
+| Jalon | Cible | Livraison |
+| --- | --- | --- |
+| ISL-0 | Audit compatibilité V3/loader/saves/ports/Studio | Diagnostic sans régression |
+| ISL-1 | Île 4 × 3 km + autres îles de démonstration statiques compilées, registry | Build GitHub Pages solo |
+| ISL-2 | Transitions barque → navire → destination, cycle de vie et repli | Test aller-retour sans fuite |
+| ISL-3 | Niveaux 0–4, calendrier, cloches et marqueur carte | Horaires déterministes |
+| ISL-4 | Simulation économique/écologique pure et rattrapage local | Test sans WebGL ni backend |
+| ISL-5 | Plans, matériaux, construction solo et sauvegarde locale | Réutilise Studio |
+| ISL-6 | UX Studio/jeu et publication documentée | CI et tutoriel |
+| ISL-7 | Autorité serveur, partages, coop et économie inter-joueurs | **FUTUR : bloqué jusqu'à validation explicite** |
+
+Aucun de ces jalons n'est déclaré implémenté par cette mise à jour documentaire.
+

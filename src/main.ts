@@ -11,7 +11,7 @@ import {classifyPoint} from './geography/classify.ts';
 import {createMaterialSampler} from './physics/surface-material.ts';
 import {MINE_MATERIALS} from './mine/mine-data.ts';
 import type {GameUi} from './ui/app/game-ui.ts';
-import {resolveTarget,objectTarget,npcTarget,boatTarget,mineWallTarget,farmPlotTarget,shopTarget,gatherTarget,fishingTarget,type TargetDescriptor} from './ui/interactions/targets.ts';
+import {resolveTarget,objectTarget,npcTarget,boatTarget,ferryTarget,maritimeTradeTarget,mineWallTarget,farmPlotTarget,shopTarget,gatherTarget,fishingTarget,type TargetDescriptor} from './ui/interactions/targets.ts';
 import {SHOPS,type ShopKind} from './gameplay/economy.ts';
 import {geoContext} from './geography/engine.ts';
 import {MATERIAL_BY_MINE_KEY} from './audio/context.ts';
@@ -26,6 +26,18 @@ import {
 import './style.css';
 import {waterSurface,riverX,isLegacyTerrain} from './terrain.ts';
 import {createFleet} from './gameplay/fleet.ts';
+import {loadArchipelagoRegistry,type PublishedIsland} from './archipelago/registry.ts';
+import {beginTransit,pendingTransit,clearTransit,FERRY_RECOVERY_KEY,
+  } from './archipelago/transit.ts';
+import {loadPortableCheckpoint,savePortableCheckpoint,withPortableItems} from './archipelago/portable-inventory.ts';
+import {ferryStatus,ferryEventsBetween,worldGameMinute} from './archipelago/ferry-schedule.ts';
+import {createCargoService} from './archipelago/cargo-logistics.ts';
+import {createFerryView} from './archipelago/ferry-view.ts';
+import {planPortN1,portActorPresence} from './archipelago/port-n1-plan.ts';
+import {createPortN1View} from './archipelago/port-n1-view.ts';
+import {attachPortN1Collisions} from './archipelago/port-n1-collisions.ts';
+import {withFerryBells} from './archipelago/ferry-audio.ts';
+import {showFerryCinematic,holdFerryArrival} from './ui/ferry/ferry-cinematic.ts';
 import {worldAsset} from './world-production/registry.ts';
 import type {PlayableWorld,StudioPlaytest} from './gameplay/playable.ts';
 import {WorldClock} from './environment/clock.ts';
@@ -139,9 +151,27 @@ const metricsEnabled = searchParams.has('metrics');
 /** Home page: the published island (complete game). Test maps stay reachable with ?world= / ?beta=1. */
 const DEFAULT_WORLD='maps/island/manifest.json';
 const worldPath=searchParams.get('world')??(searchParams.has('studioPreview')||searchParams.has('studioBuild')||searchParams.get('beta')==='1'?null:DEFAULT_WORLD);
+// The published registry is optional for Studio/test builds. No backend is required.
+const archipelago=worldPath?await loadArchipelagoRegistry(import.meta.env.BASE_URL).catch(()=>null):null;
+const activeIsland=archipelago?.islands.find(island=>island.manifest===worldPath)??null;
+const incomingTransit=activeIsland?(()=>{try{return pendingTransit(sessionStorage,activeIsland);}catch{return null;}})():null;
+// The destination builds under an inexpensive boat view. Full browser navigation has
+// already released the source WebGL context before the target bootstrap begins.
+const travelArrivalOverlay=incomingTransit?holdFerryArrival('Arrivée sur '+activeIsland!.name+'…'):null;
+function recoverJourney(error:unknown){
+  if(!incomingTransit)return;
+  try{
+    clearTransit(sessionStorage);
+    sessionStorage.setItem(FERRY_RECOVERY_KEY,'Traversée annulée : '+String(error).slice(0,180));
+    const back=new URL(location.href);
+    back.searchParams.set('world',incomingTransit.sourceManifest);
+    back.searchParams.delete('spawn');back.searchParams.delete('studioBuild');
+    location.replace(back.toString());
+  }catch{travelArrivalOverlay?.dispose();}
+}
 let definition = defaultWorld();
 let playable:PlayableWorld|null=null,studioTest:StudioPlaytest|null=null,buildScope:string|null=null;
-function bootFailure(error:unknown):never{overlay.setAttribute('aria-busy','false');overlay.querySelector('h1')!.textContent='Impossible d’ouvrir cette partie';overlay.querySelector('p')!.textContent=String(error);start.disabled=true;throw error;}
+function bootFailure(error:unknown):never{recoverJourney(error);overlay.setAttribute('aria-busy','false');overlay.dataset.state='error';const message=overlay.querySelector<HTMLElement>('.start-error');if(message){message.hidden=false;message.querySelector('p')!.textContent=String(error);}start.disabled=true;throw error;}
 if(searchParams.has('studioBuild')||worldPath){
   // Compiled V3 reader: the same path for published worlds and Studio test builds.
   try{
@@ -166,7 +196,17 @@ if(searchParams.has('studioBuild')||worldPath){
     if(searchParams.has('studioPreview')){studioTest=loadPlaytest(searchParams.get('studioPreview')!);playable=studioTest.content;}
     else{const response=await fetch(import.meta.env.BASE_URL+'maps/beta.json');if(!response.ok)throw Error('Monde bêta indisponible');playable=parsePlayableWorld(await response.json());}
     definition=playable.world;
-  }catch(error){overlay.setAttribute('aria-busy','false');overlay.querySelector('h1')!.textContent='Impossible d’ouvrir cette partie';overlay.querySelector('p')!.textContent=String(error);start.disabled=true;throw error;}
+  }catch(error){bootFailure(error);}
+}
+// The island's published gameplay is immutable on disk; extend only the in-memory item
+// catalogue with portable goods, so foreign goods work after a ferry ride or refresh.
+const retainedPortable=activeIsland&&playable&&!incomingTransit?(()=>{
+  try{return loadPortableCheckpoint(localStorage,activeIsland.id,playable!.gameplay.worldId);}
+  catch(error){console.warn('Sac portable inaccessible :',error);return null;}
+})():null;
+if(playable){
+  const traveler=incomingTransit?.traveler??retainedPortable?.traveler;
+  if(traveler)playable.gameplay.items=withPortableItems(playable.gameplay.items,traveler);
 }
 loading.boot(.45,'Construction du relief…');
 const world = buildWorld(definition.config, definition);
@@ -213,13 +253,13 @@ try{
       definition=merged;
     }else definition=boostCatalog;
   }
-  if(definition){const {createAudioController}=await import('./audio/view.ts');audio=createAudioController(definition,{baseUrl:import.meta.env.BASE_URL});}
+  if(definition){const {createAudioController}=await import('./audio/view.ts');audio=createAudioController(activeIsland?withFerryBells(toAudioCatalog(definition)):definition,{baseUrl:import.meta.env.BASE_URL});}
  }catch{console.warn('Audio indisponible : le jeu reste silencieux.');}
 const {createGroundProbe}=await import('./audio/world-probe.ts'),groundProbe=createGroundProbe();
 let gameplay:GameplayView|null=null;
 if(playable){
   const {createGameplayView}=await import('./gameplay/game-view.ts');
-  gameplay=createGameplayView(playable.gameplay,{onSound:(id,p)=>audio?.playSound(id,p),collisions:playable.collisions,temporary:!!(studioTest||buildScope),saveScope:studioTest?.snapshotId??buildScope??undefined,getPosition:()=>({x:player.position.x,y:player.position.y,z:player.position.z}),objects:world.objects,showInfo,
+  gameplay=createGameplayView(playable.gameplay,{islandId:activeIsland?.id,onSound:(id,p)=>audio?.playSound(id,p),collisions:playable.collisions,temporary:!!(studioTest||buildScope),saveScope:studioTest?.snapshotId??buildScope??undefined,getPosition:()=>({x:player.position.x,y:player.position.y,z:player.position.z}),objects:world.objects,showInfo,
     activities:playable.activities,getSpace:()=>player.space,
     getGas:()=>gasLevel(player),
     getGasProgress:()=>structuredClone(flightProgress),
@@ -239,6 +279,99 @@ const npcs = createNPCSystem(scene, definition.npcs,isLegacyTerrain()?undefined:
 npcs.setLighting(world.atlasIllumination);
 gameplay?.attachNPCs(npcs.states);
 const worldClock=gameplay?.runtime.clock??new WorldClock(),climate=gameplay?.runtime.climate??createClimate(defaultEnvironment(definition.config.seed));
+// A single durable cargo ledger covers the published offline archipelago; its author
+// reserves are consumed without creating any offscreen Three.js world.
+let cargoService:ReturnType<typeof createCargoService>|null=null;
+if(activeIsland&&archipelago&&gameplay&&!studioTest&&!buildScope){
+  try{
+    cargoService=createCargoService(localStorage,{
+      islandId:activeIsland.id,
+      gameMinute:()=>worldGameMinute(worldClock.time,climate.definition.dayLengthSeconds),
+      purse:gameplay.purse,itemName:gameplay.itemName,
+      worldId:gameplay.runtime.data.worldId,
+      inventory:()=>gameplay!.runtime.state.inventory,
+    });
+  }catch(error){
+    console.warn('Le registre des cargaisons n’a pas pu être chargé :',error);
+    showInfo('Comptoir d’import indisponible : stockage local de fret à vérifier.');
+  }
+}
+let lastCargoMinute=worldGameMinute(worldClock.time,climate.definition.dayLengthSeconds);
+// One ferry per published island for the solo trial. A valid water landing is mandatory.
+const ferryAnchor=activeIsland?definition.placements.filter(p=>/(dock|harbor|port)/i.test(p.assetId)).sort(
+  (a,b)=>Math.hypot(a.x-player.position.x,a.z-player.position.z)-Math.hypot(b.x-player.position.x,b.z-player.position.z))[0]:undefined;
+// Port N1 is an optional deterministic addition to published generated islands. No
+// random object near the player when neither a safe shore nor an approach exists.
+const portN1Layout=activeIsland&&!isLegacyTerrain()?planPortN1({
+  origin:{x:player.position.x,z:player.position.z},
+  anchors:definition.placements.filter(p=>/(dock|harbor|port|pier)/i.test(p.assetId))
+    .map(p=>({x:p.x,z:p.z})),
+  width:getTerrainConfig().width,length:getTerrainConfig().length,
+  seaLevel:getTerrainConfig().seaLevel,height:terrainHeight,depth:waterDepth,
+}):null;
+const ferryDock=(()=>{
+  if(!activeIsland)return null;
+  if(portN1Layout)return {...portN1Layout.boat};
+  const x=ferryAnchor?.x??player.position.x,z=ferryAnchor?.z??player.position.z;
+  for(const radius of [6,10,15,22,32,45,60,80,110,145])for(let i=0;i<20;i++){
+    const a=i*Math.PI/10,px=x+Math.cos(a)*radius,pz=z+Math.sin(a)*radius;
+    if(waterDepth(px,pz)>1.5)return {x:px,z:pz,y:getTerrainConfig().seaLevel-.12};
+  }
+  return null;
+})();
+// The boarding, oar-hand and trade locations never share the same interaction socket.
+const ferryBoardingPoint=activeIsland?(portN1Layout?.boarding??
+  {x:ferryAnchor?.x??player.position.x,z:ferryAnchor?.z??player.position.z}):null;
+const portN1View=portN1Layout?createPortN1View(scene,portN1Layout,import.meta.env.BASE_URL):null;
+const detachPortCollisions=portN1Layout&&gameplay?attachPortN1Collisions(gameplay.collision,portN1Layout):null;
+const ferryView=portN1View??(ferryDock?createFerryView(scene,ferryDock):null);
+const canBoardFerry=()=>!!ferryBoardingPoint&&!!ferryDock&&!player.space&&!aboard&&
+  Math.hypot(player.position.x-ferryBoardingPoint.x,player.position.z-ferryBoardingPoint.z)<(portN1Layout?2.8:4.5);
+const merchantPresent=()=>!!portN1Layout&&portActorPresence(1,ferryNow.present).merchant;
+const merchantNear=()=>!!portN1Layout&&!player.space&&!aboard&&merchantPresent()&&
+  Math.hypot(player.position.x-portN1Layout.trade.x,player.position.z-portN1Layout.trade.z)<3.3&&
+  Math.abs(player.position.y-portN1Layout.trade.y)<2.4;
+function islandURL(path:string):string{
+  const url=new URL(location.href);
+  url.searchParams.set('world',path);
+  for(const key of ['studioPreview','studioBuild','beta','spawn','yaw','pitch','dist','night'])url.searchParams.delete(key);
+  return url.toString();
+}
+async function travelToIsland(destination:PublishedIsland):Promise<{ok:boolean;message:string}>{
+  const g=gameplay,source=activeIsland;
+  if(!g||!source||!archipelago||!archipelago.islands.some(i=>i.id===destination.id&&i.manifest===destination.manifest))
+    return {ok:false,message:'Destination non publiée dans cet archipel.'};
+  if(destination.id===source.id)return {ok:false,message:'Vous êtes déjà sur cette île.'};
+  if(!ferryNow.present||!canBoardFerry())return {ok:false,message:'Le bateau est absent ou vous êtes trop loin du rameur.'};
+  let checkpointWritten=false;
+  try{
+    // Check every compiled descriptor BEFORE persisting the departure or unloading anything.
+    // No second terrain, textures, geometry or Three.js scene are instantiated here.
+    const {openCompiledWorld,publishedManifestURL}=await import('./runtime/compiled-world.ts');
+    await openCompiledWorld(publishedManifestURL(import.meta.env.BASE_URL,destination.manifest));
+    const save=g.compose('slot-ferry-auto');
+    await g.slots.save(save);
+    // Every owned item is carried, including products specific to this island.
+    // Their definitions are bundled so a destination does not silently hide them.
+    const inventory={...save.inventory};
+    beginTransit(sessionStorage,source,destination,worldClock.time,{
+      inventory,items:g.runtime.data.items.filter(item=>(inventory[item.id]??0)>0),
+      gasReserve:save.gasReserve??gasLevel(player),
+      flightProgress:save.flightProgress??flightProgress,
+    });
+    checkpointWritten=true;
+    clearGameplayInput();
+    await showFerryCinematic('En route vers '+destination.name+'…');
+    location.assign(islandURL(destination.manifest));
+    return {ok:true,message:'Chargement de '+destination.name+'…'};
+  }catch(error){
+    if(checkpointWritten)try{clearTransit(sessionStorage);}catch{/* storage unavailable */}
+    return {ok:false,message:'Traversée impossible : '+String(error).slice(0,175)};
+  }
+}
+let ferryMinute=worldGameMinute(worldClock.time,climate.definition.dayLengthSeconds);
+let ferryNow=ferryStatus(ferryMinute,activeIsland?.portLevel??0);
+ferryView?.setPresent(ferryNow.present);
 const {createEnvironmentView}=await import('./environment/view.ts');
 const environment=createEnvironmentView(scene,lighting,worldClock,climate);
 // E10 — local lights: entity states switch « state » lights, NPC carriers move their lights.
@@ -267,6 +400,7 @@ world.update(0, player.position);
     ...definition.placements.filter(p=>/(lighthouse|harbor|port|market|inn|windmill|watermill|town|village)/i.test(p.assetId)).slice(0,50).map(p=>({
       id:'asset:'+p.id,label:/lighthouse/i.test(p.assetId)?'Phare':/(port|harbor)/i.test(p.assetId)?'Port':/inn/i.test(p.assetId)?'Auberge':/market/i.test(p.assetId)?'Marché':/windmill|watermill/i.test(p.assetId)?'Moulin':'Village',x:p.x,z:p.z,
     })),
+    ...(portN1Layout?[{id:'maritime:trade-n1',label:'Comptoir maritime',x:portN1Layout.trade.x,z:portN1Layout.trade.z}]:[]),
   ];
   gameUi=createGameUi({gameplay,npcs,audio,focusGameplay:()=>{
     if(!started||!overlay.classList.contains('hide')||customization.isOpen||npcs.dialogue.isOpen)return false;
@@ -284,8 +418,39 @@ world.update(0, player.position);
       return {ok:true,message:'+'+Math.round(gained)+' gaz !'};
     },
     player:()=>({gas:gasLevel(player),maxGas:gasCapacity(player),gasShots:gasShots(player),gasMaxShots:gasMaxShots(player),gasCooldown:player.gasCooldown??0,x:player.position.x,y:player.position.y,z:player.position.z,yaw,space:player.space,mode:player.mode,oxygen:player.oxygen,maxOxygen:MAX_OXYGEN,stamina:player.stamina??MAX_STAMINA,maxStamina:MAX_STAMINA,speed:player.velocity.length(),stalled:player.stalled}),
+    importTrade:activeIsland&&ferryDock&&cargoService&&gameplay?{
+      view:()=>cargoService?cargoService.view():{
+        islandId:activeIsland.id,revision:0,offers:[],inTransit:0,nextArrivalMinute:null,
+      },
+      name:id=>gameplay!.itemName(id),
+      coins:()=>gameplay!.purse.count('coin'),
+      max:id=>gameplay!.purse.max(id),
+      owned:id=>gameplay!.purse.count(id),
+      canUse:()=>!!cargoService&&(portN1Layout?merchantNear():canBoardFerry()),
+      buy:(lotId,quantity,revision)=>{
+        if(!cargoService)return {ok:false,reason:'Comptoir import indisponible : stockage du fret suspendu'};
+        const result=cargoService.buy(lotId,quantity,revision);
+        if(result.ok){
+          // The import ledger has committed the buyer's full bag in the same write as
+          // the sold lot. The game save acknowledges this revision when successfully saved.
+          gameplay!.acknowledgeCargoPurchase(result.revision);
+          void gameplay!.slots.save(gameplay!.compose('slot-ferry-auto')).catch(error=>{
+            console.warn('Sauvegarde après achat maritime impossible :',error);
+            gameUi?.notify('warning','Achat réalisé, mais sauvegarde locale indisponible : exportez la partie.');
+          });
+        }
+        return result;
+      },
+      notify:(ok,message)=>gameUi?.notify(ok?'success':'warning',message),
+    }:undefined,
+    ferry:activeIsland&&ferryDock&&archipelago?{
+      currentIslandId:activeIsland.id,islands:archipelago.islands,
+      dock:{x:ferryDock.x,z:ferryDock.z},state:()=>ferryNow,canBoard:canBoardFerry,
+      preview:()=>{void showFerryCinematic('Essai de la traversée · retour sur cette île');},
+      travel:travelToIsland,
+    }:undefined,
     target:()=>currentTarget(),
-    home:()=>{stopFlightCourse();started=false;mobileTouch?.setEnabled(false);mobileLandscape?.stop();gameUi?.controller.close();keySet.clear();overlay.classList.remove('hide');start.focus();}});
+    home:()=>{stopFlightCourse();started=false;mobileTouch?.setEnabled(false);mobileLandscape?.stop();gameUi?.controller.close();keySet.clear();overlay.classList.remove('hide');overlay.classList.add('home-mode');start.hidden=false;start.focus();}});
 }
 // The player is the hamster (doc 43); NPCs keep their own rigs.
 const character = buildHamster();
@@ -342,7 +507,6 @@ let elapsed = 0;
 // Mobile controls contribute directly to the existing deterministic player input.
 if(touchCapable){
   mobileTouch=createTouchControls({jump:()=>{if(aboard)actionQueue++;else if(player.mode==='swim'||player.mode==='dive')touchStrokeQueue=1;else jumpQueue++;},action:()=>{actionQueue++;},alternate:()=>{if(player.mode==='ground'||player.mode==='roll')rollQueue++;else if(player.mode==='swim'||player.mode==='dive')jumpQueue++;}});
-  const intro=overlay.querySelector<HTMLElement>('.start-card small');if(intro)intro.textContent='Téléphone : paysage conseillé · joystick gauche · Saut et Accélération à droite';
   // Restore touch controls immediately after the player accepts portrait or rotates back.
   // Do not wait for a simulation tick: that tick may still be paused by the orientation guide.
   mobileLandscape=createMobileLandscape(blocked=>{
@@ -389,19 +553,19 @@ function input(): Controls {
       swimStrokePressed:false,
     };
   }
-  // Touch joystick steers the glider directly, not the camera.
+  // Touch joystick uses the same positive-right convention as keyboard D (the camera faces -X at yaw 0).
   const shiftHeld=codeHeld('ShiftLeft','ShiftRight'),touchAccelerateHeld=!!mobileTouch?.accelerateHeld;
   return {
     forward: clamp(
       Number(codeHeld('KeyW', 'KeyZ', 'ArrowUp')) - Number(codeHeld('KeyS', 'ArrowDown')) + (mobileTouch?.axis.forward??0),-1,1),
     right: clamp(
-      Number(codeHeld('KeyD', 'ArrowRight')) - Number(codeHeld('KeyA', 'KeyQ', 'ArrowLeft')) - (mobileTouch?.axis.right??0),-1,1),
+      Number(codeHeld('KeyD', 'ArrowRight')) - Number(codeHeld('KeyA', 'KeyQ', 'ArrowLeft')) + (mobileTouch?.axis.right??0),-1,1),
     run:shiftHeld||touchAccelerateHeld,
     autoRun: true,
     jumpAssist: true,
     jumpPressed: jumpQueue > 0,
     rollPressed: rollQueue > 0,
-    rollHeld:shiftHeld,
+    rollHeld:shiftHeld||!!(mobileTouch?.accelerateHeld&&Math.hypot(mobileTouch.axis.forward,mobileTouch.axis.right)>.3),
     spaceHeld: codeHeld('Space')||!!mobileTouch?.jumpHeld,
     dive: codeHeld('ControlLeft', 'ControlRight'),
     cameraYaw: yaw,
@@ -530,8 +694,8 @@ renderer.domElement.addEventListener('pointermove', (e) => {
   }
   // Camera sensitivity / vertical inversion: player preferences (Paramètres › Contrôles).
   const prefs=gameUi?.preferences,k=prefs?.cameraSensitivity??1;
-  // Touch drag rotates the camera toward the finger. Preserve desktop mouse orbit.
-  yaw += movement.dx * 0.00315 * k * (touchCapable?1:-1);
+  // Same horizontal orbit direction on touch and desktop. Flight yaw remains independent.
+  yaw -= movement.dx * 0.00315 * k;
   pitch = clamp(pitch - movement.dy * 0.0024 * k * (prefs?.invertY ? -1 : 1), player.mode==='glide'?-.45:-.12, player.mode==='glide'?1.3:1.03);
 });
 renderer.domElement.addEventListener('pointerup', (e) => {
@@ -549,15 +713,34 @@ renderer.domElement.addEventListener(
   },
   { passive: true },
 );
-start.addEventListener('click', () => {
-  started = true;
+// Browser audio may require a gesture. Autostart video/gameplay first, then unlock
+// audio on the player's first real pointer or keyboard interaction (no autoplay errors).
+function unlockGameAudio(){
+  window.removeEventListener('pointerdown',unlockGameAudio,true);
+  window.removeEventListener('keydown',unlockGameAudio,true);
   void audio?.start();
-  overlay.classList.add('hide');
+}
+function beginGame(fromGesture=false){
+  if(started)return;
+  started=true;
+  if(fromGesture)unlockGameAudio();
+  else{
+    window.addEventListener('pointerdown',unlockGameAudio,true);
+    window.addEventListener('keydown',unlockGameAudio,true);
+  }
+  overlay.classList.add('hide');overlay.classList.remove('home-mode');
+  start.hidden=true;
   gameUi?.started();
+  travelArrivalOverlay?.finish();
+  if(!incomingTransit)try{
+    const message=sessionStorage.getItem(FERRY_RECOVERY_KEY);
+    if(message){sessionStorage.removeItem(FERRY_RECOVERY_KEY);showInfo(message,'warning');}
+  }catch{/* optional recovery notice */}
   mobileLandscape?.start();
   mobileTouch?.setEnabled(!mobileLandscape?.blocked);
-  renderer.domElement.focus();
-});
+  renderer.domElement.focus({preventScroll:true});
+}
+start.addEventListener('click',()=>beginGame(true));
 /** Messages from gameplay effects and actions go through the single notification manager. */
 function showInfo(text: string, kind:'info'|'success'|'warning'='info') {
   gameUi?.notify(kind,text);
@@ -665,9 +848,18 @@ function currentTarget():TargetDescriptor|null{
   let unusable:TargetDescriptor|null=null;
   return resolveTarget([
     ()=>aboard?boatTarget(true):null,
+    // The maritime counter is a visible anchored merchant, not the ferry captain.
+    ()=>merchantNear()?maritimeTradeTarget():null,
     ()=>{const o=gameplay?.describe(player.position);if(!o)return null;const t=objectTarget(o);if(!o.usable){unusable=t;return null;}return t;},
     // A counter the player faces wins over a shopkeeper standing next to it.
     ()=>{const s=nearShop(true);return s?shopTarget({entityId:s.id,name:SHOPS[s.kind].name}):null;},
+    // Ferry boards from a small, identifiable quay point. The nearby captain remains
+    // talkable a few metres away; the ferry must win only inside the boarding radius.
+    ()=>{if(!ferryDock||aboard||player.space)return null;
+      const shore=ferryBoardingPoint?Math.hypot(player.position.x-ferryBoardingPoint.x,player.position.z-ferryBoardingPoint.z):Infinity;
+      const d=Math.hypot(player.position.x-ferryDock.x,player.position.z-ferryDock.z);
+      if(portN1Layout)return ferryNow.present&&canBoardFerry()?ferryTarget(true):null;
+      return (shore<2.5||(d<3.5&&Math.abs(player.position.y-ferryDock.y)<4))?ferryTarget(ferryNow.present):null;},
     ()=>{const n=npcs.talker(player.position);return n?npcTarget(n):null;},
     ()=>fleet.nearest(player.position.x,player.position.y,player.position.z)?boatTarget(false):null,
     ()=>{if(!gameplay||!player.space)return null;const p=gameplay.activities.digPreview(player.position,player.space,forwardOf());return p?mineWallTarget({...p,rewardName:itemName(p.reward?.itemId)}):null;},
@@ -714,7 +906,7 @@ let boatSteer=0,motionTick=0,nextTouchTargetAt=0,lastFlightPulseSeq=0;
 function tick(dt: number) {
   // Mobile input: immediately release controls when a menu opens or the boost stops being valid.
   mobileTouch?.setEnabled(started&&!gameUi?.blocking&&!customization.isOpen&&!npcs.dialogue.isOpen&&!mobileLandscape?.blocked);
-  mobileTouch?.setMode(player.mode,aboard,gasShots(player)>0);
+  mobileTouch?.setMode(player.mode,aboard,gasShots(player)>0&&(player.mode!=='air'||!player.airBoostUsed));
   // Interaction may change without changing movement mode. Throttle target queries
   // to 8 Hz; the action itself still resolves the target again when pressed.
   if(mobileTouch&&elapsed>=nextTouchTargetAt){
@@ -725,6 +917,32 @@ function tick(dt: number) {
   // Menus (pause, parties, paramètres) pause the world simulation; the frame still renders.
   if (!started || gameUi?.paused||mobileLandscape?.blocked) return;
   if(gameplay)gameplay.update(dt);else worldClock.advance(dt);
+  if(cargoService){
+    const cargoMinute=worldGameMinute(worldClock.time,climate.definition.dayLengthSeconds);
+    if(cargoMinute!==lastCargoMinute){
+      lastCargoMinute=cargoMinute;
+      try{cargoService.advance();}catch(error){
+        console.warn('Impossible d’avancer le fret maritime :',error);
+        // A failed localStorage write is reported, not interpreted as a free shipment.
+        cargoService=null;
+        gameUi?.notify('warning','Fret maritime suspendu : sauvegarde locale indisponible.');
+      }
+    }
+  }
+  if(ferryDock&&activeIsland){
+    const minute=worldGameMinute(worldClock.time,climate.definition.dayLengthSeconds);
+    if(minute!==ferryMinute){
+      if(minute>ferryMinute)for(const event of ferryEventsBetween(ferryMinute,minute,activeIsland.portLevel,activeIsland.id)){
+        if(event.kind==='arrived'||event.kind==='departure-warning'){
+          audio?.emit(event.kind==='arrived'?'ferry.arrived':'ferry.departure-warning',
+            {source:'world',position:{x:ferryDock.x,y:ferryDock.y+1,z:ferryDock.z}});
+          if(Math.hypot(player.position.x-ferryDock.x,player.position.z-ferryDock.z)<100)
+            gameUi?.notify('info',event.kind==='arrived'?'Le bateau est arrivé au quai.':'Le bateau part dans 5 minutes de jeu.');
+        }
+      }
+      ferryMinute=minute;ferryNow=ferryStatus(minute,activeIsland.portLevel);ferryView?.setPresent(ferryNow.present);
+    }
+  }
   // In glide, mobile input now reaches the flight simulation directly.
   const keys = input();
   if (aboard) {
@@ -771,6 +989,10 @@ function tick(dt: number) {
       // The business system said no: tell why (never act on a disabled target).
       showInfo(target.primaryAction.disabledReason ?? 'Impossible pour le moment', 'warning');
       audio?.emit('ui.error', { source: 'ui' });
+    } else if (target?.targetType === 'maritime-trade') {
+      gameUi?.openMaritimeTrade();
+    } else if (target?.targetType === 'ferry') {
+      gameUi?.openFerry();
     } else if (target?.targetType === 'boat' && aboard) {
       aboard = false;fleet.leave();
       const dock = isLegacyTerrain() ? null : dryLanding(boat);
@@ -812,7 +1034,7 @@ function tick(dt: number) {
     else if (target?.targetType === 'farm-plot') runFarm();
     else if (target?.targetType === 'gather') runGather();
     else if (target?.targetType === 'fishing') runFishing();
-    else if (target?.targetType === 'shop') { const s = nearShop(); if (s) gameUi?.openShop(s.kind); }
+    else if (target?.targetType === 'shop') { const s = nearShop(); if (s) gameUi?.openShop(s.kind,s.id); }
   }
 }
 const perfSampler=new PerfSampler(),gpuTimer=createGpuTimer(renderer,metricsEnabled);
@@ -863,11 +1085,12 @@ function draw(now: number) {
   for(const state of npcs.states)if(Math.hypot(state.x-player.position.x,state.z-player.position.z)<44)grassActors.push(state);
   remoteActors?.renderer.collectGrassActors(grassActors,player.position);
   world.update(delta, player.position, camera, renderer.domElement.height, player.velocity);
-  if(!loading.ready)loading.update({terrainPending:world.stats.pending,dressingPending:world.dressing?.nearPending??0,speciesState:world.dressing?.species.state??'none'});
+  if(!loading.ready&&loading.update({terrainPending:world.stats.pending,dressingPending:world.dressing?.nearPending??0,speciesState:world.dressing?.species.state??'none'}))beginGame();
   remoteActors?.update(delta,elapsed,camera,renderer.domElement.height,budget.level);
   npcs.update(delta, elapsed, player.position,camera); // The river drives the mill: no manual on/off control.
   // Boats follow their state (the one in use moves; the player's own boat bobs at its mooring).
   playerBoat&&fleet.sync(playerBoat,elapsed);if(fleet.current&&fleet.current!==playerBoat)fleet.sync(fleet.current,elapsed);
+  if(portN1View)portN1View.update(elapsed,player.position);else ferryView?.update(elapsed);
   character.group.position.copy(renderPosition);
   character.setAboard(aboard);
   if(gameplay){const f=gameplay.fishing.state;character.setFishing(f.phase!=='idle'&&f.castAt?{x:f.castAt.x,y:waterSurface(f.castAt.x,f.castAt.z)??getTerrainConfig().seaLevel,z:f.castAt.z,biting:f.phase==='bite'}:null);}
@@ -943,6 +1166,8 @@ function draw(now: number) {
         boatModel: world.boat.getObjectByName('Sailboat') ? 'sailboat' : 'procedural',
         boatPosition: [boat.x, boat.y, boat.z],
         boats: { count: fleet.boats.length, aboard, current: fleet.current?.id ?? null },
+        ferry: activeIsland ? {islandId:activeIsland.id,level:activeIsland.portLevel,boat:ferryDock,boarding:ferryBoardingPoint,present:ferryNow.present,minutesUntilDeparture:ferryNow.minutesUntilDeparture,worldId:gameplay?.runtime.data.worldId??null} : null,
+        maritimePort:portN1Layout?{active:true,level:1,stand:portN1Layout.stand,trade:portN1Layout.trade,boarding:portN1Layout.boarding,merchant:portN1Layout.vendor,rower:portN1Layout.rower,merchantPresent:merchantPresent(),merchantNear:merchantNear(),boatPresent:ferryNow.present}: {active:false},
         paths: { ...world.paths },
         lights: { ...world.lights.stats },
         activities: activityView&&gameplay ? { ...activityView.stats, space: player.space ?? null,
@@ -987,7 +1212,7 @@ function draw(now: number) {
   }
   requestAnimationFrame(draw);
 }
-window.addEventListener('pagehide',event=>{if(event.persisted)void audio?.engine.setHidden(true);else {remoteActors?.dispose();gasEffects.dispose();flightRings.dispose();flightCourseHud.remove();speedStreaks.dispose();gpuTimer.dispose();void audio?.dispose();}});
+window.addEventListener('pagehide',event=>{if(event.persisted)void audio?.engine.setHidden(true);else {detachPortCollisions?.();ferryView?.dispose();remoteActors?.dispose();gasEffects.dispose();flightRings.dispose();flightCourseHud.remove();speedStreaks.dispose();gpuTimer.dispose();void audio?.dispose();}});
 window.addEventListener('pageshow',event=>{if(event.persisted&&started)void audio?.engine.setHidden(document.hidden);});
 document.addEventListener('visibilitychange', () => {
   presentation.reset();
@@ -1008,6 +1233,128 @@ camera.position.set(
   player.position.z - 24,
 );
 camera.lookAt(player.position);
-// The visible start button must not accept a click before asynchronous boot has attached its listeners.
+// If a previous attempt failed during target boot, return to the source island's
+// last committed travel save, not an empty new game.
+if(!incomingTransit&&activeIsland&&gameplay){
+  try{
+    const recovery=sessionStorage.getItem(FERRY_RECOVERY_KEY);
+    if(recovery){
+      const saved=await gameplay.slots.load(gameplay.runtime.data.worldId,'slot-ferry-auto');
+      if(saved){
+        gameplay.restore(saved);
+        ferryMinute=worldGameMinute(worldClock.time,climate.definition.dayLengthSeconds);
+        ferryNow=ferryStatus(ferryMinute,activeIsland.portLevel);
+        ferryView?.setPresent(ferryNow.present);
+      }
+    }
+  }catch(error){console.warn('Sauvegarde de retour indisponible :',error);}
+}
+// One-time destination restore after all player, camera, NPC and UI systems exist.
+// Destination-specific activity states come from that island's own travel slot, while
+// the portable bag, boost progression and common clock come from the transit envelope.
+if(incomingTransit&&gameplay&&playable){
+  try{
+    const saved=await gameplay.slots.load(playable.gameplay.worldId,'slot-ferry-auto');
+    const base=saved??gameplay.compose('slot-ferry-auto');
+    const landing=playable.spawn;
+    const position={x:landing.x,y:terrainHeight(landing.x,landing.z)+landing.y+.08,z:landing.z};
+    gameplay.restore({...base,slotId:'slot-ferry-auto',time:incomingTransit.worldSeconds,position,space:null,
+      inventory:{...incomingTransit.traveler.inventory},gasReserve:incomingTransit.traveler.gasReserve,
+      flightProgress:incomingTransit.traveler.flightProgress});
+    // The destination slot holds local activity state; a separate portable checkpoint holds
+    // the complete bag across refreshes. Neither one is the short-lived ferry ticket.
+    await gameplay.slots.save(gameplay.compose('slot-ferry-auto'));
+    savePortableCheckpoint(localStorage,activeIsland!.id,playable.gameplay.worldId,{
+      inventory:{...gameplay.runtime.state.inventory},
+      items:gameplay.runtime.data.items.filter(item=>(gameplay!.runtime.state.inventory[item.id]??0)>0),
+      gasReserve:gasLevel(player),flightProgress,
+    });
+    ferryMinute=worldGameMinute(worldClock.time,climate.definition.dayLengthSeconds);
+    ferryNow=ferryStatus(ferryMinute,activeIsland!.portLevel);
+    ferryView?.setPresent(ferryNow.present);
+    clearTransit(sessionStorage);
+  }catch(error){bootFailure(error);}
+}
+// Refreshing the destination does not consume a ferry ticket: resume its local world
+// snapshot with the most recent portable inventory and item definitions.
+if(!incomingTransit&&retainedPortable&&gameplay&&playable){
+  try{
+    const saved=await gameplay.slots.load(playable.gameplay.worldId,'slot-ferry-auto');
+    // The per-island slot is the latest coherent snapshot (inventory + world effects).
+    // Only fall back to the portable bag if that slot was explicitly removed.
+    const base=saved??gameplay.compose('slot-ferry-auto');
+    gameplay.restore(saved??{...base,inventory:{...retainedPortable.traveler.inventory},
+      gasReserve:retainedPortable.traveler.gasReserve,
+      flightProgress:retainedPortable.traveler.flightProgress});
+    ferryMinute=worldGameMinute(worldClock.time,climate.definition.dayLengthSeconds);
+    ferryNow=ferryStatus(ferryMinute,activeIsland!.portLevel);
+    ferryView?.setPresent(ferryNow.present);
+  }catch(error){bootFailure(error);}
+}
+// Store a coherent world+bag checkpoint after validated changes, not per frame.
+// Write the island slot first, then the portable metadata. On refresh the island slot
+// is authoritative, preventing duplicated resources if a write was interrupted.
+if(activeIsland&&gameplay&&(incomingTransit||retainedPortable)){
+  const active=activeIsland,g=gameplay;let warned=false,dirty=false,saving=false;
+  let debounce:ReturnType<typeof setTimeout>|null=null;
+  async function saveTravelProgress(){
+    if(saving)return;
+    saving=true;
+    try{
+      do{
+        dirty=false;
+        const snapshot=g.compose('slot-ferry-auto');
+        await g.slots.save(snapshot);
+        savePortableCheckpoint(localStorage,active.id,g.runtime.data.worldId,{
+          inventory:{...snapshot.inventory},
+          items:g.runtime.data.items.filter(item=>(snapshot.inventory[item.id]??0)>0),
+          gasReserve:snapshot.gasReserve??gasLevel(player),
+          flightProgress:snapshot.flightProgress??flightProgress,
+        });
+      }while(dirty);
+      warned=false;
+    }catch(error){
+      if(!warned){warned=true;console.warn('Impossible de sauvegarder la progression maritime :',error);
+        showInfo('Sauvegarde de voyage indisponible : exportez votre partie.','warning');}
+    }finally{saving=false;}
+  }
+  g.subscribe(()=>{
+    dirty=true;
+    if(debounce!==null)clearTimeout(debounce);
+    debounce=setTimeout(()=>{debounce=null;void saveTravelProgress();},1000);
+  });
+}
+// Recover a previously committed import receipt before starting the game. The cargo
+// ledger owns the checkout and its post-purchase bag in ONE localStorage record, while
+// the regular game slot is acknowledged separately. A crash between these two writes
+// can therefore never silently consume imported goods without returning them to the bag.
+if(cargoService&&gameplay&&activeIsland){
+  try{
+    const receipt=cargoService.buyerCheckpoint();
+    if(receipt&&receipt.islandId===activeIsland.id&&
+        receipt.worldId===gameplay.runtime.data.worldId){
+      if(incomingTransit){
+        // A returning traveller's *current* bag takes precedence over an old local receipt.
+        // Mark the receipt as acknowledged so it cannot overwrite the returned cargo later.
+        gameplay.acknowledgeCargoPurchase(receipt.revision);
+        await gameplay.slots.save(gameplay.compose('slot-ferry-auto'));
+      }else{
+        const saved=await gameplay.slots.load(gameplay.runtime.data.worldId,'slot-ferry-auto');
+        const base=saved??gameplay.compose('slot-ferry-auto');
+        const needsRecovery=(base.cargoPurchaseRevision??0)<receipt.revision;
+        gameplay.restore(needsRecovery?{...base,inventory:{...receipt.inventory},
+          cargoPurchaseRevision:receipt.revision}:base);
+        await gameplay.slots.save(gameplay.compose('slot-ferry-auto'));
+        ferryMinute=worldGameMinute(worldClock.time,climate.definition.dayLengthSeconds);
+        ferryNow=ferryStatus(ferryMinute,activeIsland.portLevel);
+        ferryView?.setPresent(ferryNow.present);
+      }
+    }
+  }catch(error){
+    console.error('Impossible de reprendre le paiement maritime :',error);
+    bootFailure(error);
+  }
+}
+// Gameplay starts automatically when the first rendered spawn area is ready.
 overlay.setAttribute('aria-busy','false');loading.boot(1);
 requestAnimationFrame(draw);

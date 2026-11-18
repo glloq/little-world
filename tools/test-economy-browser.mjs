@@ -28,7 +28,7 @@ check(characters.length>=20&&quests>=8,`Island inhabited: ${characters.length} N
 try{
   const page=await browser.newPage({viewport:{width:1100,height:700}}),errors=[];page.on('pageerror',e=>errors.push(e.message));
   const m=()=>page.evaluate(()=>window.littleWorldMetrics);
-  const open=async(x,z,yaw)=>{await page.goto(`${base}?world=maps/island/manifest.json&metrics=1&spawn=${x.toFixed(1)},${z.toFixed(1)}&yaw=${yaw.toFixed(3)}`,{waitUntil:'networkidle'});await page.locator('#start').click();await page.waitForFunction(()=>window.littleWorldMetrics?.chunks.pending===0,{},{timeout:60000});await page.waitForTimeout(800);};
+  const open=async(x,z,yaw)=>{await page.goto(`${base}?world=maps/island/manifest.json&metrics=1&spawn=${x.toFixed(1)},${z.toFixed(1)}&yaw=${yaw.toFixed(3)}`,{waitUntil:'networkidle'});await page.locator('#start-overlay').waitFor({state:'hidden'});await page.waitForFunction(()=>window.littleWorldMetrics?.chunks.pending===0,{},{timeout:60000});await page.waitForTimeout(800);};
   // 1. Counter: stand 1.8 m in front of it, facing it.
   const fx=cp.x,fz=cp.z-1.8;await open(fx,fz,Math.atan2(cp.x-fx,cp.z-fz));
   check((await m()).inventory.coin===40,'New game starts with 40 coins');
@@ -41,6 +41,27 @@ try{
   await page.evaluate(()=>window.littleWorldDebug.grant('wood:log',4));await page.keyboard.press('KeyE');await page.waitForSelector('.ui-shop-row[data-item="wood:log"]');
   await page.locator('.ui-shop-row[data-item="wood:log"] button',{hasText:'Tout vendre'}).click();
   await page.waitForFunction(()=>!window.littleWorldMetrics?.inventory?.['wood:log'],{},{timeout:5000});check((await m()).inventory.coin===15+12,'4 logs sold at 3 coins each');
+  // 1b. The same authored counter offers a light sawmill service: start, wait in game
+  // minutes (the shop panel must not pause the clock), then collect a crafted product.
+  await page.evaluate(()=>window.littleWorldDebug.grant('wood:log',2));
+  await page.getByRole('button',{name:'Transformer',exact:true}).click();
+  const sawmill=page.locator('.ui-shop-row[data-recipe="sawmill:planks"]');
+  await sawmill.waitFor({state:'visible'});
+  await sawmill.getByRole('button',{name:'Lancer'}).click();
+  await page.waitForFunction(()=>!window.littleWorldMetrics?.inventory?.['wood:log'],{},{timeout:5000});
+  check((await m()).inventory.coin===26,'Sawmill charged exactly one service coin');
+  // 6 game minutes, about five wall-clock seconds with the published 1200s game day.
+  await page.waitForTimeout(7500);
+  await page.getByRole('button',{name:'Actualiser les fabrications'}).click();
+  await page.locator('.ui-shop-row[data-job] button',{hasText:'Récupérer'}).first().click();
+  await page.waitForFunction(()=>window.littleWorldMetrics?.inventory?.['material:plank']===4,{},{timeout:5000});
+  check(true,'Wood logs transformed into four planks and collected from the workshop');
+  // ECO-6: crafted planks are a real tradable good at the same counter, with island prices.
+  await page.getByRole('button',{name:'Acheter / vendre'}).click();
+  const crafted=page.locator('.ui-shop-row[data-item="material:plank"]');
+  await crafted.getByRole('button',{name:'Tout vendre'}).click();
+  await page.waitForFunction(()=>!window.littleWorldMetrics?.inventory?.['material:plank'],{},{timeout:5000});
+  check((await m()).inventory.coin===26+4*11,'4 crafted planks sold at the volcanic-island market price');
   await page.keyboard.press('Escape');await page.waitForTimeout(300);
   // 2. Fell a tree: stand 1.4 m from it, facing it.
   const ang=Math.atan2(cp.x-tree.x,cp.z-tree.z),sx=tree.x+Math.sin(ang)*1.4,sz=tree.z+Math.cos(ang)*1.4;

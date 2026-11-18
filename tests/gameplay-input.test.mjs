@@ -18,11 +18,13 @@ test('context menu is disabled across game DOM while running, except editable fi
   assert.equal(shouldSuppressGameplayContextMenu(false,false),false);
   assert.equal(shouldSuppressGameplayContextMenu(false,true),false);
 });
-test('Shift and mobile accelerate boost only when gliding, never the secondary mouse button',()=>{
-  for(const mode of ['ground','roll','swim','dive','air','climb']){
+test('Shift / touch acceleration can launch while still, double-jump in air and power glide',()=>{
+  for(const mode of ['roll','swim','dive','climb']){
     assert.equal(flightBoostHeld(mode,true,true),false,mode);
   }
-  assert.equal(flightBoostHeld('glide',false,false),false);
-  assert.equal(flightBoostHeld('glide',true,false),true);
-  assert.equal(flightBoostHeld('glide',false,true),true);
+  for(const mode of ['ground','air','glide']){
+    assert.equal(flightBoostHeld(mode,false,false),false,mode);
+    assert.equal(flightBoostHeld(mode,true,false),true,mode);
+    assert.equal(flightBoostHeld(mode,false,true),true,mode);
+  }
 });

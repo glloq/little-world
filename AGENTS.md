@@ -4,6 +4,9 @@
 
 > **Établissements de surface V1 :** lire [75 — implémentation et limites](docs/75-SETTLEMENTS-SURFACE-V1.md) avant de modifier les villages. Maisons procédurales creuses et portes V3 indépendantes, `Habitat` et `libraries.settlements` facultatifs ; conserver les références, verrous et retouches. Lire aussi [76 — places et services](docs/76-SETTLEMENTS-SERVICES-V1.md) : équipements optionnels avec provenance/verrous, poses `ShopAccess`, échanges revérifiés côté runtime. Les ports bâtis, ponts, grottes et villes denses de la roadmap restent à livrer.
 
+> **Évolution ARCHIPEL (SPECIFIED, non livrée) :** consulter en priorité [73 — décisions](docs/73-ARCHIPEL-VISION-DECISIONS.md), [74 — manifestes](docs/74-ISLAND-MANIFEST-REGISTRY.md), [75 — voyages](docs/75-ISLAND-TRAVEL-FERRIES-PORTS.md), [76 — autonomie](docs/76-ISLAND-AUTONOMY-ECONOMY-TRADE.md), [77 — communautés](docs/77-ISLAND-COMMUNITY-CONSTRUCTION.md), [78 — UX](docs/78-ISLAND-STUDIO-PLAYER-UX.md), [79 — roadmap](docs/79-ISLAND-ROADMAP-VALIDATION.md). **Premier livrable : plusieurs îles d'exemple STATIQUES compilées et navigables sur GitHub Pages, en SOLO.** Le multijoueur est à préparer dans les contrats, **pas à activer ni à rendre obligatoire**. Aucun serveur/compte/WebSocket exigé. Une carte géographique continue **par île active**, une seule île 3D chargée par client ; le catalogue regroupe des îles distinctes, et non un heightfield géant.
+
+
 > **Terrain et établissements :** pour les prochains lots de génération d’îles, zones utiles, ports et accès, lire [73 — coordination terrain/établissements/collisions](docs/73-TERRAIN-SETTLEMENTS-ALIGNMENT.md). La branche `docs/studio-settlements-collision-roadmap` est une référence cible demandée par l’auteur ; ses contrats sont documentés, pas une preuve d’implémentation. Préparer des réservations et accès compatibles, sans réseau de chemins ou moteur physique parallèle.
 
 > **Rendu panoramique sans brouillard :** [17 — Horizon lointain, LOD et imposteurs](docs/17-DISTANT-VIEW-RENDERING.md). Priorité à la silhouette réelle, au proxy 3D lointain et aux gains mesurables ; ne pas masquer les distances par du fog.
@@ -272,3 +275,14 @@ Lire **[43 — Hamster joueur](docs/43-HAMSTER-JOUEUR.md)** avant de toucher au 
 - Les anciennes scènes de référence sont maintenant des **fixtures de régression**, sous `tests/fixtures/legacy-maps/{authoring,published}`, absentes des répertoires de cartes publiques.
 - Les tests navigateur peuvent les utiliser seulement après `node tools/stage-test-maps.mjs dist/maps` avec `studio/?testFixtures=1` sur le build de validation ; **ne jamais ajouter cette étape dans le workflow GitHub Pages**.
 - Les prochains ajouts de contenu destinés aux joueurs se font sur le générateur de l’île officielle et sont mesurés avant/après. Voir `docs/61-SHOWCASE-ISLAND-4X3.md`.
+
+
+## ARCHIPEL — règles d'implémentation statique-first (18/11/2026)
+
+- **Contrats de référence** : docs/73 à docs/79. Ne pas traiter ces spécifications comme des fonctionnalités livrées.
+- **ISL-1/2/3** : îles d'exemple pré-générées et prévalidées + registre compilé, voyage solo et fenêtres de navette ; testable sur GitHub Pages sans socket, login, backend ni BDD.
+- **Une seule scène d'île active par client** : libérer l'île source, charger l'île destination, sauvegarder par islandId, rollback si l'île cible est absente ou incompatible ; éviter deux mondes complets en mémoire.
+- **Compatibilité** : l'île 4 × 3 km existante et ses sauvegardes demeurent utilisables. Ne pas modifier destructivement V3 ni les migrations V1/V2 ; ajouter des IDs et versions d'îles explicites.
+- **Simulation** : états logiques et rattrapage local déterministe, sans WebGL hors île active. Ne pas faire croire qu'un monde tourne réellement sans navigateur sur GitHub Pages. Les échanges serveur partagés restent futurs.
+- **Règles communautaires** : préparer contrats de parcelles/permissions/chantiers, ne pas implémenter d'autorité réseau avant jalon approuvé ; le placement réutilise le Studio SET et les entités V3, pas un second moteur.
+- **Travail en branche et qualification** : avancer par lots ISL-0…ISL-7, mesurer mémoire/rendu, conserver les tests Pages/Studio, distinguer SPECIFIED, IMPLEMENTED, TESTED, RELEASED.

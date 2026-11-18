@@ -1,5 +1,8 @@
 # 12 — Périmètre fonctionnel et limites du jeu / studio
 
+> **Extension validée (18 novembre 2026), NON IMPLÉMENTÉE :** la limite « une carte continue par partie » décrit le prototype solo historique. L'architecture cible ajoute un **registre d'îles distinctes** avec une carte continue **par île active** et chargement séquentiel, d'abord via **exemples statiques sur GitHub Pages, sans multijoueur**. Voir [73](73-ARCHIPEL-VISION-DECISIONS.md), [74](74-ISLAND-MANIFEST-REGISTRY.md) et [79](79-ISLAND-ROADMAP-VALIDATION.md).
+
+
 **Référence de cadrage pour le développement — 12 novembre 2026.**
 
 **Choix techniques complémentaires validés :** [14 — Décisions techniques transversales](14-TECHNICAL-CHOICES.md). Ce document 12 fixe le périmètre fonctionnel ; le document 14 fixe les options d'implémentation/ergonomie retenues et leurs budgets provisoires.
@@ -12,7 +15,7 @@
 - **Little World** : monde 3D **solo**, PC clavier/souris, accessible sur **GitHub Pages**, **aucun backend obligatoire**.
 - Monde paisible d'exploration avec **de nombreuses petites choses à faire** : rencontres, petits objectifs, collecte simple, pêche possible, énigmes, activités locales, exploration et mécanismes. **Aucun système de combat ou survie complexe**.
 - Écureuil volant stylisé ; marche, course, saut, planage, nage, plongée et bateau. Accessoires et émotions ; caméra orbitale uniquement au clic-glissé.
-- **Une carte continue par monde/partie**, avec un **plafond de conception de 10 × 10 km (100 km²)**. Limite de format et d'architecture, **pas obligation** de remplir 100 km² ou preuve de performance atteinte. Première carte de référence : **200 × 600 m**.
+- **Une carte continue par île active (prototype : une seule île par partie)**, avec un **plafond de conception de 10 × 10 km (100 km²)**. Limite de format et d'architecture, **pas obligation** de remplir 100 km² ou preuve de performance atteinte. Première carte de référence : **200 × 600 m**.
 - Plusieurs projets / sauvegardes de cartes peuvent exister dans le studio, mais **chaque monde jouable reste une carte géographiquement continue**. Pas de chargement de zones comme des niveaux indépendants au cours de l'exploration.
 - 30 FPS ciblés en normal ; secours 20 FPS, vitesse de simulation indépendante (voir [LOW-RESOURCE](11-LOW-RESOURCE-POLICY.md)).
 - Joueur : **ne peut pas modifier de manière permanente le terrain/la carte**, contrairement à l'auteur dans le Studio.
@@ -38,14 +41,14 @@ Pas de dégâts, mort, endurance, économie systémique ni agriculture complexe 
 | Référence | Décision | Implications |
 | --- | --- | --- |
 | M1 | **Maximum 10 × 10 km** | Chunks et LOD ; imposer des limites claires à l'import/génération ; performances à mesurer |
-| M2 | **Une carte continue** | Une seule géographie par partie, sans écrans de chargement de niveaux indépendants |
+| M2 | **Une carte continue par île active** | Prototype actuel : une île par partie ; cible ARCHIPEL : îles compilées distinctes, chargées séquentiellement via voyage, sans écran de chargement hors transitions maritimes |
 | M3 | **Grottes/tunnels/surplombs par modules 3D** | Terrain principal heightfield + objets 3D distincts ; pas de voxels généralisés |
 | M4 | **Prefabs + construction modulaire** | Maisons, murs, toits, portes, fenêtres en modules ; pas d'édition polygonale façon Blender |
 | M5 | **Rivières, lacs, cascades, bassins, mer** | Surfaces visuelles + volumes logiques (nage, plongée, bateau) ; pas de simulation hydraulique |
 | M6 | **Biotopes configurables/peignables** | Palette de biomes, densités, exclusions, règles de flore/faune |
 | M7 | **Génération + régénération locale** | Overrides édités protégés, aperçu/annulation, recompilation par secteur |
 
-L'éditeur peut enregistrer plusieurs cartes/projets, mais **le runtime d'une partie charge un monde continu unique**. Les dimensions et les offsets spatiaux ne doivent pas être éparpillés en constantes `200 × 600`.
+L'éditeur peut enregistrer plusieurs cartes/projets. **Le runtime actuel charge un monde continu unique ; le runtime cible chargera une seule île continue à la fois**, avec transitions explicites entre îles distinctes. Les dimensions et les offsets spatiaux ne doivent pas être éparpillés en constantes `200 × 600`.
 
 ## 4. Espèces, PNJ et navigation
 
@@ -257,3 +260,12 @@ Le principe précédent « le joueur ne modifie pas durablement le terrain » re
 5. Proposer des migrations des formats, fournir des tests et distinguer **conçu**, **implémenté**, **testé** et **publié**.
 6. Ne pas agrandir la carte au plafond théorique avant d'avoir une base de compilation, streaming/LOD et benchmarks.
 7. Ne pas sacrifier l'UX (outils contextuels, sélection visible, annulation, erreur explicite) pour ajouter beaucoup d'options brutes.
+
+## Extension cible — archipel de cartes indépendantes (non livrée)
+
+- **Release initiale :** îles d'exemple statiques pré-générées, validées et publiées sur GitHub Pages ; passage par bateau sans serveur ni multijoueur.
+- **Unité de géographie :** chaque île reste un monde continu (au plus 10 × 10 km comme objectif de format), mais un archipel peut référencer de nombreuses îles indépendantes ; **une seule île graphique en mémoire par client**.
+- **Gameplay futur :** spécialisation, autonomie économique, port de niveau 0 à 4, présence un jour/semaine de jeu sur côte sauvage et permanence du service de voyageurs au grand port, cloche à l'arrivée/-5 min de jeu, marqueur cartographique, construction progressive.
+- **Collectif futur :** modes public/invitation/privé et règles de contribution avec/sans propriétaire ; serveur autoritaire seulement lors d'un jalon multi explicite.
+- Les contraintes historiques de jeu sans compte ni serveur restent **normatives pour les premiers lots ISL-1 à ISL-6**. Voir documents [73](73-ARCHIPEL-VISION-DECISIONS.md) à [79](79-ISLAND-ROADMAP-VALIDATION.md).
+

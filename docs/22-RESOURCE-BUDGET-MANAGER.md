@@ -426,3 +426,11 @@ Le [document 23 — Audio MIDI LOW-RESOURCE](23-MIDI-AUDIO-LOW-RESOURCE.md) déf
 **Anti-objectifs** : nouveau moteur graphique, moteur physique fluide, télémétrie obligatoire, serveur pour adapter la qualité, baisser la vitesse du monde sous 20 FPS, disparition de paysages lointains, crash silencieux par pression mémoire, convertir tout le code à un framework de tâches avant instrumentation.
 
 **Décision directrice** : *un budget unique pilote les priorités et les limites ; chaque système reste modulaire et conserve un minimum de fidélité logique. Mesurer, limiter les pics, simplifier l'invisible, et maintenir un monde lointain réel.*
+
+
+## Extension ARCHIPEL — changement d'île et simulation différée
+
+Le gestionnaire de budget devra instrumenter **un seul runtime île active**, plus une scène maritime transitoire de coût fixe et borné. Lors d'une transition : stopper subsystems de l'île source, disposer les ressources GPU/CPU référencées uniquement par elle, charger le minimum autour du quai cible, reconfigurer les budgets puis reprendre. Tester A→B→A en boucle et vérifier meshes, textures, jobs, listeners, audio, workers et caches orphelins.
+
+Les îles absentes n'exécutent aucune scène ni boucle de simulation 3D. Économie, horaires et stocks se calculent en événements purs/rattrapage, indépendamment de FPS 30/20. Sur Pages aucune boucle serveur n'avance réellement quand tous les clients sont fermés. Voir [75](75-ISLAND-TRAVEL-FERRIES-PORTS.md) et [76](76-ISLAND-AUTONOMY-ECONOMY-TRADE.md).
+

@@ -127,7 +127,7 @@ try {
     url.searchParams.set('preview', '1');
     url.searchParams.set('metrics', '1');
     await page.goto(url.href, { waitUntil: 'networkidle' });
-    await page.locator('#start').click();
+    await page.locator('#start-overlay').waitFor({state:'hidden'});
     if (scenario.port) await page.keyboard.press('p');
     await page.waitForFunction(
       () => window.littleWorldMetrics?.chunks.pending === 0,

@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "islands": [
+    {
+      "id": "volcano-island",
+      "name": "Île du volcan",
+      "manifest": "maps/island/manifest.json",
+      "description": "Île officielle 4 × 3 km : villages, falaises, forêts, volcans et ports.",
+      "portLevel": 0
+    },
+    {
+      "id": "forest-valley",
+      "name": "Île du val forestier",
+      "manifest": "archipelago/worlds/forest-valley/manifest.json",
+      "description": "Île d'exemple précompilée : village, cascade, mine, bois et port.",
+      "portLevel": 0
+    }
+  ]
+}

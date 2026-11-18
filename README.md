@@ -1,5 +1,7 @@
 # Little World
 
+> **Archipel futur — stratégie statique d'abord :** [73 — décisions](docs/73-ARCHIPEL-VISION-DECISIONS.md) et [79 — roadmap](docs/79-ISLAND-ROADMAP-VALIDATION.md). La prochaine étape vise plusieurs **îles d'exemple pré-générées et validées**, accessibles via des voyages dans un build **GitHub Pages sans serveur ni multijoueur**. Le site actuel demeure un prototype solo avec une île 4 × 3 km ; ce système inter-îles n'est **pas encore implémenté**.
+
 Prototype **solo** d'exploration 3D avec **Three.js**, exécutable entièrement dans un navigateur PC. Le monde de démonstration jouable et éditable mesure **4 × 3 km** ; l'architecture cible prépare **une carte continue pouvant atteindre 10 × 10 km (100 km² au maximum)**, sans considérer cette taille comme déjà implémentée.
 
 > **Statut : prototype technique jouable en développement.** La première version est volontairement simple, avec graphismes et physique provisoires. La campagne avancée est sur `feat/studio-v3` ; le site publié depuis `main` peut rester antérieur. La disponibilité de la dernière révision dépend du déploiement GitHub Actions.
@@ -245,3 +247,22 @@ Ce chantier réutilise les contrats V3, le CommandBus, les chemins, la géograph
 Le placement propose également un centre d’activité, des rues concentriques irrégulières et des profils de densité village/ville/ville fortifiée (implantation seulement), avec retouches directes sur le plan : [organisation organique et limites](docs/77-ORGANIC-SETTLEMENT-PLACEMENT.md).
 
 Les villages peuvent aussi suivre une rue sinueuse, un flanc de montagne, une rivière ou un rivage de pêche : [modèles adaptés au site](docs/78-CONTEXTUAL-SETTLEMENT-PATTERNS.md).
+
+
+## Archipel multi-îles — roadmap, mode SOLO statique d'abord
+
+**Pas encore livré.** La prochaine évolution proposera plusieurs îles de démonstration **pré-générées et validées**, sélectionnables depuis une carte maritime, avec chargement de chaque île à la demande et cinématique de bateau. Le build sera toujours statique et jouable depuis GitHub Pages sans serveur ni connexion multijoueur. Un seul monde 3D demeure actif à la fois.
+
+- [73 — Vision, décisions et exclusions](docs/73-ARCHIPEL-VISION-DECISIONS.md)
+- [74 — Registre et contrats des îles](docs/74-ISLAND-MANIFEST-REGISTRY.md)
+- [75 — Voyages, horaires de ports, cloches et carte](docs/75-ISLAND-TRAVEL-FERRIES-PORTS.md)
+- [76 — Autonomie économique et simulation différée](docs/76-ISLAND-AUTONOMY-ECONOMY-TRADE.md)
+- [77 — Gouvernance et construction communautaire](docs/77-ISLAND-COMMUNITY-CONSTRUCTION.md)
+- [78 — Studio et UX joueur](docs/78-ISLAND-STUDIO-PLAYER-UX.md)
+- [79 — Roadmap, gates et preuve de livraison](docs/79-ISLAND-ROADMAP-VALIDATION.md)
+
+**Important :** la construction coopérative, l'économie inter-joueurs et la persistance partagée nécessiteront plus tard un backend autoritaire ; leurs contrats sont préparés, **aucun serveur/WebSocket/compte ne doit être introduit au stade des démos GitHub Pages**. En solo, l'économie d'une île absente peut faire un rattrapage local à la reprise, pas une simulation active sans navigateur.
+
+### Traversée inter-îles (pilote solo)
+
+Sur la branche `feat/archipelago-real-island-travel`, deux îles d'exemple **compilées** sont prévues dans le build GitHub Pages : l'île officielle 4 × 3 km et une île forestière issue du projet de référence Studio. Le rameur permet le trajet aller-retour selon la présence de la navette. Chaque déplacement sauvegarde l'île quittée dans un slot de voyage dédié et transfère le sac, le boost et l'horloge ; la navigation complète décharge la scène précédente. Le multijoueur reste désactivé. Le statut final dépend de la validation CI et navigateur.
