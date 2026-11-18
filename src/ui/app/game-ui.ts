@@ -14,7 +14,6 @@ import {isEditableGameTarget} from '../../input/gameplay-input.ts';
 import {loadPreferences,savePreferences,type UiPreferences} from './preferences.ts';
 import {createNotificationCenter,type NoticeKind} from '../notifications/notifications.ts';
 import {inventoryPanelV3} from '../inventory/inventory-v3.ts';
-import '../inventory/inventory-v3.css';
 import {createInstrumentPanel} from '../instruments/instrument-panel.ts';
 import {instrumentForItem} from '../../instruments/definitions.ts';
 import {journalPanel,questChanges} from '../journal/journal.ts';
@@ -34,6 +33,7 @@ import {promptText,type TargetDescriptor} from '../interactions/targets.ts';
 import {el,button,kbd} from '../shared/dom.ts';
 import './ui.css';
 import './hud.css';
+import '../inventory/inventory-v3.css';
 
 export interface GameUiDeps {
   gameplay:GameplayView|null;
