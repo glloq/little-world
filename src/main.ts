@@ -1151,6 +1151,8 @@ function draw(now: number) {
       key:`${preview.target.mineId}:${preview.target.level}:${preview.target.ix}:${preview.target.iz}`,
       material:preview.target.material,name:preview.materialName,
       hitsToReward:preview.hitsToReward,
+      durabilityRemaining:preview.durabilityRemaining,
+      durabilityMax:preview.durabilityMax,
     }:null,now);
   }
   mineRhythmHud.tick(now);
