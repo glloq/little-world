@@ -67,6 +67,8 @@ import {newFlightProgress,advanceFlight,type FlightProgress} from './gameplay/fl
 import {beginFlightCourse,stepFlightCourse,COURSE_LABELS,type FlightCourseSession} from './gameplay/flight-courses.ts';
 import {createFlightRings} from './render/flight-rings.ts';
 import {createRaceGates} from './render/race-gates.ts';
+import {createRaceTrackSampler} from './gameplay/race-track.ts';
+import {createRaceTrackView} from './render/race-track-view.ts';
 import {advanceRace,beginRace,raceElapsedSeconds,type RaceSession,type RaceDefinition} from './gameplay/races.ts';
 import {makeDemoRace,type DemoRaceId} from './gameplay/race-demos.ts';
 import {readRaceBest,writeRaceBest} from './gameplay/race-records.ts';
@@ -399,7 +401,25 @@ const {nightFactor}=await import('./lighting/light-data.ts');
 world.lights.setEnvironment(nightFactor(climate.state(worldClock.time).sunAltitude),0);
 // Mines and farm plots: procedural stand-ins, lanterns join the E10 light pool.
 // Geography sampled on demand after 2 m, not every simulation tick or render frame.
-if(gameplay)gameplay.collision.setMaterialSampler(createMaterialSampler((x,z)=>classifyPoint(geoContext(),x,z).material));
+const authoredTracks=(playable?.races??[]).flatMap(r=>r.track?[r.track]:[]);
+const raceTrackSamplers=authoredTracks.map(track=>({track,sampler:createRaceTrackSampler(track,{height:terrainHeight})}));
+const raceTrackView=createRaceTrackView(scene,authoredTracks,terrainHeight);
+if(gameplay){
+  const naturalMaterial=createMaterialSampler((x,z)=>classifyPoint(geoContext(),x,z).material);
+  const sampleRoad=(x:number,z:number)=>{
+    let best:typeof raceTrackSamplers[number]|null=null,peak=-Infinity;
+    for(const entry of raceTrackSamplers){
+      const sample=entry.sampler.sample(x,z);
+      if(sample&&sample.y>peak){best=entry;peak=sample.y;}
+    }
+    return {entry:best,y:best?peak:null};
+  };
+  gameplay.collision.setOutdoorCourseSurface((x,z)=>sampleRoad(x,z).y);
+  gameplay.collision.setMaterialSampler((x,z)=>{
+    const t=sampleRoad(x,z).entry;
+    return t?(t.track.material==='wood'?'wood':t.track.material==='stone'?'rock':'sand'):naturalMaterial(x,z);
+  });
+}
 const activityView=gameplay&&(gameplay.activities.mines.size||gameplay.activities.farms.size)?(await import('./activity-view.ts')).createActivityView(scene,gameplay.activities,terrainHeight):null;
 if(activityView&&!searchParams.has('lightBench'))world.refreshLights([...(definition.lights??[]),...activityView.lights]);
 let activityQueue=0,cropQueue=0,strikeTimer=0;
@@ -1450,7 +1470,7 @@ function draw(now: number) {
   }
   requestAnimationFrame(draw);
 }
-window.addEventListener('pagehide',event=>{if(event.persisted)void audio?.engine.setHidden(true);else {detachPortCollisions?.();ferryView?.dispose();remoteActors?.dispose();mineRhythmHud.dispose();mineHelmet.dispose();gasEffects.dispose();flightRings.dispose();raceGates.dispose();flightCourseHud.remove();raceHud.remove();fishingHud.dispose();fishingEffects.dispose();speedStreaks.dispose();gpuTimer.dispose();void audio?.dispose();}});
+window.addEventListener('pagehide',event=>{if(event.persisted)void audio?.engine.setHidden(true);else {detachPortCollisions?.();ferryView?.dispose();remoteActors?.dispose();mineRhythmHud.dispose();mineHelmet.dispose();gasEffects.dispose();flightRings.dispose();raceGates.dispose();raceTrackView.dispose();flightCourseHud.remove();raceHud.remove();fishingHud.dispose();fishingEffects.dispose();speedStreaks.dispose();gpuTimer.dispose();void audio?.dispose();}});
 window.addEventListener('pageshow',event=>{if(event.persisted&&started)void audio?.engine.setHidden(document.hidden);});
 document.addEventListener('visibilitychange', () => {
   presentation.reset();

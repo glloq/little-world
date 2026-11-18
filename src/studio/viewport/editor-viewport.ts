@@ -4,6 +4,8 @@ import {FrameClock} from '../../frame-clock.ts';
 import {buildWorld,configureScene,addPlacement,removePlacement,configureWorldGeography,type WorldView} from '../../world.ts';
 import {configureTerrain,terrainHeight} from '../../terrain.ts';
 import {createRaceGates} from '../../render/race-gates.ts';
+import {createRaceTrackMesh} from '../../render/race-track-view.ts';
+import type {RaceTrack} from '../../gameplay/race-track.ts';
 import type {RaceGate} from '../../gameplay/races.ts';
 import {terrainChangeRects} from '../../studio-core/geo-edits.ts';
 import {horizonFar} from '../../horizon-view.ts';
@@ -54,6 +56,7 @@ export class StudioViewport {
   private renderer:THREE.WebGLRenderer;
   private scene=new THREE.Scene();
   private racePreview:ReturnType<typeof createRaceGates>|null=null;
+  private raceTrackPreview:THREE.Mesh|null=null;
   private world:WorldView;
   private hybridControls:ReturnType<typeof mountHybridControls>;
   private definition:WorldDefinition;
@@ -114,6 +117,16 @@ export class StudioViewport {
     if(!gates){this.racePreview?.clear();this.invalidate(3);return;}
     this.racePreview??=createRaceGates(this.scene);
     this.racePreview.show(gates);this.invalidate(3);
+  }
+  setRaceTrackPreview(track:RaceTrack|null){
+    if(this.raceTrackPreview){
+      this.raceTrackPreview.removeFromParent();
+      this.raceTrackPreview.geometry.dispose();
+      (this.raceTrackPreview.material as THREE.Material).dispose();
+      this.raceTrackPreview=null;
+    }
+    if(track){this.raceTrackPreview=createRaceTrackMesh(track,terrainHeight);this.scene.add(this.raceTrackPreview);}
+    this.invalidate(3);
   }
   goTo(x:number,z:number,radius=12){const p=this.session.document;x=clampX(p,x);z=clampZ(p,z);this.camera.moveTarget(x,z);this.camera.focus({x,y:terrainHeight(x,z),z},radius);this.invalidate(30);this.saveCamera();}
   objectFor(id:string):THREE.Object3D|undefined{return this.models.get(id)?.object??this.npcObjects.get(id)?.find(o=>o.visible)??this.npcObjects.get(id)?.[0]??this.lightMarkers.get(id)?.object;}
@@ -334,7 +347,7 @@ export class StudioViewport {
     if(this.disposed)return;this.disposed=true;clearTimeout(this.persist);cancelAnimationFrame(this.frame);this.session.selection.setCamera(this.camera.context());
     for(const stop of this.unsubscribe)stop();this.tools.dispose();this.navigation.dispose();this.resizeObserver.disconnect();
     this.canvas.removeEventListener('pointerdown',this.onDown);this.canvas.removeEventListener('pointermove',this.onMove);this.canvas.removeEventListener('pointerup',this.onUp);this.canvas.removeEventListener('pointerleave',this.onLeave);window.removeEventListener('keydown',this.onKey);
-    this.showPreviewPolyline(null);this.racePreview?.dispose();this.racePreview=null;
+    this.showPreviewPolyline(null);this.racePreview?.dispose();this.racePreview=null;this.setRaceTrackPreview(null);
     for(const child of this.zoneGroup.children){const line=child as THREE.Line;line.geometry.dispose();(line.material as THREE.Material).dispose();}this.zoneGroup.clear();this.zoneGroup.removeFromParent();
     for(const model of this.models.values())removePlacement(model.object);this.models.clear();for(const m of this.lightMarkers.values())disposeMarker(m.object);this.lightMarkers.clear();this.markerGeometry.dispose();this.rangeGizmo.geometry.dispose();(this.rangeGizmo.material as THREE.Material).dispose();this.npcs.dispose();this.selection.dispose();this.hybridControls.dispose();this.world.dispose();this.renderer.dispose();this.renderer.forceContextLoss();this.element.remove();
   }
