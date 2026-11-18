@@ -38,11 +38,11 @@ export interface HamsterCharacter {
 const lineMaterial = new THREE.LineBasicMaterial({ color: 0xf4f1e8 });
 const bobberGeometry = new THREE.IcosahedronGeometry(.07, 0), bobberMaterial = new THREE.MeshLambertMaterial({ color: 0xe0463c, flatShading: true });
 
-export function buildHamster(options: { legacyGlb?: boolean; npc?: boolean } = {}): HamsterCharacter {
+export function buildHamster(options: { legacyGlb?: boolean } = {}): HamsterCharacter {
   const rig = buildHamsterRig({legacyBodyMembranes:options.legacyGlb===true}), j = rig.joints, animator = new HamsterAnimator(), tools = createToolHolder(rig);
   // The old GLB exporter remains deterministic until a new reference GLB is committed.
   // Runtime visual flight exclusively uses this equipment, never the old body membranes.
-  const glider = options.legacyGlb || options.npc ? null : createBackpackGlider(rig.sockets.back);
+  const glider = options.legacyGlb ? null : createBackpackGlider(rig.sockets.back);
   const gliderInput: GliderVisualInput = { mode: 'ground', speed: 0 };
   rig.group.scale.setScalar(CHARACTER_SCALE);
   const listeners = new Set<(e: AnimationEvent & { position: THREE.Vector3 }) => void>();
