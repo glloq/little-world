@@ -22,6 +22,9 @@ try{
  await page.locator('.viewport canvas').waitFor({timeout:45000});
  await page.getByRole('button',{name:'Courses',exact:true}).click();
  await page.getByRole('heading',{name:'Circuits fixes du monde'}).waitFor();
+ await page.getByText('Implantation intelligente sur le relief').waitFor();
+ await page.getByRole('button',{name:'Analyser le relief autour de la vue'}).click();
+ await page.getByText(/72 tracés analysés/).waitFor({timeout:60000});
  assert.match(await page.locator('#tools').textContent(),/Circuit Studio témoin/);
  // An editable gate height is owned by the shared Studio history, not the runtime.
  await page.getByText('Réglage des 3 checkpoints').click();
