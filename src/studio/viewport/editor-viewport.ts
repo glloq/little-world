@@ -274,6 +274,16 @@ export class StudioViewport {
       if(next.get(id)===previous.get(id))continue;
       if(id==='#landscapes'){for(const regions of [previous.get(id),next.get(id)])for(const r of JSON.parse(regions??'[]') as {x:number;z:number;width:number;length:number}[])this.world.refreshTerrain(r.x,r.z,Math.hypot(r.width,r.length)/2+8);continue;}
       if(id==='#zones'){for(const zones of [previous.get(id),next.get(id)])for(const z of JSON.parse(zones??'[]') as {polygon:{x:number;z:number}[]}[]){const xs=z.polygon.map(q=>q.x),zs=z.polygon.map(q=>q.z),x0=Math.min(...xs),x1=Math.max(...xs),z0=Math.min(...zs),z1=Math.max(...zs);this.world.refreshTerrain((x0+x1)/2,(z0+z1)/2,Math.hypot(x1-x0,z1-z0)/2+4);}continue;}
+      if(id==='#races'){
+        for(const json of [previous.get(id),next.get(id)])for(const track of JSON.parse(json??'[]') as RaceTrack[]){
+          if(track.points.length<2)continue;
+          const xs=track.points.map(p=>p.x),zs=track.points.map(p=>p.z),
+            minX=Math.min(...xs),maxX=Math.max(...xs),minZ=Math.min(...zs),maxZ=Math.max(...zs);
+          this.world.refreshTerrain((minX+maxX)/2,(minZ+maxZ)/2,
+            Math.hypot(maxX-minX,maxZ-minZ)/2+track.width/2+12);
+        }
+        continue;
+      }
       const [cx,cz]=id.split(':').map(Number);this.world.refreshTerrain(b.minX+(cx+.5)*size,b.minZ+(cz+.5)*size,size*.72+4);
     }
   }
@@ -363,5 +373,5 @@ function rangeGeometry(){
 }
 function geographySignatures(d:WorldDefinition):Map<string,string>{
   const out=new Map<string,string>();for(const [id,layers]of Object.entries(d.geography?.masks??{}))out.set(id,JSON.stringify(layers));
-  out.set('#zones',JSON.stringify(d.geography?.zones??[]));out.set('#landscapes',JSON.stringify(d.geography?.landscapes??[]));return out;
+  out.set('#zones',JSON.stringify(d.geography?.zones??[]));out.set('#landscapes',JSON.stringify(d.geography?.landscapes??[]));out.set('#races',JSON.stringify(d.geography?.races??[]));return out;
 }
