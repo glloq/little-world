@@ -100,6 +100,8 @@ export interface WorldView {
   /** `economy` (lowest quality setting) shifts the natural dressing one tier down. */
   setDetail: (level: number, economy?: boolean) => void;
   refreshTerrain: (x: number, z: number, radius: number) => void;
+  /** Reserve near-sea quads for a local GPU surf patch, without affecting physical water. */
+  setSurfArea(area:{minX:number;maxX:number;minZ:number;maxZ:number}|null):void;
   refreshWater:()=>string[];
   refreshPaths:(paths: PathDefinition[])=>string[];
   /** E10 — local lights: fixed pool of real point lights + halos (budgeted selection). */
@@ -863,6 +865,7 @@ export function buildWorld(
     objects,
     stats: terrainView.stats,
     horizon: horizon.stats,
+    setSurfArea(area){horizon.setSurfArea(area);},
     terrainWork: terrainView.work,
     placed,
     natural,
