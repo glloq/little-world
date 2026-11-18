@@ -41,6 +41,10 @@ Les rendus de référence de la discussion servent de direction artistique **uni
 - Vérifier à terme : GLB et dimensions ; normals ; pivots ; enseigne ; accessibilité au guichet ; collisions ; sauvegardes/Undo-Redo ; vues proches et rapides ; coûts CPU/draw calls/RAM/GPU ; GitHub Pages statique.
 - Le **statut des modèles reste NOT IMPLEMENTED** tant que les GLB et les tests ne sont pas effectivement ajoutés et validés.
 
+## Démonstrateur N1 utilisable dans un navigateur
+
+Le prototype de validation [examples/port-trade-l1-preview.html](../../examples/port-trade-l1-preview.html) est un **fichier HTML autonome** : ouvrir dans Firefox ou Chrome et utiliser glisser/zoom. Il présente un N1 ouvert à toile et permet de tester les cinq palettes, le logo, les accessoires et le ponton ; il propose un export PNG. Il ne contient pas de GLB et ne constitue pas une livraison des jalons PTC-1…5.
+
 ## Jalons d'exécution
 
 | Jalon | Livrable | Validation |
