@@ -10,11 +10,12 @@ export function createSurfBoardView(scene:THREE.Object3D){
  stripe.position.y=.06;group.add(stripe);
  group.visible=false;scene.add(group);
  return {
-  update(player:Player){
+  update(player:Player,renderPosition?:THREE.Vector3){
    const visible=player.mode==='surf'||player.surfAirborne===true;
    group.visible=visible;
    if(!visible)return;
-   group.position.set(player.position.x,player.position.y-.095,player.position.z);
+   const pose=renderPosition??player.position;
+   group.position.set(pose.x,pose.y-.095,pose.z);
    group.rotation.y=player.surfHeading??player.heading??0;
    group.rotation.z=0;group.rotation.x=player.surfAirborne?-.08:0;
   },
