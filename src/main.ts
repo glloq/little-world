@@ -851,9 +851,9 @@ function currentTarget():TargetDescriptor|null{
   let unusable:TargetDescriptor|null=null;
   return resolveTarget([
     ()=>aboard?boatTarget(true):null,
-    ()=>{const o=gameplay?.describe(player.position);if(!o)return null;const t=objectTarget(o);if(!o.usable){unusable=t;return null;}return t;},
-    // An authored port N1 has its own merchant socket; ferry boarding remains separate.
+    // The maritime counter is a visible anchored merchant, not the ferry captain.
     ()=>merchantNear()?maritimeTradeTarget():null,
+    ()=>{const o=gameplay?.describe(player.position);if(!o)return null;const t=objectTarget(o);if(!o.usable){unusable=t;return null;}return t;},
     // A counter the player faces wins over a shopkeeper standing next to it.
     ()=>{const s=nearShop(true);return s?shopTarget({entityId:s.id,name:SHOPS[s.kind].name}):null;},
     // Ferry boards from a small, identifiable quay point. The nearby captain remains
