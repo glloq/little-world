@@ -55,7 +55,7 @@ export function validateRace(def:RaceDefinition,bounds?:RaceBounds):RaceDefiniti
        Math.abs(Math.hypot(g.normal.x,g.normal.y,g.normal.z)-1)>1e-3||
        Math.abs(g.normal.y)>1e-3||
        (g.allowedModes!==undefined&&(!Array.isArray(g.allowedModes)||g.allowedModes.length===0||
-        g.allowedModes.some(m=>!allowed.includes(m)))))throw Error('Checkpoint invalide : '+i);
+        g.allowedModes.some((m:RaceMotionMode)=>!allowed.includes(m)))))throw Error('Checkpoint invalide : '+i);
     if(bounds&&(g.center.x<bounds.minX||g.center.x>bounds.maxX||g.center.z<bounds.minZ||g.center.z>bounds.maxZ))
       throw Error('Checkpoint hors de la carte');
     if(i&&distance(g.center,def.gates[i-1].center)<3)throw Error('Checkpoints superposés');
