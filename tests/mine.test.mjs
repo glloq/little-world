@@ -7,7 +7,7 @@ import {mineChunkGeometry,WALL_ROWS,MINE_RELIEF} from '../src/mine/mine-mesher.t
 import {mineSpaceProvider,mineTransitions} from '../src/mine/mine-collision.ts';
 import {WorldCollisionQuery} from '../src/physics/collision-world.ts';
 import {simulatePlayer,MAX_OXYGEN} from '../src/player.ts';
-import {mineHubLayout,mineHubCounterId,mineRequiredExcavations,mineLevelUnlocked,mineLevelResourceIcons,mineHubRoofRise} from '../src/mine/mine-hub.ts';
+import {mineHubLayout,mineHubCounterId,mineRequiredExcavations,mineLevelUnlocked,mineLevelResourceIcons,mineHubRoofRise,mineHubGalleryApproach} from '../src/mine/mine-hub.ts';
 import {createMineHubView} from '../src/mine/mine-hub-view.ts';
 import {createActivityRuntime} from '../src/gameplay/activity-runtime.ts';
 
@@ -209,18 +209,20 @@ test('MINE-HUB V2: each level entrance is joined to its authored remote gallery'
   z.mine.galleries=z.mine.galleries.filter(g=>g.levelId!=='level-3');
   z.mine.galleries.push({levelId:'level-3',minX:10,maxX:14,minZ:29,maxZ:34});
   const state=new MineState(new MineGrid(z)),hub=mineHubLayout(z,2);
-  const target={x:10.5,z:29.5},dx=target.x-hub.gallery.x,dz=target.z-hub.gallery.z,
-    n=Math.ceil(Math.hypot(dx,dz)*2);
-  for(let i=0;i<=n;i++){
-    const x=hub.gallery.x+dx*i/n,z=hub.gallery.z+dz*i/n;
-    assert.ok(state.isOpen(2,Math.floor(x),Math.floor(z)),
-      'level 3 reaches the distant extraction gallery at sample '+i);
+  const approach=mineHubGalleryApproach(hub),target={x:10.5,z:29.5};
+  // First a straight 5.8 m portal, then a wide bend to the existing authored gallery.
+  for(const [start,end] of [[hub.gallery,approach],[approach,target]]){
+    const dx=end.x-start.x,dz=end.z-start.z,n=Math.ceil(Math.hypot(dx,dz)*2);
+    for(let i=0;i<=n;i++){
+      const x=start.x+dx*i/n,z=start.z+dz*i/n;
+      assert.ok(state.isOpen(2,Math.floor(x),Math.floor(z)),
+        'level 3 tunnel is open at segment sample '+i);
+    }
   }
 });
 
 test('MINE-HUB V3: reception has a wide clear aisle, with objects kept to the sides',()=>{
   const z=zone(),grid=new MineGrid(z),a=mineHubLayout(z,0),b=mineHubLayout(z,2);
-  const along=(point)=>({x:point.x-a.shaft.x,z:point.z-a.shaft.z});
   assert.ok(Math.hypot(a.counter.x-a.shaft.x,a.counter.z-a.shaft.z)>6,
     'minekeeper no longer obstructs the elevator');
   assert.ok(Math.hypot(a.counter.x-a.gallery.x,a.counter.z-a.gallery.z)>5,
@@ -228,6 +230,15 @@ test('MINE-HUB V3: reception has a wide clear aisle, with objects kept to the si
   assert.ok(Math.hypot(a.surfaceExit.x-a.gallery.x,a.surfaceExit.z-a.gallery.z)>10,
     'front and rear openings have a spacious lobby between them');
   assert.equal(b.surfaceExit,null,'same open geometry below except island exit');
+  for(let i=0;i<3;i++){
+    const h=mineHubLayout(z,i);
+    assert.ok(grid.initiallyOpen(i,Math.floor(h.counter.x),Math.floor(h.counter.z)),
+      'shop frontage has enough cleared space at floor '+i);
+    assert.ok(grid.initiallyOpen(i,Math.floor(h.keeper.x),Math.floor(h.keeper.z)),
+      'minekeeper stays entirely inside the excavated reception');
+    assert.ok(grid.initiallyOpen(i,Math.floor(h.shaft.x),Math.floor(h.shaft.z)),
+      'lift landing on every floor');
+  }
   for(const level of [0,1,2])for(const t of [-5,-3,-1,0,1,3,5]){
     // The 3.5 m-wide central path is clear from rear to extraction arch.
     const center=mineHubLayout(z,level);
@@ -250,5 +261,6 @@ test('MINE-HUB V3: higher reception roof agrees with the physical ceiling and fa
     new THREE.MeshBasicMaterial({vertexColors:true}),['stone','iron']);
   assert.equal(model.userData.visualVersion,3);
   assert.equal(model.userData.clearAisleWidth,3.5);
+  assert.equal(model.scale.x,-1,'model is mirrored to keep shop visually left of the aisle');
   for(const mesh of model.children){mesh.geometry.dispose();mesh.material.dispose();}
 });
