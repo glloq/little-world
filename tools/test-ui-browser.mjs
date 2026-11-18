@@ -71,6 +71,18 @@ try{
   await page.keyboard.press('Escape');
   verify(await sac.isVisible(),'First Escape exits multi-select without closing bag');
 
+  // Physical mouse hold also activates selection, without a dedicated toolbar click.
+  const acornBox=await sac.locator('.ui-item[data-item="acorn"]').first().boundingBox();
+  verify(!!acornBox,'Inventory item can be held for multi-selection');
+  await page.mouse.move(acornBox.x+acornBox.width/2,acornBox.y+acornBox.height/2);
+  await page.mouse.down();await page.waitForTimeout(510);await page.mouse.up();
+  verify(await sac.getByRole('button',{name:'Quitter la sélection multiple'}).count()===1,'Long press activates multi-selection');
+  verify(await sac.locator('.ui-bag-checked[data-item="acorn"]').count()===1,'Held stack is pre-selected');
+  await page.keyboard.press('Escape');
+  verify(await sac.getByRole('button',{name:'Activer la sélection multiple'}).count()===1,'Escape resets multi-selection without closing bag');
+  verify(await sac.evaluate(p=>getComputedStyle(p.querySelector('.ui-bag-gear-grid')).overflowY)==='hidden','Favourites remain a fixed non-scrolling 2x5 grid');
+
+
   const t0=await envTime();await page.waitForTimeout(600);verify(await envTime()>t0,'Sac does not pause the world');
   await page.keyboard.press('Escape');verify(!(await sac.isVisible()),'Escape closes the panel');
   // 5. Journal before the mission: empty state.
