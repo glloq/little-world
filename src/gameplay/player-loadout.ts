@@ -1,7 +1,7 @@
 /** Persistent player equipment beyond the legacy equippedItemId (hands).
  * Optional in V2 saves/transit; favourites may remain uninitialised until first bag view.
  */
-import {identifier} from './schema.ts';
+const EQUIPMENT_ID=/^[a-zA-Z0-9:._-]{1,100}$/;
 
 export const EQUIPMENT_FAVOURITE_COUNT=10;
 export interface PlayerLoadout {
@@ -20,7 +20,7 @@ export function parsePlayerLoadout(value:unknown):PlayerLoadout{
   function slot(name:string):string|null{
     const id=raw[name];
     if(id===undefined||id===null)return null;
-    if(typeof id!=='string'||!identifier(id))throw Error('Emplacement '+name+' invalide');
+    if(typeof id!=='string'||!EQUIPMENT_ID.test(id))throw Error('Emplacement '+name+' invalide');
     return id;
   }
   let favorites:(string|null)[]|null=null;
@@ -29,7 +29,7 @@ export function parsePlayerLoadout(value:unknown):PlayerLoadout{
       throw Error('Favoris sauvegardés invalides');
     favorites=raw.favorites.map((value:unknown)=>{
       if(value===null)return null;
-      if(typeof value!=='string'||!identifier(value))throw Error('Objet favori invalide');
+      if(typeof value!=='string'||!EQUIPMENT_ID.test(value))throw Error('Objet favori invalide');
       return value;
     });
     const ids=favorites.filter((id):id is string=>id!==null);
