@@ -54,7 +54,7 @@ export function mountSurfPanel(host:HTMLElement,ctx:SurfPanelContext):void{
  host.append(field('Nom de projet (repère local)',input(title,v=>{title=v;})),
   field('Largeur (m)',numberInput(width,v=>width=v,20,500)),
   field('Longueur (m)',numberInput(length,v=>length=v,30,1000)),
-  field('Direction des vagues vers la côte',select(direction,dirs.map(d=>[d[0],d[1]]),v=>direction=v)),
+  field('Direction des vagues vers la côte',select(direction,dirs.map(d=>[d[0],d[1]] as const),v=>direction=v)),
   field('Style des vagues',select(preset,[['gentle','Douces'],['rolling','Longues vagues'],['power','Grandes vagues'],['arcade','Arcade']],v=>preset=v as keyof typeof presets)),
   create,
   node('p','Enregistrez les zones avec le projet Studio V3. Les anciennes îles sans zone restent inchangées. Les tremplins et boosts seront placés dans le panneau Courses après leur intégration.','muted')
