@@ -9,6 +9,8 @@ import {
   DEFAULT_NPCS,
   DEFAULT_NPC_OBSTACLES,
   updateNPC,
+  canNPCWalk,
+  npcActivity,
   npcVisualTier,
   npcInterpolationAlpha,
   validateNPCs,
@@ -18,6 +20,10 @@ import {
   type NavigationObstacle,
 } from './npc.ts';
 import type { Player } from './player.ts';
+import {terrainHeight} from './terrain.ts';
+import {createResidentRouter,type ResidentPath} from './npc-life/routes.ts';
+import {residentHour,residentShift,residentPoseAt,type ResidentPose} from './npc-life/schedule.ts';
+import {residentDialogue,residentContextForHour} from './npc-life/dialogue.ts';
 import './npc.css';
 
 /** All DOM content is written as text, including author-provided names and dialogue. */
@@ -101,12 +107,13 @@ function createDialoguePanel(factory?:(state:NPCState)=>DialogueSession|undefine
   window.addEventListener('keydown', onKey);
   return {
     open(state: NPCState) {
-      if (!state.definition.dialogue) return;
+      const selected=factory?.(state)??(state.definition.dialogue?createDialogue(state.definition.dialogue,state.flags):null);
+      if(!selected)return;
       dismiss();
       previousFocus = document.activeElement as HTMLElement | null;
       npc = state;
       npc.phase = 'talk';
-      session = factory?.(state) ?? createDialogue(state.definition.dialogue, state.flags);
+      session = selected;
       name.textContent = state.definition.name;
       root.hidden = false;
       render();
@@ -128,15 +135,37 @@ function createDialoguePanel(factory?:(state:NPCState)=>DialogueSession|undefine
     },
   };
 }
+export interface NPCLifeOptions {
+  worldTime:()=>number;
+  dayLengthSeconds:number;
+  initialDayPhase:number;
+  paths:readonly ResidentPath[];
+}
 export function createNPCSystem(
   scene: THREE.Scene,
   definitions: readonly NPCDefinition[] = DEFAULT_NPCS,
   obstacles: readonly NavigationObstacle[] = DEFAULT_NPC_OBSTACLES,
   dialogueFactory?:(state:NPCState)=>DialogueSession|undefined,
+  lifeOptions?:NPCLifeOptions,
 ) {
   const bounds=getTerrainConfig();
   if (!validateNPCs(definitions,bounds)) throw new Error('Liste de PNJ invalide');
-  const dialogue = createDialoguePanel(dialogueFactory);
+  const router=lifeOptions&&definitions.some(d=>d.routine)
+    ?createResidentRouter(lifeOptions.paths,(x,z,fromX,fromZ)=>canNPCWalk(x,z,fromX,fromZ,obstacles)):null;
+  const dialogue=createDialoguePanel(state=>{
+    const base=dialogueFactory?.(state)??(state.definition.dialogue?createDialogue(state.definition.dialogue,state.flags):undefined);
+    const routine=state.definition.routine;
+    if(!routine||!lifeOptions)return base;
+    return residentDialogue(base,routine.role,()=>{
+      const hour=residentHour(lifeOptions.worldTime(),lifeOptions.dayLengthSeconds,lifeOptions.initialDayPhase);
+      const context=residentContextForHour(routine.role,hour);
+      if(state.phase==='walk'){
+        const [,end]=residentShift(routine.role);
+        return {...context,phase:hour>=end?'to-home' as const:'to-work' as const};
+      }
+      return context;
+    });
+  });
   let disposed = false;
   // Original five-part low-poly silhouette. GPU resources belong to this system,
   // are shared by every distant actor, and are disposed once when it is retired.
@@ -180,6 +209,8 @@ export function createNPCSystem(
   if(new URLSearchParams(location.search).get('impostors')==='all')distant.setEnabled(true);
   const entries = definitions.map((definition) => {
     const state = createNPCState(definition,bounds),
+      route=definition.routine&&router?router.route(definition.routine.home,definition.routine.work):null,
+      life=route?{route,pose:null as ResidentPose|null,lastTime:-1,lastSample:-1,pausedSeconds:0,pauseFrom:null as number|null}:null,
       hamster = definition.kind === 'hamster' ? buildHamster() : null,
       model = hamster ?? buildSquirrel();
     model.setAppearance(definition.appearance);
@@ -200,6 +231,7 @@ export function createNPCSystem(
     };
     return {
       state,
+      life,
       model,
       hamster,
       player,
@@ -213,7 +245,7 @@ export function createNPCSystem(
     let best: (typeof entries)[number] | null = null,
       distance = 5.5;
     for (const entry of entries) {
-      if (!entry.state.definition.dialogue) continue;
+      if (!entry.state.definition.dialogue&&!entry.state.definition.routine) continue;
       const d = Math.hypot(player.x - entry.state.x, player.z - entry.state.z);
       if (d < distance) {
         distance = d;
@@ -226,12 +258,49 @@ export function createNPCSystem(
     dialogue,
     setLighting(color:THREE.Color|null){distant.setLighting(color);},
     states: entries.map((entry) => entry.state),
+    get lifeStats(){return {assigned:entries.filter(e=>!!e.state.definition.routine).length,routed:entries.filter(e=>!!e.life).length,roadNodes:router?.nodes??0,roadTruncated:router?.truncated??false};},
     update(dt: number, time: number, position: NPCPoint,camera?:THREE.PerspectiveCamera) {
       if (disposed) return;
       distant.begin();distant.update(time);
       for (const entry of entries) {
-        const { state, model, hamster, player, proxy, head, arm } = entry;
-        updateNPC(state, dt, position, obstacles);
+        const { state, life, model, hamster, player, proxy, head, arm } = entry;
+        if(life&&lifeOptions&&state.definition.routine){
+          const now=lifeOptions.worldTime(),routine=state.definition.routine;
+          if(now<life.lastTime){life.pausedSeconds=0;life.pauseFrom=null;life.lastSample=-1;}
+          life.lastTime=now;
+          const distance=Math.hypot(position.x-state.x,position.z-state.z);
+          const talking=dialogue.npcId===state.definition.id,near=distance<7;
+          state.activity=npcActivity(distance);
+          if(talking||near){
+            if(life.pauseFrom===null)life.pauseFrom=now;
+            state.previousX=state.x;state.previousY=state.y;state.previousZ=state.z;
+            state.vx=0;state.vz=0;state.phase=talking?'talk':'greet';
+            state.heading=Math.atan2(position.x-state.x,position.z-state.z);
+          }else{
+            if(life.pauseFrom!==null){life.pausedSeconds+=Math.max(0,now-life.pauseFrom);life.pauseFrom=null;}
+            // Distant residents have no pathfinding/tick loop; sample their absolute
+            // position at most twice per logical second. Nearby motion is smooth.
+            if(distance<160||now-life.lastSample>=.5||life.lastSample<0){
+              try {
+                const pose=residentPoseAt(routine,life.route,Math.max(0,now-life.pausedSeconds),
+                  lifeOptions.dayLengthSeconds,lifeOptions.initialDayPhase,Math.max(.2,state.definition.speed));
+                const oldX=state.x,oldZ=state.z;
+                state.previousX=oldX;state.previousY=state.y;state.previousZ=oldZ;
+                state.x=pose.position.x;state.z=pose.position.z;state.y=terrainHeight(state.x,state.z);
+                state.vx=dt>0?(state.x-oldX)/dt:0;state.vz=dt>0?(state.z-oldZ)/dt:0;
+                if(pose.phase==='to-work'||pose.phase==='to-home')state.heading=pose.heading;
+                const busy=['farmer','woodcutter','miner','miller','artisan'].includes(routine.role);
+                state.phase=pose.phase==='work'?(busy?'work':'idle'):
+                  pose.phase==='to-work'||pose.phase==='to-home'?'walk':'idle';
+                life.pose=pose;life.lastSample=now;
+              }catch{
+                // Invalid route/clock: preserve the source NPC's legacy fallback,
+                // never jump to an unqualified work site.
+                updateNPC(state,dt,position,obstacles);
+              }
+            }else{state.vx=0;state.vz=0;}
+          }
+        }else updateNPC(state,dt,position,obstacles);
         const tier = npcVisualTier(
           Math.hypot((camera?.position.x??position.x) - state.x, (camera?.position.z??position.z) - state.z),
           state.definition.kind,
@@ -239,7 +308,7 @@ export function createNPCSystem(
         model.group.visible = tier === 'rig';
         proxy.visible = tier === 'silhouette';
         if (tier === 'hidden') continue;
-        const alpha = npcInterpolationAlpha(state);
+        const alpha = life?1:npcInterpolationAlpha(state);
         const x = THREE.MathUtils.lerp(state.previousX, state.x, alpha),
           y = THREE.MathUtils.lerp(state.previousY, state.y, alpha),
           z = THREE.MathUtils.lerp(state.previousZ, state.z, alpha);
