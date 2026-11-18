@@ -129,7 +129,6 @@ export function settlementPopulation(p:ProjectDocument,r:SettlementRecipe,amenit
     output.entities.push(entity);output.dialogues[dialogue.id]=dialogue;
     output.records.push({id,role:'resident',entityHash:fingerprint(entity),dialogueHash:fingerprint(dialogue),
       entry:{...home.entry},locked:false});
-    available--;
   }
   return output;
 }
