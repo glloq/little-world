@@ -3,6 +3,9 @@
 **Statut : SPECIFIED / TARGET — contrat proposé, non implémenté.**  
 Base : `main` au `f84c16cd`, après merge #75. Décisions [93](93-QUESTS-AUDIT-ISLAND-INTEGRATION.md) ; exécution [95](95-QUESTS-IMPLEMENTATION-ROADMAP.md) ; audit de contenu [92](92-COMPLETE-WORLDS-STUDIO-AUDIT.md).
 
+**Raccord au système de résidents (non implémenté)** : [96 — rôles, domiciles, routines et dialogues contextuels](96-NPC-LIFE-DIALOGUES-SCHEDULE-AUDIT.md). Le `QuestDirector` consulte les créneaux et positions logiques des PNJ en lecture seule ; il ne modifie pas leurs trajets. Une animation PNJ de pêche, récolte ou fabrication n'émet jamais un événement de réussite du joueur. Les commandes `moveNPCTo` et `startDialogue` doivent disposer d'adaptateurs avec validation d'arrivée/interaction, sans ajouter un deuxième runtime.
+
+
 ## 1. Frontières de responsabilité
 
 | Propriétaire | Responsabilité exclusive | Interface pour les quêtes |
