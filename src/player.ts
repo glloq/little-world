@@ -1,6 +1,7 @@
 import {MOTION,ROLL,GLIDE_DEPLOY,groundVelocity,airVelocity,glideVelocity,glideSteeringYaw,glideDeploymentStep,SURFACE_MOTION,angleDelta,type GroundMaterial} from './physics/motion.ts';
 import {stepSnowSlide,type SnowEquipment} from './snow/snow-slide.ts';
 import {stepSurf,type SurfStage} from './surf/surf-controller.ts';
+import {stepSurfBarrel} from './surf/surf-barrel.ts';
 import type {SurfWaveField} from './surf/wave-field.ts';
 export {ROLL,GLIDE,MOTION,SURFACE_MOTION} from './physics/motion.ts';
 import {GAS,gasBoostStep,gasMastery,gasShots} from './physics/gas-propulsion.ts';
@@ -65,6 +66,8 @@ export interface Player {
   /** Replayed surf state; the ocean shader never owns physics. */
   surfStage?:SurfStage;surfHeading?:number;surfAirborne?:boolean;surfWaveId?:number;
   surfPaddleClock?:number;surfJumpSeq?:number;surfLandingSeq?:number;surfWipeoutSeq?:number;
+  barrelWaveIndex?:number;barrelEntryTick?:number;barrelEntryAcross?:number;
+  barrelSuccessSeq?:number;barrelCrashSeq?:number;barrelCooldownUntilTick?:number;
   /** Diving toggled with Space in the water (second press, oxygen out or reaching the surface ends it). */
   diving?:boolean;
   /** Initial descent of a dive (until fully under water). */
@@ -183,6 +186,9 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
       pump:keys.surfPump===true,jumpPressed:keys.jumpPressed,brake:keys.dive},surfField!,surfTick,dt);
     if(event.kind==='jump'){p.jumpSeq=(p.jumpSeq??0)+1;p.jumpOrigin='run';}
     if(event.kind==='land')p.landingSeq=(p.landingSeq??0)+1;
+    // The tube is an optional low-cost overhead volume, evaluated at the same fixed
+    // 30 Hz as surfing and replay. Its mesh has no authority over collisions.
+    stepSurfBarrel(p,surfField!,relief,surfTick);
     if(collision){
       const moved=collision.sweep(from,pos,body.radius,body.height,{space:p.space,body});
       pos.set(moved.position.x,moved.position.y,moved.position.z);
@@ -209,6 +215,7 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
     p.surfAirborne=false;p.surfStage=undefined;p.glideReady=false;
     if(p.mode==='surf')p.mode='air';
   }
+  if(p.barrelEntryTick!==undefined){p.barrelEntryTick=undefined;p.barrelWaveIndex=undefined;p.barrelEntryAcross=undefined;}
   if(p.mode==='surf'){p.mode='swim';p.surfStage=undefined;p.surfAirborne=false;}
   const assisted=keys.jumpAssist===true;
   let jumpHandled=false;
