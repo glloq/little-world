@@ -35,8 +35,10 @@ export function createActivityView(parent:THREE.Object3D,activities:ActivityRunt
     // Identical reception, staffed counter, gallery arch and shared vertical lift shaft
     // at every floor. All geometry is merged (2 draw calls per visible hub).
     for(let level=0;level<zone.mine.levels.length;level++){
-      const hub=mineHubLayout(zone,level),visual=createMineHubView(hub,hubMaterial,hubGlowMaterial);
-      visual.visible=false;root.add(visual);markers.push(visual);
+      const hub=mineHubLayout(zone,level),holder=new THREE.Group();
+      holder.name='MineHubSlot:'+id+':'+hub.levelId;
+      holder.userData={mineId:id,levelId:hub.levelId,lazyMineHub:true};
+      holder.visible=false;root.add(holder);markers.push(holder);
       const sx=Math.sin(hub.heading),sz=Math.cos(hub.heading),
         rx=Math.cos(hub.heading),rz=-Math.sin(hub.heading);
       lantern(id+':hub:'+hub.levelId+':shop',
@@ -61,7 +63,11 @@ export function createActivityView(parent:THREE.Object3D,activities:ActivityRunt
     const wanted=new Set<string>();let builds=0;
     for(const [id,m] of activities.mines){
       const active=space?.zoneId===id?m.state.grid.levelIndex(space.levelId):-1;
-      for(const marker of mineMarkers.get(id)??[]){const l=m.zone.mine.levels.findIndex(v=>v.id===marker.userData.level);marker.visible=active>=0&&l===active;}
+      for(const marker of mineMarkers.get(id)??[]){const l=m.zone.mine.levels.findIndex(v=>v.id===marker.userData.level);marker.visible=active>=0&&l===active;
+        if(marker.visible&&marker.userData.lazyMineHub){
+          marker.add(createMineHubView(mineHubLayout(m.zone,l),hubMaterial,hubGlowMaterial));
+          marker.userData.lazyMineHub=false;
+        }}
       if(active<0)continue;
       for(const level of [active,active-1,active+1]){if(level<0||level>=m.state.grid.levels.length)continue;
         for(let cx=Math.floor((p.x-CHUNK_RADIUS)/MINE_CHUNK);cx<=Math.floor((p.x+CHUNK_RADIUS)/MINE_CHUNK);cx++)for(let cz=Math.floor((p.z-CHUNK_RADIUS)/MINE_CHUNK);cz<=Math.floor((p.z+CHUNK_RADIUS)/MINE_CHUNK);cz++){
