@@ -49,7 +49,7 @@ export function settlementPopulation(p:ProjectDocument,r:SettlementRecipe,amenit
       id,name:'Jeune habitant '+(i+1),kind:'character',ownerChunkId:chunkAt(p.world,home.entry.x,home.entry.z),
       components:{
         Transform:{type:'Transform',position:{...home.entry,y:0},rotation:{x:0,y:0,z:0,w:1},scale:{x:.73,y:.73,z:.73}},
-        Character:{type:'Character',species:'squirrel',rigId:'squirrel-rigid',appearance:{...DEFAULT_APPEARANCE,hat:false,backpack:false,emotion:'joyful'}},
+        Character:{type:'Character',species:'hamster',rigId:'hamster-rigid',appearance:{...DEFAULT_APPEARANCE,hat:false,backpack:false,emotion:'joyful'}},
         DialogueActor:{type:'DialogueActor',dialogueIds:[id+'-talk']},
         Resident:{type:'Resident',version:1,role:'child',
           home:{...home.entry},work:{...place.entry},homeAnchorId:home.id,workAnchorId:place.id},
