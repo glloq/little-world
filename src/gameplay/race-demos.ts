@@ -23,9 +23,10 @@ export function makeDemoRace(id:DemoRaceId,position:RacePoint,heading:number,
     const x=origin.x+dx*d+rx*lateral,z=origin.z+dz*d+rz*lateral;
     const ground=terrain(x,z),air=flight||(id==='mixed'&&i>=2);
     const y=air?Math.max(ground+7,origin.y+(flight?3+i%3*3:6+i)):ground+1.1;
-    return {id:'gate-'+(i+1),center:{x,y,z},normal:{x:dx,y:0,z:dz},
+    const gate:RaceGate={id:'gate-'+(i+1),center:{x,y,z},normal:{x:dx,y:0,z:dz},
       shape:air?'circle':'rectangle',width:air?(flight?18:14):9,height:air?(flight?18:14):4.8,
       allowedModes:air?['glide']:['roll','air']};
+    return gate;
   });
   // Only instantiate a course when the complete corridor is inside the world.
   if(gates.some(g=>g.center.x<bounds.minX+15||g.center.x>bounds.maxX-15||
