@@ -71,5 +71,13 @@ test('every LOD GPU vertex matches the fixed-tick CPU wave formula within float3
  assert.ok(Math.abs(shader.uniforms.uTime.value-101/30)<1e-9);
  view.update(101,0);
  assert.ok(Math.abs(shader.uniforms.uTime.value-100/30)<1e-9);
+ view.update(1_000_000,1);
+ const cycle=zone.wavelength/zone.speed;
+ const expectedWrapped=(1_000_000/30)%cycle;
+ assert.ok(Math.abs(shader.uniforms.uTime.value-expectedWrapped)<1e-9);
+ const point={x:0,z:0};
+ const original=wave.height(point.x,point.z,1_000_000);
+ const phaseWrapped=rgba([point.x,0,point.z],1,zone,expectedWrapped)-.02;
+ assert.ok(Math.abs(original-phaseWrapped)<.00001,'long-session CPU/GPU phases remain aligned');
  view.dispose();
 });
