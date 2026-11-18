@@ -68,7 +68,7 @@ export function createSurfWaterView(parent:THREE.Object3D,field:SurfWaveField,
  parent.add(mesh);
  return {
   mesh,
-  update(tick:number,alpha=0){material.uniforms.uTime.value=(tick+alpha)/30;},
+  update(tick:number,alpha=0){material.uniforms.uTime.value=(Math.max(0,tick-1)+alpha)/30;},
   dispose(){mesh.removeFromParent();geo.dispose();material.dispose();}
  };
 }
