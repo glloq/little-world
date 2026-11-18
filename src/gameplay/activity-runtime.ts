@@ -150,15 +150,23 @@ export function createActivityRuntime(activities:PlayableActivities,deps:Deps){
     return {ok:true,space:{zoneId:space.zoneId,levelId:dest.levelId},
       position:{x,y:dest.floorY,z},message:'Monte-charge : '+m.zone.mine.levels[index].name};
   }
-  /** Mine context for the HUD: mine, level, nearby passage and the way out (stairs up or exit). */
+  /** Navigation guidance uses the new usable lift, not legacy invisible stair triggers. */
   function mineNavigation(position:Point3,space?:MovementSpace){
-    if(!space)return null;const m=mines.get(space.zoneId);if(!m)return null;const level=m.state.grid.levelIndex(space.levelId);if(level<0)return null;
-    const ways=mineTransitions(m.state,deps.ground).filter(t=>t.from?.levelId===space.levelId);
-    let near:typeof ways[number]|undefined,nearD=Infinity,out:typeof ways[number]|undefined,outD=Infinity;
-    for(const t of ways){const cx=(t.minX+t.maxX)/2,cz=(t.minZ+t.maxZ)/2,d=Math.hypot(cx-position.x,cz-position.z);if(d<nearD){nearD=d;near=t;}const up=t.to===null||m.state.grid.levelIndex(t.to.levelId)<level;if(up&&d<outD){outD=d;out=t;}}
-    const bearing=(t?:typeof near)=>{if(!t)return null;const dx=(t.minX+t.maxX)/2-position.x,dz=(t.minZ+t.maxZ)/2-position.z;return {distance:Math.hypot(dx,dz),angle:Math.atan2(dx,dz)};};
-    return {mineId:m.zone.id,mineName:m.zone.name,levelIndex:level,levelName:m.state.grid.levels[level].name,levelCount:m.state.grid.levels.length,
-      passage:near&&nearD<3?{label:near.label??'Passage',distance:nearD}:null,exit:out?{label:out.to===null?'Sortie':'Escalier vers le haut',...bearing(out)!}:null};
+    if(!space)return null;const m=mines.get(space.zoneId);
+    if(!m)return null;const level=m.state.grid.levelIndex(space.levelId);
+    if(level<0)return null;
+    const hub=mineHubLayout(m.zone,level);
+    const dx=hub.shaft.x-position.x,dz=hub.shaft.z-position.z,
+      liftDistance=Math.hypot(dx,dz);
+    const e=m.zone.mine.entrance,x=e.x-position.x,z=e.z-position.z,
+      exitDistance=Math.hypot(x,z);
+    const out=level===0&&exitDistance<=liftDistance
+      ?{label:'Sortie de la mine',distance:exitDistance,angle:Math.atan2(x,z)}
+      :{label:'Monte-charge',distance:liftDistance,angle:Math.atan2(dx,dz)};
+    return {mineId:m.zone.id,mineName:m.zone.name,levelIndex:level,
+      levelName:m.state.grid.levels[level].name,levelCount:m.state.grid.levels.length,
+      passage:liftDistance<3?{label:'Monte-charge : choisir un étage',distance:liftDistance}:null,
+      exit:out};
   }
   return {mines,farms,cameraInMine,mineTarget,digPreview,farmPreview,mineNavigation,mineHubNear,mineLiftView,mineLiftTravel,selectCrop,dig,farmNear,farmView,farmIntent,farmAct,cycleCrop,serialize,restore,subscribe(l:(c:ActivityChange)=>void){listeners.add(l);return ()=>listeners.delete(l);}};
 }
