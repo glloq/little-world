@@ -1,6 +1,6 @@
 /** B1 acceptance walk on the compiled demonstration world (Chromium/SwiftShader: functional
  * check only, not a GPU benchmark). Steps 1–11 of the campaign:
- * obstacles → water in and out → mine entrance → down two levels → dig iron and stone →
+ * obstacles → water in and out → mine reception + locked lift → deep fixture → dig iron and stone →
  * climb back to the surface → sow and water a plot → accelerate world time → harvest →
  * save, reload the page, load → mine dug, resources exhausted, plots and inventory restored.
  * Moving between sites uses the save file itself (position/space edited, then loaded), as the
@@ -39,19 +39,42 @@ try{
   // 2. Water: into the lake (swimming), then back out on foot.
   await moveTo(20,40,4);const swim=await hold('KeyS',v=>v.mode==='swim'||v.mode==='dive',20);check(swim.mode==='swim','Enters the lake and swims ('+swim.mode+')');
   const dry=await hold('KeyW',v=>v.mode==='ground',25);check(dry.mode==='ground','Walks back out of the water');
-  // 3–4. Mine: entrance, then down two levels by the stairs.
-  await moveTo(172.5,45,22);const inside=await hold('KeyW',v=>v.act.space?.levelId==='level-3',40);
-  check(inside.act.space?.levelId==='level-3'&&Math.abs(inside.pos[1]-mine.levels[2].floorY)<.05,'Entered the mine and went down to level 3 (y '+inside.pos[1].toFixed(1)+')');
-  const card=page.locator('.ui-activity-card');await page.waitForFunction(()=>/\(3\/3\)/.test(document.querySelector('.ui-activity-card[data-kind=mine]')?.textContent??''),null,{timeout:5000}).catch(()=>{});const mineCard=await card.textContent();
-  check(/\(3\/3\)/.test(mineCard)&&/\d+ m/.test(mineCard),'Mine card: level 3/3 and way out with distance ('+mineCard+')');
+  // 3–4. New reception: enter level 1, use the counter and verify lift permissions.
+  await moveTo(172.5,45,22);
+  const entered=await hold('KeyW',v=>v.act.space?.levelId==='level-1',25);
+  check(entered.act.space?.levelId==='level-1'&&Math.abs(entered.pos[1]-mine.levels[0].floorY)<.05,'Entered level 1 underground');
+  const shaft=mine.connectors[0],heading=mine.entrance.heading,rx=Math.cos(heading),rz=-Math.sin(heading);
+  await moveTo(Math.floor(shaft.x)+.5-rx*2,mine.levels[0].floorY,Math.floor(shaft.z)+.5-rz*2,{zoneId:'zone-mine',levelId:'level-1'});
+  await page.keyboard.press('KeyE');
+  const shop=page.locator('.ui-panel[data-panel="shop"]');await shop.waitFor({state:'visible'});
+  check(await shop.getByRole('button',{name:'Accès aux niveaux'}).count()===1,'Underground counter offers trade and mine access');
+  await shop.getByRole('button',{name:'Accès aux niveaux'}).click();
+  const lift=page.locator('.ui-panel[data-panel="mine-lift"]');await lift.waitFor({state:'visible'});
+  check(await lift.getByRole('button',{name:'Verrouillé'}).count()===2,'Lower levels require mining progress');
+  await lift.getByRole('button',{name:'Fermer · Échap'}).click();
+  // The deep-level mining fixture is loaded via its save (testing harness only).
+  // Unlock gating is independently covered above and by the pure mine unit test.
+  await moveTo(172.5,mine.levels[2].floorY,70.5,{zoneId:'zone-mine',levelId:'level-3'});
+  const inside=await m();
+  check(inside.act.space?.levelId==='level-3'&&Math.abs(inside.pos[1]-mine.levels[2].floorY)<.05,'Deep-level fixture at correct altitude');
+  const card=page.locator('.ui-activity-card');
+  await page.waitForFunction(()=>/\\(3\\/3\\)/.test(document.querySelector('.ui-activity-card[data-kind=mine]')?.textContent??''),null,{timeout:5000}).catch(()=>{});
+  const mineCard=await card.textContent();
+  check(/\\(3\\/3\\)/.test(mineCard)&&/\\d+ m/.test(mineCard),'Mine card: level 3/3 and way out with distance ('+mineCard+')');
   await page.screenshot({path:out+'/b1-level3.png'});
   // 5. Dig: iron at the end of the gallery, then rock (stone), walking into each new cell.
   await hold('KeyW',v=>v.pos[2]>71.5,6);const digs=[];
   for(let i=0;i<3;i++){const before=(await m()).act.excavated;await hold('KeyF',v=>v.act.excavated>before,90);digs.push(await msg());await hold('KeyW',()=>false,.6);} // cells have 20–500 hp: hold F (bare hands)
   const bag=await inventory();check(/Minerai de fer/.test(bag)&&/Pierre/.test(bag),'Two mined resources in the bag: '+digs.join(' | '));
   const dug=(await m()).act.excavated;check(dug>=3,'Excavated cells: '+dug);
-  // 6. Climb back: stairs up twice, then out through the entrance.
-  const surface=await hold('KeyS',v=>v.act.space===null,60);check(surface.act.space===null&&Math.abs(surface.pos[2]-28.5)<2,'Back on the surface outside the entrance ('+surface.pos.map(n=>n.toFixed(1))+')');
+  // 6. Use the lift to return to level 1, then walk out of the mine.
+  await moveTo(Math.floor(shaft.x)+.5,mine.levels[2].floorY,Math.floor(shaft.z)+.5,{zoneId:'zone-mine',levelId:'level-3'});
+  await page.keyboard.press('KeyE');
+  const liftReturn=page.locator('.ui-panel[data-panel="mine-lift"]');await liftReturn.waitFor({state:'visible'});
+  await liftReturn.getByRole('button',{name:'Rejoindre'}).first().click();
+  const lifted=await m();check(lifted.act.space?.levelId==='level-1','Lift returns to level 1');
+  const surface=await hold('KeyS',v=>v.act.space===null,60);
+  check(surface.act.space===null,'Back outside the mine ('+surface.pos.map(n=>n.toFixed(1))+')');
   // 7–9. Farm: choose carrots, sow, water, accelerate the world clock, harvest.
   await moveTo(-164,40,118);await page.keyboard.press('KeyC');await page.waitForTimeout(300);check(/Carotte/.test(await msg()),'Crop chosen with C');
   await page.waitForFunction(()=>document.querySelector('.ui-activity-card')?.dataset.kind==='farm');check(await page.waitForFunction(()=>[...document.querySelectorAll('.ui-activity-card .ui-chip')].find(b=>b.textContent==='Carotte')?.getAttribute('aria-pressed')==='true',{},{timeout:5000}).then(()=>true,()=>false),'Plot card shows the chosen crop as pressed');
