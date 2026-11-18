@@ -12,6 +12,8 @@ import {mineHubLayout,mineHubCounterId,mineRequiredExcavations,mineLevelUnlocked
 import {createMineHubView} from '../src/mine/mine-hub-view.ts';
 import {MINE_STAND_SOURCE,removeMaritimeSign} from '../src/mine/mine-stand-asset.ts';
 import {createActivityRuntime} from '../src/gameplay/activity-runtime.ts';
+import {createMineHelmet} from '../src/hamster/mine-helmet.ts';
+import {ECONOMY_ITEMS,SHOPS} from '../src/gameplay/economy.ts';
 
 const polygon=[{x:-20,z:0},{x:20,z:0},{x:20,z:40},{x:-20,z:40}];
 const zone=(seed=11)=>({id:'mine-a',name:'Mine',polygon,mine:defaultMineSettings(polygon,3,30,seed)});
@@ -341,4 +343,18 @@ test('mine bonus V2: a refused inventory grant cannot commit a finished cell',()
   assert.equal(allowed.ok,true);assert.ok(qty>=1&&qty<=2);
   assert.equal(state.excavatedCount,1);
   assert.equal(state.strike({...params,requestId:'again'},1000,()=>{throw Error('duplicate')}).ok,false);
+});
+
+test('mine helmet: one shadowless head-following lamp with a separate equipment item',()=>{
+  assert.ok(ECONOMY_ITEMS.some(i=>i.id==='tool:miners-helmet'&&i.buy>0));
+  assert.ok(SHOPS.mine.sells.includes('tool:miners-helmet'));
+  const head=new THREE.Group(),helmet=createMineHelmet(head);
+  const cap=head.getObjectByName('MineHelmet');
+  assert.ok(cap&&cap.parent===head);assert.equal(cap.visible,false);
+  const light=head.getObjectByName('MinerHeadlamp');
+  assert.ok(light&&light.isSpotLight);assert.equal(light.castShadow,false);
+  assert.ok(light.angle<=Math.PI/3&&light.distance<=14);
+  helmet.setActive(true);assert.equal(helmet.active,true);assert.equal(cap.visible,true);
+  helmet.setActive(false);assert.equal(helmet.active,false);assert.equal(cap.visible,false);
+  helmet.dispose();assert.equal(head.children.length,0);
 });
