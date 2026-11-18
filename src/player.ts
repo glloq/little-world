@@ -81,6 +81,8 @@ export interface Player {
   groundPitch?:number;groundRoll?:number;rollSlip?:number;
   /** Replayable flight intention/state; independent from the render camera. */
   glideHeading?:number;glidePitch?:number;glideTurnRate?:number;stalled?:boolean;
+  /** Presentation-only aerodynamic brake cue; never read by physics. */
+  glideBrake?:number;
   /** First deployment per take-off, persisted in deterministic replay. */
   glideDeploymentUsed?:boolean;glideDeploymentRemaining?:number;
   /** Fixed-step airborne secondary jump and charge for intentional stationary gas launch. */
@@ -319,6 +321,7 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
         // Pulling back instead adds aerodynamic braking, without free propulsion.
         const flightPitch=clamp(keys.cameraPitch??0,-.77,.98);
         const flightBrake=Math.max(0,-forward);
+        p.glideBrake=flightBrake;
         glideVelocity(p,glideSteeringYaw(p,right,dt),flightPitch,flightBrake,dt,undefined,gasAcceleration,gasMastery(p));
         glideDeploymentStep(p,dt);
       } else {
@@ -431,7 +434,7 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
     // The old ground gate must not cancel a gas pulse already running in freefall.
     if(!gasTicked)gasBoostStep(p,keys.run===true||keys.boostHeld===true,false,dt);
     else if(p.mode!=='air')gasBoostStep(p,false,false,0);
-    p.stalled=false;p.glideHeading=undefined;p.glidePitch=undefined;p.glideTurnRate=0;p.glideDeploymentRemaining=0;
+    p.stalled=false;p.glideHeading=undefined;p.glidePitch=undefined;p.glideTurnRate=0;p.glideBrake=0;p.glideDeploymentRemaining=0;
   }
   if(p.mode==='ground'||p.mode==='swim'||p.mode==='dive'||p.mode==='climb'){
     p.glideDeploymentUsed=false;p.airBoostUsed=false;
