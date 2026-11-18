@@ -33,9 +33,12 @@ try{
   await ready('volcano-island');
   const before=await page.evaluate(()=>window.littleWorldMetrics);
   assert.equal(before.ferry.worldId,'little-world-island','Reference world must remain unchanged');
-  await page.evaluate(()=>window.littleWorldDebug.grant('coin',5));
+  const beforeCoins=await page.evaluate(()=>window.littleWorldMetrics.inventory?.coin??0);
+  const granted=await page.evaluate(()=>window.littleWorldDebug.grant('coin',5));
+  assert.equal(granted,true,'Five coins can be added to the solo inventory');
+  await page.waitForFunction(before=>window.littleWorldMetrics?.inventory?.coin===before+5,beforeCoins,{timeout:10000});
   const coins=await page.evaluate(()=>window.littleWorldMetrics.inventory.coin);
-  assert.ok(coins>=45,'Starting purse plus five coins');
+  assert.equal(coins,beforeCoins+5,'The frame metrics show the updated purse');
   await depart('Île du val forestier');
   await page.waitForURL(url=>url.searchParams.get('world')==='archipelago/worlds/forest-valley/manifest.json',{timeout:90000});
   await ready('forest-valley');
