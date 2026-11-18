@@ -6,7 +6,7 @@ Statut : **implémenté sur la branche `feat/backpack-v-glider`**, qualification
 
 - À l'état rangé, le planeur est **totalement invisible** : aucune armature pliée ne dépasse du sac. Seul le sac à dos lui-même peut être affiché suivant les accessoires du joueur.
 - L'ouverture révèle successivement le mât puis les deux ailes de toile en V. La fermeture retourne à l'état entièrement caché.
-- Les deux ailes ne font plus partie de l'anatomie du hamster **dans le jeu** : les membranes du rig historique sont systématiquement masquées pendant le rendu joueur.
+- Les deux ailes ne font plus partie de la géométrie du hamster **dans le jeu** : les polygones des membranes ont été retirés du mesh runtime (deux bones hérités sans géométrie restent pour la compatibilité) ; les membranes sont également masquées en rendu.
 - Le hamstér conserve son animation de planage, ses contrôles et ses capacités de vol, et le planeur est purement visuel.
 - Le sac est affiché automatiquement tant que le planeur est déployé, même si l'accessoire optionnel « sac à dos » est normalement désactivé.
 - Le modèle classique est fourni **gratuitement et systématiquement**. Toute future variation de couleur ou de mesh ne doit pas modifier la physique, l'inventaire nécessaire au vol, les commandes ou la disponibilité du planeur.
