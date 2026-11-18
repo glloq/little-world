@@ -70,7 +70,17 @@ try{
   const ledger=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),CARGO_STORAGE_KEY);
   const remaining=ledger.importLots['volcano-island'].find(x=>x.itemId==='wood:log');
   assert.equal(remaining.quantity,4,'Import lot debited once after purchase');
-  await page.keyboard.press('Escape');
+  // Crash/reload recovery: cargo and the post-payment bag must agree, without a second
+  // purchase or a default 40-coin restart. The ferry boarding position is saved too.
+  await page.reload({waitUntil:'domcontentloaded'});
+  await page.locator('#start-overlay').waitFor({state:'hidden',timeout:120000});
+  await page.waitForFunction(()=>window.littleWorldMetrics?.inventory?.['wood:log']===1
+    &&window.littleWorldMetrics?.inventory?.coin===33,{},{timeout:30000});
+  const afterReload=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),CARGO_STORAGE_KEY);
+  assert.equal(afterReload.importLots['volcano-island'].find(x=>x.itemId==='wood:log').quantity,4,
+    'Reload never duplicates imported stock');
+  assert.equal(afterReload.purchases.length,1,'Reload does not purchase twice');
+  await page.waitForTimeout(500);
   await page.keyboard.press('KeyE');
   await panel.waitFor({state:'visible'});
   const trial=panel.getByRole('button',{name:/cinématique de voyage/i});
