@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { buildSquirrel, CHARACTER_SCALE } from './squirrel.ts';
 import { buildHamster } from './hamster/hamster.ts';
 import {visualNPCSpecies} from './npc-life/species.ts';
+import {residentGesture,shouldPlayResidentGesture} from './npc-life/gestures.ts';
 import { createDialogue, type DialogueSession } from './dialogue.ts';
 import {
   createNPCState,
@@ -238,6 +239,8 @@ export function createNPCSystem(
       head,
       arm,
       appliedEmotion: definition.appearance.emotion,
+      lastWorkAt:-1,
+      lastGreetAt:-1,
     };
   });
   function nearest(player: NPCPoint) {
@@ -288,7 +291,7 @@ export function createNPCSystem(
                 state.x=pose.position.x;state.z=pose.position.z;state.y=terrainHeight(state.x,state.z);
                 state.vx=dt>0?(state.x-oldX)/dt:0;state.vz=dt>0?(state.z-oldZ)/dt:0;
                 if(pose.phase==='to-work'||pose.phase==='to-home')state.heading=pose.heading;
-                const busy=['farmer','woodcutter','miner','miller','artisan'].includes(routine.role);
+                const busy=residentGesture(routine.role)!==null;
                 state.phase=pose.phase==='work'?(busy?'work':routine.role==='child'&&Math.hypot(state.vx,state.vz)>.15?'walk':'idle'):
                   pose.phase==='to-work'||pose.phase==='to-home'?'walk':'idle';
                 life.pose=pose;life.lastSample=now;
@@ -343,8 +346,13 @@ export function createNPCSystem(
         model.group.rotation.y = state.heading;
         model.update(player, dt, time);
         if (hamster) {
-          if (state.phase === 'greet' && !hamster.action) hamster.play('INTERACT');
-          else if (state.phase === 'work' && !hamster.action) hamster.play('TOOL_SWING_VERTICAL', 'hammer');
+          if (state.phase === 'greet' && !hamster.action && (entry.lastGreetAt<0||time-entry.lastGreetAt>8)){
+            if(hamster.play('INTERACT'))entry.lastGreetAt=time;
+          }else if(state.phase === 'work'&&!hamster.action&&state.definition.routine){
+            const gesture=residentGesture(state.definition.routine.role);
+            if(gesture&&shouldPlayResidentGesture(time,entry.lastWorkAt,gesture)&&hamster.play(gesture.activity))
+              entry.lastWorkAt=time;
+          }
         } else if (state.phase === 'greet' || state.phase === 'work') {
           if (head) head.rotation.y = Math.sin(time * 1.7) * 0.12;
           if (arm) {
