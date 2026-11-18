@@ -51,11 +51,39 @@ try{
   await page.keyboard.press('KeyE');
   await panel.waitFor({state:'visible'});
   assert.match(await panel.textContent(),/Île du volcan/);
-  // ECO-7: the dedicated import-only stand is accessible at the quay even when the
-  // passenger ferry is on a different schedule.
-  const importsButton=panel.getByRole('button',{name:/Voir les importations/});
-  assert.equal(await importsButton.isEnabled(),true,'Foreign goods are available at the quay');
-  await importsButton.click();
+  // ECO-7: if the new N1 merchant was placed, import trade is activated at
+  // the stand (not by speaking to the rower). Legacy maps retain the old quay UI.
+  const maritime=await page.evaluate(()=>window.littleWorldMetrics.maritimePort);
+  assert.equal(maritime?.active,true,'The published volcano island must display the real N1 harbour example');
+  console.log('MARITIME_PORT_N1 '+JSON.stringify(maritime));
+  if(maritime?.active){
+    await page.keyboard.press('Escape');
+    await page.evaluate(point=>window.littleWorldDebug.teleport(point.x,point.z,0),maritime.trade??maritime.stand);
+    await page.waitForTimeout(550);
+    const merchantDebug=await page.evaluate(()=>({
+      target:window.littleWorldMetrics?.target,targetId:window.littleWorldMetrics?.targetId,
+      position:window.littleWorldMetrics?.position,mode:window.littleWorldMetrics?.mode,
+      nearby:window.littleWorldMetrics?.maritimePort?.merchantNear,
+      merchant:window.littleWorldMetrics?.maritimePort,
+    }));
+    console.log('MERCHANT_N1_DEBUG '+JSON.stringify(merchantDebug));
+    assert.equal(merchantDebug.targetId,'maritime:merchant','Merchant E target: '+JSON.stringify(merchantDebug));
+    await page.keyboard.press('KeyE');
+    const merchant=page.locator('[data-panel="maritime-trade"]');
+    await merchant.waitFor({state:'visible'});
+    // Real WebGL screenshot: the dock, approved stand, two hamster actors and rowboat.
+    await page.keyboard.press('Escape');
+    await page.evaluate(point=>window.littleWorldDebug.teleport(point.x,point.z,Math.PI),maritime.trade);
+    await page.waitForTimeout(1200);
+    await page.screenshot({path:'/tmp/little-world-browser/port-n1-real-assets.png'});
+    await page.keyboard.press('KeyE');
+    await merchant.waitFor({state:'visible'});
+    await merchant.getByRole('button',{name:/Voir les importations/}).click();
+  }else{
+    const importsButton=panel.getByRole('button',{name:/Voir les importations/});
+    assert.equal(await importsButton.isEnabled(),true,'Legacy quay import action remains accessible');
+    await importsButton.click();
+  }
   const imports=page.locator('[data-panel="imports"]');
   await imports.waitFor({state:'visible'});
   const rows=imports.locator('.ui-import-row');
