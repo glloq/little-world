@@ -26,9 +26,9 @@ export function projectRaceTerrainEnvironment(project:ProjectDocument,exceptRace
    }
  }
  const occupiedByCollider=(x:number,z:number)=>{
-   for(const i of [...large,...(cells.get(Math.floor(x/cell)+':'+Math.floor(z/cell))??[])]){
-     const b=colliders[i];if(x>=b.minX&&x<=b.maxX&&z>=b.minZ&&z<=b.maxZ)return true;
-   }
+   const inside=(i:number)=>{const b=colliders[i];return x>=b.minX&&x<=b.maxX&&z>=b.minZ&&z<=b.maxZ;};
+   for(const i of large)if(inside(i))return true;
+   for(const i of cells.get(Math.floor(x/cell)+':'+Math.floor(z/cell))??[])if(inside(i))return true;
    return false;
  };
  return {
