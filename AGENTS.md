@@ -1,5 +1,7 @@
 # Little World — instructions pour Codex et autres agents de développement
 
+> **Implantation organique :** lire [77 — placement autour d’un point d’intérêt](docs/77-ORGANIC-SETTLEMENT-PLACEMENT.md). Le profil fortifié règle la compacité seulement ; les enceintes restent à livrer. Sans `recipe.layout`, conserver l’ancien comportement et les retouches/verrous.
+
 > **Établissements de surface V1 :** lire [75 — implémentation et limites](docs/75-SETTLEMENTS-SURFACE-V1.md) avant de modifier les villages. Maisons procédurales creuses et portes V3 indépendantes, `Habitat` et `libraries.settlements` facultatifs ; conserver les références, verrous et retouches. Lire aussi [76 — places et services](docs/76-SETTLEMENTS-SERVICES-V1.md) : équipements optionnels avec provenance/verrous, poses `ShopAccess`, échanges revérifiés côté runtime. Les ports bâtis, ponts, grottes et villes denses de la roadmap restent à livrer.
 
 > **Terrain et établissements :** pour les prochains lots de génération d’îles, zones utiles, ports et accès, lire [73 — coordination terrain/établissements/collisions](docs/73-TERRAIN-SETTLEMENTS-ALIGNMENT.md). La branche `docs/studio-settlements-collision-roadmap` est une référence cible demandée par l’auteur ; ses contrats sont documentés, pas une preuve d’implémentation. Préparer des réservations et accès compatibles, sans réseau de chemins ou moteur physique parallèle.

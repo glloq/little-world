@@ -1,3 +1,5 @@
+import {layoutContext,layoutDimensions,lanePoint,organicStreet,organicArcs} from './layout.ts';
+import {fitOrganicLot} from './organic-lots.ts';
 import {planServices,amenityChanged} from './services.ts';
 import { makeDoor } from '../gameplay/templates.ts';
 /** Bounded surface settlement planner. Native entities/paths are the sole geometric source. */
@@ -37,7 +39,7 @@ export function buildingChanged(p: ProjectDocument, b: BuildingRecord) { return 
 export function settlementPoint(r: SettlementRecipe, x: number, z: number) { const a = r.orientation * Math.PI / 180; return { x: r.center.x + x * Math.cos(a) + z * Math.sin(a), z: r.center.z - x * Math.sin(a) + z * Math.cos(a) }; }
 export function planSettlement(p: ProjectDocument, raw: SettlementRecipe): SettlementPlan {
     if(Object.keys(p.chunkIndex).some(id=>!p.chunks[id]))throw Error('Charger tous les secteurs avant de calculer une implantation.');
-    const started = performance.now(), r = validateSettlementRecipe(raw, p.world), previous = p.libraries.settlements?.[r.id], c = settlementTerrain(p), diagnostics: SettlementDiagnostic[] = [], entities: EntityDefinitionV3[] = [], paths: PathDefinition[] = [], buildings: BuildingRecord[] = [], preserved: string[] = [], removed: string[] = [];
+    const started = performance.now(), r = validateSettlementRecipe(raw, p.world), previous = p.libraries.settlements?.[r.id], baseTerrain=settlementTerrain(p),c = layoutContext(r,baseTerrain), diagnostics: SettlementDiagnostic[] = [], entities: EntityDefinitionV3[] = [], paths: PathDefinition[] = [], buildings: BuildingRecord[] = [], preserved: string[] = [], removed: string[] = [];
     const protectedBuildings = new Map((previous?.buildings ?? []).filter(b => buildingChanged(p, b)).map(b => [b.slot, b]));
     const removable = new Set((previous?.buildings ?? []).filter(b => !protectedBuildings.has(b.slot)).flatMap(b => [b.id, b.doorId]));
     for(const a of previous?.amenities??[])if(!amenityChanged(p,a))removable.add(a.id);
@@ -46,7 +48,7 @@ export function planSettlement(p: ProjectDocument, raw: SettlementRecipe): Settl
     for (const d of obstacles)
         query.add({ ...d, position: { ...d.position, y: d.position.y + c.height(d.groundAnchor.x, d.groundAnchor.z) }, enabled: () => true });
     const protectedCenters = [...protectedBuildings.values()].map(b => sourceEntity(p, b.id)?.components.Transform?.position).filter((q): q is NonNullable<typeof q> => !!q);
-    const lanes = r.targetBuildings <= 16 ? 1 : r.targetBuildings <= 40 ? 2 : 3, pairs = Math.ceil(r.targetBuildings / (lanes * 2)), step = r.activity === 'agriculture' ? 18 : 15, half = (pairs - 1) * step / 2, roadZ = -half - 10;
+    const {organic,lanes,pairs,step,half,roadZ,gap,streetWidth}=layoutDimensions(r);
     const nativePath = (id: string, points: {
         x: number;
         z: number;
@@ -76,12 +78,18 @@ export function planSettlement(p: ProjectDocument, raw: SettlementRecipe): Settl
         const path = nativePath(id, points, width);
         paths.push(path);
     };
-    for (let lane = 0; lane < lanes; lane++) {
-        const x = (lane - (lanes - 1) / 2) * 28;
-        addRoad(r.id + '-street-' + lane, settlementPoint(r, x, roadZ), settlementPoint(r, x, half + 10), 3.5);
+    if(organic)paths.push(nativePath(r.id+'-civic-square',[settlementPoint(r,-4,0),settlementPoint(r,4,0)],12));
+    let amenities:AmenityRecord[]=organic?planServices(p,r,roadZ,c,query,entities,paths,diagnostics,preserved,nativePath):[];
+    const clearStreet = (points:{x:number;z:number}[],width:number) => points.slice(1).every((b,i)=>{
+        const a=points[i],n=Math.max(1,Math.ceil(Math.hypot(b.x-a.x,b.z-a.z)/24));
+        for(let j=0;j<n;j++){const from={x:a.x+(b.x-a.x)*j/n,z:a.z+(b.z-a.z)*j/n},to={x:a.x+(b.x-a.x)*(j+1)/n,z:a.z+(b.z-a.z)*(j+1)/n},m=query.sweep({...from,y:c.height(from.x,from.z)},{...to,y:c.height(to.x,to.z)},width/2,1.8);if(m.blockedX||m.blockedZ||m.pushed||Math.hypot(m.position.x-to.x,m.position.z-to.z)>.05)return false;}return true;
+    });
+    for(let lane=0;lane<lanes;lane++){
+        if(organic){const points=organicStreet(r,lane,{...c,wet:(x,z)=>c.wet(x,z)||query.intersectsVolume({minX:x-.45,maxX:x+.45,minZ:z-.45,maxZ:z+.45,minY:c.height(x,z)+.2,maxY:c.height(x,z)+1.8})},clearStreet);if(points)paths.push(nativePath(r.id+'-street-'+lane,points,streetWidth));else diagnostics.push({severity:'ERROR',code:'SET_ORGANIC_ROAD',message:'Aucune courbe praticable dans cette zone. Réduire la taille, tourner l’implantation ou choisir un autre emplacement.'});}
+        else{const x=(lane-(lanes-1)/2)*gap;addRoad(r.id+'-street-'+lane,settlementPoint(r,x,roadZ),settlementPoint(r,x,half+10),3.5);}
     }
-    if (lanes > 1)
-        addRoad(r.id + '-cross', settlementPoint(r, -(lanes - 1) * 14, roadZ), settlementPoint(r, (lanes - 1) * 14, roadZ), 3.5);
+    if(organic){const ring=organicArcs(r,paths,{...c,wet:(x,z)=>c.wet(x,z)||query.intersectsVolume({minX:x-.45,maxX:x+.45,minZ:z-.45,maxZ:z+.45,minY:c.height(x,z)+.2,maxY:c.height(x,z)+1.8})},clearStreet);for(const arc of ring.arcs)paths.push(nativePath(arc.id,arc.points,streetWidth));if(ring.omitted)diagnostics.push({severity:'WARNING',code:'SET_RING_GAP',message:'Certains passages périphériques ne tiennent pas dans le terrain. Les accès sont vérifiés par les autres rues.'});}
+    else if(lanes>1)addRoad(r.id+'-cross',lanePoint(r,0,roadZ),lanePoint(r,lanes-1,roadZ),3.5);
     for (let slot = 0; slot < r.targetBuildings; slot++) {
         if (previous?.suppressedSlots?.includes(slot))
             continue;
@@ -108,10 +116,15 @@ export function planSettlement(p: ProjectDocument, raw: SettlementRecipe): Settl
                 diagnostics.push({ severity: 'WARNING', code: 'SET_MANUAL_DELETION', message: 'Une maison supprimée manuellement reste supprimée.' });
             continue;
         }
-        const lane = Math.floor(slot / (pairs * 2)), pair = Math.floor(slot / 2) % pairs, sign = slot % 2 ? 1 : -1, laneX = (lane - (lanes - 1) / 2) * 28, x = laneX + sign * 9, z = pair * step - half, pos = settlementPoint(r, x, z), yaw = r.orientation * Math.PI / 180 + sign * Math.PI / 2;
+        let t:TransformComponent,pos:{x:number;z:number},junction:{x:number;z:number};
+        if(organic){const lane=Math.floor(slot/Math.ceil(r.targetBuildings/lanes)),street=paths.find(p=>p.id===r.id+'-street-'+lane),fit=paths.some(p=>p.id.includes('-street-'))?fitOrganicLot(r,slot,street?.points??[],c,query,paths):null;
+            if(!fit){if(r.layout?.adjustments?.some(a=>a.slot===slot))diagnostics.push({severity:'ERROR',code:'SET_ADJUSTMENT_INVALID',targetId:r.id+'-house-'+slot,message:'Cette retouche ne laisse pas de place ou d’accès praticable pour la maison. Déplacer sa poignée vers un sol libre.'});continue;}t=fit.t;pos=fit.pos;junction=fit.junction;
+        }else{
+            const lane = Math.floor(slot / (pairs * 2)), pair = Math.floor(slot / 2) % pairs, sign = slot % 2 ? 1 : -1, laneX = (lane - (lanes - 1) / 2) * gap, x = laneX + sign * 9, z = pair * step - half, candidatePos = settlementPoint(r, x, z), yaw = r.orientation * Math.PI / 180 + sign * Math.PI / 2;
+        pos=candidatePos;
         if (Math.hypot(x, z) > r.radius - 6)
             continue;
-        const t: TransformComponent = { type: 'Transform', position: { ...pos, y: 0 }, rotation: yawQuaternion(yaw), scale: { x: 1, y: 1, z: 1 } }, samples = [[-3.4, -3.9], [0, -3.9], [3.4, -3.9], [-3.4, 0], [0, 0], [3.4, 0], [-3.4, 3.9], [0, 3.9], [3.4, 3.9]].map(([a, b]) => housePoint(t, a, 0, b)), heights = samples.map(q => c.height(q.x, q.z)), floor = Math.max(...heights);
+        t = { type: 'Transform', position: { ...pos, y: 0 }, rotation: yawQuaternion(yaw), scale: { x: 1, y: 1, z: 1 } };const samples = [[-3.4, -3.9], [0, -3.9], [3.4, -3.9], [-3.4, 0], [0, 0], [3.4, 0], [-3.4, 3.9], [0, 3.9], [3.4, 3.9]].map(([a, b]) => housePoint(t, a, 0, b)), heights = samples.map(q => c.height(q.x, q.z)), floor = Math.max(...heights);
         if (samples.some(q => q.x < c.bounds.minX + 1 || q.x > c.bounds.maxX - 1 || q.z < c.bounds.minZ + 1 || q.z > c.bounds.maxZ - 1 || c.wet(q.x, q.z)) || Math.min(...heights) <= c.seaLevel + 1 || floor - Math.min(...heights) > .35 || protectedCenters.some(q => Math.hypot(pos.x - q.x, pos.z - q.z) < 9.5))
             continue;
         // Sample the complete footprint against existing logical bodies, at usable body height.
@@ -121,15 +134,19 @@ export function planSettlement(p: ProjectDocument, raw: SettlementRecipe): Settl
         if (pathNear)
             continue;
         t.position.y = floor - c.height(pos.x, pos.z);
-        const entry = housePoint(t, 0, 0, -HOUSE.depth / 2 - 1.1), junction = settlementPoint(r, laneX, z), id = r.id + '-house-' + slot, doorId = id + '-door', interactionId = id + '-toggle';
+        const entry = housePoint(t, 0, 0, -HOUSE.depth / 2 - 1.1);junction=settlementPoint(r,laneX,z);
         if (!inspectGroundSegment(entry, junction, c, { maxSlope: .35, widthM: 1.8 }).valid)
             continue;
+
+        }
+        const entry=housePoint(t,0,0,-HOUSE.depth/2-1.1),floor=c.height(pos.x,pos.z)+t.position.y,id=r.id+'-house-'+slot,doorId=id+'-door',interactionId=id+'-toggle';
         const variation = parseInt(fingerprint([r.seed, r.houseVariation, slot]).slice(0, 8), 16), style = r.style === 'auto' ? HABITAT_STYLES[variation % HABITAT_STYLES.length] : r.style;
         const house: EntityDefinitionV3 = { id, kind: 'building', name: (r.activity === 'forest' ? 'Maison forestière ' : r.activity === 'agriculture' ? 'Maison de ferme ' : 'Maison ') + (slot + 1), ownerChunkId: chunkAt(p.world, pos.x, pos.z), components: { Transform: t, Visual: { type: 'Visual', assetId: 'settlement.house_' + style }, Habitat: { type: 'Habitat', version: 1, doorId } } };
         const dp = housePoint(t, 0, 0, -HOUSE.depth / 2), door: EntityDefinitionV3 = { id: doorId, kind: 'prop', name: 'Porte · ' + house.name, ownerChunkId: chunkAt(p.world, dp.x, dp.z), parentId: id, components: { Transform: { ...structuredClone(t), position: { x: dp.x, y: floor - c.height(dp.x, dp.z), z: dp.z } }, Visual: { type: 'Visual', assetId: 'settlement.door' }, Collider: { type: 'Collider', shape: 'box', size: { x: HOUSE.doorWidth, y: HOUSE.doorHeight, z: .25 }, layer: 'solid' }, State: { type: 'State', initial: { open: false } }, Persistence: { type: 'Persistence', fields: ['open'] }, Interactable: { type: 'Interactable', prompt: 'Ouvrir / fermer la porte', range: 3, interactionIds: [interactionId] } } };
         entities.push(house, door);
         buildings.push({ id, doorId, interactionId, slot, entry: { x: entry.x, z: entry.z }, entityHashes: { [id]: fingerprint(house), [doorId]: fingerprint(door) }, locked: false });
         paths.push(nativePath(r.id + '-access-' + slot, [{ x: entry.x, z: entry.z }, junction], 1.8));
+        if(organic)for(const d of habitatColliders(id,t))query.add({...d,position:{...d.position,y:d.position.y+c.height(pos.x,pos.z)},enabled:()=>true});
     }
     // Protected buildings outside a reduced target remain authored, along with their access.
     for (const [slot, b] of protectedBuildings)
@@ -146,7 +163,7 @@ export function planSettlement(p: ProjectDocument, raw: SettlementRecipe): Settl
                 paths.push(structuredClone(path));
         }
     for(const e of entities)if(e.components.Habitat&&e.components.Transform)for(const d of habitatColliders(e.id,e.components.Transform))query.add({...d,position:{...d.position,y:d.position.y+c.height(d.groundAnchor.x,d.groundAnchor.z)},enabled:()=>true});
-    const amenities=planServices(p,r,roadZ,c,query,entities,paths,diagnostics,preserved,nativePath);
+    if(!organic)amenities=planServices(p,r,roadZ,c,query,entities,paths,diagnostics,preserved,nativePath);
     for(const a of previous?.amenities??[])if(!amenities.some(v=>v.id===a.id)&&!amenityChanged(p,a))removed.push(a.id);
     // Optional local connection to the nearest authored road, rather than one remote route per house.
     if (r.useExisting) {
@@ -154,8 +171,8 @@ export function planSettlement(p: ProjectDocument, raw: SettlementRecipe): Settl
             if (e.components.Habitat && e.components.Transform)
                 for (const d of habitatColliders(e.id, e.components.Transform))
                     query.add({ ...d, position: { ...d.position, y: d.position.y + c.height(d.groundAnchor.x, d.groundAnchor.z) }, enabled: () => true });
-        const routing = { ...c, wet: (x: number, z: number) => c.wet(x, z) || query.intersectsVolume({ minX: x - .45, maxX: x + .45, minZ: z - .45, maxZ: z + .45, minY: c.height(x, z) + .2, maxY: c.height(x, z) + 1.8 }) };
-        const own = new Set(Object.keys(previous?.pathHashes ?? {})), origin = settlementPoint(r, 0, roadZ), near = Object.values(p.libraries.paths).filter(v => !own.has(v.id) && !v.id.includes('-access-')).flatMap(path => path.points).map(q => ({ q, d: Math.hypot(q.x - origin.x, q.z - origin.z) })).filter(v => v.d > 3 && v.d < Math.min(r.radius * 2, 300)).sort((a, b) => a.d - b.d)[0];
+        const routing = { ...baseTerrain, wet: (x: number, z: number) => baseTerrain.wet(x, z) || query.intersectsVolume({ minX: x - .45, maxX: x + .45, minZ: z - .45, maxZ: z + .45, minY: c.height(x, z) + .2, maxY: c.height(x, z) + 1.8 }) };
+        const own = new Set(Object.keys(previous?.pathHashes ?? {})), origin = organic?(paths.find(p=>p.id===r.id+'-street-0')?.points.at(-1)??r.center):settlementPoint(r,0,roadZ), near = Object.values(p.libraries.paths).filter(v => !own.has(v.id) && !v.id.includes('-access-')).flatMap(path => path.points).map(q => ({ q, d: Math.hypot(q.x - origin.x, q.z - origin.z) })).filter(v => v.d > 3 && v.d < Math.min(r.radius * 2, 300)).sort((a, b) => a.d - b.d)[0];
         if (near) {
             const route = planGroundRoute(origin, near.q, routing, { maxSlope: .35, widthM: 3, maxCells: 4096 });
             if (route.points.length)

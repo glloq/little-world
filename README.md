@@ -241,3 +241,5 @@ Le générateur de colonies (maisons, villages, villes, camps, ports, terriers e
 - [72 — Parcours Studio intuitif : cinq réglages, aperçu, génération et édition](docs/72-SETTLEMENTS-STUDIO-UX.md)
 
 Ce chantier réutilise les contrats V3, le CommandBus, les chemins, la géographie et les systèmes d'interactions existants ; il n'ajoute pas de second moteur ni de simulation économique en temps réel.
+
+Le placement propose également un centre d’activité, des rues concentriques irrégulières et des profils de densité village/ville/ville fortifiée (implantation seulement), avec retouches directes sur le plan : [organisation organique et limites](docs/77-ORGANIC-SETTLEMENT-PLACEMENT.md).

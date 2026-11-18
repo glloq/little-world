@@ -18,7 +18,7 @@ export function planServices(p: ProjectDocument, r: SettlementRecipe, roadZ: num
     x: number;
     z: number;
 }[], width: number) => PathDefinition): AmenityRecord[] {
-    const old = p.libraries.settlements?.[r.id], records: AmenityRecord[] = [], angle = r.orientation * Math.PI / 180, point = (x: number, z: number) => ({ x: r.center.x + x * Math.cos(angle) + z * Math.sin(angle), z: r.center.z - x * Math.sin(angle) + z * Math.cos(angle) }), squareZ = roadZ - 15;
+    const old = p.libraries.settlements?.[r.id], records: AmenityRecord[] = [], angle = r.orientation * Math.PI / 180, point = (x: number, z: number) => ({ x: r.center.x + x * Math.cos(angle) + z * Math.sin(angle), z: r.center.z - x * Math.sin(angle) + z * Math.cos(angle) }), squareZ = r.layout&&r.layout.pattern!=='linear'?0:roadZ-15;
     const wanted = r.services || old?.amenities?.some(a => amenityChanged(p, a));
     if (!wanted)
         return records;
@@ -28,7 +28,7 @@ export function planServices(p: ProjectDocument, r: SettlementRecipe, roadZ: num
     }[], width: number) => { if (points.slice(1).some((b, i) => !inspectGroundSegment(points[i], b, c, { maxSlope: .35, widthM: width }).valid)) {
         diagnostics.push({ severity: 'ERROR', code: 'SET_SERVICE_ACCESS', message: 'La place ou un équipement ne possède pas de passage sec assez large.' });
         return;
-    } paths.push(nativePath(r.id + '-civic-' + suffix, points, width)); };
+    } const id=r.id+'-civic-'+suffix;if(Math.hypot(points[0].x-points.at(-1)!.x,points[0].z-points.at(-1)!.z)>.1&&!paths.some(p=>p.id===id))paths.push(nativePath(id,points,width)); };
     addPath('square', [point(-4, squareZ), point(4, squareZ)], 12);
     addPath('link', [point(0, squareZ), point(0, roadZ)], 3);
     const hasMine = Object.values(p.libraries.zones ?? {}).some(z => z.kind === 'mine' && z.polygon.some(q => Math.hypot(q.x - r.center.x, q.z - r.center.z) < 300));

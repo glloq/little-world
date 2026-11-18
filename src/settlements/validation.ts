@@ -1,3 +1,4 @@
+import {layoutContext} from './layout.ts';
 import {SHOPS} from '../gameplay/economy.ts';
 import {serviceEntry} from './services.ts';
 import type { ProjectDocument } from '../studio-core/types.ts';
@@ -90,13 +91,14 @@ export function validateSettlements(p: ProjectDocument, onlyId?: string): Settle
     for (const d of collisionDefinitionsFromProject(p))
         query.add({ ...d, position: { ...d.position, y: d.position.y + c.height(d.groundAnchor.x, d.groundAnchor.z) }, enabled: () => !doorIds.has(d.id) });
     for (const s of all) {
+        const bounded=layoutContext(s.recipe,c);
         const error = (code: string, message: string, targetId = s.id) => out.push({ severity: 'ERROR', code, targetId, message }), paths = Object.keys(s.pathHashes).map(id => p.libraries.paths[id]).filter((v): v is PathDefinition => !!v);
         if (paths.length !== Object.keys(s.pathHashes).length)
             error('SET_PATH_MISSING', 'Un chemin de la colonie a été supprimé.');
         for (const path of paths)
             for (let i = 1; i < path.points.length; i++) {
                 const a = path.points[i - 1], b = path.points[i];
-                if (!inspectGroundSegment(a, b, c, { maxSlope: .35, widthM: path.width }).valid) {
+                if (!inspectGroundSegment(a, b, path.id.endsWith('-regional')?c:bounded, { maxSlope: .35, widthM: path.width }).valid) {
                     error('SET_ACCESS_TERRAIN', 'Une rue ou un accès ne respecte plus l’eau, la pente ou la largeur.', path.id);
                     break;
                 }
@@ -129,6 +131,7 @@ export function validateSettlements(p: ProjectDocument, onlyId?: string): Settle
                 error('SET_BUILDING_MISSING', 'Une maison référencée a disparu.', b.id);
                 continue;
             }
+            if(s.recipe.layout&&source.components.Transform){const t=source.components.Transform,floor=c.height(t.position.x,t.position.z)+t.position.y,samples=[[-3,-3.5],[3,-3.5],[-3,3.5],[3,3.5],[0,0]].map(([x,z])=>housePoint(t,x,0,z));if(samples.some(q=>bounded.wet(q.x,q.z)||c.height(q.x,q.z)<=c.seaLevel+1))error('SET_LOT_TERRAIN','Une maison dépasse la zone ou empiète sur un milieu réservé ou humide.',b.id);if(samples.some(q=>floor-c.height(q.x,q.z)>.45||c.height(q.x,q.z)-floor>.15))error('SET_LOT_SUPPORT','La maison ne repose plus sur un sol adapté. Corriger sa position ou sa hauteur.',b.id);}
             if (!p.entityIndex[b.doorId] || !p.libraries.interactions[b.interactionId])
                 error('SET_ENTRY_MISSING', 'Une porte ou son interaction est absente.', b.id);
             const node = graph.nodes.find(n => Math.hypot(n.position.x - b.entry.x, n.position.z - b.entry.z) < .05);

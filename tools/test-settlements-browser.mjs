@@ -22,6 +22,7 @@ try {
     await page.getByRole('button', { name: 'Villages & villes', exact: true }).click();
     await page.getByRole('heading', { name: 'Villages & villes', exact: true }).waitFor();
     // Center and type are chosen through the actual form, not generator injection.
+    await page.getByLabel('Organisation', {exact:true}).selectOption('linear');
     await page.getByRole('button', { name: '3. Personnalisation', exact: true }).click();
     await page.getByLabel('Style architectural', { exact: true }).selectOption('timber');
     await page.getByRole('button', { name: 'Prévisualiser l’implantation', exact: true }).click();
@@ -69,8 +70,11 @@ try {
     await page.getByRole('button', { name: 'Modifier cette maison en 3D', exact: true }).click();
     await page.getByLabel('Position Z (m)', { exact: true }).waitFor();
     const oldZ = Number(await page.getByLabel('Position Z (m)', { exact: true }).inputValue());
+    const editedInput = await page.getByLabel('Position Z (m)', {exact:true}).elementHandle();
     await page.getByLabel('Position Z (m)', { exact: true }).fill(String(oldZ + 2));
     await page.getByLabel('Position Z (m)', { exact: true }).press('Tab');
+    await page.waitForFunction(input=>!input.isConnected,editedInput);
+    await editedInput.dispose();
     await page.getByRole('button', { name: 'Sauvegarder', exact: true }).click();
     await waitForBrowserCondition(page,async ({id,z})=>{const {ProjectStore}=await import('/little-world/src/studio-core/project-store.ts'),store=new ProjectStore(),summary=(await store.list())[0],v=await store.loadProject(summary.projectId),owner=v.document.entityIndex[id].ownerChunkId,chunks=await store.loadChunks(summary.projectId,[owner],v.revision);return chunks[owner].entities[id].components.Transform.position.z===z;},{id:first.id,z:oldZ+2});
     p = await saved();

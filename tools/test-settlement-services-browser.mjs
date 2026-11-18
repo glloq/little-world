@@ -20,6 +20,7 @@ try {
     await page.getByRole('button', { name: 'Continuer', exact: true }).first().click();
     await page.locator('.viewport canvas').waitFor();
     await page.getByRole('button', { name: 'Villages & villes', exact: true }).click();
+    await page.getByLabel('Organisation', {exact:true}).selectOption('linear');
     await page.getByRole('button', { name: '3. Personnalisation', exact: true }).click();
     await page.getByLabel('Activité dominante', { exact: true }).selectOption('agriculture');
     await page.getByLabel('Ajouter une place et des équipements', { exact: true }).check();

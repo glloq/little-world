@@ -1,3 +1,4 @@
+import {validateSettlementLayout,type SettlementLayout} from './layout.ts';
 import type { WorldDefinitionV3 } from '../studio-core/types.ts';
 import { HABITAT_STYLES, type HabitatStyle } from './habitat.ts';
 export interface SettlementRecipe {
@@ -5,7 +6,7 @@ export interface SettlementRecipe {
     id: string;
     name: string;
     seed: number;
-    form: 'hamlet' | 'village' | 'town';
+    form: 'hamlet' | 'village' | 'town' | 'fortified';
     center: {
         x: number;
         z: number;
@@ -17,6 +18,7 @@ export interface SettlementRecipe {
     wealth: 0 | 1 | 2;
     activity: 'mixed' | 'agriculture' | 'forest' | 'mine' | 'fishing' | 'commerce';
     services?:boolean;
+    layout?:SettlementLayout;
     houseVariation: number;
     useExisting: boolean;
 }
@@ -52,9 +54,10 @@ function fields(v: Record<string, unknown>, list: string[]) { if (Object.keys(v)
 export function validateSettlementRecipe(raw: unknown, world: WorldDefinitionV3): SettlementRecipe {
     if (!obj(raw))
         throw Error('Recette d’établissement invalide');
-    fields(raw, ['version', 'id', 'name', 'seed', 'form', 'center', 'radius', 'orientation', 'targetBuildings', 'style', 'wealth', 'activity', 'houseVariation', 'useExisting','services']);
-    if (raw.version !== 1 || !id(raw.id) || String(raw.id).length > 64 || typeof raw.name !== 'string' || !raw.name.trim() || raw.name.length > 100 || !num(raw.seed, 0, 0xffffffff) || !Number.isInteger(raw.seed) || !['hamlet', 'village', 'town'].includes(String(raw.form)) || !['auto', ...HABITAT_STYLES].includes(String(raw.style)) || ![0, 1, 2].includes(raw.wealth as number) || !['mixed', 'agriculture', 'forest','mine','fishing','commerce'].includes(String(raw.activity)) || !num(raw.targetBuildings, 1, 80) || !Number.isInteger(raw.targetBuildings) || !num(raw.houseVariation, 0, 0xffffffff) || !Number.isInteger(raw.houseVariation) || !num(raw.radius, 20, 600) || !num(raw.orientation, -360, 360) || typeof raw.useExisting !== 'boolean')
+    fields(raw, ['version', 'id', 'name', 'seed', 'form', 'center', 'radius', 'orientation', 'targetBuildings', 'style', 'wealth', 'activity', 'houseVariation', 'useExisting','services','layout']);
+    if (raw.version !== 1 || !id(raw.id) || String(raw.id).length > 64 || typeof raw.name !== 'string' || !raw.name.trim() || raw.name.length > 100 || !num(raw.seed, 0, 0xffffffff) || !Number.isInteger(raw.seed) || !['hamlet', 'village', 'town','fortified'].includes(String(raw.form)) || !['auto', ...HABITAT_STYLES].includes(String(raw.style)) || ![0, 1, 2].includes(raw.wealth as number) || !['mixed', 'agriculture', 'forest','mine','fishing','commerce'].includes(String(raw.activity)) || !num(raw.targetBuildings, 1, 80) || !Number.isInteger(raw.targetBuildings) || !num(raw.houseVariation, 0, 0xffffffff) || !Number.isInteger(raw.houseVariation) || !num(raw.radius, 20, 600) || !num(raw.orientation, -360, 360) || typeof raw.useExisting !== 'boolean')
         throw Error('Recette d’établissement hors limites');
+    if(raw.layout!==undefined)validateSettlementLayout(raw.layout,world);
     if(raw.services!==undefined&&typeof raw.services!=='boolean')throw Error('Services invalides');
     if (!obj(raw.center))
         throw Error('Centre absent');

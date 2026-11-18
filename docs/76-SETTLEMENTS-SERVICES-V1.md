@@ -66,3 +66,5 @@ npm run benchmark:settlement-services
 ```
 
 Le benchmark et les captures écrivent dans `/tmp/little-world-settlement-services`. Les fixtures techniques restent isolées des cartes publiées.
+
+Évolution du placement : [77 — implantation organique et édition directe](77-ORGANIC-SETTLEMENT-PLACEMENT.md). Les descriptions du modèle aligné ci-dessus restent celles de la livraison initiale.
