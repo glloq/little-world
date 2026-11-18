@@ -7,7 +7,7 @@ import {foodGasValue} from '../../gameplay/food-effects.ts';
 import {el,button} from '../shared/dom.ts';
 
 export const CATEGORY_LABELS:Record<string,string>={nature:'Ressources naturelles',mine:'Minerais et cristaux',farm:'Produits agricoles',tool:'Outils',outil:'Outils',quest:'Objets de mission',mission:'Objets de mission',argent:'Argent',bois:'Bois',cueillette:'Cueillette',poisson:'Poissons',graines:'Graines'};
-const ORDER=['Argent','Ressources naturelles','Bois','Cueillette','Poissons','Minerais et cristaux','Produits agricoles','Graines','Outils','Objets de mission','Objets divers'];
+const ORDER=['Argent','Ressources naturelles','Bois','Cueillette','Poissons','Minerais et cristaux','Produits agricoles','Graines','Outils','Instruments','Objets de mission','Objets divers'];
 const FOOD_ICONS:Readonly<Record<string,string>>={
   'food:apple':'🍎','food:pear':'🍐','food:plum':'🟣','food:cherry':'🍒',
   'food:berry':'🫐','food:hazelnut':'🌰','food:walnut':'🌰','farm:carrot':'🥕',
@@ -19,11 +19,11 @@ export interface InventoryViewModel {groups:{label:string;entries:InventoryEntry
 export function inventoryViewModel(items:readonly ItemDefinition[],inventory:Readonly<Record<string,number>>,seen:Readonly<Record<string,number>>):InventoryViewModel{
   const groups=new Map<string,InventoryEntry[]>();let total=0,kinds=0;
   for(const item of items){const quantity=inventory[item.id]??0;if(quantity<=0)continue;kinds++;total+=quantity;
-    const label=CATEGORY_LABELS[item.category]??'Objets divers',entry:InventoryEntry={id:item.id,name:item.name,category:item.category,categoryLabel:label,quantity,max:item.maxQuantity,...(item.description?{description:item.description}:{}),delta:Math.max(0,quantity-(seen[item.id]??0)),full:quantity>=item.maxQuantity,nearlyFull:quantity>=item.maxQuantity*.9,tool:item.category==='tool'||item.category==='outil'};
+    const label=CATEGORY_LABELS[item.category]??(item.category==='instrument'?'Instruments':'Objets divers'),entry:InventoryEntry={id:item.id,name:item.name,category:item.category,categoryLabel:label,quantity,max:item.maxQuantity,...(item.description?{description:item.description}:{}),delta:Math.max(0,quantity-(seen[item.id]??0)),full:quantity>=item.maxQuantity,nearlyFull:quantity>=item.maxQuantity*.9,tool:item.category==='tool'||item.category==='outil'};
     const list=groups.get(label)??[];list.push(entry);groups.set(label,list);}
   return {groups:[...groups].sort(([a],[b])=>ORDER.indexOf(a)-ORDER.indexOf(b)).map(([label,entries])=>({label,entries:entries.sort((x,y)=>x.name.localeCompare(y.name,'fr'))})),kinds,total,empty:kinds===0};
 }
-export interface InventoryDeps {items():readonly ItemDefinition[];inventory():Readonly<Record<string,number>>;selectedTool():string|null;selectTool(id:string|null):void;headgear?:{equipped():boolean;setEquipped(value:boolean):void};gasLevel?:()=>number;gasCapacity?:()=>number;consume?:(id:string)=>boolean}
+export interface InventoryDeps {items():readonly ItemDefinition[];inventory():Readonly<Record<string,number>>;selectedTool():string|null;selectTool(id:string|null):void;headgear?:{equipped():boolean;setEquipped(value:boolean):void};gasLevel?:()=>number;gasCapacity?:()=>number;consume?:(id:string)=>boolean;playInstrument?:(id:string)=>void}
 /** Panel renderer; `seen` is updated when the panel closes (the « new » marks then clear). */
 export function inventoryPanel(deps:InventoryDeps){
   let seen:Record<string,number>={},selected:string|null=null;
@@ -61,7 +61,11 @@ export function inventoryPanel(deps:InventoryDeps){
           detail.append(button(wearing?'Retirer le casque':'Équiper le casque',()=>{
             deps.headgear!.setEquipped(!wearing);show(e);
           },'ui-button ui-primary'));
-        }else if(e.tool){const inHand=deps.selectedTool()===e.id;detail.append(button(inHand?'Ranger':'Équiper',()=>{deps.selectTool(inHand?null:e.id);show(e);},'ui-button ui-primary'));}
+        }else if(e.tool||e.category==='instrument'){
+          const inHand=deps.selectedTool()===e.id;
+          detail.append(button(inHand?'Ranger':'Équiper',()=>{deps.selectTool(inHand?null:e.id);show(e);},'ui-button ui-primary'));
+          if(e.category==='instrument'&&inHand&&deps.playInstrument)detail.append(button('Jouer',()=>deps.playInstrument!(e.id),'ui-button ui-primary'));
+        }
         else if(equipment.some(t=>t.id===e.id)){detail.append(el('p','ui-muted','Équipement cosmétique prévu : action non disponible pour cet objet.'));}
         const gas=foodGasValue(e.id);
         if(gas&&deps.consume){
