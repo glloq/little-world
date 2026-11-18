@@ -523,7 +523,8 @@ function stopRace(){raceSession=null;raceGates.clear();raceHud.hidden=true;}
 function startDemoRace(id:DemoRaceId):{ok:boolean;message:string}{
   if(!started||aboard||player.space)return {ok:false,message:'Course indisponible pendant le voyage ou dans une mine'};
   const need=id==='flight'?'glide':'roll';
-  if(player.mode!==need)return {ok:false,message:need==='glide'?'Déployez le planeur avant de lancer cette course':'Passez en roulade avant de lancer cette course'};
+  if(need==='glide'&&player.mode!=='glide')return {ok:false,message:'Déployez le planeur avant de lancer cette course'};
+  if(need==='roll'&&player.mode!=='roll'&&player.mode!=='ground')return {ok:false,message:'Revenez au sol avant le départ de la course'};
   const c=getTerrainConfig(),heading=id==='flight'?player.glideHeading??yaw:player.rollHeading??yaw;
   const definition=makeDemoRace(id,player.position,heading,terrainHeight,
     {minX:-c.width/2,maxX:c.width/2,minZ:-c.length/2,maxZ:c.length/2},

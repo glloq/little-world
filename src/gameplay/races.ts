@@ -104,7 +104,7 @@ export function advanceRace(s:RaceSession,step:RaceStep):RaceEvent|null{
   s.usedPulses+=step.pulseSeq-s.lastPulseSeq;s.lastPulseSeq=step.pulseSeq;
   if(step.tick-s.startTick>s.definition.maxTicks)return fail('Temps maximal dépassé');
   const accepted=s.definition.kind==='flight'?['glide']:
-    s.definition.kind==='roll'?['roll','air']:['roll','air','glide'];
+    s.definition.kind==='roll'?['ground','roll','air']:['ground','roll','air','glide'];
   if(!accepted.includes(step.mode))return fail('Mode de déplacement interdit');
   let lastFraction=-1,passed=-1,finishFraction=0;
   while(s.nextGate<s.definition.gates.length){

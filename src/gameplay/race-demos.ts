@@ -4,8 +4,8 @@
 import {validateRace,type RaceBounds,type RaceDefinition,type RaceKind,type RacePoint,type RaceGate} from './races.ts';
 export const DEMO_RACES=[
   {id:'flight',name:'Anneaux des falaises',description:'Cinq anneaux aériens. Déployer le planeur avant de commencer.'},
-  {id:'roll',name:'Descente des noisettes',description:'Cinq arches en roulade. Utiliser les courbes du terrain.'},
-  {id:'mixed',name:'Du sol aux nuages',description:'Deux portes au sol puis trois anneaux en vol.'},
+  {id:'roll',name:'Descente des noisettes',description:'Départ au sol : franchir cinq arches en roulade.'},
+  {id:'mixed',name:'Du sol aux nuages',description:'Départ au sol : deux arches en roulade, puis trois anneaux en vol.'},
 ] as const;
 export type DemoRaceId=typeof DEMO_RACES[number]['id'];
 export function makeDemoRace(id:DemoRaceId,position:RacePoint,heading:number,
@@ -25,7 +25,7 @@ export function makeDemoRace(id:DemoRaceId,position:RacePoint,heading:number,
     const y=air?Math.max(ground+7,origin.y+(flight?3+i%3*3:6+i)):ground+1.1;
     const gate:RaceGate={id:'gate-'+(i+1),center:{x,y,z},normal:{x:dx,y:0,z:dz},
       shape:air?'circle':'rectangle',width:air?(flight?18:14):9,height:air?(flight?18:14):4.8,
-      allowedModes:air?['glide']:['roll','air']};
+      allowedModes:air?['glide']:['roll']};
     return gate;
   });
   // Only instantiate a course when the complete corridor is inside the world.
