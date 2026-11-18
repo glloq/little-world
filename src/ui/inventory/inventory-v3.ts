@@ -74,11 +74,20 @@ export function inventoryPanelV3(deps:InventoryV3Deps){
   let favorites=readFavorites(),pointer:ActivePointer|null=null,suppressClick:string|null=null;
   let bodyRef:HTMLElement|null=null;
   const report=(message:string)=>deps.notify?.(message);
+  function highlightZones(id:string|null){
+    const item=id?deps.items().find(x=>x.id===id):null;
+    document.querySelectorAll<HTMLElement>('.ui-bag-v3 [data-hamster-target]').forEach(zone=>{
+      const target=zone.dataset.hamsterTarget;
+      const valid=!!item&&(target==='mouth'?foodGasValue(item.id)>0:equipSlot(item)===target);
+      zone.classList.toggle('ui-hamster-valid',valid);
+    });
+  }
   function clearPointer(){
     if(!pointer)return;
     if(pointer.timer!==null)clearTimeout(pointer.timer);
     pointer.ghost?.remove();pointer=null;
     document.body.classList.remove('ui-inventory-dragging');
+    highlightZones(selectedId);
   }
   function ensureFavorites(items:readonly InventoryEntry[]){
     if(favorites)return;
@@ -95,7 +104,12 @@ export function inventoryPanelV3(deps:InventoryV3Deps){
     if(previous>=0)favorites[previous]=null;
     favorites[index]=id;writeFavorites(favorites);renderCurrent();
   }
-  function renderCurrent(){if(bodyRef)render(bodyRef);}
+  function renderCurrent(){
+    if(!bodyRef)return;
+    const active=document.activeElement as HTMLElement|null,key=active?.dataset.focusKey;
+    render(bodyRef);
+    if(key)bodyRef.querySelector<HTMLElement>('[data-focus-key="'+CSS.escape(key)+'"]')?.focus();
+  }
   function equip(id:string,target:EquipTarget){
     const item=deps.items().find(x=>x.id===id);
     if(!item||equipSlot(item)!==target||(deps.inventory()[id]??0)<=0){report('Cet objet ne peut pas être équipé ici.');return;}
@@ -171,6 +185,7 @@ export function inventoryPanelV3(deps:InventoryV3Deps){
         p.ghost=el('div','ui-drag-ghost',(item?ICONS[item.id]??'⬡':'⬡')+' '+(item?.name??id));
         document.body.append(p.ghost);
         document.body.classList.add('ui-inventory-dragging');
+        highlightZones(id);
       }
       if(p.ghost){p.ghost.style.left=e.clientX+14+'px';p.ghost.style.top=e.clientY+14+'px';}
       e.preventDefault();
@@ -185,6 +200,7 @@ export function inventoryPanelV3(deps:InventoryV3Deps){
     node.addEventListener('click',e=>{
       if(suppressClick===id){suppressClick=null;e.preventDefault();return;}
       if(multi){if(checked.has(id))checked.delete(id);else checked.add(id);renderCurrent();return;}
+      if(e.shiftKey){multi=true;checked.add(id);selectedId=id;renderCurrent();return;}
       selectedId=id;renderCurrent();
     });
   }
@@ -209,8 +225,11 @@ export function inventoryPanelV3(deps:InventoryV3Deps){
     const filters=el('nav','ui-bag-filters');filters.setAttribute('aria-label','Filtrer le sac');
     for(const choice of FILTERS){
       const b=button(choice.label,()=>{filter=choice.id;renderCurrent();const sc=body.querySelector<HTMLElement>('.ui-inventory-stock-scroll');if(sc)sc.scrollTop=0;},'ui-bag-filter');
-      b.setAttribute('aria-pressed',String(filter===choice.id));filters.append(b);
+      b.setAttribute('aria-pressed',String(filter===choice.id));b.dataset.focusKey='bag-filter:'+choice.id;filters.append(b);
     }
+    const multiSwitch=button(multi?'☑':'☐',()=>{multi=!multi;checked.clear();renderCurrent();},'ui-bag-filter','Sélection multiple');
+    multiSwitch.setAttribute('aria-label',multi?'Quitter la sélection multiple':'Activer la sélection multiple');
+    multiSwitch.dataset.focusKey='bag-multiselect';filters.append(multiSwitch);
     const scroller=el('div','ui-inventory-stock-scroll');
     const grid=el('div','ui-item-grid ui-bag-items');
     function card(e:InventoryEntry,short=false){
@@ -317,6 +336,7 @@ export function inventoryPanelV3(deps:InventoryV3Deps){
   }
   return {
     render,markSeen(){seen={...deps.inventory()};multi=false;checked.clear();clearPointer();},
-    isDragging(){return !!pointer?.dragging;},
+    isInteracting(){return pointer!==null;},
+    cancelSelection(){if(!multi)return false;multi=false;checked.clear();renderCurrent();return true;},
   };
 }
