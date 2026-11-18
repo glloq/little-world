@@ -1,4 +1,8 @@
 import test from 'node:test';
+import {ECONOMY_ITEMS} from '../src/gameplay/economy.ts';
+import {MINE_ITEMS} from '../src/mine/mine-data.ts';
+import {FARM_ITEMS} from '../src/farm/farm-data.ts';
+import {PRODUCTION_ITEMS,STARTER_RECIPES,validateStarterRecipes} from '../src/economy/starter-catalog.ts';
 import assert from 'node:assert/strict';
 import {parseProductionRecipe,newWorkshopState,advanceWorkshop,parseWorkshopState,
   startProduction,collectProduction} from '../src/economy/production.ts';
@@ -24,6 +28,13 @@ function bag(start={},capacity={}) {
 const start=(state,port,requestId='create-1',batches=1,gameMinute=10)=>
   startProduction(state,flourRecipe,{requestId,ownerId:'player-1',batches,gameMinute,queueCapacity:3},port);
 
+test('starter recipes resolve all source and product items without duplicate identifiers',()=>{
+  const available=new Set([...ECONOMY_ITEMS,...MINE_ITEMS,...FARM_ITEMS].map(x=>x.id));
+  assert.doesNotThrow(()=>validateStarterRecipes(available));
+  assert.equal(PRODUCTION_ITEMS.length,10);
+  assert.equal(STARTER_RECIPES.length,11);
+  assert.throws(()=>validateStarterRecipes(new Set([...available,'material:flour'])),'catalog collision');
+});
 test('validate recipes and reject unknown, duplicate and free/invalid outputs',()=>{
   const ids=new Set(['farm:wheat','food:flour']);
   assert.deepEqual(parseProductionRecipe(flourRecipe,ids).outputs,[{itemId:'food:flour',quantity:1}]);
