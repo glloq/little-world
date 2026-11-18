@@ -26,6 +26,7 @@
     "test:characters": "node tools/test-characters-browser.mjs",
     "generate:audio": "node --experimental-strip-types tools/generate-audio.mjs",
     "test:audio": "node tools/test-audio-browser.mjs",
+    "test:instruments": "node tools/test-instruments-browser.mjs",
     "test:water": "node tools/test-water-browser.mjs",
     "test:island": "node tools/test-island-browser.mjs",
     "test:geomap": "node tools/test-geomap-browser.mjs",
