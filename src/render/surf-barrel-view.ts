@@ -77,6 +77,11 @@ export function createSurfBarrelView(parent:THREE.Object3D,
   lastTick=tick;
   stats.activeFronts=0;stats.activeSections=0;
   if(!band){mesh.visible=false;return;}
+  // Breaking foam is visible only around the shore; distant beaches retain
+  // their static ocean and GPU waves without updating hundreds of curl vertices.
+  const dx=Math.max(zone.minX-focus.x,0,focus.x-zone.maxX),
+    dz=Math.max(zone.minZ-focus.z,0,focus.z-zone.maxZ);
+  if(Math.hypot(dx,dz)>280){mesh.visible=false;return;}
   const focusAlong=zone.dirX*focus.x+zone.dirZ*focus.z;
   const focusAcross=-zone.dirZ*focus.x+zone.dirX*focus.z;
   const base=zone.speed*tick/30+zone.wavelength*barrelPhaseOffset(zone);
