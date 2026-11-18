@@ -15,3 +15,9 @@
 @keyframes ferry-ship-grow{from{transform:scale(.65)}to{transform:scale(1.1)}}
 @keyframes ferry-oar{from{transform:rotate(28deg)}to{transform:rotate(-18deg)}}
 @media(prefers-reduced-motion:reduce){.ui-ferry-rowboat,.ui-ferry-ship,.ui-ferry-rameur:after{animation:none}}
+
+/* While the destination is compiling, keep a cheap rowing loop over the old GPU scene. */
+.ui-ferry-arrival .ui-ferry-rowboat{animation:ferry-row-move 3.1s ease-in-out infinite alternate}
+.ui-ferry-arrival .ui-ferry-ship{animation:ferry-ship-grow 3.1s ease-in-out infinite alternate}
+.ui-ferry-arrival-done{opacity:0;transition:opacity .3s ease}
+@media(prefers-reduced-motion:reduce){.ui-ferry-arrival .ui-ferry-rowboat,.ui-ferry-arrival .ui-ferry-ship{animation:none}.ui-ferry-arrival-done{transition:none}}
