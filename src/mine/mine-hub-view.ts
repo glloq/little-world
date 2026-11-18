@@ -3,7 +3,7 @@
  * the MineGrid remains the authority for the floor and walls. */
 import * as THREE from 'three';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
-import type {MineHubLayout} from './mine-hub.ts';
+import type {MineHubLayout,MineResourceIcon} from './mine-hub.ts';
 
 type Piece={geometry:THREE.BufferGeometry;color:number};
 function merged(pieces:Piece[]):THREE.BufferGeometry {
@@ -21,12 +21,13 @@ function merged(pieces:Piece[]):THREE.BufferGeometry {
   if(!result)throw Error('Assemblage du comptoir minier impossible');
   result.computeBoundingSphere();return result;
 }
-export function createMineHubView(hub:MineHubLayout,solid:THREE.Material,glow:THREE.Material):THREE.Group {
+export function createMineHubView(hub:MineHubLayout,solid:THREE.Material,glow:THREE.Material,resources:readonly MineResourceIcon[]=[]):THREE.Group {
   const root=new THREE.Group();root.name='MineHub:'+hub.mineId+':'+hub.levelId;
   root.position.set(hub.shaft.x,hub.floorY,hub.shaft.z);root.rotation.y=hub.heading;
   // Keep the hoist pulley and roof below the authored low ceiling (2.5–6 m).
   root.scale.y=Math.min(1,(hub.height-.18)/3.85);
-  root.userData={mineId:hub.mineId,levelId:hub.levelId,kind:'mine-hub'};
+  root.userData={mineId:hub.mineId,levelId:hub.levelId,kind:'mine-hub',
+    hasRearExit:hub.surfaceExit!==null,resourceIcons:[...resources],visualVersion:2};
   const parts:Piece[]=[],lamps:Piece[]=[];
   const box=(x:number,y:number,z:number,w:number,h:number,d:number,color:number,rz=0,light=false)=>{
     const g=new THREE.BoxGeometry(w,h,d);if(rz)g.rotateZ(rz);g.translate(x,y,z);
@@ -38,6 +39,20 @@ export function createMineHubView(hub:MineHubLayout,solid:THREE.Material,glow:TH
   };
   const stone=(x:number,y:number,z:number,rx:number,ry:number,rz:number,color:number,seed:number)=>{
     const g=new THREE.DodecahedronGeometry(1,0);g.scale(rx,ry,rz);g.rotateY((seed%9)*.33);g.translate(x,y,z);parts.push({geometry:g,color});
+  };
+  const oreSymbol=(kind:MineResourceIcon,x:number,y:number,z:number,scale=1)=>{
+    // Pictograms are real low-poly minerals, not billboard textures or invented labels.
+    if(kind==='crystal'){
+      const crystal=new THREE.OctahedronGeometry(1,0);
+      crystal.scale(.15*scale,.24*scale,.13*scale);
+      crystal.rotateZ(.12);crystal.translate(x,y,z);
+      parts.push({geometry:crystal,color:0x79dce4});
+      const side=new THREE.OctahedronGeometry(1,0);
+      side.scale(.095*scale,.16*scale,.09*scale);
+      side.rotateZ(-.25);side.translate(x+.14*scale,y-.06*scale,z);
+      parts.push({geometry:side,color:0x9a77e2});
+    } else stone(x,y,z,.18*scale,.13*scale,.15*scale,
+      kind==='iron'?0xb77740:0x898580,kind==='iron'?7:3);
   };
   const wood=0x865431,woodLight=0xb17b49,woodDark=0x593c2a,iron=0x606669,
     fabric=0xa75648,canvas=0xdfb88a;
@@ -51,9 +66,9 @@ export function createMineHubView(hub:MineHubLayout,solid:THREE.Material,glow:TH
   // Display crates, resource samples and two simple crossed pickaxes.
   box(-4.65,.27,-1.07,.75,.54,.75,woodLight);
   box(-4.65,.25,1.16,.75,.5,.75,wood);
-  stone(-3.13,1.38,-.98,.24,.19,.21,0x888783,4);
-  stone(-3.13,1.38,-.26,.21,.16,.2,0xa46d43,7);
-  stone(-3.13,1.41,.43,.17,.22,.18,0x7bd7e4,8);
+  // Showcase only minerals that actually occur in this floor's geology.
+  for(const [i,kind] of resources.slice(0,3).entries())
+    oreSymbol(kind,-3.13,1.41,-.98+i*.71,1.15);
   box(-4.53,1.6,-1.9,.08,1.16,.07,woodLight,.31);
   box(-4.28,1.57,-1.89,.08,1.16,.07,woodLight,-.31);
   box(-4.45,2.03,-1.9,.7,.13,.1,iron,.14);
@@ -78,6 +93,36 @@ export function createMineHubView(hub:MineHubLayout,solid:THREE.Material,glow:TH
   box(-1.2,2.81,3.75,3.24,.32,.36,woodDark);
   for(const x of [-2.3,-.1])box(x,2.52,3.75,.12,.85,.14,woodLight,x<0?-.45:.45);
   box(-1.2,3.06,3.73,2.9,.38,.27,woodLight);
+  // Gallery entrance: timber lintel with an in-world row of genuine ore pictograms.
+  box(-1.2,3.34,3.51,2.65,.38,.17,woodDark);
+  for(const [i,kind] of resources.slice(0,3).entries()){
+    const count=Math.min(resources.length,3),x=-1.2+(i-(count-1)/2)*.65;
+    box(x,3.34,3.39,.52,.32,.07,0xa47a4b);
+    oreSymbol(kind,x,3.35,3.26,.74);
+  }
+  // Ground-level entrance to extraction: thin inset rails and sleepers.
+  // They remain decoration; the mine's occupancy grid handles all actual collisions.
+  for(const x of [-1.54,-.86])box(x,.046,4.24,.075,.07,1.35,iron);
+  for(const z of [3.84,4.18,4.52])box(-1.2,.038,z,1.14,.07,.15,woodDark);
+  // Rear exit to the island is on the SAME floor, opposite the gallery, and
+  // exists only on level 1. No arch, stairs or exit marker appears on deeper floors.
+  if(hub.surfaceExit){
+    for(const x of [-2.7,.3]){
+      box(x,1.32,-3.66,.33,2.64,.37,wood);
+      box(x,1.36,-3.42,.09,2.42,.08,woodLight);
+    }
+    box(-1.2,2.81,-3.66,3.28,.37,.4,woodDark);
+    box(-1.2,3.12,-3.47,2.6,.32,.16,woodLight);
+    // A carved arrow and a green island/leaf icon, visible when facing the exit.
+    box(-1.47,3.12,-3.35,.64,.08,.06,woodDark);
+    box(-1.82,3.12,-3.35,.24,.09,.06,woodDark,.65);
+    box(-1.82,3.12,-3.35,.24,.09,.06,woodDark,-.65);
+    box(-.78,3.11,-3.34,.075,.22,.07,0x537b49);
+    const leaf=new THREE.OctahedronGeometry(1,0);leaf.scale(.21,.19,.08);
+    leaf.rotateZ(.42);leaf.translate(-.78,3.28,-3.34);
+    parts.push({geometry:leaf,color:0x83a95b});
+    // Do NOT place a closed door mesh: walking through the rear corridor is instant.
+  }
   // Lift: solid support towers, overhead winding wheel, hanging ropes and OPEN platform.
   for(const x of [-.83,.83])for(const z of [-.95,.95])box(x,1.55,z,.19,3.1,.19,woodDark);
   box(0,3.1,-.95,2.05,.28,.24,wood);
