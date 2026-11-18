@@ -112,7 +112,7 @@ export function createActivityView(parent:THREE.Object3D,activities:ActivityRunt
     const wanted=new Set<string>();let builds=0;
     for(const [id,m] of activities.mines){
       const active=space?.zoneId===id?m.state.grid.levelIndex(space.levelId):-1;
-      for(const marker of mineMarkers.get(id)??[]){const l=m.zone.mine.levels.findIndex(v=>v.id===marker.userData.level);marker.visible=active>=0&&l===active;
+      for(const marker of mineMarkers.get(id)??[]){const l=m.zone.mine.levels.findIndex(v=>v.id===marker.userData.levelId);marker.visible=active>=0&&l===active;
         if(marker.visible&&marker.userData.lazyMineHub)initialiseHub(id,marker,l);}
       if(active<0)continue;
       for(const level of [active,active-1,active+1]){if(level<0||level>=m.state.grid.levels.length)continue;
