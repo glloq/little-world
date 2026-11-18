@@ -43,7 +43,9 @@ La conservation **fret ↔ fret** est atomique dans une seule valeur `localStora
 
 Un **achat joueur** met à jour deux autorités distinctes : l'inventaire gameplay et le ledger cargo. En mémoire, l'opération est vérifiée et toute erreur d'écriture du ledger provoque un remboursement de pièces et le retrait de l'article. Après succès, le jeu déclenche immédiatement une sauvegarde `slot-ferry-auto` au mieux.
 
-**Risque restant :** une fermeture/crash du navigateur **entre** la validation du ledger et l'écriture du slot de jeu peut laisser les deux autorités divergentes. L'achat n'est donc **pas encore garanti exactement une fois de bout en bout après crash**. Pour la qualification finale ECO-7, prévoir une transaction à journal durable avec receipts/acknowledgements ou intégrer le sac portable dans un checkpoint atomique commun ; vérifier la cohérence avec la PR #62 (inventaire inter-îles). **Ne pas déclarer cette PR qualifiée pour l'économie multi-joueurs**.
+**Reprise après crash ECO-7.1 (livrée dans cette branche) :** le registre cargo contient maintenant `buyerCheckpoint` (île, monde, révision et **inventaire complet immédiatement après l'achat**) dans **la même écriture localStorage** que la baisse du lot et la création de la facture. Le slot gameplay stocke `cargoPurchaseRevision` dans la **même sauvegarde que l'inventaire**. Au redémarrage, le client compare les révisions : si l'achat cargo est plus récent que le slot, il restaure le sac du registre avant de sauvegarder un slot cohérent. Si un voyage vient d'arriver, **le sac du voyageur est prioritaire** et la révision est acquittée pour éviter une restitution en double. Un rechargement simple après achat ne réinitialise donc pas les pièces et marchandises.
+
+**Limites restantes :** plusieurs onglets en écriture simultanée ne sont pas gérés par une autorité transactionnelle commune ; un changement volontaire de profil/sauvegarde antérieure mérite une politique explicite (ECO-9). Le checkpoint n'est qu'un point de reprise pour **le navigateur solo**, pas une garantie multijoueur. Les achats sont validés par `purse.apply` et une erreur d'écriture du registre est compensée immédiatement.
 
 Autre limite du stockage navigateur : deux onglets simultanés qui vendent les mêmes marchandises ne sont pas synchronisés comme un serveur ; les transactions communes devront utiliser un verrou ou une autorité serveur au stade multijoueur.
 
@@ -57,7 +59,8 @@ Autre limite du stockage navigateur : deux onglets simultanés qui vendent les m
 - refus des demandes dupliquées, du sac plein, du solde insuffisant et de la quantité épuisée ;
 - consommation des dernières réserves sans apparition de marchandise « gratuite » ;
 - rattrapage borné d'absence, sans synchronisation de scène WebGL ;
-- stockage défaillant : rollback du débit d'inventaire, pas de stock perdu.
+- stockage défaillant : rollback du débit d'inventaire, pas de stock perdu ;
+- même achat et inventaire après rechargement : reprise par `buyerCheckpoint` et acquittement `cargoPurchaseRevision` ; test Chromium de persistance après achat.
 
 **Qualification restante** : tests navigateurs réels de l'ouverture de ce nouveau panneau près du quai, navigation A→B→A puis rechargement après achat, comportement si `localStorage` plein ; vérification conjointe avec #62 avant merge final.
 
