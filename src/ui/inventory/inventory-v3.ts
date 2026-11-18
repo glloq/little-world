@@ -1,7 +1,6 @@
 /** Inventory V3: fixed stock/hamster/favourites layout, pointer drag and long-press selection.
  * View-only state stays here. Every mutation is delegated to gameplay actions.
  */
-import type {ItemDefinition} from '../../gameplay/schema.ts';
 import {foodGasValue} from '../../gameplay/food-effects.ts';
 import {el,button} from '../shared/dom.ts';
 import {inventoryViewModel,type InventoryDeps,type InventoryEntry} from './inventory.ts';
