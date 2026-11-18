@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createProject,parseProject} from '../src/studio-core/schema.ts';
+import {projectGeography} from '../src/studio-core/geo-context.ts';
+import {projectRaceTerrainEnvironment} from '../src/studio-core/race-terrain-context.ts';
 import {findRaceTerrainPlacements,inspectRaceTerrain,raceFromTerrainPlacement} from '../src/studio-core/race-terrain-planner.ts';
 import {putAuthoredRace,sourceRaceKey} from '../src/studio-core/race-authoring.ts';
 const clearEnv={
@@ -64,4 +66,13 @@ test('planner rejects unwalkable transverse slopes and never invents a bridge ac
  const river={...clearEnv,water:(x,z)=>z>20&&z<400?220:null};
  const r=findRaceTerrainPlacements(river,{anchor:{x:0,z:0},style:'downhill'});
  for(const candidate of r.candidates)assert.ok(inspectRaceTerrain(candidate.track,river,'downhill').valid);
+});
+
+test('real V3 source adapter uses the project geography, not the mutable runtime singleton',()=>{
+ const p=createProject({name:'Terrain V3',worldId:'world-v3',width:1200,length:1200,seed:100});
+ const adapter=projectRaceTerrainEnvironment(p),geo=projectGeography(p).ctx;
+ for(const q of [{x:0,z:0},{x:-120,z:240},{x:280,z:-190}]){
+  assert.equal(adapter.height(q.x,q.z),geo.height(q.x,q.z));
+  assert.equal(adapter.water(q.x,q.z,adapter.height(q.x,q.z)),geo.water(q.x,q.z,geo.height(q.x,q.z)));
+ }
 });
