@@ -1170,7 +1170,7 @@ function draw(now: number) {
         boatPosition: [boat.x, boat.y, boat.z],
         boats: { count: fleet.boats.length, aboard, current: fleet.current?.id ?? null },
         ferry: activeIsland ? {islandId:activeIsland.id,level:activeIsland.portLevel,boat:ferryDock,boarding:ferryBoardingPoint,present:ferryNow.present,minutesUntilDeparture:ferryNow.minutesUntilDeparture,worldId:gameplay?.runtime.data.worldId??null} : null,
-        maritimePort:portN1Layout?{active:true,level:1,stand:portN1Layout.stand,trade:portN1Layout.trade,boarding:portN1Layout.boarding,merchant:portN1Layout.vendor,rower:portN1Layout.rower,merchantPresent:merchantPresent(),boatPresent:ferryNow.present}: {active:false},
+        maritimePort:portN1Layout?{active:true,level:1,stand:portN1Layout.stand,trade:portN1Layout.trade,boarding:portN1Layout.boarding,merchant:portN1Layout.vendor,rower:portN1Layout.rower,merchantPresent:merchantPresent(),merchantNear:merchantNear(),boatPresent:ferryNow.present}: {active:false},
         paths: { ...world.paths },
         lights: { ...world.lights.stats },
         activities: activityView&&gameplay ? { ...activityView.stats, space: player.space ?? null,
