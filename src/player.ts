@@ -203,6 +203,12 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
     p.oxygen=Math.min(MAX_OXYGEN,p.oxygen+dt*9);
     return;
   }
+  // Leaving the playable swell (shore, teleport, equipment change) ends surf airborne.
+  // Otherwise the normal air controller could keep a stale board/surf state forever.
+  if(p.surfAirborne&&!surfReady){
+    p.surfAirborne=false;p.surfStage=undefined;p.glideReady=false;
+    if(p.mode==='surf')p.mode='air';
+  }
   if(p.mode==='surf'){p.mode='swim';p.surfStage=undefined;p.surfAirborne=false;}
   const assisted=keys.jumpAssist===true;
   let jumpHandled=false;
