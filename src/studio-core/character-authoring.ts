@@ -6,6 +6,7 @@ import {chunkAt,string,CHARACTER_SPECIES,rigForSpecies} from './schema.ts';
 import {visualNPCSpecies} from '../npc-life/species.ts';
 import {putEntity} from './source.ts';
 import {resolveEntity} from './references.ts';
+import {validResidentRoutine,type ResidentRoutineV1} from '../npc-life/schedule.ts';
 export function createCharacter(project:ProjectDocument,options:{id:string;name:string;x:number;z:number;species:CharacterSpecies}){
  string(options.id,'ID personnage',80);
  if(project.entityIndex[options.id])throw Error('Cet identifiant existe déjà');if(!options.name.trim()||options.name.length>80||options.id.length>80||!(CHARACTER_SPECIES as readonly string[]).includes(options.species))throw Error('Personnage invalide');
@@ -25,4 +26,15 @@ export function setCharacterPath(project:ProjectDocument,id:string,path:{x:numbe
  if(!resolved.components.Character)throw Error('Seuls les personnages ont un trajet');const behaviorId='behavior:'+id;
  const entity=materializeComponents(source,{Navigation:{type:'Navigation',behaviorId,speed:resolved.components.Navigation?.speed||1,radius:resolved.components.Navigation?.radius??8,path:path.map(p=>({x:p.x,z:p.z}))},BehaviorRef:{type:'BehaviorRef',behaviorId}});
  project.libraries.behaviors={...project.libraries.behaviors,[behaviorId]:{id:behaviorId,kind:'patrol'}};putEntity(project,entity);
+}
+
+/** Update an authored daily routine without modifying identity, dialogue or legacy behavior. */
+export function setResidentRoutine(project:ProjectDocument,id:string,routine:ResidentRoutineV1|null){
+ const index=project.entityIndex[id];if(!index||!project.chunks[index.ownerChunkId])throw Error('Charger le secteur du personnage');
+ const source=project.chunks[index.ownerChunkId].entities[id];if(!resolveEntity(project,source).components.Character)throw Error('Une routine exige un personnage');
+ if(routine&&!validResidentRoutine(routine))throw Error('Routine horaire invalide');
+ const entity=structuredClone(source);
+ if(routine)entity.components.Resident=structuredClone(routine);
+ else delete entity.components.Resident;
+ putEntity(project,entity);
 }
