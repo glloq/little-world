@@ -35,6 +35,7 @@ import {createCargoService} from './archipelago/cargo-logistics.ts';
 import {createFerryView} from './archipelago/ferry-view.ts';
 import {planPortN1,portActorPresence} from './archipelago/port-n1-plan.ts';
 import {createPortN1View} from './archipelago/port-n1-view.ts';
+import {attachPortN1Collisions} from './archipelago/port-n1-collisions.ts';
 import {withFerryBells} from './archipelago/ferry-audio.ts';
 import {showFerryCinematic,holdFerryArrival} from './ui/ferry/ferry-cinematic.ts';
 import {worldAsset} from './world-production/registry.ts';
@@ -322,6 +323,7 @@ const ferryDock=(()=>{
 const ferryBoardingPoint=activeIsland?(portN1Layout?.boarding??
   {x:ferryAnchor?.x??player.position.x,z:ferryAnchor?.z??player.position.z}):null;
 const portN1View=portN1Layout?createPortN1View(scene,portN1Layout,import.meta.env.BASE_URL):null;
+const detachPortCollisions=portN1Layout&&gameplay?attachPortN1Collisions(gameplay.collision,portN1Layout):null;
 const ferryView=portN1View??(ferryDock?createFerryView(scene,ferryDock):null);
 const canBoardFerry=()=>!!ferryBoardingPoint&&!!ferryDock&&!player.space&&!aboard&&
   Math.hypot(player.position.x-ferryBoardingPoint.x,player.position.z-ferryBoardingPoint.z)<(portN1Layout?2.8:4.5)&&
@@ -1168,6 +1170,7 @@ function draw(now: number) {
         boatPosition: [boat.x, boat.y, boat.z],
         boats: { count: fleet.boats.length, aboard, current: fleet.current?.id ?? null },
         ferry: activeIsland ? {islandId:activeIsland.id,level:activeIsland.portLevel,boat:ferryDock,boarding:ferryBoardingPoint,present:ferryNow.present,minutesUntilDeparture:ferryNow.minutesUntilDeparture,worldId:gameplay?.runtime.data.worldId??null} : null,
+        maritimePort:portN1Layout?{active:true,level:1,stand:portN1Layout.stand,boarding:portN1Layout.boarding,merchant:portN1Layout.vendor,rower:portN1Layout.rower,merchantPresent:merchantPresent(),boatPresent:ferryNow.present}: {active:false},
         paths: { ...world.paths },
         lights: { ...world.lights.stats },
         activities: activityView&&gameplay ? { ...activityView.stats, space: player.space ?? null,
@@ -1212,7 +1215,7 @@ function draw(now: number) {
   }
   requestAnimationFrame(draw);
 }
-window.addEventListener('pagehide',event=>{if(event.persisted)void audio?.engine.setHidden(true);else {ferryView?.dispose();remoteActors?.dispose();gasEffects.dispose();flightRings.dispose();flightCourseHud.remove();speedStreaks.dispose();gpuTimer.dispose();void audio?.dispose();}});
+window.addEventListener('pagehide',event=>{if(event.persisted)void audio?.engine.setHidden(true);else {detachPortCollisions?.();ferryView?.dispose();remoteActors?.dispose();gasEffects.dispose();flightRings.dispose();flightCourseHud.remove();speedStreaks.dispose();gpuTimer.dispose();void audio?.dispose();}});
 window.addEventListener('pageshow',event=>{if(event.persisted&&started)void audio?.engine.setHidden(document.hidden);});
 document.addEventListener('visibilitychange', () => {
   presentation.reset();
