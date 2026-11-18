@@ -17,6 +17,8 @@ import {inventoryPanel} from '../inventory/inventory.ts';
 import {journalPanel,questChanges} from '../journal/journal.ts';
 import {createMapRaster,mapPanel,type MapMarker,type MapDeps} from '../map/map.ts';
 import {createMinimap} from '../map/minimap.ts';
+import {createMineMapPanel,type MineMapSnapshot} from '../map/mine-map.ts';
+import {mineHubLayout} from '../../mine/mine-hub.ts';
 import {createWaypointStore} from '../map/waypoints.ts';
 import {hudIcon} from '../shared/icons.ts';
 import {savesPanel} from '../saves/saves.ts';
@@ -94,8 +96,18 @@ export function createGameUi(deps:GameUiDeps){
     return out;
   };
   const mapDeps:MapDeps={bounds:deps.world.bounds,height:deps.world.height,water:deps.world.water,seaLevel:deps.world.seaLevel,markers,onMarkerAction:marker=>{if(marker.kind==='ferry'&&deps.ferry)ui.open('ferry');},player:()=>{const p=deps.player();return {x:p.x,z:p.z,yaw:p.yaw};}};
+  const mineMapContext=():MineMapSnapshot|null=>{
+    const p=deps.player(),space=p.space,m=space?a?.mines.get(space.zoneId):null;
+    if(!m||!space)return null;
+    const level=m.state.grid.levelIndex(space.levelId);
+    if(level<0)return null;
+    return {mineId:space.zoneId,mineName:m.zone.name,level,levelName:m.zone.mine.levels[level].name,
+      state:m.state,hub:mineHubLayout(m.zone,level),player:{x:p.x,z:p.z,yaw:p.yaw}};
+  };
+  const mineMap=createMineMapPanel(mineMapContext);
   const mapRaster=createMapRaster(mapDeps),map=mapPanel(mapDeps,mapRaster,waypoints);
-  ui.register('map','Carte',{render:b=>map.render(b),onClose:()=>map.close()});
+  ui.register('map','Carte',{render:b=>mineMapContext()?mineMap.render(b):map.render(b),
+    onClose:()=>{mineMap.close();map.close();}});
   if(deps.ferry)ui.register('ferry','Voyage entre les îles',{pauses:true,
     render:b=>renderFerryPanel(b,{...deps.ferry!,...(deps.importTrade?{importStand:{
       canUse:()=>deps.importTrade!.canUse(),
@@ -216,7 +228,7 @@ export function createGameUi(deps:GameUiDeps){
     const b=button('',()=>ui.toggle(id),'ui-quick');b.append(hudIcon(icon),el('span','ui-quick-label',label),kbd(key));
     b.setAttribute('aria-label',label+' ('+key+')');b.dataset.panel=id;quick.append(b);
   }
-  const minimap=createMinimap(mapDeps,mapRaster,()=>ui.open('map'));
+  const minimap=createMinimap(mapDeps,mapRaster,()=>ui.open('map'),mineMapContext);
   const tool=el('div','ui-tool hide'),oxygen=el('div','ui-oxygen hide');oxygen.setAttribute('role','meter');oxygen.setAttribute('aria-label','Oxygène');
   const oxyFill=el('span','ui-meter-fill');oxygen.append(el('span','','Oxygène'),el('span','ui-meter-track'));oxygen.lastElementChild!.append(oxyFill);
   const stamina=el('div','ui-oxygen ui-stamina hide');stamina.setAttribute('role','meter');stamina.setAttribute('aria-label','Endurance');
@@ -291,7 +303,7 @@ export function createGameUi(deps:GameUiDeps){
        const muted=!!deps.audio?.engine.settings.muted,iconName=muted?'mute':'volume';
        if(soundButton.dataset.icon!==iconName){soundButton.replaceChildren(hudIcon(iconName));soundButton.dataset.icon=iconName;soundButton.title=muted?'Son coupé · ouvrir le mixeur':'Régler le son';}
        minimap.update();
-       if(ui.active==='map')map.refresh();
+       if(ui.active==='map'){if(mineMapContext())mineMap.refresh();else map.refresh();}
       gas.classList.toggle('hide',p.mode!=='glide'||ui.blocking);
       if(p.mode==='glide'){
         const n=p.gasShots??0,max=p.gasMaxShots??14,cd=p.gasCooldown??0;
