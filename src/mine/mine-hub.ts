@@ -2,6 +2,7 @@
  * One vertical lift shaft is shared by all levels. Geometry is a derived view; occupancy and
  * rights remain pure gameplay state. Coordinates are world XZ, Y vertical. */
 import type {MineZone} from './mine-data.ts';
+import type {MineState} from './mine-state.ts';
 
 export interface MineHubLayout {
   mineId:string; levelId:string; levelIndex:number; floorY:number; height:number;
@@ -10,6 +11,8 @@ export interface MineHubLayout {
   counter:{x:number;z:number};
   keeper:{x:number;z:number};
   gallery:{x:number;z:number};
+  /** Rear doorway toward the island, only on the first floor (never above the gallery). */
+  surfaceExit:{x:number;z:number}|null;
 }
 /** The first authored stair is the shaft reference, preserving existing gallery routes.
  * For a single-level mine a point a few metres along the entrance corridor is used. */
@@ -23,7 +26,8 @@ export function mineHubLayout(zone:MineZone,levelIndex:number):MineHubLayout {
     {x:Math.floor(entrance.x+f.x*7)+.5,z:Math.floor(entrance.z+f.z*7)+.5};
   const at=(a:number,b:number)=>({x:shaft.x+r.x*a+f.x*b,z:shaft.z+r.z*a+f.z*b});
   return {mineId:zone.id,levelId:level.id,levelIndex,floorY:level.floorY,height:level.height,
-    heading,shaft,counter:at(-3.2,0),keeper:at(-4.05,0),gallery:at(-1.4,4)};
+    heading,shaft,counter:at(-3.2,0),keeper:at(-4.05,0),gallery:at(-1.4,4),
+    surfaceExit:levelIndex===0?at(-1.4,-3.75):null};
 }
 /** Floor-space reservations on the player's authorised excavation grid.
  * This only opens cells INSIDE the existing mine polygon, not the exterior heightfield.
@@ -32,7 +36,7 @@ export function mineHubCell(hub:MineHubLayout,ix:number,iz:number):boolean {
   const s=Math.sin(hub.heading),c=Math.cos(hub.heading);
   const dx=ix+.5-hub.shaft.x,dz=iz+.5-hub.shaft.z;
   const right=dx*c-dz*s,forward=dx*s+dz*c;
-  return right>=-5.5&&right<=2.5&&forward>=-3.5&&forward<=4.5;
+  return right>=-5.5&&right<=2.5&&forward>=-4.75&&forward<=4.5;
 }
 export function mineRequiredExcavations(levelIndex:number):number {
   return levelIndex<=0?0:levelIndex===1?12:40+(levelIndex-2)*40;
@@ -42,4 +46,23 @@ export function mineLevelUnlocked(levelIndex:number,excavations:number):boolean 
 }
 export function mineHubCounterId(mineId:string,levelId:string):string {
   return 'mine-hub:'+mineId+':'+levelId;
+}
+
+/** 3D pictograms derive from minerals actually found in the authored level. Shared visual
+ * model for every mine; only the icons and colours vary. Bounded scan, never an ore claim
+ * based solely on a theme or on what another level contains. */
+export type MineResourceIcon='stone'|'iron'|'crystal';
+export function mineLevelResourceIcons(state:MineState,levelIndex:number):MineResourceIcon[]{
+  const grid=state.grid,seen=new Set<MineResourceIcon>();
+  if(levelIndex<0||levelIndex>=grid.levels.length)return [];
+  const stride=Math.max(1,Math.ceil(Math.sqrt(grid.width*grid.depth/12000)));
+  for(let iz=grid.minZ;iz<grid.minZ+grid.depth;iz+=stride)
+    for(let ix=grid.minX;ix<grid.minX+grid.width;ix+=stride){
+      const material=state.material(levelIndex,ix,iz);
+      if(material===2||material===3)seen.add('stone');
+      else if(material===4)seen.add('iron');
+      else if(material===5)seen.add('crystal');
+      if(seen.size===3)return ['stone','iron','crystal'];
+    }
+  return (['stone','iron','crystal'] as const).filter(icon=>seen.has(icon));
 }
