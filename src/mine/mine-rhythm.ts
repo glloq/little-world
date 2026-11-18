@@ -27,6 +27,23 @@ export function mineRhythmAccuracy(material:number,elapsedMs:number):StrikeAccur
 export function mineAccuracyMultiplier(quality:StrikeAccuracy):number{
   return quality==='perfect'?1.30:quality==='good'?1.15:1;
 }
+/** Mining V7: one cycle harvests materials and removes EXACTLY one durability
+ * point. Fixed-point work allows 5 normal, 4 good, or 3 perfect hits. A mix
+ * resolves in 3–5 accepted strikes without using wall-clock RNG for rewards. */
+export const MINE_WORK_PER_CYCLE=15;
+export function mineStrikeWork(accuracy:StrikeAccuracy):number{
+  return accuracy==='perfect'?5:accuracy==='good'?4:3;
+}
+/** Material difficulty is independent of the speed of the mining cursor.
+ * Old hp remains only for migration of already-struck cells in older saves. */
+export const MINE_DURABILITY:readonly number[]=[0,2,3,5,7,11,0];
+export function mineBlockDurability(material:number):number{
+  return MINE_DURABILITY[material]??3;
+}
+export function mineHitsUntilCycle(work:number,quality:StrikeAccuracy='good'):number{
+  return Math.max(1,Math.ceil((MINE_WORK_PER_CYCLE-Math.max(0,Math.min(14,work)))/mineStrikeWork(quality)));
+}
+
 /** Integer hash in [0,1), stable across save/reload, frame rate and input devices. */
 export function mineHash(level:number,ix:number,iz:number,cycle:number):number{
   let h=Math.imul(ix,0x27d4eb2d)^Math.imul(iz,0x165667b1)^
@@ -37,9 +54,9 @@ export function mineHash(level:number,ix:number,iz:number,cycle:number):number{
 export function mineHitsPerResult(material:number):number{
   return MINE_RHYTHMS[material]?.hitsPerResult??4;
 }
-/** Most interim payouts are low-value stone/earth; a rare enriched one can
- * contain the cell's actual ore. Final excavation still grants its base ore.
- * One roll every N *successful* strikes on the same cell, not per refresh. */
+/** One payout at each completed 3–5-strike cycle. Most payouts are common
+ * debris, a single late rare payout can be the embedded ore. The final
+ * durability point is handled separately and yields slightly more ore. */
 export function mineInterimReward(
   material:number,quality:StrikeAccuracy,level:number,ix:number,iz:number,cycle:number,
 ):{itemId:string;quantity:number}{
