@@ -28,8 +28,8 @@ export function mineHubLayout(zone:MineZone,levelIndex:number):MineHubLayout {
 /** Floor-space reservations on the player's authorised excavation grid.
  * This only opens cells INSIDE the existing mine polygon, not the exterior heightfield.
  * Broad faceted walls/props must remain inside this void (logical bounds stay canonical). */
-export function mineHubCell(zone:MineZone,levelIndex:number,ix:number,iz:number):boolean {
-  const hub=mineHubLayout(zone,levelIndex),s=Math.sin(hub.heading),c=Math.cos(hub.heading);
+export function mineHubCell(hub:MineHubLayout,ix:number,iz:number):boolean {
+  const s=Math.sin(hub.heading),c=Math.cos(hub.heading);
   const dx=ix+.5-hub.shaft.x,dz=iz+.5-hub.shaft.z;
   const right=dx*c-dz*s,forward=dx*s+dz*c;
   return right>=-5.5&&right<=2.5&&forward>=-3.5&&forward<=4.5;
