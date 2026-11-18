@@ -56,6 +56,12 @@ try{
   await page.locator('.ui-shop-row[data-job] button',{hasText:'Récupérer'}).first().click();
   await page.waitForFunction(()=>window.littleWorldMetrics?.inventory?.['material:plank']===4,{},{timeout:5000});
   check(true,'Wood logs transformed into four planks and collected from the workshop');
+  // ECO-6: crafted planks are a real tradable good at the same counter, with island prices.
+  await page.getByRole('button',{name:'Acheter / vendre'}).click();
+  const crafted=page.locator('.ui-shop-row[data-item="material:plank"]');
+  await crafted.getByRole('button',{name:'Tout vendre'}).click();
+  await page.waitForFunction(()=>!window.littleWorldMetrics?.inventory?.['material:plank'],{},{timeout:5000});
+  check((await m()).inventory.coin===26+4*11,'4 crafted planks sold at the volcanic-island market price');
   await page.keyboard.press('Escape');await page.waitForTimeout(300);
   // 2. Fell a tree: stand 1.4 m from it, facing it.
   const ang=Math.atan2(cp.x-tree.x,cp.z-tree.z),sx=tree.x+Math.sin(ang)*1.4,sz=tree.z+Math.cos(ang)*1.4;

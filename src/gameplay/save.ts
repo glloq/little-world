@@ -3,6 +3,7 @@ import {parseMineSave,type MineSaveState} from '../mine/mine-state.ts';
 import {parsePlotState,type FarmPlotState} from '../farm/farm-sim.ts';
 import {parseGatherSave} from './gathering.ts';
 import {parseWorkshopState,type WorkshopStateV1} from '../economy/production.ts';
+import {parseMarketState,type MarketStateV1} from '../economy/island-markets.ts';
 import {GAS,gasCapacity} from '../physics/gas-propulsion.ts';
 import {parseFlightProgress,type FlightProgress} from './flight-progress.ts';
 import {indexedDbBlobStore,type BlobStore} from './save-blobs.ts';
@@ -12,7 +13,8 @@ export interface GameSaveV1 {schemaVersion:1;worldId:string;worldBuildVersion:st
  * localStorage key, written last as the commit point. V1 slots are migrated on read. */
 export interface GameSaveV2 extends Omit<GameSaveV1,'schemaVersion'> {schemaVersion:2;gasReserve?:number;flightProgress?:FlightProgress;space?:{zoneId:string;levelId:string}|null;mines:Record<string,MineSaveState>;farms:Record<string,FarmPlotState>;external?:{key:string;bytes:number};
   /** Gathered natural elements not grown back yet (optional, World Production gameplay). */gathering?:import('./gathering.ts').GatherSave;
-  /** Per-station workshop queues and finished products; missing in older V2 saves. */workshops?:Record<string,WorkshopStateV1>}
+  /** Per-station workshop queues and finished products; missing in older V2 saves. */workshops?:Record<string,WorkshopStateV1>;
+  /** Per-counter budgets, physical stock and applied transaction IDs. */markets?:Record<string,MarketStateV1>}
 export type GameSave=GameSaveV2;
 /** Activity payloads above this size go to IndexedDB (when available). */
 export const INLINE_ACTIVITY_LIMIT=256*1024;
@@ -42,11 +44,20 @@ export function parseGameSave(value:unknown):GameSaveV2 {
       workshops[id]=parsed;
     }
   }
+  const markets:Record<string,MarketStateV1>={};
+  if(v.markets!==undefined){
+    assert(record(v.markets)&&Object.keys(v.markets).length<=128,'Marchés sauvegardés invalides');
+    for(const [shopId,value] of Object.entries(v.markets as object)){
+      const state=parseMarketState(value);
+      assert(identifier(shopId)&&state.shopId===shopId,'Identité de marché incohérente');
+      markets[shopId]=state;
+    }
+  }
   const flightProgress=parseFlightProgress(v.flightProgress);
   if(v.gasReserve!==undefined)assert(typeof v.gasReserve==='number'&&Number.isFinite(v.gasReserve)&&v.gasReserve>=0&&v.gasReserve<=gasCapacity({gasCapacityLevel:flightProgress.capacityLevel}),'Réserve de gaz invalide');
   if(v.external!==undefined)assert(record(v.external)&&typeof v.external.key==='string'&&v.external.key.length<=300&&finite(v.external.bytes,0,1e9),'Référence de données de partie invalide');
-  assert(new TextEncoder().encode(JSON.stringify({...v,mines:undefined,farms:undefined,workshops:undefined})).byteLength<=2_000_000,'Sauvegarde trop volumineuse');
-  return structuredClone({...v,flightProgress,gasReserve:v.gasReserve??GAS.legacyInitial,schemaVersion:2,dialogueFlags:v.dialogueFlags??{},space:v.space??null,mines,farms,workshops}) as unknown as GameSaveV2;
+  assert(new TextEncoder().encode(JSON.stringify({...v,mines:undefined,farms:undefined,workshops:undefined,markets:undefined})).byteLength<=2_000_000,'Sauvegarde trop volumineuse');
+  return structuredClone({...v,flightProgress,gasReserve:v.gasReserve??GAS.legacyInitial,schemaVersion:2,dialogueFlags:v.dialogueFlags??{},space:v.space??null,mines,farms,workshops,markets}) as unknown as GameSaveV2;
 }
 export const GAME_SAVE_PREFIX='little-world:game-save:v1:';
 export interface SaveStorage {readonly length:number;key(index:number):string|null;getItem(key:string):string|null;setItem(key:string,value:string):void;removeItem(key:string):void;}
@@ -60,7 +71,8 @@ export function createGameSaveStore(provided?:SaveStorage,blobStore?:BlobStore|n
   async function inflate(save:GameSaveV2):Promise<GameSaveV2>{
     if(!save.external)return save;const raw=await blobs()?.get(save.external.key);
     if(raw==null)throw Error('Données détaillées de la partie (mines, parcelles) introuvables : le stockage du navigateur a peut-être été effacé. Importez une sauvegarde exportée.');
-    const extra=JSON.parse(raw);const {external:_,...rest}=save;return parseGameSave({...rest,mines:extra.mines,farms:extra.farms,workshops:extra.workshops??rest.workshops??{}});
+    const extra=JSON.parse(raw);const {external:_,...rest}=save;return parseGameSave({...rest,mines:extra.mines,farms:extra.farms,workshops:extra.workshops??rest.workshops??{},
+      markets:extra.markets??rest.markets??{}});
   }
   const worldPrefix=(worldId:string)=>{if(!identifier(worldId))throw Error('Monde invalide');return GAME_SAVE_PREFIX+encodeURIComponent(worldId)+':';};
   const key=(worldId:string,slotId:string)=>{if(!identifier(slotId))throw Error('Slot invalide');return worldPrefix(worldId)+encodeURIComponent(slotId);};
@@ -74,11 +86,11 @@ export function createGameSaveStore(provided?:SaveStorage,blobStore?:BlobStore|n
     async save(value:GameSaveV1|GameSaveV2):Promise<{external:boolean}>{
       const parsed=await inflate(parseGameSave(value)),s=storage(),k=key(parsed.worldId,parsed.slotId),previousRaw=s.getItem(k);
       if(previousRaw===null&&(await list(parsed.worldId)).length>=10)throw Error('Maximum de dix slots atteint pour ce monde');
-      const activity=JSON.stringify({mines:parsed.mines,farms:parsed.farms,workshops:parsed.workshops??{}}),store=blobs();let manifest:GameSaveV2=parsed,blobKey:string|null=null;
+      const activity=JSON.stringify({mines:parsed.mines,farms:parsed.farms,workshops:parsed.workshops??{},markets:parsed.markets??{}}),store=blobs();let manifest:GameSaveV2=parsed,blobKey:string|null=null;
       if(activity.length>INLINE_ACTIVITY_LIMIT){
         if(!store)throw Error('Partie trop volumineuse pour le stockage local de ce navigateur (IndexedDB indisponible) : utilisez « Exporter la partie en cours ».');
         blobKey=`${parsed.worldId}:${parsed.slotId}:${parsed.savedAt}:${Math.random().toString(36).slice(2,8)}`;await store.set(blobKey,activity);
-        manifest={...parsed,mines:{},farms:{},workshops:{},external:{key:blobKey,bytes:activity.length}};
+        manifest={...parsed,mines:{},farms:{},workshops:{},markets:{},external:{key:blobKey,bytes:activity.length}};
       }
       try{s.setItem(k,JSON.stringify(manifest));}catch(e){if(blobKey)await store?.delete(blobKey);throw Error('Stockage local indisponible ou plein ('+(e instanceof Error?e.message:String(e))+') : utilisez « Exporter la partie en cours ».');}
       // The new manifest is committed: the previous detached payload of this slot can go.

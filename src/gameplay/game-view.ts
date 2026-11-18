@@ -11,18 +11,19 @@ import {newFlightProgress,type FlightProgress} from './flight-progress.ts';
 import {gameplayDialogueSession} from './dialogue-session.ts';
 import {createGameSaveStore,scopedSaveStorage,parseGameSave,type GameSaveV2} from './save.ts';
 import {createActivityRuntime} from './activity-runtime.ts';
-import {COIN,STARTING_COINS,STARTING_KIT,SHOPS,buy,sell,type ShopKind} from './economy.ts';
+import {COIN,STARTING_COINS,STARTING_KIT,type ShopKind} from './economy.ts';
 import {PRODUCTION_ITEMS} from '../economy/starter-catalog.ts';
 import {MINE_ITEMS} from '../mine/mine-data.ts';
 import {FARM_ITEMS} from '../farm/farm-data.ts';
 import {createShopWorkshops} from '../economy/workshop-services.ts';
+import {createIslandMarkets} from '../economy/island-markets.ts';
 import {createTreeColliders} from './tree-colliders.ts';
 import {createGathering,createFishing,type GatherDeps} from './gathering.ts';
 import type {PlayableActivities} from './activities.ts';
 import type {MovementSpace} from '../physics/collision-world.ts';
 import type {GameplayData,GameplayEntity,Point3} from './schema.ts';
 
-interface Options {gathering?:Omit<GatherDeps,'time'|'grant'|'has'>;onSound?:(id:string,position?:{x:number;y:number;z:number})=>void;collisions?:CollisionDefinition[];temporary:boolean;saveScope?:string;getPosition:()=>Point3;setPosition:(p:Point3,space?:MovementSpace|null)=>void;activities?:PlayableActivities;getSpace?:()=>MovementSpace|undefined;getGas?:()=>number;setGas?:(value:number)=>void;getGasProgress?:()=>FlightProgress;setGasProgress?:(value:FlightProgress)=>void;showInfo:(text:string)=>void;objects:THREE.Group}
+interface Options {islandId?:string;gathering?:Omit<GatherDeps,'time'|'grant'|'has'>;onSound?:(id:string,position?:{x:number;y:number;z:number})=>void;collisions?:CollisionDefinition[];temporary:boolean;saveScope?:string;getPosition:()=>Point3;setPosition:(p:Point3,space?:MovementSpace|null)=>void;activities?:PlayableActivities;getSpace?:()=>MovementSpace|undefined;getGas?:()=>number;setGas?:(value:number)=>void;getGasProgress?:()=>FlightProgress;setGasProgress?:(value:FlightProgress)=>void;showInfo:(text:string)=>void;objects:THREE.Group}
 /** Interactive object near the player, usable or not (the reason comes from the runtime state). */
 export interface ObjectTarget {entity:GameplayEntity;name:string;prompt:string;range:number;usable:boolean;reason?:string;distance:number}
 /** Gameplay controller of a playable world: logical runtime, collisions, activities, save
@@ -52,8 +53,17 @@ export function createGameplayView(data:GameplayData,options:Options){
  const workshops=createShopWorkshops({items:runtime.data.items,purse,
    elapsedSeconds:()=>runtime.state.time,dayLengthSeconds:runtime.climate.definition.dayLengthSeconds,
    onChange:()=>{for(const listener of listeners)listener();}});
- function trade(kind:ShopKind,itemId:string,quantity:number,mode:'buy'|'sell'){const shop=SHOPS[kind];return mode==='buy'?buy(shop,itemId,quantity,purse,itemName):sell(shop,itemId,quantity,purse,itemName);}
- const compose=(slotId:string):GameSaveV2=>({...runtime.save(slotId,options.getPosition()),space:options.getSpace?.()??null,gasReserve:options.getGas?.()??GAS.initial,flightProgress:options.getGasProgress?.()??newFlightProgress(),...activities.serialize(),workshops:workshops.serialize(),...(gathering?{gathering:gathering.serialize()}:{})});
+ const markets=createIslandMarkets({islandId:options.islandId??data.worldId,purse,itemName,
+   gameMinute:()=>Math.floor(runtime.state.time/runtime.climate.definition.dayLengthSeconds*1440),
+   onChange:()=>{for(const listener of listeners)listener();}});
+ /** Legacy type-only trade calls still route to a single deterministic counter identifier. */
+ function trade(kind:ShopKind,itemId:string,quantity:number,mode:'buy'|'sell',
+   counterId?:string,expectedRevision?:number){
+   return markets.trade(kind,counterId??'legacy:'+kind,itemId,quantity,mode,undefined,expectedRevision);
+ }
+ const compose=(slotId:string):GameSaveV2=>({...runtime.save(slotId,options.getPosition()),space:options.getSpace?.()??null,gasReserve:options.getGas?.()??GAS.initial,flightProgress:options.getGasProgress?.()??newFlightProgress(),...activities.serialize(),
+    workshops:workshops.serialize(),markets:markets.serialize(),
+    ...(gathering?{gathering:gathering.serialize()}:{})});
  let npcs:readonly NPCState[]=[],version=-1,disposed=false;
  const entityIds=new Set(runtime.data.entities.map(e=>e.id)),targets=runtime.data.entities.filter(e=>e.interactable),interactions=new Map<string,typeof runtime.data.interactions>();
  for(const i of runtime.data.interactions)if(i.trigger.type==='onInteract'){const list=interactions.get(i.trigger.entityId)??[];list.push(i);interactions.set(i.trigger.entityId,list);}
@@ -84,9 +94,9 @@ export function createGameplayView(data:GameplayData,options:Options){
  }
  sync();
  return {
-  runtime,collision,activities,slots,compose,gathering,trees,fishing,trade,workshops,purse,itemName,has,
+  runtime,collision,activities,slots,compose,gathering,trees,fishing,trade,workshops,markets,purse,itemName,has,
   /** Restores a validated save into the runtime and the activities; returns the warnings. */
-  restore(save:GameSaveV2){const warnings=[...runtime.restore(save),...activities.restore(save)];workshops.restore(save.workshops??{});gathering?.restore(save.gathering??null);options.setPosition(save.position,save.space??null);options.setGasProgress?.(save.flightProgress??newFlightProgress());options.setGas?.(save.gasReserve??GAS.legacyInitial);sync();version=-1;for(const l of listeners)l();return warnings;},
+  restore(save:GameSaveV2){const warnings=[...runtime.restore(save),...activities.restore(save)];workshops.restore(save.workshops??{});markets.restore(save.markets??{});gathering?.restore(save.gathering??null);options.setPosition(save.position,save.space??null);options.setGasProgress?.(save.flightProgress??newFlightProgress());options.setGas?.(save.gasReserve??GAS.legacyInitial);sync();version=-1;for(const l of listeners)l();return warnings;},
   /** Imports an exported slot file (validated) into a free slot of this world. */
   async importSave(raw:unknown){const parsed=parseGameSave(raw);if(parsed.worldId!==data.worldId)throw Error('Sauvegarde d’un autre monde');const value={...parsed};if(!['slot-1','slot-2','slot-3'].includes(value.slotId)){const used=new Set((await slots.list(data.worldId)).map(v=>v.slotId)),free=['slot-1','slot-2','slot-3'].find(id=>!used.has(id));if(!free)throw Error('Libérez un emplacement pour importer cette partie');value.slotId=free;}await slots.save(value);return value.slotId;},
   temporary:options.temporary,describe,
