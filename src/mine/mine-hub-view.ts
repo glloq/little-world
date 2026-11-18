@@ -128,9 +128,9 @@ export function createMineHubView(hub:MineHubLayout,solid:THREE.Material,glow:TH
     ore(kind,x,3.13,gz-.30,.72);
   }
   // Rails start BEYOND the threshold, never clutter the reception floor.
-  for(const x of [gx-.38,gx+.38])box(x,.055,gz+1.25,.075,.06,2.2,iron);
-  for(const z of [gz+.46,gz+1.0,gz+1.54,gz+2.08])
-    box(gx,.042,z,1.28,.07,.13,beam);
+  for(const x of [gx-.38,gx+.38])box(x,.055,gz+2.75,.075,.06,5.25,iron);
+  for(let k=0;k<10;k++)
+    box(gx,.042,gz+.48+k*.52,1.28,.07,.13,beam);
   // Open, freestanding mine elevator on the right; no foreground cage or roof.
   box(0,.045,.08,2.18,.09,2.12,woodLight);
   for(const x of [-1.12,1.12]){
