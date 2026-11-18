@@ -11,7 +11,7 @@ import {newFlightProgress,type FlightProgress} from './flight-progress.ts';
 import {gameplayDialogueSession} from './dialogue-session.ts';
 import {createGameSaveStore,scopedSaveStorage,parseGameSave,type GameSaveV2} from './save.ts';
 import {createActivityRuntime} from './activity-runtime.ts';
-import {COIN,STARTING_COINS,STARTING_KIT,SHOPS,buy,sell,type ShopKind} from './economy.ts';
+import {COIN,STARTING_COINS,STARTING_KIT,type ShopKind} from './economy.ts';
 import {PRODUCTION_ITEMS} from '../economy/starter-catalog.ts';
 import {MINE_ITEMS} from '../mine/mine-data.ts';
 import {FARM_ITEMS} from '../farm/farm-data.ts';
