@@ -10,6 +10,7 @@ import {existsSync} from 'node:fs';
 import {readFile,mkdir} from 'node:fs/promises';
 import {playerUi} from './ui-test-helpers.mjs';
 import assert from 'node:assert/strict';
+import {mineHubLayout} from '../src/mine/mine-hub.ts';
 const base=process.env.WORLD_URL??'http://127.0.0.1:5173/little-world/',out='/tmp/little-world-browser';await mkdir(out,{recursive:true});
 const project=JSON.parse(await readFile(new URL('../tests/fixtures/legacy-maps/authoring/b1-demo.project.json',import.meta.url),'utf8')),mine=project.libraries.zones['zone-mine'].mine;
 const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH??(existsSync('/usr/bin/chromium')?'/usr/bin/chromium':undefined),args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
@@ -54,8 +55,9 @@ try{
   await page.waitForTimeout(1400);
   await page.screenshot({path:out+'/mine-hub-gallery-real-game.png'});
   await page.setViewportSize({width:1100,height:700});
-  const shaft=mine.connectors[0],heading=mine.entrance.heading,rx=Math.cos(heading),rz=-Math.sin(heading);
-  await moveTo(Math.floor(shaft.x)+.5-rx*2,mine.levels[0].floorY,Math.floor(shaft.z)+.5-rz*2,{zoneId:'zone-mine',levelId:'level-1'});
+  const shaft=mine.connectors[0],hub=mineHubLayout(project.libraries.zones['zone-mine'],0);
+  // The V3 counter is recessed against the LEFT wall of the much wider hall.
+  await moveTo(hub.counter.x,mine.levels[0].floorY,hub.counter.z,{zoneId:'zone-mine',levelId:'level-1'});
   await page.keyboard.press('KeyE');
   const shop=page.locator('.ui-panel[data-panel="shop"]');await shop.waitFor({state:'visible'});
   check(await shop.getByRole('button',{name:'Accès aux niveaux'}).count()===1,'Underground counter offers trade and mine access');
