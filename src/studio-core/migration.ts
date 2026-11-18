@@ -4,7 +4,7 @@ import {runtimeLights,type RuntimeLight} from '../lighting/light-data.ts';
 import {waterTerrainIds} from '../water/sectors.ts';
 import { parseWorld, type WorldDefinition } from '../world-data.ts';
 import type { BiomeEdit, TerrainEdit, EntityDefinitionV3, MigrationReport, ProjectDocument } from './types.ts';
-import { affectedChunkIds, chunkAt, createProject, parseProject } from './schema.ts';
+import { affectedChunkIds, chunkAt, createProject, parseProject, rigForSpecies } from './schema.ts';
 import { ensureChunk, putBiomeEdit, putEntity, putTerrainEdit } from './source.ts';
 import { resolveEntity } from './references.ts';
 /** Stable custom UUID v8 derived from serialized legacy source, not a random import timestamp. */
@@ -38,7 +38,7 @@ export function migrateWorldToV3(input:unknown,options:{projectId?:string;worldI
   for(const npc of legacy.npcs){
     const behaviorId=`behavior:${npc.id}`,dialogueId=`dialogue:${npc.id}`;project.libraries.behaviors[behaviorId]={id:behaviorId,kind:npc.behavior};
     if(npc.dialogue)project.libraries.dialogues[dialogueId]={id:dialogueId,actorId:npc.id,...structuredClone(npc.dialogue)};
-    const entity:EntityDefinitionV3={id:npc.id,kind:'character',name:npc.name,ownerChunkId:chunkAt(project.world,npc.x,npc.z),components:{Transform:{type:'Transform',position:{x:npc.x,y:0,z:npc.z},rotation:{x:0,y:0,z:0,w:1},scale:{x:1,y:1,z:1}},Character:{type:'Character',species:npc.kind,rigId:'squirrel-rigid',appearance:structuredClone(npc.appearance)},Navigation:{type:'Navigation',behaviorId,speed:npc.speed,radius:npc.radius,...(npc.path?{path:structuredClone(npc.path)}:{})},BehaviorRef:{type:'BehaviorRef',behaviorId},...(npc.dialogue?{DialogueActor:{type:'DialogueActor',dialogueIds:[dialogueId]}}:{})}};
+    const entity:EntityDefinitionV3={id:npc.id,kind:'character',name:npc.name,ownerChunkId:chunkAt(project.world,npc.x,npc.z),components:{Transform:{type:'Transform',position:{x:npc.x,y:0,z:npc.z},rotation:{x:0,y:0,z:0,w:1},scale:{x:1,y:1,z:1}},Character:{type:'Character',species:npc.kind,rigId:rigForSpecies(npc.kind),appearance:structuredClone(npc.appearance)},Navigation:{type:'Navigation',behaviorId,speed:npc.speed,radius:npc.radius,...(npc.path?{path:structuredClone(npc.path)}:{})},BehaviorRef:{type:'BehaviorRef',behaviorId},...(npc.dialogue?{DialogueActor:{type:'DialogueActor',dialogueIds:[dialogueId]}}:{})}};
     putEntity(project,entity);preservedIds.push(npc.id,...(npc.dialogue?.lines.map(line=>line.id)??[]));
   }
   const validated=parseProject(project);
