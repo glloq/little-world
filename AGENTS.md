@@ -165,6 +165,8 @@ Lire **[23 — Audio MIDI, synthèse légère et échantillons](docs/23-MIDI-AUD
 
 Lire **[24 — Mines en couches 2,5D et synchronisation des excavations](docs/24-MINES-MULTILEVEL-LOW-RESOURCE.md)** avant de modifier le terrain, les collisions souterraines, l'inventaire, les sauvegardes ou les schémas V3.
 
+> **Hub minier multi-niveau V1** : [80 — Comptoir, contremaître et monte-charge répétés à chaque niveau](docs/80-MINE-HUB-V1.md). Conserver la grille 2,5D comme autorité et le shop existant comme unique commerce ; les descentes du jeu sont des actions validées, pas des transitions automatiques pouvant contourner les droits.
+
 - **Décision** : **mines localisées**, grille excavable **2,5D par niveau**, avec **plusieurs étages** reliés par escaliers, rampes et puits explicites. **Heightfield extérieur conservé** ; pas de voxels sur 100 km². GLB pour entrées, rampes, soutènements et décors, pas comme source des cellules creusées.
 - **Exception au périmètre précédent** : les joueurs peuvent modifier **durablement les cellules des mines autorisées seulement** ; pas de creusement libre sur le terrain de surface. **Source Studio** (mine initiale/géologie) **distincte des états de partie** (excavation/épuisement/inventaire).
 - Ne pas confondre étages superposés : toutes les requêtes physiques se fondent sur **mineId, levelId et X/Y/Z** ; `terrainHeight(x,z)` seul est insuffisant dans une galerie. Remplacer localement via un `SurfaceQuery/CollisionWorld` compatible terrain extérieur.
