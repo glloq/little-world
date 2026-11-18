@@ -83,7 +83,8 @@ export function planPortN1(input:PortSurvey):PortN1Layout|null {
             const point=(p:PortPoint,y:number)=>({...p,y});
             // Match dock top to the *land* boarding surface. The waterline of
             // the moored rowboat stays at sea level, independent of this deck.
-            const deckY=Math.min(h,height(out(0,-1)));
+            const shoreward=out(0,-1);
+            const deckY=Math.min(h,height(shoreward.x,shoreward.z));
             return {
               shore:{x:sx,z:sz},heading:angle,dockCells:profile.cells,
               stand:point(stand,height(stand.x,stand.z)),
