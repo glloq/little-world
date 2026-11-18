@@ -12,6 +12,8 @@ export const STARTING_COINS=40;
 /** A new game also starts with a few seed packets so the first field can be sown at once. */
 /** Small starter buffet for testing food-to-boost, granted once on new games only. */
 export const STARTING_KIT=[
+  {itemId:'instrument:flute',quantity:1},{itemId:'instrument:ocarina',quantity:1},{itemId:'instrument:ukulele',quantity:1},
+
   {itemId:'seed:wheat',quantity:3},{itemId:'seed:carrot',quantity:2},
   {itemId:'food:apple',quantity:2},{itemId:'food:pear',quantity:2},
   {itemId:'food:plum',quantity:2},{itemId:'food:cherry',quantity:3},
