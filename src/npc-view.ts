@@ -215,18 +215,12 @@ export function createNPCSystem(
     const state = createNPCState(definition,bounds),
       route=definition.routine&&router?router.route(definition.routine.home,definition.routine.work):null,
       life=route?{route,pose:null as ResidentPose|null,lastTime:-1,lastSample:-1,pausedSeconds:0,pauseFrom:null as number|null}:null,
-      hamster = definition.kind === 'hamster' ? buildHamster({npc:true}) : null,
-      model = hamster ?? buildSquirrel();
-    model.setAppearance(definition.appearance);
-    if (definition.kind === 'animal') model.group.scale.setScalar(0.58);
-    if (definition.scale!==undefined) model.group.scale.multiplyScalar(definition.scale);
-    model.group.name = 'NPC:' + definition.id;
-    model.group.visible = false;
-    scene.add(model.group);
-    const proxy = silhouette(definition);
-    // Squirrel rig: greeting/work gestures written on its joints; the hamster plays real actions.
-    const head = hamster ? null : model.group.getObjectByName('HeadJoint'),
-      arm = hamster ? null : model.group.getObjectByName('ArmRight');
+      proxy = silhouette(definition);
+    // Actual character rigs are allocated only when first seen nearby, not for
+    // every citizen of the island. All hamsters share geometry/material caches.
+    const hamster:null|ReturnType<typeof buildHamster>=null,
+      model:null|ReturnType<typeof buildSquirrel>|ReturnType<typeof buildHamster>=null;
+    const head:THREE.Object3D|null=null,arm:THREE.Object3D|null=null;
     const player: Player = {
       position: new THREE.Vector3(),
       velocity: new THREE.Vector3(),
@@ -268,13 +262,13 @@ export function createNPCSystem(
       if (disposed) return;
       distant.begin();distant.update(time);
       for (const entry of entries) {
-        const { state, life, model, hamster, player, proxy, head, arm } = entry;
+        const { state, life, player, proxy } = entry;
         if(life&&lifeOptions&&state.definition.routine){
           const now=lifeOptions.worldTime(),routine=state.definition.routine;
           if(now<life.lastTime){life.pausedSeconds=0;life.pauseFrom=null;life.lastSample=-1;}
           life.lastTime=now;
           const distance=Math.hypot(position.x-state.x,position.z-state.z);
-          const talking=dialogue.npcId===state.definition.id,near=distance<7;
+          const talking=dialogue.npcId===state.definition.id,near=distance<2.5;
           state.activity=npcActivity(distance);
           if(talking||near){
             if(life.pauseFrom===null)life.pauseFrom=now;
@@ -310,19 +304,38 @@ export function createNPCSystem(
           Math.hypot((camera?.position.x??position.x) - state.x, (camera?.position.z??position.z) - state.z),
           state.definition.kind,
         );
-        model.group.visible = tier === 'rig';
-        proxy.visible = tier === 'silhouette';
-        if (tier === 'hidden') continue;
+        if(tier==='rig'&&!entry.model){
+          const hamster=state.definition.kind==='hamster'?buildHamster({npc:true}):null,
+            model=hamster??buildSquirrel();
+          model.setAppearance(state.definition.appearance);
+          if(state.definition.kind==='animal')model.group.scale.setScalar(.58);
+          if(state.definition.scale!==undefined)model.group.scale.multiplyScalar(state.definition.scale);
+          model.group.name='NPC:'+state.definition.id;
+          scene.add(model.group);
+          entry.model=model;entry.hamster=hamster;
+          entry.head=hamster?null:model.group.getObjectByName('HeadJoint');
+          entry.arm=hamster?null:model.group.getObjectByName('ArmRight');
+        }
+        // Beyond the immediate player neighborhood, free whole animated rigs.
+        // Impostors use pre-existing atlases and do not require model instances.
+        if(tier!=='rig'&&entry.model&&Math.hypot(position.x-state.x,position.z-state.z)>32){
+          entry.model.dispose();entry.model=null;entry.hamster=null;entry.head=null;entry.arm=null;
+        }
+        const {model,hamster,head,arm}=entry;
+        if(model)model.group.visible=tier==='rig';
+        proxy.visible=tier==='silhouette';
+        if(tier==='hidden')continue;
         const alpha = life?1:npcInterpolationAlpha(state);
         const x = THREE.MathUtils.lerp(state.previousX, state.x, alpha),
           y = THREE.MathUtils.lerp(state.previousY, state.y, alpha),
           z = THREE.MathUtils.lerp(state.previousZ, state.z, alpha);
-        if(hamster&&tier==='silhouette'&&distant.write('hamster.'+(state.phase==='work'||state.phase==='greet'?'action':Math.hypot(state.vx,state.vz)>.3?'walk':'idle'),x,y,z,1,state.heading,white)){proxy.visible=false;continue;}
+        if(state.definition.kind==='hamster'&&tier==='silhouette'&&distant.write('hamster.'+(state.phase==='work'||state.phase==='greet'?'action':Math.hypot(state.vx,state.vz)>.3?'walk':'idle'),x,y,z,1,state.heading,white)){proxy.visible=false;continue;}
         if (tier === 'silhouette') {
           proxy.position.set(x, y, z);
           proxy.rotation.y = state.heading;
           continue;
         }
+        if(!model)continue;
         player.position.set(x, y, z);
         // The visual model faces its local +Z; its parent supplies world heading.
         player.velocity.set(0, 0, Math.hypot(state.vx, state.vz));
@@ -376,7 +389,7 @@ export function createNPCSystem(
       disposed = true;
       dialogue.dispose();distant.dispose();
       for (const { model, proxy } of entries) {
-        model.dispose();
+        model?.dispose();
         proxy.removeFromParent();
       }
       proxyGeometry.dispose();
