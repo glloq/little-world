@@ -15,6 +15,7 @@ import {COIN,STARTING_COINS,STARTING_KIT,type ShopKind} from './economy.ts';
 import {PRODUCTION_ITEMS} from '../economy/starter-catalog.ts';
 import {MINE_ITEMS} from '../mine/mine-data.ts';
 import {INSTRUMENT_ITEMS} from '../instruments/definitions.ts';
+import {emptyPlayerLoadout,parsePlayerLoadout,EQUIPMENT_FAVOURITE_COUNT} from './player-loadout.ts';
 import {FARM_ITEMS} from '../farm/farm-data.ts';
 import {createShopWorkshops} from '../economy/workshop-services.ts';
 import {createIslandMarkets} from '../economy/island-markets.ts';
@@ -51,13 +52,30 @@ export function createGameplayView(data:GameplayData,options:Options){
  const purse={count:(id:string)=>runtime.state.inventory[id]??0,max:(id:string)=>runtime.data.items.find(i=>i.id===id)?.maxQuantity??0,apply:(changes:{itemId:string;quantity:number}[])=>runtime.grantItems(changes)};
  const itemName=(id:string)=>runtime.data.items.find(i=>i.id===id)?.name??id;
  const listeners=new Set<()=>void>();
- const canEquip=(id:string)=>has(id)&&runtime.data.items.some(item=>item.id===id&&['tool','outil','instrument'].includes(item.category));
+ const canEquip=(id:string)=>id!=='tool:miners-helmet'&&has(id)&&runtime.data.items.some(item=>item.id===id&&['tool','outil','instrument'].includes(item.category));
+ const canFavourite=(id:string)=>runtime.data.items.some(item=>item.id===id&&(item.id==='tool:miners-helmet'||['tool','outil','instrument','accessory','equipment','cosmetic'].includes(item.category)));
+ let playerLoadout=emptyPlayerLoadout();
  const equipment={
-  get hands(){return equippedHands;},
+  get hands(){return equippedHands&&canEquip(equippedHands)?equippedHands:null;},
   setHands(id:string|null):boolean{
    if(id!==null&&!canEquip(id))return false;
    if(equippedHands===id)return true;
    equippedHands=id;for(const listener of listeners)listener();return true;
+  },
+  get head(){return playerLoadout.head==='tool:miners-helmet'&&has(playerLoadout.head)?playerLoadout.head:null;},
+  setHead(id:string|null):boolean{
+   if(id!==null&&(id!=='tool:miners-helmet'||!has(id)))return false;
+   if(playerLoadout.head===id)return true;
+   playerLoadout.head=id;for(const listener of listeners)listener();return true;
+  },
+  /** null means legacy/new save: the bag seeds defaults only once on first opening. */
+  get favorites():readonly (string|null)[]|null{return playerLoadout.favorites?.slice()??null;},
+  setFavorites(next:readonly (string|null)[]):boolean{
+   if(next.length!==EQUIPMENT_FAVOURITE_COUNT||!next.every(id=>id===null||canFavourite(id)))return false;
+   const ids=next.filter((id):id is string=>id!==null);
+   if(new Set(ids).size!==ids.length)return false;
+   if(JSON.stringify(playerLoadout.favorites)===JSON.stringify(next))return true;
+   playerLoadout.favorites=[...next];for(const listener of listeners)listener();return true;
   },
  };
  let cargoPurchaseRevision=0;
@@ -73,7 +91,7 @@ export function createGameplayView(data:GameplayData,options:Options){
    return markets.trade(kind,counterId??'legacy:'+kind,itemId,quantity,mode,undefined,expectedRevision);
  }
  let equippedHands:string|null=null;
- const compose=(slotId:string):GameSaveV2=>({...runtime.save(slotId,options.getPosition()),equippedItemId:equippedHands,space:options.getSpace?.()??null,gasReserve:options.getGas?.()??GAS.initial,flightProgress:options.getGasProgress?.()??newFlightProgress(),...activities.serialize(),
+ const compose=(slotId:string):GameSaveV2=>({...runtime.save(slotId,options.getPosition()),equippedItemId:equipment.hands,loadout:{...playerLoadout,head:equipment.head,favorites:equipment.favorites?[...equipment.favorites]:null},space:options.getSpace?.()??null,gasReserve:options.getGas?.()??GAS.initial,flightProgress:options.getGasProgress?.()??newFlightProgress(),...activities.serialize(),
     workshops:workshops.serialize(),markets:markets.serialize(),cargoPurchaseRevision,
     ...(gathering?{gathering:gathering.serialize()}:{})});
  let npcs:readonly NPCState[]=[],version=-1,disposed=false;
@@ -114,7 +132,7 @@ export function createGameplayView(data:GameplayData,options:Options){
     cargoPurchaseRevision=Math.max(cargoPurchaseRevision,revision);
   },
   /** Restores a validated save into the runtime and the activities; returns the warnings. */
-  restore(save:GameSaveV2){const warnings=[...runtime.restore(save),...activities.restore(save)];equippedHands=save.equippedItemId&&canEquip(save.equippedItemId)?save.equippedItemId:null;workshops.restore(save.workshops??{});markets.restore(save.markets??{});cargoPurchaseRevision=save.cargoPurchaseRevision??0;gathering?.restore(save.gathering??null);options.setPosition(save.position,save.space??null);options.setGasProgress?.(save.flightProgress??newFlightProgress());options.setGas?.(save.gasReserve??GAS.legacyInitial);sync();version=-1;for(const l of listeners)l();return warnings;},
+  restore(save:GameSaveV2){const warnings=[...runtime.restore(save),...activities.restore(save)];equippedHands=save.equippedItemId&&canEquip(save.equippedItemId)?save.equippedItemId:null;playerLoadout=save.loadout?parsePlayerLoadout(save.loadout):emptyPlayerLoadout();if(playerLoadout.head!=='tool:miners-helmet'||!has('tool:miners-helmet'))playerLoadout.head=null;playerLoadout.back=null;playerLoadout.feet=null;workshops.restore(save.workshops??{});markets.restore(save.markets??{});cargoPurchaseRevision=save.cargoPurchaseRevision??0;gathering?.restore(save.gathering??null);options.setPosition(save.position,save.space??null);options.setGasProgress?.(save.flightProgress??newFlightProgress());options.setGas?.(save.gasReserve??GAS.legacyInitial);sync();version=-1;for(const l of listeners)l();return warnings;},
   /** Imports an exported slot file (validated) into a free slot of this world. */
   async importSave(raw:unknown){const parsed=parseGameSave(raw);if(parsed.worldId!==data.worldId)throw Error('Sauvegarde d’un autre monde');const value={...parsed};if(!['slot-1','slot-2','slot-3'].includes(value.slotId)){const used=new Set((await slots.list(data.worldId)).map(v=>v.slotId)),free=['slot-1','slot-2','slot-3'].find(id=>!used.has(id));if(!free)throw Error('Libérez un emplacement pour importer cette partie');value.slotId=free;}await slots.save(value);return value.slotId;},
   temporary:options.temporary,describe,
