@@ -48,6 +48,43 @@ Validation : `npm test`, `npm run build`, `npm run test:b1` et le scénario
 `tools/capture-mine-hub-browser.mjs` (captures réelles Chromium du hall et des étages
 1/2/3, sans substitution par des images générées).
 
+## V4 — galerie large, carte souterraine, puits et vrai stand maritime N1
+
+Révision du 18 novembre 2026 ; la référence de code reste la PR #71.
+
+- **Arche d'accès au minage** : élargie à ~5,85 m de poutre / ~5 m de passage utile,
+  et **alignée avec un couloir dégagé d'environ 6 m de largeur** dans
+  `MineGrid`. Le joueur entre physiquement par la grande arche existante,
+  sans ouverture secondaire plus petite juste derrière. La circulation dans
+  le même étage ne provoque aucun écran de chargement.
+- **Carte et minimap** : dans la mine, le HUD remplace la vue aérienne de l'île
+  par le **plan 2D du niveau actif**, basé sur les cellules ouvertes réelles,
+  avec repères pour le joueur, le comptoir, le monte-charge, l'entrée du minage
+  et la sortie de surface (seulement au niveau 1). La touche `M` ouvre le
+  plan souterrain avec zoom et recentrage ; en quittant la mine, le HUD et `M`
+  reviennent à la carte de l'île. Raster 1 pixel / cellule, mis en cache par
+  étage et nombre de cellules excavées ; aucune scène Three.js additionnelle.
+- **Puits de monte-charge** : `mineShaftOpening()` supprime les quads de sol
+  et de plafond **au même axe XZ** suivant le niveau :
+  niveau 1 = dessous ouvert, plafond fermé ; niveaux intermédiaires = dessus
+  et dessous ouverts ; dernier niveau = dessus ouvert, fond fermé. Les
+  poutres/câbles verticaux donnent une continuité visuelle. La plateforme
+  du monte-charge est l'élément de sol jouable ; la collision 2,5D conserve
+  pour l'instant un plancher logique sous les vides décoratifs afin d'éviter
+  des chutes involontaires. **La simulation physique d'une cabine en mouvement
+  n'est pas encore mise en place**.
+- **Stand de mine** : véritable GLB maritime validé **N1**
+  `public/models/commerce-portuaire/port-trade-n1-v1.glb`, repris
+  depuis `main` en préservant ses mesh, toile rayée, ossature,
+  comptoir et caisses. Les nœuds d'enseigne de commerce maritime sont
+  masqués à l'exécution et remplacés par une enseigne **deux pioches
+  croisées**. Le GLB est chargé une seule fois puis cloné en partageant
+  ses ressources à chaque étage. Le PNJ hamster mineur et la logique
+  d'achats/ventes restent ceux de la mine, sans importer les règles de
+  présence du ferry ou les stocks du commerce maritime.
+- **Validation** : tests des ouvertures sur les trois étages, du passage
+  de minage, du fichier GLB et du changement de carte dans le scénario B1.
+
 ## Plan de circulation validé
 
 De la gauche vers la droite : **stand du contremaître**, **entrée de la galerie de minage (en face)**, **monte-charge**. Derrière le joueur, sur le même sol, **arche ouverte vers la sortie de l'île au niveau 1 uniquement**. Aucune porte opaque ne ferme ce passage.
