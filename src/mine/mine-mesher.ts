@@ -8,7 +8,7 @@
  * Flat-shaded quads, vertex colours by material with a small deterministic speckle. Pure arrays. */
 import {MINE_CHUNK,MINE_MATERIALS} from './mine-data.ts';
 import type {MineState} from './mine-state.ts';
-import {mineHubLayout,mineHubRoofRise} from './mine-hub.ts';
+import {mineHubLayout,mineHubRoofRise,mineShaftOpening} from './mine-hub.ts';
 
 export interface ChunkGeometry {positions:Float32Array;normals:Float32Array;colors:Float32Array;index:Uint32Array;quads:number}
 /** Vertical subdivision of walls (bottom, belly, shoulder, ceiling seam). */
@@ -46,8 +46,13 @@ export function mineChunkGeometry(state:MineState,level:number,cx:number,cz:numb
   };
   for(let lz=0;lz<MINE_CHUNK;lz++)for(let lx=0;lx<MINE_CHUNK;lx++){
     const x=x0+lx,z=z0+lz;if(!open(x,z))continue;
-    quad(vertex(x,0,z),vertex(x,0,z+1),vertex(x+1,0,z+1),vertex(x+1,0,z),0x6d5844,1,x*31+z);
-    quad(vertex(x,1,z),vertex(x+1,1,z),vertex(x+1,1,z+1),vertex(x,1,z+1),0x4a443f,1,x*17+z);
+    // Do not cap the lift: roof/floor openings make one shaft across all levels.
+    // Interior floors remain controlled by the physical MineGrid; the elevator
+    // platform covers the central gap while visual voids show above/below.
+    if(!mineShaftOpening(hub,state.grid.levels.length,'floor',x,z))
+      quad(vertex(x,0,z),vertex(x,0,z+1),vertex(x+1,0,z+1),vertex(x+1,0,z),0x6d5844,1,x*31+z);
+    if(!mineShaftOpening(hub,state.grid.levels.length,'ceiling',x,z))
+      quad(vertex(x,1,z),vertex(x+1,1,z),vertex(x+1,1,z+1),vertex(x,1,z+1),0x4a443f,1,x*17+z);
     // Exposed faces toward rock: [neighbour dx, dz, the two bottom corners in winding order].
     for(const [dx,dz,ax,az,bx,bz] of [[0,-1,x,z,x+1,z],[0,1,x+1,z+1,x,z+1],[-1,0,x,z+1,x,z],[1,0,x+1,z,x+1,z+1]] as const){
       if(open(x+dx,z+dz))continue;const m=state.material(level,x+dx,z+dz),color=MINE_MATERIALS[m].color,f=dx===0?.92:.8;
