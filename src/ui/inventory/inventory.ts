@@ -8,6 +8,12 @@ import {el,button} from '../shared/dom.ts';
 
 export const CATEGORY_LABELS:Record<string,string>={nature:'Ressources naturelles',mine:'Minerais et cristaux',farm:'Produits agricoles',tool:'Outils',outil:'Outils',quest:'Objets de mission',mission:'Objets de mission',argent:'Argent',bois:'Bois',cueillette:'Cueillette',poisson:'Poissons',graines:'Graines'};
 const ORDER=['Argent','Ressources naturelles','Bois','Cueillette','Poissons','Minerais et cristaux','Produits agricoles','Graines','Outils','Objets de mission','Objets divers'];
+const FOOD_ICONS:Readonly<Record<string,string>>={
+  'food:apple':'🍎','food:pear':'🍐','food:plum':'🟣','food:cherry':'🍒',
+  'food:berry':'🫐','food:hazelnut':'🌰','food:walnut':'🌰','farm:carrot':'🥕',
+  'farm:pumpkin':'🎃','food:potato':'🥔','food:chanterelle':'🍄',
+  'food:cepe':'🍄','food:cheese':'🧀',
+};
 export interface InventoryEntry {id:string;name:string;category:string;categoryLabel:string;quantity:number;max:number;description?:string;delta:number;full:boolean;nearlyFull:boolean;tool:boolean}
 export interface InventoryViewModel {groups:{label:string;entries:InventoryEntry[]}[];kinds:number;total:number;empty:boolean}
 export function inventoryViewModel(items:readonly ItemDefinition[],inventory:Readonly<Record<string,number>>,seen:Readonly<Record<string,number>>):InventoryViewModel{
@@ -26,6 +32,7 @@ export function inventoryPanel(deps:InventoryDeps){
       const all=vm.groups.flatMap(g=>g.entries),equipment=all.filter(e=>e.tool||['cosmetic','accessory','equipment','instrument'].includes(e.category));
       const resources=vm.groups.map(g=>({...g,entries:g.entries.filter(e=>!equipment.some(t=>t.id===e.id))})).filter(g=>g.entries.length);
       const icon=(e:InventoryEntry)=>{
+        if(FOOD_ICONS[e.id])return FOOD_ICONS[e.id];
         const text=(e.id+' '+e.name).toLowerCase();
         if(/pêche|peche|fishing|canne/.test(text))return '🎣';
         if(/pioche|pickaxe/.test(text))return '⛏';
@@ -63,6 +70,7 @@ export function inventoryPanel(deps:InventoryDeps){
         const item=button('',()=>show(e),'ui-item');item.dataset.item=e.id;item.dataset.focusKey='item:'+e.id;
         item.setAttribute('aria-label',e.name+', quantité '+e.quantity+(e.delta?', nouveau +'+e.delta:''));
         item.append(el('span','ui-item-symbol',icon(e)),el('span','ui-item-name',e.name),el('span','ui-item-qty','×'+e.quantity));
+        const gas=foodGasValue(e.id);if(gas)item.append(el('span','ui-item-gas','+'+gas+' gaz'));
         if(e.delta)item.append(el('span','ui-badge','+'+e.delta));
         if(e.nearlyFull)item.append(el('span','ui-badge ui-warn',e.full?'Plein':'Presque plein'));
         if(deps.selectedTool()===e.id)item.classList.add('ui-equipped');
