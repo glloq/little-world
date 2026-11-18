@@ -234,12 +234,14 @@ export function createNPCSystem(
     return {
       state,
       life,
-      model,
-      hamster,
+      // Explicit widening: TS narrows locals to null at object construction,
+      // even though entry fields are later assigned on first LOD entry.
+      model: model as ReturnType<typeof buildSquirrel>|ReturnType<typeof buildHamster>|null,
+      hamster: hamster as ReturnType<typeof buildHamster>|null,
       player,
       proxy,
-      head,
-      arm,
+      head: head as THREE.Object3D|null,
+      arm: arm as THREE.Object3D|null,
       appliedEmotion: definition.appearance.emotion,
       lastWorkAt:-1,
       lastGreetAt:-1,
