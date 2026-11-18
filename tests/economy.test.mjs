@@ -8,6 +8,7 @@ import {createGeoContext} from '../src/geography/engine.ts';
 import {generateDressingCell,ITEM_STRIDE} from '../src/geography/dressing.ts';
 import {SPECIES} from '../src/world-production/biotopes.ts';
 import {MineGrid,MineState,parseMineSave} from '../src/mine/mine-state.ts';
+import {mineBlockDurability} from '../src/mine/mine-rhythm.ts';
 import {defaultMineSettings,MINE_MATERIALS} from '../src/mine/mine-data.ts';
 
 function purse(start={}){const inv={...start};const max=id=>ECONOMY_ITEMS.find(i=>i.id===id)?.maxQuantity??999;
@@ -25,19 +26,41 @@ test('shops sell their tools and buy local resources; transactions are atomic an
   const items=economyItems([{id:COIN,name:'Écus',category:'x',maxQuantity:5}]);assert.equal(items.find(i=>i.id===COIN).name,'Écus','project items win');
   assert.ok(pickPower(()=>false).power<pickPower(id=>id==='tool:pickaxe').power);
 });
-test('mining: cells have 20–500 hit points, strikes accumulate, fragments sometimes, full reward at the end, damage saved',()=>{
-  for(const m of MINE_MATERIALS.filter(m=>m.diggable))assert.ok(m.hp>=20&&m.hp<=500,m.key);
-  const polygon=[{x:0,z:0},{x:40,z:0},{x:40,z:40},{x:0,z:40}],zone={id:'m',name:'M',polygon,mine:defaultMineSettings(polygon,2,30,7)};
+test('mining V7: five normal strikes cost one durability, wall opens at zero only',()=>{
+  const polygon=[{x:0,z:0},{x:40,z:0},{x:40,z:40},{x:0,z:40}],
+    zone={id:'m',name:'M',polygon,mine:defaultMineSettings(polygon,2,30,7)};
   const state=new MineState(new MineGrid(zone)),g=state.grid,level=g.levels[0];
-  // A diggable wall next to the entrance corridor.
-  let wall=null;for(let iz=0;iz<40&&!wall;iz++)for(let ix=0;ix<40&&!wall;ix++){if(!state.isOpen(0,ix,iz)&&g.material(0,ix,iz)>=2&&g.material(0,ix,iz)<=3&&[[1,0],[-1,0],[0,1],[0,-1]].some(([a,b])=>state.isOpen(0,ix+a,iz+b))){const open=[[1,0],[-1,0],[0,1],[0,-1]].find(([a,b])=>state.isOpen(0,ix+a,iz+b));wall={ix,iz,from:{x:ix+open[0]+.5,y:level.floorY+.1,z:iz+open[1]+.5}};}}
-  assert.ok(wall,'a wall exists');const hp=MINE_MATERIALS[g.material(0,wall.ix,wall.iz)].hp,granted=[];let n=0,last;
-  do{last=state.strike({requestId:'s'+n,levelId:level.id,ix:wall.ix,iz:wall.iz,from:wall.from},8,r=>{granted.push(r);return true;});n++;}while(last.ok&&last.partial&&n<200);
-  assert.equal(n,Math.ceil(hp/8),'strikes = ceil(hp / power)');assert.ok(state.excavated(0,wall.ix,wall.iz));
-  assert.ok(granted.length>=1,'final reward');
-  const s2=new MineState(g);const w=wall;s2.strike({requestId:'a',levelId:level.id,ix:w.ix,iz:w.iz,from:w.from},2,()=>true);
-  const saved=parseMineSave(JSON.parse(JSON.stringify(s2.serialize())));assert.ok(saved.damage&&Object.values(saved.damage)[0]===2);
-  const s3=new MineState(g);s3.restore(saved);assert.equal(s3.damageAt(0,w.ix,w.iz),2);
+  let wall=null;
+  for(let iz=0;iz<40&&!wall;iz++)for(let ix=0;ix<40&&!wall;ix++){
+    if(state.isOpen(0,ix,iz)||g.material(0,ix,iz)<2||g.material(0,ix,iz)>3)continue;
+    const open=[[1,0],[-1,0],[0,1],[0,-1]].find(([a,b])=>state.isOpen(0,ix+a,iz+b));
+    if(open)wall={ix,iz,from:{x:ix+open[0]+.5,y:level.floorY+.1,z:iz+open[1]+.5}};
+  }
+  assert.ok(wall,'a reachable wall exists');
+  const durability=mineBlockDurability(g.material(0,wall.ix,wall.iz));
+  const rewards=[];let n=0,result;
+  do{
+    result=state.strike({requestId:'v7-'+n,levelId:level.id,ix:wall.ix,iz:wall.iz,
+      from:wall.from},8,r=>{rewards.push(r);return true;},'normal');
+    n++;
+    if(n%5===0&&n<durability*5){
+      assert.equal(state.damageAt(0,wall.ix,wall.iz),n/5,
+        'exactly -1 durability after every five normal strikes');
+      assert.equal(state.isOpen(0,wall.ix,wall.iz),false,'wall still solid');
+    }
+  }while(result.ok&&result.partial&&n<200);
+  assert.equal(n,durability*5,'each durability unit costs five normal strikes');
+  assert.ok(state.excavated(0,wall.ix,wall.iz));
+  assert.equal(rewards.length,durability,'one reward per cycle');
+  assert.equal(rewards.at(-1).quantity,2,'final cycle grants two base ores');
+  const other=new MineState(g);
+  const params={requestId:'progress',levelId:level.id,ix:wall.ix,iz:wall.iz,from:wall.from};
+  other.strike(params,2,()=>true,'normal');
+  const saved=parseMineSave(JSON.parse(JSON.stringify(other.serialize())));
+  assert.equal(saved.miningVersion,2);assert.deepEqual(Object.values(saved.work),[3]);
+  const restored=new MineState(g);restored.restore(saved);
+  assert.equal(restored.workAt(0,wall.ix,wall.iz),3);
+  assert.equal(restored.damageAt(0,wall.ix,wall.iz),0);
 });
 test('gathering: trees need an axe and several strikes, give logs, stay felled until regrowth; save round-trip',()=>{
   const W=3000,L=8000,field=archipelagoField({seed:4242,seaLevel:0,width:W,length:L},archipelagoPreset(W,L));
