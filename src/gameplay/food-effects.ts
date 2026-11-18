@@ -10,5 +10,7 @@ export const FOOD_GAS:Readonly<Record<string,number>>={
   'food:chanterelle':25,'food:cepe':35,
   // Prepared food.
   'food:cheese':45,
+  // Prepared products from workshop recipes (fixed gas units, never inferred by category).
+  'food:bread':38,'food:jam':42,'food:soup':58,
 };
 export const foodGasValue=(itemId:string)=>FOOD_GAS[itemId]??0;
