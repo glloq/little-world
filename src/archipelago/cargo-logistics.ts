@@ -304,9 +304,8 @@ export function createCargoService(storage:CargoStorage,args:{
   const routes=args.routes??CARGO_ROUTES;
   if(!isId(args.islandId))throw Error('Île de fret invalide');
   validateCargoRoutes(routes);
-  let state=storage.getItem(CARGO_STORAGE_KEY);
-    ?parseCargoState(JSON.parse(storage.getItem(CARGO_STORAGE_KEY)!),routes)
-    :newCargoState(routes);
+  const raw=storage.getItem(CARGO_STORAGE_KEY);
+  let state=raw===null?newCargoState(routes):parseCargoState(JSON.parse(raw),routes);
   function advance(){
     const candidate=structuredClone(state);
     const result=advanceCargo(candidate,args.gameMinute(),routes);
