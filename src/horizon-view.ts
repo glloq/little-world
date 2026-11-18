@@ -17,7 +17,7 @@ import type {GeoWorkerPool} from './geography/geo-workers.ts';
  */
 export interface CoverageSource {version:number;tileSize:number;/** minY: lowest point of the displayed tile (skirts excluded) when known. */forEachActive(visit:(column:number,row:number,minY?:number)=>void):void}
 export interface HorizonStats {blocks:number;triangles:number;bytes:number;buildMs:number;rebuilt:number;coverageUpdates:number;oceanVisible:boolean}
-export interface HorizonView {group:THREE.Group;stats:HorizonStats;update(focus?:{x:number;z:number}):void;refresh(x:number,z:number,radius:number):void;dispose():void}
+export interface HorizonView {group:THREE.Group;stats:HorizonStats;update(focus?:{x:number;z:number}):void;setSurfArea(area:{minX:number;maxX:number;minZ:number;maxZ:number}|null):void;refresh(x:number,z:number,radius:number):void;dispose():void}
 
 interface Block {mesh:THREE.Mesh;full:Uint16Array|Uint32Array;minX:number;minZ:number;cellsX:number;cellsZ:number}
 export function createHorizonView(root:THREE.Group,bounds:HorizonBounds,coverage:CoverageSource,workers:GeoWorkerPool|null=null):HorizonView{
@@ -61,6 +61,7 @@ export function createHorizonView(root:THREE.Group,bounds:HorizonBounds,coverage
   // Open sea: an opaque ring around the project rectangle (no pixel over the island) and
   // one water quad per displayed tile that reaches below sea level (rebuilt on coverage change).
   let ring:THREE.Mesh|null=null,near:THREE.Mesh|null=null;
+  let surfArea:{minX:number;maxX:number;minZ:number;maxZ:number}|null=null;
   const nearCapacity=1024;
   if(!legacy){
     const far=horizonFar(bounds.width,bounds.length),hx=bounds.width/2,hz=bounds.length/2,ox=hx+far,oz=hz+far,y=bounds.seaLevel;
@@ -80,12 +81,16 @@ export function createHorizonView(root:THREE.Group,bounds:HorizonBounds,coverage
     coverage.forEachActive((column,row,minY)=>{
       if(quads>=nearCapacity||(minY!==undefined&&minY>bounds.seaLevel))return;
       const x0=-bounds.width/2+column*tile,z0=-bounds.length/2+row*tile,x1=Math.min(bounds.width/2,x0+tile),z1=Math.min(bounds.length/2,z0+tile);
+      // The dedicated surf renderer exclusively owns sea quads entirely under its patch.
+      // Partially covered boundary tiles keep flat water; waves fade at zone edges.
+      if(surfArea&&x0>=surfArea.minX&&x1<=surfArea.maxX&&z0>=surfArea.minZ&&z1<=surfArea.maxZ)return;
       p.set([x0,y,z0,x1,y,z0,x0,y,z1,x1,y,z1],quads*12);quads++;
     });
     attribute.needsUpdate=true;near.geometry.setDrawRange(0,quads*6);
   }
   let coverageVersion=-1;
   return {group,stats,
+    setSurfArea(area){surfArea=area;rebuildNear();},
     update(){
       if(coverage.version===coverageVersion)return;coverageVersion=coverage.version;
       const previous=mask.slice();mask.fill(0);
