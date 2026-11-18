@@ -19,7 +19,7 @@ export interface MineZone {id:string;name:string;polygon:PointXZ[];mine:MineSett
 export interface MineMaterial {id:number;key:string;name:string;color:number;diggable:boolean;item?:string;hp:number;fragment:number}
 export const MINE_MATERIALS:MineMaterial[]=[
   {id:0,key:'air',name:'Vide',color:0,diggable:false,hp:0,fragment:0},
-  {id:1,key:'dirt',name:'Terre',color:0x7a5a3e,diggable:true,hp:20,fragment:0},
+  {id:1,key:'dirt',name:'Terre',color:0x7a5a3e,diggable:true,item:'mine:earth',hp:20,fragment:0},
   {id:2,key:'rock',name:'Roche',color:0x7d7a76,diggable:true,item:'mine:stone',hp:60,fragment:.15},
   {id:3,key:'hard',name:'Roche dure',color:0x5c5a5f,diggable:true,item:'mine:stone',hp:150,fragment:.12},
   {id:4,key:'iron',name:'Filon de fer',color:0xa0643c,diggable:true,item:'mine:iron',hp:220,fragment:.06},
