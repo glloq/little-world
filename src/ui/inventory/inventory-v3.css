@@ -108,3 +108,18 @@
 .ui-bag-categories{margin:0 0 6px;font-size:10px;color:var(--ui-muted);line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ui-bag-current-category{font-size:10px;color:var(--ui-muted)}
 .ui-bag-v3 .ui-bag-check{line-height:16px}
+
+/* Gameplay-backed equipment overlays; no second 3D renderer. */
+.ui-bag-v3 .ui-bag-stock{overflow:hidden;max-height:none}
+.ui-hamster-equipped{
+  position:absolute;z-index:1;display:grid;place-items:center;pointer-events:none;
+  font:22px/1 system-ui;width:34px;height:34px;border-radius:9px;
+  background:rgba(255,252,232,.91);border:1px solid #bca981;box-shadow:0 1px 5px #604e4829;
+}
+.ui-hamster-equipped-head{left:57%;top:8%;transform:translate(-50%,-50%)}
+.ui-hamster-equipped-hands{left:81%;top:55%;transform:rotate(-18deg)}
+.ui-hamster-effect-eat .ui-hamster-art{animation:bagHamsterEat .38s ease-in-out}
+.ui-hamster-effect-equip .ui-hamster-art{animation:bagHamsterEquip .32s ease-out}
+@keyframes bagHamsterEat{0%,100%{transform:scale(1)}42%{transform:scale(1.055) translateY(2px)}}
+@keyframes bagHamsterEquip{0%{transform:scale(.97)}65%{transform:scale(1.025)}100%{transform:scale(1)}}
+@media(prefers-reduced-motion:reduce){.ui-hamster-effect-eat .ui-hamster-art,.ui-hamster-effect-equip .ui-hamster-art{animation:none}}
