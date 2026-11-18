@@ -182,7 +182,7 @@ export function planSettlement(p: ProjectDocument, raw: SettlementRecipe): Settl
         }
     for(const e of entities)if(e.components.Habitat&&e.components.Transform)for(const d of habitatColliders(e.id,e.components.Transform))query.add({...d,position:{...d.position,y:d.position.y+c.height(d.groundAnchor.x,d.groundAnchor.z)},enabled:()=>true});
     if(!organic)amenities=planServices(p,r,roadZ,c,query,entities,paths,diagnostics,preserved,nativePath);
-    const inhabitant=localLife(p,r,amenities),dialogues:Record<string,import('../gameplay/schema.ts').GameplayDialogue>={};if(inhabitant){entities.push(inhabitant.entity);amenities.push(inhabitant.record);if(inhabitant.dialogue)dialogues[inhabitant.dialogue.id]=inhabitant.dialogue;if(inhabitant.preserved)preserved.push(inhabitant.entity.id);}
+    const dialogues:Record<string,import('../gameplay/schema.ts').GameplayDialogue>={};
     for(const a of previous?.amenities??[])if(['bridge','harbor'].includes(a.role)&&amenityChanged(p,a)&&!amenities.some(v=>v.id===a.id)){const e=sourceEntity(p,a.id);if(e){entities.push(structuredClone(e));amenities.push(structuredClone(a));preserved.push(a.id);for(const id of Object.keys(previous!.pathHashes)){const path=p.libraries.paths[id];if((path?.supportId===a.id||a.role==='harbor'&&id===r.id+'-harbor-access')&&!paths.some(p=>p.id===id))paths.push(structuredClone(path));}}}
     for(const a of previous?.amenities??[])if(!amenities.some(v=>v.id===a.id)&&!amenityChanged(p,a))removed.push(a.id);
     // Optional local connection to the nearest authored road, rather than one remote route per house.
@@ -215,6 +215,7 @@ export function planSettlement(p: ProjectDocument, raw: SettlementRecipe): Settl
             preserved.push(id);
         }
     const zones=settlementSurroundings(p,r,paths,query,entities,amenities,diagnostics,preserved);
+    const inhabitant=localLife(p,r,amenities,buildings,zones);if(inhabitant){entities.push(inhabitant.entity);amenities.push(inhabitant.record);if(inhabitant.dialogue)dialogues[inhabitant.dialogue.id]=inhabitant.dialogue;if(inhabitant.preserved)preserved.push(inhabitant.entity.id);}
     return { zones,dialogues,recipe: r, sourceHash: settlementSourceHash(p), recipeHash: fingerprint(r), entities, paths, buildings,...(r.services||r.waterfront||previous?.amenities?{amenities}:{}), diagnostics, preserved: [...new Set(preserved)], removed, generationMs: performance.now() - started };
 }
 export { HABITAT_ASSETS };
