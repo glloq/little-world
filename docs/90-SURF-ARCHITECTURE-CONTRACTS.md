@@ -1,6 +1,6 @@
 # 90 — SURF : architecture moteur, vagues, physique et contrats
 
-**Statut : SPECIFIED / non implémenté.** Étude du 18 novembre 2026 sur `main`. Ce document est un plan technique, ni une PR moteur ni une preuve de performance. Voir [91 — île, Studio et activités](91-SURF-ISLAND-STUDIO-ACTIVITIES.md) et [92 — roadmap détaillée](92-SURF-IMPLEMENTATION-ROADMAP.md).
+**Statut : contrat SPECIFIED ; premier prototype commencé sur `docs/surf-island-full-plan`, non qualifié.** Voir [93 — progression du prototype](93-SURF-PROTOTYPE-PROGRESS.md). Étude du 18 novembre 2026 sur `main`. Ce document est un plan technique, ni une PR moteur ni une preuve de performance. Voir [91 — île, Studio et activités](91-SURF-ISLAND-STUDIO-ACTIVITIES.md) et [92 — roadmap détaillée](92-SURF-IMPLEMENTATION-ROADMAP.md).
 
 ## 0. Objectifs, non-objectifs, interfaces avec l'existant
 
