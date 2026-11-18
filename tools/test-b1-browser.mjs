@@ -72,7 +72,11 @@ try{
   await page.keyboard.press('KeyE');
   const liftReturn=page.locator('.ui-panel[data-panel="mine-lift"]');await liftReturn.waitFor({state:'visible'});
   await liftReturn.getByRole('button',{name:'Rejoindre'}).first().click();
-  const lifted=await m();check(lifted.act.space?.levelId==='level-1','Lift returns to level 1');
+  await page.waitForFunction(()=>window.littleWorldMetrics?.activities?.space?.levelId==='level-1',
+    null,{timeout:6000}).catch(()=>{});
+  const lifted=await m();
+  check(lifted.act.space?.levelId==='level-1','Lift returns to level 1 ('+
+    JSON.stringify(lifted.act.space)+'; '+(await msg())+')');
   const surface=await hold('KeyS',v=>v.act.space===null,60);
   check(surface.act.space===null,'Back outside the mine ('+surface.pos.map(n=>n.toFixed(1))+')');
   // 7–9. Farm: choose carrots, sow, water, accelerate the world clock, harvest.
