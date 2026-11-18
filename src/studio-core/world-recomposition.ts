@@ -1,3 +1,4 @@
+import {alignNaturalBiomes} from './world-biomes-v4.ts';
 /** Recomposition is a dry-run first, preserving native mask ownership and manual work.
  * Full reshaping is refused when generated relief/water/recipes or terrain were edited.
  * Region-only refresh uses the existing authored recipes, including manual polygons. */
@@ -7,7 +8,7 @@ import {composeWorld,projectFromComposition} from './world-composition.ts';
 import {alignSteppedBiomes} from './world-biome-boundaries.ts';
 import {applyRegionBatch,regionBatchChunks} from './region-batch.ts';
 import {removeRegion} from './region-recipes.ts';
-import {removeWater,putWater} from './source.ts';
+import {removeWater,putWater,removePath,putPath} from './source.ts';
 import {parseProject} from './schema.ts';
 import {fingerprint} from '../world-production/landscape-schema.ts';
 import {compileWaterNetwork} from '../water/profile.ts';
@@ -23,8 +24,8 @@ export function previewWorldRecomposition(p:ProjectDocument,next:MapRequirements
  if(mode==='biomes'){
   const recipes=Object.values(p.libraries.regions??{}).filter(r=>r.id.startsWith('composition-'));
   if(!recipes.length)throw Error('Aucune région générée à rafraîchir');
-  if(p.world.generation.compositionVersion===3){const baseline=composeWorld(p.world.generation).project;for(const recipe of recipes){const old=baseline.libraries.regions?.[recipe.id];if(!old||fingerprint(recipeSource(recipe))!==fingerprint(recipeSource(old)))skipBoundaries.add(recipe.id);}}
-  affected=regionBatchChunks(scratch,recipes);applyRegionBatch(scratch,recipes);
+  if((p.world.generation.compositionVersion??1)>=3){const baseline=composeWorld(p.world.generation).project;for(const recipe of recipes){const old=baseline.libraries.regions?.[recipe.id];if(!old||fingerprint(recipeSource(recipe))!==fingerprint(recipeSource(old)))skipBoundaries.add(recipe.id);}}
+  affected=regionBatchChunks(scratch,recipes);for(let i=0;i<recipes.length;i+=16)applyRegionBatch(scratch,recipes.slice(i,i+16));
  }else{
   if(next.width!==p.world.generation.width||next.length!==p.world.generation.length)throw Error('Redimensionner nécessite un nouveau projet : secteurs et retouches conservés ici');
   const original=composeWorld(p.world.generation).project;
@@ -35,16 +36,23 @@ export function previewWorldRecomposition(p:ProjectDocument,next:MapRequirements
   const regions=Object.fromEntries(Object.entries(p.libraries.regions??{}).filter(([id])=>id.startsWith('composition-')).map(([id,v])=>[id,recipeSource(v)]));
   const originals=Object.fromEntries(Object.entries(original.libraries.regions??{}).map(([id,v])=>[id,recipeSource(v)]));
   if(fingerprint(regions)!==fingerprint(originals))throw Error('Régions générées retouchées ou supprimées : recomposition globale protégée');
+  if(fingerprint(p.libraries.terrainPlans??{})!==fingerprint(original.libraries.terrainPlans??{}))throw Error('Zones utiles retouchées ou verrouillées : recomposition globale protégée');
+  if(fingerprint(p.libraries.zones??{})!==fingerprint(original.libraries.zones??{}))throw Error('Parcelles ou zones de mine retouchées : recomposition globale protégée');
+  const ownedPaths=Object.fromEntries(Object.entries(p.libraries.paths).filter(([id])=>id.startsWith('composition-access-')));
+  if(fingerprint(ownedPaths)!==fingerprint(original.libraries.paths))throw Error('Accès générés retouchés ou supprimés : recomposition globale protégée');
   const plan=composeWorld(next,p.manifest.name),generated=projectFromComposition(plan,p.manifest.name);
+  for(const id of Object.keys(ownedPaths))removePath(scratch,id);
+  if(generated.libraries.terrainPlans)scratch.libraries.terrainPlans=structuredClone(generated.libraries.terrainPlans);else delete scratch.libraries.terrainPlans;
+  for(const path of Object.values(generated.libraries.paths))putPath(scratch,path);
   for(const id of Object.keys(generatedWater))removeWater(scratch,id);
   for(const id of Object.keys(regions))removeRegion(scratch,id);
   scratch.world={...scratch.world,seed:generated.world.seed,terrain:generated.world.terrain,generation:generated.world.generation};
   for(const water of Object.values(generated.libraries.water))putWater(scratch,water);
   const recipes=Object.values(generated.libraries.regions??{}).map(r=>{const copy=structuredClone(r);delete copy.generated;return copy;});
-  if(recipes.length)applyRegionBatch(scratch,recipes);
+  for(let i=0;i<recipes.length;i+=16)applyRegionBatch(scratch,recipes.slice(i,i+16));
   affected=[...new Set([...Object.keys(p.chunkIndex),...Object.keys(scratch.chunkIndex)])];
  }
- alignSteppedBiomes(scratch,skipBoundaries);
+ alignSteppedBiomes(scratch,skipBoundaries);alignNaturalBiomes(scratch,skipBoundaries);
  const hydro=compileWaterNetwork(Object.values(scratch.libraries.water),projectGeography(scratch).source,scratch.world.seaLevel);
  const errors=hydro.flatMap(w=>w.diagnostics.filter(d=>d.severity==='ERROR'||d.code==='WATER_LOCAL_RISE'));
  if(errors.length)throw Error('Recomposition incompatible avec l’eau conservée : '+errors.map(d=>d.message).join(' '));

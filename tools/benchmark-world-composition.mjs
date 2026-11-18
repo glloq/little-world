@@ -1,6 +1,6 @@
 /** Reproducible authoring benchmark. No writes to official maps or runtime assets. */
 import {composeWorld} from '../src/studio-core/world-composition.ts';
-import {DEFAULT_MAP_REQUIREMENTS} from '../src/studio-core/map-requirements.ts';
+import {STEPPED_MAP_REQUIREMENTS as DEFAULT_MAP_REQUIREMENTS} from '../src/studio-core/map-requirements.ts';
 import {fingerprint} from '../src/world-production/landscape-schema.ts';
 import {mkdir,writeFile} from 'node:fs/promises';
 import {join} from 'node:path';

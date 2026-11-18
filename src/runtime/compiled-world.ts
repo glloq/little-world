@@ -1,3 +1,4 @@
+import {habitatColliders} from '../settlements/habitat.ts';
 /** Runtime reader for compiled V3 worlds (published static files or a Studio test build).
  * Source projects, compiled worlds and player saves stay separate: this module only
  * reads validated compiled resources. Sectors absent from the manifest have no authored
@@ -74,6 +75,7 @@ export function playableFromCompiled(bundle:CompiledWorldBundle,spawn?:Point3):P
   const collisions:CollisionDefinition[]=chunks.flatMap(chunk=>chunk.collision.shapes.filter(shape=>shape.collider.layer==='solid').map(shape=>transformedCollider(shape.entityId,shape.collider,shape.transform))); 
   for(const entity of entities)if(entity.components.NaturalStructure&&entity.components.Transform)
     collisions.push(...naturalColliders(entity.id,entity.components.NaturalStructure,entity.components.Transform));
+  for(const entity of entities)if(entity.components.Habitat&&entity.components.Transform)collisions.push(...habitatColliders(entity.id,entity.components.Transform));
   const actions=[...gameplay.interactions.flatMap(i=>i.sequence),...gameplay.dialogues.flatMap(d=>d.lines.flatMap(l=>[...(l.actions??[]),...l.choices.flatMap(c=>c.actions??[])]))];
   validateAudioLinks(manifest.audio,gameplay.entities.map(e=>e.id),actions.filter(a=>a.type==='playSound').map(a=>(a as {soundId:string}).soundId));
   const start=spawn??defaultSpawn(config,terrain);

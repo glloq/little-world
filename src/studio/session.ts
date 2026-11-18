@@ -1,3 +1,5 @@
+import {assertSettlementLocks} from '../settlements/authoring.ts';
+import {assertTerrainSiteLocks} from '../studio-core/terrain-site-edits.ts';
 import {waterChunkIds} from '../water/sectors.ts';
 import {planHydrationEviction} from '../studio-core/hydration-budget.ts';
 import {CommandBus} from '../studio-core/commands.ts';
@@ -8,6 +10,7 @@ import {parseChunk,parseWorldV3} from '../studio-core/schema.ts';
 import type {ProjectDocument} from '../studio-core/types.ts';
 /** Shared session. Sources hydrate only on demand; history contains changed fields. */
 export class StudioSession {
+ readonly store:ProjectStore;
  readonly document:ProjectDocument;
  readonly selection:SelectionService;
  readonly commands:CommandBus;
@@ -18,7 +21,8 @@ export class StudioSession {
  private saving:Promise<void>|null=null;
  private listeners=new Set<()=>void>();
  status='Sauvegardé localement';
- constructor(readonly store:ProjectStore,stored:StoredProject){
+ constructor(store:ProjectStore,stored:StoredProject){
+  this.store=store;
   this.document=stored.document;this.revision=stored.revision;this.selection=new SelectionService(stored.context);
   this.commands=new CommandBus(this.document,(p,ids)=>{parseWorldV3(p.world);for(const id of ids)if(p.chunks[id])parseChunk(p.chunks[id],p.world);});
   if(stored.journal)this.commands.restore(stored.journal);
@@ -46,7 +50,7 @@ export class StudioSession {
  }
  /** Copy touched sectors only, then derive field patches. No complete world snapshots. */
  async change(label:string,ids:string[],edit:(draft:ProjectDocument)=>void){
-  await this.hydrate(ids);return editDocument(this.commands,label,ids,edit);
+  await this.hydrate(ids);return editDocument(this.commands,label,ids,draft=>{edit(draft);assertTerrainSiteLocks(this.document,draft);assertSettlementLocks(this.document,draft);});
  }
  async flush():Promise<void>{
   clearTimeout(this.timer);if(this.saving){await this.saving;if(this.pending)return this.flush();return;}

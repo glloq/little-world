@@ -3,7 +3,7 @@
  * variations with a preview before commit. Every committed change is one transaction on
  * `world.terrain` (undoable, validated by the V3 world schema). The generator stays the
  * single terrain authority; author corrections (masks, edits) are kept untouched. */
-import {node,button,field,download} from '../dom.ts';
+import {node,button,field,download,select} from '../dom.ts';
 import type {StudioSession} from '../session.ts';
 import {archipelagoField,featureBounds,landmassBounds,FEATURE_LABELS,type ArchipelagoParams,type Landmass,type ReliefFeature,type PointXZ,type FeatureKind} from '../../geography/archipelago.ts';
 import {archipelagoPreset,isletChainPreset,islandToArchipelago,parseArchipelago,blobOutline,ARCHIPELAGO_LIMITS} from '../../geography/archipelago-params.ts';
@@ -173,13 +173,15 @@ export function createShapeTool(env:ShapeEnv){
       }
       box.append(node('p',adding?'Cliquez sur la carte pour placer : '+(ADDABLE.find(k=>k[0]===adding)?.[1]):'Glisser une poignée : déplacer · double-clic sur un contour : ajouter un point · Suppr : retirer.','muted'));
       const add=node('div','','chip-row');for(const [kind,label]of ADDABLE){const c=button('+ '+label,()=>{adding=adding===kind?null:kind;env.refreshPanel();},'chip'+(adding===kind?' active':''));c.dataset.add=kind;add.append(c);}box.append(add);
+      const siteNames=new Map(Object.values(p.libraries.terrainPlans??{}).flatMap(plan=>plan.sites.map(s=>[s.featureId,s.name] as const)));
+      box.append(field('Forme sélectionnée',select(selected?.id??'',[['','Choisir une forme'],...a.landmasses.map(l=>[l.id,l.name] as [string,string]),...a.features.map((f,i)=>[f.id,siteNames.get(f.id)??FEATURE_LABELS[f.kind]+' '+(i+1)] as [string,string])],id=>{selected=id?{type:a.landmasses.some(l=>l.id===id)?'landmass':'feature',id}:null;vertex=null;adding=null;variation=null;env.refreshPanel();env.redraw();})));
       const target=selected&&find(a,selected);
       if(selected&&target){
         const isLand=selected.type==='landmass',kind=isLand?'landmass':(target as ReliefFeature).kind,fields=isLand?LAND_FIELDS:FEATURE_FIELDS[kind as FeatureKind];
         const card=node('div','','section-card shape-card');card.append(node('strong',isLand?(target as Landmass).name:FEATURE_LABELS[kind as FeatureKind]),node('div',selected.id,'muted'));
         if(isLand){const name=node('input');name.value=(target as Landmass).name;name.onchange=()=>{const next=structuredClone(a);(find(next,selected!) as Landmass).name=name.value.trim()||'Terre';commit('Renommer une terre',next);};card.append(field('Nom',name));}
         for(const [key,label,min,max,step]of fields){
-          const value=(target as unknown as Record<string,number>)[key],range=node('input'),out=node('span',String(value),'range-value');range.type='range';range.min=String(min);range.max=String(max);range.step=String(step);range.value=String(value);
+          const value=(target as unknown as Record<string,number>)[key],range=node('input'),out=node('span',String(value),'range-value');range.type='range';range.setAttribute('aria-label',label);range.min=String(min);range.max=String(max);range.step=String(step);range.value=String(value);
           range.oninput=()=>{out.textContent=range.value;};range.onchange=()=>{const next=structuredClone(a);(find(next,selected!) as unknown as Record<string,number>)[key]=Number(range.value);commit('Régler : '+label.replace(/ \(.*/,''),next);};
           const l=node('label',label);l.append(range,out);card.append(l);
         }
@@ -199,7 +201,7 @@ export function createShapeTool(env:ShapeEnv){
       if(pending){presets.open=true;const card=node('div','','section-card');card.append(node('strong','Aperçu : '+pending.label),reliefThumbnail(pending.params,world(),b,150),node('p','Remplace le relief de base. Vos retouches, masques et contenus sont conservés ; une seule opération annulable.','muted'),
         button('Appliquer ce relief',()=>{const v=pending!;pending=null;selected=null;commit('Appliquer un preset de relief',v.params);},'primary-button'),button('Annuler',()=>{pending=null;env.refreshPanel();}));presets.append(card);}
       const general=node('details');general.append(node('summary','Réglages généraux'));
-      for(const [key,label,min,max,step]of [['seabedDepthM','Profondeur du fond marin (m)',2,200,1],['detailM','Détail local (m)',0,20,.5]] as Field[]){const range=node('input'),out=node('span',String((a as unknown as Record<string,number>)[key]),'range-value');range.type='range';range.min=String(min);range.max=String(max);range.step=String(step);range.value=String((a as unknown as Record<string,number>)[key]);range.oninput=()=>{out.textContent=range.value;};range.onchange=()=>{const next=structuredClone(a);(next as unknown as Record<string,number>)[key]=Number(range.value);commit('Régler : '+label.replace(/ \(.*/,''),next);};const l=node('label',label);l.append(range,out);general.append(l);}
+      for(const [key,label,min,max,step]of [['seabedDepthM','Profondeur du fond marin (m)',2,200,1],['detailM','Détail local (m)',0,20,.5]] as Field[]){const range=node('input'),out=node('span',String((a as unknown as Record<string,number>)[key]),'range-value');range.type='range';range.setAttribute('aria-label',label);range.min=String(min);range.max=String(max);range.step=String(step);range.value=String((a as unknown as Record<string,number>)[key]);range.oninput=()=>{out.textContent=range.value;};range.onchange=()=>{const next=structuredClone(a);(next as unknown as Record<string,number>)[key]=Number(range.value);commit('Régler : '+label.replace(/ \(.*/,''),next);};const l=node('label',label);l.append(range,out);general.append(l);}
       box.append(presets,general);
       return box;
     },

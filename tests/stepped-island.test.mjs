@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {planWorldTerrain} from '../src/studio-core/world-terrain-planner.ts';
 import {composeWorld} from '../src/studio-core/world-composition.ts';
-import {DEFAULT_MAP_REQUIREMENTS as defaults} from '../src/studio-core/map-requirements.ts';
+import {STEPPED_MAP_REQUIREMENTS as defaults} from '../src/studio-core/map-requirements.ts';
 import {compileWaterNetwork,WaterSpatialIndex} from '../src/water/profile.ts';
 import {projectGeography} from '../src/studio-core/geo-context.ts';
 import {polylineDistance} from '../src/geography/archipelago.ts';

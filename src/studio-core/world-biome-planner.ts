@@ -1,3 +1,4 @@
+import {naturalRegions} from './world-biomes-v4.ts';
 /** V2 ecological provinces cover the island; WATER is one input, not their outline. */
 import {LANDSCAPES,type Landscape,type MapRequirements} from './map-requirements.ts';
 import {newRegion,type RegionRecipeV1,type RegionPreset} from './region-recipes.ts';
@@ -35,6 +36,7 @@ export function biomeSuitability(kind:Landscape,e:ProvinceEnvironment):number{
  }
 }
 export function planWorldBiomes(p:ProjectDocument,r:MapRequirements,axis:PointXZ[],provinces:GeographicProvince[]=[]):RegionRecipeV1[]{
+ if((r.compositionVersion??1)>=4)return naturalRegions(p);
  if((r.compositionVersion??1)===1)return planLegacyWorldBiomes(p,r,axis);
  const order=landscapeOrder(r),recipes:RegionRecipeV1[]=[];
  if(!order.length)return recipes;

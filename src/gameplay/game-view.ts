@@ -1,3 +1,4 @@
+import {InteractionNeighborhood} from './interaction-neighborhood.ts';
 import type * as THREE from 'three';
 import type {NPCState} from '../npc.ts';
 import {WorldCollisionQuery} from '../physics/collision-world.ts';
@@ -26,7 +27,7 @@ export interface ObjectTarget {entity:GameplayEntity;name:string;prompt:string;r
 export function createGameplayView(data:GameplayData,options:Options){
  const runtime=createGameplay(data),slots=createGameSaveStore(options.temporary?scopedSaveStorage(sessionStorage,options.saveScope??'test'):undefined);
  const collisionDefinitions=new Map((options.collisions??[]).map(d=>[d.id,d]));
- const collision=new WorldCollisionQuery(terrainHeight,waterSurface);for(const definition of options.collisions??[]){const height=terrainHeight(definition.groundAnchor.x,definition.groundAnchor.z);collision.add({...definition,position:{...definition.position,y:definition.position.y+height},enabled:()=>{const state=runtime.state.entities[naturalColliderOwner(definition.id)];return state?.open!==true&&state?.collected!==true;}});}
+ const collision=new WorldCollisionQuery(terrainHeight,waterSurface);for(const definition of options.collisions??[]){const height=terrainHeight(definition.groundAnchor.x,definition.groundAnchor.z);collision.add({...definition,position:{...definition.position,y:definition.position.y+height},enabled:()=>{const state=runtime.state.entities[definition.ownerId??naturalColliderOwner(definition.id)];return (definition.ownerId!==undefined||state?.open!==true)&&state?.collected!==true;}});}
  const has=(itemId:string)=>(runtime.state.inventory[itemId]??0)>0;
  const activities=createActivityRuntime(options.activities??{mines:[],farms:[]},{grant:changes=>runtime.grantItems(changes),has,seedItem:cropId=>runtime.data.items.some(i=>i.id==='seed:'+cropId)?'seed:'+cropId:null,time:()=>runtime.state.time,climate:runtime.climate,collision,ground:terrainHeight,water:waterSurface});
  /** Core gameplay state + active space + activity differences, in one versioned save. */
@@ -43,9 +44,11 @@ export function createGameplayView(data:GameplayData,options:Options){
  let npcs:readonly NPCState[]=[],version=-1,disposed=false;const listeners=new Set<()=>void>();
  const entityIds=new Set(runtime.data.entities.map(e=>e.id)),targets=runtime.data.entities.filter(e=>e.interactable),interactions=new Map<string,typeof runtime.data.interactions>();
  for(const i of runtime.data.interactions)if(i.trigger.type==='onInteract'){const list=interactions.get(i.trigger.entityId)??[];list.push(i);interactions.set(i.trigger.entityId,list);}
+ const targetIndex=new InteractionNeighborhood(),targetById=new Map(targets.map(e=>[e.id,e]));
  const models=new Map(options.objects.children.filter(m=>m.userData.placementId).map(m=>[m.userData.placementId as string,{object:m,rotation:m.rotation.y}]));
  // Data positions are terrain-relative author coordinates. Runtime queries use actual Y.
  for(const entity of runtime.data.entities)if(entity.position)runtime.setEntityPosition(entity.id,{...entity.position,y:terrainHeight(entity.position.x,entity.position.z)+entity.position.y});
+ for(const entity of targets)if(entity.position)targetIndex.set(entity.id,entity.position);
  function sync(){
   for(const [id,model] of models){const state=runtime.state.entities[id];if(!state)continue;model.object.visible=state.collected!==true;model.object.rotation.y=model.rotation+(state.open===true?Math.PI/2:0);}
  }
@@ -59,8 +62,9 @@ export function createGameplayView(data:GameplayData,options:Options){
  }
  function describe(position:Point3):ObjectTarget|null{
   let best:ObjectTarget|null=null;
-  for(const entity of targets){if(!entity.interactable||!entity.position||runtime.state.entities[entity.id]?.collected===true)continue;
+  for(const id of targetIndex.nearby(position)){const entity=targetById.get(id)!;if(!entity.interactable||!entity.position||runtime.state.entities[entity.id]?.collected===true)continue;
    const d=Math.hypot(position.x-entity.position.x,position.y-entity.position.y,position.z-entity.position.z);if(d>entity.interactable.range||(best&&d>=best.distance))continue;
+   if(collision.occluded({...position,y:position.y+1.2},{...entity.position,y:entity.position.y+1.2},[entity.id]))continue;
    const reason=reasonFor(entity.id);best={entity,name:entity.name??entity.interactable.prompt,prompt:entity.interactable.prompt,range:entity.interactable.range,usable:!reason,reason,distance:d};
   }
   return best;
@@ -79,7 +83,7 @@ export function createGameplayView(data:GameplayData,options:Options){
   prompt(position:Point3){runtime.state.playerPosition={...position};const target=describe(position);return target?.usable?'[E] '+target.prompt:null;},
   interact(position:Point3){runtime.state.playerPosition={...position};const target=describe(position);return target?.usable?runtime.interact(target.entity.id,position):false;},
   update(dt:number){
-   if(disposed)return;runtime.state.playerPosition={...options.getPosition()};for(const npc of npcs)if(entityIds.has(npc.definition.id)){runtime.setEntityPosition(npc.definition.id,{x:npc.x,y:npc.y,z:npc.z});const body=collisionDefinitions.get(npc.definition.id);if(body)collision.moveBody(body.id,{x:npc.x+body.position.x-body.groundAnchor.x,y:npc.y+body.position.y,z:npc.z+body.position.z-body.groundAnchor.z});}
+   if(disposed)return;runtime.state.playerPosition={...options.getPosition()};for(const npc of npcs)if(entityIds.has(npc.definition.id)){runtime.setEntityPosition(npc.definition.id,{x:npc.x,y:npc.y,z:npc.z});if(targetById.has(npc.definition.id))targetIndex.set(npc.definition.id,{x:npc.x,z:npc.z});const body=collisionDefinitions.get(npc.definition.id);if(body)collision.moveBody(body.id,{x:npc.x+body.position.x-body.groundAnchor.x,y:npc.y+body.position.y,z:npc.z+body.position.z-body.groundAnchor.z});}
    runtime.update(dt);for(const effect of runtime.drainEffects()){
     if(effect.type==='showText')options.showInfo(effect.text);
     else if(effect.type==='playSound')options.onSound?.(effect.soundId,effect.entityId?runtime.data.entities.find(e=>e.id===effect.entityId)?.position:undefined);

@@ -61,16 +61,16 @@ function sharedFor(session:StudioSession):SharedMap{
 }
 /** Free the map caches (project closed). */
 export function releaseGeoMap(){if(shared){shared.stop();shared.cache.clear();shared=null;}}
-export interface GeoMapOptions {onPick(x:number,z:number,tolerance?:number):void;status(message:string,error?:boolean):void;open3D():void}
+export interface GeoMapOptions {draft?:boolean;onPick(x:number,z:number,tolerance?:number):void;status(message:string,error?:boolean):void;open3D():void}
 export function mountGeoMap(host:HTMLElement,tools:HTMLElement,session:StudioSession,options:GeoMapOptions){
   const p=session.document,b=p.world.bounds,grid=sectorGrid(p);
   const wrap=node('div','','map-wrap'),canvas=node('canvas'),note=node('div','','map-note'),readout=node('div','','map-readout');wrap.append(canvas,note,readout);host.replaceChildren(wrap);
   canvas.dataset.mapPending='1';canvas.tabIndex=0;canvas.setAttribute('aria-label','Carte 2D par couches');
   const g2=canvas.getContext('2d')!;
   // ---- view state
-  const saved=loadPrefs();
-  const state={layers:saved?.layers??LAYERS.map(l=>({id:l.id,visible:l.id==='altitude'||l.id==='biome',opacity:l.id==='biome'?.6:1,locked:false})),active:saved?.active??'biome' as LayerId,
-    tool:'select' as MapToolId,protect:true,reliefAmount:2,radius:16,strength:2,code:{geology:'r',moisture:'9',biome:'f',material:'s',occupation:'p'} as Record<MaskLayerId,string>,overlays:true,grid:false};
+  const saved=options.draft?null:loadPrefs();
+  const state={layers:saved?.layers??LAYERS.map(l=>({id:l.id,visible:l.id==='altitude'||!options.draft&&l.id==='biome',opacity:l.id==='biome'?.6:1,locked:false})),active:saved?.active??(options.draft?'altitude':'biome') as LayerId,
+    tool:(options.draft?'shape':'select') as MapToolId,protect:true,reliefAmount:2,radius:16,strength:2,code:{geology:'r',moisture:'9',biome:'f',material:'s',occupation:'p'} as Record<MaskLayerId,string>,overlays:true,grid:false};
   let scale=1,cx=session.selection.state.camera.target?.x??session.selection.state.camera.x??0,cz=session.selection.state.camera.target?.z??session.selection.state.camera.z??0;
   const base=()=>Math.min(canvas.width/(b.maxX-b.minX+50),canvas.height/(b.maxZ-b.minZ+50))*scale;
   const toScreen=(x:number,z:number)=>({x:canvas.width/2+(x-cx)*base(),y:canvas.height/2+(z-cz)*base()});
@@ -152,7 +152,7 @@ export function mountGeoMap(host:HTMLElement,tools:HTMLElement,session:StudioSes
     if(state.overlays)drawVectors();
     if(state.tool==='shape')shapes.draw(g2);
     drawToolPreview();
-    const lvl=levelMpp(level);note.textContent=`${LAYERS.find(l=>l.id===state.active)!.label} · ${TOOL_INFO[state.tool][0]} · ${lvl} m/px · ${cache.size} tuiles (${(cache.bytes/1048576).toFixed(1)} Mio)${queue.length?' · calcul '+queue.length:''}${samples?` · ${(sampleMs/samples).toFixed(1)} ms/tuile`:''}`;
+    const lvl=levelMpp(level);note.textContent=options.draft?`${LAYERS.find(l=>l.id===state.active)!.label} · ${TOOL_INFO[state.tool][0]} · ${lvl} m/px`: `${LAYERS.find(l=>l.id===state.active)!.label} · ${TOOL_INFO[state.tool][0]} · ${lvl} m/px · ${cache.size} tuiles (${(cache.bytes/1048576).toFixed(1)} Mio)${queue.length?' · calcul '+queue.length:''}${samples?` · ${(sampleMs/samples).toFixed(1)} ms/tuile`:''}`;
     canvas.dataset.view=JSON.stringify({cx,cz,ppm:base(),width:canvas.width,height:canvas.height});
     if(replan){plan();hydrateVisible();}
   }
@@ -285,7 +285,7 @@ export function mountGeoMap(host:HTMLElement,tools:HTMLElement,session:StudioSes
     const overlays=node('input');overlays.type='checkbox';overlays.checked=state.overlays;overlays.onchange=()=>{state.overlays=overlays.checked;draw(false);};
     const gridBox=node('input');gridBox.type='checkbox';gridBox.checked=state.grid;gridBox.onchange=()=>{state.grid=gridBox.checked;draw(false);};
     const view=node('details');view.append(node('summary','Affichage avancé'),field('Rivières, chemins, zones, objets',overlays),field('Grille des secteurs',gridBox));
-    tools.append(view,button('Voir ce lieu en 3D',options.open3D,'primary-button'));
+    tools.append(view);if(!options.draft)tools.append(button('Voir ce lieu en 3D',options.open3D,'primary-button'));
   }
   function legend(){
     const l=state.active,box=node('div','','legend');
@@ -309,7 +309,7 @@ export function mountGeoMap(host:HTMLElement,tools:HTMLElement,session:StudioSes
     const cells=regionCells(p,r),count=[...cells.values()].reduce((n,c)=>n+c.length,0),content=regionElements(p,r);
     box.dataset.shape=regionShape;
     box.append(node('strong',regionShape==='rect'?'Zone rectangulaire':'Zone polygonale'),node('p',`${count} cellules de ${grid.chunkSizeM/MASK_GRID} m · ${all.terrainEdits.length} retouche(s) de relief · ${Object.values(all.cells).reduce((n,v)=>n+(v??0),0)} correction(s) de couches · ${content.length} élément(s) auteur (secteurs chargés).`,'muted'));
-    box.append(button(`Sélectionner le contenu (${content.length})`,()=>{session.selection.setSelection(content);options.status(`${content.length} élément(s) sélectionné(s) : inspecteur, Ctrl+D, Suppr ou gizmo en vue 3D.`);draw(false);}));
+    if(!options.draft)box.append(button(`Sélectionner le contenu (${content.length})`,()=>{session.selection.setSelection(content);options.status(`${content.length} élément(s) sélectionné(s) : inspecteur, Ctrl+D, Suppr ou gizmo en vue 3D.`);draw(false);}));
     const protect=node('input');protect.type='checkbox';protect.checked=state.protect;protect.onchange=()=>{state.protect=protect.checked;};
     if(MASKS.has(layer)&&!locked){
       const value=layer==='moisture'?`humidité ${Number(state.code.moisture)*10} %`:CATEGORY_LAYERS[layer as Exclude<MaskLayerId,'moisture'>].find(v=>v.code===state.code[layer as MaskLayerId])?.label;
@@ -333,7 +333,7 @@ export function mountGeoMap(host:HTMLElement,tools:HTMLElement,session:StudioSes
     function restore(o:{terrain:boolean;layers:MaskLayerId[]}){const ids=regionChunkIds(p,r);run(session.change('Rétablir la génération',ids,d=>{restoreGeneration(d,r,o);}),'Génération rétablie dans la zone.');region=null;panel();draw(false);}
   }
   function move(id:LayerId,delta:number){const i=state.layers.findIndex(l=>l.id===id),j=i+delta;if(j<0||j>=state.layers.length)return;const [l]=state.layers.splice(i,1);state.layers.splice(j,0,l);persist();panel();draw(false);}
-  function persist(){savePrefs({layers:state.layers,active:state.active});}
+  function persist(){if(options.draft)return;savePrefs({layers:state.layers,active:state.active});}
   // ---- lifecycle
   const shapes=createShapeTool({session,toScreen,scale:base,redraw:()=>draw(false),refreshPanel:()=>panel(),status:options.status});
   const observer=new ResizeObserver(()=>draw());observer.observe(wrap);

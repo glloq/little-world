@@ -9,7 +9,7 @@ import {putWater,removeWater} from '../studio-core/source.ts';
 import {button,field,node,numberInput,select} from './dom.ts';
 import type {StudioSession} from './session.ts';
 
-export function mountWater(host:HTMLElement,tools:HTMLElement,s:StudioSession){
+export function mountWater(host:HTMLElement,tools:HTMLElement,s:StudioSession,options:{onPending?:(pending:boolean)=>void}={}){
  const p=s.document,b=p.world.bounds;
  const empty=():WaterBody=>({id:crypto.randomUUID(),points:[],width:8,depth:2,level:4,profile:{mode:'terrain',offset:-.35}});
  // lastId: the edited river survives undo/redo even though undo prunes it from the selection.
@@ -46,7 +46,8 @@ export function mountWater(host:HTMLElement,tools:HTMLElement,s:StudioSession){
   summary.textContent=profile.points.length?`${draft.points.length} points · ${profile.points.at(-1)!.distance.toFixed(0)} m · Eau : ${profile.points[0].level.toFixed(2)} → ${profile.points.at(-1)!.level.toFixed(2)} m · Terrain brun / eau bleue`:'Ajouter au moins deux points. Les niveaux sont en mètres.';
   messages.replaceChildren(...profile.diagnostics.map(d=>node('p',d.message,'diagnostic '+d.severity)));
  }
- const update=()=>{void refresh().catch(e=>messages.replaceChildren(node('p',String(e),'diagnostic ERROR')));};
+ const hasPendingChanges=()=>p.libraries.water[draft.id]?JSON.stringify(p.libraries.water[draft.id])!==JSON.stringify(draft):draft.points.length>0;
+ const update=()=>{options.onPending?.(hasPendingChanges());void refresh().catch(e=>messages.replaceChildren(node('p',String(e),'diagnostic ERROR')));};
  /** V3 hydrography: river or lake, oriented links (source / outlet), explicit waterfalls. */
  function networkControls(){
   tools.append(field('Forme',select(draft.kind==='lake'?'lake':'river',[['river','Cours d’eau (tracé orienté)'],['lake','Lac (contour, niveau constant)']],v=>{
