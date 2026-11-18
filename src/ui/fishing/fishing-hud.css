@@ -16,6 +16,8 @@
 .fishing-tension-track{background:linear-gradient(90deg,#347c70 0%,#dfb55b 72%,#c75b52 100%)}
 .fishing-tension{background:rgba(255,255,255,.75);mix-blend-mode:overlay}
 .fishing-danger .fishing-tip,.fishing-danger .fishing-tension-text{color:#ffd68b}
+.fishing-danger{border-color:rgba(244,189,111,.72)}
+.fishing-danger .fishing-tension-track{box-shadow:0 0 0 1px rgba(244,189,111,.6)}
 @media (max-width:720px) and (pointer:coarse){
   .fishing-minigame {left:48%;bottom:100px;width:min(260px,calc(100vw - 190px));padding:9px 12px;font-size:12px}
   .fishing-heading{display:block;margin-bottom:8px}
