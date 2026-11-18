@@ -2,7 +2,7 @@
  * The engine identifies a target, the business systems say which actions are possible (and
  * why not), the interface shows one primary action; the command is executed by the same
  * business method. Descriptors are presentation models, never a second source of truth. */
-export type TargetType='object'|'npc'|'boat'|'mine-wall'|'farm-plot'|'gather'|'fishing'|'shop'|'ferry';
+export type TargetType='object'|'npc'|'boat'|'mine-wall'|'farm-plot'|'gather'|'fishing'|'shop'|'mine-lift'|'ferry';
 export interface InteractionAction {id:string;key:string;label:string;enabled:boolean;disabledReason?:string}
 export interface TargetDescriptor {
   targetId:string;targetType:TargetType;displayName:string;
@@ -39,6 +39,11 @@ export function farmPlotTarget(v:{zoneId:string;zoneName:string;intent:{type:str
   const primary=action('farm-'+v.intent.type,v.intent.label,v.ok,v.reason),actions=[primary,{...primary,id:primary.id+'-f',key:'F'}];
   if(v.intent.type==='plant'&&v.choices>1)actions.push(action('choose-crop','Changer de culture',true,undefined,'C'));
   return {targetId:v.zoneId,targetType:'farm-plot',displayName:v.zoneName,primaryAction:primary,availableActions:actions,...(v.ok?{}:{disabledReason:v.reason})};
+}
+export function mineLiftTarget(mineId:string,levelId:string):TargetDescriptor{
+  const primary=action('mine-lift','Choisir un étage');
+  return {targetId:'mine-lift:'+mineId+':'+levelId,targetType:'mine-lift',
+    displayName:'Monte-charge',primaryAction:primary,availableActions:[primary],interactionRange:2.1};
 }
 export function shopTarget(s:{entityId:string;name:string}):TargetDescriptor{const primary=action('shop','Commercer');return {targetId:s.entityId,targetType:'shop',displayName:s.name,primaryAction:primary,availableActions:[primary]};}
 export function gatherTarget(g:{key:string;label:string;name:string;ok:boolean;reason?:string;progress?:string}):TargetDescriptor{
