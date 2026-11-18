@@ -1178,7 +1178,7 @@ function draw(now: number) {
   if(portN1View)portN1View.update(elapsed,player.position);else ferryView?.update(elapsed);
   character.group.position.copy(renderPosition);
   character.setAboard(aboard);
-  if(gameplay){const f=gameplay.fishing.state;character.setFishing(f.phase!=='idle'&&f.castAt?{x:f.castAt.x,y:waterSurface(f.castAt.x,f.castAt.z)??getTerrainConfig().seaLevel,z:f.castAt.z,biting:f.phase==='bite',tension:f.tension}:null);}
+  if(gameplay){const f=gameplay.fishing.state;character.setFishing(f.phase!=='idle'&&f.castAt?{x:f.castAt.x,y:waterSurface(f.castAt.x,f.castAt.z)??getTerrainConfig().seaLevel,z:f.castAt.z,biting:f.phase==='bite'}:null);}
   character.update(player, delta, elapsed);
   // Hero-only pose overlay. Does not change the authoritative rig animation,
   // procedural GLB, other players or distant impostor hashes.
