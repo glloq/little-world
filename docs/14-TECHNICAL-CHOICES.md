@@ -1,5 +1,8 @@
 # 14 — Décisions techniques transversales validées
 
+> **Extension architecture archipel (18 novembre 2026) :** les choix TW/TE/TG historiques restent applicables **à chaque île**. L'archipel statique multi-îles, les transitions, l'économie analytique et les contrats coopératifs futurs sont spécifiés dans [73–79](73-ARCHIPEL-VISION-DECISIONS.md). Aucun serveur n'est requis pendant la phase GitHub Pages solo.
+
+
 **Date : 12 novembre 2026 — statut : VALIDÉ pour le périmètre et l'architecture ; réalisation et budgets de performance à mesurer.**
 
 Cette spécification consigne **l'acceptation par l'utilisateur de l'ensemble des recommandations** des choix techniques/UX discutés après le cadrage du monde et de Little World Studio.
@@ -264,3 +267,19 @@ Une étape d'éditeur est considérée intégrée seulement si :
 - **HORS PÉRIMÈTRE :** backend de jeu, multijoueur initial, scripts utilisateurs non fiables, moteur voxel universel, simulation sociale ou **simulation physique de météo** de complexité élevée (les effets stylisés ENV sont prévus en bêta).
 
 **Chaque agent de développement doit comparer ses changements à ce document et aux spécifications 12/13, en vérifiant l'état de la branche avant de modifier le code.**
+
+## Extension ISL — décisions techniques transversales (18/11/2026)
+
+| ID | Décision | Statut |
+| --- | --- | --- |
+| ISL-T01 | Îles compilées, immuables et cataloguées ; un seul monde 3D actif par client | VALIDÉ cible |
+| ISL-T02 | Première démo 100 % statique sur GitHub Pages sans serveur/multijoueur | VALIDÉ priorité |
+| ISL-T03 | Registry, IslandManifest, worldId/islandId et save versionnée, migrations non destructives | VALIDÉ cible |
+| ISL-T04 | Voyages via scène bateau indépendante et gestionnaire de cycle de vie/rollback | VALIDÉ cible |
+| ISL-T05 | Économie/écologie pures par événements datés, rattrapage solo à la reprise, autorité serveur future | VALIDÉ cible |
+| ISL-T06 | Plans/contributions et droits de construction réutilisent les règles Studio et l'économie existante | VALIDÉ cible |
+| ISL-T07 | Navette niveau 0 : un jour/semaine de jeu ; niveau maximum : service permanent | VALIDÉ gameplay |
+| ISL-T08 | Cloche à l'arrivée et à -5 minutes de jeu ; carte du joueur reflète l'état canonique du bateau | VALIDÉ gameplay |
+
+Les choix TW-W6 et TP-P5 continuent à décrire **le prototype actuel** : l'autonomie future reste un modèle logique analytique, pas une simulation physique/ecologique permanente de tous les chunks. Voir [76](76-ISLAND-AUTONOMY-ECONOMY-TRADE.md).
+

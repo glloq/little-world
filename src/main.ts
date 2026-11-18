@@ -11,7 +11,7 @@ import {classifyPoint} from './geography/classify.ts';
 import {createMaterialSampler} from './physics/surface-material.ts';
 import {MINE_MATERIALS} from './mine/mine-data.ts';
 import type {GameUi} from './ui/app/game-ui.ts';
-import {resolveTarget,objectTarget,npcTarget,boatTarget,mineWallTarget,farmPlotTarget,shopTarget,gatherTarget,fishingTarget,type TargetDescriptor} from './ui/interactions/targets.ts';
+import {resolveTarget,objectTarget,npcTarget,boatTarget,ferryTarget,mineWallTarget,farmPlotTarget,shopTarget,gatherTarget,fishingTarget,type TargetDescriptor} from './ui/interactions/targets.ts';
 import {SHOPS,type ShopKind} from './gameplay/economy.ts';
 import {geoContext} from './geography/engine.ts';
 import {MATERIAL_BY_MINE_KEY} from './audio/context.ts';
@@ -26,6 +26,11 @@ import {
 import './style.css';
 import {waterSurface,riverX,isLegacyTerrain} from './terrain.ts';
 import {createFleet} from './gameplay/fleet.ts';
+import {loadArchipelagoRegistry} from './archipelago/registry.ts';
+import {ferryStatus,ferryEventsBetween,worldGameMinute} from './archipelago/ferry-schedule.ts';
+import {createFerryView} from './archipelago/ferry-view.ts';
+import {withFerryBells} from './archipelago/ferry-audio.ts';
+import {showFerryCinematic} from './ui/ferry/ferry-cinematic.ts';
 import {worldAsset} from './world-production/registry.ts';
 import type {PlayableWorld,StudioPlaytest} from './gameplay/playable.ts';
 import {WorldClock} from './environment/clock.ts';
@@ -139,6 +144,9 @@ const metricsEnabled = searchParams.has('metrics');
 /** Home page: the published island (complete game). Test maps stay reachable with ?world= / ?beta=1. */
 const DEFAULT_WORLD='maps/island/manifest.json';
 const worldPath=searchParams.get('world')??(searchParams.has('studioPreview')||searchParams.has('studioBuild')||searchParams.get('beta')==='1'?null:DEFAULT_WORLD);
+// The published registry is optional for Studio/test builds. No backend is required.
+const archipelago=worldPath?await loadArchipelagoRegistry(import.meta.env.BASE_URL).catch(()=>null):null;
+const activeIsland=archipelago?.islands.find(island=>island.manifest===worldPath)??null;
 let definition = defaultWorld();
 let playable:PlayableWorld|null=null,studioTest:StudioPlaytest|null=null,buildScope:string|null=null;
 function bootFailure(error:unknown):never{overlay.setAttribute('aria-busy','false');overlay.dataset.state='error';const message=overlay.querySelector<HTMLElement>('.start-error');if(message){message.hidden=false;message.querySelector('p')!.textContent=String(error);}start.disabled=true;throw error;}
@@ -213,7 +221,7 @@ try{
       definition=merged;
     }else definition=boostCatalog;
   }
-  if(definition){const {createAudioController}=await import('./audio/view.ts');audio=createAudioController(definition,{baseUrl:import.meta.env.BASE_URL});}
+  if(definition){const {createAudioController}=await import('./audio/view.ts');audio=createAudioController(activeIsland?withFerryBells(toAudioCatalog(definition)):definition,{baseUrl:import.meta.env.BASE_URL});}
  }catch{console.warn('Audio indisponible : le jeu reste silencieux.');}
 const {createGroundProbe}=await import('./audio/world-probe.ts'),groundProbe=createGroundProbe();
 let gameplay:GameplayView|null=null;
@@ -239,6 +247,24 @@ const npcs = createNPCSystem(scene, definition.npcs,isLegacyTerrain()?undefined:
 npcs.setLighting(world.atlasIllumination);
 gameplay?.attachNPCs(npcs.states);
 const worldClock=gameplay?.runtime.clock??new WorldClock(),climate=gameplay?.runtime.climate??createClimate(defaultEnvironment(definition.config.seed));
+// One ferry per published island for the solo trial. A valid water landing is mandatory.
+const ferryAnchor=activeIsland?definition.placements.filter(p=>/(dock|harbor|port)/i.test(p.assetId)).sort(
+  (a,b)=>Math.hypot(a.x-player.position.x,a.z-player.position.z)-Math.hypot(b.x-player.position.x,b.z-player.position.z))[0]:undefined;
+const ferryDock=(()=>{
+  if(!activeIsland)return null;
+  const x=ferryAnchor?.x??player.position.x,z=ferryAnchor?.z??player.position.z;
+  for(const radius of [6,10,15,22,32,45,60])for(let i=0;i<16;i++){
+    const a=i*Math.PI/8,px=x+Math.cos(a)*radius,pz=z+Math.sin(a)*radius;
+    if(waterDepth(px,pz)>1.5)return {x:px,z:pz,y:getTerrainConfig().seaLevel-.12};
+  }
+  return null;
+})();
+// Boarding remains on the walkable shore/quay, not six metres offshore under the rowboat.
+const ferryBoardingPoint=activeIsland?{x:ferryAnchor?.x??player.position.x,z:ferryAnchor?.z??player.position.z}:null;
+const ferryView=ferryDock?createFerryView(scene,ferryDock):null;
+let ferryMinute=worldGameMinute(worldClock.time,climate.definition.dayLengthSeconds);
+let ferryNow=ferryStatus(ferryMinute,activeIsland?.portLevel??0);
+ferryView?.setPresent(ferryNow.present);
 const {createEnvironmentView}=await import('./environment/view.ts');
 const environment=createEnvironmentView(scene,lighting,worldClock,climate);
 // E10 — local lights: entity states switch « state » lights, NPC carriers move their lights.
@@ -284,6 +310,12 @@ world.update(0, player.position);
       return {ok:true,message:'+'+Math.round(gained)+' gaz !'};
     },
     player:()=>({gas:gasLevel(player),maxGas:gasCapacity(player),gasShots:gasShots(player),gasMaxShots:gasMaxShots(player),gasCooldown:player.gasCooldown??0,x:player.position.x,y:player.position.y,z:player.position.z,yaw,space:player.space,mode:player.mode,oxygen:player.oxygen,maxOxygen:MAX_OXYGEN,stamina:player.stamina??MAX_STAMINA,maxStamina:MAX_STAMINA,speed:player.velocity.length(),stalled:player.stalled}),
+    ferry:activeIsland&&ferryDock&&archipelago?{
+      currentIslandId:activeIsland.id,islands:archipelago.islands,
+      dock:{x:ferryDock.x,z:ferryDock.z},state:()=>ferryNow,
+      preview:()=>{void showFerryCinematic('Essai de la traversée · retour sur cette île');},
+      travel:async()=>({ok:false,message:'La prochaine île d’exemple doit d’abord être générée, validée et ajoutée au catalogue statique.'}),
+    }:undefined,
     target:()=>currentTarget(),
     home:()=>{stopFlightCourse();started=false;mobileTouch?.setEnabled(false);mobileLandscape?.stop();gameUi?.controller.close();keySet.clear();overlay.classList.remove('hide');overlay.classList.add('home-mode');start.hidden=false;start.focus();}});
 }
@@ -684,6 +716,12 @@ function currentTarget():TargetDescriptor|null{
     ()=>{const o=gameplay?.describe(player.position);if(!o)return null;const t=objectTarget(o);if(!o.usable){unusable=t;return null;}return t;},
     // A counter the player faces wins over a shopkeeper standing next to it.
     ()=>{const s=nearShop(true);return s?shopTarget({entityId:s.id,name:SHOPS[s.kind].name}):null;},
+    // Ferry boards from a small, identifiable quay point. The nearby captain remains
+    // talkable a few metres away; the ferry must win only inside the boarding radius.
+    ()=>{if(!ferryDock||aboard||player.space)return null;
+      const shore=ferryBoardingPoint?Math.hypot(player.position.x-ferryBoardingPoint.x,player.position.z-ferryBoardingPoint.z):Infinity;
+      const d=Math.hypot(player.position.x-ferryDock.x,player.position.z-ferryDock.z);
+      return (shore<2.5||(d<3.5&&Math.abs(player.position.y-ferryDock.y)<4))?ferryTarget(ferryNow.present):null;},
     ()=>{const n=npcs.talker(player.position);return n?npcTarget(n):null;},
     ()=>fleet.nearest(player.position.x,player.position.y,player.position.z)?boatTarget(false):null,
     ()=>{if(!gameplay||!player.space)return null;const p=gameplay.activities.digPreview(player.position,player.space,forwardOf());return p?mineWallTarget({...p,rewardName:itemName(p.reward?.itemId)}):null;},
@@ -741,6 +779,20 @@ function tick(dt: number) {
   // Menus (pause, parties, paramètres) pause the world simulation; the frame still renders.
   if (!started || gameUi?.paused||mobileLandscape?.blocked) return;
   if(gameplay)gameplay.update(dt);else worldClock.advance(dt);
+  if(ferryDock&&activeIsland){
+    const minute=worldGameMinute(worldClock.time,climate.definition.dayLengthSeconds);
+    if(minute!==ferryMinute){
+      if(minute>ferryMinute)for(const event of ferryEventsBetween(ferryMinute,minute,activeIsland.portLevel,activeIsland.id)){
+        if(event.kind==='arrived'||event.kind==='departure-warning'){
+          audio?.emit(event.kind==='arrived'?'ferry.arrived':'ferry.departure-warning',
+            {source:'world',position:{x:ferryDock.x,y:ferryDock.y+1,z:ferryDock.z}});
+          if(Math.hypot(player.position.x-ferryDock.x,player.position.z-ferryDock.z)<100)
+            gameUi?.notify('info',event.kind==='arrived'?'Le bateau est arrivé au quai.':'Le bateau part dans 5 minutes de jeu.');
+        }
+      }
+      ferryMinute=minute;ferryNow=ferryStatus(minute,activeIsland.portLevel);ferryView?.setPresent(ferryNow.present);
+    }
+  }
   // In glide, mobile input now reaches the flight simulation directly.
   const keys = input();
   if (aboard) {
@@ -787,6 +839,8 @@ function tick(dt: number) {
       // The business system said no: tell why (never act on a disabled target).
       showInfo(target.primaryAction.disabledReason ?? 'Impossible pour le moment', 'warning');
       audio?.emit('ui.error', { source: 'ui' });
+    } else if (target?.targetType === 'ferry') {
+      gameUi?.openFerry();
     } else if (target?.targetType === 'boat' && aboard) {
       aboard = false;fleet.leave();
       const dock = isLegacyTerrain() ? null : dryLanding(boat);
@@ -884,6 +938,7 @@ function draw(now: number) {
   npcs.update(delta, elapsed, player.position,camera); // The river drives the mill: no manual on/off control.
   // Boats follow their state (the one in use moves; the player's own boat bobs at its mooring).
   playerBoat&&fleet.sync(playerBoat,elapsed);if(fleet.current&&fleet.current!==playerBoat)fleet.sync(fleet.current,elapsed);
+  ferryView?.update(elapsed);
   character.group.position.copy(renderPosition);
   character.setAboard(aboard);
   if(gameplay){const f=gameplay.fishing.state;character.setFishing(f.phase!=='idle'&&f.castAt?{x:f.castAt.x,y:waterSurface(f.castAt.x,f.castAt.z)??getTerrainConfig().seaLevel,z:f.castAt.z,biting:f.phase==='bite'}:null);}
@@ -959,6 +1014,7 @@ function draw(now: number) {
         boatModel: world.boat.getObjectByName('Sailboat') ? 'sailboat' : 'procedural',
         boatPosition: [boat.x, boat.y, boat.z],
         boats: { count: fleet.boats.length, aboard, current: fleet.current?.id ?? null },
+        ferry: activeIsland ? {islandId:activeIsland.id,level:activeIsland.portLevel,boat:ferryDock,boarding:ferryBoardingPoint,present:ferryNow.present,minutesUntilDeparture:ferryNow.minutesUntilDeparture} : null,
         paths: { ...world.paths },
         lights: { ...world.lights.stats },
         activities: activityView&&gameplay ? { ...activityView.stats, space: player.space ?? null,
@@ -1003,7 +1059,7 @@ function draw(now: number) {
   }
   requestAnimationFrame(draw);
 }
-window.addEventListener('pagehide',event=>{if(event.persisted)void audio?.engine.setHidden(true);else {remoteActors?.dispose();gasEffects.dispose();flightRings.dispose();flightCourseHud.remove();speedStreaks.dispose();gpuTimer.dispose();void audio?.dispose();}});
+window.addEventListener('pagehide',event=>{if(event.persisted)void audio?.engine.setHidden(true);else {ferryView?.dispose();remoteActors?.dispose();gasEffects.dispose();flightRings.dispose();flightCourseHud.remove();speedStreaks.dispose();gpuTimer.dispose();void audio?.dispose();}});
 window.addEventListener('pageshow',event=>{if(event.persisted&&started)void audio?.engine.setHidden(document.hidden);});
 document.addEventListener('visibilitychange', () => {
   presentation.reset();

@@ -135,3 +135,11 @@ Une colonie générée est acceptable lorsque :
 **Parcours de livraison et interface utilisateur :** [71 — roadmap accélérée](71-SETTLEMENTS-FAST-TRACK.md) et [72 — UX Studio](72-SETTLEMENTS-STUDIO-UX.md).
 
 **Documents d'exécution :** [66](66-SETTLEMENTS-PLACEMENT-NETWORK.md), [67](67-SETTLEMENTS-COLLISIONS-INTERACTIONS.md), [68](68-SETTLEMENTS-ROADMAP-TESTS.md). **SET-0 audité statiquement :** [69 — état du code](69-SETTLEMENTS-SET0-AUDIT.md), [70 — contrats techniques retenus](70-SETTLEMENTS-TECHNICAL-CONTRACTS.md). Aucun test physique ou benchmark n'est qualifié par ces documents.
+
+
+## Extension futur système d'îles — partage des contrats SET
+
+Les règles d'implantation, les archétypes de maisons (bois, pierre, terre, yourte, terrier, grotte), les entrées, voiries, collisions et ports conçus ici doivent devenir des **services/contrats réutilisables** par le mode construction des joueurs. **Ne pas dédoubler les solveurs SET**. Le Studio crée des sources auteur statiques ; le mode joueur crée des placements/runtime mutations versionnés et financés par plans/matériaux.
+
+Les îles d'exemple et leurs implantations sont **pré-générées et compilées** pour GitHub Pages ; droits, chantiers collectifs et simulation multi resteront des contrats sans serveur actif jusqu'à demande explicite. Voir [77](77-ISLAND-COMMUNITY-CONSTRUCTION.md) et [78](78-ISLAND-STUDIO-PLAYER-UX.md).
+

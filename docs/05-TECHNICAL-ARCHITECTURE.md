@@ -1,5 +1,8 @@
 # 05 — Architecture technique — solo et GitHub Pages
 
+> **Cible future ARCHIPEL :** une seule île 3D chargée à la fois, plusieurs îles statiques dans le build GitHub Pages, et changement de monde par scène de bateau légère. Le réseau/multijoueur n'est ni requis ni activé pour cette étape. Contrats : [73–79](73-ARCHIPEL-VISION-DECISIONS.md).
+
+
 **Statut : architecture cible avec un premier prototype codé.** Le périmètre final et le Studio sont spécifiés dans [12 — Limites](12-PROJECT-SCOPE.md) et [13 — Studio UX](13-STUDIO-UX-ARCHITECTURE.md). `src/terrain.ts`, `src/world.ts`, `src/player.ts`, `src/main.ts` et `src/editor.ts` sont en place ; Rapier reste différé.
 
 ## Implémentation actuelle de la branche
@@ -259,3 +262,12 @@ Référence : [23 — Audio LOW-RESOURCE](23-MIDI-AUDIO-LOW-RESOURCE.md).
 Colyseus ou autre transport, serveur autoritaire, prédiction/réconciliation réseau, rooms, chat, authentification, base de données, positions des autres joueurs, sauvegarde partagée et tests de charge (30 → 200, 500 expérimental).
 
 Une future évolution réseau demanderait un nouveau jalon et une conception spécifique ; **ne pas ajouter d'infrastructure prématurée**.
+
+## Architecture extension ISL (statique GitHub Pages en premier)
+
+**Cible de code, NON livrée :** registre statique → IslandManager/WorldTransition → loader sectorisé d'une seule île → save local par islandId. La scène barque/navire sert de transition légère et le gestionnaire libère GPU/CPU de l'île précédente.
+
+Les états économiques et écologiques d'îles non chargées se résument à snapshots/deltas datés et rattrapage déterministe à la reprise ; pas de scène, PNJ simulés en 3D ni audio distants. À l'étape solo statique il n'y a **aucun serveur permanent**. Le futur serveur multijoueur est une implémentation additionnelle explicite de l'autorité, pas une condition d'exécution du client.
+
+Éviter second moteur de placement, logique de transaction, rendu de route, moteur audio ou calcul de collisions. Voir [74](74-ISLAND-MANIFEST-REGISTRY.md)–[79](79-ISLAND-ROADMAP-VALIDATION.md).
+

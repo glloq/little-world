@@ -202,3 +202,11 @@ Cette liste est un **plan d'acceptation pour la prochaine architecture**, et non
 11. Vérifier 30 FPS nominal et secours 20 FPS **sans perte d'input ni ralentissement de simulation**, suivant la politique LOW-RESOURCE.
 
 Références : [12 — Limites](12-PROJECT-SCOPE.md), [13 — Studio](13-STUDIO-UX-ARCHITECTURE.md), [11 — LOW-RESOURCE](11-LOW-RESOURCE-POLICY.md).
+
+
+## Extension tests ARCHIPEL — jalons statiques avant multi
+
+À ajouter lorsque ISL-1…ISL-6 seront codés, sans remplacer les régressions existantes : navigation entre au moins deux îles **précompilées**, retour à l'île 4 × 3 km, conservation des saves, disparition des ressources GPU de l'île précédente, transport sur couche horaire déterministe, cloches d'arrivée et pré-départ -5 min de jeu sans replay, marqueur bateau visible seulement présent et mode silence. Le chargement doit réussir sur une version statique GitHub Pages **sans socket et sans authentification**.
+
+Tests logiques Node pour registres, migrations, calendrier, transactions d'économie/production idempotentes et placement ; tests navigateur pour UI, transitions, focus et dégradation mémoire. L'existence de ce plan ne prouve aucun test exécuté. Voir [79](79-ISLAND-ROADMAP-VALIDATION.md).
+

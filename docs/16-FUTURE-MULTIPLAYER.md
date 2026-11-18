@@ -1,5 +1,8 @@
 # 16 — Évolution future : multijoueur massif et optimisation des foules
 
+> **Extension ARCHIPEL (18 novembre 2026) :** l'objectif antérieur d'un monde géographique continu reste une **unité d'île** ; le système cible relie plusieurs îles indépendantes par transition. **Première réalisation exclusivement statique/solo sur GitHub Pages** ; persistance et collaboration inter-joueurs ne démarrent qu'après jalon multijoueur explicitement décidé. Voir [73](73-ARCHIPEL-VISION-DECISIONS.md), [77](77-ISLAND-COMMUNITY-CONSTRUCTION.md), [79](79-ISLAND-ROADMAP-VALIDATION.md).
+
+
 **Décision de cadrage : 12 novembre 2026.**
 **Statut : architecture future et garde-fous de compatibilité, PAS une fonctionnalité du jeu solo actuellement livrée.**
 
@@ -296,3 +299,14 @@ Comparer **tests de bots headless** (capacité serveur) avec **vrais navigateurs
 | **MP-3 : extension** | Si justifié | 500 expérimentaux, éventuellement autorité par zones/processus |
 
 **Règle finale :** préserver un **jeu solo complet sans backend**. Ne pas modifier le scope V3 ni mettre en place de serveur dans le travail courant au seul motif que le multijoueur est envisagé.
+
+## Extension ARCHIPEL — îles indépendantes et futures communautés
+
+La description historique du « même monde continu » s'applique à l'échelle d'une **île active**. L'archipel référencera **plusieurs îles autonomes**, potentiellement hébergées séparément plus tard. Les transitions sont explicites et ne sont pas une téléportation continue sans changement de scène.
+
+**Priorité contractuelle :** livrer d'abord des îles statiques et des voyages sur GitHub Pages, sans réseau. Prévoir dans les messages/états futurs islandId/worldId, version d'île, port/route, transfert d'autorité, inventaire, mutations de constructions, journal d'événements et reprises idempotentes.
+
+Une future couche multijoueur devra garantir : autorité serveur par île, droits sur parcelles/objets/chantiers, vote/gestion communautaire sans propriétaire global, transactions de stocks/livraisons inter-îles, horloge serveur et rejoin/recovery. Aucune synchronisation de ces états entre navigateurs n'existe dans la bêta solo. Les objectifs de 30/200/500 joueurs historiques ne sont **pas** des performances validées, et ne sont pas présumés valables pour de multiples îles simultanées.
+
+Voir [75](75-ISLAND-TRAVEL-FERRIES-PORTS.md), [76](76-ISLAND-AUTONOMY-ECONOMY-TRADE.md), [77](77-ISLAND-COMMUNITY-CONSTRUCTION.md) et [79](79-ISLAND-ROADMAP-VALIDATION.md).
+

@@ -2,7 +2,7 @@
  * The engine identifies a target, the business systems say which actions are possible (and
  * why not), the interface shows one primary action; the command is executed by the same
  * business method. Descriptors are presentation models, never a second source of truth. */
-export type TargetType='object'|'npc'|'boat'|'mine-wall'|'farm-plot'|'gather'|'fishing'|'shop';
+export type TargetType='object'|'npc'|'boat'|'mine-wall'|'farm-plot'|'gather'|'fishing'|'shop'|'ferry';
 export interface InteractionAction {id:string;key:string;label:string;enabled:boolean;disabledReason?:string}
 export interface TargetDescriptor {
   targetId:string;targetType:TargetType;displayName:string;
@@ -26,6 +26,10 @@ export function objectTarget(o:{entity:{id:string};name:string;prompt:string;ran
 }
 export function npcTarget(n:{id:string;name:string}):TargetDescriptor{const primary=action('talk','Parler avec '+n.name);return {targetId:n.id,targetType:'npc',displayName:'',primaryAction:primary,availableActions:[primary]};}
 export function boatTarget(aboard:boolean):TargetDescriptor{const primary=aboard?action('disembark','Quitter le bateau'):action('board','Embarquer');return {targetId:'boat',targetType:'boat',displayName:aboard?'':'Bateau',primaryAction:primary,availableActions:[primary]};}
+export function ferryTarget(present:boolean):TargetDescriptor{
+  const primary=action('ferry','Parler au rameur',present,'Bateau absent : consultez les horaires de la carte.');
+  return {targetId:'ferry',targetType:'ferry',displayName:'Navette maritime',primaryAction:primary,availableActions:[primary],...(present?{}:{disabledReason:'Bateau absent'})};
+}
 export function mineWallTarget(p:{target:{mineId:string;level:number;ix:number;iz:number;material:number};materialName:string;ok:boolean;reason?:string;reward:{itemId:string}|null;rewardName?:string}):TargetDescriptor{
   const primary=action('dig','Creuser',p.ok,p.reason);
   return {targetId:`${p.target.mineId}:${p.target.level}:${p.target.ix},${p.target.iz}`,targetType:'mine-wall',displayName:p.materialName,primaryAction:primary,availableActions:[primary,{...primary,id:'dig-f',key:'F'}],

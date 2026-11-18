@@ -21,7 +21,7 @@ export function createMinimap(deps:MapDeps,raster:MapRaster,open:()=>void){
     ctx.fillStyle='#d2ded2';ctx.fillRect(0,0,SIZE,SIZE);
     if(base&&raster.done){ctx.imageSmoothingEnabled=true;ctx.drawImage(base,(b.minX-player.x)*zoom+SIZE/2,(b.minZ-player.z)*zoom+SIZE/2,worldWidth*zoom,worldDepth*zoom);}
     const toMini=(x:number,z:number)=>({x:(x-player.x)*zoom+SIZE/2,y:(z-player.z)*zoom+SIZE/2});
-    const markerKinds:Record<MapMarker['kind'],string>={mine:'#765037',farm:'#b78237',npc:'#4a83ae',quest:'#cd6d43',poi:'#4d7455',waypoint:'#a34e75'};
+    const markerKinds:Record<MapMarker['kind'],string>={mine:'#765037',farm:'#b78237',npc:'#4a83ae',quest:'#cd6d43',poi:'#4d7455',waypoint:'#a34e75',ferry:'#285986'};
     const markers=deps.markers();
     for(const m of markers){
       if(Math.abs(m.x-player.x)>VISIBLE_METRES/2||Math.abs(m.z-player.z)>VISIBLE_METRES/2)continue;

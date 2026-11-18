@@ -262,3 +262,11 @@ La source de vérité du relief est un **heightfield**, pas un volume 3D excavab
 **Décision de fin de SET-0 :** les contrats C01–C09, C13–C16 constituent une base de travail cohérente et réutilisent l'architecture du dépôt. **Il n'est pas autorisé de qualifier le générateur complet « prêt »** avant les prototypes de passage/porte (CT-1), le réseau navigable (CT-3), et la preuve d'entrée de grotte (CT-6). L'ordre de réalisation s'appuie sur [68](68-SETTLEMENTS-ROADMAP-TESTS.md).
 
 **Prochain lot recommandé** : CT-0 + CT-1 sur **une** maison à porte fonctionnelle, en réutilisant la physique et le CommandBus. Pas de génération automatique de 80 maisons avant cette validation.
+
+
+## Contrat d'intégration construction joueur / ISL (future)
+
+Réutiliser TransportGraphV1, règles de placement, parcelles, profils d'accès et collisions SET. Les commandes de construction joueur doivent référencer **islandId, parcelId, prefabId, transform, revision**, utiliser les stocks/plans de l'économie de partie et écrire des **deltas runtime** ; ne jamais écrire automatiquement dans la source Studio. La transaction autoritaire et les permissions serveur sont **futures** ; une implémentation locale solo peut tester les mêmes prédicats sans connexion réseau.
+
+Voir [74 — Manifeste](74-ISLAND-MANIFEST-REGISTRY.md), [77 — Construction](77-ISLAND-COMMUNITY-CONSTRUCTION.md), [79 — Validation](79-ISLAND-ROADMAP-VALIDATION.md).
+

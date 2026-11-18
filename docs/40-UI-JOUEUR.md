@@ -135,3 +135,11 @@ Focus visible (contour 3 px ambré), focus déplacé dans le panneau ouvert et r
 ## 11. Captures
 
 Produites par `npm run test:ui` dans `/tmp/little-world-browser/` : `ui-hud.png` (invite contextuelle), `ui-sac.png`, `ui-dialogue.png`, `ui-carte.png`, `ui-pause.png`, `ui-parametres.png`, `ui-parties.png`, `ui-petit-ecran.png` (720 × 540). Le test B1 produit en plus `b1-level3.png` (carte d'activité de mine). En CI, elles sont publiées avec l'artefact `browser-artifacts` du workflow « Validate Little World » (non versionnées dans le dépôt).
+
+
+## Extension carte du joueur / archipel (cible ISL-3)
+
+Dans la **carte locale**, un marqueur bateau apparaît seulement quand la navette est **présente au quai** selon l'état canonique ; affiche quai, destination, prochaine heure de départ et avertissement -5 minutes de jeu. Marqueur retiré dès le départ. La **carte d'archipel**, distincte mais réutilisant l'interface carte actuelle, expose les **îles d'exemple validées/publiées**, accessibilité, motifs de verrouillage et calendrier même quand le bateau est absent.
+
+La cinématique de transition barque→grand navire masque le changement de monde ; progression de chargement visible uniquement si nécessaire. Garder la gestion unique des modales, la capture clavier/caméra et le focus à l'arrivée, sans déclenchement involontaire de commandes. Toutes ces vues doivent être testables sur GitHub Pages **sans compte ni multijoueur**. Voir [75](75-ISLAND-TRAVEL-FERRIES-PORTS.md) et [78](78-ISLAND-STUDIO-PLAYER-UX.md).
+
