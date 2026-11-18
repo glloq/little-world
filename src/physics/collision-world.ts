@@ -50,7 +50,10 @@ export class WorldCollisionQuery {
  private outdoorCourse:((x:number,z:number)=>number|null)|null=null;
  setOutdoorCourseSurface(sample:((x:number,z:number)=>number|null)|null){this.outdoorCourse=sample;}
  /** Ground gradient for rolling; the same course surface feeds rendering and floor contact. */
- reliefHeight(x:number,z:number){return this.outdoorCourse?.(x,z)??this.terrain(x,z);}
+ reliefHeight(x:number,z:number,feet?:number){
+   const ground=this.terrain(x,z),deck=this.outdoorCourse?.(x,z)??null;
+   return deck!==null&&(feet===undefined||deck<=feet+.45)?Math.max(ground,deck):ground;
+ }
  private water:(x:number,z:number)=>number|null;
  private large=new Set<string>();
  private scratch:Bounds[]=[];

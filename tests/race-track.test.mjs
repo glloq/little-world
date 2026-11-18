@@ -45,6 +45,8 @@ test('existing outdoor collision query samples bridge from above, not from below
  const under=collision.surfaceAt({x:0,y:-1,z:70});
  assert.ok(above.floorY>.9,'bridge deck is solid from above');
  assert.equal(under.floorY,-3,'standing below a bridge does not teleport the character on top');
+ assert.ok(collision.reliefHeight(0,70,5)>.9,'rolling over a bridge uses the deck slope');
+ assert.equal(collision.reliefHeight(0,70,-1),-3,'rolling underneath follows natural terrain');
  assert.equal(collision.surfaceAt({x:10,y:5,z:70}).floorY,-3,'no track outside roadbed');
 });
 test('flat rolling demos gain rideable modular sections and records change after adding a ramp',()=>{
