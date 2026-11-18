@@ -1,6 +1,6 @@
 # Commerces portuaires — brief de production low-poly
 
-**Statut : N1/N2 V1 retenus comme bases graphiques (N2 : réserves de mesh) ; N3 V1 CANDIDAT 3D EN ATTENTE DE VALIDATION ; N4–N5 reportés.** Design normatif : [docs/85 — Identité commerciale](../../docs/85-PORT-TRADE-CENTERS-VISUAL-DESIGN.md). Cette famille contient désormais un GLB N1 V1 de référence, mais aucun prefab runtime/Studio livré.
+**Statut : N1/N2/N3 V1 retenus comme bases visuelles ; N2/N3 : défauts de mesh à traiter sous versions distinctes ; N4–N5 reportés, aucun commerce intégré aux îles.** Design normatif : [docs/85 — Identité commerciale](../../docs/85-PORT-TRADE-CENTERS-VISUAL-DESIGN.md). Cette famille contient désormais un GLB N1 V1 de référence, mais aucun prefab runtime/Studio livré.
 
 ## N1 V1 — modèle de base validé (18 novembre 2026)
 
@@ -23,19 +23,22 @@ Le **modèle 3D actuel a été retenu comme base visuelle V1 du niveau 1**. Cett
 - **Manifeste d'acceptation** : [`n2-v1.json`](n2-v1.json), statut `accepted_visual_baseline_mesh_review_pending`. Plusieurs défauts de mesh ont été signalés **sans liste technique précise** ; les identifier lors d'une future inspection et produire un correctif **N2 V1.1**, sans écraser le GLB adopté.
 - **Validation mise à jour** : l'utilisateur a accepté ce modèle comme **base N2 V1** en signalant des défauts de mesh non identifiés précisément ; l'asset n'est pas qualifié pour le runtime.
 
-## N3 V1 — candidat 3D en bâtiment dur (18 novembre 2026)
+## N3 V1 — base graphique adoptée avec réserves sur le mesh (18 novembre 2026)
 
-**Proposition graphique non encore approuvée par l'utilisateur** : un petit véritable bâtiment en pierre, avec toiture rigide en tuiles, guichet ouvert et auvent de toile secondaire, même logo de caisse hexagonale que N1/N2.
+**Modèle conservé comme base V1 malgré des défauts de mesh à corriger ultérieurement** : un petit véritable bâtiment en pierre, avec toiture rigide en tuiles, guichet ouvert et auvent de toile secondaire, même logo de caisse hexagonale que N1/N2.
 
-- **GLB candidat** : [`port-trade-n3-candidate-v1.glb`](../../public/models/commerce-portuaire/port-trade-n3-candidate-v1.glb) ; **5 496 triangles**, **9 sous-meshes**, zéro texture, SHA-256 `6502a3b47d9145b01dc70905b9d6b8f8da8cafae82a0ef82218b4c470cee7d7d`.
+- **GLB de base (nom historique candidate-v1)** : [`port-trade-n3-candidate-v1.glb`](../../public/models/commerce-portuaire/port-trade-n3-candidate-v1.glb) ; **5 496 triangles**, **9 sous-meshes**, zéro texture, SHA-256 `6502a3b47d9145b01dc70905b9d6b8f8da8cafae82a0ef82218b4c470cee7d7d`.
 - **Visualiseur autonome** : [`examples/port-trade-n3-candidate-v1-viewer.html`](../../examples/port-trade-n3-candidate-v1-viewer.html), caméra libre, 5 palettes, visibilité des murs/du toit, vue intérieure arrière et export PNG/GLB.
 - **Source reproductible** : [`tools/generate_port_trade_n3.py`](tools/generate_port_trade_n3.py) et [`tools/template_port_trade_n3.html`](tools/template_port_trade_n3.html) ; exécution locale facultative via `PORT_TRADE_OUT=/chemin python assets/commerce-portuaire/tools/generate_port_trade_n3.py` (dépendances `numpy`, `trimesh`).
 - **Forme** : volume en maçonnerie, joints appuyés sur une âme de mur et non des trous, guichet ouvert, porte arrière battante, fenêtre latérale réellement ajourée, comptoir vide, 3 caisses vides, espace PNJ libre. Pas de marchandises ni quai.
 - **Manifeste** : [`n3-candidate-v1.json`](n3-candidate-v1.json), dimensions env. **4,40 × 4,30 × 3,72 m** en incluant enseigne et toiture.
 - **Tests effectués** : GLB lisible, 5 496 triangles vérifiés, HTML ouvert sans erreur JS sur Chromium (rendu logiciel disponible), bascule des palettes/vues/masques, export GLB octet-identique et capture PNG.
-- **Limites** : guide PNJ non exporté ; **aucun LOD, test moteur, collider, socket ni qualification GPU matériel**. Une validation utilisateur du mesh N3 reste à obtenir.
+- **Limites** : guide PNJ non exporté ; **aucun LOD, test moteur, collider, socket ni qualification GPU matériel**. La direction visuelle N3 a été acceptée comme base ; le mesh **n'est pas qualifié pour le runtime** et ses défauts restent à inventorier/corriger dans une nouvelle version.
 
 **Arrêt de la modélisation au N3 pour cette campagne** : ne pas produire les N4/N5 maintenant. La phase suivante sera un audit/cadrage séparé d'**implantation sur la carte** des comptoirs N1–N3, de leur accès joueur/PNJ, des pontons modulaires, des docks/quais/ports, des distances et collisions, des points d'embarquement et de la relation avec `portLevel` (0–4). Aucun système de port ou Studio n'est implémenté ici.
+
+
+**Objectif d'intégration désormais documenté** : [86 — implantation des commerces maritimes N1–N3 et cycle rameur/commerçant](../../docs/86-MARITIME-TRADE-PLACEMENT-N1-N3.md). N1 : **rameur ET marchand** uniquement si navette présente ; N2/N3 : **marchand permanent**, rameur uniquement avec la navette. Les trois constructions restent permanentes. Prévoir leurs sockets indépendants sur quai/commerce et conserver les stocks lors du départ de la navette.
 
 ## Famille unique, 5 modèles
 
