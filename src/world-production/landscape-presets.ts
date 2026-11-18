@@ -219,6 +219,22 @@ const NATURE_PRESETS={
       c.masks.push({layer:'geology',code:'g',test:(u,v,x,z)=>Math.abs(v)<env.length*.07+6*noise(env,0x61,x,z,20)&&Math.abs(u)>env.width*.08&&Math.abs(u)<env.width*.42});
       if(bool(p,'trail',true))c.paths.push({key:'trail',points:[env.toWorld(env.width*.02,-env.length*.48),env.toWorld(-env.width*.04,-env.length*.2),env.toWorld(0,0),env.toWorld(env.width*.05,env.length*.22),env.toWorld(0,env.length*.48)],width:2,kind:'trail',smooth:true});
       return c;}}),
+  'alpine-resort':P({id:'alpine-resort',version:1,label:'Station alpine (prototype)',description:'Massif à descente longue, neige de sommet et couloir skiable à qualifier.',profile:'mountain',defaultSize:[700,900],
+    params:[...sizeParams(.3),{key:'height',label:'Dénivelé cible (m)',kind:'number',min:60,max:450,step:10,default:220},
+      {key:'snowAltitude',label:'Altitude minimale de neige (m)',kind:'number',min:10,max:1200,step:10,default:90}],
+    produces:['relief : massif et épaulement','matériau neige damée au-dessus de la limite','couloir visuel sans végétation','validation piste obligatoire avant publication'],
+    relief:(f,p)=>{const h=num(p,'height',220);return [
+      {key:'summit',id:'',kind:'mountain',...f.toWorld(0,f.length*.3),radiusM:r1(f.width*.69),heightM:h,roughness:.12},
+      {key:'shoulder',id:'',kind:'ridge',points:[f.toWorld(-f.width*.3,f.length*.18),f.toWorld(-f.width*.1,f.length*.35),f.toWorld(f.width*.3,f.length*.45)],widthM:r1(f.width*.19),heightM:r1(h*.23)}
+    ];},
+    regions:(f,p)=>[{x:f.cx,z:f.cz,width:f.width,length:f.length,rotation:f.rotation,edgeM:r1(Math.min(f.width,f.length)*.2),profile:'mountain',density:num(p,'density',.3)}],
+    content:(env,p)=>{const c=empty(),limit=env.seaLevel+num(p,'snowAltitude',90);
+      const corridor=(u:number,v:number,x:number,z:number)=>v> -env.length*.48&&v<env.length*.48&&
+        Math.abs(u)<env.width*.33&&env.height(x,z)>=limit;
+      c.masks.push({layer:'material',code:'N',test:corridor});
+      c.masks.push({layer:'biome',code:'n',test:corridor});
+      c.diagnostics.push('Station alpine : inspecter pente longitudinale/dévers et retoucher le relief avant publication ; le couloir de neige ne constitue pas une piste validée.');
+      return c;}}),
   'waterfall-gorge':P({id:'waterfall-gorge',version:1,label:'Gorge et cascade',description:'Gorge rocheuse entaillant une marche du relief, cascade explicite (niveaux haut/bas WATER), bassin inférieur, rochers humides.',profile:'humid-valley',defaultSize:[260,520],
     params:[...sizeParams(1),{key:'drop',label:'Hauteur de la marche (m)',kind:'number',min:4,max:60,step:1,default:16},{key:'pool',label:'Bassin inférieur',kind:'boolean',default:true}],
     produces:['relief : marche + gorge','eau : rivière avec cascade (top/bottom) et bassin (lac)','masques : roche des parois, humidité','région vallée humide'],
