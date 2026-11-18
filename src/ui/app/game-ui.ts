@@ -41,7 +41,7 @@ export interface GameUiDeps {
   importTrade?:ImportStandPanelDeps;
   mineHub?:{
     view():{mineId:string;name:string;currentLevel:string;excavations:number;stops:{id:string;name:string;unlocked:boolean;required:number;current:boolean}[]}|null;
-    travel(levelId:string):{ok:boolean;message?:string;reason?:string};
+    travel(levelId:string):Promise<{ok:boolean;message?:string;reason?:string}>;
   };
   world:{name:string;buildVersion:string;dayLength:number;bounds:{minX:number;maxX:number;minZ:number;maxZ:number};seaLevel:number;height(x:number,z:number):number;water(x:number,z:number):number|null};
   eatFood?(id:string):{ok:boolean;message:string};
@@ -61,6 +61,18 @@ export function createGameUi(deps:GameUiDeps){
   const sound=(kind:NoticeKind)=>{const id=kind==='error'||kind==='warning'?'ui.error':kind==='save'?'ui.save':kind==='quest'?'ui.confirm':null;if(id)deps.audio?.emit(id,{source:'ui'});};
   const center=createNotificationCenter(host,sound);
   const ui=new UiController(host,deps.focusGameplay),g=deps.gameplay,a=g?.activities;
+  // Only the elevator displays a transition overlay; walking into a gallery is seamless.
+  const mineLoading=el('div','ui-mine-loading');mineLoading.hidden=true;
+  mineLoading.setAttribute('role','status');mineLoading.setAttribute('aria-live','polite');
+  const mineLoadingCard=el('div','ui-mine-loading-card'),
+    mineLoadingTitle=el('strong','','Changement de niveau'),
+    mineLoadingText=el('p','','Préparation de la galerie…'),
+    mineLoadingTrack=el('div','ui-mine-loading-track'),
+    mineLoadingFill=el('span','ui-mine-loading-fill');
+  mineLoadingTrack.append(mineLoadingFill);
+  mineLoadingCard.append(mineLoadingTitle,mineLoadingText,mineLoadingTrack);
+  mineLoading.append(mineLoadingCard);host.append(mineLoading);
+
   // Panels.
   let selectedTool:string|null=null,restoring=false;
   const inventory=inventoryPanel({items:()=>g?.runtime.data.items??[],inventory:()=>g?.runtime.state.inventory??{},selectedTool:()=>selectedTool,selectTool:id=>{selectedTool=id;renderTool();},gasLevel:()=>deps.player().gas??0,gasCapacity:()=>deps.player().maxGas??200,
@@ -128,9 +140,11 @@ export function createGameUi(deps:GameUiDeps){
         const line=el('div','ui-shop-row');
         line.append(el('span','ui-shop-name',stop.name+(stop.current?' · Vous êtes ici':'')));
         const action=button(stop.current?'Actuel':stop.unlocked?'Rejoindre':'Verrouillé',()=>{
-          const result=deps.mineHub!.travel(stop.id);
-          center.notify(result.ok?'success':'warning',result.ok?result.message??'Arrivée à destination':result.reason??'Accès refusé');
-          if(result.ok)ui.close();else ui.refresh('mine-lift');
+          void deps.mineHub!.travel(stop.id).then(result=>{
+            center.notify(result.ok?'success':'warning',
+              result.ok?result.message??'Arrivée à destination':result.reason??'Accès refusé');
+            if(!result.ok)ui.refresh('mine-lift');
+          }).catch(error=>{center.notify('warning','Monte-charge indisponible : '+String(error));ui.refresh('mine-lift');});
         },'ui-button'+(stop.unlocked&&!stop.current?' ui-primary':''));
         action.disabled=stop.current||!stop.unlocked;
         if(!stop.unlocked)action.title='Extraire '+stop.required+' blocs au total pour débloquer cet étage';
@@ -232,12 +246,24 @@ export function createGameUi(deps:GameUiDeps){
     /** Opens the counter panel of a specific entity; each entity owns its own jobs. */
     openShop(kind:ShopKind,counterId?:string){shopKind=kind;shopCounterId=counterId??null;ui.open('shop');},
     openMineLift(){if(deps.mineHub)ui.open('mine-lift');},
+    beginMineLoading(title:string){
+      ui.close();mineLoadingTitle.textContent=title;mineLoadingText.textContent='Préparation de la galerie…';
+      mineLoadingFill.style.width='0%';mineLoading.hidden=false;
+    },
+    mineLoadingProgress(done:number,total:number){
+      const progress=Math.round(Math.max(0,Math.min(1,done/Math.max(1,total)))*100);
+      mineLoadingFill.style.width=progress+'%';
+      mineLoadingText.textContent='Préparation du niveau : '+progress+' %';
+    },
+    endMineLoading(){mineLoading.hidden=true;deps.focusGameplay();},
+
     controller:ui,notify:(kind:NoticeKind,text:string)=>center.notify(kind,text),center,
     get preferences(){return prefs;},
-    get blocking(){return ui.blocking;},get paused(){return ui.paused;},
+    get blocking(){return ui.blocking||!mineLoading.hidden;},get paused(){return ui.paused||!mineLoading.hidden;},
     started(){host.classList.remove('ui-await-start');},
     /** Keys of the interface. Returns true when consumed (the game must ignore it). */
     handleKey(e:KeyboardEvent,inGame:boolean):boolean{
+      if(!mineLoading.hidden){e.preventDefault();return true;}
       if(ui.handleKey(e))return true;
       if(e.key==='Escape'&&!audioPopover.hidden){e.preventDefault();hideAudioPopover(true);return true;}
       // A key already handled elsewhere (e.g. Escape closing an NPC dialogue) never also opens a panel.
@@ -252,7 +278,7 @@ export function createGameUi(deps:GameUiDeps){
     /** HUD refresh, throttled to 4 Hz (prompt, activity card, oxygen). */
     frame(time:number){
       if(time-lastFrame<.25)return;lastFrame=time;const p=deps.player();
-      const target=ui.blocking||deps.npcs.dialogue.isOpen?null:deps.target(),rawText=target?promptText(target):'';
+      const target=ui.blocking||!mineLoading.hidden||deps.npcs.dialogue.isOpen?null:deps.target(),rawText=target?promptText(target):'';
       const text=document.body.classList.contains('touch-mode')?rawText.replace(/^\[[^\]]+\]\s*/,''):rawText;
       if(text!==promptKey){promptKey=text;prompt.textContent=text;prompt.classList.toggle('hide',!text);prompt.dataset.enabled=String(!!target?.primaryAction?.enabled);prompt.dataset.type=target?.targetType??'';}
       const nav=a?.mineNavigation(p,p.space),wall=nav&&target?.targetType==='mine-wall'?{materialName:target.displayName,ok:!!target.primaryAction?.enabled,reason:target.disabledReason,rewardName:(target.contextData?.resource as string|null)??undefined}:null;
