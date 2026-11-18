@@ -431,12 +431,14 @@ const snowLiftView=snowLift?createSkiLiftView(scene,snowLift):null;
 // Non-destructive surf laboratory (?surfDemo=1). Island authoring/compilation follows later.
 const surfDemo=searchParams.get('surfDemo')==='1'&&!snowDemo&&!isLegacyTerrain();
 const surfSite=surfDemo?findDemoSurfSite(terrainHeight,snowBounds,definition.config.seaLevel??0,definition.config.seed):null;
-const surfField=surfSite?createSurfWaveField(surfSite.zone,terrainHeight):null;
+const authoredSurfZone=playable?.surfZones?.[0]??null;
+const surfField=surfSite?createSurfWaveField(surfSite.zone,terrainHeight):
+  authoredSurfZone?createSurfWaveField(authoredSurfZone,terrainHeight):null;
 const surfRace=surfSite?makeDemoSurfRace(surfSite,activeIsland?.id??gameplay?.runtime.data.worldId??'surf-demo'):null;
 const surfWaterView=surfField?createSurfWaterView(scene,surfField,terrainHeight):null;
 const surfBoardView=surfField?createSurfBoardView(scene):null;
+if(surfField)world.setSurfArea(surfField.zone);
 if(surfSite&&surfField){
-  world.setSurfArea(surfSite.zone);
   const startWave=surfField.sample(surfSite.start.x,surfSite.start.z,0);
   player.position.set(surfSite.start.x,(startWave?.height??surfSite.zone.seaLevel)+.12,surfSite.start.z);
   player.velocity.set(0,0,0);player.mode='surf';player.surfStage='paddle';
@@ -582,7 +584,7 @@ world.update(0, player.position);
     target:()=>currentTarget(),
     races:{
       start:(id)=>id.startsWith('race:')?startAuthoredRace(id):startDemoRace(id as DemoRaceId),
-      available:()=>((surfRace?[...playable?.races??[],surfRace]:playable?.races??[]).map(r=>({id:r.id,name:r.name,distance:Math.round(Math.hypot(player.position.x-r.gates[0].center.x,player.position.y-r.gates[0].center.y,player.position.z-r.gates[0].center.z))}))),
+      available:()=>((surfRace?[...(playable?.races??[]),surfRace]:playable?.races??[]).map(r=>({id:r.id,name:r.name,distance:Math.round(Math.hypot(player.position.x-r.gates[0].center.x,player.position.y-r.gates[0].center.y,player.position.z-r.gates[0].center.z))}))),
       active:()=>raceSession?.definition.name??null,
       abort:()=>{stopRace();return 'Course interrompue';}
     },
