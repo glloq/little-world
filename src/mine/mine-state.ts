@@ -284,7 +284,7 @@ export function parseMineSave(value:unknown):MineSaveState{
   if(v.miningVersion!==undefined&&v.miningVersion!==2)throw Error('Version de minage invalide');
   if(v.damage!==undefined&&(typeof v.damage!=='object'||Array.isArray(v.damage)||Object.keys(v.damage).length>256||!Object.entries(v.damage).every(([k,d])=>/^[a-zA-Z0-9_:.-]+:-?\d+:-?\d+$/.test(k)&&Number.isFinite(d)&&d>=0&&d<=1000)))throw Error('État de mine invalide');
   if(v.hits!==undefined&&(typeof v.hits!=='object'||Array.isArray(v.hits)||Object.keys(v.hits).length>256||!Object.entries(v.hits).every(([k,n])=>/^[a-zA-Z0-9_:.-]+:-?\d+:-?\d+$/.test(k)&&Number.isInteger(n)&&n>=0&&n<=10000)))throw Error('Nombre de coups de mine invalide');
-  if(v.work!==undefined&&(typeof v.work!=='object'||Array.isArray(v.work)||Object.keys(v.work).length>256||!Object.entries(v.work).every(([k,n])=>/^[a-zA-Z0-9_:.-]+:-?\\d+:-?\\d+$/.test(k)&&Number.isInteger(n)&&n>=0&&n<MINE_WORK_PER_CYCLE)))throw Error('Progression de minage invalide');
+  if(v.work!==undefined&&(typeof v.work!=='object'||Array.isArray(v.work)||Object.keys(v.work).length>256||!Object.entries(v.work).every(([k,n])=>/^[a-zA-Z0-9_:.-]+:-?\d+:-?\d+$/.test(k)&&Number.isInteger(n)&&n>=0&&n<MINE_WORK_PER_CYCLE)))throw Error('Progression de minage invalide');
   for(const chunks of Object.values(v.levels))for(const c of Object.values(chunks)){if(!c||typeof c.b!=='string'||c.b.length!==172||!Number.isInteger(c.r))throw Error('État de mine invalide');}
   return structuredClone(v);
 }
