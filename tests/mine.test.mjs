@@ -48,8 +48,8 @@ test('dig: accessibility, reach, reward granted once, inventory full, protected 
   const edge=new MineState(new MineGrid({...zone(),mine:{...zone().mine,galleries:[{levelId:'level-1',minX:-20,maxX:-18,minZ:5,maxZ:8}]}}));
   assert.match(edge.dig({requestId:'b',levelId:'level-1',ix:-21,iz:6,from:{x:-19.5,y:edge.grid.levels[0].floorY,z:6.5}},()=>true).reason,/protégée/);
   // Chunk border: digging x = 31 (last column of chunk 0) also dirties chunk 1.
-  const border=new MineState(new MineGrid({id:'b',name:'b',polygon:[{x:20,z:0},{x:50,z:0},{x:50,z:20},{x:20,z:20}],mine:{...defaultMineSettings([{x:20,z:0},{x:50,z:0},{x:50,z:20},{x:20,z:20}],1,30),connectors:[],galleries:[{levelId:'level-1',minX:28,maxX:31,minZ:5,maxZ:8}]}}));
-  const r=border.dig({requestId:'x',levelId:'level-1',ix:31,iz:6,from:{x:30.5,y:border.grid.levels[0].floorY,z:6.5}},()=>true);assert.equal(r.ok,true);assert.deepEqual(r.chunks.sort(),['0,0','1,0']);
+  const border=new MineState(new MineGrid({id:'b',name:'b',polygon:[{x:20,z:0},{x:50,z:0},{x:50,z:20},{x:20,z:20}],mine:{...defaultMineSettings([{x:20,z:0},{x:50,z:0},{x:50,z:20},{x:20,z:20}],1,30),connectors:[],galleries:[{levelId:'level-1',minX:28,maxX:31,minZ:15,maxZ:18}]}}));
+  const r=border.dig({requestId:'x',levelId:'level-1',ix:31,iz:16,from:{x:30.5,y:border.grid.levels[0].floorY,z:16.5}},()=>true);assert.equal(r.ok,true);assert.deepEqual(r.chunks.sort(),['0,0','1,0']);
 });
 test('persistence: only differences saved; excavations and exhausted ores survive reload and geology changes',()=>{
   const state=new MineState(new MineGrid(zone()));const dug=[];
