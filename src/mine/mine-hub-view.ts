@@ -8,8 +8,11 @@ import type {MineHubLayout} from './mine-hub.ts';
 type Piece={geometry:THREE.BufferGeometry;color:number};
 function merged(pieces:Piece[]):THREE.BufferGeometry {
   const geometries:THREE.BufferGeometry[]=[];
-  for(const {geometry,color} of pieces){
-    const c=new THREE.Color(color),col=new Float32Array(geometry.getAttribute('position').count*3);
+  for(const piece of pieces){
+    // Box/Sphere/Cylinder are indexed; Dodecahedron is not. Normalise before merging.
+    let geometry=piece.geometry;
+    if(geometry.index){const flat=geometry.toNonIndexed();geometry.dispose();geometry=flat;}
+    const c=new THREE.Color(piece.color),col=new Float32Array(geometry.getAttribute('position').count*3);
     for(let i=0;i<col.length;i+=3){col[i]=c.r;col[i+1]=c.g;col[i+2]=c.b;}
     geometry.setAttribute('color',new THREE.BufferAttribute(col,3));geometries.push(geometry);
   }
