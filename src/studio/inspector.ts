@@ -125,9 +125,9 @@ function alignAll(ctx:InspectorContext,ids:string[]){
 /** E5 — character identity, look and routine, reusing the shared character authoring. */
 function characterSection(ctx:InspectorContext,id:string,owner:string){
   const s=ctx.session,p=s.document,source=p.chunks[owner].entities[id],c=resolveEntity(p,source).components,character=c.Character!,box=node('fieldset');
-  let name=source.name,species=character.species,behavior=p.libraries.behaviors[c.Navigation?.behaviorId??'']?.kind??'idle',radius=c.Navigation?.radius??8,speed=c.Navigation?.speed??1;const appearance=structuredClone(character.appearance);
+  let name=source.name,species=character.species==='squirrel'?'hamster' as const:character.species,behavior=p.libraries.behaviors[c.Navigation?.behaviorId??'']?.kind??'idle',radius=c.Navigation?.radius??8,speed=c.Navigation?.speed??1;const appearance=structuredClone(character.appearance);
   const checkbox=(title:string,value:boolean,set:(v:boolean)=>void)=>{const e=node('input');e.type='checkbox';e.checked=value;e.onchange=()=>set(e.checked);return field(title,e);};
-  box.append(node('legend','Personnage'),field('Nom du personnage',input(name,v=>name=v)),field('Morphologie',select(species,[['squirrel','Écureuil'],['hamster','Hamster'],['animal','Petit animal']],v=>species=v as typeof species)),
+  box.append(node('legend','Personnage'),field('Nom du personnage',input(name,v=>name=v)),field('Morphologie',select(species,[['hamster','Hamster (habitants)'],['animal','Petit animal (faune)']],v=>species=v as typeof species)),
     field('Activité',select(behavior,[['idle','Rester sur place'],['wander','Se promener'],['work','Travailler sur place'],['patrol','Patrouiller (trajet)']],v=>behavior=v as typeof behavior)),
     field('Rayon de promenade (m)',numberInput(radius,v=>radius=v,0,100)),field('Vitesse (m/s)',numberInput(speed,v=>speed=v,0,5)),
     checkbox('Chapeau',appearance.hat,v=>appearance.hat=v),checkbox('Sac à dos',appearance.backpack,v=>appearance.backpack=v),
