@@ -87,3 +87,7 @@ Code TypeScript + tests unitaires/Browser et rapport de mesures ; docs API et d�
 - En cas d'erreur de compilation/chargement : annulation du ticket et retour à l'île source. Les commandes du mode Studio, bêta et tests de cartes ne changent pas.
 - **À qualifier par CI et navigateur réel** : trajet A→B→A, récupération du monde d'origine, absence de doublons, stabilité des sauvegardes et budget RAM. Reste une architecture de **rechargement complet de page**, avant toute future transition intra-scène.
 - **Aucun** système de compte, WebSocket, serveur persistant ou multijoueur n'a été ajouté. Le snapshot forestier est une île de référence **statique**, non une île générée à la demande du visiteur.
+
+## Extension ECO — fabrication artisanale et marchés inter-îles (18/11/2026)
+
+Les lots **ECO-0 à ECO-10** sont documentés dans [82 — Roadmap économique](82-ECONOMY-PRODUCTION-ROADMAP.md), après [80 — audit existant](80-ECONOMY-TRADE-CRAFT-AUDIT.md) et [81 — contrats](81-ECONOMY-PRODUCTION-CONTRACTS.md). Ils complètent **ISL-2 (passage avec sac portable)** et **ISL-4 (simulation autonome)** ; le **ECO-1** de persistance de tout objet inter-îles et le **ECO-2** de sûreté des ventes sont bloquants avant commerces avancés. Première cible : **deux îles statiques déjà publiées** et recettes/ateliers locaux ; troisième île et Studio complet ensuite. Aucun serveur/multijoueur n'est introduit.
