@@ -1,0 +1,40 @@
+{
+  "id": "port_trade_n2_v1",
+  "visualLevel": 2,
+  "status": "accepted_visual_baseline_mesh_review_pending",
+  "acceptedAt": "2026-11-18",
+  "authoringNote": "L'utilisateur valide le style et conserve le modèle actuel comme base V1 malgré plusieurs problèmes de mesh non précisés. Aucun correctif n'est revendiqué.",
+  "sourceGlb": "public/models/commerce-portuaire/port-trade-n2-candidate-v1.glb",
+  "viewer": "examples/port-trade-n2-candidate-v1-viewer.html",
+  "sha256": "8e75cf0a5c86b5a58ee7b7f138a7b2dce1530ab5d79643c7441dbb3e7ba44c3a",
+  "sizeBytes": 229744,
+  "triangles": 3728,
+  "meshCount": 8,
+  "textureCount": 0,
+  "dimensionsMetersApprox": {
+    "width": 3.66,
+    "depth": 3.39,
+    "height": 3.29
+  },
+  "geometryTraits": [
+    "cabane fermée en bois",
+    "toit rigide",
+    "guichet ouvert",
+    "porte arrière",
+    "auvent rayé",
+    "enseigne caisse hexagonale",
+    "comptoir vide",
+    "caisses vides",
+    "espace PNJ"
+  ],
+  "pending": [
+    "identifier les défauts de mesh",
+    "vérifier normales et faces à 360°",
+    "échelle avec PNJ",
+    "collisions et accès",
+    "LOD et catalogue Studio",
+    "mesures GPU"
+  ],
+  "compatibility": "Solo GitHub Pages; no runtime integration",
+  "license": "project-original"
+}

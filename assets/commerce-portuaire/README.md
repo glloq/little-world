@@ -1,6 +1,6 @@
 # Commerces portuaires — brief de production low-poly
 
-**Statut : N1 V1 BASE GRAPHIQUE APPROUVÉE ; N2 V1 CANDIDAT 3D À VALIDER ; N3–N5 À PRODUIRE.** Design normatif : [docs/85 — Identité commerciale](../../docs/85-PORT-TRADE-CENTERS-VISUAL-DESIGN.md). Cette famille contient désormais un GLB N1 V1 de référence, mais aucun prefab runtime/Studio livré.
+**Statut : N1/N2 V1 retenus comme bases graphiques (N2 : réserves de mesh) ; N3 V1 CANDIDAT 3D EN ATTENTE DE VALIDATION ; N4–N5 reportés.** Design normatif : [docs/85 — Identité commerciale](../../docs/85-PORT-TRADE-CENTERS-VISUAL-DESIGN.md). Cette famille contient désormais un GLB N1 V1 de référence, mais aucun prefab runtime/Studio livré.
 
 ## N1 V1 — modèle de base validé (18 novembre 2026)
 
@@ -14,13 +14,36 @@ Le **modèle 3D actuel a été retenu comme base visuelle V1 du niveau 1**. Cett
 
 ## N2 V1 — cabane marchande, **proposition à valider** (18 novembre 2026)
 
-- **Modèle d'essai** : [`public/models/commerce-portuaire/port-trade-n2-candidate-v1.glb`](../../public/models/commerce-portuaire/port-trade-n2-candidate-v1.glb), **3 728 triangles exportés**, huit sous-ensembles, couleur par sommet, sans textures. Cette géométrie **n'est PAS encore approuvée graphiquement**.
+- **Modèle d'essai** : [`public/models/commerce-portuaire/port-trade-n2-candidate-v1.glb`](../../public/models/commerce-portuaire/port-trade-n2-candidate-v1.glb), **3 728 triangles exportés**, huit sous-ensembles, couleur par sommet, sans textures. Cette géométrie a **été acceptée depuis comme base V1**, avec défauts de mesh à examiner ultérieurement.
 - **Visualiseur 3D WebGL autonome** : [`examples/port-trade-n2-candidate-v1-viewer.html`](../../examples/port-trade-n2-candidate-v1-viewer.html). Rotation, vues avant/arrière/latérale, masquage murs/toit, dégagement PNJ, cinq palettes et export GLB.
 - **Source de génération reproductible** : [générateur Python](tools/generate_port_trade_n2.py) et [template HTML](tools/template_port_trade_n2.html). Dépendances locales de fabrication `numpy` et `trimesh` (pas de dépendance dans le jeu/browseur) ; artefacts générés dans le dossier de l'outil.
 - **Continuité N1** : emblème hexagonal caisse, comptoir, trois caisses vides, auvent en toile rayée (désormais **secondaire**). Évolution **réelle** vers cabane en bois avec parois, toiture rigide, guichet réellement évidé, accès arrière et espace intérieur PNJ.
 - **Données candidates** : glTF/GLB 229 744 octets, dimensions environ **3,66 × 3,39 × 3,29 m** avec enseigne et surplombs ; empreinte SHA-256 : `8e75cf0a5c86b5a58ee7b7f138a7b2dce1530ab5d79643c7441dbb3e7ba44c3a`.
 - **Tests limités** : ouverture Chromium, commandes de visualisation, palettes, capture PNG et export GLB byte-identique. **Non testé dans Little World/World Studio**, collisions/LOD et validité de passage du PNJ en jeu à qualifier.
-- **Prochain gate** : revue de la silhouette/qualité du toit/guichet/porte par l'utilisateur. Ne pas déclarer ce N2 approuvé, ni remplacer N1 V1, avant cette validation.
+- **Validation mise à jour** : l'utilisateur a accepté ce modèle comme **base N2 V1** en signalant des défauts de mesh non identifiés précisément ; l'asset n'est pas qualifié pour le runtime.
+
+## N2 V1 — base graphique retenue avec réserves (18 novembre 2026)
+
+**Validation utilisateur** : la **petite cabane marchande N2 actuelle est retenue comme base V1**, tout en reconnaissant **plusieurs défauts de mesh non détaillés à ce stade**. Ne pas inventer une liste de défauts « corrigés » et ne pas présenter ce modèle comme final/qualifié.
+
+- **GLB inchangé et conservé** : [`port-trade-n2-candidate-v1.glb`](../../public/models/commerce-portuaire/port-trade-n2-candidate-v1.glb) ; 3 728 triangles, 8 sous-meshes, sans textures ; SHA-256 `8e75cf0a5c86b5a58ee7b7f138a7b2dce1530ab5d79643c7441dbb3e7ba44c3a`.
+- **Visualiseur inchangé** : [N2 candidate V1](../../examples/port-trade-n2-candidate-v1-viewer.html) ; la mention « candidate » dans le chemin historique ne retire pas la validation de **base de design**.
+- **Manifeste immuable** : [`n2-v1.json`](n2-v1.json), avec statut `accepted_visual_baseline_mesh_review_pending`.
+- **À qualifier lors de l'implantation** : revue des faces/normales, intersections, découpes de fenêtre/porte, pivot, échelle hamster/PNJ, colliders et LOD. **Ne pas modifier le GLB N2 V1 en place** ; toute correction sera versionnée N2 V1.1 après identification des problèmes.
+
+## N3 V1 — candidat 3D en bâtiment dur (18 novembre 2026)
+
+**Proposition graphique non encore approuvée par l'utilisateur** : un petit véritable bâtiment en pierre, avec toiture rigide en tuiles, guichet ouvert et auvent de toile secondaire, même logo de caisse hexagonale que N1/N2.
+
+- **GLB candidat** : [`port-trade-n3-candidate-v1.glb`](../../public/models/commerce-portuaire/port-trade-n3-candidate-v1.glb) ; **5 496 triangles**, **9 sous-meshes**, zéro texture, SHA-256 `6502a3b47d9145b01dc70905b9d6b8f8da8cafae82a0ef82218b4c470cee7d7d`.
+- **Visualiseur autonome** : [`examples/port-trade-n3-candidate-v1-viewer.html`](../../examples/port-trade-n3-candidate-v1-viewer.html), caméra libre, 5 palettes, visibilité des murs/du toit, vue intérieure arrière et export PNG/GLB.
+- **Source reproductible** : [`tools/generate_port_trade_n3.py`](tools/generate_port_trade_n3.py) et [`tools/template_port_trade_n3.html`](tools/template_port_trade_n3.html) ; exécution locale facultative via `PORT_TRADE_OUT=/chemin python assets/commerce-portuaire/tools/generate_port_trade_n3.py` (dépendances `numpy`, `trimesh`).
+- **Forme** : volume en maçonnerie, joints appuyés sur une âme de mur et non des trous, guichet ouvert, porte arrière battante, fenêtre latérale réellement ajourée, comptoir vide, 3 caisses vides, espace PNJ libre. Pas de marchandises ni quai.
+- **Manifeste** : [`n3-candidate-v1.json`](n3-candidate-v1.json), dimensions env. **4,40 × 4,30 × 3,72 m** en incluant enseigne et toiture.
+- **Tests effectués** : GLB lisible, 5 496 triangles vérifiés, HTML ouvert sans erreur JS sur Chromium (rendu logiciel disponible), bascule des palettes/vues/masques, export GLB octet-identique et capture PNG.
+- **Limites** : guide PNJ non exporté ; **aucun LOD, test moteur, collider, socket ni qualification GPU matériel**. Une validation utilisateur du mesh N3 reste à obtenir.
+
+**Arrêt de la modélisation au N3 pour cette campagne** : ne pas produire les N4/N5 maintenant. La phase suivante sera un audit/cadrage séparé d'**implantation sur la carte** des comptoirs N1–N3, de leur accès joueur/PNJ, des pontons modulaires, des docks/quais/ports, des distances et collisions, des points d'embarquement et de la relation avec `portLevel` (0–4). Aucun système de port ou Studio n'est implémenté ici.
 
 ## Famille unique, 5 modèles
 
@@ -59,7 +82,7 @@ Les rendus de référence de la discussion servent de direction artistique **uni
 - Conserver `portLevel` (transport 0–4) **distinct** du niveau visuel commercial (1–5). Le niveau de bâtiment n'implique aucun prix ni stock automatique.
 - Au Studio, une famille de prefab avec sélection niveau/palette ; ne pas coder de nouveau moteur de quai, d'économie ou de collision.
 - Vérifier à terme : GLB et dimensions ; normals ; pivots ; enseigne ; accessibilité au guichet ; collisions ; sauvegardes/Undo-Redo ; vues proches et rapides ; coûts CPU/draw calls/RAM/GPU ; GitHub Pages statique.
-- Le **statut des modèles reste NOT IMPLEMENTED** tant que les GLB et les tests ne sont pas effectivement ajoutés et validés.
+- Les GLB N1/N2 sont des **bases visuelles acceptées**, et le GLB N3 est un **candidat pour validation** ; leur intégration au runtime/Studio reste **NOT IMPLEMENTED**.
 
 ## Démonstrateur N1 utilisable dans un navigateur
 
@@ -76,4 +99,4 @@ Le prototype de validation [examples/port-trade-l1-preview.html](../../examples/
 | **PTC-4** | Intégration catalogue/Studio/docks | Placement, interaction, sauvegardes, export |
 | **PTC-5** | Mesures et tests en îles statiques | Profil matériel bas, pas de régression visuelle ni de fuite de ressources |
 
-**PTC-0** : direction graphique adoptée ; **PTC-1** : GLB N1 V1 de base livré, **LOD/intégration non qualifiés** ; **PTC-2 à PTC-5** : à réaliser.
+**PTC-0** : direction graphique adoptée ; **PTC-1** : GLB N1 V1 de base livré, **LOD/intégration non qualifiés** ; **PTC-2** : N2 base acceptée avec corrections futures et N3 candidat à valider ; **PTC-3 à PTC-5** : reportés à la prochaine phase, sans débuter N4/N5.

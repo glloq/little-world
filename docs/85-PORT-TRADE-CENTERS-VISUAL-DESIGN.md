@@ -1,6 +1,6 @@
 # 85 — Identité graphique des commerces portuaires : cinq niveaux low-poly
 
-**Statut : DESIGN APPROUVÉ ; MODÈLE GLB N1 V1 DE RÉFÉRENCE VERSIONNÉ ; aucune intégration runtime livrée.**
+**Statut : bases graphiques N1/N2 adoptées ; N3 candidat à valider ; aucune intégration runtime livrée.**
 **Décision du 18 novembre 2026.** Références : [75 — transports et ports](75-ISLAND-TRAVEL-FERRIES-PORTS.md), [76 — économie insulaire](76-ISLAND-AUTONOMY-ECONOMY-TRADE.md), [80 — audit du commerce](80-ECONOMY-TRADE-CRAFT-AUDIT.md), [82 — roadmap économique](82-ECONOMY-PRODUCTION-ROADMAP.md), [06 — pipeline assets](06-ASSET-PIPELINE.md), [11 — low-resource](11-LOW-RESOURCE-POLICY.md), [20 — Blender/Studio](20-BLENDER-STUDIO-INTERCHANGE.md), [75 — établissements V1](75-SETTLEMENTS-SURFACE-V1.md).
 
 ## 0 bis. Baseline 3D N1 V1 validée — 18 novembre 2026
@@ -16,6 +16,12 @@ Identité du modèle : quatre poteaux et entretoises en bois, toile rayée avec 
 La cabane marchande N2 **candidate V1** est disponible sous forme de [GLB](../public/models/commerce-portuaire/port-trade-n2-candidate-v1.glb) et de [visualiseur 3D](../examples/port-trade-n2-candidate-v1-viewer.html), avec [source de génération](../assets/commerce-portuaire/tools/generate_port_trade_n2.py). Elle conserve les codes du stand N1 déjà approuvé : mêmes bois/palettes, symbole hexagonal de caisse, comptoir et caisses vides ; sa **toiture est en bois** et la toile rayée devient un auvent de guichet.
 
 **Statut : PROTOTYPE NON APPROUVÉ**. Ne pas confondre avec le N1 V1 validé. Le N2 est une cabane à murs en planches, fenêtre de côté, guichet découpé en façade, porte arrière ouverte et zone intérieure libre pour PNJ. Les dimensions, colliders, LOD et placement Studio sont à qualifier avant production.
+
+## 0 ter. N2 approuvé comme base et N3 proposé — 18 novembre 2026
+
+- **N2 V1** : la cabane en bois 3D actuelle est **approuvée comme point de départ**, pas comme mesh définitif. Des défauts géométriques ont été signalés sans inventaire précis ; conserver le GLB tel quel et versionner toute correction en N2 V1.1. [Modèle](../public/models/commerce-portuaire/port-trade-n2-candidate-v1.glb) · [manifeste](../assets/commerce-portuaire/n2-v1.json).
+- **N3 V1 candidat** : véritable petite maison de commerce maçonnée avec murs en pierre, tuiles et auvent secondaire. [Modèle](../public/models/commerce-portuaire/port-trade-n3-candidate-v1.glb) · [visualiseur](../examples/port-trade-n3-candidate-v1-viewer.html) · [manifeste](../assets/commerce-portuaire/n3-candidate-v1.json). **À valider graphiquement, pas encore approuvé**.
+- **Périmètre figé après N3** : pause de production des bâtiments supérieurs (N4/N5). Prochaine étude : implantation des comptoirs N1–N3 sur les cartes, raccord aux pontons, docks, quais et ports, interactions PNJ/joueur et collisions. **Aucune implémentation de cette implantation dans la présente PR.**
 
 ## 1. Objectif et périmètre
 
@@ -118,7 +124,7 @@ Cible UX : sélection unique « Commerce portuaire » → niveau 1–5 → palet
 - **VIS-6** : assets réutilisables/LOD, budget CPU-GPU évalué sur scène chargée, aucune promesse de FPS avant mesure.
 - **VIS-7** : si intégration Studio : placement, sauvegarde, réouverture, Undo/Redo, interactions et migration des anciens projets sans perte.
 
-**État de livraison** : N1 V1 de référence (GLB) versionné, design des N2–N5 documenté. N1 non intégré au jeu/Studio ; LOD et tests de performance manquants. La production des autres GLB reste à faire.
+**État de livraison** : GLB N1/N2 de base acceptés, N3 candidat en attente de validation, N4/N5 non produits. Aucun de ces modèles n'est encore intégré au jeu/Studio ; LOD, collisions et qualification GPU restent à faire.
 
 ## Prototype interactif de validation (18/11/2026)
 
