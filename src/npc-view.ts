@@ -200,7 +200,7 @@ export function createNPCSystem(
     part(proxyLight, 0.42, 1.35, -0.62, 0.46, 0.85, 0.4);
     part(proxyFur, -0.42, 1.98, 0.24, 0.2, 0.29, 0.15);
     part(proxyFur, 0.42, 1.98, 0.24, 0.2, 0.29, 0.15);
-    root.scale.setScalar(definition.kind === 'animal' ? 0.58 * CHARACTER_SCALE : CHARACTER_SCALE);
+    root.scale.setScalar((definition.kind === 'animal' ? 0.58 : 1) * (definition.scale??1) * CHARACTER_SCALE);
     root.visible = false;
     scene.add(root);
     return root;
@@ -214,7 +214,8 @@ export function createNPCSystem(
       hamster = definition.kind === 'hamster' ? buildHamster() : null,
       model = hamster ?? buildSquirrel();
     model.setAppearance(definition.appearance);
-    if (definition.kind === 'animal') model.group.scale.setScalar(0.58);
+    if (definition.kind === 'animal') model.group.scale.multiplyScalar(0.58);
+    if (definition.scale!==undefined) model.group.scale.multiplyScalar(definition.scale);
     model.group.name = 'NPC:' + definition.id;
     model.group.visible = false;
     scene.add(model.group);
@@ -290,7 +291,7 @@ export function createNPCSystem(
                 state.vx=dt>0?(state.x-oldX)/dt:0;state.vz=dt>0?(state.z-oldZ)/dt:0;
                 if(pose.phase==='to-work'||pose.phase==='to-home')state.heading=pose.heading;
                 const busy=['farmer','woodcutter','miner','miller','artisan'].includes(routine.role);
-                state.phase=pose.phase==='work'?(busy?'work':'idle'):
+                state.phase=pose.phase==='work'?(busy?'work':routine.role==='child'&&Math.hypot(state.vx,state.vz)>.15?'walk':'idle'):
                   pose.phase==='to-work'||pose.phase==='to-home'?'walk':'idle';
                 life.pose=pose;life.lastSample=now;
               }catch{
