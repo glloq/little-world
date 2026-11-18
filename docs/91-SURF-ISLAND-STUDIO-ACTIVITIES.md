@@ -1,6 +1,6 @@
 # 91 — SURF : île dédiée, Studio, équipements, activités et courses
 
-**Statut : SPECIFIED / non implémenté.** Dossier fonctionnel et plan d'implantation. Les réglages chiffrés sont **valeurs de prototypage** et ne constituent ni une carte publiée ni un comportement validé. Dépend de [90 — moteur](90-SURF-ARCHITECTURE-CONTRACTS.md) et conduit à [92 — roadmap](92-SURF-IMPLEMENTATION-ROADMAP.md). Compatibilité avec [75 — transports](75-ISLAND-TRAVEL-FERRIES-PORTS.md), [80 — courses](80-RACES-FLIGHT-ROLL-DEMO.md), [81 — pistes](81-MODULAR-RACE-TRACKS.md), [82 — implantation](82-RACE-TERRAIN-PLACEMENT.md), [89 — inventaire](89-INVENTORY-V3-HAMSTER.md).
+**Statut : plan fonctionnel SPECIFIED ; premier prototype moteur/Studio en cours, île spécialisée et activités complètes non publiées.** Voir [93 — état du prototype](93-SURF-PROTOTYPE-PROGRESS.md). Dossier fonctionnel et plan d'implantation. Les réglages chiffrés sont **valeurs de prototypage** et ne constituent ni une carte publiée ni un comportement validé. Dépend de [90 — moteur](90-SURF-ARCHITECTURE-CONTRACTS.md) et conduit à [92 — roadmap](92-SURF-IMPLEMENTATION-ROADMAP.md). Compatibilité avec [75 — transports](75-ISLAND-TRAVEL-FERRIES-PORTS.md), [80 — courses](80-RACES-FLIGHT-ROLL-DEMO.md), [81 — pistes](81-MODULAR-RACE-TRACKS.md), [82 — implantation](82-RACE-TERRAIN-PLACEMENT.md), [89 — inventaire](89-INVENTORY-V3-HAMSTER.md).
 
 ## 1. Vision : île aquatique facultative
 
