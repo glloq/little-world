@@ -27,7 +27,7 @@ function merged(pieces:Piece[]):THREE.BufferGeometry{
   result.computeBoundingSphere();return result;
 }
 export function createMineHubView(hub:MineHubLayout,solid:THREE.Material,glow:THREE.Material,
-  resources:readonly MineResourceIcon[]=[]):THREE.Group{
+  resources:readonly MineResourceIcon[]=[],levelCount=hub.levelIndex+1):THREE.Group{
   const root=new THREE.Group();
   root.name='MineHub:'+hub.mineId+':'+hub.levelId;
   root.position.set(hub.shaft.x,hub.floorY,hub.shaft.z);
@@ -38,7 +38,7 @@ export function createMineHubView(hub:MineHubLayout,solid:THREE.Material,glow:TH
   // The authored mine may have only 2.5 m headroom. Compress height, not floor layout.
   root.scale.y=Math.min(1,(hub.height-.15)/3.33);
   root.userData={mineId:hub.mineId,levelId:hub.levelId,kind:'mine-hub',
-    hasRearExit:hub.surfaceExit!==null,resourceIcons:[...resources],visualVersion:3,
+    hasRearExit:hub.surfaceExit!==null,resourceIcons:[...resources],visualVersion:4,
     clearAisleWidth:3.5,shopSide:'left',liftSide:'right'};
   const parts:Piece[]=[],emissive:Piece[]=[];
   const box=(x:number,y:number,z:number,w:number,h:number,d:number,color:number,
@@ -71,24 +71,17 @@ export function createMineHubView(hub:MineHubLayout,solid:THREE.Material,glow:TH
     }else stone(x,y,z,.17*scale,.135*scale,.14*scale,
       kind==='iron'?0xb87847:0x92908b,kind==='iron'?.7:.23);
   }
-  // Recessed counter against the left rock wall, NOT a full four-post kiosk.
-  // Everything is x < -5.9: keep the central passage open for the player/camera.
-  box(-6.7,.62,.15,.64,1.04,2.45,wood);
-  box(-6.56,1.17,.15,.94,.14,2.73,woodLight);
-  for(const z of [-1.3,1.6])box(-6.7,.65,z,.7,.065,.13,beam);
-  box(-8.85,.1,-1.76,.72,.2,.35,beam);
-  // Two thin wall-mounted supports and a narrow canvas valance, no giant roof.
-  for(const z of [-1.45,1.73]){
-    box(-8.85,1.42,z,.14,2.65,.14,beam);
-    box(-8.03,2.67,z,1.82,.11,.13,woodLight,.05);
+  // The counter, striped roof and crates come from the approved maritime N1 GLB.
+  // It is loaded by the activity view and placed here, not recreated as boxes.
+  // Only the local mining emblem is added to this procedural, shared geometry.
+  // Crossed pickaxes: dark timber plaque and two slim diagonal handles.
+  box(-6.25,2.22,.15,.15,.74,1.00,woodLight);
+  for(const tilt of [-.62,.62]){
+    const handle=new THREE.BoxGeometry(.09,.78,.09);
+    handle.rotateX(tilt);handle.translate(-6.14,2.22,.15);
+    parts.push({geometry:handle,color:beam});
   }
-  box(-7.95,2.73,.15,2.02,.11,3.38,woodLight);
-  box(-6.99,2.56,.15,.085,.35,3.20,canvas);
-  for(const z of [-.91,.10,1.10])box(-6.93,2.48,z,.055,.31,.12,ochre);
-  // Small hanging mine symbol, set back inside the stall.
-  box(-8.85,2.13,.12,.12,.72,.97,woodLight);
-  for(const tilt of [-.55,.55])
-    box(-8.72,2.16,.12,.105,.65,.09,beam,tilt);
+  for(const z of [-.24,.54])box(-6.12,2.54,z,.17,.08,.43,iron);
   // Friendly low-poly minekeeper, visible OVER the low counter.
   ball(-7.72,.82,.15,.42,.53,.42,0xc08b58);
   ball(-7.66,1.46,.15,.45,.40,.39,0xdba46c);
@@ -103,8 +96,7 @@ export function createMineHubView(hub:MineHubLayout,solid:THREE.Material,glow:TH
   // A few ore samples on the counter. The colours match resources on THIS floor.
   for(const [i,kind] of resources.slice(0,3).entries())
     ore(kind,-6.19,1.33,-.70+i*.8,.88);
-  box(-8.88,.38,-2.2,.62,.76,.65,wood);
-  for(const z of [-2.46,-1.95])box(-8.55,.40,z,.06,.78,.06,beam);
+  // The real N1 stand already includes crates; no duplicate merchant storage.
   // Leaning tools, a small metal head, and one wall lantern on the left.
   box(-8.94,1.20,2.27,.075,1.25,.075,woodLight,.19);
   box(-8.82,1.74,2.27,.33,.11,.09,iron,.19);
@@ -112,15 +104,15 @@ export function createMineHubView(hub:MineHubLayout,solid:THREE.Material,glow:TH
   ball(-8.96,1.61,-2.68,.13,.18,.13,0xffbf68,true);
   // Wide extraction arch, centred on the aisle. Sign stays above the doorway.
   const gx=-3.85,gz=5.34;
-  for(const x of [gx-1.98,gx+1.98]){
+  for(const x of [gx-2.75,gx+2.75]){
     box(x,1.38,gz,.30,2.76,.36,beam);
     box(x,1.3,gz-.16,.07,2.50,.07,woodLight);
     stone(x+(x<gx?-.26:.26),.22,gz,.34,.30,.42,rock);
   }
-  box(gx,2.82,gz,4.32,.34,.43,beam);
-  for(const x of [gx-1.7,gx+1.7])
+  box(gx,2.82,gz,5.85,.34,.43,beam);
+  for(const x of [gx-2.38,gx+2.38])
     box(x,2.62,gz-.08,.10,.47,.13,woodLight,x<gx?-.48:.48);
-  box(gx,3.12,gz-.05,3.14,.28,.21,woodLight);
+  box(gx,3.12,gz-.05,4.26,.28,.21,woodLight);
   const icons=resources.slice(0,3),spacing=.78;
   for(const [i,kind] of icons.entries()){
     const x=gx+(i-(icons.length-1)/2)*spacing;
@@ -141,6 +133,20 @@ export function createMineHubView(hub:MineHubLayout,solid:THREE.Material,glow:TH
   box(1.11,1.52,-.71,.16,3.00,.16,beam);
   box(1.12,1.07,.12,.10,.09,1.9,wood);
   box(0,2.40,1.01,1.8,.09,.13,iron);
+  // Continuous hoist well: visible rails vanish above/below the landing.
+  // No stone cap/false roof on intermediate floors; MineMesher cuts the actual holes.
+  const supports=[[-1.34,-1.2],[1.34,-1.2],[-1.34,1.2],[1.34,1.2]] as const;
+  if(hub.levelIndex>0){
+    for(const [x,z] of supports)box(x,4.50,z,.13,3.9,.13,beam);
+    for(const x of [-.74,.74])box(x,4.55,1.07,.035,4.1,.05,0xb1a38a);
+  }
+  if(hub.levelIndex<levelCount-1){
+    for(const [x,z] of supports)box(x,-2.35,z,.13,4.9,.13,beam);
+    for(const x of [-.74,.74])box(x,-2.36,1.07,.035,4.95,.05,0xb1a38a);
+    // Edge framing identifies the hole without placing geometry across the platform.
+    for(const x of [-1.42,1.42])box(x,.035,0,.14,.09,3.0,iron);
+    for(const z of [-1.48,1.48])box(0,.035,z,2.82,.09,.13,iron);
+  }
   // One pulley above the rear beam and two discreet hanging cables.
   const wheel=new THREE.CylinderGeometry(.27,.27,.14,8);
   wheel.rotateZ(Math.PI/2);wheel.translate(0,3.10,1.07);
