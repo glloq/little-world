@@ -1,7 +1,7 @@
 # 98 — Routines des PNJ V1 : implémentation, architecture et qualification
 
 **Statut : IMPLEMENTED (sur la branche `feat/npc-life-routines-v1`), QUALIFICATION EN COURS.**  
-Branche démarrée sur `main@f84c16cd`, après PR #75 (villages et îles guidées). Voir les décisions dans les PR de documentation #84 : [96 — audit des besoins](96-NPC-LIFE-DIALOGUES-SCHEDULE-AUDIT.md) et [97 — roadmap complète](97-NPC-LIFE-IMPLEMENTATION-ROADMAP.md). Ce fichier se trouve sur **la PR de code #85** ; les liens vers 96/97 deviendront disponibles dans main après le merge de la PR #84.
+Branche démarrée sur `main@f84c16cd`, après PR #75 (villages et îles guidées). Voir les décisions dans les PR de documentation #84 : [PR documentaire #84](https://github.com/glloq/little-world/pull/84) (documents 96 — audit des besoins et 97 — roadmap complète). Ce fichier accompagne **la PR de code #85** ; les documents 96 et 97 seront disponibles dans main après le merge de la PR #84.
 
 ## 1. Ce qui est effectivement développé
 
