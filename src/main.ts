@@ -365,6 +365,7 @@ async function travelToIsland(destination:PublishedIsland):Promise<{ok:boolean;m
       gasReserve:save.gasReserve??gasLevel(player),
       flightProgress:save.flightProgress??flightProgress,
       equippedItemId:save.equippedItemId??null,
+      ...(save.loadout?{loadout:save.loadout}:{}),
     });
     checkpointWritten=true;
     clearGameplayInput();
@@ -399,7 +400,6 @@ if(gameplay)gameplay.collision.setMaterialSampler(createMaterialSampler((x,z)=>c
 const activityView=gameplay&&(gameplay.activities.mines.size||gameplay.activities.farms.size)?(await import('./activity-view.ts')).createActivityView(scene,gameplay.activities,terrainHeight):null;
 if(activityView&&!searchParams.has('lightBench'))world.refreshLights([...(definition.lights??[]),...activityView.lights]);
 let activityQueue=0,cropQueue=0,strikeTimer=0;
-let helmetEquipped=false; // Independent inventory head slot; no tool or boost override.
 world.update(0, player.position);
 {
   const {createGameUi}=await import('./ui/app/game-ui.ts'),c=getTerrainConfig();
@@ -456,7 +456,7 @@ world.update(0, player.position);
       const gain=refillGas(player,total);
       return {ok:true,message:'+'+Math.round(gain)+' gaz · '+[...quantities.values()].reduce((n,q)=>n+q,0)+' aliments consommés.'};
     },
-    headgear:{equipped:()=>helmetEquipped,setEquipped:value=>{helmetEquipped=value;}},
+    headgear:{equipped:()=>gameplay?.equipment.head==='tool:miners-helmet',setEquipped:value=>{gameplay?.equipment.setHead(value?'tool:miners-helmet':null);}},
     mineHub:gameplay?{
       view:()=>gameplay!.activities.mineLiftView(player.position,player.space),
       travel:async(levelId:string)=>{
@@ -1286,7 +1286,7 @@ function draw(now: number) {
   character.update(player, delta, elapsed);
   // Mining headgear follows the animated head bone (including turning/looking).
   // One spotlight, zero shadow maps; off outside mines and without the item.
-  mineHelmet.setActive(!!player.space&&helmetEquipped&&!!gameplay?.has('tool:miners-helmet'));
+  mineHelmet.setActive(!!player.space&&gameplay?.equipment.head==='tool:miners-helmet');
   fishingEffects.update(gameplay?.fishing.state??null,elapsed,delta);
   // Hero-only pose overlay. Does not change the authoritative rig animation,
   // procedural GLB, other players or distant impostor hashes.
@@ -1456,7 +1456,8 @@ if(incomingTransit&&gameplay&&playable){
     gameplay.restore({...base,slotId:'slot-ferry-auto',time:incomingTransit.worldSeconds,position,space:null,
       inventory:{...incomingTransit.traveler.inventory},gasReserve:incomingTransit.traveler.gasReserve,
       flightProgress:incomingTransit.traveler.flightProgress,
-      equippedItemId:incomingTransit.traveler.equippedItemId??null});
+      equippedItemId:incomingTransit.traveler.equippedItemId??null,
+      loadout:incomingTransit.traveler.loadout});
     // The destination slot holds local activity state; a separate portable checkpoint holds
     // the complete bag across refreshes. Neither one is the short-lived ferry ticket.
     await gameplay.slots.save(gameplay.compose('slot-ferry-auto'));
@@ -1464,6 +1465,7 @@ if(incomingTransit&&gameplay&&playable){
       inventory:{...gameplay.runtime.state.inventory},
       items:gameplay.runtime.data.items.filter(item=>(gameplay!.runtime.state.inventory[item.id]??0)>0),
       gasReserve:gasLevel(player),flightProgress,equippedItemId:gameplay.equipment.hands,
+      ...(gameplay.compose('slot-ferry-auto').loadout?{loadout:gameplay.compose('slot-ferry-auto').loadout}:{}),
     });
     ferryMinute=worldGameMinute(worldClock.time,climate.definition.dayLengthSeconds);
     ferryNow=ferryStatus(ferryMinute,activeIsland!.portLevel);
@@ -1482,7 +1484,8 @@ if(!incomingTransit&&retainedPortable&&gameplay&&playable){
     gameplay.restore(saved??{...base,inventory:{...retainedPortable.traveler.inventory},
       gasReserve:retainedPortable.traveler.gasReserve,
       flightProgress:retainedPortable.traveler.flightProgress,
-      equippedItemId:retainedPortable.traveler.equippedItemId??null});
+      equippedItemId:retainedPortable.traveler.equippedItemId??null,
+      loadout:retainedPortable.traveler.loadout});
     ferryMinute=worldGameMinute(worldClock.time,climate.definition.dayLengthSeconds);
     ferryNow=ferryStatus(ferryMinute,activeIsland!.portLevel);
     ferryView?.setPresent(ferryNow.present);
@@ -1507,6 +1510,7 @@ if(activeIsland&&gameplay&&(incomingTransit||retainedPortable)){
           items:g.runtime.data.items.filter(item=>(snapshot.inventory[item.id]??0)>0),
           gasReserve:snapshot.gasReserve??gasLevel(player),
           flightProgress:snapshot.flightProgress??flightProgress,equippedItemId:snapshot.equippedItemId??null,
+          ...(snapshot.loadout?{loadout:snapshot.loadout}:{}),
         });
       }while(dirty);
       warned=false;
