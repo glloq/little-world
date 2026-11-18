@@ -3,6 +3,7 @@ import {getTerrainConfig} from './terrain.ts';
 import * as THREE from 'three';
 import { buildSquirrel, CHARACTER_SCALE } from './squirrel.ts';
 import { buildHamster } from './hamster/hamster.ts';
+import {visualNPCSpecies} from './npc-life/species.ts';
 import { createDialogue, type DialogueSession } from './dialogue.ts';
 import {
   createNPCState,
@@ -209,11 +210,12 @@ export function createNPCSystem(
   }
   const distant=createImpostorSectors(scene,'characters'),white=new THREE.Color(0xffffff);
   if(new URLSearchParams(location.search).get('impostors')==='all')distant.setEnabled(true);
-  const entries = definitions.map((definition) => {
+  const entries = definitions.map((sourceDefinition) => {
+    const definition={...sourceDefinition,kind:visualNPCSpecies(sourceDefinition.kind)};
     const state = createNPCState(definition,bounds),
       route=definition.routine&&router?router.route(definition.routine.home,definition.routine.work):null,
       life=route?{route,pose:null as ResidentPose|null,lastTime:-1,lastSample:-1,pausedSeconds:0,pauseFrom:null as number|null}:null,
-      hamster = definition.kind === 'hamster' ? buildHamster() : null,
+      hamster = definition.kind === 'hamster' ? buildHamster({npc:true}) : null,
       model = hamster ?? buildSquirrel();
     model.setAppearance(definition.appearance);
     if (definition.kind === 'animal') model.group.scale.setScalar(0.58);
