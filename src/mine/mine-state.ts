@@ -9,6 +9,7 @@
 import {MINE_CHUNK,MINE_MATERIALS,geologyAt,insidePolygon,type MineZone,type MineLevelV3} from './mine-data.ts';
 import {mineHubCell,mineHubLayout,mineHubGalleryApproach} from './mine-hub.ts';
 import {MINE_WORK_PER_CYCLE,mineStrikeWork,mineBlockDurability,mineHitsUntilCycle,mineInterimReward,type StrikeAccuracy} from './mine-rhythm.ts';
+import {mineCrackStage} from './mine-cracks.ts';
 
 export interface DigRequest {requestId:string;levelId:string;ix:number;iz:number;from:{x:number;y:number;z:number};expectedRevision?:number}
 export type DigResult={ok:true;material:number;reward:{itemId:string;quantity:number}|null;chunks:string[];revision:number}|{ok:false;reason:string};
@@ -20,7 +21,7 @@ export interface MineSaveState {mineId:string;seed:number;geologyVersion:number;
   /** Version 2 means damage stores consumed durability rather than historical HP. */
   miningVersion?:2
 }
-export type StrikeResult=DigResult|{ok:true;partial:true;material:number;progress:number;fragment:{itemId:string;quantity:number}|null;hits:number;nextResult:number;accuracy:StrikeAccuracy;durabilityRemaining:number;durabilityMax:number};
+export type StrikeResult=DigResult|{ok:true;partial:true;material:number;progress:number;fragment:{itemId:string;quantity:number}|null;hits:number;nextResult:number;accuracy:StrikeAccuracy;durabilityRemaining:number;durabilityMax:number;crackChanged:boolean};
 export const DIG_REACH=2.6;
 const chunkKey=(cx:number,cz:number)=>cx+','+cz;
 
@@ -226,11 +227,13 @@ export class MineState {
       const oldest=this.hits.keys().next().value!;
       this.hits.delete(oldest);this.damage.delete(oldest);this.work.delete(oldest);
     }
-    const remaining=maximum-spent-(batchFinished?1:0);
+    const consumed=spent+(batchFinished?1:0),remaining=maximum-consumed,
+      crackChanged=mineCrackStage(verdict.material,spent)!==
+        mineCrackStage(verdict.material,consumed);
     const result:StrikeResult={ok:true,partial:true,material:verdict.material,
       progress:Math.min(1,(maximum-remaining+remainingWork/MINE_WORK_PER_CYCLE)/maximum),
       fragment,hits:count,nextResult:mineHitsUntilCycle(remainingWork),
-      accuracy,durabilityRemaining:remaining,durabilityMax:maximum};
+      accuracy,durabilityRemaining:remaining,durabilityMax:maximum,crackChanged};
     this.remember(req.requestId,result);
     return result;
   }
