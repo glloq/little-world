@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {existsSync} from 'node:fs';
-import {defaultMineSettings,validateMineSettings,geologyAt,MINE_CHUNK} from '../src/mine/mine-data.ts';
+import {defaultMineSettings,validateMineSettings,geologyAt,MINE_CHUNK,MINE_MATERIALS} from '../src/mine/mine-data.ts';
 import {MineGrid,MineState,parseMineSave} from '../src/mine/mine-state.ts';
 import {mineChunkGeometry,WALL_ROWS,MINE_RELIEF} from '../src/mine/mine-mesher.ts';
 import {mineSpaceProvider,mineTransitions} from '../src/mine/mine-collision.ts';
@@ -13,7 +13,7 @@ import {createMineHubView} from '../src/mine/mine-hub-view.ts';
 import {MINE_STAND_SOURCE,removeMaritimeSign} from '../src/mine/mine-stand-asset.ts';
 import {createActivityRuntime} from '../src/gameplay/activity-runtime.ts';
 import {createMineHelmet} from '../src/hamster/mine-helmet.ts';
-import {mineHitsPerResult,mineRhythmPosition,mineRhythmAccuracy,mineAccuracyMultiplier,mineInterimReward} from '../src/mine/mine-rhythm.ts';
+import {MINE_RHYTHMS,MINE_WORK_PER_CYCLE,mineBlockDurability,mineStrikeWork,mineHitsUntilCycle,mineRhythmPosition,mineRhythmAccuracy,mineInterimReward} from '../src/mine/mine-rhythm.ts';
 import {ECONOMY_ITEMS,SHOPS} from '../src/gameplay/economy.ts';
 
 const polygon=[{x:-20,z:0},{x:20,z:0},{x:20,z:40},{x:-20,z:40}];
@@ -302,80 +302,89 @@ test('MINE-HUB V4: approved maritime stand is a real GLB; badge is independently
   assert.equal(cloth.visible,true,'original cloth stays intact');
 });
 
-test('mine rhythm: distinct timings and forgiving optimal slider zones',()=>{
-  const periods=[1,2,3,4,5].map(m=>[m,mineHitsPerResult(m)]);
-  assert.deepEqual(periods,[[1,3],[2,4],[3,5],[4,4],[5,5]]);
-  for(const mat of [1,2,3,4,5]){
-    assert.equal(mineRhythmPosition(mat,0),0);
-    assert.ok(mineRhythmPosition(mat,200)>=0&&mineRhythmPosition(mat,200)<=1);
-    const period=[900,1150,1480,1680,1920][mat-1];
-    assert.equal(mineRhythmAccuracy(mat,period/4),'perfect');
-    assert.equal(mineRhythmAccuracy(mat,0),'normal');
+test('mine V7 rhythm: different material periods, fixed cycles of 3 to 5 strikes',()=>{
+  for(const material of [1,2,3,4,5]){
+    const period=MINE_RHYTHMS[material].periodMs;
+    assert.equal(mineRhythmAccuracy(material,period/4),'perfect');
+    assert.equal(mineRhythmAccuracy(material,0),'normal');
+    assert.equal(mineRhythmPosition(material,0),0);
+    assert.equal(mineRhythmPosition(material,period/2),1);
   }
-  assert.equal(mineAccuracyMultiplier('normal'),1);
-  assert.equal(mineAccuracyMultiplier('good'),1.15);
-  assert.equal(mineAccuracyMultiplier('perfect'),1.30);
-  // Seeded output is identical in new sessions and on both local / remote paths.
+  assert.deepEqual(['normal','good','perfect'].map(mineStrikeWork),[3,4,5]);
+  assert.equal(MINE_WORK_PER_CYCLE,15);
+  assert.deepEqual(['normal','good','perfect'].map(q=>mineHitsUntilCycle(0,q)),[5,4,3]);
   assert.deepEqual(mineInterimReward(4,'good',0,12,15,2),
     mineInterimReward(4,'good',0,12,15,2));
 });
-test('mine rewards V6: a result every 3-5 accepted hits, same rock cell until full excavation',()=>{
-  for(let seed=1;seed<=12;seed++){
+test('mine V7: each completed batch reduces durability by exactly one, opens only at zero',()=>{
+  for(let seed=1;seed<=8;seed++){
     const z=zone(seed),original=new MineState(new MineGrid(z));
     const w=wallCell(original,0,m=>m>=2&&m<=5);
-    assert.ok(w,'reachable rock for seed '+seed);
-    const material=original.material(0,w.ix,w.iz),hp=MINE_MATERIALS[material].hp,
-      interval=mineHitsPerResult(material);
-    const mine=(power,roundTrip=false)=>{
-      let state=new MineState(new MineGrid(z)),steps=0,granted=[];
-      while(!state.isOpen(0,w.ix,w.iz)&&steps<550){
-        const req={requestId:'hit-'+steps,levelId:'level-1',ix:w.ix,iz:w.iz,
+    assert.ok(w,'reachable rock');
+    const material=original.material(0,w.ix,w.iz),durability=mineBlockDurability(material);
+    for(const quality of ['normal','good','perfect']){
+      let state=new MineState(new MineGrid(z)),steps=0,payouts=[];
+      while(!state.isOpen(0,w.ix,w.iz)&&steps<100){
+        const req={requestId:quality+':'+steps,levelId:'level-1',ix:w.ix,iz:w.iz,
           from:from(state,0,w.stand.ix,w.stand.iz)};
-        const r=state.strike(req,power,reward=>{granted.push(reward);return true;});
+        const r=state.strike(req,8,bonus=>{payouts.push(bonus);return true;},quality);
         assert.equal(r.ok,true);
-        if('partial'in r){
-          assert.equal(r.hits,steps+1);
-          assert.equal(r.nextResult,interval-r.hits%interval);
-          if(roundTrip&&steps===3){
-            const saved=parseMineSave(state.serialize());
-            assert.equal(saved.hits?.[req.levelId+':'+req.ix+':'+req.iz],4);
-            state=new MineState(new MineGrid(z));assert.deepEqual(state.restore(saved),[]);
-            assert.equal(state.hitCountAt(0,w.ix,w.iz),4);
-            assert.deepEqual(state.strike(req,power,()=>{throw Error('replay');}),{ok:false,reason:'Demande déjà traitée'});
-          }
-        }
         steps++;
+        if('partial'in r){
+          assert.equal(state.damageAt(0,w.ix,w.iz),Math.floor(steps*mineStrikeWork(quality)/15),
+            'one durability consumed only at a finished batch');
+          assert.equal(state.excavatedCount,0);
+          assert.equal(r.durabilityRemaining,durability-state.damageAt(0,w.ix,w.iz));
+          assert.equal(r.progress<1,true);
+        }
       }
-      assert.ok(steps<550,'mining completes');
-      assert.equal(steps,Math.ceil(hp/power),'stone disappears only on full HP');
-      const expectedMilestones=Math.floor((steps-1)/interval);
-      assert.equal(granted.length,expectedMilestones+1,
-        'every '+interval+' nonfinal hits grants exactly once, then final ore');
-      assert.equal(granted.at(-1).itemId,MINE_MATERIALS[material].item);
+      assert.equal(steps,Math.ceil(durability*15/mineStrikeWork(quality)),
+        'total accepted strikes depend on timing, not old HP');
+      assert.equal(payouts.length,durability,'one material result per consumed durability');
+      assert.equal(payouts.at(-1).itemId,MINE_MATERIALS[material].item);
+      assert.equal(payouts.at(-1).quantity,2,'slightly more base ore on final cycle');
       assert.equal(state.excavatedCount,1);
-      return {steps,granted};
-    };
-    const slow=mine(2,true),steel=mine(25);
-    assert.ok(slow.steps>=steel.steps,'better pickaxe excavates faster');
-    assert.ok(slow.granted.length>=steel.granted.length,
-      'more manual hits can produce more low-value debris, not more guaranteed final ore');
-    assert.equal(slow.granted.at(-1).itemId,steel.granted.at(-1).itemId);
+    }
   }
 });
-test('mine bonus V2: a refused inventory grant cannot commit a finished cell',()=>{
+test('mine V7: final ore yields 3 for steel, never commits when inventory refuses',()=>{
   const state=new MineState(new MineGrid(zone())),w=wallCell(state,0,m=>m>=2&&m<=5),
-    material=state.material(0,w.ix,w.iz);
-  assert.ok(material>=2);
-  const params={levelId:'level-1',ix:w.ix,iz:w.iz,from:from(state,0,w.stand.ix,w.stand.iz)};
-  const fail=state.strike({...params,requestId:'denied'},1000,()=>false);
-  assert.equal(fail.ok,false);assert.equal(state.excavatedCount,0);
-  let qty=0;
-  const allowed=state.strike({...params,requestId:'recovered'},1000,reward=>{qty+=reward.quantity;return true;});
-  assert.equal(allowed.ok,true);assert.ok(qty>=1&&qty<=2);
+    durability=mineBlockDurability(state.material(0,w.ix,w.iz));
+  const req=n=>({requestId:'steel-'+n,levelId:'level-1',ix:w.ix,iz:w.iz,
+    from:from(state,0,w.stand.ix,w.stand.iz)});
+  for(let i=0;i<durability*3-1;i++)assert.equal(state.strike(req(i),25,()=>true,'perfect').ok,true);
+  assert.equal(state.durabilityAt(0,w.ix,w.iz),1);
+  const denied=state.strike(req(999),25,()=>false,'perfect');
+  assert.deepEqual(denied,{ok:false,reason:'Inventaire plein'});
+  assert.equal(state.excavatedCount,0);
+  assert.equal(state.durabilityAt(0,w.ix,w.iz),1);
+  const payouts=[];
+  const done=state.strike(req(1000),25,r=>{payouts.push(r);return true;},'perfect');
+  assert.equal(done.ok,true);
+  assert.equal(payouts.length,1);assert.equal(payouts[0].quantity,3);
   assert.equal(state.excavatedCount,1);
-  assert.equal(state.strike({...params,requestId:'again'},1000,()=>{throw Error('duplicate')}).ok,false);
+  assert.equal(state.damageAt(0,w.ix,w.iz),0,'partial durability removed after excavation');
 });
-
+test('mine V7: saved work and durability survive reload, old HP saves migrate',()=>{
+  const z=zone(),initial=new MineState(new MineGrid(z)),
+    w=wallCell(initial,0,m=>m>=2&&m<=5),key='level-1:'+w.ix+':'+w.iz;
+  let state=initial;const req=n=>({requestId:'save-'+n,levelId:'level-1',ix:w.ix,iz:w.iz,
+    from:from(state,0,w.stand.ix,w.stand.iz)});
+  for(let i=0;i<7;i++)assert.equal(state.strike(req(i),8,()=>true,'normal').ok,true);
+  const saved=parseMineSave(state.serialize());
+  assert.equal(saved.miningVersion,2);
+  assert.equal(saved.damage[key],1);assert.equal(saved.hits[key],7);
+  assert.equal(saved.work[key],6);
+  state=new MineState(new MineGrid(z));assert.deepEqual(state.restore(saved),[]);
+  assert.equal(state.damageAt(0,w.ix,w.iz),1);
+  assert.equal(state.workAt(0,w.ix,w.iz),6);
+  assert.deepEqual(state.strike(req(6),8,()=>{throw Error('repeated gain');}),
+    {ok:false,reason:'Demande déjà traitée'});
+  const old=parseMineSave({mineId:z.id,seed:z.mine.seed,geologyVersion:1,
+    levels:{},requests:[],damage:{[key]:MINE_MATERIALS[initial.material(0,w.ix,w.iz)].hp/2}});
+  const migrated=new MineState(new MineGrid(z));assert.deepEqual(migrated.restore(old),[]);
+  assert.ok(migrated.durabilityAt(0,w.ix,w.iz)<mineBlockDurability(initial.material(0,w.ix,w.iz)));
+});
 test('mine helmet: one shadowless head-following lamp with a separate equipment item',()=>{
   assert.ok(ECONOMY_ITEMS.some(i=>i.id==='tool:miners-helmet'&&i.buy>0));
   assert.ok(SHOPS.mine.sells.includes('tool:miners-helmet'));
@@ -390,26 +399,29 @@ test('mine helmet: one shadowless head-following lamp with a separate equipment 
   helmet.dispose();assert.equal(head.children.length,0);
 });
 
-test('mine V6: milestone inventory refusal does not consume a strike or reward',()=>{
+test('mine V7: rejected intermediate reward preserves work and durability',()=>{
   const state=new MineState(new MineGrid(zone())),wall=wallCell(state,0,m=>m>=2&&m<=5);
-  assert.ok(wall);const interval=mineHitsPerResult(state.material(0,wall.ix,wall.iz));
-  const req=(n)=>({requestId:'m'+n,levelId:'level-1',ix:wall.ix,iz:wall.iz,
+  const req=n=>({requestId:'batch-'+n,levelId:'level-1',ix:wall.ix,iz:wall.iz,
     from:from(state,0,wall.stand.ix,wall.stand.iz)});
-  for(let i=0;i<interval-1;i++){
-    const r=state.strike(req(i),1,()=>{throw Error('early loot')});
+  for(let i=0;i<4;i++){
+    const r=state.strike(req(i),8,()=>{throw Error('early loot')},'normal');
     assert.ok(r.ok&&r.partial);
   }
-  let attempted=0;
-  const rejected=state.strike(req(interval-1),1,()=>{attempted++;return false;});
-  assert.equal(rejected.ok,false);
-  assert.equal(state.hitCountAt(0,wall.ix,wall.iz),interval-1);
-  assert.equal(state.damageAt(0,wall.ix,wall.iz),interval-1);
+  assert.equal(state.damageAt(0,wall.ix,wall.iz),0);
+  assert.equal(state.workAt(0,wall.ix,wall.iz),12);
+  let attempts=0;
+  const rejected=state.strike(req(4),8,()=>{attempts++;return false;},'normal');
+  assert.deepEqual(rejected,{ok:false,reason:'Inventaire plein'});
+  assert.equal(state.hitCountAt(0,wall.ix,wall.iz),4);
+  assert.equal(state.workAt(0,wall.ix,wall.iz),12);
+  assert.equal(state.damageAt(0,wall.ix,wall.iz),0);
   let granted=0;
-  const accepted=state.strike(req(interval-1),1,()=>{granted++;return true;});
-  assert.ok(accepted.ok&&accepted.partial&&accepted.fragment);
-  assert.equal(granted,1);assert.equal(attempted,1);
-  assert.deepEqual(state.strike(req(interval-1),1,()=>{throw Error('double loot');}),accepted);
-  assert.equal(state.hitCountAt(0,wall.ix,wall.iz),interval);
+  const result=state.strike(req(4),8,()=>{granted++;return true;},'normal');
+  assert.ok(result.ok&&result.partial&&result.fragment);
+  assert.equal(attempts,1);assert.equal(granted,1);
+  assert.equal(state.damageAt(0,wall.ix,wall.iz),1);
+  assert.equal(state.workAt(0,wall.ix,wall.iz),0);
+  assert.deepEqual(state.strike(req(4),8,()=>{throw Error('replay');}),result);
 });
 test('mine V6: partial progress saves before any cell was excavated',()=>{
   const z=zone(),q=new WorldCollisionQuery(()=>30,()=>null);
@@ -430,5 +442,6 @@ test('mine V6: partial progress saves before any cell was excavated',()=>{
   runtime.restore(saved);
   const restored=runtime.mines.get(z.id).state;
   assert.equal(restored.hitCountAt(0,wall.ix,wall.iz),1);
-  assert.ok(restored.damageAt(0,wall.ix,wall.iz)>0);
+  assert.equal(restored.damageAt(0,wall.ix,wall.iz),0);
+  assert.equal(restored.workAt(0,wall.ix,wall.iz),3);
 });
