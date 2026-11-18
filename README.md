@@ -258,3 +258,7 @@ Ce chantier réutilise les contrats V3, le CommandBus, les chemins, la géograph
 - [79 — Roadmap, gates et preuve de livraison](docs/79-ISLAND-ROADMAP-VALIDATION.md)
 
 **Important :** la construction coopérative, l'économie inter-joueurs et la persistance partagée nécessiteront plus tard un backend autoritaire ; leurs contrats sont préparés, **aucun serveur/WebSocket/compte ne doit être introduit au stade des démos GitHub Pages**. En solo, l'économie d'une île absente peut faire un rattrapage local à la reprise, pas une simulation active sans navigateur.
+
+### Traversée inter-îles (pilote solo)
+
+Sur la branche `feat/archipelago-real-island-travel`, deux îles d'exemple **compilées** sont prévues dans le build GitHub Pages : l'île officielle 4 × 3 km et une île forestière issue du projet de référence Studio. Le rameur permet le trajet aller-retour selon la présence de la navette. Chaque déplacement sauvegarde l'île quittée dans un slot de voyage dédié et transfère le sac, le boost et l'horloge ; la navigation complète décharge la scène précédente. Le multijoueur reste désactivé. Le statut final dépend de la validation CI et navigateur.

@@ -74,3 +74,7 @@ Contrôles de validation : dimensions par île, intégrité des chunks, points d
 Toujours inclure islandId et contentVersion ; les sauvegardes antérieures sans islandId sont mappées explicitement vers **l'île exemple par défaut** lors d'une migration non destructive. Conserver les anciens slots et détecter version incompatibles, IDs supprimés ou assets absents. Jamais de remplacement silencieux des constructions.
 
 Le registre peut évoluer pendant qu'un joueur possède un ancien état local : migrer si possible ou afficher un diagnostic et offrir export de sauvegarde. Les liens d'entités inter-îles sont des références typées, pas des pointeurs directs entre scènes Three.js.
+
+## Deuxième île publiée — forêt/village
+
+Le build statique inclut désormais la référence V3 `little-world-production-reference` dans `dist/archipelago/worlds/forest-valley/`. Le catalogue pointe vers son manifeste compilé, et le contrôle `verify-static-build` exige ses secteurs et sa logique. Le projet source reste dans les fixtures de référence du Studio et ne devient **pas** un fichier auteur éditable depuis la partie publique. La carte 4 × 3 km demeure inchangée. Le changement de carte réinitialise la scène Three.js via un nouveau document navigateur : **une seule île graphique par client à un instant donné**.
