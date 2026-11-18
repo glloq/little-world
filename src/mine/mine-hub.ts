@@ -29,8 +29,8 @@ export function mineHubLayout(zone:MineZone,levelIndex:number):MineHubLayout {
   // The shop is recessed against the LEFT wall, the lift stays at the original
   // connector axis on the RIGHT, and the gallery/exit share a clear central aisle.
   return {mineId:zone.id,levelId:level.id,levelIndex,floorY:level.floorY,height:level.height,
-    heading,shaft,counter:at(-6.65,.15),keeper:at(-7.72,.15),gallery:at(-3.85,5.3),
-    surfaceExit:levelIndex===0?at(-3.85,-6.45):null};
+    heading,shaft,counter:at(6.65,.15),keeper:at(7.72,.15),gallery:at(3.85,5.3),
+    surfaceExit:levelIndex===0?at(3.85,-6.45):null};
 }
 /** Floor-space reservations on the player's authorised excavation grid.
  * This only opens cells INSIDE the existing mine polygon, not the exterior heightfield.
@@ -40,8 +40,8 @@ export function mineHubCell(hub:MineHubLayout,ix:number,iz:number):boolean {
   const dx=ix+.5-hub.shaft.x,dz=iz+.5-hub.shaft.z;
   const right=dx*c-dz*s,forward=dx*s+dz*c;
   // Cut the four corners so the low-poly rock looks excavated rather than a box.
-  if(right<-9.6||right>3.3||forward<-7.5||forward>6.5)return false;
-  const side=Math.abs(right+3.15),depth=Math.abs(forward+.5);
+  if(right< -3.3||right>9.6||forward<-7.5||forward>6.5)return false;
+  const side=Math.abs(right-3.15),depth=Math.abs(forward+.5);
   return !(side>5.45&&depth>6.2&&side+depth>12.2);
 }
 /** Gradual extra height in the reception, returning smoothly to the authored gallery
@@ -51,7 +51,7 @@ export function mineHubRoofRise(hub:MineHubLayout,x:number,z:number):number {
   const dx=x-hub.shaft.x,dz=z-hub.shaft.z,
     s=Math.sin(hub.heading),c=Math.cos(hub.heading),
     right=dx*c-dz*s,forward=dx*s+dz*c;
-  const edge=Math.min(right+9.5,3.2-right,forward+7.4,6.4-forward);
+  const edge=Math.min(right+3.2,9.5-right,forward+7.4,6.4-forward);
   const height=Math.max(0,Math.min(1.10,4.7-hub.height));
   return height*Math.max(0,Math.min(1,edge/2.1));
 }
