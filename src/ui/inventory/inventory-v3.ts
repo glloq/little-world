@@ -151,6 +151,7 @@ export function inventoryPanelV3(deps:InventoryV3Deps){
       clearPointer();
       pointer={id,pointerId:e.pointerId,x:e.clientX,y:e.clientY,kind:e.pointerType,
         timer:null,dragging:false,ghost:null};
+      node.setPointerCapture(e.pointerId);
       pointer.timer=setTimeout(()=>{
         if(!pointer||pointer.id!==id||pointer.dragging)return;
         clearPointer();multi=true;checked.add(id);selectedId=id;renderCurrent();
@@ -177,7 +178,7 @@ export function inventoryPanelV3(deps:InventoryV3Deps){
     node.addEventListener('pointerup',e=>{
       const p=pointer;if(!p||p.id!==id||p.pointerId!==e.pointerId)return;
       const dragged=p.dragging;
-      if(dragged){suppressClick=id;drop(id,e.clientX,e.clientY);}
+      if(dragged){suppressClick=id;drop(id,e.clientX,e.clientY);setTimeout(()=>{if(suppressClick===id)suppressClick=null;},0);}
       clearPointer();
     });
     node.addEventListener('pointercancel',()=>clearPointer());
@@ -220,7 +221,7 @@ export function inventoryPanelV3(deps:InventoryV3Deps){
       const symbol=el('span','ui-item-symbol',icon(e)),name=el('span','ui-item-name',e.name),qty=el('span','ui-item-qty','×'+e.quantity);
       card.append(symbol,name,qty);
       if(e.delta)card.append(el('span','ui-badge','+'+e.delta));
-      if(checked.has(e.id)){card.classList.add('ui-bag-checked');card.append(el('span','ui-bag-check','✓'));}
+      if(multi){if(checked.has(e.id))card.classList.add('ui-bag-checked');card.append(el('span','ui-bag-check',checked.has(e.id)?'☑':'☐'));}
       if(deps.selectedTool()===e.id||e.id==='tool:miners-helmet'&&deps.headgear?.equipped())card.classList.add('ui-equipped');
       if(foodGasValue(e.id))card.dataset.edible='true';
       bindPointer(card,e.id);return card;
@@ -229,7 +230,8 @@ export function inventoryPanelV3(deps:InventoryV3Deps){
     if(!shown.length)scroller.append(el('p','ui-empty',vm.empty?'Votre sac est vide.':'Aucun objet dans cette catégorie.'));
     else for(const entry of shown)grid.append(card(entry));
     scroller.append(grid);scroller.scrollTop=scrollBefore;
-    stock.append(el('h3','ui-group','Stock'),filters,scroller);
+    const categories=el('p','ui-bag-categories',vm.groups.map(g=>g.label).join(' · '));
+    stock.append(el('h3','ui-group','Stock'),filters,categories,scroller);
     if(multi){
       const tools=el('div','ui-bag-select-tools');
       tools.append(el('span','','Sélection : '+checked.size));
@@ -279,7 +281,7 @@ export function inventoryPanelV3(deps:InventoryV3Deps){
     }
     gear.append(slots,el('p','ui-bag-hint','Glisser un outil sur une case pour l’ajouter aux favoris.'));
     layout.append(stock,portrait,gear);
-    const actions=el('footer','ui-bag-actions');
+    const actions=el('footer','ui-bag-actions ui-inventory-detail');
     if(multi){
       const selected=[...checked],edible=selected.length>0&&selected.every(id=>foodGasValue(id)>0);
       actions.append(el('strong','',''+selected.length+' type(s) sélectionné(s)'));
@@ -289,6 +291,7 @@ export function inventoryPanelV3(deps:InventoryV3Deps){
     }else if(selectedItem){
       const title=el('div','ui-bag-selected');title.append(el('strong','',selectedItem.name),el('span','ui-muted','×'+selectedItem.quantity+(foodGasValue(selectedItem.id)?' · +'+foodGasValue(selectedItem.id)+' gaz':'')));
       actions.append(title);
+      actions.append(el('span','ui-bag-current-category',selectedItem.categoryLabel));
       const target=equipSlot(selectedItem);
       if(foodGasValue(selectedItem.id)){
         const eat=button('Manger',()=>consume(selectedItem.id),'ui-button ui-primary');
