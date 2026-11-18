@@ -5,7 +5,10 @@ import type {SurfWaveField} from '../surf/wave-field.ts';
  * No texture, render-target, FFT, reflection camera or CPU vertex updates per frame. */
 export function createSurfWaterView(parent:THREE.Object3D,field:SurfWaveField,
  ground:(x:number,z:number)=>number){
- const z=field.zone,spacing=3;
+ const z=field.zone;
+ // Bound geometry even when an author draws an exceptionally large wave zone.
+ // An adaptive, camera-relative tessellation/LOD will replace this fixed cap later.
+ const spacing=Math.max(3,(z.maxX-z.minX)/160,(z.maxZ-z.minZ)/160);
  const nx=Math.max(2,Math.ceil((z.maxX-z.minX)/spacing));
  const nz=Math.max(2,Math.ceil((z.maxZ-z.minZ)/spacing));
  const positions:number[]=[],envelopes:number[]=[],wet:number[]=[],indices:number[]=[];
