@@ -50,7 +50,7 @@ export function createPortN1View(scene:THREE.Scene,plan:PortN1Layout,baseUrl:str
   rower.group.position.copy(absolute(plan.rower));
   // Both face the player on the promenade; the merchant stands behind the counter.
   merchant.group.rotation.y=0;
-  rower.group.rotation.y=-Math.PI/2;
+  rower.group.rotation.y=Math.PI/2;
   root.add(merchant.group,rower.group);
   const makePlayer=(p:THREE.Vector3):Player=>({
     position:p.clone(),velocity:new THREE.Vector3(),mode:'ground',oxygen:90,glideReady:false,
