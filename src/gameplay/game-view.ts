@@ -15,6 +15,7 @@ import {COIN,STARTING_COINS,STARTING_KIT,type ShopKind} from './economy.ts';
 import {PRODUCTION_ITEMS} from '../economy/starter-catalog.ts';
 import {MINE_ITEMS} from '../mine/mine-data.ts';
 import {INSTRUMENT_ITEMS} from '../instruments/definitions.ts';
+import {SURF_ITEMS,SURFBOARD_ID} from '../surf/surf-items.ts';
 import {emptyPlayerLoadout,parsePlayerLoadout,EQUIPMENT_FAVOURITE_COUNT} from './player-loadout.ts';
 import {FARM_ITEMS} from '../farm/farm-data.ts';
 import {createShopWorkshops} from '../economy/workshop-services.ts';
@@ -25,7 +26,7 @@ import type {PlayableActivities} from './activities.ts';
 import type {MovementSpace} from '../physics/collision-world.ts';
 import type {GameplayData,GameplayEntity,Point3} from './schema.ts';
 
-interface Options {islandId?:string;gathering?:Omit<GatherDeps,'time'|'grant'|'has'>;onSound?:(id:string,position?:{x:number;y:number;z:number})=>void;collisions?:CollisionDefinition[];temporary:boolean;saveScope?:string;getPosition:()=>Point3;setPosition:(p:Point3,space?:MovementSpace|null)=>void;activities?:PlayableActivities;getSpace?:()=>MovementSpace|undefined;getGas?:()=>number;setGas?:(value:number)=>void;getGasProgress?:()=>FlightProgress;setGasProgress?:(value:FlightProgress)=>void;showInfo:(text:string)=>void;objects:THREE.Group}
+interface Options {surfStarter?:boolean;islandId?:string;gathering?:Omit<GatherDeps,'time'|'grant'|'has'>;onSound?:(id:string,position?:{x:number;y:number;z:number})=>void;collisions?:CollisionDefinition[];temporary:boolean;saveScope?:string;getPosition:()=>Point3;setPosition:(p:Point3,space?:MovementSpace|null)=>void;activities?:PlayableActivities;getSpace?:()=>MovementSpace|undefined;getGas?:()=>number;setGas?:(value:number)=>void;getGasProgress?:()=>FlightProgress;setGasProgress?:(value:FlightProgress)=>void;showInfo:(text:string)=>void;objects:THREE.Group}
 /** Interactive object near the player, usable or not (the reason comes from the runtime state). */
 export interface ObjectTarget {entity:GameplayEntity;name:string;prompt:string;range:number;usable:boolean;reason?:string;distance:number}
 /** Gameplay controller of a playable world: logical runtime, collisions, activities, save
@@ -35,7 +36,7 @@ export function createGameplayView(data:GameplayData,options:Options){
  // Register stable crafted product definitions in the gameplay runtime of old and new maps.
  // The compiled world/Studio source stays immutable: crafting uses the same inventory authority.
  const existing=new Set(data.items.map(i=>i.id));
- const sharedItems=[...MINE_ITEMS,...FARM_ITEMS,...PRODUCTION_ITEMS,...INSTRUMENT_ITEMS];
+ const sharedItems=[...MINE_ITEMS,...FARM_ITEMS,...PRODUCTION_ITEMS,...INSTRUMENT_ITEMS,...SURF_ITEMS];
  const runtime=createGameplay({...data,items:[...data.items,...sharedItems.filter(i=>!existing.has(i.id))]}),
    slots=createGameSaveStore(options.temporary?scopedSaveStorage(sessionStorage,options.saveScope??'test'):undefined);
  const collisionDefinitions=new Map((options.collisions??[]).map(d=>[d.id,d]));
@@ -45,6 +46,8 @@ export function createGameplayView(data:GameplayData,options:Options){
  /** Core gameplay state + active space + activity differences, in one versioned save. */
  // Economy: a new game starts with a small purse (restored saves replace the whole inventory).
  if(runtime.data.items.some(i=>i.id===COIN))runtime.grantItems([{itemId:COIN,quantity:STARTING_COINS},...STARTING_KIT.filter(k=>runtime.data.items.some(i=>i.id===k.itemId))]);
+ // Accessible free starter on surf-capable islands. Restore overwrites this grant for saved games.
+ if(options.surfStarter&&runtime.data.items.some(i=>i.id===SURFBOARD_ID))runtime.grantItems([{itemId:SURFBOARD_ID,quantity:1}]);
  // Gathering (trees, fruits, mushrooms, flowers) on the procedural dressing of generated worlds.
  const gathering=options.gathering?createGathering({...options.gathering,time:()=>runtime.state.time,grant:changes=>runtime.grantItems(changes),has}):null;
  const trees=gathering?createTreeColliders({collision,cell:gathering.cell,hidden:gathering.hiddenAt}):null;
