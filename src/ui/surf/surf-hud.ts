@@ -3,9 +3,11 @@ export interface SurfHudState {
  stage:'paddle'|'ride'|'air'|null;
  speedMps:number;
  crest:number|null;
+ tubeActive?:boolean;
 }
 export function surfHudText(state:SurfHudState):string{
  const speed=Math.round(Math.max(0,state.speedMps)*3.6);
+ if(state.tubeActive)return 'SURF · Dans le tube · '+speed+' km/h · Ressortez avant la fermeture !';
  if(state.stage==='air')return 'SURF · Saut · '+speed+' km/h · Préparez la réception';
  if(state.stage==='paddle')return 'SURF · Rame · '+speed+' km/h · Z / Shift : avancer · B : ranger';
  if(state.stage==='ride'){
