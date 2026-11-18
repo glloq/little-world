@@ -1200,8 +1200,10 @@ if(incomingTransit&&gameplay&&playable){
 if(!incomingTransit&&retainedPortable&&gameplay&&playable){
   try{
     const saved=await gameplay.slots.load(playable.gameplay.worldId,'slot-ferry-auto');
-    if(!saved)throw Error('Point de reprise de voyage introuvable');
-    gameplay.restore({...saved,inventory:{...retainedPortable.traveler.inventory},
+    // The per-island slot is the latest coherent snapshot (inventory + world effects).
+    // Only fall back to the portable bag if that slot was explicitly removed.
+    const base=saved??gameplay.compose('slot-ferry-auto');
+    gameplay.restore(saved??{...base,inventory:{...retainedPortable.traveler.inventory},
       gasReserve:retainedPortable.traveler.gasReserve,
       flightProgress:retainedPortable.traveler.flightProgress});
     ferryMinute=worldGameMinute(worldClock.time,climate.definition.dayLengthSeconds);
@@ -1209,21 +1211,37 @@ if(!incomingTransit&&retainedPortable&&gameplay&&playable){
     ferryView?.setPresent(ferryNow.present);
   }catch(error){bootFailure(error);}
 }
-// Keep the portable checkpoint current after every validated gameplay mutation, not every
-// render frame. A failed write is explicit; never silently discard goods.
+// Store a coherent world+bag checkpoint after validated changes, not per frame.
+// Write the island slot first, then the portable metadata. On refresh the island slot
+// is authoritative, preventing duplicated resources if a write was interrupted.
 if(activeIsland&&gameplay&&(incomingTransit||retainedPortable)){
-  const active=activeIsland,g=gameplay;let warned=false;
-  g.subscribe(()=>{
+  const active=activeIsland,g=gameplay;let warned=false,dirty=false,saving=false;
+  let debounce:ReturnType<typeof setTimeout>|null=null;
+  async function saveTravelProgress(){
+    if(saving)return;
+    saving=true;
     try{
-      savePortableCheckpoint(localStorage,active.id,g.runtime.data.worldId,{
-        inventory:{...g.runtime.state.inventory},
-        items:g.runtime.data.items.filter(item=>(g.runtime.state.inventory[item.id]??0)>0),
-        gasReserve:gasLevel(player),flightProgress,
-      });warned=false;
+      do{
+        dirty=false;
+        const snapshot=g.compose('slot-ferry-auto');
+        await g.slots.save(snapshot);
+        savePortableCheckpoint(localStorage,active.id,g.runtime.data.worldId,{
+          inventory:{...snapshot.inventory},
+          items:g.runtime.data.items.filter(item=>(snapshot.inventory[item.id]??0)>0),
+          gasReserve:snapshot.gasReserve??gasLevel(player),
+          flightProgress:snapshot.flightProgress??flightProgress,
+        });
+      }while(dirty);
+      warned=false;
     }catch(error){
-      if(!warned){warned=true;console.warn('Impossible de sauvegarder le sac portable :',error);
-        showInfo('Stockage du sac portable indisponible : exportez une sauvegarde.','warning');}
-    }
+      if(!warned){warned=true;console.warn('Impossible de sauvegarder la progression maritime :',error);
+        showInfo('Sauvegarde de voyage indisponible : exportez votre partie.','warning');}
+    }finally{saving=false;}
+  }
+  g.subscribe(()=>{
+    dirty=true;
+    if(debounce!==null)clearTimeout(debounce);
+    debounce=setTimeout(()=>{debounce=null;void saveTravelProgress();},1000);
   });
 }
 // Gameplay starts automatically when the first rendered spawn area is ready.
