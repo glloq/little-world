@@ -6,7 +6,10 @@ import {BARREL_CREST_PHASE,barrelCrestAlong,barrelProfile,nearestBarrelCrest,
  sampleSurfBarrel,stepSurfBarrel} from '../src/surf/surf-barrel.ts';
 import {surfBarrelBand,createSurfBarrelView} from '../src/render/surf-barrel-view.ts';
 import {captureMovement,restoreMovement} from '../src/physics/movement-state.ts';
-import {spawnPlayer} from '../src/player.ts';
+import {BARREL_WASH,isShelteredByDive,startBarrelWash,stepBarrelWash} from '../src/surf/barrel-wash.ts';
+import {applySurfTumblePose} from '../src/render/surf-tumble-pose.ts';
+import {WorldCollisionQuery} from '../src/physics/collision-world.ts';
+import {spawnPlayer,simulatePlayer} from '../src/player.ts';
 
 const zone={id:'surf:barrel-test',minX:-80,maxX:80,minZ:-80,maxZ:80,
  dirX:0,dirZ:1,seaLevel:0,amplitude:1.4,wavelength:31,speed:6.2,seed:11,
@@ -102,4 +105,95 @@ test('tube movement state is validated and restored by the existing replay snaps
  for(const key of ['barrelEntryTick','barrelWaveIndex','barrelEntryAcross','barrelSuccessSeq','barrelCrashSeq','barrelCooldownUntilTick'])
    assert.equal(other[key],a[key]);
  assert.throws(()=>restoreMovement(other,{...snapshot,state:{...snapshot.state,barrelSuccessSeq:-1}}),/Événement surf invalide/);
+});
+
+test('a surface swimmer inside a breaking tube is briefly carried toward shore, never switched to ground roll',()=>{
+ const z=barrelCrestAlong(zone,0,0);
+ const p={position:{x:0,y:-.42,z},velocity:{x:0,y:0,z:0},mode:'swim',diving:false};
+ const first=stepBarrelWash(p,field,ground,0,1/30);
+ assert.equal(first.caught,true);
+ assert.equal(first.active,true);
+ assert.equal(p.mode,'swim','keep buoyancy and oxygen simulation');
+ assert.equal(p.barrelTumbleSeq,1);
+ assert.ok(p.velocity.z>5,'whitewater pushes in wave travel direction');
+ assert.ok(Math.hypot(p.velocity.x,p.velocity.z)<=BARREL_WASH.maxSpeed);
+ for(let tick=1;tick<=35;tick++)stepBarrelWash(p,field,ground,tick,1/30);
+ assert.equal(p.barrelTumbleRemaining,0);
+ assert.ok(Math.abs(p.barrelTumbleAngle-4*Math.PI)<.001,'ends after two complete spins');
+ assert.equal(p.barrelTumbleSeq,1,'no repeated whitewater farming within cooldown');
+});
+test('explicit diving, held Ctrl and truly submerged swimming all evade the tube wash',()=>{
+ const z=barrelCrestAlong(zone,0,0);
+ for(const settings of [
+   {mode:'dive',diving:true,y:-1.3,key:false},
+   {mode:'swim',diving:true,y:-.35,key:false},
+   {mode:'swim',diving:false,y:-.35,key:true},
+   {mode:'swim',diving:false,y:-1.5,key:false},
+ ]){
+   const p={position:{x:0,y:settings.y,z},velocity:{x:0,y:0,z:0},mode:settings.mode,diving:settings.diving};
+   assert.equal(isShelteredByDive(p,zone,settings.key),true);
+   assert.equal(stepBarrelWash(p,field,ground,0,1/30,settings.key).caught,false);
+   assert.equal(p.barrelTumbleSeq??0,0);
+ }
+ const p={position:{x:0,y:-.35,z},velocity:{x:0,y:0,z:0},mode:'swim',diving:false};
+ assert.equal(stepBarrelWash(p,field,ground,0,1/30).caught,true);
+ p.diving=true;p.mode='dive';
+ const s=stepBarrelWash(p,field,ground,1,1/30);
+ assert.equal(s.active,false,'diving stops an ongoing tumble immediately');
+ assert.equal(p.barrelTumbleRemaining,0);
+});
+test('closed tube wipeout starts one shoreward wash without snapping onto terrain',()=>{
+ const z=barrelCrestAlong(zone,0,0),p=surfer(0,z);
+ assert.equal(stepSurfBarrel(p,field,ground,0),'entered');
+ p.position.z=barrelCrestAlong(zone,52,0);
+ assert.equal(stepSurfBarrel(p,field,ground,52),'closed');
+ assert.equal(p.mode,'swim');
+ assert.ok(p.position.y<=zone.seaLevel-.3);
+ assert.equal(startBarrelWash(p,zone,52),true);
+ assert.ok(p.velocity.z>zone.speed*.4);
+ assert.equal(startBarrelWash(p,zone,53),false,'no duplicate impulse');
+ assert.equal(p.barrelTumbleSeq,1);
+});
+test('real swim simulation keeps wash momentum, yields to dive, and respects the standard waterline',()=>{
+ const z=barrelCrestAlong(zone,0,0),collision=new WorldCollisionQuery(ground,()=>0);
+ const p=spawnPlayer();
+ p.mode='swim';p.diving=false;p.position.set(0,-.42,z);p.velocity.set(0,0,0);
+ const keys={forward:0,right:0,run:false,jumpPressed:false,spaceHeld:false,dive:false,cameraYaw:0,cameraPitch:0};
+ simulatePlayer(p,keys,1/30,collision,field,0);
+ assert.equal(p.mode,'swim');
+ assert.equal(p.barrelTumbleSeq,1);
+ const startZ=p.position.z;
+ for(let tick=1;tick<13;tick++)simulatePlayer(p,keys,1/30,collision,field,tick);
+ assert.ok(p.position.z>startZ+1,'breaking water transports swimmer shoreward over time');
+ assert.ok(p.position.y<=.06,'the flat swimming datum remains in force');
+ assert.equal(p.mode,'swim');
+ simulatePlayer(p,{...keys,jumpPressed:true},1/30,collision,field,13);
+ assert.equal(p.diving,true);
+ assert.equal(p.barrelTumbleRemaining,0);
+ assert.ok(Number.isFinite(p.velocity.z));
+});
+test('tumble spin is a post-pose visual overlay with no movement-state mutations',()=>{
+ const j=Object.fromEntries(['HamsterBody','Head','Tail','ArmLeft','ArmRight','FootLeft','FootRight','EarLeft','EarRight']
+  .map(k=>[k,new THREE.Group()]));
+ const character={rig:{joints:j}},p={mode:'swim',barrelTumbleRemaining:.5,barrelTumbleAngle:2.4};
+ applySurfTumblePose(character,p);
+ assert.ok(j.HamsterBody.rotation.x>2.35);
+ assert.ok(j.ArmLeft.scale.x<1);
+ assert.equal(p.barrelTumbleAngle,2.4);
+ p.mode='dive';
+ j.HamsterBody.rotation.x=0;
+ applySurfTumblePose(character,p);
+ assert.equal(j.HamsterBody.rotation.x,0,'no tumble pose while underwater');
+});
+test('wash state survives movement replay snapshots with strict bounds',()=>{
+ const p=spawnPlayer();
+ p.barrelTumbleRemaining=.6;p.barrelTumbleAngle=3.1;p.barrelTumbleSeq=5;
+ p.barrelTumbleCooldownUntilTick=150;
+ const snapshot=captureMovement(p,120),next=spawnPlayer();
+ restoreMovement(next,snapshot);
+ assert.equal(next.barrelTumbleRemaining,.6);
+ assert.equal(next.barrelTumbleAngle,3.1);
+ assert.equal(next.barrelTumbleCooldownUntilTick,150);
+ for(const [fieldName,val] of [['barrelTumbleRemaining',-2],['barrelTumbleAngle',100],['barrelTumbleSeq',-1]])
+  assert.throws(()=>restoreMovement(next,{...snapshot,state:{...snapshot.state,[fieldName]:val}}),/roulade|surf/i);
 });
