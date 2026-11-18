@@ -7,7 +7,7 @@ import type {WorldCollisionQuery,MovementSpace,Point3} from '../physics/collisio
 import type {PlayableActivities} from './activities.ts';
 import {MINE_MATERIALS,insidePolygon,type MineZone} from '../mine/mine-data.ts';
 import {MineGrid,MineState,DIG_REACH,type MineSaveState} from '../mine/mine-state.ts';
-import {mineHitsPerResult,type StrikeAccuracy} from '../mine/mine-rhythm.ts';
+import {MINE_WORK_PER_CYCLE,mineBlockDurability,mineHitsUntilCycle,type StrikeAccuracy} from '../mine/mine-rhythm.ts';
 import {mineHubLayout,mineHubCounterId,mineRequiredExcavations,mineLevelUnlocked} from '../mine/mine-hub.ts';
 import {mineSpaceProvider,mineTransitions} from '../mine/mine-collision.ts';
 import {CROPS,type FarmZone} from '../farm/farm-data.ts';
@@ -48,7 +48,7 @@ export function createActivityRuntime(activities:PlayableActivities,deps:Deps){
     const m=mines.get(t.mineId)!,tool=pickPower(id=>deps.has?.(id)??false);
     const r=m.state.strike({requestId:requestId('dig'),levelId:space.levelId,ix:t.ix,iz:t.iz,from:position},tool.power,reward=>deps.grant([reward]),quality);
     if(!r.ok)return {ok:false,message:r.reason};
-    if('partial'in r)return {ok:true,partial:true,progress:r.progress,hits:r.hits,nextResult:r.nextResult,message:r.fragment?`+${r.fragment.quantity} ${nameOf(r.fragment.itemId)} (extraction)`:`${MINE_MATERIALS[r.material].name} : ${Math.round(r.progress*100)} % · récolte dans ${r.nextResult} coup(s)`};
+    if('partial'in r)return {ok:true,partial:true,progress:r.progress,hits:r.hits,nextResult:r.nextResult,message:r.fragment?`+${r.fragment.quantity} ${nameOf(r.fragment.itemId)} (récolte · solidité ${r.durabilityRemaining}/${r.durabilityMax})`:`${MINE_MATERIALS[r.material].name} · solidité ${r.durabilityRemaining}/${r.durabilityMax} · prochain lot ≈ ${r.nextResult} coup(s)`};
     notify({kind:'mine',mineId:t.mineId,level:t.level,chunks:r.chunks});
     return {ok:true,message:r.reward?`+${r.reward.quantity} ${nameOf(r.reward.itemId)}`:`${MINE_MATERIALS[r.material].name} déblayée`};
   }
@@ -105,7 +105,11 @@ export function createActivityRuntime(activities:PlayableActivities,deps:Deps){
     const t=mineTarget(position,space,forward);if(!t||!space)return null;const m=mines.get(t.mineId)!;
     const verdict=m.state.check({levelId:space.levelId,ix:t.ix,iz:t.iz,from:position});
     const info=MINE_MATERIALS[t.material],tool=pickPower(id=>deps.has?.(id)??false);
-    return {target:t,materialName:info.name,reward:verdict.ok?verdict.reward:null,ok:verdict.ok,reason:verdict.ok?undefined:verdict.reason,progress:m.state.damageAt(t.level,t.ix,t.iz)/Math.max(1,info.hp),strikesLeft:Math.ceil((info.hp-m.state.damageAt(t.level,t.ix,t.iz))/tool.power),hitsToReward:mineHitsPerResult(t.material)-m.state.hitCountAt(t.level,t.ix,t.iz)%mineHitsPerResult(t.material),tool:tool.tool};
+    return {target:t,materialName:info.name,reward:verdict.ok?verdict.reward:null,ok:verdict.ok,reason:verdict.ok?undefined:verdict.reason,progress:(m.state.damageAt(t.level,t.ix,t.iz)+m.state.workAt(t.level,t.ix,t.iz)/MINE_WORK_PER_CYCLE)/Math.max(1,mineBlockDurability(t.material)),
+      strikesLeft:(m.state.durabilityAt(t.level,t.ix,t.iz)-1)*4+mineHitsUntilCycle(m.state.workAt(t.level,t.ix,t.iz)),
+      hitsToReward:mineHitsUntilCycle(m.state.workAt(t.level,t.ix,t.iz)),
+      durabilityRemaining:m.state.durabilityAt(t.level,t.ix,t.iz),
+      durabilityMax:mineBlockDurability(t.material),tool:tool.tool};
   }
   /** UI preview of the next plot action: the farm rules run on a copy of the state. */
   /** Sowing needs a seed packet of the selected crop when the economy defines seeds. */
