@@ -8,12 +8,14 @@
  * Pure: no Three.js, no storage. */
 import {MINE_CHUNK,MINE_MATERIALS,geologyAt,insidePolygon,type MineZone,type MineLevelV3} from './mine-data.ts';
 import {mineHubCell,mineHubLayout,mineHubGalleryApproach} from './mine-hub.ts';
+import {mineAccuracyMultiplier,mineHitsPerResult,mineInterimReward,type StrikeAccuracy} from './mine-rhythm.ts';
 
 export interface DigRequest {requestId:string;levelId:string;ix:number;iz:number;from:{x:number;y:number;z:number};expectedRevision?:number}
 export type DigResult={ok:true;material:number;reward:{itemId:string;quantity:number}|null;chunks:string[];revision:number}|{ok:false;reason:string};
 export interface MineSaveState {mineId:string;seed:number;geologyVersion:number;levels:Record<string,Record<string,{r:number;b:string}>>;requests:string[];
-  /** Partially struck cells « levelId:ix:iz » → damage (optional, bounded). */damage?:Record<string,number>}
-export type StrikeResult=DigResult|{ok:true;partial:true;material:number;progress:number;fragment:{itemId:string;quantity:number}|null};
+  /** Partially struck cells « levelId:ix:iz » → damage (optional, bounded). */damage?:Record<string,number>;
+  /** Accepted hit count for 3–5-hit resource cycles; optional for V4 saves. */hits?:Record<string,number>}
+export type StrikeResult=DigResult|{ok:true;partial:true;material:number;progress:number;fragment:{itemId:string;quantity:number}|null;hits:number;nextResult:number;accuracy:StrikeAccuracy};
 export const DIG_REACH=2.6;
 const chunkKey=(cx:number,cz:number)=>cx+','+cz;
 
@@ -107,8 +109,14 @@ export class MineGrid {
 export class MineState {
   readonly grid:MineGrid;
   private chunks:Map<string,{bits:Uint32Array;revision:number}>[];
-  private requests=new Map<string,DigResult>();private order:string[]=[];
+  private requests=new Map<string,StrikeResult>();private order:string[]=[];
   private damage=new Map<string,number>();
+  private hits=new Map<string,number>();
+  /** A bounded request cache is also saved to prevent replay across reload. */
+  private remember(id:string,result:StrikeResult){
+    this.requests.set(id,result);this.order.push(id);
+    if(this.order.length>256)this.requests.delete(this.order.shift()!);
+  }
   revision=0;
   constructor(grid:MineGrid){this.grid=grid;this.chunks=grid.levels.map(()=>new Map());}
   excavated(level:number,ix:number,iz:number){const c=this.chunks[level].get(chunkKey(Math.floor(ix/MINE_CHUNK),Math.floor(iz/MINE_CHUNK)));if(!c)return false;const lx=ix-Math.floor(ix/MINE_CHUNK)*MINE_CHUNK,lz=iz-Math.floor(iz/MINE_CHUNK)*MINE_CHUNK;return (c.bits[lz]>>>lx&1)===1;}
@@ -132,7 +140,8 @@ export class MineState {
     return {ok:true,material,reward:info.item?{itemId:info.item,quantity:1}:null};
   }
   dig(req:DigRequest,grant:(reward:{itemId:string;quantity:number})=>boolean,bonus=0):DigResult{
-    const cached=this.requests.get(req.requestId);if(cached)return cached;
+    const cached=this.requests.get(req.requestId);
+    if(cached)return 'partial'in cached?{ok:false,reason:'Demande déjà traitée'}:cached;
     const fail=(reason:string):DigResult=>({ok:false,reason});
     const verdict=this.check(req);if(!verdict.ok)return fail(verdict.reason);
     const level=this.grid.levelIndex(req.levelId),material=verdict.material;
@@ -151,43 +160,60 @@ export class MineState {
     const lx=req.ix-cx*MINE_CHUNK,lz=req.iz-cz*MINE_CHUNK;c.bits[lz]|=1<<lx;c.revision++;this.revision++;
     const chunks=new Set([key]);if(lx===0)chunks.add(chunkKey(cx-1,cz));if(lx===MINE_CHUNK-1)chunks.add(chunkKey(cx+1,cz));if(lz===0)chunks.add(chunkKey(cx,cz-1));if(lz===MINE_CHUNK-1)chunks.add(chunkKey(cx,cz+1));
     const result:DigResult={ok:true,material,reward,chunks:[...chunks],revision:c.revision};
-    this.requests.set(req.requestId,result);this.order.push(req.requestId);if(this.order.length>256)this.requests.delete(this.order.shift()!);
+    this.remember(req.requestId,result);
     return result;
   }
   /** Damage already dealt to a wall cell (0 when intact). */
   damageAt(level:number,ix:number,iz:number){return this.damage.get(`${this.grid.levels[level].id}:${ix}:${iz}`)??0;}
-  /** One mining strike. A deterministic per-cell bonus is evaluated ONLY when
-   * cumulative damage first crosses 50% of the rock HP. Weak tools no longer
-   * get dozens of resource rolls while steel pickaxes get only a few.
-   * The damage threshold survives save/reload without an additional save field. */
-  strike(req:DigRequest,power:number,grant:(reward:{itemId:string;quantity:number})=>boolean):StrikeResult{
+  hitCountAt(level:number,ix:number,iz:number){return this.hits.get(`${this.grid.levels[level].id}:${ix}:${iz}`)??0;}
+  /** Mining remains cell-based: hit power accumulates until HP reaches zero.
+   * Every 3–5 accepted strikes on the SAME cell grant one deterministic small
+   * resource. Rare ore payouts are very uncommon; the final cell reward is
+   * unchanged. Neither the UI nor the animation can grant inventory directly.
+   * Accepted hits and damage are persisted; replayed request IDs are ignored. */
+  strike(req:DigRequest,power:number,
+    grant:(reward:{itemId:string;quantity:number})=>boolean,
+    accuracy:StrikeAccuracy='normal'):StrikeResult{
+    const cached=this.requests.get(req.requestId);if(cached)return cached;
     const verdict=this.check(req);if(!verdict.ok)return {ok:false,reason:verdict.reason};
     const level=this.grid.levelIndex(req.levelId),info=MINE_MATERIALS[verdict.material],
-      key=`${req.levelId}:${req.ix}:${req.iz}`,before=this.damage.get(key)??0,
-      dealt=before+Math.max(1,Math.floor(Number.isFinite(power)?power:1)),
-      threshold=Math.ceil(info.hp*.5),
-      bonus=!!info.item&&before<threshold&&dealt>=threshold&&
-        strikeNoise(level,req.ix,req.iz,0)<info.fragment;
+      key=`${req.levelId}:${req.ix}:${req.iz}`,
+      before=this.damage.get(key)??0,count=(this.hits.get(key)??0)+1,
+      multiplier=mineAccuracyMultiplier(accuracy),
+      adjusted=Math.max(1,Math.floor(Math.max(1,Number.isFinite(power)?power:1)*multiplier)),
+      dealt=before+adjusted,interval=mineHitsPerResult(verdict.material);
+    // End of the cell: preserve the old single, guaranteed ore payout.
+    // A batch on the final strike never grants a second extra item.
     if(dealt>=info.hp){
-      const done=this.dig(req,grant,bonus?1:0);
-      // Keep damage on an inventory refusal so the player can retry.
-      if(done.ok)this.damage.delete(key);
+      const done=this.dig(req,grant);
+      if(done.ok){this.damage.delete(key);this.hits.delete(key);}
       return done;
     }
     let fragment:{itemId:string;quantity:number}|null=null;
-    if(bonus&&info.item){
-      const extra={itemId:info.item,quantity:1};
-      if(grant(extra))fragment=extra;
+    if(count%interval===0){
+      const cycle=count/interval;
+      const bonus=mineInterimReward(verdict.material,accuracy,level,req.ix,req.iz,cycle);
+      // A full bag does not consume the milestone or damage. Retry this hit
+      // after freeing space: the same interval can never be paid twice.
+      if(!grant(bonus))return {ok:false,reason:'Inventaire plein'};
+      fragment=bonus;
     }
-    this.damage.set(key,dealt);
-    if(this.damage.size>256)this.damage.delete(this.damage.keys().next().value!);
-    return {ok:true,partial:true,material:verdict.material,progress:dealt/info.hp,fragment};
+    this.damage.set(key,dealt);this.hits.set(key,count);
+    if(this.damage.size>256){
+      const oldest=this.damage.keys().next().value!;
+      this.damage.delete(oldest);this.hits.delete(oldest);
+    }
+    const result:StrikeResult={ok:true,partial:true,material:verdict.material,
+      progress:dealt/info.hp,fragment,hits:count,
+      nextResult:interval-count%interval,accuracy};
+    this.remember(req.requestId,result);
+    return result;
   }
   /** Differences only: excavated bitsets per level/chunk (base64) + revisions + recent request ids. */
   serialize():MineSaveState{
     const levels:MineSaveState['levels']={};
     this.grid.levels.forEach((l,i)=>{const out:Record<string,{r:number;b:string}>={};for(const [k,c]of this.chunks[i])out[k]={r:c.revision,b:encodeBits(c.bits)};if(Object.keys(out).length)levels[l.id]=out;});
-    return {mineId:this.grid.zone.id,seed:this.grid.zone.mine.seed,geologyVersion:this.grid.zone.mine.geologyVersion,levels,requests:this.order.slice(-64),...(this.damage.size?{damage:Object.fromEntries(this.damage)}:{})};
+    return {mineId:this.grid.zone.id,seed:this.grid.zone.mine.seed,geologyVersion:this.grid.zone.mine.geologyVersion,levels,requests:this.order.slice(-64),...(this.damage.size?{damage:Object.fromEntries(this.damage)}:{}),...(this.hits.size?{hits:Object.fromEntries(this.hits)}:{})};
   }
   /** Restores excavations (also after a geology change: dug cells never reappear). Returns warnings. */
   restore(save:MineSaveState):string[]{
@@ -197,6 +223,9 @@ export class MineState {
     for(const [levelId,chunks]of Object.entries(save.levels)){const level=this.grid.levelIndex(levelId);if(level<0){warnings.push('Niveau supprimé : '+levelId);continue;}
       for(const [key,c]of Object.entries(chunks)){if(!/^-?\d+,-?\d+$/.test(key)||!Number.isInteger(c.r)||c.r<0)throw Error('Chunk de mine invalide');this.chunks[level].set(key,{bits:decodeBits(c.b),revision:c.r});this.revision+=c.r;}}
     this.damage=new Map(Object.entries(save.damage??{}));
+    // Old saves have no strike count: preserve their damage and start fresh
+    // cycles, without changing their existing excavation or geometry.
+    this.hits=new Map(Object.entries(save.hits??{}));
     for(const id of save.requests){this.order.push(id);this.requests.set(id,{ok:false,reason:'Demande déjà traitée'});}
     return warnings;
   }
@@ -207,7 +236,8 @@ function encodeBits(bits:Uint32Array){const bytes=new Uint8Array(bits.buffer.sli
 function decodeBits(text:string){const s=atob(text);if(s.length!==MINE_CHUNK*4)throw Error('Chunk de mine corrompu');const bytes=new Uint8Array(s.length);for(let i=0;i<s.length;i++)bytes[i]=s.charCodeAt(i);return new Uint32Array(bytes.buffer);}
 export function parseMineSave(value:unknown):MineSaveState{
   const v=value as MineSaveState;if(!v||typeof v!=='object'||typeof v.mineId!=='string'||!Number.isFinite(v.seed)||!Number.isFinite(v.geologyVersion)||!v.levels||typeof v.levels!=='object'||!Array.isArray(v.requests)||v.requests.length>64||!v.requests.every(r=>typeof r==='string'&&r.length<=128))throw Error('État de mine invalide');
-  if(v.damage!==undefined&&(typeof v.damage!=='object'||Object.keys(v.damage).length>256||!Object.entries(v.damage).every(([k,d])=>/^[a-zA-Z0-9_:.-]+:-?\d+:-?\d+$/.test(k)&&Number.isFinite(d)&&d>=0&&d<=1000)))throw Error('État de mine invalide');
+  if(v.damage!==undefined&&(typeof v.damage!=='object'||Array.isArray(v.damage)||Object.keys(v.damage).length>256||!Object.entries(v.damage).every(([k,d])=>/^[a-zA-Z0-9_:.-]+:-?\\d+:-?\\d+$/.test(k)&&Number.isFinite(d)&&d>=0&&d<=1000)))throw Error('État de mine invalide');
+  if(v.hits!==undefined&&(typeof v.hits!=='object'||Array.isArray(v.hits)||Object.keys(v.hits).length>256||!Object.entries(v.hits).every(([k,n])=>/^[a-zA-Z0-9_:.-]+:-?\\d+:-?\\d+$/.test(k)&&Number.isInteger(n)&&n>=0&&n<=10000)))throw Error('Nombre de coups de mine invalide');
   for(const chunks of Object.values(v.levels))for(const c of Object.values(chunks)){if(!c||typeof c.b!=='string'||c.b.length!==172||!Number.isInteger(c.r))throw Error('État de mine invalide');}
   return structuredClone(v);
 }
