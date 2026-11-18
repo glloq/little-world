@@ -119,6 +119,51 @@ meilleur retour sonore « frappe parfaite », essais de rendement
 ressource/heure selon matériaux et difficulté. Mesurer les performances
 et contrôler le scénario navigateur B1 avant merge.
 
+### G4 — Fissuration progressive des blocs : V1 implémentée
+
+**Quatre aspects en comptant l'intact, trois seuils visibles**, puis la
+destruction effective du bloc. La fissuration dépend uniquement de la
+**durabilité consommée / durabilité initiale**, jamais de l'horloge ou
+de la vitesse de frappe.
+
+| Part de solidité consommée | Stade | Effet visuel |
+|---|---|---|
+| Inférieure à 25 % | 0 | Roche intacte |
+| 25 à 49 % | 1 | 2 fines fissures angulaires |
+| 50 à 74 % | 2 | 5 segments, fissures ramifiées |
+| 75 à 99 % | 3 | 8 segments, fracture plus large |
+| 100 % | Destruction | Bloc réellement retiré et passage ouvert |
+
+**Lissage naturel suivant le matériau :** une terre à 2 points ne
+traversera pas tous les stades ; un cristal à 11 points les traversera
+plus progressivement. Les débris et la récolte restent gérés par les
+cycles de 3 à 5 frappes, inchangés.
+
+**Implémentation :** `src/mine/mine-cracks.ts` calcule le stade,
+la couleur et les chunks voisins à actualiser.
+`mine-mesher.ts` dessine les fissures par de petits rubans de triangles
+sur la surface déformée **existante** des faces rocheuses exposées.
+Elles sont fusionnées au **même BufferGeometry / même matériau** que
+la paroi : aucun mesh par cellule, aucune texture et aucun draw call
+supplémentaire. Les rubans restent légèrement décalés vers le couloir
+pour éviter le z-fighting ; leur géométrie ne modifie pas les collisions.
+
+`MineState.strike` signale un changement de stade uniquement après
+un **cycle récolté** qui a traversé un seuil de 25/50/75 %.
+`activity-runtime` invalide seulement les chunks possédant les
+faces du bloc, y compris des deux côtés des joints de 32 m.
+Un coup isolé ou une récolte qui ne franchit pas de seuil ne
+reconstruit **aucune géométrie**. La destruction à zéro passe par le
+mécanisme d'excavation classique qui supprime le bloc et ses fissures.
+Les sauvegardes existantes contiennent déjà les points de durabilité,
+donc aucun nouvel attribut n'est nécessaire.
+
+Validation : tests automatiques des seuils par matériau, géométrie
+fusionnée, déterminisme des couleurs/sommets, joints de chunks,
+durabilité inchangée et suppression à l'excavation. À compléter :
+capture réelle dans le jeu, test de lisibilité à différentes distances
+et budget FPS sur vieux PC.
+
 ## Contrôles avant merge
 
 - [ ] Tests Node / TypeScript / Vite et tests navigateur B1 validés sur le SHA final.
