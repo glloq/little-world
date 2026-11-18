@@ -241,6 +241,7 @@ export function shopPanel(deps:ShopDeps){
           });
           row.addEventListener('pointerup',clear);
           row.addEventListener('pointercancel',clear);
+          row.addEventListener('pointerleave',clear);
           row.addEventListener('contextmenu',e=>e.preventDefault());
         }
         list.append(row);

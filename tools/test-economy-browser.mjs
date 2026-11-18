@@ -39,8 +39,13 @@ try{
   await page.waitForFunction(()=>window.littleWorldMetrics?.inventory?.['tool:axe']===1,{},{timeout:5000});check((await m()).inventory.coin===15,'Axe bought: 40 − 25 = 15 coins');
   await page.keyboard.press('Escape');await page.waitForTimeout(300);
   // Selling: logs (given by the developer hook of metrics mode) are bought back by the counter.
-  await page.evaluate(()=>window.littleWorldDebug.grant('wood:log',4));await page.keyboard.press('KeyE');
-  await page.getByRole('button',{name:'Vendre',exact:true}).first().click();
+  await page.evaluate(()=>window.littleWorldDebug.grant('wood:log',4));
+  await page.keyboard.press('KeyI');await page.locator('.ui-panel[data-panel="inventory"]').waitFor({state:'visible'});
+  await page.locator('.ui-bag-card[data-item="wood:log"]').first().click();
+  await page.locator('.ui-bag-actions').getByRole('button',{name:'Vendre',exact:true}).click();
+  await page.locator('.ui-panel[data-panel="shop"]').waitFor({state:'visible'});
+  check((await page.locator('.ui-shop-tab[aria-pressed="true"]').textContent())==='Vendre',
+    'Bag V3 opens the nearby merchant directly on resale');
   await page.locator('.ui-shop-item[data-item="wood:log"]').click();
   await page.locator('.ui-shop-checkout').getByRole('button',{name:'Max',exact:true}).click();
   await page.locator('.ui-shop-checkout').getByRole('button',{name:'Vendre',exact:true}).click();
