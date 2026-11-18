@@ -156,7 +156,7 @@ export function parseCargoState(raw:unknown,routes:readonly CargoRoute[]=CARGO_R
         throw Error('Provenance de marchandise invalide');
       const shipment=shipments.find(s=>s.id===l.shipmentId);
       if(!shipment||shipment.status!=='delivered'||shipment.fromIslandId!==l.sourceIslandId||
-        shipment.toIslandId!==island||!shipment.goods.some(g=>g.itemId===l.itemId&&l.quantity<=g.quantity))
+        shipment.toIslandId!==island||!shipment.goods.some(g=>g.itemId===l.itemId&&(l.quantity as number)<=g.quantity))
         throw Error('Lot sans cargaison arrivée');
       lotIds.add(l.id);
       importLots[island].push({id:l.id as string,shipmentId:l.shipmentId as string,
@@ -182,16 +182,19 @@ export function parseCargoState(raw:unknown,routes:readonly CargoRoute[]=CARGO_R
     shipments,importLots,purchases};
 }
 
-function nextEvent(state:CargoStateV1,routes:readonly CargoRoute[]){
-  let choice:{kind:'depart'|'arrive';minute:number;id:string;route?:CargoRoute;ship?:CargoShipment}|null=null;
-  const push=(x:NonNullable<typeof choice>)=>{
-    if(!choice||x.minute<choice.minute||
-      x.minute===choice.minute&&x.id<choice.id)choice=x;
+type CargoEventChoice={kind:'depart'|'arrive';minute:number;id:string;
+  route?:CargoRoute;ship?:CargoShipment};
+function nextEvent(state:CargoStateV1,routes:readonly CargoRoute[]):CargoEventChoice|null{
+  let choice:CargoEventChoice|null=null;
+  const choose=(candidate:CargoEventChoice)=>{
+    if(choice===null||candidate.minute<choice.minute||
+      candidate.minute===choice.minute&&candidate.id<choice.id)choice=candidate;
   };
-  for(const r of routes)push({kind:'depart',minute:state.nextDepartures[r.id],id:'d:'+r.id,route:r});
-  for(const s of state.shipments)if(s.status==='in_transit')
-    push({kind:'arrive',minute:s.arriveMinute,id:'a:'+s.id,ship:s});
-  return choice;
+  for(const r of routes)choose({kind:'depart',minute:state.nextDepartures[r.id],id:'d:'+r.id,route:r});
+  for(const ship of state.shipments)if(ship.status==='in_transit')
+    choose({kind:'arrive',minute:ship.arriveMinute,id:'a:'+ship.id,ship});
+  // Assignments through a nested closure are not tracked by TS flow analysis.
+  return choice as CargoEventChoice|null;
 }
 /** Process a bounded number of chronological events, with a persisted departure cursor.
  * A long absence is replayed over several calls, never as an unbounded blocking loop.
