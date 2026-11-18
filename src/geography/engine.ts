@@ -13,6 +13,7 @@ export interface GeoZone {kind:'farm-plot'|'mine';polygon:PointXZ[]}
 export interface GeoBiomeStroke {x:number;z:number;radius:number;biome:string}
 export interface GeographySources {
   seed:number;grid:SectorGrid;
+  snowLineM?:number;
   masks:Record<string,SectorLayers>;
   zones?:GeoZone[];
   biomeStrokes?:GeoBiomeStroke[];
@@ -40,7 +41,7 @@ export function createGeoContext(src:GeographySources|null,deps:GeoDeps):GeoCont
   const sampledLandscape=landscapes.length?createLandscapeSampler(landscapes):null;
   let cellX=NaN,cellZ=NaN,cellIndex=0,cellLayers:SectorLayers|undefined;
   return {
-    seed:src?.seed??0,seaLevel:deps.seaLevel,snowLineM:deps.snowLineM,height:deps.height,water:deps.water,site:deps.site,
+    seed:src?.seed??0,seaLevel:deps.seaLevel,snowLineM:src?.snowLineM??deps.snowLineM,height:deps.height,water:deps.water,site:deps.site,
     riverDistance:(x,z)=>Math.max(0,deps.waterDistance(x,z,RIVER_INFLUENCE_M)),
     // The 5 mask layers of one point share its cell lookup (one-entry memo).
     mask(layer:MaskLayerId,x:number,z:number){
@@ -61,7 +62,7 @@ export function createGeoContext(src:GeographySources|null,deps:GeoDeps):GeoCont
 let sources:GeographySources|null=null,revision=0,cached:GeoContext|null=null;
 let previewSnowline:number|null=null;
 /** Local preview only: never persisted into authored map data. */
-export function setPreviewSnowline(value:number|null){if(value!==null&&!Number.isFinite(value))throw Error('Snowline invalide');if(value!==previewSnowline){previewSnowline=value;cached=null;revision++;}}
+export function setPreviewSnowline(value:number|null){if(value!==null&&!Number.isFinite(value))throw Error('Snowline invalide');if(value!==previewSnowline){previewSnowline=value;if(sources)sources={...sources,snowLineM:value??undefined};cached=null;revision++;}}
 const runtimeDeps=():GeoDeps=>({seaLevel:getTerrainConfig().seaLevel,snowLineM:previewSnowline??undefined,height:terrainHeight,water:waterSurfaceWithHeight,site:geoSiteAt,pathDistance,waterDistance:waterEdgeDistance});
 let signature='';
 /** Unchanged sources keep the revision: workers and derived caches are not invalidated. */
