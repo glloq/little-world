@@ -398,15 +398,25 @@ world.update(0, player.position);
     },
     mineHub:gameplay?{
       view:()=>gameplay!.activities.mineLiftView(player.position,player.space),
-      travel:(levelId:string)=>{
+      travel:async(levelId:string)=>{
+        // Validate access before showing any loading screen; entering the mine's
+        // surface portal or walking into a gallery remains an instant transition.
         const result=gameplay!.activities.mineLiftTravel(player.position,player.space,levelId);
-        if(!result.ok)return result;
-        player.space=result.space;
-        player.position.set(result.position.x,result.position.y,result.position.z);
-        player.velocity.set(0,0,0);player.mode='ground';player.glideReady=false;
-        player.transitioned='mine:lift:'+levelId;
-        previousPlayerPosition.copy(player.position);renderPosition.copy(player.position);
-        return result;
+        if(!result.ok)return {ok:false,reason:result.reason};
+        gameUi?.beginMineLoading('Monte-charge · '+levelId);
+        try{
+          // Warm the new floor's visible chunks while the old floor remains active.
+          await activityView?.preloadMineLevel(result.space.zoneId,result.space.levelId,
+            result.position,(done,total)=>gameUi?.mineLoadingProgress(done,total));
+          player.space=result.space;
+          player.position.set(result.position.x,result.position.y,result.position.z);
+          player.velocity.set(0,0,0);player.mode='ground';player.glideReady=false;
+          player.transitioned='mine:lift:'+levelId;
+          previousPlayerPosition.copy(player.position);renderPosition.copy(player.position);
+          return {ok:true,message:result.message};
+        }catch(error){
+          return {ok:false,reason:'Chargement de cet étage impossible : '+String(error)};
+        }finally{gameUi?.endMineLoading();}
       },
     }:undefined,
     player:()=>({gas:gasLevel(player),maxGas:gasCapacity(player),gasShots:gasShots(player),gasMaxShots:gasMaxShots(player),gasCooldown:player.gasCooldown??0,x:player.position.x,y:player.position.y,z:player.position.z,yaw,space:player.space,mode:player.mode,oxygen:player.oxygen,maxOxygen:MAX_OXYGEN,stamina:player.stamina??MAX_STAMINA,maxStamina:MAX_STAMINA,speed:player.velocity.length(),stalled:player.stalled}),
