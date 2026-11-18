@@ -14,14 +14,17 @@ export function findDemoSurfSite(height:(x:number,z:number)=>number,
   let best:SurfDemoSite|null=null,bestScore=-Infinity;
   for(const out of directions)for(const offset of [-220,0,220]){
     const tx=-out.z,tz=out.x,baseX=tx*offset,baseZ=tz*offset;
-    if(!inside(baseX,baseZ))continue;
+    if(!inside(baseX,baseZ)||height(baseX,baseZ)<seaLevel+.3)continue;
+    // The ray must start inland and actually cross a shoreline; open water
+    // everywhere is NOT a valid surf spot with waves travelling to the island.
     let coast=-1;
     for(let d=0;d<1450;d+=10){
       const x=baseX+out.x*d,z=baseZ+out.z*d;
       if(!inside(x,z))break;
       if(height(x,z)<seaLevel-.12){coast=d;break;}
     }
-    if(coast<0)continue;
+    if(coast<20)continue;
+    if(height(baseX+out.x*(coast-12),baseZ+out.z*(coast-12))<seaLevel+.15)continue;
     let ok=true,deep=0;
     for(const d of [coast+30,coast+110,coast+210,coast+280]){
       for(const shift of [-45,0,45]){
@@ -40,6 +43,8 @@ export function findDemoSurfSite(height:(x:number,z:number)=>number,
       maxZ:Math.max(az,bz)+Math.abs(tz)*62,
       dirX:-out.x,dirZ:-out.z,seaLevel,
       amplitude:1.25,wavelength:31,speed:6.2,seed,shoreFadeDepth:3,edgeFade:9};
+    if(zone.minX<bounds.minX+1||zone.maxX>bounds.maxX-1||
+       zone.minZ<bounds.minZ+1||zone.maxZ>bounds.maxZ-1)continue;
     const x=baseX+out.x*(coast+125),z=baseZ+out.z*(coast+125);
     const score=deep/12-Math.abs(offset)*.0005;
     if(score>bestScore){bestScore=score;best={zone,start:{x,z},heading:Math.atan2(-out.x,-out.z)};}
