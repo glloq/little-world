@@ -43,6 +43,17 @@ try{
   await moveTo(172.5,45,22);
   const entered=await hold('KeyW',v=>v.act.space?.levelId==='level-1',25);
   check(entered.act.space?.levelId==='level-1'&&Math.abs(entered.pos[1]-mine.levels[0].floorY)<.05,'Entered level 1 underground');
+  // Reproducible, ACTUAL Three.js game screenshots of the approved mine hub.
+  // Viewpoint at the rear entrance on level 1; all meshes are from the game branch,
+  // not an illustration. The other screenshots document the extraction doorway.
+  await page.setViewportSize({width:1600,height:900});
+  await moveTo(171.2,mine.levels[0].floorY,42.6,{zoneId:'zone-mine',levelId:'level-1'});
+  await page.waitForTimeout(1800);
+  await page.screenshot({path:out+'/mine-hub-reception-real-game.png'});
+  await moveTo(171.0,mine.levels[0].floorY,47.1,{zoneId:'zone-mine',levelId:'level-1'});
+  await page.waitForTimeout(1400);
+  await page.screenshot({path:out+'/mine-hub-gallery-real-game.png'});
+  await page.setViewportSize({width:1100,height:700});
   const shaft=mine.connectors[0],heading=mine.entrance.heading,rx=Math.cos(heading),rz=-Math.sin(heading);
   await moveTo(Math.floor(shaft.x)+.5-rx*2,mine.levels[0].floorY,Math.floor(shaft.z)+.5-rz*2,{zoneId:'zone-mine',levelId:'level-1'});
   await page.keyboard.press('KeyE');
