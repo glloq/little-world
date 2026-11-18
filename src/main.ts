@@ -1152,6 +1152,10 @@ function tick(dt: number) {
   } else if(chair?.pose){
     player.position.set(chair.pose.x,chair.pose.y,chair.pose.z);player.velocity.set(0,0,0);player.mode='ground';
     jumpQueue=0;actionQueue=0;
+  } else if(snowLiftRide?.phase==='waiting'&&snowLift){
+    // The rider stays on the boarding platform until the reserved seat arrives.
+    const base=snowLift.path[0];player.position.set(base.x,terrainHeight(base.x,base.z)+.05,base.z);
+    player.velocity.set(0,0,0);player.mode='ground';jumpQueue=0;
   } else if (aboard) {
     updateBoat(boat, { throttle: mobileTouch?.accelerateHeld?Math.max(1,keys.forward):keys.forward, steer: keys.right }, dt);boatSteer=keys.right;
     player.position.set(boat.x, boat.y + 1.02, boat.z);
@@ -1196,6 +1200,8 @@ function tick(dt: number) {
       // The business system said no: tell why (never act on a disabled target).
       showInfo(target.primaryAction.disabledReason ?? 'Impossible pour le moment', 'warning');
       audio?.emit('ui.error', { source: 'ui' });
+    } else if(snowLiftRide?.phase==='waiting'){
+      snowLiftRide=null;showInfo('Embarquement annulé');
     } else if(snowLift&&!snowLiftRide&&!aboard&&!player.space&&Math.hypot(player.position.x-snowLift.path[0].x,player.position.z-snowLift.path[0].z)<4){
       snowLiftRide=boardLift(snowLift,player.position,elapsed);
       if(snowLiftRide)showInfo('Télésiège : attente du prochain siège');
