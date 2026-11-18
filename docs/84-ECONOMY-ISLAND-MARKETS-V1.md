@@ -1,6 +1,6 @@
 # 84 — ECO-6 : marchés d'île, stocks réels et revente artisanale
 
-**Statut : IMPLEMENTED sur `feat/economy-island-markets-stock-pricing`, PR dépendante de #64, non fusionnée sur `main` à la rédaction.** Fondations : [80 — audit](80-ECONOMY-TRADE-CRAFT-AUDIT.md), [81 — contrats](81-ECONOMY-PRODUCTION-CONTRACTS.md), [82 — roadmap](82-ECONOMY-PRODUCTION-ROADMAP.md) (documents de la PR #61, pas nécessairement encore présents sur cette branche), [83 — ateliers V1](83-ECONOMY-WORKSHOPS-PLAYABLE-V1.md).
+**Statut : IMPLEMENTED sur `feat/economy-island-markets-stock-pricing`, PR dépendante de #64, non fusionnée sur `main` à la rédaction.** Fondations : [80 — audit](https://github.com/glloq/little-world/blob/docs/economy-maritime-crafting-roadmap/docs/80-ECONOMY-TRADE-CRAFT-AUDIT.md), [81 — contrats](https://github.com/glloq/little-world/blob/docs/economy-maritime-crafting-roadmap/docs/81-ECONOMY-PRODUCTION-CONTRACTS.md), [82 — roadmap](https://github.com/glloq/little-world/blob/docs/economy-maritime-crafting-roadmap/docs/82-ECONOMY-PRODUCTION-ROADMAP.md) (documents de la PR #61, pas nécessairement encore présents sur cette branche), [83 — ateliers V1](83-ECONOMY-WORKSHOPS-PLAYABLE-V1.md).
 
 ## Objectif et limites
 
