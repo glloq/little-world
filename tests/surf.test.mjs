@@ -118,7 +118,7 @@ test('floating obstacles ignore high flights above them',()=>{
  assert.equal(stepSurfFeatures(p,[boost],createSurfFeatureState(),4,undefined,0).length,0);
 });
 test('demo surf finder locates ocean within island bounds',()=>{
- const site=findDemoSurfSite((_,z)=>z<0?4:-9,{minX:-700,maxX:700,minZ:-700,maxZ:700},0,11);
+ const site=findDemoSurfSite((_,z)=>z<-20?-9:4,{minX:-700,maxX:700,minZ:-700,maxZ:700},0,11);
  assert.ok(site,'site in offshore band');
  assert.ok(site.start.z>0,'start in offshore water (synthetic sea is z >= 0)');
  assert.ok(site.zone.minZ>=-700&&site.zone.maxZ<=700);
