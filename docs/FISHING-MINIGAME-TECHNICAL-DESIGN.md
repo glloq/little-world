@@ -1,6 +1,6 @@
 # Pêche — mini-jeu de tension : conception et intégration V1
 
-> **Statut : SPECIFIED / NOT IMPLEMENTED** — audit du code de `main` le **18 novembre 2026**. Cette documentation décrit le comportement cible ; elle ne prouve pas qu'il est implémenté. Suivi : [FISHING-MINIGAME-ROADMAP.md](FISHING-MINIGAME-ROADMAP.md).
+> **Statut : IMPLÉMENTATION MVP SUR BRANCHE / TESTS NAVIGATEUR NON TERMINÉS** — audit initial de `main` le **18 novembre 2026**, évolution dans la [PR #77](https://github.com/glloq/little-world/pull/77). Le moteur de tension, l'input et le HUD sont codés, mais le polish visuel/audio et la qualification complète restent prévus dans la roadmap. Suivi : [FISHING-MINIGAME-ROADMAP.md](FISHING-MINIGAME-ROADMAP.md).
 
 ## 1. Objectif et périmètre
 
