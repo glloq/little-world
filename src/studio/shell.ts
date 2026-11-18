@@ -26,13 +26,13 @@ const action=(title:string,fn:()=>Promise<unknown>|unknown,className?:string)=>b
 const MODULES:[string,string,string,string,string][]=[
   ['scene','Sélection','➚','Naviguer','V'],['map','Carte globale','▦','Naviguer','M'],
   ['objects','Objets','▣','Construire','B'],['settlements','Villages & villes','⌂','Construire',''],['natural','Structures naturelles','◠','Construire',''],['characters','Personnages','☺','Construire',''],['lights','Lumières','✦','Construire','L'],
-  ['terrain','Relief','⛰','Monde','T'],['regions','Régions','◉','Monde',''],['biomes','Biotopes','✿','Monde',''],['paths','Chemins et rivières','〰','Monde',''],['water','Eau','≈','Monde',''],['zones','Zones','⬠','Monde',''],['landscapes','Paysages','❦','Monde',''],
+  ['terrain','Relief','⛰','Monde','T'],['regions','Régions','◉','Monde',''],['biomes','Biotopes','✿','Monde',''],['paths','Chemins et rivières','〰','Monde',''],['water','Eau','≈','Monde',''],['surf','Surf','〰','Monde',''],['zones','Zones','⬠','Monde',''],['landscapes','Paysages','❦','Monde',''],
   ['races','Courses','⚑','Logique',''],['dialogues','Dialogues','✉','Logique',''],['interactions','Interactions','⚙','Logique',''],['environment','Environnement','☀','Logique',''],['audio','Audio','♪','Logique',''],['motion-lab','Animations du hamster','◉','Logique',''],
   ['composition','Recomposer le monde','◒','Projet',''],
   ['guide','Assistant de création','☷','Projet',''],
   ['tests','Validation / compilation','✓','Projet',''],
 ];
-const VIEWPORT_MODULES=new Set(['scene','objects','natural','regions','characters','lights','terrain','biomes','polyline','paths','zones','races','landscapes']);
+const VIEWPORT_MODULES=new Set(['scene','objects','natural','regions','characters','lights','terrain','biomes','polyline','paths','zones','surf','races','landscapes']);
 const ALIASES:Record<string,string>={local:'scene',select:'scene'};
 const panelHost=()=>$('panel-host');
 function refreshHeader(){
@@ -203,6 +203,12 @@ async function toolPanel(id:string,v:StudioViewport){
     const ctx={session:s,status,physics:{enabled:()=>v.physicsOverlay,toggle:(on:boolean)=>v.setPhysicsOverlay(on)},focus:(x:number,z:number)=>v.goTo(x,z,30),edit:(target:import('./viewport/polyline-tool.ts').PolylineTarget)=>{void run(async()=>{const {polylineTarget}=await import('./viewport/polyline-tool.ts');polylineTarget.current=target;returnModule=id;await module('polyline');})();}};
     const render=()=>{tools.replaceChildren();(id==='paths'?mountPathsPanel:mountZonesPanel)(tools,ctx);};render();
     const stop=s.commands.subscribe(()=>{if(activeModule===id)render();}),previous=disposePanel;disposePanel=()=>{stop();previous();};
+  }else if(id==='surf'){
+    v.setTool('select');
+    const {mountSurfPanel}=await import('./surf-panel.ts');
+    const render=()=>{tools.replaceChildren();mountSurfPanel(tools,{session:s,viewport:v,status});};render();
+    const stop=s.commands.subscribe(()=>{if(activeModule==='surf')render();}),previous=disposePanel;
+    disposePanel=()=>{stop();previous();};
   }else if(id==='races'){
     v.setTool('select');
     const {mountRacesPanel}=await import('./races-panel.ts');

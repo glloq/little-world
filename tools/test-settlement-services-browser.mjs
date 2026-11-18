@@ -66,10 +66,15 @@ try {
     await game.keyboard.press('KeyE');
     const shop = game.locator('.ui-panel[data-panel="shop"]');
     await shop.waitFor();
-    const wheat=shop.locator('.ui-shop-row[data-item="seed:wheat"]'),price=parseInt(await wheat.locator('.ui-shop-price').textContent()),beforeCoins=Number((await shop.locator('.ui-shop-coins').textContent()).match(/Bourse : (\d+)/)[1]),expectedCoins=beforeCoins-price;
+    const wheat=shop.locator('.ui-shop-item[data-item="seed:wheat"]');
+    const price=parseInt(await wheat.locator('.ui-shop-item-price').textContent());
+    const beforeCoins=Number((await shop.locator('.ui-shop-purse').textContent()).match(/(\d+) pièces/)[1]);
+    const expectedCoins=beforeCoins-price;
     assert.ok(price>0);
-    await wheat.getByRole('button', { name: 'Acheter', exact: true }).click();
-    await shop.getByText(new RegExp('^Bourse : '+expectedCoins+' pièces')).waitFor();
+    await wheat.click();
+    await shop.locator('.ui-shop-checkout').getByRole('button', { name: 'Acheter', exact: true }).click();
+    await game.waitForFunction(coins=>document.querySelector('.ui-shop-purse')?.textContent===coins+' pièces',
+      expectedCoins,{timeout:5000});
     check(true, 'Le comptoir agricole applique le prix réellement annoncé par le marché local');
     await game.screenshot({ path: out + '/shop.png' });
     const ui = playerUi(game);

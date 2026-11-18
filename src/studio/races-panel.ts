@@ -19,7 +19,7 @@ export interface RacePanelContext {
  status(message:string,error?:boolean):void;
  edit(target:PolylineTarget):void;
 }
-const modes:[RaceKind,string][]=[['flight','Vol en planeur'],['roll','Roulade'],['mixed','Roulade puis vol']];
+const modes:[RaceKind,string][]=[['flight','Vol en planeur'],['roll','Roulade'],['mixed','Roulade puis vol'],['surf','Surf / sauts aquatiques']];
 function linesFor(gates:readonly RaceGate[]):THREE.Group{
  const verts:number[]=[];
  const edge=(a:THREE.Vector3,b:THREE.Vector3)=>{verts.push(a.x,a.y,a.z,b.x,b.y,b.z);};
@@ -48,14 +48,15 @@ function linesFor(gates:readonly RaceGate[]):THREE.Group{
 function raceTarget(ctx:RacePanelContext,options:{name:string;kind:RaceKind;id:string;existing?:RaceDefinition}):PolylineTarget{
  const p=ctx.session.document,old=options.existing;
  const points=old?old.gates.map(g=>({x:g.center.x,z:g.center.z})):[];
+ const height=options.kind==='surf'?(_:number,__:number)=>p.world.seaLevel:terrainHeight;
  const make=(next:readonly {x:number;z:number}[])=>authoredRaceFromTrace(p.world,{
    id:options.id,name:options.name,kind:options.kind,old,
-   points:next,height:terrainHeight
+   points:next,height
  });
  return {label:old?'Modifier le circuit '+old.name:'Créer le circuit '+options.name,
    points,min:2,max:24,color:0xf0ba49,
    diagnose:next=>{try{make(next);return null;}catch(e){return String(e instanceof Error?e.message:e);}},
-   preview:next=>{try{return linesFor(gatesFromTrace(next,options.kind,terrainHeight,old));}catch{return null;}},
+   preview:next=>{try{return linesFor(gatesFromTrace(next,options.kind,height,old));}catch{return null;}},
    commit:async next=>{const race=make(next);await ctx.session.change(old?'Modifier le tracé de course':'Créer un circuit',[],draft=>putAuthoredRace(draft,race));}
  };
 }
@@ -182,17 +183,18 @@ export function mountRacesPanel(host:HTMLElement,ctx:RacePanelContext){
        const gates=race.gates.map((g,j)=>j===i?{...g,...changes}:g);
        edit(label,{...race,gates});
      };
-     const clearance=gate.center.y-terrainHeight(gate.center.x,gate.center.z);
+     const baseHeight=race.kind==='surf'?p.world.seaLevel:terrainHeight(gate.center.x,gate.center.z);
+     const clearance=gate.center.y-baseHeight;
      line.append(node('strong',(i===0?'Départ':i===race.gates.length-1?'Arrivée':'Passage '+i)+' · '+gate.id),
        field('Largeur (m)',numberInput(gate.width,v=>patch('Largeur de porte',{width:v}),1.5,100)),
        field('Hauteur (m)',numberInput(gate.height,v=>patch('Hauteur de porte',{height:v}),1.5,100)),
-       field('Au-dessus du relief (m)',numberInput(Math.round(clearance*100)/100,v=>patch('Altitude de porte',{center:{...gate.center,y:terrainHeight(gate.center.x,gate.center.z)+v}}),-5,150)),
+       field(race.kind==='surf'?'Au-dessus du niveau marin (m)':'Au-dessus du relief (m)',numberInput(Math.round(clearance*100)/100,v=>patch('Altitude de porte',{center:{...gate.center,y:baseHeight+v}}),-5,150)),
        field('Forme',select(gate.shape,[['circle','Anneau'],['rectangle','Arche']],v=>patch('Forme de porte',{shape:v as RaceGate['shape']}))));
      gateRows.append(line);
    });
    const route=node('details','','section-card');
    route.append(node('summary',race.track?'Route de course · '+Math.round(trackLength(race.track))+' m':'Route de course · non définie'));
-   if(race.kind==='flight')route.append(node('p','Les courses entièrement en vol utilisent les anneaux, sans route au sol.','muted'));
+   if(race.kind==='flight'||race.kind==='surf')route.append(node('p',race.kind==='surf'?'Les courses de surf utilisent des vagues et obstacles aquatiques, sans route terrestre.':'Les courses entièrement en vol utilisent les anneaux, sans route au sol.','muted'));
    else if(!race.track)route.append(button('Créer la piste depuis les checkpoints',()=>{
      try{edit('Créer la route du circuit',{...race,track:roadbedFromGates(race)});}catch(e){ctx.status(String(e),true);}
    },'primary-button'));

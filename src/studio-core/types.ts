@@ -80,6 +80,10 @@ export interface ProjectLibraries {
   /** Fixed author-owned courses, optional for older projects. */
   alpine?:Record<StableId,import('../snow/ski-area.ts').SkiAreaV1>;
   races?:Record<StableId,import('../gameplay/races.ts').RaceDefinition>;
+  /** Optional authored surf areas. Empty legacy projects retain flat sea physics. */
+  surfZones?:Record<StableId,import('../surf/wave-field.ts').SurfZone>;
+  /** Optional ramp/boost/buoy placements with pure tick-level trigger rules. */
+  surfFeatures?:Record<StableId,import('../surf/surf-features.ts').SurfFeature>;
   /** World Production landscape presets (re-editable instances + generation record). Optional. */
   landscapes?:Record<StableId,import('../world-production/landscape-schema.ts').LandscapeInstanceV1>;
   /** Editable A/B geographic region recipes, stored as author-only V3 data. */
