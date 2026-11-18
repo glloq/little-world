@@ -29,7 +29,7 @@ try{
   assert.ok(icons.some(label=>label.includes('Bateau de voyage')),'The ferry appears on player map while docked');
   // The map marker opens schedules without granting remote departure rights.
   const entry=map.locator('.ui-map-entry').filter({hasText:'Bateau de voyage'});
-  await entry.getByRole('button',{name:'Horaires'}).click();
+  await entry.getByRole('button',{name:'Horaires du bateau de voyage'}).click();
   const panel=page.locator('[data-panel="ferry"]');
   await panel.waitFor({state:'visible'});
   await page.keyboard.press('Escape');

@@ -91,7 +91,7 @@ export function mapPanel(deps:MapDeps,raster:MapRaster=createMapRaster(deps),way
         if(m.kind==='waypoint'){waypoints?.activate(m.active?null:m.id);}
         else if(waypoints){const selected=waypoints.add(m.label,m.x,m.z);if(!selected){details!.textContent='Limite de repères atteinte : 24.';return;}}
         draw();renderPointList();
-      },'ui-button',m.active?'Désactiver ce repère':'Choisir cette destination');
+      },'ui-button',m.kind==='ferry'?'Horaires du bateau de voyage':m.active?'Désactiver ce repère':'Choisir cette destination');
       row.append(name,follow);
       if(m.kind==='waypoint')row.append(button('×',()=>{waypoints?.remove(m.id);draw();renderPointList();},'ui-button','Supprimer le repère'));
       pointList.append(row);
