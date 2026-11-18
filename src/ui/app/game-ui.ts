@@ -106,9 +106,13 @@ export function createGameUi(deps:GameUiDeps){
     confirm:(t,l)=>ui.confirm(t,l),closePanels:()=>ui.close(),notify:(k,t)=>center.notify(k,t)});
     ui.register('saves','Parties',{pauses:true,render:b=>saves.render(b)});}
   // Counters (mine, forest, port, market, farm, inn): one panel, catalogue chosen by the counter.
-  let shopKind:ShopKind|null=null;
-  if(g){const shop=shopPanel({kind:()=>shopKind,inventory:()=>g.runtime.state.inventory,name:id=>g.itemName(id),max:id=>g.purse.max(id),trade:(k,id,q,m)=>g.trade(k,id,q,m),notify:(ok,t)=>{center.notify(ok?'success':'warning',t);deps.audio?.emit(ok?'ui.confirm':'ui.error',{source:'ui'});}});
-    ui.register('shop','Comptoir',{pauses:true,render:b=>{const h=b.closest('.ui-panel')?.querySelector('h2');if(h&&shopKind)h.textContent=SHOPS[shopKind].name;shop.render(b);}});}
+  let shopKind:ShopKind|null=null,shopCounterId:string|null=null;
+  if(g){const shop=shopPanel({kind:()=>shopKind,counterId:()=>shopCounterId,production:g.workshops,
+      inventory:()=>g.runtime.state.inventory,name:id=>g.itemName(id),max:id=>g.purse.max(id),
+      trade:(k,id,q,m)=>g.trade(k,id,q,m),
+      notify:(ok,t)=>{center.notify(ok?'success':'warning',t);deps.audio?.emit(ok?'ui.confirm':'ui.error',{source:'ui'});}});
+    // Workshop jobs advance in game time while this panel is open, without unblocking movement.
+    ui.register('shop','Comptoir',{pauses:false,render:b=>{const h=b.closest('.ui-panel')?.querySelector('h2');if(h&&shopKind)h.textContent=SHOPS[shopKind].name;shop.render(b);}});}
   let closeAudioPopover=()=>{};
   ui.register('settings','Paramètres',{pauses:true,render:b=>{closeAudioPopover();settingsPanel({preferences:()=>prefs,update:updatePrefs,quality:deps.quality,audioPanel:deps.audio?.panel??null,environmentControls:deps.environmentControls??null,showDeveloper:prefs.developer||devUrl}).render(b);},
     // The audio panel goes back to its developer place when the settings close.
@@ -182,7 +186,8 @@ export function createGameUi(deps:GameUiDeps){
   let lastFrame=-1,promptKey='';
   return {
     /** Opens the maritime choice panel only for a real, published ferry stop. */openFerry(){if(deps.ferry)ui.open('ferry');},
-    /** Opens the counter panel of a shop entity. */openShop(kind:ShopKind){shopKind=kind;ui.open('shop');},
+    /** Opens the counter panel of a specific entity; each entity owns its own jobs. */
+    openShop(kind:ShopKind,counterId?:string){shopKind=kind;shopCounterId=counterId??null;ui.open('shop');},
     controller:ui,notify:(kind:NoticeKind,text:string)=>center.notify(kind,text),center,
     get preferences(){return prefs;},
     get blocking(){return ui.blocking;},get paused(){return ui.paused;},
