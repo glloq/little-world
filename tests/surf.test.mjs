@@ -2,7 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createSurfWaveField,validateSurfZone} from '../src/surf/wave-field.ts';
 import {stepSurf,SURF_MOTION} from '../src/surf/surf-controller.ts';
-import {createSurfFeatureState,stepSurfFeatures,validateSurfFeature} from '../src/surf/surf-features.ts';
+import {createSurfFeatureState,stepSurfFeatures,surfFeatureCrossed,validateSurfFeature} from '../src/surf/surf-features.ts';
+import {findDemoSurfSite} from '../src/surf/surf-demo.ts';
+import {SURF_ITEMS,SURFBOARD_ID} from '../src/surf/surf-items.ts';
 import {makeDemoSurfRace} from '../src/surf/surf-race-demo.ts';
 import {advanceRace,beginRace} from '../src/gameplay/races.ts';
 const zone={id:'surf:test',minX:-200,maxX:200,minZ:-200,maxZ:200,
@@ -88,4 +90,42 @@ test('surf race uses existing checkpoint timer, checks airborne origin',()=>{
  assert.equal(advanceRace(session,{tick:1,previous:before,position:after,mode:'surf',pulseSeq:0}).kind,'started');
  const other=beginRace(race,0);
  assert.equal(advanceRace(other,{tick:1,previous:before,position:after,mode:'air',pulseSeq:0}).kind,'failed');
+});
+
+test('fast surfers cross boost circles between fixed ticks without tunnelling',()=>{
+ const boost={id:'surf-feature:swept',kind:'boost',x:0,z:0,dirX:0,dirZ:1,radius:.75,power:4,cooldownTicks:60};
+ const before={x:0,z:-6},after={x:0,z:6};
+ assert.ok(surfFeatureCrossed(before,after,boost));
+ const p={position:{x:after.x,y:.12,z:after.z},velocity:{x:0,y:0,z:8},mode:'surf',surfStage:'ride'};
+ const state=createSurfFeatureState();
+ assert.deepEqual(stepSurfFeatures(p,[boost],state,1,before,0).map(e=>e.kind),['boost']);
+ assert.ok(p.velocity.z>8);
+});
+test('boost activation requires leaving and reentering even after cooldown',()=>{
+ const boost={id:'surf-feature:latch',kind:'boost',x:0,z:0,dirX:0,dirZ:1,radius:3,power:5,cooldownTicks:3};
+ const p={position:{x:0,y:0,z:0},velocity:{x:0,y:0,z:5},mode:'surf',surfStage:'ride'};
+ const state=createSurfFeatureState();
+ assert.equal(stepSurfFeatures(p,[boost],state,1).length,1);
+ assert.equal(stepSurfFeatures(p,[boost],state,100).length,0);
+ p.position.x=5;
+ assert.equal(stepSurfFeatures(p,[boost],state,101).length,0);
+ p.position.x=0;
+ assert.equal(stepSurfFeatures(p,[boost],state,102).length,1);
+});
+test('floating obstacles ignore high flights above them',()=>{
+ const boost={id:'surf-feature:high',kind:'boost',x:0,z:0,dirX:0,dirZ:1,radius:4,power:10,cooldownTicks:5};
+ const p={position:{x:0,y:6,z:0},velocity:{x:0,y:0,z:3},mode:'surf',surfStage:'ride'};
+ assert.equal(stepSurfFeatures(p,[boost],createSurfFeatureState(),4,undefined,0).length,0);
+});
+test('demo surf finder locates ocean within island bounds',()=>{
+ const site=findDemoSurfSite((_,z)=>z<0?4:-9,{minX:-700,maxX:700,minZ:-700,maxZ:700},0,11);
+ assert.ok(site,'site in offshore band');
+ assert.ok(site.start.z<0,'start in deep water');
+ assert.ok(site.zone.minZ>=-700&&site.zone.maxZ<=700);
+ assert.ok(site.zone.dirZ>0,'waves approach the positive-z coast');
+});
+test('the starter surfboard uses the existing tool equipment category',()=>{
+ assert.equal(SURFBOARD_ID,'tool:surfboard');
+ assert.equal(SURF_ITEMS[0].id,SURFBOARD_ID);
+ assert.equal(SURF_ITEMS[0].category,'tool');
 });
