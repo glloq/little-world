@@ -1045,6 +1045,7 @@ export function configureWorldGeography(config: WorldConfig, definition?: WorldD
     masks: definition?.geography?.masks ?? {},
     zones: definition?.geography?.zones ?? [],
     landscapes: definition?.geography?.landscapes ?? [],
+    races: definition?.geography?.races ?? [],
     biomeStrokes: (definition?.biomes ?? []).map((b) => ({ x: b.x, z: b.z, radius: b.radius, biome: b.biome })),
     buildings: (definition?.placements ?? []).flatMap((p) => { const radius = exclusionRadius(p.assetId, p.scale ?? 1); return radius === null ? [] : [{ x: p.x, z: p.z, radius }]; }),
   });

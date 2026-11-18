@@ -64,7 +64,8 @@ export function playableFromCompiled(bundle:CompiledWorldBundle,spawn?:Point3):P
   const masks:Record<string,import('../geography/layers.ts').SectorLayers>={};for(const chunk of chunks)if(chunk.layers)masks[chunk.chunkId]=structuredClone(chunk.layers);
   const zones=Object.values(logic.libraries.zones??{}).map(z=>({kind:z.kind,polygon:z.polygon.map(p=>({...p}))}));
   const landscapes=[...landscapeRegions(logic.libraries.landscapes),...regionDressingRegions(logic.libraries.regions)];
-  const world:WorldDefinition={...(Object.keys(masks).length||zones.length||landscapes.length?{geography:{sectorSizeM:manifest.chunkSizeM,masks,zones,...(landscapes.length?{landscapes}:{})}}:{}),schemaVersion:2,name:manifest.worldId,config,placements,terrain,biomes,
+  const raceRoads=Object.values(logic.libraries.races??{}).flatMap(r=>r.track?[structuredClone(r.track)]:[]);
+  const world:WorldDefinition={...(Object.keys(masks).length||zones.length||landscapes.length||raceRoads.length?{geography:{sectorSizeM:manifest.chunkSizeM,masks,zones,...(landscapes.length?{landscapes}:{}),...(raceRoads.length?{races:raceRoads}:{})}}:{}),schemaVersion:2,name:manifest.worldId,config,placements,terrain,biomes,
     water:unionById(chunks.map(chunk=>chunk.water as WaterBody[])).map(w=>structuredClone(w)),paths:unionById(chunks.map(chunk=>chunk.paths as PathDefinition[])).map(p=>structuredClone(p)),npcs,...(lights.length?{lights}:{})};
   const components=new Map<string,ComponentMap>(entities.map(entity=>[entity.id,entity.components]));
   const activities=activitiesFromZones(Object.values(logic.libraries.zones??{}),createTerrainSource(config,terrain));
