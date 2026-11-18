@@ -43,3 +43,5 @@ Les nouvelles valeurs `street`, `mountain`, `river`, `fishing` étendent `Settle
 Les captures montrent les propositions effectivement générées, pas une garantie artistique pour chaque graine. Aucun résultat de FPS n’est revendiqué.
 
 Qualification : 656 tests unitaires réussis, build avec vérification TypeScript réussi, 21 contrôles navigateur contextuels et 14 contrôles de régression organique réussis. Les captures contextuelles demandent 20 maisons : 20 proposées pour la rue, la montagne et les pêcheurs, 17 pour la rivière. Toutes les propositions capturées passent la validation avant création ; les cibles partielles restent affichées.
+
+Étude suivante, non implémentée : [79 — villes sur deux rives, ponts, diversité et vie locale](79-RIVER-TOWNS-DIVERSITY-LIFE-PLAN.md).
