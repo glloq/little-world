@@ -1,3 +1,4 @@
+import {sourceRaceKey} from './race-authoring.ts';
 import {alignNaturalBiomes} from './world-biomes-v4.ts';
 /** Recomposition is a dry-run first, preserving native mask ownership and manual work.
  * Full reshaping is refused when generated relief/water/recipes or terrain were edited.
@@ -13,6 +14,7 @@ import {parseProject} from './schema.ts';
 import {fingerprint} from '../world-production/landscape-schema.ts';
 import {compileWaterNetwork} from '../water/profile.ts';
 import {projectGeography} from './geo-context.ts';
+const raceGeometry=(p:ProjectDocument)=>Object.fromEntries(Object.entries(p.libraries.races??{}).map(([id,r])=>{const {worldId:_,layoutKey:__,...rest}=r;return [id,rest];}));
 const sourceHash=(p:ProjectDocument)=>fingerprint({...p,manifest:{...p.manifest,revision:0}});
 const recipeSource=(v:unknown)=>{const {generated:_,...rest}=v as Record<string,unknown>;return rest;};
 export interface RecompositionPreview {project:ProjectDocument;beforeHash:string;chunks:string[];summary:string;mode:'full'|'biomes'}
@@ -38,6 +40,7 @@ export function previewWorldRecomposition(p:ProjectDocument,next:MapRequirements
   const regions=Object.fromEntries(Object.entries(p.libraries.regions??{}).filter(([id])=>id.startsWith('composition-')).map(([id,v])=>[id,recipeSource(v)]));
   const originals=Object.fromEntries(Object.entries(original.libraries.regions??{}).map(([id,v])=>[id,recipeSource(v)]));
   if(fingerprint(regions)!==fingerprint(originals))throw Error('Régions générées retouchées ou supprimées : recomposition globale protégée');
+  if(fingerprint(raceGeometry(p))!==fingerprint(raceGeometry(original))||fingerprint(p.libraries.alpine??null)!==fingerprint(original.libraries.alpine??null)||fingerprint(p.world.audio??null)!==fingerprint(original.world.audio??null))throw Error('Courses, ski ou musique retouchés : recomposition globale protégée');
   if(fingerprint(p.libraries.terrainPlans??{})!==fingerprint(original.libraries.terrainPlans??{}))throw Error('Zones utiles retouchées ou verrouillées : recomposition globale protégée');
   if(fingerprint(p.libraries.zones??{})!==fingerprint(original.libraries.zones??{}))throw Error('Parcelles ou zones de mine retouchées : recomposition globale protégée');
   const ownedPaths=Object.fromEntries(Object.keys(original.libraries.paths).filter(id=>p.libraries.paths[id]).map(id=>[id,p.libraries.paths[id]]));
@@ -60,6 +63,10 @@ export function previewWorldRecomposition(p:ProjectDocument,next:MapRequirements
   for(const path of Object.values(generated.libraries.paths))putPath(scratch,path);
   for(const id of Object.keys(generatedWater))removeWater(scratch,id);
   for(const id of Object.keys(regions))removeRegion(scratch,id);
+  scratch.libraries.races=structuredClone(generated.libraries.races??{});
+  for(const race of Object.values(scratch.libraries.races)){race.worldId=scratch.world.worldId;race.layoutKey=sourceRaceKey(race);}
+  if(generated.libraries.alpine)scratch.libraries.alpine=structuredClone(generated.libraries.alpine);else delete scratch.libraries.alpine;
+  scratch.world.audio=structuredClone(generated.world.audio);
   scratch.libraries.zones=structuredClone(generated.libraries.zones??{});
   scratch.world={...scratch.world,seed:generated.world.seed,terrain:generated.world.terrain,generation:generated.world.generation};
   for(const water of Object.values(generated.libraries.water))putWater(scratch,water);

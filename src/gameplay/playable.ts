@@ -1,3 +1,4 @@
+import {parseSkiArea,type SkiAreaV1} from '../snow/ski-area.ts';
 import {parseActivities} from './activities.ts';
 import {validateAudioLinks} from '../audio/schema.ts';
 import {parseAnyAudioDefinition,type AnyAudioDefinition} from '../audio/migrate.ts';
@@ -8,7 +9,7 @@ import {naturalColliderOwner} from '../structures/natural-collision.ts';
 /** Runtime input has no authoring database access or Studio module dependency. */
 import {parseWorld,type WorldDefinition} from '../world-data.ts';
 import {parseGameplayData,finite,identifier,record,type GameplayData,type Point3} from './schema.ts';
-export interface PlayableWorld {schemaVersion:1;kind:'playable-world';audio?:AnyAudioDefinition;collisions?:CollisionDefinition[];world:WorldDefinition;gameplay:GameplayData;spawn:Point3;
+export interface PlayableWorld {schemaVersion:1;kind:'playable-world';audio?:AnyAudioDefinition;alpine?:SkiAreaV1;collisions?:CollisionDefinition[];world:WorldDefinition;gameplay:GameplayData;spawn:Point3;
   /** Mines and farm plots (runtime projection of activity zones). */activities?:import('./activities.ts').PlayableActivities;
   /** Optional fixed circuits compiled from a Studio project. */races?:RaceDefinition[];}
 export interface StudioPlaytest {schemaVersion:1;kind:'studio-playtest';snapshotId:string;projectId:string;createdAt:number;content:PlayableWorld;}
@@ -29,7 +30,7 @@ export function parsePlayableWorld(value:unknown):PlayableWorld {
    });
  })();
  const audio=value.audio!==undefined?parseAnyAudioDefinition(value.audio):undefined;const actions=[...gameplay.interactions.flatMap(i=>i.sequence),...gameplay.dialogues.flatMap(d=>d.lines.flatMap(l=>[...(l.actions??[]),...l.choices.flatMap(c=>c.actions??[])]))];validateAudioLinks(audio,gameplay.entities.map(e=>e.id),actions.filter(a=>a.type==='playSound').map(a=>(a as {soundId:string}).soundId));
- return {schemaVersion:1,kind:'playable-world',...(audio?{audio}:{}),world,gameplay,spawn:{...spawn},...(value.collisions?{collisions:structuredClone(value.collisions) as CollisionDefinition[]}:{} ),...(value.activities!==undefined?{activities:parseActivities(value.activities)}:{}),...(races?{races}:{})};
+ return {schemaVersion:1,kind:'playable-world',...(value.alpine?{alpine:parseSkiArea(value.alpine,{minX:-width/2,maxX:width/2,minZ:-length/2,maxZ:length/2})}:{}),...(audio?{audio}:{}),world,gameplay,spawn:{...spawn},...(value.collisions?{collisions:structuredClone(value.collisions) as CollisionDefinition[]}:{} ),...(value.activities!==undefined?{activities:parseActivities(value.activities)}:{}),...(races?{races}:{})};
 }
 const PREFIX='little-world:studio-playtest:v1:';
 export function savePlaytest(value:Omit<StudioPlaytest,'schemaVersion'|'kind'|'snapshotId'|'createdAt'>,storage:Storage=sessionStorage):StudioPlaytest {

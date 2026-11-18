@@ -272,3 +272,5 @@ Sur la branche `feat/archipelago-real-island-travel`, deux îles d'exemple **com
 Les villages de rivière peuvent proposer un petit pont vers une seconde rive, des services variés et un habitant avec dialogue ; le raccord maritime reprend les modules N1 de main : [livraison et limites](docs/88-VILLAGES-RIVER-LIFE-MAIN-INTEGRATION.md).
 
 Les nouvelles implantations proposent des jardins joueur et des champs PNJ ; les abords du port reçoivent cabanes et bateaux de rive. La caldeira peut privilégier une grande île principale : [fonctionnalités, captures et limites](docs/90-SETTLEMENT-GARDENS-COAST-DOMINANT-CALDERA.md).
+
+La création guidée V5 propose maintenant des circuits de roulade adaptés au relief, un profil alpin avec descente de ski enregistrée et une sélection de musique : [fonctionnement, captures et limites](docs/91-GUIDED-ACTIVITIES-RACES-ALPINE-MUSIC.md).

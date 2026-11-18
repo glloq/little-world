@@ -90,7 +90,7 @@ export function drawWelcomePreview(canvas:HTMLCanvasElement,project:ProjectDocum
   ctx.imageSmoothingEnabled=true;ctx.drawImage(tmp,rect.x,rect.y,rect.w,rect.h);
   ctx.strokeStyle='#b4cbbf';ctx.lineWidth=2;ctx.strokeRect(rect.x,rect.y,rect.w,rect.h);
   const projectPoint=(p:{x:number;z:number})=>({x:rect.x+(p.x-bounds.minX)/width*rect.w,y:rect.y+(p.z-bounds.minZ)/length*rect.h});
-  const line=(points:{x:number;z:number}[],color:string,closed=false,lineWidth=1)=>{ctx.beginPath();points.forEach((p,i)=>{const q=projectPoint(p);if(i)ctx.lineTo(q.x,q.y);else ctx.moveTo(q.x,q.y);});if(closed)ctx.closePath();ctx.strokeStyle=color;ctx.lineWidth=lineWidth;ctx.stroke();};
+  const line=(points:readonly {x:number;z:number}[],color:string,closed=false,lineWidth=1)=>{ctx.beginPath();points.forEach((p,i)=>{const q=projectPoint(p);if(i)ctx.lineTo(q.x,q.y);else ctx.moveTo(q.x,q.y);});if(closed)ctx.closePath();ctx.strokeStyle=color;ctx.lineWidth=lineWidth;ctx.stroke();};
   // Show real visible height contours, never hidden feature footprints or construction axes.
   if(def.kind==='archipelago'){
     const shelves=def.archipelago.features.filter(f=>f.kind==='plateau'&&f.id.startsWith('composition-terrace-')).map(f=>f.kind==='plateau'?f.heightM:0).sort((a,b)=>a-b);
@@ -105,6 +105,8 @@ export function drawWelcomePreview(canvas:HTMLCanvasElement,project:ProjectDocum
     for(const f of def.archipelago.features)if(f.kind==='mountain'||f.kind==='volcano'){const q=projectPoint(f);ctx.fillStyle='#504c48';ctx.fillText(f.kind==='volcano'?'▲ V':'▲',q.x,q.y);}
   }
   for(const w of Object.values(project.libraries.water)){line(w.points,'#1677c4',w.kind==='lake',Math.max(1,Math.min(3,w.width/width*rect.w)));if(w.kind==='lake'){ctx.fillStyle='#459bd8';ctx.fill();}for(const fall of w.falls??[]){const q=projectPoint(w.points[fall.at]);ctx.fillStyle='#fff';ctx.fillRect(q.x-2,q.y-2,5,5);}}
+  if(project.libraries.alpine)line(project.libraries.alpine['composition-alpine'].points,'#f2fbff',false,3);
+  for(const race of Object.values(project.libraries.races??{}))if(race.track)line(race.track.points,'#a336ad',false,2);
   for(const path of Object.values(project.libraries.paths))line(path.points,'#9b512a',false,Math.max(1.3,path.width/width*rect.w));
   for(const zone of Object.values(project.libraries.zones??{}))if(zone.kind==='farm-plot'){line(zone.polygon,zone.farm?.assignment==='player'?'#2c8393':'#c18d24',true,1);ctx.fillStyle=zone.farm?.assignment==='player'?'#65c9d488':'#e0bd4f66';ctx.fill();}
   for(const plan of Object.values(project.libraries.terrainPlans??{}))for(const site of plan.sites){

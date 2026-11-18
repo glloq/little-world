@@ -407,19 +407,20 @@ const {nightFactor}=await import('./lighting/light-data.ts');
 world.lights.setEnvironment(nightFactor(climate.state(worldClock.time).sunAltitude),0);
 // Mines and farm plots: procedural stand-ins, lanterns join the E10 light pool.
 // Optional alpine preview (or published alpine island): never mutates the reference map.
-const snowDemo=(searchParams.get('snowDemo')==='1'||activeIsland?.id==='snow-cimes')&&!isLegacyTerrain();
+const authoredAlpine=playable?.alpine;
+const snowDemo=(!!authoredAlpine||searchParams.get('snowDemo')==='1'||activeIsland?.id==='snow-cimes')&&!isLegacyTerrain();
 const snowBounds={minX:-(definition.config.width??200)/2,maxX:(definition.config.width??200)/2,
   minZ:-(definition.config.length??600)/2,maxZ:(definition.config.length??600)/2};
-const snowPiste=snowDemo?findDemoPiste(terrainHeight,snowBounds,definition.config.seaLevel??0):null;
-let snowEquipment:SnowEquipment='snowboard';
+const snowPiste=authoredAlpine?.points??(snowDemo?findDemoPiste(terrainHeight,snowBounds,definition.config.seaLevel??0):null);
+let snowEquipment:SnowEquipment=authoredAlpine?.equipment??'snowboard';
 let snowLiftRide:LiftRide|null=null;
-const snowLift:SkiLift|null=snowPiste?{id:'alpine-preview-chair',speed:2.8,seatSpacing:14,capacity:2,
+const snowLift:SkiLift|null=snowPiste&&(!authoredAlpine||authoredAlpine.lift)?{id:'alpine-preview-chair',speed:2.8,seatSpacing:14,capacity:2,
   path:snowPiste.slice().reverse().filter((_,i)=>i%4===0||i===snowPiste.length-1)
     .map(p=>({x:p.x,y:terrainHeight(p.x,p.z)+3.5,z:p.z}))}:null;
 if(snowPiste){
   const lower=snowPiste[snowPiste.length-1];
-  setPreviewSnowline(terrainHeight(lower.x,lower.z)-8);
-  player.position.set(lower.x,terrainHeight(lower.x,lower.z)+.05,lower.z);
+  setPreviewSnowline(authoredAlpine?.snowLineM??terrainHeight(lower.x,lower.z)-8);
+  if(!authoredAlpine)player.position.set(lower.x,terrainHeight(lower.x,lower.z)+.05,lower.z);
   player.velocity.set(0,0,0);player.mode='ground';
 }
 const snowLiftView=snowLift?createSkiLiftView(scene,snowLift):null;
@@ -450,6 +451,7 @@ world.update(0, player.position);
 {
   const {createGameUi}=await import('./ui/app/game-ui.ts'),c=getTerrainConfig();
   const landmarks=[
+    ...(authoredAlpine?[{id:'alpine-base',label:'Ski · départ de la remontée',...authoredAlpine.points.at(-1)!},{id:'alpine-top',label:'Ski · sommet de la descente',...authoredAlpine.points[0]}]:[]),
     ...(playable?.races??[]).map(r=>({id:'race:'+r.id,label:'Course : '+r.name,x:r.gates[0].center.x,z:r.gates[0].center.z})),
     ...definition.biomes.filter(b=>b.biome==='village').slice(0,30).map((b,i)=>({id:'village:'+i,label:'Village',x:b.x,z:b.z})),
     ...definition.placements.filter(p=>/(lighthouse|harbor|port|market|inn|windmill|watermill|town|village)/i.test(p.assetId)).slice(0,50).map(p=>({
@@ -1495,6 +1497,7 @@ function draw(now: number) {
         objectCulling:{...world.objectCulling},
         animated: { ...world.animated },
         occlusion: world.occlusion,
+        alpine:authoredAlpine?{id:authoredAlpine.id,points:snowPiste?.length??0,snowLineM:authoredAlpine.snowLineM,lift:!!snowLift,equipment:snowEquipment,base:snowLift?.path[0]??null,ride:snowLiftRide?.phase??null}:null,
         boatModel: world.boat.getObjectByName('Sailboat') ? 'sailboat' : 'procedural',
         boatPosition: [boat.x, boat.y, boat.z],
         boats: { count: fleet.boats.length, aboard, current: fleet.current?.id ?? null },

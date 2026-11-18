@@ -1,0 +1,22 @@
+{
+  "checks": 14,
+  "errors": [],
+  "rows": [
+    {
+      "profile": "flat",
+      "races": [
+        "race:composition-flat"
+      ],
+      "skiPoints": 0,
+      "musicCues": 0
+    },
+    {
+      "profile": "alpine",
+      "races": [
+        "race:composition-downhill"
+      ],
+      "skiPoints": 28,
+      "musicCues": 19
+    }
+  ]
+}

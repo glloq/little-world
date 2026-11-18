@@ -29,5 +29,9 @@ export function islandStyleControls(r:MapRequirements,change:(next:MapRequiremen
   check('Relier les zones par des chemins',layout.connect,v=>setLayout('connect',v)),
   field('Pente maximale des accès (%)',numberInput(Math.round(layout.maxSlope*100),v=>setLayout('maxSlope',v/100),8,60,'1')),
   check('Accès obligatoires avant création',layout.accessRequired,v=>setLayout('accessRequired',v)));
- box.append(areas);return box;
+ box.append(areas);
+ const activities={races:'none' as const,ski:false,music:'contextual' as const,...r.activities},fun=node('details');fun.append(node('summary','Courses, ski et musique'));
+ const setActivity=(patch:Partial<NonNullable<MapRequirements['activities']>>)=>change({...r,compositionVersion:5,activities:{...activities,...patch}});
+ fun.append(field('Circuits de roulade à générer',select(activities.races,[['none','Sans circuit'],['flat','Terrain relativement plat'],['downhill','Descente'],['both','Plat et descente']],v=>setActivity({races:v as typeof activities.races}))),check('Préparer une descente de ski (prototype)',activities.ski,v=>setActivity({ski:v})),field('Musique du monde',select(activities.music,[['contextual','Ambiance Little World selon le contexte'],['off','Sans musique · bruitages conservés']],v=>setActivity({music:v as typeof activities.music}))),node('p','Les pistes sont cherchées sur le relief réel. Une demande impossible bloque la création. Le ski réutilise la glisse et la remontée prototypes ; B alterne skis et snowboard.','muted'));
+ const alpine=node('button','Profil Île alpine');alpine.type='button';alpine.onclick=()=>{const next=selectIslandStyle({...r,compositionVersion:5},'central-massif');change({...next,rivers:1,islandStyle:{...next.islandStyle!,altitudeM:650,valleys:.15},activities:{...activities,ski:true}});};fun.append(alpine);box.append(fun);return box;
 }

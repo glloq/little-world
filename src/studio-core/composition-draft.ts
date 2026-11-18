@@ -1,3 +1,4 @@
+import {validateWorldActivities} from './world-activities.ts';
 import {validateBirthPort} from './birth-port.ts';
 import {validateSettlements} from '../settlements/validation.ts';
 import {validateTerrainAccess} from './terrain-access.ts';
@@ -15,7 +16,7 @@ import {simpleOutline} from '../geography/simple-outline.ts';
 
 export function validateCompositionDraft(base:WorldComposition,document:ProjectDocument):WorldComposition{
  const started=performance.now(),p=parseProject(structuredClone(document)),r=p.world.generation!,g=projectGeography(p),
-  diagnostics:CompositionDiagnostic[]=base.diagnostics.filter(d=>!d.code.startsWith('MARITIME_')&&!d.code.startsWith('WATER_')&&!d.code.startsWith('SITE_')&&d.code!=='DRAFT_BIOMES'&&!['RIVERS_MISSING','TRIBUTARIES_MISSING','LANDSCAPE_MISSING','FALL_NOT_PLANNED','LAKE_NOT_PLANNED','LATERAL_LAKE'].includes(d.code));
+  diagnostics:CompositionDiagnostic[]=base.diagnostics.filter(d=>!d.code.startsWith('ACTIVITY_')&&!d.code.startsWith('MARITIME_')&&!d.code.startsWith('WATER_')&&!d.code.startsWith('SITE_')&&d.code!=='DRAFT_BIOMES'&&!['RIVERS_MISSING','TRIBUTARIES_MISSING','LANDSCAPE_MISSING','FALL_NOT_PLANNED','LAKE_NOT_PLANNED','LATERAL_LAKE'].includes(d.code));
  if(p.world.terrain?.kind==='archipelago'){
   for(const land of p.world.terrain.archipelago.landmasses)if(!simpleOutline(land.outline))diagnostics.push({severity:'ERROR',code:'DRAFT_OUTLINE',message:'Contour croisé ou dégénéré : '+land.name});
   for(const f of p.world.terrain.archipelago.features)if(f.kind==='plateau'&&!simpleOutline(f.polygon))diagnostics.push({severity:'ERROR',code:'DRAFT_OUTLINE',message:'Plateau croisé ou dégénéré : '+f.id});
@@ -29,7 +30,7 @@ export function validateCompositionDraft(base:WorldComposition,document:ProjectD
  if(r.waterfalls&&!waters.some(w=>w.falls?.length))diagnostics.push({severity:'WARNING',code:'FALL_NOT_PLANNED',message:'Aucune cascade dans le brouillon.'});
  for(const l of r.landscapes)if(l.kind!=='lake'&&(quality.biomeShare[l.kind]??0)<.001)diagnostics.push({severity:l.required?'ERROR':'WARNING',code:'LANDSCAPE_MISSING',message:'Surface insuffisante : '+LANDSCAPES[l.kind]});
  const sites=Object.values(p.libraries.terrainPlans??{}).flatMap(p=>p.sites);if(r.layout){for(const [kind,count,label]of [['harbor',r.layout.harbor?1:0,'port'],['farm',r.layout.farms,'champ'],['lake',r.layout.lake?1:0,'lac']] as const){const actual=sites.filter(s=>s.kind===kind).length;if(actual<count)diagnostics.push({severity:'WARNING',code:'SITE_MISSING',message:`${actual}/${count} emplacement(s) ${label} dans le brouillon.`});}}
- diagnostics.push(...validateTerrainAccess(p),...validateBirthPort(p));for(const d of validateSettlements(p))if(d.severity!=='INFO')diagnostics.push({...d,severity:d.severity});
+ diagnostics.push(...validateTerrainAccess(p),...validateBirthPort(p),...validateWorldActivities(p));for(const d of validateSettlements(p))if(d.severity!=='INFO')diagnostics.push({...d,severity:d.severity});
  const coverage=compositionCoverage(p,waters.find(w=>w.to?.kind==='sea')?.points??[]);
  if(coverage.biomeCoverage<.95)diagnostics.push({severity:'WARNING',code:'DRAFT_BIOMES',message:'Des terres modifiées manquent de biomes. Rafraîchir les biomes ou les peindre dans la carte.'});
  return {...base,project:p,ready:!diagnostics.some(d=>d.severity==='ERROR'),diagnostics,metrics:{...base.metrics,features:p.world.terrain?.kind==='archipelago'?p.world.terrain.archipelago.features.length:base.metrics.features,generationMs:performance.now()-started,sectors:Object.keys(p.chunks).length,sourceBytes:new TextEncoder().encode(JSON.stringify(p)).length,coverage,...(natural?{natural}:{})}};
