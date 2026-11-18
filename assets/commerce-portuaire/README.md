@@ -12,24 +12,16 @@ Le **modèle 3D actuel a été retenu comme base visuelle V1 du niveau 1**. Cett
 - **Silhouette retenue** : stand à quatre poteaux, toile rayée réellement modélisée avec plis et bordure, renforts en bois, comptoir vide, caisses vides, panneau hexagonal commercial, aucune marchandise ; accès arrière libre pour le PNJ.
 - **Restant avant intégration** : valider échelle PNJ et collisions en jeu, sockets d'interaction, LOD, palettes et catalogage Studio. **PTC-1 partiel** : modèle V1 versionné, pas encore LOD/runtime validé.
 
-## N2 V1 — cabane marchande, **proposition à valider** (18 novembre 2026)
+## N2 V1 — cabane marchande, base graphique acceptée avec réserves (18 novembre 2026)
 
-- **Modèle d'essai** : [`public/models/commerce-portuaire/port-trade-n2-candidate-v1.glb`](../../public/models/commerce-portuaire/port-trade-n2-candidate-v1.glb), **3 728 triangles exportés**, huit sous-ensembles, couleur par sommet, sans textures. Cette géométrie a **été acceptée depuis comme base V1**, avec défauts de mesh à examiner ultérieurement.
+- **GLB de référence, inchangé** : [`public/models/commerce-portuaire/port-trade-n2-candidate-v1.glb`](../../public/models/commerce-portuaire/port-trade-n2-candidate-v1.glb), **3 728 triangles exportés**, huit sous-ensembles, couleur par sommet, sans textures. Cette géométrie a **été acceptée depuis comme base V1**, avec défauts de mesh à examiner ultérieurement.
 - **Visualiseur 3D WebGL autonome** : [`examples/port-trade-n2-candidate-v1-viewer.html`](../../examples/port-trade-n2-candidate-v1-viewer.html). Rotation, vues avant/arrière/latérale, masquage murs/toit, dégagement PNJ, cinq palettes et export GLB.
 - **Source de génération reproductible** : [générateur Python](tools/generate_port_trade_n2.py) et [template HTML](tools/template_port_trade_n2.html). Dépendances locales de fabrication `numpy` et `trimesh` (pas de dépendance dans le jeu/browseur) ; artefacts générés dans le dossier de l'outil.
 - **Continuité N1** : emblème hexagonal caisse, comptoir, trois caisses vides, auvent en toile rayée (désormais **secondaire**). Évolution **réelle** vers cabane en bois avec parois, toiture rigide, guichet réellement évidé, accès arrière et espace intérieur PNJ.
-- **Données candidates** : glTF/GLB 229 744 octets, dimensions environ **3,66 × 3,39 × 3,29 m** avec enseigne et surplombs ; empreinte SHA-256 : `8e75cf0a5c86b5a58ee7b7f138a7b2dce1530ab5d79643c7441dbb3e7ba44c3a`.
+- **Données de la base** : glTF/GLB 229 744 octets, dimensions environ **3,66 × 3,39 × 3,29 m** avec enseigne et surplombs ; empreinte SHA-256 : `8e75cf0a5c86b5a58ee7b7f138a7b2dce1530ab5d79643c7441dbb3e7ba44c3a`.
 - **Tests limités** : ouverture Chromium, commandes de visualisation, palettes, capture PNG et export GLB byte-identique. **Non testé dans Little World/World Studio**, collisions/LOD et validité de passage du PNJ en jeu à qualifier.
+- **Manifeste d'acceptation** : [`n2-v1.json`](n2-v1.json), statut `accepted_visual_baseline_mesh_review_pending`. Plusieurs défauts de mesh ont été signalés **sans liste technique précise** ; les identifier lors d'une future inspection et produire un correctif **N2 V1.1**, sans écraser le GLB adopté.
 - **Validation mise à jour** : l'utilisateur a accepté ce modèle comme **base N2 V1** en signalant des défauts de mesh non identifiés précisément ; l'asset n'est pas qualifié pour le runtime.
-
-## N2 V1 — base graphique retenue avec réserves (18 novembre 2026)
-
-**Validation utilisateur** : la **petite cabane marchande N2 actuelle est retenue comme base V1**, tout en reconnaissant **plusieurs défauts de mesh non détaillés à ce stade**. Ne pas inventer une liste de défauts « corrigés » et ne pas présenter ce modèle comme final/qualifié.
-
-- **GLB inchangé et conservé** : [`port-trade-n2-candidate-v1.glb`](../../public/models/commerce-portuaire/port-trade-n2-candidate-v1.glb) ; 3 728 triangles, 8 sous-meshes, sans textures ; SHA-256 `8e75cf0a5c86b5a58ee7b7f138a7b2dce1530ab5d79643c7441dbb3e7ba44c3a`.
-- **Visualiseur inchangé** : [N2 candidate V1](../../examples/port-trade-n2-candidate-v1-viewer.html) ; la mention « candidate » dans le chemin historique ne retire pas la validation de **base de design**.
-- **Manifeste immuable** : [`n2-v1.json`](n2-v1.json), avec statut `accepted_visual_baseline_mesh_review_pending`.
-- **À qualifier lors de l'implantation** : revue des faces/normales, intersections, découpes de fenêtre/porte, pivot, échelle hamster/PNJ, colliders et LOD. **Ne pas modifier le GLB N2 V1 en place** ; toute correction sera versionnée N2 V1.1 après identification des problèmes.
 
 ## N3 V1 — candidat 3D en bâtiment dur (18 novembre 2026)
 
