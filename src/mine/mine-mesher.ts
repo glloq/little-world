@@ -106,6 +106,14 @@ export function mineChunkGeometry(state:MineState,level:number,cx:number,cz:numb
             point(u1+du,v1+dv),point(u0+du,v0+dv),shade,1,
             (x+dx)*29+(z+dz)*31+stroke);
         }
+        if(stage===3){
+          // Two inset faceted chips on the last fracture tier. They are only
+          // shaded marks on the existing wall, never loose collidable rocks.
+          quad(point(.22,.23),point(.38,.27),point(.34,.37),point(.20,.34),
+            shade,.83,(x+dx)*11+(z+dz)*17);
+          quad(point(.62,.68),point(.77,.70),point(.73,.82),point(.59,.79),
+            shade,.76,(x+dx)*13+(z+dz)*19);
+        }
       }
     }
   }
