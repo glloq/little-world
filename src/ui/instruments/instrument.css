@@ -1,0 +1,18 @@
+/* Instrument panel is a non-pausing UI; all note events use Web Audio time. */
+.lw-instrument-head{display:flex;justify-content:space-between;align-items:center;gap:.7rem;font-weight:700}
+.lw-instrument-head p{margin:.2rem 0}
+.lw-instrument-switch,.lw-octave{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin:.6rem 0}
+.lw-octave{justify-content:space-between}
+.lw-octave span{font-weight:700}
+.lw-notes-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:.45rem;max-width:680px}
+.lw-note{touch-action:none;user-select:none;-webkit-user-select:none;min-height:57px;display:flex;flex-direction:column;justify-content:center;align-items:center;border:1px solid var(--ui-border,rgba(150,150,150,.45));border-radius:.6rem;gap:.2rem;cursor:pointer;font-size:clamp(.75rem,1.8vw,.92rem);font-weight:650}
+.lw-note-grid{background:var(--ui-panel-soft,#e5d9ba);color:var(--ui-text,#20251e)}
+.lw-note-hint{font-size:.66rem;opacity:.62;font-weight:500}
+.lw-note-down{background:#80b5d5!important;color:#152d41!important;border-color:#356f99!important}
+.lw-piano-scroll{overflow-x:auto;max-width:100%;padding:.2rem 0 .65rem}
+.lw-piano{position:relative;min-width:520px;width:100%;height:145px}
+.lw-piano-whites{display:flex;width:100%;height:100%}
+.lw-note-white{flex:1 1 0;min-width:0;background:#fcfbf5;color:#242424;border:1px solid #a0a4a1;border-radius:0 0 .3rem .3rem;justify-content:flex-end;padding-bottom:.4rem}
+.lw-note-black{position:absolute;top:0;width:4.2%;height:63%;transform:translateX(-50%);background:#292d33;color:#fff;border:1px solid #15191c;border-radius:0 0 .22rem .22rem;z-index:1;justify-content:flex-end;padding-bottom:.2rem;font-size:.65rem}
+.lw-note-black .lw-note-hint{display:none}
+@media(max-width:640px){.lw-note{min-height:52px}.lw-notes-grid{gap:.3rem}.lw-note-hint{font-size:.6rem}.lw-piano{min-width:520px}}

@@ -9,7 +9,7 @@ const TTL_MS=10*60*1000;
 export interface TravelStore {getItem(key:string):string|null;setItem(key:string,value:string):void;removeItem(key:string):void}
 export interface TravelerState {inventory:Record<string,number>;gasReserve:number;flightProgress:FlightProgress;
   /** Definitions of carried items not necessarily present in the destination world. Optional for V1 tickets. */
-  items?:ItemDefinition[];}
+  items?:ItemDefinition[];equippedItemId?:string|null;}
 export interface FerryTransit {
   schemaVersion:1;sourceId:string;sourceManifest:string;
   destinationId:string;destinationManifest:string;
@@ -42,7 +42,11 @@ export function parseTraveler(raw:unknown):TravelerState {
     });
   }
   if(typeof t.gasReserve!=='number'||!Number.isFinite(t.gasReserve)||t.gasReserve<0||t.gasReserve>10000)throw Error('Réserve de propulsion invalide');
-  return {inventory,gasReserve:t.gasReserve,flightProgress:parseFlightProgress(t.flightProgress),...(items?{items}:{})};
+  const equippedItemId=t.equippedItemId;
+  if(equippedItemId!==undefined&&equippedItemId!==null&&
+     (typeof equippedItemId!=='string'||!ITEM.test(equippedItemId)||!(inventory[equippedItemId]>0)))throw Error('Équipement de voyage invalide');
+  return {inventory,gasReserve:t.gasReserve,flightProgress:parseFlightProgress(t.flightProgress),...(items?{items}:{}),
+    ...(equippedItemId!==undefined?{equippedItemId:equippedItemId as string|null}:{})};
 }
 export function parseTransit(raw:unknown,now=Date.now()):FerryTransit {
   if(!raw||typeof raw!=='object'||Array.isArray(raw))throw Error('Traversée invalide');

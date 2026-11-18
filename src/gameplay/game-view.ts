@@ -14,6 +14,7 @@ import {createActivityRuntime} from './activity-runtime.ts';
 import {COIN,STARTING_COINS,STARTING_KIT,type ShopKind} from './economy.ts';
 import {PRODUCTION_ITEMS} from '../economy/starter-catalog.ts';
 import {MINE_ITEMS} from '../mine/mine-data.ts';
+import {INSTRUMENT_ITEMS} from '../instruments/definitions.ts';
 import {FARM_ITEMS} from '../farm/farm-data.ts';
 import {createShopWorkshops} from '../economy/workshop-services.ts';
 import {createIslandMarkets} from '../economy/island-markets.ts';
@@ -33,7 +34,7 @@ export function createGameplayView(data:GameplayData,options:Options){
  // Register stable crafted product definitions in the gameplay runtime of old and new maps.
  // The compiled world/Studio source stays immutable: crafting uses the same inventory authority.
  const existing=new Set(data.items.map(i=>i.id));
- const sharedItems=[...MINE_ITEMS,...FARM_ITEMS,...PRODUCTION_ITEMS];
+ const sharedItems=[...MINE_ITEMS,...FARM_ITEMS,...PRODUCTION_ITEMS,...INSTRUMENT_ITEMS];
  const runtime=createGameplay({...data,items:[...data.items,...sharedItems.filter(i=>!existing.has(i.id))]}),
    slots=createGameSaveStore(options.temporary?scopedSaveStorage(sessionStorage,options.saveScope??'test'):undefined);
  const collisionDefinitions=new Map((options.collisions??[]).map(d=>[d.id,d]));
@@ -50,6 +51,15 @@ export function createGameplayView(data:GameplayData,options:Options){
  const purse={count:(id:string)=>runtime.state.inventory[id]??0,max:(id:string)=>runtime.data.items.find(i=>i.id===id)?.maxQuantity??0,apply:(changes:{itemId:string;quantity:number}[])=>runtime.grantItems(changes)};
  const itemName=(id:string)=>runtime.data.items.find(i=>i.id===id)?.name??id;
  const listeners=new Set<()=>void>();
+ const canEquip=(id:string)=>has(id)&&runtime.data.items.some(item=>item.id===id&&['tool','outil','instrument'].includes(item.category));
+ const equipment={
+  get hands(){return equippedHands;},
+  setHands(id:string|null):boolean{
+   if(id!==null&&!canEquip(id))return false;
+   if(equippedHands===id)return true;
+   equippedHands=id;for(const listener of listeners)listener();return true;
+  },
+ };
  let cargoPurchaseRevision=0;
  const workshops=createShopWorkshops({items:runtime.data.items,purse,
    elapsedSeconds:()=>runtime.state.time,dayLengthSeconds:runtime.climate.definition.dayLengthSeconds,
@@ -62,7 +72,8 @@ export function createGameplayView(data:GameplayData,options:Options){
    counterId?:string,expectedRevision?:number){
    return markets.trade(kind,counterId??'legacy:'+kind,itemId,quantity,mode,undefined,expectedRevision);
  }
- const compose=(slotId:string):GameSaveV2=>({...runtime.save(slotId,options.getPosition()),space:options.getSpace?.()??null,gasReserve:options.getGas?.()??GAS.initial,flightProgress:options.getGasProgress?.()??newFlightProgress(),...activities.serialize(),
+ let equippedHands:string|null=null;
+ const compose=(slotId:string):GameSaveV2=>({...runtime.save(slotId,options.getPosition()),equippedItemId:equippedHands,space:options.getSpace?.()??null,gasReserve:options.getGas?.()??GAS.initial,flightProgress:options.getGasProgress?.()??newFlightProgress(),...activities.serialize(),
     workshops:workshops.serialize(),markets:markets.serialize(),cargoPurchaseRevision,
     ...(gathering?{gathering:gathering.serialize()}:{})});
  let npcs:readonly NPCState[]=[],version=-1,disposed=false;
@@ -95,7 +106,7 @@ export function createGameplayView(data:GameplayData,options:Options){
  }
  sync();
  return {
-  runtime,collision,activities,slots,compose,gathering,trees,fishing,trade,workshops,markets,purse,itemName,has,
+  runtime,collision,activities,slots,compose,gathering,trees,fishing,trade,workshops,markets,purse,itemName,has,equipment,
   get cargoPurchaseRevision(){return cargoPurchaseRevision;},
   acknowledgeCargoPurchase(revision:number){
     if(!Number.isSafeInteger(revision)||revision<0||revision>1_000_000_000)
@@ -103,7 +114,7 @@ export function createGameplayView(data:GameplayData,options:Options){
     cargoPurchaseRevision=Math.max(cargoPurchaseRevision,revision);
   },
   /** Restores a validated save into the runtime and the activities; returns the warnings. */
-  restore(save:GameSaveV2){const warnings=[...runtime.restore(save),...activities.restore(save)];workshops.restore(save.workshops??{});markets.restore(save.markets??{});cargoPurchaseRevision=save.cargoPurchaseRevision??0;gathering?.restore(save.gathering??null);options.setPosition(save.position,save.space??null);options.setGasProgress?.(save.flightProgress??newFlightProgress());options.setGas?.(save.gasReserve??GAS.legacyInitial);sync();version=-1;for(const l of listeners)l();return warnings;},
+  restore(save:GameSaveV2){const warnings=[...runtime.restore(save),...activities.restore(save)];equippedHands=save.equippedItemId&&canEquip(save.equippedItemId)?save.equippedItemId:null;workshops.restore(save.workshops??{});markets.restore(save.markets??{});cargoPurchaseRevision=save.cargoPurchaseRevision??0;gathering?.restore(save.gathering??null);options.setPosition(save.position,save.space??null);options.setGasProgress?.(save.flightProgress??newFlightProgress());options.setGas?.(save.gasReserve??GAS.legacyInitial);sync();version=-1;for(const l of listeners)l();return warnings;},
   /** Imports an exported slot file (validated) into a free slot of this world. */
   async importSave(raw:unknown){const parsed=parseGameSave(raw);if(parsed.worldId!==data.worldId)throw Error('Sauvegarde d’un autre monde');const value={...parsed};if(!['slot-1','slot-2','slot-3'].includes(value.slotId)){const used=new Set((await slots.list(data.worldId)).map(v=>v.slotId)),free=['slot-1','slot-2','slot-3'].find(id=>!used.has(id));if(!free)throw Error('Libérez un emplacement pour importer cette partie');value.slotId=free;}await slots.save(value);return value.slotId;},
   temporary:options.temporary,describe,

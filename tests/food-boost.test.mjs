@@ -4,6 +4,7 @@ import {FOOD_GAS,foodGasValue} from '../src/gameplay/food-effects.ts';
 import {ECONOMY_ITEMS,STARTING_KIT,economyItems} from '../src/gameplay/economy.ts';
 import {PRODUCTION_ITEMS} from '../src/economy/starter-catalog.ts';
 import {FARM_ITEMS} from '../src/farm/farm-data.ts';
+import {INSTRUMENT_ITEMS} from '../src/instruments/definitions.ts';
 import {GAS,gasCapacity,gasShots,refillGas,upgradeGas} from '../src/physics/gas-propulsion.ts';
 
 test('edible boost values have explicit IDs in the runtime item catalogue',()=>{
@@ -20,7 +21,7 @@ test('edible boost values have explicit IDs in the runtime item catalogue',()=>{
 });
 
 test('the new starter bag covers several foods without exceeding item limits',()=>{
-  const known=new Map([...ECONOMY_ITEMS,...FARM_ITEMS].map(item=>[item.id,item]));
+  const known=new Map([...ECONOMY_ITEMS,...FARM_ITEMS,...INSTRUMENT_ITEMS].map(item=>[item.id,item]));
   const ids=new Set();
   const edibleCategories=new Set();
   for(const row of STARTING_KIT){

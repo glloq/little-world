@@ -14,6 +14,8 @@ import {isEditableGameTarget} from '../../input/gameplay-input.ts';
 import {loadPreferences,savePreferences,type UiPreferences} from './preferences.ts';
 import {createNotificationCenter,type NoticeKind} from '../notifications/notifications.ts';
 import {inventoryPanel} from '../inventory/inventory.ts';
+import {createInstrumentPanel} from '../instruments/instrument-panel.ts';
+import {instrumentForItem} from '../../instruments/definitions.ts';
 import {journalPanel,questChanges} from '../journal/journal.ts';
 import {createMapRaster,mapPanel,type MapMarker,type MapDeps} from '../map/map.ts';
 import {createMinimap} from '../map/minimap.ts';
@@ -77,8 +79,16 @@ export function createGameUi(deps:GameUiDeps){
   mineLoading.append(mineLoadingCard);host.append(mineLoading);
 
   // Panels.
-  let selectedTool:string|null=null,restoring=false;
-  const inventory=inventoryPanel({items:()=>g?.runtime.data.items??[],inventory:()=>g?.runtime.state.inventory??{},selectedTool:()=>selectedTool,selectTool:id=>{selectedTool=id;renderTool();},headgear:deps.headgear,gasLevel:()=>deps.player().gas??0,gasCapacity:()=>deps.player().maxGas??200,
+  let restoring=false;
+  const instrumentPanel=createInstrumentPanel({
+    equipped:()=>instrumentForItem(g?.equipment.hands),
+    noteOn:(patch,note)=>deps.audio?.engine.instrumentNoteOn(patch,note)??false,
+    noteOff:note=>deps.audio?.engine.instrumentNoteOff(note),
+    allNotesOff:()=>deps.audio?.engine.instrumentAllNotesOff(),
+    unlock:()=>deps.audio?.start()??Promise.resolve(false),
+  });
+  if(g)ui.register('instrument','Jouer de la musique',{render:b=>instrumentPanel.render(b),onClose:()=>instrumentPanel.close()});
+  const inventory=inventoryPanel({items:()=>g?.runtime.data.items??[],inventory:()=>g?.runtime.state.inventory??{},selectedTool:()=>g?.equipment.hands??null,selectTool:id=>{g?.equipment.setHands(id);renderTool();},playInstrument:id=>{if(g?.equipment.hands===id)ui.open('instrument');},headgear:deps.headgear,gasLevel:()=>deps.player().gas??0,gasCapacity:()=>deps.player().maxGas??200,
     consume:deps.eatFood?(id)=>{const result=deps.eatFood!(id);center.notify(result.ok?'success':'warning',result.message);return result.ok;}:undefined});
   ui.register('inventory','Sac',{render:b=>inventory.render(b),onClose:()=>{inventory.markSeen();deps.audio?.emit('ui.inventory.close',{source:'ui'});}});
 
@@ -257,7 +267,8 @@ export function createGameUi(deps:GameUiDeps){
   host.append(quick,minimap.element,tool,oxygen,stamina,gas,velocity);
   ui.onChange(id=>{if(id)hideAudioPopover();});
   const card=activityCard(host,(plotId,cropId)=>{const name=a?.selectCrop(plotId,cropId);if(name){center.notify('info','Culture choisie : '+name);deps.audio?.emit('farm.seedbag',{source:'player'});}});
-  function renderTool(){const item=g?.runtime.data.items.find(i=>i.id===selectedTool);tool.textContent=item?'En main : '+item.name:'';tool.classList.toggle('hide',!item);}
+  function renderTool(){const item=g?.runtime.data.items.find(i=>i.id===g?.equipment.hands);tool.textContent=item?'En main : '+item.name:'';tool.classList.toggle('hide',!item);}
+  renderTool();
   // Gameplay changes → notifications (gains, missions) and open panel refresh.
   let lastInventory:Record<string,number>={...(g?.runtime.state.inventory??{})},lastObjectives={...(g?.runtime.state.objectives??{})};
   function snapshot(){lastInventory={...(g?.runtime.state.inventory??{})};lastObjectives={...(g?.runtime.state.objectives??{})};}
@@ -266,7 +277,8 @@ export function createGameUi(deps:GameUiDeps){
     if(restoring)return;
     const inv=g.runtime.state.inventory;for(const [id,q] of Object.entries(inv)){const d=q-(lastInventory[id]??0);if(d>0)center.gain(id,g.runtime.data.items.find(i=>i.id===id)?.name??id,d);}
     for(const text of questChanges(g.runtime.data.objectives,lastObjectives,g.runtime.state.objectives))center.quest(text);
-    snapshot();if(ui.active==='inventory'||ui.active==='journal')ui.refresh();
+    snapshot();renderTool();if(ui.active==='inventory'||ui.active==='journal')ui.refresh();
+    if(ui.active==='instrument'&&!instrumentForItem(g.equipment.hands))ui.close();
   });
   let lastFrame=-1,promptKey='';
   return {

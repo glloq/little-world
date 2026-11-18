@@ -16,7 +16,8 @@ export interface GameSaveV2 extends Omit<GameSaveV1,'schemaVersion'> {schemaVers
   /** Per-station workshop queues and finished products; missing in older V2 saves. */workshops?:Record<string,WorkshopStateV1>;
   /** Per-counter budgets, physical stock and applied transaction IDs. */markets?:Record<string,MarketStateV1>;
   /** Last imported purchase acknowledged by this world's atomic inventory save. */
-  cargoPurchaseRevision?:number}
+  cargoPurchaseRevision?:number;
+  /** Optional hand slot; old V1/V2 saves continue to load without it. */equippedItemId?:string|null;}
 export type GameSave=GameSaveV2;
 /** Activity payloads above this size go to IndexedDB (when available). */
 export const INLINE_ACTIVITY_LIMIT=256*1024;
@@ -58,6 +59,7 @@ export function parseGameSave(value:unknown):GameSaveV2 {
   if(v.cargoPurchaseRevision!==undefined)
     assert(Number.isSafeInteger(v.cargoPurchaseRevision)&&finite(v.cargoPurchaseRevision,0,1_000_000_000),
       'Révision du carnet d’import invalide');
+  if(v.equippedItemId!==undefined&&v.equippedItemId!==null)assert(typeof v.equippedItemId==='string'&&identifier(v.equippedItemId),'Objet équipé invalide');
   const flightProgress=parseFlightProgress(v.flightProgress);
   if(v.gasReserve!==undefined)assert(typeof v.gasReserve==='number'&&Number.isFinite(v.gasReserve)&&v.gasReserve>=0&&v.gasReserve<=gasCapacity({gasCapacityLevel:flightProgress.capacityLevel}),'Réserve de gaz invalide');
   if(v.external!==undefined)assert(record(v.external)&&typeof v.external.key==='string'&&v.external.key.length<=300&&finite(v.external.bytes,0,1e9),'Référence de données de partie invalide');
