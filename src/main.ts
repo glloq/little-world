@@ -1607,6 +1607,7 @@ function draw(now: number) {
         inventory: gameplay ? { ...gameplay.runtime.state.inventory } : null,
         surf:surfField?{
           zoneId:surfField.zone.id,stage:player.surfStage??null,airborne:!!player.surfAirborne,
+          equipped:gameplay?.equipment.hands==='tool:surfboard',
           wave:surfField.sample(player.position.x,player.position.z,motionTick),
           boardVisible:!!surfBoardView&&scene.getObjectByName('HamsterSurfboard')?.visible===true,
           zones:surfFields.length,features:surfFeatures.length,
