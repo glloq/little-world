@@ -217,7 +217,7 @@ export function planSettlement(p: ProjectDocument, raw: SettlementRecipe): Settl
         }
     const zones=settlementSurroundings(p,r,paths,query,entities,amenities,diagnostics,preserved);
     const inhabitant=localLife(p,r,amenities,buildings,zones);if(inhabitant){entities.push(inhabitant.entity);amenities.push(inhabitant.record);if(inhabitant.dialogue)dialogues[inhabitant.dialogue.id]=inhabitant.dialogue;if(inhabitant.preserved)preserved.push(inhabitant.entity.id);}
-    const population=settlementPopulation(p,r,amenities,buildings);
+    const population=settlementPopulation(p,r,amenities,buildings,zones);
     if(population.limited)diagnostics.push({severity:'WARNING',code:'LIFE_NPC_LIMIT',message:'Budget de PNJ atteint : certains habitants ne sont pas générés.'});
     entities.push(...population.entities);amenities.push(...population.records);
     Object.assign(dialogues,population.dialogues);preserved.push(...population.preserved);
