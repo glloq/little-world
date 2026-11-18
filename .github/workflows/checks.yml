@@ -49,6 +49,8 @@ jobs:
             sleep 1
           done
           curl -fsS http://127.0.0.1:5173/little-world/ > /dev/null
+      - name: Ferry timetable, map, rowboat and cinematic preview (solo)
+        run: node tools/test-ferry-browser.mjs
       - name: Compiled application startup checks
         run: node tools/run-browser-check.mjs published
       - name: Studio browser checks
@@ -107,8 +109,6 @@ jobs:
         run: node tools/run-browser-check.mjs hamster
       - name: Near trees and rocks stay drawn (cache eviction)
         run: node tools/run-browser-check.mjs dressing-stability
-      - name: Ferry timetable, map, rowboat and cinematic preview (solo)
-        run: node tools/test-ferry-browser.mjs
       - name: Docks and boats (walk on docks, board moored boats)
         run: node tools/run-browser-check.mjs boats
       - name: Swimming and diving (half-submerged, Space dives, camera-steered)
