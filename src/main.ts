@@ -668,7 +668,7 @@ function input(): Controls {
     cameraPitch: pitch - 0.32,
     boostHeld:flightBoostHeld(player.mode,shiftHeld,touchAccelerateHeld),
     swimStrokePressed:touchStrokeQueue>0,
-    snowEquipment:snowDemo?snowEquipment:null,
+    snowEquipment:snowDemo?snowEquipment:gameplay?.equipment.hands==='tool:snowboard'?'snowboard':gameplay?.equipment.hands==='tool:skis'?'skis':null,
   };
 }
 function gameplayInputActive():boolean{
