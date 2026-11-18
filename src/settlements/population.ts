@@ -26,7 +26,7 @@ export function settlementPopulation(p:ProjectDocument,r:SettlementRecipe,amenit
   if(old?.suppressedAmenities?.includes('resident'))return output;
   const place=amenities.find(a=>a.role==='well')??amenities.find(a=>a.role==='bench');
   if(!place)return output;
-  const wanted=buildings.length>=10?2:1;
+  const wanted=r.residentDensity==='low'?(buildings.length>=10?1:0):r.residentDensity==='high'?Math.min(3,Math.floor(buildings.length/4)):buildings.length>=10?2:1;
   const existingPeople=Object.values(p.entityIndex).filter(e=>e.kind==='character').length;
   const retainedPeople=(old?.amenities??[]).filter(a=>a.role==='resident'&&!!p.entityIndex[a.id]).length;
   const addingHost=old?.amenities?.some(a=>a.role==='host')?0:1;
@@ -84,7 +84,7 @@ export function settlementPopulation(p:ProjectDocument,r:SettlementRecipe,amenit
     const point=field.polygon.reduce((v,p)=>({x:v.x+p.x/field.polygon.length,z:v.z+p.z/field.polygon.length}),{x:0,z:0});
     if(!jobs.some(j=>j.role==='farmer'))jobs.push({role:'farmer',point,anchorId:field.id});
   }
-  const workers=Math.min(jobs.length,buildings.length>=16?3:1);
+  const workers=Math.min(jobs.length,r.residentDensity==='low'?(buildings.length>=10?1:0):r.residentDensity==='high'?(buildings.length>=16?4:2):buildings.length>=16?3:1);
   let available=Math.max(0,100-existingPeople+retainedPeople-addingHost-output.entities.filter(e=>!p.entityIndex[e.id]).length);
   if(available<workers)output.limited=true;
   for(let i=0;i<Math.min(workers,available);i++){
