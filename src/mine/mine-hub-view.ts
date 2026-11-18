@@ -32,6 +32,9 @@ export function createMineHubView(hub:MineHubLayout,solid:THREE.Material,glow:TH
   root.name='MineHub:'+hub.mineId+':'+hub.levelId;
   root.position.set(hub.shaft.x,hub.floorY,hub.shaft.z);
   root.rotation.y=hub.heading;
+  // Screen-right in Little World's third-person camera is world -X.
+  // Mirror the shared prefab to keep the counter on SCREEN-LEFT and lift right.
+  root.scale.x=-1;
   // The authored mine may have only 2.5 m headroom. Compress height, not floor layout.
   root.scale.y=Math.min(1,(hub.height-.15)/3.33);
   root.userData={mineId:hub.mineId,levelId:hub.levelId,kind:'mine-hub',
