@@ -24,7 +24,7 @@ import {
 import type { Player } from './player.ts';
 import {terrainHeight} from './terrain.ts';
 import {createResidentRouter,type ResidentPath,type ResidentWalkable} from './npc-life/routes.ts';
-import {residentHour,residentShift,residentPoseAt,type ResidentPose} from './npc-life/schedule.ts';
+import {residentHour,residentShift,residentPoseAt,residentRoute,positionOnResidentRoute,type ResidentPose,type ResidentRoute} from './npc-life/schedule.ts';
 import {residentDialogue,residentContextForHour} from './npc-life/dialogue.ts';
 import './npc.css';
 
@@ -155,8 +155,9 @@ export function createNPCSystem(
 ) {
   const bounds=getTerrainConfig();
   if (!validateNPCs(definitions,bounds)) throw new Error('Liste de PNJ invalide');
+  const walkable=(x:number,z:number,fx:number,fz:number)=>canNPCWalk(x,z,fx,fz,obstacles)&&(!lifeOptions?.walkable||lifeOptions.walkable(x,z,fx,fz));
   const router=lifeOptions&&definitions.some(d=>d.routine)
-    ?createResidentRouter(lifeOptions.paths,(x,z,fromX,fromZ)=>canNPCWalk(x,z,fromX,fromZ,obstacles)&&(!lifeOptions.walkable||lifeOptions.walkable(x,z,fromX,fromZ))):null;
+    ?createResidentRouter(lifeOptions.paths,walkable):null;
   const dialogue=createDialoguePanel(state=>{
     const base=dialogueFactory?.(state)??(state.definition.dialogue?createDialogue(state.definition.dialogue,state.flags):undefined);
     const routine=state.definition.routine;
@@ -242,6 +243,7 @@ export function createNPCSystem(
       appliedEmotion: definition.appearance.emotion,
       lastWorkAt:-1,
       lastGreetAt:-1,
+      scripted:null as null|{route:ResidentRoute;startAt:number;pausedFor:number;pauseFrom:number|null;arrivedAt:number|null},
     };
   });
   function nearest(player: NPCPoint) {
@@ -257,8 +259,36 @@ export function createNPCSystem(
     }
     return best;
   }
+  function moveTo(id:string,target:{x:number;y:number;z:number}):boolean{
+    const entry=entries.find(e=>e.state.definition.id===id);
+    if(!entry||!lifeOptions||!Number.isFinite(target.x)||!Number.isFinite(target.z))return false;
+    const from={x:entry.state.x,z:entry.state.z},to={x:target.x,z:target.z};
+    if(Math.hypot(to.x-from.x,to.z-from.z)<.25)return true;
+    let route=router?.route(from,to)??null;
+    if(!route&&Math.hypot(to.x-from.x,to.z-from.z)<24){
+      const steps=Math.ceil(Math.hypot(to.x-from.x,to.z-from.z));
+      let ok=true,last=from;
+      for(let i=1;i<=steps;i++){
+        const t=i/steps,p={x:from.x+(to.x-from.x)*t,z:from.z+(to.z-from.z)*t};
+        if(!walkable(p.x,p.z,last.x,last.z)){ok=false;break;}last=p;
+      }
+      if(ok)route=residentRoute([from,to]);
+    }
+    if(!route)return false;
+    entry.scripted={route,startAt:lifeOptions.worldTime(),pausedFor:0,pauseFrom:null,arrivedAt:null};
+    return true;
+  }
+  function talkTo(id:string,playerPosition:NPCPoint):boolean{
+    const entry=entries.find(e=>e.state.definition.id===id);
+    if(!entry||dialogue.isOpen||Math.hypot(entry.state.x-playerPosition.x,entry.state.z-playerPosition.z)>5.5||
+      !entry.state.definition.dialogue&&!entry.state.definition.routine)return false;
+    dialogue.open(entry.state);
+    return dialogue.isOpen;
+  }
   return {
     dialogue,
+    moveTo,
+    talkTo,
     setLighting(color:THREE.Color|null){distant.setLighting(color);},
     states: entries.map((entry) => entry.state),
     get lifeStats(){return {assigned:entries.filter(e=>!!e.state.definition.routine).length,routed:entries.filter(e=>!!e.life).length,roadNodes:router?.nodes??0,roadTruncated:router?.truncated??false};},
@@ -267,7 +297,33 @@ export function createNPCSystem(
       distant.begin();distant.update(time);
       for (const entry of entries) {
         const { state, life, player, proxy } = entry;
-        if(life&&lifeOptions&&state.definition.routine){
+        if(entry.scripted&&lifeOptions){
+          const job=entry.scripted,now=lifeOptions.worldTime();
+          if(now<job.startAt){entry.scripted=null;}
+          else{
+            const talking=dialogue.npcId===state.definition.id;
+            state.activity=npcActivity(Math.hypot(position.x-state.x,position.z-state.z));
+            state.previousX=state.x;state.previousY=state.y;state.previousZ=state.z;
+            if(talking){
+              if(job.pauseFrom===null)job.pauseFrom=now;
+              state.phase='talk';state.vx=0;state.vz=0;
+            }else{
+              if(job.pauseFrom!==null){job.pausedFor+=now-job.pauseFrom;job.pauseFrom=null;}
+              const distance=Math.max(0,Math.min(job.route.length,(now-job.startAt-job.pausedFor)*Math.max(.2,state.definition.speed)));
+              const p=positionOnResidentRoute(job.route,distance);
+              state.x=p.x;state.z=p.z;state.y=terrainHeight(p.x,p.z);
+              state.vx=dt>0?(p.x-state.previousX)/dt:0;state.vz=dt>0?(p.z-state.previousZ)/dt:0;
+              state.heading=Math.atan2(state.vx,state.vz);
+              state.phase=distance>=job.route.length?'idle':'walk';
+              if(distance>=job.route.length){
+                state.vx=0;state.vz=0;
+                if(job.arrivedAt===null)job.arrivedAt=now;
+                if(now-job.arrivedAt>60&&Math.hypot(position.x-state.x,position.z-state.z)>40)entry.scripted=null;
+              }
+            }
+          }
+        }
+        if(!entry.scripted&&life&&lifeOptions&&state.definition.routine){
           const now=lifeOptions.worldTime(),routine=state.definition.routine;
           if(now<life.lastTime){life.pausedSeconds=0;life.pauseFrom=null;life.lastSample=-1;}
           life.lastTime=now;
@@ -303,7 +359,7 @@ export function createNPCSystem(
               }
             }else{state.vx=0;state.vz=0;}
           }
-        }else updateNPC(state,dt,position,obstacles);
+        }else if(!entry.scripted)updateNPC(state,dt,position,obstacles);
         const tier = npcVisualTier(
           Math.hypot((camera?.position.x??position.x) - state.x, (camera?.position.z??position.z) - state.z),
           state.definition.kind,
