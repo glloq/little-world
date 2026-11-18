@@ -2,6 +2,7 @@ import {settlementSurroundings} from './surroundings.ts';
 import {neighborhoodNetwork,networkPattern} from './neighborhood-network.ts';
 import {settlementMaritimePort} from './maritime-port.ts';
 import {localLife} from './local-life.ts';
+import {settlementPopulation} from './population.ts';
 import {riverCrossing} from './river-crossing.ts';
 import {bridgeColliders} from './bridge.ts';
 import {isCorridor,corridorStreet} from './corridor.ts';
@@ -216,6 +217,10 @@ export function planSettlement(p: ProjectDocument, raw: SettlementRecipe): Settl
         }
     const zones=settlementSurroundings(p,r,paths,query,entities,amenities,diagnostics,preserved);
     const inhabitant=localLife(p,r,amenities,buildings,zones);if(inhabitant){entities.push(inhabitant.entity);amenities.push(inhabitant.record);if(inhabitant.dialogue)dialogues[inhabitant.dialogue.id]=inhabitant.dialogue;if(inhabitant.preserved)preserved.push(inhabitant.entity.id);}
+    const population=settlementPopulation(p,r,amenities,buildings);
+    entities.push(...population.entities);amenities.push(...population.records);
+    Object.assign(dialogues,population.dialogues);preserved.push(...population.preserved);
+    for(const id of population.conflicts)diagnostics.push({severity:'ERROR',code:'LIFE_ID_CONFLICT',targetId:id,message:'Un personnage manuel utilise déjà cet identifiant.'});
     return { zones,dialogues,recipe: r, sourceHash: settlementSourceHash(p), recipeHash: fingerprint(r), entities, paths, buildings,...(r.services||r.waterfront||previous?.amenities?{amenities}:{}), diagnostics, preserved: [...new Set(preserved)], removed, generationMs: performance.now() - started };
 }
 export { HABITAT_ASSETS };
