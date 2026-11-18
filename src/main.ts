@@ -27,8 +27,9 @@ import './style.css';
 import {waterSurface,riverX,isLegacyTerrain} from './terrain.ts';
 import {createFleet} from './gameplay/fleet.ts';
 import {loadArchipelagoRegistry,type PublishedIsland} from './archipelago/registry.ts';
-import {beginTransit,pendingTransit,clearTransit,partitionTravelerInventory,FERRY_RECOVERY_KEY,
+import {beginTransit,pendingTransit,clearTransit,FERRY_RECOVERY_KEY,
   } from './archipelago/transit.ts';
+import {loadPortableCheckpoint,savePortableCheckpoint,withPortableItems} from './archipelago/portable-inventory.ts';
 import {ferryStatus,ferryEventsBetween,worldGameMinute} from './archipelago/ferry-schedule.ts';
 import {createFerryView} from './archipelago/ferry-view.ts';
 import {withFerryBells} from './archipelago/ferry-audio.ts';
@@ -193,6 +194,16 @@ if(searchParams.has('studioBuild')||worldPath){
     definition=playable.world;
   }catch(error){bootFailure(error);}
 }
+// The island's published gameplay is immutable on disk; extend only the in-memory item
+// catalogue with portable goods, so foreign goods work after a ferry ride or refresh.
+const retainedPortable=activeIsland&&playable&&!incomingTransit?(()=>{
+  try{return loadPortableCheckpoint(localStorage,activeIsland.id,playable!.gameplay.worldId);}
+  catch(error){console.warn('Sac portable inaccessible :',error);return null;}
+})():null;
+if(playable){
+  const traveler=incomingTransit?.traveler??retainedPortable?.traveler;
+  if(traveler)playable.gameplay.items=withPortableItems(playable.gameplay.items,traveler);
+}
 loading.boot(.45,'Construction du relief…');
 const world = buildWorld(definition.config, definition);
 world.setImpostorLighting(lighting);
@@ -242,8 +253,6 @@ try{
  }catch{console.warn('Audio indisponible : le jeu reste silencieux.');}
 const {createGroundProbe}=await import('./audio/world-probe.ts'),groundProbe=createGroundProbe();
 let gameplay:GameplayView|null=null;
-// Items specific to a previously visited island stay in portable escrow until usable again.
-let unavailableTravelItems:Record<string,number>={};
 if(playable){
   const {createGameplayView}=await import('./gameplay/game-view.ts');
   gameplay=createGameplayView(playable.gameplay,{onSound:(id,p)=>audio?.playSound(id,p),collisions:playable.collisions,temporary:!!(studioTest||buildScope),saveScope:studioTest?.snapshotId??buildScope??undefined,getPosition:()=>({x:player.position.x,y:player.position.y,z:player.position.z}),objects:world.objects,showInfo,
@@ -303,10 +312,12 @@ async function travelToIsland(destination:PublishedIsland):Promise<{ok:boolean;m
     await openCompiledWorld(publishedManifestURL(import.meta.env.BASE_URL,destination.manifest));
     const save=g.compose('slot-ferry-auto');
     await g.slots.save(save);
-    const inventory={...unavailableTravelItems};
-    for(const [id,qty] of Object.entries(save.inventory))inventory[id]=(inventory[id]??0)+qty;
+    // Every owned item is carried, including products specific to this island.
+    // Their definitions are bundled so a destination does not silently hide them.
+    const inventory={...save.inventory};
     beginTransit(sessionStorage,source,destination,worldClock.time,{
-      inventory,gasReserve:save.gasReserve??gasLevel(player),
+      inventory,items:g.runtime.data.items.filter(item=>(inventory[item.id]??0)>0),
+      gasReserve:save.gasReserve??gasLevel(player),
       flightProgress:save.flightProgress??flightProgress,
     });
     checkpointWritten=true;
@@ -1165,18 +1176,55 @@ if(incomingTransit&&gameplay&&playable){
   try{
     const saved=await gameplay.slots.load(playable.gameplay.worldId,'slot-ferry-auto');
     const base=saved??gameplay.compose('slot-ferry-auto');
-    const bag=partitionTravelerInventory(incomingTransit.traveler.inventory,gameplay.runtime.data.items);
     const landing=playable.spawn;
     const position={x:landing.x,y:terrainHeight(landing.x,landing.z)+landing.y+.08,z:landing.z};
     gameplay.restore({...base,slotId:'slot-ferry-auto',time:incomingTransit.worldSeconds,position,space:null,
-      inventory:bag.equipped,gasReserve:incomingTransit.traveler.gasReserve,
+      inventory:{...incomingTransit.traveler.inventory},gasReserve:incomingTransit.traveler.gasReserve,
       flightProgress:incomingTransit.traveler.flightProgress});
-    unavailableTravelItems=bag.stashed;
+    // The destination slot holds local activity state; a separate portable checkpoint holds
+    // the complete bag across refreshes. Neither one is the short-lived ferry ticket.
+    await gameplay.slots.save(gameplay.compose('slot-ferry-auto'));
+    savePortableCheckpoint(localStorage,activeIsland!.id,playable.gameplay.worldId,{
+      inventory:{...gameplay.runtime.state.inventory},
+      items:gameplay.runtime.data.items.filter(item=>(gameplay!.runtime.state.inventory[item.id]??0)>0),
+      gasReserve:gasLevel(player),flightProgress,
+    });
     ferryMinute=worldGameMinute(worldClock.time,climate.definition.dayLengthSeconds);
     ferryNow=ferryStatus(ferryMinute,activeIsland!.portLevel);
     ferryView?.setPresent(ferryNow.present);
     clearTransit(sessionStorage);
   }catch(error){bootFailure(error);}
+}
+// Refreshing the destination does not consume a ferry ticket: resume its local world
+// snapshot with the most recent portable inventory and item definitions.
+if(!incomingTransit&&retainedPortable&&gameplay&&playable){
+  try{
+    const saved=await gameplay.slots.load(playable.gameplay.worldId,'slot-ferry-auto');
+    if(!saved)throw Error('Point de reprise de voyage introuvable');
+    gameplay.restore({...saved,inventory:{...retainedPortable.traveler.inventory},
+      gasReserve:retainedPortable.traveler.gasReserve,
+      flightProgress:retainedPortable.traveler.flightProgress});
+    ferryMinute=worldGameMinute(worldClock.time,climate.definition.dayLengthSeconds);
+    ferryNow=ferryStatus(ferryMinute,activeIsland!.portLevel);
+    ferryView?.setPresent(ferryNow.present);
+  }catch(error){bootFailure(error);}
+}
+// Keep the portable checkpoint current after every validated gameplay mutation, not every
+// render frame. A failed write is explicit; never silently discard goods.
+if(activeIsland&&gameplay&&(incomingTransit||retainedPortable)){
+  const active=activeIsland,g=gameplay;let warned=false;
+  g.subscribe(()=>{
+    try{
+      savePortableCheckpoint(localStorage,active.id,g.runtime.data.worldId,{
+        inventory:{...g.runtime.state.inventory},
+        items:g.runtime.data.items.filter(item=>(g.runtime.state.inventory[item.id]??0)>0),
+        gasReserve:gasLevel(player),flightProgress,
+      });warned=false;
+    }catch(error){
+      if(!warned){warned=true;console.warn('Impossible de sauvegarder le sac portable :',error);
+        showInfo('Stockage du sac portable indisponible : exportez une sauvegarde.','warning');}
+    }
+  });
 }
 // Gameplay starts automatically when the first rendered spawn area is ready.
 overlay.setAttribute('aria-busy','false');loading.boot(1);
