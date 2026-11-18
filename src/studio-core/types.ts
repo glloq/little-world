@@ -23,6 +23,8 @@ export type CharacterSpecies='squirrel'|'animal'|'hamster';
 export type CharacterRigId='squirrel-rigid'|'hamster-rigid';
 export interface CharacterComponent {type:'Character';species:CharacterSpecies;rigId:CharacterRigId;appearance:Appearance;}
 export interface NavigationComponent {type:'Navigation';behaviorId:StableId;speed:number;radius:number;path?:PointXZ[];}
+/** Authored resident anchors and role; source-owned, projected to runtime NPCs. */
+export type ResidentComponent=import('../npc-life/schedule.ts').ResidentRoutineV1;
 export interface BehaviorRefComponent {type:'BehaviorRef';behaviorId:StableId;}
 export interface DialogueActorComponent {type:'DialogueActor';dialogueIds:StableId[];}
 export interface StateComponent {type:'State';initial:Record<string,StateValue>;}
@@ -44,7 +46,7 @@ export interface ComponentMap {
  ShopAccess?:import('../gameplay/shop-access.ts').ShopAccessComponent;
   Bridge?:import('../settlements/bridge.ts').BridgeComponent;
   Habitat?:import('../settlements/habitat.ts').HabitatComponent;
-  Transform?:TransformComponent;Visual?:VisualComponent;Character?:CharacterComponent;Navigation?:NavigationComponent;
+  Transform?:TransformComponent;Visual?:VisualComponent;Character?:CharacterComponent;Navigation?:NavigationComponent;Resident?:ResidentComponent;
   BehaviorRef?:BehaviorRefComponent;DialogueActor?:DialogueActorComponent;State?:StateComponent;Persistence?:PersistenceComponent;
   Interactable?:InteractableComponent;Collider?:ColliderComponent;Animator?:AnimatorComponent;TriggerVolume?:TriggerVolumeComponent;Light?:LightComponent;NaturalStructure?:import('../structures/natural-structure.ts').NaturalStructureSpec;
 }
