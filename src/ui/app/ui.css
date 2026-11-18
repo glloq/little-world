@@ -156,3 +156,6 @@ body.developer .hud-stats{bottom:68px}
  .ui-item-symbol{font-size:22px}
  .ui-quest-expanded{padding-left:13px}
 }
+
+/* Compact refill hint on each edible inventory card (no extra asset or layout layer). */
+.ui-item-gas{font-size:10px;font-weight:700;line-height:1.1;color:#356b49}
