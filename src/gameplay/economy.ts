@@ -21,7 +21,7 @@ export const STARTING_KIT=[
   {itemId:'food:chanterelle',quantity:2},{itemId:'food:cepe',quantity:1},
   {itemId:'food:cheese',quantity:1},
 ];
-export type ToolId='tool:axe'|'tool:pickaxe'|'tool:pickaxe-steel'|'tool:fishing-rod';
+export type ToolId='tool:axe'|'tool:pickaxe'|'tool:pickaxe-steel'|'tool:fishing-rod'|'tool:miners-helmet';
 interface Priced extends ItemDefinition {buy?:number;sell?:number}
 /** Core item catalogue (merged into every playable world, project items win on id clashes). */
 export const ECONOMY_ITEMS:Priced[]=[
@@ -29,6 +29,7 @@ export const ECONOMY_ITEMS:Priced[]=[
   {id:'tool:axe',name:'Hache',category:'outil',maxQuantity:1,buy:25,sell:10,description:'Abat les arbres et fournit des bûches.'},
   {id:'tool:pickaxe',name:'Pioche',category:'outil',maxQuantity:1,buy:30,sell:12,description:'Creuse la roche quatre fois plus vite qu’à mains nues.'},
   {id:'tool:pickaxe-steel',name:'Pioche d’acier',category:'outil',maxQuantity:1,buy:140,sell:60,description:'Vient à bout des filons durs et du cristal.'},
+  {id:'tool:miners-helmet',name:'Casque de mineur lumineux',category:'outil',maxQuantity:1,buy:35,sell:14,description:'Casque low-poly avec une lampe frontale pour les galeries obscures. Équipement de tête indépendant de la pioche.'},
   {id:'tool:fishing-rod',name:'Canne à pêche',category:'outil',maxQuantity:1,buy:20,sell:8,description:'Permet de pêcher dans la mer, les rivières et les lacs.'},
   {id:'wood:log',name:'Bûche',category:'bois',maxQuantity:999,sell:3,buy:6,description:'Bois d’un arbre abattu.'},
   {id:'food:apple',name:'Pomme',category:'cueillette',maxQuantity:999,sell:2,buy:4},
@@ -63,7 +64,7 @@ export type ShopKind='mine'|'forest'|'port'|'market'|'farm'|'inn';
 export interface ShopDefinition {kind:ShopKind;name:string;sells:string[];buys:string[];greeting:string}
 /** Counter catalogues per place (data, editable in a later Studio panel). */
 export const SHOPS:Record<ShopKind,ShopDefinition>={
-  mine:{kind:'mine',name:'Comptoir de la mine',sells:['tool:pickaxe','tool:pickaxe-steel'],buys:['mine:stone','mine:iron','mine:crystal'],greeting:'Une pioche solide, et la montagne vous rendra riche.'},
+  mine:{kind:'mine',name:'Comptoir de la mine',sells:['tool:pickaxe','tool:pickaxe-steel','tool:miners-helmet'],buys:['mine:stone','mine:iron','mine:crystal'],greeting:'Une pioche solide, et la montagne vous rendra riche.'},
   forest:{kind:'forest',name:'Comptoir du bûcheron',sells:['tool:axe'],buys:['wood:log','forage:mushroom','forage:flower'],greeting:'Coupez sans dévaster : la forêt repousse si on la respecte.'},
   port:{kind:'port',name:'Comptoir du port',sells:['tool:fishing-rod'],buys:['fish:trout','fish:perch','fish:carp','fish:mackerel','fish:sardine','fish:seabass','fish:golden','forage:reed'],greeting:'Le poisson est frais ? Je vous l’achète.'},
   market:{kind:'market',name:'Marché',sells:['tool:axe','tool:fishing-rod','seed:wheat','seed:carrot','seed:pumpkin','wood:log'],buys:['food:apple','food:pear','food:plum','food:cherry','forage:mushroom','forage:flower','farm:wheat','farm:carrot','farm:pumpkin','wood:log'],greeting:'Fruits, champignons, récoltes : tout se vend au marché !'},
