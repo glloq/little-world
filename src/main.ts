@@ -1237,7 +1237,8 @@ function draw(now: number) {
   gasEffects.update(delta);
   impacts.update(delta);
   updateHud();
-  fishingHud.update(gameplay?.fishing.state??null,touchCapable);
+  const fishingView=gameplay?.fishing.state??null;
+  fishingHud.update(fishingView,touchCapable,fishingView?.fish&&gameplay?gameplay.itemName(fishingView.fish):undefined);
   if(elapsed-lastCourseHudAt>.2){
     lastCourseHudAt=elapsed;
     flightCourseHud.hidden=!flightCourse;
