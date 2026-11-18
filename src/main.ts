@@ -25,6 +25,8 @@ import {createSurfFeatureState,stepSurfFeatures} from './surf/surf-features.ts';
 import {createSurfFeaturesView} from './render/surf-features-view.ts';
 import {createSurfWaveField} from './surf/wave-field.ts';
 import {createSurfWaterView} from './render/surf-water-view.ts';
+import {createSurfBarrelView} from './render/surf-barrel-view.ts';
+import {sampleSurfBarrel} from './surf/surf-barrel.ts';
 import {createSurfBoardView} from './render/surf-board-view.ts';
 import {createSurfHud} from './ui/surf/surf-hud.ts';
 import {boardLift,liftRideStep,type SkiLift,type LiftRide} from './snow/ski-lift.ts';
@@ -440,11 +442,13 @@ const surfField=surfSite?createSurfWaveField(surfSite.zone,terrainHeight):
   authoredSurfZone?createSurfWaveField(authoredSurfZone,terrainHeight):null;
 const surfRace=surfSite?makeDemoSurfRace(surfSite,activeIsland?.id??gameplay?.runtime.data.worldId??'surf-demo'):null;
 const surfWaterView=surfField?createSurfWaterView(scene,surfField,terrainHeight):null;
+const surfBarrelView=surfField&&surfField.zone.barrelStrength?createSurfBarrelView(scene,surfField,terrainHeight):null;
 const surfBoardView=surfField?createSurfBoardView(scene):null;
 const surfHud=surfField?createSurfHud(document.body):null;
 let nextSurfHudAt=0;
 const surfFeatures=surfSite?makeDemoSurfFeatures(surfSite):(playable?.surfFeatures??[]).filter(f=>surfField&&f.x>=surfField.zone.minX&&f.x<=surfField.zone.maxX&&f.z>=surfField.zone.minZ&&f.z<=surfField.zone.maxZ);
 const surfFeatureState=createSurfFeatureState();
+let seenBarrelSuccess=0,seenBarrelCrash=0;
 const surfFeatureView=surfField&&surfFeatures.length?createSurfFeaturesView(scene,surfFeatures,surfField.zone.seaLevel):null;
 if(surfField)world.setSurfArea(surfField.zone);
 if(surfSite&&surfField){
@@ -1282,6 +1286,9 @@ function tick(dt: number) {
     gameplay?.trees?.update(player.position,player.space);
     simulatePlayer(player, keys, dt,gameplay?.collision,surfField??undefined,motionTick+1);motionTick++;
     if(keys.surfActionPressed)surfQueue=0;
+    if(player.barrelEntryTick===motionTick)showInfo('Tube ! Suivez la crête pour ressortir avant la fermeture.');
+    if((player.barrelSuccessSeq??0)>seenBarrelSuccess){seenBarrelSuccess=player.barrelSuccessSeq??0;showInfo('Tube traversé !','success');}
+    if((player.barrelCrashSeq??0)>seenBarrelCrash){seenBarrelCrash=player.barrelCrashSeq??0;showInfo('Le tube se referme : chute !','warning');}
     if(surfFeatures.length){
       for(const event of stepSurfFeatures(player,surfFeatures,surfFeatureState,motionTick,previousPlayerPosition,surfField?.zone.seaLevel)){
         if(event.kind==='ramp'){player.jumpSeq=(player.jumpSeq??0)+1;player.glideReady=false;}
@@ -1455,6 +1462,7 @@ function draw(now: number) {
   world.setUnderground(!!player.space);
   world.update(delta, player.position, camera, renderer.domElement.height, player.velocity);
   surfWaterView?.update(motionTick,frame.alpha);
+  surfBarrelView?.update(motionTick,player.position);
   if(!loading.ready&&loading.update({terrainPending:world.stats.pending,dressingPending:world.dressing?.nearPending??0,speciesState:world.dressing?.species.state??'none'}))beginGame();
   remoteActors?.update(delta,elapsed,camera,renderer.domElement.height,budget.level);
   npcs.update(delta, elapsed, player.position,camera); // The river drives the mill: no manual on/off control.
@@ -1474,6 +1482,7 @@ function draw(now: number) {
       stage:player.surfAirborne?'air':player.surfStage??'paddle',
       speedMps:Math.hypot(player.velocity.x,player.velocity.z),
       crest:surfField?.sample(player.position.x,player.position.z,motionTick)?.crest??null,
+      tubeActive:player.barrelEntryTick!==undefined,
     }:null);
   }
   // Mining headgear follows the animated head bone (including turning/looking).
@@ -1555,6 +1564,9 @@ function draw(now: number) {
           wave:surfField.sample(player.position.x,player.position.z,motionTick),
           boardVisible:!!surfBoardView&&scene.getObjectByName('HamsterSurfboard')?.visible===true,
           features:surfFeatures.length,patchTriangles:surfWaterView?.mesh.geometry.index?.count?surfWaterView.mesh.geometry.index.count/3:0,
+          barrel:surfBarrelView?{enabled:true,stats:{...surfBarrelView.stats},
+            sample:sampleSurfBarrel(surfField,terrainHeight,player.position.x,player.position.z,motionTick),
+            inside:player.barrelEntryTick!==undefined,escaped:player.barrelSuccessSeq??0,closed:player.barrelCrashSeq??0}:null,
         }:null,
         target: currentTarget()?.primaryAction?.label ?? null,
         targetId: currentTarget()?.targetId ?? null,
@@ -1611,7 +1623,7 @@ function draw(now: number) {
   }
   requestAnimationFrame(draw);
 }
-window.addEventListener('pagehide',event=>{if(event.persisted)void audio?.engine.setHidden(true);else {detachPortCollisions?.();ferryView?.dispose();remoteActors?.dispose();mineRhythmHud.dispose();mineHelmet.dispose();gasEffects.dispose();flightRings.dispose();raceGates.dispose();raceTrackView.dispose();flightCourseHud.remove();raceHud.remove();fishingHud.dispose();fishingEffects.dispose();speedStreaks.dispose();surfWaterView?.dispose();surfBoardView?.dispose();surfFeatureView?.dispose();surfHud?.dispose();gpuTimer.dispose();void audio?.dispose();}});
+window.addEventListener('pagehide',event=>{if(event.persisted)void audio?.engine.setHidden(true);else {detachPortCollisions?.();ferryView?.dispose();remoteActors?.dispose();mineRhythmHud.dispose();mineHelmet.dispose();gasEffects.dispose();flightRings.dispose();raceGates.dispose();raceTrackView.dispose();flightCourseHud.remove();raceHud.remove();fishingHud.dispose();fishingEffects.dispose();speedStreaks.dispose();surfWaterView?.dispose();surfBarrelView?.dispose();surfBoardView?.dispose();surfFeatureView?.dispose();surfHud?.dispose();gpuTimer.dispose();void audio?.dispose();}});
 window.addEventListener('pageshow',event=>{if(event.persisted&&started)void audio?.engine.setHidden(document.hidden);});
 document.addEventListener('visibilitychange', () => {
   presentation.reset();
