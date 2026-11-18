@@ -56,6 +56,6 @@ export function liftRideStep(lift:SkiLift,ride:LiftRide,time:number):{pose:LiftP
     return {pose:{x:p.x,y:p.y,z:p.z},finished:true};
   }
   ride.phase='riding';
-  const p=sampleAscending(lift,elapsed*lift.speed);
-  return {pose:{x:p.x,y:p.y-1.1,z:p.z},finished:false};
+  // Use the exact same seat sample as the view: rider and chair cannot drift apart.
+  return {pose:seatPosition(lift,time,ride.seatIndex),finished:false};
 }
