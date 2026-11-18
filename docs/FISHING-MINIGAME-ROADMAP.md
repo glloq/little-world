@@ -1,10 +1,10 @@
 # FISH — Roadmap d'implémentation : mini-jeu de pêche
 
-> **Statut global : PLANIFIÉ / 0 lot implémenté par cette PR**. Base auditée : `main` du 18/11/2026. Cette branche **n'apporte que de la documentation** ; ne pas confondre tâches proposées avec fonctionnalités livrées.
+> **Statut global : IMPLÉMENTATION EN COURS sur `docs/fishing-minigame-v1-roadmap` (PR #77), NON QUALIFIÉE**. Audit basé sur `main` du 18/11/2026. Le noyau, le HUD et le raccordement PC/mobile sont maintenant codés, mais les tests navigateur ciblant la boucle complète, le polish 3D et la qualification bas de gamme restent à terminer.
 >
 > Source de vérité technique : [FISHING-MINIGAME-TECHNICAL-DESIGN.md](FISHING-MINIGAME-TECHNICAL-DESIGN.md).
 >
-> Stratégie : **petites PR verticales** à partir d'un `main` à jour, pas de développement simultané de plusieurs branches divergentes. Valider + merger un lot avant de commencer le suivant ; ré-auditer les fichiers après tout merge concurrent.
+> Stratégie : cette première implémentation reste sur la **branche explicitement demandée** et dans la PR #77. Pour les évolutions après cette PR, découper en petits lots, repartir d'un `main` à jour, éviter les branches divergentes et requalifier après tout merge concurrent.
 
 ## 1. Découpage et dépendances
 
@@ -116,19 +116,26 @@ Le MVP est accepté **uniquement si** :
 4. Le jeu reste **statique sur GitHub Pages** (pas de serveur), qualité low-poly et coûts CPU/GPU comparés à baseline.
 5. Le statut `DONE` et les captures/perfs de validation sont consignés **avec le commit de test**.
 
+## Avancement constaté — 18 novembre 2026
+
+- Les **698 tests unitaires** de GitHub Actions ont réussi sur le code de pêche ; `check:impostors`, `check:world-assets` et `npm run build` ont ensuite réussi après suppression de la modification du source hamster incluse dans l'empreinte d'atlas.
+- Parcours navigateur généraux du démarrage, gameplay/sauvegardes, Studio et interface : progression des vérifications sur le run [Validate Little World #44352207315](https://github.com/glloq/little-world/actions/runs/44352207315).
+- **Ne pas considérer FISH-3 et FISH-4 qualifiés** sans essai automatisé de la séquence lancer → ferrer → mouliner/relâcher → capture sur PC **et** tactile. Les tests historiques du hamster vérifient seulement la canne et la ligne lors du lancer.
+- Une modification de `src/hamster/hamster.ts` invalide actuellement le hash de l'atlas `characters`. L'amélioration visuelle FISH-5 devra soit régénérer les impostors, soit utiliser une couche de présentation isolée sans modifier la source prise en compte par l'outil.
+
 ## 5. Pilotage et suivi
 
 À chaque lot, noter ici une ligne de progression : **ID / statut (TODO, IN_PROGRESS, REVIEW, DONE, BLOCKED) / branche+PR / SHA validé / tests+résultats / points restants**. Statut initial ci-dessous :
 
 | ID | Statut | PR | Validation | Reste |
 | --- | --- | --- | --- | --- |
-| FISH-0 | TODO | — | — | Baseline |
-| FISH-1 | TODO | — | — | Moteur pur |
-| FISH-2 | TODO | — | — | Tension |
-| FISH-3 | TODO | — | — | Contrôles et HUD |
-| FISH-4 | TODO | — | — | Monde et inventaire |
-| FISH-5 | TODO | — | — | Effets |
-| FISH-6 | TODO | — | — | Tests finaux |
+| FISH-0 | REVIEW | #77 | Audit source et CI unitaire/compilation ; captures/perfs initiales absentes | Baseline navigateur/performance |
+| FISH-1 | REVIEW | #77 | `fishing.ts` / `fishing-data.ts`, tests unitaires passés | Contrôles de non-régression finale |
+| FISH-2 | REVIEW | #77 | Tests de tension/rupture et 7 espèces passés | Calibrage artistique et gameplay |
+| FISH-3 | REVIEW | #77 | `main.ts`, `touch-controls.ts`, HUD compact, build réussi | Test navigateur de moulinage PC/tactile |
+| FISH-4 | REVIEW | #77 | `grantItems` uniquement en fin de combat ; test unitaires | Scénarios de navigation, save et inventaire plein en navigateur |
+| FISH-5 | TODO | — | — | Polish VFX/audio ; hamster inchangé pour préserver atlas impostors |
+| FISH-6 | TODO | — | — | Suite CI complète, navigateur PC/tactile, benchmark 4–8 Go |
 | FISH-7 | BACKLOG | — | — | Évolutions optionnelles |
 
 ### Ordre recommandé pour démarrer
