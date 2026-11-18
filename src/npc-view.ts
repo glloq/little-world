@@ -375,8 +375,8 @@ export function createNPCSystem(
           model.group.name='NPC:'+state.definition.id;
           scene.add(model.group);
           entry.model=model;entry.hamster=hamster;
-          entry.head=hamster?null:model.group.getObjectByName('HeadJoint');
-          entry.arm=hamster?null:model.group.getObjectByName('ArmRight');
+          entry.head=hamster?null:(model.group.getObjectByName('HeadJoint')??null);
+          entry.arm=hamster?null:(model.group.getObjectByName('ArmRight')??null);
         }
         // Beyond the immediate player neighborhood, free whole animated rigs.
         // Impostors use pre-existing atlases and do not require model instances.
