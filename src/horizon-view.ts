@@ -15,9 +15,10 @@ import type {GeoWorkerPool} from './geography/geo-workers.ts';
  * water/terrain depth fighting at kilometres.
  * Purely derived visuals: no collision, simulation or source data depends on it.
  */
+export interface SurfAreaRect {minX:number;maxX:number;minZ:number;maxZ:number}
 export interface CoverageSource {version:number;tileSize:number;/** minY: lowest point of the displayed tile (skirts excluded) when known. */forEachActive(visit:(column:number,row:number,minY?:number)=>void):void}
 export interface HorizonStats {blocks:number;triangles:number;bytes:number;buildMs:number;rebuilt:number;coverageUpdates:number;oceanVisible:boolean}
-export interface HorizonView {group:THREE.Group;stats:HorizonStats;update(focus?:{x:number;z:number}):void;setSurfArea(area:{minX:number;maxX:number;minZ:number;maxZ:number}|null):void;refresh(x:number,z:number,radius:number):void;dispose():void}
+export interface HorizonView {group:THREE.Group;stats:HorizonStats;update(focus?:{x:number;z:number}):void;setSurfArea(area:SurfAreaRect|null):void;setSurfAreas(areas:readonly SurfAreaRect[]):void;refresh(x:number,z:number,radius:number):void;dispose():void}
 
 interface Block {mesh:THREE.Mesh;full:Uint16Array|Uint32Array;minX:number;minZ:number;cellsX:number;cellsZ:number}
 export function createHorizonView(root:THREE.Group,bounds:HorizonBounds,coverage:CoverageSource,workers:GeoWorkerPool|null=null):HorizonView{
@@ -61,7 +62,7 @@ export function createHorizonView(root:THREE.Group,bounds:HorizonBounds,coverage
   // Open sea: an opaque ring around the project rectangle (no pixel over the island) and
   // one water quad per displayed tile that reaches below sea level (rebuilt on coverage change).
   let ring:THREE.Mesh|null=null,near:THREE.Mesh|null=null;
-  let surfArea:{minX:number;maxX:number;minZ:number;maxZ:number}|null=null;
+  let surfAreas:SurfAreaRect[]=[];
   // A tile intersecting a surf rectangle can split into four shoreline strips.
   const nearCapacity=2048;
   if(!legacy){
@@ -91,24 +92,32 @@ export function createHorizonView(root:THREE.Group,bounds:HorizonBounds,coverage
       if(quads>=nearCapacity||(minY!==undefined&&minY>bounds.seaLevel))return;
       const x0=-bounds.width/2+column*tile,z0=-bounds.length/2+row*tile;
       const x1=Math.min(bounds.width/2,x0+tile),z1=Math.min(bounds.length/2,z0+tile);
-      const s=surfArea;
-      if(!s){push(x0,x1,z0,z1);return;}
-      const left=Math.max(x0,s.minX),right=Math.min(x1,s.maxX);
-      const bottom=Math.max(z0,s.minZ),top=Math.min(z1,s.maxZ);
-      if(left>=right||bottom>=top){push(x0,x1,z0,z1);return;}
-      // Remove the exact wave-owned rectangle rather than keeping partially-overlapping
-      // flat quads: otherwise flat NearSea hides troughs and causes depth/alpha seams.
-      push(x0,left,z0,z1);
-      push(right,x1,z0,z1);
-      push(left,right,z0,bottom);
-      push(left,right,top,z1);
+      // Subtract every surf-owned rectangle, including partial tile intersections.
+      // A/B/C can share the same coast without flat NearSea obscuring their troughs.
+      let parts:SurfAreaRect[]=[{minX:x0,maxX:x1,minZ:z0,maxZ:z1}];
+      for(const s of surfAreas){
+        const next:SurfAreaRect[]=[];
+        for(const q of parts){
+          const left=Math.max(q.minX,s.minX),right=Math.min(q.maxX,s.maxX),
+            bottom=Math.max(q.minZ,s.minZ),top=Math.min(q.maxZ,s.maxZ);
+          if(left>=right||bottom>=top){next.push(q);continue;}
+          if(q.minX<left)next.push({minX:q.minX,maxX:left,minZ:q.minZ,maxZ:q.maxZ});
+          if(right<q.maxX)next.push({minX:right,maxX:q.maxX,minZ:q.minZ,maxZ:q.maxZ});
+          if(q.minZ<bottom)next.push({minX:left,maxX:right,minZ:q.minZ,maxZ:bottom});
+          if(top<q.maxZ)next.push({minX:left,maxX:right,minZ:top,maxZ:q.maxZ});
+        }
+        parts=next;
+        if(!parts.length)break;
+      }
+      for(const q of parts)push(q.minX,q.maxX,q.minZ,q.maxZ);
     });
     attribute.needsUpdate=true;
     near.geometry.setDrawRange(0,quads*6);
   }
   let coverageVersion=-1;
   return {group,stats,
-    setSurfArea(area){surfArea=area;rebuildNear();},
+    setSurfArea(area){surfAreas=area?[area]:[];rebuildNear();},
+    setSurfAreas(areas){surfAreas=areas.slice(0,32).map(a=>({...a}));rebuildNear();},
     update(){
       if(coverage.version===coverageVersion)return;coverageVersion=coverage.version;
       const previous=mask.slice();mask.fill(0);
