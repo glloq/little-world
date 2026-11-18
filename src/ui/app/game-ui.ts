@@ -23,7 +23,7 @@ import {createMineMapPanel,type MineMapSnapshot} from '../map/mine-map.ts';
 import {mineHubLayout} from '../../mine/mine-hub.ts';
 import {createWaypointStore} from '../map/waypoints.ts';
 import {hudIcon} from '../shared/icons.ts';
-import {DEMO_RACES,type DemoRaceId} from '../../gameplay/race-demos.ts';
+import {DEMO_RACES} from '../../gameplay/race-demos.ts';
 import {savesPanel} from '../saves/saves.ts';
 import {settingsPanel} from '../settings/settings.ts';
 import {pauseMenu} from '../menus/pause.ts';

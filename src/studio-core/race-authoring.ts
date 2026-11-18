@@ -1,6 +1,6 @@
 /** Versioned, project-owned courses. Mutations belong to Studio's shared CommandBus. */
 import type {ProjectDocument,WorldDefinitionV3} from './types.ts';
-import {validateRace,type RaceDefinition,type RaceGate,type RaceKind,type RacePoint} from '../gameplay/races.ts';
+import {validateRace,type RaceDefinition,type RaceGate,type RaceKind} from '../gameplay/races.ts';
 const isObj=(v:unknown):v is Record<string,unknown>=>!!v&&typeof v==='object'&&!Array.isArray(v);
 const only=(v:Record<string,unknown>,keys:readonly string[],label:string)=>{
  for(const k of Object.keys(v))if(!keys.includes(k))throw Error(label+' : champ inconnu '+k);
