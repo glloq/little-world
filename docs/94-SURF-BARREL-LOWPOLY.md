@@ -61,6 +61,40 @@ Les règles sont arcade et provisoires : le personnage n'a pas encore
 de vraie collision capsule contre chaque triangle de la lèvre ; seul un
 volume analytique détermine s'il peut tenir sous la voûte.
 
+## Brassage aquatique : nageur ou surfeur tombé dans le tube
+
+Extension V1.1 : `src/surf/barrel-wash.ts`, `src/render/surf-tumble-pose.ts`.
+
+- **Déclenchement** : le tube se ferme sur le surfeur, le joueur tombe dans la
+  bande de déferlement, ou nage à la surface au passage de la lèvre.
+- **Déplacement** : impulsion bornée vers la côte, puis courant amorti pendant
+  environ **1,05 s**, vitesse horizontale toujours limitée à **11,5 m/s**.
+  L'impulsion est intégrée **après** les contrôles classiques de nage, et
+  avant l'intégration de la position : le joueur est entraîné sans téléportation.
+- **Animation** : le hamster se replie puis effectue deux rotations dans
+  le sens de sa trajectoire, avec retour debout naturel. Elle se superpose
+  à `HamsterAnimator` et ne demande aucun nouveau GLB ni draw call.
+- **Physique** : le mode reste `swim`, **pas** `roll` (roulade terrestre) :
+  conservation de la flottabilité, de l'oxygène et des collisions de l'eau.
+- **Échappatoire** : sous la surface (`dive`, drapeau `diving`, `Ctrl`
+  tenu ou immersion d'au moins 1,05 m), le brassage est **désactivé immédiatement**,
+  y compris s'il était déjà lancé. La plongée reste contrôlable.
+- **Anti-boucle** : 66 ticks de cooldown empêchent les retriggers de crête ;
+  le joueur ne peut pas rééquiper la planche pendant l'entraînement.
+- **Déterminisme** : durée, phase d'animation, compteur et cooldown inclus
+  dans le snapshot de mouvement validé et le replay. Pas de hasard par frame.
+- **UX** : HUD contextuel, notification et effet d'entrée dans l'eau
+  existant, sans ajout de fichier audio lourd.
+
+`tests/surf-barrel.test.mjs` vérifie séparément : nageur happé, fermeture
+de tube, vitesse bornée, immunité par plongée (même pendant le brassage),
+vrai `simulatePlayer` à 30 Hz, animation purement visuelle et validation
+des sauvegardes de mouvement.
+
+Le brassage ne simule pas un courant hydrodynamique réaliste : c'est
+une **force d'arcade courte**, bornée, pilotée par le champ de vagues.
+La forme du tube et sa détection doivent encore être observées en navigateur.
+
 ## Réglages Studio, compatibilité
 
 `SurfZone.barrelStrength?: number` entre 0 et 1 :
