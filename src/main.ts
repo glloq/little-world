@@ -26,11 +26,13 @@ import {
 import './style.css';
 import {waterSurface,riverX,isLegacyTerrain} from './terrain.ts';
 import {createFleet} from './gameplay/fleet.ts';
-import {loadArchipelagoRegistry} from './archipelago/registry.ts';
+import {loadArchipelagoRegistry,type PublishedIsland} from './archipelago/registry.ts';
+import {beginTransit,pendingTransit,clearTransit,partitionTravelerInventory,FERRY_RECOVERY_KEY,
+  type FerryTransit} from './archipelago/transit.ts';
 import {ferryStatus,ferryEventsBetween,worldGameMinute} from './archipelago/ferry-schedule.ts';
 import {createFerryView} from './archipelago/ferry-view.ts';
 import {withFerryBells} from './archipelago/ferry-audio.ts';
-import {showFerryCinematic} from './ui/ferry/ferry-cinematic.ts';
+import {showFerryCinematic,holdFerryArrival} from './ui/ferry/ferry-cinematic.ts';
 import {worldAsset} from './world-production/registry.ts';
 import type {PlayableWorld,StudioPlaytest} from './gameplay/playable.ts';
 import {WorldClock} from './environment/clock.ts';
@@ -147,9 +149,24 @@ const worldPath=searchParams.get('world')??(searchParams.has('studioPreview')||s
 // The published registry is optional for Studio/test builds. No backend is required.
 const archipelago=worldPath?await loadArchipelagoRegistry(import.meta.env.BASE_URL).catch(()=>null):null;
 const activeIsland=archipelago?.islands.find(island=>island.manifest===worldPath)??null;
+const incomingTransit=activeIsland?(()=>{try{return pendingTransit(sessionStorage,activeIsland);}catch{return null;}})():null;
+// The destination builds under an inexpensive boat view. Full browser navigation has
+// already released the source WebGL context before the target bootstrap begins.
+const travelArrivalOverlay=incomingTransit?holdFerryArrival('Arrivée sur '+activeIsland!.name+'…'):null;
+function recoverJourney(error:unknown){
+  if(!incomingTransit)return;
+  try{
+    clearTransit(sessionStorage);
+    sessionStorage.setItem(FERRY_RECOVERY_KEY,'Traversée annulée : '+String(error).slice(0,180));
+    const back=new URL(location.href);
+    back.searchParams.set('world',incomingTransit.sourceManifest);
+    back.searchParams.delete('spawn');back.searchParams.delete('studioBuild');
+    location.replace(back.toString());
+  }catch{travelArrivalOverlay?.dispose();}
+}
 let definition = defaultWorld();
 let playable:PlayableWorld|null=null,studioTest:StudioPlaytest|null=null,buildScope:string|null=null;
-function bootFailure(error:unknown):never{overlay.setAttribute('aria-busy','false');overlay.dataset.state='error';const message=overlay.querySelector<HTMLElement>('.start-error');if(message){message.hidden=false;message.querySelector('p')!.textContent=String(error);}start.disabled=true;throw error;}
+function bootFailure(error:unknown):never{recoverJourney(error);overlay.setAttribute('aria-busy','false');overlay.dataset.state='error';const message=overlay.querySelector<HTMLElement>('.start-error');if(message){message.hidden=false;message.querySelector('p')!.textContent=String(error);}start.disabled=true;throw error;}
 if(searchParams.has('studioBuild')||worldPath){
   // Compiled V3 reader: the same path for published worlds and Studio test builds.
   try{
@@ -225,6 +242,8 @@ try{
  }catch{console.warn('Audio indisponible : le jeu reste silencieux.');}
 const {createGroundProbe}=await import('./audio/world-probe.ts'),groundProbe=createGroundProbe();
 let gameplay:GameplayView|null=null;
+// Items specific to a previously visited island stay in portable escrow until usable again.
+let unavailableTravelItems:Record<string,number>={};
 if(playable){
   const {createGameplayView}=await import('./gameplay/game-view.ts');
   gameplay=createGameplayView(playable.gameplay,{onSound:(id,p)=>audio?.playSound(id,p),collisions:playable.collisions,temporary:!!(studioTest||buildScope),saveScope:studioTest?.snapshotId??buildScope??undefined,getPosition:()=>({x:player.position.x,y:player.position.y,z:player.position.z}),objects:world.objects,showInfo,
@@ -253,8 +272,8 @@ const ferryAnchor=activeIsland?definition.placements.filter(p=>/(dock|harbor|por
 const ferryDock=(()=>{
   if(!activeIsland)return null;
   const x=ferryAnchor?.x??player.position.x,z=ferryAnchor?.z??player.position.z;
-  for(const radius of [6,10,15,22,32,45,60])for(let i=0;i<16;i++){
-    const a=i*Math.PI/8,px=x+Math.cos(a)*radius,pz=z+Math.sin(a)*radius;
+  for(const radius of [6,10,15,22,32,45,60,80,110,145])for(let i=0;i<20;i++){
+    const a=i*Math.PI/10,px=x+Math.cos(a)*radius,pz=z+Math.sin(a)*radius;
     if(waterDepth(px,pz)>1.5)return {x:px,z:pz,y:getTerrainConfig().seaLevel-.12};
   }
   return null;
@@ -262,6 +281,44 @@ const ferryDock=(()=>{
 // Boarding remains on the walkable shore/quay, not six metres offshore under the rowboat.
 const ferryBoardingPoint=activeIsland?{x:ferryAnchor?.x??player.position.x,z:ferryAnchor?.z??player.position.z}:null;
 const ferryView=ferryDock?createFerryView(scene,ferryDock):null;
+const canBoardFerry=()=>!!ferryBoardingPoint&&!!ferryDock&&!player.space&&!aboard&&
+  Math.hypot(player.position.x-ferryBoardingPoint.x,player.position.z-ferryBoardingPoint.z)<4.5;
+function islandURL(path:string):string{
+  const url=new URL(location.href);
+  url.searchParams.set('world',path);
+  for(const key of ['studioPreview','studioBuild','beta','spawn','yaw','pitch','dist','night'])url.searchParams.delete(key);
+  return url.toString();
+}
+async function travelToIsland(destination:PublishedIsland):Promise<{ok:boolean;message:string}>{
+  const g=gameplay,source=activeIsland;
+  if(!g||!source||!archipelago||!archipelago.islands.some(i=>i.id===destination.id&&i.manifest===destination.manifest))
+    return {ok:false,message:'Destination non publiée dans cet archipel.'};
+  if(destination.id===source.id)return {ok:false,message:'Vous êtes déjà sur cette île.'};
+  if(!ferryNow.present||!canBoardFerry())return {ok:false,message:'Le bateau est absent ou vous êtes trop loin du rameur.'};
+  let checkpointWritten=false;
+  try{
+    // Check every compiled descriptor BEFORE persisting the departure or unloading anything.
+    // No second terrain, textures, geometry or Three.js scene are instantiated here.
+    const {openCompiledWorld,publishedManifestURL}=await import('./runtime/compiled-world.ts');
+    await openCompiledWorld(publishedManifestURL(import.meta.env.BASE_URL,destination.manifest));
+    const save=g.compose('slot-ferry-auto');
+    await g.slots.save(save);
+    const inventory={...unavailableTravelItems};
+    for(const [id,qty] of Object.entries(save.inventory))inventory[id]=(inventory[id]??0)+qty;
+    beginTransit(sessionStorage,source,destination,worldClock.time,{
+      inventory,gasReserve:save.gasReserve??gasLevel(player),
+      flightProgress:save.flightProgress??flightProgress,
+    });
+    checkpointWritten=true;
+    clearGameplayInput();
+    await showFerryCinematic('En route vers '+destination.name+'…');
+    location.assign(islandURL(destination.manifest));
+    return {ok:true,message:'Chargement de '+destination.name+'…'};
+  }catch(error){
+    if(checkpointWritten)try{clearTransit(sessionStorage);}catch{/* storage unavailable */}
+    return {ok:false,message:'Traversée impossible : '+String(error).slice(0,175)};
+  }
+}
 let ferryMinute=worldGameMinute(worldClock.time,climate.definition.dayLengthSeconds);
 let ferryNow=ferryStatus(ferryMinute,activeIsland?.portLevel??0);
 ferryView?.setPresent(ferryNow.present);
@@ -312,9 +369,9 @@ world.update(0, player.position);
     player:()=>({gas:gasLevel(player),maxGas:gasCapacity(player),gasShots:gasShots(player),gasMaxShots:gasMaxShots(player),gasCooldown:player.gasCooldown??0,x:player.position.x,y:player.position.y,z:player.position.z,yaw,space:player.space,mode:player.mode,oxygen:player.oxygen,maxOxygen:MAX_OXYGEN,stamina:player.stamina??MAX_STAMINA,maxStamina:MAX_STAMINA,speed:player.velocity.length(),stalled:player.stalled}),
     ferry:activeIsland&&ferryDock&&archipelago?{
       currentIslandId:activeIsland.id,islands:archipelago.islands,
-      dock:{x:ferryDock.x,z:ferryDock.z},state:()=>ferryNow,
+      dock:{x:ferryDock.x,z:ferryDock.z},state:()=>ferryNow,canBoard:canBoardFerry,
       preview:()=>{void showFerryCinematic('Essai de la traversée · retour sur cette île');},
-      travel:async()=>({ok:false,message:'La prochaine île d’exemple doit d’abord être générée, validée et ajoutée au catalogue statique.'}),
+      travel:travelToIsland,
     }:undefined,
     target:()=>currentTarget(),
     home:()=>{stopFlightCourse();started=false;mobileTouch?.setEnabled(false);mobileLandscape?.stop();gameUi?.controller.close();keySet.clear();overlay.classList.remove('hide');overlay.classList.add('home-mode');start.hidden=false;start.focus();}});
@@ -598,6 +655,11 @@ function beginGame(fromGesture=false){
   overlay.classList.add('hide');overlay.classList.remove('home-mode');
   start.hidden=true;
   gameUi?.started();
+  travelArrivalOverlay?.finish();
+  if(!incomingTransit)try{
+    const message=sessionStorage.getItem(FERRY_RECOVERY_KEY);
+    if(message){sessionStorage.removeItem(FERRY_RECOVERY_KEY);showInfo(message,'warning');}
+  }catch{/* optional recovery notice */}
   mobileLandscape?.start();
   mobileTouch?.setEnabled(!mobileLandscape?.blocked);
   renderer.domElement.focus({preventScroll:true});
@@ -1014,7 +1076,7 @@ function draw(now: number) {
         boatModel: world.boat.getObjectByName('Sailboat') ? 'sailboat' : 'procedural',
         boatPosition: [boat.x, boat.y, boat.z],
         boats: { count: fleet.boats.length, aboard, current: fleet.current?.id ?? null },
-        ferry: activeIsland ? {islandId:activeIsland.id,level:activeIsland.portLevel,boat:ferryDock,boarding:ferryBoardingPoint,present:ferryNow.present,minutesUntilDeparture:ferryNow.minutesUntilDeparture} : null,
+        ferry: activeIsland ? {islandId:activeIsland.id,level:activeIsland.portLevel,boat:ferryDock,boarding:ferryBoardingPoint,present:ferryNow.present,minutesUntilDeparture:ferryNow.minutesUntilDeparture,worldId:gameplay?.runtime.data.worldId??null} : null,
         paths: { ...world.paths },
         lights: { ...world.lights.stats },
         activities: activityView&&gameplay ? { ...activityView.stats, space: player.space ?? null,
@@ -1080,6 +1142,26 @@ camera.position.set(
   player.position.z - 24,
 );
 camera.lookAt(player.position);
+// One-time destination restore after all player, camera, NPC and UI systems exist.
+// Destination-specific activity states come from that island's own travel slot, while
+// the portable bag, boost progression and common clock come from the transit envelope.
+if(incomingTransit&&gameplay&&playable){
+  try{
+    const saved=await gameplay.slots.load(playable.gameplay.worldId,'slot-ferry-auto');
+    const base=saved??gameplay.compose('slot-ferry-auto');
+    const bag=partitionTravelerInventory(incomingTransit.traveler.inventory,gameplay.runtime.data.items);
+    const landing=playable.spawn;
+    const position={x:landing.x,y:terrainHeight(landing.x,landing.z)+landing.y+.08,z:landing.z};
+    gameplay.restore({...base,slotId:'slot-ferry-auto',time:incomingTransit.worldSeconds,position,space:null,
+      inventory:bag.equipped,gasReserve:incomingTransit.traveler.gasReserve,
+      flightProgress:incomingTransit.traveler.flightProgress});
+    unavailableTravelItems=bag.stashed;
+    ferryMinute=worldGameMinute(worldClock.time,climate.definition.dayLengthSeconds);
+    ferryNow=ferryStatus(ferryMinute,activeIsland!.portLevel);
+    ferryView?.setPresent(ferryNow.present);
+    clearTransit(sessionStorage);
+  }catch(error){bootFailure(error);}
+}
 // Gameplay starts automatically when the first rendered spawn area is ready.
 overlay.setAttribute('aria-busy','false');loading.boot(1);
 requestAnimationFrame(draw);
