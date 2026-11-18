@@ -61,7 +61,7 @@ Utiliser `CHROMIUM_PATH` pour cibler un Chromium compatible si nécessaire.
 Le résultat inclut : vendor/renderer WebGL, `navigator.deviceMemory` si exposé,
 FPS présentés, p95 du temps de travail JS/rendu, niveau du budget graphique,
 nombre de draw calls, triangles, triangles de la zone surf et 2 captures.
-Fichiers dans `/tmp/little-world-browser` (adapter le chemin si nécessaire).
+Fichiers dans le répertoire temporaire du système, sous `little-world-browser` (`/tmp/little-world-browser` sous Linux ou `%TEMP%\\little-world-browser` sous Windows). Le rapport utilise également `os.totalmem()` pour n'accorder le statut GPU intégré 4–8 Go qualifié qu'à une machine ayant réellement cette plage de RAM, et non à une grande machine dont le navigateur expose 8 Go par approximation.
 
 **Cibles provisoires** : 30 FPS visés, 20 FPS de repli ;
 pas de dépassement prolongé de 50 ms du p95 de travail ;
