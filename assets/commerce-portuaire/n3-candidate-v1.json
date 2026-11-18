@@ -1,7 +1,7 @@
 {
   "id": "port_trade_n3_candidate_v1",
   "visualLevel": 3,
-  "status": "candidate_visual_review_required",
+  "status": "accepted_visual_baseline_mesh_review_pending",
   "createdAt": "2026-11-18",
   "sourceGlb": "public/models/commerce-portuaire/port-trade-n3-candidate-v1.glb",
   "viewer": "examples/port-trade-n3-candidate-v1-viewer.html",
@@ -52,12 +52,14 @@
     "PNG export"
   ],
   "pending": [
-    "validation utilisateur du N3",
+    "identifier/corriger les défauts de mesh sous une future version N3 V1.1",
     "meshes normals/intersections on graphics hardware",
     "colliders et accessibilité PNJ",
     "LODs et pivot réel",
     "performance sur PC 4-8 Go",
     "intégration catalogue/Studio et placement portuaire"
   ],
-  "license": "project-original"
+  "license": "project-original",
+  "acceptedAt": "2026-11-18",
+  "authoringNote": "L'utilisateur retient la version actuelle comme base artistique V1; le mesh doit encore être corrigé/qualifié. Le nom de fichier candidate-v1 est historique et ne doit pas changer sans migrations."
 }
