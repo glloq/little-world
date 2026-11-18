@@ -30,7 +30,7 @@ try{
   // The map marker opens schedules without granting remote departure rights.
   await map.getByRole('button',{name:'Options de carte'}).click();
   const entry=map.locator('.ui-map-entry').filter({hasText:'Bateau de voyage'});
-  await entry.getByRole('button',{name:'Horaires du bateau de voyage'}).click();
+  await entry.getByRole('button',{name:'Horaires',exact:true}).click();
   const panel=page.locator('[data-panel="ferry"]');
   await panel.waitFor({state:'visible'});
   await page.keyboard.press('Escape');
