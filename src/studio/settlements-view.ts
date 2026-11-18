@@ -31,7 +31,7 @@ export function mountSettlements(host: HTMLElement, s: StudioSession, options: {
     preview.append(canvas, result);
     root.append(form, preview, list);
     host.replaceChildren(root);
-    const fresh = () => ({...newSettlement(p.world, 'settlement-' + crypto.randomUUID().slice(0, 8), { x: Math.min(b.maxX, Math.max(b.minX, center.x)), z: Math.min(b.maxZ, Math.max(b.minZ, center.z)) }),cultivation:true,waterfront:true,localLife:true,residentRoutines:true,residentDensity:'normal' as const,layout:structuredClone(DEFAULT_SETTLEMENT_LAYOUT)});
+    const fresh = () => ({...newSettlement(p.world, 'settlement-' + crypto.randomUUID().slice(0, 8), { x: Math.min(b.maxX, Math.max(b.minX, center.x)), z: Math.min(b.maxZ, Math.max(b.minZ, center.z)) }),cultivation:true,waterfront:true,residentRoutines:true,residentDensity:'normal' as const,layout:structuredClone(DEFAULT_SETTLEMENT_LAYOUT)});
     let recipe:SettlementRecipe = fresh(), plan: SettlementPlan | null = null, disposed = false, busy = false, globalView = false, step = 1, view = { minX: b.minX, maxX: b.maxX, minZ: b.minZ, maxZ: b.maxZ };
     let viewScale=1,viewAnchor={...recipe.center},mapRevision=0,terrainKey='',placement:ReturnType<typeof placementTool>|null=null;const background=node('canvas');background.width=canvas.width;background.height=canvas.height;
     const report = (text: string, error = false) => options.status(text, error);
