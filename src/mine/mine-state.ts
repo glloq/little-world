@@ -64,9 +64,10 @@ export class MineGrid {
         const dx=b.x-a.x,dz=b.z-a.z,steps=Math.max(1,Math.ceil(Math.hypot(dx,dz)*2));
         for(let t=0;t<=steps;t++){
           const x=a.x+dx*t/steps,z=a.z+dz*t/steps;
-          // Approximately 3.5 m wide, with corners opened into the rocky walls.
-          for(let offX=-2;offX<=2;offX++)for(let offZ=-2;offZ<=2;offZ++){
-            if(offX*offX+offZ*offZ>4)continue;
+          // Six-metre extraction mouth. It spans the real timber arch, so players
+          // pass through the visually intended opening rather than a smaller hole.
+          for(let offX=-3;offX<=3;offX++)for(let offZ=-3;offZ<=3;offZ++){
+            if(offX*offX+offZ*offZ>9)continue;
             const ix=Math.floor(x+offX),iz=Math.floor(z+offZ),k=this.cell(ix,iz);
             if(k>=0&&this.mask[k])this.open[l][k]=1;
           }
