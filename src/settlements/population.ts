@@ -15,16 +15,22 @@ export interface SettlementPopulation {
   records:AmenityRecord[];
   preserved:string[];
   conflicts:string[];
+  limited:boolean;
 }
 /** Keep 0–2 children per populated village: visual life, not one rig per house. */
 export function settlementPopulation(p:ProjectDocument,r:SettlementRecipe,amenities:readonly AmenityRecord[],buildings:readonly BuildingRecord[]):SettlementPopulation{
-  const output:SettlementPopulation={entities:[],dialogues:{},records:[],preserved:[],conflicts:[]};
+  const output:SettlementPopulation={entities:[],dialogues:{},records:[],preserved:[],conflicts:[],limited:false};
   if(!r.localLife||!r.residentRoutines||buildings.length<6)return output;
   const old=p.libraries.settlements?.[r.id];
   if(old?.suppressedAmenities?.includes('resident'))return output;
   const place=amenities.find(a=>a.role==='well')??amenities.find(a=>a.role==='bench');
   if(!place)return output;
-  const count=buildings.length>=10?2:1;
+  const wanted=buildings.length>=10?2:1;
+  const existingPeople=Object.values(p.entityIndex).filter(e=>e.kind==='character').length;
+  const retainedPeople=(old?.amenities??[]).filter(a=>a.role==='resident'&&!!p.entityIndex[a.id]).length;
+  const addingHost=old?.amenities?.some(a=>a.role==='host')?0:1;
+  const count=Math.min(wanted,Math.max(0,100-existingPeople+retainedPeople-addingHost));
+  output.limited=count<wanted;
   const sorted=[...buildings].sort((a,b)=>a.slot-b.slot);
   for(let i=0;i<count;i++){
     const id=r.id+'-resident-'+i;
