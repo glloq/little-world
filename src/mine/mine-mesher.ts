@@ -14,26 +14,47 @@ export interface ChunkGeometry {positions:Float32Array;normals:Float32Array;colo
 /** Vertical subdivision of walls (bottom, belly, shoulder, ceiling seam). */
 export const WALL_ROWS=[0,.35,.72,1] as const;
 /** Maximal displacement into the rock (m): walls at mid height, ceiling vault. */
-export const MINE_RELIEF={wall:.3,vault:.45,floor:.05} as const;
+export const MINE_RELIEF={wall:.55,vault:.55,floor:.05} as const;
 const hash=(x:number,y:number,z:number)=>{const s=Math.sin(x*127.1+y*311.7+z*74.7)*43758.5453;return s-Math.floor(s);};
+/** Continuous world-space macro shape: identical at a shared chunk border.
+ * Uses only the authored cell/world coordinates and level, no per-frame noise. */
+function macroNoise(x:number,z:number,level:number,scale:number):number{
+  const fx=x/scale,fz=z/scale,ix=Math.floor(fx),iz=Math.floor(fz);
+  const tx=fx-ix,tz=fz-iz,ux=tx*tx*(3-2*tx),uz=tz*tz*(3-2*tz);
+  const a=hash(ix,level*19,iz),b=hash(ix+1,level*19,iz),
+    c=hash(ix,level*19,iz+1),d=hash(ix+1,level*19,iz+1);
+  return (a+(b-a)*ux)*(1-uz)+(c+(d-c)*ux)*uz;
+}
 export function mineChunkGeometry(state:MineState,level:number,cx:number,cz:number):ChunkGeometry{
   const p:number[]=[],n:number[]=[],c:number[]=[],idx:number[]=[],L=state.grid.levels[level],y0=L.floorY,h=L.height;
   const hub=mineHubLayout(state.grid.zone,level);
   const x0=cx*MINE_CHUNK,z0=cz*MINE_CHUNK,open=(x:number,z:number)=>state.isOpen(level,x,z);
   /** Displaced position of the grid vertex (x, row height t, z): depends only on (x,t,z) and the
    * four cells sharing the vertex column, so every quad touching it agrees. */
+  const vertexCache=new Map<string,[number,number,number]>();
   const vertex=(x:number,t:number,z:number):[number,number,number]=>{
+    const key=x+','+t+','+z,old=vertexCache.get(key);if(old)return old;
     let rx=0,rz=0,rock=0;
     for(const [ox,oz] of [[-1,-1],[0,-1],[-1,0],[0,0]] as const)if(!open(x+ox,z+oz)){rock++;rx+=ox+.5;rz+=oz+.5;}
     const k=hash(x,t*7+level*13,z),rise=t===1?mineHubRoofRise(hub,x,z):0,y=y0+t*h+rise;
+    let result:[number,number,number];
     if(rock===0){
-      // Middle of the gallery: gentle floor undulation, highest point of the vault.
-      return t===0?[x,y+(k-.5)*2*MINE_RELIEF.floor,z]:t===1?[x,y+MINE_RELIEF.vault*(.55+.45*k),z]:[x,y,z];
+      // Broad ceiling swell in gallery centres. Floor remains almost level for play.
+      const wide=macroNoise(x,z,level,7.2);
+      result=t===0?[x,y+(k-.5)*2*MINE_RELIEF.floor,z]:
+        t===1?[x,y+MINE_RELIEF.vault*(.38+.35*wide+.27*k),z]:[x,y,z];
+    }else if(rock===4)result=[x,y,z];
+    else{
+      // Two smooth rock scales: 7 m masses + 2.7 m fractured facets.
+      // Displacement points strictly into solid rock; no collision narrowing.
+      const wide=macroNoise(x,z,level,7.2),detail=macroNoise(x+31,z-11,level,2.7);
+      const len=Math.hypot(rx,rz)||1,
+        strength=.22+.49*wide+.29*detail,
+        amp=t===0?.05+.06*k:t===1?.04*k:MINE_RELIEF.wall*strength;
+      result=[x+rx/len*amp,t===1?y+.12*k:y,z+rz/len*amp];
     }
-    if(rock===4)return [x,y,z];
-    const len=Math.hypot(rx,rz)||1,amp=t===0?.05+.06*k:t===1?.04*k:MINE_RELIEF.wall*(.45+.55*k);
-    // Ceiling seam rises a little so the vault meets the walls with a rounded shoulder.
-    return [x+rx/len*amp,t===1?y+.12*k:y,z+rz/len*amp];
+    vertexCache.set(key,result);
+    return result;
   };
   const quad=(a:number[],b:number[],cc:number[],d:number[],color:number,f:number,seed:number)=>{
     const base=p.length/3;p.push(...a,...b,...cc,...d);
