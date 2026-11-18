@@ -44,6 +44,17 @@ try{
  }
  check(Math.max(...observed)-Math.min(...observed)>.025,'swell advances at the fixed simulation tick');
  check(initial.surf.features>=0,'surf feature registry is available');
+ // The board is a real hands-slot item, not a permanent debug selection.
+ await page.keyboard.press('KeyI');
+ const board=page.locator('.ui-bag-v3 [data-item="tool:surfboard"]').first();
+ await board.waitFor({state:'visible',timeout:8000});
+ await board.click();
+ if(!(await page.evaluate(()=>window.littleWorldMetrics?.surf?.equipped)))
+   await page.getByRole('button',{name:'Équiper',exact:true}).first().click();
+ await page.keyboard.press('KeyI');
+ await page.waitForFunction(()=>window.littleWorldMetrics?.surf?.equipped===true,{},{timeout:5000});
+ check((await page.evaluate(()=>window.littleWorldMetrics?.surf?.equipped))===true,
+  'the player equipped an actual surfboard from their bag');
  await page.keyboard.press('KeyB');
  await page.waitForTimeout(450);
  let after=await page.evaluate(()=>window.littleWorldMetrics);
