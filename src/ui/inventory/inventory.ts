@@ -17,7 +17,7 @@ export function inventoryViewModel(items:readonly ItemDefinition[],inventory:Rea
     const list=groups.get(label)??[];list.push(entry);groups.set(label,list);}
   return {groups:[...groups].sort(([a],[b])=>ORDER.indexOf(a)-ORDER.indexOf(b)).map(([label,entries])=>({label,entries:entries.sort((x,y)=>x.name.localeCompare(y.name,'fr'))})),kinds,total,empty:kinds===0};
 }
-export interface InventoryDeps {items():readonly ItemDefinition[];inventory():Readonly<Record<string,number>>;selectedTool():string|null;selectTool(id:string|null):void;gasLevel?:()=>number;consume?:(id:string)=>boolean}
+export interface InventoryDeps {items():readonly ItemDefinition[];inventory():Readonly<Record<string,number>>;selectedTool():string|null;selectTool(id:string|null):void;gasLevel?:()=>number;gasCapacity?:()=>number;consume?:(id:string)=>boolean}
 /** Panel renderer; `seen` is updated when the panel closes (the « new » marks then clear). */
 export function inventoryPanel(deps:InventoryDeps){
   let seen:Record<string,number>={},selected:string|null=null;
@@ -50,8 +50,13 @@ export function inventoryPanel(deps:InventoryDeps){
         if(e.tool){const inHand=deps.selectedTool()===e.id;detail.append(button(inHand?'Ranger':'Équiper',()=>{deps.selectTool(inHand?null:e.id);show(e);},'ui-button ui-primary'));}
         else if(equipment.some(t=>t.id===e.id)){detail.append(el('p','ui-muted','Équipement cosmétique prévu : action non disponible pour cet objet.'));}
         const gas=foodGasValue(e.id);
-        if(gas&&deps.consume){const action=button('Manger (+'+gas+' gaz)',()=>{if(deps.consume?.(e.id))render(body);},'ui-button');
-          action.disabled=(deps.gasLevel?.()??100)>=100;detail.append(action);}
+        if(gas&&deps.consume){
+          const level=deps.gasLevel?.()??0,max=deps.gasCapacity?.()??200;
+          const gained=Math.max(0,Math.min(gas,max-level));
+          detail.append(el('p','ui-muted','Recharge : +'+gas+' gaz · Réserve '+Math.round(level)+' / '+Math.round(max)));
+          const action=button('Manger (+'+Math.round(gained)+' gaz)',()=>{if(deps.consume?.(e.id))render(body);},'ui-button');
+          action.disabled=gained<=0;detail.append(action);
+        }
         for(const card of layout.querySelectorAll<HTMLButtonElement>('[data-item]'))card.setAttribute('aria-pressed',String(card.dataset.item===e.id));
       }
       function card(e:InventoryEntry){
