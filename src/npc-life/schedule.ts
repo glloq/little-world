@@ -6,6 +6,8 @@ export interface ResidentRoutineV1 {
   type:'Resident';version:1;role:ResidentRole;
   home:ResidentPoint;work:ResidentPoint;
   homeAnchorId?:string;workAnchorId?:string;
+  /** Optional author hours in the in-game 24h cycle. Missing = role preset. */
+  workStartHour?:number;workEndHour?:number;
 }
 export type ResidentPhase='home'|'to-work'|'work'|'to-home';
 export interface ResidentRoute {
@@ -21,7 +23,9 @@ const identifier=(v:unknown)=>typeof v==='string'&&/^[a-zA-Z0-9_.:-]{1,100}$/.te
 export function validResidentRoutine(value:unknown):value is ResidentRoutineV1{
   if(!value||typeof value!=='object'||Array.isArray(value))return false;
   const v=value as Record<string,unknown>;
-  if(Object.keys(v).some(k=>!['type','version','role','home','work','homeAnchorId','workAnchorId'].includes(k)))return false;
+  if(Object.keys(v).some(k=>!['type','version','role','home','work','homeAnchorId','workAnchorId','workStartHour','workEndHour'].includes(k)))return false;
+  if((v.workStartHour===undefined)!==(v.workEndHour===undefined))return false;
+  if(v.workStartHour!==undefined&&(!finite(v.workStartHour)||!finite(v.workEndHour)||v.workStartHour<0||v.workEndHour>24||v.workEndHour-v.workStartHour<2))return false;
   return v.type==='Resident'&&v.version===1&&(RESIDENT_ROLES as readonly string[]).includes(String(v.role))&&
     point(v.home)&&point(v.work)&&Math.abs(v.home.x)<=100000&&Math.abs(v.home.z)<=100000&&
     Math.abs(v.work.x)<=100000&&Math.abs(v.work.z)<=100000&&
@@ -39,6 +43,7 @@ const SHIFT:Record<ResidentRole,readonly [number,number]>={
   child:[9,18],villager:[9,17],
 };
 export function residentShift(role:ResidentRole):readonly [number,number]{return SHIFT[role];}
+export function residentDutyShift(routine:ResidentRoutineV1):readonly [number,number]{return routine.workStartHour===undefined?residentShift(routine.role):[routine.workStartHour,routine.workEndHour!];}
 export function residentRoute(points:readonly ResidentPoint[]):ResidentRoute{
   if(!Array.isArray(points)||points.length<1||points.length>4096||points.some(p=>!point(p)))throw Error('Parcours résident invalide');
   const distances=[0];let length=0;
@@ -62,7 +67,7 @@ export interface ResidentPose {phase:ResidentPhase;position:ResidentPoint;hour:n
  */
 export function residentPoseAt(routine:ResidentRoutineV1,route:ResidentRoute,time:number,dayLengthSeconds:number,initialDayPhase:number,speed=1.1):ResidentPose{
   if(!validResidentRoutine(routine)||!finite(speed)||speed<=0||speed>5)throw Error('Routine résident invalide');
-  const hour=residentHour(time,dayLengthSeconds,initialDayPhase),[depart,returnAt]=residentShift(routine.role);
+  const hour=residentHour(time,dayLengthSeconds,initialDayPhase),[depart,returnAt]=residentDutyShift(routine);
   const travelHours=route.length/speed/dayLengthSeconds*24;
   if(!finite(travelHours)||travelHours>Math.max(.01,(returnAt-depart)/2))throw Error('Trajet professionnel trop long pour le service');
   let phase:ResidentPhase,travelDistance=0,nextAtHour:number,reverseDirection=false;
