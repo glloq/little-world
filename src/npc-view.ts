@@ -21,7 +21,7 @@ import {
 } from './npc.ts';
 import type { Player } from './player.ts';
 import {terrainHeight} from './terrain.ts';
-import {createResidentRouter,type ResidentPath} from './npc-life/routes.ts';
+import {createResidentRouter,type ResidentPath,type ResidentWalkable} from './npc-life/routes.ts';
 import {residentHour,residentShift,residentPoseAt,type ResidentPose} from './npc-life/schedule.ts';
 import {residentDialogue,residentContextForHour} from './npc-life/dialogue.ts';
 import './npc.css';
@@ -140,6 +140,8 @@ export interface NPCLifeOptions {
   dayLengthSeconds:number;
   initialDayPhase:number;
   paths:readonly ResidentPath[];
+  /** Reuse the active world's collision broadphase for short path segments. */
+  walkable?:ResidentWalkable;
 }
 export function createNPCSystem(
   scene: THREE.Scene,
@@ -151,7 +153,7 @@ export function createNPCSystem(
   const bounds=getTerrainConfig();
   if (!validateNPCs(definitions,bounds)) throw new Error('Liste de PNJ invalide');
   const router=lifeOptions&&definitions.some(d=>d.routine)
-    ?createResidentRouter(lifeOptions.paths,(x,z,fromX,fromZ)=>canNPCWalk(x,z,fromX,fromZ,obstacles)):null;
+    ?createResidentRouter(lifeOptions.paths,(x,z,fromX,fromZ)=>canNPCWalk(x,z,fromX,fromZ,obstacles)&&(!lifeOptions.walkable||lifeOptions.walkable(x,z,fromX,fromZ))):null;
   const dialogue=createDialoguePanel(state=>{
     const base=dialogueFactory?.(state)??(state.definition.dialogue?createDialogue(state.definition.dialogue,state.flags):undefined);
     const routine=state.definition.routine;
@@ -214,7 +216,7 @@ export function createNPCSystem(
       hamster = definition.kind === 'hamster' ? buildHamster() : null,
       model = hamster ?? buildSquirrel();
     model.setAppearance(definition.appearance);
-    if (definition.kind === 'animal') model.group.scale.multiplyScalar(0.58);
+    if (definition.kind === 'animal') model.group.scale.setScalar(0.58);
     if (definition.scale!==undefined) model.group.scale.multiplyScalar(definition.scale);
     model.group.name = 'NPC:' + definition.id;
     model.group.visible = false;
