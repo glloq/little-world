@@ -230,14 +230,12 @@ export class MineState {
     return warnings;
   }
 }
-/** Stable per-cell ore quality. Never depend on tool power, strike count or frame rate. */
-function strikeNoise(level:number,ix:number,iz:number,dealt:number){let h=Math.imul(ix,0x27d4eb2d)^Math.imul(iz,0x165667b1)^Math.imul(level+1,0x9e3779b1)^Math.imul(dealt,0x85ebca6b);h=Math.imul(h^(h>>>15),0x2c1b3c6d);h^=h>>>13;return (h>>>0)/4294967296;}
 function encodeBits(bits:Uint32Array){const bytes=new Uint8Array(bits.buffer.slice(0));let s='';for(const b of bytes)s+=String.fromCharCode(b);return btoa(s);}
 function decodeBits(text:string){const s=atob(text);if(s.length!==MINE_CHUNK*4)throw Error('Chunk de mine corrompu');const bytes=new Uint8Array(s.length);for(let i=0;i<s.length;i++)bytes[i]=s.charCodeAt(i);return new Uint32Array(bytes.buffer);}
 export function parseMineSave(value:unknown):MineSaveState{
   const v=value as MineSaveState;if(!v||typeof v!=='object'||typeof v.mineId!=='string'||!Number.isFinite(v.seed)||!Number.isFinite(v.geologyVersion)||!v.levels||typeof v.levels!=='object'||!Array.isArray(v.requests)||v.requests.length>64||!v.requests.every(r=>typeof r==='string'&&r.length<=128))throw Error('État de mine invalide');
-  if(v.damage!==undefined&&(typeof v.damage!=='object'||Array.isArray(v.damage)||Object.keys(v.damage).length>256||!Object.entries(v.damage).every(([k,d])=>/^[a-zA-Z0-9_:.-]+:-?\\d+:-?\\d+$/.test(k)&&Number.isFinite(d)&&d>=0&&d<=1000)))throw Error('État de mine invalide');
-  if(v.hits!==undefined&&(typeof v.hits!=='object'||Array.isArray(v.hits)||Object.keys(v.hits).length>256||!Object.entries(v.hits).every(([k,n])=>/^[a-zA-Z0-9_:.-]+:-?\\d+:-?\\d+$/.test(k)&&Number.isInteger(n)&&n>=0&&n<=10000)))throw Error('Nombre de coups de mine invalide');
+  if(v.damage!==undefined&&(typeof v.damage!=='object'||Array.isArray(v.damage)||Object.keys(v.damage).length>256||!Object.entries(v.damage).every(([k,d])=>/^[a-zA-Z0-9_:.-]+:-?\d+:-?\d+$/.test(k)&&Number.isFinite(d)&&d>=0&&d<=1000)))throw Error('État de mine invalide');
+  if(v.hits!==undefined&&(typeof v.hits!=='object'||Array.isArray(v.hits)||Object.keys(v.hits).length>256||!Object.entries(v.hits).every(([k,n])=>/^[a-zA-Z0-9_:.-]+:-?\d+:-?\d+$/.test(k)&&Number.isInteger(n)&&n>=0&&n<=10000)))throw Error('Nombre de coups de mine invalide');
   for(const chunks of Object.values(v.levels))for(const c of Object.values(chunks)){if(!c||typeof c.b!=='string'||c.b.length!==172||!Number.isInteger(c.r))throw Error('État de mine invalide');}
   return structuredClone(v);
 }
