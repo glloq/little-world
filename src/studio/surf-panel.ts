@@ -34,7 +34,7 @@ export function mountSurfPanel(host:HTMLElement,ctx:SurfPanelContext):void{
      maxX:center.x+(longX?length:width)/2,minZ:center.z-(longZ?length:width)/2,
      maxZ:center.z+(longZ?length:width)/2,dirX:d[2],dirZ:d[3],
      seaLevel:world.seaLevel,seed:Math.max(0,world.seed),...presets[preset],
-     shoreFadeDepth:3,edgeFade:10};
+     shoreFadeDepth:3,edgeFade:10,barrelStrength:.85};
    validateSurfZone(zone);
    if(zone.minX<world.bounds.minX+4||zone.maxX>world.bounds.maxX-4||
       zone.minZ<world.bounds.minZ+4||zone.maxZ>world.bounds.maxZ-4)
@@ -73,7 +73,8 @@ export function mountSurfPanel(host:HTMLElement,ctx:SurfPanelContext):void{
    row.append(node('strong',zone.id),controls,
      field('Hauteur des vagues (m)',numberInput(zone.amplitude,v=>update({amplitude:v}),.05,5)),
      field('Longueur d’onde (m)',numberInput(zone.wavelength,v=>update({wavelength:v}),4,120)),
-     field('Vitesse front (m/s)',numberInput(zone.speed,v=>update({speed:v}),.5,22)));
+     field('Vitesse front (m/s)',numberInput(zone.speed,v=>update({speed:v}),.5,22)),
+     field('Intensité du tube 3D (0 = aucun)',numberInput(zone.barrelStrength??0,v=>update({barrelStrength:v}),0,1)));
    list.append(row);
  }
  if(!zones.length)list.append(node('p','Aucune zone de surf : les eaux restent calmes et leur physique historique est conservée.','muted'));
