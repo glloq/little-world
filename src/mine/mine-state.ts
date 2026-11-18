@@ -7,6 +7,7 @@
  *    the reward atomically (reward callback must accept first) and is idempotent per requestId.
  * Pure: no Three.js, no storage. */
 import {MINE_CHUNK,MINE_MATERIALS,geologyAt,insidePolygon,type MineZone,type MineLevelV3} from './mine-data.ts';
+import {mineHubCell} from './mine-hub.ts';
 
 export interface DigRequest {requestId:string;levelId:string;ix:number;iz:number;from:{x:number;y:number;z:number};expectedRevision?:number}
 export type DigResult={ok:true;material:number;reward:{itemId:string;quantity:number}|null;chunks:string[];revision:number}|{ok:false;reason:string};
@@ -32,6 +33,13 @@ export class MineGrid {
     // Entrance corridor on the top level (3 cells wide, 4 deep along the heading).
     const e=zone.mine.entrance,hx=Math.sin(e.heading),hz=Math.cos(e.heading);
     for(let d=0;d<5;d++)for(let s=-1;s<=1;s++){const x=Math.floor(e.x+hx*d+hz*s),z=Math.floor(e.z+hz*d-hx*s),k=this.cell(x,z);if(k>=0&&this.mask[k])this.open[0][k]=1;}
+    // MINE-HUB V1: identical reception space on every floor. Clip at authoring polygon;
+    // the persistent excavation bitsets remain independent of these initial void cells.
+    for(let l=0;l<this.levels.length;l++)for(let iz=this.minZ;iz<this.minZ+this.depth;iz++)
+      for(let ix=this.minX;ix<this.minX+this.width;ix++){
+        const k=this.cell(ix,iz);
+        if(k>=0&&this.mask[k]&&mineHubCell(zone,l,ix,iz))this.open[l][k]=1;
+      }
     // Stair landings: 3 × 5 cells around each connector, on both levels.
     for(const c of zone.mine.connectors)for(const l of [this.index.get(c.upper)!,this.index.get(c.lower)!])opened(l,Math.floor(c.x)-1,Math.floor(c.x)+2,Math.floor(c.z)-2,Math.floor(c.z)+3);
   }
