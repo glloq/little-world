@@ -7,6 +7,7 @@ import type {WorldCollisionQuery,MovementSpace,Point3} from '../physics/collisio
 import type {PlayableActivities} from './activities.ts';
 import {MINE_MATERIALS,insidePolygon,type MineZone} from '../mine/mine-data.ts';
 import {MineGrid,MineState,DIG_REACH,type MineSaveState} from '../mine/mine-state.ts';
+import {mineHubLayout,mineHubCounterId,mineRequiredExcavations,mineLevelUnlocked} from '../mine/mine-hub.ts';
 import {mineSpaceProvider,mineTransitions} from '../mine/mine-collision.ts';
 import {CROPS,type FarmZone} from '../farm/farm-data.ts';
 import {pickPower} from './economy.ts';
@@ -23,7 +24,7 @@ export function createActivityRuntime(activities:PlayableActivities,deps:Deps){
   const mines=new Map<string,{zone:MineZone;state:MineState}>(),farms=new Map<string,{zone:FarmZone;state:FarmPlotState;crop:number}>();
   const listeners=new Set<(c:ActivityChange)=>void>(),notify=(c:ActivityChange)=>{for(const l of listeners)l(c);};
   let counter=0;const requestId=(k:string)=>`${k}:${Date.now().toString(36)}:${(counter++).toString(36)}`;
-  function installMine(zone:MineZone,state:MineState){deps.collision.setSpaceProvider(zone.id,mineSpaceProvider(state));deps.collision.removeTransitions(`mine:${zone.id}:`);for(const t of mineTransitions(state,deps.ground))deps.collision.addTransition(t);mines.set(zone.id,{zone,state});}
+  function installMine(zone:MineZone,state:MineState){deps.collision.setSpaceProvider(zone.id,mineSpaceProvider(state));deps.collision.removeTransitions(`mine:${zone.id}:`);for(const t of mineTransitions(state,deps.ground))if(t.id.endsWith(':enter')||t.id.endsWith(':exit'))deps.collision.addTransition(t); // Interior floors use explicit authorised lifts.mines.set(zone.id,{zone,state});}
   for(const zone of activities.mines)installMine(zone,new MineState(new MineGrid(zone)));
   for(const zone of activities.farms)farms.set(zone.id,{zone,state:newPlotState(zone.id,zone.farm),crop:0});
 
@@ -111,6 +112,44 @@ export function createActivityRuntime(activities:PlayableActivities,deps:Deps){
     const r=act(copy,f.zone.farm,deps.climate,{requestId:'preview',type:intent.type,cropId:f.zone.farm.crops[f.crop%f.zone.farm.crops.length],time:deps.time(),waterAvailable:waterAvailable(f.zone)},()=>true);
     return {intent,ok:r.ok,reason:r.ok?undefined:r.reason};
   }
+  /** One counter / staffed hub / lift on each floor; all share the same shaft in XZ. */
+  function mineHubNear(position:Point3,space:MovementSpace|undefined,kind:'shop'|'lift'){
+    if(!space)return null;const m=mines.get(space.zoneId);
+    if(!m)return null;const level=m.state.grid.levelIndex(space.levelId);
+    if(level<0)return null;const hub=mineHubLayout(m.zone,level);
+    const shopD=Math.hypot(position.x-hub.counter.x,position.z-hub.counter.z);
+    const liftD=Math.hypot(position.x-hub.shaft.x,position.z-hub.shaft.z);
+    const heightOK=Math.abs(position.y-hub.floorY)<2.4;
+    if(!heightOK||(kind==='shop'?shopD>2.6||shopD>liftD:liftD>2.1||liftD>=shopD))return null;
+    return {...hub,counterId:mineHubCounterId(m.zone.id,hub.levelId)};
+  }
+  function mineLiftView(position:Point3,space:MovementSpace|undefined){
+    if(!space)return null;const m=mines.get(space.zoneId);
+    if(!m)return null;const index=m.state.grid.levelIndex(space.levelId);
+    if(index<0)return null;const hub=mineHubLayout(m.zone,index);
+    const dist=Math.min(Math.hypot(position.x-hub.counter.x,position.z-hub.counter.z),
+      Math.hypot(position.x-hub.shaft.x,position.z-hub.shaft.z));
+    if(dist>3.1||Math.abs(position.y-hub.floorY)>2.4)return null;
+    const excavations=[...mines.values()].reduce((sum,mine)=>sum+mine.state.excavatedCount,0);
+    return {mineId:m.zone.id,name:m.zone.name,currentLevel:hub.levelId,excavations,
+      stops:m.zone.mine.levels.map((floor,i)=>({id:floor.id,name:floor.name,
+        unlocked:mineLevelUnlocked(i,excavations),required:mineRequiredExcavations(i),current:i===index}))};
+  }
+  /** Authoritative solo command; future server must validate the same parameters.
+   * Never accept an arbitrary position or arbitrary destination from a UI button. */
+  function mineLiftTravel(position:Point3,space:MovementSpace|undefined,targetLevelId:string):
+    {ok:true;position:Point3;space:MovementSpace;message:string}|{ok:false;reason:string}{
+    const view=mineLiftView(position,space);
+    if(!view||!space)return {ok:false,reason:'Approchez du comptoir ou du monte-charge'};
+    const m=mines.get(view.mineId)!,index=m.state.grid.levelIndex(targetLevelId);
+    if(index<0)return {ok:false,reason:'Étage inconnu'};
+    if(index===m.state.grid.levelIndex(space.levelId))return {ok:false,reason:'Vous êtes déjà à cet étage'};
+    if(!mineLevelUnlocked(index,view.excavations))return {ok:false,reason:'Il faut extraire '+mineRequiredExcavations(index)+' blocs pour accéder à cet étage'};
+    const dest=mineHubLayout(m.zone,index),x=dest.shaft.x,z=dest.shaft.z;
+    if(!m.state.isOpen(index,Math.floor(x),Math.floor(z)))return {ok:false,reason:'Plateforme de destination obstruée'};
+    return {ok:true,space:{zoneId:space.zoneId,levelId:dest.levelId},
+      position:{x,y:dest.floorY,z},message:'Monte-charge : '+m.zone.mine.levels[index].name};
+  }
   /** Mine context for the HUD: mine, level, nearby passage and the way out (stairs up or exit). */
   function mineNavigation(position:Point3,space?:MovementSpace){
     if(!space)return null;const m=mines.get(space.zoneId);if(!m)return null;const level=m.state.grid.levelIndex(space.levelId);if(level<0)return null;
@@ -121,7 +160,7 @@ export function createActivityRuntime(activities:PlayableActivities,deps:Deps){
     return {mineId:m.zone.id,mineName:m.zone.name,levelIndex:level,levelName:m.state.grid.levels[level].name,levelCount:m.state.grid.levels.length,
       passage:near&&nearD<3?{label:near.label??'Passage',distance:nearD}:null,exit:out?{label:out.to===null?'Sortie':'Escalier vers le haut',...bearing(out)!}:null};
   }
-  return {mines,farms,cameraInMine,mineTarget,digPreview,farmPreview,mineNavigation,selectCrop,dig,farmNear,farmView,farmIntent,farmAct,cycleCrop,serialize,restore,subscribe(l:(c:ActivityChange)=>void){listeners.add(l);return ()=>listeners.delete(l);}};
+  return {mines,farms,cameraInMine,mineTarget,digPreview,farmPreview,mineNavigation,mineHubNear,mineLiftView,mineLiftTravel,selectCrop,dig,farmNear,farmView,farmIntent,farmAct,cycleCrop,serialize,restore,subscribe(l:(c:ActivityChange)=>void){listeners.add(l);return ()=>listeners.delete(l);}};
 }
 export type ActivityRuntime=ReturnType<typeof createActivityRuntime>;
 const NAMES:Record<string,string>={'mine:stone':'pierre','mine:iron':'minerai de fer','mine:crystal':'cristal','farm:wheat':'blé','farm:carrot':'carotte(s)','farm:pumpkin':'citrouille(s)'};
