@@ -364,6 +364,7 @@ async function travelToIsland(destination:PublishedIsland):Promise<{ok:boolean;m
       inventory,items:g.runtime.data.items.filter(item=>(inventory[item.id]??0)>0),
       gasReserve:save.gasReserve??gasLevel(player),
       flightProgress:save.flightProgress??flightProgress,
+      equippedItemId:save.equippedItemId??null,
     });
     checkpointWritten=true;
     clearGameplayInput();
@@ -1423,14 +1424,15 @@ if(incomingTransit&&gameplay&&playable){
     const position={x:landing.x,y:terrainHeight(landing.x,landing.z)+landing.y+.08,z:landing.z};
     gameplay.restore({...base,slotId:'slot-ferry-auto',time:incomingTransit.worldSeconds,position,space:null,
       inventory:{...incomingTransit.traveler.inventory},gasReserve:incomingTransit.traveler.gasReserve,
-      flightProgress:incomingTransit.traveler.flightProgress});
+      flightProgress:incomingTransit.traveler.flightProgress,
+      equippedItemId:incomingTransit.traveler.equippedItemId??null});
     // The destination slot holds local activity state; a separate portable checkpoint holds
     // the complete bag across refreshes. Neither one is the short-lived ferry ticket.
     await gameplay.slots.save(gameplay.compose('slot-ferry-auto'));
     savePortableCheckpoint(localStorage,activeIsland!.id,playable.gameplay.worldId,{
       inventory:{...gameplay.runtime.state.inventory},
       items:gameplay.runtime.data.items.filter(item=>(gameplay!.runtime.state.inventory[item.id]??0)>0),
-      gasReserve:gasLevel(player),flightProgress,
+      gasReserve:gasLevel(player),flightProgress,equippedItemId:gameplay.equipment.hands,
     });
     ferryMinute=worldGameMinute(worldClock.time,climate.definition.dayLengthSeconds);
     ferryNow=ferryStatus(ferryMinute,activeIsland!.portLevel);
@@ -1448,7 +1450,8 @@ if(!incomingTransit&&retainedPortable&&gameplay&&playable){
     const base=saved??gameplay.compose('slot-ferry-auto');
     gameplay.restore(saved??{...base,inventory:{...retainedPortable.traveler.inventory},
       gasReserve:retainedPortable.traveler.gasReserve,
-      flightProgress:retainedPortable.traveler.flightProgress});
+      flightProgress:retainedPortable.traveler.flightProgress,
+      equippedItemId:retainedPortable.traveler.equippedItemId??null});
     ferryMinute=worldGameMinute(worldClock.time,climate.definition.dayLengthSeconds);
     ferryNow=ferryStatus(ferryMinute,activeIsland!.portLevel);
     ferryView?.setPresent(ferryNow.present);
@@ -1472,7 +1475,7 @@ if(activeIsland&&gameplay&&(incomingTransit||retainedPortable)){
           inventory:{...snapshot.inventory},
           items:g.runtime.data.items.filter(item=>(snapshot.inventory[item.id]??0)>0),
           gasReserve:snapshot.gasReserve??gasLevel(player),
-          flightProgress:snapshot.flightProgress??flightProgress,
+          flightProgress:snapshot.flightProgress??flightProgress,equippedItemId:snapshot.equippedItemId??null,
         });
       }while(dirty);
       warned=false;
