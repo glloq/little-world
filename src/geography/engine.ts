@@ -5,6 +5,7 @@
  * binds it to the configured terrain, the Studio map binds it to a project document. */
 import {terrainHeight,waterSurfaceWithHeight,geoSiteAt,pathDistance,getTerrainConfig,terrainSeaLevel,waterEdgeDistance} from '../terrain.ts';
 import {classifyPoint,type GeoContext,type GeoSample,type Occupation} from './classify.ts';
+import {createRaceCorridorIndex} from '../gameplay/race-corridors.ts';
 import {maskCell,type MaskLayerId,type SectorGrid,type SectorLayers} from './layers.ts';
 import {polygonSignedDistance,type PointXZ} from './archipelago.ts';
 import {createLandscapeSampler,type LandscapeRegion} from '../world-production/biotopes.ts';
@@ -19,6 +20,8 @@ export interface GeographySources {
   biomeStrokes?:GeoBiomeStroke[];
   /** Building footprints (centre + radius) that exclude vegetation. */
   buildings?:{x:number;z:number;radius:number}[];
+  /** Compiled/author-owned race roadbeds, only for vegetation and prop exclusion. */
+  races?:import('../gameplay/race-track.ts').RaceTrack[];
   /** Landscape preset footprints (World Production V1). Optional. */
   landscapes?:LandscapeRegion[];
 }
@@ -39,6 +42,7 @@ export function createGeoContext(src:GeographySources|null,deps:GeoDeps):GeoCont
   const zones=(src?.zones??[]).map(zone=>{const xs=zone.polygon.map(p=>p.x),zs=zone.polygon.map(p=>p.z);return {zone,minX:Math.min(...xs),maxX:Math.max(...xs),minZ:Math.min(...zs),maxZ:Math.max(...zs)};});
   const buildings=src?.buildings??[],strokes=src?.biomeStrokes??[],landscapes=src?.landscapes??[];
   const sampledLandscape=landscapes.length?createLandscapeSampler(landscapes):null;
+  const raceCorridors=src?.races?.length?createRaceCorridorIndex(src.races):null;
   let cellX=NaN,cellZ=NaN,cellIndex=0,cellLayers:SectorLayers|undefined;
   return {
     seed:src?.seed??0,seaLevel:deps.seaLevel,snowLineM:src?.snowLineM??deps.snowLineM,height:deps.height,water:deps.water,site:deps.site,
@@ -52,6 +56,7 @@ export function createGeoContext(src:GeographySources|null,deps:GeoDeps):GeoCont
     biomeStroke(x,z){for(let i=strokes.length-1;i>=0;i--){const s=strokes[i];if((x-s.x)*(x-s.x)+(z-s.z)*(z-s.z)<s.radius*s.radius)return s.biome;}return undefined;},
     ...(sampledLandscape?{landscape:sampledLandscape}:{}),
     occupancy(x,z):Occupation{
+      if(raceCorridors?.contains(x,z))return 'road';
       for(const {zone,minX,maxX,minZ,maxZ}of zones)if(x>=minX&&x<=maxX&&z>=minZ&&z<=maxZ&&polygonSignedDistance(zone.polygon,x,z)>=0)return zone.kind==='farm-plot'?'farm':'reserved';
       if(deps.pathDistance(x,z,1)<.8)return 'road';
       for(const b of buildings)if((x-b.x)*(x-b.x)+(z-b.z)*(z-b.z)<b.radius*b.radius)return 'built';

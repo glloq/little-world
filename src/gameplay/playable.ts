@@ -2,13 +2,15 @@ import {parseActivities} from './activities.ts';
 import {validateAudioLinks} from '../audio/schema.ts';
 import {parseAnyAudioDefinition,type AnyAudioDefinition} from '../audio/migrate.ts';
 import {playtestSlotPrefix} from './save.ts';
+import {validateRace,type RaceDefinition} from './races.ts';
 import {validateCollisionDefinition,type CollisionDefinition} from '../physics/definitions.ts';
 import {naturalColliderOwner} from '../structures/natural-collision.ts';
 /** Runtime input has no authoring database access or Studio module dependency. */
 import {parseWorld,type WorldDefinition} from '../world-data.ts';
 import {parseGameplayData,finite,identifier,record,type GameplayData,type Point3} from './schema.ts';
 export interface PlayableWorld {schemaVersion:1;kind:'playable-world';audio?:AnyAudioDefinition;collisions?:CollisionDefinition[];world:WorldDefinition;gameplay:GameplayData;spawn:Point3;
-  /** Mines and farm plots (runtime projection of activity zones). */activities?:import('./activities.ts').PlayableActivities;}
+  /** Mines and farm plots (runtime projection of activity zones). */activities?:import('./activities.ts').PlayableActivities;
+  /** Optional fixed circuits compiled from a Studio project. */races?:RaceDefinition[];}
 export interface StudioPlaytest {schemaVersion:1;kind:'studio-playtest';snapshotId:string;projectId:string;createdAt:number;content:PlayableWorld;}
 export function parsePlayableWorld(value:unknown):PlayableWorld {
  if(!record(value)||value.schemaVersion!==1||value.kind!=='playable-world'||!record(value.spawn)||!finite(value.spawn.x,-10000,10000)||!finite(value.spawn.y,-10000,10000)||!finite(value.spawn.z,-10000,10000))throw Error('Monde jouable invalide');
@@ -18,8 +20,16 @@ export function parsePlayableWorld(value:unknown):PlayableWorld {
  const rendered=new Set([...world.placements.map(e=>e.id),...world.npcs.map(e=>e.id)]);
  for(const entity of gameplay.entities)if(entity.interactable&&!rendered.has(entity.id))throw Error('Objet interactif sans représentation : '+entity.id);
  if(value.collisions!==undefined){if(!Array.isArray(value.collisions)||value.collisions.length>100000)throw Error('Liste de collisions invalide');const ids=new Set<string>(),entityIds=new Set(gameplay.entities.map(e=>e.id));for(const body of value.collisions){validateCollisionDefinition(body);if(ids.has(body.id)||!entityIds.has(naturalColliderOwner(body.id)))throw Error('Référence collider invalide');ids.add(body.id);}}
+ const races:RaceDefinition[]|undefined=value.races===undefined?undefined:(()=>{
+   if(!Array.isArray(value.races)||value.races.length>64)throw Error('Liste de courses invalide');
+   const ids=new Set<string>();
+   return value.races.map(raw=>{const r=validateRace(raw, {minX:-width/2,maxX:width/2,minZ:-length/2,maxZ:length/2});
+     if(r.worldId!==gameplay.worldId||ids.has(r.id))throw Error('ID de course invalide');
+     ids.add(r.id);return structuredClone(r);
+   });
+ })();
  const audio=value.audio!==undefined?parseAnyAudioDefinition(value.audio):undefined;const actions=[...gameplay.interactions.flatMap(i=>i.sequence),...gameplay.dialogues.flatMap(d=>d.lines.flatMap(l=>[...(l.actions??[]),...l.choices.flatMap(c=>c.actions??[])]))];validateAudioLinks(audio,gameplay.entities.map(e=>e.id),actions.filter(a=>a.type==='playSound').map(a=>(a as {soundId:string}).soundId));
- return {schemaVersion:1,kind:'playable-world',...(audio?{audio}:{}),world,gameplay,spawn:{...spawn},...(value.collisions?{collisions:structuredClone(value.collisions) as CollisionDefinition[]}:{} ),...(value.activities!==undefined?{activities:parseActivities(value.activities)}:{})};
+ return {schemaVersion:1,kind:'playable-world',...(audio?{audio}:{}),world,gameplay,spawn:{...spawn},...(value.collisions?{collisions:structuredClone(value.collisions) as CollisionDefinition[]}:{} ),...(value.activities!==undefined?{activities:parseActivities(value.activities)}:{}),...(races?{races}:{})};
 }
 const PREFIX='little-world:studio-playtest:v1:';
 export function savePlaytest(value:Omit<StudioPlaytest,'schemaVersion'|'kind'|'snapshotId'|'createdAt'>,storage:Storage=sessionStorage):StudioPlaytest {

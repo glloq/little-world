@@ -155,7 +155,7 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
     p.runCharge=clamp((p.runCharge??0)+(forwardCharge?(p.mode==='ground'?dt/1.15:0):-dt*2),0,1);
   }
   const body={...DEFAULT_BODY,...p.body};p.transitioned=undefined;
-  const relief=collision?(x:number,z:number)=>collision.reliefHeight(x,z):terrainHeight;
+  const relief=collision?(x:number,z:number)=>collision.reliefHeight(x,z,pos.y):terrainHeight;
   p.stamina=p.stamina??MAX_STAMINA;p.climbCooldown=Math.max(0,(p.climbCooldown??0)-dt);
   const floorAt=(fromY?:number)=>collision?collision.surfaceAt(pos,p.space,body.radius,{step:body.step,fromY}).floorY:terrainHeight(pos.x,pos.z);
   const atWater = collision?collision.waterAt(pos,p.space):waterSurface(pos.x, pos.z);

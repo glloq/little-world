@@ -79,5 +79,6 @@ export function geographyOf(project:ProjectDocument,chunks:{chunkId:string;layer
   const masks:Record<string,import('../geography/layers.ts').SectorLayers>={};for(const c of chunks)if(c.layers&&Object.keys(c.layers).length)masks[c.chunkId]=structuredClone(c.layers);
   const zones=Object.values(project.libraries.zones??{}).map(z=>({kind:z.kind,polygon:z.polygon.map(p=>({...p}))}));
   const landscapes=[...landscapeRegions(project.libraries.landscapes),...regionDressingRegions(project.libraries.regions)];
-  return Object.keys(masks).length||zones.length||landscapes.length?{sectorSizeM:project.world.chunkSizeM,masks,zones,...(landscapes.length?{landscapes}:{})}:undefined;
+  const races=Object.values(project.libraries.races??{}).flatMap(r=>r.track?[structuredClone(r.track)]:[]);
+  return Object.keys(masks).length||zones.length||landscapes.length||races.length?{sectorSizeM:project.world.chunkSizeM,masks,zones,...(landscapes.length?{landscapes}:{}),...(races.length?{races}:{})}:undefined;
 }

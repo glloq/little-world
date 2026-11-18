@@ -23,6 +23,7 @@ import {createMineMapPanel,type MineMapSnapshot} from '../map/mine-map.ts';
 import {mineHubLayout} from '../../mine/mine-hub.ts';
 import {createWaypointStore} from '../map/waypoints.ts';
 import {hudIcon} from '../shared/icons.ts';
+import {DEMO_RACES} from '../../gameplay/race-demos.ts';
 import {savesPanel} from '../saves/saves.ts';
 import {settingsPanel} from '../settings/settings.ts';
 import {pauseMenu} from '../menus/pause.ts';
@@ -45,6 +46,12 @@ export interface GameUiDeps {
   ferry?:FerryPanelDeps & {dock:{x:number;z:number}};
   importTrade?:ImportStandPanelDeps;
   headgear?:{equipped():boolean;setEquipped(value:boolean):void};
+  races?:{
+    start(id:string):{ok:boolean;message:string};
+    available():readonly {id:string;name:string;distance:number}[];
+    active():string|null;
+    abort():string;
+  };
   mineHub?:{
     view():{mineId:string;name:string;currentLevel:string;excavations:number;stops:{id:string;name:string;unlocked:boolean;required:number;current:boolean}[]}|null;
     travel(levelId:string):Promise<{ok:boolean;message?:string;reason?:string}>;
@@ -218,6 +225,40 @@ export function createGameUi(deps:GameUiDeps){
   ui.register('settings','Paramètres',{pauses:true,render:b=>{closeAudioPopover();settingsPanel({preferences:()=>prefs,update:updatePrefs,quality:deps.quality,audioPanel:deps.audio?.panel??null,environmentControls:deps.environmentControls??null,showDeveloper:prefs.developer||devUrl}).render(b);},
     // The audio panel goes back to its developer place when the settings close.
     onClose:()=>{const audio=deps.audio?.panel;if(audio){audio.open=false;const advanced=audio.querySelector<HTMLDetailsElement>('.audio-mixer-advanced');if(advanced)advanced.open=false;document.body.append(audio);}if(deps.environmentControls)document.body.append(deps.environmentControls);}});
+  if(deps.races)ui.register('races','Courses',{pauses:true,render:b=>{
+    b.replaceChildren(el('p','ui-muted','Trois circuits de démonstration à générer devant le hamster. Les temps sont personnels et propres au tracé exact : aucun classement compétitif.'));
+    const active=deps.races!.active();
+    if(active){
+      b.append(el('p','ui-badge-line','Course active : '+active),
+        button('Abandonner la course',()=>{deps.races!.abort();ui.refresh('races');},'ui-button'));
+    }
+    const fixed=deps.races!.available();
+    if(fixed.length){
+      b.append(el('h3','','Circuits fixes de l’île'),
+        el('p','ui-muted','Ces courses ont un départ permanent. Rejoignez-le puis franchissez la première porte pour lancer le chronomètre.'));
+      for(const race of fixed){
+        const row=el('div','ui-race-option'),
+          title=el('strong','',race.name),
+          desc=el('p','ui-muted',race.distance+' m du départ · visible sur la carte');
+        const launch=button('Lancer',()=>{
+          const result=deps.races!.start(race.id);
+          if(result.ok){ui.close();center.notify('info',result.message);}
+          else center.notify('warning',result.message);
+        },'ui-button ui-primary');
+        row.append(title,desc,launch);b.append(row);
+      }
+    }
+    b.append(el('h3','','Circuits d’entraînement'));
+    for(const demo of DEMO_RACES){
+      const row=el('div','ui-race-option'),title=el('strong','',demo.name),desc=el('p','ui-muted',demo.description);
+      const launch=button('Lancer',()=>{
+        const result=deps.races!.start(demo.id);
+        if(result.ok){ui.close();center.notify('info',result.message);}
+        else center.notify('warning',result.message);
+      },'ui-button ui-primary');
+      row.append(title,desc,launch);b.append(row);
+    }
+  }});
   ui.register('pause','Menu',{pauses:true,render:b=>pauseMenu({has:id=>ui.has(id),open:id=>ui.open(id),resume:()=>ui.close(),home:()=>{host.classList.add('ui-await-start');deps.home();},studioUrl:deps.studioUrl,worldName:deps.world.name,temporary:deps.temporary}).render(b)});
   // Non-blocking HUD. The map, sound engine and gameplay state remain the single sources of truth.
   const prompt=document.querySelector<HTMLElement>('#action')??el('div','action-toast');prompt.id='action';prompt.classList.add('ui-prompt','hide');host.append(prompt);
@@ -255,9 +296,9 @@ export function createGameUi(deps:GameUiDeps){
     if(!audioPopover.hidden&&!audioPopover.contains(e.target as Node)&&!soundButton.contains(e.target as Node))hideAudioPopover();
   });
   const quick=el('nav','ui-quickbar');quick.setAttribute('aria-label','Accès rapide');
-  for(const [id,label,key,icon] of [['inventory','Sac','I','backpack'],['journal','Journal','J','journal']] as const){
-    if(id==='inventory'&&!g)continue;
-    const b=button('',()=>ui.toggle(id),'ui-quick');b.append(hudIcon(icon),el('span','ui-quick-label',label),kbd(key));
+  for(const [id,label,key,icon] of [['inventory','Sac','I','backpack'],['journal','Journal','J','journal'],['races','Courses','','flag']] as const){
+    if(id==='inventory'&&!g||id==='races'&&!deps.races)continue;
+    const b=button('',()=>ui.toggle(id),'ui-quick');b.append(hudIcon(icon),el('span','ui-quick-label',label));if(key)b.append(kbd(key));
     b.setAttribute('aria-label',label+' ('+key+')');b.dataset.panel=id;quick.append(b);
   }
   const minimap=createMinimap(mapDeps,mapRaster,()=>ui.open('map'),mineMapContext);
