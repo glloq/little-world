@@ -8,6 +8,7 @@
  * Flat-shaded quads, vertex colours by material with a small deterministic speckle. Pure arrays. */
 import {MINE_CHUNK,MINE_MATERIALS} from './mine-data.ts';
 import type {MineState} from './mine-state.ts';
+import {mineHubLayout,mineHubRoofRise} from './mine-hub.ts';
 
 export interface ChunkGeometry {positions:Float32Array;normals:Float32Array;colors:Float32Array;index:Uint32Array;quads:number}
 /** Vertical subdivision of walls (bottom, belly, shoulder, ceiling seam). */
@@ -17,13 +18,14 @@ export const MINE_RELIEF={wall:.3,vault:.45,floor:.05} as const;
 const hash=(x:number,y:number,z:number)=>{const s=Math.sin(x*127.1+y*311.7+z*74.7)*43758.5453;return s-Math.floor(s);};
 export function mineChunkGeometry(state:MineState,level:number,cx:number,cz:number):ChunkGeometry{
   const p:number[]=[],n:number[]=[],c:number[]=[],idx:number[]=[],L=state.grid.levels[level],y0=L.floorY,h=L.height;
+  const hub=mineHubLayout(state.grid.zone,level);
   const x0=cx*MINE_CHUNK,z0=cz*MINE_CHUNK,open=(x:number,z:number)=>state.isOpen(level,x,z);
   /** Displaced position of the grid vertex (x, row height t, z): depends only on (x,t,z) and the
    * four cells sharing the vertex column, so every quad touching it agrees. */
   const vertex=(x:number,t:number,z:number):[number,number,number]=>{
     let rx=0,rz=0,rock=0;
     for(const [ox,oz] of [[-1,-1],[0,-1],[-1,0],[0,0]] as const)if(!open(x+ox,z+oz)){rock++;rx+=ox+.5;rz+=oz+.5;}
-    const k=hash(x,t*7+level*13,z),y=y0+t*h;
+    const k=hash(x,t*7+level*13,z),rise=t===1?mineHubRoofRise(hub,x,z):0,y=y0+t*h+rise;
     if(rock===0){
       // Middle of the gallery: gentle floor undulation, highest point of the vault.
       return t===0?[x,y+(k-.5)*2*MINE_RELIEF.floor,z]:t===1?[x,y+MINE_RELIEF.vault*(.55+.45*k),z]:[x,y,z];
