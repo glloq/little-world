@@ -208,7 +208,7 @@ export function createGameUi(deps:GameUiDeps){
       trade:(k,id,q,m,expectedRevision)=>g.trade(k,id,q,m,shopCounterId??undefined,expectedRevision),
       notify:(ok,t)=>{center.notify(ok?'success':'warning',t);deps.audio?.emit(ok?'ui.confirm':'ui.error',{source:'ui'});}});
     // Workshop jobs advance in game time while this panel is open, without unblocking movement.
-    ui.register('shop','Comptoir',{pauses:false,onEscape:()=>shop.cancelSelection(),render:b=>{const h=b.closest('.ui-panel')?.querySelector('h2');if(h&&shopKind)h.textContent=SHOPS[shopKind].name;shop.render(b);if(shopKind==='mine'&&deps.mineHub){const row=el('div','ui-row ui-shop-tabs');row.append(button('Accès aux niveaux',()=>ui.open('mine-lift'),'ui-button ui-primary'),button('Conseils du mineur',()=>ui.open('mine-advice'),'ui-button'));b.prepend(row);}}});}
+    ui.register('shop','Comptoir',{pauses:false,onEscape:()=>shop.cancelSelection(),render:b=>{const h=b.closest('.ui-panel')?.querySelector('h2');if(h&&shopKind)h.textContent=SHOPS[shopKind].name;shop.render(b);if(shopKind==='mine'&&deps.mineHub){const row=el('div','ui-row ui-shop-tabs');row.append(button('Accès aux niveaux',()=>ui.open('mine-lift'),'ui-button ui-primary'),button('Conseils du mineur',()=>ui.open('mine-advice'),'ui-button'));b.querySelector('.ui-shop-v3')?.prepend(row);}}});}
   // Trade at the published maritime N1 merchant remains separate from ferry travel.
   if(g&&deps.ferry)ui.register('maritime-trade','Commerce maritime',{pauses:false,render:b=>{
     b.replaceChildren(el('p','ui-group','Comptoir maritime'),
