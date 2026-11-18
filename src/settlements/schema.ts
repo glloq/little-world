@@ -21,6 +21,9 @@ export interface SettlementRecipe {
     cultivation?:boolean;
     waterfront?:boolean;
     localLife?:boolean;
+    /** New worlds may opt into home→job schedules; absent preserves legacy host behavior. */
+    residentRoutines?:boolean;
+    residentDensity?:'low'|'normal'|'high';
     maritimePort?:boolean;
     variedServices?:boolean;
     layout?:SettlementLayout;
@@ -61,12 +64,13 @@ function fields(v: Record<string, unknown>, list: string[]) { if (Object.keys(v)
 export function validateSettlementRecipe(raw: unknown, world: WorldDefinitionV3): SettlementRecipe {
     if (!obj(raw))
         throw Error('Recette d’établissement invalide');
-    fields(raw, ['version', 'id', 'name', 'seed', 'form', 'center', 'radius', 'orientation', 'targetBuildings', 'style', 'wealth', 'activity', 'houseVariation', 'useExisting','routeToPath','services','layout','localLife','variedServices','maritimePort','cultivation','waterfront']);
+    fields(raw, ['version', 'id', 'name', 'seed', 'form', 'center', 'radius', 'orientation', 'targetBuildings', 'style', 'wealth', 'activity', 'houseVariation', 'useExisting','routeToPath','services','layout','localLife','residentRoutines','residentDensity','variedServices','maritimePort','cultivation','waterfront']);
     if (raw.version !== 1 || !id(raw.id) || String(raw.id).length > 64 || typeof raw.name !== 'string' || !raw.name.trim() || raw.name.length > 100 || !num(raw.seed, 0, 0xffffffff) || !Number.isInteger(raw.seed) || !['hamlet', 'village', 'town','fortified'].includes(String(raw.form)) || !['auto', ...HABITAT_STYLES].includes(String(raw.style)) || ![0, 1, 2].includes(raw.wealth as number) || !['mixed', 'agriculture', 'forest','mine','fishing','commerce'].includes(String(raw.activity)) || !num(raw.targetBuildings, 1, 80) || !Number.isInteger(raw.targetBuildings) || !num(raw.houseVariation, 0, 0xffffffff) || !Number.isInteger(raw.houseVariation) || !num(raw.radius, 20, 600) || !num(raw.orientation, -360, 360) || typeof raw.useExisting !== 'boolean')
         throw Error('Recette d’établissement hors limites');
     if(raw.routeToPath!==undefined&&!id(raw.routeToPath))throw Error('Route de raccordement invalide');
     if(raw.layout!==undefined)validateSettlementLayout(raw.layout,world);
-    for(const key of ['localLife','variedServices','maritimePort','cultivation','waterfront'])if(raw[key]!==undefined&&typeof raw[key]!=='boolean')throw Error('Option de vie locale invalide');
+    if(raw.residentDensity!==undefined&&!['low','normal','high'].includes(String(raw.residentDensity)))throw Error('Densité de population invalide');
+    for(const key of ['localLife','residentRoutines','variedServices','maritimePort','cultivation','waterfront'])if(raw[key]!==undefined&&typeof raw[key]!=='boolean')throw Error('Option de vie locale invalide');
     if(raw.services!==undefined&&typeof raw.services!=='boolean')throw Error('Services invalides');
     if (!obj(raw.center))
         throw Error('Centre absent');
@@ -84,8 +88,8 @@ export function validateSettlement(raw: unknown, world: WorldDefinitionV3): Sett
         throw Error('Établissement hors limites');
     if (raw.suppressedSlots !== undefined && (!Array.isArray(raw.suppressedSlots) || raw.suppressedSlots.length > 80 || new Set(raw.suppressedSlots).size !== raw.suppressedSlots.length || raw.suppressedSlots.some(v => !num(v, 0, 79) || !Number.isInteger(v))))
         throw Error('Suppressions de parcelles invalides');
-    if(raw.amenities!==undefined){if(!Array.isArray(raw.amenities)||raw.amenities.length>24)throw Error('Équipements hors limites');const seen=new Set<string>();for(const a of raw.amenities){if(!obj(a))throw Error('Équipement invalide');fields(a,['id','role','entityHash','entry','locked','dialogueHash']);if(a.dialogueHash!==undefined&&(typeof a.dialogueHash!=='string'||!/^[a-f0-9]{16}$/.test(a.dialogueHash)))throw Error('Provenance dialogue invalide');if(!id(a.id)||seen.has(String(a.id))||!['counter','well','bench','mill','fire','bridge','inn','workshop','host','harbor','shore-hut','shore-boat'].includes(String(a.role))||typeof a.entityHash!=='string'||!/^[a-f0-9]{16}$/.test(a.entityHash)||typeof a.locked!=='boolean'||!obj(a.entry))throw Error('Équipement invalide');fields(a.entry,['x','z']);if(!num(a.entry.x,world.bounds.minX,world.bounds.maxX)||!num(a.entry.z,world.bounds.minZ,world.bounds.maxZ))throw Error('Entrée équipement hors monde');seen.add(String(a.id));}}
-    if(raw.suppressedAmenities!==undefined&&(!Array.isArray(raw.suppressedAmenities)||raw.suppressedAmenities.length>24||new Set(raw.suppressedAmenities).size!==raw.suppressedAmenities.length||raw.suppressedAmenities.some(v=>!['counter','well','bench','mill','fire','bridge','inn','workshop','host','harbor','shore-hut','shore-boat'].includes(String(v)))))throw Error('Suppressions équipements invalides');
+    if(raw.amenities!==undefined){if(!Array.isArray(raw.amenities)||raw.amenities.length>24)throw Error('Équipements hors limites');const seen=new Set<string>();for(const a of raw.amenities){if(!obj(a))throw Error('Équipement invalide');fields(a,['id','role','entityHash','entry','locked','dialogueHash']);if(a.dialogueHash!==undefined&&(typeof a.dialogueHash!=='string'||!/^[a-f0-9]{16}$/.test(a.dialogueHash)))throw Error('Provenance dialogue invalide');if(!id(a.id)||seen.has(String(a.id))||!['counter','well','bench','mill','fire','bridge','inn','workshop','host','resident','harbor','shore-hut','shore-boat'].includes(String(a.role))||typeof a.entityHash!=='string'||!/^[a-f0-9]{16}$/.test(a.entityHash)||typeof a.locked!=='boolean'||!obj(a.entry))throw Error('Équipement invalide');fields(a.entry,['x','z']);if(!num(a.entry.x,world.bounds.minX,world.bounds.maxX)||!num(a.entry.z,world.bounds.minZ,world.bounds.maxZ))throw Error('Entrée équipement hors monde');seen.add(String(a.id));}}
+    if(raw.suppressedAmenities!==undefined&&(!Array.isArray(raw.suppressedAmenities)||raw.suppressedAmenities.length>24||new Set(raw.suppressedAmenities).size!==raw.suppressedAmenities.length||raw.suppressedAmenities.some(v=>!['counter','well','bench','mill','fire','bridge','inn','workshop','host','resident','harbor','shore-hut','shore-boat'].includes(String(v)))))throw Error('Suppressions équipements invalides');
     const recipe = validateSettlementRecipe(raw.recipe, world);
     if (recipe.id !== raw.id)
         throw Error('Recette non liée');

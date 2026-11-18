@@ -15,6 +15,7 @@ import {
   type DialogueDefinition,
   type DialogueFlags,
 } from './dialogue.ts';
+import {validResidentRoutine,type ResidentRoutineV1} from './npc-life/schedule.ts';
 export type { DialogueDefinition } from './dialogue.ts';
 export interface NPCPoint {
   x: number;
@@ -31,7 +32,10 @@ export interface NPCDefinition {
   id: string;
   name: string;
   /** Morphology (squirrel rig, small animal, or the hamster rig of doc 43). */
+  /** 'squirrel' is accepted only to import historical maps; visual is always hamster. */
   kind: 'squirrel' | 'animal' | 'hamster';
+  /** Optional authored visual scale (small inhabitants reuse the same rig). */
+  scale?: number;
   x: number;
   z: number;
   behavior: 'idle' | 'wander' | 'patrol' | 'work';
@@ -40,11 +44,13 @@ export interface NPCDefinition {
   path?: NPCPoint[];
   appearance: Appearance;
   dialogue?: DialogueDefinition;
+  /** Optional authored daily life; legacy NPCs retain their original behavior. */
+  routine?: ResidentRoutineV1;
 }
 export type NPCActivity = 'full' | 'reduced' | 'dormant';
 export type NPCVisualTier = 'rig' | 'silhouette' | 'hidden';
 /** Rendering detail is separate from behavior scheduling and conversation range. */
-export function npcVisualTier(distance: number, kind:NPCDefinition['kind']='squirrel'): NPCVisualTier {
+export function npcVisualTier(distance: number, kind:NPCDefinition['kind']='hamster'): NPCVisualTier {
   return distance <= (kind==='animal'?8:18) ? 'rig' : distance <= 160 ? 'silhouette' : 'hidden';
 }
 export interface NPCState {
@@ -93,6 +99,7 @@ export function validNPC(
     d.name.length > 0 &&
     d.name.length <= 80 &&
     (d.kind === 'squirrel' || d.kind === 'animal' || d.kind === 'hamster') &&
+    (d.scale===undefined||(finite(d.scale)&&d.scale>=.5&&d.scale<=1.5)) &&
     point(d, bounds) &&
     ['idle', 'wander', 'patrol', 'work'].includes(d.behavior) &&
     finite(d.radius) &&
@@ -110,7 +117,8 @@ export function validNPC(
       (Array.isArray(d.path) &&
         d.path.length <= 100 &&
         d.path.every((p) => point(p, bounds)))) &&
-    (d.dialogue === undefined || validDialogue(d.dialogue))
+    (d.dialogue === undefined || validDialogue(d.dialogue)) &&
+    (d.routine === undefined || (validResidentRoutine(d.routine) && point(d.routine.home,bounds) && point(d.routine.work,bounds)))
   );
 }
 export function validateNPCs(

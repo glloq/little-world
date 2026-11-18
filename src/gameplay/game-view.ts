@@ -27,7 +27,7 @@ import type {PlayableActivities} from './activities.ts';
 import type {MovementSpace} from '../physics/collision-world.ts';
 import type {GameplayData,GameplayEntity,Point3} from './schema.ts';
 
-interface Options {surfStarter?:boolean;islandId?:string;gathering?:Omit<GatherDeps,'time'|'grant'|'has'>;onSound?:(id:string,position?:{x:number;y:number;z:number})=>void;collisions?:CollisionDefinition[];temporary:boolean;saveScope?:string;getPosition:()=>Point3;setPosition:(p:Point3,space?:MovementSpace|null)=>void;activities?:PlayableActivities;getSpace?:()=>MovementSpace|undefined;getGas?:()=>number;setGas?:(value:number)=>void;getGasProgress?:()=>FlightProgress;setGasProgress?:(value:FlightProgress)=>void;showInfo:(text:string)=>void;objects:THREE.Group}
+interface Options {surfStarter?:boolean;islandId?:string;gathering?:Omit<GatherDeps,'time'|'grant'|'has'>;onSound?:(id:string,position?:{x:number;y:number;z:number})=>void;collisions?:CollisionDefinition[];temporary:boolean;saveScope?:string;getPosition:()=>Point3;setPosition:(p:Point3,space?:MovementSpace|null)=>void;activities?:PlayableActivities;getSpace?:()=>MovementSpace|undefined;getGas?:()=>number;setGas?:(value:number)=>void;getGasProgress?:()=>FlightProgress;setGasProgress?:(value:FlightProgress)=>void;showInfo:(text:string)=>void;objects:THREE.Group;onNpcMoveTo?:(id:string,position:Point3)=>boolean;onNpcStartDialogue?:(id:string)=>boolean}
 /** Interactive object near the player, usable or not (the reason comes from the runtime state). */
 export interface ObjectTarget {entity:GameplayEntity;name:string;prompt:string;range:number;usable:boolean;reason?:string;distance:number}
 /** Gameplay controller of a playable world: logical runtime, collisions, activities, save
@@ -166,7 +166,15 @@ export function createGameplayView(data:GameplayData,options:Options){
    runtime.update(dt);workshops.advanceDue();for(const effect of runtime.drainEffects()){
     if(effect.type==='showText')options.showInfo(effect.text);
     else if(effect.type==='playSound')options.onSound?.(effect.soundId,effect.entityId?runtime.data.entities.find(e=>e.id===effect.entityId)?.position:undefined);
-    else if(effect.type==='startDialogue')options.showInfo('Approchez du personnage pour ouvrir sa conversation.');
+    else if(effect.type==='startDialogue'){
+      const actor=effect.entityId??runtime.data.dialogues.find(d=>d.id===effect.dialogueId)?.actorId;
+      if(!actor||!options.onNpcStartDialogue?.(actor))
+        options.showInfo('Le personnage doit être à portée pour démarrer la conversation.');
+    }
+    else if(effect.type==='moveNPCTo'){
+      if(!options.onNpcMoveTo?.(effect.entityId,effect.position))
+        options.showInfo('Le trajet du personnage est inaccessible ou indisponible.');
+    }
     else options.showInfo('Effet de présentation non pris en charge : '+effect.type);
    }
    if(runtime.state.metrics.actions!==version){version=runtime.state.metrics.actions;sync();for(const l of listeners)l();}

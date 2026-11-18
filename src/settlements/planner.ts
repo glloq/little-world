@@ -2,6 +2,7 @@ import {settlementSurroundings} from './surroundings.ts';
 import {neighborhoodNetwork,networkPattern} from './neighborhood-network.ts';
 import {settlementMaritimePort} from './maritime-port.ts';
 import {localLife} from './local-life.ts';
+import {settlementPopulation} from './population.ts';
 import {riverCrossing} from './river-crossing.ts';
 import {bridgeColliders} from './bridge.ts';
 import {isCorridor,corridorStreet} from './corridor.ts';
@@ -182,7 +183,7 @@ export function planSettlement(p: ProjectDocument, raw: SettlementRecipe): Settl
         }
     for(const e of entities)if(e.components.Habitat&&e.components.Transform)for(const d of habitatColliders(e.id,e.components.Transform))query.add({...d,position:{...d.position,y:d.position.y+c.height(d.groundAnchor.x,d.groundAnchor.z)},enabled:()=>true});
     if(!organic)amenities=planServices(p,r,roadZ,c,query,entities,paths,diagnostics,preserved,nativePath);
-    const inhabitant=localLife(p,r,amenities),dialogues:Record<string,import('../gameplay/schema.ts').GameplayDialogue>={};if(inhabitant){entities.push(inhabitant.entity);amenities.push(inhabitant.record);if(inhabitant.dialogue)dialogues[inhabitant.dialogue.id]=inhabitant.dialogue;if(inhabitant.preserved)preserved.push(inhabitant.entity.id);}
+    const dialogues:Record<string,import('../gameplay/schema.ts').GameplayDialogue>={};
     for(const a of previous?.amenities??[])if(['bridge','harbor'].includes(a.role)&&amenityChanged(p,a)&&!amenities.some(v=>v.id===a.id)){const e=sourceEntity(p,a.id);if(e){entities.push(structuredClone(e));amenities.push(structuredClone(a));preserved.push(a.id);for(const id of Object.keys(previous!.pathHashes)){const path=p.libraries.paths[id];if((path?.supportId===a.id||a.role==='harbor'&&id===r.id+'-harbor-access')&&!paths.some(p=>p.id===id))paths.push(structuredClone(path));}}}
     for(const a of previous?.amenities??[])if(!amenities.some(v=>v.id===a.id)&&!amenityChanged(p,a))removed.push(a.id);
     // Optional local connection to the nearest authored road, rather than one remote route per house.
@@ -215,6 +216,12 @@ export function planSettlement(p: ProjectDocument, raw: SettlementRecipe): Settl
             preserved.push(id);
         }
     const zones=settlementSurroundings(p,r,paths,query,entities,amenities,diagnostics,preserved);
+    const inhabitant=localLife(p,r,amenities,buildings,zones);if(inhabitant){entities.push(inhabitant.entity);amenities.push(inhabitant.record);if(inhabitant.dialogue)dialogues[inhabitant.dialogue.id]=inhabitant.dialogue;if(inhabitant.preserved)preserved.push(inhabitant.entity.id);}
+    const population=settlementPopulation(p,r,amenities,buildings,zones);
+    if(population.limited)diagnostics.push({severity:'WARNING',code:'LIFE_NPC_LIMIT',message:'Budget de PNJ atteint : certains habitants ne sont pas générés.'});
+    entities.push(...population.entities);amenities.push(...population.records);
+    Object.assign(dialogues,population.dialogues);preserved.push(...population.preserved);
+    for(const id of population.conflicts)diagnostics.push({severity:'ERROR',code:'LIFE_ID_CONFLICT',targetId:id,message:'Un personnage manuel utilise déjà cet identifiant.'});
     return { zones,dialogues,recipe: r, sourceHash: settlementSourceHash(p), recipeHash: fingerprint(r), entities, paths, buildings,...(r.services||r.waterfront||previous?.amenities?{amenities}:{}), diagnostics, preserved: [...new Set(preserved)], removed, generationMs: performance.now() - started };
 }
 export { HABITAT_ASSETS };
