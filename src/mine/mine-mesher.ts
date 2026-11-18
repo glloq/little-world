@@ -9,6 +9,7 @@
 import {MINE_CHUNK,MINE_MATERIALS} from './mine-data.ts';
 import type {MineState} from './mine-state.ts';
 import {mineHubLayout,mineHubRoofRise,mineShaftOpening} from './mine-hub.ts';
+import {mineCrackStage,mineCrackStrokeCount,MINE_CRACK_STROKES,mineCrackColor} from './mine-cracks.ts';
 
 export interface ChunkGeometry {positions:Float32Array;normals:Float32Array;colors:Float32Array;index:Uint32Array;quads:number}
 /** Vertical subdivision of walls (bottom, belly, shoulder, ceiling seam). */
@@ -79,6 +80,33 @@ export function mineChunkGeometry(state:MineState,level:number,cx:number,cz:numb
       if(open(x+dx,z+dz))continue;const m=state.material(level,x+dx,z+dz),color=MINE_MATERIALS[m].color,f=dx===0?.92:.8;
       for(let r=0;r<WALL_ROWS.length-1;r++){const t0=WALL_ROWS[r],t1=WALL_ROWS[r+1];
         quad(vertex(ax,t0,az),vertex(bx,t0,bz),vertex(bx,t1,bz),vertex(ax,t1,az),color,f,(x+dx)*7+(z+dz)*13+r);}
+      // A damaged cell keeps every solid wall and collider intact. Thin, dark
+      // crack ribbons are embedded into this SAME indexed chunk geometry:
+      // no decals/textures, no new draw call per cell, and no dynamic lights.
+      const stage=mineCrackStage(m,state.damageAt(level,x+dx,z+dz));
+      if(stage){
+        const point=(u:number,v:number):number[]=>{
+          let row=0;
+          while(row<WALL_ROWS.length-2&&v>WALL_ROWS[row+1])row++;
+          const low=WALL_ROWS[row],high=WALL_ROWS[row+1],t=(v-low)/(high-low),
+            a=vertex(ax,low,az),b=vertex(bx,low,bz),
+            c=vertex(bx,high,bz),d=vertex(ax,high,az);
+          // Bilinear interpolation onto the ORIGINAL low-poly wall surface.
+          // A 2 cm offset towards the open cell prevents depth fighting.
+          return [0,1,2].map(i=>(1-t)*((1-u)*a[i]+u*b[i])+
+            t*((1-u)*d[i]+u*c[i])+(i===0?-dx*.022:i===2?-dz*.022:0));
+        };
+        const count=mineCrackStrokeCount(stage),shade=mineCrackColor(m);
+        for(let stroke=0;stroke<count;stroke++){
+          const [u0,v0,u1,v1]=MINE_CRACK_STROKES[stroke];
+          const vx=u1-u0,vy=(v1-v0)*h,len=Math.hypot(vx,vy)||1,
+            thickness=stage===1?.018:stage===2?.028:.043,
+            du=-vy/len*thickness*.5,dv=vx/len*thickness*.5/h;
+          quad(point(u0-du,v0-dv),point(u1-du,v1-dv),
+            point(u1+du,v1+dv),point(u0+du,v0+dv),shade,1,
+            (x+dx)*29+(z+dz)*31+stroke);
+        }
+      }
     }
   }
   return {positions:new Float32Array(p),normals:new Float32Array(n),colors:new Float32Array(c),index:new Uint32Array(idx),quads:idx.length/6};
