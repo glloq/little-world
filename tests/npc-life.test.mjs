@@ -1,0 +1,77 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {validResidentRoutine,residentHour,residentShift,residentRoute,positionOnResidentRoute,residentPoseAt} from '../src/npc-life/schedule.ts';
+import {createResidentRouter} from '../src/npc-life/routes.ts';
+import {residentDialogue} from '../src/npc-life/dialogue.ts';
+import {createDialogue} from '../src/dialogue.ts';
+
+const farmer={type:'Resident',version:1,role:'farmer',home:{x:0,z:0},work:{x:0,z:12},homeAnchorId:'house:1',workAnchorId:'farm:1'};
+const timeAtHour=(h)=>(((h/24-.36)%1+1)%1)*1200;
+
+test('resident profiles are strictly declarative and versioned',()=>{
+  assert.equal(validResidentRoutine(farmer),true);
+  assert.equal(validResidentRoutine({...farmer,role:'dragon'}),false);
+  assert.equal(validResidentRoutine({...farmer,script:'eval(...)'}),false);
+  assert.equal(validResidentRoutine({...farmer,work:{x:Infinity,z:3}}),false);
+  assert.equal(validResidentRoutine({...farmer,homeAnchorId:'<broken>'}),false);
+  assert.deepEqual(residentShift('farmer'),[6,17]);
+});
+
+test('simulated day phase gives stable deterministic home/work/commute positions',()=>{
+  const route=residentRoute([farmer.home,{x:0,z:6},farmer.work]);
+  assert.equal(residentHour(0,1200,.36),8.64);
+  const at=h=>residentPoseAt(farmer,route,timeAtHour(h),1200,.36,1);
+  assert.equal(at(4).phase,'home');
+  assert.equal(at(4).position.z,0);
+  assert.equal(at(6.12).phase,'to-work');
+  assert.ok(Math.abs(at(6.12).position.z-6)<1e-6);
+  assert.equal(at(12).phase,'work');
+  assert.equal(at(12).position.z,12);
+  assert.equal(at(17.12).phase,'to-home');
+  assert.ok(Math.abs(at(17.12).position.z-6)<1e-6);
+  assert.equal(at(22).phase,'home');
+  assert.equal(at(22).position.z,0);
+});
+
+test('sleeping and absent NPCs project to the right place without ticking individual actors',()=>{
+  const route=residentRoute([farmer.home,{x:10,z:0},{x:10,z:12},farmer.work]);
+  const t=timeAtHour(13);
+  const a=residentPoseAt(farmer,route,t,1200,.36,1.1);
+  const b=residentPoseAt(farmer,route,t,1200,.36,1.1);
+  assert.deepEqual(a,b);
+  assert.deepEqual(a.position,farmer.work);
+  assert.deepEqual(positionOnResidentRoute(route,route.length),farmer.work);
+  assert.throws(()=>residentPoseAt(farmer,residentRoute([{x:0,z:0},{x:2000,z:0}]),t,1200,.36,1),/trop long/);
+});
+
+test('pedestrian graph follows authored turns and avoids disconnected routes',()=>{
+  const walk=()=>true;
+  const router=createResidentRouter([{points:[{x:0,z:0},{x:0,z:30},{x:30,z:30}]}],walk);
+  const route=router.route({x:0,z:-3},{x:34,z:30});
+  assert.ok(router.nodes>=8);
+  assert.equal(router.truncated,false);
+  assert.ok(route&&route.length>60&&route.length<75);
+  assert.deepEqual(route.points[0],{x:0,z:-3});
+  assert.deepEqual(route.points.at(-1),{x:34,z:30});
+  assert.equal(createResidentRouter([],walk).route({x:0,z:0},{x:100,z:0}),null);
+});
+
+test('pedestrian graph rejects blocked connectors and road surfaces',()=>{
+  const router=createResidentRouter([{points:[{x:0,z:0},{x:0,z:30},{x:30,z:30}]}],(x)=>x<15);
+  assert.equal(router.route({x:0,z:0},{x:34,z:30}),null);
+});
+
+test('contextual conversations preserve existing author choices, actions and close semantics',()=>{
+  const flags={};
+  const base=createDialogue({start:'hello',lines:[{id:'hello',text:'Bonjour',choices:[{text:'Un cadeau',action:{flag:'gift',value:true}},{text:'Au revoir'}]}]},flags);
+  const session=residentDialogue(base,'farmer',()=>({phase:'work',hour:11}));
+  assert.equal(session.line.text,'Bonjour');
+  assert.equal(session.choices.length,3);
+  assert.equal(session.choose(2),true);
+  assert.match(session.line.text,/champs/);
+  assert.equal(session.choose(0),true);
+  assert.equal(session.line.text,'Bonjour');
+  assert.equal(session.choose(0),true);
+  assert.equal(flags.gift,true);
+  assert.equal(session.closed,true);
+});
