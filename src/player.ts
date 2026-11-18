@@ -2,6 +2,7 @@ import {MOTION,ROLL,GLIDE_DEPLOY,groundVelocity,airVelocity,glideVelocity,glideS
 import {stepSnowSlide,type SnowEquipment} from './snow/snow-slide.ts';
 import {stepSurf,type SurfStage} from './surf/surf-controller.ts';
 import {stepSurfBarrel} from './surf/surf-barrel.ts';
+import {startBarrelWash,stepBarrelWash} from './surf/barrel-wash.ts';
 import type {SurfWaveField} from './surf/wave-field.ts';
 export {ROLL,GLIDE,MOTION,SURFACE_MOTION} from './physics/motion.ts';
 import {GAS,gasBoostStep,gasMastery,gasShots} from './physics/gas-propulsion.ts';
@@ -68,6 +69,9 @@ export interface Player {
   surfPaddleClock?:number;surfJumpSeq?:number;surfLandingSeq?:number;surfWipeoutSeq?:number;
   barrelWaveIndex?:number;barrelEntryTick?:number;barrelEntryAcross?:number;
   barrelSuccessSeq?:number;barrelCrashSeq?:number;barrelCooldownUntilTick?:number;
+  /** Breaking whitewater, independent from the ground-only roll state. */
+  barrelTumbleRemaining?:number;barrelTumbleAngle?:number;barrelTumbleSeq?:number;
+  barrelTumbleCooldownUntilTick?:number;
   /** Diving toggled with Space in the water (second press, oxygen out or reaching the surface ends it). */
   diving?:boolean;
   /** Initial descent of a dive (until fully under water). */
@@ -174,7 +178,8 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
   const deepEnough = atWater !== null && atWater - ground > 0.62;
   const inWater = deepEnough && pos.y <= atWater + 0.42;
   // Explicit opt-in only: normal swimming, fishing, boats and older islands use flat water.
-  const surfReady=!!surfField&&keys.surfEnabled===true&&!p.space&&deepEnough;
+  const surfReady=!!surfField&&keys.surfEnabled===true&&!p.space&&deepEnough&&
+    !(p.barrelTumbleRemaining&&p.barrelTumbleRemaining>0);
   if(surfReady&&(p.mode==='surf'||p.surfAirborne||keys.surfActionPressed&&inWater)){
     const from={x:pos.x,y:pos.y,z:pos.z};
     if(p.mode!=='surf'&&!p.surfAirborne){
@@ -188,7 +193,10 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
     if(event.kind==='land')p.landingSeq=(p.landingSeq??0)+1;
     // The tube is an optional low-cost overhead volume, evaluated at the same fixed
     // 30 Hz as surfing and replay. Its mesh has no authority over collisions.
-    stepSurfBarrel(p,surfField!,relief,surfTick);
+    const barrelEvent=stepSurfBarrel(p,surfField!,relief,surfTick);
+    if(barrelEvent==='closed')startBarrelWash(p,surfField!.zone,surfTick,keys.dive);
+    // A failed landing can also drop the surfer into an active breaking tube.
+    if(p.mode==='swim')stepBarrelWash(p,surfField!,relief,surfTick,dt,keys.dive);
     if(collision){
       const moved=collision.sweep(from,pos,body.radius,body.height,{space:p.space,body});
       pos.set(moved.position.x,moved.position.y,moved.position.z);
@@ -318,11 +326,16 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
     // Rising back to the swimming line ends a dive by itself.
     if (p.diving && pos.y >= surfaceY - 0.08 && v.y > 0) p.diving = false;
     p.mode = pos.y < surfaceY - 0.35 ? 'dive' : 'swim';
+    // White-water wash acts AFTER swim input smoothing; otherwise swimming cancels
+    // the crest impulse immediately. Diving below the surface cancels it entirely.
+    if(surfField&&!p.space)stepBarrelWash(p,surfField,relief,surfTick,dt,keys.dive);
+    else {p.barrelTumbleRemaining=0;p.barrelTumbleAngle=0;}
     if (p.mode === 'dive') p.oxygen = Math.max(0, p.oxygen - dt);
     else p.oxygen = Math.min(MAX_OXYGEN, p.oxygen + dt * 9);
     p.glideReady = false;
   } else {
     p.swimStrokeClock=0;
+    p.barrelTumbleRemaining=0;p.barrelTumbleAngle=0;
     if (oldMode === 'swim' || oldMode === 'dive') {
       p.mode = 'air';
       v.y = Math.max(0, v.y);
