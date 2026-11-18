@@ -24,6 +24,8 @@ function merged(pieces:Piece[]):THREE.BufferGeometry {
 export function createMineHubView(hub:MineHubLayout,solid:THREE.Material,glow:THREE.Material):THREE.Group {
   const root=new THREE.Group();root.name='MineHub:'+hub.mineId+':'+hub.levelId;
   root.position.set(hub.shaft.x,hub.floorY,hub.shaft.z);root.rotation.y=hub.heading;
+  // Keep the hoist pulley and roof below the authored low ceiling (2.5–6 m).
+  root.scale.y=Math.min(1,(hub.height-.18)/3.85);
   root.userData={mineId:hub.mineId,levelId:hub.levelId,kind:'mine-hub'};
   const parts:Piece[]=[],lamps:Piece[]=[];
   const box=(x:number,y:number,z:number,w:number,h:number,d:number,color:number,rz=0,light=false)=>{
