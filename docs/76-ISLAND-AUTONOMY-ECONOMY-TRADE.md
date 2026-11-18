@@ -57,3 +57,9 @@ Rattraper des événements datés, pas itérer chaque frame/jour sur chaque arbr
 - Déconnexion/reprise, rattrapage de semaines, passage d'île et import/export de sauvegarde.
 - Aucun calcul O(nombre de PNJ × frames) pour les îles absentes.
 - Simulation d'une flotte/centaine d'îles logiques **sans charger leurs assets 3D**, mesure CPU/RAM et débit ; ne pas annoncer de capacité serveur avant benchmark.
+
+## 7. Extension — commerce libre et filières de transformation (18/11/2026)
+
+La nouvelle campagne de conception spécifie le **transport libre des biens dans le sac**, les **comptoirs réservés aux importations réellement reçues**, les **ateliers spécialisés de transformation**, les **recettes versionnées**, les **prix/stocks locaux** et les **transactions idempotentes**. Elle reste **SPECIFIED** et n'active aucun multijoueur.
+
+Ordre de lecture : [80 — Audit du code et risques](80-ECONOMY-TRADE-CRAFT-AUDIT.md) → [81 — Contrats de produits/recettes/stocks](81-ECONOMY-PRODUCTION-CONTRACTS.md) → [82 — Roadmap, Studio et qualification](82-ECONOMY-PRODUCTION-ROADMAP.md). Les contrats 76 de simulation d'île non chargée et d'expédition atomique restent applicables ; ne pas développer un deuxième moteur d'économie.
