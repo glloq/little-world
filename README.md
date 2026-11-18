@@ -243,3 +243,5 @@ Le générateur de colonies (maisons, villages, villes, camps, ports, terriers e
 Ce chantier réutilise les contrats V3, le CommandBus, les chemins, la géographie et les systèmes d'interactions existants ; il n'ajoute pas de second moteur ni de simulation économique en temps réel.
 
 Le placement propose également un centre d’activité, des rues concentriques irrégulières et des profils de densité village/ville/ville fortifiée (implantation seulement), avec retouches directes sur le plan : [organisation organique et limites](docs/77-ORGANIC-SETTLEMENT-PLACEMENT.md).
+
+Les villages peuvent aussi suivre une rue sinueuse, un flanc de montagne, une rivière ou un rivage de pêche : [modèles adaptés au site](docs/78-CONTEXTUAL-SETTLEMENT-PATTERNS.md).

@@ -1,3 +1,4 @@
+import {isCorridor,corridorStreet} from './corridor.ts';
 import {layoutContext,layoutDimensions,lanePoint,organicStreet,organicArcs} from './layout.ts';
 import {fitOrganicLot} from './organic-lots.ts';
 import {planServices,amenityChanged} from './services.ts';
@@ -84,12 +85,13 @@ export function planSettlement(p: ProjectDocument, raw: SettlementRecipe): Settl
         const a=points[i],n=Math.max(1,Math.ceil(Math.hypot(b.x-a.x,b.z-a.z)/24));
         for(let j=0;j<n;j++){const from={x:a.x+(b.x-a.x)*j/n,z:a.z+(b.z-a.z)*j/n},to={x:a.x+(b.x-a.x)*(j+1)/n,z:a.z+(b.z-a.z)*(j+1)/n},m=query.sweep({...from,y:c.height(from.x,from.z)},{...to,y:c.height(to.x,to.z)},width/2,1.8);if(m.blockedX||m.blockedZ||m.pushed||Math.hypot(m.position.x-to.x,m.position.z-to.z)>.05)return false;}return true;
     });
-    for(let lane=0;lane<lanes;lane++){
+    if(isCorridor(r)){const spine=corridorStreet(p,r,c,clearStreet);if(spine.reason)diagnostics.push({severity:'ERROR',code:'SET_CONTEXT_SITE',message:spine.reason});else paths.push(nativePath(r.id+'-street-0',spine.points,streetWidth));}
+    else for(let lane=0;lane<lanes;lane++){
         if(organic){const points=organicStreet(r,lane,{...c,wet:(x,z)=>c.wet(x,z)||query.intersectsVolume({minX:x-.45,maxX:x+.45,minZ:z-.45,maxZ:z+.45,minY:c.height(x,z)+.2,maxY:c.height(x,z)+1.8})},clearStreet);if(points)paths.push(nativePath(r.id+'-street-'+lane,points,streetWidth));else diagnostics.push({severity:'ERROR',code:'SET_ORGANIC_ROAD',message:'Aucune courbe praticable dans cette zone. Réduire la taille, tourner l’implantation ou choisir un autre emplacement.'});}
         else{const x=(lane-(lanes-1)/2)*gap;addRoad(r.id+'-street-'+lane,settlementPoint(r,x,roadZ),settlementPoint(r,x,half+10),3.5);}
     }
-    if(organic){const ring=organicArcs(r,paths,{...c,wet:(x,z)=>c.wet(x,z)||query.intersectsVolume({minX:x-.45,maxX:x+.45,minZ:z-.45,maxZ:z+.45,minY:c.height(x,z)+.2,maxY:c.height(x,z)+1.8})},clearStreet);for(const arc of ring.arcs)paths.push(nativePath(arc.id,arc.points,streetWidth));if(ring.omitted)diagnostics.push({severity:'WARNING',code:'SET_RING_GAP',message:'Certains passages périphériques ne tiennent pas dans le terrain. Les accès sont vérifiés par les autres rues.'});}
-    else if(lanes>1)addRoad(r.id+'-cross',lanePoint(r,0,roadZ),lanePoint(r,lanes-1,roadZ),3.5);
+    if(organic&&!isCorridor(r)){const ring=organicArcs(r,paths,{...c,wet:(x,z)=>c.wet(x,z)||query.intersectsVolume({minX:x-.45,maxX:x+.45,minZ:z-.45,maxZ:z+.45,minY:c.height(x,z)+.2,maxY:c.height(x,z)+1.8})},clearStreet);for(const arc of ring.arcs)paths.push(nativePath(arc.id,arc.points,streetWidth));if(ring.omitted)diagnostics.push({severity:'WARNING',code:'SET_RING_GAP',message:'Certains passages périphériques ne tiennent pas dans le terrain. Les accès sont vérifiés par les autres rues.'});}
+    else if(!organic&&lanes>1)addRoad(r.id+'-cross',lanePoint(r,0,roadZ),lanePoint(r,lanes-1,roadZ),3.5);
     for (let slot = 0; slot < r.targetBuildings; slot++) {
         if (previous?.suppressedSlots?.includes(slot))
             continue;
@@ -117,7 +119,7 @@ export function planSettlement(p: ProjectDocument, raw: SettlementRecipe): Settl
             continue;
         }
         let t:TransformComponent,pos:{x:number;z:number},junction:{x:number;z:number};
-        if(organic){const lane=Math.floor(slot/Math.ceil(r.targetBuildings/lanes)),street=paths.find(p=>p.id===r.id+'-street-'+lane),fit=paths.some(p=>p.id.includes('-street-'))?fitOrganicLot(r,slot,street?.points??[],c,query,paths):null;
+        if(organic){const lane=Math.floor(slot/Math.ceil(r.targetBuildings/lanes)),street=paths.find(p=>p.id===r.id+'-street-'+(isCorridor(r)?0:lane)),fit=paths.some(p=>p.id.includes('-street-'))?fitOrganicLot(r,slot,street?.points??[],c,query,paths):null;
             if(!fit){if(r.layout?.adjustments?.some(a=>a.slot===slot))diagnostics.push({severity:'ERROR',code:'SET_ADJUSTMENT_INVALID',targetId:r.id+'-house-'+slot,message:'Cette retouche ne laisse pas de place ou d’accès praticable pour la maison. Déplacer sa poignée vers un sol libre.'});continue;}t=fit.t;pos=fit.pos;junction=fit.junction;
         }else{
             const lane = Math.floor(slot / (pairs * 2)), pair = Math.floor(slot / 2) % pairs, sign = slot % 2 ? 1 : -1, laneX = (lane - (lanes - 1) / 2) * gap, x = laneX + sign * 9, z = pair * step - half, candidatePos = settlementPoint(r, x, z), yaw = r.orientation * Math.PI / 180 + sign * Math.PI / 2;

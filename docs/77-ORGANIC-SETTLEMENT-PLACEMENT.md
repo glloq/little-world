@@ -40,3 +40,5 @@ Qualification de cette livraison : 648 tests unitaires réussis, typecheck et bu
 ![Village autour d’une place et de son marché](captures/organic-settlements-v1/village-preview.png)
 
 Comparer avec [la ville](captures/organic-settlements-v1/town-preview.png) et [le profil fortifié](captures/organic-settlements-v1/fortified-preview.png), à la même échelle.
+
+Suite : [78 — village-rue, montagne, rivière et pêcheurs](78-CONTEXTUAL-SETTLEMENT-PATTERNS.md). Le modèle concentrique décrit ici reste un choix parmi ces organisations.

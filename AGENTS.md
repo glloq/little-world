@@ -1,6 +1,6 @@
 # Little World — instructions pour Codex et autres agents de développement
 
-> **Implantation organique :** lire [77 — placement autour d’un point d’intérêt](docs/77-ORGANIC-SETTLEMENT-PLACEMENT.md). Le profil fortifié règle la compacité seulement ; les enceintes restent à livrer. Sans `recipe.layout`, conserver l’ancien comportement et les retouches/verrous.
+> **Implantation organique :** lire [77 — placement autour d’un point d’intérêt](docs/77-ORGANIC-SETTLEMENT-PLACEMENT.md). Lire aussi [78 — modèles contextuels](docs/78-CONTEXTUAL-SETTLEMENT-PATTERNS.md) pour village-rue, montagne, rivière et pêcheurs, guidés par le terrain/eau natifs. Le profil fortifié règle la compacité seulement ; les enceintes restent à livrer. Sans `recipe.layout`, conserver l’ancien comportement et les retouches/verrous.
 
 > **Établissements de surface V1 :** lire [75 — implémentation et limites](docs/75-SETTLEMENTS-SURFACE-V1.md) avant de modifier les villages. Maisons procédurales creuses et portes V3 indépendantes, `Habitat` et `libraries.settlements` facultatifs ; conserver les références, verrous et retouches. Lire aussi [76 — places et services](docs/76-SETTLEMENTS-SERVICES-V1.md) : équipements optionnels avec provenance/verrous, poses `ShopAccess`, échanges revérifiés côté runtime. Les ports bâtis, ponts, grottes et villes denses de la roadmap restent à livrer.
 

@@ -1,3 +1,4 @@
+import {contextSitePenalty} from './corridor.ts';
 /** Bounded search scored with the shared terrain and validated with the real access checker. */
 import type { ProjectDocument } from '../studio-core/types.ts';
 import type { SettlementRecipe } from './schema.ts';
@@ -20,8 +21,10 @@ export async function suggestSettlementSite(p: ProjectDocument, recipe: Settleme
     for (let ix = 1; ix < 20; ix++)
         for (let iz = 1; iz < 20; iz++) {
             const x = b.minX + (b.maxX - b.minX) * ix / 20, z = b.minZ + (b.maxZ - b.minZ) * iz / 20, h = c.height(x, z), slope = Math.hypot(c.height(x + 12, z) - c.height(x - 12, z), c.height(x, z + 12) - c.height(x, z - 12)) / 24;
-            if (h > p.world.seaLevel + 2 && !c.wet(x, z) && inside(x, z) >= 0 && slope < .08)
-                candidates.push({ x, z, score: slope * 100 + Math.hypot(x - recipe.center.x, z - recipe.center.z) / 1000 });
+            if (h > p.world.seaLevel + 2 && !c.wet(x, z) && inside(x, z) >= 0 && slope < .08) {
+                const context=contextSitePenalty(p,recipe,{x,z},c);
+                if(Number.isFinite(context))candidates.push({ x, z, score: slope * 100 + Math.hypot(x - recipe.center.x, z - recipe.center.z) / 1000 + context });
+            }
         }
     candidates.sort((a, b) => a.score - b.score);
     const sample = candidates.slice(0, Math.min(12, Math.max(1, options.maxCandidates ?? 12)));

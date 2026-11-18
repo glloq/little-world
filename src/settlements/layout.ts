@@ -9,7 +9,7 @@ import type { GroundRouteContext } from '../paths/terrain-route.ts';
 import { inspectGroundSegment } from '../paths/terrain-route.ts';
 export interface SettlementLayout {
     version: 1;
-    pattern: 'organic' | 'clusters' | 'linear';
+    pattern: 'organic' | 'clusters' | 'linear' | 'street' | 'mountain' | 'river' | 'fishing';
     density: 'loose' | 'balanced' | 'compact';
     variation: number;
     poi?: 'square' | 'market' | 'activity';
@@ -28,7 +28,7 @@ export interface SettlementLayout {
 export const DEFAULT_SETTLEMENT_LAYOUT: SettlementLayout = { version: 1, pattern: 'organic', density: 'balanced', variation: 0 };
 export function validateSettlementLayout(value: unknown, world: WorldDefinitionV3): asserts value is SettlementLayout {
     const v = value as SettlementLayout;
-    if (!v || typeof v !== 'object' || Array.isArray(v) || Object.keys(v).some(k => !['version', 'pattern', 'density', 'variation', 'poi', 'modules', 'boundary', 'adjustments'].includes(k)) || v.version !== 1 || !['organic', 'clusters', 'linear'].includes(v.pattern) || !['loose', 'balanced', 'compact'].includes(v.density) || !Number.isInteger(v.variation) || v.variation < 0 || v.variation > 0xffffffff)
+    if (!v || typeof v !== 'object' || Array.isArray(v) || Object.keys(v).some(k => !['version', 'pattern', 'density', 'variation', 'poi', 'modules', 'boundary', 'adjustments'].includes(k)) || v.version !== 1 || !['organic', 'clusters', 'linear', 'street', 'mountain', 'river', 'fishing'].includes(v.pattern) || !['loose', 'balanced', 'compact'].includes(v.density) || !Number.isInteger(v.variation) || v.variation < 0 || v.variation > 0xffffffff)
         throw Error('Organisation de l’implantation invalide');
     if (v.poi !== undefined && !['square', 'market', 'activity'].includes(v.poi))
         throw Error('Point d’intérêt invalide');
