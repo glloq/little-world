@@ -41,6 +41,21 @@ try{
   await page.evaluate(()=>window.littleWorldDebug.grant('wood:log',4));await page.keyboard.press('KeyE');await page.waitForSelector('.ui-shop-row[data-item="wood:log"]');
   await page.locator('.ui-shop-row[data-item="wood:log"] button',{hasText:'Tout vendre'}).click();
   await page.waitForFunction(()=>!window.littleWorldMetrics?.inventory?.['wood:log'],{},{timeout:5000});check((await m()).inventory.coin===15+12,'4 logs sold at 3 coins each');
+  // 1b. The same authored counter offers a light sawmill service: start, wait in game
+  // minutes (the shop panel must not pause the clock), then collect a crafted product.
+  await page.evaluate(()=>window.littleWorldDebug.grant('wood:log',2));
+  await page.getByRole('button',{name:'Transformer',exact:true}).click();
+  const sawmill=page.locator('.ui-shop-row[data-recipe="sawmill:planks"]');
+  await sawmill.waitFor({state:'visible'});
+  await sawmill.getByRole('button',{name:'Lancer'}).click();
+  await page.waitForFunction(()=>!window.littleWorldMetrics?.inventory?.['wood:log'],{},{timeout:5000});
+  check((await m()).inventory.coin===26,'Sawmill charged exactly one service coin');
+  // 6 game minutes, about five wall-clock seconds with the published 1200s game day.
+  await page.waitForTimeout(7500);
+  await page.getByRole('button',{name:'Actualiser les fabrications'}).click();
+  await page.locator('.ui-shop-row[data-job] button',{hasText:'Récupérer'}).first().click();
+  await page.waitForFunction(()=>window.littleWorldMetrics?.inventory?.['material:plank']===4,{},{timeout:5000});
+  check(true,'Wood logs transformed into four planks and collected from the workshop');
   await page.keyboard.press('Escape');await page.waitForTimeout(300);
   // 2. Fell a tree: stand 1.4 m from it, facing it.
   const ang=Math.atan2(cp.x-tree.x,cp.z-tree.z),sx=tree.x+Math.sin(ang)*1.4,sz=tree.z+Math.cos(ang)*1.4;
