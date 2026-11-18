@@ -292,10 +292,13 @@ if(playable){
     drawnNear:(r:number)=>world.drawnNear(player.position.x,player.position.z,r)}});}
   if(gameplay.gathering){const gather=gameplay.gathering;world.setDressingFilter((cx,cz,kind,index)=>gather.hiddenAt(cx,cz,kind,index));gather.subscribe(()=>world.redrawDressing());}
 }
-const npcs = createNPCSystem(scene, definition.npcs,isLegacyTerrain()?undefined:[],gameplay?.dialogueSession);
+const worldClock=gameplay?.runtime.clock??new WorldClock(),climate=gameplay?.runtime.climate??createClimate(defaultEnvironment(definition.config.seed));
+const npcs = createNPCSystem(scene, definition.npcs,isLegacyTerrain()?undefined:[],gameplay?.dialogueSession,{
+  worldTime:()=>worldClock.time,dayLengthSeconds:climate.definition.dayLengthSeconds,
+  initialDayPhase:climate.definition.initialDayPhase,paths:definition.paths,
+});
 npcs.setLighting(world.atlasIllumination);
 gameplay?.attachNPCs(npcs.states);
-const worldClock=gameplay?.runtime.clock??new WorldClock(),climate=gameplay?.runtime.climate??createClimate(defaultEnvironment(definition.config.seed));
 // A single durable cargo ledger covers the published offline archipelago; its author
 // reserves are consumed without creating any offscreen Three.js world.
 let cargoService:ReturnType<typeof createCargoService>|null=null;
@@ -1510,6 +1513,7 @@ function draw(now: number) {
           plots: Object.fromEntries([...gameplay.activities.farms.keys()].map(id=>{const v=gameplay!.activities.farmView(id)!;return [id,{crop:v.cropId,stage:v.stage,growth:+v.growth.toFixed(3),moisture:+v.moisture.toFixed(3)}];})) } : null,
         programs: renderer.info.programs?.length ?? 0,
         workers: geoWorkerPool()?.stats ? { ...geoWorkerPool()!.stats } : null,
+        npcLife:npcs.lifeStats,
         environment:environment.metrics,
         audio:audio?.engine.metrics??null,
         collisions:gameplay?.collision.stats??null,
