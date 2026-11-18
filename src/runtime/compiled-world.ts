@@ -81,9 +81,10 @@ export function playableFromCompiled(bundle:CompiledWorldBundle,spawn?:Point3):P
   validateAudioLinks(manifest.audio,gameplay.entities.map(e=>e.id),actions.filter(a=>a.type==='playSound').map(a=>(a as {soundId:string}).soundId));
   const races=Object.values(logic.libraries.races??{}).map(r=>structuredClone(r));
   const surfZones=Object.values(logic.libraries.surfZones??{}).map(z=>structuredClone(z));
+  const surfFeatures=Object.values(logic.libraries.surfFeatures??{}).map(f=>structuredClone(f));
   const start=spawn??defaultSpawn(config,terrain);
   if(Math.abs(start.x)>(config.width??0)/2||Math.abs(start.z)>(config.length??0)/2)throw Error('Point de départ hors de la carte');
-  return {schemaVersion:1,kind:'playable-world',...(manifest.audio?{audio:manifest.audio}:{}),world,gameplay,collisions,spawn:{...start},...(activities.mines.length||activities.farms.length?{activities}:{}),...(races.length?{races}:{}),...(surfZones.length?{surfZones}:{})};
+  return {schemaVersion:1,kind:'playable-world',...(manifest.audio?{audio:manifest.audio}:{}),world,gameplay,collisions,spawn:{...start},...(activities.mines.length||activities.farms.length?{activities}:{}),...(races.length?{races}:{}),...(surfZones.length?{surfZones}:{}),...(surfFeatures.length?{surfFeatures}:{})};
 }
 /** Published worlds: a same-origin relative manifest path such as `maps/island/manifest.json`. */
 export function publishedManifestURL(base:string,path:string):string{
