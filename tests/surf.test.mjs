@@ -5,6 +5,7 @@ import {stepSurf,SURF_MOTION} from '../src/surf/surf-controller.ts';
 import {createSurfFeatureState,stepSurfFeatures,surfFeatureCrossed,validateSurfFeature} from '../src/surf/surf-features.ts';
 import {findDemoSurfSite} from '../src/surf/surf-demo.ts';
 import {SURF_ITEMS,SURFBOARD_ID} from '../src/surf/surf-items.ts';
+import {surfHudText} from '../src/ui/surf/surf-hud.ts';
 import {makeDemoSurfRace} from '../src/surf/surf-race-demo.ts';
 import {advanceRace,beginRace} from '../src/gameplay/races.ts';
 const zone={id:'surf:test',minX:-200,maxX:200,minZ:-200,maxZ:200,
@@ -128,4 +129,15 @@ test('the starter surfboard uses the existing tool equipment category',()=>{
  assert.equal(SURFBOARD_ID,'tool:surfboard');
  assert.equal(SURF_ITEMS[0].id,SURFBOARD_ID);
  assert.equal(SURF_ITEMS[0].category,'tool');
+});
+
+test('surf HUD conveys action and speed without affecting movement state',()=>{
+ assert.match(surfHudText({stage:'paddle',speedMps:2,crest:null}),/Rame.*7 km\/h/);
+ assert.match(surfHudText({stage:'ride',speedMps:8,crest:.9}),/Crête/);
+ assert.match(surfHudText({stage:'ride',speedMps:8,crest:.1}),/Creux/);
+ assert.match(surfHudText({stage:'air',speedMps:10,crest:null}),/réception/);
+ assert.equal(surfHudText({stage:null,speedMps:0,crest:null}),'');
+});
+test('open-ocean without an actual coastline is not accepted as surf demo',()=>{
+ assert.equal(findDemoSurfSite(()=>-8,{minX:-700,maxX:700,minZ:-700,maxZ:700},0),null);
 });
