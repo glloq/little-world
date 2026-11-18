@@ -126,7 +126,8 @@ interface SurfZoneDefinition {
   schemaVersion:1; id:string; name:string; enabled:boolean;
   polygon:{x:number;z:number}[];  // limites dans le monde
   shoreDirection:{x:number;z:number}; // unitaire, vers côte
-  seed:number; wavePreset:'gentle'|'rolling'|'power'|'arcade';
+  seed:number; epochTick:number; waveRevision:number;
+  wavePreset:'gentle'|'rolling'|'power'|'arcade';
   amplitudeM:number; wavelengthM:number; phaseSpeedMps:number;
   periodS:number; breakingDepthM:number; shoreFadeM:number;
   bathymetryMode:'terrain'|'authored';
