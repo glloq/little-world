@@ -1,27 +1,39 @@
 import * as THREE from 'three';
-import type {SurfWaveField} from '../surf/wave-field.ts';
+import type {SurfWaveField,SurfZone} from '../surf/wave-field.ts';
 
-/** Fixed geometry, pure vertex animation. Shader and CPU share the same crest equation.
- * No texture, render-target, FFT, reflection camera or CPU vertex updates per frame. */
-export function createSurfWaterView(parent:THREE.Object3D,field:SurfWaveField,
- ground:(x:number,z:number)=>number){
- const z=field.zone;
- // Bound geometry even when an author draws an exceptionally large wave zone.
- // An adaptive, camera-relative tessellation/LOD will replace this fixed cap later.
- const spacing=Math.max(3,(z.maxX-z.minX)/160,(z.maxZ-z.minZ)/160);
- const nx=Math.max(2,Math.ceil((z.maxX-z.minX)/spacing));
- const nz=Math.max(2,Math.ceil((z.maxZ-z.minZ)/spacing));
- const positions:number[]=[],envelopes:number[]=[],wet:number[]=[],indices:number[]=[];
- const smooth=(v:number)=>{const t=Math.max(0,Math.min(1,v));return t*t*(3-2*t);};
- const fadeDepth=z.shoreFadeDepth??4,fadeEdge=z.edgeFade??12;
+/** Terrain-sampled static envelopes, GPU-animated crests. Three pre-baked uniform
+ * meshes share one shader: LOD switches never change the deterministic wave physics.
+ * No per-frame terrain resampling, render target, texture or CPU vertex upload. */
+const smooth=(v:number)=>{const t=Math.max(0,Math.min(1,v));return t*t*(3-2*t);};
+const LIMITS=[160,84,44] as const;
+export interface SurfWaterStats {tier:number;vertices:number;triangles:number;maxVertices:number;}
+export function surfWaterTier(zone:SurfZone,focus:{x:number;z:number},budgetLevel:number):0|1|2 {
+ const dx=Math.max(zone.minX-focus.x,0,focus.x-zone.maxX);
+ const dz=Math.max(zone.minZ-focus.z,0,focus.z-zone.maxZ);
+ const distance=Math.hypot(dx,dz);
+ return Math.min(2,Math.max(
+  Number.isFinite(budgetLevel)?Math.max(0,Math.floor(budgetLevel)):0,
+  distance>400?2:distance>150?1:0
+ )) as 0|1|2;
+}
+function surfWaterGeometry(zone:SurfZone,ground:(x:number,z:number)=>number,
+ resolution:number):THREE.BufferGeometry{
+ const width=zone.maxX-zone.minX,length=zone.maxZ-zone.minZ;
+ const spacing=Math.max(2,width/resolution,length/resolution);
+ const nx=Math.max(2,Math.ceil(width/spacing)),nz=Math.max(2,Math.ceil(length/spacing));
+ const positions=new Float32Array((nx+1)*(nz+1)*3),
+   envelope=new Float32Array((nx+1)*(nz+1)),
+   wet=new Float32Array((nx+1)*(nz+1)),
+   indices:number[]=[];
+ const fadeDepth=zone.shoreFadeDepth??4,edgeFade=zone.edgeFade??12;
  for(let j=0;j<=nz;j++){
-  const pz=z.minZ+(z.maxZ-z.minZ)*j/nz;
+  const z=zone.minZ+length*j/nz;
   for(let i=0;i<=nx;i++){
-   const px=z.minX+(z.maxX-z.minX)*i/nx,depth=z.seaLevel-ground(px,pz);
-   const edge=Math.min(px-z.minX,z.maxX-px,pz-z.minZ,z.maxZ-pz);
-   positions.push(px,z.seaLevel+.02,pz);
-   envelopes.push(smooth(depth/fadeDepth)*smooth(edge/fadeEdge));
-   wet.push(depth>.04?1:0);
+   const x=zone.minX+width*i/nx,index=j*(nx+1)+i,depth=zone.seaLevel-ground(x,z);
+   const edge=Math.min(x-zone.minX,zone.maxX-x,z-zone.minZ,zone.maxZ-z);
+   positions.set([x,zone.seaLevel+.02,z],index*3);
+   envelope[index]=Number.isFinite(depth)&&depth>.05?smooth(depth/fadeDepth)*smooth(edge/edgeFade):0;
+   wet[index]=Number.isFinite(depth)&&depth>.04?1:0;
   }
  }
  for(let j=0;j<nz;j++)for(let i=0;i<nx;i++){
@@ -29,14 +41,22 @@ export function createSurfWaterView(parent:THREE.Object3D,field:SurfWaveField,
   indices.push(a,b,a+1,a+1,b,b+1);
  }
  const geo=new THREE.BufferGeometry();
- geo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
- geo.setAttribute('aEnvelope',new THREE.Float32BufferAttribute(envelopes,1));
- geo.setAttribute('aWet',new THREE.Float32BufferAttribute(wet,1));
+ geo.setAttribute('position',new THREE.BufferAttribute(positions,3));
+ geo.setAttribute('aEnvelope',new THREE.BufferAttribute(envelope,1));
+ geo.setAttribute('aWet',new THREE.BufferAttribute(wet,1));
  geo.setIndex(indices);
  geo.computeBoundingBox();
- if(geo.boundingBox){geo.boundingBox.min.y-=z.amplitude*1.4;geo.boundingBox.max.y+=z.amplitude*1.4;}
+ if(geo.boundingBox){
+  geo.boundingBox.min.y-=zone.amplitude*1.4;
+  geo.boundingBox.max.y+=zone.amplitude*1.4;
+ }
  geo.computeBoundingSphere();
- // Include the wave crest envelope in frustum tests so offscreen water is skipped.
+ return geo;
+}
+export function createSurfWaterView(parent:THREE.Object3D,field:SurfWaveField,
+ ground:(x:number,z:number)=>number){
+ const z=field.zone;
+ const geometries=LIMITS.map(n=>surfWaterGeometry(z,ground,n));
  const material=new THREE.ShaderMaterial({
   uniforms:{uTime:{value:0},uWavelength:{value:z.wavelength},uSpeed:{value:z.speed},
    uAmplitude:{value:z.amplitude},uDirection:{value:new THREE.Vector2(z.dirX,z.dirZ)},
@@ -68,12 +88,26 @@ export function createSurfWaterView(parent:THREE.Object3D,field:SurfWaveField,
     }`,
   transparent:false,depthWrite:true,side:THREE.DoubleSide
  });
- const mesh=new THREE.Mesh(geo,material);
+ const mesh=new THREE.Mesh(geometries[0],material);
  mesh.frustumCulled=true;mesh.renderOrder=3;mesh.name='SurfWaterPatch';
+ const stats:SurfWaterStats={tier:0,vertices:geometries[0].attributes.position.count,
+  triangles:(geometries[0].index?.count??0)/3,
+  maxVertices:Math.max(...geometries.map(g=>g.attributes.position.count))};
  parent.add(mesh);
  return {
-  mesh,
-  update(tick:number,alpha=0){material.uniforms.uTime.value=(Math.max(0,tick-1)+alpha)/30;},
-  dispose(){mesh.removeFromParent();geo.dispose();material.dispose();}
+  mesh,stats,
+  update(tick:number,alpha=0){
+   // Render interpolates the previous and current fixed-tick wave exactly as the
+   // hamster's renderPosition does; a new water physics sample uses integer tick.
+   material.uniforms.uTime.value=(Math.max(0,tick-1)+Math.max(0,Math.min(1,alpha)))/30;
+  },
+  setDetail(budgetLevel:number,focus:{x:number;z:number}){
+   const level=surfWaterTier(z,focus,budgetLevel);
+   if(stats.tier===level)return;
+   mesh.geometry=geometries[level];
+   stats.tier=level;stats.vertices=mesh.geometry.attributes.position.count;
+   stats.triangles=(mesh.geometry.index?.count??0)/3;
+  },
+  dispose(){mesh.removeFromParent();for(const g of geometries)g.dispose();material.dispose();}
  };
 }
