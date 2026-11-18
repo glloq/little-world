@@ -4,7 +4,7 @@
  */
 import {MINE_RHYTHMS,mineRhythmAccuracy,mineRhythmPosition,type StrikeAccuracy} from '../../mine/mine-rhythm.ts';
 
-export interface MineRhythmTarget {key:string;material:number;name:string;hitsToReward:number}
+export interface MineRhythmTarget {key:string;material:number;name:string;hitsToReward:number;durabilityRemaining:number;durabilityMax:number}
 export interface MineRhythmSample {key:string;quality:StrikeAccuracy}
 export function createMineRhythmHud(parent:HTMLElement,onStrike:(sample:MineRhythmSample)=>void){
   const root=document.createElement('aside');root.className='mine-rhythm-hud';root.hidden=true;
@@ -18,7 +18,7 @@ export function createMineRhythmHud(parent:HTMLElement,onStrike:(sample:MineRhyt
   const marker=document.createElement('span');marker.className='mine-rhythm-marker';
   track.append(good,perfect,marker);
   const bottom=document.createElement('div');bottom.className='mine-rhythm-bottom';
-  const hint=document.createElement('span');hint.textContent='F / E au centre · F maintenu = automatique';
+  const hint=document.createElement('span');hint.textContent='3–5 frappes/lot · −1 solidité · F au centre';
   const hit=document.createElement('button');hit.type='button';hit.className='mine-rhythm-hit';
   hit.textContent='Frapper';hit.setAttribute('aria-label','Frapper au bon moment');
   bottom.append(hint,hit);root.append(heading,track,bottom);parent.append(root);
@@ -33,8 +33,10 @@ export function createMineRhythmHud(parent:HTMLElement,onStrike:(sample:MineRhyt
       title.textContent=next.name;root.hidden=false;
       root.dataset.material=String(next.material);
     }
-    if(changed||current?.hitsToReward!==next.hitsToReward)
-      counter.textContent='Récolte dans '+next.hitsToReward+' coup(s)';
+    if(changed||current?.hitsToReward!==next.hitsToReward||
+      current?.durabilityRemaining!==next.durabilityRemaining)
+      counter.textContent='Bloc '+next.durabilityRemaining+'/'+next.durabilityMax+
+        ' · ≈'+next.hitsToReward+' frappes/lot';
     current=next;
   }
   function sample(now:number):MineRhythmSample|null{
