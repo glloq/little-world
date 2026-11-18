@@ -33,8 +33,14 @@ export interface CargoPurchase {
   requestId:string;lotId:string;islandId:string;itemId:string;
   quantity:number;totalCoins:number;
 }
+export interface CargoBuyerCheckpoint {
+  islandId:string;worldId:string;revision:number;inventory:Record<string,number>;
+}
 export interface CargoStateV1 {
   schemaVersion:1;revision:number;lastObservedMinute:number;
+  /** Wallet at the moment of the most recent committed import purchase, saved atomically
+   * with its cargo debit. Restored only if a world slot has not acknowledged the receipt. */
+  buyerCheckpoint?:CargoBuyerCheckpoint;
   nextDepartures:Record<string,number>;
   exportReserves:Record<string,Record<string,number>>;
   shipments:CargoShipment[];
@@ -176,7 +182,23 @@ export function parseCargoState(raw:unknown,routes:readonly CargoRoute[]=CARGO_R
       islandId:p.islandId as string,itemId:p.itemId as string,
       quantity:p.quantity as number,totalCoins:p.totalCoins as number});
   }
+  let buyerCheckpoint:CargoBuyerCheckpoint|undefined;
+  if(raw.buyerCheckpoint!==undefined){
+    const v=raw.buyerCheckpoint;
+    if(!obj(v)||!isId(v.islandId)||!isId(v.worldId)||
+      !int(v.revision,1,raw.revision as number)||!obj(v.inventory)||
+      Object.keys(v.inventory).length>1000)
+      throw Error('Point de reprise d’achat importé invalide');
+    const inventory:Record<string,number>={};
+    for(const [itemId,qty] of Object.entries(v.inventory)){
+      if(!isId(itemId)||!int(qty,0,9999))throw Error('Inventaire de reprise invalide');
+      if(qty>0)inventory[itemId]=qty;
+    }
+    buyerCheckpoint={islandId:v.islandId,worldId:v.worldId,
+      revision:v.revision as number,inventory};
+  }
   return {schemaVersion:1,revision:raw.revision as number,
+    ...(buyerCheckpoint?{buyerCheckpoint}:{}),
     lastObservedMinute:raw.lastObservedMinute as number,
     nextDepartures:{...next} as Record<string,number>,exportReserves:reserves,
     shipments,importLots,purchases};
@@ -303,6 +325,8 @@ export interface CargoStorage {
 export function createCargoService(storage:CargoStorage,args:{
   islandId:string;gameMinute():number;purse:Purse;itemName(id:string):string;
   onChange?():void;routes?:readonly CargoRoute[];
+  /** The current gameplay inventory, captured inside the same localStorage commit. */
+  worldId?:string;inventory?():Readonly<Record<string,number>>;
 }){
   const routes=args.routes??CARGO_ROUTES;
   if(!isId(args.islandId))throw Error('Île de fret invalide');
@@ -328,6 +352,14 @@ export function createCargoService(storage:CargoStorage,args:{
       args.purse,args.itemName);
     if(!result.ok)return result;
     try{
+      if(args.inventory&&args.worldId){
+        candidate.buyerCheckpoint={
+          islandId:args.islandId,worldId:args.worldId,
+          revision:candidate.revision,inventory:{...args.inventory()},
+        };
+      }
+      // Reject an invalid recovery snapshot before committing payment and cargo together.
+      parseCargoState(candidate,routes);
       storage.setItem(CARGO_STORAGE_KEY,JSON.stringify(candidate));
     }catch(error){
       // The ledger was not committed, so restore the existing player's inventory as well.
@@ -339,5 +371,6 @@ export function createCargoService(storage:CargoStorage,args:{
     return result;
   }
   return {view:()=>{advance();return importStandView(state,args.islandId);},
-    buy,advance,serialize:()=>parseCargoState(state,routes)};
+    buy,advance,serialize:()=>parseCargoState(state,routes),
+    buyerCheckpoint:()=>state.buyerCheckpoint?structuredClone(state.buyerCheckpoint):null};
 }
