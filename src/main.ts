@@ -1468,6 +1468,7 @@ function draw(now: number) {
   remoteActors?.renderer.collectGrassActors(grassActors,player.position);
   world.setUnderground(!!player.space);
   world.update(delta, player.position, camera, renderer.domElement.height, player.velocity);
+  surfWaterView?.setDetail(budget.level,player.position);
   surfWaterView?.update(motionTick,frame.alpha);
   surfBarrelView?.update(motionTick,player.position);
   if(!loading.ready&&loading.update({terrainPending:world.stats.pending,dressingPending:world.dressing?.nearPending??0,speciesState:world.dressing?.species.state??'none'}))beginGame();
@@ -1573,7 +1574,8 @@ function draw(now: number) {
           zoneId:surfField.zone.id,stage:player.surfStage??null,airborne:!!player.surfAirborne,
           wave:surfField.sample(player.position.x,player.position.z,motionTick),
           boardVisible:!!surfBoardView&&scene.getObjectByName('HamsterSurfboard')?.visible===true,
-          features:surfFeatures.length,patchTriangles:surfWaterView?.mesh.geometry.index?.count?surfWaterView.mesh.geometry.index.count/3:0,
+          features:surfFeatures.length,patchTriangles:surfWaterView?.stats.triangles??0,
+          waterLodTier:surfWaterView?.stats.tier??null,waterLodVertices:surfWaterView?.stats.vertices??0,
           barrel:surfBarrelView?{enabled:true,stats:{...surfBarrelView.stats},
             sample:sampleSurfBarrel(surfField,terrainHeight,player.position.x,player.position.z,motionTick),
             inside:player.barrelEntryTick!==undefined,escaped:player.barrelSuccessSeq??0,closed:player.barrelCrashSeq??0,
