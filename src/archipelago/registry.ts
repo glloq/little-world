@@ -8,7 +8,7 @@ export interface PublishedIsland {
 }
 export interface ArchipelagoRegistry { schemaVersion: 1; islands: PublishedIsland[]; }
 const ID = /^[a-z][a-z0-9-]{1,47}$/;
-const MANIFEST = /^maps\/[a-z0-9_-]+(?:\/[a-z0-9_-]+)*\/manifest\.json$/;
+const MANIFEST = /^(?:maps\/[a-z0-9_-]+(?:\/[a-z0-9_-]+)*|archipelago\/worlds\/[a-z0-9_-]+)\/manifest\.json$/;
 export function parseArchipelagoRegistry(raw: unknown): ArchipelagoRegistry {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new Error('Catalogue des îles invalide');
   const data = raw as Record<string, unknown>;
