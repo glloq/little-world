@@ -6,7 +6,8 @@ import type {StudioSession} from './session.ts';
 import {resolveEntity} from '../studio-core/references.ts';
 import {applyTransforms,transformChunkIds,entityTransform,type TransformValue} from '../studio-core/transforms.ts';
 import {layoutUpdates,type LayoutMode} from '../studio-core/selection-layout.ts';
-import {updateCharacter,setCharacterPath} from '../studio-core/character-authoring.ts';
+import {updateCharacter,setCharacterPath,setResidentRoutine} from '../studio-core/character-authoring.ts';
+import {residentDutyShift,RESIDENT_ROLES,type ResidentRole,type ResidentRoutineV1} from '../npc-life/schedule.ts';
 import {applyInteraction,interactionChunkIds} from '../studio-core/interaction-templates.ts';
 import {EMOTIONS,type Emotion,type Neckwear} from '../character-style.ts';
 import {elementExists,elementLabel,type ElementRef} from '../studio-core/elements.ts';
@@ -136,5 +137,37 @@ function characterSection(ctx:InspectorContext,id:string,owner:string){
     button('Appliquer le personnage',()=>void editQueue.run(async()=>{await s.change('Modifier le personnage',[p.entityIndex[id].ownerChunkId],d=>updateCharacter(d,id,{name,species,behavior,radius,speed,appearance}));ctx.status('Personnage appliqué. Son identifiant et ses dialogues sont conservés.');ctx.refresh();}).catch(e=>ctx.status(String(e instanceof Error?e.message:e),true)),'primary-button'),
     button('Éditer son dialogue',()=>ctx.open('dialogues')),button('Tracer son trajet',()=>ctx.editPath({label:'Trajet de '+source.name,points:c.Navigation?.path?.length?c.Navigation.path:[{x:(c.Transform?.position.x??0),z:(c.Transform?.position.z??0)}],min:2,max:100,color:0xf5a35b,commit:async points=>{await s.change('Tracer le trajet de '+source.name,[p.entityIndex[id].ownerChunkId],d=>setCharacterPath(d,id,points));ctx.refresh();}})));
   const path=c.Navigation?.path;box.append(node('p',path?.length?`Trajet : ${path.length} point(s).`:'Aucun trajet : « Tracer son trajet » puis cliquer dans la vue.','muted'));
+  if(c.Resident){
+    const resident=structuredClone(c.Resident),[from,to]=residentDutyShift(resident);
+    let role:ResidentRole=resident.role,start=from,end=to;
+    const life=node('details');
+    const hour=node('input');hour.type='range';hour.min='0';hour.max='23.5';hour.step='.5';hour.value='12';
+    const preview=node('p','','muted');
+    const updatePreview=()=>{const h=Number(hour.value);
+      preview.textContent=h.toFixed(1).replace('.0','')+' h : '+(h<start||h>=end?'Au domicile':'Au lieu de travail')+
+        ' · trajet '+resident.home.x.toFixed(1)+','+resident.home.z.toFixed(1)+' → '+resident.work.x.toFixed(1)+','+resident.work.z.toFixed(1);};
+    hour.oninput=updatePreview;updatePreview();
+    life.append(node('summary','Vie quotidienne et métier'),
+      field('Métier',select(role,RESIDENT_ROLES.map(k=>[k,k] as const),value=>role=value as ResidentRole)),
+      field('Début du travail (heure du jeu)',numberInput(start,n=>{start=n;updatePreview();},0,24)),
+      field('Fin du travail (heure du jeu)',numberInput(end,n=>{end=n;updatePreview();},0,24)),
+      field('Aperçu de la journée',hour),preview,
+      button('Appliquer les horaires',()=>void editQueue.run(async()=>{
+        const next:ResidentRoutineV1={...resident,role,workStartHour:start,workEndHour:end};
+        await s.change('Modifier les horaires du résident',[p.entityIndex[id].ownerChunkId],d=>setResidentRoutine(d,id,next));
+        ctx.status('Routines quotidiennes enregistrées.');ctx.refresh();
+      }).catch(e=>ctx.status(String(e instanceof Error?e.message:e),true))),
+      button('Désactiver la routine',()=>void editQueue.run(async()=>{
+        await s.change('Retirer la routine du personnage',[p.entityIndex[id].ownerChunkId],d=>setResidentRoutine(d,id,null));
+        ctx.refresh();
+      }).catch(e=>ctx.status(String(e instanceof Error?e.message:e),true))));
+    box.append(life);
+  }else if(path&&path.length>=2){
+    box.append(button('Créer une routine depuis le trajet',()=>void editQueue.run(async()=>{
+      const routine:ResidentRoutineV1={type:'Resident',version:1,role:'villager',home:{...path[0]},work:{...path[path.length-1]}};
+      await s.change('Activer la vie locale du personnage',[p.entityIndex[id].ownerChunkId],d=>setResidentRoutine(d,id,routine));
+      ctx.status('Routine créée : renseigner le métier et les heures ci-dessous.');ctx.refresh();
+    }).catch(e=>ctx.status(String(e instanceof Error?e.message:e),true))));
+  }
   return box;
 }
