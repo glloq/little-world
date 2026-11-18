@@ -27,10 +27,10 @@ test('wave crest used by 3D curl follows the same phase and speed as the heightf
  const env=t*t*(3-2*t); // same bathymetric envelope as WaveField
  const expected=zone.seaLevel+zone.amplitude*env*(Math.sin(BARREL_CREST_PHASE)+.22*Math.sin(2*BARREL_CREST_PHASE));
  assert.ok(Math.abs(height-expected)<1e-8,Math.abs(height-expected));
- const t=30;
- const moving=barrelCrestAlong(zone,t,index);
+ const futureTick=30;
+ const moving=barrelCrestAlong(zone,futureTick,index);
  assert.ok(Math.abs(moving-z-zone.speed)<1e-9);
- assert.ok(Math.abs(field.height(0,moving,t)-field.height(0,moving,0))>.05);
+ assert.ok(Math.abs(field.height(0,moving,futureTick)-field.height(0,moving,0))>.05);
 });
 test('tube only forms in the shallow breaking band and closes before the sand',()=>{
  assert.ok(barrelProfile(zone,0,0,ground)?.height>2.5);
