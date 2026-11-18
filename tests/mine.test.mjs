@@ -7,7 +7,7 @@ import {mineChunkGeometry,WALL_ROWS,MINE_RELIEF} from '../src/mine/mine-mesher.t
 import {mineSpaceProvider,mineTransitions} from '../src/mine/mine-collision.ts';
 import {WorldCollisionQuery} from '../src/physics/collision-world.ts';
 import {simulatePlayer,MAX_OXYGEN} from '../src/player.ts';
-import {mineHubLayout,mineHubCounterId,mineRequiredExcavations,mineLevelUnlocked,mineLevelResourceIcons} from '../src/mine/mine-hub.ts';
+import {mineHubLayout,mineHubCounterId,mineRequiredExcavations,mineLevelUnlocked,mineLevelResourceIcons,mineHubRoofRise} from '../src/mine/mine-hub.ts';
 import {createMineHubView} from '../src/mine/mine-hub-view.ts';
 import {createActivityRuntime} from '../src/gameplay/activity-runtime.ts';
 
@@ -93,7 +93,7 @@ test('mesher: organic relief is crack-free and never intrudes into the walkable 
       assert.ok(Math.abs(x-gx)<=MINE_RELIEF.wall+1e-6&&Math.abs(z-gz)<=MINE_RELIEF.wall+1e-6,'vertex near its grid column');
       if(Math.abs(x-gx)>.01||Math.abs(z-gz)>.01)displaced++;
       // Never below the floor undulation nor below the ceiling (headroom kept).
-      assert.ok(y>=L.floorY-MINE_RELIEF.floor-1e-6&&y<=L.floorY+L.height+MINE_RELIEF.vault+1e-6,'vertex within the level band');
+      assert.ok(y>=L.floorY-MINE_RELIEF.floor-1e-6&&y<=L.floorY+L.height+MINE_RELIEF.vault+1.11,'vertex within the level band');
       // Horizontal displacement goes away from the open cells around the column (into the rock).
       if(Math.abs(x-gx)>1e-6||Math.abs(z-gz)>1e-6){let ox=0,oz=0;for(const [a,b] of [[-1,-1],[0,-1],[-1,0],[0,0]])if(state.isOpen(0,gx+a,gz+b)){ox+=a+.5;oz+=b+.5;}assert.ok((x-gx)*ox+(z-gz)*oz<=1e-9,'displaced into the rock');}
       // Crack-free: the same grid vertex at the same height row has one position across faces/chunks.
@@ -216,4 +216,39 @@ test('MINE-HUB V2: each level entrance is joined to its authored remote gallery'
     assert.ok(state.isOpen(2,Math.floor(x),Math.floor(z)),
       'level 3 reaches the distant extraction gallery at sample '+i);
   }
+});
+
+test('MINE-HUB V3: reception has a wide clear aisle, with objects kept to the sides',()=>{
+  const z=zone(),grid=new MineGrid(z),a=mineHubLayout(z,0),b=mineHubLayout(z,2);
+  const along=(point)=>({x:point.x-a.shaft.x,z:point.z-a.shaft.z});
+  assert.ok(Math.hypot(a.counter.x-a.shaft.x,a.counter.z-a.shaft.z)>6,
+    'minekeeper no longer obstructs the elevator');
+  assert.ok(Math.hypot(a.counter.x-a.gallery.x,a.counter.z-a.gallery.z)>5,
+    'counter is away from the gallery threshold');
+  assert.ok(Math.hypot(a.surfaceExit.x-a.gallery.x,a.surfaceExit.z-a.gallery.z)>10,
+    'front and rear openings have a spacious lobby between them');
+  assert.equal(b.surfaceExit,null,'same open geometry below except island exit');
+  for(const level of [0,1,2])for(const t of [-5,-3,-1,0,1,3,5]){
+    // The 3.5 m-wide central path is clear from rear to extraction arch.
+    const center=mineHubLayout(z,level);
+    const x=center.gallery.x-Math.sin(center.heading)*(5.3-t),
+      z=center.gallery.z-Math.cos(center.heading)*(5.3-t);
+    assert.ok(grid.initiallyOpen(level,Math.floor(x),Math.floor(z)),
+      'unobstructed central floor '+level+' at '+t);
+  }
+});
+test('MINE-HUB V3: higher reception roof agrees with the physical ceiling and fades at edges',()=>{
+  const z=zone(),state=new MineState(new MineGrid(z)),provider=mineSpaceProvider(state),hub=mineHubLayout(z,0);
+  const x=hub.gallery.x,z=hub.shaft.z;
+  const rise=mineHubRoofRise(hub,x,z);
+  assert.ok(rise>.8,'centre of large hall has additional roof clearance');
+  const column=provider.column(hub.levelId,x,z);
+  assert.ok(column&&Math.abs(column.ceilingY-(hub.floorY+hub.height+rise))<1e-6);
+  assert.equal(mineHubRoofRise(hub,hub.shaft.x+12,hub.shaft.z),0,
+    'roof reverts to authored height outside the hall');
+  const model=createMineHubView(hub,new THREE.MeshLambertMaterial({vertexColors:true}),
+    new THREE.MeshBasicMaterial({vertexColors:true}),['stone','iron']);
+  assert.equal(model.userData.visualVersion,3);
+  assert.equal(model.userData.clearAisleWidth,3.5);
+  for(const mesh of model.children){mesh.geometry.dispose();mesh.material.dispose();}
 });
