@@ -10,6 +10,7 @@ import { DEFAULT_APPEARANCE, type Appearance } from '../character-style.ts';
 import { buildHamsterRig, BODY_CENTRE, REST, type HamsterRig } from './hamster-model.ts';
 import { HamsterAnimator, type ActionName, type AnimationEvent, type HamsterInput, type LocomotionState } from './hamster-animation.ts';
 import { createToolHolder, ACTIVITY_ANIMATIONS, type ToolId } from './tools.ts';
+import { createBackpackGlider, type GliderVisualInput } from './backpack-glider.ts';
 import type { PlayerPresentationState } from './presentation-state.ts';
 
 export interface HamsterCharacter {
@@ -37,8 +38,12 @@ export interface HamsterCharacter {
 const lineMaterial = new THREE.LineBasicMaterial({ color: 0xf4f1e8 });
 const bobberGeometry = new THREE.IcosahedronGeometry(.07, 0), bobberMaterial = new THREE.MeshLambertMaterial({ color: 0xe0463c, flatShading: true });
 
-export function buildHamster(): HamsterCharacter {
-  const rig = buildHamsterRig(), j = rig.joints, animator = new HamsterAnimator(), tools = createToolHolder(rig);
+export function buildHamster(options: { legacyGlb?: boolean } = {}): HamsterCharacter {
+  const rig = buildHamsterRig({legacyBodyMembranes:options.legacyGlb===true}), j = rig.joints, animator = new HamsterAnimator(), tools = createToolHolder(rig);
+  // The old GLB exporter remains deterministic until a new reference GLB is committed.
+  // Runtime visual flight exclusively uses this equipment, never the old body membranes.
+  const glider = options.legacyGlb ? null : createBackpackGlider(rig.sockets.back);
+  const gliderInput: GliderVisualInput = { mode: 'ground', speed: 0 };
   rig.group.scale.setScalar(CHARACTER_SCALE);
   const listeners = new Set<(e: AnimationEvent & { position: THREE.Vector3 }) => void>();
   let facing = 0, lastFacing = 0, aboard = false, actionTool: ToolId | null = null, actionSeq = 0, fishing: { x: number; y: number; z: number; biting: boolean } | null = null, disposed = false;
@@ -56,7 +61,7 @@ export function buildHamster(): HamsterCharacter {
     for (const [emotion, face] of Object.entries(rig.faces)) face.visible = emotion === appearance.emotion;
     const tucked = animator.pose.tuck > .5;
     rig.accessories.hat.visible = appearance.hat && !tucked; rig.accessories.goggles.visible = !!appearance.goggles && !tucked && !appearance.hat;
-    rig.accessories.backpack.visible = appearance.backpack && !tucked;
+    rig.accessories.backpack.visible = !tucked && (appearance.backpack || !!glider && glider.deployment > .001);
     rig.accessories.scarf.visible = appearance.neckwear === 'scarf' && !tucked; rig.accessories.pendant.visible = appearance.neckwear === 'pendant' && !tucked;
   }
   function pose(dt: number, elapsed: number) {
@@ -77,7 +82,8 @@ export function buildHamster(): HamsterCharacter {
     const limb = 1 - .85 * p.tuck;
     for (const name of ['ArmLeft', 'ArmRight', 'FootLeft', 'FootRight'] as const) j[name].scale.setScalar(limb);
     for (const name of ['HipLeft', 'HipRight'] as const) { const r = REST[name]; j[name].position.set(r[0] * (1 - .4 * p.tuck), r[1] * (1 - .5 * p.tuck), r[2] * (1 - .4 * p.tuck)); }
-    rig.setMembranes(p.membrane);
+    rig.setMembranes(glider ? 0 : p.membrane);
+    glider?.update(gliderInput, dt);
     rig.shadow.visible = input.mode === 'ground' || input.mode === 'roll';
     applyAppearance();
     // Tool: shown by actions that use one, and while the fishing line is out.
@@ -122,6 +128,10 @@ export function buildHamster(): HamsterCharacter {
       input.footSupportRight=player.footSupportRight===undefined?undefined:player.footSupportRight/CHARACTER_SCALE;
       input.groundPitch=player.groundPitch??0;input.groundRoll=player.groundRoll??0;
       input.rollSlip=player.rollSlip??0;
+      gliderInput.mode=player.mode;gliderInput.speed=player.velocity.length();
+      gliderInput.stalled=player.stalled;gliderInput.turnRate=player.glideTurnRate;
+      gliderInput.pitch=player.glidePitch;gliderInput.brake=player.glideBrake;
+      gliderInput.boosting=player.gasBoosting;gliderInput.pulseSeq=player.gasPulseSeq;
       if (fishing && !animator.action && animator.play('FISH_WAIT')) actionTool = 'fishing-rod';
       pose(dt, elapsed);
     },
@@ -145,7 +155,8 @@ export function buildHamster(): HamsterCharacter {
         ...(input.landingKind?{landingKind:input.landingKind}:{}),
         ...(input.landingSlide!==undefined?{landingSlide:input.landingSlide}:{}),
         ...(input.footSupportLeft!==undefined?{footSupportLeft:input.footSupportLeft}:{}),
-        ...(input.footSupportRight!==undefined?{footSupportRight:input.footSupportRight}:{}) };
+        ...(input.footSupportRight!==undefined?{footSupportRight:input.footSupportRight}:{}),
+        ...(input.mode==='glide'?{glideStalled:gliderInput.stalled===true,glideBrake:gliderInput.brake??0,glidePitch:gliderInput.pitch??0,glideTurnRate:gliderInput.turnRate??0,gasBoosting:gliderInput.boosting===true,gasPulseSeq:gliderInput.pulseSeq??0}:{}) };
     },
     applyPresentation(s, dt) {
       if (disposed) return;
@@ -159,10 +170,14 @@ export function buildHamster(): HamsterCharacter {
       input.footSupportLeft=s.footSupportLeft;input.footSupportRight=s.footSupportRight;
       input.groundPitch=s.groundPitch??0;input.groundRoll=s.groundRoll??0;input.rollSlip=s.rollSlip??0;
       input.mode=s.mode;input.speed=s.speed;input.verticalSpeed=s.verticalSpeed;input.turnRate=s.turnRate;input.aboard=s.aboard;
+      gliderInput.mode=s.mode;gliderInput.speed=s.speed;
+      gliderInput.stalled=s.glideStalled;gliderInput.turnRate=s.glideTurnRate??s.turnRate;
+      gliderInput.pitch=s.glidePitch??Math.atan2(s.verticalSpeed,Math.max(s.speed,.1));
+      gliderInput.brake=s.glideBrake;gliderInput.boosting=s.gasBoosting;gliderInput.pulseSeq=s.gasPulseSeq;
       if (fishing && !animator.action && animator.play('FISH_WAIT')) actionTool = 'fishing-rod';
       pose(dt, s.t);
     },
-    dispose() { if (disposed) return; disposed = true; listeners.clear(); tools.dispose(); lineGeometry.dispose(); rig.dispose(); group.removeFromParent(); },
+    dispose() { if (disposed) return; disposed = true; listeners.clear(); tools.dispose(); glider?.dispose(); lineGeometry.dispose(); rig.dispose(); group.removeFromParent(); },
   };
   return character;
 }
