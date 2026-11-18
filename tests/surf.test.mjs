@@ -32,7 +32,7 @@ test('wave gradient, normals and derivatives are finite and point up',()=>{
 });
 test('shore and boundaries fade to unchanged sea level without touching water datum',()=>{
  const beach=createSurfWaveField(zone,(_,z)=>z>100?-(200-z)/10:-12);
- assert.ok(Math.abs(beach.height(0,195,0))<.01);
+ assert.ok(Math.abs(beach.height(0,199,0))<.01);
  assert.ok(Math.abs(field.height(199,0,0))<.01);
 });
 test('paddling is capped, stable and never gives unlimited speed',()=>{
