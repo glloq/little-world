@@ -18,6 +18,7 @@ import {validateMapRequirements} from './map-requirements.ts';
 import {validateRegionRecipe} from './region-schema.ts';
 import {MASK_LAYERS,validMaskString,type MaskLayerId} from '../geography/layers.ts';
 import { validDialogue } from '../dialogue.ts';
+import {validResidentRoutine} from '../npc-life/schedule.ts';
 import type { AssetDefinition, BiomeEdit, ChunkId, ChunkSourceV3, ComponentMap, EntityDefinitionV3, ProjectDocument, StudioProjectV3, TerrainEdit, WorldDefinitionV3 } from './types.ts';
 
 const blocked = new Set(['__proto__','prototype','constructor']);
@@ -77,7 +78,7 @@ export function affectedChunkIds(world:WorldDefinitionV3,x:number,z:number,radiu
 export function emptyChunk(world:WorldDefinitionV3,id:ChunkId):ChunkSourceV3{return {schemaVersion:3,chunkId:id,index:chunkCoordinates(world,id),revision:0,entities:{},entityIds:[],terrainEdits:[],terrainRefs:[],biomeEdits:[],biomeRefs:[],waterRefs:[],pathRefs:[]};}
 function validateAppearance(value:unknown){const v=object(value,'Apparence');keys(v,['hat','backpack','neckwear','emotion','goggles'],'Apparence');if(v.goggles!==undefined&&typeof v.goggles!=='boolean')throw Error('Lunettes invalides');if(typeof v.hat!=='boolean'||typeof v.backpack!=='boolean'||!['none','pendant','scarf'].includes(String(v.neckwear))||!EMOTIONS.includes(v.emotion as typeof EMOTIONS[number]))throw Error('Apparence invalide');}
 const componentFields:Record<string,readonly string[]>={
-  Bridge:['type','version'],ShopAccess:['type','version','offset','yaw','width','range'],Habitat:['type','version','doorId'],Transform:['type','position','rotation','scale'],Visual:['type','assetId','variant'],Character:['type','species','rigId','appearance'],Navigation:['type','behaviorId','speed','radius','path'],BehaviorRef:['type','behaviorId'],DialogueActor:['type','dialogueIds'],State:['type','initial'],Persistence:['type','fields'],Interactable:['type','prompt','range','interactionIds'],Collider:['type','shape','size','layer'],Animator:['type','clips','initialClip'],TriggerVolume:['type','shape','size','interactionIds'],Light:['type','kind','color','intensity','range','offset','enabled','mode','stateKey','flicker','preset'],
+  Bridge:['type','version'],ShopAccess:['type','version','offset','yaw','width','range'],Habitat:['type','version','doorId'],Transform:['type','position','rotation','scale'],Visual:['type','assetId','variant'],Character:['type','species','rigId','appearance'],Resident:['type','version','role','home','work','homeAnchorId','workAnchorId'],Navigation:['type','behaviorId','speed','radius','path'],BehaviorRef:['type','behaviorId'],DialogueActor:['type','dialogueIds'],State:['type','initial'],Persistence:['type','fields'],Interactable:['type','prompt','range','interactionIds'],Collider:['type','shape','size','layer'],Animator:['type','clips','initialClip'],TriggerVolume:['type','shape','size','interactionIds'],Light:['type','kind','color','intensity','range','offset','enabled','mode','stateKey','flicker','preset'],
   NaturalStructure:['type','kind','form','span','width','clearance','thickness','curvature','bankRise'],
 };
 export function parseComponents(value:unknown,world?:WorldDefinitionV3):ComponentMap{
@@ -88,6 +89,7 @@ export function parseComponents(value:unknown,world?:WorldDefinitionV3):Componen
       case 'Visual':string(c.assetId,'Asset');if(c.variant!==undefined)string(c.variant,'Variante');break;
       case 'NaturalStructure':validateNaturalStructure(c as unknown as import('../structures/natural-structure.ts').NaturalStructureSpec);break;
       case 'Character':if(!(CHARACTER_SPECIES as readonly string[]).includes(String(c.species))||c.rigId!==rigForSpecies(String(c.species)))throw Error('Espèce ou rig non pris en charge');validateAppearance(c.appearance);break;
+      case 'Resident':{if(!validResidentRoutine(c))throw Error('Profil de résident invalide');if(world)for(const p of [c.home,c.work] as {x:number;z:number}[]){if(p.x<world.bounds.minX||p.x>world.bounds.maxX||p.z<world.bounds.minZ||p.z>world.bounds.maxZ)throw Error('Ancrage résident hors monde');}break;}
       case 'Navigation':string(c.behaviorId,'Comportement');finite(c.speed,'Vitesse',0,5);finite(c.radius,'Zone',0,100);if(c.path!==undefined)for(const p of array(c.path,'Parcours',100)){const pt=object(p,'Point parcours');keys(pt,['x','z'],'Point parcours');if(world)point(pt,world,'Parcours');else{finite(pt.x,'Parcours');finite(pt.z,'Parcours');}}break;
       case 'BehaviorRef':string(c.behaviorId,'Comportement');break;
       case 'DialogueActor':ids(c.dialogueIds,'Dialogues',100);break;
