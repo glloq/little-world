@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {createProject,parseProject} from '../src/studio-core/schema.ts';
 import {authoredRaceFromTrace,putAuthoredRace,removeAuthoredRace,validateAuthoredRace,sourceRaceKey} from '../src/studio-core/race-authoring.ts';
 import {CommandBus} from '../src/studio-core/commands.ts';
+import {installShowcaseRaces,showcaseRaceDefinitions} from '../src/studio-core/race-demo-layouts.ts';
 import {editDocument} from '../src/studio-core/edit.ts';
 import {writeProjectArchive,readProjectArchive} from '../src/studio-core/archive.ts';
 import {compileProject} from '../src/world-compiler/compile.ts';
@@ -58,4 +59,17 @@ test('fixed courses survive source compilation into a playable world',async()=>{
  });
  const play=playableFromCompiled(bundle);
  assert.equal(play.races.length,1);assert.deepEqual(play.races[0],race);
+});
+
+test('three fixed showcase templates add in one source mutation and never overwrite edits',()=>{
+ const {p}=fixture();
+ const anchor={x:0,z:0},height=()=>12;
+ assert.equal(showcaseRaceDefinitions(p,anchor,height).length,3);
+ assert.equal(installShowcaseRaces(p,anchor,height),3);
+ assert.equal(Object.keys(p.libraries.races).length,3);
+ const before=structuredClone(p.libraries.races['race:showcase-roll']);
+ assert.equal(installShowcaseRaces(p,anchor,height),0);
+ assert.deepEqual(p.libraries.races['race:showcase-roll'],before);
+ assert.deepEqual(Object.values(p.libraries.races).map(r=>r.kind).sort(),['flight','mixed','roll']);
+ assert.equal(parseProject(p).libraries.races['race:showcase-flight'].gates.length,5);
 });

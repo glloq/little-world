@@ -6,7 +6,7 @@ Statut : implémentation de la phase Studio sur feat/races-flight-roll-demo (PR 
 
 Dans le jeu, le panneau Courses donne accès aux trois démonstrations dynamiques (vol, roulade, mixte) et aux circuits fixes issus du projet Studio. Pour un circuit fixe, rejoindre la première porte, lancer le défi puis franchir la porte dans le bon sens pour déclencher le chronomètre.
 
-Dans Studio, ouvrir Courses (groupe Logique). Tracer les checkpoints dans l'ordre avec le PolylineTool existant, puis régler leur altitude par rapport au terrain, forme et dimensions. Modifier le tracé, renommer, supprimer et annuler/refaire utilisent le CommandBus commun.
+Dans Studio, ouvrir Courses (groupe Logique). « Ajouter 3 exemples ici » installe trois circuits fixes d'entraînement autour du centre de vue, sans écraser les circuits modifiés. Leur faisabilité réelle doit être testée selon l'île. Tracer les checkpoints dans l'ordre avec le PolylineTool existant, puis régler leur altitude par rapport au terrain, forme et dimensions. Modifier le tracé, renommer, supprimer et annuler/refaire utilisent le CommandBus commun.
 
 ## Architecture
 

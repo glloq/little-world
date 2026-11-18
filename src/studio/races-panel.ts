@@ -7,6 +7,7 @@ import type {PolylineTarget} from './viewport/polyline-tool.ts';
 import type {RaceDefinition,RaceGate,RaceKind} from '../gameplay/races.ts';
 import {authoredRaceFromTrace,gatesFromTrace,putAuthoredRace,removeAuthoredRace} from '../studio-core/race-authoring.ts';
 import {terrainHeight} from '../terrain.ts';
+import {installShowcaseRaces} from '../studio-core/race-demo-layouts.ts';
 
 export interface RacePanelContext {
  session:StudioSession;viewport:StudioViewport;
@@ -61,6 +62,16 @@ export function mountRacesPanel(host:HTMLElement,ctx:RacePanelContext){
    field('Nom du nouveau circuit',input(newName,v=>{newName=v.trim();})),
    field('Mode de déplacement',select(newKind,modes,v=>{newKind=v as RaceKind;})),
    button('Tracer un circuit',()=>ctx.edit(raceTarget(ctx,{id:'race:'+crypto.randomUUID(),name:newName,kind:newKind})),'primary-button'),
+   button('Ajouter 3 exemples ici',async()=>{
+     const target=ctx.viewport.camera.target;
+     try{
+       let count=0;
+       await ctx.session.change('Créer trois circuits de démonstration',[],draft=>{
+         count=installShowcaseRaces(draft,{x:target.x,z:target.z},terrainHeight);
+       });
+       ctx.status(count?count+' circuits exemples ajoutés. Ajustez les portes selon le relief et les obstacles.':'Exemples déjà installés : aucun circuit écrasé.');
+     }catch(e){ctx.status(String(e instanceof Error?e.message:e),true);}
+   }),
    node('p','Clic = ajouter une porte ; glisser = déplacer ; Entrée = valider ; Échap = annuler. Ajustez ensuite les dimensions et les altitudes des portes.','muted'));
  const list=node('div','','feature-list');
  for(const race of races){
