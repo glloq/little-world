@@ -1,4 +1,6 @@
 # 11 — Politique globale LOW-RESOURCE (Little World)
+> **Cibles matérielles complémentaires (18 novembre 2026) :** [80 — PC 4 Go (compatibilité expérimentale) et 8 Go (référence) / qualité automatique](80-OLD-PC-HARDWARE-AUTO-QUALITY.md), [81 — audit du rendu](81-RENDER-PERFORMANCE-CODE-AUDIT.md), [82 — OPT-0…OPT-9 et qualification](82-PERFORMANCE-GRAPHICS-IMPLEMENTATION-ROADMAP.md). Le profil historique 8 Go / 1600×900 reste une ambition à mesurer ; **4 Go ne devient pas une garantie minimum**. Les optimisations de travail inutile passent avant les pertes visuelles.
+
 
 **Statut : objectifs de conception validés pour les fréquences ; autres budgets provisoires à calibrer.**
 
