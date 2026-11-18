@@ -274,9 +274,13 @@ try{
  }catch{console.warn('Audio indisponible : le jeu reste silencieux.');}
 const {createGroundProbe}=await import('./audio/world-probe.ts'),groundProbe=createGroundProbe();
 let gameplay:GameplayView|null=null;
+let npcActorActions:null|{moveTo:(id:string,p:{x:number;y:number;z:number})=>boolean;talkTo:(id:string,p:{x:number;z:number})=>boolean}=null;
 if(playable){
   const {createGameplayView}=await import('./gameplay/game-view.ts');
-  gameplay=createGameplayView(playable.gameplay,{islandId:activeIsland?.id,onSound:(id,p)=>audio?.playSound(id,p),collisions:playable.collisions,temporary:!!(studioTest||buildScope),saveScope:studioTest?.snapshotId??buildScope??undefined,getPosition:()=>({x:player.position.x,y:player.position.y,z:player.position.z}),objects:world.objects,showInfo,
+  gameplay=createGameplayView(playable.gameplay,{islandId:activeIsland?.id,
+    onNpcMoveTo:(id,p)=>npcActorActions?.moveTo(id,p)??false,
+    onNpcStartDialogue:(id)=>npcActorActions?.talkTo(id,{x:player.position.x,z:player.position.z})??false,
+    onSound:(id,p)=>audio?.playSound(id,p),collisions:playable.collisions,temporary:!!(studioTest||buildScope),saveScope:studioTest?.snapshotId??buildScope??undefined,getPosition:()=>({x:player.position.x,y:player.position.y,z:player.position.z}),objects:world.objects,showInfo,
     activities:playable.activities,getSpace:()=>player.space,
     getGas:()=>gasLevel(player),
     getGasProgress:()=>structuredClone(flightProgress),
@@ -305,6 +309,7 @@ const npcs = createNPCSystem(scene, definition.npcs,isLegacyTerrain()?undefined:
     });
   },
 });
+npcActorActions=npcs;
 npcs.setLighting(world.atlasIllumination);
 gameplay?.attachNPCs(npcs.states);
 // A single durable cargo ledger covers the published offline archipelago; its author
