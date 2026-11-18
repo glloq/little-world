@@ -1,0 +1,42 @@
+{
+  "id": "port_trade_n1_v1",
+  "version": "1.0.0",
+  "status": "approved_visual_baseline_not_runtime_integrated",
+  "category": "port-trade-center",
+  "tradeVisualLevel": 1,
+  "description": "Stand marchand ouvert low-poly; toile tendue rayée, structure bois, comptoir vide, caisses vides, enseigne hexagonale et espace libre derrière comptoir pour PNJ.",
+  "model": "public/models/commerce-portuaire/port-trade-n1-v1.glb",
+  "viewer": "examples/port-trade-n1-v1-viewer.html",
+  "format": "glTF 2.0 (GLB)",
+  "sha256": "bc7246c44419a770162d59d69d4745067d24a6ae2ed87dbed4caa7cb4228aa20",
+  "sizeBytes": 145612,
+  "meshes": [
+    "structure",
+    "cloth",
+    "counter",
+    "crates",
+    "sign"
+  ],
+  "triangles": 2362,
+  "materials": "vertex colors",
+  "textures": 0,
+  "boundsApproxMeters": {
+    "width": 3.38,
+    "height": 3,
+    "depth": 2.23
+  },
+  "semanticRoles": {
+    "front": "comptoir / interaction joueur",
+    "rear": "emplacement libre pour PNJ marchand",
+    "contents": "aucune marchandise"
+  },
+  "futureWork": [
+    "validation de l'échelle et du dégagement PNJ en jeu",
+    "LOD1 et proxy distant",
+    "colliders simplifiés et socket d'interaction",
+    "palettes du runtime",
+    "catalogue d'assets et placement Studio"
+  ],
+  "decisionDate": "2026-11-18",
+  "license": "project-original"
+}

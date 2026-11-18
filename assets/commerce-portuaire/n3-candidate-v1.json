@@ -1,0 +1,65 @@
+{
+  "id": "port_trade_n3_candidate_v1",
+  "visualLevel": 3,
+  "status": "accepted_visual_baseline_mesh_review_pending",
+  "createdAt": "2026-11-18",
+  "sourceGlb": "public/models/commerce-portuaire/port-trade-n3-candidate-v1.glb",
+  "viewer": "examples/port-trade-n3-candidate-v1-viewer.html",
+  "generator": "assets/commerce-portuaire/tools/generate_port_trade_n3.py",
+  "template": "assets/commerce-portuaire/tools/template_port_trade_n3.html",
+  "sha256": "6502a3b47d9145b01dc70905b9d6b8f8da8cafae82a0ef82218b4c470cee7d7d",
+  "sizeBytes": 336568,
+  "triangles": 5496,
+  "meshCount": 9,
+  "meshNames": [
+    "foundation",
+    "masonry",
+    "trim",
+    "door",
+    "roof",
+    "awning",
+    "counter",
+    "crates",
+    "sign"
+  ],
+  "textureCount": 0,
+  "dimensionsMetersApprox": {
+    "width": 4.4,
+    "depth": 4.3,
+    "height": 3.72
+  },
+  "geometryTraits": [
+    "murs en pierre avec joint de mortier non traversant",
+    "toit en tuiles rigide à 2 pans",
+    "guichet commercial ouvert",
+    "auvent rayé secondaire",
+    "porte arrière",
+    "fenêtre latérale",
+    "enseigne caisse hexagonale commune",
+    "comptoir vide et 3 caisses vides",
+    "aucune marchandise",
+    "espace intérieur PNJ"
+  ],
+  "viewerOnly": [
+    "guide PNJ"
+  ],
+  "tests": [
+    "GLB glTF 2.0 loaded through trimesh and triangle count checked",
+    "Chromium headless: HTML opens without JS errors in software fallback",
+    "viewport presets and toggles",
+    "five biome palettes switch",
+    "exported GLB byte-for-byte matches file",
+    "PNG export"
+  ],
+  "pending": [
+    "identifier/corriger les défauts de mesh sous une future version N3 V1.1",
+    "meshes normals/intersections on graphics hardware",
+    "colliders et accessibilité PNJ",
+    "LODs et pivot réel",
+    "performance sur PC 4-8 Go",
+    "intégration catalogue/Studio et placement portuaire"
+  ],
+  "license": "project-original",
+  "acceptedAt": "2026-11-18",
+  "authoringNote": "L'utilisateur retient la version actuelle comme base artistique V1; le mesh doit encore être corrigé/qualifié. Le nom de fichier candidate-v1 est historique et ne doit pas changer sans migrations."
+}

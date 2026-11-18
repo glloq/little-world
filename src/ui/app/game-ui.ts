@@ -123,6 +123,22 @@ export function createGameUi(deps:GameUiDeps){
       notify:(ok,t)=>{center.notify(ok?'success':'warning',t);deps.audio?.emit(ok?'ui.confirm':'ui.error',{source:'ui'});}});
     // Workshop jobs advance in game time while this panel is open, without unblocking movement.
     ui.register('shop','Comptoir',{pauses:false,render:b=>{const h=b.closest('.ui-panel')?.querySelector('h2');if(h&&shopKind)h.textContent=SHOPS[shopKind].name;shop.render(b);}});}
+  // The same merchant provides local port services and actual delivered import lots.
+  // Travel is never opened from this control: the oarsman has a distinct quay socket.
+  if(g&&deps.ferry)ui.register('maritime-trade','Commerce maritime',{pauses:false,render:b=>{
+    b.replaceChildren(el('p','ui-group','Comptoir maritime'),
+      el('p','ui-muted','Achats et ventes au comptoir, ou marchandises réellement livrées par cargo.'));
+    const local=button('Acheter et vendre au comptoir',()=>{
+      shopKind='port';shopCounterId='maritime:'+deps.ferry!.currentIslandId;ui.open('shop');
+    },'ui-button ui-primary');
+    b.append(local);
+    if(deps.importTrade){
+      const imports=button('Voir les importations'+(deps.importTrade.view().offers.length?' · '+deps.importTrade.view().offers.length+' lot(s)':''),
+        ()=>ui.open('imports'),'ui-button');
+      imports.disabled=!deps.importTrade.canUse();
+      b.append(imports);
+    }
+  }});
   let closeAudioPopover=()=>{};
   ui.register('settings','Paramètres',{pauses:true,render:b=>{closeAudioPopover();settingsPanel({preferences:()=>prefs,update:updatePrefs,quality:deps.quality,audioPanel:deps.audio?.panel??null,environmentControls:deps.environmentControls??null,showDeveloper:prefs.developer||devUrl}).render(b);},
     // The audio panel goes back to its developer place when the settings close.
@@ -198,6 +214,7 @@ export function createGameUi(deps:GameUiDeps){
     /** Opens the maritime choice panel only for a real, published ferry stop. */openFerry(){if(deps.ferry)ui.open('ferry');},
     /** Opens the counter panel of a specific entity; each entity owns its own jobs. */
     openShop(kind:ShopKind,counterId?:string){shopKind=kind;shopCounterId=counterId??null;ui.open('shop');},
+    openMaritimeTrade(){if(ui.has('maritime-trade'))ui.open('maritime-trade');},
     controller:ui,notify:(kind:NoticeKind,text:string)=>center.notify(kind,text),center,
     get preferences(){return prefs;},
     get blocking(){return ui.blocking;},get paused(){return ui.paused;},
