@@ -8,6 +8,7 @@ import type {MovementSpace} from '../../physics/collision-world.ts';
 import type {AudioController} from '../../audio/view.ts';
 import {UiController} from './ui-controller.ts';
 import {renderFerryPanel,type FerryPanelDeps} from '../ferry/ferry-panel.ts';
+import {renderImportStand,type ImportStandPanelDeps} from '../ferry/import-stand.ts';
 import '../ferry/ferry.css';
 import {isEditableGameTarget} from '../../input/gameplay-input.ts';
 import {loadPreferences,savePreferences,type UiPreferences} from './preferences.ts';
@@ -37,6 +38,7 @@ export interface GameUiDeps {
   environmentControls?:HTMLDetailsElement|null;
   landmarks?:readonly {id:string;label:string;x:number;z:number}[];
   ferry?:FerryPanelDeps & {dock:{x:number;z:number}};
+  importTrade?:ImportStandPanelDeps;
   world:{name:string;buildVersion:string;dayLength:number;bounds:{minX:number;maxX:number;minZ:number;maxZ:number};seaLevel:number;height(x:number,z:number):number;water(x:number,z:number):number|null};
   eatFood?(id:string):{ok:boolean;message:string};
   player():{gas?:number;maxGas?:number;gasShots?:number;gasMaxShots?:number;gasCooldown?:number;x:number;y:number;z:number;yaw:number;space?:MovementSpace;mode:string;oxygen:number;maxOxygen:number;stamina:number;maxStamina:number;speed?:number;stalled?:boolean};
@@ -78,7 +80,14 @@ export function createGameUi(deps:GameUiDeps){
   const mapDeps:MapDeps={bounds:deps.world.bounds,height:deps.world.height,water:deps.world.water,seaLevel:deps.world.seaLevel,markers,onMarkerAction:marker=>{if(marker.kind==='ferry'&&deps.ferry)ui.open('ferry');},player:()=>{const p=deps.player();return {x:p.x,z:p.z,yaw:p.yaw};}};
   const mapRaster=createMapRaster(mapDeps),map=mapPanel(mapDeps,mapRaster,waypoints);
   ui.register('map','Carte',{render:b=>map.render(b),onClose:()=>map.close()});
-  if(deps.ferry)ui.register('ferry','Voyage entre les îles',{pauses:true,render:b=>renderFerryPanel(b,deps.ferry!)});
+  if(deps.ferry)ui.register('ferry','Voyage entre les îles',{pauses:true,
+    render:b=>renderFerryPanel(b,{...deps.ferry!,...(deps.importTrade?{importStand:{
+      canUse:()=>deps.importTrade!.canUse(),
+      available:()=>deps.importTrade!.view().offers.length,
+      open:()=>ui.open('imports'),
+    }}:{})})});
+  if(deps.ferry&&deps.importTrade)ui.register('imports','Comptoir des importations',
+    {pauses:false,render:b=>renderImportStand(b,deps.importTrade!)});
   const questLocation=(id:string):{x:number;z:number;label:string}|null=>{
     if(!g)return null;
     const starts=(action:{type:string;objectiveId?:string;status?:string})=>action.type==='setObjective'&&action.objectiveId===id&&action.status==='active';
