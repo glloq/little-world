@@ -385,14 +385,17 @@ world.update(0, player.position);
     },
     player:()=>({gas:gasLevel(player),maxGas:gasCapacity(player),gasShots:gasShots(player),gasMaxShots:gasMaxShots(player),gasCooldown:player.gasCooldown??0,x:player.position.x,y:player.position.y,z:player.position.z,yaw,space:player.space,mode:player.mode,oxygen:player.oxygen,maxOxygen:MAX_OXYGEN,stamina:player.stamina??MAX_STAMINA,maxStamina:MAX_STAMINA,speed:player.velocity.length(),stalled:player.stalled}),
     importTrade:activeIsland&&ferryDock&&cargoService&&gameplay?{
-      view:()=>cargoService!.view(),
+      view:()=>cargoService?cargoService.view():{
+        islandId:activeIsland.id,revision:0,offers:[],inTransit:0,nextArrivalMinute:null,
+      },
       name:id=>gameplay!.itemName(id),
       coins:()=>gameplay!.purse.count('coin'),
       max:id=>gameplay!.purse.max(id),
       owned:id=>gameplay!.purse.count(id),
-      canUse:canBoardFerry,
+      canUse:()=>!!cargoService&&canBoardFerry(),
       buy:(lotId,quantity,revision)=>{
-        const result=cargoService!.buy(lotId,quantity,revision);
+        if(!cargoService)return {ok:false,reason:'Comptoir import indisponible : stockage du fret suspendu'};
+        const result=cargoService.buy(lotId,quantity,revision);
         if(result.ok){
           // Best-effort local checkpoint of the world-side inventory immediately after a
           // commerce mutation. The cargo ledger itself has already been committed atomically.
