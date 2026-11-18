@@ -42,7 +42,7 @@ export function findDemoSurfSite(height:(x:number,z:number)=>number,
       minZ:Math.min(az,bz)-Math.abs(tz)*62,
       maxZ:Math.max(az,bz)+Math.abs(tz)*62,
       dirX:-out.x,dirZ:-out.z,seaLevel,
-      amplitude:1.25,wavelength:31,speed:6.2,seed,shoreFadeDepth:3,edgeFade:9};
+      amplitude:1.25,wavelength:31,speed:6.2,seed,shoreFadeDepth:3,edgeFade:9,barrelStrength:1};
     if(zone.minX<bounds.minX+1||zone.maxX>bounds.maxX-1||
        zone.minZ<bounds.minZ+1||zone.maxZ>bounds.maxZ-1)continue;
     const x=baseX+out.x*(coast+125),z=baseZ+out.z*(coast+125);
