@@ -45,7 +45,10 @@ export function mineInterimReward(
 ):{itemId:string;quantity:number}{
   const rareChance=material===4?.05:material===5?.012:0;
   const precision=quality==='perfect'?2.25:quality==='good'?1.4:1;
-  const rare=(material===4||material===5)&&mineHash(level,ix,iz,cycle)<rareChance*precision;
+  // At most ONE valuable interim mineral per cell. It can appear only on
+  // the second 3–5-hit milestone; weak tools cannot farm extra rare rolls.
+  const rare=(material===4||material===5)&&cycle===2&&
+    mineHash(level,ix,iz,0)<rareChance*precision;
   if(rare)return {itemId:material===4?'mine:iron':'mine:crystal',quantity:1};
   return {itemId:material===1||mineHash(level,ix,iz,cycle+1049)<.28?'mine:earth':'mine:stone',quantity:1};
 }
