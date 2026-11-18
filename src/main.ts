@@ -17,7 +17,7 @@ import {withFishingSounds} from './gameplay/fishing-audio.ts';
 import {resolveTarget,objectTarget,npcTarget,boatTarget,ferryTarget,maritimeTradeTarget,mineWallTarget,farmPlotTarget,shopTarget,mineLiftTarget,gatherTarget,fishingTarget,type TargetDescriptor} from './ui/interactions/targets.ts';
 import {SHOPS,type ShopKind} from './gameplay/economy.ts';
 import {geoContext,setPreviewSnowline} from './geography/engine.ts';
-import {findDemoPiste,validatePiste} from './snow/snow-pistes.ts';
+import {findDemoPiste} from './snow/snow-pistes.ts';
 import {boardLift,liftRideStep,type SkiLift,type LiftRide} from './snow/ski-lift.ts';
 import {createSkiLiftView} from './snow/ski-lift-view.ts';
 import type {SnowEquipment} from './snow/snow-slide.ts';
