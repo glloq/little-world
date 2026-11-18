@@ -114,9 +114,10 @@ export function createMineHubView(hub:MineHubLayout,solid:THREE.Material,glow:TH
     box(-1.2,2.81,-3.66,3.28,.37,.4,woodDark);
     box(-1.2,3.12,-3.47,2.6,.32,.16,woodLight);
     // A carved arrow and a green island/leaf icon, visible when facing the exit.
-    box(-1.47,3.12,-3.35,.64,.08,.06,woodDark);
-    box(-1.82,3.12,-3.35,.24,.09,.06,woodDark,.65);
-    box(-1.82,3.12,-3.35,.24,.09,.06,woodDark,-.65);
+    // Arrow points straight through the REAR doorway, not toward the shop.
+    box(-1.47,3.09,-3.35,.09,.34,.06,woodDark);
+    box(-1.57,3.25,-3.35,.27,.075,.06,woodDark,-.65);
+    box(-1.37,3.25,-3.35,.27,.075,.06,woodDark,.65);
     box(-.78,3.11,-3.34,.075,.22,.07,0x537b49);
     const leaf=new THREE.OctahedronGeometry(1,0);leaf.scale(.21,.19,.08);
     leaf.rotateZ(.42);leaf.translate(-.78,3.28,-3.34);
