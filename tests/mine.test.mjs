@@ -1,14 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
+import {existsSync} from 'node:fs';
 import {defaultMineSettings,validateMineSettings,geologyAt,MINE_CHUNK} from '../src/mine/mine-data.ts';
 import {MineGrid,MineState,parseMineSave} from '../src/mine/mine-state.ts';
 import {mineChunkGeometry,WALL_ROWS,MINE_RELIEF} from '../src/mine/mine-mesher.ts';
 import {mineSpaceProvider,mineTransitions} from '../src/mine/mine-collision.ts';
 import {WorldCollisionQuery} from '../src/physics/collision-world.ts';
 import {simulatePlayer,MAX_OXYGEN} from '../src/player.ts';
-import {mineHubLayout,mineHubCounterId,mineRequiredExcavations,mineLevelUnlocked,mineLevelResourceIcons,mineHubRoofRise,mineHubGalleryApproach} from '../src/mine/mine-hub.ts';
+import {mineHubLayout,mineHubCounterId,mineRequiredExcavations,mineLevelUnlocked,mineLevelResourceIcons,mineHubRoofRise,mineHubGalleryApproach,mineShaftOpening} from '../src/mine/mine-hub.ts';
 import {createMineHubView} from '../src/mine/mine-hub-view.ts';
+import {MINE_STAND_SOURCE,removeMaritimeSign} from '../src/mine/mine-stand-asset.ts';
 import {createActivityRuntime} from '../src/gameplay/activity-runtime.ts';
 
 const polygon=[{x:-20,z:0},{x:20,z:0},{x:20,z:40},{x:-20,z:40}];
@@ -259,8 +261,40 @@ test('MINE-HUB V3: higher reception roof agrees with the physical ceiling and fa
     'roof reverts to authored height outside the hall');
   const model=createMineHubView(hub,new THREE.MeshLambertMaterial({vertexColors:true}),
     new THREE.MeshBasicMaterial({vertexColors:true}),['stone','iron']);
-  assert.equal(model.userData.visualVersion,3);
+  assert.equal(model.userData.visualVersion,4);
   assert.equal(model.userData.clearAisleWidth,3.5);
   assert.equal(model.scale.x,-1,'model is mirrored to keep shop visually left of the aisle');
   for(const mesh of model.children){mesh.geometry.dispose();mesh.material.dispose();}
+});
+
+test('MINE-HUB V4: extraction portal spans at least the rear exit and is walkable',()=>{
+  const z=zone(),state=new MineState(new MineGrid(z)),hub=mineHubLayout(z,0);
+  const c=Math.cos(hub.heading),si=Math.sin(hub.heading);
+  // Five metres of clear walkable passage through the timber arch and into the mine.
+  for(const distance of [4.8,5.34,6.2,7.4,9.0])
+    for(const offset of [-2,-1,0,1,2]){
+      const x=hub.shaft.x+c*(3.85+offset)+si*distance,
+        zz=hub.shaft.z-si*(3.85+offset)+c*distance;
+      assert.ok(state.isOpen(0,Math.floor(x),Math.floor(zz)),
+        'passage behind extraction arch, dist '+distance+' side '+offset);
+    }
+});
+test('MINE-HUB V4: elevator shaft remains open up and down on intermediate levels',()=>{
+  const z=zone(),levels=z.mine.levels.length,hub=z.mine.levels.map((_,i)=>mineHubLayout(z,i));
+  const at=h=>({x:Math.floor(h.shaft.x),z:Math.floor(h.shaft.z)});
+  assert.equal(mineShaftOpening(hub[0],levels,'ceiling',at(hub[0]).x,at(hub[0]).z),false);
+  assert.equal(mineShaftOpening(hub[0],levels,'floor',at(hub[0]).x,at(hub[0]).z),true);
+  assert.equal(mineShaftOpening(hub[1],levels,'floor',at(hub[1]).x,at(hub[1]).z),true);
+  assert.equal(mineShaftOpening(hub[1],levels,'ceiling',at(hub[1]).x,at(hub[1]).z),true);
+  assert.equal(mineShaftOpening(hub[2],levels,'ceiling',at(hub[2]).x,at(hub[2]).z),true);
+  assert.equal(mineShaftOpening(hub[2],levels,'floor',at(hub[2]).x,at(hub[2]).z),false);
+});
+test('MINE-HUB V4: approved maritime stand is a real GLB; badge is independently hidden',()=>{
+  assert.equal(MINE_STAND_SOURCE,'models/commerce-portuaire/port-trade-n1-v1.glb');
+  assert.ok(existsSync(new URL('../public/'+MINE_STAND_SOURCE,import.meta.url)));
+  const root=new THREE.Group(),maritime=new THREE.Group(),cloth=new THREE.Group();
+  maritime.name='Sign_Hexagonal_Trade';cloth.name='Cloth';root.add(maritime,cloth);
+  assert.equal(removeMaritimeSign(root),1);
+  assert.equal(maritime.visible,false);
+  assert.equal(cloth.visible,true,'original cloth stays intact');
 });
