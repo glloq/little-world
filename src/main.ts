@@ -1278,7 +1278,7 @@ function tick(dt: number) {
     simulatePlayer(player, keys, dt,gameplay?.collision,surfField??undefined,motionTick+1);motionTick++;
     if(keys.surfActionPressed)surfQueue=0;
     if(surfFeatures.length){
-      for(const event of stepSurfFeatures(player,surfFeatures,surfFeatureState,motionTick)){
+      for(const event of stepSurfFeatures(player,surfFeatures,surfFeatureState,motionTick,previousPlayerPosition,surfField?.zone.seaLevel)){
         if(event.kind==='ramp'){player.jumpSeq=(player.jumpSeq??0)+1;player.glideReady=false;}
         showInfo(event.kind==='boost'?'Courant accélérateur !':event.kind==='ramp'?'Tremplin aquatique !':'Bouée touchée');
       }
