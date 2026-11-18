@@ -72,11 +72,11 @@
 
 ### FISH-5 : rendu et sons
 
-- [ ] Réutiliser `FISH_CAST / FISH_WAIT / FISH_REEL` ; gérer moulinage maintenu et inclinaison du hamster.
-- [ ] Courber la canne visuellement selon tension ; ne pas introduire de simulation de corde.
-- [ ] Garder `FishingLine` et `FishingFloat` existants ; animation de plongée/ondulations et éclaboussures bornées.
-- [ ] Conserver événements `fishing.cast / float / bite / reel` ; ajouter « tension/capture/rupture » si besoin.
-- [ ] Tester interruption pendant chaque animation, changement de caméra et fin d'action.
+- [x] Réutiliser `FISH_CAST / FISH_WAIT / FISH_REEL` ; répéter le moulinage maintenu avec un intervalle borné. L'inclinaison spécifique du rig reste à affiner sans invalider les imposteurs.
+- [x] Ajouter une ligne souple de 5 points en superposition uniquement pendant le combat, avec flèche liée à la tension ; aucune simulation physique. La vraie déformation du mesh de la canne reste différée.
+- [x] Garder `FishingLine` et `FishingFloat` existants ; 3 anneaux d'ondulation mutualisés, écume/éclaboussures via le pool d'impacts déjà présent, bouche du bouchon animée et petit poisson 3D temporaire à la capture.
+- [x] Conserver `fishing.cast / float / bite / reel` ; compléter le catalogue **à l'exécution seulement** par trois sons procéduraux originaux `fishing.strain / fishing.catch / fishing.escape` via le moteur audio V2 (mixeur et budgets communs).
+- [ ] Vérifier en navigateur PC/mobile la lisibilité de la ligne et du poisson, les interruptions, la caméra et le mixage sonore (reporté à FISH-6 selon la séquence demandée).
 
 ### FISH-6 : validation et fermeture
 
@@ -123,6 +123,15 @@ Le MVP est accepté **uniquement si** :
 - **Ne pas considérer FISH-3 et FISH-4 qualifiés** sans essai automatisé de la séquence lancer → ferrer → mouliner/relâcher → capture sur PC **et** tactile. Les tests historiques du hamster vérifient seulement la canne et la ligne lors du lancer.
 - Une modification de `src/hamster/hamster.ts` invalide actuellement le hash de l'atlas `characters`. L'amélioration visuelle FISH-5 devra soit régénérer les impostors, soit utiliser une couche de présentation isolée sans modifier la source prise en compte par l'outil.
 
+## FISH-5 — Finitions visuelles et sonores codées (qualification artistique à faire)
+
+- `src/render/fishing-effects.ts` : 3 anneaux de surface recyclés, une ligne de pêche courbée (5 points) affichée seulement pendant `reeling`, mouvement léger du bouchon et un poisson low-poly éphémère affiché uniquement en cas de capture validée. Le maillage du hamster et l'empreinte du générateur d'imposteurs restent **inchangés**.
+- Réutilisation du pool `createImpactEffects` pour les éclaboussures (touche, rupture, capture) ; aucune nouvelle boucle ni simulation de corde. Prévoir une mesure réelle des appels de rendu.
+- `src/gameplay/fishing-audio.ts` : trois événements `fishing.strain`, `fishing.catch`, `fishing.escape` produits par les outils procéduraux de l'AudioEngine V2, sans modifier le catalogue généré, avec limites de voix et cooldown.
+- `src/main.ts` : séquence sonore du flotteur pilotée par l'horloge du jeu plutôt qu'un `setTimeout` non annulable, moulinage intermittent synchronisé aux actions `FISH_REEL` et aux événements existants, tension sonore une seule fois au passage de seuil.
+- `src/ui/fishing/fishing-hud.ts` : nom de l'espèce et indication de danger lisible ; `tests/fishing-polish.test.mjs` : catalogue audio et ressources visuelles réutilisées.
+- **À qualifier en FISH-6** : comportement des sons dans le jeu, faible FPS, style visuel final, taille/position de l'affichage du poisson, accessibilité tactile et tests navigateur complets.
+
 ## 5. Pilotage et suivi
 
 À chaque lot, noter ici une ligne de progression : **ID / statut (TODO, IN_PROGRESS, REVIEW, DONE, BLOCKED) / branche+PR / SHA validé / tests+résultats / points restants**. Statut initial ci-dessous :
@@ -134,7 +143,7 @@ Le MVP est accepté **uniquement si** :
 | FISH-2 | REVIEW | #77 | Tests de tension/rupture et 7 espèces passés | Calibrage artistique et gameplay |
 | FISH-3 | REVIEW | #77 | `main.ts`, `touch-controls.ts`, HUD compact, build réussi | Test navigateur de moulinage PC/tactile |
 | FISH-4 | REVIEW | #77 | `grantItems` uniquement en fin de combat ; test unitaires | Scénarios de navigation, save et inventaire plein en navigateur |
-| FISH-5 | TODO | — | — | Polish VFX/audio ; hamster inchangé pour préserver atlas impostors |
+| FISH-5 | IN_PROGRESS | #77 | Rendu et audio implémentés ; tests unitaires/CI de la révision finale attendus | Validation artistique des sons, effet canne et PC/mobile |
 | FISH-6 | TODO | — | — | Suite CI complète, navigateur PC/tactile, benchmark 4–8 Go |
 | FISH-7 | BACKLOG | — | — | Évolutions optionnelles |
 
@@ -142,4 +151,4 @@ Le MVP est accepté **uniquement si** :
 
 **Premier sprint : FISH-0 + FISH-1 + FISH-2**, sans modifier la 3D. Il livre un cœur métier testé, et garantit que la nouvelle mécanique ne produit pas de récompenses prématurées. **Deuxième sprint : FISH-3 + FISH-4**, pour obtenir la boucle complète. **Troisième sprint : FISH-5 + FISH-6**, pour la qualité visuelle et la qualification.
 
-**Ne pas merger cette seule documentation en prétendant livrer la pêche V1**. Son unique livrable est un plan actionnable.
+**Cette PR #77 contient désormais du code MVP et les premières finitions FISH-5.** Ne pas la présenter comme totalement qualifiée : FISH-6 et les tests du parcours complet PC/mobile restent à effectuer.
