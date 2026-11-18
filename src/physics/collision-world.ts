@@ -96,6 +96,19 @@ export class WorldCollisionQuery {
   const provider=space?this.providers.get(space.zoneId):undefined;if(provider&&space)provider.solids(space.levelId,minX,maxX,minZ,maxZ,out);
   return out;
  }
+ /** Conservative occupied volume for authoring placement, using the existing spatial grid. */
+ intersectsVolume(bounds:Bounds):boolean{if(!Object.values(bounds).every(finite)||bounds.minX>=bounds.maxX||bounds.minY>=bounds.maxY||bounds.minZ>=bounds.maxZ)throw Error('Volume invalide');for(const b of this.gather(bounds.minX,bounds.maxX,bounds.minZ,bounds.maxZ))if(b.minX<bounds.maxX&&b.maxX>bounds.minX&&b.minY<bounds.maxY&&b.maxY>bounds.minY&&b.minZ<bounds.maxZ&&b.maxZ>bounds.minZ)return true;return false;}
+ /** Segment occlusion uses the SAME enabled physical bodies and spatial broadphase as movement. */
+ occluded(from:Point3,to:Point3,ignoreIds:readonly string[]=[]):boolean{
+  if(!validPoint(from)||!validPoint(to))throw Error('Segment de visibilité invalide');
+  this.gather(Math.min(from.x,to.x),Math.max(from.x,to.x),Math.min(from.z,to.z),Math.max(from.z,to.z));
+  for(const id of this.sortedIds){if(ignoreIds.includes(id))continue;const body=this.bodies.get(id)!;if(!body.enabled())continue;const b=this.cachedBounds.get(id)!;let lo=0,hi=1;
+   for(const axis of ['x','y','z'] as const){const key=axis.toUpperCase() as 'X'|'Y'|'Z',min=b[('min'+key) as keyof Bounds],max=b[('max'+key) as keyof Bounds],delta=to[axis]-from[axis];if(Math.abs(delta)<1e-9){if(from[axis]<min||from[axis]>max){hi=-1;break;}}else{const a=(min-from[axis])/delta,c=(max-from[axis])/delta;lo=Math.max(lo,Math.min(a,c));hi=Math.min(hi,Math.max(a,c));if(lo>hi)break;}}
+   if(lo<=hi&&hi>1e-4&&lo<1-1e-4)return true;
+  }
+  const steps=Math.ceil(Math.hypot(to.x-from.x,to.z-from.z)/.5);for(let i=1;i<steps;i++){const t=i/steps;if(this.terrain(from.x+(to.x-from.x)*t,from.z+(to.z-from.z)*t)>from.y+(to.y-from.y)*t)return true;}
+  return false;
+ }
  /** Floor under a footprint: base floor plus steppable obstacle tops (≤ max(y, fromY) + step). */
  surfaceAt(position:Point3,space?:MovementSpace,radius=0,options:{step?:number;fromY?:number}={}):SurfaceSample {
   if(!validPoint(position))throw Error('Position de surface invalide');

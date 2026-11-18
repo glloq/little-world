@@ -25,7 +25,7 @@ const action=(title:string,fn:()=>Promise<unknown>|unknown,className?:string)=>b
 /** Toolbar: [module id, accessible name, icon, group, shortcut]. Viewport modules keep the 3D view. */
 const MODULES:[string,string,string,string,string][]=[
   ['scene','Sélection','➚','Naviguer','V'],['map','Carte globale','▦','Naviguer','M'],
-  ['objects','Objets','▣','Construire','B'],['natural','Structures naturelles','◠','Construire',''],['characters','Personnages','☺','Construire',''],['lights','Lumières','✦','Construire','L'],
+  ['objects','Objets','▣','Construire','B'],['settlements','Villages & villes','⌂','Construire',''],['natural','Structures naturelles','◠','Construire',''],['characters','Personnages','☺','Construire',''],['lights','Lumières','✦','Construire','L'],
   ['terrain','Relief','⛰','Monde','T'],['regions','Régions','◉','Monde',''],['biomes','Biotopes','✿','Monde',''],['paths','Chemins et rivières','〰','Monde',''],['water','Eau','≈','Monde',''],['zones','Zones','⬠','Monde',''],['landscapes','Paysages','❦','Monde',''],
   ['dialogues','Dialogues','✉','Logique',''],['interactions','Interactions','⚙','Logique',''],['environment','Environnement','☀','Logique',''],['audio','Audio','♪','Logique',''],['motion-lab','Animations du hamster','◉','Logique',''],
   ['composition','Recomposer le monde','◒','Projet',''],
@@ -110,6 +110,7 @@ async function module(requested:string){
   else if(id==='water'){const {mountWater}=await import('./water-view.ts');if(mine!==generation)return;disposePanel=mountWater(host,$('tools'),s).dispose;}
   else if(id==='audio'){const {mountAudio}=await import('./audio-view.ts');if(mine!==generation)return;disposePanel=mountAudio(host,s,()=>mine===generation).dispose;}
   else if(id==='motion-lab'){const {mountHamsterMotionLab}=await import('./hamster-motion-lab.ts');if(mine!==generation)return;disposePanel=mountHamsterMotionLab(host).dispose;}
+  else if(id==='settlements'){const {mountSettlements}=await import('./settlements-view.ts');if(mine!==generation)return;disposePanel=mountSettlements(host,s,{status,open3D:view=>void run(async()=>{const selected=s.selection.state.selected,entry=selected?s.document.entityIndex[selected.id]:undefined;await module('scene');if(view)viewport?.goTo(view.x,view.z,view.radius);else if(entry)viewport?.goTo(entry.position.x,entry.position.z,16);else viewport?.focusSelection();})(),play:()=>void run(preview)()});}
   else if(id==='composition'){const {mountCompositionPanel}=await import('./composition-panel.ts');if(mine!==generation)return;disposePanel=mountCompositionPanel(host,s,status);}
   else if(id==='environment'){const {mountEnvironment}=await import('./environment-view.ts');mountEnvironment(host,s);}
   else if(id==='interactions'){const {mountInteractions}=await import('./interactions-view.ts');await mountInteractions(host,s);$('tools').append(action('Retour à la vue 3D',()=>module('scene')));}
@@ -300,12 +301,13 @@ async function preview(){
   await editQueue.last;const s=session!,p=await s.fullDocument();if(viewport)s.selection.setCamera(viewport.camera.context());await s.flush();
   const selected=s.selection.state.selected,entry=selected?p.entityIndex[selected.id]:undefined,camera=s.selection.state.camera;
   const water=selected?.kind==='water'?p.libraries.water[selected.id]:undefined,waterFocus=water?.points[Math.floor(water.points.length/2)];
-  const focus=entry?.position??waterFocus??camera.target??(camera.x!==0||camera.z!==0?camera:null);
+  const settlementEntry=selected?Object.values(p.libraries.settlements??{}).flatMap(s=>s.buildings).find(b=>b.id===selected.id||b.doorId===selected.id)?.entry:undefined;
+  const focus=settlementEntry??entry?.position??waterFocus??camera.target??(camera.x!==0||camera.z!==0?camera:null);
   const {compileProject,fetchAssetResolver}=await import('../world-compiler/compile.ts'),{saveTestBuild}=await import('../runtime/build-store.ts');
   status('Compilation de la copie de test…');
   const compiled=await compileProject(p,{resolveAsset:fetchAssetResolver(new URL(import.meta.env.BASE_URL,location.origin).href)});
   let spawn;
-  if(focus){const b=p.world.bounds;spawn={x:Math.max(b.minX+4,Math.min(b.maxX-4,focus.x)),y:0,z:Math.max(b.minZ+15,Math.min(b.maxZ-15,focus.z-3))};}
+  if(focus){const b=p.world.bounds;spawn={x:Math.max(b.minX+4,Math.min(b.maxX-4,focus.x)),y:0,z:Math.max(b.minZ+15,Math.min(b.maxZ-15,focus.z-(settlementEntry?0:3)))};}
   else{const {defaultSpawn,runtimeConfig}=await import('../runtime/compiled-world.ts');spawn=defaultSpawn(runtimeConfig(compiled.manifest),Object.values(p.chunks).flatMap(c=>c.terrainEdits));}
   const build=await saveTestBuild({projectId:p.manifest.projectId,spawn,files:compiled.files});
   status(`Copie de test compilée (${compiled.manifest.chunks.length} secteurs auteur) : actions et slots temporaires, projet auteur conservé.`);

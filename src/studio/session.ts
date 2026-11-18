@@ -1,3 +1,4 @@
+import {assertSettlementLocks} from '../settlements/authoring.ts';
 import {assertTerrainSiteLocks} from '../studio-core/terrain-site-edits.ts';
 import {waterChunkIds} from '../water/sectors.ts';
 import {planHydrationEviction} from '../studio-core/hydration-budget.ts';
@@ -49,7 +50,7 @@ export class StudioSession {
  }
  /** Copy touched sectors only, then derive field patches. No complete world snapshots. */
  async change(label:string,ids:string[],edit:(draft:ProjectDocument)=>void){
-  await this.hydrate(ids);return editDocument(this.commands,label,ids,draft=>{edit(draft);assertTerrainSiteLocks(this.document,draft);});
+  await this.hydrate(ids);return editDocument(this.commands,label,ids,draft=>{edit(draft);assertTerrainSiteLocks(this.document,draft);assertSettlementLocks(this.document,draft);});
  }
  async flush():Promise<void>{
   clearTimeout(this.timer);if(this.saving){await this.saving;if(this.pending)return this.flush();return;}

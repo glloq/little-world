@@ -1,3 +1,4 @@
+import {validateSettlement} from '../settlements/schema.ts';
 import {validateTerrainPlan} from './terrain-sites.ts';
 import {validateNaturalStructure} from '../structures/natural-structure.ts';
 import {PATH_KINDS,type PathKind} from '../world-data.ts';
@@ -73,7 +74,7 @@ export function affectedChunkIds(world:WorldDefinitionV3,x:number,z:number,radiu
 export function emptyChunk(world:WorldDefinitionV3,id:ChunkId):ChunkSourceV3{return {schemaVersion:3,chunkId:id,index:chunkCoordinates(world,id),revision:0,entities:{},entityIds:[],terrainEdits:[],terrainRefs:[],biomeEdits:[],biomeRefs:[],waterRefs:[],pathRefs:[]};}
 function validateAppearance(value:unknown){const v=object(value,'Apparence');keys(v,['hat','backpack','neckwear','emotion','goggles'],'Apparence');if(v.goggles!==undefined&&typeof v.goggles!=='boolean')throw Error('Lunettes invalides');if(typeof v.hat!=='boolean'||typeof v.backpack!=='boolean'||!['none','pendant','scarf'].includes(String(v.neckwear))||!EMOTIONS.includes(v.emotion as typeof EMOTIONS[number]))throw Error('Apparence invalide');}
 const componentFields:Record<string,readonly string[]>={
-  Transform:['type','position','rotation','scale'],Visual:['type','assetId','variant'],Character:['type','species','rigId','appearance'],Navigation:['type','behaviorId','speed','radius','path'],BehaviorRef:['type','behaviorId'],DialogueActor:['type','dialogueIds'],State:['type','initial'],Persistence:['type','fields'],Interactable:['type','prompt','range','interactionIds'],Collider:['type','shape','size','layer'],Animator:['type','clips','initialClip'],TriggerVolume:['type','shape','size','interactionIds'],Light:['type','kind','color','intensity','range','offset','enabled','mode','stateKey','flicker','preset'],
+  Habitat:['type','version','doorId'],Transform:['type','position','rotation','scale'],Visual:['type','assetId','variant'],Character:['type','species','rigId','appearance'],Navigation:['type','behaviorId','speed','radius','path'],BehaviorRef:['type','behaviorId'],DialogueActor:['type','dialogueIds'],State:['type','initial'],Persistence:['type','fields'],Interactable:['type','prompt','range','interactionIds'],Collider:['type','shape','size','layer'],Animator:['type','clips','initialClip'],TriggerVolume:['type','shape','size','interactionIds'],Light:['type','kind','color','intensity','range','offset','enabled','mode','stateKey','flicker','preset'],
   NaturalStructure:['type','kind','form','span','width','clearance','thickness','curvature','bankRise'],
 };
 export function parseComponents(value:unknown,world?:WorldDefinitionV3):ComponentMap{
@@ -89,6 +90,7 @@ export function parseComponents(value:unknown,world?:WorldDefinitionV3):Componen
       case 'DialogueActor':ids(c.dialogueIds,'Dialogues',100);break;
       case 'State':{const state=object(c.initial,'État');for(const [key,val] of Object.entries(state)){string(key,'Nom état');if(typeof val==='number')finite(val,'Valeur état');else if(typeof val!=='boolean'&&typeof val!=='string')throw Error('État typé requis');else if(typeof val==='string'&&val.length>2000)throw Error('État trop long');}break;}
       case 'Persistence':ids(c.fields,'Champs persistants',100);break;
+      case 'Habitat':if(c.version!==1)throw Error('Version habitat inconnue');string(c.doorId,'Porte de la maison',100);break;
       case 'Interactable':string(c.prompt,'Invite',200);finite(c.range,'Portée',.1,50);ids(c.interactionIds,'Interactions',100);break;
       case 'Collider':case 'TriggerVolume':if(!['box','sphere'].includes(String(c.shape)))throw Error('Forme inconnue');vector(c.size,'Taille',.01,1000);if(name==='Collider'&&!['solid','trigger'].includes(String(c.layer)))throw Error('Couche inconnue');if(name==='TriggerVolume')ids(c.interactionIds,'Interactions',100);break;
       case 'Light':{if(c.kind!=='point')throw Error('Seules les lumières ponctuelles sont prises en charge');if(typeof c.color!=='string'||!/^#[0-9a-f]{6}$/i.test(c.color))throw Error('Couleur de lumière invalide');finite(c.intensity,'Intensité lumineuse',0,200);finite(c.range,'Portée lumineuse',.5,60);vector(c.offset,'Décalage lumière',-50,50);
@@ -97,7 +99,7 @@ export function parseComponents(value:unknown,world?:WorldDefinitionV3):Componen
         if(c.preset!==undefined&&!['warm-lantern','flickering-fire','fixed-lamp','cold-light'].includes(String(c.preset)))throw Error('Préréglage de lumière inconnu');break;}
       case 'Animator':{const clips=ids(c.clips,'Clips',100);if(c.initialClip!==undefined&&!clips.includes(string(c.initialClip,'Clip initial')))throw Error('Clip initial absent');break;}
     }
-  }return structuredClone(components) as unknown as ComponentMap;
+  }if(components.Habitat&&(components.Collider||components.NaturalStructure||!components.Transform||!components.Visual||(components.State as {initial?:Record<string,unknown>}|undefined)?.initial?.open!==undefined))throw Error('Maison : murs statiques, visuel et porte indépendante requis');return structuredClone(components) as unknown as ComponentMap;
 }
 export function parseEntity(value:unknown,world:WorldDefinitionV3):EntityDefinitionV3{
   const e=object(value,'Entité');keys(e,['id','kind','name','ownerChunkId','parentId','prefabId','variantId','components','overrides'],'Entité');string(e.id,'ID entité');string(e.name,'Nom',200);if(!['prop','building','character','trigger','effect'].includes(String(e.kind)))throw Error('Genre entité inconnu');chunkCoordinates(world,string(e.ownerChunkId,'Propriétaire'));for(const key of ['parentId','prefabId','variantId'])if(e[key]!==undefined)string(e[key],key);
@@ -149,7 +151,7 @@ export function validateLine(value:unknown,world:WorldDefinitionV3,water:boolean
   if(!water){if(line.kind!==undefined&&!PATH_KINDS.includes(line.kind as PathKind))throw Error('Chemin : type inconnu');if(line.smooth!==undefined&&typeof line.smooth!=='boolean')throw Error('Chemin : courbe invalide');}string(line.id,'ID tracé');finite(line.width,'Largeur',1,40);const points=array(line.points,'Points',100);if(points.length<2)throw Error('Tracé : deux points requis');for(const p of points){const v=object(p,'Point');keys(v,['x','z'],'Point');point(v,world,'Tracé');}if(water){finite(line.level,'Niveau',VERTICAL_ENVELOPE.min,VERTICAL_ENVELOPE.max);finite(line.depth,'Profondeur',.5,20);validateWaterProfile(line.profile,points.length);validateWaterNetworkFields(line as never);}
 }
 function validateLibraries(value:unknown,world:WorldDefinitionV3,entityIds:string[],chunkIds:string[]):void{
-  const libs=object(value,'Bibliothèques');keys(libs,['prefabs','characters','dialogues','behaviors','interactions','activities','variables','items','objectives','water','paths','zones','landscapes','assemblies','regions','terrainPlans'],'Bibliothèques');
+  const libs=object(value,'Bibliothèques');keys(libs,['prefabs','characters','dialogues','behaviors','interactions','activities','variables','items','objectives','water','paths','zones','landscapes','assemblies','regions','terrainPlans','settlements'],'Bibliothèques');
   if(libs.assemblies!==undefined)for(const [id,raw] of Object.entries(dictionary(libs.assemblies,'Assemblages',1000))){
     const a=object(raw,'Assemblage');keys(a,['id','name','version','items'],'Assemblage');
     if(a.id!==id)throw Error('Assemblage : ID différent de la clé');
@@ -181,6 +183,7 @@ function validateLibraries(value:unknown,world:WorldDefinitionV3,entityIds:strin
   }
   if(libs.landscapes!==undefined)for(const [id,l]of Object.entries(dictionary(libs.landscapes,'Bibliothèque paysages',LANDSCAPE_LIMITS.instances))){if(validateLandscape(l,world.bounds).id!==id)throw Error('Bibliothèque paysages : ID différent de la clé');}
   if(libs.regions!==undefined)for(const [id,region]of Object.entries(dictionary(libs.regions,'Bibliothèque régions',250))){if(validateRegionRecipe(region as never,world.bounds,world.chunkSizeM).id!==id)throw Error('Bibliothèque régions : ID différent de la clé');}
+  if(libs.settlements!==undefined)for(const [id,s]of Object.entries(dictionary(libs.settlements,'Établissements',128))){if(validateSettlement(s,world).id!==id)throw Error('ID établissement incohérent');}
   if(libs.terrainPlans!==undefined)for(const [id,plan]of Object.entries(dictionary(libs.terrainPlans,'Plans de terrain',64))){if(validateTerrainPlan(plan,world,libs as unknown as import('./types.ts').ProjectLibraries).id!==id)throw Error('ID du plan de terrain incohérent');}
   if(libs.zones!==undefined)for(const [id,zone]of Object.entries(dictionary(libs.zones,'Bibliothèque zones',2000))){if(validateZone(zone,world).id!==id)throw Error('Bibliothèque zones : ID différent de la clé');}
   for(const name of ['prefabs','characters','dialogues','behaviors','interactions','activities','variables','items','objectives','water','paths']){

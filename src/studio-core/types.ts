@@ -41,6 +41,7 @@ export interface LightComponent {type:'Light';kind:'point';color:string;intensit
   flicker?:{amplitude:number;speed:number};preset?:LightPreset;}
 export interface TriggerVolumeComponent {type:'TriggerVolume';shape:'box'|'sphere';size:Vector3;interactionIds:StableId[];}
 export interface ComponentMap {
+  Habitat?:import('../settlements/habitat.ts').HabitatComponent;
   Transform?:TransformComponent;Visual?:VisualComponent;Character?:CharacterComponent;Navigation?:NavigationComponent;
   BehaviorRef?:BehaviorRefComponent;DialogueActor?:DialogueActorComponent;State?:StateComponent;Persistence?:PersistenceComponent;
   Interactable?:InteractableComponent;Collider?:ColliderComponent;Animator?:AnimatorComponent;TriggerVolume?:TriggerVolumeComponent;Light?:LightComponent;NaturalStructure?:import('../structures/natural-structure.ts').NaturalStructureSpec;
@@ -54,6 +55,7 @@ export interface BehaviorDefinition {id:StableId;kind:'idle'|'wander'|'patrol'|'
 export interface CharacterDefinition {id:StableId;name:string;species:CharacterSpecies;rigId:CharacterRigId;appearance:Appearance;}
 /** Only actually implemented declarative gameplay registries are populated. */
 export interface ProjectLibraries {
+  settlements?:Record<StableId,import('../settlements/schema.ts').SettlementInstance>;
   /** Authoring-only reservations and references to native access paths. */
   terrainPlans?:Record<StableId,import('./terrain-sites.ts').TerrainPlanV1>;
   /** Optional project-owned visual assemblies. */

@@ -1,5 +1,7 @@
 # Little World — instructions pour Codex et autres agents de développement
 
+> **Établissements de surface V1 :** lire [75 — implémentation et limites](docs/75-SETTLEMENTS-SURFACE-V1.md) avant de modifier les villages. Maisons procédurales creuses et portes V3 indépendantes, `Habitat` et `libraries.settlements` facultatifs ; conserver les références, verrous et retouches. Les ports bâtis, ponts, grottes et villes denses de la roadmap restent à livrer.
+
 > **Terrain et établissements :** pour les prochains lots de génération d’îles, zones utiles, ports et accès, lire [73 — coordination terrain/établissements/collisions](docs/73-TERRAIN-SETTLEMENTS-ALIGNMENT.md). La branche `docs/studio-settlements-collision-roadmap` est une référence cible demandée par l’auteur ; ses contrats sont documentés, pas une preuve d’implémentation. Préparer des réservations et accès compatibles, sans réseau de chemins ou moteur physique parallèle.
 
 > **Rendu panoramique sans brouillard :** [17 — Horizon lointain, LOD et imposteurs](docs/17-DISTANT-VIEW-RENDERING.md). Priorité à la silhouette réelle, au proxy 3D lointain et aux gains mesurables ; ne pas masquer les distances par du fog.

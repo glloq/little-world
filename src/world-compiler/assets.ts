@@ -1,3 +1,4 @@
+import {HABITAT_ASSETS} from '../settlements/habitat.ts';
 import catalogue from '../../assets/catalog.json' with {type:'json'};
 import characterCatalogue from '../../assets/character-catalog.json' with {type:'json'};
 import {placeableWorldAssets} from '../world-production/registry.ts';
@@ -28,7 +29,7 @@ export function localAssetPath(path:string):boolean {
   return /^models\/[a-zA-Z0-9_./-]+\.glb$/.test(path)&&!path.split('/').some(part=>part==='..'||part==='.'||part==='');
 }
 const registry=new Map<string,{type:string;file?:string;license:string}>([
-  ...catalogue.assets,...characterCatalogue.characters,...placeableWorldAssets(),
+  ...catalogue.assets,...characterCatalogue.characters,...placeableWorldAssets(),...HABITAT_ASSETS,
   {id:'procedural.natural_structure',type:'procedural',license:'project-original'},
 ].map(asset=>[asset.id,asset]));
 export async function verifyAssets(project:ProjectDocument,resolver?:AssetResolver):Promise<{assets:CompiledAssetDescriptor[];diagnostics:CompilationDiagnostic[]}>{

@@ -6,7 +6,7 @@ export interface ReferenceResolution {state:'missing'|'unloaded'|'loaded';entry?
 export function collectEntityReferences(entity:EntityDefinitionV3):string[]{
   const c=entity.components;return [...new Set([
     ...(entity.parentId?[entity.parentId]:[]),...(entity.prefabId?[entity.prefabId]:[]),
-    ...(c.Visual?[c.Visual.assetId]:[]),...(c.Navigation?[c.Navigation.behaviorId]:[]),...(c.BehaviorRef?[c.BehaviorRef.behaviorId]:[]),
+    ...(c.Visual?[c.Visual.assetId]:[]),...(c.Habitat?[c.Habitat.doorId]:[]),...(c.Navigation?[c.Navigation.behaviorId]:[]),...(c.BehaviorRef?[c.BehaviorRef.behaviorId]:[]),
     ...(c.DialogueActor?.dialogueIds??[]),...(c.Interactable?.interactionIds??[]),...(c.TriggerVolume?.interactionIds??[]),
   ])];
 }
@@ -62,6 +62,7 @@ export class ReferenceIndex {
     for(const [name,library]of Object.entries(p.libraries))for(const [id,value]of Object.entries(library)){
       this.add({id,kind:name,ownerChunkId:'global',locator:`library/${name}/${id}`},true);
       if(name==='dialogues'&&(value as {actorId?:string}).actorId)this.link(id,(value as {actorId:string}).actorId);
+      if(name==='settlements'){const s=value as import('../settlements/schema.ts').SettlementInstance;for(const b of s.buildings)for(const target of [b.id,b.doorId,b.interactionId])this.link(id,target);for(const target of Object.keys(s.pathHashes))this.link(id,target);}
       if(name==='prefabs'){const components=(value as {components:ComponentMap}).components;if(components.Visual)this.link(id,components.Visual.assetId);}
     }
     for(const asset of Object.values(p.assets))this.add({id:asset.id,kind:'asset',ownerChunkId:'global',locator:`assets/${asset.id}`},true);

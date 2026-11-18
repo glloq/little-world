@@ -1,0 +1,14 @@
+{
+  "checks": 20,
+  "errors": [],
+  "physics": {
+    "closed": true,
+    "prompt": true,
+    "opened": true,
+    "passed": true,
+    "wall": true,
+    "rear": true,
+    "saveOpen": true,
+    "doorId": "settlement-7699de4c-house-0-door"
+  }
+}

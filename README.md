@@ -27,6 +27,10 @@ Voir [la stratégie de démonstration 4 × 3 km](docs/61-SHOWCASE-ISLAND-4X3.md)
 
 Sur `feat/stepped-island-identity` : silhouettes naturelles, croissant et tortue, réservations de port/champs/lac, accès à pied vérifiés et édition groupée avant création. Les accès impossibles sont signalés ; les bâtiments et quais restent à réaliser. Voir [les fonctionnalités, limites et captures V5](docs/74-COMPOSED-ISLANDS-V5.md).
 
+### Villages et villes dans le Studio
+
+Sur la même branche, **Construire → Villages & villes** permet de prévisualiser, créer et modifier des implantations de surface de 8 à 80 maisons : rues partagées, portes indépendantes, verrous et régénération préservant les retouches. [Fonctionnalités, captures et limites de cette première version](docs/75-SETTLEMENTS-SURFACE-V1.md).
+
 ### Déplacements dynamiques
 
 Roulade sensible aux pentes et aux sols, planeur piloté au clic-glisser avec échange

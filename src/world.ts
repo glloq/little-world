@@ -1,3 +1,5 @@
+import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
+import {houseBoxes,HOUSE} from './settlements/habitat.ts';
 import {impostorIllumination} from './render/impostor-lighting.ts';
 import type {SkyLighting} from './environment/sky-lighting.ts';
 import {assetInFrustum} from './render/asset-culling.ts';
@@ -592,7 +594,13 @@ export function createAsset(id: AssetId): THREE.Group {
   const registry = createRegistryAsset(id);
   if (registry) return registry;
   const g = new THREE.Group();
-  if (id === 'nature.pine') {
+  if(id.startsWith('settlement.house_')){
+    const wallMaterial=mat(id.endsWith('_stone')?0x999c98:id.endsWith('_white')?0xe7dcc1:0xb58b60);
+    for(const [key,material]of [['walls',wallMaterial],['roof',roof],['floor',stone]] as const){const gkey='habitat-'+key;const geo=geometry(gkey,()=>{const pieces=houseBoxes().filter(b=>key==='walls'?!['roof','floor'].includes(b.key):b.key===key).map(b=>new THREE.BoxGeometry(b.sx,b.sy,b.sz).translate(b.x,b.bottom+b.sy/2,b.z));const merged=mergeGeometries(pieces);pieces.forEach(p=>p.dispose());return merged;});mesh(geo,material,g,0,0,0);}
+    // A low pitched cap keeps the shell hollow; the flat roof below remains the physical ceiling.
+    const cap=mesh(geometry('habitat-cap',()=>new THREE.ConeGeometry(4.6,1.8,4)),roof,g,0,HOUSE.height+1.1,0);cap.rotation.y=Math.PI/4;cap.scale.z=1.15;
+  }else if(id==='settlement.door'){box(g,darkWood,HOUSE.doorWidth,HOUSE.doorHeight,.2,0,HOUSE.doorHeight/2,0);
+  }else if (id === 'nature.pine') {
     cylinder(g, wood, 0.24, 0.34, 2.4, 0, 1.2, 0);
     cylinder(g, deepGreen, 0, 2.0, 5.8, 0, 4.3, 0, 8);
     cylinder(g, mat(0x82a874), 0, 1.45, 3.8, 0, 5.5, 0, 8);
