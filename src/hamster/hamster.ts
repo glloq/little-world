@@ -53,6 +53,13 @@ export function buildHamster(options: { legacyGlb?: boolean } = {}): HamsterChar
   const line = new THREE.Line(lineGeometry, lineMaterial); line.frustumCulled = false; line.visible = false; line.name = 'FishingLine';
   const bobber = new THREE.Mesh(bobberGeometry, bobberMaterial); bobber.visible = false; bobber.name = 'FishingFloat';
   const extras = new THREE.Group(); extras.name = 'HamsterWorldExtras'; extras.add(line, bobber);
+  // Equipment visibility follows the locomotion state: no separate runtime or inventory simulation.
+  const snowMat=new THREE.MeshLambertMaterial({color:0x3d9fb5,flatShading:true});
+  const snowboard=new THREE.Mesh(new THREE.BoxGeometry(.78,.075,1.85),snowMat);
+  snowboard.name='Snowboard';snowboard.position.set(0,.075,0);snowboard.visible=false;rig.group.add(snowboard);
+  const skiMat=new THREE.MeshLambertMaterial({color:0xe08445,flatShading:true});
+  const leftSki=new THREE.Mesh(new THREE.BoxGeometry(.2,.065,1.95),skiMat),rightSki=new THREE.Mesh(leftSki.geometry,skiMat);
+  leftSki.position.set(-.27,.072,0);rightSki.position.set(.27,.072,0);leftSki.visible=false;rightSki.visible=false;rig.group.add(leftSki,rightSki);
   const group = new THREE.Group(); group.name = 'PlayerHamster'; group.add(rig.group, extras);
   const lastPosition=new THREE.Vector3();let located=false;
   const tmp = new THREE.Vector3(), tip = new THREE.Vector3(), input: HamsterInput = { mode: 'ground', speed: 0, verticalSpeed: 0, turnRate: 0 };
@@ -84,7 +91,7 @@ export function buildHamster(options: { legacyGlb?: boolean } = {}): HamsterChar
     for (const name of ['HipLeft', 'HipRight'] as const) { const r = REST[name]; j[name].position.set(r[0] * (1 - .4 * p.tuck), r[1] * (1 - .5 * p.tuck), r[2] * (1 - .4 * p.tuck)); }
     rig.setMembranes(glider ? 0 : p.membrane);
     glider?.update(gliderInput, dt);
-    rig.shadow.visible = input.mode === 'ground' || input.mode === 'roll';
+    rig.shadow.visible = input.mode === 'ground' || input.mode === 'roll' || input.mode === 'snow';
     applyAppearance();
     // Tool: shown by actions that use one, and while the fishing line is out.
     const want: ToolId | null = animator.toolOut ? actionTool : fishing ? 'fishing-rod' : null;
@@ -119,6 +126,7 @@ export function buildHamster(options: { legacyGlb?: boolean } = {}): HamsterChar
       const turn = dt > 0 ? Math.atan2(Math.sin(facing - lastFacing), Math.cos(facing - lastFacing)) / dt : 0; lastFacing = facing;
       const travelled=located?Math.hypot(group.position.x-lastPosition.x,group.position.z-lastPosition.z):0;
       lastPosition.copy(group.position);located=true;input.travel=travelled<10?travelled/CHARACTER_SCALE:0;
+      const snow=player.mode==='snow';snowboard.visible=snow&&player.snowEquipment!=='skis';leftSki.visible=rightSki.visible=snow&&player.snowEquipment==='skis';
       input.mode=player.mode;input.speed=speed;input.verticalSpeed=v.y;input.turnRate=turn;input.aboard=aboard;
       input.turnIntent=player.intentYaw===undefined?0:Math.atan2(Math.sin(player.intentYaw-facing),Math.cos(player.intentYaw-facing));
       input.jumpKind=player.jumpOrigin;input.jumpSeq=player.jumpSeq;
@@ -177,7 +185,7 @@ export function buildHamster(options: { legacyGlb?: boolean } = {}): HamsterChar
       if (fishing && !animator.action && animator.play('FISH_WAIT')) actionTool = 'fishing-rod';
       pose(dt, s.t);
     },
-    dispose() { if (disposed) return; disposed = true; listeners.clear(); tools.dispose(); glider?.dispose(); lineGeometry.dispose(); rig.dispose(); group.removeFromParent(); },
+    dispose() { if (disposed) return; disposed = true; listeners.clear(); tools.dispose(); glider?.dispose(); lineGeometry.dispose(); snowboard.geometry.dispose();leftSki.geometry.dispose();snowMat.dispose();skiMat.dispose(); rig.dispose(); group.removeFromParent(); },
   };
   return character;
 }
