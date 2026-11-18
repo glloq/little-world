@@ -32,6 +32,7 @@ export interface NPCDefinition {
   id: string;
   name: string;
   /** Morphology (squirrel rig, small animal, or the hamster rig of doc 43). */
+  /** 'squirrel' is accepted only to import historical maps; visual is always hamster. */
   kind: 'squirrel' | 'animal' | 'hamster';
   /** Optional authored visual scale (small inhabitants reuse the same rig). */
   scale?: number;
@@ -49,7 +50,7 @@ export interface NPCDefinition {
 export type NPCActivity = 'full' | 'reduced' | 'dormant';
 export type NPCVisualTier = 'rig' | 'silhouette' | 'hidden';
 /** Rendering detail is separate from behavior scheduling and conversation range. */
-export function npcVisualTier(distance: number, kind:NPCDefinition['kind']='squirrel'): NPCVisualTier {
+export function npcVisualTier(distance: number, kind:NPCDefinition['kind']='hamster'): NPCVisualTier {
   return distance <= (kind==='animal'?8:18) ? 'rig' : distance <= 160 ? 'silhouette' : 'hidden';
 }
 export interface NPCState {
@@ -334,7 +335,7 @@ export const DEFAULT_NPCS: NPCDefinition[] = [
   {
     id: 'miller',
     name: 'Noisette · meunière',
-    kind: 'squirrel',
+    kind: 'hamster',
     x: riverX(-57) - 18,
     z: -39,
     behavior: 'work',
@@ -349,7 +350,7 @@ export const DEFAULT_NPCS: NPCDefinition[] = [
   {
     id: 'villager',
     name: 'Miel · du village',
-    kind: 'squirrel',
+    kind: 'hamster',
     x: -39,
     z: 87,
     behavior: 'patrol',
@@ -369,7 +370,7 @@ export const DEFAULT_NPCS: NPCDefinition[] = [
   {
     id: 'fisher',
     name: 'Galet · pêcheur',
-    kind: 'squirrel',
+    kind: 'hamster',
     x: -31,
     z: 174,
     behavior: 'idle',
