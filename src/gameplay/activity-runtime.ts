@@ -80,7 +80,7 @@ export function createActivityRuntime(activities:PlayableActivities,deps:Deps){
   function cycleCrop(plotId:string){const f=farms.get(plotId);if(!f)return null;f.crop=(f.crop+1)%f.zone.farm.crops.length;return CROPS[f.zone.farm.crops[f.crop]].name;}
   function serialize(){
     const mineOut:Record<string,MineSaveState>={},farmOut:Record<string,FarmPlotState>={};
-    for(const [id,m]of mines){const s=m.state.serialize();if(Object.keys(s.levels).length)mineOut[id]=s;}
+    for(const [id,m]of mines){const s=m.state.serialize();if(Object.keys(s.levels).length||Object.keys(s.damage??{}).length||Object.keys(s.hits??{}).length)mineOut[id]=s;}
     for(const [id,f]of farms){evaluate(f.state,f.zone.farm,deps.climate,deps.time());farmOut[id]=structuredClone(f.state);}
     return {mines:mineOut,farms:farmOut};
   }
