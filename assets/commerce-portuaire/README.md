@@ -1,6 +1,6 @@
 # Commerces portuaires — brief de production low-poly
 
-**Statut : N1 V1 BASE GRAPHIQUE APPROUVÉE ; N2–N5 À PRODUIRE.** Design normatif : [docs/85 — Identité commerciale](../../docs/85-PORT-TRADE-CENTERS-VISUAL-DESIGN.md). Cette famille contient désormais un GLB N1 V1 de référence, mais aucun prefab runtime/Studio livré.
+**Statut : N1 V1 BASE GRAPHIQUE APPROUVÉE ; N2 V1 CANDIDAT 3D À VALIDER ; N3–N5 À PRODUIRE.** Design normatif : [docs/85 — Identité commerciale](../../docs/85-PORT-TRADE-CENTERS-VISUAL-DESIGN.md). Cette famille contient désormais un GLB N1 V1 de référence, mais aucun prefab runtime/Studio livré.
 
 ## N1 V1 — modèle de base validé (18 novembre 2026)
 
@@ -11,6 +11,16 @@ Le **modèle 3D actuel a été retenu comme base visuelle V1 du niveau 1**. Cett
 - **Manifeste de référence** : [`n1-v1.json`](n1-v1.json) (SHA-256 et caractéristiques). **Ne pas modifier silencieusement ce GLB** : toute variante implique une nouvelle version et une revue artistique.
 - **Silhouette retenue** : stand à quatre poteaux, toile rayée réellement modélisée avec plis et bordure, renforts en bois, comptoir vide, caisses vides, panneau hexagonal commercial, aucune marchandise ; accès arrière libre pour le PNJ.
 - **Restant avant intégration** : valider échelle PNJ et collisions en jeu, sockets d'interaction, LOD, palettes et catalogage Studio. **PTC-1 partiel** : modèle V1 versionné, pas encore LOD/runtime validé.
+
+## N2 V1 — cabane marchande, **proposition à valider** (18 novembre 2026)
+
+- **Modèle d'essai** : [`public/models/commerce-portuaire/port-trade-n2-candidate-v1.glb`](../../public/models/commerce-portuaire/port-trade-n2-candidate-v1.glb), **3 728 triangles exportés**, huit sous-ensembles, couleur par sommet, sans textures. Cette géométrie **n'est PAS encore approuvée graphiquement**.
+- **Visualiseur 3D WebGL autonome** : [`examples/port-trade-n2-candidate-v1-viewer.html`](../../examples/port-trade-n2-candidate-v1-viewer.html). Rotation, vues avant/arrière/latérale, masquage murs/toit, dégagement PNJ, cinq palettes et export GLB.
+- **Source de génération reproductible** : [générateur Python](tools/generate_port_trade_n2.py) et [template HTML](tools/template_port_trade_n2.html). Dépendances locales de fabrication `numpy` et `trimesh` (pas de dépendance dans le jeu/browseur) ; artefacts générés dans le dossier de l'outil.
+- **Continuité N1** : emblème hexagonal caisse, comptoir, trois caisses vides, auvent en toile rayée (désormais **secondaire**). Évolution **réelle** vers cabane en bois avec parois, toiture rigide, guichet réellement évidé, accès arrière et espace intérieur PNJ.
+- **Données candidates** : glTF/GLB 229 744 octets, dimensions environ **3,66 × 3,39 × 3,29 m** avec enseigne et surplombs ; empreinte SHA-256 : `8e75cf0a5c86b5a58ee7b7f138a7b2dce1530ab5d79643c7441dbb3e7ba44c3a`.
+- **Tests limités** : ouverture Chromium, commandes de visualisation, palettes, capture PNG et export GLB byte-identique. **Non testé dans Little World/World Studio**, collisions/LOD et validité de passage du PNJ en jeu à qualifier.
+- **Prochain gate** : revue de la silhouette/qualité du toit/guichet/porte par l'utilisateur. Ne pas déclarer ce N2 approuvé, ni remplacer N1 V1, avant cette validation.
 
 ## Famille unique, 5 modèles
 

@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Little World · Cabane marchande N2 — modèle low-poly 3D</title>
+<style>
+:root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;color:#26302e;background:#edeae3;color-scheme:light}*{box-sizing:border-box}body{margin:0;min-height:100vh}button{font:inherit;cursor:pointer}button:focus-visible,input:focus-visible{outline:3px solid #27847f;outline-offset:3px}.shell{display:grid;grid-template-columns:minmax(0,1fr) 318px;min-height:100vh}.stage{position:relative;height:100vh;min-height:630px;overflow:hidden;background:radial-gradient(circle at 49% 38%,#fdfbf6 0%,#eee8db 50%,#ddd8cf 100%)}canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}canvas.grabbing{cursor:grabbing}.heading{position:absolute;left:30px;top:26px;pointer-events:none}.eyebrow{font-size:11px;letter-spacing:.16em;text-transform:uppercase;font-weight:800;color:#8c6954}.heading h1{margin:8px 0 4px;font-size:clamp(22px,3vw,34px);line-height:1.1;color:#312b27;letter-spacing:-.04em}.heading p{font-size:12px;margin:7px 0;color:#746b61}.status{position:absolute;top:27px;right:25px;display:flex;align-items:center;gap:7px;border:1px solid #99c8b9;background:#e4f3e8;color:#276652;padding:8px 11px;border-radius:99px;font-size:11px;font-weight:750;pointer-events:none}.status:before{content:"";width:7px;height:7px;border-radius:50%;background:#36a878}.bottom{position:absolute;left:28px;right:28px;bottom:22px;display:flex;justify-content:space-between;align-items:end;gap:10px;pointer-events:none}.bottom .help{padding:12px 14px;background:#fffcf2d9;border:1px solid #dfd6c8;border-radius:10px;font-size:11px;line-height:1.55;color:#655b50}.bottom .count{padding:10px 12px;background:#fffcf2d9;border:1px solid #e0d7c9;border-radius:9px;font-size:11px;font-variant-numeric:tabular-nums;color:#786e63}.viewButtons{position:absolute;bottom:102px;left:28px;display:flex;gap:7px;flex-wrap:wrap}.viewButtons button{border:1px solid #d4c5b4;background:#fff9ebdb;border-radius:8px;padding:9px 12px;font-size:11px;font-weight:700;color:#6a5948}.viewButtons button.active{background:#6e5039;color:white;border-color:#6e5039}aside{padding:28px 24px 24px;border-left:1px solid #d8d3ca;background:#faf8f4;height:100vh;overflow-y:auto}.cap{text-transform:uppercase;font-size:10px;font-weight:800;letter-spacing:.13em;color:#a08060}.sideTitle{font-size:20px;font-weight:800;letter-spacing:-.03em;margin:8px 0 5px}.sideSub{margin:0;font-size:12px;color:#82776e;line-height:1.65}.sep{height:1px;background:#e8e0d5;margin:23px 0}.groupTitle{font-size:12px;font-weight:800;margin:0 0 10px}.colors{display:grid;gap:7px}.palette{width:100%;display:flex;gap:11px;align-items:center;text-align:left;padding:8px 10px;border:1px solid #ddd5cb;border-radius:9px;background:white;color:#4d453d;font-size:12px;font-weight:700}.palette.selected{border:1.5px solid #7c654a;background:#f3eade}.swatch{width:33px;height:23px;border-radius:5px;border:1px solid #00000019}.tick{margin-left:auto;color:#4c6c52;visibility:hidden}.palette.selected .tick{visibility:visible}.checks{display:grid;gap:12px}.checks label{display:flex;gap:10px;align-items:center;font-size:12px;color:#51493f;cursor:pointer}.checks input{width:16px;height:16px;accent-color:#815c41}.action{width:100%;background:white;border:1px solid #d7cabc;color:#534636;border-radius:8px;padding:11px;margin-top:8px;font-size:12px;font-weight:700;text-align:center}.action.primary{background:#66513d;border-color:#66513d;color:white}.notice{margin-top:18px;padding:12px 14px;border-radius:9px;background:#f2ede5;color:#6c5e50;font-size:11px;line-height:1.55}.notice b{color:#40362b}.meta{font-size:11px;color:#8d8174;line-height:1.8;margin:0}.error{display:none;position:absolute;left:50%;top:55%;transform:translate(-50%,-50%);background:#fff4e7;border:1px solid #d9af9a;border-radius:9px;padding:20px;max-width:420px;color:#813f2c;font-size:13px;line-height:1.6}.pill{font-size:9px;border-radius:4px;background:#e5dfd4;color:#77614b;padding:2px 6px;font-weight:700;margin-left:5px}@media(max-width:880px){.shell{grid-template-columns:1fr}.stage{height:64vh;min-height:470px}aside{min-height:0;height:auto;overflow:visible;border-left:0;border-top:1px solid #ddd6cc;padding:25px}.heading{top:17px;left:17px}.heading h1{font-size:25px}.status{top:18px;right:15px}.viewButtons{left:15px;bottom:95px}.bottom{left:15px;right:15px;bottom:12px}.bottom .count{display:none}.colors{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:520px){.heading p{max-width:250px}.status{font-size:0;padding:8px}.viewButtons button{padding:7px 10px}.stage{height:57vh}.bottom .help{font-size:10px}}
+</style>
+</head>
+<body>
+<div class="shell"><section class="stage" id="stage"><canvas id="view" aria-label="Modèle 3D interactif du stand commercial de Little World"></canvas>
+ <div class="heading"><div class="eyebrow">Little World / Assets 3D</div><h1>Comptoir portuaire <span style="color:#b18561">N2</span></h1><p>Cabane en bois, toiture rigide, guichet et auvent rayé.</p></div>
+ <div class="status" id="status">N2 V1 — proposition 3D</div>
+ <div class="viewButtons" id="views"><button data-view="iso" class="active">3/4 avant</button><button data-view="front">Face</button><button data-view="side">Fenêtre côté</button><button data-view="back">Porte arrière</button><button data-view="top">Toit</button></div>
+ <div class="bottom"><div class="help">Glisser : rotation · Molette : zoom<br>Pinçage tactile : zoom · Deux doigts : navigation</div><div class="count"><span id="triCount">—</span> triangles · 100 % géométrie</div></div><div class="error" id="error"></div>
+ </section>
+ <aside><div class="cap">Prototype à valider · PTC-2</div><div class="sideTitle">Cabane marchande en bois</div><p class="sideSub">Évolution du stand N1 validé : murs en planches, toit rigide, véritable guichet ouvert, porte arrière et auvent rayé. Aucun produit exposé, aucun décor maritime.</p>
+ <div class="sep"></div><div class="groupTitle">Palette du biome</div><div class="colors" id="palettes">
+  <button class="palette selected" data-palette="tropical"><span class="swatch" style="background:linear-gradient(90deg,#d95749 50%,#f8ebce 50%)"></span>Tropicale<span class="tick">✓</span></button>
+  <button class="palette" data-palette="forest"><span class="swatch" style="background:linear-gradient(90deg,#648c57 50%,#f0e8cc 50%)"></span>Forestière<span class="tick">✓</span></button>
+  <button class="palette" data-palette="mountain"><span class="swatch" style="background:linear-gradient(90deg,#557fa6 50%,#f4efe2 50%)"></span>Montagne<span class="tick">✓</span></button>
+  <button class="palette" data-palette="marsh"><span class="swatch" style="background:linear-gradient(90deg,#ab9052 50%,#e7ddba 50%)"></span>Marais<span class="tick">✓</span></button>
+  <button class="palette" data-palette="volcano"><span class="swatch" style="background:linear-gradient(90deg,#bf6345 50%,#f2d6a9 50%)"></span>Volcanique<span class="tick">✓</span></button>
+ </div><div class="sep"></div><div class="groupTitle">Détails à examiner</div><div class="checks">
+ <label><input id="crates" type="checkbox" checked>Caisses vides (3)</label>
+ <label><input id="walls" type="checkbox" checked>Murs de cabane (masquer pour inspecter)</label>
+ <label><input id="roof" type="checkbox" checked>Toiture en bois rigide</label>
+ <label><input id="door" type="checkbox" checked>Porte et encadrement arrière</label>
+ <label><input id="sign" type="checkbox" checked>Enseigne + logo caisse</label>
+ <label><input id="guide" type="checkbox">Emplacement libre du PNJ</label>
+ <label><input id="awning" type="checkbox" checked>Auvent rayé (masquer pour inspecter le guichet)</label>
+ <label><input id="spin" type="checkbox">Rotation automatique</label>
+ </div><div class="sep"></div><div class="groupTitle">Exporter le modèle</div>
+ <button class="action primary" id="downloadGlb">Télécharger le GLB low-poly</button>
+ <button class="action" id="capture">Enregistrer une capture PNG</button>
+ <button class="action" id="reset">Réinitialiser la caméra</button>
+ <div class="notice"><b>PNJ vendeur :</b> espace intérieur libre devant le guichet. Masquer le toit pour vérifier le passage depuis la porte arrière. Le guide au sol reste uniquement dans la visionneuse. L'anneau n'est pas exporté dans le GLB.</div>
+ <div class="sep"></div><p class="meta"><b>Modèle :</b> Little World / port_trade_l2_cabin<br><b>Format :</b> GLB 2.0 / vertex colors / sans textures<br><b>Dimensions :</b> environ 3,7 × 3,1 × 3,2 m (toit + enseigne)<br><b>Géométrie :</b> <span id="stats"></span><br><b>Technique :</b> WebGL avec éclairage diffus léger (Canvas si indisponible), sans CDN.</p>
+ </aside>
+</div>
+<script>
+(()=>{'use strict';
+const GROUPS=__EMBEDDED_GEOMETRY__;
+const PALETTES=__PALETTES__;
+const STATS=__MODEL_STATS__;
+const BASE64GLB='__GLB_BASE64__';
+const cvs=document.getElementById('view');const error=document.getElementById('error');
+let gl=cvs.getContext('webgl',{alpha:true,antialias:true,preserveDrawingBuffer:true})||cvs.getContext('webgl2',{alpha:true,antialias:true,preserveDrawingBuffer:true});
+if(!gl){document.getElementById('status').textContent='Aperçu 3D logiciel';}
+const V=`attribute vec3 aPosition;attribute vec3 aNormal;attribute float aCategory;
+uniform mat4 uMVP;uniform vec3 uPalette[12];varying vec3 vColor;varying vec3 vNormal;
+void main(){gl_Position=uMVP*vec4(aPosition,1.0);vNormal=aNormal;vColor=uPalette[int(aCategory+0.5)];}`;
+const F=`precision mediump float;varying vec3 vColor;varying vec3 vNormal;
+void main(){vec3 n=normalize(vNormal);vec3 light=normalize(vec3(-0.58,0.90,0.85));float l=.66+.31*max(dot(n,light),0.0)+.10*max(dot(n,normalize(vec3(.55,.20,-.75))),0.0);gl_FragColor=vec4(vColor*l,1.0);}`;
+function shader(type,src){const sh=gl.createShader(type);gl.shaderSource(sh,src);gl.compileShader(sh);if(!gl.getShaderParameter(sh,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(sh));return sh;}
+let program, mvpLoc, paletteLoc, parts={};
+const b64Bytes=s=>{const b=atob(s),bytes=new Uint8Array(b.length);for(let i=0;i<b.length;i++)bytes[i]=b.charCodeAt(i);return bytes};
+try{if(gl){const a=shader(gl.VERTEX_SHADER,V),b=shader(gl.FRAGMENT_SHADER,F);program=gl.createProgram();gl.attachShader(program,a);gl.attachShader(program,b);gl.linkProgram(program);if(!gl.getProgramParameter(program,gl.LINK_STATUS))throw Error(gl.getProgramInfoLog(program));gl.useProgram(program);mvpLoc=gl.getUniformLocation(program,'uMVP');paletteLoc=gl.getUniformLocation(program,'uPalette[0]');
+  for(const [name,b64] of Object.entries(GROUPS)){const bytes=b64Bytes(b64),data=new Float32Array(bytes.buffer);const buf=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buf);gl.bufferData(gl.ARRAY_BUFFER,data,gl.STATIC_DRAW);parts[name]={buf,count:data.length/7};}
+  gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.disable(gl.CULL_FACE);gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
+}}catch(e){console.error(e);error.style.display='block';error.textContent='Impossible de créer la scène WebGL : '+e.message;}
+const softwareGroups=!gl?Object.fromEntries(Object.entries(GROUPS).map(([k,v])=>[k,new Float32Array(b64Bytes(v).buffer)])):null;
+const ctx2d=!gl?cvs.getContext('2d',{alpha:true}):null;
+const loc=gl&&program?{position:gl.getAttribLocation(program,'aPosition'),normal:gl.getAttribLocation(program,'aNormal'),category:gl.getAttribLocation(program,'aCategory')}:{}, clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
+let yaw=.66,pitch=.25,distance=8.9,frameLast=0,spin=false,palette='tropical';
+let flags={floor:true,walls:true,roof:true,awning:true,counter:true,crates:true,sign:true,door:true,guide:false};
+function matMul(a,b){let m=new Float32Array(16);for(let i=0;i<4;i++)for(let j=0;j<4;j++)m[i+j*4]=a[i]*b[j*4]+a[i+4]*b[j*4+1]+a[i+8]*b[j*4+2]+a[i+12]*b[j*4+3];return m}
+const norm=v=>{const l=Math.hypot(...v)||1;return v.map(x=>x/l)},cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]],sub=(a,b)=>a.map((x,i)=>x-b[i]),dot=(a,b)=>a.reduce((s,x,i)=>s+x*b[i],0);
+function lookAt(eye,center){const z=norm(sub(eye,center)),x=norm(cross([0,1,0],z)),y=cross(z,x);return new Float32Array([x[0],y[0],z[0],0,x[1],y[1],z[1],0,x[2],y[2],z[2],0,-dot(x,eye),-dot(y,eye),-dot(z,eye),1])}
+function perspective(fovy,aspect,near,far){const f=1/Math.tan(fovy/2);return new Float32Array([f/aspect,0,0,0,0,f,0,0,0,0,(far+near)/(near-far),-1,0,0,2*far*near/(near-far),0])}
+function hexF(hex){return [1,3,5].map(i=>parseInt(hex.slice(i,i+2),16)/255)}
+function render(ts){requestAnimationFrame(render);if(ts-frameLast<(!gl?55:19))return;const elapsed=ts-frameLast;frameLast=ts;if(spin)yaw+=elapsed*.00028;if(!gl||!program){softwareDraw();return;}
+const rect=cvs.getBoundingClientRect(),ratio=Math.min(window.devicePixelRatio||1,2);const w=Math.max(10,Math.round(rect.width*ratio)),h=Math.max(10,Math.round(rect.height*ratio));if(cvs.width!==w||cvs.height!==h){cvs.width=w;cvs.height=h;gl.viewport(0,0,w,h)}
+const eye=[Math.sin(yaw)*Math.cos(pitch)*distance,1.60+Math.sin(pitch)*distance,Math.cos(yaw)*Math.cos(pitch)*distance];
+const proj=perspective(Math.PI/4,w/h,.08,80),view=lookAt(eye,[.17,1.54,0]);gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.useProgram(program);gl.uniformMatrix4fv(mvpLoc,false,matMul(proj,view));const flat=PALETTES[palette].flatMap(hexF);gl.uniform3fv(paletteLoc,new Float32Array(flat));
+for(const [name,item] of Object.entries(parts)){if(!flags[name])continue;gl.bindBuffer(gl.ARRAY_BUFFER,item.buf);gl.enableVertexAttribArray(loc.position);gl.enableVertexAttribArray(loc.normal);gl.enableVertexAttribArray(loc.category);gl.vertexAttribPointer(loc.position,3,gl.FLOAT,false,28,0);gl.vertexAttribPointer(loc.normal,3,gl.FLOAT,false,28,12);gl.vertexAttribPointer(loc.category,1,gl.FLOAT,false,28,24);gl.drawArrays(gl.TRIANGLES,0,item.count)}
+}
+// Fallback software triangle projection for browsers without WebGL (interactive, same actual mesh).
+function softwareDraw(){
+ if(!ctx2d)return;
+ const rect=cvs.getBoundingClientRect(),dpr=Math.min(window.devicePixelRatio||1,1.5);
+ const w=Math.max(1,Math.round(rect.width*dpr)),h=Math.max(1,Math.round(rect.height*dpr));
+ if(cvs.width!==w||cvs.height!==h){cvs.width=w;cvs.height=h;}
+ ctx2d.clearRect(0,0,w,h);
+ const eye=[Math.sin(yaw)*Math.cos(pitch)*distance,1.60+Math.sin(pitch)*distance,Math.cos(yaw)*Math.cos(pitch)*distance];
+ const view=lookAt(eye,[.17,1.54,0]),f=h*.5/Math.tan(Math.PI/8),light=norm([-.58,.90,.85]);
+ const faces=[];
+ for(const [name,arr] of Object.entries(softwareGroups)){
+  if(!flags[name])continue;
+  for(let i=0;i<arr.length;i+=21){
+   const xy=[],depths=[];let valid=true;
+   for(let j=0;j<3;j++){
+    const q=i+j*7,x=arr[q],y=arr[q+1],z=arr[q+2];
+    const vx=view[0]*x+view[4]*y+view[8]*z+view[12],vy=view[1]*x+view[5]*y+view[9]*z+view[13],vz=view[2]*x+view[6]*y+view[10]*z+view[14];
+    if(vz>=-.08){valid=false;break;}
+    xy.push([w*.5+vx*f/(-vz),h*.5-vy*f/(-vz)]);depths.push(-vz);
+   }
+   if(!valid)continue;
+   const cat=Math.round(arr[i+6]),c=hexF(PALETTES[palette][cat]);const n=[arr[i+3],arr[i+4],arr[i+5]];
+   const cx=(arr[i]+arr[i+7]+arr[i+14])/3,cy=(arr[i+1]+arr[i+8]+arr[i+15])/3,cz=(arr[i+2]+arr[i+9]+arr[i+16])/3;
+   if(dot(n,[eye[0]-cx,eye[1]-cy,eye[2]-cz])<0)continue;
+   const lit=Math.max(0,Math.min(1.05,.67+.3*Math.max(0,dot(n,light))+.08*Math.max(0,dot(n,[.5,.2,-.7]))));
+   faces.push({xy,depth:(depths[0]+depths[1]+depths[2])/3,fill:'rgb('+c.map(x=>Math.round(x*lit*255)).join(',')+')'});
+  }
+ }
+ faces.sort((a,b)=>b.depth-a.depth);
+ for(const p of faces){ctx2d.beginPath();ctx2d.moveTo(p.xy[0][0],p.xy[0][1]);ctx2d.lineTo(p.xy[1][0],p.xy[1][1]);ctx2d.lineTo(p.xy[2][0],p.xy[2][1]);ctx2d.closePath();ctx2d.fillStyle=p.fill;ctx2d.fill();}
+}
+
+let pointer=null, oldDist=0, touches=new Map();
+cvs.addEventListener('pointerdown',e=>{cvs.setPointerCapture(e.pointerId);touches.set(e.pointerId,[e.clientX,e.clientY]);if(touches.size===1){pointer=[e.clientX,e.clientY];}else{pointer=null;const a=[...touches.values()];oldDist=Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1]);}cvs.classList.add('grabbing')});
+cvs.addEventListener('pointermove',e=>{if(!touches.has(e.pointerId))return;const old=touches.get(e.pointerId);touches.set(e.pointerId,[e.clientX,e.clientY]);if(touches.size===2){const a=[...touches.values()],d=Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1]);if(oldDist>0)distance=clamp(distance*oldDist/Math.max(d,1),3.5,18);oldDist=d;}else if(touches.size===1){yaw-=(e.clientX-old[0])*.009;pitch=clamp(pitch+(e.clientY-old[1])*.006,-.22,1.38)}});
+function release(e){touches.delete(e.pointerId);pointer=null;oldDist=0;if(!touches.size)cvs.classList.remove('grabbing')}
+cvs.addEventListener('pointerup',release);cvs.addEventListener('pointercancel',release);cvs.addEventListener('wheel',e=>{e.preventDefault();distance=clamp(distance*Math.exp(e.deltaY*.001),3.5,18)},{passive:false});
+document.querySelectorAll('[data-palette]').forEach(b=>b.addEventListener('click',()=>{palette=b.dataset.palette;document.querySelectorAll('[data-palette]').forEach(c=>c.classList.toggle('selected',c===b))}));
+for(const id of ['crates','sign','guide','awning','roof','walls','door'])document.getElementById(id).addEventListener('change',e=>{flags[id]=e.target.checked});
+document.getElementById('spin').addEventListener('change',e=>spin=e.target.checked);
+const poses={iso:[.66,.25,8.9],front:[0,.10,7.4],side:[-Math.PI/2,.12,7.7],back:[Math.PI,.15,7.6],top:[.53,1.31,8.0]};
+document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>{[yaw,pitch,distance]=poses[b.dataset.view];document.querySelectorAll('[data-view]').forEach(c=>c.classList.toggle('active',b===c))}));
+document.getElementById('reset').addEventListener('click',()=>{yaw=.66;pitch=.25;distance=8.9;spin=false;document.getElementById('spin').checked=false;document.querySelectorAll('[data-view]').forEach(c=>c.classList.toggle('active',c.dataset.view==='iso'))});
+document.getElementById('capture').addEventListener('click',()=>{const a=document.createElement('a');a.href=cvs.toDataURL('image/png');a.download=`little-world-stand-N2-${palette}.png`;a.click()});
+document.getElementById('downloadGlb').addEventListener('click',()=>{const blob=new Blob([b64Bytes(BASE64GLB)],{type:'model/gltf-binary'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='little-world-port-trade-N2-v1.glb';a.click();setTimeout(()=>URL.revokeObjectURL(url),5000)});
+document.getElementById('triCount').textContent=STATS.triangles.toLocaleString('fr-FR');document.getElementById('stats').textContent=STATS.triangles.toLocaleString('fr-FR')+' triangles / sous-ensembles';
+requestAnimationFrame(render);
+})();
+</script>
+</body></html>

@@ -11,6 +11,12 @@ Identité du modèle : quatre poteaux et entretoises en bois, toile rayée avec 
 
 **Statut précis : VALIDÉ COMME BASE ARTISTIQUE**, *pas* « intégré au jeu » ni « qualifié sur vieux PC ». Des modifications futures peuvent être proposées sous nouvelle version **N1 V1.1 ou V2**, sans remplacer cette référence immuable. Les objectifs de LOD, collisions, Studio et commerce restent à réaliser et tester.
 
+## N2 — proposition 3D à valider
+
+La cabane marchande N2 **candidate V1** est disponible sous forme de [GLB](../public/models/commerce-portuaire/port-trade-n2-candidate-v1.glb) et de [visualiseur 3D](../examples/port-trade-n2-candidate-v1-viewer.html), avec [source de génération](../assets/commerce-portuaire/tools/generate_port_trade_n2.py). Elle conserve les codes du stand N1 déjà approuvé : mêmes bois/palettes, symbole hexagonal de caisse, comptoir et caisses vides ; sa **toiture est en bois** et la toile rayée devient un auvent de guichet.
+
+**Statut : PROTOTYPE NON APPROUVÉ**. Ne pas confondre avec le N1 V1 validé. Le N2 est une cabane à murs en planches, fenêtre de côté, guichet découpé en façade, porte arrière ouverte et zone intérieure libre pour PNJ. Les dimensions, colliders, LOD et placement Studio sont à qualifier avant production.
+
 ## 1. Objectif et périmètre
 
 Un commerce portuaire de Little World doit être **immédiatement identifiable sur toutes les îles**, indépendamment du biome et de leur spécialisation économique. Les cinq niveaux constituent une **même famille visuelle** à progression nette : **stand ouvert en toile → petite cabane en bois → bâtiment en dur → halle marchande → grand centre d'échange**.
