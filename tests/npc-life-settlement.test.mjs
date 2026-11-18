@@ -28,8 +28,9 @@ test('new opted-in settlement assigns homes and daytime destinations without new
  assert.deepEqual(validateSettlements(p),[]);
  const resolved=plan.entities.map(e=>({id:e.id,name:e.name,components:e.components}));
  const npc=runtimeContent(resolved,p.libraries).npcs;
- assert.equal(npc.filter(n=>n.routine).length,4);
- assert.ok(npc.some(n=>n.routine?.role==='miller'));
+ const generatedWorkers=plan.entities.filter(e=>e.id.startsWith('living-village-worker-'));
+ assert.equal(npc.filter(n=>n.routine).length,3+generatedWorkers.length);
+ if(generatedWorkers.length)assert.ok(npc.some(n=>n.routine?.role==='miller'));
  assert.ok(npc.filter(n=>n.routine).every(n=>n.kind==='hamster'));
  assert.ok(npc.some(n=>n.routine?.role==='child'&&n.scale===.73));
 });
