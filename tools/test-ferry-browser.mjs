@@ -3,6 +3,7 @@ import {chromium} from 'playwright';
 import {existsSync} from 'node:fs';
 import {mkdir} from 'node:fs/promises';
 import assert from 'node:assert/strict';
+import {newCargoState,advanceCargo,CARGO_STORAGE_KEY} from '../src/archipelago/cargo-logistics.ts';
 
 const base=process.env.WORLD_URL??'http://127.0.0.1:5173/little-world/';
 const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH??(existsSync('/usr/bin/chromium')?'/usr/bin/chromium':undefined),args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
@@ -11,6 +12,12 @@ try{
   await mkdir('/tmp/little-world-browser',{recursive:true});
   const page=await browser.newPage({viewport:{width:960,height:640}});
   page.on('pageerror',err=>errors.push(err.message));
+  // The pure logistics tests validate dispatch and receipt. The browser test starts with
+  // already-delivered foreign cargo so it can verify the actual harbour panel quickly.
+  const delivered=newCargoState();advanceCargo(delivered,55);
+  await page.addInitScript(({key,value})=>{
+    if(!localStorage.getItem(key))localStorage.setItem(key,value);
+  },{key:CARGO_STORAGE_KEY,value:JSON.stringify(delivered)});
   await page.goto(base+'?metrics=1',{waitUntil:'domcontentloaded'});
   await page.locator('#start-overlay').waitFor({state:'hidden',timeout:120000});
   await page.waitForFunction(()=>window.littleWorldMetrics?.ferry!==undefined,{},{timeout:30000});
@@ -44,6 +51,28 @@ try{
   await page.keyboard.press('KeyE');
   await panel.waitFor({state:'visible'});
   assert.match(await panel.textContent(),/Île du volcan/);
+  // ECO-7: the dedicated import-only stand is accessible at the quay even when the
+  // passenger ferry is on a different schedule.
+  const importsButton=panel.getByRole('button',{name:/Voir les importations/});
+  assert.equal(await importsButton.isEnabled(),true,'Foreign goods are available at the quay');
+  await importsButton.click();
+  const imports=page.locator('[data-panel="imports"]');
+  await imports.waitFor({state:'visible'});
+  const rows=imports.locator('.ui-import-row');
+  assert.equal(await rows.count(),2,'Only two foreign delivered lots on volcanic island');
+  assert.match(await imports.textContent(),/forest-valley/);
+  const logs=rows.filter({hasText:'Bûche'});
+  await logs.getByRole('button',{name:'Acheter',exact:true}).click();
+  await page.waitForFunction(()=>window.littleWorldMetrics?.inventory?.['wood:log']===1,
+    {},{timeout:5000});
+  assert.equal(await page.evaluate(()=>window.littleWorldMetrics.inventory.coin),33,
+    'Imported log costs seven coins with freight');
+  const ledger=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),CARGO_STORAGE_KEY);
+  const remaining=ledger.importLots['volcano-island'].find(x=>x.itemId==='wood:log');
+  assert.equal(remaining.quantity,4,'Import lot debited once after purchase');
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('KeyE');
+  await panel.waitFor({state:'visible'});
   const trial=panel.getByRole('button',{name:/cinématique de voyage/i});
   await trial.click();
   await page.locator('.ui-ferry-cinematic').waitFor({state:'visible'});
