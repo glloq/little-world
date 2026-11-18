@@ -21,7 +21,7 @@ try{
   assert.ok(ferry.boat && ferry.boarding,'Ferry must have a navigable mooring and a shore boarding anchor');
   const response=await page.request.get(base+'archipelago/catalog.json');
   assert.equal(response.status(),200);
-  assert.equal((await response.json()).islands.length,1,'No fictitious second island');
+  assert.equal((await response.json()).islands.length,2,'Exactly two published compiled islands');
   await page.keyboard.press('KeyM');
   const map=page.locator('[data-panel="map"]');
   await map.waitFor();

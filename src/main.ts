@@ -1142,6 +1142,22 @@ camera.position.set(
   player.position.z - 24,
 );
 camera.lookAt(player.position);
+// If a previous attempt failed during target boot, return to the source island's
+// last committed travel save, not an empty new game.
+if(!incomingTransit&&activeIsland&&gameplay){
+  try{
+    const recovery=sessionStorage.getItem(FERRY_RECOVERY_KEY);
+    if(recovery){
+      const saved=await gameplay.slots.load(gameplay.runtime.data.worldId,'slot-ferry-auto');
+      if(saved){
+        gameplay.restore(saved);
+        ferryMinute=worldGameMinute(worldClock.time,climate.definition.dayLengthSeconds);
+        ferryNow=ferryStatus(ferryMinute,activeIsland.portLevel);
+        ferryView?.setPresent(ferryNow.present);
+      }
+    }
+  }catch(error){console.warn('Sauvegarde de retour indisponible :',error);}
+}
 // One-time destination restore after all player, camera, NPC and UI systems exist.
 // Destination-specific activity states come from that island's own travel slot, while
 // the portable bag, boost progression and common clock come from the transit envelope.
