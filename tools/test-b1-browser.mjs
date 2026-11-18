@@ -58,9 +58,9 @@ try{
   const inside=await m();
   check(inside.act.space?.levelId==='level-3'&&Math.abs(inside.pos[1]-mine.levels[2].floorY)<.05,'Deep-level fixture at correct altitude');
   const card=page.locator('.ui-activity-card');
-  await page.waitForFunction(()=>/\\(3\\/3\\)/.test(document.querySelector('.ui-activity-card[data-kind=mine]')?.textContent??''),null,{timeout:5000}).catch(()=>{});
+  await page.waitForFunction(()=>/\(3\/3\)/.test(document.querySelector('.ui-activity-card[data-kind=mine]')?.textContent??''),null,{timeout:5000}).catch(()=>{});
   const mineCard=await card.textContent();
-  check(/\\(3\\/3\\)/.test(mineCard)&&/\\d+ m/.test(mineCard),'Mine card: level 3/3 and way out with distance ('+mineCard+')');
+  check(/\(3\/3\)/.test(mineCard)&&/\d+ m/.test(mineCard),'Mine card: level 3/3 and way out with distance ('+mineCard+')');
   await page.screenshot({path:out+'/b1-level3.png'});
   // 5. Dig: iron at the end of the gallery, then rock (stone), walking into each new cell.
   await hold('KeyW',v=>v.pos[2]>71.5,6);const digs=[];
