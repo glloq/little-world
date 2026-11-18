@@ -27,6 +27,7 @@ import {createSurfWaveField} from './surf/wave-field.ts';
 import {createSurfWaterView} from './render/surf-water-view.ts';
 import {createSurfBarrelView} from './render/surf-barrel-view.ts';
 import {applySurfTumblePose} from './render/surf-tumble-pose.ts';
+import {applySurfPose} from './render/surf-character-pose.ts';
 import {sampleSurfBarrel} from './surf/surf-barrel.ts';
 import {createSurfBoardView} from './render/surf-board-view.ts';
 import {createSurfHud} from './ui/surf/surf-hud.ts';
@@ -1493,9 +1494,11 @@ function draw(now: number) {
   if(gameplay){const f=gameplay.fishing.state;character.setFishing(f.phase!=='idle'&&f.castAt?{x:f.castAt.x,y:waterSurface(f.castAt.x,f.castAt.z)??getTerrainConfig().seaLevel,z:f.castAt.z,biting:f.phase==='bite'}:null);}
   character.update(player, delta, elapsed);
   snowCharacterView.update(player);
+  applySurfPose(character,player,motionTick);
   // Water tumble is a hero-only overlay; keep the hamster swim/dive state authoritative.
   applySurfTumblePose(character,player);
-  surfBoardView?.update(player,renderPosition);
+  surfBoardView?.update(player,renderPosition,
+    surfField?.sample(renderPosition.x,renderPosition.z,motionTick));
   if(surfHud&&now>=nextSurfHudAt){
     nextSurfHudAt=now+160;
     surfHud.update(player.mode==='surf'||player.surfAirborne||(player.barrelTumbleRemaining??0)>0?{
