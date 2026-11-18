@@ -24,7 +24,14 @@ export function createActivityRuntime(activities:PlayableActivities,deps:Deps){
   const mines=new Map<string,{zone:MineZone;state:MineState}>(),farms=new Map<string,{zone:FarmZone;state:FarmPlotState;crop:number}>();
   const listeners=new Set<(c:ActivityChange)=>void>(),notify=(c:ActivityChange)=>{for(const l of listeners)l(c);};
   let counter=0;const requestId=(k:string)=>`${k}:${Date.now().toString(36)}:${(counter++).toString(36)}`;
-  function installMine(zone:MineZone,state:MineState){deps.collision.setSpaceProvider(zone.id,mineSpaceProvider(state));deps.collision.removeTransitions(`mine:${zone.id}:`);for(const t of mineTransitions(state,deps.ground))if(t.id.endsWith(':enter')||t.id.endsWith(':exit'))deps.collision.addTransition(t); // Interior floors use explicit authorised lifts.mines.set(zone.id,{zone,state});}
+  function installMine(zone:MineZone,state:MineState){
+    deps.collision.setSpaceProvider(zone.id,mineSpaceProvider(state));
+    deps.collision.removeTransitions(`mine:${zone.id}:`);
+    // Only exterior transitions remain automatic; the lift checks player permission.
+    for(const t of mineTransitions(state,deps.ground))
+      if(t.id.endsWith(':enter')||t.id.endsWith(':exit'))deps.collision.addTransition(t);
+    mines.set(zone.id,{zone,state});
+  }
   for(const zone of activities.mines)installMine(zone,new MineState(new MineGrid(zone)));
   for(const zone of activities.farms)farms.set(zone.id,{zone,state:newPlotState(zone.id,zone.farm),crop:0});
 
