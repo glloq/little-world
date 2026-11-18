@@ -126,6 +126,8 @@ export function startProduction(state:WorkshopStateV1,recipe:ProductionRecipeV1,
   const finishesAt=startsAt+r.durationGameMinutes*args.batches;
   const fee=r.serviceFeeCoins*args.batches;
   if(!Number.isSafeInteger(finishesAt)||finishesAt>1_000_000_000||!Number.isSafeInteger(fee))return {ok:false,reason:'Durée ou coût trop élevé'};
+  const jobId=state.stationId+':'+args.requestId;
+  if(!validId(jobId))return {ok:false,reason:'Identifiant de fabrication trop long'};
   const debit=r.inputs.map(x=>({itemId:x.itemId,quantity:-x.quantity*args.batches}));
   if(fee)debit.push({itemId:'coin',quantity:-fee});
   const outputs=r.outputs.map(x=>({itemId:x.itemId,quantity:x.quantity*args.batches}));
@@ -133,7 +135,7 @@ export function startProduction(state:WorkshopStateV1,recipe:ProductionRecipeV1,
     return {ok:false,reason:'Quantité trop élevée'};
   if(!inventory.apply(debit))return {ok:false,reason:'Ingrédients ou frais insuffisants'};
   const job:ProductionJobV1={
-    jobId:state.stationId+':'+args.requestId,requestId:args.requestId,ownerId:args.ownerId,
+    jobId,requestId:args.requestId,ownerId:args.ownerId,
     recipeId:r.recipeId,recipeVersion:r.version,batches:args.batches,
     startsAtGameMinute:startsAt,finishesAtGameMinute:finishesAt,outputs,
     status:finishesAt<=args.gameMinute?'ready':startsAt<=args.gameMinute?'running':'queued',
