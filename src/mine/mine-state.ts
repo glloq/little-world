@@ -44,6 +44,21 @@ export class MineGrid {
           if(k>=0&&this.mask[k]&&mineHubCell(hub,ix,iz))this.open[l][k]=1;
         }
     }
+    // The level-1 rear doorway must connect to the existing surface portal at floor
+    // height without a lift, load screen or exterior terrain excavation.
+    const rear=mineHubLayout(zone,0).surfaceExit;
+    if(rear){
+      const sx=e.x+hx*3,sz=e.z+hz*3,dx=rear.x-sx,dz=rear.z-sz;
+      const steps=Math.max(1,Math.ceil(Math.hypot(dx,dz)*2));
+      for(let t=0;t<=steps;t++){
+        const x=sx+dx*t/steps,z=sz+dz*t/steps;
+        for(let a=-1;a<=1;a++)for(let b=-1;b<=1;b++){
+          if(a*a+b*b>2)continue;
+          const ix=Math.floor(x+a),iz=Math.floor(z+b),k=this.cell(ix,iz);
+          if(k>=0&&this.mask[k])this.open[0][k]=1;
+        }
+      }
+    }
     // Stair landings: 3 × 5 cells around each connector, on both levels.
     for(const c of zone.mine.connectors)for(const l of [this.index.get(c.upper)!,this.index.get(c.lower)!])opened(l,Math.floor(c.x)-1,Math.floor(c.x)+2,Math.floor(c.z)-2,Math.floor(c.z)+3);
   }
