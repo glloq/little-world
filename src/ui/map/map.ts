@@ -49,6 +49,7 @@ export function mapPanel(deps:MapDeps,raster:MapRaster=createMapRaster(deps),way
   const visibleMarkers=()=>deps.markers().filter(m=>enabled.has(m.kind));
   const distance=(x:number,z:number)=>{const p=deps.player();return Math.round(Math.hypot(x-p.x,z-p.z))+' m';};
   let details:HTMLElement|null=null,form:HTMLElement|null=null,pointList:HTMLElement|null=null;
+  let pointListSignature='';
   function draw(){
     if(!canvas)return;const g=canvas.getContext('2d');if(!g)return;
     g.fillStyle='#bcd8dc';g.fillRect(0,0,canvas.width,canvas.height);
@@ -80,12 +81,16 @@ export function mapPanel(deps:MapDeps,raster:MapRaster=createMapRaster(deps),way
     canvas.dataset.markers=String(markers.length);canvas.dataset.visited=String(visited.size);
   }
   function loop(){frame=0;if(!canvas?.isConnected)return;const done=raster.step(6);draw();if(!done)frame=requestAnimationFrame(loop);}
+  const markerSignature=()=>visibleMarkers().filter(m=>m.kind!=='npc')
+    .map(m=>[m.id,m.label,m.active?'1':'0',m.x,m.z].join(':')).sort().join('|');
   function renderPointList(){
     if(!pointList||!details)return;
+    pointListSignature=markerSignature();
     pointList.replaceChildren();
     const all=visibleMarkers().filter(m=>m.kind!=='npc').sort((a,c)=>Number(!!c.active)-Number(!!a.active)||Math.hypot(a.x-deps.player().x,a.z-deps.player().z)-Math.hypot(c.x-deps.player().x,c.z-deps.player().z));
     for(const m of all.slice(0,80)){
       const row=el('div','ui-map-entry'),name=el('span','',`${ICONS[m.kind]} ${m.label} · ${distance(m.x,m.z)}`);
+      row.dataset.markerId=m.id;
       const follow=button(m.kind==='ferry'?'Horaires':m.active?'Ne plus suivre':'Viser',()=>{
         if(m.kind==='ferry'){deps.onMarkerAction?.(m);return;}
         if(m.kind==='waypoint'){waypoints?.activate(m.active?null:m.id);}
@@ -155,8 +160,22 @@ export function mapPanel(deps:MapDeps,raster:MapRaster=createMapRaster(deps),way
     },
     close(){cancelAnimationFrame(frame);resizeObserver?.disconnect();resizeObserver=null;frame=0;canvas=null;form=null;details=null;pointList=null;addMode=false;focusTarget=null;},
     focus(x:number,z:number,label:string){focusTarget={x,z,label};if(canvas){cx=x;cz=z;draw();}},
-    /** Refresh dynamic markers when the map is open (ferry arrivals/departures). */
-    refresh(){if(canvas?.isConnected){draw();renderPointList();}},
+    /** Keep buttons mounted across 4 Hz HUD updates. Rebuild only if marker identity,
+     * label or active state changed; update distance text in place while moving.
+     */
+    refresh(){
+      if(!canvas?.isConnected)return;
+      draw();
+      if(markerSignature()!==pointListSignature){renderPointList();return;}
+      const markers=new Map(visibleMarkers().map(m=>[m.id,m]));
+      for(const row of pointList?.querySelectorAll<HTMLElement>('.ui-map-entry')??[]){
+        const marker=markers.get(row.dataset.markerId??'');
+        if(marker&&row.firstElementChild)row.firstElementChild.textContent=
+          `${ICONS[marker.kind]} ${marker.label} · ${distance(marker.x,marker.z)}`;
+      }
+      const goal=waypoints?.active;
+      if(details)details.textContent=goal?`Destination : ${goal.label} · ${distance(goal.x,goal.z)}`:'Aucune destination sélectionnée.';
+    },
     get raster(){return raster;},
   };
 }
