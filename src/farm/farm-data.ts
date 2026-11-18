@@ -12,7 +12,7 @@ export const CROPS:Record<string,CropProfile>={
   pumpkin:{id:'pumpkin',name:'Citrouille',itemId:'farm:pumpkin',baseTempC:8,maturity:30,waterUse:.5,yield:2,color:0x4f8c3a,matureColor:0xe08a2c,height:.5},
 };
 export const FARM_ITEMS=Object.values(CROPS).map(c=>({id:c.itemId,name:c.name,category:'farm',maxQuantity:999,description:`Récolté sur une parcelle (${c.name.toLowerCase()}).`}));
-export interface FarmSettingsV3 {crops:string[];initialCrop:string|null;rowAngle:number;soil:{fertility:number;drainage:number};irrigation:{x:number;z:number}|null}
+export interface FarmSettingsV3 {assignment?:'player'|'npc';crops:string[];initialCrop:string|null;rowAngle:number;soil:{fertility:number;drainage:number};irrigation:{x:number;z:number}|null}
 export interface FarmZone {id:string;name:string;polygon:PointXZ[];farm:FarmSettingsV3}
 export function defaultFarmSettings(polygon:PointXZ[]):FarmSettingsV3{
   const xs=polygon.map(p=>p.x),zs=polygon.map(p=>p.z);
@@ -22,7 +22,8 @@ const finite=(v:unknown,min:number,max:number):v is number=>typeof v==='number'&
 export function validateFarmSettings(value:unknown):FarmSettingsV3{
   const f=value as FarmSettingsV3,fail=(t:string)=>{throw Error('Parcelle : '+t);};
   if(!f||typeof f!=='object'||Array.isArray(f))fail('paramètres invalides');
-  for(const k of Object.keys(f))if(!['crops','initialCrop','rowAngle','soil','irrigation'].includes(k))fail('champ inconnu '+k);
+  for(const k of Object.keys(f))if(!['crops','initialCrop','rowAngle','soil','irrigation','assignment'].includes(k))fail('champ inconnu '+k);
+  if(f.assignment!==undefined&&!['player','npc'].includes(f.assignment))fail('attribution inconnue');
   if(!Array.isArray(f.crops)||!f.crops.length||f.crops.some(c=>!CROPS[c])||new Set(f.crops).size!==f.crops.length)fail('cultures inconnues');
   if(f.initialCrop!==null&&!f.crops.includes(f.initialCrop))fail('culture initiale non autorisée');
   if(!finite(f.rowAngle,-Math.PI*2,Math.PI*2))fail('orientation des rangs invalide');

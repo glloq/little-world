@@ -1,5 +1,7 @@
 # Little World — instructions pour Codex et autres agents de développement
 
+> **Parcelles et rivage :** lire [90 — jardins joueur/PNJ, décor côtier et caldeira dominante](docs/90-SETTLEMENT-GARDENS-COAST-DOMINANT-CALDERA.md). Respecter la provenance des zones et les droits agricoles ; conserver les formes historiques `regular`/`organic`.
+
 > **Création complète :** lire [89 — caldeira, port natif et villages](docs/89-COMPLETE-ISLAND-START-CALDERA-PORT-VILLAGES.md). Ce lot complète le document 88 : port N1 source dès création, quartiers organiques et raccord explicite. Préserver la géométrie historique sans option organique.
 
 

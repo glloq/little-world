@@ -1,3 +1,4 @@
+import {putZone,removeZone} from '../studio-core/zones.ts';
 import {assetDefinitionFor} from '../world-production/registry.ts';
 import {amenityChanged} from './services.ts';
 import { parseProject } from '../studio-core/schema.ts';
@@ -27,6 +28,7 @@ export function settlementChunkIds(p: ProjectDocument, plan: SettlementPlan): st
 } return [...ids]; }
 function writePlan(p: ProjectDocument, plan: SettlementPlan) {
     const old = p.libraries.settlements?.[plan.recipe.id];
+    const missingZoneHashes=Object.fromEntries(Object.entries(old?.zoneHashes??{}).filter(([id])=>!p.libraries.zones?.[id]));
     p.assets = { ...p.assets };
     for(const e of plan.entities){const id=e.components.Visual?.assetId,asset=id?assetDefinitionFor(id):undefined;if(asset)p.assets[asset.id]=asset;}
     for (const a of HABITAT_ASSETS)
@@ -45,6 +47,8 @@ function writePlan(p: ProjectDocument, plan: SettlementPlan) {
     for(const a of old?.amenities??[])if(!plan.amenities?.some(v=>v.id===a.id)&&!amenityChanged(p,a))removeEntity(p,a.id);
     p.libraries.dialogues={...p.libraries.dialogues};for(const a of old?.amenities??[])if(a.dialogueHash&&!plan.amenities?.some(v=>v.id===a.id)&&fingerprint(p.libraries.dialogues[a.id+'-talk'])===a.dialogueHash)delete p.libraries.dialogues[a.id+'-talk'];
     for(const [id,dialogue]of Object.entries(plan.dialogues??{})){if(p.libraries.dialogues[id]&&!old?.amenities?.some(a=>a.id+'-talk'===id))throw Error('Dialogue déjà utilisé : '+id);p.libraries.dialogues[id]=structuredClone(dialogue);}
+    for(const [id,hash]of Object.entries(old?.zoneHashes??{}))if(!plan.zones?.some(z=>z.id===id)&&p.libraries.zones?.[id]&&fingerprint(p.libraries.zones[id])===hash)removeZone(p,id);
+    for(const z of plan.zones??[])putZone(p,z);
     for (const e of plan.entities)
         putEntity(p, e);
     for (const b of plan.buildings) {
@@ -56,7 +60,7 @@ function writePlan(p: ProjectDocument, plan: SettlementPlan) {
     }
     for (const path of plan.paths)
         putPath(p, path);
-    const instance: SettlementInstance = { version: 1, id: plan.recipe.id, recipe: structuredClone(plan.recipe), buildings: structuredClone(plan.buildings),...(plan.amenities?{amenities:structuredClone(plan.amenities)}:{}),...(old?.suppressedAmenities?{suppressedAmenities:[...old.suppressedAmenities]}:{}), pathHashes: Object.fromEntries(plan.paths.map(path => [path.id, old?.pathHashes[path.id] && plan.preserved.includes(path.id) ? old.pathHashes[path.id] : fingerprint(path)])), ...(old?.suppressedSlots ? { suppressedSlots: [...old.suppressedSlots] } : {}), revision: (old?.revision ?? 0) + 1 };
+    const instance: SettlementInstance = { version: 1, id: plan.recipe.id, recipe: structuredClone(plan.recipe), buildings: structuredClone(plan.buildings),...(plan.amenities?{amenities:structuredClone(plan.amenities)}:{}),...(old?.suppressedAmenities?{suppressedAmenities:[...old.suppressedAmenities]}:{}), ...(plan.zones?.length||Object.keys(old?.zoneHashes??{}).length?{zoneHashes:{...missingZoneHashes,...Object.fromEntries((plan.zones??[]).map(z=>[z.id,plan.preserved.includes(z.id)?old!.zoneHashes![z.id]:fingerprint(z)]))}}:{}), pathHashes: Object.fromEntries(plan.paths.map(path => [path.id, old?.pathHashes[path.id] && plan.preserved.includes(path.id) ? old.pathHashes[path.id] : fingerprint(path)])), ...(old?.suppressedSlots ? { suppressedSlots: [...old.suppressedSlots] } : {}), revision: (old?.revision ?? 0) + 1 };
     p.libraries.settlements = { ...p.libraries.settlements, [instance.id]: instance };
 }
 export function previewSettlementProject(p: ProjectDocument, plan: SettlementPlan) { const draft = structuredClone(p); writePlan(draft, plan); return draft; }
@@ -84,6 +88,7 @@ export function removeSettlement(p: ProjectDocument, id: string) {
     if (!s)
         return;
     const keepAmenities=(s.amenities??[]).filter(a=>amenityChanged(p,a)),keep = s.buildings.filter(b => buildingChanged(p, b)), owned = new Set([id,...Object.keys(s.pathHashes),...(s.amenities??[]).flatMap(a=>[a.id,...(a.dialogueHash?[a.id+'-talk']:[])]), ...s.buildings.flatMap(b => [b.id, b.doorId, b.interactionId])]), refs = new ReferenceIndex(p);
+    for(const [zoneId,hash]of Object.entries(s.zoneHashes??{}))if(p.libraries.zones?.[zoneId]&&fingerprint(p.libraries.zones[zoneId])===hash&&refs.dependents(zoneId).some(v=>v!==id))throw Error('Une logique extérieure utilise cette parcelle : la déconnecter avant suppression');
     for (const b of s.buildings)
         if (!keep.includes(b))
             for (const target of [b.id, b.doorId, b.interactionId])
@@ -104,6 +109,7 @@ export function removeSettlement(p: ProjectDocument, id: string) {
                 throw Error('Une autre zone utilise ce chemin : la déconnecter avant suppression');
             removePath(p, key);
         }
+    for(const [zoneId,hash]of Object.entries(s.zoneHashes??{}))if(p.libraries.zones?.[zoneId]&&fingerprint(p.libraries.zones[zoneId])===hash)removeZone(p,zoneId);
     const all = { ...p.libraries.settlements };
     delete all[id];
     p.libraries.settlements = all;

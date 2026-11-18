@@ -1,3 +1,4 @@
+import {terrainAccessContext} from '../studio-core/terrain-access.ts';
 import {pathSupport} from './bridge.ts';
 import {layoutContext} from './layout.ts';
 import {SHOPS} from '../gameplay/economy.ts';
@@ -92,6 +93,8 @@ export function validateSettlements(p: ProjectDocument, onlyId?: string): Settle
     for (const d of collisionDefinitionsFromProject(p))
         query.add({ ...d, position: { ...d.position, y: d.position.y + c.height(d.groundAnchor.x, d.groundAnchor.z) }, enabled: () => !doorIds.has(d.id) });
     for (const s of all) {
+        const raw=terrainAccessContext(p);
+        for(const id of Object.keys(s.zoneHashes??{})){const z=p.libraries.zones?.[id];if(!z)continue;const center={x:z.polygon.reduce((v,q)=>v+q.x,0)/z.polygon.length,z:z.polygon.reduce((v,q)=>v+q.z,0)/z.polygon.length},samples=[...z.polygon,center],heights=samples.map(q=>raw.height(q.x,q.z));if(z.kind!=='farm-plot'||samples.some(q=>raw.wet(q.x,q.z))||Math.min(...heights)<=raw.seaLevel+1.3||Math.max(...heights)-Math.min(...heights)>.7)out.push({severity:'ERROR',code:'SET_FIELD_TERRAIN',targetId:id,message:'Une parcelle ne repose plus sur un sol sec et cultivable.'});}
         const bounded=layoutContext(s.recipe,c);
         const error = (code: string, message: string, targetId = s.id) => out.push({ severity: 'ERROR', code, targetId, message }), paths = Object.keys(s.pathHashes).map(id => p.libraries.paths[id]).filter((v): v is PathDefinition => !!v);
         if (paths.length !== Object.keys(s.pathHashes).length)
@@ -127,7 +130,7 @@ export function validateSettlements(p: ProjectDocument, onlyId?: string): Settle
             visited.add(id);
             pending.push(...adj.get(id) ?? []);
         }
-        for(const a of s.amenities??[]){const i=p.entityIndex[a.id],e=i?p.chunks[i.ownerChunkId]?.entities[a.id]:undefined;if(!e){error('SET_AMENITY_MISSING','Un équipement référencé est absent.',a.id);continue;}if(a.role==='counter'&&(!e.components.ShopAccess||typeof e.components.State?.initial.shop!=='string'||!Object.hasOwn(SHOPS,e.components.State.initial.shop)))error('SET_SERVICE_UNUSABLE','Le comptoir a perdu son type commercial ou sa pose d’usage.',a.id);if(e.components.ShopAccess){const current=serviceEntry(e);if(Math.hypot(current.x-a.entry.x,current.z-a.entry.z)>.05)error('SET_SERVICE_MOVED','Le comptoir a été déplacé : recalculer son accès.',a.id);}const node=graph.nodes.find(n=>Math.hypot(n.position.x-a.entry.x,n.position.z-a.entry.z)<.05);if(!node||!visited.has(node.id))error('SET_SERVICE_DISCONNECTED','Un équipement ne rejoint plus la place et les rues.',a.id);}
+        for(const a of s.amenities??[]){const i=p.entityIndex[a.id],e=i?p.chunks[i.ownerChunkId]?.entities[a.id]:undefined;if(!e){error('SET_AMENITY_MISSING','Un équipement référencé est absent.',a.id);continue;}if(['shore-hut','shore-boat'].includes(a.role))continue;if(a.role==='counter'&&(!e.components.ShopAccess||typeof e.components.State?.initial.shop!=='string'||!Object.hasOwn(SHOPS,e.components.State.initial.shop)))error('SET_SERVICE_UNUSABLE','Le comptoir a perdu son type commercial ou sa pose d’usage.',a.id);if(e.components.ShopAccess){const current=serviceEntry(e);if(Math.hypot(current.x-a.entry.x,current.z-a.entry.z)>.05)error('SET_SERVICE_MOVED','Le comptoir a été déplacé : recalculer son accès.',a.id);}const node=graph.nodes.find(n=>Math.hypot(n.position.x-a.entry.x,n.position.z-a.entry.z)<.05);if(!node||!visited.has(node.id))error('SET_SERVICE_DISCONNECTED','Un équipement ne rejoint plus la place et les rues.',a.id);}
         for (const b of s.buildings) {
             const idx = p.entityIndex[b.id], source = idx ? p.chunks[idx.ownerChunkId]?.entities[b.id] : undefined;
             if (!source) {

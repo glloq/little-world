@@ -56,7 +56,7 @@ export function createActivityRuntime(activities:PlayableActivities,deps:Deps){
   /** Next sensible action on the plot (plant / water / harvest / clear). */
   function farmIntent(plotId:string){const v=farmView(plotId)!;if(v.stage==='empty')return {type:'plant' as const,label:`Semer : ${CROPS[v.selectedCrop].name}`};if(v.stage==='failed')return {type:'clear' as const,label:'Nettoyer la parcelle (culture desséchée)'};if(v.stage==='mature')return {type:'harvest' as const,label:`Récolter : ${CROPS[v.cropId!].name}`};return {type:'water' as const,label:`Arroser (${CROPS[v.cropId!].name}, ${Math.round(v.growth*100)} %, humidité ${Math.round(v.moisture*100)} %)`};}
   function farmAct(plotId:string):{ok:boolean;message:string}{
-    const f=farms.get(plotId);if(!f)return {ok:false,message:'Parcelle inconnue'};const intent=farmIntent(plotId),cropId=f.zone.farm.crops[f.crop%f.zone.farm.crops.length];
+    const f=farms.get(plotId);if(!f)return {ok:false,message:'Parcelle inconnue'};if(f.zone.farm.assignment==='npc')return {ok:false,message:'Parcelle réservée aux habitants'};const intent=farmIntent(plotId),cropId=f.zone.farm.crops[f.crop%f.zone.farm.crops.length];
     const missing=seedMissing(plotId);if(missing)return {ok:false,message:missing};
     // Harvest: the crop and one seed packet of the harvested crop, granted atomically.
     const harvested=f.state.crop?.cropId,bonus=intent.type==='harvest'&&harvested?deps.seedItem?.(harvested)??null:null;
@@ -106,7 +106,7 @@ export function createActivityRuntime(activities:PlayableActivities,deps:Deps){
     return `Il faut des semences de ${CROPS[cropId].name.toLowerCase()} (comptoir agricole ou marché)`;
   }
   function farmPreview(plotId:string){
-    const f=farms.get(plotId);if(!f)return null;const intent=farmIntent(plotId),copy=structuredClone(f.state);
+    const f=farms.get(plotId);if(!f)return null;if(f.zone.farm.assignment==='npc')return {ok:false,reason:'Parcelle réservée aux habitants',intent:farmIntent(plotId)};const intent=farmIntent(plotId),copy=structuredClone(f.state);
     const missing=seedMissing(plotId);if(missing)return {intent,ok:false,reason:missing};
     const r=act(copy,f.zone.farm,deps.climate,{requestId:'preview',type:intent.type,cropId:f.zone.farm.crops[f.crop%f.zone.farm.crops.length],time:deps.time(),waterAvailable:waterAvailable(f.zone)},()=>true);
     return {intent,ok:r.ok,reason:r.ok?undefined:r.reason};

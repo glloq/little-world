@@ -16,7 +16,7 @@ export function islandStyleControls(r:MapRequirements,change:(next:MapRequiremen
   ...(['caldera','volcanic'].includes(s.model)?[]:[field('Intensité des vallées',numberInput(s.valleys,v=>set('valleys',v),0,1,'.05'))]),
   ...(s.model==='caldera'?[]:[field('Présence des plateaux locaux',numberInput(s.plateaus,v=>set('plateaus',v),0,1,'.05'))]),
   field('Demandes de cours d’eau',select(s.hydrology,[['preferred','Souhaits adaptés au terrain'],['required','Nombres strictement obligatoires']],v=>set('hydrology',v as IslandStyle['hydrology']))));
- if(s.model==='caldera')advanced.append(field('Organisation de la caldeira',select(s.calderaShape??'regular',[['organic','Couronne irrégulière · îles de largeurs variées'],['regular','Couronne régulière historique']],v=>change({...r,compositionVersion:5,islandStyle:{...s,calderaShape:v as 'organic'|'regular'}}))));
+ if(s.model==='caldera')advanced.append(field('Organisation de la caldeira',select(s.calderaShape??'regular',[['dominant','Grande île principale et îlots'],['organic','Couronne irrégulière · îles de largeurs variées'],['regular','Couronne régulière historique']],v=>change({...r,compositionVersion:5,islandStyle:{...s,calderaShape:v as 'organic'|'regular'|'dominant'}}))));
  if(s.model==='volcanic')advanced.append(field('État du volcan',select(s.volcanism,[['ancient','Ancien · versants végétalisés'],['active','Actif · sommet volcanique']],v=>set('volcanism',v as IslandStyle['volcanism']))));
  box.append(advanced);
  const layout={...DEFAULT_LAYOUT,...r.layout},areas=node('details');areas.append(node('summary','Zones utiles et accès'));

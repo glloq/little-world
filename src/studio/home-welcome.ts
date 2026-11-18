@@ -106,7 +106,7 @@ export function drawWelcomePreview(canvas:HTMLCanvasElement,project:ProjectDocum
   }
   for(const w of Object.values(project.libraries.water)){line(w.points,'#1677c4',w.kind==='lake',Math.max(1,Math.min(3,w.width/width*rect.w)));if(w.kind==='lake'){ctx.fillStyle='#459bd8';ctx.fill();}for(const fall of w.falls??[]){const q=projectPoint(w.points[fall.at]);ctx.fillStyle='#fff';ctx.fillRect(q.x-2,q.y-2,5,5);}}
   for(const path of Object.values(project.libraries.paths))line(path.points,'#9b512a',false,Math.max(1.3,path.width/width*rect.w));
-  for(const zone of Object.values(project.libraries.zones??{}))if(zone.kind==='farm-plot'){line(zone.polygon,'#c18d24',true,1);ctx.fillStyle='#e0bd4f66';ctx.fill();}
+  for(const zone of Object.values(project.libraries.zones??{}))if(zone.kind==='farm-plot'){line(zone.polygon,zone.farm?.assignment==='player'?'#2c8393':'#c18d24',true,1);ctx.fillStyle=zone.farm?.assignment==='player'?'#65c9d488':'#e0bd4f66';ctx.fill();}
   for(const plan of Object.values(project.libraries.terrainPlans??{}))for(const site of plan.sites){
    const f=def.kind==='archipelago'?def.archipelago.features.find(f=>f.id===site.featureId):undefined;
    if(f?.kind==='plateau'){ctx.setLineDash([4,3]);line(f.polygon,site.kind==='harbor'?'#28788b':'#8c8237',true,1);ctx.setLineDash([]);}

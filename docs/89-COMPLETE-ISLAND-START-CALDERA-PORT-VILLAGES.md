@@ -47,3 +47,6 @@ Le port n’a pas encore d’éditeur de déplacement groupé recalculant tous s
 Rapports : [génération](captures/complete-island-start-v1/benchmark-report.json), [navigateur](captures/complete-island-start-v1/browser-report.json). Commandes : `npm test`, `npm run build`, `npm run test:complete-island-start`, `npm run benchmark:complete-island-start`. Le script navigateur utilise le serveur Studio local, comme les autres contrôles navigateur du dépôt.
 
 Aucune carte officielle ni aucun asset GLB existant n’a été réécrit. Aucun déploiement n’est effectué dans ce lot.
+
+
+Suite : [90 — parcelles agricoles, abords portuaires et grande caldeira](90-SETTLEMENT-GARDENS-COAST-DOMINANT-CALDERA.md).

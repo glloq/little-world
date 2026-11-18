@@ -60,6 +60,7 @@ export function previewWorldRecomposition(p:ProjectDocument,next:MapRequirements
   for(const path of Object.values(generated.libraries.paths))putPath(scratch,path);
   for(const id of Object.keys(generatedWater))removeWater(scratch,id);
   for(const id of Object.keys(regions))removeRegion(scratch,id);
+  scratch.libraries.zones=structuredClone(generated.libraries.zones??{});
   scratch.world={...scratch.world,seed:generated.world.seed,terrain:generated.world.terrain,generation:generated.world.generation};
   for(const water of Object.values(generated.libraries.water))putWater(scratch,water);
   const recipes=Object.values(generated.libraries.regions??{}).map(r=>{const copy=structuredClone(r);delete copy.generated;return copy;});

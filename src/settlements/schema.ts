@@ -18,6 +18,8 @@ export interface SettlementRecipe {
     wealth: 0 | 1 | 2;
     activity: 'mixed' | 'agriculture' | 'forest' | 'mine' | 'fishing' | 'commerce';
     services?:boolean;
+    cultivation?:boolean;
+    waterfront?:boolean;
     localLife?:boolean;
     maritimePort?:boolean;
     variedServices?:boolean;
@@ -41,6 +43,7 @@ export interface BuildingRecord {
 export interface AmenityRecord {id:string;role:string;entityHash:string;entry:{x:number;z:number};locked:boolean;dialogueHash?:string}
 export interface SettlementInstance {
     amenities?:AmenityRecord[];
+    zoneHashes?:Record<string,string>;
     suppressedAmenities?:string[];
     version: 1;
     id: string;
@@ -58,12 +61,12 @@ function fields(v: Record<string, unknown>, list: string[]) { if (Object.keys(v)
 export function validateSettlementRecipe(raw: unknown, world: WorldDefinitionV3): SettlementRecipe {
     if (!obj(raw))
         throw Error('Recette d’établissement invalide');
-    fields(raw, ['version', 'id', 'name', 'seed', 'form', 'center', 'radius', 'orientation', 'targetBuildings', 'style', 'wealth', 'activity', 'houseVariation', 'useExisting','routeToPath','services','layout','localLife','variedServices','maritimePort']);
+    fields(raw, ['version', 'id', 'name', 'seed', 'form', 'center', 'radius', 'orientation', 'targetBuildings', 'style', 'wealth', 'activity', 'houseVariation', 'useExisting','routeToPath','services','layout','localLife','variedServices','maritimePort','cultivation','waterfront']);
     if (raw.version !== 1 || !id(raw.id) || String(raw.id).length > 64 || typeof raw.name !== 'string' || !raw.name.trim() || raw.name.length > 100 || !num(raw.seed, 0, 0xffffffff) || !Number.isInteger(raw.seed) || !['hamlet', 'village', 'town','fortified'].includes(String(raw.form)) || !['auto', ...HABITAT_STYLES].includes(String(raw.style)) || ![0, 1, 2].includes(raw.wealth as number) || !['mixed', 'agriculture', 'forest','mine','fishing','commerce'].includes(String(raw.activity)) || !num(raw.targetBuildings, 1, 80) || !Number.isInteger(raw.targetBuildings) || !num(raw.houseVariation, 0, 0xffffffff) || !Number.isInteger(raw.houseVariation) || !num(raw.radius, 20, 600) || !num(raw.orientation, -360, 360) || typeof raw.useExisting !== 'boolean')
         throw Error('Recette d’établissement hors limites');
     if(raw.routeToPath!==undefined&&!id(raw.routeToPath))throw Error('Route de raccordement invalide');
     if(raw.layout!==undefined)validateSettlementLayout(raw.layout,world);
-    for(const key of ['localLife','variedServices','maritimePort'])if(raw[key]!==undefined&&typeof raw[key]!=='boolean')throw Error('Option de vie locale invalide');
+    for(const key of ['localLife','variedServices','maritimePort','cultivation','waterfront'])if(raw[key]!==undefined&&typeof raw[key]!=='boolean')throw Error('Option de vie locale invalide');
     if(raw.services!==undefined&&typeof raw.services!=='boolean')throw Error('Services invalides');
     if (!obj(raw.center))
         throw Error('Centre absent');
@@ -76,13 +79,13 @@ export function validateSettlementRecipe(raw: unknown, world: WorldDefinitionV3)
 export function validateSettlement(raw: unknown, world: WorldDefinitionV3): SettlementInstance {
     if (!obj(raw))
         throw Error('Établissement invalide');
-    fields(raw, ['version', 'id', 'recipe', 'buildings', 'pathHashes', 'suppressedSlots', 'revision','amenities','suppressedAmenities']);
+    fields(raw, ['version', 'id', 'recipe', 'buildings', 'pathHashes', 'suppressedSlots', 'revision','amenities','suppressedAmenities','zoneHashes']);
     if (raw.version !== 1 || !id(raw.id) || !num(raw.revision, 1, 1e9) || !Number.isInteger(raw.revision) || !Array.isArray(raw.buildings) || raw.buildings.length > 80 || !obj(raw.pathHashes))
         throw Error('Établissement hors limites');
     if (raw.suppressedSlots !== undefined && (!Array.isArray(raw.suppressedSlots) || raw.suppressedSlots.length > 80 || new Set(raw.suppressedSlots).size !== raw.suppressedSlots.length || raw.suppressedSlots.some(v => !num(v, 0, 79) || !Number.isInteger(v))))
         throw Error('Suppressions de parcelles invalides');
-    if(raw.amenities!==undefined){if(!Array.isArray(raw.amenities)||raw.amenities.length>12)throw Error('Équipements hors limites');const seen=new Set<string>();for(const a of raw.amenities){if(!obj(a))throw Error('Équipement invalide');fields(a,['id','role','entityHash','entry','locked','dialogueHash']);if(a.dialogueHash!==undefined&&(typeof a.dialogueHash!=='string'||!/^[a-f0-9]{16}$/.test(a.dialogueHash)))throw Error('Provenance dialogue invalide');if(!id(a.id)||seen.has(String(a.id))||!['counter','well','bench','mill','fire','bridge','inn','workshop','host','harbor'].includes(String(a.role))||typeof a.entityHash!=='string'||!/^[a-f0-9]{16}$/.test(a.entityHash)||typeof a.locked!=='boolean'||!obj(a.entry))throw Error('Équipement invalide');fields(a.entry,['x','z']);if(!num(a.entry.x,world.bounds.minX,world.bounds.maxX)||!num(a.entry.z,world.bounds.minZ,world.bounds.maxZ))throw Error('Entrée équipement hors monde');seen.add(String(a.id));}}
-    if(raw.suppressedAmenities!==undefined&&(!Array.isArray(raw.suppressedAmenities)||raw.suppressedAmenities.length>10||new Set(raw.suppressedAmenities).size!==raw.suppressedAmenities.length||raw.suppressedAmenities.some(v=>!['counter','well','bench','mill','fire','bridge','inn','workshop','host','harbor'].includes(String(v)))))throw Error('Suppressions équipements invalides');
+    if(raw.amenities!==undefined){if(!Array.isArray(raw.amenities)||raw.amenities.length>24)throw Error('Équipements hors limites');const seen=new Set<string>();for(const a of raw.amenities){if(!obj(a))throw Error('Équipement invalide');fields(a,['id','role','entityHash','entry','locked','dialogueHash']);if(a.dialogueHash!==undefined&&(typeof a.dialogueHash!=='string'||!/^[a-f0-9]{16}$/.test(a.dialogueHash)))throw Error('Provenance dialogue invalide');if(!id(a.id)||seen.has(String(a.id))||!['counter','well','bench','mill','fire','bridge','inn','workshop','host','harbor','shore-hut','shore-boat'].includes(String(a.role))||typeof a.entityHash!=='string'||!/^[a-f0-9]{16}$/.test(a.entityHash)||typeof a.locked!=='boolean'||!obj(a.entry))throw Error('Équipement invalide');fields(a.entry,['x','z']);if(!num(a.entry.x,world.bounds.minX,world.bounds.maxX)||!num(a.entry.z,world.bounds.minZ,world.bounds.maxZ))throw Error('Entrée équipement hors monde');seen.add(String(a.id));}}
+    if(raw.suppressedAmenities!==undefined&&(!Array.isArray(raw.suppressedAmenities)||raw.suppressedAmenities.length>24||new Set(raw.suppressedAmenities).size!==raw.suppressedAmenities.length||raw.suppressedAmenities.some(v=>!['counter','well','bench','mill','fire','bridge','inn','workshop','host','harbor','shore-hut','shore-boat'].includes(String(v)))))throw Error('Suppressions équipements invalides');
     const recipe = validateSettlementRecipe(raw.recipe, world);
     if (recipe.id !== raw.id)
         throw Error('Recette non liée');
@@ -90,6 +93,7 @@ export function validateSettlement(raw: unknown, world: WorldDefinitionV3): Sett
     const hashes = (v: unknown, max: number) => { if (!obj(v) || Object.keys(v).length > max || Object.entries(v).some(([k, h]) => !id(k) || typeof h !== 'string' || !/^[a-f0-9]{16}$/.test(h)))
         throw Error('Provenance invalide'); };
     hashes(raw.pathHashes, 256);
+    if(raw.zoneHashes!==undefined)hashes(raw.zoneHashes,8);
     for (const v of raw.buildings) {
         if (!obj(v))
             throw Error('Bâtiment invalide');

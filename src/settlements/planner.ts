@@ -1,3 +1,4 @@
+import {settlementSurroundings} from './surroundings.ts';
 import {neighborhoodNetwork,networkPattern} from './neighborhood-network.ts';
 import {settlementMaritimePort} from './maritime-port.ts';
 import {localLife} from './local-life.ts';
@@ -27,6 +28,7 @@ export interface SettlementDiagnostic {
     targetId?: string;
 }
 export interface SettlementPlan {
+    zones?:import('../studio-core/types.ts').ActivityZoneV3[];
     recipe: SettlementRecipe;
     sourceHash: string;
     recipeHash: string;
@@ -46,7 +48,7 @@ export function buildingChanged(p: ProjectDocument, b: BuildingRecord) { return 
 export function settlementPoint(r: SettlementRecipe, x: number, z: number) { const a = r.orientation * Math.PI / 180; return { x: r.center.x + x * Math.cos(a) + z * Math.sin(a), z: r.center.z - x * Math.sin(a) + z * Math.cos(a) }; }
 export function planSettlement(p: ProjectDocument, raw: SettlementRecipe): SettlementPlan {
     if(Object.keys(p.chunkIndex).some(id=>!p.chunks[id]))throw Error('Charger tous les secteurs avant de calculer une implantation.');
-    const started = performance.now(), r = validateSettlementRecipe(raw, p.world), previous = p.libraries.settlements?.[r.id], baseTerrain=settlementTerrain(p),c = layoutContext(r,baseTerrain), diagnostics: SettlementDiagnostic[] = [], entities: EntityDefinitionV3[] = [], paths: PathDefinition[] = [], buildings: BuildingRecord[] = [], preserved: string[] = [], removed: string[] = [];
+    const started = performance.now(), r = validateSettlementRecipe(raw, p.world), previous = p.libraries.settlements?.[r.id], baseTerrain=settlementTerrain({...p,libraries:{...p.libraries,zones:Object.fromEntries(Object.entries(p.libraries.zones??{}).filter(([id,z])=>!previous?.zoneHashes?.[id]||fingerprint(z)!==previous.zoneHashes[id]))}}),c = layoutContext(r,baseTerrain), diagnostics: SettlementDiagnostic[] = [], entities: EntityDefinitionV3[] = [], paths: PathDefinition[] = [], buildings: BuildingRecord[] = [], preserved: string[] = [], removed: string[] = [];
     if(r.routeToPath&&!p.libraries.paths[r.routeToPath])diagnostics.push({severity:'ERROR',code:'SET_TARGET_PATH_MISSING',message:'La route à rejoindre est absente.'});
     const protectedBuildings = new Map((previous?.buildings ?? []).filter(b => buildingChanged(p, b)).map(b => [b.slot, b]));
     const removable = new Set((previous?.buildings ?? []).filter(b => !protectedBuildings.has(b.slot)).flatMap(b => [b.id, b.doorId]));
@@ -212,6 +214,7 @@ export function planSettlement(p: ProjectDocument, raw: SettlementRecipe): Settl
             paths.push(structuredClone(p.libraries.paths[id]));
             preserved.push(id);
         }
-    return { dialogues,recipe: r, sourceHash: settlementSourceHash(p), recipeHash: fingerprint(r), entities, paths, buildings,...(r.services||previous?.amenities?{amenities}:{}), diagnostics, preserved: [...new Set(preserved)], removed, generationMs: performance.now() - started };
+    const zones=settlementSurroundings(p,r,paths,query,entities,amenities,diagnostics,preserved);
+    return { zones,dialogues,recipe: r, sourceHash: settlementSourceHash(p), recipeHash: fingerprint(r), entities, paths, buildings,...(r.services||r.waterfront||previous?.amenities?{amenities}:{}), diagnostics, preserved: [...new Set(preserved)], removed, generationMs: performance.now() - started };
 }
 export { HABITAT_ASSETS };
