@@ -44,6 +44,17 @@ export function mineHubCell(hub:MineHubLayout,ix:number,iz:number):boolean {
   const side=Math.abs(right+3.15),depth=Math.abs(forward+.5);
   return !(side>5.45&&depth>6.2&&side+depth>12.2);
 }
+/** Gradual extra height in the reception, returning smoothly to the authored gallery
+ * ceiling at the borders. Reused by both mesher and physical ceiling query.
+ * Keep total level clearance <= 4.7 m: even 6 m authored floors stay unchanged. */
+export function mineHubRoofRise(hub:MineHubLayout,x:number,z:number):number {
+  const dx=x-hub.shaft.x,dz=z-hub.shaft.z,
+    s=Math.sin(hub.heading),c=Math.cos(hub.heading),
+    right=dx*c-dz*s,forward=dx*s+dz*c;
+  const edge=Math.min(right+9.5,3.2-right,forward+7.4,6.4-forward);
+  const height=Math.max(0,Math.min(1.10,4.7-hub.height));
+  return height*Math.max(0,Math.min(1,edge/2.1));
+}
 export function mineRequiredExcavations(levelIndex:number):number {
   return levelIndex<=0?0:levelIndex===1?12:40+(levelIndex-2)*40;
 }
