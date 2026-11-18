@@ -259,6 +259,8 @@ const ferryDock=(()=>{
   }
   return null;
 })();
+// Boarding remains on the walkable shore/quay, not six metres offshore under the rowboat.
+const ferryBoardingPoint=activeIsland?{x:ferryAnchor?.x??player.position.x,z:ferryAnchor?.z??player.position.z}:null;
 const ferryView=ferryDock?createFerryView(scene,ferryDock):null;
 let ferryMinute=worldGameMinute(worldClock.time,climate.definition.dayLengthSeconds);
 let ferryNow=ferryStatus(ferryMinute,activeIsland?.portLevel??0);
@@ -716,8 +718,9 @@ function currentTarget():TargetDescriptor|null{
     ()=>{const s=nearShop(true);return s?shopTarget({entityId:s.id,name:SHOPS[s.kind].name}):null;},
     ()=>{const n=npcs.talker(player.position);return n?npcTarget(n):null;},
     ()=>{if(!ferryDock||aboard||player.space)return null;
+      const shore=ferryBoardingPoint?Math.hypot(player.position.x-ferryBoardingPoint.x,player.position.z-ferryBoardingPoint.z):Infinity;
       const d=Math.hypot(player.position.x-ferryDock.x,player.position.z-ferryDock.z);
-      return d<5.5&&Math.abs(player.position.y-ferryDock.y)<4?ferryTarget(ferryNow.present):null;},
+      return (shore<7||d<5.5)&&Math.abs(player.position.y-ferryDock.y)<6?ferryTarget(ferryNow.present):null;},
     ()=>fleet.nearest(player.position.x,player.position.y,player.position.z)?boatTarget(false):null,
     ()=>{if(!gameplay||!player.space)return null;const p=gameplay.activities.digPreview(player.position,player.space,forwardOf());return p?mineWallTarget({...p,rewardName:itemName(p.reward?.itemId)}):null;},
     ()=>{const s=nearShop();return s?shopTarget({entityId:s.id,name:SHOPS[s.kind].name}):null;},
@@ -1009,6 +1012,7 @@ function draw(now: number) {
         boatModel: world.boat.getObjectByName('Sailboat') ? 'sailboat' : 'procedural',
         boatPosition: [boat.x, boat.y, boat.z],
         boats: { count: fleet.boats.length, aboard, current: fleet.current?.id ?? null },
+        ferry: activeIsland ? {islandId:activeIsland.id,level:activeIsland.portLevel,boat:ferryDock,boarding:ferryBoardingPoint,present:ferryNow.present,minutesUntilDeparture:ferryNow.minutesUntilDeparture} : null,
         paths: { ...world.paths },
         lights: { ...world.lights.stats },
         activities: activityView&&gameplay ? { ...activityView.stats, space: player.space ?? null,
