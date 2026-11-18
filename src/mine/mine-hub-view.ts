@@ -58,7 +58,7 @@ export function createMineHubView(hub:MineHubLayout,solid:THREE.Material,glow:TH
     parts.push({geometry:g,color});
   };
   const wood=0x806044,beam=0x65442e,woodLight=0xb18a5e,
-    iron=0x666965,ochre=0xd9b781,canvas=0xb97750,rock=0x85817a;
+    iron=0x666965,rock=0x85817a;
   function ore(kind:MineResourceIcon,x:number,y:number,z:number,scale=1){
     if(kind==='crystal'){
       const main=new THREE.OctahedronGeometry(1,0);
