@@ -33,13 +33,22 @@ try{
   const fx=cp.x,fz=cp.z-1.8;await open(fx,fz,Math.atan2(cp.x-fx,cp.z-fz));
   check((await m()).inventory.coin===40,'New game starts with 40 coins');
   await page.waitForFunction(()=>/Commercer/.test(window.littleWorldMetrics?.target??''),{},{timeout:15000});check(true,'Counter is the target: « Commercer »');
-  await page.keyboard.press('KeyE');await page.waitForSelector('.ui-shop-row[data-item="tool:axe"]',{timeout:10000});check(true,'Shop panel lists the axe');
-  await page.locator('.ui-shop-row[data-item="tool:axe"] button',{hasText:'Acheter'}).click();
+  await page.keyboard.press('KeyE');await page.waitForSelector('.ui-shop-item[data-item="tool:axe"]',{timeout:10000});check(true,'Shop panel lists the axe');
+  await page.locator('.ui-shop-item[data-item="tool:axe"]').click();
+  await page.locator('.ui-shop-checkout').getByRole('button',{name:'Acheter',exact:true}).click();
   await page.waitForFunction(()=>window.littleWorldMetrics?.inventory?.['tool:axe']===1,{},{timeout:5000});check((await m()).inventory.coin===15,'Axe bought: 40 − 25 = 15 coins');
   await page.keyboard.press('Escape');await page.waitForTimeout(300);
   // Selling: logs (given by the developer hook of metrics mode) are bought back by the counter.
-  await page.evaluate(()=>window.littleWorldDebug.grant('wood:log',4));await page.keyboard.press('KeyE');await page.waitForSelector('.ui-shop-row[data-item="wood:log"]');
-  await page.locator('.ui-shop-row[data-item="wood:log"] button',{hasText:'Tout vendre'}).click();
+  await page.evaluate(()=>window.littleWorldDebug.grant('wood:log',4));
+  await page.keyboard.press('KeyI');await page.locator('.ui-panel[data-panel="inventory"]').waitFor({state:'visible'});
+  await page.locator('.ui-bag-card[data-item="wood:log"]').first().click();
+  await page.locator('.ui-bag-actions').getByRole('button',{name:'Vendre',exact:true}).click();
+  await page.locator('.ui-panel[data-panel="shop"]').waitFor({state:'visible'});
+  check((await page.locator('.ui-shop-tab[aria-pressed="true"]').textContent())==='Vendre',
+    'Bag V3 opens the nearby merchant directly on resale');
+  await page.locator('.ui-shop-item[data-item="wood:log"]').click();
+  await page.locator('.ui-shop-checkout').getByRole('button',{name:'Max',exact:true}).click();
+  await page.locator('.ui-shop-checkout').getByRole('button',{name:'Vendre',exact:true}).click();
   await page.waitForFunction(()=>!window.littleWorldMetrics?.inventory?.['wood:log'],{},{timeout:5000});check((await m()).inventory.coin===15+12,'4 logs sold at 3 coins each');
   // 1b. The same authored counter offers a light sawmill service: start, wait in game
   // minutes (the shop panel must not pause the clock), then collect a crafted product.
@@ -57,9 +66,11 @@ try{
   await page.waitForFunction(()=>window.littleWorldMetrics?.inventory?.['material:plank']===4,{},{timeout:5000});
   check(true,'Wood logs transformed into four planks and collected from the workshop');
   // ECO-6: crafted planks are a real tradable good at the same counter, with island prices.
-  await page.getByRole('button',{name:'Acheter / vendre'}).click();
-  const crafted=page.locator('.ui-shop-row[data-item="material:plank"]');
-  await crafted.getByRole('button',{name:'Tout vendre'}).click();
+  await page.getByRole('button',{name:'Vendre',exact:true}).first().click();
+  const crafted=page.locator('.ui-shop-item[data-item="material:plank"]');
+  await crafted.click();
+  await page.locator('.ui-shop-checkout').getByRole('button',{name:'Max',exact:true}).click();
+  await page.locator('.ui-shop-checkout').getByRole('button',{name:'Vendre',exact:true}).click();
   await page.waitForFunction(()=>!window.littleWorldMetrics?.inventory?.['material:plank'],{},{timeout:5000});
   check((await m()).inventory.coin===26+4*11,'4 crafted planks sold at the volcanic-island market price');
   await page.keyboard.press('Escape');await page.waitForTimeout(300);

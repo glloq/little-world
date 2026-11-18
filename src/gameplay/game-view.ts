@@ -97,6 +97,14 @@ export function createGameplayView(data:GameplayData,options:Options){
    if(authored?access?.kind!==kind:!counterId&&!nearbyShop(options.getPosition(),undefined,kind))return {ok:false as const,reason:'Rejoignez le côté d’usage du comptoir.'};
    return markets.trade(kind,counterId??'legacy:'+kind,itemId,quantity,mode,undefined,expectedRevision);
  }
+ function sellBatch(kind:ShopKind,lines:readonly {itemId:string;quantity:number}[],
+   counterId?:string,expectedRevision?:number){
+   const authored=counterId?runtime.data.entities.find(e=>e.id===counterId&&e.shopAccess):undefined;
+   const access=authored?accessibleShop(authored,options.getPosition(),collision):null;
+   if(authored?access?.kind!==kind:!counterId&&!nearbyShop(options.getPosition(),undefined,kind))
+     return {ok:false as const,reason:'Rejoignez le côté d’usage du comptoir.'};
+   return markets.sellBatch(kind,counterId??'legacy:'+kind,lines,undefined,expectedRevision);
+ }
  let equippedHands:string|null=null;
  const compose=(slotId:string):GameSaveV2=>({...runtime.save(slotId,options.getPosition()),equippedItemId:equipment.hands,loadout:{...playerLoadout,head:equipment.head,favorites:equipment.favorites?[...equipment.favorites]:null},space:options.getSpace?.()??null,gasReserve:options.getGas?.()??GAS.initial,flightProgress:options.getGasProgress?.()??newFlightProgress(),...activities.serialize(),
     workshops:workshops.serialize(),markets:markets.serialize(),cargoPurchaseRevision,
@@ -133,7 +141,7 @@ export function createGameplayView(data:GameplayData,options:Options){
  }
  sync();
  return {
-  runtime,collision,activities,slots,compose,gathering,trees,fishing,trade,nearbyShop,workshops,markets,purse,itemName,has,equipment,
+  runtime,collision,activities,slots,compose,gathering,trees,fishing,trade,sellBatch,nearbyShop,workshops,markets,purse,itemName,has,equipment,
   get cargoPurchaseRevision(){return cargoPurchaseRevision;},
   acknowledgeCargoPurchase(revision:number){
     if(!Number.isSafeInteger(revision)||revision<0||revision>1_000_000_000)
