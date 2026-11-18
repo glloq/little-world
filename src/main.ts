@@ -26,6 +26,7 @@ import {createSurfFeaturesView} from './render/surf-features-view.ts';
 import {createSurfWaveField} from './surf/wave-field.ts';
 import {createSurfWaterView} from './render/surf-water-view.ts';
 import {createSurfBarrelView} from './render/surf-barrel-view.ts';
+import {applySurfTumblePose} from './render/surf-tumble-pose.ts';
 import {sampleSurfBarrel} from './surf/surf-barrel.ts';
 import {createSurfBoardView} from './render/surf-board-view.ts';
 import {createSurfHud} from './ui/surf/surf-hud.ts';
@@ -448,7 +449,7 @@ const surfHud=surfField?createSurfHud(document.body):null;
 let nextSurfHudAt=0;
 const surfFeatures=surfSite?makeDemoSurfFeatures(surfSite):(playable?.surfFeatures??[]).filter(f=>surfField&&f.x>=surfField.zone.minX&&f.x<=surfField.zone.maxX&&f.z>=surfField.zone.minZ&&f.z<=surfField.zone.maxZ);
 const surfFeatureState=createSurfFeatureState();
-let seenBarrelSuccess=0,seenBarrelCrash=0;
+let seenBarrelSuccess=0,seenBarrelCrash=0,seenBarrelTumble=0;
 const surfFeatureView=surfField&&surfFeatures.length?createSurfFeaturesView(scene,surfFeatures,surfField.zone.seaLevel):null;
 if(surfField)world.setSurfArea(surfField.zone);
 if(surfSite&&surfField){
@@ -1288,7 +1289,13 @@ function tick(dt: number) {
     if(keys.surfActionPressed)surfQueue=0;
     if(player.barrelEntryTick===motionTick)showInfo('Tube ! Suivez la crête pour ressortir avant la fermeture.');
     if((player.barrelSuccessSeq??0)>seenBarrelSuccess){seenBarrelSuccess=player.barrelSuccessSeq??0;showInfo('Tube traversé !','success');}
-    if((player.barrelCrashSeq??0)>seenBarrelCrash){seenBarrelCrash=player.barrelCrashSeq??0;showInfo('Le tube se referme : chute !','warning');}
+    const tubeCrash=(player.barrelCrashSeq??0)>seenBarrelCrash;
+    if(tubeCrash){seenBarrelCrash=player.barrelCrashSeq??0;showInfo('Le tube se referme : la vague vous emporte !','warning');}
+    if((player.barrelTumbleSeq??0)>seenBarrelTumble){
+      seenBarrelTumble=player.barrelTumbleSeq??0;
+      if(!tubeCrash)showInfo('Déferlante ! Le courant vous entraîne vers la plage. Plongez pour y échapper.','warning');
+      audio?.emit('water.enter',{position:player.position,source:'player'});
+    }
     if(surfFeatures.length){
       for(const event of stepSurfFeatures(player,surfFeatures,surfFeatureState,motionTick,previousPlayerPosition,surfField?.zone.seaLevel)){
         if(event.kind==='ramp'){player.jumpSeq=(player.jumpSeq??0)+1;player.glideReady=false;}
@@ -1475,14 +1482,17 @@ function draw(now: number) {
   if(gameplay){const f=gameplay.fishing.state;character.setFishing(f.phase!=='idle'&&f.castAt?{x:f.castAt.x,y:waterSurface(f.castAt.x,f.castAt.z)??getTerrainConfig().seaLevel,z:f.castAt.z,biting:f.phase==='bite'}:null);}
   character.update(player, delta, elapsed);
   snowCharacterView.update(player);
+  // Water tumble is a hero-only overlay; keep the hamster swim/dive state authoritative.
+  applySurfTumblePose(character,player);
   surfBoardView?.update(player,renderPosition);
   if(surfHud&&now>=nextSurfHudAt){
     nextSurfHudAt=now+160;
-    surfHud.update(player.mode==='surf'||player.surfAirborne?{
-      stage:player.surfAirborne?'air':player.surfStage??'paddle',
+    surfHud.update(player.mode==='surf'||player.surfAirborne||(player.barrelTumbleRemaining??0)>0?{
+      stage:player.surfAirborne?'air':player.mode==='surf'?player.surfStage??'paddle':null,
       speedMps:Math.hypot(player.velocity.x,player.velocity.z),
       crest:surfField?.sample(player.position.x,player.position.z,motionTick)?.crest??null,
       tubeActive:player.barrelEntryTick!==undefined,
+      tumbleActive:(player.barrelTumbleRemaining??0)>0,
     }:null);
   }
   // Mining headgear follows the animated head bone (including turning/looking).
@@ -1566,7 +1576,8 @@ function draw(now: number) {
           features:surfFeatures.length,patchTriangles:surfWaterView?.mesh.geometry.index?.count?surfWaterView.mesh.geometry.index.count/3:0,
           barrel:surfBarrelView?{enabled:true,stats:{...surfBarrelView.stats},
             sample:sampleSurfBarrel(surfField,terrainHeight,player.position.x,player.position.z,motionTick),
-            inside:player.barrelEntryTick!==undefined,escaped:player.barrelSuccessSeq??0,closed:player.barrelCrashSeq??0}:null,
+            inside:player.barrelEntryTick!==undefined,escaped:player.barrelSuccessSeq??0,closed:player.barrelCrashSeq??0,
+            tumbleSeconds:player.barrelTumbleRemaining??0,tumbleEvents:player.barrelTumbleSeq??0}:null,
         }:null,
         target: currentTarget()?.primaryAction?.label ?? null,
         targetId: currentTarget()?.targetId ?? null,
