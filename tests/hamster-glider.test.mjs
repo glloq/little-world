@@ -55,6 +55,14 @@ test('HAMSTER runtime: old body membranes stay hidden even when GLIDE_OPEN is ac
   for(let i=0;i<20;i++)h.update(p,1/30,i/30);
   const g=h.group.getObjectByName('BackpackVGlider');
   assert.equal(g.visible,true);
+  const bones=h.rig.skeleton.bones;
+  const leftId=bones.findIndex(b=>b.name==='MembraneLeft');
+  const rightId=bones.findIndex(b=>b.name==='MembraneRight');
+  const skinIndex=h.rig.mesh.geometry.getAttribute('skinIndex');
+  for(let i=0;i<skinIndex.count;i++){
+    assert.notEqual(skinIndex.getX(i),leftId,'runtime hamster contains no old left wing polygons');
+    assert.notEqual(skinIndex.getX(i),rightId,'runtime hamster contains no old right wing polygons');
+  }
   assert.equal(h.rig.joints.MembraneLeft.scale.x,0);
   assert.equal(h.rig.joints.MembraneRight.scale.x,0);
   assert.equal(h.rig.accessories.backpack.visible,true,'functional pack visible while gliding');
