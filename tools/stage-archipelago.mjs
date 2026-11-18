@@ -11,7 +11,7 @@ if(manifest.schemaVersion!==1||manifest.kind!=='compiled-world'||
   !Array.isArray(manifest.chunks)||!manifest.chunks.length||!manifest.logic?.url)
   throw Error('Île forestière non compilée ou invalide');
 for(const resource of [manifest.logic,...manifest.chunks]){
-  if(!/^(?:chunks|logic)\/[a-zA-Z0-9_.-]+\.json$/.test(resource.url))throw Error('Chemin de compilation invalide : '+resource.url);
+  if(!/^(?:chunks\/[a-zA-Z0-9_.-]+\.json|logic\.[a-zA-Z0-9_-]+\.json)$/.test(resource.url))throw Error('Chemin de compilation invalide : '+resource.url);
   const info=await stat(join(src,resource.url));
   if(!info.isFile()||info.size!==resource.byteLength)throw Error('Fichier absent ou incohérent : '+resource.url);
 }
