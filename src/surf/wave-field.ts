@@ -11,6 +11,8 @@ export interface SurfZone {
   seed:number;
   shoreFadeDepth?:number;
   edgeFade?:number;
+  /** Optional 0..1 breaking lip. Absent keeps historical surf zones unchanged. */
+  barrelStrength?:number;
 }
 export interface SurfWaveSample {
   height:number;gradientX:number;gradientZ:number;
@@ -38,7 +40,8 @@ export function validateSurfZone(zone:SurfZone):SurfZone {
      zone.amplitude<.05||zone.amplitude>5||zone.wavelength<4||zone.wavelength>120||
      zone.speed<.5||zone.speed>22||!Number.isSafeInteger(zone.seed)||zone.seed<0||
      (zone.shoreFadeDepth!==undefined&&(!finite(zone.shoreFadeDepth)||zone.shoreFadeDepth<.3||zone.shoreFadeDepth>20))||
-     (zone.edgeFade!==undefined&&(!finite(zone.edgeFade)||zone.edgeFade<1||zone.edgeFade>100)))
+     (zone.edgeFade!==undefined&&(!finite(zone.edgeFade)||zone.edgeFade<1||zone.edgeFade>100))||
+     (zone.barrelStrength!==undefined&&(!finite(zone.barrelStrength)||zone.barrelStrength<0||zone.barrelStrength>1)))
     throw Error('Zone de surf invalide');
   return zone;
 }
