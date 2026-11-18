@@ -71,6 +71,7 @@ export function shopPanel(deps:ShopDeps){
   let selectedId:string|null=null,quantity=1,search='',multi=false,bodyRef:HTMLElement|null=null;
   let suppressClick:{itemId:string;until:number}|null=null;
   const selectedSales=new Map<string,number>(),batchByRecipe=new Map<string,number>();
+  let incomingSale:readonly string[]|null=null;
   const report=(result:{ok:boolean;message?:string;reason?:string})=>
     deps.notify(result.ok,result.ok?result.message??'Opération effectuée':result.reason??'Action refusée');
   const repaint=()=>{if(bodyRef)render(bodyRef);};
@@ -94,6 +95,14 @@ export function shopPanel(deps:ShopDeps){
     }
     const inventory=deps.inventory(),market=counterId?deps.market?.view(kind,counterId):undefined;
     const vm=shopViewModel(kind,inventory,deps.name,deps.max,market);
+    if(incomingSale){
+      const requested=[...new Set(incomingSale)];
+      mode='sell';selectedId=requested[0]??null;quantity=1;
+      multi=requested.length>1&&!!deps.sellBatch;selectedSales.clear();
+      if(multi)for(const id of requested)if(vm.sell.some(line=>line.itemId===id&&line.owned>0))
+        selectedSales.set(id,1);
+      incomingSale=null;
+    }
     const workstations=counterId&&deps.production?deps.production.list(kind,counterId):[];
     if(mode==='craft'&&!workstations.length)mode='buy';
     const shell=el('div','ui-shop-v3');
@@ -309,7 +318,8 @@ export function shopPanel(deps:ShopDeps){
       focus?.focus({preventScroll:true});
     }
   }
-  return {render,cancelSelection(){
+  return {render,prefillSale(ids:readonly string[]){incomingSale=ids.slice(0,50);},
+    cancelSelection(){
     if(!multi)return false;
     multi=false;selectedSales.clear();repaint();return true;
   }};
