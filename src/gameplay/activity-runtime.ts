@@ -8,6 +8,7 @@ import type {PlayableActivities} from './activities.ts';
 import {MINE_MATERIALS,insidePolygon,type MineZone} from '../mine/mine-data.ts';
 import {MineGrid,MineState,DIG_REACH,type MineSaveState} from '../mine/mine-state.ts';
 import {MINE_WORK_PER_CYCLE,mineBlockDurability,mineHitsUntilCycle,type StrikeAccuracy} from '../mine/mine-rhythm.ts';
+import {mineCrackAffectedChunks} from '../mine/mine-cracks.ts';
 import {mineHubLayout,mineHubCounterId,mineRequiredExcavations,mineLevelUnlocked} from '../mine/mine-hub.ts';
 import {mineSpaceProvider,mineTransitions} from '../mine/mine-collision.ts';
 import {CROPS,type FarmZone} from '../farm/farm-data.ts';
@@ -48,7 +49,16 @@ export function createActivityRuntime(activities:PlayableActivities,deps:Deps){
     const m=mines.get(t.mineId)!,tool=pickPower(id=>deps.has?.(id)??false);
     const r=m.state.strike({requestId:requestId('dig'),levelId:space.levelId,ix:t.ix,iz:t.iz,from:position},tool.power,reward=>deps.grant([reward]),quality);
     if(!r.ok)return {ok:false,message:r.reason};
-    if('partial'in r)return {ok:true,partial:true,progress:r.progress,hits:r.hits,nextResult:r.nextResult,message:r.fragment?`+${r.fragment.quantity} ${nameOf(r.fragment.itemId)} (récolte · solidité ${r.durabilityRemaining}/${r.durabilityMax})`:`${MINE_MATERIALS[r.material].name} · solidité ${r.durabilityRemaining}/${r.durabilityMax} · prochain lot ≈ ${r.nextResult} coup(s)`};
+    if('partial'in r){
+      // A visual stage needs one local rebuild on the chunk owning each
+      // exposed face. Most individual strikes do NOT trigger rebuilding.
+      if(r.crackChanged)notify({kind:'mine',mineId:t.mineId,level:t.level,
+        chunks:mineCrackAffectedChunks(t.ix,t.iz)});
+      return {ok:true,partial:true,progress:r.progress,hits:r.hits,
+        nextResult:r.nextResult,message:r.fragment?
+          `+${r.fragment.quantity} ${nameOf(r.fragment.itemId)} (récolte · solidité ${r.durabilityRemaining}/${r.durabilityMax})`:
+          `${MINE_MATERIALS[r.material].name} · solidité ${r.durabilityRemaining}/${r.durabilityMax} · prochain lot ≈ ${r.nextResult} coup(s)`};
+    }
     notify({kind:'mine',mineId:t.mineId,level:t.level,chunks:r.chunks});
     return {ok:true,message:r.reward?`+${r.reward.quantity} ${nameOf(r.reward.itemId)}`:`${MINE_MATERIALS[r.material].name} déblayée`};
   }
