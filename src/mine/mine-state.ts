@@ -7,7 +7,7 @@
  *    the reward atomically (reward callback must accept first) and is idempotent per requestId.
  * Pure: no Three.js, no storage. */
 import {MINE_CHUNK,MINE_MATERIALS,geologyAt,insidePolygon,type MineZone,type MineLevelV3} from './mine-data.ts';
-import {mineHubCell,mineHubLayout} from './mine-hub.ts';
+import {mineHubCell,mineHubLayout,mineHubGalleryApproach} from './mine-hub.ts';
 
 export interface DigRequest {requestId:string;levelId:string;ix:number;iz:number;from:{x:number;y:number;z:number};expectedRevision?:number}
 export type DigResult={ok:true;material:number;reward:{itemId:string;quantity:number}|null;chunks:string[];revision:number}|{ok:false;reason:string};
@@ -37,38 +37,43 @@ export class MineGrid {
     // the persistent excavation bitsets remain independent of these initial void cells.
     for(let l=0;l<this.levels.length;l++){
       const hub=mineHubLayout(zone,l);
-      // Only visit the small footprint around the shaft, not the entire 512×512 mask.
-      for(let iz=Math.floor(hub.shaft.z)-8;iz<=Math.floor(hub.shaft.z)+8;iz++)
-        for(let ix=Math.floor(hub.shaft.x)-8;ix<=Math.floor(hub.shaft.x)+8;ix++){
+      // The new 13×14 m hall extends 10 m laterally. Rotate-safe 29×29 bounds,
+      // still bounded independent of the mine's possible 512×512 cell extent.
+      for(let iz=Math.floor(hub.shaft.z)-14;iz<=Math.floor(hub.shaft.z)+14;iz++)
+        for(let ix=Math.floor(hub.shaft.x)-14;ix<=Math.floor(hub.shaft.x)+14;ix++){
           const k=this.cell(ix,iz);
           if(k>=0&&this.mask[k]&&mineHubCell(hub,ix,iz))this.open[l][k]=1;
         }
     }
-    // From the centre arch, connect the reception to the nearest authored gallery on
-    // EVERY level. Author maps can place galleries far away from the shared shaft
-    // (e.g. level 3 of B1). Without this path the arch could face solid rock.
+    // Keep 5.8 m of unobstructed extraction tunnel behind EVERY arch, then
+    // connect it to the nearest authored gallery. Previously the immediate bend
+    // looked like a solid rock wall right behind the timber lintel.
     for(let l=0;l<this.levels.length;l++){
-      const hub=mineHubLayout(zone,l),candidates=zone.mine.galleries.filter(g=>g.levelId===hub.levelId);
+      const hub=mineHubLayout(zone,l),approach=mineHubGalleryApproach(hub),
+        candidates=zone.mine.galleries.filter(g=>g.levelId===hub.levelId);
       let target:{x:number;z:number}|null=null,shortest=Infinity;
       for(const g of candidates){
         const x=g.maxX-g.minX<1?(g.minX+g.maxX)/2:
-          Math.max(g.minX+.5,Math.min(g.maxX-.5,hub.gallery.x));
+          Math.max(g.minX+.5,Math.min(g.maxX-.5,approach.x));
         const z=g.maxZ-g.minZ<1?(g.minZ+g.maxZ)/2:
-          Math.max(g.minZ+.5,Math.min(g.maxZ-.5,hub.gallery.z));
-        const d=(x-hub.gallery.x)**2+(z-hub.gallery.z)**2;
+          Math.max(g.minZ+.5,Math.min(g.maxZ-.5,approach.z));
+        const d=(x-approach.x)**2+(z-approach.z)**2;
         if(d<shortest){shortest=d;target={x,z};}
       }
-      if(!target)continue;
-      const dx=target.x-hub.gallery.x,dz=target.z-hub.gallery.z,
-        steps=Math.max(1,Math.ceil(Math.hypot(dx,dz)*2));
-      for(let t=0;t<=steps;t++){
-        const x=hub.gallery.x+dx*t/steps,z=hub.gallery.z+dz*t/steps;
-        for(let a=-1;a<=1;a++)for(let b=-1;b<=1;b++){
-          if(a*a+b*b>2)continue;
-          const ix=Math.floor(x+a),iz=Math.floor(z+b),k=this.cell(ix,iz);
-          if(k>=0&&this.mask[k])this.open[l][k]=1;
+      const segment=(a:{x:number;z:number},b:{x:number;z:number})=>{
+        const dx=b.x-a.x,dz=b.z-a.z,steps=Math.max(1,Math.ceil(Math.hypot(dx,dz)*2));
+        for(let t=0;t<=steps;t++){
+          const x=a.x+dx*t/steps,z=a.z+dz*t/steps;
+          // Approximately 3.5 m wide, with corners opened into the rocky walls.
+          for(let offX=-2;offX<=2;offX++)for(let offZ=-2;offZ<=2;offZ++){
+            if(offX*offX+offZ*offZ>4)continue;
+            const ix=Math.floor(x+offX),iz=Math.floor(z+offZ),k=this.cell(ix,iz);
+            if(k>=0&&this.mask[k])this.open[l][k]=1;
+          }
         }
-      }
+      };
+      segment(hub.gallery,approach);
+      if(target)segment(approach,target);
     }
     // The level-1 rear doorway must connect to the existing surface portal at floor
     // height without a lift, load screen or exterior terrain excavation.
