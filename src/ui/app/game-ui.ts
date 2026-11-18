@@ -35,6 +35,7 @@ import {el,button,kbd} from '../shared/dom.ts';
 import './ui.css';
 import './hud.css';
 import '../inventory/inventory-v3.css';
+import '../shop/shop.css';
 
 export interface GameUiDeps {
   gameplay:GameplayView|null;
@@ -202,10 +203,12 @@ export function createGameUi(deps:GameUiDeps){
   if(g){const shop=shopPanel({kind:()=>shopKind,counterId:()=>shopCounterId,production:g.workshops,
       market:g.markets,
       inventory:()=>g.runtime.state.inventory,name:id=>g.itemName(id),max:id=>g.purse.max(id),
+      category:id=>g.runtime.data.items.find(item=>item.id===id)?.category??'',
+      sellBatch:(k,lines,revision)=>g.sellBatch(k,lines,shopCounterId??undefined,revision),
       trade:(k,id,q,m,expectedRevision)=>g.trade(k,id,q,m,shopCounterId??undefined,expectedRevision),
       notify:(ok,t)=>{center.notify(ok?'success':'warning',t);deps.audio?.emit(ok?'ui.confirm':'ui.error',{source:'ui'});}});
     // Workshop jobs advance in game time while this panel is open, without unblocking movement.
-    ui.register('shop','Comptoir',{pauses:false,render:b=>{const h=b.closest('.ui-panel')?.querySelector('h2');if(h&&shopKind)h.textContent=SHOPS[shopKind].name;shop.render(b);if(shopKind==='mine'&&deps.mineHub){const row=el('div','ui-row ui-shop-tabs');row.append(button('Accès aux niveaux',()=>ui.open('mine-lift'),'ui-button ui-primary'),button('Conseils du mineur',()=>ui.open('mine-advice'),'ui-button'));b.prepend(row);}}});}
+    ui.register('shop','Comptoir',{pauses:false,onEscape:()=>shop.cancelSelection(),render:b=>{const h=b.closest('.ui-panel')?.querySelector('h2');if(h&&shopKind)h.textContent=SHOPS[shopKind].name;shop.render(b);if(shopKind==='mine'&&deps.mineHub){const row=el('div','ui-row ui-shop-tabs');row.append(button('Accès aux niveaux',()=>ui.open('mine-lift'),'ui-button ui-primary'),button('Conseils du mineur',()=>ui.open('mine-advice'),'ui-button'));b.prepend(row);}}});}
   // Trade at the published maritime N1 merchant remains separate from ferry travel.
   if(g&&deps.ferry)ui.register('maritime-trade','Commerce maritime',{pauses:false,render:b=>{
     b.replaceChildren(el('p','ui-group','Comptoir maritime'),
