@@ -326,8 +326,7 @@ const portN1View=portN1Layout?createPortN1View(scene,portN1Layout,import.meta.en
 const detachPortCollisions=portN1Layout&&gameplay?attachPortN1Collisions(gameplay.collision,portN1Layout):null;
 const ferryView=portN1View??(ferryDock?createFerryView(scene,ferryDock):null);
 const canBoardFerry=()=>!!ferryBoardingPoint&&!!ferryDock&&!player.space&&!aboard&&
-  Math.hypot(player.position.x-ferryBoardingPoint.x,player.position.z-ferryBoardingPoint.z)<(portN1Layout?2.8:4.5)&&
-  (!portN1Layout||Math.abs(player.position.y-portN1Layout.boarding.y)<2.4);
+  Math.hypot(player.position.x-ferryBoardingPoint.x,player.position.z-ferryBoardingPoint.z)<(portN1Layout?2.8:4.5);
 const merchantPresent=()=>!!portN1Layout&&portActorPresence(1,ferryNow.present).merchant;
 const merchantNear=()=>!!portN1Layout&&!player.space&&!aboard&&merchantPresent()&&
   Math.hypot(player.position.x-portN1Layout.trade.x,player.position.z-portN1Layout.trade.z)<3.3&&
@@ -1170,7 +1169,7 @@ function draw(now: number) {
         boatPosition: [boat.x, boat.y, boat.z],
         boats: { count: fleet.boats.length, aboard, current: fleet.current?.id ?? null },
         ferry: activeIsland ? {islandId:activeIsland.id,level:activeIsland.portLevel,boat:ferryDock,boarding:ferryBoardingPoint,present:ferryNow.present,minutesUntilDeparture:ferryNow.minutesUntilDeparture,worldId:gameplay?.runtime.data.worldId??null} : null,
-        maritimePort:portN1Layout?{active:true,level:1,stand:portN1Layout.stand,boarding:portN1Layout.boarding,merchant:portN1Layout.vendor,rower:portN1Layout.rower,merchantPresent:merchantPresent(),boatPresent:ferryNow.present}: {active:false},
+        maritimePort:portN1Layout?{active:true,level:1,stand:portN1Layout.stand,trade:portN1Layout.trade,boarding:portN1Layout.boarding,merchant:portN1Layout.vendor,rower:portN1Layout.rower,merchantPresent:merchantPresent(),boatPresent:ferryNow.present}: {active:false},
         paths: { ...world.paths },
         lights: { ...world.lights.stats },
         activities: activityView&&gameplay ? { ...activityView.stats, space: player.space ?? null,
