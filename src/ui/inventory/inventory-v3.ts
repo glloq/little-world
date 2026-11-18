@@ -8,6 +8,9 @@ import {equipSlot,isEquipment,matchesInventoryFilter,planFoodConsumption,FAVORIT
 
 export interface InventoryV3Deps extends InventoryDeps {
   worldId?:string;
+  /** Persisted through gameplay save and ferry traveller, not a second inventory. */
+  favoriteSlots?:()=>readonly (string|null)[]|null;
+  setFavoriteSlots?:(ids:readonly (string|null)[])=>boolean;
   canConsume?:(id:string)=>string|null;
   consumeBatch?:(items:FoodLine[])=>{ok:boolean;message:string};
   confirm?:(text:string,confirmLabel:string)=>Promise<boolean>;
@@ -71,6 +74,7 @@ export function inventoryPanelV3(deps:InventoryV3Deps){
   let filter:InventoryFilter='all',selectedId:string|null=null,multi=false;
   const checked=new Set<string>();
   let favorites=readFavorites(),pointer:ActivePointer|null=null,suppressClick:string|null=null;
+  let visualEffect:'eat'|'equip'|null=null;
   let bodyRef:HTMLElement|null=null;
   const report=(message:string)=>deps.notify?.(message);
   function highlightZones(id:string|null){
@@ -89,11 +93,16 @@ export function inventoryPanelV3(deps:InventoryV3Deps){
     highlightZones(selectedId);
   }
   function ensureFavorites(items:readonly InventoryEntry[]){
-    if(favorites)return;
-    favorites=Array.from({length:FAVORITE_COUNT},()=>null as string|null);
-    const equipment=items.filter(x=>isEquipment(x)&&equipSlot(x)!==null);
-    equipment.slice(0,FAVORITE_COUNT).forEach((e,i)=>{favorites![i]=e.id;});
-    writeFavorites(favorites);
+    const stored=deps.favoriteSlots?.();
+    if(stored){favorites=[...stored];return;}
+    if(!favorites){
+      favorites=Array.from({length:FAVORITE_COUNT},()=>null as string|null);
+      const equipment=items.filter(x=>isEquipment(x)&&equipSlot(x)!==null);
+      equipment.slice(0,FAVORITE_COUNT).forEach((e,i)=>{favorites![i]=e.id;});
+    }
+    if(deps.setFavoriteSlots){
+      if(!deps.setFavoriteSlots(favorites))report('Favoris non enregistrés : objets incompatibles.');
+    }else writeFavorites(favorites);
   }
   function assignFavorite(id:string,index:number){
     const entry=deps.items().find(x=>x.id===id);
@@ -101,7 +110,11 @@ export function inventoryPanelV3(deps:InventoryV3Deps){
     if(!favorites||index<0||index>=FAVORITE_COUNT)return;
     const previous=favorites.indexOf(id);
     if(previous>=0)favorites[previous]=null;
-    favorites[index]=id;writeFavorites(favorites);renderCurrent();
+    favorites[index]=id;
+    if(deps.setFavoriteSlots){
+      if(!deps.setFavoriteSlots(favorites)){report('Modification des favoris refusée.');renderCurrent();return;}
+    }else writeFavorites(favorites);
+    renderCurrent();
   }
   function renderCurrent(){
     if(!bodyRef)return;
@@ -118,12 +131,12 @@ export function inventoryPanelV3(deps:InventoryV3Deps){
     }else if(target==='head'&&deps.headgear){
       deps.headgear.setEquipped(!deps.headgear.equipped());
     }else{report('Cet emplacement sera disponible plus tard.');return;}
-    selectedId=id;renderCurrent();
+    selectedId=id;visualEffect='equip';renderCurrent();
   }
   function consume(id:string){
     const reason=deps.canConsume?.(id);
     if(reason){report(reason);return;}
-    if(deps.consume?.(id)){selectedId=id;renderCurrent();}
+    if(deps.consume?.(id)){selectedId=id;visualEffect='eat';renderCurrent();}
   }
   async function consumeSelection(){
     const ids=[...checked],items=deps.inventory();
@@ -145,7 +158,7 @@ export function inventoryPanelV3(deps:InventoryV3Deps){
     const outcome=deps.consumeBatch?.(latest.lines);
     if(!outcome){report('Consommation groupée indisponible.');return;}
     report(outcome.message);
-    if(outcome.ok){checked.clear();multi=false;renderCurrent();}
+    if(outcome.ok){checked.clear();multi=false;visualEffect='eat';renderCurrent();}
   }
   function drop(id:string,x:number,y:number){
     const element=document.elementFromPoint(x,y) as HTMLElement|null;
@@ -258,6 +271,7 @@ export function inventoryPanelV3(deps:InventoryV3Deps){
     }
     portrait.append(el('h3','ui-group','Hamster'));
     const stage=el('div','ui-hamster-stage');
+    if(visualEffect){stage.classList.add('ui-hamster-effect-'+visualEffect);visualEffect=null;}
     const picture=el('div','ui-hamster-art');picture.innerHTML=HAMSTER;stage.append(picture);
     const targets:readonly {slot:'head'|'hands'|'back'|'feet'|'mouth';label:string;symbol:string}[]=[
       {slot:'head',label:'Tête',symbol:'⛑'},
@@ -278,6 +292,11 @@ export function inventoryPanelV3(deps:InventoryV3Deps){
       b.classList.toggle('ui-hamster-valid',!!valid);
       if(target.slot==='hands'&&deps.selectedTool()||target.slot==='head'&&deps.headgear?.equipped())b.classList.add('ui-hamster-wearing');
       stage.append(b);
+    }
+    const hands=deps.selectedTool();
+    if(hands){const gear=deps.items().find(i=>i.id===hands);if(gear){const badge=el('span','ui-hamster-equipped ui-hamster-equipped-hands',icon({id:gear.id,category:gear.category}));badge.title='En main : '+gear.name;badge.setAttribute('aria-label',badge.title);badge.dataset.equippedPreview='hands';stage.append(badge);}}
+    if(deps.headgear?.equipped()){
+      const badge=el('span','ui-hamster-equipped ui-hamster-equipped-head','⛑');badge.title='Casque de mineur porté';badge.setAttribute('aria-label',badge.title);badge.dataset.equippedPreview='head';stage.append(badge);
     }
     portrait.append(stage,el('p','ui-bag-hint','Glisser un objet ici, ou sélectionner puis toucher une zone.'));
     gear.append(el('h3','ui-group','Équipement · 10 favoris'));
