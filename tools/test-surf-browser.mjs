@@ -13,12 +13,14 @@ const output='/tmp/little-world-browser';
 mkdirSync(output,{recursive:true});
 const browser=await chromium.launch({headless:true,
  executablePath:process.env.CHROMIUM_PATH??(existsSync('/usr/bin/chromium')?'/usr/bin/chromium':undefined),
- args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
-let count=0;
+ args:process.env.SURF_NATIVE_GPU==='1'?['--no-sandbox']:
+  ['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
+let count=0,capturePage=null;
 function check(ok,message){assert.ok(ok,'Surf browser: '+message);console.log('OK: '+message);count++;}
 try{
  const context=await browser.newContext({viewport:{width:1024,height:640}});
  const page=await context.newPage(),errors=[];
+ capturePage=page;
  page.on('pageerror',e=>errors.push(e.message));
  await page.goto(url,{waitUntil:'domcontentloaded'});
  await page.locator('#start-overlay').waitFor({state:'hidden',timeout:120000});
@@ -29,6 +31,8 @@ try{
  check(initial.surf?.zoneId?.startsWith('surf:'),'a real surf-zone id is active');
  check(initial.surf?.wave?.height!==undefined,'game physics samples the swell');
  check(initial.surf?.patchTriangles>0,'GPU swell patch exists');
+ check(initial.surf?.waterLodVertices>0,'a bounded water mesh is exposed');
+ check(initial.surf?.zones>=1,'at least one authored or generated surf zone is present');
  check(initial.surf?.boardVisible,'surfboard visual follows the hamster');
  check(initial.surf?.barrel?.enabled===true,'a deterministic curling tube is enabled on the surf beach');
  check(initial.surf?.barrel?.stats?.triangles<=3000,'barrel mesh respects a strict low-poly budget');
@@ -52,5 +56,17 @@ try{
  check(after.position.every(Number.isFinite),'player position remains finite');
  check(errors.length===0,'no uncaught page errors: '+errors.join('; '));
  await page.screenshot({path:output+'/surf-demo.png'});
+ const gpuName=await page.evaluate(()=>{
+  const canvas=document.querySelector('canvas');if(!canvas)return 'none';
+  const gl=canvas.getContext('webgl2')||canvas.getContext('webgl');
+  const debug=gl?.getExtension('WEBGL_debug_renderer_info');
+  return String(debug?gl.getParameter(debug.UNMASKED_RENDERER_WEBGL):gl?.getParameter(gl.RENDERER)||'unknown');
+ });
+ console.log('Surf WebGL renderer: '+gpuName);
+ if(/swiftshader|llvmpipe|software|softpipe/i.test(gpuName))
+  console.log('Surf software GPU only: performance not qualified for old 4–8 GB integrated-GPU PCs.');
  console.log(JSON.stringify({checks:count,url,surf:after.surf,position:after.position,errors}));
+}catch(error){
+ if(capturePage&&!capturePage.isClosed())await capturePage.screenshot({path:output+'/surf-failed.png'}).catch(()=>{});
+ throw error;
 }finally{await browser.close();}
