@@ -296,6 +296,13 @@ const worldClock=gameplay?.runtime.clock??new WorldClock(),climate=gameplay?.run
 const npcs = createNPCSystem(scene, definition.npcs,isLegacyTerrain()?undefined:[],gameplay?.dialogueSession,{
   worldTime:()=>worldClock.time,dayLengthSeconds:climate.definition.dayLengthSeconds,
   initialDayPhase:climate.definition.initialDayPhase,paths:definition.paths,
+  walkable:(x,z)=>{
+    const collision=gameplay?.collision;if(!collision)return true;
+    const ground=terrainHeight(x,z);
+    return !collision.intersectsVolume({
+      minX:x-.25,maxX:x+.25,minZ:z-.25,maxZ:z+.25,minY:ground+.5,maxY:ground+1.5,
+    });
+  },
 });
 npcs.setLighting(world.atlasIllumination);
 gameplay?.attachNPCs(npcs.states);
