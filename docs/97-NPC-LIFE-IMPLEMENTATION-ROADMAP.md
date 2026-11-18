@@ -3,6 +3,19 @@
 **Statut : ROADMAP / SPECIFIED — à implémenter et qualifier.**  
 Références : [96 — Audit détaillé des PNJ](96-NPC-LIFE-DIALOGUES-SCHEDULE-AUDIT.md), [93 — Quêtes par île](93-QUESTS-AUDIT-ISLAND-INTEGRATION.md), [94 — Contrats QuestDirector](94-QUESTS-DATA-EVENTS-REWARDS.md), [95 — Roadmap quêtes](95-QUESTS-IMPLEMENTATION-ROADMAP.md), [92 — Monde jouable](92-COMPLETE-WORLDS-STUDIO-AUDIT.md), [76 — Services](76-SETTLEMENTS-SERVICES-V1.md).
 
+## Priorité complémentaire NPH — unifier tous les PNJ humanoïdes en hamsters
+
+**Décision du 19/11/2026 :** mêmes rig, morphologie, animations et accessoires de base que le joueur pour tous les personnages humanoïdes ; la faune non parlante conserve sa morphologie animale. Les données `squirrel` des anciennes cartes doivent rester importables/exportables sans mutation : conversion **uniquement au runtime/rendu**. Les nouveaux habitants de Studio sont créés en `hamster`; aucun nouvel asset écureuil humanoïde.
+
+- **NPC-H1 (P0)** : créer un adaptateur central de morphologie legacy → hamster visuel, aligner Studio et génération de villages, corriger la migration des rigs.
+- **NPC-H2 (P0)** : remplacer la création systématique de rigs par une instanciation des seuls personnages proches ; partager géométries et animations, couper le planeur inutile.
+- **NPC-H3 (P1)** : adapter les gestes des métiers au rig hamster (arroser, pêcher, mine, forêt, salut) sans attribuer d'items à l'animation.
+- **NPC-H4 (P1)** : valider les 14 objectifs/32 PNJ historiques, le roundtrip V2/V3, la carte 4×3 km, les tests Studio et FPS/heap des villages riches.
+- **NPC-H5 (P2)** : variantes visuelles sobres (échelle enfant, accessoires, éventuellement palette commune), sans dupliquer les modèles.
+
+**Suivi réel de la première implémentation :** [PR #85](https://github.com/glloq/little-world/pull/85) et [document 98 sur sa branche](https://github.com/glloq/little-world/blob/feat/npc-life-routines-v1/docs/98-NPC-LIFE-V1-IMPLEMENTATION.md). Les lots NPC-1/3/4/5/7/8 sont en cours et partiellement livrés ; NPC-2 a encore les ponts/portes et NPC-6 les commandes de quêtes mobiles. Aucun lot ne doit être marqué **QUALIFIED** sans CI complète et playtest.
+
+
 ## 0. Livrable V1 jouable
 
 Dans un village généré : un agriculteur quitte une maison accessible, suit un chemin validé vers un champ PNJ, anime une activité légère, s'arrête quand le joueur parle, puis repart ou rentre le soir. Le pêcheur suit le même modèle pour le quai ; un marchand apparaît au comptoir ; deux enfants jouent **sur une zone sûre** pendant la journée. Tous proposent des informations cohérentes avec leur lieu/heure, sans écraser les dialogues auteur. Les donneurs de quête auto suivent un horaire lisible dans le journal. La génération conserve les anciennes îles/PNJ et reste légère.
