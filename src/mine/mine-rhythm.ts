@@ -3,15 +3,15 @@
  * or wall-clock timestamps to determine loot; the authority owns rewards.
  */
 export type StrikeAccuracy='normal'|'good'|'perfect';
-export interface MineRhythm {periodMs:number;window:number;goodWindow:number;hitsPerResult:number}
+export interface MineRhythm {periodMs:number;window:number;goodWindow:number}
 export const MINE_RHYTHMS:readonly MineRhythm[]=[
-  {periodMs:900,window:.115,goodWindow:.26,hitsPerResult:3}, // air: unused
-  {periodMs:900,window:.125,goodWindow:.29,hitsPerResult:3}, // earth
-  {periodMs:1150,window:.115,goodWindow:.24,hitsPerResult:4},// stone
-  {periodMs:1480,window:.105,goodWindow:.22,hitsPerResult:5},// hard rock
-  {periodMs:1680,window:.095,goodWindow:.20,hitsPerResult:4},// iron
-  {periodMs:1920,window:.085,goodWindow:.18,hitsPerResult:5},// crystal
-  {periodMs:1920,window:.085,goodWindow:.18,hitsPerResult:5},// protected: unused
+  {periodMs:900,window:.115,goodWindow:.26}, // air: unused
+  {periodMs:900,window:.125,goodWindow:.29}, // earth
+  {periodMs:1150,window:.115,goodWindow:.24},// stone
+  {periodMs:1480,window:.105,goodWindow:.22},// hard rock
+  {periodMs:1680,window:.095,goodWindow:.20},// iron
+  {periodMs:1920,window:.085,goodWindow:.18},// crystal
+  {periodMs:1920,window:.085,goodWindow:.18},// protected: unused
 ] as const;
 /** Ping-pong cursor in [0,1]. One full left-right-left cycle is periodMs. */
 export function mineRhythmPosition(material:number,elapsedMs:number):number{
@@ -23,9 +23,6 @@ export function mineRhythmAccuracy(material:number,elapsedMs:number):StrikeAccur
   const c=MINE_RHYTHMS[material]??MINE_RHYTHMS[2];
   const error=Math.abs(mineRhythmPosition(material,elapsedMs)-.5);
   return error<=c.window?'perfect':error<=c.goodWindow?'good':'normal';
-}
-export function mineAccuracyMultiplier(quality:StrikeAccuracy):number{
-  return quality==='perfect'?1.30:quality==='good'?1.15:1;
 }
 /** Mining V7: one cycle harvests materials and removes EXACTLY one durability
  * point. Fixed-point work allows 5 normal, 4 good, or 3 perfect hits. A mix
@@ -50,9 +47,6 @@ export function mineHash(level:number,ix:number,iz:number,cycle:number):number{
     Math.imul(level+1,0x9e3779b1)^Math.imul(cycle+1,0x85ebca6b);
   h=Math.imul(h^(h>>>15),0x2c1b3c6d);h^=h>>>13;
   return (h>>>0)/4294967296;
-}
-export function mineHitsPerResult(material:number):number{
-  return MINE_RHYTHMS[material]?.hitsPerResult??4;
 }
 /** One payout at each completed 3–5-strike cycle. Most payouts are common
  * debris, a single late rare payout can be the embedded ore. The final
