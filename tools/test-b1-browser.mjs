@@ -44,6 +44,15 @@ try{
   await moveTo(172.5,45,22);
   const entered=await hold('KeyW',v=>v.act.space?.levelId==='level-1',25);
   check(entered.act.space?.levelId==='level-1'&&Math.abs(entered.pos[1]-mine.levels[0].floorY)<.05,'Entered level 1 underground');
+  await page.waitForFunction(()=>document.querySelector('.ui-minimap-title')?.textContent?.includes('Mine · Niveau 1'),
+    null,{timeout:6000});
+  check(true,'HUD switches from island to live floor-1 mine minimap');
+  await page.keyboard.press('KeyM');
+  const minePlan=page.locator('.ui-panel[data-panel="map"] canvas[aria-label="Plan de la mine, étage actuel"]');
+  await minePlan.waitFor({state:'visible'});
+  check(true,'M opens the underground floor plan, not the island map');
+  await page.keyboard.press('Escape');
+
   // Reproducible, ACTUAL Three.js game screenshots of the approved mine hub.
   // Viewpoint at the rear entrance on level 1; all meshes are from the game branch,
   // not an illustration. The other screenshots document the extraction doorway.
@@ -70,6 +79,9 @@ try{
   await moveTo(172.5,mine.levels[2].floorY,70.5,{zoneId:'zone-mine',levelId:'level-3'});
   const inside=await m();
   check(inside.act.space?.levelId==='level-3'&&Math.abs(inside.pos[1]-mine.levels[2].floorY)<.05,'Deep-level fixture at correct altitude');
+  await page.waitForFunction(()=>document.querySelector('.ui-minimap-title')?.textContent?.includes('Mine · Niveau 3'),null,{timeout:6000});
+  check(true,'Minimap follows active underground level 3');
+
   const card=page.locator('.ui-activity-card');
   await page.waitForFunction(()=>/\(3\/3\)/.test(document.querySelector('.ui-activity-card[data-kind=mine]')?.textContent??''),null,{timeout:5000}).catch(()=>{});
   const mineCard=await card.textContent();
