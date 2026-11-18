@@ -13,6 +13,8 @@ import {createGameSaveStore,scopedSaveStorage,parseGameSave,type GameSaveV2} fro
 import {createActivityRuntime} from './activity-runtime.ts';
 import {COIN,STARTING_COINS,STARTING_KIT,SHOPS,buy,sell,type ShopKind} from './economy.ts';
 import {PRODUCTION_ITEMS} from '../economy/starter-catalog.ts';
+import {MINE_ITEMS} from '../mine/mine-data.ts';
+import {FARM_ITEMS} from '../farm/farm-data.ts';
 import {createShopWorkshops} from '../economy/workshop-services.ts';
 import {createTreeColliders} from './tree-colliders.ts';
 import {createGathering,createFishing,type GatherDeps} from './gathering.ts';
@@ -30,7 +32,8 @@ export function createGameplayView(data:GameplayData,options:Options){
  // Register stable crafted product definitions in the gameplay runtime of old and new maps.
  // The compiled world/Studio source stays immutable: crafting uses the same inventory authority.
  const existing=new Set(data.items.map(i=>i.id));
- const runtime=createGameplay({...data,items:[...data.items,...PRODUCTION_ITEMS.filter(i=>!existing.has(i.id))]}),
+ const sharedItems=[...MINE_ITEMS,...FARM_ITEMS,...PRODUCTION_ITEMS];
+ const runtime=createGameplay({...data,items:[...data.items,...sharedItems.filter(i=>!existing.has(i.id))]}),
    slots=createGameSaveStore(options.temporary?scopedSaveStorage(sessionStorage,options.saveScope??'test'):undefined);
  const collisionDefinitions=new Map((options.collisions??[]).map(d=>[d.id,d]));
  const collision=new WorldCollisionQuery(terrainHeight,waterSurface);for(const definition of options.collisions??[]){const height=terrainHeight(definition.groundAnchor.x,definition.groundAnchor.z);collision.add({...definition,position:{...definition.position,y:definition.position.y+height},enabled:()=>{const state=runtime.state.entities[definition.ownerId??naturalColliderOwner(definition.id)];return (definition.ownerId!==undefined||state?.open!==true)&&state?.collected!==true;}});}
