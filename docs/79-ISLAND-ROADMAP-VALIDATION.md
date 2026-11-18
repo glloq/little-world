@@ -71,3 +71,10 @@ Pas de serveur Node de jeu, WebSocket, comptes, matchmaking, base partagée, vot
 ## 7. Livrables attendus par lot
 
 Code TypeScript + tests unitaires/Browser et rapport de mesures ; docs API et décisions mises à jour ; preuves de compatibilité des sauvegardes ; démo statique sur branche avant merge dans main.
+
+## Suivi de la première branche de code (18/11/2026)
+
+- **ISL-1 partiel** : catalogue statique `public/archipelago/catalog.json` avec **une seule île réellement compilée**, lecteur/validateur `src/archipelago/registry.ts` ; une deuxième île de référence reste **à générer**.
+- **ISL-3 partiel** : calendrier déterministe `ferry-schedule.ts`, avertissement -5 minutes de jeu, navette low-poly locale, marqueur sur la carte et deux signaux procéduraux ; vérifications/unitaires à confirmer par CI.
+- **ISL-2 non livré** : cinématique DOM de **prévisualisation uniquement**, ne remplace pas encore le monde actif. Pas de transfert d'inventaire, snapshots inter-îles ou navigation vers un deuxième monde tant que les contrats de sauvegarde ne sont pas validés.
+- **Invariants inchangés** : jeu statique GitHub Pages, pas de backend, pas de multijoueur, île principale et bateaux pilotables inchangés. Les statuts ci-dessus ne sont pas des preuves de qualification navigateur.

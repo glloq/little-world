@@ -216,6 +216,7 @@ export function createGameUi(deps:GameUiDeps){
        const muted=!!deps.audio?.engine.settings.muted,iconName=muted?'mute':'volume';
        if(soundButton.dataset.icon!==iconName){soundButton.replaceChildren(hudIcon(iconName));soundButton.dataset.icon=iconName;soundButton.title=muted?'Son coupé · ouvrir le mixeur':'Régler le son';}
        minimap.update();
+       if(ui.active==='map')map.refresh();
       gas.classList.toggle('hide',p.mode!=='glide'||ui.blocking);
       if(p.mode==='glide'){
         const n=p.gasShots??0,max=p.gasMaxShots??14,cd=p.gasCooldown??0;

@@ -154,6 +154,8 @@ export function mapPanel(deps:MapDeps,raster:MapRaster=createMapRaster(deps),way
     },
     close(){cancelAnimationFrame(frame);resizeObserver?.disconnect();resizeObserver=null;frame=0;canvas=null;form=null;details=null;pointList=null;addMode=false;focusTarget=null;},
     focus(x:number,z:number,label:string){focusTarget={x,z,label};if(canvas){cx=x;cz=z;draw();}},
+    /** Refresh dynamic markers when the map is open (ferry arrivals/departures). */
+    refresh(){if(canvas?.isConnected){draw();renderPointList();}},
     get raster(){return raster;},
   };
 }
