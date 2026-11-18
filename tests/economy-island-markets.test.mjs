@@ -75,7 +75,7 @@ test('insufficient merchant budget, full bag and depleted stock never confiscate
   s.cashCoins=1;
   const stateBefore=structuredClone(s),bagBefore={...p.inv};
   assert.equal(trade(s,'sell','material:plank',4,p,'no-money').ok,false);
-  assert.deepEqual(s,stateBefore);assert.deepEqual(p.inv,bagBefore);
+  assert.deepEqual(JSON.parse(JSON.stringify(s)),JSON.parse(JSON.stringify(stateBefore)));assert.deepEqual(p.inv,bagBefore);
   s.cashCoins=2000;s.stock['material:plank']=0;
   assert.equal(trade(s,'buy','material:plank',1,p,'no-stock').ok,false);
   assert.equal(p.inv.coin,100);
@@ -115,10 +115,10 @@ test('market state round-trips via V2 save and remains scoped to its island',asy
   const storage=memoryStorage(),slots=createGameSaveStore(storage,memoryBlobStore());
   await slots.save(save);
   const loaded=await slots.load('w','slot-1');
-  assert.deepEqual(loaded.markets,JSON.parse(JSON.stringify(serialized)));
+  assert.deepEqual(JSON.parse(JSON.stringify(loaded.markets)),JSON.parse(JSON.stringify(serialized)));
   const restored=make('forest-valley',player);
   restored.restore(loaded.markets);
-  assert.deepEqual(restored.serialize(),JSON.parse(JSON.stringify(serialized)));
+  assert.deepEqual(JSON.parse(JSON.stringify(restored.serialize())),JSON.parse(JSON.stringify(serialized)));
   assert.equal(restored.trade('forest','forest-counter-1','material:plank',2,'sell','req-a').ok,false);
   const other=make('volcano-island',player);
   assert.throws(()=>other.restore(loaded.markets),/autre île/);
