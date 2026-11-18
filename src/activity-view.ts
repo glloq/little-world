@@ -9,7 +9,7 @@ import type {ActivityRuntime,ActivityChange} from './gameplay/activity-runtime.t
 import type {MovementSpace} from './physics/collision-world.ts';
 import type {RuntimeLight} from './lighting/light-data.ts';
 import {mineChunkGeometry} from './mine/mine-mesher.ts';
-import {mineHubLayout} from './mine/mine-hub.ts';
+import {mineHubLayout,mineLevelResourceIcons} from './mine/mine-hub.ts';
 import {createMineHubView} from './mine/mine-hub-view.ts';
 import {MINE_CHUNK,insidePolygon,type MineZone} from './mine/mine-data.ts';
 import {CROPS,type FarmZone} from './farm/farm-data.ts';
@@ -22,6 +22,7 @@ export function createActivityView(parent:THREE.Object3D,activities:ActivityRunt
   const hubMaterial=new THREE.MeshLambertMaterial({vertexColors:true}),hubGlowMaterial=new THREE.MeshBasicMaterial({vertexColors:true});
   const stats:ActivityViewStats={mineChunks:0,mineQuads:0,builds:0,farmInstances:0,farmUpdates:0};
   const chunks=new Map<string,{mesh:THREE.Mesh;dirty:boolean;mineId:string;level:number;cx:number;cz:number;quads:number}>();
+  const reservedLevelChunks=new Set<string>();
   const mineMarkers=new Map<string,THREE.Group[]>(),lights:RuntimeLight[]=[];
   const box=(g:THREE.Object3D,m:THREE.Material,sx:number,sy:number,sz:number,x:number,y:number,z:number)=>{const b=new THREE.Mesh(new THREE.BoxGeometry(sx,sy,sz),m);b.position.set(x,y,z);g.add(b);return b;};
   const lantern=(id:string,x:number,y:number,z:number,mode:'always'|'night')=>lights.push({id:'light:activity:'+id,entityId:'activity:'+id,x,y,z,offset:{x:0,y:0,z:0},color:'#ffd39a',intensity:9,range:9,mode,flicker:{amplitude:.08,speed:.6},follow:false,absolute:true});
@@ -55,6 +56,44 @@ export function createActivityView(parent:THREE.Object3D,activities:ActivityRunt
     geo.setAttribute('position',new THREE.BufferAttribute(g.positions,3));geo.setAttribute('normal',new THREE.BufferAttribute(g.normals,3));geo.setAttribute('color',new THREE.BufferAttribute(g.colors,3));geo.setIndex(new THREE.BufferAttribute(g.index,1));geo.computeBoundingSphere();
     stats.builds++;return {geo,quads:g.quads};
   }
+  /** Unified cache writer for normal streaming and explicit lift preloading. */
+  function ensureChunk(id:string,level:number,cx:number,cz:number){
+    const key=`${id}:${level}:${cx},${cz}`,current=chunks.get(key);
+    if(current&&!current.dirty)return;
+    const {geo,quads}=chunkMesh(id,level,cx,cz);
+    if(current){current.mesh.geometry.dispose();current.mesh.geometry=geo;current.dirty=false;current.quads=quads;}
+    else{
+      const mesh=new THREE.Mesh(geo,mineMaterial);mesh.name='MineChunk:'+key;
+      mesh.matrixAutoUpdate=false;mesh.visible=false;root.add(mesh);
+      chunks.set(key,{mesh,dirty:false,mineId:id,level,cx,cz,quads});
+    }
+  }
+  /** Lift transfers warm the destination entrance before its space becomes active.
+   * Called ONLY by floor changes: walking from reception into its gallery never loads. */
+  async function preloadMineLevel(mineId:string,levelId:string,at:{x:number;z:number},
+    onProgress:(done:number,total:number)=>void=()=>{}):Promise<void>{
+    const m=activities.mines.get(mineId),level=m?.state.grid.levelIndex(levelId)??-1;
+    if(!m||level<0)throw Error('Étage à charger introuvable');
+    const cx=Math.floor(at.x/MINE_CHUNK),cz=Math.floor(at.z/MINE_CHUNK),pending:{cx:number;cz:number}[]=[];
+    // Warm the landing and nearby walls; surrounding chunks stream with the existing budget.
+    for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++){
+      const x=cx+dx,z=cz+dz,key=`${mineId}:${level}:${x},${z}`;
+      reservedLevelChunks.add(key);
+      if(!chunks.has(key)||chunks.get(key)!.dirty)pending.push({cx:x,cz:z});
+    }
+    const total=Math.max(1,pending.length);
+    onProgress(0,total);
+    try{
+      // Display one frame of the loading UI before doing any mesh reconstruction.
+      await new Promise<void>(resolve=>requestAnimationFrame(()=>resolve()));
+      for(let i=0;i<pending.length;i+=BUILDS_PER_FRAME){
+        for(const v of pending.slice(i,i+BUILDS_PER_FRAME))ensureChunk(mineId,level,v.cx,v.cz);
+        onProgress(Math.min(total,i+BUILDS_PER_FRAME),total);
+        await new Promise<void>(resolve=>requestAnimationFrame(()=>resolve()));
+      }
+      onProgress(total,total);
+    }finally{reservedLevelChunks.clear();}
+  }
   const unsubscribe=activities.subscribe((c:ActivityChange)=>{
     if(c.kind==='mine'){for(const v of chunks.values())if(v.mineId===c.mineId&&(c.level<0||v.level===c.level&&c.chunks.includes(v.cx+','+v.cz)))v.dirty=true;}
     else farmDirty.add(c.plotId);
@@ -65,22 +104,21 @@ export function createActivityView(parent:THREE.Object3D,activities:ActivityRunt
       const active=space?.zoneId===id?m.state.grid.levelIndex(space.levelId):-1;
       for(const marker of mineMarkers.get(id)??[]){const l=m.zone.mine.levels.findIndex(v=>v.id===marker.userData.level);marker.visible=active>=0&&l===active;
         if(marker.visible&&marker.userData.lazyMineHub){
-          marker.add(createMineHubView(mineHubLayout(m.zone,l),hubMaterial,hubGlowMaterial));
+          marker.add(createMineHubView(mineHubLayout(m.zone,l),hubMaterial,hubGlowMaterial,
+            mineLevelResourceIcons(m.state,l)));
           marker.userData.lazyMineHub=false;
         }}
       if(active<0)continue;
       for(const level of [active,active-1,active+1]){if(level<0||level>=m.state.grid.levels.length)continue;
         for(let cx=Math.floor((p.x-CHUNK_RADIUS)/MINE_CHUNK);cx<=Math.floor((p.x+CHUNK_RADIUS)/MINE_CHUNK);cx++)for(let cz=Math.floor((p.z-CHUNK_RADIUS)/MINE_CHUNK);cz<=Math.floor((p.z+CHUNK_RADIUS)/MINE_CHUNK);cz++){
           const key=`${id}:${level}:${cx},${cz}`;wanted.add(key);const current=chunks.get(key);
-          if((current&&!current.dirty)||builds>=BUILDS_PER_FRAME)continue;builds++;
-          const {geo,quads}=chunkMesh(id,level,cx,cz);
-          if(current){current.mesh.geometry.dispose();current.mesh.geometry=geo;current.dirty=false;current.quads=quads;}
-          else{const mesh=new THREE.Mesh(geo,mineMaterial);mesh.name='MineChunk:'+key;mesh.matrixAutoUpdate=false;root.add(mesh);chunks.set(key,{mesh,dirty:false,mineId:id,level,cx,cz,quads});}
+          if((current&&!current.dirty)||builds>=BUILDS_PER_FRAME)continue;
+          builds++;ensureChunk(id,level,cx,cz);
         }}
     }
     // Leaving a level / the mine: chunks out of the wanted set are hidden, the oldest evicted.
     // Solid-rock chunks have no face: kept as a cache entry, never drawn.
-    for(const [key,v] of chunks){v.mesh.visible=wanted.has(key)&&v.quads>0;if(!wanted.has(key)&&chunks.size>MAX_CHUNKS){v.mesh.geometry.dispose();v.mesh.removeFromParent();chunks.delete(key);}}
+    for(const [key,v] of chunks){v.mesh.visible=wanted.has(key)&&v.quads>0;if(!wanted.has(key)&&!reservedLevelChunks.has(key)&&chunks.size>MAX_CHUNKS+reservedLevelChunks.size){v.mesh.geometry.dispose();v.mesh.removeFromParent();chunks.delete(key);}}
     stats.mineChunks=[...chunks.values()].filter(v=>v.mesh.visible).length;stats.mineQuads=[...chunks.values()].reduce((s,v)=>s+(v.mesh.visible?v.quads:0),0);
   }
   // Farms.
@@ -106,7 +144,7 @@ export function createActivityView(parent:THREE.Object3D,activities:ActivityRunt
     stats.farmInstances=[...farmViews.values()].reduce((n,v)=>n+(v.plants?.visible?v.plants.count:0),0);
   }
   return {
-    stats,lights,
+    stats,lights,preloadMineLevel,
     update(dt:number,p:{x:number;y:number;z:number},space?:MovementSpace){updateMines(p,space);updateFarms(p,dt);},
     dispose(){unsubscribe();for(const v of chunks.values())v.mesh.geometry.dispose();root.traverse(o=>{const m=o as THREE.Mesh;if(m.geometry&&!Object.values(plantGeometry).includes(m.geometry))m.geometry.dispose();});for(const g of Object.values(plantGeometry))g.dispose();for(const v of farmViews.values())(v.soil.material as THREE.Material).dispose();[mineMaterial,wood,dark,stone,plantMaterial,hubMaterial,hubGlowMaterial].forEach(m=>m.dispose());root.removeFromParent();},
   };
