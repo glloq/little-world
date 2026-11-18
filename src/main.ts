@@ -28,7 +28,7 @@ import {waterSurface,riverX,isLegacyTerrain} from './terrain.ts';
 import {createFleet} from './gameplay/fleet.ts';
 import {loadArchipelagoRegistry,type PublishedIsland} from './archipelago/registry.ts';
 import {beginTransit,pendingTransit,clearTransit,partitionTravelerInventory,FERRY_RECOVERY_KEY,
-  type FerryTransit} from './archipelago/transit.ts';
+  } from './archipelago/transit.ts';
 import {ferryStatus,ferryEventsBetween,worldGameMinute} from './archipelago/ferry-schedule.ts';
 import {createFerryView} from './archipelago/ferry-view.ts';
 import {withFerryBells} from './archipelago/ferry-audio.ts';
