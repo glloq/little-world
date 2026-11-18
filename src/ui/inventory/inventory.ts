@@ -23,7 +23,7 @@ export function inventoryViewModel(items:readonly ItemDefinition[],inventory:Rea
     const list=groups.get(label)??[];list.push(entry);groups.set(label,list);}
   return {groups:[...groups].sort(([a],[b])=>ORDER.indexOf(a)-ORDER.indexOf(b)).map(([label,entries])=>({label,entries:entries.sort((x,y)=>x.name.localeCompare(y.name,'fr'))})),kinds,total,empty:kinds===0};
 }
-export interface InventoryDeps {items():readonly ItemDefinition[];inventory():Readonly<Record<string,number>>;selectedTool():string|null;selectTool(id:string|null):void;headgear?:{equipped():boolean;setEquipped(value:boolean):void};gasLevel?:()=>number;gasCapacity?:()=>number;consume?:(id:string)=>boolean;playInstrument?:(id:string)=>void}
+export interface InventoryDeps {items():readonly ItemDefinition[];inventory():Readonly<Record<string,number>>;selectedTool():string|null;selectTool(id:string|null):void|boolean;headgear?:{equipped():boolean;setEquipped(value:boolean):void};gasLevel?:()=>number;gasCapacity?:()=>number;consume?:(id:string)=>boolean;playInstrument?:(id:string)=>void}
 /** Panel renderer; `seen` is updated when the panel closes (the « new » marks then clear). */
 export function inventoryPanel(deps:InventoryDeps){
   let seen:Record<string,number>={},selected:string|null=null;
