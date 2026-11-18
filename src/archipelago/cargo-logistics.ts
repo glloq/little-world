@@ -6,6 +6,7 @@
  */
 import {marketUnitPrices} from '../economy/island-markets.ts';
 import {COIN,type Purse} from '../gameplay/economy.ts';
+import {identifier} from '../gameplay/schema.ts';
 
 export const CARGO_STORAGE_KEY='little-world:archipelago-cargo:v1';
 const ID=/^[a-zA-Z][a-zA-Z0-9:._-]{0,115}$/;
@@ -185,13 +186,13 @@ export function parseCargoState(raw:unknown,routes:readonly CargoRoute[]=CARGO_R
   let buyerCheckpoint:CargoBuyerCheckpoint|undefined;
   if(raw.buyerCheckpoint!==undefined){
     const v=raw.buyerCheckpoint;
-    if(!obj(v)||!isId(v.islandId)||!isId(v.worldId)||
+    if(!obj(v)||!isId(v.islandId)||!identifier(v.worldId)||
       !int(v.revision,1,raw.revision as number)||!obj(v.inventory)||
       Object.keys(v.inventory).length>1000)
       throw Error('Point de reprise d’achat importé invalide');
     const inventory:Record<string,number>={};
     for(const [itemId,qty] of Object.entries(v.inventory)){
-      if(!isId(itemId)||!int(qty,0,9999))throw Error('Inventaire de reprise invalide');
+      if(!identifier(itemId)||!int(qty,0,9999))throw Error('Inventaire de reprise invalide');
       if(qty>0)inventory[itemId]=qty;
     }
     buyerCheckpoint={islandId:v.islandId,worldId:v.worldId,
