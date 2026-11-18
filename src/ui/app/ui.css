@@ -180,3 +180,26 @@ body.developer .hud-stats{bottom:68px}
 .ui-mine-loading-track{width:100%;height:8px;background:#1c1816;border-radius:8px;overflow:hidden}
 .ui-mine-loading-fill{display:block;height:100%;width:0;background:#dbab6a;transition:width .12s linear}
 @media(prefers-reduced-motion:reduce){.ui-mine-loading-fill{transition:none}}
+
+/* Mine V6: a compact, non-modal timing slider. One small DOM update per game frame. */
+.mine-rhythm-hud[hidden]{display:none!important}
+.mine-rhythm-hud{position:fixed;left:50%;bottom:158px;transform:translateX(-50%);z-index:12;
+  display:grid;gap:5px;width:min(310px,calc(100vw - 28px));padding:9px 12px;
+  box-sizing:border-box;border-radius:13px;background:rgba(33,29,27,.92);
+  border:1px solid #8b7256;color:#f5ebd8;font:12px/1.25 system-ui;pointer-events:auto}
+.mine-rhythm-heading,.mine-rhythm-bottom{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.mine-rhythm-heading strong{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mine-rhythm-heading span{font-size:11px;color:#e3c7a1}
+.mine-rhythm-track{position:relative;height:14px;border-radius:6px;border:1px solid #6b5946;
+  background:#756758;overflow:visible}
+.mine-rhythm-good,.mine-rhythm-perfect{position:absolute;top:0;bottom:0;left:50%;transform:translateX(-50%);pointer-events:none}
+.mine-rhythm-good{background:#c3a666}.mine-rhythm-perfect{background:#96cb8b}
+.mine-rhythm-marker{position:absolute;top:-4px;bottom:-4px;width:3px;left:0;
+  border-radius:3px;background:#fff9ee;box-shadow:0 0 3px #000;transform:translateX(-50%)}
+.mine-rhythm-bottom span{font-size:10px;color:#dbc4a5}
+.mine-rhythm-hit{padding:5px 12px;border:1px solid #c8b17f;border-radius:7px;
+  background:#e0c390;color:#332a1d;font:700 12px system-ui;cursor:pointer;min-height:32px;touch-action:manipulation}
+.mine-rhythm-hit:active{background:#a9cd92}
+@media(max-width:700px){.mine-rhythm-hud{bottom:178px;width:min(270px,calc(100vw - 24px))}
+ .mine-rhythm-bottom span{font-size:9px}}
+@media(prefers-reduced-motion:reduce){.mine-rhythm-marker{transition:none}}
