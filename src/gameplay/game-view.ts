@@ -61,7 +61,9 @@ export function createGameplayView(data:GameplayData,options:Options){
  /** Legacy type-only trade calls still route to a single deterministic counter identifier. */
  function trade(kind:ShopKind,itemId:string,quantity:number,mode:'buy'|'sell',
    counterId?:string,expectedRevision?:number){
-   if((!counterId||runtime.data.entities.some(e=>e.id===counterId&&e.shopAccess))&&!nearbyShop(options.getPosition(),counterId,kind))return {ok:false as const,reason:'Rejoignez le côté d’usage du comptoir.'};
+   const authored=counterId?runtime.data.entities.find(e=>e.id===counterId&&e.shopAccess):undefined;
+   const access=authored?accessibleShop(authored,options.getPosition(),collision):null;
+   if(authored?access?.kind!==kind:!counterId&&!nearbyShop(options.getPosition(),undefined,kind))return {ok:false as const,reason:'Rejoignez le côté d’usage du comptoir.'};
    return markets.trade(kind,counterId??'legacy:'+kind,itemId,quantity,mode,undefined,expectedRevision);
  }
  const compose=(slotId:string):GameSaveV2=>({...runtime.save(slotId,options.getPosition()),space:options.getSpace?.()??null,gasReserve:options.getGas?.()??GAS.initial,flightProgress:options.getGasProgress?.()??newFlightProgress(),...activities.serialize(),

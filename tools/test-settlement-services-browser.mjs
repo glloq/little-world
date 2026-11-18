@@ -61,26 +61,27 @@ try {
     game.on('pageerror', e => errors.push(e.message));
     await game.waitForLoadState();
     check(new URL(game.url()).searchParams.has('studioBuild'), 'Le comptoir passe le compilateur et le lecteur de jeu');
-    await game.waitForSelector('#start:not([disabled])', { timeout: 60000 });
-    await game.locator('#start').click();
+    await game.locator('#start-overlay').waitFor({state:'hidden',timeout:60000});
     await game.waitForFunction(() => /Commercer/.test(document.querySelector('#action')?.textContent ?? ''), {}, { timeout: 30000 });
     await game.keyboard.press('KeyE');
     const shop = game.locator('.ui-panel[data-panel="shop"]');
     await shop.waitFor();
-    await shop.locator('.ui-shop-row[data-item="seed:wheat"]').getByRole('button', { name: 'Acheter', exact: true }).click();
-    await shop.getByText('Bourse : 38 pièces', { exact: true }).waitFor();
-    check(true, 'Le comptoir agricole utilise l’économie existante : achat de semences à 2 pièces');
+    const wheat=shop.locator('.ui-shop-row[data-item="seed:wheat"]'),price=parseInt(await wheat.locator('.ui-shop-price').textContent()),beforeCoins=Number((await shop.locator('.ui-shop-coins').textContent()).match(/Bourse : (\d+)/)[1]),expectedCoins=beforeCoins-price;
+    assert.ok(price>0);
+    await wheat.getByRole('button', { name: 'Acheter', exact: true }).click();
+    await shop.getByText(new RegExp('^Bourse : '+expectedCoins+' pièces')).waitFor();
+    check(true, 'Le comptoir agricole applique le prix réellement annoncé par le marché local');
     await game.screenshot({ path: out + '/shop.png' });
     const ui = playerUi(game);
     await ui.save();
-    const save = await game.evaluate(() => { for (let i = 0; i < sessionStorage.length; i++) {
+    const save = await game.evaluate(expectedCoins => { for (let i = 0; i < sessionStorage.length; i++) {
         try {
             const v = JSON.parse(sessionStorage.getItem(sessionStorage.key(i)));
-            if (v?.schemaVersion === 2 && v.inventory?.coin === 38)
+            if (v?.schemaVersion === 2 && v.inventory?.coin === expectedCoins)
                 return v;
         }
         catch { }
-    } return null; });
+    } return null; },expectedCoins);
     check(save?.inventory?.['seed:wheat'] === 4, 'Les semences achetées et les pièces sont sauvegardées ensemble');
     await game.close();
     await page.reload();

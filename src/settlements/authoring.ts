@@ -43,6 +43,8 @@ function writePlan(p: ProjectDocument, plan: SettlementPlan) {
         if (!plan.paths.some(v => v.id === id) && fingerprint(p.libraries.paths[id]) === old!.pathHashes[id])
             removePath(p, id);
     for(const a of old?.amenities??[])if(!plan.amenities?.some(v=>v.id===a.id)&&!amenityChanged(p,a))removeEntity(p,a.id);
+    p.libraries.dialogues={...p.libraries.dialogues};for(const a of old?.amenities??[])if(a.dialogueHash&&!plan.amenities?.some(v=>v.id===a.id)&&fingerprint(p.libraries.dialogues[a.id+'-talk'])===a.dialogueHash)delete p.libraries.dialogues[a.id+'-talk'];
+    for(const [id,dialogue]of Object.entries(plan.dialogues??{})){if(p.libraries.dialogues[id]&&!old?.amenities?.some(a=>a.id+'-talk'===id))throw Error('Dialogue déjà utilisé : '+id);p.libraries.dialogues[id]=structuredClone(dialogue);}
     for (const e of plan.entities)
         putEntity(p, e);
     for (const b of plan.buildings) {
@@ -81,13 +83,13 @@ export function removeSettlement(p: ProjectDocument, id: string) {
     const s = p.libraries.settlements?.[id];
     if (!s)
         return;
-    const keepAmenities=(s.amenities??[]).filter(a=>amenityChanged(p,a)),keep = s.buildings.filter(b => buildingChanged(p, b)), owned = new Set([id,...(s.amenities??[]).map(a=>a.id), ...s.buildings.flatMap(b => [b.id, b.doorId, b.interactionId])]), refs = new ReferenceIndex(p);
+    const keepAmenities=(s.amenities??[]).filter(a=>amenityChanged(p,a)),keep = s.buildings.filter(b => buildingChanged(p, b)), owned = new Set([id,...Object.keys(s.pathHashes),...(s.amenities??[]).flatMap(a=>[a.id,...(a.dialogueHash?[a.id+'-talk']:[])]), ...s.buildings.flatMap(b => [b.id, b.doorId, b.interactionId])]), refs = new ReferenceIndex(p);
     for (const b of s.buildings)
         if (!keep.includes(b))
             for (const target of [b.id, b.doorId, b.interactionId])
                 if (refs.dependents(target).some(v => !owned.has(v)))
                     throw Error('Une logique extérieure référence cette implantation : la déconnecter avant suppression');
-    for(const a of s.amenities??[])if(!keepAmenities.includes(a)){if(refs.dependents(a.id).some(v=>!owned.has(v)))throw Error('Une logique extérieure référence cet équipement');removeEntity(p,a.id);}
+    for(const a of s.amenities??[])if(!keepAmenities.includes(a)){if(refs.dependents(a.id).some(v=>!owned.has(v)))throw Error('Une logique extérieure référence cet équipement');removeEntity(p,a.id);if(a.dialogueHash&&fingerprint(p.libraries.dialogues[a.id+'-talk'])===a.dialogueHash)delete p.libraries.dialogues[a.id+'-talk'];}
     p.libraries.interactions = { ...p.libraries.interactions };
     for (const b of s.buildings)
         if (!keep.includes(b)) {

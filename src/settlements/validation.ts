@@ -1,3 +1,4 @@
+import {pathSupport} from './bridge.ts';
 import {layoutContext} from './layout.ts';
 import {SHOPS} from '../gameplay/economy.ts';
 import {serviceEntry} from './services.ts';
@@ -29,12 +30,12 @@ export interface TransportGraph {
 }
 /** Reconstruct only authored surface connections: crossings do not connect unless an endpoint
  * is explicitly on the other segment. No bridge or stacked-level inference from XZ. */
-export function settlementTransportGraph(paths: PathDefinition[], height: (x: number, z: number) => number): TransportGraph {
+export function settlementTransportGraph(paths: PathDefinition[], height: (x: number, z: number) => number, supportHeight?:(path:PathDefinition,x:number,z:number)=>number): TransportGraph {
     const graph: TransportGraph = { nodes: [], edges: [] }, nodes = new Map<string, TransportGraph['nodes'][number]>(), anchors = paths.flatMap(p => [p.points[0], p.points.at(-1)!]);
     const node = (q: {
         x: number;
         z: number;
-    }) => { const y = height(q.x, q.z), id = [q.x, y, q.z].map(v => Math.round(v * 100)).join(':'); if (!nodes.has(id))
+    },path:PathDefinition) => { const y = supportHeight?supportHeight(path,q.x,q.z):height(q.x, q.z), id = [q.x, y, q.z].map(v => Math.round(v * 100)).join(':'); if (!nodes.has(id))
         nodes.set(id, { id, position: { ...q, y } }); return id; };
     for (const path of paths)
         for (let i = 1; i < path.points.length; i++) {
@@ -49,7 +50,7 @@ export function settlementTransportGraph(paths: PathDefinition[], height: (x: nu
             }
             cuts.sort((a, b) => a.t - b.t);
             for (let j = 1; j < cuts.length; j++) {
-                const from = node(cuts[j - 1].q), to = node(cuts[j].q);
+                const from = node(cuts[j - 1].q,path), to = node(cuts[j].q,path);
                 if (from !== to)
                     graph.edges.push({ id: path.id + ':' + i + ':' + j, from, to, pathId: path.id, mode: 'foot' });
             }
@@ -95,23 +96,25 @@ export function validateSettlements(p: ProjectDocument, onlyId?: string): Settle
         const error = (code: string, message: string, targetId = s.id) => out.push({ severity: 'ERROR', code, targetId, message }), paths = Object.keys(s.pathHashes).map(id => p.libraries.paths[id]).filter((v): v is PathDefinition => !!v);
         if (paths.length !== Object.keys(s.pathHashes).length)
             error('SET_PATH_MISSING', 'Un chemin de la colonie a été supprimé.');
-        for (const path of paths)
+        for (const path of paths) {
+            let support;try{support=pathSupport(p,path,path.id.endsWith('-regional')?c:bounded);}catch(e){error('SET_SUPPORT_INVALID',String(e),path.id);continue;}
             for (let i = 1; i < path.points.length; i++) {
                 const a = path.points[i - 1], b = path.points[i];
-                if (!inspectGroundSegment(a, b, path.id.endsWith('-regional')?c:bounded, { maxSlope: .35, widthM: path.width }).valid) {
+                if (!inspectGroundSegment(a, b, support, { maxSlope: .35, widthM: path.width }).valid) {
                     error('SET_ACCESS_TERRAIN', 'Une rue ou un accès ne respecte plus l’eau, la pente ou la largeur.', path.id);
                     break;
                 }
                 const length=Math.hypot(b.x-a.x,b.z-a.z),steps=Math.max(1,Math.ceil(length/24)),strips=Math.max(1,Math.ceil(path.width/4)),stripWidth=path.width/strips,nx=length?-(b.z-a.z)/length:0,nz=length?(b.x-a.x)/length:0;
                 let blocked=false;
                 for(let k=0;k<strips&&!blocked;k++){const offset=-path.width/2+(k+.5)*stripWidth;
-                    for(let j=0;j<steps;j++){const from={x:a.x+(b.x-a.x)*j/steps+nx*offset,z:a.z+(b.z-a.z)*j/steps+nz*offset},to={x:a.x+(b.x-a.x)*(j+1)/steps+nx*offset,z:a.z+(b.z-a.z)*(j+1)/steps+nz*offset},moved=query.sweep({...from,y:c.height(from.x,from.z)},{...to,y:c.height(to.x,to.z)},stripWidth/2,1.8);
+                    for(let j=0;j<steps;j++){const from={x:a.x+(b.x-a.x)*j/steps+nx*offset,z:a.z+(b.z-a.z)*j/steps+nz*offset},to={x:a.x+(b.x-a.x)*(j+1)/steps+nx*offset,z:a.z+(b.z-a.z)*(j+1)/steps+nz*offset},moved=query.sweep({...from,y:support.height(from.x,from.z)},{...to,y:support.height(to.x,to.z)},stripWidth/2,1.8);
                         if(moved.blockedX||moved.blockedZ||moved.pushed||Math.hypot(moved.position.x-to.x,moved.position.z-to.z)>.05){blocked=true;break;}}
                 }
                 if(blocked)error('SET_ACCESS_OBSTACLE','Un obstacle solide ou une hauteur libre insuffisante coupe un accès du village.',path.id);
 
             }
-        const graph = settlementTransportGraph(paths, c.height), adj = new Map<string, string[]>();
+        }
+        const graph = settlementTransportGraph(paths, c.height,(path,x,z)=>{try{const own=pathSupport(p,path,c).height(x,z);if(path.supportId)return own;for(const elevated of paths.filter(p=>p.supportId))for(const q of [elevated.points[0],elevated.points.at(-1)!])if(Math.hypot(q.x-x,q.z-z)<.02){const h=pathSupport(p,elevated,c).height(x,z);if(Math.abs(h-own)<=.2)return h;}return own;}catch{return c.height(x,z);}}), adj = new Map<string, string[]>();
         for (const edge of graph.edges) {
             adj.set(edge.from, [...adj.get(edge.from) ?? [], edge.to]);
             adj.set(edge.to, [...adj.get(edge.to) ?? [], edge.from]);

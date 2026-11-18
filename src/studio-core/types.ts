@@ -42,6 +42,7 @@ export interface LightComponent {type:'Light';kind:'point';color:string;intensit
 export interface TriggerVolumeComponent {type:'TriggerVolume';shape:'box'|'sphere';size:Vector3;interactionIds:StableId[];}
 export interface ComponentMap {
  ShopAccess?:import('../gameplay/shop-access.ts').ShopAccessComponent;
+  Bridge?:import('../settlements/bridge.ts').BridgeComponent;
   Habitat?:import('../settlements/habitat.ts').HabitatComponent;
   Transform?:TransformComponent;Visual?:VisualComponent;Character?:CharacterComponent;Navigation?:NavigationComponent;
   BehaviorRef?:BehaviorRefComponent;DialogueActor?:DialogueActorComponent;State?:StateComponent;Persistence?:PersistenceComponent;

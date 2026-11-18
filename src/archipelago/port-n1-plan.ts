@@ -21,6 +21,9 @@ export function portActorPresence(level:TradeVisualLevel,ferryPresent:boolean){
   return {rower:ferryPresent,merchant:level!==1||ferryPresent};
 }
 export interface PortSurvey {
+  /** Authoring callers can bound the existing survey and reject reserved/blocked sites. */
+  maxDistance?:number;
+  accept?:(layout:PortN1Layout)=>boolean;
   origin:PortPoint;
   anchors?:readonly PortPoint[];
   width:number;
@@ -44,7 +47,7 @@ export function planPortN1(input:PortSurvey):PortN1Layout|null {
     {maxHeight:4.8,shoreDepth:3,standSpread:1.0,landDelta:2.4,cells:3},
     {maxHeight:8.5,shoreDepth:6,standSpread:1.4,landDelta:4.5,cells:5},
   ] as const;
-  const radii=[0,5,10,15,22,30,42,56,72,96,128,164,208,260,320,400];
+  const radii=[0,5,10,15,22,30,42,56,72,96,128,164,208,260,320,400].filter(r=>r<=Math.min(400,input.maxDistance??400));
   const orientations=24,samples=32;
   const sorted=[...(input.anchors??[])].filter(p=>inside(p.x,p.z,5))
     .sort((a,b)=>Math.hypot(a.x-input.origin.x,a.z-input.origin.z)-Math.hypot(b.x-input.origin.x,b.z-input.origin.z))
@@ -85,7 +88,7 @@ export function planPortN1(input:PortSurvey):PortN1Layout|null {
             // the moored rowboat stays at sea level, independent of this deck.
             const shoreward=out(0,-1);
             const deckY=Math.min(h,height(shoreward.x,shoreward.z));
-            return {
+            const result:PortN1Layout={
               shore:{x:sx,z:sz},heading:angle,dockCells:profile.cells,
               stand:point(stand,height(stand.x,stand.z)),
               vendor:point(vendor,height(vendor.x,vendor.z)),
@@ -93,6 +96,8 @@ export function planPortN1(input:PortSurvey):PortN1Layout|null {
               rower:point(rower,deckY),boarding:point(boarding,deckY),
               boat:point(boat,sea),dockBaseY:deckY-1,
             };
+            if(input.accept&&!input.accept(result))continue;
+            return result;
           }
         }
       }
@@ -100,3 +105,6 @@ export function planPortN1(input:PortSurvey):PortN1Layout|null {
   }
   return null;
 }
+
+/** Stable authoring anchors consumed by the existing published-island port survey. */
+export function authoredPortAnchors(entities:readonly {initialState?:Record<string,unknown>}[]):PortPoint[]{return entities.filter(e=>e.initialState?.portN1Anchor===true&&Number.isFinite(e.initialState.portShoreX)&&Number.isFinite(e.initialState.portShoreZ)).map(e=>({x:Number(e.initialState!.portShoreX),z:Number(e.initialState!.portShoreZ)}));}

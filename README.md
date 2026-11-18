@@ -266,3 +266,5 @@ Les villages peuvent aussi suivre une rue sinueuse, un flanc de montagne, une ri
 ### Traversée inter-îles (pilote solo)
 
 Sur la branche `feat/archipelago-real-island-travel`, deux îles d'exemple **compilées** sont prévues dans le build GitHub Pages : l'île officielle 4 × 3 km et une île forestière issue du projet de référence Studio. Le rameur permet le trajet aller-retour selon la présence de la navette. Chaque déplacement sauvegarde l'île quittée dans un slot de voyage dédié et transfère le sac, le boost et l'horloge ; la navigation complète décharge la scène précédente. Le multijoueur reste désactivé. Le statut final dépend de la validation CI et navigateur.
+
+Les villages de rivière peuvent proposer un petit pont vers une seconde rive, des services variés et un habitant avec dialogue ; le raccord maritime reprend les modules N1 de main : [livraison et limites](docs/88-VILLAGES-RIVER-LIFE-MAIN-INTEGRATION.md).

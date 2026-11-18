@@ -13,7 +13,7 @@ import type { WorldCollisionQuery } from '../physics/collision-world.ts';
 import { fingerprint } from '../world-production/landscape-schema.ts';
 import type { AmenityRecord, SettlementRecipe } from './schema.ts';
 import type { SettlementDiagnostic } from './planner.ts';
-export function amenityChanged(p: ProjectDocument, a: AmenityRecord) { const i = p.entityIndex[a.id], e = i ? p.chunks[i.ownerChunkId]?.entities[a.id] : undefined; return a.locked || fingerprint(e) !== a.entityHash; }
+export function amenityChanged(p: ProjectDocument, a: AmenityRecord) { const i = p.entityIndex[a.id], e = i ? p.chunks[i.ownerChunkId]?.entities[a.id] : undefined; return a.locked || fingerprint(e) !== a.entityHash || !!a.dialogueHash&&fingerprint(p.libraries.dialogues[a.id+'-talk'])!==a.dialogueHash; }
 export function planServices(p: ProjectDocument, r: SettlementRecipe, roadZ: number, c: GroundRouteContext, query: WorldCollisionQuery, entities: EntityDefinitionV3[], paths: PathDefinition[], diagnostics: SettlementDiagnostic[], preserved: string[], nativePath: (id: string, points: {
     x: number;
     z: number;
@@ -37,8 +37,9 @@ export function planServices(p: ProjectDocument, r: SettlementRecipe, roadZ: num
     const specs = [{ role: 'counter', asset: kind === 'forest' ? 'structure.counter_forest' : kind === 'mine' ? 'structure.counter_mine' : kind === 'port' ? 'structure.counter_port' : 'structure.market_stall', x: 0, z: squareZ - 12, yaw: Math.PI, shop: kind },
         { role: 'well', asset: 'structure.well', x: -13, z: squareZ, yaw: -Math.PI / 2 }, { role: 'bench', asset: 'structure.bench', x: 13, z: squareZ, yaw: Math.PI / 2 },
         ...(r.activity === 'agriculture' ? [{ role: 'mill', asset: 'architecture.windmill_stone', x: -21, z: squareZ - 19, yaw: Math.PI }] : []),
+        ...(r.variedServices?[{role:'inn',asset:'architecture.inn',x:25,z:squareZ-24,yaw:Math.PI,shop:'inn' as const},{role:'workshop',asset:r.activity==='agriculture'?'architecture.farmhouse':r.activity==='fishing'?'structure.pier_hut':'architecture.wooden_cabin',x:-27,z:squareZ+23,yaw:0}]:[]),
         ...(r.activity === 'forest' ? [{ role: 'fire', asset: 'structure.campfire', x: -19, z: squareZ - 16, yaw: Math.PI }] : [])];
-    const preservedRecords = (old?.amenities ?? []).filter(a => amenityChanged(p, a));
+    const preservedRecords = (old?.amenities ?? []).filter(a => !['bridge','host','harbor'].includes(a.role)&&amenityChanged(p, a));
     for (const a of preservedRecords) {
         const index = p.entityIndex[a.id], e = index ? p.chunks[index.ownerChunkId]?.entities[a.id] : undefined;
         if (!e) {

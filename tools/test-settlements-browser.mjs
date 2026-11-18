@@ -121,8 +121,7 @@ try {
     const gameURL = new URL(game.url());
     gameURL.searchParams.set('metrics', '1');
     await game.goto(gameURL.toString());
-    await game.waitForSelector('#start:not([disabled])', { timeout: 60000 });
-    await game.locator('#start').click();
+    await game.locator('#start-overlay').waitFor({state:'hidden',timeout:60000});
     await game.waitForFunction(() => Number.isFinite(window.littleWorldMetrics?.position?.[2]), {}, { timeout: 60000 });
     await game.waitForFunction(() => /Ouvrir/.test(document.querySelector('#action')?.textContent ?? ''), {}, { timeout: 30000 });
     check(true, 'Le joueur arrive devant une porte accessible et reçoit son interaction');

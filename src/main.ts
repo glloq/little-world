@@ -33,7 +33,7 @@ import {loadPortableCheckpoint,savePortableCheckpoint,withPortableItems} from '.
 import {ferryStatus,ferryEventsBetween,worldGameMinute} from './archipelago/ferry-schedule.ts';
 import {createCargoService} from './archipelago/cargo-logistics.ts';
 import {createFerryView} from './archipelago/ferry-view.ts';
-import {planPortN1,portActorPresence} from './archipelago/port-n1-plan.ts';
+import {planPortN1,portActorPresence,authoredPortAnchors} from './archipelago/port-n1-plan.ts';
 import {createPortN1View} from './archipelago/port-n1-view.ts';
 import {attachPortN1Collisions} from './archipelago/port-n1-collisions.ts';
 import {withFerryBells} from './archipelago/ferry-audio.ts';
@@ -304,8 +304,7 @@ const ferryAnchor=activeIsland?definition.placements.filter(p=>/(dock|harbor|por
 // random object near the player when neither a safe shore nor an approach exists.
 const portN1Layout=activeIsland&&!isLegacyTerrain()?planPortN1({
   origin:{x:player.position.x,z:player.position.z},
-  anchors:definition.placements.filter(p=>/(dock|harbor|port|pier)/i.test(p.assetId))
-    .map(p=>({x:p.x,z:p.z})),
+  anchors:[...authoredPortAnchors(gameplay?.runtime.data.entities??[]),...definition.placements.filter(p=>/(dock|harbor|port|pier)/i.test(p.assetId)).map(p=>({x:p.x,z:p.z}))],
   width:getTerrainConfig().width,length:getTerrainConfig().length,
   seaLevel:getTerrainConfig().seaLevel,height:terrainHeight,depth:waterDepth,
 }):null;

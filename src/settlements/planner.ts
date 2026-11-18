@@ -1,3 +1,7 @@
+import {settlementMaritimePort} from './maritime-port.ts';
+import {localLife} from './local-life.ts';
+import {riverCrossing} from './river-crossing.ts';
+import {bridgeColliders} from './bridge.ts';
 import {isCorridor,corridorStreet} from './corridor.ts';
 import {layoutContext,layoutDimensions,lanePoint,organicStreet,organicArcs} from './layout.ts';
 import {fitOrganicLot} from './organic-lots.ts';
@@ -29,6 +33,7 @@ export interface SettlementPlan {
     paths: PathDefinition[];
     buildings: BuildingRecord[];
     amenities?:AmenityRecord[];
+    dialogues?:Record<string,import('../gameplay/schema.ts').GameplayDialogue>;
     diagnostics: SettlementDiagnostic[];
     preserved: string[];
     removed: string[];
@@ -92,6 +97,12 @@ export function planSettlement(p: ProjectDocument, raw: SettlementRecipe): Settl
     }
     if(organic&&!isCorridor(r)){const ring=organicArcs(r,paths,{...c,wet:(x,z)=>c.wet(x,z)||query.intersectsVolume({minX:x-.45,maxX:x+.45,minZ:z-.45,maxZ:z+.45,minY:c.height(x,z)+.2,maxY:c.height(x,z)+1.8})},clearStreet);for(const arc of ring.arcs)paths.push(nativePath(arc.id,arc.points,streetWidth));if(ring.omitted)diagnostics.push({severity:'WARNING',code:'SET_RING_GAP',message:'Certains passages périphériques ne tiennent pas dans le terrain. Les accès sont vérifiés par les autres rues.'});}
     else if(!organic&&lanes>1)addRoad(r.id+'-cross',lanePoint(r,0,roadZ),lanePoint(r,lanes-1,roadZ),3.5);
+    if(r.layout?.pattern==='river'&&r.layout.riverBanks&&r.layout.riverBanks!=='single'){
+        const crossing=riverCrossing(p,r,c,paths,clearStreet);
+        if(crossing.entity&&crossing.paths&&crossing.record){entities.push(crossing.entity);amenities.push(crossing.record);if(crossing.preserved)preserved.push(crossing.entity.id,...crossing.paths.map(p=>p.id));for(const path of crossing.paths)paths.push({...nativePath(path.id,path.points,path.width),...(path.supportId?{supportId:path.supportId,kind:'wood' as const}:{})});for(const d of bridgeColliders(crossing.entity.id,crossing.entity.components.Transform!))query.add({...d,position:{...d.position,y:d.position.y+c.height(d.groundAnchor.x,d.groundAnchor.z)},enabled:()=>true});}
+        else diagnostics.push({severity:r.layout.riverBanks==='required'?'ERROR':'WARNING',code:'SET_CROSSING_MISSING',message:crossing.reason??'Pont impraticable'});
+    }
+    if(r.maritimePort&&!previous?.amenities?.some(a=>a.role==='harbor'&&amenityChanged(p,a))){const port=settlementMaritimePort(p,r,c,paths,clearStreet);if(port){entities.push(port.entity);amenities.push(port.record);query.add({id:port.entity.id+'-reservation',shape:'box',position:{x:port.layout.stand.x,y:port.layout.stand.y,z:port.layout.stand.z},size:{x:6,y:4,z:6},enabled:()=>true});paths.push(nativePath(port.path.id,port.path.points,port.path.width));}else diagnostics.push({severity:'WARNING',code:'SET_MARITIME_SITE',message:'Aucun raccord N1 sûr trouvé avec les réglages portuaires existants. Déplacer le village vers une côte adaptée.'});}
     for (let slot = 0; slot < r.targetBuildings; slot++) {
         if (previous?.suppressedSlots?.includes(slot))
             continue;
@@ -119,7 +130,7 @@ export function planSettlement(p: ProjectDocument, raw: SettlementRecipe): Settl
             continue;
         }
         let t:TransformComponent,pos:{x:number;z:number},junction:{x:number;z:number};
-        if(organic){const lane=Math.floor(slot/Math.ceil(r.targetBuildings/lanes)),street=paths.find(p=>p.id===r.id+'-street-'+(isCorridor(r)?0:lane)),fit=paths.some(p=>p.id.includes('-street-'))?fitOrganicLot(r,slot,street?.points??[],c,query,paths):null;
+        if(organic){const lane=Math.floor(slot/Math.ceil(r.targetBuildings/lanes)),street=paths.find(p=>p.id===r.id+'-street-'+(isCorridor(r)?(paths.some(p=>p.supportId)&&slot>=Math.ceil(r.targetBuildings*.65)?1:0):lane)),fit=paths.some(p=>p.id.includes('-street-'))?fitOrganicLot(r,slot,street?.points??[],c,query,paths):null;
             if(!fit){if(r.layout?.adjustments?.some(a=>a.slot===slot))diagnostics.push({severity:'ERROR',code:'SET_ADJUSTMENT_INVALID',targetId:r.id+'-house-'+slot,message:'Cette retouche ne laisse pas de place ou d’accès praticable pour la maison. Déplacer sa poignée vers un sol libre.'});continue;}t=fit.t;pos=fit.pos;junction=fit.junction;
         }else{
             const lane = Math.floor(slot / (pairs * 2)), pair = Math.floor(slot / 2) % pairs, sign = slot % 2 ? 1 : -1, laneX = (lane - (lanes - 1) / 2) * gap, x = laneX + sign * 9, z = pair * step - half, candidatePos = settlementPoint(r, x, z), yaw = r.orientation * Math.PI / 180 + sign * Math.PI / 2;
@@ -166,6 +177,8 @@ export function planSettlement(p: ProjectDocument, raw: SettlementRecipe): Settl
         }
     for(const e of entities)if(e.components.Habitat&&e.components.Transform)for(const d of habitatColliders(e.id,e.components.Transform))query.add({...d,position:{...d.position,y:d.position.y+c.height(d.groundAnchor.x,d.groundAnchor.z)},enabled:()=>true});
     if(!organic)amenities=planServices(p,r,roadZ,c,query,entities,paths,diagnostics,preserved,nativePath);
+    const inhabitant=localLife(p,r,amenities),dialogues:Record<string,import('../gameplay/schema.ts').GameplayDialogue>={};if(inhabitant){entities.push(inhabitant.entity);amenities.push(inhabitant.record);if(inhabitant.dialogue)dialogues[inhabitant.dialogue.id]=inhabitant.dialogue;if(inhabitant.preserved)preserved.push(inhabitant.entity.id);}
+    for(const a of previous?.amenities??[])if(['bridge','harbor'].includes(a.role)&&amenityChanged(p,a)&&!amenities.some(v=>v.id===a.id)){const e=sourceEntity(p,a.id);if(e){entities.push(structuredClone(e));amenities.push(structuredClone(a));preserved.push(a.id);for(const id of Object.keys(previous!.pathHashes)){const path=p.libraries.paths[id];if((path?.supportId===a.id||a.role==='harbor'&&id===r.id+'-harbor-access')&&!paths.some(p=>p.id===id))paths.push(structuredClone(path));}}}
     for(const a of previous?.amenities??[])if(!amenities.some(v=>v.id===a.id)&&!amenityChanged(p,a))removed.push(a.id);
     // Optional local connection to the nearest authored road, rather than one remote route per house.
     if (r.useExisting) {
@@ -195,6 +208,6 @@ export function planSettlement(p: ProjectDocument, raw: SettlementRecipe): Settl
             paths.push(structuredClone(p.libraries.paths[id]));
             preserved.push(id);
         }
-    return { recipe: r, sourceHash: settlementSourceHash(p), recipeHash: fingerprint(r), entities, paths, buildings,...(r.services||previous?.amenities?{amenities}:{}), diagnostics, preserved: [...new Set(preserved)], removed, generationMs: performance.now() - started };
+    return { dialogues,recipe: r, sourceHash: settlementSourceHash(p), recipeHash: fingerprint(r), entities, paths, buildings,...(r.services||previous?.amenities?{amenities}:{}), diagnostics, preserved: [...new Set(preserved)], removed, generationMs: performance.now() - started };
 }
 export { HABITAT_ASSETS };

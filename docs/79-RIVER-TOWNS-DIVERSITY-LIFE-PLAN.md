@@ -136,3 +136,5 @@ Préparer les métadonnées du catalogue et les contrats de provenance dès A, m
 - **Studio et budgets** : preview fidèle au commit, Undo/Redo, ZIP/réouverture/Jouer ici ; limites explicites de recherche, ponts, bâtiments, PNJ actifs et lumières, puis mesures CPU/GPU sur scènes comparables. Le plafond actuel de 80 maisons reste inchangé avant qualification d’un autre budget.
 
 **Prochaine livraison recommandée : A puis B**, avec une fixture de village asymétrique sur deux rives. C et D apportent ensuite une variété structurelle et fonctionnelle ; E anime ces lieux avec les systèmes déjà présents.
+
+Première mise en œuvre et limites : [88 — ponts, vie locale et intégration des ports de main](88-VILLAGES-RIVER-LIFE-MAIN-INTEGRATION.md).

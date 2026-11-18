@@ -87,7 +87,8 @@
     "benchmark:settlement-services": "node --experimental-strip-types tools/benchmark-settlement-services.mjs",
     "test:organic-settlements": "node --experimental-strip-types tools/test-organic-settlements-browser.mjs",
     "benchmark:organic-settlements": "node --experimental-strip-types tools/benchmark-organic-settlements.mjs",
-    "test:contextual-settlements": "node --experimental-strip-types tools/test-contextual-settlements-browser.mjs"
+    "test:contextual-settlements": "node --experimental-strip-types tools/test-contextual-settlements-browser.mjs",
+    "test:river-town": "node --experimental-strip-types tools/test-river-town-browser.mjs"
   },
   "dependencies": {
     "three": "^0.180.0"

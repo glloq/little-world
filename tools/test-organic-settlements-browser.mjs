@@ -88,8 +88,7 @@ try {
     game.on('pageerror', e => errors.push(e.message));
     await game.waitForLoadState();
     check(new URL(game.url()).searchParams.has('studioBuild'), 'La nouvelle implantation passe le compilateur et le lecteur de jeu');
-    await game.waitForSelector('#start:not([disabled])', { timeout: 60000 });
-    await game.locator('#start').click();
+    await game.locator('#start-overlay').waitFor({state:'hidden',timeout:60000});
     await game.waitForFunction(() => /Ouvrir/.test(document.querySelector('#action')?.textContent ?? ''), {}, { timeout: 30000 });
     check(true, 'Le joueur atteint une porte de maison orientée selon une rue courbe');
     await game.keyboard.press('KeyE');

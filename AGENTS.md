@@ -1,5 +1,7 @@
 # Little World — instructions pour Codex et autres agents de développement
 
+> **Suite villages / synchronisation main :** lire [88 — ponts, vie locale et ports existants](docs/88-VILLAGES-RIVER-LIFE-MAIN-INTEGRATION.md). Les petits ponts générés ont un support V3 explicite ; les grands ponts restent hors lot. Le raccord N1 réutilise le survey/runtime de main, sans inventer un cargo ni générer un nouveau port indépendant.
+
 > **Implantation organique :** lire [77 — placement autour d’un point d’intérêt](docs/77-ORGANIC-SETTLEMENT-PLACEMENT.md). Lire aussi [78 — modèles contextuels](docs/78-CONTEXTUAL-SETTLEMENT-PATTERNS.md) pour village-rue, montagne, rivière et pêcheurs, guidés par le terrain/eau natifs. Le profil fortifié règle la compacité seulement ; les enceintes restent à livrer. Sans `recipe.layout`, conserver l’ancien comportement et les retouches/verrous.
 
 > **Établissements de surface V1 :** lire [75 — implémentation et limites](docs/75-SETTLEMENTS-SURFACE-V1.md) avant de modifier les villages. Maisons procédurales creuses et portes V3 indépendantes, `Habitat` et `libraries.settlements` facultatifs ; conserver les références, verrous et retouches. Lire aussi [76 — places et services](docs/76-SETTLEMENTS-SERVICES-V1.md) : équipements optionnels avec provenance/verrous, poses `ShopAccess`, échanges revérifiés côté runtime. Les ports bâtis, ponts, grottes et villes denses de la roadmap restent à livrer.

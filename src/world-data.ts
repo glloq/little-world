@@ -77,6 +77,7 @@ export interface WaterBody {
 export type PathKind = 'trail' | 'dirt' | 'stone' | 'wood';
 export const PATH_KINDS: PathKind[] = ['trail', 'dirt', 'stone', 'wood'];
 export interface PathDefinition {
+  supportId?:string;
   id: string;
   points: { x: number; z: number }[];
   width: number;
@@ -253,7 +254,7 @@ export function parseWorld(value: unknown): WorldDefinition {
   )
     throw Error('Volumes d’eau invalides');
   for(const w of value.water as WaterBody[]){validateWaterProfile(w.profile,w.points.length);validateWaterNetworkFields(w);}
-  if (!list(value.paths, 100, (p) => line(p) && (p.kind === undefined || PATH_KINDS.includes(p.kind as PathKind)) && (p.smooth === undefined || typeof p.smooth === 'boolean'))) throw Error('Chemins invalides');
+  if (!list(value.paths, 100, (p) => line(p) && (p.kind === undefined || PATH_KINDS.includes(p.kind as PathKind)) && (p.smooth === undefined || typeof p.smooth === 'boolean') && (p.supportId === undefined || typeof p.supportId === 'string'))) throw Error('Chemins invalides');
   if (!validateNPCs(value.npcs, config))
     throw Error('PNJ ou dialogues invalides');
   if (
