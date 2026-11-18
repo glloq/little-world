@@ -21,9 +21,29 @@ export function createFishingEffects(scene:THREE.Object3D,hamster:THREE.Object3D
   lineGeometry.setAttribute('position',new THREE.BufferAttribute(positions,3));
   const reelLine=new THREE.Line(lineGeometry,new THREE.LineBasicMaterial({color:0xf7ecd2,transparent:true,opacity:.94}));
   reelLine.name='FishingReelLine';reelLine.visible=false;reelLine.frustumCulled=false;hamster.add(reelLine);
+  // One lightweight fish silhouette reused for every catch; no exported asset or extra rig.
+  const fishMaterial=new THREE.MeshLambertMaterial({color:0x88b7ad,flatShading:true,side:THREE.DoubleSide});
+  const fishBody=new THREE.Mesh(new THREE.IcosahedronGeometry(.19,0),fishMaterial);
+  fishBody.scale.set(1.3,.68,.74);
+  const fishTail=new THREE.Mesh(new THREE.ConeGeometry(.13,.23,3),fishMaterial);
+  fishTail.position.x=-.29;fishTail.rotation.z=Math.PI/2;
+  const fishEye=new THREE.Mesh(new THREE.SphereGeometry(.018,4,3),new THREE.MeshBasicMaterial({color:0x1a3435}));
+  fishEye.position.set(.17,.048,.12);
+  const catchDisplay=new THREE.Group();
+  catchDisplay.name='FishingCatchDisplay';catchDisplay.visible=false;
+  catchDisplay.add(fishBody,fishTail,fishEye);hamster.add(catchDisplay);
+  let catchAge=-1;
   const original=hamster.getObjectByName('FishingLine') as THREE.Line|undefined;
   const bobber=hamster.getObjectByName('FishingFloat') as THREE.Mesh|undefined;
   let next=0;
+  const FISH_COLORS:Record<string,number>={
+    'fish:sardine':0x91b8c2,'fish:perch':0x8db56d,'fish:trout':0x85b7a7,
+    'fish:carp':0xc5a276,'fish:mackerel':0x6ca5bd,'fish:seabass':0xaabac4,'fish:golden':0xf2c45a,
+  };
+  function displayCatch(fish:string){
+    fishMaterial.color.setHex(FISH_COLORS[fish]??0x88b7ad);
+    catchAge=0;catchDisplay.visible=true;
+  }
   function burst(at:{x:number;y:number;z:number},kind:FishingSplash){
     const count=kind==='caught'?3:kind==='escaped'||kind==='bite'?2:1;
     const power=kind==='caught'?1.7:kind==='escaped'?1.5:kind==='bite'?1.2:kind==='strain'?.65:.85;
@@ -41,6 +61,16 @@ export function createFishingEffects(scene:THREE.Object3D,hamster:THREE.Object3D
    * The renderer temporarily hides that line while showing a curved overlay.
    * Physics, remote avatar presentations and hamster source files remain untouched. */
   function update(state:FishingState|null,time:number,dt:number){
+    if(catchAge>=0){
+      catchAge+=clamp(dt,0,.1);
+      if(catchAge>=1.15){catchAge=-1;catchDisplay.visible=false;}
+      else{
+        const t=catchAge/1.15;
+        catchDisplay.position.set(.14,1.20+.32*Math.sin(Math.PI*t),.77);
+        catchDisplay.rotation.y=time*.9;
+        catchDisplay.scale.setScalar(.65+.35*Math.sin(Math.PI*Math.min(1,t+.22)));
+      }
+    }
     for(const ripple of ripples){
       if(!ripple.mesh.visible)continue;
       ripple.age+=clamp(dt,0,.1);
@@ -73,13 +103,15 @@ export function createFishingEffects(scene:THREE.Object3D,hamster:THREE.Object3D
     reelLine.visible=true;original.visible=false;
   }
   function reset(){
-    clearLine();
+    clearLine();catchAge=-1;catchDisplay.visible=false;
     for(const r of ripples)r.mesh.visible=false;
   }
   function dispose(){
     reset();reelLine.removeFromParent();lineGeometry.dispose();(reelLine.material as THREE.Material).dispose();
     for(const r of ripples){r.mesh.removeFromParent();r.mesh.material.dispose();}
-    geometry.dispose();
+    geometry.dispose();catchDisplay.removeFromParent();
+    fishBody.geometry.dispose();fishTail.geometry.dispose();fishEye.geometry.dispose();
+    fishMaterial.dispose();(fishEye.material as THREE.Material).dispose();
   }
-  return {burst,update,reset,dispose};
+  return {burst,displayCatch,update,reset,dispose};
 }
