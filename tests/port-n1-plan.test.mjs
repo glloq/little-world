@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {planPortN1,portActorPresence} from '../src/archipelago/port-n1-plan.ts';
+import {planPortN1,portActorPresence,authoredPortAnchors} from '../src/archipelago/port-n1-plan.ts';
 
 const height=(x,z)=>z<0?.9:-2.7;
 const depth=(x,z)=>Math.max(0,-height(x,z));
@@ -37,3 +37,7 @@ test('merchant and rower: one ferry clock, different level policies',()=>{
   assert.deepEqual(portActorPresence(3,false),{rower:false,merchant:true});
   assert.deepEqual(portActorPresence(3,true),{rower:true,merchant:true});
 });
+
+test('authoring reuses bounded N1 search and can reject reserved candidate sites',()=>{assert.equal(planPortN1({...survey,accept:()=>false}),null);const site=planPortN1({...survey,maxDistance:15,accept:p=>p.stand.x<20});assert.ok(site);assert.ok(Math.hypot(site.shore.x-survey.origin.x,site.shore.z-survey.origin.z)<=15.01);});
+
+test('published ports can reuse valid authored anchors without treating all local fishing counters as maritime imports',()=>{assert.deepEqual(authoredPortAnchors([{initialState:{portN1Anchor:true,portShoreX:12,portShoreZ:15}},{initialState:{shop:'port'}},{initialState:{portN1Anchor:true,portShoreX:NaN,portShoreZ:15}}]),[{x:12,z:15}]);});

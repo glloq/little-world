@@ -40,7 +40,7 @@ import {loadPortableCheckpoint,savePortableCheckpoint,withPortableItems} from '.
 import {ferryStatus,ferryEventsBetween,worldGameMinute} from './archipelago/ferry-schedule.ts';
 import {createCargoService} from './archipelago/cargo-logistics.ts';
 import {createFerryView} from './archipelago/ferry-view.ts';
-import {planPortN1,portActorPresence} from './archipelago/port-n1-plan.ts';
+import {planPortN1,portActorPresence,authoredPortAnchors,authoredPortLayout} from './archipelago/port-n1-plan.ts';
 import {createPortN1View} from './archipelago/port-n1-view.ts';
 import {attachPortN1Collisions} from './archipelago/port-n1-collisions.ts';
 import {withFerryBells} from './archipelago/ferry-audio.ts';
@@ -319,13 +319,13 @@ const ferryAnchor=activeIsland?definition.placements.filter(p=>/(dock|harbor|por
   (a,b)=>Math.hypot(a.x-player.position.x,a.z-player.position.z)-Math.hypot(b.x-player.position.x,b.z-player.position.z))[0]:undefined;
 // Port N1 is an optional deterministic addition to published generated islands. No
 // random object near the player when neither a safe shore nor an approach exists.
-const portN1Layout=activeIsland&&!isLegacyTerrain()?planPortN1({
+const savedPort=authoredPortLayout(gameplay?.runtime.data.entities??[]);
+const portN1Layout=savedPort??(activeIsland&&!isLegacyTerrain()?planPortN1({
   origin:{x:player.position.x,z:player.position.z},
-  anchors:definition.placements.filter(p=>/(dock|harbor|port|pier)/i.test(p.assetId))
-    .map(p=>({x:p.x,z:p.z})),
+  anchors:[...authoredPortAnchors(gameplay?.runtime.data.entities??[]),...definition.placements.filter(p=>/(dock|harbor|port|pier)/i.test(p.assetId)).map(p=>({x:p.x,z:p.z}))],
   width:getTerrainConfig().width,length:getTerrainConfig().length,
   seaLevel:getTerrainConfig().seaLevel,height:terrainHeight,depth:waterDepth,
-}):null;
+}):null);
 const ferryDock=(()=>{
   if(!activeIsland)return null;
   if(portN1Layout)return {...portN1Layout.boat};
@@ -339,8 +339,8 @@ const ferryDock=(()=>{
 // The boarding, oar-hand and trade locations never share the same interaction socket.
 const ferryBoardingPoint=activeIsland?(portN1Layout?.boarding??
   {x:ferryAnchor?.x??player.position.x,z:ferryAnchor?.z??player.position.z}):null;
-const portN1View=portN1Layout?createPortN1View(scene,portN1Layout,import.meta.env.BASE_URL):null;
-const detachPortCollisions=portN1Layout&&gameplay?attachPortN1Collisions(gameplay.collision,portN1Layout):null;
+const portN1View=portN1Layout?createPortN1View(scene,portN1Layout,import.meta.env.BASE_URL,!!savedPort):null;
+const detachPortCollisions=portN1Layout&&!savedPort&&gameplay?attachPortN1Collisions(gameplay.collision,portN1Layout):null;
 const ferryView=portN1View??(ferryDock?createFerryView(scene,ferryDock):null);
 const canBoardFerry=()=>!!ferryBoardingPoint&&!!ferryDock&&!player.space&&!aboard&&
   Math.hypot(player.position.x-ferryBoardingPoint.x,player.position.z-ferryBoardingPoint.z)<(portN1Layout?2.8:4.5);
@@ -407,19 +407,20 @@ const {nightFactor}=await import('./lighting/light-data.ts');
 world.lights.setEnvironment(nightFactor(climate.state(worldClock.time).sunAltitude),0);
 // Mines and farm plots: procedural stand-ins, lanterns join the E10 light pool.
 // Optional alpine preview (or published alpine island): never mutates the reference map.
-const snowDemo=(searchParams.get('snowDemo')==='1'||activeIsland?.id==='snow-cimes')&&!isLegacyTerrain();
+const authoredAlpine=playable?.alpine;
+const snowDemo=(!!authoredAlpine||searchParams.get('snowDemo')==='1'||activeIsland?.id==='snow-cimes')&&!isLegacyTerrain();
 const snowBounds={minX:-(definition.config.width??200)/2,maxX:(definition.config.width??200)/2,
   minZ:-(definition.config.length??600)/2,maxZ:(definition.config.length??600)/2};
-const snowPiste=snowDemo?findDemoPiste(terrainHeight,snowBounds,definition.config.seaLevel??0):null;
-let snowEquipment:SnowEquipment='snowboard';
+const snowPiste=authoredAlpine?.points??(snowDemo?findDemoPiste(terrainHeight,snowBounds,definition.config.seaLevel??0):null);
+let snowEquipment:SnowEquipment=authoredAlpine?.equipment??'snowboard';
 let snowLiftRide:LiftRide|null=null;
-const snowLift:SkiLift|null=snowPiste?{id:'alpine-preview-chair',speed:2.8,seatSpacing:14,capacity:2,
+const snowLift:SkiLift|null=snowPiste&&(!authoredAlpine||authoredAlpine.lift)?{id:'alpine-preview-chair',speed:2.8,seatSpacing:14,capacity:2,
   path:snowPiste.slice().reverse().filter((_,i)=>i%4===0||i===snowPiste.length-1)
     .map(p=>({x:p.x,y:terrainHeight(p.x,p.z)+3.5,z:p.z}))}:null;
 if(snowPiste){
   const lower=snowPiste[snowPiste.length-1];
-  setPreviewSnowline(terrainHeight(lower.x,lower.z)-8);
-  player.position.set(lower.x,terrainHeight(lower.x,lower.z)+.05,lower.z);
+  setPreviewSnowline(authoredAlpine?.snowLineM??terrainHeight(lower.x,lower.z)-8);
+  if(!authoredAlpine)player.position.set(lower.x,terrainHeight(lower.x,lower.z)+.05,lower.z);
   player.velocity.set(0,0,0);player.mode='ground';
 }
 const snowLiftView=snowLift?createSkiLiftView(scene,snowLift):null;
@@ -450,6 +451,7 @@ world.update(0, player.position);
 {
   const {createGameUi}=await import('./ui/app/game-ui.ts'),c=getTerrainConfig();
   const landmarks=[
+    ...(authoredAlpine?[{id:'alpine-base',label:'Ski · départ de la remontée',...authoredAlpine.points.at(-1)!},{id:'alpine-top',label:'Ski · sommet de la descente',...authoredAlpine.points[0]}]:[]),
     ...(playable?.races??[]).map(r=>({id:'race:'+r.id,label:'Course : '+r.name,x:r.gates[0].center.x,z:r.gates[0].center.z})),
     ...definition.biomes.filter(b=>b.biome==='village').slice(0,30).map((b,i)=>({id:'village:'+i,label:'Village',x:b.x,z:b.z})),
     ...definition.placements.filter(p=>/(lighthouse|harbor|port|market|inn|windmill|watermill|town|village)/i.test(p.assetId)).slice(0,50).map(p=>({
@@ -973,10 +975,8 @@ function nearShop(facing=false):{id:string;kind:ShopKind}|null{
       const dir=forwardOf();if(d>.5&&(dx*dir.x+dz*dir.z)/d<.35)return null;}
     return {id:hub.counterId,kind:'mine'};
   }
-  let best:{id:string;kind:ShopKind}|null=null,bd=3.2;const f=forwardOf();
-  for(const e of gameplay.runtime.data.entities){const kind=e.initialState.shop;if(typeof kind!=='string'||!(kind in SHOPS)||!e.position)continue;const dx=e.position.x-player.position.x,dz=e.position.z-player.position.z,d=Math.hypot(dx,dz);
-    if(facing&&d>.5&&(dx*f.x+dz*f.z)/d<.6)continue;if(d<bd){bd=d;best={id:e.id,kind:kind as ShopKind};}}
-  return best;
+  return gameplay.nearbyShop(player.position,facing?forwardOf():undefined);
+
 }
 /** Water surface 2.5–6 m in front of a standing player (sea, river or lake). */
 function fishingSpot():{kind:'sea'|'river'|'lake';x:number;z:number}|null{
@@ -1497,6 +1497,7 @@ function draw(now: number) {
         objectCulling:{...world.objectCulling},
         animated: { ...world.animated },
         occlusion: world.occlusion,
+        alpine:authoredAlpine?{id:authoredAlpine.id,points:snowPiste?.length??0,snowLineM:authoredAlpine.snowLineM,lift:!!snowLift,equipment:snowEquipment,base:snowLift?.path[0]??null,ride:snowLiftRide?.phase??null}:null,
         boatModel: world.boat.getObjectByName('Sailboat') ? 'sailboat' : 'procedural',
         boatPosition: [boat.x, boat.y, boat.z],
         boats: { count: fleet.boats.length, aboard, current: fleet.current?.id ?? null },

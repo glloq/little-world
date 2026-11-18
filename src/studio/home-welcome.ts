@@ -9,7 +9,7 @@ import {fingerprint} from '../world-production/landscape-schema.ts';
 import {projectGeography} from '../studio-core/geo-context.ts';
 import {BIOMES_V} from '../geography/layers.ts';
 import {composeWorld,projectFromComposition,type WorldComposition} from '../studio-core/world-composition.ts';
-import {DEFAULT_MAP_REQUIREMENTS,LANDSCAPES,type Landscape,type MapRequirements} from '../studio-core/map-requirements.ts';
+import {newIslandRequirements,LANDSCAPES,type Landscape,type MapRequirements} from '../studio-core/map-requirements.ts';
 import {createGuidedWorld,type WorldStartMode} from '../studio-core/world-start.ts';
 import {createProject} from '../studio-core/schema.ts';
 import type {ProjectDocument} from '../studio-core/types.ts';
@@ -90,7 +90,7 @@ export function drawWelcomePreview(canvas:HTMLCanvasElement,project:ProjectDocum
   ctx.imageSmoothingEnabled=true;ctx.drawImage(tmp,rect.x,rect.y,rect.w,rect.h);
   ctx.strokeStyle='#b4cbbf';ctx.lineWidth=2;ctx.strokeRect(rect.x,rect.y,rect.w,rect.h);
   const projectPoint=(p:{x:number;z:number})=>({x:rect.x+(p.x-bounds.minX)/width*rect.w,y:rect.y+(p.z-bounds.minZ)/length*rect.h});
-  const line=(points:{x:number;z:number}[],color:string,closed=false,lineWidth=1)=>{ctx.beginPath();points.forEach((p,i)=>{const q=projectPoint(p);if(i)ctx.lineTo(q.x,q.y);else ctx.moveTo(q.x,q.y);});if(closed)ctx.closePath();ctx.strokeStyle=color;ctx.lineWidth=lineWidth;ctx.stroke();};
+  const line=(points:readonly {x:number;z:number}[],color:string,closed=false,lineWidth=1)=>{ctx.beginPath();points.forEach((p,i)=>{const q=projectPoint(p);if(i)ctx.lineTo(q.x,q.y);else ctx.moveTo(q.x,q.y);});if(closed)ctx.closePath();ctx.strokeStyle=color;ctx.lineWidth=lineWidth;ctx.stroke();};
   // Show real visible height contours, never hidden feature footprints or construction axes.
   if(def.kind==='archipelago'){
     const shelves=def.archipelago.features.filter(f=>f.kind==='plateau'&&f.id.startsWith('composition-terrace-')).map(f=>f.kind==='plateau'?f.heightM:0).sort((a,b)=>a-b);
@@ -105,13 +105,16 @@ export function drawWelcomePreview(canvas:HTMLCanvasElement,project:ProjectDocum
     for(const f of def.archipelago.features)if(f.kind==='mountain'||f.kind==='volcano'){const q=projectPoint(f);ctx.fillStyle='#504c48';ctx.fillText(f.kind==='volcano'?'▲ V':'▲',q.x,q.y);}
   }
   for(const w of Object.values(project.libraries.water)){line(w.points,'#1677c4',w.kind==='lake',Math.max(1,Math.min(3,w.width/width*rect.w)));if(w.kind==='lake'){ctx.fillStyle='#459bd8';ctx.fill();}for(const fall of w.falls??[]){const q=projectPoint(w.points[fall.at]);ctx.fillStyle='#fff';ctx.fillRect(q.x-2,q.y-2,5,5);}}
+  if(project.libraries.alpine)line(project.libraries.alpine['composition-alpine'].points,'#f2fbff',false,3);
+  for(const race of Object.values(project.libraries.races??{}))if(race.track)line(race.track.points,'#a336ad',false,2);
   for(const path of Object.values(project.libraries.paths))line(path.points,'#9b512a',false,Math.max(1.3,path.width/width*rect.w));
-  for(const zone of Object.values(project.libraries.zones??{}))if(zone.kind==='farm-plot'){line(zone.polygon,'#c18d24',true,1);ctx.fillStyle='#e0bd4f66';ctx.fill();}
+  for(const zone of Object.values(project.libraries.zones??{}))if(zone.kind==='farm-plot'){line(zone.polygon,zone.farm?.assignment==='player'?'#2c8393':'#c18d24',true,1);ctx.fillStyle=zone.farm?.assignment==='player'?'#65c9d488':'#e0bd4f66';ctx.fill();}
   for(const plan of Object.values(project.libraries.terrainPlans??{}))for(const site of plan.sites){
    const f=def.kind==='archipelago'?def.archipelago.features.find(f=>f.id===site.featureId):undefined;
    if(f?.kind==='plateau'){ctx.setLineDash([4,3]);line(f.polygon,site.kind==='harbor'?'#28788b':'#8c8237',true,1);ctx.setLineDash([]);}
    const q=projectPoint(site.entry);ctx.fillStyle='#503b24';ctx.font='11px system-ui';ctx.fillText(site.kind==='harbor'?'Port · réserve':site.name,q.x+3,q.y-4);
   }
+  for(const chunk of Object.values(project.chunks))for(const e of Object.values(chunk.entities)){const t=e.components.Transform;if(!t)continue;const q=projectPoint(t.position);if(e.id==='composition-port-n1'){ctx.fillStyle='#ffe3a2';ctx.fillRect(q.x-4,q.y-4,8,8);ctx.fillStyle='#1b4d62';ctx.font='bold 11px system-ui';ctx.fillText('Port N1',q.x+6,q.y-5);}else if(e.components.Habitat){ctx.fillStyle='#f5e1bd';ctx.fillRect(q.x-1.5,q.y-1.5,3,3);}}
   ctx.font='15px system-ui';ctx.fillStyle='#294438';ctx.fillText('N',rect.x+rect.w/2-5,Math.max(16,rect.y-6));
   ctx.font='12px system-ui';ctx.fillText(Math.round(width/1000*10)/10+' × '+Math.round(length/1000*10)/10+' km',14,canvas.height-10);
   return rect;
@@ -122,7 +125,7 @@ export function mountWelcome(host:HTMLElement,actions:WelcomeActions){
   let config:WelcomeConfig={...DEFAULT_WELCOME_CONFIG};
   let step=0,section:'home'|'wizard'|'templates'|'projects'='home',name='Mon petit monde';
   let renderId=0,busy=false,previewMode:'biomes'|'altitude'|'slope'|'water'='biomes';
-  let requirements=structuredClone(DEFAULT_MAP_REQUIREMENTS),cachedKey='',cachedPlan:WorldComposition|null=null,draftEdited=false;
+  let requirements=newIslandRequirements(),cachedKey='',cachedPlan:WorldComposition|null=null,draftEdited=false;
   const title=(text:string,description:string)=>{
     const h=node('div','','welcome-heading');
     h.append(node('div','LITTLE WORLD STUDIO','kicker'),node('h1',text),node('p',description,'muted'));return h;
@@ -149,7 +152,7 @@ export function mountWelcome(host:HTMLElement,actions:WelcomeActions){
     for(const [label,description,key] of cards){
       const b=button('',()=>{},'welcome-entry');
       b.setAttribute('aria-label',label);b.append(node('span',key==='create'?'◒':key==='templates'?'▤':key==='blank'?'▱':'↺','welcome-entry-icon'),node('strong',label),node('span',description,'muted'));
-      b.onclick=()=>{if(key==='templates')section='templates';else if(key==='projects')section='projects';else{section='wizard';step=0;requirements=structuredClone(DEFAULT_MAP_REQUIREMENTS);cachedPlan=null;cachedKey='';draftEdited=false;config={...DEFAULT_WELCOME_CONFIG,...(key==='blank'?{mode:'blank' as const,volcano:false,relief:'gentle' as const,width:1000,length:1000}:{})};}render();};
+      b.onclick=()=>{if(key==='templates')section='templates';else if(key==='projects')section='projects';else{section='wizard';step=0;requirements=newIslandRequirements();cachedPlan=null;cachedKey='';draftEdited=false;config={...DEFAULT_WELCOME_CONFIG,...(key==='blank'?{mode:'blank' as const,volcano:false,relief:'gentle' as const,width:1000,length:1000}:{})};}render();};
       choices.append(b);
     }
     page.append(choices);

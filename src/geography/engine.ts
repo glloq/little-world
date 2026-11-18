@@ -15,6 +15,7 @@ export interface GeoBiomeStroke {x:number;z:number;radius:number;biome:string}
 export interface GeographySources {
   seed:number;grid:SectorGrid;
   snowLineM?:number;
+  ski?:{points:{x:number;z:number}[];widthM:number};
   masks:Record<string,SectorLayers>;
   zones?:GeoZone[];
   biomeStrokes?:GeoBiomeStroke[];
@@ -43,9 +44,11 @@ export function createGeoContext(src:GeographySources|null,deps:GeoDeps):GeoCont
   const buildings=src?.buildings??[],strokes=src?.biomeStrokes??[],landscapes=src?.landscapes??[];
   const sampledLandscape=landscapes.length?createLandscapeSampler(landscapes):null;
   const raceCorridors=src?.races?.length?createRaceCorridorIndex(src.races):null;
+  const ski=src?.ski?createRaceCorridorIndex([{points:src.ski.points,width:src.ski.widthM,material:'dirt',smooth:false,features:[]}],0):null;
   let cellX=NaN,cellZ=NaN,cellIndex=0,cellLayers:SectorLayers|undefined;
   return {
     seed:src?.seed??0,seaLevel:deps.seaLevel,snowLineM:src?.snowLineM??deps.snowLineM,height:deps.height,water:deps.water,site:deps.site,
+    ...(ski?{skiSurface:(x:number,z:number)=>ski.contains(x,z)}:{}),
     riverDistance:(x,z)=>Math.max(0,deps.waterDistance(x,z,RIVER_INFLUENCE_M)),
     // The 5 mask layers of one point share its cell lookup (one-entry memo).
     mask(layer:MaskLayerId,x:number,z:number){

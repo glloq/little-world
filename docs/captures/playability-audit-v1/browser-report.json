@@ -1,0 +1,16 @@
+{
+  "checks": 8,
+  "errors": [],
+  "rows": [
+    {
+      "name": "baseline",
+      "worldId": "little-world-island",
+      "nearActivePercent": 48
+    },
+    {
+      "name": "draft",
+      "worldId": "little-world-island-content-draft",
+      "nearActivePercent": 55
+    }
+  ]
+}

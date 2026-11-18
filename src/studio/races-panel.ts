@@ -1,3 +1,4 @@
+import {parseSkiArea,inspectSkiArea} from '../snow/ski-area.ts';
 /** Studio V3: author fixed race courses with the shared 3D polyline editor and history. */
 import * as THREE from 'three';
 import {node,button,field,input,numberInput,select} from './dom.ts';
@@ -75,6 +76,12 @@ function roadTarget(ctx:RacePanelContext,race:RaceDefinition):PolylineTarget{
 }
 export function mountRacesPanel(host:HTMLElement,ctx:RacePanelContext){
  const p=ctx.session.document,races=Object.values(p.libraries.races??{});
+ if(p.libraries.alpine){const area=p.libraries.alpine['composition-alpine'],card=node('fieldset');card.append(node('legend','Descente de ski · prototype'),node('p',area.name+' · '+area.points.length+' points · largeur '+area.widthM+' m','muted'));
+  const make=(points:{x:number;z:number}[],document=ctx.session.document)=>{const next=parseSkiArea({...area,points},document.world.bounds),env=projectRaceTerrainEnvironment({...document,libraries:{...document.libraries,alpine:undefined}}),report=inspectSkiArea(next,env);if(!report.ok)throw Error(report.diagnostics.join(' · '));return next;};
+  card.append(button('Voir la descente de ski',()=>{const q=area.points.at(-1)!;ctx.viewport.goTo(q.x,q.z,75);}),button('Modifier le tracé de ski',()=>ctx.edit({label:'Descente de ski',points:area.points.map(q=>({...q})),min:2,max:128,color:0x8ae8ff,diagnose:points=>{try{make(points);return null;}catch(e){return String(e);}},commit:async points=>{await ctx.session.change('Modifier la descente de ski',[],draft=>{draft.libraries.alpine={...draft.libraries.alpine,'composition-alpine':make(points,draft)};});}})),field('Équipement de prêt',select(area.equipment,[['skis','Skis'],['snowboard','Snowboard']],async value=>{await ctx.session.change('Équipement alpin',[],draft=>{draft.libraries.alpine!['composition-alpine'].equipment=value as typeof area.equipment;});})));
+  const lift=node('input');lift.type='checkbox';lift.checked=area.lift;lift.onchange=()=>{void ctx.session.change('Remontée alpine',[],draft=>{draft.libraries.alpine!['composition-alpine'].lift=lift.checked;});};card.append(field('Remontée mécanique prototype',lift),node('p','Tracé, neige et remontée sont enregistrés. Le ski n’est pas encore une compétition chronométrée. B alterne skis et snowboard dans le jeu.','muted'));host.append(card);
+ }
+
  let newKind:RaceKind='roll',newName='Nouveau circuit';
  host.append(node('div','COURSES','kicker'),node('h3','Circuits fixes du monde'),
    node('p','Placez les checkpoints dans l’ordre avec le tracé 3D. Chaque circuit est enregistré dans le projet V3 et compilé dans « Jouer ici ».','muted'),

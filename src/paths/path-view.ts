@@ -39,7 +39,7 @@ export function createPathView(parent:THREE.Group,sectorSize:number,options:{rad
   function drop(key:string){const b=built.get(key);if(!b)return;b.mesh.removeFromParent();b.mesh.geometry.dispose();built.delete(key);}
   function build(key:string,lod:0|1){
     const begin=performance.now(),ids=sectorPaths.get(key);drop(key);if(!ids?.size)return;
-    const list=paths.filter(p=>ids.has(p.id)),g=sectorGeometry(list,rectOf(key),{height:terrainHeight,water:waterSurface},lod,lines);
+    const list=paths.filter(p=>ids.has(p.id)&&!p.supportId),g=sectorGeometry(list,rectOf(key),{height:terrainHeight,water:waterSurface},lod,lines);
     if(g.index.length){
       const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.BufferAttribute(g.positions,3));geometry.setAttribute('color',new THREE.BufferAttribute(g.colors,3));
       geometry.setAttribute('pathUv',new THREE.BufferAttribute(g.uvs,2));geometry.setAttribute('pathKind',new THREE.BufferAttribute(g.kinds,1));geometry.setIndex(new THREE.BufferAttribute(g.positions.length/3>65535?g.index:Uint16Array.from(g.index),1));

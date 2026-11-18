@@ -51,3 +51,6 @@ export function authoringIssues(project:ProjectDocument):AuthoringIssue[]{
   // No gameplay spawn assumptions: authoring projects can intentionally be empty.
   return issues.sort((a,b)=>({ERROR:0,WARNING:1,INFO:2}[a.severity]-{ERROR:0,WARNING:1,INFO:2}[b.severity])||a.code.localeCompare(b.code));
 }
+
+/** Optional content-density audit; deliberately separate from structural compilation gates. */
+export {auditPlayability} from './playability-audit.ts';

@@ -1,3 +1,4 @@
+import {portAsset} from './archipelago/port-assets.ts';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {houseBoxes,HOUSE} from './settlements/habitat.ts';
 import {impostorIllumination} from './render/impostor-lighting.ts';
@@ -577,6 +578,8 @@ function createRegistryAsset(id: string): THREE.Group | null {
 }
 /** LOD0 of a registry asset, loaded and cloned (Studio thumbnails); null for other assets. */
 export async function loadAssetPreview(id: string): Promise<THREE.Object3D | null> {
+  const maritime=portAsset(id);if(maritime?.file){const model=await loadModel(maritime.file);return model?.clone(true)??null;}
+
   const asset = worldAsset(id);
   if (!asset || asset.group === 'legacy') return null;
   const scene = await loadModel(asset.lods[0].file);
@@ -593,10 +596,12 @@ function removeFallback(g: THREE.Group) {
   g.clear();
 }
 export function createAsset(id: AssetId): THREE.Group {
+  const maritime=portAsset(id);if(maritime?.file){const group=new THREE.Group();group.userData.viewDistance=900;void loadModel(maritime.file).then(model=>{if(model&&!group.userData.disposed)group.add(model.clone(true));});return group;}
   const registry = createRegistryAsset(id);
   if (registry) return registry;
   const g = new THREE.Group();
-  if(id.startsWith('settlement.house_')){
+  if(id==='settlement.bridge'){box(g,wood,1,.2,1,0,-.1,0);for(const side of [-1,1])box(g,darkWood,1,1,.04,0,.5,side*.48);
+  }else if(id.startsWith('settlement.house_')){
     const wallMaterial=mat(id.endsWith('_stone')?0x999c98:id.endsWith('_white')?0xe7dcc1:0xb58b60);
     for(const [key,material]of [['walls',wallMaterial],['roof',roof],['floor',stone]] as const){const gkey='habitat-'+key;const geo=geometry(gkey,()=>{const pieces=houseBoxes().filter(b=>key==='walls'?!['roof','floor'].includes(b.key):b.key===key).map(b=>new THREE.BoxGeometry(b.sx,b.sy,b.sz).translate(b.x,b.bottom+b.sy/2,b.z));const merged=mergeGeometries(pieces);pieces.forEach(p=>p.dispose());return merged;});mesh(geo,material,g,0,0,0);}
     // A low pitched cap keeps the shell hollow; the flat roof below remains the physical ceiling.
@@ -1040,7 +1045,7 @@ export function buildWorld(
 export function configureWorldGeography(config: WorldConfig, definition?: WorldDefinition) {
   const width = config.width ?? 200, length = config.length ?? 600, sector = definition?.geography?.sectorSizeM ?? config.chunkSize ?? 64;
   configureGeography({
-    seed: config.seed,
+    seed: config.seed,ski:definition?.geography?.ski,snowLineM:definition?.geography?.snowLineM,
     grid: { minX: -width / 2, minZ: -length / 2, chunkSizeM: sector, columns: Math.ceil(width / sector), rows: Math.ceil(length / sector) },
     masks: definition?.geography?.masks ?? {},
     zones: definition?.geography?.zones ?? [],

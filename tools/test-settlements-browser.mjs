@@ -22,6 +22,7 @@ try {
     await page.getByRole('button', { name: 'Villages & villes', exact: true }).click();
     await page.getByRole('heading', { name: 'Villages & villes', exact: true }).waitFor();
     // Center and type are chosen through the actual form, not generator injection.
+    await page.getByLabel('Organisation', {exact:true}).selectOption('linear');
     await page.getByRole('button', { name: '3. Personnalisation', exact: true }).click();
     await page.getByLabel('Style architectural', { exact: true }).selectOption('timber');
     await page.getByRole('button', { name: 'Prévisualiser l’implantation', exact: true }).click();
@@ -65,12 +66,17 @@ try {
     check(archived.libraries.settlements[s.id].buildings[0].locked === true && Object.keys(archived.entityIndex).length === 24, 'L’archive rééditable conserve maisons, portes et verrous');
     await page.getByLabel('Maison à modifier', { exact: true }).selectOption(first.id);
     await page.getByLabel('Verrouiller cette maison', { exact: true }).uncheck();
+    await waitForBrowserCondition(page,async id=>{const {ProjectStore}=await import('/little-world/src/studio-core/project-store.ts'),store=new ProjectStore(),summary=(await store.list())[0],p=(await store.loadProject(summary.projectId)).document;return Object.values(p.libraries.settlements).some(s=>s.buildings.some(b=>b.id===id&&!b.locked));},first.id);
     await page.getByRole('button', { name: 'Modifier cette maison en 3D', exact: true }).click();
     await page.getByLabel('Position Z (m)', { exact: true }).waitFor();
     const oldZ = Number(await page.getByLabel('Position Z (m)', { exact: true }).inputValue());
+    const editedInput = await page.getByLabel('Position Z (m)', {exact:true}).elementHandle();
     await page.getByLabel('Position Z (m)', { exact: true }).fill(String(oldZ + 2));
     await page.getByLabel('Position Z (m)', { exact: true }).press('Tab');
+    await page.waitForFunction(input=>!input.isConnected,editedInput);
+    await editedInput.dispose();
     await page.getByRole('button', { name: 'Sauvegarder', exact: true }).click();
+    await waitForBrowserCondition(page,async ({id,z})=>{const {ProjectStore}=await import('/little-world/src/studio-core/project-store.ts'),store=new ProjectStore(),summary=(await store.list())[0],v=await store.loadProject(summary.projectId),owner=v.document.entityIndex[id].ownerChunkId,chunks=await store.loadChunks(summary.projectId,[owner],v.revision);return chunks[owner].entities[id].components.Transform.position.z===z;},{id:first.id,z:oldZ+2});
     p = await saved();
     const moved = p.chunks[p.entityIndex[first.id].ownerChunkId].entities[first.id], door = p.chunks[p.entityIndex[first.doorId].ownerChunkId].entities[first.doorId];
     check(moved.components.Transform.position.z === oldZ + 2 && door.components.Transform.position.z === moved.components.Transform.position.z, 'L’inspecteur 3D déplace ensemble la maison et sa porte');
@@ -115,8 +121,7 @@ try {
     const gameURL = new URL(game.url());
     gameURL.searchParams.set('metrics', '1');
     await game.goto(gameURL.toString());
-    await game.waitForSelector('#start:not([disabled])', { timeout: 60000 });
-    await game.locator('#start').click();
+    await game.locator('#start-overlay').waitFor({state:'hidden',timeout:60000});
     await game.waitForFunction(() => Number.isFinite(window.littleWorldMetrics?.position?.[2]), {}, { timeout: 60000 });
     await game.waitForFunction(() => /Ouvrir/.test(document.querySelector('#action')?.textContent ?? ''), {}, { timeout: 30000 });
     check(true, 'Le joueur arrive devant une porte accessible et reçoit son interaction');

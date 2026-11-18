@@ -1,3 +1,4 @@
+import {organicCaldera,dominantCaldera} from './caldera-organic.ts';
 /** Point highs and continuous slopes first; native editable geometry only. */
 import {parseArchipelago} from '../geography/archipelago-params.ts';
 import {archipelagoField,shapeSeed,type Landmass,type ReliefFeature,type PointXZ} from '../geography/archipelago.ts';
@@ -16,7 +17,10 @@ export function planWorldTerrainV4(r:MapRequirements,attempt=0){
   coastNoiseM:0,coastWavelengthM:Math.max(50,minor*.2),beachWidthM:Math.max(5,Math.min(65,minor*.018)),shoreHeightM:.5,
   lowlandHeightM:Math.min(12,s.altitudeM*.05),hillHeightM:0,cliffs:0,cliffVariation:0});
  const addMassif=(id:string,p:PointXZ,radius:number,height:number,kind:'hill'|'mountain'='mountain')=>features.push({id:'composition-'+id,kind,...p,radiusM:Math.max(10,radius),heightM:height,roughness:0});
- if(s.model==='caldera'){
+ if(s.model==='caldera'&&(s.calderaShape==='organic'||s.calderaShape==='dominant')&&r.compositionVersion===5){
+  for(const [i,island]of (s.calderaShape==='dominant'?dominantCaldera:organicCaldera)(random,world,r.diversity).entries()){landmasses.push(makeLand(island.outline,i));addMassif('caldera-summit-'+i,island.center,minor*island.width*.7,s.altitudeM*island.height);features.push({id:'composition-caldera-rim-'+i,kind:'ridge',points:island.points,widthM:Math.max(5,minor*island.width*.4),heightM:s.altitudeM*island.height*.2});}
+  if(r.maritimePort&&r.welcomeVillage&&r.welcomeVillage!=='none'){const broad=landmasses.map((l,i)=>({l,i,area:polygonArea(l.outline)})).sort((a,b)=>b.area-a.area)[0],peak=features.find(f=>f.id==='composition-caldera-summit-'+broad.i);if(peak&&'x'in peak){const n=Math.hypot(peak.x,peak.z)||1,offset=minor*.045,center={x:peak.x+peak.x/n*offset,z:peak.z+peak.z/n*offset},radius=minor*.024;features.push({id:'composition-caldera-coastal-plain',kind:'plateau',polygon:roundOutline(Array.from({length:32},(_,i)=>({x:center.x+Math.cos(i*Math.PI/16)*radius,z:center.z+Math.sin(i*Math.PI/16)*radius*.8}))),heightM:Math.max(3,Math.min(8,s.altitudeM*.03)),edgeM:radius*.8,surface:true});}}
+ }else if(s.model==='caldera'){
   const count=5+Math.floor(random()*3),ring=.29;
   for(let i=0;i<count;i++){
    const a=phase+i*Math.PI*2/count,half=Math.PI/count*(.62+random()*.15),thickness=.048+random()*.018,outline:PointXZ[]=[];

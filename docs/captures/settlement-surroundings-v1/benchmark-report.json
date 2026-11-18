@@ -1,0 +1,409 @@
+{
+  "kind": "Native source generation, not a GPU benchmark",
+  "cases": 12,
+  "ready": 12,
+  "ports": 12,
+  "valid": 12,
+  "rows": [
+    {
+      "model": "gentle",
+      "seed": 4242,
+      "ready": true,
+      "port": true,
+      "playerPlots": 1,
+      "npcPlots": 3,
+      "shoreProps": 3,
+      "houses": 12,
+      "islands": 1,
+      "errors": [],
+      "diagnostics": [
+        {
+          "code": "WATER_LINK_BELOW",
+          "severity": "WARNING"
+        }
+      ],
+      "generationMs": 8885,
+      "sourceBytes": 1024476
+    },
+    {
+      "model": "gentle",
+      "seed": 991,
+      "ready": true,
+      "port": true,
+      "playerPlots": 1,
+      "npcPlots": 3,
+      "shoreProps": 3,
+      "houses": 6,
+      "islands": 1,
+      "errors": [],
+      "diagnostics": [
+        {
+          "code": "WATER_LINK_BELOW",
+          "severity": "WARNING"
+        },
+        {
+          "code": "WELCOME_VILLAGE_PARTIAL",
+          "severity": "WARNING"
+        }
+      ],
+      "generationMs": 9998,
+      "sourceBytes": 1001407
+    },
+    {
+      "model": "central-massif",
+      "seed": 4242,
+      "ready": true,
+      "port": true,
+      "playerPlots": 1,
+      "npcPlots": 3,
+      "shoreProps": 3,
+      "houses": 8,
+      "islands": 1,
+      "errors": [],
+      "diagnostics": [
+        {
+          "code": "WATER_LINK_BELOW",
+          "severity": "WARNING"
+        },
+        {
+          "code": "WATER_STEEP",
+          "severity": "WARNING"
+        },
+        {
+          "code": "WATER_LINK_BELOW",
+          "severity": "WARNING"
+        },
+        {
+          "code": "WATER_STEEP",
+          "severity": "WARNING"
+        },
+        {
+          "code": "WELCOME_VILLAGE_PARTIAL",
+          "severity": "WARNING"
+        }
+      ],
+      "generationMs": 7024,
+      "sourceBytes": 895773
+    },
+    {
+      "model": "central-massif",
+      "seed": 991,
+      "ready": true,
+      "port": true,
+      "playerPlots": 1,
+      "npcPlots": 3,
+      "shoreProps": 3,
+      "houses": 5,
+      "islands": 1,
+      "errors": [],
+      "diagnostics": [
+        {
+          "code": "WATER_LINK_BELOW",
+          "severity": "WARNING"
+        },
+        {
+          "code": "WATER_STEEP",
+          "severity": "WARNING"
+        },
+        {
+          "code": "WATER_LINK_BELOW",
+          "severity": "WARNING"
+        },
+        {
+          "code": "WATER_STEEP",
+          "severity": "WARNING"
+        },
+        {
+          "code": "WELCOME_VILLAGE_PARTIAL",
+          "severity": "WARNING"
+        }
+      ],
+      "generationMs": 3812,
+      "sourceBytes": 885428
+    },
+    {
+      "model": "side-massif",
+      "seed": 4242,
+      "ready": true,
+      "port": true,
+      "playerPlots": 1,
+      "npcPlots": 3,
+      "shoreProps": 3,
+      "houses": 6,
+      "islands": 1,
+      "errors": [],
+      "diagnostics": [
+        {
+          "code": "WATER_LINK_BELOW",
+          "severity": "WARNING"
+        },
+        {
+          "code": "WATER_STEEP",
+          "severity": "WARNING"
+        },
+        {
+          "code": "WATER_LINK_BELOW",
+          "severity": "WARNING"
+        },
+        {
+          "code": "WELCOME_VILLAGE_PARTIAL",
+          "severity": "WARNING"
+        }
+      ],
+      "generationMs": 5944,
+      "sourceBytes": 941578
+    },
+    {
+      "model": "side-massif",
+      "seed": 991,
+      "ready": true,
+      "port": true,
+      "playerPlots": 1,
+      "npcPlots": 3,
+      "shoreProps": 3,
+      "houses": 5,
+      "islands": 1,
+      "errors": [],
+      "diagnostics": [
+        {
+          "code": "WATER_LINK_BELOW",
+          "severity": "WARNING"
+        },
+        {
+          "code": "WATER_STEEP",
+          "severity": "WARNING"
+        },
+        {
+          "code": "WATER_LINK_BELOW",
+          "severity": "WARNING"
+        },
+        {
+          "code": "WATER_STEEP",
+          "severity": "WARNING"
+        },
+        {
+          "code": "WELCOME_VILLAGE_PARTIAL",
+          "severity": "WARNING"
+        }
+      ],
+      "generationMs": 3488,
+      "sourceBytes": 936918
+    },
+    {
+      "model": "volcanic",
+      "seed": 4242,
+      "ready": true,
+      "port": true,
+      "playerPlots": 0,
+      "npcPlots": 0,
+      "shoreProps": 0,
+      "houses": 0,
+      "islands": 1,
+      "errors": [],
+      "diagnostics": [
+        {
+          "code": "WATER_LINK_BELOW",
+          "severity": "WARNING"
+        },
+        {
+          "code": "WATER_STEEP",
+          "severity": "WARNING"
+        },
+        {
+          "code": "WATER_LINK_BELOW",
+          "severity": "WARNING"
+        },
+        {
+          "code": "WATER_STEEP",
+          "severity": "WARNING"
+        },
+        {
+          "code": "WELCOME_VILLAGE_MISSING",
+          "severity": "WARNING"
+        }
+      ],
+      "generationMs": 2431,
+      "sourceBytes": 1020724
+    },
+    {
+      "model": "volcanic",
+      "seed": 991,
+      "ready": true,
+      "port": true,
+      "playerPlots": 1,
+      "npcPlots": 3,
+      "shoreProps": 3,
+      "houses": 4,
+      "islands": 1,
+      "errors": [],
+      "diagnostics": [
+        {
+          "code": "WATER_LINK_BELOW",
+          "severity": "WARNING"
+        },
+        {
+          "code": "WATER_STEEP",
+          "severity": "WARNING"
+        },
+        {
+          "code": "WATER_LINK_BELOW",
+          "severity": "WARNING"
+        },
+        {
+          "code": "WATER_STEEP",
+          "severity": "WARNING"
+        },
+        {
+          "code": "WELCOME_VILLAGE_PARTIAL",
+          "severity": "WARNING"
+        }
+      ],
+      "generationMs": 3987,
+      "sourceBytes": 1054578
+    },
+    {
+      "model": "caldera",
+      "seed": 4242,
+      "ready": true,
+      "port": true,
+      "playerPlots": 1,
+      "npcPlots": 3,
+      "shoreProps": 3,
+      "houses": 10,
+      "islands": 6,
+      "errors": [],
+      "diagnostics": [
+        {
+          "code": "WATER_LINK_BELOW",
+          "severity": "WARNING"
+        },
+        {
+          "code": "WATER_STEEP",
+          "severity": "WARNING"
+        },
+        {
+          "code": "WATER_LINK_BELOW",
+          "severity": "WARNING"
+        },
+        {
+          "code": "WATER_STEEP",
+          "severity": "WARNING"
+        },
+        {
+          "code": "WELCOME_VILLAGE_PARTIAL",
+          "severity": "WARNING"
+        }
+      ],
+      "generationMs": 6182,
+      "sourceBytes": 809566
+    },
+    {
+      "model": "caldera",
+      "seed": 991,
+      "ready": true,
+      "port": true,
+      "playerPlots": 1,
+      "npcPlots": 3,
+      "shoreProps": 3,
+      "houses": 7,
+      "islands": 6,
+      "errors": [],
+      "diagnostics": [
+        {
+          "code": "WATER_LINK_BELOW",
+          "severity": "WARNING"
+        },
+        {
+          "code": "WATER_STEEP",
+          "severity": "WARNING"
+        },
+        {
+          "code": "WATER_STEEP",
+          "severity": "WARNING"
+        },
+        {
+          "code": "WELCOME_VILLAGE_PARTIAL",
+          "severity": "WARNING"
+        }
+      ],
+      "generationMs": 6108,
+      "sourceBytes": 868069
+    },
+    {
+      "model": "stepped",
+      "seed": 4242,
+      "ready": true,
+      "port": true,
+      "playerPlots": 1,
+      "npcPlots": 3,
+      "shoreProps": 3,
+      "houses": 9,
+      "islands": 1,
+      "errors": [],
+      "diagnostics": [
+        {
+          "code": "WATER_LINK_BELOW",
+          "severity": "WARNING"
+        },
+        {
+          "code": "WATER_STEEP",
+          "severity": "WARNING"
+        },
+        {
+          "code": "WATER_LINK_BELOW",
+          "severity": "WARNING"
+        },
+        {
+          "code": "WATER_STEEP",
+          "severity": "WARNING"
+        },
+        {
+          "code": "FALL_NOT_PLANNED",
+          "severity": "WARNING"
+        },
+        {
+          "code": "WELCOME_VILLAGE_PARTIAL",
+          "severity": "WARNING"
+        }
+      ],
+      "generationMs": 5288,
+      "sourceBytes": 1008241
+    },
+    {
+      "model": "stepped",
+      "seed": 991,
+      "ready": true,
+      "port": true,
+      "playerPlots": 1,
+      "npcPlots": 3,
+      "shoreProps": 3,
+      "houses": 5,
+      "islands": 1,
+      "errors": [],
+      "diagnostics": [
+        {
+          "code": "WATER_LINK_BELOW",
+          "severity": "WARNING"
+        },
+        {
+          "code": "WATER_STEEP",
+          "severity": "WARNING"
+        },
+        {
+          "code": "WATER_LINK_BELOW",
+          "severity": "WARNING"
+        },
+        {
+          "code": "WATER_STEEP",
+          "severity": "WARNING"
+        },
+        {
+          "code": "WELCOME_VILLAGE_PARTIAL",
+          "severity": "WARNING"
+        }
+      ],
+      "generationMs": 4156,
+      "sourceBytes": 992629
+    }
+  ]
+}

@@ -80,5 +80,5 @@ export function geographyOf(project:ProjectDocument,chunks:{chunkId:string;layer
   const zones=Object.values(project.libraries.zones??{}).map(z=>({kind:z.kind,polygon:z.polygon.map(p=>({...p}))}));
   const landscapes=[...landscapeRegions(project.libraries.landscapes),...regionDressingRegions(project.libraries.regions)];
   const races=Object.values(project.libraries.races??{}).flatMap(r=>r.track?[structuredClone(r.track)]:[]);
-  return Object.keys(masks).length||zones.length||landscapes.length||races.length?{sectorSizeM:project.world.chunkSizeM,masks,zones,...(landscapes.length?{landscapes}:{}),...(races.length?{races}:{})}:undefined;
+  return project.libraries.alpine||Object.keys(masks).length||zones.length||landscapes.length||races.length?{...(project.libraries.alpine?{snowLineM:project.libraries.alpine['composition-alpine'].snowLineM,ski:{points:project.libraries.alpine['composition-alpine'].points,widthM:project.libraries.alpine['composition-alpine'].widthM}}:{}),sectorSizeM:project.world.chunkSizeM,masks,zones,...(landscapes.length?{landscapes}:{}),...(races.length?{races}:{})}:undefined;
 }

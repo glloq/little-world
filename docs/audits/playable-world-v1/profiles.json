@@ -1,0 +1,226 @@
+{
+  "note": "Profils candidats mesurés sur la graine 4242 : création technique ≠ qualification du jeu.",
+  "rows": [
+    {
+      "id": "temperate-mixed",
+      "sourceCreatable": true,
+      "qualifiedForPlay": false,
+      "stats": {
+        "sourceEntities": 164,
+        "npcs": 1,
+        "lights": 1,
+        "colliders": 51,
+        "dialogues": 1,
+        "quests": 0,
+        "activitiesLibrary": 0,
+        "shops": 2,
+        "shopsWithUsePose": 2,
+        "farms": 4,
+        "playerFarms": 1,
+        "npcFarms": 3,
+        "mines": 0,
+        "races": 2,
+        "skiAreas": 0,
+        "modularSettlements": 1,
+        "landscapes": 0,
+        "nativePorts": 1,
+        "explicitAudio": true,
+        "paths": 20,
+        "chunks": 768,
+        "assets": 22
+      },
+      "coverage": {
+        "dryCells": 360,
+        "sampledLandKm2": 3.6,
+        "nearActivePercent": 15,
+        "largestGapM": 1218
+      },
+      "diagnostics": [
+        {
+          "severity": "WARNING",
+          "code": "WATER_LINK_BELOW"
+        },
+        {
+          "severity": "WARNING",
+          "code": "WATER_STEEP"
+        },
+        {
+          "severity": "WARNING",
+          "code": "WELCOME_VILLAGE_PARTIAL"
+        }
+      ],
+      "knownMissing": [
+        "Quêtes de génération automatique",
+        "Mines placées automatiquement"
+      ]
+    },
+    {
+      "id": "alpine-outdoors",
+      "sourceCreatable": true,
+      "qualifiedForPlay": false,
+      "stats": {
+        "sourceEntities": 137,
+        "npcs": 0,
+        "lights": 0,
+        "colliders": 37,
+        "dialogues": 0,
+        "quests": 0,
+        "activitiesLibrary": 0,
+        "shops": 0,
+        "shopsWithUsePose": 0,
+        "farms": 0,
+        "playerFarms": 0,
+        "npcFarms": 0,
+        "mines": 0,
+        "races": 1,
+        "skiAreas": 1,
+        "modularSettlements": 0,
+        "landscapes": 0,
+        "nativePorts": 1,
+        "explicitAudio": true,
+        "paths": 1,
+        "chunks": 768,
+        "assets": 10
+      },
+      "coverage": {
+        "dryCells": 282,
+        "sampledLandKm2": 2.82,
+        "nearActivePercent": 22,
+        "largestGapM": 1120
+      },
+      "diagnostics": [
+        {
+          "severity": "WARNING",
+          "code": "WATER_LINK_BELOW"
+        },
+        {
+          "severity": "WARNING",
+          "code": "WATER_STEEP"
+        },
+        {
+          "severity": "WARNING",
+          "code": "WELCOME_VILLAGE_MISSING"
+        },
+        {
+          "severity": "WARNING",
+          "code": "LANDSCAPE_MISSING"
+        }
+      ],
+      "knownMissing": [
+        "Quêtes de génération automatique",
+        "Mines placées automatiquement"
+      ]
+    },
+    {
+      "id": "coastal-archipelago",
+      "sourceCreatable": true,
+      "qualifiedForPlay": false,
+      "stats": {
+        "sourceEntities": 166,
+        "npcs": 1,
+        "lights": 1,
+        "colliders": 52,
+        "dialogues": 1,
+        "quests": 0,
+        "activitiesLibrary": 0,
+        "shops": 2,
+        "shopsWithUsePose": 2,
+        "farms": 4,
+        "playerFarms": 1,
+        "npcFarms": 3,
+        "mines": 0,
+        "races": 1,
+        "skiAreas": 0,
+        "modularSettlements": 1,
+        "landscapes": 0,
+        "nativePorts": 1,
+        "explicitAudio": true,
+        "paths": 21,
+        "chunks": 768,
+        "assets": 22
+      },
+      "coverage": {
+        "dryCells": 112,
+        "sampledLandKm2": 1.12,
+        "nearActivePercent": 23,
+        "largestGapM": 1656
+      },
+      "diagnostics": [
+        {
+          "severity": "WARNING",
+          "code": "WATER_LINK_BELOW"
+        },
+        {
+          "severity": "WARNING",
+          "code": "WATER_STEEP"
+        },
+        {
+          "severity": "WARNING",
+          "code": "WELCOME_VILLAGE_PARTIAL"
+        },
+        {
+          "severity": "WARNING",
+          "code": "LANDSCAPE_MISSING"
+        }
+      ],
+      "knownMissing": [
+        "Quêtes de génération automatique",
+        "Mines placées automatiquement",
+        "Surf non implémenté"
+      ]
+    },
+    {
+      "id": "forest-mining-target",
+      "sourceCreatable": true,
+      "qualifiedForPlay": false,
+      "stats": {
+        "sourceEntities": 164,
+        "npcs": 1,
+        "lights": 1,
+        "colliders": 51,
+        "dialogues": 1,
+        "quests": 0,
+        "activitiesLibrary": 0,
+        "shops": 2,
+        "shopsWithUsePose": 2,
+        "farms": 4,
+        "playerFarms": 1,
+        "npcFarms": 3,
+        "mines": 0,
+        "races": 0,
+        "skiAreas": 0,
+        "modularSettlements": 1,
+        "landscapes": 0,
+        "nativePorts": 1,
+        "explicitAudio": true,
+        "paths": 20,
+        "chunks": 768,
+        "assets": 22
+      },
+      "coverage": {
+        "dryCells": 313,
+        "sampledLandKm2": 3.13,
+        "nearActivePercent": 4,
+        "largestGapM": 2210
+      },
+      "diagnostics": [
+        {
+          "severity": "WARNING",
+          "code": "WATER_LINK_BELOW"
+        },
+        {
+          "severity": "WARNING",
+          "code": "WATER_STEEP"
+        },
+        {
+          "severity": "WARNING",
+          "code": "WELCOME_VILLAGE_PARTIAL"
+        }
+      ],
+      "knownMissing": [
+        "Quêtes de génération automatique",
+        "Mines placées automatiquement"
+      ]
+    }
+  ]
+}

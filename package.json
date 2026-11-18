@@ -28,6 +28,8 @@
     "test:audio": "node tools/test-audio-browser.mjs",
     "test:instruments": "node tools/test-instruments-browser.mjs",
     "test:water": "node tools/test-water-browser.mjs",
+    "test:complete-island-start": "node tools/test-complete-island-start-browser.mjs",
+    "benchmark:complete-island-start": "node tools/benchmark-complete-island-start.mjs",
     "test:island": "node tools/test-island-browser.mjs",
     "test:geomap": "node tools/test-geomap-browser.mjs",
     "test:selection": "node tools/test-selection-browser.mjs",
@@ -83,7 +85,13 @@
     "benchmark:composition": "node --experimental-strip-types tools/benchmark-world-composition.mjs",
     "benchmark:styles": "node --experimental-strip-types tools/benchmark-island-styles.mjs",
     "test:settlements": "node --experimental-strip-types tools/test-settlements-browser.mjs",
-    "benchmark:settlements": "node --experimental-strip-types tools/benchmark-settlements.mjs"
+    "benchmark:settlements": "node --experimental-strip-types tools/benchmark-settlements.mjs",
+    "test:settlement-services": "node --experimental-strip-types tools/test-settlement-services-browser.mjs",
+    "benchmark:settlement-services": "node --experimental-strip-types tools/benchmark-settlement-services.mjs",
+    "test:organic-settlements": "node --experimental-strip-types tools/test-organic-settlements-browser.mjs",
+    "benchmark:organic-settlements": "node --experimental-strip-types tools/benchmark-organic-settlements.mjs",
+    "test:contextual-settlements": "node --experimental-strip-types tools/test-contextual-settlements-browser.mjs",
+    "test:river-town": "node --experimental-strip-types tools/test-river-town-browser.mjs"
   },
   "dependencies": {
     "three": "^0.180.0"

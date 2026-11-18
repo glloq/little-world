@@ -1,0 +1,18 @@
+{
+  "checks": 20,
+  "errors": [],
+  "profiles": [
+    {
+      "model": "caldera",
+      "houses": 10,
+      "islands": 6,
+      "dockCells": 32
+    },
+    {
+      "model": "gentle",
+      "houses": 12,
+      "islands": 1,
+      "dockCells": 32
+    }
+  ]
+}

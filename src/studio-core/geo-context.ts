@@ -29,7 +29,8 @@ export function projectGeographyInput(p:ProjectDocument):ProjectGeographyInput{
   const masks:Record<string,SectorLayers>={};for(const c of chunks)if(c.layers)masks[c.chunkId]=c.layers;
   const buildings:{x:number;z:number;radius:number}[]=[];
   for(const c of chunks)for(const id of c.entityIds){const e=c.entities[id];if(!e)continue;const r=resolveEntity(p,e),v=r.components.Visual,t=r.components.Transform;if(v&&t){const radius=exclusionRadius(v.assetId,Math.max(t.scale.x,t.scale.z));if(radius!==null)buildings.push({x:t.position.x,z:t.position.z,radius});}}
-  const sources:GeographySources={seed:w.seed,grid:sectorGrid(p),masks,
+  const alpine=p.libraries.alpine?.['composition-alpine'];
+  const sources:GeographySources={...(alpine?{ski:{points:alpine.points,widthM:alpine.widthM}}:{}),snowLineM:p.libraries.alpine?.['composition-alpine']?.snowLineM,seed:w.seed,grid:sectorGrid(p),masks,
     zones:Object.values(p.libraries.zones??{}).map(z=>({kind:z.kind,polygon:z.polygon})),
     biomeStrokes:[...biomes.values()].sort((a,c)=>a.order-c.order).map(e=>({x:e.x,z:e.z,radius:e.radius,biome:e.biome})),buildings,races:Object.values(p.libraries.races??{}).flatMap(r=>r.track?[r.track]:[]),landscapes:[...landscapeRegions(p.libraries.landscapes),...regionDressingRegions(p.libraries.regions)]};
   return {config,generator,edits,waters:Object.values(p.libraries.water) as unknown as WaterBody[],paths:Object.values(p.libraries.paths) as unknown as PathDefinition[],sources};

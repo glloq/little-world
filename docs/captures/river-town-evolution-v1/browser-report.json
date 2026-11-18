@@ -1,0 +1,14 @@
+{
+  "checks": 7,
+  "errors": [],
+  "houses": 14,
+  "amenities": [
+    "counter",
+    "well",
+    "bench",
+    "inn",
+    "workshop",
+    "bridge",
+    "host"
+  ]
+}
