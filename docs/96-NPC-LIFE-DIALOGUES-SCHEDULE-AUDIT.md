@@ -3,6 +3,19 @@
 **Statut : AUDITED / DECIDED / SPECIFIED — aucune routine professionnelle livrée.**  
 **Référence du code** : `main@f84c16cd` (18 novembre 2026, merge #75), incluant villages/services/port N1 et audit [92](92-COMPLETE-WORLDS-STUDIO-AUDIT.md). Couplage quêtes : [93](93-QUESTS-AUDIT-ISLAND-INTEGRATION.md), [94](94-QUESTS-DATA-EVENTS-REWARDS.md), roadmap [97](97-NPC-LIFE-IMPLEMENTATION-ROADMAP.md).
 
+## Décision de game design ratifiée — un seul personnage humanoïde : le hamster (19/11/2026)
+
+**NPH-01 :** tous les PNJ habitants / marchands / enfants / voyageurs qui étaient des `squirrel` s'affichent **en hamster**, exactement comme le joueur. Les petits animaux de faune (`kind:'animal'`) ne sont **pas** transformés en habitants parlants.
+
+**NPH-02 :** le schéma source V2/V3 doit continuer à lire et exporter les anciens `squirrel` **à l'identique** ; la normalisation `squirrel → hamster` se fait au **niveau de la présentation/runtime** sans modifier les cartes, IDs, dialogues, objectifs ni sauvegardes. Les nouveaux PNJ créés via Studio proposent par défaut hamster / faune ; pas de nouvel écureuil dans les menus.
+
+**NPH-03 :** utiliser exclusivement `buildHamster()`, la même morphologie/animation que le joueur. Le mode PNJ n'a pas de planeur, réutilise les géométries et actions existantes et crée ses rigs **à proximité**, avec silhouettes/impostors à distance. Les accessoires (chapeau, lunettes, foulard, sac), émotion et échelle distinguent les professions/enfants sans nouveau modèle complet.
+
+**NPH-04 :** conserver les silhouettes de faune séparées ; jamais utiliser le sprite « écureuil humain » pour un villageois. Vérifier les exports V2→V3→V2, les anciens mondes compilés et la rigueur `rigId`/espèce. Ne pas mélanger la conversion de rendu avec une modification automatique du catalogue ou de l'inventaire.
+
+**NPH-05 :** la conversion visuelle est en cours d'implémentation dans [PR #85](https://github.com/glloq/little-world/pull/85) ; elle n'est **pas** qualifiée tant que les tests legacy, navigateur et performances n'ont pas passé.
+
+
 ## 0. Objectif et règles de jeu
 
 Rendre les villages et lieux d'activité **visiblement habités** : domicile → activité (champ, quai, mine, commerce, moulin) → rencontres → retour le soir, enfants jouant en sécurité, voyageurs arrivant au port, commerçants accueillant les joueurs, activités différentes selon pluie et heure. Les dialogues suivent le contexte local, les quêtes auto sont attribuées à des personnages retrouvables et les récompenses ne nécessitent pas qu'un PNJ reste figé.
