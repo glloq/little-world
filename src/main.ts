@@ -417,7 +417,7 @@ if(gameplay){
   gameplay.collision.setOutdoorCourseSurface((x,z)=>sampleRoad(x,z).y);
   gameplay.collision.setMaterialSampler((x,z)=>{
     const t=sampleRoad(x,z).entry;
-    return t?(t.track.material==='wood'?'wood':t.track.material==='stone'?'rock':'sand'):naturalMaterial(x,z);
+    return t?(t.track.material==='wood'?'wood':t.track.material==='stone'?'rock':'grass'):naturalMaterial(x,z);
   });
 }
 const activityView=gameplay&&(gameplay.activities.mines.size||gameplay.activities.farms.size)?(await import('./activity-view.ts')).createActivityView(scene,gameplay.activities,terrainHeight):null;
@@ -575,7 +575,7 @@ function startDemoRace(id:DemoRaceId):{ok:boolean;message:string}{
   stopFlightCourse();stopRace();
   raceSession=beginRace(definition,motionTick,player.gasPulseSeq??0);
   raceGates.show(definition.gates);
-  const best=readRaceBest(localStorage,definition);
+  const best=readRaceBest(localStorage,definition,gameplay?.runtime.data.buildVersion??'');
   raceHud.textContent=definition.name+' · 0,0 s · 0/'+definition.gates.length+(best!==null?' · Record local '+best.toFixed(2)+' s':'');
   raceHud.hidden=false;
   return {ok:true,message:definition.name+' · entraînement lancé'};
@@ -1196,7 +1196,7 @@ function tick(dt: number) {
         if(event.kind==='started')showInfo('Départ validé : chronomètre lancé','success');
       }
       else if(event?.kind==='finish'){
-        const race=raceSession.definition,isBest=writeRaceBest(localStorage,race,event.seconds);
+        const race=raceSession.definition,isBest=writeRaceBest(localStorage,race,event.seconds,gameplay?.runtime.data.buildVersion??'');
         showInfo('Course terminée : '+race.name+' · '+event.seconds.toFixed(2)+' s'+(isBest?' · Nouveau record local !':''),'success');
         stopRace();
       }else if(event?.kind==='failed'){showInfo('Course arrêtée : '+event.reason,'warning');stopRace();}

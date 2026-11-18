@@ -18,3 +18,10 @@ test('practice record persistence remains optional',()=>{
  assert.equal(readRaceBest(broken,def),null);
  assert.equal(writeRaceBest(broken,def,2),false);
 });
+
+test('terrain/build changes isolate personal bests for identical geometry',()=>{
+ const store=storage();
+ assert.equal(writeRaceBest(store,def,3,'world-build-1'),true);
+ assert.equal(readRaceBest(store,def,'world-build-1'),3);
+ assert.equal(readRaceBest(store,def,'world-build-2'),null);
+});

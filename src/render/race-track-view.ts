@@ -21,6 +21,15 @@ export function createRaceTrackMesh(track:RaceTrack,height:(x:number,z:number)=>
    indices.push(a,b,a+1,a+1,b,b+1);
   }
  }
+ // Painted direction chevrons for readable turns and approaching modules:
+ // triangles share this mesh and vertex-colour material (no extra draw calls).
+ const arrow=new THREE.Color(0xffe6a8);
+ for(let d=9;d<length-7;d+=16){
+   const a=sampler.station(d-1.2,-.85),b=sampler.station(d+1.5,0),c=sampler.station(d-1.2,.85);
+   const begin=position.length/3;
+   for(const p of [a,b,c])push({x:p.x,y:p.y+.045,z:p.z},arrow);
+   indices.push(begin,begin+1,begin+2);
+ }
  const geometry=new THREE.BufferGeometry();
  geometry.setAttribute('position',new THREE.Float32BufferAttribute(position,3));
  geometry.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));

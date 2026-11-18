@@ -146,7 +146,7 @@ export function mountRacesPanel(host:HTMLElement,ctx:RacePanelContext){
          edit(label,{...race,track:{...track,features:track.features.map(f=>f.id===feature.id?{...f,...patch}:f)}});
        };
        featureEditor.append(
-         field('Position depuis le départ (m)',numberInput(feature.at,v=>modify('Déplacer un élément',{at:v}),0,Math.round(trackLength(track)),.5.toString())),
+         field('Position depuis le départ (m)',numberInput(feature.at,v=>modify('Déplacer un élément',{at:v}),0,Math.round(trackLength(track)),'0.5')),
          field('Longueur (m)',numberInput(feature.length,v=>modify('Longueur d’un élément',{length:v}),3,120)),
          ...(feature.kind==='bank'?[field('Inclinaison latérale (°)',numberInput(feature.bankDeg??0,v=>modify('Inclinaison du virage',{bankDeg:v}),-35,35))]:
            [field('Hauteur (m)',numberInput(feature.height,v=>modify('Hauteur de l’obstacle',{height:v}),0,8))]),

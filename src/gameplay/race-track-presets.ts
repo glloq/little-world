@@ -14,7 +14,7 @@ export function roadbedFromGates(race:RaceDefinition):RaceTrack{
 export function makeTrackFeature(kind:TrackFeatureKind,at:number,length:number,id:string):TrackFeature{
  return {
   id,kind,at,length,
-  height:kind==='ramp'?1.2:kind==='bumps'?.55:kind==='bridge'?.6:0,
+  height:kind==='ramp'?1.6:kind==='bumps'?0.55:kind==='bridge'?0.6:0,
   ...(kind==='bank'?{bankDeg:18}:{})
  };
 }
