@@ -13,6 +13,7 @@ import {createMineHubView} from '../src/mine/mine-hub-view.ts';
 import {MINE_STAND_SOURCE,removeMaritimeSign} from '../src/mine/mine-stand-asset.ts';
 import {createActivityRuntime} from '../src/gameplay/activity-runtime.ts';
 import {createMineHelmet} from '../src/hamster/mine-helmet.ts';
+import {mineHitsPerResult,mineRhythmPosition,mineRhythmAccuracy,mineAccuracyMultiplier,mineInterimReward} from '../src/mine/mine-rhythm.ts';
 import {ECONOMY_ITEMS,SHOPS} from '../src/gameplay/economy.ts';
 
 const polygon=[{x:-20,z:0},{x:20,z:0},{x:20,z:40},{x:-20,z:40}];
@@ -301,34 +302,64 @@ test('MINE-HUB V4: approved maritime stand is a real GLB; badge is independently
   assert.equal(cloth.visible,true,'original cloth stays intact');
 });
 
-test('mine rewards V2: hands and steel have the same capped per-cell yield',()=>{
+test('mine rhythm: distinct timings and forgiving optimal slider zones',()=>{
+  const periods=[1,2,3,4,5].map(m=>[m,mineHitsPerResult(m)]);
+  assert.deepEqual(periods,[[1,3],[2,4],[3,5],[4,4],[5,5]]);
+  for(const mat of [1,2,3,4,5]){
+    assert.equal(mineRhythmPosition(mat,0),0);
+    assert.ok(mineRhythmPosition(mat,200)>=0&&mineRhythmPosition(mat,200)<=1);
+    const period=[900,1150,1480,1680,1920][mat-1];
+    assert.equal(mineRhythmAccuracy(mat,period/4),'perfect');
+    assert.equal(mineRhythmAccuracy(mat,0),'normal');
+  }
+  assert.equal(mineAccuracyMultiplier('normal'),1);
+  assert.equal(mineAccuracyMultiplier('good'),1.15);
+  assert.equal(mineAccuracyMultiplier('perfect'),1.30);
+  // Seeded output is identical in new sessions and on both local / remote paths.
+  assert.deepEqual(mineInterimReward(4,'good',0,12,15,2),
+    mineInterimReward(4,'good',0,12,15,2));
+});
+test('mine rewards V6: a result every 3-5 accepted hits, same rock cell until full excavation',()=>{
   for(let seed=1;seed<=12;seed++){
     const z=zone(seed),original=new MineState(new MineGrid(z));
     const w=wallCell(original,0,m=>m>=2&&m<=5);
     assert.ok(w,'reachable rock for seed '+seed);
+    const material=original.material(0,w.ix,w.iz),hp=MINE_MATERIALS[material].hp,
+      interval=mineHitsPerResult(material);
     const mine=(power,roundTrip=false)=>{
-      let state=new MineState(new MineGrid(z)),quantity=0,steps=0,partial=0;
-      const reward=value=>{quantity+=value.quantity;return true;};
+      let state=new MineState(new MineGrid(z)),steps=0,granted=[];
       while(!state.isOpen(0,w.ix,w.iz)&&steps<550){
         const req={requestId:'hit-'+steps,levelId:'level-1',ix:w.ix,iz:w.iz,
           from:from(state,0,w.stand.ix,w.stand.iz)};
-        const r=state.strike(req,power,reward);
+        const r=state.strike(req,power,reward=>{granted.push(reward);return true;});
         assert.equal(r.ok,true);
-        if('partial'in r){partial++;if(roundTrip&&steps===3){
-          const saved=parseMineSave(state.serialize());
-          state=new MineState(new MineGrid(z));assert.deepEqual(state.restore(saved),[]);
-        }}
+        if('partial'in r){
+          assert.equal(r.hits,steps+1);
+          assert.equal(r.nextResult,interval-r.hits%interval);
+          if(roundTrip&&steps===3){
+            const saved=parseMineSave(state.serialize());
+            assert.equal(saved.hits?.[req.levelId+':'+req.ix+':'+req.iz],4);
+            state=new MineState(new MineGrid(z));assert.deepEqual(state.restore(saved),[]);
+            assert.equal(state.hitCountAt(0,w.ix,w.iz),4);
+            assert.deepEqual(state.strike(req,power,()=>{throw Error('replay');}),{ok:false,reason:'Demande déjà traitée'});
+          }
+        }
         steps++;
       }
       assert.ok(steps<550,'mining completes');
-      assert.ok(quantity>=1&&quantity<=2,'at most one resource bonus per cell');
+      assert.equal(steps,Math.ceil(hp/power),'stone disappears only on full HP');
+      const expectedMilestones=Math.floor((steps-1)/interval);
+      assert.equal(granted.length,expectedMilestones+1,
+        'every '+interval+' nonfinal hits grants exactly once, then final ore');
+      assert.equal(granted.at(-1).itemId,MINE_MATERIALS[material].item);
       assert.equal(state.excavatedCount,1);
-      return {quantity,partial};
+      return {steps,granted};
     };
-    const hands=mine(2,true),steel=mine(25);
-    assert.equal(hands.quantity,steel.quantity,
-      'rock rewards must be tool-speed independent for seed '+seed);
-    assert.ok(hands.partial>=steel.partial);
+    const slow=mine(2,true),steel=mine(25);
+    assert.ok(slow.steps>=steel.steps,'better pickaxe excavates faster');
+    assert.ok(slow.granted.length>=steel.granted.length,
+      'more manual hits can produce more low-value debris, not more guaranteed final ore');
+    assert.equal(slow.granted.at(-1).itemId,steel.granted.at(-1).itemId);
   }
 });
 test('mine bonus V2: a refused inventory grant cannot commit a finished cell',()=>{
