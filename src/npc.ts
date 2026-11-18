@@ -15,6 +15,7 @@ import {
   type DialogueDefinition,
   type DialogueFlags,
 } from './dialogue.ts';
+import {validResidentRoutine,type ResidentRoutineV1} from './npc-life/schedule.ts';
 export type { DialogueDefinition } from './dialogue.ts';
 export interface NPCPoint {
   x: number;
@@ -40,6 +41,8 @@ export interface NPCDefinition {
   path?: NPCPoint[];
   appearance: Appearance;
   dialogue?: DialogueDefinition;
+  /** Optional authored daily life; legacy NPCs retain their original behavior. */
+  routine?: ResidentRoutineV1;
 }
 export type NPCActivity = 'full' | 'reduced' | 'dormant';
 export type NPCVisualTier = 'rig' | 'silhouette' | 'hidden';
@@ -110,7 +113,8 @@ export function validNPC(
       (Array.isArray(d.path) &&
         d.path.length <= 100 &&
         d.path.every((p) => point(p, bounds)))) &&
-    (d.dialogue === undefined || validDialogue(d.dialogue))
+    (d.dialogue === undefined || validDialogue(d.dialogue)) &&
+    (d.routine === undefined || (validResidentRoutine(d.routine) && point(d.routine.home,bounds) && point(d.routine.work,bounds)))
   );
 }
 export function validateNPCs(
