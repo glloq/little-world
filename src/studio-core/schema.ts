@@ -1,5 +1,5 @@
 import {parseSkiArea} from '../snow/ski-area.ts';
-import {validShopPose} from '../gameplay/shop-access.ts';
+import {validShopPose,sameProjectedShopPose} from '../gameplay/shop-access.ts';
 import {validateSettlement} from '../settlements/schema.ts';
 import {validateTerrainPlan} from './terrain-sites.ts';
 import {validateNaturalStructure} from '../structures/natural-structure.ts';
@@ -236,7 +236,7 @@ function parseProjectInternal(value:unknown,complete:boolean):ProjectDocument{
     for(const entity of Object.values(chunk.entities)){
       const resolved=resolveEntity(project,entity),entry=entityIndexEntry(resolved),indexed=project.entityIndex[entity.id];if(!indexed)throw Error('Entité absente de l’index mondial');
       if(JSON.stringify({...indexed,logical:undefined})!==JSON.stringify({...entry,logical:undefined}))throw Error(`Index entité obsolète : ${entity.id}`);
-      if(indexed.logical!==undefined&&JSON.stringify(indexed.logical)!==JSON.stringify(entry.logical))throw Error(`État logique obsolète : ${entity.id}`);
+      if(indexed.logical!==undefined){const a=indexed.logical,b=entry.logical;if(!b||JSON.stringify({...a,shopAccess:undefined})!==JSON.stringify({...b,shopAccess:undefined})||!sameProjectedShopPose(a.shopAccess,b?.shopAccess))throw Error(`État logique obsolète : ${entity.id}`);}
       if(resolved.parentId===resolved.id)throw Error('Parent réflexif');
     }
     for(const id of chunk.waterRefs)if(!project.libraries.water[id])throw Error(`Eau absente : ${id}`);for(const id of chunk.pathRefs)if(!project.libraries.paths[id])throw Error(`Chemin absent : ${id}`);

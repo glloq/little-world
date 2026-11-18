@@ -274,3 +274,5 @@ Les villages de rivière peuvent proposer un petit pont vers une seconde rive, d
 Les nouvelles implantations proposent des jardins joueur et des champs PNJ ; les abords du port reçoivent cabanes et bateaux de rive. La caldeira peut privilégier une grande île principale : [fonctionnalités, captures et limites](docs/90-SETTLEMENT-GARDENS-COAST-DOMINANT-CALDERA.md).
 
 La création guidée V5 propose maintenant des circuits de roulade adaptés au relief, un profil alpin avec descente de ski enregistrée et une sélection de musique : [fonctionnement, captures et limites](docs/91-GUIDED-ACTIVITIES-RACES-ALPINE-MUSIC.md).
+
+Dans **Validation / compilation**, « Auditer le contenu jouable » affiche la répartition des activités et les secteurs à inspecter. [Audit du Studio, copie enrichie de l’île principale et plan vers des mondes complets](docs/92-COMPLETE-WORLDS-STUDIO-AUDIT.md). Les rapports et le brouillon se régénèrent avec `node tools/audit-island-playability.mjs` ; la carte officielle reste inchangée.

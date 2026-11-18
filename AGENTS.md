@@ -1,5 +1,7 @@
 # Little World — instructions pour Codex et autres agents de développement
 
+> **Mondes complets / audit :** lire [92 — contenu, accès, quêtes, profils et reprise de l’île principale](docs/92-COMPLETE-WORLDS-STUDIO-AUDIT.md). La proximité d’activité et une compilation valide ne certifient pas la jouabilité. Enrichir par des pôles complémentaires et préserver les sources historiques ; les copies de comparaison ne remplacent pas la carte officielle.
+
 > **Activités guidées :** lire [91 — courses, ski enregistré et musique](docs/91-GUIDED-ACTIVITIES-RACES-ALPINE-MUSIC.md). Réutiliser les planificateurs et le moteur neige de main ; les descentes de ski restent un prototype sans compétition. Préserver les sources retouchées et l’identité du monde lors de la recomposition.
 
 > **Parcelles et rivage :** lire [90 — jardins joueur/PNJ, décor côtier et caldeira dominante](docs/90-SETTLEMENT-GARDENS-COAST-DOMINANT-CALDERA.md). Respecter la provenance des zones et les droits agricoles ; conserver les formes historiques `regular`/`organic`.

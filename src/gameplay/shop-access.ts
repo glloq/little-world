@@ -25,6 +25,16 @@ export function projectShopAccess(c: ShopAccessComponent, t: TransformComponent)
     return { offset: { x: v.x + q.w * tx + q.y * tz - q.z * ty, y: v.y + q.w * ty + q.z * tx - q.x * tz, z: v.z + q.w * tz + q.x * ty - q.y * tx }, forward: { x: -Math.sin(yaw), z: -Math.cos(yaw) }, width: c.width * Math.min(t.scale.x, t.scale.z), range: c.range };
 }
 export function validShopPose(v: unknown): v is ShopAccessPose { const p = v as ShopAccessPose; return !!p && !!p.offset && !!p.forward && [p.offset.x, p.offset.y, p.offset.z, p.forward.x, p.forward.z, p.width, p.range].every(Number.isFinite) && Math.hypot(p.offset.x, p.offset.y, p.offset.z) <= 1000 && Math.abs(Math.hypot(p.forward.x, p.forward.z) - 1) < .001 && p.width >= .1 && p.width <= 600 && p.range >= .5 && p.range <= 6; }
+/** Derived trigonometric projections may differ by an ulp across JS engines. Authored state stays exact. */
+export function sameProjectedShopPose(a:ShopAccessPose|undefined,b:ShopAccessPose|undefined):boolean{
+ if(a===undefined||b===undefined)return a===b;
+ if(!validShopPose(a)||!validShopPose(b))return false;
+ // Preserve strict shape checking: unknown data is not hidden by numeric tolerance.
+ const sameKeys=(x:object,y:object)=>JSON.stringify(Object.keys(x).sort())===JSON.stringify(Object.keys(y).sort());
+ if(!sameKeys(a,b)||!sameKeys(a.offset,b.offset)||!sameKeys(a.forward,b.forward))return false;
+ const values=(p:ShopAccessPose)=>[p.offset.x,p.offset.y,p.offset.z,p.forward.x,p.forward.z,p.width,p.range];
+ const bv=values(b);return values(a).every((v,i)=>Math.abs(v-bv[i])<=1e-9);
+}
 export function accessibleShop(entity: GameplayEntity, position: Point3, collision: WorldCollisionQuery, facing?: {
     x: number;
     z: number;
