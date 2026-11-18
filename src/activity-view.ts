@@ -122,7 +122,10 @@ export function createActivityView(parent:THREE.Object3D,activities:ActivityRunt
       for(const marker of mineMarkers.get(id)??[]){const l=m.zone.mine.levels.findIndex(v=>v.id===marker.userData.levelId);marker.visible=active>=0&&l===active;
         if(marker.visible&&marker.userData.lazyMineHub)void initialiseHub(id,marker,l);}
       if(active<0)continue;
-      for(const level of [active,active-1,active+1]){if(level<0||level>=m.state.grid.levels.length)continue;
+      // Only the current floor is drawn and streamed. The lift preloader warms
+      // the destination explicitly; fetching both neighbours during gameplay
+      // used GPU/CPU budget on rock hidden by complete floor slabs.
+      for(const level of [active]){if(level<0||level>=m.state.grid.levels.length)continue;
         for(let cx=Math.floor((p.x-CHUNK_RADIUS)/MINE_CHUNK);cx<=Math.floor((p.x+CHUNK_RADIUS)/MINE_CHUNK);cx++)for(let cz=Math.floor((p.z-CHUNK_RADIUS)/MINE_CHUNK);cz<=Math.floor((p.z+CHUNK_RADIUS)/MINE_CHUNK);cz++){
           const key=`${id}:${level}:${cx},${cz}`;wanted.add(key);const current=chunks.get(key);
           if((current&&!current.dirty)||builds>=BUILDS_PER_FRAME)continue;
