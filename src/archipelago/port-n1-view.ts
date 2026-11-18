@@ -31,15 +31,30 @@ export function createPortN1View(scene:THREE.Scene,plan:PortN1Layout,baseUrl:str
   }).catch(error=>{if(!disposed)console.warn('Stand N1 3D indisponible',error);});
   // Do not create a second dock kit: use exactly the existing 2m-grid instance assembler.
   void assembleDock({
-    cells:[[0,0],[0,1],[0,2]],
+    cells:Array.from({length:plan.dockCells},(_,i)=>[0,i] as [number,number]),
     assetBaseUrl:baseUrl+'models/structures/dock/',
     lod:0,
-    bollards:[{tile:[0,2],offset:[.52,.5]}],
+    bollards:[{tile:[0,plan.dockCells-1],offset:[.52,.5]}],
     ramps:[],
   }).then(dock=>{
     if(disposed)return;
     dock.name='Dock N1 real modular GLBs';
     dock.position.set(0,plan.dockBaseY,1);root.add(dock);
+    // Existing dock-post GLBs terminate ~1 m below the deck. On a raised
+    // coastal shelf, use a few light vertical extensions down to sea level.
+    // Shared geometry/material; the actual visual deck/post assets stay intact.
+    if(plan.dockBaseY>plan.boat.y+.6){
+      const foot=new THREE.CylinderGeometry(.125,.16,1,5);
+      const timber=new THREE.MeshLambertMaterial({color:0x7b5939,flatShading:true});
+      for(let z=0;z<plan.dockCells*2;z+=2)for(const x of [-1,1]){
+        const top=plan.dockBaseY+.1,bottom=plan.boat.y-.4;
+        const extension=new THREE.Mesh(foot,timber);
+        extension.name='Raised shore dock support';
+        extension.scale.y=top-bottom;
+        extension.position.set(x,(top+bottom)*.5,z);
+        root.add(extension);
+      }
+    }
   }).catch(error=>{if(!disposed)console.warn('Ponton N1 indisponible',error);});
   const merchant=buildHamster(),rower=buildHamster();
   merchant.group.name='Merchant (N1 / ferry hours)';
