@@ -58,13 +58,13 @@ export const ECONOMY_ITEMS:Priced[]=[
   {id:'seed:pumpkin',name:'Semences de citrouille',category:'graines',maxQuantity:99,buy:5,sell:2},
 ];
 /** Sale prices of items defined by other systems (mine, farm). */
-const EXTERNAL_PRICES:Record<string,{sell:number;buy?:number}>={'mine:stone':{sell:1,buy:3},'mine:iron':{sell:9},'mine:crystal':{sell:35},'farm:wheat':{sell:3},'farm:carrot':{sell:4},'farm:pumpkin':{sell:9}};
+const EXTERNAL_PRICES:Record<string,{sell:number;buy?:number}>={'mine:earth':{sell:1},'mine:stone':{sell:1,buy:3},'mine:iron':{sell:9},'mine:crystal':{sell:35},'farm:wheat':{sell:3},'farm:carrot':{sell:4},'farm:pumpkin':{sell:9}};
 export function priceOf(itemId:string):{sell?:number;buy?:number}{const i=ECONOMY_ITEMS.find(x=>x.id===itemId);return i?{sell:i.sell,buy:i.buy}:EXTERNAL_PRICES[itemId]??{};}
 export type ShopKind='mine'|'forest'|'port'|'market'|'farm'|'inn';
 export interface ShopDefinition {kind:ShopKind;name:string;sells:string[];buys:string[];greeting:string}
 /** Counter catalogues per place (data, editable in a later Studio panel). */
 export const SHOPS:Record<ShopKind,ShopDefinition>={
-  mine:{kind:'mine',name:'Comptoir de la mine',sells:['tool:pickaxe','tool:pickaxe-steel','tool:miners-helmet'],buys:['mine:stone','mine:iron','mine:crystal'],greeting:'Une pioche solide, et la montagne vous rendra riche.'},
+  mine:{kind:'mine',name:'Comptoir de la mine',sells:['tool:pickaxe','tool:pickaxe-steel','tool:miners-helmet'],buys:['mine:earth','mine:stone','mine:iron','mine:crystal'],greeting:'Une pioche solide, et la montagne vous rendra riche.'},
   forest:{kind:'forest',name:'Comptoir du bûcheron',sells:['tool:axe'],buys:['wood:log','forage:mushroom','forage:flower'],greeting:'Coupez sans dévaster : la forêt repousse si on la respecte.'},
   port:{kind:'port',name:'Comptoir du port',sells:['tool:fishing-rod'],buys:['fish:trout','fish:perch','fish:carp','fish:mackerel','fish:sardine','fish:seabass','fish:golden','forage:reed'],greeting:'Le poisson est frais ? Je vous l’achète.'},
   market:{kind:'market',name:'Marché',sells:['tool:axe','tool:fishing-rod','seed:wheat','seed:carrot','seed:pumpkin','wood:log'],buys:['food:apple','food:pear','food:plum','food:cherry','forage:mushroom','forage:flower','farm:wheat','farm:carrot','farm:pumpkin','wood:log'],greeting:'Fruits, champignons, récoltes : tout se vend au marché !'},
