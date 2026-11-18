@@ -21,7 +21,7 @@ try{
   await context.addInitScript(()=>localStorage.setItem('little-world-quality','high'));
   const page=await context.newPage(),errors=[];
   page.on('pageerror',e=>errors.push(e.message));
-  await page.goto(base+'?world=maps/b1-demo/manifest.json&metrics&yaw=0&spawn=-40,296');
+  await page.goto(base+'?world=maps/b1-demo/manifest.json&metrics&yaw=0&pitch=0.14&dist=2.1&spawn=-40,296');
   await page.locator('#start-overlay').waitFor({state:'hidden',timeout:120000});
   await page.waitForFunction(()=>window.littleWorldMetrics?.activities,{},{timeout:30000});
   const ui=playerUi(page),SLOT='little-world:game-save:v1:little-world-b1-demo:slot-1';
@@ -37,10 +37,10 @@ try{
     await page.waitForTimeout(2200);
   }
   // Looking forward through the hall: stand left, gallery ahead, lift right.
-  await moveTo(hub.shaft.x-1.35,hub.shaft.z-2.9);
+  await moveTo(hub.shaft.x-1.35,hub.shaft.z-.7);
   await page.screenshot({path:output+'/01-entree-mine-hall-jeu-reel.png'});
   // Closer to the extraction gallery to inspect the 3D ore signs and timber arch.
-  await moveTo(hub.gallery.x,hub.shaft.z+.65);
+  await moveTo(hub.gallery.x,hub.shaft.z+1.55);
   await page.screenshot({path:output+'/02-entree-niveau1-jeu-reel.png'});
   const metrics=await page.evaluate(()=>{
     const v=window.littleWorldMetrics;
@@ -50,7 +50,7 @@ try{
     type:'actual-gameplay-render',renderer:'Chromium + SwiftShader',
     branch:process.env.GITHUB_REF_NAME??'feat/mine-hub-levels-v1',
     commit:process.env.GITHUB_SHA??null,hub,metrics,errors,
-    viewpoints:[{filename:'01-entree-mine-hall-jeu-reel.png',description:'Vue du hall depuis son entrée arrière'},
+    viewpoints:[{filename:'01-entree-mine-hall-jeu-reel.png',description:'Vue rapprochée depuis le hall, face à la galerie'},
       {filename:'02-entree-niveau1-jeu-reel.png',description:'Entrée de galerie et ressources au niveau 1'}]
   },null,2));
   assert.equal(errors.length,0,errors.join('; '));
