@@ -506,3 +506,44 @@ test('mine fissures: each durability threshold changes actual merged chunk geome
   assert.equal(state.excavatedCount,1);
   assert.equal(state.damageAt(0,w.ix,w.iz),0);
 });
+
+test('mine fissures: runtime invalidates visible chunks only on stage changes and final opening',()=>{
+  const z=zone(),q=new WorldCollisionQuery(()=>30,()=>null),
+    runtime=createActivityRuntime({mines:[z],farms:[]},{
+      grant:()=>true,has:()=>true,time:()=>0,climate:{},
+      collision:q,ground:()=>30,water:()=>null,
+    }),
+    state=runtime.mines.get(z.id).state,
+    w=wallCell(state,0,m=>m>=3&&m<=5);
+  assert.ok(w);
+  const material=state.material(0,w.ix,w.iz),durability=mineBlockDurability(material);
+  const p=from(state,0,w.stand.ix,w.stand.iz),
+    forward={x:w.ix-w.stand.ix,z:w.iz-w.stand.iz},
+    changes=[];
+  const stop=runtime.subscribe(c=>{if(c.kind==='mine')changes.push(c);});
+  let steps=0,reported=0;
+  for(let consumed=1;consumed<=durability;consumed++){
+    for(let i=0;i<3;i++){
+      const before=changes.length,result=runtime.dig(
+        p,{zoneId:z.id,levelId:'level-1'},forward,'perfect');
+      assert.equal(result.ok,true);
+      steps++;
+      const stage=mineCrackStage(material,consumed);
+      const old=mineCrackStage(material,consumed-1);
+      const expected=i===2&&(stage!==old||consumed===durability);
+      if(expected)reported++;
+      assert.equal(changes.length,before+(expected?1:0),
+        'no rebuild unless a fissure tier or the physical opening changes');
+      if(expected){
+        const latest=changes.at(-1);
+        assert.ok(latest.chunks.includes(
+          Math.floor(w.stand.ix/MINE_CHUNK)+','+Math.floor(w.stand.iz/MINE_CHUNK)));
+      }
+    }
+  }
+  stop();
+  assert.equal(steps,durability*3);
+  assert.equal(changes.length,reported);
+  assert.equal(reported,4,'three visual stages and one final excavation');
+  assert.equal(state.isOpen(0,w.ix,w.iz),true);
+});
