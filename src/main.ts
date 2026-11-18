@@ -716,11 +716,13 @@ function currentTarget():TargetDescriptor|null{
     ()=>{const o=gameplay?.describe(player.position);if(!o)return null;const t=objectTarget(o);if(!o.usable){unusable=t;return null;}return t;},
     // A counter the player faces wins over a shopkeeper standing next to it.
     ()=>{const s=nearShop(true);return s?shopTarget({entityId:s.id,name:SHOPS[s.kind].name}):null;},
-    ()=>{const n=npcs.talker(player.position);return n?npcTarget(n):null;},
+    // Ferry boards from a small, identifiable quay point. The nearby captain remains
+    // talkable a few metres away; the ferry must win only inside the boarding radius.
     ()=>{if(!ferryDock||aboard||player.space)return null;
       const shore=ferryBoardingPoint?Math.hypot(player.position.x-ferryBoardingPoint.x,player.position.z-ferryBoardingPoint.z):Infinity;
       const d=Math.hypot(player.position.x-ferryDock.x,player.position.z-ferryDock.z);
-      return (shore<5||(d<5.5&&Math.abs(player.position.y-ferryDock.y)<6))?ferryTarget(ferryNow.present):null;},
+      return (shore<2.5||(d<3.5&&Math.abs(player.position.y-ferryDock.y)<4))?ferryTarget(ferryNow.present):null;},
+    ()=>{const n=npcs.talker(player.position);return n?npcTarget(n):null;},
     ()=>fleet.nearest(player.position.x,player.position.y,player.position.z)?boatTarget(false):null,
     ()=>{if(!gameplay||!player.space)return null;const p=gameplay.activities.digPreview(player.position,player.space,forwardOf());return p?mineWallTarget({...p,rewardName:itemName(p.reward?.itemId)}):null;},
     ()=>{const s=nearShop();return s?shopTarget({entityId:s.id,name:SHOPS[s.kind].name}):null;},
