@@ -62,6 +62,7 @@ import {
   type Controls,
 } from './player';
 import { buildHamster } from './hamster/hamster.ts';
+import {createSnowCharacterView} from './snow/snow-character-view.ts';
 import {createMineRhythmHud,type MineRhythmSample} from './ui/activities/mine-rhythm-hud.ts';
 import {createMineHelmet} from './hamster/mine-helmet.ts';
 import { createImpactEffects, type ImpactKind } from './hamster/impact-effects.ts';
@@ -538,6 +539,7 @@ world.update(0, player.position);
 }
 // The player is the hamster (doc 43); NPCs keep their own rigs.
 const character = buildHamster();
+const snowCharacterView=createSnowCharacterView(character);
 scene.add(character.group);
 const mineHelmet=createMineHelmet(character.rig.sockets.head);
 let queuedMineStrike:MineRhythmSample|null=null;
@@ -1320,6 +1322,7 @@ function draw(now: number) {
   character.setAboard(aboard);
   if(gameplay){const f=gameplay.fishing.state;character.setFishing(f.phase!=='idle'&&f.castAt?{x:f.castAt.x,y:waterSurface(f.castAt.x,f.castAt.z)??getTerrainConfig().seaLevel,z:f.castAt.z,biting:f.phase==='bite'}:null);}
   character.update(player, delta, elapsed);
+  snowCharacterView.update(player);
   // Mining headgear follows the animated head bone (including turning/looking).
   // One spotlight, zero shadow maps; off outside mines and without the item.
   mineHelmet.setActive(!!player.space&&gameplay?.equipment.head==='tool:miners-helmet');
