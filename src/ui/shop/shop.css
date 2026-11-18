@@ -8,7 +8,7 @@
 .ui-shop-purse{flex:none;border:1px solid var(--ui-line);border-radius:9px;padding:5px 9px;background:var(--ui-chip);font-weight:700;font-variant-numeric:tabular-nums}
 .ui-shop-purse::before{content:'◉';color:#bb872d;margin-right:6px}
 .ui-shop-v3-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;background:var(--ui-chip);border-radius:11px;padding:4px}
-.ui-shop-tab{border:1px solid transparent;border-radius:8px;background:transparent;color:var(--ui-ink);padding:8px 5px;min-height:38px;font:600 13px inherit;cursor:pointer}
+.ui-shop-tab{border:1px solid transparent;border-radius:8px;background:transparent;color:var(--ui-ink);padding:8px 5px;min-height:38px;font:600 13px/1.3 system-ui,sans-serif;cursor:pointer}
 .ui-shop-tab[aria-pressed=true]{background:#fff;border-color:var(--ui-line);box-shadow:0 1px 3px #203b2618}
 .ui-shop-v3-tabs:has(.ui-shop-tab:nth-child(2):last-child){grid-template-columns:repeat(2,minmax(0,1fr))}
 .ui-shop-toolbar{display:flex;gap:7px;align-items:center}
