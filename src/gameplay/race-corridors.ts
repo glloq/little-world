@@ -2,7 +2,7 @@
  * Used by the geography engine to suppress trees and rocks on physical race surfaces. */
 import {centerline} from '../paths/path-geometry.ts';
 import type {RaceTrack} from './race-track.ts';
-const CELL=32,MAX_TRACKS=64,MAX_SEGMENTS=12000;
+const CELL=32,MAX_TRACKS=64,MAX_SEGMENTS=45000;
 interface Segment {x:number;z:number;dx:number;dz:number;length2:number;radius2:number}
 export function createRaceCorridorIndex(tracks:readonly RaceTrack[],clearance=2){
  if(tracks.length>MAX_TRACKS||!Number.isFinite(clearance)||clearance<0||clearance>8)
@@ -10,7 +10,10 @@ export function createRaceCorridorIndex(tracks:readonly RaceTrack[],clearance=2)
  const segments:Segment[]=[],cells=new Map<string,number[]>();
  for(const track of tracks){
   if(!track.points?.length)continue;
-  const line=centerline({id:'race-corridor',kind:track.material,width:track.width,points:[...track.points],smooth:track.smooth});
+  const detailed=centerline({id:'race-corridor',kind:track.material,width:track.width,points:[...track.points],smooth:track.smooth});
+  // 6 m corridor LOD is sufficient with 2 m clearance and avoids a per-world memory spike
+  // when many long tracks are authored (geometry and physical sampling remain full resolution).
+  const line=detailed.filter((_,i)=>i%3===0||i===detailed.length-1);
   const radius=track.width/2+clearance;
   for(let i=1;i<line.length;i++){
    if(segments.length>=MAX_SEGMENTS)throw Error('Trop de segments de pistes pour la végétation');
