@@ -1,5 +1,5 @@
 /** Tiny, consistent HUD vector icons: no font, texture or third-party runtime. */
-export type HudIcon='menu'|'backpack'|'journal'|'volume'|'mute'|'pin'|'map';
+export type HudIcon='menu'|'backpack'|'journal'|'volume'|'mute'|'pin'|'map'|'flag';
 const PATHS:Record<HudIcon,string[]>={
   menu:['M4 6h16','M4 12h16','M4 18h16'],
   backpack:['M7 8V6a5 5 0 0 1 10 0v2','M5 8h14v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V8Z','M9 8v2','M15 8v2','M9 15h6v3H9z'],
@@ -8,6 +8,7 @@ const PATHS:Record<HudIcon,string[]>={
   mute:['M4 10v4h4l5 4V6l-5 4H4Z','M17 9l5 6','M22 9l-5 6'],
   pin:['M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z','M12 10a2.5 2.5 0 1 0 .001 0Z'],
   map:['m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3V6Z','M9 3v15','M15 6v15'],
+  flag:['M5 22V3','M5 4h14l-3 5 3 5H5'],
 };
 export function hudIcon(name:HudIcon):SVGSVGElement{
   const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg');

@@ -66,6 +66,10 @@ import {GAS,gasLevel,gasCapacity,gasShots,gasMaxShots,refillGas} from './physics
 import {newFlightProgress,advanceFlight,type FlightProgress} from './gameplay/flight-progress.ts';
 import {beginFlightCourse,stepFlightCourse,COURSE_LABELS,type FlightCourseSession} from './gameplay/flight-courses.ts';
 import {createFlightRings} from './render/flight-rings.ts';
+import {createRaceGates} from './render/race-gates.ts';
+import {advanceRace,beginRace,raceElapsedSeconds,type RaceSession} from './gameplay/races.ts';
+import {makeDemoRace,type DemoRaceId} from './gameplay/race-demos.ts';
+import {readRaceBest,writeRaceBest} from './gameplay/race-records.ts';
 import {foodGasValue} from './gameplay/food-effects.ts';
 import { createLoadingScreen } from './ui/loading.ts';
 import { createCustomizationMenu } from './customization-menu';
@@ -272,7 +276,7 @@ if(playable){
     setGasProgress:value=>{flightProgress={...value,currentFlightDistance:0,currentFlightNoGas:0,currentCombo:0,lastPulseAt:-1};player.gasCapacityLevel=value.capacityLevel;player.gasPowerLevel=value.powerLevel;player.gasControlLevel=value.controlLevel;},
     setGas:value=>{player.gasReserve=value;player.gasBoosting=false;player.gasPulseClock=0;player.gasPulseSeq=0;player.gasThrust=0;player.gasPulseRemaining=0;player.gasCooldown=0;player.gasBoostHeld=false;player.gasRepeatArmed=false;gasVisualSeq=0;lastFlightPulseSeq=0;boostWindActive=false;},
     ...(isLegacyTerrain()?{}:{gathering:{ctx:geoContext,seed:definition.config.seed,inside:(x:number,z:number)=>Math.abs(x)<=(definition.config.width??200)/2&&Math.abs(z)<=(definition.config.length??600)/2}}),
-    setPosition:(p,space)=>{gameplay?.fishing.cancel();stopFlightCourse();player.space=space??undefined;player.position.set(p.x,p.y,p.z);player.velocity.set(0,0,0);player.mode='air';player.oxygen=MAX_OXYGEN;player.glideReady=false;player.coyoteLeft=0;player.jumpBufferLeft=0;aboard=false;keySet.clear();jumpQueue=0;actionQueue=0;npcs.dialogue.close();previousPlayerPosition.copy(player.position);renderPosition.copy(player.position);updateCamera(1);}
+    setPosition:(p,space)=>{gameplay?.fishing.cancel();stopFlightCourse();stopRace();player.space=space??undefined;player.position.set(p.x,p.y,p.z);player.velocity.set(0,0,0);player.mode='air';player.oxygen=MAX_OXYGEN;player.glideReady=false;player.coyoteLeft=0;player.jumpBufferLeft=0;aboard=false;keySet.clear();jumpQueue=0;actionQueue=0;npcs.dialogue.close();previousPlayerPosition.copy(player.position);renderPosition.copy(player.position);updateCamera(1);}
   });
   if(metricsEnabled){const g=gameplay;Object.assign(window,{littleWorldDebug:{/** Developer/test hook (metrics mode only): give items. */grant:(itemId:string,quantity:number)=>g.runtime.grantItems([{itemId,quantity}]),
     /** Developer/test hook: move the player on the ground and turn the camera (heading in rad). */
@@ -482,7 +486,12 @@ world.update(0, player.position);
       travel:travelToIsland,
     }:undefined,
     target:()=>currentTarget(),
-    home:()=>{stopFlightCourse();started=false;mobileTouch?.setEnabled(false);mobileLandscape?.stop();gameUi?.controller.close();keySet.clear();overlay.classList.remove('hide');overlay.classList.add('home-mode');start.hidden=false;start.focus();}});
+    races:{
+      start:(id)=>startDemoRace(id),
+      active:()=>raceSession?.definition.name??null,
+      abort:()=>{stopRace();return 'Course interrompue';}
+    },
+    home:()=>{stopFlightCourse();stopRace();started=false;mobileTouch?.setEnabled(false);mobileLandscape?.stop();gameUi?.controller.close();keySet.clear();overlay.classList.remove('hide');overlay.classList.add('home-mode');start.hidden=false;start.focus();}});
 }
 // The player is the hamster (doc 43); NPCs keep their own rigs.
 const character = buildHamster();
@@ -500,11 +509,34 @@ let nextFishingReelAt=0,lastFishingStrainAt=-Infinity;
 let fishingFloatSoundDue=-1;
 const gasEffects=createGasEffects(scene);const gasOrigin=new THREE.Vector3();let gasVisualSeq=0,boostWindActive=false;
 const flightRings=createFlightRings(scene);
+const raceGates=createRaceGates(scene);
+let raceSession:RaceSession|null=null;
+const raceHud=document.createElement('div');
+raceHud.className='flight-course-hud race-course-hud';raceHud.hidden=true;
+raceHud.setAttribute('role','timer');raceHud.setAttribute('aria-live','off');document.body.append(raceHud);
 let flightCourse:FlightCourseSession|null=null,lastCourseHudAt=-1;
 const flightCourseHud=document.createElement('div');
 flightCourseHud.className='flight-course-hud';flightCourseHud.hidden=true;
 flightCourseHud.setAttribute('role','timer');flightCourseHud.setAttribute('aria-live','off');document.body.append(flightCourseHud);
 function stopFlightCourse(){flightCourse=null;flightRings.clear();flightCourseHud.hidden=true;}
+function stopRace(){raceSession=null;raceGates.clear();raceHud.hidden=true;}
+function startDemoRace(id:DemoRaceId):{ok:boolean;message:string}{
+  if(!started||aboard||player.space)return {ok:false,message:'Course indisponible pendant le voyage ou dans une mine'};
+  const need=id==='flight'?'glide':'roll';
+  if(player.mode!==need)return {ok:false,message:need==='glide'?'Déployez le planeur avant de lancer cette course':'Passez en roulade avant de lancer cette course'};
+  const c=getTerrainConfig(),heading=id==='flight'?player.glideHeading??yaw:player.rollHeading??yaw;
+  const definition=makeDemoRace(id,player.position,heading,terrainHeight,
+    {minX:-c.width/2,maxX:c.width/2,minZ:-c.length/2,maxZ:c.length/2},
+    activeIsland?.id??gameplay?.runtime.data.worldId??'legacy');
+  if(!definition)return {ok:false,message:'Circuit hors carte : dirigez-vous vers une zone plus dégagée'};
+  stopFlightCourse();stopRace();
+  raceSession=beginRace(definition,motionTick,player.gasPulseSeq??0);
+  raceGates.show(definition.gates);
+  const best=readRaceBest(localStorage,definition);
+  raceHud.textContent=definition.name+' · 0,0 s · 0/'+definition.gates.length+(best!==null?' · Record local '+best.toFixed(2)+' s':'');
+  raceHud.hidden=false;
+  return {ok:true,message:definition.name+' · entraînement lancé'};
+}
 const customization = createCustomizationMenu(
   document.querySelector<HTMLElement>('#appearance-menu')!,
   (appearance) => character.setAppearance(appearance),
@@ -519,7 +551,7 @@ const customization = createCustomizationMenu(
       const course=beginFlightCourse(id,player.position,heading,terrainHeight,
         {minX:-config.width/2,maxX:config.width/2,minZ:-config.length/2,maxZ:config.length/2},player.gasPulseSeq??0);
       if(!course)return 'Parcours hors carte : orientez-vous vers le centre de l’île';
-      stopFlightCourse();flightCourse=course;flightRings.show(course.rings,heading);
+      stopFlightCourse();stopRace();flightCourse=course;flightRings.show(course.rings,heading);
       customization.close();renderer.domElement.focus({preventScroll:true});
       return COURSE_LABELS[id]+' lancé';
     }
@@ -671,7 +703,7 @@ window.addEventListener('keydown', (e) => {
   }
   if (e.code === 'KeyC') cropQueue++;
   if (e.code === 'KeyR' && started) {
-    stopFlightCourse();
+    stopFlightCourse();stopRace();
     const reset = spawnPlayer();
     player.space = undefined;
     if(playable)reset.position.set(playable.spawn.x,terrainHeight(playable.spawn.x,playable.spawn.z)+playable.spawn.y+.02,playable.spawn.z);
@@ -1110,8 +1142,18 @@ function tick(dt: number) {
         const id=flightCourse.id,seconds=flightCourse.elapsed,previous=flightProgress.records[id];
         if(previous===null||seconds<previous)flightProgress.records[id]=seconds;
         showInfo('Défi réussi : '+COURSE_LABELS[id]+' · '+seconds.toFixed(1)+' s','success');
-        stopFlightCourse();
-      }else if(result===-1){showInfo('Défi interrompu : '+COURSE_LABELS[flightCourse.id],'warning');stopFlightCourse();}
+        stopFlightCourse();stopRace();
+      }else if(result===-1){showInfo('Défi interrompu : '+COURSE_LABELS[flightCourse.id],'warning');stopFlightCourse();stopRace();}
+    }
+    if(raceSession){
+      const event=advanceRace(raceSession,{tick:motionTick,previous:previousPlayerPosition,position:player.position,
+        mode:player.mode,pulseSeq:player.gasPulseSeq??0,transitioned:!!player.transitioned});
+      if(event?.kind==='checkpoint')raceGates.advance(raceSession.nextGate);
+      else if(event?.kind==='finish'){
+        const race=raceSession.definition,isBest=writeRaceBest(localStorage,race,event.seconds);
+        showInfo('Course terminée : '+race.name+' · '+event.seconds.toFixed(2)+' s'+(isBest?' · Nouveau record local !':''),'success');
+        stopRace();
+      }else if(event?.kind==='failed'){showInfo('Course arrêtée : '+event.reason,'warning');stopRace();}
     }
     // Crossing a mine entrance / stairs: no interpolation through rock.
     if(player.transitioned){previousPlayerPosition.copy(player.position);renderPosition.copy(player.position);}
@@ -1292,6 +1334,12 @@ function draw(now: number) {
         s.id==='dive'?'Remonter de 22 m après un piqué':'Distance : '+Math.floor(s.distance)+'/450 m';
       flightCourseHud.textContent=COURSE_LABELS[s.id]+' · '+s.elapsed.toFixed(1)+' s · '+desc+' · Pets : '+s.usedPulses;
     }
+    raceHud.hidden=!raceSession;
+    if(raceSession){
+      const s=raceSession;
+      raceHud.textContent=s.definition.name+' · '+raceElapsedSeconds(s).toFixed(1)+' s · Portes : '+
+        s.nextGate+'/'+s.definition.gates.length+' · Boosts : '+s.usedPulses;
+    }
   }
   gameUi?.frame(elapsed);
   fpsTime += wallDrawDelta;
@@ -1376,7 +1424,7 @@ function draw(now: number) {
   }
   requestAnimationFrame(draw);
 }
-window.addEventListener('pagehide',event=>{if(event.persisted)void audio?.engine.setHidden(true);else {detachPortCollisions?.();ferryView?.dispose();remoteActors?.dispose();mineRhythmHud.dispose();mineHelmet.dispose();gasEffects.dispose();flightRings.dispose();flightCourseHud.remove();fishingHud.dispose();fishingEffects.dispose();speedStreaks.dispose();gpuTimer.dispose();void audio?.dispose();}});
+window.addEventListener('pagehide',event=>{if(event.persisted)void audio?.engine.setHidden(true);else {detachPortCollisions?.();ferryView?.dispose();remoteActors?.dispose();mineRhythmHud.dispose();mineHelmet.dispose();gasEffects.dispose();flightRings.dispose();raceGates.dispose();flightCourseHud.remove();raceHud.remove();fishingHud.dispose();fishingEffects.dispose();speedStreaks.dispose();gpuTimer.dispose();void audio?.dispose();}});
 window.addEventListener('pageshow',event=>{if(event.persisted&&started)void audio?.engine.setHidden(document.hidden);});
 document.addEventListener('visibilitychange', () => {
   presentation.reset();
