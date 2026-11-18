@@ -1,6 +1,6 @@
 # 92 — SURF : roadmap d'implémentation complète, dépendances, gates et validation
 
-**Statut initial : ROADMAP / SPECIFIED, aucun code surf livré par ce dossier.** Référence au `main` du 18 novembre 2026. Toute ligne passe successivement `TODO → IMPLEMENTED → TESTED → QUALIFIED → RELEASED` avec lien de branche/PR, preuves de tests, limites. Ne pas cocher une étape à partir d'un document ou de sa simple CI verte. Voir [90 — architecture](90-SURF-ARCHITECTURE-CONTRACTS.md), [91 — île / activités](91-SURF-ISLAND-STUDIO-ACTIVITIES.md).
+**Statut : roadmap de référence ; plusieurs sous-systèmes sont désormais implémentés en prototype sur `docs/surf-island-full-plan`, aucun gate de publication validé.** Voir [93 — état réel et tests](93-SURF-PROTOTYPE-PROGRESS.md). Référence au `main` du 18 novembre 2026. Toute ligne passe successivement `TODO → IMPLEMENTED → TESTED → QUALIFIED → RELEASED` avec lien de branche/PR, preuves de tests, limites. Ne pas cocher une étape à partir d'un document ou de sa simple CI verte. Voir [90 — architecture](90-SURF-ARCHITECTURE-CONTRACTS.md), [91 — île / activités](91-SURF-ISLAND-STUDIO-ACTIVITIES.md).
 
 ## 0. Cible et chemin critique
 
