@@ -30,6 +30,8 @@ try{
  check(initial.surf?.wave?.height!==undefined,'game physics samples the swell');
  check(initial.surf?.patchTriangles>0,'GPU swell patch exists');
  check(initial.surf?.boardVisible,'surfboard visual follows the hamster');
+ check(initial.surf?.barrel?.enabled===true,'a deterministic curling tube is enabled on the surf beach');
+ check(initial.surf?.barrel?.stats?.triangles<=3000,'barrel mesh respects a strict low-poly budget');
  const first=initial.surf.wave.height,observed=[first];
  for(let i=0;i<4;i++){
   await page.waitForTimeout(400);
