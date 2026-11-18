@@ -27,14 +27,20 @@ try{
   await map.waitFor();
   const icons=await map.locator('.ui-map-entry').allTextContents();
   assert.ok(icons.some(label=>label.includes('Bateau de voyage')),'The ferry appears on player map while docked');
-  await page.keyboard.press('Escape');
-  // Head to the ferry boarding anchor, not the boat's offshore mesh.
-  await page.evaluate(point=>window.littleWorldDebug.teleport(point.x,point.z,0),ferry.boarding);
-  await page.waitForTimeout(400);
-  const prompt=await page.locator('#action').textContent();
-  assert.match(prompt??'',/rameur|Navette maritime/i);
-  await page.keyboard.press('KeyE');
+  // The map marker opens schedules without granting remote departure rights.
+  const entry=map.locator('.ui-map-entry').filter({hasText:'Bateau de voyage'});
+  await entry.getByRole('button',{name:'Horaires'}).click();
   const panel=page.locator('[data-panel="ferry"]');
+  await panel.waitFor({state:'visible'});
+  await page.keyboard.press('Escape');
+  // Physical interaction with the ferryman from the quay.
+  await page.evaluate(point=>window.littleWorldDebug.teleport(point.x,point.z,0),ferry.boarding);
+  await page.waitForTimeout(500);
+  const actual=await page.evaluate(()=>({position:window.littleWorldMetrics?.position,target:window.littleWorldMetrics?.target,boarding:window.littleWorldMetrics?.ferry?.boarding}));
+  console.log('FERRY_BOARDING '+JSON.stringify(actual));
+  const prompt=await page.locator('#action').textContent();
+  assert.match(prompt??'',/rameur|Navette maritime/i,'Shore boarding interaction: '+JSON.stringify(actual));
+  await page.keyboard.press('KeyE');
   await panel.waitFor({state:'visible'});
   assert.match(await panel.textContent(),/Île du volcan/);
   const trial=panel.getByRole('button',{name:/cinématique de voyage/i});

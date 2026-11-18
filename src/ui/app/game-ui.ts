@@ -75,7 +75,7 @@ export function createGameUi(deps:GameUiDeps){
     for(const w of waypoints.points)out.push({id:w.id,kind:'waypoint',label:w.label,x:w.x,z:w.z,active:waypoints.activeId===w.id});
     return out;
   };
-  const mapDeps:MapDeps={bounds:deps.world.bounds,height:deps.world.height,water:deps.world.water,seaLevel:deps.world.seaLevel,markers,player:()=>{const p=deps.player();return {x:p.x,z:p.z,yaw:p.yaw};}};
+  const mapDeps:MapDeps={bounds:deps.world.bounds,height:deps.world.height,water:deps.world.water,seaLevel:deps.world.seaLevel,markers,onMarkerAction:marker=>{if(marker.kind==='ferry'&&deps.ferry)ui.open('ferry');},player:()=>{const p=deps.player();return {x:p.x,z:p.z,yaw:p.yaw};}};
   const mapRaster=createMapRaster(mapDeps),map=mapPanel(mapDeps,mapRaster,waypoints);
   ui.register('map','Carte',{render:b=>map.render(b),onClose:()=>map.close()});
   if(deps.ferry)ui.register('ferry','Voyage entre les îles',{pauses:true,render:b=>renderFerryPanel(b,deps.ferry!)});

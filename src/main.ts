@@ -720,7 +720,7 @@ function currentTarget():TargetDescriptor|null{
     ()=>{if(!ferryDock||aboard||player.space)return null;
       const shore=ferryBoardingPoint?Math.hypot(player.position.x-ferryBoardingPoint.x,player.position.z-ferryBoardingPoint.z):Infinity;
       const d=Math.hypot(player.position.x-ferryDock.x,player.position.z-ferryDock.z);
-      return (shore<7||d<5.5)&&Math.abs(player.position.y-ferryDock.y)<6?ferryTarget(ferryNow.present):null;},
+      return (shore<5||(d<5.5&&Math.abs(player.position.y-ferryDock.y)<6))?ferryTarget(ferryNow.present):null;},
     ()=>fleet.nearest(player.position.x,player.position.y,player.position.z)?boatTarget(false):null,
     ()=>{if(!gameplay||!player.space)return null;const p=gameplay.activities.digPreview(player.position,player.space,forwardOf());return p?mineWallTarget({...p,rewardName:itemName(p.reward?.itemId)}):null;},
     ()=>{const s=nearShop();return s?shopTarget({entityId:s.id,name:SHOPS[s.kind].name}):null;},

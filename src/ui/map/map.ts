@@ -7,7 +7,7 @@ import {el,button} from '../shared/dom.ts';
 import type {WaypointStore} from './waypoints.ts';
 
 export interface MapMarker {id:string;kind:'mine'|'farm'|'npc'|'quest'|'poi'|'waypoint'|'ferry';label:string;x:number;z:number;active?:boolean}
-export interface MapDeps {bounds:{minX:number;maxX:number;minZ:number;maxZ:number};height(x:number,z:number):number;water(x:number,z:number):number|null;seaLevel:number;markers():MapMarker[];player():{x:number;z:number;yaw:number}}
+export interface MapDeps {bounds:{minX:number;maxX:number;minZ:number;maxZ:number};height(x:number,z:number):number;water(x:number,z:number):number|null;seaLevel:number;markers():MapMarker[];player():{x:number;z:number;yaw:number};onMarkerAction?:(marker:MapMarker)=>void}
 /** Raster of the world (z grows downwards, north = −Z at the top), filled row by row. */
 export function createMapRaster(deps:Pick<MapDeps,'bounds'|'height'|'water'|'seaLevel'>,maxSide=256){
   const b=deps.bounds,w=b.maxX-b.minX,d=b.maxZ-b.minZ,scale=maxSide/Math.max(w,d),width=Math.max(8,Math.round(w*scale)),height=Math.max(8,Math.round(d*scale)),data=new Uint8ClampedArray(width*height*4),reliefData=new Uint8ClampedArray(width*height*4);
@@ -86,7 +86,8 @@ export function mapPanel(deps:MapDeps,raster:MapRaster=createMapRaster(deps),way
     const all=visibleMarkers().filter(m=>m.kind!=='npc').sort((a,c)=>Number(!!c.active)-Number(!!a.active)||Math.hypot(a.x-deps.player().x,a.z-deps.player().z)-Math.hypot(c.x-deps.player().x,c.z-deps.player().z));
     for(const m of all.slice(0,80)){
       const row=el('div','ui-map-entry'),name=el('span','',`${ICONS[m.kind]} ${m.label} · ${distance(m.x,m.z)}`);
-      const follow=button(m.active?'Ne plus suivre':'Viser',()=>{
+      const follow=button(m.kind==='ferry'?'Horaires':m.active?'Ne plus suivre':'Viser',()=>{
+        if(m.kind==='ferry'){deps.onMarkerAction?.(m);return;}
         if(m.kind==='waypoint'){waypoints?.activate(m.active?null:m.id);}
         else if(waypoints){const selected=waypoints.add(m.label,m.x,m.z);if(!selected){details!.textContent='Limite de repères atteinte : 24.';return;}}
         draw();renderPointList();
@@ -124,7 +125,7 @@ export function mapPanel(deps:MapDeps,raster:MapRaster=createMapRaster(deps),way
         drag.x=e.clientX;drag.y=e.clientY;
       });
       canvas.addEventListener('pointerup',e=>{if(drag&&drag.distance<5){const pos=localPointer(e);if(addMode){const world=fromScreen(pos.x,pos.y);markAt(world);}
-        else{const near=visibleMarkers().map(m=>({m,d:Math.hypot(toScreen(m.x,m.z).x-pos.x,toScreen(m.x,m.z).y-pos.y)})).filter(v=>v.d<13).sort((a,b)=>a.d-b.d)[0];if(near){details!.textContent=near.m.label+' · '+distance(near.m.x,near.m.z);}}}
+        else{const near=visibleMarkers().map(m=>({m,d:Math.hypot(toScreen(m.x,m.z).x-pos.x,toScreen(m.x,m.z).y-pos.y)})).filter(v=>v.d<13).sort((a,b)=>a.d-b.d)[0];if(near){if(near.m.kind==='ferry')deps.onMarkerAction?.(near.m);else details!.textContent=near.m.label+' · '+distance(near.m.x,near.m.z);}}}
         drag=null;});
       canvas.addEventListener('pointercancel',()=>{drag=null;});
       canvas.addEventListener('keydown',e=>{const step=60/ppm;if(e.key==='+'||e.key==='=')zoom(1.25);else if(e.key==='-')zoom(.8);else if(e.key==='ArrowLeft')cx-=step;else if(e.key==='ArrowRight')cx+=step;else if(e.key==='ArrowUp')cz-=step;else if(e.key==='ArrowDown')cz+=step;else if(e.key==='0')fit();else return;e.preventDefault();e.stopPropagation();draw();});
