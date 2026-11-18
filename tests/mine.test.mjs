@@ -298,3 +298,47 @@ test('MINE-HUB V4: approved maritime stand is a real GLB; badge is independently
   assert.equal(maritime.visible,false);
   assert.equal(cloth.visible,true,'original cloth stays intact');
 });
+
+test('mine rewards V2: hands and steel have the same capped per-cell yield',()=>{
+  for(let seed=1;seed<=12;seed++){
+    const z=zone(seed),original=new MineState(new MineGrid(z));
+    const w=wallCell(original,0,m=>m>=2&&m<=5);
+    assert.ok(w,'reachable rock for seed '+seed);
+    const mine=(power,roundTrip=false)=>{
+      let state=new MineState(new MineGrid(z)),quantity=0,steps=0,partial=0;
+      const reward=value=>{quantity+=value.quantity;return true;};
+      while(!state.isOpen(0,w.ix,w.iz)&&steps<550){
+        const req={requestId:'hit-'+steps,levelId:'level-1',ix:w.ix,iz:w.iz,
+          from:from(state,0,w.stand.ix,w.stand.iz)};
+        const r=state.strike(req,power,reward);
+        assert.equal(r.ok,true);
+        if('partial'in r){partial++;if(roundTrip&&steps===3){
+          const saved=parseMineSave(state.serialize());
+          state=new MineState(new MineGrid(z));assert.deepEqual(state.restore(saved),[]);
+        }}
+        steps++;
+      }
+      assert.ok(steps<550,'mining completes');
+      assert.ok(quantity>=1&&quantity<=2,'at most one resource bonus per cell');
+      assert.equal(state.excavatedCount,1);
+      return {quantity,partial};
+    };
+    const hands=mine(2,true),steel=mine(25);
+    assert.equal(hands.quantity,steel.quantity,
+      'rock rewards must be tool-speed independent for seed '+seed);
+    assert.ok(hands.partial>=steel.partial);
+  }
+});
+test('mine bonus V2: a refused inventory grant cannot commit a finished cell',()=>{
+  const state=new MineState(new MineGrid(zone())),w=wallCell(state,0,m=>m>=2&&m<=5),
+    material=state.material(0,w.ix,w.iz);
+  assert.ok(material>=2);
+  const params={levelId:'level-1',ix:w.ix,iz:w.iz,from:from(state,0,w.stand.ix,w.stand.iz)};
+  const fail=state.strike({...params,requestId:'denied'},1000,()=>false);
+  assert.equal(fail.ok,false);assert.equal(state.excavatedCount,0);
+  let qty=0;
+  const allowed=state.strike({...params,requestId:'recovered'},1000,reward=>{qty+=reward.quantity;return true;});
+  assert.equal(allowed.ok,true);assert.ok(qty>=1&&qty<=2);
+  assert.equal(state.excavatedCount,1);
+  assert.equal(state.strike({...params,requestId:'again'},1000,()=>{throw Error('duplicate')}).ok,false);
+});
