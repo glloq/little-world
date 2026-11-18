@@ -55,6 +55,7 @@ import {
   type Controls,
 } from './player';
 import { buildHamster } from './hamster/hamster.ts';
+import {createMineRhythmHud,type MineRhythmSample} from './ui/activities/mine-rhythm-hud.ts';
 import {createMineHelmet} from './hamster/mine-helmet.ts';
 import { createImpactEffects, type ImpactKind } from './hamster/impact-effects.ts';
 import {createGasEffects} from './hamster/gas-effects.ts';
@@ -482,6 +483,12 @@ world.update(0, player.position);
 const character = buildHamster();
 scene.add(character.group);
 const mineHelmet=createMineHelmet(character.rig.sockets.head);
+let queuedMineStrike:MineRhythmSample|null=null;
+const mineRhythmHud=createMineRhythmHud(document.body,sample=>{
+  if(!started||gameUi?.blocking||!player.space||aboard)return;
+  queuedMineStrike=sample;activityQueue=Math.max(activityQueue,1);
+});
+let nextMineRhythmTargetAt=0;
 const impacts = createImpactEffects(scene);
 const gasEffects=createGasEffects(scene);const gasOrigin=new THREE.Vector3();let gasVisualSeq=0,boostWindActive=false;
 const flightRings=createFlightRings(scene);
@@ -616,7 +623,7 @@ function resetCameraDrag(): void {
 function clearGameplayInput():void{
   keySet.clear();
   rollQueue=0;jumpQueue=0;touchStrokeQueue=0;actionQueue=0;activityQueue=0;cropQueue=0;
-  mobileTouch?.reset();resetCameraDrag();
+  queuedMineStrike=null;mobileTouch?.reset();resetCameraDrag();
 }
 // Switching to any UI panel releases held movement and boost keys immediately.
 gameUi?.controller.onChange(id=>{if(id)clearGameplayInput();});
@@ -644,8 +651,14 @@ window.addEventListener('keydown', (e) => {
   keySet.add(e.code);
   if (e.code === 'Space') jumpQueue++;
   if (e.code === 'KeyX') rollQueue++;
-  if (e.code === 'KeyE') actionQueue++;
-  if (e.code === 'KeyF' && !e.repeat) activityQueue++;
+  if (e.code === 'KeyE'){
+    if(currentTarget()?.targetType==='mine-wall')queuedMineStrike=mineRhythmHud.sample(performance.now());
+    actionQueue++;
+  }
+  if (e.code === 'KeyF' && !e.repeat){
+    queuedMineStrike=mineRhythmHud.sample(performance.now());
+    activityQueue++;
+  }
   if (e.code === 'KeyC') cropQueue++;
   if (e.code === 'KeyR' && started) {
     stopFlightCourse();
@@ -916,15 +929,25 @@ function currentTarget():TargetDescriptor|null{
 }
 /** Digging the wall in front (F, or E when it is the target): validated by the mine. */
 function runDig(){
-  if(!gameplay||!player.space)return;const a=gameplay.activities,forward=forwardOf(),target=a.mineTarget(player.position,player.space,forward),r=a.dig(player.position,player.space,forward);
+  if(!gameplay||!player.space)return;
+  const a=gameplay.activities,forward=forwardOf(),target=a.mineTarget(player.position,player.space,forward);
+  const captured=queuedMineStrike;queuedMineStrike=null;
+  const key=target?`${target.mineId}:${target.level}:${target.ix}:${target.iz}`:null;
+  const accuracy=captured&&captured.key===key?captured.quality:'normal';
+  const r=a.dig(player.position,player.space,forward,accuracy);
   // Audio follows the validated business result (never mesh changes).
   const material=target?MATERIAL_BY_MINE_KEY[MINE_MATERIALS[target.material]?.key]:undefined,context={material,tool:'pickaxe',place:'mine' as const};
   const tool=gameplay.has('tool:pickaxe-steel')?'pickaxe-steel':gameplay.has('tool:pickaxe')?'pickaxe':null;
   onImpact({sound:'mine.tool.strike',context,kind:target?.material===5?'crystal':target?.material===4?'iron':material==='soil'?'soil':'stone',extra:r.ok?['mine.hit']:[]});
   if(!character.play('mine',tool))flushImpact();
-  if(r.ok){audio?.emit('mine.cell.excavated',{context,position:player.position,source:'player'});
-    // A reward is announced by the inventory notification (« +1 Pierre », merged); otherwise say what happened.
-    if(r.message.startsWith('+')/* dig() reports a reward as « +1 item » */){audio?.emit(material==='crystal'?'mine.resource.crystal':'mine.resource.collect',{context,source:'player'});if(material==='crystal')audio?.cue('discovery');}else showInfo(r.message,'success');}
+  if(r.ok){
+    if(!r.partial)audio?.emit('mine.cell.excavated',{context,position:player.position,source:'player'});
+    // The gain notifier displays new loot; do not announce a false cell break.
+    if(r.message.startsWith('+')){
+      audio?.emit(material==='crystal'?'mine.resource.crystal':'mine.resource.collect',{context,source:'player'});
+      if(material==='crystal'&&!r.partial)audio?.cue('discovery');
+    }else if(!r.partial)showInfo(r.message,'success');
+  }
   else{audio?.emit('mine.action.denied',{context,source:'player'});showInfo(r.message,'warning');}
 }
 /** Next action on the plot under the player (F, or E when it is the target): validated by AGRI. */
@@ -1119,6 +1142,18 @@ function draw(now: number) {
   speedStreaks.update(player.velocity.length(),player.mode==='glide',started&&!gameUi?.paused&&gameUi?.preferences.speedEffects!==false&&!gameUi?.preferences.reduceMotion,delta);
   environment.update(delta,player.position,budget.level,!!player.space);
   activityView?.update(delta,player.position,player.space);
+  // Sampling at ~11 Hz avoids per-frame target queries on older PCs.
+  if(now>=nextMineRhythmTargetAt){
+    nextMineRhythmTargetAt=now+90;
+    const preview=started&&!gameUi?.blocking&&player.space&&gameplay
+      ?gameplay.activities.digPreview(player.position,player.space,forwardOf()):null;
+    mineRhythmHud.setTarget(preview?.ok?{
+      key:`${preview.target.mineId}:${preview.target.level}:${preview.target.ix}:${preview.target.iz}`,
+      material:preview.target.material,name:preview.materialName,
+      hitsToReward:preview.hitsToReward,
+    }:null,now);
+  }
+  mineRhythmHud.tick(now);
   {const climateNow=climate.state(worldClock.time),night=nightFactor(climateNow.sunAltitude);world.lights.setEnvironment(night,now/1000);world.setNight(night);world.setWind(.25+.8*climateNow.wind);}
   world.animateBoat(aboard&&fleet.current===playerBoat?boat.speed:0,aboard&&fleet.current===playerBoat?boatSteer:0,delta);
   if(started&&audio){const env=climate.state(worldClock.time),ground=player.space?{}:groundProbe(player.position.x,player.position.z,now),farm=!player.space&&gameplay?.activities.farmNear(player.position);
@@ -1261,7 +1296,7 @@ function draw(now: number) {
   }
   requestAnimationFrame(draw);
 }
-window.addEventListener('pagehide',event=>{if(event.persisted)void audio?.engine.setHidden(true);else {detachPortCollisions?.();ferryView?.dispose();remoteActors?.dispose();mineHelmet.dispose();gasEffects.dispose();flightRings.dispose();flightCourseHud.remove();speedStreaks.dispose();gpuTimer.dispose();void audio?.dispose();}});
+window.addEventListener('pagehide',event=>{if(event.persisted)void audio?.engine.setHidden(true);else {detachPortCollisions?.();ferryView?.dispose();remoteActors?.dispose();mineRhythmHud.dispose();mineHelmet.dispose();gasEffects.dispose();flightRings.dispose();flightCourseHud.remove();speedStreaks.dispose();gpuTimer.dispose();void audio?.dispose();}});
 window.addEventListener('pageshow',event=>{if(event.persisted&&started)void audio?.engine.setHidden(document.hidden);});
 document.addEventListener('visibilitychange', () => {
   presentation.reset();
