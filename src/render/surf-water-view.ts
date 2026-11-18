@@ -33,8 +33,10 @@ export function createSurfWaterView(parent:THREE.Object3D,field:SurfWaveField,
  geo.setAttribute('aEnvelope',new THREE.Float32BufferAttribute(envelopes,1));
  geo.setAttribute('aWet',new THREE.Float32BufferAttribute(wet,1));
  geo.setIndex(indices);
+ geo.computeBoundingBox();
+ if(geo.boundingBox){geo.boundingBox.min.y-=z.amplitude*1.4;geo.boundingBox.max.y+=z.amplitude*1.4;}
  geo.computeBoundingSphere();
- // Expand culling bounds to include vertex-displaced peaks, or skip frustum culling.
+ // Include the wave crest envelope in frustum tests so offscreen water is skipped.
  const material=new THREE.ShaderMaterial({
   uniforms:{uTime:{value:0},uWavelength:{value:z.wavelength},uSpeed:{value:z.speed},
    uAmplitude:{value:z.amplitude},uDirection:{value:new THREE.Vector2(z.dirX,z.dirZ)},
@@ -67,7 +69,7 @@ export function createSurfWaterView(parent:THREE.Object3D,field:SurfWaveField,
   transparent:false,depthWrite:true,side:THREE.DoubleSide
  });
  const mesh=new THREE.Mesh(geo,material);
- mesh.frustumCulled=false;mesh.renderOrder=3;mesh.name='SurfWaterPatch';
+ mesh.frustumCulled=true;mesh.renderOrder=3;mesh.name='SurfWaterPatch';
  parent.add(mesh);
  return {
   mesh,
