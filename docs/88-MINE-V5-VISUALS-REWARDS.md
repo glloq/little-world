@@ -47,47 +47,73 @@ de fragments évoluent dans ce premier lot.
 - **Non inclus** : sauvegarde persistante de l'état équipé, batterie et amélioration
   de puissance/portée du casque.
 
-### M1 — Fragments : correction implémentée
+### M1/M2 — Slider rythmé et extraction progressive : implémentés en V6
 
-Problème antérieur : chaque coup partiel tirait un fragment avec probabilité
-`MineMaterial.fragment`. Une pioche très faible avait donc beaucoup plus de
-chances de donner des ressources supplémentaires.
+Le minage conserve la **même grille 2,5D et les mêmes points de vie** :
+chaque frappe applique les dégâts de la pioche à la cellule visée ; la cellule
+ne disparaît **que lorsque ses PV atteignent zéro**. Aucun mesh ou panneau
+ne décide de la récompense.
 
-Nouvelle règle :
+**Slider temps réel**, compact et sans modal : lorsque le joueur vise une
+paroi, le curseur effectue un aller-retour. La partie centrale est optimale.
+Le matériau définit la durée d'un cycle ainsi que la largeur des zones.
 
-1. Une cellule garde son total de dégâts, existant et sérialisé.
-2. Un **unique tirage déterministe par cellule** est évalué lorsque le cumul
-   atteint **50 %** des points de vie (quelle que soit la puissance de la pioche).
-3. Une cellule peut donner **au maximum une unité supplémentaire** en plus du
-   minerai normal. Jamais une récompense par coup ou par rafraîchissement.
-4. Si le coup final franchit directement les 50 %, le bonus est attribué avec
-   la récolte atomique : si le sac accepte 1 mais pas 2, la récolte de base est
-   acceptée. Si le sac refuse tout, la cellule n'est pas effacée.
-5. Le passage `save -> reload` ne recrée aucun bonus : le seuil ne peut plus être
-   franchi si les dégâts sauvegardés l'ont déjà dépassé.
-6. Les anciennes sauvegardes restent lisibles ; aucun nouveau champ nécessaire.
+| Matière | Période complète | Coups par résultat intermédiaire |
+|---|---:|---:|
+| Terre | 900 ms | 3 |
+| Roche | 1150 ms | 4 |
+| Roche dure | 1480 ms | 5 |
+| Fer | 1680 ms | 4 |
+| Cristal | 1920 ms | 5 |
 
-Les probabilités actuelles restent celles de `MINE_MATERIALS.fragment` :
-pierre 15 %, roche dure 12 %, fer 6 %, cristal 3 %.
+- **F ou E ponctuel** au moment idéal : frappe parfaite à **×1,30 de puissance**.
+  Fenêtre plus large : bonne frappe à **×1,15**.
+- **F maintenu** : creusement automatique conservé, puissance normale ×1 ;
+  le joueur n'a pas besoin de participer au mini-jeu.
+- **Tactile** : bouton *Frapper* sur le slider, même mécanique que le clavier.
+- **Erreur de timing** : puissance normale, pas de pénalité de ressource.
+  La frappe reste valide et compte dans le creusement.
+- Le slider et sa cible sont mis à jour dans le moteur de présentation existant.
+  Environ 11 évaluations de cible/s, simple position CSS du curseur par frame,
+  aucun second rendu 3D.
 
-### M2 — Minage de précision : phase suivante, non implémentée
+**Récompenses** : un résultat est accordé toutes les **3 à 5 frappes
+validées sur la même cellule** avant sa destruction. Le résultat
+est majoritairement **Terre** (`mine:earth`) ou **Pierre**
+(`mine:stone`), en quantité 1 ; ce sont des ressources de déblai.
+Pour le fer et le cristal, le **deuxième** cycle peut exceptionnellement
+fournir une unité du minerai réel, avec une chance améliorée par une
+bonne ou parfaite frappe (fer 5 % de base, cristal 1,2 % de base ;
+multiplicateurs 1,4 et 2,25). Au plus **un bonus rare intermédiaire
+par cellule**, quelle que soit la vitesse de la pioche.
 
-Mini-jeu court et **optionnel**, action maintenue puis relâchée / frappe sur
-un repère de fissure. L'interface ne doit pas attribuer d'objets directement.
-Un score 0–1 produit seulement un multiplicateur de puissance plafonné
-(normal x1, bonne x1,15, excellente x1,30). Le bonus de quantité reste
-indépendamment plafonné par cellule.
+Une cellule entièrement excavée fournit **une seule fois** son minerai
+principal comme avant ; pour la terre, cette ressource principale devient
+`mine:earth`. La progression en PV, l'accessibilité, la portée, la
+détection des chunks et l'occupation restent inchangées.
 
-À prévoir avant code :
-- Politique de rythme : F maintenu = minage standard, appui précis = variante
-  optionnelle sans perte sur erreur.
-- Source d'autorité : validation par `MineState.strike`, à déplacer ensuite
-  sur serveur lors du multijoueur ; idempotence et anti-spam.
-- HUD léger directement sur la paroi, sans modal plein écran, compatible mobile.
-- Benchmark économie : minerai/minute et pièces/minute pour chaque outil,
-  avec et sans mini-jeu ; éviter les fermes à cristaux.
-- Audio et particules sur frappes efficaces : budget borné, pas de nouveaux
-  shaders ou lumières par impact.
+**Persistance et économie**
+
+- `MineState` conserve maintenant `damage` et `hits` (counters acceptés)
+  par `levelId:ix:iz`, tous deux plafonnés à 256 cellules en cours.
+- Les sauvegardes antérieures, sans `hits`, restent lisibles. Les mines
+  partiellement travaillées sont désormais écrites **même quand aucune
+  cellule n'a encore été excavée**.
+- Une demande de frappe (`requestId`) déjà acceptée ne rejoue pas
+  le gain, y compris après rechargement ; elle reste dans la fenêtre
+  de déduplication persistée.
+- Si le sac refuse un gain intermédiaire, ni les dégâts ni le compteur de
+  coups ne sont engagés. Le joueur peut libérer de la place et reprendre.
+- Les valeurs monétaires des débris sont limitées à 1 pièce/unité.
+  Les faibles outils peuvent créer plus de déblais communs car ils
+  nécessitent davantage de coups, mais **pas plus de tirages rares**.
+- Le score de timing est local pour l'instant. En multijoueur, le
+  serveur devra valider les timestamps/rythmes de frappes avant de
+  retenir une précision améliorée.
+
+**Étapes futures** : affichage de fissures correspondant aux dégâts,
+petites particules aux frappes précises, retour visuel « excellent »,
+réglages d'accessibilité et benchmark minerai/minute sur chaque outil.
 
 ## Contrôles avant merge
 
