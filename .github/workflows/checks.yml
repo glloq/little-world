@@ -51,6 +51,8 @@ jobs:
           curl -fsS http://127.0.0.1:5173/little-world/ > /dev/null
       - name: Ferry timetable, map, rowboat and cinematic preview (solo)
         run: node tools/test-ferry-browser.mjs
+      - name: Real ferry journey A to B to A (static Pages, saves and map)
+        run: node tools/test-island-travel-browser.mjs
       - name: Compiled application startup checks
         run: node tools/run-browser-check.mjs published
       - name: Studio browser checks

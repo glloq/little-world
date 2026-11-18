@@ -78,3 +78,12 @@ Code TypeScript + tests unitaires/Browser et rapport de mesures ; docs API et d�
 - **ISL-3 partiel** : calendrier déterministe `ferry-schedule.ts`, avertissement -5 minutes de jeu, navette low-poly locale, marqueur sur la carte et deux signaux procéduraux ; vérifications/unitaires à confirmer par CI.
 - **ISL-2 non livré** : cinématique DOM de **prévisualisation uniquement**, ne remplace pas encore le monde actif. Pas de transfert d'inventaire, snapshots inter-îles ou navigation vers un deuxième monde tant que les contrats de sauvegarde ne sont pas validés.
 - **Invariants inchangés** : jeu statique GitHub Pages, pas de backend, pas de multijoueur, île principale et bateaux pilotables inchangés. Les statuts ci-dessus ne sont pas des preuves de qualification navigateur.
+
+## ISL-2 — implémentation en cours sur feat/archipelago-real-island-travel (18/11/2026)
+
+- Une deuxième île **statique et compilée** est promue depuis la scène auteur V3 `production-reference` existante : chemin de publication `dist/archipelago/worlds/forest-valley`, catalogue `public/archipelago/catalog.json`.
+- Le départ valide les descripteurs du monde cible avant d'écrire une sauvegarde `slot-ferry-auto` isolée par `worldId`, un ticket de transfert temporaire `sessionStorage`, puis lance la cinématique. Le changement de document décharge entièrement le monde précédent.
+- À l'arrivée : overlay de traversée durant le boot, restauration d'un état de monde local autonome, du sac portable, de la progression de propulsion et de l'horloge de jeu ; un objet propre à l'autre monde reste en **escrow**, pas effacé.
+- En cas d'erreur de compilation/chargement : annulation du ticket et retour à l'île source. Les commandes du mode Studio, bêta et tests de cartes ne changent pas.
+- **À qualifier par CI et navigateur réel** : trajet A→B→A, récupération du monde d'origine, absence de doublons, stabilité des sauvegardes et budget RAM. Reste une architecture de **rechargement complet de page**, avant toute future transition intra-scène.
+- **Aucun** système de compte, WebSocket, serveur persistant ou multijoueur n'a été ajouté. Le snapshot forestier est une île de référence **statique**, non une île générée à la demande du visiteur.
