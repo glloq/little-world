@@ -48,8 +48,8 @@ test('roll jump carries its origin and landing impact without corrupting roll ph
  assert.equal(p.jumpOrigin,'roll');assert.equal(p.jumpSeq,1);
  assert.equal(p.mode,'air');
  assert.ok(Math.hypot(p.velocity.x,p.velocity.z)>=speed*.8,'horizontal momentum kept');
- for(let i=0;i<150&&p.mode!=='ground';i++)tick(p,1,{forward:1});
- assert.equal(p.mode,'ground');assert.equal(p.landingSeq,1);
+ for(let i=0;i<150&&(p.landingSeq??0)===0;i++)tick(p,1,{forward:1});
+ assert.equal(p.mode,'roll','fast rolling jump lands in ball mode');assert.equal(p.landingSeq,1);
  assert.ok(p.landingSpeed>0);
 });
 
@@ -233,8 +233,8 @@ test('landing after a rolling jump has a distinct, self-recovering ball contact 
 test('glide and high-speed landings expose contextual visual slide without changing physical braking',()=>{
  const world=new WorldCollisionQuery(()=>0,()=>null);world.setMaterialSampler(()=> 'grass');
  const p=actor();p.mode='glide';p.glideReady=true;p.position.y=.15;p.velocity.set(0,-10,11);
- for(let i=0;i<50&&p.mode!=='ground';i++)simulatePlayer(p,{...keys},1/30,world);
- assert.equal(p.mode,'ground');assert.equal(p.landingKind,'glide');
+ for(let i=0;i<50&&(p.landingSeq??0)===0;i++)simulatePlayer(p,{...keys},1/30,world);
+ assert.equal(p.mode,'roll');assert.equal(p.landingKind,'roll');
  assert.ok(p.landingSpeed>0);
  assert.ok(p.landingSlide>0,'visual recovery based on impact and horizontal speed');
  const grass=actor(),sand=actor();
