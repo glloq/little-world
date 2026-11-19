@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {flatSettlementProject} from '../tools/settlement-fixture.mjs';
+import {createCharacter} from '../src/studio-core/character-authoring.ts';
 import {newSettlement} from '../src/settlements/schema.ts';
 import {localLifeCapabilities} from '../src/npc-life/capabilities.ts';
 import {createResidentAssignmentPlanner} from '../src/npc-life/assignments.ts';
@@ -91,4 +92,13 @@ test('commute must fit inside the workday and does not induce fallback teleporti
   const home=[{id:'farm-house',slot:0,point:{x:0,z:0}}];
   assert.equal(allocator.allocate(makeJob('far-away-field',{x:420,z:0}),home,'farmer'),null);
   assert.equal(allocator.occupancy('farm-house'),0);
+});
+
+test('village generator honors the 100-character budget including its own host',()=>{
+ const p=flatSettlementProject();
+ for(let i=0;i<100;i++)createCharacter(p,{id:'manual:'+i,name:'Existing '+i,x:-300+i*3,z:-300,species:'hamster'});
+ const r={...newSettlement(p.world,'full-village'),radius:150,services:true,localLife:true,residentRoutines:true,cultivation:true,activity:'agriculture'};
+ const plan=planSettlement(p,r);
+ assert.equal(plan.entities.filter(e=>e.kind==='character').length,0);
+ assert.ok(plan.diagnostics.some(d=>d.code==='LIFE_NPC_LIMIT'));
 });

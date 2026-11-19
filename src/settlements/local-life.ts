@@ -18,6 +18,8 @@ export function localLife(p:ProjectDocument,r:SettlementRecipe,amenities:Amenity
   return {entity:structuredClone(oldEntity),record:structuredClone(old),dialogue:p.libraries.dialogues[old.id+'-talk'],preserved:true};
  }
  if(!r.localLife)return null;
+ // Never exceed the existing island-wide character cap, including the greeter.
+ if(!oldEntity&&Object.values(p.entityIndex).filter(v=>v.kind==='character').length>=100)return null;
  const anchor=amenities.find(a=>a.role==='counter')??amenities.find(a=>a.role==='well');if(!anchor)return null;
  const index=localLifeCapabilities(r,buildings,amenities,zones,p);
  const desired:ResidentRole=r.activity==='agriculture'?'farmer':r.activity==='fishing'?'fisher':

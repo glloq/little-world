@@ -62,7 +62,7 @@ export function settlementPopulation(
   }
   if(buildings.length<6)return out;
   const existingPeople=Object.values(p.entityIndex).filter(e=>e.kind==='character').length;
-  const managed=(old?.amenities??[]).filter(a=>(a.role==='resident'||a.role==='host')&&!!p.entityIndex[a.id]).length;
+  const managed=(old?.amenities??[]).filter(a=>a.role==='resident'&&!!p.entityIndex[a.id]).length;
   const hostNew=amenities.some(a=>a.role==='host'&&!p.entityIndex[a.id])?1:0;
   let budget=Math.max(0,100-existingPeople+managed-hostNew);
   const wantedChildren=r.residentDensity==='low'?(buildings.length>=10?1:0):
@@ -81,6 +81,9 @@ export function settlementPopulation(
       const routine=existing.components.Resident;
       if(routine?.homeAnchorId)assignment.reserve(routine.homeAnchorId);
       if(routine?.workAnchorId)assignment.reserveJob(routine.workAnchorId);
+      // The edited resident remains in the world and cannot be counted as
+      // replaceable capacity when enforcing the global 100-character budget.
+      budget=Math.max(0,budget-1);
       return {status:'preserved'};
     }
     if(loc&&!record){out.conflicts.push(id);return {status:'conflict'};}
