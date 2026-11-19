@@ -9,7 +9,7 @@ export interface GroundCoverSample {
   density:number;tallGrass:number;color:number;
 }
 const settings:Partial<Record<Material,{k:number;tall:number}>>={
-  grass:{k:1,tall:.4},'dry-grass':{k:.9,tall:.55},'forest-floor':{k:.45,tall:.2},dirt:{k:.25,tall:.15},mud:{k:.5,tall:.6},
+  grass:{k:1,tall:.36},'dry-grass':{k:.9,tall:.55},'forest-floor':{k:.52,tall:.2},dirt:{k:.25,tall:.15},mud:{k:.5,tall:.6},
 };
 const clamp=(v:number)=>Math.max(0,Math.min(1,v));
 function mix(a:number,b:number,t:number):number {
