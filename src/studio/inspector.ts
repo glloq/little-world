@@ -7,7 +7,7 @@ import {resolveEntity} from '../studio-core/references.ts';
 import {applyTransforms,transformChunkIds,entityTransform,type TransformValue} from '../studio-core/transforms.ts';
 import {layoutUpdates,type LayoutMode} from '../studio-core/selection-layout.ts';
 import {updateCharacter,setCharacterPath,setResidentRoutine} from '../studio-core/character-authoring.ts';
-import {residentDutyShift,RESIDENT_ROLES,type ResidentRole,type ResidentRoutineV1,type ResidentActivityKind} from '../npc-life/schedule.ts';
+import {MAX_RESIDENT_DAILY_STOPS,residentDutyShift,RESIDENT_ROLES,type ResidentRole,type ResidentRoutineV1,type ResidentActivityKind} from '../npc-life/schedule.ts';
 import {residentAnchorChoices,reassignResident,residentActivityChoices,setResidentStudioActivities} from '../npc-life/authoring.ts';
 import {residentRegistry} from '../npc-life/registry.ts';
 import {chunkAt} from '../studio-core/schema.ts';
@@ -208,7 +208,7 @@ function characterSection(ctx:InspectorContext,id:string,owner:string){
     const publicPlaces=residentActivityChoices(p,id);
     if(publicPlaces.length){
       const activities=node('details');
-      activities.append(node('summary','Pauses et rencontres · 3 maximum'),
+      activities.append(node('summary','Pauses et rencontres · '+MAX_RESIDENT_DAILY_STOPS+' maximum'),
         node('p','Chaque étape utilise un lieu public existant. Le trajet aller-retour et les horaires sont vérifiés avant l’enregistrement.','muted'));
       const visits=(resident.activities??[]).map(a=>({
         kind:a.kind as ResidentActivityKind,anchorId:a.anchorId,startHour:a.startHour,endHour:a.endHour,
@@ -230,7 +230,7 @@ function characterSection(ctx:InspectorContext,id:string,owner:string){
       };
       draw();
       activities.append(rows,button('Ajouter une étape',()=>{
-        if(visits.length>=3)return;
+        if(visits.length>=MAX_RESIDENT_DAILY_STOPS)return;
         const after=visits.length?Math.max(...visits.map(v=>v.endHour))+.5:Math.max(start+1,11);
         visits.push({kind:'social',anchorId:publicPlaces[0].id,startHour:Math.min(22,after),endHour:Math.min(23,after+1)});
         draw();
