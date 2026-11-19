@@ -60,3 +60,14 @@ test('Q3 refuses premature claims: director only prepares a ready state',()=>{
  state=result.instance;
  assert.equal(advanceQuest(state,event('visit:1','location.visited',{targetId:'zone:harbor',distanceM:3})).reason,'duplicate');
 });
+
+test('Q2 trade-acquisition quests count successful purchases, not sales or NPC gestures',()=>{
+ const catalog={...offer,steps:[{kind:'acquire',itemId:'acorn',quantity:2,source:'trade'}],
+  rewards:[]};
+ const state=acceptQuest(catalog,'instance:trade',1);
+ assert.equal(advanceQuest(state,event('sell:1','market.traded',{itemId:'acorn',quantity:2,source:'sell'})).applied,false);
+ assert.equal(advanceQuest(state,event('gesture:1','npc.fell',{itemId:'acorn',quantity:2})).applied,false);
+ const purchased=advanceQuest(state,event('buy:1','market.traded',{itemId:'acorn',quantity:2,source:'buy'}));
+ assert.equal(purchased.applied,true);
+ assert.equal(purchased.instance.status,'ready');
+});
