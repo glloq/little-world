@@ -1,4 +1,6 @@
 import {finite,identifier,record,stateValue,type ObjectiveStatus,type Point3,type StateValue} from './schema.ts';
+import {parseQuestInstance} from '../quests/validation.ts';
+import type {QuestInstanceV1} from '../quests/schema.ts';
 import {parseMineSave,type MineSaveState} from '../mine/mine-state.ts';
 import {parsePlotState,type FarmPlotState} from '../farm/farm-sim.ts';
 import {parseGatherSave} from './gathering.ts';
@@ -17,6 +19,8 @@ export interface GameSaveV2 extends Omit<GameSaveV1,'schemaVersion'> {schemaVers
   /** Gathered natural elements not grown back yet (optional, World Production gameplay). */gathering?:import('./gathering.ts').GatherSave;
   /** Per-station workshop queues and finished products; missing in older V2 saves. */workshops?:Record<string,WorkshopStateV1>;
   /** Per-counter budgets, physical stock and applied transaction IDs. */markets?:Record<string,MarketStateV1>;
+  /** Optional native QuestDirector state; old V1/V2 slots remain valid. */
+  questsLocal?:Record<string,QuestInstanceV1>;
   /** Last imported purchase acknowledged by this world's atomic inventory save. */
   cargoPurchaseRevision?:number;
   /** Optional hand slot; old V1/V2 saves continue to load without it. */equippedItemId?:string|null;
@@ -64,6 +68,15 @@ export function parseGameSave(value:unknown):GameSaveV2 {
       markets[shopId]=state;
     }
   }
+  const questsLocal:Record<string,QuestInstanceV1>={};
+  if(v.questsLocal!==undefined){
+    assert(record(v.questsLocal)&&Object.keys(v.questsLocal).length<=64,'Quêtes de sauvegarde invalides');
+    for(const [id,raw] of Object.entries(v.questsLocal as object)){
+      const quest=parseQuestInstance(raw);
+      assert(identifier(id)&&quest.instanceId===id,'Identité de quête incohérente');
+      questsLocal[id]=quest;
+    }
+  }
   if(v.cargoPurchaseRevision!==undefined)
     assert(Number.isSafeInteger(v.cargoPurchaseRevision)&&finite(v.cargoPurchaseRevision,0,1_000_000_000),
       'Révision du carnet d’import invalide');
@@ -77,7 +90,7 @@ export function parseGameSave(value:unknown):GameSaveV2 {
   if(v.boostRechargeProgress!==undefined)assert(finite(v.boostRechargeProgress,0,1),'Progression de recharge invalide');
   if(v.external!==undefined)assert(record(v.external)&&typeof v.external.key==='string'&&v.external.key.length<=300&&finite(v.external.bytes,0,1e9),'Référence de données de partie invalide');
   assert(new TextEncoder().encode(JSON.stringify({...v,mines:undefined,farms:undefined,workshops:undefined,markets:undefined})).byteLength<=2_000_000,'Sauvegarde trop volumineuse');
-  return structuredClone({...v,flightProgress,gasReserve:Math.min(gasCapacity({}),typeof v.gasReserve==='number'?v.gasReserve:GAS.legacyInitial),satiety:v.satiety??100,boostRechargeProgress:v.boostRechargeProgress??0,schemaVersion:2,dialogueFlags:v.dialogueFlags??{},space:v.space??null,mines,farms,workshops,markets,cargoPurchaseRevision:v.cargoPurchaseRevision??0,...(loadout!==undefined?{loadout}:{}),...(surfBoard!==undefined?{surfBoard}:{})}) as unknown as GameSaveV2;
+  return structuredClone({...v,...(v.questsLocal!==undefined?{questsLocal}:{}),flightProgress,gasReserve:Math.min(gasCapacity({}),typeof v.gasReserve==='number'?v.gasReserve:GAS.legacyInitial),satiety:v.satiety??100,boostRechargeProgress:v.boostRechargeProgress??0,schemaVersion:2,dialogueFlags:v.dialogueFlags??{},space:v.space??null,mines,farms,workshops,markets,cargoPurchaseRevision:v.cargoPurchaseRevision??0,...(loadout!==undefined?{loadout}:{}),...(surfBoard!==undefined?{surfBoard}:{})}) as unknown as GameSaveV2;
 }
 export const GAME_SAVE_PREFIX='little-world:game-save:v1:';
 export interface SaveStorage {readonly length:number;key(index:number):string|null;getItem(key:string):string|null;setItem(key:string,value:string):void;removeItem(key:string):void;}
