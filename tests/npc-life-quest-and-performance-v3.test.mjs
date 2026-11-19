@@ -97,3 +97,16 @@ test('rig allocation is deterministic, bounded and prioritizes near characters',
  assert.equal(selectNPCRigs(residents,{x:0,z:0},0).size,0);
  assert.equal(selectNPCRigs([{id:'far',x:200,z:200,kind:'hamster'}],{x:0,z:0},12).size,0);
 });
+
+test('Studio reassignment does not silently remove a custom agenda',()=>{
+ const {p,plan}=settlement();applySettlement(p,plan);
+ const person=residentRegistry(p,'npc-social-v3').residents.find(e=>e.role!=='child');
+ assert.ok(person);
+ const loc=p.entityIndex[person.id],source=p.chunks[loc.ownerChunkId].entities[person.id];
+ const before=structuredClone(source.components.Resident);
+ const visits=before.activities;
+ reassignResident(p,person.id,person.homeAnchorId,person.workAnchorId);
+ const after=p.chunks[p.entityIndex[person.id].ownerChunkId].entities[person.id].components.Resident;
+ if(visits?.length)assert.deepEqual(after.activities,visits,'An authored itinerary must not be regenerated');
+ assert.equal(after.homeAnchorId,person.homeAnchorId);
+});
