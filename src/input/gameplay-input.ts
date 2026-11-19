@@ -23,6 +23,6 @@ export function flightBoostHeld(mode:string,shiftHeld:boolean,touchAccelerateHel
 /** Only an active camera drag requests vertical flight. Releasing it restores auto-trim.
  * The camera's neutral pitch offset is already removed by the caller. */
 export function flightPitchIntent(mode:string,aiming:boolean,cameraPitch:number):number{
-  if(mode!=='glide'||!aiming||!Number.isFinite(cameraPitch))return 0;
+  if(mode!=='glide'||!aiming||!Number.isFinite(cameraPitch)||cameraPitch===0)return 0;
   return Math.max(-1,Math.min(1,-cameraPitch/.77));
 }
