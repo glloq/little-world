@@ -154,20 +154,14 @@ export function setResidentStudioActivities(p:ProjectDocument,id:string,
  if(!validResidentRoutine(amended))throw Error('Horaires ou activités incompatibles');
  const routes=createResidentStudioPlanner(p),commute=routes.routeBetween(routine.home,routine.work);
  if(!commute)throw Error('Domicile et travail non reliés');
- const [start,end]=residentDutyShift(amended),dayLength=1200,speed=1.1;
- const hours=(distance:number)=>distance/speed/dayLength*24;
- const commuteHours=hours(commute.length);
- if(commuteHours>(end-start)/2)throw Error('Trajet domicile/travail trop long');
- let previous=start+commuteHours;
- for(const activity of resolved){
-  const outward=routes.routeBetween(routine.work,activity.point);
+ const legs=resolved.map(activity=>{
+  const to=routes.routeBetween(routine.work,activity.point);
   const back=routes.routeBetween(activity.point,routine.work);
-  if(!outward||!back)throw Error('Lieu non accessible à pied : '+activity.anchorId);
-  if(activity.startHour-hours(outward.length)<previous+.001||
-     activity.endHour+hours(back.length)>end-.001)
-   throw Error('Déplacement impossible dans les horaires : '+activity.anchorId);
-  previous=activity.endHour+hours(back.length);
- }
+  if(!to||!back)throw Error('Lieu non accessible à pied : '+activity.anchorId);
+  return {to,back};
+ });
+ const issue=validateResidentAgendaRoutes(amended,{work:commute,activities:legs},1200,1.1);
+ if(issue)throw Error(issue);
  const next=structuredClone(source);
  next.components.Resident=amended;
  putEntity(p,next);
