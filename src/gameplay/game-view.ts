@@ -152,8 +152,10 @@ export function createGameplayView(data:GameplayData,options:Options){
   runtime,collision,activities,slots,compose,gathering,trees,fishing,trade,sellBatch,nearbyShop,workshops,markets,purse,itemName,has,equipment,
   openDoorForNPC(doorId:string,duration=2):boolean{
    if(!runtime.state.entities[doorId]||!models.has(doorId)||!Number.isFinite(duration)||duration<=0||duration>5)return false;
+   const before=npcDoorOpen(doorId);
    npcDoorUntil.set(doorId,Math.max(npcDoorUntil.get(doorId)??0,runtime.state.time+duration));
-   sync();return true;
+   if(!before)sync();
+   return true;
   },
   get cargoPurchaseRevision(){return cargoPurchaseRevision;},
   acknowledgeCargoPurchase(revision:number){
@@ -177,8 +179,10 @@ export function createGameplayView(data:GameplayData,options:Options){
   update(dt:number){
    if(disposed)return;runtime.state.playerPosition={...options.getPosition()};for(const npc of npcs)if(entityIds.has(npc.definition.id)){runtime.setEntityPosition(npc.definition.id,{x:npc.x,y:npc.y,z:npc.z});if(targetById.has(npc.definition.id))targetIndex.set(npc.definition.id,{x:npc.x,z:npc.z});const body=collisionDefinitions.get(npc.definition.id);if(body)collision.moveBody(body.id,{x:npc.x+body.position.x-body.groundAnchor.x,y:npc.y+body.position.y,z:npc.z+body.position.z-body.groundAnchor.z});}
    runtime.update(dt);
-   for(const [id,until] of npcDoorUntil)if(until<=runtime.state.time)npcDoorUntil.delete(id);
-   sync();workshops.advanceDue();for(const effect of runtime.drainEffects()){
+   let doorExpired=false;
+   for(const [id,until] of npcDoorUntil)if(until<=runtime.state.time){npcDoorUntil.delete(id);doorExpired=true;}
+   if(doorExpired)sync();
+   workshops.advanceDue();for(const effect of runtime.drainEffects()){
     if(effect.type==='showText')options.showInfo(effect.text);
     else if(effect.type==='playSound')options.onSound?.(effect.soundId,effect.entityId?runtime.data.entities.find(e=>e.id===effect.entityId)?.position:undefined);
     else if(effect.type==='startDialogue'){
