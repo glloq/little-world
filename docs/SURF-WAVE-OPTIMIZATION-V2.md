@@ -454,3 +454,40 @@ logiciel : seules les tendances relatives comptent), parcours identique, qualit�
 
 Captures : `tiles-zone-aerial.jpg`, `tiles-overview.jpg`, `tiles-side-view.jpg`. Qualification iGPU
 toujours **NOT_VERIFIED**. Rapport : `docs/perf/surf-browser-tiles-swiftshader.json`, `surf-cpu-tiles.json`.
+
+## 22. Surf arcade : vagues plus hautes, prise facile, saut, boost, bateau et poissons
+
+Retour de jeu : la vague allait trop vite pour le hamster, elle était difficile à prendre et peu
+amusante. Refonte du contrôleur (`src/surf/surf-controller.ts`), dans l'esprit des anciens jeux de surf
+low-poly. Pas de physique de fluide, toujours pur, déterministe et à 30 Hz.
+
+- **Vagues** : plus hautes, plus longues et plus lentes que la planche (île A 1,1 m / 34 m / 4 m/s,
+  B 2 m / 46 m / 5,2 m/s, C 1,8 m / 40 m / 5,6 m/s ; démo 1,6 m / 40 m / 5 m/s ; préréglages Studio
+  recalés). Longueurs d'onde plus grandes ⇒ moins de triangles.
+- **Prise de vague** : la rame est volontairement plus lente que la houle (3,2 m/s), donc la vague arrive
+  toujours vite ; il suffit de ramer vers la plage (Z) : partout sauf sur le haut de l'arrière d'une
+  crête, la planche « décolle » à la vitesse de la vague (aucun seuil de vitesse).
+- **Verrouillage sur la face** : la vitesse dans le sens de la vague revient vers celle de la houle,
+  plus vite en haut de face et plus lentement devant, d'où un équilibre aux deux tiers de la face ; dans
+  un creux, la planche attend la face suivante. Détection de face par la montée de l'eau (indépendante
+  de l'enveloppe de zone).
+- **Glisse le long de la vague** : Q/D orientent la planche (angle borné à ~95° : maintenir une touche
+  file le long de la vague au lieu de repartir vers le large) ; la pente nourrit la vitesse (6 à 15 m/s).
+  **S** quitte la vague volontairement ; plus aucune perte silencieuse.
+- **Espace** : saut partout sur la vague, aussi pendant la rame (4,2 m/s) ; en glisse, grand saut
+  (+ bonus sur la lèvre) ; un peu de contrôle en l'air ; réception tolérante (14 m/s).
+- **Shift** : mêmes impulsions de gaz que la nage/le vol (réserve, coût, recharge) ; l'excès de vitesse
+  se dissipe lentement. La jauge « Boosts » s'affiche en surf.
+- **Bateau** (`src/surf/boat-swell.ts`) : dans une zone de surf, la coque prend la hauteur et la pente
+  de la houle (tangage/roulis), une face raide la pousse un peu vers la plage, jamais vers des
+  hauts-fonds non navigables ; les bateaux laissés dans une zone flottent aussi. Correction : les vagues
+  ne se figent plus quand on est à bord (le tick de simulation avance) ; le bateau de départ n'est plus
+  placé dans un couloir de surf.
+- **Poissons** (`ecology.ts`) : ils restent sous la surface mobile des vagues et se cachent là où il
+  faudrait plonger trop bas : plus de poisson dans le vide d'un creux.
+
+Validation : `tests/surf-arcade.test.mjs` (prise en ≤ 5 s depuis tout départ, > 50 % du temps sur la
+face, > 80 m le long de la vague, saut en rame et en glisse, boost borné et déterministe, braquage
+borné et sortie volontaire), `tests/surf-boat-fauna.test.mjs` ; partie scriptée sur la plage B en
+navigateur : saut pendant la rame, vague prise en 0,3 s, glisse jusqu'à 56 km/h avec 5 boosts.
+Limite : le collider d'un bateau laissé dans une zone de surf reste à sa hauteur de départ.

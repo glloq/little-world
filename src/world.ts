@@ -103,6 +103,8 @@ export interface WorldView {
   /** Reserve near-sea quads for a local GPU surf patch, without affecting physical water. */
   setSurfArea(area:{minX:number;maxX:number;minZ:number;maxZ:number}|null):void;
   setSurfAreas(areas:readonly {minX:number;maxX:number;minZ:number;maxZ:number}[]):void;
+  /** Moving surf water height for decorative fauna (null outside surf zones). */
+  setSurfWater(sampler:((x:number,z:number)=>number|null)|null):void;
   refreshWater:()=>string[];
   refreshPaths:(paths: PathDefinition[])=>string[];
   /** E10 — local lights: fixed pool of real point lights + halos (budgeted selection). */
@@ -868,6 +870,7 @@ export function buildWorld(
     horizon: horizon.stats,
     setSurfArea(area){horizon.setSurfArea(area);},
     setSurfAreas(areas){horizon.setSurfAreas(areas);},
+    setSurfWater(sampler){ecology.setWaterSurface(sampler);},
     terrainWork: terrainView.work,
     placed,
     natural,

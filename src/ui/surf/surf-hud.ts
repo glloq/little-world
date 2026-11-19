@@ -11,9 +11,9 @@ export function surfHudText(state:SurfHudState):string{
  if(state.tubeActive)return 'SURF · Dans le tube · '+speed+' km/h · Ressortez avant la fermeture !';
  if(state.tumbleActive)return 'SURF · Déferlante · '+speed+' km/h · Roulade dans la vague · Plonger pour sortir du courant';
  if(state.stage==='air')return 'SURF · Saut · '+speed+' km/h · Préparez la réception';
- if(state.stage==='paddle')return 'SURF · Rame · '+speed+' km/h · Z / Shift : avancer · B : ranger';
+ if(state.stage==='paddle')return 'SURF · Rame · '+speed+' km/h · Z : ramer vers la plage, la vague vous emporte · Shift : boost · Espace : saut · B : ranger';
  if(state.stage==='ride'){
-   const crest=state.crest!==null&&state.crest>.72?'Crête : Espace pour sauter':state.crest!==null&&state.crest<.35?'Creux : conservez votre vitesse':'Virage : Q/D · Frein : Ctrl';
+   const crest=state.crest!==null&&state.crest>.72?'Crête : Espace pour un grand saut':state.crest!==null&&state.crest<.35?'Creux : la prochaine face arrive, Shift pour booster':'Q/D : glisser le long de la vague · Shift : boost · S : sortir de la vague';
    return 'SURF · Glisse · '+speed+' km/h · '+crest;
  }
  return '';

@@ -14,6 +14,8 @@ export interface BoatState {
   z: number;
   heading: number;
   speed: number;
+  /** Surf swell normal under the hull (presentation tilt only); absent on flat water. */
+  waveNormal?: { x: number; y: number; z: number };
 }
 export interface BoatInput {
   throttle: number; // -1..1

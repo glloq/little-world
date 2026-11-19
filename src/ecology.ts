@@ -209,8 +209,13 @@ export function createEcology(
       }
   }
   let detail = 0;
+  let waterSurfaceAt: ((x: number, z: number) => number | null) | null = null;
   return {
     stats,
+    /** Surf swells (presentation height at the current tick): fish stay under the troughs. */
+    setWaterSurface(sampler: ((x: number, z: number) => number | null) | null) {
+      waterSurfaceAt = sampler;
+    },
     setDetail(level: number) {
       detail = level;
     },
@@ -242,13 +247,21 @@ export function createEcology(
           for (const site of sector.sites) {
             if (site.kind !== mesh.name) continue;
             const p = creaturePosition(site, time);
+            let hidden = false;
+            if (site.kind === 'fish' && waterSurfaceAt) {
+              const under = fishUnderSurface(p.y, site.y, waterSurfaceAt(p.x, p.z));
+              p.y = under.y; hidden = under.hidden;
+            }
             dummy.position.set(p.x, p.y, p.z);
             dummy.rotation.set(
               0,
               -(site.phase + time * (site.kind === 'bird' ? 0.35 : 0.75)),
               site.kind === 'fish' ? 0 : Math.sin(time * 8 + site.phase) * 0.2,
             );
-            if (site.kind === 'fish') dummy.scale.set(0.32, 0.12, 0.65);
+            if (site.kind === 'fish') {
+              if (hidden) dummy.scale.set(0, 0, 0);
+              else dummy.scale.set(0.32, 0.12, 0.65);
+            }
             else if (site.kind === 'bird')
               dummy.scale.set(
                 0.9,
@@ -317,4 +330,12 @@ function flowerGeometry(): THREE.BufferGeometry {
   const merged = mergeGeometries([stem, cup, heart], false)!;
   merged.computeVertexNormals();
   return merged;
+}
+
+/** A surf trough can drop below a fish's static depth: the fish swims under the moving surface,
+ * and hides where it would have to dive far below its habitat (never a fish in the air). */
+export function fishUnderSurface(y: number, siteY: number, surface: number | null): { y: number; hidden: boolean } {
+  if (surface === null || y <= surface - 0.35) return { y, hidden: false };
+  const lowered = surface - 0.35;
+  return { y: lowered, hidden: lowered < siteY - 2.5 };
 }

@@ -22,6 +22,7 @@ export interface FleetBoat {
 /** Forward axis of the boat models: rowboat long along X, sailboat along Z. */
 export const BOAT_MODEL_YAW: Record<string, number> = { 'boat.rowboat_wood': -Math.PI / 2 };
 const yawOf = (q: THREE.Quaternion) => 2 * Math.atan2(q.y, q.w);
+const UP = new THREE.Vector3(0, 1, 0), normal = new THREE.Vector3(), yawQ = new THREE.Quaternion(), tiltQ = new THREE.Quaternion();
 
 export function createFleet(collision: WorldCollisionQuery | null) {
   const boats: FleetBoat[] = [];
@@ -61,7 +62,12 @@ export function createFleet(collision: WorldCollisionQuery | null) {
     /** Model of a boat follows its state (bobbing on the water). */
     sync(b: FleetBoat, elapsed: number) {
       b.object.position.set(b.state.x, b.state.y + b.yOffset + Math.sin(elapsed * 1.7 + b.state.x * .1) * .055, b.state.z);
-      b.object.rotation.set(0, b.state.heading + b.yaw, 0);
+      const n = b.state.waveNormal;
+      if (!n) { b.object.rotation.set(0, b.state.heading + b.yaw, 0); return; }
+      // On a surf swell the hull follows the wave slope (pitch and roll), heading unchanged.
+      yawQ.setFromAxisAngle(UP, b.state.heading + b.yaw);
+      tiltQ.setFromUnitVectors(UP, normal.set(n.x, n.y, n.z).normalize());
+      b.object.quaternion.copy(tiltQ).multiply(yawQ);
     },
   };
 }

@@ -89,7 +89,7 @@ export function findCoastalSurfSites(height:(x:number,z:number)=>number,
       maxX:Math.max(first.x,last.x)+Math.abs(tx)*chosenWidth/2,
       minZ:Math.min(first.z,last.z)-Math.abs(tz)*chosenWidth/2,
       maxZ:Math.max(first.z,last.z)+Math.abs(tz)*chosenWidth/2,
-      dirX:-d.x,dirZ:-d.z,seaLevel,amplitude:1.25,wavelength:31,speed:6.2,
+      dirX:-d.x,dirZ:-d.z,seaLevel,amplitude:1.6,wavelength:40,speed:5,
       seed,shoreFadeDepth:3,edgeFade:9,barrelStrength:1
      };
      if(!inside(bounds,zone.minX,zone.minZ,2)||
