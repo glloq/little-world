@@ -12,6 +12,8 @@ import {createGameplay} from './runtime.ts';
 import {GAS} from '../physics/gas-propulsion.ts';
 import {newFlightProgress,type FlightProgress} from './flight-progress.ts';
 import {gameplayDialogueSession} from './dialogue-session.ts';
+import {createQuestDirector} from '../quests/director.ts';
+import type {QuestCatalogEntryV1} from '../quests/schema.ts';
 import {createGameSaveStore,scopedSaveStorage,parseGameSave,type GameSaveV2} from './save.ts';
 import {createActivityRuntime} from './activity-runtime.ts';
 import {COIN,STARTING_COINS,STARTING_KIT,type ShopKind} from './economy.ts';
@@ -30,7 +32,7 @@ import type {MovementSpace} from '../physics/collision-world.ts';
 import type {GameplayData,GameplayEntity,Point3} from './schema.ts';
 import type {SurfBoardPlacement} from '../surf/board-placement.ts';
 
-interface Options {surfStarter?:boolean;islandId?:string;gathering?:Omit<GatherDeps,'time'|'grant'|'has'>;onSound?:(id:string,position?:{x:number;y:number;z:number})=>void;collisions?:CollisionDefinition[];temporary:boolean;saveScope?:string;getPosition:()=>Point3;setPosition:(p:Point3,space?:MovementSpace|null)=>void;activities?:PlayableActivities;getSpace?:()=>MovementSpace|undefined;getGas?:()=>number;setGas?:(value:number,satiety?:number,recharge?:number)=>void;getSatiety?:()=>number;getRechargeProgress?:()=>number;getSurfBoard?:()=>SurfBoardPlacement|null;setSurfBoard?:(board:SurfBoardPlacement|null)=>void;getGasProgress?:()=>FlightProgress;setGasProgress?:(value:FlightProgress)=>void;showInfo:(text:string)=>void;objects:THREE.Group;onNpcMoveTo?:(id:string,position:Point3)=>boolean;onNpcStartDialogue?:(id:string)=>boolean}
+interface Options {questCatalog?:readonly QuestCatalogEntryV1[];surfStarter?:boolean;islandId?:string;gathering?:Omit<GatherDeps,'time'|'grant'|'has'>;onSound?:(id:string,position?:{x:number;y:number;z:number})=>void;collisions?:CollisionDefinition[];temporary:boolean;saveScope?:string;getPosition:()=>Point3;setPosition:(p:Point3,space?:MovementSpace|null)=>void;activities?:PlayableActivities;getSpace?:()=>MovementSpace|undefined;getGas?:()=>number;setGas?:(value:number,satiety?:number,recharge?:number)=>void;getSatiety?:()=>number;getRechargeProgress?:()=>number;getSurfBoard?:()=>SurfBoardPlacement|null;setSurfBoard?:(board:SurfBoardPlacement|null)=>void;getGasProgress?:()=>FlightProgress;setGasProgress?:(value:FlightProgress)=>void;showInfo:(text:string)=>void;objects:THREE.Group;onNpcMoveTo?:(id:string,position:Point3)=>boolean;onNpcStartDialogue?:(id:string)=>boolean}
 /** Interactive object near the player, usable or not (the reason comes from the runtime state). */
 export interface ObjectTarget {entity:GameplayEntity;name:string;prompt:string;range:number;usable:boolean;reason?:string;distance:number}
 /** Gameplay controller of a playable world: logical runtime, collisions, activities, save
@@ -43,6 +45,10 @@ export function createGameplayView(data:GameplayData,options:Options){
  const sharedItems=[...MINE_ITEMS,...FARM_ITEMS,...PRODUCTION_ITEMS,...INSTRUMENT_ITEMS,...SURF_ITEMS];
  const runtime=createGameplay({...data,items:[...data.items,...sharedItems.filter(i=>!existing.has(i.id))]}),
    slots=createGameSaveStore(options.temporary?scopedSaveStorage(sessionStorage,options.saveScope??'test'):undefined);
+ const quests=createQuestDirector(options.questCatalog??[],{
+   islandId:options.islandId??data.worldId,maxActive:3,
+ });
+ let questEventSequence=0;
  const collisionDefinitions=new Map((options.collisions??[]).map(d=>[d.id,d]));
  // Transient resident door openings are never serialized into the player's save.
  const npcDoors=createResidentDoorOpenings(()=>runtime.state.time);
@@ -112,7 +118,8 @@ export function createGameplayView(data:GameplayData,options:Options){
    return markets.sellBatch(kind,counterId??'legacy:'+kind,lines,undefined,expectedRevision);
  }
  let equippedHands:string|null=null;
- const compose=(slotId:string):GameSaveV2=>({...runtime.save(slotId,options.getPosition()),equippedItemId:equipment.hands,loadout:{...playerLoadout,head:equipment.head,favorites:equipment.favorites?[...equipment.favorites]:null},space:options.getSpace?.()??null,gasReserve:options.getGas?.()??GAS.initial,satiety:options.getSatiety?.()??100,boostRechargeProgress:options.getRechargeProgress?.()??0,flightProgress:options.getGasProgress?.()??newFlightProgress(),...activities.serialize(),
+ const compose=(slotId:string):GameSaveV2=>({...runtime.save(slotId,options.getPosition()),
+    ...(Object.keys(quests.serialize()).length?{questsLocal:quests.serialize(),questEventSequence}:{}),equippedItemId:equipment.hands,loadout:{...playerLoadout,head:equipment.head,favorites:equipment.favorites?[...equipment.favorites]:null},space:options.getSpace?.()??null,gasReserve:options.getGas?.()??GAS.initial,satiety:options.getSatiety?.()??100,boostRechargeProgress:options.getRechargeProgress?.()??0,flightProgress:options.getGasProgress?.()??newFlightProgress(),...activities.serialize(),
     workshops:workshops.serialize(),markets:markets.serialize(),cargoPurchaseRevision,surfBoard:options.getSurfBoard?.()??null,
     ...(gathering?{gathering:gathering.serialize()}:{})});
  let npcs:readonly NPCState[]=[],version=-1,disposed=false;
@@ -158,7 +165,7 @@ export function createGameplayView(data:GameplayData,options:Options){
  }
  sync();
  return {
-  runtime,collision,activities,slots,compose,gathering,trees,fishing,trade,sellBatch,nearbyShop,workshops,markets,purse,itemName,has,equipment,
+  runtime,collision,activities,slots,compose,gathering,trees,fishing,trade,sellBatch,nearbyShop,workshops,markets,purse,itemName,has,equipment,quests,
   get navigationRevision(){return navigationRevisions.revision;},
   openDoorForNPC(doorId:string,duration=2):boolean{
    if(!runtime.state.entities[doorId]||!models.has(doorId)||!Number.isFinite(duration)||duration<=0||duration>5)return false;
@@ -173,6 +180,7 @@ export function createGameplayView(data:GameplayData,options:Options){
   },
   /** Restores a validated save into the runtime and the activities; returns the warnings. */
   restore(save:GameSaveV2){npcDoors.clear();const warnings=[...runtime.restore(save),...activities.restore(save)];
+    quests.restore(save.questsLocal??{});questEventSequence=save.questEventSequence??0;
     // Upgrade old island saves with one temporary starter board, without removing other goods.
     if(options.surfStarter&&!has(SURFBOARD_ID))runtime.grantItems([{itemId:SURFBOARD_ID,quantity:1}]);
     equippedHands=save.equippedItemId&&canEquip(save.equippedItemId)?save.equippedItemId:null;playerLoadout=save.loadout?parsePlayerLoadout(save.loadout):emptyPlayerLoadout();if(playerLoadout.head!=='tool:miners-helmet'||!has('tool:miners-helmet'))playerLoadout.head=null;playerLoadout.back=null;playerLoadout.feet=null;workshops.restore(save.workshops??{});markets.restore(save.markets??{});cargoPurchaseRevision=save.cargoPurchaseRevision??0;gathering?.restore(save.gathering??null);options.setPosition(save.position,save.space??null);options.setGasProgress?.(save.flightProgress??newFlightProgress());options.setGas?.(save.gasReserve??GAS.legacyInitial,save.satiety,save.boostRechargeProgress);options.setSurfBoard?.(save.surfBoard??null);sync();version=-1;for(const l of listeners)l();return warnings;},
@@ -181,7 +189,17 @@ export function createGameplayView(data:GameplayData,options:Options){
   temporary:options.temporary,describe,
   /** Called after any validated state change (inventory, objectives, entity states). */
   subscribe(listener:()=>void){listeners.add(listener);return ()=>listeners.delete(listener);},
-  dialogueSession:(state:NPCState)=>gameplayDialogueSession(runtime,state.definition.id),attachNPCs(states:readonly NPCState[]){npcs=states;},
+  dialogueSession:(state:NPCState)=>gameplayDialogueSession(runtime,state.definition.id,(actorId,_dialogueId,_choiceId)=>{
+    // This callback is invoked ONLY after the native dialogue transaction succeeds.
+    // Event sequence is stored alongside quest progress in the same V2 slot.
+    if(questEventSequence>=1_000_000_000)return;
+    const changed=quests.consume({schemaVersion:1,eventId:'quest:dialogue:'+ ++questEventSequence,
+      type:'npc.talked',worldId:data.worldId,islandId:options.islandId??data.worldId,
+      gameMinute:Math.floor(runtime.state.time/runtime.climate.definition.dayLengthSeconds*1440),
+      sequence:questEventSequence,targetId:actorId,
+      ...(state.definition.routine?{source:state.definition.routine.role}:{})});
+    if(changed.length)for(const listener of listeners)listener();
+  }),attachNPCs(states:readonly NPCState[]){npcs=states;},
   prompt(position:Point3){runtime.state.playerPosition={...position};const target=describe(position);return target?.usable?'[E] '+target.prompt:null;},
   interact(position:Point3){runtime.state.playerPosition={...position};const target=describe(position);return target?.usable?runtime.interact(target.entity.id,position):false;},
   update(dt:number){
