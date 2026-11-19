@@ -20,7 +20,7 @@ import type {QuestCatalogEntryV1} from '../quests/schema.ts';
 import {createGameSaveStore,scopedSaveStorage,parseGameSave,type GameSaveV2} from './save.ts';
 import {createActivityRuntime} from './activity-runtime.ts';
 import {COIN,STARTING_COINS,STARTING_KIT,type ShopKind} from './economy.ts';
-import {PRODUCTION_ITEMS} from '../economy/starter-catalog.ts';
+import {PRODUCTION_ITEMS,STARTER_RECIPES} from '../economy/starter-catalog.ts';
 import {MINE_ITEMS} from '../mine/mine-data.ts';
 import {INSTRUMENT_ITEMS} from '../instruments/definitions.ts';
 import {SURF_ITEMS,SURFBOARD_ID} from '../surf/surf-items.ts';
@@ -259,6 +259,34 @@ export function createGameplayView(data:GameplayData,options:Options){
     for(const listener of listeners)listener();
     return {ok:true as const,reason:'applied',unitPrice:unit};
   }
+  /** Compact dialogue choices, sourced from actual ingredients, owned
+   * artisan stock, native recipe fees and existing island unit prices.
+   */
+  function npcWorkshopChoices(id:string){
+    const account=npcEconomy.account(id);
+    if(!account||!npcWorkshopNear(id))return [];
+    const station=account.save().workshop.stationType,stock=account.inventory();
+    const recipes=STARTER_RECIPES.filter(r=>r.stationType===station)
+      .sort((a,b)=>a.recipeId.localeCompare(b.recipeId));
+    const recipe=recipes[0];
+    const actions:{text:string;run:()=>{ok:boolean;reason:string}}[]=[];
+    if(recipe)for(const input of [...recipe.inputs,
+      ...(recipe.serviceFeeCoins?[{itemId:COIN,quantity:recipe.serviceFeeCoins}]:[])]){
+      const needed=Math.max(0,input.quantity-(stock[input.itemId]??0));
+      const available=runtime.state.inventory[input.itemId]??0;
+      const quantity=Math.min(needed,available);
+      if(quantity>0&&account.canReceive(input.itemId,quantity))
+        actions.push({text:'Fournir '+quantity+' × '+itemName(input.itemId),
+          run:()=>supplyNpcWorkshop(id,input.itemId,quantity)});
+    }
+    for(const itemId of [...new Set(recipes.flatMap(r=>r.outputs.map(o=>o.itemId)))]){
+      if((stock[itemId]??0)<1)continue;
+      const unit=marketUnitPrices(options.islandId??data.worldId,itemId).buy??0;
+      if(unit>0)actions.push({text:'Acheter 1 × '+itemName(itemId)+' · '+unit+' pièces',
+        run:()=>buyNpcWorkshopProduct(id,itemId,1)});
+    }
+    return actions.slice(0,3);
+  }
   /** Deliver an accepted, completed quest only to its real nearby giver.
    * Runtime.grantItems is the single atomic inventory authority for coin/items.
    * The complete inventory + claimed state are serialized by compose().
@@ -318,7 +346,8 @@ export function createGameplayView(data:GameplayData,options:Options){
         ...(state.definition.routine?{source:state.definition.routine.role}:{})});
     }),quests,state.definition.id,
     ()=>Math.floor(runtime.state.time/runtime.climate.definition.dayLengthSeconds*1440),
-    claimQuest,deliverQuest,()=>{for(const listener of listeners)listener();}
+    claimQuest,deliverQuest,()=>{for(const listener of listeners)listener();},
+    ()=>npcWorkshopChoices(state.definition.id)
   ),
   attachNPCs(states:readonly NPCState[]){
     npcs=states;
