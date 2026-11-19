@@ -84,12 +84,13 @@ export function parseQuestTemplate(raw:unknown):QuestTemplateV1{
 }
 export function parseQuestGameEvent(raw:unknown):QuestGameEventV1{
  const v=object(raw,['schemaVersion','eventId','type','worldId','islandId','gameMinute','sequence',
-  'actorId','targetId','itemId','quantity','source','recipeId','raceId','measuredSeconds'],'Quest event');
+  'actorId','targetId','itemId','quantity','source','recipeId','raceId','measuredSeconds','distanceM'],'Quest event');
  need(v.schemaVersion===1&&ident(v.eventId)&&ident(v.type)&&ident(v.worldId)&&ident(v.islandId)&&
   integer(v.gameMinute,0,10000000000)&&integer(v.sequence,0,1000000000)&&
   ['actorId','targetId','itemId','source','recipeId','raceId'].every(k=>v[k]===undefined||ident(v[k]))&&
   (v.quantity===undefined||integer(v.quantity,1,9999))&&
-  (v.measuredSeconds===undefined||(typeof v.measuredSeconds==='number'&&Number.isFinite(v.measuredSeconds)&&v.measuredSeconds>=0&&v.measuredSeconds<=86400)),
+  (v.measuredSeconds===undefined||(typeof v.measuredSeconds==='number'&&Number.isFinite(v.measuredSeconds)&&v.measuredSeconds>=0&&v.measuredSeconds<=86400))&&
+  (v.distanceM===undefined||(typeof v.distanceM==='number'&&Number.isFinite(v.distanceM)&&v.distanceM>=0&&v.distanceM<=100000)),
   'Quest event: invalid provenance');
  return structuredClone(v) as unknown as QuestGameEventV1;
 }
