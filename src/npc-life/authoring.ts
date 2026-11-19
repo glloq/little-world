@@ -10,7 +10,7 @@ import {terrainAccessContext} from '../studio-core/terrain-access.ts';
 import {collisionDefinitionsFromProject} from '../studio-core/collision-adapter.ts';
 import {WorldCollisionQuery} from '../physics/collision-world.ts';
 import {localLifeCapabilities} from './capabilities.ts';
-import {createResidentAssignmentPlanner} from './assignments.ts';
+import {createResidentAssignmentPlanner,MAX_PLAY_ANCHOR_OCCUPANTS} from './assignments.ts';
 import {residentDutyShift,validResidentRoutine,type ResidentActivityStop,type ResidentPoint,type ResidentRole,type ResidentRoutineV1} from './schedule.ts';
 import {withVillageActivities} from './generation-agenda.ts';
 import {validateResidentAgendaRoutes} from './agenda.ts';
@@ -94,9 +94,11 @@ export function residentReassignmentConflict(
  if(occupied.filter(r=>r.homeAnchorId===homeId).length>=2)
   return 'Domicile complet : deux autres résidents y sont déjà affectés';
  const sharedPlay=role==='child'||role==='villager';
- if(occupied.some(r=>r.workAnchorId===jobId&&
-    (!sharedPlay||!['child','villager'].includes(r.role))))
+ const coworkers=occupied.filter(r=>r.workAnchorId===jobId);
+ if(coworkers.some(r=>!sharedPlay||!['child','villager'].includes(r.role)))
   return 'Poste déjà attribué à un autre travailleur';
+ if(sharedPlay&&coworkers.length>=MAX_PLAY_ANCHOR_OCCUPANTS)
+  return 'Lieu de jeu complet : quatre habitants y sont déjà affectés';
  return null;
 }
 
