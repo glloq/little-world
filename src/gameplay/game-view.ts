@@ -49,11 +49,11 @@ export function createGameplayView(data:GameplayData,options:Options){
  const quests=createQuestDirector(options.questCatalog??[],{
    islandId:options.islandId??data.worldId,maxActive:3,
  });
- let questEventSequence=0;
+ let questEventSequence=0,lastQuestVisitScan=-Infinity;
  /** Only native gameplay code calls this AFTER a successful transaction.
   * Runtime events carry one monotonic ID, checkpointed with quest progress.
   */
- function recordQuestCommit(type:string,fields:{itemId?:string;quantity?:number;source?:string;targetId?:string}={}):void{
+ function recordQuestCommit(type:string,fields:{itemId?:string;quantity?:number;source?:string;targetId?:string;distanceM?:number}={}):void{
    if(questEventSequence>=1_000_000_000)return;
    const sequence=++questEventSequence;
    const changed=quests.consume({schemaVersion:1,eventId:'quest:native:'+sequence,
@@ -227,7 +227,7 @@ export function createGameplayView(data:GameplayData,options:Options){
   },
   /** Restores a validated save into the runtime and the activities; returns the warnings. */
   restore(save:GameSaveV2){npcDoors.clear();const warnings=[...runtime.restore(save),...activities.restore(save)];
-    quests.restore(save.questsLocal??{});questEventSequence=save.questEventSequence??0;
+    quests.restore(save.questsLocal??{});questEventSequence=save.questEventSequence??0;lastQuestVisitScan=-Infinity;
     // Upgrade old island saves with one temporary starter board, without removing other goods.
     if(options.surfStarter&&!has(SURFBOARD_ID))runtime.grantItems([{itemId:SURFBOARD_ID,quantity:1}]);
     equippedHands=save.equippedItemId&&canEquip(save.equippedItemId)?save.equippedItemId:null;playerLoadout=save.loadout?parsePlayerLoadout(save.loadout):emptyPlayerLoadout();if(playerLoadout.head!=='tool:miners-helmet'||!has('tool:miners-helmet'))playerLoadout.head=null;playerLoadout.back=null;playerLoadout.feet=null;workshops.restore(save.workshops??{});markets.restore(save.markets??{});cargoPurchaseRevision=save.cargoPurchaseRevision??0;gathering?.restore(save.gathering??null);options.setPosition(save.position,save.space??null);options.setGasProgress?.(save.flightProgress??newFlightProgress());options.setGas?.(save.gasReserve??GAS.legacyInitial,save.satiety,save.boostRechargeProgress);options.setSurfBoard?.(save.surfBoard??null);sync();version=-1;for(const l of listeners)l();return warnings;},
@@ -250,6 +250,22 @@ export function createGameplayView(data:GameplayData,options:Options){
   update(dt:number){
    if(disposed)return;runtime.state.playerPosition={...options.getPosition()};for(const npc of npcs)if(entityIds.has(npc.definition.id)){runtime.setEntityPosition(npc.definition.id,{x:npc.x,y:npc.y,z:npc.z});if(targetById.has(npc.definition.id))targetIndex.set(npc.definition.id,{x:npc.x,z:npc.z});const body=collisionDefinitions.get(npc.definition.id);if(body)collision.moveBody(body.id,{x:npc.x+body.position.x-body.groundAnchor.x,y:npc.y+body.position.y,z:npc.z+body.position.z-body.groundAnchor.z});}
    runtime.update(dt);
+   // One bounded probe per game second, using only real compiled entity
+   // positions. No fabricated zones, no per-frame quest scan or route search.
+   if(runtime.state.time<lastQuestVisitScan||runtime.state.time-lastQuestVisitScan>=1){
+     lastQuestVisitScan=runtime.state.time;
+     for(const quest of Object.values(quests.serialize())){
+       if(quest.status!=='active')continue;
+       const step=quest.steps[quest.stepIndex];
+       if(step?.kind!=='visit')continue;
+       const anchor=runtime.getEntityPosition(step.targetId);
+       if(!anchor)continue;
+       const pos=options.getPosition(),distanceM=Math.hypot(
+         pos.x-anchor.x,pos.y-anchor.y,pos.z-anchor.z);
+       if(distanceM<=step.withinM)
+         recordQuestCommit('location.visited',{targetId:step.targetId,distanceM});
+     }
+   }
    if(npcDoors.expire())sync();
    workshops.advanceDue();for(const effect of runtime.drainEffects()){
     if(effect.type==='showText')options.showInfo(effect.text);
