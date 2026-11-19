@@ -25,11 +25,14 @@ try{
  assert.ok(granted,'both instruments granted through the real inventory runtime');
  await page.keyboard.press('KeyI');
  const bag=page.locator('.ui-panel[data-panel="inventory"]');
- await bag.getByRole('button',{name:/Flûte douce, quantité/}).click();
+ // Stock and favourites intentionally show the same item: select the stock card only.
+ await bag.getByRole('region',{name:'Stock du sac'}).getByRole('button',{name:/Flûte douce, quantité/}).click();
+ console.log('OK: flute selected in stock, without confusing the duplicate favourite');
  // Direct Play also equips the selected instrument.
  await bag.getByRole('button',{name:'Jouer'}).click();
  const panel=page.locator('.ui-panel[data-panel="instrument"]');
  await panel.waitFor({state:'visible'});
+ console.log('OK: Play equips flute and opens the music panel');
  const hud=page.getByRole('button',{name:'Jouer de la musique (P)'});
  assert.equal(await hud.isVisible(),true,'equipped instrument shows a music HUD shortcut');
  assert.ok((await page.locator('.ui-tool').textContent())?.includes('Flûte douce'));
@@ -37,6 +40,7 @@ try{
  assert.equal(await panel.locator('select').count(),0,'no instrument picker in music panel');
  await page.keyboard.down('Digit1');await page.keyboard.down('Digit2');
  await page.waitForFunction(()=>window.littleWorldMetrics?.audio?.musicVoices>=2);
+ console.log('OK: two simultaneous live notes');
  await page.keyboard.up('Digit1');await page.keyboard.up('Digit2');
  await page.waitForFunction(()=>window.littleWorldMetrics?.audio?.musicVoices===0,{},{timeout:2500});
  await panel.getByRole('button',{name:'Piano'}).click();
@@ -49,6 +53,7 @@ try{
  await page.waitForFunction(()=>window.littleWorldMetrics?.audio?.musicVoices===0);
  await page.keyboard.press('KeyP');
  await panel.waitFor({state:'visible'});
+ console.log('OK: P shortcut closes and reopens the instrument panel');
  await page.keyboard.press('Escape');
  await panel.waitFor({state:'hidden'});
  await hud.click();
@@ -56,7 +61,8 @@ try{
  await page.keyboard.press('Escape');
  await page.keyboard.press('KeyI');
  await bag.waitFor({state:'visible'});
- await bag.getByRole('button',{name:/Ocarina, quantité/}).click();
+ await bag.getByRole('region',{name:'Stock du sac'}).getByRole('button',{name:/Ocarina, quantité/}).click();
+ console.log('OK: ocarina selected in stock');
  await bag.getByRole('button',{name:'Jouer'}).click();
  await panel.waitFor({state:'visible'});
  assert.ok((await panel.locator('.lw-instrument-head').textContent())?.includes('Ocarina'));
