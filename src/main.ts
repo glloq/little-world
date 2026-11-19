@@ -1714,6 +1714,7 @@ function draw(now: number) {
         grass: world.grass ? { ...world.grass } : null,
         inventory: gameplay ? { ...gameplay.runtime.state.inventory } : null,
         surfWorld:surfWorldConfig,
+        surfBoardPlaced:placedSurfBoard?{...placedSurfBoard}:null,
         surf:surfField?{
           zoneId:surfField.zone.id,stage:player.surfStage??null,airborne:!!player.surfAirborne,
           equipped:gameplay?.equipment.hands==='tool:surfboard',
