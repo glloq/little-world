@@ -78,8 +78,9 @@ export function positionOnResidentRoute(route:ResidentRoute,distance:number):Res
   for(let i=1;i<a.length;i++){
     if(d>route.distances[i]&&i<a.length-1)continue;
     const span=route.distances[i]-route.distances[i-1],t=span>0?(d-route.distances[i-1])/span:1;
-    return {x:a[i-1].x+(a[i].x-a[i-1].x)*t,z:a[i-1].z+(a[i].z-a[i-1].z)*t,
-      ...(a[i-1].y!==undefined&&a[i].y!==undefined?{y:a[i-1].y+(a[i].y-a[i-1].y)*t}:{})};
+    const from=a[i-1],to=a[i],y0=from.y,y1=to.y;
+    return {x:from.x+(to.x-from.x)*t,z:from.z+(to.z-from.z)*t,
+      ...(y0!==undefined&&y1!==undefined?{y:y0+(y1-y0)*t}:{})};
   }
   return {...a[a.length-1]};
 }

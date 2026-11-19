@@ -25,7 +25,7 @@ import type { Player } from './player.ts';
 import {terrainHeight} from './terrain.ts';
 import {createResidentRouter,type ResidentPath,type ResidentWalkable} from './npc-life/routes.ts';
 import {createResidentLayeredRouter,type ResidentSurfaces} from './npc-life/layered-routes.ts';
-import {residentHour,residentShift,residentPoseAt,residentRoute,positionOnResidentRoute,type ResidentPose,type ResidentRoute} from './npc-life/schedule.ts';
+import {residentHour,residentShift,residentPoseAt,residentRoute,positionOnResidentRoute,type ResidentRoute} from './npc-life/schedule.ts';
 import {residentDialogue,residentContextForHour} from './npc-life/dialogue.ts';
 import {residentAgendaPoseAt,type ResidentAgendaPose,type ResidentDailyRoutes,type ResidentActivityLegs} from './npc-life/agenda.ts';
 import {residentSocialPairs} from './npc-life/social.ts';

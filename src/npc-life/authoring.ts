@@ -15,7 +15,6 @@ import {residentDutyShift,type ResidentPoint} from './schedule.ts';
 import {withVillageActivities} from './generation-agenda.ts';
 export interface ResidentAnchorChoice {id:string;name:string;point:ResidentPoint}
 export interface ResidentAnchorChoices {homes:ResidentAnchorChoice[];jobs:ResidentAnchorChoice[];settlementId:string}
-const dist=(a:ResidentPoint,b:ResidentPoint)=>Math.hypot(a.x-b.x,a.z-b.z);
 export function residentAnchorChoices(p:ProjectDocument,id:string):ResidentAnchorChoices|null{
  const s=Object.values(p.libraries.settlements??{}).find(s=>(s.amenities??[]).some(a=>a.id===id&&(a.role==='resident'||a.role==='host')));
  const index=p.entityIndex[id],source=index?p.chunks[index.ownerChunkId]?.entities[id]:undefined;
