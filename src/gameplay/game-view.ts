@@ -53,7 +53,7 @@ export function createGameplayView(data:GameplayData,options:Options){
  /** Only native gameplay code calls this AFTER a successful transaction.
   * Runtime events carry one monotonic ID, checkpointed with quest progress.
   */
- function recordQuestCommit(type:string,fields:{itemId?:string;quantity?:number;source?:string;targetId?:string;distanceM?:number;raceId?:string;measuredSeconds?:number}={}):void{
+ function recordQuestCommit(type:string,fields:{itemId?:string;quantity?:number;source?:string;targetId?:string;distanceM?:number;raceId?:string;measuredSeconds?:number;recipeId?:string}={}):void{
    if(questEventSequence>=1_000_000_000)return;
    const sequence=++questEventSequence;
    const changed=quests.consume({schemaVersion:1,eventId:'quest:native:'+sequence,
@@ -118,6 +118,15 @@ export function createGameplayView(data:GameplayData,options:Options){
  let cargoPurchaseRevision=0;
  const workshops=createShopWorkshops({items:runtime.data.items,purse,
    elapsedSeconds:()=>runtime.state.time,dayLengthSeconds:runtime.climate.definition.dayLengthSeconds,
+   onCollected:(stationId,job)=>{
+     // One event per finished batch and separate item receipts. A multiple-
+     // output recipe cannot accidentally overcount completed craft batches.
+     recordQuestCommit('workshop.collected',{
+       recipeId:job.recipeId,quantity:job.batches,targetId:stationId});
+     for(const output of job.outputs)recordQuestCommit('workshop.item-collected',{
+       recipeId:job.recipeId,itemId:output.itemId,quantity:output.quantity,
+       targetId:stationId,source:'craft'});
+   },
    onChange:()=>{for(const listener of listeners)listener();}});
  const markets=createIslandMarkets({islandId:options.islandId??data.worldId,purse,itemName,
    gameMinute:()=>Math.floor(runtime.state.time/runtime.climate.definition.dayLengthSeconds*1440),
