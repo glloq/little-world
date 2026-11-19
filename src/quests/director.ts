@@ -77,6 +77,27 @@ export function createQuestDirector(
    instances=candidate;
   },
   serialize,
-  /** No reward claim here: Q4 must atomically update inventory and this state. */
+  /** Claims are idempotent. A caller must first authenticate the quest giver
+   * and supply one native all-or-nothing inventory transaction. The claim and
+   * the resulting inventory are then saved in the SAME V2 snapshot.
+   */
+  claim(instanceId:string,claimId:string,
+   applyRewards:(rewards:readonly QuestInstanceV1['rewards'][number][])=>boolean,
+  ):{ok:boolean;reason:'claimed'|'not-ready'|'unsupported'|'failed'|'applied'}{
+   if(!/^[a-zA-Z0-9_.:-]{1,100}$/.test(claimId))
+    throw Error('Quest director: invalid claim identity');
+   const current=instances.get(instanceId);
+   if(!current||current.status!=='ready')
+    return {ok:false,reason:current?.status==='claimed'?'claimed':'not-ready'};
+   // Unlocks require their own authoritative ownership transaction, not an
+   // invented inventory item. Do not partially credit mixed rewards.
+   if(current.rewards.some(reward=>reward.kind==='unlock'))
+    return {ok:false,reason:'unsupported'};
+   if(!applyRewards(current.rewards))return {ok:false,reason:'failed'};
+   const claimed=parseQuestInstance({...current,status:'claimed',rewardClaimId:claimId});
+   instances.set(instanceId,claimed);
+   return {ok:true,reason:'applied'};
+  },
+
  };
 }
