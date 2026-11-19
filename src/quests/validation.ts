@@ -114,7 +114,7 @@ function reward(raw:unknown):QuestRewardV1{
     ident(v.unlockId)&&ident(v.unlockKind),'Quest reward: invalid unlock');break;
   default:throw Error('Quest reward: unsupported kind');
  }
- return structuredClone(v) as QuestRewardV1;
+ return structuredClone(v) as unknown as QuestRewardV1;
 }
 export function parseQuestCatalogEntry(raw:unknown):QuestCatalogEntryV1{
  const v=object(raw,['questKey','templateId','templateVersion','islandId','giverId','bindings',
@@ -145,7 +145,7 @@ export function parseQuestInstance(raw:unknown):QuestInstanceV1{
   (v.rewardClaimId===undefined||ident(v.rewardClaimId)),'Quest instance: invalid state');
  return {...catalog,instanceId:v.instanceId,acceptedAtGameMinute:v.acceptedAtGameMinute,
   status:v.status,stepIndex:v.stepIndex,stepProgress:structuredClone(v.stepProgress),
-  appliedEventIds:structuredClone(v.appliedEventIds),...(v.rewardClaimId?{rewardClaimId:v.rewardClaimId}:{})} as QuestInstanceV1;
+  appliedEventIds:structuredClone(v.appliedEventIds),...(v.rewardClaimId?{rewardClaimId:v.rewardClaimId}:{})} as unknown as QuestInstanceV1;
 }
 export function parseQuestOfferConfig(raw:unknown):QuestOfferConfigV1{
  const v=object(raw,['schemaVersion','enabled','density','maxDifficulty','enabledFamilies',
