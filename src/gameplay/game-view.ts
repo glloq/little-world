@@ -312,6 +312,16 @@ export function createGameplayView(data:GameplayData,options:Options){
     }
     return actions.slice(0,3);
   }
+  /** The SAME fish quota is consumed by a successful player minigame
+   * catch and NPC fishermen. No quota spent for full bags or lost fish.
+   */
+  function creditFishCatch(fish:FishId,water:WaterKind,at:{x:number;z:number}):boolean{
+    const minute=Math.floor(runtime.state.time/runtime.climate.definition.dayLengthSeconds*1440);
+    const caught=fishPopulation.catch(water,fish,at.x,at.z,minute,
+      ()=>runtime.grantItems([{itemId:fish,quantity:1}]));
+    if(caught)recordQuestCommit('fishing.caught',{itemId:fish,quantity:1,source:'fishing'});
+    return caught;
+  }
   /** Deliver an accepted, completed quest only to its real nearby giver.
    * Runtime.grantItems is the single atomic inventory authority for coin/items.
    * The complete inventory + claimed state are serialized by compose().
@@ -340,7 +350,7 @@ export function createGameplayView(data:GameplayData,options:Options){
  sync();
  return {
   runtime,collision,activities,slots,compose,gathering,trees,fishing,trade,sellBatch,nearbyShop,workshops,markets,purse,itemName,has,equipment,quests,recordQuestCommit,
-  claimQuest,deliverQuest,supplyNpcWorkshop,buyNpcWorkshopProduct,npcEconomy,npcHarvest,fishPopulation,
+  claimQuest,deliverQuest,supplyNpcWorkshop,buyNpcWorkshopProduct,npcEconomy,npcHarvest,fishPopulation,creditFishCatch,
   get navigationRevision(){return navigationRevisions.revision;},
   openDoorForNPC(doorId:string,duration=2):boolean{
    if(!runtime.state.entities[doorId]||!models.has(doorId)||!Number.isFinite(duration)||duration<=0||duration>5)return false;
