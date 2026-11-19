@@ -45,7 +45,7 @@ function writePlan(p: ProjectDocument, plan: SettlementPlan) {
         if (!plan.paths.some(v => v.id === id) && fingerprint(p.libraries.paths[id]) === old!.pathHashes[id])
             removePath(p, id);
     for(const a of old?.amenities??[])if(!plan.amenities?.some(v=>v.id===a.id)&&!amenityChanged(p,a))removeEntity(p,a.id);
-    p.libraries.dialogues={...p.libraries.dialogues};for(const a of old?.amenities??[])if(a.dialogueHash&&!plan.amenities?.some(v=>v.id===a.id)&&fingerprint(p.libraries.dialogues[a.id+'-talk'])===a.dialogueHash)delete p.libraries.dialogues[a.id+'-talk'];
+    p.libraries.dialogues={...p.libraries.dialogues};for(const a of old?.amenities??[])if(a.dialogueHash&&!plan.amenities?.some(v=>v.id===a.id)&&!amenityChanged(p,a)&&fingerprint(p.libraries.dialogues[a.id+'-talk'])===a.dialogueHash)delete p.libraries.dialogues[a.id+'-talk'];
     for(const [id,dialogue]of Object.entries(plan.dialogues??{})){if(p.libraries.dialogues[id]&&!old?.amenities?.some(a=>a.id+'-talk'===id))throw Error('Dialogue déjà utilisé : '+id);p.libraries.dialogues[id]=structuredClone(dialogue);}
     for(const [id,hash]of Object.entries(old?.zoneHashes??{}))if(!plan.zones?.some(z=>z.id===id)&&p.libraries.zones?.[id]&&fingerprint(p.libraries.zones[id])===hash)removeZone(p,id);
     for(const z of plan.zones??[])putZone(p,z);
