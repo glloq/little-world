@@ -64,6 +64,7 @@ export function createFishPopulation(initial?:FishPopulationV1){
   remaining(water:WaterKind,x:number,z:number,minute:number){
    return state(water,x,z,minute)?.remaining??0;
   },
+  restore(value?:FishPopulationV1|null):void{regions=value?parseFishPopulation(value).regions:{};},
   serialize():FishPopulationV1{return parseFishPopulation({version:1,regions});},
  };
 }
