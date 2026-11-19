@@ -313,12 +313,15 @@ const worldClock=gameplay?.runtime.clock??new WorldClock(),climate=gameplay?.run
 // Existing bridge placements are the authoritative runtime deck geometry.
 const npcBridgeSurfaces=new Map(definition.placements.filter(p=>p.assetId==='settlement.bridge')
   .map(p=>[p.id,p] as const));
+const npcExteriorDoors=new Set(definition.placements.filter(p=>p.assetId==='settlement.door').map(p=>p.id));
 const npcs = createNPCSystem(scene, definition.npcs,isLegacyTerrain()?undefined:[],gameplay?.dialogueSession,{
   worldTime:()=>worldClock.time,dayLengthSeconds:climate.definition.dayLengthSeconds,
   initialDayPhase:climate.definition.initialDayPhase,paths:definition.paths,
   rigBudget:((navigator as Navigator&{deviceMemory?:number}).deviceMemory??8)<=4?8:
     ((navigator as Navigator&{deviceMemory?:number}).deviceMemory??8)<=8?12:20,
   weather:()=>climate.state(worldClock.time).weather,
+  homeDoor:(homeId:string)=>npcExteriorDoors.has(homeId+'-door')?homeId+'-door':null,
+  openHomeDoor:(doorId:string)=>{gameplay?.openDoorForNPC(doorId,2);},
   surfaces:{
     groundHeight:terrainHeight,
     supportHeight:(id,x,z)=>{
