@@ -517,7 +517,7 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
   if(p.mode!=='glide'){
     // The old ground gate must not cancel a gas pulse already running in freefall.
     if(!gasTicked)gasBoostStep(p,keys.run===true||keys.boostHeld===true,false,dt);
-    else if(p.mode!=='air')gasBoostStep(p,false,false,0);
+    else if(p.mode!=='air'&&p.mode!=='swim'&&p.mode!=='dive')gasBoostStep(p,false,false,0);
     p.stalled=false;p.glideHeading=undefined;p.glidePitch=undefined;p.glideTurnRate=0;p.glideBrake=0;p.glideDeploymentRemaining=0;
   }
   if(p.mode==='ground'||p.mode==='swim'||p.mode==='dive'||p.mode==='climb'){
