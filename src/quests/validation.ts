@@ -1,7 +1,7 @@
 /** Closed, bounded parsers. Validation never executes author data.
  * This is Q1 only: receipt of an event does NOT prove a gameplay commit.
  */
-import type {QuestTemplateV1,QuestStepV1,QuestGameEventV1,QuestCommandV1} from './schema.ts';
+import type {QuestTemplateV1,QuestStepV1,QuestGameEventV1,QuestCommandV1,QuestRewardV1,QuestCatalogEntryV1,QuestInstanceV1,QuestOfferConfigV1} from './schema.ts';
 type R=Record<string,unknown>;
 const record=(v:unknown):v is R=>typeof v==='object'&&v!==null&&!Array.isArray(v)&&
  (Object.getPrototypeOf(v)===Object.prototype||Object.getPrototypeOf(v)===null);
@@ -98,4 +98,64 @@ export function parseQuestCommand(raw:unknown):QuestCommandV1{
  need(ident(v.commandId)&&['accept','cancel','claim'].includes(String(v.type))&&
   ident(v.instanceId)&&(v.actorId===undefined||ident(v.actorId)),'Quest command: invalid');
  return structuredClone(v) as unknown as QuestCommandV1;
+}
+
+function reward(raw:unknown):QuestRewardV1{
+ const v=object(raw,['kind','itemId','quantity','unlockId','unlockKind'],'Quest reward');
+ switch(v.kind){
+  case 'item':
+   need(Object.keys(v).every(k=>['kind','itemId','quantity'].includes(k))&&
+    ident(v.itemId)&&integer(v.quantity,1,9999),'Quest reward: invalid item');break;
+  case 'coins':
+   need(Object.keys(v).every(k=>['kind','quantity'].includes(k))&&
+    integer(v.quantity,1,1000000),'Quest reward: invalid coins');break;
+  case 'unlock':
+   need(Object.keys(v).every(k=>['kind','unlockId','unlockKind'].includes(k))&&
+    ident(v.unlockId)&&ident(v.unlockKind),'Quest reward: invalid unlock');break;
+  default:throw Error('Quest reward: unsupported kind');
+ }
+ return structuredClone(v) as QuestRewardV1;
+}
+export function parseQuestCatalogEntry(raw:unknown):QuestCatalogEntryV1{
+ const v=object(raw,['questKey','templateId','templateVersion','islandId','giverId','bindings',
+  'steps','rewards','dependencies','catalogRevision','proof'],'Quest catalog entry');
+ need(ident(v.questKey)&&ident(v.templateId)&&integer(v.templateVersion,1,999)&&
+  ident(v.islandId)&&ident(v.giverId)&&record(v.bindings)&&
+  Object.keys(v.bindings).length<=32&&Object.entries(v.bindings).every(([k,value])=>
+   ident(k)&&(phrase(value,200)||(typeof value==='number'&&Number.isFinite(value)&&Math.abs(value)<=1e9)))&&
+  Array.isArray(v.steps)&&v.steps.length>=1&&v.steps.length<=8&&
+  Array.isArray(v.rewards)&&v.rewards.length<=5&&
+  strings(v.dependencies,32)&&ident(v.catalogRevision),'Quest catalog: invalid fields');
+ const proof=object(v.proof,['capabilityIds','validatorVersion'],'Quest proof');
+ need(strings(proof.capabilityIds,32)&&ident(proof.validatorVersion),'Quest proof: invalid');
+ const steps=(v.steps as unknown[]).map(step),rewards=(v.rewards as unknown[]).map(reward);
+ return {...structuredClone(v),steps,rewards} as unknown as QuestCatalogEntryV1;
+}
+export function parseQuestInstance(raw:unknown):QuestInstanceV1{
+ const v=object(raw,['questKey','templateId','templateVersion','islandId','giverId','bindings',
+  'steps','rewards','dependencies','catalogRevision','proof','instanceId','acceptedAtGameMinute',
+  'status','stepIndex','stepProgress','appliedEventIds','rewardClaimId'],'Quest instance');
+ const catalog=parseQuestCatalogEntry(Object.fromEntries(Object.entries(v).filter(([k])=>
+  !['instanceId','acceptedAtGameMinute','status','stepIndex','stepProgress','appliedEventIds','rewardClaimId'].includes(k))));
+ need(ident(v.instanceId)&&integer(v.acceptedAtGameMinute,0,10000000000)&&
+  ['available','active','ready','claimed','cancelled','expired','suspended'].includes(String(v.status))&&
+  integer(v.stepIndex,0,catalog.steps.length)&&
+  Array.isArray(v.stepProgress)&&v.stepProgress.length===catalog.steps.length&&
+  v.stepProgress.every(x=>integer(x,0,9999))&&strings(v.appliedEventIds,256)&&
+  (v.rewardClaimId===undefined||ident(v.rewardClaimId)),'Quest instance: invalid state');
+ return {...catalog,instanceId:v.instanceId,acceptedAtGameMinute:v.acceptedAtGameMinute,
+  status:v.status,stepIndex:v.stepIndex,stepProgress:structuredClone(v.stepProgress),
+  appliedEventIds:structuredClone(v.appliedEventIds),...(v.rewardClaimId?{rewardClaimId:v.rewardClaimId}:{})} as QuestInstanceV1;
+}
+export function parseQuestOfferConfig(raw:unknown):QuestOfferConfigV1{
+ const v=object(raw,['schemaVersion','enabled','density','maxDifficulty','enabledFamilies',
+  'maxVisiblePerGiver','maxActivePerPlayer','disabledTemplates','pinnedTemplateIds'],'Quest offer config');
+ need(v.schemaVersion===1&&typeof v.enabled==='boolean'&&
+  ['low','normal','high'].includes(String(v.density))&&integer(v.maxDifficulty,0,5)&&
+  strings(v.enabledFamilies,24)&&integer(v.maxVisiblePerGiver,1,5)&&
+  integer(v.maxActivePerPlayer,1,10)&&
+  (v.disabledTemplates===undefined||strings(v.disabledTemplates,128))&&
+  (v.pinnedTemplateIds===undefined||strings(v.pinnedTemplateIds,128)),
+  'Quest offer config: invalid');
+ return structuredClone(v) as unknown as QuestOfferConfigV1;
 }
