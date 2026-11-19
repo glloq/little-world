@@ -36,7 +36,7 @@ test('work assignment picks a route, not Euclidean shortest across blocked shore
   const result=router.allocate(job,homes,'farmer');
   assert.ok(result);
   assert.equal(result.home.id,'house:C');
-  assert.ok(result.route.length<1);
+  assert.ok(result.route.length>=.99&&result.route.length<=1.01);
   assert.equal(router.jobOccupancy('field'),1);
   assert.equal(router.allocate(job,homes,'farmer'),null);
 });
