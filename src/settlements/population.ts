@@ -78,8 +78,9 @@ export function settlementPopulation(
       out.entities.push(structuredClone(existing));out.records.push(structuredClone(record));out.preserved.push(id);
       const dialogue=p.libraries.dialogues[id+'-talk'];
       if(dialogue)out.dialogues[dialogue.id]=structuredClone(dialogue);
-      const home=existing.components.Resident?.homeAnchorId;
-      if(home)assignment.reserve(home);
+      const routine=existing.components.Resident;
+      if(routine?.homeAnchorId)assignment.reserve(routine.homeAnchorId);
+      if(routine?.workAnchorId)assignment.reserveJob(routine.workAnchorId);
       return {status:'preserved'};
     }
     if(loc&&!record){out.conflicts.push(id);return {status:'conflict'};}
