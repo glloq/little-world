@@ -31,9 +31,10 @@ export function mountQuestsPanel(host:HTMLElement,session:StudioSession,
   if(!project.entityIndex[value.giverId])issues.push('Donneur absent du monde');
   const refs=new Set<string>([value.giverId]);
   for(const step of value.steps){
-   if(step.kind==='talk'&&step.npcId){refs.add(step.npcId);if(!project.entityIndex[step.npcId])issues.push('Interlocuteur manquant : '+step.npcId);}
-   if(step.kind==='visit'){refs.add(step.targetId);if(!project.entityIndex[step.targetId])issues.push('Lieu manquant : '+step.targetId);}
-   if(step.kind==='deliver'){refs.add(step.giverId);if(!project.entityIndex[step.giverId])issues.push('Destinataire manquant : '+step.giverId);}
+   const local=(!('islandId'in step)||!step.islandId||step.islandId===project.world.worldId);
+   if(step.kind==='talk'&&step.npcId&&local){refs.add(step.npcId);if(!project.entityIndex[step.npcId])issues.push('Interlocuteur manquant : '+step.npcId);}
+   if(step.kind==='visit'&&local){refs.add(step.targetId);if(!project.entityIndex[step.targetId])issues.push('Lieu manquant : '+step.targetId);}
+   if(step.kind==='deliver'&&local){refs.add(step.giverId);if(!project.entityIndex[step.giverId])issues.push('Destinataire manquant : '+step.giverId);}
   }
   for(const reward of value.rewards)if(reward.kind==='item'&&!project.libraries.items[reward.itemId])
     issues.push('Objet de récompense absent : '+reward.itemId);
@@ -96,8 +97,8 @@ export function mountQuestsPanel(host:HTMLElement,session:StudioSession,
    const parameter=(key:string,label:string,value:string)=>{
     line.append(field(label,input(value,v=>{(q.steps[index] as unknown as Record<string,unknown>)[key]=v;})));
    };
-   if(step.kind==='talk')line.append(field('PNJ cible',select(step.npcId??q.giverId,
-    knownNpcs.map(n=>[n.id,n.name] as const),v=>{q.steps[index]={kind:'talk',npcId:v};})));
+   if(step.kind==='talk')line.append(field('PNJ cible',input(step.npcId??q.giverId,
+    v=>{step.npcId=v;})));
    else if(step.kind==='visit')line.append(field('Entité cible',select(step.targetId,
     entities.map(e=>[e.id,e.name] as const),v=>step.targetId=v)),
     field('Rayon (m)',numberInput(step.withinM,v=>step.withinM=v,.5,100)));
@@ -105,8 +106,8 @@ export function mountQuestsPanel(host:HTMLElement,session:StudioSession,
     const item=step;
     line.append(field('Objet',select(step.itemId,knownItems.map(e=>[e.id,e.name] as const),
       v=>item.itemId=v)),field('Quantité',numberInput(step.quantity,v=>item.quantity=v,1,9999,'1')));
-    if(step.kind==='deliver')line.append(field('Destinataire',select(step.giverId,
-      knownNpcs.map(n=>[n.id,n.name] as const),v=>step.giverId=v)));
+    if(step.kind==='deliver')line.append(field('Destinataire',input(step.giverId,
+      v=>step.giverId=v)));
     else line.append(field('Source',select(step.source??'any',[
       ['any','Toute origine'],['gather','Cueillette'],['fishing','Pêche'],
       ['mine','Mine'],['farm','Agriculture'],['trade','Achat'],['craft','Atelier']],
@@ -123,6 +124,16 @@ export function mountQuestsPanel(host:HTMLElement,session:StudioSession,
     parameter('eventType','Événement natif',step.eventType);
     line.append(field('Nombre',numberInput(step.count,v=>step.count=v,1,9999,'1')));
    }
+   if(step.kind!=='travel'&&step.kind!=='acquire'){
+    line.append(field('Île cible (vide = île du donneur)',input(
+      'islandId'in step?step.islandId??'':'',
+      v=>{const raw=q.steps[index] as unknown as Record<string,unknown>;
+        if(v.trim())raw.islandId=v.trim();else delete raw.islandId;
+      })));
+   }
+   if(step.kind==='acquire')line.append(field('Île de provenance (optionnelle)',input(
+     step.fromIslandId??'',v=>{if(v.trim())step.fromIslandId=v.trim();
+      else delete step.fromIslandId;})));
    line.append(button('Retirer cette étape',()=>{if(q.steps.length>1){q.steps.splice(index,1);render();}}));
    steps.append(line);
   });
