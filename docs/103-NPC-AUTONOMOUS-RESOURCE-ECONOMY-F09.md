@@ -51,3 +51,23 @@
 - Déjà disponibles : parcelles et simulations agricoles natives, génération déterministe des ressources forestières, pêche et espèces par milieu, comptes d'ateliers PNJ F04, stock marchand, dialogue d'échange et sauvegardes V2.
 - **Non encore terminé** : partage effectif de la récolte entre joueur et travailleurs, quotas halieutiques, producteur autonome unifié et transferts métier à métier.
 - Préserver le comportement joueur, les sauvegardes existantes, les zones éditées manuellement et les contraintes low-poly/low-resource.
+
+## Implémentation sur la PR #100 (F09-A–F : code initial raccordé)
+
+| Étape | Modules / tests | État |
+| --- | --- | --- |
+| F09-A | `npc-life/harvest-ledger.ts`, `gameplay/save.ts`, `tests/npc-life-f09-ledgers.test.mjs` | Stocks et reçus anti-rejeu par producteur, limite 32, provenance vérifiée, sauvegarde V2 optionnelle |
+| F09-B | `gameplay/activity-runtime.ts:npcFarmAct`, `npc-life/harvest-runtime.ts`, `tests/npc-life-f09-native-harvest.test.mjs` | Parcelles `assignment=npc` exclusivement, `farm-sim` identique au joueur, crédit atomique ou parcelle conservée |
+| F09-C | `gameplay/gathering.ts:npcAct`, `npc-life/harvest-runtime.ts`, `tests/npc-life-f09-forest.test.mjs` | Même cible native, coups d'outil et registre de repousse partagés avec le joueur ; recherche de 8 directions au maximum |
+| F09-D | `npc-life/fish-population.ts`, `gameplay/game-view.ts:creditFishCatch`, `main.ts` | Réserve réelle par milieu et cellule de 128 m, capacité 12, renouvellement 1/30 min de jeu, pêche PNJ à 15 min, pas de récompense si sac plein/secteur épuisé |
+| F09-E | `npc-life/raw-transfers.ts`, `npc-life/economy-runtime.ts`, `economy/island-markets.ts:supplyFromNpc`, `tests/npc-life-f09-economy-chain.test.mjs` | Blé/bois remis aux ateliers actifs voisins (≤8 m) ; scierie uniquement à un poste réellement identifié, vente de poissons au comptoir portuaire proche avec débit du budget commercial et crédit du PNJ |
+| F09-F | `tools/bench-npc-f09.mjs`, tests F09 + CI générale | Cadence logique minute de jeu, max 32 producteurs, microbenchmark 10/40/100 comptes, aucun calcul par frame hormis lecture de l'horloge |
+
+### Limitations assumées et gates de validation
+
+- Les circuits de livraison automatique entre métiers fonctionnent **uniquement pour des postes physiquement voisins (≤8 m)**. Il n'y a pas encore de livreur autonome longue distance, pas de téléportation de produits et pas de commerce inter-îles par simple duplication.
+- Les comptes démarrent vides ; le champ produit via le simulateur agricole. Le moulin et la scierie restent soumis aux pièces nécessaires à leur fabrication native. La provenance du stock ne peut pas être inventée pour déclencher une recette.
+- Les pêcheurs ne produisent pas à chaque session ; le tirage est déterministe, soumis aux espèces de l'habitat et à la réserve partagée avec le joueur. Un comptoir portuaire doit effectivement exister et disposer de liquidités pour acheter le poisson.
+- Pour le forestier, un site réel mais sans arbre à portée ne fournit rien : aucun arbre ou faux bois n'est créé. Le PNJ effectue les mêmes coups et subit la même repousse que le joueur.
+- **À qualifier** : CI complète sur le dernier SHA, état des parcelles et du stock après fermeture/rechargement, tests navigateur sur plusieurs villages réels (dont 10/40/100 PNJ), preuve du budget matériel GPU intégré 4–8 Go. Le benchmark Node est un signal CPU, **pas** une preuve de FPS.
+- Ne pas fusionner PR #100 avant la validation ; noter le résultat réel des checks sans confondre `cancelled` et `success`.
