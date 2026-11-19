@@ -34,6 +34,9 @@ export function reassignResident(p:ProjectDocument,id:string,homeId:string,jobId
  if(!choices)throw Error('Personnage sans résidence générée : utiliser le trajet manuel');
  const home=choices.homes.find(h=>h.id===homeId),job=choices.jobs.find(j=>j.id===jobId);
  if(!home||!job)throw Error('Maison ou activité non disponible pour le métier choisi');
+ const loc=p.entityIndex[id],source=loc?p.chunks[loc.ownerChunkId]?.entities[id]:undefined,
+  routine=source?resolveEntity(p,source).components.Resident:undefined;
+ if(!source||!routine)throw Error('Resident inconnu');
  // Assignment capacities are checked against the active settlement, not
  // against stale generated placement caches. Shared play anchors are exempt.
  const records=p.libraries.settlements?.[choices.settlementId]?.amenities??[];
@@ -41,14 +44,8 @@ export function reassignResident(p:ProjectDocument,id:string,homeId:string,jobId
   const index=p.entityIndex[record.id];
   return index?p.chunks[index.ownerChunkId]?.entities[record.id]?.components.Resident:undefined;
  }).filter((r):r is NonNullable<typeof r>=>!!r);
- const conflict=residentReassignmentConflict(occupied,homeId,jobId,
-  records.find(record=>record.id===id)?.role==='resident'?
-   (p.entityIndex[id]?p.chunks[p.entityIndex[id].ownerChunkId]?.entities[id]?.components.Resident?.role:'villager')??'villager':
-   'villager');
+ const conflict=residentReassignmentConflict(occupied,homeId,jobId,routine.role);
  if(conflict)throw Error(conflict);
- const loc=p.entityIndex[id],source=loc?p.chunks[loc.ownerChunkId]?.entities[id]:undefined,
-  routine=source?resolveEntity(p,source).components.Resident:undefined;
- if(!source||!routine)throw Error('Resident inconnu');
  const c=terrainAccessContext(p),query=new WorldCollisionQuery(c.height,()=>null);
  const doors=new Set(Object.values(p.libraries.settlements??{}).flatMap(s=>s.buildings.map(b=>b.doorId)));
  for(const obj of collisionDefinitionsFromProject(p))query.add({...obj,
