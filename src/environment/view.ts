@@ -1,11 +1,14 @@
 import * as THREE from 'three';
 import type {WorldClock} from './clock.ts';
 import type {ClimateHistory,WeatherKind} from './climate.ts';
-import {applySkyLighting,type SkyLighting as Lighting} from './sky-lighting.ts';
+import {applySkyLighting,sunDirection,type SkyLighting as Lighting} from './sky-lighting.ts';
+import {createSkyRenderer} from './sky-renderer.ts';
 import './view.css';
 /** One shared lighting state and one bounded local GPU rain batch. No mesh traversal. */
-export function createEnvironmentView(scene:THREE.Scene,lighting:Lighting,clock:WorldClock,climate:ClimateHistory){
+export function createEnvironmentView(scene:THREE.Scene,lighting:Lighting,clock:WorldClock,climate:ClimateHistory,camera?:THREE.PerspectiveCamera){
  const background=new THREE.Color();scene.background=background;scene.fog=null;
+ const sky=camera?createSkyRenderer(scene,camera,climate.definition.weatherSeed):null;
+ const solarDirection=new THREE.Vector3();
  const count=192,positions=new Float32Array(count*3);let seed=climate.definition.weatherSeed;
  for(let i=0;i<positions.length;i++){seed=(Math.imul(seed,1664525)+1013904223)>>>0;positions[i]=(seed/4294967296)*24-12;}
  const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.BufferAttribute(positions,3));
@@ -26,15 +29,16 @@ export function createEnvironmentView(scene:THREE.Scene,lighting:Lighting,clock:
  panel.append(summary,timeLabel,weatherLabel,label,weatherSetting,note);document.body.append(panel);
  let visualTime=0,lastLabel='';
  /** `underground`: inside a mine, the sky no longer lights the scene (local lanterns do). */
- function update(dt:number,position:{x:number;y:number;z:number},detail:number,underground=false){
+ function update(dt:number,position:{x:number;y:number;z:number},detail:number,underground=false,quality:'low'|'medium'|'high'='low'){
   const state=climate.state(clock.time);applySkyLighting(lighting,background,state.sunAltitude,state.dayPhase,state.cloudCover);
   // Underground: no sky light; neutral rock-coloured ambient (outdoor sky/grass tints restored outside).
   if(underground){lighting.sun.intensity=0;lighting.fill.intensity=.04;lighting.ambient.intensity=.7;lighting.ambient.color.set('#c9c0b4');lighting.ambient.groundColor.set('#4d4640');background.set('#0d0c0b');}
   else if(lighting.ambient.groundColor.getHex()!==0x678c7c){lighting.ambient.color.set(0xfaf7e9);lighting.ambient.groundColor.set(0x678c7c);}
+  sky?.update({color:background,sunDirection:sunDirection(state.dayPhase,state.sunAltitude,solarDirection),sunAltitude:state.sunAltitude,cloudCover:state.cloudCover,wind:state.wind,time:clock.time,deltaSeconds:dt,detail,underground,quality});
   visualTime+=Math.max(0,Math.min(dt,.25));uniforms.time.value=visualTime;uniforms.anchor.value.set(position.x,position.y,position.z);rain.visible=state.weather==='rain'&&detail<2&&!underground;geometry.setDrawRange(0,detail===1?96:count);
   const minutes=Math.floor(state.dayPhase*1440),text=`${String(Math.floor(minutes/60)).padStart(2,'0')}:${String(minutes%60).padStart(2,'0')} · ${state.weather}`;
   if(text!==lastLabel){lastLabel=text;timeLabel.textContent=text.split(' · ')[0];weatherLabel.textContent={clear:'Temps clair',cloudy:'Ciel couvert',rain:'Pluie'}[state.weather]+` · ${state.temperatureC} °C`;panel.dataset.weather=state.weather;panel.dataset.time=String(clock.time);}
   if(Number(rate.value)!==clock.rate)rate.value=String(clock.rate);
  }
- return {update,controls:panel,get metrics(){return {time:clock.time,rate:clock.rate,weather:climate.state(clock.time).weather,rainParticles:rain.visible?geometry.drawRange.count:0};},dispose(){panel.remove();rain.removeFromParent();geometry.dispose();material.dispose();}};
+ return {update,controls:panel,get metrics(){return {time:clock.time,rate:clock.rate,weather:climate.state(clock.time).weather,rainParticles:rain.visible?geometry.drawRange.count:0,sky:sky?.metrics??null};},dispose(){sky?.dispose();panel.remove();rain.removeFromParent();geometry.dispose();material.dispose();}};
 }
