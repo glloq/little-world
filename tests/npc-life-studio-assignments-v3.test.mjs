@@ -22,3 +22,16 @@ test('Studio reassignment keeps work stations exclusive and lets children share 
  assert.equal(residentReassignmentConflict([child],'house:c','play:a','child'),null);
  assert.equal(residentReassignmentConflict([child],'house:c','play:a','villager'),null);
 });
+
+test('public play anchor is shared by at most four children or villagers',()=>{
+ const group=[
+  resident('child','house:1','play:1'),
+  resident('child','house:2','play:1'),
+  resident('villager','house:3','play:1'),
+  resident('child','house:4','play:1'),
+ ];
+ assert.equal(residentReassignmentConflict(group.slice(0,3),'house:5','play:1','villager'),null);
+ assert.match(residentReassignmentConflict(group,'house:5','play:1','child'),/complet/);
+ assert.match(residentReassignmentConflict(group,'house:5','play:1','villager'),/complet/);
+ assert.match(residentReassignmentConflict(group,'house:5','play:1','farmer'),/déjà attribué/);
+});
