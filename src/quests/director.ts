@@ -52,8 +52,16 @@ export function createQuestDirector(
    const changed:string[]=[];
    for(const [id,entry] of instances){
     if(!['active','ready','suspended'].includes(entry.status))continue;
-    const people=[entry.giverId,...entry.steps.flatMap(step=>
-      step.kind==='talk'&&step.npcId?[step.npcId]:[])];
+    const current=entry.steps[entry.stepIndex];
+    // The quest may be legitimately away from its origin island. A foreign
+    // giver is not "deleted" merely because its island is unloaded.
+    const nextIsland=current?.kind==='travel'?current.toIslandId:
+      current?.kind==='acquire'?current.fromIslandId??entry.islandId:
+      current&&'islandId' in current?current.islandId??entry.islandId:entry.islandId;
+    if(nextIsland!==config.islandId)continue;
+    const people=current?.kind==='talk'&&current.npcId?[current.npcId]:
+      entry.status==='ready'?[entry.giverId]:
+      current?.kind==='deliver'?[current.giverId]:[];
     const missing=people.some(person=>!realNpcIds.has(person));
     const status=missing?'suspended':entry.stepIndex===entry.steps.length?'ready':'active';
     if(status===entry.status)continue;
@@ -86,7 +94,6 @@ export function createQuestDirector(
    */
   consume(raw:QuestGameEventV1):string[]{
    const event=parseQuestGameEvent(raw);
-   if(event.islandId!==config.islandId)return [];
    const updated:string[]=[];
    for(const [id,instance]of [...instances.entries()]){
     const result=advanceQuest(instance,event);
@@ -102,7 +109,7 @@ export function createQuestDirector(
    const candidate=new Map<string,QuestInstanceV1>();
    for(const [id,raw]of Object.entries(saved)){
     const parsed=parseQuestInstance(raw);
-    if(parsed.instanceId!==id||parsed.islandId!==config.islandId)
+    if(parsed.instanceId!==id)
      throw Error('Quest director: invalid persisted reference');
     candidate.set(id,parsed);
    }
