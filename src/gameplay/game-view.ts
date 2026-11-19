@@ -53,7 +53,7 @@ export function createGameplayView(data:GameplayData,options:Options){
  /** Only native gameplay code calls this AFTER a successful transaction.
   * Runtime events carry one monotonic ID, checkpointed with quest progress.
   */
- function recordQuestCommit(type:string,fields:{itemId?:string;quantity?:number;source?:string;targetId?:string;distanceM?:number}={}):void{
+ function recordQuestCommit(type:string,fields:{itemId?:string;quantity?:number;source?:string;targetId?:string;distanceM?:number;raceId?:string;measuredSeconds?:number}={}):void{
    if(questEventSequence>=1_000_000_000)return;
    const sequence=++questEventSequence;
    const changed=quests.consume({schemaVersion:1,eventId:'quest:native:'+sequence,
