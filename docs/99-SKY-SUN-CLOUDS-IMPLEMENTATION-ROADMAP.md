@@ -106,3 +106,10 @@ Cibles de coût additionnel **provisoires et non mesurées** sur machine de réf
 - Exemple : `BENCHMARK_SCENARIOS=valley-start node tools/benchmark-sky.mjs http://127.0.0.1:5173/little-world/ /tmp/sky-ab` après lancement du serveur Vite.
 
 Les chiffres réels restent inconnus tant que ces outils n'ont pas été exécutés sur une machine cible et que la CI de la branche n'est pas terminée.
+
+### SKY-3 — interpolation cosmétique (19 novembre 2026)
+
+- La couverture nuageuse du shader interpole vers le `cloudCover` logique avec constante d'environ 6 s (exponentielle à `deltaSeconds` plafonné à 0,25 s par présentation).
+- L'initialisation prend directement l'état climatique courant pour éviter un flash de ciel clair lors du chargement d'une sauvegarde.
+- L'horloge logique et les agrégats climatiques restent inchangés; le temps d'animation du vent continue de dépendre de `clock.time`.
+- Le test unitaire vérifie une progression bornée plutôt qu'une transition brutale; qualification visuelle et GPU encore ouverte.
