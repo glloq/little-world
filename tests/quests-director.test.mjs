@@ -78,3 +78,25 @@ test('Q4 unsupported cosmetic unlocks cannot partially grant money or items',()=
  assert.equal(invoked,0);
  assert.equal(director.get('instance:unlock').status,'ready');
 });
+
+test('Q6 missing quest NPC suspends progress without erasing rewards or accepted state',()=>{
+ const d=createQuestDirector([entry('quest:after-edit')],{islandId:'island:1',maxActive:2});
+ d.accept('quest:after-edit','instance:edit',2);
+ assert.deepEqual(d.reconcileNpcAvailability(new Set(['npc:other'])),['instance:edit']);
+ assert.equal(d.get('instance:edit').status,'suspended');
+ assert.deepEqual(d.consume(event('talk:suspended')),[]);
+ assert.equal(d.get('instance:edit').stepIndex,0);
+ const checkpoint=d.serialize();
+ const restarted=createQuestDirector([],{islandId:'island:1',maxActive:2});
+ restarted.restore(checkpoint);
+ assert.equal(restarted.get('instance:edit').status,'suspended');
+ assert.deepEqual(restarted.reconcileNpcAvailability(new Set(['npc:1'])),['instance:edit']);
+ assert.equal(restarted.get('instance:edit').status,'active');
+ restarted.consume(event('talk:resume'));
+ assert.equal(restarted.get('instance:edit').status,'ready');
+ assert.deepEqual(restarted.reconcileNpcAvailability(new Set()),['instance:edit']);
+ assert.equal(restarted.get('instance:edit').status,'suspended');
+ assert.deepEqual(restarted.reconcileNpcAvailability(new Set(['npc:1'])),['instance:edit']);
+ assert.equal(restarted.get('instance:edit').status,'ready',
+   'an already completed quest resumes ready for claim, never repeats work');
+});
