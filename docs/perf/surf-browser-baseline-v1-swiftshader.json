@@ -1,0 +1,169 @@
+{
+  "schemaVersion": 2,
+  "kind": "surf-performance-measurement",
+  "commit": "1e87184",
+  "url": "http://127.0.0.1:5173/little-world/?world=archipelago/worlds/surf-island/manifest.json&metrics=1&surfPerf=1",
+  "hardware": {
+    "vendor": "Google Inc. (Google)",
+    "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+    "deviceMemoryGiB": 16,
+    "hardwareConcurrency": 4
+  },
+  "nativeRequested": false,
+  "softwareRenderer": true,
+  "qualifiedIntegratedGpu": false,
+  "surfActiveSamples": 90,
+  "surfCoverage": 1,
+  "physicalRamGiB": 15.71059799194336,
+  "targetRam4to8GiB": false,
+  "source": "Chromium Playwright captured live renderer statistics",
+  "fixedSimulationHz": 30,
+  "wallSeconds": 16.618,
+  "averagePresentedFps": 10.590925502467206,
+  "p95FrameWorkMs": 8.20000000006985,
+  "minPresentedFpsTarget": 20,
+  "idealFpsTarget": 30,
+  "maxCalls": 79,
+  "maxTriangles": 81084,
+  "surfZoneCount": 3,
+  "surfDiagnostics": {
+    "enabled": true,
+    "frames": 240,
+    "cpuMs": {
+      "physicsTick": {
+        "p50": 0.2,
+        "p95": 0.4,
+        "max": 2.2,
+        "mean": 0.1933
+      },
+      "waveSample": {
+        "p50": 0,
+        "p95": 0.2,
+        "max": 1.2,
+        "mean": 0.0629
+      },
+      "waveHeight": {
+        "p50": 0,
+        "p95": 0,
+        "max": 0,
+        "mean": 0
+      },
+      "ground": {
+        "p50": 0,
+        "p95": 0,
+        "max": 0,
+        "mean": 0
+      },
+      "barrelSample": {
+        "p50": 0,
+        "p95": 0,
+        "max": 0,
+        "mean": 0
+      },
+      "waterUpdate": {
+        "p50": 0,
+        "p95": 0.1,
+        "max": 0.1,
+        "mean": 0.0108
+      },
+      "tubeUpdate": {
+        "p50": 0.3,
+        "p95": 0.4,
+        "max": 2.8,
+        "mean": 0.2763
+      },
+      "foamUpdate": {
+        "p50": 0,
+        "p95": 0,
+        "max": 0,
+        "mean": 0
+      }
+    },
+    "calls": {
+      "physicsTick": {
+        "p50": 3,
+        "p95": 4,
+        "max": 5,
+        "mean": 2.8417
+      },
+      "waveSample": {
+        "p50": 8,
+        "p95": 10,
+        "max": 11,
+        "mean": 6.4625
+      },
+      "waveHeight": {
+        "p50": 0,
+        "p95": 0,
+        "max": 0,
+        "mean": 0
+      },
+      "ground": {
+        "p50": 96,
+        "p95": 117,
+        "max": 123,
+        "mean": 91.8
+      },
+      "barrelSample": {
+        "p50": 0,
+        "p95": 0,
+        "max": 0,
+        "mean": 0
+      },
+      "waterUpdate": {
+        "p50": 1,
+        "p95": 1,
+        "max": 1,
+        "mean": 1
+      },
+      "tubeUpdate": {
+        "p50": 1,
+        "p95": 1,
+        "max": 1,
+        "mean": 1
+      },
+      "foamUpdate": {
+        "p50": 0,
+        "p95": 0,
+        "max": 0,
+        "mean": 0
+      }
+    },
+    "gauges": {
+      "drawCalls": 4,
+      "vertices": 8434,
+      "triangles": 15974,
+      "uploadBytes": 16368,
+      "zonesTotal": 3,
+      "zonesVisible": 3,
+      "zonesSimulated": 1,
+      "tubesVisible": 1,
+      "lods": [
+        2,
+        0,
+        2
+      ]
+    },
+    "gpu": "not-isolated",
+    "notes": [
+      "waveSample/waveHeight include their ground() calls",
+      "ground is counted inside wave sampling; physicsTick includes all surf physics",
+      "GPU time is only available for the whole frame (EXT_disjoint_timer_query), never per surf mesh"
+    ]
+  },
+  "surfDrawCallsMax": 4,
+  "frameGpuMs": {
+    "samples": 0,
+    "available": false,
+    "ms": null,
+    "disjoint": 0,
+    "pending": 0
+  },
+  "gpuNote": "surfDiagnostics are CPU only; frameGpuMs is the whole frame and only when EXT_disjoint_timer_query is exposed",
+  "finalPosition": [
+    -0.0000015252847529102127,
+    -0.3535534821872022,
+    -469.97613336795075
+  ],
+  "errors": []
+}

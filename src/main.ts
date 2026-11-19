@@ -30,6 +30,8 @@ import {applySurfTumblePose} from './render/surf-tumble-pose.ts';
 import {applySurfPose} from './render/surf-character-pose.ts';
 import {sampleSurfBarrel} from './surf/surf-barrel.ts';
 import {createSurfBoardView} from './render/surf-board-view.ts';
+import {SurfPerfRecorder,instrumentGround,instrumentSurfField} from './surf/surf-perf.ts';
+import {inCameraView,surfDrawStats} from './render/surf-render-stats.ts';
 import {boardOnWater,distanceToBoard,isSurfBoardWaterSafe,type SurfBoardPlacement} from './surf/board-placement.ts';
 import {createSurfHud} from './ui/surf/surf-hud.ts';
 import {boardLift,liftRideStep,type SkiLift,type LiftRide} from './snow/ski-lift.ts';
@@ -479,8 +481,12 @@ const snowLiftView=snowLift?createSkiLiftView(scene,snowLift):null;
 // Non-destructive surf laboratory (?surfDemo=1). Island authoring/compilation follows later.
 const surfDemo=searchParams.get('surfDemo')==='1'&&!snowDemo&&!isLegacyTerrain();
 const surfSite=surfDemo?findDemoSurfSite(terrainHeight,snowBounds,definition.config.seaLevel??0,definition.config.seed):null;
-const surfFields=surfSite?[createSurfWaveField(surfSite.zone,terrainHeight)]:
-  (playable?.surfZones??[]).map(zone=>createSurfWaveField(zone,terrainHeight));
+// Optional surf diagnostics (?surfPerf=1): wraps the field and terrain sampler only then.
+const surfPerf=searchParams.get('surfPerf')==='1'?new SurfPerfRecorder():null;
+const surfGround=surfPerf?instrumentGround(terrainHeight,surfPerf):terrainHeight;
+const surfFields=(surfSite?[createSurfWaveField(surfSite.zone,surfGround)]:
+  (playable?.surfZones??[]).map(zone=>createSurfWaveField(zone,surfGround)))
+  .map(field=>surfPerf?instrumentSurfField(field,surfPerf):field);
 const surfWorldConfig={count:surfFields.length,zones:surfFields.map(f=>({id:f.zone.id,
  minX:f.zone.minX,maxX:f.zone.maxX,minZ:f.zone.minZ,maxZ:f.zone.maxZ,
  barrelStrength:f.zone.barrelStrength??0}))};
@@ -488,11 +494,13 @@ const surfFieldAt=(x:number,z:number)=>surfFields.find(f=>
   x>=f.zone.minX&&x<=f.zone.maxX&&z>=f.zone.minZ&&z<=f.zone.maxZ)??null;
 let surfField=surfFieldAt(player.position.x,player.position.z);
 const surfRace=surfSite?makeDemoSurfRace(surfSite,activeIsland?.id??gameplay?.runtime.data.worldId??'surf-demo'):null;
-const surfWaterViews=surfFields.map(f=>createSurfWaterView(scene,f,terrainHeight));
-const surfBarrelViews=surfFields.map(f=>f.zone.barrelStrength?createSurfBarrelView(scene,f,terrainHeight):null);
+const surfWaterViews=surfFields.map(f=>createSurfWaterView(scene,f,surfGround));
+const surfBarrelViews=surfFields.map(f=>f.zone.barrelStrength?createSurfBarrelView(scene,f,surfGround):null);
 let surfWaterView:ReturnType<typeof createSurfWaterView>|null=surfWaterViews[0]??null;
 let surfBarrelView=surfBarrelViews[0]??null;
 const surfBoardView=surfFields.length?createSurfBoardView(scene):null;
+const surfPerfMeshes:THREE.Mesh[]=surfPerf?[...surfWaterViews.map(v=>v.mesh),...surfBarrelViews.flatMap(v=>v?[v.mesh]:[])]:[];
+const surfPerfDraw={drawCalls:0,vertices:0,triangles:0};
 const surfHud=surfFields.length?createSurfHud(document.body):null;
 let nextSurfHudAt=0;
 const surfFeatures=surfSite?makeDemoSurfFeatures(surfSite):(playable?.surfFeatures??[]).filter(f=>surfFields.some(field=>f.x>=field.zone.minX&&f.x<=field.zone.maxX&&f.z>=field.zone.minZ&&f.z<=field.zone.maxZ));
@@ -1399,7 +1407,9 @@ function tick(dt: number) {
       const board=boardOnWater(player.position.x,player.position.z,player.surfHeading??yaw,waterSurface);
       if(board&&isSurfBoardWaterSafe(board,waterSurface,terrainHeight,(x,z)=>!!surfFieldAt(x,z)))lastSafeSurfBoard=board;
     }
+    const surfPhysicsStart=surfPerf&&surfField?performance.now():0;
     simulatePlayer(player, keys, dt,gameplay?.collision,surfField??undefined,motionTick+1);motionTick++;
+    if(surfPerf&&surfField)surfPerf.add('physicsTick',performance.now()-surfPhysicsStart);
     if((player.surfPaddleClock??0)>previousSurfPaddle+.08&&motionTick-lastSurfPaddleSoundTick>=15){
       audio?.emit('water.swim',{position:player.position,source:'player'});lastSurfPaddleSoundTick=motionTick;
     }
@@ -1607,13 +1617,19 @@ function draw(now: number) {
   remoteActors?.renderer.collectGrassActors(grassActors,player.position);
   world.setUnderground(!!player.space);
   world.update(delta, player.position, camera, renderer.domElement.height, player.velocity);
+  const surfWaterStart=surfPerf?performance.now():0;
   for(const view of surfWaterViews){
     // Never visibly downgrade the collision surface directly beneath a surfer:
     // coarser distant bays may still follow the global adaptive performance tier.
     view.setDetail(view===surfWaterView&&player.mode==='surf'?0:budget.level,player.position);
     view.update(motionTick,frame.alpha);
   }
+  const surfTubeStart=surfPerf?performance.now():0;
   for(const view of surfBarrelViews)view?.update(motionTick,player.position);
+  if(surfPerf){
+    const end=performance.now();
+    surfPerf.add('waterUpdate',surfTubeStart-surfWaterStart);surfPerf.add('tubeUpdate',end-surfTubeStart);
+  }
   if(!loading.ready&&loading.update({terrainPending:world.stats.pending,dressingPending:world.dressing?.nearPending??0,speciesState:world.dressing?.species.state??'none'}))beginGame();
   remoteActors?.update(delta,elapsed,camera,renderer.domElement.height,budget.level);
   npcs.update(delta, elapsed, player.position,camera); // The river drives the mill: no manual on/off control.
@@ -1695,6 +1711,16 @@ function draw(now: number) {
   renderer.render(scene, camera);
   gpuTimer.end();
   const renderSubmitMs = performance.now() - renderBegin;
+  if(surfPerf){
+    const g=surfPerf.gauges,d=surfDrawStats(camera,surfPerfMeshes,surfPerfDraw);
+    g.drawCalls=d.drawCalls;g.vertices=d.vertices;g.triangles=d.triangles;
+    g.zonesTotal=surfFields.length;g.zonesSimulated=surfField?1:0;
+    g.zonesVisible=surfWaterViews.filter(v=>inCameraView(camera,v.mesh)).length;
+    g.tubesVisible=surfBarrelViews.filter(v=>!!v&&inCameraView(camera,v.mesh)).length;
+    g.uploadBytes=surfBarrelViews.reduce((n,v)=>n+(v?.stats.uploadBytes??0),0);
+    g.lods=surfWaterViews.map(v=>v.stats.tier);
+    surfPerf.endFrame();
+  }
   if(metricsEnabled)perfSampler.record(wallDrawDelta*1000,simulationMs,renderBegin-begin,renderSubmitMs);
   if (metricsEnabled)
     Object.assign(window, {
@@ -1716,6 +1742,7 @@ function draw(now: number) {
         grass: world.grass ? { ...world.grass } : null,
         inventory: gameplay ? { ...gameplay.runtime.state.inventory } : null,
         surfWorld:surfWorldConfig,
+        surfPerf:surfPerf?(presentedFrames%30===0?surfPerf.snapshot():(window as unknown as {littleWorldMetrics?:{surfPerf:unknown}}).littleWorldMetrics?.surfPerf??surfPerf.snapshot()):null,
         surfBoardPlaced:placedSurfBoard?{...placedSurfBoard}:null,
         surf:surfField?{
           zoneId:surfField.zone.id,stage:player.surfStage??null,airborne:!!player.surfAirborne,

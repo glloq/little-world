@@ -35,7 +35,7 @@ export function surfBarrelBand(zone:SurfZone,ground:(x:number,z:number)=>number)
 
 export interface SurfBarrelView {
  readonly mesh:THREE.Mesh;
- readonly stats:{vertices:number;triangles:number;activeFronts:number;activeSections:number};
+ readonly stats:{vertices:number;triangles:number;activeFronts:number;activeSections:number;uploadBytes:number};
  update(tick:number,focus:{x:number;z:number}):void;
  dispose():void;
 }
@@ -69,9 +69,10 @@ export function createSurfBarrelView(parent:THREE.Object3D,
  const mesh=new THREE.Mesh(geometry,material);
  mesh.name='SurfBarrelLip';mesh.frustumCulled=false;mesh.renderOrder=4;mesh.visible=false;
  parent.add(mesh);
- const stats={vertices:positions.length/3,triangles:indices.length/3,activeFronts:0,activeSections:0};
+ const stats={vertices:positions.length/3,triangles:indices.length/3,activeFronts:0,activeSections:0,uploadBytes:0};
  let lastTick=-1;
  function update(tick:number,focus:{x:number;z:number}):void{
+  stats.uploadBytes=0;
   if(tick===lastTick)return;
   if(!Number.isSafeInteger(tick)||tick<0)throw Error('Tick maillage de tube invalide');
   lastTick=tick;
@@ -124,7 +125,7 @@ export function createSurfBarrelView(parent:THREE.Object3D,
    }
    if(visibleSegments>0){stats.activeFronts++;stats.activeSections+=visibleSegments;}
   }
-  positionAttribute.needsUpdate=true;
+  positionAttribute.needsUpdate=true;stats.uploadBytes=positions.byteLength;
   mesh.visible=stats.activeFronts>0;
  }
  return {mesh,stats,update,dispose(){mesh.removeFromParent();geometry.dispose();material.dispose();}};
