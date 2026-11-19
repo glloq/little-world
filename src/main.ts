@@ -4,7 +4,7 @@ import {advanceFlightAutoCamera,type FlightCameraFollow} from './render/flight-a
 import {createActorSimulator} from './render/remote-characters.ts';
 import {captureMovement} from './physics/movement-state.ts';
 import {createTouchControls,type TouchControls} from './input/touch-controls.ts';
-import {isEditableGameTarget,shouldPreventGameplayKeyDefault,shouldSuppressGameplayContextMenu,flightBoostHeld,flightPitchIntent} from './input/gameplay-input.ts';
+import {isEditableGameTarget,shouldPreventGameplayKeyDefault,shouldSuppressGameplayContextMenu,flightBoostHeld,flightPitchIntent,shiftTogglesRoll} from './input/gameplay-input.ts';
 import {createMobileLandscape,isPhoneTouchDevice} from './input/mobile-landscape.ts';
 import './input/touch-controls.css';
 import {classifyPoint} from './geography/classify.ts';
@@ -834,7 +834,7 @@ function input(): Controls {
     // Looking up/down while actively dragging steers pitch; release to auto-trim.
     // The mobile forward joystick retains its movement-only behaviour.
     flightPitchInput:flightPitchIntent(player.mode,orbitDrag.active,pitch-.32),
-    boostHeld:flightBoostHeld(player.mode,shiftHeld&&player.mode!=='ground'&&player.mode!=='roll',touchAccelerateHeld),
+    boostHeld:flightBoostHeld(player.mode,shiftHeld,touchAccelerateHeld),
     swimStrokePressed:touchStrokeQueue>0,
     snowEquipment:snowDemo?snowEquipment:gameplay?.equipment.hands==='tool:snowboard'?'snowboard':gameplay?.equipment.hands==='tool:skis'?'skis':null,
     surfEnabled:!!surfField&&(surfDemo||gameplay?.equipment.hands==='tool:surfboard'||(player.mode==='surf'||player.surfAirborne||surfQueue>0)&&!!gameplay?.has('tool:surfboard')),surfActionPressed:surfQueue>0,
@@ -926,7 +926,7 @@ window.addEventListener('keydown', (e) => {
   if (e.repeat) return;
   keySet.add(e.code);
   if (e.code === 'Space') jumpQueue++;
-  if (e.code === 'KeyX' || (e.code.startsWith('Shift')&&(player.mode==='ground'||player.mode==='roll')&&!aboard)) rollQueue++;
+  if (e.code === 'KeyX' || (e.code.startsWith('Shift')&&shiftTogglesRoll(player.mode)&&!aboard)) rollQueue++;
   if (e.code === 'KeyE'){
     if(currentTarget()?.targetType==='mine-wall')queuedMineStrike=mineRhythmHud.sample(performance.now());
     actionQueue++;
