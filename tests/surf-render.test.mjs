@@ -81,3 +81,48 @@ test('every LOD GPU vertex matches the fixed-tick CPU wave formula within float3
  assert.ok(Math.abs(original-phaseWrapped)<.00001,'long-session CPU/GPU phases remain aligned');
  view.dispose();
 });
+import {selectSurfWaterTier,surfZoneViewDistance,surfWaterLattice,SURF_LOD_HYSTERESIS} from '../src/render/surf-water-view.ts';
+test('LOD hysteresis keeps the current tier inside the band around each threshold',()=>{
+ const at=d=>({x:zone.maxX+d,z:0});
+ let tier=0;const path=[100,140,160,170,160,140,120,100,175,190,175,150,130,124,100];
+ const seen=[];
+ for(const d of path){tier=selectSurfWaterTier(zone,at(d),0,tier);seen.push(tier);}
+ // 150 m ±18 %: switch up only beyond 177 m, back down only below 123 m.
+ assert.deepEqual(seen,[0,0,0,0,0,0,0,0,0,1,1,1,1,1,0]);
+ assert.equal(selectSurfWaterTier(zone,at(380),0,2),2,'tier 2 kept above 328 m');
+ assert.equal(selectSurfWaterTier(zone,at(320),0,2),1);
+ assert.equal(selectSurfWaterTier(zone,at(40),2,0),2,'budget floor still wins');
+ assert.ok(SURF_LOD_HYSTERESIS>0&&SURF_LOD_HYSTERESIS<.5);
+ // Camera altitude counts: a high overview camera is far from the wave detail.
+ assert.ok(surfZoneViewDistance(zone,{x:0,z:0,y:300})>=300-zone.seaLevel);
+ assert.equal(surfZoneViewDistance(zone,{x:0,z:0}),0);
+});
+test('nested LOD grids share terrain samples and coarse vertices are fine vertices',()=>{
+ let calls=0;const counted=(x,z)=>{calls++;return terrain(x,z);};
+ const lattice=surfWaterLattice(zone,counted);
+ assert.equal(calls,(lattice.nx+1)*(lattice.nz+1),'one terrain pass for all tiers');
+ assert.equal(lattice.nx%4,0);assert.equal(lattice.nz%4,0);
+ const root=new THREE.Group(),view=createSurfWaterView(root,wave,terrain);
+ const fine=new Map();
+ const g0=view.mesh.geometry,p0=g0.getAttribute('position'),e0=g0.getAttribute('aEnvelope');
+ for(let i=0;i<p0.count;i++)fine.set(p0.getX(i).toFixed(4)+':'+p0.getZ(i).toFixed(4),e0.getX(i));
+ for(const level of [1,2]){
+  view.setDetail(level,{x:0,z:0});
+  const g=view.mesh.geometry,p=g.getAttribute('position'),e=g.getAttribute('aEnvelope');
+  for(let i=0;i<p.count;i++)
+   assert.equal(fine.get(p.getX(i).toFixed(4)+':'+p.getZ(i).toFixed(4)),e.getX(i),'tier '+level+' vertex '+i);
+ }
+ view.dispose();
+});
+test('fully dry beach quads are not indexed, wet water keeps full coverage',()=>{
+ const beachZone={...zone,id:'surf:lod-beach'};
+ const beach=(x,z)=>z>40?2:-5+Math.max(0,z+120)*.03;
+ const root=new THREE.Group(),view=createSurfWaterView(root,createSurfWaveField(beachZone,beach),beach);
+ assert.ok(view.stats.wetRatio<.9&&view.stats.wetRatio>.5,'wet ratio '+view.stats.wetRatio);
+ const g=view.mesh.geometry,p=g.getAttribute('position'),idx=g.index;
+ for(let t=0;t<idx.count;t+=3){
+  const zs=[idx.getX(t),idx.getX(t+1),idx.getX(t+2)].map(i=>p.getZ(i));
+  assert.ok(Math.min(...zs)<=40+1e-6,'a drawn triangle touches water');
+ }
+ view.dispose();
+});

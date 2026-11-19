@@ -1621,7 +1621,8 @@ function draw(now: number) {
   for(const view of surfWaterViews){
     // Never visibly downgrade the collision surface directly beneath a surfer:
     // coarser distant bays may still follow the global adaptive performance tier.
-    view.setDetail(view===surfWaterView&&player.mode==='surf'?0:budget.level,player.position);
+    // LOD follows the camera (what is actually seen) with hysteresis; never the physics.
+    view.setDetail(view===surfWaterView&&player.mode==='surf'?0:budget.level,camera.position);
     view.update(motionTick,frame.alpha);
   }
   const surfTubeStart=surfPerf?performance.now():0;

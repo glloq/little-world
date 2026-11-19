@@ -71,7 +71,7 @@ complète existe via `EXT_disjoint_timer_query_webgl2`, absent sous SwiftShader)
 | --- | --- | --- |
 | 1 — Instrumentation | DONE | `?surfPerf=1` (désactivé par défaut), canaux CPU séparés, draw calls/sommets/triangles/upload/zones/LOD, benchmark CPU Node + navigateur JSON v2, référence enregistrée |
 | 2 — WaveField CPU | DONE | hauteur/vitesse verticale/crête/déferlement/waveId bit-identiques à V1 ; gradient analytique ; 1 terrain en eau profonde ; `sample()` 3,4–4,7× plus rapide |
-| 3 — LOD | TODO | hystérésis, distance caméra, culling tube, physique identique entre LOD |
+| 3 — LOD | DONE (eau) / culling tube → phase 5 | hystérésis ±18 %, distance caméra 3D, grilles imbriquées, quads secs retirés ; physique indépendante du LOD |
 | 4 — Forme des vagues | TODO | profils variés et déterministes, CPU = GPU, anciennes zones inchangées |
 | 5 — Tubes | TODO | cycle de vie de la lèvre, gameplay tube préservé |
 | 6 — Mousse/sillage | TODO | écume analytique, sillage borné, ≤ +1 draw call |
@@ -138,3 +138,39 @@ Le dérivé analytique est vérifié contre une différence centrée fine (h = 1
 
 Fichier : `docs/perf/surf-cpu-phase2.json`. Le tick physique surf complet reste de l'ordre de
 quelques µs : il n'a jamais été le goulot ; les gains réels attendus sont côté rendu.
+
+## 9. Phase 3 — LOD de l'eau surf
+
+**Comparaison des approches** (critère : coût réel / simplicité / stabilité) :
+
+| Approche | Verdict |
+| --- | --- |
+| Grilles statiques pré-calculées (existant) | **Conservée** : 0 upload CPU, 1 draw call par zone, shader partagé |
+| Grilles en tuiles par zone | Rejetée pour l'instant : jointures T entre tiers, +N draw calls ; zones de 140–180 m déjà petites |
+| Résolution spatiale adaptative dynamique | Rejetée : reconstruction CPU + upload qui annuleraient le gain sur iGPU |
+| LOD statiques + découpage local | Retenue partiellement : **retrait des quads entièrement secs** (plages), pas de découpage dynamique |
+
+**Implémentation** (`src/render/surf-water-view.ts`) :
+- **Grilles imbriquées** : un seul passage terrain (`surfWaterLattice`), tiers 1/2 = un sommet sur 2/4 du
+  tier 0. Les sommets grossiers sont exactement des sommets fins (même enveloppe) : un changement de
+  tier ne déplace que les sommets intermédiaires, pas les crêtes partagées.
+- **Résolution liée à la houle** : 14 échantillons par longueur d'onde (7 par harmonique),
+  espacement 1,25–4 m, plafond 26 000 sommets au tier 0.
+- **Distance caméra 3D** (`surfZoneViewDistance`, altitude incluse) au lieu de la distance joueur.
+- **Hystérésis** ±18 % autour des seuils historiques 150 / 400 m (`selectSurfWaterTier`) ;
+  le plancher `PresentationBudget.level` reste prioritaire ; la zone sous un surfeur reste au tier 0.
+- `stats.wetRatio`, `stats.tierChanges` exposés.
+
+| Géométrie (triangles tier 0 / 1 / 2) | V1 | Phase 3 |
+| --- | --- | --- |
+| Île A (λ 25 m) | 9 702 / 7 056 / 1 936 | 12 544 / 3 136 / 784 |
+| Île B (λ 36 m) | 9 702 / 7 056 / 1 936 | 6 400 / 1 600 / 400 |
+| Île C (λ 29 m) | 9 702 / 7 056 / 1 936 | 9 216 / 2 304 / 576 |
+| Bande analytique (plage sèche incluse) | 16 200 / 14 112 / 3 872 | 7 454 / 1 882 / 484 |
+| Cuisson des 3 tiers (île A/B/C) | 11 / 10 / 9 ms | 9 / 4 / 5 ms |
+
+Le tier 0 de la zone A est plus dense qu'avant (λ courte) : choix volontaire pour la forme des vagues.
+
+**Raccords** : la hauteur au bord du rectangle vaut `seaLevel + 0,02` (enveloppe nulle), comme
+`NearSea` (troué sur le même rectangle) ⇒ continuité géométrique. Tests : `tests/surf-render.test.mjs`
+(hystérésis, imbrication, quads secs, égalité CPU/GPU conservée à 1e-5).
