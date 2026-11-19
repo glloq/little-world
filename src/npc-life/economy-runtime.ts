@@ -27,7 +27,7 @@ export function createNpcEconomyDriver(
    if(!anchor||Math.hypot(anchor.x-routine.work.x,anchor.z-routine.work.z)>2)continue;
    const job={id:routine.workAnchorId,sourceId:routine.workAnchorId,
     kind:'amenity' as const,role:routine.role,point:{...routine.work}};
-   const previous=accounts.get(state.definition.id)?.save()??restored[state.definition.id];
+   const previous=restored[state.definition.id]??accounts.get(state.definition.id)?.save();
    try{
     const account=createNpcWorkshopEconomy(state.definition.id,routine.role,job,
       stationType,STARTER_RECIPES,itemLimits,previous);
@@ -39,6 +39,7 @@ export function createNpcEconomyDriver(
   }
   accounts.clear();for(const [id,a]of next)accounts.set(id,a);
   lastMinute=-1;
+  if(states.length)restored={};
  }
  function restore(value:Readonly<Record<string,NpcWorkshopAccountV1>>={}){
   if(!value||typeof value!=='object'||Array.isArray(value)||Object.keys(value).length>32)
