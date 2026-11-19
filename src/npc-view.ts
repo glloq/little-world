@@ -29,7 +29,7 @@ import {residentRouteAheadClear,residentRouteStepClear,residentRoutineStepClear,
 import {residentHour,residentShift,residentPoseAt,residentRoute,positionOnResidentRoute,type ResidentRoute} from './npc-life/schedule.ts';
 import {residentDialogue,residentContextForHour} from './npc-life/dialogue.ts';
 import {residentAgendaPoseAt,validateResidentAgendaRoutes,type ResidentAgendaPose,type ResidentDailyRoutes,type ResidentActivityLegs} from './npc-life/agenda.ts';
-import {residentSocialPairs} from './npc-life/social.ts';
+import {residentSocialPairs,residentSocialEncounterActive} from './npc-life/social.ts';
 import {selectNPCRigs} from './npc-life/rig-budget.ts';
 import './npc.css';
 
@@ -477,8 +477,12 @@ export function createNPCSystem(
           }
         }else if(!entry.scripted)updateNPC(state,dt,position,obstacles);
         const partnerId=socialPartners.get(state.definition.id),partner=partnerId?byId.get(partnerId):null;
-        if(partner&&dialogue.npcId!==state.definition.id&&life?.pose?.phase==='activity'&&
-          Math.hypot(partner.state.x-state.x,partner.state.z-state.z)<=6){
+        if(partner&&dialogue.npcId!==state.definition.id&&dialogue.npcId!==partner.state.definition.id&&
+          !entry.scripted&&!partner.scripted&&life?.pose&&
+          (life.pose.phase==='activity'&&life.pose.activityKind==='social'||
+            life.pose.phase==='work'&&state.definition.routine?.role==='child')&&
+          residentSocialEncounterActive(state.definition.id,partnerId!,time)&&
+          Math.hypot(partner.state.x-state.x,partner.state.z-state.z)<=5.5){
           state.phase='greet';
           state.heading=Math.atan2(partner.state.x-state.x,partner.state.z-state.z);
         }
@@ -559,6 +563,7 @@ export function createNPCSystem(
           id:e.state.definition.id,x:e.state.x,z:e.state.z,
           role:e.state.definition.routine?.role??'villager',
           phase:e.life?.pose?.phase,kind:e.life?.pose?.activityKind,
+          busy:e.scripted!==null||dialogue.npcId===e.state.definition.id,
         })));
         lastSocialScan=time;
       }
