@@ -261,7 +261,7 @@ export function createGameplayView(data:GameplayData,options:Options){
         ...(state.definition.routine?{source:state.definition.routine.role}:{})});
     }),quests,state.definition.id,
     ()=>Math.floor(runtime.state.time/runtime.climate.definition.dayLengthSeconds*1440),
-    claimQuest,()=>{for(const listener of listeners)listener();}
+    claimQuest,deliverQuest,()=>{for(const listener of listeners)listener();}
   ),
   attachNPCs(states:readonly NPCState[]){
     npcs=states;
