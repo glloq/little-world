@@ -82,3 +82,13 @@ test('river banks receive shingle, reeds and riparian trees; shallow marsh water
   let wet=0;for(const [x,z]of band.slice(0,40))for(const it of species(generateDressingCell(marsh,4242,x,z,inside)))if(it.sp===SPECIES_INDEX['nature.reeds_patch'])wet++;
   assert.ok(wet>10,'reeds in shallow marsh water '+wet);
 });
+
+test('grass-first biotopes reduce decorative meadow flowers, retain mineral dressing',()=>{
+ const p=BIOTOPES.prairie,forest=BIOTOPES['temperate-forest'];
+ const floral=(p.groundMix['nature.wildflowers_patch']??0)+(p.groundMix['nature.flowers_tall']??0);
+ const total=Object.values(p.groundMix).reduce((sum,n)=>sum+n,0);
+ assert.ok(floral/total<.5,'flowers are a minority of prairie GLB ground patches');
+ assert.ok(p.rocks<.02&&forest.rocks<.03,'low scenic rock share on grass');
+ assert.ok(BIOTOPES.mountain.rocks>=.5&&BIOTOPES.volcanic.rocks>=.5,'mineral rock profile preserved');
+ assert.ok(BIOTOPES.mountain.ground<=.1&&BIOTOPES.volcanic.ground<=.02);
+});
