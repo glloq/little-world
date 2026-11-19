@@ -446,6 +446,7 @@ async function travelToIsland(destination:PublishedIsland):Promise<{ok:boolean;m
       flightProgress:save.flightProgress??flightProgress,
       equippedItemId:save.equippedItemId??null,
       ...(save.loadout?{loadout:save.loadout}:{}),
+      ...(save.questsLocal?{questsPortable:save.questsLocal}:{}),
     });
     checkpointWritten=true;
     clearGameplayInput();
@@ -1857,7 +1858,9 @@ if(incomingTransit&&gameplay&&playable){
       satiety:incomingTransit.traveler.satiety??100,boostRechargeProgress:incomingTransit.traveler.boostRechargeProgress??0,
       flightProgress:incomingTransit.traveler.flightProgress,
       equippedItemId:incomingTransit.traveler.equippedItemId??null,
-      loadout:incomingTransit.traveler.loadout});
+      loadout:incomingTransit.traveler.loadout,
+      questsLocal:incomingTransit.traveler.questsPortable??base.questsLocal});
+    gameplay.recordQuestCommit('ferry.arrived',{source:incomingTransit.sourceId});
     // The destination slot holds local activity state; a separate portable checkpoint holds
     // the complete bag across refreshes. Neither one is the short-lived ferry ticket.
     await gameplay.slots.save(gameplay.compose('slot-ferry-auto'));
@@ -1866,6 +1869,7 @@ if(incomingTransit&&gameplay&&playable){
       items:gameplay.runtime.data.items.filter(item=>(gameplay!.runtime.state.inventory[item.id]??0)>0),
       gasReserve:gasLevel(player),satiety:satietyLevel(player),boostRechargeProgress:player.boostRechargeProgress??0,flightProgress,equippedItemId:gameplay.equipment.hands,
       ...(gameplay.compose('slot-ferry-auto').loadout?{loadout:gameplay.compose('slot-ferry-auto').loadout}:{}),
+      ...(gameplay.compose('slot-ferry-auto').questsLocal?{questsPortable:gameplay.compose('slot-ferry-auto').questsLocal}:{}),
     });
     ferryMinute=worldGameMinute(worldClock.time,climate.definition.dayLengthSeconds);
     ferryNow=ferryStatus(ferryMinute,activeIsland!.portLevel);
@@ -1886,7 +1890,8 @@ if(!incomingTransit&&retainedPortable&&gameplay&&playable){
       satiety:retainedPortable.traveler.satiety??100,boostRechargeProgress:retainedPortable.traveler.boostRechargeProgress??0,
       flightProgress:retainedPortable.traveler.flightProgress,
       equippedItemId:retainedPortable.traveler.equippedItemId??null,
-      loadout:retainedPortable.traveler.loadout});
+      loadout:retainedPortable.traveler.loadout,
+      questsLocal:retainedPortable.traveler.questsPortable??base.questsLocal});
     ferryMinute=worldGameMinute(worldClock.time,climate.definition.dayLengthSeconds);
     ferryNow=ferryStatus(ferryMinute,activeIsland!.portLevel);
     ferryView?.setPresent(ferryNow.present);
@@ -1913,6 +1918,7 @@ if(activeIsland&&gameplay&&(incomingTransit||retainedPortable)){
           satiety:snapshot.satiety??satietyLevel(player),boostRechargeProgress:snapshot.boostRechargeProgress??player.boostRechargeProgress??0,
           flightProgress:snapshot.flightProgress??flightProgress,equippedItemId:snapshot.equippedItemId??null,
           ...(snapshot.loadout?{loadout:snapshot.loadout}:{}),
+          ...(snapshot.questsLocal?{questsPortable:snapshot.questsLocal}:{}),
         });
       }while(dirty);
       warned=false;
