@@ -9,6 +9,12 @@ import {STARTER_RECIPES} from '../economy/starter-catalog.ts';
 
 type Account=ReturnType<typeof createNpcWorkshopEconomy>;
 const stationByRole:Record<string,string>={miller:'mill',artisan:'carpenter',blacksmith:'smithy'};
+/** A scierie must be an actual author-named workstation. Do not silently
+ * transform an ordinary carpenter into a sawmill. */
+const stationFor=(role:string,sourceId:string)=>{
+ if(role==='artisan'&&/(?:sawmill|scierie)/i.test(sourceId))return 'sawmill';
+ return stationByRole[role]??null;
+};
 export function createNpcEconomyDriver(
  itemLimits:Readonly<Record<string,number>>,
  findAnchor:(id:string)=>{x:number;z:number}|null,
@@ -21,7 +27,7 @@ export function createNpcEconomyDriver(
   residents=states;
   const next=new Map<string,Account>();
   for(const state of [...states].sort((a,b)=>a.definition.id.localeCompare(b.definition.id))){
-   const routine=state.definition.routine,stationType=routine&&stationByRole[routine.role];
+   const routine=state.definition.routine,stationType=routine&&stationFor(routine.role,routine.workAnchorId??'');
    if(!routine?.workAnchorId||!stationType||next.size>=32)continue;
    const anchor=findAnchor(routine.workAnchorId);
    if(!anchor||Math.hypot(anchor.x-routine.work.x,anchor.z-routine.work.z)>2)continue;
@@ -75,7 +81,7 @@ export function createNpcEconomyDriver(
     const working=resident.phase==='work'&&
       Math.hypot(resident.x-routine.work.x,resident.z-routine.work.z)<=3;
     if(working){
-     const station=stationByRole[routine.role];
+     const station=stationFor(routine.role,routine.workAnchorId??'');
      const candidate=STARTER_RECIPES.filter(r=>r.stationType===station)
       .sort((a,b)=>a.recipeId.localeCompare(b.recipeId))[0];
      if(candidate&&account.jobs().filter(j=>j.status==='running'||j.status==='queued').length<1){
