@@ -21,7 +21,8 @@ export function isSurfBoardWaterSafe(
 ):boolean {
  const level=water(board.x,board.z);
  return level!==null&&Number.isFinite(level)&&level-floor(board.x,board.z)>.8&&
-   hasSurfZone(board.x,board.z)&&Number.isFinite(margin)&&margin>=0;
+   Number.isFinite(margin)&&margin>=0&&
+   [[0,0],[margin,0],[-margin,0],[0,margin],[0,-margin]].every(([dx,dz])=>hasSurfZone(board.x+dx,board.z+dz));
 }
 /** Every board placement is snapped to the actual water height instead of a cached wave mesh. */
 export function boardOnWater(x:number,z:number,heading:number,water:(x:number,z:number)=>number|null):SurfBoardPlacement|null {
