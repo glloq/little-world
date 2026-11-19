@@ -1345,6 +1345,8 @@ function tick(dt: number) {
   surfWaterView=surfIndex>=0?surfWaterViews[surfIndex]:null;
   surfBarrelView=surfIndex>=0?surfBarrelViews[surfIndex]:null;
   // In glide, mobile input now reaches the flight simulation directly.
+  // A sold or discarded board cannot remain duplicated in the water.
+  if(placedSurfBoard&&!surfDemo&&!gameplay?.has('tool:surfboard'))placedSurfBoard=null;
   const keys = input();
   if(snowLiftRide?.phase==='waiting'&&snowLift&&Math.hypot(player.position.x-snowLift.path[0].x,player.position.z-snowLift.path[0].z)>5){snowLiftRide=null;showInfo('Embarquement annulé');}
   const chair=snowLift&&snowLiftRide?liftRideStep(snowLift,snowLiftRide,elapsed):null;
