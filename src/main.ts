@@ -1508,7 +1508,7 @@ function draw(now: number) {
   // Finalize the current view before LOD/culling and lighting consume it.
   updateCamera(delta);
   speedStreaks.update(player.velocity.length(),player.mode==='glide',started&&!gameUi?.paused&&gameUi?.preferences.speedEffects!==false&&!gameUi?.preferences.reduceMotion,delta);
-  environment.update(delta,player.position,budget.level,!!player.space);
+  environment.update(delta,player.position,budget.level,!!player.space,quality.value as 'low'|'medium'|'high');
   activityView?.update(delta,player.position,player.space);
   // Sampling at ~11 Hz avoids per-frame target queries on older PCs.
   if(now>=nextMineRhythmTargetAt){
