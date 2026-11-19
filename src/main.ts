@@ -358,7 +358,9 @@ if(gameplay){
     questIslandId,certified,8);
   const visits=generateResidentVisitQuestOffers(definition.npcs,gameplay.runtime.data,
     questIslandId,certified,4);
-  const offers=[...social,...visits];
+  const authored=playable?.questCatalog??[];
+  const offers=[...authored,...social,...visits].filter((entry,index,list)=>
+    list.findIndex(other=>other.questKey===entry.questKey)===index);
   gameplay.quests.registerOffers(offers);
 }
 npcs.setLighting(world.atlasIllumination);
