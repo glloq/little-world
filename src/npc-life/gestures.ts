@@ -17,6 +17,11 @@ const gestures:Readonly<Partial<Record<ResidentRole,ResidentGesture>>>={
   miller:{activity:'collect',intervalSeconds:10},
   artisan:{activity:'mine',intervalSeconds:8},
   innkeeper:{activity:'interact',intervalSeconds:10},
+  dockworker:{activity:'collect',intervalSeconds:10},sailor:{activity:'interact',intervalSeconds:14},
+  courier:{activity:'interact',intervalSeconds:12},guard:{activity:'interact',intervalSeconds:18},
+  musician:{activity:'interact',intervalSeconds:12},gatherer:{activity:'collect',intervalSeconds:9},
+  blacksmith:{activity:'mine',intervalSeconds:8},traveler:{activity:'interact',intervalSeconds:20},
+  instructor:{activity:'interact',intervalSeconds:12},
 };
 export function residentGesture(role:ResidentRole):ResidentGesture|null{
   return gestures[role]??null;

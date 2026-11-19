@@ -609,7 +609,7 @@ export function createAsset(id: AssetId): THREE.Group {
     for(const [key,material]of [['walls',wallMaterial],['roof',roof],['floor',stone]] as const){const gkey='habitat-'+key;const geo=geometry(gkey,()=>{const pieces=houseBoxes().filter(b=>key==='walls'?!['roof','floor'].includes(b.key):b.key===key).map(b=>new THREE.BoxGeometry(b.sx,b.sy,b.sz).translate(b.x,b.bottom+b.sy/2,b.z));const merged=mergeGeometries(pieces);pieces.forEach(p=>p.dispose());return merged;});mesh(geo,material,g,0,0,0);}
     // A low pitched cap keeps the shell hollow; the flat roof below remains the physical ceiling.
     const cap=mesh(geometry('habitat-cap',()=>new THREE.ConeGeometry(4.6,1.8,4)),roof,g,0,HOUSE.height+1.1,0);cap.rotation.y=Math.PI/4;cap.scale.z=1.15;
-  }else if(id==='settlement.door'){box(g,darkWood,HOUSE.doorWidth,HOUSE.doorHeight,.2,0,HOUSE.doorHeight/2,0);
+  }else if(id==='settlement.door'){const hinge=new THREE.Group();hinge.name='DoorHinge';hinge.position.x=-HOUSE.doorWidth/2;g.add(hinge);box(hinge,darkWood,HOUSE.doorWidth,HOUSE.doorHeight,.2,HOUSE.doorWidth/2,HOUSE.doorHeight/2,0);
   }else if (id === 'nature.pine') {
     cylinder(g, wood, 0.24, 0.34, 2.4, 0, 1.2, 0);
     cylinder(g, deepGreen, 0, 2.0, 5.8, 0, 4.3, 0, 8);

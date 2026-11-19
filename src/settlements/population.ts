@@ -5,7 +5,8 @@
 import type {ProjectDocument,EntityDefinitionV3,ActivityZoneV3} from '../studio-core/types.ts';
 import type {SettlementRecipe,AmenityRecord,BuildingRecord} from './schema.ts';
 import type {GameplayDialogue} from '../gameplay/schema.ts';
-import type {ResidentRole,ResidentPoint} from '../npc-life/schedule.ts';
+import type {ResidentRole,ResidentPoint,ResidentRoutineV1} from '../npc-life/schedule.ts';
+import {withVillageActivities} from '../npc-life/generation-agenda.ts';
 import type {ResidentAssignmentPlanner,ResidentAssignment} from '../npc-life/assignments.ts';
 import {localLifeCapabilities,type LifeJob} from '../npc-life/capabilities.ts';
 import {DEFAULT_APPEARANCE} from '../character-style.ts';
@@ -27,15 +28,15 @@ export interface SettlementPopulation {
 const label:Record<ResidentRole,string>={
   farmer:'Agriculteur',fisher:'Pêcheur',merchant:'Marchand',woodcutter:'Forestier',
   miner:'Mineur',miller:'Meunier',artisan:'Artisan',innkeeper:'Aubergiste',
-  child:'Jeune habitant',villager:'Habitant',
+  child:'Jeune habitant',villager:'Habitant',dockworker:'Docker',sailor:'Marin',courier:'Messager',guard:'Garde',musician:'Musicien',gatherer:'Cueilleur',blacksmith:'Forgeron',traveler:'Voyageur',instructor:'Moniteur',
 };
 const preferredJobs:Record<SettlementRecipe['activity'],readonly ResidentRole[]>={
-  agriculture:['miller','merchant','farmer','innkeeper','artisan'],
-  fishing:['merchant','fisher','innkeeper','artisan'],
-  forest:['merchant','woodcutter','artisan','innkeeper'],
-  mine:['merchant','miner','artisan','innkeeper'],
-  commerce:['merchant','innkeeper','artisan','farmer'],
-  mixed:['merchant','innkeeper','artisan','farmer','fisher'],
+  agriculture:['miller','merchant','farmer','innkeeper','artisan','musician'],
+  fishing:['merchant','fisher','dockworker','innkeeper','artisan','musician'],
+  forest:['merchant','woodcutter','gatherer','artisan','innkeeper','musician'],
+  mine:['merchant','miner','blacksmith','artisan','innkeeper'],
+  commerce:['merchant','innkeeper','artisan','musician','farmer'],
+  mixed:['merchant','innkeeper','artisan','musician','farmer','fisher'],
 };
 const priority=(r:SettlementRecipe,role:ResidentRole)=>{
   const index=preferredJobs[r.activity].indexOf(role);
@@ -168,13 +169,15 @@ export function settlementPopulation(
     const {home,job}=selected;
     const appearance={...DEFAULT_APPEARANCE,hat:i%2===0,backpack:false,
       neckwear:(i%3===0?'scarf':'none') as 'scarf'|'none',emotion:'happy' as const};
+    const routine:ResidentRoutineV1=withVillageActivities({type:'Resident',version:1,role:job.role,
+      home:{...home.point},work:{...job.point},homeAnchorId:home.id,workAnchorId:job.id},
+      index.play,assignment,selected.route);
     const entity:EntityDefinitionV3={id,name:label[job.role]+' du village',kind:'character',
       ownerChunkId:chunkAt(p.world,home.point.x,home.point.z),components:{
         Transform:{type:'Transform',position:{...home.point,y:0},rotation:{x:0,y:0,z:0,w:1},scale:{x:.92,y:.92,z:.92}},
         Character:{type:'Character',species:'hamster',rigId:'hamster-rigid',appearance},
         DialogueActor:{type:'DialogueActor',dialogueIds:[id+'-talk']},
-        Resident:{type:'Resident',version:1,role:job.role,home:{...home.point},work:{...job.point},
-          homeAnchorId:home.id,workAnchorId:job.id},
+        Resident:routine,
       }};
     const dialogue:GameplayDialogue={id:id+'-talk',actorId:id,start:'hello',lines:[
       {id:'hello',text:'Bonjour ! Je travaille dans le village. Chaque habitant a ses habitudes.',

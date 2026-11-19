@@ -24,8 +24,14 @@ import {
 import type { Player } from './player.ts';
 import {terrainHeight} from './terrain.ts';
 import {createResidentRouter,type ResidentPath,type ResidentWalkable} from './npc-life/routes.ts';
-import {residentHour,residentShift,residentPoseAt,residentRoute,positionOnResidentRoute,type ResidentPose,type ResidentRoute} from './npc-life/schedule.ts';
+import {createResidentLayeredRouter,type ResidentSurfaces} from './npc-life/layered-routes.ts';
+import {residentRouteAheadClear,residentRouteStepClear,residentRoutineStepClear,residentRecoveryNeedsRetarget,residentRecoverySpeed} from './npc-life/dynamic-route.ts';
+import {residentHour,residentShift,residentPoseAt,residentRoute,positionOnResidentRoute,type ResidentRoute} from './npc-life/schedule.ts';
 import {residentDialogue,residentContextForHour} from './npc-life/dialogue.ts';
+import {residentAgendaPoseAt,validateResidentAgendaRoutes,type ResidentAgendaPose,type ResidentDailyRoutes,type ResidentActivityLegs} from './npc-life/agenda.ts';
+import {residentSocialPairs,residentSocialEncounterActive} from './npc-life/social.ts';
+import {residentDoorwayState} from './npc-life/doorway.ts';
+import {selectNPCRigs} from './npc-life/rig-budget.ts';
 import './npc.css';
 
 /** All DOM content is written as text, including author-provided names and dialogue. */
@@ -144,7 +150,13 @@ export interface NPCLifeOptions {
   paths:readonly ResidentPath[];
   /** Reuse the active world's collision broadphase for short path segments. */
   walkable?:ResidentWalkable;
+  surfaces?:ResidentSurfaces;
+  /** Concurrent animated rigs, bounded for old 4–8GB integrated GPUs. */
+  rigBudget?:number;
   weather?:()=> 'clear'|'cloudy'|'rain';
+  /** Only existing exterior settlement doors can be requested. */
+  homeDoor?:(homeAnchorId:string)=>string|null;
+  openHomeDoor?:(doorId:string)=>void;
 }
 export function createNPCSystem(
   scene: THREE.Scene,
@@ -157,14 +169,16 @@ export function createNPCSystem(
   if (!validateNPCs(definitions,bounds)) throw new Error('Liste de PNJ invalide');
   const walkable=(x:number,z:number,fx:number,fz:number)=>canNPCWalk(x,z,fx,fz,obstacles)&&(!lifeOptions?.walkable||lifeOptions.walkable(x,z,fx,fz));
   const router=lifeOptions&&definitions.some(d=>d.routine)
-    ?createResidentRouter(lifeOptions.paths,walkable):null;
+    ?lifeOptions.surfaces&&lifeOptions.paths.some(p=>p.supportId)?createResidentLayeredRouter(lifeOptions.paths,walkable,lifeOptions.surfaces):createResidentRouter(lifeOptions.paths,walkable):null;
   const dialogue=createDialoguePanel(state=>{
     const base=dialogueFactory?.(state)??(state.definition.dialogue?createDialogue(state.definition.dialogue,state.flags):undefined);
     const routine=state.definition.routine;
     if(!routine||!lifeOptions)return base;
     return residentDialogue(base,routine.role,()=>{
       const hour=residentHour(lifeOptions.worldTime(),lifeOptions.dayLengthSeconds,lifeOptions.initialDayPhase);
-      const context=residentContextForHour(routine.role,hour);
+      const living=entries.find(e=>e.state===state)?.life?.pose;
+      if(living)return {phase:living.phase,hour,weather:lifeOptions.weather?.()};
+      const context=residentContextForHour(routine.role,hour,routine);
       if(state.phase==='walk'){
         const [,end]=residentShift(routine.role);
         return {...context,weather:lifeOptions.weather?.(),phase:hour>=end?'to-home' as const:'to-work' as const};
@@ -217,7 +231,18 @@ export function createNPCSystem(
     const definition={...sourceDefinition,kind:visualNPCSpecies(sourceDefinition.kind)};
     const state = createNPCState(definition,bounds),
       route=definition.routine&&router?router.route(definition.routine.home,definition.routine.work):null,
-      life=route?{route,pose:null as ResidentPose|null,lastTime:-1,lastSample:-1,pausedSeconds:0,pauseFrom:null as number|null}:null,
+      agenda:ResidentDailyRoutes|null=route&&router&&definition.routine?.activities?.length?(()=>{
+        const legs:ResidentActivityLegs[]=[];
+        for(const stop of definition.routine.activities??[]){
+          const to=router.route(definition.routine!.work,stop.point),back=router.route(stop.point,definition.routine!.work);
+          if(!to||!back)return null;
+          legs.push({to,back});
+        }
+        const candidate={work:route,activities:legs};
+        return validateResidentAgendaRoutes(definition.routine!,candidate,
+          lifeOptions!.dayLengthSeconds,Math.max(.2,definition.speed))?null:candidate;
+      })():null,
+      life=route?{route,agenda,pose:null as ResidentAgendaPose|null,lastTime:-1,lastSample:-1,pausedSeconds:0,pauseFrom:null as number|null,lastRecoveryAt:-Infinity,lastDoorAt:-Infinity,indoors:false}:null,
       proxy = silhouette(definition);
     // Actual character rigs are allocated only when first seen nearby, not for
     // every citizen of the island. All hamsters share geometry/material caches.
@@ -245,13 +270,19 @@ export function createNPCSystem(
       appliedEmotion: definition.appearance.emotion,
       lastWorkAt:-1,
       lastGreetAt:-1,
-      scripted:null as null|{route:ResidentRoute;startAt:number;pausedFor:number;pauseFrom:number|null;arrivedAt:number|null},
+      lastRigAt:-1000,
+      scripted:null as null|{route:ResidentRoute;goal:{x:number;z:number};startAt:number;pausedFor:number;pauseFrom:number|null;arrivedAt:number|null;lastCheckedAt:number;lastDistance:number;replans:number;recovery:boolean},
     };
   });
+  const byId=new Map(entries.map(entry=>[entry.state.definition.id,entry]));
+  let socialPartners=new Map<string,string>(),lastSocialScan=-1;
+  let rigIds=new Set<string>(),lastRigSample=-1;
+  let scriptedReplans=0,scriptedBlocked=0,scriptedCompleted=0,routineRecoveries=0,routineBlocked=0;
   function nearest(player: NPCPoint) {
     let best: (typeof entries)[number] | null = null,
       distance = 5.5;
     for (const entry of entries) {
+      if (entry.life?.indoors)continue;
       if (!entry.state.definition.dialogue&&!entry.state.definition.routine) continue;
       const d = Math.hypot(player.x - entry.state.x, player.z - entry.state.z);
       if (d < distance) {
@@ -277,12 +308,12 @@ export function createNPCSystem(
       if(ok)route=residentRoute([from,to]);
     }
     if(!route)return false;
-    entry.scripted={route,startAt:lifeOptions.worldTime(),pausedFor:0,pauseFrom:null,arrivedAt:null};
+    entry.scripted={route,goal:to,startAt:lifeOptions.worldTime(),pausedFor:0,pauseFrom:null,arrivedAt:null,lastCheckedAt:-1,lastDistance:0,replans:0,recovery:false};
     return true;
   }
   function talkTo(id:string,playerPosition:NPCPoint):boolean{
     const entry=entries.find(e=>e.state.definition.id===id);
-    if(!entry||dialogue.isOpen||Math.hypot(entry.state.x-playerPosition.x,entry.state.z-playerPosition.z)>5.5||
+    if(!entry||entry.life?.indoors||dialogue.isOpen||Math.hypot(entry.state.x-playerPosition.x,entry.state.z-playerPosition.z)>5.5||
       !entry.state.definition.dialogue&&!entry.state.definition.routine)return false;
     dialogue.open(entry.state);
     return dialogue.isOpen;
@@ -293,10 +324,16 @@ export function createNPCSystem(
     talkTo,
     setLighting(color:THREE.Color|null){distant.setLighting(color);},
     states: entries.map((entry) => entry.state),
-    get lifeStats(){return {assigned:entries.filter(e=>!!e.state.definition.routine).length,routed:entries.filter(e=>!!e.life).length,roadNodes:router?.nodes??0,roadTruncated:router?.truncated??false};},
+    get lifeStats(){return {assigned:entries.filter(e=>!!e.state.definition.routine).length,routed:entries.filter(e=>!!e.life).length,agendas:entries.filter(e=>!!e.life?.agenda).length,unqualifiedAgendas:entries.filter(e=>e.state.definition.routine?.activities?.length&&!e.life?.agenda).length,socialPairs:socialPartners.size/2,animatedRigs:entries.filter(e=>!!e.model).length,rigBudget:lifeOptions?.rigBudget??12,scriptedReplans,scriptedBlocked,scriptedCompleted,routineRecoveries,routineBlocked,roadNodes:router?.nodes??0,roadTruncated:router?.truncated??false};},
     update(dt: number, time: number, position: NPCPoint,camera?:THREE.PerspectiveCamera) {
       if (disposed) return;
       distant.begin();distant.update(time);
+      if(time<lastRigSample||time-lastRigSample>=.5){
+        const focus={x:camera?.position.x??position.x,z:camera?.position.z??position.z};
+        rigIds=selectNPCRigs(entries.map(e=>({id:e.state.definition.id,kind:e.state.definition.kind,
+          x:e.state.x,z:e.state.z})),focus,lifeOptions?.rigBudget??12,dialogue.npcId??undefined);
+        lastRigSample=time;
+      }
       for (const entry of entries) {
         const { state, life, player, proxy } = entry;
         if(entry.scripted&&lifeOptions){
@@ -311,49 +348,131 @@ export function createNPCSystem(
               state.phase='talk';state.vx=0;state.vz=0;
             }else{
               if(job.pauseFrom!==null){job.pausedFor+=now-job.pauseFrom;job.pauseFrom=null;}
-              const distance=Math.max(0,Math.min(job.route.length,(now-job.startAt-job.pausedFor)*Math.max(.2,state.definition.speed)));
+              // Recoveries follow the current shift/visit, including after a
+              // conversation or a changed day phase. Re-route at most every 2s.
+              if(job.recovery&&life&&state.definition.routine&&
+                (now<life.lastRecoveryAt||now-life.lastRecoveryAt>=2)){
+                life.lastRecoveryAt=now;
+                try{
+                  const r=state.definition.routine,speed=Math.max(.2,state.definition.speed);
+                  const target=life.agenda
+                    ?residentAgendaPoseAt(r,life.agenda,Math.max(0,now-life.pausedSeconds),
+                        lifeOptions.dayLengthSeconds,lifeOptions.initialDayPhase,speed)
+                    :residentPoseAt(r,life.route,Math.max(0,now-life.pausedSeconds),
+                        lifeOptions.dayLengthSeconds,lifeOptions.initialDayPhase,speed);
+                  if(residentRecoveryNeedsRetarget(job.goal,target.position,now,job.lastCheckedAt,2,.35)){
+                    const newGoal={x:target.position.x,z:target.position.z};
+                    const updated=router?.route({x:state.x,z:state.z},newGoal)??null;
+                    if(updated&&residentRouteAheadClear(updated,0,walkable,3)){
+                      job.route=updated;job.goal=newGoal;job.startAt=now;
+                      job.pausedFor=0;job.lastDistance=0;job.arrivedAt=null;job.lastCheckedAt=now;
+                      routineRecoveries++;
+                    }else{
+                      entry.scripted=null;routineBlocked++;
+                      state.vx=0;state.vz=0;state.phase='idle';
+                    }
+                  }
+                }catch{
+                  entry.scripted=null;routineBlocked++;
+                }
+              }
+              let distance=Math.max(0,Math.min(job.route.length,(now-job.startAt-job.pausedFor)*(job.recovery?residentRecoverySpeed(state.definition.speed):Math.max(.2,state.definition.speed))));
+              // Live world checks are bounded and throttled; only scripted moves
+              // may replan. The routine clock never performs A* during frames.
+              const checkAhead=job.lastCheckedAt<0||now<job.lastCheckedAt||now-job.lastCheckedAt>=.35;
+              // Check EVERY interval actually traversed, even if a browser tab
+              // was paused and the absolute-clock target skipped several metres.
+              const safeStep=residentRouteStepClear(job.route,job.lastDistance,distance,walkable);
+              const clearAhead=!checkAhead||residentRouteAheadClear(job.route,distance,walkable,3);
+              if(checkAhead)job.lastCheckedAt=now;
+              if(entry.scripted&&(!safeStep||!clearAhead)){
+                const alternative=job.replans<3?router?.route({x:state.x,z:state.z},job.goal)??null:null;
+                  if(alternative&&residentRouteAheadClear(alternative,0,walkable,3)){
+                    job.route=alternative;job.startAt=now;job.pausedFor=0;
+                    job.lastDistance=0;job.lastCheckedAt=now;
+                    job.replans++;scriptedReplans++;distance=0;
+                  }else{
+                    // Stop at the last qualified position instead of crossing
+                    // the newly blocked segment. No teleport to the destination.
+                    entry.scripted=null;scriptedBlocked++;state.vx=0;state.vz=0;state.phase='idle';
+                    distance=0;
+                  }
+              }
+              if(entry.scripted){
+              job.lastDistance=distance;
               const p=positionOnResidentRoute(job.route,distance);
-              state.x=p.x;state.z=p.z;state.y=terrainHeight(p.x,p.z);
+              state.x=p.x;state.z=p.z;state.y=p.y??terrainHeight(p.x,p.z);
               state.vx=dt>0?(p.x-state.previousX)/dt:0;state.vz=dt>0?(p.z-state.previousZ)/dt:0;
               state.heading=Math.atan2(state.vx,state.vz);
               state.phase=distance>=job.route.length?'idle':'walk';
               if(distance>=job.route.length){
                 state.vx=0;state.vz=0;
-                if(job.arrivedAt===null)job.arrivedAt=now;
+                if(job.arrivedAt===null){job.arrivedAt=now;if(job.recovery)entry.scripted=null;else scriptedCompleted++;}
                 if(now-job.arrivedAt>60&&Math.hypot(position.x-state.x,position.z-state.z)>40)entry.scripted=null;
+              }
               }
             }
           }
         }
         if(!entry.scripted&&life&&lifeOptions&&state.definition.routine){
           const now=lifeOptions.worldTime(),routine=state.definition.routine;
-          if(now<life.lastTime){life.pausedSeconds=0;life.pauseFrom=null;life.lastSample=-1;}
+          if(now<life.lastTime){life.pausedSeconds=0;life.pauseFrom=null;life.lastSample=-1;life.lastRecoveryAt=-Infinity;}
           life.lastTime=now;
           const distance=Math.hypot(position.x-state.x,position.z-state.z);
-          const talking=dialogue.npcId===state.definition.id,near=distance<2.5;
+          const talking=dialogue.npcId===state.definition.id;
           state.activity=npcActivity(distance);
-          if(talking||near){
+          if(talking){
             if(life.pauseFrom===null)life.pauseFrom=now;
             state.previousX=state.x;state.previousY=state.y;state.previousZ=state.z;
             state.vx=0;state.vz=0;state.phase=talking?'talk':'greet';
             state.heading=Math.atan2(position.x-state.x,position.z-state.z);
           }else{
             if(life.pauseFrom!==null){life.pausedSeconds+=Math.max(0,now-life.pauseFrom);life.pauseFrom=null;}
+            // Conversations freeze an actor only while speaking. Gradually regain
+            // missed world time instead of offsetting its daily timetable forever.
+            life.pausedSeconds=Math.max(0,life.pausedSeconds-Math.max(0,dt)*2);
             // Distant residents have no pathfinding/tick loop; sample their absolute
             // position at most twice per logical second. Nearby motion is smooth.
             if(distance<160||now-life.lastSample>=.5||life.lastSample<0){
               try {
-                const pose=residentPoseAt(routine,life.route,Math.max(0,now-life.pausedSeconds),
-                  lifeOptions.dayLengthSeconds,lifeOptions.initialDayPhase,Math.max(.2,state.definition.speed));
+                const pose:ResidentAgendaPose=life.agenda
+                  ?residentAgendaPoseAt(routine,life.agenda,Math.max(0,now-life.pausedSeconds),
+                    lifeOptions.dayLengthSeconds,lifeOptions.initialDayPhase,Math.max(.2,state.definition.speed))
+                  :residentPoseAt(routine,life.route,Math.max(0,now-life.pausedSeconds),
+                    lifeOptions.dayLengthSeconds,lifeOptions.initialDayPhase,Math.max(.2,state.definition.speed));
+                life.pose=pose; // Dialogue context follows the schedule even while physically recovering.
                 const oldX=state.x,oldZ=state.z;
-                state.previousX=oldX;state.previousY=state.y;state.previousZ=oldZ;
-                state.x=pose.position.x;state.z=pose.position.z;state.y=terrainHeight(state.x,state.z);
-                state.vx=dt>0?(state.x-oldX)/dt:0;state.vz=dt>0?(state.z-oldZ)/dt:0;
-                if(pose.phase==='to-work'||pose.phase==='to-home')state.heading=pose.heading;
-                const busy=residentGesture(routine.role)!==null;
-                state.phase=pose.phase==='work'?(busy?'work':routine.role==='child'&&Math.hypot(state.vx,state.vz)>.15?'walk':'idle'):
-                  pose.phase==='to-work'||pose.phase==='to-home'?'walk':'idle';
-                life.pose=pose;life.lastSample=now;
+                // Close residents must physically catch up to the daily schedule.
+                // No teleport through a wall when the world clock jumps or an
+                // authored road changes after routes were initially compiled.
+                const near=distance<80;
+                const blocked=near&&!residentRoutineStepClear(
+                  {x:oldX,z:oldZ},pose.position,walkable,Math.max(.25,Math.max(0,dt)*Math.max(.2,state.definition.speed)*2));
+                if(blocked){
+                  state.previousX=oldX;state.previousY=state.y;state.previousZ=oldZ;
+                  state.vx=0;state.vz=0;state.phase='idle';
+                  if(now<life.lastRecoveryAt||now-life.lastRecoveryAt>=2){
+                    life.lastRecoveryAt=now;
+                    const detour=router?.route({x:oldX,z:oldZ},pose.position)??null;
+                    if(detour&&detour.length>.05&&residentRouteAheadClear(detour,0,walkable,3)){
+                      entry.scripted={route:detour,goal:{x:pose.position.x,z:pose.position.z},
+                        startAt:now,pausedFor:0,pauseFrom:null,arrivedAt:null,
+                        lastCheckedAt:-1,lastDistance:0,replans:0,recovery:true};
+                      routineRecoveries++;
+                    }else routineBlocked++;
+                  }
+                  life.lastSample=now;
+                }else{
+                  state.previousX=oldX;state.previousY=state.y;state.previousZ=oldZ;
+                  state.x=pose.position.x;state.z=pose.position.z;state.y=pose.position.y??terrainHeight(state.x,state.z);
+                  state.vx=dt>0?(state.x-oldX)/dt:0;state.vz=dt>0?(state.z-oldZ)/dt:0;
+                  if(pose.phase==='to-work'||pose.phase==='to-home'||pose.phase==='to-activity')state.heading=pose.heading;
+                  const busy=residentGesture(routine.role)!==null;
+                  state.phase=pose.phase==='activity'?(pose.activityKind==='social'?'greet':'idle'):
+                    pose.phase==='work'?(busy?'work':routine.role==='child'&&Math.hypot(state.vx,state.vz)>.15?'walk':'idle'):
+                    pose.phase==='to-work'||pose.phase==='to-home'||pose.phase==='to-activity'?'walk':'idle';
+                  life.lastSample=now;
+                }
               }catch{
                 // Invalid route/clock: preserve the source NPC's legacy fallback,
                 // never jump to an unqualified work site.
@@ -362,10 +481,38 @@ export function createNPCSystem(
             }else{state.vx=0;state.vz=0;}
           }
         }else if(!entry.scripted)updateNPC(state,dt,position,obstacles);
-        const tier = npcVisualTier(
+        // Visually enter the home at its exterior threshold, no fictional room.
+        // The native door component remains the single authority for manual
+        // player opening and the temporary request is never persisted.
+        if(life&&state.definition.routine?.homeAnchorId&&lifeOptions?.homeDoor){
+          const doorId=lifeOptions.homeDoor(state.definition.routine.homeAnchorId);
+          const pose=life.pose;
+          if(doorId&&pose){
+            const doorway=residentDoorwayState(state.definition.routine,pose,
+              {x:state.x,z:state.z},lifeOptions.dayLengthSeconds,Math.max(.2,state.definition.speed));
+            life.indoors=doorway.inside&&!entry.scripted&&dialogue.npcId!==state.definition.id;
+            const now=lifeOptions.worldTime();
+            if(doorway.requestOpen&&(now<life.lastDoorAt||now-life.lastDoorAt>=1)){
+              life.lastDoorAt=now;lifeOptions.openHomeDoor?.(doorId);
+            }
+          }else life.indoors=false;
+        }
+        const partnerId=socialPartners.get(state.definition.id),partner=partnerId?byId.get(partnerId):null;
+        if(partner&&dialogue.npcId!==state.definition.id&&dialogue.npcId!==partner.state.definition.id&&
+          !entry.scripted&&!partner.scripted&&life?.pose&&
+          (life.pose.phase==='activity'&&life.pose.activityKind==='social'||
+            life.pose.phase==='work'&&state.definition.routine?.role==='child')&&
+          residentSocialEncounterActive(state.definition.id,partnerId!,time)&&
+          Math.hypot(partner.state.x-state.x,partner.state.z-state.z)<=5.5){
+          state.phase='greet';
+          state.heading=Math.atan2(partner.state.x-state.x,partner.state.z-state.z);
+        }
+        const candidateTier = npcVisualTier(
           Math.hypot((camera?.position.x??position.x) - state.x, (camera?.position.z??position.z) - state.z),
           state.definition.kind,
         );
+        const tier=life?.indoors?'hidden':candidateTier==='rig'&&!rigIds.has(state.definition.id)?'silhouette':candidateTier;
+        if(tier==='rig')entry.lastRigAt=time;
         if(tier==='rig'&&!entry.model){
           const hamster=state.definition.kind==='hamster'?buildHamster():null,
             model=hamster??buildSquirrel();
@@ -380,7 +527,8 @@ export function createNPCSystem(
         }
         // Beyond the immediate player neighborhood, free whole animated rigs.
         // Impostors use pre-existing atlases and do not require model instances.
-        if(tier!=='rig'&&entry.model&&Math.hypot(position.x-state.x,position.z-state.z)>32){
+        if(tier!=='rig'&&entry.model&&(time-entry.lastRigAt>3||
+          Math.hypot(position.x-state.x,position.z-state.z)>32)){
           entry.model.dispose();entry.model=null;entry.hamster=null;entry.head=null;entry.arm=null;
         }
         const {model,hamster,head,arm}=entry;
@@ -430,6 +578,16 @@ export function createNPCSystem(
         }
       }
       distant.end();
+      // Spatially budgeted social scan, independent of display/physics LOD.
+      if(time<lastSocialScan||time-lastSocialScan>=2){
+        socialPartners=residentSocialPairs(entries.map(e=>({
+          id:e.state.definition.id,x:e.state.x,z:e.state.z,
+          role:e.state.definition.routine?.role??'villager',
+          phase:e.life?.pose?.phase,kind:e.life?.pose?.activityKind,
+          busy:e.scripted!==null||dialogue.npcId===e.state.definition.id,
+        })));
+        lastSocialScan=time;
+      }
     },
     interact(position: NPCPoint): boolean {
       if (disposed) return false;
