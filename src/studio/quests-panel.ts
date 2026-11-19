@@ -81,11 +81,12 @@ export function mountQuestsPanel(host:HTMLElement,session:StudioSession,
    deliver:{kind:'deliver',itemId:knownItems[0]?.id??'coin',quantity:1,giverId:q.giverId},
    craft:{kind:'craft',recipeId:'sawmill:planks',quantity:1},
    race:{kind:'race',raceId:Object.keys(project.libraries.races??{})[0]??'race:unknown'},
+   travel:{kind:'travel',fromIslandId:project.world.worldId,toIslandId:'destination-island'},
    event:{kind:'event',eventType:'npc.talked',count:1},
   };
   const stepKinds:readonly (readonly [QuestStepV1['kind'],string])[]=[
    ['talk','Parler'],['visit','Visiter'],['acquire','Obtenir'],['deliver','Livrer'],
-   ['craft','Fabriquer'],['race','Terminer une course'],['event','Événement natif']];
+   ['craft','Fabriquer'],['race','Terminer une course'],['travel','Prendre le ferry'],['event','Événement natif']];
   q.steps.forEach((step,index)=>{
    const line=node('div','','feature-row');
    line.append(node('strong','Étape '+(index+1)),
@@ -114,6 +115,10 @@ export function mountQuestsPanel(host:HTMLElement,session:StudioSession,
     parameter('recipeId','Recette',step.recipeId);
     line.append(field('Lots',numberInput(step.quantity,v=>step.quantity=v,1,9999,'1')));
    }else if(step.kind==='race')parameter('raceId','Course',step.raceId);
+   else if(step.kind==='travel'){
+    parameter('fromIslandId','Île de départ',step.fromIslandId);
+    parameter('toIslandId','Île de destination',step.toIslandId);
+   }
    else if(step.kind==='event'){
     parameter('eventType','Événement natif',step.eventType);
     line.append(field('Nombre',numberInput(step.count,v=>step.count=v,1,9999,'1')));
