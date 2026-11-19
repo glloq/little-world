@@ -61,7 +61,7 @@ export interface GameUiDeps {
   eatFood?(id:string):{ok:boolean;message:string};
   eatFoods?(items:{itemId:string;quantity:number;gas:number}[]):{ok:boolean;message:string};
   canEatFood?(id:string):string|null;
-  player():{gas?:number;maxGas?:number;gasShots?:number;gasMaxShots?:number;gasCooldown?:number;x:number;y:number;z:number;yaw:number;space?:MovementSpace;mode:string;oxygen:number;maxOxygen:number;stamina:number;maxStamina:number;speed?:number;stalled?:boolean};
+  player():{gas?:number;maxGas?:number;satiety?:number;gasShots?:number;gasMaxShots?:number;gasCooldown?:number;boostRechargeProgress?:number;gasPulseSeq?:number;x:number;y:number;z:number;yaw:number;space?:MovementSpace;mode:string;oxygen:number;maxOxygen:number;stamina:number;maxStamina:number;speed?:number;stalled?:boolean};
   target():TargetDescriptor|null;
   quality:HTMLSelectElement|null;
   applyDistantRendering?(value:UiPreferences['distantRendering'],initial:boolean):void;
@@ -125,7 +125,7 @@ export function createGameUi(deps:GameUiDeps){
     ui.open('instrument');return true;
   }
   function toggleInstrument(){if(ui.active==='instrument')ui.close();else openInstrument();}
-  const inventory=inventoryPanelV3({worldId:g?.runtime.data.worldId,favoriteSlots:()=>g?.equipment.favorites??null,setFavoriteSlots:ids=>g?.equipment.setFavorites(ids)??false,items:()=>g?.runtime.data.items??[],inventory:()=>g?.runtime.state.inventory??{},selectedTool:()=>g?.equipment.hands??null,selectTool:id=>{const ok=g?.equipment.setHands(id);renderTool();return ok;},playInstrument:id=>{openInstrument(id);},headgear:deps.headgear,gasLevel:()=>deps.player().gas??0,gasCapacity:()=>deps.player().maxGas??200,
+  const inventory=inventoryPanelV3({worldId:g?.runtime.data.worldId,favoriteSlots:()=>g?.equipment.favorites??null,setFavoriteSlots:ids=>g?.equipment.setFavorites(ids)??false,items:()=>g?.runtime.data.items??[],inventory:()=>g?.runtime.state.inventory??{},selectedTool:()=>g?.equipment.hands??null,selectTool:id=>{const ok=g?.equipment.setHands(id);renderTool();return ok;},playInstrument:id=>{openInstrument(id);},headgear:deps.headgear,gasLevel:()=>deps.player().satiety??100,gasCapacity:()=>100,
     canConsume:deps.canEatFood,
     consume:deps.eatFood?(id)=>{const result=deps.eatFood!(id);center.notify(result.ok?'success':'warning',result.message);return result.ok;}:undefined,
     consumeBatch:deps.eatFoods,
@@ -348,9 +348,12 @@ export function createGameUi(deps:GameUiDeps){
   const velocity=el('div','ui-motion-speed hide');velocity.setAttribute('aria-label','Vitesse de déplacement');
   const gas=el('div','ui-oxygen ui-gas hide');gas.setAttribute('role','meter');gas.setAttribute('aria-label','Impulsions de propulsion disponibles');
   const gasLabel=el('span','ui-gas-label','Boosts');const gasSlots=el('div','ui-gas-slots');
-  const gasSegments=Array.from({length:20},()=>{const segment=el('span','ui-gas-slot');gasSlots.append(segment);return segment;});
+  const gasSegments=Array.from({length:10},()=>{const segment=el('span','ui-gas-slot');gasSlots.append(segment);return segment;});
   const gasCooldownLabel=el('span','ui-gas-status','Shift · Propulsion prête');gas.append(gasLabel,gasSlots,gasCooldownLabel);
-  host.append(quick,minimap.element,tool,oxygen,stamina,gas,velocity);
+  const satiety=el('div','ui-oxygen ui-satiety');satiety.setAttribute('role','meter');satiety.setAttribute('aria-label','Satiété du hamster');
+  const satietyFill=el('span','ui-meter-fill');const satietyTrack=el('span','ui-meter-track');satietyTrack.append(satietyFill);
+  const satietyLabel=el('span','','Rassasié');satiety.append(satietyLabel,satietyTrack);
+  host.append(quick,minimap.element,tool,oxygen,stamina,satiety,gas,velocity);
   ui.onChange(id=>{if(id)hideAudioPopover();});
   const card=activityCard(host,(plotId,cropId)=>{const name=a?.selectCrop(plotId,cropId);if(name){center.notify('info','Culture choisie : '+name);deps.audio?.emit('farm.seedbag',{source:'player'});}});
   function renderTool(){const item=g?.runtime.data.items.find(i=>i.id===g?.equipment.hands);tool.textContent=item?'En main : '+item.name:'';tool.classList.toggle('hide',!item);const instrument=instrumentForItem(g?.equipment.hands);musicButton.classList.toggle('hide',!instrument);musicButton.title=instrument?'Jouer : '+instrument.name+' (P)':'';}
@@ -366,7 +369,7 @@ export function createGameUi(deps:GameUiDeps){
     snapshot();renderTool();if(ui.active==='journal'||ui.active==='inventory'&&!inventory.isInteracting())ui.refresh();
     if(ui.active==='instrument'&&!instrumentForItem(g.equipment.hands))ui.close();
   });
-  let lastFrame=-1,promptKey='';
+  let lastFrame=-1,promptKey='',lastBoostCount=-1,lastPulseSeq=-1,boostVisibleUntil=0;
   return {
     /** Opens the maritime choice panel only for a real, published ferry stop. */openFerry(){if(deps.ferry)ui.open('ferry');},
     /** Opens the counter panel of a specific entity; each entity owns its own jobs. */
@@ -426,13 +429,24 @@ export function createGameUi(deps:GameUiDeps){
        if(soundButton.dataset.icon!==iconName){soundButton.replaceChildren(hudIcon(iconName));soundButton.dataset.icon=iconName;soundButton.title=muted?'Son coupé · ouvrir le mixeur':'Régler le son';}
        minimap.update();
        if(ui.active==='map'){if(mineMapContext())mineMap.refresh();else map.refresh();}
-      gas.classList.toggle('hide',p.mode!=='glide'||ui.blocking);
-      if(p.mode==='glide'){
-        const n=p.gasShots??0,max=p.gasMaxShots??14,cd=p.gasCooldown??0;
+      const hunger=Math.max(0,Math.min(100,p.satiety??100));
+      satietyLabel.textContent=hunger<=0?'Ventre vide':hunger<20?'Affamé':hunger<40?'Petite faim':hunger<80?'Bien nourri':'Rassasié';
+      satietyFill.style.width=hunger.toFixed(1)+'%';
+      satiety.setAttribute('aria-valuenow',hunger.toFixed(1));
+      const n=p.gasShots??0,max=p.gasMaxShots??10;
+      const pulse=p.gasPulseSeq??0;
+      if(lastBoostCount>=0){
+        if(pulse!==lastPulseSeq&&pulse>lastPulseSeq)boostVisibleUntil=time+8;
+        else if(n<lastBoostCount)boostVisibleUntil=time+8;
+        else if(n>lastBoostCount)boostVisibleUntil=Math.max(boostVisibleUntil,time+2.5);
+      }
+      lastBoostCount=n;lastPulseSeq=pulse;
+      gas.classList.toggle('hide',ui.blocking||time>=boostVisibleUntil);
+      if(time<boostVisibleUntil){
         gasLabel.textContent='Boosts · '+n+'/'+max;
-        gasCooldownLabel.textContent=cd>.01?'Recharge · '+cd.toFixed(1)+' s':n>0?'Propulsion prête':'Rechargez en mangeant';
+        gasCooldownLabel.textContent=hunger<=0?'Recharge arrêtée · mangez':n===max?'Réserve complète':'Recharge automatique';
         for(let i=0;i<gasSegments.length;i++){gasSegments[i].hidden=i>=max;gasSegments[i].classList.toggle('ready',i<n);}
-        gas.classList.toggle('ui-gas-wait',cd>.01);
+        gas.classList.toggle('ui-gas-wait',hunger<=0);
         gas.setAttribute('aria-valuenow',String(n));gas.setAttribute('aria-valuemax',String(max));
       }
       const fast=p.mode==='roll'||p.mode==='glide';velocity.classList.toggle('hide',!fast||ui.blocking);if(fast)velocity.textContent=`${((p.speed??0)*3.6).toFixed(0)} km/h${p.stalled?' · Décrochage':''}`;
