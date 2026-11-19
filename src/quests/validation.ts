@@ -22,17 +22,17 @@ function strings(v:unknown,max:number):v is string[]{
 const common=['kind'];
 function step(raw:unknown):QuestStepV1{
  const v=object(raw,[...common,'npcRole','npcId','targetId','withinM','itemId','quantity','source',
-  'fromIslandId','giverId','recipeId','stationId','raceId','maxSeconds','eventType','subjectId','count'],'Quest step');
+  'fromIslandId','toIslandId','islandId','giverId','recipeId','stationId','raceId','maxSeconds','eventType','subjectId','count'],'Quest step');
  // Fields are closed for EACH variant; no hidden payloads or scripts.
  let allowed:string[];
  switch(v.kind){
   case 'talk':
-   allowed=['kind','npcRole','npcId'];
+   allowed=['kind','npcRole','npcId','islandId'];
    need((v.npcRole===undefined||ident(v.npcRole))&&(v.npcId===undefined||ident(v.npcId))&&
     (v.npcRole!==undefined||v.npcId!==undefined),'Quest talk: unbound actor');
    break;
   case 'visit':
-   allowed=['kind','targetId','withinM'];
+   allowed=['kind','targetId','withinM','islandId'];
    need(ident(v.targetId)&&typeof v.withinM==='number'&&Number.isFinite(v.withinM)&&
     v.withinM>=.5&&v.withinM<=100,'Quest visit: invalid target');
    break;
@@ -43,26 +43,32 @@ function step(raw:unknown):QuestStepV1{
     (v.fromIslandId===undefined||ident(v.fromIslandId)),'Quest acquire: invalid source');
    break;
   case 'deliver':
-   allowed=['kind','itemId','quantity','giverId'];
+   allowed=['kind','itemId','quantity','giverId','islandId'];
    need(ident(v.itemId)&&integer(v.quantity,1,9999)&&ident(v.giverId),'Quest delivery: invalid source');
    break;
   case 'craft':
-   allowed=['kind','recipeId','quantity','stationId'];
+   allowed=['kind','recipeId','quantity','stationId','islandId'];
    need(ident(v.recipeId)&&integer(v.quantity,1,9999)&&
     (v.stationId===undefined||ident(v.stationId)),'Quest craft: invalid station');
    break;
   case 'race':
-   allowed=['kind','raceId','maxSeconds'];
+   allowed=['kind','raceId','maxSeconds','islandId'];
    need(ident(v.raceId)&&(v.maxSeconds===undefined||
     (typeof v.maxSeconds==='number'&&Number.isFinite(v.maxSeconds)&&v.maxSeconds>0&&v.maxSeconds<=86400)),'Quest race: invalid target');
    break;
   case 'event':
-   allowed=['kind','eventType','subjectId','count'];
+   allowed=['kind','eventType','subjectId','count','islandId'];
    need(ident(v.eventType)&&integer(v.count,1,9999)&&
     (v.subjectId===undefined||ident(v.subjectId)),'Quest event: invalid requirement');
    break;
+  case 'travel':
+   allowed=['kind','fromIslandId','toIslandId'];
+   need(ident(v.fromIslandId)&&ident(v.toIslandId)&&v.fromIslandId!==v.toIslandId,
+    'Quest travel: islands invalid');
+   break;
   default:throw Error('Quest step: unknown kind');
  }
+ need(v.islandId===undefined||ident(v.islandId),'Quest step: invalid island');
  need(Object.keys(v).every(k=>allowed.includes(k)),'Quest step: extra variant fields');
  return structuredClone(v) as QuestStepV1;
 }
