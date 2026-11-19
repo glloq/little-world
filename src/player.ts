@@ -29,8 +29,7 @@ export interface Controls {
   jumpPressed: boolean;
   /** Roll toggle pressed this step (hamster ball mode). Optional for older callers. */
   rollPressed?: boolean;
-  /** Sprint key held (Shift): the hamster rolls into a ball to go fast while it moves on the
-   * ground, and unrolls when the key is released. Optional for older callers. */
+  /** Optional touch/legacy hold-to-roll control; keyboard Shift now sends rollPressed once per keydown. */
   rollHeld?: boolean;
   spaceHeld: boolean;
   dive: boolean;
@@ -78,7 +77,7 @@ export interface Player {
   diving?:boolean;
   /** Initial descent of a dive (until fully under water). */
   diveSink?:boolean;
-  /** True when the ball was entered by holding the sprint key (released → back on the paws). */
+  /** Touch/legacy hold-to-roll only; auto-landing and keyboard toggles are manual. */
   rollByHold?:boolean;
   /** Physical facing, retained at rest; render smoothing never writes it. */
   heading?:number;
@@ -159,6 +158,19 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
     p.landingSeq=(p.landingSeq??0)+1;
     p.glideDeploymentUsed=false;p.glideDeploymentRemaining=0;
     p.airBoostUsed=false;p.groundBoostCharge=0;
+  };
+  // High-speed flight lands as a ball. Retain horizontal momentum exactly on contact:
+  // the rolling controller dissipates it progressively on subsequent fixed steps.
+  const finishLanding=()=>{
+    recordLanding();
+    if((oldMode==='glide'||oldMode==='air')&&Math.hypot(v.x,v.z)>=ROLL.landingThreshold){
+      p.mode='roll';p.rollByHold=false;
+      p.rollSpeed=Math.hypot(v.x,v.z);
+      p.rollHeading=Math.atan2(v.x,v.z);
+      p.rollIdle=0;p.rollSlip=0;
+      p.landingKind='roll';
+    }else p.mode='ground';
+    p.glideReady=false;
   };
   const len = Math.hypot(keys.forward, keys.right);
   const forward = len > 0 ? keys.forward / Math.max(1, len) : 0;
@@ -251,8 +263,7 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
       p.glideReady=true;p.coyoteLeft=0;p.jumpBufferLeft=0;jumpHandled=true;
     }
   }
-  // Roll: from the ground (not in water, not on a boat). X toggles the ball; holding the sprint
-  // key (Shift) while moving rolls to go fast and releasing it unrolls (momentum kept).
+  // Ground roll toggle (Shift / X via rollPressed). Mobile/legacy hold-to-roll stays optional.
   const snowMaterial=collision?.materialAt(pos,p.space)??'grass';
   const snowReady=!inWater&&!p.space&&!!keys.snowEquipment&&(snowMaterial==='snow'||snowMaterial==='ice');
   if(p.mode==='snow'&&!snowReady)p.mode='ground';
@@ -351,7 +362,8 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
     }
     const grounded = pos.y <= ground + 0.06 && v.y <= 0;
     if (grounded) {
-      p.mode = 'ground';
+      if(oldMode==='air'||oldMode==='glide')finishLanding();
+      else p.mode='ground';
       p.glideDeploymentUsed=false;p.glideDeploymentRemaining=0;
       p.airBoostUsed=false;
       pos.y = ground;
@@ -440,7 +452,7 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
     const moved=collision.sweep(from,pos,body.radius,body.height,{space:p.space,body});
     pos.set(moved.position.x,moved.position.y,moved.position.z);
     if(moved.blockedY&&(p.mode==='air'||p.mode==='glide')){
-      if(v.y<0){recordLanding();p.mode='ground';p.glideReady=false;}else if(p.mode==='glide')p.mode='air';
+      if(v.y<0)finishLanding();else if(p.mode==='glide')p.mode='air';
       v.y=0;
     }
     if(moved.blockedX)v.x=0;if(moved.blockedZ)v.z=0;
@@ -462,10 +474,8 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
   else if (p.mode !== 'glide' && p.mode !== 'air') p.stamina = Math.min(MAX_STAMINA, p.stamina + CLIMB.regen * dt);
   if ((p.mode === 'air' || p.mode === 'glide') && pos.y < newGround) {
     pos.y = newGround;
-    recordLanding();
+    finishLanding();
     v.y = 0;
-    p.mode = 'ground';
-    p.glideReady = false;
   }
   // Water is evaluated after horizontal motion as well, to avoid passing through the banks.
   const newWater = collision?collision.waterAt(pos,p.space):waterSurface(pos.x, pos.z);
@@ -553,6 +563,7 @@ function rollStep(p:Player,keys:Controls,dt:number,dx:number,dz:number,len:numbe
  const pos=p.position,v=p.velocity;let speed=Math.hypot(v.x,v.z),heading=speed>.05?Math.atan2(v.x,v.z):p.rollHeading??keys.cameraYaw;
  if(keys.jumpPressed){p.jumpOrigin='roll';p.jumpSeq=(p.jumpSeq??0)+1;p.mode='air';v.y=Math.max(0,v.y)+ROLL.jump;p.glideReady=true;return;}
  const surface=SURFACE_MOTION[material];
+ const arrivalSpeed=speed;
  let slipTarget=0;
  if(len>.1){
   const want=Math.atan2(dx,dz),delta=angleDelta(heading,want),align=Math.cos(delta);
@@ -575,7 +586,12 @@ function rollStep(p:Player,keys:Controls,dt:number,dx:number,dz:number,len:numbe
  const gx=flatSupport?0:relief(pos.x+.5,pos.z)-relief(pos.x-.5,pos.z),gz=flatSupport?0:relief(pos.x,pos.z+.5)-relief(pos.x,pos.z-.5);
  const gravity=MOTION.gravity*ROLL.slopeGravity*dt/(1+gx*gx+gz*gz);
  v.x=Math.sin(heading)*speed-gx*gravity;v.z=Math.cos(heading)*speed-gz*gravity;
- speed=Math.hypot(v.x,v.z);if(speed>ROLL.downhillMax){const k=ROLL.downhillMax/speed;v.x*=k;v.z*=k;speed=ROLL.downhillMax;}
+ speed=Math.hypot(v.x,v.z);
+ // Ordinary downhill rolling is capped; high-speed flight momentum has its own
+ // finite deceleration envelope and is never instantaneously clamped to 18 m/s.
+ const speedLimit=arrivalSpeed>ROLL.downhillMax
+  ?Math.max(ROLL.downhillMax,arrivalSpeed-ROLL.landingDecel*dt):ROLL.downhillMax;
+ if(speed>speedLimit){const k=speedLimit/speed;v.x*=k;v.z*=k;speed=speedLimit;}
  p.rollSpeed=speed;p.rollHeading=speed>.01?Math.atan2(v.x,v.z):heading;
  // A manually toggled ball remains selected until the player toggles it off.
   if(p.rollByHold&&speed<ROLL.exitSpeed&&(p.rollIdle??0)>ROLL.exitIdle&&gx*v.x+gz*v.z>=-1e-4){p.mode='ground';v.set(0,0,0);}
