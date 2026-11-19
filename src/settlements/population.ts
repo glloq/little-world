@@ -92,12 +92,15 @@ export function settlementPopulation(
     if(code==='LIFE_NO_JOBS')out.warnings.push({code,message:'Aucun poste professionnel qualifié dans le village.'});
     if(code==='LIFE_NO_PLAY_ANCHOR')out.warnings.push({code,message:'Pas de lieu public de jeu pour les enfants.'});
   }
-  if(buildings.length<3)return out;
   const existingPeople=Object.values(p.entityIndex).filter(e=>e.kind==='character').length;
   const managed=(old?.amenities??[]).filter(a=>a.role==='resident'&&!!p.entityIndex[a.id]).length;
   const hostNew=amenities.some(a=>a.role==='host'&&!p.entityIndex[a.id])?1:0;
   let budget=Math.max(0,100-existingPeople+managed-hostNew);
-  const {children:wantedChildren,workers:workerSlots}=residentPopulationTargets(buildings.length,r.residentDensity);
+  const requested=residentPopulationTargets(buildings.length,r.residentDensity);
+  const wantedChildren=requested.children;
+  // The persisted settlement schema caps its combined amenities at 24.
+  const workerSlots=Math.min(requested.workers,Math.max(0,24-amenities.length-wantedChildren));
+  if(workerSlots<requested.workers)out.limited=true;
   if(assignment.truncated)out.warnings.push({code:'LIFE_GRAPH_LIMIT',message:'Réseau piéton tronqué : certains trajets sont indisponibles.'});
   function retain(id:string):{status:'new'|'preserved'|'deleted'|'conflict';previous?:EntityDefinitionV3}{
     const record=old?.amenities?.find(a=>a.id===id);
@@ -118,6 +121,17 @@ export function settlementPopulation(
     if(loc&&!record){out.conflicts.push(id);return {status:'conflict'};}
     return {status:'new',previous:existing};
   }
+  // Preserve customized residents outside the new density/house-count targets.
+  // They must keep their source entity, dialogue and reserved home/job after
+  // Studio regeneration, even when the village has shrunk below 3 houses.
+  const plannedIds=new Set<string>();
+  for(let i=0;i<wantedChildren;i++)plannedIds.add(r.id+'-resident-'+i);
+  for(let i=0;i<Math.min(workerSlots,index.jobs.length);i++)plannedIds.add(r.id+'-worker-'+i);
+  for(const record of old?.amenities??[])
+    if(record.role==='resident'&&!plannedIds.has(record.id)&&amenityChanged(p,record))
+      retain(record.id);
+  if(buildings.length<3)return out;
+
   function store(id:string,entity:EntityDefinitionV3,dialogue:GameplayDialogue,entry:ResidentPoint){
     out.entities.push(entity);out.dialogues[dialogue.id]=dialogue;
     out.records.push({id,role:'resident',entityHash:fingerprint(entity),dialogueHash:fingerprint(dialogue),entry:{...entry},locked:false});
