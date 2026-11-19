@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {generateResidentSocialQuestOffers} from '../src/quests/generator.ts';
+import {generateResidentSocialQuestOffers,generateResidentVisitQuestOffers} from '../src/quests/generator.ts';
 import {parseQuestCatalogEntry} from '../src/quests/validation.ts';
 const npc=(id,x)=>({id,name:id,kind:'hamster',x,z:0,routine:{
  type:'Resident',version:1,role:'merchant',
@@ -36,4 +36,23 @@ test('Q7 respects legacy social objectives and never fabricates rewards',()=>{
   x.steps[0].npcId==='village-worker-2'));
  assert.ok(result.every(x=>x.rewards.length===0),'coins absent: no reward minted');
  assert.deepEqual(generateResidentSocialQuestOffers(npcs,legacy,'island:1',route,0),[]);
+});
+
+test('Q7 workplace visits require actual compiled positioned entity and certified route',()=>{
+ const local=[npc('village-worker-0',0),npc('village-worker-1',20)];
+ const source={...gameplay,entities:[
+  ...gameplay.entities,
+  {id:'village-worker-1:job',position:{x:20,y:0,z:20}},
+ ]};
+ const offers=generateResidentVisitQuestOffers(local,source,'island:1',route);
+ assert.equal(offers.length,1);
+ assert.deepEqual(offers[0].steps,[{kind:'visit',targetId:'village-worker-1:job',withinM:5}]);
+ assert.deepEqual(parseQuestCatalogEntry(offers[0]),offers[0]);
+ assert.deepEqual(generateResidentVisitQuestOffers(local,gameplay,'island:1',route),[],
+   'an unresolved work anchor must never become a quest objective');
+ assert.deepEqual(generateResidentVisitQuestOffers(local,source,'island:1',()=>null),[]);
+ assert.deepEqual(generateResidentVisitQuestOffers(local,source,'island:1',route,0),[]);
+ const noLocation={...source,entities:source.entities.filter(e=>e.id!=='village-worker-1:job')
+  .concat({id:'village-worker-1:job'})};
+ assert.deepEqual(generateResidentVisitQuestOffers(local,noLocation,'island:1',route),[]);
 });
