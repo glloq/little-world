@@ -137,3 +137,37 @@ test('F02 rainy outdoor work pauses gestures without altering the resident route
    timeAtHour(10),1200,.36,1.1).position,farmer.work,
    'weather policy does not relocate residents or invent a shelter');
 });
+
+test('F01-D live pedestrian graph finds a longer safe detour around a new obstacle',()=>{
+ let blocked=false;
+ const live=(x,z)=>!blocked||!(x>=28&&x<=32&&Math.abs(z)<=2);
+ const router=createResidentRouter([
+   {points:[{x:0,z:0},{x:60,z:0}]},
+   {points:[{x:0,z:0},{x:0,z:12},{x:60,z:12},{x:60,z:0}]},
+ ],live);
+ const from={x:0,z:0},to={x:60,z:0};
+ const before=router.route(from,to);
+ assert.ok(before&&before.length>=60&&before.length<65);
+ blocked=true;
+ const after=router.route(from,to);
+ assert.ok(after,'dynamic A* must use the existing safe alternate path');
+ assert.ok(after.length>before.length+10,'cannot use the original blocked shortcut');
+ assert.ok(after.points.some(p=>p.z>5),'must travel via the raised-in-plan detour');
+ for(let i=1;i<after.points.length;i++){
+   const a=after.points[i-1],b=after.points[i];
+   for(let t=0;t<=1;t+=.25)
+     assert.equal(live(a.x+(b.x-a.x)*t,a.z+(b.z-a.z)*t),true);
+ }
+ blocked=false;
+ const reopened=router.route(from,to);
+ assert.ok(reopened&&reopened.length<=before.length+.01,'reopening restores fast route');
+});
+
+test('F01-D no alternate path means no route, never a collision shortcut',()=>{
+ let closed=false;
+ const live=(x,z)=>!closed||!(x>=28&&x<=32&&Math.abs(z)<=2);
+ const router=createResidentRouter([{points:[{x:0,z:0},{x:60,z:0}]}],live);
+ assert.ok(router.route({x:0,z:0},{x:60,z:0}));
+ closed=true;
+ assert.equal(router.route({x:0,z:0},{x:60,z:0}),null);
+});
