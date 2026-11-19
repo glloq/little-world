@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {residentRoute} from '../src/npc-life/schedule.ts';
-import {residentRouteClearance,residentScriptedAdvance,residentRouteAheadClear,residentRouteStepClear,residentRoutineStepClear,residentRecoveryNeedsRetarget,residentRecoverySpeed} from '../src/npc-life/dynamic-route.ts';
+import {residentRouteClearance,residentScriptedAdvance,residentReplanDue,residentRouteAheadClear,residentRouteStepClear,residentRoutineStepClear,residentRecoveryNeedsRetarget,residentRecoverySpeed} from '../src/npc-life/dynamic-route.ts';
 
 test('scripted NPC route lookahead samples active geometry instead of trusting old paths',()=>{
  const route=residentRoute([{x:0,z:0},{x:10,z:0}]);
@@ -123,4 +123,15 @@ test('F01 scripted advance rejects long browser suspension and reversed movement
  assert.deepEqual(residentScriptedAdvance(route,4,40,()=>true),{clear:false,safeDistance:4});
  assert.deepEqual(residentScriptedAdvance(route,4,3,()=>true),{clear:false,safeDistance:4});
  assert.deepEqual(residentScriptedAdvance(route,4,4,()=>true),{clear:true,safeDistance:4});
+});
+
+test('F01-C replan cadence is bounded but topology revision invalidates immediately',()=>{
+ assert.equal(residentReplanDue(0,-Infinity,0,0),true);
+ assert.equal(residentReplanDue(2,1.4,0,0,1),false);
+ assert.equal(residentReplanDue(2.4,1.4,0,0,1),true);
+ assert.equal(residentReplanDue(1,5,0,0),true,'rewound world clock');
+ assert.equal(residentReplanDue(2,1.99,1,0,1),true,'new pedestrian topology');
+ assert.equal(residentReplanDue(2,1.99,1,1,1),false);
+ assert.equal(residentReplanDue(NaN,0,1,0),false);
+ assert.equal(residentReplanDue(2,0,NaN,0),false);
 });
