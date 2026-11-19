@@ -15,6 +15,7 @@ import {gameplayDialogueSession} from './dialogue-session.ts';
 import {createQuestDirector} from '../quests/director.ts';
 import {createNpcEconomyDriver} from '../npc-life/economy-runtime.ts';
 import {createNpcHarvestDriver} from '../npc-life/harvest-runtime.ts';
+import {transferNativeRawMaterial} from '../npc-life/raw-transfers.ts';
 import {createFishPopulation} from '../npc-life/fish-population.ts';
 import type {WaterKind,FishId} from './fishing-data.ts';
 import {marketUnitPrices} from '../economy/island-markets.ts';
@@ -188,6 +189,7 @@ export function createGameplayView(data:GameplayData,options:Options){
     cargoPurchaseRevision,surfBoard:options.getSurfBoard?.()??null,
     ...(gathering?{gathering:gathering.serialize()}:{})});
  let npcs:readonly NPCState[]=[],version=-1,disposed=false;
+ let lastHarvestTransferMinute=-1;
  // Increment only on actual exterior-door collision transitions, not on every
  // UI/inventory refresh. Scripted NPC routes use it to invalidate lookahead.
  const navigationRevisions=createResidentNavigationRevisionTracker();
@@ -369,7 +371,7 @@ export function createGameplayView(data:GameplayData,options:Options){
     if(npcs.length)quests.reconcileNpcAvailability(new Set(npcs.map(n=>n.definition.id)));
     // Upgrade old island saves with one temporary starter board, without removing other goods.
     if(options.surfStarter&&!has(SURFBOARD_ID))runtime.grantItems([{itemId:SURFBOARD_ID,quantity:1}]);
-    equippedHands=save.equippedItemId&&canEquip(save.equippedItemId)?save.equippedItemId:null;playerLoadout=save.loadout?parsePlayerLoadout(save.loadout):emptyPlayerLoadout();if(playerLoadout.head!=='tool:miners-helmet'||!has('tool:miners-helmet'))playerLoadout.head=null;playerLoadout.back=null;playerLoadout.feet=null;workshops.restore(save.workshops??{});markets.restore(save.markets??{});npcEconomy.restore(save.npcWorkshops??{});fishPopulation.restore(save.fishPopulation);npcHarvest.restore(save.npcHarvests??{});cargoPurchaseRevision=save.cargoPurchaseRevision??0;gathering?.restore(save.gathering??null);options.setPosition(save.position,save.space??null);options.setGasProgress?.(save.flightProgress??newFlightProgress());options.setGas?.(save.gasReserve??GAS.legacyInitial,save.satiety,save.boostRechargeProgress);options.setSurfBoard?.(save.surfBoard??null);sync();version=-1;for(const l of listeners)l();return warnings;},
+    equippedHands=save.equippedItemId&&canEquip(save.equippedItemId)?save.equippedItemId:null;playerLoadout=save.loadout?parsePlayerLoadout(save.loadout):emptyPlayerLoadout();if(playerLoadout.head!=='tool:miners-helmet'||!has('tool:miners-helmet'))playerLoadout.head=null;playerLoadout.back=null;playerLoadout.feet=null;workshops.restore(save.workshops??{});markets.restore(save.markets??{});npcEconomy.restore(save.npcWorkshops??{});fishPopulation.restore(save.fishPopulation);npcHarvest.restore(save.npcHarvests??{});lastHarvestTransferMinute=-1;cargoPurchaseRevision=save.cargoPurchaseRevision??0;gathering?.restore(save.gathering??null);options.setPosition(save.position,save.space??null);options.setGasProgress?.(save.flightProgress??newFlightProgress());options.setGas?.(save.gasReserve??GAS.legacyInitial,save.satiety,save.boostRechargeProgress);options.setSurfBoard?.(save.surfBoard??null);sync();version=-1;for(const l of listeners)l();return warnings;},
   /** Imports an exported slot file (validated) into a free slot of this world. */
   async importSave(raw:unknown){const parsed=parseGameSave(raw);if(parsed.worldId!==data.worldId)throw Error('Sauvegarde d’un autre monde');const value={...parsed};if(!['slot-1','slot-2','slot-3'].includes(value.slotId)){const used=new Set((await slots.list(data.worldId)).map(v=>v.slotId)),free=['slot-1','slot-2','slot-3'].find(id=>!used.has(id));if(!free)throw Error('Libérez un emplacement pour importer cette partie');value.slotId=free;}await slots.save(value);return value.slotId;},
   temporary:options.temporary,describe,
@@ -396,6 +398,28 @@ export function createGameplayView(data:GameplayData,options:Options){
    runtime.update(dt);
    if(npcHarvest.tick(Math.floor(runtime.state.time/runtime.climate.definition.dayLengthSeconds*1440)))
      for(const listener of listeners)listener();
+   const economyMinute=Math.floor(runtime.state.time/runtime.climate.definition.dayLengthSeconds*1440);
+   // Physical handoff only when both workers are present at adjacent jobs.
+   // No long-range teleport of stock and no player-inventory mutation.
+   if(economyMinute%15===0&&economyMinute!==lastHarvestTransferMinute){
+     lastHarvestTransferMinute=economyMinute;
+     let transfers=0;
+     for(const producer of npcs){
+       const source=npcHarvest.account(producer.definition.id);
+       if(!source||producer.phase!=='work')continue;
+       const raw=source.role==='farmer'?'farm:wheat':
+         source.role==='woodcutter'?'wood:log':null;
+       if(!raw)continue;
+       for(const consumer of npcs){
+         const target=npcEconomy.account(consumer.definition.id);
+         if(!target||consumer.phase!=='work')continue;
+         if(transferNativeRawMaterial(source,target,raw,Math.min(3,source.inventory()[raw]??0),
+           producer,consumer)){transfers++;break;}
+       }
+       if(transfers>=8)break;
+     }
+     if(transfers)for(const listener of listeners)listener();
+   }
    if(npcEconomy.tick(Math.floor(runtime.state.time/runtime.climate.definition.dayLengthSeconds*1440)))
      for(const listener of listeners)listener();
    // One bounded probe per game second, using only real compiled entity
