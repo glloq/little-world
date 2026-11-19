@@ -25,7 +25,7 @@ import type { Player } from './player.ts';
 import {terrainHeight} from './terrain.ts';
 import {createResidentRouter,type ResidentPath,type ResidentWalkable} from './npc-life/routes.ts';
 import {createResidentLayeredRouter,type ResidentSurfaces} from './npc-life/layered-routes.ts';
-import {residentRouteAheadClear,residentRouteStepClear,residentRoutineStepClear,residentRecoveryNeedsRetarget,residentRecoverySpeed} from './npc-life/dynamic-route.ts';
+import {residentRouteAheadClear,residentRouteClearance,residentRoutineStepClear,residentRecoveryNeedsRetarget,residentRecoverySpeed} from './npc-life/dynamic-route.ts';
 import {residentHour,residentShift,residentPoseAt,residentRoute,positionOnResidentRoute,type ResidentRoute} from './npc-life/schedule.ts';
 import {residentDialogue,residentContextForHour} from './npc-life/dialogue.ts';
 import {residentAgendaPoseAt,validateResidentAgendaRoutes,type ResidentAgendaPose,type ResidentDailyRoutes,type ResidentActivityLegs} from './npc-life/agenda.ts';
@@ -382,21 +382,36 @@ export function createNPCSystem(
               const checkAhead=job.lastCheckedAt<0||now<job.lastCheckedAt||now-job.lastCheckedAt>=.35;
               // Check EVERY interval actually traversed, even if a browser tab
               // was paused and the absolute-clock target skipped several metres.
-              const safeStep=residentRouteStepClear(job.route,job.lastDistance,distance,walkable);
+              const travel=distance-job.lastDistance;
+              // A long inactive browser frame must not jump a scripted NPC.
+              // Inspect only the travelled polyline, not a direct chord across corners.
+              const validAdvance=travel>=0&&travel<=12+1e-6;
+              const clearance=validAdvance&&travel>1e-6
+                ?residentRouteClearance(job.route,job.lastDistance,walkable,travel)
+                :{clear:validAdvance,safeDistance:job.lastDistance};
+              if(validAdvance)distance=clearance.safeDistance;
+              else distance=job.lastDistance;
+              // A valid partial advance is committed before replanning: do not
+              // restart at the stale position where the previous frame ended.
+              const advance=positionOnResidentRoute(job.route,distance);
+              if(entry.scripted&&(!validAdvance||!clearance.clear)){
+                state.x=advance.x;state.z=advance.z;
+                state.y=advance.y??terrainHeight(advance.x,advance.z);
+                job.lastDistance=distance;
+              }
               const clearAhead=!checkAhead||residentRouteAheadClear(job.route,distance,walkable,3);
               if(checkAhead)job.lastCheckedAt=now;
-              if(entry.scripted&&(!safeStep||!clearAhead)){
+              if(entry.scripted&&(!validAdvance||!clearance.clear||!clearAhead)){
                 const alternative=job.replans<3?router?.route({x:state.x,z:state.z},job.goal)??null:null;
-                  if(alternative&&residentRouteAheadClear(alternative,0,walkable,3)){
-                    job.route=alternative;job.startAt=now;job.pausedFor=0;
-                    job.lastDistance=0;job.lastCheckedAt=now;
-                    job.replans++;scriptedReplans++;distance=0;
-                  }else{
-                    // Stop at the last qualified position instead of crossing
-                    // the newly blocked segment. No teleport to the destination.
-                    entry.scripted=null;scriptedBlocked++;state.vx=0;state.vz=0;state.phase='idle';
-                    distance=0;
-                  }
+                if(alternative&&residentRouteAheadClear(alternative,0,walkable,3)){
+                  job.route=alternative;job.startAt=now;job.pausedFor=0;
+                  job.lastDistance=0;job.lastCheckedAt=now;
+                  job.replans++;scriptedReplans++;distance=0;
+                }else{
+                  // Remain at the last verified safe position on blockage.
+                  // In particular, never jump to the originally planned goal.
+                  entry.scripted=null;scriptedBlocked++;state.vx=0;state.vz=0;state.phase='idle';
+                }
               }
               if(entry.scripted){
               job.lastDistance=distance;
