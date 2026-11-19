@@ -56,7 +56,7 @@ export function createGameplayView(data:GameplayData,options:Options){
  function recordQuestCommit(type:string,fields:{itemId?:string;quantity?:number;source?:string;targetId?:string;distanceM?:number;raceId?:string;measuredSeconds?:number;recipeId?:string}={}):void{
    if(questEventSequence>=1_000_000_000)return;
    const sequence=++questEventSequence;
-   const changed=quests.consume({schemaVersion:1,eventId:'quest:native:'+sequence,
+   const changed=quests.consume({schemaVersion:1,eventId:'quest:'+ (options.islandId??data.worldId)+':native:'+sequence,
      type,worldId:data.worldId,islandId:options.islandId??data.worldId,
      gameMinute:Math.floor(runtime.state.time/runtime.climate.definition.dayLengthSeconds*1440),
      sequence,...fields});
