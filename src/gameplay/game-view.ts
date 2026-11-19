@@ -184,6 +184,24 @@ export function createGameplayView(data:GameplayData,options:Options){
   }
   return best;
  }
+  /** Debits delivery goods through the same atomic inventory authority.
+   * The current objective must explicitly request the exact NPC and item;
+   * never debit in response to a cosmetic gesture or arbitrary client event.
+   */
+  function deliverQuest(instanceId:string,targetId:string){
+    const quest=quests.get(instanceId),step=quest?.steps[quest.stepIndex];
+    if(!quest||quest.status!=='active'||step?.kind!=='deliver'||step.giverId!==targetId)
+      return {ok:false as const,reason:'not-ready'};
+    const npc=npcs.find(n=>n.definition.id===targetId),player=options.getPosition();
+    if(!npc||Math.hypot(npc.x-player.x,npc.y-player.y,npc.z-player.z)>3.5||
+      collision.occluded({...player,y:player.y+1.2},{x:npc.x,y:npc.y+1.2,z:npc.z},[npc.definition.id]))
+      return {ok:false as const,reason:'giver-unreachable'};
+    if(questEventSequence>=1_000_000_000)return {ok:false as const,reason:'event-limit'};
+    if(!runtime.grantItems([{itemId:step.itemId,quantity:-step.quantity}]))
+      return {ok:false as const,reason:'missing-items'};
+    recordQuestCommit('quest.delivered',{itemId:step.itemId,quantity:step.quantity,targetId});
+    return {ok:true as const,reason:'applied'};
+  }
   /** Deliver an accepted, completed quest only to its real nearby giver.
    * Runtime.grantItems is the single atomic inventory authority for coin/items.
    * The complete inventory + claimed state are serialized by compose().
@@ -212,7 +230,7 @@ export function createGameplayView(data:GameplayData,options:Options){
  sync();
  return {
   runtime,collision,activities,slots,compose,gathering,trees,fishing,trade,sellBatch,nearbyShop,workshops,markets,purse,itemName,has,equipment,quests,recordQuestCommit,
-  claimQuest,
+  claimQuest,deliverQuest,
   get navigationRevision(){return navigationRevisions.revision;},
   openDoorForNPC(doorId:string,duration=2):boolean{
    if(!runtime.state.entities[doorId]||!models.has(doorId)||!Number.isFinite(duration)||duration<=0||duration>5)return false;
