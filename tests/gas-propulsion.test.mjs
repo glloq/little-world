@@ -144,7 +144,8 @@ test('old saves keep their numeric fuel without granting free fuel',()=>{
  const old={schemaVersion:1,worldId:'w',worldBuildVersion:'b1',slotId:'slot-1',savedAt:1,time:0,position:{x:0,y:0,z:0},inventory:{},variables:{},objectives:{},entities:{},executed:{},cooldowns:{},dialogueFlags:{},pending:[]};
  assert.equal(parseGameSave(old).gasReserve,GAS.legacyInitial);
  assert.equal(parseGameSave({...old,schemaVersion:2,gasReserve:19}).gasReserve,19);
- assert.throws(()=>parseGameSave({...old,schemaVersion:2,gasReserve:201}),/gaz invalide/);
+ assert.equal(parseGameSave({...old,schemaVersion:2,gasReserve:201}).gasReserve,140);
+ assert.throws(()=>parseGameSave({...old,schemaVersion:2,gasReserve:281}),/gaz invalide/);
 });
 
 test('remote state accepts optional boost cue but rejects invalid sequence',()=>{
