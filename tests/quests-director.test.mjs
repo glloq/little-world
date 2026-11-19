@@ -31,3 +31,50 @@ test('Q3 snapshot restore validates all instances before commit and isolates cal
  assert.equal(other.get('instance:a').instanceId,'instance:a','failed restore is transactional');
  assert.throws(()=>createQuestDirector([entry('quest:a'),entry('quest:a')],{islandId:'island:1',maxActive:2}),/duplicate/);
 });
+
+test('Q4 reward claims are single-use, retryable on full inventory and survive reload',()=>{
+ const rewardEntry={...entry('quest:reward'),rewards:[
+  {kind:'item',itemId:'acorn',quantity:2},{kind:'coins',quantity:4},
+ ]};
+ const director=createQuestDirector([rewardEntry],{islandId:'island:1',maxActive:3});
+ const i=director.accept('quest:reward','instance:reward',5);
+ director.consume(event('talk:reward'));
+ assert.equal(director.get(i.instanceId).status,'ready');
+ let inventory={acorn:9,coin:0},nativeCalls=0;
+ const apply=rewards=>{
+  nativeCalls++;
+  const ledger={...inventory};
+  for(const reward of rewards){
+   const itemId=reward.kind==='coins'?'coin':reward.kind==='item'?reward.itemId:null;
+   if(!itemId)return false;
+   ledger[itemId]=(ledger[itemId]??0)+reward.quantity;
+   if(ledger[itemId]>(itemId==='acorn'?9:9999))return false;
+  }
+  inventory=ledger;return true;
+ };
+ assert.deepEqual(director.claim(i.instanceId,'claim:1',apply),{ok:false,reason:'failed'});
+ assert.equal(inventory.acorn,9);
+ assert.equal(director.get(i.instanceId).status,'ready');
+ inventory.acorn=7;
+ assert.deepEqual(director.claim(i.instanceId,'claim:1',apply),{ok:true,reason:'applied'});
+ assert.deepEqual(inventory,{acorn:9,coin:4});
+ assert.deepEqual(director.claim(i.instanceId,'claim:2',apply),{ok:false,reason:'claimed'});
+ assert.equal(nativeCalls,2,'already claimed never re-enters the inventory port');
+ const restored=createQuestDirector([],{islandId:'island:1',maxActive:3});
+ restored.restore(director.serialize());
+ assert.equal(restored.get(i.instanceId).rewardClaimId,'claim:1');
+ assert.equal(restored.claim(i.instanceId,'claim:3',apply).ok,false);
+ assert.equal(nativeCalls,2);
+});
+test('Q4 unsupported cosmetic unlocks cannot partially grant money or items',()=>{
+ const director=createQuestDirector([{...entry('quest:unlock'),rewards:[
+  {kind:'coins',quantity:30},{kind:'unlock',unlockId:'skin:wave',unlockKind:'glider'},
+ ]}],{islandId:'island:1',maxActive:3});
+ director.accept('quest:unlock','instance:unlock',5);
+ director.consume(event('talk:unlock'));
+ let invoked=0;
+ assert.deepEqual(director.claim('instance:unlock','claim:unlock',()=>{invoked++;return true;}),
+  {ok:false,reason:'unsupported'});
+ assert.equal(invoked,0);
+ assert.equal(director.get('instance:unlock').status,'ready');
+});
