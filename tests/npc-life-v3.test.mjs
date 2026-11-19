@@ -132,3 +132,19 @@ test('F02 validates five ordered visits without unbounded schedule evaluation',(
  assert.equal(pose.phase,'activity');
  assert.equal(pose.position.x,2);
 });
+
+test('F02 early-shift fishers get visits during their real working day',()=>{
+ const terrain={bounds:{minX:-200,maxX:200,minZ:-200,maxZ:200},height:()=>10,wet:()=>false,seaLevel:0};
+ const planner=createResidentAssignmentPlanner(
+   [{points:[{x:0,z:0},{x:0,z:12},{x:2,z:12}]}],terrain);
+ const fisher={...worker,role:'fisher',activities:undefined};
+ const stops=withVillageActivities(fisher,
+   [{id:'bench:1',role:'child',point:{x:2,z:12},sourceId:'bench:1',kind:'amenity'}],
+   planner,routes.work,1200,1.1);
+ assert.ok(stops.activities?.length);
+ assert.ok(stops.activities.every(s=>s.startHour>=5&&s.endHour<=15),
+   'early shifts must not inherit late afternoon meeting windows');
+ assert.ok(stops.activities.some(s=>s.kind==='social'),
+   'the social pause should fit before fisher closes the shift');
+ assert.equal(validResidentRoutine(stops),true);
+});
