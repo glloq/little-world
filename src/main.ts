@@ -4,7 +4,7 @@ import {advanceFlightAutoCamera,type FlightCameraFollow} from './render/flight-a
 import {createActorSimulator} from './render/remote-characters.ts';
 import {captureMovement} from './physics/movement-state.ts';
 import {createTouchControls,type TouchControls} from './input/touch-controls.ts';
-import {isEditableGameTarget,shouldPreventGameplayKeyDefault,shouldSuppressGameplayContextMenu,flightBoostHeld,flightPitchIntent} from './input/gameplay-input.ts';
+import {isEditableGameTarget,shouldPreventGameplayKeyDefault,shouldSuppressGameplayContextMenu,flightBoostHeld,flightPitchIntent,shiftTogglesRoll} from './input/gameplay-input.ts';
 import {createMobileLandscape,isPhoneTouchDevice} from './input/mobile-landscape.ts';
 import './input/touch-controls.css';
 import {classifyPoint} from './geography/classify.ts';
@@ -877,12 +877,12 @@ function input(): Controls {
       Number(codeHeld('KeyW', 'KeyZ', 'ArrowUp')) - Number(codeHeld('KeyS', 'ArrowDown')) + (mobileTouch?.axis.forward??0),-1,1),
     right: clamp(
       Number(codeHeld('KeyD', 'ArrowRight')) - Number(codeHeld('KeyA', 'KeyQ', 'ArrowLeft')) + (mobileTouch?.axis.right??0),-1,1),
-    run:shiftHeld||touchAccelerateHeld,
+    run:touchAccelerateHeld||shiftHeld&&(player.mode!=='ground'&&player.mode!=='roll'),
     autoRun: true,
     jumpAssist: true,
     jumpPressed: jumpQueue > 0,
     rollPressed: rollQueue > 0,
-    rollHeld:shiftHeld||!!(mobileTouch?.accelerateHeld&&Math.hypot(mobileTouch.axis.forward,mobileTouch.axis.right)>.3),
+    rollHeld:!!(mobileTouch?.accelerateHeld&&Math.hypot(mobileTouch.axis.forward,mobileTouch.axis.right)>.3),
     spaceHeld: codeHeld('Space')||!!mobileTouch?.jumpHeld,
     dive: codeHeld('ControlLeft', 'ControlRight'),
     cameraYaw: yaw,
@@ -983,7 +983,7 @@ window.addEventListener('keydown', (e) => {
   if (e.repeat) return;
   keySet.add(e.code);
   if (e.code === 'Space') jumpQueue++;
-  if (e.code === 'KeyX') rollQueue++;
+  if (e.code === 'KeyX' || (e.code.startsWith('Shift')&&shiftTogglesRoll(player.mode)&&!aboard)) rollQueue++;
   if (e.code === 'KeyE'){
     if(currentTarget()?.targetType==='mine-wall')queuedMineStrike=mineRhythmHud.sample(performance.now());
     actionQueue++;

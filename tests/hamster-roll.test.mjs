@@ -48,3 +48,41 @@ test('ROLL — holding Shift while moving rolls fast, releasing it puts the hams
   // The X toggle is not undone by releasing Shift.
   const t=actor();simulatePlayer(t,{...keys,forward:1,rollPressed:true},1/30,q);run(t,q,1,{forward:1});assert.equal(t.mode,'roll');assert.equal(t.rollByHold,false);
 });
+
+test('Fast glide landing preserves horizontal momentum and becomes a roll, without an abrupt 18 m/s clamp',()=>{
+ const q=flat(),p=actor(0,0,.25);
+ p.mode='glide';p.glideReady=true;p.glideHeading=0;p.glidePitch=-.45;
+ p.velocity.set(0,-12,42);
+ let landed=false;
+ for(let i=0;i<20;i++){
+  simulatePlayer(p,{...keys},1/30,q);
+  if(p.mode==='roll'){landed=true;break;}
+ }
+ assert.equal(landed,true,'glider should roll on fast solid ground contact');
+ assert.ok(p.velocity.z>30,'horizontal speed must survive impact: '+p.velocity.z);
+ assert.equal(p.rollByHold,false,'automatic roll is independent of Shift key release');
+ assert.equal(p.landingKind,'roll');
+ const initial=Math.hypot(p.velocity.x,p.velocity.z);
+ simulatePlayer(p,{...keys},1/30,q);
+ const after=Math.hypot(p.velocity.x,p.velocity.z);
+ assert.equal(p.mode,'roll');
+ assert.ok(after<initial&&after>initial-2,'speed dissipates progressively, not instantly: '+initial+' -> '+after);
+ for(let i=0;i<360;i++)simulatePlayer(p,{...keys},1/30,q);
+ assert.ok(Math.hypot(p.velocity.x,p.velocity.z)<ROLL.max,'ball slows to ordinary roll speed');
+ assert.equal(p.mode,'roll','automatic high-speed landing does not spontaneously unroll');
+ simulatePlayer(p,{...keys,rollPressed:true},1/30,q);
+ assert.equal(p.mode,'ground','second Shift press (rollPressed) exits the ball');
+});
+
+test('Slow air landing stays upright, and ground Shift toggle is independent of held boost',()=>{
+ const q=flat(),p=actor(0,0,.05);
+ p.mode='air';p.velocity.set(0,-5,4);
+ for(let i=0;i<15&&p.mode!=='ground';i++)simulatePlayer(p,keys,1/30,q);
+ assert.equal(p.mode,'ground');
+ simulatePlayer(p,{...keys,rollPressed:true},1/30,q);
+ assert.equal(p.mode,'roll');
+ for(let i=0;i<45;i++)simulatePlayer(p,keys,1/30,q);
+ assert.equal(p.mode,'roll');
+ simulatePlayer(p,{...keys,rollPressed:true},1/30,q);
+ assert.equal(p.mode,'ground');
+});
