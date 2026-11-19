@@ -120,3 +120,12 @@ Cartes : hameau 3–5 maisons, village agricole, forêt, montagne avec pont, por
 - Le stockage des pièces et objets est celui de `runtime.grantItems`, validé entièrement avant crédit ; un claim `ready → claimed` est synchronisé au même manifeste de sauvegarde que l'inventaire.
 - Aucune mission n'est créée sans PNJ présent, dialogue jouable et itinéraire retourné par le routeur existant ; maximum 12 offres sociales par île.
 - Une récompense cosmétique non supportée est rejetée intégralement plutôt que silencieusement substituée.
+
+## Consolidation ultérieure — livraison, lieux et disparition de PNJ
+
+- **Q4 Livraison** : `gameplay.deliverQuest(instanceId,targetId)` vérifie le PNJ destinataire réel, sa portée et l'occlusion ; retire les objets uniquement par `runtime.grantItems` atomique puis émet `quest.delivered` après succès. Choix « Livrer les objets demandés » dans la fenêtre native, avec reprise en cas de stock insuffisant. Test dialogue livraison/retry/double débit.
+- **Q6 Référence perdue** : `QuestDirector.reconcileNpcAvailability` suspend une quête acceptée si son donneur ou interlocuteur disparaît, puis la réactive au retour du même ID. La progression et les récompenses restent sauvegardées, aucun accomplissement fictif.
+- **Q7 Génération** : en plus de la rencontre, une famille « découvrir un lieu de travail » exploite exclusivement des ancrages d'entité compilés, effectivement positionnés, reliés par le routeur de PNJ et situés à 300 m maximum. Répartir le budget en 8 rencontres + 4 visites (12 offres/île maximum). Aucun point de quête fabriqué pour les zones sans entité positionnée.
+- **Événements** : courses validées `race.finished` post-franchissement final (durée mesurée) et test de non-régression des événements de vente/achat. Pas de résultat basé sur l'animation des PNJ.
+- **Gates encore ouvertes** : tests navigateur sur le dernier SHA, visualisation Studio universelle des quêtes, événements exploitation minière/agricole/ateliers, chaînes régionales, professions économiquement transactionnelles et benchmarks matériels 4–8 Go.
+
