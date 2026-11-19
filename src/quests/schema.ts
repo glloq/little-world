@@ -5,13 +5,14 @@ export type QuestDifficulty=0|1|2|3|4|5;
 export type QuestStatus='available'|'active'|'ready'|'claimed'|'cancelled'|'expired'|'suspended';
 export type QuestSource='any'|'gather'|'fishing'|'mine'|'farm'|'trade'|'craft';
 export type QuestStepV1=
- |{kind:'talk';npcRole?:string;npcId?:string}
- |{kind:'visit';targetId:string;withinM:number}
+ |{kind:'talk';npcRole?:string;npcId?:string;islandId?:string}
+ |{kind:'visit';targetId:string;withinM:number;islandId?:string}
  |{kind:'acquire';itemId:string;quantity:number;source?:QuestSource;fromIslandId?:string}
- |{kind:'deliver';itemId:string;quantity:number;giverId:string}
- |{kind:'craft';recipeId:string;quantity:number;stationId?:string}
- |{kind:'race';raceId:string;maxSeconds?:number}
- |{kind:'event';eventType:string;subjectId?:string;count:number};
+ |{kind:'deliver';itemId:string;quantity:number;giverId:string;islandId?:string}
+ |{kind:'craft';recipeId:string;quantity:number;stationId?:string;islandId?:string}
+ |{kind:'race';raceId:string;maxSeconds?:number;islandId?:string}
+ |{kind:'event';eventType:string;subjectId?:string;count:number;islandId?:string}
+ |{kind:'travel';fromIslandId:string;toIslandId:string};
 export interface QuestTemplateV1{
  id:string;version:1;family:string;difficulty:QuestDifficulty;
  titleKey:string;descriptionKey:string;giverRoles:string[];
