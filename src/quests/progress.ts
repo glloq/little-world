@@ -30,7 +30,7 @@ function matches(step:QuestStepV1,event:QuestGameEventV1):boolean{
   case 'acquire':{
    const types:Record<Exclude<NonNullable<Extract<QuestStepV1,{kind:'acquire'}>['source']>,'any'>,string>={
     gather:'resource.gathered',fishing:'fishing.caught',mine:'mine.extracted',
-    farm:'farm.harvested',trade:'market.traded',craft:'workshop.collected',
+    farm:'farm.harvested',trade:'market.traded',craft:'workshop.item-collected',
    };
    if(step.source==='any'||step.source===undefined)
     return event.type==='inventory.acquired'&&event.itemId===step.itemId;
