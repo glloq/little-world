@@ -42,10 +42,12 @@ test('F09-C NPC and player share real tree depletion and regrowth state',()=>{
  assert.ok(hit?.done,'worker should eventually complete multi-strike native cut');
  assert.equal(playerCredits,0,'NPC harvest must never alter player inventory');
  assert.ok((ledger.inventory()['wood:log']??0)>0);
+ const source=hit.target;
+ assert.equal(gather.hiddenAt(source.cx,source.cz,source.kind,source.index),true);
  const player=gather.act(p,forward);
- assert.equal(player.done,true===false,'felled tree cannot be instantly recut');
- assert.equal(playerCredits,0);
+ assert.notEqual(player.target?.key,source.key,'player cannot recut the depleted source');
  time=4000;
+ assert.equal(gather.hiddenAt(source.cx,source.cz,source.kind,source.index),false);
  const grown=gather.target(p,forward);
  assert.ok(grown,'native source has regrown on the shared clock');
 });
