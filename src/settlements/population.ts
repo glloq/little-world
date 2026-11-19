@@ -42,6 +42,20 @@ const priority=(r:SettlementRecipe,role:ResidentRole)=>{
   const index=preferredJobs[r.activity].indexOf(role);
   return index<0?30:index;
 };
+/** Deterministic targets; only real eligible jobs and valid commutes are emitted.
+ * Tiny hamlets may contain a single worker instead of being artificially empty.
+ */
+export function residentPopulationTargets(
+ houses:number,density:SettlementRecipe['residentDensity'],
+):{children:number;workers:number}{
+ if(!Number.isSafeInteger(houses)||houses<3)return {children:0,workers:0};
+ if(houses<6)return {children:0,workers:density==='low'?0:1};
+ const children=density==='low'?(houses>=10?1:0):
+   density==='high'?Math.min(3,Math.floor(houses/4)):houses>=10?2:1;
+ const workers=density==='low'?(houses>=10?1:0):
+   density==='high'?(houses>=16?4:2):houses>=16?3:1;
+ return {children,workers};
+}
 /** Preserve source-authored overrides, including deliberate deletion.
  * No generated dialogue is allowed to overwrite an authored dialogue.
  */
@@ -75,15 +89,12 @@ export function settlementPopulation(
     if(code==='LIFE_NO_JOBS')out.warnings.push({code,message:'Aucun poste professionnel qualifié dans le village.'});
     if(code==='LIFE_NO_PLAY_ANCHOR')out.warnings.push({code,message:'Pas de lieu public de jeu pour les enfants.'});
   }
-  if(buildings.length<6)return out;
+  if(buildings.length<3)return out;
   const existingPeople=Object.values(p.entityIndex).filter(e=>e.kind==='character').length;
   const managed=(old?.amenities??[]).filter(a=>a.role==='resident'&&!!p.entityIndex[a.id]).length;
   const hostNew=amenities.some(a=>a.role==='host'&&!p.entityIndex[a.id])?1:0;
   let budget=Math.max(0,100-existingPeople+managed-hostNew);
-  const wantedChildren=r.residentDensity==='low'?(buildings.length>=10?1:0):
-    r.residentDensity==='high'?Math.min(3,Math.floor(buildings.length/4)):buildings.length>=10?2:1;
-  const workerSlots=r.residentDensity==='low'?(buildings.length>=10?1:0):
-    r.residentDensity==='high'?(buildings.length>=16?4:2):buildings.length>=16?3:1;
+  const {children:wantedChildren,workers:workerSlots}=residentPopulationTargets(buildings.length,r.residentDensity);
   if(assignment.truncated)out.warnings.push({code:'LIFE_GRAPH_LIMIT',message:'Réseau piéton tronqué : certains trajets sont indisponibles.'});
   function retain(id:string):{status:'new'|'preserved'|'deleted'|'conflict';previous?:EntityDefinitionV3}{
     const record=old?.amenities?.find(a=>a.id===id);
