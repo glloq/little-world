@@ -7,7 +7,7 @@ import type {ActivityRuntime} from '../gameplay/activity-runtime.ts';
 import type {Gathering} from '../gameplay/gathering.ts';
 import type {WaterKind,FishId} from '../gameplay/fishing-data.ts';
 import {createNpcHarvestAccount,parseNpcHarvestAccount,type NpcHarvestAccountV1,type HarvestRole} from './harvest-ledger.ts';
-import {createFishPopulation,type FishPopulationV1} from './fish-population.ts';
+import {createFishPopulation} from './fish-population.ts';
 export interface NpcHarvestDeps{
  limits:Readonly<Record<string,number>>;
  activities:ActivityRuntime;zones:PlayableActivities;
