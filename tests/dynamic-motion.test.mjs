@@ -16,7 +16,9 @@ const flat=()=>new WorldCollisionQuery(()=>0,()=>null);
 const step=(p,q,n,k={})=>{for(let i=0;i<n;i++)simulatePlayer(p,{...input,...k},1/30,q);};
 
 test('glider dive exchanges height for speed, pull-up spends momentum and cannot gain energy',()=>{
- const p=actor(500);p.mode='glide';p.velocity.z=12;p.glideReady=true;const q=flat();
+ // With reduced gliding gravity, use a sufficiently fast dive to verify a real pull-up;
+ // a slow dive may dissipate its energy before the glider can climb.
+ const p=actor(500);p.mode='glide';p.velocity.z=24;p.glideReady=true;const q=flat();
  const start=movementEnergy(p.position.y,p.velocity,GLIDE_PHYSICS.gravity),energy=[start];
  step(p,q,60,{forward:1,flightPitchInput:-1});const diveSpeed=p.velocity.length(),low=p.position.y;
  assert.ok(diveSpeed>16&&p.velocity.y<0,'dive accelerates');
