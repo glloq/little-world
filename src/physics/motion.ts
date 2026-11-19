@@ -13,7 +13,7 @@ export const GLIDE_TRIM={
  maxAssistedDive:.61,recoverySpeed:10,recoveryPitch:-.33,
 } as const;
 export const GLIDE_DEPLOY={duration:.25,forward:2,lift:.8} as const;
-export const ROLL={max:11,downhillMax:18,accel:5,friction:1.2,brake:9,turnRate:1.8,turnLoss:.12,slopeGravity:.5,jump:6.5,minEnter:0,exitSpeed:.6,exitIdle:.35} as const;
+export const ROLL={max:11,downhillMax:18,accel:5,friction:1.2,brake:9,turnRate:1.8,turnLoss:.12,slopeGravity:.5,jump:6.5,minEnter:0,exitSpeed:.6,exitIdle:.35,landingThreshold:9,landingDecel:7.5} as const;
 export type GroundMaterial='grass'|'rock'|'sand'|'mud'|'wood'|'snow'|'ice';
 export const SURFACE_MOTION:Record<GroundMaterial,{friction:number;grip:number}>={grass:{friction:1,grip:1},rock:{friction:.65,grip:.85},sand:{friction:2.1,grip:.8},mud:{friction:2.8,grip:.55},wood:{friction:.8,grip:.95},snow:{friction:.18,grip:.75},ice:{friction:.035,grip:.3}};
 export const angleDelta=(a:number,b:number)=>Math.atan2(Math.sin(b-a),Math.cos(b-a));

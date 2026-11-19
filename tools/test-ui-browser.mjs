@@ -312,8 +312,20 @@ try{
     const p=window.littleWorldMetrics.position;
     window.littleWorldDebug.teleport(p[0],p[2],0);
   });
-  await mobilePage.waitForFunction(()=>document.querySelector('.touch-accelerate')?.textContent==='Courir');
-  verify(await boostButton.isVisible()&&await boostButton.isEnabled(),'On landing the same button becomes normal acceleration');
+  // A high-speed touchdown may retain roll mode. Verify the label against the
+  // actual locomotion state rather than assuming the hamster is standing.
+  await mobilePage.waitForFunction(()=>{
+    const mode=window.littleWorldMetrics?.mode;
+    const label=document.querySelector('.touch-accelerate')?.textContent;
+    return (mode==='ground'&&label==='Courir')||(mode==='roll'&&label==='Accélérer');
+  },null,{timeout:5000});
+  const afterLanding=await mobilePage.evaluate(()=>({
+    mode:window.littleWorldMetrics.mode,
+    accelerator:document.querySelector('.touch-accelerate')?.textContent,
+  }));
+  verify(await boostButton.isVisible()&&await boostButton.isEnabled()&&
+    ['ground','roll'].includes(afterLanding.mode)&&afterLanding.accelerator!=='Boost',
+    'On landing the accelerator matches ground/roll mode ('+JSON.stringify(afterLanding)+')');
   await mobilePage.setViewportSize({width:390,height:844});
   await mobilePage.getByRole('dialog',{name:'Orientation de l’écran recommandée'}).waitFor({state:'visible'});
   await mobilePage.getByRole('button',{name:'Continuer en portrait'}).click();

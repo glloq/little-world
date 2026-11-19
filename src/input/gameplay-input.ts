@@ -18,7 +18,7 @@ export function shouldSuppressGameplayContextMenu(running:boolean,editing:boolea
 /** The same acceleration input launches when stationary, provides a double jump in air,
  * and powers the glider; motion-state-specific gating stays in the deterministic simulator. */
 export function flightBoostHeld(mode:string,shiftHeld:boolean,touchAccelerateHeld:boolean):boolean{
-  return (mode==='ground'||mode==='air'||mode==='glide'||mode==='swim'||mode==='dive')&&(shiftHeld||touchAccelerateHeld);
+  return mode==='ground'?touchAccelerateHeld:(mode==='air'||mode==='glide'||mode==='swim'||mode==='dive')&&(shiftHeld||touchAccelerateHeld);
 }
 /** Only an active camera drag requests vertical flight. Releasing it restores auto-trim.
  * The camera's neutral pitch offset is already removed by the caller. */
@@ -26,3 +26,6 @@ export function flightPitchIntent(mode:string,aiming:boolean,cameraPitch:number)
   if(mode!=='glide'||!aiming||!Number.isFinite(cameraPitch)||cameraPitch===0)return 0;
   return Math.max(-1,Math.min(1,-cameraPitch/.77));
 }
+
+/** Edge-triggered PC Shift switches between upright and roll, never while airborne. */
+export const shiftTogglesRoll=(mode:string):boolean=>mode==='ground'||mode==='roll';
