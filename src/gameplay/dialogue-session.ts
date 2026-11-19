@@ -1,7 +1,8 @@
 import type {DialogueSession} from '../dialogue.ts';
 import type {GameplayRuntime} from './runtime.ts';
 /** Same dialogue panel and rig expressions; V3 consequences stay in the logical engine. */
-export function gameplayDialogueSession(runtime:GameplayRuntime,actorId:string):DialogueSession|undefined {
+export function gameplayDialogueSession(runtime:GameplayRuntime,actorId:string,
+ onCommittedChoice?:(actorId:string,dialogueId:string,choiceId:string)=>void):DialogueSession|undefined {
  const linked=runtime.data.entities.find(e=>e.id===actorId)?.dialogueIds,graph=linked?runtime.data.dialogues.find(d=>d.id===linked[0]):runtime.data.dialogues.find(d=>d.actorId===actorId);if(!graph)return;
  let current=graph.start,closed=false;runtime.enterDialogueLine(graph.id,current);
  return {
@@ -10,7 +11,10 @@ export function gameplayDialogueSession(runtime:GameplayRuntime,actorId:string):
   get locked(){return runtime.lockedChoices(graph.id,current);},
   hint(index){const c=runtime.availableChoices(graph.id,current)[index];return c?.actions?.some(a=>a.type==='setObjective')?'mission':c?.actions?.some(a=>a.type==='giveItem')?'objet':undefined;},
   choose(index){if(closed)return false;const line=graph.lines.find(l=>l.id===current)!,choice=runtime.availableChoices(graph.id,current)[index];if(!choice)return false;
-   const id=choice.id??current+':'+line.choices.indexOf(choice),next=runtime.dialogueChoice(graph.id,current,id);if(next===undefined)return false;if(next===null)closed=true;else{current=next;runtime.enterDialogueLine(graph.id,current);}return true;
+   const id=choice.id??current+':'+line.choices.indexOf(choice),next=runtime.dialogueChoice(graph.id,current,id);if(next===undefined)return false;
+   // The native gameplay runtime validated and committed all dialogue actions.
+   onCommittedChoice?.(actorId,graph.id,id);
+   if(next===null)closed=true;else{current=next;runtime.enterDialogueLine(graph.id,current);}return true;
   },close(){closed=true;}
  };
 }
