@@ -4,7 +4,7 @@ import {advanceFlightAutoCamera,type FlightCameraFollow} from './render/flight-a
 import {createActorSimulator} from './render/remote-characters.ts';
 import {captureMovement} from './physics/movement-state.ts';
 import {createTouchControls,type TouchControls} from './input/touch-controls.ts';
-import {isEditableGameTarget,shouldPreventGameplayKeyDefault,shouldSuppressGameplayContextMenu,flightBoostHeld} from './input/gameplay-input.ts';
+import {isEditableGameTarget,shouldPreventGameplayKeyDefault,shouldSuppressGameplayContextMenu,flightBoostHeld,flightPitchIntent} from './input/gameplay-input.ts';
 import {createMobileLandscape,isPhoneTouchDevice} from './input/mobile-landscape.ts';
 import './input/touch-controls.css';
 import {classifyPoint} from './geography/classify.ts';
@@ -809,6 +809,9 @@ function input(): Controls {
     cameraYaw: yaw,
     // Underwater, moving forward follows the camera tilt (looking down dives down), from the default view.
     cameraPitch: pitch - 0.32,
+    // Looking up/down while actively dragging steers pitch; release to auto-trim.
+    // The mobile forward joystick retains its movement-only behaviour.
+    flightPitchInput:flightPitchIntent(player.mode,orbitDrag.active,pitch-.32),
     boostHeld:flightBoostHeld(player.mode,shiftHeld,touchAccelerateHeld),
     swimStrokePressed:touchStrokeQueue>0,
     snowEquipment:snowDemo?snowEquipment:gameplay?.equipment.hands==='tool:snowboard'?'snowboard':gameplay?.equipment.hands==='tool:skis'?'skis':null,
