@@ -415,24 +415,30 @@ export function createGameplayView(data:GameplayData,options:Options){
          if(!target||consumer.phase!=='work')continue;
          if(transferNativeRawMaterial(source,target,raw,Math.min(3,source.inventory()[raw]??0),
            producer,consumer)){transfers++;break;}
+         // Existing market sales can fund native milling/sawmilling fees.
+         if(transferNativeRawMaterial(source,target,'coin',
+           Math.min(2,source.inventory().coin??0),producer,consumer)){transfers++;break;}
        }
        if(transfers>=8)break;
      }
-     // Fisher → port merchant: only a real authored port counter within
-     // physical handoff range, funded from the market's existing cash.
+     // Real worker → corresponding authored market; the market pays out of
+     // its own cash and receives actual source goods (no player bag changes).
      for(const producer of npcs){
        if(transfers>=8)break;
        const source=npcHarvest.account(producer.definition.id);
-       if(source?.role!=='fisher'||producer.phase!=='work')continue;
+       if(!source||producer.phase!=='work')continue;
+       const kind=source.role==='fisher'?'port':
+         source.role==='farmer'?'farm':'forest';
+       const stock=source.inventory();
+       const goods=Object.entries(stock).find(([id,n])=>n>0&&(
+         source.role==='fisher'?id.startsWith('fish:'):
+         source.role==='farmer'?id.startsWith('farm:'):id==='wood:log'));
+       if(!goods)continue;
        for(const counter of runtime.data.entities){
-         if(counter.shopAccess?.kind!=='port')continue;
+         if(counter.shopAccess?.kind!==kind)continue;
          const point=runtime.getEntityPosition(counter.id);
          if(!point||Math.hypot(producer.x-point.x,producer.z-point.z)>8)continue;
-         const fish=Object.entries(source.inventory()).find(([id,quantity])=>
-           id.startsWith('fish:')&&quantity>0);
-         if(!fish)break;
-         const quantity=Math.min(2,fish[1]);
-         if(markets.supplyFromNpc('port',counter.id,fish[0],quantity,source,
+         if(markets.supplyFromNpc(kind,counter.id,goods[0],Math.min(2,goods[1]),source,
            'npc:sell:'+producer.definition.id+':'+economyMinute)){
            transfers++;break;
          }
