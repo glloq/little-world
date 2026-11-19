@@ -30,6 +30,7 @@ import {applySurfTumblePose} from './render/surf-tumble-pose.ts';
 import {applySurfPose} from './render/surf-character-pose.ts';
 import {sampleSurfBarrel} from './surf/surf-barrel.ts';
 import {createSurfBoardView} from './render/surf-board-view.ts';
+import {boardOnWater,distanceToBoard,isSurfBoardWaterSafe,type SurfBoardPlacement} from './surf/board-placement.ts';
 import {createSurfHud} from './ui/surf/surf-hud.ts';
 import {boardLift,liftRideStep,type SkiLift,type LiftRide} from './snow/ski-lift.ts';
 import {createSkiLiftView} from './snow/ski-lift-view.ts';
@@ -116,6 +117,7 @@ const devSpeed = document.querySelector<HTMLElement>('#dev-speed')!;
 const devMemory = document.querySelector<HTMLElement>('#memory')!;
 /** Player interface (src/ui): created once the world, gameplay and NPCs exist. */
 let gameUi:GameUi|null=null;
+let placedSurfBoard:SurfBoardPlacement|null=null;
 // Detect phone controls before the HUD is constructed, so its gas hint uses the Boost label.
 const touchCapable=isPhoneTouchDevice();
 if(touchCapable)document.body.classList.add('touch-mode');
@@ -295,7 +297,8 @@ if(playable){
     onNpcStartDialogue:(id)=>npcActorActions?.talkTo(id,{x:player.position.x,z:player.position.z})??false,
     onSound:(id,p)=>audio?.playSound(id,p),collisions:playable.collisions,temporary:!!(studioTest||buildScope),saveScope:studioTest?.snapshotId??buildScope??undefined,getPosition:()=>({x:player.position.x,y:player.position.y,z:player.position.z}),objects:world.objects,showInfo,
     activities:playable.activities,getSpace:()=>player.space,
-    getGas:()=>gasLevel(player),
+    getGas:()=>gasLevel(player),getSurfBoard:()=>placedSurfBoard,
+    setSurfBoard:board=>{placedSurfBoard=board&&isSurfBoardWaterSafe(board,waterSurface,terrainHeight,(x,z)=>!!playable?.surfZones?.some(zone=>x>=zone.minX&&x<=zone.maxX&&z>=zone.minZ&&z<=zone.maxZ))?board:null;},
     getGasProgress:()=>structuredClone(flightProgress),
     setGasProgress:value=>{flightProgress={...value,currentFlightDistance:0,currentFlightNoGas:0,currentCombo:0,lastPulseAt:-1};player.gasCapacityLevel=value.capacityLevel;player.gasPowerLevel=value.powerLevel;player.gasControlLevel=value.controlLevel;},
     setGas:value=>{player.gasReserve=value;player.gasBoosting=false;player.gasPulseClock=0;player.gasPulseSeq=0;player.gasThrust=0;player.gasPulseRemaining=0;player.gasCooldown=0;player.gasBoostHeld=false;player.gasRepeatArmed=false;gasVisualSeq=0;lastFlightPulseSeq=0;boostWindActive=false;},
@@ -733,7 +736,6 @@ const playerBoat = fleet.add({ id: 'player-boat', assetId: 'boat.sailboat_small'
 for (const m of mooredBoats) { const size = worldAsset(m.assetId)?.size ?? [2, 1.3, 5]; fleet.addMoored(m.id, m.assetId, m.object, waterSurface(m.object.position.x, m.object.position.z) ?? getTerrainConfig().seaLevel, size as [number, number, number]); }
 const keySet = new Set<string>();
 let rollQueue = 0,surfQueue=0,surfRequestUntilTick=0;
-let placedSurfBoard:{x:number;y:number;z:number;heading:number}|null=null;
 let jumpQueue = 0,
   touchStrokeQueue = 0,
   actionQueue = 0;
@@ -825,7 +827,7 @@ function toggleSurfBoard():void{
  if(aboard||player.space)return;
  if(player.mode==='surf'||player.surfAirborne){
    const x=player.position.x,z=player.position.z,w=waterSurface(x,z);
-   placedSurfBoard=w===null?null:{x,y:w+.03,z,heading:player.surfHeading??yaw};
+   placedSurfBoard=boardOnWater(x,z,player.surfHeading??yaw,waterSurface);
    player.mode='swim';player.surfStage=undefined;player.surfAirborne=false;
    if(w!==null)player.position.y=Math.min(player.position.y,w-.38);
    player.velocity.multiplyScalar(.3);player.velocity.y=0;surfQueue=0;
@@ -835,25 +837,27 @@ function toggleSurfBoard():void{
    showInfo('Équipez la planche depuis le sac avant de la poser.','warning');return;
  }
  if(placedSurfBoard){
-   const dist=Math.hypot(player.position.x-placedSurfBoard.x,player.position.z-placedSurfBoard.z);
+   const dist=distanceToBoard(placedSurfBoard,player.position.x,player.position.z);
    if(dist>2.5){showInfo('Rapprochez-vous de votre planche pour monter dessus.','warning');return;}
    if(player.mode!=='swim'&&player.mode!=='dive'){
      showInfo('Entrez dans l’eau pour monter sur la planche.','warning');return;
    }
-   if(!surfFieldAt(placedSurfBoard.x,placedSurfBoard.z)){
+   if(!isSurfBoardWaterSafe(placedSurfBoard,waterSurface,terrainHeight,(x,z)=>!!surfFieldAt(x,z))){
      showInfo('Cette eau ne permet pas encore le surf.','warning');return;
    }
    player.position.x=placedSurfBoard.x;player.position.z=placedSurfBoard.z;
    player.position.y=placedSurfBoard.y-.5;player.diving=false;player.velocity.set(0,0,0);
+   surfField=surfFieldAt(player.position.x,player.position.z);
    surfQueue=1;surfRequestUntilTick=motionTick+90;placedSurfBoard=null;
    showInfo('Sur la planche : ramez pour prendre une vague.');return;
  }
  const sx=Math.sin(yaw),cz=Math.cos(yaw);
- let spot:{x:number;y:number;z:number;heading:number}|null=null;
+ let spot:SurfBoardPlacement|null=null;
  for(const d of [0,1.2,2,3]){
    const x=player.position.x+sx*d,z=player.position.z+cz*d,w=waterSurface(x,z);
-   if(w===null||w-terrainHeight(x,z)<.8||!surfFieldAt(x,z))continue;
-   spot={x,y:w+.03,z,heading:yaw};break;
+   const candidate=boardOnWater(x,z,yaw,waterSurface);
+   if(!candidate||!isSurfBoardWaterSafe(candidate,waterSurface,terrainHeight,(px,pz)=>!!surfFieldAt(px,pz)))continue;
+   spot=candidate;break;
  }
  if(!spot){showInfo('Approchez-vous d’une zone de surf avec assez de profondeur.','warning');return;}
  placedSurfBoard=spot;
@@ -1376,7 +1380,12 @@ function tick(dt: number) {
     }
     if((player.surfJumpSeq??0)>previousSurfJump)audio?.emit('player.jump',{position:player.position,source:'player'});
     if((player.surfLandingSeq??0)>previousSurfLanding)audio?.emit('player.land',{position:player.position,source:'player'});
-    if((player.surfWipeoutSeq??0)>previousSurfWipeout)audio?.emit('water.enter',{position:player.position,source:'player'});
+    if((player.surfWipeoutSeq??0)>previousSurfWipeout){
+      const board=boardOnWater(player.position.x,player.position.z,player.surfHeading??yaw,waterSurface);
+      if(board&&isSurfBoardWaterSafe(board,waterSurface,terrainHeight,(x,z)=>!!surfFieldAt(x,z)))placedSurfBoard=board;
+      audio?.emit('water.enter',{position:player.position,source:'player'});
+      showInfo('Chute ! Votre planche flotte près de vous.');
+    }
     if(keys.surfActionPressed && (player.mode==='surf'||player.surfAirborne||
       motionTick>=surfRequestUntilTick||!surfField))surfQueue=0;
     if(player.barrelEntryTick===motionTick)showInfo('Tube ! Suivez la crête pour ressortir avant la fermeture.');
