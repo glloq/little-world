@@ -113,4 +113,7 @@ test('F03 tiny hamlets can request a real worker without inventing children or a
  assert.deepEqual(residentPopulationTargets(10,'normal'),{children:2,workers:1});
  assert.deepEqual(residentPopulationTargets(16,'high'),{children:3,workers:4});
  assert.deepEqual(residentPopulationTargets(16,'low'),{children:1,workers:1});
+ assert.deepEqual(residentPopulationTargets(48,'high'),{children:3,workers:12});
+ assert.deepEqual(residentPopulationTargets(40,'normal'),{children:2,workers:8});
+ assert.deepEqual(residentPopulationTargets(80,'low'),{children:1,workers:3});
 });
