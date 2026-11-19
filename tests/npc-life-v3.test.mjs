@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {residentRoute,positionOnResidentRoute,validResidentRoutine} from '../src/npc-life/schedule.ts';
-import {residentAgendaPoseAt} from '../src/npc-life/agenda.ts';
+import {residentAgendaPoseAt,validateResidentAgendaRoutes} from '../src/npc-life/agenda.ts';
 import {residentSocialPairs} from '../src/npc-life/social.ts';
 import {createResidentLayeredRouter} from '../src/npc-life/layered-routes.ts';
 import {withVillageActivities} from '../src/npc-life/generation-agenda.ts';
@@ -81,4 +81,13 @@ test('layered routing crosses real elevated deck but rejects water or XZ-only in
  assert.equal(crossing.route({x:0,z:-30},{x:30,z:0}),null);
  const heights=residentRoute([{x:0,z:0,y:10},{x:10,z:0,y:12}]);
  assert.ok(Math.abs(positionOnResidentRoute(heights,5).y-11)<1e-6);
+});
+
+test('agenda preflight qualifies valid activity visits and rejects impossible itineraries',()=>{
+ assert.equal(validateResidentAgendaRoutes(worker,routes,1200,1),null);
+ const impossible={...worker,activities:[{...worker.activities[0],startHour:6.1,endHour:6.5}]};
+ assert.match(validateResidentAgendaRoutes(impossible,routes,1200,1),/inaccessible/);
+ assert.equal(validateResidentAgendaRoutes(worker,{work:routes.work,activities:[]},1200,1),'Agenda résident incomplet');
+ assert.equal(validateResidentAgendaRoutes(worker,routes,0,1),'Agenda résident incomplet');
+ assert.equal(validateResidentAgendaRoutes(worker,routes,1200,0),'Agenda résident incomplet');
 });
