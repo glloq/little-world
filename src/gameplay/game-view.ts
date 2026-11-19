@@ -13,6 +13,7 @@ import {GAS} from '../physics/gas-propulsion.ts';
 import {newFlightProgress,type FlightProgress} from './flight-progress.ts';
 import {gameplayDialogueSession} from './dialogue-session.ts';
 import {createQuestDirector} from '../quests/director.ts';
+import {questDialogueSession} from '../quests/dialogue.ts';
 import type {QuestCatalogEntryV1} from '../quests/schema.ts';
 import {createGameSaveStore,scopedSaveStorage,parseGameSave,type GameSaveV2} from './save.ts';
 import {createActivityRuntime} from './activity-runtime.ts';
@@ -163,14 +164,11 @@ export function createGameplayView(data:GameplayData,options:Options){
   }
   return best;
  }
- sync();
- return {
-  runtime,collision,activities,slots,compose,gathering,trees,fishing,trade,sellBatch,nearbyShop,workshops,markets,purse,itemName,has,equipment,quests,
   /** Deliver an accepted, completed quest only to its real nearby giver.
    * Runtime.grantItems is the single atomic inventory authority for coin/items.
    * The complete inventory + claimed state are serialized by compose().
    */
-  claimQuest(instanceId:string,claimId:string){
+  function claimQuest(instanceId:string,claimId:string){
     const quest=quests.get(instanceId);
     if(!quest||quest.status!=='ready')return {ok:false as const,reason:'not-ready'};
     const giver=npcs.find(n=>n.definition.id===quest.giverId);
@@ -190,7 +188,11 @@ export function createGameplayView(data:GameplayData,options:Options){
     });
     if(result.ok)for(const listener of listeners)listener();
     return result;
-  },
+  }
+ sync();
+ return {
+  runtime,collision,activities,slots,compose,gathering,trees,fishing,trade,sellBatch,nearbyShop,workshops,markets,purse,itemName,has,equipment,quests,
+  claimQuest,
   get navigationRevision(){return navigationRevisions.revision;},
   openDoorForNPC(doorId:string,duration=2):boolean{
    if(!runtime.state.entities[doorId]||!models.has(doorId)||!Number.isFinite(duration)||duration<=0||duration>5)return false;
@@ -214,17 +216,21 @@ export function createGameplayView(data:GameplayData,options:Options){
   temporary:options.temporary,describe,
   /** Called after any validated state change (inventory, objectives, entity states). */
   subscribe(listener:()=>void){listeners.add(listener);return ()=>listeners.delete(listener);},
-  dialogueSession:(state:NPCState)=>gameplayDialogueSession(runtime,state.definition.id,(actorId,_dialogueId,_choiceId)=>{
-    // This callback is invoked ONLY after the native dialogue transaction succeeds.
-    // Event sequence is stored alongside quest progress in the same V2 slot.
-    if(questEventSequence>=1_000_000_000)return;
-    const changed=quests.consume({schemaVersion:1,eventId:'quest:dialogue:'+ ++questEventSequence,
-      type:'npc.talked',worldId:data.worldId,islandId:options.islandId??data.worldId,
-      gameMinute:Math.floor(runtime.state.time/runtime.climate.definition.dayLengthSeconds*1440),
-      sequence:questEventSequence,targetId:actorId,
-      ...(state.definition.routine?{source:state.definition.routine.role}:{})});
-    if(changed.length)for(const listener of listeners)listener();
-  }),attachNPCs(states:readonly NPCState[]){npcs=states;},
+  dialogueSession:(state:NPCState)=>questDialogueSession(
+    gameplayDialogueSession(runtime,state.definition.id,(actorId,_dialogueId,_choiceId)=>{
+      // Only committed native dialogue choices produce quest events.
+      if(questEventSequence>=1_000_000_000)return;
+      const changed=quests.consume({schemaVersion:1,eventId:'quest:dialogue:'+ ++questEventSequence,
+        type:'npc.talked',worldId:data.worldId,islandId:options.islandId??data.worldId,
+        gameMinute:Math.floor(runtime.state.time/runtime.climate.definition.dayLengthSeconds*1440),
+        sequence:questEventSequence,targetId:actorId,
+        ...(state.definition.routine?{source:state.definition.routine.role}:{})});
+      if(changed.length)for(const listener of listeners)listener();
+    }),quests,state.definition.id,
+    ()=>Math.floor(runtime.state.time/runtime.climate.definition.dayLengthSeconds*1440),
+    claimQuest,()=>{for(const listener of listeners)listener();}
+  ),
+  attachNPCs(states:readonly NPCState[]){npcs=states;},
   prompt(position:Point3){runtime.state.playerPosition={...position};const target=describe(position);return target?.usable?'[E] '+target.prompt:null;},
   interact(position:Point3){runtime.state.playerPosition={...position};const target=describe(position);return target?.usable?runtime.interact(target.entity.id,position):false;},
   update(dt:number){
