@@ -80,6 +80,8 @@ export interface ProjectLibraries {
   /** Fixed author-owned courses, optional for older projects. */
   alpine?:Record<StableId,import('../snow/ski-area.ts').SkiAreaV1>;
   races?:Record<StableId,import('../gameplay/races.ts').RaceDefinition>;
+  /** Author-edited, validated native quest offers (distinct from legacy objectives). */
+  questCatalog?:Record<StableId,import('../quests/schema.ts').QuestCatalogEntryV1>;
   /** Optional authored surf areas. Empty legacy projects retain flat sea physics. */
   surfZones?:Record<StableId,import('../surf/wave-field.ts').SurfZone>;
   /** Optional ramp/boost/buoy placements with pure tick-level trigger rules. */
