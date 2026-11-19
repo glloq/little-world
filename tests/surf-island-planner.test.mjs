@@ -48,8 +48,12 @@ test('planner does not install a surf zone on ocean without a reachable shore',(
  assert.equal(p.calmPort,null);
  assert.ok(p.warnings.length>0);
 });
-test('planner leaves occupied beaches out of the authored island',()=>{
- const p=planThreeSurfBeaches(coast,bounds,0,11,'surf-example',(x,z)=>x>30?'port reserved':null);
- assert.ok(p.beaches.length<3,'occupied coast does not accept A/B/C all together');
- assert.ok(p.warnings.length);
+test('planner avoids reservations, and recognises the normal free occupation value',()=>{
+ const open=planThreeSurfBeaches(coast,bounds,0,11,'surf-example',()=> 'none');
+ assert.equal(open.beaches.length,3,'free occupation must not block the entire sea');
+ const p=planThreeSurfBeaches(coast,bounds,0,11,'surf-example',(x,z)=>x>30?'port reserved':'none');
+ assert.ok(p.beaches.every(b=>b.start.x<=30),
+  'occupied coast is not used even when other beaches can be found');
+ assert.ok(!p.calmPort||p.calmPort.x<=30);
+ assert.deepEqual(planThreeSurfBeaches(coast,bounds,0,11,'surf-example',(x,z)=>x>30?'port reserved':'none'),p);
 });
