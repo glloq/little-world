@@ -1,6 +1,6 @@
 # NPC Life — Finalisation F01 à F08 (19 novembre 2026)
 
-Statut : **ROADMAP ACTIVE — F01 en cours**. Branche : `feat/npc-life-finalization-f01-f08`. Baseline : `main` au moment de la création. Cette documentation n'est pas une affirmation de qualification navigateur.
+Statut : **ROADMAP ACTIVE — F01-A et F01-B codés, qualification en cours**. Branche : `feat/npc-life-finalization-f01-f08`. Baseline : `main` au moment de la création. Cette documentation n'est pas une affirmation de qualification navigateur.
 
 ## Contraintes permanentes
 
@@ -30,8 +30,8 @@ Existant : 19 rôles, logements/postes qualifiés, génération déterministe co
 
 ## F01 — Plan d'exécution détaillé
 
-1. **F01-A : progression et géométrie** — inspection bornée de chaque tronçon réellement traversé ; retour du dernier point sûr utilisable par les pilotes de déplacement ; rejeter paramètres non finis et tronçons malformés. Ajouter tests de bords, obstacles mobiles et angles. Ne pas remplacer A*.
-2. **F01-B : intégration runtime** — utiliser l'information de dernier point sûr lors de déplacement commandé et routine proche, arrêter avant obstacle, conserver l'intention ; replan depuis la position réelle sur cadence plafonnée.
+1. **F01-A : progression et géométrie (CODE + TESTS AJOUTÉS)** — inspection bornée de chaque tronçon réellement traversé ; retour du dernier point sûr utilisable par les pilotes de déplacement ; rejeter paramètres non finis et tronçons malformés. Ajouter tests de bords, obstacles mobiles et angles. Ne pas remplacer A*.
+2. **F01-B : intégration runtime (CODE + TESTS UNITAIRES DE LA DÉCISION AJOUTÉS)** — utiliser l'information de dernier point sûr lors de déplacement commandé et routine proche, arrêter avant obstacle, conserver l'intention ; replan depuis la position réelle sur cadence plafonnée.
 3. **F01-C : invalidation** — changement de version de relief, porte, chemin ou collision rend les segments planifiés suspects ; valider le tronçon et recalculer au changement d'état, sans replan en boucle.
 4. **F01-D : scénarios complexes** — ponts superposés, carrefours, hameaux, porte temporairement ouverte, PNJ en discussion, changement brutal d'heure/secteur, croisement de deux PNJ.
 5. **F01-E : qualification** — tests Node + TypeScript + build + navigateur ; métriques `blocked/replanned/recovered`, capture d'une journée complète, absence de traversée ou de téléport visible.
@@ -52,3 +52,5 @@ Cartes : hameau 3–5 maisons, village agricole, forêt, montagne avec pont, por
 ## Journal
 
 - 2026-11-19 : audit du dépôt, création de la roadmap, début de F01-A.
+
+- 2026-11-19 : F01-B raccordé dans `src/npc-view.ts`, via `residentScriptedAdvance`. Le PNJ avance seulement jusqu'au point physiquement sûr, puis replanifie depuis cette nouvelle position. Les sauts >12 m sont refusés. Tests régressifs obstacle/angle/suspension ajoutés. **CI et playtest navigateur encore à qualifier**.
