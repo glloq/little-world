@@ -50,6 +50,18 @@ export function createGameplayView(data:GameplayData,options:Options){
    islandId:options.islandId??data.worldId,maxActive:3,
  });
  let questEventSequence=0;
+ /** Only native gameplay code calls this AFTER a successful transaction.
+  * Runtime events carry one monotonic ID, checkpointed with quest progress.
+  */
+ function recordQuestCommit(type:string,fields:{itemId?:string;quantity?:number;source?:string;targetId?:string}={}):void{
+   if(questEventSequence>=1_000_000_000)return;
+   const sequence=++questEventSequence;
+   const changed=quests.consume({schemaVersion:1,eventId:'quest:native:'+sequence,
+     type,worldId:data.worldId,islandId:options.islandId??data.worldId,
+     gameMinute:Math.floor(runtime.state.time/runtime.climate.definition.dayLengthSeconds*1440),
+     sequence,...fields});
+   if(changed.length)for(const listener of listeners)listener();
+ }
  const collisionDefinitions=new Map((options.collisions??[]).map(d=>[d.id,d]));
  // Transient resident door openings are never serialized into the player's save.
  const npcDoors=createResidentDoorOpenings(()=>runtime.state.time);
@@ -63,7 +75,12 @@ export function createGameplayView(data:GameplayData,options:Options){
  // Accessible free starter on surf-capable islands. Restore overwrites this grant for saved games.
  if(options.surfStarter&&runtime.data.items.some(i=>i.id===SURFBOARD_ID))runtime.grantItems([{itemId:SURFBOARD_ID,quantity:1}]);
  // Gathering (trees, fruits, mushrooms, flowers) on the procedural dressing of generated worlds.
- const gathering=options.gathering?createGathering({...options.gathering,time:()=>runtime.state.time,grant:changes=>runtime.grantItems(changes),has}):null;
+ const gathering=options.gathering?createGathering({...options.gathering,time:()=>runtime.state.time,grant:changes=>{
+   const granted=runtime.grantItems(changes);
+   if(granted)for(const change of changes)if(change.quantity>0)
+     recordQuestCommit('resource.gathered',{itemId:change.itemId,quantity:change.quantity,source:'gather'});
+   return granted;
+ },has}):null;
  const trees=gathering?createTreeColliders({collision,cell:gathering.cell,hidden:gathering.hiddenAt}):null;
  const fishing=createFishing();
  const purse={count:(id:string)=>runtime.state.inventory[id]??0,max:(id:string)=>runtime.data.items.find(i=>i.id===id)?.maxQuantity??0,apply:(changes:{itemId:string;quantity:number}[])=>runtime.grantItems(changes)};
@@ -108,7 +125,10 @@ export function createGameplayView(data:GameplayData,options:Options){
    const authored=counterId?runtime.data.entities.find(e=>e.id===counterId&&e.shopAccess):undefined;
    const access=authored?accessibleShop(authored,options.getPosition(),collision):null;
    if(authored?access?.kind!==kind:!counterId&&!nearbyShop(options.getPosition(),undefined,kind))return {ok:false as const,reason:'Rejoignez le côté d’usage du comptoir.'};
-   return markets.trade(kind,counterId??'legacy:'+kind,itemId,quantity,mode,undefined,expectedRevision);
+   const outcome=markets.trade(kind,counterId??'legacy:'+kind,itemId,quantity,mode,undefined,expectedRevision);
+   if(outcome.ok&&mode==='buy')recordQuestCommit('market.traded',{itemId,quantity,source:'buy',
+     targetId:counterId??'legacy:'+kind});
+   return outcome;
  }
  function sellBatch(kind:ShopKind,lines:readonly {itemId:string;quantity:number}[],
    counterId?:string,expectedRevision?:number){
@@ -191,7 +211,7 @@ export function createGameplayView(data:GameplayData,options:Options){
   }
  sync();
  return {
-  runtime,collision,activities,slots,compose,gathering,trees,fishing,trade,sellBatch,nearbyShop,workshops,markets,purse,itemName,has,equipment,quests,
+  runtime,collision,activities,slots,compose,gathering,trees,fishing,trade,sellBatch,nearbyShop,workshops,markets,purse,itemName,has,equipment,quests,recordQuestCommit,
   claimQuest,
   get navigationRevision(){return navigationRevisions.revision;},
   openDoorForNPC(doorId:string,duration=2):boolean{
@@ -218,14 +238,8 @@ export function createGameplayView(data:GameplayData,options:Options){
   subscribe(listener:()=>void){listeners.add(listener);return ()=>listeners.delete(listener);},
   dialogueSession:(state:NPCState)=>questDialogueSession(
     gameplayDialogueSession(runtime,state.definition.id,(actorId,_dialogueId,_choiceId)=>{
-      // Only committed native dialogue choices produce quest events.
-      if(questEventSequence>=1_000_000_000)return;
-      const changed=quests.consume({schemaVersion:1,eventId:'quest:dialogue:'+ ++questEventSequence,
-        type:'npc.talked',worldId:data.worldId,islandId:options.islandId??data.worldId,
-        gameMinute:Math.floor(runtime.state.time/runtime.climate.definition.dayLengthSeconds*1440),
-        sequence:questEventSequence,targetId:actorId,
+      recordQuestCommit('npc.talked',{targetId:actorId,
         ...(state.definition.routine?{source:state.definition.routine.role}:{})});
-      if(changed.length)for(const listener of listeners)listener();
     }),quests,state.definition.id,
     ()=>Math.floor(runtime.state.time/runtime.climate.definition.dayLengthSeconds*1440),
     claimQuest,()=>{for(const listener of listeners)listener();}
