@@ -17,10 +17,13 @@ try{
  await page.keyboard.press('KeyI');
  const bag=page.locator('.ui-panel[data-panel="inventory"]');
  await bag.getByRole('button',{name:/Flûte douce, quantité/}).click();
- await bag.getByRole('button',{name:'Équiper'}).click();
+ // Direct Play also equips the selected instrument.
  await bag.getByRole('button',{name:'Jouer'}).click();
  const panel=page.locator('.ui-panel[data-panel="instrument"]');
  await panel.waitFor({state:'visible'});
+ const hud=page.getByRole('button',{name:'Jouer de la musique (P)'});
+ assert.equal(await hud.isVisible(),true,'equipped instrument shows a music HUD shortcut');
+ assert.ok((await page.locator('.ui-tool').textContent())?.includes('Flûte douce'));
  assert.equal(await panel.locator('.lw-note-grid').count(),15);
  assert.equal(await panel.locator('select').count(),0,'no instrument picker in music panel');
  await page.keyboard.down('Digit1');await page.keyboard.down('Digit2');
@@ -32,8 +35,24 @@ try{
  assert.equal(await panel.locator('.lw-note-black').count(),10);
  await panel.getByRole('button',{name:'+1 octave'}).click();
  assert.ok(await panel.locator('[data-midi="72"]').count()>0,'octave increases by 12 semitones');
+ await page.keyboard.press('KeyP');
+ await panel.waitFor({state:'hidden'});
+ await page.waitForFunction(()=>window.littleWorldMetrics?.audio?.musicVoices===0);
+ await page.keyboard.press('KeyP');
+ await panel.waitFor({state:'visible'});
+ await page.keyboard.press('Escape');
+ await panel.waitFor({state:'hidden'});
+ await hud.click();
+ await panel.waitFor({state:'visible'});
+ await page.keyboard.press('Escape');
+ await page.keyboard.press('KeyI');
+ await bag.waitFor({state:'visible'});
+ await bag.getByRole('button',{name:/Ocarina, quantité/}).click();
+ await bag.getByRole('button',{name:'Jouer'}).click();
+ await panel.waitFor({state:'visible'});
+ assert.ok((await panel.locator('.lw-instrument-head').textContent())?.includes('Ocarina'));
  await page.keyboard.press('Escape');
  await page.waitForFunction(()=>window.littleWorldMetrics?.audio?.musicVoices===0);
  assert.deepEqual(errors,[]);
- console.log('OK: instruments equip, 15-note grid, live notes, piano, octave, cleanup');
+ console.log('OK: one-click bag Play/equip, HUD, P toggle, 15-note grid, live notes, piano, octave, cleanup');
 }finally{await browser.close();}
