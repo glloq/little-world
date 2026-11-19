@@ -21,6 +21,8 @@ export interface GameSaveV2 extends Omit<GameSaveV1,'schemaVersion'> {schemaVers
   /** Per-counter budgets, physical stock and applied transaction IDs. */markets?:Record<string,MarketStateV1>;
   /** Optional native QuestDirector state; old V1/V2 slots remain valid. */
   questsLocal?:Record<string,QuestInstanceV1>;
+  /** Stable counter for post-commit native quest events (replay-safe on reload). */
+  questEventSequence?:number;
   /** Last imported purchase acknowledged by this world's atomic inventory save. */
   cargoPurchaseRevision?:number;
   /** Optional hand slot; old V1/V2 saves continue to load without it. */equippedItemId?:string|null;
@@ -68,6 +70,9 @@ export function parseGameSave(value:unknown):GameSaveV2 {
       markets[shopId]=state;
     }
   }
+  if(v.questEventSequence!==undefined)
+    assert(Number.isSafeInteger(v.questEventSequence)&&finite(v.questEventSequence,0,1_000_000_000),
+      'Séquence événement quête invalide');
   const questsLocal:Record<string,QuestInstanceV1>={};
   if(v.questsLocal!==undefined){
     assert(record(v.questsLocal)&&Object.keys(v.questsLocal).length<=64,'Quêtes de sauvegarde invalides');
