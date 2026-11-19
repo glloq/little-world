@@ -6,9 +6,9 @@
  * No fluid simulation, render target, texture or per-crest Mesh. */
 import * as THREE from 'three';
 import {SURF_TICK_HZ,surfSwellCoefficients,type SurfWaveField,type SurfZone} from '../surf/wave-field.ts';
-import {barrelCrestAlong,barrelCrestPhase,barrelEnabled,barrelModulation,barrelPeel,
- barrelPeelParameters,barrelPhaseOffset,barrelProfile} from '../surf/surf-barrel.ts';
-import {inCameraView} from './surf-render-stats.ts';
+import {barrelCrestAlong,barrelCrestPhase,barrelEnabled,barrelModulation,barrelPeelInto,
+ barrelPeelParameters,barrelPhaseOffset,barrelProfile,type BarrelPeelSample} from '../surf/surf-barrel.ts';
+import {boxInCameraView} from './surf-render-stats.ts';
 
 const MAX_FRONTS=4;
 const ALONG_SEGMENTS=30;
@@ -140,16 +140,19 @@ export function createSurfBarrelView(parent:THREE.Object3D,
  parent.add(mesh);
  const stats:SurfBarrelStats={vertices:positions.length/3,triangles:indices.length/3,activeFronts:0,activeSections:0,
   uploadBytes:0,rebuilds:0,drawnTriangles:0,cacheNodes:cache?.nodes??0,maxFronts:MAX_FRONTS};
- // Static culling volume of the whole breaking band (zone rectangle × lip height).
- const bandBox=new THREE.Mesh(new THREE.BufferGeometry());
- {
+ // Static culling box of the breaking band only (band × zone width × lip height).
+ const bandBox=new THREE.Box3();
+ if(band){
   const top=zone.seaLevel+(2+1.65*zone.amplitude)*1.5+zone.amplitude,bottom=zone.seaLevel-zone.amplitude*1.5;
-  bandBox.geometry.boundingSphere=new THREE.Sphere(new THREE.Vector3((zone.minX+zone.maxX)/2,(top+bottom)/2,(zone.minZ+zone.maxZ)/2),
-   Math.hypot(zone.maxX-zone.minX,zone.maxZ-zone.minZ,top-bottom)/2);
-  bandBox.updateMatrixWorld(true);
+  const t=projectedBounds(zone,-zone.dirZ,zone.dirX),corner=new THREE.Vector3();
+  for(const along of [band.min,band.max])for(const across of [t.min,t.max])for(const y of [bottom,top])
+   bandBox.expandByPoint(corner.set(zone.dirX*along-zone.dirZ*across,y,zone.dirZ*along+zone.dirX*across));
+  bandBox.intersect(new THREE.Box3(new THREE.Vector3(zone.minX,bottom,zone.minZ),new THREE.Vector3(zone.maxX,top,zone.maxZ)));
  }
  let builtTick=-1,maxFronts=MAX_FRONTS;
  const cell={intensity:0,opening:0,envelope:0,breaking:0};
+ const probe:BarrelPeelSample={factor:1,state:'none',ahead:0,sign:1,speed:0},column:BarrelPeelSample={...probe};
+ const frontIndex=new Float64Array(MAX_FRONTS),frontDistance=new Float64Array(MAX_FRONTS);
  const box=new THREE.Box3(),point=new THREE.Vector3();
  const tangent=projectedBounds(zone,-zone.dirZ,zone.dirX);
  const shapeAt=(phase:number,breaking:number)=>{
@@ -166,22 +169,26 @@ export function createSurfBarrelView(parent:THREE.Object3D,
   const base=zone.speed*tick/SURF_TICK_HZ+zone.wavelength*barrelPhaseOffset(zone);
   const n0=Math.ceil((band!.min-base)/zone.wavelength);
   const n1=Math.floor((band!.max-base)/zone.wavelength);
-  const fronts:number[]=[];
-  for(let n=n0;n<=n1;n++)fronts.push(n);
-  fronts.sort((a,b)=>Math.abs(barrelCrestAlong(zone,tick,a)-focusAlong)-
-                      Math.abs(barrelCrestAlong(zone,tick,b)-focusAlong));
-  fronts.length=Math.min(fronts.length,maxFronts);
+  // Nearest crests to the focus, kept in a fixed scratch list (insertion, no allocation).
+  let frontCount=0;
+  for(let n=n0;n<=n1;n++){
+   const d=Math.abs(barrelCrestAlong(zone,tick,n)-focusAlong);
+   let i=Math.min(frontCount,maxFronts);
+   if(i===maxFronts&&d>=frontDistance[maxFronts-1])continue;
+   while(i>0&&frontDistance[i-1]>d){if(i<maxFronts){frontIndex[i]=frontIndex[i-1];frontDistance[i]=frontDistance[i-1];}i--;}
+   if(i<maxFronts){frontIndex[i]=n;frontDistance[i]=d;frontCount=Math.min(maxFronts,frontCount+1);}
+  }
   const fullWindow=Math.min(145,Math.max(40,Math.hypot(zone.maxX-zone.minX,zone.maxZ-zone.minZ)));
   box.makeEmpty();
   let written=0;
   stats.activeFronts=0;stats.activeSections=0;
-  for(const n of fronts){
-   const frontS=barrelCrestAlong(zone,tick,n);
+  for(let f=0;f<frontCount;f++){
+   const n=frontIndex[f],frontS=barrelCrestAlong(zone,tick,n);
    // Column window: whole visible crest (historical lip) or the nearest peeling section.
    let from:number,to:number;
    if(peel){
     const probeX=zone.dirX*frontS-zone.dirZ*focusAcross,probeZ=zone.dirZ*frontS+zone.dirX*focusAcross;
-    const p=barrelPeel(zone,probeX,probeZ,tick,n);
+    const p=barrelPeelInto(zone,probeX,probeZ,tick,n,probe);
     // Break point (ahead = 0) of the peel instance nearest to the focus, in across coordinates.
     const breakAcross=focusAcross-p.sign*p.ahead;
     const behind=breakAcross-p.sign*(peel.open+peel.collapse),front=breakAcross+p.sign*peel.shoulder;
@@ -198,7 +205,7 @@ export function createSurfBarrelView(parent:THREE.Object3D,
     const cx=zone.dirX*frontS-zone.dirZ*across,cz=zone.dirZ*frontS+zone.dirX*across;
     cache!.sample(frontS,across,cell);
     const intensity=cell.intensity;
-    const peelState=peel?barrelPeel(zone,cx,cz,tick,n):null;
+    const peelState=peel?barrelPeelInto(zone,cx,cz,tick,n,column):null;
     const pf=peelState?peelState.factor:smooth(Math.min(j,ALONG_SEGMENTS-j)/2.5);
     const m=barrelModulation(zone,cx,cz,tick);
     const height=(2+1.65*zone.amplitude)*intensity*m*pf;
@@ -261,7 +268,7 @@ export function createSurfBarrelView(parent:THREE.Object3D,
   const dx=Math.max(zone.minX-view.x,0,view.x-zone.maxX),dz=Math.max(zone.minZ-view.z,0,view.z-zone.maxZ);
   const distance=Math.hypot(dx,dz);
   // Breaking lips are drawn only around the shore and when the band can be on screen.
-  if(distance>280||(options.camera&&!inCameraView(options.camera,bandBox))){mesh.visible=false;builtTick=-1;return;}
+  if(distance>280||(options.camera&&!boxInCameraView(options.camera,bandBox))){mesh.visible=false;builtTick=-1;return;}
   if(builtTick<0||tick<builtTick||tick-builtTick>=cadence(distance))rebuild(tick,focus);
   // Continuous presentation: translate the last build with the swell (render alpha included).
   const renderTicks=Math.max(0,tick-1)+Math.max(0,Math.min(1,options.alpha??1));
@@ -272,5 +279,5 @@ export function createSurfBarrelView(parent:THREE.Object3D,
   setMaxFronts(count:number){maxFronts=Math.max(1,Math.min(MAX_FRONTS,Math.floor(count)));stats.maxFronts=maxFronts;builtTick=-1;},
   invalidate(next?:(x:number,z:number)=>number){if(next)ground=next;cache=band?createSurfBarrelCache(zone,ground,band):null;
    stats.cacheNodes=cache?.nodes??0;builtTick=-1;},
-  dispose(){mesh.removeFromParent();geometry.dispose();material.dispose();bandBox.geometry.dispose();}};
+  dispose(){mesh.removeFromParent();geometry.dispose();material.dispose();}};
 }

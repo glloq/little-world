@@ -44,8 +44,13 @@ const smooth01=(v:number)=>{const t=clamp(v,0,1);return t*t*(3-2*t);};
  * a rising shoulder ahead of it, a closing section and whitewater behind. Every crest starts
  * from a different deterministic point. Classic/gentle/long zones: always fully open. */
 export function barrelPeel(zone:SurfZone,x:number,z:number,tick:number,waveIndex:number):BarrelPeelSample{
+ return barrelPeelInto(zone,x,z,tick,waveIndex,{factor:1,state:'none',ahead:0,sign:1,speed:0});
+}
+/** Allocation-free variant for per-vertex presentation loops (writes into `out`). */
+export function barrelPeelInto(zone:SurfZone,x:number,z:number,tick:number,waveIndex:number,
+ out:BarrelPeelSample):BarrelPeelSample{
  const d=zoneData(zone),peel=d.peel;
- if(!peel)return {factor:1,state:'none',ahead:0,sign:1,speed:0};
+ if(!peel){out.factor=1;out.state='none';out.ahead=0;out.sign=1;out.speed=0;return out;}
  const across=-zone.dirZ*x+zone.dirX*z,period=peel.period;
  // Exact integer-tick modulo keeps long sessions precise and deterministic.
  const travelled=((peel.speed*tick)%(period*BARREL_TICK_HZ))/BARREL_TICK_HZ;
@@ -57,7 +62,8 @@ export function barrelPeel(zone:SurfZone,x:number,z:number,tick:number,waveIndex
  if(ahead>=0){factor=1-smooth01(ahead/peel.shoulder);state='shoulder';}
  else if(ahead>=-peel.open){factor=1;state='open';}
  else {factor=1-smooth01((-ahead-peel.open)/peel.collapse);state='collapse';}
- return {factor,state,ahead,sign:d.peelSign,speed:peel.speed};
+ out.factor=factor;out.state=state;out.ahead=ahead;out.sign=d.peelSign;out.speed=peel.speed;
+ return out;
 }
 export const barrelPeelParameters=(zone:SurfZone)=>zoneData(zone).peel;
 /** Presentation helper (fractional render ticks allowed): peel direction and the break-point

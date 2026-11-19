@@ -56,7 +56,9 @@ vFoamUV=vec2(sw_cycle*6.0,sw_across/uWavelength*6.0);
 `;
 const VERTEX_POSITION=`
 vec3 transformed=vec3(position);
-transformed.y=uSeaLevel+.02+uAmplitude*aEnvelope*sw_m*sw_f;
+// Dry vertices sink under the beach: the terrain depth test draws the shoreline, so the
+// fragment stage needs no discard (keeps early depth testing on real GPUs).
+transformed.y=aWet>.5?uSeaLevel+.02+uAmplitude*aEnvelope*sw_m*sw_f:uSeaLevel-.6;
 `;
 const FRAGMENT_HEADER=COMMON+`
 uniform vec3 uSea,uDeep,uShallow,uTrough,uCrestColor,uFaceColor,uFoamColor;
@@ -70,7 +72,6 @@ float sw_noise(vec2 p){
 }
 `;
 const FRAGMENT_COLOR=`
-if(vWet<.5)discard;
 float sw_depth=vShore.y,sw_break=vShore.x,sw_edge=vShore.z;
 vec3 sw_col=mix(uShallow,uDeep,smoothstep(0.0,1.0,sw_depth));
 sw_col=mix(sw_col,uTrough,(1.0-vCrest)*vEnv*.38);

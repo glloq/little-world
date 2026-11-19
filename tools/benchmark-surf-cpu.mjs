@@ -17,6 +17,7 @@ import {sampleSurfBarrel,stepSurfBarrel} from '../src/surf/surf-barrel.ts';
 import {stepSurf} from '../src/surf/surf-controller.ts';
 import {createSurfWaterView} from '../src/render/surf-water-view.ts';
 import {createSurfBarrelView} from '../src/render/surf-barrel-view.ts';
+import {createSurfWakeView} from '../src/render/surf-wake-view.ts';
 
 const args=process.argv.slice(2);
 const quick=args.includes('--quick');
@@ -103,6 +104,15 @@ function benchZone(label,zone,ground){
   tube={createMs:round(tubeCreateMs,3),update,stats:{...view.stats}};
   view.dispose();
  }
+ // Wake presentation for a carving rider (per frame at 60 Hz: two frames per tick).
+ const wake=createSurfWakeView(root),wr={position:{x:start[0],y:zone.seaLevel,z:start[1]},velocity:{x:0,y:0,z:8},
+  mode:'surf',surfStage:'ride',surfHeading:0};
+ const wakeFrame=timeEach('wakeFrame',quick?600:3000,i=>{
+  const tick=1+(i>>1);if(i%2===0){wr.surfHeading=Math.sin(tick/9)*.9;wr.position.x+=Math.sin(wr.surfHeading)*8/30;wr.position.z+=Math.cos(wr.surfHeading)*8/30;
+   if(i%600===0){wr.position.x=start[0];wr.position.z=start[1];}}
+  wake.update(wr,field,tick,wr.position,(i%2)*.5+.5);
+ });
+ wake.dispose();
  water.dispose();
  // Deterministic checksum: identical inputs must give identical sums on every machine.
  let checksum=0,referenceChecksum=0,maxDiff=0;
@@ -114,7 +124,7 @@ function benchZone(label,zone,ground){
  return {label,zone:{id:zone.id,amplitude:zone.amplitude,wavelength:zone.wavelength,speed:zone.speed,
    barrelStrength:zone.barrelStrength??0,areaM2:Math.round((zone.maxX-zone.minX)*(zone.maxZ-zone.minZ))},
   points:P,groundCallsPerSample:round(counted.c.n/P,2),groundCallsPerSampleV1:round(refCounted.c.n/P,2),
-  calls:rows,physics,water:{bakeMs:round(bakeMs,2),tiers},tube,
+  calls:rows,physics,water:{bakeMs:round(bakeMs,2),tiers},tube,wake:wakeFrame,
   determinism:{checksum:round(checksum,6),referenceChecksum:round(referenceChecksum,6),maxAbsDiffVsV1:maxDiff}};
 }
 const shelfZone={id:'surf:bench-shelf',minX:-90,maxX:90,minZ:-120,maxZ:60,dirX:0,dirZ:1,seaLevel:0,
@@ -131,7 +141,7 @@ try{
   scenarios.push(benchZone('surf-island '+zone.id,zone,env.height));
 }catch(e){islandError=String(e?.stack??e);}
 let commit='unknown';try{commit=execSync('git rev-parse --short HEAD').toString().trim();}catch{}
-const report={schemaVersion:1,kind:'surf-cpu-benchmark',commit,date:new Date().toISOString(),
+const report={schemaVersion:2,kind:'surf-cpu-benchmark',commit,date:new Date().toISOString(),
  node:process.version,cpu:cpus()[0]?.model??'unknown',cores:cpus().length,ramGiB:round(totalmem()/2**30,1),
  gcExposed:typeof global.gc==='function',quick,
  note:'Node/V8 CPU only. Not a browser frame time and never a GPU time.',
@@ -139,5 +149,6 @@ const report={schemaVersion:1,kind:'surf-cpu-benchmark',commit,date:new Date().t
 if(out)writeFileSync(out,JSON.stringify(report,null,1)+'\n');
 const brief=scenarios.map(s=>({scenario:s.label,groundPerSample:s.groundCallsPerSample,groundPerSampleV1:s.groundCallsPerSampleV1,
  ...Object.fromEntries(s.calls.map(c=>[c.name+'.p50Us',c.p50Us])),
- physicsP95Ms:s.physics.p95Ms,tubeP95Ms:s.tube?.update.p95Ms??null,waterBakeMs:s.water.bakeMs,maxDiffVsV1:s.determinism.maxAbsDiffVsV1}));
+ physicsP95Ms:s.physics.p95Ms,tubeP95Ms:s.tube?.update.p95Ms??null,tubeScavenges:s.tube?.update.scavenges??null,
+ wakeP95Ms:s.wake?.p95Ms??null,waterBakeMs:s.water.bakeMs,maxDiffVsV1:s.determinism.maxAbsDiffVsV1}));
 console.log(JSON.stringify({commit,cpu:report.cpu,islandError,brief},null,1));

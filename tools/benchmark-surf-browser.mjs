@@ -17,6 +17,8 @@ const browser=await chromium.launch({headless:true,
 let report=null,page=null;
 try{
  const context=await browser.newContext({viewport:{width:1280,height:720}});
+ // Optional quality preference (low | medium | high), stored like the in-game selector does.
+ if(process.env.SURF_BENCH_QUALITY)await context.addInitScript(q=>{try{localStorage.setItem('little-world-quality',q);}catch{}},process.env.SURF_BENCH_QUALITY);
  page=await context.newPage();
  const errors=[];page.on('pageerror',e=>errors.push(String(e)));
  page.on('console',m=>{if(m.type()==='error'&&/shader|webgl|program/i.test(m.text()))errors.push(m.text().slice(0,400));});

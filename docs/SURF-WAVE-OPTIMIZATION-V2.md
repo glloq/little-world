@@ -1,7 +1,7 @@
 # SURF-WAVE-OPTIMIZATION-V2 — refonte graphique et optimisation du moteur de vagues
 
 **Branche :** `feat/surf-wave-render-optimization-v2` (depuis `main@1e87184`).
-**Statut global :** IN_PROGRESS. Aucune qualification sur GPU intégré réel (voir §6).
+**Statut global :** IMPLEMENTED + TESTED (Node, Chromium/SwiftShader). **Qualification GPU intégré : NOT_VERIFIED** (voir §6).
 Les mesures de ce document sont **CPU Node/V8** ou **Chromium + SwiftShader** (rendu logiciel) :
 elles servent de régression et de comparaison entre commits, **jamais** de preuve de FPS sur iGPU.
 
@@ -71,13 +71,13 @@ complète existe via `EXT_disjoint_timer_query_webgl2`, absent sous SwiftShader)
 | --- | --- | --- |
 | 1 — Instrumentation | DONE | `?surfPerf=1` (désactivé par défaut), canaux CPU séparés, draw calls/sommets/triangles/upload/zones/LOD, benchmark CPU Node + navigateur JSON v2, référence enregistrée |
 | 2 — WaveField CPU | DONE | hauteur/vitesse verticale/crête/déferlement/waveId bit-identiques à V1 ; gradient analytique ; 1 terrain en eau profonde ; `sample()` 3,4–4,7× plus rapide |
-| 3 — LOD | DONE (eau) / culling tube → phase 5 | hystérésis ±18 %, distance caméra 3D, grilles imbriquées, quads secs retirés ; physique indépendante du LOD |
+| 3 — LOD | DONE | hystérésis ±18 %, distance caméra 3D, grilles imbriquées, quads secs retirés ; physique indépendante du LOD |
 | 4 — Forme des vagues | DONE | 7 styles (`classic` = V1 exact), séries + pics le long de la crête, shoaling ; CPU = GPU (2e-5) |
 | 5 — Tubes | DONE | peel latéral déterministe (opt-in par style), cycle formation → ouverture → fermeture, lèvre éclairée translucide, gameplay tube conservé |
 | 6 — Mousse/sillage | DONE | écume de crête/après déferlement/rivage analytique, liée au peel ; sillage 1 draw call |
-| 7 — CPU/GPU | TODO | uploads/draws bornés, 0 allocation récurrente évitable |
-| 8 — Intégration | TODO | raccords NearSea/rivage, Studio et anciennes cartes |
-| 9 — Profils & validation | TODO | Low/Medium/HQ via `PresentationBudget`, captures, PR |
+| 7 — CPU/GPU | DONE | 0 GC mineur sur la reconstruction du tube, upload/frame 16 → 4 Kio, cadences séparées |
+| 8 — Intégration | DONE | bord = couleur NearSea, rivage par test de profondeur, `style` Studio/compilation/archives, 3 zones |
+| 9 — Profils & validation | DONE (iGPU NOT_VERIFIED) | Low/Medium/HQ dérivés de la qualité + `PresentationBudget`, captures, tests, PR |
 
 ## 6. Qualification matérielle
 
@@ -249,3 +249,131 @@ météo forcée « soleil » et horloge en pause, erreurs de compilation GLSL d�
 `littleWorldDebug.surfCamera / surfRenderTick / surfOpenTubeTick / surfPlace / surfWaterHeight`
 (mode métriques uniquement, jamais la physique). Les tests navigateur surf signalent désormais aussi
 les erreurs de shader de la console. `test:surf` suit l'UX actuelle (dépôt puis embarquement).
+
+## 13. Phase 7 — Mises à jour CPU/GPU
+
+- **Fréquences séparées** : physique 30 Hz inchangée ; eau = uniformes seulement (0 upload) ;
+  lèvre reconstruite à 30 / 15 / 7,5 Hz selon la distance caméra et **translatée sur GPU** entre deux
+  reconstructions (interpolation de rendu comprise) ; sillage : hauteurs d'eau recalculées une fois
+  par tick, positions par frame ; rien n'est reconstruit hors champ.
+- **Buffers** : `Float32Array` alloués une fois ; `addUpdateRange` + `drawRange` limités aux crêtes
+  actives ; aucun `BufferGeometry`/matériau recréé ; un seul programme d'eau partagé par toutes les zones
+  (`customProgramCacheKey`).
+- **Allocations** : `barrelPeelInto` (sortie fournie), liste de crêtes triée par insertion dans des
+  tableaux typés, échantillons de bathymétrie mis en cache. Benchmark : **0 GC mineur** pendant 1 500
+  reconstructions de lèvre (`tubeScavenges`), contre des allocations par colonne avant.
+- `?surfPerf=1` reste le seul surcoût de mesure, désactivé par défaut.
+
+## 14. Phase 8 — Intégration NearSea, rivages, Studio
+
+- **Couleur** : le bord de zone prend la couleur exacte de `NearSea` sous le même éclairage Lambert ;
+  fondu visuel 2,5 × `edgeFade` ; la hauteur au bord vaut `seaLevel + 0,02` comme `NearSea`, troué sur
+  le même rectangle ⇒ ni trou, ni chevauchement, ni z-fighting.
+- **Rivage** : les sommets secs s'enfoncent sous la plage (plus de `discard`, test de profondeur
+  anticipé conservé sur GPU réel) ; la lèvre disparaît avant le sable (contrat existant) ; les quais et
+  falaises restent hors des zones (validation Studio/planificateur existante).
+- **Studio / données** : `SurfZone.style` optionnel ; anciennes zones, archives V3, mondes compilés et
+  sauvegardes inchangés (tests `surf-compiled`, `surf-compat`, `surf-island-source`) ; style invalide
+  refusé avant compilation. Aucun paramètre graphique obligatoire n'a été ajouté.
+- **Plusieurs zones** : île Surf A/B/C (3 zones, styles différents) testée en navigateur ; seule la zone
+  sous le joueur est simulée ; LOD par zone selon la caméra ; la lèvre n'est mise à jour que pour les
+  zones dont la bande de déferlement est dans le champ (`tests/surf-quality.test.mjs`).
+
+## 15. Phase 9 — Profils de qualité (`src/render/surf-quality.ts`)
+
+Aucune configuration parallèle : le profil se **déduit** de la qualité choisie par le joueur
+(`low/medium/high`) et du niveau adaptatif de `PresentationBudget` (chaque niveau abaisse d'un cran).
+
+| Profil | Écume | Crêtes de tube dessinées | Sillage | Tier d'eau minimal (zones non surfées) |
+| --- | --- | --- | --- | --- |
+| Low | bande de crête seule | 1 (la plus proche) | trace courte, sans gouttes | 1 |
+| Medium | bruit + traînée de déferlement | 2 | traces + gouttes | 0 |
+| HQ | 2 octaves de bruit | 4 | traces longues + plus de gouttes | 0 |
+
+Physique et gameplay identiques dans tous les profils : test `changing every presentation setting never
+changes the simulated ride` (trajectoire sérialisée identique sur 240 ticks avec tube actif).
+
+## 16. Résultats et mesures
+
+### CPU (Node 22, Xeon 2,1 GHz — `docs/perf/surf-cpu-baseline-v1.json` → `surf-cpu-phase7.json`)
+
+| Mesure | V1 (main) | V2 | Cible |
+| --- | --- | --- | --- |
+| `sample()` µs p50 (île A/B/C) | 1,7–3,2 | 0,46–0,74 | — |
+| Terrain / `sample()` | 6 | 1,8–2,1 | — |
+| Terrain / tick de glisse (eau profonde) | 12 | 1 | — |
+| Tick physique surf p95 | ≤ 0,010 ms | ≤ 0,006 ms | ≤ 0,5 ms ✔ |
+| Reconstruction lèvre p95 (à chaque tick) | 0,10–0,19 ms | 0,13–0,16 ms | ≤ 0,5 ms ✔ |
+| GC mineurs pendant la reconstruction | non mesuré | 0 | 0 ✔ |
+| Sillage par frame p95 | — | 0,03 ms | — |
+| Cuisson des 3 LOD (chargement, île A/B/C) | 11 / 10 / 9 ms | 9 / 4 / 5 ms | — |
+
+La reconstruction de la lèvre coûte autant qu'avant **par reconstruction** (elle fait plus : peel,
+cycle de vie) mais elle a lieu 1 à 4 fois moins souvent hors du premier plan et jamais hors champ.
+
+### Navigateur — Chromium + **SwiftShader** (rendu logiciel, île Surf plage B, même parcours)
+
+| Mesure par frame | V1 (main) | V2 |
+| --- | --- | --- |
+| Échantillons terrain surf | 91,8 | 29,1 |
+| CPU mise à jour de la lèvre (moyenne) | 0,28 ms | 0,13 ms |
+| Upload GPU surf | 16 Kio | 4 Kio |
+| Triangles surf visibles | 15 974 | 7 874 |
+| Draw calls surf (max) | 4 | 5 (sillage inclus) |
+| FPS présentés (A/B même session, 3 passes V2) | 10,6–11,0 | 10,1–10,7 |
+
+**Interprétation honnête** : sous SwiftShader, l'écart de FPS est dans le bruit de mesure (± 5–8 %
+entre deux passes identiques) ; le nouveau shader d'eau (éclairage + écume) coûte davantage par pixel,
+compensé par moins de triangles et d'uploads. Aucune conclusion sur un vrai GPU n'est possible ici.
+Fichiers : `docs/perf/surf-browser-baseline-v1-swiftshader.json`, `docs/perf/surf-browser-v2-swiftshader.json`.
+
+### Qualification matérielle
+
+`NOT_VERIFIED`. Procédure à exécuter sur un PC cible 4–8 Go avec iGPU Intel/AMD :
+
+```bash
+SURF_NATIVE_GPU=1 SURF_BENCH_QUALITY=medium npm run benchmark:surf
+```
+
+Répéter avec `low` et `high`, 3 passes chacune, et comparer à `main`.
+
+## 17. Tests
+
+| Commande | Résultat (dernière exécution) |
+| --- | --- |
+| `npm test` | 977 / 977 |
+| `npm run typecheck` | OK |
+| `npm run build` | OK |
+| `npm run benchmark:surf-cpu` | OK (rapport JSON) |
+| `npm run test:surf` | 18 vérifications OK (flux dépôt → embarquement aligné sur l'UX actuelle) |
+| `npm run test:surf-island` | OK (A/B/C, tube jouable en B) |
+| `npm run test:swim`, `test:boats`, `test:water` | OK |
+| `npm run test:gameplay` (fixtures préparées) | OK |
+| `npm run test:motion` | **échec préexistant** identique sur `main` (`'air' !== 'roll'`, roulade) |
+| `npm run benchmark:surf` | OK (SwiftShader, non qualifiant) |
+
+Nouveaux tests : `surf-perf`, `surf-wave-field-v2` (références V1 gelées), `surf-peel`, `surf-wake`,
+`surf-quality`, extensions de `surf-render` (LOD, imbrication, quads secs, GLSL ↔ CPU pour 3 styles,
+écume ↔ peel) et `surf-compiled` (style).
+
+## 18. Captures (`docs/images/surf-v2/`)
+
+- Avant / après, même parcours de benchmark : `before-main-board-*.jpg` / `after-board-*.jpg`.
+- Vues fixes (tick figé, météo forcée) : `after-01…10-*.jpg` ; ancienne lèvre (mur uniforme) :
+  `v1-tube-wall-before.jpg`.
+- Profils : `quality-low|medium|hq-overview.jpg`.
+- Reproduire : `SURF_VIEW_QUALITY=high SURF_VIEW_QUERY='&renderTier=0' node tools/capture-surf-views.mjs <dossier> <tag>`.
+
+## 19. Limitations et risques
+
+- Temps GPU **par mesh surf** non isolé ; aucune mesure sur iGPU réel.
+- Le maillage d'eau reste une interpolation linéaire entre sommets : écart visuel de quelques cm avec
+  la hauteur physique continue (inchangé depuis V1, plus fin en zone A).
+- Le peel modifie volontairement le gameplay des zones stylées (`fast/powerful/tubular/shorebreak`),
+  dont les plages B et C de l'île Surf : il faut désormais suivre le déferlement. Les zones sans style
+  gardent exactement le comportement historique.
+- Le modèle physique 2 change le gradient (≤ 0,009 à l'intérieur des zones, ≤ 0,12 sur les
+  diagonales des coins) : les trajectoires divergent de quelques cm sur 10 s par rapport à `main`.
+- La lèvre ne dessine que la section de peel la plus proche du joueur sur chaque crête ; les sections
+  lointaines restent signalées par l'écume du shader.
+- Les crochets de capture `littleWorldDebug.surf*` n'existent qu'avec `?metrics=1`.

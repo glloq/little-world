@@ -23,3 +23,9 @@ export function surfDrawStats(camera:THREE.Camera,meshes:readonly (THREE.Mesh|nu
  }
  return out;
 }
+/** Axis-aligned box against the camera frustum (tighter than a sphere containing the camera). */
+export function boxInCameraView(camera:THREE.Camera,box:THREE.Box3):boolean{
+ matrix.multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse);
+ frustum.setFromProjectionMatrix(matrix);
+ return frustum.intersectsBox(box);
+}

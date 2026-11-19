@@ -13,7 +13,10 @@ const browser=await chromium.launch({headless:true,
  args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
 const errors=[],shots=[];
 try{
- const page=await (await browser.newContext({viewport:{width:1280,height:720}})).newPage();
+ const context=await browser.newContext({viewport:{width:1280,height:720}});
+ // Optional quality preference (low | medium | high), stored like the in-game selector does.
+ if(process.env.SURF_VIEW_QUALITY)await context.addInitScript(q=>{try{localStorage.setItem('little-world-quality',q);}catch{}},process.env.SURF_VIEW_QUALITY);
+ const page=await context.newPage();
  page.on('pageerror',e=>errors.push(String(e)));
  // WebGL shader compile/link errors are console errors, not page errors.
  page.on('console',m=>{if(m.type()==='error'&&/shader|webgl|program/i.test(m.text()))errors.push(m.text().slice(0,400));});
@@ -47,7 +50,8 @@ try{
   await settle(8);
   const file=outDir+'/'+tag+'-'+name+'.png';
   await page.screenshot({path:file});
-  const m=await page.evaluate(()=>({surf:window.littleWorldMetrics.surfPerf?.gauges,calls:window.littleWorldMetrics.calls}));
+  const m=await page.evaluate(()=>({surf:window.littleWorldMetrics.surfPerf?.gauges,calls:window.littleWorldMetrics.calls,
+   quality:window.littleWorldMetrics.surfQuality}));
   shots.push({name,file,tick:tick??null,...m});
  };
  const t0=await page.evaluate(()=>window.littleWorldDebug.surfTick());
@@ -75,6 +79,6 @@ try{
  await shot('07-nearsea-transition',at({x:zone.minX,z:zone.minZ},-60,-60,60),at(center,0,0,0),crestTick);
  await shot('08-low-angle-sets',eyeAt(b,-70,-3,1.6),at(b,40,0,0),crestTick-30);
  writeFileSync(outDir+'/'+tag+'-views.json',JSON.stringify({tag,beach:beach.name,zone,breakPoint:brk,crestTick,open,errors,shots},null,1)+'\n');
- console.log(JSON.stringify({tag,shots:shots.map(s=>({name:s.name,drawCalls:s.surf?.drawCalls,tri:s.surf?.triangles})),errors}));
+ console.log(JSON.stringify({tag,shots:shots.map(s=>({name:s.name,q:s.quality,drawCalls:s.surf?.drawCalls,tri:s.surf?.triangles})),errors}));
 }finally{await browser.close();}
 if(errors.length){console.error('SURF VIEW ERRORS: '+errors.length);process.exitCode=1;}

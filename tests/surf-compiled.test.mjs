@@ -43,3 +43,17 @@ test('old projects remain valid; unsafe surf definitions reject before compile',
  const unsafeBarrel=build();unsafeBarrel.libraries.surfZones[zone.id].barrelStrength=2;
  assert.throws(()=>parseProject(unsafeBarrel),/Zone de surf invalide/);
 });
+test('optional swell style survives authoring, archive, compilation and playable load',async()=>{
+ // Fresh literal: earlier tests mutate the shared fixture object.
+ const clean={id:'surf:bay',minX:-120,maxX:120,minZ:-120,maxZ:120,dirX:0,dirZ:1,
+  seaLevel:0,amplitude:1.2,wavelength:32,speed:6.2,seed:42,shoreFadeDepth:3,edgeFade:12,barrelStrength:.85};
+ const styled=build();styled.libraries.surfZones[zone.id]={...clean,style:'tubular'};styled.libraries.surfFeatures={};
+ const project=parseProject(styled);
+ assert.equal(project.libraries.surfZones[zone.id].style,'tubular');
+ const archived=readProjectArchive(writeProjectArchive(project));
+ const compiled=await compileProject(archived,{resolveAsset:resolver});
+ const bundle=await openCompiledWorld('http://localhost/surf-fixture/manifest.json',fetcher(compiled.files));
+ assert.deepEqual(playableFromCompiled(bundle).surfZones,[{...clean,style:'tubular'}]);
+ const invalid=build();invalid.libraries.surfZones[zone.id]={...clean,style:'tsunami'};invalid.libraries.surfFeatures={};
+ assert.throws(()=>parseProject(invalid),/Zone de surf invalide/);
+});

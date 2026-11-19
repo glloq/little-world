@@ -1,0 +1,495 @@
+{
+ "schemaVersion": 2,
+ "kind": "surf-cpu-benchmark",
+ "commit": "4bb84ac",
+ "date": "2026-11-19T20:46:25.670Z",
+ "node": "v22.23.5",
+ "cpu": "Intel(R) Xeon(R) Processor @ 2.10GHz",
+ "cores": 4,
+ "ramGiB": 15.7,
+ "gcExposed": true,
+ "quick": false,
+ "note": "Node/V8 CPU only. Not a browser frame time and never a GPU time.",
+ "islandError": null,
+ "scenarios": [
+  {
+   "label": "analytic-shelf",
+   "zone": {
+    "id": "surf:bench-shelf",
+    "amplitude": 1.45,
+    "wavelength": 36,
+    "speed": 6.3,
+    "barrelStrength": 1,
+    "areaM2": 32400
+   },
+   "points": 512,
+   "groundCallsPerSample": 2.37,
+   "groundCallsPerSampleV1": 5.99,
+   "calls": [
+    {
+     "name": "sample",
+     "calls": 60000,
+     "p50Us": 0.205,
+     "p95Us": 0.427,
+     "scavengesPer100k": 0,
+     "sink": 1
+    },
+    {
+     "name": "sample.v1-reference",
+     "calls": 60000,
+     "p50Us": 0.667,
+     "p95Us": 1.004,
+     "scavengesPer100k": 0,
+     "sink": 1
+    },
+    {
+     "name": "height",
+     "calls": 60000,
+     "p50Us": 0.124,
+     "p95Us": 0.418,
+     "scavengesPer100k": 0,
+     "sink": 1
+    },
+    {
+     "name": "height.v1-reference",
+     "calls": 60000,
+     "p50Us": 0.11,
+     "p95Us": 0.179,
+     "scavengesPer100k": 0,
+     "sink": 1
+    },
+    {
+     "name": "ground",
+     "calls": 60000,
+     "p50Us": 0.016,
+     "p95Us": 0.018,
+     "scavengesPer100k": 0,
+     "sink": 1
+    },
+    {
+     "name": "sampleSurfBarrel",
+     "calls": 60000,
+     "p50Us": 0.08,
+     "p95Us": 0.147,
+     "scavengesPer100k": 0,
+     "sink": 1
+    }
+   ],
+   "physics": {
+    "name": "physicsTick(stepSurf+stepSurfBarrel)",
+    "iterations": 3000,
+    "p50Ms": 0.0029,
+    "p95Ms": 0.0043,
+    "maxMs": 0.7051,
+    "scavenges": 0
+   },
+   "water": {
+    "bakeMs": 9.91,
+    "tiers": [
+     {
+      "tier": 0,
+      "vertices": 5329,
+      "triangles": 7454
+     },
+     {
+      "tier": 1,
+      "vertices": 1369,
+      "triangles": 1882
+     },
+     {
+      "tier": 2,
+      "vertices": 361,
+      "triangles": 484
+     }
+    ]
+   },
+   "tube": {
+    "createMs": 5.045,
+    "update": {
+     "name": "tubeUpdate",
+     "iterations": 1500,
+     "p50Ms": 0.0866,
+     "p95Ms": 0.1262,
+     "maxMs": 1.5573,
+     "scavenges": 0
+    },
+    "stats": {
+     "vertices": 1364,
+     "triangles": 2400,
+     "activeFronts": 2,
+     "activeSections": 58,
+     "uploadBytes": 8184,
+     "rebuilds": 1500,
+     "drawnTriangles": 1200,
+     "cacheNodes": 7098,
+     "maxFronts": 4
+    }
+   },
+   "wake": {
+    "name": "wakeFrame",
+    "iterations": 3000,
+    "p50Ms": 0.004,
+    "p95Ms": 0.033,
+    "maxMs": 0.7967,
+    "scavenges": 0
+   },
+   "determinism": {
+    "checksum": -1.408521,
+    "referenceChecksum": -1.419294,
+    "maxAbsDiffVsV1": 0.006608091549623385
+   }
+  },
+  {
+   "label": "surf-island surf:island-a-42811",
+   "zone": {
+    "id": "surf:island-a-42811",
+    "amplitude": 0.65,
+    "wavelength": 25,
+    "speed": 4.5,
+    "barrelStrength": 0,
+    "areaM2": 19404
+   },
+   "points": 512,
+   "groundCallsPerSample": 2.05,
+   "groundCallsPerSampleV1": 5.99,
+   "calls": [
+    {
+     "name": "sample",
+     "calls": 60000,
+     "p50Us": 0.552,
+     "p95Us": 0.73,
+     "scavengesPer100k": 0,
+     "sink": 1
+    },
+    {
+     "name": "sample.v1-reference",
+     "calls": 60000,
+     "p50Us": 2.177,
+     "p95Us": 2.781,
+     "scavengesPer100k": 0,
+     "sink": 1
+    },
+    {
+     "name": "height",
+     "calls": 60000,
+     "p50Us": 0.332,
+     "p95Us": 0.515,
+     "scavengesPer100k": 0,
+     "sink": 1
+    },
+    {
+     "name": "height.v1-reference",
+     "calls": 60000,
+     "p50Us": 0.209,
+     "p95Us": 0.414,
+     "scavengesPer100k": 0,
+     "sink": 1
+    },
+    {
+     "name": "ground",
+     "calls": 60000,
+     "p50Us": 0.119,
+     "p95Us": 0.205,
+     "scavengesPer100k": 0,
+     "sink": 1
+    }
+   ],
+   "physics": {
+    "name": "physicsTick(stepSurf+stepSurfBarrel)",
+    "iterations": 3000,
+    "p50Ms": 0.002,
+    "p95Ms": 0.0026,
+    "maxMs": 0.4221,
+    "scavenges": 0
+   },
+   "water": {
+    "bakeMs": 12.71,
+    "tiers": [
+     {
+      "tier": 0,
+      "vertices": 6441,
+      "triangles": 12544
+     },
+     {
+      "tier": 1,
+      "vertices": 1653,
+      "triangles": 3136
+     },
+     {
+      "tier": 2,
+      "vertices": 435,
+      "triangles": 784
+     }
+    ]
+   },
+   "tube": null,
+   "wake": {
+    "name": "wakeFrame",
+    "iterations": 3000,
+    "p50Ms": 0.0023,
+    "p95Ms": 0.0284,
+    "maxMs": 0.3068,
+    "scavenges": 0
+   },
+   "determinism": {
+    "checksum": -30.600639,
+    "referenceChecksum": -33.599319,
+    "maxAbsDiffVsV1": 0.17969127525035689
+   }
+  },
+  {
+   "label": "surf-island surf:island-b-42811",
+   "zone": {
+    "id": "surf:island-b-42811",
+    "amplitude": 1.45,
+    "wavelength": 36,
+    "speed": 6.3,
+    "barrelStrength": 1,
+    "areaM2": 19404
+   },
+   "points": 512,
+   "groundCallsPerSample": 2.31,
+   "groundCallsPerSampleV1": 5.99,
+   "calls": [
+    {
+     "name": "sample",
+     "calls": 60000,
+     "p50Us": 0.736,
+     "p95Us": 1.07,
+     "scavengesPer100k": 0,
+     "sink": 1
+    },
+    {
+     "name": "sample.v1-reference",
+     "calls": 60000,
+     "p50Us": 2.188,
+     "p95Us": 2.902,
+     "scavengesPer100k": 0,
+     "sink": 1
+    },
+    {
+     "name": "height",
+     "calls": 60000,
+     "p50Us": 0.261,
+     "p95Us": 0.576,
+     "scavengesPer100k": 0,
+     "sink": 1
+    },
+    {
+     "name": "height.v1-reference",
+     "calls": 60000,
+     "p50Us": 0.177,
+     "p95Us": 0.286,
+     "scavengesPer100k": 0,
+     "sink": 1
+    },
+    {
+     "name": "ground",
+     "calls": 60000,
+     "p50Us": 0.103,
+     "p95Us": 0.171,
+     "scavengesPer100k": 0,
+     "sink": 1
+    },
+    {
+     "name": "sampleSurfBarrel",
+     "calls": 60000,
+     "p50Us": 0.164,
+     "p95Us": 0.598,
+     "scavengesPer100k": 0,
+     "sink": 1
+    }
+   ],
+   "physics": {
+    "name": "physicsTick(stepSurf+stepSurfBarrel)",
+    "iterations": 3000,
+    "p50Ms": 0.0032,
+    "p95Ms": 0.0043,
+    "maxMs": 0.4168,
+    "scavenges": 0
+   },
+   "water": {
+    "bakeMs": 6.77,
+    "tiers": [
+     {
+      "tier": 0,
+      "vertices": 3321,
+      "triangles": 6400
+     },
+     {
+      "tier": 1,
+      "vertices": 861,
+      "triangles": 1600
+     },
+     {
+      "tier": 2,
+      "vertices": 231,
+      "triangles": 400
+     }
+    ]
+   },
+   "tube": {
+    "createMs": 6.84,
+    "update": {
+     "name": "tubeUpdate",
+     "iterations": 1500,
+     "p50Ms": 0.1004,
+     "p95Ms": 0.1647,
+     "maxMs": 0.8992,
+     "scavenges": 0
+    },
+    "stats": {
+     "vertices": 1364,
+     "triangles": 2400,
+     "activeFronts": 2,
+     "activeSections": 51,
+     "uploadBytes": 8184,
+     "rebuilds": 1500,
+     "drawnTriangles": 1200,
+     "cacheNodes": 3700,
+     "maxFronts": 4
+    }
+   },
+   "wake": {
+    "name": "wakeFrame",
+    "iterations": 3000,
+    "p50Ms": 0.0066,
+    "p95Ms": 0.028,
+    "maxMs": 0.8875,
+    "scavenges": 0
+   },
+   "determinism": {
+    "checksum": -42.108018,
+    "referenceChecksum": -26.989577,
+    "maxAbsDiffVsV1": 0.6153180589110296
+   }
+  },
+  {
+   "label": "surf-island surf:island-c-42811",
+   "zone": {
+    "id": "surf:island-c-42811",
+    "amplitude": 1.65,
+    "wavelength": 29,
+    "speed": 8,
+    "barrelStrength": 0.6,
+    "areaM2": 19404
+   },
+   "points": 512,
+   "groundCallsPerSample": 2.32,
+   "groundCallsPerSampleV1": 5.98,
+   "calls": [
+    {
+     "name": "sample",
+     "calls": 60000,
+     "p50Us": 0.6,
+     "p95Us": 2.436,
+     "scavengesPer100k": 0,
+     "sink": 1
+    },
+    {
+     "name": "sample.v1-reference",
+     "calls": 60000,
+     "p50Us": 1.831,
+     "p95Us": 2.895,
+     "scavengesPer100k": 0,
+     "sink": 1
+    },
+    {
+     "name": "height",
+     "calls": 60000,
+     "p50Us": 0.331,
+     "p95Us": 0.454,
+     "scavengesPer100k": 0,
+     "sink": 1
+    },
+    {
+     "name": "height.v1-reference",
+     "calls": 60000,
+     "p50Us": 0.213,
+     "p95Us": 0.323,
+     "scavengesPer100k": 0,
+     "sink": 1
+    },
+    {
+     "name": "ground",
+     "calls": 60000,
+     "p50Us": 0.127,
+     "p95Us": 0.171,
+     "scavengesPer100k": 0,
+     "sink": 1
+    },
+    {
+     "name": "sampleSurfBarrel",
+     "calls": 60000,
+     "p50Us": 0.185,
+     "p95Us": 0.303,
+     "scavengesPer100k": 0,
+     "sink": 1
+    }
+   ],
+   "physics": {
+    "name": "physicsTick(stepSurf+stepSurfBarrel)",
+    "iterations": 3000,
+    "p50Ms": 0.0043,
+    "p95Ms": 0.0054,
+    "maxMs": 0.1992,
+    "scavenges": 0
+   },
+   "water": {
+    "bakeMs": 7.69,
+    "tiers": [
+     {
+      "tier": 0,
+      "vertices": 4753,
+      "triangles": 9216
+     },
+     {
+      "tier": 1,
+      "vertices": 1225,
+      "triangles": 2304
+     },
+     {
+      "tier": 2,
+      "vertices": 325,
+      "triangles": 576
+     }
+    ]
+   },
+   "tube": {
+    "createMs": 4.171,
+    "update": {
+     "name": "tubeUpdate",
+     "iterations": 1500,
+     "p50Ms": 0.1008,
+     "p95Ms": 0.1561,
+     "maxMs": 1.0625,
+     "scavenges": 0
+    },
+    "stats": {
+     "vertices": 1364,
+     "triangles": 2400,
+     "activeFronts": 2,
+     "activeSections": 53,
+     "uploadBytes": 8184,
+     "rebuilds": 1500,
+     "drawnTriangles": 1200,
+     "cacheNodes": 3400,
+     "maxFronts": 4
+    }
+   },
+   "wake": {
+    "name": "wakeFrame",
+    "iterations": 3000,
+    "p50Ms": 0.0082,
+    "p95Ms": 0.0334,
+    "maxMs": 0.2886,
+    "scavenges": 0
+   },
+   "determinism": {
+    "checksum": -29.015618,
+    "referenceChecksum": -38.034325,
+    "maxAbsDiffVsV1": 0.6188748237298773
+   }
+  }
+ ]
+}

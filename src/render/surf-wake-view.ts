@@ -38,13 +38,15 @@ export function createSurfWakeView(parent:THREE.Object3D){
  parent.add(mesh);
  // History ring (fixed typed arrays): x, z, intensity, tick.
  const hx=new Float64Array(SAMPLES),hz=new Float64Array(SAMPLES),hi=new Float32Array(SAMPLES),ht=new Float64Array(SAMPLES);
+ // Water height per history sample, refreshed once per simulation tick (not per frame).
+ const hy=new Float32Array(SAMPLES);let heightsTick=-1,liveY=0;
  let head=0,count=0,lastTick=-1,detail=1,lastHeading=0;
  // Droplets: spawn point, velocity, birth time (seconds of presentation).
  const dp=new Float32Array(DROPS*3),dv=new Float32Array(DROPS*3),db=new Float64Array(DROPS).fill(-1e9);
  let nextDrop=0;
  const stats:SurfWakeStats={activeSamples:0,activeDrops:0,vertices:RAIL_VERTICES+DROP_VERTICES,drawCalls:0,detail};
  const foam=[.93,.98,.97];
- function clear(){count=0;stats.activeSamples=0;stats.activeDrops=0;db.fill(-1e9);mesh.visible=false;stats.drawCalls=0;}
+ function clear(){count=0;heightsTick=-1;stats.activeSamples=0;stats.activeDrops=0;db.fill(-1e9);mesh.visible=false;stats.drawCalls=0;}
  function setDetail(level:0|1|2){detail=level;stats.detail=level;if(level===0)db.fill(-1e9);}
  function update(actor:SurfWakeActor,field:SurfWaveField|null,tick:number,render:{x:number;y:number;z:number},alpha=1){
   const riding=!!field&&actor.mode==='surf'&&!actor.surfAirborne;
@@ -72,6 +74,11 @@ export function createSurfWakeView(parent:THREE.Object3D){
    lastHeading=heading;
   }
   lastTick=tick;
+  if(heightsTick!==tick){
+   heightsTick=tick;
+   for(let i=1;i<=count;i++){const k=(head-i+SAMPLES)%SAMPLES;hy[k]=field!.height(hx[k],hz[k],tick)??field!.zone.seaLevel;}
+   liveY=field!.height(render.x-fx*.8,render.z-fz*.8,tick)??field!.zone.seaLevel;
+  }
   const now=(Math.max(0,tick-1)+Math.max(0,Math.min(1,alpha)))/30;
   const life=SAMPLES*SAMPLE_EVERY*(detail===0?.5:1);
   let active=0;
@@ -80,16 +87,16 @@ export function createSurfWakeView(parent:THREE.Object3D){
    for(let i=0;i<SAMPLES;i++){
     const base=((r*SAMPLES+i)*2);
     // i = 0 is the newest point: the live board tail (continuous with render interpolation).
-    let x:number,z:number,intensity:number,age:number;
-    if(i===0){x=render.x-fx*.8;z=render.z-fz*.8;intensity=Math.max(0,Math.min(1,(speed-1.5)/9));age=0;}
+    let x:number,z:number,intensity:number,age:number,water:number;
+    if(i===0){x=render.x-fx*.8;z=render.z-fz*.8;intensity=Math.max(0,Math.min(1,(speed-1.5)/9));age=0;water=liveY;}
     else if(i<=count){
-     const k=(head-i+SAMPLES)%SAMPLES;x=hx[k];z=hz[k];intensity=hi[k];age=(tick+alpha-1-ht[k])/life;
-    }else{x=render.x;z=render.z;intensity=0;age=1;}
+     const k=(head-i+SAMPLES)%SAMPLES;x=hx[k];z=hz[k];intensity=hi[k];age=(tick+alpha-1-ht[k])/life;water=hy[k];
+    }else{x=render.x;z=render.z;intensity=0;age=1;water=liveY;}
     if(age<1&&intensity>0)active++;
     const fade=Math.max(0,1-age)*intensity;
     // Rails spread slowly behind the board.
     const spread=.2+.55*age,width=.07+.12*age;
-    const y=(field!.height(x,z,Math.max(0,tick))??field!.zone.seaLevel)+.045;
+    const y=water+.045;
     const ox=fz*side*spread,oz=-fx*side*spread,wx=fz*width,wz=-fx*width;
     for(let e=0;e<2;e++){
      const s=e===0?-1:1,v=base+e,o=v*3,o4=v*4;

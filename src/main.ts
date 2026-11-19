@@ -31,6 +31,7 @@ import {applySurfPose} from './render/surf-character-pose.ts';
 import {barrelPeel,barrelProfile,nearestBarrelCrest,sampleSurfBarrel} from './surf/surf-barrel.ts';
 import {createSurfBoardView} from './render/surf-board-view.ts';
 import {createSurfWakeView} from './render/surf-wake-view.ts';
+import {surfQualityProfile,type SurfQualityProfile} from './render/surf-quality.ts';
 import {SurfPerfRecorder,instrumentGround,instrumentSurfField} from './surf/surf-perf.ts';
 import {inCameraView,surfDrawStats} from './render/surf-render-stats.ts';
 import {boardOnWater,distanceToBoard,isSurfBoardWaterSafe,type SurfBoardPlacement} from './surf/board-placement.ts';
@@ -546,6 +547,7 @@ let surfWaterView:ReturnType<typeof createSurfWaterView>|null=surfWaterViews[0]?
 let surfBarrelView=surfBarrelViews[0]??null;
 const surfBoardView=surfFields.length?createSurfBoardView(scene):null;
 const surfWakeView=surfFields.length?createSurfWakeView(scene):null;
+let appliedSurfProfile:Readonly<SurfQualityProfile>|null=null;
 const surfPerfMeshes:THREE.Mesh[]=surfPerf?[...surfWaterViews.map(v=>v.mesh),...surfBarrelViews.flatMap(v=>v?[v.mesh]:[]),...(surfWakeView?[surfWakeView.mesh]:[])]:[];
 const surfPerfDraw={drawCalls:0,vertices:0,triangles:0};
 const surfHud=surfFields.length?createSurfHud(document.body):null;
@@ -1666,11 +1668,19 @@ function draw(now: number) {
   world.setUnderground(!!player.space);
   world.update(delta, player.position, camera, renderer.domElement.height, player.velocity);
   const surfWaterStart=surfPerf?performance.now():0;
+  // One surf profile from the user quality and the adaptive budget (no parallel controller).
+  const surfProfile=surfQualityProfile(quality.value,budget.level);
+  if(surfProfile!==appliedSurfProfile){
+    appliedSurfProfile=surfProfile;
+    for(const view of surfWaterViews)view.setFoamDetail(surfProfile.foamDetail);
+    for(const view of surfBarrelViews)view?.setMaxFronts(surfProfile.tubeFronts);
+    surfWakeView?.setDetail(surfProfile.wakeDetail);
+  }
   for(const view of surfWaterViews){
     // Never visibly downgrade the collision surface directly beneath a surfer:
     // coarser distant bays may still follow the global adaptive performance tier.
     // LOD follows the camera (what is actually seen) with hysteresis; never the physics.
-    view.setDetail(view===surfWaterView&&player.mode==='surf'?0:budget.level,camera.position);
+    view.setDetail(view===surfWaterView&&player.mode==='surf'?0:Math.max(budget.level,surfProfile.waterTierFloor),camera.position);
     view.update(debugSurfRenderTick??motionTick,debugSurfRenderTick===null?frame.alpha:1);
   }
   const surfTubeStart=surfPerf?performance.now():0;
@@ -1796,6 +1806,7 @@ function draw(now: number) {
         grass: world.grass ? { ...world.grass } : null,
         inventory: gameplay ? { ...gameplay.runtime.state.inventory } : null,
         surfWorld:surfWorldConfig,
+        surfQuality:appliedSurfProfile?.name??null,
         surfPerf:surfPerf?(presentedFrames%30===0?surfPerf.snapshot():(window as unknown as {littleWorldMetrics?:{surfPerf:unknown}}).littleWorldMetrics?.surfPerf??surfPerf.snapshot()):null,
         surfBoardPlaced:placedSurfBoard?{...placedSurfBoard}:null,
         surf:surfField?{
