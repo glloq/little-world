@@ -3,6 +3,8 @@ export const RESIDENT_ROLES = ['farmer','fisher','merchant','woodcutter','miner'
 export type ResidentRole = typeof RESIDENT_ROLES[number];
 export interface ResidentPoint {x:number;z:number;y?:number}
 export type ResidentActivityKind='meal'|'social'|'rest'|'play'|'errand';
+/** Keep agenda evaluation bounded while allowing a richer single-day timetable. */
+export const MAX_RESIDENT_DAILY_STOPS=5;
 export interface ResidentActivityStop {kind:ResidentActivityKind;anchorId:string;point:ResidentPoint;startHour:number;endHour:number;}
 export interface ResidentRoutineV1 {
   type:'Resident';version:1;role:ResidentRole;
@@ -31,7 +33,7 @@ export function validResidentRoutine(value:unknown):value is ResidentRoutineV1{
   if((v.workStartHour===undefined)!==(v.workEndHour===undefined))return false;
   if(v.workStartHour!==undefined&&(!finite(v.workStartHour)||!finite(v.workEndHour)||v.workStartHour<0||v.workEndHour>24||v.workEndHour-v.workStartHour<2))return false;
   if(v.activities!==undefined){
-    if(!Array.isArray(v.activities)||v.activities.length>3)return false;
+    if(!Array.isArray(v.activities)||v.activities.length>MAX_RESIDENT_DAILY_STOPS)return false;
     const role=String(v.role) as ResidentRole,shift=(RESIDENT_ROLES as readonly string[]).includes(role)?SHIFT[role]:[0,0];
     const begin=finite(v.workStartHour)?v.workStartHour:shift[0],end=finite(v.workEndHour)?v.workEndHour:shift[1];
     let previous=begin;
