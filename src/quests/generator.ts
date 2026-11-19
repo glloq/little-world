@@ -72,7 +72,7 @@ export function generateResidentVisitQuestOffers(
  if(maxOffers===0)return [];
  const actorIds=new Set(gameplay.dialogues.filter(d=>d.lines?.length&&d.lines.some(l=>l.choices?.length))
   .map(d=>d.actorId).filter((id):id is string=>!!id));
- const entityIds=new Set(gameplay.entities.map(e=>e.id));
+ const entityIds=new Set(gameplay.entities.filter(e=>e.position&&Number.isFinite(e.position.x)&&Number.isFinite(e.position.z)).map(e=>e.id));
  const residents=[...npcs].filter(n=>n.routine?.homeAnchorId&&n.routine.workAnchorId&&
   groupId(n.id)&&actorIds.has(n.id)).sort((a,b)=>a.id.localeCompare(b.id));
  const out:QuestCatalogEntryV1[]=[];
