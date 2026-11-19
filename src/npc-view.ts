@@ -27,7 +27,7 @@ import {createResidentRouter,type ResidentPath,type ResidentWalkable} from './np
 import {createResidentLayeredRouter,type ResidentSurfaces} from './npc-life/layered-routes.ts';
 import {residentHour,residentShift,residentPoseAt,residentRoute,positionOnResidentRoute,type ResidentRoute} from './npc-life/schedule.ts';
 import {residentDialogue,residentContextForHour} from './npc-life/dialogue.ts';
-import {residentAgendaPoseAt,type ResidentAgendaPose,type ResidentDailyRoutes,type ResidentActivityLegs} from './npc-life/agenda.ts';
+import {residentAgendaPoseAt,validateResidentAgendaRoutes,type ResidentAgendaPose,type ResidentDailyRoutes,type ResidentActivityLegs} from './npc-life/agenda.ts';
 import {residentSocialPairs} from './npc-life/social.ts';
 import {selectNPCRigs} from './npc-life/rig-budget.ts';
 import './npc.css';
@@ -233,7 +233,9 @@ export function createNPCSystem(
           if(!to||!back)return null;
           legs.push({to,back});
         }
-        return {work:route,activities:legs};
+        const candidate={work:route,activities:legs};
+        return validateResidentAgendaRoutes(definition.routine!,candidate,
+          lifeOptions!.dayLengthSeconds,Math.max(.2,definition.speed))?null:candidate;
       })():null,
       life=route?{route,agenda,pose:null as ResidentAgendaPose|null,lastTime:-1,lastSample:-1,pausedSeconds:0,pauseFrom:null as number|null}:null,
       proxy = silhouette(definition);
@@ -315,7 +317,7 @@ export function createNPCSystem(
     talkTo,
     setLighting(color:THREE.Color|null){distant.setLighting(color);},
     states: entries.map((entry) => entry.state),
-    get lifeStats(){return {assigned:entries.filter(e=>!!e.state.definition.routine).length,routed:entries.filter(e=>!!e.life).length,agendas:entries.filter(e=>!!e.life?.agenda).length,socialPairs:socialPartners.size/2,animatedRigs:entries.filter(e=>!!e.model).length,rigBudget:lifeOptions?.rigBudget??12,roadNodes:router?.nodes??0,roadTruncated:router?.truncated??false};},
+    get lifeStats(){return {assigned:entries.filter(e=>!!e.state.definition.routine).length,routed:entries.filter(e=>!!e.life).length,agendas:entries.filter(e=>!!e.life?.agenda).length,unqualifiedAgendas:entries.filter(e=>e.state.definition.routine?.activities?.length&&!e.life?.agenda).length,socialPairs:socialPartners.size/2,animatedRigs:entries.filter(e=>!!e.model).length,rigBudget:lifeOptions?.rigBudget??12,roadNodes:router?.nodes??0,roadTruncated:router?.truncated??false};},
     update(dt: number, time: number, position: NPCPoint,camera?:THREE.PerspectiveCamera) {
       if (disposed) return;
       distant.begin();distant.update(time);
