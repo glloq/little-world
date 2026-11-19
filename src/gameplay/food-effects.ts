@@ -13,7 +13,7 @@ export const FOOD_SATIETY:Readonly<Record<string,number>>={
   // Prepared products from workshop recipes (satiety points, never inferred by category).
   'food:bread':38,'food:jam':42,'food:soup':58,
 };
-export const foodSatietyValue=(itemId:string)=>FOOD_GAS[itemId]??0;
+export const foodSatietyValue=(itemId:string)=>FOOD_SATIETY[itemId]??0;
 
 /** Compatibility for older inventory and workshop callers; values now mean satiété, not fuel. */
 export const foodGasValue=foodSatietyValue;
