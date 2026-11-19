@@ -65,6 +65,21 @@ export function createNpcHarvestAccount(
    if(!canTake(itemId,quantity))return false;
    state.stock[itemId]-=quantity;return true;
   },
+  /** Atomic sale against a native market: remove goods, add actual market
+   * coins, and record the receipt in one isolated ledger mutation.
+   */
+  exchange(requestId:string,itemId:string,quantity:number,coinAmount:number,gameMinute:number):boolean{
+   if(!validId(requestId)||!safe(gameMinute,0,1000000000)||
+     gameMinute<state.lastActionGameMinute||state.appliedRequestIds.includes(requestId)||
+     !canTake(itemId,quantity)||!canReceive('coin',coinAmount)||itemId==='coin')
+    return false;
+   state.stock[itemId]-=quantity;
+   state.stock.coin=(state.stock.coin??0)+coinAmount;
+   state.lastActionGameMinute=gameMinute;
+   state.appliedRequestIds.push(requestId);
+   if(state.appliedRequestIds.length>64)state.appliedRequestIds.shift();
+   return true;
+  },
   /** For native inter-resident transfers: source debit is rolled back on
    * a rejected destination; no visible intermediate frame or credit. */
   transfer(itemId:string,quantity:number,destination:{
