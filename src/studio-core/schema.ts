@@ -1,4 +1,5 @@
 import {parseSkiArea} from '../snow/ski-area.ts';
+import {parseQuestCatalogEntry} from '../quests/validation.ts';
 import {validShopPose,sameProjectedShopPose} from '../gameplay/shop-access.ts';
 import {validateSettlement} from '../settlements/schema.ts';
 import {validateTerrainPlan} from './terrain-sites.ts';
