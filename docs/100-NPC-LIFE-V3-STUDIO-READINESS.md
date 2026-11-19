@@ -25,6 +25,15 @@ Branche : `feat/npc-life-v3-social-navigation`. Ce document décrit les critère
 - Habitations limitées à deux occupants, postes exclusifs et espaces partagés limités à quatre habitants dans le générateur et Studio.
 - Rencontres sociales par paires déterministes autour des places existantes et pendant les jeux des enfants ; excluent les PNJ en dialogue ou en déplacement commandé. Salutations synchronisées sur une fenêtre de 4 secondes toutes les 12 secondes, sans récompenses ni dialogues inventés.
 
+## Portes extérieures : périmètre validé (novembre 2026)
+
+- Le modèle `settlement.door` dispose maintenant d'une charnière géométrique, utilisée aussi par l'ouverture manuelle.
+- Le jeu conserve `State.open` et `Persistence.open` comme seule source persistante ; le passage ponctuel d'un PNJ ajoute une demande d'ouverture temporaire de deux secondes sans modifier le fichier de sauvegarde.
+- Collision de porte désactivée pendant l'ouverture (manuelle ou PNJ), restaurée lors de la fermeture ; rafraîchissement visuel uniquement aux transitions d'état.
+- Un résident ne déclenche l'ouverture qu'à proximité physique de l'entrée de son domicile ; il se masque une fois arrivé, et réapparaît lors de son départ. Aucune téléportation dans une pièce artificielle.
+- Les PNJ masqués au domicile ne sont pas proposés comme interlocuteurs ; si aucune porte extérieure fiable n'existe, ce comportement n'est pas activé.
+- **Hors périmètre à ce stade : navigation dans les intérieurs, vrais escaliers, étages et meubles.** Ce chantier doit rester découplé de la vie quotidienne extérieure.
+
 ## Conditions de sortie — ne pas merger avant qualification
 
 1. **CI** : tests Node, TypeScript, build, générations déterministes et tests Studio navigateur verts sur le SHA final.
