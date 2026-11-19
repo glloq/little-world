@@ -1025,20 +1025,24 @@ function updateCamera(dt: number) {
   yaw=flightCameraFollow.yaw;pitch=flightCameraFollow.pitch;
   const effects=gameUi?.preferences.speedEffects!==false&&!gameUi?.preferences.reduceMotion;
   advanceSpeedCamera(speedCue,{speed:player.velocity.length(),mode:player.mode,boosting:!!player.gasBoosting,turnRate:player.glideTurnRate??0,enabled:effects},dt);
+  const inSurfTube=player.mode==='surf'&&player.barrelEntryTick!==undefined&&!!surfField;
   const target = cameraTarget.copy(renderPosition);
-  target.y += aboard ? 2.9 : 1.35;
-  const followDistance=distance+speedCue.extraDistance;
+  // A compact chase camera keeps the opening readable from inside the curled
+  // lip; never rotate the actual physics camera/heading to follow the tumble.
+  target.y += aboard ? 2.9 : inSurfTube ? .93 : 1.35;
+  const followDistance=inSurfTube?Math.min(distance,3.15):distance+speedCue.extraDistance;
   const cosPitch = Math.cos(pitch);
   const x = target.x - Math.sin(yaw) * cosPitch * followDistance;
   const z = target.z - Math.cos(yaw) * cosPitch * followDistance;
   let y = Math.max(
     target.y + Math.sin(pitch) * followDistance,
-    terrainHeight(x, z) + 1.8,
+    terrainHeight(x, z) + (inSurfTube?.9:1.8),
   );
+  if(inSurfTube&&surfField)y=Math.min(y,Math.max(surfField.zone.seaLevel+1.25,target.y+.5));
   const desired = cameraDesired.set(x, y, z);
   // In a gallery: stay inside the open cells and under the ceiling, never above the relief.
   if(player.space&&gameplay){const inside=gameplay.activities.cameraInMine(target,player.space,yaw,pitch,distance);if(inside){desired.set(inside.x,inside.y,inside.z);camera.position.copy(desired);camera.lookAt(target);return;}}
-  camera.position.lerp(desired, Math.min(1, dt * 6));
+  camera.position.lerp(desired, Math.min(1, dt * (inSurfTube?9:6)));
   camera.lookAt(target);
   camera.rotateZ(speedCue.bank);
   if(Math.abs(camera.fov-speedCue.fov)>.005){camera.fov=speedCue.fov;camera.updateProjectionMatrix();}
@@ -1528,7 +1532,12 @@ function draw(now: number) {
   remoteActors?.renderer.collectGrassActors(grassActors,player.position);
   world.setUnderground(!!player.space);
   world.update(delta, player.position, camera, renderer.domElement.height, player.velocity);
-  for(const view of surfWaterViews){view.setDetail(budget.level,player.position);view.update(motionTick,frame.alpha);}
+  for(const view of surfWaterViews){
+    // Never visibly downgrade the collision surface directly beneath a surfer:
+    // coarser distant bays may still follow the global adaptive performance tier.
+    view.setDetail(view===surfWaterView&&player.mode==='surf'?0:budget.level,player.position);
+    view.update(motionTick,frame.alpha);
+  }
   for(const view of surfBarrelViews)view?.update(motionTick,player.position);
   if(!loading.ready&&loading.update({terrainPending:world.stats.pending,dressingPending:world.dressing?.nearPending??0,speciesState:world.dressing?.species.state??'none'}))beginGame();
   remoteActors?.update(delta,elapsed,camera,renderer.domElement.height,budget.level);
