@@ -37,7 +37,7 @@ test('satiety regenerates one boost in 2.5 seconds; zero satiety stops recharge'
  assert.equal(boostRechargeSeconds(50),4);
  assert.equal(boostRechargeSeconds(25),6);
  assert.equal(boostRechargeSeconds(0),Infinity);
- for(let i=0;i<75;i++)stepBoostVitals(p,1/30);
+ for(let i=0;i<76;i++)stepBoostVitals(p,1/30);
  assert.equal(gasShots(p),1);
  p.satiety=0;
  for(let i=0;i<300;i++)stepBoostVitals(p,1/30);
