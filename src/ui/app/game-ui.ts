@@ -106,7 +106,26 @@ export function createGameUi(deps:GameUiDeps){
     unlock:()=>deps.audio?.start()??Promise.resolve(false),
   });
   if(g)ui.register('instrument','Jouer de la musique',{render:b=>instrumentPanel.render(b),onClose:()=>instrumentPanel.close()});
-  const inventory=inventoryPanelV3({worldId:g?.runtime.data.worldId,favoriteSlots:()=>g?.equipment.favorites??null,setFavoriteSlots:ids=>g?.equipment.setFavorites(ids)??false,items:()=>g?.runtime.data.items??[],inventory:()=>g?.runtime.state.inventory??{},selectedTool:()=>g?.equipment.hands??null,selectTool:id=>{const ok=g?.equipment.setHands(id);renderTool();return ok;},playInstrument:id=>{if(g?.equipment.hands===id)ui.open('instrument');},headgear:deps.headgear,gasLevel:()=>deps.player().gas??0,gasCapacity:()=>deps.player().maxGas??200,
+  /** Single entry point for bag, HUD and shortcut. Equipment authority stays in gameplay. */
+  function openInstrument(id?:string):boolean{
+    if(!g)return false;
+    const item=id??g.equipment.hands;
+    if(!instrumentForItem(item))return false;
+    if(deps.player().mode!=='ground'||deps.races?.active()||deps.npcs.dialogue.isOpen){
+      center.notify('warning','La musique est disponible au sol, hors course et dialogue.');
+      return false;
+    }
+    if(id&&g.equipment.hands!==id&&!g.equipment.setHands(id)){
+      center.notify('warning','Impossible d’équiper cet instrument.');
+      return false;
+    }
+    if(!deps.audio)center.notify('warning','Le son est indisponible dans ce monde.');
+    else if(deps.audio.engine.settings.muted||deps.audio.engine.settings.master===0||deps.audio.engine.settings.music===0)
+      center.notify('warning','Le volume musical est coupé : ouvrez les réglages du son.');
+    ui.open('instrument');return true;
+  }
+  function toggleInstrument(){if(ui.active==='instrument')ui.close();else openInstrument();}
+  const inventory=inventoryPanelV3({worldId:g?.runtime.data.worldId,favoriteSlots:()=>g?.equipment.favorites??null,setFavoriteSlots:ids=>g?.equipment.setFavorites(ids)??false,items:()=>g?.runtime.data.items??[],inventory:()=>g?.runtime.state.inventory??{},selectedTool:()=>g?.equipment.hands??null,selectTool:id=>{const ok=g?.equipment.setHands(id);renderTool();return ok;},playInstrument:id=>{openInstrument(id);},headgear:deps.headgear,gasLevel:()=>deps.player().gas??0,gasCapacity:()=>deps.player().maxGas??200,
     canConsume:deps.canEatFood,
     consume:deps.eatFood?(id)=>{const result=deps.eatFood!(id);center.notify(result.ok?'success':'warning',result.message);return result.ok;}:undefined,
     consumeBatch:deps.eatFoods,
@@ -316,6 +335,11 @@ export function createGameUi(deps:GameUiDeps){
     const b=button('',()=>ui.toggle(id),'ui-quick');b.append(hudIcon(icon),el('span','ui-quick-label',label));if(key)b.append(kbd(key));
     b.setAttribute('aria-label',label+' ('+key+')');b.dataset.panel=id;quick.append(b);
   }
+  const musicButton=button('',toggleInstrument,'ui-quick hide','Jouer de la musique (P)');
+  musicButton.append(hudIcon('music'),el('span','ui-quick-label','Jouer'),kbd('P'));
+  musicButton.setAttribute('aria-label','Jouer de la musique (P)');
+  musicButton.dataset.panel='instrument';
+  quick.append(musicButton);
   const minimap=createMinimap(mapDeps,mapRaster,()=>ui.open('map'),mineMapContext);
   const tool=el('div','ui-tool hide'),oxygen=el('div','ui-oxygen hide');oxygen.setAttribute('role','meter');oxygen.setAttribute('aria-label','Oxygène');
   const oxyFill=el('span','ui-meter-fill');oxygen.append(el('span','','Oxygène'),el('span','ui-meter-track'));oxygen.lastElementChild!.append(oxyFill);
@@ -329,7 +353,7 @@ export function createGameUi(deps:GameUiDeps){
   host.append(quick,minimap.element,tool,oxygen,stamina,gas,velocity);
   ui.onChange(id=>{if(id)hideAudioPopover();});
   const card=activityCard(host,(plotId,cropId)=>{const name=a?.selectCrop(plotId,cropId);if(name){center.notify('info','Culture choisie : '+name);deps.audio?.emit('farm.seedbag',{source:'player'});}});
-  function renderTool(){const item=g?.runtime.data.items.find(i=>i.id===g?.equipment.hands);tool.textContent=item?'En main : '+item.name:'';tool.classList.toggle('hide',!item);}
+  function renderTool(){const item=g?.runtime.data.items.find(i=>i.id===g?.equipment.hands);tool.textContent=item?'En main : '+item.name:'';tool.classList.toggle('hide',!item);const instrument=instrumentForItem(g?.equipment.hands);musicButton.classList.toggle('hide',!instrument);musicButton.title=instrument?'Jouer : '+instrument.name+' (P)':'';}
   renderTool();
   // Gameplay changes → notifications (gains, missions) and open panel refresh.
   let lastInventory:Record<string,number>={...(g?.runtime.state.inventory??{})},lastObjectives={...(g?.runtime.state.objectives??{})};
@@ -367,12 +391,19 @@ export function createGameUi(deps:GameUiDeps){
     /** Keys of the interface. Returns true when consumed (the game must ignore it). */
     handleKey(e:KeyboardEvent,inGame:boolean):boolean{
       if(!mineLoading.hidden){e.preventDefault();return true;}
+      // Music mode takes priority over the legacy test-terrain port shortcut.
+      if(e.code==='KeyP'&&!e.repeat&&!e.ctrlKey&&!e.altKey&&!e.metaKey&&ui.active==='instrument'){
+        e.preventDefault();toggleInstrument();return true;
+      }
       if(ui.handleKey(e))return true;
       if(e.key==='Escape'&&!audioPopover.hidden){e.preventDefault();hideAudioPopover(true);return true;}
       // A key already handled elsewhere (e.g. Escape closing an NPC dialogue) never also opens a panel.
       if(e.defaultPrevented||isEditableGameTarget(e.target))return false;if(!inGame||deps.npcs.dialogue.isOpen||e.ctrlKey||e.metaKey||e.altKey||e.repeat)return false;
       const k=e.key.toLowerCase();
       if(e.key==='Escape'){e.preventDefault();ui.open('pause');return true;}
+      if(e.code==='KeyP'&&instrumentForItem(g?.equipment.hands)){
+        e.preventDefault();openInstrument();return true;
+      }
       if(k==='i'&&g){e.preventDefault();ui.open('inventory');deps.audio?.emit('ui.inventory.open',{source:'ui'});return true;}
       if(k==='j'){e.preventDefault();ui.open('journal');return true;}
       if(k==='m'){e.preventDefault();ui.open('map');return true;}
