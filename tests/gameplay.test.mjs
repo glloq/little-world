@@ -79,3 +79,26 @@ test('dialogue flags persist, scope keys do not collide and older V1 saves defau
  const r=createGameplay(d);r.dialogueChoice('talk','hello','accept');const saved=r.save('one',at);assert.equal(Object.keys(saved.dialogueFlags).length,1);const next=createGameplay(d);assert.deepEqual(next.restore(saved),[]);assert.equal(next.availableChoices('talk','hello').length,0);
  const old=structuredClone(saved);delete old.dialogueFlags;assert.deepEqual(parseGameSave(old).dialogueFlags,{});
 });
+
+test('Q2 NPC talk event fires only after committed native dialogue choice',async()=>{
+ const {gameplayDialogueSession}=await import('../src/gameplay/dialogue-session.ts');
+ const d=fixture();
+ d.dialogues=[{id:'talk',actorId:'villager',start:'hello',lines:[{
+  id:'hello',text:'Bonjour',choices:[{
+   id:'gift',text:'Un gland',actions:[{type:'giveItem',itemId:'acorn',quantity:1}],
+  }],
+ }]}];
+ const r=createGameplay(d),events=[];
+ const session=()=>gameplayDialogueSession(r,'villager',(actor,dialogue,choice)=>{
+  events.push({actor,dialogue,choice});
+ });
+ r.state.inventory.acorn=9;
+ const failed=session();
+ assert.equal(failed.choose(0),false,'full inventory rejects native sequence');
+ assert.deepEqual(events,[],'no event on failed transaction');
+ r.state.inventory.acorn=8;
+ const success=session();
+ assert.equal(success.choose(0),true);
+ assert.deepEqual(events,[{actor:'villager',dialogue:'talk',choice:'gift'}]);
+ assert.equal(r.state.inventory.acorn,9);
+});
