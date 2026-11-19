@@ -1,5 +1,6 @@
 import {accessibleShop} from './shop-access.ts';
 import {createResidentDoorOpenings} from './resident-door-openings.ts';
+import {createResidentNavigationRevisionTracker} from '../npc-life/navigation-revision.ts';
 import {InteractionNeighborhood} from './interaction-neighborhood.ts';
 import type * as THREE from 'three';
 import type {NPCState} from '../npc.ts';
@@ -117,8 +118,7 @@ export function createGameplayView(data:GameplayData,options:Options){
  let npcs:readonly NPCState[]=[],version=-1,disposed=false;
  // Increment only on actual exterior-door collision transitions, not on every
  // UI/inventory refresh. Scripted NPC routes use it to invalidate lookahead.
- let navigationRevision=0;
- const observedDoors=new Map<string,boolean>();
+ const navigationRevisions=createResidentNavigationRevisionTracker();
  const entityIds=new Set(runtime.data.entities.map(e=>e.id)),targets=runtime.data.entities.filter(e=>e.interactable),interactions=new Map<string,typeof runtime.data.interactions>();
  for(const i of runtime.data.interactions)if(i.trigger.type==='onInteract'){const list=interactions.get(i.trigger.entityId)??[];list.push(i);interactions.set(i.trigger.entityId,list);}
  const targetIndex=new InteractionNeighborhood(),targetById=new Map(targets.map(e=>[e.id,e]));
@@ -133,9 +133,7 @@ export function createGameplayView(data:GameplayData,options:Options){
    model.object.visible=state.collected!==true;
    const open=state.open===true||npcDoorOpen(id),hinge=model.object.getObjectByName('DoorHinge');
    if(hinge||id.endsWith('-door')){
-     const previous=observedDoors.get(id);
-     if(previous!==undefined&&previous!==open)navigationRevision++;
-     observedDoors.set(id,open);
+     navigationRevisions.observe(id,open);
    }
    if(hinge){model.object.rotation.y=model.rotation;hinge.rotation.y=open?Math.PI/2:0;}
    else model.object.rotation.y=model.rotation+(open?Math.PI/2:0);
@@ -161,7 +159,7 @@ export function createGameplayView(data:GameplayData,options:Options){
  sync();
  return {
   runtime,collision,activities,slots,compose,gathering,trees,fishing,trade,sellBatch,nearbyShop,workshops,markets,purse,itemName,has,equipment,
-  get navigationRevision(){return navigationRevision;},
+  get navigationRevision(){return navigationRevisions.revision;},
   openDoorForNPC(doorId:string,duration=2):boolean{
    if(!runtime.state.entities[doorId]||!models.has(doorId)||!Number.isFinite(duration)||duration<=0||duration>5)return false;
    if(npcDoors.request(doorId,duration))sync();
