@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {residentRoute,positionOnResidentRoute,validResidentRoutine} from '../src/npc-life/schedule.ts';
+import {MAX_RESIDENT_DAILY_STOPS,residentRoute,positionOnResidentRoute,validResidentRoutine} from '../src/npc-life/schedule.ts';
 import {residentAgendaPoseAt,validateResidentAgendaRoutes} from '../src/npc-life/agenda.ts';
 import {residentSocialPairs,residentSocialEncounterActive} from '../src/npc-life/social.ts';
 import {createResidentLayeredRouter} from '../src/npc-life/layered-routes.ts';
@@ -108,4 +108,27 @@ test('social greetings are symmetric, deterministic, time-bounded and never incl
  const pairing=residentSocialPairs(actors);
  assert.equal(pairing.get('a'),'c');
  assert.equal(pairing.has('b'),false);
+});
+
+test('F02 validates five ordered visits without unbounded schedule evaluation',()=>{
+ assert.equal(MAX_RESIDENT_DAILY_STOPS,5);
+ const stops=Array.from({length:5},(_,i)=>({
+   kind:i%2===0?'social':'rest',
+   anchorId:'bench:'+i,point:{x:2,z:12},
+   startHour:8+i*1.5,endHour:8.5+i*1.5,
+ }));
+ const extended={...worker,activities:stops};
+ assert.equal(validResidentRoutine(extended),true);
+ assert.equal(validResidentRoutine({...extended,activities:[...stops,{
+   kind:'social',anchorId:'bench:6',point:{x:2,z:12},
+   startHour:16,endHour:16.5,
+ }]}),false,'six visits exceed bounded contract');
+ const legs=stops.map(()=>({
+   to:residentRoute([{x:0,z:12},{x:2,z:12}]),
+   back:residentRoute([{x:2,z:12},{x:0,z:12}]),
+ }));
+ assert.equal(validateResidentAgendaRoutes(extended,{work:routes.work,activities:legs},1200,1),null);
+ const pose=residentAgendaPoseAt(extended,{work:routes.work,activities:legs},clock(14.25),1200,.36,1);
+ assert.equal(pose.phase,'activity');
+ assert.equal(pose.position.x,2);
 });
