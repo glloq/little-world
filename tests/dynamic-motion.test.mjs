@@ -24,9 +24,9 @@ test('glider dive exchanges height for speed, pull-up spends momentum and cannot
  assert.ok(diveSpeed>16&&p.velocity.y<0,'dive accelerates');
  let peak=low,up=false;
  for(let i=0;i<240;i++){
-  const before=movementEnergy(p.position.y,p.velocity);simulatePlayer(p,{...input,forward:1,flightPitchInput:1},1/30,q);
-  assert.ok(movementEnergy(p.position.y,p.velocity)<=before+1e-7,'steering never creates energy');
-  up ||= p.velocity.y>1;peak=Math.max(peak,p.position.y);energy.push(movementEnergy(p.position.y,p.velocity));
+  const before=movementEnergy(p.position.y,p.velocity,GLIDE_PHYSICS.gravity);simulatePlayer(p,{...input,forward:1,flightPitchInput:1},1/30,q);
+  assert.ok(movementEnergy(p.position.y,p.velocity,GLIDE_PHYSICS.gravity)<=before+1e-7,'steering never creates energy');
+  up ||= p.velocity.y>1;peak=Math.max(peak,p.position.y);energy.push(movementEnergy(p.position.y,p.velocity,GLIDE_PHYSICS.gravity));
  }
  assert.ok(up&&peak>low+1,'can trade the dive momentum for altitude');
  assert.ok(peak-low<diveSpeed*diveSpeed/(2*GLIDE_PHYSICS.gravity)+.1,'finite kinetic reserve');
