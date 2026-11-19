@@ -228,6 +228,7 @@ export function createGameplayView(data:GameplayData,options:Options){
   /** Restores a validated save into the runtime and the activities; returns the warnings. */
   restore(save:GameSaveV2){npcDoors.clear();const warnings=[...runtime.restore(save),...activities.restore(save)];
     quests.restore(save.questsLocal??{});questEventSequence=save.questEventSequence??0;lastQuestVisitScan=-Infinity;
+    if(npcs.length)quests.reconcileNpcAvailability(new Set(npcs.map(n=>n.definition.id)));
     // Upgrade old island saves with one temporary starter board, without removing other goods.
     if(options.surfStarter&&!has(SURFBOARD_ID))runtime.grantItems([{itemId:SURFBOARD_ID,quantity:1}]);
     equippedHands=save.equippedItemId&&canEquip(save.equippedItemId)?save.equippedItemId:null;playerLoadout=save.loadout?parsePlayerLoadout(save.loadout):emptyPlayerLoadout();if(playerLoadout.head!=='tool:miners-helmet'||!has('tool:miners-helmet'))playerLoadout.head=null;playerLoadout.back=null;playerLoadout.feet=null;workshops.restore(save.workshops??{});markets.restore(save.markets??{});cargoPurchaseRevision=save.cargoPurchaseRevision??0;gathering?.restore(save.gathering??null);options.setPosition(save.position,save.space??null);options.setGasProgress?.(save.flightProgress??newFlightProgress());options.setGas?.(save.gasReserve??GAS.legacyInitial,save.satiety,save.boostRechargeProgress);options.setSurfBoard?.(save.surfBoard??null);sync();version=-1;for(const l of listeners)l();return warnings;},
@@ -244,7 +245,10 @@ export function createGameplayView(data:GameplayData,options:Options){
     ()=>Math.floor(runtime.state.time/runtime.climate.definition.dayLengthSeconds*1440),
     claimQuest,()=>{for(const listener of listeners)listener();}
   ),
-  attachNPCs(states:readonly NPCState[]){npcs=states;},
+  attachNPCs(states:readonly NPCState[]){
+    npcs=states;
+    quests.reconcileNpcAvailability(new Set(states.map(state=>state.definition.id)));
+  },
   prompt(position:Point3){runtime.state.playerPosition={...position};const target=describe(position);return target?.usable?'[E] '+target.prompt:null;},
   interact(position:Point3){runtime.state.playerPosition={...position};const target=describe(position);return target?.usable?runtime.interact(target.entity.id,position):false;},
   update(dt:number){
