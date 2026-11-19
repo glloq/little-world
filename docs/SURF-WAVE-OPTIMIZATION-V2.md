@@ -70,7 +70,7 @@ complète existe via `EXT_disjoint_timer_query_webgl2`, absent sous SwiftShader)
 | Phase | État | Critères d'acceptation |
 | --- | --- | --- |
 | 1 — Instrumentation | DONE | `?surfPerf=1` (désactivé par défaut), canaux CPU séparés, draw calls/sommets/triangles/upload/zones/LOD, benchmark CPU Node + navigateur JSON v2, référence enregistrée |
-| 2 — WaveField CPU | TODO | même résultat physique (références V1), moins d'échantillons terrain, gain mesuré |
+| 2 — WaveField CPU | DONE | hauteur/vitesse verticale/crête/déferlement/waveId bit-identiques à V1 ; gradient analytique ; 1 terrain en eau profonde ; `sample()` 3,4–4,7× plus rapide |
 | 3 — LOD | TODO | hystérésis, distance caméra, culling tube, physique identique entre LOD |
 | 4 — Forme des vagues | TODO | profils variés et déterministes, CPU = GPU, anciennes zones inchangées |
 | 5 — Tubes | TODO | cycle de vie de la lèvre, gameplay tube préservé |
@@ -98,3 +98,43 @@ Procédure : `SURF_NATIVE_GPU=1 npm run benchmark:surf` sur PC cible 4–8 Go (d
   comparaison numérique avec la copie gelée `tests/fixtures/surf/wave-field-v1.ts`.
 - `tools/benchmark-surf-browser.mjs` : schéma 2, `SURF_BENCH_OUT`, commit, diagnostics surf ;
   correction du parcours d'embarquement (dépôt de la planche puis montée, UX actuelle).
+
+## 8. Phase 2 — WaveField CPU (modèle physique 2)
+
+**Décision.** La hauteur n'est pas modifiée (même expression, même ordre d'évaluation flottant) :
+`height`, `velocityY`, `crest`, `breaking`, `waveId` restent **bit-identiques** au V1 gelé.
+Seul le **gradient** change de méthode, versionné `SURF_WAVE_MODEL = 2` (`field.model`) :
+
+- dérivée exacte de la houle : `A·env·(cos p + 0.44 cos 2p)·k·dir` (4 trigonométries au lieu de 12) ;
+- dérivée exacte de l'enveloppe : `smooth'(u)=6u(1−u)` pour la profondeur et pour la marge de zone
+  (gradient ±1 du côté le plus proche) ; nulle là où `smooth` est saturé ;
+- la pente du fond (`∇depth = −∇ground`, différence centrée ε = 0,45 m) n'est échantillonnée **que**
+  dans la bande peu profonde (`depth < shoreFadeDepth`) : en eau profonde, 1 seul appel terrain ;
+- mémo exact à deux entrées du fond (clé `x,z` strictement égale) : le cavalier rééchantillonne la
+  même position en fin de tick puis au tick suivant ; `invalidateGround()` après édition du relief.
+
+**Cache de bathymétrie (étudié, non retenu pour la physique)** : une grille interpolée changerait les
+valeurs (approximation) ; avec 1 appel terrain en eau profonde et le mémo exact, le gain résiduel
+(< 0,3 µs/échantillon) ne justifie pas un cache spatial borné à invalider. Le cache est en revanche
+utilisé pour la lèvre purement visuelle (phase 5/7).
+
+**Écarts mesurés V2 − V1** (tests `tests/surf-wave-field-v2.test.mjs`, outil de diff) :
+
+| Région | max \|Δgradient\| | Cause |
+| --- | --- | --- |
+| Intérieur de zone, île A/B/C | 0,0035 / 0,0077 / 0,0088 | erreur de troncature de la différence finie V1 |
+| Voisin V1 hors zone ou sec | ≤ 0,015 | V1 remplaçait le voisin par la hauteur centrale (dérivée faussée) |
+| Diagonales des coins (bande < ε) | ≤ 0,12 | `min()` des marges non dérivable : V1 moyennait les deux côtés |
+
+Le dérivé analytique est vérifié contre une différence centrée fine (h = 1e-5) de la même hauteur
+(< 2e-5). Effet de jeu : après 10 s de glisse scriptée, 4 cm d'écart de position.
+
+| Mesure (Node, Xeon 2,1 GHz) | V1 | V2 |
+| --- | --- | --- |
+| Terrain / `sample()` (île A/B/C) | 6 | 1,8 / 2,1 / 2,0 |
+| Terrain / tick de glisse (eau profonde) | 12 | 1,0 |
+| `sample()` µs p50 île A/B/C | 1,7–2,3 | 0,46–0,58 |
+| `sample()` µs p50 bande analytique | 0,66–0,70 | 0,18–0,22 |
+
+Fichier : `docs/perf/surf-cpu-phase2.json`. Le tick physique surf complet reste de l'ordre de
+quelques µs : il n'a jamais été le goulot ; les gains réels attendus sont côté rendu.
