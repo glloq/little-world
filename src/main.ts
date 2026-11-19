@@ -1240,6 +1240,7 @@ function updateFishing(){
     if(!item)return;
     if(waterAt){fishingEffects.burst(waterAt,'caught');impacts.spawn(waterAt,'water',6);}
     if(gameplay.runtime.grantItems([{itemId:item,quantity:1}])){
+      gameplay.recordQuestCommit('fishing.caught',{itemId:item,quantity:1,source:'fishing'});
       showInfo(gameplay.itemName(item)+' attrapé !','success');
       fishingEffects.displayCatch(item);
       audio?.emit('fishing.catch',{position:player.position,source:'player',context:{species:item}});
