@@ -17,6 +17,7 @@ export interface ResidentAssignmentPlanner {
   route(home:LifeHome,job:LifeJob):ResidentRoute|null;
   occupancy(homeId:string):number;
   jobOccupancy(jobId:string):number;
+  reserveJob(jobId:string):void;
 }
 const hypot=(a:ResidentPoint,b:ResidentPoint)=>Math.hypot(a.x-b.x,a.z-b.z);
 export function createResidentAssignmentPlanner(
@@ -48,6 +49,7 @@ export function createResidentAssignmentPlanner(
     get truncated(){return router.truncated;},
     occupancy(homeId){return occupancy.get(homeId)??0;},
     jobOccupancy(jobId){return jobOccupants.get(jobId)??0;},
+    reserveJob(jobId){jobOccupants.set(jobId,(jobOccupants.get(jobId)??0)+1);},
     reserve(homeId){occupancy.set(homeId,(occupancy.get(homeId)??0)+1);},
     route,
     allocate(job,homes,role,preferredHomeId){
