@@ -30,6 +30,7 @@ import {residentHour,residentShift,residentPoseAt,residentRoute,positionOnReside
 import {residentDialogue,residentContextForHour} from './npc-life/dialogue.ts';
 import {residentAgendaPoseAt,validateResidentAgendaRoutes,type ResidentAgendaPose,type ResidentDailyRoutes,type ResidentActivityLegs} from './npc-life/agenda.ts';
 import {residentSocialPairs,residentSocialEncounterActive} from './npc-life/social.ts';
+import {residentDoorwayState} from './npc-life/doorway.ts';
 import {selectNPCRigs} from './npc-life/rig-budget.ts';
 import './npc.css';
 
@@ -153,6 +154,9 @@ export interface NPCLifeOptions {
   /** Concurrent animated rigs, bounded for old 4–8GB integrated GPUs. */
   rigBudget?:number;
   weather?:()=> 'clear'|'cloudy'|'rain';
+  /** Only existing exterior settlement doors can be requested. */
+  homeDoor?:(homeAnchorId:string)=>string|null;
+  openHomeDoor?:(doorId:string)=>void;
 }
 export function createNPCSystem(
   scene: THREE.Scene,
@@ -238,7 +242,7 @@ export function createNPCSystem(
         return validateResidentAgendaRoutes(definition.routine!,candidate,
           lifeOptions!.dayLengthSeconds,Math.max(.2,definition.speed))?null:candidate;
       })():null,
-      life=route?{route,agenda,pose:null as ResidentAgendaPose|null,lastTime:-1,lastSample:-1,pausedSeconds:0,pauseFrom:null as number|null,lastRecoveryAt:-Infinity}:null,
+      life=route?{route,agenda,pose:null as ResidentAgendaPose|null,lastTime:-1,lastSample:-1,pausedSeconds:0,pauseFrom:null as number|null,lastRecoveryAt:-Infinity,lastDoorAt:-Infinity,indoors:false}:null,
       proxy = silhouette(definition);
     // Actual character rigs are allocated only when first seen nearby, not for
     // every citizen of the island. All hamsters share geometry/material caches.
@@ -278,6 +282,7 @@ export function createNPCSystem(
     let best: (typeof entries)[number] | null = null,
       distance = 5.5;
     for (const entry of entries) {
+      if (entry.life?.indoors)continue;
       if (!entry.state.definition.dialogue&&!entry.state.definition.routine) continue;
       const d = Math.hypot(player.x - entry.state.x, player.z - entry.state.z);
       if (d < distance) {
@@ -476,6 +481,22 @@ export function createNPCSystem(
             }else{state.vx=0;state.vz=0;}
           }
         }else if(!entry.scripted)updateNPC(state,dt,position,obstacles);
+        // Visually enter the home at its exterior threshold, no fictional room.
+        // The native door component remains the single authority for manual
+        // player opening and the temporary request is never persisted.
+        if(life&&state.definition.routine?.homeAnchorId&&lifeOptions?.homeDoor){
+          const doorId=lifeOptions.homeDoor(state.definition.routine.homeAnchorId);
+          const pose=life.pose;
+          if(doorId&&pose){
+            const doorway=residentDoorwayState(state.definition.routine,pose,
+              {x:state.x,z:state.z},lifeOptions.dayLengthSeconds,Math.max(.2,state.definition.speed));
+            life.indoors=doorway.inside&&!entry.scripted&&dialogue.npcId!==state.definition.id;
+            const now=lifeOptions.worldTime();
+            if(doorway.requestOpen&&(now<life.lastDoorAt||now-life.lastDoorAt>=1)){
+              life.lastDoorAt=now;lifeOptions.openHomeDoor?.(doorId);
+            }
+          }else life.indoors=false;
+        }
         const partnerId=socialPartners.get(state.definition.id),partner=partnerId?byId.get(partnerId):null;
         if(partner&&dialogue.npcId!==state.definition.id&&dialogue.npcId!==partner.state.definition.id&&
           !entry.scripted&&!partner.scripted&&life?.pose&&
@@ -490,7 +511,7 @@ export function createNPCSystem(
           Math.hypot((camera?.position.x??position.x) - state.x, (camera?.position.z??position.z) - state.z),
           state.definition.kind,
         );
-        const tier=candidateTier==='rig'&&!rigIds.has(state.definition.id)?'silhouette':candidateTier;
+        const tier=life?.indoors?'hidden':candidateTier==='rig'&&!rigIds.has(state.definition.id)?'silhouette':candidateTier;
         if(tier==='rig')entry.lastRigAt=time;
         if(tier==='rig'&&!entry.model){
           const hamster=state.definition.kind==='hamster'?buildHamster():null,
