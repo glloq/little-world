@@ -11,7 +11,7 @@ import {collisionDefinitionsFromProject} from '../studio-core/collision-adapter.
 import {WorldCollisionQuery} from '../physics/collision-world.ts';
 import {localLifeCapabilities} from './capabilities.ts';
 import {createResidentAssignmentPlanner} from './assignments.ts';
-import {residentDutyShift,type ResidentPoint} from './schedule.ts';
+import {residentDutyShift,type ResidentPoint,type ResidentRole,type ResidentRoutineV1} from './schedule.ts';
 import {withVillageActivities} from './generation-agenda.ts';
 export interface ResidentAnchorChoice {id:string;name:string;point:ResidentPoint}
 export interface ResidentAnchorChoices {homes:ResidentAnchorChoice[];jobs:ResidentAnchorChoice[];settlementId:string}
@@ -34,18 +34,18 @@ export function reassignResident(p:ProjectDocument,id:string,homeId:string,jobId
  if(!choices)throw Error('Personnage sans résidence générée : utiliser le trajet manuel');
  const home=choices.homes.find(h=>h.id===homeId),job=choices.jobs.find(j=>j.id===jobId);
  if(!home||!job)throw Error('Maison ou activité non disponible pour le métier choisi');
- // Author edits must not silently double-book a single-worker station or overfill a home.
- // Children may share a playground, but employment anchors are exclusive.
+ // Assignment capacities are checked against the active settlement, not
+ // against stale generated placement caches. Shared play anchors are exempt.
  const records=p.libraries.settlements?.[choices.settlementId]?.amenities??[];
  const occupied=records.filter(record=>record.id!==id).map(record=>{
   const index=p.entityIndex[record.id];
   return index?p.chunks[index.ownerChunkId]?.entities[record.id]?.components.Resident:undefined;
  }).filter((r):r is NonNullable<typeof r>=>!!r);
- if(occupied.filter(r=>r.homeAnchorId===homeId).length>=2)
-  throw Error('Domicile complet : deux autres résidents y sont déjà affectés');
- if(occupied.some(r=>r.workAnchorId===jobId&&r.role!=='child')&&
-    !['child','villager'].includes(occupied.find(r=>r.workAnchorId===jobId)?.role??''))
-  throw Error('Poste déjà attribué à un autre travailleur');
+ const conflict=residentReassignmentConflict(occupied,homeId,jobId,
+  records.find(record=>record.id===id)?.role==='resident'?
+   (p.entityIndex[id]?p.chunks[p.entityIndex[id].ownerChunkId]?.entities[id]?.components.Resident?.role:'villager')??'villager':
+   'villager');
+ if(conflict)throw Error(conflict);
  const loc=p.entityIndex[id],source=loc?p.chunks[loc.ownerChunkId]?.entities[id]:undefined,
   routine=source?resolveEntity(p,source).components.Resident:undefined;
  if(!source||!routine)throw Error('Resident inconnu');
@@ -84,4 +84,17 @@ export function reassignResident(p:ProjectDocument,id:string,homeId:string,jobId
  if(next.components.Transform)next.components.Transform.position={...next.components.Transform.position,x:home.point.x,z:home.point.z};
  next.ownerChunkId=chunkAt(p.world,home.point.x,home.point.z);
  putEntity(p,next);
+}
+
+/** Pure rule shared by Studio and validation tests. Never auto-reassign another actor. */
+export function residentReassignmentConflict(
+ occupied:readonly ResidentRoutineV1[],homeId:string,jobId:string,role:ResidentRole,
+):string|null{
+ if(occupied.filter(r=>r.homeAnchorId===homeId).length>=2)
+  return 'Domicile complet : deux autres résidents y sont déjà affectés';
+ const sharedPlay=role==='child'||role==='villager';
+ if(occupied.some(r=>r.workAnchorId===jobId&&
+    (!sharedPlay||!['child','villager'].includes(r.role))))
+  return 'Poste déjà attribué à un autre travailleur';
+ return null;
 }
