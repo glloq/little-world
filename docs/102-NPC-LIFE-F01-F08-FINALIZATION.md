@@ -129,3 +129,11 @@ Cartes : hameau 3–5 maisons, village agricole, forêt, montagne avec pont, por
 - **Événements** : courses validées `race.finished` post-franchissement final (durée mesurée) et test de non-régression des événements de vente/achat. Pas de résultat basé sur l'animation des PNJ.
 - **Gates encore ouvertes** : tests navigateur sur le dernier SHA, visualisation Studio universelle des quêtes, événements exploitation minière/agricole/ateliers, chaînes régionales, professions économiquement transactionnelles et benchmarks matériels 4–8 Go.
 
+
+## Extension : événements métiers vérifiés et diagnostics Studio
+
+- `src/gameplay/activity-runtime.ts` possède désormais un hook **optionnel après crédit** `onReward(kind,reward)`. La source native mine/ferme reste propriétaire des contrôles de récolte ; le hook ne s'exécute pas lorsqu'un crédit est refusé (notamment sac plein), lors du semis ou pendant une frappe sans ressource. `game-view.ts` publie `mine.extracted` / `farm.harvested` après ce succès.
+- Les commandes publiques `recordQuestCommit` restent limitées à la logique de jeu, où les appels pour pêche, mine, ferme, cueillette et course suivent leurs transactions/événements validés. **Elles ne doivent jamais être invoquées par une animation PNJ ou un bouton Studio direct.**
+- `src/npc-life/quest-readiness.ts` : diagnostic de **candidatures**, fondé sur les identités PNJ, dialogues réellement référencés et ancrages professionnels positionnés ; consultable dans « Villages & villes » à côté de la liste des habitants. Un compteur candidat n'est **pas** un certificat de trajet : le routeur runtime reste obligatoire.
+- Test `tests/quests-native-farm-events.test.mjs` ajouté pour le rejet d'un crédit, puis l'émission après récolte réelle et l'absence de répétition. Test `tests/npc-life-registry.test.mjs` étendu pour l'éligibilité aux quêtes après suppression d'un dialogue auteur.
+- **Non terminés** : interactions métier PNJ capables de travailler dans l'économie réelle, autres familles de quêtes et chaînes, éditeur complet de modèles et de récompenses Studio, courbes de performance GPU/fps sur PC 4–8 Go, tests de cas d'usage sur chaque type de carte.
