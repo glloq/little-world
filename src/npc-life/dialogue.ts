@@ -1,5 +1,5 @@
 import type {DialogueChoice,DialogueLine,DialogueSession} from '../dialogue.ts';
-import {residentShift,type ResidentPhase,type ResidentRole} from './schedule.ts';
+import {residentShift,residentDutyShift,type ResidentRoutineV1,type ResidentPhase,type ResidentRole} from './schedule.ts';
 const ROLE_LABEL:Record<ResidentRole,string>={
  farmer:'les champs',fisher:'la pêche',merchant:'le marché',
  woodcutter:'la forêt',miner:'la mine',miller:'le moulin',artisan:"l'atelier",
@@ -35,7 +35,7 @@ export function residentDialogue(base:DialogueSession|undefined,role:ResidentRol
     close(){closed=true;base?.close();},
   };
 }
-export function residentContextForHour(role:ResidentRole,hour:number):{phase:ResidentPhase;hour:number}{
-  const [begin,end]=residentShift(role);
+export function residentContextForHour(role:ResidentRole,hour:number,routine?:ResidentRoutineV1):{phase:ResidentPhase;hour:number}{
+  const [begin,end]=routine?residentDutyShift(routine):residentShift(role);
   return {hour,phase:hour<begin||hour>=end?'home':'work'};
 }

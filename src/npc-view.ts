@@ -26,6 +26,8 @@ import {terrainHeight} from './terrain.ts';
 import {createResidentRouter,type ResidentPath,type ResidentWalkable} from './npc-life/routes.ts';
 import {residentHour,residentShift,residentPoseAt,residentRoute,positionOnResidentRoute,type ResidentPose,type ResidentRoute} from './npc-life/schedule.ts';
 import {residentDialogue,residentContextForHour} from './npc-life/dialogue.ts';
+import {residentAgendaPoseAt,type ResidentAgendaPose,type ResidentDailyRoutes,type ResidentActivityLegs} from './npc-life/agenda.ts';
+import {residentSocialPairs} from './npc-life/social.ts';
 import './npc.css';
 
 /** All DOM content is written as text, including author-provided names and dialogue. */
@@ -164,7 +166,9 @@ export function createNPCSystem(
     if(!routine||!lifeOptions)return base;
     return residentDialogue(base,routine.role,()=>{
       const hour=residentHour(lifeOptions.worldTime(),lifeOptions.dayLengthSeconds,lifeOptions.initialDayPhase);
-      const context=residentContextForHour(routine.role,hour);
+      const living=entries.find(e=>e.state===state)?.life?.pose;
+      if(living)return {phase:living.phase,hour,weather:lifeOptions.weather?.()};
+      const context=residentContextForHour(routine.role,hour,routine);
       if(state.phase==='walk'){
         const [,end]=residentShift(routine.role);
         return {...context,weather:lifeOptions.weather?.(),phase:hour>=end?'to-home' as const:'to-work' as const};
@@ -217,7 +221,16 @@ export function createNPCSystem(
     const definition={...sourceDefinition,kind:visualNPCSpecies(sourceDefinition.kind)};
     const state = createNPCState(definition,bounds),
       route=definition.routine&&router?router.route(definition.routine.home,definition.routine.work):null,
-      life=route?{route,pose:null as ResidentPose|null,lastTime:-1,lastSample:-1,pausedSeconds:0,pauseFrom:null as number|null}:null,
+      agenda:ResidentDailyRoutes|null=route&&router&&definition.routine?.activities?.length?(()=>{
+        const legs:ResidentActivityLegs[]=[];
+        for(const stop of definition.routine.activities??[]){
+          const to=router.route(definition.routine!.work,stop.point),back=router.route(stop.point,definition.routine!.work);
+          if(!to||!back)return null;
+          legs.push({to,back});
+        }
+        return {work:route,activities:legs};
+      })():null,
+      life=route?{route,agenda,pose:null as ResidentAgendaPose|null,lastTime:-1,lastSample:-1,pausedSeconds:0,pauseFrom:null as number|null}:null,
       proxy = silhouette(definition);
     // Actual character rigs are allocated only when first seen nearby, not for
     // every citizen of the island. All hamsters share geometry/material caches.
@@ -248,6 +261,8 @@ export function createNPCSystem(
       scripted:null as null|{route:ResidentRoute;startAt:number;pausedFor:number;pauseFrom:number|null;arrivedAt:number|null},
     };
   });
+  const byId=new Map(entries.map(entry=>[entry.state.definition.id,entry]));
+  let socialPartners=new Map<string,string>(),lastSocialScan=-1;
   function nearest(player: NPCPoint) {
     let best: (typeof entries)[number] | null = null,
       distance = 5.5;
@@ -293,7 +308,7 @@ export function createNPCSystem(
     talkTo,
     setLighting(color:THREE.Color|null){distant.setLighting(color);},
     states: entries.map((entry) => entry.state),
-    get lifeStats(){return {assigned:entries.filter(e=>!!e.state.definition.routine).length,routed:entries.filter(e=>!!e.life).length,roadNodes:router?.nodes??0,roadTruncated:router?.truncated??false};},
+    get lifeStats(){return {assigned:entries.filter(e=>!!e.state.definition.routine).length,routed:entries.filter(e=>!!e.life).length,agendas:entries.filter(e=>!!e.life?.agenda).length,socialPairs:socialPartners.size/2,roadNodes:router?.nodes??0,roadTruncated:router?.truncated??false};},
     update(dt: number, time: number, position: NPCPoint,camera?:THREE.PerspectiveCamera) {
       if (disposed) return;
       distant.begin();distant.update(time);
@@ -330,29 +345,36 @@ export function createNPCSystem(
           if(now<life.lastTime){life.pausedSeconds=0;life.pauseFrom=null;life.lastSample=-1;}
           life.lastTime=now;
           const distance=Math.hypot(position.x-state.x,position.z-state.z);
-          const talking=dialogue.npcId===state.definition.id,near=distance<2.5;
+          const talking=dialogue.npcId===state.definition.id;
           state.activity=npcActivity(distance);
-          if(talking||near){
+          if(talking){
             if(life.pauseFrom===null)life.pauseFrom=now;
             state.previousX=state.x;state.previousY=state.y;state.previousZ=state.z;
             state.vx=0;state.vz=0;state.phase=talking?'talk':'greet';
             state.heading=Math.atan2(position.x-state.x,position.z-state.z);
           }else{
             if(life.pauseFrom!==null){life.pausedSeconds+=Math.max(0,now-life.pauseFrom);life.pauseFrom=null;}
+            // Conversations freeze an actor only while speaking. Gradually regain
+            // missed world time instead of offsetting its daily timetable forever.
+            life.pausedSeconds=Math.max(0,life.pausedSeconds-Math.max(0,dt)*2);
             // Distant residents have no pathfinding/tick loop; sample their absolute
             // position at most twice per logical second. Nearby motion is smooth.
             if(distance<160||now-life.lastSample>=.5||life.lastSample<0){
               try {
-                const pose=residentPoseAt(routine,life.route,Math.max(0,now-life.pausedSeconds),
-                  lifeOptions.dayLengthSeconds,lifeOptions.initialDayPhase,Math.max(.2,state.definition.speed));
+                const pose:ResidentAgendaPose=life.agenda
+                  ?residentAgendaPoseAt(routine,life.agenda,Math.max(0,now-life.pausedSeconds),
+                    lifeOptions.dayLengthSeconds,lifeOptions.initialDayPhase,Math.max(.2,state.definition.speed))
+                  :residentPoseAt(routine,life.route,Math.max(0,now-life.pausedSeconds),
+                    lifeOptions.dayLengthSeconds,lifeOptions.initialDayPhase,Math.max(.2,state.definition.speed));
                 const oldX=state.x,oldZ=state.z;
                 state.previousX=oldX;state.previousY=state.y;state.previousZ=oldZ;
                 state.x=pose.position.x;state.z=pose.position.z;state.y=terrainHeight(state.x,state.z);
                 state.vx=dt>0?(state.x-oldX)/dt:0;state.vz=dt>0?(state.z-oldZ)/dt:0;
-                if(pose.phase==='to-work'||pose.phase==='to-home')state.heading=pose.heading;
+                if(pose.phase==='to-work'||pose.phase==='to-home'||pose.phase==='to-activity')state.heading=pose.heading;
                 const busy=residentGesture(routine.role)!==null;
-                state.phase=pose.phase==='work'?(busy?'work':routine.role==='child'&&Math.hypot(state.vx,state.vz)>.15?'walk':'idle'):
-                  pose.phase==='to-work'||pose.phase==='to-home'?'walk':'idle';
+                state.phase=pose.phase==='activity'?(pose.activityKind==='social'?'greet':'idle'):
+                  pose.phase==='work'?(busy?'work':routine.role==='child'&&Math.hypot(state.vx,state.vz)>.15?'walk':'idle'):
+                  pose.phase==='to-work'||pose.phase==='to-home'||pose.phase==='to-activity'?'walk':'idle';
                 life.pose=pose;life.lastSample=now;
               }catch{
                 // Invalid route/clock: preserve the source NPC's legacy fallback,
@@ -362,6 +384,12 @@ export function createNPCSystem(
             }else{state.vx=0;state.vz=0;}
           }
         }else if(!entry.scripted)updateNPC(state,dt,position,obstacles);
+        const partnerId=socialPartners.get(state.definition.id),partner=partnerId?byId.get(partnerId):null;
+        if(partner&&dialogue.npcId!==state.definition.id&&life?.pose?.phase==='activity'&&
+          Math.hypot(partner.state.x-state.x,partner.state.z-state.z)<=6){
+          state.phase='greet';
+          state.heading=Math.atan2(partner.state.x-state.x,partner.state.z-state.z);
+        }
         const tier = npcVisualTier(
           Math.hypot((camera?.position.x??position.x) - state.x, (camera?.position.z??position.z) - state.z),
           state.definition.kind,
@@ -430,6 +458,15 @@ export function createNPCSystem(
         }
       }
       distant.end();
+      // Spatially budgeted social scan, independent of display/physics LOD.
+      if(time<lastSocialScan||time-lastSocialScan>=2){
+        socialPartners=residentSocialPairs(entries.map(e=>({
+          id:e.state.definition.id,x:e.state.x,z:e.state.z,
+          role:e.state.definition.routine?.role??'villager',
+          phase:e.life?.pose?.phase,kind:e.life?.pose?.activityKind,
+        })));
+        lastSocialScan=time;
+      }
     },
     interact(position: NPCPoint): boolean {
       if (disposed) return false;
