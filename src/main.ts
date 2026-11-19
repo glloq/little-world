@@ -320,7 +320,7 @@ const npcs = createNPCSystem(scene, definition.npcs,isLegacyTerrain()?undefined:
   rigBudget:((navigator as Navigator&{deviceMemory?:number}).deviceMemory??8)<=4?8:
     ((navigator as Navigator&{deviceMemory?:number}).deviceMemory??8)<=8?12:20,
   weather:()=>climate.state(worldClock.time).weather,
-  homeDoor:(homeId:string)=>npcExteriorDoors.has(homeId+'-door')?homeId+'-door':null,
+  homeDoor:(homeId:string)=>gameplay&&npcExteriorDoors.has(homeId+'-door')?homeId+'-door':null,
   openHomeDoor:(doorId:string)=>{gameplay?.openDoorForNPC(doorId,2);},
   surfaces:{
     groundHeight:terrainHeight,
