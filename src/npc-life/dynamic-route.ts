@@ -60,6 +60,22 @@ export function residentRouteAheadClear(
  return residentRouteClearance(route,distance,walk,horizon).clear;
 }
 
+/** Decide how far a scripted actor may safely advance this update.
+ * Reject browser-suspension leaps, but preserve partial progress to the final
+ * certified point before an obstacle so a caller can replan from reality.
+ */
+export function residentScriptedAdvance(
+ route:ResidentRoute,previousDistance:number,targetDistance:number,walk:ResidentWalkable,
+):ResidentRouteClearance{
+ if(!Number.isFinite(previousDistance)||!Number.isFinite(targetDistance)||
+    previousDistance<0||targetDistance<previousDistance||
+    targetDistance-previousDistance>12+1e-6)
+  return {clear:false,safeDistance:Number.isFinite(previousDistance)?Math.max(0,Math.min(route.length,previousDistance)):0};
+ if(targetDistance-previousDistance<1e-6)
+  return {clear:true,safeDistance:previousDistance};
+ return residentRouteClearance(route,previousDistance,walk,targetDistance-previousDistance);
+}
+
 /** Validate the entire interval about to be travelled, not just the endpoint.
  * Returns false rather than accepting an oversized jump after a suspended tab.
  * Scripted navigation can then replan from the last safe position.
