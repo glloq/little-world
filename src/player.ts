@@ -5,7 +5,7 @@ import {stepSurfBarrel} from './surf/surf-barrel.ts';
 import {startBarrelWash,stepBarrelWash} from './surf/barrel-wash.ts';
 import type {SurfWaveField} from './surf/wave-field.ts';
 export {ROLL,GLIDE,MOTION,SURFACE_MOTION} from './physics/motion.ts';
-import {GAS,gasBoostStep,gasMastery,gasShots} from './physics/gas-propulsion.ts';
+import {GAS,gasBoostStep,gasMastery,gasShots,stepBoostVitals} from './physics/gas-propulsion.ts';
 import {DEFAULT_BODY,type WorldCollisionQuery,type MovementSpace,type BodyDimensions} from './physics/collision-world.ts';
 import * as THREE from 'three';
 import {
@@ -110,6 +110,7 @@ export interface Player {
   gasReserve?:number;gasCapacityLevel?:number;gasPowerLevel?:number;gasControlLevel?:number;
   gasBoosting?:boolean;gasPulseSeq?:number;gasPulseClock?:number;gasThrust?:number;
   gasPulseRemaining?:number;gasCooldown?:number;gasBoostHeld?:boolean;gasRepeatArmed?:boolean;
+  satiety?:number;boostRechargeProgress?:number;
 }
 /** Swimming tuning: depth of the feet under the water line while swimming (body centre ≈ at the
  * surface, head out), dive speed (normal / Shift) and the push down when diving with Space. */
@@ -135,6 +136,7 @@ export function spawnPlayer(): Player {
     glideReady: false,
     glideDeploymentUsed:false,glideDeploymentRemaining:0,airBoostUsed:false,groundBoostCharge:0,
     gasReserve:GAS.initial,gasCapacityLevel:0,gasPowerLevel:0,gasControlLevel:0,
+    satiety:100,boostRechargeProgress:0,
     gasBoosting:false,gasPulseSeq:0,gasPulseClock:0,gasThrust:0,
     gasPulseRemaining:0,gasCooldown:0,gasBoostHeld:false,gasRepeatArmed:false,
   };
@@ -143,6 +145,7 @@ export function spawnPlayer(): Player {
 export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:WorldCollisionQuery,
   surfField?:SurfWaveField,surfTick=0): void {
   if(!Number.isFinite(dt)||dt<=0||dt>.25)throw Error('Pas de mouvement invalide');
+  stepBoostVitals(p,dt);
   const { position: pos, velocity: v } = p;
   const oldMode = p.mode;
   let gasTicked=false;
