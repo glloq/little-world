@@ -17,6 +17,7 @@ export function localLife(p:ProjectDocument,r:SettlementRecipe,amenities:Amenity
   if(routine){if(routine.homeAnchorId)assignment?.reserve(routine.homeAnchorId);if(routine.workAnchorId)assignment?.reserveJob(routine.workAnchorId);}
   return {entity:structuredClone(oldEntity),record:structuredClone(old),dialogue:p.libraries.dialogues[old.id+'-talk'],preserved:true};
  }
+ if(old&&!oldEntity)return null; // author-deleted host must not respawn
  if(!r.localLife)return null;
  // Never exceed the existing island-wide character cap, including the greeter.
  if(!oldEntity&&Object.values(p.entityIndex).filter(v=>v.kind==='character').length>=100)return null;

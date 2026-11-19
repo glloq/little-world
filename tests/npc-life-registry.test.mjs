@@ -64,4 +64,6 @@ test('turning off routines never strips dialogue from an author-edited resident'
  const kept=project.chunks[project.entityIndex[child.id].ownerChunkId].entities[child.id];
  assert.equal(kept.name,'Habitant conservé');
  assert.equal(JSON.stringify(project.libraries.dialogues[child.id+'-talk']),dialogueBefore);
+ const residents=residentRegistry(project,'registry-demo').residents;
+ assert.ok(residents.some(r=>r.id===child.id),'The author-edited resident remains attached to the village');
 });

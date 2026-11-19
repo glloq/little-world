@@ -53,7 +53,21 @@ export function settlementPopulation(
   const out:SettlementPopulation={entities:[],dialogues:{},records:[],preserved:[],
     conflicts:[],warnings:[],limited:false,
     stats:{homes:index.homes.length,jobs:index.jobs.length,play:index.play.length,assigned:0,unreachable:0}};
-  if(!r.localLife||!r.residentRoutines)return out;
+  if(!r.localLife||!r.residentRoutines){
+    // Disabling automatic population removes only unedited generated actors.
+    // Retain authored people and their records, otherwise they become orphaned
+    // outside the settlement even though their V3 source survives.
+    for(const a of old?.amenities??[]){
+      if(a.role!=='resident'||!amenityChanged(p,a))continue;
+      const ix=p.entityIndex[a.id],entity=ix?p.chunks[ix.ownerChunkId]?.entities[a.id]:undefined;
+      if(!entity)continue; // deliberately deleted actor
+      out.entities.push(structuredClone(entity));out.records.push(structuredClone(a));
+      out.preserved.push(a.id);
+      const dialogue=p.libraries.dialogues[a.id+'-talk'];
+      if(dialogue)out.dialogues[dialogue.id]=structuredClone(dialogue);
+    }
+    return out;
+  }
   if(old?.suppressedAmenities?.includes('resident'))return out;
   for(const code of index.warnings){
     if(code==='LIFE_NO_HOMES')out.warnings.push({code,message:'Aucune maison accessible pour créer des résidents.'});
