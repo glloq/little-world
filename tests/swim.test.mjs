@@ -53,3 +53,21 @@ test('SWIM — separate acceleration increases swim speed, without requiring rol
   run(quick,q,.7,{forward:1,run:true});run(slow,q,.7,{forward:1});
   assert.ok(quick.position.z>slow.position.z+.3,'accelerate increases water movement');
 });
+
+
+test('SWIM — gas boost works on the surface and underwater without launching upwards',()=>{
+  const q=sea(),surface=run(actor(),q,1),under=run(actor(),q,1);
+  const initial=surface.gasReserve??150;
+  const still=surface.position.z;
+  run(surface,q,.3,{forward:1,boostHeld:true});
+  assert.ok(surface.position.z>still,'water boost keeps directional motion');
+  assert.ok(surface.gasReserve<initial,'gas pulse is charged from the shared reserve');
+  assert.equal(surface.mode,'swim','gas does not launch the hamster out of water');
+  press(under,q);run(under,q,1);
+  assert.equal(under.mode,'dive');
+  const oxygen=under.oxygen,gas=under.gasReserve??150;
+  run(under,q,.3,{forward:1,boostHeld:true,cameraPitch:.2});
+  assert.ok(under.gasReserve<gas,'underwater boost costs gas');
+  assert.ok(under.oxygen<oxygen,'boost never bypasses oxygen consumption');
+  assert.equal(under.mode,'dive');
+});

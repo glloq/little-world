@@ -13,6 +13,8 @@
 .touch-jump{right:0;bottom:0;width:84px;height:84px;border-radius:50%;background:rgba(242,249,238,.88);font-size:13px}
 .touch-accelerate{right:96px;bottom:0;width:76px;height:76px;border-radius:50%;background:rgba(217,240,218,.87);border-color:#74a487}
 .touch-interact{right:5px;bottom:93px;width:58px;height:53px}
+.touch-dive,.touch-surf{right:96px;bottom:88px;width:76px;height:50px}
+.touch-surf{right:96px;bottom:88px}
 .touch-controls[data-mode=glide] .touch-accelerate{border:2px solid #47825f}
 .touch-portrait-guide{position:fixed;inset:0;z-index:120;background:#1e3428ed;display:grid;place-items:center;padding:20px;color:#fff;touch-action:pan-y}
 .touch-portrait-content{max-width:370px;text-align:center;background:#2e503e;border:1px solid #739781;border-radius:20px;padding:22px;box-shadow:0 8px 32px #1118}
@@ -59,6 +61,7 @@ body.touch-mode .start-card .primary-button{min-height:48px}
  .touch-jump{width:78px;height:78px}
  .touch-accelerate{right:88px;width:70px;height:70px}
  .touch-interact{bottom:87px;width:49px;height:49px}
+ .touch-dive,.touch-surf{right:88px;bottom:78px;width:70px;height:48px}
  body.touch-mode .ui-root .ui-activity-card{bottom:calc(138px + env(safe-area-inset-bottom))}
 }
 @media(orientation:portrait){
@@ -68,6 +71,7 @@ body.touch-mode .start-card .primary-button{min-height:48px}
  .touch-jump{width:74px;height:74px}
  .touch-accelerate{right:81px;width:65px;height:65px;font-size:11px}
  .touch-interact{bottom:80px;width:48px;height:48px}
+ .touch-dive,.touch-surf{right:81px;bottom:74px;width:65px;height:46px;font-size:11px}
  body.touch-mode .ui-root .ui-prompt{bottom:calc(152px + env(safe-area-inset-bottom));max-width:calc(100vw - 30px)}
  body.touch-mode .ui-root .ui-activity-card{bottom:calc(151px + env(safe-area-inset-bottom));width:min(180px,48vw)}
  body.touch-mode .ui-root .ui-notifications{max-width:60vw}

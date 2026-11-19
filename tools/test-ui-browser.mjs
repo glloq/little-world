@@ -220,8 +220,10 @@ try{
   await mobilePage.locator('.touch-joystick').waitFor({state:'visible'});
   verify(await mobilePage.locator('.touch-controls').isVisible(),'Phone-sized coarse pointer activates joystick and action buttons');
   verify(await mobilePage.getByRole('button',{name:'Saut'}).isVisible()&&await mobilePage.getByRole('button',{name:'Courir'}).isVisible(),'Phone keeps jump and acceleration as separate primary buttons');
-  verify(await mobilePage.locator('.touch-action').count()===3,'Only two permanent buttons and one contextual action are created');
-  verify(await mobilePage.locator('.touch-roll,.touch-dive').count()===0,'Roll and dive never add extra buttons');
+  verify(await mobilePage.locator('.touch-action').count()===5,'Two primary buttons and three contextual actions are created (interact, dive, surf)');
+  verify(await mobilePage.locator('.touch-roll').count()===0,'Rolling reuses acceleration without a separate button');
+  verify(await mobilePage.locator('.touch-dive').isHidden()&&await mobilePage.locator('.touch-surf').isHidden(),
+    'Dive and surf controls are present but hidden outside the water and surf context');
   await mobilePage.waitForTimeout(450);
   verify(await mobilePage.evaluate(()=>{
     const action=document.querySelector('.touch-interact');

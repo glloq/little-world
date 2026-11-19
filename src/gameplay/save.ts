@@ -6,6 +6,7 @@ import {parseWorkshopState,type WorkshopStateV1} from '../economy/production.ts'
 import {parseMarketState,type MarketStateV1} from '../economy/island-markets.ts';
 import {GAS,gasCapacity} from '../physics/gas-propulsion.ts';
 import {parsePlayerLoadout,type PlayerLoadout} from './player-loadout.ts';
+import {parseSurfBoardPlacement,type SurfBoardPlacement} from '../surf/board-placement.ts';
 import {parseFlightProgress,type FlightProgress} from './flight-progress.ts';
 import {indexedDbBlobStore,type BlobStore} from './save-blobs.ts';
 export interface GameSaveV1 {schemaVersion:1;worldId:string;worldBuildVersion:string;slotId:string;savedAt:number;time:number;position:Point3;inventory:Record<string,number>;variables:Record<string,StateValue>;objectives:Record<string,ObjectiveStatus>;entities:Record<string,Record<string,StateValue>>;executed:Record<string,boolean>;cooldowns:Record<string,number>;dialogueFlags:Record<string,boolean>;pending:{interactionId:string;cursor:number;wakeAt:number}[];}
@@ -20,7 +21,9 @@ export interface GameSaveV2 extends Omit<GameSaveV1,'schemaVersion'> {schemaVers
   cargoPurchaseRevision?:number;
   /** Optional hand slot; old V1/V2 saves continue to load without it. */equippedItemId?:string|null;
   /** Persisted head/other slots and ten equipment favourites; missing in older saves. */
-  loadout?:PlayerLoadout;}
+  loadout?:PlayerLoadout;
+  /** Board dropped in this island's sea. Missing = packed or older save. */
+  surfBoard?:SurfBoardPlacement|null;}
 export type GameSave=GameSaveV2;
 /** Activity payloads above this size go to IndexedDB (when available). */
 export const INLINE_ACTIVITY_LIMIT=256*1024;
@@ -64,11 +67,12 @@ export function parseGameSave(value:unknown):GameSaveV2 {
       'Révision du carnet d’import invalide');
   if(v.equippedItemId!==undefined&&v.equippedItemId!==null)assert(typeof v.equippedItemId==='string'&&identifier(v.equippedItemId),'Objet équipé invalide');
   const loadout=v.loadout===undefined?undefined:parsePlayerLoadout(v.loadout);
+  const surfBoard=v.surfBoard===undefined?undefined:parseSurfBoardPlacement(v.surfBoard);
   const flightProgress=parseFlightProgress(v.flightProgress);
   if(v.gasReserve!==undefined)assert(typeof v.gasReserve==='number'&&Number.isFinite(v.gasReserve)&&v.gasReserve>=0&&v.gasReserve<=gasCapacity({gasCapacityLevel:flightProgress.capacityLevel}),'Réserve de gaz invalide');
   if(v.external!==undefined)assert(record(v.external)&&typeof v.external.key==='string'&&v.external.key.length<=300&&finite(v.external.bytes,0,1e9),'Référence de données de partie invalide');
   assert(new TextEncoder().encode(JSON.stringify({...v,mines:undefined,farms:undefined,workshops:undefined,markets:undefined})).byteLength<=2_000_000,'Sauvegarde trop volumineuse');
-  return structuredClone({...v,flightProgress,gasReserve:v.gasReserve??GAS.legacyInitial,schemaVersion:2,dialogueFlags:v.dialogueFlags??{},space:v.space??null,mines,farms,workshops,markets,cargoPurchaseRevision:v.cargoPurchaseRevision??0,...(loadout!==undefined?{loadout}:{})}) as unknown as GameSaveV2;
+  return structuredClone({...v,flightProgress,gasReserve:v.gasReserve??GAS.legacyInitial,schemaVersion:2,dialogueFlags:v.dialogueFlags??{},space:v.space??null,mines,farms,workshops,markets,cargoPurchaseRevision:v.cargoPurchaseRevision??0,...(loadout!==undefined?{loadout}:{}),...(surfBoard!==undefined?{surfBoard}:{})}) as unknown as GameSaveV2;
 }
 export const GAME_SAVE_PREFIX='little-world:game-save:v1:';
 export interface SaveStorage {readonly length:number;key(index:number):string|null;getItem(key:string):string|null;setItem(key:string,value:string):void;removeItem(key:string):void;}
