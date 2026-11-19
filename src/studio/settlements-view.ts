@@ -10,6 +10,7 @@ import { newSettlement, type SettlementRecipe } from '../settlements/schema.ts';
 import { planSettlement, type SettlementPlan } from '../settlements/planner.ts';
 import { applySettlement, previewSettlementProject, settlementChunkIds, lockSettlementBuilding, removeSettlement, removeSettlementBuilding,lockSettlementAmenity,removeSettlementAmenity } from '../settlements/authoring.ts';
 import { validateSettlements } from '../settlements/validation.ts';
+import {residentRegistry} from '../npc-life/registry.ts';
 import { terrainAccessContext } from '../studio-core/terrain-access.ts';
 import { fingerprint } from '../world-production/landscape-schema.ts';
 export function mountSettlements(host: HTMLElement, s: StudioSession, options: {
@@ -106,7 +107,10 @@ export function mountSettlements(host: HTMLElement, s: StudioSession, options: {
     function showPlan() {
         if (!plan)
             return;
-        result.replaceChildren(node('strong', `${plan.buildings.length} maisons · ${plan.amenities?.length??0} équipements · ${plan.paths.filter(v => !v.id.includes('-access-')).length} voies partagées · ${plan.paths.filter(v => v.id.includes('-access-')&&!v.id.includes('-civic-')).length} accès privés · ${plan.paths.filter(v=>v.id.includes('-civic-access-')).length} accès aux équipements`), node('p', `${plan.preserved.length} éléments protégés · ${plan.removed.length} suppressions · calcul ${Math.round(plan.generationMs)} ms`, 'muted'), ...plan.diagnostics.map(d => node('p', d.message, 'diagnostic ' + d.severity)));
+        const life=plan.lifeStats;
+        result.replaceChildren(node('strong', `${plan.buildings.length} maisons · ${plan.amenities?.length??0} équipements · ${plan.paths.filter(v => !v.id.includes('-access-')).length} voies partagées · ${plan.paths.filter(v => v.id.includes('-access-')&&!v.id.includes('-civic-')).length} accès privés · ${plan.paths.filter(v=>v.id.includes('-civic-access-')).length} accès aux équipements`), node('p', `${plan.preserved.length} éléments protégés · ${plan.removed.length} suppressions · calcul ${Math.round(plan.generationMs)} ms`, 'muted'),
+          ...(life?[node('p',`Vie locale : ${life.assigned} nouveaux résidents · ${life.homes} maisons · ${life.jobs} postes · ${life.play} points de jeu · ${life.unreachable} affectations impossibles · ${life.graphNodes} nœuds piétons`,life.unreachable||life.graphTruncated?'diagnostic WARNING':'status-success')]:[]),
+          ...plan.diagnostics.map(d => node('p', d.message, 'diagnostic ' + d.severity)));
         const commit = button(p.libraries.settlements?.[recipe.id] ? 'Appliquer les changements' : 'Créer dans le monde', () => void run(async () => { const current = plan!; await s.change('Créer / modifier ' + recipe.name, settlementChunkIds(p, current), d => applySettlement(d, current)); recipe = structuredClone(p.libraries.settlements![recipe.id].recipe); plan = null; result.replaceChildren(node('p', 'Implantation enregistrée · une opération annulable.', 'status-success'), button('Modifier dans Studio', () => { const id = p.libraries.settlements![recipe.id].buildings[0]?.id; if (id)
             s.selection.select({ kind: 'entity', id }); options.open3D(); }), button('Jouer ici', () => { const b = p.libraries.settlements?.[recipe.id]?.buildings[0]; if (b)
             s.selection.select({ kind: 'entity', id: b.id }); options.play(); })); }), 'primary-button');
@@ -157,7 +161,8 @@ export function mountSettlements(host: HTMLElement, s: StudioSession, options: {
         list.replaceChildren(node('h3', 'Implantations du projet'));
         for (const s0 of Object.values(p.libraries.settlements ?? {})) {
             const row = node('div', '', 'section-card');
-            row.append(node('strong', s0.recipe.name + ' · ' + s0.buildings.length + ' maisons'), button('Modifier ' + s0.recipe.name, () => { recipe = structuredClone(s0.recipe);viewAnchor={...recipe.center}; plan = null; step = 3; result.replaceChildren(); render(); }), button('Voir en 3D', () => { const b = s0.buildings[0]; if (b)
+            const residents=(s0.amenities??[]).filter(a=>a.role==='resident'||a.role==='host');
+            row.append(node('strong', s0.recipe.name + ' · ' + s0.buildings.length + ' maisons · '+residents.length+' habitants'), button('Modifier ' + s0.recipe.name, () => { recipe = structuredClone(s0.recipe);viewAnchor={...recipe.center}; plan = null; step = 3; result.replaceChildren(); render(); }), button('Voir en 3D', () => { const b = s0.buildings[0]; if (b)
                 s.selection.select({ kind: 'entity', id: b.id }); options.open3D({ ...s0.recipe.center, radius: s0.recipe.radius * .7 }); }), button('Supprimer ' + s0.recipe.name, () => void run(async () => { const ids = Object.keys(p.chunkIndex); await s.change('Supprimer ' + s0.recipe.name, ids, d => removeSettlement(d, s0.id)); plan = null; if (recipe.id === s0.id)
                 recipe = fresh(); report('Implantation retirée ; retouches et éléments verrouillés conservés.'); })));
             const buildings = select('', [['', 'Choisir une maison'], ...s0.buildings.map(b => [b.id, p.entityIndex[b.id]?.name ?? b.id] as const)], id => { if (id) {
@@ -165,6 +170,16 @@ export function mountSettlements(host: HTMLElement, s: StudioSession, options: {
                 render();
             } });
             row.append(field('Maison à modifier', buildings));
+            if(residents.length){
+                const registry=residentRegistry(p,s0.id),panel=node('details');
+                panel.append(node('summary',`Vie locale · ${registry.residents.length} résidents avec horaires`));
+                for(const resident of registry.residents){
+                    panel.append(node('p',`${resident.name} · ${resident.role} · maison ${resident.homeAnchorId??'absente'} · poste ${resident.workAnchorId??'absent'}`,'muted'),
+                      button('Inspecter '+resident.name,()=>{s.selection.select({kind:'entity',id:resident.id});options.open3D();}));
+                }
+                for(const issue of registry.issues)panel.append(node('p',issue.message,'diagnostic WARNING'));
+                row.append(panel);
+            }
             const selected = s.selection.state.selected?.id, b = s0.buildings.find(b => b.id === selected);
             if (b) {
                 const lock = node('input');

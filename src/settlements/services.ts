@@ -13,7 +13,17 @@ import type { WorldCollisionQuery } from '../physics/collision-world.ts';
 import { fingerprint } from '../world-production/landscape-schema.ts';
 import type { AmenityRecord, SettlementRecipe } from './schema.ts';
 import type { SettlementDiagnostic } from './planner.ts';
-export function amenityChanged(p: ProjectDocument, a: AmenityRecord) { const i = p.entityIndex[a.id], e = i ? p.chunks[i.ownerChunkId]?.entities[a.id] : undefined; return a.locked || fingerprint(e) !== a.entityHash || !!a.dialogueHash&&fingerprint(p.libraries.dialogues[a.id+'-talk'])!==a.dialogueHash; }
+export function amenityChanged(p: ProjectDocument, a: AmenityRecord) {
+    const i=p.entityIndex[a.id],entity=i?p.chunks[i.ownerChunkId]?.entities[a.id]:undefined;
+    // Missing sources (deliberate author deletion) and modified dialogues must
+    // never be hashed as undefined or silently regenerated.
+    if(a.locked||!entity||fingerprint(entity)!==a.entityHash)return true;
+    if(a.dialogueHash){
+        const dialogue=p.libraries.dialogues[a.id+'-talk'];
+        if(!dialogue||fingerprint(dialogue)!==a.dialogueHash)return true;
+    }
+    return false;
+}
 export function planServices(p: ProjectDocument, r: SettlementRecipe, roadZ: number, c: GroundRouteContext, query: WorldCollisionQuery, entities: EntityDefinitionV3[], paths: PathDefinition[], diagnostics: SettlementDiagnostic[], preserved: string[], nativePath: (id: string, points: {
     x: number;
     z: number;

@@ -3,6 +3,7 @@ import {neighborhoodNetwork,networkPattern} from './neighborhood-network.ts';
 import {settlementMaritimePort} from './maritime-port.ts';
 import {localLife} from './local-life.ts';
 import {settlementPopulation} from './population.ts';
+import {createResidentAssignmentPlanner} from '../npc-life/assignments.ts';
 import {riverCrossing} from './river-crossing.ts';
 import {bridgeColliders} from './bridge.ts';
 import {isCorridor,corridorStreet} from './corridor.ts';
@@ -42,6 +43,8 @@ export interface SettlementPlan {
     preserved: string[];
     removed: string[];
     generationMs: number;
+    /** Preview-only, never saved as authoritative authored source. */
+    lifeStats?:{homes:number;jobs:number;play:number;assigned:number;unreachable:number;graphNodes:number;graphTruncated:boolean};
 }
 export function settlementSourceHash(p: ProjectDocument) { return fingerprint({ world: p.world, chunks: p.chunks, chunkIndex: p.chunkIndex, entityIndex: p.entityIndex, libraries: p.libraries, assets: p.assets }); }
 export function sourceEntity(p: ProjectDocument, id: string) { const i = p.entityIndex[id]; return i ? p.chunks[i.ownerChunkId]?.entities[id] : undefined; }
@@ -216,12 +219,32 @@ export function planSettlement(p: ProjectDocument, raw: SettlementRecipe): Settl
             preserved.push(id);
         }
     const zones=settlementSurroundings(p,r,paths,query,entities,amenities,diagnostics,preserved);
-    const inhabitant=localLife(p,r,amenities,buildings,zones);if(inhabitant){entities.push(inhabitant.entity);amenities.push(inhabitant.record);if(inhabitant.dialogue)dialogues[inhabitant.dialogue.id]=inhabitant.dialogue;if(inhabitant.preserved)preserved.push(inhabitant.entity.id);}
-    const population=settlementPopulation(p,r,amenities,buildings,zones);
+    // The source is compiled once: generated access roads + external authored
+    // paths, excluding stale paths owned by the previous version of this village.
+    const activeLife=!!(r.localLife&&r.residentRoutines);
+    const generatedIds=new Set(paths.map(path=>path.id));
+    const oldOwned=new Set(Object.keys(previous?.pathHashes??{}));
+    const otherPaths=activeLife?Object.values(p.libraries.paths).filter(path=>!oldOwned.has(path.id)&&!generatedIds.has(path.id)):[];
+    const assignment=createResidentAssignmentPlanner([...otherPaths,...(activeLife?paths:[])],c,{
+      maxOccupantsPerHome:2,maxRouteM:650,
+      blocked:(x,z)=>query.intersectsVolume({minX:x-.22,maxX:x+.22,minZ:z-.22,maxZ:z+.22,
+        minY:c.height(x,z)+.4,maxY:c.height(x,z)+1.5}),
+    });
+    const inhabitant=localLife(p,r,amenities,buildings,zones,assignment);
+    if(inhabitant){
+      entities.push(inhabitant.entity);amenities.push(inhabitant.record);
+      if(inhabitant.dialogue)dialogues[inhabitant.dialogue.id]=inhabitant.dialogue;
+      if(inhabitant.preserved)preserved.push(inhabitant.entity.id);
+      if('warning' in inhabitant&&inhabitant.warning)diagnostics.push({severity:'WARNING',
+        code:inhabitant.warning,message:'Le personnage d’accueil reste sur place : aucun trajet professionnel validé.'});
+    }
+    const population=settlementPopulation(p,r,amenities,buildings,zones,assignment);
     if(population.limited)diagnostics.push({severity:'WARNING',code:'LIFE_NPC_LIMIT',message:'Budget de PNJ atteint : certains habitants ne sont pas générés.'});
+    for(const warning of population.warnings)diagnostics.push({severity:'WARNING',...warning});
     entities.push(...population.entities);amenities.push(...population.records);
     Object.assign(dialogues,population.dialogues);preserved.push(...population.preserved);
     for(const id of population.conflicts)diagnostics.push({severity:'ERROR',code:'LIFE_ID_CONFLICT',targetId:id,message:'Un personnage manuel utilise déjà cet identifiant.'});
-    return { zones,dialogues,recipe: r, sourceHash: settlementSourceHash(p), recipeHash: fingerprint(r), entities, paths, buildings,...(r.services||r.waterfront||previous?.amenities?{amenities}:{}), diagnostics, preserved: [...new Set(preserved)], removed, generationMs: performance.now() - started };
+    const lifeStats=activeLife?{...population.stats,graphNodes:assignment.graphNodes,graphTruncated:assignment.truncated}:undefined;
+    return { zones,dialogues,recipe: r, sourceHash: settlementSourceHash(p), recipeHash: fingerprint(r), entities, paths, buildings,...(r.services||r.waterfront||previous?.amenities?{amenities}:{}), diagnostics, preserved: [...new Set(preserved)], removed, generationMs: performance.now() - started,...(lifeStats?{lifeStats}:{}) };
 }
 export { HABITAT_ASSETS };

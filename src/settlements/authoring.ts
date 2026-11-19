@@ -28,6 +28,10 @@ export function settlementChunkIds(p: ProjectDocument, plan: SettlementPlan): st
 } return [...ids]; }
 function writePlan(p: ProjectDocument, plan: SettlementPlan) {
     const old = p.libraries.settlements?.[plan.recipe.id];
+    // Snapshot author changes before mutating source entities. Re-evaluating
+    // provenance after removeEntity would dereference a deleted actor.
+    const protectedAmenities=new Set((old?.amenities??[])
+        .filter(a=>amenityChanged(p,a)).map(a=>a.id));
     const missingZoneHashes=Object.fromEntries(Object.entries(old?.zoneHashes??{}).filter(([id])=>!p.libraries.zones?.[id]));
     p.assets = { ...p.assets };
     for(const e of plan.entities){const id=e.components.Visual?.assetId,asset=id?assetDefinitionFor(id):undefined;if(asset)p.assets[asset.id]=asset;}
@@ -44,8 +48,14 @@ function writePlan(p: ProjectDocument, plan: SettlementPlan) {
     for (const id of Object.keys(old?.pathHashes ?? {}))
         if (!plan.paths.some(v => v.id === id) && fingerprint(p.libraries.paths[id]) === old!.pathHashes[id])
             removePath(p, id);
-    for(const a of old?.amenities??[])if(!plan.amenities?.some(v=>v.id===a.id)&&!amenityChanged(p,a))removeEntity(p,a.id);
-    p.libraries.dialogues={...p.libraries.dialogues};for(const a of old?.amenities??[])if(a.dialogueHash&&!plan.amenities?.some(v=>v.id===a.id)&&fingerprint(p.libraries.dialogues[a.id+'-talk'])===a.dialogueHash)delete p.libraries.dialogues[a.id+'-talk'];
+    for(const a of old?.amenities??[])
+        if(!plan.amenities?.some(v=>v.id===a.id)&&!protectedAmenities.has(a.id))removeEntity(p,a.id);
+    p.libraries.dialogues={...p.libraries.dialogues};
+    for(const a of old?.amenities??[]){
+        const dialogue=p.libraries.dialogues[a.id+'-talk'];
+        if(a.dialogueHash&&!plan.amenities?.some(v=>v.id===a.id)&&!protectedAmenities.has(a.id)
+            &&dialogue&&fingerprint(dialogue)===a.dialogueHash)delete p.libraries.dialogues[a.id+'-talk'];
+    }
     for(const [id,dialogue]of Object.entries(plan.dialogues??{})){if(p.libraries.dialogues[id]&&!old?.amenities?.some(a=>a.id+'-talk'===id))throw Error('Dialogue déjà utilisé : '+id);p.libraries.dialogues[id]=structuredClone(dialogue);}
     for(const [id,hash]of Object.entries(old?.zoneHashes??{}))if(!plan.zones?.some(z=>z.id===id)&&p.libraries.zones?.[id]&&fingerprint(p.libraries.zones[id])===hash)removeZone(p,id);
     for(const z of plan.zones??[])putZone(p,z);
