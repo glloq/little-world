@@ -8,6 +8,8 @@ const browser=await chromium.launch({headless:true,executablePath:process.env.CH
 let checks=0;const verify=(yes,message)=>{assert.ok(yes,message);checks++;};
 try{
  const page=await browser.newPage({viewport:{width:1280,height:800}}),errors=[];page.on('pageerror',e=>errors.push(e.message));let release;const bootGate=new Promise(resolve=>release=resolve);await page.route('**/assets/game-*.js',async route=>{await bootGate;await route.continue();});await page.goto(base+'?beta=1&metrics',{waitUntil:'commit'});await page.locator('#start-overlay').waitFor({state:'visible'});verify(await page.locator('#start-overlay').getAttribute('aria-busy')==='true','Loading overlay waits for asynchronous game initialization');release();await page.locator('#start-overlay').waitFor({state:'hidden'});await page.waitForFunction(()=>window.littleWorldMetrics?.environment);
+ const initialSky=await page.evaluate(()=>window.littleWorldMetrics.environment.sky);
+ verify(initialSky?.visible===true&&initialSky.clouds2d===true&&initialSky.clouds3d===0&&initialSky.skyDrawCalls===1,'Low-cost sun/2D sky is active with one draw call and no 3D clouds');
  const settings=async()=>{
   await page.getByRole('button',{name:'Menu (Échap)'}).click();
   await page.locator('.ui-panel[data-panel="pause"]').getByRole('button',{name:'Paramètres'}).click();
