@@ -84,7 +84,7 @@ body.developer .environment-controls{top:76px!important;right:16px!important}
 @media(prefers-reduced-motion:reduce){.ui-hud-button,.ui-minimap,.ui-quick{transition:none!important}}
 
 
-/* Segmented boost readout: twenty light DOM spans, no gradients/shaders or JS animation. */
+/* Segmented boost readout: ten light DOM spans, no gradients/shaders or JS animation. */
 .ui-gas{width:215px;gap:5px;pointer-events:none}
 .ui-gas-label{font-weight:750;letter-spacing:.01em;font-variant-numeric:tabular-nums}
 .ui-gas-slots{display:flex;gap:2px;width:100%;height:9px}
@@ -104,6 +104,6 @@ body>.environment-controls{display:none!important}
 .ui-settings-section .environment-controls small{display:block;font-size:11px;color:var(--ui-muted);margin-top:8px}
 
 /* Satiety is permanent; boost readout is shown only after consumption/refill. */
-.ui-satiety{width:215px;pointer-events:none}
+.ui-satiety{width:215px;bottom:174px;pointer-events:none}
 .ui-satiety .ui-meter-fill{background:#9ed780}
-@media(max-width:760px){.ui-satiety{width:min(200px,50vw)}}
+@media(max-width:760px){.ui-satiety{bottom:145px;width:min(200px,50vw)}}
