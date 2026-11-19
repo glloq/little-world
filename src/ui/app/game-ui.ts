@@ -355,7 +355,7 @@ export function createGameUi(deps:GameUiDeps){
   const satietyLabel=el('span','','Rassasié');satiety.append(satietyLabel,satietyTrack);
   host.append(quick,minimap.element,tool,oxygen,stamina,satiety,gas,velocity);
   ui.onChange(id=>{if(id)hideAudioPopover();});
-  const card=activityCard(host,(plotId,cropId)=>{const name=a?.selectCrop(plotId,cropId);if(name){center.notify('info','Culture choisie : '+name);deps.audio?.emit('farm.seedbag',{source:'player'});}});
+  const card=activityCard(host,(plotId,cropId)=>{const name=a?.selectCrop(plotId,cropId);if(name){center.notify('info','Culture choisie : '+name);deps.audio?.emit('farm.seedbag',{source:'player'});deps.focusGameplay();}});
   function renderTool(){const item=g?.runtime.data.items.find(i=>i.id===g?.equipment.hands);tool.textContent=item?'En main : '+item.name:'';tool.classList.toggle('hide',!item);const instrument=instrumentForItem(g?.equipment.hands);musicButton.classList.toggle('hide',!instrument);musicButton.title=instrument?'Jouer : '+instrument.name+' (P)':'';}
   renderTool();
   // Gameplay changes → notifications (gains, missions) and open panel refresh.
