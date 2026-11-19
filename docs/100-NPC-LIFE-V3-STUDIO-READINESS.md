@@ -18,6 +18,11 @@ Branche : `feat/npc-life-v3-social-navigation`. Ce document décrit les critère
 - Ponts/chemins multi-niveaux uniquement avec surfaces qualifiées et connexions réellement accessibles.
 - Première mission sociale utilisant les objectifs, dialogues, choix et sauvegardes déjà présents.
 - Tests unitaires V3 sur agenda, navigation en couches, sociabilité, quêtes et règles d'affectation.
+- Éditeur Studio jusqu'à trois pauses/rencontres sur des lieux publics réels, validation des fenêtres et des temps de trajet partagée avec le runtime.
+- Reprise des routines pour les PNJ à moins de 80 m du joueur : refus du saut de position horaire si le segment est bloqué ou trop long, trajet de rattrapage calculé depuis la position réelle, retarget de destination horaire après conversation/changement d'activité (cadence 2 s), vitesse de récupération plafonnée à 3 m/s.
+- Déplacements commandés : vérification du segment parcouru et du prochain tronçon, contournement borné (trois essais), respect des angles et arrêt avant obstacle sans traversée.
+- Instrumentation `lifeStats` : `routineRecoveries`, `routineBlocked`, `scriptedReplans`, `scriptedBlocked`, `scriptedCompleted` ; pas de métrique persistée dans le monde.
+- Habitations limitées à deux occupants, postes exclusifs et espaces partagés limités à quatre habitants dans le générateur et Studio.
 
 ## Conditions de sortie — ne pas merger avant qualification
 
@@ -31,8 +36,8 @@ Branche : `feat/npc-life-v3-social-navigation`. Ce document décrit les critère
 
 ## Reste à implémenter ou démontrer
 
-- Replanification des itinéraires lorsque le relief, les portes ou obstacles sont modifiés à chaud et qualification des intérieurs/escaliers.
-- Édition visuelle de pauses, points de rencontre et horaires par glisser-déposer ou tracé, avec validation complète depuis Studio.
+- Qualification navigateur de la replanification en cas de modification à chaud du relief et des obstacles : la reprise proche est implémentée mais n'est pas encore certifiée après playtest. Les portes dynamiques, étages, intérieurs et escaliers restent à intégrer au modèle de navigation.
+- L'édition des pauses/points de rencontre et horaires est disponible en formulaire Studio ; l'édition par glisser-déposer/tracé sur la carte et son test navigateur restent à faire.
 - Variantes de sociabilité (groupes, enfants, scènes et interactions), sons/barks/sous-titres et animations cohérentes.
 - Panneau de diagnostic global exhaustif après chargement des secteurs concernés (l'aperçu courant porte seulement sur les secteurs chargés).
 - Intégration et test navigateur des missions et récompenses, dont les donneurs de quêtes en mouvement.
