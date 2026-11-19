@@ -16,13 +16,14 @@ export interface ResidentAssignmentPlanner {
   reserve(homeId:string):void;
   route(home:LifeHome,job:LifeJob):ResidentRoute|null;
   occupancy(homeId:string):number;
+  jobOccupancy(jobId:string):number;
 }
 const hypot=(a:ResidentPoint,b:ResidentPoint)=>Math.hypot(a.x-b.x,a.z-b.z);
 export function createResidentAssignmentPlanner(
   paths:readonly ResidentPath[],terrain:GroundRouteContext,
   options:{maxOccupantsPerHome?:number;maxNodes?:number;maxRouteM?:number;blocked?:(x:number,z:number)=>boolean}={},
 ):ResidentAssignmentPlanner{
-  const occupancy=new Map<string,number>(),cache=new Map<string,ResidentRoute|null>();
+  const occupancy=new Map<string,number>(),jobOccupants=new Map<string,number>(),cache=new Map<string,ResidentRoute|null>();
   const homeLimit=Math.max(1,Math.min(6,Math.floor(options.maxOccupantsPerHome??2)));
   const maxRouteM=Math.max(40,Math.min(1200,options.maxRouteM??650));
   const bounds=terrain.bounds;
@@ -46,9 +47,13 @@ export function createResidentAssignmentPlanner(
     get graphNodes(){return router.nodes;},
     get truncated(){return router.truncated;},
     occupancy(homeId){return occupancy.get(homeId)??0;},
+    jobOccupancy(jobId){return jobOccupants.get(jobId)??0;},
     reserve(homeId){occupancy.set(homeId,(occupancy.get(homeId)??0)+1);},
     route,
     allocate(job,homes,role,preferredHomeId){
+      // A service has one visual employee. Public play areas allow up to four
+      // children so they can meet without duplicating the location or asset.
+      if((jobOccupants.get(job.id)??0)>=(role==='child'?4:1))return null;
       const qualified:ResidentAssignment[]=[];
       for(const home of homes){
         if((occupancy.get(home.id)??0)>=homeLimit)continue;
@@ -64,7 +69,7 @@ export function createResidentAssignmentPlanner(
           ||a.route.length-b.route.length||a.home.slot-b.home.slot||a.home.id.localeCompare(b.home.id);
       });
       const best=qualified[0]??null;
-      if(best)this.reserve(best.home.id);
+      if(best){this.reserve(best.home.id);jobOccupants.set(job.id,(jobOccupants.get(job.id)??0)+1);}
       return best;
     },
   };
