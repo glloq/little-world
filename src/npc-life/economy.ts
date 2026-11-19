@@ -16,6 +16,20 @@ export interface NpcWorkshopAccountV1 {
  version:1;residentId:string;workAnchorId:string;role:ResidentRole;
  stock:Record<string,number>;workshop:WorkshopStateV1;
 }
+/** Shape-only save check. Source anchor and recipe provenance are checked again
+ * by the instantiated workshop before it can run a native transaction.
+ */
+export function parseNpcWorkshopAccount(raw:unknown):NpcWorkshopAccountV1{
+ if(!raw||typeof raw!=='object'||Array.isArray(raw))throw Error('Économie PNJ : état invalide');
+ const q=raw as NpcWorkshopAccountV1;
+ if(q.version!==1||!id(q.residentId)||!id(q.workAnchorId)||
+    !q.stock||typeof q.stock!=='object'||Array.isArray(q.stock)||
+    Object.keys(q.stock).length>64||typeof q.role!=='string'||!id(q.role))
+  throw Error('Économie PNJ : état invalide');
+ for(const [item,quantity]of Object.entries(q.stock))
+  if(!id(item)||!amount(quantity))throw Error('Économie PNJ : stock invalide');
+ return {...structuredClone(q),workshop:parseWorkshopState(q.workshop)};
+}
 export function createNpcWorkshopEconomy(
  residentId:string,role:ResidentRole,job:LifeJob,stationType:string,
  recipes:readonly ProductionRecipeV1[],itemLimits:Readonly<Record<string,number>>,
@@ -66,6 +80,20 @@ export function createNpcWorkshopEconomy(
   get workAnchorId(){return job.sourceId;},
   inventory(){return {...stock};},
   jobs(){return workshop.jobs.map(j=>structuredClone(j));},
+  canReceive(itemId:string,quantity:number):boolean{
+   return id(itemId)&&Number.isSafeInteger(quantity)&&quantity>0&&
+    supportedItems.has(itemId)&&amount(limits.get(itemId)??-1)&&
+    (stock[itemId]??0)+quantity<=(limits.get(itemId)??0);
+  },
+  canTake(itemId:string,quantity:number):boolean{
+   return id(itemId)&&Number.isSafeInteger(quantity)&&quantity>0&&
+    supportedItems.has(itemId)&&(stock[itemId]??0)>=quantity;
+  },
+  /** Called only after a validated merchant/player trade has committed. */
+  take(itemId:string,quantity:number):boolean{
+   if(!id(itemId)||!Number.isSafeInteger(quantity)||quantity<=0)return false;
+   return apply([{itemId,quantity:-quantity}]);
+  },
   /** Authoritative upstream producer supplies goods to a grounded NPC source.
    * The caller MUST verify the upstream harvest/delivery transaction. */
   receive(itemId:string,quantity:number):boolean{
