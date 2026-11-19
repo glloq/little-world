@@ -13,6 +13,7 @@ test('F04 native NPC workshop uses real ingredients and never touches player inv
  assert.equal(npc.start('sawmill:planks',1,10,'start:1').ok,false,
   'NPC cannot mint products without inputs');
  assert.equal(npc.receive('wood:log',2),true);
+ assert.equal(npc.receive('coin',1),true,'native service fee needs real funding');
  assert.equal(npc.receive('wood:log',9999),false,'source storage is bounded');
  assert.equal(npc.start('sawmill:planks',1,10,'start:1').ok,true);
  assert.equal(npc.start('sawmill:planks',1,10,'start:1').ok,false);
@@ -38,6 +39,7 @@ test('F04 reject wrong source, false owner, forged stocks and output overflow',(
  const limited=createNpcWorkshopEconomy('npc:artisan','artisan',job,'sawmill',
  STARTER_RECIPES,{'wood:log':999,'material:plank':1});
  limited.receive('wood:log',2);
+ limited.receive('coin',1);
  limited.start('sawmill:planks',1,10,'begin:1');
  limited.advance(16);
  assert.equal(limited.collect(limited.jobs()[0].jobId,16,'take:full').ok,false);
