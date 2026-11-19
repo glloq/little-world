@@ -1,5 +1,6 @@
 import {finite,identifier,record,stateValue,type ObjectiveStatus,type Point3,type StateValue} from './schema.ts';
 import {parseQuestInstance} from '../quests/validation.ts';
+import {parseNpcWorkshopAccount,type NpcWorkshopAccountV1} from '../npc-life/economy.ts';
 import type {QuestInstanceV1} from '../quests/schema.ts';
 import {parseMineSave,type MineSaveState} from '../mine/mine-state.ts';
 import {parsePlotState,type FarmPlotState} from '../farm/farm-sim.ts';
@@ -18,6 +19,8 @@ export interface GameSaveV1 {schemaVersion:1;worldId:string;worldBuildVersion:st
 export interface GameSaveV2 extends Omit<GameSaveV1,'schemaVersion'> {schemaVersion:2;gasReserve?:number;flightProgress?:FlightProgress;space?:{zoneId:string;levelId:string}|null;mines:Record<string,MineSaveState>;farms:Record<string,FarmPlotState>;external?:{key:string;bytes:number};
   /** Gathered natural elements not grown back yet (optional, World Production gameplay). */gathering?:import('./gathering.ts').GatherSave;
   /** Per-station workshop queues and finished products; missing in older V2 saves. */workshops?:Record<string,WorkshopStateV1>;
+  /** Native NPC workshop accounts, with their own materials and job queues. */
+  npcWorkshops?:Record<string,NpcWorkshopAccountV1>;
   /** Per-counter budgets, physical stock and applied transaction IDs. */markets?:Record<string,MarketStateV1>;
   /** Optional native QuestDirector state; old V1/V2 slots remain valid. */
   questsLocal?:Record<string,QuestInstanceV1>;
@@ -59,6 +62,13 @@ export function parseGameSave(value:unknown):GameSaveV2 {
       const parsed=parseWorkshopState(value);
       assert(identifier(id)&&parsed.stationId===id,'Identité atelier incohérente');
       workshops[id]=parsed;
+    }
+  }
+  if(v.npcWorkshops!==undefined){
+    assert(record(v.npcWorkshops)&&Object.keys(v.npcWorkshops).length<=32,'Ateliers PNJ sauvegardés invalides');
+    for(const [id,raw]of Object.entries(v.npcWorkshops as object)){
+      const account=parseNpcWorkshopAccount(raw);
+      assert(identifier(id)&&id===account.residentId,'Compte PNJ incohérent');
     }
   }
   const markets:Record<string,MarketStateV1>={};
