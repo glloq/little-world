@@ -4,9 +4,11 @@
 import type {GroundRouteContext} from '../paths/terrain-route.ts';
 import type {ResidentPath,ResidentRouter} from './routes.ts';
 import {createResidentRouter} from './routes.ts';
+import {createResidentLayeredRouter,type ResidentSurfaces} from './layered-routes.ts';
 import {residentShift,type ResidentRole,type ResidentRoute,type ResidentPoint} from './schedule.ts';
 import type {LifeHome,LifeJob} from './capabilities.ts';
 
+export const MAX_PLAY_ANCHOR_OCCUPANTS=4;
 export interface ResidentAssignment {
   home:LifeHome;job:LifeJob;route:ResidentRoute;
 }
@@ -15,6 +17,7 @@ export interface ResidentAssignmentPlanner {
   allocate(job:LifeJob,homes:readonly LifeHome[],role:ResidentRole,preferredHomeId?:string):ResidentAssignment|null;
   reserve(homeId:string):void;
   route(home:LifeHome,job:LifeJob):ResidentRoute|null;
+  routeBetween(from:ResidentPoint,to:ResidentPoint):ResidentRoute|null;
   occupancy(homeId:string):number;
   jobOccupancy(jobId:string):number;
   reserveJob(jobId:string):void;
@@ -22,7 +25,7 @@ export interface ResidentAssignmentPlanner {
 const hypot=(a:ResidentPoint,b:ResidentPoint)=>Math.hypot(a.x-b.x,a.z-b.z);
 export function createResidentAssignmentPlanner(
   paths:readonly ResidentPath[],terrain:GroundRouteContext,
-  options:{maxOccupantsPerHome?:number;maxNodes?:number;maxRouteM?:number;dayLengthSeconds?:number;residentSpeed?:number;blocked?:(x:number,z:number)=>boolean}={},
+  options:{maxOccupantsPerHome?:number;maxNodes?:number;maxRouteM?:number;dayLengthSeconds?:number;residentSpeed?:number;surfaces?:ResidentSurfaces;blocked?:(x:number,z:number)=>boolean}={},
 ):ResidentAssignmentPlanner{
   const occupancy=new Map<string,number>(),jobOccupants=new Map<string,number>(),cache=new Map<string,ResidentRoute|null>();
   const homeLimit=Math.max(1,Math.min(6,Math.floor(options.maxOccupantsPerHome??2)));
@@ -34,7 +37,7 @@ export function createResidentAssignmentPlanner(
     return Number.isFinite(height)&&Number.isFinite(previous)&&height>terrain.seaLevel+1&&
       (d<.001||Math.abs(height-previous)/d<=.4)&&!options.blocked?.(x,z);
   };
-  const router:ResidentRouter=createResidentRouter(paths,safe,options.maxNodes??16000);
+  const router:ResidentRouter=options.surfaces&&paths.some(path=>path.supportId)?createResidentLayeredRouter(paths,safe,options.surfaces,options.maxNodes??16000):createResidentRouter(paths,safe,options.maxNodes??16000);
   function route(home:LifeHome,job:LifeJob):ResidentRoute|null{
     const key=home.id+'|'+job.id;
     if(!cache.has(key)){
@@ -52,10 +55,15 @@ export function createResidentAssignmentPlanner(
     reserveJob(jobId){jobOccupants.set(jobId,(jobOccupants.get(jobId)??0)+1);},
     reserve(homeId){occupancy.set(homeId,(occupancy.get(homeId)??0)+1);},
     route,
+    routeBetween(from,to){
+      if(hypot(from,to)>maxRouteM)return null;
+      const path=router.route(from,to);
+      return path&&path.length<=maxRouteM?path:null;
+    },
     allocate(job,homes,role,preferredHomeId){
       // A service has one visual employee. Public play areas allow up to four
       // children so they can meet without duplicating the location or asset.
-      if((jobOccupants.get(job.id)??0)>=(role==='child'?4:1))return null;
+      if((jobOccupants.get(job.id)??0)>=((role==='child'||role==='villager')?MAX_PLAY_ANCHOR_OCCUPANTS:1))return null;
       const qualified:ResidentAssignment[]=[];
       // Never assign a journey longer than can be traversed within half of
       // the role's work period: residentPoseAt uses this same invariant.

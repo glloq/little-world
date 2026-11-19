@@ -4,8 +4,10 @@ import {settlementMaritimePort} from './maritime-port.ts';
 import {localLife} from './local-life.ts';
 import {settlementPopulation} from './population.ts';
 import {createResidentAssignmentPlanner} from '../npc-life/assignments.ts';
+import {planResidentVillageQuest} from '../npc-life/quest-director.ts';
 import {riverCrossing} from './river-crossing.ts';
 import {bridgeColliders} from './bridge.ts';
+import type {ResidentSurfaces} from '../npc-life/layered-routes.ts';
 import {isCorridor,corridorStreet} from './corridor.ts';
 import {layoutContext,layoutDimensions,lanePoint,organicStreet,organicArcs} from './layout.ts';
 import {fitOrganicLot} from './organic-lots.ts';
@@ -39,6 +41,7 @@ export interface SettlementPlan {
     buildings: BuildingRecord[];
     amenities?:AmenityRecord[];
     dialogues?:Record<string,import('../gameplay/schema.ts').GameplayDialogue>;
+    objectives?:Record<string,import('../gameplay/schema.ts').ObjectiveDefinition>;
     diagnostics: SettlementDiagnostic[];
     preserved: string[];
     removed: string[];
@@ -225,8 +228,24 @@ export function planSettlement(p: ProjectDocument, raw: SettlementRecipe): Settl
     const generatedIds=new Set(paths.map(path=>path.id));
     const oldOwned=new Set(Object.keys(previous?.pathHashes??{}));
     const otherPaths=activeLife?Object.values(p.libraries.paths).filter(path=>!oldOwned.has(path.id)&&!generatedIds.has(path.id)):[];
+    const bridgeIndex=new Map(entities.filter(e=>e.components.Bridge&&e.components.Transform)
+      .map(e=>[e.id,e.components.Transform!] as const));
+    const bridgeSurfaces:ResidentSurfaces={
+      groundHeight:(x,z)=>c.height(x,z),
+      supportHeight:(id,x,z)=>{
+        const t=bridgeIndex.get(id)??sourceEntity(p,id)?.components.Transform;
+        if(!t)return null;
+        const a=2*Math.atan2(t.rotation.y,t.rotation.w),co=Math.cos(a),si=Math.sin(a);
+        const dx=x-t.position.x,dz=z-t.position.z;
+        if(Math.abs(dx*co-dz*si)>t.scale.x/2+.02||
+          Math.abs(dx*si+dz*co)>t.scale.z/2-.12)return null;
+        const deck=c.height(t.position.x,t.position.z)+t.position.y;
+        if(deck<c.seaLevel+1||c.height(x,z)>deck+.05)return null;
+        return deck;
+      },
+    };
     const assignment=createResidentAssignmentPlanner([...otherPaths,...(activeLife?paths:[])],c,{
-      maxOccupantsPerHome:2,maxRouteM:650,
+      maxOccupantsPerHome:2,maxRouteM:650,surfaces:bridgeSurfaces,
       blocked:(x,z)=>query.intersectsVolume({minX:x-.22,maxX:x+.22,minZ:z-.22,maxZ:z+.22,
         minY:c.height(x,z)+.4,maxY:c.height(x,z)+1.5}),
     });
@@ -244,7 +263,12 @@ export function planSettlement(p: ProjectDocument, raw: SettlementRecipe): Settl
     entities.push(...population.entities);amenities.push(...population.records);
     Object.assign(dialogues,population.dialogues);preserved.push(...population.preserved);
     for(const id of population.conflicts)diagnostics.push({severity:'ERROR',code:'LIFE_ID_CONFLICT',targetId:id,message:'Un personnage manuel utilise déjà cet identifiant.'});
+    const questId=r.id+'-meet-neighbor',hasCollision=!!p.libraries.objectives[questId]&&!previous?.objectiveHashes?.[questId];
+    const draftQuest=!hasCollision?planResidentVillageQuest(r,entities,dialogues,amenities,new Set(preserved)):null;
+    const objectives=draftQuest?{[draftQuest.objective.id]:draftQuest.objective}:undefined;
+    if(hasCollision&&activeLife)diagnostics.push({severity:'WARNING',code:'LIFE_QUEST_ID_CONFLICT',
+      targetId:questId,message:'Un objectif auteur utilise déjà cet identifiant : aucune mission sociale générée.'});
     const lifeStats=activeLife?{...population.stats,graphNodes:assignment.graphNodes,graphTruncated:assignment.truncated}:undefined;
-    return { zones,dialogues,recipe: r, sourceHash: settlementSourceHash(p), recipeHash: fingerprint(r), entities, paths, buildings,...(r.services||r.waterfront||previous?.amenities?{amenities}:{}), diagnostics, preserved: [...new Set(preserved)], removed, generationMs: performance.now() - started,...(lifeStats?{lifeStats}:{}) };
+    return { zones,dialogues,...(objectives?{objectives}:{}),recipe: r, sourceHash: settlementSourceHash(p), recipeHash: fingerprint(r), entities, paths, buildings,...(r.services||r.waterfront||previous?.amenities?{amenities}:{}), diagnostics, preserved: [...new Set(preserved)], removed, generationMs: performance.now() - started,...(lifeStats?{lifeStats}:{}) };
 }
 export { HABITAT_ASSETS };

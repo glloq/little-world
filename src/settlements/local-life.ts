@@ -5,6 +5,7 @@ import type {ActivityZoneV3} from '../studio-core/types.ts';
 import type {ResidentRole} from '../npc-life/schedule.ts';
 import type {ResidentAssignmentPlanner} from '../npc-life/assignments.ts';
 import {localLifeCapabilities} from '../npc-life/capabilities.ts';
+import {withVillageActivities} from '../npc-life/generation-agenda.ts';
 import type {GameplayDialogue} from '../gameplay/schema.ts';
 import {DEFAULT_APPEARANCE} from '../character-style.ts';
 import {chunkAt} from '../studio-core/schema.ts';
@@ -36,9 +37,9 @@ export function localLife(p:ProjectDocument,r:SettlementRecipe,amenities:Amenity
    selected=assignment.allocate(job,index.homes,job.role,previousRoutine?.homeAnchorId);
    if(selected)break;
  }
- const resident=selected?{Resident:{type:'Resident' as const,version:1 as const,
+ const resident=selected?{Resident:withVillageActivities({type:'Resident',version:1,
    role:selected.job.role,home:{...selected.home.point},work:{...selected.job.point},
-   homeAnchorId:selected.home.id,workAnchorId:selected.job.id}}:{};
+   homeAnchorId:selected.home.id,workAnchorId:selected.job.id},index.play,assignment!,selected.route)}:{};
  const warning=r.residentRoutines&&!selected?'LIFE_HOST_UNREACHABLE':undefined;
  const id=r.id+'-host',point=anchor.entry,entity:EntityDefinitionV3={id,kind:'character',name:r.activity==='fishing'?'Habitant du rivage':'Habitant du village',ownerChunkId:chunkAt(p.world,point.x,point.z),components:{Transform:{type:'Transform',position:{...point,y:0},rotation:{x:0,y:0,z:0,w:1},scale:{x:1,y:1,z:1}},Character:{type:'Character',species:'hamster',rigId:'hamster-rigid',appearance:{...DEFAULT_APPEARANCE}},DialogueActor:{type:'DialogueActor',dialogueIds:[id+'-talk']},...resident}};
  const dialogue:GameplayDialogue={id:id+'-talk',actorId:id,start:'hello',lines:[{id:'hello',text:'Bienvenue ! Que cherchez-vous ?',choices:[{id:'activity',text:'Que fait-on ici ?',next:'activity'},{id:'places',text:'Où aller ?',next:'places'},{id:'bye',text:'Au revoir !'}]},{id:'activity',text:r.activity==='fishing'?'Notre comptoir achète les poissons. Les poissons de rivière et de mer sont différents.':r.activity==='agriculture'?'Le comptoir propose des semences pour les cultures.':'Le comptoir permet de vendre les produits locaux et de trouver des provisions.',choices:[{text:'Merci.'}]},{id:'places',text:amenities.some(a=>a.role==='bridge')?'Le pont relie les deux rives. Les maisons de l’autre quartier sont accessibles à pied.':amenities.some(a=>a.role==='inn')?'Une auberge se trouve près du village. Son comptoir propose des provisions.':'Les équipements communs sont près du point d’activité du village.',choices:[{text:'Merci.'}]}]};

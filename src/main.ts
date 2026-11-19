@@ -310,10 +310,29 @@ if(playable){
   if(gameplay.gathering){const gather=gameplay.gathering;world.setDressingFilter((cx,cz,kind,index)=>gather.hiddenAt(cx,cz,kind,index));gather.subscribe(()=>world.redrawDressing());}
 }
 const worldClock=gameplay?.runtime.clock??new WorldClock(),climate=gameplay?.runtime.climate??createClimate(defaultEnvironment(definition.config.seed));
+// Existing bridge placements are the authoritative runtime deck geometry.
+const npcBridgeSurfaces=new Map(definition.placements.filter(p=>p.assetId==='settlement.bridge')
+  .map(p=>[p.id,p] as const));
+const npcExteriorDoors=new Set(definition.placements.filter(p=>p.assetId==='settlement.door').map(p=>p.id));
 const npcs = createNPCSystem(scene, definition.npcs,isLegacyTerrain()?undefined:[],gameplay?.dialogueSession,{
   worldTime:()=>worldClock.time,dayLengthSeconds:climate.definition.dayLengthSeconds,
   initialDayPhase:climate.definition.initialDayPhase,paths:definition.paths,
+  rigBudget:((navigator as Navigator&{deviceMemory?:number}).deviceMemory??8)<=4?8:
+    ((navigator as Navigator&{deviceMemory?:number}).deviceMemory??8)<=8?12:20,
   weather:()=>climate.state(worldClock.time).weather,
+  homeDoor:(homeId:string)=>gameplay&&npcExteriorDoors.has(homeId+'-door')?homeId+'-door':null,
+  openHomeDoor:(doorId:string)=>{gameplay?.openDoorForNPC(doorId,2);},
+  surfaces:{
+    groundHeight:terrainHeight,
+    supportHeight:(id,x,z)=>{
+      const b=npcBridgeSurfaces.get(id);if(!b||!b.scale3)return null;
+      const dx=x-b.x,dz=z-b.z,a=b.rotation,co=Math.cos(a),si=Math.sin(a);
+      if(Math.abs(dx*co-dz*si)>b.scale3[0]/2+.02||
+        Math.abs(dx*si+dz*co)>b.scale3[2]/2-.12)return null;
+      const deck=terrainHeight(b.x,b.z)+(b.y??0);
+      return deck>terrainHeight(x,z)-.05?deck:null;
+    },
+  },
   walkable:(x,z)=>{
     const collision=gameplay?.collision;if(!collision)return true;
     const ground=terrainHeight(x,z);
