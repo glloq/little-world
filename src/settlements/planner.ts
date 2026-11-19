@@ -4,6 +4,7 @@ import {settlementMaritimePort} from './maritime-port.ts';
 import {localLife} from './local-life.ts';
 import {settlementPopulation} from './population.ts';
 import {createResidentAssignmentPlanner} from '../npc-life/assignments.ts';
+import {planResidentVillageQuest} from '../npc-life/quest-director.ts';
 import {riverCrossing} from './river-crossing.ts';
 import {bridgeColliders} from './bridge.ts';
 import type {ResidentSurfaces} from '../npc-life/layered-routes.ts';
@@ -40,6 +41,7 @@ export interface SettlementPlan {
     buildings: BuildingRecord[];
     amenities?:AmenityRecord[];
     dialogues?:Record<string,import('../gameplay/schema.ts').GameplayDialogue>;
+    objectives?:Record<string,import('../gameplay/schema.ts').ObjectiveDefinition>;
     diagnostics: SettlementDiagnostic[];
     preserved: string[];
     removed: string[];
@@ -261,7 +263,12 @@ export function planSettlement(p: ProjectDocument, raw: SettlementRecipe): Settl
     entities.push(...population.entities);amenities.push(...population.records);
     Object.assign(dialogues,population.dialogues);preserved.push(...population.preserved);
     for(const id of population.conflicts)diagnostics.push({severity:'ERROR',code:'LIFE_ID_CONFLICT',targetId:id,message:'Un personnage manuel utilise déjà cet identifiant.'});
+    const questId=r.id+'-meet-neighbor',hasCollision=!!p.libraries.objectives[questId]&&!previous?.objectiveHashes?.[questId];
+    const draftQuest=!hasCollision?planResidentVillageQuest(r,entities,dialogues,amenities,new Set(preserved)):null;
+    const objectives=draftQuest?{[draftQuest.objective.id]:draftQuest.objective}:undefined;
+    if(hasCollision&&activeLife)diagnostics.push({severity:'WARNING',code:'LIFE_QUEST_ID_CONFLICT',
+      targetId:questId,message:'Un objectif auteur utilise déjà cet identifiant : aucune mission sociale générée.'});
     const lifeStats=activeLife?{...population.stats,graphNodes:assignment.graphNodes,graphTruncated:assignment.truncated}:undefined;
-    return { zones,dialogues,recipe: r, sourceHash: settlementSourceHash(p), recipeHash: fingerprint(r), entities, paths, buildings,...(r.services||r.waterfront||previous?.amenities?{amenities}:{}), diagnostics, preserved: [...new Set(preserved)], removed, generationMs: performance.now() - started,...(lifeStats?{lifeStats}:{}) };
+    return { zones,dialogues,...(objectives?{objectives}:{}),recipe: r, sourceHash: settlementSourceHash(p), recipeHash: fingerprint(r), entities, paths, buildings,...(r.services||r.waterfront||previous?.amenities?{amenities}:{}), diagnostics, preserved: [...new Set(preserved)], removed, generationMs: performance.now() - started,...(lifeStats?{lifeStats}:{}) };
 }
 export { HABITAT_ASSETS };
