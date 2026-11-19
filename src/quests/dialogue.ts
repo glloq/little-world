@@ -11,6 +11,7 @@ export function questDialogueSession(
  claim:(instanceId:string,claimId:string)=>{ok:boolean;reason:string},
  deliver?:(instanceId:string,targetId:string)=>{ok:boolean;reason:string},
  onChange?:()=>void,
+ economyChoices?:()=>readonly {text:string;run:()=>{ok:boolean;reason:string}}[],
 ):DialogueSession|undefined{
  const available=()=>quests.offers().filter(e=>e.giverId===actorId&&!quests.get(e.questKey));
  const deliveries=()=>Object.values(quests.serialize()).filter(i=>i.status==='active'&&
@@ -18,14 +19,15 @@ export function questDialogueSession(
   (i.steps[i.stepIndex] as {giverId?:string}).giverId===actorId).sort((a,b)=>a.instanceId.localeCompare(b.instanceId));
  const ready=()=>Object.values(quests.serialize()).filter(i=>i.giverId===actorId&&i.status==='ready')
   .sort((a,b)=>a.instanceId.localeCompare(b.instanceId));
- if(!base&&!available().length&&!ready().length&&!deliveries().length)return undefined;
+ if(!base&&!available().length&&!ready().length&&!deliveries().length&&!economyChoices?.().length)return undefined;
  let response:string|null=null,closed=false;
  const choices=()=> {
   // Leave space for the resident contextual dialogue choice when available.
   const room=Math.max(0,7-(base?.choices.length??0));
   const claims=ready().slice(0,room),delivery=deliveries().slice(0,Math.max(0,room-claims.length)),
-    offers=available().slice(0,Math.max(0,room-claims.length-delivery.length));
-  return {offers,claims,delivery};
+    economic=(economyChoices?.()??[]).slice(0,Math.max(0,room-claims.length-delivery.length)),
+    offers=available().slice(0,Math.max(0,room-claims.length-delivery.length-economic.length));
+  return {offers,claims,delivery,economic};
  };
  return {
   get line(){
@@ -34,20 +36,22 @@ export function questDialogueSession(
   },
   get choices(){
    if(response!==null)return [back];
-   const {offers,claims,delivery}=choices();
+   const {offers,claims,delivery,economic}=choices();
    return [...(base?.choices??[]),
     ...offers.map(o=>({text:'Mission : '+String(o.bindings.title??o.templateId).slice(0,150)})),
     ...claims.map(()=>({text:'Recevoir ma récompense de mission'})),
-    ...delivery.map(()=>({text:'Livrer les objets demandés'}))];
+    ...delivery.map(()=>({text:'Livrer les objets demandés'})),
+    ...economic.map(e=>({text:e.text}))];
   },
   get locked(){return response!==null?[]:base?.locked??[];},
   hint(index){
    if(response!==null)return undefined;
-   const baseCount=base?.choices.length??0,{offers,claims,delivery}=choices();
+   const baseCount=base?.choices.length??0,{offers,claims,delivery,economic}=choices();
    return index<baseCount?base?.hint?.(index):
     index<baseCount+offers.length?'mission':
     index<baseCount+offers.length+claims.length?'récompense':
-    index<baseCount+offers.length+claims.length+delivery.length?'mission':undefined;
+    index<baseCount+offers.length+claims.length+delivery.length?'mission':
+    index<baseCount+offers.length+claims.length+delivery.length+economic.length?'objet':undefined;
   },
   get closed(){return closed||response===null&&!!base?.closed;},
   choose(index:number){
@@ -58,7 +62,7 @@ export function questDialogueSession(
    }
    const baseCount=base?.choices.length??0;
    if(index<baseCount)return !!base?.choose(index);
-   const {offers,claims,delivery}=choices(),offset=index-baseCount;
+   const {offers,claims,delivery,economic}=choices(),offset=index-baseCount;
    if(offset<offers.length){
     const offer=offers[offset];
     try{
@@ -71,7 +75,17 @@ export function questDialogueSession(
    const item=claims[offset-offers.length];
    if(!item){
     const shipment=delivery[offset-offers.length-claims.length];
-    if(!shipment||!deliver)return false;
+    if(!shipment||!deliver){
+     const offer=economic[offset-offers.length-claims.length-delivery.length];
+     if(!offer)return false;
+     const outcome=offer.run();
+     response=outcome.ok?'Transaction effectuée avec l’artisan.':
+       outcome.reason==='missing-items'?'Vous ne possédez pas les ressources demandées.':
+       outcome.reason==='payment-rejected'?'Paiement impossible ou sac plein.':
+       'Échange impossible : stock, distance ou accès insuffisant.';
+     if(outcome.ok)onChange?.();
+     return true;
+    }
     const result=deliver(shipment.instanceId,actorId);
     response=result.ok?'Livraison enregistrée. Merci !':
       'Livraison impossible : '+(result.reason==='missing-items'?'les objets demandés manquent.':
