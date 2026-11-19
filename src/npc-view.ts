@@ -324,6 +324,10 @@ export function createNPCSystem(
   }
   return {
     dialogue,
+    /** Reuse the SAME qualified router for one-time quest catalog assembly. */
+    qualifyQuestRoute(from:ResidentPoint,to:ResidentPoint):ResidentRoute|null{
+      return !disposed?router?.route(from,to)??null:null;
+    },
     moveTo,
     talkTo,
     setLighting(color:THREE.Color|null){distant.setLighting(color);},
