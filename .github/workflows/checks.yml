@@ -51,6 +51,8 @@ jobs:
             sleep 1
           done
           curl -fsS http://127.0.0.1:5173/little-world/ > /dev/null
+      - name: Instrument controls (bag V3, HUD, P shortcut, audio)
+        run: npm run test:instruments
       - name: Surf playable wave, board and tube browser acceptance
         run: npm run test:surf
       - name: Surf Island A/B/C browser acceptance and captures

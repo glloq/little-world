@@ -75,7 +75,14 @@ try{
   const acornBox=await sac.locator('.ui-item[data-item="acorn"]').first().boundingBox();
   verify(!!acornBox,'Inventory item can be held for multi-selection');
   await page.mouse.move(acornBox.x+acornBox.width/2,acornBox.y+acornBox.height/2);
-  await page.mouse.down();await page.waitForTimeout(510);await page.mouse.up();
+  await page.mouse.down();
+  try {
+    // The 450 ms hold timer can be delayed under CI/WebGL load. Wait for the
+    // actual selection state while held, not an arbitrary 510 ms sleep.
+    await sac.getByRole('button',{name:'Quitter la sélection multiple'}).waitFor({state:'attached',timeout:4000});
+  } finally {
+    await page.mouse.up();
+  }
   verify(await sac.getByRole('button',{name:'Quitter la sélection multiple'}).count()===1,'Long press activates multi-selection');
   verify(await sac.locator('.ui-bag-checked[data-item="acorn"]').count()===1,'Held stack is pre-selected');
   await page.keyboard.press('Escape');

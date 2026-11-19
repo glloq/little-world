@@ -14,26 +14,61 @@ try{
  await page.locator('#start-overlay').waitFor({state:'hidden'});
  await page.locator('#viewport canvas').click();
  await page.waitForFunction(()=>window.littleWorldMetrics?.audio?.state==='running');
+ // The beta regression world intentionally has no coin economy / STARTING_KIT.
+ // Seed the real gameplay inventory through the existing metrics-only developer
+ // command, rather than assuming every published world grants free instruments.
+ const granted=await page.evaluate(()=>{
+   const grant=window.littleWorldDebug?.grant;
+   if(typeof grant!=='function')return false;
+   return grant('instrument:flute',1)===true&&grant('instrument:ocarina',1)===true;
+ });
+ assert.ok(granted,'both instruments granted through the real inventory runtime');
  await page.keyboard.press('KeyI');
  const bag=page.locator('.ui-panel[data-panel="inventory"]');
- await bag.getByRole('button',{name:/Flûte douce, quantité/}).click();
- await bag.getByRole('button',{name:'Équiper'}).click();
+ // Stock and favourites intentionally show the same item: select the stock card only.
+ await bag.getByRole('region',{name:'Stock du sac'}).getByRole('button',{name:/Flûte douce, quantité/}).click();
+ console.log('OK: flute selected in stock, without confusing the duplicate favourite');
+ // Direct Play also equips the selected instrument.
  await bag.getByRole('button',{name:'Jouer'}).click();
  const panel=page.locator('.ui-panel[data-panel="instrument"]');
  await panel.waitFor({state:'visible'});
+ console.log('OK: Play equips flute and opens the music panel');
+ const hud=page.getByRole('button',{name:'Jouer de la musique (P)'});
+ assert.equal(await hud.isVisible(),true,'equipped instrument shows a music HUD shortcut');
+ assert.ok((await page.locator('.ui-tool').textContent())?.includes('Flûte douce'));
  assert.equal(await panel.locator('.lw-note-grid').count(),15);
  assert.equal(await panel.locator('select').count(),0,'no instrument picker in music panel');
  await page.keyboard.down('Digit1');await page.keyboard.down('Digit2');
- await page.waitForFunction(()=>window.littleWorldMetrics?.audio?.musicVoices>=2);
+ await page.waitForFunction(()=>window.littleWorldMetrics?.audio?.heldInstrumentNotes===2);
+ console.log('OK: two simultaneous player instrument notes');
  await page.keyboard.up('Digit1');await page.keyboard.up('Digit2');
- await page.waitForFunction(()=>window.littleWorldMetrics?.audio?.musicVoices===0,{},{timeout:2500});
+ await page.waitForFunction(()=>window.littleWorldMetrics?.audio?.heldInstrumentNotes===0,{},{timeout:5000});
+ console.log('OK: released keys produce zero held instrument notes (music soundtrack is independent)');
  await panel.getByRole('button',{name:'Piano'}).click();
  assert.equal(await panel.locator('.lw-note-white').count(),15);
  assert.equal(await panel.locator('.lw-note-black').count(),10);
  await panel.getByRole('button',{name:'+1 octave'}).click();
  assert.ok(await panel.locator('[data-midi="72"]').count()>0,'octave increases by 12 semitones');
+ await page.keyboard.press('KeyP');
+ await panel.waitFor({state:'hidden'});
+ await page.waitForFunction(()=>window.littleWorldMetrics?.audio?.heldInstrumentNotes===0);
+ await page.keyboard.press('KeyP');
+ await panel.waitFor({state:'visible'});
+ console.log('OK: P shortcut closes and reopens the instrument panel');
  await page.keyboard.press('Escape');
- await page.waitForFunction(()=>window.littleWorldMetrics?.audio?.musicVoices===0);
+ await panel.waitFor({state:'hidden'});
+ await hud.click();
+ await panel.waitFor({state:'visible'});
+ await page.keyboard.press('Escape');
+ await page.keyboard.press('KeyI');
+ await bag.waitFor({state:'visible'});
+ await bag.getByRole('region',{name:'Stock du sac'}).getByRole('button',{name:/Ocarina, quantité/}).click();
+ console.log('OK: ocarina selected in stock');
+ await bag.getByRole('button',{name:'Jouer'}).click();
+ await panel.waitFor({state:'visible'});
+ assert.ok((await panel.locator('.lw-instrument-head').textContent())?.includes('Ocarina'));
+ await page.keyboard.press('Escape');
+ await page.waitForFunction(()=>window.littleWorldMetrics?.audio?.heldInstrumentNotes===0);
  assert.deepEqual(errors,[]);
- console.log('OK: instruments equip, 15-note grid, live notes, piano, octave, cleanup');
+ console.log('OK: one-click bag Play/equip, HUD, P toggle, 15-note grid, live notes, piano, octave, cleanup');
 }finally{await browser.close();}
