@@ -212,6 +212,7 @@ function characterSection(ctx:InspectorContext,id:string,owner:string){
         node('p','Chaque étape utilise un lieu public existant. Le trajet aller-retour et les horaires sont vérifiés avant l’enregistrement.','muted'));
       const visits=(resident.activities??[]).map(a=>({
         kind:a.kind as ResidentActivityKind,anchorId:a.anchorId,startHour:a.startHour,endHour:a.endHour,
+        weather:(a.weather??'any') as 'any'|'dry'|'rain',
       }));
       const rows=node('div');
       const kinds:[ResidentActivityKind,string][]=[['meal','Repas'],['social','Rencontre'],['rest','Repos'],['play','Jeu'],['errand','Course']];
@@ -222,6 +223,7 @@ function characterSection(ctx:InspectorContext,id:string,owner:string){
           line.append(node('legend','Étape '+(i+1)),
             field('Type',select(stop.kind,kinds,v=>{stop.kind=v as ResidentActivityKind;})),
             field('Lieu public',select(stop.anchorId,publicPlaces.map(a=>[a.id,a.name] as const),v=>{stop.anchorId=v;})),
+            field('Météo',select(stop.weather,[['any','Toutes'],['dry','Sans pluie'],['rain','Pluie uniquement']],v=>{stop.weather=v as 'any'|'dry'|'rain';})),
             field('Début',numberInput(stop.startHour,v=>{stop.startHour=v;},0,24)),
             field('Fin',numberInput(stop.endHour,v=>{stop.endHour=v;},0,24)),
             button('Supprimer cette étape',()=>{visits.splice(i,1);draw();}));
@@ -238,7 +240,7 @@ function characterSection(ctx:InspectorContext,id:string,owner:string){
           ctx.status('Aucune plage horaire disponible : réduisez une activité ou modifiez le service.',true);
           return;
         }
-        visits.push({kind:'social',anchorId:publicPlaces[0].id,startHour:after,endHour:after+duration});
+        visits.push({kind:'social',anchorId:publicPlaces[0].id,startHour:after,endHour:after+duration,weather:'any'});
         draw();
       }),button('Enregistrer les activités',()=>void editQueue.run(async()=>{
         await s.fullDocument();
