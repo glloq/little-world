@@ -818,7 +818,7 @@ function input(): Controls {
     boostHeld:flightBoostHeld(player.mode,shiftHeld,touchAccelerateHeld),
     swimStrokePressed:touchStrokeQueue>0,
     snowEquipment:snowDemo?snowEquipment:gameplay?.equipment.hands==='tool:snowboard'?'snowboard':gameplay?.equipment.hands==='tool:skis'?'skis':null,
-    surfEnabled:!!surfField&&(surfDemo||gameplay?.equipment.hands==='tool:surfboard'||(player.mode==='surf'||player.surfAirborne)&&!!gameplay?.has('tool:surfboard')),surfActionPressed:surfQueue>0,
+    surfEnabled:!!surfField&&(surfDemo||gameplay?.equipment.hands==='tool:surfboard'||(player.mode==='surf'||player.surfAirborne||surfQueue>0)&&!!gameplay?.has('tool:surfboard')),surfActionPressed:surfQueue>0,
     surfPaddleHeld:!!surfField&&(shiftHeld||touchAccelerateHeld),surfPump:!!surfField&&(shiftHeld||touchAccelerateHeld)&&player.surfStage==='ride',
   };
 }
