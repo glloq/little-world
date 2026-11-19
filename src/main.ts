@@ -298,11 +298,11 @@ if(playable){
     onNpcStartDialogue:(id)=>npcActorActions?.talkTo(id,{x:player.position.x,z:player.position.z})??false,
     onSound:(id,p)=>audio?.playSound(id,p),collisions:playable.collisions,temporary:!!(studioTest||buildScope),saveScope:studioTest?.snapshotId??buildScope??undefined,getPosition:()=>({x:player.position.x,y:player.position.y,z:player.position.z}),objects:world.objects,showInfo,
     activities:playable.activities,getSpace:()=>player.space,
-    getGas:()=>gasLevel(player),getSurfBoard:()=>placedSurfBoard,
+    getGas:()=>gasLevel(player),getSatiety:()=>satietyLevel(player),getRechargeProgress:()=>player.boostRechargeProgress??0,getSurfBoard:()=>placedSurfBoard,
     setSurfBoard:board=>{placedSurfBoard=board&&isSurfBoardWaterSafe(board,waterSurface,terrainHeight,(x,z)=>!!surfFieldAt(x,z))?board:null;},
     getGasProgress:()=>structuredClone(flightProgress),
     setGasProgress:value=>{flightProgress={...value,currentFlightDistance:0,currentFlightNoGas:0,currentCombo:0,lastPulseAt:-1};player.gasCapacityLevel=value.capacityLevel;player.gasPowerLevel=value.powerLevel;player.gasControlLevel=value.controlLevel;},
-    setGas:value=>{player.gasReserve=Math.min(GAS.max,Math.max(0,value));player.satiety=100;player.boostRechargeProgress=0;player.gasBoosting=false;player.gasPulseClock=0;player.gasPulseSeq=0;player.gasThrust=0;player.gasPulseRemaining=0;player.gasCooldown=0;player.gasBoostHeld=false;player.gasRepeatArmed=false;gasVisualSeq=0;lastFlightPulseSeq=0;boostWindActive=false;},
+    setGas:(value,satiety,recharge)=>{player.gasReserve=Math.min(GAS.max,Math.max(0,value));player.satiety=satiety??100;player.boostRechargeProgress=recharge??0;player.gasBoosting=false;player.gasPulseClock=0;player.gasPulseSeq=0;player.gasThrust=0;player.gasPulseRemaining=0;player.gasCooldown=0;player.gasBoostHeld=false;player.gasRepeatArmed=false;gasVisualSeq=0;lastFlightPulseSeq=0;boostWindActive=false;},
     ...(isLegacyTerrain()?{}:{gathering:{ctx:geoContext,seed:definition.config.seed,inside:(x:number,z:number)=>Math.abs(x)<=(definition.config.width??200)/2&&Math.abs(z)<=(definition.config.length??600)/2}}),
     setPosition:(p,space)=>{gameplay?.fishing.cancel();stopFlightCourse();stopRace();player.space=space??undefined;player.position.set(p.x,p.y,p.z);player.velocity.set(0,0,0);player.mode='air';player.oxygen=MAX_OXYGEN;player.glideReady=false;player.coyoteLeft=0;player.jumpBufferLeft=0;aboard=false;keySet.clear();jumpQueue=0;actionQueue=0;npcs.dialogue.close();previousPlayerPosition.copy(player.position);renderPosition.copy(player.position);updateCamera(1);}
   });
