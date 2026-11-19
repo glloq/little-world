@@ -418,6 +418,26 @@ export function createGameplayView(data:GameplayData,options:Options){
        }
        if(transfers>=8)break;
      }
+     // Fisher → port merchant: only a real authored port counter within
+     // physical handoff range, funded from the market's existing cash.
+     for(const producer of npcs){
+       if(transfers>=8)break;
+       const source=npcHarvest.account(producer.definition.id);
+       if(source?.role!=='fisher'||producer.phase!=='work')continue;
+       for(const counter of runtime.data.entities){
+         if(counter.shopAccess?.kind!=='port')continue;
+         const point=runtime.getEntityPosition(counter.id);
+         if(!point||Math.hypot(producer.x-point.x,producer.z-point.z)>8)continue;
+         const fish=Object.entries(source.inventory()).find(([id,quantity])=>
+           id.startsWith('fish:')&&quantity>0);
+         if(!fish)break;
+         const quantity=Math.min(2,fish[1]);
+         if(markets.supplyFromNpc('port',counter.id,fish[0],quantity,source,
+           'npc:sell:'+producer.definition.id+':'+economyMinute)){
+           transfers++;break;
+         }
+       }
+     }
      if(transfers)for(const listener of listeners)listener();
    }
    if(npcEconomy.tick(Math.floor(runtime.state.time/runtime.climate.definition.dayLengthSeconds*1440)))
