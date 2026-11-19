@@ -18,6 +18,9 @@ export function acceptQuest(
 }
 function matches(step:QuestStepV1,event:QuestGameEventV1):boolean{
  switch(step.kind){
+  case 'travel':
+   return event.type==='ferry.arrived'&&event.source===step.fromIslandId&&
+    event.islandId===step.toIslandId;
   case 'talk':
    return event.type==='npc.talked'&&
     (step.npcId===undefined||event.targetId===step.npcId)&&
@@ -71,12 +74,15 @@ export function advanceQuest(
  const reject=(reason:QuestProgressResult['reason']):QuestProgressResult=>({instance,applied:false,reason});
  if(instance.appliedEventIds.includes(event.eventId))return reject('duplicate');
  if(instance.status!=='active'||instance.stepIndex>=instance.steps.length)return reject('not-active');
- if(event.islandId!==instance.islandId)return reject('wrong-island');
- if(event.gameMinute<instance.acceptedAtGameMinute)return reject('past');
  const step=instance.steps[instance.stepIndex];
+ const requiredIsland=step.kind==='travel'?step.toIslandId:
+   step.kind==='acquire'?step.fromIslandId??instance.islandId:
+   ('islandId' in step?step.islandId:undefined)??instance.islandId;
+ if(event.islandId!==requiredIsland)return reject('wrong-island');
+ if(event.gameMinute<instance.acceptedAtGameMinute)return reject('past');
  if(!matches(step,event))return reject('not-matched');
  if(instance.appliedEventIds.length>=256)return reject('out-of-order');
- const count=step.kind==='talk'||step.kind==='visit'||step.kind==='race'?1:(event.quantity??0);
+ const count=step.kind==='talk'||step.kind==='visit'||step.kind==='race'||step.kind==='travel'?1:(event.quantity??0);
  if(!Number.isSafeInteger(count)||count<1)return reject('not-matched');
  const target=needed(step),before=instance.stepProgress[instance.stepIndex];
  instance.stepProgress[instance.stepIndex]=Math.min(target,before+count);
