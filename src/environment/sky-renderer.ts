@@ -3,6 +3,8 @@ import * as THREE from 'three';
 /** Sky is visual only: one draw call, one 128² shared alpha map, no shadow pass or physics.
  * The dome follows the actual camera, not the interpolated player position. */
 export function createSkyRenderer(scene: THREE.Scene, camera: THREE.PerspectiveCamera, seed: number) {
+  // Reproducible A/B captures: ?sky=off | sun | 2d (default).
+  const mode = new URLSearchParams(location.search).get('sky');
   const size = 128;
   const bytes = new Uint8Array(size * size * 4);
   // Generate a periodic, inexpensive multi-scale cloud atlas ONCE on the CPU.
@@ -100,7 +102,7 @@ export function createSkyRenderer(scene: THREE.Scene, camera: THREE.PerspectiveC
   scene.add(mesh);
   let cloudsEnabled = true;
   function update(params: {color: THREE.Color; sunDirection: THREE.Vector3; sunAltitude: number; cloudCover: number; wind: number; time: number; detail: number; underground: boolean}) {
-    mesh.visible = !params.underground;
+    mesh.visible = !params.underground && mode !== 'off';
     if (!mesh.visible) return;
     mesh.position.copy(camera.position);
     mesh.scale.setScalar(Math.max(camera.near * 2, camera.far * .8));
@@ -110,12 +112,12 @@ export function createSkyRenderer(scene: THREE.Scene, camera: THREE.PerspectiveC
     uniforms.cloudCover.value = params.cloudCover;
     uniforms.wind.value = params.wind;
     uniforms.time.value = params.time;
-    cloudsEnabled = params.detail < 2;
+    cloudsEnabled = params.detail < 2 && mode !== 'sun';
     uniforms.enabledClouds.value = cloudsEnabled ? 1 : 0;
   }
   return {
     update,
-    get metrics() { return {visible: mesh.visible, clouds2d: mesh.visible && cloudsEnabled, clouds3d: 0, skyDrawCalls: mesh.visible ? 1 : 0, skyTextureBytes: bytes.byteLength}; },
+    get metrics() { return {mode: mode === 'off' || mode === 'sun' ? mode : '2d', visible: mesh.visible, clouds2d: mesh.visible && cloudsEnabled, clouds3d: 0, skyDrawCalls: mesh.visible ? 1 : 0, skyTextureBytes: bytes.byteLength}; },
     dispose() {mesh.removeFromParent(); geometry.dispose(); material.dispose(); atlas.dispose();},
   };
 }
