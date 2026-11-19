@@ -82,3 +82,29 @@ test('Q5 delivery action appears only at target NPC and supports refused/retried
  assert.equal(session.choices.length,1,'cannot deliver a second time');
  assert.equal(attempts,2);
 });
+
+test('F04 workshop actions are visible in resident dialogue and invoke only validated action',()=>{
+ const d=createQuestDirector([],{islandId:'island:1',maxActive:2});
+ let inventory=3,received=0,reads=0;
+ const session=questDialogueSession(base(),d,'npc:artisan',()=>10,
+   ()=>({ok:false,reason:'not-ready'}),undefined,undefined,()=>{
+     reads++;
+     return [{text:'Fournir 2 rondins',run:()=>{
+       if(inventory<2)return {ok:false,reason:'missing-items'};
+       inventory-=2;received+=2;
+       return {ok:true,reason:'applied'};
+     }}];
+   });
+ assert.equal(session.choices.length,2);
+ assert.equal(session.choices[1].text,'Fournir 2 rondins');
+ assert.equal(session.hint(1),'objet');
+ assert.equal(session.choose(1),true);
+ assert.equal(inventory,1);
+ assert.equal(received,2);
+ assert.match(session.line.text,/Transaction effectuée/);
+ assert.equal(session.choose(0),true);
+ assert.equal(session.choose(1),true);
+ assert.equal(inventory,1,'second attempt does not invent missing inventory');
+ assert.equal(received,2);
+ assert.ok(reads>=1);
+});
