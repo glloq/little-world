@@ -1,4 +1,5 @@
 import {accessibleShop} from './shop-access.ts';
+import {createResidentDoorOpenings} from './resident-door-openings.ts';
 import {InteractionNeighborhood} from './interaction-neighborhood.ts';
 import type * as THREE from 'three';
 import type {NPCState} from '../npc.ts';
@@ -42,8 +43,8 @@ export function createGameplayView(data:GameplayData,options:Options){
    slots=createGameSaveStore(options.temporary?scopedSaveStorage(sessionStorage,options.saveScope??'test'):undefined);
  const collisionDefinitions=new Map((options.collisions??[]).map(d=>[d.id,d]));
  // Transient resident door openings are never serialized into the player's save.
- const npcDoorUntil=new Map<string,number>();
- const npcDoorOpen=(id:string)=>((npcDoorUntil.get(id)??-Infinity)>runtime.state.time);
+ const npcDoors=createResidentDoorOpenings(()=>runtime.state.time);
+ const npcDoorOpen=(id:string)=>npcDoors.isOpen(id);
  const collision=new WorldCollisionQuery(terrainHeight,waterSurface);for(const definition of options.collisions??[]){const height=terrainHeight(definition.groundAnchor.x,definition.groundAnchor.z);collision.add({...definition,position:{...definition.position,y:definition.position.y+height},enabled:()=>{const state=runtime.state.entities[definition.ownerId??naturalColliderOwner(definition.id)];return state?.open!==true&&!npcDoorOpen(definition.ownerId??naturalColliderOwner(definition.id))&&state?.collected!==true;}});}
  const has=(itemId:string)=>(runtime.state.inventory[itemId]??0)>0;
  const activities=createActivityRuntime(options.activities??{mines:[],farms:[]},{grant:changes=>runtime.grantItems(changes),has,seedItem:cropId=>runtime.data.items.some(i=>i.id==='seed:'+cropId)?'seed:'+cropId:null,time:()=>runtime.state.time,climate:runtime.climate,collision,ground:terrainHeight,water:waterSurface});
@@ -152,9 +153,7 @@ export function createGameplayView(data:GameplayData,options:Options){
   runtime,collision,activities,slots,compose,gathering,trees,fishing,trade,sellBatch,nearbyShop,workshops,markets,purse,itemName,has,equipment,
   openDoorForNPC(doorId:string,duration=2):boolean{
    if(!runtime.state.entities[doorId]||!models.has(doorId)||!Number.isFinite(duration)||duration<=0||duration>5)return false;
-   const before=npcDoorOpen(doorId);
-   npcDoorUntil.set(doorId,Math.max(npcDoorUntil.get(doorId)??0,runtime.state.time+duration));
-   if(!before)sync();
+   if(npcDoors.request(doorId,duration))sync();
    return true;
   },
   get cargoPurchaseRevision(){return cargoPurchaseRevision;},
@@ -164,7 +163,7 @@ export function createGameplayView(data:GameplayData,options:Options){
     cargoPurchaseRevision=Math.max(cargoPurchaseRevision,revision);
   },
   /** Restores a validated save into the runtime and the activities; returns the warnings. */
-  restore(save:GameSaveV2){npcDoorUntil.clear();const warnings=[...runtime.restore(save),...activities.restore(save)];
+  restore(save:GameSaveV2){npcDoors.clear();const warnings=[...runtime.restore(save),...activities.restore(save)];
     // Upgrade old island saves with one temporary starter board, without removing other goods.
     if(options.surfStarter&&!has(SURFBOARD_ID))runtime.grantItems([{itemId:SURFBOARD_ID,quantity:1}]);
     equippedHands=save.equippedItemId&&canEquip(save.equippedItemId)?save.equippedItemId:null;playerLoadout=save.loadout?parsePlayerLoadout(save.loadout):emptyPlayerLoadout();if(playerLoadout.head!=='tool:miners-helmet'||!has('tool:miners-helmet'))playerLoadout.head=null;playerLoadout.back=null;playerLoadout.feet=null;workshops.restore(save.workshops??{});markets.restore(save.markets??{});cargoPurchaseRevision=save.cargoPurchaseRevision??0;gathering?.restore(save.gathering??null);options.setPosition(save.position,save.space??null);options.setGasProgress?.(save.flightProgress??newFlightProgress());options.setGas?.(save.gasReserve??GAS.legacyInitial);sync();version=-1;for(const l of listeners)l();return warnings;},
@@ -179,9 +178,7 @@ export function createGameplayView(data:GameplayData,options:Options){
   update(dt:number){
    if(disposed)return;runtime.state.playerPosition={...options.getPosition()};for(const npc of npcs)if(entityIds.has(npc.definition.id)){runtime.setEntityPosition(npc.definition.id,{x:npc.x,y:npc.y,z:npc.z});if(targetById.has(npc.definition.id))targetIndex.set(npc.definition.id,{x:npc.x,z:npc.z});const body=collisionDefinitions.get(npc.definition.id);if(body)collision.moveBody(body.id,{x:npc.x+body.position.x-body.groundAnchor.x,y:npc.y+body.position.y,z:npc.z+body.position.z-body.groundAnchor.z});}
    runtime.update(dt);
-   let doorExpired=false;
-   for(const [id,until] of npcDoorUntil)if(until<=runtime.state.time){npcDoorUntil.delete(id);doorExpired=true;}
-   if(doorExpired)sync();
+   if(npcDoors.expire())sync();
    workshops.advanceDue();for(const effect of runtime.drainEffects()){
     if(effect.type==='showText')options.showInfo(effect.text);
     else if(effect.type==='playSound')options.onSound?.(effect.soundId,effect.entityId?runtime.data.entities.find(e=>e.id===effect.entityId)?.position:undefined);
