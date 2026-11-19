@@ -58,7 +58,22 @@ async function buildInspector(host:HTMLElement,ctx:InspectorContext){
     return;
   }
   if(refs.length===1&&refs[0].kind!=='entity'){renderElementInspector(host,refs[0],ctx);return;}
-  if(!ids.length){host.append(node('h3','Votre monde'),node('p','Clic : sélectionner · Maj+clic : ajouter · F : centrer · 7 : vue du dessus · clic droit : orienter (+ ZQSD/WASD pour voler) · clic molette : déplacer la vue.','muted'));return;}
+  if(!ids.length){
+    host.append(node('h3','Votre monde'),node('p','Clic : sélectionner · Maj+clic : ajouter · F : centrer · 7 : vue du dessus · clic droit : orienter (+ ZQSD/WASD pour voler) · clic molette : déplacer la vue.','muted'));
+    const audit=residentRegistry(p);
+    if(audit.residents.length){
+      const section=node('details');
+      section.append(node('summary',`Vie locale : ${audit.residents.length} PNJ · ${audit.issues.length} alerte(s)`));
+      section.append(node('p','Diagnostic limité aux secteurs chargés dans Studio. Les secteurs non chargés ne sont pas considérés comme validés.','muted'));
+      for(const issue of audit.issues.slice(0,12)){
+        const person=audit.residents.find(r=>r.id===issue.targetId);
+        if(person)section.append(button(person.name+' · '+issue.message,()=>ctx.view(person.home.x,person.home.z)));
+      }
+      if(audit.issues.length>12)section.append(node('p',`Et ${audit.issues.length-12} autres alertes : charger le village et inspecter ses habitants.`,'muted'));
+      host.append(section);
+    }
+    return;
+  }
   if(ids.length>1){
     host.append(node('h3',`${ids.length} éléments`),node('p',ids.map(id=>p.entityIndex[id].name).join(', '),'selection-tag'),
       button('Centrer (F)',ctx.focus),button('Aligner au sol',()=>alignAll(ctx,ids)),
