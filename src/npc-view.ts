@@ -349,8 +349,9 @@ export function createNPCSystem(
               // Check EVERY interval actually traversed, even if a browser tab
               // was paused and the absolute-clock target skipped several metres.
               const safeStep=residentRouteStepClear(job.route,job.lastDistance,distance,walkable);
-              if(!safeStep||checkAhead&&!residentRouteAheadClear(job.route,distance,walkable,3)){
-                job.lastCheckedAt=now;
+              const clearAhead=!checkAhead||residentRouteAheadClear(job.route,distance,walkable,3);
+              if(checkAhead)job.lastCheckedAt=now;
+              if(!safeStep||!clearAhead){
                 const alternative=job.replans<3?router?.route({x:state.x,z:state.z},job.goal)??null:null;
                   if(alternative&&residentRouteAheadClear(alternative,0,walkable,3)){
                     job.route=alternative;job.startAt=now;job.pausedFor=0;
