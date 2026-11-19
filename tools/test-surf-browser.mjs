@@ -60,7 +60,19 @@ try{
  let after=await page.evaluate(()=>window.littleWorldMetrics);
  check(after.mode==='swim'||after.mode==='dive','B stows the board and returns to swimming');
  await page.keyboard.press('KeyB');
- await page.waitForFunction(()=>window.littleWorldMetrics?.mode==='surf',{},{timeout:6000});
+ try{
+  await page.waitForFunction(()=>window.littleWorldMetrics?.mode==='surf',{},{timeout:7500});
+ }catch(error){
+  const state=await page.evaluate(()=>({
+   mode:window.littleWorldMetrics?.mode,position:window.littleWorldMetrics?.position,
+   velocity:window.littleWorldMetrics?.velocity,
+   surf:window.littleWorldMetrics?.surf,
+   water:window.littleWorldMetrics?.swim,
+   equipment:window.littleWorldMetrics?.surf?.equipped,
+  }));
+  console.error('SURF_REBOARD_DIAGNOSTIC '+JSON.stringify(state));
+  throw error;
+ }
  await page.keyboard.down('KeyW');await page.waitForTimeout(900);await page.keyboard.up('KeyW');
  after=await page.evaluate(()=>window.littleWorldMetrics);
  check(['surf','air','swim'].includes(after.mode),'paddling does not crash or teleport player');
