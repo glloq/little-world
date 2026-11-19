@@ -421,7 +421,7 @@ let ferryMinute=worldGameMinute(worldClock.time,climate.definition.dayLengthSeco
 let ferryNow=ferryStatus(ferryMinute,activeIsland?.portLevel??0);
 ferryView?.setPresent(ferryNow.present);
 const {createEnvironmentView}=await import('./environment/view.ts');
-const environment=createEnvironmentView(scene,lighting,worldClock,climate);
+const environment=createEnvironmentView(scene,lighting,worldClock,climate,camera);
 // E10 — local lights: entity states switch « state » lights, NPC carriers move their lights.
 const {nightFactor}=await import('./lighting/light-data.ts');
 {
