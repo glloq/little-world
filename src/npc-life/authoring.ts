@@ -11,7 +11,7 @@ import {collisionDefinitionsFromProject} from '../studio-core/collision-adapter.
 import {WorldCollisionQuery} from '../physics/collision-world.ts';
 import {localLifeCapabilities} from './capabilities.ts';
 import {createResidentAssignmentPlanner} from './assignments.ts';
-import {residentDutyShift,type ResidentPoint,type ResidentRole,type ResidentRoutineV1} from './schedule.ts';
+import {residentDutyShift,validResidentRoutine,type ResidentActivityStop,type ResidentPoint,type ResidentRole,type ResidentRoutineV1} from './schedule.ts';
 import {withVillageActivities} from './generation-agenda.ts';
 export interface ResidentAnchorChoice {id:string;name:string;point:ResidentPoint}
 export interface ResidentAnchorChoices {homes:ResidentAnchorChoice[];jobs:ResidentAnchorChoice[];settlementId:string}
@@ -46,24 +46,7 @@ export function reassignResident(p:ProjectDocument,id:string,homeId:string,jobId
  }).filter((r):r is NonNullable<typeof r>=>!!r);
  const conflict=residentReassignmentConflict(occupied,homeId,jobId,routine.role);
  if(conflict)throw Error(conflict);
- const c=terrainAccessContext(p),query=new WorldCollisionQuery(c.height,()=>null);
- const doors=new Set(Object.values(p.libraries.settlements??{}).flatMap(s=>s.buildings.map(b=>b.doorId)));
- for(const obj of collisionDefinitionsFromProject(p))query.add({...obj,
-   position:{...obj.position,y:obj.position.y+c.height(obj.groundAnchor.x,obj.groundAnchor.z)},
-   enabled:()=>!doors.has(obj.id)});
- const routes=createResidentAssignmentPlanner(Object.values(p.libraries.paths),c,{
-   maxRouteM:650,blocked:(x,z)=>query.intersectsVolume({minX:x-.22,maxX:x+.22,minZ:z-.22,maxZ:z+.22,
-      minY:c.height(x,z)+.4,maxY:c.height(x,z)+1.5}),
-   surfaces:{groundHeight:c.height,supportHeight:(supportId,x,z)=>{
-     const ref=p.entityIndex[supportId],bridge=ref?p.chunks[ref.ownerChunkId]?.entities[supportId]:undefined;
-     const t=bridge?.components.Bridge?bridge.components.Transform:undefined;
-     if(!t)return null;
-     const a=2*Math.atan2(t.rotation.y,t.rotation.w),co=Math.cos(a),si=Math.sin(a),dx=x-t.position.x,dz=z-t.position.z;
-     if(Math.abs(dx*co-dz*si)>t.scale.x/2+.02||Math.abs(dx*si+dz*co)>t.scale.z/2-.12)return null;
-     const deck=c.height(t.position.x,t.position.z)+t.position.y;
-     return deck>=c.height(x,z)-.05?deck:null;
-   }},
- });
+ const routes=createResidentStudioPlanner(p);
  const path=routes.routeBetween(home.point,job.point);
  if(!path||path.length<.15)throw Error('Aucun trajet piéton valide entre domicile et poste');
  const [start,end]=residentDutyShift(routine);
@@ -94,4 +77,77 @@ export function residentReassignmentConflict(
     (!sharedPlay||!['child','villager'].includes(r.role))))
   return 'Poste déjà attribué à un autre travailleur';
  return null;
+}
+
+/** Shared bounded route/collision validation for every Studio routine edit. */
+function createResidentStudioPlanner(p:ProjectDocument){
+ const c=terrainAccessContext(p),query=new WorldCollisionQuery(c.height,()=>null);
+ const doors=new Set(Object.values(p.libraries.settlements??{}).flatMap(s=>s.buildings.map(b=>b.doorId)));
+ for(const obj of collisionDefinitionsFromProject(p))query.add({...obj,
+   position:{...obj.position,y:obj.position.y+c.height(obj.groundAnchor.x,obj.groundAnchor.z)},
+   enabled:()=>!doors.has(obj.id)});
+ return createResidentAssignmentPlanner(Object.values(p.libraries.paths),c,{
+   maxRouteM:650,blocked:(x,z)=>query.intersectsVolume({minX:x-.22,maxX:x+.22,minZ:z-.22,maxZ:z+.22,
+      minY:c.height(x,z)+.4,maxY:c.height(x,z)+1.5}),
+   surfaces:{groundHeight:c.height,supportHeight:(supportId,x,z)=>{
+     const ref=p.entityIndex[supportId],bridge=ref?p.chunks[ref.ownerChunkId]?.entities[supportId]:undefined;
+     const t=bridge?.components.Bridge?bridge.components.Transform:undefined;
+     if(!t)return null;
+     const a=2*Math.atan2(t.rotation.y,t.rotation.w),co=Math.cos(a),si=Math.sin(a),dx=x-t.position.x,dz=z-t.position.z;
+     if(Math.abs(dx*co-dz*si)>t.scale.x/2+.02||Math.abs(dx*si+dz*co)>t.scale.z/2-.12)return null;
+     const deck=c.height(t.position.x,t.position.z)+t.position.y;
+     return deck>=c.height(x,z)-.05?deck:null;
+   }},
+ });
+
+}
+
+/** Public anchors are derived from existing settlement data, never synthesized. */
+export function residentActivityChoices(p:ProjectDocument,id:string):ResidentAnchorChoice[]{
+ const choices=residentAnchorChoices(p,id);
+ if(!choices)return [];
+ const settlement=p.libraries.settlements?.[choices.settlementId];
+ if(!settlement)return [];
+ const zones=Object.keys(settlement.zoneHashes??{}).map(key=>p.libraries.zones?.[key]).filter((v):v is NonNullable<typeof v>=>!!v);
+ const caps=localLifeCapabilities(settlement.recipe,settlement.buildings,settlement.amenities??[],zones,p);
+ return [...new Map(caps.play.map(place=>[place.id,{id:place.id,name:p.entityIndex[place.id]?.name??place.id,point:place.point}])).values()]
+  .sort((a,b)=>a.id.localeCompare(b.id));
+}
+
+/** Compile an author's explicit daytime activities against navigable routes.
+ * The single persisted Resident component remains the sole game data source.
+ */
+export function setResidentStudioActivities(p:ProjectDocument,id:string,
+ activities:readonly {kind:ResidentActivityStop['kind'];anchorId:string;startHour:number;endHour:number}[]):void{
+ const index=p.entityIndex[id],source=index?p.chunks[index.ownerChunkId]?.entities[id]:undefined;
+ const routine=source?resolveEntity(p,source).components.Resident:undefined;
+ if(!source||!routine)throw Error('Résident introuvable');
+ if(activities.length>3)throw Error('Trois activités maximum');
+ const choices=new Map(residentActivityChoices(p,id).map(a=>[a.id,a]));
+ const resolved:ResidentActivityStop[]=activities.map(a=>{
+  const anchor=choices.get(a.anchorId);
+  if(!anchor)throw Error('Lieu public inexistant ou supprimé : '+a.anchorId);
+  return {kind:a.kind,anchorId:a.anchorId,point:{...anchor.point},startHour:a.startHour,endHour:a.endHour};
+ }).sort((a,b)=>a.startHour-b.startHour||a.anchorId.localeCompare(b.anchorId));
+ const amended:ResidentRoutineV1={...routine,activities:resolved.length?resolved:undefined};
+ if(!validResidentRoutine(amended))throw Error('Horaires ou activités incompatibles');
+ const routes=createResidentStudioPlanner(p),commute=routes.routeBetween(routine.home,routine.work);
+ if(!commute)throw Error('Domicile et travail non reliés');
+ const [start,end]=residentDutyShift(amended),dayLength=1200,speed=1.1;
+ const hours=(distance:number)=>distance/speed/dayLength*24;
+ const commuteHours=hours(commute.length);
+ if(commuteHours>(end-start)/2)throw Error('Trajet domicile/travail trop long');
+ let previous=start+commuteHours;
+ for(const activity of resolved){
+  const outward=routes.routeBetween(routine.work,activity.point);
+  const back=routes.routeBetween(activity.point,routine.work);
+  if(!outward||!back)throw Error('Lieu non accessible à pied : '+activity.anchorId);
+  if(activity.startHour-hours(outward.length)<previous+.001||
+     activity.endHour+hours(back.length)>end-.001)
+   throw Error('Déplacement impossible dans les horaires : '+activity.anchorId);
+  previous=activity.endHour+hours(back.length);
+ }
+ const next=structuredClone(source);
+ next.components.Resident=amended;
+ putEntity(p,next);
 }
