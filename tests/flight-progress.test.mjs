@@ -16,8 +16,8 @@ test('flight rewards, skill levels and cosmetics unlock deterministically',()=>{
  assert.ok(p.achievements.includes('long-flight'));
  assert.ok(p.unlockedSkins.includes('magic'));
  assert.ok(p.unlockedSkins.includes('potato'));
- assert.equal(gasCapacity({gasCapacityLevel:p.capacityLevel}),280);
- assert.equal(gasShots({gasCapacityLevel:p.capacityLevel,gasReserve:280}),20);
+ assert.equal(gasCapacity({gasCapacityLevel:p.capacityLevel}),140);
+ assert.equal(gasShots({gasCapacityLevel:p.capacityLevel,gasReserve:140}),10);
  assert.ok(gasMastery({gasControlLevel:p.controlLevel})<1);
  assert.equal(gasPower({gasPowerLevel:p.powerLevel}),14);
  assert.deepEqual(parseFlightProgress(p),p);
@@ -50,7 +50,7 @@ test('V2 game save gains a versioned flightProgress while old gas is preserved',
  assert.equal(migrated.flightProgress.capacityLevel,0);
  const p=newFlightProgress();p.capacityLevel=3;
  const saved=parseGameSave({...old,flightProgress:p,gasReserve:250});
- assert.equal(saved.gasReserve,250);
+ assert.equal(saved.gasReserve,140);
  assert.equal(saved.flightProgress.capacityLevel,3);
- assert.throws(()=>parseGameSave({...old,gasReserve:250}),/gaz invalide/);
+ assert.throws(()=>parseGameSave({...old,gasReserve:281}),/gaz invalide/);
 });

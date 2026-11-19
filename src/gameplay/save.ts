@@ -22,6 +22,8 @@ export interface GameSaveV2 extends Omit<GameSaveV1,'schemaVersion'> {schemaVers
   /** Optional hand slot; old V1/V2 saves continue to load without it. */equippedItemId?:string|null;
   /** Persisted head/other slots and ten equipment favourites; missing in older saves. */
   loadout?:PlayerLoadout;
+  /** Player satiety (0..100) and fractional auto-charge progress, optional for older saves. */
+  satiety?:number;boostRechargeProgress?:number;
   /** Board dropped in this island's sea. Missing = packed or older save. */
   surfBoard?:SurfBoardPlacement|null;}
 export type GameSave=GameSaveV2;
@@ -69,10 +71,13 @@ export function parseGameSave(value:unknown):GameSaveV2 {
   const loadout=v.loadout===undefined?undefined:parsePlayerLoadout(v.loadout);
   const surfBoard=v.surfBoard===undefined?undefined:parseSurfBoardPlacement(v.surfBoard);
   const flightProgress=parseFlightProgress(v.flightProgress);
-  if(v.gasReserve!==undefined)assert(typeof v.gasReserve==='number'&&Number.isFinite(v.gasReserve)&&v.gasReserve>=0&&v.gasReserve<=gasCapacity({gasCapacityLevel:flightProgress.capacityLevel}),'Réserve de gaz invalide');
+  // Pre-satiety saves had a 200..280-unit reservoir: accept them and clamp on restore.
+  if(v.gasReserve!==undefined)assert(typeof v.gasReserve==='number'&&Number.isFinite(v.gasReserve)&&v.gasReserve>=0&&v.gasReserve<=280,'Réserve de gaz invalide');
+  if(v.satiety!==undefined)assert(finite(v.satiety,0,100),'Satiété invalide');
+  if(v.boostRechargeProgress!==undefined)assert(finite(v.boostRechargeProgress,0,1),'Progression de recharge invalide');
   if(v.external!==undefined)assert(record(v.external)&&typeof v.external.key==='string'&&v.external.key.length<=300&&finite(v.external.bytes,0,1e9),'Référence de données de partie invalide');
   assert(new TextEncoder().encode(JSON.stringify({...v,mines:undefined,farms:undefined,workshops:undefined,markets:undefined})).byteLength<=2_000_000,'Sauvegarde trop volumineuse');
-  return structuredClone({...v,flightProgress,gasReserve:v.gasReserve??GAS.legacyInitial,schemaVersion:2,dialogueFlags:v.dialogueFlags??{},space:v.space??null,mines,farms,workshops,markets,cargoPurchaseRevision:v.cargoPurchaseRevision??0,...(loadout!==undefined?{loadout}:{}),...(surfBoard!==undefined?{surfBoard}:{})}) as unknown as GameSaveV2;
+  return structuredClone({...v,flightProgress,gasReserve:Math.min(gasCapacity({}),typeof v.gasReserve==='number'?v.gasReserve:GAS.legacyInitial),satiety:v.satiety??100,boostRechargeProgress:v.boostRechargeProgress??0,schemaVersion:2,dialogueFlags:v.dialogueFlags??{},space:v.space??null,mines,farms,workshops,markets,cargoPurchaseRevision:v.cargoPurchaseRevision??0,...(loadout!==undefined?{loadout}:{}),...(surfBoard!==undefined?{surfBoard}:{})}) as unknown as GameSaveV2;
 }
 export const GAME_SAVE_PREFIX='little-world:game-save:v1:';
 export interface SaveStorage {readonly length:number;key(index:number):string|null;getItem(key:string):string|null;setItem(key:string,value:string):void;removeItem(key:string):void;}

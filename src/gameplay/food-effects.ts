@@ -1,5 +1,5 @@
 /** Explicitly identified consumables: unknown gathered mushrooms must not be edible. */
-export const FOOD_GAS:Readonly<Record<string,number>>={
+export const FOOD_SATIETY:Readonly<Record<string,number>>={
   // Fruits & berries — quick snacks.
   'food:apple':25,'food:pear':25,'food:plum':15,'food:cherry':12,'food:berry':10,
   // Nuts — compact food for short trips.
@@ -10,7 +10,11 @@ export const FOOD_GAS:Readonly<Record<string,number>>={
   'food:chanterelle':25,'food:cepe':35,
   // Prepared food.
   'food:cheese':45,
-  // Prepared products from workshop recipes (fixed gas units, never inferred by category).
+  // Prepared products from workshop recipes (satiety points, never inferred by category).
   'food:bread':38,'food:jam':42,'food:soup':58,
 };
-export const foodGasValue=(itemId:string)=>FOOD_GAS[itemId]??0;
+export const foodSatietyValue=(itemId:string)=>FOOD_SATIETY[itemId]??0;
+
+/** Compatibility for older inventory and workshop callers; values now mean satiété, not fuel. */
+export const FOOD_GAS=FOOD_SATIETY;
+export const foodGasValue=foodSatietyValue;

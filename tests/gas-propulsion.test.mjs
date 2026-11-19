@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {GAS,gasLevel,gasBoostStep,refillGas,gasShots,gasMaxShots,gasCapacity,upgradeGas} from '../src/physics/gas-propulsion.ts';
+import {GAS,gasLevel,gasBoostStep,refillGas,gasShots,gasMaxShots,gasCapacity,upgradeGas,stepBoostVitals,eatForSatiety,satietyLevel,boostRechargeSeconds} from '../src/physics/gas-propulsion.ts';
 import {glideVelocity,GLIDE,movementEnergy} from '../src/physics/motion.ts';
 import {simulatePlayer} from '../src/player.ts';
 import {WorldCollisionQuery} from '../src/physics/collision-world.ts';
@@ -14,21 +14,38 @@ const input={forward:0,right:0,run:false,jumpPressed:false,spaceHeld:false,dive:
 const flat=new WorldCollisionQuery(()=>0,()=>null);
 const actor=(mode='glide')=>({position:new THREE.Vector3(0,120,0),velocity:new THREE.Vector3(0,-2,12),mode,oxygen:90,glideReady:true,gasReserve:75});
 
-test('default reserve gives ten shots, capacity upgrades to twenty without refilling',()=>{
+test('ten boosts remain available at every historical capacity upgrade level',()=>{
  const p={};
- assert.equal(gasLevel(p),150);assert.equal(gasShots(p),10);
- assert.equal(gasMaxShots(p),14);assert.equal(gasCapacity(p),200);
- p.gasReserve=150;
- for(const expected of [16,18,20]){
+ assert.equal(gasLevel(p),140);assert.equal(gasShots(p),10);
+ assert.equal(gasMaxShots(p),10);assert.equal(gasCapacity(p),140);
+ p.gasReserve=70;
+ for(let i=0;i<3;i++){
   assert.equal(upgradeGas(p,'capacity'),true);
-  assert.equal(gasMaxShots(p),expected);
-  assert.equal(gasLevel(p),150,'upgrade does not generate fuel');
+  assert.equal(gasMaxShots(p),10);
+  assert.equal(gasLevel(p),70,'upgrade must not grant a boost');
  }
  assert.equal(upgradeGas(p,'capacity'),false);
- assert.equal(refillGas(p,500),130);
- assert.equal(gasLevel(p),280);
+ assert.equal(refillGas(p,500),70);
+ assert.equal(gasLevel(p),140);
  assert.equal(upgradeGas(p,'power'),true);
  assert.equal(upgradeGas(p,'control'),true);
+});
+
+test('satiety regenerates one boost in 2.5 seconds; zero satiety stops recharge',()=>{
+ const p={gasReserve:0,satiety:100};
+ assert.equal(boostRechargeSeconds(100),2.5);
+ assert.equal(boostRechargeSeconds(50),4);
+ assert.equal(boostRechargeSeconds(25),6);
+ assert.equal(boostRechargeSeconds(0),Infinity);
+ for(let i=0;i<76;i++)stepBoostVitals(p,1/30);
+ assert.equal(gasShots(p),1);
+ p.satiety=0;
+ for(let i=0;i<300;i++)stepBoostVitals(p,1/30);
+ assert.equal(gasShots(p),1);
+ assert.equal(eatForSatiety(p,40),40);
+ assert.equal(satietyLevel(p),40);
+ for(let i=0;i<190;i++)stepBoostVitals(p,1/30);
+ assert.ok(gasShots(p)>=2);
 });
 
 test('one press costs fourteen once, held repeats at bounded interval, no half-shot',()=>{
@@ -54,7 +71,7 @@ test('one press costs fourteen once, held repeats at bounded interval, no half-s
  assert.equal(gasBoostStep(p,true,true,dt),0);
  p.gasReserve=13;assert.equal(gasBoostStep(p,true,true,dt),0,'remainder cannot pay for pulse');
  assert.equal(gasShots(p),0);
- assert.equal(refillGas(p,150),150);
+ assert.equal(refillGas(p,150),127);
 });
 
 test('boost raises speed with retained inertia and obeys the 60 m/s ceiling',()=>{
@@ -127,7 +144,8 @@ test('old saves keep their numeric fuel without granting free fuel',()=>{
  const old={schemaVersion:1,worldId:'w',worldBuildVersion:'b1',slotId:'slot-1',savedAt:1,time:0,position:{x:0,y:0,z:0},inventory:{},variables:{},objectives:{},entities:{},executed:{},cooldowns:{},dialogueFlags:{},pending:[]};
  assert.equal(parseGameSave(old).gasReserve,GAS.legacyInitial);
  assert.equal(parseGameSave({...old,schemaVersion:2,gasReserve:19}).gasReserve,19);
- assert.throws(()=>parseGameSave({...old,schemaVersion:2,gasReserve:201}),/gaz invalide/);
+ assert.equal(parseGameSave({...old,schemaVersion:2,gasReserve:201}).gasReserve,140);
+ assert.throws(()=>parseGameSave({...old,schemaVersion:2,gasReserve:281}),/gaz invalide/);
 });
 
 test('remote state accepts optional boost cue but rejects invalid sequence',()=>{

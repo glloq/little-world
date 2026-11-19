@@ -1,17 +1,18 @@
 /** Fixed-step, allocation-free boost pulses. Simulation is authoritative; visuals use gasPulseSeq. */
 export const GAS = {
-  max:280, initial:150, legacyInitial:75, cost:14,
+  max:140, initial:140, legacyInitial:75, cost:14,
   pulseSeconds:.2, cooldownSeconds:.55, acceleration:70,
   // Former continuous tuning retained as explicit legacy metadata only.
   legacyDrainPerSecond:16
 } as const;
-export const GAS_CAPACITIES=[200,224,252,280] as const;
+export const GAS_CAPACITIES=[140,140,140,140] as const;
 export const GAS_POWERS=[10,11,12,14] as const;
 export const GAS_MASTERY=[1,.96,.92] as const;
 export interface GasState {
  gasReserve?:number;gasCapacityLevel?:number;gasPowerLevel?:number;gasControlLevel?:number;
  gasBoosting?:boolean;gasPulseSeq?:number;gasPulseClock?:number;gasThrust?:number;
  gasPulseRemaining?:number;gasCooldown?:number;gasBoostHeld?:boolean;gasRepeatArmed?:boolean;
+ satiety?:number; boostRechargeProgress?:number;
 }
 const clamp=(v:number,lo:number,hi:number)=>Math.max(lo,Math.min(hi,v));
 const level=(value:number|undefined,max:number):number=>typeof value==='number'&&Number.isInteger(value)&&value>=0?Math.min(value,max):0;
@@ -21,6 +22,36 @@ export const gasMastery=(p:GasState):number=>GAS_MASTERY[level(p.gasControlLevel
 export const gasLevel=(p:GasState):number=>clamp(Number.isFinite(p.gasReserve)?p.gasReserve!:GAS.initial,0,gasCapacity(p));
 export const gasShots=(p:GasState):number=>Math.floor((gasLevel(p)+1e-8)/GAS.cost);
 export const gasMaxShots=(p:GasState):number=>Math.floor(gasCapacity(p)/GAS.cost);
+/** Satiety-driven regeneration: 2.5–10 s per charge. No regeneration at zero satiety. */
+export const SATIETY={max:100,decayPerMinute:2.5} as const;
+export const satietyLevel=(p:GasState):number=>clamp(Number.isFinite(p.satiety)?p.satiety!:100,0,100);
+export function boostRechargeSeconds(satiety:number):number {
+ const s=clamp(satiety,0,100);
+ if(s<=0)return Infinity;
+ if(s>=80)return 2.5;
+ if(s>=50)return 2.5+(80-s)*1.5/30;
+ if(s>=25)return 4+(50-s)*2/25;
+ return 6+(25-s)*4/25;
+}
+/** Updates once per fixed simulation tick, independent of rendering and motion mode. */
+export function stepBoostVitals(p:GasState,dt:number):void {
+ if(!Number.isFinite(dt)||dt<0||dt>.25)throw Error('Pas de satiété invalide');
+ p.satiety=Math.max(0,satietyLevel(p)-dt*SATIETY.decayPerMinute/60);
+ const capacity=gasCapacity(p);
+ p.gasReserve=gasLevel(p);
+ if(p.gasReserve>=capacity){p.boostRechargeProgress=0;return;}
+ const duration=boostRechargeSeconds(p.satiety);
+ if(!Number.isFinite(duration))return;
+ let progress=clamp(p.boostRechargeProgress??0,0,1)+dt/duration;
+ while(progress>=1&&p.gasReserve<capacity){p.gasReserve=Math.min(capacity,p.gasReserve+GAS.cost);progress-=1;}
+ p.boostRechargeProgress=p.gasReserve>=capacity?0:progress;
+}
+export function eatForSatiety(p:GasState,amount:number):number {
+ if(!Number.isFinite(amount)||amount<=0)return 0;
+ const before=satietyLevel(p);
+ p.satiety=Math.min(SATIETY.max,before+amount);
+ return p.satiety-before;
+}
 /** Start once on a fresh press, or repeat while continuously held after 0.55 s.
  * The pulse lasts 0.2 s even when released. A mode switch aborts it without a refund.
  * An already held button on entering glide is NOT automatically armed. */

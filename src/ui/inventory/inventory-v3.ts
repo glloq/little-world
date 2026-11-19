@@ -156,7 +156,7 @@ export function inventoryPanelV3(deps:InventoryV3Deps){
       if(reason){report(reason);return;}
     }
     const title=plan.lines.map(x=>x.quantity+' × '+(deps.items().find(i=>i.id===x.itemId)?.name??x.itemId)).join(', ');
-    const yes=await (deps.confirm?.('Manger '+title+' pour récupérer '+plan.gain+' gaz'+(plan.waste?' ('+plan.waste+' gaz excédentaires)':'')+' ?', 'Manger')??Promise.resolve(true));
+    const yes=await (deps.confirm?.('Manger '+title+' pour récupérer '+plan.gain+' satiété'+(plan.waste?' ('+plan.waste+' gaz excédentaires)':'')+' ?', 'Manger')??Promise.resolve(true));
     if(!yes)return;
     // Recalculate from the live runtime after the confirmation; preview isn't authority.
     const latest=planFoodConsumption(ids,deps.inventory(),(deps.gasCapacity?.()??200)-(deps.gasLevel?.()??0));
@@ -328,7 +328,7 @@ export function inventoryPanelV3(deps:InventoryV3Deps){
       const selected=[...checked],edible=selected.length>0&&selected.every(id=>foodGasValue(id)>0);
       actions.append(el('strong','',''+selected.length+' type(s) sélectionné(s)'));
       const plan=planFoodConsumption(selected,deps.inventory(),(deps.gasCapacity?.()??200)-(deps.gasLevel?.()??0));
-      const eat=button('Manger sélection · +'+plan.gain+' gaz',()=>{void consumeSelection();},'ui-button ui-primary');
+      const eat=button('Manger sélection · +'+plan.gain+' satiété',()=>{void consumeSelection();},'ui-button ui-primary');
       eat.disabled=!edible||!plan.lines.length;actions.append(eat);
       if(selected.length&&deps.canSellNearby?.(selected)){
         actions.append(button('Vendre au comptoir',()=>{
@@ -336,7 +336,7 @@ export function inventoryPanelV3(deps:InventoryV3Deps){
         },'ui-button'));
       }
     }else if(selectedItem){
-      const title=el('div','ui-bag-selected');title.append(el('strong','',selectedItem.name),el('span','ui-muted','×'+selectedItem.quantity+(foodGasValue(selectedItem.id)?' · +'+foodGasValue(selectedItem.id)+' gaz':'')));
+      const title=el('div','ui-bag-selected');title.append(el('strong','',selectedItem.name),el('span','ui-muted','×'+selectedItem.quantity+(foodGasValue(selectedItem.id)?' · +'+foodGasValue(selectedItem.id)+' satiété':'')));
       actions.append(title);
       actions.append(el('span','ui-bag-current-category',selectedItem.categoryLabel));
       const target=equipSlot(selectedItem);
