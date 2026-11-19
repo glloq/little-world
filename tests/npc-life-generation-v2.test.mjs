@@ -84,3 +84,11 @@ test('real settlement children and host have route-qualified homes, job sources 
   assert.deepEqual(next.entities.filter(e=>e.components.Resident).map(e=>[e.id,e.components.Resident.homeAnchorId,e.components.Resident.workAnchorId]).sort(),
     residents.map(e=>[e.id,e.components.Resident.homeAnchorId,e.components.Resident.workAnchorId]).sort());
 });
+
+test('commute must fit inside the workday and does not induce fallback teleporting',()=>{
+  const large={...ground,bounds:{minX:-20,maxX:700,minZ:-100,maxZ:100}};
+  const allocator=createResidentAssignmentPlanner([{points:[{x:0,z:0},{x:420,z:0}]}],large);
+  const home=[{id:'farm-house',slot:0,point:{x:0,z:0}}];
+  assert.equal(allocator.allocate(makeJob('far-away-field',{x:420,z:0}),home,'farmer'),null);
+  assert.equal(allocator.occupancy('farm-house'),0);
+});
