@@ -180,9 +180,12 @@ export function createGameplayView(data:GameplayData,options:Options){
       return {ok:false as const,reason:'giver-unreachable'};
     const result=quests.claim(instanceId,claimId,rewards=>{
       if(rewards.some(r=>r.kind==='unlock'))return false;
-      const changes=rewards.map(reward=>reward.kind==='item'
-        ?{itemId:reward.itemId,quantity:reward.quantity}
-        :{itemId:COIN,quantity:reward.quantity});
+      const changes:{itemId:string;quantity:number}[]=[];
+      for(const reward of rewards){
+        if(reward.kind==='item')changes.push({itemId:reward.itemId,quantity:reward.quantity});
+        else if(reward.kind==='coins')changes.push({itemId:COIN,quantity:reward.quantity});
+        else return false;
+      }
       return runtime.grantItems(changes);
     });
     if(result.ok)for(const listener of listeners)listener();
