@@ -294,6 +294,13 @@ let npcActorActions:null|{moveTo:(id:string,p:{x:number;y:number;z:number})=>boo
 if(playable){
   const {createGameplayView}=await import('./gameplay/game-view.ts');
   gameplay=createGameplayView(playable.gameplay,{surfStarter:searchParams.get('surfDemo')==='1'||!!playable?.surfZones?.length,islandId:activeIsland?.id,
+    waterKindAt:(x,z)=>{
+      const water=waterSurface(x,z);
+      if(water===null||water<=terrainHeight(x,z)+.4)return null;
+      return Math.abs(water-getTerrainConfig().seaLevel)<.05&&
+        terrainHeight(x,z)<getTerrainConfig().seaLevel?'sea':
+        isLakeAt(x,z)?'lake':'river';
+    },
     onNpcMoveTo:(id,p)=>npcActorActions?.moveTo(id,p)??false,
     onNpcStartDialogue:(id)=>npcActorActions?.talkTo(id,{x:player.position.x,z:player.position.z})??false,
     onSound:(id,p)=>audio?.playSound(id,p),collisions:playable.collisions,temporary:!!(studioTest||buildScope),saveScope:studioTest?.snapshotId??buildScope??undefined,getPosition:()=>({x:player.position.x,y:player.position.y,z:player.position.z}),objects:world.objects,showInfo,
@@ -1257,16 +1264,16 @@ function updateFishing(){
     audio?.emit('fishing.escape',{position:waterAt??player.position,source:'player'});
     if(waterAt){fishingEffects.burst(waterAt,'escaped');impacts.spawn(waterAt,'water',4);}
   }else if(result==='caught'){
+    const water=f.state.water,cast=f.state.castAt;
     const item=f.takeCatch(); // Idempotent: only this transition can claim the fish.
-    if(!item)return;
+    if(!item||!water||!cast)return;
     if(waterAt){fishingEffects.burst(waterAt,'caught');impacts.spawn(waterAt,'water',6);}
-    if(gameplay.runtime.grantItems([{itemId:item,quantity:1}])){
-      gameplay.recordQuestCommit('fishing.caught',{itemId:item,quantity:1,source:'fishing'});
+    if(gameplay.creditFishCatch(item,water,cast)){
       showInfo(gameplay.itemName(item)+' attrapé !','success');
       fishingEffects.displayCatch(item);
       audio?.emit('fishing.catch',{position:player.position,source:'player',context:{species:item}});
       character.play('fish-reel');
-    }else{showInfo('Sac plein : poisson relâché.','warning');audio?.emit('fishing.escape',{position:waterAt??player.position,source:'player'});}
+    }else{showInfo('Sac plein ou zone de pêche épuisée : poisson relâché.','warning');audio?.emit('fishing.escape',{position:waterAt??player.position,source:'player'});}
   }
 }
 function currentTarget():TargetDescriptor|null{
