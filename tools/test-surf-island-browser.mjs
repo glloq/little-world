@@ -16,6 +16,7 @@ try{
  const context=await browser.newContext({viewport:{width:1280,height:720}});
  page=await context.newPage();
  page.on('pageerror',e=>report.errors.push(e.message));
+ page.on('console',m=>{if(m.type()==='error'&&/shader|webgl|program/i.test(m.text()))report.errors.push(m.text().slice(0,400));});
  const layoutURL=new URL('archipelago/worlds/surf-island/surf-layout.json',base).toString();
  const response=await page.request.get(layoutURL);
  check(response.ok(),'Published surf layout exists');

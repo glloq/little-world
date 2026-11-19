@@ -28,8 +28,12 @@ import {createSurfWaterView} from './render/surf-water-view.ts';
 import {createSurfBarrelView} from './render/surf-barrel-view.ts';
 import {applySurfTumblePose} from './render/surf-tumble-pose.ts';
 import {applySurfPose} from './render/surf-character-pose.ts';
-import {sampleSurfBarrel} from './surf/surf-barrel.ts';
+import {barrelPeel,barrelProfile,nearestBarrelCrest,sampleSurfBarrel} from './surf/surf-barrel.ts';
 import {createSurfBoardView} from './render/surf-board-view.ts';
+import {createSurfWakeView} from './render/surf-wake-view.ts';
+import {surfQualityProfile,type SurfQualityProfile} from './render/surf-quality.ts';
+import {SurfPerfRecorder,instrumentGround,instrumentSurfField} from './surf/surf-perf.ts';
+import {inCameraView,surfDrawStats} from './render/surf-render-stats.ts';
 import {boardOnWater,distanceToBoard,isSurfBoardWaterSafe,type SurfBoardPlacement} from './surf/board-placement.ts';
 import {createSurfHud} from './ui/surf/surf-hud.ts';
 import {boardLift,liftRideStep,type SkiLift,type LiftRide} from './snow/ski-lift.ts';
@@ -118,6 +122,9 @@ const devMemory = document.querySelector<HTMLElement>('#memory')!;
 /** Player interface (src/ui): created once the world, gameplay and NPCs exist. */
 let gameUi:GameUi|null=null;
 let placedSurfBoard:SurfBoardPlacement|null=null;
+/** Metrics-mode capture hooks only: fixed camera and frozen surf presentation tick. Never physics. */
+let debugSurfCamera:{px:number;py:number;pz:number;tx:number;ty:number;tz:number}|null=null;
+let debugSurfRenderTick:number|null=null;
 let lastSafeSurfBoard:SurfBoardPlacement|null=null;
 // Detect phone controls before the HUD is constructed, so its gas hint uses the Boost label.
 const touchCapable=isPhoneTouchDevice();
@@ -310,7 +317,48 @@ if(playable){
     /** Developer/test hook: move the player on the ground and turn the camera (heading in rad). */
     teleport:(x:number,z:number,heading:number,altitude=0)=>{gameplay?.fishing.cancel();player.space=undefined;player.mode=altitude>0?'air':'ground';player.glideReady=altitude>0;player.coyoteLeft=0;player.jumpBufferLeft=0;player.velocity.set(0,0,0);player.position.set(x,terrainHeight(x,z)+altitude,z);previousPlayerPosition.copy(player.position);yaw=heading;},
     /** Developer/test hook: natural dressing and placed objects drawn within r m of the player. */
-    drawnNear:(r:number)=>world.drawnNear(player.position.x,player.position.z,r)}});}
+    drawnNear:(r:number)=>world.drawnNear(player.position.x,player.position.z,r),
+    /** Capture hook: fixed camera (null releases it). Presentation only. */
+    surfCamera:(view:{px:number;py:number;pz:number;tx:number;ty:number;tz:number}|null)=>{debugSurfCamera=view;},
+    /** Capture hook: freeze surf water/tube presentation at a fixed tick (null resumes). */
+    surfRenderTick:(tick:number|null)=>{debugSurfRenderTick=tick===null?null:Math.max(0,Math.floor(tick));},
+    /** Next presentation tick at which a breaking crest of the zone under (x,z) passes there. */
+    surfCrestTick:(x:number,z:number,after=motionTick)=>{
+      const f=surfFields.find(v=>x>=v.zone.minX&&x<=v.zone.maxX&&z>=v.zone.minZ&&z<=v.zone.maxZ);if(!f)return null;
+      const zone=f.zone,period=zone.wavelength/zone.speed*30;
+      for(let t=after;t<after+period+2;t++){const c=nearestBarrelCrest(zone,x,z,t);if(Math.abs(c.distance)<zone.speed/30)return t;}
+      return null;
+    },
+    /** Strongest breaking point on the line from (x,z) toward the coast (null without tube). */
+    surfBreakPoint:(x:number,z:number)=>{
+      const f=surfFields.find(v=>x>=v.zone.minX&&x<=v.zone.maxX&&z>=v.zone.minZ&&z<=v.zone.maxZ);if(!f)return null;
+      let best:{x:number;z:number;intensity:number;depth:number}|null=null;
+      for(let d=0;d<400;d+=.5){const px=x+f.zone.dirX*d,pz=z+f.zone.dirZ*d,b=barrelProfile(f.zone,px,pz,terrainHeight);
+        if(b&&(!best||b.intensity>best.intensity))best={x:px,z:pz,intensity:b.intensity,depth:b.depth};}
+      return best;
+    },
+    /** First tick ≥ after where the tube is open over (x,z) with the largest clearance nearby. */
+    surfOpenTubeTick:(x:number,z:number,after=motionTick)=>{
+      const f=surfFields.find(v=>x>=v.zone.minX&&x<=v.zone.maxX&&z>=v.zone.minZ&&z<=v.zone.maxZ);if(!f)return null;
+      for(let t=after;t<after+9000;t++){const s=sampleSurfBarrel(f,terrainHeight,x,z,t);
+        if(s&&s.clearance>2&&Math.abs(s.distance)<.3&&(s.peel==='open'||s.peel==='none'))
+          return {tick:t,clearance:s.clearance,peel:s.peel,shoulderSign:barrelPeel(f.zone,x,z,t,s.waveIndex).sign};}
+      return null;
+    },
+    /** Capture hook: put the hamster on its board at (x,z), heading in radians. */
+    surfPlace:(x:number,z:number,heading:number)=>{
+      const f=surfFields.find(v=>x>=v.zone.minX&&x<=v.zone.maxX&&z>=v.zone.minZ&&z<=v.zone.maxZ);if(!f)return false;
+      const h=f.height(x,z,motionTick)??f.zone.seaLevel;
+      player.position.set(x,h+.12,z);previousPlayerPosition.copy(player.position);renderPosition.copy(player.position);
+      player.velocity.set(0,0,0);player.mode='surf';player.surfStage='paddle';player.surfHeading=heading;player.heading=heading;
+      return true;
+    },
+    /** Logical surf water height (falls back to the flat water datum). */
+    surfWaterHeight:(x:number,z:number,tick=motionTick)=>{
+      const f=surfFields.find(v=>x>=v.zone.minX&&x<=v.zone.maxX&&z>=v.zone.minZ&&z<=v.zone.maxZ);
+      return f?.height(x,z,Math.max(0,Math.floor(tick)))??waterSurface(x,z);
+    },
+    surfTick:()=>motionTick}});}
   if(gameplay.gathering){const gather=gameplay.gathering;world.setDressingFilter((cx,cz,kind,index)=>gather.hiddenAt(cx,cz,kind,index));gather.subscribe(()=>world.redrawDressing());}
 }
 const worldClock=gameplay?.runtime.clock??new WorldClock(),climate=gameplay?.runtime.climate??createClimate(defaultEnvironment(definition.config.seed));
@@ -479,20 +527,29 @@ const snowLiftView=snowLift?createSkiLiftView(scene,snowLift):null;
 // Non-destructive surf laboratory (?surfDemo=1). Island authoring/compilation follows later.
 const surfDemo=searchParams.get('surfDemo')==='1'&&!snowDemo&&!isLegacyTerrain();
 const surfSite=surfDemo?findDemoSurfSite(terrainHeight,snowBounds,definition.config.seaLevel??0,definition.config.seed):null;
-const surfFields=surfSite?[createSurfWaveField(surfSite.zone,terrainHeight)]:
-  (playable?.surfZones??[]).map(zone=>createSurfWaveField(zone,terrainHeight));
+// Optional surf diagnostics (?surfPerf=1): wraps the field and terrain sampler only then.
+const surfPerf=searchParams.get('surfPerf')==='1'?new SurfPerfRecorder():null;
+const surfGround=surfPerf?instrumentGround(terrainHeight,surfPerf):terrainHeight;
+const surfFields=(surfSite?[createSurfWaveField(surfSite.zone,surfGround)]:
+  (playable?.surfZones??[]).map(zone=>createSurfWaveField(zone,surfGround)))
+  .map(field=>surfPerf?instrumentSurfField(field,surfPerf):field);
 const surfWorldConfig={count:surfFields.length,zones:surfFields.map(f=>({id:f.zone.id,
  minX:f.zone.minX,maxX:f.zone.maxX,minZ:f.zone.minZ,maxZ:f.zone.maxZ,
- barrelStrength:f.zone.barrelStrength??0}))};
+ barrelStrength:f.zone.barrelStrength??0,dirX:f.zone.dirX,dirZ:f.zone.dirZ,seaLevel:f.zone.seaLevel,
+ wavelength:f.zone.wavelength,amplitude:f.zone.amplitude,style:f.zone.style??'classic',model:f.model??1}))};
 const surfFieldAt=(x:number,z:number)=>surfFields.find(f=>
   x>=f.zone.minX&&x<=f.zone.maxX&&z>=f.zone.minZ&&z<=f.zone.maxZ)??null;
 let surfField=surfFieldAt(player.position.x,player.position.z);
 const surfRace=surfSite?makeDemoSurfRace(surfSite,activeIsland?.id??gameplay?.runtime.data.worldId??'surf-demo'):null;
-const surfWaterViews=surfFields.map(f=>createSurfWaterView(scene,f,terrainHeight));
-const surfBarrelViews=surfFields.map(f=>f.zone.barrelStrength?createSurfBarrelView(scene,f,terrainHeight):null);
+const surfWaterViews=surfFields.map(f=>createSurfWaterView(scene,f,surfGround));
+const surfBarrelViews=surfFields.map(f=>f.zone.barrelStrength?createSurfBarrelView(scene,f,surfGround):null);
 let surfWaterView:ReturnType<typeof createSurfWaterView>|null=surfWaterViews[0]??null;
 let surfBarrelView=surfBarrelViews[0]??null;
 const surfBoardView=surfFields.length?createSurfBoardView(scene):null;
+const surfWakeView=surfFields.length?createSurfWakeView(scene):null;
+let appliedSurfProfile:Readonly<SurfQualityProfile>|null=null;
+const surfPerfMeshes:THREE.Mesh[]=surfPerf?[...surfWaterViews.map(v=>v.mesh),...surfBarrelViews.flatMap(v=>v?[v.mesh]:[]),...(surfWakeView?[surfWakeView.mesh]:[])]:[];
+const surfPerfDraw={drawCalls:0,vertices:0,triangles:0};
 const surfHud=surfFields.length?createSurfHud(document.body):null;
 let nextSurfHudAt=0;
 const surfFeatures=surfSite?makeDemoSurfFeatures(surfSite):(playable?.surfFeatures??[]).filter(f=>surfFields.some(field=>f.x>=field.zone.minX&&f.x<=field.zone.maxX&&f.z>=field.zone.minZ&&f.z<=field.zone.maxZ));
@@ -1066,6 +1123,7 @@ function showInfo(text: string, kind:'info'|'success'|'warning'='info') {
 const cameraTarget = new THREE.Vector3(),
   cameraDesired = new THREE.Vector3(),audioForward=new THREE.Vector3();
 function updateCamera(dt: number) {
+  if(debugSurfCamera){const c=debugSurfCamera;camera.position.set(c.px,c.py,c.pz);camera.lookAt(c.tx,c.ty,c.tz);return;}
   // Presentation-only idle camera recovery, never fed back to flight physics.
   flightCameraFollow.yaw=yaw;flightCameraFollow.pitch=pitch;
   advanceFlightAutoCamera(
@@ -1399,7 +1457,9 @@ function tick(dt: number) {
       const board=boardOnWater(player.position.x,player.position.z,player.surfHeading??yaw,waterSurface);
       if(board&&isSurfBoardWaterSafe(board,waterSurface,terrainHeight,(x,z)=>!!surfFieldAt(x,z)))lastSafeSurfBoard=board;
     }
+    const surfPhysicsStart=surfPerf&&surfField?performance.now():0;
     simulatePlayer(player, keys, dt,gameplay?.collision,surfField??undefined,motionTick+1);motionTick++;
+    if(surfPerf&&surfField)surfPerf.add('physicsTick',performance.now()-surfPhysicsStart);
     if((player.surfPaddleClock??0)>previousSurfPaddle+.08&&motionTick-lastSurfPaddleSoundTick>=15){
       audio?.emit('water.swim',{position:player.position,source:'player'});lastSurfPaddleSoundTick=motionTick;
     }
@@ -1607,13 +1667,28 @@ function draw(now: number) {
   remoteActors?.renderer.collectGrassActors(grassActors,player.position);
   world.setUnderground(!!player.space);
   world.update(delta, player.position, camera, renderer.domElement.height, player.velocity);
+  const surfWaterStart=surfPerf?performance.now():0;
+  // One surf profile from the user quality and the adaptive budget (no parallel controller).
+  const surfProfile=surfQualityProfile(quality.value,budget.level);
+  if(surfProfile!==appliedSurfProfile){
+    appliedSurfProfile=surfProfile;
+    for(const view of surfWaterViews)view.setFoamDetail(surfProfile.foamDetail);
+    for(const view of surfBarrelViews)view?.setMaxFronts(surfProfile.tubeFronts);
+    surfWakeView?.setDetail(surfProfile.wakeDetail);
+  }
   for(const view of surfWaterViews){
     // Never visibly downgrade the collision surface directly beneath a surfer:
     // coarser distant bays may still follow the global adaptive performance tier.
-    view.setDetail(view===surfWaterView&&player.mode==='surf'?0:budget.level,player.position);
-    view.update(motionTick,frame.alpha);
+    // LOD follows the camera (what is actually seen) with hysteresis; never the physics.
+    view.setDetail(view===surfWaterView&&player.mode==='surf'?0:Math.max(budget.level,surfProfile.waterTierFloor),camera.position);
+    view.update(debugSurfRenderTick??motionTick,debugSurfRenderTick===null?frame.alpha:1);
   }
-  for(const view of surfBarrelViews)view?.update(motionTick,player.position);
+  const surfTubeStart=surfPerf?performance.now():0;
+  for(const view of surfBarrelViews)view?.update(debugSurfRenderTick??motionTick,player.position,{alpha:debugSurfRenderTick===null?frame.alpha:1,camera});
+  if(surfPerf){
+    const end=performance.now();
+    surfPerf.add('waterUpdate',surfTubeStart-surfWaterStart);surfPerf.add('tubeUpdate',end-surfTubeStart);
+  }
   if(!loading.ready&&loading.update({terrainPending:world.stats.pending,dressingPending:world.dressing?.nearPending??0,speciesState:world.dressing?.species.state??'none'}))beginGame();
   remoteActors?.update(delta,elapsed,camera,renderer.domElement.height,budget.level);
   npcs.update(delta, elapsed, player.position,camera); // The river drives the mill: no manual on/off control.
@@ -1631,6 +1706,11 @@ function draw(now: number) {
   applySurfTumblePose(character,player);
   surfBoardView?.update(player,renderPosition,
     surfField?.sample(renderPosition.x,renderPosition.z,motionTick),placedSurfBoard);
+  if(surfWakeView){
+    const wakeStart=surfPerf?performance.now():0;
+    surfWakeView.update(player,surfField,motionTick,renderPosition,frame.alpha);
+    if(surfPerf)surfPerf.add('foamUpdate',performance.now()-wakeStart);
+  }
   if(surfHud&&now>=nextSurfHudAt){
     nextSurfHudAt=now+160;
     surfHud.update(player.mode==='surf'||player.surfAirborne||(player.barrelTumbleRemaining??0)>0?{
@@ -1695,6 +1775,16 @@ function draw(now: number) {
   renderer.render(scene, camera);
   gpuTimer.end();
   const renderSubmitMs = performance.now() - renderBegin;
+  if(surfPerf){
+    const g=surfPerf.gauges,d=surfDrawStats(camera,surfPerfMeshes,surfPerfDraw);
+    g.drawCalls=d.drawCalls;g.vertices=d.vertices;g.triangles=d.triangles;
+    g.zonesTotal=surfFields.length;g.zonesSimulated=surfField?1:0;
+    g.zonesVisible=surfWaterViews.filter(v=>inCameraView(camera,v.mesh)).length;
+    g.tubesVisible=surfBarrelViews.filter(v=>!!v&&inCameraView(camera,v.mesh)).length;
+    g.uploadBytes=surfBarrelViews.reduce((n,v)=>n+(v?.stats.uploadBytes??0),0);
+    g.lods=surfWaterViews.map(v=>v.stats.tier);
+    surfPerf.endFrame();
+  }
   if(metricsEnabled)perfSampler.record(wallDrawDelta*1000,simulationMs,renderBegin-begin,renderSubmitMs);
   if (metricsEnabled)
     Object.assign(window, {
@@ -1716,6 +1806,8 @@ function draw(now: number) {
         grass: world.grass ? { ...world.grass } : null,
         inventory: gameplay ? { ...gameplay.runtime.state.inventory } : null,
         surfWorld:surfWorldConfig,
+        surfQuality:appliedSurfProfile?.name??null,
+        surfPerf:surfPerf?(presentedFrames%30===0?surfPerf.snapshot():(window as unknown as {littleWorldMetrics?:{surfPerf:unknown}}).littleWorldMetrics?.surfPerf??surfPerf.snapshot()):null,
         surfBoardPlaced:placedSurfBoard?{...placedSurfBoard}:null,
         surf:surfField?{
           zoneId:surfField.zone.id,stage:player.surfStage??null,airborne:!!player.surfAirborne,
@@ -1787,7 +1879,7 @@ function draw(now: number) {
   }
   requestAnimationFrame(draw);
 }
-window.addEventListener('pagehide',event=>{if(event.persisted)void audio?.engine.setHidden(true);else {detachPortCollisions?.();ferryView?.dispose();remoteActors?.dispose();mineRhythmHud.dispose();mineHelmet.dispose();gasEffects.dispose();flightRings.dispose();raceGates.dispose();raceTrackView.dispose();flightCourseHud.remove();raceHud.remove();fishingHud.dispose();fishingEffects.dispose();speedStreaks.dispose();for(const view of surfWaterViews)view.dispose();for(const view of surfBarrelViews)view?.dispose();surfBoardView?.dispose();surfFeatureView?.dispose();surfHud?.dispose();gpuTimer.dispose();void audio?.dispose();}});
+window.addEventListener('pagehide',event=>{if(event.persisted)void audio?.engine.setHidden(true);else {detachPortCollisions?.();ferryView?.dispose();remoteActors?.dispose();mineRhythmHud.dispose();mineHelmet.dispose();gasEffects.dispose();flightRings.dispose();raceGates.dispose();raceTrackView.dispose();flightCourseHud.remove();raceHud.remove();fishingHud.dispose();fishingEffects.dispose();speedStreaks.dispose();for(const view of surfWaterViews)view.dispose();for(const view of surfBarrelViews)view?.dispose();surfBoardView?.dispose();surfWakeView?.dispose();surfFeatureView?.dispose();surfHud?.dispose();gpuTimer.dispose();void audio?.dispose();}});
 window.addEventListener('pageshow',event=>{if(event.persisted&&started)void audio?.engine.setHidden(document.hidden);});
 document.addEventListener('visibilitychange', () => {
   presentation.reset();

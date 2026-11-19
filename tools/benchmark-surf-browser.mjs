@@ -8,7 +8,8 @@ import {tmpdir,totalmem} from 'node:os';
 import {join} from 'node:path';
 const dir=join(tmpdir(),'little-world-browser');mkdirSync(dir,{recursive:true});
 const worldURL=process.env.WORLD_URL??'http://127.0.0.1:5173/little-world/';
-const base=process.env.SURF_URL??new URL('?surfDemo=1&metrics=1',worldURL).toString();
+const base=process.env.SURF_URL??new URL('?surfDemo=1&metrics=1&surfPerf=1',worldURL).toString();
+const outPath=process.env.SURF_BENCH_OUT??null;
 const native=process.env.SURF_NATIVE_GPU==='1';
 const browser=await chromium.launch({headless:true,
  executablePath:process.env.CHROMIUM_PATH??(existsSync('/usr/bin/chromium')?'/usr/bin/chromium':undefined),
@@ -16,8 +17,11 @@ const browser=await chromium.launch({headless:true,
 let report=null,page=null;
 try{
  const context=await browser.newContext({viewport:{width:1280,height:720}});
+ // Optional quality preference (low | medium | high), stored like the in-game selector does.
+ if(process.env.SURF_BENCH_QUALITY)await context.addInitScript(q=>{try{localStorage.setItem('little-world-quality',q);}catch{}},process.env.SURF_BENCH_QUALITY);
  page=await context.newPage();
  const errors=[];page.on('pageerror',e=>errors.push(String(e)));
+ page.on('console',m=>{if(m.type()==='error'&&/shader|webgl|program/i.test(m.text()))errors.push(m.text().slice(0,400));});
  await page.goto(base,{waitUntil:'domcontentloaded'});
  await page.locator('#start-overlay').waitFor({state:'hidden',timeout:120000});
  await page.waitForFunction(()=>window.littleWorldMetrics?.frameId>15,{},{timeout:120000});
@@ -40,7 +44,15 @@ try{
    await page.keyboard.press('Escape');
  await page.locator('section.ui-panel[data-panel="inventory"]').waitFor({state:'hidden',timeout:5000});
   }
+  // First B deploys the equipped board on the water, the second boards it (current UX).
   await page.keyboard.press('KeyB');
+  await page.waitForFunction(()=>window.littleWorldMetrics?.surfBoardPlaced!==null||window.littleWorldMetrics?.mode==='surf',{},{timeout:12000});
+  const placed=await page.evaluate(()=>window.littleWorldMetrics.surfBoardPlaced);
+  if(placed){
+   await page.evaluate(p=>window.littleWorldDebug.teleport(p.x,p.z,0),placed);
+   await page.waitForFunction(()=>window.littleWorldMetrics?.mode==='swim',{},{timeout:12000});
+   await page.keyboard.press('KeyB');
+  }
   await page.waitForFunction(()=>window.littleWorldMetrics?.mode==='surf',{},{timeout:12000});
  }
  const initialSurf=await page.evaluate(()=>window.littleWorldMetrics?.surf);
@@ -64,6 +76,7 @@ try{
    calls:metric.calls,triangles:metric.triangles,renderRate:metric.renderRate,
    qualityLevel:metric.qualityLevel,surfLod:metric.surf?.waterLodTier??null,
    surfTriangles:metric.surf?.patchTriangles??0,mode:metric.mode,
+   surfDrawCalls:metric.surfPerf?.gauges.drawCalls??null,surfVisibleTriangles:metric.surfPerf?.gauges.triangles??null,
    position:metric.position,gpu:metric.gpu});
  }
  await page.keyboard.up('Shift');await page.keyboard.up('KeyW');
@@ -79,7 +92,9 @@ try{
  const ramGiB=totalmem()/1073741824;
  const hardwareEligible=native&&!software&&integrated;
  const targetHardwareEligible=hardwareEligible&&ramGiB>=3.5&&ramGiB<=8.5;
- report={schemaVersion:1,kind:'surf-performance-measurement',
+ const finalMetric=await page.evaluate(()=>window.littleWorldMetrics);
+ let commit='unknown';try{commit=(await import('node:child_process')).execSync('git rev-parse --short HEAD').toString().trim();}catch{}
+ report={schemaVersion:2,kind:'surf-performance-measurement',commit,
   url:base,hardware,nativeRequested:native,softwareRenderer:software,
   qualifiedIntegratedGpu:targetHardwareEligible&&surfSampleCount>=samples.length*.8&&fps>=20&&p95<=50&&errors.length===0,
   surfActiveSamples:surfSampleCount,surfCoverage:samples.length?surfSampleCount/samples.length:0,
@@ -90,6 +105,10 @@ try{
   maxCalls:Math.max(...samples.map(x=>x.calls)),
   maxTriangles:Math.max(...samples.map(x=>x.triangles)),
   surfZoneCount:(await page.evaluate(()=>window.littleWorldMetrics))?.surf?.zones??0,
+  surfDiagnostics:finalMetric?.surfPerf??null,
+  surfDrawCallsMax:Math.max(0,...samples.map(x=>x.surfDrawCalls??0)),
+  frameGpuMs:finalMetric?.gpu??null,
+  gpuNote:'surfDiagnostics are CPU only; frameGpuMs is the whole frame and only when EXT_disjoint_timer_query is exposed',
   finalPosition:last.position,errors,samples};
  console.log(JSON.stringify({...report,samples:undefined},null,2));
  if(!targetHardwareEligible)console.log('NOT GPU-QUALIFIED: rerun SURF_NATIVE_GPU=1 on a real 4–8GB Intel/AMD integrated-GPU PC.');
@@ -97,5 +116,6 @@ try{
  if(errors.length)throw Error('Surf browser had '+errors.length+' page errors.');
 }finally{
  if(report)writeFileSync(dir+'/surf-benchmark.json',JSON.stringify(report,null,2)+'\n');
+ if(report&&outPath)writeFileSync(outPath,JSON.stringify({...report,samples:undefined},null,2)+'\n');
  await browser.close();
 }
