@@ -22,3 +22,18 @@ export function residentRouteAheadClear(
  }
  return true;
 }
+
+/** Validate the entire interval about to be travelled, not just the endpoint.
+ * Returns false rather than accepting an oversized jump after a suspended tab.
+ * Scripted navigation can then replan from the last safe position.
+ */
+export function residentRouteStepClear(
+ route:ResidentRoute,fromDistance:number,toDistance:number,walk:ResidentWalkable,maxAdvance=12,
+):boolean{
+ if(!Number.isFinite(fromDistance)||!Number.isFinite(toDistance)||
+    !Number.isFinite(maxAdvance)||maxAdvance<=0||toDistance<fromDistance||
+    toDistance-fromDistance>maxAdvance+1e-6||
+    fromDistance<0||toDistance>route.length+1e-6)return false;
+ if(toDistance-fromDistance<1e-6)return true;
+ return residentRouteAheadClear(route,fromDistance,walk,toDistance-fromDistance);
+}
