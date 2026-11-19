@@ -118,9 +118,15 @@ export function createResidentLayeredRouter(
   if(u.supportId&&v.supportId&&u.supportId!==v.supportId)return false;
   if(u.supportId&&u.supportId===v.supportId)return safeEdge(a,b,u.supportId);
   if(!u.supportId&&!v.supportId)return safeEdge(a,b,null);
-  // A mixed support/ground edge is a qualified physical landing only.
-  const grounded=u.supportId?v:u;
-  return Math.abs(u.p.y!-v.p.y!)<=.22&&walk(grounded.p.x,grounded.p.z,grounded.p.x,grounded.p.z);
+  // At a bridge landing the first ramp segment legitimately rises from
+  // ground to deck. Validate the shared endpoint and supported slope rather
+  // than demanding both node heights be identical.
+  const grounded=u.supportId?v:u,supportId=u.supportId??v.supportId!;
+  const landing=surface.supportHeight(supportId,grounded.p.x,grounded.p.z);
+  return landing!==null&&Number.isFinite(landing)&&
+    Math.abs(landing-grounded.p.y!)<=.22&&
+    walk(grounded.p.x,grounded.p.z,grounded.p.x,grounded.p.z)&&
+    safeEdge(a,b,supportId);
  }
  function search(start:number,goal:number,liveEdges=false):number[]|null{
   const g=new Float64Array(nodes.length).fill(Infinity),previous=new Int32Array(nodes.length).fill(-1);
