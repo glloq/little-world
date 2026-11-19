@@ -148,3 +148,26 @@ test('F02 early-shift fishers get visits during their real working day',()=>{
    'the social pause should fit before fisher closes the shift');
  assert.equal(validResidentRoutine(stops),true);
 });
+
+test('F01-D a removed bridge invalidates the existing layered path before the NPC crosses',()=>{
+ let hasBridge=true;
+ const paths=[
+  {points:[{x:-20,z:0},{x:-5,z:0}]},
+  {supportId:'bridge:dynamic',points:[{x:-5,z:0},{x:5,z:0}]},
+  {points:[{x:5,z:0},{x:20,z:0}]},
+ ];
+ const walk=(x)=>x<=-5||x>=5;
+ const surfaces={
+  groundHeight:()=>10,
+  supportHeight:(id,x,z)=>id==='bridge:dynamic'&&hasBridge&&x>=-5&&x<=5&&Math.abs(z)<.2
+    ?10+2*(1-Math.abs(x)/5):null,
+ };
+ const router=createResidentLayeredRouter(paths,walk,surfaces);
+ const before=router.route({x:-18,z:0},{x:18,z:0});
+ assert.ok(before&&before.points.some(p=>p.y>11));
+ hasBridge=false;
+ assert.equal(router.route({x:-18,z:0},{x:18,z:0}),null);
+ hasBridge=true;
+ assert.ok(router.route({x:-18,z:0},{x:18,z:0}),
+  'restored bridge becomes usable without fabricating another surface');
+});
