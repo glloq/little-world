@@ -8,6 +8,8 @@ import {applyTransforms,transformChunkIds,entityTransform,type TransformValue} f
 import {layoutUpdates,type LayoutMode} from '../studio-core/selection-layout.ts';
 import {updateCharacter,setCharacterPath,setResidentRoutine} from '../studio-core/character-authoring.ts';
 import {residentDutyShift,RESIDENT_ROLES,type ResidentRole,type ResidentRoutineV1} from '../npc-life/schedule.ts';
+import {residentAnchorChoices,reassignResident} from '../npc-life/authoring.ts';
+import {chunkAt} from '../studio-core/schema.ts';
 import {applyInteraction,interactionChunkIds} from '../studio-core/interaction-templates.ts';
 import {EMOTIONS,type Emotion,type Neckwear} from '../character-style.ts';
 import {elementExists,elementLabel,type ElementRef} from '../studio-core/elements.ts';
@@ -143,8 +145,9 @@ function characterSection(ctx:InspectorContext,id:string,owner:string){
     const life=node('details');
     const hour=node('input');hour.type='range';hour.min='0';hour.max='23.5';hour.step='.5';hour.value='12';
     const preview=node('p','','muted');
-    const updatePreview=()=>{const h=Number(hour.value);
-      preview.textContent=h.toFixed(1).replace('.0','')+' h : '+(h<start||h>=end?'Au domicile':'Au lieu de travail')+
+    const updatePreview=()=>{const h=Number(hour.value),visit=resident.activities?.find(a=>h>=a.startHour&&h<a.endHour);
+      const activity=visit?visit.kind==='meal'?'Pause repas':visit.kind==='social'?'Rencontre et discussion':visit.kind==='play'?'Jeux':visit.kind==='rest'?'Repos':'Activité complémentaire':null;
+      preview.textContent=h.toFixed(1).replace('.0','')+' h : '+(activity??(h<start||h>=end?'Au domicile':'Au lieu de travail'))+
         ' · trajet '+resident.home.x.toFixed(1)+','+resident.home.z.toFixed(1)+' → '+resident.work.x.toFixed(1)+','+resident.work.z.toFixed(1);};
     hour.oninput=updatePreview;updatePreview();
     life.append(node('summary','Vie quotidienne et métier'),
@@ -161,6 +164,20 @@ function characterSection(ctx:InspectorContext,id:string,owner:string){
         await s.change('Retirer la routine du personnage',[p.entityIndex[id].ownerChunkId],d=>setResidentRoutine(d,id,null));
         ctx.refresh();
       }).catch(e=>ctx.status(String(e instanceof Error?e.message:e),true))));
+    const anchors=residentAnchorChoices(p,id);
+    if(anchors){
+      let homeId=resident.homeAnchorId??'',jobId=resident.workAnchorId??'';
+      life.append(field('Maison de résidence',select(homeId,[['','Choisir un domicile'],...anchors.homes.map(a=>[a.id,a.name] as const)],v=>homeId=v)),
+        field('Poste de travail ou lieu public',select(jobId,[['','Choisir un lieu'],...anchors.jobs.map(a=>[a.id,a.name] as const)],v=>jobId=v)),
+        button('Valider les affectations',()=>void editQueue.run(async()=>{
+          const selectedHome=anchors.homes.find(a=>a.id===homeId);
+          if(!selectedHome)throw Error('Sélectionner une maison existante');
+          await s.fullDocument();
+          const chunks=[p.entityIndex[id].ownerChunkId,chunkAt(p.world,selectedHome.point.x,selectedHome.point.z)];
+          await s.change('Affecter domicile et métier du résident',[...new Set(chunks)],d=>reassignResident(d,id,homeId,jobId));
+          ctx.status('Domicile et poste enregistrés ; chemin et horaires validés.');ctx.refresh();
+        }).catch(e=>ctx.status(String(e instanceof Error?e.message:e),true))));
+    }
     box.append(life);
   }else if(path&&path.length>=2){
     box.append(button('Créer une routine depuis le trajet',()=>void editQueue.run(async()=>{
