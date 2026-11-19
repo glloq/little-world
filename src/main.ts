@@ -857,7 +857,7 @@ function toggleSurfBoard():void{
  const sx=Math.sin(yaw),cz=Math.cos(yaw);
  let spot:SurfBoardPlacement|null=null;
  for(const d of [0,1.2,2,3]){
-   const x=player.position.x+sx*d,z=player.position.z+cz*d,w=waterSurface(x,z);
+   const x=player.position.x+sx*d,z=player.position.z+cz*d;
    const candidate=boardOnWater(x,z,yaw,waterSurface);
    if(!candidate||!isSurfBoardWaterSafe(candidate,waterSurface,terrainHeight,(px,pz)=>!!surfFieldAt(px,pz)))continue;
    spot=candidate;break;
