@@ -67,9 +67,9 @@ try{
  // The first B deploys the equipped board; the second boards it from the water.
  await page.keyboard.press('KeyB');
  await page.waitForFunction(()=>window.littleWorldMetrics?.surfBoardPlaced!==null,{},{timeout:10000});
- const board=await page.evaluate(()=>window.littleWorldMetrics.surfBoardPlaced);
- check(Number.isFinite(board.x)&&Number.isFinite(board.z),'Board placed on valid wave-zone water');
- await page.evaluate(p=>window.littleWorldDebug.teleport(p.x,p.z,0),board);
+ const placedBoard=await page.evaluate(()=>window.littleWorldMetrics.surfBoardPlaced);
+ check(Number.isFinite(placedBoard.x)&&Number.isFinite(placedBoard.z),'Board placed on valid wave-zone water');
+ await page.evaluate(p=>window.littleWorldDebug.teleport(p.x,p.z,0),placedBoard);
  await page.waitForFunction(()=>window.littleWorldMetrics?.mode==='swim',{},{timeout:10000});
  await page.keyboard.press('KeyB');
  await page.waitForFunction(()=>window.littleWorldMetrics?.mode==='surf',{},{timeout:10000});
