@@ -4,7 +4,7 @@
  */
 import {node,button,field,input,select,numberInput,download} from './dom.ts';
 import type {StudioSession} from './session.ts';
-import type {QuestCatalogEntryV1,QuestStepV1,QuestRewardV1} from '../quests/schema.ts';
+import type {QuestCatalogEntryV1,QuestStepV1} from '../quests/schema.ts';
 import {parseQuestCatalogEntry} from '../quests/validation.ts';
 
 export function mountQuestsPanel(host:HTMLElement,session:StudioSession,
