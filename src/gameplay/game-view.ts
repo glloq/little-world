@@ -435,7 +435,7 @@ export function createGameplayView(data:GameplayData,options:Options){
          source.role==='farmer'?id.startsWith('farm:'):id==='wood:log'));
        if(!goods)continue;
        for(const counter of runtime.data.entities){
-         if(counter.shopAccess?.kind!==kind)continue;
+         if(counter.initialState.shop!==kind)continue;
          const point=runtime.getEntityPosition(counter.id);
          if(!point||Math.hypot(producer.x-point.x,producer.z-point.z)>8)continue;
          if(markets.supplyFromNpc(kind,counter.id,goods[0],Math.min(2,goods[1]),source,
