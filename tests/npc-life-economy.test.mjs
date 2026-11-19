@@ -37,7 +37,7 @@ test('F04 reject wrong source, false owner, forged stocks and output overflow',(
  assert.throws(()=>make({...forged,stock:{'wood:log':1000}}),/inventaire/);
  assert.throws(()=>make({...forged,workshop:{...forged.workshop,stationId:'forged'}}),/provenance/);
  const limited=createNpcWorkshopEconomy('npc:artisan','artisan',job,'sawmill',
- STARTER_RECIPES,{'wood:log':999,'material:plank':1});
+ STARTER_RECIPES,{'wood:log':999,'material:plank':1,coin:9999});
  limited.receive('wood:log',2);
  limited.receive('coin',1);
  limited.start('sawmill:planks',1,10,'begin:1');
