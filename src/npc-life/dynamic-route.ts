@@ -134,3 +134,14 @@ export function residentRecoverySpeed(speed:number):number{
  if(!Number.isFinite(speed)||speed<=0)return 0.27;
  return Math.min(3,Math.max(.27,speed*1.35));
 }
+
+/** Replan only after a topology/collision revision or the bounded retry cadence.
+ * World revisions are supplied by the host when roads, doors or terrain change;
+ * collision sampling still protects movement even without a revision signal.
+ */
+export function residentReplanDue(
+ now:number,lastAttempt:number,revision:number,plannedRevision:number,period=1,
+):boolean{
+ if(![now,lastAttempt,revision,plannedRevision,period].every(Number.isFinite)||period<=0)return false;
+ return now<lastAttempt||now-lastAttempt>=period||revision!==plannedRevision;
+}
