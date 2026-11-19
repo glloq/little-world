@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {residentRoute} from '../src/npc-life/schedule.ts';
-import {residentRouteAheadClear,residentRouteStepClear} from '../src/npc-life/dynamic-route.ts';
+import {residentRouteAheadClear,residentRouteStepClear,residentRoutineStepClear} from '../src/npc-life/dynamic-route.ts';
 
 test('scripted NPC route lookahead samples active geometry instead of trusting old paths',()=>{
  const route=residentRoute([{x:0,z:0},{x:10,z:0}]);
@@ -47,4 +47,17 @@ test('lookahead follows both sides of a sharp corner without cutting diagonally'
 test('caller cannot bypass the physical 12m sampling limit',()=>{
  const route=residentRoute([{x:0,z:0},{x:30,z:0}]);
  assert.equal(residentRouteStepClear(route,0,13,()=>true,50),false);
+});
+
+test('near-camera daily routines reject teleports and changed walls',()=>{
+ const from={x:0,z:0};
+ assert.equal(residentRoutineStepClear(from,{x:.1,z:0},()=>true,.25),true);
+ assert.equal(residentRoutineStepClear(from,{x:5,z:0},()=>true,.25),false);
+ assert.equal(residentRoutineStepClear(from,{x:.2,z:0},(x)=>x<.15,.25),false);
+ assert.equal(residentRoutineStepClear(from,{x:.2,z:0},()=>true,Infinity),false);
+ assert.equal(residentRoutineStepClear(from,{x:NaN,z:0},()=>true,.25),false);
+});
+test('near-camera daily routine cannot bypass physical cap with author parameters',()=>{
+ assert.equal(residentRoutineStepClear({x:0,z:0},{x:3.1,z:0},()=>true,50),false);
+ assert.equal(residentRoutineStepClear({x:0,z:0},{x:2,z:0},()=>true,50),true);
 });
