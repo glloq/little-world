@@ -117,3 +117,26 @@ test('F03 tiny hamlets can request a real worker without inventing children or a
  assert.deepEqual(residentPopulationTargets(40,'normal'),{children:2,workers:8});
  assert.deepEqual(residentPopulationTargets(80,'low'),{children:1,workers:3});
 });
+
+test('F03 density reduction preserves an author-edited surplus resident',()=>{
+ const p=flatSettlementProject();
+ const high={...newSettlement(p.world,'npc-preserve-density'),
+  radius:190,targetBuildings:16,services:true,variedServices:true,
+  localLife:true,residentRoutines:true,cultivation:true,
+  activity:'agriculture',residentDensity:'high'};
+ const first=planSettlement(p,high);
+ assert.equal(first.diagnostics.some(d=>d.severity==='ERROR'),false,JSON.stringify(first.diagnostics));
+ const worker=first.entities.find(e=>e.id==='npc-preserve-density-worker-1');
+ assert.ok(worker,'expected multiple certified workers in the high-density village');
+ applySettlement(p,first);
+ const loc=p.entityIndex[worker.id],edited=p.chunks[loc.ownerChunkId].entities[worker.id];
+ edited.name='Résident personnalisé';
+ const low=planSettlement(p,{...high,residentDensity:'low'});
+ const retained=low.entities.find(e=>e.id===worker.id);
+ assert.ok(retained,'density change must not delete source-edited residents');
+ assert.equal(retained.name,'Résident personnalisé');
+ assert.ok(low.preserved.includes(worker.id));
+ applySettlement(p,low);
+ const finalLoc=p.entityIndex[worker.id];
+ assert.equal(p.chunks[finalLoc.ownerChunkId].entities[worker.id].name,'Résident personnalisé');
+});
