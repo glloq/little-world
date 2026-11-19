@@ -33,21 +33,21 @@ test('lateral jump deploys along original velocity, regardless of camera directi
  assert.ok(a.velocity.x<0,'no unexpected reversal after deployment');
 });
 
-test('horizontal steering stays independent, vertical camera aiming controls dive and climb',()=>{
- const q=floor(),neutral=actor('glide',0,0,18),turn=actor('glide',0,0,18),
- dive=actor('glide',0,0,18),climb=actor('glide',0,0,18),forward=actor('glide',0,0,18);
+test('horizontal steering stays independent; temporary pitch input controls dive and climb',()=>{
+ const q=floor(),neutral=actor('glide',0,0,28),turn=actor('glide',0,0,28),
+ dive=actor('glide',0,0,28),climb=actor('glide',0,0,28),forward=actor('glide',0,0,28);
  for(let i=0;i<35;i++){
   simulatePlayer(neutral,{...idle,cameraYaw:i*.15},dt,q);
   simulatePlayer(turn,{...idle,right:1,cameraYaw:i*.15},dt,q);
-  simulatePlayer(dive,{...idle,forward:1,cameraPitch:.8},dt,q);
-  simulatePlayer(climb,{...idle,forward:1,cameraPitch:-.7},dt,q);
+  simulatePlayer(dive,{...idle,forward:1,cameraPitch:.8,flightPitchInput:-1},dt,q);
+  simulatePlayer(climb,{...idle,forward:1,cameraPitch:-.7,flightPitchInput:1},dt,q);
   simulatePlayer(forward,{...idle,forward:1,cameraYaw:i*.15},dt,q);
  }
  assert.ok(turn.velocity.x<-3,'D induces a right turn in the existing coordinate convention');
  assert.ok(Math.abs(neutral.velocity.x)<1e-8,'camera yaw rotation gives zero steering');
- assert.ok(dive.velocity.y<climb.velocity.y,'looking down dives, looking up climbs');
- assert.ok(climb.velocity.y>0,'looking above the horizon trades speed for altitude');
- assert.ok(dive.velocity.y<-4,'looking below the horizon creates a deliberate dive');
+ assert.ok(dive.velocity.y<climb.velocity.y,'negative intent dives, positive intent climbs');
+ assert.ok(climb.velocity.y>0,'commanded climb trades speed for altitude');
+ assert.ok(dive.velocity.y<-4,'negative pitch command creates a deliberate dive');
  assert.ok(Math.abs(forward.velocity.y-neutral.velocity.y)<1e-9,'upward phone stick must not force a dive');
  assert.ok(turn.velocity.length()<neutral.velocity.length(),'intentional turn still costs energy');
 });
@@ -78,6 +78,7 @@ test('replay serializes and validates deployment state across fold and re-open',
  const initial=captureMovement(start,0);
  const tape=Array.from({length:32},(_,i)=>({tick:i+1,input:{...idle,
   cameraYaw:i%2?Math.PI:0,cameraPitch:i%2?-.9:.9,
+  flightPitchInput:i%3===0?1:i%3===1?-1:0,
   jumpPressed:i===0||i===13||i===17,right:i>19?.5:0
  }}));
  const a=replayMovement(start,initial,tape,q),b=replayMovement(actor('air',-8,7,0),initial,tape,q);
@@ -88,6 +89,26 @@ test('replay serializes and validates deployment state across fold and re-open',
  assert.deepEqual(captureMovement(restored,32),a);
  const bad=structuredClone(a);bad.state.glideDeploymentRemaining=1;
  assert.throws(()=>restoreMovement(restored,bad),/déploiement/);
+});
+
+test('camera aiming is passive after release and glider returns to stable trim',()=>{
+ const q=floor(),p=actor('glide',0,0,28),cameraOnly=actor('glide',0,0,28);
+ for(let i=0;i<18;i++){
+  simulatePlayer(p,{...idle,cameraPitch:-.77,flightPitchInput:1},dt,q);
+  simulatePlayer(cameraOnly,{...idle,cameraPitch:-.77},dt,q);
+ }
+ assert.ok(p.glidePitch>0,'hold pitch intent can climb');
+ assert.ok(cameraOnly.glidePitch<0,'looking up without dragging cannot lock a climb');
+ for(let i=0;i<35;i++)simulatePlayer(p,{...idle,cameraPitch:-.77},dt,q);
+ assert.ok(p.glidePitch<0,'releasing pitch intent returns toward stable descent');
+ assert.ok(p.velocity.y<0,'pitch release ends the climb even when camera stays up');
+});
+
+test('at low speed, pulling up triggers recovery dive instead of a hover',()=>{
+ const q=floor(),p=actor('glide',0,0,8);
+ for(let i=0;i<18;i++)simulatePlayer(p,{...idle,flightPitchInput:1},dt,q);
+ assert.ok(p.glidePitch<0,'recovery pitch must point down');
+ assert.ok(p.velocity.y<0,'no unpowered low-speed climb');
 });
 
 test('visual camera recenters only after inactivity, and never during drag',()=>{
