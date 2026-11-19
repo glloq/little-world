@@ -102,3 +102,8 @@ body>.environment-controls{display:none!important}
 .ui-settings-section .environment-controls label{display:grid;gap:5px;margin-top:7px}
 .ui-settings-section .environment-controls select{max-width:100%;font:inherit}
 .ui-settings-section .environment-controls small{display:block;font-size:11px;color:var(--ui-muted);margin-top:8px}
+
+/* Satiety is permanent; boost readout is shown only after consumption/refill. */
+.ui-satiety{width:215px;pointer-events:none}
+.ui-satiety .ui-meter-fill{background:#9ed780}
+@media(max-width:760px){.ui-satiety{width:min(200px,50vw)}}
