@@ -48,6 +48,12 @@ export function residentRegistry(project:ProjectDocument,onlySettlementId?:strin
         issue('LIFE_WORK_MISSING','Le poste ou le lieu de jeu du résident a disparu.');
       else if(distance(r.work,workIds.get(person.workAnchorId)!)>1)
         issue('LIFE_WORK_MOVED','Le lieu de travail a changé : recalculer la route du résident.');
+      for(const activity of r.activities??[]){
+        const anchor=workIds.get(activity.anchorId);
+        if(!anchor)issue('LIFE_ACTIVITY_MISSING','Le lieu de pause ou de rencontre '+activity.anchorId+' a disparu.');
+        else if(distance(activity.point,anchor)>1)
+          issue('LIFE_ACTIVITY_MOVED','Le lieu de pause ou de rencontre a changé de position.');
+      }
       if(person.homeAnchorId)(homes[person.homeAnchorId]??=[]).push(person.id);
       if(r.role!=='child'&&person.workAnchorId){
         const key=settlement.id+':'+person.workAnchorId,other=seenJobs.get(key);
@@ -55,6 +61,11 @@ export function residentRegistry(project:ProjectDocument,onlySettlementId?:strin
         else seenJobs.set(key,person.id);
       }
     }
+  }
+  for(const [homeId,occupants] of Object.entries(homes)){
+    if(occupants.length>2)for(const residentId of occupants.slice(2))
+      issues.push({code:'LIFE_HOME_OVERBOOKED',targetId:residentId,
+        message:'Maison '+homeId+' sur-occupée : '+occupants.length+' habitants pour deux places.'});
   }
   return {residents,issues,byRole,homes};
 }
