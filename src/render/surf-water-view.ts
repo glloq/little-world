@@ -2,19 +2,22 @@ import * as THREE from 'three';
 import {surfZoneMargin,type SurfWaveField,type SurfZone} from '../surf/wave-field.ts';
 import {createSurfWaterMaterial} from './surf-water-material.ts';
 
-/** Terrain-sampled static envelopes, GPU-animated crests. Three pre-baked nested
- * meshes share one material: LOD switches never change the deterministic wave physics.
+/** Terrain-sampled static envelopes, GPU-animated crests. One mesh per zone split into LOD
+ * tiles (nested steps 1/2/4 of one lattice, skirts between different steps); only the index
+ * buffer changes, and only when a tile changes tier. LOD never changes the wave physics.
  * No per-frame terrain resampling, render target, texture or CPU vertex upload. */
 const smooth=(v:number)=>{const t=Math.max(0,Math.min(1,v));return t*t*(3-2*t);};
 /** Historical stateless thresholds (metres), kept as the centre of the hysteresis band. */
 const TIER_DISTANCE=[150,400] as const;
 /** ±18 %: a camera hovering near a threshold never alternates between two tessellations. */
 export const SURF_LOD_HYSTERESIS=.18;
-/** Finest spacing per wavelength (7 vertices on the 2nd harmonic) and its clamps. */
-const SAMPLES_PER_WAVELENGTH=14,MIN_SPACING=1.25,MAX_SPACING=4,MAX_TIER0_VERTICES=20000;
-export interface SurfWaterStats {tier:number;vertices:number;triangles:number;maxVertices:number;
+/** Finest spacing per wavelength (5 vertices on the 2nd harmonic; normals stay analytic). */
+const SAMPLES_PER_WAVELENGTH=10,MIN_SPACING=1.25,MAX_SPACING=4,MAX_TIER0_VERTICES=20000;
+export interface SurfWaterStats {
+ /** Finest tier currently drawn by any tile (0 = full resolution). */
+ tier:number;vertices:number;triangles:number;maxVertices:number;
  /** Wet quads kept / all quads of the finest grid (fully dry beach quads are not drawn). */
- wetRatio:number;tierChanges:number;}
+ wetRatio:number;tierChanges:number;tiles:number;}
 export interface SurfViewPoint {x:number;z:number;y?:number}
 /** 3D distance from a viewpoint (camera, or player when no camera) to the zone rectangle. */
 export function surfZoneViewDistance(zone:SurfZone,view:SurfViewPoint):number{
@@ -81,69 +84,143 @@ export function surfWaterLattice(zone:SurfZone,ground:(x:number,z:number)=>numbe
  }
  return {nx,nz,x0:zone.minX,z0:zone.minZ,dx,dz,envelope,wet,shore,envelopeGradient};
 }
-function surfWaterGeometry(zone:SurfZone,lattice:SurfWaterLattice,step:1|2|4):THREE.BufferGeometry{
- const {nx:fx,nz:fz}=lattice,nx=fx/step,nz=fz/step;
- const positions=new Float32Array((nx+1)*(nz+1)*3),
-   envelope=new Float32Array((nx+1)*(nz+1)),
-   wet=new Float32Array((nx+1)*(nz+1)),
-   shore=new Float32Array((nx+1)*(nz+1)*3),
-   envelopeGradient=new Float32Array((nx+1)*(nz+1)*2);
- for(let j=0;j<=nz;j++)for(let i=0;i<=nx;i++){
-  const index=j*(nx+1)+i,source=j*step*(fx+1)+i*step;
-  positions[index*3]=zone.minX+(zone.maxX-zone.minX)*(i*step)/fx;
-  positions[index*3+1]=zone.seaLevel+.02;
-  positions[index*3+2]=zone.minZ+(zone.maxZ-zone.minZ)*(j*step)/fz;
-  envelope[index]=lattice.envelope[source];
-  wet[index]=lattice.wet[source];
-  shore.set(lattice.shore.subarray(source*3,source*3+3),index*3);
-  envelopeGradient.set(lattice.envelopeGradient.subarray(source*2,source*2+2),index*2);
+/** Fine cells per LOD tile (multiple of 4 so tiers 1/2 stay aligned across tiles). */
+export const SURF_TILE_CELLS=16;
+/** Camera distance thresholds of a tile (m): finest below the first, coarsest beyond the second. */
+const TILE_DISTANCE=[70,260] as const;
+interface Tile {i0:number;i1:number;j0:number;j1:number;minX:number;maxX:number;minZ:number;maxZ:number;tier:0|1|2}
+/** One mesh per zone: all fine-lattice vertices (+ skirt copies on tile borders) and an index
+ * buffer rebuilt only when a tile changes tier. Unreferenced vertices are never shaded. */
+function createTiledWater(zone:SurfZone,lattice:SurfWaterLattice){
+ const {nx,nz}=lattice,row=nx+1,count=(nx+1)*(nz+1);
+ const onBorderX=(i:number)=>i>0&&i<nx&&i%SURF_TILE_CELLS===0;
+ const onBorderZ=(j:number)=>j>0&&j<nz&&j%SURF_TILE_CELLS===0;
+ // Skirt copy index for every vertex lying on an internal tile border line.
+ const skirtOf=new Int32Array(count).fill(-1);let skirts=0;
+ for(let j=0;j<=nz;j++)for(let i=0;i<=nx;i++)if(onBorderX(i)||onBorderZ(j))skirtOf[j*row+i]=count+skirts++;
+ const total=count+skirts;
+ const positions=new Float32Array(total*3),envelope=new Float32Array(total),wet=new Float32Array(total),
+  shore=new Float32Array(total*3),gradient=new Float32Array(total*2),skirt=new Float32Array(total);
+ const put=(target:number,source:number)=>{
+  const i=source%row,j=Math.floor(source/row);
+  positions[target*3]=zone.minX+(zone.maxX-zone.minX)*i/nx;
+  positions[target*3+1]=zone.seaLevel+.02;
+  positions[target*3+2]=zone.minZ+(zone.maxZ-zone.minZ)*j/nz;
+  envelope[target]=lattice.envelope[source];wet[target]=lattice.wet[source];
+  shore.set(lattice.shore.subarray(source*3,source*3+3),target*3);
+  gradient.set(lattice.envelopeGradient.subarray(source*2,source*2+2),target*2);
+ };
+ for(let v=0;v<count;v++){put(v,v);if(skirtOf[v]>=0){put(skirtOf[v],v);skirt[skirtOf[v]]=1;}}
+ const tiles:Tile[]=[];
+ for(let j0=0;j0<nz;j0+=SURF_TILE_CELLS)for(let i0=0;i0<nx;i0+=SURF_TILE_CELLS){
+  const i1=Math.min(nx,i0+SURF_TILE_CELLS),j1=Math.min(nz,j0+SURF_TILE_CELLS);
+  tiles.push({i0,i1,j0,j1,minX:zone.minX+(zone.maxX-zone.minX)*i0/nx,maxX:zone.minX+(zone.maxX-zone.minX)*i1/nx,
+   minZ:zone.minZ+(zone.maxZ-zone.minZ)*j0/nz,maxZ:zone.minZ+(zone.maxZ-zone.minZ)*j1/nz,tier:0});
  }
- // Only quads touching water are indexed: fully dry beach cells cost no triangle.
- let quads=0;
- const quadWet=(i:number,j:number)=>{
+ const tilesX=Math.ceil(nx/SURF_TILE_CELLS),tilesZ=Math.ceil(nz/SURF_TILE_CELLS);
+ const blockWet=(i:number,j:number,step:number)=>{
   for(let b=0;b<=step;b++)for(let a=0;a<=step;a++)
-   if(lattice.wet[(j*step+b)*(fx+1)+i*step+a])return true;
+   if(lattice.wet[Math.min(nz,j+b)*row+Math.min(nx,i+a)])return true;
   return false;
  };
- const keep=new Uint8Array(nx*nz);
- for(let j=0;j<nz;j++)for(let i=0;i<nx;i++)if(quadWet(i,j)){keep[j*nx+i]=1;quads++;}
- const vertexCount=(nx+1)*(nz+1);
- const indices=vertexCount>65535?new Uint32Array(quads*6):new Uint16Array(quads*6);
+ // Worst case: every quad at full resolution plus skirts on both sides of every border segment.
+ const capacity=nx*nz*6+skirts*12;
+ const indices=total>65535?new Uint32Array(capacity):new Uint16Array(capacity);
+ const geometry=new THREE.BufferGeometry();
+ geometry.setAttribute('position',new THREE.BufferAttribute(positions,3));
+ geometry.setAttribute('aEnvelope',new THREE.BufferAttribute(envelope,1));
+ geometry.setAttribute('aWet',new THREE.BufferAttribute(wet,1));
+ geometry.setAttribute('aShore',new THREE.BufferAttribute(shore,3));
+ geometry.setAttribute('aEnvGrad',new THREE.BufferAttribute(gradient,2));
+ geometry.setAttribute('aSkirt',new THREE.BufferAttribute(skirt,1));
+ const index=new THREE.BufferAttribute(indices,1).setUsage(THREE.DynamicDrawUsage);
+ geometry.setIndex(index);
+ geometry.boundingBox=new THREE.Box3(new THREE.Vector3(zone.minX,zone.seaLevel-zone.amplitude*1.4-1.5,zone.minZ),
+  new THREE.Vector3(zone.maxX,zone.seaLevel+zone.amplitude*1.4+.1,zone.maxZ));
+ geometry.boundingSphere=geometry.boundingBox.getBoundingSphere(new THREE.Sphere());
  let cursor=0;
- for(let j=0;j<nz;j++)for(let i=0;i<nx;i++){
-  if(!keep[j*nx+i])continue;
-  const a=j*(nx+1)+i,b=a+nx+1;
-  indices[cursor++]=a;indices[cursor++]=b;indices[cursor++]=a+1;
-  indices[cursor++]=a+1;indices[cursor++]=b;indices[cursor++]=b+1;
+ // Front faces up (same winding as the historical grid), whatever the vertex order given.
+ const tri=(a:number,b:number,c:number)=>{
+  const ax=positions[a*3],az=positions[a*3+2];
+  const ny=(positions[b*3+2]-az)*(positions[c*3]-ax)-(positions[b*3]-ax)*(positions[c*3+2]-az);
+  if(ny>=0){indices[cursor++]=a;indices[cursor++]=b;indices[cursor++]=c;}
+  else{indices[cursor++]=a;indices[cursor++]=c;indices[cursor++]=b;}
+ };
+ const vertex=(i:number,j:number)=>j*row+i;
+ let wetQuads=0,fineQuads=0;
+ function rebuild(){
+  cursor=0;
+  for(const t of tiles){
+   const step=1<<t.tier;
+   for(let j=t.j0;j<t.j1;j+=step)for(let i=t.i0;i<t.i1;i+=step){
+    if(!blockWet(i,j,step))continue;
+    const a=vertex(i,j),b=vertex(i,Math.min(nz,j+step)),c=vertex(Math.min(nx,i+step),j),d=vertex(Math.min(nx,i+step),Math.min(nz,j+step));
+    indices[cursor++]=a;indices[cursor++]=b;indices[cursor++]=c;
+    indices[cursor++]=c;indices[cursor++]=b;indices[cursor++]=d;
+   }
+  }
+  // Skirts on borders between two different tessellations (both sides, each at its own step).
+  for(let tj=0;tj<tilesZ;tj++)for(let ti=0;ti<tilesX;ti++){
+   const t=tiles[tj*tilesX+ti],step=1<<t.tier;
+   const right=ti+1<tilesX?tiles[tj*tilesX+ti+1]:null,top=tj+1<tilesZ?tiles[(tj+1)*tilesX+ti]:null;
+   const left=ti>0?tiles[tj*tilesX+ti-1]:null,bottom=tj>0?tiles[(tj-1)*tilesX+ti]:null;
+   const edge=(fixed:number,from:number,to:number,vertical:boolean)=>{
+    for(let k=from;k<to;k+=step){
+     const k2=Math.min(to,k+step);
+     const p=vertical?vertex(fixed,k):vertex(k,fixed),q=vertical?vertex(fixed,k2):vertex(k2,fixed);
+     if(!lattice.wet[p]&&!lattice.wet[q])continue;
+     const ps=skirtOf[p],qs=skirtOf[q];if(ps<0||qs<0)continue;
+     tri(p,q,ps);tri(q,qs,ps);
+    }
+   };
+   if(right&&right.tier!==t.tier)edge(t.i1,t.j0,t.j1,true);
+   if(left&&left.tier!==t.tier)edge(t.i0,t.j0,t.j1,true);
+   if(top&&top.tier!==t.tier)edge(t.j1,t.i0,t.i1,false);
+   if(bottom&&bottom.tier!==t.tier)edge(t.j0,t.i0,t.i1,false);
+  }
+  index.clearUpdateRanges();index.addUpdateRange(0,cursor);index.needsUpdate=true;
+  geometry.setDrawRange(0,cursor);
  }
- const geo=new THREE.BufferGeometry();
- geo.setAttribute('position',new THREE.BufferAttribute(positions,3));
- geo.setAttribute('aEnvelope',new THREE.BufferAttribute(envelope,1));
- geo.setAttribute('aWet',new THREE.BufferAttribute(wet,1));
- geo.setAttribute('aShore',new THREE.BufferAttribute(shore,3));
- geo.setAttribute('aEnvGrad',new THREE.BufferAttribute(envelopeGradient,2));
- geo.setIndex(new THREE.BufferAttribute(indices,1));
- geo.computeBoundingBox();
- if(geo.boundingBox){
-  geo.boundingBox.min.y-=zone.amplitude*1.4;
-  geo.boundingBox.max.y+=zone.amplitude*1.4;
+ for(let j=0;j<nz;j++)for(let i=0;i<nx;i++){fineQuads++;if(blockWet(i,j,1))wetQuads++;}
+ rebuild();
+ const next=new Uint8Array(tiles.length);
+ /** Per-tile tiers from the camera with hysteresis, floored; neighbours differ by ≤ 1 tier. */
+ function update(view:SurfViewPoint,floor:number):boolean{
+  for(let k=0;k<tiles.length;k++){
+   const t=tiles[k];
+   const dx=Math.max(t.minX-view.x,0,view.x-t.maxX),dz=Math.max(t.minZ-view.z,0,view.z-t.maxZ);
+   const d=Math.hypot(dx,dz,view.y===undefined?0:Math.max(0,view.y-zone.seaLevel));
+   let tier=d>TILE_DISTANCE[1]?2:d>TILE_DISTANCE[0]?1:0;
+   if(tier!==t.tier&&Math.abs(tier-t.tier)===1){
+    const threshold=TILE_DISTANCE[Math.min(tier,t.tier)];
+    if(Math.abs(d-threshold)<threshold*SURF_LOD_HYSTERESIS)tier=t.tier;
+   }
+   next[k]=Math.min(2,Math.max(floor,tier));
+  }
+  // Relax: a tile is at most one tier coarser than any neighbour (only refines, never coarsens).
+  for(let pass=0;pass<2;pass++)for(let tj=0;tj<tilesZ;tj++)for(let ti=0;ti<tilesX;ti++){
+   const k=tj*tilesX+ti;let m=next[k];
+   if(ti>0)m=Math.min(m,next[k-1]+1);if(ti+1<tilesX)m=Math.min(m,next[k+1]+1);
+   if(tj>0)m=Math.min(m,next[k-tilesX]+1);if(tj+1<tilesZ)m=Math.min(m,next[k+tilesX]+1);
+   next[k]=Math.max(Math.min(2,floor),m);
+  }
+  let changed=false;
+  for(let k=0;k<tiles.length;k++)if(tiles[k].tier!==next[k]){tiles[k].tier=next[k] as 0|1|2;changed=true;}
+  if(changed)rebuild();
+  return changed;
  }
- geo.boundingSphere=new THREE.Sphere();geo.boundingBox?.getBoundingSphere(geo.boundingSphere);
- return geo;
+ return {geometry,tiles,update,get triangles(){return cursor/3;},wetRatio:wetQuads/fineQuads,vertices:total};
 }
 export function createSurfWaterView(parent:THREE.Object3D,field:SurfWaveField,
  ground:(x:number,z:number)=>number){
  const z=field.zone;
  const lattice=surfWaterLattice(z,ground);
- const geometries=([1,2,4] as const).map(step=>surfWaterGeometry(z,lattice,step));
- const finestQuads=lattice.nx*lattice.nz;
+ const tiled=createTiledWater(z,lattice);
  const water=createSurfWaterMaterial(z),material=water.material;
- const mesh=new THREE.Mesh(geometries[0],material);
+ const mesh=new THREE.Mesh(tiled.geometry,material);
  mesh.frustumCulled=true;mesh.renderOrder=3;mesh.name='SurfWaterPatch';
- const stats:SurfWaterStats={tier:0,vertices:geometries[0].attributes.position.count,
-  triangles:(geometries[0].index?.count??0)/3,
-  maxVertices:Math.max(...geometries.map(g=>g.attributes.position.count)),
-  wetRatio:(geometries[0].index?.count??0)/6/finestQuads,tierChanges:0};
+ const stats:SurfWaterStats={tier:0,vertices:tiled.vertices,triangles:tiled.triangles,
+  maxVertices:tiled.vertices,wetRatio:tiled.wetRatio,tierChanges:0,tiles:tiled.tiles.length};
  parent.add(mesh);
  return {
   mesh,stats,
@@ -155,15 +232,14 @@ export function createSurfWaterView(parent:THREE.Object3D,field:SurfWaveField,
    water.setTime(tick,alpha);
   },
   setFoamDetail:water.setFoamDetail,
-  /** focus: camera position when available (x,y,z), else the player (x,z). */
+  /** budgetLevel floors every tile; focus: camera position (x,y,z), else the player (x,z). */
   setDetail(budgetLevel:number,focus:SurfViewPoint){
-   const level=selectSurfWaterTier(z,focus,budgetLevel,stats.tier as 0|1|2);
-   if(stats.tier===level)return;
+   const floor=Number.isFinite(budgetLevel)?Math.max(0,Math.min(2,Math.floor(budgetLevel))):0;
+   if(!tiled.update(focus,floor))return;
    stats.tierChanges++;
-   mesh.geometry=geometries[level];
-   stats.tier=level;stats.vertices=mesh.geometry.attributes.position.count;
-   stats.triangles=(mesh.geometry.index?.count??0)/3;
+   stats.tier=Math.min(...tiled.tiles.map(t=>t.tier));
+   stats.triangles=tiled.triangles;
   },
-  dispose(){mesh.removeFromParent();for(const g of geometries)g.dispose();material.dispose();}
+  dispose(){mesh.removeFromParent();tiled.geometry.dispose();material.dispose();}
  };
 }

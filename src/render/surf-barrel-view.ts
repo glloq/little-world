@@ -10,6 +10,7 @@ import {SURF_TICK_HZ,surfCrestBend,surfSwellCoefficients,surfZoneMargin,type Sur
 import {barrelCrestAlong,barrelCrestPhase,barrelEnabled,barrelModulation,barrelPeelInto,
  barrelPeelParameters,barrelPhaseOffset,barrelProfile,type BarrelPeelSample} from '../surf/surf-barrel.ts';
 import {boxInCameraView} from './surf-render-stats.ts';
+import {SURF_VISUAL_FADE} from './surf-water-material.ts';
 
 const MAX_FRONTS=4;
 const ALONG_SEGMENTS=72;
@@ -127,17 +128,22 @@ export function createSurfBarrelView(parent:THREE.Object3D,
  geometry.boundingSphere=new THREE.Sphere(new THREE.Vector3(),1);
  geometry.setDrawRange(0,0);
  const advance={value:new THREE.Vector2()};
+ const fade={value:new THREE.Vector4(SURF_VISUAL_FADE.start,SURF_VISUAL_FADE.end,SURF_VISUAL_FADE.strength,zone.seaLevel)};
  const material=new THREE.MeshLambertMaterial({vertexColors:true,side:THREE.DoubleSide,flatShading:true});
  material.name='SurfBarrelMaterial';
  material.onBeforeCompile=shader=>{
   shader.uniforms.uLipAdvance=advance;
-  shader.vertexShader='uniform vec2 uLipAdvance;\n'+shader.vertexShader.replace('#include <begin_vertex>',
-   '#include <begin_vertex>\ntransformed.xz+=uLipAdvance;');
+  shader.uniforms.uLipFade=fade;
+  // Same distance flattening as the surf water (presentation only), so far lips stay seated.
+  shader.vertexShader='uniform vec2 uLipAdvance;uniform vec4 uLipFade;\n'+shader.vertexShader.replace('#include <begin_vertex>',
+   '#include <begin_vertex>\ntransformed.xz+=uLipAdvance;\n'+
+   'float lipView=length((modelMatrix*vec4(transformed,1.0)).xyz-cameraPosition);\n'+
+   'transformed.y=uLipFade.w+(transformed.y-uLipFade.w)*(1.0-uLipFade.z*smoothstep(uLipFade.x,uLipFade.y,lipView));');
   // Thin lip: light passing through it (cheap translucency, strongest on the cavity side).
   shader.fragmentShader=shader.fragmentShader.replace('#include <emissivemap_fragment>',
    '#include <emissivemap_fragment>\ntotalEmissiveRadiance+=diffuseColor.rgb*(gl_FrontFacing?.12:.55);');
  };
- material.customProgramCacheKey=()=>'little-world-surf-lip-v2';
+ material.customProgramCacheKey=()=>'little-world-surf-lip-v3';
  const mesh=new THREE.Mesh(geometry,material);
  mesh.name='SurfBarrelLip';mesh.frustumCulled=true;mesh.renderOrder=4;mesh.visible=false;
  parent.add(mesh);

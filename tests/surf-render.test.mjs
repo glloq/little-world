@@ -9,7 +9,8 @@ const zone={id:'surf:lod-test',minX:-120,maxX:120,minZ:-120,maxZ:120,
  shoreFadeDepth:3,edgeFade:9,barrelStrength:.8};
 const terrain=(x,z)=>-5+Math.sin(x/80)*.6+Math.sin(z/55)*.3;
 const wave=createSurfWaveField(zone,terrain);
-/** JS port of SURF_WATER_GLSL vertexPosition, fed with the material's own uniforms. */
+/** JS port of SURF_WATER_GLSL vertexPosition, fed with the material's own uniforms, for water
+ * closer than uFade.x (the drawn swell flattens only beyond, presentation only). */
 const fract=v=>v-Math.floor(v);
 function shaderHeight(u,x,zz,env,breaking){
  const dir=u.uDirection.value,across=-dir.y*x+dir.x*zz,bd=u.uBend.value,c=across-bd.y;
@@ -62,12 +63,13 @@ test('every LOD GPU vertex matches the fixed-tick CPU wave formula ('+(style??'c
  for(const level of [0,1,2]){
   view.setDetail(level,{x:0,z:0});
   const g=view.mesh.geometry,positions=g.getAttribute('position'),
-   envelopes=g.getAttribute('aEnvelope'),wet=g.getAttribute('aWet'),shore=g.getAttribute('aShore');
+   envelopes=g.getAttribute('aEnvelope'),wet=g.getAttribute('aWet'),shore=g.getAttribute('aShore'),
+   skirt=g.getAttribute('aSkirt');
   assert.equal(positions.count,envelopes.count);
   assert.equal(positions.count,wet.count);
   for(let i=0;i<positions.count;i+=Math.max(1,Math.floor(positions.count/90))){
    const x=positions.getX(i),pz=positions.getZ(i),e=envelopes.getX(i);
-   if(!wet.getX(i))continue;
+   if(!wet.getX(i)||skirt.getX(i))continue;
    for(const tick of [0,6,109,300,1_000_000]){
     view.update(tick+1,0);
     const cpu=field.height(x,pz,tick);
@@ -84,7 +86,9 @@ test('every LOD GPU vertex matches the fixed-tick CPU wave formula ('+(style??'c
  assert.ok(Math.abs(u.uTime.value-((100/30)%(z.wavelength/z.speed)))<1e-9);
  view.update(1_000_001,0);
  assert.ok(u.uTime.value<z.wavelength/z.speed&&u.uSetTime.value<u.uMod.value.y/z.speed,'wrapped phases');
- assert.equal(view.mesh.material.customProgramCacheKey(),'little-world-surf-water-v2');
+ assert.equal(view.mesh.material.customProgramCacheKey(),'little-world-surf-water-v3');
+ assert.equal(view.mesh.material.lights,true,'scene lights reach the per-vertex Lambert');
+ assert.ok(u.uFade.value.x>=150&&u.uFade.value.y>u.uFade.value.x&&u.uFade.value.z<1,'near water is never flattened');
  view.dispose();
 });
 }
@@ -161,5 +165,29 @@ test('shader whitewater uses the same crest index and peel break point as the CP
   }
  }
  assert.ok(checked>150,"checked "+checked);
+ view.dispose();
+});
+
+test('LOD tiles: fine near the camera, coarse far away, skirts only between different steps',()=>{
+ const big={...zone,id:'surf:tiles',minX:-200,maxX:200,minZ:-200,maxZ:200};
+ const field=createSurfWaveField(big,terrain),root=new THREE.Group(),view=createSurfWaterView(root,field,terrain);
+ const full=view.stats.triangles;
+ assert.ok(view.stats.tiles>=16);
+ view.setDetail(0,{x:-190,z:-190,y:4});
+ const near=view.stats.triangles;
+ assert.ok(near<full*.45,'tile LOD saves triangles: '+near+' / '+full);
+ assert.equal(view.stats.tier,0,'the tile under the camera stays at full resolution');
+ const g=view.mesh.geometry,skirt=g.getAttribute('aSkirt'),idx=g.index;
+ let skirtTriangles=0;
+ for(let t=0;t<g.drawRange.count;t+=3)if([0,1,2].some(k=>skirt.getX(idx.getX(t+k))))skirtTriangles++;
+ assert.ok(skirtTriangles>0&&skirtTriangles<near*.1,'skirts '+skirtTriangles);
+ // Stable at rest: the same view never rebuilds the index again.
+ const changes=view.stats.tierChanges;
+ for(let i=0;i<20;i++)view.setDetail(0,{x:-190,z:-190,y:4});
+ assert.equal(view.stats.tierChanges,changes);
+ // Uniform tiers draw no skirt at all.
+ view.setDetail(2,{x:0,z:0});
+ let any=0;for(let t=0;t<g.drawRange.count;t++)if(skirt.getX(idx.getX(t)))any++;
+ assert.equal(any,0);
  view.dispose();
 });

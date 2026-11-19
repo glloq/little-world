@@ -24,6 +24,7 @@ const styles={
  C:{label:'C · Acrobaties',amplitude:1.65,wavelength:29,speed:8,barrelStrength:.6,style:'fast'},
 } as const;
 const ISLAND_SITE_SIZES:readonly SurfSiteSizes[]=[
+ {lengths:[420,360,300,260,230,205],widths:[420,360,300,260,220,180]},
  {lengths:[300,260,230,205,165,125],widths:[260,220,180,150,120,98,76]},
  {lengths:[260,230,205,165,125],widths:[180,150,120,98,76]},
  {}, // historical demo sizes

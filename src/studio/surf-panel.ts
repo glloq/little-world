@@ -20,7 +20,9 @@ const presets={
  gentle:{amplitude:.65,wavelength:25,speed:4.5,style:'gentle'},
  rolling:{amplitude:1.2,wavelength:32,speed:6.2,style:'long'},
  power:{amplitude:2,wavelength:42,speed:7.8,style:'powerful'},
- arcade:{amplitude:1.5,wavelength:24,speed:8.5,style:'fast'}
+ arcade:{amplitude:1.5,wavelength:24,speed:8.5,style:'fast'},
+ /** Long swell: twice the usual spacing (fewer, faster, taller waves; ÷2–3 triangles). */
+ longSwell:{amplitude:2.2,wavelength:72,speed:9,style:'long'}
 } as const;
 /** Swell shapes (wave-shape.ts). 'classic' = historical profile of older maps. */
 const styleLabels:readonly (readonly [SurfWaveStyle,string])[]=[
@@ -65,7 +67,7 @@ export function mountSurfPanel(host:HTMLElement,ctx:SurfPanelContext):void{
   field('Largeur (m)',numberInput(width,v=>width=v,20,500)),
   field('Longueur (m)',numberInput(length,v=>length=v,30,1000)),
   field('Direction des vagues vers la côte',select(direction,dirs.map(d=>[d[0],d[1]] as const),v=>direction=v)),
-  field('Style des vagues',select(preset,[['gentle','Douces'],['rolling','Longues vagues'],['power','Grandes vagues'],['arcade','Arcade']],v=>preset=v as keyof typeof presets)),
+  field('Style des vagues',select(preset,[['gentle','Douces'],['rolling','Longues vagues'],['power','Grandes vagues'],['arcade','Arcade'],['longSwell','Houle longue (72 m)']],v=>preset=v as keyof typeof presets)),
   create,
   node('p','Enregistrez les zones avec le projet Studio V3. Les anciennes îles sans zone restent inchangées. Les tremplins et boosts seront placés dans le panneau Courses après leur intégration.','muted')
  );

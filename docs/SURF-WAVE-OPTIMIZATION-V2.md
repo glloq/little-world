@@ -418,3 +418,39 @@ La bande plus claire de `NearSea` (transparente) contre l'anneau d'océan opaque
 aérienne loin des zones, est préexistante sur `main`.
 
 Captures : `wide-zone-aerial.jpg`, `wide-curved-crests-full-lip.jpg`, `wide-side-view.jpg`.
+
+## 21. Optimisation pour des zones plus grandes (éclairage par sommet, tuiles, écume)
+
+Objectif : une plus grande surface de vagues sans augmenter le coût. Mesures SwiftShader (rendu
+logiciel : seules les tendances relatives comptent), parcours identique, qualité Medium.
+
+**Ce qui a changé**
+- **Éclairage par sommet** : l'eau surf est un `ShaderMaterial` (`lights:true`) qui reprend les
+  termes Lambert de three (directionnelles, hémisphère, ambiante, BRDF 1/π) **dans le vertex shader**,
+  face avant et arrière ; le pixel ne fait que mélanger des couleurs puis applique le tone mapping et
+  l'espace colorimétrique de three. Un bord plat reçoit toujours exactement l'éclairage de `NearSea`.
+  Limite : les lumières ponctuelles (lanternes) n'éclairent plus l'eau surf.
+- **LOD par tuiles** : un seul maillage par zone, découpé en tuiles de 16 cellules ; chaque tuile
+  choisit son pas (1/2/4) selon la distance caméra (70 / 260 m, hystérésis ±18 %), deux tuiles voisines
+  diffèrent d'un niveau au plus ; des **jupes** verticales (sous la surface) ne sont dessinées qu'entre
+  deux pas différents, donc aucune fissure. Seul l'index est réécrit, et seulement au changement de tier.
+- **Densité** : 10 échantillons par longueur d'onde (au lieu de 14) ; les normales restent analytiques.
+- **Repliement au loin** : la phase de la vague (crête, écume) est calculée **par pixel** (exacte même
+  sur une tuile grossière) et l'amplitude **dessinée** s'aplatit avec la distance (−75 % entre 160 et
+  360 m, eau et lèvre). Présentation seulement : la physique et la hauteur logique ne changent pas.
+- **Écume** : Low = bande de crête ; Medium = + traînée de déferlement et ligne de rivage, sans bruit ;
+  HQ = + un octave de bruit (le second octave est supprimé).
+- **Houle longue** : préréglage Studio « Houle longue (72 m) » (style `long`, vitesse 9 m/s), qui divise
+  encore les triangles d'une zone par 2 à 3 ; c'est un choix de style (moins de vagues, plus rapides).
+- **Île Surf** : plages A/B/C ≈ 420 × 413, 420 × 353 et 293 × 420 m (≈ 444 000 m² au total, ×2).
+
+| Mesure | Avant (`e87e7a8`) | Après |
+| --- | --- | --- |
+| Zone démo (même zone, 3 passes A/B) — FPS | 8,3–8,5 (7,3 machine chargée) | 9,1 (7,9) : ≈ +8 % |
+| Île Surf, parcours plage B — FPS / p95 travail | 8,94 / 7,8 ms | **9,59 / 6,6 ms** |
+| Île Surf — triangles surf visibles | 28 654 (zones 260 × 293 m) | **15 384** (zones ≈ 2× plus grandes) |
+| Triangles d'une zone, caméra au centre (Node) | 33 728 pour 76 000 m² | 17 642 pour 173 000 m² |
+| Cuisson d'une grande zone au chargement | 9–11 ms | 16–28 ms |
+
+Captures : `tiles-zone-aerial.jpg`, `tiles-overview.jpg`, `tiles-side-view.jpg`. Qualification iGPU
+toujours **NOT_VERIFIED**. Rapport : `docs/perf/surf-browser-tiles-swiftshader.json`, `surf-cpu-tiles.json`.
