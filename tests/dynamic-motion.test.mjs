@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {simulatePlayer,MAX_OXYGEN,GLIDE,ROLL} from '../src/player.ts';
-import {glideVelocity,movementEnergy,MOTION} from '../src/physics/motion.ts';
+import {glideVelocity,movementEnergy,MOTION,GLIDE_PHYSICS} from '../src/physics/motion.ts';
 import {WorldCollisionQuery} from '../src/physics/collision-world.ts';
 import {captureMovement,replayMovement,restoreMovement} from '../src/physics/movement-state.ts';
 import {openCompiledWorld,playableFromCompiled} from '../src/runtime/compiled-world.ts';
@@ -16,18 +16,20 @@ const flat=()=>new WorldCollisionQuery(()=>0,()=>null);
 const step=(p,q,n,k={})=>{for(let i=0;i<n;i++)simulatePlayer(p,{...input,...k},1/30,q);};
 
 test('glider dive exchanges height for speed, pull-up spends momentum and cannot gain energy',()=>{
- const p=actor(500);p.mode='glide';p.velocity.z=12;p.glideReady=true;const q=flat();
- const start=movementEnergy(p.position.y,p.velocity),energy=[start];
+ // With reduced gliding gravity, use a sufficiently fast dive to verify a real pull-up;
+ // a slow dive may dissipate its energy before the glider can climb.
+ const p=actor(500);p.mode='glide';p.velocity.z=24;p.glideReady=true;const q=flat();
+ const start=movementEnergy(p.position.y,p.velocity,GLIDE_PHYSICS.gravity),energy=[start];
  step(p,q,60,{forward:1,flightPitchInput:-1});const diveSpeed=p.velocity.length(),low=p.position.y;
  assert.ok(diveSpeed>16&&p.velocity.y<0,'dive accelerates');
  let peak=low,up=false;
  for(let i=0;i<240;i++){
-  const before=movementEnergy(p.position.y,p.velocity);simulatePlayer(p,{...input,forward:1,flightPitchInput:1},1/30,q);
-  assert.ok(movementEnergy(p.position.y,p.velocity)<=before+1e-7,'steering never creates energy');
-  up ||= p.velocity.y>1;peak=Math.max(peak,p.position.y);energy.push(movementEnergy(p.position.y,p.velocity));
+  const before=movementEnergy(p.position.y,p.velocity,GLIDE_PHYSICS.gravity);simulatePlayer(p,{...input,forward:1,flightPitchInput:1},1/30,q);
+  assert.ok(movementEnergy(p.position.y,p.velocity,GLIDE_PHYSICS.gravity)<=before+1e-7,'steering never creates energy');
+  up ||= p.velocity.y>1;peak=Math.max(peak,p.position.y);energy.push(movementEnergy(p.position.y,p.velocity,GLIDE_PHYSICS.gravity));
  }
  assert.ok(up&&peak>low+1,'can trade the dive momentum for altitude');
- assert.ok(peak-low<diveSpeed*diveSpeed/(2*MOTION.gravity)+.1,'finite kinetic reserve');
+ assert.ok(peak-low<diveSpeed*diveSpeed/(2*GLIDE_PHYSICS.gravity)+.1,'finite kinetic reserve');
  assert.ok(energy.at(-1)<start);
 });
 test('neutral gliding sinks gently; stall recovers by falling, never by injecting minimum speed',()=>{
@@ -142,4 +144,16 @@ test('a flat bridge deck uses its support rather than the hill beneath it',()=>{
  q.add({id:'deck',shape:'box',position:{x:0,y:9,z:0},size:{x:40,y:1,z:40},enabled:()=>true});
  const p=actor(10);p.mode='roll';p.velocity.z=8;p.stalled=true;
  step(p,q,30);assert.ok(Math.abs(p.position.x)<1e-9);assert.equal(p.position.y,10);assert.equal(p.stalled,false);
+});
+
+test('gliding gravity is isolated from freefall and the energy diagnostic',()=>{
+ assert.equal(MOTION.gravity,17.2);
+ assert.equal(GLIDE_PHYSICS.gravity,9);
+ const v={x:0,y:0,z:12},height=100;
+ assert.equal(movementEnergy(height,v),MOTION.gravity*height+72);
+ assert.equal(movementEnergy(height,v,GLIDE_PHYSICS.gravity),GLIDE_PHYSICS.gravity*height+72);
+ const a={velocity:{...v}},b={velocity:{...v}};
+ glideVelocity(a,0,1,0,1/30);
+ glideVelocity(b,0,-1,0,1/30);
+ assert.ok(Number.isFinite(a.velocity.y)&&Number.isFinite(b.velocity.y));
 });
