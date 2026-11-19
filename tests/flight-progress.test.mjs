@@ -16,8 +16,8 @@ test('flight rewards, skill levels and cosmetics unlock deterministically',()=>{
  assert.ok(p.achievements.includes('long-flight'));
  assert.ok(p.unlockedSkins.includes('magic'));
  assert.ok(p.unlockedSkins.includes('potato'));
- assert.equal(gasCapacity({gasCapacityLevel:p.capacityLevel}),280);
- assert.equal(gasShots({gasCapacityLevel:p.capacityLevel,gasReserve:280}),20);
+ assert.equal(gasCapacity({gasCapacityLevel:p.capacityLevel}),140);
+ assert.equal(gasShots({gasCapacityLevel:p.capacityLevel,gasReserve:140}),10);
  assert.ok(gasMastery({gasControlLevel:p.controlLevel})<1);
  assert.equal(gasPower({gasPowerLevel:p.powerLevel}),14);
  assert.deepEqual(parseFlightProgress(p),p);
