@@ -32,7 +32,7 @@ test('capability index rejects fictitious jobs and keeps native provenance',()=>
 test('work assignment picks a route, not Euclidean shortest across blocked shore',()=>{
   const paths=[{points:[{x:0,z:0},{x:0,z:30},{x:30,z:30},{x:30,z:0},{x:100,z:0}]}];
   const router=createResidentAssignmentPlanner(paths,ground,{maxOccupantsPerHome:2});
-  const job=makeJob('field', {x:100,z:0});
+  const job=makeJob('field', {x:99,z:0});
   const result=router.allocate(job,homes,'farmer');
   assert.ok(result);
   assert.equal(result.home.id,'house:C');
