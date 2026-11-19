@@ -16,4 +16,5 @@ export const FOOD_SATIETY:Readonly<Record<string,number>>={
 export const foodSatietyValue=(itemId:string)=>FOOD_SATIETY[itemId]??0;
 
 /** Compatibility for older inventory and workshop callers; values now mean satiété, not fuel. */
+export const FOOD_GAS=FOOD_SATIETY;
 export const foodGasValue=foodSatietyValue;
