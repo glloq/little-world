@@ -25,7 +25,7 @@ import type { Player } from './player.ts';
 import {terrainHeight} from './terrain.ts';
 import {createResidentRouter,type ResidentPath,type ResidentWalkable} from './npc-life/routes.ts';
 import {createResidentLayeredRouter,type ResidentSurfaces} from './npc-life/layered-routes.ts';
-import {residentRouteAheadClear} from './npc-life/dynamic-route.ts';
+import {residentRouteAheadClear,residentRouteStepClear} from './npc-life/dynamic-route.ts';
 import {residentHour,residentShift,residentPoseAt,residentRoute,positionOnResidentRoute,type ResidentRoute} from './npc-life/schedule.ts';
 import {residentDialogue,residentContextForHour} from './npc-life/dialogue.ts';
 import {residentAgendaPoseAt,validateResidentAgendaRoutes,type ResidentAgendaPose,type ResidentDailyRoutes,type ResidentActivityLegs} from './npc-life/agenda.ts';
@@ -267,7 +267,7 @@ export function createNPCSystem(
       lastWorkAt:-1,
       lastGreetAt:-1,
       lastRigAt:-1000,
-      scripted:null as null|{route:ResidentRoute;goal:{x:number;z:number};startAt:number;pausedFor:number;pauseFrom:number|null;arrivedAt:number|null;lastCheckedAt:number;replans:number},
+      scripted:null as null|{route:ResidentRoute;goal:{x:number;z:number};startAt:number;pausedFor:number;pauseFrom:number|null;arrivedAt:number|null;lastCheckedAt:number;lastDistance:number;replans:number},
     };
   });
   const byId=new Map(entries.map(entry=>[entry.state.definition.id,entry]));
@@ -302,7 +302,7 @@ export function createNPCSystem(
       if(ok)route=residentRoute([from,to]);
     }
     if(!route)return false;
-    entry.scripted={route,goal:to,startAt:lifeOptions.worldTime(),pausedFor:0,pauseFrom:null,arrivedAt:null,lastCheckedAt:-1,replans:0};
+    entry.scripted={route,goal:to,startAt:lifeOptions.worldTime(),pausedFor:0,pauseFrom:null,arrivedAt:null,lastCheckedAt:-1,lastDistance:0,replans:0};
     return true;
   }
   function talkTo(id:string,playerPosition:NPCPoint):boolean{
@@ -345,12 +345,17 @@ export function createNPCSystem(
               let distance=Math.max(0,Math.min(job.route.length,(now-job.startAt-job.pausedFor)*Math.max(.2,state.definition.speed)));
               // Live world checks are bounded and throttled; only scripted moves
               // may replan. The routine clock never performs A* during frames.
-              if(distance<job.route.length&&(job.lastCheckedAt<0||now<job.lastCheckedAt||now-job.lastCheckedAt>=.35)){
+              const checkAhead=job.lastCheckedAt<0||now<job.lastCheckedAt||now-job.lastCheckedAt>=.35;
+              // Check EVERY interval actually traversed, even if a browser tab
+              // was paused and the absolute-clock target skipped several metres.
+              const safeStep=residentRouteStepClear(job.route,job.lastDistance,distance,walkable);
+              if(!safeStep||checkAhead&&!residentRouteAheadClear(job.route,distance,walkable,3)){
                 job.lastCheckedAt=now;
-                if(!residentRouteAheadClear(job.route,distance,walkable,3)){
+                {
                   const alternative=job.replans<3?router?.route({x:state.x,z:state.z},job.goal)??null:null;
                   if(alternative&&residentRouteAheadClear(alternative,0,walkable,3)){
                     job.route=alternative;job.startAt=now;job.pausedFor=0;
+                    job.lastDistance=0;job.lastCheckedAt=now;
                     job.replans++;distance=0;
                   }else{
                     // Stop at the last qualified position instead of crossing
@@ -361,6 +366,7 @@ export function createNPCSystem(
                 }
               }
               if(entry.scripted){
+              job.lastDistance=distance;
               const p=positionOnResidentRoute(job.route,distance);
               state.x=p.x;state.z=p.z;state.y=p.y??terrainHeight(p.x,p.z);
               state.vx=dt>0?(p.x-state.previousX)/dt:0;state.vz=dt>0?(p.z-state.previousZ)/dt:0;
