@@ -35,6 +35,7 @@ function matches(step:QuestStepV1,event:QuestGameEventV1):boolean{
    if(step.source==='any'||step.source===undefined)
     return event.type==='inventory.acquired'&&event.itemId===step.itemId;
    return event.type===types[step.source]&&event.itemId===step.itemId&&
+    (step.source!=='trade'||event.source==='buy')&&
     (step.fromIslandId===undefined||event.islandId===step.fromIslandId);
   }
   case 'deliver':
