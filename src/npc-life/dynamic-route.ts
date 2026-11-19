@@ -142,6 +142,7 @@ export function residentRecoverySpeed(speed:number):number{
 export function residentReplanDue(
  now:number,lastAttempt:number,revision:number,plannedRevision:number,period=1,
 ):boolean{
- if(![now,lastAttempt,revision,plannedRevision,period].every(Number.isFinite)||period<=0)return false;
- return now<lastAttempt||now-lastAttempt>=period||revision!==plannedRevision;
+ if(![now,revision,plannedRevision,period].every(Number.isFinite)||
+    !(Number.isFinite(lastAttempt)||lastAttempt===-Infinity)||period<=0)return false;
+ return lastAttempt===-Infinity||now<lastAttempt||now-lastAttempt>=period||revision!==plannedRevision;
 }
