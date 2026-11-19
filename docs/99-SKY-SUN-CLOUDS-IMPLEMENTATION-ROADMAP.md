@@ -84,7 +84,7 @@ Cibles de coût additionnel **provisoires et non mesurées** sur machine de réf
 - [ ] Nuages 3D instanciés uniquement si budget résiduel.
 - [ ] Qualité intégrée sans second gestionnaire.
 - [ ] Contrôles mine, caméra, météo, plongée, transition îles, lifecycle.
-- [ ] Tests automatisés + capture manuelle reproductible.
+- [ ] Tests automatisés + capture manuelle reproductible (tests unitaires et smoke CI ajoutés; captures et qualification encore à réaliser).
 - [ ] Profil PC 8 Go qualifié, PC 4 Go qualifié ou limitation explicitement documentée.
 - [ ] Studio plus tard, sans bloquer le rendu de base.
 
@@ -97,3 +97,12 @@ Cibles de coût additionnel **provisoires et non mesurées** sur machine de réf
 - Intégration : `environment/view.ts` conserve pluie et météo, relie le ciel à `clock.time`, `cloudCover`, vent, `detail` et état mine. `main.ts` transmet la caméra.
 - Benchmark : `?sky=off|sun|2d`; métriques `environment.sky` (visibilité, 2D active, mémoire de l'atlas et draw calls visés).
 - Non livré : nuages 3D, Studio, mesures CPU/GPU réelles et qualification WebGL en navigateur. Les étapes SKY-0/4/5/6/7/8/9 restent ouvertes.
+
+### Outillage ajouté pour SKY-0/SKY-4
+
+- `tests/sky-renderer.test.mjs` : direction identique au soleil lumineux, création/destruction unique, qualité 0/2 et inhibition en mine; exécuté par `npm test`.
+- `tools/test-environment-browser.mjs` : vérification de la présence du ciel 2D dans la télémétrie du navigateur.
+- `tools/benchmark-sky.mjs` : exécute `benchmark-route.mjs` avec `?sky=off`, `sun`, `2d` et produit `sky-comparison.json`; mode logiciel SwiftShader non qualifiant pour GPU intégré.
+- Exemple : `BENCHMARK_SCENARIOS=valley-start node tools/benchmark-sky.mjs http://127.0.0.1:5173/little-world/ /tmp/sky-ab` après lancement du serveur Vite.
+
+Les chiffres réels restent inconnus tant que ces outils n'ont pas été exécutés sur une machine cible et que la CI de la branche n'est pas terminée.
