@@ -3,6 +3,7 @@
  */
 import type {ProjectDocument,EntityDefinitionV3} from '../studio-core/types.ts';
 import type {ResidentRole,ResidentPoint} from './schedule.ts';
+import {MAX_PLAY_ANCHOR_OCCUPANTS} from './assignments.ts';
 
 export interface RegistryResident {
   id:string;name:string;role:ResidentRole;settlementId:string;
@@ -20,7 +21,7 @@ const distance=(a:ResidentPoint,b:ResidentPoint)=>Math.hypot(a.x-b.x,a.z-b.z);
 const midpoint=(points:ResidentPoint[])=>points.reduce((v,q)=>({x:v.x+q.x/points.length,z:v.z+q.z/points.length}),{x:0,z:0});
 export function residentRegistry(project:ProjectDocument,onlySettlementId?:string):ResidentRegistrySnapshot{
   const residents:RegistryResident[]=[],issues:RegistryIssue[]=[],byRole:Partial<Record<ResidentRole,number>>={},homes:Record<string,string[]>={};
-  const seenJobs=new Map<string,string>();
+  const seenJobs=new Map<string,{id:string;role:ResidentRole;count:number}>();
   const settlements=Object.values(project.libraries.settlements??{})
     .filter(s=>!onlySettlementId||s.id===onlySettlementId).sort((a,b)=>a.id.localeCompare(b.id));
   for(const settlement of settlements){
@@ -55,10 +56,15 @@ export function residentRegistry(project:ProjectDocument,onlySettlementId?:strin
           issue('LIFE_ACTIVITY_MOVED','Le lieu de pause ou de rencontre a changé de position.');
       }
       if(person.homeAnchorId)(homes[person.homeAnchorId]??=[]).push(person.id);
-      if(r.role!=='child'&&person.workAnchorId){
+      if(person.workAnchorId){
         const key=settlement.id+':'+person.workAnchorId,other=seenJobs.get(key);
-        if(other)issue('LIFE_JOB_DUPLICATED','Le poste est déjà affecté au résident '+other+'.');
-        else seenJobs.set(key,person.id);
+        const shared=(r.role==='child'||r.role==='villager');
+        if(other){
+          const bothShared=shared&&(other.role==='child'||other.role==='villager');
+          if(!bothShared||other.count>=MAX_PLAY_ANCHOR_OCCUPANTS)
+            issue('LIFE_JOB_DUPLICATED','Le poste ou lieu public est déjà occupé par '+other.id+'.');
+          other.count++;
+        }else seenJobs.set(key,{id:person.id,role:r.role,count:1});
       }
     }
   }
