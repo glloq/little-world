@@ -18,6 +18,7 @@ export function generateResidentSocialQuestOffers(
 ):QuestCatalogEntryV1[]{
  if(!ident(islandId)||!Number.isSafeInteger(maxOffers)||maxOffers<0||maxOffers>24)
   throw Error('Social quest generation: invalid island or budget');
+ if(maxOffers===0)return [];
  const dialogueActors=new Set(gameplay.dialogues.filter(d=>d.lines?.length&&
   d.lines.some(l=>l.choices?.length))
   .map(d=>d.actorId??gameplay.entities.find(e=>e.dialogueIds?.includes(d.id))?.id)
