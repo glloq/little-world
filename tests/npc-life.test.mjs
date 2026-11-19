@@ -171,3 +171,21 @@ test('F01-D no alternate path means no route, never a collision shortcut',()=>{
  closed=true;
  assert.equal(router.route({x:0,z:0},{x:60,z:0}),null);
 });
+
+test('F05 work dialogue describes real activity kind while preserving all authored choices',async()=>{
+ const {residentContextMessage}=await import('../src/npc-life/dialogue.ts');
+ const context={phase:'activity',hour:12,weather:'rain'};
+ assert.match(residentContextMessage('farmer',{...context,activityKind:'meal'}),/repas/);
+ assert.match(residentContextMessage('farmer',{...context,activityKind:'play'}),/jouer/);
+ assert.match(residentContextMessage('merchant',{...context,activityKind:'errand'}),/courses/);
+ assert.match(residentContextMessage('farmer',{...context,activityKind:'social'}),/habitants/);
+ assert.match(residentContextMessage('farmer',{phase:'work',hour:11,weather:'rain'}),/pleut/);
+ const base=createDialogue({start:'hello',lines:[{id:'hello',text:'Original',
+   choices:[{text:'Continuer'}]}]},{});
+ const session=residentDialogue(base,'farmer',()=>({...context,activityKind:'meal'}));
+ assert.equal(session.choices.length,2,'only the existing contextual choice is added');
+ assert.equal(session.choose(1),true);
+ assert.match(session.line.text,/repas/);
+ assert.equal(session.choose(0),true);
+ assert.equal(session.line.text,'Original');
+});
