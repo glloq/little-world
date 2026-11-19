@@ -92,6 +92,27 @@ export function createActivityRuntime(activities:PlayableActivities,deps:Deps){
     notify({kind:'farm',plotId});
     return {ok:true,message:r.reward?`Récolte : +${r.reward.quantity} ${nameOf(r.reward.itemId)}`:intent.type==='plant'?'Semis effectué':intent.type==='water'?'Parcelle arrosée':'Parcelle nettoyée'};
   }
+  /** Native F09 agricultural authority shared with player plots. The NPC
+   * may only use an authored NPC-assigned plot. A failed stock credit leaves
+   * a mature crop untouched. Same growth, climate and yield as player act().
+   * No player inventory / seed packet side effects.
+   */
+  function npcFarmAct(
+    plotId:string,requestId:string,
+    acceptReward:(item:{itemId:string;quantity:number})=>boolean,
+  ):{ok:boolean;action:'plant'|'water'|'harvest'|'clear'|null;reward?:{itemId:string;quantity:number};reason?:string}{
+    const f=farms.get(plotId);
+    if(!f||f.zone.farm.assignment!=='npc')return {ok:false,action:null,reason:'Parcelle PNJ absente'};
+    if(!/^[a-zA-Z0-9_.:-]{1,100}$/.test(requestId))return {ok:false,action:null,reason:'Commande invalide'};
+    const v=farmView(plotId)!,action=v.stage==='empty'?'plant':
+      v.stage==='mature'?'harvest':v.stage==='failed'?'clear':'water';
+    const cropId=f.zone.farm.crops[f.crop%f.zone.farm.crops.length];
+    const result=act(f.state,f.zone.farm,deps.climate,{requestId,type:action,cropId,
+      time:deps.time(),waterAvailable:waterAvailable(f.zone)},acceptReward);
+    if(!result.ok)return {ok:false,action,reason:result.reason};
+    notify({kind:'farm',plotId});
+    return {ok:true,action,...(result.reward?{reward:result.reward}:{})};
+  }
   /** Explicit crop choice among the plot's allowed profiles (validated here, not by the UI). */
   function selectCrop(plotId:string,cropId:string){const f=farms.get(plotId);if(!f)return null;const i=f.zone.farm.crops.indexOf(cropId);if(i<0)return null;f.crop=i;return CROPS[cropId].name;}
   function cycleCrop(plotId:string){const f=farms.get(plotId);if(!f)return null;f.crop=(f.crop+1)%f.zone.farm.crops.length;return CROPS[f.zone.farm.crops[f.crop]].name;}
@@ -197,7 +218,7 @@ export function createActivityRuntime(activities:PlayableActivities,deps:Deps){
       passage:liftDistance<3?{label:'Monte-charge : choisir un étage',distance:liftDistance}:null,
       exit:out};
   }
-  return {mines,farms,cameraInMine,mineTarget,digPreview,farmPreview,mineNavigation,mineHubNear,mineLiftView,mineLiftTravel,selectCrop,dig,farmNear,farmView,farmIntent,farmAct,cycleCrop,serialize,restore,subscribe(l:(c:ActivityChange)=>void){listeners.add(l);return ()=>listeners.delete(l);}};
+  return {mines,farms,cameraInMine,mineTarget,digPreview,farmPreview,mineNavigation,mineHubNear,mineLiftView,mineLiftTravel,selectCrop,dig,farmNear,farmView,farmIntent,farmAct,npcFarmAct,cycleCrop,serialize,restore,subscribe(l:(c:ActivityChange)=>void){listeners.add(l);return ()=>listeners.delete(l);}};
 }
 export type ActivityRuntime=ReturnType<typeof createActivityRuntime>;
 const NAMES:Record<string,string>={'mine:stone':'pierre','mine:iron':'minerai de fer','mine:crystal':'cristal','farm:wheat':'blé','farm:carrot':'carotte(s)','farm:pumpkin':'citrouille(s)'};
