@@ -15,6 +15,7 @@ export interface ResidentAssignmentPlanner {
   allocate(job:LifeJob,homes:readonly LifeHome[],role:ResidentRole,preferredHomeId?:string):ResidentAssignment|null;
   reserve(homeId:string):void;
   route(home:LifeHome,job:LifeJob):ResidentRoute|null;
+  routeBetween(from:ResidentPoint,to:ResidentPoint):ResidentRoute|null;
   occupancy(homeId:string):number;
   jobOccupancy(jobId:string):number;
   reserveJob(jobId:string):void;
@@ -52,6 +53,11 @@ export function createResidentAssignmentPlanner(
     reserveJob(jobId){jobOccupants.set(jobId,(jobOccupants.get(jobId)??0)+1);},
     reserve(homeId){occupancy.set(homeId,(occupancy.get(homeId)??0)+1);},
     route,
+    routeBetween(from,to){
+      if(hypot(from,to)>maxRouteM)return null;
+      const path=router.route(from,to);
+      return path&&path.length<=maxRouteM?path:null;
+    },
     allocate(job,homes,role,preferredHomeId){
       // A service has one visual employee. Public play areas allow up to four
       // children so they can meet without duplicating the location or asset.

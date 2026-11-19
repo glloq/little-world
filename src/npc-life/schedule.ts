@@ -1,15 +1,19 @@
 /** Small, deterministic resident schedules. Uses the existing simulated world clock, not wall time. */
-export const RESIDENT_ROLES = ['farmer','fisher','merchant','woodcutter','miner','miller','artisan','innkeeper','child','villager'] as const;
+export const RESIDENT_ROLES = ['farmer','fisher','merchant','woodcutter','miner','miller','artisan','innkeeper','child','villager','dockworker','sailor','courier','guard','musician','gatherer','blacksmith','traveler','instructor'] as const;
 export type ResidentRole = typeof RESIDENT_ROLES[number];
 export interface ResidentPoint {x:number;z:number}
+export type ResidentActivityKind='meal'|'social'|'rest'|'play'|'errand';
+export interface ResidentActivityStop {kind:ResidentActivityKind;anchorId:string;point:ResidentPoint;startHour:number;endHour:number;}
 export interface ResidentRoutineV1 {
   type:'Resident';version:1;role:ResidentRole;
   home:ResidentPoint;work:ResidentPoint;
   homeAnchorId?:string;workAnchorId?:string;
   /** Optional author hours in the in-game 24h cycle. Missing = role preset. */
   workStartHour?:number;workEndHour?:number;
+  /** Real route-qualified midday/afternoon visits, not a second simulation. */
+  activities?:ResidentActivityStop[];
 }
-export type ResidentPhase='home'|'to-work'|'work'|'to-home';
+export type ResidentPhase='home'|'to-work'|'work'|'to-home'|'to-activity'|'activity';
 export interface ResidentRoute {
   /** Coordinates in author world metres, starting at the home entrance. */
   points:ResidentPoint[];
@@ -23,9 +27,26 @@ const identifier=(v:unknown)=>typeof v==='string'&&/^[a-zA-Z0-9_.:-]{1,100}$/.te
 export function validResidentRoutine(value:unknown):value is ResidentRoutineV1{
   if(!value||typeof value!=='object'||Array.isArray(value))return false;
   const v=value as Record<string,unknown>;
-  if(Object.keys(v).some(k=>!['type','version','role','home','work','homeAnchorId','workAnchorId','workStartHour','workEndHour'].includes(k)))return false;
+  if(Object.keys(v).some(k=>!['type','version','role','home','work','homeAnchorId','workAnchorId','workStartHour','workEndHour','activities'].includes(k)))return false;
   if((v.workStartHour===undefined)!==(v.workEndHour===undefined))return false;
   if(v.workStartHour!==undefined&&(!finite(v.workStartHour)||!finite(v.workEndHour)||v.workStartHour<0||v.workEndHour>24||v.workEndHour-v.workStartHour<2))return false;
+  if(v.activities!==undefined){
+    if(!Array.isArray(v.activities)||v.activities.length>3)return false;
+    const role=String(v.role) as ResidentRole,shift=(RESIDENT_ROLES as readonly string[]).includes(role)?SHIFT[role]:[0,0];
+    const begin=finite(v.workStartHour)?v.workStartHour:shift[0],end=finite(v.workEndHour)?v.workEndHour:shift[1];
+    let previous=begin;
+    for(const raw of v.activities){
+      if(!raw||typeof raw!=='object'||Array.isArray(raw))return false;
+      const a=raw as Record<string,unknown>;
+      if(Object.keys(a).some(k=>!['kind','anchorId','point','startHour','endHour'].includes(k))||
+        !['meal','social','rest','play','errand'].includes(String(a.kind))||
+        !identifier(a.anchorId)||!point(a.point)||
+        Math.abs(a.point.x)>100000||Math.abs(a.point.z)>100000||
+        !finite(a.startHour)||!finite(a.endHour)||
+        a.startHour<previous+.25||a.endHour>end-.25||a.endHour-a.startHour<.25)return false;
+      previous=a.endHour;
+    }
+  }
   return v.type==='Resident'&&v.version===1&&(RESIDENT_ROLES as readonly string[]).includes(String(v.role))&&
     point(v.home)&&point(v.work)&&Math.abs(v.home.x)<=100000&&Math.abs(v.home.z)<=100000&&
     Math.abs(v.work.x)<=100000&&Math.abs(v.work.z)<=100000&&
@@ -40,7 +61,7 @@ export function residentHour(worldSeconds:number,dayLengthSeconds:number,initial
 const SHIFT:Record<ResidentRole,readonly [number,number]>={
   farmer:[6,17],fisher:[5,15],merchant:[8,18],woodcutter:[7,17],
   miner:[7,16],miller:[7,17],artisan:[8,17],innkeeper:[9,21],
-  child:[9,18],villager:[9,17],
+  child:[9,18],villager:[9,17],dockworker:[7,18],sailor:[6,17],courier:[8,17],guard:[8,19],musician:[11,20],gatherer:[7,16],blacksmith:[7,17],traveler:[10,18],instructor:[9,17],
 };
 export function residentShift(role:ResidentRole):readonly [number,number]{return SHIFT[role];}
 export function residentDutyShift(routine:ResidentRoutineV1):readonly [number,number]{return routine.workStartHour===undefined?residentShift(routine.role):[routine.workStartHour,routine.workEndHour!];}
