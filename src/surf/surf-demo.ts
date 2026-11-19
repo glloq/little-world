@@ -117,3 +117,12 @@ export function findDemoSurfSite(height:(x:number,z:number)=>number,
  bounds:SurfBounds,seaLevel:number,seed=1):SurfDemoSite|null{
  return findCoastalSurfSites(height,bounds,seaLevel,seed,1)[0]??null;
 }
+
+/** Travel distance available from the floating demo spawn to the wet beach.
+ * Earlier hand-made SurfDemoSite test fixtures without a shoreline keep V1 scale. */
+export function surfDemoRun(site:SurfDemoSite):number{
+ if(!site.shore)return 92;
+ const d=site.zone,reach=(site.shore.x-site.start.x)*d.dirX+
+  (site.shore.z-site.start.z)*d.dirZ;
+ return Math.max(24,Math.min(100,reach-12));
+}
