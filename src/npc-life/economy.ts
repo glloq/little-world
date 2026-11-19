@@ -31,7 +31,7 @@ export function createNpcWorkshopEconomy(
  let stock:Record<string,number>=Object.create(null);
  let workshop=newWorkshopState(stationId,stationType);
  const limits=new Map(Object.entries(itemLimits));
- const supportedItems=new Set(supported.flatMap(r=>[...r.inputs,...r.outputs].map(v=>v.itemId)));
+ const supportedItems=new Set(['coin',...supported.flatMap(r=>[...r.inputs,...r.outputs].map(v=>v.itemId))]);
  const apply=(changes:ItemAmount[]):boolean=>{
   const next={...stock};
   for(const change of changes){
