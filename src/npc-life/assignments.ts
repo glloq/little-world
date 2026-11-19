@@ -4,7 +4,7 @@
 import type {GroundRouteContext} from '../paths/terrain-route.ts';
 import type {ResidentPath,ResidentRouter} from './routes.ts';
 import {createResidentRouter} from './routes.ts';
-import type {ResidentRole,ResidentRoute,ResidentPoint} from './schedule.ts';
+import {residentShift,type ResidentRole,type ResidentRoute,type ResidentPoint} from './schedule.ts';
 import type {LifeHome,LifeJob} from './capabilities.ts';
 
 export interface ResidentAssignment {
@@ -22,7 +22,7 @@ export interface ResidentAssignmentPlanner {
 const hypot=(a:ResidentPoint,b:ResidentPoint)=>Math.hypot(a.x-b.x,a.z-b.z);
 export function createResidentAssignmentPlanner(
   paths:readonly ResidentPath[],terrain:GroundRouteContext,
-  options:{maxOccupantsPerHome?:number;maxNodes?:number;maxRouteM?:number;blocked?:(x:number,z:number)=>boolean}={},
+  options:{maxOccupantsPerHome?:number;maxNodes?:number;maxRouteM?:number;dayLengthSeconds?:number;residentSpeed?:number;blocked?:(x:number,z:number)=>boolean}={},
 ):ResidentAssignmentPlanner{
   const occupancy=new Map<string,number>(),jobOccupants=new Map<string,number>(),cache=new Map<string,ResidentRoute|null>();
   const homeLimit=Math.max(1,Math.min(6,Math.floor(options.maxOccupantsPerHome??2)));
@@ -57,6 +57,11 @@ export function createResidentAssignmentPlanner(
       // children so they can meet without duplicating the location or asset.
       if((jobOccupants.get(job.id)??0)>=(role==='child'?4:1))return null;
       const qualified:ResidentAssignment[]=[];
+      // Never assign a journey longer than can be traversed within half of
+      // the role's work period: residentPoseAt uses this same invariant.
+      const [start,end]=residentShift(role),dayLength=options.dayLengthSeconds??1200;
+      const speed=options.residentSpeed??1.1;
+      const roleBudget=Math.max(1,(end-start)*dayLength/48*speed);
       // Closest homes are a search heuristic only: the winner is measured
       // by actual route distance. Test at most 16 homes per batch, extending
       // to the next batch if all near homes are disconnected. This avoids
@@ -69,7 +74,7 @@ export function createResidentAssignmentPlanner(
       for(let offset=0;offset<candidates.length;offset+=16){
         for(const home of candidates.slice(offset,offset+16)){
           const result=route(home,job);
-          if(result&&result.length>=.15)qualified.push({home,job,route:result});
+          if(result&&result.length>=.15&&result.length<=roleBudget)qualified.push({home,job,route:result});
         }
         if(qualified.length)break;
       }
