@@ -1036,7 +1036,7 @@ function updateCamera(dt: number) {
   const z = target.z - Math.cos(yaw) * cosPitch * followDistance;
   let y = Math.max(
     target.y + Math.sin(pitch) * followDistance,
-    terrainHeight(x, z) + (inSurfTube?.9:1.8),
+    terrainHeight(x, z) + (inSurfTube ? .9 : 1.8),
   );
   if(inSurfTube&&surfField)y=Math.min(y,Math.max(surfField.zone.seaLevel+1.25,target.y+.5));
   const desired = cameraDesired.set(x, y, z);
