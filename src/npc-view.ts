@@ -351,8 +351,7 @@ export function createNPCSystem(
               const safeStep=residentRouteStepClear(job.route,job.lastDistance,distance,walkable);
               if(!safeStep||checkAhead&&!residentRouteAheadClear(job.route,distance,walkable,3)){
                 job.lastCheckedAt=now;
-                {
-                  const alternative=job.replans<3?router?.route({x:state.x,z:state.z},job.goal)??null:null;
+                const alternative=job.replans<3?router?.route({x:state.x,z:state.z},job.goal)??null:null;
                   if(alternative&&residentRouteAheadClear(alternative,0,walkable,3)){
                     job.route=alternative;job.startAt=now;job.pausedFor=0;
                     job.lastDistance=0;job.lastCheckedAt=now;
@@ -363,7 +362,6 @@ export function createNPCSystem(
                     entry.scripted=null;state.vx=0;state.vz=0;state.phase='idle';
                     distance=0;
                   }
-                }
               }
               if(entry.scripted){
               job.lastDistance=distance;
