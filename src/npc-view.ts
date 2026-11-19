@@ -394,9 +394,13 @@ export function createNPCSystem(
               // This prevents stale-position replans and corner cutting.
               const advance=positionOnResidentRoute(job.route,distance);
               const changed=job.plannedRevision!==navigationRevision();
-              const clearAhead=!checkAhead&&!changed||residentRouteAheadClear(job.route,distance,walkable,3);
+              const clearAhead=(!checkAhead&&!changed)||residentRouteAheadClear(job.route,distance,walkable,3);
               if(checkAhead)job.lastCheckedAt=now;
-              if(entry.scripted&&(!clearance.clear||!clearAhead||changed)){
+              // Door changes elsewhere in the village are not a reason to run
+              // A* for every walker: accept the revision when this path remains
+              // physically clear. Live step sampling still guards actual motion.
+              if(changed&&clearAhead&&clearance.clear)job.plannedRevision=navigationRevision();
+              if(entry.scripted&&(!clearance.clear||!clearAhead)){
                 state.x=advance.x;state.z=advance.z;
                 state.y=advance.y??terrainHeight(advance.x,advance.z);
                 job.lastDistance=distance;
