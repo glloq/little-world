@@ -440,7 +440,7 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
     } else {
       const charge=p.runCharge??0,blend=charge*charge*(3-2*charge);
       const uprightTarget=keys.run?MOTION.run:keys.autoRun?MOTION.walk+(MOTION.run-MOTION.walk)*blend:MOTION.walk;
-      groundVelocity(v,dx,dz,uprightTarget,dt);
+      if(p.mode!=='roll')groundVelocity(v,dx,dz,uprightTarget,dt);
     }
     p.oxygen = Math.min(MAX_OXYGEN, p.oxygen + dt * 14);
   }
