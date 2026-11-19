@@ -20,3 +20,9 @@ export function shouldSuppressGameplayContextMenu(running:boolean,editing:boolea
 export function flightBoostHeld(mode:string,shiftHeld:boolean,touchAccelerateHeld:boolean):boolean{
   return (mode==='ground'||mode==='air'||mode==='glide')&&(shiftHeld||touchAccelerateHeld);
 }
+/** Only an active camera drag requests vertical flight. Releasing it restores auto-trim.
+ * The camera's neutral pitch offset is already removed by the caller. */
+export function flightPitchIntent(mode:string,aiming:boolean,cameraPitch:number):number{
+  if(mode!=='glide'||!aiming||!Number.isFinite(cameraPitch))return 0;
+  return Math.max(-1,Math.min(1,-cameraPitch/.77));
+}
