@@ -25,7 +25,7 @@ import type { Player } from './player.ts';
 import {terrainHeight} from './terrain.ts';
 import {createResidentRouter,type ResidentPath,type ResidentWalkable} from './npc-life/routes.ts';
 import {createResidentLayeredRouter,type ResidentSurfaces} from './npc-life/layered-routes.ts';
-import {residentRouteAheadClear,residentRouteStepClear,residentRoutineStepClear} from './npc-life/dynamic-route.ts';
+import {residentRouteAheadClear,residentRouteStepClear,residentRoutineStepClear,residentRecoveryNeedsRetarget} from './npc-life/dynamic-route.ts';
 import {residentHour,residentShift,residentPoseAt,residentRoute,positionOnResidentRoute,type ResidentRoute} from './npc-life/schedule.ts';
 import {residentDialogue,residentContextForHour} from './npc-life/dialogue.ts';
 import {residentAgendaPoseAt,validateResidentAgendaRoutes,type ResidentAgendaPose,type ResidentDailyRoutes,type ResidentActivityLegs} from './npc-life/agenda.ts';
@@ -343,6 +343,34 @@ export function createNPCSystem(
               state.phase='talk';state.vx=0;state.vz=0;
             }else{
               if(job.pauseFrom!==null){job.pausedFor+=now-job.pauseFrom;job.pauseFrom=null;}
+              // Recoveries follow the current shift/visit, including after a
+              // conversation or a changed day phase. Re-route at most every 2s.
+              if(job.recovery&&life&&state.definition.routine&&
+                (now<life.lastRecoveryAt||now-life.lastRecoveryAt>=2)){
+                life.lastRecoveryAt=now;
+                try{
+                  const r=state.definition.routine,speed=Math.max(.2,state.definition.speed);
+                  const target=life.agenda
+                    ?residentAgendaPoseAt(r,life.agenda,Math.max(0,now-life.pausedSeconds),
+                        lifeOptions.dayLengthSeconds,lifeOptions.initialDayPhase,speed)
+                    :residentPoseAt(r,life.route,Math.max(0,now-life.pausedSeconds),
+                        lifeOptions.dayLengthSeconds,lifeOptions.initialDayPhase,speed);
+                  if(residentRecoveryNeedsRetarget(job.goal,target.position,now,job.lastCheckedAt,2,.35)){
+                    const newGoal={x:target.position.x,z:target.position.z};
+                    const updated=router?.route({x:state.x,z:state.z},newGoal)??null;
+                    if(updated&&residentRouteAheadClear(updated,0,walkable,3)){
+                      job.route=updated;job.goal=newGoal;job.startAt=now;
+                      job.pausedFor=0;job.lastDistance=0;job.arrivedAt=null;job.lastCheckedAt=now;
+                      routineRecoveries++;
+                    }else{
+                      entry.scripted=null;routineBlocked++;
+                      state.vx=0;state.vz=0;state.phase='idle';
+                    }
+                  }
+                }catch{
+                  entry.scripted=null;routineBlocked++;
+                }
+              }
               let distance=Math.max(0,Math.min(job.route.length,(now-job.startAt-job.pausedFor)*Math.max(.2,state.definition.speed)));
               // Live world checks are bounded and throttled; only scripted moves
               // may replan. The routine clock never performs A* during frames.
@@ -352,7 +380,7 @@ export function createNPCSystem(
               const safeStep=residentRouteStepClear(job.route,job.lastDistance,distance,walkable);
               const clearAhead=!checkAhead||residentRouteAheadClear(job.route,distance,walkable,3);
               if(checkAhead)job.lastCheckedAt=now;
-              if(!safeStep||!clearAhead){
+              if(entry.scripted&&(!safeStep||!clearAhead)){
                 const alternative=job.replans<3?router?.route({x:state.x,z:state.z},job.goal)??null:null;
                   if(alternative&&residentRouteAheadClear(alternative,0,walkable,3)){
                     job.route=alternative;job.startAt=now;job.pausedFor=0;
