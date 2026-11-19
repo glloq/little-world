@@ -40,9 +40,15 @@ export function localLifeCapabilities(
   if(recipe.activity==='fishing'||recipe.waterfront||recipe.maritimePort){
     for(const a of [...at('harbor'),...at('shore-hut')])add('fisher',a.id,a.entry,'amenity');
   }
-  if(recipe.activity==='forest')amenity('woodcutter','fire');
+  if(recipe.activity==='forest'){
+    amenity('woodcutter','fire');
+    amenity('gatherer','fire'); // distinct worker only if the source is free
+  }
   if(recipe.activity==='agriculture')amenity('miller','mill');
+  if(recipe.maritimePort)for(const a of at('harbor'))add('dockworker',a.id,a.entry,'amenity');
+  if(recipe.activity==='mine')for(const a of at('workshop'))add('blacksmith',a.id,a.entry,'amenity');
   for(const a of at('counter'))add('merchant',a.id,a.entry,'amenity');
+  for(const a of at('bench'))add('musician',a.id,a.entry,'amenity');
   for(const a of at('inn'))add('innkeeper',a.id,a.entry,'amenity');
   for(const a of at('workshop'))add('artisan',a.id,a.entry,'amenity');
   if(recipe.activity==='mine'){
