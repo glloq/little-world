@@ -57,11 +57,21 @@ export function createResidentAssignmentPlanner(
       // children so they can meet without duplicating the location or asset.
       if((jobOccupants.get(job.id)??0)>=(role==='child'?4:1))return null;
       const qualified:ResidentAssignment[]=[];
-      for(const home of homes){
-        if((occupancy.get(home.id)??0)>=homeLimit)continue;
-        const result=route(home,job);
-        if(!result||result.length<.15)continue;
-        qualified.push({home,job,route:result});
+      // Closest homes are a search heuristic only: the winner is measured
+      // by actual route distance. Test at most 16 homes per batch, extending
+      // to the next batch if all near homes are disconnected. This avoids
+      // 80x A* per job in a large town while still finding remote fallback.
+      const candidates=homes.filter(home=>(occupancy.get(home.id)??0)<homeLimit&&
+        hypot(home.point,job.point)<=maxRouteM).sort((a,b)=>
+          Number(b.id===preferredHomeId)-Number(a.id===preferredHomeId)
+          ||hypot(a.point,job.point)-hypot(b.point,job.point)
+          ||a.slot-b.slot||a.id.localeCompare(b.id));
+      for(let offset=0;offset<candidates.length;offset+=16){
+        for(const home of candidates.slice(offset,offset+16)){
+          const result=route(home,job);
+          if(result&&result.length>=.15)qualified.push({home,job,route:result});
+        }
+        if(qualified.length)break;
       }
       qualified.sort((a,b)=>{
         const pa=preferredHomeId===a.home.id?-1000:0,pb=preferredHomeId===b.home.id?-1000:0;
