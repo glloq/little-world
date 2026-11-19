@@ -1,6 +1,6 @@
 # NPC Life — Finalisation F01 à F08 (19 novembre 2026)
 
-Statut : **ROADMAP ACTIVE — F01-A/B et invalidation des portes F01-C implémentés (tests navigateur en attente). F02 et F03 commencés.** Branche : `feat/npc-life-finalization-f01-f08`. Baseline : `main` au moment de la création. Cette documentation n'est pas une affirmation de qualification navigateur.
+Statut : **ROADMAP ACTIVE — F01–F03 partiels, F04–F08 démarrés ; Q1–Q5 et génération sociale partiellement raccordés, qualification navigateur en attente.** Branche : `feat/npc-life-finalization-f01-f08`. Baseline : `main` au moment de la création. Cette documentation n'est pas une affirmation de qualification navigateur.
 
 ## Contraintes permanentes
 
@@ -90,3 +90,33 @@ Cartes : hameau 3–5 maisons, village agricole, forêt, montagne avec pont, por
 - Préserver les résidents édités volontairement même si leur ancien créneau de génération disparaît, conserver leur source/dialogue et réserver leur logement/poste avant de générer des nouveaux.
 - Limiter les nouveaux résidents à la borne de 24 records d'implantation, en tenant compte des services et des résidents protégés.
 - Ajouter test de réduction haute → basse densité et protection des personnages auteur.
+
+## Campagne F04–F08 : progression intégrée (état non qualifié au navigateur)
+
+| Chantier | État de code | Preuve et limite |
+| --- | --- | --- |
+| F04 Métiers | **PARTIEL** | `src/npc-life/profession-actions.ts` : catalogues de services/gestes reliés aux postes vrais ; aucune économie fictive. Une production PNJ native avec transactions reste à construire. |
+| F05 Dialogue et social | **PARTIEL** | Répliques selon repas, repos, jeu, course, météo et métier ; choix auteurs conservés, tests ajoutés. Groupes persistants, dialogues entre plusieurs PNJ et barks restent à construire. |
+| F06 Q1 | **CODE AJOUTÉ** | `src/quests/schema.ts`, `validation.ts` : catalogues, templates, instances, récompenses et événements strictement validés ; tests `quests-schema`. |
+| F06 Q2 | **PARTIEL** | `gameplay/dialogue-session.ts`, `gameplay/game-view.ts`, `main.ts` : événements seulement après choix valide, grant de récolte, achat, pêche créditée ; visite calculée à 1 Hz par position réelle. Mine/ferme/atelier/course/ferry encore à raccorder à leurs commits natifs. |
+| F06 Q3 | **PARTIEL** | `quests/progress.ts`, `director.ts` : acceptation, étapes ordonnées, compteurs, contrôle source/île/distance, anti-replay et quotas. Pas de chaînes complexes ni commandes de livraison atomique. |
+| F06 Q4 | **PARTIEL** | `GameSaveV2.questsLocal?` + séquence d'événements optionnelle ; remboursement/claim d'objets et de pièces via `runtime.grantItems` atomique et donneur à portée, sauvegardés dans un même manifeste. Déblocages cosmétiques et claims inter-îles exclus tant que leur autorité transactionnelle n'est pas branchée. |
+| F06 Q5 | **PARTIEL JOUABLE** | `quests/dialogue.ts`, `ui/journal/journal.ts`, `ui/app/game-ui.ts` : offre, acceptation, progression, notification de récompense, journal et carte en réutilisant la fenêtre PNJ et les données legacy. Tests Unitaires, QA navigateur à effectuer. |
+| F06 Q6–Q7 | **SOCIAL SEULEMENT** | `quests/generator.ts` : génération déterministe de missions de rencontre uniquement si PNJ réels, dialogues et routes qualifiées. Réutilise `npc-view` router, ignore villages sans preuve. Catalogues métier/régional/inter-îles, solvabilité ressources non terminés. |
+| F07 Studio | **PARTIEL** | Prévisualisation météo des visites et intention professionnelle, edition des 5 activités ; génération universelle des quêtes directement dans Studio, overrides/locks et audit monde restent à construire. |
+| F08 Perf | **OUTIL AJOUTÉ** | `node --experimental-strip-types tools/bench-npc-life.mjs` : microbenchmark CPU sans GPU sur 10/40/100 PNJ. La preuve PC 4–8 Go, Chromium réel et budgets FPS n'est pas acquise. |
+
+### Conditions de fusion impératives
+
+1. Vérifier que le **dernier SHA** passe `npm test`, `npm run build`, les scripts navigateur et les anciens tests d'inventaire/dialogue/économie.
+2. Playtest : accepter mission PNJ → parler à une vraie cible → journal `ready` → retour près du donneur → récompense unique → sauver/recharger sans double attribution ; vérifier sac plein et refus de récompense.
+3. Vérifier stabilité de génération sous permutation des habitants, suppression/ajout d'un pont, secteurs manquants, changement de densité et protection des dialogues/PNJ auteurs.
+4. Ne pas annoncer « F01–F08 terminés » avant événements métiers restants, scénarios navigateur dédiés, Studio complet, quêtes régionales/inter-îles et benchmark hardware.
+
+### Invariants techniques de la verticale sociale
+
+- Les anciennes `ObjectiveDefinition` et leurs actions restent intactes. Les quêtes générées sont des entrées optionnelles de la même interface de journal, stockées dans `questsLocal?`.
+- Le QuestDirector ne reçoit jamais une animation PNJ comme récolte du joueur. Tous les événements lui parviennent par un adaptateur natif après succès d'action.
+- Le stockage des pièces et objets est celui de `runtime.grantItems`, validé entièrement avant crédit ; un claim `ready → claimed` est synchronisé au même manifeste de sauvegarde que l'inventaire.
+- Aucune mission n'est créée sans PNJ présent, dialogue jouable et itinéraire retourné par le routeur existant ; maximum 12 offres sociales par île.
+- Une récompense cosmétique non supportée est rejetée intégralement plutôt que silencieusement substituée.
