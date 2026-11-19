@@ -37,3 +37,14 @@ test('movement interval is strictly capped after long inactive browser frames',(
  assert.equal(residentRouteStepClear(route,0,12,()=>true),true);
  assert.equal(residentRouteStepClear(route,0,12,()=>true,NaN),false);
 });
+
+test('lookahead follows both sides of a sharp corner without cutting diagonally',()=>{
+ const route=residentRoute([{x:0,z:0},{x:2,z:0},{x:2,z:4}]);
+ const onlyOrthogonal=(x,z,px,pz)=>Math.abs(x-px)<1e-6||Math.abs(z-pz)<1e-6;
+ assert.equal(residentRouteAheadClear(route,1.5,onlyOrthogonal,2),true);
+ assert.equal(residentRouteStepClear(route,1.5,3.5,onlyOrthogonal),true);
+});
+test('caller cannot bypass the physical 12m sampling limit',()=>{
+ const route=residentRoute([{x:0,z:0},{x:30,z:0}]);
+ assert.equal(residentRouteStepClear(route,0,13,()=>true,50),false);
+});
