@@ -137,3 +137,10 @@ Cartes : hameau 3–5 maisons, village agricole, forêt, montagne avec pont, por
 - `src/npc-life/quest-readiness.ts` : diagnostic de **candidatures**, fondé sur les identités PNJ, dialogues réellement référencés et ancrages professionnels positionnés ; consultable dans « Villages & villes » à côté de la liste des habitants. Un compteur candidat n'est **pas** un certificat de trajet : le routeur runtime reste obligatoire.
 - Test `tests/quests-native-farm-events.test.mjs` ajouté pour le rejet d'un crédit, puis l'émission après récolte réelle et l'absence de répétition. Test `tests/npc-life-registry.test.mjs` étendu pour l'éligibilité aux quêtes après suppression d'un dialogue auteur.
 - **Non terminés** : interactions métier PNJ capables de travailler dans l'économie réelle, autres familles de quêtes et chaînes, éditeur complet de modèles et de récompenses Studio, courbes de performance GPU/fps sur PC 4–8 Go, tests de cas d'usage sur chaque type de carte.
+
+## Ateliers : événements natifs après récupération effective
+
+- `src/economy/workshop-services.ts` offre `onCollected(stationId,job)`, appelé **seulement** après la transaction `collectProduction` réussie ; ni mise en file, ni fabrication terminée non récupérée, ni sac plein ne progressent une quête.
+- Deux événements métier distincts évitent les faux comptes : `workshop.collected` compte les **lots de recette** (`job.batches`) ; `workshop.item-collected` compte les **quantités de produits réellement crédités** pour les objectifs d'acquisition d'items. `QuestStepV1.craft` et `QuestStepV1.acquire(source=craft)` sont ainsi indépendants.
+- Couverture : `tests/quests-progress.test.mjs` vérifie le comptage différencié et la station exacte ; `tests/economy-workshops.test.mjs` prouve le callback unique après transaction réussie, et son absence en cas de sac plein/rejeu.
+- Les producteurs bateau/ferry, ski, commerce vendeur PNJ, contrats régionaux et édition complète de quêtes restent hors de ce lot ; ne pas prétendre que le générateur est universel.
