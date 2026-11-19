@@ -52,6 +52,8 @@ test('Q3 rejects other island, earlier commits, duplicate IDs and fake animation
 });
 test('Q3 refuses premature claims: director only prepares a ready state',()=>{
  let state=acceptQuest({...offer,steps:[{kind:'visit',targetId:'zone:harbor',withinM:5}]},'instance:3',10);
+ assert.equal(advanceQuest(state,event('visit:far','location.visited',{targetId:'zone:harbor',distanceM:12})).applied,false);
+ assert.equal(advanceQuest(state,event('visit:no-distance','location.visited',{targetId:'zone:harbor'})).applied,false);
  const result=advanceQuest(state,event('visit:1','location.visited',{targetId:'zone:harbor',distanceM:3}));
  assert.equal(result.instance.status,'ready');
  assert.equal(result.instance.rewardClaimId,undefined);
