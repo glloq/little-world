@@ -1873,7 +1873,7 @@ if(incomingTransit&&gameplay&&playable){
       flightProgress:incomingTransit.traveler.flightProgress,
       equippedItemId:incomingTransit.traveler.equippedItemId??null,
       loadout:incomingTransit.traveler.loadout,
-      questsLocal:incomingTransit.traveler.questsPortable??base.questsLocal});
+      questsLocal:{...(base.questsLocal??{}),...(incomingTransit.traveler.questsPortable??{})}});
     gameplay.recordQuestCommit('ferry.arrived',{source:incomingTransit.sourceId});
     // The destination slot holds local activity state; a separate portable checkpoint holds
     // the complete bag across refreshes. Neither one is the short-lived ferry ticket.
