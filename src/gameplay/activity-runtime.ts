@@ -18,6 +18,8 @@ import {newPlotState,evaluate,act,publicView,type FarmPlotState} from '../farm/f
 export type ActivityChange={kind:'mine';mineId:string;level:number;chunks:string[]}|{kind:'farm';plotId:string};
 export interface MineTarget {mineId:string;level:number;ix:number;iz:number;material:number}
 interface Deps {grant(changes:{itemId:string;quantity:number}[]):boolean;
+  /** Native post-commit hook: never invoked for a failed grant or a mere strike. */
+  onReward?:(kind:'mine'|'farm',reward:{itemId:string;quantity:number})=>void;
   /** Carried item test (tools: pickaxe power). Absent = bare hands. */has?(itemId:string):boolean;
   /** Seed packet item of a crop when the game economy defines it (sowing then consumes one,
    * a harvest returns one). Absent or null = free sowing (worlds without economy). */seedItem?(cropId:string):string|null;time():number;climate:ClimateHistory;collision:WorldCollisionQuery;ground(x:number,z:number):number;water(x:number,z:number):number|null}
@@ -47,7 +49,7 @@ export function createActivityRuntime(activities:PlayableActivities,deps:Deps){
   function dig(position:Point3,space:MovementSpace|undefined,forward:{x:number;z:number},quality:StrikeAccuracy='normal'):{ok:boolean;message:string;partial?:boolean;progress?:number;hits?:number;nextResult?:number}{
     const t=mineTarget(position,space,forward);if(!t||!space)return {ok:false,message:'Aucune paroi à portée'};
     const m=mines.get(t.mineId)!,tool=pickPower(id=>deps.has?.(id)??false);
-    const r=m.state.strike({requestId:requestId('dig'),levelId:space.levelId,ix:t.ix,iz:t.iz,from:position},tool.power,reward=>deps.grant([reward]),quality);
+    const r=m.state.strike({requestId:requestId('dig'),levelId:space.levelId,ix:t.ix,iz:t.iz,from:position},tool.power,reward=>{const ok=deps.grant([reward]);if(ok)deps.onReward?.('mine',reward);return ok;},quality);
     if(!r.ok)return {ok:false,message:r.reason};
     if('partial'in r){
       // A visual stage needs one local rebuild on the chunk owning each
@@ -79,7 +81,12 @@ export function createActivityRuntime(activities:PlayableActivities,deps:Deps){
     const missing=seedMissing(plotId);if(missing)return {ok:false,message:missing};
     // Harvest: the crop and one seed packet of the harvested crop, granted atomically.
     const harvested=f.state.crop?.cropId,bonus=intent.type==='harvest'&&harvested?deps.seedItem?.(harvested)??null:null;
-    const r=act(f.state,f.zone.farm,deps.climate,{requestId:requestId('farm'),type:intent.type,cropId,time:deps.time(),waterAvailable:waterAvailable(f.zone)},reward=>deps.grant(bonus?[reward,{itemId:bonus,quantity:1}]:[reward])||!!bonus&&deps.grant([reward]));
+    const r=act(f.state,f.zone.farm,deps.climate,{requestId:requestId('farm'),type:intent.type,cropId,time:deps.time(),waterAvailable:waterAvailable(f.zone)},reward=>{
+      const first=deps.grant(bonus?[reward,{itemId:bonus,quantity:1}]:[reward]);
+      const committed=first||!!bonus&&deps.grant([reward]);
+      if(committed)deps.onReward?.('farm',reward);
+      return committed;
+    });
     if(!r.ok)return {ok:false,message:r.reason};
     if(intent.type==='plant'){const seed=deps.seedItem?.(cropId);if(seed)deps.grant([{itemId:seed,quantity:-1}]);}
     notify({kind:'farm',plotId});
