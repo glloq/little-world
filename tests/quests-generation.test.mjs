@@ -55,4 +55,8 @@ test('Q7 workplace visits require actual compiled positioned entity and certifie
  const noLocation={...source,entities:source.entities.filter(e=>e.id!=='village-worker-1:job')
   .concat({id:'village-worker-1:job'})};
  assert.deepEqual(generateResidentVisitQuestOffers(local,noLocation,'island:1',route),[]);
+ const moved={...source,entities:source.entities.map(e=>e.id==='village-worker-1:job'
+  ?{...e,position:{x:80,y:0,z:80}}:e)};
+ assert.deepEqual(generateResidentVisitQuestOffers(local,moved,'island:1',route),[],
+   'moved work asset without updated resident routine must not create phantom visits');
 });
