@@ -198,6 +198,10 @@ function validateLibraries(value:unknown,world:WorldDefinitionV3,entityIds:strin
   if(libs.zones!==undefined)for(const [id,zone]of Object.entries(dictionary(libs.zones,'Bibliothèque zones',2000))){if(validateZone(zone,world).id!==id)throw Error('Bibliothèque zones : ID différent de la clé');}
   if(libs.alpine!==undefined){const areas=dictionary(libs.alpine,'Zones alpines',1);if(Object.keys(areas).length!==1)throw Error('Une zone alpine requise dans cette bibliothèque');for(const [id,area]of Object.entries(areas))if(parseSkiArea(area,world.bounds).id!==id)throw Error('Zone alpine : identifiant différent de la clé');}
   if(libs.races!==undefined)for(const [id,race]of Object.entries(dictionary(libs.races,'Bibliothèque courses',64))){if(validateAuthoredRace(race,world).id!==id)throw Error('Bibliothèque courses : ID différent de la clé');}
+  if(libs.questCatalog!==undefined)for(const [id,raw]of Object.entries(dictionary(libs.questCatalog,'Quêtes Studio',128))){
+    const offer=parseQuestCatalogEntry(raw);
+    if(offer.questKey!==id||offer.islandId!==world.worldId)throw Error('Quête auteur : ID ou monde incorrect');
+  }
   if(libs.surfZones!==undefined)for(const [id,raw]of Object.entries(dictionary(libs.surfZones,'Zones surf',32))){
     const zone=object(raw,'Zone surf');keys(zone,['id','minX','maxX','minZ','maxZ','dirX','dirZ','seaLevel','amplitude','wavelength','speed','seed','shoreFadeDepth','edgeFade','barrelStrength'],'Zone surf');
     validateSurfZone(zone as unknown as SurfZone);
