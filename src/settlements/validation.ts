@@ -7,6 +7,7 @@ import type { ProjectDocument } from '../studio-core/types.ts';
 import type { PathDefinition } from '../world-data.ts';
 import { resolveEntity } from '../studio-core/references.ts';
 import { settlementTerrain } from './terrain.ts';
+import {residentRegistry} from '../npc-life/registry.ts';
 import { inspectGroundSegment } from '../paths/terrain-route.ts';
 import { WorldCollisionQuery } from '../physics/collision-world.ts';
 import { collisionDefinitionsFromProject } from '../studio-core/collision-adapter.ts';
@@ -143,6 +144,14 @@ export function validateSettlements(p: ProjectDocument, onlyId?: string): Settle
             const node = graph.nodes.find(n => Math.hypot(n.position.x - b.entry.x, n.position.z - b.entry.z) < .05);
             if (!node || !visited.has(node.id))
                 error('SET_DISCONNECTED', 'Une entrée de maison ne rejoint plus les rues partagées.', b.id);
+        }
+        if(s.recipe.localLife&&s.recipe.residentRoutines){
+            const registry=residentRegistry(p,s.id);
+            for(const issue of registry.issues)out.push({severity:'WARNING',...issue});
+            for(const [home,occupants] of Object.entries(registry.homes)){
+                if(occupants.length>2)out.push({severity:'WARNING',code:'LIFE_HOME_OVERBOOKED',targetId:home,
+                    message:'La maison contient plus de deux résidents actifs : vérifier les affectations.'});
+            }
         }
     }
     return out;
