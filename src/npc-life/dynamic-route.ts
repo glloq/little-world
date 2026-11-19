@@ -70,3 +70,17 @@ export function residentRoutineStepClear(
  }
  return true;
 }
+
+/** A recovery itinerary targets the current *world-clock* agenda, not the
+ * snapshot from its creation. Re-target only on a bounded cadence and only
+ * when the destination has actually moved, avoiding perpetual A* churn.
+ */
+export function residentRecoveryNeedsRetarget(
+ oldGoal:{x:number;z:number},newGoal:{x:number;z:number},
+ now:number,lastCheck:number,threshold=2,period=2,
+):boolean{
+ if(![oldGoal.x,oldGoal.z,newGoal.x,newGoal.z,now,lastCheck,threshold,period].every(Number.isFinite)||
+   threshold<=0||period<=0)return false;
+ return (now<lastCheck||now-lastCheck>=period)&&
+   Math.hypot(newGoal.x-oldGoal.x,newGoal.z-oldGoal.z)>threshold;
+}
