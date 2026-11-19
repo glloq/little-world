@@ -26,7 +26,7 @@ function matches(step:QuestStepV1,event:QuestGameEventV1):boolean{
     (step.npcRole===undefined||event.source===step.npcRole);
   case 'visit':
    return event.type==='location.visited'&&event.targetId===step.targetId&&
-    event.measuredSeconds===undefined;
+    event.distanceM!==undefined&&event.distanceM<=step.withinM;
   case 'acquire':{
    const types:Record<Exclude<NonNullable<Extract<QuestStepV1,{kind:'acquire'}>['source']>,'any'>,string>={
     gather:'resource.gathered',fishing:'fishing.caught',mine:'mine.extracted',
