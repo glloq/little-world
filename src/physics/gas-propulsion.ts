@@ -43,7 +43,7 @@ export function stepBoostVitals(p:GasState,dt:number):void {
  const duration=boostRechargeSeconds(p.satiety);
  if(!Number.isFinite(duration))return;
  let progress=clamp(p.boostRechargeProgress??0,0,1)+dt/duration;
- while(progress>=1&&p.gasReserve+GAS.cost<=capacity+1e-7){p.gasReserve+=GAS.cost;progress-=1;}
+ while(progress>=1&&p.gasReserve<capacity){p.gasReserve=Math.min(capacity,p.gasReserve+GAS.cost);progress-=1;}
  p.boostRechargeProgress=p.gasReserve>=capacity?0:progress;
 }
 export function eatForSatiety(p:GasState,amount:number):number {
