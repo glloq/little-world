@@ -42,6 +42,11 @@ test('sky renderer reuses one mesh and texture, follows camera, and disposes cle
   sky.update({...params,cloudCover:1,deltaSeconds:1/30});
   assert.ok(sky.metrics.visualCloudCover>.5&&sky.metrics.visualCloudCover<.51,'visual cover changes gradually');
   assert.equal(mesh.material.uniforms.cloudCover.value,sky.metrics.visualCloudCover);
+  sky.update({...params,quality:'high',detail:0});
+  assert.ok(sky.metrics.clouds3d>0&&sky.metrics.clouds3d<=16);
+  assert.ok(sky.metrics.clouds3dDrawCalls<=2);
+  sky.update({...params,quality:'low'});
+  assert.equal(sky.metrics.clouds3d,0);
   sky.update({...params,detail:2});
   assert.equal(sky.metrics.clouds2d,false);
   sky.update({...params,detail:0,underground:true});
