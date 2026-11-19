@@ -5,6 +5,7 @@ import {newSettlement} from '../src/settlements/schema.ts';
 import {planSettlement} from '../src/settlements/planner.ts';
 import {applySettlement} from '../src/settlements/authoring.ts';
 import {residentRegistry} from '../src/npc-life/registry.ts';
+import {residentQuestReadiness} from '../src/npc-life/quest-readiness.ts';
 import {validateSettlements} from '../src/settlements/validation.ts';
 
 function create(){
@@ -66,4 +67,22 @@ test('turning off routines never strips dialogue from an author-edited resident'
  assert.equal(JSON.stringify(project.libraries.dialogues[child.id+'-talk']),dialogueBefore);
  const residents=residentRegistry(project,'registry-demo').residents;
  assert.ok(residents.some(r=>r.id===child.id),'The author-edited resident remains attached to the village');
+});
+
+test('F07 Studio quest readiness counts only actual dialogue actors and positioned anchors',()=>{
+ const {project}=create(),before=JSON.stringify(project);
+ const audit=residentQuestReadiness(project,'registry-demo');
+ assert.equal(audit.residents,residentRegistry(project,'registry-demo').residents.length);
+ assert.ok(audit.dialogueActors>0);
+ assert.equal(audit.routeQualified,false,'Studio never claims to certify a route without the runtime router');
+ assert.equal(JSON.stringify(project),before,'audit is read-only');
+ const candidate=residentRegistry(project,'registry-demo').residents[0];
+ const chunk=project.chunks[project.entityIndex[candidate.id].ownerChunkId],source=chunk.entities[candidate.id];
+ const ids=source.components.DialogueActor.dialogueIds;
+ source.components.DialogueActor.dialogueIds=[];
+ const reduced=residentQuestReadiness(project,'registry-demo');
+ assert.equal(reduced.dialogueActors,audit.dialogueActors-1);
+ assert.ok(reduced.missingDialogueIds.includes(candidate.id));
+ source.components.DialogueActor.dialogueIds=ids;
+ assert.equal(residentQuestReadiness(project,'registry-demo').dialogueActors,audit.dialogueActors);
 });
