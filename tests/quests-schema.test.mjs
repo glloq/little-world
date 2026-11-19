@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {parseQuestTemplate,parseQuestGameEvent,parseQuestCommand} from '../src/quests/validation.ts';
+import {parseQuestTemplate,parseQuestGameEvent,parseQuestCommand,parseQuestCatalogEntry,parseQuestInstance,parseQuestOfferConfig} from '../src/quests/validation.ts';
 
 const template=()=>({
  id:'quest:fisher-intro',version:1,family:'fishing',difficulty:1,
@@ -51,4 +51,30 @@ test('Q1 event and command envelopes require stable IDs and bounded provenance',
  assert.deepEqual(parseQuestCommand(command),command);
  assert.throws(()=>parseQuestCommand({...command,type:'grantItems'}),/invalid/);
  assert.throws(()=>parseQuestCommand({...command,quantity:100}),/unknown field/);
+});
+
+test('Q1 catalogs verify actual capability proofs and closed reward variants',()=>{
+ const catalog={
+  questKey:'quest:1',templateId:'quest:fisher-intro',templateVersion:1,
+  islandId:'island:1',giverId:'npc:fisher',bindings:{itemId:'fish:trout',quantity:3},
+  steps:template().steps,rewards:[{kind:'coins',quantity:8}],
+  dependencies:['fishing.spot'],catalogRevision:'rev:123',
+  proof:{capabilityIds:['fishing.spot','equipment.rod'],validatorVersion:'q1'},
+ };
+ assert.deepEqual(parseQuestCatalogEntry(catalog),catalog);
+ assert.throws(()=>parseQuestCatalogEntry({...catalog,proof:{capabilityIds:[],validatorVersion:'q1',script:'bad'}}),/unknown field/);
+ assert.throws(()=>parseQuestCatalogEntry({...catalog,rewards:[{kind:'item',itemId:'coin',quantity:0}]}),/invalid item/);
+ assert.throws(()=>parseQuestCatalogEntry({...catalog,rewards:[{kind:'unlock',unlockId:'skin:1',unlockKind:'cosmetic',giveItem:true}]}),/unknown field/);
+ const instance={...catalog,instanceId:'instance:1',acceptedAtGameMinute:10,status:'active',
+  stepIndex:1,stepProgress:[1,0,0],appliedEventIds:['event:1']};
+ assert.deepEqual(parseQuestInstance(instance),instance);
+ assert.throws(()=>parseQuestInstance({...instance,stepProgress:[1,0]}),/invalid state/);
+ assert.throws(()=>parseQuestInstance({...instance,appliedEventIds:['event:1','event:1']}),/invalid state/);
+});
+test('Q1 offers are opt-in and strictly bounded',()=>{
+ const cfg={schemaVersion:1,enabled:true,density:'normal',maxDifficulty:2,
+  enabledFamilies:['fishing'],maxVisiblePerGiver:2,maxActivePerPlayer:3};
+ assert.deepEqual(parseQuestOfferConfig(cfg),cfg);
+ assert.throws(()=>parseQuestOfferConfig({...cfg,maxActivePerPlayer:100}),/invalid/);
+ assert.throws(()=>parseQuestOfferConfig({...cfg,code:'arbitrary JavaScript'}),/unknown field/);
 });
