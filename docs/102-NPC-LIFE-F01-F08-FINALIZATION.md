@@ -1,6 +1,6 @@
 # NPC Life — Finalisation F01 à F08 (19 novembre 2026)
 
-Statut : **ROADMAP ACTIVE — F01-A, F01-B et F01-C (contrat de révision + retry) codés, qualification en cours**. Branche : `feat/npc-life-finalization-f01-f08`. Baseline : `main` au moment de la création. Cette documentation n'est pas une affirmation de qualification navigateur.
+Statut : **ROADMAP ACTIVE — F01-A/B et invalidation des portes F01-C implémentés (tests navigateur en attente). F02 et F03 commencés.** Branche : `feat/npc-life-finalization-f01-f08`. Baseline : `main` au moment de la création. Cette documentation n'est pas une affirmation de qualification navigateur.
 
 ## Contraintes permanentes
 
@@ -20,8 +20,8 @@ Existant : 19 rôles, logements/postes qualifiés, génération déterministe co
 | Lot | Statut initial | Livrable | Gate |
 | --- | --- | --- | --- |
 | **F01 Navigation** | EN COURS | Contrôles de progression réelle, dernier point sûr, invalidation terrain/porte, reprise après dialogue, obstacle, angle, pont et transitions de secteurs | Aucune traversée, aucun saut proche, replans bornés ; tests unitaires, navigateur et télémétrie |
-| **F02 Agendas** | À FAIRE | Intentions/activités prioritaires déclaratives avec conditions météo/événement et fallback ; horaires V1 préservés | 24 h, 5 jours absents, pause/reprise, minuit, `rate=0`, interruption et changement d'activité |
-| **F03 Population** | À FAIRE | Hameaux, ratios habitat/emploi, budget par village/secteur, diversités et ajustement seed stable | 0/3/10/40/100 habitants, pas d'emploi inventé, absence de perte d'édition auteur |
+| **F02 Agendas** | EN COURS | Intentions/activités prioritaires déclaratives avec conditions météo/événement et fallback ; horaires V1 préservés | 24 h, 5 jours absents, pause/reprise, minuit, `rate=0`, interruption et changement d'activité |
+| **F03 Population** | EN COURS | Hameaux, ratios habitat/emploi, budget par village/secteur, diversités et ajustement seed stable | 0/3/10/40/100 habitants, pas d'emploi inventé, absence de perte d'édition auteur |
 | **F04 Actions métiers** | À FAIRE | Contrat d'activité partagé (requirements, availability, anchor, execution, cosmetics), raccordements aux interactions métier existantes | Gestes sans attribution fictive ; transaction uniquement dans système métier natif ; action ajoutable par catalogue |
 | **F05 Dialogues et social** | À FAIRE | Contextes plus riches, barks et scènes sociales légères avec budgets/cooldowns | Pas de blocage des routines ni modification des dialogues auteurs, sous-titres et clavier fonctionnels |
 | **F06 Quêtes** | À FAIRE | Étendre le QuestDirector natif : templates, événements métier fiables, solvabilité, donneur mobile, progression/récompense idempotente | Plusieurs familles faisables, aucune quête orpheline, restore/claim une fois, legacy inchangé |
@@ -56,3 +56,12 @@ Cartes : hameau 3–5 maisons, village agricole, forêt, montagne avec pont, por
 - 2026-11-19 : F01-B raccordé dans `src/npc-view.ts`, via `residentScriptedAdvance`. Le PNJ avance seulement jusqu'au point physiquement sûr, puis replanifie depuis cette nouvelle position. Les sauts >12 m sont refusés. Tests régressifs obstacle/angle/suspension ajoutés. **CI et playtest navigateur encore à qualifier**.
 
 - 2026-11-19 : F01-C : `NPCLifeOptions.navigationRevision` optionnel, `residentReplanDue`, reprise depuis le point réellement atteint, replanification plafonnée à une tentative par seconde après blocage, trois échecs consécutifs maximum, sans saut de rattrapage. Les collisions sont toujours échantillonnées en direct même sans signal de révision. **Reste** : raccorder la révision au producteur réel de mutations terrain/portes/chemins, scénarios navigateur et CI.
+
+## Nouvelles évolutions de cette branche
+
+- **F01-C — portes réelles :** `createResidentNavigationRevisionTracker()` compte seulement les transitions d'état des portes observées, y compris l'ouverture temporaire des PNJ et la fermeture automatique. `game-view.ts` expose `navigationRevision` ; `main.ts` le transmet à `npc-view.ts`. Une porte éloignée ne déclenche pas A* si le parcours devant le PNJ reste praticable. Les routes longues après suspension ne franchissent jamais plus de 12 m non vérifiés. Raccordement terrain/chemins à chaud non terminé ; au chargement de nouveaux projets, le moteur est reconstruit normalement.
+- **F01-D — tests unitaires :** cas de révisions des portes, obstacle inséré, dernier point sûr, virage, cadence et reprise de suspension. Restent collisions entre PNJ, playtests de ponts/portes et validation navigateur à 10/40/100 habitants.
+- **F02 — début :** `MAX_RESIDENT_DAILY_STOPS=5` dans `schedule.ts`, Studio et validateur d'auteur ; agenda borné compatible V1. Les fenêtres générées de repas/rencontres s'adaptent aux horaires réels du métier (pêcheur matinal, etc.). Reste : conditions météo/événements, intention prioritaire et interruptions complexes.
+- **F03 — début :** `residentPopulationTargets()` permet un poste réel pour un hameau de 3–5 maisons selon densité ; les villages plus grands augmentent la cible de postes jusqu'à 12 en haute densité, sous réserves des vrais emplois disponibles et du plafond global de 100 personnages. Aucun emploi fictif ajouté. Reste : intégration géographique multi-village, budgets par secteur et QA des éditions auteur sur redimensionnement.
+
+**État de qualification :** code et tests ajoutés/poussés ; tests Node, TypeScript, build et navigateur non certifiés sur le SHA de cette mise à jour. Ne pas fusionner avant CI verte et playtest.
