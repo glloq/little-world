@@ -49,7 +49,7 @@ export function createResidentRouter(paths:readonly ResidentPath[],walk:Resident
     for(let i=1;i<path.points.length;i++){
       const a=path.points[i-1],b=path.points[i],length=dist(a,b);
       if(!Number.isFinite(length)||length>2000||!length)continue;
-      const steps=Math.max(1,Math.ceil(length/8));let prev=node(a);
+      const steps=Math.max(1,Math.ceil(length/2));let prev=node(a);
       for(let j=1;j<=steps;j++){
         if(truncated)break;
         const t=j/steps,next=node({x:a.x+(b.x-a.x)*t,z:a.z+(b.z-a.z)*t});
@@ -58,6 +58,23 @@ export function createResidentRouter(paths:readonly ResidentPath[],walk:Resident
       if(truncated)break;
     }
     if(truncated)break;
+  }
+  // A native path can end at the middle of another path. Their discretized
+  // vertices will not share an identical key: connect only genuinely adjacent
+  // ground-level points, with walkability rechecked. Spatial hash keeps this
+  // linear in local density instead of scanning all pairs across an island.
+  const junctionCells=new Map<string,number[]>();
+  const jCell=1.5,jKey=(x:number,z:number)=>Math.floor(x/jCell)+':'+Math.floor(z/jCell);
+  for(let id=0;id<nodes.length;id++){
+    const a=nodes[id].point,cx=Math.floor(a.x/jCell),cz=Math.floor(a.z/jCell);
+    for(let x=cx-1;x<=cx+1;x++)for(let z=cz-1;z<=cz+1;z++){
+      for(const other of junctionCells.get(x+':'+z)??[]){
+        const b=nodes[other].point;
+        if(dist(a,b)<=1.46&&safeSegment(a,b,walk))edge(id,other);
+      }
+    }
+    const key=jKey(a.x,a.z),bucket=junctionCells.get(key)??[];
+    bucket.push(id);junctionCells.set(key,bucket);
   }
   for(const n of nodes)n.links.sort((a,b)=>a.to-b.to);
   // Small binary heap, only used when an NPC is assigned a new home/work route.
