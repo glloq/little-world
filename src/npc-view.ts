@@ -29,6 +29,7 @@ import {residentHour,residentShift,residentPoseAt,residentRoute,positionOnReside
 import {residentDialogue,residentContextForHour} from './npc-life/dialogue.ts';
 import {residentAgendaPoseAt,type ResidentAgendaPose,type ResidentDailyRoutes,type ResidentActivityLegs} from './npc-life/agenda.ts';
 import {residentSocialPairs} from './npc-life/social.ts';
+import {selectNPCRigs} from './npc-life/rig-budget.ts';
 import './npc.css';
 
 /** All DOM content is written as text, including author-provided names and dialogue. */
@@ -148,6 +149,8 @@ export interface NPCLifeOptions {
   /** Reuse the active world's collision broadphase for short path segments. */
   walkable?:ResidentWalkable;
   surfaces?:ResidentSurfaces;
+  /** Concurrent animated rigs, bounded for old 4–8GB integrated GPUs. */
+  rigBudget?:number;
   weather?:()=> 'clear'|'cloudy'|'rain';
 }
 export function createNPCSystem(
@@ -260,11 +263,13 @@ export function createNPCSystem(
       appliedEmotion: definition.appearance.emotion,
       lastWorkAt:-1,
       lastGreetAt:-1,
+      lastRigAt:-1000,
       scripted:null as null|{route:ResidentRoute;startAt:number;pausedFor:number;pauseFrom:number|null;arrivedAt:number|null},
     };
   });
   const byId=new Map(entries.map(entry=>[entry.state.definition.id,entry]));
   let socialPartners=new Map<string,string>(),lastSocialScan=-1;
+  let rigIds=new Set<string>(),lastRigSample=-1;
   function nearest(player: NPCPoint) {
     let best: (typeof entries)[number] | null = null,
       distance = 5.5;
@@ -310,10 +315,16 @@ export function createNPCSystem(
     talkTo,
     setLighting(color:THREE.Color|null){distant.setLighting(color);},
     states: entries.map((entry) => entry.state),
-    get lifeStats(){return {assigned:entries.filter(e=>!!e.state.definition.routine).length,routed:entries.filter(e=>!!e.life).length,agendas:entries.filter(e=>!!e.life?.agenda).length,socialPairs:socialPartners.size/2,roadNodes:router?.nodes??0,roadTruncated:router?.truncated??false};},
+    get lifeStats(){return {assigned:entries.filter(e=>!!e.state.definition.routine).length,routed:entries.filter(e=>!!e.life).length,agendas:entries.filter(e=>!!e.life?.agenda).length,socialPairs:socialPartners.size/2,animatedRigs:entries.filter(e=>!!e.model).length,rigBudget:lifeOptions?.rigBudget??12,roadNodes:router?.nodes??0,roadTruncated:router?.truncated??false};},
     update(dt: number, time: number, position: NPCPoint,camera?:THREE.PerspectiveCamera) {
       if (disposed) return;
       distant.begin();distant.update(time);
+      if(time<lastRigSample||time-lastRigSample>=.5){
+        const focus={x:camera?.position.x??position.x,z:camera?.position.z??position.z};
+        rigIds=selectNPCRigs(entries.map(e=>({id:e.state.definition.id,kind:e.state.definition.kind,
+          x:e.state.x,z:e.state.z})),focus,lifeOptions?.rigBudget??12,dialogue.npcId??undefined);
+        lastRigSample=time;
+      }
       for (const entry of entries) {
         const { state, life, player, proxy } = entry;
         if(entry.scripted&&lifeOptions){
@@ -392,10 +403,12 @@ export function createNPCSystem(
           state.phase='greet';
           state.heading=Math.atan2(partner.state.x-state.x,partner.state.z-state.z);
         }
-        const tier = npcVisualTier(
+        const candidateTier = npcVisualTier(
           Math.hypot((camera?.position.x??position.x) - state.x, (camera?.position.z??position.z) - state.z),
           state.definition.kind,
         );
+        const tier=candidateTier==='rig'&&!rigIds.has(state.definition.id)?'silhouette':candidateTier;
+        if(tier==='rig')entry.lastRigAt=time;
         if(tier==='rig'&&!entry.model){
           const hamster=state.definition.kind==='hamster'?buildHamster():null,
             model=hamster??buildSquirrel();
@@ -410,7 +423,8 @@ export function createNPCSystem(
         }
         // Beyond the immediate player neighborhood, free whole animated rigs.
         // Impostors use pre-existing atlases and do not require model instances.
-        if(tier!=='rig'&&entry.model&&Math.hypot(position.x-state.x,position.z-state.z)>32){
+        if(tier!=='rig'&&entry.model&&(time-entry.lastRigAt>3||
+          Math.hypot(position.x-state.x,position.z-state.z)>32)){
           entry.model.dispose();entry.model=null;entry.hamster=null;entry.head=null;entry.arm=null;
         }
         const {model,hamster,head,arm}=entry;
