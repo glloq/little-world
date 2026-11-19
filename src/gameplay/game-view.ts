@@ -221,6 +221,44 @@ export function createGameplayView(data:GameplayData,options:Options){
     recordQuestCommit('quest.delivered',{itemId:step.itemId,quantity:step.quantity,targetId});
     return {ok:true as const,reason:'applied'};
   }
+  /** Player and worker inventories remain separate. Both sides are checked
+   * synchronously; only the native inventory port can debit or credit the
+   * player's bag, never a visual NPC animation.
+   */
+  function npcWorkshopNear(id:string):boolean{
+    const state=npcs.find(n=>n.definition.id===id),player=options.getPosition();
+    return !!state&&Math.hypot(state.x-player.x,state.y-player.y,state.z-player.z)<=3.5&&
+      !collision.occluded({...player,y:player.y+1.2},
+        {x:state.x,y:state.y+1.2,z:state.z},[state.definition.id]);
+  }
+  function supplyNpcWorkshop(id:string,itemId:string,quantity:number){
+    const account=npcEconomy.account(id);
+    if(!account||!npcWorkshopNear(id))return {ok:false as const,reason:'worker-unreachable'};
+    if(!account.canReceive(itemId,quantity))return {ok:false as const,reason:'stock-full'};
+    if(!runtime.grantItems([{itemId,quantity:-quantity}]))
+      return {ok:false as const,reason:'missing-items'};
+    if(!account.receive(itemId,quantity))
+      throw Error('NPC supply preflight changed during synchronous transaction');
+    for(const listener of listeners)listener();
+    return {ok:true as const,reason:'applied'};
+  }
+  function buyNpcWorkshopProduct(id:string,itemId:string,quantity:number){
+    const account=npcEconomy.account(id);
+    if(!account||!npcWorkshopNear(id))return {ok:false as const,reason:'worker-unreachable'};
+    if(!Number.isSafeInteger(quantity)||quantity<1||quantity>99||
+      !account.canTake(itemId,quantity))return {ok:false as const,reason:'stock-empty'};
+    const unit=marketUnitPrices(options.islandId??data.worldId,itemId).buy??0;
+    const cost=unit*quantity;
+    if(!Number.isSafeInteger(cost)||cost<=0||!account.canReceive('coin',cost))
+      return {ok:false as const,reason:'price-unavailable'};
+    if(!runtime.grantItems([{itemId:COIN,quantity:-cost},{itemId,quantity}]))
+      return {ok:false as const,reason:'payment-rejected'};
+    if(!account.take(itemId,quantity)||!account.receive('coin',cost))
+      throw Error('NPC sale preflight changed during synchronous transaction');
+    recordQuestCommit('market.traded',{itemId,quantity,source:'buy',targetId:id});
+    for(const listener of listeners)listener();
+    return {ok:true as const,reason:'applied',unitPrice:unit};
+  }
   /** Deliver an accepted, completed quest only to its real nearby giver.
    * Runtime.grantItems is the single atomic inventory authority for coin/items.
    * The complete inventory + claimed state are serialized by compose().
@@ -249,7 +287,7 @@ export function createGameplayView(data:GameplayData,options:Options){
  sync();
  return {
   runtime,collision,activities,slots,compose,gathering,trees,fishing,trade,sellBatch,nearbyShop,workshops,markets,purse,itemName,has,equipment,quests,recordQuestCommit,
-  claimQuest,deliverQuest,
+  claimQuest,deliverQuest,supplyNpcWorkshop,buyNpcWorkshopProduct,npcEconomy,
   get navigationRevision(){return navigationRevisions.revision;},
   openDoorForNPC(doorId:string,duration=2):boolean{
    if(!runtime.state.entities[doorId]||!models.has(doorId)||!Number.isFinite(duration)||duration<=0||duration>5)return false;
