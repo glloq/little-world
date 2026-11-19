@@ -11,11 +11,33 @@ function sample(route:ResidentRoute,d:number,reverse=false){
  const dx=reverse?prev.x-next.x:next.x-prev.x,dz=reverse?prev.z-next.z:next.z-prev.z;
  return {position,heading:Math.hypot(dx,dz)>.0001?Math.atan2(dx,dz):0};
 }
+/** Shared authoring/runtime preflight: no impossible visit may reach the frame loop.
+ * All routes are already compiled; this is O(number of stops), not pathfinding.
+ */
+export function validateResidentAgendaRoutes(
+ routine:ResidentRoutineV1,routes:ResidentDailyRoutes,dayLengthSeconds:number,speed=1.1,
+):string|null{
+ const stops=routine.activities??[],[start,end]=residentDutyShift(routine);
+ if(stops.length!==routes.activities.length||!Number.isFinite(speed)||speed<=0||
+    !Number.isFinite(dayLengthSeconds)||dayLengthSeconds<=0)return 'Agenda résident incomplet';
+ const hours=(r:ResidentRoute)=>r.length/speed/dayLengthSeconds*24;
+ const commute=hours(routes.work);
+ if(!Number.isFinite(commute)||commute>(end-start)/2)return 'Trajet professionnel trop long';
+ let available=start+commute;
+ for(let i=0;i<stops.length;i++){
+  const stop=stops[i],legs=routes.activities[i];
+  const depart=stop.startHour-hours(legs.to),returnAt=stop.endHour+hours(legs.back);
+  if(!Number.isFinite(depart)||!Number.isFinite(returnAt)||
+     depart<available-.001||returnAt>end-.001)return 'Pause inaccessible dans les horaires';
+  available=returnAt;
+ }
+ return null;
+}
 export function residentAgendaPoseAt(routine:ResidentRoutineV1,routes:ResidentDailyRoutes,time:number,dayLengthSeconds:number,initialDayPhase:number,speed=1.1):ResidentAgendaPose{
  const stops=routine.activities??[],[start,end]=residentDutyShift(routine);
- if(stops.length!==routes.activities.length||!Number.isFinite(speed)||speed<=0||!Number.isFinite(dayLengthSeconds)||dayLengthSeconds<=0)throw Error('Agenda résident incomplet');
+ const invalid=validateResidentAgendaRoutes(routine,routes,dayLengthSeconds,speed);
+ if(invalid)throw Error(invalid);
  const hour=residentHour(time,dayLengthSeconds,initialDayPhase),hours=(r:ResidentRoute)=>r.length/speed/dayLengthSeconds*24,travel=hours(routes.work);
- if(travel>(end-start)/2)throw Error('Trajet professionnel trop long');
  const pose=(phase:ResidentPose['phase'],route:ResidentRoute,d:number,nextAtHour:number,kind?:ResidentActivityKind):ResidentAgendaPose=>({phase,...sample(route,d),hour,nextAtHour,...(kind?{activityKind:kind}:{})});
  if(hour<start)return pose('home',routes.work,0,start);
  if(hour<start+travel)return pose('to-work',routes.work,(hour-start)/Math.max(.000001,travel)*routes.work.length,start+travel);
