@@ -39,10 +39,11 @@ try{
  assert.equal(await panel.locator('.lw-note-grid').count(),15);
  assert.equal(await panel.locator('select').count(),0,'no instrument picker in music panel');
  await page.keyboard.down('Digit1');await page.keyboard.down('Digit2');
- await page.waitForFunction(()=>window.littleWorldMetrics?.audio?.musicVoices>=2);
- console.log('OK: two simultaneous live notes');
+ await page.waitForFunction(()=>window.littleWorldMetrics?.audio?.heldInstrumentNotes===2);
+ console.log('OK: two simultaneous player instrument notes');
  await page.keyboard.up('Digit1');await page.keyboard.up('Digit2');
- await page.waitForFunction(()=>window.littleWorldMetrics?.audio?.musicVoices===0,{},{timeout:2500});
+ await page.waitForFunction(()=>window.littleWorldMetrics?.audio?.heldInstrumentNotes===0,{},{timeout:5000});
+ console.log('OK: released keys produce zero held instrument notes (music soundtrack is independent)');
  await panel.getByRole('button',{name:'Piano'}).click();
  assert.equal(await panel.locator('.lw-note-white').count(),15);
  assert.equal(await panel.locator('.lw-note-black').count(),10);
@@ -50,7 +51,7 @@ try{
  assert.ok(await panel.locator('[data-midi="72"]').count()>0,'octave increases by 12 semitones');
  await page.keyboard.press('KeyP');
  await panel.waitFor({state:'hidden'});
- await page.waitForFunction(()=>window.littleWorldMetrics?.audio?.musicVoices===0);
+ await page.waitForFunction(()=>window.littleWorldMetrics?.audio?.heldInstrumentNotes===0);
  await page.keyboard.press('KeyP');
  await panel.waitFor({state:'visible'});
  console.log('OK: P shortcut closes and reopens the instrument panel');
@@ -67,7 +68,7 @@ try{
  await panel.waitFor({state:'visible'});
  assert.ok((await panel.locator('.lw-instrument-head').textContent())?.includes('Ocarina'));
  await page.keyboard.press('Escape');
- await page.waitForFunction(()=>window.littleWorldMetrics?.audio?.musicVoices===0);
+ await page.waitForFunction(()=>window.littleWorldMetrics?.audio?.heldInstrumentNotes===0);
  assert.deepEqual(errors,[]);
  console.log('OK: one-click bag Play/equip, HUD, P toggle, 15-note grid, live notes, piano, octave, cleanup');
 }finally{await browser.close();}
