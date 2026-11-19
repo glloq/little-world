@@ -1,9 +1,11 @@
 import * as THREE from 'three';
+import {createCloudRenderer,type CloudQuality} from './cloud-renderer.ts';
 
 /** Sky is visual only: one draw call, one 128² shared alpha map, no shadow pass or physics.
  * The dome follows the actual camera, not the interpolated player position. */
 export function createSkyRenderer(scene: THREE.Scene, camera: THREE.PerspectiveCamera, seed: number) {
-  // Reproducible A/B captures: ?sky=off | sun | 2d (default).
+  // Reproducible A/B captures: ?sky=off | sun | 2d | hybrid.
+  // HQ enables hybrid by default. Medium requires ?sky=hybrid; low always disables 3D.
   const mode = new URLSearchParams(typeof location === 'undefined' ? '' : location.search).get('sky');
   const size = 128;
   const bytes = new Uint8Array(size * size * 4);
@@ -100,15 +102,20 @@ export function createSkyRenderer(scene: THREE.Scene, camera: THREE.PerspectiveC
   mesh.renderOrder = -10000;
   mesh.frustumCulled = false;
   scene.add(mesh);
+  const cloud3d=createCloudRenderer(scene,seed);
   let cloudsEnabled = true;
   let visualCloudCover: number | null = null;
-  function update(params: {color: THREE.Color; sunDirection: THREE.Vector3; sunAltitude: number; cloudCover: number; wind: number; time: number; deltaSeconds?: number; detail: number; underground: boolean}) {
+  function update(params: {color: THREE.Color; sunDirection: THREE.Vector3; sunAltitude: number; cloudCover: number; wind: number; time: number; deltaSeconds?: number; detail: number; underground: boolean; quality?: CloudQuality}) {
     // Smooth cosmetic cover transitions without touching deterministic weather history.
     // First update adopts the current climate (no wrong clear-sky flash after loading).
     const target = THREE.MathUtils.clamp(params.cloudCover, 0, 1);
     visualCloudCover = visualCloudCover === null ? target : THREE.MathUtils.lerp(
       visualCloudCover, target, 1 - Math.exp(-Math.max(0, Math.min(params.deltaSeconds ?? 0, .25)) / 6),
     );
+    const quality=params.quality??'low';
+    cloud3d.update({position:camera.position,time:params.time,wind:params.wind,cloudCover:visualCloudCover,
+      sunAltitude:params.sunAltitude,quality,detail:params.detail,underground:params.underground,
+      enabled:mode==='hybrid'||(mode!== 'off'&&mode!=='sun'&&mode!=='2d'&&quality==='high')});
     mesh.visible = !params.underground && mode !== 'off';
     if (!mesh.visible) return;
     mesh.position.copy(camera.position);
@@ -124,7 +131,7 @@ export function createSkyRenderer(scene: THREE.Scene, camera: THREE.PerspectiveC
   }
   return {
     update,
-    get metrics() { return {mode: mode === 'off' || mode === 'sun' ? mode : '2d', visible: mesh.visible, clouds2d: mesh.visible && cloudsEnabled, clouds3d: 0, visualCloudCover, skyDrawCalls: mesh.visible ? 1 : 0, skyTextureBytes: bytes.byteLength}; },
-    dispose() {mesh.removeFromParent(); geometry.dispose(); material.dispose(); atlas.dispose();},
+    get metrics() { return {mode: mode === 'off' || mode === 'sun' || mode==='hybrid' ? mode : '2d', visible: mesh.visible, clouds2d: mesh.visible && cloudsEnabled, clouds3d: cloud3d.metrics.instances, clouds3dDrawCalls:cloud3d.metrics.drawCalls, clouds3dRebuilds:cloud3d.metrics.rebuilds, visualCloudCover, skyDrawCalls: (mesh.visible ? 1 : 0)+cloud3d.metrics.drawCalls, skyTextureBytes: bytes.byteLength}; },
+    dispose() {cloud3d.dispose();mesh.removeFromParent(); geometry.dispose(); material.dispose(); atlas.dispose();},
   };
 }
