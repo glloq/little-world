@@ -3,6 +3,8 @@
 export interface Velocity {x:number;y:number;z:number}
 export interface FlightState {velocity:Velocity;glideHeading?:number;glidePitch?:number;glideTurnRate?:number;stalled?:boolean;glideDeploymentRemaining?:number}
 export const MOTION={gravity:17.2,fallMax:48,walk:4.65,run:8.7,groundAcceleration:28,groundBrake:18,airDrag:.035,airTurn:1.9} as const;
+/** Arcade-only effective gravity during deployed gliding; freefall and ground remain unchanged. */
+export const GLIDE_PHYSICS={gravity:9.0} as const;
 export const GLIDE={minCruise:11,max:60,stall:6,finesse:8,pitchRate:1.25,turnRate:1.15,maxDive:1.05,maxClimb:.58,diveEfficiency:1,drag:.10,speedDrag:.0016,turnLoss:.12,stallPitch:.7} as const;
 /** Single bounded arcade assist on first deployment. */
 /** Trim targets are game-design angles (radians). No extra force is introduced. */
@@ -85,13 +87,14 @@ export function glideVelocity(p:FlightState,yaw:number,pitchControl:number,brake
  pitch=clamp(pitch,-tuning.maxDive,tuning.maxClimb);
  // Induced drag dominates near stall; parasitic drag dominates at speed. Both dissipate
  // energy, leaving enough powered thrust to reach the experimental 60 m/s cap.
- const induced=MOTION.gravity/tuning.finesse*(tuning.minCruise/Math.max(speed,tuning.stall))**2;
+ const induced=GLIDE_PHYSICS.gravity/tuning.finesse*(tuning.minCruise/Math.max(speed,tuning.stall))**2;
  const drag=tuning.drag+induced+tuning.speedDrag*speed*speed+clamp(brake,0,1)*1.5;
  const work=drag*Math.max(speed,.1)*dt+tuning.turnLoss*Math.max(0,Math.min(1,turnLossFactor))*Math.abs(turn)*speed*speed;
- const verticalGravity=MOTION.gravity*Math.sin(pitch);
+ const verticalGravity=GLIDE_PHYSICS.gravity*Math.sin(pitch);
  const a=verticalGravity*dt*(verticalGravity<0?clamp(tuning.diveEfficiency,0,1):1);
  const next=Math.min(tuning.max,Math.max(0,Math.sqrt(a*a+Math.max(0,(speed+Math.max(0,boostAcceleration)*dt)**2-2*work))-a));
  const h=Math.cos(pitch)*next;v.x=Math.sin(heading)*h;v.z=Math.cos(heading)*h;v.y=Math.sin(pitch)*next;
  p.glideHeading=heading;p.glidePitch=pitch;p.glideTurnRate=turn/dt;p.stalled=speed<tuning.stall;
 }
-export function movementEnergy(y:number,v:Velocity){return MOTION.gravity*y+(v.x*v.x+v.y*v.y+v.z*v.z)/2;}
+/** Specify the gliding gravity when measuring the energy budget of a gliding actor. */
+export function movementEnergy(y:number,v:Velocity,gravity:number=MOTION.gravity){return gravity*y+(v.x*v.x+v.y*v.y+v.z*v.z)/2;}
