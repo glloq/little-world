@@ -10,6 +10,7 @@ import {updateCharacter,setCharacterPath,setResidentRoutine} from '../studio-cor
 import {MAX_RESIDENT_DAILY_STOPS,residentDutyShift,RESIDENT_ROLES,type ResidentRole,type ResidentRoutineV1,type ResidentActivityKind} from '../npc-life/schedule.ts';
 import {residentAnchorChoices,reassignResident,residentActivityChoices,setResidentStudioActivities} from '../npc-life/authoring.ts';
 import {residentRegistry} from '../npc-life/registry.ts';
+import {residentProfessionalActionCatalog} from '../npc-life/profession-actions.ts';
 import {chunkAt} from '../studio-core/schema.ts';
 import {applyInteraction,interactionChunkIds} from '../studio-core/interaction-templates.ts';
 import {EMOTIONS,type Emotion,type Neckwear} from '../character-style.ts';
@@ -157,11 +158,12 @@ function characterSection(ctx:InspectorContext,id:string,owner:string){
   const path=c.Navigation?.path;box.append(node('p',path?.length?`Trajet : ${path.length} point(s).`:'Aucun trajet : « Tracer son trajet » puis cliquer dans la vue.','muted'));
   if(c.Resident){
     const resident=structuredClone(c.Resident),[from,to]=residentDutyShift(resident);
-    let role:ResidentRole=resident.role,start=from,end=to;
+    let role:ResidentRole=resident.role,start=from,end=to,previewWeather:'clear'|'rain'='clear';
     const life=node('details');
     const hour=node('input');hour.type='range';hour.min='0';hour.max='23.5';hour.step='.5';hour.value='12';
     const preview=node('p','','muted');
-    const updatePreview=()=>{const h=Number(hour.value),visit=resident.activities?.find(a=>h>=a.startHour&&h<a.endHour);
+    const updatePreview=()=>{const h=Number(hour.value),visit=resident.activities?.find(a=>h>=a.startHour&&h<a.endHour&&
+      (a.weather===undefined||a.weather==='any'||(a.weather==='dry'?previewWeather!=='rain':previewWeather==='rain')));
       const activity=visit?visit.kind==='meal'?'Pause repas':visit.kind==='social'?'Rencontre et discussion':visit.kind==='play'?'Jeux':visit.kind==='rest'?'Repos':'Activité complémentaire':null;
       preview.textContent=h.toFixed(1).replace('.0','')+' h : '+(activity??(h<start||h>=end?'Au domicile':'Au lieu de travail'))+
         ' · trajet '+resident.home.x.toFixed(1)+','+resident.home.z.toFixed(1)+' → '+resident.work.x.toFixed(1)+','+resident.work.z.toFixed(1);};
@@ -170,7 +172,8 @@ function characterSection(ctx:InspectorContext,id:string,owner:string){
       field('Métier',select(role,RESIDENT_ROLES.map(k=>[k,k] as const),value=>role=value as ResidentRole)),
       field('Début du travail (heure du jeu)',numberInput(start,n=>{start=n;updatePreview();},0,24)),
       field('Fin du travail (heure du jeu)',numberInput(end,n=>{end=n;updatePreview();},0,24)),
-      field('Aperçu de la journée',hour),preview,
+      field('Aperçu de la journée',hour),
+      field('Météo de prévisualisation',select(previewWeather,[['clear','Sans pluie'],['rain','Pluie']],v=>{previewWeather=v as 'clear'|'rain';updatePreview();})),preview,
       button('Appliquer les horaires',()=>void editQueue.run(async()=>{
         const next:ResidentRoutineV1={...resident,role,workStartHour:start,workEndHour:end};
         await s.change('Modifier les horaires du résident',[p.entityIndex[id].ownerChunkId],d=>setResidentRoutine(d,id,next));
@@ -204,6 +207,12 @@ function characterSection(ctx:InspectorContext,id:string,owner:string){
           await s.change('Affecter domicile et métier du résident',[...new Set(chunks)],d=>reassignResident(d,id,homeId,jobId));
           ctx.status('Domicile et poste enregistrés ; chemin et horaires validés.');ctx.refresh();
         }).catch(e=>ctx.status(String(e instanceof Error?e.message:e),true))));
+    }
+    if(anchors?.jobs.some(job=>job.id===resident.workAnchorId)){
+      const action=residentProfessionalActionCatalog().find(a=>a.role===resident.role);
+      if(action)life.append(node('p',
+        'Action métier : '+action.service+' · '+action.presentation+
+        ' (intention déclarative : aucun objet produit sans transaction métier)', 'muted'));
     }
     const publicPlaces=residentActivityChoices(p,id);
     if(publicPlaces.length){
