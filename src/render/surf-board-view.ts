@@ -18,9 +18,10 @@ export function createSurfBoardView(scene:THREE.Object3D){
   basis=new THREE.Matrix4();
  group.visible=false;scene.add(group);
  return {
-  update(player:Player,renderPosition?:THREE.Vector3,wave?:SurfWaveSample|null){
+  update(player:Player,renderPosition?:THREE.Vector3,wave?:SurfWaveSample|null,parked?:{x:number;y:number;z:number;heading:number}|null){
    const visible=player.mode==='surf'||player.surfAirborne===true;
-   group.visible=visible;
+   group.visible=visible||!!parked;
+   if(!visible&&parked){group.position.set(parked.x,parked.y,parked.z);group.rotation.set(0,parked.heading,0);return;}
    if(!visible)return;
    const pose=renderPosition??player.position;
    group.position.set(pose.x,pose.y-.095,pose.z);

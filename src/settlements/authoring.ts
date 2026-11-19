@@ -50,6 +50,17 @@ function writePlan(p: ProjectDocument, plan: SettlementPlan) {
             removePath(p, id);
     for(const a of old?.amenities??[])
         if(!plan.amenities?.some(v=>v.id===a.id)&&!protectedAmenities.has(a.id))removeEntity(p,a.id);
+    p.libraries.objectives={...p.libraries.objectives};
+    for(const [id,hash] of Object.entries(old?.objectiveHashes??{})){
+        const current=p.libraries.objectives[id];
+        if(!plan.objectives?.[id]&&current&&fingerprint(current)===hash)delete p.libraries.objectives[id];
+    }
+    for(const [id,objective] of Object.entries(plan.objectives??{})){
+        const current=p.libraries.objectives[id],original=old?.objectiveHashes?.[id];
+        if(current&&!original)throw Error('Objectif déjà utilisé : '+id);
+        if(!current||!original||fingerprint(current)===original)
+            p.libraries.objectives[id]=structuredClone(objective);
+    }
     p.libraries.dialogues={...p.libraries.dialogues};
     for(const a of old?.amenities??[]){
         const dialogue=p.libraries.dialogues[a.id+'-talk'];
@@ -70,7 +81,12 @@ function writePlan(p: ProjectDocument, plan: SettlementPlan) {
     }
     for (const path of plan.paths)
         putPath(p, path);
-    const instance: SettlementInstance = { version: 1, id: plan.recipe.id, recipe: structuredClone(plan.recipe), buildings: structuredClone(plan.buildings),...(plan.amenities?{amenities:structuredClone(plan.amenities)}:{}),...(old?.suppressedAmenities?{suppressedAmenities:[...old.suppressedAmenities]}:{}), ...(plan.zones?.length||Object.keys(old?.zoneHashes??{}).length?{zoneHashes:{...missingZoneHashes,...Object.fromEntries((plan.zones??[]).map(z=>[z.id,plan.preserved.includes(z.id)?old!.zoneHashes![z.id]:fingerprint(z)]))}}:{}), pathHashes: Object.fromEntries(plan.paths.map(path => [path.id, old?.pathHashes[path.id] && plan.preserved.includes(path.id) ? old.pathHashes[path.id] : fingerprint(path)])), ...(old?.suppressedSlots ? { suppressedSlots: [...old.suppressedSlots] } : {}), revision: (old?.revision ?? 0) + 1 };
+    const instance: SettlementInstance = { version: 1, id: plan.recipe.id, recipe: structuredClone(plan.recipe), buildings: structuredClone(plan.buildings),...(plan.amenities?{amenities:structuredClone(plan.amenities)}:{}),...(old?.suppressedAmenities?{suppressedAmenities:[...old.suppressedAmenities]}:{}),
+      ...(plan.objectives&&Object.keys(plan.objectives).length?{objectiveHashes:Object.fromEntries(
+        Object.entries(plan.objectives).map(([id,v])=>{
+          const previousHash=old?.objectiveHashes?.[id],current=p.libraries.objectives[id];
+          return [id,previousHash&&current&&fingerprint(current)!==fingerprint(v)?previousHash:fingerprint(v)];
+        }))}:{}), ...(plan.zones?.length||Object.keys(old?.zoneHashes??{}).length?{zoneHashes:{...missingZoneHashes,...Object.fromEntries((plan.zones??[]).map(z=>[z.id,plan.preserved.includes(z.id)?old!.zoneHashes![z.id]:fingerprint(z)]))}}:{}), pathHashes: Object.fromEntries(plan.paths.map(path => [path.id, old?.pathHashes[path.id] && plan.preserved.includes(path.id) ? old.pathHashes[path.id] : fingerprint(path)])), ...(old?.suppressedSlots ? { suppressedSlots: [...old.suppressedSlots] } : {}), revision: (old?.revision ?? 0) + 1 };
     p.libraries.settlements = { ...p.libraries.settlements, [instance.id]: instance };
 }
 export function previewSettlementProject(p: ProjectDocument, plan: SettlementPlan) { const draft = structuredClone(p); writePlan(draft, plan); return draft; }
@@ -119,6 +135,11 @@ export function removeSettlement(p: ProjectDocument, id: string) {
                 throw Error('Une autre zone utilise ce chemin : la déconnecter avant suppression');
             removePath(p, key);
         }
+    p.libraries.objectives={...p.libraries.objectives};
+    for(const [questId,hash]of Object.entries(s.objectiveHashes??{})){
+      const objective=p.libraries.objectives[questId];
+      if(objective&&fingerprint(objective)===hash)delete p.libraries.objectives[questId];
+    }
     for(const [zoneId,hash]of Object.entries(s.zoneHashes??{}))if(p.libraries.zones?.[zoneId]&&fingerprint(p.libraries.zones[zoneId])===hash)removeZone(p,zoneId);
     const all = { ...p.libraries.settlements };
     delete all[id];

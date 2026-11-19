@@ -7,7 +7,10 @@ import {resolveEntity} from '../studio-core/references.ts';
 import {applyTransforms,transformChunkIds,entityTransform,type TransformValue} from '../studio-core/transforms.ts';
 import {layoutUpdates,type LayoutMode} from '../studio-core/selection-layout.ts';
 import {updateCharacter,setCharacterPath,setResidentRoutine} from '../studio-core/character-authoring.ts';
-import {residentDutyShift,RESIDENT_ROLES,type ResidentRole,type ResidentRoutineV1} from '../npc-life/schedule.ts';
+import {residentDutyShift,RESIDENT_ROLES,type ResidentRole,type ResidentRoutineV1,type ResidentActivityKind} from '../npc-life/schedule.ts';
+import {residentAnchorChoices,reassignResident,residentActivityChoices,setResidentStudioActivities} from '../npc-life/authoring.ts';
+import {residentRegistry} from '../npc-life/registry.ts';
+import {chunkAt} from '../studio-core/schema.ts';
 import {applyInteraction,interactionChunkIds} from '../studio-core/interaction-templates.ts';
 import {EMOTIONS,type Emotion,type Neckwear} from '../character-style.ts';
 import {elementExists,elementLabel,type ElementRef} from '../studio-core/elements.ts';
@@ -55,7 +58,22 @@ async function buildInspector(host:HTMLElement,ctx:InspectorContext){
     return;
   }
   if(refs.length===1&&refs[0].kind!=='entity'){renderElementInspector(host,refs[0],ctx);return;}
-  if(!ids.length){host.append(node('h3','Votre monde'),node('p','Clic : sélectionner · Maj+clic : ajouter · F : centrer · 7 : vue du dessus · clic droit : orienter (+ ZQSD/WASD pour voler) · clic molette : déplacer la vue.','muted'));return;}
+  if(!ids.length){
+    host.append(node('h3','Votre monde'),node('p','Clic : sélectionner · Maj+clic : ajouter · F : centrer · 7 : vue du dessus · clic droit : orienter (+ ZQSD/WASD pour voler) · clic molette : déplacer la vue.','muted'));
+    const audit=residentRegistry(p);
+    if(audit.residents.length){
+      const section=node('details');
+      section.append(node('summary',`Vie locale : ${audit.residents.length} PNJ · ${audit.issues.length} alerte(s)`));
+      section.append(node('p','Diagnostic limité aux secteurs chargés dans Studio. Les secteurs non chargés ne sont pas considérés comme validés.','muted'));
+      for(const issue of audit.issues.slice(0,12)){
+        const person=audit.residents.find(r=>r.id===issue.targetId);
+        if(person)section.append(button(person.name+' · '+issue.message,()=>ctx.view(person.home.x,person.home.z)));
+      }
+      if(audit.issues.length>12)section.append(node('p',`Et ${audit.issues.length-12} autres alertes : charger le village et inspecter ses habitants.`,'muted'));
+      host.append(section);
+    }
+    return;
+  }
   if(ids.length>1){
     host.append(node('h3',`${ids.length} éléments`),node('p',ids.map(id=>p.entityIndex[id].name).join(', '),'selection-tag'),
       button('Centrer (F)',ctx.focus),button('Aligner au sol',()=>alignAll(ctx,ids)),
@@ -143,8 +161,9 @@ function characterSection(ctx:InspectorContext,id:string,owner:string){
     const life=node('details');
     const hour=node('input');hour.type='range';hour.min='0';hour.max='23.5';hour.step='.5';hour.value='12';
     const preview=node('p','','muted');
-    const updatePreview=()=>{const h=Number(hour.value);
-      preview.textContent=h.toFixed(1).replace('.0','')+' h : '+(h<start||h>=end?'Au domicile':'Au lieu de travail')+
+    const updatePreview=()=>{const h=Number(hour.value),visit=resident.activities?.find(a=>h>=a.startHour&&h<a.endHour);
+      const activity=visit?visit.kind==='meal'?'Pause repas':visit.kind==='social'?'Rencontre et discussion':visit.kind==='play'?'Jeux':visit.kind==='rest'?'Repos':'Activité complémentaire':null;
+      preview.textContent=h.toFixed(1).replace('.0','')+' h : '+(activity??(h<start||h>=end?'Au domicile':'Au lieu de travail'))+
         ' · trajet '+resident.home.x.toFixed(1)+','+resident.home.z.toFixed(1)+' → '+resident.work.x.toFixed(1)+','+resident.work.z.toFixed(1);};
     hour.oninput=updatePreview;updatePreview();
     life.append(node('summary','Vie quotidienne et métier'),
@@ -161,6 +180,67 @@ function characterSection(ctx:InspectorContext,id:string,owner:string){
         await s.change('Retirer la routine du personnage',[p.entityIndex[id].ownerChunkId],d=>setResidentRoutine(d,id,null));
         ctx.refresh();
       }).catch(e=>ctx.status(String(e instanceof Error?e.message:e),true))));
+    // Existing native registry provides actionable Studio diagnostics without
+    // creating another NPC state, save format, or background simulation.
+    const diagnostics=residentRegistry(p).issues.filter(issue=>issue.targetId===id);
+    if(diagnostics.length){
+      const report=node('div');
+      report.append(node('strong',`Cohérence PNJ : ${diagnostics.length} problème(s)`));
+      for(const issue of diagnostics)report.append(node('p',issue.message,'muted'));
+      life.append(report);
+    }else{
+      life.append(node('p','Aucune incohérence détectée dans les secteurs chargés.','muted'));
+    }
+    const anchors=residentAnchorChoices(p,id);
+    if(anchors){
+      let homeId=resident.homeAnchorId??'',jobId=resident.workAnchorId??'';
+      life.append(field('Maison de résidence',select(homeId,[['','Choisir un domicile'],...anchors.homes.map(a=>[a.id,a.name] as const)],v=>homeId=v)),
+        field('Poste de travail ou lieu public',select(jobId,[['','Choisir un lieu'],...anchors.jobs.map(a=>[a.id,a.name] as const)],v=>jobId=v)),
+        button('Valider les affectations',()=>void editQueue.run(async()=>{
+          const selectedHome=anchors.homes.find(a=>a.id===homeId);
+          if(!selectedHome)throw Error('Sélectionner une maison existante');
+          await s.fullDocument();
+          const chunks=[p.entityIndex[id].ownerChunkId,chunkAt(p.world,selectedHome.point.x,selectedHome.point.z)];
+          await s.change('Affecter domicile et métier du résident',[...new Set(chunks)],d=>reassignResident(d,id,homeId,jobId));
+          ctx.status('Domicile et poste enregistrés ; chemin et horaires validés.');ctx.refresh();
+        }).catch(e=>ctx.status(String(e instanceof Error?e.message:e),true))));
+    }
+    const publicPlaces=residentActivityChoices(p,id);
+    if(publicPlaces.length){
+      const activities=node('details');
+      activities.append(node('summary','Pauses et rencontres · 3 maximum'),
+        node('p','Chaque étape utilise un lieu public existant. Le trajet aller-retour et les horaires sont vérifiés avant l’enregistrement.','muted'));
+      const visits=(resident.activities??[]).map(a=>({
+        kind:a.kind as ResidentActivityKind,anchorId:a.anchorId,startHour:a.startHour,endHour:a.endHour,
+      }));
+      const rows=node('div');
+      const kinds:[ResidentActivityKind,string][]=[['meal','Repas'],['social','Rencontre'],['rest','Repos'],['play','Jeu'],['errand','Course']];
+      const draw=()=>{
+        rows.replaceChildren();
+        for(const [i,stop] of visits.entries()){
+          const line=node('fieldset');
+          line.append(node('legend','Étape '+(i+1)),
+            field('Type',select(stop.kind,kinds,v=>{stop.kind=v as ResidentActivityKind;})),
+            field('Lieu public',select(stop.anchorId,publicPlaces.map(a=>[a.id,a.name] as const),v=>{stop.anchorId=v;})),
+            field('Début',numberInput(stop.startHour,v=>{stop.startHour=v;},0,24)),
+            field('Fin',numberInput(stop.endHour,v=>{stop.endHour=v;},0,24)),
+            button('Supprimer cette étape',()=>{visits.splice(i,1);draw();}));
+          rows.append(line);
+        }
+      };
+      draw();
+      activities.append(rows,button('Ajouter une étape',()=>{
+        if(visits.length>=3)return;
+        const after=visits.length?Math.max(...visits.map(v=>v.endHour))+.5:Math.max(start+1,11);
+        visits.push({kind:'social',anchorId:publicPlaces[0].id,startHour:Math.min(22,after),endHour:Math.min(23,after+1)});
+        draw();
+      }),button('Enregistrer les activités',()=>void editQueue.run(async()=>{
+        await s.fullDocument();
+        await s.change('Modifier les activités du résident',[p.entityIndex[id].ownerChunkId],d=>setResidentStudioActivities(d,id,visits));
+        ctx.status('Activités et trajets du résident validés.');ctx.refresh();
+      }).catch(e=>ctx.status(String(e instanceof Error?e.message:e),true)),'primary-button'));
+      life.append(activities);
+    }
     box.append(life);
   }else if(path&&path.length>=2){
     box.append(button('Créer une routine depuis le trajet',()=>void editQueue.run(async()=>{

@@ -30,6 +30,7 @@ import {applySurfTumblePose} from './render/surf-tumble-pose.ts';
 import {applySurfPose} from './render/surf-character-pose.ts';
 import {sampleSurfBarrel} from './surf/surf-barrel.ts';
 import {createSurfBoardView} from './render/surf-board-view.ts';
+import {boardOnWater,distanceToBoard,isSurfBoardWaterSafe,type SurfBoardPlacement} from './surf/board-placement.ts';
 import {createSurfHud} from './ui/surf/surf-hud.ts';
 import {boardLift,liftRideStep,type SkiLift,type LiftRide} from './snow/ski-lift.ts';
 import {createSkiLiftView} from './snow/ski-lift-view.ts';
@@ -116,6 +117,8 @@ const devSpeed = document.querySelector<HTMLElement>('#dev-speed')!;
 const devMemory = document.querySelector<HTMLElement>('#memory')!;
 /** Player interface (src/ui): created once the world, gameplay and NPCs exist. */
 let gameUi:GameUi|null=null;
+let placedSurfBoard:SurfBoardPlacement|null=null;
+let lastSafeSurfBoard:SurfBoardPlacement|null=null;
 // Detect phone controls before the HUD is constructed, so its gas hint uses the Boost label.
 const touchCapable=isPhoneTouchDevice();
 if(touchCapable)document.body.classList.add('touch-mode');
@@ -295,7 +298,8 @@ if(playable){
     onNpcStartDialogue:(id)=>npcActorActions?.talkTo(id,{x:player.position.x,z:player.position.z})??false,
     onSound:(id,p)=>audio?.playSound(id,p),collisions:playable.collisions,temporary:!!(studioTest||buildScope),saveScope:studioTest?.snapshotId??buildScope??undefined,getPosition:()=>({x:player.position.x,y:player.position.y,z:player.position.z}),objects:world.objects,showInfo,
     activities:playable.activities,getSpace:()=>player.space,
-    getGas:()=>gasLevel(player),
+    getGas:()=>gasLevel(player),getSurfBoard:()=>placedSurfBoard,
+    setSurfBoard:board=>{placedSurfBoard=board&&isSurfBoardWaterSafe(board,waterSurface,terrainHeight,(x,z)=>!!surfFieldAt(x,z))?board:null;},
     getGasProgress:()=>structuredClone(flightProgress),
     setGasProgress:value=>{flightProgress={...value,currentFlightDistance:0,currentFlightNoGas:0,currentCombo:0,lastPulseAt:-1};player.gasCapacityLevel=value.capacityLevel;player.gasPowerLevel=value.powerLevel;player.gasControlLevel=value.controlLevel;},
     setGas:value=>{player.gasReserve=value;player.gasBoosting=false;player.gasPulseClock=0;player.gasPulseSeq=0;player.gasThrust=0;player.gasPulseRemaining=0;player.gasCooldown=0;player.gasBoostHeld=false;player.gasRepeatArmed=false;gasVisualSeq=0;lastFlightPulseSeq=0;boostWindActive=false;},
@@ -310,10 +314,29 @@ if(playable){
   if(gameplay.gathering){const gather=gameplay.gathering;world.setDressingFilter((cx,cz,kind,index)=>gather.hiddenAt(cx,cz,kind,index));gather.subscribe(()=>world.redrawDressing());}
 }
 const worldClock=gameplay?.runtime.clock??new WorldClock(),climate=gameplay?.runtime.climate??createClimate(defaultEnvironment(definition.config.seed));
+// Existing bridge placements are the authoritative runtime deck geometry.
+const npcBridgeSurfaces=new Map(definition.placements.filter(p=>p.assetId==='settlement.bridge')
+  .map(p=>[p.id,p] as const));
+const npcExteriorDoors=new Set(definition.placements.filter(p=>p.assetId==='settlement.door').map(p=>p.id));
 const npcs = createNPCSystem(scene, definition.npcs,isLegacyTerrain()?undefined:[],gameplay?.dialogueSession,{
   worldTime:()=>worldClock.time,dayLengthSeconds:climate.definition.dayLengthSeconds,
   initialDayPhase:climate.definition.initialDayPhase,paths:definition.paths,
+  rigBudget:((navigator as Navigator&{deviceMemory?:number}).deviceMemory??8)<=4?8:
+    ((navigator as Navigator&{deviceMemory?:number}).deviceMemory??8)<=8?12:20,
   weather:()=>climate.state(worldClock.time).weather,
+  homeDoor:(homeId:string)=>gameplay&&npcExteriorDoors.has(homeId+'-door')?homeId+'-door':null,
+  openHomeDoor:(doorId:string)=>{gameplay?.openDoorForNPC(doorId,2);},
+  surfaces:{
+    groundHeight:terrainHeight,
+    supportHeight:(id,x,z)=>{
+      const b=npcBridgeSurfaces.get(id);if(!b||!b.scale3)return null;
+      const dx=x-b.x,dz=z-b.z,a=b.rotation,co=Math.cos(a),si=Math.sin(a);
+      if(Math.abs(dx*co-dz*si)>b.scale3[0]/2+.02||
+        Math.abs(dx*si+dz*co)>b.scale3[2]/2-.12)return null;
+      const deck=terrainHeight(b.x,b.z)+(b.y??0);
+      return deck>terrainHeight(x,z)-.05?deck:null;
+    },
+  },
   walkable:(x,z)=>{
     const collision=gameplay?.collision;if(!collision)return true;
     const ground=terrainHeight(x,z);
@@ -743,7 +766,7 @@ let started = false;
 let elapsed = 0;
 // Mobile controls contribute directly to the existing deterministic player input.
 if(touchCapable){
-  mobileTouch=createTouchControls({jump:()=>{if(aboard)actionQueue++;else if(player.mode==='swim'||player.mode==='dive')touchStrokeQueue=1;else jumpQueue++;},action:()=>{actionQueue++;},alternate:()=>{if(player.mode==='ground'||player.mode==='roll')rollQueue++;else if(player.mode==='swim'||player.mode==='dive')jumpQueue++;}});
+  mobileTouch=createTouchControls({jump:()=>{if(aboard)actionQueue++;else if(player.mode==='swim'||player.mode==='dive')touchStrokeQueue=1;else jumpQueue++;},action:()=>{actionQueue++;},alternate:()=>{if(player.mode==='ground'||player.mode==='roll')rollQueue++;},dive:()=>{if(player.mode==='swim'||player.mode==='dive')jumpQueue++;},surf:()=>toggleSurfBoard()});
   // Restore touch controls immediately after the player accepts portrait or rotates back.
   // Do not wait for a simulation tick: that tick may still be paused by the orientation guide.
   mobileLandscape=createMobileLandscape(blocked=>{
@@ -815,9 +838,52 @@ function input(): Controls {
     boostHeld:flightBoostHeld(player.mode,shiftHeld,touchAccelerateHeld),
     swimStrokePressed:touchStrokeQueue>0,
     snowEquipment:snowDemo?snowEquipment:gameplay?.equipment.hands==='tool:snowboard'?'snowboard':gameplay?.equipment.hands==='tool:skis'?'skis':null,
-    surfEnabled:!!surfField&&(surfDemo||gameplay?.equipment.hands==='tool:surfboard'),surfActionPressed:surfQueue>0,
-    surfPaddleHeld:!!surfField&&shiftHeld,surfPump:!!surfField&&shiftHeld&&player.surfStage==='ride',
+    surfEnabled:!!surfField&&(surfDemo||gameplay?.equipment.hands==='tool:surfboard'||(player.mode==='surf'||player.surfAirborne||surfQueue>0)&&!!gameplay?.has('tool:surfboard')),surfActionPressed:surfQueue>0,
+    surfPaddleHeld:!!surfField&&(shiftHeld||touchAccelerateHeld),surfPump:!!surfField&&(shiftHeld||touchAccelerateHeld)&&player.surfStage==='ride',
   };
+}
+/** Deploy the equipped board onto deep wave-zone water, then board it from swimming. */
+function toggleSurfBoard():void{
+ if(aboard||player.space)return;
+ if(player.mode==='surf'||player.surfAirborne){
+   const x=player.position.x,z=player.position.z,w=waterSurface(x,z);
+   placedSurfBoard=boardOnWater(x,z,player.surfHeading??yaw,waterSurface)??lastSafeSurfBoard;
+   lastSafeSurfBoard=null;
+   player.mode='swim';player.surfStage=undefined;player.surfAirborne=false;
+   if(w!==null)player.position.y=Math.min(player.position.y,w-.38);
+   player.velocity.multiplyScalar(.3);player.velocity.y=0;surfQueue=0;
+   showInfo('Descendu de la planche : elle flotte à proximité.');return;
+ }
+ if(placedSurfBoard){
+   const dist=distanceToBoard(placedSurfBoard,player.position.x,player.position.z);
+   if(dist>2.5){showInfo('Rapprochez-vous de votre planche pour monter dessus.','warning');return;}
+   if(player.mode!=='swim'&&player.mode!=='dive'){
+     showInfo('Entrez dans l’eau pour monter sur la planche.','warning');return;
+   }
+   if(!isSurfBoardWaterSafe(placedSurfBoard,waterSurface,terrainHeight,(x,z)=>!!surfFieldAt(x,z))){
+     showInfo('Cette eau ne permet pas encore le surf.','warning');return;
+   }
+   player.position.x=placedSurfBoard.x;player.position.z=placedSurfBoard.z;
+   player.position.y=placedSurfBoard.y-.5;player.diving=false;player.velocity.set(0,0,0);
+   lastSafeSurfBoard=null;
+   surfField=surfFieldAt(player.position.x,player.position.z);
+   surfQueue=1;surfRequestUntilTick=motionTick+90;placedSurfBoard=null;
+   showInfo('Sur la planche : ramez pour prendre une vague.');return;
+ }
+ if(!surfDemo&&gameplay?.equipment.hands!=='tool:surfboard'){
+   showInfo('Équipez la planche depuis le sac avant de la poser.','warning');return;
+ }
+ const sx=Math.sin(yaw),cz=Math.cos(yaw);
+ let spot:SurfBoardPlacement|null=null;
+ for(const d of [0,1.2,2,3]){
+   const x=player.position.x+sx*d,z=player.position.z+cz*d;
+   const candidate=boardOnWater(x,z,yaw,waterSurface);
+   if(!candidate||!isSurfBoardWaterSafe(candidate,waterSurface,terrainHeight,(px,pz)=>!!surfFieldAt(px,pz)))continue;
+   spot=candidate;break;
+ }
+ if(!spot){showInfo('Approchez-vous d’une zone de surf avec assez de profondeur.','warning');return;}
+ placedSurfBoard=spot;
+ showInfo('Planche posée sur l’eau. Nagez près d’elle puis utilisez Planche/B pour monter.');
 }
 function gameplayInputActive():boolean{
   return started&&!gameUi?.blocking&&!customization.isOpen&&!npcs.dialogue.isOpen&&!mobileLandscape?.blocked;
@@ -872,24 +938,7 @@ window.addEventListener('keydown', (e) => {
   }
   if (e.code === 'KeyC') cropQueue++;
   if (e.code === 'KeyB'&&snowDemo){snowEquipment=snowEquipment==='snowboard'?'skis':'snowboard';showInfo('Équipement : '+(snowEquipment==='skis'?'skis':'snowboard'));}
-  else if(e.code==='KeyB'&&surfField){
-    if(player.mode==='surf'){
-      player.mode='swim';player.surfStage=undefined;player.surfAirborne=false;
-      const water=waterSurface(player.position.x,player.position.z);
-      if(water!==null)player.position.y=Math.min(player.position.y,water-.38);
-      // Stowing while afloat retains a little drift but cannot propel the swimmer
-      // across the entire short practice bay before the next re-equip action.
-      player.velocity.x*=.3;player.velocity.z*=.3;player.velocity.y=0;
-      surfQueue=0;
-      showInfo('Planche rangée : nage');
-    }
-    else if(surfDemo||gameplay?.equipment.hands==='tool:surfboard'){
-      // Queue remains valid while the breaking-wave tumble ends. Do not silently
-      // consume B on the same tick if the surfer cannot yet stand on the board.
-      surfQueue=1;surfRequestUntilTick=motionTick+90;
-      showInfo('Planche de surf : ramez avec Z/Shift, sautez avec Espace');
-    }else showInfo('Équipez la planche de surf depuis votre sac avant de monter dessus.');
-  }
+  else if(e.code==='KeyB'&&(surfFields.length||placedSurfBoard))toggleSurfBoard();
   if (e.code === 'KeyR' && started) {
     stopFlightCourse();stopRace();
     const reset = spawnPlayer();
@@ -1270,7 +1319,8 @@ let boatSteer=0,motionTick=0,nextTouchTargetAt=0,lastFlightPulseSeq=0;
 function tick(dt: number) {
   // Mobile input: immediately release controls when a menu opens or the boost stops being valid.
   mobileTouch?.setEnabled(started&&!gameUi?.blocking&&!customization.isOpen&&!npcs.dialogue.isOpen&&!mobileLandscape?.blocked);
-  mobileTouch?.setMode(player.mode,aboard,gasShots(player)>0&&(player.mode!=='air'||!player.airBoostUsed));
+  mobileTouch?.setMode(player.mode,aboard,gasShots(player)>0&&(player.mode!=='air'||!player.airBoostUsed),
+     !aboard&&(!!placedSurfBoard||surfFields.length>0&&(surfDemo||gameplay?.equipment.hands==='tool:surfboard'||player.mode==='surf')));
   // Interaction may change without changing movement mode. Throttle target queries
   // to 8 Hz; the action itself still resolves the target again when pressed.
   if(mobileTouch&&elapsed>=nextTouchTargetAt){
@@ -1314,6 +1364,8 @@ function tick(dt: number) {
   surfWaterView=surfIndex>=0?surfWaterViews[surfIndex]:null;
   surfBarrelView=surfIndex>=0?surfBarrelViews[surfIndex]:null;
   // In glide, mobile input now reaches the flight simulation directly.
+  // A sold or discarded board cannot remain duplicated in the water.
+  if(placedSurfBoard&&!surfDemo&&!gameplay?.has('tool:surfboard'))placedSurfBoard=null;
   const keys = input();
   if(snowLiftRide?.phase==='waiting'&&snowLift&&Math.hypot(player.position.x-snowLift.path[0].x,player.position.z-snowLift.path[0].z)>5){snowLiftRide=null;showInfo('Embarquement annulé');}
   const chair=snowLift&&snowLiftRide?liftRideStep(snowLift,snowLiftRide,elapsed):null;
@@ -1341,6 +1393,10 @@ function tick(dt: number) {
     const previousSurfJump=player.surfJumpSeq??0;
     const previousSurfLanding=player.surfLandingSeq??0;
     const previousSurfWipeout=player.surfWipeoutSeq??0;
+    if(player.mode==='surf'||player.surfAirborne){
+      const board=boardOnWater(player.position.x,player.position.z,player.surfHeading??yaw,waterSurface);
+      if(board&&isSurfBoardWaterSafe(board,waterSurface,terrainHeight,(x,z)=>!!surfFieldAt(x,z)))lastSafeSurfBoard=board;
+    }
     simulatePlayer(player, keys, dt,gameplay?.collision,surfField??undefined,motionTick+1);motionTick++;
     if((player.surfPaddleClock??0)>previousSurfPaddle+.08&&motionTick-lastSurfPaddleSoundTick>=15){
       audio?.emit('water.swim',{position:player.position,source:'player'});lastSurfPaddleSoundTick=motionTick;
@@ -1351,7 +1407,21 @@ function tick(dt: number) {
     }
     if((player.surfJumpSeq??0)>previousSurfJump)audio?.emit('player.jump',{position:player.position,source:'player'});
     if((player.surfLandingSeq??0)>previousSurfLanding)audio?.emit('player.land',{position:player.position,source:'player'});
-    if((player.surfWipeoutSeq??0)>previousSurfWipeout)audio?.emit('water.enter',{position:player.position,source:'player'});
+     if((player.surfWipeoutSeq??0)>previousSurfWipeout||
+       (previousSurfStage!==undefined&&player.mode==='swim'&&player.surfStage===undefined)){
+      // A wipeout can cross the field boundary without emitting an event. Recover
+      // the last valid position, not the invalid outgoing sample.
+      const candidates=[player.position,previousPlayerPosition,...(lastSafeSurfBoard?[lastSafeSurfBoard]:[])];
+      for(const pos of candidates){
+        const board=boardOnWater(pos.x,pos.z,player.surfHeading??yaw,waterSurface);
+        if(board&&isSurfBoardWaterSafe(board,waterSurface,terrainHeight,(x,z)=>!!surfFieldAt(x,z))){
+          placedSurfBoard=board;break;
+        }
+      }
+      lastSafeSurfBoard=null;
+      audio?.emit('water.enter',{position:player.position,source:'player'});
+      showInfo(placedSurfBoard?'Chute ! Votre planche flotte près de vous.':'Chute ! Retournez dans la zone de surf pour récupérer votre planche.');
+    }
     if(keys.surfActionPressed && (player.mode==='surf'||player.surfAirborne||
       motionTick>=surfRequestUntilTick||!surfField))surfQueue=0;
     if(player.barrelEntryTick===motionTick)showInfo('Tube ! Suivez la crête pour ressortir avant la fermeture.');
@@ -1558,7 +1628,7 @@ function draw(now: number) {
   // Water tumble is a hero-only overlay; keep the hamster swim/dive state authoritative.
   applySurfTumblePose(character,player);
   surfBoardView?.update(player,renderPosition,
-    surfField?.sample(renderPosition.x,renderPosition.z,motionTick));
+    surfField?.sample(renderPosition.x,renderPosition.z,motionTick),placedSurfBoard);
   if(surfHud&&now>=nextSurfHudAt){
     nextSurfHudAt=now+160;
     surfHud.update(player.mode==='surf'||player.surfAirborne||(player.barrelTumbleRemaining??0)>0?{
@@ -1644,6 +1714,7 @@ function draw(now: number) {
         grass: world.grass ? { ...world.grass } : null,
         inventory: gameplay ? { ...gameplay.runtime.state.inventory } : null,
         surfWorld:surfWorldConfig,
+        surfBoardPlaced:placedSurfBoard?{...placedSurfBoard}:null,
         surf:surfField?{
           zoneId:surfField.zone.id,stage:player.surfStage??null,airborne:!!player.surfAirborne,
           equipped:gameplay?.equipment.hands==='tool:surfboard',

@@ -28,10 +28,10 @@ test('camera pitch controls glider only during an active view drag',()=>{
  assert.equal(flightPitchIntent('glide',true,1.5),-1);
 });
 test('Shift / touch acceleration can launch while still, double-jump in air and power glide',()=>{
-  for(const mode of ['roll','swim','dive','climb']){
+  for(const mode of ['roll','climb']){
     assert.equal(flightBoostHeld(mode,true,true),false,mode);
   }
-  for(const mode of ['ground','air','glide']){
+  for(const mode of ['ground','air','glide','swim','dive']){
     assert.equal(flightBoostHeld(mode,false,false),false,mode);
     assert.equal(flightBoostHeld(mode,true,false),true,mode);
     assert.equal(flightBoostHeld(mode,false,true),true,mode);

@@ -47,6 +47,8 @@ export interface AmenityRecord {id:string;role:string;entityHash:string;entry:{x
 export interface SettlementInstance {
     amenities?:AmenityRecord[];
     zoneHashes?:Record<string,string>;
+    /** Provenance of generated native social quest objectives (not savegame state). */
+    objectiveHashes?:Record<string,string>;
     suppressedAmenities?:string[];
     version: 1;
     id: string;
@@ -83,7 +85,7 @@ export function validateSettlementRecipe(raw: unknown, world: WorldDefinitionV3)
 export function validateSettlement(raw: unknown, world: WorldDefinitionV3): SettlementInstance {
     if (!obj(raw))
         throw Error('Établissement invalide');
-    fields(raw, ['version', 'id', 'recipe', 'buildings', 'pathHashes', 'suppressedSlots', 'revision','amenities','suppressedAmenities','zoneHashes']);
+    fields(raw, ['version', 'id', 'recipe', 'buildings', 'pathHashes', 'suppressedSlots', 'revision','amenities','suppressedAmenities','zoneHashes','objectiveHashes']);
     if (raw.version !== 1 || !id(raw.id) || !num(raw.revision, 1, 1e9) || !Number.isInteger(raw.revision) || !Array.isArray(raw.buildings) || raw.buildings.length > 80 || !obj(raw.pathHashes))
         throw Error('Établissement hors limites');
     if (raw.suppressedSlots !== undefined && (!Array.isArray(raw.suppressedSlots) || raw.suppressedSlots.length > 80 || new Set(raw.suppressedSlots).size !== raw.suppressedSlots.length || raw.suppressedSlots.some(v => !num(v, 0, 79) || !Number.isInteger(v))))
@@ -98,6 +100,7 @@ export function validateSettlement(raw: unknown, world: WorldDefinitionV3): Sett
         throw Error('Provenance invalide'); };
     hashes(raw.pathHashes, 256);
     if(raw.zoneHashes!==undefined)hashes(raw.zoneHashes,8);
+    if(raw.objectiveHashes!==undefined)hashes(raw.objectiveHashes,8);
     for (const v of raw.buildings) {
         if (!obj(v))
             throw Error('Bâtiment invalide');
