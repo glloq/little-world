@@ -180,7 +180,7 @@ export function createNPCSystem(
     return residentDialogue(base,routine.role,()=>{
       const hour=residentHour(lifeOptions.worldTime(),lifeOptions.dayLengthSeconds,lifeOptions.initialDayPhase);
       const living=entries.find(e=>e.state===state)?.life?.pose;
-      if(living)return {phase:living.phase,hour,weather:lifeOptions.weather?.()};
+      if(living)return {phase:living.phase,hour,weather:lifeOptions.weather?.(),activityKind:living.activityKind};
       const context=residentContextForHour(routine.role,hour,routine);
       if(state.phase==='walk'){
         const [,end]=residentShift(routine.role);
