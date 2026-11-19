@@ -166,6 +166,28 @@ export function createGameplayView(data:GameplayData,options:Options){
  sync();
  return {
   runtime,collision,activities,slots,compose,gathering,trees,fishing,trade,sellBatch,nearbyShop,workshops,markets,purse,itemName,has,equipment,quests,
+  /** Deliver an accepted, completed quest only to its real nearby giver.
+   * Runtime.grantItems is the single atomic inventory authority for coin/items.
+   * The complete inventory + claimed state are serialized by compose().
+   */
+  claimQuest(instanceId:string,claimId:string){
+    const quest=quests.get(instanceId);
+    if(!quest||quest.status!=='ready')return {ok:false as const,reason:'not-ready'};
+    const giver=npcs.find(n=>n.definition.id===quest.giverId);
+    const player=options.getPosition();
+    if(!giver||Math.hypot(giver.x-player.x,giver.y-player.y,giver.z-player.z)>3.5||
+      collision.occluded({...player,y:player.y+1.2},{x:giver.x,y:giver.y+1.2,z:giver.z},[giver.definition.id]))
+      return {ok:false as const,reason:'giver-unreachable'};
+    const result=quests.claim(instanceId,claimId,rewards=>{
+      if(rewards.some(r=>r.kind==='unlock'))return false;
+      const changes=rewards.map(reward=>reward.kind==='item'
+        ?{itemId:reward.itemId,quantity:reward.quantity}
+        :{itemId:COIN,quantity:reward.quantity});
+      return runtime.grantItems(changes);
+    });
+    if(result.ok)for(const listener of listeners)listener();
+    return result;
+  },
   get navigationRevision(){return navigationRevisions.revision;},
   openDoorForNPC(doorId:string,duration=2):boolean{
    if(!runtime.state.entities[doorId]||!models.has(doorId)||!Number.isFinite(duration)||duration<=0||duration>5)return false;
