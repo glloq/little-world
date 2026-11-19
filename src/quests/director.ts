@@ -29,6 +29,21 @@ export function createQuestDirector(
    .sort((a,b)=>a.instanceId.localeCompare(b.instanceId));
  const serialize=():Record<string,QuestInstanceV1>=>Object.fromEntries(read().map(i=>[i.instanceId,i]));
  return {
+  /** Register offers after NPC route qualification, without destroying
+   * already-accepted instances restored from a save. Deterministic replace.
+   */
+  registerOffers(source:readonly QuestCatalogEntryV1[]):void{
+   if(source.length>128)throw Error('Quest director: offer limit');
+   const next=new Map<string,QuestCatalogEntryV1>();
+   for(const raw of source){
+    const entry=parseQuestCatalogEntry(raw);
+    if(entry.islandId!==config.islandId||next.has(entry.questKey))
+     throw Error('Quest director: duplicate or foreign offer '+entry.questKey);
+    next.set(entry.questKey,entry);
+   }
+   catalog.clear();
+   for(const [id,item]of next)catalog.set(id,item);
+  },
   offers():QuestCatalogEntryV1[]{return [...catalog.values()].map(parseQuestCatalogEntry)
     .sort((a,b)=>a.questKey.localeCompare(b.questKey));},
   get(instanceId:string):QuestInstanceV1|null{
