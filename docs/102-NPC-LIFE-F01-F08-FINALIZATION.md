@@ -24,7 +24,7 @@ Existant : 19 rôles, logements/postes qualifiés, génération déterministe co
 | **F03 Population** | EN COURS | Hameaux, ratios habitat/emploi, budget par village/secteur, diversités et ajustement seed stable | 0/3/10/40/100 habitants, pas d'emploi inventé, absence de perte d'édition auteur |
 | **F04 Actions métiers** | À FAIRE | Contrat d'activité partagé (requirements, availability, anchor, execution, cosmetics), raccordements aux interactions métier existantes | Gestes sans attribution fictive ; transaction uniquement dans système métier natif ; action ajoutable par catalogue |
 | **F05 Dialogues et social** | À FAIRE | Contextes plus riches, barks et scènes sociales légères avec budgets/cooldowns | Pas de blocage des routines ni modification des dialogues auteurs, sous-titres et clavier fonctionnels |
-| **F06 Quêtes** | À FAIRE | Étendre le QuestDirector natif : templates, événements métier fiables, solvabilité, donneur mobile, progression/récompense idempotente | Plusieurs familles faisables, aucune quête orpheline, restore/claim une fois, legacy inchangé |
+| **F06 Quêtes** | Q1 SOCLE EN COURS | Étendre le QuestDirector natif : templates, événements métier fiables, solvabilité, donneur mobile, progression/récompense idempotente | Plusieurs familles faisables, aucune quête orpheline, restore/claim une fois, legacy inchangé |
 | **F07 Studio/génération** | À FAIRE | Panneaux Vie locale/Quêtes, visualisation trajets, édition ancrages/horaires/activités, diagnostic monde complet, compilation | Générer, personnaliser, Undo/Redo, exporter/importer, Jouer ici, régénérer sans écraser auteur |
 | **F08 Qualification/perf** | À FAIRE | Bench CPU/VRAM/heap, budgets 10/40/100 PNJ, CI et essais multi-cartes/multi-îles | Mesures PC 4–8 Go et navigation sans erreur, tests / CI verts au dernier SHA |
 
@@ -71,3 +71,22 @@ Cartes : hameau 3–5 maisons, village agricole, forêt, montagne avec pont, por
 - Limitation de qualification : la CI est relancée à chaque push et annule les jobs plus anciens. Les suites Node et builds étaient vertes sur des commits intermédiaires ; conserver le dernier SHA stable jusqu'à confirmation des checks et des scénarios navigateur.
 
 - 2026-11-19 : F02 — activités Studio V1 enrichies d'une condition météo optionnelle `any/dry/rain`. Le moteur d'agenda ne suit un arrêt que si la condition est satisfaite ; sinon il conserve la position au poste réel. Validation de schéma, tests de pose sèche/pluie et de sauvegarde auteur ajoutés. Les transitions à proximité passent toujours par le garde-fou physique `residentRoutineStepClear` et la récupération existante ; aucun transport instantané n'est volontairement créé. **Conditions météo seules implémentées : priorité générale, événements et abris restent à faire.**
+
+## F06 — Démarrage du moteur de quêtes, sous-lot Q1 uniquement
+
+- `src/quests/schema.ts` : contrats déclaratifs de `QuestTemplateV1`, étapes, récompenses, événements, commandes, catalogue, instances et configuration d'offres. Les objectifs historiques `ObjectiveDefinition` ne sont PAS remplacés.
+- `src/quests/validation.ts` : validateurs fermés, tailles/compteurs bornés et rejet d'instructions inconnues.
+- `tests/quests-schema.test.mjs` : schéma valide, champs inattendus, injections de scripts, mauvais rôles/quantités, événements et compteurs persistants.
+- **Non implémenté** : Q2 producteurs d'événements authentifiés ; Q3 progression ; Q4 claims atomiques ; Q5 UX ; Q6 solvabilité ; Q7 génération ; Q8 Studio ; Q9–Q11.
+- Ces fichiers de contrats sont passifs et n'attribuent jamais de récompense ni n'émettent de faux succès. Le runtime historique reste seul propriétaire des objectifs déjà jouables.
+
+## F01 — Régressions et corrections CI
+
+- Deux tests de franchissement de pont ont initialement échoué lors du renforcement de `layered-routes.ts`. La vérification distingue désormais entrée en rampe, sortie de tablier et terrain au-delà de l'emprise du pont. Test de pont supprimé/réinstallé ajouté.
+- Le dernier SHA doit encore être qualifié sur la totalité des tests et browser checks ; aucun commit antérieur annulé ne vaut preuve de réussite finale.
+
+## F03 — Réduction de densité
+
+- Préserver les résidents édités volontairement même si leur ancien créneau de génération disparaît, conserver leur source/dialogue et réserver leur logement/poste avant de générer des nouveaux.
+- Limiter les nouveaux résidents à la borne de 24 records d'implantation, en tenant compte des services et des résidents protégés.
+- Ajouter test de réduction haute → basse densité et protection des personnages auteur.
