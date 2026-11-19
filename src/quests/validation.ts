@@ -80,7 +80,7 @@ export function parseQuestTemplate(raw:unknown):QuestTemplateV1{
   'Quest template: invalid fields');
  const steps=(v.steps as unknown[]).map(step);
  need(steps.length>0,'Quest template: empty steps');
- return {...structuredClone(v),steps} as QuestTemplateV1;
+ return {...structuredClone(v),steps} as unknown as QuestTemplateV1;
 }
 export function parseQuestGameEvent(raw:unknown):QuestGameEventV1{
  const v=object(raw,['schemaVersion','eventId','type','worldId','islandId','gameMinute','sequence',
