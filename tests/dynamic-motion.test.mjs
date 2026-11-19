@@ -75,7 +75,7 @@ test('roll → jump → deploy → landing preserves momentum without an entry k
  assert.equal(p.mode,'air');assert.ok(Math.hypot(p.velocity.x,p.velocity.z)>speed*.95);
  simulatePlayer(p,input,1/30,q);simulatePlayer(p,{...input,jumpPressed:true},1/30,q);
  assert.equal(p.mode,'glide');assert.ok(p.velocity.length()>speed*.8);
- step(p,q,300,{cameraPitch:.4});assert.equal(p.mode,'ground');assert.equal(p.position.y,0);
+ step(p,q,300,{cameraPitch:.4});assert.equal(p.mode,'roll','fast landing remains a roll');assert.equal(p.position.y,0);
 });
 test('roll uses surfaces, loses speed in corners and climbs using acquired speed',()=>{
  const coast=surface=>{const q=flat();q.setMaterialSampler(()=>surface);const p=actor();p.mode='roll';p.velocity.z=10;step(p,q,30);return p.velocity.length();};
