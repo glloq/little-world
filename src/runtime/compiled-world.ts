@@ -80,6 +80,7 @@ export function playableFromCompiled(bundle:CompiledWorldBundle,spawn?:Point3):P
   for(const entity of entities)if(entity.components.Habitat&&entity.components.Transform)collisions.push(...habitatColliders(entity.id,entity.components.Transform));
   const actions=[...gameplay.interactions.flatMap(i=>i.sequence),...gameplay.dialogues.flatMap(d=>d.lines.flatMap(l=>[...(l.actions??[]),...l.choices.flatMap(c=>c.actions??[])]))];
   validateAudioLinks(manifest.audio,gameplay.entities.map(e=>e.id),actions.filter(a=>a.type==='playSound').map(a=>(a as {soundId:string}).soundId));
+  const questCatalog=Object.values(logic.libraries.questCatalog??{}).map(q=>structuredClone(q));
   const races=Object.values(logic.libraries.races??{}).map(r=>structuredClone(r));
   const surfZones=Object.values(logic.libraries.surfZones??{}).map(z=>structuredClone(z));
   const surfFeatures=Object.values(logic.libraries.surfFeatures??{}).map(f=>structuredClone(f));
