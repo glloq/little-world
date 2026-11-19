@@ -30,8 +30,12 @@ try{
  s=await sample();assert.equal(s.mode,'glide');assert.ok(s.velocity[1]<-4,'looking down causes a deliberate dive');assert.ok(Math.hypot(...s.velocity)>Math.hypot(...record.samples.deploy.velocity));record.samples.dive=s;record.checks.push('Viser vers le bas : descente et accélération');
  await page.screenshot({path:out+'/dive.png'});
  await page.mouse.move(640,780,{steps:12});await ticks(40);
- s=await sample();assert.equal(s.mode,'glide');assert.ok(s.velocity[1]>0,'looking up trades speed for altitude');record.samples.pullUp=s;record.checks.push('Viser vers le haut : remontée temporaire');
+ s=await sample();assert.equal(s.mode,'glide');assert.ok(s.velocity[1]>record.samples.dive.velocity[1]+3,'pull-up must reduce the descent without overriding low-speed recovery');record.samples.pullUp=s;record.checks.push('Viser vers le haut : redressement adapté à la vitesse');
  await page.mouse.up();await page.screenshot({path:out+'/pull-up.png'});
+ // Releasing the drag must restore descending trim even when the view still looks up.
+ await ticks(30);s=await sample();assert.equal(s.mode,'glide');
+ assert.ok(s.flight.pitch<0,'releasing camera drag must restore descending auto-trim');
+ record.samples.trim=s;record.checks.push('Relâcher la caméra : retour à la descente neutre');
  const heading=s.flight.heading;
  await page.mouse.move(640,400);await page.mouse.down();await page.mouse.move(790,400);await page.mouse.up();await ticks(15);
  s=await sample();assert.ok(Math.abs(s.flight.heading-heading)<.01,'horizontal camera drag does not steer flight');record.samples.turn=s;record.checks.push('Caméra libre : aucun virage physique sans commande');

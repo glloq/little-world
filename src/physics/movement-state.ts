@@ -64,7 +64,7 @@ export function replayMovement(p:Player,s:MovementSnapshot,commands:readonly Mov
  let next=s.tick;
  for(const c of commands){
   if(c.tick!==++next)throw Error('Commandes de mouvement non consécutives');
-  const k=c.input;if(!k||!Number.isFinite(k.cameraYaw)||!Number.isFinite(k.forward)||Math.abs(k.forward)>1||!Number.isFinite(k.right)||Math.abs(k.right)>1||['run','jumpPressed','spaceHeld','dive'].some(f=>typeof k[f as keyof Controls]!=='boolean')||k.cameraPitch!==undefined&&(!Number.isFinite(k.cameraPitch)||Math.abs(k.cameraPitch)>1.6)||k.autoRun!==undefined&&typeof k.autoRun!=='boolean'||k.jumpAssist!==undefined&&typeof k.jumpAssist!=='boolean'||k.boostHeld!==undefined&&typeof k.boostHeld!=='boolean'||
+  const k=c.input;if(!k||!Number.isFinite(k.cameraYaw)||!Number.isFinite(k.forward)||Math.abs(k.forward)>1||!Number.isFinite(k.right)||Math.abs(k.right)>1||['run','jumpPressed','spaceHeld','dive'].some(f=>typeof k[f as keyof Controls]!=='boolean')||k.cameraPitch!==undefined&&(!Number.isFinite(k.cameraPitch)||Math.abs(k.cameraPitch)>1.6)||k.flightPitchInput!==undefined&&(!Number.isFinite(k.flightPitchInput)||Math.abs(k.flightPitchInput)>1)||k.autoRun!==undefined&&typeof k.autoRun!=='boolean'||k.jumpAssist!==undefined&&typeof k.jumpAssist!=='boolean'||k.boostHeld!==undefined&&typeof k.boostHeld!=='boolean'||
  ['surfEnabled','surfActionPressed','surfPaddleHeld','surfPump'].some(f=>k[f as keyof Controls]!==undefined&&typeof k[f as keyof Controls]!=='boolean'))throw Error('Commande de mouvement invalide');
  }
  restoreMovement(p,s);let tick=s.tick;

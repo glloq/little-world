@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {shouldPreventGameplayKeyDefault,shouldSuppressGameplayContextMenu,flightBoostHeld} from '../src/input/gameplay-input.ts';
+import {shouldPreventGameplayKeyDefault,shouldSuppressGameplayContextMenu,flightBoostHeld,flightPitchIntent} from '../src/input/gameplay-input.ts';
 
 test('gameplay captures Space and arrows, but leaves menus, text editing and other keys native',()=>{
   for(const code of ['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight']){
@@ -17,6 +17,15 @@ test('context menu is disabled across game DOM while running, except editable fi
   assert.equal(shouldSuppressGameplayContextMenu(true,true),false);
   assert.equal(shouldSuppressGameplayContextMenu(false,false),false);
   assert.equal(shouldSuppressGameplayContextMenu(false,true),false);
+});
+test('camera pitch controls glider only during an active view drag',()=>{
+ assert.equal(flightPitchIntent('glide',false,-.77),0);
+ assert.equal(flightPitchIntent('air',true,-.77),0);
+ assert.equal(flightPitchIntent('glide',true,-.77),1);
+ assert.equal(flightPitchIntent('glide',true,.77),-1);
+ assert.equal(flightPitchIntent('glide',true,0),0);
+ assert.equal(flightPitchIntent('glide',true,NaN),0);
+ assert.equal(flightPitchIntent('glide',true,1.5),-1);
 });
 test('Shift / touch acceleration can launch while still, double-jump in air and power glide',()=>{
   for(const mode of ['roll','swim','dive','climb']){
