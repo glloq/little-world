@@ -36,7 +36,7 @@ export interface QuestGameEventV1{
  schemaVersion:1;eventId:string;type:string;worldId:string;islandId:string;
  gameMinute:number;sequence:number;actorId?:string;targetId?:string;
  itemId?:string;quantity?:number;source?:string;recipeId?:string;raceId?:string;
- measuredSeconds?:number;
+ measuredSeconds?:number;distanceM?:number;
 }
 export interface QuestCommandV1{
  commandId:string;type:'accept'|'cancel'|'claim';instanceId:string;actorId?:string;
