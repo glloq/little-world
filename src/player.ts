@@ -38,6 +38,8 @@ export interface Controls {
   /** Camera pitch relative to the default view (rad, positive = looking down): underwater, moving
    * forward follows it (looking down dives down). Flight controls are independent of the camera. */
   cameraPitch?: number;
+  /** Signed temporary flight intent: +1 climb, -1 dive, 0 auto-trim. Optional in old replays. */
+  flightPitchInput?:number;
   /** Pulse boost via Shift or the separate mobile Boost control; glide only. */boostHeld?:boolean;
   /** One mobile swim stroke (edge-triggered), leaving PC Space dive unchanged. */swimStrokePressed?:boolean;
   snowEquipment?:SnowEquipment|null;
@@ -395,10 +397,9 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
           v.y=Math.max(v.y,BOOST_LIFT.glideVy);
           p.glidePitch=Math.atan2(v.y,Math.max(Math.hypot(v.x,v.z),.01));
         }
-        // Camera vertical aim controls dive/climb. Forward input must never force a
-        // dive (notably when the phone stick is pushed up after launching).
-        // Pulling back instead adds aerodynamic braking, without free propulsion.
-        const flightPitch=clamp(keys.cameraPitch??0,-.77,.98);
+        // Camera tilt alone is passive. A drag sends temporary pitch intent;
+        // releasing it auto-trims. Forward movement never forces a dive.
+        const flightPitch=clamp(keys.flightPitchInput??0,-1,1);
         const flightBrake=Math.max(0,-forward);
         p.glideBrake=flightBrake;
         glideVelocity(p,glideSteeringYaw(p,right,dt),flightPitch,flightBrake,dt,undefined,gasAcceleration,gasMastery(p));
