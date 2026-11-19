@@ -34,6 +34,18 @@ export function reassignResident(p:ProjectDocument,id:string,homeId:string,jobId
  if(!choices)throw Error('Personnage sans résidence générée : utiliser le trajet manuel');
  const home=choices.homes.find(h=>h.id===homeId),job=choices.jobs.find(j=>j.id===jobId);
  if(!home||!job)throw Error('Maison ou activité non disponible pour le métier choisi');
+ // Author edits must not silently double-book a single-worker station or overfill a home.
+ // Children may share a playground, but employment anchors are exclusive.
+ const records=p.libraries.settlements?.[choices.settlementId]?.amenities??[];
+ const occupied=records.filter(record=>record.id!==id).map(record=>{
+  const index=p.entityIndex[record.id];
+  return index?p.chunks[index.ownerChunkId]?.entities[record.id]?.components.Resident:undefined;
+ }).filter((r):r is NonNullable<typeof r>=>!!r);
+ if(occupied.filter(r=>r.homeAnchorId===homeId).length>=2)
+  throw Error('Domicile complet : deux autres résidents y sont déjà affectés');
+ if(occupied.some(r=>r.workAnchorId===jobId&&r.role!=='child')&&
+    !['child','villager'].includes(occupied.find(r=>r.workAnchorId===jobId)?.role??''))
+  throw Error('Poste déjà attribué à un autre travailleur');
  const loc=p.entityIndex[id],source=loc?p.chunks[loc.ownerChunkId]?.entities[id]:undefined,
   routine=source?resolveEntity(p,source).components.Resident:undefined;
  if(!source||!routine)throw Error('Resident inconnu');
