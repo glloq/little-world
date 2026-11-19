@@ -101,7 +101,14 @@ export function createSkyRenderer(scene: THREE.Scene, camera: THREE.PerspectiveC
   mesh.frustumCulled = false;
   scene.add(mesh);
   let cloudsEnabled = true;
-  function update(params: {color: THREE.Color; sunDirection: THREE.Vector3; sunAltitude: number; cloudCover: number; wind: number; time: number; detail: number; underground: boolean}) {
+  let visualCloudCover: number | null = null;
+  function update(params: {color: THREE.Color; sunDirection: THREE.Vector3; sunAltitude: number; cloudCover: number; wind: number; time: number; deltaSeconds?: number; detail: number; underground: boolean}) {
+    // Smooth cosmetic cover transitions without touching deterministic weather history.
+    // First update adopts the current climate (no wrong clear-sky flash after loading).
+    const target = THREE.MathUtils.clamp(params.cloudCover, 0, 1);
+    visualCloudCover = visualCloudCover === null ? target : THREE.MathUtils.lerp(
+      visualCloudCover, target, 1 - Math.exp(-Math.max(0, Math.min(params.deltaSeconds ?? 0, .25)) / 6),
+    );
     mesh.visible = !params.underground && mode !== 'off';
     if (!mesh.visible) return;
     mesh.position.copy(camera.position);
@@ -109,7 +116,7 @@ export function createSkyRenderer(scene: THREE.Scene, camera: THREE.PerspectiveC
     uniforms.baseColor.value.copy(params.color);
     uniforms.sunDirection.value.copy(params.sunDirection);
     uniforms.sunAltitude.value = params.sunAltitude;
-    uniforms.cloudCover.value = params.cloudCover;
+    uniforms.cloudCover.value = visualCloudCover;
     uniforms.wind.value = params.wind;
     uniforms.time.value = params.time;
     cloudsEnabled = params.detail < 2 && mode !== 'sun';
@@ -117,7 +124,7 @@ export function createSkyRenderer(scene: THREE.Scene, camera: THREE.PerspectiveC
   }
   return {
     update,
-    get metrics() { return {mode: mode === 'off' || mode === 'sun' ? mode : '2d', visible: mesh.visible, clouds2d: mesh.visible && cloudsEnabled, clouds3d: 0, skyDrawCalls: mesh.visible ? 1 : 0, skyTextureBytes: bytes.byteLength}; },
+    get metrics() { return {mode: mode === 'off' || mode === 'sun' ? mode : '2d', visible: mesh.visible, clouds2d: mesh.visible && cloudsEnabled, clouds3d: 0, visualCloudCover, skyDrawCalls: mesh.visible ? 1 : 0, skyTextureBytes: bytes.byteLength}; },
     dispose() {mesh.removeFromParent(); geometry.dispose(); material.dispose(); atlas.dispose();},
   };
 }
