@@ -36,7 +36,7 @@ export function createNpcWorkshopEconomy(
   const next={...stock};
   for(const change of changes){
    const max=limits.get(change.itemId);
-   if(!supportedItems.has(change.itemId)||!amount(max??-1)||!amount(change.quantity+0)&&!Number.isSafeInteger(change.quantity))return false;
+   if(!supportedItems.has(change.itemId)||!amount(max??-1)||!Number.isSafeInteger(change.quantity))return false;
    const value=(next[change.itemId]??0)+change.quantity;
    if(!amount(value)||value>max!)return false;
    next[change.itemId]=value;
