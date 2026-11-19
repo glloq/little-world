@@ -435,6 +435,7 @@ export function createNPCSystem(
                     lifeOptions.dayLengthSeconds,lifeOptions.initialDayPhase,Math.max(.2,state.definition.speed))
                   :residentPoseAt(routine,life.route,Math.max(0,now-life.pausedSeconds),
                     lifeOptions.dayLengthSeconds,lifeOptions.initialDayPhase,Math.max(.2,state.definition.speed));
+                life.pose=pose; // Dialogue context follows the schedule even while physically recovering.
                 const oldX=state.x,oldZ=state.z;
                 // Close residents must physically catch up to the daily schedule.
                 // No teleport through a wall when the world clock jumps or an
@@ -465,7 +466,7 @@ export function createNPCSystem(
                   state.phase=pose.phase==='activity'?(pose.activityKind==='social'?'greet':'idle'):
                     pose.phase==='work'?(busy?'work':routine.role==='child'&&Math.hypot(state.vx,state.vz)>.15?'walk':'idle'):
                     pose.phase==='to-work'||pose.phase==='to-home'||pose.phase==='to-activity'?'walk':'idle';
-                  life.pose=pose;life.lastSample=now;
+                  life.lastSample=now;
                 }
               }catch{
                 // Invalid route/clock: preserve the source NPC's legacy fallback,
