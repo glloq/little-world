@@ -273,6 +273,7 @@ export function createNPCSystem(
   const byId=new Map(entries.map(entry=>[entry.state.definition.id,entry]));
   let socialPartners=new Map<string,string>(),lastSocialScan=-1;
   let rigIds=new Set<string>(),lastRigSample=-1;
+  let scriptedReplans=0,scriptedBlocked=0,scriptedCompleted=0;
   function nearest(player: NPCPoint) {
     let best: (typeof entries)[number] | null = null,
       distance = 5.5;
@@ -318,7 +319,7 @@ export function createNPCSystem(
     talkTo,
     setLighting(color:THREE.Color|null){distant.setLighting(color);},
     states: entries.map((entry) => entry.state),
-    get lifeStats(){return {assigned:entries.filter(e=>!!e.state.definition.routine).length,routed:entries.filter(e=>!!e.life).length,agendas:entries.filter(e=>!!e.life?.agenda).length,unqualifiedAgendas:entries.filter(e=>e.state.definition.routine?.activities?.length&&!e.life?.agenda).length,socialPairs:socialPartners.size/2,animatedRigs:entries.filter(e=>!!e.model).length,rigBudget:lifeOptions?.rigBudget??12,roadNodes:router?.nodes??0,roadTruncated:router?.truncated??false};},
+    get lifeStats(){return {assigned:entries.filter(e=>!!e.state.definition.routine).length,routed:entries.filter(e=>!!e.life).length,agendas:entries.filter(e=>!!e.life?.agenda).length,unqualifiedAgendas:entries.filter(e=>e.state.definition.routine?.activities?.length&&!e.life?.agenda).length,socialPairs:socialPartners.size/2,animatedRigs:entries.filter(e=>!!e.model).length,rigBudget:lifeOptions?.rigBudget??12,scriptedReplans,scriptedBlocked,scriptedCompleted,roadNodes:router?.nodes??0,roadTruncated:router?.truncated??false};},
     update(dt: number, time: number, position: NPCPoint,camera?:THREE.PerspectiveCamera) {
       if (disposed) return;
       distant.begin();distant.update(time);
@@ -356,11 +357,11 @@ export function createNPCSystem(
                   if(alternative&&residentRouteAheadClear(alternative,0,walkable,3)){
                     job.route=alternative;job.startAt=now;job.pausedFor=0;
                     job.lastDistance=0;job.lastCheckedAt=now;
-                    job.replans++;distance=0;
+                    job.replans++;scriptedReplans++;distance=0;
                   }else{
                     // Stop at the last qualified position instead of crossing
                     // the newly blocked segment. No teleport to the destination.
-                    entry.scripted=null;state.vx=0;state.vz=0;state.phase='idle';
+                    entry.scripted=null;scriptedBlocked++;state.vx=0;state.vz=0;state.phase='idle';
                     distance=0;
                   }
               }
@@ -373,7 +374,7 @@ export function createNPCSystem(
               state.phase=distance>=job.route.length?'idle':'walk';
               if(distance>=job.route.length){
                 state.vx=0;state.vz=0;
-                if(job.arrivedAt===null)job.arrivedAt=now;
+                if(job.arrivedAt===null){job.arrivedAt=now;scriptedCompleted++;}
                 if(now-job.arrivedAt>60&&Math.hypot(position.x-state.x,position.z-state.z)>40)entry.scripted=null;
               }
               }
