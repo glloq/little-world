@@ -358,7 +358,21 @@ if(gameplay){
     questIslandId,certified,8);
   const visits=generateResidentVisitQuestOffers(definition.npcs,gameplay.runtime.data,
     questIslandId,certified,4);
-  const authored=playable?.questCatalog??[];
+  // Studio projects use the source world ID; published archipelagos use a
+  // registry island ID. Rebind only source-local fields at publication time.
+  const sourceIslandId=playable?.gameplay.worldId??questIslandId;
+  const localId=(id:string)=>id===sourceIslandId?questIslandId:id;
+  const authored=(playable?.questCatalog??[]).map(q=>({
+    ...q,islandId:questIslandId,
+    steps:q.steps.map(step=>{
+      if(step.kind==='travel')return {...step,fromIslandId:localId(step.fromIslandId),
+        toIslandId:localId(step.toIslandId)};
+      if(step.kind==='acquire'&&step.fromIslandId)
+        return {...step,fromIslandId:localId(step.fromIslandId)};
+      if('islandId'in step&&step.islandId)return {...step,islandId:localId(step.islandId)};
+      return step;
+    }),
+  }));
   const offers=[...authored,...social,...visits].filter((entry,index,list)=>
     list.findIndex(other=>other.questKey===entry.questKey)===index);
   gameplay.quests.registerOffers(offers);
