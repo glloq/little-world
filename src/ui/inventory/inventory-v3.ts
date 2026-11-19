@@ -347,7 +347,10 @@ export function inventoryPanelV3(deps:InventoryV3Deps){
       }
       if(target){
         const equipped=target==='hands'?deps.selectedTool()===selectedItem.id:target==='head'&&!!deps.headgear?.equipped();
-        actions.append(button(equipped?'Ranger':'Équiper',()=>equip(selectedItem.id,target),'ui-button ui-primary'));
+        actions.append(button(equipped?'Ranger':'Équiper',()=>equip(selectedItem.id,target),selectedItem.category==='instrument'?'ui-button':'ui-button ui-primary'));
+        // Playing equips the selected instrument in one action; equipping alone stays available.
+        if(selectedItem.category==='instrument'&&target==='hands'&&deps.playInstrument)
+          actions.append(button('Jouer',()=>deps.playInstrument?.(selectedItem.id),'ui-button ui-primary'));
         if(favorites?.includes(selectedItem.id))actions.append(button('Retirer des favoris',()=>{
           if(!favorites)return;
           const next=[...favorites];next[next.indexOf(selectedItem.id)]=null;persistFavorites(next);
@@ -360,7 +363,7 @@ export function inventoryPanelV3(deps:InventoryV3Deps){
             assignFavorite(selectedItem.id,free);
           },'ui-button'));
         }
-        if(selectedItem.category==='instrument'&&equipped&&deps.playInstrument)actions.append(button('Jouer',()=>deps.playInstrument?.(selectedItem.id),'ui-button'));
+        
       }
       if(deps.canSellNearby?.([selectedItem.id])){
         actions.append(button('Vendre',()=>{
