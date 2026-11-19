@@ -1,4 +1,5 @@
 import {parseSkiArea,type SkiAreaV1} from '../snow/ski-area.ts';
+import {parseQuestCatalogEntry} from '../quests/validation.ts';
 import {parseActivities} from './activities.ts';
 import {validateAudioLinks} from '../audio/schema.ts';
 import {parseAnyAudioDefinition,type AnyAudioDefinition} from '../audio/migrate.ts';
@@ -26,6 +27,18 @@ export function parsePlayableWorld(value:unknown):PlayableWorld {
  const rendered=new Set([...world.placements.map(e=>e.id),...world.npcs.map(e=>e.id)]);
  for(const entity of gameplay.entities)if(entity.interactable&&!rendered.has(entity.id))throw Error('Objet interactif sans représentation : '+entity.id);
  if(value.collisions!==undefined){if(!Array.isArray(value.collisions)||value.collisions.length>100000)throw Error('Liste de collisions invalide');const ids=new Set<string>(),entityIds=new Set(gameplay.entities.map(e=>e.id));for(const body of value.collisions){validateCollisionDefinition(body);if(ids.has(body.id)||!entityIds.has(naturalColliderOwner(body.id)))throw Error('Référence collider invalide');ids.add(body.id);}}
+ const questCatalog=value.questCatalog===undefined?undefined:(()=>{
+   if(!Array.isArray(value.questCatalog)||value.questCatalog.length>128)
+     throw Error('Catalogue de quêtes invalide');
+   const seen=new Set<string>();
+   return value.questCatalog.map(entry=>{
+     const offer=parseQuestCatalogEntry(entry);
+     if(offer.islandId!==gameplay.worldId||seen.has(offer.questKey))
+       throw Error('Quête sans monde ou identifiant unique');
+     seen.add(offer.questKey);
+     return offer;
+   });
+ })();
  const races:RaceDefinition[]|undefined=value.races===undefined?undefined:(()=>{
    if(!Array.isArray(value.races)||value.races.length>64)throw Error('Liste de courses invalide');
    const ids=new Set<string>();
@@ -57,7 +70,7 @@ export function parsePlayableWorld(value:unknown):PlayableWorld {
    });
  })();
  const audio=value.audio!==undefined?parseAnyAudioDefinition(value.audio):undefined;const actions=[...gameplay.interactions.flatMap(i=>i.sequence),...gameplay.dialogues.flatMap(d=>d.lines.flatMap(l=>[...(l.actions??[]),...l.choices.flatMap(c=>c.actions??[])]))];validateAudioLinks(audio,gameplay.entities.map(e=>e.id),actions.filter(a=>a.type==='playSound').map(a=>(a as {soundId:string}).soundId));
- return {schemaVersion:1,kind:'playable-world',...(value.alpine?{alpine:parseSkiArea(value.alpine,{minX:-width/2,maxX:width/2,minZ:-length/2,maxZ:length/2})}:{}),...(audio?{audio}:{}),world,gameplay,spawn:{...spawn},...(value.collisions?{collisions:structuredClone(value.collisions) as CollisionDefinition[]}:{} ),...(value.activities!==undefined?{activities:parseActivities(value.activities)}:{}),...(races?{races}:{}),...(surfZones?{surfZones}:{}),...(surfFeatures?{surfFeatures}:{})};
+ return {schemaVersion:1,kind:'playable-world',...(value.alpine?{alpine:parseSkiArea(value.alpine,{minX:-width/2,maxX:width/2,minZ:-length/2,maxZ:length/2})}:{}),...(audio?{audio}:{}),world,gameplay,spawn:{...spawn},...(value.collisions?{collisions:structuredClone(value.collisions) as CollisionDefinition[]}:{} ),...(value.activities!==undefined?{activities:parseActivities(value.activities)}:{}),...(races?{races}:{}),...(questCatalog?{questCatalog}:{}),...(surfZones?{surfZones}:{}),...(surfFeatures?{surfFeatures}:{})};
 }
 const PREFIX='little-world:studio-playtest:v1:';
 export function savePlaytest(value:Omit<StudioPlaytest,'schemaVersion'|'kind'|'snapshotId'|'createdAt'>,storage:Storage=sessionStorage):StudioPlaytest {
