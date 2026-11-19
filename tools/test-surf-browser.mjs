@@ -56,8 +56,16 @@ try{
  await page.waitForFunction(()=>window.littleWorldMetrics?.surf?.equipped===true,{},{timeout:5000});
  check((await page.evaluate(()=>window.littleWorldMetrics?.surf?.equipped))===true,
   'the player equipped an actual surfboard from their bag');
+ // The player may have lost the initial demonstration wave while their bag
+ // was open. Establish SURF explicitly before testing the B -> swim -> B cycle.
+ if((await page.evaluate(()=>window.littleWorldMetrics?.mode))!=='surf'){
+  await page.keyboard.press('KeyB');
+  await page.waitForFunction(()=>window.littleWorldMetrics?.mode==='surf',{},{timeout:10000});
+ }
+ check((await page.evaluate(()=>window.littleWorldMetrics?.mode))==='surf',
+  'actual surfing is active before stowing the board');
  await page.keyboard.press('KeyB');
- await page.waitForTimeout(450);
+ await page.waitForFunction(()=>['swim','dive'].includes(window.littleWorldMetrics?.mode),{},{timeout:7000});
  let after=await page.evaluate(()=>window.littleWorldMetrics);
  check(after.mode==='swim'||after.mode==='dive','B stows the board and returns to swimming');
  await page.keyboard.press('KeyB');
