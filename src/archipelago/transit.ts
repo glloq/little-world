@@ -9,6 +9,7 @@ export const FERRY_RECOVERY_KEY='little-world:ferry-recovery:v1';
 const TTL_MS=10*60*1000;
 export interface TravelStore {getItem(key:string):string|null;setItem(key:string,value:string):void;removeItem(key:string):void}
 export interface TravelerState {inventory:Record<string,number>;gasReserve:number;flightProgress:FlightProgress;
+  /** Optional player vitals, missing in legacy ferry tickets. */satiety?:number;boostRechargeProgress?:number;
   /** Definitions of carried items not necessarily present in the destination world. Optional for V1 tickets. */
   items?:ItemDefinition[];equippedItemId?:string|null;loadout?:PlayerLoadout;}
 export interface FerryTransit {
@@ -43,12 +44,16 @@ export function parseTraveler(raw:unknown):TravelerState {
     });
   }
   if(typeof t.gasReserve!=='number'||!Number.isFinite(t.gasReserve)||t.gasReserve<0||t.gasReserve>10000)throw Error('Réserve de propulsion invalide');
+  for(const key of ['satiety','boostRechargeProgress'] as const){
+    const value=t[key];if(value!==undefined&&(typeof value!=='number'||!Number.isFinite(value)||value<0||value>(key==='satiety'?100:1)))throw Error('Satiété de voyage invalide');
+  }
   const equippedItemId=t.equippedItemId;
   if(equippedItemId!==undefined&&equippedItemId!==null&&
      (typeof equippedItemId!=='string'||!ITEM.test(equippedItemId)||!(inventory[equippedItemId]>0)))throw Error('Équipement de voyage invalide');
   const loadout=t.loadout===undefined?undefined:parsePlayerLoadout(t.loadout);
   if(loadout?.head&&!(inventory[loadout.head]>0))throw Error('Casque de voyage absent du sac');
-  return {inventory,gasReserve:t.gasReserve,flightProgress:parseFlightProgress(t.flightProgress),...(items?{items}:{}),
+  return {inventory,gasReserve:t.gasReserve,flightProgress:parseFlightProgress(t.flightProgress),
+    ...(t.satiety!==undefined?{satiety:t.satiety as number}:{}),...(t.boostRechargeProgress!==undefined?{boostRechargeProgress:t.boostRechargeProgress as number}:{}),...(items?{items}:{}),
     ...(equippedItemId!==undefined?{equippedItemId:equippedItemId as string|null}:{}),...(loadout?{loadout}:{})};
 }
 export function parseTransit(raw:unknown,now=Date.now()):FerryTransit {
