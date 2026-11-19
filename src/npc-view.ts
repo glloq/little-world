@@ -361,7 +361,7 @@ export function createNPCSystem(
                   const r=state.definition.routine,speed=Math.max(.2,state.definition.speed);
                   const target=life.agenda
                     ?residentAgendaPoseAt(r,life.agenda,Math.max(0,now-life.pausedSeconds),
-                        lifeOptions.dayLengthSeconds,lifeOptions.initialDayPhase,speed)
+                        lifeOptions.dayLengthSeconds,lifeOptions.initialDayPhase,speed,lifeOptions.weather?.()??'clear')
                     :residentPoseAt(r,life.route,Math.max(0,now-life.pausedSeconds),
                         lifeOptions.dayLengthSeconds,lifeOptions.initialDayPhase,speed);
                   if(residentRecoveryNeedsRetarget(job.goal,target.position,now,job.lastCheckedAt,2,.35)){
@@ -467,7 +467,7 @@ export function createNPCSystem(
               try {
                 const pose:ResidentAgendaPose=life.agenda
                   ?residentAgendaPoseAt(routine,life.agenda,Math.max(0,now-life.pausedSeconds),
-                    lifeOptions.dayLengthSeconds,lifeOptions.initialDayPhase,Math.max(.2,state.definition.speed))
+                    lifeOptions.dayLengthSeconds,lifeOptions.initialDayPhase,Math.max(.2,state.definition.speed),lifeOptions.weather?.()??'clear')
                   :residentPoseAt(routine,life.route,Math.max(0,now-life.pausedSeconds),
                     lifeOptions.dayLengthSeconds,lifeOptions.initialDayPhase,Math.max(.2,state.definition.speed));
                 life.pose=pose; // Dialogue context follows the schedule even while physically recovering.
