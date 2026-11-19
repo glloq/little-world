@@ -9,6 +9,7 @@ import {layoutUpdates,type LayoutMode} from '../studio-core/selection-layout.ts'
 import {updateCharacter,setCharacterPath,setResidentRoutine} from '../studio-core/character-authoring.ts';
 import {residentDutyShift,RESIDENT_ROLES,type ResidentRole,type ResidentRoutineV1} from '../npc-life/schedule.ts';
 import {residentAnchorChoices,reassignResident} from '../npc-life/authoring.ts';
+import {residentRegistry} from '../npc-life/registry.ts';
 import {chunkAt} from '../studio-core/schema.ts';
 import {applyInteraction,interactionChunkIds} from '../studio-core/interaction-templates.ts';
 import {EMOTIONS,type Emotion,type Neckwear} from '../character-style.ts';
@@ -164,6 +165,17 @@ function characterSection(ctx:InspectorContext,id:string,owner:string){
         await s.change('Retirer la routine du personnage',[p.entityIndex[id].ownerChunkId],d=>setResidentRoutine(d,id,null));
         ctx.refresh();
       }).catch(e=>ctx.status(String(e instanceof Error?e.message:e),true))));
+    // Existing native registry provides actionable Studio diagnostics without
+    // creating another NPC state, save format, or background simulation.
+    const diagnostics=residentRegistry(p).issues.filter(issue=>issue.targetId===id);
+    if(diagnostics.length){
+      const report=node('div');
+      report.append(node('strong',`Cohérence PNJ : ${diagnostics.length} problème(s)`));
+      for(const issue of diagnostics)report.append(node('p',issue.message,'muted'));
+      life.append(report);
+    }else{
+      life.append(node('p','Aucune incohérence détectée dans les secteurs chargés.','muted'));
+    }
     const anchors=residentAnchorChoices(p,id);
     if(anchors){
       let homeId=resident.homeAnchorId??'',jobId=resident.workAnchorId??'';
