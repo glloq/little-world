@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import type {SurfWaveField,SurfZone} from '../surf/wave-field.ts';
+import {surfZoneMargin,type SurfWaveField,type SurfZone} from '../surf/wave-field.ts';
 import {createSurfWaterMaterial} from './surf-water-material.ts';
 
 /** Terrain-sampled static envelopes, GPU-animated crests. Three pre-baked nested
@@ -11,7 +11,7 @@ const TIER_DISTANCE=[150,400] as const;
 /** ±18 %: a camera hovering near a threshold never alternates between two tessellations. */
 export const SURF_LOD_HYSTERESIS=.18;
 /** Finest spacing per wavelength (7 vertices on the 2nd harmonic) and its clamps. */
-const SAMPLES_PER_WAVELENGTH=14,MIN_SPACING=1.25,MAX_SPACING=4,MAX_TIER0_VERTICES=26000;
+const SAMPLES_PER_WAVELENGTH=14,MIN_SPACING=1.25,MAX_SPACING=4,MAX_TIER0_VERTICES=20000;
 export interface SurfWaterStats {tier:number;vertices:number;triangles:number;maxVertices:number;
  /** Wet quads kept / all quads of the finest grid (fully dry beach quads are not drawn). */
  wetRatio:number;tierChanges:number;}
@@ -56,20 +56,21 @@ export function surfWaterLattice(zone:SurfZone,ground:(x:number,z:number)=>numbe
  const envelope=new Float32Array((nx+1)*(nz+1)),wet=new Uint8Array((nx+1)*(nz+1));
  const shore=new Float32Array((nx+1)*(nz+1)*3),envelopeGradient=new Float32Array((nx+1)*(nz+1)*2);
  const fadeDepth=zone.shoreFadeDepth??4,edgeFade=zone.edgeFade??12;
+ // Visual-only border fade (colour, foam), wider than the swell envelope but bounded.
+ const visualFade=Math.min(edgeFade*2.5,edgeFade+30),margin={margin:0,gx:0,gz:0};
  for(let j=0;j<=nz;j++){
   const z=zone.minZ+length*j/nz;
   for(let i=0;i<=nx;i++){
    const x=zone.minX+width*i/nx,index=j*(nx+1)+i,depth=zone.seaLevel-ground(x,z);
-   const edge=Math.min(x-zone.minX,zone.maxX-x,z-zone.minZ,zone.maxZ-z);
+   const edge=surfZoneMargin(zone,x,z,margin).margin;
    const isWet=Number.isFinite(depth)&&depth>.05;
    envelope[index]=isWet?smooth(depth/fadeDepth)*smooth(edge/edgeFade):0;
    wet[index]=isWet?1:0;
    // Same breaking value as SurfWaveField.sample (drives shoaling skew, colour and foam).
    shore[index*3]=isWet?1-smooth(depth/(fadeDepth*1.4)):1;
    shore[index*3+1]=isWet?Math.min(1,depth/(fadeDepth*4)):0;
-   // Visual-only border fade (colour, foam): wider than the swell envelope so the zone
-   // rectangle dissolves into NearSea; the physical envelope is unchanged.
-   shore[index*3+2]=smooth(edge/(edgeFade*2.5));
+   // The zone outline dissolves into NearSea; the physical envelope is unchanged.
+   shore[index*3+2]=smooth(edge/visualFade);
   }
  }
  const dx=width/nx,dz=length/nz;

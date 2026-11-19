@@ -5,13 +5,16 @@
  * Terrain is sampled once into a compact cache over the breaking band (bilinear, visual only).
  * No fluid simulation, render target, texture or per-crest Mesh. */
 import * as THREE from 'three';
-import {SURF_TICK_HZ,surfSwellCoefficients,type SurfWaveField,type SurfZone} from '../surf/wave-field.ts';
+import {SURF_TICK_HZ,surfCrestBend,surfSwellCoefficients,surfZoneMargin,type SurfBend,type SurfWaveField,
+ type SurfZone} from '../surf/wave-field.ts';
 import {barrelCrestAlong,barrelCrestPhase,barrelEnabled,barrelModulation,barrelPeelInto,
  barrelPeelParameters,barrelPhaseOffset,barrelProfile,type BarrelPeelSample} from '../surf/surf-barrel.ts';
 import {boxInCameraView} from './surf-render-stats.ts';
 
 const MAX_FRONTS=4;
-const ALONG_SEGMENTS=30;
+const ALONG_SEGMENTS=72;
+/** Length of crest drawn around the focus (m): the whole visible breaking line. */
+const CREST_WINDOW=260;
 const CURL_SEGMENTS=10;
 const VERTICES_PER_FRONT=(ALONG_SEGMENTS+1)*(CURL_SEGMENTS+1);
 const INDICES_PER_FRONT=ALONG_SEGMENTS*CURL_SEGMENTS*6;
@@ -49,13 +52,13 @@ export function createSurfBarrelCache(zone:SurfZone,ground:(x:number,z:number)=>
  const t=projectedBounds(zone,-zone.dirZ,zone.dirX);
  const stepA=1.25,stepC=2;
  const na=Math.max(1,Math.ceil((band.max-band.min)/stepA)),nc=Math.max(1,Math.ceil((t.max-t.min)/stepC));
- const data=new Float32Array((na+1)*(nc+1)*4);
+ const data=new Float32Array((na+1)*(nc+1)*4),marginScratch={margin:0,gx:0,gz:0};
  const fade=zone.shoreFadeDepth??3,edge=zone.edgeFade??12;
  for(let i=0;i<=na;i++)for(let j=0;j<=nc;j++){
   const along=band.min+(band.max-band.min)*i/na,across=t.min+(t.max-t.min)*j/nc;
   const x=zone.dirX*along-zone.dirZ*across,z=zone.dirZ*along+zone.dirX*across;
   const p=barrelProfile(zone,x,z,ground),o=(i*(nc+1)+j)*4;
-  const margin=Math.min(x-zone.minX,zone.maxX-x,z-zone.minZ,zone.maxZ-z);
+  const margin=surfZoneMargin(zone,x,z,marginScratch).margin;
   const depth=zone.seaLevel-ground(x,z);
   data[o]=p?.intensity??0;data[o+1]=p?.opening??0;
   data[o+2]=Number.isFinite(depth)&&depth>.05&&margin>0?smooth(depth/fade)*smooth(margin/edge):0;
@@ -151,10 +154,15 @@ export function createSurfBarrelView(parent:THREE.Object3D,
  }
  let builtTick=-1,maxFronts=MAX_FRONTS;
  const cell={intensity:0,opening:0,envelope:0,breaking:0};
+ const tangent=projectedBounds(zone,-zone.dirZ,zone.dirX);
+ // Range of the static crest bend over the zone (swell-space margin when picking crests).
+ const bent=!!zone.form&&(!!zone.form.curvature||!!zone.form.meander),bendScratch:SurfBend={offset:0,slope:0};
+ let bendMin=0,bendMax=0;
+ if(bent)for(let i=0;i<=64;i++){const o=surfCrestBend(zone,tangent.min+(tangent.max-tangent.min)*i/64,bendScratch).offset;
+  bendMin=Math.min(bendMin,o);bendMax=Math.max(bendMax,o);}
  const probe:BarrelPeelSample={factor:1,state:'none',ahead:0,sign:1,speed:0},column:BarrelPeelSample={...probe};
  const frontIndex=new Float64Array(MAX_FRONTS),frontDistance=new Float64Array(MAX_FRONTS);
  const box=new THREE.Box3(),point=new THREE.Vector3();
- const tangent=projectedBounds(zone,-zone.dirZ,zone.dirX);
  const shapeAt=(phase:number,breaking:number)=>{
   const a=q.skew+q.shoal*breaking;
   return Math.sin(phase)+a*Math.sin(2*phase)-q.sharpness*Math.cos(2*phase);
@@ -167,8 +175,8 @@ export function createSurfBarrelView(parent:THREE.Object3D,
   const focusAlong=zone.dirX*focus.x+zone.dirZ*focus.z;
   const focusAcross=-zone.dirZ*focus.x+zone.dirX*focus.z;
   const base=zone.speed*tick/SURF_TICK_HZ+zone.wavelength*barrelPhaseOffset(zone);
-  const n0=Math.ceil((band!.min-base)/zone.wavelength);
-  const n1=Math.floor((band!.max-base)/zone.wavelength);
+  const n0=Math.ceil((band!.min+bendMin-base)/zone.wavelength);
+  const n1=Math.floor((band!.max+bendMax-base)/zone.wavelength);
   // Nearest crests to the focus, kept in a fixed scratch list (insertion, no allocation).
   let frontCount=0;
   for(let n=n0;n<=n1;n++){
@@ -178,35 +186,27 @@ export function createSurfBarrelView(parent:THREE.Object3D,
    while(i>0&&frontDistance[i-1]>d){if(i<maxFronts){frontIndex[i]=frontIndex[i-1];frontDistance[i]=frontDistance[i-1];}i--;}
    if(i<maxFronts){frontIndex[i]=n;frontDistance[i]=d;frontCount=Math.min(maxFronts,frontCount+1);}
   }
-  const fullWindow=Math.min(145,Math.max(40,Math.hypot(zone.maxX-zone.minX,zone.maxZ-zone.minZ)));
+  const fullWindow=Math.min(CREST_WINDOW,Math.max(40,tangent.max-tangent.min));
   box.makeEmpty();
   let written=0;
   stats.activeFronts=0;stats.activeSections=0;
   for(let f=0;f<frontCount;f++){
    const n=frontIndex[f],frontS=barrelCrestAlong(zone,tick,n);
-   // Column window: whole visible crest (historical lip) or the nearest peeling section.
-   let from:number,to:number;
-   if(peel){
-    const probeX=zone.dirX*frontS-zone.dirZ*focusAcross,probeZ=zone.dirZ*frontS+zone.dirX*focusAcross;
-    const p=barrelPeelInto(zone,probeX,probeZ,tick,n,probe);
-    // Break point (ahead = 0) of the peel instance nearest to the focus, in across coordinates.
-    const breakAcross=focusAcross-p.sign*p.ahead;
-    const behind=breakAcross-p.sign*(peel.open+peel.collapse),front=breakAcross+p.sign*peel.shoulder;
-    from=Math.min(behind,front);to=Math.max(behind,front);
-   }else{
-    const center=Math.max(tangent.min+fullWindow*.5,Math.min(tangent.max-fullWindow*.5,focusAcross));
-    from=center-fullWindow/2;to=center+fullWindow/2;
-   }
-   from=Math.max(from,tangent.min);to=Math.min(to,tangent.max);
+   // The whole visible crest line: every peeling section along it, not only the nearest one.
+   const center=Math.max(tangent.min+fullWindow*.5,Math.min(tangent.max-fullWindow*.5,focusAcross));
+   const from=Math.max(center-fullWindow/2,tangent.min),to=Math.min(center+fullWindow/2,tangent.max);
    if(to-from<2)continue;
    let visibleSegments=0;const offset=written*VERTICES_PER_FRONT;
    for(let j=0;j<=ALONG_SEGMENTS;j++){
     const across=from+(to-from)*j/ALONG_SEGMENTS;
-    const cx=zone.dirX*frontS-zone.dirZ*across,cz=zone.dirZ*frontS+zone.dirX*across;
-    cache!.sample(frontS,across,cell);
+    // Curved crests: the crest line sits at swell position frontS, i.e. world along frontS − bend.
+    const crestAlong=bent?frontS-surfCrestBend(zone,across,bendScratch).offset:frontS;
+    const cx=zone.dirX*crestAlong-zone.dirZ*across,cz=zone.dirZ*crestAlong+zone.dirX*across;
+    cache!.sample(crestAlong,across,cell);
     const intensity=cell.intensity;
     const peelState=peel?barrelPeelInto(zone,cx,cz,tick,n,column):null;
-    const pf=peelState?peelState.factor:smooth(Math.min(j,ALONG_SEGMENTS-j)/2.5);
+    const ends=smooth(Math.min(j,ALONG_SEGMENTS-j)/4);
+    const pf=(peelState?peelState.factor:1)*ends;
     const m=barrelModulation(zone,cx,cz,tick);
     const height=(2+1.65*zone.amplitude)*intensity*m*pf;
     const radius=(.85+.9*zone.amplitude)*Math.sqrt(intensity)*(.55+.45*pf);
@@ -218,7 +218,7 @@ export function createSurfBarrelView(parent:THREE.Object3D,
     const degenerate=height<.05||radius<.05;
     // Lip throw: on the shoulder the crest is only a steep face (the arch stops at its top and
     // drops vertically); in the open section the lip is thrown forward down to the trough.
-    const throwAmount=peelState?(peelState.state==='shoulder'?pf:1):1;
+    const throwAmount=peelState?(peelState.state==='shoulder'?peelState.factor:1)*ends:ends;
     const endAngle=Math.PI*.5*(1-throwAmount);
     const archRings=Math.max(2,Math.round(CURL_SEGMENTS*(.5+.5*throwAmount)));
     let tipX=0,tipY=0,tipZ=0;

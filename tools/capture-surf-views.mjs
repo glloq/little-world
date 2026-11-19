@@ -59,6 +59,7 @@ try{
  const crestTick=brk?await page.evaluate(([p,t])=>window.littleWorldDebug.surfCrestTick(p.x,p.z,t),[brk,t0+60]):t0+60;
  const center={x:(zone.minX+zone.maxX)/2,z:(zone.minZ+zone.maxZ)/2};
  const b=brk??center;
+ await shot('00-zone-aerial',at(center,-(zone.maxZ-zone.minZ)*.95,-(zone.maxX-zone.minX)*.25,170),at(center,10,0,0),crestTick);
  await shot('01-ocean-overview',at(b,-120,-70,45),at(b,0,0,0),crestTick);
  await shot('02-side-view',eyeAt(b,-6,-38,2.2),at(b,-6,0,.8),crestTick-20);
  await shot('03-approach-shore',eyeAt(b,26,6,3),at(b,-40,0,0),crestTick-45);

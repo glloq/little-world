@@ -377,3 +377,44 @@ Nouveaux tests : `surf-perf`, `surf-wave-field-v2` (références V1 gelées), `s
 - La lèvre ne dessine que la section de peel la plus proche du joueur sur chaque crête ; les sections
   lointaines restent signalées par l'écume du shader.
 - Les crochets de capture `littleWorldDebug.surf*` n'existent qu'avec `?metrics=1`.
+
+## 20. Retour de revue : lèvre sur toute la crête, zones longues et organiques
+
+**Constat 1 — un seul tube visible.** Ce n'était pas l'angle de vue : la lèvre ne dessinait que la
+section de *peel* la plus proche du joueur, et ~40 % de chaque crête n'avait aucune lèvre.
+Désormais la lèvre couvre **toute la crête visible** (fenêtre de 260 m autour du joueur, 72 colonnes),
+avec toutes les sections de déferlement ; l'épaule montante remplit l'intervalle entre deux sections
+(`shoulder = period − open − collapse − 6 m`) : la ligne entière déferle progressivement.
+Budget : ≤ 3 212 sommets / 5 760 triangles pour 4 crêtes (HQ), 2 crêtes en Medium, 1 en Low ;
+reconstruction p95 0,30–0,34 ms (Node), toujours sans GC.
+
+**Constat 2 — zones rectangulaires, crêtes droites, trop petites.** Nouveau champ optionnel
+`SurfZone.form` (absent = rectangle et crêtes droites historiques, bit-identiques) :
+- `organic` : contour en super-ellipse d'ordre 3 avec ondulation statique, jamais au-delà du rectangle
+  (marge nulle sur ses côtés, donc raccord `NearSea` inchangé), gradient analytique ;
+- `curvature` (‰/m) et `meander` / `meanderLength` : crêtes **courbées et ondulantes** par un décalage
+  de phase statique le long de la crête ; la direction locale de propagation suit la courbure
+  (planche, porté de vague) ; même formule dans la physique, le tube, le shader et l'écume
+  (tests CPU ↔ GLSL, gradient vs dérivée numérique fine).
+- `edgeFade` plus large par défaut pour les zones organiques ; fondu visuel borné (`edgeFade + 30 m`).
+- Studio : nouvelles zones organiques par défaut (220 × 300 m), réglages contour / courbure /
+  ondulation / fondu dans le panneau Surf ; schéma, archives et compilation acceptent `form`.
+- Île Surf : le planificateur essaie d'abord des zones longues et larges (jusqu'à 300 × 260 m),
+  vérifie aussi les bords latéraux (port, passages), et garde un repère de port calme cherché sur
+  la liste dense des côtes. Résultat : A/B/C ≈ **260 × 293 m** (≈ 76 000 m², ×3,9) au lieu de 98 × 198 m.
+
+| Mesure (île Surf, zone élargie) | Valeur |
+| --- | --- |
+| Triangles tier 0 / 1 / 2 | 24 128–36 864 / 6 032–9 216 / 1 508–2 304 |
+| Draw calls surf | 5 (inchangé) |
+| Triangles surf visibles (benchmark SwiftShader) | 30 094 |
+| Échantillons terrain, upload lèvre | 0 lecture terrain en rendu (cache), ≤ 19 Kio par reconstruction |
+
+Le benchmark navigateur (`docs/perf/surf-browser-wide-swiftshader.json`, 9,1 FPS SwiftShader) n'est
+pas comparable aux mesures précédentes : le point de départ de la plage B a changé et la caméra voit
+maintenant l'île (draw calls de la scène 82 → 170, hors surf). **Suite possible** : LOD par tuiles
+pour les très grandes zones (seule la partie proche au tier 0) — non fait, à mesurer sur iGPU.
+La bande plus claire de `NearSea` (transparente) contre l'anneau d'océan opaque, visible en vue
+aérienne loin des zones, est préexistante sur `main`.
+
+Captures : `wide-zone-aerial.jpg`, `wide-curved-crests-full-lip.jpg`, `wide-side-view.jpg`.

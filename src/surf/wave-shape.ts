@@ -16,7 +16,8 @@ export type SurfWaveStyle=typeof SURF_WAVE_STYLES[number];
 export interface SurfWaveShape {
  skew:number;sharpness:number;shoal:number;
  setVariation:number;setLength:number;peakVariation:number;peakSpacing:number;
- /** Lateral breaking (peel) of the tube, metres and m/s; null = historical full-width lip. */
+ /** Lateral breaking (peel) of the tube, metres and m/s; null = historical full-width lip.
+  * A long rising shoulder fills the crest between sections: the whole line keeps breaking. */
  peel:null|{speed:number;period:number;shoulder:number;open:number;collapse:number};
 }
 export const SURF_WAVE_SHAPES:Readonly<Record<SurfWaveStyle,Readonly<SurfWaveShape>>>={
@@ -27,16 +28,16 @@ export const SURF_WAVE_SHAPES:Readonly<Record<SurfWaveStyle,Readonly<SurfWaveSha
  long:{skew:.18,sharpness:.1,shoal:.08,setVariation:.18,setLength:5.3,peakVariation:.05,peakSpacing:4.3,peel:null},
  /** Vagues rapides : face raide, pics rapprochés. */
  fast:{skew:.26,sharpness:.1,shoal:.1,setVariation:.14,setLength:3.7,peakVariation:.11,peakSpacing:2.4,
-  peel:{speed:5.2,period:78,shoulder:12,open:16,collapse:10}},
+  peel:{speed:5.2,period:78,shoulder:46,open:16,collapse:10}},
  /** Vagues puissantes : crêtes hautes, grosses séries. */
  powerful:{skew:.26,sharpness:.16,shoal:.1,setVariation:.22,setLength:4.1,peakVariation:.09,peakSpacing:2.9,
-  peel:{speed:4.4,period:84,shoulder:14,open:18,collapse:12}},
+  peel:{speed:4.4,period:84,shoulder:48,open:18,collapse:12}},
  /** Vagues tubulaires : face très creusée près du déferlement. */
  tubular:{skew:.24,sharpness:.12,shoal:.16,setVariation:.18,setLength:3.3,peakVariation:.12,peakSpacing:2.1,
-  peel:{speed:4,period:72,shoulder:12,open:20,collapse:10}},
+  peel:{speed:4,period:72,shoulder:36,open:20,collapse:10}},
  /** Shorebreak : courtes, cassantes, irrégulières le long de la plage. */
  shorebreak:{skew:.26,sharpness:.14,shoal:.14,setVariation:.1,setLength:2.9,peakVariation:.16,peakSpacing:1.7,
-  peel:{speed:6.5,period:60,shoulder:8,open:10,collapse:8}},
+  peel:{speed:6.5,period:60,shoulder:36,open:10,collapse:8}},
 };
 export const isSurfWaveStyle=(v:unknown):v is SurfWaveStyle=>
  typeof v==='string'&&(SURF_WAVE_STYLES as readonly string[]).includes(v);

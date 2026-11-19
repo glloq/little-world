@@ -3,7 +3,8 @@
  * this inexpensive analytic arch owns the playable overhead clearance.
  * Nothing changes the flat water datum used by boats, fishing or swimming. */
 import type {SurfActor} from './surf-controller.ts';
-import {surfSwellCoefficients,surfSwellModulation,type SurfSwellCoefficients,type SurfWaveField,type SurfZone} from './wave-field.ts';
+import {surfCrestBend,surfSwellCoefficients,surfSwellModulation,surfZoneBent,surfZoneMargin,type SurfBend,
+ type SurfMargin,type SurfSwellCoefficients,type SurfWaveField,type SurfZone} from './wave-field.ts';
 import {crestPhase,surfWaveShape,type SurfWaveShape} from './wave-shape.ts';
 
 export const BARREL_TICK_HZ=30;
@@ -19,6 +20,7 @@ const clamp=(x:number,a:number,b:number)=>Math.max(a,Math.min(b,x));
 const smooth=(a:number,b:number,n:number)=>{
  const t=clamp((n-a)/(b-a),0,1);return t*t*(3-2*t);
 };
+const bend:SurfBend={offset:0,slope:0},marginScratch:SurfMargin={margin:0,gx:0,gz:0};
 export const barrelEnabled=(zone:SurfZone)=> (zone.barrelStrength??0)>0;
 // Per-zone static data (crest phase of the zone's swell shape), computed once.
 const zoneCache=new WeakMap<SurfZone,{coefficients:SurfSwellCoefficients;crestPhase:number;
@@ -89,7 +91,9 @@ export function barrelCrestAlong(zone:SurfZone,tick:number,index:number):number{
 }
 export function nearestBarrelCrest(zone:SurfZone,x:number,z:number,tick:number){
  if(!Number.isSafeInteger(tick)||tick<0)throw Error('Tick tube invalide');
- const along=zone.dirX*x+zone.dirZ*z;
+ // Curved crests: compare in swell space (along + static bend), exact straight swell otherwise.
+ const along=surfZoneBent(zone)?zone.dirX*x+zone.dirZ*z+surfCrestBend(zone,-zone.dirZ*x+zone.dirX*z,bend).offset:
+  zone.dirX*x+zone.dirZ*z;
  const n=Math.round((along-zone.speed*tick/BARREL_TICK_HZ)/zone.wavelength-barrelPhaseOffset(zone));
  const crestAlong=barrelCrestAlong(zone,tick,n);
  return {index:n,crestAlong,distance:along-crestAlong};
@@ -107,7 +111,8 @@ export function barrelProfile(zone:SurfZone,x:number,z:number,ground:(x:number,z
  if(!barrelEnabled(zone)||x<zone.minX||x>zone.maxX||z<zone.minZ||z>zone.maxZ)return null;
  const depth=zone.seaLevel-ground(x,z),fade=zone.shoreFadeDepth??3;
  if(!Number.isFinite(depth)||depth<=fade*.34||depth>=fade*2.2)return null;
- const margin=Math.min(x-zone.minX,zone.maxX-x,z-zone.minZ,zone.maxZ-z);
+ const margin=zone.form?.organic?surfZoneMargin(zone,x,z,marginScratch).margin:
+  Math.min(x-zone.minX,zone.maxX-x,z-zone.minZ,zone.maxZ-z);
  const envelope=smooth(2,Math.max(3,zone.edgeFade??12),margin);
  const rise=smooth(fade*.34,fade*.9,depth);
  const offshore=1-smooth(fade*.9,fade*2.2,depth);

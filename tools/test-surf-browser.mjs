@@ -36,7 +36,7 @@ try{
  check(initial.surf?.zones>=1,'at least one authored or generated surf zone is present');
  check(initial.surf?.boardVisible,'surfboard visual follows the hamster');
  check(initial.surf?.barrel?.enabled===true,'a deterministic curling tube is enabled on the surf beach');
- check(initial.surf?.barrel?.stats?.triangles<=3000,'barrel mesh respects a strict low-poly budget');
+ check(initial.surf?.barrel?.stats?.triangles<=6000,'barrel mesh respects a strict low-poly budget (full crest, ≤ 4 crests)');
  const first=initial.surf.wave.height,observed=[first];
  for(let i=0;i<4;i++){
   await page.waitForTimeout(400);

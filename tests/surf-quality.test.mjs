@@ -56,7 +56,7 @@ test('tube lips outside the camera frustum are neither rebuilt nor drawn; fronts
  assert.ok(lip.stats.activeFronts<=1);
  assert.ok(lip.mesh.geometry.drawRange.count<=lip.stats.triangles*3);
  lip.setMaxFronts(4);lip.update(41,{x:0,z:0},{camera});
- assert.ok(lip.stats.uploadBytes<=lip.stats.activeFronts*31*11*12,'uploads limited to active fronts');
+ assert.ok(lip.stats.uploadBytes<=lip.stats.activeFronts*(lip.stats.vertices/4)*12,'uploads limited to active fronts');
  // Between rebuilds the GPU translation keeps the lip on the moving crest.
  lip.update(80,{x:0,z:0},{camera,alpha:1});
  const builtAt=lip.stats.rebuilds;lip.update(81,{x:0,z:0},{camera:new THREE.PerspectiveCamera(),alpha:1});

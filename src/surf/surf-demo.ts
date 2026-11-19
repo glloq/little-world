@@ -26,8 +26,12 @@ const rectsOverlap=(a:SurfZone,b:SurfZone,gap=0)=>
 /** Ordered candidate sites, independently verified in real bathymetry.
  * Bounded grid search: around 40k initial height queries on a 4x3km island
  * only when authoring or when ?surfDemo=1 is explicitly requested. */
+/** Candidate zone sizes (metres), largest first. Defaults keep the historical demo sizes. */
+export interface SurfSiteSizes {lengths?:readonly number[];widths?:readonly number[]}
+const DEFAULT_LENGTHS=[205,165,125,92,70] as const,DEFAULT_WIDTHS=[98,76,54] as const;
 export function findCoastalSurfSites(height:(x:number,z:number)=>number,
- bounds:SurfBounds,seaLevel:number,seed=1,maxResults=24):SurfDemoSite[]{
+ bounds:SurfBounds,seaLevel:number,seed=1,maxResults=24,sizes:SurfSiteSizes={}):SurfDemoSite[]{
+ const lengths=sizes.lengths??DEFAULT_LENGTHS,widths=sizes.widths??DEFAULT_WIDTHS;
  if(!Number.isSafeInteger(seed)||seed<0||!finite(seaLevel)||maxResults<1)return [];
  const sites:{site:SurfDemoSite;score:number}[]=[];
  const sample=(d:{x:number;z:number},along:number,across:number)=>{
@@ -60,11 +64,11 @@ export function findCoastalSurfSites(height:(x:number,z:number)=>number,
     if(!finite(near.h)||near.h<seaLevel+.15)continue;
     // Adapt to narrow inlets as well as broad ocean. Require >=110m
     // of water along the actual travel direction, otherwise reject.
-    for(const length of [205,165,125,92,70]){
+    for(const length of lengths){
      let chosenWidth=0,depthSum=0;
-     for(const width of [98,76,54]){
+     for(const width of widths){
       let ok=true;depthSum=0;
-      for(const offshore of [10,Math.min(30,length*.3),Math.min(55,length*.58),Math.min(80,length*.8),length-8])
+      for(const offshore of [10,Math.min(30,length*.3),Math.min(55,length*.58),Math.min(80,length*.8),...(length>205?[length*.6,length*.9]:[]),length-8])
        for(const side of [-width*.38,0,width*.38]){
         const p=sample(d,coast+offshore,across+side);
         const depth=seaLevel-p.h;

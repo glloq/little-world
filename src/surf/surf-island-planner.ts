@@ -1,7 +1,7 @@
 /** Three actually separate, terrain-checked surf beaches on an authored island.
  * Planning is pure/deterministic. Studio commits A/B/C and the races atomically
  * only if every requested site is valid; no procedural port mesh is invented. */
-import {findCoastalSurfSites,surfDemoRun,type SurfBounds,type SurfDemoSite} from './surf-demo.ts';
+import {findCoastalSurfSites,surfDemoRun,type SurfBounds,type SurfDemoSite,type SurfSiteSizes} from './surf-demo.ts';
 import {validateSurfZone,type SurfZone} from './wave-field.ts';
 import {validateSurfFeature,type SurfFeature} from './surf-features.ts';
 import type {RaceDefinition,RaceGate} from '../gameplay/races.ts';
@@ -23,6 +23,19 @@ const styles={
  B:{label:'B · Grandes vagues',amplitude:1.45,wavelength:36,speed:6.3,barrelStrength:1,style:'tubular'},
  C:{label:'C · Acrobaties',amplitude:1.65,wavelength:29,speed:8,barrelStrength:.6,style:'fast'},
 } as const;
+const ISLAND_SITE_SIZES:readonly SurfSiteSizes[]=[
+ {lengths:[300,260,230,205,165,125],widths:[260,220,180,150,120,98,76]},
+ {lengths:[260,230,205,165,125],widths:[180,150,120,98,76]},
+ {}, // historical demo sizes
+];
+/** Organic outline and gently curved, meandering crests for the authored surf beaches. */
+const ISLAND_FORMS={
+ A:{organic:true,curvature:.0012,meander:4,meanderLength:170},
+ B:{organic:true,curvature:-.0016,meander:6,meanderLength:140},
+ C:{organic:true,curvature:.001,meander:5,meanderLength:120},
+} as const;
+const rectDistance=(r:SurfZone,x:number,z:number)=>
+ Math.hypot(Math.max(r.minX-x,0,x-r.maxX),Math.max(r.minZ-z,0,z-r.maxZ));
 const inBounds=(b:SurfBounds,x:number,z:number,m=3)=>x>=b.minX+m&&x<=b.maxX-m&&z>=b.minZ+m&&z<=b.maxZ-m;
 const depth=(h:(x:number,z:number)=>number,s:number,x:number,z:number)=>s-h(x,z);
 const blocked=(occ?:string|null)=>occ!==undefined&&occ!==null&&occ!==''&&occ!=='none';
@@ -38,7 +51,9 @@ function usable(site:SurfDemoSite,ground:(x:number,z:number)=>number,
  bounds:SurfBounds,sea:number,occupied?:(x:number,z:number)=>string|null):boolean{
  const width=Math.min(site.zone.maxX-site.zone.minX,site.zone.maxZ-site.zone.minZ);
  for(const distance of [12,25,45,Math.min(80,surfDemoRun(site)+18)])
-  for(const side of [-Math.min(20,width*.26),0,Math.min(20,width*.26)]){
+  // Wide zones: also check their lateral edges (ports, passages, buildings).
+  for(const side of [-Math.min(20,width*.26),0,Math.min(20,width*.26),
+    ...(width>60?[-width*.45,width*.45]:[])]){
    const p=coastPoint(site,distance,side);
    if(!inBounds(bounds,p.x,p.z,4)||depth(ground,sea,p.x,p.z)<(distance<=12?.1:.6)||
       blocked(occupied?.(p.x,p.z)))return false;
@@ -49,7 +64,19 @@ export function planThreeSurfBeaches(ground:(x:number,z:number)=>number,
  bounds:SurfBounds,seaLevel:number,seed:number,worldId:string,
  occupied?:(x:number,z:number)=>string|null):SurfIslandLayout{
  if(!worldId||!Number.isSafeInteger(seed)||seed<0)throw Error('Monde de surf invalide');
- const sites=findCoastalSurfSites(ground,bounds,seaLevel,seed,64),beaches:SurfCoastPlan[]=[],
+ // Dedicated surf map: the largest breaking areas that still leave three separate beaches
+ // and a calm port marker; smaller sizes (historical last) only as fallback.
+ let best:SurfIslandLayout|null=null;
+ for(const sizes of ISLAND_SITE_SIZES){
+  const plan=planWithSizes(ground,bounds,seaLevel,seed,worldId,sizes,occupied);
+  if(plan.beaches.length===3&&plan.calmPort)return plan;
+  if(!best||plan.beaches.length>best.beaches.length)best=plan;
+ }
+ return best!;
+}
+function planWithSizes(ground:(x:number,z:number)=>number,bounds:SurfBounds,seaLevel:number,seed:number,
+ worldId:string,sizes:SurfSiteSizes,occupied?:(x:number,z:number)=>string|null):SurfIslandLayout{
+ const sites=findCoastalSurfSites(ground,bounds,seaLevel,seed,64,sizes),beaches:SurfCoastPlan[]=[],
   warnings:string[]=[];
  if(!sites.length)return {beaches,calmPort:null,
   warnings:['Aucune côte adaptée : aucun couloir d’eau libre suffisamment profond.']};
@@ -61,7 +88,8 @@ export function planThreeSurfBeaches(ground:(x:number,z:number)=>number,
   if(!site){warnings.push('Plage '+name+' : aucune bande côtière libre et séparée.');continue;}
   const zone=validateSurfZone({...site.zone,id:'surf:island-'+name.toLowerCase()+'-'+seed,
    seed:seed+name.charCodeAt(0),amplitude:pref.amplitude,wavelength:pref.wavelength,
-   speed:pref.speed,barrelStrength:pref.barrelStrength,style:pref.style});
+   speed:pref.speed,barrelStrength:pref.barrelStrength,style:pref.style,
+   form:{...ISLAND_FORMS[name]},edgeFade:Math.min(45,Math.max(18,Math.min(site.zone.maxX-site.zone.minX,site.zone.maxZ-site.zone.minZ)*.16))});
   const d=zone,startPoint=site.start,run=surfDemoRun(site);
   const gates:RaceGate[]=[0,.33*run,.66*run,run].map((distance,i)=>({
    id:'surf-'+name.toLowerCase()+'-gate-'+(i+1),
@@ -90,9 +118,13 @@ export function planThreeSurfBeaches(ground:(x:number,z:number)=>number,
  }
  // Prefer a fourth, calm site away from all surfing lanes and obstacles.
  let calmPort:null|{x:number;z:number;radius:number}=null;
- for(const site of sites){
-  if(!site.shore||beaches.some(b=>overlap(b.zone,site.zone,65)))continue;
+ // Calm water only needs a coast point: search the denser historical candidate list.
+ const calmSites=findCoastalSurfSites(ground,bounds,seaLevel,seed,64);
+ for(const site of calmSites){
+  if(!site.shore)continue;
   const q=coastPoint(site,27,0),shore=coastPoint(site,-9,0);
+  // The calm marker itself must stay ≥ 65 m (plus its radius) from every breaking zone.
+  if(beaches.some(b=>rectDistance(b.zone,q.x,q.z)<65+26))continue;
   if(!inBounds(bounds,q.x,q.z,30)||depth(ground,seaLevel,q.x,q.z)<1.2||
     ground(shore.x,shore.z)<=seaLevel+.2||blocked(occupied?.(q.x,q.z))||
     blocked(occupied?.(shore.x,shore.z)))continue;

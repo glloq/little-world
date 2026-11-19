@@ -31,7 +31,7 @@ export function mountSurfPanel(host:HTMLElement,ctx:SurfPanelContext):void{
  const p=ctx.session.document,zones=Object.values(p.libraries.surfZones??{});
  host.append(node('div','SURF','kicker'),node('h3','Zones de vagues'),
   node('p','Placez la caméra au-dessus de la mer, choisissez une direction vers la côte puis créez une zone de surf. Les vagues sont calculées à 30 Hz dans le jeu.','muted'));
- let width=130,length=250,direction='north',preset:keyof typeof presets='rolling';
+ let width=220,length=300,direction='north',preset:keyof typeof presets='rolling';
  let title='Nouvelle plage de surf';
  const create=button('Créer une zone au centre de la vue',async()=>{
   try{
@@ -42,7 +42,9 @@ export function mountSurfPanel(host:HTMLElement,ctx:SurfPanelContext):void{
      maxX:center.x+(longX?length:width)/2,minZ:center.z-(longZ?length:width)/2,
      maxZ:center.z+(longZ?length:width)/2,dirX:d[2],dirZ:d[3],
      seaLevel:world.seaLevel,seed:Math.max(0,world.seed),...presets[preset],
-     shoreFadeDepth:3,edgeFade:10,barrelStrength:.85};
+     // New zones: rounded outline and gently curved crests, invisible border into the sea.
+     shoreFadeDepth:3,edgeFade:Math.max(10,Math.min(45,Math.min(width,length)*.16)),barrelStrength:.85,
+     form:{organic:true,curvature:0,meander:4,meanderLength:160}};
    validateSurfZone(zone);
    if(zone.minX<world.bounds.minX+4||zone.maxX>world.bounds.maxX-4||
       zone.minZ<world.bounds.minZ+4||zone.maxZ>world.bounds.maxZ-4)
@@ -118,7 +120,15 @@ export function mountSurfPanel(host:HTMLElement,ctx:SurfPanelContext):void{
      field('Longueur d’onde (m)',numberInput(zone.wavelength,v=>update({wavelength:v}),4,120)),
      field('Vitesse front (m/s)',numberInput(zone.speed,v=>update({speed:v}),.5,22)),
      field('Intensité du tube 3D (0 = aucun)',numberInput(zone.barrelStrength??0,v=>update({barrelStrength:v}),0,1)),
-     field('Forme de la houle',select(zone.style??'classic',styleLabels,v=>update({style:v as SurfWaveStyle}))));
+     field('Forme de la houle',select(zone.style??'classic',styleLabels,v=>update({style:v as SurfWaveStyle}))),
+     field('Contour de la zone',select(zone.form?.organic?'organic':'rectangle',
+       [['rectangle','Rectangle (historique)'],['organic','Organique (bords invisibles)']],
+       v=>update({form:{...zone.form,organic:v==='organic'},edgeFade:v==='organic'?Math.max(zone.edgeFade??12,24):zone.edgeFade}))),
+     field('Courbure des crêtes (‰/m, négatif = vers le large)',numberInput((zone.form?.curvature??0)*1000,
+       v=>update({form:{...zone.form,curvature:v/1000}}),-10,10)),
+     field('Ondulation des crêtes (m)',numberInput(zone.form?.meander??0,v=>update({form:{...zone.form,meander:v}}),0,30)),
+     field('Longueur d’ondulation (m)',numberInput(zone.form?.meanderLength??160,v=>update({form:{...zone.form,meanderLength:v}}),30,2000)),
+     field('Fondu des bords (m)',numberInput(zone.edgeFade??12,v=>update({edgeFade:v}),1,100)));
    list.append(row);
  }
  if(!zones.length)list.append(node('p','Aucune zone de surf : les eaux restent calmes et leur physique historique est conservée.','muted'));

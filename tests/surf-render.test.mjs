@@ -12,7 +12,8 @@ const wave=createSurfWaveField(zone,terrain);
 /** JS port of SURF_WATER_GLSL vertexPosition, fed with the material's own uniforms. */
 const fract=v=>v-Math.floor(v);
 function shaderHeight(u,x,zz,env,breaking){
- const dir=u.uDirection.value,along=dir.x*x+dir.y*zz,across=-dir.y*x+dir.x*zz;
+ const dir=u.uDirection.value,across=-dir.y*x+dir.x*zz,bd=u.uBend.value,c=across-bd.y;
+ const along=dir.x*x+dir.y*zz+bd.x*c*c*.5+bd.z*Math.sin(bd.w*c+u.uBendSeed.value);
  const sh=u.uShape.value,md=u.uMod.value,cr=u.uCrest.value;
  const p=2*Math.PI*fract((along-u.uSpeed.value*u.uTime.value)/u.uWavelength.value)+u.uPhaseSeed.value;
  const a=sh.x+sh.z*breaking;
@@ -52,9 +53,9 @@ test('distance-adaptive tier selection is clamped and never alters wave state',(
  assert.equal(wave.height(0,0,100),h);
  view.dispose();
 });
-for(const style of [undefined,'tubular','gentle']){
-test('every LOD GPU vertex matches the fixed-tick CPU wave formula ('+(style??'classic')+')',()=>{
- const z={...zone,style,id:'surf:lod-'+(style??'classic')};
+for(const [style,form] of [[undefined],['tubular'],['gentle'],['fast',{organic:true,curvature:.0015,meander:5,meanderLength:120}]]){
+test('every LOD GPU vertex matches the fixed-tick CPU wave formula ('+(style??'classic')+(form?' organic':'')+')',()=>{
+ const z={...zone,style,form,id:'surf:lod-'+(style??'classic')};
  const field=createSurfWaveField(z,terrain);
  const root=new THREE.Group(),view=createSurfWaterView(root,field,terrain);
  const u=view.uniforms;

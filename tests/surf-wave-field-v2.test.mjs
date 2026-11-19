@@ -102,3 +102,48 @@ test('the exact seabed memo never changes a value and can be invalidated after e
  assert.notEqual(memo.height(-20,0,5),before);
  assert.equal(memo.height(-20,0,5),createSurfWaveField(zone,mutable).height(-20,0,5));
 });
+import {surfZoneMargin,surfCrestBend} from '../src/surf/wave-field.ts';
+const organicZone={...zone,id:'surf:organic',style:'tubular',edgeFade:30,
+ form:{organic:true,curvature:.002,meander:6,meanderLength:140}};
+test('organic outline: zero on the zone rectangle, rounded inside, analytic gradient',()=>{
+ const m={margin:0,gx:0,gz:0};
+ for(let i=0;i<=40;i++){
+  const t=i/40,x=organicZone.minX+(organicZone.maxX-organicZone.minX)*t;
+  assert.ok(surfZoneMargin(organicZone,x,organicZone.minZ,m).margin<=1e-9);
+  assert.ok(surfZoneMargin(organicZone,organicZone.maxX,organicZone.minZ+(organicZone.maxZ-organicZone.minZ)*t,m).margin<=1e-9);
+ }
+ // Corners are cut: a point near the corner is well outside the rounded outline.
+ assert.ok(surfZoneMargin(organicZone,organicZone.minX+6,organicZone.minZ+6,m).margin<0);
+ assert.ok(surfZoneMargin({...organicZone,form:undefined},organicZone.minX+6,organicZone.minZ+6,m).margin===6);
+ const h=1e-5;
+ for(let x=-80;x<=80;x+=13)for(let z=-120;z<=40;z+=11){
+  const a=surfZoneMargin(organicZone,x,z,{margin:0,gx:0,gz:0});
+  const ex=(surfZoneMargin(organicZone,x+h,z,m).margin-surfZoneMargin(organicZone,x-h,z,m).margin)/(2*h);
+  const ez=(surfZoneMargin(organicZone,x,z+h,m).margin-surfZoneMargin(organicZone,x,z-h,m).margin)/(2*h);
+  if(Math.abs(ex-a.gx)>1e-4||Math.abs(ez-a.gz)>1e-4){
+   // Only allowed exactly on the rectangle/organic switch (non-differentiable min).
+   assert.ok(Math.abs(a.margin-Math.min(x-organicZone.minX,organicZone.maxX-x,z-organicZone.minZ,organicZone.maxZ-z))<1e-3);
+  }
+ }
+});
+test('curved crests: gradient, travel direction and waves stay consistent and deterministic',()=>{
+ const field=createSurfWaveField(organicZone,linear),h=1e-5;
+ let checked=0,tilted=0;
+ for(let x=-90;x<=90;x+=7.3)for(let z=-130;z<=50;z+=8.1)for(const tick of [0,57,9000]){
+  const s=field.sample(x,z,tick);if(!s)continue;
+  const v=[field.height(x+h,z,tick),field.height(x-h,z,tick),field.height(x,z+h,tick),field.height(x,z-h,tick)];
+  if(v.some(q=>q===null))continue;
+  const mm=surfZoneMargin(organicZone,x,z,{margin:0,gx:0,gz:0});
+  const rect=Math.min(x-organicZone.minX,organicZone.maxX-x,z-organicZone.minZ,organicZone.maxZ-z);
+  if(Math.abs(mm.margin-rect)<.5)continue; // min() switch
+  assert.ok(Math.abs((v[0]-v[1])/(2*h)-s.gradientX)<5e-5,'dX '+x+','+z);
+  assert.ok(Math.abs((v[2]-v[3])/(2*h)-s.gradientZ)<5e-5,'dZ '+x+','+z);
+  assert.ok(Math.abs(Math.hypot(s.directionX,s.directionZ)-1)<1e-12);
+  if(Math.abs(s.directionX)>.05)tilted++;
+  checked++;
+ }
+ assert.ok(checked>800&&tilted>100,'checked '+checked+' tilted '+tilted);
+ const b={offset:0,slope:0};
+ assert.equal(surfCrestBend(zone,10,b).offset,0,'straight zones have no bend');
+ assert.deepEqual(field.sample(3,-40,777),createSurfWaveField({...organicZone},linear).sample(3,-40,777));
+});

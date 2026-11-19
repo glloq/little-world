@@ -21,7 +21,7 @@ uniform vec2 uDirection;
 uniform vec4 uShape;
 uniform vec4 uMod;
 uniform vec4 uCrest;
-uniform vec4 uPeel;uniform vec4 uPeelSpan;uniform vec4 uWave;
+uniform vec4 uPeel;uniform vec4 uPeelSpan;uniform vec4 uWave;uniform vec4 uBend;uniform float uBendSeed;
 varying float vWet;varying float vCrest;varying float vEnv;varying vec3 vShore;
 varying float vFace;varying float vLocal;varying float vAcross;varying vec2 vFoamUV;varying float vMod;
 `;
@@ -30,25 +30,29 @@ attribute float aEnvelope;attribute float aWet;attribute vec3 aShore;attribute v
 `;
 /** CPU twin: SurfWaveField.height / sample (wave-field.ts). Keep both in sync (tests). */
 const VERTEX_NORMAL=`
-float sw_along=dot(uDirection,position.xz);
+float sw_across=-uDirection.y*position.x+uDirection.x*position.z;
+// Curved crests (SurfZone.form): static along-crest offset and its slope (zero when straight).
+float sw_c=sw_across-uBend.y;
+float sw_bendSlope=uBend.x*sw_c+uBend.z*uBend.w*cos(uBend.w*sw_c+uBendSeed);
+float sw_along=dot(uDirection,position.xz)+uBend.x*sw_c*sw_c*.5+uBend.z*sin(uBend.w*sw_c+uBendSeed);
+vec2 sw_dir=uDirection+sw_bendSlope*vec2(-uDirection.y,uDirection.x);
 float sw_cycle=(sw_along-uSpeed*uTime)/uWavelength;
 float sw_p=6.28318530718*fract(sw_cycle)+uPhaseSeed;
 float sw_a=uShape.x+uShape.z*aShore.x;
 float sw_s1=sin(sw_p),sw_s2=sin(2.0*sw_p),sw_c1=cos(sw_p),sw_c2=cos(2.0*sw_p);
 float sw_f=sw_s1+sw_a*sw_s2-uShape.y*sw_c2;
 float sw_df=sw_c1+2.0*sw_a*sw_c2+2.0*uShape.y*sw_s2;
-float sw_across=-uDirection.y*position.x+uDirection.x*position.z;
 float sw_ps=6.28318530718*fract((sw_along-uSpeed*uSetTime)/uMod.y)+uCrest.z;
 float sw_pc=6.28318530718*fract(sw_across/uMod.w)+uCrest.w;
 float sw_m=1.0+uMod.x*sin(sw_ps)+uMod.z*sin(sw_pc);
-vec2 sw_mg=uMod.x*cos(sw_ps)*6.28318530718/uMod.y*uDirection+
+vec2 sw_mg=uMod.x*cos(sw_ps)*6.28318530718/uMod.y*sw_dir+
   uMod.z*cos(sw_pc)*6.28318530718/uMod.w*vec2(-uDirection.y,uDirection.x);
 float sw_k=6.28318530718/uWavelength;
-vec2 sw_g=uAmplitude*(aEnvGrad*sw_m*sw_f+aEnvelope*(sw_mg*sw_f+sw_m*sw_df*sw_k*uDirection));
+vec2 sw_g=uAmplitude*(aEnvGrad*sw_m*sw_f+aEnvelope*(sw_mg*sw_f+sw_m*sw_df*sw_k*sw_dir));
 vec3 objectNormal=normalize(vec3(-sw_g.x,1.0,-sw_g.y));
 vWet=aWet;vEnv=aEnvelope;vShore=aShore;vMod=sw_m;
 vCrest=clamp((sw_f+uCrest.x)/uCrest.y,0.0,1.0);
-vFace=clamp(-dot(sw_g,uDirection)/(uAmplitude*sw_k*1.6+1e-4),-1.0,1.0);
+vFace=clamp(-dot(sw_g,normalize(sw_dir))/(uAmplitude*sw_k*1.6+1e-4),-1.0,1.0);
 // Linear in position: exact after interpolation (latest crest index and lag per fragment).
 vLocal=sw_cycle-uWave.z;vAcross=sw_across;
 // Foam lattice: 6 cells per wavelength along the swell, periodic like the wrapped time.
@@ -124,6 +128,12 @@ export function createSurfWaterMaterial(zone:SurfZone){
   uPeel:{value:new THREE.Vector4(1,peel?.speed??0,peel?.period??1,peel?1:0)},
   uPeelSpan:{value:new THREE.Vector4(peel?.shoulder??0,peel?.open??0,peel?.collapse??0,0)},
   uWave:{value:new THREE.Vector4(0,0,phaseOffset,0)},
+ });
+ const form=zone.form,bent=!!form&&(!!form.curvature||!!form.meander);
+ const centerAcross=-zone.dirZ*(zone.minX+zone.maxX)/2+zone.dirX*(zone.minZ+zone.maxZ)/2;
+ Object.assign(uniforms,{
+  uBend:{value:new THREE.Vector4(bent?form!.curvature??0:0,centerAcross,bent?form!.meander??0:0,TAU/(form?.meanderLength??160))},
+  uBendSeed:{value:((zone.seed*41)%983)/983*TAU},
  });
  const alongMin=Math.min(zone.minX*zone.dirX,zone.maxX*zone.dirX)+Math.min(zone.minZ*zone.dirZ,zone.maxZ*zone.dirZ);
  const material=new THREE.MeshLambertMaterial({color:0xffffff,side:THREE.DoubleSide});

@@ -83,8 +83,9 @@ test('low-poly barrel mesh is bounded, has one GPU buffer and tracks moving cres
  const root=new THREE.Group(),view=createSurfBarrelView(root,field,ground);
  assert.ok(surfBarrelBand(zone,ground));
  assert.equal(view.mesh.name,'SurfBarrelLip');
- assert.ok(view.stats.vertices<=1500);
- assert.ok(view.stats.triangles<=3000);
+ // Full-crest lips (72 columns × 4 crests): strict budget, drawn only for active crests.
+ assert.ok(view.stats.vertices<=3300);
+ assert.ok(view.stats.triangles<=6000);
  assert.equal(view.mesh.geometry.getAttribute('position').usage,THREE.DynamicDrawUsage);
  view.update(0,{x:0,z:4});
  assert.equal(view.mesh.visible,true);
