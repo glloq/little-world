@@ -32,5 +32,5 @@ Interpolation continue entre les points. À 100 %, les dix charges reviennent en
 
 - Vérifier les tests `npm test` et `npm run build` via la CI.
 - Tester la commande boost en vol et sous l'eau, la consommation unitaire/multiple dans le sac et les états du HUD.
-- Vérifier la migration des anciennes sauvegardes et le comportement de satiété au changement d'île. La persistance spécifique de satiété n'est **pas encore ajoutée** au schéma de sauvegarde historique : limitation V1 à résoudre avant validation finale.
+- Vérifier la migration des anciennes sauvegardes et le comportement de satiété au changement d'île. La sauvegarde V2 accepte désormais les champs optionnels `satiety` et `boostRechargeProgress`, avec migration compatible des anciennes réserves de gaz. Valider leur restauration en navigateur.
 - Garder la PR en brouillon jusqu'à la qualification navigateur.
