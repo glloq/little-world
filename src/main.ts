@@ -349,12 +349,16 @@ const npcs = createNPCSystem(scene, definition.npcs,isLegacyTerrain()?undefined:
 });
 npcActorActions=npcs;
 if(gameplay){
-  const {generateResidentSocialQuestOffers}=await import('./quests/generator.ts');
+  const {generateResidentSocialQuestOffers,generateResidentVisitQuestOffers}=await import('./quests/generator.ts');
   // No new graph: offers are created only from existing qualified resident
   // paths and gameplay dialogues. The historical social objective is preserved.
-  const offers=generateResidentSocialQuestOffers(definition.npcs,gameplay.runtime.data,
-    activeIsland?.id??playable!.gameplay.worldId,
-    (from,to)=>npcs.qualifyQuestRoute(from,to));
+  const questIslandId=activeIsland?.id??playable!.gameplay.worldId;
+  const certified=(from:{x:number;z:number},to:{x:number;z:number})=>npcs.qualifyQuestRoute(from,to);
+  const social=generateResidentSocialQuestOffers(definition.npcs,gameplay.runtime.data,
+    questIslandId,certified,8);
+  const visits=generateResidentVisitQuestOffers(definition.npcs,gameplay.runtime.data,
+    questIslandId,certified,4);
+  const offers=[...social,...visits];
   gameplay.quests.registerOffers(offers);
 }
 npcs.setLighting(world.atlasIllumination);
