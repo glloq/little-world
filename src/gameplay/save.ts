@@ -1,6 +1,8 @@
 import {finite,identifier,record,stateValue,type ObjectiveStatus,type Point3,type StateValue} from './schema.ts';
 import {parseQuestInstance} from '../quests/validation.ts';
 import {parseNpcWorkshopAccount,type NpcWorkshopAccountV1} from '../npc-life/economy.ts';
+import {parseNpcHarvestAccount,type NpcHarvestAccountV1} from '../npc-life/harvest-ledger.ts';
+import {parseFishPopulation,type FishPopulationV1} from '../npc-life/fish-population.ts';
 import type {QuestInstanceV1} from '../quests/schema.ts';
 import {parseMineSave,type MineSaveState} from '../mine/mine-state.ts';
 import {parsePlotState,type FarmPlotState} from '../farm/farm-sim.ts';
@@ -21,6 +23,8 @@ export interface GameSaveV2 extends Omit<GameSaveV1,'schemaVersion'> {schemaVers
   /** Per-station workshop queues and finished products; missing in older V2 saves. */workshops?:Record<string,WorkshopStateV1>;
   /** Native NPC workshop accounts, with their own materials and job queues. */
   npcWorkshops?:Record<string,NpcWorkshopAccountV1>;
+  npcHarvests?:Record<string,NpcHarvestAccountV1>;
+  fishPopulation?:FishPopulationV1;
   /** Per-counter budgets, physical stock and applied transaction IDs. */markets?:Record<string,MarketStateV1>;
   /** Optional native QuestDirector state; old V1/V2 slots remain valid. */
   questsLocal?:Record<string,QuestInstanceV1>;
@@ -71,6 +75,14 @@ export function parseGameSave(value:unknown):GameSaveV2 {
       assert(identifier(id)&&id===account.residentId,'Compte PNJ incohérent');
     }
   }
+  if(v.npcHarvests!==undefined){
+    assert(record(v.npcHarvests)&&Object.keys(v.npcHarvests).length<=32,'Récolteurs PNJ invalides');
+    for(const [id,raw]of Object.entries(v.npcHarvests as object)){
+      const account=parseNpcHarvestAccount(raw);
+      assert(identifier(id)&&id===account.residentId,'Source de récolteur incohérente');
+    }
+  }
+  if(v.fishPopulation!==undefined)parseFishPopulation(v.fishPopulation);
   const markets:Record<string,MarketStateV1>={};
   if(v.markets!==undefined){
     assert(record(v.markets)&&Object.keys(v.markets).length<=128,'Marchés sauvegardés invalides');
