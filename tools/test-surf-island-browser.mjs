@@ -41,7 +41,7 @@ try{
  await board.click();
  await page.getByRole('button',{name:'Équiper',exact:true}).first().click();
  await page.keyboard.press('Escape');
- await page.locator('[data-panel="inventory"]').waitFor({state:'hidden',timeout:5000});
+ await page.locator('section.ui-panel[data-panel="inventory"]').waitFor({state:'hidden',timeout:5000});
  await page.waitForTimeout(400);
  for(const b of layout.beaches){
   const zone=layout.beaches.find(x=>x.name===b.name),bounds=m.surfWorld.zones.find(x=>x.id===b.zone);
