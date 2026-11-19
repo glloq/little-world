@@ -13,7 +13,7 @@ const output=resolve(process.argv[3]??'../little-world-artifacts/sky');
 const modes=['off','sun','2d'];
 await mkdir(output,{recursive:true});
 const results={createdAt:new Date().toISOString(),modes:{},notes:[
-  'Only sky mode changes between separate runs. Fixed scenario, viewport, quality and seed are controlled by benchmark-route.mjs.',
+  'Only sky mode changes between separate runs. Fixed scenario, viewport, medium graphics quality and seed are controlled by benchmark-route.mjs; hybrid tests 8 3D clouds.',
   'SwiftShader results are software rendering regression signals, NOT integrated GPU qualification.',
   'CPU renderSubmitMs is NOT GPU elapsed time. Differences are indicative; repeat runs on physical target devices.',
 ]};
