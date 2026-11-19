@@ -102,7 +102,8 @@ export function createResidentLayeredRouter(
   for(let x=cx-3;x<=cx+3;x++)for(let z=cz-3;z<=cz+3;z++)
    for(const id of cells.get(x+':'+z)??[]){
     const n=nodes[id],d=distance(p,n.p);
-    if(d<=65&&Math.abs(n.p.y!-y)<.3)candidates.push({id,d});
+    // A connector is a short entrance/exit segment, not an off-path shortcut.
+    if(d<=8&&Math.abs(n.p.y!-y)<.3)candidates.push({id,d});
    }
   candidates.sort((a,b)=>a.d-b.d||a.id-b.id);
   return candidates.slice(0,16).find(c=>walkSegment(p,nodes[c.id].p,walk))?.id??-1;

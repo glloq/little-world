@@ -24,7 +24,7 @@ test('multi-stop schedules stay declarative and reject overlapping visits and un
 test('agenda moves along certified legs, visits public place, and resumes the original job',()=>{
  assert.equal(at(5).phase,'home');
  assert.equal(at(6.12).phase,'to-work');
- assert.equal(at(11.95).phase,'to-activity');
+ assert.equal(at(11.98).phase,'to-activity');
  assert.equal(at(12.3).phase,'activity');
  assert.equal(at(12.3).activityKind,'social');
  assert.equal(at(12.3).position.x,2);
