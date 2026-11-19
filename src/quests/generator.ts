@@ -72,7 +72,7 @@ export function generateResidentVisitQuestOffers(
  if(maxOffers===0)return [];
  const actorIds=new Set(gameplay.dialogues.filter(d=>d.lines?.length&&d.lines.some(l=>l.choices?.length))
   .map(d=>d.actorId).filter((id):id is string=>!!id));
- const entityIds=new Set(gameplay.entities.filter(e=>e.position&&Number.isFinite(e.position.x)&&Number.isFinite(e.position.z)).map(e=>e.id));
+ const positioned=new Map(gameplay.entities.filter(e=>e.position&&Number.isFinite(e.position.x)&&Number.isFinite(e.position.z)).map(e=>[e.id,e.position!] as const));
  const residents=[...npcs].filter(n=>n.routine?.homeAnchorId&&n.routine.workAnchorId&&
   groupId(n.id)&&actorIds.has(n.id)).sort((a,b)=>a.id.localeCompare(b.id));
  const out:QuestCatalogEntryV1[]=[];
@@ -83,8 +83,12 @@ export function generateResidentVisitQuestOffers(
   for(const target of residents){
    if(target.id===giver.id||groupId(target.id)!==settlement)continue;
    const anchor=target.routine!.workAnchorId!;
-   if(!ident(anchor)||!entityIds.has(anchor))continue;
-   const path=route(giver.routine!.work,target.routine!.work);
+   const position=positioned.get(anchor);
+   if(!ident(anchor)||!position)continue;
+   // An author may move an amenity without recomposing the resident. Never
+   // produce a visit quest to a place that no longer matches its work anchor.
+   if(Math.hypot(position.x-target.routine!.work.x,position.z-target.routine!.work.z)>1.5)continue;
+   const path=route(giver.routine!.work,{x:position.x,z:position.z});
    if(!path||!Number.isFinite(path.length)||path.length<1||path.length>300)continue;
    const hash=fingerprint({islandId,giver:giver.id,anchor}).slice(0,16);
    out.push({
