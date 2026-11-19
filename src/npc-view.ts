@@ -5,6 +5,7 @@ import { buildSquirrel, CHARACTER_SCALE } from './squirrel.ts';
 import { buildHamster } from './hamster/hamster.ts';
 import {visualNPCSpecies} from './npc-life/species.ts';
 import {residentGesture,shouldPlayResidentGesture} from './npc-life/gestures.ts';
+import {residentWorkMode} from './npc-life/work-conditions.ts';
 import { createDialogue, type DialogueSession } from './dialogue.ts';
 import {
   createNPCState,
@@ -496,7 +497,7 @@ export function createNPCSystem(
                   state.x=pose.position.x;state.z=pose.position.z;state.y=pose.position.y??terrainHeight(state.x,state.z);
                   state.vx=dt>0?(state.x-oldX)/dt:0;state.vz=dt>0?(state.z-oldZ)/dt:0;
                   if(pose.phase==='to-work'||pose.phase==='to-home'||pose.phase==='to-activity')state.heading=pose.heading;
-                  const busy=residentGesture(routine.role)!==null;
+                  const busy=residentWorkMode(routine.role,lifeOptions.weather?.()??'clear')==='active'&&residentGesture(routine.role)!==null;
                   state.phase=pose.phase==='activity'?(pose.activityKind==='social'?'greet':'idle'):
                     pose.phase==='work'?(busy?'work':routine.role==='child'&&Math.hypot(state.vx,state.vz)>.15?'walk':'idle'):
                     pose.phase==='to-work'||pose.phase==='to-home'||pose.phase==='to-activity'?'walk':'idle';
@@ -585,7 +586,8 @@ export function createNPCSystem(
           if (state.phase === 'greet' && !hamster.action && (entry.lastGreetAt<0||time-entry.lastGreetAt>8)){
             if(hamster.play('INTERACT'))entry.lastGreetAt=time;
           }else if(state.phase === 'work'&&!hamster.action&&state.definition.routine){
-            const gesture=residentGesture(state.definition.routine.role);
+            const gesture=residentWorkMode(state.definition.routine.role,lifeOptions?.weather?.()??'clear')==='active'
+              ?residentGesture(state.definition.routine.role):null;
             if(gesture&&shouldPlayResidentGesture(time,entry.lastWorkAt,gesture)&&hamster.play(gesture.activity))
               entry.lastWorkAt=time;
           }
