@@ -87,7 +87,7 @@ export function createNpcHarvestDriver(deps:NpcHarvestDeps){
       item=>account.commitHarvest(receipt,item.itemId,item.quantity,minute));
     if(result.ok&&result.reward)commits++;
    }else if(account.role==='woodcutter'&&deps.gathering){
-    const base={x:r.work.x,y:deps.height(r.work.x,r.work.z),z:r.work.z};
+    const base={x:npc.x,y:deps.height(npc.x,npc.z),z:npc.z};
     // Stable daily orientation and eight bounded local rays; strike the same
     // real tree until it falls. Do not rotate randomly each hit or target
     // anything that does not yield native logs.
@@ -104,7 +104,7 @@ export function createNpcHarvestDriver(deps:NpcHarvestDeps){
       break;
     }
    }else if(account.role==='fisher'){
-    const spot=deps.shore(r.work.x,r.work.z);
+    const spot=deps.shore(npc.x,npc.z);
     if(!spot)continue;
     const rand=hash(npc.definition.id+':fish:'+Math.floor(minute/interval));
     const caught=deps.fishPopulation.npcCatch(spot.kind,spot.x,spot.z,minute,rand,
