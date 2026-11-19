@@ -52,8 +52,11 @@ export function residentPopulationTargets(
  if(houses<6)return {children:0,workers:density==='low'?0:1};
  const children=density==='low'?(houses>=10?1:0):
    density==='high'?Math.min(3,Math.floor(houses/4)):houses>=10?2:1;
- const workers=density==='low'?(houses>=10?1:0):
-   density==='high'?(houses>=16?4:2):houses>=16?3:1;
+ // Large towns scale with actual qualified job anchors, subject to the
+ // existing 100-character world cap; these are only REQUESTED slots.
+ const workers=density==='low'?(houses>=10?Math.min(3,Math.max(1,Math.floor(houses/10))):0):
+   density==='high'?Math.min(12,Math.max(2,Math.floor(houses/4))):
+   houses>=16?Math.min(8,Math.max(3,Math.floor(houses/5))):1;
  return {children,workers};
 }
 /** Preserve source-authored overrides, including deliberate deletion.
