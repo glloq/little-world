@@ -9,7 +9,7 @@ Trois objets équipables sont ajoutés dans le sac de départ, uniquement pour f
 - `instrument:ocarina` : patch sinusoïdal avec attaque douce ;
 - `instrument:ukulele` : patch de cordes pincées courte décroissance.
 
-L'instrument se choisit **uniquement depuis le sac** : `I → Instruments → Équiper → Jouer`. Il n'existe aucun sélecteur de timbre dans le panneau musical.
+L'instrument se choisit **uniquement depuis le sac** : `I → Équipements → sélectionner l’instrument → Jouer` équipe et ouvre le clavier en une action. `Équiper` seul garde l’instrument en main sans ouvrir le clavier. Il n'existe aucun sélecteur de timbre dans le panneau musical.
 
 Panneau :
 - grille de 3 × 5 boutons (15 notes diatoniques, Do4 à Do6) ;
@@ -18,7 +18,7 @@ Panneau :
 - accords possibles par maintien simultané de touches au clavier ou en multitouch ;
 - préférence grille/piano conservée dans le navigateur, indépendante de la sauvegarde.
 
-Raccourcis **positions physiques** (KeyboardEvent.code, compatibles AZERTY/QWERTY), groupés par rangées : `Digit1…Digit5`, `KeyQ…KeyT`, `KeyA…KeyG` pour les 15 touches blanches. En mode piano, touches noires supplémentaires `Digit6…Digit0`, `KeyH`, `KeyJ`, `KeyK`, `KeyL`, `Semicolon`. Les touches ne commandent pas le déplacement pendant l'ouverture du panneau. Échap referme le panneau.
+Raccourcis **positions physiques** (KeyboardEvent.code, compatibles AZERTY/QWERTY), groupés par rangées : `Digit1…Digit5`, `KeyQ…KeyT`, `KeyA…KeyG` pour les 15 touches blanches. En mode piano, touches noires supplémentaires `Digit6…Digit0`, `KeyH`, `KeyJ`, `KeyK`, `KeyL`, `Semicolon`. Les touches ne commandent pas le déplacement pendant l'ouverture du panneau. `P` ouvre/ferme le clavier si un instrument est équipé, `Échap` le ferme, et un bouton contextuel « Jouer » apparaît dans le HUD. Le raccourci `P` musical a priorité sur la téléportation vers le port de l’ancien terrain de test tant qu’un instrument est équipé. L’ouverture est refusée hors du sol, pendant une course ou un dialogue.
 
 ## Contrats de code
 
@@ -48,7 +48,7 @@ L'implémentation 3D doit respecter la pose assise/debout, la roulade, le planeu
 ## Validation avant merge
 
 1. `npm run typecheck`, `npm test`, `npm run build`.
-2. `npm run test:ui`, `npm run test:audio`, ou tests navigateur équivalents dans la CI.
+2. `npm run test:instruments` (test navigateur du parcours sac V3 → jouer, ouverture HUD, raccourci P, clavier, notes) ; compléter par `npm run test:ui` et `npm run test:audio`.
 3. Sauvegarder/recharger après équipement, voyager entre deux îles et vérifier la conservation de l'objet et de l'équipement.
 4. Enchaîner 200 pressions/relâchements clavier, multitouch, changements d'octave, blur et fermeture de panneau : **0 note bloquée**.
 5. Mesurer la latence et la stabilité des FPS sur matériel de référence 4–8 Go de RAM.
