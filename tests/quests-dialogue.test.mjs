@@ -50,3 +50,35 @@ test('Q5 reward choice stays at the giver, cannot grant twice and remains on ref
  assert.equal(q.choices.length,1,'claimed quest no longer offers a reward');
  assert.equal(attempts,2);
 });
+
+test('Q5 delivery action appears only at target NPC and supports refused/retried native debit',()=>{
+ const d=createQuestDirector([{...entry,questKey:'quest:parcel',
+  steps:[{kind:'deliver',itemId:'acorn',quantity:2,giverId:'npc:target'}],
+  rewards:[]}],{islandId:'island:1',maxActive:3});
+ d.accept('quest:parcel','quest:parcel',1);
+ let stock=1,attempts=0;
+ const deliver=(id,target)=>{
+  attempts++;
+  if(target!=='npc:target'||stock<2)return {ok:false,reason:'missing-items'};
+  stock-=2;
+  d.consume({...event,eventId:'deliver:1',type:'quest.delivered',
+    itemId:'acorn',quantity:2,targetId:'npc:target'});
+  return {ok:true,reason:'applied'};
+ };
+ const wrong=questDialogueSession(base(),d,'npc:giver',()=>5,()=>({ok:false,reason:'failed'}),deliver);
+ assert.equal(wrong.choices.length,1,'giver cannot receive a shipment addressed to another NPC');
+ const session=questDialogueSession(base(),d,'npc:target',()=>5,()=>({ok:false,reason:'failed'}),deliver);
+ assert.equal(session.choices[1].text,'Livrer les objets demandés');
+ assert.equal(session.choose(1),true);
+ assert.match(session.line.text,/objets demandés manquent/);
+ assert.equal(stock,1);
+ assert.equal(d.get('quest:parcel').status,'active');
+ assert.equal(session.choose(0),true);
+ stock=2;
+ assert.equal(session.choose(1),true);
+ assert.equal(d.get('quest:parcel').status,'ready');
+ assert.equal(stock,0);
+ assert.equal(session.choose(0),true);
+ assert.equal(session.choices.length,1,'cannot deliver a second time');
+ assert.equal(attempts,2);
+});
