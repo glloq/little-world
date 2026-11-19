@@ -164,7 +164,7 @@ export function createGameplayView(data:GameplayData,options:Options){
     cargoPurchaseRevision=Math.max(cargoPurchaseRevision,revision);
   },
   /** Restores a validated save into the runtime and the activities; returns the warnings. */
-  restore(save:GameSaveV2){const warnings=[...runtime.restore(save),...activities.restore(save)];
+  restore(save:GameSaveV2){npcDoorUntil.clear();const warnings=[...runtime.restore(save),...activities.restore(save)];
     // Upgrade old island saves with one temporary starter board, without removing other goods.
     if(options.surfStarter&&!has(SURFBOARD_ID))runtime.grantItems([{itemId:SURFBOARD_ID,quantity:1}]);
     equippedHands=save.equippedItemId&&canEquip(save.equippedItemId)?save.equippedItemId:null;playerLoadout=save.loadout?parsePlayerLoadout(save.loadout):emptyPlayerLoadout();if(playerLoadout.head!=='tool:miners-helmet'||!has('tool:miners-helmet'))playerLoadout.head=null;playerLoadout.back=null;playerLoadout.feet=null;workshops.restore(save.workshops??{});markets.restore(save.markets??{});cargoPurchaseRevision=save.cargoPurchaseRevision??0;gathering?.restore(save.gathering??null);options.setPosition(save.position,save.space??null);options.setGasProgress?.(save.flightProgress??newFlightProgress());options.setGas?.(save.gasReserve??GAS.legacyInitial);sync();version=-1;for(const l of listeners)l();return warnings;},
