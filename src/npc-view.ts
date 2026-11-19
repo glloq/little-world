@@ -313,7 +313,7 @@ export function createNPCSystem(
   }
   function talkTo(id:string,playerPosition:NPCPoint):boolean{
     const entry=entries.find(e=>e.state.definition.id===id);
-    if(!entry||dialogue.isOpen||Math.hypot(entry.state.x-playerPosition.x,entry.state.z-playerPosition.z)>5.5||
+    if(!entry||entry.life?.indoors||dialogue.isOpen||Math.hypot(entry.state.x-playerPosition.x,entry.state.z-playerPosition.z)>5.5||
       !entry.state.definition.dialogue&&!entry.state.definition.routine)return false;
     dialogue.open(entry.state);
     return dialogue.isOpen;
