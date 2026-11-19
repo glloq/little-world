@@ -48,3 +48,25 @@ export function residentRouteStepClear(
  if(toDistance-fromDistance<1e-6)return true;
  return residentRouteAheadClear(route,fromDistance,walk,toDistance-fromDistance);
 }
+
+/** Near-camera daily routines must never jump across a changed collision map.
+ * Far-away citizens remain analytical and cost no continuous movement budget.
+ */
+export function residentRoutineStepClear(
+ from:{x:number;z:number},to:{x:number;z:number},walk:ResidentWalkable,maxStep=2,
+):boolean{
+ if(!Number.isFinite(from.x)||!Number.isFinite(from.z)||
+    !Number.isFinite(to.x)||!Number.isFinite(to.z)||
+    !Number.isFinite(maxStep)||maxStep<=0)return false;
+ const distance=Math.hypot(to.x-from.x,to.z-from.z);
+ if(distance>Math.min(maxStep,3)+1e-6)return false;
+ if(distance<1e-5)return true;
+ const steps=Math.max(1,Math.ceil(distance/.4));
+ let previous=from;
+ for(let i=1;i<=steps;i++){
+  const t=i/steps,next={x:from.x+(to.x-from.x)*t,z:from.z+(to.z-from.z)*t};
+  if(!walk(next.x,next.z,previous.x,previous.z))return false;
+  previous=next;
+ }
+ return true;
+}
