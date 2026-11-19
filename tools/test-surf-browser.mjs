@@ -51,7 +51,8 @@ try{
  await board.click();
  if(!(await page.evaluate(()=>window.littleWorldMetrics?.surf?.equipped)))
    await page.getByRole('button',{name:'Équiper',exact:true}).first().click();
- await page.keyboard.press('KeyI');
+ await page.keyboard.press('Escape');
+ await page.locator('[data-panel="inventory"]').waitFor({state:'hidden',timeout:5000});
  await page.waitForFunction(()=>window.littleWorldMetrics?.surf?.equipped===true,{},{timeout:5000});
  check((await page.evaluate(()=>window.littleWorldMetrics?.surf?.equipped))===true,
   'the player equipped an actual surfboard from their bag');
