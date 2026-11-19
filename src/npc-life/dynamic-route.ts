@@ -8,30 +8,56 @@ import type {ResidentWalkable} from './routes.ts';
 /** Walk each actual polyline edge; sampling across a corner would illegally
  * cut the corner and may miss a wall. Caps apply to the complete requested span.
  */
-export function residentRouteAheadClear(
+export interface ResidentRouteClearance {
+ /** Whether the requested bounded lookahead is free of current collisions. */
+ clear:boolean;
+ /** Furthest distance certified safe on the ORIGINAL polyline, never a corner chord. */
+ safeDistance:number;
+}
+
+/** Check every real path edge and return the last physically safe progress.
+ * This is deliberately read-only: the caller owns replan cadence and movement.
+ * A blocked step is never accepted in full merely because its endpoint is safe.
+ */
+export function residentRouteClearance(
  route:ResidentRoute,distance:number,walk:ResidentWalkable,horizon=3,
-):boolean{
- if(!Number.isFinite(distance)||!Number.isFinite(horizon)||horizon<=0||
+):ResidentRouteClearance{
+ const invalid={clear:false,safeDistance:0};
+ if(!Number.isFinite(distance)||distance<0||!Number.isFinite(horizon)||horizon<=0||
     !Number.isFinite(route.length)||route.length<0||!route.points.length||
-    route.distances.length!==route.points.length)return false;
- const start=Math.max(0,Math.min(route.length,distance));
- const end=Math.min(route.length,start+Math.min(12,horizon));
- if(end-start<1e-6)return true;
- // Every interpolated movement follows an authored graph edge, never a
- // straight chord between positions on opposite sides of a corner.
- let previous=positionOnResidentRoute(route,start);
+    route.distances.length!==route.points.length||distance>route.length+1e-6)return invalid;
+ // Defensive validation also covers routes constructed outside residentRoute().
+ if(route.distances[0]!==0||Math.abs(route.distances[route.distances.length-1]-route.length)>1e-5)return invalid;
+ for(let i=0;i<route.points.length;i++){
+  const p=route.points[i],d=route.distances[i];
+  if(!Number.isFinite(p.x)||!Number.isFinite(p.z)||!Number.isFinite(d)||
+     (i>0&&d<route.distances[i-1]))return invalid;
+ }
+ const start=Math.min(route.length,distance),end=Math.min(route.length,start+Math.min(12,horizon));
+ if(end-start<1e-6)return {clear:true,safeDistance:start};
+ let previous=positionOnResidentRoute(route,start),safeDistance=start;
+ // Walk each original edge separately: a chord around a sharp corner is unsafe.
  for(let i=1;i<route.distances.length;i++){
   const lo=Math.max(start,route.distances[i-1]),hi=Math.min(end,route.distances[i]);
   if(hi<=lo)continue;
   const atLo=positionOnResidentRoute(route,lo);
-  if(Math.hypot(previous.x-atLo.x,previous.z-atLo.z)>1e-5)return false;
+  if(Math.hypot(previous.x-atLo.x,previous.z-atLo.z)>1e-5)
+   return {clear:false,safeDistance};
   for(let d=lo;d<hi-1e-6;){
    const next=Math.min(hi,d+.5),to=positionOnResidentRoute(route,next);
-   if(!walk(to.x,to.z,previous.x,previous.z))return false;
-   previous=to;d=next;
+   if(!walk(to.x,to.z,previous.x,previous.z))
+    return {clear:false,safeDistance};
+   previous=to;safeDistance=next;d=next;
   }
  }
- return true;
+ return {clear:true,safeDistance:end};
+}
+
+/** Compatibility predicate for current scripted and routine callers. */
+export function residentRouteAheadClear(
+ route:ResidentRoute,distance:number,walk:ResidentWalkable,horizon=3,
+):boolean{
+ return residentRouteClearance(route,distance,walk,horizon).clear;
 }
 
 /** Validate the entire interval about to be travelled, not just the endpoint.
