@@ -64,6 +64,13 @@ try{
  const b=layout.beaches.find(x=>x.name==='B');
  await page.evaluate(p=>window.littleWorldDebug.teleport(p.x,p.z,0),b.spawn);
  await page.waitForFunction(id=>window.littleWorldMetrics?.surf?.zoneId===id,b.zone,{timeout:10000});
+ // The first B deploys the equipped board; the second boards it from the water.
+ await page.keyboard.press('KeyB');
+ await page.waitForFunction(()=>window.littleWorldMetrics?.surfBoardPlaced!==null,{},{timeout:10000});
+ const board=await page.evaluate(()=>window.littleWorldMetrics.surfBoardPlaced);
+ check(Number.isFinite(board.x)&&Number.isFinite(board.z),'Board placed on valid wave-zone water');
+ await page.evaluate(p=>window.littleWorldDebug.teleport(p.x,p.z,0),board);
+ await page.waitForFunction(()=>window.littleWorldMetrics?.mode==='swim',{},{timeout:10000});
  await page.keyboard.press('KeyB');
  await page.waitForFunction(()=>window.littleWorldMetrics?.mode==='surf',{},{timeout:10000});
  const surf=await page.evaluate(()=>window.littleWorldMetrics);
