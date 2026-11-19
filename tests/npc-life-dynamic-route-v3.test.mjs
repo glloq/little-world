@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {residentRoute} from '../src/npc-life/schedule.ts';
-import {residentRouteAheadClear,residentRouteStepClear,residentRoutineStepClear,residentRecoveryNeedsRetarget,residentRecoverySpeed} from '../src/npc-life/dynamic-route.ts';
+import {residentRouteClearance,residentRouteAheadClear,residentRouteStepClear,residentRoutineStepClear,residentRecoveryNeedsRetarget,residentRecoverySpeed} from '../src/npc-life/dynamic-route.ts';
 
 test('scripted NPC route lookahead samples active geometry instead of trusting old paths',()=>{
  const route=residentRoute([{x:0,z:0},{x:10,z:0}]);
@@ -77,4 +77,34 @@ test('catch-up speed is faster than the schedule but bounded',()=>{
  assert.equal(residentRecoverySpeed(2.5),3);
  assert.equal(residentRecoverySpeed(0),.27);
  assert.equal(residentRecoverySpeed(NaN),.27);
+});
+
+test('F01 clearance returns the last certified metre before a new obstruction',()=>{
+ const route=residentRoute([{x:0,z:0},{x:10,z:0}]);
+ const result=residentRouteClearance(route,0,(x)=>x<3,6);
+ assert.deepEqual(result,{clear:false,safeDistance:2.5});
+ assert.equal(residentRouteAheadClear(route,0,(x)=>x<3,6),false);
+ assert.deepEqual(residentRouteClearance(route,4,()=>true,3),{clear:true,safeDistance:7});
+});
+
+test('F01 clearance never skips a sharp corner or accepts an invalid route',()=>{
+ const route=residentRoute([{x:0,z:0},{x:2,z:0},{x:2,z:4}]);
+ const pathOnly=(x,z,px,pz)=>Math.abs(x-px)<1e-6||Math.abs(z-pz)<1e-6;
+ assert.deepEqual(residentRouteClearance(route,1.5,pathOnly,2),
+   {clear:true,safeDistance:3.5});
+ const blocked=(x,z)=>!(z>=1);
+ assert.deepEqual(residentRouteClearance(route,1.5,blocked,3),
+   {clear:false,safeDistance:2.5});
+ assert.equal(residentRouteClearance(route,route.length+1,()=>true).clear,false);
+ assert.equal(residentRouteClearance(route,-1,()=>true).clear,false);
+ const bad={...route,distances:[0,2,Infinity]};
+ assert.equal(residentRouteClearance(bad,1,()=>true).clear,false);
+});
+
+test('F01 clearance obeys bounded work even for very long routes',()=>{
+ const route=residentRoute([{x:0,z:0},{x:1000,z:0}]);
+ let probes=0;
+ const result=residentRouteClearance(route,0,()=>{probes++;return true;},500);
+ assert.deepEqual(result,{clear:true,safeDistance:12});
+ assert.ok(probes<=24);
 });
