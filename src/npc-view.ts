@@ -25,7 +25,7 @@ import type { Player } from './player.ts';
 import {terrainHeight} from './terrain.ts';
 import {createResidentRouter,type ResidentPath,type ResidentWalkable} from './npc-life/routes.ts';
 import {createResidentLayeredRouter,type ResidentSurfaces} from './npc-life/layered-routes.ts';
-import {residentRouteAheadClear,residentRouteStepClear} from './npc-life/dynamic-route.ts';
+import {residentRouteAheadClear,residentRouteStepClear,residentRoutineStepClear} from './npc-life/dynamic-route.ts';
 import {residentHour,residentShift,residentPoseAt,residentRoute,positionOnResidentRoute,type ResidentRoute} from './npc-life/schedule.ts';
 import {residentDialogue,residentContextForHour} from './npc-life/dialogue.ts';
 import {residentAgendaPoseAt,validateResidentAgendaRoutes,type ResidentAgendaPose,type ResidentDailyRoutes,type ResidentActivityLegs} from './npc-life/agenda.ts';
@@ -238,7 +238,7 @@ export function createNPCSystem(
         return validateResidentAgendaRoutes(definition.routine!,candidate,
           lifeOptions!.dayLengthSeconds,Math.max(.2,definition.speed))?null:candidate;
       })():null,
-      life=route?{route,agenda,pose:null as ResidentAgendaPose|null,lastTime:-1,lastSample:-1,pausedSeconds:0,pauseFrom:null as number|null}:null,
+      life=route?{route,agenda,pose:null as ResidentAgendaPose|null,lastTime:-1,lastSample:-1,pausedSeconds:0,pauseFrom:null as number|null,lastRecoveryAt:-Infinity}:null,
       proxy = silhouette(definition);
     // Actual character rigs are allocated only when first seen nearby, not for
     // every citizen of the island. All hamsters share geometry/material caches.
@@ -267,13 +267,13 @@ export function createNPCSystem(
       lastWorkAt:-1,
       lastGreetAt:-1,
       lastRigAt:-1000,
-      scripted:null as null|{route:ResidentRoute;goal:{x:number;z:number};startAt:number;pausedFor:number;pauseFrom:number|null;arrivedAt:number|null;lastCheckedAt:number;lastDistance:number;replans:number},
+      scripted:null as null|{route:ResidentRoute;goal:{x:number;z:number};startAt:number;pausedFor:number;pauseFrom:number|null;arrivedAt:number|null;lastCheckedAt:number;lastDistance:number;replans:number;recovery:boolean},
     };
   });
   const byId=new Map(entries.map(entry=>[entry.state.definition.id,entry]));
   let socialPartners=new Map<string,string>(),lastSocialScan=-1;
   let rigIds=new Set<string>(),lastRigSample=-1;
-  let scriptedReplans=0,scriptedBlocked=0,scriptedCompleted=0;
+  let scriptedReplans=0,scriptedBlocked=0,scriptedCompleted=0,routineRecoveries=0,routineBlocked=0;
   function nearest(player: NPCPoint) {
     let best: (typeof entries)[number] | null = null,
       distance = 5.5;
@@ -303,7 +303,7 @@ export function createNPCSystem(
       if(ok)route=residentRoute([from,to]);
     }
     if(!route)return false;
-    entry.scripted={route,goal:to,startAt:lifeOptions.worldTime(),pausedFor:0,pauseFrom:null,arrivedAt:null,lastCheckedAt:-1,lastDistance:0,replans:0};
+    entry.scripted={route,goal:to,startAt:lifeOptions.worldTime(),pausedFor:0,pauseFrom:null,arrivedAt:null,lastCheckedAt:-1,lastDistance:0,replans:0,recovery:false};
     return true;
   }
   function talkTo(id:string,playerPosition:NPCPoint):boolean{
@@ -319,7 +319,7 @@ export function createNPCSystem(
     talkTo,
     setLighting(color:THREE.Color|null){distant.setLighting(color);},
     states: entries.map((entry) => entry.state),
-    get lifeStats(){return {assigned:entries.filter(e=>!!e.state.definition.routine).length,routed:entries.filter(e=>!!e.life).length,agendas:entries.filter(e=>!!e.life?.agenda).length,unqualifiedAgendas:entries.filter(e=>e.state.definition.routine?.activities?.length&&!e.life?.agenda).length,socialPairs:socialPartners.size/2,animatedRigs:entries.filter(e=>!!e.model).length,rigBudget:lifeOptions?.rigBudget??12,scriptedReplans,scriptedBlocked,scriptedCompleted,roadNodes:router?.nodes??0,roadTruncated:router?.truncated??false};},
+    get lifeStats(){return {assigned:entries.filter(e=>!!e.state.definition.routine).length,routed:entries.filter(e=>!!e.life).length,agendas:entries.filter(e=>!!e.life?.agenda).length,unqualifiedAgendas:entries.filter(e=>e.state.definition.routine?.activities?.length&&!e.life?.agenda).length,socialPairs:socialPartners.size/2,animatedRigs:entries.filter(e=>!!e.model).length,rigBudget:lifeOptions?.rigBudget??12,scriptedReplans,scriptedBlocked,scriptedCompleted,routineRecoveries,routineBlocked,roadNodes:router?.nodes??0,roadTruncated:router?.truncated??false};},
     update(dt: number, time: number, position: NPCPoint,camera?:THREE.PerspectiveCamera) {
       if (disposed) return;
       distant.begin();distant.update(time);
@@ -374,7 +374,7 @@ export function createNPCSystem(
               state.phase=distance>=job.route.length?'idle':'walk';
               if(distance>=job.route.length){
                 state.vx=0;state.vz=0;
-                if(job.arrivedAt===null){job.arrivedAt=now;scriptedCompleted++;}
+                if(job.arrivedAt===null){job.arrivedAt=now;if(job.recovery)entry.scripted=null;else scriptedCompleted++;}
                 if(now-job.arrivedAt>60&&Math.hypot(position.x-state.x,position.z-state.z)>40)entry.scripted=null;
               }
               }
@@ -383,7 +383,7 @@ export function createNPCSystem(
         }
         if(!entry.scripted&&life&&lifeOptions&&state.definition.routine){
           const now=lifeOptions.worldTime(),routine=state.definition.routine;
-          if(now<life.lastTime){life.pausedSeconds=0;life.pauseFrom=null;life.lastSample=-1;}
+          if(now<life.lastTime){life.pausedSeconds=0;life.pauseFrom=null;life.lastSample=-1;life.lastRecoveryAt=-Infinity;}
           life.lastTime=now;
           const distance=Math.hypot(position.x-state.x,position.z-state.z);
           const talking=dialogue.npcId===state.definition.id;
@@ -408,15 +408,37 @@ export function createNPCSystem(
                   :residentPoseAt(routine,life.route,Math.max(0,now-life.pausedSeconds),
                     lifeOptions.dayLengthSeconds,lifeOptions.initialDayPhase,Math.max(.2,state.definition.speed));
                 const oldX=state.x,oldZ=state.z;
-                state.previousX=oldX;state.previousY=state.y;state.previousZ=oldZ;
-                state.x=pose.position.x;state.z=pose.position.z;state.y=pose.position.y??terrainHeight(state.x,state.z);
-                state.vx=dt>0?(state.x-oldX)/dt:0;state.vz=dt>0?(state.z-oldZ)/dt:0;
-                if(pose.phase==='to-work'||pose.phase==='to-home'||pose.phase==='to-activity')state.heading=pose.heading;
-                const busy=residentGesture(routine.role)!==null;
-                state.phase=pose.phase==='activity'?(pose.activityKind==='social'?'greet':'idle'):
-                  pose.phase==='work'?(busy?'work':routine.role==='child'&&Math.hypot(state.vx,state.vz)>.15?'walk':'idle'):
-                  pose.phase==='to-work'||pose.phase==='to-home'||pose.phase==='to-activity'?'walk':'idle';
-                life.pose=pose;life.lastSample=now;
+                // Close residents must physically catch up to the daily schedule.
+                // No teleport through a wall when the world clock jumps or an
+                // authored road changes after routes were initially compiled.
+                const near=distance<80;
+                const blocked=near&&!residentRoutineStepClear(
+                  {x:oldX,z:oldZ},pose.position,walkable,Math.max(.25,Math.max(0,dt)*Math.max(.2,state.definition.speed)*2));
+                if(blocked){
+                  state.previousX=oldX;state.previousY=state.y;state.previousZ=oldZ;
+                  state.vx=0;state.vz=0;state.phase='idle';
+                  if(now<life.lastRecoveryAt||now-life.lastRecoveryAt>=2){
+                    life.lastRecoveryAt=now;
+                    const detour=router?.route({x:oldX,z:oldZ},pose.position)??null;
+                    if(detour&&detour.length>.05&&residentRouteAheadClear(detour,0,walkable,3)){
+                      entry.scripted={route:detour,goal:{x:pose.position.x,z:pose.position.z},
+                        startAt:now,pausedFor:0,pauseFrom:null,arrivedAt:null,
+                        lastCheckedAt:-1,lastDistance:0,replans:0,recovery:true};
+                      routineRecoveries++;
+                    }else routineBlocked++;
+                  }
+                  life.lastSample=now;
+                }else{
+                  state.previousX=oldX;state.previousY=state.y;state.previousZ=oldZ;
+                  state.x=pose.position.x;state.z=pose.position.z;state.y=pose.position.y??terrainHeight(state.x,state.z);
+                  state.vx=dt>0?(state.x-oldX)/dt:0;state.vz=dt>0?(state.z-oldZ)/dt:0;
+                  if(pose.phase==='to-work'||pose.phase==='to-home'||pose.phase==='to-activity')state.heading=pose.heading;
+                  const busy=residentGesture(routine.role)!==null;
+                  state.phase=pose.phase==='activity'?(pose.activityKind==='social'?'greet':'idle'):
+                    pose.phase==='work'?(busy?'work':routine.role==='child'&&Math.hypot(state.vx,state.vz)>.15?'walk':'idle'):
+                    pose.phase==='to-work'||pose.phase==='to-home'||pose.phase==='to-activity'?'walk':'idle';
+                  life.pose=pose;life.lastSample=now;
+                }
               }catch{
                 // Invalid route/clock: preserve the source NPC's legacy fallback,
                 // never jump to an unqualified work site.
