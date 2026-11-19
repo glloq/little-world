@@ -17,7 +17,7 @@ import type {BiotopeId} from '../world-production/asset-usage.ts';
 const rnd=(seed:number,i:number,j:number)=>(hash2(seed,i,j)+1)/2;
 
 /** Bump when the placement rules or the species table change (cache keys, reproducibility). */
-export const DRESSING_VERSION=5;
+export const DRESSING_VERSION=6;
 export type DressingKind='pine'|'oak'|'shrub'|'plant'|'deadwood'|'rock'|'scree'|'pebble'|'basalt';
 export const DRESSING_KINDS:DressingKind[]=['pine','oak','shrub','plant','deadwood','rock','scree','pebble','basalt'];
 /** x, y, z, scale, rotation (rad), tint 0..1, species index (-1 = procedural) per item.
@@ -126,7 +126,10 @@ export function generateDressingCell(ctx:GeoContext,seed:number,cx:number,cz:num
     if((profileId==='mountain'||profileId==='rocky-coast'||profileId==='heath')&&s.slope>.18&&s.slope<.65&&r2<.1){
       if(curvatureAt(ctx.height,x,z)< -.012){const k=1+2.2*r3;push('rock',x,seat(x,z,k,h),z,k,r0*6.283,r1);continue;}
     }
-    if(hab.rocks>0&&r2<profile.rocks*.06){const k=.6+1.4*r3;push('rock',x,seat(x,z,k,h),z,k,r0*6.283,r1);}
+    // Suppress optional scenic boulders on grassy soil, but keep every geological rock,
+    // scree, shingle and basalt rule above intact (and never touch harvestable deposits).
+    const scenicRockFactor=s.geology==='soil'&&(s.material==='grass'||s.material==='forest-floor')?.3:1;
+    if(hab.rocks>0&&r2<profile.rocks*.06*scenicRockFactor){const k=.6+1.4*r3;push('rock',x,seat(x,z,k,h),z,k,r0*6.283,r1);}
   }
   const items={} as Record<DressingKind,Float32Array>;let count=0;
   for(const kind of DRESSING_KINDS){items[kind]=new Float32Array(lists[kind]);count+=lists[kind].length/ITEM_STRIDE;}
