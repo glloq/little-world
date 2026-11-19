@@ -47,3 +47,20 @@ test('Studio activities reject overlapping windows without partial mutation',()=
  ]),/Horaires/);
  assert.deepEqual(project.chunks[loc.ownerChunkId].entities[person.id].components.Resident,before);
 });
+
+test('F02 Studio stores weather gates in the original Resident V1 component',()=>{
+ const {project,person}=fixture();
+ const anchor=residentActivityChoices(project,person.id)[0];
+ assert.ok(anchor);
+ setResidentStudioActivities(project,person.id,[{
+   kind:'social',anchorId:anchor.id,startHour:12,endHour:12.5,weather:'dry',
+ }]);
+ const loc=project.entityIndex[person.id],source=project.chunks[loc.ownerChunkId].entities[person.id];
+ assert.equal(source.components.Resident.version,1);
+ assert.equal(source.components.Resident.activities?.[0]?.weather,'dry');
+ assert.throws(()=>setResidentStudioActivities(project,person.id,[{
+   kind:'social',anchorId:anchor.id,startHour:12,endHour:12.5,weather:'storm',
+ }]),/Horaires ou activités incompatibles/);
+ assert.equal(source.components.Resident.activities?.[0]?.weather,'dry',
+   'invalid edits must not mutate an existing routine');
+});

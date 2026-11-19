@@ -1,0 +1,33 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {createNpcHarvestAccount,parseNpcHarvestAccount} from '../src/npc-life/harvest-ledger.ts';
+import {createFishPopulation} from '../src/npc-life/fish-population.ts';
+const limits={'farm:wheat':10,'wood:log':9,'fish:trout':5};
+test('F09-A source-bound worker stock rejects duplicates, overflow, malformed restores and missing inputs',()=>{
+ const a=createNpcHarvestAccount('worker:1','plot:1','farmer',limits);
+ assert.equal(a.commitHarvest('receipt:1','farm:wheat',4,10),true);
+ assert.equal(a.commitHarvest('receipt:1','farm:wheat',4,10),false);
+ assert.equal(a.commitHarvest('receipt:2','farm:wheat',7,11),false);
+ assert.equal(a.commitHarvest('receipt:older','farm:wheat',1,9),false);
+ assert.deepEqual(a.inventory(),{'farm:wheat':4});
+ assert.equal(a.take('farm:wheat',5),false);
+ assert.equal(a.take('farm:wheat',2),true);
+ const saved=a.save();
+ assert.equal(createNpcHarvestAccount('worker:1','plot:1','farmer',limits,saved).inventory()['farm:wheat'],2);
+ assert.throws(()=>createNpcHarvestAccount('worker:1','plot:2','farmer',limits,saved),/source incompatible/);
+ assert.throws(()=>parseNpcHarvestAccount({...saved,appliedRequestIds:['a','a']}),/invalide/);
+});
+test('F09-D fish populations are habitat-specific, finite, shared and regenerate on game clock',()=>{
+ const pop=createFishPopulation();
+ assert.equal(pop.catch('river','fish:sardine',5,6,0,()=>true),false);
+ assert.equal(pop.remaining('river',5,6,0),12);
+ assert.equal(pop.catch('river','fish:trout',5,6,0,()=>false),false);
+ assert.equal(pop.remaining('river',5,6,0),12);
+ for(let n=0;n<12;n++)assert.equal(pop.catch('river','fish:trout',5,6,0,()=>true),true);
+ assert.equal(pop.catch('river','fish:trout',5,6,0,()=>true),false);
+ assert.equal(pop.remaining('sea',5,6,0),12,'other habitat independent');
+ assert.equal(pop.remaining('river',5,6,29),0);
+ assert.equal(pop.remaining('river',5,6,60),2);
+ assert.equal(createFishPopulation(pop.serialize()).remaining('river',5,6,60),2);
+ assert.equal(pop.npcCatch('river',5,6,75,.99,()=>true),null);
+});

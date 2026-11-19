@@ -1,6 +1,8 @@
 /** Solo travel checkpoint. Session-scoped hand-off, separate from per-world saves.
  * A future server can replace this adapter without changing ferry commands. */
 import {parseFlightProgress,type FlightProgress} from '../gameplay/flight-progress.ts';
+import {parseQuestInstance} from '../quests/validation.ts';
+import type {QuestInstanceV1} from '../quests/schema.ts';
 import {parseItem,type ItemDefinition} from '../gameplay/schema.ts';
 import {parsePlayerLoadout,type PlayerLoadout} from '../gameplay/player-loadout.ts';
 import type {PublishedIsland} from './registry.ts';
@@ -11,7 +13,9 @@ export interface TravelStore {getItem(key:string):string|null;setItem(key:string
 export interface TravelerState {inventory:Record<string,number>;gasReserve:number;flightProgress:FlightProgress;
   /** Optional player vitals, missing in legacy ferry tickets. */satiety?:number;boostRechargeProgress?:number;
   /** Definitions of carried items not necessarily present in the destination world. Optional for V1 tickets. */
-  items?:ItemDefinition[];equippedItemId?:string|null;loadout?:PlayerLoadout;}
+  items?:ItemDefinition[];equippedItemId?:string|null;loadout?:PlayerLoadout;
+  /** Accepted cross-island quest ledger; absent in legacy ferry tickets. */
+  questsPortable?:Record<string,QuestInstanceV1>;}
 export interface FerryTransit {
   schemaVersion:1;sourceId:string;sourceManifest:string;
   destinationId:string;destinationManifest:string;
@@ -50,11 +54,22 @@ export function parseTraveler(raw:unknown):TravelerState {
   const equippedItemId=t.equippedItemId;
   if(equippedItemId!==undefined&&equippedItemId!==null&&
      (typeof equippedItemId!=='string'||!ITEM.test(equippedItemId)||!(inventory[equippedItemId]>0)))throw Error('Équipement de voyage invalide');
+  let questsPortable:Record<string,QuestInstanceV1>|undefined;
+  if(t.questsPortable!==undefined){
+    if(!t.questsPortable||typeof t.questsPortable!=='object'||Array.isArray(t.questsPortable)||
+      Object.keys(t.questsPortable).length>64)throw Error('Quêtes de voyage invalides');
+    questsPortable={};
+    for(const [key,value]of Object.entries(t.questsPortable)){
+      const entry=parseQuestInstance(value);
+      if(key!==entry.instanceId||!ITEM.test(key))throw Error('Identité de quête de voyage invalide');
+      questsPortable[key]=entry;
+    }
+  }
   const loadout=t.loadout===undefined?undefined:parsePlayerLoadout(t.loadout);
   if(loadout?.head&&!(inventory[loadout.head]>0))throw Error('Casque de voyage absent du sac');
   return {inventory,gasReserve:t.gasReserve,flightProgress:parseFlightProgress(t.flightProgress),
     ...(t.satiety!==undefined?{satiety:t.satiety as number}:{}),...(t.boostRechargeProgress!==undefined?{boostRechargeProgress:t.boostRechargeProgress as number}:{}),...(items?{items}:{}),
-    ...(equippedItemId!==undefined?{equippedItemId:equippedItemId as string|null}:{}),...(loadout?{loadout}:{})};
+    ...(equippedItemId!==undefined?{equippedItemId:equippedItemId as string|null}:{}),...(loadout?{loadout}:{}),...(questsPortable?{questsPortable}:{})};
 }
 export function parseTransit(raw:unknown,now=Date.now()):FerryTransit {
   if(!raw||typeof raw!=='object'||Array.isArray(raw))throw Error('Traversée invalide');

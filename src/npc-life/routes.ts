@@ -78,7 +78,7 @@ export function createResidentRouter(paths:readonly ResidentPath[],walk:Resident
   }
   for(const n of nodes)n.links.sort((a,b)=>a.to-b.to);
   // Small binary heap, only used when an NPC is assigned a new home/work route.
-  function search(start:number,goal:number):number[]|null{
+  function search(start:number,goal:number,liveEdges=false):number[]|null{
     const best=new Float64Array(nodes.length).fill(Infinity),previous=new Int32Array(nodes.length).fill(-1);
     const heap:{id:number;score:number}[]=[];
     function push(id:number,score:number){let i=heap.length;heap.push({id,score});while(i>0){const p=(i-1)>>1;if(heap[p].score<=score)break;heap[i]=heap[p];i=p;}heap[i]={id,score};}
@@ -94,6 +94,9 @@ export function createResidentRouter(paths:readonly ResidentPath[],walk:Resident
         while(cursor>=0&&output.length<=5000){output.push(cursor);cursor=previous[cursor];}
         return output.reverse();}
       for(const link of nodes[id].links){const d=best[id]+link.distance;if(d+1e-6>=best[link.to])continue;
+        // Only on failed-route retry: a newly closed door may invalidate a
+        // previously compiled graph edge, while another legal path remains.
+        if(liveEdges&&!safeSegment(nodes[id].point,nodes[link.to].point,walk))continue;
         best[link.to]=d;previous[link.to]=id;push(link.to,d+dist(nodes[link.to].point,nodes[goal].point));}
     }
     return null;
@@ -118,13 +121,19 @@ export function createResidentRouter(paths:readonly ResidentPath[],walk:Resident
       if(dist(from,to)<24&&safeSegment(from,to,walk))return residentRoute([from,to]);
       const a=nearest(from),b=nearest(to);
       if(a<0||b<0)return null;
-      const ids=search(a,b);if(!ids)return null;
-      const pts=[from,...ids.map(id=>nodes[id].point),to];
-      // Validate the final complete route, including connector approaches, against the
-      // current local walkability model. No artificial shortcut through a house/water.
-      for(let i=1;i<pts.length;i++)if(!safeSegment(pts[i-1],pts[i],walk))return null;
-      const route=residentRoute(pts);
-      return route.length<=1200?route:null;
+      const build=(ids:number[]|null):ResidentRoute|null=>{
+        if(!ids)return null;
+        const pts=[from,...ids.map(id=>nodes[id].point),to];
+        // Validate connector approaches and all edges against live obstacles.
+        for(let i=1;i<pts.length;i++)
+          if(!safeSegment(pts[i-1],pts[i],walk))return null;
+        const route=residentRoute(pts);
+        return route.length<=1200?route:null;
+      };
+      // Fast path unchanged. Only on obstruction repeat the bounded search
+      // with dynamic edge checks to find a legal alternative. Never per frame.
+      const initial=build(search(a,b));
+      return initial??build(search(a,b,true));
     },
   };
 }

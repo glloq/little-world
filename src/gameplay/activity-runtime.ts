@@ -18,6 +18,8 @@ import {newPlotState,evaluate,act,publicView,type FarmPlotState} from '../farm/f
 export type ActivityChange={kind:'mine';mineId:string;level:number;chunks:string[]}|{kind:'farm';plotId:string};
 export interface MineTarget {mineId:string;level:number;ix:number;iz:number;material:number}
 interface Deps {grant(changes:{itemId:string;quantity:number}[]):boolean;
+  /** Native post-commit hook: never invoked for a failed grant or a mere strike. */
+  onReward?:(kind:'mine'|'farm',reward:{itemId:string;quantity:number})=>void;
   /** Carried item test (tools: pickaxe power). Absent = bare hands. */has?(itemId:string):boolean;
   /** Seed packet item of a crop when the game economy defines it (sowing then consumes one,
    * a harvest returns one). Absent or null = free sowing (worlds without economy). */seedItem?(cropId:string):string|null;time():number;climate:ClimateHistory;collision:WorldCollisionQuery;ground(x:number,z:number):number;water(x:number,z:number):number|null}
@@ -47,7 +49,7 @@ export function createActivityRuntime(activities:PlayableActivities,deps:Deps){
   function dig(position:Point3,space:MovementSpace|undefined,forward:{x:number;z:number},quality:StrikeAccuracy='normal'):{ok:boolean;message:string;partial?:boolean;progress?:number;hits?:number;nextResult?:number}{
     const t=mineTarget(position,space,forward);if(!t||!space)return {ok:false,message:'Aucune paroi à portée'};
     const m=mines.get(t.mineId)!,tool=pickPower(id=>deps.has?.(id)??false);
-    const r=m.state.strike({requestId:requestId('dig'),levelId:space.levelId,ix:t.ix,iz:t.iz,from:position},tool.power,reward=>deps.grant([reward]),quality);
+    const r=m.state.strike({requestId:requestId('dig'),levelId:space.levelId,ix:t.ix,iz:t.iz,from:position},tool.power,reward=>{const ok=deps.grant([reward]);if(ok)deps.onReward?.('mine',reward);return ok;},quality);
     if(!r.ok)return {ok:false,message:r.reason};
     if('partial'in r){
       // A visual stage needs one local rebuild on the chunk owning each
@@ -79,11 +81,37 @@ export function createActivityRuntime(activities:PlayableActivities,deps:Deps){
     const missing=seedMissing(plotId);if(missing)return {ok:false,message:missing};
     // Harvest: the crop and one seed packet of the harvested crop, granted atomically.
     const harvested=f.state.crop?.cropId,bonus=intent.type==='harvest'&&harvested?deps.seedItem?.(harvested)??null:null;
-    const r=act(f.state,f.zone.farm,deps.climate,{requestId:requestId('farm'),type:intent.type,cropId,time:deps.time(),waterAvailable:waterAvailable(f.zone)},reward=>deps.grant(bonus?[reward,{itemId:bonus,quantity:1}]:[reward])||!!bonus&&deps.grant([reward]));
+    const r=act(f.state,f.zone.farm,deps.climate,{requestId:requestId('farm'),type:intent.type,cropId,time:deps.time(),waterAvailable:waterAvailable(f.zone)},reward=>{
+      const first=deps.grant(bonus?[reward,{itemId:bonus,quantity:1}]:[reward]);
+      const committed=first||!!bonus&&deps.grant([reward]);
+      if(committed)deps.onReward?.('farm',reward);
+      return committed;
+    });
     if(!r.ok)return {ok:false,message:r.reason};
     if(intent.type==='plant'){const seed=deps.seedItem?.(cropId);if(seed)deps.grant([{itemId:seed,quantity:-1}]);}
     notify({kind:'farm',plotId});
     return {ok:true,message:r.reward?`Récolte : +${r.reward.quantity} ${nameOf(r.reward.itemId)}`:intent.type==='plant'?'Semis effectué':intent.type==='water'?'Parcelle arrosée':'Parcelle nettoyée'};
+  }
+  /** Native F09 agricultural authority shared with player plots. The NPC
+   * may only use an authored NPC-assigned plot. A failed stock credit leaves
+   * a mature crop untouched. Same growth, climate and yield as player act().
+   * No player inventory / seed packet side effects.
+   */
+  function npcFarmAct(
+    plotId:string,requestId:string,
+    acceptReward:(item:{itemId:string;quantity:number})=>boolean,
+  ):{ok:boolean;action:'plant'|'water'|'harvest'|'clear'|null;reward?:{itemId:string;quantity:number};reason?:string}{
+    const f=farms.get(plotId);
+    if(!f||f.zone.farm.assignment!=='npc')return {ok:false,action:null,reason:'Parcelle PNJ absente'};
+    if(!/^[a-zA-Z0-9_.:-]{1,100}$/.test(requestId))return {ok:false,action:null,reason:'Commande invalide'};
+    const v=farmView(plotId)!,action=v.stage==='empty'?'plant':
+      v.stage==='mature'?'harvest':v.stage==='failed'?'clear':'water';
+    const cropId=f.zone.farm.crops[f.crop%f.zone.farm.crops.length];
+    const result=act(f.state,f.zone.farm,deps.climate,{requestId,type:action,cropId,
+      time:deps.time(),waterAvailable:waterAvailable(f.zone)},acceptReward);
+    if(!result.ok)return {ok:false,action,reason:result.reason};
+    notify({kind:'farm',plotId});
+    return {ok:true,action,...(result.reward?{reward:result.reward}:{})};
   }
   /** Explicit crop choice among the plot's allowed profiles (validated here, not by the UI). */
   function selectCrop(plotId:string,cropId:string){const f=farms.get(plotId);if(!f)return null;const i=f.zone.farm.crops.indexOf(cropId);if(i<0)return null;f.crop=i;return CROPS[cropId].name;}
@@ -190,7 +218,7 @@ export function createActivityRuntime(activities:PlayableActivities,deps:Deps){
       passage:liftDistance<3?{label:'Monte-charge : choisir un étage',distance:liftDistance}:null,
       exit:out};
   }
-  return {mines,farms,cameraInMine,mineTarget,digPreview,farmPreview,mineNavigation,mineHubNear,mineLiftView,mineLiftTravel,selectCrop,dig,farmNear,farmView,farmIntent,farmAct,cycleCrop,serialize,restore,subscribe(l:(c:ActivityChange)=>void){listeners.add(l);return ()=>listeners.delete(l);}};
+  return {mines,farms,cameraInMine,mineTarget,digPreview,farmPreview,mineNavigation,mineHubNear,mineLiftView,mineLiftTravel,selectCrop,dig,farmNear,farmView,farmIntent,farmAct,npcFarmAct,cycleCrop,serialize,restore,subscribe(l:(c:ActivityChange)=>void){listeners.add(l);return ()=>listeners.delete(l);}};
 }
 export type ActivityRuntime=ReturnType<typeof createActivityRuntime>;
 const NAMES:Record<string,string>={'mine:stone':'pierre','mine:iron':'minerai de fer','mine:crystal':'cristal','farm:wheat':'blé','farm:carrot':'carotte(s)','farm:pumpkin':'citrouille(s)'};

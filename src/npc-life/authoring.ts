@@ -11,7 +11,7 @@ import {collisionDefinitionsFromProject} from '../studio-core/collision-adapter.
 import {WorldCollisionQuery} from '../physics/collision-world.ts';
 import {localLifeCapabilities} from './capabilities.ts';
 import {createResidentAssignmentPlanner,MAX_PLAY_ANCHOR_OCCUPANTS} from './assignments.ts';
-import {residentDutyShift,validResidentRoutine,type ResidentActivityStop,type ResidentPoint,type ResidentRole,type ResidentRoutineV1} from './schedule.ts';
+import {MAX_RESIDENT_DAILY_STOPS,residentDutyShift,validResidentRoutine,type ResidentActivityStop,type ResidentPoint,type ResidentRole,type ResidentRoutineV1} from './schedule.ts';
 import {withVillageActivities} from './generation-agenda.ts';
 import {validateResidentAgendaRoutes} from './agenda.ts';
 export interface ResidentAnchorChoice {id:string;name:string;point:ResidentPoint}
@@ -141,16 +141,17 @@ export function residentActivityChoices(p:ProjectDocument,id:string):ResidentAnc
  * The single persisted Resident component remains the sole game data source.
  */
 export function setResidentStudioActivities(p:ProjectDocument,id:string,
- activities:readonly {kind:ResidentActivityStop['kind'];anchorId:string;startHour:number;endHour:number}[]):void{
+ activities:readonly {kind:ResidentActivityStop['kind'];anchorId:string;startHour:number;endHour:number;weather?:ResidentActivityStop['weather']}[]):void{
  const index=p.entityIndex[id],source=index?p.chunks[index.ownerChunkId]?.entities[id]:undefined;
  const routine=source?resolveEntity(p,source).components.Resident:undefined;
  if(!source||!routine)throw Error('Résident introuvable');
- if(activities.length>3)throw Error('Trois activités maximum');
+ if(activities.length>MAX_RESIDENT_DAILY_STOPS)throw Error(MAX_RESIDENT_DAILY_STOPS+' activités maximum');
  const choices=new Map(residentActivityChoices(p,id).map(a=>[a.id,a]));
  const resolved:ResidentActivityStop[]=activities.map(a=>{
   const anchor=choices.get(a.anchorId);
   if(!anchor)throw Error('Lieu public inexistant ou supprimé : '+a.anchorId);
-  return {kind:a.kind,anchorId:a.anchorId,point:{...anchor.point},startHour:a.startHour,endHour:a.endHour};
+  return {kind:a.kind,anchorId:a.anchorId,point:{...anchor.point},startHour:a.startHour,endHour:a.endHour,
+    ...(a.weather&&a.weather!=='any'?{weather:a.weather}:{})};
  }).sort((a,b)=>a.startHour-b.startHour||a.anchorId.localeCompare(b.anchorId));
  const amended:ResidentRoutineV1={...routine,activities:resolved.length?resolved:undefined};
  if(!validResidentRoutine(amended))throw Error('Horaires ou activités incompatibles');

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {residentRoute,positionOnResidentRoute,validResidentRoutine} from '../src/npc-life/schedule.ts';
+import {MAX_RESIDENT_DAILY_STOPS,residentRoute,positionOnResidentRoute,validResidentRoutine} from '../src/npc-life/schedule.ts';
 import {residentAgendaPoseAt,validateResidentAgendaRoutes} from '../src/npc-life/agenda.ts';
 import {residentSocialPairs,residentSocialEncounterActive} from '../src/npc-life/social.ts';
 import {createResidentLayeredRouter} from '../src/npc-life/layered-routes.ts';
@@ -108,4 +108,81 @@ test('social greetings are symmetric, deterministic, time-bounded and never incl
  const pairing=residentSocialPairs(actors);
  assert.equal(pairing.get('a'),'c');
  assert.equal(pairing.has('b'),false);
+});
+
+test('F02 validates five ordered visits without unbounded schedule evaluation',()=>{
+ assert.equal(MAX_RESIDENT_DAILY_STOPS,5);
+ const stops=Array.from({length:5},(_,i)=>({
+   kind:i%2===0?'social':'rest',
+   anchorId:'bench:'+i,point:{x:2,z:12},
+   startHour:8+i*1.5,endHour:8.5+i*1.5,
+ }));
+ const extended={...worker,activities:stops};
+ assert.equal(validResidentRoutine(extended),true);
+ assert.equal(validResidentRoutine({...extended,activities:[...stops,{
+   kind:'social',anchorId:'bench:6',point:{x:2,z:12},
+   startHour:16,endHour:16.5,
+ }]}),false,'six visits exceed bounded contract');
+ const legs=stops.map(()=>({
+   to:residentRoute([{x:0,z:12},{x:2,z:12}]),
+   back:residentRoute([{x:2,z:12},{x:0,z:12}]),
+ }));
+ assert.equal(validateResidentAgendaRoutes(extended,{work:routes.work,activities:legs},1200,1),null);
+ const pose=residentAgendaPoseAt(extended,{work:routes.work,activities:legs},clock(14.25),1200,.36,1);
+ assert.equal(pose.phase,'activity');
+ assert.equal(pose.position.x,2);
+});
+
+test('F02 early-shift fishers get visits during their real working day',()=>{
+ const terrain={bounds:{minX:-200,maxX:200,minZ:-200,maxZ:200},height:()=>10,wet:()=>false,seaLevel:0};
+ const planner=createResidentAssignmentPlanner(
+   [{points:[{x:0,z:0},{x:0,z:12},{x:2,z:12}]}],terrain);
+ const fisher={...worker,role:'fisher',activities:undefined};
+ const stops=withVillageActivities(fisher,
+   [{id:'bench:1',role:'child',point:{x:2,z:12},sourceId:'bench:1',kind:'amenity'}],
+   planner,routes.work,1200,1.1);
+ assert.ok(stops.activities?.length);
+ assert.ok(stops.activities.every(s=>s.startHour>=5&&s.endHour<=15),
+   'early shifts must not inherit late afternoon meeting windows');
+ assert.ok(stops.activities.some(s=>s.kind==='social'),
+   'the social pause should fit before fisher closes the shift');
+ assert.equal(validResidentRoutine(stops),true);
+});
+
+test('F01-D a removed bridge invalidates the existing layered path before the NPC crosses',()=>{
+ let hasBridge=true;
+ const paths=[
+  {points:[{x:-20,z:0},{x:-5,z:0}]},
+  {supportId:'bridge:dynamic',points:[{x:-5,z:0},{x:5,z:0}]},
+  {points:[{x:5,z:0},{x:20,z:0}]},
+ ];
+ const walk=(x)=>x<=-5||x>=5;
+ const surfaces={
+  groundHeight:()=>10,
+  supportHeight:(id,x,z)=>id==='bridge:dynamic'&&hasBridge&&x>=-5&&x<=5&&Math.abs(z)<.2
+    ?10+2*(1-Math.abs(x)/5):null,
+ };
+ const router=createResidentLayeredRouter(paths,walk,surfaces);
+ const before=router.route({x:-18,z:0},{x:18,z:0});
+ assert.ok(before&&before.points.some(p=>p.y>11));
+ hasBridge=false;
+ assert.equal(router.route({x:-18,z:0},{x:18,z:0}),null);
+ hasBridge=true;
+ assert.ok(router.route({x:-18,z:0},{x:18,z:0}),
+  'restored bridge becomes usable without fabricating another surface');
+});
+
+test('F02 weather-conditioned visits stay at real job and resume on dry weather',()=>{
+ const conditional={...worker,activities:[{...worker.activities[0],weather:'dry'}]};
+ assert.equal(validResidentRoutine(conditional),true);
+ const rainy=residentAgendaPoseAt(conditional,routes,clock(12.3),1200,.36,1,'rain');
+ assert.equal(rainy.phase,'work');
+ assert.deepEqual(rainy.position,worker.work,'rain skips the optional civic trip at the known workplace');
+ const dry=residentAgendaPoseAt(conditional,routes,clock(12.3),1200,.36,1,'clear');
+ assert.equal(dry.phase,'activity');
+ assert.equal(dry.position.x,2);
+ const rainOnly={...worker,activities:[{...worker.activities[0],weather:'rain'}]};
+ assert.equal(residentAgendaPoseAt(rainOnly,routes,clock(12.3),1200,.36,1,'clear').phase,'work');
+ assert.equal(residentAgendaPoseAt(rainOnly,routes,clock(12.3),1200,.36,1,'rain').phase,'activity');
+ assert.equal(validResidentRoutine({...conditional,activities:[{...conditional.activities[0],weather:'storm'}]}),false);
 });

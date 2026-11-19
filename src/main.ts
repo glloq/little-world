@@ -303,6 +303,13 @@ let npcActorActions:null|{moveTo:(id:string,p:{x:number;y:number;z:number})=>boo
 if(playable){
   const {createGameplayView}=await import('./gameplay/game-view.ts');
   gameplay=createGameplayView(playable.gameplay,{surfStarter:searchParams.get('surfDemo')==='1'||!!playable?.surfZones?.length,islandId:activeIsland?.id,
+    waterKindAt:(x,z)=>{
+      const water=waterSurface(x,z);
+      if(water===null||water<=terrainHeight(x,z)+.4)return null;
+      return Math.abs(water-getTerrainConfig().seaLevel)<.05&&
+        terrainHeight(x,z)<getTerrainConfig().seaLevel?'sea':
+        isLakeAt(x,z)?'lake':'river';
+    },
     onNpcMoveTo:(id,p)=>npcActorActions?.moveTo(id,p)??false,
     onNpcStartDialogue:(id)=>npcActorActions?.talkTo(id,{x:player.position.x,z:player.position.z})??false,
     onSound:(id,p)=>audio?.playSound(id,p),collisions:playable.collisions,temporary:!!(studioTest||buildScope),saveScope:studioTest?.snapshotId??buildScope??undefined,getPosition:()=>({x:player.position.x,y:player.position.y,z:player.position.z}),objects:world.objects,showInfo,
@@ -371,6 +378,8 @@ const npcExteriorDoors=new Set(definition.placements.filter(p=>p.assetId==='sett
 const npcs = createNPCSystem(scene, definition.npcs,isLegacyTerrain()?undefined:[],gameplay?.dialogueSession,{
   worldTime:()=>worldClock.time,dayLengthSeconds:climate.definition.dayLengthSeconds,
   initialDayPhase:climate.definition.initialDayPhase,paths:definition.paths,
+  // Gameplay tracks actual temporary/manual exterior-door state transitions.
+  navigationRevision:()=>gameplay?.navigationRevision??0,
   rigBudget:((navigator as Navigator&{deviceMemory?:number}).deviceMemory??8)<=4?8:
     ((navigator as Navigator&{deviceMemory?:number}).deviceMemory??8)<=8?12:20,
   weather:()=>climate.state(worldClock.time).weather,
@@ -396,6 +405,35 @@ const npcs = createNPCSystem(scene, definition.npcs,isLegacyTerrain()?undefined:
   },
 });
 npcActorActions=npcs;
+if(gameplay){
+  const {generateResidentSocialQuestOffers,generateResidentVisitQuestOffers}=await import('./quests/generator.ts');
+  // No new graph: offers are created only from existing qualified resident
+  // paths and gameplay dialogues. The historical social objective is preserved.
+  const questIslandId=activeIsland?.id??playable!.gameplay.worldId;
+  const certified=(from:{x:number;z:number},to:{x:number;z:number})=>npcs.qualifyQuestRoute(from,to);
+  const social=generateResidentSocialQuestOffers(definition.npcs,gameplay.runtime.data,
+    questIslandId,certified,8);
+  const visits=generateResidentVisitQuestOffers(definition.npcs,gameplay.runtime.data,
+    questIslandId,certified,4);
+  // Studio projects use the source world ID; published archipelagos use a
+  // registry island ID. Rebind only source-local fields at publication time.
+  const sourceIslandId=playable?.gameplay.worldId??questIslandId;
+  const localId=(id:string)=>id===sourceIslandId?questIslandId:id;
+  const authored=(playable?.questCatalog??[]).map(q=>({
+    ...q,islandId:questIslandId,
+    steps:q.steps.map(step=>{
+      if(step.kind==='travel')return {...step,fromIslandId:localId(step.fromIslandId),
+        toIslandId:localId(step.toIslandId)};
+      if(step.kind==='acquire'&&step.fromIslandId)
+        return {...step,fromIslandId:localId(step.fromIslandId)};
+      if('islandId'in step&&step.islandId)return {...step,islandId:localId(step.islandId)};
+      return step;
+    }),
+  }));
+  const offers=[...authored,...social,...visits].filter((entry,index,list)=>
+    list.findIndex(other=>other.questKey===entry.questKey)===index);
+  gameplay.quests.registerOffers(offers);
+}
 npcs.setLighting(world.atlasIllumination);
 gameplay?.attachNPCs(npcs.states);
 // A single durable cargo ledger covers the published offline archipelago; its author
@@ -479,6 +517,7 @@ async function travelToIsland(destination:PublishedIsland):Promise<{ok:boolean;m
       flightProgress:save.flightProgress??flightProgress,
       equippedItemId:save.equippedItemId??null,
       ...(save.loadout?{loadout:save.loadout}:{}),
+      ...(save.questsLocal?{questsPortable:save.questsLocal}:{}),
     });
     checkpointWritten=true;
     clearGameplayInput();
@@ -1288,15 +1327,16 @@ function updateFishing(){
     audio?.emit('fishing.escape',{position:waterAt??player.position,source:'player'});
     if(waterAt){fishingEffects.burst(waterAt,'escaped');impacts.spawn(waterAt,'water',4);}
   }else if(result==='caught'){
+    const water=f.state.water,cast=f.state.castAt;
     const item=f.takeCatch(); // Idempotent: only this transition can claim the fish.
-    if(!item)return;
+    if(!item||!water||!cast)return;
     if(waterAt){fishingEffects.burst(waterAt,'caught');impacts.spawn(waterAt,'water',6);}
-    if(gameplay.runtime.grantItems([{itemId:item,quantity:1}])){
+    if(gameplay.creditFishCatch(item,water,cast)){
       showInfo(gameplay.itemName(item)+' attrapé !','success');
       fishingEffects.displayCatch(item);
       audio?.emit('fishing.catch',{position:player.position,source:'player',context:{species:item}});
       character.play('fish-reel');
-    }else{showInfo('Sac plein : poisson relâché.','warning');audio?.emit('fishing.escape',{position:waterAt??player.position,source:'player'});}
+    }else{showInfo('Sac plein ou zone de pêche épuisée : poisson relâché.','warning');audio?.emit('fishing.escape',{position:waterAt??player.position,source:'player'});}
   }
 }
 function currentTarget():TargetDescriptor|null{
@@ -1542,6 +1582,7 @@ function tick(dt: number) {
       }
       else if(event?.kind==='finish'){
         const race=raceSession.definition,isBest=writeRaceBest(localStorage,race,event.seconds,gameplay?.runtime.data.buildVersion??'');
+        gameplay?.recordQuestCommit('race.finished',{raceId:race.id,measuredSeconds:event.seconds});
         showInfo('Course terminée : '+race.name+' · '+event.seconds.toFixed(2)+' s'+(isBest?' · Nouveau record local !':''),'success');
         stopRace();
       }else if(event?.kind==='failed'){showInfo('Course arrêtée : '+event.reason,'warning');stopRace();}
@@ -1945,7 +1986,9 @@ if(incomingTransit&&gameplay&&playable){
       satiety:incomingTransit.traveler.satiety??100,boostRechargeProgress:incomingTransit.traveler.boostRechargeProgress??0,
       flightProgress:incomingTransit.traveler.flightProgress,
       equippedItemId:incomingTransit.traveler.equippedItemId??null,
-      loadout:incomingTransit.traveler.loadout});
+      loadout:incomingTransit.traveler.loadout,
+      questsLocal:{...(base.questsLocal??{}),...(incomingTransit.traveler.questsPortable??{})}});
+    gameplay.recordQuestCommit('ferry.arrived',{source:incomingTransit.sourceId});
     // The destination slot holds local activity state; a separate portable checkpoint holds
     // the complete bag across refreshes. Neither one is the short-lived ferry ticket.
     await gameplay.slots.save(gameplay.compose('slot-ferry-auto'));
@@ -1954,6 +1997,7 @@ if(incomingTransit&&gameplay&&playable){
       items:gameplay.runtime.data.items.filter(item=>(gameplay!.runtime.state.inventory[item.id]??0)>0),
       gasReserve:gasLevel(player),satiety:satietyLevel(player),boostRechargeProgress:player.boostRechargeProgress??0,flightProgress,equippedItemId:gameplay.equipment.hands,
       ...(gameplay.compose('slot-ferry-auto').loadout?{loadout:gameplay.compose('slot-ferry-auto').loadout}:{}),
+      ...(gameplay.compose('slot-ferry-auto').questsLocal?{questsPortable:gameplay.compose('slot-ferry-auto').questsLocal}:{}),
     });
     ferryMinute=worldGameMinute(worldClock.time,climate.definition.dayLengthSeconds);
     ferryNow=ferryStatus(ferryMinute,activeIsland!.portLevel);
@@ -1974,7 +2018,8 @@ if(!incomingTransit&&retainedPortable&&gameplay&&playable){
       satiety:retainedPortable.traveler.satiety??100,boostRechargeProgress:retainedPortable.traveler.boostRechargeProgress??0,
       flightProgress:retainedPortable.traveler.flightProgress,
       equippedItemId:retainedPortable.traveler.equippedItemId??null,
-      loadout:retainedPortable.traveler.loadout});
+      loadout:retainedPortable.traveler.loadout,
+      questsLocal:retainedPortable.traveler.questsPortable??base.questsLocal});
     ferryMinute=worldGameMinute(worldClock.time,climate.definition.dayLengthSeconds);
     ferryNow=ferryStatus(ferryMinute,activeIsland!.portLevel);
     ferryView?.setPresent(ferryNow.present);
@@ -2001,6 +2046,7 @@ if(activeIsland&&gameplay&&(incomingTransit||retainedPortable)){
           satiety:snapshot.satiety??satietyLevel(player),boostRechargeProgress:snapshot.boostRechargeProgress??player.boostRechargeProgress??0,
           flightProgress:snapshot.flightProgress??flightProgress,equippedItemId:snapshot.equippedItemId??null,
           ...(snapshot.loadout?{loadout:snapshot.loadout}:{}),
+          ...(snapshot.questsLocal?{questsPortable:snapshot.questsLocal}:{}),
         });
       }while(dirty);
       warned=false;

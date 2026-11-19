@@ -3,6 +3,7 @@
  * Currency and goods are always changed together through the existing inventory authority.
  */
 import {COIN,SHOPS,priceOf,type Purse,type ShopKind} from '../gameplay/economy.ts';
+import type {createNpcHarvestAccount} from '../npc-life/harvest-ledger.ts';
 import {identifier} from '../gameplay/schema.ts';
 
 export interface MarketStateV1 {
@@ -287,6 +288,29 @@ export function createIslandMarkets(deps:MarketServiceDeps){
     if(result.ok)deps.onChange();
     return result;
   }
+  /** F09-E: authoritative worker supply. A real market counter pays for
+   * real stock with its existing cash; the player's purse is untouched.
+   */
+  function supplyFromNpc(kind:ShopKind,shopId:string,itemId:string,quantity:number,
+   source:ReturnType<typeof createNpcHarvestAccount>,requestId:string):boolean{
+   if(!id(requestId)||!ints(quantity,1,99)||!marketCatalog(kind).buys.includes(itemId))return false;
+   const state=ensure(kind,shopId),unit=marketUnitPrices(deps.islandId,itemId).sell;
+   if(unit===undefined||unit<1||state.appliedRequestIds.includes(requestId)||
+      state.appliedRequestIds.length>=TRADE_REQUEST_HISTORY_LIMIT)return false;
+   const cost=unit*quantity;
+   if(!Number.isSafeInteger(cost)||cost>state.cashCoins||
+     (state.stock[itemId]??0)+quantity>MAX_STOCK||
+     !source.canTake(itemId,quantity)||!source.canReceive('coin',cost)||
+     state.revision>=1000000000)return false;
+   const minute=deps.gameMinute();
+   if(!source.exchange(requestId,itemId,quantity,cost,minute))return false;
+   state.cashCoins-=cost;
+   state.stock[itemId]=(state.stock[itemId]??0)+quantity;
+   state.revision++;
+   state.appliedRequestIds.push(requestId);
+   deps.onChange();
+   return true;
+  }
   function serialize():Record<string,MarketStateV1>{
     const saved:Record<string,MarketStateV1>=Object.create(null);
     for(const [shopId,state] of markets)saved[shopId]=parseMarketState(state);
@@ -303,5 +327,5 @@ export function createIslandMarkets(deps:MarketServiceDeps){
     markets.clear();for(const [id,state] of restored)markets.set(id,state);
   }
   return {view:(kind:ShopKind,shopId:string)=>marketView(ensure(kind,shopId)),trade,sellBatch,
-    serialize,restore,get size(){return markets.size;}};
+    serialize,restore,supplyFromNpc,get size(){return markets.size;}};
 }

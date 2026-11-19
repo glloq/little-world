@@ -44,3 +44,28 @@ test('clear messages when detailed data is gone or local storage cannot hold the
   await assert.rejects(()=>createGameSaveStore(storage(),null).save(payload),/Exporter la partie en cours/);
   const full=storage();full.setItem=()=>{throw Error('QuotaExceededError');};await assert.rejects(()=>createGameSaveStore(full,memoryBlobStore()).save(v1()),/Exporter la partie en cours/);
 });
+
+test('Q4 optional quest progress survives V2 game saves without altering V1 compatibility',async()=>{
+ const catalog={
+  questKey:'quest:local:1',templateId:'quest:talk',templateVersion:1,islandId:'w',giverId:'npc:fisher',
+  bindings:{},steps:[{kind:'talk',npcId:'npc:fisher'}],
+  rewards:[],dependencies:[],catalogRevision:'rev:1',
+  proof:{capabilityIds:['npc:fisher'],validatorVersion:'q1'},
+ };
+ const {acceptQuest,advanceQuest}=await import('../src/quests/progress.ts');
+ const accepted=acceptQuest(catalog,'quest-instance:1',5);
+ const done=advanceQuest(accepted,{schemaVersion:1,eventId:'talk:1',type:'npc.talked',
+  worldId:'w',islandId:'w',gameMinute:6,sequence:1,targetId:'npc:fisher'}).instance;
+ assert.equal(done.status,'ready');
+ const input={...v1(),schemaVersion:2,mines:{},farms:{},questsLocal:{[done.instanceId]:done}};
+ const store=createGameSaveStore(storage(),memoryBlobStore());
+ await store.save(input);
+ const loaded=await store.load('w','slot-1');
+ assert.deepEqual(loaded.questsLocal,input.questsLocal);
+ assert.equal(loaded.objectives instanceof Object,true,'legacy objectives remain independent');
+ assert.equal(parseGameSave(v1()).questsLocal,undefined,'V1 saves need no quest field');
+ assert.throws(()=>parseGameSave({...input,questsLocal:{other:done}}),/Identité de quête/);
+ assert.throws(()=>parseGameSave({...input,questsLocal:{[done.instanceId]:{
+  ...done,appliedEventIds:['talk:1','talk:1'],
+ }}}),/Quest instance/);
+});

@@ -139,6 +139,15 @@ export function createGameUi(deps:GameUiDeps){
     for(const [id,m] of a?.mines??[])out.push({id:'mine:'+id,kind:'mine',label:m.zone.name,x:m.zone.mine.entrance.x,z:m.zone.mine.entrance.z});
     for(const [id,f] of a?.farms??[]){const c=f.zone.polygon.reduce((s,p)=>({x:s.x+p.x/f.zone.polygon.length,z:s.z+p.z/f.zone.polygon.length}),{x:0,z:0});out.push({id:'farm:'+id,kind:'farm',label:f.zone.name,...c});}
     for(const n of deps.npcs.states)out.push({id:'npc:'+n.definition.id,kind:'npc',label:n.definition.name,x:n.x,z:n.z});
+    if(g)for(const quest of Object.values(g.quests.serialize())){
+      if(quest.status!=='active'&&quest.status!=='ready')continue;
+      const current=quest.steps[quest.stepIndex];
+      const id=quest.status==='ready'?quest.giverId:current?.kind==='talk'?current.npcId:undefined;
+      if(!id)continue;
+      const target=deps.npcs.states.find(n=>n.definition.id===id);
+      if(target)out.push({id:'quest-generated:'+quest.instanceId,kind:'quest',
+        label:String(quest.bindings.title??'Mission'),x:target.x,z:target.z});
+    }
     // Missions in progress: places of the interactions of their activities (data-driven).
     if(g){const s=g.runtime.state;for(const act of g.runtime.data.activities??[]){if(!act.objectiveId||s.objectives[act.objectiveId]!=='active')continue;
       for(const iid of act.interactionIds){const i=g.runtime.data.interactions.find(x=>x.id===iid),eid=i?.trigger.type==='onInteract'?i.trigger.entityId:undefined,p=eid?g.runtime.getEntityPosition(eid):undefined;if(p&&s.entities[eid!]?.collected!==true)out.push({id:'quest:'+iid,kind:'quest',label:act.name,x:p.x,z:p.z});}}}
@@ -170,6 +179,14 @@ export function createGameUi(deps:GameUiDeps){
     {pauses:false,render:b=>renderImportStand(b,deps.importTrade!)});
   const questLocation=(id:string):{x:number;z:number;label:string}|null=>{
     if(!g)return null;
+    const generated=g.quests.get(id);
+    if(generated){
+      const step=generated.steps[generated.stepIndex];
+      const targetId=generated.status==='ready'?generated.giverId:
+        step?.kind==='talk'?step.npcId:generated.giverId;
+      const person=deps.npcs.states.find(n=>n.definition.id===targetId);
+      if(person)return {x:person.x,z:person.z,label:person.definition.name};
+    }
     const starts=(action:{type:string;objectiveId?:string;status?:string})=>action.type==='setObjective'&&action.objectiveId===id&&action.status==='active';
     // Prefer the actual NPC whose dialogue starts the mission.
     const giver=g.runtime.data.dialogues.find(d=>d.lines.some(line=>line.actions?.some(starts)||line.choices.some(choice=>choice.actions?.some(starts))))?.actorId;
@@ -187,6 +204,7 @@ export function createGameUi(deps:GameUiDeps){
     return null;
   };
   const journal=journalPanel({objectives:()=>g?.runtime.data.objectives??[],status:()=>g?.runtime.state.objectives??{},activities:()=>g?.runtime.data.activities??[],
+    generated:()=>g?Object.values(g.quests.serialize()):[],
     locate:questLocation,openMap:(x,z,label)=>{map.focus(x,z,label);ui.open('map');}});
   ui.register('journal','Journal',{render:b=>journal.render(b)});
   if(g){const saves=savesPanel({worldId:g.runtime.data.worldId,buildVersion:g.runtime.data.buildVersion,dayLength:g.runtime.climate.definition.dayLengthSeconds,temporary:g.temporary,

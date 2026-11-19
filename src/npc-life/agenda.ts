@@ -33,7 +33,7 @@ export function validateResidentAgendaRoutes(
  }
  return null;
 }
-export function residentAgendaPoseAt(routine:ResidentRoutineV1,routes:ResidentDailyRoutes,time:number,dayLengthSeconds:number,initialDayPhase:number,speed=1.1):ResidentAgendaPose{
+export function residentAgendaPoseAt(routine:ResidentRoutineV1,routes:ResidentDailyRoutes,time:number,dayLengthSeconds:number,initialDayPhase:number,speed=1.1,weather:'clear'|'cloudy'|'rain'='clear'):ResidentAgendaPose{
  const stops=routine.activities??[],[start,end]=residentDutyShift(routine);
  const invalid=validateResidentAgendaRoutes(routine,routes,dayLengthSeconds,speed);
  if(invalid)throw Error(invalid);
@@ -46,6 +46,11 @@ export function residentAgendaPoseAt(routine:ResidentRoutineV1,routes:ResidentDa
   const stop=stops[i],leg=routes.activities[i],toHours=hours(leg.to),backHours=hours(leg.back);
   const depart=stop.startHour-toHours,returnAt=stop.endHour+backHours;
   if(depart<available-.001||returnAt>end-.001)throw Error('Pause inaccessible dans les horaires');
+  // Conditional stops are skipped at the qualified workplace: no fictional
+  // shelter, new path or side effect is created when the weather changes.
+  if((stop.weather==='rain'&&weather!=='rain')||(stop.weather==='dry'&&weather==='rain')){
+   available=returnAt;continue;
+  }
   if(hour<depart)return pose('work',routes.work,routes.work.length,depart);
   if(hour<stop.startHour)return pose('to-activity',leg.to,(hour-depart)/Math.max(.000001,toHours)*leg.to.length,stop.startHour,stop.kind);
   if(hour<stop.endHour)return pose('activity',leg.to,leg.to.length,stop.endHour,stop.kind);

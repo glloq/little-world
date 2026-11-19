@@ -54,19 +54,25 @@ export function createGathering(deps:GatherDeps){
     return best;
   }
   /** One strike / pick on the target in front: validated, then granted atomically when done. */
-  function act(p:{x:number;y:number;z:number},forward:{x:number;z:number}):{ok:boolean;message:string;done?:boolean;target?:GatherTarget}{
+  function act(p:{x:number;y:number;z:number},forward:{x:number;z:number},
+    grant:GatherDeps['grant']=deps.grant,has:GatherDeps['has']=deps.has):{ok:boolean;message:string;done?:boolean;target?:GatherTarget;reward?:{itemId:string;quantity:number}}{
     const t=target(p,forward);if(!t)return {ok:false,message:'Rien à récolter ici'};
-    if(t.rule.tool&&!deps.has(t.rule.tool))return {ok:false,message:t.rule.tool==='tool:axe'?'Il faut une hache (comptoir du bûcheron ou marché)':'Outil manquant',target:t};
+    if(t.rule.tool&&!has(t.rule.tool))return {ok:false,message:t.rule.tool==='tool:axe'?'Il faut une hache (comptoir du bûcheron ou marché)':'Outil manquant',target:t};
     const n=(hits.get(t.key)??0)+1;
     if(n<t.rule.strikes){hits.set(t.key,n);return {ok:true,message:`${t.rule.label} : ${n}/${t.rule.strikes}`,target:t};}
     const {itemId,min,max}=t.rule.yields,quantity=min+Math.floor(hash(t.key+':'+deps.time().toFixed(0))*(max-min+1));
-    if(!deps.grant([{itemId,quantity}]))return {ok:false,message:'Sac plein',target:t};
+    if(!grant([{itemId,quantity}]))return {ok:false,message:'Sac plein',target:t};
     hits.delete(t.key);gathered.set(t.key,{t:deps.time(),action:t.rule.action,regrow:t.rule.regrowSeconds});if(gathered.size>5000)gathered.delete(gathered.keys().next().value!);
     for(const l of listeners)l({x:t.x,z:t.z,key:t.key});
-    return {ok:true,done:true,message:`+${quantity}`,target:t};
+    return {ok:true,done:true,message:`+${quantity}`,target:t,reward:{itemId,quantity}};
   }
   return {
     target,act,hiddenAt,cell,
+    /** Same tree registry, strikes, tool requirements and regrowth as the
+     * player. Only the native caller may provide an NPC stock grant callback.
+     */
+    npcAct:(position:{x:number;y:number;z:number},forward:{x:number;z:number},
+      grant:GatherDeps['grant'],has:GatherDeps['has'])=>act(position,forward,grant,has),
     subscribe(l:(t:{x:number;z:number;key:string})=>void){listeners.add(l);return ()=>listeners.delete(l);},
     /** Saved as « key:action:regrow » → time (only elements not grown back yet). */
     serialize():GatherSave{const out:Record<string,number>={};for(const [k,g]of gathered)if(deps.time()-g.t<g.regrow)out[`${k}:${g.action[0]}:${g.regrow}`]=g.t;return {schemaVersion:1,gathered:out};},

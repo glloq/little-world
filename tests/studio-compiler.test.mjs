@@ -116,3 +116,20 @@ test('audio metadata changes do not recompile spatial chunks and storage revisio
  p.manifest.revision=50;const revision=await compile(p);assert.equal(revision.manifest.sourceHash,audio.manifest.sourceHash);assert.deepEqual(revision.manifest.chunks,audio.manifest.chunks);
  p.world.editSequence++;const order=await compileProject(p,{resolveAsset:resolver,previous:audio.manifest});assert.deepEqual(order.rebuiltChunkIds,[]);
 });
+
+test('Studio-authored quest chain is shipped in compiled logic without changing other assets',async()=>{
+ const project=fixture();
+ const offer={questKey:'quest:authored:compile',templateId:'studio:authored',templateVersion:1,
+  islandId:project.world.worldId,giverId:'lever',
+  bindings:{title:'Aller au port'},steps:[
+   {kind:'visit',targetId:'door',withinM:4},
+   {kind:'travel',fromIslandId:project.world.worldId,toIslandId:'forest-valley'},
+  ],rewards:[{kind:'coins',quantity:3}],dependencies:['lever','door'],
+  catalogRevision:'studio-v1',proof:{capabilityIds:['lever','door'],validatorVersion:'studio-author-v1'}};
+ project.libraries.questCatalog={[offer.questKey]:offer};
+ const before=structuredClone(project),compiled=await compile(project);
+ const logic=JSON.parse(compiled.files[compiled.manifest.logic.url]);
+ assert.deepEqual(logic.libraries.questCatalog[offer.questKey],offer);
+ assert.deepEqual(project,before,'compilation cannot modify authored chain');
+ assert.equal(compiled.manifest.chunks.length,3);
+});

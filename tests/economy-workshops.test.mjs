@@ -106,3 +106,27 @@ test('new foods are explicitly edible but unknown forage is not',()=>{
   assert.ok(foodGasValue('food:soup')>0);
   assert.equal(foodGasValue('forage:mushroom'),0);
 });
+
+test('Q2 workshop event is emitted once after native successful collection, never on full bag',()=>{
+ const money=bag({coin:10,'wood:log':2,'material:plank':999});
+ let clock=10;const events=[];
+ const service=createShopWorkshops({
+  items:[...ECONOMY_ITEMS,...MINE_ITEMS,...FARM_ITEMS,...PRODUCTION_ITEMS],
+  purse:money,elapsedSeconds:()=>clock,dayLengthSeconds:1440,
+  onChange:()=>{},onCollected:(stationId,job)=>events.push({
+   stationId,recipeId:job.recipeId,batches:job.batches,
+   items:job.outputs.map(x=>({...x})),
+  }),
+ });
+ assert.equal(service.start('forest','counter:1','sawmill:planks',1,'craft:1').ok,true);
+ clock=16;service.advanceDue();
+ const job=service.list('forest','counter:1').find(x=>x.stationType==='sawmill').jobs[0];
+ assert.equal(service.collect('forest','counter:1',job.jobId,'take:full').ok,false);
+ assert.deepEqual(events,[]);
+ delete money.inv['material:plank'];
+ assert.equal(service.collect('forest','counter:1',job.jobId,'take:good').ok,true);
+ assert.deepEqual(events,[{stationId:workshopStationId('counter:1','sawmill'),
+  recipeId:'sawmill:planks',batches:1,items:[{itemId:'material:plank',quantity:4}]}]);
+ assert.equal(service.collect('forest','counter:1',job.jobId,'take:replay').ok,false);
+ assert.equal(events.length,1);
+});

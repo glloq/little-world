@@ -5,6 +5,7 @@ import { buildSquirrel, CHARACTER_SCALE } from './squirrel.ts';
 import { buildHamster } from './hamster/hamster.ts';
 import {visualNPCSpecies} from './npc-life/species.ts';
 import {residentGesture,shouldPlayResidentGesture} from './npc-life/gestures.ts';
+import {residentWorkMode} from './npc-life/work-conditions.ts';
 import { createDialogue, type DialogueSession } from './dialogue.ts';
 import {
   createNPCState,
@@ -25,8 +26,8 @@ import type { Player } from './player.ts';
 import {terrainHeight} from './terrain.ts';
 import {createResidentRouter,type ResidentPath,type ResidentWalkable} from './npc-life/routes.ts';
 import {createResidentLayeredRouter,type ResidentSurfaces} from './npc-life/layered-routes.ts';
-import {residentRouteAheadClear,residentRouteStepClear,residentRoutineStepClear,residentRecoveryNeedsRetarget,residentRecoverySpeed} from './npc-life/dynamic-route.ts';
-import {residentHour,residentShift,residentPoseAt,residentRoute,positionOnResidentRoute,type ResidentRoute} from './npc-life/schedule.ts';
+import {residentRouteAheadClear,residentScriptedAdvance,residentReplanDue,residentRoutineStepClear,residentRecoveryNeedsRetarget,residentRecoverySpeed} from './npc-life/dynamic-route.ts';
+import {residentHour,residentShift,residentPoseAt,residentRoute,positionOnResidentRoute,type ResidentRoute,type ResidentPoint} from './npc-life/schedule.ts';
 import {residentDialogue,residentContextForHour} from './npc-life/dialogue.ts';
 import {residentAgendaPoseAt,validateResidentAgendaRoutes,type ResidentAgendaPose,type ResidentDailyRoutes,type ResidentActivityLegs} from './npc-life/agenda.ts';
 import {residentSocialPairs,residentSocialEncounterActive} from './npc-life/social.ts';
@@ -154,6 +155,8 @@ export interface NPCLifeOptions {
   /** Concurrent animated rigs, bounded for old 4–8GB integrated GPUs. */
   rigBudget?:number;
   weather?:()=> 'clear'|'cloudy'|'rain';
+  /** Increment when pedestrian paths, terrain or door topology changes. */
+  navigationRevision?:()=>number;
   /** Only existing exterior settlement doors can be requested. */
   homeDoor?:(homeAnchorId:string)=>string|null;
   openHomeDoor?:(doorId:string)=>void;
@@ -177,7 +180,7 @@ export function createNPCSystem(
     return residentDialogue(base,routine.role,()=>{
       const hour=residentHour(lifeOptions.worldTime(),lifeOptions.dayLengthSeconds,lifeOptions.initialDayPhase);
       const living=entries.find(e=>e.state===state)?.life?.pose;
-      if(living)return {phase:living.phase,hour,weather:lifeOptions.weather?.()};
+      if(living)return {phase:living.phase,hour,weather:lifeOptions.weather?.(),activityKind:living.activityKind};
       const context=residentContextForHour(routine.role,hour,routine);
       if(state.phase==='walk'){
         const [,end]=residentShift(routine.role);
@@ -271,10 +274,11 @@ export function createNPCSystem(
       lastWorkAt:-1,
       lastGreetAt:-1,
       lastRigAt:-1000,
-      scripted:null as null|{route:ResidentRoute;goal:{x:number;z:number};startAt:number;pausedFor:number;pauseFrom:number|null;arrivedAt:number|null;lastCheckedAt:number;lastDistance:number;replans:number;recovery:boolean},
+      scripted:null as null|{route:ResidentRoute;goal:{x:number;z:number};startAt:number;pausedFor:number;pauseFrom:number|null;arrivedAt:number|null;lastCheckedAt:number;lastDistance:number;replans:number;recovery:boolean;lastReplanAt:number;plannedRevision:number},
     };
   });
   const byId=new Map(entries.map(entry=>[entry.state.definition.id,entry]));
+  const navigationRevision=()=>{const revision=lifeOptions?.navigationRevision?.()??0;return Number.isFinite(revision)?revision:0;};
   let socialPartners=new Map<string,string>(),lastSocialScan=-1;
   let rigIds=new Set<string>(),lastRigSample=-1;
   let scriptedReplans=0,scriptedBlocked=0,scriptedCompleted=0,routineRecoveries=0,routineBlocked=0;
@@ -308,7 +312,7 @@ export function createNPCSystem(
       if(ok)route=residentRoute([from,to]);
     }
     if(!route)return false;
-    entry.scripted={route,goal:to,startAt:lifeOptions.worldTime(),pausedFor:0,pauseFrom:null,arrivedAt:null,lastCheckedAt:-1,lastDistance:0,replans:0,recovery:false};
+    entry.scripted={route,goal:to,startAt:lifeOptions.worldTime(),pausedFor:0,pauseFrom:null,arrivedAt:null,lastCheckedAt:-1,lastDistance:0,replans:0,recovery:false,lastReplanAt:-Infinity,plannedRevision:navigationRevision()};
     return true;
   }
   function talkTo(id:string,playerPosition:NPCPoint):boolean{
@@ -320,11 +324,15 @@ export function createNPCSystem(
   }
   return {
     dialogue,
+    /** Reuse the SAME qualified router for one-time quest catalog assembly. */
+    qualifyQuestRoute(from:ResidentPoint,to:ResidentPoint):ResidentRoute|null{
+      return !disposed?router?.route(from,to)??null:null;
+    },
     moveTo,
     talkTo,
     setLighting(color:THREE.Color|null){distant.setLighting(color);},
     states: entries.map((entry) => entry.state),
-    get lifeStats(){return {assigned:entries.filter(e=>!!e.state.definition.routine).length,routed:entries.filter(e=>!!e.life).length,agendas:entries.filter(e=>!!e.life?.agenda).length,unqualifiedAgendas:entries.filter(e=>e.state.definition.routine?.activities?.length&&!e.life?.agenda).length,socialPairs:socialPartners.size/2,animatedRigs:entries.filter(e=>!!e.model).length,rigBudget:lifeOptions?.rigBudget??12,scriptedReplans,scriptedBlocked,scriptedCompleted,routineRecoveries,routineBlocked,roadNodes:router?.nodes??0,roadTruncated:router?.truncated??false};},
+    get lifeStats(){return {assigned:entries.filter(e=>!!e.state.definition.routine).length,routed:entries.filter(e=>!!e.life).length,agendas:entries.filter(e=>!!e.life?.agenda).length,unqualifiedAgendas:entries.filter(e=>e.state.definition.routine?.activities?.length&&!e.life?.agenda).length,socialPairs:socialPartners.size/2,animatedRigs:entries.filter(e=>!!e.model).length,rigBudget:lifeOptions?.rigBudget??12,scriptedReplans,scriptedBlocked,scriptedCompleted,routineRecoveries,routineBlocked,navigationRevision:navigationRevision(),roadNodes:router?.nodes??0,roadTruncated:router?.truncated??false};},
     update(dt: number, time: number, position: NPCPoint,camera?:THREE.PerspectiveCamera) {
       if (disposed) return;
       distant.begin();distant.update(time);
@@ -357,7 +365,7 @@ export function createNPCSystem(
                   const r=state.definition.routine,speed=Math.max(.2,state.definition.speed);
                   const target=life.agenda
                     ?residentAgendaPoseAt(r,life.agenda,Math.max(0,now-life.pausedSeconds),
-                        lifeOptions.dayLengthSeconds,lifeOptions.initialDayPhase,speed)
+                        lifeOptions.dayLengthSeconds,lifeOptions.initialDayPhase,speed,lifeOptions.weather?.()??'clear')
                     :residentPoseAt(r,life.route,Math.max(0,now-life.pausedSeconds),
                         lifeOptions.dayLengthSeconds,lifeOptions.initialDayPhase,speed);
                   if(residentRecoveryNeedsRetarget(job.goal,target.position,now,job.lastCheckedAt,2,.35)){
@@ -366,6 +374,7 @@ export function createNPCSystem(
                     if(updated&&residentRouteAheadClear(updated,0,walkable,3)){
                       job.route=updated;job.goal=newGoal;job.startAt=now;
                       job.pausedFor=0;job.lastDistance=0;job.arrivedAt=null;job.lastCheckedAt=now;
+                      job.plannedRevision=navigationRevision();
                       routineRecoveries++;
                     }else{
                       entry.scripted=null;routineBlocked++;
@@ -382,21 +391,46 @@ export function createNPCSystem(
               const checkAhead=job.lastCheckedAt<0||now<job.lastCheckedAt||now-job.lastCheckedAt>=.35;
               // Check EVERY interval actually traversed, even if a browser tab
               // was paused and the absolute-clock target skipped several metres.
-              const safeStep=residentRouteStepClear(job.route,job.lastDistance,distance,walkable);
-              const clearAhead=!checkAhead||residentRouteAheadClear(job.route,distance,walkable,3);
+              // A suspended browser frame cannot skip metres of unchecked ground.
+              // Accept partial movement only on the actual polyline before impact.
+              const clearance=residentScriptedAdvance(job.route,job.lastDistance,distance,walkable);
+              distance=clearance.safeDistance;
+              // Commit the last certified point before planning a detour.
+              // This prevents stale-position replans and corner cutting.
+              const advance=positionOnResidentRoute(job.route,distance);
+              const changed=job.plannedRevision!==navigationRevision();
+              const clearAhead=(!checkAhead&&!changed)||residentRouteAheadClear(job.route,distance,walkable,3);
               if(checkAhead)job.lastCheckedAt=now;
-              if(entry.scripted&&(!safeStep||!clearAhead)){
-                const alternative=job.replans<3?router?.route({x:state.x,z:state.z},job.goal)??null:null;
-                  if(alternative&&residentRouteAheadClear(alternative,0,walkable,3)){
-                    job.route=alternative;job.startAt=now;job.pausedFor=0;
-                    job.lastDistance=0;job.lastCheckedAt=now;
-                    job.replans++;scriptedReplans++;distance=0;
-                  }else{
-                    // Stop at the last qualified position instead of crossing
-                    // the newly blocked segment. No teleport to the destination.
-                    entry.scripted=null;scriptedBlocked++;state.vx=0;state.vz=0;state.phase='idle';
-                    distance=0;
-                  }
+              // Door changes elsewhere in the village are not a reason to run
+              // A* for every walker: accept the revision when this path remains
+              // physically clear. Live step sampling still guards actual motion.
+              if(changed&&clearAhead&&clearance.clear)job.plannedRevision=navigationRevision();
+              if(entry.scripted&&(!clearance.clear||!clearAhead)){
+                state.x=advance.x;state.z=advance.z;
+                state.y=advance.y??terrainHeight(advance.x,advance.z);
+                job.lastDistance=distance;
+                const due=residentReplanDue(now,job.lastReplanAt,navigationRevision(),job.plannedRevision,1);
+                const alternative=due&&job.replans<3?router?.route({x:state.x,z:state.z},job.goal)??null:null;
+                if(due){
+                  job.lastReplanAt=now;
+                  job.plannedRevision=navigationRevision();
+                  job.replans++;
+                }
+                if(alternative&&residentRouteAheadClear(alternative,0,walkable,Math.min(8,alternative.length))){
+                  job.route=alternative;job.startAt=now;job.pausedFor=0;
+                  job.lastDistance=0;job.lastCheckedAt=now;job.replans=0;
+                  job.plannedRevision=navigationRevision();
+                  scriptedReplans++;distance=0;
+                }else if(job.replans>=3){
+                  entry.scripted=null;scriptedBlocked++;
+                  state.vx=0;state.vz=0;state.phase='idle';
+                }else{
+                  // Keep the actor stopped and freeze its scripted clock until
+                  // another bounded replan attempt; never accumulate a catch-up jump.
+                  const speed=job.recovery?residentRecoverySpeed(state.definition.speed):Math.max(.2,state.definition.speed);
+                  job.startAt=now-job.pausedFor-distance/speed;
+                  state.vx=0;state.vz=0;state.phase='idle';
+                }
               }
               if(entry.scripted){
               job.lastDistance=distance;
@@ -437,7 +471,7 @@ export function createNPCSystem(
               try {
                 const pose:ResidentAgendaPose=life.agenda
                   ?residentAgendaPoseAt(routine,life.agenda,Math.max(0,now-life.pausedSeconds),
-                    lifeOptions.dayLengthSeconds,lifeOptions.initialDayPhase,Math.max(.2,state.definition.speed))
+                    lifeOptions.dayLengthSeconds,lifeOptions.initialDayPhase,Math.max(.2,state.definition.speed),lifeOptions.weather?.()??'clear')
                   :residentPoseAt(routine,life.route,Math.max(0,now-life.pausedSeconds),
                     lifeOptions.dayLengthSeconds,lifeOptions.initialDayPhase,Math.max(.2,state.definition.speed));
                 life.pose=pose; // Dialogue context follows the schedule even while physically recovering.
@@ -457,7 +491,7 @@ export function createNPCSystem(
                     if(detour&&detour.length>.05&&residentRouteAheadClear(detour,0,walkable,3)){
                       entry.scripted={route:detour,goal:{x:pose.position.x,z:pose.position.z},
                         startAt:now,pausedFor:0,pauseFrom:null,arrivedAt:null,
-                        lastCheckedAt:-1,lastDistance:0,replans:0,recovery:true};
+                        lastCheckedAt:-1,lastDistance:0,replans:0,recovery:true,lastReplanAt:-Infinity,plannedRevision:navigationRevision()};
                       routineRecoveries++;
                     }else routineBlocked++;
                   }
@@ -467,7 +501,7 @@ export function createNPCSystem(
                   state.x=pose.position.x;state.z=pose.position.z;state.y=pose.position.y??terrainHeight(state.x,state.z);
                   state.vx=dt>0?(state.x-oldX)/dt:0;state.vz=dt>0?(state.z-oldZ)/dt:0;
                   if(pose.phase==='to-work'||pose.phase==='to-home'||pose.phase==='to-activity')state.heading=pose.heading;
-                  const busy=residentGesture(routine.role)!==null;
+                  const busy=residentWorkMode(routine.role,lifeOptions.weather?.()??'clear')==='active'&&residentGesture(routine.role)!==null;
                   state.phase=pose.phase==='activity'?(pose.activityKind==='social'?'greet':'idle'):
                     pose.phase==='work'?(busy?'work':routine.role==='child'&&Math.hypot(state.vx,state.vz)>.15?'walk':'idle'):
                     pose.phase==='to-work'||pose.phase==='to-home'||pose.phase==='to-activity'?'walk':'idle';
@@ -556,7 +590,8 @@ export function createNPCSystem(
           if (state.phase === 'greet' && !hamster.action && (entry.lastGreetAt<0||time-entry.lastGreetAt>8)){
             if(hamster.play('INTERACT'))entry.lastGreetAt=time;
           }else if(state.phase === 'work'&&!hamster.action&&state.definition.routine){
-            const gesture=residentGesture(state.definition.routine.role);
+            const gesture=residentWorkMode(state.definition.routine.role,lifeOptions?.weather?.()??'clear')==='active'
+              ?residentGesture(state.definition.routine.role):null;
             if(gesture&&shouldPlayResidentGesture(time,entry.lastWorkAt,gesture)&&hamster.play(gesture.activity))
               entry.lastWorkAt=time;
           }

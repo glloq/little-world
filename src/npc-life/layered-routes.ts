@@ -108,7 +108,37 @@ export function createResidentLayeredRouter(
   candidates.sort((a,b)=>a.d-b.d||a.id-b.id);
   return candidates.slice(0,16).find(c=>walkSegment(p,nodes[c.id].p,walk))?.id??-1;
  }
- function search(start:number,goal:number):number[]|null{
+ /** Re-check support existence and height without joining over/under crossings. */
+ function liveEdge(a:number,b:number):boolean{
+  const u=nodes[a],v=nodes[b];
+  for(const n of [u,v]){
+   const actual=n.supportId?surface.supportHeight(n.supportId,n.p.x,n.p.z):surface.groundHeight(n.p.x,n.p.z);
+   if(actual===null||!Number.isFinite(actual)||Math.abs(actual-n.p.y!)>.22)return false;
+  }
+  if(u.supportId&&v.supportId&&u.supportId!==v.supportId)return false;
+  if(u.supportId&&u.supportId===v.supportId)return safeEdge(a,b,u.supportId);
+  if(!u.supportId&&!v.supportId)return safeEdge(a,b,null);
+  // At a bridge landing the first ramp segment legitimately rises from
+  // ground to deck. Validate the shared endpoint and supported slope rather
+  // than demanding both node heights be identical.
+  const grounded=u.supportId?v:u,supported=u.supportId?u:v;
+  const supportId=supported.supportId!;
+  const atGround=surface.supportHeight(supportId,grounded.p.x,grounded.p.z);
+  // Entering the bridge: the grounded node lies on the supported ramp.
+  if(atGround!==null&&Number.isFinite(atGround)&&
+      Math.abs(atGround-grounded.p.y!)<=.22&&
+      walk(grounded.p.x,grounded.p.z,grounded.p.x,grounded.p.z))
+    return safeEdge(a,b,supportId);
+  // Leaving the bridge: the supported node is the final landing at ground
+  // elevation and the following ground node may be OUTSIDE its footprint.
+  const deck=surface.supportHeight(supportId,supported.p.x,supported.p.z);
+  const ground=surface.groundHeight(supported.p.x,supported.p.z);
+  return deck!==null&&Number.isFinite(deck)&&Number.isFinite(ground)&&
+    Math.abs(deck-supported.p.y!)<=.22&&
+    Math.abs(ground-supported.p.y!)<=.22&&
+    walkSegment(u.p,v.p,walk);
+ }
+ function search(start:number,goal:number,liveEdges=false):number[]|null{
   const g=new Float64Array(nodes.length).fill(Infinity),previous=new Int32Array(nodes.length).fill(-1);
   const heap:{id:number;f:number}[]=[];
   function push(id:number,f:number){let i=heap.length;heap.push({id,f});while(i>0){const j=(i-1)>>1;if(heap[j].f<=f)break;heap[i]=heap[j];i=j;}heap[i]={id,f};}
@@ -120,17 +150,28 @@ export function createResidentLayeredRouter(
    const id=hit.id;
    if(hit.f>g[id]+distance(nodes[id].p,nodes[goal].p)+.0001)continue;
    if(id===goal){const ids:number[]=[];let cursor=id;while(cursor>=0&&ids.length<=4090){ids.push(cursor);cursor=previous[cursor];}return ids.reverse();}
-   for(const e of nodes[id].links){const next=g[id]+e.cost;if(next+1e-6>=g[e.to])continue;g[e.to]=next;previous[e.to]=id;push(e.to,next+distance(nodes[e.to].p,nodes[goal].p));}
+   for(const e of nodes[id].links){const next=g[id]+e.cost;if(next+1e-6>=g[e.to])continue;if(liveEdges&&!liveEdge(id,e.to))continue;g[e.to]=next;previous[e.to]=id;push(e.to,next+distance(nodes[e.to].p,nodes[goal].p));}
   }return null;
  }
  return {nodes:nodes.length,get truncated(){return truncated;},route(from,to):ResidentRoute|null{
   if(distance(from,to)<.05)return residentRoute([from,to]);
   if(distance(from,to)<24&&walkSegment(from,to,walk))return residentRoute([from,to]);
   const a=nearest(from),b=nearest(to);if(a<0||b<0)return null;
-  const ids=search(a,b);if(!ids)return null;
-  const first={...from,y:surface.groundHeight(from.x,from.z)},last={...to,y:surface.groundHeight(to.x,to.z)};
-  if(!walkSegment(from,nodes[a].p,walk)||!walkSegment(nodes[b].p,to,walk))return null;
-  const route=residentRoute([first,...ids.map(id=>nodes[id].p),last]);
-  return route.length<=1200?route:null;
+  const build=(ids:number[]|null):ResidentRoute|null=>{
+   if(!ids||!walkSegment(from,nodes[a].p,walk)||!walkSegment(nodes[b].p,to,walk))return null;
+   // All support vertices must still exist: the original graph is a snapshot.
+   for(let i=0;i<ids.length;i++){
+    const node=nodes[ids[i]];
+    const actual=node.supportId?surface.supportHeight(node.supportId,node.p.x,node.p.z)
+      :surface.groundHeight(node.p.x,node.p.z);
+    if(actual===null||!Number.isFinite(actual)||Math.abs(actual-node.p.y!)>.22)return null;
+    if(i>0&&!liveEdge(ids[i-1],ids[i]))return null;
+   }
+   const first={...from,y:surface.groundHeight(from.x,from.z)},last={...to,y:surface.groundHeight(to.x,to.z)};
+   const route=residentRoute([first,...ids.map(id=>nodes[id].p),last]);
+   return route.length<=1200?route:null;
+  };
+  // Re-evaluate expensive live edges only when snapshot's shortest route is stale.
+  return build(search(a,b))??build(search(a,b,true));
  }};
 }

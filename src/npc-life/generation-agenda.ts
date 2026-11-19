@@ -15,8 +15,17 @@ export function withVillageActivities(
  const candidates=[...publicPlaces].sort((a,b)=>a.id.localeCompare(b.id));
  const visits:ResidentActivityStop[]=[];
  let previous=start+travelHours;
- for(const window of [{kind:'meal' as const,startHour:12,endHour:12.8},
-                      {kind:'social' as const,startHour:15.3,endHour:15.9}]){
+ // Scale visits to the actual shift: early fishers and late musicians
+ // should not inherit a universal 12:00/15:30 timetable. Keep deterministic
+ // quarter-hour slots and let route validation reject impossible excursions.
+ const shiftHours=end-start;
+ const quarter=(h:number)=>Math.round(h*4)/4;
+ const windows=[
+   {kind:'meal' as const,startHour:quarter(start+shiftHours*.45),duration:.5},
+   {kind:'social' as const,startHour:quarter(start+shiftHours*.76),duration:.4},
+ ];
+ for(const window of windows){
+  const endHour=window.startHour+window.duration;
   for(const stop of candidates){
     // No visual pause at an imaginary location or across a blocked route.
     const to=planner.routeBetween(routine.work,stop.point);
@@ -24,10 +33,10 @@ export function withVillageActivities(
     const back=planner.routeBetween(stop.point,routine.work);
     if(!back)continue;
     const goHours=to.length/speed/dayLengthSeconds*24,backHours=back.length/speed/dayLengthSeconds*24;
-    if(window.startHour-goHours<previous+.25||window.endHour+backHours>end-.25)continue;
+    if(window.startHour-goHours<previous+.25||endHour+backHours>end-.25)continue;
     visits.push({kind:window.kind,anchorId:stop.id,point:{...stop.point},
-      startHour:window.startHour,endHour:window.endHour});
-    previous=window.endHour+backHours;
+      startHour:window.startHour,endHour});
+    previous=endHour+backHours;
     break;
   }
  }

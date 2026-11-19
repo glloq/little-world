@@ -1,4 +1,9 @@
 import {finite,identifier,record,stateValue,type ObjectiveStatus,type Point3,type StateValue} from './schema.ts';
+import {parseQuestInstance} from '../quests/validation.ts';
+import {parseNpcWorkshopAccount,type NpcWorkshopAccountV1} from '../npc-life/economy.ts';
+import {parseNpcHarvestAccount,type NpcHarvestAccountV1} from '../npc-life/harvest-ledger.ts';
+import {parseFishPopulation,type FishPopulationV1} from '../npc-life/fish-population.ts';
+import type {QuestInstanceV1} from '../quests/schema.ts';
 import {parseMineSave,type MineSaveState} from '../mine/mine-state.ts';
 import {parsePlotState,type FarmPlotState} from '../farm/farm-sim.ts';
 import {parseGatherSave} from './gathering.ts';
@@ -16,7 +21,15 @@ export interface GameSaveV1 {schemaVersion:1;worldId:string;worldBuildVersion:st
 export interface GameSaveV2 extends Omit<GameSaveV1,'schemaVersion'> {schemaVersion:2;gasReserve?:number;flightProgress?:FlightProgress;space?:{zoneId:string;levelId:string}|null;mines:Record<string,MineSaveState>;farms:Record<string,FarmPlotState>;external?:{key:string;bytes:number};
   /** Gathered natural elements not grown back yet (optional, World Production gameplay). */gathering?:import('./gathering.ts').GatherSave;
   /** Per-station workshop queues and finished products; missing in older V2 saves. */workshops?:Record<string,WorkshopStateV1>;
+  /** Native NPC workshop accounts, with their own materials and job queues. */
+  npcWorkshops?:Record<string,NpcWorkshopAccountV1>;
+  npcHarvests?:Record<string,NpcHarvestAccountV1>;
+  fishPopulation?:FishPopulationV1;
   /** Per-counter budgets, physical stock and applied transaction IDs. */markets?:Record<string,MarketStateV1>;
+  /** Optional native QuestDirector state; old V1/V2 slots remain valid. */
+  questsLocal?:Record<string,QuestInstanceV1>;
+  /** Stable counter for post-commit native quest events (replay-safe on reload). */
+  questEventSequence?:number;
   /** Last imported purchase acknowledged by this world's atomic inventory save. */
   cargoPurchaseRevision?:number;
   /** Optional hand slot; old V1/V2 saves continue to load without it. */equippedItemId?:string|null;
@@ -55,6 +68,21 @@ export function parseGameSave(value:unknown):GameSaveV2 {
       workshops[id]=parsed;
     }
   }
+  if(v.npcWorkshops!==undefined){
+    assert(record(v.npcWorkshops)&&Object.keys(v.npcWorkshops).length<=32,'Ateliers PNJ sauvegardés invalides');
+    for(const [id,raw]of Object.entries(v.npcWorkshops as object)){
+      const account=parseNpcWorkshopAccount(raw);
+      assert(identifier(id)&&id===account.residentId,'Compte PNJ incohérent');
+    }
+  }
+  if(v.npcHarvests!==undefined){
+    assert(record(v.npcHarvests)&&Object.keys(v.npcHarvests).length<=32,'Récolteurs PNJ invalides');
+    for(const [id,raw]of Object.entries(v.npcHarvests as object)){
+      const account=parseNpcHarvestAccount(raw);
+      assert(identifier(id)&&id===account.residentId,'Source de récolteur incohérente');
+    }
+  }
+  if(v.fishPopulation!==undefined)parseFishPopulation(v.fishPopulation);
   const markets:Record<string,MarketStateV1>={};
   if(v.markets!==undefined){
     assert(record(v.markets)&&Object.keys(v.markets).length<=128,'Marchés sauvegardés invalides');
@@ -62,6 +90,18 @@ export function parseGameSave(value:unknown):GameSaveV2 {
       const state=parseMarketState(value);
       assert(identifier(shopId)&&state.shopId===shopId,'Identité de marché incohérente');
       markets[shopId]=state;
+    }
+  }
+  if(v.questEventSequence!==undefined)
+    assert(Number.isSafeInteger(v.questEventSequence)&&finite(v.questEventSequence,0,1_000_000_000),
+      'Séquence événement quête invalide');
+  const questsLocal:Record<string,QuestInstanceV1>={};
+  if(v.questsLocal!==undefined){
+    assert(record(v.questsLocal)&&Object.keys(v.questsLocal).length<=64,'Quêtes de sauvegarde invalides');
+    for(const [id,raw] of Object.entries(v.questsLocal as object)){
+      const quest=parseQuestInstance(raw);
+      assert(identifier(id)&&quest.instanceId===id,'Identité de quête incohérente');
+      questsLocal[id]=quest;
     }
   }
   if(v.cargoPurchaseRevision!==undefined)
@@ -77,7 +117,7 @@ export function parseGameSave(value:unknown):GameSaveV2 {
   if(v.boostRechargeProgress!==undefined)assert(finite(v.boostRechargeProgress,0,1),'Progression de recharge invalide');
   if(v.external!==undefined)assert(record(v.external)&&typeof v.external.key==='string'&&v.external.key.length<=300&&finite(v.external.bytes,0,1e9),'Référence de données de partie invalide');
   assert(new TextEncoder().encode(JSON.stringify({...v,mines:undefined,farms:undefined,workshops:undefined,markets:undefined})).byteLength<=2_000_000,'Sauvegarde trop volumineuse');
-  return structuredClone({...v,flightProgress,gasReserve:Math.min(gasCapacity({}),typeof v.gasReserve==='number'?v.gasReserve:GAS.legacyInitial),satiety:v.satiety??100,boostRechargeProgress:v.boostRechargeProgress??0,schemaVersion:2,dialogueFlags:v.dialogueFlags??{},space:v.space??null,mines,farms,workshops,markets,cargoPurchaseRevision:v.cargoPurchaseRevision??0,...(loadout!==undefined?{loadout}:{}),...(surfBoard!==undefined?{surfBoard}:{})}) as unknown as GameSaveV2;
+  return structuredClone({...v,...(v.questsLocal!==undefined?{questsLocal}:{}),flightProgress,gasReserve:Math.min(gasCapacity({}),typeof v.gasReserve==='number'?v.gasReserve:GAS.legacyInitial),satiety:v.satiety??100,boostRechargeProgress:v.boostRechargeProgress??0,schemaVersion:2,dialogueFlags:v.dialogueFlags??{},space:v.space??null,mines,farms,workshops,markets,cargoPurchaseRevision:v.cargoPurchaseRevision??0,...(loadout!==undefined?{loadout}:{}),...(surfBoard!==undefined?{surfBoard}:{})}) as unknown as GameSaveV2;
 }
 export const GAME_SAVE_PREFIX='little-world:game-save:v1:';
 export interface SaveStorage {readonly length:number;key(index:number):string|null;getItem(key:string):string|null;setItem(key:string,value:string):void;removeItem(key:string):void;}

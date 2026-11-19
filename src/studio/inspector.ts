@@ -7,9 +7,10 @@ import {resolveEntity} from '../studio-core/references.ts';
 import {applyTransforms,transformChunkIds,entityTransform,type TransformValue} from '../studio-core/transforms.ts';
 import {layoutUpdates,type LayoutMode} from '../studio-core/selection-layout.ts';
 import {updateCharacter,setCharacterPath,setResidentRoutine} from '../studio-core/character-authoring.ts';
-import {residentDutyShift,RESIDENT_ROLES,type ResidentRole,type ResidentRoutineV1,type ResidentActivityKind} from '../npc-life/schedule.ts';
+import {MAX_RESIDENT_DAILY_STOPS,residentDutyShift,RESIDENT_ROLES,type ResidentRole,type ResidentRoutineV1,type ResidentActivityKind} from '../npc-life/schedule.ts';
 import {residentAnchorChoices,reassignResident,residentActivityChoices,setResidentStudioActivities} from '../npc-life/authoring.ts';
 import {residentRegistry} from '../npc-life/registry.ts';
+import {residentProfessionalActionCatalog} from '../npc-life/profession-actions.ts';
 import {chunkAt} from '../studio-core/schema.ts';
 import {applyInteraction,interactionChunkIds} from '../studio-core/interaction-templates.ts';
 import {EMOTIONS,type Emotion,type Neckwear} from '../character-style.ts';
@@ -157,11 +158,12 @@ function characterSection(ctx:InspectorContext,id:string,owner:string){
   const path=c.Navigation?.path;box.append(node('p',path?.length?`Trajet : ${path.length} point(s).`:'Aucun trajet : « Tracer son trajet » puis cliquer dans la vue.','muted'));
   if(c.Resident){
     const resident=structuredClone(c.Resident),[from,to]=residentDutyShift(resident);
-    let role:ResidentRole=resident.role,start=from,end=to;
+    let role:ResidentRole=resident.role,start=from,end=to,previewWeather:'clear'|'rain'='clear';
     const life=node('details');
     const hour=node('input');hour.type='range';hour.min='0';hour.max='23.5';hour.step='.5';hour.value='12';
     const preview=node('p','','muted');
-    const updatePreview=()=>{const h=Number(hour.value),visit=resident.activities?.find(a=>h>=a.startHour&&h<a.endHour);
+    const updatePreview=()=>{const h=Number(hour.value),visit=resident.activities?.find(a=>h>=a.startHour&&h<a.endHour&&
+      (a.weather===undefined||a.weather==='any'||(a.weather==='dry'?previewWeather!=='rain':previewWeather==='rain')));
       const activity=visit?visit.kind==='meal'?'Pause repas':visit.kind==='social'?'Rencontre et discussion':visit.kind==='play'?'Jeux':visit.kind==='rest'?'Repos':'Activité complémentaire':null;
       preview.textContent=h.toFixed(1).replace('.0','')+' h : '+(activity??(h<start||h>=end?'Au domicile':'Au lieu de travail'))+
         ' · trajet '+resident.home.x.toFixed(1)+','+resident.home.z.toFixed(1)+' → '+resident.work.x.toFixed(1)+','+resident.work.z.toFixed(1);};
@@ -170,7 +172,8 @@ function characterSection(ctx:InspectorContext,id:string,owner:string){
       field('Métier',select(role,RESIDENT_ROLES.map(k=>[k,k] as const),value=>role=value as ResidentRole)),
       field('Début du travail (heure du jeu)',numberInput(start,n=>{start=n;updatePreview();},0,24)),
       field('Fin du travail (heure du jeu)',numberInput(end,n=>{end=n;updatePreview();},0,24)),
-      field('Aperçu de la journée',hour),preview,
+      field('Aperçu de la journée',hour),
+      field('Météo de prévisualisation',select(previewWeather,[['clear','Sans pluie'],['rain','Pluie']],v=>{previewWeather=v as 'clear'|'rain';updatePreview();})),preview,
       button('Appliquer les horaires',()=>void editQueue.run(async()=>{
         const next:ResidentRoutineV1={...resident,role,workStartHour:start,workEndHour:end};
         await s.change('Modifier les horaires du résident',[p.entityIndex[id].ownerChunkId],d=>setResidentRoutine(d,id,next));
@@ -205,13 +208,20 @@ function characterSection(ctx:InspectorContext,id:string,owner:string){
           ctx.status('Domicile et poste enregistrés ; chemin et horaires validés.');ctx.refresh();
         }).catch(e=>ctx.status(String(e instanceof Error?e.message:e),true))));
     }
+    if(anchors?.jobs.some(job=>job.id===resident.workAnchorId)){
+      const action=residentProfessionalActionCatalog().find(a=>a.role===resident.role);
+      if(action)life.append(node('p',
+        'Action métier : '+action.service+' · '+action.presentation+
+        ' (intention déclarative : aucun objet produit sans transaction métier)', 'muted'));
+    }
     const publicPlaces=residentActivityChoices(p,id);
     if(publicPlaces.length){
       const activities=node('details');
-      activities.append(node('summary','Pauses et rencontres · 3 maximum'),
+      activities.append(node('summary','Pauses et rencontres · '+MAX_RESIDENT_DAILY_STOPS+' maximum'),
         node('p','Chaque étape utilise un lieu public existant. Le trajet aller-retour et les horaires sont vérifiés avant l’enregistrement.','muted'));
       const visits=(resident.activities??[]).map(a=>({
         kind:a.kind as ResidentActivityKind,anchorId:a.anchorId,startHour:a.startHour,endHour:a.endHour,
+        weather:(a.weather??'any') as 'any'|'dry'|'rain',
       }));
       const rows=node('div');
       const kinds:[ResidentActivityKind,string][]=[['meal','Repas'],['social','Rencontre'],['rest','Repos'],['play','Jeu'],['errand','Course']];
@@ -222,6 +232,7 @@ function characterSection(ctx:InspectorContext,id:string,owner:string){
           line.append(node('legend','Étape '+(i+1)),
             field('Type',select(stop.kind,kinds,v=>{stop.kind=v as ResidentActivityKind;})),
             field('Lieu public',select(stop.anchorId,publicPlaces.map(a=>[a.id,a.name] as const),v=>{stop.anchorId=v;})),
+            field('Météo',select(stop.weather,[['any','Toutes'],['dry','Sans pluie'],['rain','Pluie uniquement']],v=>{stop.weather=v as 'any'|'dry'|'rain';})),
             field('Début',numberInput(stop.startHour,v=>{stop.startHour=v;},0,24)),
             field('Fin',numberInput(stop.endHour,v=>{stop.endHour=v;},0,24)),
             button('Supprimer cette étape',()=>{visits.splice(i,1);draw();}));
@@ -230,9 +241,15 @@ function characterSection(ctx:InspectorContext,id:string,owner:string){
       };
       draw();
       activities.append(rows,button('Ajouter une étape',()=>{
-        if(visits.length>=3)return;
-        const after=visits.length?Math.max(...visits.map(v=>v.endHour))+.5:Math.max(start+1,11);
-        visits.push({kind:'social',anchorId:publicPlaces[0].id,startHour:Math.min(22,after),endHour:Math.min(23,after+1)});
+        if(visits.length>=MAX_RESIDENT_DAILY_STOPS)return;
+        const after=visits.length?Math.max(...visits.map(v=>v.endHour))+.25:
+          Math.max(start+.5,Math.round((start+(end-start)*.45)*4)/4);
+        const duration=.5;
+        if(after+duration>end-.25){
+          ctx.status('Aucune plage horaire disponible : réduisez une activité ou modifiez le service.',true);
+          return;
+        }
+        visits.push({kind:'social',anchorId:publicPlaces[0].id,startHour:after,endHour:after+duration,weather:'any'});
         draw();
       }),button('Enregistrer les activités',()=>void editQueue.run(async()=>{
         await s.fullDocument();

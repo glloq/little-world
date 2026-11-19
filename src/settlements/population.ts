@@ -42,6 +42,23 @@ const priority=(r:SettlementRecipe,role:ResidentRole)=>{
   const index=preferredJobs[r.activity].indexOf(role);
   return index<0?30:index;
 };
+/** Deterministic targets; only real eligible jobs and valid commutes are emitted.
+ * Tiny hamlets may contain a single worker instead of being artificially empty.
+ */
+export function residentPopulationTargets(
+ houses:number,density:SettlementRecipe['residentDensity'],
+):{children:number;workers:number}{
+ if(!Number.isSafeInteger(houses)||houses<3)return {children:0,workers:0};
+ if(houses<6)return {children:0,workers:density==='low'?0:1};
+ const children=density==='low'?(houses>=10?1:0):
+   density==='high'?Math.min(3,Math.floor(houses/4)):houses>=10?2:1;
+ // Large towns scale with actual qualified job anchors, subject to the
+ // existing 100-character world cap; these are only REQUESTED slots.
+ const workers=density==='low'?(houses>=10?Math.min(3,Math.max(1,Math.floor(houses/10))):0):
+   density==='high'?Math.min(12,Math.max(2,Math.floor(houses/4))):
+   houses>=16?Math.min(8,Math.max(3,Math.floor(houses/5))):1;
+ return {children,workers};
+}
 /** Preserve source-authored overrides, including deliberate deletion.
  * No generated dialogue is allowed to overwrite an authored dialogue.
  */
@@ -75,15 +92,15 @@ export function settlementPopulation(
     if(code==='LIFE_NO_JOBS')out.warnings.push({code,message:'Aucun poste professionnel qualifié dans le village.'});
     if(code==='LIFE_NO_PLAY_ANCHOR')out.warnings.push({code,message:'Pas de lieu public de jeu pour les enfants.'});
   }
-  if(buildings.length<6)return out;
   const existingPeople=Object.values(p.entityIndex).filter(e=>e.kind==='character').length;
   const managed=(old?.amenities??[]).filter(a=>a.role==='resident'&&!!p.entityIndex[a.id]).length;
   const hostNew=amenities.some(a=>a.role==='host'&&!p.entityIndex[a.id])?1:0;
   let budget=Math.max(0,100-existingPeople+managed-hostNew);
-  const wantedChildren=r.residentDensity==='low'?(buildings.length>=10?1:0):
-    r.residentDensity==='high'?Math.min(3,Math.floor(buildings.length/4)):buildings.length>=10?2:1;
-  const workerSlots=r.residentDensity==='low'?(buildings.length>=10?1:0):
-    r.residentDensity==='high'?(buildings.length>=16?4:2):buildings.length>=16?3:1;
+  const requested=residentPopulationTargets(buildings.length,r.residentDensity);
+  const wantedChildren=requested.children;
+  // The persisted settlement schema caps its combined amenities at 24.
+  const workerSlots=Math.min(requested.workers,Math.max(0,24-amenities.length-wantedChildren));
+  if(workerSlots<requested.workers)out.limited=true;
   if(assignment.truncated)out.warnings.push({code:'LIFE_GRAPH_LIMIT',message:'Réseau piéton tronqué : certains trajets sont indisponibles.'});
   function retain(id:string):{status:'new'|'preserved'|'deleted'|'conflict';previous?:EntityDefinitionV3}{
     const record=old?.amenities?.find(a=>a.id===id);
@@ -104,6 +121,17 @@ export function settlementPopulation(
     if(loc&&!record){out.conflicts.push(id);return {status:'conflict'};}
     return {status:'new',previous:existing};
   }
+  // Preserve customized residents outside the new density/house-count targets.
+  // They must keep their source entity, dialogue and reserved home/job after
+  // Studio regeneration, even when the village has shrunk below 3 houses.
+  const plannedIds=new Set<string>();
+  for(let i=0;i<wantedChildren;i++)plannedIds.add(r.id+'-resident-'+i);
+  for(let i=0;i<Math.min(workerSlots,index.jobs.length);i++)plannedIds.add(r.id+'-worker-'+i);
+  for(const record of old?.amenities??[])
+    if(record.role==='resident'&&!plannedIds.has(record.id)&&amenityChanged(p,record))
+      retain(record.id);
+  if(buildings.length<3)return out;
+
   function store(id:string,entity:EntityDefinitionV3,dialogue:GameplayDialogue,entry:ResidentPoint){
     out.entities.push(entity);out.dialogues[dialogue.id]=dialogue;
     out.records.push({id,role:'resident',entityHash:fingerprint(entity),dialogueHash:fingerprint(dialogue),entry:{...entry},locked:false});
@@ -120,6 +148,8 @@ export function settlementPopulation(
   for(let i=0;i<wantedChildren;i++){
     const id=r.id+'-resident-'+i,check=retain(id);
     if(check.status!=='new')continue;
+    // Never exceed the persisted settlement's 24 amenity records.
+    if(amenities.length+out.records.length>=24){out.limited=true;break;}
     if(budget<=0){out.limited=true;break;}
     const olderHome=check.previous?.components.Resident?.homeAnchorId;
     const possible=play.length?play.map((_,k)=>play[(i+k)%play.length]):[];
@@ -154,6 +184,8 @@ export function settlementPopulation(
   for(let i=0;i<Math.min(workerSlots,jobs.length);i++){
     const id=r.id+'-worker-'+i,check=retain(id);
     if(check.status!=='new')continue;
+    // Never exceed the persisted settlement's 24 amenity records.
+    if(amenities.length+out.records.length>=24){out.limited=true;break;}
     if(budget<=0){out.limited=true;break;}
     const previous=check.previous?.components.Resident;
     const availableJobs=jobs.filter(j=>assignment.jobOccupancy(j.id)<1).sort((a,b)=>

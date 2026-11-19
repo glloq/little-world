@@ -11,6 +11,7 @@ import { planSettlement, type SettlementPlan } from '../settlements/planner.ts';
 import { applySettlement, previewSettlementProject, settlementChunkIds, lockSettlementBuilding, removeSettlement, removeSettlementBuilding,lockSettlementAmenity,removeSettlementAmenity } from '../settlements/authoring.ts';
 import { validateSettlements } from '../settlements/validation.ts';
 import {residentRegistry} from '../npc-life/registry.ts';
+import {residentQuestReadiness} from '../npc-life/quest-readiness.ts';
 import { terrainAccessContext } from '../studio-core/terrain-access.ts';
 import { fingerprint } from '../world-production/landscape-schema.ts';
 export function mountSettlements(host: HTMLElement, s: StudioSession, options: {
@@ -173,6 +174,15 @@ export function mountSettlements(host: HTMLElement, s: StudioSession, options: {
             if(residents.length){
                 const registry=residentRegistry(p,s0.id),panel=node('details');
                 panel.append(node('summary',`Vie locale · ${registry.residents.length} résidents avec horaires`));
+                const questAudit=residentQuestReadiness(p,s0.id);
+                panel.append(node('p',
+                  'Quêtes : '+questAudit.dialogueActors+' PNJ avec dialogues · '+
+                  questAudit.potentialSocialPairs+' paires potentielles · '+
+                  questAudit.positionedWorkAnchors+' lieux professionnels positionnés.',
+                  'muted'));
+                panel.append(node('p',
+                  'La création réelle des missions exige des trajets piétons valides et sera qualifiée dans « Jouer ici ».',
+                  'muted'));
                 for(const resident of registry.residents){
                     panel.append(node('p',`${resident.name} · ${resident.role} · maison ${resident.homeAnchorId??'absente'} · poste ${resident.workAnchorId??'absent'}`,'muted'),
                       button('Inspecter '+resident.name,()=>{s.selection.select({kind:'entity',id:resident.id});options.open3D();}));
