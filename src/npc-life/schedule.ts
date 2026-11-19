@@ -1,7 +1,7 @@
 /** Small, deterministic resident schedules. Uses the existing simulated world clock, not wall time. */
 export const RESIDENT_ROLES = ['farmer','fisher','merchant','woodcutter','miner','miller','artisan','innkeeper','child','villager','dockworker','sailor','courier','guard','musician','gatherer','blacksmith','traveler','instructor'] as const;
 export type ResidentRole = typeof RESIDENT_ROLES[number];
-export interface ResidentPoint {x:number;z:number}
+export interface ResidentPoint {x:number;z:number;y?:number}
 export type ResidentActivityKind='meal'|'social'|'rest'|'play'|'errand';
 export interface ResidentActivityStop {kind:ResidentActivityKind;anchorId:string;point:ResidentPoint;startHour:number;endHour:number;}
 export interface ResidentRoutineV1 {
@@ -66,7 +66,7 @@ const SHIFT:Record<ResidentRole,readonly [number,number]>={
 export function residentShift(role:ResidentRole):readonly [number,number]{return SHIFT[role];}
 export function residentDutyShift(routine:ResidentRoutineV1):readonly [number,number]{return routine.workStartHour===undefined?residentShift(routine.role):[routine.workStartHour,routine.workEndHour!];}
 export function residentRoute(points:readonly ResidentPoint[]):ResidentRoute{
-  if(!Array.isArray(points)||points.length<1||points.length>4096||points.some(p=>!point(p)))throw Error('Parcours résident invalide');
+  if(!Array.isArray(points)||points.length<1||points.length>4096||points.some(p=>!point(p)||(p.y!==undefined&&!finite(p.y))))throw Error('Parcours résident invalide');
   const distances=[0];let length=0;
   for(let i=1;i<points.length;i++){length+=Math.hypot(points[i].x-points[i-1].x,points[i].z-points[i-1].z);distances.push(length);}
   return {points:points.map(p=>({...p})),distances,length};
@@ -78,7 +78,8 @@ export function positionOnResidentRoute(route:ResidentRoute,distance:number):Res
   for(let i=1;i<a.length;i++){
     if(d>route.distances[i]&&i<a.length-1)continue;
     const span=route.distances[i]-route.distances[i-1],t=span>0?(d-route.distances[i-1])/span:1;
-    return {x:a[i-1].x+(a[i].x-a[i-1].x)*t,z:a[i-1].z+(a[i].z-a[i-1].z)*t};
+    return {x:a[i-1].x+(a[i].x-a[i-1].x)*t,z:a[i-1].z+(a[i].z-a[i-1].z)*t,
+      ...(a[i-1].y!==undefined&&a[i].y!==undefined?{y:a[i-1].y+(a[i].y-a[i-1].y)*t}:{})};
   }
   return {...a[a.length-1]};
 }
