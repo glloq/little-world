@@ -321,6 +321,8 @@ const npcExteriorDoors=new Set(definition.placements.filter(p=>p.assetId==='sett
 const npcs = createNPCSystem(scene, definition.npcs,isLegacyTerrain()?undefined:[],gameplay?.dialogueSession,{
   worldTime:()=>worldClock.time,dayLengthSeconds:climate.definition.dayLengthSeconds,
   initialDayPhase:climate.definition.initialDayPhase,paths:definition.paths,
+  // Gameplay tracks actual temporary/manual exterior-door state transitions.
+  navigationRevision:()=>gameplay?.navigationRevision??0,
   rigBudget:((navigator as Navigator&{deviceMemory?:number}).deviceMemory??8)<=4?8:
     ((navigator as Navigator&{deviceMemory?:number}).deviceMemory??8)<=8?12:20,
   weather:()=>climate.state(worldClock.time).weather,
