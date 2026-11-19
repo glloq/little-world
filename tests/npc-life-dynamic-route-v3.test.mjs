@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {residentRoute} from '../src/npc-life/schedule.ts';
-import {residentRouteClearance,residentRouteAheadClear,residentRouteStepClear,residentRoutineStepClear,residentRecoveryNeedsRetarget,residentRecoverySpeed} from '../src/npc-life/dynamic-route.ts';
+import {residentRouteClearance,residentScriptedAdvance,residentRouteAheadClear,residentRouteStepClear,residentRoutineStepClear,residentRecoveryNeedsRetarget,residentRecoverySpeed} from '../src/npc-life/dynamic-route.ts';
 
 test('scripted NPC route lookahead samples active geometry instead of trusting old paths',()=>{
  const route=residentRoute([{x:0,z:0},{x:10,z:0}]);
@@ -107,4 +107,20 @@ test('F01 clearance obeys bounded work even for very long routes',()=>{
  const result=residentRouteClearance(route,0,()=>{probes++;return true;},500);
  assert.deepEqual(result,{clear:true,safeDistance:12});
  assert.ok(probes<=24);
+});
+
+test('F01 scripted advance stops at last safe position and never skips a collision',()=>{
+ const route=residentRoute([{x:0,z:0},{x:10,z:0}]);
+ const blocked=(x)=>x<3;
+ const result=residentScriptedAdvance(route,0,5,blocked);
+ assert.deepEqual(result,{clear:false,safeDistance:2.5});
+ const stopped=residentScriptedAdvance(route,result.safeDistance,5,blocked);
+ assert.deepEqual(stopped,{clear:false,safeDistance:2.5});
+ assert.deepEqual(residentScriptedAdvance(route,0,2,blocked),{clear:true,safeDistance:2});
+});
+test('F01 scripted advance rejects long browser suspension and reversed movement',()=>{
+ const route=residentRoute([{x:0,z:0},{x:100,z:0}]);
+ assert.deepEqual(residentScriptedAdvance(route,4,40,()=>true),{clear:false,safeDistance:4});
+ assert.deepEqual(residentScriptedAdvance(route,4,3,()=>true),{clear:false,safeDistance:4});
+ assert.deepEqual(residentScriptedAdvance(route,4,4,()=>true),{clear:true,safeDistance:4});
 });
