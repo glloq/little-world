@@ -45,6 +45,8 @@ export interface WorkshopControllerDeps{
   elapsedSeconds():number;
   dayLengthSeconds:number;
   onChange():void;
+  /** Quest integration: only after native successful, idempotent production collection. */
+  onCollected?:(stationId:string,job:ProductionJobV1)=>void;
 }
 /** State is strictly local to a published world; save/restore by that world's save slot.
  * Workshop evaluation occurs only when requested or a whole game minute passes.
@@ -105,6 +107,7 @@ export function createShopWorkshops(deps:WorkshopControllerDeps){
     const result=collectProduction(state,{jobId,requestId:requestId??'take-'+crypto.randomUUID(),
       ownerId:'solo-player',gameMinute:Math.max(state.lastGameMinute,now())},deps.purse);
     if(!result.ok)return result;
+    deps.onCollected?.(station.stationId,result.job);
     deps.onChange();
     return {ok:true,message:'Fabrication récupérée : '+result.job.outputs.map(x=>
       x.quantity+' × '+(deps.items.find(i=>i.id===x.itemId)?.name??x.itemId)).join(', ')};
