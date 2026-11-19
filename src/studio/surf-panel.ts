@@ -1,6 +1,8 @@
 /** Minimal authoring tool for deterministic surf sea zones. No transient UI data in the map. */
 import {node,button,field,numberInput,select,input} from './dom.ts';
 import {projectRaceTerrainEnvironment} from '../studio-core/race-terrain-context.ts';
+import {planThreeSurfBeaches} from '../surf/surf-island-planner.ts';
+import {putAuthoredRace} from '../studio-core/race-authoring.ts';
 import {validateSurfZone,type SurfZone} from '../surf/wave-field.ts';
 import {validateSurfFeature,type SurfFeature, type SurfFeatureKind} from '../surf/surf-features.ts';
 import type {StudioSession} from './session.ts';
@@ -59,6 +61,41 @@ export function mountSurfPanel(host:HTMLElement,ctx:SurfPanelContext):void{
   create,
   node('p','Enregistrez les zones avec le projet Studio V3. Les anciennes îles sans zone restent inchangées. Les tremplins et boosts seront placés dans le panneau Courses après leur intégration.','muted')
  );
+ const generateCoast=button('Implanter 3 plages surf A/B/C',async()=>{
+  try{
+   const project=ctx.session.document,env=projectRaceTerrainEnvironment(project);
+   const plan=planThreeSurfBeaches(env.height,project.world.bounds,project.world.seaLevel,
+     Math.max(0,project.world.seed),project.world.worldId,env.occupation);
+   if(plan.beaches.length!==3)
+     throw Error('Côte insuffisante pour trois zones sûres : '+plan.warnings.join(' ; '));
+   const old=Object.values(project.libraries.surfZones??{});
+   for(const b of plan.beaches)for(const other of old){
+    if(b.zone.minX<other.maxX&&b.zone.maxX>other.minX&&
+       b.zone.minZ<other.maxZ&&b.zone.maxZ>other.minZ)
+      throw Error('Une zone surf occupe déjà la future plage '+b.name);
+   }
+   const features=plan.beaches.flatMap(b=>b.features);
+   if(old.length+plan.beaches.length>32||
+      Object.keys(project.libraries.surfFeatures??{}).length+features.length>200||
+      Object.keys(project.libraries.races??{}).length+plan.beaches.length>64)
+    throw Error('Bibliothèques surf/courses pleines : aucun changement effectué');
+   await ctx.session.change('Installer les 3 plages de surf sur le relief',[],draft=>{
+    draft.libraries.surfZones={...(draft.libraries.surfZones??{}),
+      ...Object.fromEntries(plan.beaches.map(b=>[b.zone.id,b.zone]))};
+    draft.libraries.surfFeatures={...(draft.libraries.surfFeatures??{}),
+      ...Object.fromEntries(features.map(f=>[f.id,f]))};
+    for(const beach of plan.beaches)putAuthoredRace(draft,beach.gates);
+   });
+   const port=plan.calmPort;
+   ctx.status('Plages A/B/C et 3 courses installées. '+
+    (port?'Eau calme repérée à '+Math.round(port.x)+', '+Math.round(port.z)+
+      ' (quai et bateau à implanter séparément).':'Emplacement du port à choisir manuellement.')+
+    ' Ouvrez Courses puis Jouer ici pour tester.');
+  }catch(e){ctx.status(String(e instanceof Error?e.message:e),true);}
+ },'primary-button');
+ host.append(node('h4','Implantation côtière assistée'),
+  node('p','Cherche automatiquement une côte praticable pour 3 plages : A débutants, B tubes et grandes vagues, C boosts et tremplin. Crée 3 courses réelles et réserve un repère de port calme sans inventer de quai. Si le terrain est incompatible, ne modifie rien.','muted'),
+  generateCoast);
  const list=node('div','','feature-list');
  for(const zone of zones){
    const row=node('div','','feature-row'),controls=node('div','','chip-row');

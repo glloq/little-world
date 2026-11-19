@@ -14,6 +14,13 @@
       "manifest": "archipelago/worlds/forest-valley/manifest.json",
       "description": "Île d'exemple précompilée : village, cascade, mine, bois et port.",
       "portLevel": 0
+    },
+    {
+      "id": "surf-island",
+      "name": "Île des trois vagues",
+      "manifest": "archipelago/worlds/surf-island/manifest.json",
+      "description": "Île de surf avec trois plages A/B/C, tubes de vagues, courses et port maritime calme.",
+      "portLevel": 0
     }
   ]
 }

@@ -27,6 +27,7 @@ import {createSurfWaveField} from './surf/wave-field.ts';
 import {createSurfWaterView} from './render/surf-water-view.ts';
 import {createSurfBarrelView} from './render/surf-barrel-view.ts';
 import {applySurfTumblePose} from './render/surf-tumble-pose.ts';
+import {applySurfPose} from './render/surf-character-pose.ts';
 import {sampleSurfBarrel} from './surf/surf-barrel.ts';
 import {createSurfBoardView} from './render/surf-board-view.ts';
 import {createSurfHud} from './ui/surf/surf-hud.ts';
@@ -455,21 +456,30 @@ const snowLiftView=snowLift?createSkiLiftView(scene,snowLift):null;
 // Non-destructive surf laboratory (?surfDemo=1). Island authoring/compilation follows later.
 const surfDemo=searchParams.get('surfDemo')==='1'&&!snowDemo&&!isLegacyTerrain();
 const surfSite=surfDemo?findDemoSurfSite(terrainHeight,snowBounds,definition.config.seaLevel??0,definition.config.seed):null;
-const authoredSurfZone=playable?.surfZones?.[0]??null;
-const surfField=surfSite?createSurfWaveField(surfSite.zone,terrainHeight):
-  authoredSurfZone?createSurfWaveField(authoredSurfZone,terrainHeight):null;
+const surfFields=surfSite?[createSurfWaveField(surfSite.zone,terrainHeight)]:
+  (playable?.surfZones??[]).map(zone=>createSurfWaveField(zone,terrainHeight));
+const surfWorldConfig={count:surfFields.length,zones:surfFields.map(f=>({id:f.zone.id,
+ minX:f.zone.minX,maxX:f.zone.maxX,minZ:f.zone.minZ,maxZ:f.zone.maxZ,
+ barrelStrength:f.zone.barrelStrength??0}))};
+const surfFieldAt=(x:number,z:number)=>surfFields.find(f=>
+  x>=f.zone.minX&&x<=f.zone.maxX&&z>=f.zone.minZ&&z<=f.zone.maxZ)??null;
+let surfField=surfFieldAt(player.position.x,player.position.z);
 const surfRace=surfSite?makeDemoSurfRace(surfSite,activeIsland?.id??gameplay?.runtime.data.worldId??'surf-demo'):null;
-const surfWaterView=surfField?createSurfWaterView(scene,surfField,terrainHeight):null;
-const surfBarrelView=surfField&&surfField.zone.barrelStrength?createSurfBarrelView(scene,surfField,terrainHeight):null;
-const surfBoardView=surfField?createSurfBoardView(scene):null;
-const surfHud=surfField?createSurfHud(document.body):null;
+const surfWaterViews=surfFields.map(f=>createSurfWaterView(scene,f,terrainHeight));
+const surfBarrelViews=surfFields.map(f=>f.zone.barrelStrength?createSurfBarrelView(scene,f,terrainHeight):null);
+let surfWaterView:ReturnType<typeof createSurfWaterView>|null=surfWaterViews[0]??null;
+let surfBarrelView=surfBarrelViews[0]??null;
+const surfBoardView=surfFields.length?createSurfBoardView(scene):null;
+const surfHud=surfFields.length?createSurfHud(document.body):null;
 let nextSurfHudAt=0;
-const surfFeatures=surfSite?makeDemoSurfFeatures(surfSite):(playable?.surfFeatures??[]).filter(f=>surfField&&f.x>=surfField.zone.minX&&f.x<=surfField.zone.maxX&&f.z>=surfField.zone.minZ&&f.z<=surfField.zone.maxZ);
+const surfFeatures=surfSite?makeDemoSurfFeatures(surfSite):(playable?.surfFeatures??[]).filter(f=>surfFields.some(field=>f.x>=field.zone.minX&&f.x<=field.zone.maxX&&f.z>=field.zone.minZ&&f.z<=field.zone.maxZ));
 const surfFeatureState=createSurfFeatureState();
 let seenBarrelSuccess=0,seenBarrelCrash=0,seenBarrelTumble=0;
-const surfFeatureView=surfField&&surfFeatures.length?createSurfFeaturesView(scene,surfFeatures,surfField.zone.seaLevel):null;
-if(surfField)world.setSurfArea(surfField.zone);
-if(surfSite&&surfField){
+let lastSurfPaddleSoundTick=-30;
+const surfFeatureView=surfFields.length&&surfFeatures.length?createSurfFeaturesView(scene,surfFeatures,surfFields[0].zone.seaLevel):null;
+if(surfFields.length)world.setSurfAreas(surfFields.map(field=>field.zone));
+if(surfSite&&surfFields.length){
+  surfField=surfFields[0];
   const startWave=surfField.sample(surfSite.start.x,surfSite.start.z,0);
   player.position.set(surfSite.start.x,(startWave?.height??surfSite.zone.seaLevel)+.12,surfSite.start.z);
   player.velocity.set(0,0,0);player.mode='surf';player.surfStage='paddle';
@@ -722,7 +732,7 @@ const fleet = createFleet(gameplay?.collision ?? null);
 const playerBoat = fleet.add({ id: 'player-boat', assetId: 'boat.sailboat_small', state: boat, object: world.boat, yOffset: 0, hull: { beam: 2.6, length: 6.2, height: 1.6 } });
 for (const m of mooredBoats) { const size = worldAsset(m.assetId)?.size ?? [2, 1.3, 5]; fleet.addMoored(m.id, m.assetId, m.object, waterSurface(m.object.position.x, m.object.position.z) ?? getTerrainConfig().seaLevel, size as [number, number, number]); }
 const keySet = new Set<string>();
-let rollQueue = 0,surfQueue=0;
+let rollQueue = 0,surfQueue=0,surfRequestUntilTick=0;
 let jumpQueue = 0,
   touchStrokeQueue = 0,
   actionQueue = 0;
@@ -860,9 +870,21 @@ window.addEventListener('keydown', (e) => {
   if (e.code === 'KeyC') cropQueue++;
   if (e.code === 'KeyB'&&snowDemo){snowEquipment=snowEquipment==='snowboard'?'skis':'snowboard';showInfo('Équipement : '+(snowEquipment==='skis'?'skis':'snowboard'));}
   else if(e.code==='KeyB'&&surfField){
-    if(player.mode==='surf'){player.mode='swim';player.surfStage=undefined;player.surfAirborne=false;showInfo('Planche rangée : nage');}
+    if(player.mode==='surf'){
+      player.mode='swim';player.surfStage=undefined;player.surfAirborne=false;
+      const water=waterSurface(player.position.x,player.position.z);
+      if(water!==null)player.position.y=Math.min(player.position.y,water-.38);
+      // Stowing while afloat retains a little drift but cannot propel the swimmer
+      // across the entire short practice bay before the next re-equip action.
+      player.velocity.x*=.3;player.velocity.z*=.3;player.velocity.y=0;
+      surfQueue=0;
+      showInfo('Planche rangée : nage');
+    }
     else if(surfDemo||gameplay?.equipment.hands==='tool:surfboard'){
-      surfQueue=1;showInfo('Planche de surf : ramez avec Z/Shift, sautez avec Espace');
+      // Queue remains valid while the breaking-wave tumble ends. Do not silently
+      // consume B on the same tick if the surfer cannot yet stand on the board.
+      surfQueue=1;surfRequestUntilTick=motionTick+90;
+      showInfo('Planche de surf : ramez avec Z/Shift, sautez avec Espace');
     }else showInfo('Équipez la planche de surf depuis votre sac avant de monter dessus.');
   }
   if (e.code === 'KeyR' && started) {
@@ -1003,20 +1025,24 @@ function updateCamera(dt: number) {
   yaw=flightCameraFollow.yaw;pitch=flightCameraFollow.pitch;
   const effects=gameUi?.preferences.speedEffects!==false&&!gameUi?.preferences.reduceMotion;
   advanceSpeedCamera(speedCue,{speed:player.velocity.length(),mode:player.mode,boosting:!!player.gasBoosting,turnRate:player.glideTurnRate??0,enabled:effects},dt);
+  const inSurfTube=player.mode==='surf'&&player.barrelEntryTick!==undefined&&!!surfField;
   const target = cameraTarget.copy(renderPosition);
-  target.y += aboard ? 2.9 : 1.35;
-  const followDistance=distance+speedCue.extraDistance;
+  // A compact chase camera keeps the opening readable from inside the curled
+  // lip; never rotate the actual physics camera/heading to follow the tumble.
+  target.y += aboard ? 2.9 : inSurfTube ? .93 : 1.35;
+  const followDistance=inSurfTube?Math.min(distance,3.15):distance+speedCue.extraDistance;
   const cosPitch = Math.cos(pitch);
   const x = target.x - Math.sin(yaw) * cosPitch * followDistance;
   const z = target.z - Math.cos(yaw) * cosPitch * followDistance;
   let y = Math.max(
     target.y + Math.sin(pitch) * followDistance,
-    terrainHeight(x, z) + 1.8,
+    terrainHeight(x, z) + (inSurfTube ? .9 : 1.8),
   );
+  if(inSurfTube&&surfField)y=Math.min(y,Math.max(surfField.zone.seaLevel+1.25,target.y+.5));
   const desired = cameraDesired.set(x, y, z);
   // In a gallery: stay inside the open cells and under the ceiling, never above the relief.
   if(player.space&&gameplay){const inside=gameplay.activities.cameraInMine(target,player.space,yaw,pitch,distance);if(inside){desired.set(inside.x,inside.y,inside.z);camera.position.copy(desired);camera.lookAt(target);return;}}
-  camera.position.lerp(desired, Math.min(1, dt * 6));
+  camera.position.lerp(desired, Math.min(1, dt * (inSurfTube?9:6)));
   camera.lookAt(target);
   camera.rotateZ(speedCue.bank);
   if(Math.abs(camera.fov-speedCue.fov)>.005){camera.fov=speedCue.fov;camera.updateProjectionMatrix();}
@@ -1278,6 +1304,12 @@ function tick(dt: number) {
       ferryMinute=minute;ferryNow=ferryStatus(minute,activeIsland.portLevel);ferryView?.setPresent(ferryNow.present);
     }
   }
+  // Select the wave under the actor BEFORE sampling input and the fixed-step
+  // simulation. Authored islands can contain several independent A/B/C surf zones.
+  surfField=surfFieldAt(player.position.x,player.position.z);
+  const surfIndex=surfField?surfFields.indexOf(surfField):-1;
+  surfWaterView=surfIndex>=0?surfWaterViews[surfIndex]:null;
+  surfBarrelView=surfIndex>=0?surfBarrelViews[surfIndex]:null;
   // In glide, mobile input now reaches the flight simulation directly.
   const keys = input();
   if(snowLiftRide?.phase==='waiting'&&snowLift&&Math.hypot(player.position.x-snowLift.path[0].x,player.position.z-snowLift.path[0].z)>5){snowLiftRide=null;showInfo('Embarquement annulé');}
@@ -1301,8 +1333,24 @@ function tick(dt: number) {
     jumpQueue = 0;
   } else {
     gameplay?.trees?.update(player.position,player.space);
+    const previousSurfStage=player.surfStage;
+    const previousSurfPaddle=player.surfPaddleClock??0;
+    const previousSurfJump=player.surfJumpSeq??0;
+    const previousSurfLanding=player.surfLandingSeq??0;
+    const previousSurfWipeout=player.surfWipeoutSeq??0;
     simulatePlayer(player, keys, dt,gameplay?.collision,surfField??undefined,motionTick+1);motionTick++;
-    if(keys.surfActionPressed)surfQueue=0;
+    if((player.surfPaddleClock??0)>previousSurfPaddle+.08&&motionTick-lastSurfPaddleSoundTick>=15){
+      audio?.emit('water.swim',{position:player.position,source:'player'});lastSurfPaddleSoundTick=motionTick;
+    }
+    if(previousSurfStage!=='ride'&&player.surfStage==='ride'){
+      showInfo('Vague prise ! Dirigez et conservez votre vitesse.');
+      audio?.emit('water.lap',{position:player.position,source:'player'});
+    }
+    if((player.surfJumpSeq??0)>previousSurfJump)audio?.emit('player.jump',{position:player.position,source:'player'});
+    if((player.surfLandingSeq??0)>previousSurfLanding)audio?.emit('player.land',{position:player.position,source:'player'});
+    if((player.surfWipeoutSeq??0)>previousSurfWipeout)audio?.emit('water.enter',{position:player.position,source:'player'});
+    if(keys.surfActionPressed && (player.mode==='surf'||player.surfAirborne||
+      motionTick>=surfRequestUntilTick||!surfField))surfQueue=0;
     if(player.barrelEntryTick===motionTick)showInfo('Tube ! Suivez la crête pour ressortir avant la fermeture.');
     if((player.barrelSuccessSeq??0)>seenBarrelSuccess){seenBarrelSuccess=player.barrelSuccessSeq??0;showInfo('Tube traversé !','success');}
     const tubeCrash=(player.barrelCrashSeq??0)>seenBarrelCrash;
@@ -1484,8 +1532,13 @@ function draw(now: number) {
   remoteActors?.renderer.collectGrassActors(grassActors,player.position);
   world.setUnderground(!!player.space);
   world.update(delta, player.position, camera, renderer.domElement.height, player.velocity);
-  surfWaterView?.update(motionTick,frame.alpha);
-  surfBarrelView?.update(motionTick,player.position);
+  for(const view of surfWaterViews){
+    // Never visibly downgrade the collision surface directly beneath a surfer:
+    // coarser distant bays may still follow the global adaptive performance tier.
+    view.setDetail(view===surfWaterView&&player.mode==='surf'?0:budget.level,player.position);
+    view.update(motionTick,frame.alpha);
+  }
+  for(const view of surfBarrelViews)view?.update(motionTick,player.position);
   if(!loading.ready&&loading.update({terrainPending:world.stats.pending,dressingPending:world.dressing?.nearPending??0,speciesState:world.dressing?.species.state??'none'}))beginGame();
   remoteActors?.update(delta,elapsed,camera,renderer.domElement.height,budget.level);
   npcs.update(delta, elapsed, player.position,camera); // The river drives the mill: no manual on/off control.
@@ -1498,9 +1551,11 @@ function draw(now: number) {
   if(gameplay){const f=gameplay.fishing.state;character.setFishing(f.phase!=='idle'&&f.castAt?{x:f.castAt.x,y:waterSurface(f.castAt.x,f.castAt.z)??getTerrainConfig().seaLevel,z:f.castAt.z,biting:f.phase==='bite'}:null);}
   character.update(player, delta, elapsed);
   snowCharacterView.update(player);
+  applySurfPose(character,player,motionTick);
   // Water tumble is a hero-only overlay; keep the hamster swim/dive state authoritative.
   applySurfTumblePose(character,player);
-  surfBoardView?.update(player,renderPosition);
+  surfBoardView?.update(player,renderPosition,
+    surfField?.sample(renderPosition.x,renderPosition.z,motionTick));
   if(surfHud&&now>=nextSurfHudAt){
     nextSurfHudAt=now+160;
     surfHud.update(player.mode==='surf'||player.surfAirborne||(player.barrelTumbleRemaining??0)>0?{
@@ -1585,11 +1640,15 @@ function draw(now: number) {
         dressing: world.dressing ? { ...world.dressing } : null,
         grass: world.grass ? { ...world.grass } : null,
         inventory: gameplay ? { ...gameplay.runtime.state.inventory } : null,
+        surfWorld:surfWorldConfig,
         surf:surfField?{
           zoneId:surfField.zone.id,stage:player.surfStage??null,airborne:!!player.surfAirborne,
+          equipped:gameplay?.equipment.hands==='tool:surfboard',
           wave:surfField.sample(player.position.x,player.position.z,motionTick),
           boardVisible:!!surfBoardView&&scene.getObjectByName('HamsterSurfboard')?.visible===true,
-          features:surfFeatures.length,patchTriangles:surfWaterView?.mesh.geometry.index?.count?surfWaterView.mesh.geometry.index.count/3:0,
+          zones:surfFields.length,features:surfFeatures.length,
+          patchTriangles:surfWaterViews.reduce((sum,v)=>sum+v.stats.triangles,0),
+          waterLodTier:surfWaterView?.stats.tier??null,waterLodVertices:surfWaterView?.stats.vertices??0,
           barrel:surfBarrelView?{enabled:true,stats:{...surfBarrelView.stats},
             sample:sampleSurfBarrel(surfField,terrainHeight,player.position.x,player.position.z,motionTick),
             inside:player.barrelEntryTick!==undefined,escaped:player.barrelSuccessSeq??0,closed:player.barrelCrashSeq??0,
@@ -1652,7 +1711,7 @@ function draw(now: number) {
   }
   requestAnimationFrame(draw);
 }
-window.addEventListener('pagehide',event=>{if(event.persisted)void audio?.engine.setHidden(true);else {detachPortCollisions?.();ferryView?.dispose();remoteActors?.dispose();mineRhythmHud.dispose();mineHelmet.dispose();gasEffects.dispose();flightRings.dispose();raceGates.dispose();raceTrackView.dispose();flightCourseHud.remove();raceHud.remove();fishingHud.dispose();fishingEffects.dispose();speedStreaks.dispose();surfWaterView?.dispose();surfBarrelView?.dispose();surfBoardView?.dispose();surfFeatureView?.dispose();surfHud?.dispose();gpuTimer.dispose();void audio?.dispose();}});
+window.addEventListener('pagehide',event=>{if(event.persisted)void audio?.engine.setHidden(true);else {detachPortCollisions?.();ferryView?.dispose();remoteActors?.dispose();mineRhythmHud.dispose();mineHelmet.dispose();gasEffects.dispose();flightRings.dispose();raceGates.dispose();raceTrackView.dispose();flightCourseHud.remove();raceHud.remove();fishingHud.dispose();fishingEffects.dispose();speedStreaks.dispose();for(const view of surfWaterViews)view.dispose();for(const view of surfBarrelViews)view?.dispose();surfBoardView?.dispose();surfFeatureView?.dispose();surfHud?.dispose();gpuTimer.dispose();void audio?.dispose();}});
 window.addEventListener('pageshow',event=>{if(event.persisted&&started)void audio?.engine.setHidden(document.hidden);});
 document.addEventListener('visibilitychange', () => {
   presentation.reset();

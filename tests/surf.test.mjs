@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {createSurfWaveField,validateSurfZone} from '../src/surf/wave-field.ts';
 import {stepSurf,SURF_MOTION} from '../src/surf/surf-controller.ts';
 import {createSurfFeatureState,stepSurfFeatures,surfFeatureCrossed,validateSurfFeature} from '../src/surf/surf-features.ts';
-import {findDemoSurfSite} from '../src/surf/surf-demo.ts';
+import {findDemoSurfSite,findCoastalSurfSites} from '../src/surf/surf-demo.ts';
 import {SURF_ITEMS,SURFBOARD_ID} from '../src/surf/surf-items.ts';
 import {surfHudText} from '../src/ui/surf/surf-hud.ts';
 import {makeDemoSurfRace} from '../src/surf/surf-race-demo.ts';
@@ -140,4 +140,27 @@ test('surf HUD conveys action and speed without affecting movement state',()=>{
 });
 test('open-ocean without an actual coastline is not accepted as surf demo',()=>{
  assert.equal(findDemoSurfSite(()=>-8,{minX:-700,maxX:700,minZ:-700,maxZ:700},0),null);
+});
+
+test('coastal discovery covers off-center bays outside original three centre-line transects',()=>{
+ const bounds={minX:-1600,maxX:1600,minZ:-1300,maxZ:1300};
+ // A genuine isolated wet bay on one side of an otherwise fully dry island.
+ const terrain=(x,z)=>x>440&&x<1150&&z<190&&z>-760?-6:4;
+ const sites=findCoastalSurfSites(terrain,bounds,0,101,4);
+ assert.ok(sites.length>=1,'wide search finds offset coastline');
+ for(const site of sites){
+  assert.ok(site.start.x>440&&site.start.x<1150);
+  assert.ok(terrain(site.start.x,site.start.z)<0,'spawn is in actual water');
+  assert.ok(site.zone.minX>bounds.minX&&site.zone.maxX<bounds.maxX);
+  assert.ok(site.zone.minZ>bounds.minZ&&site.zone.maxZ<bounds.maxZ);
+ }
+ assert.deepEqual(findCoastalSurfSites(terrain,bounds,0,101,4),sites,
+  'identical terrain, seed and boundaries must always produce the same sites');
+});
+test('coastal finder excludes ponds and inaccessible shallow inlets',()=>{
+ const bounds={minX:-950,maxX:950,minZ:-950,maxZ:950};
+ const pond=(x,z)=>Math.hypot(x-400,z-130)<35?-3:8;
+ assert.equal(findDemoSurfSite(pond,bounds,0),null,
+  'small isolated inland water must not trigger a large 200 m surf strip');
+ assert.equal(findDemoSurfSite(()=>-8,bounds,0),null);
 });

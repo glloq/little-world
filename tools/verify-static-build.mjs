@@ -31,11 +31,23 @@ export async function verifyStaticBuild(directory = 'dist') {
   // Keep the published map allowlist intact: the second island lives in /archipelago.
   const catalog=JSON.parse(await readFile(resolve(root,'archipelago/catalog.json'),'utf8'));
   assert.equal(catalog.schemaVersion,1,'Version du registre invalide');
-  assert.equal(catalog.islands.length,2,'Deux îles jouables attendues');
+  assert.equal(catalog.islands.length,3,'Trois îles jouables attendues');
   const manifest=JSON.parse(await readFile(resolve(root,'archipelago/worlds/forest-valley/manifest.json'),'utf8'));
   assert.equal(manifest.worldId,'little-world-production-reference','Mauvaise île d’exemple');
   for(const chunk of manifest.chunks)assert.ok((await stat(resolve(root,'archipelago/worlds/forest-valley',chunk.url))).isFile(),'Secteur absent : '+chunk.url);
   assert.ok((await stat(resolve(root,'archipelago/worlds/forest-valley',manifest.logic.url))).isFile(),'Logique de l’île absente');
+  const surf=JSON.parse(await readFile(resolve(root,'archipelago/worlds/surf-island/manifest.json'),'utf8'));
+  assert.equal(surf.worldId,'little-world-surf-island','Identité de l’île Surf invalide');
+  assert.equal(surf.kind,'compiled-world');
+  assert.ok(surf.chunks.length>0,'Île Surf sans secteur');
+  for(const chunk of surf.chunks)
+    assert.ok((await stat(resolve(root,'archipelago/worlds/surf-island',chunk.url))).isFile(),
+      'Secteur Surf absent : '+chunk.url);
+  assert.ok((await stat(resolve(root,'archipelago/worlds/surf-island',surf.logic.url))).isFile(),
+    'Logique Surf absente');
+  const layout=JSON.parse(await readFile(resolve(root,'archipelago/worlds/surf-island/surf-layout.json'),'utf8'));
+  assert.equal(layout.beaches.length,3,'Trois plages Surf manquantes');
+  assert.ok(layout.port?.boat,'Port Surf physique absent');
   // Never accidentally deploy the regression fixtures to GitHub Pages.
   assert.deepEqual((await readdir(resolve(root,'maps'))).sort(),['island','island.project.json']);
 }

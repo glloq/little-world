@@ -51,6 +51,10 @@ jobs:
             sleep 1
           done
           curl -fsS http://127.0.0.1:5173/little-world/ > /dev/null
+      - name: Surf playable wave, board and tube browser acceptance
+        run: npm run test:surf
+      - name: Surf Island A/B/C browser acceptance and captures
+        run: npm run test:surf-island
       - name: Ferry timetable, map, rowboat and cinematic preview (solo)
         run: node tools/test-ferry-browser.mjs
       - name: Real ferry journey A to B to A (static Pages, saves and map)
