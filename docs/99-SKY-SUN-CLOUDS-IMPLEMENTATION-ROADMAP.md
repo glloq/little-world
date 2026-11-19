@@ -1,6 +1,6 @@
 # 99 — Roadmap d'implémentation : soleil visible + nuages 2D/3D LOW-RESOURCE
 
-**Statut : IMPLEMENTING — premier incrément SKY-1/2/3 poussé, validation CI/navigateur et budgets GPU encore à qualifier.** 19 novembre 2026.
+**Statut : IMPLEMENTING — soleil, 2D et première variante 3D optionnelle poussés; qualification matériel GPU encore ouverte.** 19 novembre 2026.
 
 Spécification de référence : [98 — Ciel vivant LOW-RESOURCE](98-LOW-RESOURCE-SKY-SUN-CLOUDS.md). Conserver les contrats [19 — environnement](19-ENVIRONMENT-WEATHER-SKY.md), [22 — budget PERF](22-RESOURCE-BUDGET-MANAGER.md), [80 — PC anciens](80-OLD-PC-HARDWARE-AUTO-QUALITY.md) et [82 — optimisation graphique](82-PERFORMANCE-GRAPHICS-IMPLEMENTATION-ROADMAP.md). La branche documentation ne prétend ni changer la météo existante ni garantir des FPS.
 
@@ -81,7 +81,7 @@ Cibles de coût additionnel **provisoires et non mesurées** sur machine de réf
 - [x] Soleil visible + halo sans bloom (première version, visuel à qualifier).
 - [x] Nuages 2D lointains via atlas 128² et occultation solaire (première version, test GPU à réaliser).
 - [ ] 2D benchmark qualifié (ou fallback).
-- [ ] Nuages 3D instanciés uniquement si budget résiduel.
+- [x] Nuages 3D instanciés disponibles comme option expérimentale, sans qualification du budget résiduel; activation HQ par défaut et medium uniquement avec `?sky=hybrid`.
 - [ ] Qualité intégrée sans second gestionnaire.
 - [ ] Contrôles mine, caméra, météo, plongée, transition îles, lifecycle.
 - [ ] Tests automatisés + capture manuelle reproductible (tests unitaires et smoke CI ajoutés; captures et qualification encore à réaliser).
@@ -113,3 +113,14 @@ Les chiffres réels restent inconnus tant que ces outils n'ont pas été exécut
 - L'initialisation prend directement l'état climatique courant pour éviter un flash de ciel clair lors du chargement d'une sauvegarde.
 - L'horloge logique et les agrégats climatiques restent inchangés; le temps d'animation du vent continue de dépendre de `clock.time`.
 - Le test unitaire vérifie une progression bornée plutôt qu'une transition brutale; qualification visuelle et GPU encore ouverte.
+
+### SKY-5 — prototype 3D conditionnel (19 novembre 2026)
+
+- `cloud-presets.ts` fabrique deux silhouettes 3D opaques low-poly (40 et 60 triangles), géométries partagées, sans texture ni shadow maps.
+- `cloud-renderer.ts` gère deux `THREE.InstancedMesh` (jusqu'à 16 objets au total), positions déterministes par cellules monde de 160 m et dérive temporelle avec le vent. Les matrices d'instance ne sont réécrites qu'en cas de changement de cellule / quota / bande météo.
+- Qualité basse: 0 volume. Medium: 8 maximum **si** `?sky=hybrid`; haute: 16 maximum avec mode normal ou `?sky=hybrid`. `?sky=2d`, `?sky=sun`, `?sky=off` forcent une comparaison sans 3D. Le niveau de surcharge `detail>=2` coupe tous les volumes.
+- Le soleil et la couche 2D gardent leur passe existante. Les 3D peuvent ajouter jusqu'à **2 draw calls**, aucune physique, aucune ombre. Les nuages sont désactivés en mine et libérés au `dispose()`.
+- `tests/cloud-renderer.test.mjs` vérifie triangles, plafonds, réutilisation, disable, changement de secteur et destruction. **Ne pas confondre tests unitaires et validation visuelle/WebGL/GPU**.
+- Important: `main` n'a volontairement **pas été synchronisé**, à la demande; ne pas rebaser/merger avant autorisation explicite.
+
+À contrôler en navigateur : popping lors du recyclage des cellules à grande vitesse, altitude nuages vs sommets, visibilité et intégration couleur au lever/coucher, p95/p99 à HQ. Si le rendu crée une régression, conserver l'option 3D désactivée et ne pas dégrader le terrain pour la compenser.
