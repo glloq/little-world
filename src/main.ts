@@ -35,7 +35,7 @@ import {followSurfSwell} from './surf/boat-swell.ts';
 import {surfQualityProfile,type SurfQualityProfile} from './render/surf-quality.ts';
 import {SurfPerfRecorder,instrumentGround,instrumentSurfField} from './surf/surf-perf.ts';
 import {inCameraView,surfDrawStats} from './render/surf-render-stats.ts';
-import {boardOnWater,distanceToBoard,isSurfBoardWaterSafe,type SurfBoardPlacement} from './surf/board-placement.ts';
+import {boardOnWater,boardRequest,isSurfBoardWaterSafe,type SurfBoardPlacement} from './surf/board-placement.ts';
 import {createSurfHud} from './ui/surf/surf-hud.ts';
 import {boardLift,liftRideStep,type SkiLift,type LiftRide} from './snow/ski-lift.ts';
 import {createSkiLiftView} from './snow/ski-lift-view.ts';
@@ -913,36 +913,38 @@ function toggleSurfBoard():void{
    player.velocity.multiplyScalar(.3);player.velocity.y=0;surfQueue=0;
    showInfo('Descendu de la planche : elle flotte à proximité.');return;
  }
- if(placedSurfBoard){
-   const dist=distanceToBoard(placedSurfBoard,player.position.x,player.position.z);
-   if(dist>2.5){showInfo('Rapprochez-vous de votre planche pour monter dessus.','warning');return;}
-   if(player.mode!=='swim'&&player.mode!=='dive'){
-     showInfo('Entrez dans l’eau pour monter sur la planche.','warning');return;
-   }
-   if(!isSurfBoardWaterSafe(placedSurfBoard,waterSurface,terrainHeight,(x,z)=>!!surfFieldAt(x,z))){
-     showInfo('Cette eau ne permet pas encore le surf.','warning');return;
-   }
-   player.position.x=placedSurfBoard.x;player.position.z=placedSurfBoard.z;
-   player.position.y=placedSurfBoard.y-.5;player.diving=false;player.velocity.set(0,0,0);
+ // Never deploy a board the player does not have in hand (demo excepted).
+ if(!placedSurfBoard&&!surfDemo&&gameplay?.equipment.hands!=='tool:surfboard'){
+   showInfo('Équipez la planche depuis le sac avant de la poser.','warning');return;
+ }
+ const hasZone=(x:number,z:number)=>!!surfFieldAt(x,z);
+ const request=boardRequest(placedSurfBoard,{x:player.position.x,z:player.position.z,heading:yaw,
+   inWater:player.mode==='swim'||player.mode==='dive'},waterSurface,terrainHeight,hasZone);
+ switch(request.kind){
+  case 'mount':{
+   const board=request.board;
+   player.position.x=board.x;player.position.z=board.z;
+   player.position.y=board.y-.5;player.diving=false;player.velocity.set(0,0,0);
    lastSafeSurfBoard=null;
    surfField=surfFieldAt(player.position.x,player.position.z);
    surfQueue=1;surfRequestUntilTick=motionTick+90;placedSurfBoard=null;
    showInfo('Sur la planche : ramez vers la plage (Z), la vague vous emporte. Shift : boost · Espace : saut.');return;
+  }
+  case 'recall':
+   // The board leaves its old place and floats right next to the player.
+   placedSurfBoard=request.board;
+   showInfo('Planche rappelée près de vous : B pour monter dessus.');return;
+  case 'pickup':
+   placedSurfBoard=null;
+   showInfo('Planche récupérée : posez-la dans une zone de surf avec B.');return;
+  case 'deploy':
+   placedSurfBoard=request.board;
+   showInfo('Planche posée sur l’eau. B pour monter dessus.');return;
+  case 'none':
+   showInfo(request.reason==='not-in-water'?'Entrez dans l’eau pour monter sur la planche.':
+     request.reason==='unsafe'?'Cette eau ne permet pas encore le surf.':
+     'Approchez-vous d’une zone de surf avec assez de profondeur.','warning');return;
  }
- if(!surfDemo&&gameplay?.equipment.hands!=='tool:surfboard'){
-   showInfo('Équipez la planche depuis le sac avant de la poser.','warning');return;
- }
- const sx=Math.sin(yaw),cz=Math.cos(yaw);
- let spot:SurfBoardPlacement|null=null;
- for(const d of [0,1.2,2,3]){
-   const x=player.position.x+sx*d,z=player.position.z+cz*d;
-   const candidate=boardOnWater(x,z,yaw,waterSurface);
-   if(!candidate||!isSurfBoardWaterSafe(candidate,waterSurface,terrainHeight,(px,pz)=>!!surfFieldAt(px,pz)))continue;
-   spot=candidate;break;
- }
- if(!spot){showInfo('Approchez-vous d’une zone de surf avec assez de profondeur.','warning');return;}
- placedSurfBoard=spot;
- showInfo('Planche posée sur l’eau. Nagez près d’elle puis utilisez Planche/B pour monter.');
 }
 function gameplayInputActive():boolean{
   return started&&!gameUi?.blocking&&!customization.isOpen&&!npcs.dialogue.isOpen&&!mobileLandscape?.blocked;
@@ -1494,7 +1496,7 @@ function tick(dt: number) {
       }
       lastSafeSurfBoard=null;
       audio?.emit('water.enter',{position:player.position,source:'player'});
-      showInfo(placedSurfBoard?'Chute ! Votre planche flotte près de vous.':'Chute ! Retournez dans la zone de surf pour récupérer votre planche.');
+      showInfo(placedSurfBoard?'Chute ! Votre planche flotte près de vous (B pour remonter).':'Chute ! Dans une zone de surf, B rappelle la planche près de vous.');
     }
     if(keys.surfActionPressed && (player.mode==='surf'||player.surfAirborne||
       motionTick>=surfRequestUntilTick||!surfField))surfQueue=0;

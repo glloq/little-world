@@ -77,6 +77,21 @@ try{
  const surf=await page.evaluate(()=>window.littleWorldMetrics);
  check(surf.surf.equipped===true,'Surfboard was equipped through inventory');
  check(surf.surf.barrel?.enabled===true,'Beach B has playable curling surf');
+ // Board recall: stow it, swim 40 m away, B brings the board next to the hamster, B boards it.
+ await page.keyboard.press('KeyB');
+ await page.waitForFunction(()=>window.littleWorldMetrics?.mode==='swim'&&window.littleWorldMetrics?.surfBoardPlaced!==null,{},{timeout:10000});
+ const left=await page.evaluate(()=>window.littleWorldMetrics.surfBoardPlaced);
+ const away={x:left.x,z:left.z-40}; // seaward, still inside zone B
+ await page.evaluate(p=>window.littleWorldDebug.teleport(p.x,p.z,0),away);
+ await page.waitForFunction(()=>['swim','dive'].includes(window.littleWorldMetrics?.mode),{},{timeout:10000});
+ await page.keyboard.press('KeyB');
+ await page.waitForTimeout(300);
+ const recalled=await page.evaluate(()=>({board:window.littleWorldMetrics.surfBoardPlaced,pos:window.littleWorldMetrics.position}));
+ check(recalled.board&&Math.hypot(recalled.board.x-recalled.pos[0],recalled.board.z-recalled.pos[2])<=2.5&&
+  Math.hypot(recalled.board.x-left.x,recalled.board.z-left.z)>30,'B recalls a far board next to the hamster (old spot cleared)');
+ await page.keyboard.press('KeyB');
+ await page.waitForFunction(()=>window.littleWorldMetrics?.mode==='surf',{},{timeout:10000});
+ check(true,'The recalled board is boarded with the next B');
  check(report.errors.length===0,'No uncaught browser errors');
  await page.screenshot({path:output+'/surf-island-B-riding.png'});
  report.done=true;console.log('SURF_ISLAND_BROWSER '+JSON.stringify({...report,beaches:report.beaches}));

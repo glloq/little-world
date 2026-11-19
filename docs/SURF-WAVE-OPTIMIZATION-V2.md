@@ -491,3 +491,15 @@ face, > 80 m le long de la vague, saut en rame et en glisse, boost borné et dé
 borné et sortie volontaire), `tests/surf-boat-fauna.test.mjs` ; partie scriptée sur la plage B en
 navigateur : saut pendant la rame, vague prise en 0,3 s, glisse jusqu'à 56 km/h avec 5 boosts.
 Limite : le collider d'un bateau laissé dans une zone de surf reste à sa hauteur de départ.
+
+## 23. Planche : rappel près du joueur
+
+Une planche laissée sur l'eau pouvait être difficile à retrouver. La touche **B** (et le bouton
+Planche) décide maintenant via `boardRequest` (`src/surf/board-placement.ts`, pur et testé) :
+- planche à moins de 2,5 m et joueur dans l'eau → **monter** dessus ;
+- planche plus loin → **rappel** : elle disparaît de son ancien emplacement et flotte juste à côté du
+  joueur (recherche devant, sur les côtés puis derrière, toujours à portée de montée), B suivant = monter ;
+- aucune eau surfable autour (à terre, hors zone) → la planche **revient en main** ;
+- aucune planche sur l'eau → dépôt de la planche équipée (même recherche, plus tolérante qu'avant).
+Tests : `tests/surf-board-placement.test.mjs` ; scénario navigateur ajouté à `test:surf-island`
+(poser, s'éloigner de 40 m, B rappelle, B monte).
