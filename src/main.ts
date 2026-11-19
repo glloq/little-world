@@ -81,7 +81,7 @@ import {createMineRhythmHud,type MineRhythmSample} from './ui/activities/mine-rh
 import {createMineHelmet} from './hamster/mine-helmet.ts';
 import { createImpactEffects, type ImpactKind } from './hamster/impact-effects.ts';
 import {createGasEffects} from './hamster/gas-effects.ts';
-import {GAS,gasLevel,gasCapacity,gasShots,gasMaxShots,refillGas} from './physics/gas-propulsion.ts';
+import {GAS,gasLevel,gasCapacity,gasShots,gasMaxShots,satietyLevel,eatForSatiety,stepBoostVitals} from './physics/gas-propulsion.ts';
 import {newFlightProgress,advanceFlight,type FlightProgress} from './gameplay/flight-progress.ts';
 import {beginFlightCourse,stepFlightCourse,COURSE_LABELS,type FlightCourseSession} from './gameplay/flight-courses.ts';
 import {createFlightRings} from './render/flight-rings.ts';
@@ -91,7 +91,7 @@ import {createRaceTrackView} from './render/race-track-view.ts';
 import {advanceRace,beginRace,raceElapsedSeconds,type RaceSession,type RaceDefinition} from './gameplay/races.ts';
 import {makeDemoRace,type DemoRaceId} from './gameplay/race-demos.ts';
 import {readRaceBest,writeRaceBest} from './gameplay/race-records.ts';
-import {foodGasValue} from './gameplay/food-effects.ts';
+import {foodSatietyValue} from './gameplay/food-effects.ts';
 import { createLoadingScreen } from './ui/loading.ts';
 import { createCustomizationMenu } from './customization-menu';
 import { MouseDragOrbit } from './camera-drag';
@@ -302,7 +302,7 @@ if(playable){
     setSurfBoard:board=>{placedSurfBoard=board&&isSurfBoardWaterSafe(board,waterSurface,terrainHeight,(x,z)=>!!surfFieldAt(x,z))?board:null;},
     getGasProgress:()=>structuredClone(flightProgress),
     setGasProgress:value=>{flightProgress={...value,currentFlightDistance:0,currentFlightNoGas:0,currentCombo:0,lastPulseAt:-1};player.gasCapacityLevel=value.capacityLevel;player.gasPowerLevel=value.powerLevel;player.gasControlLevel=value.controlLevel;},
-    setGas:value=>{player.gasReserve=value;player.gasBoosting=false;player.gasPulseClock=0;player.gasPulseSeq=0;player.gasThrust=0;player.gasPulseRemaining=0;player.gasCooldown=0;player.gasBoostHeld=false;player.gasRepeatArmed=false;gasVisualSeq=0;lastFlightPulseSeq=0;boostWindActive=false;},
+    setGas:value=>{player.gasReserve=Math.min(GAS.max,Math.max(0,value));player.satiety=100;player.boostRechargeProgress=0;player.gasBoosting=false;player.gasPulseClock=0;player.gasPulseSeq=0;player.gasThrust=0;player.gasPulseRemaining=0;player.gasCooldown=0;player.gasBoostHeld=false;player.gasRepeatArmed=false;gasVisualSeq=0;lastFlightPulseSeq=0;boostWindActive=false;},
     ...(isLegacyTerrain()?{}:{gathering:{ctx:geoContext,seed:definition.config.seed,inside:(x:number,z:number)=>Math.abs(x)<=(definition.config.width??200)/2&&Math.abs(z)<=(definition.config.length??600)/2}}),
     setPosition:(p,space)=>{gameplay?.fishing.cancel();stopFlightCourse();stopRace();player.space=space??undefined;player.position.set(p.x,p.y,p.z);player.velocity.set(0,0,0);player.mode='air';player.oxygen=MAX_OXYGEN;player.glideReady=false;player.coyoteLeft=0;player.jumpBufferLeft=0;aboard=false;keySet.clear();jumpQueue=0;actionQueue=0;npcs.dialogue.close();previousPlayerPosition.copy(player.position);renderPosition.copy(player.position);updateCamera(1);}
   });
@@ -551,18 +551,18 @@ world.update(0, player.position);
   },environmentControls:environment.controls,environment:()=>{const state=climate.state(worldClock.time);return {weather:state.weather,dayPhase:state.dayPhase};},landmarks,applyDistantRendering:(value,initial)=>{if(!initial||!searchParams.has('impostors')){world.hybrid.setMode(value==='hybrid'?'trees':'off');if(value==='hybrid')world.hybrid.setSectors(false);}},quality:document.querySelector<HTMLSelectElement>('#quality'),temporary:!!(studioTest||buildScope),studioUrl:import.meta.env.BASE_URL+'studio/',
     world:{name:definition.name,buildVersion:gameplay?.runtime.data.buildVersion??'vallée',dayLength:climate.definition.dayLengthSeconds,bounds:{minX:-c.width/2,maxX:c.width/2,minZ:-c.length/2,maxZ:c.length/2},seaLevel:c.seaLevel,height:terrainHeight,water:waterSurface},
     eatFood:(itemId)=>{
-      const points=foodGasValue(itemId);
+      const points=foodSatietyValue(itemId);
       if(!gameplay||!points)return {ok:false,message:'Cet objet ne peut pas être mangé.'};
       if(player.mode!=='ground'||aboard)return {ok:false,message:'Mangez au sol avant de décoller.'};
-      if(gasLevel(player)>=gasCapacity(player))return {ok:false,message:'La réserve de gaz est déjà pleine.'};
+      if(satietyLevel(player)>=100)return {ok:false,message:'Le hamster est déjà rassasié.'};
       if(!gameplay.purse.apply([{itemId,quantity:-1}]))return {ok:false,message:'Aliment indisponible.'};
-      const gained=refillGas(player,points);
-      return {ok:true,message:'+'+Math.round(gained)+' gaz !'};
+      const gained=eatForSatiety(player,points);
+      return {ok:true,message:'+'+Math.round(gained)+' satiété !'};
     },
     canEatFood:(itemId)=>{
-      if(!foodGasValue(itemId))return 'Cet objet ne peut pas être mangé.';
+      if(!foodSatietyValue(itemId))return 'Cet objet ne peut pas être mangé.';
       if(player.mode!=='ground'||aboard)return 'Mangez au sol avant de décoller.';
-      if(gasLevel(player)>=gasCapacity(player))return 'La réserve de gaz est déjà pleine.';
+      if(satietyLevel(player)>=100)return 'Le hamster est déjà rassasié.';
       if(!gameplay?.has(itemId))return 'Cet aliment n’est plus dans le sac.';
       return null;
     },
@@ -571,11 +571,10 @@ world.update(0, player.position);
         return {ok:false,message:'Sélection alimentaire invalide.'};
       if(player.mode!=='ground'||aboard)
         return {ok:false,message:'Mangez au sol avant de décoller.'};
-      const available=gasCapacity(player)-gasLevel(player);
-      if(available<=0)return {ok:false,message:'La réserve de gaz est déjà pleine.'};
+      if(satietyLevel(player)>=100)return {ok:false,message:'Le hamster est déjà rassasié.'};
       const quantities=new Map<string,number>();let total=0;
       for(const item of items){
-        const gas=foodGasValue(item.itemId);
+        const gas=foodSatietyValue(item.itemId);
         if(gas<=0||!Number.isSafeInteger(item.quantity)||item.quantity<1||item.quantity>9999)
           return {ok:false,message:'La sélection contient un objet non comestible.'};
         const next=(quantities.get(item.itemId)??0)+item.quantity;
@@ -587,8 +586,8 @@ world.update(0, player.position);
       if(total<=0||!Number.isFinite(total))return {ok:false,message:'Aucune recharge possible.'};
       const changes=[...quantities].map(([itemId,quantity])=>({itemId,quantity:-quantity}));
       if(!gameplay.purse.apply(changes))return {ok:false,message:'Consommation refusée : stock modifié.'};
-      const gain=refillGas(player,total);
-      return {ok:true,message:'+'+Math.round(gain)+' gaz · '+[...quantities.values()].reduce((n,q)=>n+q,0)+' aliments consommés.'};
+      const gain=eatForSatiety(player,total);
+      return {ok:true,message:'+'+Math.round(gain)+' satiété · '+[...quantities.values()].reduce((n,q)=>n+q,0)+' aliments consommés.'};
     },
     headgear:{equipped:()=>gameplay?.equipment.head==='tool:miners-helmet',setEquipped:value=>{gameplay?.equipment.setHead(value?'tool:miners-helmet':null);}},
     mineHub:gameplay?{
@@ -614,7 +613,7 @@ world.update(0, player.position);
         }finally{gameUi?.endMineLoading();}
       },
     }:undefined,
-    player:()=>({gas:gasLevel(player),maxGas:gasCapacity(player),gasShots:gasShots(player),gasMaxShots:gasMaxShots(player),gasCooldown:player.gasCooldown??0,x:player.position.x,y:player.position.y,z:player.position.z,yaw,space:player.space,mode:player.mode,oxygen:player.oxygen,maxOxygen:MAX_OXYGEN,stamina:player.stamina??MAX_STAMINA,maxStamina:MAX_STAMINA,speed:player.velocity.length(),stalled:player.stalled}),
+    player:()=>({gas:gasLevel(player),maxGas:gasCapacity(player),satiety:satietyLevel(player),gasShots:gasShots(player),gasMaxShots:gasMaxShots(player),gasCooldown:player.gasCooldown??0,boostRechargeProgress:player.boostRechargeProgress??0,gasPulseSeq:player.gasPulseSeq??0,x:player.position.x,y:player.position.y,z:player.position.z,yaw,space:player.space,mode:player.mode,oxygen:player.oxygen,maxOxygen:MAX_OXYGEN,stamina:player.stamina??MAX_STAMINA,maxStamina:MAX_STAMINA,speed:player.velocity.length(),stalled:player.stalled}),
     importTrade:activeIsland&&ferryDock&&cargoService&&gameplay?{
       view:()=>cargoService?cargoService.view():{
         islandId:activeIsland.id,revision:0,offers:[],inTransit:0,nextArrivalMinute:null,
@@ -951,7 +950,7 @@ window.addEventListener('keydown', (e) => {
     player.oxygen = MAX_OXYGEN;
     player.glideReady = false;
     touchStrokeQueue=0;
-    player.gasReserve=GAS.initial;player.gasBoosting=false;player.gasPulseClock=0;player.gasPulseSeq=0;player.gasThrust=0;
+    player.gasReserve=GAS.initial;player.satiety=100;player.boostRechargeProgress=0;player.gasBoosting=false;player.gasPulseClock=0;player.gasPulseSeq=0;player.gasThrust=0;
     player.gasPulseRemaining=0;player.gasCooldown=0;player.gasBoostHeld=false;player.gasRepeatArmed=false;gasVisualSeq=0;lastFlightPulseSeq=0;
     player.coyoteLeft=0;player.jumpBufferLeft=0;
     previousPlayerPosition.copy(player.position);
@@ -1331,6 +1330,9 @@ function tick(dt: number) {
   // Menus (pause, parties, paramètres) pause the world simulation; the frame still renders.
   if (!started || gameUi?.paused||mobileLandscape?.blocked) return;
   if(gameplay)gameplay.update(dt);else worldClock.advance(dt);
+  // Boosts recharge even when walking, swimming, on a boat or taking a lift.
+  // The ordinary player simulation handles other motion states below.
+  if(aboard||snowLiftRide)stepBoostVitals(player,dt);
   if(cargoService){
     const cargoMinute=worldGameMinute(worldClock.time,climate.definition.dayLengthSeconds);
     if(cargoMinute!==lastCargoMinute){
