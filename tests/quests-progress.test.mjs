@@ -71,3 +71,23 @@ test('Q2 trade-acquisition quests count successful purchases, not sales or NPC g
  assert.equal(purchased.applied,true);
  assert.equal(purchased.instance.status,'ready');
 });
+
+test('Q2 finished workshops count batches and item outputs independently',()=>{
+ const craft=acceptQuest({...offer,steps:[
+  {kind:'craft',recipeId:'sawmill:planks',quantity:2,stationId:'station:sawmill'}],
+  rewards:[]},'instance:workshop:1',1);
+ const acquired=acceptQuest({...offer,steps:[
+  {kind:'acquire',itemId:'material:plank',quantity:8,source:'craft'}],
+  rewards:[]},'instance:workshop:2',1);
+ const completed=event('workshop:batch','workshop.collected',{
+  recipeId:'sawmill:planks',quantity:2,targetId:'station:sawmill'});
+ const items=event('workshop:items','workshop.item-collected',{
+  recipeId:'sawmill:planks',quantity:8,itemId:'material:plank',
+  targetId:'station:sawmill',source:'craft'});
+ assert.equal(advanceQuest(craft,items).applied,false);
+ assert.equal(advanceQuest(acquired,completed).applied,false);
+ assert.equal(advanceQuest(craft,completed).instance.status,'ready');
+ assert.equal(advanceQuest(acquired,items).instance.status,'ready');
+ assert.equal(advanceQuest(craft,event('workshop:wrong','workshop.collected',{
+  recipeId:'sawmill:planks',quantity:2,targetId:'other-station'})).applied,false);
+});
