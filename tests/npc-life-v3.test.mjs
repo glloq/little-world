@@ -171,3 +171,18 @@ test('F01-D a removed bridge invalidates the existing layered path before the NP
  assert.ok(router.route({x:-18,z:0},{x:18,z:0}),
   'restored bridge becomes usable without fabricating another surface');
 });
+
+test('F02 weather-conditioned visits stay at real job and resume on dry weather',()=>{
+ const conditional={...worker,activities:[{...worker.activities[0],weather:'dry'}]};
+ assert.equal(validResidentRoutine(conditional),true);
+ const rainy=residentAgendaPoseAt(conditional,routes,clock(12.3),1200,.36,1,'rain');
+ assert.equal(rainy.phase,'work');
+ assert.deepEqual(rainy.position,worker.work,'rain skips the optional civic trip at the known workplace');
+ const dry=residentAgendaPoseAt(conditional,routes,clock(12.3),1200,.36,1,'clear');
+ assert.equal(dry.phase,'activity');
+ assert.equal(dry.position.x,2);
+ const rainOnly={...worker,activities:[{...worker.activities[0],weather:'rain'}]};
+ assert.equal(residentAgendaPoseAt(rainOnly,routes,clock(12.3),1200,.36,1,'clear').phase,'work');
+ assert.equal(residentAgendaPoseAt(rainOnly,routes,clock(12.3),1200,.36,1,'rain').phase,'activity');
+ assert.equal(validResidentRoutine({...conditional,activities:[{...conditional.activities[0],weather:'storm'}]}),false);
+});
