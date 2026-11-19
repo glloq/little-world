@@ -5,6 +5,11 @@ export interface FlightState {velocity:Velocity;glideHeading?:number;glidePitch?
 export const MOTION={gravity:17.2,fallMax:48,walk:4.65,run:8.7,groundAcceleration:28,groundBrake:18,airDrag:.035,airTurn:1.9} as const;
 export const GLIDE={minCruise:11,max:60,stall:6,finesse:8,pitchRate:1.25,turnRate:1.15,maxDive:1.05,maxClimb:.58,diveEfficiency:1,drag:.10,speedDrag:.0016,turnLoss:.12,stallPitch:.7} as const;
 /** Single bounded arcade assist on first deployment. */
+/** Trim targets are game-design angles (radians). No extra force is introduced. */
+export const GLIDE_TRIM={
+ climbStartSpeed:12,fullClimbSpeed:24,maxAssistedClimb:.21,
+ maxAssistedDive:.61,recoverySpeed:10,recoveryPitch:-.33,
+} as const;
 export const GLIDE_DEPLOY={duration:.25,forward:2,lift:.8} as const;
 export const ROLL={max:11,downhillMax:18,accel:5,friction:1.2,brake:9,turnRate:1.8,turnLoss:.12,slopeGravity:.5,jump:6.5,minEnter:0,exitSpeed:.6,exitIdle:.35} as const;
 export type GroundMaterial='grass'|'rock'|'sand'|'mud'|'wood'|'snow'|'ice';
@@ -59,7 +64,21 @@ export function glideVelocity(p:FlightState,yaw:number,pitchControl:number,brake
  const maxTurn=tuning.turnRate*dt/(1+Math.max(0,speed-15)*.022);
  const turn=clamp(angleDelta(heading,yaw),-maxTurn,maxTurn);heading+=turn;
  const stall=clamp((tuning.stall-speed)/tuning.stall,0,1);
- let target=clamp(-pitchControl-Math.atan(1/tuning.finesse),-tuning.maxDive,tuning.maxClimb);
+ // Signed temporary intent: +1 climb, -1 dive. Neutral returns to a descending
+ // glide at the design finesse. The camera angle no longer latches the climb.
+ const trim=-Math.atan(1/tuning.finesse);
+ const climb=clamp(pitchControl,0,1),dive=clamp(-pitchControl,0,1);
+ const authority=clamp((speed-GLIDE_TRIM.climbStartSpeed)/
+   (GLIDE_TRIM.fullClimbSpeed-GLIDE_TRIM.climbStartSpeed),0,1);
+ const climbAngle=Math.min(tuning.maxClimb,GLIDE_TRIM.maxAssistedClimb);
+ const diveAngle=-Math.min(tuning.maxDive,GLIDE_TRIM.maxAssistedDive);
+ let target=climb>0?trim+(climbAngle-trim)*authority*climb:trim+(diveAngle-trim)*dive;
+ // At low airspeed the recovery dive overrides any command to pull up.
+ if(speed<GLIDE_TRIM.recoverySpeed){
+  const recover=clamp((GLIDE_TRIM.recoverySpeed-speed)/
+   Math.max(.001,GLIDE_TRIM.recoverySpeed-tuning.stall),0,1);
+  target=Math.min(target,trim+(GLIDE_TRIM.recoveryPitch-trim)*recover);
+ }
  target=target*(1-stall)-tuning.stallPitch*stall;
  pitch+=clamp(target-pitch,-tuning.pitchRate*dt,tuning.pitchRate*dt);
  // Stall sinks rather than granting forward speed; recovering requires altitude.
