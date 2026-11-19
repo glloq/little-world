@@ -13,6 +13,7 @@ import {localLifeCapabilities} from './capabilities.ts';
 import {createResidentAssignmentPlanner} from './assignments.ts';
 import {residentDutyShift,validResidentRoutine,type ResidentActivityStop,type ResidentPoint,type ResidentRole,type ResidentRoutineV1} from './schedule.ts';
 import {withVillageActivities} from './generation-agenda.ts';
+import {validateResidentAgendaRoutes} from './agenda.ts';
 export interface ResidentAnchorChoice {id:string;name:string;point:ResidentPoint}
 export interface ResidentAnchorChoices {homes:ResidentAnchorChoice[];jobs:ResidentAnchorChoice[];settlementId:string}
 export function residentAnchorChoices(p:ProjectDocument,id:string):ResidentAnchorChoices|null{
@@ -51,14 +52,34 @@ export function reassignResident(p:ProjectDocument,id:string,homeId:string,jobId
  if(!path||path.length<.15)throw Error('Aucun trajet piéton valide entre domicile et poste');
  const [start,end]=residentDutyShift(routine);
  if(path.length/1.1/1200*24>(end-start)/2)throw Error('Le trajet dépasse la plage de travail');
- const amended=withVillageActivities({...routine,home:{...home.point},work:{...job.point},
-    homeAnchorId:home.id,workAnchorId:job.id,activities:undefined},
-   localLifeCapabilities(
+ const base={...routine,home:{...home.point},work:{...job.point},
+    homeAnchorId:home.id,workAnchorId:job.id};
+ const publicPlaces=localLifeCapabilities(
      p.libraries.settlements![choices.settlementId].recipe,
      p.libraries.settlements![choices.settlementId].buildings,
      p.libraries.settlements![choices.settlementId].amenities??[],
      Object.keys(p.libraries.settlements![choices.settlementId].zoneHashes??{})
-       .map(zone=>p.libraries.zones?.[zone]).filter((z):z is NonNullable<typeof z>=>!!z),p).play,routes,path);
+       .map(zone=>p.libraries.zones?.[zone]).filter((z):z is NonNullable<typeof z>=>!!z),p).play;
+ // Do not silently discard an authored agenda when changing its house/job.
+ // Reject an unreachable retained visit, so the author can fix it explicitly.
+ const authored=!!routine.activities?.length;
+ const amended=authored?base:withVillageActivities({...base,activities:undefined},publicPlaces,routes,path);
+ if(authored){
+  const known=new Map(publicPlaces.map(place=>[place.id,place.point]));
+  for(const visit of amended.activities??[]){
+   const location=known.get(visit.anchorId);
+   if(!location||Math.hypot(location.x-visit.point.x,location.z-visit.point.z)>.5)
+    throw Error('Le lieu de pause a changé : réviser les activités avant la réaffectation');
+  }
+  const legs=(amended.activities??[]).map(visit=>{
+   const to=routes.routeBetween(amended.work,visit.point),
+     back=routes.routeBetween(visit.point,amended.work);
+   if(!to||!back)throw Error('Pause inaccessible depuis le nouveau poste');
+   return {to,back};
+  });
+  const issue=validateResidentAgendaRoutes(amended,{work:path,activities:legs},1200,1.1);
+  if(issue)throw Error(issue);
+ }
  const next=structuredClone(source);
  next.components.Resident=amended;
  if(next.components.Transform)next.components.Transform.position={...next.components.Transform.position,x:home.point.x,z:home.point.z};
