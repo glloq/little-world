@@ -25,7 +25,7 @@ import type { Player } from './player.ts';
 import {terrainHeight} from './terrain.ts';
 import {createResidentRouter,type ResidentPath,type ResidentWalkable} from './npc-life/routes.ts';
 import {createResidentLayeredRouter,type ResidentSurfaces} from './npc-life/layered-routes.ts';
-import {residentRouteAheadClear,residentScriptedAdvance,residentRoutineStepClear,residentRecoveryNeedsRetarget,residentRecoverySpeed} from './npc-life/dynamic-route.ts';
+import {residentRouteAheadClear,residentScriptedAdvance,residentReplanDue,residentRoutineStepClear,residentRecoveryNeedsRetarget,residentRecoverySpeed} from './npc-life/dynamic-route.ts';
 import {residentHour,residentShift,residentPoseAt,residentRoute,positionOnResidentRoute,type ResidentRoute} from './npc-life/schedule.ts';
 import {residentDialogue,residentContextForHour} from './npc-life/dialogue.ts';
 import {residentAgendaPoseAt,validateResidentAgendaRoutes,type ResidentAgendaPose,type ResidentDailyRoutes,type ResidentActivityLegs} from './npc-life/agenda.ts';
@@ -154,6 +154,8 @@ export interface NPCLifeOptions {
   /** Concurrent animated rigs, bounded for old 4–8GB integrated GPUs. */
   rigBudget?:number;
   weather?:()=> 'clear'|'cloudy'|'rain';
+  /** Increment when pedestrian paths, terrain or door topology changes. */
+  navigationRevision?:()=>number;
   /** Only existing exterior settlement doors can be requested. */
   homeDoor?:(homeAnchorId:string)=>string|null;
   openHomeDoor?:(doorId:string)=>void;
@@ -271,10 +273,11 @@ export function createNPCSystem(
       lastWorkAt:-1,
       lastGreetAt:-1,
       lastRigAt:-1000,
-      scripted:null as null|{route:ResidentRoute;goal:{x:number;z:number};startAt:number;pausedFor:number;pauseFrom:number|null;arrivedAt:number|null;lastCheckedAt:number;lastDistance:number;replans:number;recovery:boolean},
+      scripted:null as null|{route:ResidentRoute;goal:{x:number;z:number};startAt:number;pausedFor:number;pauseFrom:number|null;arrivedAt:number|null;lastCheckedAt:number;lastDistance:number;replans:number;recovery:boolean;lastReplanAt:number;plannedRevision:number},
     };
   });
   const byId=new Map(entries.map(entry=>[entry.state.definition.id,entry]));
+  const navigationRevision=()=>{const revision=lifeOptions?.navigationRevision?.()??0;return Number.isFinite(revision)?revision:0;};
   let socialPartners=new Map<string,string>(),lastSocialScan=-1;
   let rigIds=new Set<string>(),lastRigSample=-1;
   let scriptedReplans=0,scriptedBlocked=0,scriptedCompleted=0,routineRecoveries=0,routineBlocked=0;
@@ -308,7 +311,7 @@ export function createNPCSystem(
       if(ok)route=residentRoute([from,to]);
     }
     if(!route)return false;
-    entry.scripted={route,goal:to,startAt:lifeOptions.worldTime(),pausedFor:0,pauseFrom:null,arrivedAt:null,lastCheckedAt:-1,lastDistance:0,replans:0,recovery:false};
+    entry.scripted={route,goal:to,startAt:lifeOptions.worldTime(),pausedFor:0,pauseFrom:null,arrivedAt:null,lastCheckedAt:-1,lastDistance:0,replans:0,recovery:false,lastReplanAt:-Infinity,plannedRevision:navigationRevision()};
     return true;
   }
   function talkTo(id:string,playerPosition:NPCPoint):boolean{
@@ -366,6 +369,7 @@ export function createNPCSystem(
                     if(updated&&residentRouteAheadClear(updated,0,walkable,3)){
                       job.route=updated;job.goal=newGoal;job.startAt=now;
                       job.pausedFor=0;job.lastDistance=0;job.arrivedAt=null;job.lastCheckedAt=now;
+                      job.plannedRevision=navigationRevision();
                       routineRecoveries++;
                     }else{
                       entry.scripted=null;routineBlocked++;
@@ -386,26 +390,37 @@ export function createNPCSystem(
               // Accept partial movement only on the actual polyline before impact.
               const clearance=residentScriptedAdvance(job.route,job.lastDistance,distance,walkable);
               distance=clearance.safeDistance;
-              // A valid partial advance is committed before replanning: do not
-              // restart at the stale position where the previous frame ended.
+              // Commit the last certified point before planning a detour.
+              // This prevents stale-position replans and corner cutting.
               const advance=positionOnResidentRoute(job.route,distance);
-              if(entry.scripted&&!clearance.clear){
+              const changed=job.plannedRevision!==navigationRevision();
+              const clearAhead=!checkAhead&&!changed||residentRouteAheadClear(job.route,distance,walkable,3);
+              if(checkAhead)job.lastCheckedAt=now;
+              if(entry.scripted&&(!clearance.clear||!clearAhead||changed)){
                 state.x=advance.x;state.z=advance.z;
                 state.y=advance.y??terrainHeight(advance.x,advance.z);
                 job.lastDistance=distance;
-              }
-              const clearAhead=!checkAhead||residentRouteAheadClear(job.route,distance,walkable,3);
-              if(checkAhead)job.lastCheckedAt=now;
-              if(entry.scripted&&(!clearance.clear||!clearAhead)){
-                const alternative=job.replans<3?router?.route({x:state.x,z:state.z},job.goal)??null:null;
+                const due=residentReplanDue(now,job.lastReplanAt,navigationRevision(),job.plannedRevision,1);
+                const alternative=due&&job.replans<3?router?.route({x:state.x,z:state.z},job.goal)??null:null;
+                if(due){
+                  job.lastReplanAt=now;
+                  job.plannedRevision=navigationRevision();
+                  job.replans++;
+                }
                 if(alternative&&residentRouteAheadClear(alternative,0,walkable,3)){
                   job.route=alternative;job.startAt=now;job.pausedFor=0;
-                  job.lastDistance=0;job.lastCheckedAt=now;
-                  job.replans++;scriptedReplans++;distance=0;
+                  job.lastDistance=0;job.lastCheckedAt=now;job.replans=0;
+                  job.plannedRevision=navigationRevision();
+                  scriptedReplans++;distance=0;
+                }else if(job.replans>=3){
+                  entry.scripted=null;scriptedBlocked++;
+                  state.vx=0;state.vz=0;state.phase='idle';
                 }else{
-                  // Remain at the last verified safe position on blockage.
-                  // In particular, never jump to the originally planned goal.
-                  entry.scripted=null;scriptedBlocked++;state.vx=0;state.vz=0;state.phase='idle';
+                  // Keep the actor stopped and freeze its scripted clock until
+                  // another bounded replan attempt; never accumulate a catch-up jump.
+                  const speed=job.recovery?residentRecoverySpeed(state.definition.speed):Math.max(.2,state.definition.speed);
+                  job.startAt=now-job.pausedFor-distance/speed;
+                  state.vx=0;state.vz=0;state.phase='idle';
                 }
               }
               if(entry.scripted){
@@ -467,7 +482,7 @@ export function createNPCSystem(
                     if(detour&&detour.length>.05&&residentRouteAheadClear(detour,0,walkable,3)){
                       entry.scripted={route:detour,goal:{x:pose.position.x,z:pose.position.z},
                         startAt:now,pausedFor:0,pauseFrom:null,arrivedAt:null,
-                        lastCheckedAt:-1,lastDistance:0,replans:0,recovery:true};
+                        lastCheckedAt:-1,lastDistance:0,replans:0,recovery:true,lastReplanAt:-Infinity,plannedRevision:navigationRevision()};
                       routineRecoveries++;
                     }else routineBlocked++;
                   }
