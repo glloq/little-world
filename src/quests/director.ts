@@ -52,8 +52,8 @@ export function createQuestDirector(
    const changed:string[]=[];
    for(const [id,entry] of instances){
     if(!['active','ready','suspended'].includes(entry.status))continue;
-    const people=[entry.giverId,...entry.steps.filter(s=>s.kind==='talk'&&s.npcId)
-      .map(s=>(s as Extract<typeof s,{kind:'talk'}>).npcId!)];
+    const people=[entry.giverId,...entry.steps.flatMap(step=>
+      step.kind==='talk'&&step.npcId?[step.npcId]:[])];
     const missing=people.some(person=>!realNpcIds.has(person));
     const status=missing?'suspended':entry.stepIndex===entry.steps.length?'ready':'active';
     if(status===entry.status)continue;
