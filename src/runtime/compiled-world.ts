@@ -86,7 +86,7 @@ export function playableFromCompiled(bundle:CompiledWorldBundle,spawn?:Point3):P
   const surfFeatures=Object.values(logic.libraries.surfFeatures??{}).map(f=>structuredClone(f));
   const start=spawn??defaultSpawn(config,terrain);
   if(Math.abs(start.x)>(config.width??0)/2||Math.abs(start.z)>(config.length??0)/2)throw Error('Point de départ hors de la carte');
-  return {schemaVersion:1,kind:'playable-world',...(logic.libraries.alpine?{alpine:parseSkiArea(logic.libraries.alpine['composition-alpine'],manifest.bounds)}:{}),...(manifest.audio?{audio:manifest.audio}:{}),world,gameplay,collisions,spawn:{...start},...(activities.mines.length||activities.farms.length?{activities}:{}),...(races.length?{races}:{}),...(surfZones.length?{surfZones}:{}),...(surfFeatures.length?{surfFeatures}:{})};
+  return {schemaVersion:1,kind:'playable-world',...(logic.libraries.alpine?{alpine:parseSkiArea(logic.libraries.alpine['composition-alpine'],manifest.bounds)}:{}),...(manifest.audio?{audio:manifest.audio}:{}),world,gameplay,collisions,spawn:{...start},...(activities.mines.length||activities.farms.length?{activities}:{}),...(races.length?{races}:{}),...(questCatalog.length?{questCatalog}:{}),...(surfZones.length?{surfZones}:{}),...(surfFeatures.length?{surfFeatures}:{})};
 }
 /** Published worlds: a same-origin relative manifest path such as `maps/island/manifest.json`. */
 export function publishedManifestURL(base:string,path:string):string{
