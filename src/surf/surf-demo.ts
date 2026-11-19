@@ -60,16 +60,16 @@ export function findCoastalSurfSites(height:(x:number,z:number)=>number,
     if(!finite(near.h)||near.h<seaLevel+.15)continue;
     // Adapt to narrow inlets as well as broad ocean. Require >=110m
     // of water along the actual travel direction, otherwise reject.
-    for(const length of [205,165,125]){
+    for(const length of [205,165,125,92,70]){
      let chosenWidth=0,depthSum=0;
      for(const width of [98,76,54]){
       let ok=true;depthSum=0;
-      for(const offshore of [12,36,72,Math.min(112,length-13),length-10])
+      for(const offshore of [10,Math.min(30,length*.3),Math.min(55,length*.58),Math.min(80,length*.8),length-8])
        for(const side of [-width*.38,0,width*.38]){
         const p=sample(d,coast+offshore,across+side);
         const depth=seaLevel-p.h;
-        if(!inside(bounds,p.x,p.z,14)||!finite(depth)||
-         depth<(offshore<=12?.15:.65)){ok=false;break;}
+        if(!inside(bounds,p.x,p.z,6)||!finite(depth)||
+         depth<(offshore<=10?.15:.55)){ok=false;break;}
         depthSum+=Math.min(25,depth);
        }
       if(ok){chosenWidth=width;break;}
@@ -92,7 +92,7 @@ export function findCoastalSurfSites(height:(x:number,z:number)=>number,
         !inside(bounds,zone.maxX,zone.maxZ,2))continue;
      // Start at least 35 m offshore, leaving room for the demo's waves and
      // four checkpoint gates. Preview is never teleported onto dry land.
-     const st=sample(d,coast+Math.min(length-18,Math.max(85,length*.65)),across);
+     const st=sample(d,coast+Math.min(length-14,Math.max(42,length*.66)),across);
      const shoreline=sample(d,coast,across);
      const score=depthSum/15+length*.1+chosenWidth*.08-
       Math.abs(shift)*.0015-Math.abs(coast-(along.min+along.max)/2)*.0002;
