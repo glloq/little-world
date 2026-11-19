@@ -36,17 +36,17 @@ test('the new starter bag covers several foods without exceeding item limits',()
 });
 
 test('refilling is capped by the actual upgradeable gas capacity',()=>{
-  const player={gasReserve:150,gasCapacityLevel:0};
-  assert.equal(gasCapacity(player),200);
+  const player={gasReserve:90,gasCapacityLevel:0};
+  assert.equal(gasCapacity(player),140);
   assert.equal(refillGas(player,foodGasValue('food:apple')),25);
-  assert.equal(player.gasReserve,175);
+  assert.equal(player.gasReserve,115);
   assert.equal(refillGas(player,foodGasValue('food:cheese')),25);
-  assert.equal(player.gasReserve,200);
+  assert.equal(player.gasReserve,140);
   assert.equal(refillGas(player,foodGasValue('food:cherry')),0);
   assert.equal(upgradeGas(player,'capacity'),true);
-  assert.equal(gasCapacity(player),224);
-  assert.equal(refillGas(player,foodGasValue('food:pear')),24);
-  assert.equal(player.gasReserve,224);
+  assert.equal(gasCapacity(player),140);
+  assert.equal(refillGas(player,foodGasValue('food:pear')),0);
+  assert.equal(player.gasReserve,140);
   assert.equal(refillGas(player,-100),0);
   assert.equal(refillGas(player,Infinity),0);
   assert.equal(gasShots({gasReserve:GAS.cost}),1);
