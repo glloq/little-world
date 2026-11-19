@@ -729,7 +729,7 @@ const fleet = createFleet(gameplay?.collision ?? null);
 const playerBoat = fleet.add({ id: 'player-boat', assetId: 'boat.sailboat_small', state: boat, object: world.boat, yOffset: 0, hull: { beam: 2.6, length: 6.2, height: 1.6 } });
 for (const m of mooredBoats) { const size = worldAsset(m.assetId)?.size ?? [2, 1.3, 5]; fleet.addMoored(m.id, m.assetId, m.object, waterSurface(m.object.position.x, m.object.position.z) ?? getTerrainConfig().seaLevel, size as [number, number, number]); }
 const keySet = new Set<string>();
-let rollQueue = 0,surfQueue=0;
+let rollQueue = 0,surfQueue=0,surfRequestUntilTick=0;
 let jumpQueue = 0,
   touchStrokeQueue = 0,
   actionQueue = 0;
@@ -871,11 +871,17 @@ window.addEventListener('keydown', (e) => {
       player.mode='swim';player.surfStage=undefined;player.surfAirborne=false;
       const water=waterSurface(player.position.x,player.position.z);
       if(water!==null)player.position.y=Math.min(player.position.y,water-.38);
-      player.velocity.y=0;
+      // Stowing while afloat retains a little drift but cannot propel the swimmer
+      // across the entire short practice bay before the next re-equip action.
+      player.velocity.x*=.3;player.velocity.z*=.3;player.velocity.y=0;
+      surfQueue=0;
       showInfo('Planche rangée : nage');
     }
     else if(surfDemo||gameplay?.equipment.hands==='tool:surfboard'){
-      surfQueue=1;showInfo('Planche de surf : ramez avec Z/Shift, sautez avec Espace');
+      // Queue remains valid while the breaking-wave tumble ends. Do not silently
+      // consume B on the same tick if the surfer cannot yet stand on the board.
+      surfQueue=1;surfRequestUntilTick=motionTick+90;
+      showInfo('Planche de surf : ramez avec Z/Shift, sautez avec Espace');
     }else showInfo('Équipez la planche de surf depuis votre sac avant de monter dessus.');
   }
   if (e.code === 'KeyR' && started) {
@@ -1336,7 +1342,8 @@ function tick(dt: number) {
     if((player.surfJumpSeq??0)>previousSurfJump)audio?.emit('player.jump',{position:player.position,source:'player'});
     if((player.surfLandingSeq??0)>previousSurfLanding)audio?.emit('player.land',{position:player.position,source:'player'});
     if((player.surfWipeoutSeq??0)>previousSurfWipeout)audio?.emit('water.enter',{position:player.position,source:'player'});
-    if(keys.surfActionPressed)surfQueue=0;
+    if(keys.surfActionPressed && (player.mode==='surf'||player.surfAirborne||
+      motionTick>=surfRequestUntilTick||!surfField))surfQueue=0;
     if(player.barrelEntryTick===motionTick)showInfo('Tube ! Suivez la crête pour ressortir avant la fermeture.');
     if((player.barrelSuccessSeq??0)>seenBarrelSuccess){seenBarrelSuccess=player.barrelSuccessSeq??0;showInfo('Tube traversé !','success');}
     const tubeCrash=(player.barrelCrashSeq??0)>seenBarrelCrash;
