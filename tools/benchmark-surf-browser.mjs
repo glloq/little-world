@@ -37,7 +37,8 @@ try{
    await board.waitFor({state:'visible',timeout:10000});
    await board.click();
    await page.getByRole('button',{name:'Équiper',exact:true}).first().click();
-   await page.keyboard.press('KeyI');
+   await page.keyboard.press('Escape');
+ await page.locator('[data-panel="inventory"]').waitFor({state:'hidden',timeout:5000});
   }
   await page.keyboard.press('KeyB');
   await page.waitForFunction(()=>window.littleWorldMetrics?.mode==='surf',{},{timeout:12000});
