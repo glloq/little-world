@@ -83,14 +83,21 @@ export function createNpcHarvestDriver(deps:NpcHarvestDeps){
     if(result.ok&&result.reward)commits++;
    }else if(account.role==='woodcutter'&&deps.gathering){
     const base={x:r.work.x,y:deps.height(r.work.x,r.work.z),z:r.work.z};
-    // Cardinal orientation chosen from immutable resident ID+game minute.
-    // No global scene scan; the shared gathering checks real targets/tools.
-    const angle=hash(npc.definition.id+':'+Math.floor(minute/interval))*Math.PI*2;
-    const result=deps.gathering.npcAct(base,{x:Math.cos(angle),z:Math.sin(angle)},
-      changes=>changes.length===1&&account.commitHarvest(receipt,
-        changes[0].itemId,changes[0].quantity,minute),
-      item=>item==='tool:axe');
-    if(result.done)commits++;
+    // Stable daily orientation and eight bounded local rays; strike the same
+    // real tree until it falls. Do not rotate randomly each hit or target
+    // anything that does not yield native logs.
+    const angle=hash(npc.definition.id+':'+Math.floor(minute/1440))*Math.PI*2;
+    for(let i=0;i<8;i++){
+      const direction={x:Math.cos(angle+i*Math.PI/4),z:Math.sin(angle+i*Math.PI/4)};
+      const target=deps.gathering.target(base,direction);
+      if(!target||target.rule.yields.itemId!=='wood:log')continue;
+      const result=deps.gathering.npcAct(base,direction,
+        changes=>changes.length===1&&account.commitHarvest(receipt,
+          changes[0].itemId,changes[0].quantity,minute),
+        item=>item==='tool:axe');
+      if(result.done)commits++;
+      break;
+    }
    }else if(account.role==='fisher'){
     const spot=deps.shore(r.work.x,r.work.z);
     if(!spot)continue;
