@@ -148,6 +148,8 @@ export function settlementPopulation(
   for(let i=0;i<wantedChildren;i++){
     const id=r.id+'-resident-'+i,check=retain(id);
     if(check.status!=='new')continue;
+    // Never exceed the persisted settlement's 24 amenity records.
+    if(amenities.length+out.records.length>=24){out.limited=true;break;}
     if(budget<=0){out.limited=true;break;}
     const olderHome=check.previous?.components.Resident?.homeAnchorId;
     const possible=play.length?play.map((_,k)=>play[(i+k)%play.length]):[];
@@ -182,6 +184,8 @@ export function settlementPopulation(
   for(let i=0;i<Math.min(workerSlots,jobs.length);i++){
     const id=r.id+'-worker-'+i,check=retain(id);
     if(check.status!=='new')continue;
+    // Never exceed the persisted settlement's 24 amenity records.
+    if(amenities.length+out.records.length>=24){out.limited=true;break;}
     if(budget<=0){out.limited=true;break;}
     const previous=check.previous?.components.Resident;
     const availableJobs=jobs.filter(j=>assignment.jobOccupancy(j.id)<1).sort((a,b)=>
