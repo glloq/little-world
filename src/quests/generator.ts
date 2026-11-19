@@ -57,3 +57,49 @@ export function generateResidentSocialQuestOffers(
  }
  return out;
 }
+
+/** Second verified family: visit an actual work amenity that survives project
+ * compilation, using the native NPC pedestrian router. This does not assume
+ * that a missing farm polygon, counter, harbor, or workshop has an entity.
+ */
+export function generateResidentVisitQuestOffers(
+ npcs:readonly NPCDefinition[],gameplay:Pick<GameplayData,'dialogues'|'entities'|'items'>,
+ islandId:string,route:(from:ResidentPoint,to:ResidentPoint)=>{length:number}|null,
+ maxOffers=6,
+):QuestCatalogEntryV1[]{
+ if(!ident(islandId)||!Number.isSafeInteger(maxOffers)||maxOffers<0||maxOffers>12)
+  throw Error('Visit quest generation: invalid island or budget');
+ if(maxOffers===0)return [];
+ const actorIds=new Set(gameplay.dialogues.filter(d=>d.lines?.length&&d.lines.some(l=>l.choices?.length))
+  .map(d=>d.actorId).filter((id):id is string=>!!id));
+ const entityIds=new Set(gameplay.entities.map(e=>e.id));
+ const residents=[...npcs].filter(n=>n.routine?.homeAnchorId&&n.routine.workAnchorId&&
+  groupId(n.id)&&actorIds.has(n.id)).sort((a,b)=>a.id.localeCompare(b.id));
+ const out:QuestCatalogEntryV1[]=[];
+ const usedSettlements=new Set<string>();
+ for(const giver of residents){
+  const settlement=groupId(giver.id)!;
+  if(usedSettlements.has(settlement))continue;
+  for(const target of residents){
+   if(target.id===giver.id||groupId(target.id)!==settlement)continue;
+   const anchor=target.routine!.workAnchorId!;
+   if(!ident(anchor)||!entityIds.has(anchor))continue;
+   const path=route(giver.routine!.work,target.routine!.work);
+   if(!path||!Number.isFinite(path.length)||path.length<1||path.length>300)continue;
+   const hash=fingerprint({islandId,giver:giver.id,anchor}).slice(0,16);
+   out.push({
+    questKey:'quest:visit:'+hash,templateId:'resident:discover-workplace',templateVersion:1,
+    islandId,giverId:giver.id,
+    bindings:{title:'Découvrir un lieu de travail',targetId:anchor},
+    steps:[{kind:'visit',targetId:anchor,withinM:5}],
+    rewards:gameplay.items.some(item=>item.id==='coin')?[{kind:'coins',quantity:2}]:[],
+    dependencies:[giver.id,target.id,anchor],catalogRevision:'resident-visit-v1',
+    proof:{capabilityIds:[giver.id,target.id,anchor],validatorVersion:'resident-routes-v1'},
+   });
+   usedSettlements.add(settlement);
+   break;
+  }
+  if(out.length>=maxOffers)break;
+ }
+ return out;
+}
