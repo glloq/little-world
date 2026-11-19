@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {residentRoute,positionOnResidentRoute,validResidentRoutine} from '../src/npc-life/schedule.ts';
 import {residentAgendaPoseAt,validateResidentAgendaRoutes} from '../src/npc-life/agenda.ts';
-import {residentSocialPairs} from '../src/npc-life/social.ts';
+import {residentSocialPairs,residentSocialEncounterActive} from '../src/npc-life/social.ts';
 import {createResidentLayeredRouter} from '../src/npc-life/layered-routes.ts';
 import {withVillageActivities} from '../src/npc-life/generation-agenda.ts';
 import {createResidentAssignmentPlanner} from '../src/npc-life/assignments.ts';
@@ -90,4 +90,22 @@ test('agenda preflight qualifies valid activity visits and rejects impossible it
  assert.equal(validateResidentAgendaRoutes(worker,{work:routes.work,activities:[]},1200,1),'Agenda résident incomplet');
  assert.equal(validateResidentAgendaRoutes(worker,routes,0,1),'Agenda résident incomplet');
  assert.equal(validateResidentAgendaRoutes(worker,routes,1200,0),'Agenda résident incomplet');
+});
+
+test('social greetings are symmetric, deterministic, time-bounded and never include a player conversation',()=>{
+ const active=[0,1,2,3,4,5,6,7,8,9,10,11].filter(t=>residentSocialEncounterActive('a','b',t));
+ assert.ok(active.length>=3&&active.length<=5);
+ for(let t=0;t<24;t++){
+  assert.equal(residentSocialEncounterActive('a','b',t),residentSocialEncounterActive('b','a',t));
+  assert.equal(residentSocialEncounterActive('a','b',t),residentSocialEncounterActive('a','b',t+12));
+ }
+ assert.equal(residentSocialEncounterActive('a','a',4),false);
+ const actors=[
+  {id:'a',x:0,z:0,role:'child',phase:'work'},
+  {id:'b',x:1,z:0,role:'child',phase:'work',busy:true},
+  {id:'c',x:2,z:0,role:'child',phase:'work'},
+ ];
+ const pairing=residentSocialPairs(actors);
+ assert.equal(pairing.get('a'),'c');
+ assert.equal(pairing.has('b'),false);
 });
