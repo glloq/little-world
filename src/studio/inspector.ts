@@ -231,8 +231,14 @@ function characterSection(ctx:InspectorContext,id:string,owner:string){
       draw();
       activities.append(rows,button('Ajouter une étape',()=>{
         if(visits.length>=MAX_RESIDENT_DAILY_STOPS)return;
-        const after=visits.length?Math.max(...visits.map(v=>v.endHour))+.5:Math.max(start+1,11);
-        visits.push({kind:'social',anchorId:publicPlaces[0].id,startHour:Math.min(22,after),endHour:Math.min(23,after+1)});
+        const after=visits.length?Math.max(...visits.map(v=>v.endHour))+.25:
+          Math.max(start+.5,Math.round((start+(end-start)*.45)*4)/4);
+        const duration=.5;
+        if(after+duration>end-.25){
+          ctx.status('Aucune plage horaire disponible : réduisez une activité ou modifiez le service.',true);
+          return;
+        }
+        visits.push({kind:'social',anchorId:publicPlaces[0].id,startHour:after,endHour:after+duration});
         draw();
       }),button('Enregistrer les activités',()=>void editQueue.run(async()=>{
         await s.fullDocument();
