@@ -3,12 +3,15 @@ import {SEA_COLOR} from '../horizon-data.ts';
 import {SURF_TICK_HZ,surfSwellCoefficients,type SurfZone} from '../surf/wave-field.ts';
 import {barrelCrestPhase,barrelPeelOrigin,barrelPeelParameters,barrelPhaseOffset} from '../surf/surf-barrel.ts';
 
-/** Surf water material: the scene's own Lambert lighting (sun, sky, night, tone mapping), so a
- * flat zone border is shaded exactly like NearSea. The vertex stage reproduces the CPU swell
- * (wave-field.ts) and its analytic normal; the fragment stage adds depth tint, wave-face shading
- * and analytic foam. One program for every zone, no texture, no render target, no extra pass.
- * Foam detail: 0 = crest band only (Low), 1 = noise + breaking trail (Medium), 2 = finer (HQ). */
+/** Surf water material. The vertex stage reproduces the CPU swell (wave-field.ts), its analytic
+ * normal and the scene's Lambert lighting (directional + hemisphere + ambient, same formulas and
+ * light uniforms as three's MeshLambertMaterial) evaluated PER VERTEX: the fragment stage only
+ * mixes colours, so large water surfaces cost little fill rate. A flat border receives exactly
+ * the NearSea shading. Tone mapping and output colour space are three's own chunks.
+ * Foam detail: 0 = crest band, 1 = + breaking trail and swash, 2 = + one noise octave (HQ). */
 const TAU=2*Math.PI;
+/** Distance band where the drawn swell (water and lip) flattens; presentation only. */
+export const SURF_VISUAL_FADE={start:160,end:360,strength:.75} as const;
 export interface SurfWaterUniforms {[name:string]:THREE.IUniform}
 const linear=(hex:number)=>new THREE.Color(hex);
 /** Stylised palette (sRGB hex, converted to the linear working space by THREE.Color). */
@@ -22,11 +25,37 @@ uniform vec4 uShape;
 uniform vec4 uMod;
 uniform vec4 uCrest;
 uniform vec4 uPeel;uniform vec4 uPeelSpan;uniform vec4 uWave;uniform vec4 uBend;uniform float uBendSeed;
-varying float vWet;varying float vCrest;varying float vEnv;varying vec3 vShore;
+uniform vec3 uFade;
+varying float vWet;varying float vEnv;varying vec3 vShore;
 varying float vFace;varying float vLocal;varying float vAcross;varying vec2 vFoamUV;varying float vMod;
+varying vec3 vLightFront;varying vec3 vLightBack;
 `;
-const VERTEX_HEADER=COMMON+`
-attribute float aEnvelope;attribute float aWet;attribute vec3 aShore;attribute vec2 aEnvGrad;
+/** Light uniforms named like three's lights_pars_begin (filled by the renderer, lights:true). */
+const LIGHTS=`
+uniform vec3 ambientLightColor;
+#if NUM_DIR_LIGHTS > 0
+struct DirectionalLight{vec3 direction;vec3 color;};
+uniform DirectionalLight directionalLights[NUM_DIR_LIGHTS];
+#endif
+#if NUM_HEMI_LIGHTS > 0
+struct HemisphereLight{vec3 direction;vec3 skyColor;vec3 groundColor;};
+uniform HemisphereLight hemisphereLights[NUM_HEMI_LIGHTS];
+#endif
+// Lambert irradiance × BRDF (1/π), view-space normal: identical to MeshLambertMaterial terms.
+vec3 sw_irradiance(vec3 n){
+  vec3 e=ambientLightColor;
+  #if NUM_DIR_LIGHTS > 0
+  for(int i=0;i<NUM_DIR_LIGHTS;i++)e+=saturate(dot(n,directionalLights[i].direction))*directionalLights[i].color;
+  #endif
+  #if NUM_HEMI_LIGHTS > 0
+  for(int i=0;i<NUM_HEMI_LIGHTS;i++)e+=mix(hemisphereLights[i].groundColor,hemisphereLights[i].skyColor,
+    .5*dot(n,hemisphereLights[i].direction)+.5);
+  #endif
+  return e*RECIPROCAL_PI;
+}
+`;
+const VERTEX_HEADER=COMMON+LIGHTS+`
+attribute float aEnvelope;attribute float aWet;attribute vec3 aShore;attribute vec2 aEnvGrad;attribute float aSkirt;
 `;
 /** CPU twin: SurfWaveField.height / sample (wave-field.ts). Keep both in sync (tests). */
 const VERTEX_NORMAL=`
@@ -48,10 +77,13 @@ float sw_m=1.0+uMod.x*sin(sw_ps)+uMod.z*sin(sw_pc);
 vec2 sw_mg=uMod.x*cos(sw_ps)*6.28318530718/uMod.y*sw_dir+
   uMod.z*cos(sw_pc)*6.28318530718/uMod.w*vec2(-uDirection.y,uDirection.x);
 float sw_k=6.28318530718/uWavelength;
-vec2 sw_g=uAmplitude*(aEnvGrad*sw_m*sw_f+aEnvelope*(sw_mg*sw_f+sw_m*sw_df*sw_k*sw_dir));
+// Visual amplitude LOD: distant swell flattens smoothly (coarse tiles never alias into dashes).
+// Presentation only: physics, collisions and the logical water height are unchanged.
+float sw_view=length((modelMatrix*vec4(position,1.0)).xyz-cameraPosition);
+float sw_amp=uAmplitude*(1.0-uFade.z*smoothstep(uFade.x,uFade.y,sw_view));
+vec2 sw_g=sw_amp*(aEnvGrad*sw_m*sw_f+aEnvelope*(sw_mg*sw_f+sw_m*sw_df*sw_k*sw_dir));
 vec3 objectNormal=normalize(vec3(-sw_g.x,1.0,-sw_g.y));
 vWet=aWet;vEnv=aEnvelope;vShore=aShore;vMod=sw_m;
-vCrest=clamp((sw_f+uCrest.x)/uCrest.y,0.0,1.0);
 vFace=clamp(-dot(sw_g,normalize(sw_dir))/(uAmplitude*sw_k*1.6+1e-4),-1.0,1.0);
 // Linear in position: exact after interpolation (latest crest index and lag per fragment).
 vLocal=sw_cycle-uWave.z;vAcross=sw_across;
@@ -62,7 +94,9 @@ const VERTEX_POSITION=`
 vec3 transformed=vec3(position);
 // Dry vertices sink under the beach: the terrain depth test draws the shoreline, so the
 // fragment stage needs no discard (keeps early depth testing on real GPUs).
-transformed.y=aWet>.5?uSeaLevel+.02+uAmplitude*aEnvelope*sw_m*sw_f:uSeaLevel-.6;
+transformed.y=aWet>.5?uSeaLevel+.02+sw_amp*aEnvelope*sw_m*sw_f:uSeaLevel-.6;
+// LOD skirts hang below tile borders between two tessellations: no crack is ever visible.
+transformed.y-=aSkirt*(.4+uAmplitude*.6);
 `;
 const FRAGMENT_HEADER=COMMON+`
 uniform vec3 uSea,uDeep,uShallow,uTrough,uCrestColor,uFaceColor,uFoamColor;
@@ -77,16 +111,20 @@ float sw_noise(vec2 p){
 `;
 const FRAGMENT_COLOR=`
 float sw_depth=vShore.y,sw_break=vShore.x,sw_edge=vShore.z;
+// Swell phase per pixel (vLocal is linear in position): crests stay exact on coarse tiles.
+float sw_fp=6.28318530718*fract(vLocal+uWave.z)+uPhaseSeed;
+float sw_fa=uShape.x+uShape.z*sw_break;
+float sw_crest=clamp((sin(sw_fp)+sw_fa*sin(2.0*sw_fp)-uShape.y*cos(2.0*sw_fp)+uCrest.x)/uCrest.y,0.0,1.0);
 vec3 sw_col=mix(uShallow,uDeep,smoothstep(0.0,1.0,sw_depth));
-sw_col=mix(sw_col,uTrough,(1.0-vCrest)*vEnv*.38);
-sw_col=mix(sw_col,uCrestColor,smoothstep(.58,1.0,vCrest)*vEnv*.55);
+sw_col=mix(sw_col,uTrough,(1.0-sw_crest)*vEnv*.38);
+sw_col=mix(sw_col,uCrestColor,smoothstep(.58,1.0,sw_crest)*vEnv*.55);
 sw_col=mix(sw_col,uFaceColor,clamp(vFace,0.0,1.0)*vEnv*.5);
-float sw_n=.5,sw_n2=.5;
-if(uFoamDetail>.5)sw_n=sw_noise(vFoamUV);
-if(uFoamDetail>1.5)sw_n2=sw_noise(vFoamUV*vec2(2.0,2.3)+vec2(0.0,17.0));
-float sw_irregular=sw_n*.7+sw_n2*.3;
+// Noise only in HQ (4 hashes per pixel); Low/Medium keep smooth analytic foam.
+float sw_n=.5;
+if(uFoamDetail>1.5)sw_n=sw_noise(vFoamUV);
+float sw_irregular=sw_n;
 // Crest foam: thicker on breaking, bigger (set) waves; broken up by noise.
-float sw_crestFoam=smoothstep(mix(.95,.78,sw_break)-.06*(vMod-1.0),1.0,vCrest+.14*(sw_irregular-.5))*
+float sw_crestFoam=smoothstep(mix(.95,.78,sw_break)-.06*(vMod-1.0),1.0,sw_crest+.14*(sw_irregular-.5))*
   vEnv*(.3+.7*sw_break);
 // Latest crest that passed here (same index as surf-barrel.ts) and the lag behind it.
 float sw_wave=ceil(vLocal),sw_since=sw_wave-vLocal,sw_broken=1.0;
@@ -99,15 +137,32 @@ if(uPeel.w>.5){
   sw_broken=smoothstep(3.0,-4.0,sw_ahead);
 }
 // White water left behind a breaking crest, fading with the time elapsed since it passed.
-float sw_trail=sw_break*sw_break*sw_broken*exp(-sw_since*(uFoamDetail>.5?5.0:7.5))*
-  (uFoamDetail>.5?smoothstep(.3,.74,sw_irregular):.5);
+float sw_trail=uFoamDetail>.5?sw_break*sw_break*sw_broken*exp(-sw_since*5.0)*
+  (uFoamDetail>1.5?smoothstep(.3,.74,sw_irregular):.55):0.0;
 // Swash line on the last metres before the beach, pulsing with each wave.
-float sw_shore=smoothstep(.09,.0,sw_depth)*(.35+.65*vCrest)*(uFoamDetail>.5?.6+.4*sw_n:.8);
+float sw_shore=smoothstep(.09,.0,sw_depth)*(.35+.65*sw_crest)*(uFoamDetail>1.5?.6+.4*sw_n:.8);
 float sw_foam=clamp(max(sw_crestFoam,sw_trail)+sw_shore,0.0,1.0)*sw_edge*uFoamStrength;
 sw_col=mix(sw_col,uFoamColor,sw_foam);
 // Zone border: exact NearSea colour, so the rectangle disappears into the open sea.
 diffuseColor.rgb=mix(uSea,sw_col,sw_edge);
 `;
+const VERTEX_SHADER=`#include <common>
+`+VERTEX_HEADER+`
+void main(){
+`+'__NORMAL__'+'__POSITION__'+`
+  vec3 sw_n=normalize(normalMatrix*objectNormal);
+  vLightFront=sw_irradiance(sw_n);vLightBack=sw_irradiance(-sw_n);
+  gl_Position=projectionMatrix*modelViewMatrix*vec4(transformed,1.0);
+}`;
+const FRAGMENT_SHADER=`#include <common>
+`+'__FRAGMENT_HEADER__'+`
+void main(){
+  vec4 diffuseColor=vec4(1.0);
+`+'__FRAGMENT__'+`
+  gl_FragColor=vec4(diffuseColor.rgb*(gl_FrontFacing?vLightFront:vLightBack),1.0);
+  #include <tonemapping_fragment>
+  #include <colorspace_fragment>
+}`;
 export function createSurfWaterMaterial(zone:SurfZone){
  const q=surfSwellCoefficients(zone);
  const p=SURF_WATER_PALETTE;
@@ -119,6 +174,8 @@ export function createSurfWaterMaterial(zone:SurfZone){
   uMod:{value:new THREE.Vector4(q.setVariation,q.setWavelength,q.peakVariation,q.peakWavelength)},
   uCrest:{value:new THREE.Vector4(q.crestOffset,q.crestRange,q.setSeed,q.peakSeed)},
   uFoamDetail:{value:1},uFoamStrength:{value:1},
+  // Visual amplitude fade: start (m), end (m), strength (fraction removed at the end).
+  uFade:{value:new THREE.Vector3(SURF_VISUAL_FADE.start,SURF_VISUAL_FADE.end,SURF_VISUAL_FADE.strength)},
   uSea:{value:linear(p.sea)},uDeep:{value:linear(p.deep)},uShallow:{value:linear(p.shallow)},
   uTrough:{value:linear(p.trough)},uCrestColor:{value:linear(p.crest)},
   uFaceColor:{value:linear(p.face)},uFoamColor:{value:linear(p.foam)},
@@ -136,17 +193,13 @@ export function createSurfWaterMaterial(zone:SurfZone){
   uBendSeed:{value:((zone.seed*41)%983)/983*TAU},
  });
  const alongMin=Math.min(zone.minX*zone.dirX,zone.maxX*zone.dirX)+Math.min(zone.minZ*zone.dirZ,zone.maxZ*zone.dirZ);
- const material=new THREE.MeshLambertMaterial({color:0xffffff,side:THREE.DoubleSide});
- material.name='SurfWaterMaterial';
- material.onBeforeCompile=shader=>{
-  Object.assign(shader.uniforms,uniforms);
-  shader.vertexShader=VERTEX_HEADER+shader.vertexShader
-   .replace('#include <beginnormal_vertex>',VERTEX_NORMAL)
-   .replace('#include <begin_vertex>',VERTEX_POSITION);
-  shader.fragmentShader=FRAGMENT_HEADER+shader.fragmentShader
-   .replace('#include <color_fragment>','#include <color_fragment>\n'+FRAGMENT_COLOR);
- };
- material.customProgramCacheKey=()=>'little-world-surf-water-v2';
+ // Scene light uniforms (renderer-filled) + our own uniform objects kept by reference.
+ const all=Object.assign(THREE.UniformsUtils.merge([THREE.UniformsLib.lights]),uniforms);
+ const material=new THREE.ShaderMaterial({name:'SurfWaterMaterial',uniforms:all,lights:true,
+  side:THREE.DoubleSide,
+  vertexShader:VERTEX_SHADER.replace('__NORMAL__',VERTEX_NORMAL).replace('__POSITION__',VERTEX_POSITION),
+  fragmentShader:FRAGMENT_SHADER.replace('__FRAGMENT_HEADER__',FRAGMENT_HEADER).replace('__FRAGMENT__',FRAGMENT_COLOR)});
+ material.customProgramCacheKey=()=>'little-world-surf-water-v3';
  return {material,uniforms,
   /** Fixed-tick time with render interpolation, wrapped on each exact period (float32 safety). */
   setTime(tick:number,alpha:number){

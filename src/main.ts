@@ -31,10 +31,11 @@ import {applySurfPose} from './render/surf-character-pose.ts';
 import {barrelPeel,barrelProfile,nearestBarrelCrest,sampleSurfBarrel} from './surf/surf-barrel.ts';
 import {createSurfBoardView} from './render/surf-board-view.ts';
 import {createSurfWakeView} from './render/surf-wake-view.ts';
+import {followSurfSwell} from './surf/boat-swell.ts';
 import {surfQualityProfile,type SurfQualityProfile} from './render/surf-quality.ts';
 import {SurfPerfRecorder,instrumentGround,instrumentSurfField} from './surf/surf-perf.ts';
 import {inCameraView,surfDrawStats} from './render/surf-render-stats.ts';
-import {boardOnWater,distanceToBoard,isSurfBoardWaterSafe,type SurfBoardPlacement} from './surf/board-placement.ts';
+import {boardOnWater,boardRequest,isSurfBoardWaterSafe,type SurfBoardPlacement} from './surf/board-placement.ts';
 import {createSurfHud} from './ui/surf/surf-hud.ts';
 import {boardLift,liftRideStep,type SkiLift,type LiftRide} from './snow/ski-lift.ts';
 import {createSkiLiftView} from './snow/ski-lift-view.ts';
@@ -111,6 +112,7 @@ import {
   spawnBoat,
   updateBoat,
   waterDisembarkPoint,
+  canBoatSailAt,
   BOAT_DOCK,
 } from './boat';
 
@@ -802,7 +804,8 @@ const customization = createCustomizationMenu(
 let boat = spawnBoat();
 if(!isLegacyTerrain()){
   // Generated worlds have no hard-coded harbour: moor the boat in the first deep water seaward of the start.
-  for(let d=6;d<600;d+=3){const x=player.position.x,z=player.position.z+d;if(waterDepth(x,z)>1.4){boat.x=x;boat.z=z;boat.y=getTerrainConfig().seaLevel-.15;break;}}
+  // Never park the starting boat inside a surf lane: riders would crash into it.
+  for(let d=6;d<600;d+=3){const x=player.position.x,z=player.position.z+d;if(waterDepth(x,z)>1.4&&!surfFieldAt(x,z)){boat.x=x;boat.z=z;boat.y=getTerrainConfig().seaLevel-.15;break;}}
 }
 let aboard = false;
 world.boat.position.set(boat.x, boat.y, boat.z);
@@ -910,36 +913,38 @@ function toggleSurfBoard():void{
    player.velocity.multiplyScalar(.3);player.velocity.y=0;surfQueue=0;
    showInfo('Descendu de la planche : elle flotte à proximité.');return;
  }
- if(placedSurfBoard){
-   const dist=distanceToBoard(placedSurfBoard,player.position.x,player.position.z);
-   if(dist>2.5){showInfo('Rapprochez-vous de votre planche pour monter dessus.','warning');return;}
-   if(player.mode!=='swim'&&player.mode!=='dive'){
-     showInfo('Entrez dans l’eau pour monter sur la planche.','warning');return;
-   }
-   if(!isSurfBoardWaterSafe(placedSurfBoard,waterSurface,terrainHeight,(x,z)=>!!surfFieldAt(x,z))){
-     showInfo('Cette eau ne permet pas encore le surf.','warning');return;
-   }
-   player.position.x=placedSurfBoard.x;player.position.z=placedSurfBoard.z;
-   player.position.y=placedSurfBoard.y-.5;player.diving=false;player.velocity.set(0,0,0);
+ // Never deploy a board the player does not have in hand (demo excepted).
+ if(!placedSurfBoard&&!surfDemo&&gameplay?.equipment.hands!=='tool:surfboard'){
+   showInfo('Équipez la planche depuis le sac avant de la poser.','warning');return;
+ }
+ const hasZone=(x:number,z:number)=>!!surfFieldAt(x,z);
+ const request=boardRequest(placedSurfBoard,{x:player.position.x,z:player.position.z,heading:yaw,
+   inWater:player.mode==='swim'||player.mode==='dive'},waterSurface,terrainHeight,hasZone);
+ switch(request.kind){
+  case 'mount':{
+   const board=request.board;
+   player.position.x=board.x;player.position.z=board.z;
+   player.position.y=board.y-.5;player.diving=false;player.velocity.set(0,0,0);
    lastSafeSurfBoard=null;
    surfField=surfFieldAt(player.position.x,player.position.z);
    surfQueue=1;surfRequestUntilTick=motionTick+90;placedSurfBoard=null;
-   showInfo('Sur la planche : ramez pour prendre une vague.');return;
+   showInfo('Sur la planche : ramez vers la plage (Z), la vague vous emporte. Shift : boost · Espace : saut.');return;
+  }
+  case 'recall':
+   // The board leaves its old place and floats right next to the player.
+   placedSurfBoard=request.board;
+   showInfo('Planche rappelée près de vous : B pour monter dessus.');return;
+  case 'pickup':
+   placedSurfBoard=null;
+   showInfo('Planche récupérée : posez-la dans une zone de surf avec B.');return;
+  case 'deploy':
+   placedSurfBoard=request.board;
+   showInfo('Planche posée sur l’eau. B pour monter dessus.');return;
+  case 'none':
+   showInfo(request.reason==='not-in-water'?'Entrez dans l’eau pour monter sur la planche.':
+     request.reason==='unsafe'?'Cette eau ne permet pas encore le surf.':
+     'Approchez-vous d’une zone de surf avec assez de profondeur.','warning');return;
  }
- if(!surfDemo&&gameplay?.equipment.hands!=='tool:surfboard'){
-   showInfo('Équipez la planche depuis le sac avant de la poser.','warning');return;
- }
- const sx=Math.sin(yaw),cz=Math.cos(yaw);
- let spot:SurfBoardPlacement|null=null;
- for(const d of [0,1.2,2,3]){
-   const x=player.position.x+sx*d,z=player.position.z+cz*d;
-   const candidate=boardOnWater(x,z,yaw,waterSurface);
-   if(!candidate||!isSurfBoardWaterSafe(candidate,waterSurface,terrainHeight,(px,pz)=>!!surfFieldAt(px,pz)))continue;
-   spot=candidate;break;
- }
- if(!spot){showInfo('Approchez-vous d’une zone de surf avec assez de profondeur.','warning');return;}
- placedSurfBoard=spot;
- showInfo('Planche posée sur l’eau. Nagez près d’elle puis utilisez Planche/B pour monter.');
 }
 function gameplayInputActive():boolean{
   return started&&!gameUi?.blocking&&!customization.isOpen&&!npcs.dialogue.isOpen&&!mobileLandscape?.blocked;
@@ -1373,6 +1378,9 @@ function updateHud() {
   document.body.classList.toggle('underwater',cameraSubmerged(camera.position.x,camera.position.y,camera.position.z));
 }
 let boatSteer=0,motionTick=0,nextTouchTargetAt=0,lastFlightPulseSeq=0;
+// Decorative fish follow the moving swell surface (same tick as the drawn water). Registered
+// only once motionTick exists: the first frames render while the module is still loading.
+if(surfFields.length)world.setSurfWater((x,z)=>surfFieldAt(x,z)?.height(x,z,debugSurfRenderTick??motionTick)??null);
 function tick(dt: number) {
   // Mobile input: immediately release controls when a menu opens or the boost stops being valid.
   mobileTouch?.setEnabled(started&&!gameUi?.blocking&&!customization.isOpen&&!npcs.dialogue.isOpen&&!mobileLandscape?.blocked);
@@ -1442,6 +1450,9 @@ function tick(dt: number) {
     player.velocity.set(0,0,0);player.mode='ground';jumpQueue=0;
   } else if (aboard) {
     updateBoat(boat, { throttle: mobileTouch?.accelerateHeld?Math.max(1,keys.forward):keys.forward, steer: keys.right }, dt);boatSteer=keys.right;
+    // The world keeps going while sailing: swells advance on the same 30 Hz tick.
+    motionTick++;
+    followSurfSwell(boat,surfFieldAt(boat.x,boat.z),motionTick,dt,canBoatSailAt);
     player.position.set(boat.x, boat.y + 1.02, boat.z);
     player.velocity.set(0, 0, 0);
     player.mode = 'ground';
@@ -1459,6 +1470,9 @@ function tick(dt: number) {
     }
     const surfPhysicsStart=surfPerf&&surfField?performance.now():0;
     simulatePlayer(player, keys, dt,gameplay?.collision,surfField??undefined,motionTick+1);motionTick++;
+    // Boats left in a surf zone keep floating on its swells (height and tilt; no push when parked).
+    if(surfFields.length)for(const b of fleet.boats)
+      followSurfSwell(b.state,surfFieldAt(b.state.x,b.state.z),motionTick,dt,canBoatSailAt,false);
     if(surfPerf&&surfField)surfPerf.add('physicsTick',performance.now()-surfPhysicsStart);
     if((player.surfPaddleClock??0)>previousSurfPaddle+.08&&motionTick-lastSurfPaddleSoundTick>=15){
       audio?.emit('water.swim',{position:player.position,source:'player'});lastSurfPaddleSoundTick=motionTick;
@@ -1482,7 +1496,7 @@ function tick(dt: number) {
       }
       lastSafeSurfBoard=null;
       audio?.emit('water.enter',{position:player.position,source:'player'});
-      showInfo(placedSurfBoard?'Chute ! Votre planche flotte près de vous.':'Chute ! Retournez dans la zone de surf pour récupérer votre planche.');
+      showInfo(placedSurfBoard?'Chute ! Votre planche flotte près de vous (B pour remonter).':'Chute ! Dans une zone de surf, B rappelle la planche près de vous.');
     }
     if(keys.surfActionPressed && (player.mode==='surf'||player.surfAirborne||
       motionTick>=surfRequestUntilTick||!surfField))surfQueue=0;
@@ -1693,7 +1707,8 @@ function draw(now: number) {
   remoteActors?.update(delta,elapsed,camera,renderer.domElement.height,budget.level);
   npcs.update(delta, elapsed, player.position,camera); // The river drives the mill: no manual on/off control.
   // Boats follow their state (the one in use moves; the player's own boat bobs at its mooring).
-  playerBoat&&fleet.sync(playerBoat,elapsed);if(fleet.current&&fleet.current!==playerBoat)fleet.sync(fleet.current,elapsed);
+  // The player's boat, the boat in use and any boat floating on a surf swell follow their state.
+  for(const b of fleet.boats)if(b===playerBoat||b===fleet.current||b.state.waveNormal)fleet.sync(b,elapsed);
   if(portN1View)portN1View.update(elapsed,player.position);else ferryView?.update(elapsed);
   snowLiftView?.update(elapsed);
   character.group.position.copy(renderPosition);

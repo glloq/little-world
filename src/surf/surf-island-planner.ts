@@ -19,11 +19,13 @@ export interface SurfIslandLayout {
  warnings:string[];
 }
 const styles={
- A:{label:'A · Initiation',amplitude:.65,wavelength:25,speed:4.5,barrelStrength:0,style:'gentle'},
- B:{label:'B · Grandes vagues',amplitude:1.45,wavelength:36,speed:6.3,barrelStrength:1,style:'tubular'},
- C:{label:'C · Acrobaties',amplitude:1.65,wavelength:29,speed:8,barrelStrength:.6,style:'fast'},
+ // Arcade tuning: tall readable swells moving slower than a riding board (4–5.6 m/s).
+ A:{label:'A · Initiation',amplitude:1.1,wavelength:34,speed:4,barrelStrength:0,style:'gentle'},
+ B:{label:'B · Grandes vagues',amplitude:2,wavelength:46,speed:5.2,barrelStrength:1,style:'tubular'},
+ C:{label:'C · Acrobaties',amplitude:1.8,wavelength:40,speed:5.6,barrelStrength:.6,style:'fast'},
 } as const;
 const ISLAND_SITE_SIZES:readonly SurfSiteSizes[]=[
+ {lengths:[420,360,300,260,230,205],widths:[420,360,300,260,220,180]},
  {lengths:[300,260,230,205,165,125],widths:[260,220,180,150,120,98,76]},
  {lengths:[260,230,205,165,125],widths:[180,150,120,98,76]},
  {}, // historical demo sizes

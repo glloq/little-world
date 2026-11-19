@@ -203,9 +203,11 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
       p.mode='surf';p.surfStage='paddle';p.surfHeading=keys.cameraYaw;
       p.diving=false;p.glideReady=false;v.y=0;
     }
+    // Shift: the same gas pulses as swimming/flight push the board (reserve, cost, cooldown).
+    const surfBoost=gasBoostStep(p,keys.boostHeld===true,true,dt);gasTicked=true;
     const event=stepSurf(p,{forward:keys.forward,right:keys.right,
       cameraYaw:keys.cameraYaw,paddle:keys.surfPaddleHeld===true||keys.forward>.25,
-      pump:keys.surfPump===true,jumpPressed:keys.jumpPressed,brake:keys.dive},surfField!,surfTick,dt);
+      pump:keys.surfPump===true,jumpPressed:keys.jumpPressed,brake:keys.dive,boost:surfBoost},surfField!,surfTick,dt);
     if(event.kind==='jump'){p.jumpSeq=(p.jumpSeq??0)+1;p.jumpOrigin='run';}
     if(event.kind==='land')p.landingSeq=(p.landingSeq??0)+1;
     // The tube is an optional low-cost overhead volume, evaluated at the same fixed
