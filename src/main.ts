@@ -1480,6 +1480,7 @@ function tick(dt: number) {
       }
       else if(event?.kind==='finish'){
         const race=raceSession.definition,isBest=writeRaceBest(localStorage,race,event.seconds,gameplay?.runtime.data.buildVersion??'');
+        gameplay?.recordQuestCommit('race.finished',{raceId:race.id,measuredSeconds:event.seconds});
         showInfo('Course terminée : '+race.name+' · '+event.seconds.toFixed(2)+' s'+(isBest?' · Nouveau record local !':''),'success');
         stopRace();
       }else if(event?.kind==='failed'){showInfo('Course arrêtée : '+event.reason,'warning');stopRace();}
