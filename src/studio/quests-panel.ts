@@ -155,7 +155,22 @@ export function mountQuestsPanel(host:HTMLElement,session:StudioSession,
   diagnostics.append(node('p',problems.length?problems.join(' · '):
    'Données structurelles vérifiables. La solvabilité des chemins reste validée dans le jeu.',
    problems.length?'diagnostic WARNING':'muted'));
-  form.append(steps,rewards,diagnostics,button('Enregistrer la quête',()=>void save(),'primary-button'),
+  const advanced=node('details','','section-card');
+  const editor=node('textarea');editor.rows=16;editor.value=JSON.stringify(q,null,2);
+  advanced.append(node('summary','Édition avancée · JSON versionné'),
+    node('p','Toutes les étapes, contraintes, récompenses multiples et dépendances. Les scripts et champs inconnus sont refusés.','muted'),
+    field('Définition complète (JSON)',editor),
+    button('Vérifier et appliquer le JSON',()=>{
+      try{
+        const value=parseQuestCatalogEntry(JSON.parse(editor.value));
+        if(value.questKey!==q.questKey||value.islandId!==project.world.worldId)
+          throw Error('L’identité de la mission ou du monde est protégée');
+        draft=value;render();status('Définition structurée validée. Enregistrer pour conserver les modifications.');
+      }catch(error){status('JSON invalide : '+String(error),true);}
+    }),
+    button('Exporter ce modèle JSON',()=>download(q.questKey.replace(/[^a-z0-9._-]/gi,'_')+'.json',
+      JSON.stringify(q,null,2),'application/json')));
+  form.append(steps,rewards,advanced,diagnostics,button('Enregistrer la quête',()=>void save(),'primary-button'),
    button('Supprimer cette mission',()=>void (async()=>{
     const id=q.questKey;await session.change('Supprimer la quête '+id,[],p=>{
      delete p.libraries.questCatalog?.[id];
