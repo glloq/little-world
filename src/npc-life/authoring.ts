@@ -11,7 +11,7 @@ import {collisionDefinitionsFromProject} from '../studio-core/collision-adapter.
 import {WorldCollisionQuery} from '../physics/collision-world.ts';
 import {localLifeCapabilities} from './capabilities.ts';
 import {createResidentAssignmentPlanner,MAX_PLAY_ANCHOR_OCCUPANTS} from './assignments.ts';
-import {residentDutyShift,validResidentRoutine,type ResidentActivityStop,type ResidentPoint,type ResidentRole,type ResidentRoutineV1} from './schedule.ts';
+import {MAX_RESIDENT_DAILY_STOPS,residentDutyShift,validResidentRoutine,type ResidentActivityStop,type ResidentPoint,type ResidentRole,type ResidentRoutineV1} from './schedule.ts';
 import {withVillageActivities} from './generation-agenda.ts';
 import {validateResidentAgendaRoutes} from './agenda.ts';
 export interface ResidentAnchorChoice {id:string;name:string;point:ResidentPoint}
@@ -145,7 +145,7 @@ export function setResidentStudioActivities(p:ProjectDocument,id:string,
  const index=p.entityIndex[id],source=index?p.chunks[index.ownerChunkId]?.entities[id]:undefined;
  const routine=source?resolveEntity(p,source).components.Resident:undefined;
  if(!source||!routine)throw Error('Résident introuvable');
- if(activities.length>3)throw Error('Trois activités maximum');
+ if(activities.length>MAX_RESIDENT_DAILY_STOPS)throw Error(MAX_RESIDENT_DAILY_STOPS+' activités maximum');
  const choices=new Map(residentActivityChoices(p,id).map(a=>[a.id,a]));
  const resolved:ResidentActivityStop[]=activities.map(a=>{
   const anchor=choices.get(a.anchorId);
