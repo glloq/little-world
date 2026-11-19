@@ -123,3 +123,17 @@ test('profession gestures are deterministic and only triggered at sparse interva
   assert.equal(shouldPlayResidentGesture(2,0,g),false);
   assert.equal(shouldPlayResidentGesture(7.1,0,g),true);
 });
+
+test('F02 rainy outdoor work pauses gestures without altering the resident route',async()=>{
+ const {residentWorkMode}=await import('../src/npc-life/work-conditions.ts');
+ for(const role of ['farmer','fisher','woodcutter','gatherer','musician','instructor']){
+  assert.equal(residentWorkMode(role,'rain'),'weather-pause',role);
+  assert.equal(residentWorkMode(role,'cloudy'),'active',role);
+ }
+ for(const role of ['merchant','miner','blacksmith','innkeeper','artisan']){
+  assert.equal(residentWorkMode(role,'rain'),'active',role);
+ }
+ assert.deepEqual(residentPoseAt(farmer,residentRoute([farmer.home,farmer.work]),
+   timeAtHour(10),1200,.36,1.1).position,farmer.work,
+   'weather policy does not relocate residents or invent a shelter');
+});
