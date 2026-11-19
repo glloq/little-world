@@ -28,9 +28,11 @@ export function localLife(p:ProjectDocument,r:SettlementRecipe,amenities:Amenity
  if(!candidates.length&&desired==='villager')
    candidates.push(...index.play.map(j=>({...j,role:'villager' as const})));
  const previousRoutine=oldEntity?.components.Resident;
- const selected=r.residentRoutines&&assignment
-   ?candidates.map(job=>assignment.allocate(job,index.homes,job.role,previousRoutine?.homeAnchorId)).find(Boolean)
-   :undefined;
+ let selected:import('../npc-life/assignments.ts').ResidentAssignment|null=null;
+ if(r.residentRoutines&&assignment)for(const job of candidates){
+   selected=assignment.allocate(job,index.homes,job.role,previousRoutine?.homeAnchorId);
+   if(selected)break;
+ }
  const resident=selected?{Resident:{type:'Resident' as const,version:1 as const,
    role:selected.job.role,home:{...selected.home.point},work:{...selected.job.point},
    homeAnchorId:selected.home.id,workAnchorId:selected.job.id}}:{};
