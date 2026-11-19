@@ -40,7 +40,7 @@ export interface Controls {
   cameraPitch?: number;
   /** Signed temporary flight intent: +1 climb, -1 dive, 0 auto-trim. Optional in old replays. */
   flightPitchInput?:number;
-  /** Pulse boost via Shift or the separate mobile Boost control; glide only. */boostHeld?:boolean;
+  /** Pulse boost via Shift or mobile acceleration, including underwater propulsion. */boostHeld?:boolean;
   /** One mobile swim stroke (edge-triggered), leaving PC Space dive unchanged. */swimStrokePressed?:boolean;
   snowEquipment?:SnowEquipment|null;
   /** Optional surf activity; missing means the ordinary swimming rules remain unchanged. */
@@ -302,7 +302,11 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
     const strokeForward=stroke>0&&len<.14?1:forward,strokeRight=stroke>0&&len<.14?0:right;
     const strokeDx=stroke>0&&len<.14?sx:dx,strokeDz=stroke>0&&len<.14?cz:dz;
     const underwater = !!p.diving || keys.dive;
-    const speed = (underwater ? (keys.run ? SWIM.diveRun : SWIM.dive) : keys.run ? 5.0 : 3.15)+stroke*2.5;
+    const waterThrust=gasBoostStep(p,keys.boostHeld===true,true,dt);gasTicked=true;
+    // Water jet adds directional velocity without flight lift or oxygen replenishment.
+    // A finite pulse is strongest while actively steering and cannot launch out of the sea.
+    const waterBoost=Math.min(7,waterThrust*.11);
+    const speed = (underwater ? (keys.run ? SWIM.diveRun : SWIM.dive) : keys.run ? 5.0 : 3.15)+stroke*2.5+waterBoost;
     const smoothing = Math.min(1, dt * 6);
     let vyTarget: number;
     if (underwater && !keys.dive) {
