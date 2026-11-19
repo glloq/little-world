@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {residentRoute} from '../src/npc-life/schedule.ts';
-import {residentRouteAheadClear,residentRouteStepClear,residentRoutineStepClear} from '../src/npc-life/dynamic-route.ts';
+import {residentRouteAheadClear,residentRouteStepClear,residentRoutineStepClear,residentRecoveryNeedsRetarget} from '../src/npc-life/dynamic-route.ts';
 
 test('scripted NPC route lookahead samples active geometry instead of trusting old paths',()=>{
  const route=residentRoute([{x:0,z:0},{x:10,z:0}]);
@@ -60,4 +60,14 @@ test('near-camera daily routines reject teleports and changed walls',()=>{
 test('near-camera daily routine cannot bypass physical cap with author parameters',()=>{
  assert.equal(residentRoutineStepClear({x:0,z:0},{x:3.1,z:0},()=>true,50),false);
  assert.equal(residentRoutineStepClear({x:0,z:0},{x:2,z:0},()=>true,50),true);
+});
+
+test('daily recovery retargets only after cadence when the scheduled goal moves',()=>{
+ const a={x:0,z:0},near={x:1,z:0},far={x:10,z:0};
+ assert.equal(residentRecoveryNeedsRetarget(a,far,5,4),false);
+ assert.equal(residentRecoveryNeedsRetarget(a,far,6,4),true);
+ assert.equal(residentRecoveryNeedsRetarget(a,near,6,4),false);
+ assert.equal(residentRecoveryNeedsRetarget(a,far,2,4),true,'clock rewind');
+ assert.equal(residentRecoveryNeedsRetarget(a,far,6,4,2,NaN),false);
+ assert.equal(residentRecoveryNeedsRetarget(a,{x:NaN,z:0},6,4),false);
 });
