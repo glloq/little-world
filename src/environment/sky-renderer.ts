@@ -4,7 +4,7 @@ import * as THREE from 'three';
  * The dome follows the actual camera, not the interpolated player position. */
 export function createSkyRenderer(scene: THREE.Scene, camera: THREE.PerspectiveCamera, seed: number) {
   // Reproducible A/B captures: ?sky=off | sun | 2d (default).
-  const mode = new URLSearchParams(location.search).get('sky');
+  const mode = new URLSearchParams(typeof location === 'undefined' ? '' : location.search).get('sky');
   const size = 128;
   const bytes = new Uint8Array(size * size * 4);
   // Generate a periodic, inexpensive multi-scale cloud atlas ONCE on the CPU.
