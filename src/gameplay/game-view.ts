@@ -14,6 +14,9 @@ import {newFlightProgress,type FlightProgress} from './flight-progress.ts';
 import {gameplayDialogueSession} from './dialogue-session.ts';
 import {createQuestDirector} from '../quests/director.ts';
 import {createNpcEconomyDriver} from '../npc-life/economy-runtime.ts';
+import {createNpcHarvestDriver} from '../npc-life/harvest-runtime.ts';
+import {createFishPopulation} from '../npc-life/fish-population.ts';
+import type {WaterKind,FishId} from './fishing-data.ts';
 import {marketUnitPrices} from '../economy/island-markets.ts';
 import {questDialogueSession} from '../quests/dialogue.ts';
 import type {QuestCatalogEntryV1} from '../quests/schema.ts';
@@ -35,7 +38,7 @@ import type {MovementSpace} from '../physics/collision-world.ts';
 import type {GameplayData,GameplayEntity,Point3} from './schema.ts';
 import type {SurfBoardPlacement} from '../surf/board-placement.ts';
 
-interface Options {questCatalog?:readonly QuestCatalogEntryV1[];surfStarter?:boolean;islandId?:string;gathering?:Omit<GatherDeps,'time'|'grant'|'has'>;onSound?:(id:string,position?:{x:number;y:number;z:number})=>void;collisions?:CollisionDefinition[];temporary:boolean;saveScope?:string;getPosition:()=>Point3;setPosition:(p:Point3,space?:MovementSpace|null)=>void;activities?:PlayableActivities;getSpace?:()=>MovementSpace|undefined;getGas?:()=>number;setGas?:(value:number,satiety?:number,recharge?:number)=>void;getSatiety?:()=>number;getRechargeProgress?:()=>number;getSurfBoard?:()=>SurfBoardPlacement|null;setSurfBoard?:(board:SurfBoardPlacement|null)=>void;getGasProgress?:()=>FlightProgress;setGasProgress?:(value:FlightProgress)=>void;showInfo:(text:string)=>void;objects:THREE.Group;onNpcMoveTo?:(id:string,position:Point3)=>boolean;onNpcStartDialogue?:(id:string)=>boolean}
+interface Options {waterKindAt?:(x:number,z:number)=>WaterKind|null;questCatalog?:readonly QuestCatalogEntryV1[];surfStarter?:boolean;islandId?:string;gathering?:Omit<GatherDeps,'time'|'grant'|'has'>;onSound?:(id:string,position?:{x:number;y:number;z:number})=>void;collisions?:CollisionDefinition[];temporary:boolean;saveScope?:string;getPosition:()=>Point3;setPosition:(p:Point3,space?:MovementSpace|null)=>void;activities?:PlayableActivities;getSpace?:()=>MovementSpace|undefined;getGas?:()=>number;setGas?:(value:number,satiety?:number,recharge?:number)=>void;getSatiety?:()=>number;getRechargeProgress?:()=>number;getSurfBoard?:()=>SurfBoardPlacement|null;setSurfBoard?:(board:SurfBoardPlacement|null)=>void;getGasProgress?:()=>FlightProgress;setGasProgress?:(value:FlightProgress)=>void;showInfo:(text:string)=>void;objects:THREE.Group;onNpcMoveTo?:(id:string,position:Point3)=>boolean;onNpcStartDialogue?:(id:string)=>boolean}
 /** Interactive object near the player, usable or not (the reason comes from the runtime state). */
 export interface ObjectTarget {entity:GameplayEntity;name:string;prompt:string;range:number;usable:boolean;reason?:string;distance:number}
 /** Gameplay controller of a playable world: logical runtime, collisions, activities, save
@@ -133,6 +136,27 @@ export function createGameplayView(data:GameplayData,options:Options){
  const npcEconomy=createNpcEconomyDriver(
    Object.fromEntries(runtime.data.items.map(item=>[item.id,item.maxQuantity])),
    id=>{const p=runtime.getEntityPosition(id);return p?{x:p.x,z:p.z}:null;});
+ const fishPopulation=createFishPopulation();
+ const npcHarvest=createNpcHarvestDriver({
+   limits:Object.fromEntries(runtime.data.items.map(item=>[item.id,item.maxQuantity])),
+   activities,zones:options.activities??{mines:[],farms:[]},gathering,
+   fishPopulation,height:terrainHeight,
+   anchor:id=>{
+     const position=runtime.getEntityPosition(id);
+     if(position)return {x:position.x,z:position.z};
+     const farm=options.activities?.farms.find(zone=>zone.id===id);
+     return farm?{x:farm.polygon.reduce((sum,p)=>sum+p.x,0)/farm.polygon.length,
+       z:farm.polygon.reduce((sum,p)=>sum+p.z,0)/farm.polygon.length}:null;
+   },
+   shore:(x,z)=>{
+     for(const d of [2.5,3.5,4.5,6])for(let i=0;i<8;i++){
+       const theta=i*Math.PI/4,px=x+Math.cos(theta)*d,pz=z+Math.sin(theta)*d;
+       const water=waterSurface(px,pz),kind=options.waterKindAt?.(px,pz);
+       if(water!==null&&water>terrainHeight(px,pz)+.4&&kind)return {x:px,z:pz,kind};
+     }
+     return null;
+   },
+ });
  const markets=createIslandMarkets({islandId:options.islandId??data.worldId,purse,itemName,
    gameMinute:()=>Math.floor(runtime.state.time/runtime.climate.definition.dayLengthSeconds*1440),
    onChange:()=>{for(const listener of listeners)listener();}});
@@ -160,6 +184,7 @@ export function createGameplayView(data:GameplayData,options:Options){
     ...(Object.keys(quests.serialize()).length?{questsLocal:quests.serialize(),questEventSequence}:{}),equippedItemId:equipment.hands,loadout:{...playerLoadout,head:equipment.head,favorites:equipment.favorites?[...equipment.favorites]:null},space:options.getSpace?.()??null,gasReserve:options.getGas?.()??GAS.initial,satiety:options.getSatiety?.()??100,boostRechargeProgress:options.getRechargeProgress?.()??0,flightProgress:options.getGasProgress?.()??newFlightProgress(),...activities.serialize(),
     workshops:workshops.serialize(),markets:markets.serialize(),
     ...(npcEconomy.size?{npcWorkshops:npcEconomy.serialize()}:{}),
+    ...(npcHarvest.size?{npcHarvests:npcHarvest.serialize()}:{}),fishPopulation:fishPopulation.serialize(),
     cargoPurchaseRevision,surfBoard:options.getSurfBoard?.()??null,
     ...(gathering?{gathering:gathering.serialize()}:{})});
  let npcs:readonly NPCState[]=[],version=-1,disposed=false;
@@ -315,7 +340,7 @@ export function createGameplayView(data:GameplayData,options:Options){
  sync();
  return {
   runtime,collision,activities,slots,compose,gathering,trees,fishing,trade,sellBatch,nearbyShop,workshops,markets,purse,itemName,has,equipment,quests,recordQuestCommit,
-  claimQuest,deliverQuest,supplyNpcWorkshop,buyNpcWorkshopProduct,npcEconomy,
+  claimQuest,deliverQuest,supplyNpcWorkshop,buyNpcWorkshopProduct,npcEconomy,npcHarvest,fishPopulation,
   get navigationRevision(){return navigationRevisions.revision;},
   openDoorForNPC(doorId:string,duration=2):boolean{
    if(!runtime.state.entities[doorId]||!models.has(doorId)||!Number.isFinite(duration)||duration<=0||duration>5)return false;
@@ -334,7 +359,7 @@ export function createGameplayView(data:GameplayData,options:Options){
     if(npcs.length)quests.reconcileNpcAvailability(new Set(npcs.map(n=>n.definition.id)));
     // Upgrade old island saves with one temporary starter board, without removing other goods.
     if(options.surfStarter&&!has(SURFBOARD_ID))runtime.grantItems([{itemId:SURFBOARD_ID,quantity:1}]);
-    equippedHands=save.equippedItemId&&canEquip(save.equippedItemId)?save.equippedItemId:null;playerLoadout=save.loadout?parsePlayerLoadout(save.loadout):emptyPlayerLoadout();if(playerLoadout.head!=='tool:miners-helmet'||!has('tool:miners-helmet'))playerLoadout.head=null;playerLoadout.back=null;playerLoadout.feet=null;workshops.restore(save.workshops??{});markets.restore(save.markets??{});npcEconomy.restore(save.npcWorkshops??{});cargoPurchaseRevision=save.cargoPurchaseRevision??0;gathering?.restore(save.gathering??null);options.setPosition(save.position,save.space??null);options.setGasProgress?.(save.flightProgress??newFlightProgress());options.setGas?.(save.gasReserve??GAS.legacyInitial,save.satiety,save.boostRechargeProgress);options.setSurfBoard?.(save.surfBoard??null);sync();version=-1;for(const l of listeners)l();return warnings;},
+    equippedHands=save.equippedItemId&&canEquip(save.equippedItemId)?save.equippedItemId:null;playerLoadout=save.loadout?parsePlayerLoadout(save.loadout):emptyPlayerLoadout();if(playerLoadout.head!=='tool:miners-helmet'||!has('tool:miners-helmet'))playerLoadout.head=null;playerLoadout.back=null;playerLoadout.feet=null;workshops.restore(save.workshops??{});markets.restore(save.markets??{});npcEconomy.restore(save.npcWorkshops??{});fishPopulation.restore(save.fishPopulation);npcHarvest.restore(save.npcHarvests??{});cargoPurchaseRevision=save.cargoPurchaseRevision??0;gathering?.restore(save.gathering??null);options.setPosition(save.position,save.space??null);options.setGasProgress?.(save.flightProgress??newFlightProgress());options.setGas?.(save.gasReserve??GAS.legacyInitial,save.satiety,save.boostRechargeProgress);options.setSurfBoard?.(save.surfBoard??null);sync();version=-1;for(const l of listeners)l();return warnings;},
   /** Imports an exported slot file (validated) into a free slot of this world. */
   async importSave(raw:unknown){const parsed=parseGameSave(raw);if(parsed.worldId!==data.worldId)throw Error('Sauvegarde d’un autre monde');const value={...parsed};if(!['slot-1','slot-2','slot-3'].includes(value.slotId)){const used=new Set((await slots.list(data.worldId)).map(v=>v.slotId)),free=['slot-1','slot-2','slot-3'].find(id=>!used.has(id));if(!free)throw Error('Libérez un emplacement pour importer cette partie');value.slotId=free;}await slots.save(value);return value.slotId;},
   temporary:options.temporary,describe,
@@ -352,13 +377,15 @@ export function createGameplayView(data:GameplayData,options:Options){
   attachNPCs(states:readonly NPCState[]){
     npcs=states;
     quests.reconcileNpcAvailability(new Set(states.map(state=>state.definition.id)));
-    npcEconomy.install(states);
+    npcEconomy.install(states);npcHarvest.install(states);
   },
   prompt(position:Point3){runtime.state.playerPosition={...position};const target=describe(position);return target?.usable?'[E] '+target.prompt:null;},
   interact(position:Point3){runtime.state.playerPosition={...position};const target=describe(position);return target?.usable?runtime.interact(target.entity.id,position):false;},
   update(dt:number){
    if(disposed)return;runtime.state.playerPosition={...options.getPosition()};for(const npc of npcs)if(entityIds.has(npc.definition.id)){runtime.setEntityPosition(npc.definition.id,{x:npc.x,y:npc.y,z:npc.z});if(targetById.has(npc.definition.id))targetIndex.set(npc.definition.id,{x:npc.x,z:npc.z});const body=collisionDefinitions.get(npc.definition.id);if(body)collision.moveBody(body.id,{x:npc.x+body.position.x-body.groundAnchor.x,y:npc.y+body.position.y,z:npc.z+body.position.z-body.groundAnchor.z});}
    runtime.update(dt);
+   if(npcHarvest.tick(Math.floor(runtime.state.time/runtime.climate.definition.dayLengthSeconds*1440)))
+     for(const listener of listeners)listener();
    if(npcEconomy.tick(Math.floor(runtime.state.time/runtime.climate.definition.dayLengthSeconds*1440)))
      for(const listener of listeners)listener();
    // One bounded probe per game second, using only real compiled entity
