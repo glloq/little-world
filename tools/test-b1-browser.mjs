@@ -110,7 +110,17 @@ try{
   const other=card.locator('.ui-chip[aria-pressed=false]').first(),otherName=await other.textContent();await other.click();await page.waitForFunction(n=>[...document.querySelectorAll('.ui-activity-card .ui-chip')].find(b=>b.textContent===n)?.getAttribute('aria-pressed')==='true',otherName);
   await card.getByRole('button',{name:'Carotte'}).click();await page.waitForFunction(()=>[...document.querySelectorAll('.ui-activity-card .ui-chip')].find(b=>b.textContent==='Carotte')?.getAttribute('aria-pressed')==='true');check(true,'Crop chips select through the farm runtime ('+otherName+' then Carotte)');
   // Clicking a crop chip must return focus to the game before keyboard actions.\n  await page.waitForFunction(()=>document.activeElement===document.querySelector('#viewport canvas'),null,{timeout:3000});\n  await page.keyboard.press('KeyF');\n  const sown=await page.waitForFunction(()=>window.littleWorldMetrics?.activities?.plots?.['plot-west']?.stage==='seeded',null,{timeout:5000}).then(()=>true,()=>false);\n  check(sown,'Sown (stage='+((await m()).act.plots['plot-west']?.stage??'unknown')+'; notifications='+await msg()+')');
-  await page.keyboard.press('KeyF');await page.waitForTimeout(300);check(/arrosée/.test(await msg()),'Watered from the irrigation point');
+  // The UI notification can be delayed or coalesced; validate the persisted farm state.
+  // Wait for key-up and the next game tick before the second action.
+  const beforeWater=(await m()).act.plots['plot-west'];
+  await page.waitForTimeout(120);
+  await page.keyboard.press('KeyF',{delay:80});
+  const watered=await page.waitForFunction(previous=>{
+    const p=window.littleWorldMetrics?.activities?.plots?.['plot-west'];
+    return p&&p.moisture>previous+0.05;
+  },beforeWater.moisture,{timeout:5000}).then(()=>true,()=>false);
+  check(watered,'Watered from the irrigation point (before='+beforeWater.moisture+
+    ', after='+(await m()).act.plots['plot-west'].moisture+'; notifications='+await msg()+')');
   await setClockRate('240');
   let plot;for(let i=0;i<60;i++){await page.waitForTimeout(1500);plot=(await m()).act.plots['plot-west'];if(plot.stage==='mature')break;if(plot.moisture<.45){await page.keyboard.press('KeyF');}}
   await setClockRate('1');check(plot.stage==='mature','Carrots grew to maturity with the world clock ('+JSON.stringify(plot)+')');
