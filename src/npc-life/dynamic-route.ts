@@ -5,20 +5,31 @@
 import {positionOnResidentRoute,type ResidentRoute} from './schedule.ts';
 import type {ResidentWalkable} from './routes.ts';
 
+/** Walk each actual polyline edge; sampling across a corner would illegally
+ * cut the corner and may miss a wall. Caps apply to the complete requested span.
+ */
 export function residentRouteAheadClear(
  route:ResidentRoute,distance:number,walk:ResidentWalkable,horizon=3,
 ):boolean{
- if(!Number.isFinite(distance)||!Number.isFinite(horizon)||horizon<=0)return false;
- if(!route.points.length||!Number.isFinite(route.length))return false;
+ if(!Number.isFinite(distance)||!Number.isFinite(horizon)||horizon<=0||
+    !Number.isFinite(route.length)||route.length<0||!route.points.length||
+    route.distances.length!==route.points.length)return false;
  const start=Math.max(0,Math.min(route.length,distance));
  const end=Math.min(route.length,start+Math.min(12,horizon));
- if(end-start<.001)return true;
- let from=positionOnResidentRoute(route,start);
- // Segment checks <=0.5 m and preserve route corners: no shortcuts across walls.
- for(let d=start;d<end-.00001;){
-  const next=Math.min(end,d+.5),to=positionOnResidentRoute(route,next);
-  if(!walk(to.x,to.z,from.x,from.z))return false;
-  from=to;d=next;
+ if(end-start<1e-6)return true;
+ // Every interpolated movement follows an authored graph edge, never a
+ // straight chord between positions on opposite sides of a corner.
+ let previous=positionOnResidentRoute(route,start);
+ for(let i=1;i<route.distances.length;i++){
+  const lo=Math.max(start,route.distances[i-1]),hi=Math.min(end,route.distances[i]);
+  if(hi<=lo)continue;
+  const atLo=positionOnResidentRoute(route,lo);
+  if(Math.hypot(previous.x-atLo.x,previous.z-atLo.z)>1e-5)return false;
+  for(let d=lo;d<hi-1e-6;){
+   const next=Math.min(hi,d+.5),to=positionOnResidentRoute(route,next);
+   if(!walk(to.x,to.z,previous.x,previous.z))return false;
+   previous=to;d=next;
+  }
  }
  return true;
 }
@@ -32,7 +43,7 @@ export function residentRouteStepClear(
 ):boolean{
  if(!Number.isFinite(fromDistance)||!Number.isFinite(toDistance)||
     !Number.isFinite(maxAdvance)||maxAdvance<=0||toDistance<fromDistance||
-    toDistance-fromDistance>maxAdvance+1e-6||
+    toDistance-fromDistance>Math.min(12,maxAdvance)+1e-6||
     fromDistance<0||toDistance>route.length+1e-6)return false;
  if(toDistance-fromDistance<1e-6)return true;
  return residentRouteAheadClear(route,fromDistance,walk,toDistance-fromDistance);
