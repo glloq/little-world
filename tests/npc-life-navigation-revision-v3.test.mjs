@@ -38,3 +38,22 @@ test('door mutation invalidates planned route while live collision still blocks 
  assert.deepEqual(residentScriptedAdvance(planned,2,4,x=>x<3),{clear:false,safeDistance:2.5});
  assert.equal(residentReplanDue(0.2,0.1,tracker.revision,tracker.revision,1),false);
 });
+
+test('F01-D exterior door stops walkers and permits continuation after opening',()=>{
+ const state={open:false};
+ const tracker=createResidentNavigationRevisionTracker();
+ tracker.observe('home-door',state.open);
+ const route=residentRoute([{x:0,z:0},{x:10,z:0}]);
+ const walk=(x)=>state.open||x<4||x>6;
+ const blocked=residentScriptedAdvance(route,0,8,walk);
+ assert.deepEqual(blocked,{clear:false,safeDistance:3.5});
+ state.open=true;tracker.observe('home-door',true);
+ assert.equal(tracker.revision,1);
+ assert.equal(residentReplanDue(1,.9,tracker.revision,0),true);
+ const resumed=residentScriptedAdvance(route,blocked.safeDistance,8,walk);
+ assert.deepEqual(resumed,{clear:true,safeDistance:8});
+ state.open=false;tracker.observe('home-door',false);
+ assert.equal(tracker.revision,2);
+ assert.deepEqual(residentScriptedAdvance(route,3.5,8,walk),
+   {clear:false,safeDistance:3.5});
+});
