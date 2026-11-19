@@ -12,11 +12,11 @@ export function joystickAxis(dx:number,dy:number,radius:number,deadzone=.14):Joy
 export interface TouchControls {
   readonly axis:Readonly<JoystickAxis>;
   readonly jumpHeld:boolean;readonly accelerateHeld:boolean;readonly interactHeld:boolean;
-  setMode(mode:string,aboard:boolean,gasAvailable:boolean):void;
+  setMode(mode:string,aboard:boolean,gasAvailable:boolean,surfAvailable?:boolean):void;
   setInteractTarget(action:{label:string;enabled:boolean}|null):void;
   setEnabled(enabled:boolean):void;reset():void;dispose():void;
 }
-export function createTouchControls(callbacks:{jump():void;action():void;alternate():void}):TouchControls {
+export function createTouchControls(callbacks:{jump():void;action():void;alternate():void;dive():void;surf():void}):TouchControls {
   const root=document.createElement('div');root.className='touch-controls';root.hidden=true;
   root.setAttribute('aria-label','Commandes tactiles du joueur');
   const stick=document.createElement('div');stick.className='touch-joystick';stick.setAttribute('aria-label','Joystick de déplacement ou pilotage en vol');
@@ -24,7 +24,7 @@ export function createTouchControls(callbacks:{jump():void;action():void;alterna
   const actions=document.createElement('div');actions.className='touch-actions';root.append(stick,actions);document.body.append(root);
   let enabled=false,pointer:number|null=null,axis:JoystickAxis={forward:0,right:0};
   let jumpHeld=false,accelerateHeld=false,interactHeld=false;
-  let previousMode='',previousAboard=false,previousGas=false;
+  let previousMode='',previousAboard=false,previousGas=false,previousSurf=false;
   let interactionKey='';
   const active=new Map<HTMLButtonElement,number>();
   function clearJoystick(){
@@ -65,23 +65,29 @@ export function createTouchControls(callbacks:{jump():void;action():void;alterna
   const accelerate=hold('Courir','touch-accelerate',v=>{accelerateHeld=v;},undefined,startMode=>{
     if(startMode==='ground'||startMode==='roll')callbacks.alternate();
   });
+  const dive=hold('Plonger','touch-dive',()=>{},callbacks.dive);
+  const surf=hold('Planche','touch-surf',()=>{},callbacks.surf);
   const interact=hold('Agir','touch-interact',v=>{interactHeld=v;},callbacks.action);
-  interact.hidden=true;interact.disabled=true;
+  interact.hidden=true;interact.disabled=true;dive.hidden=true;surf.hidden=true;
   function cancel(b:HTMLButtonElement,apply:(value:boolean)=>void){
     const id=active.get(b);if(id!==undefined){active.delete(b);apply(false);b.classList.remove('pressed');if(b.hasPointerCapture(id))b.releasePointerCapture(id);}
   }
   function label(b:HTMLButtonElement,value:string){
     if(b.textContent!==value){b.textContent=value;b.setAttribute('aria-label',value);}
   }
-  function setMode(mode:string,aboard:boolean,gasAvailable:boolean){
-    if(mode===previousMode&&aboard===previousAboard&&gasAvailable===previousGas)return;
-    previousMode=mode;previousAboard=aboard;previousGas=gasAvailable;
+  function setMode(mode:string,aboard:boolean,gasAvailable:boolean,surfAvailable=false){
+    if(mode===previousMode&&aboard===previousAboard&&gasAvailable===previousGas&&surfAvailable===previousSurf)return;
+    previousMode=mode;previousAboard=aboard;previousGas=gasAvailable;previousSurf=surfAvailable;
     const water=mode==='swim'||mode==='dive',rolling=mode==='roll',flight=mode==='glide',airborne=mode==='air';
-    label(jump,aboard?'Quitter':water?'Brasse':flight?'Replier':mode==='air'?'Planeur':'Saut');
-    label(accelerate,aboard?'Accélérer':flight||airborne?'Boost':water?'Nage rapide':rolling?'Accélérer':'Courir');
-    const accelerateAvailable=aboard||water||rolling||mode==='ground'||((flight||airborne)&&gasAvailable);
+    label(jump,aboard?'Quitter':mode==='surf'?'Saut':water?'Brasse':flight?'Replier':mode==='air'?'Planeur':'Saut');
+    label(accelerate,aboard?'Accélérer':mode==='surf'?'Ramer':flight||airborne?'Boost':water?'Nage rapide':rolling?'Accélérer':'Courir');
+    const accelerateAvailable=aboard||mode==='surf'||water||rolling||mode==='ground'||((flight||airborne)&&gasAvailable);
     if(!accelerateAvailable)cancel(accelerate,v=>{accelerateHeld=v;});
     accelerate.disabled=!accelerateAvailable;
+    dive.hidden=aboard||!water;label(dive,mode==='dive'?'Remonter':'Plonger');
+    if(dive.hidden)cancel(dive,()=>{});
+    surf.hidden=aboard||!surfAvailable;label(surf,mode==='surf'?'Descendre':'Planche');
+    if(surf.hidden)cancel(surf,()=>{});
     accelerate.setAttribute('aria-label',(flight||airborne)&&!gasAvailable?'Boost (réserve vide)':accelerate.textContent??'Accélérer');
     interact.hidden=aboard||!interactionKey;
     if(interact.hidden)cancel(interact,v=>{interactHeld=v;});
