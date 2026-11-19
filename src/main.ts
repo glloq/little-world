@@ -298,7 +298,7 @@ if(playable){
     onSound:(id,p)=>audio?.playSound(id,p),collisions:playable.collisions,temporary:!!(studioTest||buildScope),saveScope:studioTest?.snapshotId??buildScope??undefined,getPosition:()=>({x:player.position.x,y:player.position.y,z:player.position.z}),objects:world.objects,showInfo,
     activities:playable.activities,getSpace:()=>player.space,
     getGas:()=>gasLevel(player),getSurfBoard:()=>placedSurfBoard,
-    setSurfBoard:board=>{placedSurfBoard=board&&isSurfBoardWaterSafe(board,waterSurface,terrainHeight,(x,z)=>!!playable?.surfZones?.some(zone=>x>=zone.minX&&x<=zone.maxX&&z>=zone.minZ&&z<=zone.maxZ))?board:null;},
+    setSurfBoard:board=>{placedSurfBoard=board&&isSurfBoardWaterSafe(board,waterSurface,terrainHeight,(x,z)=>!!surfFieldAt(x,z))?board:null;},
     getGasProgress:()=>structuredClone(flightProgress),
     setGasProgress:value=>{flightProgress={...value,currentFlightDistance:0,currentFlightNoGas:0,currentCombo:0,lastPulseAt:-1};player.gasCapacityLevel=value.capacityLevel;player.gasPowerLevel=value.powerLevel;player.gasControlLevel=value.controlLevel;},
     setGas:value=>{player.gasReserve=value;player.gasBoosting=false;player.gasPulseClock=0;player.gasPulseSeq=0;player.gasThrust=0;player.gasPulseRemaining=0;player.gasCooldown=0;player.gasBoostHeld=false;player.gasRepeatArmed=false;gasVisualSeq=0;lastFlightPulseSeq=0;boostWindActive=false;},
@@ -818,7 +818,7 @@ function input(): Controls {
     boostHeld:flightBoostHeld(player.mode,shiftHeld,touchAccelerateHeld),
     swimStrokePressed:touchStrokeQueue>0,
     snowEquipment:snowDemo?snowEquipment:gameplay?.equipment.hands==='tool:snowboard'?'snowboard':gameplay?.equipment.hands==='tool:skis'?'skis':null,
-    surfEnabled:!!surfField&&(surfDemo||gameplay?.equipment.hands==='tool:surfboard'),surfActionPressed:surfQueue>0,
+    surfEnabled:!!surfField&&(surfDemo||gameplay?.equipment.hands==='tool:surfboard'||(player.mode==='surf'||player.surfAirborne)&&!!gameplay?.has('tool:surfboard')),surfActionPressed:surfQueue>0,
     surfPaddleHeld:!!surfField&&(shiftHeld||touchAccelerateHeld),surfPump:!!surfField&&(shiftHeld||touchAccelerateHeld)&&player.surfStage==='ride',
   };
 }
@@ -832,9 +832,6 @@ function toggleSurfBoard():void{
    if(w!==null)player.position.y=Math.min(player.position.y,w-.38);
    player.velocity.multiplyScalar(.3);player.velocity.y=0;surfQueue=0;
    showInfo('Descendu de la planche : elle flotte à proximité.');return;
- }
- if(!surfDemo&&gameplay?.equipment.hands!=='tool:surfboard'){
-   showInfo('Équipez la planche depuis le sac avant de la poser.','warning');return;
  }
  if(placedSurfBoard){
    const dist=distanceToBoard(placedSurfBoard,player.position.x,player.position.z);
@@ -850,6 +847,9 @@ function toggleSurfBoard():void{
    surfField=surfFieldAt(player.position.x,player.position.z);
    surfQueue=1;surfRequestUntilTick=motionTick+90;placedSurfBoard=null;
    showInfo('Sur la planche : ramez pour prendre une vague.');return;
+ }
+ if(!surfDemo&&gameplay?.equipment.hands!=='tool:surfboard'){
+   showInfo('Équipez la planche depuis le sac avant de la poser.','warning');return;
  }
  const sx=Math.sin(yaw),cz=Math.cos(yaw);
  let spot:SurfBoardPlacement|null=null;
@@ -1298,7 +1298,7 @@ function tick(dt: number) {
   // Mobile input: immediately release controls when a menu opens or the boost stops being valid.
   mobileTouch?.setEnabled(started&&!gameUi?.blocking&&!customization.isOpen&&!npcs.dialogue.isOpen&&!mobileLandscape?.blocked);
   mobileTouch?.setMode(player.mode,aboard,gasShots(player)>0&&(player.mode!=='air'||!player.airBoostUsed),
-     !aboard&&(!!placedSurfBoard||surfFields.length>0&&(surfDemo||gameplay?.equipment.hands==='tool:surfboard')));
+     !aboard&&(!!placedSurfBoard||surfFields.length>0&&(surfDemo||gameplay?.equipment.hands==='tool:surfboard'||player.mode==='surf')));
   // Interaction may change without changing movement mode. Throttle target queries
   // to 8 Hz; the action itself still resolves the target again when pressed.
   if(mobileTouch&&elapsed>=nextTouchTargetAt){
@@ -1342,7 +1342,6 @@ function tick(dt: number) {
   surfWaterView=surfIndex>=0?surfWaterViews[surfIndex]:null;
   surfBarrelView=surfIndex>=0?surfBarrelViews[surfIndex]:null;
   // In glide, mobile input now reaches the flight simulation directly.
-  if(placedSurfBoard&&!surfDemo&&gameplay?.equipment.hands!=='tool:surfboard')placedSurfBoard=null;
   const keys = input();
   if(snowLiftRide?.phase==='waiting'&&snowLift&&Math.hypot(player.position.x-snowLift.path[0].x,player.position.z-snowLift.path[0].z)>5){snowLiftRide=null;showInfo('Embarquement annulé');}
   const chair=snowLift&&snowLiftRide?liftRideStep(snowLift,snowLiftRide,elapsed):null;
@@ -1380,11 +1379,19 @@ function tick(dt: number) {
     }
     if((player.surfJumpSeq??0)>previousSurfJump)audio?.emit('player.jump',{position:player.position,source:'player'});
     if((player.surfLandingSeq??0)>previousSurfLanding)audio?.emit('player.land',{position:player.position,source:'player'});
-    if((player.surfWipeoutSeq??0)>previousSurfWipeout){
-      const board=boardOnWater(player.position.x,player.position.z,player.surfHeading??yaw,waterSurface);
-      if(board&&isSurfBoardWaterSafe(board,waterSurface,terrainHeight,(x,z)=>!!surfFieldAt(x,z)))placedSurfBoard=board;
+     if((player.surfWipeoutSeq??0)>previousSurfWipeout||
+       (previousSurfStage!==undefined&&player.mode==='swim'&&player.surfStage===undefined)){
+      // A wipeout can cross the field boundary without emitting an event. Recover
+      // the last valid position, not the invalid outgoing sample.
+      const candidates=[player.position,previousPlayerPosition];
+      for(const pos of candidates){
+        const board=boardOnWater(pos.x,pos.z,player.surfHeading??yaw,waterSurface);
+        if(board&&isSurfBoardWaterSafe(board,waterSurface,terrainHeight,(x,z)=>!!surfFieldAt(x,z))){
+          placedSurfBoard=board;break;
+        }
+      }
       audio?.emit('water.enter',{position:player.position,source:'player'});
-      showInfo('Chute ! Votre planche flotte près de vous.');
+      showInfo(placedSurfBoard?'Chute ! Votre planche flotte près de vous.':'Chute ! Retournez dans la zone de surf pour récupérer votre planche.');
     }
     if(keys.surfActionPressed && (player.mode==='surf'||player.surfAirborne||
       motionTick>=surfRequestUntilTick||!surfField))surfQueue=0;
