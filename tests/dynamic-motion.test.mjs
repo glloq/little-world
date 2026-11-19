@@ -18,11 +18,11 @@ const step=(p,q,n,k={})=>{for(let i=0;i<n;i++)simulatePlayer(p,{...input,...k},1
 test('glider dive exchanges height for speed, pull-up spends momentum and cannot gain energy',()=>{
  const p=actor(500);p.mode='glide';p.velocity.z=12;p.glideReady=true;const q=flat();
  const start=movementEnergy(p.position.y,p.velocity),energy=[start];
- step(p,q,60,{forward:1,cameraPitch:.85});const diveSpeed=p.velocity.length(),low=p.position.y;
+ step(p,q,60,{forward:1,flightPitchInput:-1});const diveSpeed=p.velocity.length(),low=p.position.y;
  assert.ok(diveSpeed>16&&p.velocity.y<0,'dive accelerates');
  let peak=low,up=false;
  for(let i=0;i<240;i++){
-  const before=movementEnergy(p.position.y,p.velocity);simulatePlayer(p,{...input,forward:1,cameraPitch:-.75},1/30,q);
+  const before=movementEnergy(p.position.y,p.velocity);simulatePlayer(p,{...input,forward:1,flightPitchInput:1},1/30,q);
   assert.ok(movementEnergy(p.position.y,p.velocity)<=before+1e-7,'steering never creates energy');
   up ||= p.velocity.y>1;peak=Math.max(peak,p.position.y);energy.push(movementEnergy(p.position.y,p.velocity));
  }
@@ -34,12 +34,12 @@ test('neutral gliding sinks gently; stall recovers by falling, never by injectin
  const p={velocity:{x:0,y:0,z:11}};
  for(let i=0;i<90;i++)glideVelocity(p,0,0,0,1/30);
  assert.ok(p.velocity.y<0&&p.velocity.y>-3);assert.ok(Math.hypot(p.velocity.x,p.velocity.z)>7);
- const stall={velocity:{x:0,y:0,z:1}};glideVelocity(stall,0,-.8,0,1/30);
+ const stall={velocity:{x:0,y:0,z:1}};glideVelocity(stall,0,1,0,1/30);
  assert.equal(stall.stalled,true);assert.ok(Math.hypot(stall.velocity.x,stall.velocity.y,stall.velocity.z)<2);
- for(let i=0;i<90;i++)glideVelocity(stall,0,-.8,0,1/30);
+ for(let i=0;i<90;i++)glideVelocity(stall,0,1,0,1/30);
  assert.ok(stall.velocity.y<0,'full pull-up at low speed cannot hover');
  const tuned={velocity:{x:0,y:-5,z:20}};
- for(let i=0;i<90;i++)glideVelocity(tuned,0,1,0,1/30,{...GLIDE,max:14});
+ for(let i=0;i<90;i++)glideVelocity(tuned,0,-1,0,1/30,{...GLIDE,max:14});
  assert.ok(Math.hypot(tuned.velocity.x,tuned.velocity.y,tuned.velocity.z)<=14+1e-9);
 });
 test('turning is progressive and dissipates energy; closing and reopening wings adds no energy',()=>{
@@ -133,7 +133,7 @@ test('a descending ramp transfers its tangent to takeoff and repeated commands r
 
 test('dive efficiency is tunable and can only remove potential-energy conversion',()=>{
  const a={velocity:{x:0,y:-8,z:12},glidePitch:-.8},b=structuredClone(a);
- for(let i=0;i<30;i++){glideVelocity(a,0,.8,0,1/30);glideVelocity(b,0,.8,0,1/30,{...GLIDE,diveEfficiency:.4});}
+ for(let i=0;i<30;i++){glideVelocity(a,0,-1,0,1/30);glideVelocity(b,0,-1,0,1/30,{...GLIDE,diveEfficiency:.4});}
  assert.ok(Math.hypot(a.velocity.y,a.velocity.z)>Math.hypot(b.velocity.y,b.velocity.z));
 });
 
