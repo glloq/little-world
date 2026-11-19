@@ -1,6 +1,6 @@
 # 99 — Roadmap d'implémentation : soleil visible + nuages 2D/3D LOW-RESOURCE
 
-**Statut : PLANNED — aucune implémentation runtime ni benchmark livrés par cette branche.** 19 novembre 2026.
+**Statut : IMPLEMENTING — premier incrément SKY-1/2/3 poussé, validation CI/navigateur et budgets GPU encore à qualifier.** 19 novembre 2026.
 
 Spécification de référence : [98 — Ciel vivant LOW-RESOURCE](98-LOW-RESOURCE-SKY-SUN-CLOUDS.md). Conserver les contrats [19 — environnement](19-ENVIRONMENT-WEATHER-SKY.md), [22 — budget PERF](22-RESOURCE-BUDGET-MANAGER.md), [80 — PC anciens](80-OLD-PC-HARDWARE-AUTO-QUALITY.md) et [82 — optimisation graphique](82-PERFORMANCE-GRAPHICS-IMPLEMENTATION-ROADMAP.md). La branche documentation ne prétend ni changer la météo existante ni garantir des FPS.
 
@@ -77,9 +77,9 @@ Cibles de coût additionnel **provisoires et non mesurées** sur machine de réf
 ## Checklist de livraison
 
 - [ ] Baseline et méthode A/B documentées.
-- [ ] Direction solaire partagée.
-- [ ] Soleil visible + halo sans bloom.
-- [ ] Nuages 2D lointains, continus et directionnellement occultants.
+- [x] Direction solaire partagée (code poussé, test visuel à confirmer).
+- [x] Soleil visible + halo sans bloom (première version, visuel à qualifier).
+- [x] Nuages 2D lointains via atlas 128² et occultation solaire (première version, test GPU à réaliser).
 - [ ] 2D benchmark qualifié (ou fallback).
 - [ ] Nuages 3D instanciés uniquement si budget résiduel.
 - [ ] Qualité intégrée sans second gestionnaire.
@@ -89,3 +89,11 @@ Cibles de coût additionnel **provisoires et non mesurées** sur machine de réf
 - [ ] Studio plus tard, sans bloquer le rendu de base.
 
 **Critère de décision final :** l'amélioration cosmétique est désactivable et n'empiète jamais sur la simulation, le déplacement, l'eau ou la visibilité du monde. Aucune étape ne doit être marquée « done » sur la seule base de sa documentation.
+
+## Journal d'implémentation (19 novembre 2026)
+
+- SKY-1 : `sunDirection()` partagée par le `DirectionalLight` et le ciel, à tester sur cycle complet.
+- SKY-2/3 : `sky-renderer.ts` ajouté : un dôme de fond suivant la caméra, shader solaire/halo/nuages 2D en une passe; atlas périodique 128×128 RGBA généré une fois.
+- Intégration : `environment/view.ts` conserve pluie et météo, relie le ciel à `clock.time`, `cloudCover`, vent, `detail` et état mine. `main.ts` transmet la caméra.
+- Benchmark : `?sky=off|sun|2d`; métriques `environment.sky` (visibilité, 2D active, mémoire de l'atlas et draw calls visés).
+- Non livré : nuages 3D, Studio, mesures CPU/GPU réelles et qualification WebGL en navigateur. Les étapes SKY-0/4/5/6/7/8/9 restent ouvertes.
