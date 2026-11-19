@@ -69,6 +69,8 @@ jobs:
         run: node tools/run-browser-check.mjs gameplay
       - name: Player interface browser checks
         run: node tools/run-browser-check.mjs ui
+      - name: Instrument controls (bag V3, HUD, P shortcut, audio)
+        run: npm run test:instruments
       - name: Studio race courses compile and runtime smoke test
         run: node --experimental-strip-types tools/test-races-browser.mjs
       - name: Environment browser checks
