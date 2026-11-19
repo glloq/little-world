@@ -13,6 +13,8 @@ import {parseWorld,type WorldDefinition} from '../world-data.ts';
 import {parseGameplayData,finite,identifier,record,type GameplayData,type Point3} from './schema.ts';
 export interface PlayableWorld {schemaVersion:1;kind:'playable-world';audio?:AnyAudioDefinition;alpine?:SkiAreaV1;collisions?:CollisionDefinition[];world:WorldDefinition;gameplay:GameplayData;spawn:Point3;
   /** Mines and farm plots (runtime projection of activity zones). */activities?:import('./activities.ts').PlayableActivities;
+  /** Optional author-owned quest offers compiled and validated from Studio. */
+  questCatalog?:import('../quests/schema.ts').QuestCatalogEntryV1[];
   /** Optional fixed circuits compiled from a Studio project. */races?:RaceDefinition[];
   /** Optional local swells, separate from flat hydrographic water. */surfZones?:SurfZone[];surfFeatures?:SurfFeature[];}
 export interface StudioPlaytest {schemaVersion:1;kind:'studio-playtest';snapshotId:string;projectId:string;createdAt:number;content:PlayableWorld;}
