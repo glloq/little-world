@@ -50,3 +50,18 @@ test('recomposition preserves author-edited NPC identity, dialogue and home choi
  assert.equal(JSON.stringify(project.chunks[project.entityIndex[name].ownerChunkId].entities[name]),source);
  assert.equal(JSON.stringify(project.libraries.dialogues[name+'-talk']),dialogue);
 });
+
+test('turning off routines never strips dialogue from an author-edited resident',()=>{
+ const {project,recipe,plan}=create();
+ const child=plan.entities.find(e=>e.id.includes('-resident-')&&e.components.Resident);
+ assert.ok(child);
+ const idx=project.entityIndex[child.id],entity=project.chunks[idx.ownerChunkId].entities[child.id];
+ entity.name='Habitant conservé';
+ const dialogueBefore=JSON.stringify(project.libraries.dialogues[child.id+'-talk']);
+ const replacement=planSettlement(project,{...recipe,residentRoutines:false});
+ assert.equal(replacement.diagnostics.some(d=>d.severity==='ERROR'),false,JSON.stringify(replacement.diagnostics));
+ applySettlement(project,replacement);
+ const kept=project.chunks[project.entityIndex[child.id].ownerChunkId].entities[child.id];
+ assert.equal(kept.name,'Habitant conservé');
+ assert.equal(JSON.stringify(project.libraries.dialogues[child.id+'-talk']),dialogueBefore);
+});
