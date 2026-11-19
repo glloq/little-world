@@ -19,6 +19,18 @@ test('F09-F 100 residents compile into at most 32 qualified producers and one na
  });
  driver.install(npcs);
  assert.equal(driver.size,32);
+ const snapshot=driver.serialize();
+ const pending=createNpcHarvestDriver({
+   limits:{'farm:wheat':999},zones:{mines:[],farms},
+   activities:{npcFarmAct:()=>({ok:true,action:'plant'})},
+   gathering:null,fishPopulation:createFishPopulation(),height:()=>0,
+   anchor:id=>({x:Number(id.slice(5))*2,z:0}),shore:()=>null,
+ });
+ pending.restore(snapshot);
+ assert.deepEqual(pending.serialize(),snapshot,
+  'save before actor attach must not discard accepted source accounts');
+ pending.install(npcs);
+ assert.deepEqual(pending.serialize(),snapshot);
  assert.equal(driver.tick(1),0);
  assert.equal(driver.tick(5),0);
  assert.equal(calls.length,32);
