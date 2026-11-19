@@ -13,6 +13,8 @@ import {GAS} from '../physics/gas-propulsion.ts';
 import {newFlightProgress,type FlightProgress} from './flight-progress.ts';
 import {gameplayDialogueSession} from './dialogue-session.ts';
 import {createQuestDirector} from '../quests/director.ts';
+import {createNpcEconomyDriver} from '../npc-life/economy-runtime.ts';
+import {marketUnitPrices} from '../economy/island-markets.ts';
 import {questDialogueSession} from '../quests/dialogue.ts';
 import type {QuestCatalogEntryV1} from '../quests/schema.ts';
 import {createGameSaveStore,scopedSaveStorage,parseGameSave,type GameSaveV2} from './save.ts';
@@ -128,6 +130,9 @@ export function createGameplayView(data:GameplayData,options:Options){
        targetId:stationId,source:'craft'});
    },
    onChange:()=>{for(const listener of listeners)listener();}});
+ const npcEconomy=createNpcEconomyDriver(
+   Object.fromEntries(runtime.data.items.map(item=>[item.id,item.maxQuantity])),
+   id=>{const p=runtime.getEntityPosition(id);return p?{x:p.x,z:p.z}:null;});
  const markets=createIslandMarkets({islandId:options.islandId??data.worldId,purse,itemName,
    gameMinute:()=>Math.floor(runtime.state.time/runtime.climate.definition.dayLengthSeconds*1440),
    onChange:()=>{for(const listener of listeners)listener();}});
@@ -153,7 +158,9 @@ export function createGameplayView(data:GameplayData,options:Options){
  let equippedHands:string|null=null;
  const compose=(slotId:string):GameSaveV2=>({...runtime.save(slotId,options.getPosition()),
     ...(Object.keys(quests.serialize()).length?{questsLocal:quests.serialize(),questEventSequence}:{}),equippedItemId:equipment.hands,loadout:{...playerLoadout,head:equipment.head,favorites:equipment.favorites?[...equipment.favorites]:null},space:options.getSpace?.()??null,gasReserve:options.getGas?.()??GAS.initial,satiety:options.getSatiety?.()??100,boostRechargeProgress:options.getRechargeProgress?.()??0,flightProgress:options.getGasProgress?.()??newFlightProgress(),...activities.serialize(),
-    workshops:workshops.serialize(),markets:markets.serialize(),cargoPurchaseRevision,surfBoard:options.getSurfBoard?.()??null,
+    workshops:workshops.serialize(),markets:markets.serialize(),
+    ...(npcEconomy.size?{npcWorkshops:npcEconomy.serialize()}:{}),
+    cargoPurchaseRevision,surfBoard:options.getSurfBoard?.()??null,
     ...(gathering?{gathering:gathering.serialize()}:{})});
  let npcs:readonly NPCState[]=[],version=-1,disposed=false;
  // Increment only on actual exterior-door collision transitions, not on every
@@ -261,7 +268,7 @@ export function createGameplayView(data:GameplayData,options:Options){
     if(npcs.length)quests.reconcileNpcAvailability(new Set(npcs.map(n=>n.definition.id)));
     // Upgrade old island saves with one temporary starter board, without removing other goods.
     if(options.surfStarter&&!has(SURFBOARD_ID))runtime.grantItems([{itemId:SURFBOARD_ID,quantity:1}]);
-    equippedHands=save.equippedItemId&&canEquip(save.equippedItemId)?save.equippedItemId:null;playerLoadout=save.loadout?parsePlayerLoadout(save.loadout):emptyPlayerLoadout();if(playerLoadout.head!=='tool:miners-helmet'||!has('tool:miners-helmet'))playerLoadout.head=null;playerLoadout.back=null;playerLoadout.feet=null;workshops.restore(save.workshops??{});markets.restore(save.markets??{});cargoPurchaseRevision=save.cargoPurchaseRevision??0;gathering?.restore(save.gathering??null);options.setPosition(save.position,save.space??null);options.setGasProgress?.(save.flightProgress??newFlightProgress());options.setGas?.(save.gasReserve??GAS.legacyInitial,save.satiety,save.boostRechargeProgress);options.setSurfBoard?.(save.surfBoard??null);sync();version=-1;for(const l of listeners)l();return warnings;},
+    equippedHands=save.equippedItemId&&canEquip(save.equippedItemId)?save.equippedItemId:null;playerLoadout=save.loadout?parsePlayerLoadout(save.loadout):emptyPlayerLoadout();if(playerLoadout.head!=='tool:miners-helmet'||!has('tool:miners-helmet'))playerLoadout.head=null;playerLoadout.back=null;playerLoadout.feet=null;workshops.restore(save.workshops??{});markets.restore(save.markets??{});npcEconomy.restore(save.npcWorkshops??{});cargoPurchaseRevision=save.cargoPurchaseRevision??0;gathering?.restore(save.gathering??null);options.setPosition(save.position,save.space??null);options.setGasProgress?.(save.flightProgress??newFlightProgress());options.setGas?.(save.gasReserve??GAS.legacyInitial,save.satiety,save.boostRechargeProgress);options.setSurfBoard?.(save.surfBoard??null);sync();version=-1;for(const l of listeners)l();return warnings;},
   /** Imports an exported slot file (validated) into a free slot of this world. */
   async importSave(raw:unknown){const parsed=parseGameSave(raw);if(parsed.worldId!==data.worldId)throw Error('Sauvegarde d’un autre monde');const value={...parsed};if(!['slot-1','slot-2','slot-3'].includes(value.slotId)){const used=new Set((await slots.list(data.worldId)).map(v=>v.slotId)),free=['slot-1','slot-2','slot-3'].find(id=>!used.has(id));if(!free)throw Error('Libérez un emplacement pour importer cette partie');value.slotId=free;}await slots.save(value);return value.slotId;},
   temporary:options.temporary,describe,
@@ -278,12 +285,15 @@ export function createGameplayView(data:GameplayData,options:Options){
   attachNPCs(states:readonly NPCState[]){
     npcs=states;
     quests.reconcileNpcAvailability(new Set(states.map(state=>state.definition.id)));
+    npcEconomy.install(states);
   },
   prompt(position:Point3){runtime.state.playerPosition={...position};const target=describe(position);return target?.usable?'[E] '+target.prompt:null;},
   interact(position:Point3){runtime.state.playerPosition={...position};const target=describe(position);return target?.usable?runtime.interact(target.entity.id,position):false;},
   update(dt:number){
    if(disposed)return;runtime.state.playerPosition={...options.getPosition()};for(const npc of npcs)if(entityIds.has(npc.definition.id)){runtime.setEntityPosition(npc.definition.id,{x:npc.x,y:npc.y,z:npc.z});if(targetById.has(npc.definition.id))targetIndex.set(npc.definition.id,{x:npc.x,z:npc.z});const body=collisionDefinitions.get(npc.definition.id);if(body)collision.moveBody(body.id,{x:npc.x+body.position.x-body.groundAnchor.x,y:npc.y+body.position.y,z:npc.z+body.position.z-body.groundAnchor.z});}
    runtime.update(dt);
+   if(npcEconomy.tick(Math.floor(runtime.state.time/runtime.climate.definition.dayLengthSeconds*1440)))
+     for(const listener of listeners)listener();
    // One bounded probe per game second, using only real compiled entity
    // positions. No fabricated zones, no per-frame quest scan or route search.
    if(runtime.state.time<lastQuestVisitScan||runtime.state.time-lastQuestVisitScan>=1){
