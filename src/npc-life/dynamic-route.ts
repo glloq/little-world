@@ -84,3 +84,11 @@ export function residentRecoveryNeedsRetarget(
  return (now<lastCheck||now-lastCheck>=period)&&
    Math.hypot(newGoal.x-oldGoal.x,newGoal.z-oldGoal.z)>threshold;
 }
+
+/** Recover a moving schedule without chasing it forever at exactly its speed.
+ * Keeps the catch-up bonus small and clamps bad authored speeds.
+ */
+export function residentRecoverySpeed(speed:number):number{
+ if(!Number.isFinite(speed)||speed<=0)return 0.27;
+ return Math.min(3,Math.max(.27,speed*1.35));
+}
