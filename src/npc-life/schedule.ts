@@ -5,7 +5,7 @@ export interface ResidentPoint {x:number;z:number;y?:number}
 export type ResidentActivityKind='meal'|'social'|'rest'|'play'|'errand';
 /** Keep agenda evaluation bounded while allowing a richer single-day timetable. */
 export const MAX_RESIDENT_DAILY_STOPS=5;
-export interface ResidentActivityStop {kind:ResidentActivityKind;anchorId:string;point:ResidentPoint;startHour:number;endHour:number;}
+export interface ResidentActivityStop {kind:ResidentActivityKind;anchorId:string;point:ResidentPoint;startHour:number;endHour:number;weather?:'any'|'dry'|'rain';}
 export interface ResidentRoutineV1 {
   type:'Resident';version:1;role:ResidentRole;
   home:ResidentPoint;work:ResidentPoint;
@@ -40,9 +40,10 @@ export function validResidentRoutine(value:unknown):value is ResidentRoutineV1{
     for(const raw of v.activities){
       if(!raw||typeof raw!=='object'||Array.isArray(raw))return false;
       const a=raw as Record<string,unknown>;
-      if(Object.keys(a).some(k=>!['kind','anchorId','point','startHour','endHour'].includes(k))||
+      if(Object.keys(a).some(k=>!['kind','anchorId','point','startHour','endHour','weather'].includes(k))||
         !['meal','social','rest','play','errand'].includes(String(a.kind))||
         !identifier(a.anchorId)||!point(a.point)||
+        (a.weather!==undefined&&!['any','dry','rain'].includes(String(a.weather)))||
         Math.abs(a.point.x)>100000||Math.abs(a.point.z)>100000||
         !finite(a.startHour)||!finite(a.endHour)||
         a.startHour<previous+.25||a.endHour>end-.25||a.endHour-a.startHour<.25)return false;
