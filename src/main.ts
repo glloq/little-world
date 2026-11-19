@@ -118,6 +118,7 @@ const devMemory = document.querySelector<HTMLElement>('#memory')!;
 /** Player interface (src/ui): created once the world, gameplay and NPCs exist. */
 let gameUi:GameUi|null=null;
 let placedSurfBoard:SurfBoardPlacement|null=null;
+let lastSafeSurfBoard:SurfBoardPlacement|null=null;
 // Detect phone controls before the HUD is constructed, so its gas hint uses the Boost label.
 const touchCapable=isPhoneTouchDevice();
 if(touchCapable)document.body.classList.add('touch-mode');
@@ -827,7 +828,8 @@ function toggleSurfBoard():void{
  if(aboard||player.space)return;
  if(player.mode==='surf'||player.surfAirborne){
    const x=player.position.x,z=player.position.z,w=waterSurface(x,z);
-   placedSurfBoard=boardOnWater(x,z,player.surfHeading??yaw,waterSurface);
+   placedSurfBoard=boardOnWater(x,z,player.surfHeading??yaw,waterSurface)??lastSafeSurfBoard;
+   lastSafeSurfBoard=null;
    player.mode='swim';player.surfStage=undefined;player.surfAirborne=false;
    if(w!==null)player.position.y=Math.min(player.position.y,w-.38);
    player.velocity.multiplyScalar(.3);player.velocity.y=0;surfQueue=0;
@@ -844,6 +846,7 @@ function toggleSurfBoard():void{
    }
    player.position.x=placedSurfBoard.x;player.position.z=placedSurfBoard.z;
    player.position.y=placedSurfBoard.y-.5;player.diving=false;player.velocity.set(0,0,0);
+   lastSafeSurfBoard=null;
    surfField=surfFieldAt(player.position.x,player.position.z);
    surfQueue=1;surfRequestUntilTick=motionTick+90;placedSurfBoard=null;
    showInfo('Sur la planche : ramez pour prendre une vague.');return;
@@ -1369,6 +1372,10 @@ function tick(dt: number) {
     const previousSurfJump=player.surfJumpSeq??0;
     const previousSurfLanding=player.surfLandingSeq??0;
     const previousSurfWipeout=player.surfWipeoutSeq??0;
+    if(player.mode==='surf'||player.surfAirborne){
+      const board=boardOnWater(player.position.x,player.position.z,player.surfHeading??yaw,waterSurface);
+      if(board&&isSurfBoardWaterSafe(board,waterSurface,terrainHeight,(x,z)=>!!surfFieldAt(x,z)))lastSafeSurfBoard=board;
+    }
     simulatePlayer(player, keys, dt,gameplay?.collision,surfField??undefined,motionTick+1);motionTick++;
     if((player.surfPaddleClock??0)>previousSurfPaddle+.08&&motionTick-lastSurfPaddleSoundTick>=15){
       audio?.emit('water.swim',{position:player.position,source:'player'});lastSurfPaddleSoundTick=motionTick;
@@ -1383,13 +1390,14 @@ function tick(dt: number) {
        (previousSurfStage!==undefined&&player.mode==='swim'&&player.surfStage===undefined)){
       // A wipeout can cross the field boundary without emitting an event. Recover
       // the last valid position, not the invalid outgoing sample.
-      const candidates=[player.position,previousPlayerPosition];
+      const candidates=[player.position,previousPlayerPosition,...(lastSafeSurfBoard?[lastSafeSurfBoard]:[])];
       for(const pos of candidates){
         const board=boardOnWater(pos.x,pos.z,player.surfHeading??yaw,waterSurface);
         if(board&&isSurfBoardWaterSafe(board,waterSurface,terrainHeight,(x,z)=>!!surfFieldAt(x,z))){
           placedSurfBoard=board;break;
         }
       }
+      lastSafeSurfBoard=null;
       audio?.emit('water.enter',{position:player.position,source:'player'});
       showInfo(placedSurfBoard?'Chute ! Votre planche flotte près de vous.':'Chute ! Retournez dans la zone de surf pour récupérer votre planche.');
     }
