@@ -34,6 +34,7 @@ export function createCloudRenderer(scene:THREE.Scene, seed:number) {
   let lastCellX=NaN,lastCellZ=NaN,lastCount=-1,lastCover=-1,disposed=false;
   let visibleCount=0,rebuilds=0;
   const sunColor=new THREE.Color();
+  const daytimeCloudColor=new THREE.Color('#f6f3ed');
   function update(params:{position:{x:number;y:number;z:number};time:number;wind:number;cloudCover:number;sunAltitude:number;quality:CloudQuality;detail:number;underground:boolean;enabled:boolean}) {
     const maxCount=!params.enabled||params.underground||params.detail>=2||params.quality==='low'
       ?0:params.quality==='high'?16:8;
@@ -79,7 +80,7 @@ export function createCloudRenderer(scene:THREE.Scene, seed:number) {
     }
     // Change one shared material per silhouette, never per instance.
     const day=THREE.MathUtils.smoothstep(params.sunAltitude,-.1,.3);
-    sunColor.set('#6f808d').lerp(new THREE.Color('#f6f3ed'),day);
+    sunColor.set('#6f808d').lerp(daytimeCloudColor,day);
     materials[0].color.copy(sunColor);
     materials[1].color.copy(sunColor).multiplyScalar(.91);
   }
