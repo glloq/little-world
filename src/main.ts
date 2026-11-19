@@ -458,6 +458,9 @@ const surfDemo=searchParams.get('surfDemo')==='1'&&!snowDemo&&!isLegacyTerrain()
 const surfSite=surfDemo?findDemoSurfSite(terrainHeight,snowBounds,definition.config.seaLevel??0,definition.config.seed):null;
 const surfFields=surfSite?[createSurfWaveField(surfSite.zone,terrainHeight)]:
   (playable?.surfZones??[]).map(zone=>createSurfWaveField(zone,terrainHeight));
+const surfWorldConfig={count:surfFields.length,zones:surfFields.map(f=>({id:f.zone.id,
+ minX:f.zone.minX,maxX:f.zone.maxX,minZ:f.zone.minZ,maxZ:f.zone.maxZ,
+ barrelStrength:f.zone.barrelStrength??0}))};
 const surfFieldAt=(x:number,z:number)=>surfFields.find(f=>
   x>=f.zone.minX&&x<=f.zone.maxX&&z>=f.zone.minZ&&z<=f.zone.maxZ)??null;
 let surfField=surfFieldAt(player.position.x,player.position.z);
@@ -1628,6 +1631,7 @@ function draw(now: number) {
         dressing: world.dressing ? { ...world.dressing } : null,
         grass: world.grass ? { ...world.grass } : null,
         inventory: gameplay ? { ...gameplay.runtime.state.inventory } : null,
+        surfWorld:surfWorldConfig,
         surf:surfField?{
           zoneId:surfField.zone.id,stage:player.surfStage??null,airborne:!!player.surfAirborne,
           equipped:gameplay?.equipment.hands==='tool:surfboard',
