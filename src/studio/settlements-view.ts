@@ -10,6 +10,7 @@ import { newSettlement, type SettlementRecipe } from '../settlements/schema.ts';
 import { planSettlement, type SettlementPlan } from '../settlements/planner.ts';
 import { applySettlement, previewSettlementProject, settlementChunkIds, lockSettlementBuilding, removeSettlement, removeSettlementBuilding,lockSettlementAmenity,removeSettlementAmenity } from '../settlements/authoring.ts';
 import { validateSettlements } from '../settlements/validation.ts';
+import {residentRegistry} from '../npc-life/registry.ts';
 import { terrainAccessContext } from '../studio-core/terrain-access.ts';
 import { fingerprint } from '../world-production/landscape-schema.ts';
 export function mountSettlements(host: HTMLElement, s: StudioSession, options: {
@@ -169,6 +170,16 @@ export function mountSettlements(host: HTMLElement, s: StudioSession, options: {
                 render();
             } });
             row.append(field('Maison à modifier', buildings));
+            if(residents.length){
+                const registry=residentRegistry(p,s0.id),panel=node('details');
+                panel.append(node('summary',`Vie locale · ${registry.residents.length} résidents avec horaires`));
+                for(const resident of registry.residents){
+                    panel.append(node('p',`${resident.name} · ${resident.role} · maison ${resident.homeAnchorId??'absente'} · poste ${resident.workAnchorId??'absent'}`,'muted'),
+                      button('Inspecter '+resident.name,()=>{s.selection.select({kind:'entity',id:resident.id});options.open3D();}));
+                }
+                for(const issue of registry.issues)panel.append(node('p',issue.message,'diagnostic WARNING'));
+                row.append(panel);
+            }
             const selected = s.selection.state.selected?.id, b = s0.buildings.find(b => b.id === selected);
             if (b) {
                 const lock = node('input');
