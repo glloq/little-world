@@ -62,8 +62,13 @@ export function createNpcHarvestDriver(deps:NpcHarvestDeps){
   }
   pending=candidate;install(residents);
  }
- const serialize=():Record<string,NpcHarvestAccountV1>=>Object.fromEntries(
-  [...accounts.entries()].sort(([a],[b])=>a.localeCompare(b)).map(([id,a])=>[id,a.save()]));
+ const serialize=():Record<string,NpcHarvestAccountV1>=>{
+  // Saves may be composed before the NPC renderer finishes attaching. Never
+  // discard a validated restored account during that short initialization.
+  if(!residents.length&&Object.keys(pending).length)return structuredClone(pending);
+  return Object.fromEntries([...accounts.entries()].sort(([a],[b])=>a.localeCompare(b))
+    .map(([id,a])=>[id,a.save()]));
+ };
  function tick(minute:number){
   if(!Number.isSafeInteger(minute)||minute<0||minute>1000000000||minute===lastMinute)return 0;
   lastMinute=minute;
