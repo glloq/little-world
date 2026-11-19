@@ -23,6 +23,7 @@ Branche : `feat/npc-life-v3-social-navigation`. Ce document décrit les critère
 - Déplacements commandés : vérification du segment parcouru et du prochain tronçon, contournement borné (trois essais), respect des angles et arrêt avant obstacle sans traversée.
 - Instrumentation `lifeStats` : `routineRecoveries`, `routineBlocked`, `scriptedReplans`, `scriptedBlocked`, `scriptedCompleted` ; pas de métrique persistée dans le monde.
 - Habitations limitées à deux occupants, postes exclusifs et espaces partagés limités à quatre habitants dans le générateur et Studio.
+- Rencontres sociales par paires déterministes autour des places existantes et pendant les jeux des enfants ; excluent les PNJ en dialogue ou en déplacement commandé. Salutations synchronisées sur une fenêtre de 4 secondes toutes les 12 secondes, sans récompenses ni dialogues inventés.
 
 ## Conditions de sortie — ne pas merger avant qualification
 
@@ -36,9 +37,9 @@ Branche : `feat/npc-life-v3-social-navigation`. Ce document décrit les critère
 
 ## Reste à implémenter ou démontrer
 
-- Qualification navigateur de la replanification en cas de modification à chaud du relief et des obstacles : la reprise proche est implémentée mais n'est pas encore certifiée après playtest. Les portes dynamiques, étages, intérieurs et escaliers restent à intégrer au modèle de navigation.
+- Qualification navigateur de la replanification en cas de modification à chaud du relief et des obstacles : la reprise proche est implémentée mais n'est pas encore certifiée après playtest. **Ne pas annoncer des intérieurs traversables** : les portes dynamiques et pièces accessibles manquent encore de transitions/surfaces piétonnes qualifiées. Les ponts surélevés sont déjà pris en charge par les chemins avec supportId, mais les vrais escaliers et niveaux intérieurs demandent leur propre contrat de surface.
 - L'édition des pauses/points de rencontre et horaires est disponible en formulaire Studio ; l'édition par glisser-déposer/tracé sur la carte et son test navigateur restent à faire.
-- Variantes de sociabilité (groupes, enfants, scènes et interactions), sons/barks/sous-titres et animations cohérentes.
+- Les rencontres par paires et jeux des enfants sont intégrés ; les rassemblements à plus de deux PNJ, séquences de groupe, sons/barks et sous-titres restent à faire.
 - Panneau de diagnostic global exhaustif après chargement des secteurs concernés (l'aperçu courant porte seulement sur les secteurs chargés).
 - Intégration et test navigateur des missions et récompenses, dont les donneurs de quêtes en mouvement.
 - Campagne de playtests multi-villages, benchmarks matériels et vérification des migrations historiques.
