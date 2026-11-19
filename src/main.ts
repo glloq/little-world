@@ -425,7 +425,7 @@ async function travelToIsland(destination:PublishedIsland):Promise<{ok:boolean;m
     const inventory={...save.inventory};
     beginTransit(sessionStorage,source,destination,worldClock.time,{
       inventory,items:g.runtime.data.items.filter(item=>(inventory[item.id]??0)>0),
-      gasReserve:save.gasReserve??gasLevel(player),
+      gasReserve:save.gasReserve??gasLevel(player),satiety:save.satiety??satietyLevel(player),boostRechargeProgress:save.boostRechargeProgress??player.boostRechargeProgress??0,
       flightProgress:save.flightProgress??flightProgress,
       equippedItemId:save.equippedItemId??null,
       ...(save.loadout?{loadout:save.loadout}:{}),
@@ -1835,6 +1835,7 @@ if(incomingTransit&&gameplay&&playable){
     const position={x:landing.x,y:terrainHeight(landing.x,landing.z)+landing.y+.08,z:landing.z};
     gameplay.restore({...base,slotId:'slot-ferry-auto',time:incomingTransit.worldSeconds,position,space:null,
       inventory:{...incomingTransit.traveler.inventory},gasReserve:incomingTransit.traveler.gasReserve,
+      satiety:incomingTransit.traveler.satiety??100,boostRechargeProgress:incomingTransit.traveler.boostRechargeProgress??0,
       flightProgress:incomingTransit.traveler.flightProgress,
       equippedItemId:incomingTransit.traveler.equippedItemId??null,
       loadout:incomingTransit.traveler.loadout});
@@ -1844,7 +1845,7 @@ if(incomingTransit&&gameplay&&playable){
     savePortableCheckpoint(localStorage,activeIsland!.id,playable.gameplay.worldId,{
       inventory:{...gameplay.runtime.state.inventory},
       items:gameplay.runtime.data.items.filter(item=>(gameplay!.runtime.state.inventory[item.id]??0)>0),
-      gasReserve:gasLevel(player),flightProgress,equippedItemId:gameplay.equipment.hands,
+      gasReserve:gasLevel(player),satiety:satietyLevel(player),boostRechargeProgress:player.boostRechargeProgress??0,flightProgress,equippedItemId:gameplay.equipment.hands,
       ...(gameplay.compose('slot-ferry-auto').loadout?{loadout:gameplay.compose('slot-ferry-auto').loadout}:{}),
     });
     ferryMinute=worldGameMinute(worldClock.time,climate.definition.dayLengthSeconds);
@@ -1863,6 +1864,7 @@ if(!incomingTransit&&retainedPortable&&gameplay&&playable){
     const base=saved??gameplay.compose('slot-ferry-auto');
     gameplay.restore(saved??{...base,inventory:{...retainedPortable.traveler.inventory},
       gasReserve:retainedPortable.traveler.gasReserve,
+      satiety:retainedPortable.traveler.satiety??100,boostRechargeProgress:retainedPortable.traveler.boostRechargeProgress??0,
       flightProgress:retainedPortable.traveler.flightProgress,
       equippedItemId:retainedPortable.traveler.equippedItemId??null,
       loadout:retainedPortable.traveler.loadout});
@@ -1889,6 +1891,7 @@ if(activeIsland&&gameplay&&(incomingTransit||retainedPortable)){
           inventory:{...snapshot.inventory},
           items:g.runtime.data.items.filter(item=>(snapshot.inventory[item.id]??0)>0),
           gasReserve:snapshot.gasReserve??gasLevel(player),
+          satiety:snapshot.satiety??satietyLevel(player),boostRechargeProgress:snapshot.boostRechargeProgress??player.boostRechargeProgress??0,
           flightProgress:snapshot.flightProgress??flightProgress,equippedItemId:snapshot.equippedItemId??null,
           ...(snapshot.loadout?{loadout:snapshot.loadout}:{}),
         });
