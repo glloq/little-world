@@ -407,7 +407,7 @@ export function createNPCSystem(
                   job.plannedRevision=navigationRevision();
                   job.replans++;
                 }
-                if(alternative&&residentRouteAheadClear(alternative,0,walkable,3)){
+                if(alternative&&residentRouteAheadClear(alternative,0,walkable,Math.min(8,alternative.length))){
                   job.route=alternative;job.startAt=now;job.pausedFor=0;
                   job.lastDistance=0;job.lastCheckedAt=now;job.replans=0;
                   job.plannedRevision=navigationRevision();
