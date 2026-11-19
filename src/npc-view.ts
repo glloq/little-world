@@ -24,6 +24,7 @@ import {
 import type { Player } from './player.ts';
 import {terrainHeight} from './terrain.ts';
 import {createResidentRouter,type ResidentPath,type ResidentWalkable} from './npc-life/routes.ts';
+import {createResidentLayeredRouter,type ResidentSurfaces} from './npc-life/layered-routes.ts';
 import {residentHour,residentShift,residentPoseAt,residentRoute,positionOnResidentRoute,type ResidentPose,type ResidentRoute} from './npc-life/schedule.ts';
 import {residentDialogue,residentContextForHour} from './npc-life/dialogue.ts';
 import {residentAgendaPoseAt,type ResidentAgendaPose,type ResidentDailyRoutes,type ResidentActivityLegs} from './npc-life/agenda.ts';
@@ -146,6 +147,7 @@ export interface NPCLifeOptions {
   paths:readonly ResidentPath[];
   /** Reuse the active world's collision broadphase for short path segments. */
   walkable?:ResidentWalkable;
+  surfaces?:ResidentSurfaces;
   weather?:()=> 'clear'|'cloudy'|'rain';
 }
 export function createNPCSystem(
@@ -159,7 +161,7 @@ export function createNPCSystem(
   if (!validateNPCs(definitions,bounds)) throw new Error('Liste de PNJ invalide');
   const walkable=(x:number,z:number,fx:number,fz:number)=>canNPCWalk(x,z,fx,fz,obstacles)&&(!lifeOptions?.walkable||lifeOptions.walkable(x,z,fx,fz));
   const router=lifeOptions&&definitions.some(d=>d.routine)
-    ?createResidentRouter(lifeOptions.paths,walkable):null;
+    ?lifeOptions.surfaces&&lifeOptions.paths.some(p=>p.supportId)?createResidentLayeredRouter(lifeOptions.paths,walkable,lifeOptions.surfaces):createResidentRouter(lifeOptions.paths,walkable):null;
   const dialogue=createDialoguePanel(state=>{
     const base=dialogueFactory?.(state)??(state.definition.dialogue?createDialogue(state.definition.dialogue,state.flags):undefined);
     const routine=state.definition.routine;
@@ -328,7 +330,7 @@ export function createNPCSystem(
               if(job.pauseFrom!==null){job.pausedFor+=now-job.pauseFrom;job.pauseFrom=null;}
               const distance=Math.max(0,Math.min(job.route.length,(now-job.startAt-job.pausedFor)*Math.max(.2,state.definition.speed)));
               const p=positionOnResidentRoute(job.route,distance);
-              state.x=p.x;state.z=p.z;state.y=terrainHeight(p.x,p.z);
+              state.x=p.x;state.z=p.z;state.y=p.y??terrainHeight(p.x,p.z);
               state.vx=dt>0?(p.x-state.previousX)/dt:0;state.vz=dt>0?(p.z-state.previousZ)/dt:0;
               state.heading=Math.atan2(state.vx,state.vz);
               state.phase=distance>=job.route.length?'idle':'walk';
@@ -368,7 +370,7 @@ export function createNPCSystem(
                     lifeOptions.dayLengthSeconds,lifeOptions.initialDayPhase,Math.max(.2,state.definition.speed));
                 const oldX=state.x,oldZ=state.z;
                 state.previousX=oldX;state.previousY=state.y;state.previousZ=oldZ;
-                state.x=pose.position.x;state.z=pose.position.z;state.y=terrainHeight(state.x,state.z);
+                state.x=pose.position.x;state.z=pose.position.z;state.y=pose.position.y??terrainHeight(state.x,state.z);
                 state.vx=dt>0?(state.x-oldX)/dt:0;state.vz=dt>0?(state.z-oldZ)/dt:0;
                 if(pose.phase==='to-work'||pose.phase==='to-home'||pose.phase==='to-activity')state.heading=pose.heading;
                 const busy=residentGesture(routine.role)!==null;

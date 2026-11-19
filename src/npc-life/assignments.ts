@@ -4,6 +4,7 @@
 import type {GroundRouteContext} from '../paths/terrain-route.ts';
 import type {ResidentPath,ResidentRouter} from './routes.ts';
 import {createResidentRouter} from './routes.ts';
+import {createResidentLayeredRouter,type ResidentSurfaces} from './layered-routes.ts';
 import {residentShift,type ResidentRole,type ResidentRoute,type ResidentPoint} from './schedule.ts';
 import type {LifeHome,LifeJob} from './capabilities.ts';
 
@@ -23,7 +24,7 @@ export interface ResidentAssignmentPlanner {
 const hypot=(a:ResidentPoint,b:ResidentPoint)=>Math.hypot(a.x-b.x,a.z-b.z);
 export function createResidentAssignmentPlanner(
   paths:readonly ResidentPath[],terrain:GroundRouteContext,
-  options:{maxOccupantsPerHome?:number;maxNodes?:number;maxRouteM?:number;dayLengthSeconds?:number;residentSpeed?:number;blocked?:(x:number,z:number)=>boolean}={},
+  options:{maxOccupantsPerHome?:number;maxNodes?:number;maxRouteM?:number;dayLengthSeconds?:number;residentSpeed?:number;surfaces?:ResidentSurfaces;blocked?:(x:number,z:number)=>boolean}={},
 ):ResidentAssignmentPlanner{
   const occupancy=new Map<string,number>(),jobOccupants=new Map<string,number>(),cache=new Map<string,ResidentRoute|null>();
   const homeLimit=Math.max(1,Math.min(6,Math.floor(options.maxOccupantsPerHome??2)));
@@ -35,7 +36,7 @@ export function createResidentAssignmentPlanner(
     return Number.isFinite(height)&&Number.isFinite(previous)&&height>terrain.seaLevel+1&&
       (d<.001||Math.abs(height-previous)/d<=.4)&&!options.blocked?.(x,z);
   };
-  const router:ResidentRouter=createResidentRouter(paths,safe,options.maxNodes??16000);
+  const router:ResidentRouter=options.surfaces&&paths.some(path=>path.supportId)?createResidentLayeredRouter(paths,safe,options.surfaces,options.maxNodes??16000):createResidentRouter(paths,safe,options.maxNodes??16000);
   function route(home:LifeHome,job:LifeJob):ResidentRoute|null{
     const key=home.id+'|'+job.id;
     if(!cache.has(key)){
