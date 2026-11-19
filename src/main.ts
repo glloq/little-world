@@ -348,6 +348,15 @@ const npcs = createNPCSystem(scene, definition.npcs,isLegacyTerrain()?undefined:
   },
 });
 npcActorActions=npcs;
+if(gameplay){
+  const {generateResidentSocialQuestOffers}=await import('./quests/generator.ts');
+  // No new graph: offers are created only from existing qualified resident
+  // paths and gameplay dialogues. The historical social objective is preserved.
+  const offers=generateResidentSocialQuestOffers(definition.npcs,gameplay.runtime.data,
+    activeIsland?.id??playable!.gameplay.worldId,
+    (from,to)=>npcs.qualifyQuestRoute(from,to));
+  gameplay.quests.registerOffers(offers);
+}
 npcs.setLighting(world.atlasIllumination);
 gameplay?.attachNPCs(npcs.states);
 // A single durable cargo ledger covers the published offline archipelago; its author
