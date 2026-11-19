@@ -144,3 +144,33 @@ Cartes : hameau 3–5 maisons, village agricole, forêt, montagne avec pont, por
 - Deux événements métier distincts évitent les faux comptes : `workshop.collected` compte les **lots de recette** (`job.batches`) ; `workshop.item-collected` compte les **quantités de produits réellement crédités** pour les objectifs d'acquisition d'items. `QuestStepV1.craft` et `QuestStepV1.acquire(source=craft)` sont ainsi indépendants.
 - Couverture : `tests/quests-progress.test.mjs` vérifie le comptage différencié et la station exacte ; `tests/economy-workshops.test.mjs` prouve le callback unique après transaction réussie, et son absence en cas de sac plein/rejeu.
 - Les producteurs bateau/ferry, ski, commerce vendeur PNJ, contrats régionaux et édition complète de quêtes restent hors de ce lot ; ne pas prétendre que le générateur est universel.
+
+## 2026-11-19 — Intégration F04 économie PNJ / F07 Studio quêtes / F06 voyages
+
+### F04 — Économie PNJ liée au gameplay
+
+- `src/npc-life/economy.ts` fournit des comptes d'atelier PNJ V1 séparés du sac du joueur : provenance du résident/poste, inventaire borné, états d'atelier validés, production `startProduction/advanceWorkshop/collectProduction` déjà utilisés par les ateliers du joueur. Les frais de fabrication sont effectivement débités en **pièces**, les ingrédients sont débités avant toute production, le stock plein bloque la récupération et aucun geste animé n'accorde d'objet.
+- `src/npc-life/economy-runtime.ts` sélectionne uniquement les résidents avec un poste existant et positionné (meunier, artisan, forgeron), fait évoluer les tâches par **minute de jeu**, ne commence une recette que si le résident est au poste, possède matières premières ET frais, et conserve les résultats dans le stock du PNJ.
+- `GameSaveV2.npcWorkshops?` sauvegarde séparément ces comptes sous une limite stricte de 32. `game-view.ts` propose des commandes explicites pour fournir les matières premières et acheter le produit fini auprès du résident à portée et sans occlusion, via `runtime.grantItems` transactionnel. Les dialogues natifs affichent les propositions disponibles selon le stock et les prix de l'île.
+- Tests : `tests/npc-life-economy.test.mjs`, `tests/npc-life-economy-runtime.test.mjs`, `tests/quests-dialogue.test.mjs`.
+- **Limite actuelle :** matière/monnaie fournies par des transactions du joueur, pas encore de simulation agricole/forestière/haliéutique autonome PNJ avec collecte native ; pas de stock marchand universel entre tous les métiers.
+
+### F07 — Éditeur de quêtes réellement compilé dans Studio
+
+- `ProjectLibraries.questCatalog?` : offres versionnées stockées dans le projet V3, validation fermée via `parseQuestCatalogEntry`, Undo/Redo Studio natifs, source conservée dans export ZIP et intégration au `compiled-logic`. `PlayableWorld.questCatalog?` est validé à la lecture et chargé prioritairement aux missions générées par défaut.
+- Module **Quêtes** dans `studio/shell.ts` : titre, donneur, étapes ordonnées, portée, quantités, objets, provenance/îles, livraisons, fabrication, courses, ferry et récompenses. Édition JSON avancée pour la totalité du contrat et récompenses multiples avec refus des scripts/champs inconnus.
+- Les PNJ étrangers sont référencés par ID et île distante explicite : Studio ne les invente pas dans la carte locale. Après compilation, l'ID du monde source est projeté sur l'ID de l'île publiée si différent.
+- Tests : `tests/quests-studio-authoring.test.mjs`, extension de `tests/studio-compiler.test.mjs`.
+- **Limite actuelle :** vérification de structure et références locales ; la solvabilité distante (existence effective du PNJ, trajet, ferry, ressources) exige l'installation des îles publiées et un playtest multi-îles. Aucune promesse de résolution universelle sans preuves.
+
+### F06 — Quêtes enchaînées à travers de véritables traversées
+
+- `QuestStepV1.travel` exige `fromIslandId` et `toIslandId` distincts ; `talk/visit/deliver/craft/race/event` acceptent une île explicitement ciblée. Une étape ne progresse que par un événement natif de son île ; le voyage est validé **à l'arrivée** via `ferry.arrived`, pas à l'appui du bouton ni sur une animation.
+- Le transfert ferry transporte un dictionnaire de quêtes strictement validées dans `TravelerState.questsPortable?` et le checkpoint portable (ancienne enveloppe sans ce champ toujours compatible). Les événements de quêtes sont désormais identifiés avec l'île et leur compteur pour éviter des collisions entre deux séquences locales.
+- À l'arrivée, les quêtes voyageuses sont réconciliées avec les quêtes du slot de destination, puis l'événement d'arrivée est émis après la restauration. Les quêtes étrangères ne sont pas suspendues au seul motif que leur donneur se trouve sur une île non chargée.
+- Test `tests/quests-archipelago.test.mjs` : A→B→A, étape de rencontre sur B, faux voyage rejeté, récompense une seule fois au retour.
+- **Limite actuelle :** il reste à tester le scénario complet dans Chromium avec deux îles publiées et une interruption de navigation/rechargement. Ce code ne constitue pas une synchronisation multijoueur distribuée ni une transaction multi-onglets.
+
+### Critère de validation
+
+Maintenir la PR #100 en brouillon tant que la CI **du dernier SHA** ne réussit pas intégralement : Node, build TypeScript/Vite, checks des fixtures et matrice navigateurs. Ne pas fusionner `main` de force. Le statut de ce document indique le niveau d'implémentation, pas une qualification de performance terrain.
