@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {shouldPreventGameplayKeyDefault,shouldSuppressGameplayContextMenu,flightBoostHeld,flightPitchIntent} from '../src/input/gameplay-input.ts';
+import {shouldPreventGameplayKeyDefault,shouldSuppressGameplayContextMenu,flightBoostHeld,flightPitchIntent,shiftTogglesRoll} from '../src/input/gameplay-input.ts';
 
 test('gameplay captures Space and arrows, but leaves menus, text editing and other keys native',()=>{
   for(const code of ['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight']){
@@ -31,9 +31,17 @@ test('Shift / touch acceleration can launch while still, double-jump in air and 
   for(const mode of ['roll','climb']){
     assert.equal(flightBoostHeld(mode,true,true),false,mode);
   }
-  for(const mode of ['ground','air','glide','swim','dive']){
+  assert.equal(flightBoostHeld('ground',true,false),false,'Shift on ground toggles roll, never boost');
+  assert.equal(flightBoostHeld('ground',false,true),true,'touch retains ground acceleration');
+  for(const mode of ['air','glide','swim','dive']){
     assert.equal(flightBoostHeld(mode,false,false),false,mode);
     assert.equal(flightBoostHeld(mode,true,false),true,mode);
     assert.equal(flightBoostHeld(mode,false,true),true,mode);
   }
+});
+
+test('Shift toggles roll on ground but remains flight boost in air',()=>{
+ assert.equal(shiftTogglesRoll('ground'),true);
+ assert.equal(shiftTogglesRoll('roll'),true);
+ for(const mode of ['air','glide','swim','dive','snow','surf','climb'])assert.equal(shiftTogglesRoll(mode),false,mode);
 });
