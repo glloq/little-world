@@ -19,6 +19,7 @@ try{
  const context=await browser.newContext({viewport:{width:1280,height:720}});
  page=await context.newPage();
  const errors=[];page.on('pageerror',e=>errors.push(String(e)));
+ page.on('console',m=>{if(m.type()==='error'&&/shader|webgl|program/i.test(m.text()))errors.push(m.text().slice(0,400));});
  await page.goto(base,{waitUntil:'domcontentloaded'});
  await page.locator('#start-overlay').waitFor({state:'hidden',timeout:120000});
  await page.waitForFunction(()=>window.littleWorldMetrics?.frameId>15,{},{timeout:120000});

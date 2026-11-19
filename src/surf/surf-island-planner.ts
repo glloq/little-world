@@ -19,9 +19,9 @@ export interface SurfIslandLayout {
  warnings:string[];
 }
 const styles={
- A:{label:'A · Initiation',amplitude:.65,wavelength:25,speed:4.5,barrelStrength:0},
- B:{label:'B · Grandes vagues',amplitude:1.45,wavelength:36,speed:6.3,barrelStrength:1},
- C:{label:'C · Acrobaties',amplitude:1.65,wavelength:29,speed:8,barrelStrength:.6},
+ A:{label:'A · Initiation',amplitude:.65,wavelength:25,speed:4.5,barrelStrength:0,style:'gentle'},
+ B:{label:'B · Grandes vagues',amplitude:1.45,wavelength:36,speed:6.3,barrelStrength:1,style:'tubular'},
+ C:{label:'C · Acrobaties',amplitude:1.65,wavelength:29,speed:8,barrelStrength:.6,style:'fast'},
 } as const;
 const inBounds=(b:SurfBounds,x:number,z:number,m=3)=>x>=b.minX+m&&x<=b.maxX-m&&z>=b.minZ+m&&z<=b.maxZ-m;
 const depth=(h:(x:number,z:number)=>number,s:number,x:number,z:number)=>s-h(x,z);
@@ -61,7 +61,7 @@ export function planThreeSurfBeaches(ground:(x:number,z:number)=>number,
   if(!site){warnings.push('Plage '+name+' : aucune bande côtière libre et séparée.');continue;}
   const zone=validateSurfZone({...site.zone,id:'surf:island-'+name.toLowerCase()+'-'+seed,
    seed:seed+name.charCodeAt(0),amplitude:pref.amplitude,wavelength:pref.wavelength,
-   speed:pref.speed,barrelStrength:pref.barrelStrength});
+   speed:pref.speed,barrelStrength:pref.barrelStrength,style:pref.style});
   const d=zone,startPoint=site.start,run=surfDemoRun(site);
   const gates:RaceGate[]=[0,.33*run,.66*run,run].map((distance,i)=>({
    id:'surf-'+name.toLowerCase()+'-gate-'+(i+1),

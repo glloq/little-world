@@ -198,7 +198,7 @@ function validateLibraries(value:unknown,world:WorldDefinitionV3,entityIds:strin
   if(libs.alpine!==undefined){const areas=dictionary(libs.alpine,'Zones alpines',1);if(Object.keys(areas).length!==1)throw Error('Une zone alpine requise dans cette bibliothèque');for(const [id,area]of Object.entries(areas))if(parseSkiArea(area,world.bounds).id!==id)throw Error('Zone alpine : identifiant différent de la clé');}
   if(libs.races!==undefined)for(const [id,race]of Object.entries(dictionary(libs.races,'Bibliothèque courses',64))){if(validateAuthoredRace(race,world).id!==id)throw Error('Bibliothèque courses : ID différent de la clé');}
   if(libs.surfZones!==undefined)for(const [id,raw]of Object.entries(dictionary(libs.surfZones,'Zones surf',32))){
-    const zone=object(raw,'Zone surf');keys(zone,['id','minX','maxX','minZ','maxZ','dirX','dirZ','seaLevel','amplitude','wavelength','speed','seed','shoreFadeDepth','edgeFade','barrelStrength'],'Zone surf');
+    const zone=object(raw,'Zone surf');keys(zone,['id','minX','maxX','minZ','maxZ','dirX','dirZ','seaLevel','amplitude','wavelength','speed','seed','shoreFadeDepth','edgeFade','barrelStrength','style'],'Zone surf');
     validateSurfZone(zone as unknown as SurfZone);
     if(zone.id!==id||(zone.minX as number)<world.bounds.minX||(zone.maxX as number)>world.bounds.maxX||
       (zone.minZ as number)<world.bounds.minZ||(zone.maxZ as number)>world.bounds.maxZ||

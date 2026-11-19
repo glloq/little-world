@@ -3,7 +3,8 @@
  * this inexpensive analytic arch owns the playable overhead clearance.
  * Nothing changes the flat water datum used by boats, fishing or swimming. */
 import type {SurfActor} from './surf-controller.ts';
-import type {SurfWaveField,SurfZone} from './wave-field.ts';
+import {surfSwellCoefficients,surfSwellModulation,type SurfSwellCoefficients,type SurfWaveField,type SurfZone} from './wave-field.ts';
+import {crestPhase,surfWaveShape,type SurfWaveShape} from './wave-shape.ts';
 
 export const BARREL_TICK_HZ=30;
 const TAU=2*Math.PI;
@@ -19,8 +20,62 @@ const smooth=(a:number,b:number,n:number)=>{
  const t=clamp((n-a)/(b-a),0,1);return t*t*(3-2*t);
 };
 export const barrelEnabled=(zone:SurfZone)=> (zone.barrelStrength??0)>0;
+// Per-zone static data (crest phase of the zone's swell shape), computed once.
+const zoneCache=new WeakMap<SurfZone,{coefficients:SurfSwellCoefficients;crestPhase:number;
+ peel:SurfWaveShape['peel'];peelSign:1|-1;peelSeed:number}>();
+function zoneData(zone:SurfZone){
+ let data=zoneCache.get(zone);
+ if(!data){
+  const coefficients=surfSwellCoefficients(zone),peel=surfWaveShape(zone.style).peel;
+  // The lip forms where shoaling is already well developed (breaking band).
+  data={coefficients,crestPhase:coefficients.classic?BARREL_CREST_PHASE:
+   crestPhase(coefficients.skew+coefficients.shoal*.6,coefficients.sharpness),
+   peel,peelSign:zone.seed%2===0?1:-1,peelSeed:peel?((zone.seed*31+7)%997)/997*peel.period:0};
+  zoneCache.set(zone,data);
+ }
+ return data;
+}
+export type BarrelPeelState='none'|'shoulder'|'open'|'collapse';
+export interface BarrelPeelSample {factor:number;state:BarrelPeelState;
+ /** Signed distance ahead of the breaking point along the peel direction (m). */
+ ahead:number;sign:1|-1;speed:number}
+const smooth01=(v:number)=>{const t=clamp(v,0,1);return t*t*(3-2*t);};
+/** Lateral breaking of one crest: the open tube travels along the crest at the peel speed,
+ * a rising shoulder ahead of it, a closing section and whitewater behind. Every crest starts
+ * from a different deterministic point. Classic/gentle/long zones: always fully open. */
+export function barrelPeel(zone:SurfZone,x:number,z:number,tick:number,waveIndex:number):BarrelPeelSample{
+ const d=zoneData(zone),peel=d.peel;
+ if(!peel)return {factor:1,state:'none',ahead:0,sign:1,speed:0};
+ const across=-zone.dirZ*x+zone.dirX*z,period=peel.period;
+ // Exact integer-tick modulo keeps long sessions precise and deterministic.
+ const travelled=((peel.speed*tick)%(period*BARREL_TICK_HZ))/BARREL_TICK_HZ;
+ const waveShift=(((waveIndex*.381966)%1)+1)%1*period;
+ const position=d.peelSeed+waveShift+travelled;
+ let ahead=(d.peelSign*across-position)%period;
+ if(ahead<-period/2)ahead+=period;else if(ahead>=period/2)ahead-=period;
+ let factor:number,state:BarrelPeelState;
+ if(ahead>=0){factor=1-smooth01(ahead/peel.shoulder);state='shoulder';}
+ else if(ahead>=-peel.open){factor=1;state='open';}
+ else {factor=1-smooth01((-ahead-peel.open)/peel.collapse);state='collapse';}
+ return {factor,state,ahead,sign:d.peelSign,speed:peel.speed};
+}
+export const barrelPeelParameters=(zone:SurfZone)=>zoneData(zone).peel;
+/** Presentation helper (fractional render ticks allowed): peel direction and the break-point
+ * origin before the per-crest shift, i.e. barrelPeel's `position` minus its wave shift. */
+export function barrelPeelOrigin(zone:SurfZone,ticks:number):{sign:1|-1;origin:number}{
+ const d=zoneData(zone),peel=d.peel;
+ if(!peel)return {sign:1,origin:0};
+ const travelled=((peel.speed*ticks)%(peel.period*BARREL_TICK_HZ))/BARREL_TICK_HZ;
+ return {sign:d.peelSign,origin:(d.peelSeed+travelled)%peel.period};
+}
+/** Phase of the swell maximum for this zone (historical constant for classic zones). */
+export const barrelCrestPhase=(zone:SurfZone)=>zoneData(zone).crestPhase;
 export function barrelPhaseOffset(zone:SurfZone):number{
- return (BARREL_CREST_PHASE-(zone.seed%4093)/4093*TAU)/TAU;
+ return (zoneData(zone).crestPhase-(zone.seed%4093)/4093*TAU)/TAU;
+}
+/** Wave-set / crest-peak modulation of the tube size (exactly 1 for classic zones). */
+export function barrelModulation(zone:SurfZone,x:number,z:number,tick:number):number{
+ return surfSwellModulation(zone,zoneData(zone).coefficients,x,z,tick);
 }
 /** Scalar position along the wave travel vector for a given fixed-tick crest. */
 export function barrelCrestAlong(zone:SurfZone,tick:number,index:number):number{
@@ -58,6 +113,8 @@ export function barrelProfile(zone:SurfZone,x:number,z:number,ground:(x:number,z
 }
 export interface BarrelSample extends BarrelProfile {
  waveIndex:number;crestAlong:number;distance:number;
+ /** Lateral breaking state at this point ('none' on historical full-width lips). */
+ peel:BarrelPeelState;
  /** Clear vertical space above the logical surf surface at this x,z. */
  clearance:number;
 }
@@ -69,8 +126,13 @@ export function sampleSurfBarrel(field:SurfWaveField,ground:(x:number,z:number)=
  const crest=nearestBarrelCrest(field.zone,x,z,tick);
  if(Math.abs(crest.distance)>profile.radius)return null;
  const norm=crest.distance/profile.radius;
- const clearance=profile.height*Math.sqrt(Math.max(0,1-norm*norm));
- return {...profile,...{waveIndex:crest.index,crestAlong:crest.crestAlong,distance:crest.distance,clearance}};
+ // Bigger set waves and crest peaks open taller tubes; smaller ones close out sooner.
+ const peel=barrelPeel(field.zone,x,z,tick,crest.index);
+ const height=peel.state==='none'?profile.height*barrelModulation(field.zone,x,z,tick):
+  profile.height*barrelModulation(field.zone,x,z,tick)*peel.factor;
+ const clearance=height*Math.sqrt(Math.max(0,1-norm*norm));
+ return {...profile,height,...{waveIndex:crest.index,crestAlong:crest.crestAlong,distance:crest.distance,
+  peel:peel.state,clearance}};
 }
 export interface SurfBarrelActor extends SurfActor {
  barrelWaveIndex?:number;
@@ -106,6 +168,14 @@ export function stepSurfBarrel(actor:SurfBarrelActor,field:SurfWaveField,
  }
  // An active ride is bound to one moving crest. A different wave is never a completion.
  if(sample&&sample.waveIndex===actor.barrelWaveIndex){
+  if(sample.clearance<SURFER_CLEARANCE&&sample.peel==='shoulder'){
+   // Riding out of the open end onto the unbroken shoulder: the classic tube exit.
+   const travelled=Math.abs(across-(actor.barrelEntryAcross??across))>=ESCAPE_DISTANCE*.6&&
+     tick-(actor.barrelEntryTick??tick)>=ESCAPE_TICKS;
+   if(travelled){actor.barrelSuccessSeq=(actor.barrelSuccessSeq??0)+1;actor.barrelCooldownUntilTick=tick+COOLDOWN_TICKS;}
+   actor.barrelEntryTick=undefined;actor.barrelWaveIndex=undefined;actor.barrelEntryAcross=undefined;
+   return travelled?'escaped':'none';
+  }
   if(sample.clearance<SURFER_CLEARANCE){
    actor.mode='swim';actor.surfStage=undefined;actor.surfAirborne=false;
    actor.velocity.x*=.4;actor.velocity.z*=.4;actor.velocity.y=0;

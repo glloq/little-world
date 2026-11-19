@@ -4,6 +4,7 @@ import {projectRaceTerrainEnvironment} from '../studio-core/race-terrain-context
 import {planThreeSurfBeaches} from '../surf/surf-island-planner.ts';
 import {putAuthoredRace} from '../studio-core/race-authoring.ts';
 import {validateSurfZone,type SurfZone} from '../surf/wave-field.ts';
+import type {SurfWaveStyle} from '../surf/wave-shape.ts';
 import {validateSurfFeature,type SurfFeature, type SurfFeatureKind} from '../surf/surf-features.ts';
 import type {StudioSession} from './session.ts';
 import type {StudioViewport} from './viewport/editor-viewport.ts';
@@ -16,11 +17,16 @@ const dirs:[string,string,number,number][]=[
  ['east','Vers l’est',1,0],['west','Vers l’ouest',-1,0]
 ];
 const presets={
- gentle:{amplitude:.65,wavelength:25,speed:4.5},
- rolling:{amplitude:1.2,wavelength:32,speed:6.2},
- power:{amplitude:2,wavelength:42,speed:7.8},
- arcade:{amplitude:1.5,wavelength:24,speed:8.5}
+ gentle:{amplitude:.65,wavelength:25,speed:4.5,style:'gentle'},
+ rolling:{amplitude:1.2,wavelength:32,speed:6.2,style:'long'},
+ power:{amplitude:2,wavelength:42,speed:7.8,style:'powerful'},
+ arcade:{amplitude:1.5,wavelength:24,speed:8.5,style:'fast'}
 } as const;
+/** Swell shapes (wave-shape.ts). 'classic' = historical profile of older maps. */
+const styleLabels:readonly (readonly [SurfWaveStyle,string])[]=[
+ ['classic','Classique (historique)'],['gentle','Houle douce'],['long','Vagues longues'],
+ ['fast','Vagues rapides'],['powerful','Vagues puissantes'],['tubular','Vagues tubulaires'],
+ ['shorebreak','Shorebreak (bord de plage)']];
 export function mountSurfPanel(host:HTMLElement,ctx:SurfPanelContext):void{
  const p=ctx.session.document,zones=Object.values(p.libraries.surfZones??{});
  host.append(node('div','SURF','kicker'),node('h3','Zones de vagues'),
@@ -111,7 +117,8 @@ export function mountSurfPanel(host:HTMLElement,ctx:SurfPanelContext):void{
      field('Hauteur des vagues (m)',numberInput(zone.amplitude,v=>update({amplitude:v}),.05,5)),
      field('Longueur d’onde (m)',numberInput(zone.wavelength,v=>update({wavelength:v}),4,120)),
      field('Vitesse front (m/s)',numberInput(zone.speed,v=>update({speed:v}),.5,22)),
-     field('Intensité du tube 3D (0 = aucun)',numberInput(zone.barrelStrength??0,v=>update({barrelStrength:v}),0,1)));
+     field('Intensité du tube 3D (0 = aucun)',numberInput(zone.barrelStrength??0,v=>update({barrelStrength:v}),0,1)),
+     field('Forme de la houle',select(zone.style??'classic',styleLabels,v=>update({style:v as SurfWaveStyle}))));
    list.append(row);
  }
  if(!zones.length)list.append(node('p','Aucune zone de surf : les eaux restent calmes et leur physique historique est conservée.','muted'));

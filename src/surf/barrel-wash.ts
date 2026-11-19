@@ -69,7 +69,8 @@ export function stepBarrelWash(actor:BarrelWashActor,field:SurfWaveField,
  if(!(actor.barrelTumbleRemaining&&actor.barrelTumbleRemaining>0)&&
     tick>=(actor.barrelTumbleCooldownUntilTick??0)){
    const sample=sampleSurfBarrel(field,ground,actor.position.x,actor.position.z,tick);
-   if(sample&&sample.intensity>=BARREL_WASH.minIntensity)
+   // The unbroken shoulder ahead of a peeling tube is not whitewater yet.
+   if(sample&&sample.intensity>=BARREL_WASH.minIntensity&&sample.peel!=='shoulder')
      caught=startBarrelWash(actor,zone,tick,diveHeld);
  }
  const before=actor.barrelTumbleRemaining??0;

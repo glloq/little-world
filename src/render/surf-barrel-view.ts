@@ -1,14 +1,20 @@
-/** Low-poly curling lip at the shore break. A single dynamic vertex buffer draws
- * up to four wave crests; it never changes the logical water datum or surf movement.
- * No fluid simulation, render targets or new image assets. */
+/** Low-poly curling lip at the shore break (visual only: surf-barrel.ts owns the volume).
+ * One dynamic vertex buffer draws up to four crests with one lit, flat-shaded material.
+ * Between CPU rebuilds the vertex shader translates the lip with the swell, so it stays glued
+ * to the crest at any frame rate while rebuilds run at 7.5–30 Hz depending on distance.
+ * Terrain is sampled once into a compact cache over the breaking band (bilinear, visual only).
+ * No fluid simulation, render target, texture or per-crest Mesh. */
 import * as THREE from 'three';
-import type {SurfWaveField,SurfZone} from '../surf/wave-field.ts';
-import {BARREL_CREST_PHASE,barrelCrestAlong,barrelEnabled,barrelPhaseOffset,barrelProfile} from '../surf/surf-barrel.ts';
+import {SURF_TICK_HZ,surfSwellCoefficients,type SurfWaveField,type SurfZone} from '../surf/wave-field.ts';
+import {barrelCrestAlong,barrelCrestPhase,barrelEnabled,barrelModulation,barrelPeel,
+ barrelPeelParameters,barrelPhaseOffset,barrelProfile} from '../surf/surf-barrel.ts';
+import {inCameraView} from './surf-render-stats.ts';
 
 const MAX_FRONTS=4;
 const ALONG_SEGMENTS=30;
 const CURL_SEGMENTS=10;
 const VERTICES_PER_FRONT=(ALONG_SEGMENTS+1)*(CURL_SEGMENTS+1);
+const INDICES_PER_FRONT=ALONG_SEGMENTS*CURL_SEGMENTS*6;
 const TAU=2*Math.PI;
 const smooth=(n:number)=>{const t=Math.max(0,Math.min(1,n));return t*t*(3-2*t);};
 
@@ -32,20 +38,73 @@ export function surfBarrelBand(zone:SurfZone,ground:(x:number,z:number)=>number)
  }
  return min<Infinity?{min:min-zone.wavelength*.15,max:max+zone.wavelength*.15}:null;
 }
+/** Visual-only bathymetry cache of the breaking band: intensity, opening, swell envelope.
+ * Spatially bounded (band × zone width), built once, rebuilt by invalidate(). */
+export interface SurfBarrelCache {
+ sample(along:number,across:number,out:{intensity:number;opening:number;envelope:number;breaking:number}):void;
+ readonly nodes:number;
+}
+export function createSurfBarrelCache(zone:SurfZone,ground:(x:number,z:number)=>number,
+ band:{min:number;max:number}):SurfBarrelCache{
+ const t=projectedBounds(zone,-zone.dirZ,zone.dirX);
+ const stepA=1.25,stepC=2;
+ const na=Math.max(1,Math.ceil((band.max-band.min)/stepA)),nc=Math.max(1,Math.ceil((t.max-t.min)/stepC));
+ const data=new Float32Array((na+1)*(nc+1)*4);
+ const fade=zone.shoreFadeDepth??3,edge=zone.edgeFade??12;
+ for(let i=0;i<=na;i++)for(let j=0;j<=nc;j++){
+  const along=band.min+(band.max-band.min)*i/na,across=t.min+(t.max-t.min)*j/nc;
+  const x=zone.dirX*along-zone.dirZ*across,z=zone.dirZ*along+zone.dirX*across;
+  const p=barrelProfile(zone,x,z,ground),o=(i*(nc+1)+j)*4;
+  const margin=Math.min(x-zone.minX,zone.maxX-x,z-zone.minZ,zone.maxZ-z);
+  const depth=zone.seaLevel-ground(x,z);
+  data[o]=p?.intensity??0;data[o+1]=p?.opening??0;
+  data[o+2]=Number.isFinite(depth)&&depth>.05&&margin>0?smooth(depth/fade)*smooth(margin/edge):0;
+  data[o+3]=Number.isFinite(depth)?1-smooth(depth/(fade*1.4)):1;
+ }
+ return {nodes:(na+1)*(nc+1),sample(along,across,out){
+  const u=Math.max(0,Math.min(na,(along-band.min)/(band.max-band.min)*na));
+  const v=Math.max(0,Math.min(nc,(across-t.min)/(t.max-t.min)*nc));
+  const i=Math.min(na-1,Math.floor(u)),j=Math.min(nc-1,Math.floor(v)),fu=u-i,fv=v-j;
+  const o00=(i*(nc+1)+j)*4,o01=o00+4,o10=o00+(nc+1)*4,o11=o10+4;
+  const mix=(k:number)=>(data[o00+k]*(1-fv)+data[o01+k]*fv)*(1-fu)+(data[o10+k]*(1-fv)+data[o11+k]*fv)*fu;
+  // Outside the band nothing breaks (no extrapolation).
+  const inside=along>=band.min&&along<=band.max;
+  out.intensity=inside?mix(0):0;out.opening=inside?mix(1):0;out.envelope=mix(2);out.breaking=mix(3);
+ }};
+}
 
+export interface SurfBarrelStats {vertices:number;triangles:number;activeFronts:number;activeSections:number;
+ uploadBytes:number;rebuilds:number;drawnTriangles:number;cacheNodes:number;maxFronts:number}
+export interface SurfBarrelUpdateOptions {alpha?:number;camera?:THREE.Camera}
 export interface SurfBarrelView {
  readonly mesh:THREE.Mesh;
- readonly stats:{vertices:number;triangles:number;activeFronts:number;activeSections:number;uploadBytes:number};
- update(tick:number,focus:{x:number;z:number}):void;
+ readonly stats:SurfBarrelStats;
+ update(tick:number,focus:{x:number;z:number},options?:SurfBarrelUpdateOptions):void;
+ /** Quality profile: number of crests drawn (1 Low, 2 Medium, 4 HQ). */
+ setMaxFronts(count:number):void;
+ /** Rebuild the bathymetry cache after an authoring edit of the terrain. */
+ invalidate(ground?:(x:number,z:number)=>number):void;
  dispose():void;
+}
+/** Lip palette along the curl (0 back base → 0.5 crest → 1 thrown tip), linear working space:
+ * deep back, bright crest foam where the lip pitches, translucent turquoise curtain. */
+const RING_STOPS:readonly [number,number][]=[[0,0x1f7487],[.3,0x2f9aa6],[.44,0x9fdcd4],[.54,0xf2fbf7],
+ [.66,0x9ad9d1],[.82,0x4cb8b6],[1,0x3aa6ac]];
+const RING_COLORS=RING_STOPS.map(([,c])=>new THREE.Color(c));
+function ringColor(u:number,out:THREE.Color){
+ const x=Math.max(0,Math.min(1,u));let i=0;
+ while(i<RING_STOPS.length-2&&x>RING_STOPS[i+1][0])i++;
+ const t=(x-RING_STOPS[i][0])/(RING_STOPS[i+1][0]-RING_STOPS[i][0]);
+ return out.copy(RING_COLORS[i]).lerp(RING_COLORS[i+1],smooth(t));
 }
 export function createSurfBarrelView(parent:THREE.Object3D,
  field:SurfWaveField,ground:(x:number,z:number)=>number):SurfBarrelView {
- const zone=field.zone;
+ const zone=field.zone,q=surfSwellCoefficients(zone),peel=barrelPeelParameters(zone);
  const band=surfBarrelBand(zone,ground);
+ let cache=band?createSurfBarrelCache(zone,ground,band):null;
  const positions=new Float32Array(MAX_FRONTS*VERTICES_PER_FRONT*3);
  const colors=new Float32Array(positions.length);
- const indices=new Uint16Array(MAX_FRONTS*ALONG_SEGMENTS*CURL_SEGMENTS*6);
+ const indices=new Uint16Array(MAX_FRONTS*INDICES_PER_FRONT);
  let cursor=0;
  for(let front=0;front<MAX_FRONTS;front++)
   for(let j=0;j<ALONG_SEGMENTS;j++)for(let k=0;k<CURL_SEGMENTS;k++){
@@ -53,80 +112,165 @@ export function createSurfBarrelView(parent:THREE.Object3D,
    const b=a+CURL_SEGMENTS+1;
    indices.set([a,b,a+1,b,b+1,a+1],cursor);cursor+=6;
   }
- const foam=new THREE.Color(0xd6f5ee),deep=new THREE.Color(0x187a91);
+ const scratch=new THREE.Color();
  for(let front=0;front<MAX_FRONTS;front++)
-  for(let j=0;j<=ALONG_SEGMENTS;j++)for(let k=0;k<=CURL_SEGMENTS;k++){
-   const index=front*VERTICES_PER_FRONT+j*(CURL_SEGMENTS+1)+k;
-   const color=deep.clone().lerp(foam,smooth((k/CURL_SEGMENTS-.72)/.24));
-   color.toArray(colors,index*3);
-  }
+  for(let j=0;j<=ALONG_SEGMENTS;j++)for(let k=0;k<=CURL_SEGMENTS;k++)
+   ringColor(k/CURL_SEGMENTS,scratch).toArray(colors,(front*VERTICES_PER_FRONT+j*(CURL_SEGMENTS+1)+k)*3);
  const geometry=new THREE.BufferGeometry();
  const positionAttribute=new THREE.BufferAttribute(positions,3).setUsage(THREE.DynamicDrawUsage);
  geometry.setAttribute('position',positionAttribute);
  geometry.setAttribute('color',new THREE.BufferAttribute(colors,3));
  geometry.setIndex(new THREE.BufferAttribute(indices,1));
- const material=new THREE.MeshBasicMaterial({vertexColors:true,side:THREE.DoubleSide,depthWrite:true});
+ geometry.boundingSphere=new THREE.Sphere(new THREE.Vector3(),1);
+ geometry.setDrawRange(0,0);
+ const advance={value:new THREE.Vector2()};
+ const material=new THREE.MeshLambertMaterial({vertexColors:true,side:THREE.DoubleSide,flatShading:true});
+ material.name='SurfBarrelMaterial';
+ material.onBeforeCompile=shader=>{
+  shader.uniforms.uLipAdvance=advance;
+  shader.vertexShader='uniform vec2 uLipAdvance;\n'+shader.vertexShader.replace('#include <begin_vertex>',
+   '#include <begin_vertex>\ntransformed.xz+=uLipAdvance;');
+  // Thin lip: light passing through it (cheap translucency, strongest on the cavity side).
+  shader.fragmentShader=shader.fragmentShader.replace('#include <emissivemap_fragment>',
+   '#include <emissivemap_fragment>\ntotalEmissiveRadiance+=diffuseColor.rgb*(gl_FrontFacing?.12:.55);');
+ };
+ material.customProgramCacheKey=()=>'little-world-surf-lip-v2';
  const mesh=new THREE.Mesh(geometry,material);
- mesh.name='SurfBarrelLip';mesh.frustumCulled=false;mesh.renderOrder=4;mesh.visible=false;
+ mesh.name='SurfBarrelLip';mesh.frustumCulled=true;mesh.renderOrder=4;mesh.visible=false;
  parent.add(mesh);
- const stats={vertices:positions.length/3,triangles:indices.length/3,activeFronts:0,activeSections:0,uploadBytes:0};
- let lastTick=-1;
- function update(tick:number,focus:{x:number;z:number}):void{
-  stats.uploadBytes=0;
-  if(tick===lastTick)return;
-  if(!Number.isSafeInteger(tick)||tick<0)throw Error('Tick maillage de tube invalide');
-  lastTick=tick;
-  stats.activeFronts=0;stats.activeSections=0;
-  if(!band){mesh.visible=false;return;}
-  // Breaking foam is visible only around the shore; distant beaches retain
-  // their static ocean and GPU waves without updating hundreds of curl vertices.
-  const dx=Math.max(zone.minX-focus.x,0,focus.x-zone.maxX),
-    dz=Math.max(zone.minZ-focus.z,0,focus.z-zone.maxZ);
-  if(Math.hypot(dx,dz)>280){mesh.visible=false;return;}
+ const stats:SurfBarrelStats={vertices:positions.length/3,triangles:indices.length/3,activeFronts:0,activeSections:0,
+  uploadBytes:0,rebuilds:0,drawnTriangles:0,cacheNodes:cache?.nodes??0,maxFronts:MAX_FRONTS};
+ // Static culling volume of the whole breaking band (zone rectangle × lip height).
+ const bandBox=new THREE.Mesh(new THREE.BufferGeometry());
+ {
+  const top=zone.seaLevel+(2+1.65*zone.amplitude)*1.5+zone.amplitude,bottom=zone.seaLevel-zone.amplitude*1.5;
+  bandBox.geometry.boundingSphere=new THREE.Sphere(new THREE.Vector3((zone.minX+zone.maxX)/2,(top+bottom)/2,(zone.minZ+zone.maxZ)/2),
+   Math.hypot(zone.maxX-zone.minX,zone.maxZ-zone.minZ,top-bottom)/2);
+  bandBox.updateMatrixWorld(true);
+ }
+ let builtTick=-1,maxFronts=MAX_FRONTS;
+ const cell={intensity:0,opening:0,envelope:0,breaking:0};
+ const box=new THREE.Box3(),point=new THREE.Vector3();
+ const tangent=projectedBounds(zone,-zone.dirZ,zone.dirX);
+ const shapeAt=(phase:number,breaking:number)=>{
+  const a=q.skew+q.shoal*breaking;
+  return Math.sin(phase)+a*Math.sin(2*phase)-q.sharpness*Math.cos(2*phase);
+ };
+ const crestPhase=barrelCrestPhase(zone);
+ /** Rebuild cadence in ticks: close lips every tick, distant ones at 7.5 Hz. */
+ const cadence=(distance:number)=>distance<45?1:distance<110?2:4;
+ function rebuild(tick:number,focus:{x:number;z:number}){
+  stats.rebuilds++;
   const focusAlong=zone.dirX*focus.x+zone.dirZ*focus.z;
   const focusAcross=-zone.dirZ*focus.x+zone.dirX*focus.z;
-  const base=zone.speed*tick/30+zone.wavelength*barrelPhaseOffset(zone);
-  const n0=Math.ceil((band.min-base)/zone.wavelength);
-  const n1=Math.floor((band.max-base)/zone.wavelength);
+  const base=zone.speed*tick/SURF_TICK_HZ+zone.wavelength*barrelPhaseOffset(zone);
+  const n0=Math.ceil((band!.min-base)/zone.wavelength);
+  const n1=Math.floor((band!.max-base)/zone.wavelength);
   const fronts:number[]=[];
   for(let n=n0;n<=n1;n++)fronts.push(n);
   fronts.sort((a,b)=>Math.abs(barrelCrestAlong(zone,tick,a)-focusAlong)-
                       Math.abs(barrelCrestAlong(zone,tick,b)-focusAlong));
-  fronts.length=Math.min(fronts.length,MAX_FRONTS);
-  const crossWindow=Math.min(145,Math.max(40,Math.hypot(zone.maxX-zone.minX,zone.maxZ-zone.minZ)));
-  const tangent=projectedBounds(zone,-zone.dirZ,zone.dirX);
-  const center=Math.max(tangent.min+crossWindow*.5,Math.min(tangent.max-crossWindow*.5,focusAcross));
-  for(let f=0;f<MAX_FRONTS;f++){
-   const frontS=f<fronts.length?barrelCrestAlong(zone,tick,fronts[f]):0;
-   let visibleSegments=0;
+  fronts.length=Math.min(fronts.length,maxFronts);
+  const fullWindow=Math.min(145,Math.max(40,Math.hypot(zone.maxX-zone.minX,zone.maxZ-zone.minZ)));
+  box.makeEmpty();
+  let written=0;
+  stats.activeFronts=0;stats.activeSections=0;
+  for(const n of fronts){
+   const frontS=barrelCrestAlong(zone,tick,n);
+   // Column window: whole visible crest (historical lip) or the nearest peeling section.
+   let from:number,to:number;
+   if(peel){
+    const probeX=zone.dirX*frontS-zone.dirZ*focusAcross,probeZ=zone.dirZ*frontS+zone.dirX*focusAcross;
+    const p=barrelPeel(zone,probeX,probeZ,tick,n);
+    // Break point (ahead = 0) of the peel instance nearest to the focus, in across coordinates.
+    const breakAcross=focusAcross-p.sign*p.ahead;
+    const behind=breakAcross-p.sign*(peel.open+peel.collapse),front=breakAcross+p.sign*peel.shoulder;
+    from=Math.min(behind,front);to=Math.max(behind,front);
+   }else{
+    const center=Math.max(tangent.min+fullWindow*.5,Math.min(tangent.max-fullWindow*.5,focusAcross));
+    from=center-fullWindow/2;to=center+fullWindow/2;
+   }
+   from=Math.max(from,tangent.min);to=Math.min(to,tangent.max);
+   if(to-from<2)continue;
+   let visibleSegments=0;const offset=written*VERTICES_PER_FRONT;
    for(let j=0;j<=ALONG_SEGMENTS;j++){
-    const across=center+crossWindow*(j/ALONG_SEGMENTS-.5);
-    const centerX=zone.dirX*frontS-zone.dirZ*across;
-    const centerZ=zone.dirZ*frontS+zone.dirX*across;
-    const profile=f<fronts.length?barrelProfile(zone,centerX,centerZ,ground):null;
-    const margin=profile?Math.min(centerX-zone.minX,zone.maxX-centerX,
-      centerZ-zone.minZ,zone.maxZ-centerZ):0;
-    const depth=profile?.depth??0;
-    const envelope=smooth(depth/(zone.shoreFadeDepth??3))*smooth(margin/(zone.edgeFade??12));
-    const sideFade=smooth(Math.min(j,ALONG_SEGMENTS-j)/2.5);
-    const radius=(profile?.radius??0)*sideFade;
-    const height=(profile?.height??0)*sideFade;
+    const across=from+(to-from)*j/ALONG_SEGMENTS;
+    const cx=zone.dirX*frontS-zone.dirZ*across,cz=zone.dirZ*frontS+zone.dirX*across;
+    cache!.sample(frontS,across,cell);
+    const intensity=cell.intensity;
+    const peelState=peel?barrelPeel(zone,cx,cz,tick,n):null;
+    const pf=peelState?peelState.factor:smooth(Math.min(j,ALONG_SEGMENTS-j)/2.5);
+    const m=barrelModulation(zone,cx,cz,tick);
+    const height=(2+1.65*zone.amplitude)*intensity*m*pf;
+    const radius=(.85+.9*zone.amplitude)*Math.sqrt(intensity)*(.55+.45*pf);
+    // Life cycle: forming (shoulder) → open throw → collapsing lip falling forward.
+    const opening=cell.opening*(peelState?.state==='collapse'?.35+.65*pf:1);
+    const collapse=peelState?.state==='collapse'?1-pf:0;
+    const breaking=cell.breaking;
     if(height>.2)visibleSegments++;
+    const degenerate=height<.05||radius<.05;
+    // Lip throw: on the shoulder the crest is only a steep face (the arch stops at its top and
+    // drops vertically); in the open section the lip is thrown forward down to the trough.
+    const throwAmount=peelState?(peelState.state==='shoulder'?pf:1):1;
+    const endAngle=Math.PI*.5*(1-throwAmount);
+    const archRings=Math.max(2,Math.round(CURL_SEGMENTS*(.5+.5*throwAmount)));
+    let tipX=0,tipY=0,tipZ=0;
     for(let k=0;k<=CURL_SEGMENTS;k++){
-     const u=k/CURL_SEGMENTS,angle=Math.PI*(1-u);
-     const advance=radius*Math.cos(angle)+radius*.23*u*u*u*(1-(profile?.opening??0));
-     const x=centerX+zone.dirX*advance,z=centerZ+zone.dirZ*advance;
-     const phase=BARREL_CREST_PHASE+TAU*advance/zone.wavelength;
-     const baseY=zone.seaLevel+zone.amplitude*envelope*(Math.sin(phase)+.22*Math.sin(2*phase))+.025;
-     const y=baseY+height*Math.sin(angle);
-     const index=(f*VERTICES_PER_FRONT+j*(CURL_SEGMENTS+1)+k)*3;
-     positions[index]=x;positions[index+1]=y;positions[index+2]=z;
+     const index=(offset+j*(CURL_SEGMENTS+1)+k)*3;
+     if(k>archRings){
+      // Not thrown yet: the lip ends as a hook at its tip (the steep face below is the swell's
+      // own face). Collapsed rings cost no area and keep the tube mouth visible from the side.
+      positions[index]=tipX;positions[index+1]=tipY;positions[index+2]=tipZ;
+      continue;
+     }
+     const u=k/archRings,angle=Math.PI-(Math.PI-endAngle)*u;
+     const throwFront=Math.max(0,Math.cos(angle));
+     const adv=degenerate?0:radius*Math.cos(angle)+radius*(.3*opening*throwFront*throwFront+.23*u*u*u*(1-opening))+
+      radius*.6*collapse*u;
+     const phase=crestPhase+TAU*adv/zone.wavelength;
+     const baseY=zone.seaLevel+zone.amplitude*cell.envelope*m*shapeAt(phase,breaking)+.025;
+     // Fuller arch while open; the tip sinks back to the water as the section collapses.
+     const lift=degenerate?0:height*Math.pow(Math.max(0,Math.sin(angle)),.8)*(1-.55*collapse*u);
+     positions[index]=cx+zone.dirX*adv;positions[index+1]=baseY+lift;positions[index+2]=cz+zone.dirZ*adv;
+     tipX=positions[index];tipY=positions[index+1];tipZ=positions[index+2];
+     point.set(tipX,tipY,tipZ);box.expandByPoint(point);
     }
    }
-   if(visibleSegments>0){stats.activeFronts++;stats.activeSections+=visibleSegments;}
+   if(visibleSegments===0)continue;
+   written++;stats.activeFronts++;stats.activeSections+=visibleSegments;
   }
-  positionAttribute.needsUpdate=true;stats.uploadBytes=positions.byteLength;
-  mesh.visible=stats.activeFronts>0;
+  builtTick=tick;
+  geometry.setDrawRange(0,written*INDICES_PER_FRONT);
+  stats.drawnTriangles=written*INDICES_PER_FRONT/3;
+  if(written>0){
+   positionAttribute.clearUpdateRanges();
+   positionAttribute.addUpdateRange(0,written*VERTICES_PER_FRONT*3);
+   positionAttribute.needsUpdate=true;
+   stats.uploadBytes=written*VERTICES_PER_FRONT*3*4;
+   box.getBoundingSphere(geometry.boundingSphere!);
+   // Room for the GPU translation until the next rebuild.
+   geometry.boundingSphere!.radius+=zone.speed*4/SURF_TICK_HZ+1;
+  }
+  mesh.visible=written>0;
  }
- return {mesh,stats,update,dispose(){mesh.removeFromParent();geometry.dispose();material.dispose();}};
+ function update(tick:number,focus:{x:number;z:number},options:SurfBarrelUpdateOptions={}):void{
+  if(!Number.isSafeInteger(tick)||tick<0)throw Error('Tick maillage de tube invalide');
+  stats.uploadBytes=0;
+  if(!band||!cache){mesh.visible=false;return;}
+  const view=options.camera?.position??focus;
+  const dx=Math.max(zone.minX-view.x,0,view.x-zone.maxX),dz=Math.max(zone.minZ-view.z,0,view.z-zone.maxZ);
+  const distance=Math.hypot(dx,dz);
+  // Breaking lips are drawn only around the shore and when the band can be on screen.
+  if(distance>280||(options.camera&&!inCameraView(options.camera,bandBox))){mesh.visible=false;builtTick=-1;return;}
+  if(builtTick<0||tick<builtTick||tick-builtTick>=cadence(distance))rebuild(tick,focus);
+  // Continuous presentation: translate the last build with the swell (render alpha included).
+  const renderTicks=Math.max(0,tick-1)+Math.max(0,Math.min(1,options.alpha??1));
+  const shift=zone.speed*(renderTicks-builtTick)/SURF_TICK_HZ;
+  advance.value.set(zone.dirX*shift,zone.dirZ*shift);
+ }
+ return {mesh,stats,update,
+  setMaxFronts(count:number){maxFronts=Math.max(1,Math.min(MAX_FRONTS,Math.floor(count)));stats.maxFronts=maxFronts;builtTick=-1;},
+  invalidate(next?:(x:number,z:number)=>number){if(next)ground=next;cache=band?createSurfBarrelCache(zone,ground,band):null;
+   stats.cacheNodes=cache?.nodes??0;builtTick=-1;},
+  dispose(){mesh.removeFromParent();geometry.dispose();material.dispose();bandBox.geometry.dispose();}};
 }

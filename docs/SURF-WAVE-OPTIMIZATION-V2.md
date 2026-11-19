@@ -72,9 +72,9 @@ complète existe via `EXT_disjoint_timer_query_webgl2`, absent sous SwiftShader)
 | 1 — Instrumentation | DONE | `?surfPerf=1` (désactivé par défaut), canaux CPU séparés, draw calls/sommets/triangles/upload/zones/LOD, benchmark CPU Node + navigateur JSON v2, référence enregistrée |
 | 2 — WaveField CPU | DONE | hauteur/vitesse verticale/crête/déferlement/waveId bit-identiques à V1 ; gradient analytique ; 1 terrain en eau profonde ; `sample()` 3,4–4,7× plus rapide |
 | 3 — LOD | DONE (eau) / culling tube → phase 5 | hystérésis ±18 %, distance caméra 3D, grilles imbriquées, quads secs retirés ; physique indépendante du LOD |
-| 4 — Forme des vagues | TODO | profils variés et déterministes, CPU = GPU, anciennes zones inchangées |
-| 5 — Tubes | TODO | cycle de vie de la lèvre, gameplay tube préservé |
-| 6 — Mousse/sillage | TODO | écume analytique, sillage borné, ≤ +1 draw call |
+| 4 — Forme des vagues | DONE | 7 styles (`classic` = V1 exact), séries + pics le long de la crête, shoaling ; CPU = GPU (2e-5) |
+| 5 — Tubes | DONE | peel latéral déterministe (opt-in par style), cycle formation → ouverture → fermeture, lèvre éclairée translucide, gameplay tube conservé |
+| 6 — Mousse/sillage | DONE | écume de crête/après déferlement/rivage analytique, liée au peel ; sillage 1 draw call |
 | 7 — CPU/GPU | TODO | uploads/draws bornés, 0 allocation récurrente évitable |
 | 8 — Intégration | TODO | raccords NearSea/rivage, Studio et anciennes cartes |
 | 9 — Profils & validation | TODO | Low/Medium/HQ via `PresentationBudget`, captures, PR |
@@ -174,3 +174,78 @@ Le tier 0 de la zone A est plus dense qu'avant (λ courte) : choix volontaire po
 **Raccords** : la hauteur au bord du rectangle vaut `seaLevel + 0,02` (enveloppe nulle), comme
 `NearSea` (troué sur le même rectangle) ⇒ continuité géométrique. Tests : `tests/surf-render.test.mjs`
 (hystérésis, imbrication, quads secs, égalité CPU/GPU conservée à 1e-5).
+
+## 10. Phase 4 — Forme des vagues (`src/surf/wave-shape.ts`)
+
+Une seule famille analytique, partagée par la physique (`wave-field.ts`), le tube et le shader :
+
+```
+f(p) = sin p + a·sin 2p − c·cos 2p        a = skew + shoal·breaking(depth)
+m    = 1 + setVariation·sin Ps + peakVariation·sin Pc
+h    = seaLevel + amplitude · envelope · m · f
+```
+
+- `skew` raidit la face avant (V1 : 0,22) ; `sharpness` (c) relève les crêtes et arrondit les creux
+  (terme de Stokes d'ordre 2, moyenne nulle) ; `shoal` raidit la face à l'approche du déferlement.
+- `m` : séries de vagues qui voyagent avec la houle (`Ps`, longueur `setLength` longueurs d'onde)
+  et pics statiques le long de la crête (`Pc`). Aucun hasard par frame, tout est continu et dérivable.
+- Styles réutilisables : `classic` (historique, **bit-identique au V1**), `gentle` (houle douce),
+  `long`, `fast`, `powerful`, `tubular`, `shorebreak`. Champ **optionnel** `SurfZone.style` :
+  anciennes zones, cartes compilées et sauvegardes inchangées ; le schéma Studio l'accepte, le panneau
+  Surf le propose, les préréglages Studio l'écrivent, le planificateur A/B/C choisit
+  `gentle` / `tubular` / `fast` (île Surf régénérée par `npm run build`).
+- La crête logique (`crest`) reste une fonction de phase (seuils de jeu inchangés) ; le tube vise
+  le maximum réel de `f` (`crestPhase`, Newton) et sa hauteur suit `m` (grosses séries → tubes plus hauts).
+- Le shader d'eau reproduit exactement la même formule ; test JS/GLSL sur les 3 LOD et 3 styles
+  (< 2e-5 m, y compris tick 1 000 000). Gradient analytique vérifié contre une différence fine.
+
+## 11. Phase 5 — Déferlement et tubes
+
+**Physique (`surf-barrel.ts`)** — déferlement latéral progressif (*peel*) **opt-in** par style
+(`fast`, `powerful`, `tubular`, `shorebreak`) ; `classic/gentle/long` gardent la lèvre historique
+pleine largeur. Le point de déferlement parcourt la crête à `peel.speed` (4–6,5 m/s), chaque crête
+démarrant à un endroit déterministe : épaule montante devant (`shoulder`), section ouverte (`open`),
+section qui se referme puis eau blanche derrière (`collapse`). La clairance du tube est multipliée
+par ce facteur : la fermeture émerge naturellement. Sortir par l'épaule après ≥ 3 m et 10 ticks est
+une **réussite** ; se laisser rattraper par la section qui se ferme est une **chute** (brassage
+inchangé) ; un nageur sur l'épaule non déferlée n'est pas brassé. Tests : `tests/surf-peel.test.mjs`.
+
+**Lèvre 3D (`surf-barrel-view.ts`)** — cycle de vie lisible : crête qui se redresse (épaule : crochet
+sans lèvre jetée), lèvre lancée au-dessus du creux (section ouverte), lèvre qui retombe vers l'avant
+(fermeture), puis écume dans le shader d'eau. Matériau Lambert facetté (éclairage, jour/nuit) avec
+**translucidité simulée** (émission côté cavité), dégradé dos profond → écume de crête → rideau
+turquoise. Extrémités effilées par le peel. Un seul buffer / matériau / draw call pour ≤ 4 crêtes.
+
+**Optimisations** : cache bathymétrique local de la bande de déferlement (interpolation bilinéaire,
+visuel uniquement, `invalidate()`), **translation GPU** de la lèvre entre deux reconstructions
+(collée à la crête à toute cadence, interpolation de rendu incluse), reconstruction 30 / 15 / 7,5 Hz
+selon la distance caméra, culling frustum (sphère calculée) et saut complet hors champ,
+`drawRange` + `addUpdateRange` limités aux fronts actifs.
+
+## 12. Phase 6 — Mousse, écume, sillage, matériau
+
+**Matériau d'eau (`surf-water-material.ts`)** : `MeshLambertMaterial` étendu (`onBeforeCompile`) ⇒
+même éclairage, espace colorimétrique, tone mapping et jour/nuit que `NearSea`. Le bord de zone
+reçoit **exactement** la couleur de `NearSea` (fondu visuel ×2,5 plus large que l'enveloppe
+physique), d'où la disparition du rectangle. Couleur selon profondeur, creux plus sombres, crêtes
+claires, face avant plus sombre, normale analytique (enveloppe statique + houle).
+
+**Écume analytique** (aucune texture, aucune particule) :
+- crête : seuil selon hauteur relative, déferlement, taille de la série, rompu par un bruit de valeur
+  périodique (6 cellules par longueur d'onde, donc continu au repli du temps) ;
+- après déferlement : traînée derrière la crête qui décroît avec le temps écoulé depuis son passage,
+  **seulement là où le point de peel était déjà passé** (même index de crête et même point de
+  déferlement que le tube CPU, test JS/GLSL < 0,25 m) ;
+- ligne de jet de rive sur les derniers mètres, pulsée par chaque vague.
+- Niveaux : 0 = bande de crête seule, 1 = bruit + traînée, 2 = second octave.
+
+**Sillage (`surf-wake-view.ts`)** : deux traces de rails qui suivent la surface, s'élargissent et
+s'estompent ; gouttes balistiques analytiques dans les virages serrés (hash du tick, pas de
+`Math.random`) ; 1 draw call, buffers fixes ; supprimé dès que le joueur ne surfe plus ;
+Low = trace courte sans gouttes. Tests : `tests/surf-wake.test.mjs`.
+
+**Outils de validation** : `tools/capture-surf-views.mjs` (caméras fixes, tick de présentation figé,
+météo forcée « soleil » et horloge en pause, erreurs de compilation GLSL détectées) ; crochets
+`littleWorldDebug.surfCamera / surfRenderTick / surfOpenTubeTick / surfPlace / surfWaterHeight`
+(mode métriques uniquement, jamais la physique). Les tests navigateur surf signalent désormais aussi
+les erreurs de shader de la console. `test:surf` suit l'UX actuelle (dépôt puis embarquement).
