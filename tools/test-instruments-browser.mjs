@@ -14,6 +14,15 @@ try{
  await page.locator('#start-overlay').waitFor({state:'hidden'});
  await page.locator('#viewport canvas').click();
  await page.waitForFunction(()=>window.littleWorldMetrics?.audio?.state==='running');
+ // The beta regression world intentionally has no coin economy / STARTING_KIT.
+ // Seed the real gameplay inventory through the existing metrics-only developer
+ // command, rather than assuming every published world grants free instruments.
+ const granted=await page.evaluate(()=>{
+   const grant=window.littleWorldDebug?.grant;
+   if(typeof grant!=='function')return false;
+   return grant('instrument:flute',1)===true&&grant('instrument:ocarina',1)===true;
+ });
+ assert.ok(granted,'both instruments granted through the real inventory runtime');
  await page.keyboard.press('KeyI');
  const bag=page.locator('.ui-panel[data-panel="inventory"]');
  await bag.getByRole('button',{name:/Flûte douce, quantité/}).click();
