@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {residentRoute} from '../src/npc-life/schedule.ts';
-import {residentRouteAheadClear,residentRouteStepClear,residentRoutineStepClear,residentRecoveryNeedsRetarget} from '../src/npc-life/dynamic-route.ts';
+import {residentRouteAheadClear,residentRouteStepClear,residentRoutineStepClear,residentRecoveryNeedsRetarget,residentRecoverySpeed} from '../src/npc-life/dynamic-route.ts';
 
 test('scripted NPC route lookahead samples active geometry instead of trusting old paths',()=>{
  const route=residentRoute([{x:0,z:0},{x:10,z:0}]);
@@ -70,4 +70,11 @@ test('daily recovery retargets only after cadence when the scheduled goal moves'
  assert.equal(residentRecoveryNeedsRetarget(a,far,2,4),true,'clock rewind');
  assert.equal(residentRecoveryNeedsRetarget(a,far,6,4,2,NaN),false);
  assert.equal(residentRecoveryNeedsRetarget(a,{x:NaN,z:0},6,4),false);
+});
+
+test('catch-up speed is faster than the schedule but bounded',()=>{
+ assert.equal(residentRecoverySpeed(1),1.35);
+ assert.equal(residentRecoverySpeed(2.5),3);
+ assert.equal(residentRecoverySpeed(0),.27);
+ assert.equal(residentRecoverySpeed(NaN),.27);
 });
