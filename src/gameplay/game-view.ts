@@ -185,7 +185,7 @@ export function createGameplayView(data:GameplayData,options:Options){
     ...(Object.keys(quests.serialize()).length?{questsLocal:quests.serialize(),questEventSequence}:{}),equippedItemId:equipment.hands,loadout:{...playerLoadout,head:equipment.head,favorites:equipment.favorites?[...equipment.favorites]:null},space:options.getSpace?.()??null,gasReserve:options.getGas?.()??GAS.initial,satiety:options.getSatiety?.()??100,boostRechargeProgress:options.getRechargeProgress?.()??0,flightProgress:options.getGasProgress?.()??newFlightProgress(),...activities.serialize(),
     workshops:workshops.serialize(),markets:markets.serialize(),
     ...(npcEconomy.size?{npcWorkshops:npcEconomy.serialize()}:{}),
-    ...(npcHarvest.size?{npcHarvests:npcHarvest.serialize()}:{}),fishPopulation:fishPopulation.serialize(),
+    ...(Object.keys(npcHarvest.serialize()).length?{npcHarvests:npcHarvest.serialize()}:{}),fishPopulation:fishPopulation.serialize(),
     cargoPurchaseRevision,surfBoard:options.getSurfBoard?.()??null,
     ...(gathering?{gathering:gathering.serialize()}:{})});
  let npcs:readonly NPCState[]=[],version=-1,disposed=false;
