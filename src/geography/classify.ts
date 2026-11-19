@@ -113,12 +113,12 @@ export function habitatOf(s:GeoSample):Habitat{
   if(s.occupation==='road'||s.occupation==='built'||s.occupation==='farm'||s.occupation==='exclusion')return none;
   const reserved=s.occupation==='reserved'?0:1,steep=1-smooth(.7,1.1,s.slope);
   switch(s.biome){
-    case 'forest':return {trees:.85*steep*reserved,shrubs:.5*steep,flowers:.1,grass:.25,rocks:.08,reeds:0};
-    case 'meadow':return {trees:.04*reserved,shrubs:.12,flowers:.45*s.moisture+.1,grass:.8,rocks:.04,reeds:0};
-    case 'wetland':return {trees:.05*reserved,shrubs:.2,flowers:.1,grass:.4,rocks:0,reeds:.8};
-    case 'scrub':return {trees:.02*reserved,shrubs:.35,flowers:.05,grass:.3,rocks:.15,reeds:0};
-    case 'mountain':return {trees:.03*reserved*steep,shrubs:.08*steep,flowers:.03,grass:.15*steep,rocks:.5,reeds:0};
-    case 'volcanic':return {trees:0,shrubs:.03,flowers:0,grass:.04,rocks:.55,reeds:0};
+    case 'forest':return {trees:.85*steep*reserved,shrubs:.5*steep,flowers:.05,grass:.31,rocks:.025,reeds:0};
+    case 'meadow':return {trees:.04*reserved,shrubs:.12,flowers:.18*s.moisture+.035,grass:.95,rocks:.005,reeds:0};
+    case 'wetland':return {trees:.05*reserved,shrubs:.2,flowers:.08,grass:.48,rocks:0,reeds:.8};
+    case 'scrub':return {trees:.02*reserved,shrubs:.35,flowers:.035,grass:.35,rocks:.09,reeds:0};
+    case 'mountain':return {trees:.03*reserved*steep,shrubs:.08*steep,flowers:.015,grass:.165*steep,rocks:.5,reeds:0};
+    case 'volcanic':return {trees:0,shrubs:.03,flowers:0,grass:0,rocks:.55,reeds:0};
     case 'coast':return {trees:0,shrubs:.04,flowers:0,grass:s.geology==='sand'?.05:.25,rocks:s.cliff>.35?.35:.05,reeds:0};
     default:return {...none,grass:.3};
   }

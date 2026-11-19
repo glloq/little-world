@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {groundCover} from '../src/geography/ground-cover.ts';
+import {habitatOf} from '../src/geography/classify.ts';
+import {GRASS_PROFILES,tuftGeometry} from '../src/render/grass.ts';
 import {materialColor} from '../src/geography/materials.ts';
 import * as THREE from 'three';
 import {LinearColor} from '../src/render/linear-color.ts';
@@ -72,4 +74,18 @@ test('palette lookup keeps exact Three.js sRGB-to-linear values for every byte c
   const hex=(i<<16)|((255-i)<<8)|((i*37)%256),actual=new LinearColor().setHex(hex),expected=new THREE.Color(hex);
   for(const channel of ['r','g','b'])assert.ok(Math.abs(actual[channel]-expected[channel])<1e-15);
  }
+});
+
+test('grass-first ground dressing stays budgeted and mineral biomes remain bare',()=>{
+ const meadow=habitatOf(sample),forest=habitatOf({...sample,biome:'forest',material:'forest-floor'});
+ const volcanic=habitatOf({...sample,biome:'volcanic',material:'basalt'});
+ const mountain=habitatOf({...sample,biome:'mountain',material:'rock'});
+ assert.ok(meadow.grass>.9 && meadow.rocks<.01 && meadow.flowers<.2);
+ assert.ok(forest.grass>.3 && forest.rocks<.03);
+ assert.equal(volcanic.grass,0);
+ assert.ok(volcanic.rocks>.5 && mountain.rocks>=.5);
+ assert.equal(groundCover({...sample,biome:'volcanic',material:'basalt'},12,16).density,0);
+ for(const occupation of ['road','built','farm','exclusion'])assert.equal(habitatOf({...sample,occupation}).grass,0);
+ assert.ok(GRASS_PROFILES.balanced.density<=2 && GRASS_PROFILES.dense.density<=2.6);
+ const geo=tuftGeometry();assert.equal(geo.getAttribute('position').count,9,'three triangles per instanced tuft');geo.dispose();
 });
