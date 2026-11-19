@@ -40,3 +40,19 @@ export function residentProfessionalActionCatalog():readonly ResidentProfessiona
   service:spec!.service,presentation:spec!.presentation,
  })).sort((a,b)=>a.id.localeCompare(b.id));
 }
+
+/** Read-only capability projection for Studio diagnostics and NPC planners.
+ * No dispatch or inventory mutation. Each record is grounded in a native job.
+ */
+export interface ResidentAvailableProfessionalAction{
+  jobId:string;action:ResidentProfessionalAction;
+}
+export function availableResidentProfessionalActions(
+ jobs:readonly LifeJob[],
+):ResidentAvailableProfessionalAction[]{
+ return [...jobs].sort((a,b)=>a.id.localeCompare(b.id)||a.role.localeCompare(b.role))
+  .flatMap(job=>{
+   const action=residentProfessionalAction(job.role,job);
+   return action?[{jobId:job.id,action}]:[];
+  });
+}
