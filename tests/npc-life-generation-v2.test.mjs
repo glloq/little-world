@@ -1,3 +1,4 @@
+import {residentPopulationTargets} from '../src/settlements/population.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {flatSettlementProject} from '../tools/settlement-fixture.mjs';
@@ -101,4 +102,15 @@ test('village generator honors the 100-character budget including its own host',
  const plan=planSettlement(p,r);
  assert.equal(plan.entities.filter(e=>e.kind==='character').length,0);
  assert.ok(plan.diagnostics.some(d=>d.code==='LIFE_NPC_LIMIT'));
+});
+
+test('F03 tiny hamlets can request a real worker without inventing children or a job',()=>{
+ assert.deepEqual(residentPopulationTargets(0,'normal'),{children:0,workers:0});
+ assert.deepEqual(residentPopulationTargets(2,'high'),{children:0,workers:0});
+ assert.deepEqual(residentPopulationTargets(3,'normal'),{children:0,workers:1});
+ assert.deepEqual(residentPopulationTargets(5,'high'),{children:0,workers:1});
+ assert.deepEqual(residentPopulationTargets(5,'low'),{children:0,workers:0});
+ assert.deepEqual(residentPopulationTargets(10,'normal'),{children:2,workers:1});
+ assert.deepEqual(residentPopulationTargets(16,'high'),{children:3,workers:4});
+ assert.deepEqual(residentPopulationTargets(16,'low'),{children:1,workers:1});
 });
