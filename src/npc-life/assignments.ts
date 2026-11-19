@@ -8,6 +8,7 @@ import {createResidentLayeredRouter,type ResidentSurfaces} from './layered-route
 import {residentShift,type ResidentRole,type ResidentRoute,type ResidentPoint} from './schedule.ts';
 import type {LifeHome,LifeJob} from './capabilities.ts';
 
+export const MAX_PLAY_ANCHOR_OCCUPANTS=4;
 export interface ResidentAssignment {
   home:LifeHome;job:LifeJob;route:ResidentRoute;
 }
@@ -62,7 +63,7 @@ export function createResidentAssignmentPlanner(
     allocate(job,homes,role,preferredHomeId){
       // A service has one visual employee. Public play areas allow up to four
       // children so they can meet without duplicating the location or asset.
-      if((jobOccupants.get(job.id)??0)>=(role==='child'?4:1))return null;
+      if((jobOccupants.get(job.id)??0)>=((role==='child'||role==='villager')?MAX_PLAY_ANCHOR_OCCUPANTS:1))return null;
       const qualified:ResidentAssignment[]=[];
       // Never assign a journey longer than can be traversed within half of
       // the role's work period: residentPoseAt uses this same invariant.
