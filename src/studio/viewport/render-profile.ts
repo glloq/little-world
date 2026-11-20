@@ -15,5 +15,6 @@ export function studioRenderProfile(search=globalThis.location?.search??'',nav?:
  let stored:string|null=null;try{stored=globalThis.localStorage?.getItem(KEY)??null;}catch{/* private mode */}
  if(asked==='low'||asked==='normal'){try{globalThis.localStorage?.setItem(KEY,asked);}catch{/* optional */}}
  const choice=asked==='low'||asked==='normal'?asked:stored==='low'||stored==='normal'?stored:detectLowEnd(nav)?'low':'normal';
- return choice==='low'?{id:'low',pixelRatio:1,antialias:false,detail:1,economy:true}:{id:'normal',pixelRatio:Math.min(dpr,1.25),antialias:true,detail:0,economy:false};
+ // No 'economy' tier: it would also shrink the light pool, and the night preview must show the game budget.
+ return choice==='low'?{id:'low',pixelRatio:1,antialias:false,detail:1,economy:false}:{id:'normal',pixelRatio:Math.min(dpr,1.25),antialias:true,detail:0,economy:false};
 }

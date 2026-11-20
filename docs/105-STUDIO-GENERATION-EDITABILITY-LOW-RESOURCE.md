@@ -43,7 +43,7 @@ Correction : copie avant écriture du relief, des dialogues, des quêtes et des 
 | Retouche du relief | un parcours complet de la scène par zone touchée ; tous les rubans et instances recalculés même hors zone | un seul parcours par mise à jour ; seuls les éléments réellement dans la zone sont recalculés |
 | Diagnostics du viewport | sérialisation JSON à chaque image d’animation | toutes les 6 images, plus la dernière |
 | Carte 2D | toute retouche de bibliothèque (dialogue, quête…) invalidait toutes les tuiles et le projet des workers ; un redessin par événement souris | seules les bibliothèques géographiques invalident ; un redessin par image |
-| Rendu 3D sur petite machine | aucun profil (détails maximum, herbe équilibrée, MSAA) | profil `low` automatique (≤ 4 cœurs ou ≤ 4 Go) : ratio de pixels 1, sans MSAA, habillage et herbe économes ; `?studioQuality=low\|normal` |
+| Rendu 3D sur petite machine | aucun profil (détails maximum, herbe équilibrée, MSAA) | profil `low` automatique (≤ 4 cœurs ou ≤ 4 Go) : ratio de pixels 1, sans MSAA, habillage et herbe au niveau de détail 1 (le budget de lumières reste celui du jeu pour l’aperçu de nuit) ; `?studioQuality=low\|normal` |
 | Ouverture, création, export, « Jouer ici » | texte statique, page figée | bandeau d’activité peint **avant** le travail, temps écoulé, `aria-busy` |
 
 ## 2. Mesures
