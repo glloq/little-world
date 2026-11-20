@@ -11,7 +11,7 @@ export type QuestStepV1=
  |{kind:'deliver';itemId:string;quantity:number;giverId:string;islandId?:string}
  |{kind:'craft';recipeId:string;quantity:number;stationId?:string;islandId?:string}
  |{kind:'race';raceId:string;maxSeconds?:number;islandId?:string}
- |{kind:'event';eventType:string;subjectId?:string;count:number;islandId?:string}
+ |{kind:'event';eventType:import('../gameplay/events.ts').GameplayEventType;subjectId?:string;/** Optional producer qualifier, e.g. race kind 'surf' or trick 'ramp'. */source?:string;count:number;islandId?:string}
  |{kind:'travel';fromIslandId:string;toIslandId:string};
 export interface QuestTemplateV1{
  id:string;version:1;family:string;difficulty:QuestDifficulty;

@@ -9,6 +9,7 @@ import { putEntity, removeEntity, putPath, removePath } from '../studio-core/sou
 import { lineChunkIds } from '../water/sectors.ts';
 import { fingerprint } from '../world-production/landscape-schema.ts';
 import { makeDoor } from '../gameplay/templates.ts';
+import { LEGACY_AUTO_HOUSES } from './architecture.ts';
 import { settlementSourceHash, sourceEntity, buildingChanged, HABITAT_ASSETS, type SettlementPlan } from './planner.ts';
 import type { SettlementInstance } from './schema.ts';
 import { validateSettlements } from './validation.ts';
@@ -35,8 +36,10 @@ function writePlan(p: ProjectDocument, plan: SettlementPlan) {
     const missingZoneHashes=Object.fromEntries(Object.entries(old?.zoneHashes??{}).filter(([id])=>!p.libraries.zones?.[id]));
     p.assets = { ...p.assets };
     for(const e of plan.entities){const id=e.components.Visual?.assetId,asset=id?assetDefinitionFor(id):undefined;if(asset)p.assets[asset.id]=asset;}
+    // Historical habitat assets are always registered; themed looks only when a house uses them.
     for (const a of HABITAT_ASSETS)
-        p.assets[a.id] = structuredClone(a);
+        if (!a.id.startsWith('settlement.house_') || LEGACY_AUTO_HOUSES.some(s => a.id === 'settlement.house_' + s) || plan.entities.some(e => e.components.Visual?.assetId === a.id))
+            p.assets[a.id] = structuredClone(a);
     p.libraries.interactions = { ...p.libraries.interactions };
     for (const b of old?.buildings ?? [])
         if (!plan.buildings.some(v => v.id === b.id) && !buildingChanged(p, b)) {

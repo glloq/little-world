@@ -53,7 +53,7 @@ kbd{display:inline-block;padding:3px 6px;min-width:21px;text-align:center;border
 .loading-done .loading-fill{background:#6fa96b}
 .start-overlay.home-mode .loading-stages,.start-overlay.home-mode .loading-text,.start-overlay.home-mode .loading-track{display:none}
 #start:disabled{opacity:.75;cursor:progress}
-.underwater #viewport:after{content:"";position:absolute;inset:0;background:rgba(32,117,129,.15);pointer-events:none}
+.underwater #viewport:after{content:"";position:absolute;inset:0;background:rgba(18,92,112,var(--underwater-tint,.15));pointer-events:none}
 .editor-page{height:100%;overflow:hidden}
 #editor-layout{height:100vh;display:grid;grid-template-columns:245px minmax(100px,1fr) 238px;grid-template-rows:65px minmax(0,1fr) 38px;background:#f6f8f3}
 .editor-header{grid-column:1/4;grid-row:1;display:flex;align-items:center;justify-content:space-between;padding:10px 19px;background:#fcfdf9;border-bottom:1px solid #dce5dc;z-index:3}

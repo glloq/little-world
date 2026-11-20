@@ -1,3 +1,4 @@
+import {isGameplayEventType,questFields,type GameplayEvent,type GameplayEventFields,type GameplayEventType} from './events.ts';
 import {accessibleShop} from './shop-access.ts';
 import {createResidentDoorOpenings} from './resident-door-openings.ts';
 import {createResidentNavigationRevisionTracker} from '../npc-life/navigation-revision.ts';
@@ -59,7 +60,8 @@ export function createGameplayView(data:GameplayData,options:Options){
  /** Only native gameplay code calls this AFTER a successful transaction.
   * Runtime events carry one monotonic ID, checkpointed with quest progress.
   */
- function recordQuestCommit(type:string,fields:{itemId?:string;quantity?:number;source?:string;targetId?:string;distanceM?:number;raceId?:string;measuredSeconds?:number;recipeId?:string}={}):void{
+ function recordQuestCommit(type:GameplayEventType,fields:GameplayEventFields={}):void{
+   if(!isGameplayEventType(type))throw Error('Événement de jeu non déclaré : '+type);
    if(questEventSequence>=1_000_000_000)return;
    const sequence=++questEventSequence;
    const changed=quests.consume({schemaVersion:1,eventId:'quest:'+ (options.islandId??data.worldId)+':native:'+sequence,
@@ -68,6 +70,8 @@ export function createGameplayView(data:GameplayData,options:Options){
      sequence,...fields});
    if(changed.length)for(const listener of listeners)listener();
  }
+ /** Typed producer events (doc 104 §C7): one mapping to the flat quest payload. */
+ function emitGameplayEvent(event:GameplayEvent):void{recordQuestCommit(event.type,questFields(event));}
  const collisionDefinitions=new Map((options.collisions??[]).map(d=>[d.id,d]));
  // Transient resident door openings are never serialized into the player's save.
  const npcDoors=createResidentDoorOpenings(()=>runtime.state.time);
@@ -178,7 +182,9 @@ export function createGameplayView(data:GameplayData,options:Options){
    const access=authored?accessibleShop(authored,options.getPosition(),collision):null;
    if(authored?access?.kind!==kind:!counterId&&!nearbyShop(options.getPosition(),undefined,kind))
      return {ok:false as const,reason:'Rejoignez le côté d’usage du comptoir.'};
-   return markets.sellBatch(kind,counterId??'legacy:'+kind,lines,undefined,expectedRevision);
+   const outcome=markets.sellBatch(kind,counterId??'legacy:'+kind,lines,undefined,expectedRevision);
+   if(outcome.ok)for(const line of lines)if(line.quantity>0)emitGameplayEvent({type:'market.sold',itemId:line.itemId,quantity:line.quantity,shopId:counterId??'legacy:'+kind});
+   return outcome;
  }
  let equippedHands:string|null=null;
  const compose=(slotId:string):GameSaveV2=>({...runtime.save(slotId,options.getPosition()),
@@ -351,7 +357,7 @@ export function createGameplayView(data:GameplayData,options:Options){
   }
  sync();
  return {
-  runtime,collision,activities,slots,compose,gathering,trees,fishing,trade,sellBatch,nearbyShop,workshops,markets,purse,itemName,has,equipment,quests,recordQuestCommit,
+  runtime,collision,activities,slots,compose,gathering,trees,fishing,trade,sellBatch,nearbyShop,workshops,markets,purse,itemName,has,equipment,quests,recordQuestCommit,emitGameplayEvent,
   claimQuest,deliverQuest,supplyNpcWorkshop,buyNpcWorkshopProduct,npcEconomy,npcHarvest,fishPopulation,creditFishCatch,
   get navigationRevision(){return navigationRevisions.revision;},
   openDoorForNPC(doorId:string,duration=2):boolean{

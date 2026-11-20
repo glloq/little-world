@@ -10,6 +10,7 @@ import {fingerprint} from '../world-production/landscape-schema.ts';
 import {projectGeography} from '../studio-core/geo-context.ts';
 import {BIOMES_V} from '../geography/layers.ts';
 import {composeWorld,projectFromComposition,type WorldComposition} from '../studio-core/world-composition.ts';
+import {WORLD_BRIEFS,briefToRequirements} from '../studio-core/world-brief.ts';
 import {newIslandRequirements,LANDSCAPES,type Landscape,type MapRequirements} from '../studio-core/map-requirements.ts';
 import {createGuidedWorld,type WorldStartMode} from '../studio-core/world-start.ts';
 import {createProject} from '../studio-core/schema.ts';
@@ -177,6 +178,20 @@ export function mountWelcome(host:HTMLElement,actions:WelcomeActions){
       page.append(recent);
     }
     page.append(button('Importer un projet JSON / ZIP',actions.importFile,'light-button'));
+    // Doc 104 §C1: themes are data (world briefs) composed by the single pipeline.
+    const themes=node('section','','welcome-themes');
+    themes.append(node('h2','Créer depuis un thème'),node('p','Climat, côtes, villages, activités et fonds marins décrits par une fiche ; la génération adapte le terrain, relie les lieux et propose hôtes et quêtes. Comptez 10 à 60 s.','muted'));
+    const themeSeed=numberInput(17,()=>{},1,9999999,'1'),themeStatus=node('p','','muted');
+    const themeChoice=select('tropical-port',Object.values(WORLD_BRIEFS).map(b=>[b.id,b.name+' · '+b.climate] as [string,string]),()=>{});
+    themes.append(field('Thème',themeChoice),field('Graine',themeSeed),button('Générer ce monde',()=>{void safe(async()=>{
+      const brief={...WORLD_BRIEFS[themeChoice.value],seed:Math.round(Number(themeSeed.value))};
+      themeStatus.textContent='Génération en cours…';await new Promise<void>(resolve=>requestAnimationFrame(()=>setTimeout(resolve,0)));
+      const plan=composeWorld(briefToRequirements(brief),brief.name);
+      if(!plan.ready){themeStatus.textContent='Thème impossible avec cette graine : '+plan.diagnostics.filter(d=>d.severity==='ERROR').map(d=>d.message).join(' · ');return;}
+      themeStatus.textContent=plan.diagnostics.length+' remarque(s) de génération ; ouverture du projet.';
+      await actions.create(projectFromComposition(plan,brief.name));
+    })();},'primary-button'),themeStatus);
+    page.append(themes);
     // Keep direct access for existing authors and browser test recipes. This is
     // deliberately below the visual beginner flow, not the primary creation UI.
     const advanced=node('section','','welcome-legacy');

@@ -1,3 +1,4 @@
+import {ARCHITECTURE_STYLE_IDS,POLE_ROLES} from '../settlements/architecture.ts';
 import {validateLayout,type LayoutRequirements} from './terrain-sites.ts';
 import {validateIslandStyle,type IslandStyle} from './island-styles.ts';
 /** Versioned author preferences, independent from UI and compiled/runtime data. */
@@ -6,7 +7,10 @@ export type Landscape=keyof typeof LANDSCAPES;
 export const WELCOME_ACTIVITIES={fishing:'Pêche',agriculture:'Agriculture',forest:'Forêt',mine:'Mine',commerce:'Commerce',mixed:'Polyvalent'} as const;
 export type WelcomeActivity=keyof typeof WELCOME_ACTIVITIES;
 export interface MapRequirements {
- version:1;activities?:{races:'none'|'flat'|'downhill'|'both';ski:boolean;music:'contextual'|'off'};maritimePort?:boolean;welcomeVillage?:'none'|'hamlet'|'village';welcomeActivity?:WelcomeActivity;compositionVersion?:1|2|3|4|5;layout?:LayoutRequirements;islandStyle?:IslandStyle;type:'island'|'archipelago'|'valley'|'continental';width:number;length:number;seed:number;
+ version:1;/** Terrace uneven village sites within a cut/fill budget (doc 104 §C4, V5). */earthworks?:boolean;/** Link every destination to the port network with native paths (doc 104 §C5, V5). */circulation?:boolean;
+ /** Authored seabed and dive sites (doc 104 §3, V5). */underwater?:{shelf:'narrow'|'wide';reefs:number;holes:number;trench:boolean;diveSites:boolean};
+ /** Activity hosts, composed dialogues and activity quests (doc 104 §C7, V5); locale of generated texts. */stories?:boolean;locale?:'fr'|'en';
+ /** Theme of the generated settlements and extra poles (doc 104 §C6, V5). */architecture?:import('../settlements/architecture.ts').ArchitectureStyleId;poles?:import('./world-poles.ts').PoleRequest[];activities?:{races:'none'|'flat'|'downhill'|'both';ski:boolean;music:'contextual'|'off';/** Doc 104 §C6 (optional): complete ski domain, three surf beaches, glide course. */skiResort?:boolean;surf?:boolean;flight?:boolean};maritimePort?:boolean;welcomeVillage?:'none'|'hamlet'|'village';welcomeActivity?:WelcomeActivity;compositionVersion?:1|2|3|4|5;layout?:LayoutRequirements;islandStyle?:IslandStyle;type:'island'|'archipelago'|'valley'|'continental';width:number;length:number;seed:number;
  landscapes:{kind:Landscape;required:boolean}[];
  rivers:number;tributaries:number;lakes:boolean;waterfalls:boolean;
  relief:'gentle'|'balanced'|'rugged';cliffs:number;terraces:number;diversity:number;
@@ -24,11 +28,11 @@ export const DEFAULT_MAP_REQUIREMENTS:MapRequirements={...structuredClone(STEPPE
 export function validateMapRequirements(value:unknown):MapRequirements {
  if(!value||typeof value!=='object'||Array.isArray(value))throw Error('Besoins géographiques invalides');
  const v=value as MapRequirements;
- const allowed=['version','activities','maritimePort','welcomeVillage','welcomeActivity','compositionVersion','layout','islandStyle','type','width','length','seed','landscapes','rivers','tributaries','lakes','waterfalls','relief','cliffs','terraces','diversity','biomeMode','sequence'];
+ const allowed=['version','earthworks','circulation','architecture','poles','stories','locale','underwater','activities','maritimePort','welcomeVillage','welcomeActivity','compositionVersion','layout','islandStyle','type','width','length','seed','landscapes','rivers','tributaries','lakes','waterfalls','relief','cliffs','terraces','diversity','biomeMode','sequence'];
  if(Object.keys(v).some(k=>!allowed.includes(k))||v.version!==1)throw Error('Version ou champ des besoins inconnu');
  if(v.compositionVersion!==undefined&&v.compositionVersion!==1&&v.compositionVersion!==2&&v.compositionVersion!==3&&v.compositionVersion!==4&&v.compositionVersion!==5)throw Error('Version de composition inconnue');
  const number=(n:number,a:number,b:number,int=false)=>typeof n==='number'&&Number.isFinite(n)&&n>=a&&n<=b&&(!int||Number.isInteger(n));
- if(v.activities!==undefined){const a=v.activities;if(!a||typeof a!=='object'||Array.isArray(a)||Object.keys(a).some(k=>!['races','ski','music'].includes(k))||!['none','flat','downhill','both'].includes(a.races)||typeof a.ski!=='boolean'||!['contextual','off'].includes(a.music)||v.compositionVersion!==5)throw Error('Options d’activités invalides (composition V5 requise)');}
+ if(v.activities!==undefined){const a=v.activities;if(!a||typeof a!=='object'||Array.isArray(a)||Object.keys(a).some(k=>!['races','ski','music','skiResort','surf','flight'].includes(k))||['skiResort','surf','flight'].some(k=>a[k as 'surf']!==undefined&&typeof a[k as 'surf']!=='boolean')||!['none','flat','downhill','both'].includes(a.races)||typeof a.ski!=='boolean'||!['contextual','off'].includes(a.music)||v.compositionVersion!==5)throw Error('Options d’activités invalides (composition V5 requise)');}
  if(v.maritimePort!==undefined&&typeof v.maritimePort!=='boolean'||v.welcomeVillage!==undefined&&!['none','hamlet','village'].includes(v.welcomeVillage))throw Error('Port ou village de création invalide');
  if(!['island','archipelago','valley','continental'].includes(v.type)||!['gentle','balanced','rugged'].includes(v.relief)||!['automatic','custom'].includes(v.biomeMode))throw Error('Type de composition inconnu');
  if(!number(v.width,500,8000,true)||!number(v.length,500,8000,true)||!number(v.seed,1,9999999,true))throw Error('Dimensions : 500–8 000 m ; graine : 1–9 999 999');
@@ -39,6 +43,12 @@ export function validateMapRequirements(value:unknown):MapRequirements {
  if(v.compositionVersion===4||v.compositionVersion===5)validateIslandStyle(v.islandStyle);else if(v.islandStyle!==undefined)throw Error('Le style insulaire nécessite la composition 4');
  if(v.compositionVersion!==5&&(v.layout!==undefined||v.islandStyle?.silhouette!==undefined))throw Error('Les silhouettes et zones utiles nécessitent la composition 5');
  if((v.maritimePort||v.welcomeVillage&&v.welcomeVillage!=='none')&&v.compositionVersion!==5)throw Error('Le départ maritime complet nécessite la composition 5');
+ if(v.earthworks!==undefined&&(typeof v.earthworks!=='boolean'||v.compositionVersion!==5))throw Error('Le terrassement des sites nécessite la composition 5');
+ if(v.architecture!==undefined&&(!(ARCHITECTURE_STYLE_IDS as readonly string[]).includes(String(v.architecture))||v.compositionVersion!==5))throw Error('Style d’architecture inconnu (composition V5 requise)');
+ if(v.poles!==undefined){if(!Array.isArray(v.poles)||v.poles.length>8||v.compositionVersion!==5)throw Error('Pôles : 8 au maximum (composition V5)');for(const q of v.poles){if(!q||typeof q!=='object'||Object.keys(q).some(k=>!['role','size','architecture','name'].includes(k))||!(POLE_ROLES as readonly string[]).includes(String(q.role))||!['hamlet','village','town'].includes(String(q.size))||q.architecture!==undefined&&!(ARCHITECTURE_STYLE_IDS as readonly string[]).includes(String(q.architecture))||q.name!==undefined&&(typeof q.name!=='string'||!q.name.trim()||q.name.length>100))throw Error('Pôle invalide');}}
+ if(v.underwater!==undefined){const u=v.underwater;if(!u||typeof u!=='object'||Array.isArray(u)||Object.keys(u).some(k=>!['shelf','reefs','holes','trench','diveSites'].includes(k))||!['narrow','wide'].includes(u.shelf)||!number(u.reefs,0,6,true)||!number(u.holes,0,4,true)||typeof u.trench!=='boolean'||typeof u.diveSites!=='boolean'||v.compositionVersion!==5)throw Error('Fonds marins demandés invalides (composition V5)');}
+ if(v.stories!==undefined&&(typeof v.stories!=='boolean'||v.compositionVersion!==5)||v.locale!==undefined&&!['fr','en'].includes(String(v.locale)))throw Error('Histoires générées : composition V5 et langue fr/en');
+ if(v.circulation!==undefined&&(typeof v.circulation!=='boolean'||v.compositionVersion!==5))throw Error('Le réseau de circulation automatique nécessite la composition 5');
  if(v.welcomeActivity!==undefined&&(typeof v.welcomeActivity!=='string'||!Object.hasOwn(WELCOME_ACTIVITIES,v.welcomeActivity)||v.compositionVersion!==5))throw Error('Activité du village invalide (composition V5 requise)');
  if(v.welcomeVillage&&v.welcomeVillage!=='none'&&!v.maritimePort)throw Error('Le village d’accueil nécessite le port maritime');
  if(v.layout!==undefined)validateLayout(v.layout);

@@ -54,7 +54,8 @@ function matches(step:QuestStepV1,event:QuestGameEventV1):boolean{
      event.measuredSeconds!==undefined&&event.measuredSeconds<=step.maxSeconds));
   case 'event':
    return event.type===step.eventType&&
-    (step.subjectId===undefined||event.targetId===step.subjectId);
+    (step.subjectId===undefined||event.targetId===step.subjectId||event.raceId===step.subjectId)&&
+    (step.source===undefined||event.source===step.source);
  }
 }
 function needed(step:QuestStepV1):number{
@@ -82,7 +83,8 @@ export function advanceQuest(
  if(event.gameMinute<instance.acceptedAtGameMinute)return reject('past');
  if(!matches(step,event))return reject('not-matched');
  if(instance.appliedEventIds.length>=256)return reject('out-of-order');
- const count=step.kind==='talk'||step.kind==='visit'||step.kind==='race'||step.kind==='travel'?1:(event.quantity??0);
+ // Occurrence events (race finished, wave ridden, depth reached…) carry no quantity: each counts once.
+ const count=step.kind==='talk'||step.kind==='visit'||step.kind==='race'||step.kind==='travel'?1:step.kind==='event'?(event.quantity??1):(event.quantity??0);
  if(!Number.isSafeInteger(count)||count<1)return reject('not-matched');
  const target=needed(step),before=instance.stepProgress[instance.stepIndex];
  instance.stepProgress[instance.stepIndex]=Math.min(target,before+count);

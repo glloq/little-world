@@ -275,7 +275,7 @@ async function inspector(){
     editPath:(target)=>{void run(async()=>{const {polylineTarget}=await import('./viewport/polyline-tool.ts');polylineTarget.current=target;await module('polyline');})();},
     view:(x,z)=>{void run(async()=>{if(activeModule!=='scene')await module('scene');viewport?.goTo(x,z,12);})();},
     duplicate:()=>{void withSelectTool(t=>t.duplicate());},remove:()=>{void withSelectTool(t=>t.remove());},refresh:()=>scheduleInspector(),
-    ...(lastImpact?{impact:{...lastImpact,dismiss:()=>{lastImpact=null;scheduleInspector();},select:(ref,x,z)=>{s.selection.select(ref);if(viewport&&VIEWPORT_MODULES.has(activeModule))viewport.goTo(x,z,14);else s.selection.setCamera(moveContext(s,x,z));scheduleInspector();}}}:{})});
+    ...(lastImpact?{impact:{...lastImpact,dismiss:()=>{lastImpact=null;scheduleInspector();},select:(ref,x,z)=>{if(ref)s.selection.select(ref);if(viewport&&VIEWPORT_MODULES.has(activeModule))viewport.goTo(x,z,14);else s.selection.setCamera(moveContext(s,x,z));scheduleInspector();}}}:{})});
 }
 async function withSelectTool(fn:(tool:import('./viewport/select-tool.ts').SelectTool)=>void){if(activeModule!=='scene')await module('scene');const tool=viewport?.tools.active;if(tool&&tool.id==='select')fn(tool as import('./viewport/select-tool.ts').SelectTool);}
 async function dialogues(host:HTMLElement,mine:number){

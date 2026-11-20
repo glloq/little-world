@@ -1,3 +1,5 @@
+import {auditCirculation} from './circulation.ts';
+import {projectLandRegistry} from './land-registry.ts';
 /** Authoring diagnostics: quick structural checks, independent from the strict compiler preflight.
  * Warnings guide map creators and never silently block publishing. */
 import type {ProjectDocument,PointXZ} from './types.ts';
@@ -44,6 +46,14 @@ export function authoringIssues(project:ProjectDocument):AuthoringIssue[]{
     if(z.polygon.some(p=>!inside(p)))add('ERROR','ZONE_OUTSIDE','Zone hors limites',z.polygon[0],'zone',z.id);
     if(z.polygon.length<3)add('ERROR','ZONE_OUTLINE','Zone incomplète',z.polygon[0],'zone',z.id);
   }
+  // Land use (doc 104 §C3): incompatible overlaps between villages, fields, pistes, races, surf…
+  const registry=projectLandRegistry(project);
+  for(const c of registry.conflicts()){
+    const r=registry.get(c.a)!,kind=r.owner.kind==='zone'||r.owner.kind==='path'||r.owner.kind==='water'?r.owner.kind:undefined;
+    add('WARNING','LAND_OVERLAP',`Occupations incompatibles (${c.useA} / ${c.useB}) sur ~${c.areaM2} m² : ${c.a} et ${c.b}`,c.at,kind,r.owner.id);
+  }
+  // Circulation (doc 104 §C5): destinations without a walkable link to the port network.
+  for(const d of auditCirculation(project))add('WARNING',d.code,d.message,{x:d.x??0,z:d.z??0});
   for(const entity of Object.values(project.entityIndex)){
     const p=entity.position;
     if(!inside(p))add('ERROR','ENTITY_OUTSIDE','Objet hors limites : '+entity.name,p,'entity',entity.id);
