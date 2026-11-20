@@ -35,7 +35,8 @@ const CAPACITY:Record<Family,number>={trunk:2500,cone:1500,round:2500,stone:6000
 export const CANOPY_RADII=[1800,1600,1400,1100] as const;
 export interface DressingStats {/** GLB species library: loading state, instances per LOD, culling. */species:{state:'loading'|'ready'|'failed';lod0:number;lod1:number;triangles:number;bytes:number;loadMs:number;failed:string[];dropped:number};/** Allocated instance buffers (matrices + colours), bytes. */instanceBytes:number;byFamily:Record<string,number>;triangles:number;cells:number;pending:number;instances:number;calls:number;lastRebuildMs:number;maxCellMs:number;generatedMs:number;bytes:number;radiusScale:number;
   /** GLB instances drawn per priority class, and instances refused by the class shares (G6). */byClass:Partial<Record<DressingClass,number>>;droppedByClass:Partial<Record<DressingClass,number>>;/** Far canopy cells cached (beyond the silhouette ring) and still to generate. */canopyCells:number;canopyPending:number;
-  /** Cells still to generate within 160 m of the focus (loading screen); −1 before the first plan. */nearPending:number;impostors:ReturnType<typeof createImpostorSectors>['stats']}
+  /** Cells still to generate within 160 m of the focus (loading screen); −1 before the first plan. */nearPending:number;impostors:ReturnType<typeof createImpostorSectors>['stats'];
+  /** Rebuild job: frames used by the last rebuild, duration of its commit and longest slice (ms). */rebuildSlices:number;lastCommitMs:number;maxRebuildSliceMs:number}
 
 const trianglesOf=(g:THREE.BufferGeometry)=>(g.index?g.index.count:g.getAttribute('position').count)/3;
 /** Far round crown: an octahedron whose lower half is squashed (reads as a canopy, not a diamond). */
@@ -66,6 +67,8 @@ export function createDressingView(parent:THREE.Group,seed:number,density:number
   const lambert=(color:number)=>new THREE.MeshLambertMaterial({color,flatShading:true});
   const materials:Record<Family,THREE.Material>={trunk:lambert(0x7b6046),cone:lambert(0xffffff),round:lambert(0xffffff),stone:lambert(0xffffff),grit:lambert(0xffffff),basalt:lambert(0xffffff),farCone:lambert(0xffffff),farRound:lambert(0xffffff)};
   const meshes={} as Record<Family,THREE.InstancedMesh>;
+  /** Grown instance buffers waiting for the commit (the displayed mesh keeps its data meanwhile). */
+  const growing:Partial<Record<Family,THREE.InstancedMesh>>={};
   // Instance buffers start small and grow ×4 on demand up to CAPACITY (memory follows the
   // actual scene, not the worst case). Near families draw before the terrain (renderOrder −1):
   // terrain fragments hidden by trees and rocks fail the depth test before shading.
@@ -74,14 +77,19 @@ export function createDressingView(parent:THREE.Group,seed:number,density:number
     const m=new THREE.InstancedMesh(geometries[f],materials[f],capacity);m.count=0;m.visible=false;m.name='Dressing '+f;m.castShadow=m.receiveShadow=false;m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     if(f!=='trunk'){m.setColorAt(0,new THREE.Color());m.instanceColor!.setUsage(THREE.DynamicDrawUsage);}
     if(!f.startsWith('far'))m.renderOrder=-1;
-    const old=meshes[f];
-    if(old){(m.instanceMatrix.array as Float32Array).set((old.instanceMatrix.array as Float32Array).subarray(0,keep*16));if(old.instanceColor&&m.instanceColor)(m.instanceColor.array as Float32Array).set((old.instanceColor.array as Float32Array).subarray(0,keep*3));old.removeFromParent();old.dispose();}
-    root.add(m);meshes[f]=m;allocated[f]=capacity;
+    const old=growing[f]??meshes[f];
+    if(old){(m.instanceMatrix.array as Float32Array).set((old.instanceMatrix.array as Float32Array).subarray(0,keep*16));if(old.instanceColor&&m.instanceColor)(m.instanceColor.array as Float32Array).set((old.instanceColor.array as Float32Array).subarray(0,keep*3));}
+    allocated[f]=capacity;
+    // While a rebuild is filling the arrays, the displayed mesh keeps its data: the grown one
+    // replaces it only at the commit (a fresh mesh would upload half-written instances).
+    if(meshes[f]){if(growing[f]&&growing[f]!==m)growing[f]!.dispose();growing[f]=m;return;}
+    root.add(m);meshes[f]=m;
   }
   for(const f of FAMILIES)allocate(f,Math.min(512,CAPACITY[f]));
   // ---- GLB species: one BatchedMesh per LOD, created when the shared library is loaded.
   const batchMaterial=new THREE.MeshLambertMaterial({vertexColors:true,flatShading:true});
-  interface Batch {mesh:THREE.BatchedMesh;ids:number[];capacity:number;added:number;used:number;tri:number[];byClass:Partial<Record<DressingClass,number>>;/** Class of each used instance (debug: popping analysis). */cls:DressingClass[]}
+  interface Batch {mesh:THREE.BatchedMesh;ids:number[];capacity:number;added:number;used:number;tri:number[];byClass:Partial<Record<DressingClass,number>>;/** Class of each used instance (debug: popping analysis). */cls:DressingClass[];
+    /** Writes staged by the running rebuild, applied at its commit. */staged:number;stagedByClass:Partial<Record<DressingClass,number>>;sGid:Int32Array;sMat:Float32Array;sCol:Float32Array;sCls:DressingClass[]}
   let library:SpeciesLibrary|null=null;const batches:Batch[]=[];
   /** Gameplay filter: elements felled/picked by the player and not grown back are not drawn. */
   let hidden:((cx:number,cz:number,kind:DressingKind,index:number)=>boolean)|null=null;
@@ -93,7 +101,7 @@ export function createDressingView(parent:THREE.Group,seed:number,density:number
     const capacity=1024,mesh=new THREE.BatchedMesh(capacity,verts,idx,batchMaterial);mesh.name='Dressing species LOD'+lod;
     mesh.perObjectFrustumCulled=true;mesh.sortObjects=false;mesh.frustumCulled=false;mesh.castShadow=mesh.receiveShadow=false;if(lod===0)mesh.renderOrder=-1;
     const ids=library!.species.map(g=>g?mesh.addGeometry(lod?g.lod1:g.lod0):-1),tri=library!.species.map(g=>g?g.triangles[lod]:0);
-    root.add(mesh);return {mesh,ids,capacity,added:0,used:0,tri,byClass:{},cls:[]};
+    root.add(mesh);return {mesh,ids,capacity,added:0,used:0,tri,byClass:{},cls:[],staged:0,stagedByClass:{},sGid:new Int32Array(1024),sMat:new Float32Array(1024*16),sCol:new Float32Array(1024*3),sCls:[]};
   }
   // `?glb=0` (benchmarks, fallback checks): keep the procedural families only.
   const glbDisabled=typeof location!=='undefined'&&new URLSearchParams(location.search).get('glb')==='0';
@@ -105,20 +113,34 @@ export function createDressingView(parent:THREE.Group,seed:number,density:number
   },()=>{stats.species.state='failed';});
   const m4=new THREE.Matrix4(),tint=new THREE.Color();
   /** False when the batch (or this class's share of it) is full: a tree then falls back to its
-   * cheap far silhouette instead of vanishing; smaller elements are simply not drawn. */
-  function batchWrite(b:Batch,species:number,x:number,y:number,z:number,s:number,rot:number,t:number,cls:DressingClass):boolean{
-    const gid=b.ids[species];if(gid<0)return false;const cap=BATCH_CAP[batches.indexOf(b)],mine=b.byClass[cls]??0;
-    if(mine>=cap*CLASS_SHARE[cls]||b.used>=cap){stats.species.dropped++;stats.droppedByClass[cls]=(stats.droppedByClass[cls]??0)+1;return false;}
-    if(b.used>=b.capacity){b.capacity=Math.min(cap,b.capacity*2);b.mesh.setInstanceCount(b.capacity);}
-    b.byClass[cls]=mine+1;
-    const i=b.used++;b.cls[i]=cls;
-    if(i>=b.added){b.mesh.addInstance(gid);b.added++;}else{b.mesh.setGeometryIdAt(i,gid);b.mesh.setVisibleAt(i,true);}
-    const c=Math.cos(rot)*s,sn=Math.sin(rot)*s;m4.set(c,0,sn,x, 0,s,0,y, -sn,0,c,z, 0,0,0,1);b.mesh.setMatrixAt(i,m4);
-    const k=.88+.22*t;tint.setRGB(k,k*(.98+.04*t),k*.97);b.mesh.setColorAt(i,tint);
+   * cheap far silhouette instead of vanishing; smaller elements are simply not drawn.
+   * Staged only: the BatchedMesh is touched at the commit of the rebuild job. */
+  function batchStage(b:Batch,species:number,x:number,y:number,z:number,s:number,rot:number,t:number,cls:DressingClass):boolean{
+    const gid=b.ids[species];if(gid<0)return false;const cap=BATCH_CAP[batches.indexOf(b)],mine=b.stagedByClass[cls]??0;
+    if(mine>=cap*CLASS_SHARE[cls]||b.staged>=cap){stats.species.dropped++;stats.droppedByClass[cls]=(stats.droppedByClass[cls]??0)+1;return false;}
+    b.stagedByClass[cls]=mine+1;
+    const i=b.staged++;
+    if(i>=b.sGid.length){const n=Math.min(cap,b.sGid.length*2);const g=new Int32Array(n);g.set(b.sGid);b.sGid=g;const m=new Float32Array(n*16);m.set(b.sMat);b.sMat=m;const c=new Float32Array(n*3);c.set(b.sCol);b.sCol=c;}
+    b.sGid[i]=gid;b.sCls[i]=cls;
+    const c=Math.cos(rot)*s,sn=Math.sin(rot)*s,o=i*16;
+    // Column-major (Matrix4.elements) of the row-major transform used before.
+    const e=b.sMat;e[o]=c;e[o+1]=0;e[o+2]=-sn;e[o+3]=0;e[o+4]=0;e[o+5]=s;e[o+6]=0;e[o+7]=0;e[o+8]=sn;e[o+9]=0;e[o+10]=c;e[o+11]=0;e[o+12]=x;e[o+13]=y;e[o+14]=z;e[o+15]=1;
+    const k=.88+.22*t;b.sCol[i*3]=k;b.sCol[i*3+1]=k*(.98+.04*t);b.sCol[i*3+2]=k*.97;
     return true;
   }
+  function batchCommit(b:Batch){
+    const n=b.staged,cap=BATCH_CAP[batches.indexOf(b)];
+    if(n>b.capacity){while(b.capacity<n)b.capacity=Math.min(cap,b.capacity*2);b.mesh.setInstanceCount(b.capacity);}
+    for(let i=0;i<n;i++){
+      const gid=b.sGid[i];
+      if(i>=b.added){b.mesh.addInstance(gid);b.added++;}else{b.mesh.setGeometryIdAt(i,gid);b.mesh.setVisibleAt(i,true);}
+      m4.fromArray(b.sMat,i*16);b.mesh.setMatrixAt(i,m4);tint.setRGB(b.sCol[i*3],b.sCol[i*3+1],b.sCol[i*3+2]);b.mesh.setColorAt(i,tint);
+      b.cls[i]=b.sCls[i];
+    }
+    b.used=n;b.byClass=b.stagedByClass;
+  }
   const cache=new Map<string,CachedCell>(),MAX_CELLS=1200;let clock=0;
-  const stats:DressingStats={species:{state:'loading',lod0:0,lod1:0,triangles:0,bytes:0,loadMs:0,failed:[],dropped:0},instanceBytes:0,byFamily:{},triangles:0,cells:0,pending:0,instances:0,calls:0,lastRebuildMs:0,maxCellMs:0,generatedMs:0,bytes:0,radiusScale:1,byClass:{},droppedByClass:{},canopyCells:0,canopyPending:0,nearPending:-1,impostors:impostors.stats};
+  const stats:DressingStats={species:{state:'loading',lod0:0,lod1:0,triangles:0,bytes:0,loadMs:0,failed:[],dropped:0},instanceBytes:0,byFamily:{},triangles:0,cells:0,pending:0,instances:0,calls:0,lastRebuildMs:0,maxCellMs:0,generatedMs:0,bytes:0,radiusScale:1,byClass:{},droppedByClass:{},canopyCells:0,canopyPending:0,nearPending:-1,impostors:impostors.stats,rebuildSlices:0,lastCommitMs:0,maxRebuildSliceMs:0};
   const canopyFlight=new Map<string,GeoTask<Float32Array>>();let canopyDirty=false,queue:[number,number][]=[],focusCell='',dirty=true,lastRebuild=0,farScale=1,detail=0,retired=false;
   const scaleOf=(c:DressingClass)=>classScale(c,detail);
   const included=new Set<string>();
@@ -149,36 +171,41 @@ export function createDressingView(parent:THREE.Group,seed:number,density:number
   function evict(){
     if(cache.size<=MAX_CELLS)return;const keep=maxRadius()+DRESSING_CELL_M;
     const order=[...cache.entries()].map(([key,c])=>({key,d:cellDistance(c.cx,c.cz,lastFx,lastFz)})).filter(e=>e.d>keep).sort((a,b)=>b.d-a.d);
-    for(const {key}of order.slice(0,cache.size-MAX_CELLS)){cache.delete(key);const tag=':'+key;for(const kind of ['pine','shrub','rock','scree','pebble','basalt'])included.delete(kind+tag);}
+    for(const {key}of order.slice(0,cache.size-MAX_CELLS)){const gone=cache.get(key);if(gone)cellBytes-=cellBytesOf(gone);cache.delete(key);const tag=':'+key;for(const kind of ['pine','shrub','rock','scree','pebble','basalt'])included.delete(kind+tag);}
   }
   const color=new THREE.Color(),c2=new THREE.Color();
   const FOLIAGE:[number,number][]=[[0x4f7a45,0x6d9653],[0x5d8a4a,0x8aa85c]];
-  function rebuild(fx:number,fz:number){
+  /** Rebuild as a resumable job (doc 105, HITCH-1/2): the instance arrays are filled on the CPU
+   * over several frames (GPU copies are only refreshed at commit, so nothing half-built is ever
+   * drawn), then committed in one step. No per-instance allocation (bounds kept as scalars). */
+  function* rebuildJob(fx:number,fz:number,slice:boolean):Generator<void,void,void>{
     impostors.begin();
     const useHybrid=hybridEnabled&&impostors.ready;plannedView={...hybridView};
-    const t0=performance.now(),counts:Record<Family,number>={trunk:0,cone:0,round:0,stone:0,grit:0,basalt:0,farCone:0,farRound:0};
-    const bounds:Record<Family,THREE.Box3>=Object.fromEntries(FAMILIES.map(f=>[f,new THREE.Box3()])) as Record<Family,THREE.Box3>;
+    const pause=()=>slice&&performance.now()>sliceEnd;
+    const counts=jobCounts;for(const f of FAMILIES){counts[f]=0;const b=jobBounds[f];b[0]=b[1]=b[2]=Infinity;b[3]=b[4]=b[5]=-Infinity;}
     // Near/far decisions use the distance to the cell centre (a cell is 64 m wide).
-    const cells=[...cache.values()].map(c=>({c,d:Math.hypot((c.cx+.5)*DRESSING_CELL_M-fx,(c.cz+.5)*DRESSING_CELL_M-fz)})).sort((a,b)=>a.d-b.d);
+    jobCells.length=0;for(const c of cache.values())jobCells.push({c,d:Math.hypot((c.cx+.5)*DRESSING_CELL_M-fx,(c.cz+.5)*DRESSING_CELL_M-fz)});
+    const cells=jobCells.sort((a,b)=>a.d-b.d);
     const near=(kind:DressingKind,d:number,key:string)=>{const r=DRESSING_RADII[kind]*scaleOf(classOf(kind));const tag=kind+key;if(d<r){included.add(tag);return true;}if(d<r+24&&included.has(tag))return true;included.delete(tag);return false;};
     const write=(f:Family,x:number,y:number,z:number,sx:number,sy:number,sz:number,rot:number,hex:number|null)=>{
-      const n=counts[f];if(n>=CAPACITY[f])return;if(n>=allocated[f])allocate(f,Math.min(CAPACITY[f],allocated[f]*4),n);const m=meshes[f],e=m.instanceMatrix.array as Float32Array,o=n*16,c=Math.cos(rot),s=Math.sin(rot);
+      const n=counts[f];if(n>=CAPACITY[f])return;if(n>=allocated[f])allocate(f,Math.min(CAPACITY[f],allocated[f]*4),n);const m=growing[f]??meshes[f],e=m.instanceMatrix.array as Float32Array,o=n*16,c=Math.cos(rot),s=Math.sin(rot);
       e[o]=c*sx;e[o+1]=0;e[o+2]=-s*sx;e[o+3]=0;e[o+4]=0;e[o+5]=sy;e[o+6]=0;e[o+7]=0;e[o+8]=s*sz;e[o+9]=0;e[o+10]=c*sz;e[o+11]=0;e[o+12]=x;e[o+13]=y;e[o+14]=z;e[o+15]=1;
       if(hex!==null&&m.instanceColor){color.setHex(hex);m.instanceColor.setXYZ(n,color.r,color.g,color.b);}
-      bounds[f].expandByPoint(new THREE.Vector3(x,y+sy,z)).expandByPoint(new THREE.Vector3(x,y,z));counts[f]=n+1;
+      const b=jobBounds[f];if(x<b[0])b[0]=x;if(y<b[1])b[1]=y;if(z<b[2])b[2]=z;if(x>b[3])b[3]=x;if(y+sy>b[4])b[4]=y+sy;if(z>b[5])b[5]=z;counts[f]=n+1;
     };
     const mix=(a:number,b:number,t:number)=>{color.setHex(a);c2.setHex(b);color.lerp(c2,t);return color.getHex();};
-    const glb=library&&batches.length===2,prevUsed=batches.map(b=>b.used);for(const b of batches){b.used=0;b.byClass={};}let speciesTriangles=0;
+    const glb=library&&batches.length===2;for(const b of batches){b.staged=0;b.stagedByClass={};}let speciesTriangles=0;
     const radiiOf=(kind:'pine'|'oak'|'shrub'|'plant'|'deadwood',cls:DressingClass)=>SPECIES_RADII[cls==='gather'?'gather':kind];
     const lodOf=(kind:'pine'|'oak'|'shrub'|'plant'|'deadwood',cls:DressingClass,dist:number)=>{const [r0,r1]=radiiOf(kind,cls),k=scaleOf(cls);return dist<r0*k?0:dist<r1*k?1:-1;};
     const species=(kind:'pine'|'oak'|'shrub'|'plant'|'deadwood',x:number,y:number,z:number,s:number,r:number,t:number,sp:number,dist:number):boolean=>{
       if(!glb||sp<0||!library!.species[sp])return false;const cls=classOf(kind,SPECIES[sp]?.id),lod=lodOf(kind,cls,dist);if(lod<0)return false;
-      if(!batchWrite(batches[lod],sp,x,y,z,s,r,t,cls))return false;speciesTriangles+=batches[lod].tri[sp];return true;
+      if(!batchStage(batches[lod],sp,x,y,z,s,r,t,cls))return false;speciesTriangles+=batches[lod].tri[sp];return true;
     };
     for(const {c}of cells)c.used=++clock;
     // Pass 1 — trees and forests (nearest cells first): real models near, silhouettes far. A tree
     // refused by a full batch keeps its silhouette: forests never vanish from the screen.
     for(const {c,d}of cells){
+      if(pause())yield;
       const key=':'+c.cx+':'+c.cz;
       const trees=near('pine',d,key),far=d<DRESSING_RADII.farTrees*farScale;
       for(const kind of ['pine','oak'] as const){
@@ -219,48 +246,70 @@ export function createDressingView(parent:THREE.Group,seed:number,density:number
     }
     // Far canopy: wooded cells beyond the silhouette ring keep a few large crowns (forests stay
     // visible from the heights), same two silhouette families, no extra draw call.
-    for(const cell of canopy.values()){const d=Math.hypot(cell.x-fx,cell.z-fz);
+    let canopyN=0;
+    for(const cell of canopy.values()){if((++canopyN&63)===0&&pause())yield;const d=Math.hypot(cell.x-fx,cell.z-fz);
       if(d<farRadius()||d>canopyRadius())continue;cell.used=++clock;const a=cell.a,sparse=d>1100,g=sparse?1.3:1;
       for(let i=0;i<a.length;i+=CANOPY_STRIDE){if(sparse&&(i/CANOPY_STRIDE)%2===1)continue;const x=a[i],y=a[i+1],z=a[i+2],w=a[i+3]*g,h=a[i+4]*g,t=((x*13.1+z*7.7)%1+1)%1;if(occlusion&&!occlusion(x,z,y+h))continue;
         if(a[i+5])write('farCone',x,y,z,w,h,w,t*6.283,mix(0x3d6844,0x4f7a4c,t));else write('farRound',x,y+h*.45,z,w,h*.55,w,t*6.283,mix(0x55804a,0x6f9455,t));}}
     // Pass 2 — gatherable flora (flowers, mushrooms, reeds), then shrubs, then the rest of the
     // ground flora and deadwood: each class within its range and its share of the batches.
-    const flora=(kind:'plant'|'deadwood',want:(cls:DressingClass)=>boolean)=>{
+    const flora=function*(kind:'plant'|'deadwood',want:(cls:DressingClass)=>boolean):Generator<void,void,void>{
       if(!glb)return;const reach=Math.max(SPECIES_RADII.gather[1]*scaleOf('gather'),SPECIES_RADII[kind][1]*scaleOf(kind==='deadwood'?'deadwood':'ground'))+48;
-      for(const {c,d}of cells){if(d>reach)break;const a=c.items[kind];
+      for(const {c,d}of cells){if(d>reach)break;if(pause())yield;const a=c.items[kind];
         for(let i=0;i<a.length;i+=ITEM_STRIDE){const sp=a[i+6];if(!want(classOf(kind,SPECIES[sp]?.id))||hidden?.(c.cx,c.cz,kind,i/ITEM_STRIDE))continue;
           species(kind,a[i],a[i+1],a[i+2],a[i+3],a[i+4],a[i+5],sp,Math.hypot(a[i]-fx,a[i+2]-fz));}}
     };
-    flora('plant',cls=>cls==='gather');
-    for(const {c,d}of cells){const key=':'+c.cx+':'+c.cz,a=c.items.shrub,nearShrub=near('shrub',d,key);if(!nearShrub&&d>SPECIES_RADII.shrub[1]*scaleOf('shrub')+48)continue;
+    yield* flora('plant',cls=>cls==='gather');
+    for(const {c,d}of cells){const key=':'+c.cx+':'+c.cz,a=c.items.shrub,nearShrub=near('shrub',d,key);if(!nearShrub&&d>SPECIES_RADII.shrub[1]*scaleOf('shrub')+48)continue;if(pause())yield;
       for(let i=0;i<a.length;i+=ITEM_STRIDE){
         if(species('shrub',a[i],a[i+1],a[i+2],a[i+3],a[i+4],a[i+5],a[i+6],Math.hypot(a[i]-fx,a[i+2]-fz)))continue;
         if(nearShrub&&!glb)write('round',a[i],a[i+1]+.45*a[i+3],a[i+2],1.1*a[i+3],.75*a[i+3],1.1*a[i+3],a[i+4],mix(0x6f8f4e,0x93a15a,a[i+5]));}}
-    if(scaleOf('ground')>0)flora('plant',cls=>cls==='ground');
-    if(scaleOf('deadwood')>0)flora('deadwood',()=>true);
+    if(scaleOf('ground')>0)yield* flora('plant',cls=>cls==='ground');
+    if(scaleOf('deadwood')>0)yield* flora('deadwood',()=>true);
     // Pass 3 — minerals: cliff-foot rocks and basalt (landscape scale), then pebbles and scree last.
+    // Minerals are selected per item (not per 64 m cell centre): no block of pebbles popping
+    // next to the player. Radii ×1.15 keep at least the area the cell test used to cover.
+    const mineral=(kind:'rock'|'basalt'|'scree'|'pebble',d:number)=>{const r=DRESSING_RADII[kind]*scaleOf(classOf(kind))*1.15;return d<r+DRESSING_CELL_M*.71?r:-1;};
     for(const {c,d}of cells){
-      const key=':'+c.cx+':'+c.cz;
-      if(near('rock',d,key)){const a=c.items.rock;for(let i=0;i<a.length;i+=ITEM_STRIDE)write('stone',a[i],a[i+1],a[i+2],a[i+3],a[i+3]*(.7+.5*a[i+5]),a[i+3]*.85,a[i+4],mix(0x8b8b84,0x6f6e69,a[i+5]));}
-      if(near('basalt',d,key)){const a=c.items.basalt;for(let i=0;i<a.length;i+=ITEM_STRIDE)write('basalt',a[i],a[i+1],a[i+2],a[i+3],a[i+3]*(.7+1.6*a[i+5]),a[i+3],a[i+4],mix(0x4a4547,0x5e5856,a[i+5]));}
+      if(d>maxRadius()*1.15+DRESSING_CELL_M)break;if(pause())yield;
+      let r=mineral('rock',d);if(r>0){const a=c.items.rock;for(let i=0;i<a.length;i+=ITEM_STRIDE)if(Math.hypot(a[i]-fx,a[i+2]-fz)<r)write('stone',a[i],a[i+1],a[i+2],a[i+3],a[i+3]*(.7+.5*a[i+5]),a[i+3]*.85,a[i+4],mix(0x8b8b84,0x6f6e69,a[i+5]));}
+      r=mineral('basalt',d);if(r>0){const a=c.items.basalt;for(let i=0;i<a.length;i+=ITEM_STRIDE)if(Math.hypot(a[i]-fx,a[i+2]-fz)<r)write('basalt',a[i],a[i+1],a[i+2],a[i+3],a[i+3]*(.7+1.6*a[i+5]),a[i+3],a[i+4],mix(0x4a4547,0x5e5856,a[i+5]));}
       if(scaleOf('small')<=0)continue;
-      if(near('scree',d,key)){const a=c.items.scree;for(let i=0;i<a.length;i+=ITEM_STRIDE)write('grit',a[i],a[i+1],a[i+2],a[i+3],a[i+3]*.55,a[i+3]*.8,a[i+4],mix(0xa29d8e,0x85817a,a[i+5]));}
-      if(near('pebble',d,key)){const a=c.items.pebble;for(let i=0;i<a.length;i+=ITEM_STRIDE)write('grit',a[i],a[i+1],a[i+2],a[i+3],a[i+3]*.4,a[i+3]*.75,a[i+4],mix(0xc2bbaa,0x9b968a,a[i+5]));}
+      r=mineral('scree',d);if(r>0){const a=c.items.scree;for(let i=0;i<a.length;i+=ITEM_STRIDE)if(Math.hypot(a[i]-fx,a[i+2]-fz)<r)write('grit',a[i],a[i+1],a[i+2],a[i+3],a[i+3]*.55,a[i+3]*.8,a[i+4],mix(0xa29d8e,0x85817a,a[i+5]));}
+      r=mineral('pebble',d);if(r>0){const a=c.items.pebble;for(let i=0;i<a.length;i+=ITEM_STRIDE)if(Math.hypot(a[i]-fx,a[i+2]-fz)<r)write('grit',a[i],a[i+1],a[i+2],a[i+3],a[i+3]*.4,a[i+3]*.75,a[i+4],mix(0xc2bbaa,0x9b968a,a[i+5]));}
     }
+    // ---- Commit: swap grown buffers, apply staged batch writes, upload once.
+    const t0=performance.now();
     impostors.end();
+    for(const f of FAMILIES){const g=growing[f];if(g){const old=meshes[f];root.add(g);meshes[f]=g;growing[f]=undefined;old.removeFromParent();old.dispose();}}
     let instances=impostors.stats.instances,calls=impostors.stats.calls,triangles=impostors.stats.instances*2;
     for(const f of FAMILIES){
       const m=meshes[f],n=counts[f];m.count=n;m.visible=n>0;instances+=n;if(n)calls++;stats.byFamily[f]=n;triangles+=n*trianglesOf(geometries[f]);
       m.instanceMatrix.needsUpdate=true;m.instanceMatrix.clearUpdateRanges();m.instanceMatrix.addUpdateRange(0,n*16);
       if(m.instanceColor){m.instanceColor.needsUpdate=true;m.instanceColor.clearUpdateRanges();m.instanceColor.addUpdateRange(0,n*3);}
-      if(n){m.boundingSphere=bounds[f].getBoundingSphere(new THREE.Sphere());m.boundingSphere.radius+=8;}
+      if(n){const b=jobBounds[f],sphere=m.boundingSphere??=new THREE.Sphere();sphere.center.set((b[0]+b[3])/2,(b[1]+b[4])/2,(b[2]+b[5])/2);sphere.radius=Math.hypot(b[3]-b[0],b[4]-b[1],b[5]-b[2])/2+8;}
     }
-    batches.forEach((b,k)=>{for(let i=b.used;i<prevUsed[k];i++)b.mesh.setVisibleAt(i,false);b.mesh.visible=b.used>0;if(b.used){calls++;instances+=b.used;}});
+    for(const b of batches){const before=b.used;batchCommit(b);for(let i=b.used;i<before;i++)b.mesh.setVisibleAt(i,false);b.mesh.visible=b.used>0;if(b.used){calls++;instances+=b.used;}}
     triangles+=speciesTriangles;stats.byClass={};for(const b of batches)for(const [k,v]of Object.entries(b.byClass))stats.byClass[k as DressingClass]=(stats.byClass[k as DressingClass]??0)+v;stats.species.lod0=batches[0]?.used??0;stats.species.lod1=batches[1]?.used??0;stats.species.triangles=speciesTriangles;
-    stats.instances=instances;stats.calls=calls;stats.triangles=triangles;stats.lastRebuildMs=performance.now()-t0;stats.cells=cache.size;
-    let bytes=0;for(const c of cache.values()){for(const a of Object.values(c.items))bytes+=a.byteLength;for(const a of Object.values(c.modes??{}))bytes+=a.byteLength;}stats.bytes=bytes;
+    stats.instances=instances;stats.calls=calls;stats.triangles=triangles;stats.cells=cache.size;
+    stats.lastCommitMs=performance.now()-t0;stats.rebuildSlices=slices;
+    stats.bytes=cellBytes;
     stats.instanceBytes=FAMILIES.reduce((sum,f)=>sum+allocated[f]*(f==='trunk'?64:76),0);
   }
+  /** Fixed-size working storage of the rebuild job (no allocation per rebuild). */
+  const jobCounts:Record<Family,number>={trunk:0,cone:0,round:0,stone:0,grit:0,basalt:0,farCone:0,farRound:0};
+  const jobBounds=Object.fromEntries(FAMILIES.map(f=>[f,new Float64Array(6)])) as Record<Family,Float64Array>;
+  const jobCells:{c:CachedCell;d:number}[]=[];
+  let job:Generator<void,void,void>|null=null,sliceEnd=0,slices=0,cellBytes=0,jobSpent=0;
+  const cellBytesOf=(c:CachedCell)=>{let n=0;for(const a of Object.values(c.items))n+=a.byteLength;for(const a of Object.values(c.modes??{}))n+=a.byteLength;return n;};
+  /** Runs the rebuild for at most `ms` of this frame; true when the new instances are committed. */
+  function runJob(ms:number):boolean{
+    if(!job)return true;const t=performance.now();sliceEnd=t+ms;slices++;
+    const done=job.next().done;jobSpent+=performance.now()-t;
+    if(done){job=null;stats.lastRebuildMs=jobSpent;stats.maxRebuildSliceMs=Math.max(stats.maxRebuildSliceMs,performance.now()-t);}
+    return !!done;
+  }
+  function startRebuild(fx:number,fz:number,sliced:boolean){jobSpent=0;slices=0;job=rebuildJob(fx,fz,sliced);}
   return {
     stats,
     setLighting(color:THREE.Color|null){impostors.setLighting(color);},
@@ -298,14 +347,14 @@ export function createDressingView(parent:THREE.Group,seed:number,density:number
           task.promise.then(({result,stale})=>{
             if(inFlight.get(key)!==task)return;inFlight.delete(key);if(retired)return;
             if(stale){focusCell='';return;}
-            cache.set(key,{...result,used:++clock});stats.maxCellMs=Math.max(stats.maxCellMs,result.ms);stats.generatedMs+=result.ms;dirty=true;evict();
+            const prev=cache.get(key);if(prev)cellBytes-=cellBytesOf(prev);const cell={...result,used:++clock};cache.set(key,cell);cellBytes+=cellBytesOf(cell);stats.maxCellMs=Math.max(stats.maxCellMs,result.ms);stats.generatedMs+=result.ms;dirty=true;evict();
           },()=>{if(inFlight.get(key)===task){inFlight.delete(key);focusCell='';}});
         }
       }
       const ctx=queue.length&&!workers?.available?geoContext():null;
       while(ctx&&queue.length&&performance.now()-t0<budgetMs*(detail>=2?.6:1)){
         const [x,z]=queue.shift()!,key=x+':'+z;if(cache.has(key)&&!cache.get(key)!.stale)continue;
-        const c=generateDressingCell(ctx!,seed,x,z,insideWorld);cache.set(key,{...c,used:++clock});stats.maxCellMs=Math.max(stats.maxCellMs,c.ms);stats.generatedMs+=c.ms;made++;
+        const c=generateDressingCell(ctx!,seed,x,z,insideWorld),prev=cache.get(key);if(prev)cellBytes-=cellBytesOf(prev);const cell={...c,used:++clock};cache.set(key,cell);cellBytes+=cellBytesOf(cell);stats.maxCellMs=Math.max(stats.maxCellMs,c.ms);stats.generatedMs+=c.ms;made++;
       }
       // Canopy cells: main thread, only with the remaining frame budget (near dressing first).
       const addCanopy=(x:number,z:number,a:Float32Array)=>{canopy.set(x+':'+z,{a,used:++clock,x:(x+.5)*DRESSING_CELL_M,z:(z+.5)*DRESSING_CELL_M});};
@@ -326,7 +375,9 @@ export function createDressingView(parent:THREE.Group,seed:number,density:number
       // Far canopy arrivals redraw at most once per second (and once when the ring is complete):
       // distant crowns tolerate the latency, the frame budget does not.
       if(canopyDirty&&(now-lastRebuild>1000||!canopyQueue.length&&!canopyFlight.size)){canopyDirty=false;dirty=true;}
-      if(dirty&&(now-lastRebuild>250||!queue.length&&!inFlight.size)){dirty=false;canopyDirty=false;lastRebuild=now;rebuild(fx,fz);}
+      // The rebuild runs as a job spread over frames (≤ budget per frame), committed atomically.
+      if(job)runJob(budgetMs);
+      else if(dirty&&(now-lastRebuild>250||!queue.length&&!inFlight.size)){dirty=false;canopyDirty=false;lastRebuild=now;startRebuild(fx,fz,!(hybridEnabled&&impostors.ready));runJob(budgetMs);}
     },
     /** Mark cells around an authored change (relief, masks, zones) stale: they stay drawn
      * until regenerated in priority (no popping hole). */
@@ -337,7 +388,7 @@ export function createDressingView(parent:THREE.Group,seed:number,density:number
       if(dropped){focusCell='';dirty=true;}
     },
     dispose(){
-      if(retired)return;retired=true;impostors.dispose();for(const t of inFlight.values())t.cancel();inFlight.clear();for(const t of canopyFlight.values())t.cancel();canopyFlight.clear();cache.clear();canopy.clear();root.removeFromParent();
+      if(retired)return;retired=true;impostors.dispose();for(const t of inFlight.values())t.cancel();inFlight.clear();for(const t of canopyFlight.values())t.cancel();canopyFlight.clear();cache.clear();canopy.clear();job=null;for(const f of FAMILIES)growing[f]?.dispose();root.removeFromParent();
       for(const f of FAMILIES){meshes[f].dispose();geometries[f].dispose();materials[f].dispose();}
       // Batches own copies of the shared species geometries; the library cache itself is kept.
       for(const b of batches)b.mesh.dispose();batchMaterial.dispose();
