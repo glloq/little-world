@@ -85,7 +85,7 @@ export function createHorizonView(root:THREE.Group,bounds:HorizonBounds,coverage
     let quads=0;
     const push=(left:number,right:number,bottom:number,top:number)=>{
       if(quads>=nearCapacity||right-left<=.001||top-bottom<=.001)return;
-      p.set([left,y,bottom,right,y,bottom,left,y,top,right,y,top],quads*12);
+      const o=quads*12;p[o]=left;p[o+1]=y;p[o+2]=bottom;p[o+3]=right;p[o+4]=y;p[o+5]=bottom;p[o+6]=left;p[o+7]=y;p[o+8]=top;p[o+9]=right;p[o+10]=y;p[o+11]=top;
       quads++;
     };
     coverage.forEachActive((column,row,minY)=>{
@@ -111,16 +111,17 @@ export function createHorizonView(root:THREE.Group,bounds:HorizonBounds,coverage
       }
       for(const q of parts)push(q.minX,q.maxX,q.minZ,q.maxZ);
     });
-    attribute.needsUpdate=true;
+    // Upload only the quads in use (was the whole 98 KB buffer on every coverage change).
+    attribute.clearUpdateRanges();attribute.addUpdateRange(0,Math.max(1,quads)*12);attribute.needsUpdate=true;
     near.geometry.setDrawRange(0,quads*6);
   }
-  let coverageVersion=-1;
+  let coverageVersion=-1;const previousMask=new Uint8Array(mask.length);
   return {group,stats,
     setSurfArea(area){surfAreas=area?[area]:[];rebuildNear();},
     setSurfAreas(areas){surfAreas=areas.slice(0,32).map(a=>({...a}));rebuildNear();},
     update(){
       if(coverage.version===coverageVersion)return;coverageVersion=coverage.version;
-      const previous=mask.slice();mask.fill(0);
+      previousMask.set(mask);const previous=previousMask;mask.fill(0);
       coverage.forEachActive((column,row)=>{if(column>=0&&row>=0&&column<columns&&row<rows)mask[row*columns+column]=255;});
       // Only blocks containing a tile whose coverage changed are re-indexed.
       const span=grid.spacing*grid.blockCells,dirty=new Set<string>();

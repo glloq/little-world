@@ -30,7 +30,7 @@ const FAMILIES:Family[]=['trunk','cone','round','stone','grit','basalt','farCone
  * than the generic ground plants; deadwood and ground plants are short-ranged. */
 export const SPECIES_RADII:Record<'pine'|'oak'|'shrub'|'plant'|'gather'|'deadwood',[number,number]>={pine:[60,170],oak:[60,170],shrub:[40,110],gather:[45,80],plant:[22,42],deadwood:[25,50]};
 export const DRESSING_RADII:Record<DressingKind|'farTrees',number>={pine:90,oak:90,shrub:90,plant:70,deadwood:90,rock:240,basalt:240,scree:55,pebble:40,farTrees:900};
-const CAPACITY:Record<Family,number>={trunk:2500,cone:1500,round:2500,stone:6000,grit:5000,basalt:1500,farCone:16000,farRound:16000};
+const CAPACITY:Record<Family,number>={trunk:2500,cone:1500,round:2500,stone:6000,grit:5000,basalt:2500,farCone:16000,farRound:16000};
 /** Far forest canopy ring (beyond the far silhouettes) per detail level: never switched off. */
 export const CANOPY_RADII=[1800,1600,1400,1100] as const;
 export interface DressingStats {/** GLB species library: loading state, instances per LOD, culling. */species:{state:'loading'|'ready'|'failed';lod0:number;lod1:number;triangles:number;bytes:number;loadMs:number;failed:string[];dropped:number};/** Allocated instance buffers (matrices + colours), bytes. */instanceBytes:number;byFamily:Record<string,number>;triangles:number;cells:number;pending:number;instances:number;calls:number;lastRebuildMs:number;maxCellMs:number;generatedMs:number;bytes:number;radiusScale:number;
@@ -328,7 +328,9 @@ export function createDressingView(parent:THREE.Group,seed:number,density:number
     // Pass 3 — minerals: cliff-foot rocks and basalt (landscape scale), then pebbles and scree last.
     // Minerals are selected per item (not per 64 m cell centre): no block of pebbles popping
     // next to the player. Radii ×1.15 keep at least the area the cell test used to cover.
-    const mineral=(kind:'rock'|'basalt'|'scree'|'pebble',d:number)=>{const r=DRESSING_RADII[kind]*scaleOf(classOf(kind))*1.15;return d<r+DRESSING_CELL_M*.71?r:-1;};
+    // Small minerals (near the player) ×1.15; landscape rocks/basalt (240 m) ×1.05 is already
+    // more than the cell test covered, without filling the family capacity (cut-off ring).
+    const mineral=(kind:'rock'|'basalt'|'scree'|'pebble',d:number)=>{const r=DRESSING_RADII[kind]*scaleOf(classOf(kind))*(kind==='rock'||kind==='basalt'?1.05:1.15);return d<r+DRESSING_CELL_M*.71?r:-1;};
     for(const {c,d}of cells){
       if(d>maxRadius()*1.15+DRESSING_CELL_M)break;if(pause())yield;
       let r=mineral('rock',d);if(r>0){const a=c.items.rock;for(let i=0;i<a.length;i+=ITEM_STRIDE)if(Math.hypot(a[i]-fx,a[i+2]-fz)<r)write('stone',a[i],a[i+1],a[i+2],a[i+3],a[i+3]*(.7+.5*a[i+5]),a[i+3]*.85,a[i+4],mix(0x8b8b84,0x6f6e69,a[i+5]));}

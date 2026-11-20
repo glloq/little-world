@@ -256,7 +256,9 @@ export function createTerrainView(
     lastZ = Infinity,
     lastFocus: ViewFocus | null = null,
     dead = false;
-  const key = (chunk: WorldChunk, lod: TerrainLOD) => `${chunk.id}/${lod}`;
+  // Cache keys are looked up for every pending tile on every frame: build each string once.
+  const keyCache = new Map<string, string[]>();
+  const key = (chunk: WorldChunk, lod: TerrainLOD) => { let k = keyCache.get(chunk.id); if (!k) { k = [`${chunk.id}/0`, `${chunk.id}/1`, `${chunk.id}/2`]; keyCache.set(chunk.id, k); } return k[lod]; };
   const pool = options.workers ?? null;
   /** Tiles requested from the workers (key → job), at most MAX_IN_FLIGHT at once so a
    * replanned camera keeps priority over older requests. */
