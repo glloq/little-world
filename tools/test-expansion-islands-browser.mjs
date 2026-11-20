@@ -23,7 +23,12 @@ try{
      center.x-normal.x*3,center.z-normal.z*3,Math.atan2(normal.x,normal.z)),start);
    await page.locator('.ui-race-option').filter({hasText:'Chrono des Cimes'}).getByRole('button',{name:'Lancer'}).click();
    await page.locator('.race-course-hud').filter({hasText:'Chrono des Cimes'}).waitFor({state:'visible'});
-   console.log('Cimes : départ du chrono de ski préparé.');
+   await page.keyboard.down('KeyW');
+   try{
+    await page.waitForFunction(()=>/Portes : [1-9]/.test(document.querySelector('.race-course-hud')?.textContent??''),
+     null,{timeout:15000});
+   }finally{await page.keyboard.up('KeyW');}
+   console.log('Cimes : première porte franchie en glisse, chrono démarré.');
    await page.locator('button[data-panel=races]').click();
    await page.getByRole('button',{name:'Abandonner la course'}).click();
    await page.keyboard.press('Escape');
@@ -46,7 +51,20 @@ try{
   await page.locator('article').filter({has:page.getByRole('heading',{name,exact:true})}).getByRole('button',{name:'Ouvrir ce monde'}).click();
   await page.locator('#workspace canvas').waitFor({state:'visible',timeout:35000});
   assert.match(await page.locator('#breadcrumbs').textContent(),new RegExp(name));
-  console.log(name+' ouverte dans Studio.');
+  await page.getByRole('button',{name:'Quêtes',exact:true}).click();
+  const title=id==='alpine-island'?'Première descente aux Cimes':'Les premières carottes';
+  await page.getByRole('button',{name:title,exact:true}).click();
+  assert.ok(await page.getByLabel('Consigne dans le journal').inputValue());
+  if(id==='alpine-island'){
+   const race=page.getByLabel('Course',{exact:true});
+   assert.equal(await race.inputValue(),'race:composition-ski');
+   const list=await race.getAttribute('list');
+   assert.equal(await page.locator('#'+list+' option[value="race:composition-ski"]').getAttribute('label'),'Chrono des Cimes');
+  }else{
+   const plot=await page.getByLabel('Parcelle indiquée dans le journal').inputValue();
+   assert.equal(project.libraries.zones[plot].farm.assignment,'player');
+  }
+  console.log(name+' et sa mission ouvertes dans Studio.');
  }
  assert.deepEqual(errors,[]);
 }finally{await browser.close();}

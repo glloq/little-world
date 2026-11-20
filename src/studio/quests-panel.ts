@@ -14,6 +14,9 @@ export function mountQuestsPanel(host:HTMLElement,session:StudioSession,
   .sort((a,b)=>a.name.localeCompare(b.name));
  const entities=Object.values(project.entityIndex).sort((a,b)=>a.name.localeCompare(b.name));
  const knownItems=Object.values(project.libraries.items).sort((a,b)=>a.name.localeCompare(b.name));
+ const playerPlots=Object.values(project.libraries.zones??{}).filter(zone=>
+  zone.kind==='farm-plot'&&zone.farm?.assignment==='player').sort((a,b)=>a.name.localeCompare(b.name));
+ const fixedRaces=Object.values(project.libraries.races??{}).sort((a,b)=>a.name.localeCompare(b.name));
  const list=node('div'),form=node('section','','section-card'),diagnostics=node('div');
  const catalog=()=>project.libraries.questCatalog??{};
  let selected:string|null=null;
@@ -34,7 +37,14 @@ export function mountQuestsPanel(host:HTMLElement,session:StudioSession,
    const local=(!('islandId'in step)||!step.islandId||step.islandId===project.world.worldId);
    if(step.kind==='talk'&&step.npcId&&local){refs.add(step.npcId);if(!project.entityIndex[step.npcId])issues.push('Interlocuteur manquant : '+step.npcId);}
    if(step.kind==='visit'&&local){refs.add(step.targetId);if(!project.entityIndex[step.targetId])issues.push('Lieu manquant : '+step.targetId);}
+   if(step.kind==='race'&&local&&project.libraries.races?.[step.raceId])refs.add(step.raceId);
+   if(step.kind==='acquire'&&project.libraries.items[step.itemId])refs.add(step.itemId);
    if(step.kind==='deliver'&&local){refs.add(step.giverId);if(!project.entityIndex[step.giverId])issues.push('Destinataire manquant : '+step.giverId);}
+  }
+  if(typeof value.bindings.farmPlotId==='string'){
+   const plot=playerPlots.find(plot=>plot.id===value.bindings.farmPlotId);
+   if(plot)refs.add(plot.id);
+   else issues.push('Parcelle de guidage du joueur absente : '+value.bindings.farmPlotId);
   }
   for(const reward of value.rewards)if(reward.kind==='item'&&!project.libraries.items[reward.itemId])
     issues.push('Objet de récompense absent : '+reward.itemId);
@@ -72,8 +82,19 @@ export function mountQuestsPanel(host:HTMLElement,session:StudioSession,
   const q=draft;
   form.append(node('h3','Éditer la mission'),
    field('Titre',input(String(q.bindings.title??''),v=>q.bindings.title=v)),
+   field('Consigne dans le journal',input(String(q.bindings.instruction??''),v=>{
+    if(v.trim())q.bindings.instruction=v.trim();else delete q.bindings.instruction;
+   })),
    field('Donneur PNJ',select(q.giverId,knownNpcs.map(n=>[n.id,n.name] as const),v=>q.giverId=v)),
    node('p','ID stable : '+q.questKey,'muted'));
+  if(playerPlots.length||q.bindings.farmPlotId!==undefined){
+   const plotId=String(q.bindings.farmPlotId??'');
+   const plots: [string,string][]=[['','Aucune'],...playerPlots.map(plot=>[plot.id,plot.name] as [string,string])];
+   if(plotId&&!plots.some(([id])=>id===plotId))plots.push([plotId,plotId+' (absente)']);
+   form.append(field('Parcelle indiquée dans le journal',select(plotId,plots,v=>{
+    if(v)q.bindings.farmPlotId=v;else delete q.bindings.farmPlotId;
+   })));
+  }
   const steps=node('div','','section-card');steps.append(node('h4','Étapes successives (maximum 8)'));
   const defaults:Record<QuestStepV1['kind'],QuestStepV1>={
    talk:{kind:'talk',npcId:q.giverId},
@@ -115,8 +136,17 @@ export function mountQuestsPanel(host:HTMLElement,session:StudioSession,
    }else if(step.kind==='craft'){
     parameter('recipeId','Recette',step.recipeId);
     line.append(field('Lots',numberInput(step.quantity,v=>step.quantity=v,1,9999,'1')));
-   }else if(step.kind==='race')parameter('raceId','Course',step.raceId);
-   else if(step.kind==='travel'){
+   }else if(step.kind==='race'){
+    const race=input(step.raceId,v=>step.raceId=v.trim());
+    if(fixedRaces.length){
+     const options=node('datalist');options.id='quest-fixed-races-'+index;
+     for(const fixed of fixedRaces){
+      const choice=node('option');choice.value=fixed.id;choice.label=fixed.name;options.append(choice);
+     }
+     race.setAttribute('list',options.id);line.append(options);
+    }
+    line.append(field('Course',race));
+   }else if(step.kind==='travel'){
     parameter('fromIslandId','Île de départ',step.fromIslandId);
     parameter('toIslandId','Île de destination',step.toIslandId);
    }

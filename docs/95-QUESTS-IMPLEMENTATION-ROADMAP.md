@@ -203,3 +203,8 @@ Pour chaque phase : **SPECIFIED → IMPLEMENTED → TESTED → QUALIFIED**, asso
 
 - Aux Cimes, l’habitant du port propose **Première descente aux Cimes**. Une course de ski validée débloque la récompense.
 - Aux Moissons, l’habitant propose **Les premières carottes**. Le journal situe la parcelle du joueur, puis l’habitant à qui remettre une carotte. La quête avance à la récolte effective, à la livraison et à la remise de la récompense via les services existants.
+
+Studio permet d’éditer la consigne du journal, de choisir une parcelle de
+guidage et de retrouver un circuit par son nom. L’audit de contenu compte les
+missions auteur et signale les donneurs ou parcelles absents ainsi que les
+références vers un circuit local à examiner.

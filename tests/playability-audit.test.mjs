@@ -1,6 +1,30 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {flatSettlementProject} from '../tools/settlement-fixture.mjs';import {auditPlayability} from '../src/studio-core/playability-audit.ts';import {putEntity} from '../src/studio-core/source.ts';import {chunkAt} from '../src/studio-core/schema.ts';
+import {DEFAULT_APPEARANCE} from '../src/character-style.ts';
 function entity(p,id,x,z,extra={}){putEntity(p,{id,name:id,kind:'prop',ownerChunkId:chunkAt(p.world,x,z),components:{Transform:{type:'Transform',position:{x,y:0,z},rotation:{x:0,y:0,z:0,w:1},scale:{x:1,y:1,z:1}},...extra}});}
 test('empty authoring worlds are reported as unpopulated without inventing a playability or FPS certificate',()=>{const p=flatSettlementProject(),before=JSON.stringify(p),a=auditPlayability(p);assert.equal(a.stats.quests,0);assert.equal(a.coverage.nearActivePercent,0);assert.ok(a.findings.some(f=>f.code==='CONTENT_GAPS'));assert.equal(a.localBudget.gpuMeasured,false);assert.equal(a.method.includesProceduralForage,false);assert.equal(JSON.stringify(p),before);});
 test('scenery alone does not count as activity, whereas a real counter changes nearby coverage',()=>{const p=flatSettlementProject(),a=auditPlayability(p);entity(p,'tree',0,0,{Visual:{type:'Visual',assetId:'tree.oak'}});const b=auditPlayability(p);assert.equal(a.coverage.nearActivePercent,b.coverage.nearActivePercent);entity(p,'counter',0,0,{State:{type:'State',initial:{shop:'market'}}});const c=auditPlayability(p);assert.equal(c.stats.shops,1);assert.ok(c.coverage.nearActivePercent>b.coverage.nearActivePercent);assert.ok(c.coverage.nearActivePercent<100);});
 test('quest graph checks authored starts and completions but explicitly does not certify conditions',()=>{const p=flatSettlementProject();entity(p,'host',10,0,{DialogueActor:{type:'DialogueActor',dialogueIds:['talk']}});p.libraries.objectives.q={id:'q',name:'Visite',initialStatus:'locked',persistent:true};p.libraries.dialogues.talk={id:'talk',actorId:'host',start:'hello',lines:[{id:'hello',text:'Bonjour',choices:[{id:'accept',text:'D’accord',next:'thanks',actions:[{type:'setObjective',objectiveId:'q',status:'active'}]}]},{id:'thanks',text:'Merci',choices:[{id:'finish',text:'Terminer',actions:[{type:'setObjective',objectiveId:'q',status:'complete'}]}]}]};const a=auditPlayability(p);assert.equal(a.quests[0].starts,true);assert.equal(a.quests[0].completes,true);assert.equal(a.method.conditionAware,false);p.libraries.dialogues.talk.lines[1].choices[0].actions=[];assert.ok(auditPlayability(p).findings.some(f=>f.code==='QUEST_FLOW_INCOMPLETE'));});
 test('sampling and route checks stay bounded, deterministic and reject unloaded source sectors',()=>{const p=flatSettlementProject();for(let i=0;i<10;i++)p.libraries.paths['p'+i]={id:'p'+i,points:[{x:-200,z:i*10},{x:200,z:i*10}],width:3,kind:'dirt',smooth:false};const a=auditPlayability(p,{maxCells:16,pathSegments:3});assert.ok(a.cells.length<=16);assert.ok(a.paths.inspectedSegments<=3);assert.ok(a.paths.uninspectedPaths>0);assert.deepEqual(a,auditPlayability(p,{maxCells:16,pathSegments:3}));assert.throws(()=>auditPlayability(p,{spacingM:NaN}));entity(p,'counter',0,0,{State:{type:'State',initial:{shop:'market'}}});delete p.chunks[p.entityIndex.counter.ownerChunkId];assert.throws(()=>auditPlayability(p),/secteurs/);});
+
+
+test('the audit includes authored offers and reports missing local activity references',()=>{
+ const p=flatSettlementProject();
+ entity(p,'host',10,0,{Character:{type:'Character',species:'hamster',rigId:'hamster-rigid',appearance:{...DEFAULT_APPEARANCE}}});
+ const questKey='quest:audit';
+ p.libraries.questCatalog={[questKey]:{
+  questKey,templateId:'test:audit',templateVersion:1,islandId:p.world.worldId,giverId:'host',
+  bindings:{title:'Mission du village',farmPlotId:'plot:absent'},
+  steps:[{kind:'race',raceId:'race:absent'},{kind:'race',raceId:'race:foreign',islandId:'another-island'}],
+  rewards:[],dependencies:['host'],catalogRevision:'test-v1',
+  proof:{capabilityIds:['host'],validatorVersion:'test-v1'},
+ }};
+ const audit=auditPlayability(p);
+ assert.equal(audit.stats.quests,1);
+ assert.equal(audit.authoredQuests[0].hasGiver,true);
+ assert.ok(audit.anchors.some(anchor=>anchor.id==='quest-offer:'+questKey));
+ assert.ok(!audit.findings.some(finding=>finding.code==='NO_AUTHORED_QUEST'));
+ assert.equal(audit.findings.filter(finding=>finding.code==='QUEST_RACE_REVIEW').length,1);
+ assert.ok(audit.findings.some(finding=>finding.code==='QUEST_PLOT_MISSING'));
+ p.libraries.questCatalog[questKey].giverId='absent';
+ assert.ok(auditPlayability(p).findings.some(finding=>finding.code==='QUEST_GIVER_MISSING'));
+});
