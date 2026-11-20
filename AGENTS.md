@@ -289,11 +289,11 @@ Lire **[43 — Hamster joueur](docs/43-HAMSTER-JOUEUR.md)** avant de toucher au 
 
 ## Carte officielle et isolation des fixtures (novembre 2026)
 
-- **Un seul exemple public** : l’île 4 × 3 km, source générée `maps/island.project.json`, runtime `public/maps/island/`, générateur `npm run generate:island`.
-- **Studio** : seul ce monde est proposé dans « Explorer un monde prêt ». `vite.config.ts` expose la source comme `maps/island.project.json` dans le build et en développement, sans copie versionnée supplémentaire.
-- Les anciennes scènes de référence sont maintenant des **fixtures de régression**, sous `tests/fixtures/legacy-maps/{authoring,published}`, absentes des répertoires de cartes publiques.
+- **Carte principale** : l’île 4 × 3 km, source générée `maps/island.project.json`, runtime `public/maps/island/`, générateur `npm run generate:island`.
+- **Studio** : « Explorer un monde prêt » propose le Volcan, le Val forestier, les Trois vagues, les Cimes et les Moissons. Les sources sont servies dans le build et en développement. Le Volcan reste sous `maps/island.project.json`. Les autres projets sont exposés sous `archipelago/worlds/<id>/project.json`.
+- Les scènes techniques sont conservées sous `tests/fixtures/legacy-maps/{authoring,published}`. Le val forestier est publié à partir de la référence World Production avec les fichiers compilés cités par son manifeste.
 - Les tests navigateur peuvent les utiliser seulement après `node tools/stage-test-maps.mjs dist/maps` avec `studio/?testFixtures=1` sur le build de validation ; **ne jamais ajouter cette étape dans le workflow GitHub Pages**.
-- Les prochains ajouts de contenu destinés aux joueurs se font sur le générateur de l’île officielle et sont mesurés avant/après. Voir `docs/61-SHOWCASE-ISLAND-4X3.md`.
+- Les ajouts de contenu se font dans le générateur de l’île concernée et sont mesurés avant/après. Voir `docs/61-SHOWCASE-ISLAND-4X3.md`.
 
 
 ## ARCHIPEL — règles d'implémentation statique-first (18/11/2026)

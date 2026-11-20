@@ -175,3 +175,27 @@ test('committed cargo receipt contains the post-payment bag and survives a faile
     buyerCheckpoint:{...checkpoint,inventory:{coin:-3}}};
   assert.throws(()=>parseCargoState(corrupted),/Inventaire de reprise invalide/);
 });
+
+test('the harvest cargo lanes preserve old purchases and start at the next published departure',()=>{
+  const legacyRoutes=CARGO_ROUTES.slice(0,2),disk=storage();
+  const old=newCargoState(legacyRoutes);
+  delete old.exportReserves['harvest-island'];
+  advanceCargo(old,1000,legacyRoutes);
+  const lot=importStandView(old,'volcano-island').offers[0];
+  const wallet=purse({coin:100});
+  assert.equal(buyCargoLot(old,{islandId:'volcano-island',lotId:lot.lotId,quantity:1,requestId:'existing-receipt'},wallet).ok,true);
+  disk.setItem(CARGO_STORAGE_KEY,JSON.stringify(old));
+  const service=createCargoService(disk,{islandId:'alpine-island',gameMinute:()=>1000,purse:wallet,itemName:id=>id});
+  const migrated=service.serialize();
+  assert.deepEqual(migrated.purchases,old.purchases);
+  assert.deepEqual(migrated.shipments,old.shipments);
+  assert.deepEqual({...migrated.exportReserves['volcano-island']},old.exportReserves['volcano-island']);
+  assert.equal(migrated.nextDepartures['harvest-to-alpine'],2960);
+  assert.equal(migrated.nextDepartures['harvest-to-surf'],2990);
+  assert.equal(service.view().offers.length,0);
+  const persisted=parseCargoState(JSON.parse(disk.getItem(CARGO_STORAGE_KEY)));
+  advanceCargo(persisted,3030);
+  assert.equal(persisted.exportReserves['harvest-island']['farm:wheat'],30);
+  assert.ok(importStandView(persisted,'alpine-island').offers.some(offer=>offer.itemId==='farm:wheat'&&offer.originIslandId==='harvest-island'));
+  assert.ok(importStandView(persisted,'surf-island').offers.some(offer=>offer.itemId==='farm:pumpkin'&&offer.originIslandId==='harvest-island'));
+});

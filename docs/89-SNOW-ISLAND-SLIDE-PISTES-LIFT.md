@@ -67,3 +67,22 @@ Conserver les états séparés : `SnowSlideState` / `LiftRide` / `SkiLift` / dé
 - Enregistrement/inventaire définitif des skis et snowboards.
 - UI de télésiège, télécabine, neige saisonnière et sons.
 - Courses et compétitions, qui rejoindront le module commun déjà en construction.
+
+## Chrono local des Cimes
+
+Le Studio génère les portes du Chrono des Cimes le long de la piste native. Le
+joueur peut préparer le départ à pied avec des skis ou un snowboard. Le chrono
+démarre au franchissement de la première porte en glisse et une sortie du mode
+neige annule la tentative. Le record personnel utilise la sauvegarde commune
+aux autres courses.
+
+L’habitant du port propose la mission **Première descente aux Cimes**. Le
+journal indique comment préparer le chrono et situe le départ sur la carte.
+Une descente validée permet de récupérer 8 pièces auprès de l’habitant.
+
+## Station des Cimes
+
+La station se trouve dans la zone basse de l’île des Cimes. Elle rassemble
+un chalet, un banc, un plan interactif et Ariane, la monitrice. La carte du
+joueur indique la station et l’embarquement. Le chalet et ses équipements
+reposent sur une terrasse de terrain éditable dans Studio.

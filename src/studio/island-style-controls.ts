@@ -3,7 +3,7 @@ import {DEFAULT_LAYOUT,type LayoutRequirements} from '../studio-core/terrain-sit
 /** Shared authoring controls for creation and protected recomposition. */
 import {field,node,numberInput,select} from './dom.ts';
 import {ISLAND_STYLES,selectIslandStyle,type IslandModel,type IslandStyle} from '../studio-core/island-styles.ts';
-import type {MapRequirements} from '../studio-core/map-requirements.ts';
+import {WELCOME_ACTIVITIES,type MapRequirements,type WelcomeActivity} from '../studio-core/map-requirements.ts';
 export function islandStyleControls(r:MapRequirements,change:(next:MapRequirements)=>void):HTMLFieldSetElement{
  const box=node('fieldset'),s=r.islandStyle!;
  box.append(node('legend','Style de l’île'),field('Modèle insulaire',select(s.model,Object.entries(ISLAND_STYLES).map(([id,v])=>[id,v.name]),model=>change(selectIslandStyle(r,model as IslandModel)))),node('p',ISLAND_STYLES[s.model].description,'muted'));
@@ -23,6 +23,8 @@ export function islandStyleControls(r:MapRequirements,change:(next:MapRequiremen
  const setLayout=<K extends keyof LayoutRequirements>(key:K,value:LayoutRequirements[K])=>change({...r,compositionVersion:5,layout:{...layout,[key]:value},...(key==='lake'?{lakes:value as boolean}:{})});
  const check=(label:string,value:boolean,fn:(v:boolean)=>void)=>{const e=node('input');e.type='checkbox';e.checked=value;e.onchange=()=>fn(e.checked);return field(label,e);};
  areas.append(check('Générer un port maritime N1 dès la création',r.maritimePort??false,v=>change({...r,compositionVersion:5,maritimePort:v,...(!v?{welcomeVillage:'none' as const}:{})})),field('Village d’accueil',select(r.welcomeVillage??'none',[['none','Sans village'],['hamlet','Hameau près du port'],['village','Village près du port']],v=>change({...r,compositionVersion:5,welcomeVillage:v as 'none'|'hamlet'|'village',...(v!=='none'?{maritimePort:true}:{})}))),node('p','Le port est construit dans le projet ; les voyages utilisent ensuite le catalogue maritime publié. Les autres zones sont des réservations.','muted'),
+  ...(r.welcomeVillage&&r.welcomeVillage!=='none'?[field('Activité du village',select(r.welcomeActivity??'fishing',
+    Object.entries(WELCOME_ACTIVITIES),v=>change({...r,compositionVersion:5,welcomeActivity:v as WelcomeActivity})))]:[]),
   check('Réserver un emplacement portuaire',layout.harbor,v=>setLayout('harbor',v)),
   field('Nombre de champs à réserver',numberInput(layout.farms,v=>setLayout('farms',v),0,4,'1')),
   check('Souhaiter un lac aménagé',layout.lake,v=>setLayout('lake',v)),

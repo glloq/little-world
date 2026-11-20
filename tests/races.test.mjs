@@ -48,3 +48,15 @@ test('a rolling course accepts an airborne jump, but not gliding',()=>{
  assert.equal(step(s,at(9),at(11),'air').kind,'checkpoint');
  assert.equal(step(s,at(19),at(21),'glide').kind,'failed');
 });
+
+test('ski timing starts on the first snow gate and rejects leaving the snow mode',()=>{
+ const course={...def('ski'),startOnFirstGate:true};
+ const race=beginRace(course,0);
+ assert.equal(step(race,at(9),at(11),'ground'),null);
+ assert.equal(race.started,false);
+ assert.deepEqual(step(race,at(9),at(11),'snow'),{kind:'started',gateIndex:0});
+ assert.equal(step(race,at(19),at(21),'snow').kind,'finish');
+ const cancelled=beginRace(course,0);
+ step(cancelled,at(9),at(11),'snow');
+ assert.equal(step(cancelled,at(19),at(21),'glide').kind,'failed');
+});

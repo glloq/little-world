@@ -174,3 +174,15 @@ Commandes : `npm test`, `npm run build`, `node tools/audit-island-playability.mj
 
 
 Vérification de ce lot : **824 tests unitaires**, vérification TypeScript et build réussis ; **8 contrôles navigateur** sur le Studio et ouverture du jeu de la copie enrichie, sans erreur JavaScript. [Rapport UI](captures/playability-audit-v1/browser-report.json), [audit de la copie](captures/playability-audit-v1/draft.png), [jeu compilé](captures/playability-audit-v1/playtest.png). Les mesures matérielles de FPS restent hors de cet audit.
+
+## Consulter l’ensemble de l’archipel
+
+Après `npm run build`, exécuter `node --experimental-strip-types tools/audit-island-playability.mjs --published dist`.
+La commande vérifie la correspondance entre chaque source Studio et son
+manifeste compilé, puis écrit le rapport JSON sur la sortie standard. Le rapport
+contient le nombre de missions et d’activités, la proximité des activités, les
+diagnostics de références et les concentrations locales de PNJ, d’entités et de
+lumières. Les distances sont mesurées à l’horizontale. La qualification des
+trajets et des FPS se fait en jeu.
+Les départs et arrivées des courses de surf sont contrôlés sur l’eau. Les
+autres entrées d’activité conservent le contrôle de sol sec.

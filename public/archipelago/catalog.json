@@ -21,6 +21,20 @@
       "manifest": "archipelago/worlds/surf-island/manifest.json",
       "description": "Île de surf avec trois plages A/B/C, tubes de vagues, courses et port maritime calme.",
       "portLevel": 0
+    },
+    {
+      "id": "alpine-island",
+      "name": "Île des Cimes",
+      "manifest": "archipelago/worlds/alpine-island/manifest.json",
+      "description": "Station de ski avec chalet, monitrice, télésiège, chrono et mission au port.",
+      "portLevel": 0
+    },
+    {
+      "id": "harvest-island",
+      "name": "Île des Moissons",
+      "manifest": "archipelago/worlds/harvest-island/manifest.json",
+      "description": "Village agricole, jardins cultivables, moulin, course de roulade et mission de récolte.",
+      "portLevel": 0
     }
   ]
 }

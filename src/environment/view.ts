@@ -27,7 +27,7 @@ export function createEnvironmentView(scene:THREE.Scene,lighting:Lighting,clock:
  weatherSetting.append(weatherSelect);
  const note=document.createElement('small');note.textContent='Aperçu temporaire, non enregistré dans les sauvegardes.';
  panel.append(summary,timeLabel,weatherLabel,label,weatherSetting,note);document.body.append(panel);
- let visualTime=0,lastLabel='';
+ let visualTime=0,lastMinute=-1,lastWeather:WeatherKind|null=null;
  /** `underground`: inside a mine, the sky no longer lights the scene (local lanterns do). */
  function update(dt:number,position:{x:number;y:number;z:number},detail:number,underground=false,quality:'low'|'medium'|'high'='low'){
   const state=climate.state(clock.time);applySkyLighting(lighting,background,state.sunAltitude,state.dayPhase,state.cloudCover);
@@ -36,9 +36,15 @@ export function createEnvironmentView(scene:THREE.Scene,lighting:Lighting,clock:
   else if(lighting.ambient.groundColor.getHex()!==0x678c7c){lighting.ambient.color.set(0xfaf7e9);lighting.ambient.groundColor.set(0x678c7c);}
   sky?.update({color:background,sunDirection:sunDirection(state.dayPhase,state.sunAltitude,solarDirection),sunAltitude:state.sunAltitude,cloudCover:state.cloudCover,wind:state.wind,time:clock.time,deltaSeconds:dt,detail,underground,quality});
   visualTime+=Math.max(0,Math.min(dt,.25));uniforms.time.value=visualTime;uniforms.anchor.value.set(position.x,position.y,position.z);rain.visible=state.weather==='rain'&&detail<2&&!underground;geometry.setDrawRange(0,detail===1?96:count);
-  const minutes=Math.floor(state.dayPhase*1440),text=`${String(Math.floor(minutes/60)).padStart(2,'0')}:${String(minutes%60).padStart(2,'0')} · ${state.weather}`;
-  if(text!==lastLabel){lastLabel=text;timeLabel.textContent=text.split(' · ')[0];weatherLabel.textContent={clear:'Temps clair',cloudy:'Ciel couvert',rain:'Pluie'}[state.weather]+` · ${state.temperatureC} °C`;panel.dataset.weather=state.weather;panel.dataset.time=String(clock.time);}
+  const minutes=Math.floor(state.dayPhase*1440);
+  if(minutes!==lastMinute||state.weather!==lastWeather){
+   lastMinute=minutes;lastWeather=state.weather;
+   timeLabel.textContent=String(Math.floor(minutes/60)).padStart(2,'0')+':'+String(minutes%60).padStart(2,'0');
+   weatherLabel.textContent={clear:'Temps clair',cloudy:'Ciel couvert',rain:'Pluie'}[state.weather]+' · '+state.temperatureC+' °C';
+   panel.dataset.weather=state.weather;panel.dataset.time=String(clock.time);
+  }
   if(Number(rate.value)!==clock.rate)rate.value=String(clock.rate);
+  return state;
  }
  return {update,controls:panel,get metrics(){return {time:clock.time,rate:clock.rate,weather:climate.state(clock.time).weather,rainParticles:rain.visible?geometry.drawRange.count:0,sky:sky?.metrics??null};},dispose(){sky?.dispose();panel.remove();rain.removeFromParent();geometry.dispose();material.dispose();}};
 }

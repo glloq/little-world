@@ -23,9 +23,13 @@ export interface WelcomeActions {
   importFile():void;
   report(message:string,error?:boolean):void;
 }
-/** The only official showcase; smaller technical worlds remain isolated test fixtures. */
+/** Editable sources of published islands. */
 const templates=[
   {file:'island.project.json',title:'Île du volcan — 4 × 3 km',desc:'Explorer et modifier le monde officiel : reliefs, falaises, biomes, villages et activités.'},
+  {file:'archipelago/worlds/forest-valley/project.json',title:'Île du val forestier',desc:'Modifier le village, le port et les ruines, puis jouer la quête du carnet de Mésange.'},
+  {file:'archipelago/worlds/surf-island/project.json',title:'Île des trois vagues',desc:'Modifier le hameau du port, les trois plages et leurs parcours de surf.'},
+  {file:'archipelago/worlds/alpine-island/project.json',title:'Île des Cimes',desc:'Modifier le chalet et la station de ski, le télésiège, le chrono et sa mission.'},
+  {file:'archipelago/worlds/harvest-island/project.json',title:'Île des Moissons',desc:'Modifier le village agricole, ses jardins, son moulin et la mission de récolte.'},
 ];
 const fixtureShortcuts=[
   ['Ouvrir le scénario de référence','beta.project.json'],

@@ -134,17 +134,27 @@ export function createGameUi(deps:GameUiDeps){
   ui.register('inventory','Sac',{render:b=>inventory.render(b),onEscape:()=>inventory.cancelSelection(),onClose:()=>{inventory.markSeen();deps.audio?.emit('ui.inventory.close',{source:'ui'});}});
 
   const waypoints=createWaypointStore(g?.runtime.data.worldId??deps.world.name,deps.world.bounds,deps.temporary);
+  const raceStart=(id:string)=>deps.landmarks?.find(l=>l.id==='race:'+id);
+  const farmLocation=(id:string)=>{
+    const farm=a?.farms.get(id);
+    if(!farm)return null;
+    const polygon=farm.zone.polygon;
+    const center=polygon.reduce((s,p)=>({x:s.x+p.x/polygon.length,z:s.z+p.z/polygon.length}),{x:0,z:0});
+    return {...center,label:farm.zone.name};
+  };
   const markers=():MapMarker[]=>{
     const out:MapMarker[]=[];
     for(const [id,m] of a?.mines??[])out.push({id:'mine:'+id,kind:'mine',label:m.zone.name,x:m.zone.mine.entrance.x,z:m.zone.mine.entrance.z});
-    for(const [id,f] of a?.farms??[]){const c=f.zone.polygon.reduce((s,p)=>({x:s.x+p.x/f.zone.polygon.length,z:s.z+p.z/f.zone.polygon.length}),{x:0,z:0});out.push({id:'farm:'+id,kind:'farm',label:f.zone.name,...c});}
+    for(const id of a?.farms.keys()??[]){const location=farmLocation(id);if(location)out.push({id:'farm:'+id,kind:'farm',...location});}
     for(const n of deps.npcs.states)out.push({id:'npc:'+n.definition.id,kind:'npc',label:n.definition.name,x:n.x,z:n.z});
     if(g)for(const quest of Object.values(g.quests.serialize())){
       if(quest.status!=='active'&&quest.status!=='ready')continue;
       const current=quest.steps[quest.stepIndex];
-      const id=quest.status==='ready'?quest.giverId:current?.kind==='talk'?current.npcId:undefined;
-      if(!id)continue;
-      const target=deps.npcs.states.find(n=>n.definition.id===id);
+      const id=quest.status==='ready'?quest.giverId:current?.kind==='talk'?current.npcId:current?.kind==='deliver'?current.giverId:undefined;
+      const target=id?deps.npcs.states.find(n=>n.definition.id===id):
+        current?.kind==='race'?raceStart(current.raceId):
+        current?.kind==='acquire'&&current.source==='farm'&&typeof quest.bindings.farmPlotId==='string'?
+          farmLocation(quest.bindings.farmPlotId):undefined;
       if(target)out.push({id:'quest-generated:'+quest.instanceId,kind:'quest',
         label:String(quest.bindings.title??'Mission'),x:target.x,z:target.z});
     }
@@ -182,8 +192,11 @@ export function createGameUi(deps:GameUiDeps){
     const generated=g.quests.get(id);
     if(generated){
       const step=generated.steps[generated.stepIndex];
+      if(generated.status==='active'&&step?.kind==='race')return raceStart(step.raceId)??null;
+      if(generated.status==='active'&&step?.kind==='acquire'&&step.source==='farm'&&
+        typeof generated.bindings.farmPlotId==='string')return farmLocation(generated.bindings.farmPlotId);
       const targetId=generated.status==='ready'?generated.giverId:
-        step?.kind==='talk'?step.npcId:generated.giverId;
+        step?.kind==='talk'?step.npcId:step?.kind==='deliver'?step.giverId:generated.giverId;
       const person=deps.npcs.states.find(n=>n.definition.id===targetId);
       if(person)return {x:person.x,z:person.z,label:person.definition.name};
     }

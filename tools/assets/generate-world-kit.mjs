@@ -107,6 +107,27 @@ const MODELS={
   'structure.bench':{label:'Banc',group:'town',lods:2,build(k,d){k.box(1.8,.12,.5,C.wood,[0,.45,0]);for(const x of [-.75,.75])k.box(.12,.45,.45,C.woodDark,[x,0,0]);if(d===0)k.box(1.8,.4,.08,C.wood,[0,.6,.24]);}},
   'structure.fountain':{label:'Fontaine de place',group:'town',lods:2,build(k,d){k.cyl(2.4,2.6,.8,seg(d,12,8),C.stone,[0,0,0]);k.cyl(2.1,2.1,.05,seg(d,12,8),C.water,[0,.75,0]);k.cyl(.35,.5,2,seg(d,8,6),C.stoneWarm,[0,.8,0]);k.cyl(.9,.6,.4,seg(d,8,6),C.stone,[0,2.8,0]);}},
   'structure.palisade':{label:'Palissade (4 m)',group:'town',lods:2,build(k,d){const n=d===0?10:5;for(let i=0;i<n;i++){const x=-2+(i+.5)*4/n,h=2.6+((i*5)%3)*.15;k.cyl(.17,.2,h,d===0?6:4,C.wood,[x,0,0]);if(d===0)k.cone(.17,.35,6,C.woodDark,[x,h,0]);}k.box(4,.15,.1,C.woodDark,[0,1.6,-.2]);}},
+  'structure.surf_rack':{label:'Râtelier de surf',group:'town',lods:2,build(k,d){
+    for(const x of [-1.05,1.05])k.box(.13,1.32,.55,C.woodDark,[x,0,0]);
+    k.box(2.28,.12,.16,C.wood,[0,.38,.23]);k.box(2.28,.12,.16,C.wood,[0,.95,.23]);
+    for(const [i,color] of [C.blue,C.red,C.gold].entries()){
+      const x=(i-1)*.62;
+      k.add(new THREE.CapsuleGeometry(.25,1.45,seg(d,3,1),seg(d,8,4)),
+        color,[x,1.05,-.11],[.078,0,0],[1,1,.19]);
+      if(d===0)k.box(.065,1.65,.025,C.white,[x,.18,-.185],[.015,0,0]);
+    }
+  }},
+  'structure.beach_shelter':{label:'Abri de plage',group:'town',lods:2,build(k,d){
+    for(const x of [-1.65,1.65])for(const z of [-1,1])k.box(.14,2.18,.14,C.woodDark,[x,0,z]);
+    k.gable(3.8,.66,2.64,C.roofBlue,[0,2.18,0]);
+    k.box(2.72,.14,.5,C.wood,[0,.46,.78]);
+    if(d===0){k.box(2.86,.27,.1,C.white,[0,1.91,-1.08]);for(const x of [-1.1,0,1.1])k.box(.2,.2,.12,C.gold,[x,1.95,-1.13]);}
+  }},
+  'structure.beach_flag':{label:'Fanion de plage',group:'town',lods:2,build(k,d){
+    k.cyl(.06,.09,3.35,seg(d,6,4),C.woodDark);
+    k.box(1.08,.58,.038,C.blue,[.56,2.62,0],[0,0,.08]);
+    if(d===0){k.box(.84,.085,.042,C.white,[.49,2.82,0],[0,0,.08]);k.cone(.11,.19,5,C.gold,[0,3.35,0]);}
+  }},
   'structure.pier_hut':{label:'Cabane de pêcheur sur pilotis',group:'buildings',lods:2,build(k,d){for(const [x,z]of [[-2,-2],[2,-2],[-2,2],[2,2]])k.cyl(.15,.15,2,6,C.woodDark,[x,0,z]);k.box(5,.25,5,C.wood,[0,2,0]);k.box(3.6,2.6,3.2,C.wood,[0,2.25,.3]);k.gable(4,1.6,3.8,C.roofBlue,[0,4.85,.3]);if(d===0)k.box(1,1.8,.12,C.woodDark,[0,2.25,-1.35]);}},
 };
 async function main(){

@@ -80,9 +80,9 @@
 
 ### FISH-6 : validation et fermeture
 
-- [ ] Tests unitaires déterministes dans `tests/fishing.test.mjs` + adaptation de `tests/economy.test.mjs`.
-- [ ] Tests navigateur ciblés dans le parcours `npm run test:gameplay` (ou test dédié intégré aux scripts).
-- [ ] `npm test`, `npm run typecheck`, `npm run build`, `npm run test:gameplay`.
+- [x] Tests unitaires déterministes dans `tests/fishing.test.mjs` + adaptation de `tests/economy.test.mjs`.
+- [x] Parcours Chromium dédié avec `npm run test:fishing`, sur clavier et tactile émulé. Le test couvre le lancer, le relevage anticipé, le ferrage, le relâchement et le crédit d’un seul poisson. Il est inclus dans le workflow de validation.
+- [x] `npm test`, `npm run typecheck`, `npm run build` et `npm run test:gameplay` exécutés localement sur la branche d’expansion.
 - [ ] Tester 100 cycles cast/cancel/catch sur 20/30 FPS de rendu ; comparer mémoire/GC/draw calls aux références FISH-0.
 - [ ] Qualification manuelle PC à faibles ressources et smartphone : lisibilité, ergonomie, aucune touche/bouton coincé.
 - [ ] Mettre à jour README/roadmap et marquer les lots réellement livrés uniquement **après** CI et vérification navigateur.
@@ -144,11 +144,11 @@ Le MVP est accepté **uniquement si** :
 | FISH-3 | REVIEW | #77 | `main.ts`, `touch-controls.ts`, HUD compact, build réussi | Test navigateur de moulinage PC/tactile |
 | FISH-4 | REVIEW | #77 | `grantItems` uniquement en fin de combat ; test unitaires | Scénarios de navigation, save et inventaire plein en navigateur |
 | FISH-5 | IN_PROGRESS | #77 | Rendu et audio implémentés ; tests unitaires/CI de la révision finale attendus | Validation artistique des sons, effet canne et PC/mobile |
-| FISH-6 | TODO | — | — | Suite CI complète, navigateur PC/tactile, benchmark 4–8 Go |
+| FISH-6 | IN_PROGRESS | — | Parcours clavier et tactile émulé dans Chromium | CI complète, qualification matérielle et benchmark 4–8 Go |
 | FISH-7 | BACKLOG | — | — | Évolutions optionnelles |
 
 ### Ordre recommandé pour démarrer
 
 **Premier sprint : FISH-0 + FISH-1 + FISH-2**, sans modifier la 3D. Il livre un cœur métier testé, et garantit que la nouvelle mécanique ne produit pas de récompenses prématurées. **Deuxième sprint : FISH-3 + FISH-4**, pour obtenir la boucle complète. **Troisième sprint : FISH-5 + FISH-6**, pour la qualité visuelle et la qualification.
 
-**Cette PR #77 contient désormais du code MVP et les premières finitions FISH-5.** Ne pas la présenter comme totalement qualifiée : FISH-6 et les tests du parcours complet PC/mobile restent à effectuer.
+La PR #77 a livré le noyau et les premières finitions FISH-5. Le parcours complet est testé en Chromium sur clavier et tactile émulé depuis la branche d’expansion. La qualification matérielle FISH-6 reste ouverte.

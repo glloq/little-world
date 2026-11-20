@@ -57,6 +57,10 @@ jobs:
         run: npm run test:surf
       - name: Surf Island A/B/C browser acceptance and captures
         run: npm run test:surf-island
+      - name: Fishing catch with keyboard and touch
+        run: npm run test:fishing
+      - name: Alpine time trial and lift, harvest sowing and editable island browser acceptance
+        run: node tools/test-expansion-islands-browser.mjs
       - name: Ferry timetable, map, rowboat and cinematic preview (solo)
         run: node tools/test-ferry-browser.mjs
       - name: Real ferry journey A to B to A (static Pages, saves and map)

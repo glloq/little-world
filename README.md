@@ -15,7 +15,9 @@
 | **[Code et suivi](https://github.com/glloq/little-world)** | Sources TypeScript, tests, documentation et développement |
 | **[Historique des builds](https://github.com/glloq/little-world/actions)** | Statut des tests et de la publication GitHub Pages |
 
-La carte principale historique est l'**île du volcan (4 × 3 km)**. Le registre statique comporte également une **île du val forestier** précompilée pour les essais de voyage ; le contenu et les interactions doivent être validés scénario par scénario. Le monde cible pourra évoluer vers de plus grandes cartes et plusieurs îles, mais **10 × 10 km est une limite envisagée, pas un résultat de performance démontré**.
+L’archipel du build comprend cinq îles reliées par navette. Le **Volcan** est le point d’entrée historique. Le **Val forestier** propose la quête de Mésange. Les **Trois vagues** réunissent un hameau, trois parcours de surf et un tour des fanions. Les **Cimes** ont une piste de ski, un télésiège et une descente de roulade. Les **Moissons** réunissent jardins du joueur, champs des habitants, moulin et comptoir de semences.
+
+Dans Studio, **Explorer un monde prêt** ouvre la source de chacune de ces îles. Dans le générateur, **Style de l’île → Zones utiles et accès → Activité du village** choisit la spécialisation du village d’accueil. Le générateur valide les emprises et les accès sur le relief choisi.
 
 ## Ce qui est développé aujourd'hui
 

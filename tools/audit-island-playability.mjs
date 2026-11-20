@@ -1,10 +1,30 @@
 /** Read-only baseline audit + additive review draft. Never writes official sources, public maps or catalog. */
-import {readFile,writeFile,mkdir} from 'node:fs/promises';import {createHash} from 'node:crypto';import {resolve} from 'node:path';
+import {readFile,writeFile,mkdir} from 'node:fs/promises';import {createHash} from 'node:crypto';import {resolve,dirname} from 'node:path';
 import {putEntity} from '../src/studio-core/source.ts';import {worldAsset} from '../src/world-production/registry.ts';import {projectShopAccess} from '../src/gameplay/shop-access.ts';
 import {parseProject} from '../src/studio-core/schema.ts';import {auditPlayability} from '../src/studio-core/playability-audit.ts';import {compileProjectToDirectory} from './compile-project.mjs';import {writeProjectArchive} from '../src/studio-core/archive.ts';
 import {projectRaceTerrainEnvironment} from '../src/studio-core/race-terrain-context.ts';import {findRaceTerrainPlacements,raceFromTerrainPlacement,inspectRaceTerrain} from '../src/studio-core/race-terrain-planner.ts';import {putAuthoredRace} from '../src/studio-core/race-authoring.ts';
 import {projectGeography} from '../src/studio-core/geo-context.ts';import {findDemoPiste} from '../src/snow/snow-pistes.ts';import {inspectSkiArea} from '../src/snow/ski-area.ts';
 import {settlementSurroundings} from '../src/settlements/surroundings.ts';import {newSettlement} from '../src/settlements/schema.ts';import {collisionDefinitionsFromProject} from '../src/studio-core/collision-adapter.ts';import {WorldCollisionQuery} from '../src/physics/collision-world.ts';import {putZone} from '../src/studio-core/zones.ts';import {activitiesFromZones} from '../src/gameplay/activities.ts';import {parseAudioDefinitionV2} from '../src/audio/catalog.ts';
+import {parseArchipelagoRegistry} from '../src/archipelago/registry.ts';
+
+if(process.argv[2]==='--published'){
+ const root=resolve(process.argv[3]??'dist');
+ const readJson=async file=>JSON.parse(await readFile(resolve(root,file),'utf8'));
+ const catalog=parseArchipelagoRegistry(await readJson('archipelago/catalog.json'));
+ const islands=[];
+ for(const island of catalog.islands){
+  const sourceFile=island.manifest.startsWith('maps/')?
+   dirname(island.manifest)+'.project.json':dirname(island.manifest)+'/project.json';
+  const project=parseProject(await readJson(sourceFile));
+  const manifest=await readJson(island.manifest);
+  if(manifest.worldId!==project.world.worldId)throw Error('Source et build différents pour '+island.id);
+  const audit=auditPlayability(project);
+  islands.push({id:island.id,name:island.name,worldId:manifest.worldId,
+   stats:audit.stats,coverage:audit.coverage,localBudget:audit.localBudget,
+   authoredQuests:audit.authoredQuests,findings:audit.findings});
+ }
+ console.log(JSON.stringify({islands,distance:'horizontal-euclidean',runtimePerformanceMeasured:false},null,2));
+}else{
 const out=resolve(process.argv[2]??'/tmp/little-world-playability-audit'),source=resolve('maps/island.project.json');if(out.startsWith(resolve('public'))||out.startsWith(resolve('maps')))throw Error('Sortie : choisir un répertoire de brouillons, hors sources et publication');await mkdir(out,{recursive:true});const raw=await readFile(source),originalHash=createHash('sha256').update(raw).digest('hex'),base=parseProject(JSON.parse(raw)),before=auditPlayability(base),p=structuredClone(base),changes=[],omitted=[];
 p.manifest.projectId+='-content-draft';p.world.worldId+='-content-draft';p.manifest.worldId=p.world.worldId;p.manifest.name+=' · brouillon de contenu';
 const ask=p.libraries.dialogues['ls-castle-town-1.innkeeper-quest-talk']?.lines.find(l=>l.id==='ask');if(ask?.text==='Pourriez-vous me rapporter 5 poissons, n’importe lesquels ? Je vous paierai bien.'){ask.text='Pourriez-vous me rapporter 5 sardines ? Je vous paierai bien.';changes.push({kind:'quest-copy',id:'ls-castle-town-1.innkeeper-quest',description:'Consigne alignée sur les cinq sardines réellement requises.'});}
@@ -33,3 +53,4 @@ const byteTotals=(m,manifestBytes)=>({manifest:manifestBytes,chunks:m.chunks.red
 const report={baseSource:'maps/island.project.json',baseSHA256:originalHash,officialUnchanged:originalHash===createHash('sha256').update(await readFile(source)).digest('hex'),changes,omitted,before:{stats:before.stats,coverage:before.coverage,localBudget:before.localBudget,paths:before.paths},after:{stats:after.stats,coverage:after.coverage,localBudget:after.localBudget,paths:after.paths},payload:{publishedBaseline:byteTotals(beforeManifest,(await readFile('public/maps/island/manifest.json')).byteLength),draft:byteTotals(compiled.manifest,(await readFile(out+'/compiled/manifest.json')).byteLength)},limits:['Distances horizontales, pas une preuve de parcours','Quêtes : graphe structurel sans simulation des conditions','Pêche et collecte libres non comptées dans la proximité','Support de ponts et collisions complexes à vérifier en jeu','Surf non implémenté ; ski et remontée prototypes','Villages historiques conservés ; aucune conversion destructive en villages modulaires']};
 function svg(a){const b=a.bounds,w=b.maxX-b.minX,h=b.maxZ-b.minZ,W=960,H=720,sx=x=>(x-b.minX)/w*W,sy=z=>(b.maxZ-z)/h*H;let s=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H+65}" role="img"><title>Proximité du contenu enregistré</title><rect width="960" height="785" fill="#f6f4e9"/>`;for(const c of a.cells)s+=`<rect x="${sx(c.x-a.method.spacingX/2)}" y="${sy(c.z+a.method.spacingZ/2)}" width="${W/a.method.nx+1}" height="${H/a.method.nz+1}" fill="${!c.land?'#397d9c':c.activeDistanceM!==null&&c.activeDistanceM<=a.method.radiusM?'#98bc89':'#d4ae79'}"/>`;for(const q of a.anchors)s+=`<circle cx="${sx(q.x)}" cy="${sy(q.z)}" r="3" fill="#233f55"/>`;return s+`<text x="16" y="746" font-family="sans-serif" font-size="18">${a.coverage.nearActivePercent}% du terrain échantillonné à moins de 250 m d’une entrée enregistrée</text><text x="16" y="773" font-family="sans-serif" font-size="15">Vert : proximité · ocre : à inspecter / espace calme · points : entrées · distance horizontale, pas un trajet</text></svg>`;}
 await writeFile(out+'/before.json',JSON.stringify(before,null,2));await writeFile(out+'/after.json',JSON.stringify(after,null,2));await writeFile(out+'/report.json',JSON.stringify(report,null,2));await writeFile(out+'/before.svg',svg(before));await writeFile(out+'/after.svg',svg(after));await writeFile(out+'/island-enriched.project.json',JSON.stringify(p));await writeFile(out+'/island-enriched.zip',writeProjectArchive(p));console.log(JSON.stringify(report,null,2));
+}

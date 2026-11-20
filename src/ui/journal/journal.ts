@@ -18,7 +18,8 @@ export function questViewModel(objectives:readonly ObjectiveDefinition[],status:
     const progress=done?'Objectifs accomplis':
       'Étape '+(q.stepIndex+1)+'/'+q.steps.length+' · '+(step?.kind??'mission');
     const entry:QuestEntry={id:q.instanceId,name,status:q.status==='claimed'?'complete':'active',
-      description:done&&q.status==='ready'?progress+' · Retournez voir le donneur pour recevoir la récompense.':progress};
+      description:q.status==='ready'?progress+' · Retournez voir le donneur pour recevoir la récompense.':
+        !done&&typeof q.bindings.instruction==='string'?progress+' · '+q.bindings.instruction:progress};
     (entry.status==='complete'?completed:active).push(entry);
   }
   return {active,completed,hiddenCount:hidden};

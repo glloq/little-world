@@ -6,10 +6,10 @@
  "up": "Y",
  "externalAssets": [],
  "totals": {
-  "assets": 98,
-  "glbFiles": 215,
-  "bytes": 1295652,
-  "withUsage": 97
+  "assets": 101,
+  "glbFiles": 221,
+  "bytes": 1313292,
+  "withUsage": 100
  },
  "assets": [
   {
@@ -6316,6 +6316,194 @@
    }
   },
   {
+   "id": "structure.beach_flag",
+   "label": "Fanion de plage",
+   "group": "town",
+   "source": "assets/world-kit/manifest.json",
+   "sourceId": "structure.beach_flag",
+   "license": "project-original",
+   "origin": "Little World original (feat/little-world-assets ou catalogue historique)",
+   "artStatus": "GENERATED_NOT_REVIEWED",
+   "runtimeStatus": "INTEGRATED",
+   "size": [
+    1.226,
+    3.54,
+    0.2
+   ],
+   "pivot": {
+    "base": "ground",
+    "centred": false
+   },
+   "lods": [
+    {
+     "level": 0,
+     "file": "models/world-kit/beach_flag/lod0.glb",
+     "bytes": 1908,
+     "sha256": "43944526233731a9322f0073020dfe365bcd9ae5e868dedc9d7f929b16a89aca",
+     "triangles": 58,
+     "vertices": 40,
+     "nonTriangles": 0,
+     "bounds": {
+      "min": [
+       -0.105,
+       0,
+       -0.09
+      ],
+      "max": [
+       1.121,
+       3.54,
+       0.11
+      ]
+     },
+     "materials": 0,
+     "textures": 0,
+     "vertexColors": true,
+     "animations": 0,
+     "nodes": [
+      "structure.beach_flag"
+     ]
+    },
+    {
+     "level": 1,
+     "file": "models/world-kit/beach_flag/lod1.glb",
+     "bytes": 1404,
+     "sha256": "75db414f50170bb067404703c39ae9fd3fa4c022703b0172dd34abbc48a9e998",
+     "triangles": 28,
+     "vertices": 20,
+     "nonTriangles": 0,
+     "bounds": {
+      "min": [
+       -0.09,
+       0,
+       -0.09
+      ],
+      "max": [
+       1.121,
+       3.35,
+       0.09
+      ]
+     },
+     "materials": 0,
+     "textures": 0,
+     "vertexColors": true,
+     "animations": 0,
+     "nodes": [
+      "structure.beach_flag"
+     ]
+    }
+   ],
+   "usage": {
+    "role": "prop",
+    "placement": "manual",
+    "collision": "none",
+    "instancing": false,
+    "footprintM": 0.6,
+    "scale": [
+     1,
+     1
+    ],
+    "habitats": [
+     "sandy-coast",
+     "port"
+    ],
+    "runtimeStatus": "INTEGRATED"
+   }
+  },
+  {
+   "id": "structure.beach_shelter",
+   "label": "Abri de plage",
+   "group": "town",
+   "source": "assets/world-kit/manifest.json",
+   "sourceId": "structure.beach_shelter",
+   "license": "project-original",
+   "origin": "Little World original (feat/little-world-assets ou catalogue historique)",
+   "artStatus": "GENERATED_NOT_REVIEWED",
+   "runtimeStatus": "INTEGRATED",
+   "size": [
+    3.8,
+    2.84,
+    2.64
+   ],
+   "pivot": {
+    "base": "ground",
+    "centred": true
+   },
+   "lods": [
+    {
+     "level": 0,
+     "file": "models/world-kit/beach_shelter/lod0.glb",
+     "bytes": 2864,
+     "sha256": "4280130dcc3e2c22bf2ed82fcde667399359835eabc04145206932efc05ebaac",
+     "triangles": 116,
+     "vertices": 78,
+     "nonTriangles": 0,
+     "bounds": {
+      "min": [
+       -1.9,
+       0,
+       -1.32
+      ],
+      "max": [
+       1.9,
+       2.84,
+       1.32
+      ]
+     },
+     "materials": 0,
+     "textures": 0,
+     "vertexColors": true,
+     "animations": 0,
+     "nodes": [
+      "structure.beach_shelter"
+     ]
+    },
+    {
+     "level": 1,
+     "file": "models/world-kit/beach_shelter/lod1.glb",
+     "bytes": 2064,
+     "sha256": "a24e7d2d7811c04283f0323fe905e369049df172f876faabcf1c16ad5388d174",
+     "triangles": 68,
+     "vertices": 46,
+     "nonTriangles": 0,
+     "bounds": {
+      "min": [
+       -1.9,
+       0,
+       -1.32
+      ],
+      "max": [
+       1.9,
+       2.84,
+       1.32
+      ]
+     },
+     "materials": 0,
+     "textures": 0,
+     "vertexColors": true,
+     "animations": 0,
+     "nodes": [
+      "structure.beach_shelter"
+     ]
+    }
+   ],
+   "usage": {
+    "role": "prop",
+    "placement": "manual",
+    "collision": "none",
+    "instancing": false,
+    "footprintM": 2.2,
+    "scale": [
+     1,
+     1
+    ],
+    "habitats": [
+     "sandy-coast",
+     "port"
+    ],
+    "runtimeStatus": "INTEGRATED"
+   }
+  },
+  {
    "id": "structure.bench",
    "label": "Banc",
    "group": "town",
@@ -9438,6 +9626,100 @@
      "town",
      "village",
      "prairie"
+    ],
+    "runtimeStatus": "INTEGRATED"
+   }
+  },
+  {
+   "id": "structure.surf_rack",
+   "label": "Râtelier de surf",
+   "group": "town",
+   "source": "assets/world-kit/manifest.json",
+   "sourceId": "structure.surf_rack",
+   "license": "project-original",
+   "origin": "Little World original (feat/little-world-assets ou catalogue historique)",
+   "artStatus": "GENERATED_NOT_REVIEWED",
+   "runtimeStatus": "INTEGRATED",
+   "size": [
+    2.28,
+    2.022,
+    0.585
+   ],
+   "pivot": {
+    "base": "ground",
+    "centred": true
+   },
+   "lods": [
+    {
+     "level": 0,
+     "file": "models/world-kit/surf_rack/lod0.glb",
+     "bytes": 6756,
+     "sha256": "21750e0dd563c9fbe221ddf60aa2c98543677b64dcd74512d4db654098ce6232",
+     "triangles": 420,
+     "vertices": 207,
+     "nonTriangles": 0,
+     "bounds": {
+      "min": [
+       -1.14,
+       0,
+       -0.275
+      ],
+      "max": [
+       1.14,
+       2.022,
+       0.31
+      ]
+     },
+     "materials": 0,
+     "textures": 0,
+     "vertexColors": true,
+     "animations": 0,
+     "nodes": [
+      "structure.surf_rack"
+     ]
+    },
+    {
+     "level": 1,
+     "file": "models/world-kit/surf_rack/lod1.glb",
+     "bytes": 2644,
+     "sha256": "df58e5898a99395a3436d7e964ad984869d878a3c59cfacc223c4b10e0a5125f",
+     "triangles": 120,
+     "vertices": 63,
+     "nonTriangles": 0,
+     "bounds": {
+      "min": [
+       -1.14,
+       0,
+       -0.275
+      ],
+      "max": [
+       1.14,
+       2.022,
+       0.31
+      ]
+     },
+     "materials": 0,
+     "textures": 0,
+     "vertexColors": true,
+     "animations": 0,
+     "nodes": [
+      "structure.surf_rack"
+     ]
+    }
+   ],
+   "usage": {
+    "role": "prop",
+    "placement": "manual",
+    "collision": "box",
+    "instancing": false,
+    "footprintM": 1.2,
+    "scale": [
+     1,
+     1
+    ],
+    "habitats": [
+     "sandy-coast",
+     "port"
     ],
     "runtimeStatus": "INTEGRATED"
    }

@@ -1,5 +1,5 @@
 /** Publish a validated Studio reference as a second independent island on static Pages. */
-import {cp,readFile,stat,mkdir} from 'node:fs/promises';
+import {copyFile,readFile,stat,mkdir} from 'node:fs/promises';
 import {resolve,join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 const root=fileURLToPath(new URL('../',import.meta.url));
@@ -15,6 +15,7 @@ for(const resource of [manifest.logic,...manifest.chunks]){
   const info=await stat(join(src,resource.url));
   if(!info.isFile()||info.size!==resource.byteLength)throw Error('Fichier absent ou incohérent : '+resource.url);
 }
-await mkdir(dst,{recursive:true});
-await cp(src,dst,{recursive:true,force:true});
+await mkdir(join(dst,'chunks'),{recursive:true});
+await Promise.all([manifest.logic,...manifest.chunks].map(({url})=>copyFile(join(src,url),join(dst,url))));
+await copyFile(join(src,'manifest.json'),join(dst,'manifest.json'));
 console.log('Île forestière statique publiée : '+manifest.chunks.length+' secteurs vers '+dst);

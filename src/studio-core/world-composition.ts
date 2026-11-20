@@ -20,11 +20,11 @@ import {applyRegionBatch} from './region-batch.ts';
 import type {ProjectDocument} from './types.ts';
 export interface CompositionDiagnostic {severity:'ERROR'|'WARNING';code:string;message:string}
 export interface WorldComposition {project:ProjectDocument;ready:boolean;diagnostics:CompositionDiagnostic[];family:string;metrics:{generationMs:number;features:number;sectors:number;surveyCells:number;sourceBytes:number;coverage?:CompositionCoverage;natural?:NaturalQuality}}
-export function composeWorld(input:MapRequirements,name='Mon petit monde'):WorldComposition {
+export function composeWorld(input:MapRequirements,name='Mon petit monde',identity?:{projectId:string;worldId:string}):WorldComposition {
  const started=performance.now(),r=validateMapRequirements(input),diagnostics:CompositionDiagnostic[]=[];
  let planned=planWorldTerrain(r);
  if(r.compositionVersion===3&&r.terraces<3)diagnostics.push({severity:'ERROR',code:'TERRACE_LEVELS_REQUIRED',message:'L’île étagée demande au moins 3 niveaux. Augmenter les terrasses ou choisir la composition en provinces.'});
- const project=createProject({name,width:r.width,length:r.length,seed:r.seed,chunkSizeM:128,terrain:{kind:'archipelago',version:1,archipelago:planned.terrain}});
+ const project=createProject({...identity,name,width:r.width,length:r.length,seed:r.seed,chunkSizeM:128,terrain:{kind:'archipelago',version:1,archipelago:planned.terrain}});
  project.world.generation=r;diagnostics.push(...planTerrainSites(project,r));
  if(r.type==='valley'||r.type==='continental')diagnostics.push({severity:'ERROR',code:'WORLD_TYPE_UNSUPPORTED',message:'Cette version compose des îles et archipels. Choisir une île pour un exutoire marin valide.'});
  let field=generatorField(project.world.terrain!,{width:r.width,length:r.length,seed:r.seed,seaLevel:0},()=>0);
@@ -48,7 +48,7 @@ export function composeWorld(input:MapRequirements,name='Mon petit monde'):World
  if((r.lakes||r.landscapes.some(l=>l.kind==='lake'))&&!hydro.waters.some(w=>w.kind==='lake'))diagnostics.push({severity:r.landscapes.some(l=>l.kind==='lake'&&l.required)?'ERROR':'WARNING',code:'LAKE_NOT_PLANNED',message:'Aucun bassin fermé avec déversoir validé dans cette composition. Ajouter le lac avec l’outil Bassins ou choisir une autre composition.'});
  if(r.waterfalls&&!hydro.waters.some(w=>w.falls?.length))diagnostics.push({severity:'WARNING',code:'FALL_NOT_PLANNED',message:'Les ruptures sont des rapides en pente ; aucune cascade verticale validée. Utiliser l’assistant Cascades après création.'});
  if(r.biomeMode==='custom'&&r.sequence.includes('lake'))diagnostics.push({severity:'WARNING',code:'LATERAL_LAKE',message:'Le lac proposé est un bassin latéral fermé ; la rivière ne le traverse pas. Pour un lac dans la succession, raccorder un déversoir avec l’outil Eau.'});
- if(r.maritimePort){const port=generateBirthPort(project);if(!port)diagnostics.push({severity:'ERROR',code:'MARITIME_PORT_MISSING',message:'Aucun port N1 praticable : choisir une autre graine, un relief plus doux ou désactiver le départ maritime.'});else if(r.welcomeVillage&&r.welcomeVillage!=='none'){const count=generateWelcomeVillage(project,port,r.welcomeVillage),target=r.welcomeVillage==='hamlet'?12:24;if(!count)diagnostics.push({severity:'WARNING',code:'WELCOME_VILLAGE_MISSING',message:'Port créé ; aucun village ne tient sur les replats voisins.'});else if(count<target)diagnostics.push({severity:'WARNING',code:'WELCOME_VILLAGE_PARTIAL',message:count+'/'+target+' maisons possibles près du port ; les accès restent validés.'});}}
+ if(r.maritimePort){const port=generateBirthPort(project);if(!port)diagnostics.push({severity:'ERROR',code:'MARITIME_PORT_MISSING',message:'Aucun port N1 praticable : choisir une autre graine, un relief plus doux ou désactiver le départ maritime.'});else if(r.welcomeVillage&&r.welcomeVillage!=='none'){const count=generateWelcomeVillage(project,port,r.welcomeVillage,r.welcomeActivity),target=r.welcomeVillage==='hamlet'?12:24;if(!count)diagnostics.push({severity:'WARNING',code:'WELCOME_VILLAGE_MISSING',message:'Port créé ; aucun village ne tient sur les replats voisins.'});else if(count<target)diagnostics.push({severity:'WARNING',code:'WELCOME_VILLAGE_PARTIAL',message:count+'/'+target+' maisons possibles près du port ; les accès restent validés.'});}}
  generateWorldActivities(project,diagnostics);
  const recipes=planWorldBiomes(project,r,planned.axis,planned.provinces);
  if(r.biomeMode==='custom'&&(r.compositionVersion??1)===1)for(const [i,kind]of r.sequence.entries()){

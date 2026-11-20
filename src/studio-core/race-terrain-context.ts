@@ -44,3 +44,9 @@ export function projectRaceTerrainEnvironment(project:ProjectDocument,exceptRace
   }
  };
 }
+
+/** Ski checkpoints are part of the corridor being edited, so only other uses obstruct it. */
+export function skiAreaTerrainEnvironment(project:ProjectDocument){
+ const races=Object.fromEntries(Object.entries(project.libraries.races??{}).filter(([,race])=>race.kind!=='ski'));
+ return projectRaceTerrainEnvironment({...project,libraries:{...project.libraries,alpine:undefined,races}});
+}

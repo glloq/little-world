@@ -17,23 +17,33 @@ export function createFishingHud(){
   const tensionText=root.querySelector<HTMLElement>('.fishing-tension-text')!;
   const tip=root.querySelector<HTMLElement>('.fishing-tip')!;
   const bars=root.querySelectorAll<HTMLElement>('[role="progressbar"]');
+  let lastProgress=-1,lastTension=-1;
+  const setHidden=(hidden:boolean)=>{if(root.hidden!==hidden)root.hidden=hidden;};
   return {
     update(state:FishingState|null,touch=false,fishName?:string){
       const active=state?.phase==='reeling';
-      root.hidden=!active;
+      setHidden(!active);
       if(!active||!state)return;
       const p=Math.round(state.progress*100),t=Math.round(state.tension*100);
       const title=fishName?'Au bout de la ligne : '+fishName:'Un poisson est au bout !';
       if(heading.textContent!==title)heading.textContent=title;
-      progress.style.width=p+'%';tension.style.width=t+'%';
-      if(progressText.textContent!==p+' %')progressText.textContent=p+' %';
-      if(tensionText.textContent!==t+' %')tensionText.textContent=t+' %';
-      bars[0].setAttribute('aria-valuenow',String(p));bars[1].setAttribute('aria-valuenow',String(t));
-      root.classList.toggle('fishing-danger',t>=75);
-      const hint=t>=75?'Attention : relâcher !':touch?'Maintenez Agir pour mouliner':'Maintenez E pour mouliner';
+      if(p!==lastProgress){
+        progress.style.width=p+'%';
+        progressText.textContent=p+' %';
+        bars[0].setAttribute('aria-valuenow',String(p));
+        lastProgress=p;
+      }
+      if(t!==lastTension){
+        tension.style.width=t+'%';
+        tensionText.textContent=t+' %';
+        bars[1].setAttribute('aria-valuenow',String(t));
+        root.classList.toggle('fishing-danger',t>=75);
+        lastTension=t;
+      }
+      const hint=t>=75?'Attention : relâcher !':touch?'Maintenez le bouton Mouliner':'Maintenez E pour mouliner';
       if(tip.textContent!==hint)tip.textContent=hint;
     },
-    hide(){root.hidden=true;},
+    hide(){setHidden(true);},
     dispose(){root.remove();},
   };
 }

@@ -7790,6 +7790,65 @@
     "initialState": {},
     "persistentState": []
    }
+  },
+  "forest:cartographer": {
+   "id": "forest:cartographer",
+   "kind": "character",
+   "name": "Mésange, la cartographe",
+   "ownerChunkId": "9:8",
+   "position": {
+    "x": -67,
+    "y": 0,
+    "z": -146
+   },
+   "references": [
+    "behavior:forest:cartographer",
+    "dialogue:forest:cartographer"
+   ],
+   "logical": {
+    "position": {
+     "x": -67,
+     "y": 0,
+     "z": -146
+    },
+    "initialState": {},
+    "persistentState": []
+   }
+  },
+  "forest:journal-cache": {
+   "id": "forest:journal-cache",
+   "kind": "prop",
+   "name": "Coffre des ruines",
+   "ownerChunkId": "9:12",
+   "position": {
+    "x": -105,
+    "y": 0,
+    "z": 131
+   },
+   "references": [
+    "structure.chest",
+    "forest:recover-journal"
+   ],
+   "logical": {
+    "position": {
+     "x": -105,
+     "y": 0,
+     "z": 131
+    },
+    "initialState": {
+     "opened": false
+    },
+    "persistentState": [
+     "opened"
+    ],
+    "interactable": {
+     "prompt": "Fouiller le coffre des ruines",
+     "range": 2.5,
+     "interactionIds": [
+      "forest:recover-journal"
+     ]
+    }
+   }
   }
  },
  "libraries": {
@@ -8582,6 +8641,145 @@
      }
     ],
     "id": "ls-landmark-site-1.hermit-talk"
+   },
+   "dialogue:forest:cartographer": {
+    "id": "dialogue:forest:cartographer",
+    "actorId": "forest:cartographer",
+    "start": "bonjour",
+    "lines": [
+     {
+      "id": "bonjour",
+      "text": "Je relève les chemins du val. Vous partez en exploration ?",
+      "choices": [
+       {
+        "text": "Que cherchez-vous ?",
+        "gate": {
+         "type": "objectiveState",
+         "objectiveId": "forest:lost-journal",
+         "status": "locked"
+        },
+        "next": "proposition"
+       },
+       {
+        "text": "Un indice pour les ruines ?",
+        "gate": {
+         "type": "all",
+         "conditions": [
+          {
+           "type": "objectiveState",
+           "objectiveId": "forest:lost-journal",
+           "status": "active"
+          },
+          {
+           "type": "not",
+           "condition": {
+            "type": "hasItem",
+            "itemId": "forest:journal-item",
+            "quantity": 1
+           }
+          }
+         ]
+        },
+        "next": "indice"
+       },
+       {
+        "text": "J’ai retrouvé votre carnet.",
+        "gate": {
+         "type": "all",
+         "conditions": [
+          {
+           "type": "objectiveState",
+           "objectiveId": "forest:lost-journal",
+           "status": "active"
+          },
+          {
+           "type": "hasItem",
+           "itemId": "forest:journal-item",
+           "quantity": 1
+          }
+         ]
+        },
+        "actions": [
+         {
+          "type": "takeItem",
+          "itemId": "forest:journal-item",
+          "quantity": 1
+         },
+         {
+          "type": "giveItem",
+          "itemId": "coin",
+          "quantity": 35
+         },
+         {
+          "type": "setObjective",
+          "objectiveId": "forest:lost-journal",
+          "status": "complete"
+         }
+        ],
+        "next": "retour"
+       },
+       {
+        "text": "Qu’avez-vous noté sur la cascade ?",
+        "gate": {
+         "type": "objectiveState",
+         "objectiveId": "forest:lost-journal",
+         "status": "complete"
+        },
+        "next": "cascade"
+       },
+       {
+        "text": "À bientôt."
+       }
+      ]
+     },
+     {
+      "id": "proposition",
+      "text": "J’ai oublié mon carnet près d’un mur effondré au nord du village. Rapportez-le-moi et je vous donnerai 35 pièces.",
+      "choices": [
+       {
+        "text": "Je pars à sa recherche.",
+        "actions": [
+         {
+          "type": "setObjective",
+          "objectiveId": "forest:lost-journal",
+          "status": "active"
+         }
+        ],
+        "next": "indice"
+       },
+       {
+        "text": "Je reviendrai plus tard."
+       }
+      ]
+     },
+     {
+      "id": "indice",
+      "text": "Prenez le sentier qui monte au nord du village. Le coffre est vers le côté est du mur effondré.",
+      "choices": [
+       {
+        "text": "Je vais regarder."
+       }
+      ]
+     },
+     {
+      "id": "retour",
+      "text": "Tout y est ! Voici 35 pièces. Passez quand vous voulez pour parler du val.",
+      "choices": [
+       {
+        "text": "Bonne continuation !"
+       }
+      ]
+     },
+     {
+      "id": "cascade",
+      "text": "Le torrent descend à l’est des ruines. Depuis la passerelle, on peut voir la cascade en amont.",
+      "choices": [
+       {
+        "text": "Merci du conseil."
+       }
+      ]
+     }
+    ]
    }
   },
   "behaviors": {
@@ -8616,6 +8814,10 @@
    "ls-landmark-site-1.hermit-routine": {
     "kind": "wander",
     "id": "ls-landmark-site-1.hermit-routine"
+   },
+   "behavior:forest:cartographer": {
+    "id": "behavior:forest:cartographer",
+    "kind": "idle"
    }
   },
   "interactions": {
@@ -8650,6 +8852,37 @@
      }
     ],
     "id": "ls-landmark-site-1.treasure-open"
+   },
+   "forest:recover-journal": {
+    "id": "forest:recover-journal",
+    "trigger": {
+     "type": "onInteract",
+     "entityId": "forest:journal-cache"
+    },
+    "condition": {
+     "type": "objectiveState",
+     "objectiveId": "forest:lost-journal",
+     "status": "active"
+    },
+    "repeat": "once",
+    "persistent": true,
+    "sequence": [
+     {
+      "type": "giveItem",
+      "itemId": "forest:journal-item",
+      "quantity": 1
+     },
+     {
+      "type": "setState",
+      "entityId": "forest:journal-cache",
+      "key": "opened",
+      "value": true
+     },
+     {
+      "type": "showText",
+      "text": "Vous avez retrouvé le carnet de la cartographe."
+     }
+    ]
    }
   },
   "activities": {},
@@ -8714,6 +8947,12 @@
     "name": "Maquereau",
     "category": "poisson",
     "maxQuantity": 999
+   },
+   "forest:journal-item": {
+    "id": "forest:journal-item",
+    "name": "Carnet du val",
+    "category": "quest",
+    "maxQuantity": 1
    }
   },
   "objectives": {
@@ -8751,6 +8990,13 @@
     "persistent": true,
     "description": "Ondine (poissonnière) : rapporter 3 × maquereaux. Récompense : 35 pièces.",
     "id": "ls-fishing-port-1.fishwife-quest"
+   },
+   "forest:lost-journal": {
+    "id": "forest:lost-journal",
+    "name": "Le carnet du val",
+    "initialStatus": "locked",
+    "persistent": true,
+    "description": "Retrouvez le carnet de la cartographe dans les ruines au nord du village. Rapportez-le à Mésange, près du chemin des ruines."
    }
   },
   "water": {
@@ -11849,6 +12095,60 @@
        "layer": "solid"
       }
      }
+    },
+    "forest:cartographer": {
+     "id": "forest:cartographer",
+     "name": "Mésange, la cartographe",
+     "kind": "character",
+     "ownerChunkId": "9:8",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": -67,
+        "y": 0,
+        "z": -146
+       },
+       "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "w": 1
+       },
+       "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+       }
+      },
+      "Character": {
+       "type": "Character",
+       "species": "hamster",
+       "rigId": "hamster-rigid",
+       "appearance": {
+        "hat": false,
+        "backpack": false,
+        "neckwear": "none",
+        "emotion": "happy"
+       }
+      },
+      "Navigation": {
+       "type": "Navigation",
+       "behaviorId": "behavior:forest:cartographer",
+       "speed": 1,
+       "radius": 8
+      },
+      "BehaviorRef": {
+       "type": "BehaviorRef",
+       "behaviorId": "behavior:forest:cartographer"
+      },
+      "DialogueActor": {
+       "type": "DialogueActor",
+       "dialogueIds": [
+        "dialogue:forest:cartographer"
+       ]
+      }
+     }
     }
    },
    "entityIds": [
@@ -11877,7 +12177,8 @@
     "ls-village-clearing-1.hedge-32",
     "ls-village-clearing-1.hedge-33",
     "ls-village-clearing-1.hedge-34",
-    "ls-village-clearing-1.hedge-35"
+    "ls-village-clearing-1.hedge-35",
+    "forest:cartographer"
    ],
    "terrainEdits": [],
    "terrainRefs": [],
@@ -21043,6 +21344,67 @@
        "layer": "solid"
       }
      }
+    },
+    "forest:journal-cache": {
+     "id": "forest:journal-cache",
+     "name": "Coffre des ruines",
+     "kind": "prop",
+     "ownerChunkId": "9:12",
+     "components": {
+      "Transform": {
+       "type": "Transform",
+       "position": {
+        "x": -105,
+        "y": 0,
+        "z": 131
+       },
+       "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "w": 1
+       },
+       "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+       }
+      },
+      "Visual": {
+       "type": "Visual",
+       "assetId": "structure.chest"
+      },
+      "Collider": {
+       "type": "Collider",
+       "shape": "box",
+       "size": {
+        "x": 1.01,
+        "y": 1.5,
+        "z": 0.71
+       },
+       "layer": "solid"
+      },
+      "State": {
+       "type": "State",
+       "initial": {
+        "opened": false
+       }
+      },
+      "Persistence": {
+       "type": "Persistence",
+       "fields": [
+        "opened"
+       ]
+      },
+      "Interactable": {
+       "type": "Interactable",
+       "prompt": "Fouiller le coffre des ruines",
+       "range": 2.5,
+       "interactionIds": [
+        "forest:recover-journal"
+       ]
+      }
+     }
     }
    },
    "entityIds": [
@@ -21071,7 +21433,8 @@
     "ls-ancient-ruins-1.wall2-e16",
     "ls-ancient-ruins-1.wall2-18",
     "ls-ancient-ruins-1.stone-4",
-    "ls-ancient-ruins-1.stone-5"
+    "ls-ancient-ruins-1.stone-5",
+    "forest:journal-cache"
    ],
    "terrainEdits": [],
    "terrainRefs": [],
