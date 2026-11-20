@@ -1311,17 +1311,18 @@ function updateFishing(){
   const reelHeld=gameplayInputActive()&&(keySet.has('KeyE')||!!mobileTouch?.interactHeld);
   const wasReeling=f.state.phase==='reeling',previousTension=f.state.tension;
   const castAt=f.state.castAt;
-  const waterAt=castAt?{x:castAt.x,y:waterSurface(castAt.x,castAt.z)??getTerrainConfig().seaLevel,z:castAt.z}:null;
   const result=f.update(elapsed,reelHeld);
-  if(wasReeling&&f.state.phase==='reeling'){
-    if(reelHeld&&elapsed>=nextFishingReelAt){
-      character.play('fish-reel');nextFishingReelAt=elapsed+.78;
-    }
-    if(previousTension<.72&&f.state.tension>=.72&&elapsed-lastFishingStrainAt>=1.1){
-      lastFishingStrainAt=elapsed;
-      audio?.emit('fishing.strain',{position:waterAt??player.position,source:'player',context:{intensity:'heavy',surface:'water'}});
-      if(waterAt)fishingEffects.burst(waterAt,'strain');
-    }
+  const continuing=wasReeling&&f.state.phase==='reeling';
+  if(continuing&&reelHeld&&elapsed>=nextFishingReelAt){
+    character.play('fish-reel');nextFishingReelAt=elapsed+.78;
+  }
+  const strain=continuing&&previousTension<.72&&f.state.tension>=.72&&elapsed-lastFishingStrainAt>=1.1;
+  if(!strain&&!result)return;
+  const waterAt=castAt?{x:castAt.x,y:waterSurface(castAt.x,castAt.z)??getTerrainConfig().seaLevel,z:castAt.z}:null;
+  if(strain){
+    lastFishingStrainAt=elapsed;
+    audio?.emit('fishing.strain',{position:waterAt??player.position,source:'player',context:{intensity:'heavy',surface:'water'}});
+    if(waterAt)fishingEffects.burst(waterAt,'strain');
   }
   if(result==='bite'){
     showInfo('Ça mord ! Appuyez sur E','success');
