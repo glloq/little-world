@@ -72,8 +72,8 @@ Conserver les états séparés : `SnowSlideState` / `LiftRide` / `SkiLift` / dé
 
 Le Studio génère les portes du Chrono des Cimes le long de la piste native. Le
 joueur peut préparer le départ à pied avec des skis ou un snowboard. Le chrono
-démarre au franchissement de la première porte en glisse et une sortie du mode
-neige annule la tentative. Le record personnel utilise la sauvegarde commune
+démarre au franchissement de la première porte en glisse et les sauts signalés peuvent compter comme
+franchissement. Le planeur et les sauts hors tremplin arrêtent la tentative. Le record personnel utilise la sauvegarde commune
 aux autres courses.
 
 L’habitant du port propose la mission **Première descente aux Cimes**. Le
@@ -95,3 +95,15 @@ neige damée dispose de ses propres records personnels.
 Le comptoir du chalet vend des skis à 24 pièces et des snowboards à 28 pièces.
 Le matériel acheté se conserve dans le sac et s’équipe comme les autres
 outils. Le prêt de la station reste disponible avec **B**.
+
+
+## Chronos fixes et tremplins
+
+Au sommet de la remontée, **Courses** propose le Chrono des Cimes en skis
+et en snowboard. Les deux épreuves suivent le même tracé et enregistrent
+leurs records séparément. La première porte fixe déclenche le chrono.
+Changer d’équipement arrête la tentative.
+
+Deux tremplins balisés jalonnent la descente. Ils déclenchent un saut dans le
+sens de la piste avec une vitesse d’au moins 6 m/s. Les portes restent valides
+pendant ce saut et la réception sur neige reprend la glisse.

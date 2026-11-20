@@ -27,6 +27,7 @@ export function buildAlpineIsland(){
  const area=project.libraries.alpine?.['composition-alpine'];
  if(!area)throw Error('Île des Cimes : piste de ski absente.');
  area.groomed=true;
+ area.jumps=true;
  const race=raceFromSkiArea(project.world,area,projectGeography(project).ctx.height);
  putAuthoredRace(project,race);
  addAlpineStation(project,area);
@@ -37,7 +38,7 @@ export function buildAlpineIsland(){
    questKey,templateId:'cimes:premiere-descente',templateVersion:1,
    islandId:project.world.worldId,giverId:host.id,
    bindings:{title:'Première descente aux Cimes',
-    instruction:'Montez au sommet avec le télésiège, ouvrez Courses et lancez le Chrono des Cimes. Franchissez toutes les portes en glisse.'},
+    instruction:'Montez au sommet avec le télésiège, ouvrez Courses et choisissez le chrono en skis ou en snowboard. Suivez les portes et gardez de la vitesse sur les deux sauts.'},
    steps:[{kind:'race',raceId:race.id,islandId:project.world.worldId}],
    rewards:[{kind:'coins',quantity:8}],
    dependencies:[host.id,race.id],catalogRevision:'cimes-v1',

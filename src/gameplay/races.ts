@@ -34,7 +34,7 @@ export interface RaceSession {
 }
 export interface RaceStep {
   tick:number;previous:RacePoint;position:RacePoint;mode:string;
-  pulseSeq:number;transitioned?:boolean;surfAirborne?:boolean;
+  pulseSeq:number;transitioned?:boolean;surfAirborne?:boolean;snowAirborne?:boolean;
 }
 export type RaceEvent =
  | {kind:'started';gateIndex:number}
@@ -115,10 +115,11 @@ export function advanceRace(s:RaceSession,step:RaceStep):RaceEvent|null{
   const accepted=s.definition.kind==='flight'?['glide']:
     s.definition.kind==='roll'?['ground','roll','air']:
     s.definition.kind==='surf'?['surf','air']:
-    s.definition.kind==='ski'?(s.started?['snow']:['ground','snow']):['ground','roll','air','glide'];
-  if(!accepted.includes(step.mode)||s.definition.kind==='surf'&&step.mode==='air'&&!step.surfAirborne)
+    s.definition.kind==='ski'?(s.started?['snow','air']:['ground','snow']):['ground','roll','air','glide'];
+  if(!accepted.includes(step.mode)||s.definition.kind==='surf'&&step.mode==='air'&&!step.surfAirborne||
+    s.definition.kind==='ski'&&step.mode==='air'&&!step.snowAirborne)
     return fail('Mode de déplacement interdit');
-  if(s.definition.kind==='ski'&&step.mode!=='snow')return null;
+  if(s.definition.kind==='ski'&&!s.started&&step.mode!=='snow')return null;
   let lastFraction=-1,passed=-1,finishFraction=0,startedThisTick=false;
   while(s.nextGate<s.definition.gates.length){
     const gate=s.definition.gates[s.nextGate];

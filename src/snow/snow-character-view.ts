@@ -16,7 +16,7 @@ export function createSnowCharacterView(character:HamsterCharacter){
   rig.group.add(snowboard,skiLeft,skiRight);
   return {
     update(player:Player){
-      const active=player.mode==='snow',skis=player.snowEquipment==='skis';
+      const active=(player.mode==='snow'||player.mode==='air'&&player.snowAirborne===true),skis=player.snowEquipment==='skis';
       snowboard.visible=active&&!skis;skiLeft.visible=skiRight.visible=active&&skis;
       if(!active)return;
       // Overlay the existing animation after its pose update: no skeleton or animation enum changes.

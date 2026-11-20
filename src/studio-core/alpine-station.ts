@@ -75,5 +75,5 @@ export function addAlpineStation(project:ProjectDocument,area:SkiAreaV1){
   {text:'Comment prendre le télésiège ?',next:'lift'},{text:'Comment lancer le chrono ?',next:'race'},{text:'À bientôt !'},
  ]},
  {id:'lift',text:'Approchez-vous de l’embarquement et utilisez la commande d’action. Vous pouvez essayer le matériel de prêt ou acheter des skis et un snowboard au comptoir du chalet.',choices:[{text:'Merci !'}]},
- {id:'race',text:'Au sommet, choisissez le Chrono des Cimes dans Courses. Le temps démarre à la première porte franchie en glisse.',choices:[{text:'Merci !'}]}];
+ {id:'race',text:'Au sommet, choisissez votre chrono en skis ou en snowboard dans Courses. La première porte lance le temps. Gardez de la vitesse sur les deux tremplins.',choices:[{text:'Merci !'}]}];
 }

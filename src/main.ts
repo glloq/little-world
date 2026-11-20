@@ -90,6 +90,8 @@ import {GAS,gasLevel,gasCapacity,gasShots,gasMaxShots,satietyLevel,eatForSatiety
 import {newFlightProgress,advanceFlight,type FlightProgress} from './gameplay/flight-progress.ts';
 import {beginFlightCourse,stepFlightCourse,COURSE_LABELS,type FlightCourseSession} from './gameplay/flight-courses.ts';
 import {createFlightRings} from './render/flight-rings.ts';
+import {alpineJumpGates,launchSkiJump} from './snow/ski-jumps.ts';
+import {createSkiJumps} from './render/ski-jumps.ts';
 import {createRaceGates} from './render/race-gates.ts';
 import {createRaceTrackSampler} from './gameplay/race-track.ts';
 import {createRaceTrackView} from './render/race-track-view.ts';
@@ -320,11 +322,11 @@ if(playable){
     setGasProgress:value=>{flightProgress={...value,currentFlightDistance:0,currentFlightNoGas:0,currentCombo:0,lastPulseAt:-1};player.gasCapacityLevel=value.capacityLevel;player.gasPowerLevel=value.powerLevel;player.gasControlLevel=value.controlLevel;},
     setGas:(value,satiety,recharge)=>{player.gasReserve=Math.min(GAS.max,Math.max(0,value));player.satiety=satiety??100;player.boostRechargeProgress=recharge??0;player.gasBoosting=false;player.gasPulseClock=0;player.gasPulseSeq=0;player.gasThrust=0;player.gasPulseRemaining=0;player.gasCooldown=0;player.gasBoostHeld=false;player.gasRepeatArmed=false;gasVisualSeq=0;lastFlightPulseSeq=0;boostWindActive=false;},
     ...(isLegacyTerrain()?{}:{gathering:{ctx:geoContext,seed:definition.config.seed,inside:(x:number,z:number)=>Math.abs(x)<=(definition.config.width??200)/2&&Math.abs(z)<=(definition.config.length??600)/2}}),
-    setPosition:(p,space)=>{gameplay?.fishing.cancel();stopFlightCourse();stopRace();player.space=space??undefined;player.position.set(p.x,p.y,p.z);player.velocity.set(0,0,0);player.mode='air';player.oxygen=MAX_OXYGEN;player.glideReady=false;player.coyoteLeft=0;player.jumpBufferLeft=0;aboard=false;keySet.clear();jumpQueue=0;actionQueue=0;npcs.dialogue.close();previousPlayerPosition.copy(player.position);renderPosition.copy(player.position);updateCamera(1);}
+    setPosition:(p,space)=>{gameplay?.fishing.cancel();stopFlightCourse();stopRace();player.space=space??undefined;player.position.set(p.x,p.y,p.z);player.velocity.set(0,0,0);player.mode='air';player.oxygen=MAX_OXYGEN;player.glideReady=false;player.snowAirborne=false;player.coyoteLeft=0;player.jumpBufferLeft=0;aboard=false;keySet.clear();jumpQueue=0;actionQueue=0;npcs.dialogue.close();previousPlayerPosition.copy(player.position);renderPosition.copy(player.position);updateCamera(1);}
   });
   if(metricsEnabled){const g=gameplay;Object.assign(window,{littleWorldDebug:{/** Developer/test hook (metrics mode only): give items. */grant:(itemId:string,quantity:number)=>g.runtime.grantItems([{itemId,quantity}]),
     /** Developer/test hook: move the player on the ground and turn the camera (heading in rad). */
-    teleport:(x:number,z:number,heading:number,altitude=0)=>{gameplay?.fishing.cancel();player.space=undefined;player.mode=altitude>0?'air':'ground';player.glideReady=altitude>0;player.coyoteLeft=0;player.jumpBufferLeft=0;player.velocity.set(0,0,0);player.position.set(x,terrainHeight(x,z)+altitude,z);previousPlayerPosition.copy(player.position);yaw=heading;},
+    teleport:(x:number,z:number,heading:number,altitude=0)=>{gameplay?.fishing.cancel();player.space=undefined;player.mode=altitude>0?'air':'ground';player.glideReady=altitude>0;player.snowAirborne=false;player.coyoteLeft=0;player.jumpBufferLeft=0;player.velocity.set(0,0,0);player.position.set(x,terrainHeight(x,z)+altitude,z);previousPlayerPosition.copy(player.position);yaw=heading;},
     /** Developer/test hook: natural dressing and placed objects drawn within r m of the player. */
     drawnNear:(r:number)=>world.drawnNear(player.position.x,player.position.z,r),
     /** Capture hook: fixed camera (null releases it). Presentation only. */
@@ -588,6 +590,16 @@ const surfFieldAt=(x:number,z:number)=>surfFields.find(f=>
   x>=f.zone.minX&&x<=f.zone.maxX&&z>=f.zone.minZ&&z<=f.zone.maxZ)??null;
 let surfField=surfFieldAt(player.position.x,player.position.z);
 const surfRace=surfSite?makeDemoSurfRace(surfSite,activeIsland?.id??gameplay?.runtime.data.worldId??'surf-demo'):null;
+const authoredRaces=[...(playable?.races??[]),...(surfRace?[surfRace]:[])];
+const raceOptions=authoredRaces.flatMap((race):{race:RaceDefinition;equipment?:SnowEquipment;sourceId:string}[]=>
+  race.kind==='ski'?(['skis','snowboard'] as const).map(equipment=>({
+    equipment,sourceId:race.id,race:{...race,
+      id:equipment==='skis'?race.id:race.id+':snowboard',
+      name:race.name+(equipment==='skis'?' · Skis':' · Snowboard')},
+  })):[{race,sourceId:race.id}]);
+const cimesRace=authoredRaces.find(race=>race.id==='race:composition-ski');
+const skiJumps=authoredAlpine?.jumps&&cimesRace?alpineJumpGates(cimesRace):[];
+const skiJumpView=createSkiJumps(scene,skiJumps,terrainHeight);
 const surfWaterViews=surfFields.map(f=>createSurfWaterView(scene,f,surfGround));
 const surfBarrelViews=surfFields.map(f=>f.zone.barrelStrength?createSurfBarrelView(scene,f,surfGround):null);
 let surfWaterView:ReturnType<typeof createSurfWaterView>|null=surfWaterViews[0]??null;
@@ -756,7 +768,8 @@ world.update(0, player.position);
     target:()=>currentTarget(),
     races:{
       start:(id)=>id.startsWith('race:')?startAuthoredRace(id):startDemoRace(id as DemoRaceId),
-      available:()=>((surfRace?[...(playable?.races??[]),surfRace]:playable?.races??[]).map(r=>({id:r.id,name:r.name,distance:Math.round(Math.hypot(player.position.x-r.gates[0].center.x,player.position.y-r.gates[0].center.y,player.position.z-r.gates[0].center.z))}))),
+      available:()=>raceOptions.map(({race:r})=>({id:r.id,name:r.name,distance:Math.round(
+        Math.hypot(player.position.x-r.gates[0].center.x,player.position.y-r.gates[0].center.y,player.position.z-r.gates[0].center.z))})),
       active:()=>raceSession?.definition.name??null,
       abort:()=>{stopRace();return 'Course interrompue';}
     },
@@ -785,13 +798,15 @@ const raceHud=document.createElement('div');
 raceHud.className='flight-course-hud race-course-hud';raceHud.hidden=true;
 raceHud.setAttribute('role','timer');raceHud.setAttribute('aria-live','off');document.body.append(raceHud);
 let flightCourse:FlightCourseSession|null=null,lastCourseHudAt=-1;
+let activeRaceOption:typeof raceOptions[number]|undefined;
 const flightCourseHud=document.createElement('div');
 flightCourseHud.className='flight-course-hud';flightCourseHud.hidden=true;
 flightCourseHud.setAttribute('role','timer');flightCourseHud.setAttribute('aria-live','off');document.body.append(flightCourseHud);
 function stopFlightCourse(){flightCourse=null;flightRings.clear();flightCourseHud.hidden=true;}
 function startAuthoredRace(id:string):{ok:boolean;message:string}{
-  const race:RaceDefinition|undefined=(id===surfRace?.id?surfRace:playable?.races?.find(r=>r.id===id))??undefined;
-  if(!race)return {ok:false,message:'Circuit indisponible'};
+  const option=raceOptions.find(entry=>entry.race.id===id);
+  if(!option)return {ok:false,message:'Circuit indisponible'};
+  const {race,equipment}=option;
   if(!started||aboard||player.space)return {ok:false,message:'Revenez au monde extérieur pour participer'};
   const start=race.gates[0],pos=player.position;
   const distance=Math.hypot(pos.x-start.center.x,pos.y-start.center.y,pos.z-start.center.z);
@@ -802,21 +817,21 @@ function startAuthoredRace(id:string):{ok:boolean;message:string}{
     return {ok:false,message:'Déployez le planeur pour cette course'};
   if(race.kind==='surf'&&player.mode!=='surf')
     return {ok:false,message:'Montez sur votre planche pour cette course'};
-  if(race.kind==='ski'&&(!['ground','snow'].includes(player.mode)||
-    !activeSnowEquipment()))
-    return {ok:false,message:'Équipez des skis ou un snowboard et rejoignez le départ enneigé'};
+  if(equipment&&(!['ground','snow'].includes(player.mode)||activeSnowEquipment()!==equipment))
+    return {ok:false,message:equipment==='skis'?'Équipez les skis pour ce chrono':'Équipez le snowboard pour ce chrono'};
   if((race.kind==='roll'||race.kind==='mixed')&&!['roll','ground'].includes(player.mode))
     return {ok:false,message:'Revenez au sol avant le départ'};
   stopFlightCourse();stopRace();
   const timing=race.kind==='ski'&&authoredAlpine?.groomed
     ?{...race,layoutKey:race.layoutKey+':groomed-v1'}:race;
   raceSession=beginRace(timing,motionTick,player.gasPulseSeq??0);
+  activeRaceOption=option;
   raceGates.show(race.gates);
   raceHud.textContent=race.name+' · Traversez la porte de départ pour lancer le chrono';
   raceHud.hidden=false;
   return {ok:true,message:race.name+' : départ prêt, franchissez la première porte'};
 }
-function stopRace(){raceSession=null;raceGates.clear();raceHud.hidden=true;}
+function stopRace(){raceSession=null;activeRaceOption=undefined;raceGates.clear();raceHud.hidden=true;}
 function startDemoRace(id:DemoRaceId):{ok:boolean;message:string}{
   if(!started||aboard||player.space)return {ok:false,message:'Course indisponible pendant le voyage ou dans une mine'};
   const need=id==='flight'?'glide':'roll';
@@ -1533,6 +1548,7 @@ function tick(dt: number) {
     }
     const surfPhysicsStart=surfPerf&&surfField?performance.now():0;
     simulatePlayer(player, keys, dt,gameplay?.collision,surfField??undefined,motionTick+1);motionTick++;
+    launchSkiJump(player,skiJumps,previousPlayerPosition);
     // Boats left in a surf zone keep floating on its swells (height and tilt; no push when parked).
     if(surfFields.length)for(const b of fleet.boats)
       followSurfSwell(b.state,surfFieldAt(b.state.x,b.state.z),motionTick,dt,canBoatSailAt,false);
@@ -1595,17 +1611,20 @@ function tick(dt: number) {
         stopFlightCourse();stopRace();
       }else if(result===-1){showInfo('Défi interrompu : '+COURSE_LABELS[flightCourse.id],'warning');stopFlightCourse();stopRace();}
     }
+    if(raceSession&&activeRaceOption?.equipment&&activeSnowEquipment()!==activeRaceOption.equipment){
+      stopRace();showInfo('Course arrêtée : équipement changé','warning');
+    }
     if(raceSession){
       const event=advanceRace(raceSession,{tick:motionTick,previous:previousPlayerPosition,position:player.position,
         mode:player.mode,pulseSeq:player.gasPulseSeq??0,transitioned:!!player.transitioned,
-        surfAirborne:player.surfAirborne===true});
+        surfAirborne:player.surfAirborne===true,snowAirborne:player.snowAirborne===true});
       if(event?.kind==='checkpoint'||event?.kind==='started'){
         raceGates.advance(raceSession.nextGate);
         if(event.kind==='started')showInfo('Départ validé : chronomètre lancé','success');
       }
       else if(event?.kind==='finish'){
         const race=raceSession.definition,isBest=writeRaceBest(localStorage,race,event.seconds,gameplay?.runtime.data.buildVersion??'');
-        gameplay?.recordQuestCommit('race.finished',{raceId:race.id,measuredSeconds:event.seconds});
+        gameplay?.recordQuestCommit('race.finished',{raceId:activeRaceOption?.sourceId??race.id,measuredSeconds:event.seconds});
         showInfo('Course terminée : '+race.name+' · '+event.seconds.toFixed(2)+' s'+(isBest?' · Nouveau record local !':''),'success');
         stopRace();
       }else if(event?.kind==='failed'){showInfo('Course arrêtée : '+event.reason,'warning');stopRace();}
@@ -1909,7 +1928,7 @@ function draw(now: number) {
         objectCulling:{...world.objectCulling},
         animated: { ...world.animated },
         occlusion: world.occlusion,
-        alpine:authoredAlpine?{id:authoredAlpine.id,points:snowPiste?.length??0,snowLineM:authoredAlpine.snowLineM,lift:!!snowLift,equipment:activeSnowEquipment(),base:snowLift?.path[0]??null,ride:snowLiftRide?.phase??null}:null,
+        alpine:authoredAlpine?{id:authoredAlpine.id,points:snowPiste?.length??0,snowLineM:authoredAlpine.snowLineM,lift:!!snowLift,equipment:activeSnowEquipment(),snowAirborne:player.snowAirborne===true,jumps:skiJumps.map(gate=>gate.center),base:snowLift?.path[0]??null,ride:snowLiftRide?.phase??null}:null,
         boatModel: world.boat.getObjectByName('Sailboat') ? 'sailboat' : 'procedural',
         boatPosition: [boat.x, boat.y, boat.z],
         boats: { count: fleet.boats.length, aboard, current: fleet.current?.id ?? null },
@@ -1960,7 +1979,7 @@ function draw(now: number) {
   }
   requestAnimationFrame(draw);
 }
-window.addEventListener('pagehide',event=>{if(event.persisted)void audio?.engine.setHidden(true);else {detachPortCollisions?.();ferryView?.dispose();remoteActors?.dispose();mineRhythmHud.dispose();mineHelmet.dispose();gasEffects.dispose();flightRings.dispose();raceGates.dispose();raceTrackView.dispose();flightCourseHud.remove();raceHud.remove();fishingHud.dispose();fishingEffects.dispose();speedStreaks.dispose();for(const view of surfWaterViews)view.dispose();for(const view of surfBarrelViews)view?.dispose();surfBoardView?.dispose();surfWakeView?.dispose();surfFeatureView?.dispose();surfHud?.dispose();gpuTimer.dispose();void audio?.dispose();}});
+window.addEventListener('pagehide',event=>{if(event.persisted)void audio?.engine.setHidden(true);else {detachPortCollisions?.();ferryView?.dispose();remoteActors?.dispose();mineRhythmHud.dispose();mineHelmet.dispose();gasEffects.dispose();flightRings.dispose();raceGates.dispose();skiJumpView?.dispose();raceTrackView.dispose();flightCourseHud.remove();raceHud.remove();fishingHud.dispose();fishingEffects.dispose();speedStreaks.dispose();for(const view of surfWaterViews)view.dispose();for(const view of surfBarrelViews)view?.dispose();surfBoardView?.dispose();surfWakeView?.dispose();surfFeatureView?.dispose();surfHud?.dispose();gpuTimer.dispose();void audio?.dispose();}});
 window.addEventListener('pageshow',event=>{if(event.persisted&&started)void audio?.engine.setHidden(document.hidden);});
 document.addEventListener('visibilitychange', () => {
   presentation.reset();
