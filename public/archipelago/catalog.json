@@ -21,6 +21,13 @@
       "manifest": "archipelago/worlds/surf-island/manifest.json",
       "description": "Île de surf avec trois plages A/B/C, tubes de vagues, courses et port maritime calme.",
       "portLevel": 0
+    },
+    {
+      "id": "alpine-island",
+      "name": "Île des Cimes",
+      "manifest": "archipelago/worlds/alpine-island/manifest.json",
+      "description": "Massif enneigé, piste de ski, télésiège, course de roulade et hameau maritime.",
+      "portLevel": 0
     }
   ]
 }

@@ -31,7 +31,7 @@ export async function verifyStaticBuild(directory = 'dist') {
   // Keep the published map allowlist intact: the second island lives in /archipelago.
   const catalog=JSON.parse(await readFile(resolve(root,'archipelago/catalog.json'),'utf8'));
   assert.equal(catalog.schemaVersion,1,'Version du registre invalide');
-  assert.equal(catalog.islands.length,3,'Trois îles jouables attendues');
+  assert.equal(catalog.islands.length,4,'Quatre îles jouables attendues');
   const manifest=JSON.parse(await readFile(resolve(root,'archipelago/worlds/forest-valley/manifest.json'),'utf8'));
   assert.equal(manifest.worldId,'little-world-production-reference','Mauvaise île d’exemple');
   const forest=JSON.parse(await readFile(resolve(root,'archipelago/worlds/forest-valley/project.json'),'utf8'));
@@ -41,6 +41,14 @@ export async function verifyStaticBuild(directory = 'dist') {
     manifest.chunks.map(chunk=>chunk.url.slice('chunks/'.length)).sort(),'Fichiers de secteurs hors manifeste');
   for(const chunk of manifest.chunks)assert.ok((await stat(resolve(root,'archipelago/worlds/forest-valley',chunk.url))).isFile(),'Secteur absent : '+chunk.url);
   assert.ok((await stat(resolve(root,'archipelago/worlds/forest-valley',manifest.logic.url))).isFile(),'Logique de l’île absente');
+  const alpineDir=resolve(root,'archipelago/worlds/alpine-island');
+  const alpine=JSON.parse(await readFile(resolve(alpineDir,'manifest.json'),'utf8'));
+  const alpineProject=JSON.parse(await readFile(resolve(alpineDir,'project.json'),'utf8'));
+  assert.equal(alpine.worldId,'little-world-alpine-island');
+  assert.equal(alpineProject.manifest.worldId,alpine.worldId);
+  assert.ok(alpineProject.libraries.alpine['composition-alpine'].lift);
+  assert.equal(alpineProject.libraries.races['race:composition-downhill'].worldId,alpine.worldId);
+  for(const {url} of [alpine.logic,...alpine.chunks])assert.ok((await stat(resolve(alpineDir,url))).isFile());
   const surf=JSON.parse(await readFile(resolve(root,'archipelago/worlds/surf-island/manifest.json'),'utf8'));
   assert.equal(surf.worldId,'little-world-surf-island','Identité de l’île Surf invalide');
   assert.equal(surf.kind,'compiled-world');

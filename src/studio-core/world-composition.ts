@@ -20,11 +20,11 @@ import {applyRegionBatch} from './region-batch.ts';
 import type {ProjectDocument} from './types.ts';
 export interface CompositionDiagnostic {severity:'ERROR'|'WARNING';code:string;message:string}
 export interface WorldComposition {project:ProjectDocument;ready:boolean;diagnostics:CompositionDiagnostic[];family:string;metrics:{generationMs:number;features:number;sectors:number;surveyCells:number;sourceBytes:number;coverage?:CompositionCoverage;natural?:NaturalQuality}}
-export function composeWorld(input:MapRequirements,name='Mon petit monde'):WorldComposition {
+export function composeWorld(input:MapRequirements,name='Mon petit monde',identity?:{projectId:string;worldId:string}):WorldComposition {
  const started=performance.now(),r=validateMapRequirements(input),diagnostics:CompositionDiagnostic[]=[];
  let planned=planWorldTerrain(r);
  if(r.compositionVersion===3&&r.terraces<3)diagnostics.push({severity:'ERROR',code:'TERRACE_LEVELS_REQUIRED',message:'L’île étagée demande au moins 3 niveaux. Augmenter les terrasses ou choisir la composition en provinces.'});
- const project=createProject({name,width:r.width,length:r.length,seed:r.seed,chunkSizeM:128,terrain:{kind:'archipelago',version:1,archipelago:planned.terrain}});
+ const project=createProject({...identity,name,width:r.width,length:r.length,seed:r.seed,chunkSizeM:128,terrain:{kind:'archipelago',version:1,archipelago:planned.terrain}});
  project.world.generation=r;diagnostics.push(...planTerrainSites(project,r));
  if(r.type==='valley'||r.type==='continental')diagnostics.push({severity:'ERROR',code:'WORLD_TYPE_UNSUPPORTED',message:'Cette version compose des îles et archipels. Choisir une île pour un exutoire marin valide.'});
  let field=generatorField(project.world.terrain!,{width:r.width,length:r.length,seed:r.seed,seaLevel:0},()=>0);
