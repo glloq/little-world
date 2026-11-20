@@ -52,3 +52,25 @@ test('compiled reader rejects tampered resources, oversize payloads and unsafe p
   assert.throws(()=>publishedManifestURL('/little-world/','../secret/manifest.json'),/invalide/);
   assert.equal(publishedManifestURL('/little-world/','maps/island/manifest.json'),'/little-world/maps/island/manifest.json');
 });
+
+test('compiled startup overlaps logic and sectors within the shared fetch limit',async()=>{
+  const project=parseProject(JSON.parse(await readFile(new URL('../tests/fixtures/legacy-maps/authoring/beta.project.json',import.meta.url),'utf8')));
+  const compiled=await compileProject(project,{resolveAsset});
+  const fetcher=memoryFetcher(compiled.files);
+  let inFlight=0,peak=0,sectorStarted=false;
+  const fetchCounted=async url=>{
+    const path=new URL(url).pathname;
+    if(path.includes('/chunks/'))sectorStarted=true;
+    peak=Math.max(peak,++inFlight);
+    try{
+      if(path.endsWith(compiled.manifest.logic.url)){
+        await Promise.resolve();
+        assert.ok(sectorStarted,'manifest sectors start while the logic request is outstanding');
+      }
+      return await fetcher(url);
+    }finally{inFlight--;}
+  };
+  const bundle=await openCompiledWorld('http://localhost/worlds/test/manifest.json',fetchCounted,{concurrency:2});
+  assert.equal(peak,2);
+  assert.equal(bundle.chunks.length,compiled.manifest.chunks.length);
+});

@@ -44,6 +44,9 @@ export async function loadCompiledManifest(url:string,fetcher:typeof fetch=fetch
 }
 export async function loadCompiledChunk(manifestURL:string,manifest:CompiledWorldManifest,chunkId:string,fetcher:typeof fetch=fetch):Promise<CompiledChunkData>{
  const descriptor=manifest.chunks.find(chunk=>chunk.chunkId===chunkId);if(!descriptor)throw Error('Compiled chunk is absent: '+chunkId);
+ return loadCompiledChunkDescriptor(manifestURL,manifest,descriptor,fetcher);
+}
+export async function loadCompiledChunkDescriptor(manifestURL:string,manifest:CompiledWorldManifest,descriptor:CompiledChunkDescriptor,fetcher:typeof fetch=fetch):Promise<CompiledChunkData>{
  const value=await readJSON(relativeURL(manifestURL,descriptor.url),fetcher,descriptor);
  return parseCompiledChunk(value,manifest,descriptor);
 }

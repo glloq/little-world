@@ -5,7 +5,7 @@ import {habitatColliders} from '../settlements/habitat.ts';
  * reads validated compiled resources. Sectors absent from the manifest have no authored
  * package and keep the base relief of `manifest.terrain`.
  */
-import {loadCompiledManifest,loadCompiledLogic,loadCompiledChunk} from '../world-compiler/load.ts';
+import {loadCompiledManifest,loadCompiledLogic,loadCompiledChunkDescriptor} from '../world-compiler/load.ts';
 import type {CompiledWorldManifest,CompiledChunkData,CompiledLogicData} from '../world-compiler/manifests.ts';
 import {runtimeContent} from '../studio-core/migration.ts';
 import {activitiesFromZones,activityItems} from '../gameplay/activities.ts';
@@ -35,10 +35,21 @@ export async function openCompiledWorld(manifestURL:string,fetcher:typeof fetch=
   const manifest=await loadCompiledManifest(manifestURL,fetcher);
   const payloadBytes=manifest.chunks.reduce((sum,chunk)=>sum+chunk.byteLength,0),limit=options.maxPayloadBytes??48*1024*1024;
   if(payloadBytes>limit)throw Error(`Paquets auteur trop volumineux pour un chargement initial (${Math.ceil(payloadBytes/1048576)} Mio) : streaming des entités requis.`);
-  const logic=await loadCompiledLogic(manifestURL,manifest,fetcher);
-  const chunks:CompiledChunkData[]=new Array(manifest.chunks.length);let next=0;
-  async function worker(){while(next<manifest.chunks.length){if(options.signal?.aborted)throw Error('Chargement annulé');const index=next++;chunks[index]=await loadCompiledChunk(manifestURL,manifest,manifest.chunks[index].chunkId,fetcher);}}
-  await Promise.all(Array.from({length:Math.min(options.concurrency??6,manifest.chunks.length)},worker));
+  if(options.signal?.aborted)throw Error('Chargement annulé');
+  const chunks:CompiledChunkData[]=new Array(manifest.chunks.length);
+  let logic:CompiledLogicData|undefined;
+  let next=-1;
+  async function worker(){
+    while(next<manifest.chunks.length){
+      if(options.signal?.aborted)throw Error('Chargement annulé');
+      const index=next++;
+      if(index===-1)logic=await loadCompiledLogic(manifestURL,manifest,fetcher);
+      else chunks[index]=await loadCompiledChunkDescriptor(manifestURL,manifest,manifest.chunks[index],fetcher);
+    }
+  }
+  const concurrency=Number.isFinite(options.concurrency)?Math.max(1,Math.floor(options.concurrency!)):6;
+  await Promise.all(Array.from({length:Math.min(concurrency,manifest.chunks.length+1)},worker));
+  if(!logic)throw Error('Logique du monde absente');
   return {manifestURL,manifest,logic,chunks,payloadBytes};
 }
 function unionById<T extends {id:string}>(lists:T[][]):T[]{const map=new Map<string,T>();for(const list of lists)for(const item of list)map.set(item.id,item);return [...map.values()];}
