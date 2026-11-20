@@ -61,7 +61,7 @@ export type CargoResult={ok:true;message:string;revision:number}|{ok:false;reaso
 /** Demonstration routes are explicitly authored, independent of passenger ferry windows.
  * A first ship departs after 10 game minutes and arrives after another 45.
  */
-export const CARGO_ROUTES:readonly CargoRoute[]=[
+const ORIGINAL_CARGO_ROUTES:readonly CargoRoute[]=[
   {id:'forest-to-volcano',fromIslandId:'forest-valley',toIslandId:'volcano-island',
     firstDepartureMinute:10,frequencyMinutes:2880,travelMinutes:45,
     goods:[{itemId:'material:plank',quantity:4},{itemId:'wood:log',quantity:5}]},
@@ -69,12 +69,22 @@ export const CARGO_ROUTES:readonly CargoRoute[]=[
     firstDepartureMinute:10,frequencyMinutes:2880,travelMinutes:45,
     goods:[{itemId:'material:iron-ingot',quantity:2},{itemId:'material:stone-block',quantity:3}]},
 ];
+export const CARGO_ROUTES:readonly CargoRoute[]=[
+  ...ORIGINAL_CARGO_ROUTES,
+  {id:'harvest-to-alpine',fromIslandId:'harvest-island',toIslandId:'alpine-island',
+    firstDepartureMinute:80,frequencyMinutes:2880,travelMinutes:55,
+    goods:[{itemId:'farm:wheat',quantity:6},{itemId:'material:flour',quantity:3}]},
+  {id:'harvest-to-surf',fromIslandId:'harvest-island',toIslandId:'surf-island',
+    firstDepartureMinute:110,frequencyMinutes:2880,travelMinutes:40,
+    goods:[{itemId:'farm:pumpkin',quantity:3},{itemId:'farm:carrot',quantity:6}]},
+];
 /** Finite starting reserves in the corresponding producing islands, NOT spawned per shipment.
  * ECO-8 will replace this author seed with aggregate producer output and configurable caps.
  */
 export const CARGO_INITIAL_RESERVES:Readonly<Record<string,Readonly<Record<string,number>>>>={
   'forest-valley':{'material:plank':24,'wood:log':30},
   'volcano-island':{'material:iron-ingot':12,'material:stone-block':18},
+  'harvest-island':{'farm:wheat':36,'material:flour':18,'farm:pumpkin':18,'farm:carrot':36},
 };
 
 export function validateCargoRoutes(routes:readonly CargoRoute[]):void{
@@ -205,6 +215,23 @@ export function parseCargoState(raw:unknown,routes:readonly CargoRoute[]=CARGO_R
     shipments,importLots,purchases};
 }
 
+function readPublishedCargoState(raw:unknown):CargoStateV1{
+  if(!obj(raw)||!obj(raw.nextDepartures)||
+    Object.keys(raw.nextDepartures).length!==ORIGINAL_CARGO_ROUTES.length||
+    !ORIGINAL_CARGO_ROUTES.every(route=>Object.hasOwn(raw.nextDepartures as object,route.id)))
+    return parseCargoState(raw);
+  const state=parseCargoState(raw,ORIGINAL_CARGO_ROUTES);
+  for(const route of CARGO_ROUTES){
+    if(Object.hasOwn(state.nextDepartures,route.id))continue;
+    const elapsed=state.lastObservedMinute-route.firstDepartureMinute;
+    const cycles=Math.max(0,Math.floor(elapsed/route.frequencyMinutes)+1);
+    state.nextDepartures[route.id]=Math.min(1_000_000_000,route.firstDepartureMinute+cycles*route.frequencyMinutes);
+    state.exportReserves[route.fromIslandId]??={...CARGO_INITIAL_RESERVES[route.fromIslandId]};
+  }
+  state.revision++;
+  return parseCargoState(state);
+}
+
 type CargoEventChoice={kind:'depart'|'arrive';minute:number;id:string;
   route?:CargoRoute;ship?:CargoShipment};
 function nextEvent(state:CargoStateV1,routes:readonly CargoRoute[]):CargoEventChoice|null{
@@ -333,7 +360,9 @@ export function createCargoService(storage:CargoStorage,args:{
   if(!isId(args.islandId))throw Error('Île de fret invalide');
   validateCargoRoutes(routes);
   const raw=storage.getItem(CARGO_STORAGE_KEY);
-  let state=raw===null?newCargoState(routes):parseCargoState(JSON.parse(raw),routes);
+  const decoded=raw===null?null:JSON.parse(raw);
+  let state=raw===null?newCargoState(routes):args.routes===undefined?readPublishedCargoState(decoded):parseCargoState(decoded,routes);
+  if(raw!==null&&state.revision!==decoded?.revision)storage.setItem(CARGO_STORAGE_KEY,JSON.stringify(state));
   function advance(){
     const candidate=structuredClone(state);
     const result=advanceCargo(candidate,args.gameMinute(),routes);

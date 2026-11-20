@@ -69,3 +69,9 @@ Autre limite du stockage navigateur : deux onglets simultanés qui vendent les m
 - **ECO-7.1** : rapprocher définitivement `CargoStateV1` des sauvegardes/journaux du joueur, rendre l'achat et le sac crash-safe au-delà de deux stockages, ajouter un contrôle de concurrence entre onglets.
 - **ECO-8** : relier les réserves exportatrices aux productions réellement générées par la logique des mines/fermes/ateliers, introduire plus de ressources et des chaînes d'objets complexes.
 - **ECO-9** : définir les routes, productions, quantités, tarifs et lieux de comptoir dans Studio, avec validation des références et vue des dépendances, sans avoir à modifier les fichiers de code pour ajouter une île.
+
+## Extension aux Moissons
+
+Le dépôt des Moissons expédie du blé et de la farine aux Cimes, puis des courges et des carottes aux Trois vagues. Les premiers départs d’une nouvelle partie ont lieu aux minutes 80 et 110. Les arrivées ont lieu aux minutes 135 et 150. Chaque expédition débite des réserves fixes. Le raccord à la production autonome des habitants reste une étape ECO-8.
+
+À la lecture d’un ancien ledger à deux liaisons, la migration valide l’historique existant, conserve les stocks et les achats, puis fixe le premier départ de chaque nouvelle liaison après la dernière minute observée. Le test cargo couvre l’arrivée des deux nouvelles expéditions après reprise.
