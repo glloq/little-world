@@ -17,7 +17,7 @@ export function createHorizonOcclusion(height:(x:number,z:number)=>number,o:{sec
    * waves when walking over a rise). Still conservative; culls somewhat less. */
   // At speed the camera may also climb much more than that during a refresh plus the redraw
   // that applies it (fast pull-up while gliding): the lift grows with the measured camera speed
-  // so forests behind a crest are already drawn when it comes into view (doc 105, SPEED-4).
+  // so forests behind a crest are already drawn when it comes into view (doc 106, SPEED-4).
   let lift=OCCLUSION.moveM/2,pendingLift=lift,speed=0,last:{x:number;y:number;z:number;t:number}|null=null;
   const stats:OcclusionStats={refreshes:0,samples:0,tested:0,hidden:0,ready:false};
   /** One azimuth: running maximum of the elevation slope along the ray. */

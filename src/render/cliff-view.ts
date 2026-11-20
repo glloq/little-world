@@ -135,7 +135,7 @@ export function createCliffView(parent:THREE.Object3D,height:(x:number,z:number)
  const root=new THREE.Group();root.name='StreamedRockFaces';parent.add(root);
  const material=new THREE.MeshLambertMaterial({vertexColors:true,side:THREE.DoubleSide});
  // Rock faces fade over the outer 40 m of their radius (per vertex: meshes are in world
- // coordinates) instead of appearing whole at 250 m (doc 105, SEAM-7).
+ // coordinates) instead of appearing whole at 250 m (doc 106, SEAM-7).
  const fade={center:{value:new THREE.Vector3()},radius:{value:CLIFF_BUDGET.radius},band:{value:40}};addRadialFade(material,fade,true);
  // Geometries leaving the radius (or replaced by the other LOD) are kept a while: coming
  // back or crossing the LOD distance again reuses them instead of rebuilding (HITCH-6).

@@ -1264,7 +1264,7 @@ function updateCamera(dt: number) {
   const desired = cameraDesired.set(x, y, z);
   // Near plane 0.3 m outside tight spaces: three times the depth precision at a distance
   // (coasts, rivers and tree bases stop shimmering at kilometres), 0.1 m in galleries and
-  // inside a breaking wave where the camera hugs the walls (doc 105, QUAL-3).
+  // inside a breaking wave where the camera hugs the walls (doc 106, QUAL-3).
   const near=player.space||inSurfTube?.1:.3;
   if(camera.near!==near){camera.near=near;camera.updateProjectionMatrix();}
   // In a gallery: stay inside the open cells and under the ceiling, never above the relief.
@@ -1280,9 +1280,6 @@ function updateCamera(dt: number) {
   if(!inSurfTube&&camera.position.y<cameraFloor){camera.position.y=cameraFloor;cameraOffset.y=cameraFloor-target.y;}
   camera.lookAt(target);
   camera.rotateZ(speedCue.bank);
-  // Near plane 0.3 m outside tight spaces: three times the depth precision at a distance
-  // (coasts, rivers and tree bases stop shimmering at kilometres), 0.1 m in galleries and
-  // inside a breaking wave where the camera hugs the walls (doc 105, QUAL-3).
   if(Math.abs(camera.fov-speedCue.fov)>.005){camera.fov=speedCue.fov;camera.updateProjectionMatrix();}
 }
 /** Contextual target: the same ordered sources decide what the HUD shows and what E does

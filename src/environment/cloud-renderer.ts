@@ -53,7 +53,7 @@ export function createCloudRenderer(scene:THREE.Scene, seed:number) {
     // Rebuild after a short move (not only at 160 m cell crossings): selection is stable per
     // cell (shape from the cell hash, not from the distance rank) and clouds near the edge of
     // the field shrink to nothing, so the field slides smoothly instead of swapping shapes
-    // and popping clouds in or out (doc 105, SEAM-11). Still no upload on a still camera.
+    // and popping clouds in or out (doc 106, SEAM-11). Still no upload on a still camera.
     const fieldX=params.position.x-root.position.x,fieldZ=params.position.z-root.position.z;
     if(Math.hypot(fieldX-lastFieldX,fieldZ-lastFieldZ)>20||count!==lastCount||coverBand!==lastCover) {
       // Radius that holds about `count` cell centres, with a fading rim.

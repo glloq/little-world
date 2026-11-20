@@ -1,6 +1,6 @@
 # 82 — Roadmap d'optimisation du moteur : FPS, vieux PC et marge graphique
 
-**Statut : PLANNED — roadmap d'exécution, aucun changement runtime livré ici.** Baseline de code : `main@f37d7767` (18 novembre 2026). Priorité : **meilleure qualité à FPS stables**, et non suppression automatique des détails. Voir [80 — cible 4–8 Go et Auto](80-OLD-PC-HARDWARE-AUTO-QUALITY.md) et [81 — audit fichier par fichier](81-RENDER-PERFORMANCE-CODE-AUDIT.md).
+**Statut : PLANNED — roadmap d'exécution, aucun changement runtime livré ici.** Baseline de code : `main@f37d7767` (18 novembre 2026). Priorité : **meilleure qualité à FPS stables**, et non suppression automatique des détails. **Suite (20/11/2026)** : [106 — audit et mise en œuvre fluidité 30 FPS, raccords et vitesse](106-SMOOTH-30FPS-STREAMING-AUDIT.md) détaille les points par ID et leur statut. Voir [80 — cible 4–8 Go et Auto](80-OLD-PC-HARDWARE-AUTO-QUALITY.md) et [81 — audit fichier par fichier](81-RENDER-PERFORMANCE-CODE-AUDIT.md).
 
 Cette roadmap **complète** [22 — PERF-0…PERF-9](22-RESOURCE-BUDGET-MANAGER.md) et [10 — benchmarks](10-PERFORMANCE-ROADMAP.md), elle ne les remplace pas. [PR #29 — roadmap artistique GFX-0…GFX-10](https://github.com/glloq/little-world/pull/29) est un travail graphique encore ouvert à la date de cet audit : reprendre ses objectifs lors de sa fusion, sans prétendre que ce document est déjà sur `main`. Le volet OPT ci-dessous fournit les optimisations préalables et les gates matériels nécessaires à ces améliorations.
 

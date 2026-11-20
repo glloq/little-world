@@ -48,7 +48,7 @@ export function createTerrainMaterial(): { material: THREE.MeshLambertMaterial; 
   // Front faces only (like the horizon): the heightfield is never seen from below (mines have
   // their own ceilings, the camera stays above the ground). Skirts face outwards, so a
   // T-junction crack shows the neighbour's skirt lit like the ground, and the back-facing
-  // skirt of the near tile is culled instead of z-fighting with it (doc 105, QUAL-5).
+  // skirt of the near tile is culled instead of z-fighting with it (doc 106, QUAL-5).
   const material = new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.FrontSide });
   material.onBeforeCompile = (shader) => {
     shader.uniforms.uMorph = morph;
@@ -123,7 +123,7 @@ export interface TerrainViewOptions {
   maxBytes?: number;
   /** Geography workers: tile data is computed off the main thread (same results). */
   workers?: GeoWorkerPool | null;
-  /** Blend duration between representations (s); 0 swaps instantly (as before doc 105). */
+  /** Blend duration between representations (s); 0 swaps instantly (as before doc 106). */
   morphSeconds?: number;
 }
 export function geometryBytes(geometry: THREE.BufferGeometry): number {

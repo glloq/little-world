@@ -1,4 +1,4 @@
-/** Shader program warm-up (doc 105, HITCH-4). Three.js compiles a program the first time a
+/** Shader program warm-up (doc 106, HITCH-4). Three.js compiles a program the first time a
  * material is drawn with a new combination of defines (lights, fog, skinning, batching…):
  * that compilation and the driver link stall the frame on which the object first appears.
  * Here every material already in the scene is compiled ahead of time, in the background

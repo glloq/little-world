@@ -71,7 +71,7 @@ export function createLightView(parent:THREE.Object3D,height:(x:number,z:number)
       else if(followGlow.length){for(const g of followGlow){const i=budget.glow[g];positions[g*3]=budget.px[i];positions[g*3+1]=budget.py[i];positions[g*3+2]=budget.pz[i];}(geometry.getAttribute('position') as THREE.BufferAttribute).needsUpdate=true;}
       const reassigned=budget.slotVersion!==slotVersion;slotVersion=budget.slotVersion;let active=0;
       // A pooled light handed to another source fades in over ~0.3 s instead of switching on
-      // at full intensity in one frame (doc 105, SEAM-12). Presentation only.
+      // at full intensity in one frame (doc 106, SEAM-12). Presentation only.
       const now=performance.now(),dt=lastRampAt<0?0:Math.min(.1,(now-lastRampAt)/1000);lastRampAt=now;
       for(let s=0;s<pool.length;s++){
         const light=pool[s],i=s<budget.budget?budget.slots[s]:-1;

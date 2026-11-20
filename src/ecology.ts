@@ -14,7 +14,7 @@ import {
 interface ResidentSector {
   cx: number;
   cz: number;
-  /** Per creature: habitat along its circular path, sampled once (doc 105, HITCH-8). */
+  /** Per creature: habitat along its circular path, sampled once (doc 106, HITCH-8). */
   paths: CreaturePath[];
   root: THREE.Group;
   sites: CreatureSite[];

@@ -1,4 +1,4 @@
-/** Radial screen-door fade (doc 105, SEAM-7/8): objects drawn only within a radius around a
+/** Radial screen-door fade (doc 106, SEAM-7/8): objects drawn only within a radius around a
  * moving centre fade in/out over the outer band of that radius instead of popping at a
  * sector or cut-off boundary. The distance is taken from each object's (or instance's) own
  * origin, so no per-object uniform is needed: one shared radius per material, one shared

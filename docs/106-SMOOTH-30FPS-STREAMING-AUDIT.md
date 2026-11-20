@@ -1,4 +1,4 @@
-# 105 — Audit fluidité : 30 FPS réguliers, zéro à-coup, raccords invisibles à toute vitesse
+# 106 — Audit fluidité : 30 FPS réguliers, zéro à-coup, raccords invisibles à toute vitesse
 
 **Statut : AUDITED puis IMPLEMENTED/TESTED en grande partie (20 novembre 2026, voir §6) — NOT BENCHMARKED sur GPU intégré.** Base : `main@ea4c96e` (20 novembre 2026). Complète [81 — audit](81-RENDER-PERFORMANCE-CODE-AUDIT.md) et [82 — roadmap OPT-0…9](82-PERFORMANCE-GRAPHICS-IMPLEMENTATION-ROADMAP.md) ; les constats de 81 encore vrais sont signalés, les nouveaux portent un ID `PACE/HITCH/SEAM/SPEED/QUAL`. Aucun gain FPS n'est revendiqué : toutes les estimations sont **à mesurer** (doc 22, doc 82 §4).
 

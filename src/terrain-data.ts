@@ -16,7 +16,7 @@ export interface ChunkData {
   minSurfaceY: number;
   /** Morph targets: the shape of the next coarser representation at every vertex (LOD n+1
    * grid for LOD 0/1, the horizon surface for LOD 2). A tile blends to/from it over a short
-   * time when its representation changes, instead of jumping (doc 105, SEAM-3). */
+   * time when its representation changes, instead of jumping (doc 106, SEAM-3). */
   morphY?: Float32Array;
   morphColors?: Uint16Array;
   morphNormals?: Int16Array;

@@ -143,7 +143,7 @@ export const INTEREST = {
   /** Minimum prediction horizon (seconds); high-speed motion extends this to 4 s. */
   lookahead: 2,
   maxLookahead: 4,
-  /** Fraction of the view distance the predicted point may move ahead (doc 105, SPEED-2:
+  /** Fraction of the view distance the predicted point may move ahead (doc 106, SPEED-2:
    * 0.5 capped the useful prediction near 2.7 s at glide speed). */
   maxAheadShift: 1,
   referenceFocal: 493,

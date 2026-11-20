@@ -34,7 +34,7 @@ test('density zero disables all populations',()=>{
 test('ecology keeps a bounded resident cache and disposes instance and shared resources',()=>{
   const root=new THREE.Group(),system=createEcology(root,1284,1);
   for(let i=0;i<30;i++)system.update(.016,i,-50,-170);
-  // Resident sectors: those within the round drawing radius (doc 105), not a 3 × 3 square.
+  // Resident sectors: those within the round drawing radius (doc 106), not a 3 × 3 square.
   const within=(x,z,r)=>{let n=0;for(let cz=-12;cz<=12;cz++)for(let cx=-12;cx<=12;cx++){const sx=Math.floor(x/48)+cx,sz=Math.floor(z/48)+cz,d=Math.hypot(Math.max(sx*48-x,0,x-(sx+1)*48),Math.max(sz*48-z,0,z-(sz+1)*48));if(d<=r)n++;}return n;};
   assert.equal(system.stats.sectors,within(-50,-170,ECOLOGY_RADII[0]));
   assert.ok(system.stats.plants>0);

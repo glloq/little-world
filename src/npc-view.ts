@@ -202,7 +202,7 @@ export function createNPCSystem(
     color: 0xb77d64,
     flatShading: true,
   });
-  // Distant silhouettes fade over the last 20 m before the 160 m cut (doc 105, SEAM-7).
+  // Distant silhouettes fade over the last 20 m before the 160 m cut (doc 106, SEAM-7).
   const proxyFade={center:{value:new THREE.Vector3()},radius:{value:160},band:{value:20}};
   addRadialFade(proxyFur,proxyFade);addRadialFade(proxyLight,proxyFade);
   function silhouette(definition: NPCDefinition) {
@@ -568,7 +568,7 @@ export function createNPCSystem(
         // Beyond the immediate player neighborhood, free whole animated rigs.
         // Impostors use pre-existing atlases and do not require model instances.
         // Kept a little longer (20 s / 96 m) so that walking back and forth across the rig
-        // radius does not rebuild geometry and materials each time (doc 105, HITCH-7);
+        // radius does not rebuild geometry and materials each time (doc 106, HITCH-7);
         // the number of kept hidden rigs stays bounded.
         if(tier!=='rig'&&entry.model&&(time-entry.lastRigAt>20||keptRigs>KEPT_RIGS&&time-entry.lastRigAt>3||
           Math.hypot(position.x-state.x,position.z-state.z)>96)){

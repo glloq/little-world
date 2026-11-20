@@ -46,7 +46,7 @@ function rockGeometry(){
   for(let i=0;i<pos.count;i++){const x=pos.getX(i),y=pos.getY(i),z=pos.getZ(i),k=1+.18*Math.sin(x*12.9+y*7.1+z*3.7);pos.setXYZ(i,x*k,Math.max(-.35,y)*k,z*k);}
   g.computeVertexNormals();return g.translate(0,.3,0);
 }
-/** Crossfade between two representations of the same item (doc 105, SEAM-4): in a band
+/** Crossfade between two representations of the same item (doc 106, SEAM-4): in a band
  * around a switch distance both copies are drawn and dithered with complementary screen-door
  * masks (each pixel shows exactly one of them), driven by the distance of the instance origin
  * to the current focus — the swap no longer pops whatever the rebuild cadence. Per-instance
@@ -215,7 +215,7 @@ export function createDressingView(parent:THREE.Group,seed:number,density:number
   }
   const color=new THREE.Color(),c2=new THREE.Color();
   const FOLIAGE:[number,number][]=[[0x4f7a45,0x6d9653],[0x5d8a4a,0x8aa85c]];
-  /** Rebuild as a resumable job (doc 105, HITCH-1/2): the instance arrays are filled on the CPU
+  /** Rebuild as a resumable job (doc 106, HITCH-1/2): the instance arrays are filled on the CPU
    * over several frames (GPU copies are only refreshed at commit, so nothing half-built is ever
    * drawn), then committed in one step. No per-instance allocation (bounds kept as scalars). */
   function* rebuildJob(fx:number,fz:number,slice:boolean):Generator<void,void,void>{
