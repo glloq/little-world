@@ -1,3 +1,4 @@
+import {projectLandRegistry} from './land-registry.ts';
 /** Authoring diagnostics: quick structural checks, independent from the strict compiler preflight.
  * Warnings guide map creators and never silently block publishing. */
 import type {ProjectDocument,PointXZ} from './types.ts';
@@ -43,6 +44,12 @@ export function authoringIssues(project:ProjectDocument):AuthoringIssue[]{
     if(!z.polygon.length)continue;
     if(z.polygon.some(p=>!inside(p)))add('ERROR','ZONE_OUTSIDE','Zone hors limites',z.polygon[0],'zone',z.id);
     if(z.polygon.length<3)add('ERROR','ZONE_OUTLINE','Zone incomplète',z.polygon[0],'zone',z.id);
+  }
+  // Land use (doc 104 §C3): incompatible overlaps between villages, fields, pistes, races, surf…
+  const registry=projectLandRegistry(project);
+  for(const c of registry.conflicts()){
+    const r=registry.get(c.a)!,kind=r.owner.kind==='zone'||r.owner.kind==='path'||r.owner.kind==='water'?r.owner.kind:undefined;
+    add('WARNING','LAND_OVERLAP',`Occupations incompatibles (${c.useA} / ${c.useB}) sur ~${c.areaM2} m² : ${c.a} et ${c.b}`,c.at,kind,r.owner.id);
   }
   for(const entity of Object.values(project.entityIndex)){
     const p=entity.position;

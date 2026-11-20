@@ -1,3 +1,4 @@
+import {settlementGeoZones} from '../settlements/footprint.ts';
 import {parseSkiArea,skiAreasOf,skiGeography} from '../snow/ski-area.ts';
 import {habitatColliders} from '../settlements/habitat.ts';
 /** Runtime reader for compiled V3 worlds (published static files or a Studio test build).
@@ -74,7 +75,7 @@ export function playableFromCompiled(bundle:CompiledWorldBundle,spawn?:Point3):P
   const terrain=unionById(chunks.map(chunk=>chunk.terrain.edits)).sort((a,b)=>a.order-b.order||a.id.localeCompare(b.id)).map(stripOrder) as TerrainStroke[];
   const biomes=unionById(chunks.map(chunk=>chunk.biomes.edits)).sort((a,b)=>a.order-b.order||a.id.localeCompare(b.id)).map(stripOrder) as BiomeStroke[];
   const masks:Record<string,import('../geography/layers.ts').SectorLayers>={};for(const chunk of chunks)if(chunk.layers)masks[chunk.chunkId]=structuredClone(chunk.layers);
-  const zones=Object.values(logic.libraries.zones??{}).map(z=>({kind:z.kind,polygon:z.polygon.map(p=>({...p}))}));
+  const zones=[...Object.values(logic.libraries.zones??{}).map(z=>({kind:z.kind,polygon:z.polygon.map(p=>({...p}))})),...settlementGeoZones(logic.libraries.settlements)];
   const landscapes=[...landscapeRegions(logic.libraries.landscapes),...regionDressingRegions(logic.libraries.regions)];
   const raceRoads=Object.values(logic.libraries.races??{}).flatMap(r=>r.track?[structuredClone(r.track)]:[]);
   const world:WorldDefinition={...(logic.libraries.alpine||Object.keys(masks).length||zones.length||landscapes.length||raceRoads.length?{geography:{...(logic.libraries.alpine?skiGeography(logic.libraries.alpine):{}),sectorSizeM:manifest.chunkSizeM,masks,zones,...(landscapes.length?{landscapes}:{}),...(raceRoads.length?{races:raceRoads}:{})}}:{}),schemaVersion:2,name:manifest.worldId,config,placements,terrain,biomes,

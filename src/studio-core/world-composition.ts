@@ -18,6 +18,7 @@ import {compositionCoverage,type CompositionCoverage} from './world-composition-
 import {alignSteppedBiomes} from './world-biome-boundaries.ts';
 import {applyRegionBatch} from './region-batch.ts';
 import type {ProjectDocument} from './types.ts';
+import {auditLandUse,projectLandRegistry,type LandRegistry} from './land-registry.ts';
 import {compositionProfile,runStages,type CompositionProfile,type PlanDiagnostic,type StageReport,type WorldStage} from './world-plan.ts';
 export type CompositionDiagnostic=PlanDiagnostic;
 export interface WorldComposition {project:ProjectDocument;ready:boolean;diagnostics:CompositionDiagnostic[];family:string;stages?:StageReport[];metrics:{generationMs:number;features:number;sectors:number;surveyCells:number;sourceBytes:number;coverage?:CompositionCoverage;natural?:NaturalQuality}}
@@ -28,7 +29,7 @@ export interface CompositionContext {
  diagnostics:CompositionDiagnostic[];stages:StageReport[];
  planned:ReturnType<typeof planWorldTerrain>;project:ProjectDocument;
  field?:ReturnType<typeof generatorField>;hydro?:ReturnType<typeof planWorldHydro>;
- recipes?:ReturnType<typeof planWorldBiomes>;natural?:NaturalQuality;normalized?:ProjectDocument;coverage?:CompositionCoverage;
+ land?:LandRegistry;recipes?:ReturnType<typeof planWorldBiomes>;natural?:NaturalQuality;normalized?:ProjectDocument;coverage?:CompositionCoverage;
 }
 type Stage=WorldStage<CompositionContext>;
 const archipelagoFeatures=(c:CompositionContext)=>c.project.world.terrain?.kind==='archipelago'?c.project.world.terrain.archipelago.features:undefined;
@@ -80,6 +81,8 @@ const SETTLEMENTS:Stage={id:'settlements',label:'Port et village d’accueil',ru
  else if(count<target)c.diagnostics.push({severity:'WARNING',code:'WELCOME_VILLAGE_PARTIAL',message:count+'/'+target+' maisons possibles près du port ; les accès restent validés.'});
 }};
 const ACTIVITIES:Stage={id:'activities',label:'Activités',run(c){generateWorldActivities(c.project,c.diagnostics);}};
+/** Land registry of everything placed so far; overlaps between incompatible uses are reported. */
+const LAND:Stage={id:'land',label:'Occupation du sol',run(c){c.land=projectLandRegistry(c.project);c.diagnostics.push(...auditLandUse(c.project,c.land).map(d=>({severity:d.severity,code:d.code,message:d.message})));}};
 const BIOMES:Stage={id:'biomes',label:'Biomes et régions',run(c){
  const r=c.requirements,project=c.project,planned=c.planned,field=c.field!;
  const recipes=c.recipes=planWorldBiomes(project,r,planned.axis,planned.provinces);
@@ -110,7 +113,7 @@ const NORMALIZE:Stage={id:'normalize',label:'Normalisation et couverture',run(c)
  c.coverage=c.profile.provinces?compositionCoverage(c.normalized,c.planned.axis):undefined;
 }};
 /** The ordered composition pipeline. Extend by inserting stages, never by branching inside composeWorld. */
-export const COMPOSITION_STAGES:readonly Stage[]=[SHAPE,SITES,HYDRO,ACCESS,SETTLEMENTS,ACTIVITIES,BIOMES,AUDIT,NORMALIZE];
+export const COMPOSITION_STAGES:readonly Stage[]=[SHAPE,SITES,HYDRO,ACCESS,SETTLEMENTS,ACTIVITIES,LAND,BIOMES,AUDIT,NORMALIZE];
 
 export function composeWorld(input:MapRequirements,name='Mon petit monde',identity?:{projectId:string;worldId:string},stages:readonly Stage[]=COMPOSITION_STAGES):WorldComposition {
  const started=performance.now(),requirements=validateMapRequirements(input);

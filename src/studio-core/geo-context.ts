@@ -1,3 +1,4 @@
+import {settlementGeoZones} from '../settlements/footprint.ts';
 import {skiGeography} from '../snow/ski-area.ts';
 /** Geography of a project document for authoring views (2D map, previews, validation).
  * Pure: it never configures the shared runtime terrain used by the 3D viewport. Built from the
@@ -31,7 +32,7 @@ export function projectGeographyInput(p:ProjectDocument):ProjectGeographyInput{
   const buildings:{x:number;z:number;radius:number}[]=[];
   for(const c of chunks)for(const id of c.entityIds){const e=c.entities[id];if(!e)continue;const r=resolveEntity(p,e),v=r.components.Visual,t=r.components.Transform;if(v&&t){const radius=exclusionRadius(v.assetId,Math.max(t.scale.x,t.scale.z));if(radius!==null)buildings.push({x:t.position.x,z:t.position.z,radius});}}
   const sources:GeographySources={...(p.libraries.alpine?skiGeography(p.libraries.alpine):{}),seed:w.seed,grid:sectorGrid(p),masks,
-    zones:Object.values(p.libraries.zones??{}).map(z=>({kind:z.kind,polygon:z.polygon})),
+    zones:[...Object.values(p.libraries.zones??{}).map(z=>({kind:z.kind,polygon:z.polygon})),...settlementGeoZones(p.libraries.settlements)],
     biomeStrokes:[...biomes.values()].sort((a,c)=>a.order-c.order).map(e=>({x:e.x,z:e.z,radius:e.radius,biome:e.biome})),buildings,races:Object.values(p.libraries.races??{}).flatMap(r=>r.track?[r.track]:[]),landscapes:[...landscapeRegions(p.libraries.landscapes),...regionDressingRegions(p.libraries.regions)]};
   return {config,generator,edits,waters:Object.values(p.libraries.water) as unknown as WaterBody[],paths:Object.values(p.libraries.paths) as unknown as PathDefinition[],sources};
 }
