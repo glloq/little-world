@@ -228,9 +228,9 @@ export class StudioViewport {
       this.tools.active?.frame?.();this.selection.refresh();
       this.renderer.render(this.scene,this.camera.camera);this.remaining--;
       this.hybridControls.update();
-      const d=this.canvas.dataset;d.renderCount=String(++this.renderCount);d.pending=String(this.world.stats.pending);d.cameraMode=this.camera.mode;d.calls=String(this.renderer.info.render.calls);
-      // Doc 105: diagnostics serialised every 6th frame and on the last frame of an animation, not on every frame.
-      if(this.renderCount%6===0||this.remaining<=0){d.camera=JSON.stringify(this.camera.context());d.hybrid=JSON.stringify(this.world.hybrid.stats);
+      const d=this.canvas.dataset;d.renderCount=String(++this.renderCount);d.pending=String(this.world.stats.pending);d.cameraMode=this.camera.mode;d.calls=String(this.renderer.info.render.calls);d.camera=JSON.stringify(this.camera.context());
+      // Doc 105: heavy diagnostics serialised every 6th frame and on the last frame of an animation, not on every frame.
+      if(this.renderCount%6===0||this.remaining<=0){d.hybrid=JSON.stringify(this.world.hybrid.stats);
       d.triangles=String(this.renderer.info.render.triangles);d.cliffs=JSON.stringify(this.world.cliffs.stats);
       d.waterCount=String(this.world.root.children.filter(o=>o.userData.waterId).length);d.diagnostics=JSON.stringify(this.diagnostics);d.models=String(this.models.size);d.paths=String(this.world.paths.paths);d.pathSectors=String(this.world.paths.sectors);d.pathSignature=this.world.paths.signature;d.contentSectors=String(this.contentIds.size);
       const ls=this.world.lights.stats;d.lights=JSON.stringify({sources:ls.sources,pool:ls.pool,budget:ls.budget,active:ls.active,glow:ls.glow,overBudget:ls.overBudget,markers:this.lightMarkers.size});}
