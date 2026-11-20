@@ -11,6 +11,7 @@ import {projectGeography} from '../studio-core/geo-context.ts';
 import {BIOMES_V} from '../geography/layers.ts';
 import {projectFromComposition,type WorldComposition} from '../studio-core/world-composition.ts';
 import {WORLD_BRIEFS,briefToRequirements} from '../studio-core/world-brief.ts';
+import {ARCHITECTURE_STYLES,ARCHITECTURE_STYLE_IDS,POLE_LABELS,POLE_ROLES} from '../settlements/architecture.ts';
 import {createCompositionClient,CompositionCancelled} from '../studio-core/composition-client.ts';
 import {createProgress} from './progress.ts';
 import {newIslandRequirements,LANDSCAPES,type Landscape,type MapRequirements} from '../studio-core/map-requirements.ts';
@@ -197,9 +198,12 @@ export function mountWelcome(host:HTMLElement,actions:WelcomeActions){
     // Doc 104 §C1: themes are data (world briefs) composed by the single pipeline.
     const themes=node('section','','welcome-themes');
     themes.append(node('h2','Créer depuis un thème'),node('p','Climat, côtes, villages, activités et fonds marins décrits par une fiche ; la génération adapte le terrain, relie les lieux et propose hôtes et quêtes. Comptez 10 à 60 s.','muted'));
-    const themeSeed=numberInput(17,()=>{},1,9999999,'1'),themeStatus=node('p','','muted');
-    const themeChoice=select('tropical-port',Object.values(WORLD_BRIEFS).map(b=>[b.id,b.name+' · '+b.climate] as [string,string]),()=>{});
-    themes.append(field('Thème',themeChoice),field('Graine',themeSeed),button('Générer ce monde',()=>{void safe(async()=>{
+    const themeSeed=numberInput(WORLD_BRIEFS['tropical-port'].seed,()=>{},1,9999999,'1'),themeStatus=node('p','','muted');
+    // Each theme starts from its own validated seed; changing it is an explicit variation.
+    const themeChoice=select('tropical-port',Object.values(WORLD_BRIEFS).map(b=>[b.id,b.name+' · '+b.climate] as [string,string]),v=>{themeSeed.value=String(WORLD_BRIEFS[v].seed);});
+    themes.append(field('Thème',themeChoice),field('Graine',themeSeed),
+      button('Personnaliser dans l’assistant',()=>{const brief={...WORLD_BRIEFS[themeChoice.value],seed:Math.round(Number(themeSeed.value))};requirements=briefToRequirements(brief);name=brief.name;cachedPlan=null;cachedKey='';draftEdited=false;config={...DEFAULT_WELCOME_CONFIG};section='wizard';step=0;render();}),
+      button('Générer ce monde',()=>{void safe(async()=>{
       const brief={...WORLD_BRIEFS[themeChoice.value],seed:Math.round(Number(themeSeed.value))};
       const progress=createProgress('Génération du thème « '+brief.name+' »',()=>composer.cancel());themeStatus.replaceChildren(progress.element);
       let plan:WorldComposition;try{plan=await composer.compose(briefToRequirements(brief),{name:brief.name,onProgress:p=>progress.update(p)});progress.done();}
@@ -262,6 +266,29 @@ export function mountWelcome(host:HTMLElement,actions:WelcomeActions){
     }
     page.append(grid,button('Importer un projet JSON / ZIP',actions.importFile));host.replaceChildren(page);
   }
+  /** Doc 104/105: V5 coherence options (also reached from a theme via « Personnaliser »). */
+  function coherenceControls(){
+    const box=node('fieldset','','welcome-coherence');box.append(node('legend','Villages, activités et cohérence'));
+    const set=(patch:Partial<MapRequirements>)=>{const next={...requirements,...patch} as MapRequirements;for(const [k,v]of Object.entries(patch))if(v===undefined||v===false)delete (next as unknown as Record<string,unknown>)[k];requirements=next;render();};
+    const check=(label:string,checked:boolean,fn:(v:boolean)=>void)=>{const el=node('input');el.type='checkbox';el.checked=checked;el.onchange=()=>fn(el.checked);return field(label,el);};
+    const acts=requirements.activities??{races:'none' as const,ski:false,music:'contextual' as const};
+    const setAct=(patch:Partial<NonNullable<MapRequirements['activities']>>)=>{const next={...acts,...patch};for(const k of ['skiResort','surf','flight'] as const)if(!next[k])delete next[k];set({activities:next});};
+    box.append(
+      check('Terrasser les sites en pente',requirements.earthworks===true,v=>set({earthworks:v})),
+      check('Relier tous les lieux par des chemins',requirements.circulation===true,v=>set({circulation:v})),
+      check('Hôtes, dialogues et quêtes des activités',requirements.stories===true,v=>set({stories:v})),
+      field('Langue des textes générés',select(requirements.locale??'fr',[['fr','Français'],['en','English']],v=>set({locale:v==='fr'?undefined:v as 'en'}))),
+      field('Architecture',select(requirements.architecture??'',[['','Historique'],...ARCHITECTURE_STYLE_IDS.map(a=>[a,ARCHITECTURE_STYLES[a].label] as [string,string])],v=>set({architecture:(v||undefined) as MapRequirements['architecture']}))),
+      check('Plages de surf',acts.surf===true,v=>setAct({surf:v})),check('Domaine skiable complet',acts.skiResort===true,v=>setAct({skiResort:v,...(v?{ski:true}:{})})),check('Parcours de vol plané',acts.flight===true,v=>setAct({flight:v})),
+      field('Fonds marins',select(requirements.underwater?(requirements.underwater.trench?'deep':'reefs'):'none',[['none','Pente historique'],['reefs','Plateau, récifs et plongée'],['deep','Récifs, trous bleus et fosse']],v=>set({underwater:v==='none'?undefined:{shelf:v==='reefs'?'wide':'narrow',reefs:v==='reefs'?3:2,holes:v==='deep'?2:1,trench:v==='deep',diveSites:true}}))));
+    const poles=requirements.poles??[];
+    poles.forEach((pole,i)=>{const row=node('div','','welcome-between');
+      row.append(select(pole.role,POLE_ROLES.map(r=>[r,POLE_LABELS[r]] as [string,string]),v=>set({poles:poles.map((q,j)=>j===i?{...q,role:v as typeof q.role}:q)})),
+        select(pole.size,[['hamlet','Hameau'],['village','Village'],['town','Bourg']],v=>set({poles:poles.map((q,j)=>j===i?{...q,size:v as typeof q.size}:q)})),
+        button('Retirer',()=>set({poles:poles.filter((_,j)=>j!==i).length?poles.filter((_,j)=>j!==i):undefined})));box.append(row);});
+    const add=button('Ajouter un village',()=>set({poles:[...poles,{role:'farming',size:'hamlet'}]}));add.disabled=poles.length>=8;box.append(add);
+    return box;
+  }
   function showWizard(){
     const page=top('Imaginez votre paysage','Quatre étapes. Le plan affiché est enregistré uniquement après confirmation.');
     page.append(button('← Accueil',back));
@@ -307,6 +334,7 @@ export function mountWelcome(host:HTMLElement,actions:WelcomeActions){
         field('Diversité géographique',numberInput(requirements.diversity,v=>change('diversity',v),0,1,'.05')),
         checkbox('Souhaiter un lac',requirements.lakes,v=>change('lakes',v)),checkbox('Souhaiter des cascades',requirements.waterfalls,v=>change('waterfalls',v)));
       controls.append(advanced);
+      if(requirements.compositionVersion===5)controls.append(coherenceControls());
     }else{
       controls.append(node('h2','Aperçu et création'),field('Nom du projet',input(name,v=>{name=v;})),node('p','Relief, eau et régions restent éditables dans le Studio. Les végétaux sont procéduraux et instanciés.','muted'));
     }

@@ -30,6 +30,7 @@ const MODULES:[string,string,string,string,string][]=[
   ['terrain','Relief','⛰','Monde','T'],['regions','Régions','◉','Monde',''],['biomes','Biotopes','✿','Monde',''],['paths','Chemins et rivières','〰','Monde',''],['water','Eau','≈','Monde',''],['surf','Surf','〰','Monde',''],['zones','Zones','⬠','Monde',''],['landscapes','Paysages','❦','Monde',''],
   ['races','Courses','⚑','Logique',''],['quests','Quêtes','♧','Logique',''],['dialogues','Dialogues','✉','Logique',''],['interactions','Interactions','⚙','Logique',''],['environment','Environnement','☀','Logique',''],['audio','Audio','♪','Logique',''],['motion-lab','Animations du hamster','◉','Logique',''],
   ['composition','Recomposer le monde','◒','Projet',''],
+  ['generated','Monde généré','✧','Projet',''],
   ['guide','Assistant de création','☷','Projet',''],
   ['tests','Validation / compilation','✓','Projet',''],
 ];
@@ -116,6 +117,7 @@ async function module(requested:string){
   else if(id==='motion-lab'){const {mountHamsterMotionLab}=await import('./hamster-motion-lab.ts');if(mine!==generation)return;disposePanel=mountHamsterMotionLab(host).dispose;}
   else if(id==='settlements'){const {mountSettlements}=await import('./settlements-view.ts');if(mine!==generation)return;disposePanel=mountSettlements(host,s,{status,open3D:view=>void run(async()=>{const selected=s.selection.state.selected,entry=selected?s.document.entityIndex[selected.id]:undefined;await module('scene');if(view)viewport?.goTo(view.x,view.z,view.radius);else if(entry)viewport?.goTo(entry.position.x,entry.position.z,16);else viewport?.focusSelection();})(),play:()=>void run(preview)()});}
   else if(id==='composition'){const {mountCompositionPanel}=await import('./composition-panel.ts');if(mine!==generation)return;disposePanel=mountCompositionPanel(host,s,status);}
+  else if(id==='generated'){const {mountGeneratedPanel}=await import('./generated-panel.ts');if(mine!==generation)return;disposePanel=mountGeneratedPanel(host,s,status);}
   else if(id==='quests'){const {mountQuestsPanel}=await import('./quests-panel.ts');if(mine!==generation)return;disposePanel=mountQuestsPanel(host,s,status).dispose;}
   else if(id==='environment'){const {mountEnvironment}=await import('./environment-view.ts');mountEnvironment(host,s);}
   else if(id==='interactions'){const {mountInteractions}=await import('./interactions-view.ts');await mountInteractions(host,s);$('tools').append(action('Retour à la vue 3D',()=>module('scene')));}

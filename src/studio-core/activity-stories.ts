@@ -28,7 +28,8 @@ const GEAR_ITEM:Record<string,string>={skis:'tool:skis',snowboard:'tool:snowboar
 const REWARD:Record<Family,number>={ski:6,race:5,flight:6,surf:6,fishing:4,mine:5,farm:4,dive:8};
 const DIFF:Record<string,number>={green:1,blue:1,red:2,black:3,easy:1,medium:2,hard:3};
 
-export interface StoryOptions {locale?:Locale;maxHosts?:number;maxQuests?:number}
+export interface StoryOptions {locale?:Locale;maxHosts?:number;maxQuests?:number;
+ /** Host ids to preserve as authored (locked in the Studio): entity, dialogue and their quests stay. */keep?:ReadonlySet<string>}
 export interface StoryResult {hosts:string[];quests:string[];diagnostics:PlanDiagnostic[]}
 
 function shopsInProject(p:ProjectDocument):Set<ShopKind>{
@@ -50,15 +51,20 @@ export function planActivityStories(p:ProjectDocument,o:StoryOptions={}):StoryRe
  const destOf=(s:ActivitySite)=>s.kind==='ski'?'piste:'+s.sourceId:s.kind==='surf'?'surf:'+s.sourceId:s.kind==='dive'?null:s.kind.startsWith('race-')?'race:'+s.sourceId:s.kind==='mine'?'mine:'+s.sourceId:s.kind==='farm'?'farm:'+s.sourceId:null;
  const isReachable=(s:ActivitySite)=>{const d=destOf(s);if(!d)return true;if(s.kind==='race-ski'||s.kind==='race-surf')return true;return reachable.has(d)||!report.destinations.some(x=>x.id===d);};
  // Remove previous generated stories (regeneration replaces only its own data).
- for(const id of Object.keys(p.libraries.questCatalog??{}))if(id.startsWith('quest:gen:'))delete p.libraries.questCatalog![id];
- for(const [id,e]of Object.entries(p.entityIndex))if(id.startsWith('host:')&&e.kind==='character'){const c=p.chunks[e.ownerChunkId];if(c){delete c.entities[id];c.entityIds=c.entityIds.filter(x=>x!==id);}delete p.entityIndex[id];delete p.libraries.dialogues[id+'-talk'];}
+ const keep=o.keep??new Set<string>();
+ // Copy-on-write of the libraries touched here: callers may pass a transaction draft sharing them.
+ p.libraries.dialogues={...p.libraries.dialogues};p.libraries.items={...p.libraries.items};if(p.libraries.questCatalog)p.libraries.questCatalog={...p.libraries.questCatalog};
+ for(const [id,q]of Object.entries(p.libraries.questCatalog??{}))if(id.startsWith('quest:gen:')&&!keep.has(q.giverId))delete p.libraries.questCatalog![id];
+ for(const [id,e]of Object.entries(p.entityIndex))if(id.startsWith('host:')&&e.kind==='character'&&!keep.has(id)){const c=p.chunks[e.ownerChunkId];if(c){delete c.entities[id];c.entityIds=c.entityIds.filter(x=>x!==id);}delete p.entityIndex[id];delete p.libraries.dialogues[id+'-talk'];}
  // One host per family, near the access of its first reachable site, on the walking network.
  const byFamily=new Map<Family,ActivitySite[]>();
  for(const s of sites){const f=FAMILY[s.kind];if(f==='farm')continue;if(!isReachable(s)){diagnostics.push({severity:'WARNING',code:'STORY_SITE_UNREACHABLE',message:`${s.name} : site non relié au réseau de chemins, aucune quête proposée.`});continue;}const l=byFamily.get(f)??[];l.push(s);byFamily.set(f,l);}
  const characters=Object.values(p.entityIndex).filter(v=>v.kind==='character').length;
  const hostOf=new Map<Family,string>(),hosts:string[]=[];
+ for(const id of keep)if(p.entityIndex[id]){const family=id.split(':')[1] as Family;if(family in HOST_KEY&&!hostOf.has(family))hostOf.set(family,id);}
  let k=0;
  for(const [family,list]of [...byFamily].sort((a,b)=>a[0].localeCompare(b[0]))){
+  if(hostOf.has(family))continue;
   if(hosts.length>=maxHosts||characters+hosts.length>=100)break;
   // Host next to the family site closest to the walking network.
   let best:{x:number;z:number}|null=null,bestD=Infinity,anchorSite=list[0];
@@ -68,6 +74,7 @@ export function planActivityStories(p:ProjectDocument,o:StoryOptions={}):StoryRe
   if((!best||bestD>450)&&(family==='dive'||family==='surf'||family==='fishing')){const port=Object.values(p.chunks).flatMap(c=>Object.values(c.entities)).find(e=>e.components.State?.initial.portN1Authored===true)?.components.Transform?.position;
    if(port){let near:{x:number;z:number}|null=null,nd=Infinity;for(const q of graph.nodes){const d=Math.hypot(q.x-port.x,q.z-port.z);if(d<nd&&geo.height(q.x,q.z)>p.world.seaLevel+.8){nd=d;near=q;}}if(near&&nd<120){best=near;bestD=0;}}}
   if(!best||bestD>450){diagnostics.push({severity:'WARNING',code:'STORY_HOST_UNPLACED',message:`${t('act.'+family,{},locale)} : aucun point du réseau à moins de 450 m pour un hôte.`});continue;}
+  while(p.entityIndex['host:'+family+':'+k])k++;
   const id='host:'+family+':'+(k++),pos={x:Math.round((best.x+1.5)*100)/100,z:Math.round((best.z+1.5)*100)/100};
   const entity:EntityDefinitionV3={id,kind:'character',name:t(HOST_KEY[family],{},locale),ownerChunkId:chunkAt(p.world,pos.x,pos.z),
    components:{Transform:{type:'Transform',position:{x:pos.x,y:0,z:pos.z},rotation:{x:0,y:0,z:0,w:1},scale:{x:1,y:1,z:1}},
@@ -85,6 +92,7 @@ export function planActivityStories(p:ProjectDocument,o:StoryOptions={}):StoryRe
   // Any one of the listed tools is enough (skis or snowboard).
   if(gear.length&&!gear.some(item=>gearSource(p,item,shops))){diagnostics.push({severity:'WARNING',code:'STORY_GEAR_UNAVAILABLE',message:`${site.name} : matériel introuvable sur l’île (${gear.join(', ')}), quête non proposée.`});return;}
   const level=DIFF[site.difficulty??'']??1,questKey=('quest:gen:'+site.id+':'+template).replace(/[^a-zA-Z0-9_.:-]/g,'-').slice(0,100);
+  if(catalog[questKey]&&keep.has(catalog[questKey].giverId))return;
   const entry:QuestCatalogEntryV1={questKey,templateId:'activity:'+template,templateVersion:1,islandId:p.world.worldId,giverId,
    bindings:{title:t(titleKey,params,locale).slice(0,200),instruction:t(textKey,params,locale).slice(0,200),titleKey,instructionKey:textKey,locale},
    steps,rewards:[{kind:'coins',quantity:REWARD[FAMILY[site.kind]]*level+(steps[0].kind==='event'&&steps[0].count>1?steps[0].count:0)}],

@@ -198,3 +198,6 @@ label:has(> input[type=checkbox]){flex-direction:row;align-items:center;justify-
 @keyframes studio-busy-in{to{opacity:1}}
 @keyframes studio-busy-slide{from{background-position:-40% 0}to{background-position:140% 0}}
 @media (prefers-reduced-motion:reduce){.studio-busy-bar{animation:none;background:#8fd0a6}}
+.generated-panel section{border-top:1px solid rgba(0,0,0,.1);padding-top:.5rem;margin-top:.75rem}
+.generated-row{display:flex;flex-wrap:wrap;gap:.4rem .8rem;align-items:end;padding:.4rem 0;border-bottom:1px dashed rgba(0,0,0,.08)}
+.generated-row label{display:grid;font-size:.8rem}.generated-row input{max-width:7rem}

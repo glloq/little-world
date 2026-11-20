@@ -3,6 +3,7 @@
  * is one StudioSession transaction, so Ctrl+Z, autosave and the 3D viewport follow.
  * Rendering: per-pixel Geography Engine samples in 64 px tiles, coarse level first, bounded
  * LRU cache, local invalidation from transaction sectors; vectors drawn as overlays. */
+import {settlementFootprint} from '../../settlements/footprint.ts';
 import {node,button,field} from '../dom.ts';
 import type {StudioSession} from '../session.ts';
 import {projectGeography,projectGeographyInput,type ProjectGeography} from '../../studio-core/geo-context.ts';
@@ -167,6 +168,14 @@ export function mountGeoMap(host:HTMLElement,tools:HTMLElement,session:StudioSes
     const strokeLine=(pts:{x:number;z:number}[],colour:string,width:number)=>{g2.strokeStyle=colour;g2.lineWidth=width;g2.beginPath();pts.forEach((v,i)=>{const q=toScreen(v.x,v.z);if(i)g2.lineTo(q.x,q.y);else g2.moveTo(q.x,q.y);});g2.stroke();};
     for(const water of Object.values(lib.water))strokeLine(water.points,'#2f7fb8',Math.max(1.5,water.width*base()));
     for(const path of Object.values(lib.paths))strokeLine(path.points,PATH_COLOURS[path.kind??'dirt'],Math.max(1.5,path.width*base()));
+    // Doc 105: generated data drawn as light dashed outlines (editable in « Monde généré »).
+    const outline=(pts:readonly {x:number;z:number}[],colour:string,closed=true)=>{g2.save();g2.setLineDash([4,4]);g2.strokeStyle=colour;g2.lineWidth=1.5;g2.beginPath();pts.forEach((v,i)=>{const q=toScreen(v.x,v.z);if(i)g2.lineTo(q.x,q.y);else g2.moveTo(q.x,q.y);});if(closed)g2.closePath();g2.stroke();g2.restore();};
+    const circle=(x:number,z:number,r:number,colour:string)=>{const q=toScreen(x,z);g2.save();g2.setLineDash([4,4]);g2.strokeStyle=colour;g2.lineWidth=1.5;g2.beginPath();g2.arc(q.x,q.y,Math.max(3,r*base()),0,Math.PI*2);g2.stroke();g2.restore();};
+    const arch=p.world.terrain?.kind==='archipelago'?p.world.terrain.archipelago:undefined;
+    for(const w of arch?.earthworks??[])outline(w.kind==='corridor'?w.points:w.polygon,'#b07a3a',w.kind!=='corridor');
+    for(const f of arch?.bathymetry?.features??[]){if('points' in f)strokeLine(f.points,f.kind==='trench'?'#1d3f6e66':'#ff8a6b88',Math.max(1.5,f.widthM*base()*.5));else circle(f.x,f.z,f.radiusM,f.kind==='blue-hole'?'#1d3f6e':'#e8c46a');}
+    for(const d of Object.values(lib.diveSites??{})){outline(d.polygon,'#0f8fa8');const q=toScreen(d.entry.x,d.entry.z);g2.fillStyle='#0f8fa8';g2.fillRect(q.x-3,q.y-3,6,6);}
+    for(const st of Object.values(lib.settlements??{})){const f=settlementFootprint(st);if(f)outline(f,'#7a5a3a88');}
     // E7 — selected lines, zones and retouches are outlined (entities: dots below).
     for(const ref of session.selection.selection){
       const d=elementData(p,ref as ElementRef);if(!d||ref.kind==='entity')continue;g2.save();g2.setLineDash([6,4]);
