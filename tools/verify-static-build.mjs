@@ -34,6 +34,11 @@ export async function verifyStaticBuild(directory = 'dist') {
   assert.equal(catalog.islands.length,3,'Trois îles jouables attendues');
   const manifest=JSON.parse(await readFile(resolve(root,'archipelago/worlds/forest-valley/manifest.json'),'utf8'));
   assert.equal(manifest.worldId,'little-world-production-reference','Mauvaise île d’exemple');
+  const forest=JSON.parse(await readFile(resolve(root,'archipelago/worlds/forest-valley/project.json'),'utf8'));
+  assert.equal(forest.manifest.worldId,manifest.worldId,'La source Studio pointe vers une autre île');
+  assert.ok(forest.libraries.objectives['forest:lost-journal'],'Quête du carnet absente de la source Studio');
+  assert.deepEqual((await readdir(resolve(root,'archipelago/worlds/forest-valley/chunks'))).sort(),
+    manifest.chunks.map(chunk=>chunk.url.slice('chunks/'.length)).sort(),'Fichiers de secteurs hors manifeste');
   for(const chunk of manifest.chunks)assert.ok((await stat(resolve(root,'archipelago/worlds/forest-valley',chunk.url))).isFile(),'Secteur absent : '+chunk.url);
   assert.ok((await stat(resolve(root,'archipelago/worlds/forest-valley',manifest.logic.url))).isFile(),'Logique de l’île absente');
   const surf=JSON.parse(await readFile(resolve(root,'archipelago/worlds/surf-island/manifest.json'),'utf8'));

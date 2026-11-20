@@ -67,7 +67,8 @@ async function home(){
     create:async p=>{await store.create(p);await open(p.manifest.projectId);},
     open,
     template:async file=>{
-      const response=await fetch(import.meta.env.BASE_URL+'maps/'+file);
+      const path=file.includes('/')?file:'maps/'+file;
+      const response=await fetch(import.meta.env.BASE_URL+path);
       if(!response.ok)throw Error('Scénario indisponible');
       const p=parseProject(await response.json());
       if(!(await store.list()).some(v=>v.projectId===p.manifest.projectId))await store.create(p);

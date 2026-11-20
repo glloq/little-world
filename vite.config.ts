@@ -2,26 +2,31 @@ import {defineConfig,type Plugin} from 'vite';
 import {readFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 
-/** Publish the canonical editable island without committing a second 3 MB copy. */
-function officialStudioExample():Plugin {
-  const source=fileURLToPath(new URL('./maps/island.project.json',import.meta.url));
+/** Serve the editable sources for the published Studio examples. */
+function officialStudioExamples():Plugin {
+  const sources=new Map([
+    ['maps/island.project.json',new URL('./maps/island.project.json',import.meta.url)],
+    ['archipelago/worlds/forest-valley/project.json',new URL('./tests/fixtures/legacy-maps/authoring/production-reference.project.json',import.meta.url)],
+  ]);
   return {
-    name:'official-island-studio-example',
+    name:'official-studio-examples',
     configureServer(server){
       server.middlewares.use((req,res,next)=>{
-        if(req.url?.split('?')[0]!=='/little-world/maps/island.project.json')return next();
+        const path=req.url?.split('?')[0];
+        const source=path?.startsWith('/little-world/')?sources.get(path.slice('/little-world/'.length)):undefined;
+        if(!source)return next();
         try{res.setHeader('Content-Type','application/json; charset=utf-8');res.end(readFileSync(source));}
         catch(e){next(e);}
       });
     },
     generateBundle(){
-      this.emitFile({type:'asset',fileName:'maps/island.project.json',source:readFileSync(source)});
+      for(const [fileName,source] of sources)this.emitFile({type:'asset',fileName,source:readFileSync(source)});
     },
   };
 }
 export default defineConfig({
   base: '/little-world/',
-  plugins:[officialStudioExample()],
+  plugins:[officialStudioExamples()],
   build: {
     outDir: 'dist',
     sourcemap: true,
