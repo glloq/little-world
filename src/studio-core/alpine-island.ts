@@ -4,6 +4,7 @@ import {composeWorld} from './world-composition.ts';
 import {projectGeography} from './geo-context.ts';
 import {putAuthoredRace} from './race-authoring.ts';
 import {raceFromSkiArea} from './ski-race.ts';
+import {addAlpineStation} from './alpine-station.ts';
 
 export const ALPINE_ISLAND={projectId:'little-world-alpine-island-authoring',worldId:'little-world-alpine-island',name:'Île des Cimes'};
 
@@ -27,6 +28,7 @@ export function buildAlpineIsland(){
  if(!area)throw Error('Île des Cimes : piste de ski absente.');
  const race=raceFromSkiArea(project.world,area,projectGeography(project).ctx.height);
  putAuthoredRace(project,race);
+ addAlpineStation(project,area);
  const questKey='quest:cimes-premiere-descente';
  project.libraries.questCatalog={
   ...project.libraries.questCatalog,

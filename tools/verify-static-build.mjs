@@ -47,6 +47,7 @@ export async function verifyStaticBuild(directory = 'dist') {
   assert.equal(alpine.worldId,'little-world-alpine-island');
   assert.equal(alpineProject.manifest.worldId,alpine.worldId);
   assert.ok(alpineProject.libraries.alpine['composition-alpine'].lift);
+  assert.ok(alpineProject.entityIndex['station-cimes:chalet']);
   assert.equal(alpineProject.libraries.races['race:composition-downhill'].worldId,alpine.worldId);
   assert.equal(alpineProject.libraries.races['race:composition-ski'].kind,'ski');
   for(const {url} of [alpine.logic,...alpine.chunks])assert.ok((await stat(resolve(alpineDir,url))).isFile());

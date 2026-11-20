@@ -26,7 +26,7 @@
       "id": "alpine-island",
       "name": "Île des Cimes",
       "manifest": "archipelago/worlds/alpine-island/manifest.json",
-      "description": "Massif enneigé, télésiège, chrono de ski, course de roulade et mission au port.",
+      "description": "Station de ski avec chalet, monitrice, télésiège, chrono et mission au port.",
       "portLevel": 0
     },
     {

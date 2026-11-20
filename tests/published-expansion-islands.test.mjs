@@ -17,6 +17,13 @@ test('the published alpine island retains a usable port and the native downhill 
  assert.ok(ski.gates.length>=3&&ski.gates.every(gate=>gate.allowedModes.join()==='snow'));
  const offer=project.libraries.questCatalog['quest:cimes-premiere-descente'];
  assert.ok(project.entityIndex[offer.giverId]);
+ const stationEntity=id=>project.chunks[project.entityIndex[id].ownerChunkId].entities[id];
+ const chalet=stationEntity('station-cimes:chalet');
+ assert.equal(chalet.components.Visual.assetId,'architecture.wooden_cabin');
+ assert.ok(chalet.components.Collider);
+ assert.equal(stationEntity('station-cimes:panneau').components.State.initial.alpineStation,true);
+ assert.ok(stationEntity('station-cimes:monitrice').components.DialogueActor);
+ assert.ok(project.world.terrain.archipelago.features.some(f=>f.id==='station-cimes:terrasse'&&f.kind==='plateau'&&f.surface));
  const accepted=acceptQuest(offer,offer.questKey,3);
  const event={schemaVersion:1,eventId:'test:cimes:1',type:'race.finished',worldId:project.world.worldId,
   islandId:project.world.worldId,gameMinute:4,sequence:1,raceId:ski.id,measuredSeconds:27};

@@ -17,6 +17,16 @@ try{
   if(id==='alpine-island'){
    const alpine=await page.evaluate(()=>window.littleWorldMetrics.alpine);
    assert.ok(alpine.lift&&alpine.points>20);
+   const guideId='station-cimes:monitrice';
+   const guide=project.chunks[project.entityIndex[guideId].ownerChunkId].entities[guideId];
+   await page.evaluate(({x,z})=>window.littleWorldDebug.teleport(x+1,z,0),guide.components.Transform.position);
+   await page.waitForFunction(id=>window.littleWorldMetrics?.targetId===id,guideId,{timeout:15000});
+   await page.keyboard.press('KeyE');
+   const dialogue=page.getByRole('dialog',{name:'Conversation'});
+   await dialogue.getByRole('button',{name:'Comment prendre le télésiège ?'}).click();
+   await dialogue.getByText(/Approchez-vous de l’embarquement/).waitFor();
+   await dialogue.getByRole('button',{name:'Fermer · Échap',exact:true}).click();
+   console.log('Cimes : la monitrice renseigne le joueur au chalet.');
    const start=project.libraries.races['race:composition-ski'].gates[0];
    await page.locator('button[data-panel=races]').click();
    await page.evaluate(({center,normal})=>window.littleWorldDebug.teleport(

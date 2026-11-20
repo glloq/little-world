@@ -636,6 +636,8 @@ world.update(0, player.position);
   const landmarks=[
     ...(authoredAlpine?[{id:'alpine-base',label:'Ski · départ de la remontée',...authoredAlpine.points.at(-1)!},{id:'alpine-top',label:'Ski · sommet de la descente',...authoredAlpine.points[0]}]:[]),
     ...(playable?.races??[]).map(r=>({id:'race:'+r.id,label:'Course : '+r.name,x:r.gates[0].center.x,z:r.gates[0].center.z})),
+    ...(playable?.gameplay.entities??[]).flatMap(e=>e.initialState.alpineStation===true&&e.position
+      ?[{id:e.id,label:'Station des Cimes',x:e.position.x,z:e.position.z}]:[]),
     ...(playable?.gameplay.entities??[]).flatMap(e=>typeof e.initialState.surfShoreMarker==='string'&&e.position
       ?[{id:e.id,label:'Fanion · plage '+e.initialState.surfShoreMarker,x:e.position.x,z:e.position.z}]:[]),
     ...definition.biomes.filter(b=>b.biome==='village').slice(0,30).map((b,i)=>({id:'village:'+i,label:'Village',x:b.x,z:b.z})),

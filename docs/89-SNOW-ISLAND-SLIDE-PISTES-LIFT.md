@@ -79,3 +79,10 @@ aux autres courses.
 L’habitant du port propose la mission **Première descente aux Cimes**. Le
 journal indique comment préparer le chrono et situe le départ sur la carte.
 Une descente validée permet de récupérer 8 pièces auprès de l’habitant.
+
+## Station des Cimes
+
+La station se trouve dans la zone basse de l’île des Cimes. Elle rassemble
+un chalet, un banc, un plan interactif et Ariane, la monitrice. La carte du
+joueur indique la station et l’embarquement. Le chalet et ses équipements
+reposent sur une terrasse de terrain éditable dans Studio.
