@@ -29,6 +29,15 @@ try{
     assert.equal(await button.isDisabled(),false,'Destination button must allow boarding from quay');
     await button.click();
   };
+  const catalogResponse=await page.request.get(base+'archipelago/catalog.json');
+  assert.ok(catalogResponse.ok());
+  const catalog=await catalogResponse.json();
+  const destinationId=process.env.FERRY_DESTINATION??'forest-valley';
+  const destination=catalog.islands.find(island=>island.id===destinationId&&island.id!=='volcano-island');
+  assert.ok(destination,'Pick a published ferry destination distinct from the volcano');
+  const manifestResponse=await page.request.get(base+destination.manifest);
+  assert.ok(manifestResponse.ok());
+  const manifest=await manifestResponse.json();
   await page.goto(base+'?metrics=1',{waitUntil:'domcontentloaded'});
   await ready('volcano-island');
   const before=await page.evaluate(()=>window.littleWorldMetrics);
@@ -39,14 +48,15 @@ try{
   await page.waitForFunction(before=>window.littleWorldMetrics?.inventory?.coin===before+5,beforeCoins,{timeout:10000});
   const coins=await page.evaluate(()=>window.littleWorldMetrics.inventory.coin);
   assert.equal(coins,beforeCoins+5,'The frame metrics show the updated purse');
-  await depart('Île du val forestier');
-  await page.waitForURL(url=>url.searchParams.get('world')==='archipelago/worlds/forest-valley/manifest.json',{timeout:90000});
-  await ready('forest-valley');
-  const forest=await page.evaluate(()=>window.littleWorldMetrics);
-  assert.equal(forest.ferry.worldId,'little-world-production-reference');
-  assert.equal(forest.inventory.coin,coins,'Coins preserved when entering forest');
-  assert.ok(forest.terrainWork && forest.chunks.visible>=0,'Destination world booted and rendered');
-  await page.screenshot({path:'/tmp/little-world-browser/ferry-forest-arrival.png'});
+  await depart(destination.name);
+  await page.waitForURL(url=>url.searchParams.get('world')===destination.manifest,{timeout:90000});
+  await ready(destination.id);
+  const arrived=await page.evaluate(()=>window.littleWorldMetrics);
+  assert.equal(arrived.ferry.worldId,manifest.worldId);
+  assert.equal(arrived.inventory.coin,coins,'Coins preserved when entering '+destination.id);
+  assert.ok(arrived.terrainWork && arrived.chunks.visible>=0,'Destination world booted and rendered');
+  const capture=destination.id==='forest-valley'?'forest':destination.id;
+  await page.screenshot({path:'/tmp/little-world-browser/ferry-'+capture+'-arrival.png'});
   await depart('Île du volcan');
   await page.waitForURL(url=>url.searchParams.get('world')==='maps/island/manifest.json',{timeout:90000});
   await ready('volcano-island');
@@ -55,5 +65,5 @@ try{
   assert.ok((await page.evaluate(()=>localStorage.getItem('little-world:game-save:v1:little-world-island:slot-ferry-auto')))!==null,'Origin state is stored in its separate save slot');
   assert.equal((await page.evaluate(()=>sessionStorage.getItem('little-world:ferry-transit:v1'))),null,'Transit checkpoint consumed exactly once');
   assert.deepEqual(errors,[],'No runtime exceptions');
-  console.log(JSON.stringify({travel:'volcano → forest → volcano',coins,frames:back.frameId,errors},null,2));
+  console.log(JSON.stringify({travel:'volcano → '+destination.id+' → volcano',coins,frames:back.frameId,errors},null,2));
 }finally{await browser.close();}

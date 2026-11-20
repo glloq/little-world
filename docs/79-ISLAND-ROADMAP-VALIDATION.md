@@ -91,3 +91,11 @@ Code TypeScript + tests unitaires/Browser et rapport de mesures ; docs API et d�
 ## Extension ECO — fabrication artisanale et marchés inter-îles (18/11/2026)
 
 Les lots **ECO-0 à ECO-10** sont documentés dans [82 — Roadmap économique](82-ECONOMY-PRODUCTION-ROADMAP.md), après [80 — audit existant](80-ECONOMY-TRADE-CRAFT-AUDIT.md) et [81 — contrats](81-ECONOMY-PRODUCTION-CONTRACTS.md). Ils complètent **ISL-2 (passage avec sac portable)** et **ISL-4 (simulation autonome)** ; le **ECO-1** de persistance de tout objet inter-îles et le **ECO-2** de sûreté des ventes sont bloquants avant commerces avancés. Première cible : **deux îles statiques déjà publiées** et recettes/ateliers locaux ; troisième île et Studio complet ensuite. Aucun serveur/multijoueur n'est introduit.
+
+## Traversées vérifiées sur la branche d’expansion
+
+Le test Chromium exerce le trajet complet dans le build statique, avec
+conservation du sac et consommation unique du ticket de transit. L’aller-retour
+depuis le volcan a été vérifié vers le val forestier et vers les Trois vagues.
+La variable `FERRY_DESTINATION` choisit une destination du catalogue pour
+`node tools/test-island-travel-browser.mjs`.
