@@ -1,6 +1,7 @@
 import {validateSettlementLayout,type SettlementLayout} from './layout.ts';
 import type { WorldDefinitionV3 } from '../studio-core/types.ts';
 import { HABITAT_STYLES, type HabitatStyle } from './habitat.ts';
+import { ARCHITECTURE_STYLE_IDS, POLE_ROLES } from './architecture.ts';
 export interface SettlementRecipe {
     version: 1;
     id: string;
@@ -30,6 +31,10 @@ export interface SettlementRecipe {
     houseVariation: number;
     useExisting: boolean;
     routeToPath?:string;
+    /** Theme catalog (doc 104 §C6): house looks and path surfaces for 'auto'. Absent = historical draw. */
+    architecture?:import('./architecture.ts').ArchitectureStyleId;
+    /** Role of this pole in the island network (doc 104 §C6). Informational for quests/NPC hosts. */
+    role?:import('./architecture.ts').PoleRole;
 }
 export interface BuildingRecord {
     id: string;
@@ -66,10 +71,12 @@ function fields(v: Record<string, unknown>, list: string[]) { if (Object.keys(v)
 export function validateSettlementRecipe(raw: unknown, world: WorldDefinitionV3): SettlementRecipe {
     if (!obj(raw))
         throw Error('Recette d’établissement invalide');
-    fields(raw, ['version', 'id', 'name', 'seed', 'form', 'center', 'radius', 'orientation', 'targetBuildings', 'style', 'wealth', 'activity', 'houseVariation', 'useExisting','routeToPath','services','layout','localLife','residentRoutines','residentDensity','variedServices','maritimePort','cultivation','waterfront']);
+    fields(raw, ['version', 'id', 'name', 'seed', 'form', 'center', 'radius', 'orientation', 'targetBuildings', 'style', 'wealth', 'activity', 'houseVariation', 'useExisting','routeToPath','services','layout','localLife','residentRoutines','residentDensity','variedServices','maritimePort','cultivation','waterfront','architecture','role']);
     if (raw.version !== 1 || !id(raw.id) || String(raw.id).length > 64 || typeof raw.name !== 'string' || !raw.name.trim() || raw.name.length > 100 || !num(raw.seed, 0, 0xffffffff) || !Number.isInteger(raw.seed) || !['hamlet', 'village', 'town','fortified'].includes(String(raw.form)) || !['auto', ...HABITAT_STYLES].includes(String(raw.style)) || ![0, 1, 2].includes(raw.wealth as number) || !['mixed', 'agriculture', 'forest','mine','fishing','commerce'].includes(String(raw.activity)) || !num(raw.targetBuildings, 1, 80) || !Number.isInteger(raw.targetBuildings) || !num(raw.houseVariation, 0, 0xffffffff) || !Number.isInteger(raw.houseVariation) || !num(raw.radius, 20, 600) || !num(raw.orientation, -360, 360) || typeof raw.useExisting !== 'boolean')
         throw Error('Recette d’établissement hors limites');
     if(raw.routeToPath!==undefined&&!id(raw.routeToPath))throw Error('Route de raccordement invalide');
+    if(raw.architecture!==undefined&&!(ARCHITECTURE_STYLE_IDS as readonly string[]).includes(String(raw.architecture)))throw Error('Style d’architecture inconnu');
+    if(raw.role!==undefined&&!(POLE_ROLES as readonly string[]).includes(String(raw.role)))throw Error('Rôle de pôle inconnu');
     if(raw.layout!==undefined)validateSettlementLayout(raw.layout,world);
     if(raw.residentDensity!==undefined&&!['low','normal','high'].includes(String(raw.residentDensity)))throw Error('Densité de population invalide');
     for(const key of ['localLife','residentRoutines','variedServices','maritimePort','cultivation','waterfront'])if(raw[key]!==undefined&&typeof raw[key]!=='boolean')throw Error('Option de vie locale invalide');

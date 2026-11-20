@@ -7,7 +7,8 @@ export interface HabitatComponent {
     doorId: string;
 }
 export const HOUSE = { width: 6, depth: 7, height: 3.5, wall: .3, doorWidth: 2.4, doorHeight: 2.8 };
-export const HABITAT_STYLES = ['timber', 'stone', 'white'] as const;
+/** Historical three first (legacy 'auto' draws only those); themed looks from doc 104 §C6 after. */
+export const HABITAT_STYLES = ['timber', 'stone', 'white', 'chalet', 'fisher', 'tropical', 'adobe', 'medieval'] as const;
 export type HabitatStyle = typeof HABITAT_STYLES[number];
 export const HABITAT_ASSETS: AssetDefinition[] = [{id:'settlement.bridge',name:'Pont piéton bois',type:'procedural',license:'project-original',source:'Little World flat supported bridge V1'},...HABITAT_STYLES.map(style => ({ id: 'settlement.house_' + style, name: 'Maison ' + style, type: 'procedural' as const, license: 'project-original', source: 'Little World original hollow habitat V1' })), { id: 'settlement.door', name: 'Porte de maison', type: 'procedural', license: 'project-original', source: 'Little World original door V1' }];
 export interface HouseBox {

@@ -16,6 +16,7 @@ import {generatorField} from '../terrain-generator.ts';
 import {putPath,putWater} from './source.ts';
 import {auditCirculation,planCirculationLinks} from './circulation.ts';
 import {planSkiResortActivity,resortShaping} from './activity-planners.ts';
+import {planPoles} from './world-poles.ts';
 import {compositionCoverage,type CompositionCoverage} from './world-composition-quality.ts';
 import {alignSteppedBiomes} from './world-biome-boundaries.ts';
 import {applyRegionBatch} from './region-batch.ts';
@@ -78,9 +79,14 @@ const SETTLEMENTS:Stage={id:'settlements',label:'Port et village d’accueil',ru
  const port=generateBirthPort(project);
  if(!port){c.diagnostics.push({severity:'ERROR',code:'MARITIME_PORT_MISSING',message:'Aucun port N1 praticable : choisir une autre graine, un relief plus doux ou désactiver le départ maritime.'});return;}
  if(!r.welcomeVillage||r.welcomeVillage==='none')return;
- const count=generateWelcomeVillage(project,port,r.welcomeVillage,r.welcomeActivity,r.earthworks===true),target=r.welcomeVillage==='hamlet'?12:24;
+ const count=generateWelcomeVillage(project,port,r.welcomeVillage,r.welcomeActivity,r.earthworks===true,r.architecture),target=r.welcomeVillage==='hamlet'?12:24;
  if(!count)c.diagnostics.push({severity:'WARNING',code:'WELCOME_VILLAGE_MISSING',message:'Port créé ; aucun village ne tient sur les replats voisins.'});
  else if(count<target)c.diagnostics.push({severity:'WARNING',code:'WELCOME_VILLAGE_PARTIAL',message:count+'/'+target+' maisons possibles près du port ; les accès restent validés.'});
+}};
+/** Complementary villages (fishing, farming, mountain, market…) placed by terrain fitness (doc 104 §C6). */
+const POLES:Stage={id:'poles',label:'Pôles habités',run(c){
+ const r=c.requirements;if(!r.poles?.length)return;
+ c.diagnostics.push(...planPoles(c.project,r.poles,{architecture:r.architecture,earthworks:r.earthworks===true}).diagnostics);
 }};
 const ACTIVITIES:Stage={id:'activities',label:'Activités',run(c){generateWorldActivities(c.project,c.diagnostics);}};
 /** One walkable network: optional links from every destination to the port, then reachability audit. */
@@ -129,7 +135,7 @@ const NORMALIZE:Stage={id:'normalize',label:'Normalisation et couverture',run(c)
  c.coverage=c.profile.provinces?compositionCoverage(c.normalized,c.planned.axis):undefined;
 }};
 /** The ordered composition pipeline. Extend by inserting stages, never by branching inside composeWorld. */
-export const COMPOSITION_STAGES:readonly Stage[]=[SHAPE,SITES,HYDRO,ACCESS,SETTLEMENTS,ACTIVITIES,BIOMES,RESORT,CIRCULATION,LAND,AUDIT,NORMALIZE];
+export const COMPOSITION_STAGES:readonly Stage[]=[SHAPE,SITES,HYDRO,ACCESS,SETTLEMENTS,POLES,ACTIVITIES,BIOMES,RESORT,CIRCULATION,LAND,AUDIT,NORMALIZE];
 
 export function composeWorld(input:MapRequirements,name='Mon petit monde',identity?:{projectId:string;worldId:string},stages:readonly Stage[]=COMPOSITION_STAGES):WorldComposition {
  const started=performance.now(),requirements=validateMapRequirements(input);

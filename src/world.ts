@@ -12,6 +12,8 @@ import {createCliffView,type CliffView} from './render/cliff-view.ts';
 import {createNaturalView,type NaturalView} from './structures/natural-view.ts';
 import {waterRibbonData} from './water/geometry.ts';
 import * as THREE from 'three';
+import {HOUSE_LOOKS} from './settlements/architecture.ts';
+import type {HabitatStyle} from './settlements/habitat.ts';
 import { createTerrainView } from './terrain-view';
 import { createHorizonView, type HorizonStats } from './horizon-view';
 import { configureGeography } from './geography/engine';
@@ -607,10 +609,15 @@ export function createAsset(id: AssetId): THREE.Group {
   const g = new THREE.Group();
   if(id==='settlement.bridge'){box(g,wood,1,.2,1,0,-.1,0);for(const side of [-1,1])box(g,darkWood,1,1,.04,0,.5,side*.48);
   }else if(id.startsWith('settlement.house_')){
-    const wallMaterial=mat(id.endsWith('_stone')?0x999c98:id.endsWith('_white')?0xe7dcc1:0xb58b60);
-    for(const [key,material]of [['walls',wallMaterial],['roof',roof],['floor',stone]] as const){const gkey='habitat-'+key;const geo=geometry(gkey,()=>{const pieces=houseBoxes().filter(b=>key==='walls'?!['roof','floor'].includes(b.key):b.key===key).map(b=>new THREE.BoxGeometry(b.sx,b.sy,b.sz).translate(b.x,b.bottom+b.sy/2,b.z));const merged=mergeGeometries(pieces);pieces.forEach(p=>p.dispose());return merged;});mesh(geo,material,g,0,0,0);}
+    const look=HOUSE_LOOKS[id.slice('settlement.house_'.length) as HabitatStyle]??HOUSE_LOOKS.timber,wallMaterial=mat(look.wall),roofMaterial=look.roof===0xb46e57?roof:mat(look.roof);
+    for(const [key,material]of [['walls',wallMaterial],['roof',roofMaterial],['floor',stone]] as const){const gkey='habitat-'+key;const geo=geometry(gkey,()=>{const pieces=houseBoxes().filter(b=>key==='walls'?!['roof','floor'].includes(b.key):b.key===key).map(b=>new THREE.BoxGeometry(b.sx,b.sy,b.sz).translate(b.x,b.bottom+b.sy/2,b.z));const merged=mergeGeometries(pieces);pieces.forEach(p=>p.dispose());return merged;});mesh(geo,material,g,0,0,0);}
     // A low pitched cap keeps the shell hollow; the flat roof below remains the physical ceiling.
-    const cap=mesh(geometry('habitat-cap',()=>new THREE.ConeGeometry(4.6,1.8,4)),roof,g,0,HOUSE.height+1.1,0);cap.rotation.y=Math.PI/4;cap.scale.z=1.15;
+    // Themed caps (doc 104 §C6) are visual only; colliders stay the habitat boxes.
+    if(look.roofShape==='pyramid'){const cap=mesh(geometry('habitat-cap',()=>new THREE.ConeGeometry(4.6,1.8,4)),roofMaterial,g,0,HOUSE.height+1.1,0);cap.rotation.y=Math.PI/4;cap.scale.z=1.15;}
+    else if(look.roofShape==='steep'){const cap=mesh(geometry('habitat-cap-steep',()=>new THREE.ConeGeometry(4.7,3.2,4)),roofMaterial,g,0,HOUSE.height+1.75,0);cap.rotation.y=Math.PI/4;cap.scale.z=1.2;box(g,mat(look.trim),HOUSE.width+.1,.18,.18,0,HOUSE.height*.55,-HOUSE.depth/2-.05);}
+    else if(look.roofShape==='thatch'){mesh(geometry('habitat-cap-thatch',()=>new THREE.ConeGeometry(5.6,2.2,8)),roofMaterial,g,0,HOUSE.height+1.2,0);}
+    else if(look.roofShape==='flat'){box(g,roofMaterial,HOUSE.width+.6,.35,HOUSE.depth+.6,0,HOUSE.height+.4,0);box(g,mat(look.trim),HOUSE.width+.7,.3,.2,0,HOUSE.height+.7,-HOUSE.depth/2-.3);}
+    else{const ridge=mesh(geometry('habitat-cap-gable',()=>new THREE.CylinderGeometry(0,4.3,2.2,4,1).rotateY(Math.PI/4)),roofMaterial,g,0,HOUSE.height+1.2,0);ridge.scale.set(.85,1,1.25);box(g,mat(look.trim),.2,2.6,.2,-HOUSE.width/2+.35,HOUSE.height/2,-HOUSE.depth/2-.12);box(g,mat(look.trim),.2,2.6,.2,HOUSE.width/2-.35,HOUSE.height/2,-HOUSE.depth/2-.12);}
   }else if(id==='settlement.door'){const hinge=new THREE.Group();hinge.name='DoorHinge';hinge.position.x=-HOUSE.doorWidth/2;g.add(hinge);box(hinge,darkWood,HOUSE.doorWidth,HOUSE.doorHeight,.2,HOUSE.doorWidth/2,HOUSE.doorHeight/2,0);
   }else if (id === 'nature.pine') {
     cylinder(g, wood, 0.24, 0.34, 2.4, 0, 1.2, 0);

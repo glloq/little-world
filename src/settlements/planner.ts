@@ -23,7 +23,8 @@ import { settlementTerrain } from './terrain.ts';
 import { inspectGroundSegment, planGroundRoute } from '../paths/terrain-route.ts';
 import { collisionDefinitionsFromProject } from '../studio-core/collision-adapter.ts';
 import { WorldCollisionQuery } from '../physics/collision-world.ts';
-import { HOUSE, HABITAT_STYLES, housePoint, HABITAT_ASSETS, habitatColliders } from './habitat.ts';
+import { HOUSE, housePoint, HABITAT_ASSETS, habitatColliders } from './habitat.ts';
+import { houseStylesFor, ARCHITECTURE_STYLES } from './architecture.ts';
 import { validateSettlementRecipe, type SettlementRecipe, type BuildingRecord,type AmenityRecord } from './schema.ts';
 export interface SettlementDiagnostic {
     severity: 'ERROR' | 'WARNING' | 'INFO';
@@ -75,7 +76,7 @@ export function planSettlement(p: ProjectDocument, raw: SettlementRecipe): Settl
     } if (old && fingerprint(old) !== owned) {
         preserved.push(id);
         return structuredClone(old);
-    } const candidate: PathDefinition = { id, points, width, kind: r.wealth === 2 ? 'stone' : 'dirt', smooth: false }; return candidate; };
+    } const candidate: PathDefinition = { id, points, width, kind: r.architecture ? ARCHITECTURE_STYLES[r.architecture].paths[r.wealth] : r.wealth === 2 ? 'stone' : 'dirt', smooth: false }; return candidate; };
     const addRoad = (id: string, a: {
         x: number;
         z: number;
@@ -165,7 +166,7 @@ export function planSettlement(p: ProjectDocument, raw: SettlementRecipe): Settl
 
         }
         const entry=housePoint(t,0,0,-HOUSE.depth/2-1.1),floor=c.height(pos.x,pos.z)+t.position.y,id=r.id+'-house-'+slot,doorId=id+'-door',interactionId=id+'-toggle';
-        const variation = parseInt(fingerprint([r.seed, r.houseVariation, slot]).slice(0, 8), 16), style = r.style === 'auto' ? HABITAT_STYLES[variation % HABITAT_STYLES.length] : r.style;
+        const variation = parseInt(fingerprint([r.seed, r.houseVariation, slot]).slice(0, 8), 16), palette = houseStylesFor(r.architecture), style = r.style === 'auto' ? palette[variation % palette.length] : r.style;
         const house: EntityDefinitionV3 = { id, kind: 'building', name: (r.activity === 'forest' ? 'Maison forestière ' : r.activity === 'agriculture' ? 'Maison de ferme ' : 'Maison ') + (slot + 1), ownerChunkId: chunkAt(p.world, pos.x, pos.z), components: { Transform: t, Visual: { type: 'Visual', assetId: 'settlement.house_' + style }, Habitat: { type: 'Habitat', version: 1, doorId } } };
         const dp = housePoint(t, 0, 0, -HOUSE.depth / 2), door: EntityDefinitionV3 = { id: doorId, kind: 'prop', name: 'Porte · ' + house.name, ownerChunkId: chunkAt(p.world, dp.x, dp.z), parentId: id, components: { Transform: { ...structuredClone(t), position: { x: dp.x, y: floor - c.height(dp.x, dp.z), z: dp.z } }, Visual: { type: 'Visual', assetId: 'settlement.door' }, Collider: { type: 'Collider', shape: 'box', size: { x: HOUSE.doorWidth, y: HOUSE.doorHeight, z: .25 }, layer: 'solid' }, State: { type: 'State', initial: { open: false } }, Persistence: { type: 'Persistence', fields: ['open'] }, Interactable: { type: 'Interactable', prompt: 'Ouvrir / fermer la porte', range: 3, interactionIds: [interactionId] } } };
         entities.push(house, door);
