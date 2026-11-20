@@ -1,5 +1,6 @@
 import {mountHybridControls} from '../../render/hybrid-controls.ts';
 import * as THREE from 'three';
+import {studioRenderProfile} from './render-profile.ts';
 import {FrameClock} from '../../frame-clock.ts';
 import {buildWorld,configureScene,addPlacement,removePlacement,configureWorldGeography,type WorldView} from '../../world.ts';
 import {configureTerrain,terrainHeight} from '../../terrain.ts';
@@ -58,6 +59,12 @@ export class StudioViewport {
   private racePreview:ReturnType<typeof createRaceGates>|null=null;
   private raceTrackPreview:THREE.Mesh|null=null;
   private world:WorldView;
+  /** Doc 105: all terrain refreshes of one synchronous update are applied together (one scene pass). */
+  private terrainRefreshes:{x:number;z:number;radius:number}[]=[];
+  private queueTerrainRefresh(x:number,z:number,radius:number){
+    if(!this.terrainRefreshes.length)queueMicrotask(()=>{const areas=this.terrainRefreshes;this.terrainRefreshes=[];if(!this.disposed)this.world.refreshTerrainAreas(areas);});
+    this.terrainRefreshes.push({x,z,radius});
+  }
   private hybridControls:ReturnType<typeof mountHybridControls>;
   private definition:WorldDefinition;
   private navigation:Navigation;
@@ -81,10 +88,11 @@ export class StudioViewport {
     this.session=session;this.options=options;
     this.definition=definition;const p=session.document;this.editSignatures=new Map([...definition.terrain,...definition.biomes].map(e=>[e.id,JSON.stringify(e)]));this.geoSignatures=geographySignatures(definition);
     this.element=document.createElement('div');this.element.className='viewport';this.canvas=document.createElement('canvas');this.canvas.tabIndex=0;this.canvas.setAttribute('aria-label','Vue 3D du monde');this.element.append(this.canvas);host.append(this.element);
-    this.renderer=new THREE.WebGLRenderer({canvas:this.canvas,antialias:true,powerPreference:'low-power'});this.renderer.setPixelRatio(Math.min(devicePixelRatio,1.25));this.renderer.outputColorSpace=THREE.SRGBColorSpace;this.renderer.toneMapping=THREE.ACESFilmicToneMapping;this.renderer.toneMappingExposure=1.1;
+    const profile=studioRenderProfile();this.canvas.dataset.renderProfile=profile.id;
+    this.renderer=new THREE.WebGLRenderer({canvas:this.canvas,antialias:profile.antialias,powerPreference:'low-power'});this.renderer.setPixelRatio(profile.pixelRatio);this.renderer.outputColorSpace=THREE.SRGBColorSpace;this.renderer.toneMapping=THREE.ACESFilmicToneMapping;this.renderer.toneMappingExposure=1.1;
     this.sky=configureScene(this.scene);this.skyDay={sun:this.sky.sun.intensity,fill:this.sky.fill.intensity,ambient:this.sky.ambient.intensity,sunColor:this.sky.sun.color.getHex(),sunPosition:this.sky.sun.position.clone(),background:(this.scene.background as THREE.Color).getHex()};
     this.lightGroup.name='LightMarkers';this.scene.add(this.lightGroup);this.rangeGizmo.visible=false;this.rangeGizmo.renderOrder=24;this.scene.add(this.rangeGizmo);
-    this.world=buildWorld(definition.config,definition);this.world.setImpostorLighting(this.sky);this.scene.add(this.world.root);this.hybridControls=mountHybridControls(this.element,this.world,()=>this.invalidate(120));
+    this.world=buildWorld(definition.config,definition);if(profile.economy||profile.detail)this.world.setDetail(profile.detail,profile.economy);this.world.setImpostorLighting(this.sky);this.scene.add(this.world.root);this.hybridControls=mountHybridControls(this.element,this.world,()=>this.invalidate(120));
     // A project without a saved 3D pose starts on the world's start point (beach, valley entrance).
     const saved=session.selection.state.camera,start=saved.target?saved:{...defaultSpawn(definition.config,definition.terrain),mode:'orbit' as const};
     const b=p.world.bounds;this.camera=new EditorCamera(poseFromContext(start,terrainHeight),session.selection.state.camera.mode==='top'?'top':session.selection.state.camera.mode==='free'?'free':'orbit',{minX:b.minX,maxX:b.maxX,minZ:b.minZ,maxZ:b.maxZ,ground:(x,z)=>terrainHeight(x,z)});
@@ -219,11 +227,13 @@ export class StudioViewport {
       if(Math.hypot(t.x-this.contentCenter.x,t.z-this.contentCenter.z)>REPLAN_DISTANCE)this.syncContent();
       this.tools.active?.frame?.();this.selection.refresh();
       this.renderer.render(this.scene,this.camera.camera);this.remaining--;
-      this.hybridControls.update();this.canvas.dataset.hybrid=JSON.stringify(this.world.hybrid.stats);
-      const d=this.canvas.dataset;d.renderCount=String(++this.renderCount);d.pending=String(this.world.stats.pending);d.cameraMode=this.camera.mode;d.camera=JSON.stringify(this.camera.context());d.calls=String(this.renderer.info.render.calls);
+      this.hybridControls.update();
+      const d=this.canvas.dataset;d.renderCount=String(++this.renderCount);d.pending=String(this.world.stats.pending);d.cameraMode=this.camera.mode;d.calls=String(this.renderer.info.render.calls);
+      // Doc 105: diagnostics serialised every 6th frame and on the last frame of an animation, not on every frame.
+      if(this.renderCount%6===0||this.remaining<=0){d.camera=JSON.stringify(this.camera.context());d.hybrid=JSON.stringify(this.world.hybrid.stats);
       d.triangles=String(this.renderer.info.render.triangles);d.cliffs=JSON.stringify(this.world.cliffs.stats);
       d.waterCount=String(this.world.root.children.filter(o=>o.userData.waterId).length);d.diagnostics=JSON.stringify(this.diagnostics);d.models=String(this.models.size);d.paths=String(this.world.paths.paths);d.pathSectors=String(this.world.paths.sectors);d.pathSignature=this.world.paths.signature;d.contentSectors=String(this.contentIds.size);
-      const ls=this.world.lights.stats;d.lights=JSON.stringify({sources:ls.sources,pool:ls.pool,budget:ls.budget,active:ls.active,glow:ls.glow,overBudget:ls.overBudget,markers:this.lightMarkers.size});
+      const ls=this.world.lights.stats;d.lights=JSON.stringify({sources:ls.sources,pool:ls.pool,budget:ls.budget,active:ls.active,glow:ls.glow,overBudget:ls.overBudget,markers:this.lightMarkers.size});}
     }
     this.drawing=false;
     if(this.remaining>0||this.world.stats.pending>0||this.world.cliffs.stats.pending>0||this.navigation.flying||this.camera.animating||this.tools.active&&'dragging' in this.tools.active&&(this.tools.active as {dragging:boolean}).dragging)this.frame=requestAnimationFrame(this.draw);
@@ -260,8 +270,8 @@ export class StudioViewport {
     this.canvas.dataset.generatorRevision=String(Number(this.canvas.dataset.generatorRevision??0)+1);
     const change=transaction?terrainChangeRects(transaction.patches):{global:true,rects:[]};
     const b=this.session.document.world.bounds;
-    if(change.global||!change.rects.length){this.world.refreshTerrain((b.minX+b.maxX)/2,(b.minZ+b.maxZ)/2,Math.hypot(b.maxX-b.minX,b.maxZ-b.minZ)/2+64);return;}
-    for(const r of change.rects)this.world.refreshTerrain((r.minX+r.maxX)/2,(r.minZ+r.maxZ)/2,Math.hypot(r.maxX-r.minX,r.maxZ-r.minZ)/2+16);
+    if(change.global||!change.rects.length){this.queueTerrainRefresh((b.minX+b.maxX)/2,(b.minZ+b.maxZ)/2,Math.hypot(b.maxX-b.minX,b.maxZ-b.minZ)/2+64);return;}
+    for(const r of change.rects)this.queueTerrainRefresh((r.minX+r.maxX)/2,(r.minZ+r.maxZ)/2,Math.hypot(r.maxX-r.minX,r.maxZ-r.minZ)/2+16);
   }
   /** Geography corrections (sector masks, activity zones): reconfigure the shared engine and
    * refresh only the sectors whose masks changed (2D map strokes, undo/redo, hydration). */
@@ -272,19 +282,19 @@ export class StudioViewport {
     const size=this.session.document.world.chunkSizeM,b=this.session.document.world.bounds;
     for(const id of new Set([...next.keys(),...previous.keys()])){
       if(next.get(id)===previous.get(id))continue;
-      if(id==='#landscapes'){for(const regions of [previous.get(id),next.get(id)])for(const r of JSON.parse(regions??'[]') as {x:number;z:number;width:number;length:number}[])this.world.refreshTerrain(r.x,r.z,Math.hypot(r.width,r.length)/2+8);continue;}
-      if(id==='#zones'){for(const zones of [previous.get(id),next.get(id)])for(const z of JSON.parse(zones??'[]') as {polygon:{x:number;z:number}[]}[]){const xs=z.polygon.map(q=>q.x),zs=z.polygon.map(q=>q.z),x0=Math.min(...xs),x1=Math.max(...xs),z0=Math.min(...zs),z1=Math.max(...zs);this.world.refreshTerrain((x0+x1)/2,(z0+z1)/2,Math.hypot(x1-x0,z1-z0)/2+4);}continue;}
+      if(id==='#landscapes'){for(const regions of [previous.get(id),next.get(id)])for(const r of JSON.parse(regions??'[]') as {x:number;z:number;width:number;length:number}[])this.queueTerrainRefresh(r.x,r.z,Math.hypot(r.width,r.length)/2+8);continue;}
+      if(id==='#zones'){for(const zones of [previous.get(id),next.get(id)])for(const z of JSON.parse(zones??'[]') as {polygon:{x:number;z:number}[]}[]){const xs=z.polygon.map(q=>q.x),zs=z.polygon.map(q=>q.z),x0=Math.min(...xs),x1=Math.max(...xs),z0=Math.min(...zs),z1=Math.max(...zs);this.queueTerrainRefresh((x0+x1)/2,(z0+z1)/2,Math.hypot(x1-x0,z1-z0)/2+4);}continue;}
       if(id==='#races'){
         for(const json of [previous.get(id),next.get(id)])for(const track of JSON.parse(json??'[]') as RaceTrack[]){
           if(track.points.length<2)continue;
           const xs=track.points.map(p=>p.x),zs=track.points.map(p=>p.z),
             minX=Math.min(...xs),maxX=Math.max(...xs),minZ=Math.min(...zs),maxZ=Math.max(...zs);
-          this.world.refreshTerrain((minX+maxX)/2,(minZ+maxZ)/2,
+          this.queueTerrainRefresh((minX+maxX)/2,(minZ+maxZ)/2,
             Math.hypot(maxX-minX,maxZ-minZ)/2+track.width/2+12);
         }
         continue;
       }
-      const [cx,cz]=id.split(':').map(Number);this.world.refreshTerrain(b.minX+(cx+.5)*size,b.minZ+(cz+.5)*size,size*.72+4);
+      const [cx,cz]=id.split(':').map(Number);this.queueTerrainRefresh(b.minX+(cx+.5)*size,b.minZ+(cz+.5)*size,size*.72+4);
     }
   }
   /** Terrain and biome edits are refreshed locally (tiles, vegetation and horizon blocks around each changed edit). */
@@ -296,8 +306,8 @@ export class StudioViewport {
     if(!changed.length&&!removed.length&&!waterChanged&&previous.size===next.size)return;
     this.editSignatures=next;const d=this.definition;configureTerrain(d.config,d.terrain,d.water,d.paths);
     const water=new Set(this.world.refreshWater());
-    for(const e of [...changed,...removed])this.world.refreshTerrain(e.x,e.z,e.radius+4);
-    if(water.size)for(const w of d.water)if(water.has(w.id))for(const q of w.points)this.world.refreshTerrain(q.x,q.z,w.width+12);
+    for(const e of [...changed,...removed])this.queueTerrainRefresh(e.x,e.z,e.radius+4);
+    if(water.size)for(const w of d.water)if(water.has(w.id))for(const q of w.points)this.queueTerrainRefresh(q.x,q.z,w.width+12);
   }
   /** Activity zone outlines (farm plots, mines), draped on the relief; authoring aid only. */
   private zoneGroup=new THREE.Group();private zoneSignature='';

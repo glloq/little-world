@@ -46,14 +46,18 @@ interface SharedMap {session:StudioSession;cache:TileCache;geo:ProjectGeography|
 /** Geography sources changed: drop the main-thread context and the workers' project. */
 function invalidateGeo(state:SharedMap){state.geo=null;geoWorkerPool()?.invalidateProject();}
 let shared:SharedMap|null=null;
+/** Libraries that feed the geography (masks, occupation, water, roads, regions, footprints, pistes, races). */
+const GEOGRAPHY_LIBRARIES=new Set(['water','paths','zones','alpine','races','landscapes','regions','settlements','terrainPlans','surfZones','diveSites']);
 function sharedFor(session:StudioSession):SharedMap{
   if(shared?.session===session)return shared;releaseGeoMap();
   const p=session.document,grid=sectorGrid(p),state:SharedMap={session,cache:new TileCache(),geo:null,stop:()=>{}};
   state.stop=session.commands.subscribe(t=>{
+    // Doc 105: dialogues, quests, items, interactions… never change the map; keep every tile and the workers' project.
+    if(t.patches.every(q=>q.path[0]==='libraries'&&!GEOGRAPHY_LIBRARIES.has(String(q.path[1]))))return;
     invalidateGeo(state);
     // Terrain edits reach up to their radius (≤ 80 m) past the owner sector; moisture reads rivers 60 m away.
     const relief=terrainChangeRects(t.patches);
-    if(relief.global||t.patches.some(q=>q.path[0]==='libraries'||q.path[0]==='world'&&q.path[1]!=='terrain'))state.cache.invalidate(null);
+    if(relief.global||t.patches.some(q=>q.path[0]==='libraries'&&GEOGRAPHY_LIBRARIES.has(String(q.path[1]))||q.path[0]==='world'&&q.path[1]!=='terrain'))state.cache.invalidate(null);
     else for(const r of relief.rects)state.cache.invalidate({minX:r.minX-8,maxX:r.maxX+8,minZ:r.minZ-8,maxZ:r.maxZ+8});
     for(const id of t.affectedChunks){const [x,z]=id.split(':').map(Number),s=grid.chunkSizeM,pad=96;state.cache.invalidate({minX:grid.minX+x*s-pad,maxX:grid.minX+(x+1)*s+pad,minZ:grid.minZ+z*s-pad,maxZ:grid.minZ+(z+1)*s+pad});}
   });
@@ -220,13 +224,16 @@ export function mountGeoMap(host:HTMLElement,tools:HTMLElement,session:StudioSes
     drag={x:e.clientX,y:e.clientY,cx,cz,moved:false};
   };
   let lastReadout=0;
+  // Doc 105: pointer moves and wheel ticks coalesce into one redraw per animation frame.
+  let drawFrame=0,drawReplan=false;
+  const drawSoon=(replan:boolean)=>{drawReplan||=replan;if(!drawFrame)drawFrame=requestAnimationFrame(()=>{drawFrame=0;const r=drawReplan;drawReplan=false;if(!disposed)draw(r);});};
   canvas.onpointermove=e=>{
     const q=local(e);cursor=inside(q)?q:null;
-    if(painting&&e.buttons&1){stroke.push(q);draw(false);return;}
+    if(painting&&e.buttons&1){stroke.push(q);drawSoon(false);return;}
     if(state.tool==='shape'&&shapes.pointerMove(q))return;
-    if(drag){const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.hypot(dx,dy)>4)drag.moved=true;if(drag.moved){cx=drag.cx-dx/base();cz=drag.cz-dy/base();draw();return;}}
-    if(rectStart&&e.buttons&1){const a=rectStart;polygon=[a,{x:q.x,z:a.z},q,{x:a.x,z:q.z}];draw(false);return;}
-    if(isBrush()||state.tool==='polygon')draw(false);
+    if(drag){const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.hypot(dx,dy)>4)drag.moved=true;if(drag.moved){cx=drag.cx-dx/base();cz=drag.cz-dy/base();drawSoon(true);return;}}
+    if(rectStart&&e.buttons&1){const a=rectStart;polygon=[a,{x:q.x,z:a.z},q,{x:a.x,z:q.z}];drawSoon(false);return;}
+    if(isBrush()||state.tool==='polygon')drawSoon(false);
     if(cursor&&performance.now()-lastReadout>60){lastReadout=performance.now();showReadout(cursor);}
   };
   canvas.onpointerup=e=>{
@@ -239,7 +246,7 @@ export function mountGeoMap(host:HTMLElement,tools:HTMLElement,session:StudioSes
   };
   canvas.ondblclick=e=>{if(state.tool==='polygon'&&polygon.length>2)closePolygon();else if(state.tool==='shape'&&!activeLayer().locked)shapes.dblclick(local(e));};
   canvas.onpointerleave=()=>{cursor=null;readout.textContent='';draw(false);};
-  canvas.onwheel=e=>{e.preventDefault();const before=local(e);scale=Math.max(.25,Math.min(400,scale*Math.exp(-e.deltaY*.0015)));const after=local(e);cx+=before.x-after.x;cz+=before.z-after.z;draw();};
+  canvas.onwheel=e=>{e.preventDefault();const before=local(e);scale=Math.max(.25,Math.min(400,scale*Math.exp(-e.deltaY*.0015)));const after=local(e);cx+=before.x-after.x;cz+=before.z-after.z;drawSoon(true);};
   canvas.onkeydown=e=>{
     if(state.tool==='shape'&&shapes.key(e)){e.preventDefault();return;}
     if(e.key==='Escape'){if(painting){painting=false;stroke=[];options.status('Trait annulé.');}else if(polygon.length||region){polygon=[];region=null;panel();}draw(false);e.preventDefault();}

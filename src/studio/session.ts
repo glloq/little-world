@@ -27,7 +27,8 @@ export class StudioSession {
   this.commands=new CommandBus(this.document,(p,ids)=>{parseWorldV3(p.world);for(const id of ids)if(p.chunks[id])parseChunk(p.chunks[id],p.world);});
   if(stored.journal)this.commands.restore(stored.journal);
   this.commands.subscribe(t=>{for(const id of t.affectedChunks)this.dirty.add(id);this.changed();});
-  this.selection.subscribe(()=>this.changed());
+  // Selection/camera/module changes are view state: a small context record, never a full project save (doc 105).
+  this.selection.subscribe(()=>this.contextChanged());
  }
  static async open(store:ProjectStore,id:string){
   const stored=await store.loadProject(id),journal=stored.journal;
@@ -38,6 +39,8 @@ export class StudioSession {
  }
  subscribe(listener:()=>void){this.listeners.add(listener);return()=>this.listeners.delete(listener);}
  private emit(){for(const listener of this.listeners)listener();}
+ private contextTimer:ReturnType<typeof setTimeout>|undefined;
+ private contextChanged(){clearTimeout(this.contextTimer);this.contextTimer=setTimeout(()=>{if(this.pending||this.saving)return;void this.store.saveContext(this.document,this.selection.snapshot()).catch(()=>{});},1500);}
  private changed(){this.pending=true;this.status='Modifications à sauvegarder…';clearTimeout(this.timer);this.timer=setTimeout(()=>void this.flush().catch(()=>{}),650);this.emit();}
  async hydrate(ids:string[]){
   while(this.saving)await this.saving;
