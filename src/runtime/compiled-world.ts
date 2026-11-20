@@ -96,9 +96,10 @@ export function playableFromCompiled(bundle:CompiledWorldBundle,spawn?:Point3):P
   const races=Object.values(logic.libraries.races??{}).map(r=>structuredClone(r));
   const surfZones=Object.values(logic.libraries.surfZones??{}).map(z=>structuredClone(z));
   const surfFeatures=Object.values(logic.libraries.surfFeatures??{}).map(f=>structuredClone(f));
+  const diveSites=Object.values(logic.libraries.diveSites??{}).map(d=>structuredClone(d));
   const start=spawn??defaultSpawn(config,terrain);
   if(Math.abs(start.x)>(config.width??0)/2||Math.abs(start.z)>(config.length??0)/2)throw Error('Point de départ hors de la carte');
-  return {schemaVersion:1,kind:'playable-world',...(logic.libraries.alpine?{alpine:parseSkiArea(logic.libraries.alpine['composition-alpine'],manifest.bounds),alpineAreas:skiAreasOf(logic.libraries.alpine).map(area=>parseSkiArea(area,manifest.bounds))}:{}),...(manifest.audio?{audio:manifest.audio}:{}),world,gameplay,collisions,spawn:{...start},...(activities.mines.length||activities.farms.length?{activities}:{}),...(races.length?{races}:{}),...(questCatalog.length?{questCatalog}:{}),...(surfZones.length?{surfZones}:{}),...(surfFeatures.length?{surfFeatures}:{})};
+  return {schemaVersion:1,kind:'playable-world',...(logic.libraries.alpine?{alpine:parseSkiArea(logic.libraries.alpine['composition-alpine'],manifest.bounds),alpineAreas:skiAreasOf(logic.libraries.alpine).map(area=>parseSkiArea(area,manifest.bounds))}:{}),...(manifest.audio?{audio:manifest.audio}:{}),world,gameplay,collisions,spawn:{...start},...(activities.mines.length||activities.farms.length?{activities}:{}),...(races.length?{races}:{}),...(questCatalog.length?{questCatalog}:{}),...(surfZones.length?{surfZones}:{}),...(surfFeatures.length?{surfFeatures}:{}),...(diveSites.length?{diveSites}:{})};
 }
 /** Published worlds: a same-origin relative manifest path such as `maps/island/manifest.json`. */
 export function publishedManifestURL(base:string,path:string):string{

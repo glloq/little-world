@@ -56,7 +56,9 @@ export function collectActivitySites(p:ProjectDocument):ActivitySite[]{
    hostRole:r.kind==='surf'?'sailor':'instructor'});
  }
  for(const z of Object.values(L.surfZones??{})){
-  const pts=rect(z);out.push({id:'surf:'+z.id,kind:'surf',name:z.id,sourceId:z.id,access:centroid(pts),footprint:{kind:'polygon',points:pts},capabilities:['surf:zone:'+z.id,'surf:any'],events:['surf.wave-ridden','surf.trick'],equipment:['surfboard'],hostRole:'sailor'});
+  // Player-facing name: the surf race laid in this zone, else the zone id.
+  const race=Object.values(L.races??{}).find(r=>r.kind==='surf'&&r.gates.some(g=>g.center.x>=z.minX&&g.center.x<=z.maxX&&g.center.z>=z.minZ&&g.center.z<=z.maxZ));
+  const pts=rect(z);out.push({id:'surf:'+z.id,kind:'surf',name:race?race.name.replace(/\s*·.*$/,''):z.id,sourceId:z.id,access:centroid(pts),footprint:{kind:'polygon',points:pts},capabilities:['surf:zone:'+z.id,'surf:any'],events:['surf.wave-ridden','surf.trick'],equipment:['surfboard'],hostRole:'sailor'});
  }
  for(const z of Object.values(L.zones??{})){
   if(z.polygon.length<3)continue;const pts=z.polygon.map(q=>({x:q.x,z:q.z}));

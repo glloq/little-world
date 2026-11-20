@@ -53,6 +53,7 @@ import {
 } from './frame-clock';
 import './style.css';
 import {waterSurface,riverX,isLegacyTerrain} from './terrain.ts';
+import {createDiveTracker,createSkiRunTracker,createSurfRideTracker,stepDiveTracker,stepSkiRun,stepSurfRide} from './gameplay/activity-trackers.ts';
 import {createFleet} from './gameplay/fleet.ts';
 import {loadArchipelagoRegistry,type PublishedIsland} from './archipelago/registry.ts';
 import {beginTransit,pendingTransit,clearTransit,FERRY_RECOVERY_KEY,
@@ -621,6 +622,8 @@ let nextSurfHudAt=0;
 const surfFeatures=surfSite?makeDemoSurfFeatures(surfSite):(playable?.surfFeatures??[]).filter(f=>surfFields.some(field=>f.x>=field.zone.minX&&f.x<=field.zone.maxX&&f.z>=field.zone.minZ&&f.z<=field.zone.maxZ));
 const surfFeatureState=createSurfFeatureState();
 let seenBarrelSuccess=0,seenBarrelCrash=0,seenBarrelTumble=0;
+// Doc 104 §C7: typed activity events on the fixed simulation tick (dive depth, discoveries, ridden waves).
+const diveTracker=createDiveTracker(),surfRide=createSurfRideTracker(),skiRun=createSkiRunTracker();
 let lastSurfPaddleSoundTick=-30;
 const surfFeatureView=surfFields.length&&surfFeatures.length?createSurfFeaturesView(scene,surfFeatures,surfFields[0].zone.seaLevel):null;
 if(surfFields.length)world.setSurfAreas(surfFields.map(field=>field.zone));
@@ -1539,7 +1542,7 @@ function tick(dt: number) {
   const ride=liftRide?stepResortRide(liftRide,elapsed):null;
   if(ride?.kind==='arrived'){
     player.position.set(ride.top.x,terrainHeight(ride.top.x,ride.top.z)+.05,ride.top.z);player.velocity.set(0,0,0);player.mode='ground';
-    showInfo('Arrivée en haut · '+liftRide!.lift.name,'success');liftRide=null;jumpQueue=0;
+    showInfo('Arrivée en haut · '+liftRide!.lift.name,'success');gameplay?.emitGameplayEvent({type:'ski.lift-ridden',areaId:liftRide!.lift.areaId});liftRide=null;jumpQueue=0;
   } else if(ride?.kind==='riding'){
     player.position.set(ride.pose.x,ride.pose.y,ride.pose.z);player.velocity.set(0,0,0);player.mode='ground';
     jumpQueue=0;actionQueue=0;
@@ -1601,7 +1604,7 @@ function tick(dt: number) {
     if(keys.surfActionPressed && (player.mode==='surf'||player.surfAirborne||
       motionTick>=surfRequestUntilTick||!surfField))surfQueue=0;
     if(player.barrelEntryTick===motionTick)showInfo('Tube ! Suivez la crête pour ressortir avant la fermeture.');
-    if((player.barrelSuccessSeq??0)>seenBarrelSuccess){seenBarrelSuccess=player.barrelSuccessSeq??0;showInfo('Tube traversé !','success');}
+    if((player.barrelSuccessSeq??0)>seenBarrelSuccess){seenBarrelSuccess=player.barrelSuccessSeq??0;showInfo('Tube traversé !','success');if(surfField)gameplay?.emitGameplayEvent({type:'surf.trick',featureId:surfField.zone.id,trick:'barrel'});}
     const tubeCrash=(player.barrelCrashSeq??0)>seenBarrelCrash;
     if(tubeCrash){seenBarrelCrash=player.barrelCrashSeq??0;showInfo('Le tube se referme : la vague vous emporte !','warning');}
     if((player.barrelTumbleSeq??0)>seenBarrelTumble){
@@ -1609,10 +1612,18 @@ function tick(dt: number) {
       if(!tubeCrash)showInfo('Déferlante ! Le courant vous entraîne vers la plage. Plongez pour y échapper.','warning');
       audio?.emit('water.enter',{position:player.position,source:'player'});
     }
+    if(skiAreas.length)for(const e of stepSkiRun(skiRun,{mode:player.mode,tick:motionTick,x:player.position.x,z:player.position.z},skiAreas))gameplay?.emitGameplayEvent(e);
+    for(const e of stepSurfRide(surfRide,{mode:player.mode,tick:motionTick,zoneId:surfField?.zone.id??null,style:surfField?.zone.style}))gameplay?.emitGameplayEvent(e);
+    if(playable?.diveSites?.length)for(const e of stepDiveTracker(diveTracker,{mode:player.mode,x:player.position.x,y:player.position.y,z:player.position.z,waterLevel:waterSurface(player.position.x,player.position.z)},playable.diveSites)){
+      gameplay?.emitGameplayEvent(e);
+      if(e.type==='underwater.discovered')showInfo('Découverte sous-marine !','success');
+      else if(e.type==='dive.depth-reached')showInfo('Profondeur atteinte : '+e.depthM+' m','success');
+    }
     if(surfFeatures.length){
       for(const event of stepSurfFeatures(player,surfFeatures,surfFeatureState,motionTick,previousPlayerPosition,surfField?.zone.seaLevel)){
         if(event.kind==='ramp'){player.jumpSeq=(player.jumpSeq??0)+1;player.glideReady=false;}
         showInfo(event.kind==='boost'?'Courant accélérateur !':event.kind==='ramp'?'Tremplin aquatique !':'Bouée touchée');
+        gameplay?.emitGameplayEvent({type:'surf.trick',featureId:event.id,trick:event.kind});
       }
     }
     const seq=player.gasPulseSeq??0;
@@ -1629,6 +1640,7 @@ function tick(dt: number) {
         const id=flightCourse.id,seconds=flightCourse.elapsed,previous=flightProgress.records[id];
         if(previous===null||seconds<previous)flightProgress.records[id]=seconds;
         showInfo('Défi réussi : '+COURSE_LABELS[id]+' · '+seconds.toFixed(1)+' s','success');
+        gameplay?.emitGameplayEvent({type:'flight.completed',courseId:id,seconds});
         stopFlightCourse();stopRace();
       }else if(result===-1){showInfo('Défi interrompu : '+COURSE_LABELS[flightCourse.id],'warning');stopFlightCourse();stopRace();}
     }
@@ -1645,7 +1657,9 @@ function tick(dt: number) {
       }
       else if(event?.kind==='finish'){
         const race=raceSession.definition,isBest=writeRaceBest(localStorage,race,event.seconds,gameplay?.runtime.data.buildVersion??'');
-        gameplay?.recordQuestCommit('race.finished',{raceId:activeRaceOption?.sourceId??race.id,measuredSeconds:event.seconds});
+        const finishedId=activeRaceOption?.sourceId??race.id;
+        gameplay?.emitGameplayEvent({type:'race.finished',raceId:finishedId,measuredSeconds:event.seconds,raceKind:race.kind});
+        if(isBest)gameplay?.emitGameplayEvent({type:'race.personal-best',raceId:finishedId,measuredSeconds:event.seconds,raceKind:race.kind});
         showInfo('Course terminée : '+race.name+' · '+event.seconds.toFixed(2)+' s'+(isBest?' · Nouveau record local !':''),'success');
         stopRace();
       }else if(event?.kind==='failed'){showInfo('Course arrêtée : '+event.reason,'warning');stopRace();}

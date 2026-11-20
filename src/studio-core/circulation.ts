@@ -152,7 +152,7 @@ export function planCirculationLinks(p:ProjectDocument,c:GroundRouteContext,o:{m
   const g=buildCirculationGraph(p,[...Object.values(p.libraries.paths) as PathDefinition[],...added]),report=circulationReport(g);
   const hubComponent=g.hub?.component??(()=>{const r=report.destinations.find(d=>d.status==='reachable');return r?g.destinations.find(d=>d.id===r.id)!.component:null;})();
   if(hubComponent===null||hubComponent===undefined)break;
-  const pending=report.destinations.filter(d=>d.status!=='reachable'&&d.kind!=='surf'&&d.kind!=='dive'&&!failed.includes(d.id));
+  const pending=report.destinations.filter(d=>d.status!=='reachable'&&!failed.includes(d.id));
   if(!pending.length)break;
   // Closest pending destination to the hub network first: short links compose into a tree.
   const hubNodes=g.nodes.map((q,i)=>({q,i})).filter(({i})=>g.component[i]===hubComponent);
@@ -161,9 +161,12 @@ export function planCirculationLinks(p:ProjectDocument,c:GroundRouteContext,o:{m
   if(best.i<0||best.dist>(o.maxDistanceM??1800)){failed.push(d.id);continue;}
   // Sources: the destination's own network (closest nodes first) or dry points around it.
   const own=g.destinations.find(x=>x.id===d.id)!,targets=hubNodes.map(({q})=>q);
-  const sources:PointXZ[]=own.component!==null?g.nodes.filter((_,i)=>g.component[i]===own.component):[{x:d.x,z:d.z},...Array.from({length:8},(_,k)=>({x:d.x+Math.cos(k/8*Math.PI*2)*15,z:d.z+Math.sin(k/8*Math.PI*2)*15}))];
+  // Water destinations (surf breaks, dive sites) are served from the nearest beach: dry points around their footprint.
+  const shore=(d.kind==='surf'||d.kind==='dive')&&own.footprint?(()=>{const xs=own.footprint.map(q=>q.x),zs=own.footprint.map(q=>q.z),out:PointXZ[]=[];for(let z=Math.min(...zs)-150;z<=Math.max(...zs)+150;z+=20)for(let x=Math.min(...xs)-150;x<=Math.max(...xs)+150;x+=20)out.push({x,z});return out;})():null;
+  const sources:PointXZ[]=shore??(own.component!==null?g.nodes.filter((_,i)=>g.component[i]===own.component):[{x:d.x,z:d.z},...Array.from({length:8},(_,k)=>({x:d.x+Math.cos(k/8*Math.PI*2)*15,z:d.z+Math.sin(k/8*Math.PI*2)*15}))]);
   const dry=sources.filter(q=>!c.wet(q.x,q.z)&&c.height(q.x,q.z)>c.seaLevel+1);
-  const pairs=dry.map(q=>{let t=targets[0],dist=Infinity;for(const r of targets){const k=Math.hypot(r.x-q.x,r.z-q.z);if(k<dist){dist=k;t=r;}}return {from:q,to:t,dist};}).sort((a,b)=>a.dist-b.dist).slice(0,3);
+  const zoneGap=(q:PointXZ)=>own.footprint?Math.max(0,Math.min(...own.footprint.map(f=>Math.hypot(f.x-q.x,f.z-q.z)))-0):0;
+  const pairs=dry.filter(q=>!shore||zoneGap(q)<=own.attachM*.9).map(q=>{let t=targets[0],dist=Infinity;for(const r of targets){const k=Math.hypot(r.x-q.x,r.z-q.z);if(k<dist){dist=k;t=r;}}return {from:q,to:t,dist};}).sort((a,b)=>a.dist-b.dist).slice(0,3);
   // Mountain destinations (pistes, lifts) accept a steeper trail, like the native mountain paths.
   const policies=d.kind==='piste'||d.kind==='lift'||d.kind==='mine'?[policy,{...policy,maxSlope:Math.max(policy.maxSlope,.45),widthM:1.6}]:[policy];
   let route:{points:PointXZ[]}|null=null,used=policy;

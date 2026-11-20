@@ -98,9 +98,11 @@ export function createGameUi(deps:GameUiDeps){
     const offers=g.markets.view(nearby.kind,nearby.id).sell;
     return ids.some(id=>(g.runtime.state.inventory[id]??0)>0&&offers.some(o=>o.itemId===id))?nearby:null;
   };
+  let notesPlayed=0;
   const instrumentPanel=createInstrumentPanel({
     equipped:()=>instrumentForItem(g?.equipment.hands),
-    noteOn:(patch,note)=>deps.audio?.engine.instrumentNoteOn(patch,note)??false,
+    // Doc 104 §C7: every 8 notes played on an equipped instrument count as one short melody.
+    noteOn:(patch,note)=>{const ok=deps.audio?.engine.instrumentNoteOn(patch,note)??false;if(ok&&++notesPlayed%8===0){const instrument=instrumentForItem(g?.equipment.hands);if(instrument)g?.emitGameplayEvent({type:'music.played',instrument:instrument.id});}return ok;},
     noteOff:note=>deps.audio?.engine.instrumentNoteOff(note),
     allNotesOff:()=>deps.audio?.engine.instrumentAllNotesOff(),
     unlock:()=>deps.audio?.start()??Promise.resolve(false),

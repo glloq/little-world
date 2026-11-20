@@ -1,3 +1,4 @@
+import {isGameplayEventType} from '../gameplay/events.ts';
 /** Closed, bounded parsers. Validation never executes author data.
  * This is Q1 only: receipt of an event does NOT prove a gameplay commit.
  */
@@ -57,9 +58,10 @@ function step(raw:unknown):QuestStepV1{
     (typeof v.maxSeconds==='number'&&Number.isFinite(v.maxSeconds)&&v.maxSeconds>0&&v.maxSeconds<=86400)),'Quest race: invalid target');
    break;
   case 'event':
-   allowed=['kind','eventType','subjectId','count','islandId'];
-   need(ident(v.eventType)&&integer(v.count,1,9999)&&
-    (v.subjectId===undefined||ident(v.subjectId)),'Quest event: invalid requirement');
+   allowed=['kind','eventType','subjectId','source','count','islandId'];
+   // Only declared gameplay events (gameplay/events.ts): a step can never wait for an event nobody emits.
+   need(isGameplayEventType(v.eventType)&&integer(v.count,1,9999)&&
+    (v.subjectId===undefined||ident(v.subjectId))&&(v.source===undefined||ident(v.source)),'Quest event: invalid requirement');
    break;
   case 'travel':
    allowed=['kind','fromIslandId','toIslandId'];
