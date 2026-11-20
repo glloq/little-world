@@ -55,7 +55,6 @@ export function planAlpineResort(project:ProjectDocument,options:{toward?:SkiPoi
     if(!top||h>top.h)top={...p,h};
   }
   if(!top)throw Error('Station des Cimes : aucun site de gare sommitale.');
-  if((globalThis as {RESORT_DEBUG?:boolean}).RESORT_DEBUG)console.log('base',B,'top',top,'summit',summit);
   const T=top,deg=Math.PI/180,near=(d:number,offset:number)=>along(T,baseDir+offset*deg,d);
   const ring=(offset:number,r=110)=>along(summit,baseDir+offset*deg,r);
   const specs:Spec[]=[
@@ -83,7 +82,7 @@ export function planAlpineResort(project:ProjectDocument,options:{toward?:SkiPoi
     const levels=groomedProfile(area.points,current.height,10);
     features.push({id:'piste:'+area.id,kind:'piste',points:area.points.map(p=>({...p})),levels:levels.map(v=>Math.round((v-sea)*100)/100),widthM:area.widthM+4,edgeM:10});
     const next=resortEnv(project);
-    const ok=[...areas,area].every(a=>{const r=validatePiste(a.points,a.widthM,next.height,{maxGrade:PISTE_GRADES[a.difficulty!].max+.12,maxCrossGrade:.3,minDrop:15});if(!r.ok&&(globalThis as {RESORT_DEBUG?:boolean}).RESORT_DEBUG)console.log('reject',area.id,'breaks',a.id,r.diagnostics,r.maxGrade.toFixed(2),r.maxCrossGrade.toFixed(2));return r.ok;});
+    const ok=[...areas,area].every(a=>{const r=validatePiste(a.points,a.widthM,next.height,{maxGrade:PISTE_GRADES[a.difficulty!].max+.12,maxCrossGrade:.3,minDrop:15});return r.ok;});
     if(!ok){features.pop();return false;}
     areas.push(area);traced.push(area.points);current=next;
     grid=buildPisteGrid(current,{minX:summit.x-1000,maxX:summit.x+1000,minZ:summit.z-1000,maxZ:summit.z+1000});
