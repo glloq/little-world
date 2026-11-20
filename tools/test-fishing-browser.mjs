@@ -55,6 +55,9 @@ try{
   await down();
   const hud=page.locator('.fishing-minigame');
   await hud.waitFor({state:'visible'});
+  await waitTarget(touch?'Maintenir pour mouliner':'Maintenir E pour mouliner');
+  assert.equal(await hud.locator('.fishing-tip').textContent(),
+   touch?'Maintenez le bouton Mouliner':'Maintenez E pour mouliner');
   let held=true,released=false;
   const stop=Date.now()+75000;
   while(Date.now()<stop){

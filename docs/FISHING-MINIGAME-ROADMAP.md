@@ -82,7 +82,7 @@
 
 - [x] Tests unitaires déterministes dans `tests/fishing.test.mjs` + adaptation de `tests/economy.test.mjs`.
 - [x] Parcours Chromium dédié avec `npm run test:fishing`, sur clavier et tactile émulé. Le test couvre le lancer, le relevage anticipé, le ferrage, le relâchement et le crédit d’un seul poisson. Il est inclus dans le workflow de validation.
-- [ ] `npm test`, `npm run typecheck`, `npm run build`, `npm run test:gameplay`.
+- [x] `npm test`, `npm run typecheck`, `npm run build` et `npm run test:gameplay` exécutés localement sur la branche d’expansion.
 - [ ] Tester 100 cycles cast/cancel/catch sur 20/30 FPS de rendu ; comparer mémoire/GC/draw calls aux références FISH-0.
 - [ ] Qualification manuelle PC à faibles ressources et smartphone : lisibilité, ergonomie, aucune touche/bouton coincé.
 - [ ] Mettre à jour README/roadmap et marquer les lots réellement livrés uniquement **après** CI et vérification navigateur.
@@ -151,4 +151,4 @@ Le MVP est accepté **uniquement si** :
 
 **Premier sprint : FISH-0 + FISH-1 + FISH-2**, sans modifier la 3D. Il livre un cœur métier testé, et garantit que la nouvelle mécanique ne produit pas de récompenses prématurées. **Deuxième sprint : FISH-3 + FISH-4**, pour obtenir la boucle complète. **Troisième sprint : FISH-5 + FISH-6**, pour la qualité visuelle et la qualification.
 
-**Cette PR #77 contient désormais du code MVP et les premières finitions FISH-5.** Ne pas la présenter comme totalement qualifiée : Le parcours complet est testé en Chromium sur clavier et tactile émulé depuis la branche d’expansion. La qualification matérielle FISH-6 reste ouverte.
+La PR #77 a livré le noyau et les premières finitions FISH-5. Le parcours complet est testé en Chromium sur clavier et tactile émulé depuis la branche d’expansion. La qualification matérielle FISH-6 reste ouverte.

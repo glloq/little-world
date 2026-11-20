@@ -1291,7 +1291,7 @@ function runFishing(){
     if(!fishing.hook()){showInfo('Ferrage raté.','warning');return;}
     player.velocity.set(0,0,0);
     character.play('fish-reel');nextFishingReelAt=elapsed+.78;
-    showInfo('Moulinez avec E, relâchez si la ligne est trop tendue.');
+    showInfo((touchCapable?'Maintenez Mouliner':'Maintenez E pour mouliner')+', puis relâchez si la ligne est trop tendue.');
   }
 }
 function updateFishing(){
@@ -1325,7 +1325,7 @@ function updateFishing(){
     if(waterAt)fishingEffects.burst(waterAt,'strain');
   }
   if(result==='bite'){
-    showInfo('Ça mord ! Appuyez sur E','success');
+    showInfo(touchCapable?'Ça mord ! Touchez Ferrer':'Ça mord ! Appuyez sur E','success');
     audio?.emit('fishing.bite',{position:waterAt??player.position,source:'player'});
     if(waterAt){fishingEffects.burst(waterAt,'bite');impacts.spawn(waterAt,'water',3);}
   }else if(result==='lost'){
@@ -1350,7 +1350,7 @@ function currentTarget():TargetDescriptor|null{
   // Active fishing owns E regardless of nearby boats, shops, NPCs or other targets.
   if(gameplay&&gameplay.fishing.state.phase!=='idle'){
     const f=gameplay.fishing.state;
-    return fishingTarget({phase:f.phase,water:f.water?WATER_NAMES[f.water]:'',ok:true});
+    return fishingTarget({phase:f.phase,water:f.water?WATER_NAMES[f.water]:'',ok:true,touch:touchCapable});
   }
   let unusable:TargetDescriptor|null=null;
   return resolveTarget([

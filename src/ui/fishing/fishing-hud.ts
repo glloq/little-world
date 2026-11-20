@@ -40,7 +40,7 @@ export function createFishingHud(){
         root.classList.toggle('fishing-danger',t>=75);
         lastTension=t;
       }
-      const hint=t>=75?'Attention : relâcher !':touch?'Maintenez Agir pour mouliner':'Maintenez E pour mouliner';
+      const hint=t>=75?'Attention : relâcher !':touch?'Maintenez le bouton Mouliner':'Maintenez E pour mouliner';
       if(tip.textContent!==hint)tip.textContent=hint;
     },
     hide(){setHidden(true);},
