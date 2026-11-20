@@ -28,7 +28,15 @@ try{
   assert.ok(ferry.boat && ferry.boarding,'Ferry must have a navigable mooring and a shore boarding anchor');
   const response=await page.request.get(base+'archipelago/catalog.json');
   assert.equal(response.status(),200);
-  assert.equal((await response.json()).islands.length,3,'Exactly three published compiled islands');
+  const {islands}=await response.json();
+  const expected=['volcano-island','forest-valley','surf-island','alpine-island','harvest-island'];
+  for(const id of expected){
+    const island=islands.find(entry=>entry.id===id);
+    assert.ok(island,'Published ferry destination: '+id);
+    const manifest=await page.request.get(new URL(island.manifest,base).href);
+    assert.equal(manifest.status(),200,'Compiled destination manifest: '+id);
+    assert.ok((await manifest.json()).worldId);
+  }
   await page.keyboard.press('KeyM');
   const map=page.locator('[data-panel="map"]');
   await map.waitFor();
@@ -43,7 +51,8 @@ try{
   await page.keyboard.press('Escape');
   // Physical interaction with the ferryman from the quay.
   await page.evaluate(point=>window.littleWorldDebug.teleport(point.x,point.z,0),ferry.boarding);
-  await page.waitForTimeout(500);
+  await page.waitForFunction(()=>/rameur|Navette maritime/i.test(document.querySelector('#action')?.textContent??''),
+    null,{timeout:20000});
   const actual=await page.evaluate(()=>({position:window.littleWorldMetrics?.position,target:window.littleWorldMetrics?.target,boarding:window.littleWorldMetrics?.ferry?.boarding}));
   console.log('FERRY_BOARDING '+JSON.stringify(actual));
   const prompt=await page.locator('#action').textContent();
@@ -59,7 +68,8 @@ try{
   if(maritime?.active){
     await page.keyboard.press('Escape');
     await page.evaluate(point=>window.littleWorldDebug.teleport(point.x,point.z,0),maritime.trade??maritime.stand);
-    await page.waitForTimeout(550);
+    await page.waitForFunction(()=>window.littleWorldMetrics?.targetId==='maritime:merchant',
+      null,{timeout:20000});
     const merchantDebug=await page.evaluate(()=>({
       target:window.littleWorldMetrics?.target,targetId:window.littleWorldMetrics?.targetId,
       position:window.littleWorldMetrics?.position,mode:window.littleWorldMetrics?.mode,
