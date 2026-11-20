@@ -9,10 +9,11 @@ test('official 4 × 3 km island remains in the primary map folder',async()=>{
   assert.equal(source.world.bounds.maxX-source.world.bounds.minX,4000);
   assert.equal(source.world.bounds.maxZ-source.world.bounds.minZ,3000);
 });
-test('Studio advertises two published islands and keeps technical fixtures isolated',async()=>{
+test('Studio advertises three published islands and keeps technical fixtures isolated',async()=>{
   const source=await readFile(file('src/studio/home-welcome.ts'),'utf8');
   const visible=source.match(/const templates=\[([\s\S]*?)\];/)?.[1]??'';
-  assert.equal((visible.match(/file:/g)??[]).length,2);
+  assert.equal((visible.match(/file:/g)??[]).length,3);
+  assert.match(visible,/surf-island\/project\.json/);
   assert.match(visible,/forest-valley\/project\.json/);
   assert.match(visible,/island\.project\.json/);
   assert.equal((await readdir(file('tests/fixtures/legacy-maps/authoring/'))).length,6);

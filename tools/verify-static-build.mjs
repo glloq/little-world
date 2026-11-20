@@ -44,6 +44,10 @@ export async function verifyStaticBuild(directory = 'dist') {
   const surf=JSON.parse(await readFile(resolve(root,'archipelago/worlds/surf-island/manifest.json'),'utf8'));
   assert.equal(surf.worldId,'little-world-surf-island','Identité de l’île Surf invalide');
   assert.equal(surf.kind,'compiled-world');
+  const surfProject=JSON.parse(await readFile(resolve(root,'archipelago/worlds/surf-island/project.json'),'utf8'));
+  assert.equal(surfProject.manifest.worldId,surf.worldId);
+  assert.ok(surfProject.libraries.settlements['composition-welcome-village'].buildings.length>=4);
+  assert.equal(Object.keys(surfProject.libraries.races).length,3);
   assert.ok(surf.chunks.length>0,'Île Surf sans secteur');
   for(const chunk of surf.chunks)
     assert.ok((await stat(resolve(root,'archipelago/worlds/surf-island',chunk.url))).isFile(),

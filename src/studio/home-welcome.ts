@@ -27,6 +27,7 @@ export interface WelcomeActions {
 const templates=[
   {file:'island.project.json',title:'Île du volcan — 4 × 3 km',desc:'Explorer et modifier le monde officiel : reliefs, falaises, biomes, villages et activités.'},
   {file:'archipelago/worlds/forest-valley/project.json',title:'Île du val forestier',desc:'Modifier le village, le port et les ruines, puis jouer la quête du carnet de Mésange.'},
+  {file:'archipelago/worlds/surf-island/project.json',title:'Île des trois vagues',desc:'Modifier le hameau du port, les trois plages et leurs parcours de surf.'},
 ];
 const fixtureShortcuts=[
   ['Ouvrir le scénario de référence','beta.project.json'],
