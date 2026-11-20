@@ -168,15 +168,16 @@ const remembered = (() => {
 })();
 if (remembered && remembered in qualityRatios) quality.value = remembered;
 else if(touchCapable)quality.value='low'; // Safe first launch; explicit preferences always win.
+let appliedWidth=-1,appliedHeight=-1,appliedRatio=-1;
 function applyQuality() {
   const mode = quality.value as RenderQuality;
-  renderer.setPixelRatio(
-    presentationPixelRatio(
+  const ratio=presentationPixelRatio(
       window.devicePixelRatio,
       qualityRatios[mode] ?? 1.35,
       budget.level,
-    ),
-  );
+    );
+  // Reallocating the drawing buffer is a visible hitch: only when the ratio really changes.
+  if(ratio!==renderer.getPixelRatio())renderer.setPixelRatio(ratio);
   resize();
 }
 quality.addEventListener('change', () => {
@@ -933,6 +934,8 @@ const clockDt = presentation.step;
 function resize() {
   const w = viewport.clientWidth,
     h = viewport.clientHeight;
+  if(w===appliedWidth&&h===appliedHeight&&renderer.getPixelRatio()===appliedRatio)return;
+  appliedWidth=w;appliedHeight=h;appliedRatio=renderer.getPixelRatio();
   renderer.setSize(w, h, false);
   camera.aspect = w / Math.max(h, 1);
   camera.updateProjectionMatrix();
@@ -1221,7 +1224,8 @@ function showInfo(text: string, kind:'info'|'success'|'warning'='info') {
   gameUi?.notify(kind,text);
 }
 const cameraTarget = new THREE.Vector3(),
-  cameraDesired = new THREE.Vector3(),audioForward=new THREE.Vector3();
+  cameraDesired = new THREE.Vector3(),cameraOffset=new THREE.Vector3(),cameraOffsetGoal=new THREE.Vector3(),audioForward=new THREE.Vector3();
+let cameraOffsetReady=false;
 function updateCamera(dt: number) {
   if(debugSurfCamera){const c=debugSurfCamera;camera.position.set(c.px,c.py,c.pz);camera.lookAt(c.tx,c.ty,c.tz);return;}
   // Presentation-only idle camera recovery, never fed back to flight physics.
@@ -1250,8 +1254,16 @@ function updateCamera(dt: number) {
   if(inSurfTube&&surfField)y=Math.min(y,Math.max(surfField.zone.seaLevel+1.25,target.y+.5));
   const desired = cameraDesired.set(x, y, z);
   // In a gallery: stay inside the open cells and under the ceiling, never above the relief.
-  if(player.space&&gameplay){const inside=gameplay.activities.cameraInMine(target,player.space,yaw,pitch,distance);if(inside){desired.set(inside.x,inside.y,inside.z);camera.position.copy(desired);camera.lookAt(target);return;}}
-  camera.position.lerp(desired, Math.min(1, dt * (inSurfTube?9:6)));
+  if(player.space&&gameplay){const inside=gameplay.activities.cameraInMine(target,player.space,yaw,pitch,distance);if(inside){desired.set(inside.x,inside.y,inside.z);camera.position.copy(desired);cameraOffset.subVectors(desired,target);cameraOffsetReady=true;camera.lookAt(target);return;}}
+  // Smooth the offset around the interpolated target, not the world position: the hero
+  // stays at the same screen distance at any speed and frame interval (no speed-dependent
+  // lag that changes with dt), while orbit and terrain corrections remain eased.
+  cameraOffsetGoal.subVectors(desired,target);
+  if(!cameraOffsetReady){cameraOffset.copy(cameraOffsetGoal);cameraOffsetReady=true;}
+  else cameraOffset.lerp(cameraOffsetGoal,1-Math.exp(-dt*(inSurfTube?9:6)));
+  camera.position.addVectors(target,cameraOffset);
+  const cameraFloor=terrainHeight(camera.position.x,camera.position.z)+(inSurfTube?.9:1.8);
+  if(!inSurfTube&&camera.position.y<cameraFloor){camera.position.y=cameraFloor;cameraOffset.y=cameraFloor-target.y;}
   camera.lookAt(target);
   camera.rotateZ(speedCue.bank);
   if(Math.abs(camera.fov-speedCue.fov)>.005){camera.fov=speedCue.fov;camera.updateProjectionMatrix();}
@@ -1749,6 +1761,7 @@ function draw(now: number) {
   const simulationBegin = performance.now();
   for (let i = 0; i < frame.steps; i++) {
     previousPlayerPosition.copy(player.position);
+    fleet.capture();
     tick(clockDt);
     elapsed += clockDt;
     remoteActors?.tick(elapsed);
@@ -1831,9 +1844,12 @@ function draw(now: number) {
   npcs.update(delta, elapsed, player.position,camera); // The river drives the mill: no manual on/off control.
   // Boats follow their state (the one in use moves; the player's own boat bobs at its mooring).
   // The player's boat, the boat in use and any boat floating on a surf swell follow their state.
-  for(const b of fleet.boats)if(b===playerBoat||b===fleet.current||b.state.waveNormal)fleet.sync(b,elapsed);
-  if(portN1View)portN1View.update(elapsed,player.position);else ferryView?.update(elapsed);
-  snowLiftView?.update(elapsed);
+  // Same instant as renderPosition (interpolated between the last two fixed steps), so boats,
+  // lifts and ferries carrying the player never slide against it on screen.
+  const renderTime=elapsed-clockDt*(1-frame.alpha);
+  for(const b of fleet.boats)if(b===playerBoat||b===fleet.current||b.state.waveNormal)fleet.sync(b,renderTime,frame.alpha);
+  if(portN1View)portN1View.update(renderTime,player.position);else ferryView?.update(renderTime);
+  snowLiftView?.update(renderTime);
   character.group.position.copy(renderPosition);
   character.setAboard(aboard);
   if(gameplay){const f=gameplay.fishing.state;character.setFishing(f.phase!=='idle'&&f.castAt?{x:f.castAt.x,y:waterSurface(f.castAt.x,f.castAt.z)??getTerrainConfig().seaLevel,z:f.castAt.z,biting:f.phase==='bite'}:null);}
@@ -2010,10 +2026,11 @@ function draw(now: number) {
     frameCount = 0;
   }
   const cost = performance.now() - begin;
+  const levelBefore=budget.level;
   if (budget.observe(cost, wallDrawDelta)) {
     presentation.rate = budget.rate;
-    world.setDetail(budget.level, quality.value === 'low');
-    applyQuality();
+    // A 30↔20 presentation change keeps detail and resolution: no rebuild, no reallocation.
+    if(budget.level!==levelBefore){world.setDetail(budget.level, quality.value === 'low');applyQuality();}
   }
   requestAnimationFrame(draw);
 }

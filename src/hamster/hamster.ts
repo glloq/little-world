@@ -101,7 +101,7 @@ export function buildHamster(options: { legacyGlb?: boolean } = {}): HamsterChar
   function face(dx: number, dz: number, dt: number, rate = 9) {
     if (Math.hypot(dx, dz) < 1e-6) return;
     const desired = Math.atan2(dx, dz), delta = Math.atan2(Math.sin(desired - facing), Math.cos(desired - facing));
-    facing += delta * Math.min(1, dt * rate);
+    facing += delta * (1 - Math.exp(-dt * rate));
   }
   const character: HamsterCharacter = {
     group, rig,

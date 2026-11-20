@@ -18,6 +18,8 @@ export interface FleetBoat {
   yaw: number;
   /** Collider footprint (x along the beam, z along the keel) and hull height, metres. */
   hull: { beam: number; length: number; height: number };
+  /** State at the previous fixed step (presentation interpolation only). */
+  previous?: { x: number; y: number; z: number; heading: number };
 }
 /** Forward axis of the boat models: rowboat long along X, sailboat along Z. */
 export const BOAT_MODEL_YAW: Record<string, number> = { 'boat.rowboat_wood': -Math.PI / 2 };
@@ -59,13 +61,19 @@ export function createFleet(collision: WorldCollisionQuery | null) {
     /** Leaving the boat: it stays there, solid again. */
     leave() { aboard = false; if (current) { current.state.speed = 0; placeCollider(current); } },
     get aboard() { return aboard; },
-    /** Model of a boat follows its state (bobbing on the water). */
-    sync(b: FleetBoat, elapsed: number) {
-      b.object.position.set(b.state.x, b.state.y + b.yOffset + Math.sin(elapsed * 1.7 + b.state.x * .1) * .055, b.state.z);
+    /** Remembers every boat's state before a fixed step, for interpolated presentation. */
+    capture() { for (const b of boats) { const p = b.previous ??= { x: 0, y: 0, z: 0, heading: 0 }; p.x = b.state.x; p.y = b.state.y; p.z = b.state.z; p.heading = b.state.heading; } },
+    /** Model of a boat follows its state (bobbing on the water), interpolated between the
+     * last two fixed steps with `alpha` like the player, so a rider never slides on the deck. */
+    sync(b: FleetBoat, elapsed: number, alpha = 1) {
+      const p = b.previous, s = b.state, u = p ? alpha : 1;
+      const x = p ? p.x + (s.x - p.x) * u : s.x, y = p ? p.y + (s.y - p.y) * u : s.y, z = p ? p.z + (s.z - p.z) * u : s.z;
+      const heading = p ? p.heading + Math.atan2(Math.sin(s.heading - p.heading), Math.cos(s.heading - p.heading)) * u : s.heading;
+      b.object.position.set(x, y + b.yOffset + Math.sin(elapsed * 1.7 + x * .1) * .055, z);
       const n = b.state.waveNormal;
-      if (!n) { b.object.rotation.set(0, b.state.heading + b.yaw, 0); return; }
+      if (!n) { b.object.rotation.set(0, heading + b.yaw, 0); return; }
       // On a surf swell the hull follows the wave slope (pitch and roll), heading unchanged.
-      yawQ.setFromAxisAngle(UP, b.state.heading + b.yaw);
+      yawQ.setFromAxisAngle(UP, heading + b.yaw);
       tiltQ.setFromUnitVectors(UP, normal.set(n.x, n.y, n.z).normalize());
       b.object.quaternion.copy(tiltQ).multiply(yawQ);
     },
