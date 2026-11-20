@@ -90,6 +90,8 @@ export interface ProjectLibraries {
   surfFeatures?:Record<StableId,import('../surf/surf-features.ts').SurfFeature>;
   /** World Production landscape presets (re-editable instances + generation record). Optional. */
   landscapes?:Record<StableId,import('../world-production/landscape-schema.ts').LandscapeInstanceV1>;
+  /** Optional mini-game instances (doc 107); absent = no mini-game module is ever loaded. */
+  minigames?:Record<StableId,import('../minigames/schema.ts').MiniGameInstanceV1>;
   /** Editable A/B geographic region recipes, stored as author-only V3 data. */
   regions?:Record<StableId,import('./region-schema.ts').RegionRecipeV1>;
 }

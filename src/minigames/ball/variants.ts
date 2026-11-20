@@ -130,9 +130,9 @@ const bowling:BallVariantLogic={
       emit(ctx.session,ctx.events,ctx.tick,{type:'game:reset',round:ctx.session.round});
     }
   },
-  hint(g,s){
+  hint(g,s,a){
     if(s.status!=='active')return null;const st=g.state as BowlingState,who=currentPlayer(s);
-    return st.phase==='rolling'?'La boule roule…':`Manche ${Math.floor(s.round/Math.max(1,s.players.length))+1}/${g.def.rules.rounds} · ${who} : lancer ${(s.attempts[who??'']??0)+1}/${g.def.rules.attempts} · maintenir F puis relâcher`;
+    return st.phase==='rolling'?'La boule roule…':`Manche ${Math.floor(s.round/Math.max(1,s.players.length))+1}/${g.def.rules.rounds} · ${who===a.id?'à vous':'au tour de '+who} : lancer ${(s.attempts[who??'']??0)+1}/${g.def.rules.attempts} · maintenir F puis relâcher`;
   },
 };
 function placeBall(g:BallGame){const t=home(g.def,el(g.def,'tee')[0]);g.world.place(0,t.x,undefined,t.z);}

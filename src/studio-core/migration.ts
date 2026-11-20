@@ -1,3 +1,4 @@
+import {minigameGeoZones} from '../minigames/schema.ts';
 import {settlementGeoZones} from '../settlements/footprint.ts';
 import {skiGeography} from '../snow/ski-area.ts';
 import {landscapeRegions} from '../world-production/landscapes.ts';
@@ -79,7 +80,7 @@ export function runtimeContent(entities:{id:string;name:string;components:Entity
 /** Geography corrections of the given sectors and the activity zones (runtime-only input). */
 export function geographyOf(project:ProjectDocument,chunks:{chunkId:string;layers?:import('../geography/layers.ts').SectorLayers}[]):WorldDefinition['geography']|undefined{
   const masks:Record<string,import('../geography/layers.ts').SectorLayers>={};for(const c of chunks)if(c.layers&&Object.keys(c.layers).length)masks[c.chunkId]=structuredClone(c.layers);
-  const zones=[...Object.values(project.libraries.zones??{}).map(z=>({kind:z.kind,polygon:z.polygon.map(p=>({...p}))})),...settlementGeoZones(project.libraries.settlements)];
+  const zones=[...Object.values(project.libraries.zones??{}).map(z=>({kind:z.kind,polygon:z.polygon.map(p=>({...p}))})),...settlementGeoZones(project.libraries.settlements),...minigameGeoZones(project.libraries.minigames)];
   const landscapes=[...landscapeRegions(project.libraries.landscapes),...regionDressingRegions(project.libraries.regions)];
   const races=Object.values(project.libraries.races??{}).flatMap(r=>r.track?[structuredClone(r.track)]:[]);
   return project.libraries.alpine||Object.keys(masks).length||zones.length||landscapes.length||races.length?{...(project.libraries.alpine?skiGeography(project.libraries.alpine):{}),sectorSizeM:project.world.chunkSizeM,masks,zones,...(landscapes.length?{landscapes}:{}),...(races.length?{races}:{})}:undefined;

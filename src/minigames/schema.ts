@@ -118,3 +118,12 @@ export function validateMiniGame(raw:unknown,bounds?:MiniGameBounds):MiniGameIns
   if(variant.teams)for(const team of teamIds)if(!raw.elements.some(e=>isObj(e)&&e.kind==='goal'&&e.teamId===team))throw Error('Mini-jeu : but absent pour l’équipe '+team);
   return structuredClone(raw) as unknown as MiniGameInstanceV1;
 }
+
+/** Reserved ground of authored mini-games (geography zones: grass, no generated trees),
+ * 1 m beyond the area. Only worlds that declare mini-games get these zones. */
+export function minigameGeoZones(games:Record<string,MiniGameInstanceV1>|undefined):{kind:'minigame';polygon:{x:number;z:number}[]}[]{
+  return Object.values(games??{}).sort((a,b)=>a.id<b.id?-1:a.id>b.id?1:0).map(g=>{
+    const w=g.area.halfWidth+1,l=g.area.halfLength+1;
+    return {kind:'minigame' as const,polygon:[[-w,-l],[w,-l],[w,l],[-w,l]].map(([x,z])=>{const p=areaToWorld(g.area,x,z);return {x:Math.round(p.x*100)/100,z:Math.round(p.z*100)/100};})};
+  });
+}
