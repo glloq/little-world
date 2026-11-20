@@ -75,6 +75,7 @@ export const MARKET_CRAFT_OFFERS:Readonly<Record<ShopKind,{sells:readonly string
     'material:flour','food:bread','food:jam','food:soup','material:stone-block',
     'material:iron-ingot','material:reed-fibre','item:reed-basket','material:plank','item:wooden-crate',
   ]},
+  ski:{sells:[],buys:[]},
   farm:{sells:[],buys:['material:flour']},
   inn:{sells:['food:bread'],buys:['food:bread','food:jam','food:soup']},
 };

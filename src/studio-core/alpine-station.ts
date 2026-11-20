@@ -49,6 +49,7 @@ export function addAlpineStation(project:ProjectDocument,area:SkiAreaV1){
  }
  if(!layout)throw Error('Station des Cimes : aucun site sec et accessible au pied du télésiège.');
  const station=layout;
+ const chalet='station-cimes:chalet';
  const signage='station-cimes:panneau',interaction=signage+':lire';
  function place(id:string,name:string,assetId:string,point:PointXZ){
   project.assets[assetId]=assetDefinitionFor(assetId)!;
@@ -57,13 +58,15 @@ export function addAlpineStation(project:ProjectDocument,area:SkiAreaV1){
    Transform:{type:'Transform',position:{...point,y:0},rotation:yawQuaternion(station.yaw),
     scale:{x:1,y:1,z:1}},
    Visual:{type:'Visual',assetId},...(collider?{Collider:collider}:{}),
+   ...(id===chalet?{ShopAccess:{type:'ShopAccess',version:1,offset:{x:0,y:0,z:-6},yaw:0,width:2.6,range:2.6},
+    State:{type:'State',initial:{shop:'ski'}}}:{}),
    ...(id===signage?{State:{type:'State',initial:{alpineStation:true}},Interactable:{type:'Interactable',prompt:'Lire le plan de la station',range:2.5,
     interactionIds:[interaction]}}:{}),
   }});
  }
  project.libraries.interactions[interaction]={id:interaction,trigger:{type:'onInteract',entityId:signage},
   repeat:'always',sequence:[{type:'showText',text:'Station des Cimes · Prenez le télésiège pour rejoindre le sommet. Au départ de la piste, ouvrez Courses et lancez le Chrono des Cimes.'}]};
- place('station-cimes:chalet','Chalet de la station',cabinAsset,layout.hut);
+ place(chalet,'Chalet et magasin de la station',cabinAsset,layout.hut);
  place(signage,'Plan de la station','structure.signpost',layout.sign);
  place('station-cimes:banc','Banc du chalet','structure.bench',layout.bench);
  const guide=createCharacter(project,{id:'station-cimes:monitrice',name:'Ariane, monitrice de ski',...layout.guide,species:'hamster'});
@@ -71,6 +74,6 @@ export function addAlpineStation(project:ProjectDocument,area:SkiAreaV1){
  dialogue.lines=[{id:dialogue.start,text:'Bienvenue à la station des Cimes. Le télésiège vous dépose au sommet de la piste.',choices:[
   {text:'Comment prendre le télésiège ?',next:'lift'},{text:'Comment lancer le chrono ?',next:'race'},{text:'À bientôt !'},
  ]},
- {id:'lift',text:'Approchez-vous de l’embarquement et utilisez la commande d’action. Les skis et le snowboard sont disponibles sur la piste.',choices:[{text:'Merci !'}]},
+ {id:'lift',text:'Approchez-vous de l’embarquement et utilisez la commande d’action. Vous pouvez essayer le matériel de prêt ou acheter des skis et un snowboard au comptoir du chalet.',choices:[{text:'Merci !'}]},
  {id:'race',text:'Au sommet, choisissez le Chrono des Cimes dans Courses. Le temps démarre à la première porte franchie en glisse.',choices:[{text:'Merci !'}]}];
 }

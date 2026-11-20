@@ -26,6 +26,7 @@ export function buildAlpineIsland(){
  if(!host)throw Error('Île des Cimes : habitant du port absent.');
  const area=project.libraries.alpine?.['composition-alpine'];
  if(!area)throw Error('Île des Cimes : piste de ski absente.');
+ area.groomed=true;
  const race=raceFromSkiArea(project.world,area,projectGeography(project).ctx.height);
  putAuthoredRace(project,race);
  addAlpineStation(project,area);

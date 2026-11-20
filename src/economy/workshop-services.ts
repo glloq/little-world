@@ -26,6 +26,7 @@ export const COUNTER_WORKSHOPS:Record<ShopKind,readonly {type:string;title:strin
   forest:[{type:'sawmill',title:'Scierie'},{type:'carpenter',title:'Menuiserie'}],
   port:[{type:'basketry',title:'Vannerie'}],
   market:[{type:'mill',title:'Moulin'},{type:'bakery',title:'Boulangerie'}],
+  ski:[],
   farm:[{type:'mill',title:'Moulin'}],
   inn:[{type:'kitchen',title:'Cuisine'},{type:'bakery',title:'Boulangerie'}],
 };

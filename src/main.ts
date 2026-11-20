@@ -554,6 +554,12 @@ const snowBounds={minX:-(definition.config.width??200)/2,maxX:(definition.config
   minZ:-(definition.config.length??600)/2,maxZ:(definition.config.length??600)/2};
 const snowPiste=authoredAlpine?.points??(snowDemo?findDemoPiste(terrainHeight,snowBounds,definition.config.seaLevel??0):null);
 let snowEquipment:SnowEquipment=authoredAlpine?.equipment??'snowboard';
+function activeSnowEquipment():SnowEquipment|null{
+  const hands=gameplay?.equipment.hands;
+  if(hands==='tool:skis')return 'skis';
+  if(hands==='tool:snowboard')return 'snowboard';
+  return snowDemo?snowEquipment:null;
+}
 let snowLiftRide:LiftRide|null=null;
 const snowLift:SkiLift|null=snowPiste&&(!authoredAlpine||authoredAlpine.lift)?{id:'alpine-preview-chair',speed:2.8,seatSpacing:14,capacity:2,
   path:snowPiste.slice().reverse().filter((_,i)=>i%4===0||i===snowPiste.length-1)
@@ -634,7 +640,7 @@ world.update(0, player.position);
 {
   const {createGameUi}=await import('./ui/app/game-ui.ts'),c=getTerrainConfig();
   const landmarks=[
-    ...(authoredAlpine?[{id:'alpine-base',label:'Ski · départ de la remontée',...authoredAlpine.points.at(-1)!},{id:'alpine-top',label:'Ski · sommet de la descente',...authoredAlpine.points[0]}]:[]),
+    ...(authoredAlpine?[{id:'alpine-base',label:'Ski · départ de la remontée',...authoredAlpine.points.at(-1)!},{id:'alpine-top',label:authoredAlpine.groomed?'Ski · départ de la piste damée':'Ski · sommet de la descente',...authoredAlpine.points[0]}]:[]),
     ...(playable?.races??[]).map(r=>({id:'race:'+r.id,label:'Course : '+r.name,x:r.gates[0].center.x,z:r.gates[0].center.z})),
     ...(playable?.gameplay.entities??[]).flatMap(e=>e.initialState.alpineStation===true&&e.position
       ?[{id:e.id,label:'Station des Cimes',x:e.position.x,z:e.position.z}]:[]),
@@ -797,12 +803,14 @@ function startAuthoredRace(id:string):{ok:boolean;message:string}{
   if(race.kind==='surf'&&player.mode!=='surf')
     return {ok:false,message:'Montez sur votre planche pour cette course'};
   if(race.kind==='ski'&&(!['ground','snow'].includes(player.mode)||
-    !(snowDemo||gameplay?.equipment.hands==='tool:skis'||gameplay?.equipment.hands==='tool:snowboard')))
+    !activeSnowEquipment()))
     return {ok:false,message:'Équipez des skis ou un snowboard et rejoignez le départ enneigé'};
   if((race.kind==='roll'||race.kind==='mixed')&&!['roll','ground'].includes(player.mode))
     return {ok:false,message:'Revenez au sol avant le départ'};
   stopFlightCourse();stopRace();
-  raceSession=beginRace(race,motionTick,player.gasPulseSeq??0);
+  const timing=race.kind==='ski'&&authoredAlpine?.groomed
+    ?{...race,layoutKey:race.layoutKey+':groomed-v1'}:race;
+  raceSession=beginRace(timing,motionTick,player.gasPulseSeq??0);
   raceGates.show(race.gates);
   raceHud.textContent=race.name+' · Traversez la porte de départ pour lancer le chrono';
   raceHud.hidden=false;
@@ -942,7 +950,8 @@ function input(): Controls {
     flightPitchInput:flightPitchIntent(player.mode,orbitDrag.active,pitch-.32),
     boostHeld:flightBoostHeld(player.mode,shiftHeld,touchAccelerateHeld),
     swimStrokePressed:touchStrokeQueue>0,
-    snowEquipment:snowDemo?snowEquipment:gameplay?.equipment.hands==='tool:snowboard'?'snowboard':gameplay?.equipment.hands==='tool:skis'?'skis':null,
+    snowEquipment:activeSnowEquipment(),
+    groomedSnow:authoredAlpine?.groomed===true&&geoContext().skiSurface?.(player.position.x,player.position.z)===true,
     surfEnabled:!!surfField&&(surfDemo||gameplay?.equipment.hands==='tool:surfboard'||(player.mode==='surf'||player.surfAirborne||surfQueue>0)&&!!gameplay?.has('tool:surfboard')),surfActionPressed:surfQueue>0,
     surfPaddleHeld:!!surfField&&(shiftHeld||touchAccelerateHeld),surfPump:!!surfField&&(shiftHeld||touchAccelerateHeld)&&player.surfStage==='ride',
   };
@@ -1044,7 +1053,13 @@ window.addEventListener('keydown', (e) => {
     activityQueue++;
   }
   if (e.code === 'KeyC') cropQueue++;
-  if (e.code === 'KeyB'&&snowDemo){snowEquipment=snowEquipment==='snowboard'?'skis':'snowboard';showInfo('Équipement : '+(snowEquipment==='skis'?'skis':'snowboard'));}
+  if (e.code === 'KeyB'&&snowDemo){
+    snowEquipment=activeSnowEquipment()==='snowboard'?'skis':'snowboard';
+    const hands=gameplay?.equipment.hands;
+    if(hands==='tool:skis'||hands==='tool:snowboard')
+      gameplay?.equipment.setHands(gameplay.has('tool:'+snowEquipment)?'tool:'+snowEquipment:null);
+    showInfo('Équipement : '+snowEquipment);
+  }
   else if(e.code==='KeyB'&&(surfFields.length||placedSurfBoard))toggleSurfBoard();
   if (e.code === 'KeyR' && started) {
     stopFlightCourse();stopRace();
@@ -1894,7 +1909,7 @@ function draw(now: number) {
         objectCulling:{...world.objectCulling},
         animated: { ...world.animated },
         occlusion: world.occlusion,
-        alpine:authoredAlpine?{id:authoredAlpine.id,points:snowPiste?.length??0,snowLineM:authoredAlpine.snowLineM,lift:!!snowLift,equipment:snowEquipment,base:snowLift?.path[0]??null,ride:snowLiftRide?.phase??null}:null,
+        alpine:authoredAlpine?{id:authoredAlpine.id,points:snowPiste?.length??0,snowLineM:authoredAlpine.snowLineM,lift:!!snowLift,equipment:activeSnowEquipment(),base:snowLift?.path[0]??null,ride:snowLiftRide?.phase??null}:null,
         boatModel: world.boat.getObjectByName('Sailboat') ? 'sailboat' : 'procedural',
         boatPosition: [boat.x, boat.y, boat.z],
         boats: { count: fleet.boats.length, aboard, current: fleet.current?.id ?? null },

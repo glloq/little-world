@@ -5,7 +5,7 @@ export const ITEM_ICONS:Readonly<Record<string,string>>={
   'farm:pumpkin':'🎃','food:potato':'🥔','food:chanterelle':'🍄',
   'food:cepe':'🍄','food:cheese':'🧀','food:bread':'🍞','food:jam':'🍯','food:soup':'🥣',
   'tool:pickaxe':'⛏','tool:pickaxe-steel':'⛏','tool:axe':'🪓',
-  'tool:miners-helmet':'⛑','tool:fishing-rod':'🎣','tool:surfboard':'🏄',
+  'tool:miners-helmet':'⛑','tool:fishing-rod':'🎣','tool:surfboard':'🏄','tool:skis':'🎿','tool:snowboard':'🏂',
   'instrument:flute':'♫','instrument:ocarina':'♫','instrument:ukulele':'♫',
   'coin':'🪙','wood:log':'🪵','mine:earth':'▧','mine:stone':'🪨','mine:iron':'◆','mine:crystal':'💎',
   'farm:wheat':'🌾','seed:wheat':'🌾','seed:carrot':'🥕','seed:pumpkin':'🎃',
