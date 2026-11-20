@@ -1,6 +1,7 @@
 import {createImpostorSectors} from './render/impostor-sectors.ts';
 import {getTerrainConfig} from './terrain.ts';
 import * as THREE from 'three';
+import {addRadialFade} from './render/radial-fade.ts';
 import { buildSquirrel, CHARACTER_SCALE } from './squirrel.ts';
 import { buildHamster } from './hamster/hamster.ts';
 import {visualNPCSpecies} from './npc-life/species.ts';
@@ -201,6 +202,9 @@ export function createNPCSystem(
     color: 0xb77d64,
     flatShading: true,
   });
+  // Distant silhouettes fade over the last 20 m before the 160 m cut (doc 105, SEAM-7).
+  const proxyFade={center:{value:new THREE.Vector3()},radius:{value:160},band:{value:20}};
+  addRadialFade(proxyFur,proxyFade);addRadialFade(proxyLight,proxyFade);
   function silhouette(definition: NPCDefinition) {
     const root = new THREE.Group();
     root.name = 'NPC silhouette:' + definition.id;
@@ -335,7 +339,7 @@ export function createNPCSystem(
     get lifeStats(){return {assigned:entries.filter(e=>!!e.state.definition.routine).length,routed:entries.filter(e=>!!e.life).length,agendas:entries.filter(e=>!!e.life?.agenda).length,unqualifiedAgendas:entries.filter(e=>e.state.definition.routine?.activities?.length&&!e.life?.agenda).length,socialPairs:socialPartners.size/2,animatedRigs:entries.filter(e=>!!e.model).length,rigBudget:lifeOptions?.rigBudget??12,scriptedReplans,scriptedBlocked,scriptedCompleted,routineRecoveries,routineBlocked,navigationRevision:navigationRevision(),roadNodes:router?.nodes??0,roadTruncated:router?.truncated??false};},
     update(dt: number, time: number, position: NPCPoint,camera?:THREE.PerspectiveCamera) {
       if (disposed) return;
-      distant.begin();distant.update(time);
+      distant.begin();distant.update(time);proxyFade.center.value.set(camera?.position.x??position.x,0,camera?.position.z??position.z);
       if(time<lastRigSample||time-lastRigSample>=.5){
         const focus={x:camera?.position.x??position.x,z:camera?.position.z??position.z};
         rigIds=selectNPCRigs(entries.map(e=>({id:e.state.definition.id,kind:e.state.definition.kind,

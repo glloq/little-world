@@ -4,6 +4,7 @@
 import * as THREE from 'three';
 import type {Placement} from '../world-data.ts';
 import {naturalMesh} from './natural-mesh.ts';
+import {addRadialFade} from '../render/radial-fade.ts';
 
 export const NATURAL_DRAW_BUDGET={radius:260,hysteresis:24,maxVisible:48,rebuildStep:16} as const;
 export interface NaturalViewStats {registered:number;visible:number;rebuilds:number;triangles:number;drawCalls:number}
@@ -16,6 +17,12 @@ export function createNaturalView(parent:THREE.Object3D,ground:(x:number,z:numbe
  const parked=new Map<string,THREE.Group>(),PARKED_MAX=64;
  const stats:NaturalViewStats={registered:0,visible:0,rebuilds:0,triangles:0,drawCalls:0};
  let previousX=NaN,previousZ=NaN,disposed=false;
+ // Structures fade over the last 30 m of the radius instead of appearing whole (SEAM-7).
+ const fade={center:{value:new THREE.Vector3()},radius:{value:NATURAL_DRAW_BUDGET.radius},band:{value:30}};
+ // Invisible template with the exact material of the structures: the loading-screen shader
+ // warm-up compiles its program, so the first structure to appear does not stall a frame.
+ const templateMaterial=new THREE.MeshLambertMaterial({vertexColors:true,flatShading:true,side:THREE.DoubleSide});addRadialFade(templateMaterial,fade);
+ const template=new THREE.Mesh(new THREE.BufferGeometry(),templateMaterial);template.visible=false;template.name='Natural structure shader template';root.add(template);
  const disposeGroup=(g:THREE.Group)=>{
    g.traverse(o=>{if(o instanceof THREE.Mesh){o.geometry.dispose();for(const material of Array.isArray(o.material)?o.material:[o.material])material.dispose();}});
    g.removeFromParent();
@@ -28,6 +35,7 @@ export function createNaturalView(parent:THREE.Object3D,ground:(x:number,z:numbe
    entries.set(p.id,p);stats.registered=entries.size;previousX=NaN;
  };
  const update=(x:number,z:number)=>{
+   if(!disposed)fade.center.value.set(x,0,z);
    if(disposed||Math.hypot(x-previousX,z-previousZ)<NATURAL_DRAW_BUDGET.rebuildStep)return;
    previousX=x;previousZ=z;stats.rebuilds++;
    const r=NATURAL_DRAW_BUDGET.radius+NATURAL_DRAW_BUDGET.hysteresis;
@@ -50,12 +58,13 @@ export function createNaturalView(parent:THREE.Object3D,ground:(x:number,z:numbe
      else obj.scale.setScalar(p.scale??1);
      obj.userData.entityId=p.id;obj.userData.placementId=p.id;
      obj.updateMatrix();obj.matrixAutoUpdate=false;
+     obj.traverse(o=>{if(o instanceof THREE.Mesh)for(const m of Array.isArray(o.material)?o.material:[o.material])addRadialFade(m,fade);});
      root.add(obj);active.set(p.id,obj);
    }
    stats.visible=active.size;stats.drawCalls=active.size;stats.triangles=active.size*(16*8+4);
  };
  return {add,update,stats,dispose(){
-   if(disposed)return;disposed=true;for(const g of active.values())disposeGroup(g);for(const g of parked.values())disposeGroup(g);
+   if(disposed)return;disposed=true;template.geometry.dispose();templateMaterial.dispose();for(const g of active.values())disposeGroup(g);for(const g of parked.values())disposeGroup(g);
    active.clear();parked.clear();entries.clear();root.removeFromParent();stats.visible=0;stats.drawCalls=0;stats.triangles=0;
  }};
 }
