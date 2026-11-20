@@ -26,14 +26,14 @@
       "id": "alpine-island",
       "name": "Île des Cimes",
       "manifest": "archipelago/worlds/alpine-island/manifest.json",
-      "description": "Massif enneigé, piste de ski, télésiège, course de roulade et hameau maritime.",
+      "description": "Massif enneigé, télésiège, chrono de ski, course de roulade et mission au port.",
       "portLevel": 0
     },
     {
       "id": "harvest-island",
       "name": "Île des Moissons",
       "manifest": "archipelago/worlds/harvest-island/manifest.json",
-      "description": "Village agricole, jardins cultivables, champs des habitants, moulin et course de roulade.",
+      "description": "Village agricole, jardins cultivables, moulin, course de roulade et mission de récolte.",
       "portLevel": 0
     }
   ]

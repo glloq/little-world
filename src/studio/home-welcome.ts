@@ -28,8 +28,8 @@ const templates=[
   {file:'island.project.json',title:'Île du volcan — 4 × 3 km',desc:'Explorer et modifier le monde officiel : reliefs, falaises, biomes, villages et activités.'},
   {file:'archipelago/worlds/forest-valley/project.json',title:'Île du val forestier',desc:'Modifier le village, le port et les ruines, puis jouer la quête du carnet de Mésange.'},
   {file:'archipelago/worlds/surf-island/project.json',title:'Île des trois vagues',desc:'Modifier le hameau du port, les trois plages et leurs parcours de surf.'},
-  {file:'archipelago/worlds/alpine-island/project.json',title:'Île des Cimes',desc:'Modifier le hameau maritime, la piste de ski, le télésiège et la course de roulade.'},
-  {file:'archipelago/worlds/harvest-island/project.json',title:'Île des Moissons',desc:'Modifier le village agricole, ses jardins, son moulin et ses accès.'},
+  {file:'archipelago/worlds/alpine-island/project.json',title:'Île des Cimes',desc:'Modifier le hameau maritime, la piste, le télésiège, le chrono de ski et sa mission.'},
+  {file:'archipelago/worlds/harvest-island/project.json',title:'Île des Moissons',desc:'Modifier le village agricole, ses jardins, son moulin et la mission de récolte.'},
 ];
 const fixtureShortcuts=[
   ['Ouvrir le scénario de référence','beta.project.json'],
