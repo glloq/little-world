@@ -107,3 +107,36 @@ Changer d’équipement arrête la tentative.
 Deux tremplins balisés jalonnent la descente. Ils déclenchent un saut dans le
 sens de la piste avec une vitesse d’au moins 6 m/s. Les portes restent valides
 pendant ce saut et la réception sur neige reprend la glisse.
+
+## Domaine skiable des Cimes (V2)
+
+**Statut : implémenté et testé sur branche (Node + navigateur SwiftShader) ; performance non qualifiée sur GPU intégré.**
+
+### Ce qui change pour le joueur
+
+- **Matériel acheté, plus de prêt automatique.** Sur une île dont la station possède un comptoir `shop: 'ski'` (les Cimes), aucun ski n’apparaît plus en entrant sur la neige. Le chalet vend skis (24 pièces) et snowboard (28 pièces) ; on les équipe depuis le sac ou avec **B**, qui alterne le matériel possédé (ou le range si un seul est possédé). Sans matériel, on marche dans la neige et un rappel indique le chalet. Le prêt reste disponible avec `?snowDemo=1` et sur un prototype de ski créé dans Studio sans magasin.
+- **Neige sur toute la haute montagne.** Les masques de matériaux générés par la composition recouvraient la limite de neige (seul le couloir de piste était blanc). Le générateur des Cimes remet ces cellules à la valeur calculée au-dessus de la limite de neige ; la limite elle-même devient irrégulière (bruit basse fréquence ±9 m, un peu plus haute sur les faces raides), identique dans les workers, le jeu et le Studio.
+- **8 pistes balisées** (verte, bleues, rouges, noires) et **7 remontées** : la télécabine des Cimes depuis le chalet, cinq télésièges sur les autres versants et le téléski du Jardin des Neiges pour débuter. Chaque piste est jalonnée à ses couleurs (un `InstancedMesh` pour tous les jalons) et teintée « neige damée » ; la carte indique les départs de piste et les embarquements.
+- **Remontées vérifiées jusqu’en haut** : la commande d’action près d’une gare réserve la prochaine cabine/siège/perche ; le passager suit exactement le siège dessiné, puis est déposé à la gare d’arrivée, à côté du départ de sa piste. Les sauts (Espace) et les bosses en ski se terminent désormais sur les skis, sans roulade.
+
+### Relief et données auteur
+
+- `ArchipelagoParams.summitShaping` (facultatif) : remodelage **monotone** au-dessus de `fromM` (Cimes : 190 m, échelle 0,45). Il adoucit les pentes du massif sans toucher à la rivière (≤ 173 m), au port ni à la course de roulade ; tout tracé descendant reste descendant. Sommet ≈ 406 m au lieu de 650 m : c’est le compromis retenu pour obtenir des pentes skiables sur une île de 4 × 3 km.
+- Nouvelle forme de relief `piste` (« Piste damée ») : points, un niveau par point, largeur et raccord latéral. Le terrain est fondu vers un profil longitudinal lissé et strictement descendant (déblai/remblai ≤ 10 m), sans dévers. Le niveau est une moyenne gaussienne des sommets voisins (tracé densifié à 6 m) : surface continue même à l’intérieur des virages. Éditable dans l’éditeur de relief comme une crête ou une vallée.
+- `libraries.alpine` accepte jusqu’à 24 pistes ; `composition-alpine` reste la piste principale (chrono, tremplins, station). Champs facultatifs de `SkiAreaV1` : `difficulty`, `liftPath` (base → sommet), `liftKind` (`gondola`/`chairlift`/`draglift`), `liftName`. Sans `liftPath`, l’ancien télésiège le long de la piste est conservé ; les anciens projets restent lisibles.
+- Planification (`src/studio-core/alpine-resort.ts`, `src/snow/resort-planner.ts`) : base au replat côté village, télécabine vers une gare sommitale, puis itinéraires calculés par Dijkstra (cellule + cap, virages ≤ 45°) visant la pente cible de chaque difficulté, avec dévers brut borné, couloir libre d’obstacles et distance aux autres pistes. Chaque piste est damée aussitôt ; elle n’est conservée que si toutes les pistes déjà acceptées restent dans leurs limites. Une piste introuvable est simplement omise (le monde n’est jamais forcé).
+- Câbles : stations basses (embarquement au niveau de la neige), pylônes ajoutés là où une portée passerait sous la garde au sol ; le téléski suit le sol. Le parcours est dérivé au chargement du relief compilé, pas stocké.
+- Compilation : `geography.ski` (piste principale) + `geography.skiRuns` (autres pistes) pour la surface neigeuse ; `PlayableWorld.alpineAreas` pour remontées, balisage et carte.
+
+### Limites connues
+
+- Modifier le tracé d’une piste dans **Courses** ne déplace pas sa forme `piste` damée : la retoucher dans l’éditeur de relief.
+- Une seule réservation de siège à la fois, non sauvegardée ; pas de file d’attente partagée ni de collisions sur les sièges.
+- Génération de l’île des Cimes ≈ 17 s (planification incrémentale avec damage) ; acceptable au build, à surveiller dans le serveur de développement.
+- Qualité visuelle et coût GPU des remontées/jalons mesurés uniquement sous SwiftShader.
+
+### Vérification
+
+- `node --experimental-strip-types --test tests/ski-resort.test.mjs` : itinéraires, profil damé, continuité du relief, garde au sol des câbles, montée complète de chaque type de remontée, schéma.
+- `tests/published-expansion-islands.test.mjs` : ≥ 6 pistes des 4 couleurs, ≥ 5 remontées dont télécabine/télésiège/téléski, chaque remontée dépose à sa gare d’arrivée près de sa piste, neige au sommet et sur toutes les pistes, chrono skis et snowboard terminés avec les deux tremplins.
+- `node tools/test-expansion-islands-browser.mjs` : aucun prêt automatique, achat et équipement, chrono, tremplins, embarquement télécabine, montée complète du téléski jusqu’à la gare d’arrivée.

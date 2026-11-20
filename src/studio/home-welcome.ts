@@ -1,3 +1,4 @@
+import {PISTE_COLORS} from '../snow/resort-planner.ts';
 import {compositionDraftStore} from './composition-draft-store.ts';
 import {islandStyleControls} from './island-style-controls.ts';
 import {ISLAND_STYLES} from '../studio-core/island-styles.ts';
@@ -28,7 +29,7 @@ const templates=[
   {file:'island.project.json',title:'Île du volcan — 4 × 3 km',desc:'Explorer et modifier le monde officiel : reliefs, falaises, biomes, villages et activités.'},
   {file:'archipelago/worlds/forest-valley/project.json',title:'Île du val forestier',desc:'Modifier le village, le port et les ruines, puis jouer la quête du carnet de Mésange.'},
   {file:'archipelago/worlds/surf-island/project.json',title:'Île des trois vagues',desc:'Modifier le hameau du port, les trois plages et leurs parcours de surf.'},
-  {file:'archipelago/worlds/alpine-island/project.json',title:'Île des Cimes',desc:'Modifier le chalet et la station de ski, le télésiège, le chrono et sa mission.'},
+  {file:'archipelago/worlds/alpine-island/project.json',title:'Île des Cimes',desc:'Modifier la station de ski : pistes balisées, télécabine, télésièges, téléski, chalet, chrono et mission.'},
   {file:'archipelago/worlds/harvest-island/project.json',title:'Île des Moissons',desc:'Modifier le village agricole, ses jardins, son moulin et la mission de récolte.'},
 ];
 const fixtureShortcuts=[
@@ -109,7 +110,7 @@ export function drawWelcomePreview(canvas:HTMLCanvasElement,project:ProjectDocum
     for(const f of def.archipelago.features)if(f.kind==='mountain'||f.kind==='volcano'){const q=projectPoint(f);ctx.fillStyle='#504c48';ctx.fillText(f.kind==='volcano'?'▲ V':'▲',q.x,q.y);}
   }
   for(const w of Object.values(project.libraries.water)){line(w.points,'#1677c4',w.kind==='lake',Math.max(1,Math.min(3,w.width/width*rect.w)));if(w.kind==='lake'){ctx.fillStyle='#459bd8';ctx.fill();}for(const fall of w.falls??[]){const q=projectPoint(w.points[fall.at]);ctx.fillStyle='#fff';ctx.fillRect(q.x-2,q.y-2,5,5);}}
-  if(project.libraries.alpine)line(project.libraries.alpine['composition-alpine'].points,'#f2fbff',false,3);
+  for(const area of Object.values(project.libraries.alpine??{}))line(area.points,area.difficulty?'#'+PISTE_COLORS[area.difficulty].toString(16).padStart(6,'0'):'#f2fbff',false,3);
   for(const race of Object.values(project.libraries.races??{}))if(race.track)line(race.track.points,'#a336ad',false,2);
   for(const path of Object.values(project.libraries.paths))line(path.points,'#9b512a',false,Math.max(1.3,path.width/width*rect.w));
   for(const zone of Object.values(project.libraries.zones??{}))if(zone.kind==='farm-plot'){line(zone.polygon,zone.farm?.assignment==='player'?'#2c8393':'#c18d24',true,1);ctx.fillStyle=zone.farm?.assignment==='player'?'#65c9d488':'#e0bd4f66';ctx.fill();}

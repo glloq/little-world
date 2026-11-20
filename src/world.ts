@@ -1053,7 +1053,7 @@ export function buildWorld(
 export function configureWorldGeography(config: WorldConfig, definition?: WorldDefinition) {
   const width = config.width ?? 200, length = config.length ?? 600, sector = definition?.geography?.sectorSizeM ?? config.chunkSize ?? 64;
   configureGeography({
-    seed: config.seed,ski:definition?.geography?.ski,snowLineM:definition?.geography?.snowLineM,
+    seed: config.seed,ski:definition?.geography?.ski,skiRuns:definition?.geography?.skiRuns,snowLineM:definition?.geography?.snowLineM,
     grid: { minX: -width / 2, minZ: -length / 2, chunkSizeM: sector, columns: Math.ceil(width / sector), rows: Math.ceil(length / sector) },
     masks: definition?.geography?.masks ?? {},
     zones: definition?.geography?.zones ?? [],

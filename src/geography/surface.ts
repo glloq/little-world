@@ -11,4 +11,6 @@ export function surfaceColor(x:number,z:number,h:number,rise2m:number,out:{setHe
   const context=geoContext(),dx=terrainHeight(x+2,z)-terrainHeight(x-2,z),dz=terrainHeight(x,z+2)-terrainHeight(x,z-2);
   if(normal){const length=Math.hypot(dx,4,dz);normal.x=-dx/length;normal.y=4/length;normal.z=-dz/length;}
   materialColor(classifyPoint(context,x,z,{height:h,slope:Math.hypot(dx,dz)/4}),context.seaLevel,out,x,z,context.seed);
+  // Groomed runs read as packed, slightly blue snow next to the powder.
+  if(context.skiSurface?.(x,z)){out.r*=.84;out.g*=.9;out.b*=.97;}
 }

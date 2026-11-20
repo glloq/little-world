@@ -69,7 +69,7 @@ export type ShopKind='mine'|'forest'|'port'|'market'|'farm'|'inn'|'ski';
 export interface ShopDefinition {kind:ShopKind;name:string;sells:string[];buys:string[];greeting:string}
 /** Counter catalogues per place (data, editable in a later Studio panel). */
 export const SHOPS:Record<ShopKind,ShopDefinition>={
-  ski:{kind:'ski',name:'Magasin de la station',sells:['tool:skis','tool:snowboard'],buys:['tool:skis','tool:snowboard'],greeting:'Essayez le matériel de prêt ou achetez le vôtre pour le garder dans votre sac.'},
+  ski:{kind:'ski',name:'Magasin de la station',sells:['tool:skis','tool:snowboard'],buys:['tool:skis','tool:snowboard'],greeting:'Skis ou snowboard ? Achetez votre matériel ici, puis équipez-le depuis le sac ou avec B.'},
   mine:{kind:'mine',name:'Comptoir de la mine',sells:['tool:pickaxe','tool:pickaxe-steel','tool:miners-helmet'],buys:['mine:earth','mine:stone','mine:iron','mine:crystal'],greeting:'Une pioche solide, et la montagne vous rendra riche.'},
   forest:{kind:'forest',name:'Comptoir du bûcheron',sells:['tool:axe'],buys:['wood:log','forage:mushroom','forage:flower'],greeting:'Coupez sans dévaster : la forêt repousse si on la respecte.'},
   port:{kind:'port',name:'Comptoir du port',sells:['tool:fishing-rod','tool:surfboard'],buys:['fish:trout','fish:perch','fish:carp','fish:mackerel','fish:sardine','fish:seabass','fish:golden','forage:reed'],greeting:'Le poisson est frais ? Je vous l’achète.'},

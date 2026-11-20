@@ -37,7 +37,9 @@ import {SurfPerfRecorder,instrumentGround,instrumentSurfField} from './surf/surf
 import {inCameraView,surfDrawStats} from './render/surf-render-stats.ts';
 import {boardOnWater,boardRequest,isSurfBoardWaterSafe,type SurfBoardPlacement} from './surf/board-placement.ts';
 import {createSurfHud} from './ui/surf/surf-hud.ts';
-import {boardLift,liftRideStep,type SkiLift,type LiftRide} from './snow/ski-lift.ts';
+import {boardResortLift,nearestLiftBase,resortLifts,stepResortRide,type ActiveRide,type ResortLift} from './snow/ski-resort.ts';
+import {createPisteMarkers} from './render/piste-markers.ts';
+import {PISTE_LABELS} from './snow/resort-planner.ts';
 import {createSkiLiftView} from './snow/ski-lift-view.ts';
 import type {SnowEquipment} from './snow/snow-slide.ts';
 import {MATERIAL_BY_MINE_KEY} from './audio/context.ts';
@@ -555,24 +557,29 @@ const snowDemo=(!!authoredAlpine||searchParams.get('snowDemo')==='1'||activeIsla
 const snowBounds={minX:-(definition.config.width??200)/2,maxX:(definition.config.width??200)/2,
   minZ:-(definition.config.length??600)/2,maxZ:(definition.config.length??600)/2};
 const snowPiste=authoredAlpine?.points??(snowDemo?findDemoPiste(terrainHeight,snowBounds,definition.config.seaLevel??0):null);
+// Free loan equipment only in the technical preview (?snowDemo=1) or on a ski prototype that has
+// no ski shop; a station with a shop (Cimes) sells skis and snowboards instead.
+const skiShop=(playable?.gameplay.entities??[]).some(e=>e.initialState.shop==='ski');
+const snowLoan=(searchParams.get('snowDemo')==='1'||!!authoredAlpine&&!skiShop)&&!isLegacyTerrain();
 let snowEquipment:SnowEquipment=authoredAlpine?.equipment??'snowboard';
 function activeSnowEquipment():SnowEquipment|null{
   const hands=gameplay?.equipment.hands;
   if(hands==='tool:skis')return 'skis';
   if(hands==='tool:snowboard')return 'snowboard';
-  return snowDemo?snowEquipment:null;
+  return snowLoan?snowEquipment:null;
 }
-let snowLiftRide:LiftRide|null=null;
-const snowLift:SkiLift|null=snowPiste&&(!authoredAlpine||authoredAlpine.lift)?{id:'alpine-preview-chair',speed:2.8,seatSpacing:14,capacity:2,
-  path:snowPiste.slice().reverse().filter((_,i)=>i%4===0||i===snowPiste.length-1)
-    .map(p=>({x:p.x,y:terrainHeight(p.x,p.z)+3.5,z:p.z}))}:null;
+const skiAreas=playable?.alpineAreas??(authoredAlpine?[authoredAlpine]:[]);
+const resortLiftList:ResortLift[]=skiAreas.length?resortLifts(skiAreas,terrainHeight):
+  snowPiste?resortLifts([{version:1,id:'alpine-preview',name:'Aperçu',points:snowPiste,widthM:7,snowLineM:0,equipment:'snowboard',lift:true}],terrainHeight):[];
+let liftRide:ActiveRide|null=null,liftHint:string|null=null,noEquipmentHintAt=-Infinity;
 if(snowPiste){
   const lower=snowPiste[snowPiste.length-1];
   setPreviewSnowline(authoredAlpine?.snowLineM??terrainHeight(lower.x,lower.z)-8);
   if(!authoredAlpine)player.position.set(lower.x,terrainHeight(lower.x,lower.z)+.05,lower.z);
   player.velocity.set(0,0,0);player.mode='ground';
 }
-const snowLiftView=snowLift?createSkiLiftView(scene,snowLift):null;
+const snowLiftView=resortLiftList.length?createSkiLiftView(scene,resortLiftList,terrainHeight):null;
+const pisteMarkers=skiAreas.some(a=>a.difficulty)?createPisteMarkers(scene,skiAreas.filter(a=>a.difficulty),terrainHeight):null;
 // Non-destructive surf laboratory (?surfDemo=1). Island authoring/compilation follows later.
 const surfDemo=searchParams.get('surfDemo')==='1'&&!snowDemo&&!isLegacyTerrain();
 const surfSite=surfDemo?findDemoSurfSite(terrainHeight,snowBounds,definition.config.seaLevel??0,definition.config.seed):null;
@@ -652,7 +659,9 @@ world.update(0, player.position);
 {
   const {createGameUi}=await import('./ui/app/game-ui.ts'),c=getTerrainConfig();
   const landmarks=[
-    ...(authoredAlpine?[{id:'alpine-base',label:'Ski · départ de la remontée',...authoredAlpine.points.at(-1)!},{id:'alpine-top',label:authoredAlpine.groomed?'Ski · départ de la piste damée':'Ski · sommet de la descente',...authoredAlpine.points[0]}]:[]),
+    ...(authoredAlpine&&!authoredAlpine.difficulty?[{id:'alpine-base',label:'Ski · départ de la remontée',...authoredAlpine.points.at(-1)!},{id:'alpine-top',label:authoredAlpine.groomed?'Ski · départ de la piste damée':'Ski · sommet de la descente',...authoredAlpine.points[0]}]:[]),
+    ...skiAreas.filter(a=>a.difficulty).map(a=>({id:'piste:'+a.id,label:'Piste '+PISTE_LABELS[a.difficulty!]+' · '+a.name,...a.points[0]})),
+    ...resortLiftList.filter(l=>skiAreas.find(a=>a.id===l.areaId)?.liftPath).map(l=>({id:l.id,label:l.name+' · embarquement',x:l.lift.path[0].x,z:l.lift.path[0].z})),
     ...(playable?.races??[]).map(r=>({id:'race:'+r.id,label:'Course : '+r.name,x:r.gates[0].center.x,z:r.gates[0].center.z})),
     ...(playable?.gameplay.entities??[]).flatMap(e=>e.initialState.alpineStation===true&&e.position
       ?[{id:e.id,label:'Station des Cimes',x:e.position.x,z:e.position.z}]:[]),
@@ -971,6 +980,17 @@ function input(): Controls {
     surfPaddleHeld:!!surfField&&(shiftHeld||touchAccelerateHeld),surfPump:!!surfField&&(shiftHeld||touchAccelerateHeld)&&player.surfStage==='ride',
   };
 }
+/** B on a ski island: switch between the skis and snowboard the player owns (or the
+ * preview loan). Nothing is lent on an authored island: the station shop sells them. */
+function toggleSnowEquipment():void{
+  const hands=gameplay?.equipment.hands,owned=(['skis','snowboard'] as const).filter(id=>gameplay?.has('tool:'+id));
+  if(snowLoan&&!owned.length){snowEquipment=activeSnowEquipment()==='snowboard'?'skis':'snowboard';showInfo('Équipement de prêt : '+snowEquipment);return;}
+  if(!owned.length){showInfo('Achetez des skis ou un snowboard au chalet de la station pour glisser.','warning');return;}
+  const current=hands==='tool:skis'?'skis':hands==='tool:snowboard'?'snowboard':null;
+  const next=owned.length===2?(current==='skis'?'snowboard':'skis'):current?null:owned[0];
+  gameplay?.equipment.setHands(next?'tool:'+next:null);
+  showInfo(next?'Équipement : '+(next==='skis'?'skis':'snowboard'):'Équipement rangé dans le sac');
+}
 /** Deploy the equipped board onto deep wave-zone water, then board it from swimming. */
 function toggleSurfBoard():void{
  if(aboard||player.space)return;
@@ -1068,13 +1088,7 @@ window.addEventListener('keydown', (e) => {
     activityQueue++;
   }
   if (e.code === 'KeyC') cropQueue++;
-  if (e.code === 'KeyB'&&snowDemo){
-    snowEquipment=activeSnowEquipment()==='snowboard'?'skis':'snowboard';
-    const hands=gameplay?.equipment.hands;
-    if(hands==='tool:skis'||hands==='tool:snowboard')
-      gameplay?.equipment.setHands(gameplay.has('tool:'+snowEquipment)?'tool:'+snowEquipment:null);
-    showInfo('Équipement : '+snowEquipment);
-  }
+  if (e.code === 'KeyB'&&snowDemo)toggleSnowEquipment();
   else if(e.code==='KeyB'&&(surfFields.length||placedSurfBoard))toggleSurfBoard();
   if (e.code === 'KeyR' && started) {
     stopFlightCourse();stopRace();
@@ -1476,7 +1490,7 @@ function tick(dt: number) {
   if(gameplay)gameplay.update(dt);else worldClock.advance(dt);
   // Boosts recharge even when walking, swimming, on a boat or taking a lift.
   // The ordinary player simulation handles other motion states below.
-  if(aboard||snowLiftRide)stepBoostVitals(player,dt);
+  if(aboard||liftRide)stepBoostVitals(player,dt);
   if(cargoService){
     const cargoMinute=worldGameMinute(worldClock.time,climate.definition.dayLengthSeconds);
     if(cargoMinute!==lastCargoMinute){
@@ -1513,18 +1527,25 @@ function tick(dt: number) {
   // A sold or discarded board cannot remain duplicated in the water.
   if(placedSurfBoard&&!surfDemo&&!gameplay?.has('tool:surfboard'))placedSurfBoard=null;
   const keys = input();
-  if(snowLiftRide?.phase==='waiting'&&snowLift&&Math.hypot(player.position.x-snowLift.path[0].x,player.position.z-snowLift.path[0].z)>5){snowLiftRide=null;showInfo('Embarquement annulé');}
-  const chair=snowLift&&snowLiftRide?liftRideStep(snowLift,snowLiftRide,elapsed):null;
-  if(chair?.finished&&snowLift){
-    const top=snowLift.path[snowLift.path.length-1];
-    player.position.set(top.x,terrainHeight(top.x,top.z)+.05,top.z);player.velocity.set(0,0,0);player.mode='ground';
-    snowLiftRide=null;jumpQueue=0;showInfo('Arrivée au sommet');
-  } else if(chair?.pose){
-    player.position.set(chair.pose.x,chair.pose.y,chair.pose.z);player.velocity.set(0,0,0);player.mode='ground';
+  if(!liftRide&&resortLiftList.length){
+    const near=nearestLiftBase(resortLiftList,player.position.x,player.position.z);
+    if(near&&liftHint!==near.id&&!aboard)showInfo('E : prendre '+near.name);
+    liftHint=near?.id??null;
+  }
+  if(skiAreas.length&&!snowLoan&&!liftRide&&!activeSnowEquipment()&&elapsed-noEquipmentHintAt>30&&geoContext().skiSurface?.(player.position.x,player.position.z)){
+    noEquipmentHintAt=elapsed;showInfo('Pour glisser, achetez des skis ou un snowboard au chalet de la station, puis équipez-les (B).');
+  }
+  if(liftRide?.ride.phase==='waiting'){const base=liftRide.lift.lift.path[0];if(Math.hypot(player.position.x-base.x,player.position.z-base.z)>5){liftRide=null;showInfo('Embarquement annulé');}}
+  const ride=liftRide?stepResortRide(liftRide,elapsed):null;
+  if(ride?.kind==='arrived'){
+    player.position.set(ride.top.x,terrainHeight(ride.top.x,ride.top.z)+.05,ride.top.z);player.velocity.set(0,0,0);player.mode='ground';
+    showInfo('Arrivée en haut · '+liftRide!.lift.name,'success');liftRide=null;jumpQueue=0;
+  } else if(ride?.kind==='riding'){
+    player.position.set(ride.pose.x,ride.pose.y,ride.pose.z);player.velocity.set(0,0,0);player.mode='ground';
     jumpQueue=0;actionQueue=0;
-  } else if(snowLiftRide?.phase==='waiting'&&snowLift){
+  } else if(ride?.kind==='waiting'&&liftRide){
     // The rider stays on the boarding platform until the reserved seat arrives.
-    const base=snowLift.path[0];player.position.set(base.x,terrainHeight(base.x,base.z)+.05,base.z);
+    const base=liftRide.lift.lift.path[0];player.position.set(base.x,terrainHeight(base.x,base.z)+.05,base.z);
     player.velocity.set(0,0,0);player.mode='ground';jumpQueue=0;
   } else if (aboard) {
     updateBoat(boat, { throttle: mobileTouch?.accelerateHeld?Math.max(1,keys.forward):keys.forward, steer: keys.right }, dt);boatSteer=keys.right;
@@ -1647,11 +1668,11 @@ function tick(dt: number) {
       // The business system said no: tell why (never act on a disabled target).
       showInfo(target.primaryAction.disabledReason ?? 'Impossible pour le moment', 'warning');
       audio?.emit('ui.error', { source: 'ui' });
-    } else if(snowLiftRide?.phase==='waiting'){
-      snowLiftRide=null;showInfo('Embarquement annulé');
-    } else if(snowLift&&!snowLiftRide&&!aboard&&!player.space&&Math.hypot(player.position.x-snowLift.path[0].x,player.position.z-snowLift.path[0].z)<4){
-      snowLiftRide=boardLift(snowLift,player.position,elapsed);
-      if(snowLiftRide)showInfo('Télésiège : attente du prochain siège');
+    } else if(liftRide?.ride.phase==='waiting'){
+      liftRide=null;showInfo('Embarquement annulé');
+    } else if(!liftRide&&!aboard&&!player.space&&nearestLiftBase(resortLiftList,player.position.x,player.position.z)){
+      liftRide=boardResortLift(resortLiftList,player.position,terrainHeight(player.position.x,player.position.z),elapsed);
+      if(liftRide)showInfo(liftRide.lift.name+' : attente du prochain '+(liftRide.lift.kind==='gondola'?'cabine':liftRide.lift.kind==='draglift'?'perche':'siège'));
     } else if (target?.targetType === 'maritime-trade') {
       gameUi?.openMaritimeTrade();
     } else if (target?.targetType === 'ferry') {
@@ -1928,7 +1949,7 @@ function draw(now: number) {
         objectCulling:{...world.objectCulling},
         animated: { ...world.animated },
         occlusion: world.occlusion,
-        alpine:authoredAlpine?{id:authoredAlpine.id,points:snowPiste?.length??0,snowLineM:authoredAlpine.snowLineM,lift:!!snowLift,equipment:activeSnowEquipment(),snowAirborne:player.snowAirborne===true,jumps:skiJumps.map(gate=>gate.center),base:snowLift?.path[0]??null,ride:snowLiftRide?.phase??null}:null,
+        alpine:authoredAlpine?{id:authoredAlpine.id,points:snowPiste?.length??0,snowLineM:authoredAlpine.snowLineM,lift:resortLiftList.length>0,equipment:activeSnowEquipment(),snowAirborne:player.snowAirborne===true,jumps:skiJumps.map(gate=>gate.center),base:resortLiftList[0]?.lift.path[0]??null,ride:liftRide?.ride.phase??null,rideLift:liftRide?.lift.id??null,pistes:skiAreas.length,lifts:resortLiftList.map(l=>({id:l.id,kind:l.kind,base:l.lift.path[0],top:l.lift.path[l.lift.path.length-1],length:Math.round(l.lift.path.reduce((d,p,i,a)=>i?d+Math.hypot(p.x-a[i-1].x,p.z-a[i-1].z):0,0))})),markers:pisteMarkers?.poles??0,at:{x:player.position.x,y:player.position.y,z:player.position.z}}:null,
         boatModel: world.boat.getObjectByName('Sailboat') ? 'sailboat' : 'procedural',
         boatPosition: [boat.x, boat.y, boat.z],
         boats: { count: fleet.boats.length, aboard, current: fleet.current?.id ?? null },

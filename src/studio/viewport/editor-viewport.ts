@@ -373,5 +373,5 @@ function rangeGeometry(){
 }
 function geographySignatures(d:WorldDefinition):Map<string,string>{
   const out=new Map<string,string>();for(const [id,layers]of Object.entries(d.geography?.masks??{}))out.set(id,JSON.stringify(layers));
-  out.set('#zones',JSON.stringify(d.geography?.zones??[]));out.set('#landscapes',JSON.stringify(d.geography?.landscapes??[]));out.set('#ski',JSON.stringify(d.geography?.ski??null));out.set('#snowline',JSON.stringify(d.geography?.snowLineM??null));out.set('#races',JSON.stringify(d.geography?.races??[]));return out;
+  out.set('#zones',JSON.stringify(d.geography?.zones??[]));out.set('#landscapes',JSON.stringify(d.geography?.landscapes??[]));out.set('#ski',JSON.stringify([d.geography?.ski??null,d.geography?.skiRuns??null]));out.set('#snowline',JSON.stringify(d.geography?.snowLineM??null));out.set('#races',JSON.stringify(d.geography?.races??[]));return out;
 }

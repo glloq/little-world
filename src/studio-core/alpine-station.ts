@@ -9,6 +9,8 @@ import {yawQuaternion} from './transforms.ts';
 import type {PointXZ,ProjectDocument} from './types.ts';
 
 export function addAlpineStation(project:ProjectDocument,area:SkiAreaV1){
+ const areas=Object.values(project.libraries.alpine??{}),lifts=areas.filter(a=>a.lift).length;
+ const summary=areas.length+' piste'+(areas.length>1?'s':'')+' balisée'+(areas.length>1?'s':'')+' et '+lifts+' remontée'+(lifts>1?'s':'')+'.';
  const base=area.points.at(-1)!;
  const terrain=project.world.terrain;
  if(terrain?.kind!=='archipelago')throw Error('Station des Cimes : relief insulaire requis.');
@@ -65,15 +67,16 @@ export function addAlpineStation(project:ProjectDocument,area:SkiAreaV1){
   }});
  }
  project.libraries.interactions[interaction]={id:interaction,trigger:{type:'onInteract',entityId:signage},
-  repeat:'always',sequence:[{type:'showText',text:'Station des Cimes · Prenez le télésiège pour rejoindre le sommet. Au départ de la piste, ouvrez Courses et lancez le Chrono des Cimes.'}]};
+  repeat:'always',sequence:[{type:'showText',text:'Station des Cimes · '+summary+' Matériel en vente au chalet. La télécabine monte au départ du Grand Couloir : ouvrez Courses pour lancer le Chrono des Cimes.'}]};
  place(chalet,'Chalet et magasin de la station',cabinAsset,layout.hut);
  place(signage,'Plan de la station','structure.signpost',layout.sign);
  place('station-cimes:banc','Banc du chalet','structure.bench',layout.bench);
  const guide=createCharacter(project,{id:'station-cimes:monitrice',name:'Ariane, monitrice de ski',...layout.guide,species:'hamster'});
  const dialogue=project.libraries.dialogues['dialogue:'+guide];
- dialogue.lines=[{id:dialogue.start,text:'Bienvenue à la station des Cimes. Le télésiège vous dépose au sommet de la piste.',choices:[
-  {text:'Comment prendre le télésiège ?',next:'lift'},{text:'Comment lancer le chrono ?',next:'race'},{text:'À bientôt !'},
+ dialogue.lines=[{id:dialogue.start,text:'Bienvenue à la station des Cimes ! '+summary+' La télécabine part juste à côté du chalet.',choices:[
+  {text:'Comment prendre une remontée ?',next:'lift'},{text:'Où trouver des skis ?',next:'gear'},{text:'Comment lancer le chrono ?',next:'race'},{text:'À bientôt !'},
  ]},
- {id:'lift',text:'Approchez-vous de l’embarquement et utilisez la commande d’action. Vous pouvez essayer le matériel de prêt ou acheter des skis et un snowboard au comptoir du chalet.',choices:[{text:'Merci !'}]},
- {id:'race',text:'Au sommet, choisissez votre chrono en skis ou en snowboard dans Courses. La première porte lance le temps. Gardez de la vitesse sur les deux tremplins.',choices:[{text:'Merci !'}]}];
+ {id:'lift',text:'Approchez-vous de l’embarquement d’une télécabine, d’un télésiège ou du téléski et utilisez la commande d’action. La remontée vous dépose tout en haut. Les jalons verts, bleus, rouges et noirs indiquent la difficulté des pistes.',choices:[{text:'Merci !'}]},
+ {id:'gear',text:'Le comptoir du chalet vend des skis et un snowboard. Une fois achetés, équipez-les depuis le sac ou avec B : sans matériel, on marche dans la neige.',choices:[{text:'Merci !'}]},
+ {id:'race',text:'Au départ du Grand Couloir, choisissez votre chrono en skis ou en snowboard dans Courses. La première porte lance le temps. Gardez de la vitesse sur les deux tremplins.',choices:[{text:'Merci !'}]}];
 }

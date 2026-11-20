@@ -16,6 +16,8 @@ export interface GeographySources {
   seed:number;grid:SectorGrid;
   snowLineM?:number;
   ski?:{points:{x:number;z:number}[];widthM:number};
+  /** Additional authored ski runs (same snow surface as `ski`). */
+  skiRuns?:{points:{x:number;z:number}[];widthM:number}[];
   masks:Record<string,SectorLayers>;
   zones?:GeoZone[];
   biomeStrokes?:GeoBiomeStroke[];
@@ -44,7 +46,8 @@ export function createGeoContext(src:GeographySources|null,deps:GeoDeps):GeoCont
   const buildings=src?.buildings??[],strokes=src?.biomeStrokes??[],landscapes=src?.landscapes??[];
   const sampledLandscape=landscapes.length?createLandscapeSampler(landscapes):null;
   const raceCorridors=src?.races?.length?createRaceCorridorIndex(src.races):null;
-  const ski=src?.ski?createRaceCorridorIndex([{points:src.ski.points,width:src.ski.widthM,material:'dirt',smooth:false,features:[]}],0):null;
+  const runs=[...(src?.ski?[src.ski]:[]),...src?.skiRuns??[]];
+  const ski=runs.length?createRaceCorridorIndex(runs.map(run=>({points:run.points,width:run.widthM,material:'dirt' as const,smooth:false,features:[]})),0):null;
   let cellX=NaN,cellZ=NaN,cellIndex=0,cellLayers:SectorLayers|undefined;
   return {
     seed:src?.seed??0,seaLevel:deps.seaLevel,snowLineM:src?.snowLineM??deps.snowLineM,height:deps.height,water:deps.water,site:deps.site,

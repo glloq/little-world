@@ -30,11 +30,18 @@ export type ReliefFeature=WithVariant<
   |{id:string;kind:'basin';x:number;z:number;radiusM:number;depthM:number}
   |{id:string;kind:'plateau';polygon:PointXZ[];heightM:number;edgeM:number;surface?:boolean}
   |{id:string;kind:'ridge';points:PointXZ[];widthM:number;heightM:number}
-  |{id:string;kind:'valley';points:PointXZ[];widthM:number;depthM:number}>;
+  |{id:string;kind:'valley';points:PointXZ[];widthM:number;depthM:number}
+  /** Groomed ski run: the terrain is blended toward an authored descending profile
+   * (levels above sea, one per point) over `widthM`, faded over `edgeM` on each side. */
+  |{id:string;kind:'piste';points:PointXZ[];levels:number[];widthM:number;edgeM:number}>;
 export type FeatureKind=ReliefFeature['kind'];
 /** Every feature may carry `variant` (local re-seed of its noise; absent = 0). */
 export type WithVariant<T>=T&{variant?:number};
-export interface ArchipelagoParams {coastalReliefFadeM?:number;seabedDepthM:number;detailM:number;landmasses:Landmass[];features:ReliefFeature[]}
+/** Optional monotone reshaping of the high relief (ski mountains): above `fromM` the height
+ * becomes from + range·F(t), t=(h-from)/range, with F'(t)=scale·power·t^(power-1) after a
+ * short blend from 1. Monotone: every descending line stays descending. */
+export interface SummitShaping {fromM:number;rangeM:number;scale:number;power:number}
+export interface ArchipelagoParams {summitShaping?:SummitShaping;coastalReliefFadeM?:number;seabedDepthM:number;detailM:number;landmasses:Landmass[];features:ReliefFeature[]}
 export interface GeoWorld {seed:number;seaLevel:number;width:number;length:number}
 /** Generator outputs shared by every consumer (terrain, classification, map, vegetation). */
 export interface GeneratorField {
@@ -49,7 +56,7 @@ export interface GeneratorField {
   site(x:number,z:number):GeoSite;
 }
 export interface GeoSite {coast:number;cliff:number;volcanic:number}
-export const FEATURE_LABELS:Record<FeatureKind,string>={volcano:'Volcan',mountain:'Massif',hill:'Colline',basin:'Cuvette',plateau:'Plateau',ridge:'Crête',valley:'Vallée'};
+export const FEATURE_LABELS:Record<FeatureKind,string>={volcano:'Volcan',mountain:'Massif',hill:'Colline',basin:'Cuvette',plateau:'Plateau',ridge:'Crête',valley:'Vallée',piste:'Piste damée'};
 const clamp=(v:number,a:number,b:number)=>Math.min(b,Math.max(a,v));
 const smooth=(a:number,b:number,x:number)=>{const t=clamp((x-a)/(b-a),0,1);return t*t*(3-2*t);};
 const lerp=(a:number,b:number,t:number)=>a+(b-a)*clamp(t,0,1);
@@ -98,16 +105,70 @@ const inBox=(b:Box,x:number,z:number)=>x>=b.minX&&x<=b.maxX&&z>=b.minZ&&z<=b.max
 export function featureBounds(f:ReliefFeature):Box{
   if(f.kind==='plateau')return boxOf(f.polygon,f.edgeM);
   if(f.kind==='ridge'||f.kind==='valley')return boxOf(f.points,f.widthM);
+  if(f.kind==='piste')return boxOf(f.points,f.widthM/2+f.edgeM);
   return {minX:f.x-f.radiusM,maxX:f.x+f.radiusM,minZ:f.z-f.radiusM,maxZ:f.z+f.radiusM};
 }
 export function landmassBounds(l:Landmass,falloff=320):Box{return boxOf(l.outline,l.coastNoiseM+falloff);}
 const bump=(t:number)=>t>=1?0:.5+.5*Math.cos(Math.PI*clamp(t,0,1));
+/** Lookup table of the summit shaping curve F over t∈[0,2] (linear beyond). */
+export function summitShapingCurve(s:SummitShaping):(h:number)=>number{
+  const N=1024,T=2,table=new Float64Array(N+1),dt=T/N,blend=.08;
+  const slope=(t:number)=>{const m=s.scale*s.power*Math.pow(Math.max(t,1e-6),s.power-1);return 1-(1-m)*smooth(0,blend,t);};
+  for(let i=1;i<=N;i++)table[i]=table[i-1]+(slope((i-.5)*dt)+slope((i-1)*dt)+slope(i*dt))/3*dt;
+  const tail=slope(T);
+  return h=>{
+    if(h<=s.fromM)return h;
+    const t=(h-s.fromM)/s.rangeM;
+    if(t>=T)return s.fromM+s.rangeM*(table[N]+(t-T)*tail);
+    const k=t/dt,i=Math.floor(k),f=k-i;
+    return s.fromM+s.rangeM*(table[i]+(table[Math.min(N,i+1)]-table[i])*f);
+  };
+}
+/** Pre-compiled groomed run: segment arrays and per-segment boxes for the hot path. */
+function compilePiste(source:{points:PointXZ[];levels:number[];widthM:number;edgeM:number}){
+  // Densify to ≤ 6 m between vertices: the Gaussian level blend below assumes close vertices.
+  const points:PointXZ[]=[],levels:number[]=[];
+  for(let i=0;i<source.points.length;i++){
+    const a=source.points[i];points.push(a);levels.push(source.levels[i]);
+    const b=source.points[i+1];if(!b)break;
+    const steps=Math.ceil(Math.hypot(b.x-a.x,b.z-a.z)/6);
+    for(let k=1;k<steps;k++){const t=k/steps;points.push({x:a.x+(b.x-a.x)*t,z:a.z+(b.z-a.z)*t});levels.push(source.levels[i]+(source.levels[i+1]-source.levels[i])*t);}
+  }
+  const f={points,levels,widthM:source.widthM,edgeM:source.edgeM};
+  const n=f.points.length-1,reach=f.widthM/2+f.edgeM,half=f.widthM/2;
+  const ax=new Float64Array(n),az=new Float64Array(n),dx=new Float64Array(n),dz=new Float64Array(n),len2=new Float64Array(n);
+  const x0=new Float64Array(n),x1=new Float64Array(n),z0=new Float64Array(n),z1=new Float64Array(n);
+  for(let i=0;i<n;i++){const a=f.points[i],b=f.points[i+1];ax[i]=a.x;az[i]=a.z;dx[i]=b.x-a.x;dz[i]=b.z-a.z;len2[i]=dx[i]*dx[i]+dz[i]*dz[i]||1;
+    x0[i]=Math.min(a.x,b.x)-reach;x1[i]=Math.max(a.x,b.x)+reach;z0[i]=Math.min(a.z,b.z)-reach;z1[i]=Math.max(a.z,b.z)+reach;}
+  /** Writes the blend weight (0 outside the run) and the groomed level at the point. */
+  const out={weight:0,level:0};
+  // Level = Gaussian-weighted mean of the vertex levels around the nearest segment: smooth
+  // along the run, continuous inside bends (a nearest-segment projection jumps there).
+  const SIGMA2=2*6*6;
+  return (x:number,z:number)=>{
+    let best=Infinity,index=-1;
+    for(let i=0;i<n;i++){
+      if(x<x0[i]||x>x1[i]||z<z0[i]||z>z1[i])continue;
+      const t=clamp(((x-ax[i])*dx[i]+(z-az[i])*dz[i])/len2[i],0,1),ex=x-ax[i]-t*dx[i],ez=z-az[i]-t*dz[i],d2=ex*ex+ez*ez;
+      if(d2<best){best=d2;index=i;}
+    }
+    if(index<0){out.weight=0;return out;}
+    let d0=Infinity;const lo=Math.max(0,index-6),hi=Math.min(n,index+7);
+    for(let k=lo;k<=hi;k++){const p=f.points[k],d2=(x-p.x)*(x-p.x)+(z-p.z)*(z-p.z);if(d2<d0)d0=d2;}
+    let wSum=0,lSum=0;
+    for(let k=lo;k<=hi;k++){const p=f.points[k],w=Math.exp(-((x-p.x)*(x-p.x)+(z-p.z)*(z-p.z)-d0)/SIGMA2);wSum+=w;lSum+=w*f.levels[k];}
+    out.weight=smooth(reach,half,Math.sqrt(best));out.level=lSum/wSum;
+    return out;
+  };
+}
 
 export function archipelagoField(world:GeoWorld,p:ArchipelagoParams):GeneratorField{
   const sea=world.seaLevel,seed=world.seed>>>0,falloff=320;
   const masses=p.landmasses.map((l,index)=>({l,index,sdf:compilePolygon(l.outline),box:landmassBounds(l,falloff),seed:shapeSeed(seed,l.id,l.variant),freq:1/l.coastWavelengthM,hill:1/Math.max(80,l.coastWavelengthM*.45)}));
   // Features grouped by composition stage once (no per-sample filtering/allocation).
   const stage=(kinds:FeatureKind[])=>p.features.filter(f=>kinds.includes(f.kind)).map(f=>({f,box:featureBounds(f),seed:shapeSeed(seed,f.id,f.variant),sdf:f.kind==='plateau'?compilePolygon(f.polygon):null}));
+  const pistes=p.features.flatMap(f=>f.kind==='piste'?[{box:featureBounds(f),blend:compilePiste(f)}]:[]);
+  const shaping=p.summitShaping?summitShapingCurve(p.summitShaping):null;
   const allPlateaus=stage(['plateau']),plateaus=allPlateaus.filter(({f})=>f.kind!=='plateau'||!f.surface),platforms=allPlateaus.filter(({f})=>f.kind==='plateau'&&f.surface),raises=stage(['mountain','hill','ridge']),cuts=stage(['basin','valley']),volcanoes=stage(['volcano']);
   /** Best coast value and the land mass providing it. */
   // Direct-mapped cache of exact results: height() then site() at the same point (tile and
@@ -148,9 +209,15 @@ export function archipelagoField(world:GeoWorld,p:ArchipelagoParams):GeneratorFi
       const angle=Math.atan2(z-f.z,x-f.x),gully=1-.12*Math.abs(valueNoise(fs,angle*7+3,dv*.004))*smooth(f.craterRadiusM,f.radiusM*.6,dv);
       const cone=volcanoProfile(f,dv)*gully,merge=smooth(f.radiusM,f.radiusM*.55,dv);h=Math.max(h,lerp(h,sea-1+cone+(coast<0?0:(h-sea+1)*.35),merge));
     }
+    if(shaping)h=shaping(h-sea)+sea;
     for(const {f,box,sdf}of platforms){if(f.kind!=='plateau'||!inBox(box,x,z))continue;h=lerp(h,sea+f.heightM,smooth(-f.edgeM,0,sdf!(x,z)));}
     if(p.coastalReliefFadeM!==undefined)h=coast<0?baseHeight:lerp(baseHeight,h,smooth(0,p.coastalReliefFadeM,coast));
-    return inland>0&&p.detailM?h+p.detailM*fbm(seed^0xd37a,x/38,z/38,2)*inland:h;
+    if(inland>0&&p.detailM)h+=p.detailM*fbm(seed^0xd37a,x/38,z/38,2)*inland;
+    // Overlapping runs (shared starts/finishes) blend toward their weighted mean level.
+    if(pistes.length){let wMax=0,wSum=0,lSum=0;
+      for(const {box,blend}of pistes){if(!inBox(box,x,z))continue;const r=blend(x,z);if(r.weight>0){const w4=r.weight**4;wMax=Math.max(wMax,r.weight);wSum+=w4;lSum+=w4*r.level;}}
+      if(wSum>0)h+=(sea+lSum/wSum-h)*wMax;}
+    return h;
   }
   const volcanic=(x:number,z:number)=>{let v=0;for(const {f,box}of volcanoes)if(f.kind==='volcano'&&inBox(box,x,z))v=Math.max(v,smooth(f.radiusM,f.radiusM*.35,Math.sqrt((x-f.x)*(x-f.x)+(z-f.z)*(z-f.z))));return v;};
   return {height,volcanic,

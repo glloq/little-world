@@ -75,10 +75,14 @@ export function biomeAt(ctx:GeoContext,x:number,z:number,h:number,slope:number,m
   const forest=fbm((ctx.seed^0xf0e5)>>>0,x/320,z/320,3)+(moisture-.5)*1.1-smooth(180,320,alt)*.6-smooth(.6,1,slope)*.4;
   return forest>.12?'forest':'meadow';
 }
+/** Natural, irregular snow line: ±9 m of low-frequency noise, slightly higher on steep faces. */
+export function snowLineAt(ctx:GeoContext,x:number,z:number,slope:number):number{
+  return ctx.snowLineM!+9*fbm((ctx.seed^0x5a0b)>>>0,x/110,z/110,2)+8*smooth(.45,.85,slope);
+}
 export function materialAt(ctx:GeoContext,x:number,z:number,s:{geology:Geology;biome:Biome;moisture:number;occupation:Occupation;cliff:number;slope:number;height?:number}):Material{
   if(ctx.skiSurface?.(x,z))return 'snow';
   const code=ctx.mask('material',x,z);if(code&&code!=='.')return categoryOf('material',code)!.id as Material;
-  if(ctx.snowLineM!==undefined&&s.height!==undefined&&s.height>=ctx.snowLineM&&s.slope<.9&&s.occupation==='none')return 'snow';
+  if(ctx.snowLineM!==undefined&&s.height!==undefined&&s.height>=snowLineAt(ctx,x,z,s.slope)&&s.slope<.9&&s.occupation==='none')return 'snow';
   if(s.occupation==='road')return 'dirt';if(s.occupation==='built')return 'gravel';if(s.occupation==='farm')return 'dirt';
   switch(s.geology){
     case 'sand':return s.cliff>.35?'pebbles':'sand';
