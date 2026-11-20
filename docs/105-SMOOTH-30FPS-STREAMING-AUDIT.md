@@ -1,6 +1,6 @@
 # 105 — Audit fluidité : 30 FPS réguliers, zéro à-coup, raccords invisibles à toute vitesse
 
-**Statut : AUDITED (lecture du code + mesures SwiftShader/Node) / rien d'IMPLEMENTED.** Base : `main@ea4c96e` (20 novembre 2026). Complète [81 — audit](81-RENDER-PERFORMANCE-CODE-AUDIT.md) et [82 — roadmap OPT-0…9](82-PERFORMANCE-GRAPHICS-IMPLEMENTATION-ROADMAP.md) ; les constats de 81 encore vrais sont signalés, les nouveaux portent un ID `PACE/HITCH/SEAM/SPEED/QUAL`. Aucun gain FPS n'est revendiqué : toutes les estimations sont **à mesurer** (doc 22, doc 82 §4).
+**Statut : AUDITED puis IMPLEMENTED/TESTED en grande partie (20 novembre 2026, voir §6) — NOT BENCHMARKED sur GPU intégré.** Base : `main@ea4c96e` (20 novembre 2026). Complète [81 — audit](81-RENDER-PERFORMANCE-CODE-AUDIT.md) et [82 — roadmap OPT-0…9](82-PERFORMANCE-GRAPHICS-IMPLEMENTATION-ROADMAP.md) ; les constats de 81 encore vrais sont signalés, les nouveaux portent un ID `PACE/HITCH/SEAM/SPEED/QUAL`. Aucun gain FPS n'est revendiqué : toutes les estimations sont **à mesurer** (doc 22, doc 82 §4).
 
 Objectif utilisateur : présentation **calée à 30 FPS sans irrégularité**, **aucune saccade** (hitch, GC, compilation), **aucun artefact** entre zones chargées (fentes, trous, pops de LOD, discontinuités de densité), **fluide à toute vitesse** (marche, roulade, plané boosté, bateau, ski, surf), **qualité correcte de près comme de loin** — sans brouillard-cache.
 
@@ -128,3 +128,54 @@ Chaque lot = une PR mesurable (doc 82 §1), avec A/B à trajectoire fixe et **cr
 - Mesures sous **SwiftShader** et Node : elles valident les coûts CPU relatifs et les artefacts géométriques, **pas** les FPS ni le temps GPU sur GPU intégré.
 - Les coûts annoncés « estimés » (uploads, GC, culling `BatchedMesh`) sont déduits du code ; à confirmer par l'instrumentation du §4.
 - Pas d'étude des îles autres que le Volcan ; les mêmes chemins de code s'appliquent, mais les relief/densités diffèrent.
+
+## 6. Mise en œuvre (branche `claude/focused-davinci-elgp04`)
+
+Statuts : **IMPLEMENTED** = code livré sur la branche ; **TESTED** = tests unitaires et/ou navigateur ; **VISU** = captures avant/après comparées (8 points de vue fixes de l'île, `renderTier=0`, SwiftShader). Aucun résultat GPU intégré : **NOT BENCHMARKED-4GB/8GB** pour tout le lot.
+
+| ID | Statut | Ce qui a été fait | Preuve |
+| --- | --- | --- | --- |
+| PACE-1 | IMPLEMENTED, TESTED | `FrameClock` estime la période d'affichage (quartile bas des deltas RAF) et présente tous les N rafraîchissements (`round(cible/vsync)`) avec tolérance d'une demi-période | `tests/frame-clock.test.mjs` : ≥ 99 % d'intervalles réguliers à 60/120/144/75 Hz avec gigue et horodatage au ms. Ancien code, horodatage au ms : 60 Hz = 1/3 de 17/33/50 ms → nouveau 33/34 ms ; 144 Hz 28/34/35 ms → 34/35 ms |
+| PACE-2 | IMPLEMENTED | Caméra : lissage de l'**offset** autour de `renderPosition` en `1−exp(−k·dt)`, contrainte au sol après lissage | Distance caméra/hamster indépendante de la vitesse et du pas |
+| PACE-3 | IMPLEMENTED, TESTED | `fleet.capture()` avant chaque pas, `sync(b, renderTime, alpha)` ; ferry, port et télésiège reçoivent `renderTime` (même instant que le joueur) | `tests/fleet.test.mjs` inchangé et vert |
+| PACE-4 | NOT DONE (justifié) | Le rattrapage reste borné à 0,25 s : la simulation mesurée coûte p95 0,9 ms/pas, 7 pas ≈ 6 ms ; le test « sans dette » existant encode ce choix | — |
+| PACE-5 | NOT DONE | Le déphasage tick/rendu ne se stabilise pas à 60 Hz (chaque RAF ajoute exactement ½ pas) ; gain CPU faible face au risque | — |
+| PACE-6 | IMPLEMENTED, TESTED | Pas de `setPixelRatio`/`setSize` ni de `setDetail` si rien ne change ; un passage 30↔20 ne touche plus au détail ; remontée doublée (≤ 96 s) après un échec < 10 s | nouveau test « backs off instead of oscillating » |
+| PACE-7 | NOT DONE | Diagnostic CPU/GPU de l'arbitre : nécessite des mesures iGPU | — |
+| PACE-8 | IMPLEMENTED | Rotation du hamster en `1−exp`, sonde audio du sol ≥ 100 ms entre échantillons, écouteur audio glissant (`setTargetAtTime`, 70 ms) | `tests/audio.test.mjs` vert |
+| PACE-9 | NOT DONE | PNJ dans le tick : changement de comportement à valider avec le doc 96/97 | — |
+| HITCH-1 | IMPLEMENTED, TESTED | Rebuild d'habillage en **job reprenable** (générateur) ≤ budget/frame, remplissage CPU puis commit atomique ; écritures `BatchedMesh` mises en attente et appliquées au commit ; buffers agrandis échangés au commit | SwiftShader : rebuild 4,1 ms en 2 tranches, commit 0,1 ms ; `test:dressing-stability` vert |
+| HITCH-2 | IMPLEMENTED | Bornes en scalaires, liste de cellules réutilisée, octets du cache incrémentaux | — |
+| HITCH-3 | PARTIAL | Herbe : tri sans allocation ; génération **mesurée** à 0,26 ms/cellule → pas déplacée en worker | sonde `?metrics` |
+| HITCH-4 | IMPLEMENTED, TESTED | `render/shader-warmup.ts` : `compileAsync` de toutes les matières (état normal, brouillard sous-marin, lampe frontale) au chargement et à l'arrivée des espèces ; `checkShaderErrors` désactivé hors dev/`?metrics` ; hystérésis du brouillard sous-marin et teinte CSS écrite seulement au changement | Programmes compilés pendant un parcours de jeu : 1 (base : 1–2), sans plus de compilation à l'entrée dans l'eau/la mine. Coût : ~100 programmes au chargement au lieu de 21 (variantes préparées) |
+| HITCH-5 | IMPLEMENTED | Occlusion du relief : 8 azimuts/frame au lieu de 16 | `tests/occlusion.test.mjs` vert |
+| HITCH-6 | NOT DONE | Index spatial/caches des falaises : non retenu dans ce lot (île de démonstration sans falaise active dans les vues mesurées) | — |
+| HITCH-7 | IMPLEMENTED | Rigs PNJ conservés 20 s / 96 m (au plus 2× le budget de rigs) au lieu d'être reconstruits à chaque passage du rayon | — |
+| HITCH-8 | NOT DONE | Écologie : pool de secteurs à faire | — |
+| HITCH-9 | IMPLEMENTED, TESTED | Structures naturelles sorties du rayon mises en réserve (LRU 64), invalidées si la source change | `tests/studio-natural-view.test.mjs` vert |
+| HITCH-10 | IMPLEMENTED, TESTED | Cueillette et troncs-colliders réutilisent les cellules d'habillage déjà générées en worker (cellules intérieures où les bornes coïncident) | `tests/gameplay.test.mjs` vert |
+| HITCH-11…17 | PARTIAL | Terrain : `matrixAutoUpdate=false` ; structures : idem ; HUD minier, métriques et NearSea non modifiés | — |
+| SEAM-1 | IMPLEMENTED, TESTED, VISU | Jupes montantes vers l'horizon (rehaussées seulement sur les côtés sans voisin affiché) | test `terrain-geomorph` ; plus de fente horizon/tuile |
+| SEAM-2 | IMPLEMENTED, TESTED, VISU | Profondeur de jupe par tuile = plus grand écart possible (2 m, grilles 4/8 m, horizon) ; bords des tuiles fines **cousus** sur la grille du voisin plus grossier (T-junctions étanches) | captures : disparition des pointillés sombres le long des tuiles (volcan, côte, colline du lac) |
+| SEAM-3 | IMPLEMENTED, TESTED | Geomorphing temporel (0,6 s) : cibles `morphY/morphColor/morphNormal` (grille parente, horizon exact pour le LOD 2) ; une tuile plus grossière remplace la fine **après** que celle-ci a rejoint sa forme parente ; LOD 2 apparaît/disparaît en se fondant dans l'horizon | tests : cibles = tuile parente/horizon exactes, swap différé observé |
+| SEAM-4 | IMPLEMENTED | Fondu tramé complémentaire (screen-door) LOD0↔LOD1 GLB et LOD1↔silhouette, piloté par la distance instance↔focus courant (paramètre en alpha de la texture couleur `BatchedMesh` / attribut `instanceFade`) ; doublons seulement si la capacité le permet | captures sans régression ; à valider en mouvement sur iGPU (coût du `discard`) |
+| SEAM-5 | IMPLEMENTED, VISU | Rochers, basalte, éboulis, cailloux sélectionnés par élément (rayon ×1,15) | instances ≥ base dans toutes les vues (volcan 4 083 → 4 565) |
+| SEAM-6, 7, 8 | NOT DONE | Coupure de capacité, falaises/structures/PNJ/bâtiments, écologie : à traiter avec le même fondu | — |
+| SEAM-9 | IMPLEMENTED, TESTED | Herbe : changement de profil régénéré sur place (anciennes cellules dessinées en attendant), masquage en altitude sans vider les cellules | `tests/grass.test.mjs` vert |
+| SEAM-10 | NOT DONE | Mer proche transparente vs horizon opaque : la correction change la teinte de la mer au bord de carte (anneau océan) | — |
+| SEAM-11 | IMPLEMENTED, TESTED | Nuages : forme stable par cellule, bord qui s'estompe, reconstruction après 20 m ; éclairage du ciel lissé (τ 6 s) comme le dôme | `tests/cloud-renderer.test.mjs` vert |
+| SEAM-12 | IMPLEMENTED, TESTED | Lumières du pool réaffectées : rampe 0,3 s | `tests/lights.test.mjs` vert |
+| SPEED-1 | IMPLEMENTED | Habillage généré d'abord le long de la trajectoire (`setMotion`) | — |
+| SPEED-2 | IMPLEMENTED, TESTED | `maxAheadShift` 1 ; en mouvement, tuiles de vue et prédites dans le même rang, ordonnées par temps d'arrivée | `tests/view-planning.test.mjs` vert |
+| SPEED-3 | IMPLEMENTED, TESTED | Résultats worker conservés (≤ 24, purgés par une édition) et intégrés dès qu'ils redeviennent utiles | idem |
+| SPEED-4 | IMPLEMENTED, TESTED | Œil de l'occlusion relevé de 6 m + 0,5 × vitesse caméra (≤ 40 m) | `tests/occlusion.test.mjs` vert |
+| SPEED-5 | NOT DONE | — | — |
+| QUAL-1 | NOT DONE (mesure iGPU requise) | Portée détaillée 240 m conservée : le raccord est désormais invisible (SEAM-1/3), l'extension à 400 m multiplierait les draw calls (~44 → ~120 tuiles) | — |
+| QUAL-2 | PARTIAL | Résolu là où le geomorphing s'applique ; sinon inchangé | — |
+| QUAL-3 | IMPLEMENTED | Plan proche 0,3 m hors galeries et tube de surf (0,1 m) : précision ×3 au loin | — |
+| QUAL-4 | NOT DONE | Préfiltrage de l'horizon : modifierait l'aspect lointain, à arbitrer visuellement | — |
+| QUAL-5 | IMPLEMENTED, VISU | Terrain `FrontSide`, jupes orientées vers l'extérieur | captures |
+
+**Vérifications** : `npm test` 1 120/1 120, `npm run typecheck`, `npm run build` verts ; navigateur (SwiftShader) : voir le message de commit/PR pour la liste des suites exécutées. Captures de contrôle : aucune vue avec moins d'instances que la base ; différences d'image < 2 % des pixels, dues au vent/à l'heure, sauf la disparition voulue des coutures de tuiles.
+
+**Limites** : tout est mesuré en rendu logiciel ; le coût GPU réel du fondu tramé (`discard`) et des ~100 programmes préchargés reste à mesurer sur GPU intégré avant de qualifier les cibles 30/20 FPS.
