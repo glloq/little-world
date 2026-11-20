@@ -1414,14 +1414,14 @@ function runFarm(){
   if(!(r.ok&&intent.type==='harvest'))showInfo(r.message,r.ok?'success':'warning');
   const farmEvent={plant:'farm.plant',water:'farm.water',harvest:'farm.harvest',clear:'farm.clear'}[intent.type]??'farm.plant';audio?.emit(r.ok?farmEvent:'ui.error',{context:{place:'farm',activity:'farming',objectKind:crop??undefined,state:intent.type},position:player.position,source:'player'});
 }
-function updateHud() {
+function updateHud(underwater:boolean) {
   if(document.body.classList.contains('developer')){
     const speed=Math.round(player.velocity.length()*3.6);
     const label='Vitesse : '+speed+' km/h';
     if(devSpeed.textContent!==label)devSpeed.textContent=label;
   }
   // A submerged hamster does not imply a submerged camera.
-  document.body.classList.toggle('underwater',cameraSubmerged(camera.position.x,camera.position.y,camera.position.z));
+  document.body.classList.toggle('underwater',underwater);
 }
 let boatSteer=0,motionTick=0,nextTouchTargetAt=0,lastFlightPulseSeq=0;
 // Decorative fish follow the moving swell surface (same tick as the drawn water). Registered
@@ -1701,7 +1701,8 @@ function draw(now: number) {
   // Finalize the current view before LOD/culling and lighting consume it.
   updateCamera(delta);
   speedStreaks.update(player.velocity.length(),player.mode==='glide',started&&!gameUi?.paused&&gameUi?.preferences.speedEffects!==false&&!gameUi?.preferences.reduceMotion,delta);
-  environment.update(delta,player.position,budget.level,!!player.space,quality.value as 'low'|'medium'|'high');
+  const env=environment.update(delta,player.position,budget.level,!!player.space,quality.value as 'low'|'medium'|'high');
+  const cameraUnderwater=cameraSubmerged(camera.position.x,camera.position.y,camera.position.z);
   activityView?.update(delta,player.position,player.space);
   // Sampling at ~11 Hz avoids per-frame target queries on older PCs.
   if(now>=nextMineRhythmTargetAt){
@@ -1717,11 +1718,12 @@ function draw(now: number) {
     }:null,now);
   }
   mineRhythmHud.tick(now);
-  {const climateNow=climate.state(worldClock.time),night=nightFactor(climateNow.sunAltitude);world.lights.setEnvironment(night,now/1000);world.setNight(night);world.setWind(.25+.8*climateNow.wind);}
+  const night=nightFactor(env.sunAltitude);
+  world.lights.setEnvironment(night,now/1000);world.setNight(night);world.setWind(.25+.8*env.wind);
   world.animateBoat(aboard&&fleet.current===playerBoat?boat.speed:0,aboard&&fleet.current===playerBoat?boatSteer:0,delta);
-  if(started&&audio){const env=climate.state(worldClock.time),ground=player.space?{}:groundProbe(player.position.x,player.position.z,now),farm=!player.space&&gameplay?.activities.farmNear(player.position);
+  if(started&&audio){const ground=player.space?{}:groundProbe(player.position.x,player.position.z,now),farm=!player.space&&gameplay?.activities.farmNear(player.position);
     audio.update(now,{nowMs:now,player:{position:player.position,velocity:player.velocity,mode:player.mode,aboard,boatSpeed:Math.abs(boat.speed),space:player.space??null,surface:player.space?'stone':aboard?'wood':ground.surface},
-      world:{time:env.sunAltitude<0?'night':'day',weather:env.weather,wind:env.wind,biome:ground.biome,place:farm?'farm':ground.place,activity:farm?'farming':undefined,submerged:cameraSubmerged(camera.position.x,camera.position.y,camera.position.z),nearWater:waterSurface(player.position.x,player.position.z)!==null||(isLegacyTerrain()&&Math.abs(player.position.x-riverX(player.position.z))<16)}},
+      world:{time:env.sunAltitude<0?'night':'day',weather:env.weather,wind:env.wind,biome:ground.biome,place:farm?'farm':ground.place,activity:farm?'farming':undefined,submerged:cameraUnderwater,nearWater:waterSurface(player.position.x,player.position.z)!==null||(isLegacyTerrain()&&Math.abs(player.position.x-riverX(player.position.z))<16)}},
       id=>gameplay?.runtime.getEntityPosition(id),budget.level,camera.getWorldDirection(audioForward));}
   grassActors.length=0;
   for(const state of npcs.states)if(Math.hypot(state.x-player.position.x,state.z-player.position.z)<44)grassActors.push(state);
@@ -1811,7 +1813,7 @@ function draw(now: number) {
   else if(!flightFast&&player.velocity.length()<30)boostWindActive=false;
   gasEffects.update(delta);
   impacts.update(delta);
-  updateHud();
+  updateHud(cameraUnderwater);
   const fishingView=gameplay?.fishing.state??null;
   fishingHud.update(fishingView,touchCapable,fishingView?.fish&&gameplay?gameplay.itemName(fishingView.fish):undefined);
   if(elapsed-lastCourseHudAt>.2){

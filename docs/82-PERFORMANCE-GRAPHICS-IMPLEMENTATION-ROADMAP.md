@@ -118,3 +118,12 @@ Le moteur est **GFX-READY** uniquement lorsque les 4 points sont démontrés :
 - Chaque nouveau shader, matériau, eau/ombre/vegetation plus riche possède une variante économique **artistiquement acceptable**, plutôt qu'une simple désactivation brutale.
 
 **Prochaines actions immédiates** : OPT-0 puis OPT-1 sur une branche de code dédiée ; mesurer `dressing-view.ts` avant d'envisager une modification graphique globale. **Cet ajout documentaire ne réalise aucune phase OPT.**
+## Travail évité sur la boucle de rendu
+
+L’éclairage, le vent et le mixage partagent l’état météo échantillonné pour
+le rendu de l’environnement. Le HUD et le son partagent la même lecture
+d’immersion de la caméra. Pendant la pêche, le HUD actualise les jauges
+lorsque leur valeur affichée change. Les effets échantillonnent la hauteur
+de l’eau à l’émission d’un événement. Ces changements réduisent les lectures
+et les mises à jour redondantes par image. Les mesures sur matériel cible
+restent à effectuer.
