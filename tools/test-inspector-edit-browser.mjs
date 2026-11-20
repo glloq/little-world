@@ -23,12 +23,13 @@ try{
     // Select a light, then type as soon as its card appears (later renders are still pending).
     await page.locator('.light-row').nth(row).click();await page.waitForSelector('#inspector .light-card');
     const field=page.getByLabel('Intensité (cd)');await field.click();await page.keyboard.press('Control+a');await page.keyboard.type(value);const before=await renders();
-    // Zoom the camera with the wheel while typing: focus stays in the field, but the camera state is
-    // stored in the shared selection context, which re-renders the inspector (real trigger, no test hook).
+    // Zoom the camera with the wheel while typing: the camera state lives in the shared selection
+    // context. Doc 105: camera-only changes no longer rebuild the inspector (low-resource fix), so the
+    // field must neither be replaced nor lose its value; pending selection renders may still land.
     await page.mouse.move(cx,cy+120);for(let i=0;i<3;i++){await page.mouse.wheel(0,-120);await page.waitForTimeout(80);}
-    await page.waitForFunction(n=>window.__renders>n,before,{timeout:3000}).catch(()=>{});await page.waitForTimeout(500);
+    await page.waitForTimeout(800);
     const state=await page.evaluate(()=>({focused:document.activeElement?.getAttribute('aria-label'),value:document.activeElement?.value,connected:document.activeElement?.isConnected}));
-    check((await renders())>before,`Inspector re-rendered while typing (light ${row+1})`);
+    console.log(`Inspector renders while typing (light ${row+1}): ${(await renders())-before}`);
     check(state.focused==='Intensité (cd)'&&state.value===value,`Focus and typed value kept across the render (${JSON.stringify(state)})`);
     await page.keyboard.press('Tab');await page.waitForFunction(()=>/Intensité de la lumière/.test(document.querySelector('[data-action=undo]')?.title??''),{},{timeout:5000}).catch(()=>{});
     check(/Intensité de la lumière/.test(await page.locator('[data-action=undo]').getAttribute('title')),'Tab commits the edit as one transaction');
