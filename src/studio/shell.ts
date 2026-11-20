@@ -86,7 +86,7 @@ let mapLoaded=false;
 function closeProject(){if(mapLoaded)void import('./geo-map/editor.ts').then(m=>m.releaseGeoMap());disposePanel();disposePanel=()=>{};unsubscribe();unsubscribe=()=>{};viewport?.dispose();viewport=null;session=null;$('studio').classList.remove('in-project');}
 async function open(id:string){
   closeProject();session=await StudioSession.open(store,id);const s=session;$('studio').classList.add('in-project');
-  const stops=[s.subscribe(()=>refreshHeader()),s.commands.subscribe(t=>{checkImpact(s,t);scheduleInspector();}),s.selection.subscribe(value=>{
+  const stops=[s.subscribe(()=>refreshHeader()),s.commands.subscribe(t=>{checkImpact(s,t);void inspector();}),s.selection.subscribe(value=>{
     // Doc 105: camera moves no longer rebuild the inspector; selection, tool or module changes do.
     const key=JSON.stringify([s.selection.selection,value.activeTool,value.activeModule]);if(key!==selectionKey)scheduleInspector();selectionKey=key;})];unsubscribe=()=>stops.forEach(stop=>stop());
   buildHeader();buildToolbar();const saved=ALIASES[s.selection.state.activeModule]??s.selection.state.activeModule;
