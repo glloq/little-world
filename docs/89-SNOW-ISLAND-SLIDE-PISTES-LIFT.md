@@ -75,3 +75,7 @@ joueur peut préparer le départ à pied avec des skis ou un snowboard. Le chron
 démarre au franchissement de la première porte en glisse et une sortie du mode
 neige annule la tentative. Le record personnel utilise la sauvegarde commune
 aux autres courses.
+
+L’habitant du port propose la mission **Première descente aux Cimes**. Le
+journal indique comment préparer le chrono et situe le départ sur la carte.
+Une descente validée permet de récupérer 8 pièces auprès de l’habitant.

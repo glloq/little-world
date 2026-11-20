@@ -17,6 +17,16 @@ try{
   if(id==='alpine-island'){
    const alpine=await page.evaluate(()=>window.littleWorldMetrics.alpine);
    assert.ok(alpine.lift&&alpine.points>20);
+   const start=project.libraries.races['race:composition-ski'].gates[0];
+   await page.locator('button[data-panel=races]').click();
+   await page.evaluate(({center,normal})=>window.littleWorldDebug.teleport(
+     center.x-normal.x*3,center.z-normal.z*3,Math.atan2(normal.x,normal.z)),start);
+   await page.locator('.ui-race-option').filter({hasText:'Chrono des Cimes'}).getByRole('button',{name:'Lancer'}).click();
+   await page.locator('.race-course-hud').filter({hasText:'Chrono des Cimes'}).waitFor({state:'visible'});
+   console.log('Cimes : départ du chrono de ski préparé.');
+   await page.locator('button[data-panel=races]').click();
+   await page.getByRole('button',{name:'Abandonner la course'}).click();
+   await page.keyboard.press('Escape');
    await page.evaluate(({x,z})=>window.littleWorldDebug.teleport(x,z,0),alpine.base);
    await page.keyboard.press('KeyE');
    await page.waitForFunction(()=>['waiting','riding'].includes(window.littleWorldMetrics?.alpine?.ride),null,{timeout:20000});

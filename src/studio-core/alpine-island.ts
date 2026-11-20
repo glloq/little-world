@@ -18,10 +18,28 @@ export function buildAlpineIsland(){
   throw Error('Île des Cimes : '+composition.diagnostics.filter(d=>d.severity==='ERROR').map(d=>d.message).join(' · '));
  }
  const {project}=composition;
- if((project.libraries.settlements?.['composition-welcome-village']?.buildings.length??0)<4)
+ const village=project.libraries.settlements?.['composition-welcome-village'];
+ if(!village||village.buildings.length<4)
   throw Error('Île des Cimes : le hameau maritime est incomplet.');
+ const host=village.amenities?.find(amenity=>amenity.role==='host');
+ if(!host)throw Error('Île des Cimes : habitant du port absent.');
  const area=project.libraries.alpine?.['composition-alpine'];
  if(!area)throw Error('Île des Cimes : piste de ski absente.');
- putAuthoredRace(project,raceFromSkiArea(project.world,area,projectGeography(project).ctx.height));
+ const race=raceFromSkiArea(project.world,area,projectGeography(project).ctx.height);
+ putAuthoredRace(project,race);
+ const questKey='quest:cimes-premiere-descente';
+ project.libraries.questCatalog={
+  ...project.libraries.questCatalog,
+  [questKey]:{
+   questKey,templateId:'cimes:premiere-descente',templateVersion:1,
+   islandId:project.world.worldId,giverId:host.id,
+   bindings:{title:'Première descente aux Cimes',
+    instruction:'Montez au sommet avec le télésiège, ouvrez Courses et lancez le Chrono des Cimes. Franchissez toutes les portes en glisse.'},
+   steps:[{kind:'race',raceId:race.id,islandId:project.world.worldId}],
+   rewards:[{kind:'coins',quantity:8}],
+   dependencies:[host.id,race.id],catalogRevision:'cimes-v1',
+   proof:{capabilityIds:[host.id,race.id],validatorVersion:'world-activities-v1'},
+  },
+ };
  return project;
 }

@@ -4,6 +4,7 @@ import {buildAlpineIsland} from '../src/studio-core/alpine-island.ts';
 import {buildHarvestIsland} from '../src/studio-core/harvest-island.ts';
 import {validateWorldActivities} from '../src/studio-core/world-activities.ts';
 import {validateBirthPort} from '../src/studio-core/birth-port.ts';
+import {acceptQuest,advanceQuest} from '../src/quests/progress.ts';
 import {validateSettlements} from '../src/settlements/validation.ts';
 
 test('the published alpine island retains a usable port and the native downhill activities',()=>{
@@ -14,6 +15,14 @@ test('the published alpine island retains a usable port and the native downhill 
  const ski=project.libraries.races['race:composition-ski'];
  assert.equal(ski.kind,'ski');
  assert.ok(ski.gates.length>=3&&ski.gates.every(gate=>gate.allowedModes.join()==='snow'));
+ const offer=project.libraries.questCatalog['quest:cimes-premiere-descente'];
+ assert.ok(project.entityIndex[offer.giverId]);
+ const accepted=acceptQuest(offer,offer.questKey,3);
+ const event={schemaVersion:1,eventId:'test:cimes:1',type:'race.finished',worldId:project.world.worldId,
+  islandId:project.world.worldId,gameMinute:4,sequence:1,raceId:ski.id,measuredSeconds:27};
+ assert.equal(advanceQuest(accepted,{...event,raceId:'race:composition-downhill'}).applied,false);
+ assert.equal(advanceQuest(accepted,{...event,islandId:'other-island'}).applied,false);
+ assert.equal(advanceQuest(accepted,event).instance.status,'ready');
  const moved=structuredClone(project);
  moved.libraries.races[ski.id].gates[0].center.x=project.world.bounds.minX;
  assert.ok(validateWorldActivities(moved).some(d=>d.code==='ACTIVITY_SKI_RACE_OUTSIDE'));

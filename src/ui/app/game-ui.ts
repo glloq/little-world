@@ -134,6 +134,7 @@ export function createGameUi(deps:GameUiDeps){
   ui.register('inventory','Sac',{render:b=>inventory.render(b),onEscape:()=>inventory.cancelSelection(),onClose:()=>{inventory.markSeen();deps.audio?.emit('ui.inventory.close',{source:'ui'});}});
 
   const waypoints=createWaypointStore(g?.runtime.data.worldId??deps.world.name,deps.world.bounds,deps.temporary);
+  const raceStart=(id:string)=>deps.landmarks?.find(l=>l.id==='race:'+id);
   const markers=():MapMarker[]=>{
     const out:MapMarker[]=[];
     for(const [id,m] of a?.mines??[])out.push({id:'mine:'+id,kind:'mine',label:m.zone.name,x:m.zone.mine.entrance.x,z:m.zone.mine.entrance.z});
@@ -143,8 +144,8 @@ export function createGameUi(deps:GameUiDeps){
       if(quest.status!=='active'&&quest.status!=='ready')continue;
       const current=quest.steps[quest.stepIndex];
       const id=quest.status==='ready'?quest.giverId:current?.kind==='talk'?current.npcId:undefined;
-      if(!id)continue;
-      const target=deps.npcs.states.find(n=>n.definition.id===id);
+      const target=id?deps.npcs.states.find(n=>n.definition.id===id):
+        current?.kind==='race'?raceStart(current.raceId):undefined;
       if(target)out.push({id:'quest-generated:'+quest.instanceId,kind:'quest',
         label:String(quest.bindings.title??'Mission'),x:target.x,z:target.z});
     }
@@ -182,6 +183,7 @@ export function createGameUi(deps:GameUiDeps){
     const generated=g.quests.get(id);
     if(generated){
       const step=generated.steps[generated.stepIndex];
+      if(generated.status==='active'&&step?.kind==='race')return raceStart(step.raceId)??null;
       const targetId=generated.status==='ready'?generated.giverId:
         step?.kind==='talk'?step.npcId:generated.giverId;
       const person=deps.npcs.states.find(n=>n.definition.id===targetId);
