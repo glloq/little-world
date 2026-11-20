@@ -9,8 +9,10 @@ import {buildWelcomeProject,DEFAULT_WELCOME_CONFIG,type WelcomeConfig,type Relie
 import {fingerprint} from '../world-production/landscape-schema.ts';
 import {projectGeography} from '../studio-core/geo-context.ts';
 import {BIOMES_V} from '../geography/layers.ts';
-import {composeWorld,projectFromComposition,type WorldComposition} from '../studio-core/world-composition.ts';
+import {projectFromComposition,type WorldComposition} from '../studio-core/world-composition.ts';
 import {WORLD_BRIEFS,briefToRequirements} from '../studio-core/world-brief.ts';
+import {createCompositionClient,CompositionCancelled} from '../studio-core/composition-client.ts';
+import {createProgress} from './progress.ts';
 import {newIslandRequirements,LANDSCAPES,type Landscape,type MapRequirements} from '../studio-core/map-requirements.ts';
 import {createGuidedWorld,type WorldStartMode} from '../studio-core/world-start.ts';
 import {createProject} from '../studio-core/schema.ts';
@@ -132,6 +134,20 @@ export function mountWelcome(host:HTMLElement,actions:WelcomeActions){
   let step=0,section:'home'|'wizard'|'templates'|'projects'='home',name='Mon petit monde';
   let renderId=0,busy=false,previewMode:'biomes'|'altitude'|'slope'|'water'='biomes';
   let requirements=newIslandRequirements(),cachedKey='',cachedPlan:WorldComposition|null=null,draftEdited=false;
+  // Doc 105: generation runs in a worker, latest request wins, progress always visible.
+  const composer=createCompositionClient();let planTimer:ReturnType<typeof setTimeout>|undefined,planningKey='',planProgress:ReturnType<typeof createProgress>|null=null;
+  function requestPlan(key:string,messages:HTMLElement,note:HTMLElement,create:HTMLButtonElement|null|undefined){
+    // A re-render while the same plan is computing keeps showing its progress.
+    if(planningKey===key){if(planProgress)messages.replaceChildren(planProgress.element);if(create)create.disabled=true;return;}
+    clearTimeout(planTimer);planProgress?.dispose();planningKey=key;if(create)create.disabled=true;
+    const progress=planProgress=createProgress('Calcul du monde',()=>{composer.cancel();planningKey='';progress.fail('Calcul annulé : modifiez un paramètre pour relancer.');});
+    messages.replaceChildren(progress.element);note.textContent='Le relief, l’eau, les villages et les activités sont calculés en arrière-plan ; vous pouvez continuer à régler les paramètres.';
+    const wanted=structuredClone(requirements);
+    // Short debounce: sliders and repeated clicks start only one generation.
+    planTimer=setTimeout(()=>{composer.compose(wanted,{onProgress:p=>progress.update(p)}).then(plan=>{
+      if(planningKey!==key)return;progress.done();cachedPlan=plan;cachedKey=key;draftEdited=false;planningKey='';render();
+    }).catch(e=>{if(e instanceof CompositionCancelled)return;if(planningKey===key){planningKey='';progress.fail(e instanceof Error?e.message:String(e));}});},300);
+  }
   const title=(text:string,description:string)=>{
     const h=node('div','','welcome-heading');
     h.append(node('div','LITTLE WORLD STUDIO','kicker'),node('h1',text),node('p',description,'muted'));return h;
@@ -164,7 +180,7 @@ export function mountWelcome(host:HTMLElement,actions:WelcomeActions){
     page.append(choices);
     const drafts=node('section');page.append(drafts);
     void compositionDraftStore.list().then(list=>{if(!drafts.isConnected)return;for(const draft of list)drafts.append(button('Reprendre le brouillon : '+draft.name,async()=>{
-     try{const stored=await compositionDraftStore.loadProject(draft.projectId),base=composeWorld(stored.document.world.generation!),plan=await openCompositionDraft(base,draft.projectId);if(plan){requirements=structuredClone(plan.project.world.generation!);cachedKey=JSON.stringify(requirements);cachedPlan=plan;draftEdited=true;section='wizard';step=3;render();}}
+     try{const stored=await compositionDraftStore.loadProject(draft.projectId),progress=createProgress('Reprise du brouillon');drafts.append(progress.element);const base=await composer.compose(stored.document.world.generation!,{onProgress:p=>progress.update(p)}).finally(()=>progress.dispose()),plan=await openCompositionDraft(base,draft.projectId);if(plan){requirements=structuredClone(plan.project.world.generation!);cachedKey=JSON.stringify(requirements);cachedPlan=plan;draftEdited=true;section='wizard';step=3;render();}}
      catch(e){actions.report(String(e),true);}
     }));}).catch(e=>actions.report(String(e),true));
     if(actions.projects.length){
@@ -185,9 +201,10 @@ export function mountWelcome(host:HTMLElement,actions:WelcomeActions){
     const themeChoice=select('tropical-port',Object.values(WORLD_BRIEFS).map(b=>[b.id,b.name+' · '+b.climate] as [string,string]),()=>{});
     themes.append(field('Thème',themeChoice),field('Graine',themeSeed),button('Générer ce monde',()=>{void safe(async()=>{
       const brief={...WORLD_BRIEFS[themeChoice.value],seed:Math.round(Number(themeSeed.value))};
-      themeStatus.textContent='Génération en cours…';await new Promise<void>(resolve=>requestAnimationFrame(()=>setTimeout(resolve,0)));
-      const plan=composeWorld(briefToRequirements(brief),brief.name);
-      if(!plan.ready){themeStatus.textContent='Thème impossible avec cette graine : '+plan.diagnostics.filter(d=>d.severity==='ERROR').map(d=>d.message).join(' · ');return;}
+      const progress=createProgress('Génération du thème « '+brief.name+' »',()=>composer.cancel());themeStatus.replaceChildren(progress.element);
+      let plan:WorldComposition;try{plan=await composer.compose(briefToRequirements(brief),{name:brief.name,onProgress:p=>progress.update(p)});progress.done();}
+      catch(e){progress.fail(e instanceof CompositionCancelled?'Génération annulée.':e instanceof Error?e.message:String(e));busy=false;return;}
+      if(!plan.ready){themeStatus.textContent='Thème impossible avec cette graine : '+plan.diagnostics.filter(d=>d.severity==='ERROR').map(d=>d.message).join(' · ');busy=false;return;}
       themeStatus.textContent=plan.diagnostics.length+' remarque(s) de génération ; ouverture du projet.';
       await actions.create(projectFromComposition(plan,brief.name));
     })();},'primary-button'),themeStatus);
@@ -335,7 +352,7 @@ export function mountWelcome(host:HTMLElement,actions:WelcomeActions){
            messages.replaceChildren(button('Remplacer les retouches par la nouvelle génération',()=>{draftEdited=false;cachedPlan=null;render();}),button('Garder le plan retouché',()=>{requirements=structuredClone(cachedPlan!.project.world.generation!);render();}));
            if(create)create.disabled=true;return;
           }
-          if(key!==cachedKey||!cachedPlan){cachedPlan=composeWorld(requirements);cachedKey=key;draftEdited=false;}
+          if(key!==cachedKey||!cachedPlan){requestPlan(key,messages,note,create);return;}
           project=cachedPlan.project;
           messages.replaceChildren(...cachedPlan.diagnostics.map(d=>node('p',d.message,'diagnostic '+d.severity)));
         }

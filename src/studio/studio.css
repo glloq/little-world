@@ -184,3 +184,11 @@ label:has(> input[type=checkbox]){flex-direction:row;align-items:center;justify-
 .draft-tools{overflow:auto;padding:8px;background:#fbfcf7}
 .draft-map .water-workspace canvas{width:100%;height:auto}
 @media(max-width:700px){.draft-workspace{grid-template-columns:1fr;height:auto}.draft-map{height:50vh}.draft-tools{max-height:35vh}}
+
+/* Doc 105: progress of long operations (generation, recomposition). */
+.studio-progress{display:grid;grid-template-columns:1fr auto;gap:.35rem .75rem;align-items:center;padding:.6rem .75rem;border:1px solid rgba(0,0,0,.12);border-radius:8px;background:rgba(255,255,255,.75);margin:.5rem 0}
+.studio-progress-label{grid-column:1/-1;font-size:.9rem}
+.studio-progress-bar{height:8px;border-radius:4px;background:rgba(0,0,0,.1);overflow:hidden}
+.studio-progress-fill{height:100%;width:0;background:#4f8f6a;transition:width .2s ease}
+.studio-progress[data-failed=true] .studio-progress-fill{background:#b5533c}
+.studio-progress-time{font-variant-numeric:tabular-nums;font-size:.8rem}

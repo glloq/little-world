@@ -157,9 +157,10 @@ const NORMALIZE:Stage={id:'normalize',label:'Normalisation et couverture',run(c)
 /** The ordered composition pipeline. Extend by inserting stages, never by branching inside composeWorld. */
 export const COMPOSITION_STAGES:readonly Stage[]=[SHAPE,SEABED,SITES,HYDRO,ACCESS,SETTLEMENTS,POLES,ACTIVITIES,DIVE,BIOMES,RESORT,CIRCULATION,LAND,STORIES,AUDIT,NORMALIZE];
 
-export function composeWorld(input:MapRequirements,name='Mon petit monde',identity?:{projectId:string;worldId:string},stages:readonly Stage[]=COMPOSITION_STAGES):WorldComposition {
+export interface ComposeHooks {onStage?(stage:{id:string;label:string},index:number,total:number):void}
+export function composeWorld(input:MapRequirements,name='Mon petit monde',identity?:{projectId:string;worldId:string},stages:readonly Stage[]=COMPOSITION_STAGES,hooks:ComposeHooks={}):WorldComposition {
  const started=performance.now(),requirements=validateMapRequirements(input);
- const c=runStages(stages,{requirements,profile:compositionProfile(requirements),name,identity,diagnostics:[],stages:[]} as unknown as CompositionContext);
+ const c=runStages(stages,{requirements,profile:compositionProfile(requirements),name,identity,diagnostics:[],stages:[]} as unknown as CompositionContext,undefined,hooks.onStage?(st,i,n)=>hooks.onStage!({id:st.id,label:st.label},i,n):undefined);
  const project=c.normalized??c.project;
  return {project,ready:!c.diagnostics.some(d=>d.severity==='ERROR'),diagnostics:c.diagnostics,family:c.planned.family,stages:c.stages,
   metrics:{generationMs:performance.now()-started,features:archipelagoFeatures(c)?.length??c.planned.terrain.features.length,sectors:Object.keys(c.project.chunks).length,surveyCells:c.hydro?.survey.sampled??0,sourceBytes:new TextEncoder().encode(JSON.stringify(c.project)).length,...(c.coverage?{coverage:c.coverage}:{}),...(c.natural?{natural:c.natural}:{})}};
