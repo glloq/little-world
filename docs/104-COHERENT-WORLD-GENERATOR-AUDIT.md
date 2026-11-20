@@ -1,6 +1,6 @@
 # 104 — Générateur de mondes cohérent : audit et éléments à incorporer
 
-Statut : **SPECIFIED** (audit + architecture cible). Rien n’est implémenté par ce document.
+Statut : **IMPLEMENTED + TESTED (unitaire, compilation, navigateur ponctuel)** sur la branche `claude/stoic-heisenberg-xwfbza` — voir §5. **Non publié** : aucun nouveau monde n’est ajouté au build GitHub Pages ; performance GPU non qualifiée.
 Base auditée : `main` à `05de8e1` (merge #106, domaine skiable des Cimes).
 Complète [92 — mondes complets](92-COMPLETE-WORLDS-STUDIO-AUDIT.md) §6 (`ContentPlan`, jamais implémenté) et [73 — terrain/établissements](73-TERRAIN-SETTLEMENTS-ALIGNMENT.md).
 
@@ -260,3 +260,37 @@ Champs : `kind`, emprise ou couloir, réservation C3, terrassement C4, accès C5
 Le schéma de bathymétrie (G8) doit être **réservé dès G1/G2** dans le registre et la couche de terrassement.
 
 Chaque lot conserve les retouches et verrous, la lecture V1/V2 et les sauvegardes existantes. Pour chacun, noter séparément SPECIFIED, IMPLEMENTED, TESTED et RELEASED. Aucune performance n’est annoncée sans mesure sur GPU intégré.
+
+## 5. État d’implémentation (branche `claude/stoic-heisenberg-xwfbza`)
+
+Toutes les options sont **opt-in** (composition V5) : sans elles, les mondes existants (V1–V5, Cimes, Moissons, Trois vagues) sont **identiques octet par octet** (empreintes vérifiées à chaque lot).
+
+| Contrat | Module(s) | Option / entrée | Tests |
+|---|---|---|---|
+| C2 Pipeline | `studio-core/world-plan.ts`, `world-composition.ts` (`COMPOSITION_STAGES`) | toujours | `world-plan.test.mjs` |
+| C3 Occupation | `studio-core/land-registry.ts`, `settlements/footprint.ts` | audit toujours ; emprise des villages = sol réservé (`DRESSING_VERSION` 7) | `land-registry.test.mjs` |
+| C4 Terrassement | `geography/earthworks.ts`, `studio-core/earthworks-planner.ts` | `earthworks:true` | `earthworks.test.mjs` |
+| C5 Circulation | `studio-core/circulation.ts` | audit toujours ; `circulation:true` crée les liaisons | `circulation.test.mjs` |
+| C6 Activités | `studio-core/activity-sites.ts`, `activity-planners.ts` | `activities.{surf,skiResort,flight}` | `activity-sites.test.mjs` |
+| C6 Établissements | `settlements/architecture.ts`, `studio-core/world-poles.ts` | `architecture`, `poles[]` | `world-poles.test.mjs` |
+| C7 Événements, hôtes, quêtes, i18n | `gameplay/events.ts`, `gameplay/activity-trackers.ts`, `studio-core/activity-stories.ts`, `i18n/strings.ts` | `stories:true`, `locale` | `activity-stories.test.mjs` |
+| C1 Fiches de thème | `studio-core/world-brief.ts`, `tools/generate-from-brief.mjs`, Studio « Créer depuis un thème » | `npm run generate:brief <id>` | `world-brief.test.mjs` |
+| §3 Sous-marin | `geography/bathymetry.ts`, `geography/depth-zones.ts`, `render/underwater-view.ts`, `water/dive-sites.ts`, `studio-core/underwater-planner.ts` | `underwater:{…}` | `underwater.test.mjs` |
+
+**Mesures (Node, ce conteneur)** :
+
+- **Accessibilité avec liaisons** : Volcan 4/18 → 17/18 destinations atteignables depuis le réseau principal ; Cimes 7/17 → 14/17 ; Moissons 8/9 → 9/9.
+- **Villages en terrasses** : seed 17 passe de 9 à 16 maisons, seed 4242 de 11 à 14 ; le port est intact et le monde reste prêt.
+- **Six fiches** (`WORLD_BRIEFS`) : toutes prêtes et compilées strictement, **0 chevauchement d’occupation incompatible**, accessibilité de 75 à 100 %. Exemple : `tropical-port` (« archipel tropical, ville portuaire, récifs ») donne 3 villages, 3 sites de plongée, surf, vol, roulade, 5 hôtes et 16 quêtes, en ~50 s de génération.
+
+**Navigateur** : build Vite et monde `tropical-port` compilé ouverts sous Chromium/SwiftShader, sans erreur console. Constaté : maisons tropicales, champs, vue immergée active (teinte et brouillard d’eau, jauge d’oxygène).
+
+**Correction de fond** : une étape de quête `event` ne progressait jamais pour les événements sans quantité. Chaque occurrence compte désormais pour 1.
+
+**Restes / limites connus**
+
+- Les quêtes historiques codées en dur (Cimes, Trois vagues, `planResidentVillageQuest`) ne sont pas migrées vers les gabarits. Elles restent identiques pour préserver les mondes publiés.
+- Le Volcan officiel n’est pas régénéré : ses liaisons manquantes sont seulement **diagnostiquées** (CIRC_*). Les réparer modifierait la carte publiée, ce qui demande une décision explicite (doc 92, lot B).
+- Les pôles « montagne », « mine » ou « station » peuvent manquer selon le relief (diagnostic `POLE_MISSING`). La génération reste coûteuse : 10 à 60 s.
+- Enceintes fortifiées, accessoires de rue hiérarchisés, habillage sous-marin dédié (coraux, roches), améliorations d’oxygène et profil climatique (température) ne sont pas livrés.
+- Le temps GPU, notamment de la vue immergée, n’est pas qualifié sur iGPU.

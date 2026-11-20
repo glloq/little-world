@@ -13,7 +13,7 @@ import {generatorField} from '../terrain-generator.ts';
 import {projectGeography} from './geo-context.ts';
 import {chunkAt} from './schema.ts';
 import {putEntity} from './source.ts';
-import {yawQuaternion} from './transforms.ts';
+
 import {assetDefinitionFor} from '../world-production/registry.ts';
 import {fingerprint} from '../world-production/landscape-schema.ts';
 
@@ -21,6 +21,12 @@ export interface UnderwaterRequest {shelf:'narrow'|'wide';reefs:number;holes:num
 export const SHELF={narrow:{shelfDepthM:12,shelfWidthM:150,dropWidthM:110},wide:{shelfDepthM:9,shelfWidthM:320,dropWidthM:180}} as const;
 const rnd=(seed:number,i:number)=>{const v=parseInt(fingerprint([seed,i]).slice(0,8),16);return v/0xffffffff;};
 const round=(v:number)=>Math.round(v*10)/10;
+/** Wrecks rest listed on one side (≈ 28° roll, slight pitch) after the yaw. */
+function wreckQuaternion(yaw:number){
+ const q=(ax:number,ay:number,az:number,a:number)=>({x:ax*Math.sin(a/2),y:ay*Math.sin(a/2),z:az*Math.sin(a/2),w:Math.cos(a/2)});
+ const mul=(a:{x:number;y:number;z:number;w:number},b:{x:number;y:number;z:number;w:number})=>({w:a.w*b.w-a.x*b.x-a.y*b.y-a.z*b.z,x:a.w*b.x+a.x*b.w+a.y*b.z-a.z*b.y,y:a.w*b.y-a.x*b.z+a.y*b.w+a.z*b.x,z:a.w*b.z+a.x*b.y-a.y*b.x+a.z*b.w});
+ const r=mul(mul(q(0,1,0,yaw),q(1,0,0,.14)),q(0,0,1,.49));return {x:Math.round(r.x*1e6)/1e6,y:Math.round(r.y*1e6)/1e6,z:Math.round(r.z*1e6)/1e6,w:Math.round(r.w*1e6)/1e6};
+}
 
 /** Coast-parallel points at a given offshore distance (sampled on a grid, ordered by angle around the island centre). */
 function isobath(p:ProjectDocument,coast:(x:number,z:number)=>number,offshore:number,step=40){
@@ -74,7 +80,7 @@ export function planDiveSites(p:ProjectDocument,o:{max?:number;wreck?:boolean}={
   const ring=isobath(p,(x,z)=>projectGeography(p).ctx.site(x,z).coast,bathy.shelfWidthM+bathy.dropWidthM*.3,60);
   const q=ring.find(r=>!sites.some(s=>Math.hypot(s.entry.x-r.x,s.entry.z-r.z)<250)&&!Object.values(p.chunks).some(c=>Object.values(c.entities).some(e=>e.components.State?.initial.portN1Authored===true&&Math.hypot(e.components.Transform!.position.x-r.x,e.components.Transform!.position.z-r.z)<300)));
   if(q){const id='dive-wreck-0',ground=h(q.x,q.z),asset='boat.sailboat_small',def=assetDefinitionFor(asset);
-   if(def){p.assets[def.id]=def;putEntity(p,{id:id+'-hull',kind:'prop',name:'Épave',ownerChunkId:chunkAt(p.world,q.x,q.z),components:{Transform:{type:'Transform',position:{x:round(q.x),y:0,z:round(q.z)},rotation:yawQuaternion(rnd(p.world.seed,300)*Math.PI*2),scale:{x:1,y:1,z:1}},Visual:{type:'Visual',assetId:asset}}});}
+   if(def){p.assets[def.id]=def;putEntity(p,{id:id+'-hull',kind:'prop',name:'Épave',ownerChunkId:chunkAt(p.world,q.x,q.z),components:{Transform:{type:'Transform',position:{x:round(q.x),y:0,z:round(q.z)},rotation:wreckQuaternion(rnd(p.world.seed,300)*Math.PI*2),scale:{x:1,y:1,z:1}},Visual:{type:'Visual',assetId:asset}}});}
    sites.push({version:1,id,name:'Épave du '+['Cormoran','Goéland','Albatros'][Math.floor(rnd(p.world.seed,301)*3)],kind:'wreck',entry:clampPt(q),polygon:disc(q,45),depthM:round(Math.max(3,sea-ground)),discoveries:[discovery('wreck-chest','Coffre de l’épave',{x:q.x+2,z:q.z+1})]});}
   else diagnostics.push({severity:'WARNING',code:'WRECK_SKIPPED',message:'Épave : aucun fond libre sur le plateau extérieur.'});
  }

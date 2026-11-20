@@ -12,6 +12,7 @@ import type {ProjectDocument} from './types.ts';
 import type {PathDefinition} from '../world-data.ts';
 import {settlementFootprint,type PointXZ} from '../settlements/footprint.ts';
 import {planGroundRoute,type GroundRouteContext} from '../paths/terrain-route.ts';
+import {createRaceCorridorIndex} from '../gameplay/race-corridors.ts';
 
 export type DestinationKind='port'|'settlement'|'shop'|'race'|'piste'|'lift'|'surf'|'mine'|'farm'|'site'|'dive';
 export interface Destination {id:string;kind:DestinationKind;name:string;x:number;z:number;sourceId:string;
@@ -148,6 +149,10 @@ export function auditCirculation(p:ProjectDocument,g=buildCirculationGraph(p)):C
  * commits them. Water-side destinations (surf, dive) are never forced.
  */
 export function planCirculationLinks(p:ProjectDocument,c:GroundRouteContext,o:{maxLinks?:number;maxSlope?:number;widthM?:number;maxDistanceM?:number}={}):{paths:PathDefinition[];failed:string[]}{
+ // Links never cross race roadbeds or ski runs: those activities validate their corridors as free ground.
+ const corridors=createRaceCorridorIndex([...Object.values(p.libraries.races??{}).flatMap(r=>r.track?[r.track]:[]),
+  ...Object.values(p.libraries.alpine??{}).map(a=>({points:a.points,width:a.widthM,material:'dirt' as const,smooth:false,features:[]}))],3);
+ const baseWet=c.wet;c={...c,wet:(x:number,z:number)=>baseWet(x,z)||corridors.contains(x,z)};
  const maxLinks=o.maxLinks??12,policy={maxSlope:o.maxSlope??.35,widthM:o.widthM??2.2,maxCells:8192},added:PathDefinition[]=[],failed:string[]=[];
  const existing=new Set(Object.keys(p.libraries.paths));let n=0;const nextId=()=>{while(existing.has('circulation-link-'+n))n++;existing.add('circulation-link-'+n);return 'circulation-link-'+n;};
  for(let round=0;round<maxLinks;round++){

@@ -1,4 +1,4 @@
-import {generateWorldActivities} from './world-activities.ts';
+import {generateWorldActivities,validateWorldActivities} from './world-activities.ts';
 import {generateBirthPort,validateBirthPort} from './birth-port.ts';
 import {generateWelcomeVillage} from './welcome-village.ts';
 import {compilePolygon} from '../geography/archipelago.ts';
@@ -147,6 +147,8 @@ const AUDIT:Stage={id:'audit',label:'Contrôle des demandes',run(c){
  if(c.profile.natural&&r.islandStyle?.model==='caldera'&&r.type!=='archipelago')c.diagnostics.push({severity:'ERROR',code:'STYLE_TYPE',message:'La caldera fragmentée nécessite le type Archipel.'});
  if(c.profile.natural&&r.biomeMode==='custom')c.diagnostics.push({severity:'WARNING',code:'ENVIRONMENTAL_SEQUENCE',message:'La succession est une préférence par altitude sur les versants ; les milieux incompatibles avec le terrain ne sont pas imposés.'});
  c.diagnostics.push(...validateBirthPort(c.project));
+ // Same activity checks as the compiler preflight: a composition is never 'ready' if it cannot compile.
+ if(c.profile.complete)c.diagnostics.push(...validateWorldActivities(c.project).filter(d=>!c.diagnostics.some(x=>x.code===d.code&&x.message===d.message)));
 }};
 const NORMALIZE:Stage={id:'normalize',label:'Normalisation et couverture',run(c){
  c.normalized=parseProject(JSON.parse(JSON.stringify(c.project)));
