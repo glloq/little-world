@@ -54,6 +54,7 @@ import {
 import './style.css';
 import {waterSurface,riverX,isLegacyTerrain} from './terrain.ts';
 import {createUnderwaterView} from './render/underwater-view.ts';
+import {createShaderWarmup} from './render/shader-warmup.ts';
 import {createDiveTracker,createSkiRunTracker,createSurfRideTracker,stepDiveTracker,stepSkiRun,stepSurfRide} from './gameplay/activity-trackers.ts';
 import {createFleet} from './gameplay/fleet.ts';
 import {loadArchipelagoRegistry,type PublishedIsland} from './archipelago/registry.ts';
@@ -153,6 +154,11 @@ const renderer = new THREE.WebGLRenderer({
   antialias: !touchCapable, // Avoid expensive MSAA on low-end mobile GPUs.
   powerPreference: 'high-performance',
 });
+// Release builds skip the synchronous program-status queries made after every compile;
+// development and ?metrics keep the shader diagnostics.
+renderer.debug.checkShaderErrors=import.meta.env.DEV||new URLSearchParams(location.search).has('metrics');
+// Benchmark/diagnostic access (only with ?metrics): program list, renderer counters.
+if(new URLSearchParams(location.search).has('metrics'))Object.assign(window,{__lwRenderer:renderer});
 const quality = document.querySelector<HTMLSelectElement>('#quality')!;
 const renderTier=new URLSearchParams(location.search).get('renderTier');
 const presentation = new FrameClock(),
@@ -1225,7 +1231,7 @@ function showInfo(text: string, kind:'info'|'success'|'warning'='info') {
 }
 const cameraTarget = new THREE.Vector3(),
   cameraDesired = new THREE.Vector3(),cameraOffset=new THREE.Vector3(),cameraOffsetGoal=new THREE.Vector3(),audioForward=new THREE.Vector3();
-let cameraOffsetReady=false;
+let cameraOffsetReady=false,warmedSpeciesState='';
 function updateCamera(dt: number) {
   if(debugSurfCamera){const c=debugSurfCamera;camera.position.set(c.px,c.py,c.pz);camera.lookAt(c.tx,c.ty,c.tz);return;}
   // Presentation-only idle camera recovery, never fed back to flight physics.
@@ -1839,6 +1845,8 @@ function draw(now: number) {
     const end=performance.now();
     surfPerf.add('waterUpdate',surfTubeStart-surfWaterStart);surfPerf.add('tubeUpdate',end-surfTubeStart);
   }
+  const speciesState=world.dressing?.species.state??'none';
+  if(speciesState!==warmedSpeciesState){warmedSpeciesState=speciesState;if(speciesState==='ready')void shaderWarmup.request();}
   if(!loading.ready&&loading.update({terrainPending:world.stats.pending,dressingPending:world.dressing?.nearPending??0,speciesState:world.dressing?.species.state??'none'}))beginGame();
   remoteActors?.update(delta,elapsed,camera,renderer.domElement.height,budget.level);
   npcs.update(delta, elapsed, player.position,camera); // The river drives the mill: no manual on/off control.
@@ -1954,6 +1962,7 @@ function draw(now: number) {
         remoteActors:remoteActors?.stats??null,
         perf:presentedFrames%30===0?perfSampler.snapshot():(window as unknown as {littleWorldMetrics?:{perf:unknown}}).littleWorldMetrics?.perf,
         gpu:{...gpuTimer.stats},
+        shaderWarmup:{...shaderWarmup.stats},
         horizon: { ...world.horizon },
         terrainWork: { ...world.terrainWork },
         dressing: world.dressing ? { ...world.dressing } : null,
@@ -2191,6 +2200,13 @@ if(cargoService&&gameplay&&activeIsland){
     bootFailure(error);
   }
 }
+// Compile every shader variant behind the loading screen instead of on first appearance
+// (normal state, underwater fog, miner headlamp). Re-run when new content arrives.
+const shaderWarmup=createShaderWarmup(renderer,scene,camera,[
+  ()=>{const fog=scene.fog;scene.fog=new THREE.Fog(0,1,2);return()=>{scene.fog=fog;};},
+  ()=>{const was=mineHelmet.active;mineHelmet.setActive(true);return()=>mineHelmet.setActive(was);},
+]);
+void shaderWarmup.request();
 // Gameplay starts automatically when the first rendered spawn area is ready.
 overlay.setAttribute('aria-busy','false');loading.boot(1);
 requestAnimationFrame(draw);

@@ -10,6 +10,10 @@ export interface NaturalViewStats {registered:number;visible:number;rebuilds:num
 export function createNaturalView(parent:THREE.Object3D,ground:(x:number,z:number)=>number){
  const root=new THREE.Group();root.name='Local natural structures';parent.add(root);
  const entries=new Map<string,Placement>(),active=new Map<string,THREE.Group>();
+ // Recently left structures are parked (geometry and material kept) instead of disposed:
+ // walking back and forth across the radius no longer rebuilds meshes nor releases the
+ // shader program (which recompiled on the next appearance). Bounded LRU.
+ const parked=new Map<string,THREE.Group>(),PARKED_MAX=64;
  const stats:NaturalViewStats={registered:0,visible:0,rebuilds:0,triangles:0,drawCalls:0};
  let previousX=NaN,previousZ=NaN,disposed=false;
  const disposeGroup=(g:THREE.Group)=>{
@@ -20,6 +24,7 @@ export function createNaturalView(parent:THREE.Object3D,ground:(x:number,z:numbe
    if(!p.naturalStructure)throw Error('Natural view requires a natural structure');
    if(disposed)throw Error('Natural view disposed');
    // Keep source descriptors only; far geometry is never constructed.
+   const stale=parked.get(p.id);if(stale){parked.delete(p.id);disposeGroup(stale);}
    entries.set(p.id,p);stats.registered=entries.size;previousX=NaN;
  };
  const update=(x:number,z:number)=>{
@@ -32,8 +37,11 @@ export function createNaturalView(parent:THREE.Object3D,ground:(x:number,z:numbe
      .sort((a,b)=>a.d-b.d||a.p.id.localeCompare(b.p.id))
      .slice(0,NATURAL_DRAW_BUDGET.maxVisible);
    const shown=new Set(nearest.filter(e=>e.d<=NATURAL_DRAW_BUDGET.radius||active.has(e.p.id)).map(e=>e.p.id));
-   for(const [id,g]of active)if(!shown.has(id)){disposeGroup(g);active.delete(id);}
+   for(const [id,g]of active)if(!shown.has(id)){g.removeFromParent();active.delete(id);parked.delete(id);parked.set(id,g);}
+   while(parked.size>PARKED_MAX){const [id,g]=parked.entries().next().value!;parked.delete(id);disposeGroup(g);}
    for(const {p}of nearest)if(shown.has(p.id)&&!active.has(p.id)){
+     const kept=parked.get(p.id);
+     if(kept){parked.delete(p.id);root.add(kept);active.set(p.id,kept);continue;}
      const obj=naturalMesh(p.naturalStructure!);
      obj.position.set(p.x,ground(p.x,p.z)+(p.y??0),p.z);
      if(p.quaternion)obj.quaternion.fromArray(p.quaternion);
@@ -41,13 +49,14 @@ export function createNaturalView(parent:THREE.Object3D,ground:(x:number,z:numbe
      if(p.scale3)obj.scale.fromArray(p.scale3);
      else obj.scale.setScalar(p.scale??1);
      obj.userData.entityId=p.id;obj.userData.placementId=p.id;
+     obj.updateMatrix();obj.matrixAutoUpdate=false;
      root.add(obj);active.set(p.id,obj);
    }
    stats.visible=active.size;stats.drawCalls=active.size;stats.triangles=active.size*(16*8+4);
  };
  return {add,update,stats,dispose(){
-   if(disposed)return;disposed=true;for(const g of active.values())disposeGroup(g);
-   active.clear();entries.clear();root.removeFromParent();stats.visible=0;stats.drawCalls=0;stats.triangles=0;
+   if(disposed)return;disposed=true;for(const g of active.values())disposeGroup(g);for(const g of parked.values())disposeGroup(g);
+   active.clear();parked.clear();entries.clear();root.removeFromParent();stats.visible=0;stats.drawCalls=0;stats.triangles=0;
  }};
 }
 export type NaturalView=ReturnType<typeof createNaturalView>;

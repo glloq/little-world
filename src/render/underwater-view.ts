@@ -21,19 +21,21 @@ export function underwaterLook(depth:number,daylight:number):UnderwaterLook{
 }
 
 export function createUnderwaterView(scene:THREE.Scene){
- let fog:THREE.Fog|null=null,active=false;
+ let fog:THREE.Fog|null=null,active=false,tint='';
  const color=new THREE.Color();
  return {
   /** Call once per frame after the environment update. `depth` = water surface − camera y (≤ 0 = above water). */
   update(depth:number|null,daylight:number,sun?:THREE.DirectionalLight){
-   const under=depth!==null&&depth>0.1;
-   if(!under){if(active){scene.fog=null;active=false;document.body.style.removeProperty('--underwater-tint');}return null;}
+   // Hysteresis: a camera bobbing at the surface does not flip the fog every frame.
+   const under=depth!==null&&depth>(active?0.02:0.1);
+   if(!under){if(active){scene.fog=null;active=false;tint='';document.body.style.removeProperty('--underwater-tint');}return null;}
    const look=underwaterLook(depth!,daylight);color.setHex(look.color);
    if(!fog)fog=new THREE.Fog(look.color,look.near,look.far);
    fog.color.copy(color);fog.near=look.near;fog.far=look.far;scene.fog=fog;active=true;
    if(scene.background instanceof THREE.Color)scene.background.copy(color);
    if(sun)sun.intensity*=look.sun;
-   document.body.style.setProperty('--underwater-tint',look.tint.toFixed(3));
+   // Restyling the whole document every frame is costly: write only when the value changes.
+   const nextTint=look.tint.toFixed(2);if(nextTint!==tint){tint=nextTint;document.body.style.setProperty('--underwater-tint',nextTint);}
    return look;
   },
   get active(){return active;},
