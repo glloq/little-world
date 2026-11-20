@@ -12,6 +12,7 @@ import {blobOutline} from '../src/geography/archipelago-params.ts';
 import {defaultEnvironment} from '../src/environment/climate.ts';
 import {applyLandscape,newLandscape} from '../src/world-production/landscapes.ts';
 import {assetDefinitionFor} from '../src/world-production/registry.ts';
+import {addForestJournal} from '../src/studio-core/forest-journal.ts';
 import {projectGeography} from '../src/studio-core/geo-context.ts';
 import {compileProjectToDirectory} from './compile-project.mjs';
 
@@ -62,6 +63,7 @@ export function buildProductionReference(){
   // Wooden arch bridge where the mine trail crosses the river-bend corridor is provided by the
   // river-bend preset (stone bridge); a watermill stands on the river bank.
   place('ref-watermill','Moulin à eau','architecture.watermill_log_stone',205,-20,-1.2);
+  addForestJournal(p);
   return {project:parseProject(p),reports};
 }
 if(import.meta.url===`file://${process.argv[1]}`){
