@@ -107,6 +107,12 @@ export class WorldCollisionQuery {
   const provider=space?this.providers.get(space.zoneId):undefined;if(provider&&space)provider.solids(space.levelId,minX,maxX,minZ,maxZ,out);
   return out;
  }
+ /** Enabled solid boxes overlapping the XZ rectangle, through the same broadphase as movement.
+  * Read-only view of an internal scratch array: valid until the next query on this world. */
+ solidsNear(minX:number,maxX:number,minZ:number,maxZ:number,space?:MovementSpace|null):readonly Bounds[]{
+  if(![minX,maxX,minZ,maxZ].every(finite)||minX>maxX||minZ>maxZ)throw Error('Zone de requête invalide');
+  return this.gather(minX,maxX,minZ,maxZ,space);
+ }
  /** Conservative occupied volume for authoring placement, using the existing spatial grid. */
  intersectsVolume(bounds:Bounds):boolean{if(!Object.values(bounds).every(finite)||bounds.minX>=bounds.maxX||bounds.minY>=bounds.maxY||bounds.minZ>=bounds.maxZ)throw Error('Volume invalide');for(const b of this.gather(bounds.minX,bounds.maxX,bounds.minZ,bounds.maxZ))if(b.minX<bounds.maxX&&b.maxX>bounds.minX&&b.minY<bounds.maxY&&b.maxY>bounds.minY&&b.minZ<bounds.maxZ&&b.maxZ>bounds.minZ)return true;return false;}
  /** Segment occlusion uses the SAME enabled physical bodies and spatial broadphase as movement. */
