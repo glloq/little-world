@@ -47,3 +47,5 @@ export function buildSurfIsland(){
  const project=parseProject(p);
  return {project,port,plan,homes};
 }
+
+export function buildSurfProject(){return buildSurfIsland().project;}

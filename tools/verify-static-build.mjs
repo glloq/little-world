@@ -31,7 +31,7 @@ export async function verifyStaticBuild(directory = 'dist') {
   // Keep the published map allowlist intact: the second island lives in /archipelago.
   const catalog=JSON.parse(await readFile(resolve(root,'archipelago/catalog.json'),'utf8'));
   assert.equal(catalog.schemaVersion,1,'Version du registre invalide');
-  assert.equal(catalog.islands.length,4,'Quatre îles jouables attendues');
+  assert.equal(catalog.islands.length,5,'Cinq îles jouables attendues');
   const manifest=JSON.parse(await readFile(resolve(root,'archipelago/worlds/forest-valley/manifest.json'),'utf8'));
   assert.equal(manifest.worldId,'little-world-production-reference','Mauvaise île d’exemple');
   const forest=JSON.parse(await readFile(resolve(root,'archipelago/worlds/forest-valley/project.json'),'utf8'));
@@ -49,6 +49,14 @@ export async function verifyStaticBuild(directory = 'dist') {
   assert.ok(alpineProject.libraries.alpine['composition-alpine'].lift);
   assert.equal(alpineProject.libraries.races['race:composition-downhill'].worldId,alpine.worldId);
   for(const {url} of [alpine.logic,...alpine.chunks])assert.ok((await stat(resolve(alpineDir,url))).isFile());
+  const harvestDir=resolve(root,'archipelago/worlds/harvest-island');
+  const harvest=JSON.parse(await readFile(resolve(harvestDir,'manifest.json'),'utf8'));
+  const harvestProject=JSON.parse(await readFile(resolve(harvestDir,'project.json'),'utf8'));
+  assert.equal(harvest.worldId,'little-world-harvest-island');
+  assert.equal(harvestProject.manifest.worldId,harvest.worldId);
+  assert.equal(harvestProject.world.generation.welcomeActivity,'agriculture');
+  assert.ok(harvestProject.libraries.settlements['composition-welcome-village'].amenities.some(a=>a.role==='mill'));
+  for(const {url} of [harvest.logic,...harvest.chunks])assert.ok((await stat(resolve(harvestDir,url))).isFile());
   const surf=JSON.parse(await readFile(resolve(root,'archipelago/worlds/surf-island/manifest.json'),'utf8'));
   assert.equal(surf.worldId,'little-world-surf-island','Identité de l’île Surf invalide');
   assert.equal(surf.kind,'compiled-world');

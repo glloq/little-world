@@ -28,6 +28,13 @@
       "manifest": "archipelago/worlds/alpine-island/manifest.json",
       "description": "Massif enneigé, piste de ski, télésiège, course de roulade et hameau maritime.",
       "portLevel": 0
+    },
+    {
+      "id": "harvest-island",
+      "name": "Île des Moissons",
+      "manifest": "archipelago/worlds/harvest-island/manifest.json",
+      "description": "Village agricole, jardins cultivables, champs des habitants, moulin et course de roulade.",
+      "portLevel": 0
     }
   ]
 }

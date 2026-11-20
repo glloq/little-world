@@ -9,27 +9,28 @@ function officialStudioExamples():Plugin {
     ['archipelago/worlds/forest-valley/project.json',new URL('./tests/fixtures/legacy-maps/authoring/production-reference.project.json',import.meta.url)],
   ]);
   const generatedSources=new Map([
-    ['/little-world/archipelago/worlds/surf-island/project.json','/src/studio-core/surf-island.ts'],
-    ['/little-world/archipelago/worlds/alpine-island/project.json','/src/studio-core/alpine-island.ts'],
+    ['/little-world/archipelago/worlds/surf-island/project.json',['/src/studio-core/surf-island.ts','buildSurfProject']],
+    ['/little-world/archipelago/worlds/alpine-island/project.json',['/src/studio-core/alpine-island.ts','buildAlpineIsland']],
+    ['/little-world/archipelago/worlds/harvest-island/project.json',['/src/studio-core/harvest-island.ts','buildHarvestIsland']],
   ]);
   const generated=new Map<string,Promise<string>>();
   return {
     name:'official-studio-examples',
     configureServer(server){
+      server.watcher.on('change',()=>generated.clear());
       server.middlewares.use((req,res,next)=>{
         const path=req.url?.split('?')[0];
         const generator=path===undefined?undefined:generatedSources.get(path);
         if(generator){
-          let pending=generated.get(generator);
+          const [modulePath,buildProject]=generator;
+          let pending=generated.get(modulePath);
           if(!pending){
-            pending=server.ssrLoadModule(generator).then(module=>JSON.stringify(
-              generator.endsWith('/surf-island.ts')?module.buildSurfIsland().project:module.buildAlpineIsland(),
-            ));
-            generated.set(generator,pending);
+            pending=server.ssrLoadModule(modulePath).then(module=>JSON.stringify(module[buildProject]()));
+            generated.set(modulePath,pending);
           }
           void pending.then(source=>{
             res.setHeader('Content-Type','application/json; charset=utf-8');res.end(source);
-          },error=>{generated.delete(generator);next(error);});
+          },error=>{generated.delete(modulePath);next(error);});
           return;
         }
         const source=path?.startsWith('/little-world/')?sources.get(path.slice('/little-world/'.length)):undefined;

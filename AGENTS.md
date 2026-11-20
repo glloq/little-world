@@ -290,7 +290,7 @@ Lire **[43 — Hamster joueur](docs/43-HAMSTER-JOUEUR.md)** avant de toucher au 
 ## Carte officielle et isolation des fixtures (novembre 2026)
 
 - **Carte principale** : l’île 4 × 3 km, source générée `maps/island.project.json`, runtime `public/maps/island/`, générateur `npm run generate:island`.
-- **Studio** : « Explorer un monde prêt » propose l’île du volcan et l’île du val forestier. Vite expose leurs sources dans le build et en développement, respectivement sous `maps/island.project.json` et `archipelago/worlds/forest-valley/project.json`.
+- **Studio** : « Explorer un monde prêt » propose le Volcan, le Val forestier, les Trois vagues, les Cimes et les Moissons. Les sources sont servies dans le build et en développement. Le Volcan reste sous `maps/island.project.json`. Les autres projets sont exposés sous `archipelago/worlds/<id>/project.json`.
 - Les scènes techniques sont conservées sous `tests/fixtures/legacy-maps/{authoring,published}`. Le val forestier est publié à partir de la référence World Production avec les fichiers compilés cités par son manifeste.
 - Les tests navigateur peuvent les utiliser seulement après `node tools/stage-test-maps.mjs dist/maps` avec `studio/?testFixtures=1` sur le build de validation ; **ne jamais ajouter cette étape dans le workflow GitHub Pages**.
 - Les ajouts de contenu se font dans le générateur de l’île concernée et sont mesurés avant/après. Voir `docs/61-SHOWCASE-ISLAND-4X3.md`.
