@@ -199,7 +199,7 @@ const activeIsland=archipelago?.islands.find(island=>island.manifest===worldPath
 const incomingTransit=activeIsland?(()=>{try{return pendingTransit(sessionStorage,activeIsland);}catch{return null;}})():null;
 // The destination builds under an inexpensive boat view. Full browser navigation has
 // already released the source WebGL context before the target bootstrap begins.
-const travelArrivalOverlay=incomingTransit?holdFerryArrival('Arrivée sur '+activeIsland!.name+'…'):null;
+const travelArrivalOverlay=incomingTransit?holdFerryArrival('Arrivée sur '+activeIsland!.name+'…',activeIsland!.id):null;
 function recoverJourney(error:unknown){
   if(!incomingTransit)return;
   try{
@@ -521,7 +521,7 @@ async function travelToIsland(destination:PublishedIsland):Promise<{ok:boolean;m
     });
     checkpointWritten=true;
     clearGameplayInput();
-    await showFerryCinematic('En route vers '+destination.name+'…');
+    await showFerryCinematic('En route vers '+destination.name+'…',destination.id);
     location.assign(islandURL(destination.manifest));
     return {ok:true,message:'Chargement de '+destination.name+'…'};
   }catch(error){
@@ -742,7 +742,7 @@ world.update(0, player.position);
     ferry:activeIsland&&ferryDock&&archipelago?{
       currentIslandId:activeIsland.id,islands:archipelago.islands,
       dock:{x:ferryDock.x,z:ferryDock.z},state:()=>ferryNow,canBoard:canBoardFerry,
-      preview:()=>{void showFerryCinematic('Essai de la traversée · retour sur cette île');},
+      preview:()=>{void showFerryCinematic('Essai de la traversée · retour sur cette île',activeIsland.id);},
       travel:travelToIsland,
     }:undefined,
     target:()=>currentTarget(),

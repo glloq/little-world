@@ -21,3 +21,37 @@
 .ui-ferry-arrival .ui-ferry-ship{animation:ferry-ship-grow 3.1s ease-in-out infinite alternate}
 .ui-ferry-arrival-done{opacity:0;transition:opacity .3s ease}
 @media(prefers-reduced-motion:reduce){.ui-ferry-arrival .ui-ferry-rowboat,.ui-ferry-arrival .ui-ferry-ship{animation:none}.ui-ferry-arrival-done{transition:none}}
+
+.ui-ferry-scenery{position:absolute;inset:0}
+.ui-ferry-coast{
+  position:absolute;right:-4%;top:31%;width:60%;height:33%;
+  clip-path:polygon(0 100%,10% 85%,26% 73%,36% 51%,44% 54%,55% 35%,63% 50%,72% 56%,85% 81%,100% 90%,100% 100%);
+  background:linear-gradient(#4f7764,#668d7d 85%,#7d9c86);
+  transform-origin:right bottom;animation:ferry-coast-approach 2.6s ease-out both
+}
+.ui-ferry-cinematic[data-island="alpine-island"] .ui-ferry-coast{
+  clip-path:polygon(0 100%,13% 90%,25% 72%,42% 18%,52% 45%,63% 7%,76% 63%,86% 77%,100% 94%,100% 100%);
+  background:linear-gradient(#e9edf1 0 29%,#779399 30%,#576f73 73%,#789279)
+}
+.ui-ferry-cinematic[data-island="surf-island"] .ui-ferry-coast{
+  clip-path:polygon(0 100%,10% 91%,31% 81%,46% 79%,55% 62%,65% 62%,83% 81%,100% 91%,100% 100%);
+  background:linear-gradient(#517d6e 55%,#7fa883 83%,#c1ad83 98%)
+}
+.ui-ferry-cinematic[data-island="harvest-island"] .ui-ferry-coast{
+  background:linear-gradient(#648248 42%,#89a05c 69%,#a59b58 88%,#baa878)
+}
+.ui-ferry-waves{
+  position:absolute;top:63%;bottom:8%;left:-15%;right:-15%;
+  background:repeating-linear-gradient(178deg,transparent 0 21px,#c6e8df29 23px,#c6e8df29 25px,transparent 27px 34px);
+  animation:ferry-wave-drift 4s linear infinite alternate
+}
+.ui-ferry-caption{padding:.6rem 1rem;border-radius:.7rem;background:#17374bcc;margin-inline:auto;width:fit-content;max-width:calc(100% - 40px)}
+.ui-ferry-arrival .ui-ferry-coast{animation:none}
+@keyframes ferry-coast-approach{from{transform:translateX(18%) scale(.72);opacity:.45}to{transform:none;opacity:1}}
+@keyframes ferry-wave-drift{from{transform:translateX(-4%)}to{transform:translateX(4%)}}
+.reduce-motion .ui-ferry-scenery *,
+.reduce-motion .ui-ferry-rameur:after{animation:none}
+.reduce-motion .ui-ferry-arrival-done{transition:none}
+@media(prefers-reduced-motion:reduce){
+  .ui-ferry-coast,.ui-ferry-waves{animation:none}
+}
