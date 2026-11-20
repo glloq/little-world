@@ -190,7 +190,10 @@ export function createDressingView(parent:THREE.Group,seed:number,density:number
       const x=cx+dx,z=cz+dz,cached=cache.get(x+':'+z);if(cached&&!cached.stale||inFlight.has(x+':'+z))continue;
       const d=cellDistance(x,z,fx,fz);if(d>maxRadius())continue;
       if(!insideWorld((x+.5)*DRESSING_CELL_M,(z+.5)*DRESSING_CELL_M)&&!insideWorld(x*DRESSING_CELL_M,z*DRESSING_CELL_M)&&!insideWorld((x+1)*DRESSING_CELL_M,(z+1)*DRESSING_CELL_M))continue;
-      need.push([x,z,cached?d-1e6:d]);
+      // In motion, cells along the trajectory come first (same distance, earlier arrival).
+      const along=motionSpeed>1?(((x+.5)*DRESSING_CELL_M-fx)*motionX+((z+.5)*DRESSING_CELL_M-fz)*motionZ)/motionSpeed:0;
+      const key=d-.6*Math.max(0,Math.min(along,motionSpeed*3));
+      need.push([x,z,cached?key-1e6:key]);
     }
     queue=need.sort((a,b)=>a[2]-b[2]).map(([x,z])=>[x,z]);stats.pending=queue.length;
     // Canopy ring: cells whose centre lies between the far silhouettes and the canopy radius.
@@ -199,6 +202,7 @@ export function createDressingView(parent:THREE.Group,seed:number,density:number
       if(d<farRadius()-DRESSING_CELL_M||d>canopyRadius()||canopy.has(x+':'+z)||!insideWorld((x+.5)*DRESSING_CELL_M,(z+.5)*DRESSING_CELL_M))continue;wanted.push([x,z,d]);}
     canopyQueue=wanted.sort((a,b)=>a[2]-b[2]).map(([x,z])=>[x,z]);
   }
+  let motionX=0,motionZ=0,motionSpeed=0;
   const cellDistance=(x:number,z:number,fx:number,fz:number)=>{const dx=Math.max(x*DRESSING_CELL_M-fx,0,fx-(x+1)*DRESSING_CELL_M),dz=Math.max(z*DRESSING_CELL_M-fz,0,fz-(z+1)*DRESSING_CELL_M);return Math.hypot(dx,dz);};
   /** Last focus (player): cache eviction drops the FARTHEST cells and never a cell inside the
    * drawing radius. (An LRU on the rebuild order evicted the nearest cells first once the cache was
@@ -375,6 +379,8 @@ export function createDressingView(parent:THREE.Group,seed:number,density:number
     setSectorSize(m:number){impostors.setSectorSize(m);dirty=true;},
     updateImpostors(time:number,night:number){impostors.update(time,night);},
     setHidden(fn:typeof hidden){hidden=fn;dirty=true;},
+    /** Horizontal velocity of the focus (m/s): generation order follows the trajectory. */
+    setMotion(vx:number,vz:number){motionX=vx;motionZ=vz;motionSpeed=Math.hypot(vx,vz);},
     /** New relief-occlusion field (refreshed after camera moves): redraw without hidden items. */
     setOcclusion(fn:typeof occlusion){occlusion=fn;dirty=true;},
     /** Redraw from cached cells (gameplay changes: felled tree, picked flowers). */redraw(){dirty=true;lastRebuild=0;},

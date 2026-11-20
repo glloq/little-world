@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {
+  chunkBounds,
   planChunks,
   planView,
   viewChanged,
@@ -265,18 +266,21 @@ export function createTerrainView(
   let desiredKeys=new Set<string>();
   function dispatch(): void {
     for (const [k, job] of inFlight)
-      if (!desiredKeys.has(k)) { job.task.cancel(); inFlight.delete(k);completed.delete(k);failed.delete(k); }
+      if (!desiredKeys.has(k)) { job.task.cancel(); inFlight.delete(k);failed.delete(k); }
+    // Results that arrived for a plan since changed are kept (bounded): a tile flipping back
+    // (U-turn, LOD hysteresis) is integrated at once instead of being built again (SPEED-3).
+    if (completed.size > 24) for (const k of completed.keys()) { if (completed.size <= 24) break; if (!desiredKeys.has(k)) completed.delete(k); }
     for (let i = 0; i < pending.length && inFlight.size < MAX_IN_FLIGHT; i++) {
       const chunk = pending[i], k = key(chunk, chunk.lod);
       // Already built (e.g. by a request issued before a replan): show it, never wait for it.
       const ready = cache.get(k);
       if (ready) { pending.splice(i--, 1); show(ready); continue; }
-      if (inFlight.has(k)||failed.has(k)) continue;
+      if (inFlight.has(k)||failed.has(k)||completed.has(k)) continue;
       const task = pool!.run<ChunkData>({ kind: 'tile', chunk: { minX: chunk.minX, maxX: chunk.maxX, minZ: chunk.minZ, maxZ: chunk.maxZ }, lod: chunk.lod, horizon: horizonContext(config.chunkSize) }, i);
       inFlight.set(k, { chunk, task });
       task.promise.then(({ result, stale }) => {
         if (inFlight.get(k)?.task !== task) return;
-        if (dead || stale || cache.has(k)||!desiredKeys.has(k)) {inFlight.delete(k);return;}
+        if (dead || stale || cache.has(k)) {inFlight.delete(k);return;}
         // Worker callbacks only enqueue data. Integration and GPU-buffer preparation happen
         // under the same update budget as synchronous tiles, never in a microtask burst.
         completed.set(k,result);work.ready=completed.size;work.maxReady=Math.max(work.maxReady,completed.size);
@@ -473,6 +477,8 @@ export function createTerrainView(
         } else release(record);
       }
       for (const [k, job] of inFlight) if (touched(job.chunk)) { job.task.cancel(); inFlight.delete(k);completed.delete(k);failed.delete(k); }
+      // Kept results of earlier plans are outdated by the edit too.
+      for (const k of [...completed.keys()]) { const [column, row] = k.split('/')[0].split(':').map(Number), c = chunkBounds(config, column, row); if (!c || touched(c)) completed.delete(k); }
       if (lastFocus) replanView(lastFocus);
       else
         replan(
