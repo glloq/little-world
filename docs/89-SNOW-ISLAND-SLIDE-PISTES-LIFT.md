@@ -86,3 +86,12 @@ La station se trouve dans la zone basse de l’île des Cimes. Elle rassemble
 un chalet, un banc, un plan interactif et Ariane, la monitrice. La carte du
 joueur indique la station et l’embarquement. Le chalet et ses équipements
 reposent sur une terrasse de terrain éditable dans Studio.
+
+Le Chrono des Cimes emprunte une piste damée. Dans le couloir balisé, la
+neige préparée réduit la friction et conserve la prise de carre de la neige.
+Studio propose le réglage **Piste damée** dans **Courses**. Le chrono sur
+neige damée dispose de ses propres records personnels.
+
+Le comptoir du chalet vend des skis à 24 pièces et des snowboards à 28 pièces.
+Le matériel acheté se conserve dans le sac et s’équipe comme les autres
+outils. Le prêt de la station reste disponible avec **B**.

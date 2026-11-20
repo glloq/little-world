@@ -86,6 +86,11 @@ export function mountRacesPanel(host:HTMLElement,ctx:RacePanelContext){
      putAuthoredRace(draft,raceFromSkiArea(draft.world,next,env.height));
     draft.libraries.alpine={...draft.libraries.alpine,'composition-alpine':next};});}})),field('Équipement de prêt',select(area.equipment,[['skis','Skis'],['snowboard','Snowboard']],async value=>{await ctx.session.change('Équipement alpin',[],draft=>{draft.libraries.alpine!['composition-alpine'].equipment=value as typeof area.equipment;});})));
   const lift=node('input');lift.type='checkbox';lift.checked=area.lift;lift.onchange=()=>{void ctx.session.change('Remontée alpine',[],draft=>{draft.libraries.alpine!['composition-alpine'].lift=lift.checked;});};card.append(field('Remontée mécanique prototype',lift),node('p','B alterne skis et snowboard. Les portes d’un chrono de ski utilisent le tracé enneigé.','muted'));
+  const groomed=node('input');groomed.type='checkbox';groomed.checked=area.groomed===true;
+  groomed.onchange=()=>{void ctx.session.change('Damage de la piste',[],draft=>{
+   draft.libraries.alpine!['composition-alpine'].groomed=groomed.checked;
+  });};
+  card.append(field('Piste damée',groomed));
   if(!p.libraries.races?.[ALPINE_RACE_ID])card.append(button('Créer un chrono sur cette descente',async()=>{
    try{
     await ctx.session.fullDocument();

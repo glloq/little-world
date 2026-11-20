@@ -17,9 +17,11 @@ test('snowboard accelerates downhill without forward thrust',()=>{
  const p=actor();run(p,neutral);assert.ok(p.velocity.z>2,p.velocity.z);
  assert.ok(Number.isFinite(p.position.z));
 });
-test('ice slides faster than packed snow and braking reduces momentum',()=>{
- const powder=actor(),ice=actor();run(powder,neutral);run(ice,neutral,90,'ice');
- assert.ok(ice.velocity.z>powder.velocity.z);
+test('groomed snow glides faster than natural snow while ice stays faster and braking still works',()=>{
+ const powder=actor(),groomed=actor(),ice=actor();
+ run(powder,neutral);run(groomed,neutral,90,'groomed');run(ice,neutral,90,'ice');
+ assert.ok(groomed.velocity.z>powder.velocity.z);
+ assert.ok(ice.velocity.z>groomed.velocity.z);
  const v=powder.velocity.z;run(powder,{...neutral,forward:-1,brake:true},30);
  assert.ok(Math.hypot(powder.velocity.x,powder.velocity.z)<v);
 });

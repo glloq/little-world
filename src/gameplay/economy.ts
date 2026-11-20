@@ -23,7 +23,7 @@ export const STARTING_KIT=[
   {itemId:'food:chanterelle',quantity:2},{itemId:'food:cepe',quantity:1},
   {itemId:'food:cheese',quantity:1},
 ];
-export type ToolId='tool:axe'|'tool:pickaxe'|'tool:pickaxe-steel'|'tool:fishing-rod'|'tool:miners-helmet'|'tool:surfboard';
+export type ToolId='tool:axe'|'tool:pickaxe'|'tool:pickaxe-steel'|'tool:fishing-rod'|'tool:miners-helmet'|'tool:surfboard'|'tool:skis'|'tool:snowboard';
 interface Priced extends ItemDefinition {buy?:number;sell?:number}
 /** Core item catalogue (merged into every playable world, project items win on id clashes). */
 export const ECONOMY_ITEMS:Priced[]=[
@@ -33,6 +33,8 @@ export const ECONOMY_ITEMS:Priced[]=[
   {id:'tool:pickaxe-steel',name:'Pioche d’acier',category:'outil',maxQuantity:1,buy:140,sell:60,description:'Vient à bout des filons durs et du cristal.'},
   {id:'tool:miners-helmet',name:'Casque de mineur lumineux',category:'outil',maxQuantity:1,buy:35,sell:14,description:'Casque low-poly avec une lampe frontale pour les galeries obscures. Équipement de tête indépendant de la pioche.'},
   {id:'tool:fishing-rod',name:'Canne à pêche',category:'outil',maxQuantity:1,buy:20,sell:8,description:'Permet de pêcher dans la mer, les rivières et les lacs.'},
+  {id:'tool:skis',name:'Skis',category:'outil',maxQuantity:1,buy:24,sell:10,description:'Équipez les skis depuis le sac pour descendre sur la neige.'},
+  {id:'tool:snowboard',name:'Snowboard',category:'outil',maxQuantity:1,buy:28,sell:12,description:'Équipez le snowboard depuis le sac pour descendre sur la neige.'},
   {id:'tool:surfboard',name:'Planche de surf',category:'outil',maxQuantity:1,buy:20,sell:8,description:'Permet de prendre les vagues et de surfer dans les zones marines prévues.'},
   {id:'wood:log',name:'Bûche',category:'bois',maxQuantity:999,sell:3,buy:6,description:'Bois d’un arbre abattu.'},
   {id:'food:apple',name:'Pomme',category:'cueillette',maxQuantity:999,sell:2,buy:4},
@@ -63,10 +65,11 @@ export const ECONOMY_ITEMS:Priced[]=[
 /** Sale prices of items defined by other systems (mine, farm). */
 const EXTERNAL_PRICES:Record<string,{sell:number;buy?:number}>={'mine:earth':{sell:1},'mine:stone':{sell:1,buy:3},'mine:iron':{sell:9},'mine:crystal':{sell:35},'farm:wheat':{sell:3},'farm:carrot':{sell:4},'farm:pumpkin':{sell:9}};
 export function priceOf(itemId:string):{sell?:number;buy?:number}{const i=ECONOMY_ITEMS.find(x=>x.id===itemId);return i?{sell:i.sell,buy:i.buy}:EXTERNAL_PRICES[itemId]??{};}
-export type ShopKind='mine'|'forest'|'port'|'market'|'farm'|'inn';
+export type ShopKind='mine'|'forest'|'port'|'market'|'farm'|'inn'|'ski';
 export interface ShopDefinition {kind:ShopKind;name:string;sells:string[];buys:string[];greeting:string}
 /** Counter catalogues per place (data, editable in a later Studio panel). */
 export const SHOPS:Record<ShopKind,ShopDefinition>={
+  ski:{kind:'ski',name:'Magasin de la station',sells:['tool:skis','tool:snowboard'],buys:['tool:skis','tool:snowboard'],greeting:'Essayez le matériel de prêt ou achetez le vôtre pour le garder dans votre sac.'},
   mine:{kind:'mine',name:'Comptoir de la mine',sells:['tool:pickaxe','tool:pickaxe-steel','tool:miners-helmet'],buys:['mine:earth','mine:stone','mine:iron','mine:crystal'],greeting:'Une pioche solide, et la montagne vous rendra riche.'},
   forest:{kind:'forest',name:'Comptoir du bûcheron',sells:['tool:axe'],buys:['wood:log','forage:mushroom','forage:flower'],greeting:'Coupez sans dévaster : la forêt repousse si on la respecte.'},
   port:{kind:'port',name:'Comptoir du port',sells:['tool:fishing-rod','tool:surfboard'],buys:['fish:trout','fish:perch','fish:carp','fish:mackerel','fish:sardine','fish:seabass','fish:golden','forage:reed'],greeting:'Le poisson est frais ? Je vous l’achète.'},

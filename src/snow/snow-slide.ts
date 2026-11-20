@@ -1,6 +1,6 @@
 /** Deterministic downhill skiing: no DOM, meshes, transport or global state. */
 export type SnowEquipment = 'snowboard' | 'skis';
-export type SnowMaterial = 'snow' | 'ice';
+export type SnowMaterial = 'snow' | 'groomed' | 'ice';
 export interface SnowPoint { x:number; y:number; z:number }
 export interface SnowActor {
   position:SnowPoint; velocity:SnowPoint;
@@ -11,7 +11,7 @@ const clamp=(v:number,a:number,b:number)=>Math.max(a,Math.min(b,v));
 const wrap=(v:number)=>Math.atan2(Math.sin(v),Math.cos(v));
 export const SNOW_TUNING={
   gravity:17.2, maxSpeed:26, sampleM:.65,
-  snowFriction:.065, iceFriction:.025,
+  snowFriction:.065, groomedFriction:.038, iceFriction:.025,
   airDrag:.007, edgeBrake:5.5, hardBrake:9,
   boardTurn:1.5, skiTurn:1.85
 } as const;
@@ -38,7 +38,8 @@ export function stepSnowSlide(actor:SnowActor,input:SnowInput,height:(x:number,z
   const denom=Math.sqrt(1+grad.grade*grad.grade),g=SNOW_TUNING.gravity;
   // Tangential gravity projected to the terrain's local plane.
   let dx=-g*grad.x/(denom*denom),dz=-g*grad.z/(denom*denom);
-  const mu=surface==='ice'?SNOW_TUNING.iceFriction:SNOW_TUNING.snowFriction;
+  const mu=surface==='ice'?SNOW_TUNING.iceFriction:
+    surface==='groomed'?SNOW_TUNING.groomedFriction:SNOW_TUNING.snowFriction;
   const friction=mu*g/denom;
   const brake=clamp(-input.forward,0,1)*SNOW_TUNING.edgeBrake+
     (input.brake?SNOW_TUNING.hardBrake:0);

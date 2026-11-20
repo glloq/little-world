@@ -19,7 +19,7 @@ try{
    assert.ok(alpine.lift&&alpine.points>20);
    const guideId='station-cimes:monitrice';
    const guide=project.chunks[project.entityIndex[guideId].ownerChunkId].entities[guideId];
-   await page.evaluate(({x,z})=>window.littleWorldDebug.teleport(x+1,z,0),guide.components.Transform.position);
+   await page.evaluate(({x,z})=>window.littleWorldDebug.teleport(x,z-1,0),guide.components.Transform.position);
    await page.waitForFunction(id=>window.littleWorldMetrics?.targetId===id,guideId,{timeout:15000});
    await page.keyboard.press('KeyE');
    const dialogue=page.getByRole('dialog',{name:'Conversation'});
@@ -27,6 +27,35 @@ try{
    await dialogue.getByText(/Approchez-vous de l’embarquement/).waitFor();
    await dialogue.getByRole('button',{name:'Fermer · Échap',exact:true}).click();
    console.log('Cimes : la monitrice renseigne le joueur au chalet.');
+   const shopId='station-cimes:chalet';
+   const shop=project.chunks[project.entityIndex[shopId].ownerChunkId].entities[shopId];
+   const transform=shop.components.Transform;
+   const yaw=2*Math.atan2(transform.rotation.y,transform.rotation.w);
+   const offset=shop.components.ShopAccess.offset.z;
+   await page.evaluate(({x,z,yaw})=>window.littleWorldDebug.teleport(x,z,yaw),
+    {x:transform.position.x+Math.sin(yaw)*offset,z:transform.position.z+Math.cos(yaw)*offset,yaw});
+   await page.waitForFunction(id=>window.littleWorldMetrics?.targetId===id,shopId,{timeout:15000});
+   await page.keyboard.press('KeyE');
+   const store=page.locator('[data-panel=shop] .ui-shop-v3');
+   await store.locator('[data-item="tool:skis"]').waitFor();
+   const initialCoins=await page.evaluate(()=>window.littleWorldMetrics.inventory.coin);
+   assert.equal(await page.evaluate(()=>window.littleWorldDebug.grant('coin',20)),true);
+   await page.waitForFunction(expected=>window.littleWorldMetrics.inventory.coin===expected,initialCoins+20);
+   for(const [item,price] of [['tool:skis',24],['tool:snowboard',28]]){
+    const coins=await page.evaluate(()=>window.littleWorldMetrics.inventory.coin);
+    await store.locator('[data-item="'+item+'"]').click();
+    await store.locator('.ui-shop-checkout').getByRole('button',{name:'Acheter',exact:true}).click();
+    await page.waitForFunction(({item,remaining})=>window.littleWorldMetrics.inventory[item]===1&&
+     window.littleWorldMetrics.inventory.coin===remaining,{item,remaining:coins-price});
+   }
+   await page.keyboard.press('Escape');
+   await page.keyboard.press('KeyI');
+   await page.locator('.ui-bag-v3 [data-item="tool:snowboard"]').first().click();
+   await page.getByRole('button',{name:'Équiper',exact:true}).first().click();
+   await page.keyboard.press('Escape');
+   await page.waitForFunction(()=>window.littleWorldMetrics.alpine.equipment==='snowboard');
+   console.log('Cimes : skis et snowboard achetés, snowboard équipé depuis le sac.');
+
    const start=project.libraries.races['race:composition-ski'].gates[0];
    await page.locator('button[data-panel=races]').click();
    await page.evaluate(({center,normal})=>window.littleWorldDebug.teleport(
@@ -61,6 +90,10 @@ try{
   await page.locator('article').filter({has:page.getByRole('heading',{name,exact:true})}).getByRole('button',{name:'Ouvrir ce monde'}).click();
   await page.locator('#workspace canvas').waitFor({state:'visible',timeout:35000});
   assert.match(await page.locator('#breadcrumbs').textContent(),new RegExp(name));
+  if(id==='alpine-island'){
+   await page.getByRole('button',{name:'Courses',exact:true}).click();
+   assert.equal(await page.getByLabel('Piste damée').isChecked(),true);
+  }
   await page.getByRole('button',{name:'Quêtes',exact:true}).click();
   const title=id==='alpine-island'?'Première descente aux Cimes':'Les premières carottes';
   await page.getByRole('button',{name:title,exact:true}).click();

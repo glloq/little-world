@@ -21,6 +21,9 @@ test('the published alpine island retains a usable port and the native downhill 
  const chalet=stationEntity('station-cimes:chalet');
  assert.equal(chalet.components.Visual.assetId,'architecture.wooden_cabin');
  assert.ok(chalet.components.Collider);
+ assert.equal(chalet.components.State.initial.shop,'ski');
+ assert.ok(chalet.components.ShopAccess);
+ assert.equal(project.libraries.alpine['composition-alpine'].groomed,true);
  assert.equal(stationEntity('station-cimes:panneau').components.State.initial.alpineStation,true);
  assert.ok(stationEntity('station-cimes:monitrice').components.DialogueActor);
  assert.ok(project.world.terrain.archipelago.features.some(f=>f.id==='station-cimes:terrasse'&&f.kind==='plateau'&&f.surface));

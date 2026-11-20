@@ -42,6 +42,7 @@ export interface Controls {
   /** Pulse boost via Shift or mobile acceleration, including underwater propulsion. */boostHeld?:boolean;
   /** One mobile swim stroke (edge-triggered), leaving PC Space dive unchanged. */swimStrokePressed?:boolean;
   snowEquipment?:SnowEquipment|null;
+  groomedSnow?:boolean;
   /** Optional surf activity; missing means the ordinary swimming rules remain unchanged. */
   surfEnabled?:boolean;surfActionPressed?:boolean;surfPaddleHeld?:boolean;surfPump?:boolean;
 }
@@ -280,7 +281,7 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
   else if(p.mode==='roll'&&p.rollByHold&&!keys.rollHeld)p.mode='ground';
   if(p.mode==='snow'&&!inWater){
     if(keys.jumpPressed){p.jumpOrigin='run';p.jumpSeq=(p.jumpSeq??0)+1;p.mode='air';v.y=Math.max(0,v.y)+6.8;p.glideReady=true;jumpHandled=true;}
-    else stepSnowSlide(p,{right:keys.right,forward:keys.forward,brake:keys.dive,cameraYaw:keys.cameraYaw},relief,snowMaterial==='ice'?'ice':'snow',p.snowEquipment??'snowboard',dt);
+    else stepSnowSlide(p,{right:keys.right,forward:keys.forward,brake:keys.dive,cameraYaw:keys.cameraYaw},relief,snowMaterial==='ice'?'ice':keys.groomedSnow?'groomed':'snow',p.snowEquipment??'snowboard',dt);
   }else if(p.mode==='roll'&&!inWater){
     rollStep(p,keys,dt,dx,dz,len,relief,collision?.materialAt(pos,p.space)??'grass',!!p.space||ground-relief(pos.x,pos.z)>.2);
     if(assisted){
