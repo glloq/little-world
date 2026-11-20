@@ -11,7 +11,8 @@ import {pathDiagnostics,centerline} from '../paths/path-geometry.ts';
 import {compileWaterBody} from '../water/profile.ts';
 import type {ElementRef} from './elements.ts';
 
-export interface ImpactItem {ref:ElementRef;severity:'ERROR'|'WARNING';message:string;x:number;z:number}
+/** `ref` names a selectable Studio element; activity items (races, pistes, surf) carry `activity` instead. */
+export interface ImpactItem {ref?:ElementRef;activity?:{kind:'race'|'alpine'|'surf';id:string};severity:'ERROR'|'WARNING';message:string;x:number;z:number}
 export interface TerrainImpact {areas:Rect[];touched:number;items:ImpactItem[]}
 export interface ImpactEnv {height(x:number,z:number):number;water?(x:number,z:number):number|null}
 
@@ -48,6 +49,33 @@ export function terrainImpacts(p:ProjectDocument,areas:Rect[],env:ImpactEnv):Ter
     if(w!=null&&w>h+.3&&e.kind!=='character')items.push({ref:{kind:'entity',id:e.id},severity:'WARNING',message:`« ${e.name} » se retrouve sous l’eau (${(w-h).toFixed(1)} m)`,x,z});
     else if(e.kind==='building'&&slope>.35)items.push({ref:{kind:'entity',id:e.id},severity:'WARNING',message:`Bâtiment « ${e.name} » sur une pente de ${Math.round(slope*100)} %`,x,z});
   }
+  touched+=activityImpacts(p,areas,env,items);
   return {areas,touched,items};
+}
+/** Doc 104 §C4: relief edits must also revalidate the activities laid on the ground. */
+function activityImpacts(p:ProjectDocument,areas:Rect[],env:ImpactEnv,items:ImpactItem[]):number{
+  let touched=0;const sea=p.world.seaLevel;
+  for(const race of Object.values(p.libraries.races??{})){
+    const pts=race.track?.points??[];
+    const gates=race.gates.filter(g=>hits(areas,g.center.x,g.center.z,g.width));
+    if(!pts.some(q=>hits(areas,q.x,q.z,race.track!.width))&&!gates.length)continue;touched++;
+    let worst=0,at=pts[0];
+    for(let i=1;i<pts.length;i++){const a=pts[i-1],b=pts[i],d=Math.hypot(b.x-a.x,b.z-a.z);if(d<.5)continue;const g=Math.abs(env.height(b.x,b.z)-env.height(a.x,a.z))/d;if(g>worst){worst=g;at=b;}}
+    if(race.kind!=='flight'&&worst>.45)items.push({activity:{kind:'race',id:race.id},severity:'WARNING',message:`Course « ${race.name} » : pente de ${Math.round(worst*100)} % sur le tracé`,x:at.x,z:at.z});
+    const wet=pts.find(q=>{const w=env.water?.(q.x,q.z);return w!=null&&w>env.height(q.x,q.z)+.3;});
+    if(wet&&race.kind==='roll')items.push({activity:{kind:'race',id:race.id},severity:'WARNING',message:`Course « ${race.name} » : tracé immergé`,x:wet.x,z:wet.z});
+    for(const g of gates)if(env.height(g.center.x,g.center.z)>g.center.y+g.height/2)items.push({activity:{kind:'race',id:race.id},severity:'ERROR',message:`Course « ${race.name} » : porte ${g.id} enterrée`,x:g.center.x,z:g.center.z});
+  }
+  for(const area of Object.values(p.libraries.alpine??{})){
+    if(!area.points.some(q=>hits(areas,q.x,q.z,area.widthM)))continue;touched++;
+    for(let i=1;i<area.points.length;i++){const a=area.points[i-1],b=area.points[i],rise=env.height(b.x,b.z)-env.height(a.x,a.z);
+      if(rise>.8){items.push({activity:{kind:'alpine',id:area.id},severity:'WARNING',message:`Piste « ${area.name} » : remontée de ${rise.toFixed(1)} m sur la descente`,x:b.x,z:b.z});break;}}
+  }
+  for(const zone of Object.values(p.libraries.surfZones??{})){
+    if(!areas.some(a=>a.maxX>=zone.minX&&a.minX<=zone.maxX&&a.maxZ>=zone.minZ&&a.minZ<=zone.maxZ))continue;touched++;
+    let land=0,n=0;for(let i=0;i<6;i++)for(let j=0;j<6;j++){const x=zone.minX+(zone.maxX-zone.minX)*(i+.5)/6,z=zone.minZ+(zone.maxZ-zone.minZ)*(j+.5)/6;n++;if(env.height(x,z)>sea)land++;}
+    if(land/n>.5)items.push({activity:{kind:'surf',id:zone.id},severity:'WARNING',message:`Zone de surf « ${zone.id} » : ${Math.round(land/n*100)} % de terres émergées`,x:(zone.minX+zone.maxX)/2,z:(zone.minZ+zone.maxZ)/2});
+  }
+  return touched;
 }
 export type {PathDefinition};

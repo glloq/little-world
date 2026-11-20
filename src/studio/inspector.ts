@@ -34,7 +34,7 @@ export interface InspectorContext {
   remove():void;
   refresh():void;
   /** E9 — elements touched by the last relief change (shown until dismissed). */
-  impact?:{touched:number;items:{ref:ElementRef;severity:string;message:string;x:number;z:number}[];dismiss():void;select(ref:ElementRef,x:number,z:number):void};
+  impact?:{touched:number;items:{ref?:ElementRef;severity:string;message:string;x:number;z:number}[];dismiss():void;select(ref:ElementRef|undefined,x:number,z:number):void};
 }
 const KIND:Record<string,string>={prop:'Objet',building:'Bâtiment',character:'Personnage',trigger:'Zone',effect:'Effet'};
 const deg=THREE.MathUtils.radToDeg,rad=THREE.MathUtils.degToRad;

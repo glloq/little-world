@@ -8,6 +8,7 @@
  * Pure: same parameters + seed + sea level = same heights, whatever the load order or LOD.
  * The heightfield stays a heightfield: overhangs/caves remain separate 3D geometry. */
 import {fbm,valueNoise,volcanoProfile} from './noise.ts';
+import {compileEarthworks} from './earthworks.ts';
 export interface VolcanoParams {x:number;z:number;radiusM:number;heightM:number;craterRadiusM:number;craterDepthM:number}
 
 export interface PointXZ {x:number;z:number}
@@ -41,7 +42,7 @@ export type WithVariant<T>=T&{variant?:number};
  * becomes from + range·F(t), t=(h-from)/range, with F'(t)=scale·power·t^(power-1) after a
  * short blend from 1. Monotone: every descending line stays descending. */
 export interface SummitShaping {fromM:number;rangeM:number;scale:number;power:number}
-export interface ArchipelagoParams {summitShaping?:SummitShaping;coastalReliefFadeM?:number;seabedDepthM:number;detailM:number;landmasses:Landmass[];features:ReliefFeature[]}
+export interface ArchipelagoParams {/** Local grading applied last (doc 104 §C4). Optional. */earthworks?:import('./earthworks.ts').EarthworkV1[];summitShaping?:SummitShaping;coastalReliefFadeM?:number;seabedDepthM:number;detailM:number;landmasses:Landmass[];features:ReliefFeature[]}
 export interface GeoWorld {seed:number;seaLevel:number;width:number;length:number}
 /** Generator outputs shared by every consumer (terrain, classification, map, vegetation). */
 export interface GeneratorField {
@@ -168,7 +169,7 @@ export function archipelagoField(world:GeoWorld,p:ArchipelagoParams):GeneratorFi
   // Features grouped by composition stage once (no per-sample filtering/allocation).
   const stage=(kinds:FeatureKind[])=>p.features.filter(f=>kinds.includes(f.kind)).map(f=>({f,box:featureBounds(f),seed:shapeSeed(seed,f.id,f.variant),sdf:f.kind==='plateau'?compilePolygon(f.polygon):null}));
   const pistes=p.features.flatMap(f=>f.kind==='piste'?[{box:featureBounds(f),blend:compilePiste(f)}]:[]);
-  const shaping=p.summitShaping?summitShapingCurve(p.summitShaping):null;
+  const shaping=p.summitShaping?summitShapingCurve(p.summitShaping):null,earth=compileEarthworks(p.earthworks,sea);
   const allPlateaus=stage(['plateau']),plateaus=allPlateaus.filter(({f})=>f.kind!=='plateau'||!f.surface),platforms=allPlateaus.filter(({f})=>f.kind==='plateau'&&f.surface),raises=stage(['mountain','hill','ridge']),cuts=stage(['basin','valley']),volcanoes=stage(['volcano']);
   /** Best coast value and the land mass providing it. */
   // Direct-mapped cache of exact results: height() then site() at the same point (tile and
@@ -217,6 +218,7 @@ export function archipelagoField(world:GeoWorld,p:ArchipelagoParams):GeneratorFi
     if(pistes.length){let wMax=0,wSum=0,lSum=0;
       for(const {box,blend}of pistes){if(!inBox(box,x,z))continue;const r=blend(x,z);if(r.weight>0){const w4=r.weight**4;wMax=Math.max(wMax,r.weight);wSum+=w4;lSum+=w4*r.level;}}
       if(wSum>0)h+=(sea+lSum/wSum-h)*wMax;}
+    if(earth)h=earth(x,z,h);
     return h;
   }
   const volcanic=(x:number,z:number)=>{let v=0;for(const {f,box}of volcanoes)if(f.kind==='volcano'&&inBox(box,x,z))v=Math.max(v,smooth(f.radiusM,f.radiusM*.35,Math.sqrt((x-f.x)*(x-f.x)+(z-f.z)*(z-f.z))));return v;};

@@ -76,7 +76,7 @@ const SETTLEMENTS:Stage={id:'settlements',label:'Port et village d’accueil',ru
  const port=generateBirthPort(project);
  if(!port){c.diagnostics.push({severity:'ERROR',code:'MARITIME_PORT_MISSING',message:'Aucun port N1 praticable : choisir une autre graine, un relief plus doux ou désactiver le départ maritime.'});return;}
  if(!r.welcomeVillage||r.welcomeVillage==='none')return;
- const count=generateWelcomeVillage(project,port,r.welcomeVillage,r.welcomeActivity),target=r.welcomeVillage==='hamlet'?12:24;
+ const count=generateWelcomeVillage(project,port,r.welcomeVillage,r.welcomeActivity,r.earthworks===true),target=r.welcomeVillage==='hamlet'?12:24;
  if(!count)c.diagnostics.push({severity:'WARNING',code:'WELCOME_VILLAGE_MISSING',message:'Port créé ; aucun village ne tient sur les replats voisins.'});
  else if(count<target)c.diagnostics.push({severity:'WARNING',code:'WELCOME_VILLAGE_PARTIAL',message:count+'/'+target+' maisons possibles près du port ; les accès restent validés.'});
 }};

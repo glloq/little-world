@@ -12,6 +12,7 @@
  */
 import type {ProjectDocument} from './types.ts';
 import {settlementFootprint,type PointXZ} from '../settlements/footprint.ts';
+import {earthworkFootprint} from '../geography/earthworks.ts';
 
 export const LAND_USES=['settlement','road','farm','site-harbor','site-farm','site-lake','water','piste','race','surf','dive','mine','grading','calm'] as const;
 export type LandUse=typeof LAND_USES[number];
@@ -141,6 +142,7 @@ export function collectLandReservations(p:ProjectDocument):LandReservation[]{
  for(const a of Object.values(L.alpine??{}))out.push({id:'piste:'+a.id,use:'piste',shape:corridor(a.points,a.widthM),owner:{kind:'alpine',id:a.id},priority:65,clearanceM:2});
  for(const r of Object.values(L.races??{}))if(r.track&&r.track.points.length>=2)out.push({id:'race:'+r.id,use:'race',shape:corridor(r.track.points,r.track.width),owner:{kind:'race',id:r.id},priority:55,clearanceM:1});
  for(const z of Object.values(L.surfZones??{}))out.push({id:'surf:'+z.id,use:'surf',shape:{kind:'polygon',points:[{x:z.minX,z:z.minZ},{x:z.maxX,z:z.minZ},{x:z.maxX,z:z.maxZ},{x:z.minX,z:z.maxZ}]},owner:{kind:'surf',id:z.id},priority:60,clearanceM:0});
+ for(const w of p.world.terrain?.kind==='archipelago'?p.world.terrain.archipelago.earthworks??[]:[])out.push({id:'grading:'+w.id,use:'grading',shape:earthworkFootprint(w),owner:{kind:'earthwork',id:w.id},priority:40,clearanceM:0});
  return out.sort((a,b)=>a.id.localeCompare(b.id));
 }
 export function projectLandRegistry(p:ProjectDocument):LandRegistry{return new LandRegistry(collectLandReservations(p));}

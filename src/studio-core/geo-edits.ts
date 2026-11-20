@@ -1,3 +1,4 @@
+import {earthworkBounds,type EarthworkV1} from '../geography/earthworks.ts';
 /** Authoring operations on geography corrections, run inside one StudioSession.change
  * (one undoable transaction per stroke/fill/regeneration). Masks live in their V3 sector. */
 import type {ProjectDocument,TerrainEdit} from './types.ts';
@@ -71,10 +72,10 @@ export function terrainChangeRects(patches:readonly EditPatch[]):{changed:boolea
   for(const patch of patches){
     if(patch.path[0]!=='world'||patch.path[1]!=='terrain')continue;out.changed=true;
     const list=patch.path.length===4&&patch.path[2]==='archipelago'?patch.path[3]:null;
-    if(list!=='features'&&list!=='landmasses'){out.global=true;continue;}
+    if(list!=='features'&&list!=='landmasses'&&list!=='earthworks'){out.global=true;continue;}
     const before=(patch.before.value??[]) as {id:string}[],after=(patch.after.value??[]) as {id:string}[];
     const key=(v:unknown)=>JSON.stringify(v),old=new Map(before.map(v=>[v.id,key(v)])),now=new Map(after.map(v=>[v.id,key(v)]));
-    const bounds=(v:unknown)=>list==='features'?featureBounds(v as ReliefFeature):landmassBounds(v as Landmass);
+    const bounds=(v:unknown)=>list==='features'?featureBounds(v as ReliefFeature):list==='earthworks'?earthworkBounds(v as EarthworkV1):landmassBounds(v as Landmass);
     for(const v of before)if(now.get(v.id)!==old.get(v.id))out.rects.push(bounds(v));
     for(const v of after)if(now.get(v.id)!==old.get(v.id))out.rects.push(bounds(v));
   }

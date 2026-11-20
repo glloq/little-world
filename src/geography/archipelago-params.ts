@@ -1,3 +1,4 @@
+import {parseEarthworks} from './earthworks.ts';
 /** Validation, presets and conversions of archipelago parameters (V3 `world.terrain`). */
 import type {ArchipelagoParams,Landmass,PointXZ,ReliefFeature} from './archipelago.ts';
 import type {IslandParams} from '../terrain-generator.ts';
@@ -14,7 +15,7 @@ function points(v:unknown,label:string,min:number,max:number,world:{width:number
 function variant(raw:Record<string,unknown>):{variant?:number}{if(raw.variant===undefined)return {};const v=num(raw.variant,'variante',0,999999);if(!Number.isInteger(v))throw Error('Archipel : variante entière attendue');return {variant:v};}
 export const ARCHIPELAGO_LIMITS={landmasses:12,outline:64,features:64,line:32,pisteLine:200} as const;
 export function parseArchipelago(value:unknown,world:{width:number;length:number}):ArchipelagoParams{
-  if(!record(value))throw Error('Archipel invalide');only(value,['seabedDepthM','detailM','landmasses','features','coastalReliefFadeM','summitShaping'],'Archipel');
+  if(!record(value))throw Error('Archipel invalide');only(value,['seabedDepthM','detailM','landmasses','features','coastalReliefFadeM','summitShaping','earthworks'],'Archipel');
   if(!Array.isArray(value.landmasses)||value.landmasses.length<1||value.landmasses.length>ARCHIPELAGO_LIMITS.landmasses)throw Error('Archipel : 1 à 12 terres');
   if(!Array.isArray(value.features)||value.features.length>ARCHIPELAGO_LIMITS.features)throw Error('Archipel : 64 formes au maximum');
   const ids=new Set<string>(),unique=(v:string)=>{if(ids.has(v))throw Error('Archipel : identifiant dupliqué '+v);ids.add(v);return v;};
@@ -45,7 +46,8 @@ export function parseArchipelago(value:unknown,world:{width:number;length:number
   let summitShaping:ArchipelagoParams['summitShaping'];
   if(value.summitShaping!==undefined){const v=value.summitShaping;if(!record(v))throw Error('Archipel : remodelage des sommets invalide');only(v,['fromM','rangeM','scale','power'],'Remodelage des sommets');
     summitShaping={fromM:num(v.fromM,'altitude de remodelage',0,1200),rangeM:num(v.rangeM,'amplitude de remodelage',20,1400),scale:num(v.scale,'échelle de remodelage',.2,1.5),power:num(v.power,'courbure de remodelage',.5,3)};}
-  return {...(summitShaping?{summitShaping}:{}),...(value.coastalReliefFadeM!==undefined?{coastalReliefFadeM:num(value.coastalReliefFadeM,'fondu du relief côtier',2,400)}:{}),seabedDepthM:num(value.seabedDepthM,'fond marin',2,200),detailM:num(value.detailM,'détail',0,20),landmasses,features};
+  const earthworks=value.earthworks===undefined?undefined:parseEarthworks(value.earthworks);
+  return {...(earthworks?{earthworks}:{}),...(summitShaping?{summitShaping}:{}),...(value.coastalReliefFadeM!==undefined?{coastalReliefFadeM:num(value.coastalReliefFadeM,'fondu du relief côtier',2,400)}:{}),seabedDepthM:num(value.seabedDepthM,'fond marin',2,200),detailM:num(value.detailM,'détail',0,20),landmasses,features};
 }
 /** Closed outline of an ellipse-like land mass with a few reproducible bulges. */
 export function blobOutline(cx:number,cz:number,rx:number,rz:number,count=20,phase=0):PointXZ[]{
