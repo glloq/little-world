@@ -65,5 +65,5 @@ export function addSurfShoreStops(project:ProjectDocument,beaches:readonly {name
     }
   }
   if(!guide)throw Error('Aucun emplacement sec près du fanion A pour le moniteur.');
-  addSurfShoreQuest(project,guide,markers);
+  return addSurfShoreQuest(project,guide,markers);
 }

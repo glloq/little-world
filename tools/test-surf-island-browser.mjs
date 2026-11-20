@@ -66,6 +66,21 @@ try{
  const source=await page.request.get(new URL('archipelago/worlds/surf-island/project.json',base).href);
  check(source.ok(),'Surf authoring source is published');
  const project=await source.json(),ground=projectGeography(project).ctx.height;
+ const offer=project.libraries.questCatalog['quest:trois-vagues-chronos'];
+ const guide=project.chunks[project.entityIndex[offer.giverId].ownerChunkId].entities[offer.giverId];
+ await page.evaluate(({x,z})=>window.littleWorldDebug.teleport(x+1,z,0),guide.components.Transform.position);
+ await page.waitForFunction(id=>window.littleWorldMetrics?.targetId===id,offer.giverId,{timeout:15000});
+ await page.keyboard.press('KeyE');
+ const dialogue=page.getByRole('dialog',{name:'Conversation'});
+ await dialogue.getByRole('button',{name:'Mission : Les trois chronos de Céladon',exact:true}).click();
+ await dialogue.getByText('Mission acceptée : Les trois chronos de Céladon.',{exact:true}).waitFor();
+ await dialogue.getByRole('button',{name:'Fermer · Échap',exact:true}).click();
+ await page.keyboard.press('KeyJ');
+ await page.getByRole('button',{name:'Afficher la mission Les trois chronos de Céladon',exact:true}).click();
+ const firstCourse=project.libraries.races[offer.steps[0].raceId];
+ await page.getByRole('button',{name:'⌖ Voir sur la carte · Course : '+firstCourse.name,exact:true}).waitFor();
+ check(true,'Céladon offers the three time trials and the journal points to course A');
+ await page.keyboard.press('Escape');
  // Start swimming just above sea level. A ground teleport can put the hamster
  // tens of metres underwater, which introduces a long surfacing delay on SwiftShader.
  const enterWater=async({x,z})=>{

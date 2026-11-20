@@ -4,6 +4,7 @@ import {buildSurfIsland,SURF_ISLAND} from '../tools/generate-surf-island.mjs';
 import {validateSurfZone} from '../src/surf/wave-field.ts';
 import {validateRace} from '../src/gameplay/races.ts';
 import {parseProject} from '../src/studio-core/schema.ts';
+import {acceptQuest,advanceQuest} from '../src/quests/progress.ts';
 import {validateBirthPort} from '../src/studio-core/birth-port.ts';
 test('dedicated surf island compiles a real N1 port and three disjoint A/B/C wave zones',()=>{
  const {project,port,plan,homes}=buildSurfIsland();
@@ -26,6 +27,18 @@ test('dedicated surf island compiles a real N1 port and three disjoint A/B/C wav
   assert.equal(validateRace(b.gates,project.world.bounds),b.gates);
   assert.equal(b.gates.gates.length,4);
  }
+ const offer=project.libraries.questCatalog['quest:trois-vagues-chronos'];
+ assert.ok(project.entityIndex[offer.giverId]);
+ assert.deepEqual(offer.steps.map(step=>step.raceId),plan.beaches.map(beach=>beach.gates.id));
+ let quest=acceptQuest(offer,offer.questKey,3);
+ const event={schemaVersion:1,eventId:'test:surf:1',type:'race.finished',worldId:project.world.worldId,
+  islandId:project.world.worldId,gameMinute:4,sequence:1,raceId:offer.steps[0].raceId,measuredSeconds:27};
+ assert.equal(advanceQuest(quest,{...event,raceId:offer.steps[2].raceId}).applied,false);
+ for(const [index,step] of offer.steps.entries()){
+  quest=advanceQuest(quest,{...event,raceId:step.raceId,eventId:'test:surf:'+index,sequence:index+1}).instance;
+  assert.equal(quest.stepIndex,index+1);
+ }
+ assert.equal(quest.status,'ready');
  const [a,b,c]=plan.beaches;
  assert.equal(a.zone.barrelStrength,0);
  assert.ok(b.zone.barrelStrength>0);

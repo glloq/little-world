@@ -43,7 +43,20 @@ export function buildSurfIsland(){
  p.libraries.surfZones=Object.fromEntries(plan.beaches.map(b=>[b.zone.id,b.zone]));
  p.libraries.surfFeatures=Object.fromEntries(plan.beaches.flatMap(b=>b.features.map(f=>[f.id,f])));
  for(const b of plan.beaches)putAuthoredRace(p,b.gates);
- addSurfShoreStops(p,plan.beaches);
+ const giverId=addSurfShoreStops(p,plan.beaches);
+ const questKey='quest:trois-vagues-chronos',raceIds=plan.beaches.map(beach=>beach.gates.id);
+ p.libraries.questCatalog={
+  ...p.libraries.questCatalog,
+  [questKey]:{
+   questKey,templateId:'surf:trois-chronos',templateVersion:1,islandId:C.worldId,giverId,
+   bindings:{title:'Les trois chronos de Céladon',
+    instruction:'Depuis Courses, lancez puis terminez les parcours de surf A, B et C dans cet ordre. Le journal situe le prochain départ.'},
+   steps:raceIds.map(raceId=>({kind:'race',raceId,islandId:C.worldId})),
+   rewards:[{kind:'coins',quantity:18}],
+   dependencies:[giverId,...raceIds],catalogRevision:'surf-v1',
+   proof:{capabilityIds:[giverId,...raceIds],validatorVersion:'surf-beaches-v1'},
+  },
+ };
  const project=parseProject(p);
  return {project,port,plan,homes};
 }

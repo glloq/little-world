@@ -27,4 +27,5 @@ export function addSurfShoreQuest(project:ProjectDocument,guide:PointXZ,markers:
   {id:'route',text:'Vous êtes au nord, sur la plage A. Le fanion B est sur la côte sud et le C sur la côte est. Ouvrez la carte pour situer le prochain fanion.',choices:[{text:'Je pars faire le tour.'}]},
   {id:'thanks',text:'Vous connaissez le rivage. Voici 30 pièces pour votre repérage. Essayez la plage A pour vous entraîner à passer les portes.',choices:[{text:'Merci, Céladon.'}]},
  ];
+ return id;
 }
