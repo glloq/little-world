@@ -88,6 +88,11 @@ export function surfWaterLattice(zone:SurfZone,ground:(x:number,z:number)=>numbe
 export const SURF_TILE_CELLS=16;
 /** Camera distance thresholds of a tile (m): finest below the first, coarsest beyond the second. */
 const TILE_DISTANCE=[70,260] as const;
+const TILE_DISTANCE_SQUARED=TILE_DISTANCE.map(distance=>distance*distance);
+const TILE_HYSTERESIS_SQUARED=TILE_DISTANCE.map(distance=>{
+ const min=distance*(1-SURF_LOD_HYSTERESIS),max=distance*(1+SURF_LOD_HYSTERESIS);
+ return {min:min*min,max:max*max};
+});
 interface Tile {i0:number;i1:number;j0:number;j1:number;minX:number;maxX:number;minZ:number;maxZ:number;tier:0|1|2}
 /** One mesh per zone: all fine-lattice vertices (+ skirt copies on tile borders) and an index
  * buffer rebuilt only when a tile changes tier. Unreferenced vertices are never shaded. */
@@ -185,15 +190,20 @@ function createTiledWater(zone:SurfZone,lattice:SurfWaterLattice){
  rebuild();
  const next=new Uint8Array(tiles.length);
  /** Per-tile tiers from the camera with hysteresis, floored; neighbours differ by ≤ 1 tier. */
+ let lastX=NaN,lastY=NaN,lastZ=NaN,lastFloor=-1;
  function update(view:SurfViewPoint,floor:number):boolean{
+  const dy=Math.max(0,(view.y??zone.seaLevel)-zone.seaLevel);
+  if(lastX===view.x&&lastY===dy&&lastZ===view.z&&lastFloor===floor)return false;
+  lastX=view.x;lastY=dy;lastZ=view.z;lastFloor=floor;
+  const dySquared=dy*dy;
   for(let k=0;k<tiles.length;k++){
    const t=tiles[k];
    const dx=Math.max(t.minX-view.x,0,view.x-t.maxX),dz=Math.max(t.minZ-view.z,0,view.z-t.maxZ);
-   const d=Math.hypot(dx,dz,view.y===undefined?0:Math.max(0,view.y-zone.seaLevel));
-   let tier=d>TILE_DISTANCE[1]?2:d>TILE_DISTANCE[0]?1:0;
+   const distance=dx*dx+dz*dz+dySquared;
+   let tier=distance>TILE_DISTANCE_SQUARED[1]?2:distance>TILE_DISTANCE_SQUARED[0]?1:0;
    if(tier!==t.tier&&Math.abs(tier-t.tier)===1){
-    const threshold=TILE_DISTANCE[Math.min(tier,t.tier)];
-    if(Math.abs(d-threshold)<threshold*SURF_LOD_HYSTERESIS)tier=t.tier;
+    const band=TILE_HYSTERESIS_SQUARED[Math.min(tier,t.tier)];
+    if(distance>band.min&&distance<band.max)tier=t.tier;
    }
    next[k]=Math.min(2,Math.max(floor,tier));
   }
@@ -206,7 +216,7 @@ function createTiledWater(zone:SurfZone,lattice:SurfWaterLattice){
   }
   let changed=false;
   for(let k=0;k<tiles.length;k++)if(tiles[k].tier!==next[k]){tiles[k].tier=next[k] as 0|1|2;changed=true;}
-  if(changed)rebuild();
+  if(changed){lastFloor=-1;rebuild();}
   return changed;
  }
  return {geometry,tiles,update,get triangles(){return cursor/3;},wetRatio:wetQuads/fineQuads,vertices:total};
