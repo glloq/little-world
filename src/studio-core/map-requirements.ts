@@ -6,7 +6,7 @@ export type Landscape=keyof typeof LANDSCAPES;
 export const WELCOME_ACTIVITIES={fishing:'Pêche',agriculture:'Agriculture',forest:'Forêt',mine:'Mine',commerce:'Commerce',mixed:'Polyvalent'} as const;
 export type WelcomeActivity=keyof typeof WELCOME_ACTIVITIES;
 export interface MapRequirements {
- version:1;/** Terrace uneven village sites within a cut/fill budget (doc 104 §C4, V5). */earthworks?:boolean;activities?:{races:'none'|'flat'|'downhill'|'both';ski:boolean;music:'contextual'|'off'};maritimePort?:boolean;welcomeVillage?:'none'|'hamlet'|'village';welcomeActivity?:WelcomeActivity;compositionVersion?:1|2|3|4|5;layout?:LayoutRequirements;islandStyle?:IslandStyle;type:'island'|'archipelago'|'valley'|'continental';width:number;length:number;seed:number;
+ version:1;/** Terrace uneven village sites within a cut/fill budget (doc 104 §C4, V5). */earthworks?:boolean;/** Link every destination to the port network with native paths (doc 104 §C5, V5). */circulation?:boolean;activities?:{races:'none'|'flat'|'downhill'|'both';ski:boolean;music:'contextual'|'off'};maritimePort?:boolean;welcomeVillage?:'none'|'hamlet'|'village';welcomeActivity?:WelcomeActivity;compositionVersion?:1|2|3|4|5;layout?:LayoutRequirements;islandStyle?:IslandStyle;type:'island'|'archipelago'|'valley'|'continental';width:number;length:number;seed:number;
  landscapes:{kind:Landscape;required:boolean}[];
  rivers:number;tributaries:number;lakes:boolean;waterfalls:boolean;
  relief:'gentle'|'balanced'|'rugged';cliffs:number;terraces:number;diversity:number;
@@ -24,7 +24,7 @@ export const DEFAULT_MAP_REQUIREMENTS:MapRequirements={...structuredClone(STEPPE
 export function validateMapRequirements(value:unknown):MapRequirements {
  if(!value||typeof value!=='object'||Array.isArray(value))throw Error('Besoins géographiques invalides');
  const v=value as MapRequirements;
- const allowed=['version','earthworks','activities','maritimePort','welcomeVillage','welcomeActivity','compositionVersion','layout','islandStyle','type','width','length','seed','landscapes','rivers','tributaries','lakes','waterfalls','relief','cliffs','terraces','diversity','biomeMode','sequence'];
+ const allowed=['version','earthworks','circulation','activities','maritimePort','welcomeVillage','welcomeActivity','compositionVersion','layout','islandStyle','type','width','length','seed','landscapes','rivers','tributaries','lakes','waterfalls','relief','cliffs','terraces','diversity','biomeMode','sequence'];
  if(Object.keys(v).some(k=>!allowed.includes(k))||v.version!==1)throw Error('Version ou champ des besoins inconnu');
  if(v.compositionVersion!==undefined&&v.compositionVersion!==1&&v.compositionVersion!==2&&v.compositionVersion!==3&&v.compositionVersion!==4&&v.compositionVersion!==5)throw Error('Version de composition inconnue');
  const number=(n:number,a:number,b:number,int=false)=>typeof n==='number'&&Number.isFinite(n)&&n>=a&&n<=b&&(!int||Number.isInteger(n));
@@ -40,6 +40,7 @@ export function validateMapRequirements(value:unknown):MapRequirements {
  if(v.compositionVersion!==5&&(v.layout!==undefined||v.islandStyle?.silhouette!==undefined))throw Error('Les silhouettes et zones utiles nécessitent la composition 5');
  if((v.maritimePort||v.welcomeVillage&&v.welcomeVillage!=='none')&&v.compositionVersion!==5)throw Error('Le départ maritime complet nécessite la composition 5');
  if(v.earthworks!==undefined&&(typeof v.earthworks!=='boolean'||v.compositionVersion!==5))throw Error('Le terrassement des sites nécessite la composition 5');
+ if(v.circulation!==undefined&&(typeof v.circulation!=='boolean'||v.compositionVersion!==5))throw Error('Le réseau de circulation automatique nécessite la composition 5');
  if(v.welcomeActivity!==undefined&&(typeof v.welcomeActivity!=='string'||!Object.hasOwn(WELCOME_ACTIVITIES,v.welcomeActivity)||v.compositionVersion!==5))throw Error('Activité du village invalide (composition V5 requise)');
  if(v.welcomeVillage&&v.welcomeVillage!=='none'&&!v.maritimePort)throw Error('Le village d’accueil nécessite le port maritime');
  if(v.layout!==undefined)validateLayout(v.layout);

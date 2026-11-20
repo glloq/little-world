@@ -3,7 +3,7 @@ import {generateBirthPort,validateBirthPort} from './birth-port.ts';
 import {generateWelcomeVillage} from './welcome-village.ts';
 import {compilePolygon} from '../geography/archipelago.ts';
 import {planTerrainSites} from './terrain-site-planner.ts';
-import {planTerrainAccess,validateTerrainAccess} from './terrain-access.ts';
+import {planTerrainAccess,terrainAccessContext,validateTerrainAccess} from './terrain-access.ts';
 import {alignNaturalBiomes} from './world-biomes-v4.ts';
 import {naturalQuality,type NaturalQuality} from './world-natural-quality.ts';
 /** Author-only composition. The validated plan is the preview AND the saved document. */
@@ -13,7 +13,8 @@ import {planWorldTerrain} from './world-terrain-planner.ts';
 import {planWorldHydro} from './world-hydro-planner.ts';
 import {planWorldBiomes,provinceEnvironment,RIVER_BIOME_SPAN} from './world-biome-planner.ts';
 import {generatorField} from '../terrain-generator.ts';
-import {putWater} from './source.ts';
+import {putPath,putWater} from './source.ts';
+import {auditCirculation,planCirculationLinks} from './circulation.ts';
 import {compositionCoverage,type CompositionCoverage} from './world-composition-quality.ts';
 import {alignSteppedBiomes} from './world-biome-boundaries.ts';
 import {applyRegionBatch} from './region-batch.ts';
@@ -81,6 +82,11 @@ const SETTLEMENTS:Stage={id:'settlements',label:'Port et village d’accueil',ru
  else if(count<target)c.diagnostics.push({severity:'WARNING',code:'WELCOME_VILLAGE_PARTIAL',message:count+'/'+target+' maisons possibles près du port ; les accès restent validés.'});
 }};
 const ACTIVITIES:Stage={id:'activities',label:'Activités',run(c){generateWorldActivities(c.project,c.diagnostics);}};
+/** One walkable network: optional links from every destination to the port, then reachability audit. */
+const CIRCULATION:Stage={id:'circulation',label:'Réseau de circulation',run(c){
+ if(c.requirements.circulation){const links=planCirculationLinks(c.project,terrainAccessContext(c.project));for(const path of links.paths)putPath(c.project,path);}
+ c.diagnostics.push(...auditCirculation(c.project).map(d=>({severity:d.severity,code:d.code,message:d.message})));
+}};
 /** Land registry of everything placed so far; overlaps between incompatible uses are reported. */
 const LAND:Stage={id:'land',label:'Occupation du sol',run(c){c.land=projectLandRegistry(c.project);c.diagnostics.push(...auditLandUse(c.project,c.land).map(d=>({severity:d.severity,code:d.code,message:d.message})));}};
 const BIOMES:Stage={id:'biomes',label:'Biomes et régions',run(c){
@@ -113,7 +119,7 @@ const NORMALIZE:Stage={id:'normalize',label:'Normalisation et couverture',run(c)
  c.coverage=c.profile.provinces?compositionCoverage(c.normalized,c.planned.axis):undefined;
 }};
 /** The ordered composition pipeline. Extend by inserting stages, never by branching inside composeWorld. */
-export const COMPOSITION_STAGES:readonly Stage[]=[SHAPE,SITES,HYDRO,ACCESS,SETTLEMENTS,ACTIVITIES,LAND,BIOMES,AUDIT,NORMALIZE];
+export const COMPOSITION_STAGES:readonly Stage[]=[SHAPE,SITES,HYDRO,ACCESS,SETTLEMENTS,ACTIVITIES,CIRCULATION,LAND,BIOMES,AUDIT,NORMALIZE];
 
 export function composeWorld(input:MapRequirements,name='Mon petit monde',identity?:{projectId:string;worldId:string},stages:readonly Stage[]=COMPOSITION_STAGES):WorldComposition {
  const started=performance.now(),requirements=validateMapRequirements(input);
