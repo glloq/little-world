@@ -48,7 +48,23 @@ Correction : copie avant écriture du relief, des dialogues, des quêtes et des 
 
 ## 2. Mesures
 
-Mesures en cours (CPU bridé ×4, Chromium/SwiftShader) : résultats ajoutés au prochain commit.
+Scénario reproductible : Chromium/SwiftShader en 1280 × 720, **CPU du fil principal bridé ×4** (CDP). Il compare le build de `64d4a53` (avant) au build de cette branche (après). Le script est `lowend.mjs`, lancé dans le bloc de session ; il utilise des tâches longues `PerformanceObserver` et compte les `IDBObjectStore.put`. Ce sont des signaux de régression, pas des mesures d’iGPU.
+
+| Étape | Avant | Après |
+|---|---|---|
+| Assistant « Créer un monde » : premier retour visible | **15,0 s** (page figée) | **0,15 s** (barre de progression) |
+| Assistant : plus longue tâche du fil principal | **14,8 s** (une seule tâche) | **0,40 s** (0,47 s cumulés) |
+| Ouverture de l’île officielle jusqu’à la vue 3D au repos | 7,3 s · 6,4 s de tâches longues | 6,6 s · 5,6 s |
+| Navigation (30 crans de molette, 10 glissés) puis 2,5 s de repos | 28,6 s · 24,3 s de tâches longues · max 238 ms | 20,3 s · 16,3 s · max 171 ms |
+| Écritures IndexedDB pendant cette navigation | **33** | **2** |
+| Profil de rendu 3D appliqué | aucun | `low` (détection automatique dans ce conteneur) |
+
+Lecture :
+
+- **Durée de l’aperçu (15 s avant, 4,5 s après).** Elle n’est pas comparable : le bridage CDP ne ralentit que le fil principal, alors que le worker tourne à pleine vitesse. Le gain réel porte sur la réactivité : l’interface reste utilisable pendant tout le calcul.
+- **Gain de navigation.** Il combine les corrections de code (sauvegarde, inspecteur, diagnostics) et le profil `low`. Les écritures IndexedDB, elles, ne dépendent que du code.
+- **Génération d’un thème.** Sans bridage, « Côte des Rouleaux » s’ouvre en 9,9 s avec une seule tâche longue de 177 ms. Avant, l’interface restait figée pendant toute la génération.
+- **Non-régression.** Les tests navigateur existants `test-studio-browser` (17 contrôles) et `test-studio-creation-acceptance-browser` (13 contrôles) passent, sans erreur de page.
 
 ## 3. Restes
 
