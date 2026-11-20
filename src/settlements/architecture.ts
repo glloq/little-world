@@ -37,6 +37,7 @@ export interface ArchitectureStyle {
 }
 export const POLE_ROLES=['port','market','fishing','farming','mountain','forest','mine','resort'] as const;
 export type PoleRole=typeof POLE_ROLES[number];
+export const POLE_LABELS:Record<PoleRole,string>={port:'Port',market:'Bourg du marché',fishing:'Village de pêcheurs',farming:'Hameau agricole',mountain:'Village de montagne',forest:'Hameau forestier',mine:'Camp minier',resort:'Station'};
 export const ARCHITECTURE_STYLES:Record<ArchitectureStyleId,ArchitectureStyle>={
  temperate:{label:'Tempéré',houses:['timber','stone','white'],paths:['dirt','dirt','stone'],patterns:{farming:'street',forest:'organic',mountain:'mountain',fishing:'fishing',market:'network',port:'network',mine:'mountain',resort:'mountain'}},
  alpine:{label:'Alpin',houses:['chalet','chalet','stone'],paths:['dirt','stone','stone'],patterns:{farming:'street',forest:'organic',mountain:'mountain',fishing:'fishing',market:'network',port:'network',mine:'mountain',resort:'mountain'}},

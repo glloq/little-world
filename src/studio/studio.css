@@ -184,3 +184,20 @@ label:has(> input[type=checkbox]){flex-direction:row;align-items:center;justify-
 .draft-tools{overflow:auto;padding:8px;background:#fbfcf7}
 .draft-map .water-workspace canvas{width:100%;height:auto}
 @media(max-width:700px){.draft-workspace{grid-template-columns:1fr;height:auto}.draft-map{height:50vh}.draft-tools{max-height:35vh}}
+
+/* Doc 105: progress of long operations (generation, recomposition). */
+.studio-progress{display:grid;grid-template-columns:1fr auto;gap:.35rem .75rem;align-items:center;padding:.6rem .75rem;border:1px solid rgba(0,0,0,.12);border-radius:8px;background:rgba(255,255,255,.75);margin:.5rem 0}
+.studio-progress-label{grid-column:1/-1;font-size:.9rem}
+.studio-progress-bar{height:8px;border-radius:4px;background:rgba(0,0,0,.1);overflow:hidden}
+.studio-progress-fill{height:100%;width:0;background:#4f8f6a;transition:width .2s ease}
+.studio-progress[data-failed=true] .studio-progress-fill{background:#b5533c}
+.studio-progress-time{font-variant-numeric:tabular-nums;font-size:.8rem}
+.studio-busy{position:fixed;left:50%;bottom:1.25rem;transform:translateX(-50%);z-index:1000;display:grid;grid-template-columns:auto auto;gap:.3rem .8rem;align-items:center;min-width:16rem;padding:.6rem .9rem;border-radius:10px;background:rgba(30,40,35,.92);color:#f4f1e8;font-size:.9rem;box-shadow:0 6px 18px rgba(0,0,0,.25);opacity:0;animation:studio-busy-in .2s ease .2s forwards}
+.studio-busy-time{font-variant-numeric:tabular-nums;opacity:.75;justify-self:end}
+.studio-busy-bar{grid-column:1/-1;height:4px;border-radius:2px;background:linear-gradient(90deg,transparent,#8fd0a6,transparent);background-size:40% 100%;background-repeat:no-repeat;animation:studio-busy-slide 1.1s linear infinite}
+@keyframes studio-busy-in{to{opacity:1}}
+@keyframes studio-busy-slide{from{background-position:-40% 0}to{background-position:140% 0}}
+@media (prefers-reduced-motion:reduce){.studio-busy-bar{animation:none;background:#8fd0a6}}
+.generated-panel section{border-top:1px solid rgba(0,0,0,.1);padding-top:.5rem;margin-top:.75rem}
+.generated-row{display:flex;flex-wrap:wrap;gap:.4rem .8rem;align-items:end;padding:.4rem 0;border-bottom:1px dashed rgba(0,0,0,.08)}
+.generated-row label{display:grid;font-size:.8rem}.generated-row input{max-width:7rem}

@@ -80,7 +80,7 @@ export function planDiveSites(p:ProjectDocument,o:{max?:number;wreck?:boolean}={
   const ring=isobath(p,(x,z)=>projectGeography(p).ctx.site(x,z).coast,bathy.shelfWidthM+bathy.dropWidthM*.3,60);
   const q=ring.find(r=>!sites.some(s=>Math.hypot(s.entry.x-r.x,s.entry.z-r.z)<250)&&!Object.values(p.chunks).some(c=>Object.values(c.entities).some(e=>e.components.State?.initial.portN1Authored===true&&Math.hypot(e.components.Transform!.position.x-r.x,e.components.Transform!.position.z-r.z)<300)));
   if(q){const id='dive-wreck-0',ground=h(q.x,q.z),asset='boat.sailboat_small',def=assetDefinitionFor(asset);
-   if(def){p.assets[def.id]=def;putEntity(p,{id:id+'-hull',kind:'prop',name:'Épave',ownerChunkId:chunkAt(p.world,q.x,q.z),components:{Transform:{type:'Transform',position:{x:round(q.x),y:0,z:round(q.z)},rotation:wreckQuaternion(rnd(p.world.seed,300)*Math.PI*2),scale:{x:1,y:1,z:1}},Visual:{type:'Visual',assetId:asset}}});}
+   if(def){p.assets={...p.assets,[def.id]:def};putEntity(p,{id:id+'-hull',kind:'prop',name:'Épave',ownerChunkId:chunkAt(p.world,q.x,q.z),components:{Transform:{type:'Transform',position:{x:round(q.x),y:0,z:round(q.z)},rotation:wreckQuaternion(rnd(p.world.seed,300)*Math.PI*2),scale:{x:1,y:1,z:1}},Visual:{type:'Visual',assetId:asset}}});}
    sites.push({version:1,id,name:'Épave du '+['Cormoran','Goéland','Albatros'][Math.floor(rnd(p.world.seed,301)*3)],kind:'wreck',entry:clampPt(q),polygon:disc(q,45),depthM:round(Math.max(3,sea-ground)),discoveries:[discovery('wreck-chest','Coffre de l’épave',{x:q.x+2,z:q.z+1})]});}
   else diagnostics.push({severity:'WARNING',code:'WRECK_SKIPPED',message:'Épave : aucun fond libre sur le plateau extérieur.'});
  }

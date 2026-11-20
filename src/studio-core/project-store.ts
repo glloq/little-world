@@ -106,6 +106,11 @@ export class ProjectStore {
     const document=parseProjectHeader({...header.document,chunks:Object.fromEntries(rows.map(r=>[r.chunkId,r.source]))});
     return {document,revision:header.revision,context:contextFor(document,context),journal:journal??null,checkpointId:header.checkpointId};
   }
+  /** View state only (selection, camera, module): one small record, no header, journal or sector write. */
+  async saveContext(document:ProjectDocument,context:StudioContext):Promise<void>{
+    const value=contextFor(document,context),db=await this.open(),tx=db.transaction(['contexts'],'readwrite'),done=completion(tx);
+    tx.objectStore('contexts').put(value,document.manifest.projectId);await done;
+  }
   async saveChanges(document:ProjectDocument,dirtyChunkIds:readonly string[],options:SaveOptions):Promise<number> {
     const id=document.manifest.projectId,context=options.context?contextFor(document,options.context):undefined;
     checkJournal(document,options.journal);

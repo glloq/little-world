@@ -1,3 +1,4 @@
+import {GAMEPLAY_EVENTS,GAMEPLAY_EVENT_TYPES} from '../gameplay/events.ts';
 /** Author-facing quest editor. Source-owned offers are validated by the same
  * strict parser as compiled gameplay. No executable scripts in quest data.
  * All edits use StudioSession change (Undo/Redo, save and export archive).
@@ -69,9 +70,9 @@ export function mountQuestsPanel(host:HTMLElement,session:StudioSession,
  }
  function render(){
   list.replaceChildren(node('h3','Missions auteur'),
-   node('p','Les objectifs historiques restent indépendants. Créez ici les offres qui seront compilées avec la carte.','muted'));
+   node('p','Les objectifs historiques restent indépendants. Créez ici les offres qui seront compilées avec la carte. ✧ = quête générée depuis une activité (régénérable dans « Monde généré »).','muted'));
   for(const q of Object.values(catalog()).sort((a,b)=>a.questKey.localeCompare(b.questKey))){
-   list.append(button((selected===q.questKey?'● ':'')+String(q.bindings.title??q.questKey),()=>{
+   list.append(button((selected===q.questKey?'● ':'')+(q.questKey.startsWith('quest:gen:')?'✧ ':'')+String(q.bindings.title??q.questKey),()=>{
     selected=q.questKey;draft=structuredClone(q);render();
    }));
   }
@@ -151,7 +152,9 @@ export function mountQuestsPanel(host:HTMLElement,session:StudioSession,
     parameter('toIslandId','Île de destination',step.toIslandId);
    }
    else if(step.kind==='event'){
-    parameter('eventType','Événement natif',step.eventType);
+    line.append(field('Événement natif',select(step.eventType,GAMEPLAY_EVENT_TYPES.map(t=>[t,GAMEPLAY_EVENTS[t].label+' · '+t] as [string,string]),v=>{step.eventType=v as typeof step.eventType;})));
+    line.append(field('Cible (piste, zone, site… vide = toutes)',input(step.subjectId??'',v=>{if(v.trim())step.subjectId=v.trim();else delete step.subjectId;})),
+     field('Précision (type de course, figure, profondeur… vide = toutes)',input(step.source??'',v=>{if(v.trim())step.source=v.trim();else delete step.source;})));
     line.append(field('Nombre',numberInput(step.count,v=>step.count=v,1,9999,'1')));
    }
    if(step.kind!=='travel'&&step.kind!=='acquire'){

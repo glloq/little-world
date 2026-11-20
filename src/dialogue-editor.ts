@@ -216,7 +216,11 @@ export function createDialogueEditor(container: HTMLElement, options: Options) {
     for (const [index, choice] of line.choices.entries()) {
       const field = document.createElement('fieldset'),
         legend = document.createElement('legend');
-      legend.textContent = `Réponse ${index + 1}`;
+      // Doc 105: conditional answers (e.g. generated gear lines) show their condition.
+      const gate = (choice as { gate?: { type: string; itemId?: string; condition?: { type: string; itemId?: string; conditions?: { itemId?: string }[] }; conditions?: { itemId?: string }[] } }).gate;
+      const items = (g?: { itemId?: string; conditions?: { itemId?: string }[] }) => [g?.itemId, ...(g?.conditions ?? []).map((c) => c.itemId)].filter(Boolean).join(' ou ');
+      const gateText = !gate ? '' : gate.type === 'not' ? ` · si l’inventaire ne contient pas ${items(gate.condition)}` : ` · si l’inventaire contient ${items(gate)}`;
+      legend.textContent = `Réponse ${index + 1}${gateText}`;
       field.append(legend);
       field.append(
         label(

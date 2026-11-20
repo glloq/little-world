@@ -34,9 +34,11 @@ export interface WorldStage<C> {id:string;label:string;run(ctx:C):void}
 export interface StagedContext {diagnostics:PlanDiagnostic[];stages:StageReport[]}
 
 /** Run stages in order, recording time and the diagnostics each one added. */
-export function runStages<C extends StagedContext>(stages:readonly WorldStage<C>[],ctx:C,now:()=>number=()=>performance.now()):C {
+/** `onStage` is called before each stage (index, total) — progress UIs and worker messages. */
+export function runStages<C extends StagedContext>(stages:readonly WorldStage<C>[],ctx:C,now:()=>number=()=>performance.now(),onStage?:(stage:WorldStage<C>,index:number,total:number)=>void):C {
  const ids=new Set<string>();
- for(const stage of stages){
+ for(const [index,stage]of stages.entries()){
+  onStage?.(stage,index,stages.length);
   if(ids.has(stage.id))throw Error('Étape de plan dupliquée : '+stage.id);ids.add(stage.id);
   const started=now(),before=ctx.diagnostics.length;
   stage.run(ctx);

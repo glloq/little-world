@@ -151,7 +151,7 @@ export function auditCirculation(p:ProjectDocument,g=buildCirculationGraph(p)):C
 export function planCirculationLinks(p:ProjectDocument,c:GroundRouteContext,o:{maxLinks?:number;maxSlope?:number;widthM?:number;maxDistanceM?:number}={}):{paths:PathDefinition[];failed:string[]}{
  // Links never cross race roadbeds or ski runs: those activities validate their corridors as free ground.
  const corridors=createRaceCorridorIndex([...Object.values(p.libraries.races??{}).flatMap(r=>r.track?[r.track]:[]),
-  ...Object.values(p.libraries.alpine??{}).map(a=>({points:a.points,width:a.widthM,material:'dirt' as const,smooth:false,features:[]}))],3);
+  ...Object.values(p.libraries.alpine??{}).map(a=>({points:a.points,width:a.widthM,material:'dirt' as const,smooth:false,features:[]}))],8);
  const baseWet=c.wet;c={...c,wet:(x:number,z:number)=>baseWet(x,z)||corridors.contains(x,z)};
  const maxLinks=o.maxLinks??12,policy={maxSlope:o.maxSlope??.35,widthM:o.widthM??2.2,maxCells:8192},added:PathDefinition[]=[],failed:string[]=[];
  const existing=new Set(Object.keys(p.libraries.paths));let n=0;const nextId=()=>{while(existing.has('circulation-link-'+n))n++;existing.add('circulation-link-'+n);return 'circulation-link-'+n;};
@@ -180,6 +180,8 @@ export function planCirculationLinks(p:ProjectDocument,c:GroundRouteContext,o:{m
   search:for(const pol of policies)for(const pair of pairs){const r=planGroundRoute(pair.from,pair.to,c,{...pol,maxCells:Math.min(16384,Math.max(pol.maxCells??8192,Math.round(pair.dist*pair.dist/40)))});if(r.points.length>=2){route=r;used=pol;break search;}}
   if(!route){failed.push(d.id);continue;}
   const points=route.points.map(q=>({x:Math.round(q.x*100)/100,z:Math.round(q.z*100)/100}));
+  // Final guard: the simplified polyline may cut a corner of a race or ski corridor between grid cells.
+  if(points.slice(1).some((b,i)=>{const a=points[i],n=Math.max(1,Math.ceil(Math.hypot(b.x-a.x,b.z-a.z)/2));for(let k=0;k<=n;k++)if(corridors.contains(a.x+(b.x-a.x)*k/n,a.z+(b.z-a.z)*k/n))return true;return false;})){failed.push(d.id);continue;}
   added.push({id:nextId(),points,width:used.widthM,kind:'dirt',smooth:true} as PathDefinition);
  }
  return {paths:added,failed};
