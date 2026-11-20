@@ -138,6 +138,12 @@ export function removeSettlement(p: ProjectDocument, id: string) {
                 throw Error('Une autre zone utilise ce chemin : la déconnecter avant suppression');
             removePath(p, key);
         }
+    // Doc 105: the site grading belongs to the settlement and goes with it (prefix-owned earthworks).
+    if(!keep.length&&!keepAmenities.length&&p.world.terrain?.kind==='archipelago'&&p.world.terrain.archipelago.earthworks?.some(w=>w.id.startsWith('settlement:'+id+':'))){
+        // Copy-on-write: inside a Studio transaction the draft shares the terrain object.
+        const terrain=structuredClone(p.world.terrain),kept=(terrain.archipelago.earthworks??[]).filter(w=>!w.id.startsWith('settlement:'+id+':'));
+        if(kept.length)terrain.archipelago.earthworks=kept;else delete terrain.archipelago.earthworks;p.world={...p.world,terrain};
+    }
     p.libraries.objectives={...p.libraries.objectives};
     for(const [questId,hash]of Object.entries(s.objectiveHashes??{})){
       const objective=p.libraries.objectives[questId];

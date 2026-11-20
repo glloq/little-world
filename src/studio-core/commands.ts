@@ -72,6 +72,9 @@ function stage(document:ProjectDocument,patches:EditPatch[],inverse=false):Proje
   return result;
 }
 function size(value:unknown):number{return new TextEncoder().encode(JSON.stringify(value)).byteLength;}
+const transactionSizes=new WeakMap<object,number>();
+/** Transactions are immutable once remembered: their size is computed once. */
+function transactionBytes(t:EditTransaction):number{let n=transactionSizes.get(t);if(n===undefined){n=size(t);transactionSizes.set(t,n);}return n;}
 function transactionValid(value:unknown,projectId:string):value is EditTransaction {
   if(!value||typeof value!=='object')return false;
   const t=value as EditTransaction;
@@ -94,7 +97,9 @@ export class CommandBus {
   get canUndo(){return !this.gesture&&this.past.length>0;}
   get canRedo(){return !this.gesture&&this.future.length>0;}
   get isGesturing(){return this.gesture!==null;}
-  get historyBytes(){return size(this.past)+size(this.future);}
+  /** Exact JSON byte size of the history, from per-transaction sizes cached once (was a full
+   * re-stringify of up to 4 MB on every edit and every trim iteration — doc 105). */
+  get historyBytes(){const list=(a:EditTransaction[])=>a.length?2+a.length-1+a.reduce((n,t)=>n+transactionBytes(t),0):2;return list(this.past)+list(this.future);}
   get needsCheckpoint(){return this.sequence>0&&this.sequence%this.options.checkpointInterval===0;}
   get undoLabel(){return this.past.at(-1)?.label??null;}
   get redoLabel(){return this.future.at(-1)?.label??null;}

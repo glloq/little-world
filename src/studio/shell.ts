@@ -4,6 +4,7 @@ import {ProjectStore} from '../studio-core/project-store.ts';
 import {parseProject,chunkAt} from '../studio-core/schema.ts';
 import {migrateWorldToV3,toRuntimeWorld} from '../studio-core/migration.ts';
 import {readProjectArchive,writeProjectArchive,writeFilesArchive} from '../studio-core/archive.ts';
+import {withBusy} from './busy.ts';
 import {resolveEntity} from '../studio-core/references.ts';
 import {createCharacter} from '../studio-core/character-authoring.ts';
 import type {ProjectDocument} from '../studio-core/types.ts';
@@ -29,6 +30,7 @@ const MODULES:[string,string,string,string,string][]=[
   ['terrain','Relief','⛰','Monde','T'],['regions','Régions','◉','Monde',''],['biomes','Biotopes','✿','Monde',''],['paths','Chemins et rivières','〰','Monde',''],['water','Eau','≈','Monde',''],['surf','Surf','〰','Monde',''],['zones','Zones','⬠','Monde',''],['landscapes','Paysages','❦','Monde',''],
   ['races','Courses','⚑','Logique',''],['quests','Quêtes','♧','Logique',''],['dialogues','Dialogues','✉','Logique',''],['interactions','Interactions','⚙','Logique',''],['environment','Environnement','☀','Logique',''],['audio','Audio','♪','Logique',''],['motion-lab','Animations du hamster','◉','Logique',''],
   ['composition','Recomposer le monde','◒','Projet',''],
+  ['generated','Monde généré','✧','Projet',''],
   ['guide','Assistant de création','☷','Projet',''],
   ['tests','Validation / compilation','✓','Projet',''],
 ];
@@ -45,7 +47,7 @@ function buildHeader(){
   const s=session!,undo=action('Annuler',()=>{s.commands.undo();void inspector();}),redo=action('Refaire',()=>{s.commands.redo();void inspector();});undo.dataset.action='undo';redo.dataset.action='redo';
   const toggle=action('Inspecteur',()=>{inspectorOpen=!inspectorOpen;$('studio').classList.toggle('no-inspector',!inspectorOpen);toggle.setAttribute('aria-pressed',String(inspectorOpen));});toggle.setAttribute('aria-pressed',String(inspectorOpen));
   $('header-actions').replaceChildren(action('Mes projets',home),undo,redo,action('Sauvegarder',async()=>{await editQueue.last;await s.flush();}),action('Importer',()=>($('project-file') as HTMLInputElement).click()),
-    action('Exporter ZIP',async()=>{await editQueue.last;const p=await s.fullDocument();const bytes=writeProjectArchive(p);download(p.manifest.name+'.zip',bytes.buffer as ArrayBuffer,'application/zip');}),toggle,action('Jouer ici',preview,'primary-button'));
+    action('Exporter ZIP',()=>withBusy('Préparation de l’archive…',async()=>{await editQueue.last;const p=await s.fullDocument();const bytes=writeProjectArchive(p);download(p.manifest.name+'.zip',bytes.buffer as ArrayBuffer,'application/zip');})),toggle,action('Jouer ici',()=>withBusy('Compilation de la copie de test…',preview),'primary-button'));
   refreshHeader();
 }
 function buildToolbar(){
@@ -64,16 +66,16 @@ async function home(){
   const {mountWelcome}=await import('./home-welcome.ts');
   mountWelcome(panelHost(),{
     projects:await store.list(),
-    create:async p=>{await store.create(p);await open(p.manifest.projectId);},
-    open,
-    template:async file=>{
+    create:async p=>withBusy('Enregistrement et ouverture du projet…',async()=>{await store.create(p);await open(p.manifest.projectId);}),
+    open:id=>withBusy('Ouverture du projet…',()=>open(id)),
+    template:async file=>withBusy('Ouverture du monde prêt…',async()=>{
       const path=file.includes('/')?file:'maps/'+file;
       const response=await fetch(import.meta.env.BASE_URL+path);
       if(!response.ok)throw Error('Scénario indisponible');
       const p=parseProject(await response.json());
       if(!(await store.list()).some(v=>v.projectId===p.manifest.projectId))await store.create(p);
       await open(p.manifest.projectId);
-    },
+    }),
     importFile:()=>($('project-file') as HTMLInputElement).click(),
     report:status,
   });
@@ -84,7 +86,9 @@ let mapLoaded=false;
 function closeProject(){if(mapLoaded)void import('./geo-map/editor.ts').then(m=>m.releaseGeoMap());disposePanel();disposePanel=()=>{};unsubscribe();unsubscribe=()=>{};viewport?.dispose();viewport=null;session=null;$('studio').classList.remove('in-project');}
 async function open(id:string){
   closeProject();session=await StudioSession.open(store,id);const s=session;$('studio').classList.add('in-project');
-  const stops=[s.subscribe(()=>refreshHeader()),s.commands.subscribe(t=>{checkImpact(s,t);void inspector();}),s.selection.subscribe(()=>{const key=JSON.stringify(s.selection.selection);if(VIEWPORT_MODULES.has(activeModule)||key!==selectionKey)scheduleInspector();selectionKey=key;})];unsubscribe=()=>stops.forEach(stop=>stop());
+  const stops=[s.subscribe(()=>refreshHeader()),s.commands.subscribe(t=>{checkImpact(s,t);void inspector();}),s.selection.subscribe(value=>{
+    // Doc 105: camera moves no longer rebuild the inspector; selection, tool or module changes do.
+    const key=JSON.stringify([s.selection.selection,value.activeTool,value.activeModule]);if(key!==selectionKey)scheduleInspector();selectionKey=key;})];unsubscribe=()=>stops.forEach(stop=>stop());
   buildHeader();buildToolbar();const saved=ALIASES[s.selection.state.activeModule]??s.selection.state.activeModule;
   await module(MODULES.some(m=>m[0]===saved)||VIEWPORT_MODULES.has(saved)?saved:'scene');
 }
@@ -113,6 +117,7 @@ async function module(requested:string){
   else if(id==='motion-lab'){const {mountHamsterMotionLab}=await import('./hamster-motion-lab.ts');if(mine!==generation)return;disposePanel=mountHamsterMotionLab(host).dispose;}
   else if(id==='settlements'){const {mountSettlements}=await import('./settlements-view.ts');if(mine!==generation)return;disposePanel=mountSettlements(host,s,{status,open3D:view=>void run(async()=>{const selected=s.selection.state.selected,entry=selected?s.document.entityIndex[selected.id]:undefined;await module('scene');if(view)viewport?.goTo(view.x,view.z,view.radius);else if(entry)viewport?.goTo(entry.position.x,entry.position.z,16);else viewport?.focusSelection();})(),play:()=>void run(preview)()});}
   else if(id==='composition'){const {mountCompositionPanel}=await import('./composition-panel.ts');if(mine!==generation)return;disposePanel=mountCompositionPanel(host,s,status);}
+  else if(id==='generated'){const {mountGeneratedPanel}=await import('./generated-panel.ts');if(mine!==generation)return;disposePanel=mountGeneratedPanel(host,s,status);}
   else if(id==='quests'){const {mountQuestsPanel}=await import('./quests-panel.ts');if(mine!==generation)return;disposePanel=mountQuestsPanel(host,s,status).dispose;}
   else if(id==='environment'){const {mountEnvironment}=await import('./environment-view.ts');mountEnvironment(host,s);}
   else if(id==='interactions'){const {mountInteractions}=await import('./interactions-view.ts');await mountInteractions(host,s);$('tools').append(action('Retour à la vue 3D',()=>module('scene')));}

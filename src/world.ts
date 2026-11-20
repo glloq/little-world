@@ -102,6 +102,8 @@ export interface WorldView {
   /** `economy` (lowest quality setting) shifts the natural dressing one tier down. */
   setDetail: (level: number, economy?: boolean) => void;
   refreshTerrain: (x: number, z: number, radius: number) => void;
+  /** Batched refresh of several edited areas (one scene traversal). */
+  refreshTerrainAreas: (areas: { x: number; z: number; radius: number }[]) => void;
   /** Reserve near-sea quads for a local GPU surf patch, without affecting physical water. */
   setSurfArea(area:{minX:number;maxX:number;minZ:number;maxZ:number}|null):void;
   setSurfAreas(areas:readonly {minX:number;maxX:number;minZ:number;maxZ:number}[]):void;
@@ -862,6 +864,60 @@ export function buildWorld(
     }
     if(!active)outsideVisibility.clear();
   }
+    /** Doc 105: several edited areas refreshed with ONE scene traversal; instances, ribbons and
+     * bounds are only touched when a vertex/instance really lies in an area. */
+  const refreshAreas = (areas: { x: number; z: number; radius: number }[]) => {
+      if (!areas.length) return;
+      for (const a of areas) {
+        terrainView.refresh(a.x, a.z, a.radius);
+        horizon.refresh(a.x, a.z, a.radius);
+        ecology.refresh(a.x, a.z, a.radius);
+        dressing?.refresh(a.x, a.z, a.radius);
+        grass?.refresh(a.x, a.z, a.radius);
+        pathView.refreshArea(a.x, a.z, a.radius + 8);
+      }
+      cliffs.invalidate();
+      const near = (px: number, pz: number, pad: number) => areas.some((a) => Math.hypot(px - a.x, pz - a.z) < a.radius + pad);
+      const matrix = new THREE.Matrix4();
+      root.traverse((node) => {
+        if (node.userData.grounded && near(node.position.x, node.position.z, 12))
+          node.position.y = terrainHeight(node.position.x, node.position.z);
+        const inst = node as THREE.InstancedMesh,
+          heights = node.userData.groundHeights as number[] | undefined;
+        if (inst.isInstancedMesh && heights) {
+          let changed = false;
+          for (let i = 0; i < inst.count; i++) {
+            inst.getMatrixAt(i, matrix);
+            const e = matrix.elements;
+            if (!near(e[12], e[14], 0)) continue;
+            const h = terrainHeight(e[12], e[14]);
+            e[13] += h - heights[i];
+            heights[i] = h;
+            inst.setMatrixAt(i, matrix);
+            changed = true;
+          }
+          if (changed) {
+            inst.instanceMatrix.needsUpdate = true;
+            inst.computeBoundingSphere();
+          }
+        }
+        if (node.userData.groundRibbon) {
+          const geo = (node as THREE.Mesh).geometry,
+            positions = geo.getAttribute('position');
+          let changed = false;
+          for (let i = 0; i < positions.count; i++) {
+            const px = positions.getX(i),
+              pz = positions.getZ(i);
+            if (near(px, pz, 3)) { positions.setY(i, terrainHeight(px, pz) + 0.18); changed = true; }
+          }
+          if (changed) {
+            positions.needsUpdate = true;
+            geo.computeVertexNormals();
+            geo.computeBoundingSphere();
+          }
+        }
+      });
+    };
   return {
     root,
     setUnderground,
@@ -911,51 +967,8 @@ export function buildWorld(
       dressing?.setDetail(economy ? level + 1 : level);buildingImpostors.setBudget(64,4);
       grass?.setProfile(grassOverride ?? grassProfileFor(level, economy));
     },
-    refreshTerrain(x, z, radius) {
-      terrainView.refresh(x, z, radius);
-      cliffs.invalidate();
-      horizon.refresh(x, z, radius);
-      ecology.refresh(x, z, radius);
-      dressing?.refresh(x, z, radius);
-      grass?.refresh(x, z, radius);
-      pathView.refreshArea(x, z, radius + 8);
-      const matrix = new THREE.Matrix4();
-      root.traverse((node) => {
-        if (
-          node.userData.grounded &&
-          Math.hypot(node.position.x - x, node.position.z - z) < radius + 12
-        )
-          node.position.y = terrainHeight(node.position.x, node.position.z);
-        const inst = node as THREE.InstancedMesh,
-          heights = node.userData.groundHeights as number[] | undefined;
-        if (inst.isInstancedMesh && heights) {
-          for (let i = 0; i < inst.count; i++) {
-            inst.getMatrixAt(i, matrix);
-            const e = matrix.elements;
-            if (Math.hypot(e[12] - x, e[14] - z) > radius) continue;
-            const h = terrainHeight(e[12], e[14]);
-            e[13] += h - heights[i];
-            heights[i] = h;
-            inst.setMatrixAt(i, matrix);
-          }
-          inst.instanceMatrix.needsUpdate = true;
-          inst.computeBoundingSphere();
-        }
-        if (node.userData.groundRibbon) {
-          const geo = (node as THREE.Mesh).geometry,
-            positions = geo.getAttribute('position');
-          for (let i = 0; i < positions.count; i++) {
-            const px = positions.getX(i),
-              pz = positions.getZ(i);
-            if (Math.hypot(px - x, pz - z) < radius + 3)
-              positions.setY(i, terrainHeight(px, pz) + 0.18);
-          }
-          positions.needsUpdate = true;
-          geo.computeVertexNormals();
-          geo.computeBoundingSphere();
-        }
-      });
-    },
+    refreshTerrain(x, z, radius) { refreshAreas([{ x, z, radius }]); },
+    refreshTerrainAreas(areas: { x: number; z: number; radius: number }[]) { refreshAreas(areas); },
     update(dt: number, focus = { x: 0, z: 0 }, camera?: THREE.PerspectiveCamera, pixelHeight = 640, physicalVelocity?: {x:number;z:number}) {
       time += dt;
       wheel.rotation.x -= dt * 0.33;

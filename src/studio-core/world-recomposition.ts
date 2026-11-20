@@ -5,7 +5,7 @@ import {alignNaturalBiomes} from './world-biomes-v4.ts';
  * Region-only refresh uses the existing authored recipes, including manual polygons. */
 import type {ProjectDocument} from './types.ts';
 import type {MapRequirements} from './map-requirements.ts';
-import {composeWorld,projectFromComposition} from './world-composition.ts';
+import {composeWorld,type ComposeHooks,projectFromComposition} from './world-composition.ts';
 import {alignSteppedBiomes} from './world-biome-boundaries.ts';
 import {applyRegionBatch,regionBatchChunks} from './region-batch.ts';
 import {removeRegion} from './region-recipes.ts';
@@ -18,7 +18,9 @@ const raceGeometry=(p:ProjectDocument)=>Object.fromEntries(Object.entries(p.libr
 const sourceHash=(p:ProjectDocument)=>fingerprint({...p,manifest:{...p.manifest,revision:0}});
 const recipeSource=(v:unknown)=>{const {generated:_,...rest}=v as Record<string,unknown>;return rest;};
 export interface RecompositionPreview {project:ProjectDocument;beforeHash:string;chunks:string[];summary:string;mode:'full'|'biomes'}
-export function previewWorldRecomposition(p:ProjectDocument,next:MapRequirements,mode:'full'|'biomes'='full'):RecompositionPreview {
+/** `hooks.onStage` reports the stages of the reference and new compositions (worker progress, doc 105). */
+export function previewWorldRecomposition(p:ProjectDocument,next:MapRequirements,mode:'full'|'biomes'='full',hooks:ComposeHooks={}):RecompositionPreview {
+ const phase=(prefix:string):ComposeHooks=>hooks.onStage?{onStage:(st,i,n)=>hooks.onStage!({id:st.id,label:prefix+' · '+st.label},i,n)}:{};
  if(!p.world.generation)throw Error('Ce projet ancien ne contient pas de besoins de génération. Créer un nouveau monde guidé.');
  if(Object.keys(p.chunkIndex).some(id=>!p.chunks[id]))throw Error('Charger les secteurs avant de comparer la composition');
  const scratch=structuredClone(p),beforeHash=sourceHash(p);
@@ -26,11 +28,11 @@ export function previewWorldRecomposition(p:ProjectDocument,next:MapRequirements
  if(mode==='biomes'){
   const recipes=Object.values(p.libraries.regions??{}).filter(r=>r.id.startsWith('composition-'));
   if(!recipes.length)throw Error('Aucune région générée à rafraîchir');
-  if((p.world.generation.compositionVersion??1)>=3){const baseline=composeWorld(p.world.generation).project;for(const recipe of recipes){const old=baseline.libraries.regions?.[recipe.id];if(!old||fingerprint(recipeSource(recipe))!==fingerprint(recipeSource(old)))skipBoundaries.add(recipe.id);}}
+  if((p.world.generation.compositionVersion??1)>=3){const baseline=composeWorld(p.world.generation,undefined,undefined,undefined,phase('Référence')).project;for(const recipe of recipes){const old=baseline.libraries.regions?.[recipe.id];if(!old||fingerprint(recipeSource(recipe))!==fingerprint(recipeSource(old)))skipBoundaries.add(recipe.id);}}
   affected=regionBatchChunks(scratch,recipes);for(let i=0;i<recipes.length;i+=16)applyRegionBatch(scratch,recipes.slice(i,i+16));
  }else{
   if(next.width!==p.world.generation.width||next.length!==p.world.generation.length)throw Error('Redimensionner nécessite un nouveau projet : secteurs et retouches conservés ici');
-  const original=composeWorld(p.world.generation).project;
+  const original=composeWorld(p.world.generation,undefined,undefined,undefined,phase('Référence')).project;
   const allEntities=(project:ProjectDocument)=>Object.fromEntries(Object.values(project.chunks).flatMap(c=>Object.entries(c.entities)));
   const originalEntities=allEntities(original),currentEntities=allEntities(p);
   if(fingerprint(p.world.terrain)!==fingerprint(original.world.terrain)||Object.values(p.chunks).some(c=>c.terrainEdits.length)||fingerprint(currentEntities)!==fingerprint(originalEntities))
@@ -48,7 +50,11 @@ export function previewWorldRecomposition(p:ProjectDocument,next:MapRequirements
   if(fingerprint(p.libraries.settlements??{})!==fingerprint(original.libraries.settlements??{}))throw Error('Village généré retouché ou verrouillé : recomposition protégée');
   for(const [id,d]of Object.entries(original.libraries.interactions))if(fingerprint(p.libraries.interactions[id])!==fingerprint(d))throw Error('Interaction générée retouchée : recomposition protégée');
   for(const [id,d]of Object.entries(original.libraries.dialogues))if(fingerprint(p.libraries.dialogues[id])!==fingerprint(d))throw Error('Dialogue généré retouché : recomposition protégée');
-  const plan=composeWorld(next,p.manifest.name),generated=projectFromComposition(plan,p.manifest.name);
+  // Doc 104/105: surf breaks, dive sites and generated quests are guarded and replaced like races.
+  for(const key of ['surfZones','surfFeatures','diveSites'] as const)if(fingerprint(p.libraries[key]??{})!==fingerprint(original.libraries[key]??{}))throw Error('Surf ou sites de plongée retouchés : recomposition globale protégée');
+  const generatedQuests=(project:ProjectDocument)=>Object.fromEntries(Object.entries(project.libraries.questCatalog??{}).filter(([id])=>id.startsWith('quest:gen:')));
+  if(fingerprint(generatedQuests(p))!==fingerprint(generatedQuests(original)))throw Error('Quêtes générées retouchées : recomposition globale protégée');
+  const plan=composeWorld(next,p.manifest.name,undefined,undefined,phase('Nouveau plan')),generated=projectFromComposition(plan,p.manifest.name);
   for(const id of Object.keys(generated.libraries.paths))if(p.libraries.paths[id]&&!original.libraries.paths[id])throw Error('Un chemin manuel occupe un identifiant de génération');
   for(const id of Object.keys(originalEntities))removeEntity(scratch,id);
   scratch.assets={...generated.assets,...scratch.assets};
@@ -68,6 +74,9 @@ export function previewWorldRecomposition(p:ProjectDocument,next:MapRequirements
   if(generated.libraries.alpine)scratch.libraries.alpine=structuredClone(generated.libraries.alpine);else delete scratch.libraries.alpine;
   scratch.world.audio=structuredClone(generated.world.audio);
   scratch.libraries.zones=structuredClone(generated.libraries.zones??{});
+  for(const key of ['surfZones','surfFeatures','diveSites'] as const){if(generated.libraries[key])(scratch.libraries as unknown as Record<string,unknown>)[key]=structuredClone(generated.libraries[key]);else delete scratch.libraries[key];}
+  const keptQuests=Object.fromEntries(Object.entries(scratch.libraries.questCatalog??{}).filter(([id])=>!id.startsWith('quest:gen:')));
+  const nextQuests={...keptQuests,...generatedQuests(generated)};if(Object.keys(nextQuests).length)scratch.libraries.questCatalog=nextQuests;else delete scratch.libraries.questCatalog;
   scratch.world={...scratch.world,seed:generated.world.seed,terrain:generated.world.terrain,generation:generated.world.generation};
   for(const water of Object.values(generated.libraries.water))putWater(scratch,water);
   const recipes=Object.values(generated.libraries.regions??{}).map(r=>{const copy=structuredClone(r);delete copy.generated;return copy;});
