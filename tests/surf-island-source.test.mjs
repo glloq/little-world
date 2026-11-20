@@ -20,6 +20,7 @@ test('dedicated surf island compiles a real N1 port and three disjoint A/B/C wav
  assert.equal(Object.keys(project.libraries.races??{}).length,3);
  assert.ok(Object.keys(project.assets).some(id=>id.startsWith('maritime.')),'real port assets registered');
  assert.equal(parseProject(project).world.worldId,SURF_ISLAND.worldId);
+ assert.equal(Object.values(project.entityIndex).filter(entity=>entity.id.startsWith('surf-shore:')).length,9);
  for(const b of plan.beaches){
   assert.equal(validateSurfZone(b.zone),b.zone);
   assert.equal(validateRace(b.gates,project.world.bounds),b.gates);

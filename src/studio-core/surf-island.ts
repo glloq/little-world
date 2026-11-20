@@ -6,6 +6,7 @@ import {projectRaceTerrainEnvironment} from './race-terrain-context.ts';
 import {planThreeSurfBeaches} from '../surf/surf-island-planner.ts';
 import {putAuthoredRace} from './race-authoring.ts';
 import type {ArchipelagoParams} from '../geography/archipelago.ts';
+import {addSurfShoreStops} from './surf-shore.ts';
 import {generateWelcomeVillage} from './welcome-village.ts';
 
 export const SURF_ISLAND={worldId:'little-world-surf-island',islandId:'surf-island',
@@ -42,6 +43,7 @@ export function buildSurfIsland(){
  p.libraries.surfZones=Object.fromEntries(plan.beaches.map(b=>[b.zone.id,b.zone]));
  p.libraries.surfFeatures=Object.fromEntries(plan.beaches.flatMap(b=>b.features.map(f=>[f.id,f])));
  for(const b of plan.beaches)putAuthoredRace(p,b.gates);
+ addSurfShoreStops(p,plan.beaches);
  const project=parseProject(p);
  return {project,port,plan,homes};
 }
