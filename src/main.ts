@@ -1,3 +1,4 @@
+import {DRESSING_CELL_M} from './geography/dressing.ts';
 import {PerfSampler,createGpuTimer} from './render/perf-sampler.ts';
 import {advanceSpeedCamera,speedCameraState,createSpeedStreaks} from './render/speed-effects.ts';
 import {advanceFlightAutoCamera,type FlightCameraFollow} from './render/flight-auto-camera.ts';
@@ -332,7 +333,9 @@ if(playable){
     getGasProgress:()=>structuredClone(flightProgress),
     setGasProgress:value=>{flightProgress={...value,currentFlightDistance:0,currentFlightNoGas:0,currentCombo:0,lastPulseAt:-1};player.gasCapacityLevel=value.capacityLevel;player.gasPowerLevel=value.powerLevel;player.gasControlLevel=value.controlLevel;},
     setGas:(value,satiety,recharge)=>{player.gasReserve=Math.min(GAS.max,Math.max(0,value));player.satiety=satiety??100;player.boostRechargeProgress=recharge??0;player.gasBoosting=false;player.gasPulseClock=0;player.gasPulseSeq=0;player.gasThrust=0;player.gasPulseRemaining=0;player.gasCooldown=0;player.gasBoostHeld=false;player.gasRepeatArmed=false;gasVisualSeq=0;lastFlightPulseSeq=0;boostWindActive=false;},
-    ...(isLegacyTerrain()?{}:{gathering:{ctx:geoContext,seed:definition.config.seed,inside:(x:number,z:number)=>Math.abs(x)<=(definition.config.width??200)/2&&Math.abs(z)<=(definition.config.length??600)/2}}),
+    ...(isLegacyTerrain()?{}:{gathering:{ctx:geoContext,seed:definition.config.seed,inside:(x:number,z:number)=>Math.abs(x)<=(definition.config.width??200)/2&&Math.abs(z)<=(definition.config.length??600)/2,
+      // Interior cells only: there the renderer's world bounds (3 m margin) and these agree.
+      cached:(cx:number,cz:number)=>{const m=DRESSING_CELL_M,hw=(definition.config.width??200)/2-4,hl=(definition.config.length??600)/2-4;return cx*m>=-hw&&(cx+1)*m<=hw&&cz*m>=-hl&&(cz+1)*m<=hl?world.dressingCell(cx,cz):undefined;}}}),
     setPosition:(p,space)=>{gameplay?.fishing.cancel();stopFlightCourse();stopRace();player.space=space??undefined;player.position.set(p.x,p.y,p.z);player.velocity.set(0,0,0);player.mode='air';player.oxygen=MAX_OXYGEN;player.glideReady=false;player.snowAirborne=false;player.coyoteLeft=0;player.jumpBufferLeft=0;aboard=false;keySet.clear();jumpQueue=0;actionQueue=0;npcs.dialogue.close();previousPlayerPosition.copy(player.position);renderPosition.copy(player.position);updateCamera(1);}
   });
   if(metricsEnabled){const g=gameplay;Object.assign(window,{littleWorldDebug:{/** Developer/test hook (metrics mode only): give items. */grant:(itemId:string,quantity:number)=>g.runtime.grantItems([{itemId,quantity}]),
@@ -1259,6 +1262,11 @@ function updateCamera(dt: number) {
   );
   if(inSurfTube&&surfField)y=Math.min(y,Math.max(surfField.zone.seaLevel+1.25,target.y+.5));
   const desired = cameraDesired.set(x, y, z);
+  // Near plane 0.3 m outside tight spaces: three times the depth precision at a distance
+  // (coasts, rivers and tree bases stop shimmering at kilometres), 0.1 m in galleries and
+  // inside a breaking wave where the camera hugs the walls (doc 105, QUAL-3).
+  const near=player.space||inSurfTube?.1:.3;
+  if(camera.near!==near){camera.near=near;camera.updateProjectionMatrix();}
   // In a gallery: stay inside the open cells and under the ceiling, never above the relief.
   if(player.space&&gameplay){const inside=gameplay.activities.cameraInMine(target,player.space,yaw,pitch,distance);if(inside){desired.set(inside.x,inside.y,inside.z);camera.position.copy(desired);cameraOffset.subVectors(desired,target);cameraOffsetReady=true;camera.lookAt(target);return;}}
   // Smooth the offset around the interpolated target, not the world position: the hero
@@ -1272,6 +1280,9 @@ function updateCamera(dt: number) {
   if(!inSurfTube&&camera.position.y<cameraFloor){camera.position.y=cameraFloor;cameraOffset.y=cameraFloor-target.y;}
   camera.lookAt(target);
   camera.rotateZ(speedCue.bank);
+  // Near plane 0.3 m outside tight spaces: three times the depth precision at a distance
+  // (coasts, rivers and tree bases stop shimmering at kilometres), 0.1 m in galleries and
+  // inside a breaking wave where the camera hugs the walls (doc 105, QUAL-3).
   if(Math.abs(camera.fov-speedCue.fov)>.005){camera.fov=speedCue.fov;camera.updateProjectionMatrix();}
 }
 /** Contextual target: the same ordered sources decide what the HUD shows and what E does

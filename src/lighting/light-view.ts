@@ -45,6 +45,7 @@ export function createLightView(parent:THREE.Object3D,height:(x:number,z:number)
   const halos=new THREE.Points(geometry,material);halos.frustumCulled=false;halos.renderOrder=3;halos.name='LightHalos';group.add(halos);
   let state:StateLookup|undefined,follow:FollowLookup|undefined;
   const color=new THREE.Color();let night=0,time=0,slotVersion=-1,glowVersion=-1;const followGlow:number[]=[];
+  const slotSource:number[]=[],ramp:number[]=[];let lastRampAt=-1,ramped=false;
   const stats:LightViewStats={sources:0,pool:0,budget:budget.budget,active:0,glow:0,overBudget:0,candidates:0,reselections:0,updateMs:0,maxUpdateMs:0,night:0};
   function ensurePool(){
     if(pool.length===poolSize||!budget.sources.length)return;
@@ -69,14 +70,20 @@ export function createLightView(parent:THREE.Object3D,height:(x:number,z:number)
       if(budget.glowVersion!==glowVersion){glowVersion=budget.glowVersion;uploadGlow();}
       else if(followGlow.length){for(const g of followGlow){const i=budget.glow[g];positions[g*3]=budget.px[i];positions[g*3+1]=budget.py[i];positions[g*3+2]=budget.pz[i];}(geometry.getAttribute('position') as THREE.BufferAttribute).needsUpdate=true;}
       const reassigned=budget.slotVersion!==slotVersion;slotVersion=budget.slotVersion;let active=0;
+      // A pooled light handed to another source fades in over ~0.3 s instead of switching on
+      // at full intensity in one frame (doc 105, SEAM-12). Presentation only.
+      const now=performance.now(),dt=lastRampAt<0?0:Math.min(.1,(now-lastRampAt)/1000);lastRampAt=now;
       for(let s=0;s<pool.length;s++){
         const light=pool[s],i=s<budget.budget?budget.slots[s]:-1;
-        if(i<0){light.intensity=0;continue;}
+        if(i<0){light.intensity=0;slotSource[s]=-1;continue;}
         const l=budget.sources[i];active++;
+        if(slotSource[s]!==i){slotSource[s]=i;ramp[s]=slotVersion>0||ramped?0:1;}
+        ramp[s]=Math.min(1,(ramp[s]??1)+dt/.3);
         if(reassigned){light.color.set(l.color);light.distance=l.range;}
         if(reassigned||l.follow)light.position.set(budget.px[i],budget.py[i],budget.pz[i]);
-        light.intensity=l.intensity*budget.factor[i]*(l.flicker?flickerAt(budget.seeds[i],time,l.flicker.amplitude,l.flicker.speed):1);
+        light.intensity=ramp[s]*l.intensity*budget.factor[i]*(l.flicker?flickerAt(budget.seeds[i],time,l.flicker.amplitude,l.flicker.speed):1);
       }
+      ramped=true;
       const ms=performance.now()-start,st=budget.stats;stats.active=active;stats.glow=st.glow;stats.overBudget=st.overBudget;stats.candidates=st.candidates;stats.reselections=st.reselections;stats.updateMs=ms;stats.maxUpdateMs=Math.max(stats.maxUpdateMs,ms);
     },
     statusOf:id=>budget.statusOf(id),

@@ -29,8 +29,13 @@ export function createEnvironmentView(scene:THREE.Scene,lighting:Lighting,clock:
  panel.append(summary,timeLabel,weatherLabel,label,weatherSetting,note);document.body.append(panel);
  let visualTime=0,lastMinute=-1,lastWeather:WeatherKind|null=null;
  /** `underground`: inside a mine, the sky no longer lights the scene (local lanterns do). */
+ /** Cloud cover seen by the lighting, eased like the sky dome's (τ = 6 s): a weather change
+  * no longer steps the background colour and the sun intensity in one frame. */
+ let lightCover:number|null=null;
  function update(dt:number,position:{x:number;y:number;z:number},detail:number,underground=false,quality:'low'|'medium'|'high'='low'){
-  const state=climate.state(clock.time);applySkyLighting(lighting,background,state.sunAltitude,state.dayPhase,state.cloudCover);
+  const state=climate.state(clock.time);
+  lightCover=lightCover===null?state.cloudCover:lightCover+(state.cloudCover-lightCover)*(1-Math.exp(-Math.max(0,Math.min(dt,.25))/6));
+  applySkyLighting(lighting,background,state.sunAltitude,state.dayPhase,lightCover);
   // Underground: no sky light; neutral rock-coloured ambient (outdoor sky/grass tints restored outside).
   if(underground){lighting.sun.intensity=0;lighting.fill.intensity=.04;lighting.ambient.intensity=.7;lighting.ambient.color.set('#c9c0b4');lighting.ambient.groundColor.set('#4d4640');background.set('#0d0c0b');}
   else if(lighting.ambient.groundColor.getHex()!==0x678c7c){lighting.ambient.color.set(0xfaf7e9);lighting.ambient.groundColor.set(0x678c7c);}

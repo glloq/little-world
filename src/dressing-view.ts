@@ -379,6 +379,9 @@ export function createDressingView(parent:THREE.Group,seed:number,density:number
     setSectorSize(m:number){impostors.setSectorSize(m);dirty=true;},
     updateImpostors(time:number,night:number){impostors.update(time,night);},
     setHidden(fn:typeof hidden){hidden=fn;dirty=true;},
+    /** Cell already generated for drawing (same seed and generator as the gameplay rules),
+     * so gathering and trunk colliders need not regenerate it on the main thread. */
+    cellAt(cx:number,cz:number):DressingCell|undefined{const c=cache.get(cx+':'+cz);return c&&!c.stale?c:undefined;},
     /** Horizontal velocity of the focus (m/s): generation order follows the trajectory. */
     setMotion(vx:number,vz:number){motionX=vx;motionZ=vz;motionSpeed=Math.hypot(vx,vz);},
     /** New relief-occlusion field (refreshed after camera moves): redraw without hidden items. */
