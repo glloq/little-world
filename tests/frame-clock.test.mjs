@@ -117,3 +117,61 @@ test('explicit comparison tier freezes the existing budget without changing simu
  const b=new PresentationBudget(1);for(let i=0;i<300;i++)assert.equal(b.observe(150,.15),false);assert.equal(b.level,1);assert.equal(b.rate,30);assert.equal(b.resources.sectors,24);
  const normal=new PresentationBudget(99);for(let i=0;i<100;i++)normal.observe(150,.15);assert.equal(normal.level,2);
 });
+
+/** Presented intervals for a display at `hz`, with timestamp jitter and optional 1 ms quantization. */
+function cadence(hz, {jitter = 0, quantize = false, rate = 30, seconds = 6} = {}) {
+  const clock = new FrameClock();
+  clock.rate = rate;
+  let seed = 7;
+  const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647) * 2 - 1;
+  const intervals = [];
+  let lastRender = null;
+  for (let i = 0; i <= hz * seconds; i++) {
+    let t = (i * 1000) / hz + rnd() * jitter;
+    if (quantize) t = Math.round(t);
+    if (clock.advance(t).render) {
+      if (lastRender !== null && i > hz) intervals.push(t - lastRender);
+      lastRender = t;
+    }
+  }
+  return intervals;
+}
+test('presentation locks to whole refresh multiples: no 17/33/50 ms mix under jitter', () => {
+  for (const [hz, options, expected] of [
+    [60, {jitter: 0.3}, 1000 / 30],
+    [60, {jitter: 1.2}, 1000 / 30],
+    [60, {quantize: true}, 1000 / 30],
+    [120, {jitter: 0.3}, 1000 / 30],
+    [144, {jitter: 0.3}, 5000 / 144],
+    [75, {jitter: 0.3}, 3000 / 75],
+    [60, {jitter: 0.3, rate: 20}, 50],
+  ]) {
+    const intervals = cadence(hz, options);
+    const regular = intervals.filter((v) => Math.abs(v - expected) <= 2.6).length / intervals.length;
+    assert.ok(regular >= 0.99, `${hz} Hz ${JSON.stringify(options)}: ${(regular * 100).toFixed(1)}% regular`);
+  }
+});
+test('a missed refresh presents at the next one instead of waiting a full extra interval', () => {
+  const clock = new FrameClock();
+  let t = 0;
+  for (let i = 0; i < 60; i++) clock.advance((t += 1000 / 60));
+  // One late callback (a dropped vsync): the next refresh must present.
+  clock.advance((t += 1000 / 60));
+  const late = clock.advance((t += 2000 / 60)).render;
+  const next = clock.advance((t += 1000 / 60)).render;
+  assert.ok(late || next);
+});
+test('a restore followed by immediate overload backs off instead of oscillating', () => {
+  const b = new PresentationBudget();
+  const run = (work, interval, seconds) => { for (let t = 0; t < seconds; t += interval) b.observe(work, interval); };
+  run(100, 0.05, 4);
+  assert.equal(b.level, 1);
+  run(1, 1 / 30, 14);
+  assert.equal(b.level, 0, 'restored after 12 s of headroom');
+  run(100, 0.05, 4);
+  assert.equal(b.level, 1, 'overloaded again right after the restore');
+  run(1, 1 / 30, 14);
+  assert.equal(b.level, 1, 'the next restore now needs more than 12 s');
+  run(1, 1 / 30, 14);
+  assert.equal(b.level, 0);
+});

@@ -26,6 +26,7 @@ import { worldAsset, lodDistances, exclusionRadius } from './world-production/re
 import { linearizeVertexColors } from './world-production/species-library.ts';
 import { createPlacedInstances, type PlacedInstances } from './world-production/placed-instances.ts';
 import { createDressingView, type DressingView, type DressingStats } from './dressing-view.ts';
+import type { DressingCell } from './geography/dressing.ts';
 import { sampleBiome, generatedCover, generatedGrass } from './biomes';
 import { createGrass, grassProfileFor, type GrassStats } from './render/grass.ts';
 import type {
@@ -92,6 +93,8 @@ export interface WorldView {
   terrainWork: import('./terrain-view').TerrainWorkStats;
   /** Natural dressing of generated worlds (null for the historical valley). */
   dressing: DressingStats | null;
+  /** Dressing cell already generated for drawing (shared with gameplay), if any. */
+  dressingCell(cx: number, cz: number): DressingCell | undefined;
   /** Grass tufts (doc 18): profile, tufts, triangles, draw calls (null for the historical valley). */
   grass: GrassStats | null;
   /** Wind strength of the environment (grass sway in the shader). */
@@ -949,6 +952,7 @@ export function buildWorld(
     get occlusion() { return occlusion ? { ...occlusion.stats } : null; },
     redrawDressing() { dressing?.redraw(); },
     dressing: dressing?.stats ?? null,
+    dressingCell: (cx, cz) => dressing?.cellAt(cx, cz),
     grass: grass?.stats ?? null,
     setWind(strength: number) { grass?.setWind(strength); },
     setGrassActors(actors){grassActors=actors;},
@@ -1010,6 +1014,7 @@ export function buildWorld(
       if(camera)dressing?.setView({x:camera.position.x,y:camera.position.y,z:camera.position.z,fov:camera.fov,height:pixelHeight});
       if(atlasLight)impostorIllumination(atlasLight,atlasColor);
       dressing?.updateImpostors(time,hybridNight);buildingImpostors.update(time,hybridNight);
+      dressing?.setMotion(velocityX,velocityZ);
       dressing?.update(focus.x, focus.z);
       grass?.update(dt, { x: focus.x, y: (focus as { y?: number }).y, z: focus.z },1,camera?{position:camera.position,fov:camera.fov,height:pixelHeight}:undefined,grassActors);
       placed.update(focus.x, focus.z,camera?.position);

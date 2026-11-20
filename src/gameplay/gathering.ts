@@ -28,11 +28,13 @@ export interface GatherSave {schemaVersion:1;gathered:Record<string,number>}
 export const GATHER_REACH=2.8;
 const KINDS:DressingKind[]=['pine','oak','plant','deadwood'];
 const hash=(s:string)=>{let h=2166136261;for(let i=0;i<s.length;i++)h=Math.imul(h^s.charCodeAt(i),16777619);return (h>>>0)/4294967296;};
-export interface GatherDeps {ctx:()=>GeoContext;seed:number;inside(x:number,z:number):boolean;time():number;grant(changes:{itemId:string;quantity:number}[]):boolean;has(itemId:string):boolean}
+export interface GatherDeps {ctx:()=>GeoContext;seed:number;/** Already generated cell of the renderer (same seed), when available. */cached?:(cx:number,cz:number)=>DressingCell|undefined;inside(x:number,z:number):boolean;time():number;grant(changes:{itemId:string;quantity:number}[]):boolean;has(itemId:string):boolean}
 export function createGathering(deps:GatherDeps){
   const cells=new Map<string,DressingCell>(),gathered=new Map<string,{t:number;action:GatherKind;regrow:number}>(),hits=new Map<string,number>();
   const listeners=new Set<(t:{x:number;z:number;key:string})=>void>();
-  function cell(cx:number,cz:number){const k=cx+':'+cz;let c=cells.get(k);if(!c){c=generateDressingCell(deps.ctx(),deps.seed,cx,cz,deps.inside);cells.set(k,c);if(cells.size>48)cells.delete(cells.keys().next().value!);}return c;}
+  // Cells drawn by the renderer are reused (generated off-thread, identical content): the
+  // trunk colliders and the gathering target no longer stall a frame generating them again.
+  function cell(cx:number,cz:number){const k=cx+':'+cz;let c=cells.get(k);if(!c){c=deps.cached?.(cx,cz)??generateDressingCell(deps.ctx(),deps.seed,cx,cz,deps.inside);cells.set(k,c);if(cells.size>48)cells.delete(cells.keys().next().value!);}return c;}
   const keyOf=(cx:number,cz:number,kind:DressingKind,i:number)=>`${DRESSING_VERSION}:${cx}:${cz}:${kind}:${i}`;
   /** True while a gathered element has not grown back (also used by the renderer to hide it). */
   /** True while a gathered element has not grown back. */

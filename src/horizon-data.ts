@@ -45,6 +45,43 @@ export function horizonBlockData(bounds:Bounds,grid:HorizonGrid,column:number,ro
   for(let j=0;j<cellsZ;j++)for(let i=0;i<cellsX;i++){const a=j*(cellsX+1)+i,b=a+1,d=a+cellsX+1;index[t]=a;index[t+1]=d;index[t+2]=b;index[t+3]=b;index[t+4]=d;index[t+5]=d+1;t+=6;}
   return {positions,normals,colors,index,minX,minZ,cellsX,cellsZ,maxX:clampX(minX+cellsX*step),maxZ:clampZ(minZ+cellsZ*step)};
 }
+/** One vertex of the global horizon lattice (lattice indices i, j from the project corner),
+ * computed with exactly the formulas of horizonBlockData: detailed tiles use it as the
+ * shape they morph from/to, so a tile blends into the horizon without a visible jump. */
+export interface HorizonVertex {y:number;r:number;g:number;b:number;nx:number;ny:number;nz:number}
+export function horizonVertexAt(bounds:Bounds,step:number,i:number,j:number,out:HorizonVertex,height=terrainHeight,legacy=isLegacyTerrain()):HorizonVertex{
+  const clampX=(x:number)=>Math.min(bounds.width/2,Math.max(-bounds.width/2,x)),clampZ=(z:number)=>Math.min(bounds.length/2,Math.max(-bounds.length/2,z));
+  const ox=-bounds.width/2,oz=-bounds.length/2,x=clampX(ox+i*step),z=clampZ(oz+j*step),h=height(x,z);
+  const sea=!legacy&&h<bounds.seaLevel;out.y=sea?bounds.seaLevel:h;
+  let nx=0,nz=0;
+  const east=height(clampX(ox+(i+1)*step),z),south=height(x,clampZ(oz+(j+1)*step));
+  if(!sea){nx=(height(clampX(ox+(i-1)*step),z)-east)/(2*step);nz=(height(x,clampZ(oz+(j-1)*step))-south)/(2*step);}
+  const n=Math.hypot(nx,1,nz);out.nx=nx/n;out.ny=1/n;out.nz=nz/n;
+  const color=new LinearColor();
+  if(sea)color.setHex(SEA_COLOR);else{
+    const surfaceNormal={x:0,y:1,z:0};
+    surfaceColor(x,z,h,Math.max(Math.abs(east-h),Math.abs(south-h))*2/step,color,legacy||height!==terrainHeight?undefined:surfaceNormal);
+    if(!legacy&&height===terrainHeight){out.nx=surfaceNormal.x;out.ny=surfaceNormal.y;out.nz=surfaceNormal.z;}
+  }
+  out.r=color.r;out.g=color.g;out.b=color.b;
+  return out;
+}
+/** Horizon surface (height, colour, normal) at any (x, z), interpolated on the same two
+ * triangles per cell as the horizon index (diagonal from (i+1, j) to (i, j+1)). */
+export function createHorizonSampler(bounds:Bounds,step:number,height=terrainHeight,legacy=isLegacyTerrain()){
+  const cache=new Map<number,HorizonVertex>(),columns=Math.ceil(bounds.width/step)+2;
+  const vertex=(i:number,j:number)=>{const k=j*columns+i;let v=cache.get(k);if(!v){v=horizonVertexAt(bounds,step,i,j,{y:0,r:0,g:0,b:0,nx:0,ny:1,nz:0},height,legacy);cache.set(k,v);}return v;};
+  const ox=-bounds.width/2,oz=-bounds.length/2;
+  return (x:number,z:number,out:HorizonVertex):HorizonVertex=>{
+    const i=Math.max(0,Math.min(Math.ceil(bounds.width/step)-1,Math.floor((x-ox)/step))),j=Math.max(0,Math.min(Math.ceil(bounds.length/step)-1,Math.floor((z-oz)/step)));
+    const x0=ox+i*step,z0=oz+j*step,x1=Math.min(bounds.width/2,x0+step),z1=Math.min(bounds.length/2,z0+step);
+    const u=Math.max(0,Math.min(1,(x-x0)/(x1-x0))),v=Math.max(0,Math.min(1,(z-z0)/(z1-z0)));
+    const b=vertex(i+1,j),d=vertex(i,j+1);let p:HorizonVertex,wp:number,wb:number,wd:number;
+    if(u+v<=1){p=vertex(i,j);wb=u;wd=v;wp=1-u-v;}else{p=vertex(i+1,j+1);wb=1-v;wd=1-u;wp=u+v-1;}
+    for(const k of ['y','r','g','b','nx','ny','nz'] as const)out[k]=p[k]*wp+b[k]*wb+d[k]*wd;
+    return out;
+  };
+}
 /** Cells of a block whose render tile is displayed in detail are simply not indexed:
  * no hidden triangle is rasterised, no fragment is discarded. Horizon cells are
  * tile-aligned, so the visible horizon starts exactly where detailed tiles stop. */

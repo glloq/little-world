@@ -31,7 +31,8 @@ export function createCloudRenderer(scene:THREE.Scene, seed:number) {
   });
   scene.add(root);
   const dummy=new THREE.Object3D();
-  let lastCellX=NaN,lastCellZ=NaN,lastCount=-1,lastCover=-1,disposed=false;
+  let lastFieldX=Infinity,lastFieldZ=Infinity,lastCount=-1,lastCover=-1,disposed=false;
+  const candidates:{x:number;y:number;z:number;scale:number;rotation:number;distance:number;type:number}[]=[];
   let visibleCount=0,rebuilds=0;
   const sunColor=new THREE.Color();
   const daytimeCloudColor=new THREE.Color('#f6f3ed');
@@ -49,21 +50,30 @@ export function createCloudRenderer(scene:THREE.Scene, seed:number) {
     const cellX=Math.floor((params.position.x-root.position.x)/CELL);
     const cellZ=Math.floor((params.position.z-root.position.z)/CELL);
     const coverBand=Math.floor(params.cloudCover*4);
-    if(cellX!==lastCellX||cellZ!==lastCellZ||count!==lastCount||coverBand!==lastCover) {
-      const candidates:{x:number;y:number;z:number;scale:number;rotation:number;distance:number}[]=[];
+    // Rebuild after a short move (not only at 160 m cell crossings): selection is stable per
+    // cell (shape from the cell hash, not from the distance rank) and clouds near the edge of
+    // the field shrink to nothing, so the field slides smoothly instead of swapping shapes
+    // and popping clouds in or out (doc 106, SEAM-11). Still no upload on a still camera.
+    const fieldX=params.position.x-root.position.x,fieldZ=params.position.z-root.position.z;
+    if(Math.hypot(fieldX-lastFieldX,fieldZ-lastFieldZ)>20||count!==lastCount||coverBand!==lastCover) {
+      // Radius that holds about `count` cell centres, with a fading rim.
+      const radius=Math.min(620,CELL*Math.sqrt(count/Math.PI)*1.15+90),rim=110;
+      candidates.length=0;
       for(let dz=-4;dz<=4;dz++) for(let dx=-4;dx<=4;dx++){
         const x=cellX+dx,z=cellZ+dz;
         const nx=noise(x,z,seed),nz=noise(x,z,seed+57);
         const wx=(x+.15+nx*.7)*CELL,wz=(z+.15+nz*.7)*CELL;
-        const dist=Math.hypot(wx+root.position.x-params.position.x,wz+root.position.z-params.position.z);
-        if(dist>620)continue;
+        const dist=Math.hypot(wx-fieldX,wz-fieldZ);
+        if(dist>radius)continue;
+        const fade=THREE.MathUtils.smoothstep(radius-dist,0,rim);if(fade<.02)continue;
         candidates.push({x:wx,y:260+noise(x,z,seed+101)*100,z:wz,
-          scale:11+noise(x,z,seed+11)*11,rotation:noise(x,z,seed+23)*Math.PI*2,distance:dist});
+          scale:(11+noise(x,z,seed+11)*11)*fade,rotation:noise(x,z,seed+23)*Math.PI*2,distance:dist,type:noise(x,z,seed+29)<.5?0:1});
       }
       candidates.sort((a,b)=>a.distance-b.distance);
-      const used=[0,0];
-      for(let i=0;i<Math.min(count,candidates.length);i++){
-        const c=candidates[i],type=i%2,slot=used[type]++;
+      const used=[0,0],cap=MAX_CLOUDS/2;let total=0;
+      for(const c of candidates){
+        if(total>=count)break;const type=used[c.type]<cap?c.type:1-c.type;if(used[type]>=cap)continue;
+        const slot=used[type]++;total++;
         dummy.position.set(c.x,c.y,c.z);
         dummy.rotation.set(0,c.rotation,0);
         dummy.scale.set(c.scale,c.scale,c.scale);
@@ -75,7 +85,7 @@ export function createCloudRenderer(scene:THREE.Scene, seed:number) {
         meshes[i].instanceMatrix.needsUpdate=true;
       }
       visibleCount=used[0]+used[1];
-      lastCellX=cellX;lastCellZ=cellZ;lastCount=count;lastCover=coverBand;
+      lastFieldX=fieldX;lastFieldZ=fieldZ;lastCount=count;lastCover=coverBand;
       rebuilds++;
     }
     // Change one shared material per silhouette, never per instance.

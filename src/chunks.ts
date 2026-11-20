@@ -143,7 +143,9 @@ export const INTEREST = {
   /** Minimum prediction horizon (seconds); high-speed motion extends this to 4 s. */
   lookahead: 2,
   maxLookahead: 4,
-  maxAheadShift: 0.5,
+  /** Fraction of the view distance the predicted point may move ahead (doc 106, SPEED-2:
+   * 0.5 capped the useful prediction near 2.7 s at glide speed). */
+  maxAheadShift: 1,
   referenceFocal: 493,
   /** Low-priority ring kept around the player for quick U-turns (fraction of view distance). */
   turnRing: 0.5,
@@ -211,8 +213,15 @@ export function planView(
         const threshold = Math.min(old, lod) === 0 ? near : medium;
         if (Math.abs(distance - threshold) < chunkSize * 0.15) lod = old;
       }
-      const rank = reason === 'safety' ? 0 : reason === 'view' ? 1 : reason === 'ahead' ? 2 : 3;
-      planned.push({ ...chunk, distance, lod, reason, priority: rank * 1e6 + distance });
+      // In motion, tiles along the trajectory are requested before lateral ones of the same
+      // distance (time to arrival), and predicted tiles share the view tier.
+      let rank = reason === 'safety' ? 0 : reason === 'view' ? 1 : reason === 'ahead' ? 2 : 3, key = distance;
+      if (moving && rank > 0 && rank < 3) {
+        const along = (((chunk.minX + chunk.maxX) / 2 - focus.playerX) * focus.velocityX + ((chunk.minZ + chunk.maxZ) / 2 - focus.playerZ) * focus.velocityZ) / (speed || 1);
+        key = distance - 0.6 * Math.max(0, Math.min(along, speed * horizon));
+        rank = 1;
+      }
+      planned.push({ ...chunk, distance, lod, reason, priority: rank * 1e6 + key });
     }
   return planned.sort((a, b) => a.priority - b.priority || a.row - b.row || a.column - b.column);
 }

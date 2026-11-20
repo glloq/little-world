@@ -1,8 +1,10 @@
 import * as THREE from 'three';
+import { addRadialFade, type RadialFade } from './render/radial-fade.ts';
+import { insideWorld, terrainHeight, waterSurface } from './terrain.ts';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import {
-  creaturePosition,
   ECOLOGY_SECTOR_SIZE,
+  ecologyExcluded,
   generateEcologySector,
   type BiomeSampler,
   type CreatureSite,
@@ -10,6 +12,10 @@ import {
 } from './biomes.ts';
 
 interface ResidentSector {
+  cx: number;
+  cz: number;
+  /** Per creature: habitat along its circular path, sampled once (doc 106, HITCH-8). */
+  paths: CreaturePath[];
   root: THREE.Group;
   sites: CreatureSite[];
   creatures: THREE.InstancedMesh[];
@@ -21,6 +27,41 @@ export interface EcologyStats {
   creatures: number;
 }
 
+/** Habitat of a creature along its circle, sampled at PATH_SAMPLES phases when its sector is
+ * built: per frame only the y-dependent rule is evaluated (no terrain/water/classification
+ * query per creature per frame). Same rules as habitatAllows. */
+const PATH_SAMPLES = 32;
+interface CreaturePath { floor: Float32Array; surface: Float32Array; ok: Uint8Array }
+function creatureRadius(site: CreatureSite) { return site.kind === 'bird' ? 6 : site.kind === 'fish' ? 1.2 : 1.8; }
+function samplePath(site: CreatureSite): CreaturePath {
+  const floor = new Float32Array(PATH_SAMPLES), surface = new Float32Array(PATH_SAMPLES), ok = new Uint8Array(PATH_SAMPLES), r = creatureRadius(site);
+  for (let i = 0; i < PATH_SAMPLES; i++) {
+    const a = (i / PATH_SAMPLES) * Math.PI * 2, x = site.x + Math.cos(a) * r, z = site.z + Math.sin(a) * r;
+    if (!insideWorld(x, z)) continue;
+    const f = terrainHeight(x, z), w = waterSurface(x, z);
+    floor[i] = f; surface[i] = w === null ? NaN : w;
+    ok[i] = site.kind === 'butterfly' ? ((w === null || w - f < 0.05) && !ecologyExcluded(x, z) ? 1 : 0) : 1;
+  }
+  return { floor, surface, ok };
+}
+const pathPoint = { x: 0, y: 0, z: 0 };
+/** creaturePosition() with the sampled habitat. */
+function pathPosition(site: CreatureSite, path: CreaturePath, time: number) {
+  const phase = site.phase + time * (site.kind === 'bird' ? 0.35 : 0.75), r = creatureRadius(site);
+  const x = site.x + Math.cos(phase) * r, y = site.y + Math.sin(phase * 1.7) * (site.kind === 'fish' ? 0.12 : 0.45), z = site.z + Math.sin(phase) * r;
+  const turn = phase / (Math.PI * 2), i = ((Math.round((turn - Math.floor(turn)) * PATH_SAMPLES) % PATH_SAMPLES) + PATH_SAMPLES) % PATH_SAMPLES;
+  const floor = path.floor[i], surface = path.surface[i], water = !Number.isNaN(surface);
+  let allowed = path.ok[i] === 1;
+  if (allowed && site.kind === 'fish') allowed = water && surface - floor > 0.6 && y > floor + 0.12 && y < surface - 0.12;
+  else if (allowed && site.kind === 'bird') allowed = y > Math.max(floor, water ? surface : floor) + 2;
+  if (allowed) { pathPoint.x = x; pathPoint.y = y; pathPoint.z = z; }
+  else { pathPoint.x = site.x; pathPoint.y = site.y; pathPoint.z = site.z; }
+  return pathPoint;
+}
+/** Plants and creatures are drawn within this radius of the focus (m), fading over the last
+ * 16 m: a round, soft edge instead of 48 m square sectors appearing at once. Close to the area
+ * of the former 3 × 3 sectors at full detail, the player's own sector at the lowest. */
+export const ECOLOGY_RADII = [80, 80, 40] as const;
 /** Original low-poly plants and grouped wildlife. Geometry/materials belong to this system, never to a sector. */
 export function createEcology(
   parent: THREE.Group,
@@ -35,16 +76,19 @@ export function createEcology(
   const residents = new Map<string, ResidentSector>();
   const ownedGeometry: THREE.BufferGeometry[] = [];
   const ownedMaterials: THREE.Material[] = [];
+  const fade: RadialFade = { center: { value: new THREE.Vector3() }, radius: { value: ECOLOGY_RADII[0] }, band: { value: 16 } };
   const material = (color: number) => {
     const result = new THREE.MeshLambertMaterial({
       color,
       side: THREE.DoubleSide,
     });
+    addRadialFade(result, fade);
     ownedMaterials.push(result);
     return result;
   };
   const vertexMaterial = () => {
     const result = new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide });
+    addRadialFade(result, fade);
     ownedMaterials.push(result);
     return result;
   };
@@ -186,6 +230,9 @@ export function createEcology(
     }
     root.add(group);
     return {
+      cx,
+      cz,
+      paths: source.creatures.map(samplePath),
       root: group,
       sites: source.creatures,
       creatures,
@@ -221,32 +268,33 @@ export function createEcology(
     },
     update(_dt: number, time: number, x: number, z: number) {
       if (retired) return;
-      const cx = Math.floor(x / ECOLOGY_SECTOR_SIZE),
-        cz = Math.floor(z / ECOLOGY_SECTOR_SIZE);
-      let created = false;
-      for (let dz = -1; dz <= 1; dz++)
-        for (let dx = -1; dx <= 1; dx++) {
-          const key = `${cx + dx}:${cz + dz}`;
-          if (!residents.has(key) && !created) {
-            residents.set(key, build(cx + dx, cz + dz));
-            created = true;
-          }
+      const radius = ECOLOGY_RADII[Math.min(2, Math.max(0, detail))], size = ECOLOGY_SECTOR_SIZE;
+      fade.center.value.set(x, 0, z); fade.radius.value = radius;
+      const near = (sx: number, sz: number) => Math.hypot(Math.max(sx * size - x, 0, x - (sx + 1) * size), Math.max(sz * size - z, 0, z - (sz + 1) * size));
+      const cx = Math.floor(x / size), cz = Math.floor(z / size), reach = Math.ceil(radius / size);
+      // One new sector per frame, nearest first (the player's own sector, then its ring).
+      let best: [number, number] | null = null, bestD = Infinity;
+      for (let dz = -reach; dz <= reach; dz++)
+        for (let dx = -reach; dx <= reach; dx++) {
+          const d = near(cx + dx, cz + dz);
+          if (d <= radius && d < bestD && !residents.has(`${cx + dx}:${cz + dz}`)) { bestD = d; best = [cx + dx, cz + dz]; }
         }
+      if (best) residents.set(`${best[0]}:${best[1]}`, build(best[0], best[1]));
       for (const [key, sector] of residents) {
-        const [sx, sz] = key.split(':').map(Number),
-          distance = Math.max(Math.abs(sx - cx), Math.abs(sz - cz));
-        if (distance > 2) {
+        const distance = near(sector.cx, sector.cz);
+        if (distance > radius + 16) {
           remove(sector);
           residents.delete(key);
           continue;
         }
-        sector.root.visible = distance <= (detail >= 2 ? 0 : 1);
+        sector.root.visible = distance <= radius;
         if (!sector.root.visible) continue;
         for (const mesh of sector.creatures) {
           let index = 0;
-          for (const site of sector.sites) {
+          for (let s = 0; s < sector.sites.length; s++) {
+            const site = sector.sites[s];
             if (site.kind !== mesh.name) continue;
-            const p = creaturePosition(site, time);
+            const p = pathPosition(site, sector.paths[s], time);
             let hidden = false;
             if (site.kind === 'fish' && waterSurfaceAt) {
               const under = fishUnderSurface(p.y, site.y, waterSurfaceAt(p.x, p.z));
@@ -285,7 +333,7 @@ export function createEcology(
     refresh(x: number, z: number, radius: number) {
       // Rebuild only intersecting sectors after an authored terrain/biome change.
       for (const [key, sector] of residents) {
-        const [cx, cz] = key.split(':').map(Number);
+        const { cx, cz } = sector;
         const dx = Math.max(
           cx * ECOLOGY_SECTOR_SIZE - x,
           0,

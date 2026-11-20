@@ -1,6 +1,7 @@
 import {createImpostorSectors} from './render/impostor-sectors.ts';
 import {getTerrainConfig} from './terrain.ts';
 import * as THREE from 'three';
+import {addRadialFade} from './render/radial-fade.ts';
 import { buildSquirrel, CHARACTER_SCALE } from './squirrel.ts';
 import { buildHamster } from './hamster/hamster.ts';
 import {visualNPCSpecies} from './npc-life/species.ts';
@@ -201,6 +202,9 @@ export function createNPCSystem(
     color: 0xb77d64,
     flatShading: true,
   });
+  // Distant silhouettes fade over the last 20 m before the 160 m cut (doc 106, SEAM-7).
+  const proxyFade={center:{value:new THREE.Vector3()},radius:{value:160},band:{value:20}};
+  addRadialFade(proxyFur,proxyFade);addRadialFade(proxyLight,proxyFade);
   function silhouette(definition: NPCDefinition) {
     const root = new THREE.Group();
     root.name = 'NPC silhouette:' + definition.id;
@@ -335,13 +339,15 @@ export function createNPCSystem(
     get lifeStats(){return {assigned:entries.filter(e=>!!e.state.definition.routine).length,routed:entries.filter(e=>!!e.life).length,agendas:entries.filter(e=>!!e.life?.agenda).length,unqualifiedAgendas:entries.filter(e=>e.state.definition.routine?.activities?.length&&!e.life?.agenda).length,socialPairs:socialPartners.size/2,animatedRigs:entries.filter(e=>!!e.model).length,rigBudget:lifeOptions?.rigBudget??12,scriptedReplans,scriptedBlocked,scriptedCompleted,routineRecoveries,routineBlocked,navigationRevision:navigationRevision(),roadNodes:router?.nodes??0,roadTruncated:router?.truncated??false};},
     update(dt: number, time: number, position: NPCPoint,camera?:THREE.PerspectiveCamera) {
       if (disposed) return;
-      distant.begin();distant.update(time);
+      distant.begin();distant.update(time);proxyFade.center.value.set(camera?.position.x??position.x,0,camera?.position.z??position.z);
       if(time<lastRigSample||time-lastRigSample>=.5){
         const focus={x:camera?.position.x??position.x,z:camera?.position.z??position.z};
         rigIds=selectNPCRigs(entries.map(e=>({id:e.state.definition.id,kind:e.state.definition.kind,
           x:e.state.x,z:e.state.z})),focus,lifeOptions?.rigBudget??12,dialogue.npcId??undefined);
         lastRigSample=time;
       }
+      let keptRigs=0;for(const e of entries)if(e.model)keptRigs++;
+      const KEPT_RIGS=(lifeOptions?.rigBudget??12)*2;
       for (const entry of entries) {
         const { state, life, player, proxy } = entry;
         if(entry.scripted&&lifeOptions){
@@ -555,15 +561,18 @@ export function createNPCSystem(
           if(state.definition.scale!==undefined)model.group.scale.multiplyScalar(state.definition.scale);
           model.group.name='NPC:'+state.definition.id;
           scene.add(model.group);
-          entry.model=model;entry.hamster=hamster;
+          entry.model=model;entry.hamster=hamster;keptRigs++;
           entry.head=hamster?null:(model.group.getObjectByName('HeadJoint')??null);
           entry.arm=hamster?null:(model.group.getObjectByName('ArmRight')??null);
         }
         // Beyond the immediate player neighborhood, free whole animated rigs.
         // Impostors use pre-existing atlases and do not require model instances.
-        if(tier!=='rig'&&entry.model&&(time-entry.lastRigAt>3||
-          Math.hypot(position.x-state.x,position.z-state.z)>32)){
-          entry.model.dispose();entry.model=null;entry.hamster=null;entry.head=null;entry.arm=null;
+        // Kept a little longer (20 s / 96 m) so that walking back and forth across the rig
+        // radius does not rebuild geometry and materials each time (doc 106, HITCH-7);
+        // the number of kept hidden rigs stays bounded.
+        if(tier!=='rig'&&entry.model&&(time-entry.lastRigAt>20||keptRigs>KEPT_RIGS&&time-entry.lastRigAt>3||
+          Math.hypot(position.x-state.x,position.z-state.z)>96)){
+          entry.model.dispose();entry.model=null;entry.hamster=null;entry.head=null;entry.arm=null;keptRigs--;
         }
         const {model,hamster,head,arm}=entry;
         if(model)model.group.visible=tier==='rig';

@@ -56,7 +56,8 @@ export function tuftGeometry(): THREE.BufferGeometry {
 }
 /** A generated cell: instance matrices (16 floats per tuft, column-major) and colours (3), ready to
  * copy into the shared buffers (a rebuild is a few typed-array copies, no per-tuft maths). */
-interface Cell { cx: number; cz: number; count: number; matrices: Float32Array; colors: Float32Array }
+/** `profile`: density it was generated for; a cell of another profile stays drawn until regenerated. */
+interface Cell { cx: number; cz: number; count: number; matrices: Float32Array; colors: Float32Array; profile?: GrassProfile; d?: number }
 
 export function createGrass(parent: THREE.Object3D, seed: number, sampler: (x: number, z: number) => GrassSample | null, height: (x: number, z: number) => number, capacity = 24000, exactPlacement = false) {
   const geometry = tuftGeometry();
@@ -96,7 +97,7 @@ export function createGrass(parent: THREE.Object3D, seed: number, sampler: (x: n
   mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
   mesh.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(capacity * 3), 3).setUsage(THREE.DynamicDrawUsage);
   parent.add(mesh);
-  const cells = new Map<string, Cell>();
+  const cells = new Map<string, Cell>(), order: Cell[] = [];
   let active=true,sinceUpload=1;
   let profile: GrassProfile = 'balanced', queue: [number, number][] = [], focusKey = '', dirty = false, disposed = false;
   const stats: GrassStats = { visibleScale:1,actors:0,generatedMs:0,updateMs:0,bytes:capacity*19*4,uploadedBytes:0,uploads:0,generatedCells:0, profile, cells: 0, tufts: 0, triangles: 0, calls: 0, buildMs: 0, pending: 0 };
@@ -128,32 +129,39 @@ export function createGrass(parent: THREE.Object3D, seed: number, sampler: (x: n
         cols.push(base.r * tint, base.g * tint, base.b * tint * .95);
       }
     }
-    return { cx, cz, count: cols.length / 3, matrices: new Float32Array(mats), colors: new Float32Array(cols) };
+    return { cx, cz, count: cols.length / 3, matrices: new Float32Array(mats), colors: new Float32Array(cols), profile };
   }
   function plan(fx: number, fz: number) {
     const r = radius(), cx = Math.floor(fx / GRASS_CELL_M), cz = Math.floor(fz / GRASS_CELL_M), n = Math.ceil(r / GRASS_CELL_M), need: [number, number, number][] = [], wanted = new Set<string>();
     if (r > 0) for (let dz = -n; dz <= n; dz++) for (let dx = -n; dx <= n; dx++) {
       const x = cx + dx, z = cz + dz, ex = Math.max(x * GRASS_CELL_M - fx, 0, fx - (x + 1) * GRASS_CELL_M), ez = Math.max(z * GRASS_CELL_M - fz, 0, fz - (z + 1) * GRASS_CELL_M), d = Math.hypot(ex, ez);
-      if (d > r) continue; const key = x + ':' + z; wanted.add(key); if (!cells.has(key)) need.push([x, z, d]);
+      if (d > r) continue; const key = x + ':' + z; wanted.add(key); const cell = cells.get(key); if (!cell || cell.profile !== profile) need.push([x, z, d]);
     }
     for (const key of [...cells.keys()]) if (!wanted.has(key)) { cells.delete(key); dirty = true; }
     queue = need.sort((a, b) => a[2] - b[2]).map(([x, z]) => [x, z]);
   }
   function rebuild() {
     let n = 0;const matrices = mesh.instanceMatrix.array as Float32Array, colors = mesh.instanceColor!.array as Float32Array;
-    for (const c of [...cells.values()].sort((a,b)=>Math.hypot((a.cx+.5)*16-uniforms.uFocus.value.x,(a.cz+.5)*16-uniforms.uFocus.value.z)-Math.hypot((b.cx+.5)*16-uniforms.uFocus.value.x,(b.cz+.5)*16-uniforms.uFocus.value.z))) {
+    // Nearest cells first (capacity); distances computed once, list reused (no per-rebuild garbage).
+    const fx=uniforms.uFocus.value.x,fz=uniforms.uFocus.value.z;order.length=0;
+    // Hidden layer (sub-pixel tufts at altitude): nothing drawn or uploaded, cells kept.
+    if(active)for(const c of cells.values()){c.d=Math.hypot((c.cx+.5)*GRASS_CELL_M-fx,(c.cz+.5)*GRASS_CELL_M-fz);order.push(c);}
+    order.sort((a,b)=>a.d!-b.d!);
+    for (const c of order) {
       const k = Math.min(c.count, capacity - n); if (k <= 0) break;
       matrices.set(k === c.count ? c.matrices : c.matrices.subarray(0, k * 16), n * 16); colors.set(k === c.count ? c.colors : c.colors.subarray(0, k * 3), n * 3); n += k;
     }
     mesh.count = n; mesh.visible = n > 0; mesh.instanceMatrix.clearUpdateRanges(); mesh.instanceMatrix.addUpdateRange(0, n * 16); mesh.instanceMatrix.needsUpdate = true;
     if (mesh.instanceColor) { mesh.instanceColor.clearUpdateRanges(); mesh.instanceColor.addUpdateRange(0, n * 3); mesh.instanceColor.needsUpdate = true; }
     stats.uploads++;stats.uploadedBytes+=n*19*4;
-    stats.bytes=capacity*19*4+[...cells.values()].reduce((n,c)=>n+c.matrices.byteLength+c.colors.byteLength,0);
+    let cellBytes=0;for(const c of order)cellBytes+=c.matrices.byteLength+c.colors.byteLength;stats.bytes=capacity*19*4+cellBytes;
     stats.tufts = n; stats.triangles = n * 3; stats.calls = n ? 1 : 0; stats.cells = cells.size;
   }
   return {
     stats, mesh,
-    setProfile(next: GrassProfile) { if (next === profile) return; profile = next; stats.profile = next; if(next==='groundOnly')uniforms.uVisibility.value=0;queue=[];cells.clear(); focusKey = ''; dirty = true; },
+    /** Profile change (adaptive budget): cells are regenerated in place, nearest first, while
+     * the current ones stay drawn — the grass never vanishes and regrows from the centre. */
+    setProfile(next: GrassProfile) { if (next === profile) return; profile = next; stats.profile = next; if(next==='groundOnly')uniforms.uVisibility.value=0;queue=[]; focusKey = ''; dirty = true; },
     setWind(strength: number) { uniforms.uWind.value = Math.max(0, Math.min(1.5, strength)); },
     /** Per frame: uniforms (time, focus, player) + a time-budgeted generation of missing cells. */
     update(dt: number, focus: { x: number; y?: number; z: number }, budgetMs = 1, view?:GrassView, actors:readonly GrassActor[] = []) {
@@ -177,7 +185,8 @@ export function createGrass(parent: THREE.Object3D, seed: number, sampler: (x: n
       const scale=previous+(target-previous)*Math.min(1,Math.max(0,dt)*6);
       stats.visibleScale=uniforms.uVisibility.value=Math.abs(scale-target)<.005?target:scale;
       const enabled=target>0||uniforms.uVisibility.value>.005;
-      if(enabled!==active){active=enabled;cells.clear();queue=[];focusKey='';dirty=true;}
+      // Hidden when too small on screen (flight): keep the cells, so landing shows them at once.
+      if(enabled!==active){active=enabled;queue=[];focusKey='';dirty=true;}
       stats.actors=0;
       const actorLimit=profile==='ultra'?1:2;
       const playerY=focus.y??height(focus.x,focus.z);

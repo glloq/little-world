@@ -15,7 +15,10 @@ export function createHorizonOcclusion(height:(x:number,z:number)=>number,o:{sec
   /** The field is computed from an eye raised by half the refresh height: until the next refresh the
    * camera may climb up to that much, and what it would then see must already be drawn (no pop-in
    * waves when walking over a rise). Still conservative; culls somewhat less. */
-  const lift=OCCLUSION.moveM/2;
+  // At speed the camera may also climb much more than that during a refresh plus the redraw
+  // that applies it (fast pull-up while gliding): the lift grows with the measured camera speed
+  // so forests behind a crest are already drawn when it comes into view (doc 106, SPEED-4).
+  let lift=OCCLUSION.moveM/2,pendingLift=lift,speed=0,last:{x:number;y:number;z:number;t:number}|null=null;
   const stats:OcclusionStats={refreshes:0,samples:0,tested:0,hidden:0,ready:false};
   /** One azimuth: running maximum of the elevation slope along the ray. */
   function sweep(sector:number,c:{x:number;y:number;z:number}){
@@ -26,12 +29,15 @@ export function createHorizonOcclusion(height:(x:number,z:number)=>number,o:{sec
   return {
     stats,
     /** Advances the refresh (≤ `budget` azimuths per call); starts a new one after a move. */
-    update(camera:{x:number;y:number;z:number},budget=16){
-      if(cursor<0&&!(Math.hypot(camera.x-origin.x,camera.z-origin.z)<OCCLUSION.moveM&&Math.abs(camera.y-origin.y)<OCCLUSION.moveM/2)){pending={...camera};cursor=0;}
+    update(camera:{x:number;y:number;z:number},budget=8){
+      const now=performance.now();
+      if(last&&now>last.t){const dt=(now-last.t)/1000,v=Math.hypot(camera.x-last.x,camera.y-last.y,camera.z-last.z)/dt;if(dt<.5)speed+=(v-speed)*Math.min(1,dt*4);}
+      last={x:camera.x,y:camera.y,z:camera.z,t:now};
+      if(cursor<0&&!(Math.hypot(camera.x-origin.x,camera.z-origin.z)<OCCLUSION.moveM&&Math.abs(camera.y-origin.y)<OCCLUSION.moveM/2)){pending={...camera};pendingLift=OCCLUSION.moveM/2+Math.min(40,speed*.5);cursor=0;}
       if(cursor<0)return false;
-      for(let n=0;n<budget&&cursor<sectors;n++)sweep(cursor++,{x:pending.x,y:pending.y+lift,z:pending.z});
+      for(let n=0;n<budget&&cursor<sectors;n++)sweep(cursor++,{x:pending.x,y:pending.y+pendingLift,z:pending.z});
       if(cursor<sectors)return false;
-      [field,next]=[next,field];origin=pending;cursor=-1;stats.refreshes++;stats.ready=true;return true;
+      [field,next]=[next,field];origin=pending;lift=pendingLift;cursor=-1;stats.refreshes++;stats.ready=true;return true;
     },
     /** False when a point of height `topY` at (x, z) is below the relief horizon of the camera. */
     visible(x:number,z:number,topY:number):boolean{

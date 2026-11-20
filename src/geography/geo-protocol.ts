@@ -8,7 +8,7 @@ import type {TerrainLOD} from '../chunks.ts';
 import type {HorizonBounds,HorizonGrid} from '../horizon-data.ts';
 
 export type GeoJob=
-  |{kind:'tile';chunk:{minX:number;maxX:number;minZ:number;maxZ:number};lod:TerrainLOD}
+  |{kind:'tile';chunk:{minX:number;maxX:number;minZ:number;maxZ:number};lod:TerrainLOD;horizon?:{width:number;length:number;seaLevel:number;spacing:number}}
   |{kind:'horizon';bounds:HorizonBounds;grid:HorizonGrid;column:number;row:number}
   |{kind:'dressing';seed:number;cx:number;cz:number}
   |{kind:'canopy';seed:number;cx:number;cz:number}

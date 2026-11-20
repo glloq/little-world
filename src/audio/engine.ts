@@ -233,7 +233,7 @@ export class AudioEngine {
  /** V1 API: a soundId is now an event id (migration keeps the same ids and parameters). */
  playSound(id:string,options:{bus?:'sfx'|'ambience';position?:Point;radius?:number;loop?:boolean;priority?:number;gainScale?:number;fadeIn?:number;context?:SoundContext;source?:'player'|'world'|'ui'}={}):Promise<number|null>{return this.playEvent(id,options);}
  updateScene(position:Point,entityPosition:(id:string)=>Point|undefined,state:{night:boolean;rain:boolean;water:boolean},level:number,forward={x:0,y:0,z:1},extra:SceneExtra={}){
-  this.listener={...position};this.applyBudget(level);if(this.context){const listener=this.context.listener;positionListener(listener,{x:position.x,y:position.y+1.4,z:position.z},forward);}
+  this.listener={...position};this.applyBudget(level);if(this.context){const listener=this.context.listener;positionListener(listener,{x:position.x,y:position.y+1.4,z:position.z},forward,this.context.currentTime);}
   const context=extra.context?sanitizeContext(extra.context):{time:state.night?'night' as const:'day' as const,weather:state.rain?'rain' as const:'clear' as const,nearWater:state.water};this.lastContext=context;
   if(this.ready&&this.context){const music=this.director.update(this.context.currentTime,context,this.transport?.id??null);if(music.type==='play')this.requestScore(music.scoreId,{loop:music.loop,immediate:music.immediate});else if(music.type==='silence')this.requestSilence();}
   const layers=this.mixer.loops(context,this.budget.ambienceLayers).map(l=>({id:l.key,soundId:l.eventId,radius:1,priority:l.priority,loop:true,bus:'ambience' as const,gain:l.gain,fade:l.fadeSeconds}));

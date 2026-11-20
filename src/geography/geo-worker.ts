@@ -13,7 +13,7 @@ let project:ProjectGeography|null=null;
 function run(job:GeoJob):{result:unknown;transfer:ArrayBuffer[]}{
   const buffers=(...arrays:ArrayBufferView[])=>arrays.map(a=>a.buffer as ArrayBuffer);
   switch(job.kind){
-    case 'tile':{const d=createChunkData(job.chunk,job.lod);return {result:d,transfer:buffers(d.positions,d.colors,d.normals,d.index)};}
+    case 'tile':{const d=createChunkData(job.chunk,job.lod,job.horizon);return {result:d,transfer:buffers(d.positions,d.colors,d.normals,d.index,...[d.morphY,d.morphColors,d.morphNormals,d.upSource,d.upHorizon].filter((a):a is NonNullable<typeof a>=>!!a))};}
     case 'horizon':{const d=packedHorizonBlock(job.bounds,job.grid,job.column,job.row);return {result:d,transfer:buffers(d.positions,d.normals,d.colors,d.index)};}
     case 'dressing':{const c=generateDressingCell(geoContext(),job.seed,job.cx,job.cz,insideWorld);return {result:c,transfer:buffers(...Object.values(c.items))};}
     case 'canopy':{const a=generateCanopyCell(geoContext(),job.seed,job.cx,job.cz,insideWorld);return {result:a,transfer:buffers(a)};}

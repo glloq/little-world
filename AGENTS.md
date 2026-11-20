@@ -158,6 +158,8 @@ Lire **[21 — Eau LOW-RESOURCE, rivières/lacs/mer et LOD](docs/21-WATER-HYDROL
 
 ## PERF transversal — ResourceBudgetManager et limites communes (validé)
 
+**Fluidité 30 FPS, raccords et vitesse :** lire [106 — audit et mise en œuvre](docs/106-SMOOTH-30FPS-STREAMING-AUDIT.md) : présentation calée sur des multiples de vsync, terrain à geomorphing/jupes cousues, rebuild d'habillage en job atomique, préchargement des shaders. Ne pas réintroduire de remplacement instantané de LOD ni de compilation de programme en jeu.
+
 **Lire [22 — PERF / ResourceBudgetManager](docs/22-RESOURCE-BUDGET-MANAGER.md)** avant de modifier les LOD, caches, streaming, qualité adaptative, performance HUD ou moteurs eau/ombre/météo/herbe.
 
 - **Un seul contrôleur adaptatif** : faire évoluer `PresentationBudget`, ne **pas** créer un deuxième automate divergent ; `FrameClock` continue de posséder la **simulation 30 Hz** et la présentation **30/20 FPS**.

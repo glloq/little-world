@@ -1,5 +1,5 @@
 /** Cheap, cached audio facts about the ground under the player (surface, place, biome).
- * Sampled at most every 250 ms / 2 m: the router never queries the terrain every frame. */
+ * Sampled every 250 ms or 2 m, never more than once per 100 ms: the router never queries the terrain every frame. */
 import {sampleBiome,type BiomeId} from '../biomes.ts';
 import {pathDistance,terrainHeight,waterSurface} from '../terrain.ts';
 import type {Place,Surface} from './context.ts';
@@ -9,7 +9,8 @@ export interface GroundAudio {biome?:BiomeId;place?:Place;surface?:Surface;}
 export function createGroundProbe(){
  let last:{x:number;z:number;t:number;value:GroundAudio}|null=null;
  return (x:number,z:number,now:number):GroundAudio=>{
-  if(last&&now-last.t<250&&Math.hypot(x-last.x,z-last.z)<2)return last.value;
+  // At speed (> 20 m/s) the 2 m test alone would resample every frame: keep ≥ 100 ms between samples.
+  if(last&&(now-last.t<100||now-last.t<250&&Math.hypot(x-last.x,z-last.z)<2))return last.value;
   let value:GroundAudio={};
   try{const biome=sampleBiome(x,z),ground=terrainHeight(x,z),water=waterSurface(x,z),shallow=water!==null&&water>ground+.02;
    value={biome,place:PLACE[biome],surface:shallow?'water':pathDistance(x,z,2)<1.4?'dirt':SURFACE[biome]};}catch{/* Unknown ground: generic takes. */}

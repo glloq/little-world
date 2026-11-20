@@ -3,6 +3,7 @@
  * facets, not caves or overhangs. Terrain is the single collision authority.
  * Segments are streamed near the camera; no island-wide persistent geometry. */
 import * as THREE from 'three';
+import {addRadialFade} from './radial-fade.ts';
 import type {ReliefFeature,PointXZ} from '../geography/archipelago.ts';
 import type {TerrainGeneratorDefinition} from '../terrain-generator.ts';
 
@@ -133,45 +134,60 @@ export interface CliffStats {available:number;visible:number;built:number;dispos
 export function createCliffView(parent:THREE.Object3D,height:(x:number,z:number)=>number,seed:number,terrain?:TerrainGeneratorDefinition){
  const root=new THREE.Group();root.name='StreamedRockFaces';parent.add(root);
  const material=new THREE.MeshLambertMaterial({vertexColors:true,side:THREE.DoubleSide});
+ // Rock faces fade over the outer 40 m of their radius (per vertex: meshes are in world
+ // coordinates) instead of appearing whole at 250 m (doc 106, SEAM-7).
+ const fade={center:{value:new THREE.Vector3()},radius:{value:CLIFF_BUDGET.radius},band:{value:40}};addRadialFade(material,fade,true);
+ // Geometries leaving the radius (or replaced by the other LOD) are kept a while: coming
+ // back or crossing the LOD distance again reuses them instead of rebuilding (HITCH-6).
+ const kept=new Map<string,THREE.BufferGeometry>(),KEPT_MAX=48;
+ const keep=(key:string,geometry:THREE.BufferGeometry)=>{kept.delete(key);kept.set(key,geometry);while(kept.size>KEPT_MAX){const [k,g]=kept.entries().next().value!;kept.delete(k);g.dispose();}};
  const stats:CliffStats={available:0,visible:0,built:0,disposed:0,triangles:0,lod0:0,lod1:0,pending:0};
  let volcanoes=terrain?.kind==='archipelago'?terrain.archipelago.features.filter(f=>f.kind==='volcano'):[];
  const active=new Map<string,{mesh:THREE.Mesh;lod:0|1}>();
  let segments=segmentList(terrain,seed),disposed=false,lastX=Infinity,lastZ=Infinity,dirty=true;
  stats.available=segments.length;
- const release=(key:string)=>{const entry=active.get(key);if(!entry)return;entry.mesh.removeFromParent();entry.mesh.geometry.dispose();active.delete(key);stats.disposed++;stats.visible=active.size;};
+ const release=(key:string,cache=false)=>{const entry=active.get(key);if(!entry)return;entry.mesh.removeFromParent();if(cache)keep(key+'/'+entry.lod,entry.mesh.geometry);else entry.mesh.geometry.dispose();active.delete(key);stats.disposed++;stats.visible=active.size;};
+ const forget=()=>{for(const g of kept.values())g.dispose();kept.clear();};
  const refresh=(definition?:TerrainGeneratorDefinition)=>{
   if(disposed)return;
-  for(const k of [...active.keys()])release(k);
+  for(const k of [...active.keys()])release(k);forget();
   segments=segmentList(definition,seed);volcanoes=definition?.kind==='archipelago'?definition.archipelago.features.filter(f=>f.kind==='volcano'):[];
   stats.available=segments.length;stats.triangles=stats.lod0=stats.lod1=0;stats.pending=segments.length;dirty=true;
  };
- const invalidate=()=>{if(disposed)return;for(const k of [...active.keys()])release(k);stats.triangles=stats.lod0=stats.lod1=0;stats.pending=segments.length;dirty=true;};
+ const invalidate=()=>{if(disposed)return;for(const k of [...active.keys()])release(k);forget();stats.triangles=stats.lod0=stats.lod1=0;stats.pending=segments.length;dirty=true;};
  const update=(x:number,z:number)=>{
   if(disposed||!Number.isFinite(x)||!Number.isFinite(z))return;
+  fade.center.value.set(x,0,z);
   if(!dirty&&Math.hypot(x-lastX,z-lastZ)<12)return;
   dirty=false;lastX=x;lastZ=z;
   const nearby=segments.map(s=>({s,d:distance(s.mid,{x,z})})).filter(e=>e.d<CLIFF_BUDGET.radius+CLIFF_BUDGET.hysteresis)
     .sort((a,b)=>a.d-b.d).slice(0,CLIFF_BUDGET.maxMeshes);
   const wanted=new Map(nearby.map(v=>[v.s.key,v]));
-  for(const key of [...active.keys()])if(!wanted.has(key))release(key);
+  for(const key of [...active.keys()])if(!wanted.has(key))release(key,true);
   let built=0;stats.pending=0;
   for(const {s,d} of nearby){
-   const lod:0|1=d>105?1:0,previous=active.get(s.key);
+   // ±10 m hysteresis around the LOD distance: no rebuild back and forth on the threshold.
+   const previous=active.get(s.key),lod:0|1=previous&&Math.abs(d-105)<10?previous.lod:d>105?1:0;
    if(previous?.lod===lod)continue;
-   if(built>=CLIFF_BUDGET.buildPerUpdate){dirty=true;stats.pending++;continue;}
-   if(previous)release(s.key);
-   // Reuse the authored volcano footprint, without adding a source schema or material.
-   const volcanic=volcanoes.some(f=>Math.hypot(s.mid.x-f.x,s.mid.z-f.z)<f.radiusM*.65);
-   const geometry=buildCliffGeometry({...s,widthM:s.feature.widthM,volcanic},height,lod);
+   const reused=kept.get(s.key+'/'+lod);
+   if(!reused&&built>=CLIFF_BUDGET.buildPerUpdate){dirty=true;stats.pending++;continue;}
+   if(previous)release(s.key,true);
+   let geometry=reused;
+   if(geometry)kept.delete(s.key+'/'+lod);
+   else{
+    // Reuse the authored volcano footprint, without adding a source schema or material.
+    const volcanic=volcanoes.some(f=>Math.hypot(s.mid.x-f.x,s.mid.z-f.z)<f.radiusM*.65);
+    geometry=buildCliffGeometry({...s,widthM:s.feature.widthM,volcanic},height,lod);built++;stats.built++;
+   }
    const mesh=new THREE.Mesh(geometry,material);mesh.name='RockFace:'+s.key;mesh.frustumCulled=true;
-   mesh.userData.cliffId=s.feature.id;root.add(mesh);active.set(s.key,{mesh,lod});built++;stats.built++;
+   mesh.userData.cliffId=s.feature.id;mesh.matrixAutoUpdate=false;root.add(mesh);active.set(s.key,{mesh,lod});
   }
   stats.visible=active.size;
   stats.lod0=[...active.values()].filter(e=>e.lod===0).length;stats.lod1=active.size-stats.lod0;
   stats.triangles=[...active.values()].reduce((n,e)=>n+e.mesh.geometry.getAttribute('position').count/3,0);
  };
  return {root,stats,refresh,invalidate,update,dispose(){
-  if(disposed)return;disposed=true;for(const key of [...active.keys()])release(key);
+  if(disposed)return;disposed=true;for(const key of [...active.keys()])release(key);forget();
   material.dispose();root.removeFromParent();segments=[];stats.available=stats.visible=stats.triangles=stats.lod0=stats.lod1=stats.pending=0;
  }};
 }

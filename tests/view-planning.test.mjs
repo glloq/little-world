@@ -55,7 +55,8 @@ test('altitude, projected size and the shared quality level coarsen LOD',()=>{
   assert.ok(Math.abs(huge.length-ground.length)<=4,'cost independent of the project area');
 });
 test('time-sliced generation and byte-bounded residency',()=>{
-  const view=createTerrainView(new THREE.Group(),{width:1000,length:1000,chunkSize:64,viewDistance:240},{buildBudgetMs:0,maxBuildsPerUpdate:8,maxBytes:600000});
+  // Instant swaps: blends pin the replacement tile for 0.6 s of real time (tested separately).
+  const view=createTerrainView(new THREE.Group(),{width:1000,length:1000,chunkSize:64,viewDistance:240},{buildBudgetMs:0,maxBuildsPerUpdate:8,maxBytes:600000,morphSeconds:0});
   view.update(0,0,focus({cameraZ:-13}));
   assert.equal(view.work.lastBuilt,1,'a zero budget still makes progress, one tile at a time');
   let guard=0;while(view.stats.pending&&guard++<500)view.update(0,0,focus());

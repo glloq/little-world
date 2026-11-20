@@ -1,3 +1,4 @@
+import {DRESSING_CELL_M} from './geography/dressing.ts';
 import {PerfSampler,createGpuTimer} from './render/perf-sampler.ts';
 import {advanceSpeedCamera,speedCameraState,createSpeedStreaks} from './render/speed-effects.ts';
 import {advanceFlightAutoCamera,type FlightCameraFollow} from './render/flight-auto-camera.ts';
@@ -54,6 +55,7 @@ import {
 import './style.css';
 import {waterSurface,riverX,isLegacyTerrain} from './terrain.ts';
 import {createUnderwaterView} from './render/underwater-view.ts';
+import {createShaderWarmup} from './render/shader-warmup.ts';
 import {createDiveTracker,createSkiRunTracker,createSurfRideTracker,stepDiveTracker,stepSkiRun,stepSurfRide} from './gameplay/activity-trackers.ts';
 import {createFleet} from './gameplay/fleet.ts';
 import {loadArchipelagoRegistry,type PublishedIsland} from './archipelago/registry.ts';
@@ -153,6 +155,11 @@ const renderer = new THREE.WebGLRenderer({
   antialias: !touchCapable, // Avoid expensive MSAA on low-end mobile GPUs.
   powerPreference: 'high-performance',
 });
+// Release builds skip the synchronous program-status queries made after every compile;
+// development and ?metrics keep the shader diagnostics.
+renderer.debug.checkShaderErrors=import.meta.env.DEV||new URLSearchParams(location.search).has('metrics');
+// Benchmark/diagnostic access (only with ?metrics): program list, renderer counters.
+if(new URLSearchParams(location.search).has('metrics'))Object.assign(window,{__lwRenderer:renderer});
 const quality = document.querySelector<HTMLSelectElement>('#quality')!;
 const renderTier=new URLSearchParams(location.search).get('renderTier');
 const presentation = new FrameClock(),
@@ -168,15 +175,16 @@ const remembered = (() => {
 })();
 if (remembered && remembered in qualityRatios) quality.value = remembered;
 else if(touchCapable)quality.value='low'; // Safe first launch; explicit preferences always win.
+let appliedWidth=-1,appliedHeight=-1,appliedRatio=-1;
 function applyQuality() {
   const mode = quality.value as RenderQuality;
-  renderer.setPixelRatio(
-    presentationPixelRatio(
+  const ratio=presentationPixelRatio(
       window.devicePixelRatio,
       qualityRatios[mode] ?? 1.35,
       budget.level,
-    ),
-  );
+    );
+  // Reallocating the drawing buffer is a visible hitch: only when the ratio really changes.
+  if(ratio!==renderer.getPixelRatio())renderer.setPixelRatio(ratio);
   resize();
 }
 quality.addEventListener('change', () => {
@@ -325,7 +333,9 @@ if(playable){
     getGasProgress:()=>structuredClone(flightProgress),
     setGasProgress:value=>{flightProgress={...value,currentFlightDistance:0,currentFlightNoGas:0,currentCombo:0,lastPulseAt:-1};player.gasCapacityLevel=value.capacityLevel;player.gasPowerLevel=value.powerLevel;player.gasControlLevel=value.controlLevel;},
     setGas:(value,satiety,recharge)=>{player.gasReserve=Math.min(GAS.max,Math.max(0,value));player.satiety=satiety??100;player.boostRechargeProgress=recharge??0;player.gasBoosting=false;player.gasPulseClock=0;player.gasPulseSeq=0;player.gasThrust=0;player.gasPulseRemaining=0;player.gasCooldown=0;player.gasBoostHeld=false;player.gasRepeatArmed=false;gasVisualSeq=0;lastFlightPulseSeq=0;boostWindActive=false;},
-    ...(isLegacyTerrain()?{}:{gathering:{ctx:geoContext,seed:definition.config.seed,inside:(x:number,z:number)=>Math.abs(x)<=(definition.config.width??200)/2&&Math.abs(z)<=(definition.config.length??600)/2}}),
+    ...(isLegacyTerrain()?{}:{gathering:{ctx:geoContext,seed:definition.config.seed,inside:(x:number,z:number)=>Math.abs(x)<=(definition.config.width??200)/2&&Math.abs(z)<=(definition.config.length??600)/2,
+      // Interior cells only: there the renderer's world bounds (3 m margin) and these agree.
+      cached:(cx:number,cz:number)=>{const m=DRESSING_CELL_M,hw=(definition.config.width??200)/2-4,hl=(definition.config.length??600)/2-4;return cx*m>=-hw&&(cx+1)*m<=hw&&cz*m>=-hl&&(cz+1)*m<=hl?world.dressingCell(cx,cz):undefined;}}}),
     setPosition:(p,space)=>{gameplay?.fishing.cancel();stopFlightCourse();stopRace();player.space=space??undefined;player.position.set(p.x,p.y,p.z);player.velocity.set(0,0,0);player.mode='air';player.oxygen=MAX_OXYGEN;player.glideReady=false;player.snowAirborne=false;player.coyoteLeft=0;player.jumpBufferLeft=0;aboard=false;keySet.clear();jumpQueue=0;actionQueue=0;npcs.dialogue.close();previousPlayerPosition.copy(player.position);renderPosition.copy(player.position);updateCamera(1);}
   });
   if(metricsEnabled){const g=gameplay;Object.assign(window,{littleWorldDebug:{/** Developer/test hook (metrics mode only): give items. */grant:(itemId:string,quantity:number)=>g.runtime.grantItems([{itemId,quantity}]),
@@ -933,6 +943,8 @@ const clockDt = presentation.step;
 function resize() {
   const w = viewport.clientWidth,
     h = viewport.clientHeight;
+  if(w===appliedWidth&&h===appliedHeight&&renderer.getPixelRatio()===appliedRatio)return;
+  appliedWidth=w;appliedHeight=h;appliedRatio=renderer.getPixelRatio();
   renderer.setSize(w, h, false);
   camera.aspect = w / Math.max(h, 1);
   camera.updateProjectionMatrix();
@@ -1221,7 +1233,8 @@ function showInfo(text: string, kind:'info'|'success'|'warning'='info') {
   gameUi?.notify(kind,text);
 }
 const cameraTarget = new THREE.Vector3(),
-  cameraDesired = new THREE.Vector3(),audioForward=new THREE.Vector3();
+  cameraDesired = new THREE.Vector3(),cameraOffset=new THREE.Vector3(),cameraOffsetGoal=new THREE.Vector3(),audioForward=new THREE.Vector3();
+let cameraOffsetReady=false,warmedSpeciesState='';
 function updateCamera(dt: number) {
   if(debugSurfCamera){const c=debugSurfCamera;camera.position.set(c.px,c.py,c.pz);camera.lookAt(c.tx,c.ty,c.tz);return;}
   // Presentation-only idle camera recovery, never fed back to flight physics.
@@ -1249,9 +1262,22 @@ function updateCamera(dt: number) {
   );
   if(inSurfTube&&surfField)y=Math.min(y,Math.max(surfField.zone.seaLevel+1.25,target.y+.5));
   const desired = cameraDesired.set(x, y, z);
+  // Near plane 0.3 m outside tight spaces: three times the depth precision at a distance
+  // (coasts, rivers and tree bases stop shimmering at kilometres), 0.1 m in galleries and
+  // inside a breaking wave where the camera hugs the walls (doc 106, QUAL-3).
+  const near=player.space||inSurfTube?.1:.3;
+  if(camera.near!==near){camera.near=near;camera.updateProjectionMatrix();}
   // In a gallery: stay inside the open cells and under the ceiling, never above the relief.
-  if(player.space&&gameplay){const inside=gameplay.activities.cameraInMine(target,player.space,yaw,pitch,distance);if(inside){desired.set(inside.x,inside.y,inside.z);camera.position.copy(desired);camera.lookAt(target);return;}}
-  camera.position.lerp(desired, Math.min(1, dt * (inSurfTube?9:6)));
+  if(player.space&&gameplay){const inside=gameplay.activities.cameraInMine(target,player.space,yaw,pitch,distance);if(inside){desired.set(inside.x,inside.y,inside.z);camera.position.copy(desired);cameraOffset.subVectors(desired,target);cameraOffsetReady=true;camera.lookAt(target);return;}}
+  // Smooth the offset around the interpolated target, not the world position: the hero
+  // stays at the same screen distance at any speed and frame interval (no speed-dependent
+  // lag that changes with dt), while orbit and terrain corrections remain eased.
+  cameraOffsetGoal.subVectors(desired,target);
+  if(!cameraOffsetReady){cameraOffset.copy(cameraOffsetGoal);cameraOffsetReady=true;}
+  else cameraOffset.lerp(cameraOffsetGoal,1-Math.exp(-dt*(inSurfTube?9:6)));
+  camera.position.addVectors(target,cameraOffset);
+  const cameraFloor=terrainHeight(camera.position.x,camera.position.z)+(inSurfTube?.9:1.8);
+  if(!inSurfTube&&camera.position.y<cameraFloor){camera.position.y=cameraFloor;cameraOffset.y=cameraFloor-target.y;}
   camera.lookAt(target);
   camera.rotateZ(speedCue.bank);
   if(Math.abs(camera.fov-speedCue.fov)>.005){camera.fov=speedCue.fov;camera.updateProjectionMatrix();}
@@ -1749,6 +1775,7 @@ function draw(now: number) {
   const simulationBegin = performance.now();
   for (let i = 0; i < frame.steps; i++) {
     previousPlayerPosition.copy(player.position);
+    fleet.capture();
     tick(clockDt);
     elapsed += clockDt;
     remoteActors?.tick(elapsed);
@@ -1826,14 +1853,19 @@ function draw(now: number) {
     const end=performance.now();
     surfPerf.add('waterUpdate',surfTubeStart-surfWaterStart);surfPerf.add('tubeUpdate',end-surfTubeStart);
   }
+  const speciesState=world.dressing?.species.state??'none';
+  if(speciesState!==warmedSpeciesState){warmedSpeciesState=speciesState;if(speciesState==='ready')void shaderWarmup.request();}
   if(!loading.ready&&loading.update({terrainPending:world.stats.pending,dressingPending:world.dressing?.nearPending??0,speciesState:world.dressing?.species.state??'none'}))beginGame();
   remoteActors?.update(delta,elapsed,camera,renderer.domElement.height,budget.level);
   npcs.update(delta, elapsed, player.position,camera); // The river drives the mill: no manual on/off control.
   // Boats follow their state (the one in use moves; the player's own boat bobs at its mooring).
   // The player's boat, the boat in use and any boat floating on a surf swell follow their state.
-  for(const b of fleet.boats)if(b===playerBoat||b===fleet.current||b.state.waveNormal)fleet.sync(b,elapsed);
-  if(portN1View)portN1View.update(elapsed,player.position);else ferryView?.update(elapsed);
-  snowLiftView?.update(elapsed);
+  // Same instant as renderPosition (interpolated between the last two fixed steps), so boats,
+  // lifts and ferries carrying the player never slide against it on screen.
+  const renderTime=elapsed-clockDt*(1-frame.alpha);
+  for(const b of fleet.boats)if(b===playerBoat||b===fleet.current||b.state.waveNormal)fleet.sync(b,renderTime,frame.alpha);
+  if(portN1View)portN1View.update(renderTime,player.position);else ferryView?.update(renderTime);
+  snowLiftView?.update(renderTime);
   character.group.position.copy(renderPosition);
   character.setAboard(aboard);
   if(gameplay){const f=gameplay.fishing.state;character.setFishing(f.phase!=='idle'&&f.castAt?{x:f.castAt.x,y:waterSurface(f.castAt.x,f.castAt.z)??getTerrainConfig().seaLevel,z:f.castAt.z,biting:f.phase==='bite'}:null);}
@@ -1938,6 +1970,7 @@ function draw(now: number) {
         remoteActors:remoteActors?.stats??null,
         perf:presentedFrames%30===0?perfSampler.snapshot():(window as unknown as {littleWorldMetrics?:{perf:unknown}}).littleWorldMetrics?.perf,
         gpu:{...gpuTimer.stats},
+        shaderWarmup:{...shaderWarmup.stats},
         horizon: { ...world.horizon },
         terrainWork: { ...world.terrainWork },
         dressing: world.dressing ? { ...world.dressing } : null,
@@ -2010,10 +2043,11 @@ function draw(now: number) {
     frameCount = 0;
   }
   const cost = performance.now() - begin;
+  const levelBefore=budget.level;
   if (budget.observe(cost, wallDrawDelta)) {
     presentation.rate = budget.rate;
-    world.setDetail(budget.level, quality.value === 'low');
-    applyQuality();
+    // A 30↔20 presentation change keeps detail and resolution: no rebuild, no reallocation.
+    if(budget.level!==levelBefore){world.setDetail(budget.level, quality.value === 'low');applyQuality();}
   }
   requestAnimationFrame(draw);
 }
@@ -2174,6 +2208,13 @@ if(cargoService&&gameplay&&activeIsland){
     bootFailure(error);
   }
 }
+// Compile every shader variant behind the loading screen instead of on first appearance
+// (normal state, underwater fog, miner headlamp). Re-run when new content arrives.
+const shaderWarmup=createShaderWarmup(renderer,scene,camera,[
+  ()=>{const fog=scene.fog;scene.fog=new THREE.Fog(0,1,2);return()=>{scene.fog=fog;};},
+  ()=>{const was=mineHelmet.active;mineHelmet.setActive(true);return()=>mineHelmet.setActive(was);},
+]);
+void shaderWarmup.request();
 // Gameplay starts automatically when the first rendered spawn area is ready.
 overlay.setAttribute('aria-busy','false');loading.boot(1);
 requestAnimationFrame(draw);
