@@ -20,7 +20,8 @@ export function raceFromSkiArea(world:WorldDefinitionV3,area:SkiAreaV1,height:(x
     return {x:a.x+(b.x-a.x)*t,z:a.z+(b.z-a.z)*t};
   });
   const race=authoredRaceFromTrace(world,{id:ALPINE_RACE_ID,name:'Chrono des Cimes',kind:'ski',points,height});
-  race.gates=race.gates.map(gate=>({...gate,width:area.widthM,height:5}));
+  race.gates=race.gates.map(gate=>({...gate,width:area.widthM,height:5,
+    allowedModes:area.jumps?['snow','air']:['snow']}));
   race.layoutKey=sourceRaceKey(race);
   return race;
 }

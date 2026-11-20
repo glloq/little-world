@@ -60,7 +60,11 @@ try{
    await page.locator('button[data-panel=races]').click();
    await page.evaluate(({center,normal})=>window.littleWorldDebug.teleport(
      center.x-normal.x*3,center.z-normal.z*3,Math.atan2(normal.x,normal.z)),start);
-   await page.locator('.ui-race-option').filter({hasText:'Chrono des Cimes'}).getByRole('button',{name:'Lancer'}).click();
+   const skiOption=page.locator('.ui-race-option').filter({hasText:'Chrono des Cimes · Skis'});
+   await skiOption.getByRole('button',{name:'Lancer'}).click();
+   await page.getByText('Équipez les skis pour ce chrono',{exact:true}).waitFor();
+   const boardOption=page.locator('.ui-race-option').filter({hasText:'Chrono des Cimes · Snowboard'});
+   await boardOption.getByRole('button',{name:'Lancer'}).click();
    await page.locator('.race-course-hud').filter({hasText:'Chrono des Cimes'}).waitFor({state:'visible'});
    await page.keyboard.down('KeyW');
    try{
@@ -71,6 +75,27 @@ try{
    await page.locator('button[data-panel=races]').click();
    await page.getByRole('button',{name:'Abandonner la course'}).click();
    await page.keyboard.press('Escape');
+   await page.keyboard.press('KeyB');
+   await page.waitForFunction(()=>window.littleWorldMetrics.alpine.equipment==='skis');
+   await page.locator('button[data-panel=races]').click();
+   await page.evaluate(({center,normal})=>window.littleWorldDebug.teleport(
+     center.x-normal.x*3,center.z-normal.z*3,Math.atan2(normal.x,normal.z)),start);
+   await skiOption.getByRole('button',{name:'Lancer'}).click();
+   await page.locator('.race-course-hud').filter({hasText:'Chrono des Cimes · Skis'}).waitFor({state:'visible'});
+   await page.locator('button[data-panel=races]').click();
+   await page.getByRole('button',{name:'Abandonner la course'}).click();
+   await page.keyboard.press('Escape');
+   assert.equal(alpine.jumps.length,2);
+   const race=project.libraries.races['race:composition-ski'];
+   for(const jump of alpine.jumps){
+    const ramp=race.gates.find(gate=>gate.center.x===jump.x&&gate.center.z===jump.z);
+    await page.evaluate(({center,normal})=>window.littleWorldDebug.teleport(
+     center.x-normal.x*13,center.z-normal.z*13,Math.atan2(normal.x,normal.z)),ramp);
+    await page.waitForFunction(()=>window.littleWorldMetrics.alpine.snowAirborne===true,null,{timeout:12000});
+    await page.waitForFunction(()=>window.littleWorldMetrics.mode==='snow'&&!window.littleWorldMetrics.alpine.snowAirborne,
+     null,{timeout:10000});
+   }
+   console.log('Cimes : deux tremplins vérifiés avec réception sur neige.');
    await page.evaluate(({x,z})=>window.littleWorldDebug.teleport(x,z,0),alpine.base);
    await page.keyboard.press('KeyE');
    await page.waitForFunction(()=>['waiting','riding'].includes(window.littleWorldMetrics?.alpine?.ride),null,{timeout:20000});

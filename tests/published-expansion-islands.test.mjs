@@ -7,14 +7,50 @@ import {validateBirthPort} from '../src/studio-core/birth-port.ts';
 import {acceptQuest,advanceQuest} from '../src/quests/progress.ts';
 import {validateSettlements} from '../src/settlements/validation.ts';
 
+import {beginRace,advanceRace} from '../src/gameplay/races.ts';
+import {configureTerrain} from '../src/terrain.ts';
+import {projectGeography} from '../src/studio-core/geo-context.ts';
+import {classifyPoint} from '../src/geography/classify.ts';
+import {WorldCollisionQuery} from '../src/physics/collision-world.ts';
+import {simulatePlayer,spawnPlayer} from '../src/player.ts';
+import {alpineJumpGates,launchSkiJump} from '../src/snow/ski-jumps.ts';
+
 test('the published alpine island retains a usable port and the native downhill activities',()=>{
  const project=buildAlpineIsland();
  assert.equal(project.manifest.worldId,'little-world-alpine-island');
  assert.equal(project.libraries.alpine['composition-alpine'].lift,true);
  assert.equal(project.libraries.races['race:composition-downhill'].worldId,project.world.worldId);
+ assert.equal(project.libraries.alpine['composition-alpine'].jumps,true);
  const ski=project.libraries.races['race:composition-ski'];
  assert.equal(ski.kind,'ski');
- assert.ok(ski.gates.length>=3&&ski.gates.every(gate=>gate.allowedModes.join()==='snow'));
+ assert.ok(ski.gates.length>=3&&ski.gates.every(gate=>gate.allowedModes.join()==='snow,air'));
+ const {world}=project,{ctx}=projectGeography(project);
+ configureTerrain({width:world.bounds.maxX-world.bounds.minX,length:world.bounds.maxZ-world.bounds.minZ,
+  seed:world.seed,seaLevel:world.seaLevel,terrain:world.terrain});
+ const collision=new WorldCollisionQuery(ctx.height,(x,z)=>ctx.water(x,z,ctx.height(x,z)));
+ collision.setMaterialSampler((x,z)=>classifyPoint(ctx,x,z).material);
+ const ramps=alpineJumpGates(ski),start=ski.gates[0];
+ for(const equipment of ['skis','snowboard']){
+  const actor=spawnPlayer();
+  const x=start.center.x-3*start.normal.x,z=start.center.z-3*start.normal.z;
+  actor.position.set(x,ctx.height(x,z),z);actor.mode='ground';
+  const session=beginRace(ski,0);
+  const input={forward:0,right:0,run:false,jumpPressed:false,spaceHeld:false,dive:false,
+   cameraYaw:Math.atan2(start.normal.x,start.normal.z),snowEquipment:equipment,groomedSnow:true};
+  let jumps=0;
+  for(let tick=1;tick<=1800&&session.status==='running';tick++){
+   const previous=actor.position.clone(),target=ski.gates[session.nextGate].center;
+   const error=(actor.snowHeading??input.cameraYaw)-Math.atan2(target.x-previous.x,target.z-previous.z);
+   input.right=session.started?Math.max(-1,Math.min(1,Math.atan2(Math.sin(error),Math.cos(error))*4)):0;
+   input.groomedSnow=ctx.skiSurface(previous.x,previous.z);
+   simulatePlayer(actor,input,1/30,collision);
+   if(launchSkiJump(actor,ramps,previous))jumps++;
+   advanceRace(session,{tick,previous,position:actor.position,mode:actor.mode,pulseSeq:0,
+    snowAirborne:actor.snowAirborne});
+  }
+  assert.equal(session.status,'finished',equipment+' can complete the fixed run');
+  assert.equal(jumps,2,equipment+' uses both kickers in the same run');
+ }
  const offer=project.libraries.questCatalog['quest:cimes-premiere-descente'];
  assert.ok(project.entityIndex[offer.giverId]);
  const stationEntity=id=>project.chunks[project.entityIndex[id].ownerChunkId].entities[id];

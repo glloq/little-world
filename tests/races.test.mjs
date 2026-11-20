@@ -60,3 +60,13 @@ test('ski timing starts on the first snow gate and rejects leaving the snow mode
  step(cancelled,at(9),at(11),'snow');
  assert.equal(step(cancelled,at(19),at(21),'glide').kind,'failed');
 });
+
+test('ski runs accept designated airborne jumps after the start and reject other air movement',()=>{
+ const course={...def('ski'),startOnFirstGate:true,gates:def('ski').gates.map(gate=>({...gate,allowedModes:['snow','air']}))};
+ const race=beginRace(course,0);
+ assert.equal(step(race,at(9),at(11),'snow').kind,'started');
+ assert.equal(step(race,at(19),at(21),'air',{snowAirborne:true}).kind,'finish');
+ const ordinaryJump=beginRace(course,0);
+ step(ordinaryJump,at(9),at(11),'snow');
+ assert.equal(step(ordinaryJump,at(19),at(21),'air').kind,'failed');
+});

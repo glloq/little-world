@@ -65,7 +65,7 @@ export interface Player {
   climbDir?:{x:number;z:number};
   /** Roll (ball mode): forward speed (m/s), heading (rad, 0 = +Z) and idle time (s). */
   rollSpeed?:number;rollHeading?:number;rollIdle?:number;
-  snowHeading?:number;snowEdge?:number;snowEquipment?:SnowEquipment;
+  snowAirborne?:boolean;snowHeading?:number;snowEdge?:number;snowEquipment?:SnowEquipment;
   /** Replayed surf state; the ocean shader never owns physics. */
   surfStage?:SurfStage;surfHeading?:number;surfAirborne?:boolean;surfWaveId?:number;
   surfPaddleClock?:number;surfJumpSeq?:number;surfLandingSeq?:number;surfWipeoutSeq?:number;
@@ -148,6 +148,7 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
   stepBoostVitals(p,dt);
   const { position: pos, velocity: v } = p;
   const oldMode = p.mode;
+  if(oldMode!=='air')p.snowAirborne=false;
   let gasTicked=false;
   // Record the contact before a collision resets vertical velocity; never change momentum.
   const recordLanding=()=>{
@@ -164,7 +165,11 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
   // the rolling controller dissipates it progressively on subsequent fixed steps.
   const finishLanding=()=>{
     recordLanding();
-    if((oldMode==='glide'||oldMode==='air')&&Math.hypot(v.x,v.z)>=ROLL.landingThreshold){
+    if(p.snowAirborne){
+      p.snowAirborne=false;
+      const material=collision?.materialAt(pos,p.space);
+      p.mode=keys.snowEquipment&&(material==='snow'||material==='ice')?'snow':'ground';
+    }else if((oldMode==='glide'||oldMode==='air')&&Math.hypot(v.x,v.z)>=ROLL.landingThreshold){
       p.mode='roll';p.rollByHold=false;
       p.rollSpeed=Math.hypot(v.x,v.z);
       p.rollHeading=Math.atan2(v.x,v.z);
@@ -430,12 +435,13 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
         const previousPulse=p.gasPulseSeq??0;
         // One gas-powered double jump in freefall per take-off; gliding remains
         // eligible for repeated pulses from the regular consumable gas reserve.
-        const acceleration=gasBoostStep(p,keys.boostHeld===true&&!p.airBoostUsed,true,dt);
+        const acceleration=gasBoostStep(p,keys.boostHeld===true&&!p.airBoostUsed&&!p.snowAirborne,true,dt);
         gasTicked=true;
         if((p.gasPulseSeq??0)>previousPulse){
           p.airBoostUsed=true;v.y=Math.max(v.y,BOOST_LIFT.airVy);
         }
-        airVelocity(v,dx,dz,keys.run?7.2:5.2,dt);
+        if(p.snowAirborne)v.y=Math.max(-MOTION.fallMax,v.y-MOTION.gravity*dt);
+        else airVelocity(v,dx,dz,keys.run?7.2:5.2,dt);
         if(p.airBoostUsed&&acceleration>0)v.y+=acceleration*dt*BOOST_LIFT.airThrustVertical;
       }
       // Vertical integration is swept together with XZ below when collisions are available.
@@ -472,7 +478,17 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
   const newGround = surface?.floorY??terrainHeight(pos.x, pos.z);
   if(surface?.ceilingY!==null&&surface?.ceilingY!==undefined&&pos.y+body.height>surface.ceilingY){pos.y=Math.max(newGround,surface.ceilingY-body.height);v.y=Math.min(0,v.y);if(pos.y>newGround+.06)p.mode='air';}
   if(p.mode==='ground'){if(pos.y-newGround>.45){p.mode='air';p.glideReady=true;}else pos.y=newGround;}
-  if (p.mode === 'roll'||p.mode==='snow') { if (pos.y - newGround > .45) { p.jumpOrigin=p.mode==='roll'?'roll':'run';p.mode = 'air'; p.glideReady = true; } else {const gain=newGround-(from?.y??pos.y);pos.y=newGround;v.y=gain/dt;} }
+  if(p.mode==='roll'||p.mode==='snow'){
+    // A fast skier still follows a continuous descent. A true ledge stands
+    // higher than the drop implied by the horizontal distance of one step.
+    const step=from?Math.hypot(pos.x-from.x,pos.z-from.z):Math.hypot(v.x,v.z)*dt;
+    const ledge=p.mode==='snow'?Math.max(.45,.9*step):.45;
+    if(pos.y-newGround>ledge){
+      p.jumpOrigin=p.mode==='roll'?'roll':'run';p.mode='air';p.glideReady=true;
+    }else{
+      const gain=newGround-(from?.y??pos.y);pos.y=newGround;v.y=gain/dt;
+    }
+  }
   if (p.mode === 'climb') pos.y = newGround;
   else if (p.mode !== 'glide' && p.mode !== 'air') p.stamina = Math.min(MAX_STAMINA, p.stamina + CLIMB.regen * dt);
   if ((p.mode === 'air' || p.mode === 'glide') && pos.y < newGround) {
