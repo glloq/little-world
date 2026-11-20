@@ -1,4 +1,5 @@
-import {parseSkiArea,inspectSkiArea} from '../snow/ski-area.ts';
+import {parseSkiArea,inspectSkiArea,skiAreasOf} from '../snow/ski-area.ts';
+import {LIFT_LABELS,PISTE_LABELS} from '../snow/resort-planner.ts';
 /** Studio V3: author fixed race courses with the shared 3D polyline editor and history. */
 import * as THREE from 'three';
 import {node,button,field,input,numberInput,select} from './dom.ts';
@@ -84,8 +85,8 @@ export function mountRacesPanel(host:HTMLElement,ctx:RacePanelContext){
     const race=draft.libraries.races?.[ALPINE_RACE_ID],env=skiAreaTerrainEnvironment(draft);
     if(race&&race.layoutKey===raceFromSkiArea(draft.world,area,env.height).layoutKey)
      putAuthoredRace(draft,raceFromSkiArea(draft.world,next,env.height));
-    draft.libraries.alpine={...draft.libraries.alpine,'composition-alpine':next};});}})),field('Équipement de prêt',select(area.equipment,[['skis','Skis'],['snowboard','Snowboard']],async value=>{await ctx.session.change('Équipement alpin',[],draft=>{draft.libraries.alpine!['composition-alpine'].equipment=value as typeof area.equipment;});})));
-  const lift=node('input');lift.type='checkbox';lift.checked=area.lift;lift.onchange=()=>{void ctx.session.change('Remontée alpine',[],draft=>{draft.libraries.alpine!['composition-alpine'].lift=lift.checked;});};card.append(field('Remontée mécanique prototype',lift),node('p','B alterne skis et snowboard. Les portes d’un chrono de ski utilisent le tracé enneigé.','muted'));
+    draft.libraries.alpine={...draft.libraries.alpine,'composition-alpine':next};});}})),field('Matériel conseillé',select(area.equipment,[['skis','Skis'],['snowboard','Snowboard']],async value=>{await ctx.session.change('Équipement alpin',[],draft=>{draft.libraries.alpine!['composition-alpine'].equipment=value as typeof area.equipment;});})));
+  const lift=node('input');lift.type='checkbox';lift.checked=area.lift;lift.onchange=()=>{void ctx.session.change('Remontée alpine',[],draft=>{draft.libraries.alpine!['composition-alpine'].lift=lift.checked;});};card.append(field(area.liftKind?LIFT_LABELS[area.liftKind]+' de la piste':'Remontée mécanique prototype',lift),node('p','Le joueur achète skis et snowboard au magasin de la station ; B alterne le matériel possédé. Les portes d’un chrono de ski utilisent le tracé enneigé.','muted'));
   const groomed=node('input');groomed.type='checkbox';groomed.checked=area.groomed===true;
   groomed.onchange=()=>{void ctx.session.change('Damage de la piste',[],draft=>{
    draft.libraries.alpine!['composition-alpine'].groomed=groomed.checked;
@@ -104,6 +105,19 @@ export function mountRacesPanel(host:HTMLElement,ctx:RacePanelContext){
     ctx.status('Chrono de ski ajouté aux circuits du monde.');
    }catch(error){ctx.status(String(error),true);}
   }));
+  const others=skiAreasOf(p.libraries.alpine).filter(a=>a.id!=='composition-alpine');
+  if(others.length){
+   const list=node('fieldset');list.append(node('legend','Autres pistes du domaine'),node('p','Tracés générés sur le relief damé ; leurs remontées et leur balisage sont compilés dans le jeu.','muted'));
+   for(const other of others){
+    const row=node('div');const toggle=node('input');toggle.type='checkbox';toggle.checked=other.lift;
+    toggle.onchange=()=>{void ctx.session.change('Remontée · '+other.name,[],draft=>{draft.libraries.alpine![other.id].lift=toggle.checked;});};
+    row.append(node('p',other.name+' · piste '+(other.difficulty?PISTE_LABELS[other.difficulty]:'')+' · '+other.points.length+' points'+(other.liftKind?' · '+(other.liftName??LIFT_LABELS[other.liftKind]):''),'muted'),
+     button('Voir',()=>{const q=other.points[0];ctx.viewport.goTo(q.x,q.z,90);}));
+    if(other.liftKind)row.append(field('Remontée active',toggle));
+    list.append(row);
+   }
+   card.append(list);
+  }
   host.append(card);
  }
 

@@ -14,6 +14,8 @@ import {classifyPoint} from '../src/geography/classify.ts';
 import {WorldCollisionQuery} from '../src/physics/collision-world.ts';
 import {simulatePlayer,spawnPlayer} from '../src/player.ts';
 import {alpineJumpGates,launchSkiJump} from '../src/snow/ski-jumps.ts';
+import {skiAreasOf} from '../src/snow/ski-area.ts';
+import {boardResortLift,resortLifts,stepResortRide} from '../src/snow/ski-resort.ts';
 
 test('the published alpine island retains a usable port and the native downhill activities',()=>{
  const project=buildAlpineIsland();
@@ -75,7 +77,33 @@ test('the published alpine island retains a usable port and the native downhill 
  assert.deepEqual(validateBirthPort(project),[]);
  assert.deepEqual(validateWorldActivities(project),[]);
  assert.deepEqual(validateSettlements(project),[]);
+ // Complete ski domain: several marked runs, several lift types, every lift reaches its top.
+ const areas=skiAreasOf(project.libraries.alpine);
+ assert.ok(areas.length>=6,areas.length+' pistes');
+ assert.deepEqual([...new Set(areas.map(a=>a.difficulty))].sort(),['black','blue','green','red']);
+ const lifts=resortLifts(areas,ctx.height);
+ assert.ok(lifts.length>=5,lifts.length+' remontées');
+ for(const kind of ['gondola','chairlift','draglift'])assert.ok(lifts.some(l=>l.kind===kind),kind);
+ for(const lift of lifts){
+  const base=lift.lift.path[0],top=lift.lift.path.at(-1),ground=ctx.height(base.x,base.z);
+  const ride=boardResortLift(lifts,{x:base.x,y:ground,z:base.z},ground,0);
+  assert.equal(ride?.lift.id,lift.id);
+  let arrived=null;for(let t=0;t<2000&&!arrived;t+=1/30){const step=stepResortRide(ride,t);if(step.kind==='arrived')arrived=step.top;}
+  assert.ok(arrived&&Math.hypot(arrived.x-top.x,arrived.z-top.z)<.01,lift.name+' arrives at its top station');
+  assert.ok(ctx.height(top.x,top.z)>ground+15,lift.name+' climbs');
+  const area=areas.find(a=>a.id===lift.areaId);
+  assert.ok(Math.hypot(top.x-area.points[0].x,top.z-area.points[0].z)<60,lift.name+' drops riders at its piste');
+ }
+ // Snow covers the upper mountain and every run, not only the main corridor.
+ let summit={x:0,z:0,h:-Infinity};
+ for(let x=-600;x<=600;x+=20)for(let z=-800;z<=500;z+=20){const h=ctx.height(x,z);if(h>summit.h)summit={x,z,h};}
+ assert.equal(classifyPoint(ctx,summit.x,summit.z).material,'snow');
+ for(const area of areas)for(const q of area.points.filter((_,i)=>i%5===0))assert.equal(classifyPoint(ctx,q.x,q.z).material,'snow',area.name);
+ let high=0,snowy=0;
+ for(let x=-600;x<=600;x+=25)for(let z=-800;z<=500;z+=25){const sample=classifyPoint(ctx,x,z);if(sample.height>area0Snow(areas)+20){high++;if(sample.material==='snow'||sample.material==='rock')snowy++;}}
+ assert.ok(high>300&&snowy/high>.9,snowy+'/'+high+' high cells are snowy');
 });
+const area0Snow=areas=>areas[0].snowLineM;
 
 test('the published harvest island combines reachable farm services and owned plots',()=>{
  const project=buildHarvestIsland();

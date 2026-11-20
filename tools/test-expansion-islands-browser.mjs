@@ -17,13 +17,23 @@ try{
   if(id==='alpine-island'){
    const alpine=await page.evaluate(()=>window.littleWorldMetrics.alpine);
    assert.ok(alpine.lift&&alpine.points>20);
+   assert.ok(alpine.pistes>=6&&alpine.lifts.length>=5&&alpine.markers>50,'domaine skiable complet');
+   for(const kind of ['gondola','chairlift','draglift'])assert.ok(alpine.lifts.some(l=>l.kind===kind),kind);
+   assert.equal(alpine.equipment,null,'aucun matériel prêté sans achat');
+   {
+    const q=project.libraries.alpine['composition-alpine'].points[8],next=project.libraries.alpine['composition-alpine'].points[9];
+    await page.evaluate(({q,next})=>window.littleWorldDebug.teleport(q.x,q.z,Math.atan2(next.x-q.x,next.z-q.z)),{q,next});
+    await page.keyboard.down('KeyW');await page.waitForTimeout(1500);await page.keyboard.up('KeyW');
+    assert.notEqual(await page.evaluate(()=>window.littleWorldMetrics.mode),'snow','sans skis on marche dans la neige');
+   }
+   console.log('Cimes : '+alpine.pistes+' pistes, '+alpine.lifts.length+' remontées, aucun prêt automatique.');
    const guideId='station-cimes:monitrice';
    const guide=project.chunks[project.entityIndex[guideId].ownerChunkId].entities[guideId];
    await page.evaluate(({x,z})=>window.littleWorldDebug.teleport(x,z-1,0),guide.components.Transform.position);
    await page.waitForFunction(id=>window.littleWorldMetrics?.targetId===id,guideId,{timeout:15000});
    await page.keyboard.press('KeyE');
    const dialogue=page.getByRole('dialog',{name:'Conversation'});
-   await dialogue.getByRole('button',{name:'Comment prendre le télésiège ?'}).click();
+   await dialogue.getByRole('button',{name:'Comment prendre une remontée ?'}).click();
    await dialogue.getByText(/Approchez-vous de l’embarquement/).waitFor();
    await dialogue.getByRole('button',{name:'Fermer · Échap',exact:true}).click();
    console.log('Cimes : la monitrice renseigne le joueur au chalet.');
@@ -99,7 +109,18 @@ try{
    await page.evaluate(({x,z})=>window.littleWorldDebug.teleport(x,z,0),alpine.base);
    await page.keyboard.press('KeyE');
    await page.waitForFunction(()=>['waiting','riding'].includes(window.littleWorldMetrics?.alpine?.ride),null,{timeout:20000});
-   console.log('Cimes : embarquement au télésiège.');
+   console.log('Cimes : embarquement à la télécabine.');
+   // Shortest lift (draglift) ridden to the very top: the rider is dropped at its top station.
+   await page.keyboard.press('KeyE');
+   await page.waitForFunction(()=>window.littleWorldMetrics?.alpine?.ride===null,null,{timeout:5000});
+   const drag=alpine.lifts.find(l=>l.kind==='draglift');
+   await page.evaluate(({x,z})=>window.littleWorldDebug.teleport(x,z,0),drag.base);
+   await page.keyboard.press('KeyE');
+   await page.waitForFunction(()=>window.littleWorldMetrics?.alpine?.ride==='riding',null,{timeout:20000});
+   await page.waitForFunction(()=>window.littleWorldMetrics?.alpine?.ride===null,null,{timeout:240000});
+   const arrived=await page.evaluate(()=>window.littleWorldMetrics.alpine.at);
+   assert.ok(Math.hypot(arrived.x-drag.top.x,arrived.z-drag.top.z)<3,'déposé à la gare d’arrivée');
+   console.log('Cimes : téléski monté jusqu’en haut.');
   }else{
    const field=Object.values(project.libraries.zones).find(zone=>zone.farm?.assignment==='player');
    assert.ok(field,'Moissons has a player-owned field');

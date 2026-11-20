@@ -31,6 +31,7 @@ const FEATURE_FIELDS:Record<FeatureKind,Field[]>={
   plateau:[['heightM','Altitude (m)',0,1200,1],['edgeM','Largeur du talus (m)',2,600,1]],
   ridge:[['widthM','Largeur (m)',5,2000,5],['heightM','Hauteur (m)',1,800,1]],
   valley:[['widthM','Largeur (m)',5,2000,5],['depthM','Profondeur (m)',.5,400,.5]],
+  piste:[['widthM','Largeur damée (m)',4,80,1],['edgeM','Raccord latéral (m)',1,80,1]],
 };
 const VARIABLE=new Set(['landmass','volcano','mountain','hill']);
 const ADDABLE:[string,string][]=[['islet','Îlot'],['volcano','Volcan'],['mountain','Massif'],['hill','Colline'],['basin','Cuvette'],['plateau','Plateau'],['ridge','Crête'],['valley','Vallée']];
@@ -67,14 +68,14 @@ export function createShapeTool(env:ShapeEnv){
   }
   function pointsOf(a:ArchipelagoParams,t:Target):PointXZ[]|null{
     const v=find(a,t);if(!v)return null;if(t.type==='landmass')return (v as Landmass).outline;
-    const f=v as ReliefFeature;return f.kind==='plateau'?f.polygon:f.kind==='ridge'||f.kind==='valley'?f.points:null;
+    const f=v as ReliefFeature;return f.kind==='plateau'?f.polygon:f.kind==='ridge'||f.kind==='valley'||f.kind==='piste'?f.points:null;
   }
   function handles(a:ArchipelagoParams):Handle[]{
     const out:Handle[]=[];
     for(const l of a.landmasses)l.outline.forEach((q,i)=>out.push({type:'landmass',id:l.id,vertex:i,x:q.x,z:q.z}));
     for(const f of a.features){
       if(f.kind==='plateau')f.polygon.forEach((q,i)=>out.push({type:'feature',id:f.id,vertex:i,x:q.x,z:q.z}));
-      else if(f.kind==='ridge'||f.kind==='valley')f.points.forEach((q,i)=>out.push({type:'feature',id:f.id,vertex:i,x:q.x,z:q.z}));
+      else if(f.kind==='ridge'||f.kind==='valley'||f.kind==='piste')f.points.forEach((q,i)=>out.push({type:'feature',id:f.id,vertex:i,x:q.x,z:q.z}));
       else out.push({type:'feature',id:f.id,vertex:null,x:f.x,z:f.z});
     }
     return out;
@@ -129,7 +130,7 @@ export function createShapeTool(env:ShapeEnv){
       g.setLineDash([]);
       for(const f of a.features){
         const on=selected?.id===f.id;g.strokeStyle=on?'#c0562e':f.kind==='valley'||f.kind==='basin'?'#2f7fb8':'#6b4a2b';g.lineWidth=on?2.5:1.5;
-        if(f.kind==='plateau')path(f.polygon,true);else if(f.kind==='ridge'||f.kind==='valley')path(f.points,false);
+        if(f.kind==='plateau')path(f.polygon,true);else if(f.kind==='ridge'||f.kind==='valley'||f.kind==='piste')path(f.points,false);
         else{const c=env.toScreen(f.x,f.z);g.beginPath();g.arc(c.x,c.y,f.radiusM*env.scale(),0,Math.PI*2);if(f.kind==='volcano'){g.moveTo(c.x+f.craterRadiusM*env.scale(),c.y);g.arc(c.x,c.y,f.craterRadiusM*env.scale(),0,Math.PI*2);}}
         g.stroke();
         const label=env.toScreen(...(('x' in f)?[f.x,f.z]:[(f.kind==='plateau'?f.polygon:f.points)[0].x,(f.kind==='plateau'?f.polygon:f.points)[0].z]) as [number,number]);

@@ -285,7 +285,8 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
   else if(keys.rollHeld&&len>.3&&p.mode==='ground'&&!inWater&&!snowReady)enterRoll(true);
   else if(p.mode==='roll'&&p.rollByHold&&!keys.rollHeld)p.mode='ground';
   if(p.mode==='snow'&&!inWater){
-    if(keys.jumpPressed){p.jumpOrigin='run';p.jumpSeq=(p.jumpSeq??0)+1;p.mode='air';v.y=Math.max(0,v.y)+6.8;p.glideReady=true;jumpHandled=true;}
+    // Still on skis/board in the air: the landing resumes the slide (never a roll).
+    if(keys.jumpPressed){p.jumpOrigin='run';p.jumpSeq=(p.jumpSeq??0)+1;p.mode='air';p.snowAirborne=true;v.y=Math.max(0,v.y)+6.8;p.glideReady=true;jumpHandled=true;}
     else stepSnowSlide(p,{right:keys.right,forward:keys.forward,brake:keys.dive,cameraYaw:keys.cameraYaw},relief,snowMaterial==='ice'?'ice':keys.groomedSnow?'groomed':'snow',p.snowEquipment??'snowboard',dt);
   }else if(p.mode==='roll'&&!inWater){
     rollStep(p,keys,dt,dx,dz,len,relief,collision?.materialAt(pos,p.space)??'grass',!!p.space||ground-relief(pos.x,pos.z)>.2);
@@ -484,6 +485,7 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
     const step=from?Math.hypot(pos.x-from.x,pos.z-from.z):Math.hypot(v.x,v.z)*dt;
     const ledge=p.mode==='snow'?Math.max(.45,.9*step):.45;
     if(pos.y-newGround>ledge){
+      if(p.mode==='snow')p.snowAirborne=true;
       p.jumpOrigin=p.mode==='roll'?'roll':'run';p.mode='air';p.glideReady=true;
     }else{
       const gain=newGround-(from?.y??pos.y);pos.y=newGround;v.y=gain/dt;
