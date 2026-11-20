@@ -1,6 +1,9 @@
 import {selectIslandStyle} from './island-styles.ts';
 import {newIslandRequirements} from './map-requirements.ts';
 import {composeWorld} from './world-composition.ts';
+import {projectGeography} from './geo-context.ts';
+import {putAuthoredRace} from './race-authoring.ts';
+import {raceFromSkiArea} from './ski-race.ts';
 
 export const ALPINE_ISLAND={projectId:'little-world-alpine-island-authoring',worldId:'little-world-alpine-island',name:'Île des Cimes'};
 
@@ -17,5 +20,8 @@ export function buildAlpineIsland(){
  const {project}=composition;
  if((project.libraries.settlements?.['composition-welcome-village']?.buildings.length??0)<4)
   throw Error('Île des Cimes : le hameau maritime est incomplet.');
+ const area=project.libraries.alpine?.['composition-alpine'];
+ if(!area)throw Error('Île des Cimes : piste de ski absente.');
+ putAuthoredRace(project,raceFromSkiArea(project.world,area,projectGeography(project).ctx.height));
  return project;
 }

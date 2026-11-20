@@ -67,3 +67,11 @@ Conserver les états séparés : `SnowSlideState` / `LiftRide` / `SkiLift` / dé
 - Enregistrement/inventaire définitif des skis et snowboards.
 - UI de télésiège, télécabine, neige saisonnière et sons.
 - Courses et compétitions, qui rejoindront le module commun déjà en construction.
+
+## Chrono local des Cimes
+
+Le Studio génère les portes du Chrono des Cimes le long de la piste native. Le
+joueur peut préparer le départ à pied avec des skis ou un snowboard. Le chrono
+démarre au franchissement de la première porte en glisse et une sortie du mode
+neige annule la tentative. Le record personnel utilise la sauvegarde commune
+aux autres courses.

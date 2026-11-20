@@ -794,7 +794,10 @@ function startAuthoredRace(id:string):{ok:boolean;message:string}{
     return {ok:false,message:'Déployez le planeur pour cette course'};
   if(race.kind==='surf'&&player.mode!=='surf')
     return {ok:false,message:'Montez sur votre planche pour cette course'};
-  if(race.kind!=='flight'&&race.kind!=='surf'&&!['roll','ground'].includes(player.mode))
+  if(race.kind==='ski'&&(!['ground','snow'].includes(player.mode)||
+    !(snowDemo||gameplay?.equipment.hands==='tool:skis'||gameplay?.equipment.hands==='tool:snowboard')))
+    return {ok:false,message:'Équipez des skis ou un snowboard et rejoignez le départ enneigé'};
+  if((race.kind==='roll'||race.kind==='mixed')&&!['roll','ground'].includes(player.mode))
     return {ok:false,message:'Revenez au sol avant le départ'};
   stopFlightCourse();stopRace();
   raceSession=beginRace(race,motionTick,player.gasPulseSeq??0);

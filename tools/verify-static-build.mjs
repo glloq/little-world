@@ -48,6 +48,7 @@ export async function verifyStaticBuild(directory = 'dist') {
   assert.equal(alpineProject.manifest.worldId,alpine.worldId);
   assert.ok(alpineProject.libraries.alpine['composition-alpine'].lift);
   assert.equal(alpineProject.libraries.races['race:composition-downhill'].worldId,alpine.worldId);
+  assert.equal(alpineProject.libraries.races['race:composition-ski'].kind,'ski');
   for(const {url} of [alpine.logic,...alpine.chunks])assert.ok((await stat(resolve(alpineDir,url))).isFile());
   const harvestDir=resolve(root,'archipelago/worlds/harvest-island');
   const harvest=JSON.parse(await readFile(resolve(harvestDir,'manifest.json'),'utf8'));

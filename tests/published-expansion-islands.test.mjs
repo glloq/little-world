@@ -11,6 +11,12 @@ test('the published alpine island retains a usable port and the native downhill 
  assert.equal(project.manifest.worldId,'little-world-alpine-island');
  assert.equal(project.libraries.alpine['composition-alpine'].lift,true);
  assert.equal(project.libraries.races['race:composition-downhill'].worldId,project.world.worldId);
+ const ski=project.libraries.races['race:composition-ski'];
+ assert.equal(ski.kind,'ski');
+ assert.ok(ski.gates.length>=3&&ski.gates.every(gate=>gate.allowedModes.join()==='snow'));
+ const moved=structuredClone(project);
+ moved.libraries.races[ski.id].gates[0].center.x=project.world.bounds.minX;
+ assert.ok(validateWorldActivities(moved).some(d=>d.code==='ACTIVITY_SKI_RACE_OUTSIDE'));
  assert.deepEqual(validateBirthPort(project),[]);
  assert.deepEqual(validateWorldActivities(project),[]);
  assert.deepEqual(validateSettlements(project),[]);

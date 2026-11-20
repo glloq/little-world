@@ -2,8 +2,8 @@
 import catalog from '../../public/audio/catalog.json' with {type:'json'};
 import {parseAudioDefinitionV2} from '../audio/catalog.ts';
 import {findDemoPiste} from '../snow/snow-pistes.ts';
-import {inspectSkiArea,type SkiAreaV1} from '../snow/ski-area.ts';
-import {projectRaceTerrainEnvironment} from './race-terrain-context.ts';
+import {inspectSkiArea,skiCorridorContains,type SkiAreaV1} from '../snow/ski-area.ts';
+import {projectRaceTerrainEnvironment,skiAreaTerrainEnvironment} from './race-terrain-context.ts';
 import {findRaceTerrainPlacements,raceFromTerrainPlacement,inspectRaceTerrain} from './race-terrain-planner.ts';
 import {putAuthoredRace} from './race-authoring.ts';
 import type {ProjectDocument} from './types.ts';
@@ -33,9 +33,18 @@ export function generateWorldActivities(p:ProjectDocument,diagnostics:Compositio
  }
 }
 export function validateWorldActivities(p:ProjectDocument):CompositionDiagnostic[]{
- const out:CompositionDiagnostic[]=[],options=p.world.generation?.activities;if(!options&&!p.libraries.alpine)return out;
- if(p.libraries.alpine){const env=projectRaceTerrainEnvironment({...p,libraries:{...p.libraries,alpine:undefined}});if(!inspectSkiArea(p.libraries.alpine['composition-alpine'],env).ok)out.push({severity:'ERROR',code:'ACTIVITY_SKI_CHANGED',message:'La descente alpine ne respecte plus le terrain, l’eau ou les réservations.'});}
- else if(options?.ski)out.push({severity:'ERROR',code:'ACTIVITY_SKI_MISSING',message:'La descente alpine demandée est absente.'});
+ const out:CompositionDiagnostic[]=[],options=p.world.generation?.activities;if(!options&&!p.libraries.alpine&&!Object.values(p.libraries.races??{}).some(race=>race.kind==='ski'))return out;
+ const skiRaces=Object.values(p.libraries.races??{}).filter(race=>race.kind==='ski');
+ const area=p.libraries.alpine?.['composition-alpine'];
+ if(area){
+  const env=skiAreaTerrainEnvironment(p);
+  if(!inspectSkiArea(area,env).ok)out.push({severity:'ERROR',code:'ACTIVITY_SKI_CHANGED',message:'La descente alpine ne respecte plus le terrain, l’eau ou les réservations.'});
+ }
+ for(const race of skiRaces){
+  if(!area||race.gates.some(({center})=>!skiCorridorContains(area,center.x,center.z,0)))
+   out.push({severity:'ERROR',code:'ACTIVITY_SKI_RACE_OUTSIDE',message:race.name+' doit utiliser des portes sur la piste de ski du projet.'});
+ }
+ if(!area&&options?.ski)out.push({severity:'ERROR',code:'ACTIVITY_SKI_MISSING',message:'La descente alpine demandée est absente.'});
  for(const style of ['flat','downhill'] as const)if(options?.races===style||options?.races==='both'){
   const id='race:composition-'+style,race=p.libraries.races?.[id];if(!race?.track||!inspectRaceTerrain(race.track,projectRaceTerrainEnvironment(p,id),style).valid)out.push({severity:'ERROR',code:'ACTIVITY_RACE_CHANGED',message:'Le circuit '+style+' demandé est absent ou incompatible avec le terrain.'});
  }

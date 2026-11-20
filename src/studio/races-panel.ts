@@ -5,6 +5,7 @@ import {node,button,field,input,numberInput,select} from './dom.ts';
 import type {StudioSession} from './session.ts';
 import type {StudioViewport} from './viewport/editor-viewport.ts';
 import type {PolylineTarget} from './viewport/polyline-tool.ts';
+import {ALPINE_RACE_ID,raceFromSkiArea} from '../studio-core/ski-race.ts';
 import type {RaceDefinition,RaceGate,RaceKind} from '../gameplay/races.ts';
 import {authoredRaceFromTrace,gatesFromTrace,putAuthoredRace,removeAuthoredRace} from '../studio-core/race-authoring.ts';
 import {terrainHeight} from '../terrain.ts';
@@ -12,14 +13,14 @@ import {installShowcaseRaces} from '../studio-core/race-demo-layouts.ts';
 import {trackDiagnostics,trackLength,validateRaceTrack,type RaceTrack,type TrackFeatureKind} from '../gameplay/race-track.ts';
 import {availableTrackFeature,roadbedFromGates} from '../gameplay/race-track-presets.ts';
 import {findRaceTerrainPlacements,inspectRaceTerrain,raceFromTerrainPlacement,type PlacementCandidate,type PlacementStyle} from '../studio-core/race-terrain-planner.ts';
-import {projectRaceTerrainEnvironment} from '../studio-core/race-terrain-context.ts';
+import {projectRaceTerrainEnvironment,skiAreaTerrainEnvironment} from '../studio-core/race-terrain-context.ts';
 
 export interface RacePanelContext {
  session:StudioSession;viewport:StudioViewport;
  status(message:string,error?:boolean):void;
  edit(target:PolylineTarget):void;
 }
-const modes:[RaceKind,string][]=[['flight','Vol en planeur'],['roll','Roulade'],['mixed','Roulade puis vol'],['surf','Surf / sauts aquatiques']];
+const modes:[RaceKind,string][]=[['flight','Vol en planeur'],['roll','Roulade'],['mixed','Roulade puis vol'],['surf','Surf / sauts aquatiques'],['ski','Descente sur neige']];
 function linesFor(gates:readonly RaceGate[]):THREE.Group{
  const verts:number[]=[];
  const edge=(a:THREE.Vector3,b:THREE.Vector3)=>{verts.push(a.x,a.y,a.z,b.x,b.y,b.z);};
@@ -77,10 +78,28 @@ function roadTarget(ctx:RacePanelContext,race:RaceDefinition):PolylineTarget{
 }
 export function mountRacesPanel(host:HTMLElement,ctx:RacePanelContext){
  const p=ctx.session.document,races=Object.values(p.libraries.races??{});
- if(p.libraries.alpine){const area=p.libraries.alpine['composition-alpine'],card=node('fieldset');card.append(node('legend','Descente de ski · prototype'),node('p',area.name+' · '+area.points.length+' points · largeur '+area.widthM+' m','muted'));
-  const make=(points:{x:number;z:number}[],document=ctx.session.document)=>{const next=parseSkiArea({...area,points},document.world.bounds),env=projectRaceTerrainEnvironment({...document,libraries:{...document.libraries,alpine:undefined}}),report=inspectSkiArea(next,env);if(!report.ok)throw Error(report.diagnostics.join(' · '));return next;};
-  card.append(button('Voir la descente de ski',()=>{const q=area.points.at(-1)!;ctx.viewport.goTo(q.x,q.z,75);}),button('Modifier le tracé de ski',()=>ctx.edit({label:'Descente de ski',points:area.points.map(q=>({...q})),min:2,max:128,color:0x8ae8ff,diagnose:points=>{try{make(points);return null;}catch(e){return String(e);}},commit:async points=>{await ctx.session.change('Modifier la descente de ski',[],draft=>{draft.libraries.alpine={...draft.libraries.alpine,'composition-alpine':make(points,draft)};});}})),field('Équipement de prêt',select(area.equipment,[['skis','Skis'],['snowboard','Snowboard']],async value=>{await ctx.session.change('Équipement alpin',[],draft=>{draft.libraries.alpine!['composition-alpine'].equipment=value as typeof area.equipment;});})));
-  const lift=node('input');lift.type='checkbox';lift.checked=area.lift;lift.onchange=()=>{void ctx.session.change('Remontée alpine',[],draft=>{draft.libraries.alpine!['composition-alpine'].lift=lift.checked;});};card.append(field('Remontée mécanique prototype',lift),node('p','Tracé, neige et remontée sont enregistrés. Le ski n’est pas encore une compétition chronométrée. B alterne skis et snowboard dans le jeu.','muted'));host.append(card);
+ if(p.libraries.alpine){const area=p.libraries.alpine['composition-alpine'],card=node('fieldset');card.append(node('legend','Descente de ski'),node('p',area.name+' · '+area.points.length+' points · largeur '+area.widthM+' m','muted'));
+  const make=(points:{x:number;z:number}[],document=ctx.session.document)=>{const next=parseSkiArea({...area,points},document.world.bounds),env=skiAreaTerrainEnvironment(document),report=inspectSkiArea(next,env);if(!report.ok)throw Error(report.diagnostics.join(' · '));return next;};
+  card.append(button('Voir la descente de ski',()=>{const q=area.points.at(-1)!;ctx.viewport.goTo(q.x,q.z,75);}),button('Modifier le tracé de ski',()=>ctx.edit({label:'Descente de ski',points:area.points.map(q=>({...q})),min:2,max:128,color:0x8ae8ff,diagnose:points=>{try{make(points);return null;}catch(e){return String(e);}},commit:async points=>{await ctx.session.change('Modifier la descente de ski',[],draft=>{const next=make(points,draft);
+    const race=draft.libraries.races?.[ALPINE_RACE_ID],env=skiAreaTerrainEnvironment(draft);
+    if(race&&race.layoutKey===raceFromSkiArea(draft.world,area,env.height).layoutKey)
+     putAuthoredRace(draft,raceFromSkiArea(draft.world,next,env.height));
+    draft.libraries.alpine={...draft.libraries.alpine,'composition-alpine':next};});}})),field('Équipement de prêt',select(area.equipment,[['skis','Skis'],['snowboard','Snowboard']],async value=>{await ctx.session.change('Équipement alpin',[],draft=>{draft.libraries.alpine!['composition-alpine'].equipment=value as typeof area.equipment;});})));
+  const lift=node('input');lift.type='checkbox';lift.checked=area.lift;lift.onchange=()=>{void ctx.session.change('Remontée alpine',[],draft=>{draft.libraries.alpine!['composition-alpine'].lift=lift.checked;});};card.append(field('Remontée mécanique prototype',lift),node('p','B alterne skis et snowboard. Les portes d’un chrono de ski utilisent le tracé enneigé.','muted'));
+  if(!p.libraries.races?.[ALPINE_RACE_ID])card.append(button('Créer un chrono sur cette descente',async()=>{
+   try{
+    await ctx.session.fullDocument();
+    await ctx.session.change('Créer le chrono de ski',[],draft=>{
+     const piste=draft.libraries.alpine?.['composition-alpine'];
+     if(!piste)throw Error('Descente de ski absente');
+     const env=skiAreaTerrainEnvironment(draft),report=inspectSkiArea(piste,env);
+     if(!report.ok)throw Error(report.diagnostics.join(' · '));
+     putAuthoredRace(draft,raceFromSkiArea(draft.world,piste,env.height));
+    });
+    ctx.status('Chrono de ski ajouté aux circuits du monde.');
+   }catch(error){ctx.status(String(error),true);}
+  }));
+  host.append(card);
  }
 
  let newKind:RaceKind='roll',newName='Nouveau circuit';
@@ -194,7 +213,8 @@ export function mountRacesPanel(host:HTMLElement,ctx:RacePanelContext){
    });
    const route=node('details','','section-card');
    route.append(node('summary',race.track?'Route de course · '+Math.round(trackLength(race.track))+' m':'Route de course · non définie'));
-   if(race.kind==='flight'||race.kind==='surf')route.append(node('p',race.kind==='surf'?'Les courses de surf utilisent des vagues et obstacles aquatiques, sans route terrestre.':'Les courses entièrement en vol utilisent les anneaux, sans route au sol.','muted'));
+   if(race.kind==='ski')route.append(node('p','La neige de la descente fournit le revêtement. Placez les portes sur le couloir de ski.','muted'));
+   else if(race.kind==='flight'||race.kind==='surf')route.append(node('p',race.kind==='surf'?'Les courses de surf utilisent des vagues et obstacles aquatiques, sans route terrestre.':'Les courses entièrement en vol utilisent les anneaux, sans route au sol.','muted'));
    else if(!race.track)route.append(button('Créer la piste depuis les checkpoints',()=>{
      try{edit('Créer la route du circuit',{...race,track:roadbedFromGates(race)});}catch(e){ctx.status(String(e),true);}
    },'primary-button'));
