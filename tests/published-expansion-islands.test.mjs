@@ -41,6 +41,19 @@ test('the published harvest island combines reachable farm services and owned pl
  const fields=Object.values(project.libraries.zones).filter(zone=>zone.kind==='farm-plot');
  assert.ok(fields.some(field=>field.farm.assignment==='player'));
  assert.ok(fields.some(field=>field.farm.assignment==='npc'&&field.farm.initialCrop));
+ const offer=project.libraries.questCatalog['quest:moissons-premiere-recolte'];
+ assert.ok(project.entityIndex[offer.giverId]);
+ assert.ok(fields.some(field=>field.id===offer.bindings.farmPlotId&&
+  field.farm.assignment==='player'&&field.farm.crops.includes('carrot')));
+ const accepted=acceptQuest(offer,offer.questKey,3);
+ const event={schemaVersion:1,eventId:'test:moissons:1',type:'farm.harvested',worldId:project.world.worldId,
+  islandId:project.world.worldId,gameMinute:4,sequence:1,itemId:'farm:carrot',quantity:2};
+ assert.equal(advanceQuest(accepted,{...event,type:'market.traded'}).applied,false);
+ const harvested=advanceQuest(accepted,event).instance;
+ assert.equal(harvested.stepIndex,1);
+ const delivery={...event,eventId:'test:moissons:2',sequence:2,type:'quest.delivered',quantity:1,targetId:offer.giverId};
+ assert.equal(advanceQuest(harvested,{...delivery,targetId:'other-host'}).applied,false);
+ assert.equal(advanceQuest(harvested,delivery).instance.status,'ready');
  assert.deepEqual(validateBirthPort(project),[]);
  assert.deepEqual(validateWorldActivities(project),[]);
  assert.deepEqual(validateSettlements(project),[]);

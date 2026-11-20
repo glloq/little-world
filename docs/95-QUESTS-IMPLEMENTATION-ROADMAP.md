@@ -198,3 +198,8 @@ Pour chaque phase : **SPECIFIED → IMPLEMENTED → TESTED → QUALIFIED**, asso
 | PNJ noyés sous trop d'offres | Q5/Q7 : 1–2 propositions/PNJ et regroupement journal |
 
 **Livrables attendus en fin de campagne** : types + moteur pur + émetteurs d'événements + tests déterministes + adaptateurs UI + persistance + audit de faisabilité Studio + rapports de jouabilité et de perf + deux îles d'exemple, sans serveur.
+
+## Missions des îles publiées
+
+- Aux Cimes, l’habitant du port propose **Première descente aux Cimes**. Une course de ski validée débloque la récompense.
+- Aux Moissons, l’habitant propose **Les premières carottes**. Le journal situe la parcelle du joueur, puis l’habitant à qui remettre une carotte. La quête avance à la récolte effective, à la livraison et à la remise de la récompense via les services existants.
