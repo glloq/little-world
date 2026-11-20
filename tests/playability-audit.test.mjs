@@ -28,3 +28,14 @@ test('the audit includes authored offers and reports missing local activity refe
  p.libraries.questCatalog[questKey].giverId='absent';
  assert.ok(auditPlayability(p).findings.some(finding=>finding.code==='QUEST_GIVER_MISSING'));
 });
+
+
+test('surf race anchors require water while ordinary course anchors require dry terrain',()=>{
+ const p=flatSettlementProject();
+ const gates=[{center:{x:390,y:0,z:390}},{center:{x:0,y:0,z:0}}];
+ p.libraries.races={surf:{id:'surf',name:'Surf',kind:'surf',gates},roll:{id:'roll',name:'Roulade',kind:'roll',gates}};
+ const {anchors,findings}=auditPlayability(p);
+ assert.deepEqual(anchors.filter(anchor=>anchor.kind==='race').map(anchor=>anchor.id),['surf:0','roll:1']);
+ assert.ok(findings.some(finding=>finding.code==='CONTENT_SURF_DRY'&&finding.sourceId==='surf'));
+ assert.ok(findings.some(finding=>finding.code==='CONTENT_WET'&&finding.sourceId==='roll'));
+});

@@ -184,3 +184,5 @@ contient le nombre de missions et d’activités, la proximité des activités, 
 diagnostics de références et les concentrations locales de PNJ, d’entités et de
 lumières. Les distances sont mesurées à l’horizontale. La qualification des
 trajets et des FPS se fait en jeu.
+Les départs et arrivées des courses de surf sont contrôlés sur l’eau. Les
+autres entrées d’activité conservent le contrôle de sol sec.
