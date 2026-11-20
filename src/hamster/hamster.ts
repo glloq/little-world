@@ -101,7 +101,10 @@ export function buildHamster(options: { legacyGlb?: boolean } = {}): HamsterChar
   function face(dx: number, dz: number, dt: number, rate = 9) {
     if (Math.hypot(dx, dz) < 1e-6) return;
     const desired = Math.atan2(dx, dz), delta = Math.atan2(Math.sin(desired - facing), Math.cos(desired - facing));
-    facing += delta * (1 - Math.exp(-dt * rate));
+    // Frame-rate independent, calibrated to give exactly the historical min(1, dt·rate) step
+    // at the 30 Hz reference (same turn feel, same exported clips), smooth at 20/60 FPS.
+    const k = rate >= 30 ? 1 : 1 - Math.pow(1 - rate / 30, dt * 30);
+    facing += delta * k;
   }
   const character: HamsterCharacter = {
     group, rig,
