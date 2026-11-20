@@ -15,6 +15,7 @@ import {planWorldBiomes,provinceEnvironment,RIVER_BIOME_SPAN} from './world-biom
 import {generatorField} from '../terrain-generator.ts';
 import {putPath,putWater} from './source.ts';
 import {auditCirculation,planCirculationLinks} from './circulation.ts';
+import {planSkiResortActivity,resortShaping} from './activity-planners.ts';
 import {compositionCoverage,type CompositionCoverage} from './world-composition-quality.ts';
 import {alignSteppedBiomes} from './world-biome-boundaries.ts';
 import {applyRegionBatch} from './region-batch.ts';
@@ -104,6 +105,15 @@ const BIOMES:Stage={id:'biomes',label:'Biomes et régions',run(c){
  for(let i=0;i<recipes.length;i+=16)applyRegionBatch(project,recipes.slice(i,i+16));
  alignSteppedBiomes(project);alignNaturalBiomes(project);
 }};
+/** Complete ski domain on the reshaped massif, after biomes so snow masks follow the new relief. */
+const RESORT:Stage={id:'resort',label:'Domaine skiable',run(c){
+ if(!c.requirements.activities?.skiResort)return;
+ const village=c.project.libraries.settlements?.['composition-welcome-village'],entries=village?.buildings.map(b=>b.entry)??[];
+ const toward=entries.length?{x:entries.reduce((s,q)=>s+q.x,0)/entries.length,z:entries.reduce((s,q)=>s+q.z,0)/entries.length}:undefined;
+ const altitude=c.requirements.islandStyle?.altitudeM??c.natural?.maxAltitudeM??400;
+ try{planSkiResortActivity(c.project,{toward,shaping:resortShaping(altitude)});}
+ catch(e){c.diagnostics.push({severity:'ERROR',code:'ACTIVITY_RESORT_MISSING',message:'Domaine skiable impossible : '+(e instanceof Error?e.message:String(e))});}
+}};
 const AUDIT:Stage={id:'audit',label:'Contrôle des demandes',run(c){
  const r=c.requirements,natural=c.natural=c.profile.natural?naturalQuality(c.project):undefined,recipes=c.recipes!;
  for(const l of r.landscapes){
@@ -119,7 +129,7 @@ const NORMALIZE:Stage={id:'normalize',label:'Normalisation et couverture',run(c)
  c.coverage=c.profile.provinces?compositionCoverage(c.normalized,c.planned.axis):undefined;
 }};
 /** The ordered composition pipeline. Extend by inserting stages, never by branching inside composeWorld. */
-export const COMPOSITION_STAGES:readonly Stage[]=[SHAPE,SITES,HYDRO,ACCESS,SETTLEMENTS,ACTIVITIES,CIRCULATION,LAND,BIOMES,AUDIT,NORMALIZE];
+export const COMPOSITION_STAGES:readonly Stage[]=[SHAPE,SITES,HYDRO,ACCESS,SETTLEMENTS,ACTIVITIES,BIOMES,RESORT,CIRCULATION,LAND,AUDIT,NORMALIZE];
 
 export function composeWorld(input:MapRequirements,name='Mon petit monde',identity?:{projectId:string;worldId:string},stages:readonly Stage[]=COMPOSITION_STAGES):WorldComposition {
  const started=performance.now(),requirements=validateMapRequirements(input);

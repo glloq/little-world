@@ -1,3 +1,4 @@
+import {parseDiveSite} from '../water/dive-sites.ts';
 import {parseSkiArea} from '../snow/ski-area.ts';
 import {parseQuestCatalogEntry} from '../quests/validation.ts';
 import {validShopPose,sameProjectedShopPose} from '../gameplay/shop-access.ts';
@@ -161,7 +162,7 @@ export function validateLine(value:unknown,world:WorldDefinitionV3,water:boolean
   if(!water){if(line.supportId!==undefined)string(line.supportId,'Support du chemin');if(line.kind!==undefined&&!PATH_KINDS.includes(line.kind as PathKind))throw Error('Chemin : type inconnu');if(line.smooth!==undefined&&typeof line.smooth!=='boolean')throw Error('Chemin : courbe invalide');}string(line.id,'ID tracé');finite(line.width,'Largeur',1,40);const points=array(line.points,'Points',100);if(points.length<2)throw Error('Tracé : deux points requis');for(const p of points){const v=object(p,'Point');keys(v,['x','z'],'Point');point(v,world,'Tracé');}if(water){finite(line.level,'Niveau',VERTICAL_ENVELOPE.min,VERTICAL_ENVELOPE.max);finite(line.depth,'Profondeur',.5,20);validateWaterProfile(line.profile,points.length);validateWaterNetworkFields(line as never);}
 }
 function validateLibraries(value:unknown,world:WorldDefinitionV3,entityIds:string[],chunkIds:string[]):void{
-  const libs=object(value,'Bibliothèques');keys(libs,['prefabs','characters','dialogues','behaviors','interactions','activities','variables','items','objectives','water','paths','zones','races','alpine','surfZones','surfFeatures','landscapes','assemblies','regions','terrainPlans','settlements','questCatalog'],'Bibliothèques');
+  const libs=object(value,'Bibliothèques');keys(libs,['prefabs','characters','dialogues','behaviors','interactions','activities','variables','items','objectives','water','paths','zones','races','alpine','surfZones','surfFeatures','landscapes','assemblies','regions','terrainPlans','settlements','questCatalog','diveSites'],'Bibliothèques');
   if(libs.assemblies!==undefined)for(const [id,raw] of Object.entries(dictionary(libs.assemblies,'Assemblages',1000))){
     const a=object(raw,'Assemblage');keys(a,['id','name','version','items'],'Assemblage');
     if(a.id!==id)throw Error('Assemblage : ID différent de la clé');
@@ -202,6 +203,7 @@ function validateLibraries(value:unknown,world:WorldDefinitionV3,entityIds:strin
     const offer=parseQuestCatalogEntry(raw);
     if(offer.questKey!==id||offer.islandId!==world.worldId)throw Error('Quête auteur : ID ou monde incorrect');
   }
+  if(libs.diveSites!==undefined)for(const [id,raw]of Object.entries(dictionary(libs.diveSites,'Sites de plongée',64))){if(parseDiveSite(raw,world.bounds).id!==id)throw Error('Site de plongée : ID différent de la clé');}
   if(libs.surfZones!==undefined)for(const [id,raw]of Object.entries(dictionary(libs.surfZones,'Zones surf',32))){
     const zone=object(raw,'Zone surf');keys(zone,['id','minX','maxX','minZ','maxZ','dirX','dirZ','seaLevel','amplitude','wavelength','speed','seed','shoreFadeDepth','edgeFade','barrelStrength','style','form'],'Zone surf');
     validateSurfZone(zone as unknown as SurfZone);

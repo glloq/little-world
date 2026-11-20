@@ -7,6 +7,8 @@ import {projectRaceTerrainEnvironment,skiAreaTerrainEnvironment} from './race-te
 import {findRaceTerrainPlacements,raceFromTerrainPlacement,inspectRaceTerrain} from './race-terrain-planner.ts';
 import {putAuthoredRace} from './race-authoring.ts';
 import type {ProjectDocument} from './types.ts';
+import {planFlightCourse,planSurfActivity} from './activity-planners.ts';
+import {authoredPortLayout} from '../archipelago/port-n1-plan.ts';
 import type {CompositionDiagnostic} from './world-composition.ts';
 export function generateWorldActivities(p:ProjectDocument,diagnostics:CompositionDiagnostic[]){
  const options=p.world.generation?.activities;if(!options)return;
@@ -30,6 +32,14 @@ export function generateWorldActivities(p:ProjectDocument,diagnostics:Compositio
    putAuthoredRace(p,raceFromTerrainPlacement(p.world,'race:composition-'+style,style==='flat'?'Boucle de roulade':'Descente de roulade',candidate,env));installed=true;break;
   }
   if(!installed)diagnostics.push({severity:'ERROR',code:'ACTIVITY_RACE_MISSING',message:'Aucun circuit '+(style==='flat'?'plat':'descendant')+' validé : changer de graine, de relief ou de demande de courses.'});
+ }
+ if(options.flight){const r=planFlightCourse(p);if('code' in r)diagnostics.push(r);}
+ if(options.surf){
+  // The port is only a calm-water shield; without one the whole coast is open to breaks.
+  const root=Object.values(p.chunks).flatMap(c=>Object.values(c.entities)).map(e=>({initialState:e.components.State?.initial}));
+  const port=authoredPortLayout(root)??{shore:{x:1e9,z:1e9}};
+  const {plan,giverId}=planSurfActivity(p,port,p.world.seed);
+  if(!giverId)diagnostics.push({severity:'ERROR',code:'ACTIVITY_SURF_MISSING',message:'Trois plages de surf sûres requises ; '+plan.warnings.join(' ; ')});
  }
 }
 export function validateWorldActivities(p:ProjectDocument):CompositionDiagnostic[]{

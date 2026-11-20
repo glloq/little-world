@@ -2,12 +2,9 @@ import {createProject,parseProject} from './schema.ts';
 import {blobOutline} from '../geography/archipelago-params.ts';
 import {defaultEnvironment} from '../environment/climate.ts';
 import {generateBirthPort} from './birth-port.ts';
-import {projectRaceTerrainEnvironment} from './race-terrain-context.ts';
-import {planThreeSurfBeaches} from '../surf/surf-island-planner.ts';
-import {putAuthoredRace} from './race-authoring.ts';
 import type {ArchipelagoParams} from '../geography/archipelago.ts';
-import {addSurfShoreStops} from './surf-shore.ts';
 import {generateWelcomeVillage} from './welcome-village.ts';
+import {planSurfActivity} from './activity-planners.ts';
 
 export const SURF_ISLAND={worldId:'little-world-surf-island',islandId:'surf-island',
  projectId:'little-world-surf-island-authoring',name:'Île des trois vagues',
@@ -36,14 +33,8 @@ export function buildSurfIsland(){
  if(!port)throw Error('Île Surf : aucun quai N1 réel réalisable dans la baie calme');
  const homes=generateWelcomeVillage(p,port,'hamlet');
  if(homes<4)throw Error('Île Surf : le village du port doit contenir au moins quatre maisons.');
- const env=projectRaceTerrainEnvironment(p),portShield=(x:number,z:number)=>
-  Math.hypot(x-port.shore.x,z-port.shore.z)<135?'port maritime réservé':env.occupation(x,z);
- const plan=planThreeSurfBeaches(env.height,p.world.bounds,p.world.seaLevel,C.seed,C.worldId,portShield);
- if(plan.beaches.length!==3)throw Error('Île Surf : trois plages sûres requises ; '+plan.warnings.join(' ; '));
- p.libraries.surfZones=Object.fromEntries(plan.beaches.map(b=>[b.zone.id,b.zone]));
- p.libraries.surfFeatures=Object.fromEntries(plan.beaches.flatMap(b=>b.features.map(f=>[f.id,f])));
- for(const b of plan.beaches)putAuthoredRace(p,b.gates);
- const giverId=addSurfShoreStops(p,plan.beaches);
+ const {plan,giverId}=planSurfActivity(p,port,C.seed);
+ if(plan.beaches.length!==3||!giverId)throw Error('Île Surf : trois plages sûres requises ; '+plan.warnings.join(' ; '));
  const questKey='quest:trois-vagues-chronos',raceIds=plan.beaches.map(beach=>beach.gates.id);
  p.libraries.questCatalog={
   ...p.libraries.questCatalog,

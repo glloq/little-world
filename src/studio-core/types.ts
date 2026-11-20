@@ -84,6 +84,8 @@ export interface ProjectLibraries {
   questCatalog?:Record<StableId,import('../quests/schema.ts').QuestCatalogEntryV1>;
   /** Optional authored surf areas. Empty legacy projects retain flat sea physics. */
   surfZones?:Record<StableId,import('../surf/wave-field.ts').SurfZone>;
+  /** Optional underwater dive sites (reefs, wrecks, drop-offs…), doc 104 §3. */
+  diveSites?:Record<StableId,import('../water/dive-sites.ts').DiveSiteV1>;
   /** Optional ramp/boost/buoy placements with pure tick-level trigger rules. */
   surfFeatures?:Record<StableId,import('../surf/surf-features.ts').SurfFeature>;
   /** World Production landscape presets (re-editable instances + generation record). Optional. */
