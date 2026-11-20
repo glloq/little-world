@@ -29,7 +29,7 @@
     "test:instruments": "node tools/test-instruments-browser.mjs",
     "test:water": "node tools/test-water-browser.mjs",
     "test:surf": "node tools/test-surf-browser.mjs",
-    "test:surf-island": "node tools/test-surf-island-browser.mjs",
+    "test:surf-island": "node --experimental-strip-types tools/test-surf-island-browser.mjs",
     "benchmark:surf": "node tools/benchmark-surf-browser.mjs",
     "benchmark:surf-cpu": "node --experimental-strip-types --expose-gc tools/benchmark-surf-cpu.mjs",
     "test:complete-island-start": "node tools/test-complete-island-start-browser.mjs",
