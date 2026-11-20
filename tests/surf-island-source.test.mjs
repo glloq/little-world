@@ -20,7 +20,7 @@ test('dedicated surf island compiles a real N1 port and three disjoint A/B/C wav
  assert.equal(Object.keys(project.libraries.races??{}).length,3);
  assert.ok(Object.keys(project.assets).some(id=>id.startsWith('maritime.')),'real port assets registered');
  assert.equal(parseProject(project).world.worldId,SURF_ISLAND.worldId);
- assert.equal(Object.values(project.entityIndex).filter(entity=>entity.id.startsWith('surf-shore:')).length,9);
+ assert.equal(Object.values(project.entityIndex).filter(entity=>entity.kind==='prop'&&entity.id.startsWith('surf-shore:')).length,9);
  for(const b of plan.beaches){
   assert.equal(validateSurfZone(b.zone),b.zone);
   assert.equal(validateRace(b.gates,project.world.bounds),b.gates);
@@ -38,4 +38,25 @@ test('dedicated surf island compiles a real N1 port and three disjoint A/B/C wav
  }
  assert.ok(plan.beaches.every(b=>Math.hypot(b.start.x-port.boat.x,b.start.z-port.boat.z)>105),
   'calm harbour stays separated from breaking waves');
+});
+
+test('surf guide rewards beach exploration once, including after a save',async()=>{
+ const {gameplayDataFromProject}=await import('../src/gameplay/project-adapter.ts');
+ const {createGameplay}=await import('../src/gameplay/runtime.ts');
+ const {gameplayDialogueSession}=await import('../src/gameplay/dialogue-session.ts');
+ const data=gameplayDataFromProject(buildSurfIsland().project);
+ const game=createGameplay(data),guide='surf-shore:guide',quest='surf-shore:survey';
+ assert.equal(gameplayDialogueSession(game,guide).choose(0),true);
+ assert.equal(game.state.objectives[quest],'active');
+ const marks=data.entities.filter(entity=>entity.initialState.surfShoreMarker);
+ assert.equal(marks.length,3);
+ for(const mark of marks.slice(0,2))assert.equal(game.interact(mark.id,mark.position),true);
+ assert.ok(!gameplayDialogueSession(game,guide).choices.some(choice=>choice.id==='claim'));
+ const resumed=createGameplay(data);
+ resumed.restore(game.save('slot-1',marks[1].position));
+ assert.equal(resumed.interact(marks[2].id,marks[2].position),true);
+ assert.equal(gameplayDialogueSession(resumed,guide).choose(0),true);
+ assert.equal(resumed.state.objectives[quest],'complete');
+ assert.equal(resumed.state.inventory.coin,30);
+ assert.ok(!gameplayDialogueSession(resumed,guide).choices.some(choice=>choice.id==='claim'));
 });
