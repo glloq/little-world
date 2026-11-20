@@ -53,6 +53,8 @@ export function collectDestinations(p:ProjectDocument):Destination[]{
  // Surf breaks are reached from the beach: a path within 200 m of the zone serves it.
  for(const z of Object.values(L.surfZones??{}))out.push({id:'surf:'+z.id,kind:'surf',name:z.id,x:(z.minX+z.maxX)/2,z:(z.minZ+z.maxZ)/2,sourceId:z.id,attachM:200,footprint:[{x:z.minX,z:z.minZ},{x:z.maxX,z:z.minZ},{x:z.maxX,z:z.maxZ},{x:z.minX,z:z.maxZ}]});
  for(const z of Object.values(L.zones??{}))if(z.polygon.length>=3){const kind=z.kind==='mine'?'mine':'farm';out.push({id:kind+':'+z.id,kind,name:z.name,...centroid(z.polygon),sourceId:z.id,attachM:kind==='mine'?30:40,footprint:z.polygon});}
+ // Dive sites are reached from a beach (shore entry) or by boat from the port: 250 m of open water at most.
+ for(const d of Object.values(L.diveSites??{}))out.push({id:'dive:'+d.id,kind:'dive',name:d.name,x:d.entry.x,z:d.entry.z,sourceId:d.id,attachM:250,footprint:d.polygon});
  for(const plan of Object.values(L.terrainPlans??{}))for(const s of plan.sites)out.push({id:'site:'+s.id,kind:'site',name:s.name,x:s.entry.x,z:s.entry.z,sourceId:s.id,attachM:30});
  return out.sort((a,b)=>a.id.localeCompare(b.id));
 }

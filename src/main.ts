@@ -53,6 +53,7 @@ import {
 } from './frame-clock';
 import './style.css';
 import {waterSurface,riverX,isLegacyTerrain} from './terrain.ts';
+import {createUnderwaterView} from './render/underwater-view.ts';
 import {createDiveTracker,createSkiRunTracker,createSurfRideTracker,stepDiveTracker,stepSkiRun,stepSurfRide} from './gameplay/activity-trackers.ts';
 import {createFleet} from './gameplay/fleet.ts';
 import {loadArchipelagoRegistry,type PublishedIsland} from './archipelago/registry.ts';
@@ -539,6 +540,7 @@ let ferryNow=ferryStatus(ferryMinute,activeIsland?.portLevel??0);
 ferryView?.setPresent(ferryNow.present);
 const {createEnvironmentView}=await import('./environment/view.ts');
 const environment=createEnvironmentView(scene,lighting,worldClock,climate,camera);
+const underwaterView=createUnderwaterView(scene);
 // E10 — local lights: entity states switch « state » lights, NPC carriers move their lights.
 const {nightFactor}=await import('./lighting/light-data.ts');
 {
@@ -1774,6 +1776,7 @@ function draw(now: number) {
   speedStreaks.update(player.velocity.length(),player.mode==='glide',started&&!gameUi?.paused&&gameUi?.preferences.speedEffects!==false&&!gameUi?.preferences.reduceMotion,delta);
   const env=environment.update(delta,player.position,budget.level,!!player.space,quality.value as 'low'|'medium'|'high');
   const cameraUnderwater=cameraSubmerged(camera.position.x,camera.position.y,camera.position.z);
+  { const surface=waterSurface(camera.position.x,camera.position.z);underwaterView.update(surface===null?null:surface-camera.position.y,Math.max(0,env.sunAltitude)*(1-.35*env.cloudCover)+.1,lighting.sun); }
   activityView?.update(delta,player.position,player.space);
   // Sampling at ~11 Hz avoids per-frame target queries on older PCs.
   if(now>=nextMineRhythmTargetAt){

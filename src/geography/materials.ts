@@ -2,6 +2,7 @@
  * Distinct from the 2D diagnostic palettes of layers.ts. Tuned for the existing light style. */
 import type {Material,GeoSample} from './classify.ts';
 import {valueNoise} from './noise.ts';
+import {depthZone,SEABED_ZONE_COLORS} from './depth-zones.ts';
 import {setLinearHex} from '../render/linear-color.ts';
 import {groundCover,COVER_PALETTE} from './ground-cover.ts';
 export const MATERIAL_COLORS:Record<Material,number>={
@@ -15,7 +16,11 @@ const LINEAR:Partial<Record<Material,[number,number,number]>>={};
  * mineral materials, cheap deterministic variation (wet sand band, rock strata, scree speckle).
  * `x`/`z` only seed the variation; no texture, no extra draw call. */
 export function materialColor(s:GeoSample,seaLevel:number,out:{setHex(hex:number):unknown;r:number;g:number;b:number},x=0,z=0,seed=77):void{
-  if(s.height<seaLevel-.6){out.setHex(SEABED_COLOR);return;}
+  if(s.height<seaLevel-.6){
+    // Depth-aware seabed (doc 104 §3): sand → sediments → deep floor, rock on drop-offs; tiny variation only.
+    const zone=depthZone(seaLevel-s.height,s.slope)??'shore',hex=SEABED_ZONE_COLORS[zone],k=.96+.08*valueNoise(seed^0x5eab,x*.08,z*.08);
+    out.setHex(hex);out.r*=k;out.g*=k;out.b*=k;return;
+  }
   const cover=groundCover(s,x,z,seed);
   if(cover.type!=='bare')setLinearHex(out,cover.color);
   else {

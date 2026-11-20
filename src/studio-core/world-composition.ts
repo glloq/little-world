@@ -18,6 +18,7 @@ import {auditCirculation,planCirculationLinks} from './circulation.ts';
 import {planSkiResortActivity,resortShaping} from './activity-planners.ts';
 import {planPoles} from './world-poles.ts';
 import {planActivityStories} from './activity-stories.ts';
+import {planBathymetry,planDiveSites,SHELF} from './underwater-planner.ts';
 import {compositionCoverage,type CompositionCoverage} from './world-composition-quality.ts';
 import {alignSteppedBiomes} from './world-biome-boundaries.ts';
 import {applyRegionBatch} from './region-batch.ts';
@@ -43,6 +44,11 @@ const SHAPE:Stage={id:'shape',label:'Forme et macro-relief',run(c){
  if(r.compositionVersion===3&&r.terraces<3)c.diagnostics.push({severity:'ERROR',code:'TERRACE_LEVELS_REQUIRED',message:'L’île étagée demande au moins 3 niveaux. Augmenter les terrasses ou choisir la composition en provinces.'});
  c.project=createProject({...c.identity,name:c.name,width:r.width,length:r.length,seed:r.seed,chunkSizeM:128,terrain:{kind:'archipelago',version:1,archipelago:c.planned.terrain}});
  c.project.world.generation=r;
+}};
+/** Offshore profile first (shelf, drop-off): port, surf and boats then read the final depths (doc 104 §3). */
+const SEABED:Stage={id:'seabed',label:'Profil des fonds marins',run(c){
+ const u=c.requirements.underwater;if(!u)return;
+ const t=c.project.world.terrain;if(t?.kind==='archipelago')t.archipelago.bathymetry={...SHELF[u.shelf],features:[]};
 }};
 const SITES:Stage={id:'sites',label:'Zones utiles (port, fermes, lac)',run(c){
  c.diagnostics.push(...planTerrainSites(c.project,c.requirements));
@@ -95,6 +101,12 @@ const CIRCULATION:Stage={id:'circulation',label:'Réseau de circulation',run(c){
  if(c.requirements.circulation){const links=planCirculationLinks(c.project,terrainAccessContext(c.project));for(const path of links.paths)putPath(c.project,path);}
  c.diagnostics.push(...auditCirculation(c.project).map(d=>({severity:d.severity,code:d.code,message:d.message})));
 }};
+/** Reefs, blue holes and trench away from the port and surf breaks, then dive sites with discoveries. */
+const DIVE:Stage={id:'dive',label:'Récifs et sites de plongée',run(c){
+ const u=c.requirements.underwater;if(!u)return;
+ c.diagnostics.push(...planBathymetry(c.project,u).diagnostics);
+ if(u.diveSites)c.diagnostics.push(...planDiveSites(c.project).diagnostics);
+}};
 /** Land registry of everything placed so far; overlaps between incompatible uses are reported. */
 const LAND:Stage={id:'land',label:'Occupation du sol',run(c){c.land=projectLandRegistry(c.project);c.diagnostics.push(...auditLandUse(c.project,c.land).map(d=>({severity:d.severity,code:d.code,message:d.message})));}};
 const BIOMES:Stage={id:'biomes',label:'Biomes et régions',run(c){
@@ -141,7 +153,7 @@ const NORMALIZE:Stage={id:'normalize',label:'Normalisation et couverture',run(c)
  c.coverage=c.profile.provinces?compositionCoverage(c.normalized,c.planned.axis):undefined;
 }};
 /** The ordered composition pipeline. Extend by inserting stages, never by branching inside composeWorld. */
-export const COMPOSITION_STAGES:readonly Stage[]=[SHAPE,SITES,HYDRO,ACCESS,SETTLEMENTS,POLES,ACTIVITIES,BIOMES,RESORT,CIRCULATION,LAND,STORIES,AUDIT,NORMALIZE];
+export const COMPOSITION_STAGES:readonly Stage[]=[SHAPE,SEABED,SITES,HYDRO,ACCESS,SETTLEMENTS,POLES,ACTIVITIES,DIVE,BIOMES,RESORT,CIRCULATION,LAND,STORIES,AUDIT,NORMALIZE];
 
 export function composeWorld(input:MapRequirements,name='Mon petit monde',identity?:{projectId:string;worldId:string},stages:readonly Stage[]=COMPOSITION_STAGES):WorldComposition {
  const started=performance.now(),requirements=validateMapRequirements(input);

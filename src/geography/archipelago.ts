@@ -9,6 +9,7 @@
  * The heightfield stays a heightfield: overhangs/caves remain separate 3D geometry. */
 import {fbm,valueNoise,volcanoProfile} from './noise.ts';
 import {compileEarthworks} from './earthworks.ts';
+import {compileSeabedFeatures,profileDepth} from './bathymetry.ts';
 export interface VolcanoParams {x:number;z:number;radiusM:number;heightM:number;craterRadiusM:number;craterDepthM:number}
 
 export interface PointXZ {x:number;z:number}
@@ -42,7 +43,7 @@ export type WithVariant<T>=T&{variant?:number};
  * becomes from + range·F(t), t=(h-from)/range, with F'(t)=scale·power·t^(power-1) after a
  * short blend from 1. Monotone: every descending line stays descending. */
 export interface SummitShaping {fromM:number;rangeM:number;scale:number;power:number}
-export interface ArchipelagoParams {/** Local grading applied last (doc 104 §C4). Optional. */earthworks?:import('./earthworks.ts').EarthworkV1[];summitShaping?:SummitShaping;coastalReliefFadeM?:number;seabedDepthM:number;detailM:number;landmasses:Landmass[];features:ReliefFeature[]}
+export interface ArchipelagoParams {/** Local grading applied last (doc 104 §C4). Optional. */earthworks?:import('./earthworks.ts').EarthworkV1[];/** Authored offshore profile and seabed shapes (doc 104 §3). Optional. */bathymetry?:import('./bathymetry.ts').BathymetryV1;summitShaping?:SummitShaping;coastalReliefFadeM?:number;seabedDepthM:number;detailM:number;landmasses:Landmass[];features:ReliefFeature[]}
 export interface GeoWorld {seed:number;seaLevel:number;width:number;length:number}
 /** Generator outputs shared by every consumer (terrain, classification, map, vegetation). */
 export interface GeneratorField {
@@ -164,12 +165,13 @@ function compilePiste(source:{points:PointXZ[];levels:number[];widthM:number;edg
 }
 
 export function archipelagoField(world:GeoWorld,p:ArchipelagoParams):GeneratorField{
-  const sea=world.seaLevel,seed=world.seed>>>0,falloff=320;
+  // Offshore reach of the coast distance: historical 320 m, wider only for an authored seabed profile.
+  const sea=world.seaLevel,seed=world.seed>>>0,falloff=p.bathymetry?Math.max(320,p.bathymetry.shelfWidthM+p.bathymetry.dropWidthM+120):320;
   const masses=p.landmasses.map((l,index)=>({l,index,sdf:compilePolygon(l.outline),box:landmassBounds(l,falloff),seed:shapeSeed(seed,l.id,l.variant),freq:1/l.coastWavelengthM,hill:1/Math.max(80,l.coastWavelengthM*.45)}));
   // Features grouped by composition stage once (no per-sample filtering/allocation).
   const stage=(kinds:FeatureKind[])=>p.features.filter(f=>kinds.includes(f.kind)).map(f=>({f,box:featureBounds(f),seed:shapeSeed(seed,f.id,f.variant),sdf:f.kind==='plateau'?compilePolygon(f.polygon):null}));
   const pistes=p.features.flatMap(f=>f.kind==='piste'?[{box:featureBounds(f),blend:compilePiste(f)}]:[]);
-  const shaping=p.summitShaping?summitShapingCurve(p.summitShaping):null,earth=compileEarthworks(p.earthworks,sea);
+  const shaping=p.summitShaping?summitShapingCurve(p.summitShaping):null,earth=compileEarthworks(p.earthworks,sea),bathy=p.bathymetry,seabed=compileSeabedFeatures(bathy);
   const allPlateaus=stage(['plateau']),plateaus=allPlateaus.filter(({f})=>f.kind!=='plateau'||!f.surface),platforms=allPlateaus.filter(({f})=>f.kind==='plateau'&&f.surface),raises=stage(['mountain','hill','ridge']),cuts=stage(['basin','valley']),volcanoes=stage(['volcano']);
   /** Best coast value and the land mass providing it. */
   // Direct-mapped cache of exact results: height() then site() at the same point (tile and
@@ -186,7 +188,7 @@ export function archipelagoField(world:GeoWorld,p:ArchipelagoParams):GeneratorFi
   const cliffOf=(m:typeof masses[number],x:number,z:number)=>clamp(m.l.cliffs+(m.l.cliffVariation??.6)*valueNoise(m.seed^0xc11f,x/650,z/650),0,1);
   function height(x:number,z:number):number{
     const {coast,mass}=coastOf(x,z);let h:number,inland=0;
-    if(coast<0||!mass)h=sea-1-p.seabedDepthM*smooth(0,falloff,-coast);
+    if(coast<0||!mass)h=bathy?sea-profileDepth(bathy,p.seabedDepthM,-coast):sea-1-p.seabedDepthM*smooth(0,320,-coast);
     else{
       const l=mass.l,cliff=cliffOf(mass,x,z),ramp=lerp(l.beachWidthM,5,cliff),shore=l.shoreHeightM+cliff*28;inland=smooth(ramp,ramp+500,coast);
       h=sea-1+(shore+1)*smooth(0,ramp,coast)+(Math.max(l.lowlandHeightM,shore)-shore)*inland+(inland>0?fbm(mass.seed^0x1f3d,x*mass.hill,z*mass.hill,2)*l.hillHeightM*inland:0);
@@ -213,6 +215,7 @@ export function archipelagoField(world:GeoWorld,p:ArchipelagoParams):GeneratorFi
     if(shaping)h=shaping(h-sea)+sea;
     for(const {f,box,sdf}of platforms){if(f.kind!=='plateau'||!inBox(box,x,z))continue;h=lerp(h,sea+f.heightM,smooth(-f.edgeM,0,sdf!(x,z)));}
     if(p.coastalReliefFadeM!==undefined)h=coast<0?baseHeight:lerp(baseHeight,h,smooth(0,p.coastalReliefFadeM,coast));
+    if(seabed&&coast<0)h=seabed(x,z,h,sea,-coast);
     if(inland>0&&p.detailM)h+=p.detailM*fbm(seed^0xd37a,x/38,z/38,2)*inland;
     // Overlapping runs (shared starts/finishes) blend toward their weighted mean level.
     if(pistes.length){let wMax=0,wSum=0,lSum=0;

@@ -47,7 +47,7 @@ export function planActivityStories(p:ProjectDocument,o:StoryOptions={}):StoryRe
  const sites=collectActivitySites(p),graph=buildCirculationGraph(p),report=circulationReport(graph),shops=shopsInProject(p),geo=projectGeography(p).ctx;
  const reachable=new Set(report.destinations.filter(d=>d.status==='reachable').map(d=>d.id));
  // Site ids → circulation destination ids (same prefixes for the land kinds).
- const destOf=(s:ActivitySite)=>s.kind==='ski'?'piste:'+s.sourceId:s.kind==='surf'?'surf:'+s.sourceId:s.kind.startsWith('race-')?'race:'+s.sourceId:s.kind==='mine'?'mine:'+s.sourceId:s.kind==='farm'?'farm:'+s.sourceId:null;
+ const destOf=(s:ActivitySite)=>s.kind==='ski'?'piste:'+s.sourceId:s.kind==='surf'?'surf:'+s.sourceId:s.kind==='dive'?null:s.kind.startsWith('race-')?'race:'+s.sourceId:s.kind==='mine'?'mine:'+s.sourceId:s.kind==='farm'?'farm:'+s.sourceId:null;
  const isReachable=(s:ActivitySite)=>{const d=destOf(s);if(!d)return true;if(s.kind==='race-ski'||s.kind==='race-surf')return true;return reachable.has(d)||!report.destinations.some(x=>x.id===d);};
  // Remove previous generated stories (regeneration replaces only its own data).
  for(const id of Object.keys(p.libraries.questCatalog??{}))if(id.startsWith('quest:gen:'))delete p.libraries.questCatalog![id];
@@ -64,6 +64,9 @@ export function planActivityStories(p:ProjectDocument,o:StoryOptions={}):StoryRe
   let best:{x:number;z:number}|null=null,bestD=Infinity,anchorSite=list[0];
   for(const site of list)for(const q of graph.nodes){const d=Math.hypot(q.x-site.access.x,q.z-site.access.z);if(d<bestD&&geo.height(q.x,q.z)>p.world.seaLevel+.8){bestD=d;best=q;anchorSite=site;}}
   list.sort((a,b)=>a===anchorSite?-1:b===anchorSite?1:0);
+  // Water families (dive, surf, fishing) can also be hosted at the port: boats take players out.
+  if((!best||bestD>450)&&(family==='dive'||family==='surf'||family==='fishing')){const port=Object.values(p.chunks).flatMap(c=>Object.values(c.entities)).find(e=>e.components.State?.initial.portN1Authored===true)?.components.Transform?.position;
+   if(port){let near:{x:number;z:number}|null=null,nd=Infinity;for(const q of graph.nodes){const d=Math.hypot(q.x-port.x,q.z-port.z);if(d<nd&&geo.height(q.x,q.z)>p.world.seaLevel+.8){nd=d;near=q;}}if(near&&nd<120){best=near;bestD=0;}}}
   if(!best||bestD>450){diagnostics.push({severity:'WARNING',code:'STORY_HOST_UNPLACED',message:`${t('act.'+family,{},locale)} : aucun point du réseau à moins de 450 m pour un hôte.`});continue;}
   const id='host:'+family+':'+(k++),pos={x:Math.round((best.x+1.5)*100)/100,z:Math.round((best.z+1.5)*100)/100};
   const entity:EntityDefinitionV3={id,kind:'character',name:t(HOST_KEY[family],{},locale),ownerChunkId:chunkAt(p.world,pos.x,pos.z),
