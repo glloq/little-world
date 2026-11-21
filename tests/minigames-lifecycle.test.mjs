@@ -132,3 +132,15 @@ test('host: walking into another activity abandons the current game; F then star
  step(true,2);step(false,1);assert.equal(host.manager.records.get(b.id).state,'ACTIVE','F starts the cans game');
  host.dispose();
 });
+test('personal bests: same local mechanism as race records, keyed by layout, direction from the ranking',async()=>{
+ const {minigameRecord}=await import('../src/minigames/records.ts');
+ const {readPracticeBest,writePracticeBest}=await import('../src/gameplay/race-records.ts');
+ const store=new Map(),storage={getItem:k=>store.get(k)??null,setItem:(k,v)=>store.set(k,v)};
+ const golf=defaultMiniGame('minigolf',{id:'minigame:g',x:0,z:0}),r=minigameRecord(golf);
+ assert.equal(r.better,'lower');assert.ok(writePracticeBest(storage,r,5));assert.ok(!writePracticeBest(storage,r,6));assert.ok(writePracticeBest(storage,r,3));
+ assert.equal(readPracticeBest(storage,r),3);
+ const moved=minigameRecord({...golf,elements:golf.elements.map(e=>e.kind==='hole'?{...e,x:-1}:e)});
+ assert.notEqual(moved.key,r.key,'editing the course starts a new record');
+ assert.equal(minigameRecord(defaultMiniGame('bowling',{id:'minigame:b',x:0,z:0})).better,'higher');
+ assert.equal(minigameRecord(defaultMiniGame('football',{id:'minigame:f',x:0,z:0})),null,'no personal best for team scores');
+});

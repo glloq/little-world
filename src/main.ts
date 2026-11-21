@@ -682,7 +682,7 @@ const minigameHost=await (async()=>{
   if(!defs.length)return null;
   const {createMiniGameHost}=await import('./minigames/game-host.ts');
   return createMiniGameHost({parent:scene,defs,collision:gameplay?.collision??null,height:terrainHeight,water:waterSurface,
-    showInfo,emit:e=>gameplay?.emitGameplayEvent(e),hudHost:document.body});
+    showInfo,emit:e=>gameplay?.emitGameplayEvent(e),hudHost:document.body,records:localStorage,worldBuild:gameplay?.runtime.data.buildVersion??''});
 })();
 if(metricsEnabled&&minigameHost)Object.assign((window as unknown as {littleWorldDebug?:object}).littleWorldDebug??{},{minigames:minigameHost});
 world.update(0, player.position);

@@ -9,6 +9,8 @@
 import type {Object3D} from 'three';
 import type {WorldCollisionQuery} from '../physics/collision-world.ts';
 import type {GameplayEvent} from '../gameplay/events.ts';
+import {readPracticeBest,writePracticeBest,type RaceStorage} from '../gameplay/race-records.ts';
+import {minigameRecord} from './records.ts';
 import {MINIGAME_VARIANTS} from './catalog.ts';
 import {createMiniGameManager,type MiniGameInstanceRecord} from './manager.ts';
 import {worldToArea,type MiniGameInstanceV1} from './schema.ts';
@@ -22,6 +24,8 @@ export interface MiniGameHostOptions {
   showInfo(text:string,kind?:'info'|'success'|'warning'):void;
   emit?(event:GameplayEvent):void;
   hudHost?:HTMLElement|null;
+  /** Local personal bests (same mechanism as race records); absent = none kept. */
+  records?:RaceStorage;worldBuild?:string;
 }
 export const LOCAL_PLAYER='local';
 const CHARGE={kick:.8,throw:1,putt:1.5} as const;
@@ -37,7 +41,7 @@ export function createMiniGameHost(o:MiniGameHostOptions){
   const manager=createMiniGameManager(o.defs,{env,
     colliders:o.collision?{add:c=>o.collision!.add({id:c.id,shape:'box',position:c.position,size:c.size,enabled:()=>true}),remove:id=>o.collision!.remove(id)}:undefined,
     onError:(id,e)=>{console.warn('Mini-jeu désactivé',id,e);o.showInfo('Activité indisponible : '+(manager.records.get(id)?.def.name??id),'warning');}});
-  const views=new Map<string,MiniGameView>(),loadingViews=new Set<string>();
+  const views=new Map<string,MiniGameView>(),loadingViews=new Set<string>(),bests=new Map<string,number|null>();
   const actor:MiniGameActor={id:LOCAL_PLAYER,x:0,y:0,z:0,vx:0,vy:0,vz:0,radius:.4,height:1,mode:'ground'};
   const actors=[actor],none:MiniGameActor[]=[];
   let seq=0,held=0,charging=false,wasHeld=false,hintAt=-1e9,lastHint='',lastTick=0,disposed=false;
@@ -75,7 +79,10 @@ export function createMiniGameHost(o:MiniGameHostOptions){
         const won=e.winners.includes(LOCAL_PLAYER)||e.winners.some(w=>r.session?.players.find(p=>p.id===LOCAL_PLAYER)?.teamId===w);
         const scores=Object.entries(r.session?.scores??{}).map(([k,v])=>name(k)+' '+v).join(' · ');
         o.showInfo(`${r.def.name} terminé${e.winners.length?' · vainqueur : '+e.winners.map(name).join(', '):' · égalité'} (${scores})`,'success');
-        o.emit?.({type:'minigame.finished',instanceId:r.def.id,variant:r.def.variant,seconds:r.session?sessionSeconds(r.session):0,won});break;
+        o.emit?.({type:'minigame.finished',instanceId:r.def.id,variant:r.def.variant,seconds:r.session?sessionSeconds(r.session):0,won});
+        const record=o.records?minigameRecord(r.def,o.worldBuild):null,mine=r.session?.scores[LOCAL_PLAYER];
+        if(record&&mine!==undefined&&e.reason!=='abandon'&&writePracticeBest(o.records!,record,mine)){bests.delete(r.def.id);o.showInfo('Nouveau record personnel : '+mine,'success');}
+        break;
       }
       case 'game:abandon':o.showInfo(r.def.name+' : partie abandonnée');break;
     }
@@ -87,7 +94,11 @@ export function createMiniGameHost(o:MiniGameHostOptions){
       text=r.sim.hint(r.session,actor)??'';
       if(held>0){const style=MINIGAME_VARIANTS[r.def.variant].physics.command,p=Math.min(1,held/CHARGE[style]);text+=' · puissance '+'▮'.repeat(Math.round(p*10))+'▯'.repeat(10-Math.round(p*10));}
       if(r.def.rules.timeLimitSeconds)text+=' · '+Math.max(0,Math.ceil(r.def.rules.timeLimitSeconds-sessionSeconds(r.session)))+' s';
-    }else if(r)text=`${r.def.name} · F : commencer (${r.def.playersMin>1&&r.def.rules.practice?'entraînement solo':'solo'})`;
+    }else if(r){
+      if(!bests.has(r.def.id)){const record=o.records?minigameRecord(r.def,o.worldBuild):null;bests.set(r.def.id,record?readPracticeBest(o.records!,record):null);}
+      const best=bests.get(r.def.id)??null;
+      text=`${r.def.name} · F : commencer (${r.def.playersMin>1&&r.def.rules.practice?'entraînement solo':'solo'})${best!==null?' · record : '+best:''}`;
+    }
     if(text!==lastHint){lastHint=text;hud.textContent=text;hud.hidden=!text;}
   }
   return {
