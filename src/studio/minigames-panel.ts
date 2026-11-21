@@ -9,8 +9,7 @@ import type {StudioViewport} from './viewport/editor-viewport.ts';
 import {MINIGAME_VARIANTS,MINIGAME_VARIANT_IDS,ACTIVITY_FAMILIES,type MiniGameVariantId} from '../minigames/catalog.ts';
 import type {MiniGameElementV1,MiniGameInstanceV1,MiniGameRulesV1} from '../minigames/schema.ts';
 import {inspectMiniGame,suggestMiniGameSites,type SiteQueries} from '../minigames/sites.ts';
-import {createMiniGame,putMiniGame,removeMiniGame,resetMiniGameLayout} from '../studio-core/minigame-authoring.ts';
-import {projectRaceTerrainEnvironment} from '../studio-core/race-terrain-context.ts';
+import {createMiniGame,putMiniGame,removeMiniGame,resetMiniGameLayout,projectSiteQueries} from '../studio-core/minigame-authoring.ts';
 import {terrainHeight} from '../terrain.ts';
 
 export interface MiniGamesPanelContext {session:StudioSession;viewport:StudioViewport;status(message:string,error?:boolean):void}
@@ -19,12 +18,7 @@ const RULE_FIELDS:[keyof MiniGameRulesV1,string,number,number][]=[
 const ELEMENT_LABELS:Record<MiniGameElementV1['kind'],string>={goal:'But',pin:'Quille',tee:'Départ',hole:'Trou',obstacle:'Obstacle',spawn:'Point de départ',ball:'Balle',target:'Cible'};
 const deg=(r:number)=>Math.round(r*180/Math.PI),rad=(d:number)=>Math.round(d*Math.PI/180*100)/100;
 
-/** Terrain queries of the project WITHOUT its mini-games (their own reserved ground is not an obstacle). */
-function siteQueries(ctx:MiniGamesPanelContext):SiteQueries{
-  const doc=ctx.session.document,env=projectRaceTerrainEnvironment({...doc,libraries:{...doc.libraries,minigames:undefined}});
-  return {height:env.height,water:(x,z)=>env.water(x,z,env.height(x,z)),
-    obstacles:(minX,maxX,minZ,maxZ)=>{const out:{x:number;z:number;r:number}[]=[];for(let x=minX;x<=maxX;x+=2)for(let z=minZ;z<=maxZ;z+=2)if(env.occupation(x,z))out.push({x,z,r:.5});return out;}};
-}
+const siteQueries=(ctx:MiniGamesPanelContext):SiteQueries=>projectSiteQueries(ctx.session.document);
 let preview:{dispose():void}|null=null,previewKey='';
 async function refreshPreview(ctx:MiniGamesPanelContext){
   const games=Object.values(ctx.session.document.libraries.minigames??{}),key=JSON.stringify(games);
