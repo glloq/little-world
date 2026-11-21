@@ -214,12 +214,14 @@ En jeu : approcher, **F** pour commencer (bowling : **1** Débutant, **2** Norma
 
 ## 7 bis. Lot 3 : terrains, modes, parcours, visée (IMPLEMENTED, TESTED Node + navigateur SwiftShader)
 
-**Sols (`ball/floors.ts`).** Chaque activité pose un **plateau** juste au-dessus du relief : niveau = point le plus haut du relief sous le groupe + `floor.raise` (5 cm terrain et piste, 12 cm green, 4 cm sable). Un seul échantillonneur analytique sert :
+**Sols (`ball/floors.ts`).** Chaque activité pose un **plateau** sur le sol : niveau = point le plus haut du relief sous le groupe + `floor.raise` (5 cm terrain et piste, 8 cm green, 4 cm sable). Le sol est d’abord **lissé** par un terrassement automatique (voir plus bas) : sur ce sol plat, le plateau ne dépasse que de ces quelques centimètres. Un seul échantillonneur analytique sert :
 - aux balles (hauteur de la simulation = max(relief, plateau)) ;
 - au hamster : `WorldCollisionQuery.setOutdoorSurface(id, …)`, plusieurs plateaux possibles, même règle que le plateau des courses (`plateau ≤ pieds + 0,45`). Une **rampe d’accès** (talus herbeux) entoure chaque plateau là où il domine le relief : 1,5 m de large au minimum, élargie jusqu’à 6 m pour rester sous une pente de 0,8 (test : le hamster monte pas à pas d’en bas jusque sur le plateau) ;
 - au rendu (surface + bords qui descendent dans le sol).
 
-Le relief n’est pas modifié. Dans le Studio, **« Aplanir le terrain »** ajoute un terrassement `pad:<id du mini-jeu>` au niveau moyen sous la zone (+1,5 m, talus 4 m), annulable ; un second appui le remplace.
+**Terrassement automatique (correctif du 21/11/2026).** Un mini-jeu créé dans le Studio (« Créer », « Trouver un terrain ») ou placé par la composition reçoit un terrassement `pad:<id>` au **niveau moyen du relief naturel** sous la zone (+1,5 m de marge, talus 4 m) : le sol est lissé (déblai et remblai équilibrés) et le plateau posé au plus bas. Le terrassement suit la zone quand elle est déplacée ou tournée (gizmo : même niveau ; panneau : niveau recalculé), disparaît avec le mini-jeu, et peut être recalculé (« Réaplanir ») ou retiré (« Rendre le relief naturel »). Relief historique (vallée) : pas de terrassement. La démo `?minigames=demo`, placée à l’exécution, ne peut pas terrasser l’île : elle cherche d’abord un sol dont le dénivelé sous la zone est ≤ 35 cm.
+
+**Plateaux pleins.** Les sols d’activité sont déclarés `solid` dans `WorldCollisionQuery` : ce sont le sol à toute hauteur (jamais « sous » le plateau), contrairement aux ponts et pistes de course qui restent des surfaces abordées par le dessus. Un hamster qui arrive ou réapparaît au niveau du relief se retrouve sur le plateau (test Node et contrôle navigateur).
 
 **Football fermé.** Murs de 0,8 m autour du terrain (balle et hamster), ouverts devant les buts et par **deux portillons** de 1,4 m au milieu des lignes de touche. Pour le hamster : boîtes alignées sur les axes, une par mur si la zone est droite, sinon une chaîne dont le débord reste ≤ 20 cm de chaque côté. Seul un lob par-dessus le mur ou une balle passée par un portillon sort du terrain.
 
@@ -457,7 +459,7 @@ Exemple : **pétanque**, une variante de la famille `ball`.
 - Le hamster est bloqué par les poteaux et les murs du foot ; bordures de mini-golf (15 cm) et murs de bowling (30 cm) se franchissent par la marche (hauteur de pas 45 cm). Les balles restent en extérieur (pas dans les mines) et ignorent vent et courant.
 - Le hamster ne peut pas se placer exactement derrière la balle de façon automatique : la fronde exige qu’il soit à portée (≈ 1,1 m du bord de la balle).
 - L’aperçu ignore les autres balles et les quilles (il ne montre que le trajet de la balle tirée), et ne prévoit ni la capture par le trou ni les règles (rigole, sortie).
-- Plateaux : niveau = point le plus haut du relief sous l’activité. Sur un site en pente, le bord aval forme une estrade avec une large rampe herbeuse (visible en capture sur le mini-golf de démo) ; « Aplanir le terrain » donne un résultat plus naturel. Au-delà de 4,8 m de dénivelé, la rampe de 6 m dépasse la pente de 0,8.
+- Plateaux : sur un sol non terrassé (démo, projets anciens sans terrassement), le niveau reste le point le plus haut du relief et une rampe herbeuse fait le lien ; au-delà de 4,8 m de dénivelé, la rampe de 6 m dépasse la pente de 0,8. La démo ne réserve pas le sol : cailloux et plantes du décor naturel peuvent apparaître sur un terrain de démo (les îles compilées réservent la zone : ni arbres, ni décor de sol). Le gizmo 3D déplace le terrassement sans recalculer son niveau (« Réaplanir » dans le panneau).
 - Solo : un seul joueur local, pas d’IA adverse.
 - Studio : la rotation des zones et des obstacles se fait par l’inspecteur (le gizmo des éléments non-entités ne fait que translater). Le glisser du gizmo n’est pas automatisé en navigateur ; le code de déplacement est testé en Node.
 - Mesures : Node et SwiftShader seulement.

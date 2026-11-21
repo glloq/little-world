@@ -50,6 +50,10 @@ try{
   await goTo(page,foot,0,-3);await waitState(page,foot.id,'READY');
   await page.waitForFunction(()=>window.littleWorldMetrics?.minigames?.views>=1,{},{timeout:15000});
   check(chunks.includes('family'),'ball family chunk loaded on approach');
+  // Solid platform (doc 107 §sols): the hamster stands ON the pitch, never inside or under it.
+  await page.waitForTimeout(800);
+  const stand=await page.evaluate(()=>{const [x,y,z]=window.littleWorldMetrics.position,h=window.littleWorldDebug.minigames.env.height(x,z);return {y,deck:h};});
+  check(Math.abs(stand.y-stand.deck)<.12,'hamster on the platform '+JSON.stringify(stand));
   // A tap shorter than one frame on a slow machine (CPU throttled ×6) must still start the
   // game: the press is latched, not sampled (CI run 44890603622 lost a 120 ms press).
   const cdp=await page.context().newCDPSession(page);await cdp.send('Emulation.setCPUThrottlingRate',{rate:6});
@@ -72,7 +76,7 @@ try{
   // Bowling.
   const bowl=g.instances.find(i=>i.variant==='bowling');
   await goTo(page,bowl,0,-8.25);await waitState(page,bowl.id,'READY');
-  check((await inst(page,foot.id)).state==='READY','leaving the pitch abandoned the football game');
+  check(['READY','UNLOADED'].includes((await inst(page,foot.id)).state),'leaving the pitch abandoned the football game (released when far)');
   await page.waitForTimeout(300);await page.keyboard.press('KeyF');await waitState(page,bowl.id,'ACTIVE');
   // Charge is counted in fixed ticks: under SwiftShader the simulation can run slower than the wall clock.
   await goTo(page,bowl,0,-8.25);await page.waitForTimeout(400);await hold(page,3000);await page.waitForTimeout(6000);

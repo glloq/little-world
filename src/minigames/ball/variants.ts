@@ -3,7 +3,7 @@
  * BallWorld, push module and session helpers. No physics here: goals, pins, holes, turns.
  * Shots are pure plans (`shot`) shared by the real launch and the trajectory preview.
  */
-import type {MiniGameVariantId} from '../catalog.ts';
+import {MINIGAME_VARIANTS,type MiniGameVariantId} from '../catalog.ts';
 import {areaToWorld,insideLane,worldToArea,type MiniGameElementV1,type MiniGameInstanceV1} from '../schema.ts';
 import {addScore,completeTurn,currentPlayer,emit,playerScoreKey,type MiniGameEvent,type MiniGameSessionState} from '../session.ts';
 import type {StaticBox} from './ball-physics.ts';
@@ -201,7 +201,7 @@ const minigolf:BallVariantLogic={
   floors(def):FloorSpec[]{
     const lanes=el(def,'lane');if(!lanes.length)return defaultFloor(def);
     // The deck runs under the borders so they stand on it (and follow its ramps).
-    return lanes.map(l=>({id:l.id,x:l.x,z:l.z,halfWidth:(l.width??2)/2+WALL_THICKNESS,halfLength:(l.depth??6)/2+WALL_THICKNESS,yaw:l.yaw??0,material:'green' as const,shape:l.shape??'flat',slope:l.slope??0,raise:.12}));
+    return lanes.map(l=>({id:l.id,x:l.x,z:l.z,halfWidth:(l.width??2)/2+WALL_THICKNESS,halfLength:(l.depth??6)/2+WALL_THICKNESS,yaw:l.yaw??0,material:'green' as const,shape:l.shape??'flat',slope:l.slope??0,raise:MINIGAME_VARIANTS.minigolf.floor.raise}));
   },
   walls(g){
     const h=g.spec.physics.walls?g.spec.physics.walls.height:.15,lanes=el(g.def,'lane');

@@ -12,9 +12,11 @@ export function putMiniGame(document:ProjectDocument,game:MiniGameInstanceV1){
   if(Object.keys(all).length>=MAX_MINIGAMES&&!all[game.id])throw Error(MAX_MINIGAMES+' mini-jeux maximum');
   const parsed=validateMiniGame(structuredClone(game),document.world.bounds);
   document.libraries.minigames={...all,[parsed.id]:parsed};
+  syncMiniGamePad(document,parsed);
 }
 export function removeMiniGame(document:ProjectDocument,id:string){
   if(!document.libraries.minigames?.[id])return;
+  removeMiniGamePad(document,id); // Its grading goes with it (natural relief back).
   const next={...document.libraries.minigames};delete next[id];
   document.libraries.minigames=Object.keys(next).length?next:undefined;
   if(!document.libraries.minigames)delete document.libraries.minigames;
@@ -84,13 +86,36 @@ export function setGolfHoleShape(game:MiniGameInstanceV1,stage:number,shape:Floo
   });
   return validateMiniGame({...game,elements});
 }
-/** « Aplanir le terrain » (doc 107 §sols): one flat earthwork pad under the area (+1.5 m)
- * at the mean ground level, with a gentle talus. Its id is owned by the mini-game. */
+/** Grading of a mini-game (doc 107 §sols): one flat earthwork pad under the area plus its
+ * decoration margin, at the MEAN natural ground level (cut and fill balance), with a gentle
+ * talus. The activity floor then lies a few centimetres above a smoothed, level ground
+ * instead of being raised to the highest point. Its id is owned by the mini-game. */
+export const MINIGAME_PAD={margin:1.5,talusM:4} as const;
+export const miniGamePadId=(id:string)=>'pad:'+id;
+function padPolygon(game:MiniGameInstanceV1){
+  const {halfWidth:w,halfLength:l}=game.area,m=MINIGAME_PAD.margin;
+  return [[-w-m,-l-m],[w+m,-l-m],[w+m,l+m],[-w-m,l+m]].map(([x,z])=>{const p=areaToWorld(game.area,x,z);return {x:Math.round(p.x*100)/100,z:Math.round(p.z*100)/100};});
+}
 export function miniGameGroundPad(game:MiniGameInstanceV1,height:(x:number,z:number)=>number,seaLevel:number):Extract<EarthworkV1,{kind:'pad'}>{
   const {halfWidth:w,halfLength:l}=game.area;let sum=0,n=0;
   for(let x=-w;x<=w+1e-6;x+=Math.max(.5,w/8))for(let z=-l;z<=l+1e-6;z+=Math.max(.5,l/8)){const p=areaToWorld(game.area,x,z);sum+=height(p.x,p.z);n++;}
-  const m=1.5,polygon=[[-w-m,-l-m],[w+m,-l-m],[w+m,l+m],[-w-m,l+m]].map(([x,z])=>{const p=areaToWorld(game.area,x,z);return {x:Math.round(p.x*100)/100,z:Math.round(p.z*100)/100};});
-  return {id:'pad:'+game.id,kind:'pad',polygon,levelM:Math.round((sum/n-seaLevel)*100)/100,talusM:4};
+  return {id:miniGamePadId(game.id),kind:'pad',polygon:padPolygon(game),levelM:Math.round((sum/n-seaLevel)*100)/100,talusM:MINIGAME_PAD.talusM};
+}
+const padsOf=(document:ProjectDocument)=>document.world.terrain?.kind==='archipelago'?document.world.terrain.archipelago.earthworks??[]:[];
+/** The pad of a mini-game, if graded. */
+export const miniGamePad=(document:ProjectDocument,id:string)=>padsOf(document).find(w=>w.id===miniGamePadId(id));
+/** Keeps an existing pad under its mini-game when the area moves, turns or is resized (same
+ * level; « Aplanir le terrain » recomputes it from the natural ground). */
+function syncMiniGamePad(document:ProjectDocument,game:MiniGameInstanceV1){
+  const pad=miniGamePad(document,game.id);if(!pad||pad.kind!=='pad')return;
+  const polygon=padPolygon(game);if(JSON.stringify(polygon)===JSON.stringify(pad.polygon))return;
+  document.world.terrain=structuredClone(document.world.terrain);const a=(document.world.terrain as {archipelago:{earthworks?:EarthworkV1[]}}).archipelago;
+  a.earthworks=(a.earthworks??[]).map(w=>w.id===pad.id?{...pad,polygon}:w);
+}
+export function removeMiniGamePad(document:ProjectDocument,id:string){
+  if(!miniGamePad(document,id))return;
+  document.world.terrain=structuredClone(document.world.terrain);const a=(document.world.terrain as {archipelago:{earthworks?:EarthworkV1[]}}).archipelago;
+  const kept=(a.earthworks??[]).filter(w=>w.id!==miniGamePadId(id));if(kept.length)a.earthworks=kept;else delete a.earthworks;
 }
 /** Writes (or replaces) the pad of a mini-game in the archipelago earthworks. */
 export function flattenMiniGameGround(document:ProjectDocument,game:MiniGameInstanceV1,height:(x:number,z:number)=>number){

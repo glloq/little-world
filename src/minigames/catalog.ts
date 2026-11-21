@@ -74,7 +74,7 @@ export const MINIGAME_VARIANTS:Record<MiniGameVariantId,MiniGameVariantSpec>={
     maxPlayers:4,teams:false,ranking:'lowest',rules:['allFinished','timeLimit'],requiredRules:['attempts'],
     elements:{lane:[0,9],tee:[1,9],hole:[1,9],obstacle:[0,48],...DECOR_ELEMENTS},minHalfSize:{width:1.5,length:3},stages:true,
     physics:{ballRadius:.12,ballMass:.05,restitution:.6,rolling:.6,contactPush:false,launchSpeed:9,loft:3,command:'putt',walls:{height:.15,playerBlocking:true}},
-    floor:{material:'green',raise:.12},aim:{maxPull:2.5,loft:true,defaultLoft:0},
+    floor:{material:'green',raise:.08},aim:{maxPull:2.5,loft:true,defaultLoft:0},
     visual:{playerColors:true},
     site:{maxSlope:.1,nearSettlement:false}},
   cans:{family:'target',label:'Chamboule-tout',description:'Renverser une pyramide de boîtes posée sur une table avec quelques balles.',

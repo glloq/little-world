@@ -21,7 +21,8 @@ export interface MiniGameStepContext {
 }
 export interface MiniGameAim {anchor:{x:number;y:number;z:number};maxPull:number;canLoft:boolean;defaultLoft:number}
 /** Deck sampler with its world bounds (WorldCollisionQuery.setOutdoorSurface). */
-export interface MiniGameSurface {sample(x:number,z:number):number|null;minX:number;maxX:number;minZ:number;maxZ:number}
+export interface MiniGameSurface {sample(x:number,z:number):number|null;minX:number;maxX:number;minZ:number;maxZ:number;
+  /** Platform on the ground: the floor at any height (never walked under). */solid?:boolean}
 /** Player-blocking static part of an activity (goal posts), registered while loaded. */
 export interface MiniGameStaticCollider {id:string;position:{x:number;y:number;z:number};size:{x:number;y:number;z:number}}
 export interface MiniGameSimulation {

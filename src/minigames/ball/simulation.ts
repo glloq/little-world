@@ -106,7 +106,7 @@ export function createBallSimulation(def:MiniGameInstanceV1,env:MiniGameEnvironm
   const sim:MiniGameSimulation={
     def,
     get staticColliders():readonly MiniGameStaticCollider[]{return game.colliders;},
-    floorSurface:floors.regions.length?{sample:floors.walk,...floors.walkBounds}:undefined,
+    floorSurface:floors.regions.length?{sample:floors.walk,...floors.walkBounds,solid:true}:undefined,
     reset(session:MiniGameSessionState,tick:number,events:MiniGameEvent[]){logic.reset(game,session,tick,events);},
     launch(session,actor,yaw,power,loft,tick,events){
       if(session.status!=='active')return 'Partie non commencée';

@@ -6,10 +6,15 @@ import {defaultMiniGame} from './layouts.ts';
 import type {MiniGameAreaV1,MiniGameInstanceV1} from './schema.ts';
 import {suggestMiniGameSites,type SiteQueries} from './sites.ts';
 
+/** Height difference accepted under a demo field before falling back (m). */
+export const DEMO_MAX_RELIEF=.35;
 export function demoMiniGames(origin:{x:number;z:number},q:SiteQueries,bounds:{minX:number;maxX:number;minZ:number;maxZ:number}):MiniGameInstanceV1[]{
   const out:MiniGameInstanceV1[]=[],taken:MiniGameAreaV1[]=[];
   for(const variant of MINIGAME_VARIANT_IDS){
-    const [area]=suggestMiniGameSites(variant,q,{anchors:[origin],bounds,avoid:taken,maxDistance:220});
+    // The demo cannot grade the island: it looks for nearly flat ground first, so that the
+    // activity floor lies a few centimetres above the relief (fallback: any suitable site).
+    const flat=suggestMiniGameSites(variant,q,{anchors:[origin],bounds,avoid:taken,maxDistance:260,maxRelief:DEMO_MAX_RELIEF});
+    const [area]=flat.length?flat:suggestMiniGameSites(variant,q,{anchors:[origin],bounds,avoid:taken,maxDistance:220});
     if(!area)continue;taken.push(area);
     const g=defaultMiniGame(variant,{id:'minigame:demo-'+variant,x:area.x,z:area.z,heading:area.heading});
     out.push({...g,name:g.name+' (démo)'});

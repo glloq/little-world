@@ -10,8 +10,8 @@ import {MINIGAME_VARIANTS,MINIGAME_VARIANT_IDS,ACTIVITY_FAMILIES,FLOOR_SHAPES,ty
 import type {MiniGameElementV1,MiniGameInstanceV1,MiniGameRulesV1} from '../minigames/schema.ts';
 import {MINIGAME_BORDERS,MINIGAME_PROP_IDS,MINIGAME_PROPS,MINIGAME_THEME_IDS,MINIGAME_THEME_LABELS,type MiniGameBorder,type MiniGamePropId,type MiniGameStyleV1,type MiniGameThemeId} from '../minigames/themes.ts';
 import {inspectMiniGame,suggestMiniGameSites,type SiteQueries} from '../minigames/sites.ts';
-import {addGolfHole,createMiniGame,flattenMiniGameGround,GOLF_HOLE_TYPES,putMiniGame,removeGolfHole,removeMiniGame,resetMiniGameLayout,setGolfHoleShape} from '../studio-core/minigame-authoring.ts';
-import {projectSiteQueries} from '../studio-core/minigame-composition.ts';
+import {addGolfHole,createMiniGame,GOLF_HOLE_TYPES,miniGamePad,putMiniGame,removeGolfHole,removeMiniGame,removeMiniGamePad,resetMiniGameLayout,setGolfHoleShape} from '../studio-core/minigame-authoring.ts';
+import {gradeMiniGame,projectSiteQueries} from '../studio-core/minigame-composition.ts';
 import {terrainHeight} from '../terrain.ts';
 
 export interface MiniGamesPanelContext {session:StudioSession;viewport:StudioViewport;status(message:string,error?:boolean):void}
@@ -88,7 +88,12 @@ function courseEditor(g:MiniGameInstanceV1,edit:(label:string,next:MiniGameInsta
 
 export function mountMiniGamesPanel(host:HTMLElement,ctx:MiniGamesPanelContext){
   const doc=ctx.session.document,games=Object.values(doc.libraries.minigames??{});
-  const edit=(label:string,next:MiniGameInstanceV1)=>void ctx.session.change(label,[],d=>putMiniGame(d,next)).catch(e=>ctx.status(String(e instanceof Error?e.message:e),true));
+  // A graded field follows its area: moving, turning or resizing it re-levels its pad from
+  // the natural ground (one transaction, Undo restores both).
+  const edit=(label:string,next:MiniGameInstanceV1)=>void ctx.session.change(label,[],d=>{
+    const before=d.libraries.minigames?.[next.id];putMiniGame(d,next);
+    if(miniGamePad(d,next.id)&&before&&JSON.stringify(before.area)!==JSON.stringify(next.area))gradeMiniGame(d,next);
+  }).catch(e=>ctx.status(String(e instanceof Error?e.message:e),true));
   host.append(node('div','MINI-JEUX','kicker'),node('h3','Mini-jeux de l’île'),
     node('p','Chaque mini-jeu est une instance indépendante (zone, éléments, règles) chargée par le jeu seulement à proximité. Testez avec « Jouer ici ».','muted'));
   // Creation.
@@ -104,14 +109,14 @@ export function mountMiniGamesPanel(host:HTMLElement,ctx:MiniGamesPanelContext){
     field('Nom (facultatif)',input('',v=>{name=v.trim();})),
     button('Créer au centre de la vue',async()=>{
       const t=ctx.viewport.camera.target,game=createMiniGame(ctx.session.document,variant,{x:t.x,z:t.z},name||undefined);
-      await ctx.session.change('Créer un mini-jeu',[],d=>putMiniGame(d,game)).then(()=>ctx.status(game.name+' créé : vérifiez le terrain puis « Jouer ici ».')).catch(e=>ctx.status(String(e instanceof Error?e.message:e),true));
+      await ctx.session.change('Créer un mini-jeu',[],d=>{putMiniGame(d,game);gradeMiniGame(d,game);}).then(()=>ctx.status(game.name+' créé sur un sol aplani : vérifiez puis « Jouer ici ».')).catch(e=>ctx.status(String(e instanceof Error?e.message:e),true));
     },'primary-button'),
     button('Trouver un terrain adapté près de la vue',async()=>{
       const t=ctx.viewport.camera.target,b=ctx.session.document.world.bounds,avoid=Object.values(ctx.session.document.libraries.minigames??{}).map(g=>g.area);
       const [area]=suggestMiniGameSites(variant,siteQueries(ctx),{anchors:[t],bounds:b,avoid,maxDistance:200});
       if(!area){ctx.status('Aucun terrain assez plat et libre à moins de 200 m',true);return;}
       const game=createMiniGame(ctx.session.document,variant,area,name||undefined);
-      await ctx.session.change('Créer un mini-jeu sur un terrain adapté',[],d=>putMiniGame(d,game)).catch(e=>ctx.status(String(e),true));
+      await ctx.session.change('Créer un mini-jeu sur un terrain adapté',[],d=>{putMiniGame(d,game);gradeMiniGame(d,game);}).catch(e=>ctx.status(String(e),true));
       ctx.viewport.goTo(area.x,area.z,30);ctx.status(game.name+' placé sur un terrain adapté.');
     }));
   host.append(create,node('p',MINIGAME_VARIANTS[variant].description,'muted'));
@@ -166,7 +171,8 @@ export function mountMiniGamesPanel(host:HTMLElement,ctx:MiniGamesPanelContext){
       button('Déplacer au centre de la vue',()=>{const t=ctx.viewport.camera.target;set('Déplacer le mini-jeu',{area:{...a,x:Math.round(t.x*10)/10,z:Math.round(t.z*10)/10}});}),
       button('Disposition par défaut',()=>set('Disposition par défaut',resetMiniGameLayout(g))),
       // Optional: flat ground under the activity (an earthwork pad, annulable like any edit).
-      button('Aplanir le terrain',()=>void ctx.session.change('Aplanir le terrain du mini-jeu',[],d=>{const pad=flattenMiniGameGround(d,g,siteQueries(ctx).height);ctx.status(`Terrain aplani à ${pad.levelM} m (terrassement « ${pad.id} », annulable).`);}).catch(e=>ctx.status(String(e instanceof Error?e.message:e),true))),
+      button(miniGamePad(doc,g.id)?'Réaplanir le terrain':'Aplanir le terrain',()=>void ctx.session.change('Aplanir le terrain du mini-jeu',[],d=>{const pad=gradeMiniGame(d,g);ctx.status(pad?`Sol lissé au niveau moyen ${pad.levelM} m (terrassement « ${pad.id} », annulable).`:'Relief historique : pas de terrassement possible.',!pad);}).catch(e=>ctx.status(String(e instanceof Error?e.message:e),true))),
+      ...(miniGamePad(doc,g.id)?[button('Rendre le relief naturel',()=>void ctx.session.change('Retirer le terrassement du mini-jeu',[],d=>removeMiniGamePad(d,g.id)).catch(e=>ctx.status(String(e),true)))]:[]),
       button('Supprimer',()=>void ctx.session.change('Supprimer un mini-jeu',[],d=>removeMiniGame(d,g.id)).catch(e=>ctx.status(String(e),true))));
     host.append(box);
   }
