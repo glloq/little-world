@@ -1,6 +1,6 @@
 # 107 — Mini-jeux : architecture unifiée, mutualisation et optimisation
 
-Branche de travail : `feat/minigames-unified-platform`. Le premier lot a été fusionné par la PR #110 (`main` = `2603dd4`). Le second lot (audit, stabilisation, famille `target`, Studio 3D, composition) et le troisième (terrains fermés, modes, parcours, visée à la souris, sols, style — §7 bis) sont sur la même branche, **non fusionnés**.
+Branche de travail : `feat/minigames-unified-platform`. Le premier lot a été fusionné par la PR #110 (`main` = `2603dd4`). Les lots 2 et 3 ont été fusionnés par la PR #112 (`main` = `80b54a3`). Le lot 4 (refonte graphique, réactions, ambiance — §7 ter) est sur la branche `feat/minigames-visual-polish`, **non fusionné**.
 Statuts : **TODO / IN_PROGRESS / IMPLEMENTED / TESTED / QUALIFIED / BLOCKED**. Rien n’est `QUALIFIED` : aucune mesure n’a été faite sur un GPU intégré réel.
 
 ## 0. Résumé
@@ -19,6 +19,7 @@ Statuts : **TODO / IN_PROGRESS / IMPLEMENTED / TESTED / QUALIFIED / BLOCKED**. R
   - cases à cocher dans l’écran de création d’île.
 - Composition : option facultative `activities.minigames`, qui place chaque variante sur un terrain **naturellement** adapté.
 - Lot 3 (§7 bis) : terrain de foot **fermé**, bowling **Débutant / Normal**, mini-golf en **parcours de 6 trous**, **sol propre à chaque activité**, **visée à la souris (fronde)** avec **trajectoire prévisualisée** par la simulation elle-même, rendu stylisé.
+- Lot 4 (§7 ter) : effets partagés, balles expressives (rotation, ombres, écrasement), terrains thématiques selon le biome, décor et panneaux de score, réactions du hamster et des habitants, sons, HUD compact, options Studio.
 - Multijoueur : contrats prêts (commandes par tick, ordre déterministe, instantanés reprenables) ; **aucun serveur** (AGENTS §1 quater).
 
 ## 1. Audit initial (lot 1)
@@ -244,7 +245,97 @@ Le relief n’est pas modifié. Dans le Studio, **« Aplanir le terrain »** ajo
 
 **Style.** Un maillage statique à couleurs de sommets par activité (sol rayé, lignes blanches, surface de réparation, rond central ; piste en lattes, flèches, ligne de faute, emplacements des quilles ; greens tondus, tapis de départ numérotés, coupe, drapeau ; ligne de lancer, nappe, pieds de cible), un maillage transparent pour les filets, balles et quilles instanciées. Les murs, obstacles et butoirs sont dessinés à partir des **mêmes boîtes** que la physique.
 
-## 8. Studio
+## 7 ter. Lot 4 : évolution graphique et ambiance (IMPLEMENTED, TESTED Node + navigateur SwiftShader)
+
+### Audit initial (main `80b54a3`)
+
+| Besoin | Existant | Décision |
+|---|---|---|
+| Éclats d’impact | `createImpactEffects` (hamster, pool instancié) | **REUSE** : les mini-jeux appellent ce pool (hôte → `chips`) |
+| Poussière, étoiles, confettis, traînées, anneaux | absent (seuls bouffées de gaz et ronds de pêche, spécialisés) | **NEW** : `MiniGameVisualEffects`, un pool par hôte |
+| Animations de réaction | `ACTION_DEFS` + `HamsterCharacter.play` ; pas d’émote | **EXTEND** : 6 actions dans la même table, `express()` passager |
+| Regard | aucun | **NEW (léger)** : surcouche sur l’os `Head` après `character.update` (comme l’effet de boost) |
+| Spectateurs | PNJ avec pause de dialogue, pas d’API de réaction | **EXTEND** : `npcs.spectate()` réutilise la pause et le cap |
+| Sons | catalogue V2 + extension procédurale `withFishingSounds` | **REUSE le mécanisme** : `withMiniGameSounds` |
+| Qualité | `PresentationBudget.level` + réglage joueur ; pas de `ResourceBudgetManager` | **REUSE** : `minigameFxTier(qualité, niveau)` comme `surfQualityProfile` |
+| Biome | `classifyPoint(geoContext(), x, z)` | **REUSE** pour le thème automatique |
+| Panneaux / textes 3D | aucun | **NEW** : chiffres 7 segments instanciés (sans texture) ; panneau de nom en `CanvasTexture` créé une fois |
+| Props (fanions, podium, trophée, arches…) | quelques GLB (barrières, panneau, lampadaire) | **NEW procéduraux** peints dans le maillage du terrain (pas un GLB par prop) |
+
+Référence mesurée avant tout changement : §10 (lignes « main »).
+
+### Ce qui est livré
+
+**Effets partagés (`fx/effects.ts`).** Un `InstancedMesh` par sorte (anneau, bouffée, étoile, confetti, traînée), capacité fixe (24/48/32/96/72), particules tassées en tête de tableaux typés, aucune allocation par particule, mise à jour par `host.render(alpha, dt)` (pas de RAF). Intensité choisie par la **vitesse de contact** : rien sous 1,2 m/s, anneau, puis éclats (pool existant), puis bouffée. Succès proportionné : 1 (cible), 2 (but, trou, strike), 3 (victoire, record, trou en un).
+
+**Balles et objets mobiles (`fx/balls.ts`, `ball/view.ts`).** Habillages par faces colorées : ballon à pentagones, boule à trous, golf facetté (couleur par joueur), sac de lancer, projectile à bande sombre. Rotation de roulement calculée **dans la vue** à partir du déplacement interpolé (aucune donnée physique ajoutée), conservée en vol puis amortie, remise à zéro sur téléportation. Ombre circulaire instanciée, plus petite quand la balle monte. Écrasement / étirement en Y monde sur impact fort (medium/high). Quilles tournées avec col rouge, canettes à jantes et étiquette ; oscillation sur contact léger, chute animée une fois comptée. Cibles : 5 anneaux en **un** maillage qui vibre au coup.
+
+**Contacts.** `BallWorld` enregistre seulement **la nature** du contact le plus fort de chaque pas (`hitKind`, `hitBox`, compteur `steps`) ; ces valeurs ne sont jamais relues par la physique (tests : simulation identique avec ou sans rendu). La vue en déduit éclats bois / pierre / métal, poussière (sable, pelouse) et sons.
+
+**Terrains thématiques (`themes.ts`, `theme-palettes.ts`, `ball/field.ts`, `fx/props.ts`).** 8 thèmes (classique, village, forêt, plage, montagne, neige, volcan, marais), choisis automatiquement d’après le biome et le matériau sous le terrain, ou imposés dans le Studio. Un thème change couleurs du sol, bordures (planches, bois, rondins, cordes, pierre, neige, basalte, planches de marais), talus et décor — **jamais** une règle ni une collision (le style des bordures recouvre exactement la boîte physique). 25 props procéduraux (fanion, guirlande, tribune, borne, pancarte, podium, trophée, marqueur, stand, barrière, lampe, arches, moulin, tunnel, souche, pierre, champignon, bois flotté, roseaux, piquet, basalte, tonneau, caisse, rondin). Seul le moulin déclare une emprise solide (boîte d’approximation).
+
+**Panneaux de score (`fx/scoreboard.ts`).** Chiffres 7 segments instanciés, lisibles de nuit (matériau non éclairé), réécrits **uniquement quand la valeur change**. Valeurs génériques : équipes (foot), sinon score du joueur et manche / numéro de trou. Placement automatique ou éléments `scoreboard` placés dans le Studio.
+
+**États de terrain.** `inactive` (loin), `ready` (joueur à moins de 14 m : panneau de nom, fanions qui ondulent doucement), `active`, `finished` (4 s). Un terrain inactif ne fait **aucun** travail d’animation (test sur la version des matrices).
+
+**Événement `highlight`** (strike, spare, trou en un, plein centre, tout renversé) : émis par les règles, ne change aucun score, sert au HUD, aux effets et aux réactions.
+
+**Hamster.** Actions `KICK`, `THROW`, `PUTT`, `CHEER`, `CLAP`, `SAD` dans `ACTION_DEFS` (mêmes canaux, refusées en boule / planeur / nage comme les autres), `express(émotion, s)` passager jamais sauvegardé, regard limité (±0,9 rad en lacet, ±0,35 en tangage, lissé) vers la balle en mouvement ou l’ancre de visée, uniquement pendant une partie et au sol.
+
+**Spectateurs.** `npcs.spectate(point, {cheer})` à chaque événement important : au plus 4 habitants proches et disponibles (pas au travail, en dialogue, scénarisés ni à l’intérieur) s’arrêtent comme pendant un dialogue, se tournent vers le terrain, applaudissent ou sautent une fois, puis reprennent leur routine (rattrapage existant). Sélection pure (`npc-life/spectators.ts`), aucun balayage par image.
+
+**Sons (`minigames/audio.ts`).** 14 événements procéduraux (frappe, rebond, bois, pierre, métal, balle, quilles, trou, but, réussite, échec, record, applaudissements, départ), ajoutés au catalogue **seulement si l’île a des mini-jeux**, jamais à la place d’un événement auteur ; budgets de voix, délais et distances du moteur existant.
+
+**HUD.** Un seul bloc : titre (activité · mode, chrono), une ligne de contexte, une jauge colorée uniquement pendant la visée ou la charge, une carte de résultat de 5 s. La trajectoire a un contour sombre pour rester lisible sur neige et sable.
+
+**Studio.** Section « Présentation et décor » : thème (auto ou preset), bordures, décor automatique (aucun / léger / complet), tableau de score, fanions, balles contrastées, effets. Tableaux de score et décorations sont des **éléments** (`scoreboard`, `decor` + `prop`) : sélection 3D, gizmo, Undo/Redo, archives, « Jouer ici » sans code dédié. L’aperçu utilise le même thème que le jeu.
+
+**Qualité.** `minigameFxTier(qualité joueur, PresentationBudget.level)` :
+
+| Fonction | low | medium | high |
+|---|---|---|---|
+| Décor automatique | essentiel (fanions d’angle, panneaux) | selon le style | selon le style |
+| Impacts | anneau sur impact fort | + éclats | + bouffées |
+| Traînées, poussière de roulement | non | oui | oui |
+| Écrasement des balles | non | oui | oui |
+| Fanions / moulin animés | non | oui | oui |
+| Confettis | ×0,35 | ×0,7 | ×1 |
+
+Le niveau de décor est fixé à la création de la vue ; les effets suivent le niveau courant à chaque image.
+
+### Mesures (même machine, Node 22, SwiftShader ; `main` = `80b54a3`)
+
+Vue seule (`node --experimental-strip-types --expose-gc tools/bench-minigames-view.mjs`, 1 800 ticks avec un tir toutes les 2 s, mise à jour + effets mesurées par image) :
+
+| Variante | Appels de rendu main → lot 4 | Triangles | `update` p50 / p95 (µs) main | lot 4 (+ effets) | Particules max |
+|---|---|---|---|---|---|
+| football | 3 → 6 (7 avec effets) | 1 824 → 2 752 | 0,9 / 2,5 | 9,3 / 45,9 | 90 |
+| bowling | 3 → 7 | 11 761 → 13 643 | 1,4 / 13,0 | 5,5 / 19,6 | 58 |
+| mini-golf | 2 → 6 | 4 014 → 5 365 | 0,4 / 1,2 | 4,1 / 7,9 | 8 |
+| chamboule-tout | 3 → 6 | 630 → 1 364 | 1,2 / 4,2 | 6,0 / 13,4 | 58 |
+| tir sur cible | 7 → 6 | 586 → 1 328 | 0,4 / 1,6 | 4,7 / 12,9 | 65 |
+
+Allocations par `update` : ~0 octet ; aucun objet restant après `dispose`.
+
+Navigateur (`tools/bench-minigames-browser.mjs`, SwiftShader, 15 s) : appels de rendu de la scène avec les 5 terrains de démo chargés 122 → 135 (≈ +2,6 par terrain) ; temps de simulation p50 1,1 → 0,9 ms (`ready`) et 1,3 → 1,2 ms (`active`) ; temps d’image p50 inchangé (150 ms, rendu logiciel). Ces valeurs ne qualifient pas un GPU intégré.
+
+Bundle (`tools/report-bundle.mjs`, octets bruts) : JS initial du jeu **+4 888 o** (actions du hamster 2,1 Ko, spectateurs 1,2 Ko, raccords de `main.ts` 1,6 Ko) ; JS initial du Studio +3 462 o (identifiants de thèmes et de props pour la validation). Le chunk Three partagé est **inchangé** : les géométries étoile, anneau, tour et quad sont construites à la main (`fx/geometry.ts`) pour ne pas tirer `ShapeGeometry` / `LatheGeometry` dans le cœur commun. À la demande : vue des balles 10,2 → 41,7 Ko, hôte 15,9 → 19,9 Ko, palettes 2,5 Ko, sons 2,5 Ko. Une île sans mini-jeu ne charge toujours aucun de ces chunks (contrôle navigateur).
+
+### Régressions (21/11/2026, lot 4)
+
+`npm test` complet, `typecheck`, build, `verify-static-build`, `assets:hamster` (GLB inchangé) ; 12 contrôles navigateur SwiftShader **verts** : minigames (jeu + Studio), gameplay, ui, hamster, studio, published, audio, characters, races, fishing, selection, environment.
+
+### Captures
+
+`node tools/capture-minigames-visual.mjs <dossier> auto snow volcano beach marsh night low play` (caméra fixe, `?minigameTheme=` réservé à la démo) : 5 activités × thèmes, nuit (`?night=1`), qualité basse, partie en cours.
+
+### Réutiliser ces éléments dans un futur mini-jeu
+
+1. Une vue de famille reçoit `ctx` (`MiniGameViewContext`) : `ctx.fx` pour les effets, `ctx.tier()`, `ctx.sound(id, …)`, `ctx.ground` pour le thème.
+2. Le terrain statique se peint avec `Painter` (`fx/painter.ts`) : `paintBorder` pour les murs, `paintProp` pour le décor, `paintScoreboard` + `ScoreboardDigits` pour le score ; un seul maillage.
+3. Les règles émettent `target:hit`, `highlight`, `game:finish` : l’hôte déclenche les réactions du hamster, des habitants et la carte de résultat sans code par jeu.
+4. Une nouvelle sorte d’effet = une entrée de `FX_KINDS` et `MOTION`, pas un nouveau système.
+
 
 - Module **Logique › Mini-jeux** :
   - choix de la famille, puis de la variante (liste filtrée) ;
@@ -324,7 +415,7 @@ Les temps de frame sous SwiftShader sont dominés par le rendu logiciel. Les cha
 
 ## 11. Tests
 
-- Node (`npm test`) : `minigames-physics`, `minigames-physics-limits`, `minigames-core`, `minigames-lifecycle`, `minigames-variants`, `minigames-target`, `minigames-pipeline`, `minigames-studio-elements`, `minigames-composition`, plus `race-records` (inchangé).
+- Node (`npm test`) : `minigames-physics`, `minigames-physics-limits`, `minigames-core`, `minigames-lifecycle`, `minigames-variants`, `minigames-target`, `minigames-pipeline`, `minigames-studio-elements`, `minigames-composition`, `minigames-gameplay`, `minigames-visual` (lot 4 : pool d’effets, rendu sans effet sur la simulation pour les 5 variantes × 3 thèmes, rotation / ombre / écrasement, événements et panneaux, highlights, thèmes et props, états de terrain, sons, spectateurs, actions du hamster), plus `race-records` et `hamster` (nouvelles actions incluses).
 - Navigateur (`npm run test:minigames`, dans le workflow CI `checks`) :
   - île sans mini-jeu : aucun chunk ;
   - 5 activités de démo ;
@@ -362,6 +453,7 @@ Exemple : **pétanque**, une variante de la famille `ball`.
 
 - Quilles et boîtes = sphères ; leur chute est une présentation. Les balles ne tournent pas visuellement.
 - Ricochets (famille `target`) : **TODO**. Il faut une règle de site « eau obligatoire » et un contact eau dédié.
+- Lot 4 : pas de retour de boule visible au bowling, pas de pont de mini-golf ; le niveau de décor ne change pas après la création d’une vue (recréée au prochain chargement) ; les spectateurs ne concernent que les habitants à routine ou existants proches (aucun PNJ créé) et leur applaudissement n’est joué que s’ils ont un rig complet (≤ 18 m) ; les sons sont synthétisés (pas d’échantillons) ; captures et mesures uniquement en SwiftShader.
 - Le hamster est bloqué par les poteaux et les murs du foot ; bordures de mini-golf (15 cm) et murs de bowling (30 cm) se franchissent par la marche (hauteur de pas 45 cm). Les balles restent en extérieur (pas dans les mines) et ignorent vent et courant.
 - Le hamster ne peut pas se placer exactement derrière la balle de façon automatique : la fronde exige qu’il soit à portée (≈ 1,1 m du bord de la balle).
 - L’aperçu ignore les autres balles et les quilles (il ne montre que le trajet de la balle tirée), et ne prévoit ni la capture par le trou ni les règles (rigole, sortie).
@@ -396,3 +488,8 @@ Exemple : **pétanque**, une variante de la famille `ball`.
 | MG-18 | Football fermé, bowling Débutant/Normal, parcours de mini-golf 6 trous | TESTED (Node + navigateur) |
 | MG-19 | Visée à la souris (fronde) et trajectoire prévue | TESTED (Node + geste souris réel en navigateur) |
 | MG-20 | Style des activités | IMPLEMENTED (captures SwiftShader ; pas de mesure GPU intégré) |
+| MG-21 | Effets partagés, balles expressives, contacts | TESTED (Node ; navigateur SwiftShader) |
+| MG-22 | Thèmes de biome, props, panneaux de score, états de terrain | TESTED (Node ; captures) |
+| MG-23 | Réactions du hamster, regard, spectateurs PNJ | TESTED (Node : actions, sélection ; regard et spectateurs non automatisés en navigateur) |
+| MG-24 | Sons d’activité, HUD compact, options Studio | TESTED (Node ; navigateur pour le HUD et le Studio) |
+| MG-25 | Qualification visuelle et de performance sur GPU intégré | TODO |

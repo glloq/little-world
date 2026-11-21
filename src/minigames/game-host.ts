@@ -104,7 +104,7 @@ export function createMiniGameHost(o:MiniGameHostOptions){
     const c=o.character,spec=MINIGAME_VARIANTS[r.def.variant];
     switch(e.type){
       case 'game:start':o.spectators?.spectate(centreOf(r),{seconds:8});break;
-      case 'ball:hit':if(e.playerId===LOCAL_PLAYER)c?.play(LAUNCH_ACTION[spec.physics.command]);break;
+      case 'ball:hit':if(e.shot&&e.playerId===LOCAL_PLAYER)c?.play(LAUNCH_ACTION[spec.physics.command]);break; // Not on dribbling contacts.
       case 'target:hit':{
         const el=r.def.elements.find(x=>x.id===e.targetId);
         if(el?.kind==='goal'||el?.kind==='hole'||el?.kind==='target'&&spec.visual?.board){

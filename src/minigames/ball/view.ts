@@ -227,6 +227,7 @@ function create(parent:unknown,sim:MiniGameSimulation,_env:MiniGameEnvironment,c
         if(won){fx?.success(c.x,c.y+.5,c.z,3,look.theme.flags);sound('applause',c.x,c.y,c.z,1);}else{fx?.dust(c.x,c.y,c.z,0xcfcfcf,3);sound(e.winners.length?'fail':'applause',c.x,c.y,c.z,.6);}
         break;
       }
+      case 'ball:hit':if(e.shot){const i=world.ids.indexOf(e.ballId);if(i>=0)sound('ball.kick',world.px[i],world.py[i],world.pz[i],Math.min(1,e.speed/10),0);}break;
       case 'game:abandon':state='ready';break;
     }
     refreshBoard(session);

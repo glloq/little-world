@@ -88,10 +88,10 @@ test('authority: per-player sequences, stale and future commands, forget on disp
  a.forget('minigame:x');assert.equal(a.pending,0);assert.ok(a.submit(cmd('minigame:x','p',30,1,{type:'join'})),'sequence reset after forget');
 });
 
-function hostFixture(variant='minigolf'){
+function hostFixture(variant='minigolf',extra={}){
  const def=defaultMiniGame(variant,{id:'minigame:h',x:20,z:10,heading:.5}),scene=new THREE.Group(),infos=[],emitted=[];
  const collision=new WorldCollisionQuery(()=>0,()=>null);
- const host=createMiniGameHost({parent:scene,defs:[def],collision,height:()=>0,water:()=>null,showInfo:t=>infos.push(t),emit:e=>emitted.push(e),hudHost:null});
+ const host=createMiniGameHost({parent:scene,defs:[def],collision,height:()=>0,water:()=>null,showInfo:t=>infos.push(t),emit:e=>emitted.push(e),hudHost:null,...extra});
  const player={position:new THREE.Vector3(),velocity:new THREE.Vector3(),mode:'ground'};
  const at=(lx,lz)=>{const p=areaToWorld(def.area,lx,lz);player.position.set(p.x,0,p.z);};
  let tick=0;const step=(f=false,n=1,yaw=def.area.heading)=>{for(let k=0;k<n;k++)host.tick(++tick,1/30,player,f,yaw);};
@@ -195,4 +195,24 @@ test('host modes: digit keys pick the bowling mode before F starts the game',asy
  h.step(true,2);h.step(false,1);assert.equal(h.rec.session.mode,'normal');
  assert.equal(h.host.key('Digit1'),false,'no mode change during a game');
  h.host.dispose();
+});
+
+test('host reactions: kick only on real shots, cheer on a goal, spectators on events, shared effects pool rendered',async()=>{
+ const actions=[],faces=[],spectated=[],sounds=[];
+ const h=hostFixture('football',{character:{play:a=>{actions.push(a);return true;},express:e=>faces.push(e)},spectators:{spectate:(p,o)=>{spectated.push(o);return 1;}},
+   audio:{emit:id=>sounds.push(id)},tier:()=>'high'});
+ h.at(0,-3);h.step(false,15);for(let k=0;k<20&&!h.scene.children.length;k++){await h.flush();h.step(false,1);}
+ h.step(true,2);h.step(false,1);assert.equal(h.rec.state,'ACTIVE');assert.equal(spectated.length,1,'residents may watch the start');
+ h.step(false,5);assert.equal(h.host.fieldState(h.def.id),'active','field state refreshed every 5 ticks');
+ // Walking into the ball (contact push) is not a kick animation.
+ const w=ballWorldOf(h.rec.sim),yaw=h.def.area.heading;
+ for(let k=0;k<20;k++){h.player.position.set(w.px[0]-Math.sin(yaw)*.6,0,w.pz[0]-Math.cos(yaw)*.6);h.player.velocity.set(Math.sin(yaw)*4,0,Math.cos(yaw)*4);h.step(false,1);}
+ assert.ok(!actions.includes('KICK'),'no kick while dribbling');
+ h.player.velocity.set(0,0,0);h.player.position.set(h.def.area.x+8,0,h.def.area.z);for(let k=0;k<240&&!w.asleep[0];k++)h.step(false,1); // Let the ball stop.
+ for(let goal=0;goal<1;goal++){h.player.position.set(w.px[0]-Math.sin(yaw)*.9,0,w.pz[0]-Math.cos(yaw)*.9);h.step(false,1);h.step(true,25);h.step(false,90);}
+ assert.ok(actions.includes('KICK'),'kick animation on the shot');
+ if(h.rec.session.scores.blue+h.rec.session.scores.red>0){assert.ok(actions.includes('CHEER')||spectated.some(o=>o.cheer),'celebration');}
+ for(let k=0;k<5;k++)h.host.render(1,1/30);
+ assert.ok(sounds.length>0,'sounds through the game catalogue');
+ h.host.dispose();assert.equal(h.scene.children.length,0,'effects pool and views removed');
 });

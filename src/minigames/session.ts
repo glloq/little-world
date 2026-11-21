@@ -16,7 +16,7 @@ export type MiniGameEvent=
  |{type:'game:reset';sessionId:string;tick:number;seq:number;round:number}
  |{type:'game:abandon';sessionId:string;tick:number;seq:number;playerId?:string}
  |{type:'player:join'|'player:leave';sessionId:string;tick:number;seq:number;playerId:string;teamId?:string}
- |{type:'ball:hit';sessionId:string;tick:number;seq:number;playerId:string;ballId:string;speed:number}
+ |{type:'ball:hit';sessionId:string;tick:number;seq:number;playerId:string;ballId:string;speed:number;/** Voluntary launch (kick / throw / putt), not a contact push. */shot?:boolean}
  |{type:'ball:out';sessionId:string;tick:number;seq:number;ballId:string}
  |{type:'target:hit';sessionId:string;tick:number;seq:number;targetId:string;playerId?:string}
  |{type:'checkpoint:passed';sessionId:string;tick:number;seq:number;playerId:string;checkpointId:string}

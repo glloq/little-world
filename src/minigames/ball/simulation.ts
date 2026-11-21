@@ -113,7 +113,7 @@ export function createBallSimulation(def:MiniGameInstanceV1,env:MiniGameEnvironm
       if(!session.players.some(p=>p.id===actor.id))return 'Rejoignez la partie';
       const plan=logic.shot(game,session,actor,yaw,power,loftOf(loft));if(typeof plan==='string')return plan;
       apply(world,plan,plan.ball);logic.launched?.(game,session,actor,plan,tick,events);
-      emit(session,events,tick,{type:'ball:hit',playerId:actor.id,ballId:world.ids[plan.ball],speed:Math.round(world.speed(plan.ball)*100)/100});
+      emit(session,events,tick,{type:'ball:hit',playerId:actor.id,ballId:world.ids[plan.ball],speed:Math.round(world.speed(plan.ball)*100)/100,shot:true});
       return null;
     },
     aim(session,actor):MiniGameAim|null{
