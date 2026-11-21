@@ -87,7 +87,7 @@ test('manager: READY instances are never stepped; ACTIVE ones are; independent i
  const defs=Array.from({length:10},(_,k)=>defaultMiniGame('football',place('f'+k,k*60,0)));
  const m=createMiniGameManager(defs,{env,colliders});
  for(const d of defs)await m.prepare(d.id);
- assert.equal(added.size,40,'4 goal posts per pitch while loaded');
+ assert.equal(added.size,120,'4 goal posts + 8 wall pieces (gates and goal mouths) per closed pitch while loaded');
  let stepped=0;for(let t=1;t<=60;t++)stepped+=m.tick(t,1/30,[]).stepped;
  assert.equal(stepped,0,'ten READY activities: no simulation work');
  m.submit(cmd('minigame:f3','me',61,1,{type:'join'}));m.submit(cmd('minigame:f3','me',61,2,{type:'start'}));
@@ -116,6 +116,6 @@ test('manager: re-preparing / reloading never duplicates listeners or colliders'
  const added=[];const colliders={add:c=>added.push(c.id),remove:id=>added.splice(added.indexOf(id),1)};
  const d=defaultMiniGame('football',place('x'));const m=createMiniGameManager([d],{env,colliders});
  for(let k=0;k<5;k++){await m.prepare(d.id);await m.prepare(d.id);m.release(d.id);}
- assert.equal(added.length,0);await m.prepare(d.id);assert.equal(added.length,4);
+ assert.equal(added.length,0);await m.prepare(d.id);assert.equal(added.length,12);
  const off=m.subscribe(()=>{});off();off();assert.equal(m.stats().listeners,0);m.dispose();
 });

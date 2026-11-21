@@ -10,6 +10,7 @@ import type {ProjectDocument} from './types.ts';
 import {planFlightCourse,planSurfActivity} from './activity-planners.ts';
 import {authoredPortLayout} from '../archipelago/port-n1-plan.ts';
 import type {CompositionDiagnostic} from './world-composition.ts';
+import {composeMiniGames} from './minigame-composition.ts';
 export function generateWorldActivities(p:ProjectDocument,diagnostics:CompositionDiagnostic[]){
  const options=p.world.generation?.activities;if(!options)return;
  const audio=parseAudioDefinitionV2(catalog);if(options.music==='off')audio.music.cues={};p.world.audio=audio;
@@ -41,6 +42,9 @@ export function generateWorldActivities(p:ProjectDocument,diagnostics:Compositio
   const {plan,giverId}=planSurfActivity(p,port,p.world.seed);
   if(!giverId)diagnostics.push({severity:'ERROR',code:'ACTIVITY_SURF_MISSING',message:'Trois plages de surf sûres requises ; '+plan.warnings.join(' ; ')});
  }
+ // Doc 107: optional mini-games, last so they avoid the villages, races and pistes placed above.
+ if(options.minigames?.length){const {missing}=composeMiniGames(p,options.minigames);
+  for(const v of missing)diagnostics.push({severity:'WARNING',code:'ACTIVITY_MINIGAME_MISSING',message:'Aucun terrain naturellement adapté pour le mini-jeu '+v+' (pente, eau, occupation) : non placé.'});}
 }
 export function validateWorldActivities(p:ProjectDocument):CompositionDiagnostic[]{
  const out:CompositionDiagnostic[]=[],options=p.world.generation?.activities;if(!options&&!p.libraries.alpine&&!Object.values(p.libraries.races??{}).some(race=>race.kind==='ski'))return out;

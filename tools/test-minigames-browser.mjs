@@ -11,10 +11,10 @@ const base=process.env.WORLD_URL??'http://127.0.0.1:5173/little-world/',shots=pr
 if(shots)mkdirSync(shots,{recursive:true});
 const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH??(existsSync('/usr/bin/chromium')?'/usr/bin/chromium':undefined),args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
 let checks=0;const check=(ok,label)=>{assert.ok(ok,'FAILED: '+label);checks++;console.log('OK: '+label);};
-const lazy=/\/assets\/(game-host|family|demo)-[\w-]+\.js/;
+const lazy=/\/assets\/((game-host|family|demo)-[\w-]+)\.js/;
 async function open(query){
   const page=await browser.newPage({viewport:{width:1000,height:640}}),errors=[],chunks=[];
-  page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{const m=lazy.exec(r.url());if(m)chunks.push(m[1]);});
+  page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{const m=lazy.exec(r.url());if(m)chunks.push(m[2],m[1]);});
   await page.goto(base+'?world=maps/island/manifest.json&metrics=1'+query,{waitUntil:'networkidle'});
   await page.locator('#start-overlay').waitFor({state:'hidden',timeout:60000});
   await page.waitForFunction(()=>window.littleWorldMetrics?.chunks.pending===0,{},{timeout:90000});
@@ -44,13 +44,17 @@ try{
   await page.waitForFunction(()=>window.littleWorldMetrics?.minigames?.instances.length>=1,{},{timeout:20000});
   let g=await games(page);
   console.log('demo instances',g.instances.map(i=>i.id+'@'+i.area.x+','+i.area.z+' '+i.state).join(' | '));
-  check(g.instances.length===3,'three demo activities found suitable ground near the spawn');
+  check(g.instances.length===5,'five demo activities (ball and target families) found suitable ground near the spawn');
   // Football: start, push/kick.
   const foot=g.instances.find(i=>i.variant==='football');
   await goTo(page,foot,0,-3);await waitState(page,foot.id,'READY');
   await page.waitForFunction(()=>window.littleWorldMetrics?.minigames?.views>=1,{},{timeout:15000});
   check(chunks.includes('family'),'ball family chunk loaded on approach');
-  await hold(page,120);await waitState(page,foot.id,'ACTIVE');
+  // A tap shorter than one frame on a slow machine (CPU throttled ×6) must still start the
+  // game: the press is latched, not sampled (CI run 44890603622 lost a 120 ms press).
+  const cdp=await page.context().newCDPSession(page);await cdp.send('Emulation.setCPUThrottlingRate',{rate:6});
+  await page.keyboard.press('KeyF');await waitState(page,foot.id,'ACTIVE',30000);
+  await cdp.send('Emulation.setCPUThrottlingRate',{rate:1});
   check((await inst(page,foot.id)).session.status==='active','F starts a football session');
   // Live simulation state (the metrics copy is refreshed every 15 frames). A full-power kick can
   // score and reset the ball to the centre within a second on a fast runner: accept either a
@@ -69,7 +73,7 @@ try{
   const bowl=g.instances.find(i=>i.variant==='bowling');
   await goTo(page,bowl,0,-8.25);await waitState(page,bowl.id,'READY');
   check((await inst(page,foot.id)).state==='READY','leaving the pitch abandoned the football game');
-  await page.waitForTimeout(300);await hold(page,120);await waitState(page,bowl.id,'ACTIVE');
+  await page.waitForTimeout(300);await page.keyboard.press('KeyF');await waitState(page,bowl.id,'ACTIVE');
   // Charge is counted in fixed ticks: under SwiftShader the simulation can run slower than the wall clock.
   await goTo(page,bowl,0,-8.25);await page.waitForTimeout(400);await hold(page,3000);await page.waitForTimeout(6000);
   const b=(await inst(page,bowl.id)).session;
@@ -79,13 +83,40 @@ try{
   // Mini-golf.
   const golf=g.instances.find(i=>i.variant==='minigolf');
   await goTo(page,golf,0,-8.6);await waitState(page,golf.id,'READY');await page.waitForTimeout(300);
-  await hold(page,120);await waitState(page,golf.id,'ACTIVE');
+  await page.keyboard.press('KeyF');await waitState(page,golf.id,'ACTIVE');
   const tee=(await inst(page,golf.id)).snapshot.world.state;
   await page.evaluate(([x,z,h])=>window.littleWorldDebug.teleport(x,z,h),[tee[0]-Math.sin(golf.area.heading)*.75,tee[2]-Math.cos(golf.area.heading)*.75,golf.area.heading]);
   await page.waitForTimeout(300);await hold(page,700);await page.waitForTimeout(3000);
   const s=(await inst(page,golf.id)).session;
   check(s.attempts.local===1&&s.scores.local>=1,'mini-golf stroke counted '+JSON.stringify(s)+' '+JSON.stringify((await inst(page,golf.id)).snapshot.world.state.slice(0,9))+' tee '+JSON.stringify(tee.slice(0,9))+' at '+JSON.stringify((await metrics(page)).position)+' '+await page.locator('.minigame-hud').textContent());
+  // Mouse slingshot (doc 107 §visée): press on the resting ball, drag back, release.
+  await page.waitForFunction(id=>{const r=window.littleWorldDebug.minigames.manager.records.get(id),w=r.sim.world;return w.asleep[0]===1;},golf.id,{timeout:20000});
+  const sling=await page.evaluate(id=>{const r=window.littleWorldDebug.minigames.manager.records.get(id),w=r.sim.world,h=r.def.area.heading;
+    window.littleWorldDebug.teleport(w.px[0]-Math.sin(h)*.8,w.pz[0]-Math.cos(h)*.8,h);return {x:w.px[0],y:w.py[0],z:w.pz[0],h};},golf.id);
+  await page.waitForTimeout(500);
+  const ballPx=await page.evaluate(b=>window.littleWorldDebug.screenOf(b.x,b.y,b.z),sling);
+  const backPx=await page.evaluate(b=>window.littleWorldDebug.screenOf(b.x-Math.sin(b.h)*1.2,b.y,b.z-Math.cos(b.h)*1.2),sling);
+  await page.mouse.move(ballPx.x,ballPx.y);await page.mouse.down();
+  for(let k=1;k<=8;k++){await page.mouse.move(ballPx.x+(backPx.x-ballPx.x)*k/8,ballPx.y+(backPx.y-ballPx.y)*k/8);await page.waitForTimeout(40);}
+  await page.waitForTimeout(300);
+  check(await page.evaluate(()=>window.littleWorldDebug.minigames.aiming),'press on the ball grabs the slingshot');
+  check(await page.evaluate(()=>window.littleWorldDebug.minigames.previewPoints)>5,'trajectory preview computed by the simulation');
+  if(shots)await page.screenshot({path:shots+'/minigolf-aim.png'});
+  await page.mouse.up();
+  await page.waitForFunction(id=>(window.littleWorldDebug.minigames.manager.records.get(id).session?.attempts?.local??0)>=2||window.littleWorldDebug.minigames.manager.records.get(id).session?.status!=='active',golf.id,{timeout:10000});
+  check(true,'mouse release putts the ball (second stroke)');
   if(shots)await page.screenshot({path:shots+'/minigolf.png'});
+  // Target family (chamboule-tout): its own lazily loaded module on the same engine.
+  const familyChunks=()=>new Set(chunks.filter(c=>/^family-/.test(c))).size;
+  const cans=g.instances.find(i=>i.variant==='cans');
+  await goTo(page,cans,0,-4.6);await waitState(page,cans.id,'READY');
+  // (Loading only what an island needs is covered in Node: minigames-target / minigames-core.)
+  check(familyChunks()===2,'ball and target families are two separate lazily loaded modules');
+  await page.waitForTimeout(300);await page.keyboard.press('KeyF');await waitState(page,cans.id,'ACTIVE');
+  await goTo(page,cans,0,-4.6);await page.waitForTimeout(300);await hold(page,900);
+  await page.waitForFunction(id=>{const r=window.littleWorldDebug.minigames.manager.records.get(id);return (r.session?.attempts?.local??0)>=1;},cans.id,{timeout:15000});
+  check(true,'chamboule-tout: a charged throw is counted');
+  if(shots){await page.waitForTimeout(1500);await page.screenshot({path:shots+'/cans.png'});}
   // Leave: everything released.
   await page.evaluate(([x,z])=>window.littleWorldDebug.teleport(x,z,0),[golf.area.x+400,golf.area.z]);
   await page.waitForFunction(()=>window.littleWorldMetrics?.minigames?.instances.every(i=>i.state==='UNLOADED')&&window.littleWorldMetrics.minigames.views===0,{},{timeout:20000});

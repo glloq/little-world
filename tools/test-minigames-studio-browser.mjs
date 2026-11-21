@@ -35,6 +35,19 @@ try{
   check(after==='3','Undo restores the rule (shared history)');
   await page.getByText('Stade témoin · Football').click();await page.getByRole('button',{name:'Voir'}).first().click();await page.waitForTimeout(2500);
   if(process.argv[2])await page.screenshot({path:process.argv[2]+'/studio-minigames.png'});
+  // 3D selection through the Studio's universal selection: the football at the pitch centre.
+  const box=await page.locator('.viewport canvas').boundingBox();
+  await page.mouse.click(box.x+box.width/2,box.y+box.height/2);
+  await page.waitForFunction(()=>/mini-jeu/i.test(document.querySelector('#inspector')?.textContent??''),{},{timeout:10000});
+  const inspector=await page.locator('#inspector').textContent();
+  check(/Élément de mini-jeu|Mini-jeu/.test(inspector),'a click in the 3D view selects the mini-game (or its element) and opens the inspector');
+  const xField=page.locator('#inspector input[aria-label="x (m)"], #inspector input[aria-label="X (m)"]').first();
+  const x0=await xField.inputValue();await xField.fill(String(Number(x0)+1));await xField.press('Tab');
+  await page.waitForFunction(v=>{const i=document.querySelector('#inspector input[aria-label="x (m)"], #inspector input[aria-label="X (m)"]');return i&&Number(i.value)===v;},Number(x0)+1,{timeout:10000});
+  await page.keyboard.press('Control+z');
+  await page.waitForFunction(v=>{const i=document.querySelector('#inspector input[aria-label="x (m)"], #inspector input[aria-label="X (m)"]');return i&&Number(i.value)===v;},Number(x0),{timeout:10000});
+  check(true,'inspector edit of the selected element is one undoable transaction');
+  if(process.argv[2])await page.screenshot({path:process.argv[2]+'/studio-selection.png'});
   await page.getByRole('button',{name:'Créer au centre de la vue'}).click();
   await page.waitForFunction(()=>/Football 1|Football \d/.test(document.querySelector('#tools')?.textContent??''),{},{timeout:10000});
   check(/3 mini-jeu/.test(await tools()),'new football instance created at the view centre (several instances of a variant)');

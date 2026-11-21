@@ -5,12 +5,14 @@
  * without ever producing unbounded accelerations.
  */
 import {BALL_LIMITS,type BallWorld} from './ball-physics.ts';
+import {MOTION} from '../../physics/motion.ts';
 import type {MiniGameActor} from '../types.ts';
 
-export const PUSH:{readonly actorMass:number;readonly walkMax:number;readonly rollMax:number;readonly maxDeltaPerTick:number;readonly restitution:number;readonly bodyScale:number;readonly reach:number}={
+export const PUSH:{readonly actorMass:number;readonly walkMax:number;readonly runMax:number;readonly rollMax:number;readonly separation:number;readonly maxDeltaPerTick:number;readonly restitution:number;readonly bodyScale:number;readonly reach:number}={
   /** Effective mass of a hamster body for contact impulses (kg-like units of BallSpec.mass). */actorMass:1.2,
-  /** Normal speed given by an ordinary walking contact, and by a roll (ball mode). */walkMax:5.5,rollMax:13,
-  /** Maximum velocity change one actor may impart to one ball in one tick. */maxDeltaPerTick:8,
+  /** Normal speed given by a walking, running (above the walk speed) and rolling contact. */walkMax:5.5,runMax:8,rollMax:13,
+  /** Overlap resolution speed (m/s per metre of overlap, bounded at 3 m/s). */separation:10,
+  /** Maximum velocity change one actor may impart to one ball in one tick. */maxDeltaPerTick:12,
   /** Restitution of the hamster body. */restitution:.4,
   /** Fraction of the actor's radius that counts as the contact body (the hamster is round). */bodyScale:.8,
   /** Reach to kick/throw/putt a ball (metres between body edge and ball surface). */reach:1.1,
@@ -21,20 +23,21 @@ export const PUSH:{readonly actorMass:number;readonly walkMax:number;readonly ro
 export function pushBalls(world:BallWorld,actors:readonly MiniGameActor[],out:{speed:Float64Array;by:(string|null)[]},filter?:(ball:number)=>boolean){
   out.speed.fill(0);for(let i=0;i<world.count;i++)out.by[i]=null;
   for(const a of actors){
-    const ar=a.radius*PUSH.bodyScale,cap=a.mode==='roll'?PUSH.rollMax:PUSH.walkMax;
+    const ar=a.radius*PUSH.bodyScale,sp=Math.hypot(a.vx,a.vz),cap=a.mode==='roll'?PUSH.rollMax:sp>MOTION.walk*1.05?PUSH.runMax:PUSH.walkMax;
     for(let i=0;i<world.count;i++){
       if(!world.enabled[i]||filter&&!filter(i))continue;
       const r=world.radius[i],dx=world.px[i]-a.x,dz=world.pz[i]-a.z,min=r+ar;
       if(Math.abs(dx)>min||Math.abs(dz)>min||world.py[i]-r>a.y+a.height||world.py[i]+r<a.y)continue;
       const d=Math.hypot(dx,dz);if(d>=min)continue;
       // Direction: away from the body centre (or along the actor's motion when exactly centred).
-      const sp=Math.hypot(a.vx,a.vz),nx=d>1e-6?dx/d:sp>1e-6?a.vx/sp:0,nz=d>1e-6?dz/d:sp>1e-6?a.vz/sp:1;
-      world.px[i]=a.x+nx*min;world.pz[i]=a.z+nz*min; // Ball-only separation.
+      const nx=d>1e-6?dx/d:sp>1e-6?a.vx/sp:0,nz=d>1e-6?dz/d:sp>1e-6?a.vz/sp:1;
+      // Overlap is resolved through velocity only: the ball then moves with the world's own
+      // swept collisions, so a hamster can never teleport it through a thin wall.
       const approach=(a.vx-world.vx[i])*nx+(a.vz-world.vz[i])*nz;
-      if(approach<=0)continue;
-      const mB=1/world.invMass[i],transfer=approach*(1+PUSH.restitution)*PUSH.actorMass/(PUSH.actorMass+mB);
+      const mB=1/world.invMass[i],transfer=approach>0?approach*(1+PUSH.restitution)*PUSH.actorMass/(PUSH.actorMass+mB):0;
       // Target normal speed limited by mode cap; delta limited per tick.
-      const current=world.vx[i]*nx+world.vz[i]*nz,target=Math.min(cap,current+transfer),dv=Math.max(0,target-current);
+      const ratio=PUSH.actorMass/(PUSH.actorMass+mB),current=world.vx[i]*nx+world.vz[i]*nz,separate=Math.min(3,(min-d)*PUSH.separation)*ratio;
+      const target=Math.max(separate,Math.min(cap,current+transfer)),dv=Math.max(0,target-current);
       if(dv<1e-6)continue;
       world.addVelocity(i,nx*dv,a.mode==='roll'?Math.min(1.5,dv*.12):0,nz*dv,PUSH.maxDeltaPerTick);
       if(dv>out.speed[i]){out.speed[i]=dv;out.by[i]=a.id;}

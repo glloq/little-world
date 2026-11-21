@@ -12,21 +12,21 @@ const pct=(v,p)=>{const s=[...v].sort((a,b)=>a-b);return +s[Math.min(s.length-1,
 const stats=t=>({p50Us:pct(t,.5),p95Us:pct(t,.95),p99Us:pct(t,.99)});
 const gc=()=>{if(globalThis.gc){globalThis.gc();globalThis.gc();}};
 const relief={height:(x,z)=>Math.sin(x*.15)*.4+Math.cos(z*.11)*.3,material:()=>'grass'};
-function arena(n){
+function arena(n,obstacles=true){
   const w=new BallWorld(relief,Math.max(1,n));
-  for(let i=0;i<n;i++)w.add({id:'b'+i,x:(i%4)*1.5-2.25,y:2,z:Math.floor(i/4)*1.5-2.25,radius:.3,mass:1,restitution:.6,rolling:.6});
-  w.boxes=[orientedBox(0,-10.1,20,.2,-5,5,0),orientedBox(0,10.1,20,.2,-5,5,0),orientedBox(-10.1,0,.2,20,-5,5,0),orientedBox(10.1,0,.2,20,-5,5,0),orientedBox(3,3,2,.4,-5,5,.6)];
+  for(let i=0;i<n;i++)w.add({id:'b'+i,x:(i%6)*1.5-3.75,y:2,z:Math.floor(i/6)*1.5-3.75,radius:.3,mass:1,restitution:.6,rolling:.6});
+  if(obstacles)w.boxes=[orientedBox(0,-10.1,20,.2,-5,5,0),orientedBox(0,10.1,20,.2,-5,5,0),orientedBox(-10.1,0,.2,20,-5,5,0),orientedBox(10.1,0,.2,20,-5,5,0),orientedBox(3,3,2,.4,-5,5,.6)];
   return w;
 }
-function benchBalls(n,ticks=6000){
-  const w=arena(n),t=[];let seed=7;const r=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
+function benchBalls(n,obstacles=true,ticks=6000){
+  const w=arena(n,obstacles),t=[];let seed=7;const r=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
   for(let k=0;k<ticks;k++){
     if(k%90===0)for(let i=0;i<n;i++)launchBall(w,i,r()*6.283,4+r()*8,r()*2);
     const a=performance.now();w.step(1/30);if(k>=300)t.push((performance.now()-a)*1000);
   }
-  return {balls:n,...stats(t)};
+  return {balls:n,obstacles,...stats(t)};
 }
-function benchAsleep(){const w=arena(16);for(let k=0;k<200;k++)w.step(1/30);const t=[];for(let k=0;k<6000;k++){const a=performance.now();w.step(1/30);t.push((performance.now()-a)*1000);}return {balls:16,asleep:w.awakeCount===0,...stats(t)};}
+function benchAsleep(){const w=arena(32);for(let k=0;k<200;k++)w.step(1/30);const t=[];for(let k=0;k<6000;k++){const a=performance.now();w.step(1/30);t.push((performance.now()-a)*1000);}return {balls:32,asleep:w.awakeCount===0,...stats(t)};}
 async function benchManager(){
   const env={height:relief.height};
   const time=(m,actors,ticks=6000,offset=0)=>{const t=[];for(let k=1;k<=ticks;k++){const a=performance.now();m.tick(offset+k,1/30,actors);t.push((performance.now()-a)*1000);}return stats(t);};
@@ -59,6 +59,6 @@ async function islandCycles(){
   for(let i=0;i<100;i++)await cycle();const ms=(performance.now()-a)/100;gc();
   return {cycles:100,msPerCycle:+ms.toFixed(2),retainedHeapBytes:process.memoryUsage().heapUsed-before,orphanColliders:added.size};
 }
-const out={ballStep:[1,4,8,16].map(n=>benchBalls(n)),asleep16:benchAsleep(),manager:await benchManager(),allocations:allocations(),islandCycles:await islandCycles(),
+const out={ballStep:[1,4,8,16,32].flatMap(n=>[benchBalls(n,true),benchBalls(n,false)]),asleep32:benchAsleep(),manager:await benchManager(),allocations:allocations(),islandCycles:await islandCycles(),
   note:'Node '+process.version+', single run, no GPU; budgets are objectives, not qualified.'};
 console.log(JSON.stringify(out,null,1));

@@ -6,25 +6,21 @@
 import {node,button,field,input,numberInput,select} from './dom.ts';
 import type {StudioSession} from './session.ts';
 import type {StudioViewport} from './viewport/editor-viewport.ts';
-import {MINIGAME_VARIANTS,MINIGAME_VARIANT_IDS,ACTIVITY_FAMILIES,type MiniGameVariantId} from '../minigames/catalog.ts';
+import {MINIGAME_VARIANTS,MINIGAME_VARIANT_IDS,ACTIVITY_FAMILIES,FLOOR_SHAPES,type FloorShape,type MiniGameVariantId} from '../minigames/catalog.ts';
 import type {MiniGameElementV1,MiniGameInstanceV1,MiniGameRulesV1} from '../minigames/schema.ts';
 import {inspectMiniGame,suggestMiniGameSites,type SiteQueries} from '../minigames/sites.ts';
-import {createMiniGame,putMiniGame,removeMiniGame,resetMiniGameLayout} from '../studio-core/minigame-authoring.ts';
-import {projectRaceTerrainEnvironment} from '../studio-core/race-terrain-context.ts';
+import {addGolfHole,createMiniGame,flattenMiniGameGround,GOLF_HOLE_TYPES,putMiniGame,removeGolfHole,removeMiniGame,resetMiniGameLayout,setGolfHoleShape} from '../studio-core/minigame-authoring.ts';
+import {projectSiteQueries} from '../studio-core/minigame-composition.ts';
 import {terrainHeight} from '../terrain.ts';
 
 export interface MiniGamesPanelContext {session:StudioSession;viewport:StudioViewport;status(message:string,error?:boolean):void}
 const RULE_FIELDS:[keyof MiniGameRulesV1,string,number,number][]=[
   ['scoreTarget','Score à atteindre',1,99],['timeLimitSeconds','Durée max (s)',10,3600],['attempts','Tentatives / coups max',1,20],['rounds','Manches',1,10],['par','Par',1,20]];
-const ELEMENT_LABELS:Record<MiniGameElementV1['kind'],string>={goal:'But',pin:'Quille',tee:'Départ',hole:'Trou',obstacle:'Obstacle',spawn:'Point de départ',ball:'Balle'};
+const ELEMENT_LABELS:Record<MiniGameElementV1['kind'],string>={goal:'But',pin:'Quille',tee:'Départ',hole:'Trou',obstacle:'Obstacle',spawn:'Point de départ',ball:'Balle',target:'Cible',lane:'Piste'};
+const SHAPE_LABELS:Record<FloorShape,string>={flat:'Plat','ramp-up':'Montée','ramp-down':'Descente',bank:'Dévers',bumps:'Bosses'};
 const deg=(r:number)=>Math.round(r*180/Math.PI),rad=(d:number)=>Math.round(d*Math.PI/180*100)/100;
 
-/** Terrain queries of the project WITHOUT its mini-games (their own reserved ground is not an obstacle). */
-function siteQueries(ctx:MiniGamesPanelContext):SiteQueries{
-  const doc=ctx.session.document,env=projectRaceTerrainEnvironment({...doc,libraries:{...doc.libraries,minigames:undefined}});
-  return {height:env.height,water:(x,z)=>env.water(x,z,env.height(x,z)),
-    obstacles:(minX,maxX,minZ,maxZ)=>{const out:{x:number;z:number;r:number}[]=[];for(let x=minX;x<=maxX;x+=2)for(let z=minZ;z<=maxZ;z+=2)if(env.occupation(x,z))out.push({x,z,r:.5});return out;}};
-}
+const siteQueries=(ctx:MiniGamesPanelContext):SiteQueries=>projectSiteQueries(ctx.session.document);
 let preview:{dispose():void}|null=null,previewKey='';
 async function refreshPreview(ctx:MiniGamesPanelContext){
   const games=Object.values(ctx.session.document.libraries.minigames??{}),key=JSON.stringify(games);
@@ -39,6 +35,29 @@ async function refreshPreview(ctx:MiniGamesPanelContext){
 /** Called by the shell when the module closes. */
 export function disposeMiniGamesPreview(ctx:Pick<MiniGamesPanelContext,'viewport'>){preview?.dispose();preview=null;previewKey='';ctx.viewport.setOverlay('minigames',null);}
 
+/** Holes of a staged course: relief type and slope per lane, add / remove a hole. */
+function courseEditor(g:MiniGameInstanceV1,edit:(label:string,next:MiniGameInstanceV1)=>void,ctx:MiniGamesPanelContext){
+  const box=node('div','','minigame-course'),lanes=g.elements.filter(e=>e.kind==='lane').sort((a,b)=>(a.stage??0)-(b.stage??0));
+  const guard=(label:string,f:()=>MiniGameInstanceV1)=>{try{edit(label,f());}catch(e){ctx.status(String(e instanceof Error?e.message:e),true);}};
+  box.append(node('h5',lanes.length?`Parcours : ${lanes.length} trou(s)`:'Trou unique (historique)'));
+  if(!lanes.length)box.append(node('p','« Disposition par défaut » remplace ce trou par le parcours de 6 trous à pistes.','muted'));
+  for(const lane of lanes){
+    const k=lane.stage??0,row=node('div','','minigame-element'),shape=lane.shape??'flat';
+    row.append(node('span','Trou '+(k+1)),
+      field('relief',select(shape,FLOOR_SHAPES.map(f=>[f,SHAPE_LABELS[f]] as const),v=>guard('Relief du trou '+(k+1),()=>setGolfHoleShape(g,k,v as FloorShape,lane.slope??(v==='bumps'?.12:.1))))),
+      field(shape==='bumps'?'hauteur (m)':'pente',numberInput(lane.slope??0,v=>guard('Pente du trou '+(k+1),()=>setGolfHoleShape(g,k,shape,v)),0,.3,'.01')),
+      button('Voir',()=>{const p=g.area,c=Math.cos(p.heading),sn=Math.sin(p.heading);ctx.viewport.goTo(p.x+lane.x*c+lane.z*sn,p.z-lane.x*sn+lane.z*c,9);}),
+      button('Retirer',()=>guard('Retirer le trou '+(k+1),()=>removeGolfHole(g,k))));
+    box.append(row);
+  }
+  if(lanes.length){
+    let type=0;
+    box.append(field('Nouveau trou',select('0',GOLF_HOLE_TYPES.map(t=>[String(t.id),t.label] as const),v=>{type=Number(v);})),
+      button('Ajouter un trou',()=>guard('Ajouter un trou',()=>addGolfHole(g,type))));
+  }
+  return box;
+}
+
 export function mountMiniGamesPanel(host:HTMLElement,ctx:MiniGamesPanelContext){
   const doc=ctx.session.document,games=Object.values(doc.libraries.minigames??{});
   const edit=(label:string,next:MiniGameInstanceV1)=>void ctx.session.change(label,[],d=>putMiniGame(d,next)).catch(e=>ctx.status(String(e instanceof Error?e.message:e),true));
@@ -47,8 +66,13 @@ export function mountMiniGamesPanel(host:HTMLElement,ctx:MiniGamesPanelContext){
   // Creation.
   let variant:MiniGameVariantId='football',name='';
   const create=node('div','', 'minigame-create');
-  create.append(field('Famille',select('ball',[['ball','Jeux de balle']],()=>{})),
-    field('Variante',select(variant,MINIGAME_VARIANT_IDS.map(v=>[v,MINIGAME_VARIANTS[v].label] as const),v=>{variant=v as MiniGameVariantId;})),
+  // Family → variants of that family (data from the catalogue, nothing hard-coded here).
+  const families=ACTIVITY_FAMILIES.filter(f=>MINIGAME_VARIANT_IDS.some(v=>MINIGAME_VARIANTS[v].family===f.id));
+  const variantsOf=(family:string)=>MINIGAME_VARIANT_IDS.filter(v=>MINIGAME_VARIANTS[v].family===family).map(v=>[v,MINIGAME_VARIANTS[v].label] as const);
+  const variantSelect=select(variant,variantsOf('ball'),v=>{variant=v as MiniGameVariantId;});
+  create.append(field('Famille',select('ball',families.map(f=>[f.id,f.label] as const),f=>{
+      variantSelect.replaceChildren(...variantsOf(f).map(([id,label])=>new Option(label,id)));variant=variantSelect.value as MiniGameVariantId;})),
+    field('Variante',variantSelect),
     field('Nom (facultatif)',input('',v=>{name=v.trim();})),
     button('Créer au centre de la vue',async()=>{
       const t=ctx.viewport.camera.target,game=createMiniGame(ctx.session.document,variant,{x:t.x,z:t.z},name||undefined);
@@ -80,6 +104,10 @@ export function mountMiniGamesPanel(host:HTMLElement,ctx:MiniGamesPanelContext){
       if(g.rules[key]===undefined&&!MINIGAME_VARIANTS[g.variant].requiredRules.includes(key as never)&&!(key==='timeLimitSeconds'))continue;
       box.append(field(label,numberInput(Number(g.rules[key]??0),v=>set('Règle : '+label,{rules:{...g.rules,[key]:v||undefined}}),min===10?0:min,max,'1')));
     }
+    const modes=MINIGAME_VARIANTS[g.variant].modes;
+    if(modes?.length)box.append(field('Mode proposé par défaut',select(g.rules.mode??modes[0].id,modes.map(m=>[m.id,m.label] as const),v=>set('Mode par défaut',{rules:{...g.rules,mode:v}}))),
+      node('p','Le joueur peut changer de mode avant de commencer (touches 1, 2…).','muted'));
+    if(MINIGAME_VARIANTS[g.variant].stages)box.append(courseEditor(g,(label,next)=>edit(label,next),ctx));
     for(const [i,t] of (g.teams??[]).entries())box.append(field('Équipe '+(i+1),input(t.name,v=>set('Nommer une équipe',{teams:g.teams!.map(x=>x.id===t.id?{...x,name:v}:x)}))));
     const table=node('div','', 'minigame-elements');
     for(const e of g.elements){
@@ -98,10 +126,12 @@ export function mountMiniGamesPanel(host:HTMLElement,ctx:MiniGamesPanelContext){
       box.append(button('Ajouter un obstacle',()=>{let n=1;while(g.elements.some(e=>e.id==='obstacle-'+n))n++;set('Ajouter un obstacle',{elements:[...g.elements,{id:'obstacle-'+n,kind:'obstacle',x:0,z:0,width:1.2,depth:.3,height:.35}]});}));
     const report=node('p','', 'muted');
     box.append(report,
-      button('Analyser le terrain',()=>{const r=inspectMiniGame(g,siteQueries(ctx));report.textContent=r.ok?`Terrain adapté (pente max ${Math.round(r.maxSlope*100)} %)`:'À corriger : '+r.issues.join(' · ');}),
+      button('Analyser le terrain',()=>{const r=inspectMiniGame(g,siteQueries(ctx),{others:games.filter(o=>o.id!==g.id).map(o=>o.area)});report.textContent=r.ok?`Terrain adapté (pente max ${Math.round(r.maxSlope*100)} %)`:'À corriger : '+r.issues.join(' · ');}),
       button('Voir',()=>ctx.viewport.goTo(a.x,a.z,Math.hypot(a.halfWidth,a.halfLength)*1.6)),
       button('Déplacer au centre de la vue',()=>{const t=ctx.viewport.camera.target;set('Déplacer le mini-jeu',{area:{...a,x:Math.round(t.x*10)/10,z:Math.round(t.z*10)/10}});}),
       button('Disposition par défaut',()=>set('Disposition par défaut',resetMiniGameLayout(g))),
+      // Optional: flat ground under the activity (an earthwork pad, annulable like any edit).
+      button('Aplanir le terrain',()=>void ctx.session.change('Aplanir le terrain du mini-jeu',[],d=>{const pad=flattenMiniGameGround(d,g,siteQueries(ctx).height);ctx.status(`Terrain aplani à ${pad.levelM} m (terrassement « ${pad.id} », annulable).`);}).catch(e=>ctx.status(String(e instanceof Error?e.message:e),true))),
       button('Supprimer',()=>void ctx.session.change('Supprimer un mini-jeu',[],d=>removeMiniGame(d,g.id)).catch(e=>ctx.status(String(e),true))));
     host.append(box);
   }

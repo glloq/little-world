@@ -10,6 +10,7 @@ import type {MiniGameFamilyModule} from './types.ts';
 export type MiniGameLoader=()=>Promise<MiniGameFamilyModule>;
 export const DEFAULT_LOADERS:Record<MiniGameFamilyId,MiniGameLoader>={
   ball:async()=>(await import('./ball/family.ts')).default,
+  target:async()=>(await import('./target/family.ts')).default,
 };
 export class MiniGameRegistry {
   private pending=new Map<string,Promise<MiniGameFamilyModule>>();

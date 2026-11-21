@@ -1,3 +1,4 @@
+import {MINIGAME_VARIANTS,MINIGAME_VARIANT_IDS,type MiniGameVariantId} from '../minigames/catalog.ts';
 import {PISTE_COLORS} from '../snow/resort-planner.ts';
 import {compositionDraftStore} from './composition-draft-store.ts';
 import {islandStyleControls} from './island-style-controls.ts';
@@ -272,7 +273,8 @@ export function mountWelcome(host:HTMLElement,actions:WelcomeActions){
     const set=(patch:Partial<MapRequirements>)=>{const next={...requirements,...patch} as MapRequirements;for(const [k,v]of Object.entries(patch))if(v===undefined||v===false)delete (next as unknown as Record<string,unknown>)[k];requirements=next;render();};
     const check=(label:string,checked:boolean,fn:(v:boolean)=>void)=>{const el=node('input');el.type='checkbox';el.checked=checked;el.onchange=()=>fn(el.checked);return field(label,el);};
     const acts=requirements.activities??{races:'none' as const,ski:false,music:'contextual' as const};
-    const setAct=(patch:Partial<NonNullable<MapRequirements['activities']>>)=>{const next={...acts,...patch};for(const k of ['skiResort','surf','flight'] as const)if(!next[k])delete next[k];set({activities:next});};
+    const setAct=(patch:Partial<NonNullable<MapRequirements['activities']>>)=>{const next={...acts,...patch};for(const k of ['skiResort','surf','flight'] as const)if(!next[k])delete next[k];if(!next.minigames?.length)delete next.minigames;set({activities:next});};
+    const minigames=acts.minigames??[],toggleGame=(v:MiniGameVariantId,on:boolean)=>setAct({minigames:on?[...minigames,v]:minigames.filter(m=>m!==v)});
     box.append(
       check('Terrasser les sites en pente',requirements.earthworks===true,v=>set({earthworks:v})),
       check('Relier tous les lieux par des chemins',requirements.circulation===true,v=>set({circulation:v})),
@@ -280,6 +282,8 @@ export function mountWelcome(host:HTMLElement,actions:WelcomeActions){
       field('Langue des textes générés',select(requirements.locale??'fr',[['fr','Français'],['en','English']],v=>set({locale:v==='fr'?undefined:v as 'en'}))),
       field('Architecture',select(requirements.architecture??'',[['','Historique'],...ARCHITECTURE_STYLE_IDS.map(a=>[a,ARCHITECTURE_STYLES[a].label] as [string,string])],v=>set({architecture:(v||undefined) as MapRequirements['architecture']}))),
       check('Plages de surf',acts.surf===true,v=>setAct({surf:v})),check('Domaine skiable complet',acts.skiResort===true,v=>setAct({skiResort:v,...(v?{ski:true}:{})})),check('Parcours de vol plané',acts.flight===true,v=>setAct({flight:v})),
+      // Doc 107: optional mini-games on naturally suitable ground (never forced by earthworks).
+      ...MINIGAME_VARIANT_IDS.map(v=>check('Mini-jeu : '+MINIGAME_VARIANTS[v].label,minigames.includes(v),on=>toggleGame(v,on))),
       field('Fonds marins',select(requirements.underwater?(requirements.underwater.trench?'deep':'reefs'):'none',[['none','Pente historique'],['reefs','Plateau, récifs et plongée'],['deep','Récifs, trous bleus et fosse']],v=>set({underwater:v==='none'?undefined:{shelf:v==='reefs'?'wide':'narrow',reefs:v==='reefs'?3:2,holes:v==='deep'?2:1,trench:v==='deep',diveSites:true}}))));
     const poles=requirements.poles??[];
     poles.forEach((pole,i)=>{const row=node('div','','welcome-between');

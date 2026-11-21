@@ -10,10 +10,12 @@ import {defaultMiniGame} from './layouts.ts';
 export interface SiteQueries {height(x:number,z:number):number;water?(x:number,z:number):number|null;
   /** Existing obstacles (tree trunks, building colliders) as circles in a world rectangle. */
   obstacles?(minX:number,maxX:number,minZ:number,maxZ:number):readonly {x:number;z:number;r:number}[]}
-export interface SiteReport {maxSlope:number;relief:number;water:boolean;obstacles:number;ok:boolean;issues:string[]}
+export interface SiteReport {maxSlope:number;relief:number;water:boolean;obstacles:number;overlaps:number;accessible:boolean;ok:boolean;issues:string[]}
+/** Optional context: other activity areas of the island (overlap check). */
+export interface SiteContext {others?:readonly MiniGameAreaV1[]}
 
 /** 5×5 samples over the area: steepest neighbour slope, total relief and water presence. */
-export function inspectArea(area:MiniGameAreaV1,variant:MiniGameVariantId,q:SiteQueries):SiteReport{
+export function inspectArea(area:MiniGameAreaV1,variant:MiniGameVariantId,q:SiteQueries,context:SiteContext={}):SiteReport{
   const n=5,h:number[][]=[];let water=false,lo=Infinity,hi=-Infinity,maxSlope=0;
   for(let i=0;i<n;i++){h.push([]);for(let j=0;j<n;j++){
     const p=areaToWorld(area,(i/(n-1)*2-1)*area.halfWidth,(j/(n-1)*2-1)*area.halfLength),y=q.height(p.x,p.z);
@@ -30,9 +32,30 @@ export function inspectArea(area:MiniGameAreaV1,variant:MiniGameVariantId,q:Site
     for(const o of q.obstacles(area.x-r,area.x+r,area.z-r,area.z+r)){const l=worldToArea(area,o.x,o.z);if(Math.abs(l.x)<=area.halfWidth+o.r+.5&&Math.abs(l.z)<=area.halfLength+o.r+.5)obstacles++;}
     if(obstacles)issues.push(obstacles+' obstacle(s) existant(s) dans la zone (arbres, bâtiments)');
   }
-  return {maxSlope,relief:hi-lo,water,obstacles,ok:!issues.length,issues};
+  const overlaps=(context.others??[]).filter(o=>areasOverlap(area,o,1)).length;
+  if(overlaps)issues.push(overlaps+' autre(s) activité(s) superposée(s)');
+  // Access: some dry ground 3 m outside the area, walkable towards its edge (hamster slope limit).
+  let accessible=false;
+  for(let k=0;k<16&&!accessible;k++){
+    const t=k/16*Math.PI*2,u=Math.cos(t),v=Math.sin(t),s=Math.max(Math.abs(u)/area.halfWidth,Math.abs(v)/area.halfLength);
+    const edge=areaToWorld(area,u/s,v/s),out=areaToWorld(area,u/s+u*3,v/s+v*3),ho=q.height(out.x,out.z),he=q.height(edge.x,edge.z);
+    const wet=(q.water?.(out.x,out.z)??null)!==null&&(q.water!(out.x,out.z) as number)>ho-.05;
+    if(!wet&&Math.abs(ho-he)/3<WALKABLE_SLOPE)accessible=true;
+  }
+  if(!accessible)issues.push('Aucun accès à pied (eau ou pente tout autour)');
+  return {maxSlope,relief:hi-lo,water,obstacles,overlaps,accessible,ok:!issues.length,issues};
 }
-export const inspectMiniGame=(def:MiniGameInstanceV1,q:SiteQueries)=>inspectArea(def.area,def.variant,q);
+/** Slope a walking hamster climbs (player DEFAULT_BODY: tan 50°). */
+const WALKABLE_SLOPE=Math.tan(50*Math.PI/180);
+/** Separating-axis test of two oriented areas, `margin` metres apart at least. */
+export function areasOverlap(a:MiniGameAreaV1,b:MiniGameAreaV1,margin=0):boolean{
+  const axes=(r:MiniGameAreaV1)=>[{x:Math.cos(r.heading),z:-Math.sin(r.heading)},{x:Math.sin(r.heading),z:Math.cos(r.heading)}];
+  const extent=(r:MiniGameAreaV1,ax:{x:number;z:number})=>{const [u,v]=axes(r);return (r.halfWidth+margin/2)*Math.abs(u.x*ax.x+u.z*ax.z)+(r.halfLength+margin/2)*Math.abs(v.x*ax.x+v.z*ax.z);};
+  const dx=b.x-a.x,dz=b.z-a.z;
+  for(const ax of [...axes(a),...axes(b)])if(Math.abs(dx*ax.x+dz*ax.z)>extent(a,ax)+extent(b,ax))return false;
+  return true;
+}
+export const inspectMiniGame=(def:MiniGameInstanceV1,q:SiteQueries,context:SiteContext={})=>inspectArea(def.area,def.variant,q,context);
 
 /**
  * Deterministic search of suitable areas around anchor points (village centres, spawn):
@@ -48,7 +71,7 @@ export function suggestMiniGameSites(variant:MiniGameVariantId,q:SiteQueries,opt
       // Long axis pointing away from the anchor: the pitch faces the village.
       const area={...probe.area,x,z,heading:Math.round(t*100)/100};
       if(x-r0<options.bounds.minX||x+r0>options.bounds.maxX||z-r0<options.bounds.minZ||z+r0>options.bounds.maxZ)continue;
-      if(avoid.some(o=>Math.hypot(o.x-x,o.z-z)<areaRadius(o)+r0+3))continue;
+      if(avoid.some(o=>areasOverlap(o,area,3)))continue;
       if(!inspectArea(area,variant,q).ok)continue;
       out.push(area);avoid.push(area);
     }

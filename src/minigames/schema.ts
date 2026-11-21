@@ -4,17 +4,22 @@
  * Every element is expressed in the AREA frame (x across, z along `heading`, metres),
  * so moving or turning an area in Studio moves its goals, pins, tee, hole and obstacles.
  */
-import {MINIGAME_VARIANTS,type MiniGameVariantId} from './catalog.ts';
+import {MINIGAME_VARIANTS,FLOOR_SHAPES,type FloorShape,type MiniGameElementKind,type MiniGameFamilyId,type MiniGameVariantId} from './catalog.ts';
 
-export type MiniGameElementKind='goal'|'pin'|'tee'|'hole'|'obstacle'|'spawn'|'ball';
+export type {MiniGameElementKind} from './catalog.ts';
 export interface MiniGameElementV1 {
   id:string;kind:MiniGameElementKind;x:number;z:number;
-  /** Footprint across / along the area frame, height (obstacles and goals). */
+  /** Footprint across / along the area frame, height (obstacles and goals); for targets,
+   * `height` is the elevation of the target centre above the ground. */
   width?:number;depth?:number;height?:number;
   /** Local yaw of an obstacle relative to the area (rad). */
   yaw?:number;
   /** Goal defended by / spawn of this team. */
   teamId?:string;
+  /** Mini-golf hole (0-based) the element belongs to. */
+  stage?:number;
+  /** Lane relief (kind 'lane') and its slope ratio / bump height. */
+  shape?:FloorShape;slope?:number;
 }
 export interface MiniGameTeamV1 {id:string;name:string;color:number}
 export interface MiniGameRulesV1 {
@@ -24,11 +29,12 @@ export interface MiniGameRulesV1 {
   /** Rounds / frames per player (bowling). */rounds?:number;
   /** Strokes considered par (mini-golf display only). */par?:number;
   /** Solo practice allowed below `playersMin` (local solo game). */practice?:boolean;
+  /** Default game mode offered at start (variant `modes`, e.g. bowling beginner/normal). */mode?:string;
 }
 export interface MiniGameAreaV1 {x:number;z:number;heading:number;halfWidth:number;halfLength:number}
 export interface MiniGameInstanceV1 {
   id:string;version:1;name:string;
-  family:'ball';variant:MiniGameVariantId;
+  family:MiniGameFamilyId;variant:MiniGameVariantId;
   playersMin:number;playersMax:number;
   area:MiniGameAreaV1;
   teams?:MiniGameTeamV1[];
@@ -39,7 +45,7 @@ export interface MiniGameBounds {minX:number;maxX:number;minZ:number;maxZ:number
 
 export const MINIGAME_ID=/^minigame:[a-zA-Z0-9_-]{1,100}$/;
 const LOCAL_ID=/^[a-zA-Z0-9_-]{1,40}$/;
-const KINDS:readonly MiniGameElementKind[]=['goal','pin','tee','hole','obstacle','spawn','ball'];
+const KINDS:readonly MiniGameElementKind[]=['goal','pin','tee','hole','obstacle','spawn','ball','target','lane'];
 const isObj=(v:unknown):v is Record<string,unknown>=>!!v&&typeof v==='object'&&!Array.isArray(v);
 const num=(v:unknown,min:number,max:number)=>typeof v==='number'&&Number.isFinite(v)&&v>=min&&v<=max;
 const only=(v:Record<string,unknown>,keys:readonly string[],label:string)=>{for(const k of Object.keys(v))if(!keys.includes(k))throw Error(label+' : champ inconnu '+k);};
@@ -89,26 +95,29 @@ export function validateMiniGame(raw:unknown,bounds?:MiniGameBounds):MiniGameIns
   }
   if(variant.teams&&teamIds.size<2)throw Error('Mini-jeu : deux équipes requises');
   if(!isObj(raw.rules))throw Error('Mini-jeu : règles absentes');
-  only(raw.rules,['scoreTarget','timeLimitSeconds','attempts','rounds','par','practice'],'Règles');
+  only(raw.rules,['scoreTarget','timeLimitSeconds','attempts','rounds','par','practice','mode'],'Règles');
   const r=raw.rules;
   if(r.scoreTarget!==undefined&&!(Number.isSafeInteger(r.scoreTarget)&&num(r.scoreTarget,1,99))||
      r.timeLimitSeconds!==undefined&&!num(r.timeLimitSeconds,10,3600)||
      r.attempts!==undefined&&!(Number.isSafeInteger(r.attempts)&&num(r.attempts,1,20))||
      r.rounds!==undefined&&!(Number.isSafeInteger(r.rounds)&&num(r.rounds,1,10))||
      r.par!==undefined&&!(Number.isSafeInteger(r.par)&&num(r.par,1,20))||
-     r.practice!==undefined&&typeof r.practice!=='boolean')throw Error('Mini-jeu : règles invalides');
+     r.practice!==undefined&&typeof r.practice!=='boolean'||
+     r.mode!==undefined&&!variant.modes?.some(m=>m.id===r.mode))throw Error('Mini-jeu : règles invalides');
   for(const key of variant.requiredRules)if(r[key]===undefined)throw Error('Mini-jeu : règle requise '+key);
   if(!Array.isArray(raw.elements)||raw.elements.length>64)throw Error('Mini-jeu : éléments invalides');
   const ids=new Set<string>(),count:Partial<Record<MiniGameElementKind,number>>={};
   for(const e of raw.elements){
     if(!isObj(e))throw Error('Élément : objet attendu');
-    only(e,['id','kind','x','z','width','depth','height','yaw','teamId'],'Élément');
+    only(e,['id','kind','x','z','width','depth','height','yaw','teamId','stage','shape','slope'],'Élément');
     if(typeof e.id!=='string'||!LOCAL_ID.test(e.id)||ids.has(e.id))throw Error('Élément : identifiant invalide');
     if(!KINDS.includes(e.kind as MiniGameElementKind))throw Error('Élément : type inconnu');
     if(!num(e.x,-area.halfWidth-.01,area.halfWidth+.01)||!num(e.z,-area.halfLength-.01,area.halfLength+.01))throw Error('Élément hors de la zone : '+e.id);
     for(const k of ['width','depth','height'] as const)if(e[k]!==undefined&&!num(e[k],.05,40))throw Error('Élément : dimension invalide '+e.id);
     if(e.yaw!==undefined&&!num(e.yaw,-Math.PI*2,Math.PI*2))throw Error('Élément : orientation invalide');
     if(e.teamId!==undefined&&(typeof e.teamId!=='string'||!teamIds.has(e.teamId)))throw Error('Élément : équipe inconnue '+e.id);
+    if(e.stage!==undefined&&(!variant.stages||!Number.isSafeInteger(e.stage)||(e.stage as number)<0||(e.stage as number)>8))throw Error('Élément : étape invalide '+e.id);
+    if(e.shape!==undefined&&(e.kind!=='lane'||!FLOOR_SHAPES.includes(e.shape as FloorShape))||e.slope!==undefined&&(e.kind!=='lane'||!num(e.slope,0,.3)))throw Error('Élément : relief de piste invalide '+e.id);
     ids.add(e.id);const k=e.kind as MiniGameElementKind;count[k]=(count[k]??0)+1;
   }
   for(const [kind,[min,max]] of Object.entries(variant.elements) as [MiniGameElementKind,[number,number]][]){
@@ -116,6 +125,7 @@ export function validateMiniGame(raw:unknown,bounds?:MiniGameBounds):MiniGameIns
   }
   for(const kind of Object.keys(count) as MiniGameElementKind[])if(!variant.elements[kind])throw Error('Mini-jeu : élément « '+kind+' » non utilisé par '+variant.label);
   if(variant.teams)for(const team of teamIds)if(!raw.elements.some(e=>isObj(e)&&e.kind==='goal'&&e.teamId===team))throw Error('Mini-jeu : but absent pour l’équipe '+team);
+  if(variant.stages)validateStages(raw.elements as unknown as MiniGameElementV1[]);
   return structuredClone(raw) as unknown as MiniGameInstanceV1;
 }
 
@@ -126,4 +136,25 @@ export function minigameGeoZones(games:Record<string,MiniGameInstanceV1>|undefin
     const w=g.area.halfWidth+1,l=g.area.halfLength+1;
     return {kind:'minigame' as const,polygon:[[-w,-l],[w,-l],[w,l],[-w,l]].map(([x,z])=>{const p=areaToWorld(g.area,x,z);return {x:Math.round(p.x*100)/100,z:Math.round(p.z*100)/100};})};
   });
+}
+
+/** Area-frame point → lane frame (u across, v along, metres) of a 'lane' element. */
+export function laneLocal(lane:MiniGameElementV1,x:number,z:number){
+  const y=lane.yaw??0,c=Math.cos(y),s=Math.sin(y),dx=x-lane.x,dz=z-lane.z;
+  return {u:dx*c-dz*s,v:dx*s+dz*c};
+}
+export const insideLane=(lane:MiniGameElementV1,x:number,z:number,margin=0)=>{const l=laneLocal(lane,x,z);return Math.abs(l.u)<=(lane.width??2)/2+margin&&Math.abs(l.v)<=(lane.depth??6)/2+margin;};
+/** Staged course (mini-golf): without lanes = one historical hole over the whole area; with
+ * lanes, stages 0…n−1 each have exactly one lane, tee and hole, the tee and the hole inside
+ * their lane, and every staged element points to an existing stage. */
+function validateStages(elements:readonly MiniGameElementV1[]){
+  const lanes=elements.filter(e=>e.kind==='lane');
+  if(!lanes.length){if(elements.filter(e=>e.kind==='tee').length!==1||elements.filter(e=>e.kind==='hole').length!==1||elements.some(e=>e.stage!==undefined&&e.stage!==0))throw Error('Mini-jeu : un départ et un trou sans piste');return;}
+  for(let k=0;k<lanes.length;k++){
+    const of=(kind:string)=>elements.filter(e=>e.kind===kind&&e.stage===k);
+    const [lane]=of('lane'),tees=of('tee'),holes=of('hole');
+    if(!lane||of('lane').length!==1||tees.length!==1||holes.length!==1)throw Error('Mini-jeu : le trou '+(k+1)+' doit avoir une piste, un départ et un trou');
+    if(!insideLane(lane,tees[0].x,tees[0].z)||!insideLane(lane,holes[0].x,holes[0].z))throw Error('Mini-jeu : départ ou trou hors de la piste '+(k+1));
+  }
+  for(const e of elements)if(e.stage===undefined||e.stage>=lanes.length)throw Error('Mini-jeu : élément sans trou valide '+e.id);
 }

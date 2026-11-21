@@ -17,11 +17,14 @@ import {MOTION,SURFACE_MOTION} from '../../physics/motion.ts';
 import type {Bounds} from '../../physics/collision-world.ts';
 import type {MiniGameEnvironment} from '../types.ts';
 
-export const BALL_LIMITS={maxBalls:32,maxSubsteps:8,maxSpeed:30,sleepSpeed:.06,sleepTicks:12,bounceMin:.9,airDrag:.02,
-  /** Rolling deceleration = rolling × material friction × g × this coefficient. */rollCoefficient:.15} as const;
+export const BALL_LIMITS={maxBalls:32,maxSubsteps:16,maxSpeed:30,sleepSpeed:.06,sleepTicks:12,bounceMin:.9,airDrag:.02,
+  /** Rolling deceleration = rolling × material friction × g × this coefficient. */rollCoefficient:.15,
+  /** A solid sphere rolling without slipping accelerates at 5/7 g sinθ down a slope. */rollingInertia:2/7} as const;
 export interface BallSpec {id:string;x:number;y:number;z:number;radius:number;mass:number;restitution:number;rolling:number;asleep?:boolean}
 /** Oriented box: yaw rotation in XZ (same frame convention as the mini-game area), AABB in Y. */
-export interface StaticBox {cx:number;cz:number;hx:number;hz:number;minY:number;maxY:number;cos:number;sin:number;restitution:number}
+/** Presentation role of a static box (the view styles it; physics ignores it). */
+export type StaticBoxTag='wall'|'obstacle'|'net'|'post'|'bumper'|'board';
+export interface StaticBox {cx:number;cz:number;hx:number;hz:number;minY:number;maxY:number;cos:number;sin:number;restitution:number;tag?:StaticBoxTag}
 export function orientedBox(cx:number,cz:number,width:number,depth:number,minY:number,maxY:number,yaw:number,restitution=.6):StaticBox{
   return {cx,cz,hx:width/2,hz:depth/2,minY,maxY,cos:Math.cos(yaw),sin:Math.sin(yaw),restitution};
 }
@@ -42,7 +45,9 @@ export class BallWorld {
   boxes:StaticBox[]=[];
   /** Number of integrated (awake) ball sub-steps during the last step (benchmarks). */
   lastWork=0;
-  private shared:StaticBox[]=[];private sharedCount=0;
+  /** Shared colliders seen during the last step, and non-finite states recovered so far. */
+  sharedCount=0;recovered=0;
+  private shared:StaticBox[]=[];
   private readonly g=MOTION.gravity;
   private readonly env:MiniGameEnvironment;
   constructor(env:MiniGameEnvironment,capacity=16){
@@ -89,12 +94,23 @@ export class BallWorld {
     this.lastWork=0;if(!awake)return;
     this.gatherShared(minX,maxX,minZ,maxZ);
     const n=Math.min(BALL_LIMITS.maxSubsteps,Math.max(1,Math.ceil(maxV*dt/(minR*.5)))),h=dt/n;
+    // Anti-tunnelling guarantee: when the sub-step budget is reached, a ball may not travel
+    // more than half its radius per sub-step (only reachable above ~29 m/s for r = 0.12 m).
+    if(n===BALL_LIMITS.maxSubsteps)for(let i=0;i<this.count;i++){
+      if(!this.enabled[i]||this.asleep[i])continue;const limit=this.radius[i]*.5/h,v=this.speed(i);
+      if(v>limit){const k=limit/v;this.vx[i]*=k;this.vy[i]*=k;this.vz[i]*=k;}
+    }
     for(let k=0;k<n;k++){
       for(let i=0;i<this.count;i++){if(!this.enabled[i]||this.asleep[i])continue;this.lastWork++;this.integrate(i,h);this.ground(i,h);this.collideBoxes(i,this.boxes,this.boxes.length);this.collideBoxes(i,this.shared,this.sharedCount);}
       this.collidePairs();
     }
     for(let i=0;i<this.count;i++){
       if(!this.enabled[i]||this.asleep[i])continue;
+      // A non-finite state (invalid relief sample upstream) never propagates: back to the
+      // last valid position, at rest.
+      if(!(Number.isFinite(this.px[i])&&Number.isFinite(this.py[i])&&Number.isFinite(this.pz[i])&&Number.isFinite(this.vx[i])&&Number.isFinite(this.vy[i])&&Number.isFinite(this.vz[i]))){
+        this.px[i]=this.ox[i];this.py[i]=this.oy[i];this.pz[i]=this.oz[i];this.vx[i]=this.vy[i]=this.vz[i]=0;this.asleep[i]=1;this.idle[i]=0;this.recovered++;continue;
+      }
       if(this.grounded[i]&&this.speed(i)<BALL_LIMITS.sleepSpeed){if(++this.idle[i]>=BALL_LIMITS.sleepTicks){this.asleep[i]=1;this.vx[i]=this.vy[i]=this.vz[i]=0;}}
       else this.idle[i]=0;
     }
@@ -105,7 +121,7 @@ export class BallWorld {
     for(const b of solids as readonly Bounds[]){
       const box=this.shared[this.sharedCount]??(this.shared[this.sharedCount]={cx:0,cz:0,hx:0,hz:0,minY:0,maxY:0,cos:1,sin:0,restitution:.5});
       box.cx=(b.minX+b.maxX)/2;box.cz=(b.minZ+b.maxZ)/2;box.hx=(b.maxX-b.minX)/2;box.hz=(b.maxZ-b.minZ)/2;box.minY=b.minY;box.maxY=b.maxY;
-      if(++this.sharedCount>=256)break;
+      this.sharedCount++;
     }
   }
   private integrate(i:number,h:number){
@@ -117,13 +133,17 @@ export class BallWorld {
   private ground(i:number,h:number){
     const x=this.px[i],z=this.pz[i],r=this.radius[i],env=this.env,ground=env.height(x,z);
     const e=Math.max(.15,r),gx=(env.height(x+e,z)-env.height(x-e,z))/(2*e),gz=(env.height(x,z+e)-env.height(x,z-e))/(2*e),len=Math.hypot(gx,1,gz);
+    if(!Number.isFinite(ground)||!Number.isFinite(len)){this.grounded[i]=0;return;} // No valid relief here.
     const nx=-gx/len,ny=1/len,nz=-gz/len,rest=ground+r/ny;
-    const level=this.env.water?.(x,z)??null;this.inWater[i]=level!==null&&this.py[i]<level?1:0;
+    const level=this.env.water?.(x,z)??null;this.inWater[i]=level!==null&&Number.isFinite(level)&&this.py[i]<level?1:0;
     if(this.inWater[i]){this.vy[i]+=this.g*1.4*h;const d=1-2*h;this.vx[i]*=d;this.vy[i]*=d;this.vz[i]*=d;}
     if(this.py[i]>rest+.002){this.grounded[i]=0;return;}
     this.py[i]=rest;this.grounded[i]=1;
     const vn=this.vx[i]*nx+this.vy[i]*ny+this.vz[i]*nz;
     if(vn<0){const k=-vn>BALL_LIMITS.bounceMin?1+this.restitution[i]:1;this.vx[i]-=k*vn*nx;this.vy[i]-=k*vn*ny;this.vz[i]-=k*vn*nz;if(-vn>BALL_LIMITS.bounceMin)this.hitSpeed[i]=Math.max(this.hitSpeed[i],-vn);}
+    // Rolling body: part of the slope's gravity spins the sphere instead of moving it
+    // (5/7 g sinθ for a solid ball), so steep descents no longer over-accelerate.
+    const gh=this.g*h*BALL_LIMITS.rollingInertia;this.vx[i]-=gh*ny*nx;this.vy[i]+=gh*(1-ny*ny);this.vz[i]-=gh*ny*nz;
     // Rolling resistance on the tangential velocity; material friction reused from the player.
     const vn2=this.vx[i]*nx+this.vy[i]*ny+this.vz[i]*nz,tx=this.vx[i]-vn2*nx,ty=this.vy[i]-vn2*ny,tz=this.vz[i]-vn2*nz,ts=Math.hypot(tx,ty,tz);
     if(ts<1e-12)return;
@@ -159,8 +179,9 @@ export class BallWorld {
         if(!this.enabled[j]||this.asleep[i]&&this.asleep[j])continue;
         const dx=this.px[j]-this.px[i],dy=this.py[j]-this.py[i],dz=this.pz[j]-this.pz[i],R=this.radius[i]+this.radius[j];
         if(Math.abs(dx)>R||Math.abs(dz)>R||Math.abs(dy)>R)continue;
-        const d=Math.hypot(dx,dy,dz);if(d>=R||d<1e-9)continue;
-        const nx=dx/d,ny=dy/d,nz=dz/d,wi=this.invMass[i],wj=this.invMass[j],w=wi+wj,pen=R-d;
+        const d=Math.hypot(dx,dy,dz);if(d>=R)continue;
+        // Exactly superposed balls: deterministic horizontal separation axis from the pair.
+        const t=(i*7+j*13)*.7853981633974483,c=d>1e-9,nx=c?dx/d:Math.cos(t),ny=c?dy/d:0,nz=c?dz/d:Math.sin(t),wi=this.invMass[i],wj=this.invMass[j],w=wi+wj,pen=R-d;
         this.px[i]-=nx*pen*wi/w;this.py[i]-=ny*pen*wi/w;this.pz[i]-=nz*pen*wi/w;
         this.px[j]+=nx*pen*wj/w;this.py[j]+=ny*pen*wj/w;this.pz[j]+=nz*pen*wj/w;
         const vr=(this.vx[j]-this.vx[i])*nx+(this.vy[j]-this.vy[i])*ny+(this.vz[j]-this.vz[i])*nz;

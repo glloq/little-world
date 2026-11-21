@@ -32,6 +32,8 @@ export interface MiniGameSessionState {
   /** Attempts used in the current round, per player. */attempts:Record<string,number>;
   /** Players that completed the course (mini-golf holed). */finished:string[];
   round:number;turn:number;
+  /** Game mode chosen at start (variants with `modes`), absent otherwise. */
+  mode?:string;
   startTick:number;lastTick:number;activeTicks:number;
   seq:number;
   result:{reason:string;winners:string[];tick:number}|null;
@@ -76,8 +78,10 @@ export function canStart(s:MiniGameSessionState,def:MiniGameInstanceV1):string|n
   if(s.players.length<def.playersMin&&!(def.rules.practice&&s.players.length>=1))return `Il faut ${def.playersMin} joueur(s)`;
   return null;
 }
-export function startSession(s:MiniGameSessionState,def:MiniGameInstanceV1,tick:number,out:MiniGameEvent[]):boolean{
+export function startSession(s:MiniGameSessionState,def:MiniGameInstanceV1,tick:number,out:MiniGameEvent[],mode?:string):boolean{
   if(canStart(s,def))return false;
+  const modes=MINIGAME_VARIANTS[def.variant].modes;
+  if(modes?.length)s.mode=modes.some(m=>m.id===mode)?mode:def.rules.mode??modes[0].id;else delete s.mode;
   s.status='active';s.startTick=tick;s.lastTick=tick;s.activeTicks=0;s.round=0;s.turn=0;
   emit(s,out,tick,{type:'game:start'});return true;
 }
@@ -116,6 +120,11 @@ export function resetRound(s:MiniGameSessionState,tick:number,out:MiniGameEvent[
   for(const p of s.players)s.attempts[p.id]=0;
   emit(s,out,tick,{type:'game:reset',round:s.round});
 }
+/** Turn-based variants (bowling, target games): the player's round is over — reset its
+ * attempts, count the round and pass the turn. One shared rule, not one per variant. */
+export function completeTurn(s:MiniGameSessionState,playerId:string,tick:number,out:MiniGameEvent[]){
+  s.attempts[playerId]=0;s.round++;s.turn++;
+  emit(s,out,tick,{type:'game:reset',round:s.round});
+}
 /** Player whose turn it is (turn-based variants), or null. */
 export const currentPlayer=(s:MiniGameSessionState)=>s.players[s.turn%Math.max(1,s.players.length)]?.id??null;
-export function snapshotSession(s:MiniGameSessionState):MiniGameSessionState{return structuredClone(s);}
