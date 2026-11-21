@@ -103,7 +103,7 @@ export function mountMiniGamesPanel(host:HTMLElement,ctx:MiniGamesPanelContext){
       box.append(button('Ajouter un obstacle',()=>{let n=1;while(g.elements.some(e=>e.id==='obstacle-'+n))n++;set('Ajouter un obstacle',{elements:[...g.elements,{id:'obstacle-'+n,kind:'obstacle',x:0,z:0,width:1.2,depth:.3,height:.35}]});}));
     const report=node('p','', 'muted');
     box.append(report,
-      button('Analyser le terrain',()=>{const r=inspectMiniGame(g,siteQueries(ctx));report.textContent=r.ok?`Terrain adapté (pente max ${Math.round(r.maxSlope*100)} %)`:'À corriger : '+r.issues.join(' · ');}),
+      button('Analyser le terrain',()=>{const r=inspectMiniGame(g,siteQueries(ctx),{others:games.filter(o=>o.id!==g.id).map(o=>o.area)});report.textContent=r.ok?`Terrain adapté (pente max ${Math.round(r.maxSlope*100)} %)`:'À corriger : '+r.issues.join(' · ');}),
       button('Voir',()=>ctx.viewport.goTo(a.x,a.z,Math.hypot(a.halfWidth,a.halfLength)*1.6)),
       button('Déplacer au centre de la vue',()=>{const t=ctx.viewport.camera.target;set('Déplacer le mini-jeu',{area:{...a,x:Math.round(t.x*10)/10,z:Math.round(t.z*10)/10}});}),
       button('Disposition par défaut',()=>set('Disposition par défaut',resetMiniGameLayout(g))),

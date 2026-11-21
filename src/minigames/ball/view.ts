@@ -44,9 +44,9 @@ function create(parent:unknown,sim:MiniGameSimulation,env:MiniGameEnvironment):M
   const corners=[[-w,-l],[w,-l],[w,l],[-w,l]];
   for(let c=0;c<4;c++){const [x0,z0]=corners[c],[x1,z1]=corners[(c+1)%4];for(let k=0;k<6;k++){const p=areaToWorld(def.area,x0+(x1-x0)*k/6,z0+(z1-z0)*k/6);pts.push(new THREE.Vector3(p.x,env.height(p.x,p.z)+.04,p.z));}}
   const outline=new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(pts),res.line);group.add(outline);owned.push(outline.geometry);
-  for(const e of def.elements)if(e.kind==='hole'||e.kind==='tee'){
+  for(const e of def.elements)if(e.kind==='hole'||e.kind==='tee'||e.kind==='spawn'){
     const p=areaToWorld(def.area,e.x,e.z),m=new THREE.Mesh(res.disc,e.kind==='hole'?res.hole:res.tee);
-    m.position.set(p.x,env.height(p.x,p.z)+.03,p.z);m.scale.setScalar(e.kind==='hole'?.22:.3);group.add(m);
+    m.position.set(p.x,env.height(p.x,p.z)+.03,p.z);m.scale.setScalar(e.kind==='hole'?.22:e.kind==='spawn'?.2:.3);group.add(m);
   }
   // Dynamic objects: one InstancedMesh for spheres, one for pins (bowling).
   // Data-driven presentation (catalogue `visual`): dynamic objects authored as pins or targets

@@ -61,6 +61,17 @@ export function renderElementInspector(host:HTMLElement,ref:ElementRef,ctx:Eleme
     const e=data as BiomeStroke;
     box.append(node('legend','Retouche de biotope'),field('Biotope',select(e.biome,[['forest','Forêt'],['meadow','Prairie'],['mountain','Montagne'],['coast','Littoral'],['village','Village']],v=>apply('Biotope de la retouche',{biome:v}))),
       field('Rayon (m)',numberInput(e.radius,v=>apply('Rayon de la retouche',{radius:Math.max(1,Math.min(200,v))}),1,200)),field('Densité',numberInput(e.density,v=>apply('Densité de la retouche',{density:Math.max(0,Math.min(2,v))}),0,2)));
+  }else if(ref.kind==='minigame'||ref.kind==='minigameElement'){
+    // Precise values next to the gizmo: an area in world metres, an element in its area frame.
+    const area=ref.kind==='minigame',game=p.libraries.minigames?.[area?ref.id:ref.id.slice(0,ref.id.lastIndexOf('#'))];
+    const element=area?null:game?.elements.find(e=>e.id===ref.id.slice(ref.id.lastIndexOf('#')+1));
+    if(game&&area)box.append(node('legend','Zone de mini-jeu'),field('X (m)',numberInput(game.area.x,v=>apply('Déplacer le mini-jeu',{x:v}))),field('Z (m)',numberInput(game.area.z,v=>apply('Déplacer le mini-jeu',{z:v}))),
+      field('Orientation (°)',numberInput(Math.round(game.area.heading*180/Math.PI),v=>apply('Orienter le mini-jeu',{heading:Math.round(v*Math.PI/180*100)/100}),-360,360,'1')));
+    if(game&&element){box.append(node('legend','Élément (repère de la zone)'),field('x (m)',numberInput(element.x,v=>apply('Déplacer un élément de mini-jeu',{x:v}),-game.area.halfWidth,game.area.halfWidth,'.1')),
+      field('z (m)',numberInput(element.z,v=>apply('Déplacer un élément de mini-jeu',{z:v}),-game.area.halfLength,game.area.halfLength,'.1')));
+      if(element.kind==='obstacle')box.append(field('Largeur (m)',numberInput(element.width??1,v=>apply('Redimensionner un obstacle',{width:v}),.1,20,'.1')),field('Rotation (°)',numberInput(Math.round((element.yaw??0)*180/Math.PI),v=>apply('Pivoter un obstacle',{yaw:Math.round(v*Math.PI/180*100)/100}),-180,180,'1')));
+      if(element.kind==='target')box.append(field('Hauteur (m)',numberInput(element.height??1,v=>apply('Hauteur de la cible',{height:v}),.05,10,'.01')));}
+    box.append(button('Règles et éléments (module Mini-jeux)',()=>ctx.open('minigames')));
   }
   host.append(box);ctx.extras?.(ref,host);
   const anchor=elementAnchor(p,ref),actions=node('div','','row');
