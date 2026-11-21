@@ -2,33 +2,13 @@
  * Ball variant rules (doc 107): each variant is a small table of hooks over the SAME
  * BallWorld, push module and session helpers. No physics here: goals, pins, holes, turns.
  */
-import type {MiniGameVariantId,MiniGameVariantSpec} from '../catalog.ts';
-import {areaToWorld,worldToArea,type MiniGameElementV1,type MiniGameInstanceV1} from '../schema.ts';
-import {addScore,currentPlayer,emit,playerScoreKey,type MiniGameEvent,type MiniGameSessionState} from '../session.ts';
-import type {MiniGameActor,MiniGameEnvironment,MiniGameStaticCollider,MiniGameStepContext} from '../types.ts';
-import type {BallWorld} from './ball-physics.ts';
+import type {MiniGameVariantId} from '../catalog.ts';
+import {areaToWorld,worldToArea} from '../schema.ts';
+import {addScore,completeTurn,currentPlayer,emit,playerScoreKey} from '../session.ts';
 import {PUSH,launchBall,reachTo} from './push.ts';
+import {angle,ballSpec,el,home,launchSpeed,obj,type BallGame,type BallVariantLogic} from './kit.ts';
 
-export interface BallGame {def:MiniGameInstanceV1;env:MiniGameEnvironment;world:BallWorld;spec:MiniGameVariantSpec;state:unknown;colliders:MiniGameStaticCollider[]}
-export interface BallVariantLogic {
-  capacity(def:MiniGameInstanceV1):number;
-  initial(def:MiniGameInstanceV1):unknown;
-  parseState(raw:unknown,def:MiniGameInstanceV1):unknown;
-  setup(g:BallGame):void;
-  reset(g:BallGame,s:MiniGameSessionState,tick:number,out:MiniGameEvent[]):void;
-  launch(g:BallGame,s:MiniGameSessionState,a:MiniGameActor,yaw:number,power:number,tick:number,out:MiniGameEvent[]):string|null;
-  afterStep(g:BallGame,ctx:MiniGameStepContext):void;
-  hint(g:BallGame,s:MiniGameSessionState,a:MiniGameActor):string|null;
-  pushable?(g:BallGame,i:number):boolean;
-  touched?(g:BallGame,i:number,playerId:string):void;
-}
-const el=(def:MiniGameInstanceV1,kind:MiniGameElementV1['kind'])=>def.elements.filter(e=>e.kind===kind);
-const home=(def:MiniGameInstanceV1,e:{x:number;z:number})=>areaToWorld(def.area,e.x,e.z);
-const angle=(a:number)=>Math.atan2(Math.sin(a),Math.cos(a));
-const obj=(v:unknown):v is Record<string,unknown>=>!!v&&typeof v==='object'&&!Array.isArray(v);
-const ballSpec=(g:BallGame,id:string,p:{x:number;z:number})=>({id,x:p.x,y:g.env.height(p.x,p.z)+g.spec.physics.ballRadius,z:p.z,
-  radius:g.spec.physics.ballRadius,mass:g.spec.physics.ballMass,restitution:g.spec.physics.restitution,rolling:g.spec.physics.rolling,asleep:true});
-const launchSpeed=(g:BallGame,power:number,min:number)=>min+Math.max(0,Math.min(1,power))*(g.spec.physics.launchSpeed-min);
+export type {BallGame,BallVariantLogic} from './kit.ts';
 
 /* ---------------- Football: one ball, two goals, team score, reset after each goal. -------- */
 interface FootballState {lastToucher:string|null}
@@ -50,7 +30,7 @@ const football:BallVariantLogic={
   reset(g){g.world.place(0,home(g.def,el(g.def,'ball')[0]).x,undefined,home(g.def,el(g.def,'ball')[0]).z);(g.state as FootballState).lastToucher=null;},
   launch(g,s,a,yaw,power,tick,out){
     if(reachTo(g.world,0,a)>PUSH.reach)return 'Approchez-vous de la balle';
-    launchBall(g.world,0,yaw,launchSpeed(g,power,3),power*2.5);(g.state as FootballState).lastToucher=a.id;
+    launchBall(g.world,0,yaw,launchSpeed(g,power,3),power*g.spec.physics.loft);(g.state as FootballState).lastToucher=a.id;
     emit(s,out,tick,{type:'ball:hit',playerId:a.id,ballId:'ball',speed:Math.round(g.world.speed(0)*100)/100});return null;
   },
   touched(g,_i,playerId){(g.state as FootballState).lastToucher=playerId;},
@@ -71,6 +51,7 @@ const football:BallVariantLogic={
       const p=areaToWorld(g.def.area,Math.max(-hw+.6,Math.min(hw-.6,l.x)),Math.max(-hl+.6,Math.min(hl-.6,l.z)));w.place(0,p.x,undefined,p.z);
     }
   },
+  describe(_g,_s,e){return e.type==='target:hit'?'BUT !':e.type==='ball:out'?'Balle sortie':null;},
   hint(g,s){
     const t=g.def.teams??[];if(s.status!=='active')return null;
     return `${t[0]?.name??''} ${s.scores[t[0]?.id]??0} – ${s.scores[t[1]?.id]??0} ${t[1]?.name??''} · poussez la balle, F : tirer`;
@@ -125,11 +106,10 @@ const bowling:BallVariantLogic={
     const thrower=st.thrower;st.thrower=null;
     if(!thrower)return;
     if(st.knocked.length===w.count-1||(ctx.session.attempts[thrower]??0)>=(g.def.rules.attempts??2)){
-      ctx.session.attempts[thrower]=0;ctx.session.round++;ctx.session.turn++;
-      resetPins(g);st.knocked=[];
-      emit(ctx.session,ctx.events,ctx.tick,{type:'game:reset',round:ctx.session.round});
+      resetPins(g);st.knocked=[];completeTurn(ctx.session,thrower,ctx.tick,ctx.events);
     }
   },
+  describe(_g,_s,e){return e.type==='game:reset'?'Nouvelle manche : quilles relevées':null;},
   hint(g,s,a){
     if(s.status!=='active')return null;const st=g.state as BowlingState,who=currentPlayer(s);
     return st.phase==='rolling'?'La boule roule…':`Manche ${Math.floor(s.round/Math.max(1,s.players.length))+1}/${g.def.rules.rounds} · ${who===a.id?'à vous':'au tour de '+who} : lancer ${(s.attempts[who??'']??0)+1}/${g.def.rules.attempts} · maintenir F puis relâcher`;
@@ -193,6 +173,7 @@ const minigolf:BallVariantLogic={
       }
     }
   },
+  describe(_g,_s,e,local){return e.type==='target:hit'&&e.playerId===local?'Dans le trou !':e.type==='ball:out'?'Balle sortie : +1 coup de pénalité':null;},
   hint(g,s,a){
     if(s.status!=='active')return null;
     if(s.finished.includes(a.id))return 'Au trou ! En attente des autres joueurs';
@@ -204,4 +185,4 @@ function assignBall(g:BallGame,player:string,k:number){
   st.owners[player]=k;g.world.setEnabled(k,true);g.world.place(k,p.x,undefined,p.z);st.lastRest[player]={x:p.x,z:p.z};return k;
 }
 
-export const BALL_VARIANTS:Record<MiniGameVariantId,BallVariantLogic>={football,bowling,minigolf};
+export const BALL_VARIANTS:Partial<Record<MiniGameVariantId,BallVariantLogic>>={football,bowling,minigolf};

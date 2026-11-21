@@ -9,6 +9,7 @@ import {createMiniGame,putMiniGame,removeMiniGame,resetMiniGameLayout} from '../
 import {minigameGeoZones,validateMiniGame} from '../src/minigames/schema.ts';
 import {inspectArea,suggestMiniGameSites} from '../src/minigames/sites.ts';
 import {demoMiniGames} from '../src/minigames/demo.ts';
+import {MINIGAME_VARIANT_IDS} from '../src/minigames/catalog.ts';
 import {GAMEPLAY_EVENT_TYPES,questFields} from '../src/gameplay/events.ts';
 
 const resolver=async()=>({hash:'0'.repeat(64),byteLength:100});
@@ -58,7 +59,7 @@ test('site inspection and suggestions: slope, water and existing obstacles; dete
  const [s]=suggestMiniGameSites('football',q,{anchors:[{x:0,z:0}],bounds});
  assert.ok(s&&inspectArea(s,'football',q).ok);
  const a=demoMiniGames({x:0,z:0},q,bounds),b=demoMiniGames({x:0,z:0},q,bounds);
- assert.deepEqual(a,b);assert.equal(a.length,3);
+ assert.deepEqual(a,b);assert.equal(a.length,MINIGAME_VARIANT_IDS.length);
  for(let i=0;i<a.length;i++)for(let j=i+1;j<a.length;j++)assert.ok(Math.hypot(a[i].area.x-a[j].area.x,a[i].area.z-a[j].area.z)>10,'no overlap');
 });
 test('gameplay event registry declares minigame.finished for quests',()=>{

@@ -66,9 +66,11 @@ export function createMiniGameHost(o:MiniGameHostOptions){
     const teams=r.def.teams??[],name=(id:string)=>teams.find(t=>t.id===id)?.name??(id===LOCAL_PLAYER?'Vous':id);
     switch(e.type){
       case 'game:start':o.showInfo(r.def.name+' : c’est parti !','success');break;
-      case 'target:hit':if(r.def.variant==='football')o.showInfo('BUT !','success');else if(r.def.variant==='minigolf'&&e.playerId===LOCAL_PLAYER)o.showInfo('Dans le trou !','success');break;
-      case 'ball:out':o.showInfo(r.def.variant==='minigolf'?'Balle sortie : +1 coup de pénalité':'Balle sortie','warning');break;
-      case 'game:reset':if(r.def.variant==='bowling')o.showInfo('Nouvelle manche : quilles relevées');break;
+      case 'target:hit':case 'ball:out':case 'game:reset':case 'score:changed':{
+        // Variant wording lives with the variant rules, not here.
+        const text=r.sim&&r.session?r.sim.describe(r.session,e,LOCAL_PLAYER):null;
+        if(text)o.showInfo(text,e.type==='ball:out'?'warning':e.type==='target:hit'?'success':'info');break;
+      }
       case 'game:finish':{
         const won=e.winners.includes(LOCAL_PLAYER)||e.winners.some(w=>r.session?.players.find(p=>p.id===LOCAL_PLAYER)?.teamId===w);
         const scores=Object.entries(r.session?.scores??{}).map(([k,v])=>name(k)+' '+v).join(' · ');
@@ -102,8 +104,11 @@ export function createMiniGameHost(o:MiniGameHostOptions){
       if(tickNo%15===0){const near=manager.proximity(actor.x,actor.z);for(const id of near.release)release(id);for(const id of near.prepare)void prepare(id);}
       let mine=playing();
       // Leaving the field of one's game abandons it (no simulation left running).
-      if(mine&&!within(mine,actor.x,actor.z,25)){send(mine,tickNo,{type:'abandon'});mine=null;held=0;charging=false;}
-      const inside=mine??here(actor.x,actor.z);
+      // Leaving the field, or walking into ANOTHER activity, abandons one's game (F then
+      // belongs to the activity the player stands in).
+      const there=here(actor.x,actor.z);
+      if(mine&&(!within(mine,actor.x,actor.z,25)||there&&there!==mine&&!within(mine,actor.x,actor.z,1.5))){send(mine,tickNo,{type:'abandon'});mine=null;held=0;charging=false;}
+      const inside=mine??there;
       if(inside){
         if(inside.state==='ACTIVE'&&mine===inside){
           // Only a press that BEGINS during the game charges a launch (not the one that started it).

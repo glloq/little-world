@@ -8,7 +8,7 @@ import {emit,type MiniGameEvent,type MiniGameSessionState} from '../session.ts';
 import type {MiniGameActor,MiniGameEnvironment,MiniGameSimulation,MiniGameStaticCollider,MiniGameStepContext} from '../types.ts';
 import {BallWorld,orientedBox,type BallWorldSnapshot,type StaticBox} from './ball-physics.ts';
 import {pushBalls} from './push.ts';
-import {BALL_VARIANTS,type BallGame} from './variants.ts';
+import type {BallGame,BallVariantLogic} from './kit.ts';
 
 /** Sampled ground range under a segment of the area (walls, goals). */
 function groundRange(env:MiniGameEnvironment,a:{x:number;z:number},b:{x:number;z:number}){
@@ -31,9 +31,11 @@ function obstacles(def:MiniGameInstanceV1,env:MiniGameEnvironment,elements:reado
   return elements.filter(e=>e.kind==='obstacle').map(e=>areaBox(def,env,e.x,e.z,e.width??1,e.depth??.3,e.height??.35,e.yaw??0));
 }
 
-export function createBallSimulation(def:MiniGameInstanceV1,env:MiniGameEnvironment):MiniGameSimulation{
-  const spec=MINIGAME_VARIANTS[def.variant],logic=BALL_VARIANTS[def.variant];
-  if(!logic||spec.family!=='ball')throw Error('Variante de balle non prise en charge : '+def.variant);
+/** One instance of any BallWorld-based family: `variants` is that family's table of rule
+ * hooks (ball: football/bowling/mini-golf, target: cans/bullseye…). */
+export function createBallSimulation(def:MiniGameInstanceV1,env:MiniGameEnvironment,variants:Readonly<Partial<Record<string,BallVariantLogic>>>):MiniGameSimulation{
+  const spec=MINIGAME_VARIANTS[def.variant],logic=variants[def.variant];
+  if(!logic)throw Error('Variante non prise en charge par cette famille : '+def.variant);
   const world=new BallWorld(env,logic.capacity(def));
   world.boxes=[...(spec.physics.walls?walls(def,env):[]),...obstacles(def,env,def.elements)];
   const game:BallGame={def,env,world,spec,state:logic.initial(def),colliders:[]};
@@ -63,6 +65,7 @@ export function createBallSimulation(def:MiniGameInstanceV1,env:MiniGameEnvironm
       logic.afterStep(game,ctx);
     },
     hint:(session,actor:MiniGameActor)=>logic.hint(game,session,actor),
+    describe:(session,event,localPlayer)=>logic.describe?.(game,session,event,localPlayer)??null,
     snapshot:()=>({world:world.snapshot(),state:structuredClone(game.state)}),
     restore(raw:unknown){
       const s=raw as {world:BallWorldSnapshot;state:unknown};if(!s||typeof s!=='object')throw Error('Instantané invalide');

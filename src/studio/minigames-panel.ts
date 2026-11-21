@@ -16,7 +16,7 @@ import {terrainHeight} from '../terrain.ts';
 export interface MiniGamesPanelContext {session:StudioSession;viewport:StudioViewport;status(message:string,error?:boolean):void}
 const RULE_FIELDS:[keyof MiniGameRulesV1,string,number,number][]=[
   ['scoreTarget','Score à atteindre',1,99],['timeLimitSeconds','Durée max (s)',10,3600],['attempts','Tentatives / coups max',1,20],['rounds','Manches',1,10],['par','Par',1,20]];
-const ELEMENT_LABELS:Record<MiniGameElementV1['kind'],string>={goal:'But',pin:'Quille',tee:'Départ',hole:'Trou',obstacle:'Obstacle',spawn:'Point de départ',ball:'Balle'};
+const ELEMENT_LABELS:Record<MiniGameElementV1['kind'],string>={goal:'But',pin:'Quille',tee:'Départ',hole:'Trou',obstacle:'Obstacle',spawn:'Point de départ',ball:'Balle',target:'Cible'};
 const deg=(r:number)=>Math.round(r*180/Math.PI),rad=(d:number)=>Math.round(d*Math.PI/180*100)/100;
 
 /** Terrain queries of the project WITHOUT its mini-games (their own reserved ground is not an obstacle). */
@@ -47,8 +47,13 @@ export function mountMiniGamesPanel(host:HTMLElement,ctx:MiniGamesPanelContext){
   // Creation.
   let variant:MiniGameVariantId='football',name='';
   const create=node('div','', 'minigame-create');
-  create.append(field('Famille',select('ball',[['ball','Jeux de balle']],()=>{})),
-    field('Variante',select(variant,MINIGAME_VARIANT_IDS.map(v=>[v,MINIGAME_VARIANTS[v].label] as const),v=>{variant=v as MiniGameVariantId;})),
+  // Family → variants of that family (data from the catalogue, nothing hard-coded here).
+  const families=ACTIVITY_FAMILIES.filter(f=>MINIGAME_VARIANT_IDS.some(v=>MINIGAME_VARIANTS[v].family===f.id));
+  const variantsOf=(family:string)=>MINIGAME_VARIANT_IDS.filter(v=>MINIGAME_VARIANTS[v].family===family).map(v=>[v,MINIGAME_VARIANTS[v].label] as const);
+  const variantSelect=select(variant,variantsOf('ball'),v=>{variant=v as MiniGameVariantId;});
+  create.append(field('Famille',select('ball',families.map(f=>[f.id,f.label] as const),f=>{
+      variantSelect.replaceChildren(...variantsOf(f).map(([id,label])=>new Option(label,id)));variant=variantSelect.value as MiniGameVariantId;})),
+    field('Variante',variantSelect),
     field('Nom (facultatif)',input('',v=>{name=v.trim();})),
     button('Créer au centre de la vue',async()=>{
       const t=ctx.viewport.camera.target,game=createMiniGame(ctx.session.document,variant,{x:t.x,z:t.z},name||undefined);

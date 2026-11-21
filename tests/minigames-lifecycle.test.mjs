@@ -120,3 +120,15 @@ test('host: time outside the host (lift ride) is not match time; leaving abandon
  h.host.dispose();assert.equal(h.collision.solidsNear(-1e4,1e4,-1e4,1e4).length,0,'no orphan collider');
  assert.equal(h.scene.children.length,0);
 });
+test('host: walking into another activity abandons the current game; F then starts the new one',async()=>{
+ const a=defaultMiniGame('minigolf',{id:'minigame:a',x:0,z:0}),b=defaultMiniGame('cans',{id:'minigame:b',x:14,z:0});
+ const scene=new THREE.Group(),host=createMiniGameHost({parent:scene,defs:[a,b],collision:null,height:()=>0,water:()=>null,showInfo:()=>{},hudHost:null});
+ const player={position:new THREE.Vector3(0,0,-8.6),velocity:new THREE.Vector3(),mode:'ground'};
+ let tick=0;const step=(f,n=1)=>{for(let k=0;k<n;k++)host.tick(++tick,1/30,player,f,0);};
+ step(false,15);for(let k=0;k<30&&[...host.manager.records.values()].some(r=>r.state!=='READY');k++){await new Promise(r=>setTimeout(r,0));step(false,1);}
+ step(true,2);step(false,1);assert.equal(host.manager.records.get(a.id).state,'ACTIVE');
+ const t=areaToWorld(b.area,0,-4.6);player.position.set(t.x,0,t.z);step(false,1);
+ assert.equal(host.manager.records.get(a.id).state,'READY','golf abandoned on entering the cans area');
+ step(true,2);step(false,1);assert.equal(host.manager.records.get(b.id).state,'ACTIVE','F starts the cans game');
+ host.dispose();
+});

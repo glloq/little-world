@@ -4,12 +4,13 @@
  * Every element is expressed in the AREA frame (x across, z along `heading`, metres),
  * so moving or turning an area in Studio moves its goals, pins, tee, hole and obstacles.
  */
-import {MINIGAME_VARIANTS,type MiniGameVariantId} from './catalog.ts';
+import {MINIGAME_VARIANTS,type MiniGameElementKind,type MiniGameFamilyId,type MiniGameVariantId} from './catalog.ts';
 
-export type MiniGameElementKind='goal'|'pin'|'tee'|'hole'|'obstacle'|'spawn'|'ball';
+export type {MiniGameElementKind} from './catalog.ts';
 export interface MiniGameElementV1 {
   id:string;kind:MiniGameElementKind;x:number;z:number;
-  /** Footprint across / along the area frame, height (obstacles and goals). */
+  /** Footprint across / along the area frame, height (obstacles and goals); for targets,
+   * `height` is the elevation of the target centre above the ground. */
   width?:number;depth?:number;height?:number;
   /** Local yaw of an obstacle relative to the area (rad). */
   yaw?:number;
@@ -28,7 +29,7 @@ export interface MiniGameRulesV1 {
 export interface MiniGameAreaV1 {x:number;z:number;heading:number;halfWidth:number;halfLength:number}
 export interface MiniGameInstanceV1 {
   id:string;version:1;name:string;
-  family:'ball';variant:MiniGameVariantId;
+  family:MiniGameFamilyId;variant:MiniGameVariantId;
   playersMin:number;playersMax:number;
   area:MiniGameAreaV1;
   teams?:MiniGameTeamV1[];
@@ -39,7 +40,7 @@ export interface MiniGameBounds {minX:number;maxX:number;minZ:number;maxZ:number
 
 export const MINIGAME_ID=/^minigame:[a-zA-Z0-9_-]{1,100}$/;
 const LOCAL_ID=/^[a-zA-Z0-9_-]{1,40}$/;
-const KINDS:readonly MiniGameElementKind[]=['goal','pin','tee','hole','obstacle','spawn','ball'];
+const KINDS:readonly MiniGameElementKind[]=['goal','pin','tee','hole','obstacle','spawn','ball','target'];
 const isObj=(v:unknown):v is Record<string,unknown>=>!!v&&typeof v==='object'&&!Array.isArray(v);
 const num=(v:unknown,min:number,max:number)=>typeof v==='number'&&Number.isFinite(v)&&v>=min&&v<=max;
 const only=(v:Record<string,unknown>,keys:readonly string[],label:string)=>{for(const k of Object.keys(v))if(!keys.includes(k))throw Error(label+' : champ inconnu '+k);};

@@ -28,7 +28,20 @@ function minigolf():Omit<MiniGameInstanceV1,'id'|'name'|'area'>&{size:[number,nu
       {id:'block-a',kind:'obstacle',x:-1.1,z:-1.5,width:1.8,depth:.4,height:.35},
       {id:'block-b',kind:'obstacle',x:1.1,z:2.5,width:1.8,depth:.4,height:.35,yaw:.3}]};
 }
-const TEMPLATES:Record<MiniGameVariantId,()=>ReturnType<typeof football>>={football,bowling,minigolf};
+function cans():Omit<MiniGameInstanceV1,'id'|'name'|'area'>&{size:[number,number]}{
+  // 3-2-1 pyramid of 12 cm cans on a 0.8 m table; rows rest in the gaps of the row below.
+  const rows=[[-.25,0,.25],[-.125,.125],[0]],targets:MiniGameElementV1[]=[];let n=0;
+  rows.forEach((xs,row)=>xs.forEach(x=>targets.push({id:'can-'+(++n),kind:'target',x,z:3.5,height:Math.round((.92+row*.205)*1000)/1000})));
+  return {version:1,family:'target',variant:'cans',playersMin:1,playersMax:4,size:[1.5,5],
+    rules:{attempts:3,rounds:3,practice:true},
+    elements:[{id:'tee',kind:'tee',x:0,z:-4.2},{id:'table',kind:'obstacle',x:0,z:3.5,width:1.6,depth:.5,height:.8},...targets]};
+}
+function bullseye():Omit<MiniGameInstanceV1,'id'|'name'|'area'>&{size:[number,number]}{
+  return {version:1,family:'target',variant:'bullseye',playersMin:1,playersMax:4,size:[1.5,6],
+    rules:{attempts:3,rounds:3,practice:true},
+    elements:[{id:'tee',kind:'tee',x:0,z:-5.2},{id:'board',kind:'target',x:0,z:5.5,width:1.2,height:1.1}]};
+}
+const TEMPLATES:Record<MiniGameVariantId,()=>ReturnType<typeof football>>={football,bowling,minigolf,cans,bullseye};
 
 /** Validated instance of a variant template at a world position. */
 export function defaultMiniGame(variant:MiniGameVariantId,place:MiniGamePlacement):MiniGameInstanceV1{

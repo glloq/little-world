@@ -116,6 +116,12 @@ export function resetRound(s:MiniGameSessionState,tick:number,out:MiniGameEvent[
   for(const p of s.players)s.attempts[p.id]=0;
   emit(s,out,tick,{type:'game:reset',round:s.round});
 }
+/** Turn-based variants (bowling, target games): the player's round is over — reset its
+ * attempts, count the round and pass the turn. One shared rule, not one per variant. */
+export function completeTurn(s:MiniGameSessionState,playerId:string,tick:number,out:MiniGameEvent[]){
+  s.attempts[playerId]=0;s.round++;s.turn++;
+  emit(s,out,tick,{type:'game:reset',round:s.round});
+}
 /** Player whose turn it is (turn-based variants), or null. */
 export const currentPlayer=(s:MiniGameSessionState)=>s.players[s.turn%Math.max(1,s.players.length)]?.id??null;
 export function snapshotSession(s:MiniGameSessionState):MiniGameSessionState{return structuredClone(s);}

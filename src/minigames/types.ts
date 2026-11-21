@@ -34,6 +34,8 @@ export interface MiniGameSimulation {
   readonly staticColliders:readonly MiniGameStaticCollider[];
   /** Short contextual hint for the local player (HUD), or null. */
   hint(session:MiniGameSessionState,actor:MiniGameActor):string|null;
+  /** Variant wording of a session event for the local HUD (generic events are worded by the host). */
+  describe(session:MiniGameSessionState,event:MiniGameEvent,localPlayer:string):string|null;
   snapshot():unknown;
   restore(snapshot:unknown):void;
   dispose():void;
