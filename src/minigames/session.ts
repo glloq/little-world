@@ -32,6 +32,8 @@ export interface MiniGameSessionState {
   /** Attempts used in the current round, per player. */attempts:Record<string,number>;
   /** Players that completed the course (mini-golf holed). */finished:string[];
   round:number;turn:number;
+  /** Game mode chosen at start (variants with `modes`), absent otherwise. */
+  mode?:string;
   startTick:number;lastTick:number;activeTicks:number;
   seq:number;
   result:{reason:string;winners:string[];tick:number}|null;
@@ -76,8 +78,10 @@ export function canStart(s:MiniGameSessionState,def:MiniGameInstanceV1):string|n
   if(s.players.length<def.playersMin&&!(def.rules.practice&&s.players.length>=1))return `Il faut ${def.playersMin} joueur(s)`;
   return null;
 }
-export function startSession(s:MiniGameSessionState,def:MiniGameInstanceV1,tick:number,out:MiniGameEvent[]):boolean{
+export function startSession(s:MiniGameSessionState,def:MiniGameInstanceV1,tick:number,out:MiniGameEvent[],mode?:string):boolean{
   if(canStart(s,def))return false;
+  const modes=MINIGAME_VARIANTS[def.variant].modes;
+  if(modes?.length)s.mode=modes.some(m=>m.id===mode)?mode:def.rules.mode??modes[0].id;else delete s.mode;
   s.status='active';s.startTick=tick;s.lastTick=tick;s.activeTicks=0;s.round=0;s.turn=0;
   emit(s,out,tick,{type:'game:start'});return true;
 }

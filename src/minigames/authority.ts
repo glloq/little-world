@@ -7,9 +7,12 @@
  */
 export type MiniGameIntent=
  |{type:'join';teamId?:string}
- |{type:'leave'}|{type:'start'}|{type:'abandon'}|{type:'reset'}
+ |{type:'leave'}|{type:'abandon'}|{type:'reset'}
+ /** Optional game mode (variant `modes`, e.g. bowling beginner / normal). */
+ |{type:'start';mode?:string}
  /** Kick / throw / putt: absolute world yaw (rad, 0 = +Z) and power 0…1. */
- |{type:'launch';yaw:number;power:number};
+ |{type:'launch';yaw:number;power:number;
+   /** Height of the shot 0…1 (absent = the variant's default). */loft?:number};
 export type MiniGameCommand=MiniGameIntent&{instanceId:string;playerId:string;tick:number;seq:number};
 
 const ID=/^[a-zA-Z0-9:_-]{1,120}$/;
@@ -17,8 +20,9 @@ export function validateCommand(c:MiniGameCommand):boolean{
   if(!c||!ID.test(c.instanceId)||!ID.test(c.playerId)||!Number.isSafeInteger(c.tick)||c.tick<0||!Number.isSafeInteger(c.seq)||c.seq<0)return false;
   switch(c.type){
     case 'join':return c.teamId===undefined||ID.test(c.teamId);
-    case 'launch':return Number.isFinite(c.yaw)&&Math.abs(c.yaw)<=100&&Number.isFinite(c.power)&&c.power>=0&&c.power<=1;
-    case 'leave':case 'start':case 'abandon':case 'reset':return true;
+    case 'launch':return Number.isFinite(c.yaw)&&Math.abs(c.yaw)<=100&&Number.isFinite(c.power)&&c.power>=0&&c.power<=1&&(c.loft===undefined||Number.isFinite(c.loft)&&c.loft>=0&&c.loft<=1);
+    case 'start':return c.mode===undefined||ID.test(c.mode);
+    case 'leave':case 'abandon':case 'reset':return true;
     default:return false;
   }
 }

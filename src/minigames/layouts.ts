@@ -1,6 +1,6 @@
 /** Ready-to-use layouts per variant (Studio templates, demos, composition suggestions).
  * Pure data in the area frame; validated by the same `validateMiniGame` as authored data. */
-import {MINIGAME_VARIANTS,type MiniGameVariantId} from './catalog.ts';
+import {MINIGAME_VARIANTS,type FloorShape,type MiniGameVariantId} from './catalog.ts';
 import {validateMiniGame,type MiniGameElementV1,type MiniGameInstanceV1} from './schema.ts';
 
 export interface MiniGamePlacement {id:string;name?:string;x:number;z:number;heading?:number}
@@ -21,12 +21,34 @@ function bowling():Omit<MiniGameInstanceV1,'id'|'name'|'area'>&{size:[number,num
   return {version:1,family:'ball',variant:'bowling',playersMin:1,playersMax:4,size:[1.6,9],
     rules:{attempts:2,rounds:3,practice:true},elements:[{id:'tee',kind:'tee',x:0,z:-7.5},...pins]};
 }
+/** Six-hole course (doc 107 §mini-golf): two rows of three bordered lanes played in a
+ * serpentine — straight with blocks, ramp up, ramp down, bank, bumps, chicane. */
+export const MINIGOLF_COURSE:readonly {name:string;shape:FloorShape;slope:number}[]=[
+  {name:'Ligne droite',shape:'flat',slope:0},{name:'Montée',shape:'ramp-up',slope:.1},{name:'Descente',shape:'ramp-down',slope:.1},
+  {name:'Dévers',shape:'bank',slope:.12},{name:'Bosses',shape:'bumps',slope:.12},{name:'Chicane',shape:'flat',slope:0},
+];
+/** Lane size of the template and the offsets of its tee / hole along the lane (m). */
+export const MINIGOLF_LANE={width:1.6,depth:7,tee:-2.7,hole:2.6} as const;
+/** Elements of hole `k` (0-based) of a lane centred on (x, z), yaw 0 (+z) or π (−z). */
+export function minigolfHole(k:number,x:number,z:number,yaw:number,shape:FloorShape,slope:number):MiniGameElementV1[]{
+  const L=MINIGOLF_LANE,c=Math.cos(yaw),s=Math.sin(yaw),r=(v:number)=>Math.round(v*1000)/1000+0; // +0: no -0 (JSON round trip)
+  const at=(u:number,v:number)=>({x:r(x+u*c+v*s),z:r(z-u*s+v*c)});
+  return [{id:'lane-'+(k+1),kind:'lane',stage:k,x,z,width:L.width,depth:L.depth,...(yaw?{yaw:r(yaw)}:{}),...(shape!=='flat'?{shape,slope}:{})},
+    {id:'tee-'+(k+1),kind:'tee',stage:k,...at(0,L.tee)},{id:'hole-'+(k+1),kind:'hole',stage:k,...at(k%2?-.3:.3,L.hole)}];
+}
 function minigolf():Omit<MiniGameInstanceV1,'id'|'name'|'area'>&{size:[number,number]}{
-  return {version:1,family:'ball',variant:'minigolf',playersMin:1,playersMax:4,size:[3,9],
-    rules:{attempts:8,par:3,timeLimitSeconds:300,practice:true},
-    elements:[{id:'tee',kind:'tee',x:0,z:-7.5},{id:'hole',kind:'hole',x:.6,z:7},
-      {id:'block-a',kind:'obstacle',x:-1.1,z:-1.5,width:1.8,depth:.4,height:.35},
-      {id:'block-b',kind:'obstacle',x:1.1,z:2.5,width:1.8,depth:.4,height:.35,yaw:.3}]};
+  const elements:MiniGameElementV1[]=[],xs=[-2.8,0,2.8];
+  MINIGOLF_COURSE.forEach((h,k)=>{
+    const row=k<3?0:1,col=row?2-(k-3):k,yaw=(row?k-3:k)%2?Math.PI:0;
+    elements.push(...minigolfHole(k,xs[col],row?4.4:-4.4,yaw,h.shape,h.slope));
+  });
+  // Hole 1: two staggered blocks; hole 6: a chicane of two baffles.
+  elements.push({id:'block-a',kind:'obstacle',stage:0,x:-3.15,z:-5.2,width:.9,depth:.2,height:.3},
+    {id:'block-b',kind:'obstacle',stage:0,x:-2.45,z:-3.6,width:.9,depth:.2,height:.3},
+    {id:'baffle-a',kind:'obstacle',stage:5,x:-3.1,z:3.4,width:1,depth:.2,height:.3},
+    {id:'baffle-b',kind:'obstacle',stage:5,x:-2.5,z:5.4,width:1,depth:.2,height:.3});
+  return {version:1,family:'ball',variant:'minigolf',playersMin:1,playersMax:4,size:[4.2,8.6],
+    rules:{attempts:6,par:14,timeLimitSeconds:900,practice:true},elements};
 }
 function cans():Omit<MiniGameInstanceV1,'id'|'name'|'area'>&{size:[number,number]}{
   // 3-2-1 pyramid of 12 cm cans on a 0.8 m table; rows rest in the gaps of the row below.

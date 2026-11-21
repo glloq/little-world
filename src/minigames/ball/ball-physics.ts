@@ -22,7 +22,9 @@ export const BALL_LIMITS={maxBalls:32,maxSubsteps:16,maxSpeed:30,sleepSpeed:.06,
   /** A solid sphere rolling without slipping accelerates at 5/7 g sinθ down a slope. */rollingInertia:2/7} as const;
 export interface BallSpec {id:string;x:number;y:number;z:number;radius:number;mass:number;restitution:number;rolling:number;asleep?:boolean}
 /** Oriented box: yaw rotation in XZ (same frame convention as the mini-game area), AABB in Y. */
-export interface StaticBox {cx:number;cz:number;hx:number;hz:number;minY:number;maxY:number;cos:number;sin:number;restitution:number}
+/** Presentation role of a static box (the view styles it; physics ignores it). */
+export type StaticBoxTag='wall'|'obstacle'|'net'|'post'|'bumper'|'board';
+export interface StaticBox {cx:number;cz:number;hx:number;hz:number;minY:number;maxY:number;cos:number;sin:number;restitution:number;tag?:StaticBoxTag}
 export function orientedBox(cx:number,cz:number,width:number,depth:number,minY:number,maxY:number,yaw:number,restitution=.6):StaticBox{
   return {cx,cz,hx:width/2,hz:depth/2,minY,maxY,cos:Math.cos(yaw),sin:Math.sin(yaw),restitution};
 }

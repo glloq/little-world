@@ -23,7 +23,7 @@ test('release while LOADING, then prepare again: one simulation, no duplicated c
  const a=m.prepare(d.id);assert.equal(m.records.get(d.id).state,'LOADING');
  m.release(d.id);assert.equal(m.records.get(d.id).state,'UNLOADED');
  const b=m.prepare(d.id);open();await Promise.all([a,b]);
- assert.equal(m.records.get(d.id).state,'READY');assert.equal(t.ids.size,4);
+ assert.equal(m.records.get(d.id).state,'READY');assert.equal(t.ids.size,12);
  m.release(d.id);assert.equal(t.ids.size,0);
 });
 test('release while LOADING without coming back: nothing is created when the module arrives',async()=>{
@@ -145,14 +145,14 @@ test('personal bests: same local mechanism as race records, keyed by layout, dir
  assert.equal(minigameRecord(defaultMiniGame('football',{id:'minigame:f',x:0,z:0})),null,'no personal best for team scores');
 });
 test('resources: leave and come back (no duplicated view or collider), 200 sessions, parallel loads of one family',async()=>{
- const h=hostFixture('football'),posts=()=>h.collision.solidsNear(-1e4,1e4,-1e4,1e4).length;
+ const h=hostFixture('football'),posts=()=>h.collision.solidsNear(-1e4,1e4,-1e4,1e4).length,views=()=>h.scene.children.filter(c=>c.name!=='MiniGameAimLine').length; // One aim line per host.
  const settle=async()=>{for(let k=0;k<30;k++){await h.flush();h.step(false,1);}};
- h.at(0,-3);h.step(false,15);await settle();const children=h.scene.children.length;assert.equal(posts(),4);
+ h.at(0,-3);h.step(false,15);await settle();const children=views(),n=h.rec.sim.staticColliders.length;assert.ok(n>=12,'posts + closed pitch');assert.equal(posts(),n);
  for(let round=0;round<3;round++){
   h.player.position.set(h.def.area.x+300,0,h.def.area.z);h.step(false,15);await settle();
-  assert.equal(h.rec.state,'UNLOADED');assert.equal(posts(),0);assert.equal(h.scene.children.length,0);
+  assert.equal(h.rec.state,'UNLOADED');assert.equal(posts(),0);assert.equal(views(),0);
   h.at(0,-3);h.step(false,15);await settle();
-  assert.equal(h.rec.state,'READY');assert.equal(posts(),4,'colliders once');assert.equal(h.scene.children.length,children,'one view');
+  assert.equal(h.rec.state,'READY');assert.equal(posts(),n,'colliders once');assert.equal(views(),children,'one view');
  }
  h.host.dispose();
  const d=defaultMiniGame('bowling',{id:'minigame:b',x:0,z:0}),m=createMiniGameManager([d],{env});await m.prepare(d.id);
@@ -163,4 +163,36 @@ test('resources: leave and come back (no duplicated view or collider), 200 sessi
  const defs=['football','bowling','minigolf'].map((v,i)=>defaultMiniGame(v,{id:'minigame:p'+i,x:i*40,z:0})),many=createMiniGameManager(defs,{env,registry});
  await Promise.all(defs.map(x=>many.prepare(x.id)));
  assert.equal(loads,1,'one family import for three simultaneous instances');assert.ok(defs.every(x=>many.records.get(x.id).state==='READY'));
+});
+test('host slingshot: press on the ball, drag back, release = one launch next tick; wheel sets height; Escape cancels',async()=>{
+ const h=hostFixture('minigolf');h.at(0,-8.6);h.step(false,15);
+ for(let k=0;k<20&&!h.scene.children.length;k++){await h.flush();h.step(false,1);}
+ h.step(true,3);h.step(false,1);assert.equal(h.rec.state,'ACTIVE');
+ const w=ballWorldOf(h.rec.sim),down=(x,z)=>({ox:x,oy:12,oz:z,dx:0,dy:-1,dz:0});
+ const yaw=h.def.area.heading;h.player.position.set(w.px[0]-Math.sin(yaw)*.7,0,w.pz[0]-Math.cos(yaw)*.7);h.step(false,1);
+ assert.equal(h.host.pointerDown(down(w.px[0]+3,w.pz[0])),false,'a press away from the ball orbits the camera');
+ assert.equal(h.host.pointerDown(down(w.px[0],w.pz[0])),true,'press on the ball grabs it');
+ assert.equal(h.host.aiming,true);
+ // Drag 1.25 m behind the ball (half of the 2.5 m full-power pull): aim forward at half power.
+ h.host.pointerMove(down(w.px[0]-Math.sin(yaw)*1.25,w.pz[0]-Math.cos(yaw)*1.25));
+ assert.equal(h.host.wheel(-1),true,'wheel consumed while aiming');h.step(false,1);
+ const line=h.scene.children.find(c=>c.name==='MiniGameAimLine');assert.ok(line?.visible,'preview drawn');
+ h.host.pointerUp();assert.equal(h.host.aiming,false);assert.equal(line.visible,false);
+ h.step(false,1);assert.equal(h.rec.session.attempts[LOCAL_PLAYER],1,'one stroke');
+ const v=Math.hypot(w.vx[0],w.vz[0]);assert.ok(v>.5,'ball launched');
+ assert.ok(Math.abs(Math.atan2(w.vx[0],w.vz[0])-yaw)<.05,'opposite to the drag');
+ for(let k=0;k<200&&!w.asleep[0];k++)h.step(false,1);
+ h.player.position.set(w.px[0]-Math.sin(yaw)*.7,0,w.pz[0]-Math.cos(yaw)*.7);h.step(false,1);
+ assert.ok(h.host.pointerDown(down(w.px[0],w.pz[0])));h.host.cancelAim();h.host.pointerUp();h.step(false,2);
+ assert.equal(h.rec.session.attempts[LOCAL_PLAYER],1,'cancelled gesture: no stroke');
+ assert.equal(h.host.wheel(1),false,'wheel zooms again when not aiming');
+ h.host.dispose();
+});
+test('host modes: digit keys pick the bowling mode before F starts the game',async()=>{
+ const h=hostFixture('bowling');h.at(0,-7);h.step(false,15);
+ for(let k=0;k<20&&!h.scene.children.length;k++){await h.flush();h.step(false,1);}
+ assert.equal(h.host.key('Digit2'),true);assert.equal(h.host.key('KeyQ'),false);
+ h.step(true,2);h.step(false,1);assert.equal(h.rec.session.mode,'normal');
+ assert.equal(h.host.key('Digit1'),false,'no mode change during a game');
+ h.host.dispose();
 });

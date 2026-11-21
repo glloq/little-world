@@ -11,7 +11,7 @@ import {MiniGameRegistry} from './registry.ts';
 import {finishReason} from './rules.ts';
 import {areaRadius,type MiniGameInstanceV1} from './schema.ts';
 import {abandonSession,canStart,createSession,finishSession,joinSession,leaveSession,resetRound,resumeSession,startSession,suspendSession,tickSession,type MiniGameEvent,type MiniGameSessionState} from './session.ts';
-import type {MiniGameActor,MiniGameEnvironment,MiniGameFamilyModule,MiniGameSimulation,MiniGameStaticCollider} from './types.ts';
+import type {MiniGameActor,MiniGameEnvironment,MiniGameFamilyModule,MiniGameSimulation,MiniGameStaticCollider,MiniGameSurface} from './types.ts';
 
 export type MiniGameInstanceState='UNLOADED'|'LOADING'|'READY'|'ACTIVE'|'SUSPENDED'|'DISPOSED'|'FAILED';
 export interface MiniGameInstanceRecord {
@@ -25,6 +25,8 @@ export interface MiniGameManagerDeps {
   env:MiniGameEnvironment;registry?:MiniGameRegistry;authority?:LocalMiniGameAuthority;
   /** Player-blocking static parts (e.g. WorldCollisionQuery add/remove). */
   colliders?:{add(c:MiniGameStaticCollider):void;remove(id:string):void};
+  /** Walking surfaces (activity floors, e.g. WorldCollisionQuery.setOutdoorSurface). */
+  surfaces?:{set(id:string,surface:MiniGameSurface|null):void};
   onError?(instanceId:string,error:unknown):void;
 }
 /** Discovery radii with hysteresis (metres beyond the area radius). */
@@ -40,7 +42,7 @@ export function createMiniGameManager(defs:readonly MiniGameInstanceV1[],deps:Mi
   let disposed=false,lastTick=-1;
   const alive=()=>{if(disposed)throw Error('Gestionnaire de mini-jeux libéré');};
   function freeSim(r:MiniGameInstanceRecord){
-    if(r.sim){for(const c of r.sim.staticColliders)deps.colliders?.remove(c.id);try{r.sim.dispose();}catch{/* already failing */}}
+    if(r.sim){for(const c of r.sim.staticColliders)deps.colliders?.remove(c.id);if(r.sim.floorSurface)deps.surfaces?.set(r.def.id,null);try{r.sim.dispose();}catch{/* already failing */}}
     r.sim=null;r.session=null;active.delete(r.def.id);authority.forget(r.def.id);
   }
   function fail(r:MiniGameInstanceRecord,error:unknown){
@@ -55,6 +57,7 @@ export function createMiniGameManager(defs:readonly MiniGameInstanceV1[],deps:Mi
       if(disposed||r.state!=='LOADING')return r; // Released or disposed while loading.
       r.module=module;r.sim=module.createSimulation(r.def,deps.env);
       for(const c of r.sim.staticColliders)deps.colliders?.add(c);
+      if(r.sim.floorSurface)deps.surfaces?.set(r.def.id,r.sim.floorSurface);
       r.state='READY';
     }catch(e){fail(r,e);}
     return r;
@@ -86,7 +89,7 @@ export function createMiniGameManager(defs:readonly MiniGameInstanceV1[],deps:Mi
       case 'start':{
         if(!r.session)return refuse('Aucun joueur');
         const why=canStart(r.session,r.def);if(why)return refuse(why);
-        startSession(r.session,r.def,c.tick,out.events);r.sim.reset(r.session,c.tick,out.events);
+        startSession(r.session,r.def,c.tick,out.events,c.mode);r.sim.reset(r.session,c.tick,out.events);
         r.state='ACTIVE';active.add(r.def.id);return;
       }
       case 'leave':if(!r.session||!leaveSession(r.session,c.playerId,c.tick,out.events))refuse('Pas dans la partie');break;
@@ -97,7 +100,7 @@ export function createMiniGameManager(defs:readonly MiniGameInstanceV1[],deps:Mi
       case 'launch':{
         if(r.state!=='ACTIVE'||!r.session)return refuse('Partie non commencée');
         const actor=actors.find(a=>a.id===c.playerId);if(!actor)return refuse('Joueur absent');
-        const why=r.sim.launch(r.session,actor,c.yaw,c.power,c.tick,out.events);if(why)refuse(why);return;
+        const why=r.sim.launch(r.session,actor,c.yaw,c.power,c.loft,c.tick,out.events);if(why)refuse(why);return;
       }
     }
     if(r.session&&r.session.status!=='active'&&r.session.status!=='suspended'&&r.state==='ACTIVE'){r.state='READY';active.delete(r.def.id);}

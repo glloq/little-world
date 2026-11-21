@@ -15,6 +15,11 @@ function harness(def,env=flat){
  return {m,actor,send,step,at,events,refusals,get rec(){return m.records.get(def.id);},get world(){return ballWorldOf(m.records.get(def.id).sim);}};
 }
 const types=(events,t)=>events.filter(e=>e.type===t);
+/** Historical single-hole mini-golf (no lanes): still valid and played over the whole area. */
+const legacyGolf=id=>validateMiniGame({version:1,id,name:'Trou unique',family:'ball',variant:'minigolf',playersMin:1,playersMax:4,
+ area:{x:0,z:0,heading:0,halfWidth:3,halfLength:9},rules:{attempts:8,par:3,timeLimitSeconds:300,practice:true},
+ elements:[{id:'tee',kind:'tee',x:0,z:-7.5},{id:'hole',kind:'hole',x:.6,z:7},
+  {id:'block-a',kind:'obstacle',x:-1.1,z:-1.5,width:1.8,depth:.4,height:.35},{id:'block-b',kind:'obstacle',x:1.1,z:2.5,width:1.8,depth:.4,height:.35,yaw:.3}]});
 
 test('football: kicks score for the attacking team, the ball resets, the match ends at the target score',async()=>{
  const def=defaultMiniGame('football',{id:'minigame:foot',x:30,z:-10,heading:.4});
@@ -63,7 +68,7 @@ test('bowling: turn order and lane aim are enforced by the authority, not the cl
  assert.ok(Math.abs(Math.atan2(h.world.vx[0],h.world.vz[0]))<=.3+1e-9,'aim clamped to the lane');
 });
 test('mini-golf: strokes are counted, the hole finishes the course, out-of-bounds costs a stroke',async()=>{
- const base=defaultMiniGame('minigolf',{id:'minigame:golf',x:0,z:0});
+ const base=legacyGolf('minigame:golf');
  const def=validateMiniGame({...base,elements:base.elements.filter(e=>e.kind!=='obstacle')});
  const h=harness(def);await h.m.prepare(def.id);h.send({type:'join'});h.send({type:'start'});h.step();
  const w=h.world,hole=areaToWorld(def.area,.6,7);
@@ -105,7 +110,7 @@ test('determinism: the same command log replays to identical snapshots',async()=
  assert.equal(await run(),await run());
 });
 test('mini-golf cup: a fast ball grazing the rim rolls on, the same speed through the centre drops',async()=>{
- const base=defaultMiniGame('minigolf',{id:'minigame:cup',x:0,z:0});
+ const base=legacyGolf('minigame:cup');
  const def=validateMiniGame({...base,elements:base.elements.filter(e=>e.kind!=='obstacle')});
  const pass=async(offset,speed)=>{
   const h=harness(def);await h.m.prepare(def.id);h.send({type:'join'});h.send({type:'start'});h.step();

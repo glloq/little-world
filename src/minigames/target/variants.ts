@@ -8,11 +8,10 @@
  */
 import type {MiniGameVariantId} from '../catalog.ts';
 import {worldToArea,type MiniGameElementV1} from '../schema.ts';
-import {addScore,completeTurn,currentPlayer,emit,playerScoreKey,type MiniGameEvent,type MiniGameSessionState} from '../session.ts';
+import {addScore,completeTurn,currentPlayer,emit,playerScoreKey,type MiniGameSessionState} from '../session.ts';
 import type {MiniGameActor,MiniGameStepContext} from '../types.ts';
-import {launchBall} from '../ball/push.ts';
 import {areaBox} from '../ball/simulation.ts';
-import {el,home,launchSpeed,obj,type BallGame,type BallVariantLogic} from '../ball/kit.ts';
+import {el,home,launchVelocity,obj,type BallGame,type BallVariantLogic,type ShotPlan} from '../ball/kit.ts';
 
 interface ThrowState {phase:'aim'|'flying'|'settle';ticks:number;thrower:string|null;shot:number;knocked:number[]}
 const CAN={radius:.12,mass:.15,restitution:.3,rolling:2};
@@ -29,18 +28,19 @@ function resetField(g:BallGame,st:ThrowState){
   for(let i=n;i<w.count;i++){const e=g.def.elements.find(x=>x.id===w.ids[i])!,p=home(g.def,e);w.setEnabled(i,true);w.place(i,p.x,elevation(g,e),p.z);}
   st.phase='aim';st.ticks=0;st.thrower=null;st.shot=0;st.knocked=[];
 }
-function throwBall(g:BallGame,s:MiniGameSessionState,a:MiniGameActor,yaw:number,power:number,tick:number,out:MiniGameEvent[]):string|null{
+/** Throwing hand above the tee mark: the slingshot anchor and the ball's release point. */
+const hand=(g:BallGame)=>{const t=tee(g);return {x:t.x,y:g.env.height(t.x,t.z)+HAND_HEIGHT,z:t.z};};
+function throwPlan(g:BallGame,s:MiniGameSessionState,a:MiniGameActor,yaw:number,power:number,loft:number):ShotPlan|string{
   const st=g.state as ThrowState;
   if(st.phase!=='aim')return 'Attendez la fin du lancer';
   const turn=currentPlayer(s);if(turn!==a.id)return 'Au tour de '+turn;
   const t=tee(g);if(Math.hypot(a.x-t.x,a.z-t.z)>THROW_REACH)return 'Placez-vous sur la marque de lancer';
   const used=s.attempts[a.id]??0;if(used>=shots(g))return 'Plus de balle pour cette manche';
-  const i=used,y=g.env.height(t.x,t.z)+HAND_HEIGHT;
-  g.world.setEnabled(i,true);g.world.place(i,t.x+Math.sin(yaw)*.4,y,t.z+Math.cos(yaw)*.4);
-  launchBall(g.world,i,yaw,launchSpeed(g,power,5),power*g.spec.physics.loft);
-  s.attempts[a.id]=used+1;st.phase='flying';st.ticks=0;st.thrower=a.id;st.shot=i;
-  emit(s,out,tick,{type:'ball:hit',playerId:a.id,ballId:g.world.ids[i],speed:Math.round(g.world.speed(i)*100)/100});
-  return null;
+  const h=hand(g);
+  return {ball:used,from:{x:h.x+Math.sin(yaw)*.4,y:h.y,z:h.z+Math.cos(yaw)*.4},...launchVelocity(g,yaw,power,loft,5)};
+}
+function thrown(g:BallGame,s:MiniGameSessionState,a:MiniGameActor,plan:ShotPlan){
+  const st=g.state as ThrowState;s.attempts[a.id]=(s.attempts[a.id]??0)+1;st.phase='flying';st.ticks=0;st.thrower=a.id;st.shot=plan.ball;
 }
 /** Shared end of throw / end of round, with a settle delay so falling targets still count. */
 function advance(g:BallGame,ctx:MiniGameStepContext,allDown:boolean){
@@ -67,11 +67,16 @@ const base={
     return structuredClone(raw);
   },
   reset(g:BallGame){resetField(g,g.state as ThrowState);},
-  launch:throwBall,
+  shot:throwPlan,
+  launched:thrown,
+  aim(g:BallGame,s:MiniGameSessionState,a:MiniGameActor){
+    const st=g.state as ThrowState,t=tee(g);
+    return st.phase==='aim'&&currentPlayer(s)===a.id&&Math.hypot(a.x-t.x,a.z-t.z)<=THROW_REACH&&(s.attempts[a.id]??0)<shots(g)?hand(g):null;
+  },
   hint(g:BallGame,s:MiniGameSessionState,a:MiniGameActor){
     if(s.status!=='active')return null;const st=g.state as ThrowState,who=currentPlayer(s);
     if(st.phase!=='aim')return 'En vol…';
-    return `Manche ${Math.floor(s.round/Math.max(1,s.players.length))+1}/${g.def.rules.rounds} · ${who===a.id?'à vous':'au tour de '+who} : balle ${(s.attempts[who??'']??0)+1}/${shots(g)} · visez avec la caméra, maintenir F puis relâcher`;
+    return `Manche ${Math.floor(s.round/Math.max(1,s.players.length))+1}/${g.def.rules.rounds} · ${who===a.id?'à vous':'au tour de '+who} : balle ${(s.attempts[who??'']??0)+1}/${shots(g)} · clic sur la marque, tirez en arrière, relâchez (molette : hauteur)`;
   },
 };
 
@@ -112,7 +117,7 @@ const bullseye:BallVariantLogic={
     const n=shots(g),t=tee(g);
     for(let k=0;k<n;k++){const i=g.world.add({id:'shot-'+(k+1),x:t.x,y:g.env.height(t.x,t.z)+.1,z:t.z,radius:g.spec.physics.ballRadius,mass:g.spec.physics.ballMass,restitution:g.spec.physics.restitution,rolling:g.spec.physics.rolling,asleep:true});g.world.setEnabled(i,false);}
     // Each board is a thin static box facing the thrower: ball collisions come from the shared engine.
-    for(const e of el(g.def,'target')){const w=e.width??1.2,bottom=elevation(g,e)-w/2,box=areaBox(g.def,g.env,e.x,e.z,w,.1,w,0,.1,bottom);box.minY=bottom;g.world.boxes.push(box);}
+    for(const e of el(g.def,'target')){const w=e.width??1.2,bottom=elevation(g,e)-w/2,box=areaBox(g.def,g.env,e.x,e.z,w,.1,w,0,.1,bottom,'board');box.minY=bottom;g.baseBoxes.push(box);}
   },
   afterStep(g,ctx){
     const st=g.state as ThrowState,w=g.world,i=st.shot;

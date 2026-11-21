@@ -1,6 +1,6 @@
 # 107 — Mini-jeux : architecture unifiée, mutualisation et optimisation
 
-Branche de travail : `feat/minigames-unified-platform`. Le premier lot a été fusionné par la PR #110 (`main` = `2603dd4`). Le second lot (audit, stabilisation, famille `target`, Studio 3D, composition) est sur la même branche, **non fusionné**.
+Branche de travail : `feat/minigames-unified-platform`. Le premier lot a été fusionné par la PR #110 (`main` = `2603dd4`). Le second lot (audit, stabilisation, famille `target`, Studio 3D, composition) et le troisième (terrains fermés, modes, parcours, visée à la souris, sols, style — §7 bis) sont sur la même branche, **non fusionnés**.
 Statuts : **TODO / IN_PROGRESS / IMPLEMENTED / TESTED / QUALIFIED / BLOCKED**. Rien n’est `QUALIFIED` : aucune mesure n’a été faite sur un GPU intégré réel.
 
 ## 0. Résumé
@@ -18,6 +18,7 @@ Statuts : **TODO / IN_PROGRESS / IMPLEMENTED / TESTED / QUALIFIED / BLOCKED**. R
   - **sélection 3D et gizmo de déplacement** des zones et de leurs éléments, par le système de sélection universel existant ;
   - cases à cocher dans l’écran de création d’île.
 - Composition : option facultative `activities.minigames`, qui place chaque variante sur un terrain **naturellement** adapté.
+- Lot 3 (§7 bis) : terrain de foot **fermé**, bowling **Débutant / Normal**, mini-golf en **parcours de 6 trous**, **sol propre à chaque activité**, **visée à la souris (fronde)** avec **trajectoire prévisualisée** par la simulation elle-même, rendu stylisé.
 - Multijoueur : contrats prêts (commandes par tick, ordre déterministe, instantanés reprenables) ; **aucun serveur** (AGENTS §1 quater).
 
 ## 1. Audit initial (lot 1)
@@ -117,7 +118,7 @@ main.ts ──import()──▶ minigames/game-host.ts ──▶ MiniGameManager
   - `subscribe` et `dispose`.
 - `createMiniGameHost(options)` renvoie `tick`, `capturesAction`, `render`, `stats`, `debug` et `dispose`.
 - Famille : `MiniGameFamilyModule {family, createSimulation(def, env), loadView()}`.
-- Variante d’une famille à balles : `BallVariantLogic` dans `ball/kit.ts`, avec les crochets `capacity`, `initial`, `parseState`, `setup`, `reset`, `launch`, `afterStep`, `hint`, et les crochets facultatifs `describe`, `pushable` et `touched`.
+- Variante d’une famille à balles : `BallVariantLogic` dans `ball/kit.ts`, avec les crochets `capacity`, `initial`, `parseState`, `setup`, `reset`, `shot` (plan de tir pur), `aim`, `afterStep`, `hint`, et les crochets facultatifs `launched`, `floors`, `wallOpenings`, `walls`, `restored`, `describe`, `pushable` et `touched`.
 - Studio : `putMiniGame`, `removeMiniGame`, `createMiniGame` et `resetMiniGameLayout` ; `projectSiteQueries` et `composeMiniGames` ; `inspectMiniGame(def, q, {others})`, `suggestMiniGameSites` et `areasOverlap`.
 
 ## 3. Contrat de données (`libraries.minigames`, V3 facultatif)
@@ -171,7 +172,7 @@ main.ts ──import()──▶ minigames/game-host.ts ──▶ MiniGameManager
   - le temps où l’hôte n’est pas appelé (télésiège) n’est pas compté dans le chrono ;
   - entrer dans **une autre** activité abandonne la partie en cours, ainsi F agit toujours sur l’activité où l’on se trouve ;
   - l’appui sur F qui démarre une partie ne déclenche jamais de tir.
-- Commandes : `join`, `leave`, `start`, `abandon`, `reset`, `launch{yaw, power}`.
+- Commandes : `join`, `leave`, `start{mode?}`, `abandon`, `reset`, `launch{yaw, power, loft?}`.
   - Ordre de traitement : tick, puis joueur, puis `seq`.
   - Un `seq` inférieur ou égal au dernier reçu pour ce joueur et cette instance est refusé ; le client envoie dans l’ordre.
   - Plus de 90 ticks de retard : refusé.
@@ -208,7 +209,40 @@ Cas couverts par des tests : balle immobile, pente faible et forte, rebonds déc
 | `target` | chamboule-tout | `rounds` | 3 balles par manche, pyramide 3-2-1 sur une table ; une boîte soutenue se réveille quand ce qui la porte bouge |
 | `target` | tir sur cible | `rounds` | anneaux de 5 à 1 point selon la distance au centre ; la balle reste collée à la cible |
 
-En jeu : approcher, **F** pour commencer, **maintenir F puis relâcher** pour tirer dans la direction de la caméra. Le record personnel est affiché avant la partie. Démo : `?minigames=demo` (5 activités).
+En jeu : approcher, **F** pour commencer (bowling : **1** Débutant, **2** Normal avant de commencer). Pour tirer : **clic gauche sur la balle** (ou sur la marque de lancer), **tirer vers l’arrière**, relâcher ; **molette** = hauteur du tir, **Échap** = annuler. L’ancien tir au clavier (**maintenir F puis relâcher**, direction de la caméra) reste disponible. Le record personnel est affiché avant la partie. Démo : `?minigames=demo` (5 activités).
+
+## 7 bis. Lot 3 : terrains, modes, parcours, visée (IMPLEMENTED, TESTED Node + navigateur SwiftShader)
+
+**Sols (`ball/floors.ts`).** Chaque activité pose un **plateau** juste au-dessus du relief : niveau = point le plus haut du relief sous le groupe + `floor.raise` (5 cm terrain et piste, 12 cm green, 4 cm sable). Un seul échantillonneur analytique sert :
+- aux balles (hauteur de la simulation = max(relief, plateau)) ;
+- au hamster : `WorldCollisionQuery.setOutdoorSurface(id, …)`, plusieurs plateaux possibles, même règle que le plateau des courses (`plateau ≤ pieds + 0,45`). Une **rampe d’accès** (talus herbeux) entoure chaque plateau là où il domine le relief : 1,5 m de large au minimum, élargie jusqu’à 6 m pour rester sous une pente de 0,8 (test : le hamster monte pas à pas d’en bas jusque sur le plateau) ;
+- au rendu (surface + bords qui descendent dans le sol).
+
+Le relief n’est pas modifié. Dans le Studio, **« Aplanir le terrain »** ajoute un terrassement `pad:<id du mini-jeu>` au niveau moyen sous la zone (+1,5 m, talus 4 m), annulable ; un second appui le remplace.
+
+**Football fermé.** Murs de 0,8 m autour du terrain (balle et hamster), ouverts devant les buts et par **deux portillons** de 1,4 m au milieu des lignes de touche. Pour le hamster : boîtes alignées sur les axes, une par mur si la zone est droite, sinon une chaîne dont le débord reste ≤ 20 cm de chaque côté. Seul un lob par-dessus le mur ou une balle passée par un portillon sort du terrain.
+
+**Bowling, deux modes** (`modes` du catalogue, choisis au départ, mémorisés dans la session et l’instantané) :
+- *Débutant* : butoirs jaunes au-dessus des rigoles, la boule rebondit vers la piste ;
+- *Normal* : rigoles réelles (12 cm plus bas). Une boule au-dessus d’une rigole y reste et roule tout droit jusqu’au bout, sans toucher de quille (`ball:out` → « Rigole ! »).
+- Mode par défaut : `rules.mode`, sinon le premier ; un mode inconnu reprend le défaut. Le Studio règle le mode proposé.
+
+**Mini-golf : parcours.** Éléments `lane` (piste à bordures) et `stage` (numéro de trou) :
+- gabarit : **6 trous en 2 rangées de 3**, joués en serpentin : ligne droite à plots, montée, descente, dévers, bosses, chicane ;
+- reliefs `flat`, `ramp-up`, `ramp-down`, `bank`, `bumps` ; les extrémités restent planes (départ et trou de niveau) ;
+- chaque joueur avance à son rythme : trou → départ suivant (`checkpoint:passed`), `rules.attempts` coups par trou puis balle ramassée (+1) ;
+- score = total des coups ; carte de score par trou dans l’état ; sortie de piste ou eau → +1 et retour à la dernière position ;
+- les anciennes instances à trou unique (sans piste) restent valides et jouées sur toute la zone ;
+- Studio : relief et pente par trou, ajout d’un trou d’un type choisi (la zone s’agrandit si nécessaire), retrait (les trous suivants sont renumérotés).
+
+**Visée à la souris (fronde) et trajectoire.**
+- Chaque variante décrit un tir par un **plan pur** (`shot` → balle, point de départ facultatif, vitesse) : le même plan sert au tir réel et à l’aperçu (`MiniGameSimulation.predict`) ; il est exécuté par le **même moteur** dans un `BallWorld` d’une balle, avec les mêmes boîtes (test : trajectoire prévue = trajectoire réelle, à la précision `Float32`).
+- `aim()` donne l’ancre (balle au repos et à portée, ou main au-dessus de la marque de lancer) ; sinon pas de visée.
+- Intention réseau inchangée : `launch {yaw, power, loft?}` ; `loft` ∈ [0, 1], refusé au-delà. Le bowling ne lève jamais la boule.
+- Hôte : appui à ≤ 0,6 m de l’ancre (sinon la caméra tourne comme avant), glisser sur le plan horizontal de l’ancre, puissance = longueur / `aim.maxPull`, relâcher → **une** intention au tick suivant ; molette = hauteur, Échap ou perte du pointeur = annulation. `main.ts` n’ajoute que des crochets d’entrée ; `simulatePlayer` est inchangé.
+- Aperçu : 45 ticks (1,5 s), recalculé au plus une fois par tick fixe ; ≤ 32 points instanciés (un appel de rendu), teinte vert → rouge selon la puissance.
+
+**Style.** Un maillage statique à couleurs de sommets par activité (sol rayé, lignes blanches, surface de réparation, rond central ; piste en lattes, flèches, ligne de faute, emplacements des quilles ; greens tondus, tapis de départ numérotés, coupe, drapeau ; ligne de lancer, nappe, pieds de cible), un maillage transparent pour les filets, balles et quilles instanciées. Les murs, obstacles et butoirs sont dessinés à partir des **mêmes boîtes** que la physique.
 
 ## 8. Studio
 
@@ -310,11 +344,12 @@ Exemple : **pétanque**, une variante de la famille `ball`.
 
 1. **Catalogue** (`minigames/catalog.ts`) :
    - ajouter `'petanque'` à `MiniGameVariantId` ;
-   - ajouter une entrée `MINIGAME_VARIANTS.petanque` : `family:'ball'`, `rules:['rounds']`, `requiredRules:['attempts','rounds']`, éléments autorisés (`tee:[1,1]`, `target:[1,1]` pour le cochonnet), physique (`ballRadius:.08`, `ballMass:.7`, `rolling:2`, `contactPush:false`, `command:'throw'`, `loft:5`), `visual` et `site`.
+   - ajouter une entrée `MINIGAME_VARIANTS.petanque` : `family:'ball'`, `rules:['rounds']`, `requiredRules:['attempts','rounds']`, éléments autorisés (`tee:[1,1]`, `target:[1,1]` pour le cochonnet), physique (`ballRadius:.08`, `ballMass:.7`, `rolling:2`, `contactPush:false`, `command:'throw'`, `loft:5`, `walls:false`), `floor:{material:'sand',raise:.04}`, `aim:{maxPull:3,loft:true,defaultLoft:.5}`, `visual` et `site`.
 2. **Gabarit** (`minigames/layouts.ts`) : une fonction `petanque()` (zone, départ, cochonnet) ajoutée à `TEMPLATES`. Le compilateur signale toute entrée manquante.
 3. **Règles** (`ball/variants.ts`) : un objet `BallVariantLogic`, en réutilisant les utilitaires de `ball/kit.ts`.
    - `setup` : boules et cochonnet ;
-   - `launch` : `launchBall` et le contrôle du tour ;
+   - `shot` : contrôle du tour et de la portée, puis `{ball, from, ...launchVelocity(g, yaw, power, loft, min)}` ; `launched` : compter le lancer ; `aim` : la main du lanceur ;
+   - facultatif : `floors` (sol de sable par défaut via `floor` du catalogue), `walls` / `wallOpenings` ;
    - `afterStep` : fin de lancer, et en fin de manche la boule la plus proche marque, puis `completeTurn` ;
    - `hint` et `describe`.
    - Aucune physique et aucune session à écrire.
@@ -326,9 +361,11 @@ Exemple : **pétanque**, une variante de la famille `ball`.
 ## 13. Limitations connues
 
 - Quilles et boîtes = sphères ; leur chute est une présentation. Les balles ne tournent pas visuellement.
-- Pas de visée verticale : la portée d’un lancer dépend de la seule puissance (lancer en cloche, gravité arcade).
 - Ricochets (famille `target`) : **TODO**. Il faut une règle de site « eau obligatoire » et un contact eau dédié.
-- Seuls les poteaux de but bloquent le hamster. Les balles restent en extérieur (pas dans les mines) et ignorent vent et courant.
+- Le hamster est bloqué par les poteaux et les murs du foot ; bordures de mini-golf (15 cm) et murs de bowling (30 cm) se franchissent par la marche (hauteur de pas 45 cm). Les balles restent en extérieur (pas dans les mines) et ignorent vent et courant.
+- Le hamster ne peut pas se placer exactement derrière la balle de façon automatique : la fronde exige qu’il soit à portée (≈ 1,1 m du bord de la balle).
+- L’aperçu ignore les autres balles et les quilles (il ne montre que le trajet de la balle tirée), et ne prévoit ni la capture par le trou ni les règles (rigole, sortie).
+- Plateaux : niveau = point le plus haut du relief sous l’activité. Sur un site en pente, le bord aval forme une estrade avec une large rampe herbeuse (visible en capture sur le mini-golf de démo) ; « Aplanir le terrain » donne un résultat plus naturel. Au-delà de 4,8 m de dénivelé, la rampe de 6 m dépasse la pente de 0,8.
 - Solo : un seul joueur local, pas d’IA adverse.
 - Studio : la rotation des zones et des obstacles se fait par l’inspecteur (le gizmo des éléments non-entités ne fait que translater). Le glisser du gizmo n’est pas automatisé en navigateur ; le code de déplacement est testé en Node.
 - Mesures : Node et SwiftShader seulement.
@@ -354,4 +391,8 @@ Exemple : **pétanque**, une variante de la famille `ball`.
 | MG-13 | Records personnels partagés avec les courses | TESTED |
 | MG-14 | Sélection 3D, gizmo, inspecteur des éléments | TESTED (clic et inspecteur en navigateur ; glisser du gizmo en Node) |
 | MG-15 | Serveur autoritaire, réplication | BLOCKED (jalon multijoueur non approuvé, AGENTS §1 quater) |
-| MG-16 | Visée verticale des lancers | TODO |
+| MG-16 | Visée verticale des lancers (molette pendant la fronde) | TESTED |
+| MG-17 | Sols d’activité (plateaux), « Aplanir le terrain » | TESTED (Node ; rendu vérifié en capture SwiftShader) |
+| MG-18 | Football fermé, bowling Débutant/Normal, parcours de mini-golf 6 trous | TESTED (Node + navigateur) |
+| MG-19 | Visée à la souris (fronde) et trajectoire prévue | TESTED (Node + geste souris réel en navigateur) |
+| MG-20 | Style des activités | IMPLEMENTED (captures SwiftShader ; pas de mesure GPU intégré) |

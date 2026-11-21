@@ -19,14 +19,24 @@ export interface MiniGameStepContext {
   tick:number;dt:number;actors:readonly MiniGameActor[];
   session:MiniGameSessionState;events:MiniGameEvent[];
 }
+export interface MiniGameAim {anchor:{x:number;y:number;z:number};maxPull:number;canLoft:boolean;defaultLoft:number}
+/** Deck sampler with its world bounds (WorldCollisionQuery.setOutdoorSurface). */
+export interface MiniGameSurface {sample(x:number,z:number):number|null;minX:number;maxX:number;minZ:number;maxZ:number}
 /** Player-blocking static part of an activity (goal posts), registered while loaded. */
 export interface MiniGameStaticCollider {id:string;position:{x:number;y:number;z:number};size:{x:number;y:number;z:number}}
 export interface MiniGameSimulation {
   readonly def:MiniGameInstanceV1;
   /** Place the field for a new session or round. */
   reset(session:MiniGameSessionState,tick:number,events:MiniGameEvent[]):void;
-  /** Validated launch intention (kick / throw / putt). Returns a refusal reason or null. */
-  launch(session:MiniGameSessionState,actor:MiniGameActor,yaw:number,power:number,tick:number,events:MiniGameEvent[]):string|null;
+  /** Validated launch intention (kick / throw / putt); `loft` 0…1 (undefined = variant default).
+   * Returns a refusal reason or null. */
+  launch(session:MiniGameSessionState,actor:MiniGameActor,yaw:number,power:number,loft:number|undefined,tick:number,events:MiniGameEvent[]):string|null;
+  /** Aiming available to this actor now: anchor (ball / hand) and the variant's aim settings. */
+  aim(session:MiniGameSessionState,actor:MiniGameActor):MiniGameAim|null;
+  /** Predicted path of that launch (flat xyz list, presentation only), or null if refused. */
+  predict(session:MiniGameSessionState,actor:MiniGameActor,yaw:number,power:number,loft:number|undefined,ticks?:number):Float32Array|null;
+  /** Activity floor as an outdoor walking surface for the player (absent = none). */
+  readonly floorSurface?:MiniGameSurface;
   /** One fixed tick while the session is active. */
   step(ctx:MiniGameStepContext):void;
   readonly staticColliders:readonly MiniGameStaticCollider[];
@@ -38,11 +48,15 @@ export interface MiniGameSimulation {
   restore(snapshot:unknown):void;
   dispose():void;
 }
+/** Trajectory preview line: points (flat xyz) or null to hide; power 0…1 tints it. */
+export interface MiniGameAimLine {set(points:Float32Array|null,power:number):void;dispose():void}
 /** Presentation of one instance; created only in the browser, after the simulation. */
 export interface MiniGameView {update(alpha:number):void;dispose():void}
 export interface MiniGameViewFactory {
   /** `parent` is a THREE.Object3D; typed loosely so this contract stays Three-free. */
   create(parent:unknown,sim:MiniGameSimulation,env:MiniGameEnvironment):MiniGameView;
+  /** Shared aiming line (slingshot preview); one per host. */
+  createAimLine?(parent:unknown):MiniGameAimLine;
 }
 export interface MiniGameFamilyModule {
   family:string;

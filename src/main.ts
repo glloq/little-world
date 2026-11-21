@@ -343,6 +343,8 @@ if(playable){
     teleport:(x:number,z:number,heading:number,altitude=0)=>{gameplay?.fishing.cancel();player.space=undefined;player.mode=altitude>0?'air':'ground';player.glideReady=altitude>0;player.snowAirborne=false;player.coyoteLeft=0;player.jumpBufferLeft=0;player.velocity.set(0,0,0);player.position.set(x,terrainHeight(x,z)+altitude,z);previousPlayerPosition.copy(player.position);yaw=heading;},
     /** Developer/test hook: natural dressing and placed objects drawn within r m of the player. */
     drawnNear:(r:number)=>world.drawnNear(player.position.x,player.position.z,r),
+    /** Test hook: CSS pixel position of a world point in the canvas (mouse gestures). */
+    screenOf:(x:number,y:number,z:number)=>{const v=new THREE.Vector3(x,y,z).project(camera),r=renderer.domElement.getBoundingClientRect();return {x:r.left+(v.x+1)/2*r.width,y:r.top+(1-v.y)/2*r.height,visible:v.z<1};},
     /** Capture hook: fixed camera (null releases it). Presentation only. */
     surfCamera:(view:{px:number;py:number;pz:number;tx:number;ty:number;tz:number}|null)=>{debugSurfCamera=view;},
     /** Capture hook: freeze surf water/tube presentation at a fixed tick (null resumes). */
@@ -1077,6 +1079,14 @@ function isMenuKey(e: KeyboardEvent): boolean {
   return e.key.toLowerCase() === 'a' && !e.altKey && !e.ctrlKey && !e.metaKey;
 }
 const orbitDrag = new MouseDragOrbit();
+// Mini-game slingshot (doc 107 §visée): a left press on the ball grabs it instead of orbiting.
+const aimRaycaster=new THREE.Raycaster(),aimNdc=new THREE.Vector2();
+let aimPointer:number|null=null;
+function pointerRay(e:PointerEvent){
+  const r=renderer.domElement.getBoundingClientRect();aimNdc.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);
+  aimRaycaster.setFromCamera(aimNdc,camera);const o=aimRaycaster.ray.origin,d=aimRaycaster.ray.direction;
+  return {ox:o.x,oy:o.y,oz:o.z,dx:d.x,dy:d.y,dz:d.z};
+}
 function resetCameraDrag(): void {
   orbitDrag.cancel();
   renderer.domElement.classList.remove('dragging-camera');
@@ -1086,6 +1096,7 @@ function clearGameplayInput():void{
   keySet.clear();
   rollQueue=0;surfQueue=0;jumpQueue=0;touchStrokeQueue=0;actionQueue=0;activityQueue=0;cropQueue=0;minigameTap=false;
   queuedMineStrike=null;mobileTouch?.reset();resetCameraDrag();
+  aimPointer=null;minigameHost?.cancelAim();
 }
 // Switching to any UI panel releases held movement and boost keys immediately.
 gameUi?.controller.onChange(id=>{if(id)clearGameplayInput();});
@@ -1106,10 +1117,12 @@ window.addEventListener('keydown', (e) => {
     return;
   }
   if (e.code === 'Escape') npcs.dialogue.close();
+  if (e.code === 'Escape'&&minigameHost?.aiming){minigameHost.cancelAim();aimPointer=null;}
   if (npcs.dialogue.isOpen) return;
   if (customization.isOpen) return;
   if(shouldPreventGameplayKeyDefault(e.code,gameplayInputActive(),false))e.preventDefault();
   if (e.repeat) return;
+  if (minigameHost?.key(e.code)) return; // 1…9: mini-game mode before starting.
   keySet.add(e.code);
   if (e.code === 'Space') jumpQueue++;
   if (e.code === 'KeyX' || (e.code.startsWith('Shift')&&shiftTogglesRoll(player.mode)&&!aboard)) rollQueue++;
@@ -1185,12 +1198,16 @@ renderer.domElement.addEventListener('pointerdown', (e) => {
   if (!started || customization.isOpen || gameUi?.blocking || npcs.dialogue.isOpen) return;
   renderer.domElement.focus({preventScroll:true});
   if(e.button===2){e.preventDefault();return;}
+  if(e.button===0&&aimPointer===null&&minigameHost?.pointerDown(pointerRay(e))){
+    aimPointer=e.pointerId;renderer.domElement.setPointerCapture(e.pointerId);e.preventDefault();return;
+  }
   if (!orbitDrag.begin(e.pointerId, e.button, e.clientX, e.clientY)) return;
   renderer.domElement.classList.add('dragging-camera');
   renderer.domElement.setPointerCapture(e.pointerId);
   e.preventDefault();
 });
 renderer.domElement.addEventListener('pointermove', (e) => {
+  if(aimPointer===e.pointerId){minigameHost?.pointerMove(pointerRay(e));return;}
   const movement = orbitDrag.move(e.pointerId, e.buttons, e.clientX, e.clientY);
   if (!movement) {
     if (!orbitDrag.active) resetCameraDrag();
@@ -1205,14 +1222,16 @@ renderer.domElement.addEventListener('pointermove', (e) => {
 renderer.domElement.addEventListener('pointerup', (e) => {
   // Right-button release must not cancel an active left-button camera drag.
   if(e.button!==0)return;
+  if(aimPointer===e.pointerId){aimPointer=null;minigameHost?.pointerUp();return;}
   orbitDrag.end(e.pointerId);
   if (!orbitDrag.active) resetCameraDrag();
 });
-renderer.domElement.addEventListener('pointercancel',resetCameraDrag);
-renderer.domElement.addEventListener('lostpointercapture', resetCameraDrag);
+renderer.domElement.addEventListener('pointercancel',e=>{if(aimPointer===e.pointerId){aimPointer=null;minigameHost?.cancelAim();}resetCameraDrag();});
+renderer.domElement.addEventListener('lostpointercapture', e=>{if(aimPointer===e.pointerId){aimPointer=null;minigameHost?.cancelAim();}resetCameraDrag();});
 renderer.domElement.addEventListener(
   'wheel',
   (e) => {
+    if(minigameHost?.wheel(e.deltaY))return; // Shot height while aiming.
     distance = clamp(distance + Math.sign(e.deltaY) * 1.0, 4, 22);
   },
   { passive: true },

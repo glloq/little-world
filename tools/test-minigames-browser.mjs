@@ -89,6 +89,22 @@ try{
   await page.waitForTimeout(300);await hold(page,700);await page.waitForTimeout(3000);
   const s=(await inst(page,golf.id)).session;
   check(s.attempts.local===1&&s.scores.local>=1,'mini-golf stroke counted '+JSON.stringify(s)+' '+JSON.stringify((await inst(page,golf.id)).snapshot.world.state.slice(0,9))+' tee '+JSON.stringify(tee.slice(0,9))+' at '+JSON.stringify((await metrics(page)).position)+' '+await page.locator('.minigame-hud').textContent());
+  // Mouse slingshot (doc 107 §visée): press on the resting ball, drag back, release.
+  await page.waitForFunction(id=>{const r=window.littleWorldDebug.minigames.manager.records.get(id),w=r.sim.world;return w.asleep[0]===1;},golf.id,{timeout:20000});
+  const sling=await page.evaluate(id=>{const r=window.littleWorldDebug.minigames.manager.records.get(id),w=r.sim.world,h=r.def.area.heading;
+    window.littleWorldDebug.teleport(w.px[0]-Math.sin(h)*.8,w.pz[0]-Math.cos(h)*.8,h);return {x:w.px[0],y:w.py[0],z:w.pz[0],h};},golf.id);
+  await page.waitForTimeout(500);
+  const ballPx=await page.evaluate(b=>window.littleWorldDebug.screenOf(b.x,b.y,b.z),sling);
+  const backPx=await page.evaluate(b=>window.littleWorldDebug.screenOf(b.x-Math.sin(b.h)*1.2,b.y,b.z-Math.cos(b.h)*1.2),sling);
+  await page.mouse.move(ballPx.x,ballPx.y);await page.mouse.down();
+  for(let k=1;k<=8;k++){await page.mouse.move(ballPx.x+(backPx.x-ballPx.x)*k/8,ballPx.y+(backPx.y-ballPx.y)*k/8);await page.waitForTimeout(40);}
+  await page.waitForTimeout(300);
+  check(await page.evaluate(()=>window.littleWorldDebug.minigames.aiming),'press on the ball grabs the slingshot');
+  check(await page.evaluate(()=>window.littleWorldDebug.minigames.previewPoints)>5,'trajectory preview computed by the simulation');
+  if(shots)await page.screenshot({path:shots+'/minigolf-aim.png'});
+  await page.mouse.up();
+  await page.waitForFunction(id=>(window.littleWorldDebug.minigames.manager.records.get(id).session?.attempts?.local??0)>=2||window.littleWorldDebug.minigames.manager.records.get(id).session?.status!=='active',golf.id,{timeout:10000});
+  check(true,'mouse release putts the ball (second stroke)');
   if(shots)await page.screenshot({path:shots+'/minigolf.png'});
   // Target family (chamboule-tout): its own lazily loaded module on the same engine.
   const familyChunks=()=>new Set(chunks.filter(c=>/^family-/.test(c))).size;

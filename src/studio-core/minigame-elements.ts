@@ -9,7 +9,7 @@ import {putMiniGame,removeMiniGame,nextMiniGameId} from './minigame-authoring.ts
 
 export type MiniGameElementKind='minigame'|'minigameElement';
 const SEP='#';
-const KIND_LABELS:Record<MiniGameElementV1['kind'],string>={goal:'But',pin:'Quille',tee:'Départ',hole:'Trou',obstacle:'Obstacle',spawn:'Point de départ',ball:'Balle',target:'Cible'};
+const KIND_LABELS:Record<MiniGameElementV1['kind'],string>={goal:'But',pin:'Quille',tee:'Départ',hole:'Trou',obstacle:'Obstacle',spawn:'Point de départ',ball:'Balle',target:'Cible',lane:'Piste'};
 export const minigameElementId=(gameId:string,elementId:string)=>gameId+SEP+elementId;
 function split(id:string){const i=id.lastIndexOf(SEP);return i<0?null:{game:id.slice(0,i),element:id.slice(i+1)};}
 function lookup(p:ProjectDocument,kind:MiniGameElementKind,id:string){
