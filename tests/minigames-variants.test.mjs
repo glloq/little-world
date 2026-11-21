@@ -104,3 +104,18 @@ test('determinism: the same command log replays to identical snapshots',async()=
   return JSON.stringify([h.m.snapshot(def.id),h.events]);};
  assert.equal(await run(),await run());
 });
+test('mini-golf cup: a fast ball grazing the rim rolls on, the same speed through the centre drops',async()=>{
+ const base=defaultMiniGame('minigolf',{id:'minigame:cup',x:0,z:0});
+ const def=validateMiniGame({...base,elements:base.elements.filter(e=>e.kind!=='obstacle')});
+ const pass=async(offset,speed)=>{
+  const h=harness(def);await h.m.prepare(def.id);h.send({type:'join'});h.send({type:'start'});h.step();
+  // 0.5 m before the cup (rolling loss ≈ 1.55 m/s² on grass): arrival ≈ sqrt(v² − 1.55).
+  const w=h.world,start=areaToWorld(def.area,.6+offset,6.5);
+  w.place(0,start.x,undefined,start.z);w.asleep[0]=0;w.vz[0]=speed;w.vx[0]=0;
+  h.step(18,[]);return h.rec.session.finished.includes('me');
+ };
+ assert.equal(await pass(.19,2),false,'rim, arrives ≈ 1.6 m/s: lip-out');
+ assert.equal(await pass(0,2.2),true,'centre, arrives ≈ 1.8 m/s: holed');
+ assert.equal(await pass(0,4),false,'centre, arrives ≈ 3.8 m/s: too fast');
+ assert.equal(await pass(.19,1.4),true,'rim, arrives ≈ 0.6 m/s: drops');
+});

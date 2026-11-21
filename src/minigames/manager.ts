@@ -128,9 +128,12 @@ export function createMiniGameManager(defs:readonly MiniGameInstanceV1[],deps:Mi
   function resume(id:string,tickNo:number){const r=records.get(id);if(r?.state==='SUSPENDED'&&r.session){resumeSession(r.session,tickNo);r.state='ACTIVE';active.add(id);}}
   /** Serialisable state of one instance (session + simulation), e.g. for a future server. */
   function snapshot(id:string){const r=records.get(id);if(!r?.sim)return null;return {instanceId:id,state:r.state,session:r.session?structuredClone(r.session):null,sim:r.sim.snapshot()};}
-  function restore(id:string,snap:{session:MiniGameSessionState|null;sim:unknown;state:MiniGameInstanceState}){
+  /** `atTick`: tick of THIS manager at which the snapshot resumes (another authority or a
+   * reloaded page counts ticks differently); the session's elapsed time is preserved. */
+  function restore(id:string,snap:{session:MiniGameSessionState|null;sim:unknown;state:MiniGameInstanceState},atTick?:number){
     const r=records.get(id);if(!r?.sim)throw Error('Mini-jeu non chargé');
     r.sim.restore(snap.sim);r.session=snap.session?structuredClone(snap.session):null;
+    if(r.session&&atTick!==undefined){if(!Number.isSafeInteger(atTick)||atTick<0)throw Error('Tick de reprise invalide');r.session.lastTick=atTick;}
     r.state=snap.state==='ACTIVE'||snap.state==='SUSPENDED'?snap.state:'READY';
     if(r.state==='ACTIVE')active.add(id);else active.delete(id);
   }

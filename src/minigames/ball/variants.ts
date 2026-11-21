@@ -143,6 +143,8 @@ function resetPins(g:BallGame){
 /* ---------------- Mini-golf: one ball per player, strokes, penalties, hole. ---------------- */
 interface GolfState {owners:Record<string,number>;lastRest:Record<string,{x:number;z:number}>}
 const HOLE_RADIUS=.22;
+/** Maximum capture speed (m/s) at the rim and through the centre of the cup. */
+export const HOLE_CAPTURE={rim:.9,centre:2.6} as const;
 const minigolf:BallVariantLogic={
   capacity:def=>def.playersMax,
   initial:()=>({owners:{},lastRest:{}} satisfies GolfState),
@@ -172,7 +174,10 @@ const minigolf:BallVariantLogic={
     const st=g.state as GolfState,w=g.world,s=ctx.session,hole=home(g.def,el(g.def,'hole')[0]),{halfWidth:hw,halfLength:hl}=g.def.area;
     for(const [player,i] of Object.entries(st.owners)){
       if(s.finished.includes(player)||!w.enabled[i])continue;
-      if(Math.hypot(w.px[i]-hole.x,w.pz[i]-hole.z)<HOLE_RADIUS&&w.speed(i)<3.2){
+      // Capture speed depends on how centred the ball crosses the cup: a fast ball only
+      // drops when it runs through the middle, never by grazing the rim.
+      const off=Math.hypot(w.px[i]-hole.x,w.pz[i]-hole.z);
+      if(off<HOLE_RADIUS&&w.speed(i)<HOLE_CAPTURE.rim+(HOLE_CAPTURE.centre-HOLE_CAPTURE.rim)*(1-off/HOLE_RADIUS)){
         w.setEnabled(i,false);s.finished.push(player);
         emit(s,ctx.events,ctx.tick,{type:'target:hit',targetId:el(g.def,'hole')[0].id,playerId:player});continue;
       }

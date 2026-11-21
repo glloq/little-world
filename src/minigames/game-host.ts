@@ -94,7 +94,9 @@ export function createMiniGameHost(o:MiniGameHostOptions){
     capturesAction(p:HostPlayer){return !!here(p.position.x,p.position.z);},
     tick(tickNo:number,dt:number,p:HostPlayer,actionHeld:boolean,aimYaw:number){
       if(disposed)return;
-      lastTick=tickNo;
+      // Ticks without this call (lift ride, cut-scene): not counted as match time.
+      const gap=tickNo-lastTick>1&&lastTick>0;lastTick=tickNo;
+      if(gap)for(const r of manager.records.values())if(r.state==='ACTIVE'){manager.suspend(r.def.id);manager.resume(r.def.id,tickNo-1);}
       actor.x=p.position.x;actor.y=p.position.y;actor.z=p.position.z;actor.vx=p.velocity.x;actor.vy=p.velocity.y;actor.vz=p.velocity.z;
       actor.mode=p.mode;actor.radius=p.body?.radius??.4;
       if(tickNo%15===0){const near=manager.proximity(actor.x,actor.z);for(const id of near.release)release(id);for(const id of near.prepare)void prepare(id);}
