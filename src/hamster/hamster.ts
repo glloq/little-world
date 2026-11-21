@@ -6,7 +6,7 @@
 import * as THREE from 'three';
 import type { Player } from '../player.ts';
 import { CHARACTER_SCALE } from '../squirrel.ts';
-import { DEFAULT_APPEARANCE, type Appearance } from '../character-style.ts';
+import { DEFAULT_APPEARANCE, type Appearance, type Emotion } from '../character-style.ts';
 import { buildHamsterRig, BODY_CENTRE, REST, type HamsterRig } from './hamster-model.ts';
 import { HamsterAnimator, type ActionName, type AnimationEvent, type HamsterInput, type LocomotionState } from './hamster-animation.ts';
 import { createToolHolder, ACTIVITY_ANIMATIONS, type ToolId } from './tools.ts';
@@ -26,6 +26,8 @@ export interface HamsterCharacter {
   setAboard(aboard: boolean): void;
   /** Plays the animation of a gameplay activity (mine, fell, pick, fish-cast…) or a raw action. */
   play(activityOrAction: string, tool?: ToolId | null): boolean;
+  /** Short facial expression over the chosen emotion (mini-game reactions…); never saved. */
+  express(emotion: Emotion, seconds: number): void;
   /** Fishing float target (world) and bite state, or null when the line is in. */
   setFishing(f: { x: number; y: number; z: number; biting: boolean } | null): void;
   onEvent(listener: (e: AnimationEvent & { position: THREE.Vector3 }) => void): () => void;
@@ -48,6 +50,7 @@ export function buildHamster(options: { legacyGlb?: boolean } = {}): HamsterChar
   const listeners = new Set<(e: AnimationEvent & { position: THREE.Vector3 }) => void>();
   let facing = 0, lastFacing = 0, aboard = false, actionTool: ToolId | null = null, actionSeq = 0, fishing: { x: number; y: number; z: number; biting: boolean } | null = null, disposed = false;
   let appearance = { ...DEFAULT_APPEARANCE } as Appearance;
+  let expression: { emotion: Emotion; left: number } | null = null;
   // Fishing line (2 points) and float, only shown while the line is out.
   const linePositions = new Float32Array(6), lineGeometry = new THREE.BufferGeometry(); lineGeometry.setAttribute('position', new THREE.BufferAttribute(linePositions, 3));
   const line = new THREE.Line(lineGeometry, lineMaterial); line.frustumCulled = false; line.visible = false; line.name = 'FishingLine';
@@ -58,7 +61,8 @@ export function buildHamster(options: { legacyGlb?: boolean } = {}): HamsterChar
   const tmp = new THREE.Vector3(), tip = new THREE.Vector3(), input: HamsterInput = { mode: 'ground', speed: 0, verticalSpeed: 0, turnRate: 0 };
   const base = { earL: j.EarLeft.rotation.z, earR: j.EarRight.rotation.z };
   function applyAppearance() {
-    for (const [emotion, face] of Object.entries(rig.faces)) face.visible = emotion === appearance.emotion;
+    const shown = expression?.emotion ?? appearance.emotion;
+    for (const [emotion, face] of Object.entries(rig.faces)) face.visible = emotion === shown;
     const tucked = animator.pose.tuck > .5;
     rig.accessories.hat.visible = appearance.hat && !tucked; rig.accessories.goggles.visible = !!appearance.goggles && !tucked && !appearance.hat;
     rig.accessories.backpack.visible = !tucked && (appearance.backpack || !!glider && glider.deployment > .001);
@@ -113,6 +117,7 @@ export function buildHamster(options: { legacyGlb?: boolean } = {}): HamsterChar
     update(player, dt, elapsed) {
       input.animationTime=undefined;input.stridePhase=undefined;input.rollPhase=undefined;
       if (disposed) return;
+      if (expression && (expression.left -= dt) <= 0) expression = null;
       const v = player.velocity, speed = Math.hypot(v.x, v.z);
       if (player.mode === 'climb' && player.climbDir) face(player.climbDir.x, player.climbDir.z, dt, 14);
       else if (speed > .4) face(v.x, v.z, dt, player.mode === 'roll' ? 4 : 9);
@@ -139,6 +144,7 @@ export function buildHamster(options: { legacyGlb?: boolean } = {}): HamsterChar
       pose(dt, elapsed);
     },
     setAppearance(a) { appearance = { ...a }; applyAppearance(); },
+    express(emotion, seconds) { expression = seconds > 0 ? { emotion, left: Math.min(10, seconds) } : null; applyAppearance(); },
     setAboard(b) { aboard = b; },
     play(activityOrAction, tool) {
       const preset = ACTIVITY_ANIMATIONS[activityOrAction], action = (preset?.action ?? activityOrAction) as ActionName;

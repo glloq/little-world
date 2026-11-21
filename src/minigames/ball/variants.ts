@@ -149,11 +149,15 @@ const bowling:BallVariantLogic={
     placeBall(g);st.phase='aim';st.gutter=false;
     const thrower=st.thrower;st.thrower=null;
     if(!thrower)return;
+    if(st.knocked.length===w.count-1){
+      const throws=ctx.session.attempts[thrower]??0;
+      if(throws<=2)emit(ctx.session,ctx.events,ctx.tick,{type:'highlight',kind:throws===1?'strike':'spare',playerId:thrower});
+    }
     if(st.knocked.length===w.count-1||(ctx.session.attempts[thrower]??0)>=(g.def.rules.attempts??2)){
       resetPins(g);st.knocked=[];completeTurn(ctx.session,thrower,ctx.tick,ctx.events);
     }
   },
-  describe(_g,_s,e){return e.type==='game:reset'?'Nouvelle manche : quilles relevées':e.type==='ball:out'?'Rigole !':null;},
+  describe(_g,_s,e){return e.type==='game:reset'?'Nouvelle manche : quilles relevées':e.type==='ball:out'?'Rigole !':e.type==='highlight'?(e.kind==='strike'?'STRIKE !':'Spare !'):null;},
   hint(g,s,a){
     if(s.status!=='active')return null;const st=g.state as BowlingState,who=currentPlayer(s);
     if(st.phase==='rolling')return st.gutter?'Dans la rigole…':'La boule roule…';
@@ -239,6 +243,7 @@ const minigolf:BallVariantLogic={
       const off=Math.hypot(w.px[i]-hole.x,w.pz[i]-hole.z);
       if(off<HOLE_RADIUS&&w.speed(i)<HOLE_CAPTURE.rim+(HOLE_CAPTURE.centre-HOLE_CAPTURE.rim)*(1-off/HOLE_RADIUS)){
         emit(s,ctx.events,ctx.tick,{type:'target:hit',targetId:stage.hole.id,playerId:player});
+        if((s.attempts[player]??0)===1)emit(s,ctx.events,ctx.tick,{type:'highlight',kind:'hole-in-one',playerId:player,targetId:stage.hole.id});
         nextHole(g,s,player,ctx.tick,ctx.events);continue;
       }
       const l=worldToArea(g.def.area,w.px[i],w.pz[i]);
@@ -256,6 +261,7 @@ const minigolf:BallVariantLogic={
     }
   },
   describe(g,_s,e,local){
+    if(e.type==='highlight'&&e.playerId===local)return 'Trou en un !';
     if(e.type==='target:hit'&&e.playerId===local)return 'Dans le trou !';
     if(e.type==='checkpoint:passed'&&e.playerId===local)return `Trou ${((g.state as GolfState).stage[local]??0)+1} : en route !`;
     return e.type==='ball:out'?'Balle sortie : +1 coup de pénalité':null;

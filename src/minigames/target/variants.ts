@@ -13,7 +13,7 @@ import type {MiniGameActor,MiniGameStepContext} from '../types.ts';
 import {areaBox} from '../ball/simulation.ts';
 import {el,home,launchVelocity,obj,type BallGame,type BallVariantLogic,type ShotPlan} from '../ball/kit.ts';
 
-interface ThrowState {phase:'aim'|'flying'|'settle';ticks:number;thrower:string|null;shot:number;knocked:number[]}
+interface ThrowState {phase:'aim'|'flying'|'settle';ticks:number;thrower:string|null;shot:number;knocked:number[];/** All targets down announced (once per round). */cleared?:boolean}
 const CAN={radius:.12,mass:.15,restitution:.3,rolling:2};
 /** Rings of a board, centre first (points 5…1). */
 const RINGS=5,THROW_REACH=1.8,HAND_HEIGHT=1,FLIGHT_TICKS=150,SETTLE_TICKS=60;
@@ -26,7 +26,7 @@ function resetField(g:BallGame,st:ThrowState){
   const w=g.world,n=shots(g);
   for(let i=0;i<n;i++){w.setEnabled(i,false);const t=tee(g);w.place(i,t.x,undefined,t.z);}
   for(let i=n;i<w.count;i++){const e=g.def.elements.find(x=>x.id===w.ids[i])!,p=home(g.def,e);w.setEnabled(i,true);w.place(i,p.x,elevation(g,e),p.z);}
-  st.phase='aim';st.ticks=0;st.thrower=null;st.shot=0;st.knocked=[];
+  st.phase='aim';st.ticks=0;st.thrower=null;st.shot=0;st.knocked=[];st.cleared=false;
 }
 /** Throwing hand above the tee mark: the slingshot anchor and the ball's release point. */
 const hand=(g:BallGame)=>{const t=tee(g);return {x:t.x,y:g.env.height(t.x,t.z)+HAND_HEIGHT,z:t.z};};
@@ -106,9 +106,11 @@ const cans:BallVariantLogic={
         if(st.thrower)addScore(ctx.session,playerScoreKey(ctx.session,st.thrower),1,ctx.tick,ctx.events);
       }
     }
-    advance(g,ctx,st.knocked.length===w.count-n);
+    const all=st.knocked.length===w.count-n;
+    if(all&&!st.cleared){st.cleared=true;emit(ctx.session,ctx.events,ctx.tick,{type:'highlight',kind:'clear',...(st.thrower?{playerId:st.thrower}:{})});}
+    advance(g,ctx,all);
   },
-  describe(_g,_s,e){return e.type==='target:hit'?'Boîte renversée !':e.type==='game:reset'?'Nouvelle manche : boîtes remises en place':null;},
+  describe(_g,_s,e){return e.type==='highlight'?'Tout renversé !':e.type==='target:hit'?'Boîte renversée !':e.type==='game:reset'?'Nouvelle manche : boîtes remises en place':null;},
 };
 
 const bullseye:BallVariantLogic={
@@ -130,6 +132,7 @@ const bullseye:BallVariantLogic={
         // The ball sticks to the board (scored once), like a dart.
         w.vx[i]=w.vy[i]=w.vz[i]=0;w.asleep[i]=1;
         if(points>0){emit(ctx.session,ctx.events,ctx.tick,{type:'target:hit',targetId:e.id,...(st.thrower?{playerId:st.thrower}:{})});
+          if(points===RINGS)emit(ctx.session,ctx.events,ctx.tick,{type:'highlight',kind:'bullseye',targetId:e.id,...(st.thrower?{playerId:st.thrower}:{})});
           if(st.thrower)addScore(ctx.session,playerScoreKey(ctx.session,st.thrower),points,ctx.tick,ctx.events);}
         break;
       }
@@ -137,6 +140,7 @@ const bullseye:BallVariantLogic={
     advance(g,ctx,false);
   },
   describe(_g,_s,e,local){
+    if(e.type==='highlight')return 'En plein centre !';
     if(e.type==='score:changed'&&e.key===local)return 'Cible touchée · total '+e.score;
     return e.type==='game:reset'?'Nouvelle manche':null;
   },

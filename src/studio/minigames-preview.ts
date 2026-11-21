@@ -3,7 +3,12 @@
 import * as THREE from 'three';
 import {MiniGameRegistry} from '../minigames/registry.ts';
 import type {MiniGameInstanceV1} from '../minigames/schema.ts';
-import type {MiniGameEnvironment,MiniGameSimulation,MiniGameView} from '../minigames/types.ts';
+import type {MiniGameEnvironment,MiniGameSimulation,MiniGameView,MiniGameViewContext} from '../minigames/types.ts';
+import {classifyPoint} from '../geography/classify.ts';
+import {geoContext} from '../geography/engine.ts';
+
+/** Same automatic theme as the game (biome at the field), full detail, no effects. */
+const PREVIEW_CONTEXT:MiniGameViewContext={tier:()=>'high',ground:(x,z)=>{try{const g=classifyPoint(geoContext(),x,z);return {biome:g.biome,material:g.material};}catch{return null;}}};
 
 const registry=new MiniGameRegistry();
 export async function createMiniGamePreview(defs:readonly MiniGameInstanceV1[],env:MiniGameEnvironment){
@@ -12,7 +17,7 @@ export async function createMiniGamePreview(defs:readonly MiniGameInstanceV1[],e
   for(const def of defs){
     try{
       const module=await registry.load(def.family),sim=module.createSimulation(def,env),factory=await module.loadView();
-      parts.push({sim,view:factory.create(group,sim,env)});
+      const view=factory.create(group,sim,env,PREVIEW_CONTEXT);view.setState?.('ready');parts.push({sim,view});
     }catch(e){console.warn('Aperçu de mini-jeu impossible',def.id,e);}
   }
   return {group,dispose(){for(const p of parts){p.view.dispose();p.sim.dispose();}parts.length=0;group.removeFromParent();}};

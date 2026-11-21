@@ -5,6 +5,7 @@
  * so moving or turning an area in Studio moves its goals, pins, tee, hole and obstacles.
  */
 import {MINIGAME_VARIANTS,FLOOR_SHAPES,type FloorShape,type MiniGameElementKind,type MiniGameFamilyId,type MiniGameVariantId} from './catalog.ts';
+import {MINIGAME_PROP_IDS,validateStyle,type MiniGamePropId,type MiniGameStyleV1} from './themes.ts';
 
 export type {MiniGameElementKind} from './catalog.ts';
 export interface MiniGameElementV1 {
@@ -20,6 +21,8 @@ export interface MiniGameElementV1 {
   stage?:number;
   /** Lane relief (kind 'lane') and its slope ratio / bump height. */
   shape?:FloorShape;slope?:number;
+  /** Decorative prop (kind 'decor') or score board look (kind 'scoreboard': 'wood'|'stone'). */
+  prop?:MiniGamePropId|'wood'|'stone';
 }
 export interface MiniGameTeamV1 {id:string;name:string;color:number}
 export interface MiniGameRulesV1 {
@@ -40,12 +43,14 @@ export interface MiniGameInstanceV1 {
   teams?:MiniGameTeamV1[];
   rules:MiniGameRulesV1;
   elements:MiniGameElementV1[];
+  /** Presentation options (theme, decoration, effects); absent = automatic. */
+  style?:MiniGameStyleV1;
 }
 export interface MiniGameBounds {minX:number;maxX:number;minZ:number;maxZ:number}
 
 export const MINIGAME_ID=/^minigame:[a-zA-Z0-9_-]{1,100}$/;
 const LOCAL_ID=/^[a-zA-Z0-9_-]{1,40}$/;
-const KINDS:readonly MiniGameElementKind[]=['goal','pin','tee','hole','obstacle','spawn','ball','target','lane'];
+const KINDS:readonly MiniGameElementKind[]=['goal','pin','tee','hole','obstacle','spawn','ball','target','lane','scoreboard','decor'];
 const isObj=(v:unknown):v is Record<string,unknown>=>!!v&&typeof v==='object'&&!Array.isArray(v);
 const num=(v:unknown,min:number,max:number)=>typeof v==='number'&&Number.isFinite(v)&&v>=min&&v<=max;
 const only=(v:Record<string,unknown>,keys:readonly string[],label:string)=>{for(const k of Object.keys(v))if(!keys.includes(k))throw Error(label+' : champ inconnu '+k);};
@@ -66,7 +71,7 @@ export const areaRadius=(a:MiniGameAreaV1)=>Math.hypot(a.halfWidth,a.halfLength)
 /** Strict validation at the Studio / compiled boundary. Returns a detached copy. */
 export function validateMiniGame(raw:unknown,bounds?:MiniGameBounds):MiniGameInstanceV1{
   if(!isObj(raw))throw Error('Mini-jeu : objet attendu');
-  only(raw,['id','version','name','family','variant','playersMin','playersMax','area','teams','rules','elements'],'Mini-jeu');
+  only(raw,['id','version','name','family','variant','playersMin','playersMax','area','teams','rules','elements','style'],'Mini-jeu');
   if(typeof raw.id!=='string'||!MINIGAME_ID.test(raw.id))throw Error('Mini-jeu : identifiant invalide');
   if(raw.version!==1)throw Error('Mini-jeu : version inconnue');
   if(typeof raw.name!=='string'||raw.name.trim().length<2||raw.name.length>100)throw Error('Mini-jeu : nom invalide');
@@ -109,15 +114,18 @@ export function validateMiniGame(raw:unknown,bounds?:MiniGameBounds):MiniGameIns
   const ids=new Set<string>(),count:Partial<Record<MiniGameElementKind,number>>={};
   for(const e of raw.elements){
     if(!isObj(e))throw Error('Élément : objet attendu');
-    only(e,['id','kind','x','z','width','depth','height','yaw','teamId','stage','shape','slope'],'Élément');
+    only(e,['id','kind','x','z','width','depth','height','yaw','teamId','stage','shape','slope','prop'],'Élément');
     if(typeof e.id!=='string'||!LOCAL_ID.test(e.id)||ids.has(e.id))throw Error('Élément : identifiant invalide');
     if(!KINDS.includes(e.kind as MiniGameElementKind))throw Error('Élément : type inconnu');
-    if(!num(e.x,-area.halfWidth-.01,area.halfWidth+.01)||!num(e.z,-area.halfLength-.01,area.halfLength+.01))throw Error('Élément hors de la zone : '+e.id);
+    const out=e.kind==='scoreboard'||e.kind==='decor'?8:.01;
+    if(!num(e.x,-area.halfWidth-out,area.halfWidth+out)||!num(e.z,-area.halfLength-out,area.halfLength+out))throw Error('Élément hors de la zone : '+e.id);
     for(const k of ['width','depth','height'] as const)if(e[k]!==undefined&&!num(e[k],.05,40))throw Error('Élément : dimension invalide '+e.id);
     if(e.yaw!==undefined&&!num(e.yaw,-Math.PI*2,Math.PI*2))throw Error('Élément : orientation invalide');
     if(e.teamId!==undefined&&(typeof e.teamId!=='string'||!teamIds.has(e.teamId)))throw Error('Élément : équipe inconnue '+e.id);
     if(e.stage!==undefined&&(!variant.stages||!Number.isSafeInteger(e.stage)||(e.stage as number)<0||(e.stage as number)>8))throw Error('Élément : étape invalide '+e.id);
     if(e.shape!==undefined&&(e.kind!=='lane'||!FLOOR_SHAPES.includes(e.shape as FloorShape))||e.slope!==undefined&&(e.kind!=='lane'||!num(e.slope,0,.3)))throw Error('Élément : relief de piste invalide '+e.id);
+    if(e.kind==='decor'?!MINIGAME_PROP_IDS.includes(e.prop as MiniGamePropId):e.kind==='scoreboard'?e.prop!==undefined&&e.prop!=='wood'&&e.prop!=='stone':e.prop!==undefined)throw Error('Élément : décor invalide '+e.id);
+    // Presentation elements may stand a little outside the field (stands, score boards).
     ids.add(e.id);const k=e.kind as MiniGameElementKind;count[k]=(count[k]??0)+1;
   }
   for(const [kind,[min,max]] of Object.entries(variant.elements) as [MiniGameElementKind,[number,number]][]){
@@ -125,7 +133,8 @@ export function validateMiniGame(raw:unknown,bounds?:MiniGameBounds):MiniGameIns
   }
   for(const kind of Object.keys(count) as MiniGameElementKind[])if(!variant.elements[kind])throw Error('Mini-jeu : élément « '+kind+' » non utilisé par '+variant.label);
   if(variant.teams)for(const team of teamIds)if(!raw.elements.some(e=>isObj(e)&&e.kind==='goal'&&e.teamId===team))throw Error('Mini-jeu : but absent pour l’équipe '+team);
-  if(variant.stages)validateStages(raw.elements as unknown as MiniGameElementV1[]);
+  if(variant.stages)validateStages((raw.elements as unknown as MiniGameElementV1[]).filter(e=>e.kind!=='scoreboard'&&e.kind!=='decor'));
+  if(raw.style!==undefined)validateStyle(raw.style);
   return structuredClone(raw) as unknown as MiniGameInstanceV1;
 }
 

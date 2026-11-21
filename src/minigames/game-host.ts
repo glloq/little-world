@@ -19,7 +19,9 @@ import {MINIGAME_VARIANTS} from './catalog.ts';
 import {createMiniGameManager,type MiniGameInstanceRecord} from './manager.ts';
 import {worldToArea,type MiniGameInstanceV1} from './schema.ts';
 import {sessionSeconds,type MiniGameEvent} from './session.ts';
-import type {MiniGameActor,MiniGameAim,MiniGameAimLine,MiniGameEnvironment,MiniGameView} from './types.ts';
+import type {MiniGameActor,MiniGameAim,MiniGameAimLine,MiniGameEffectsLike,MiniGameEnvironment,MiniGameFieldState,MiniGameFxTier,MiniGameView,MiniGameViewContext} from './types.ts';
+import {minigameSoundEvent} from './audio.ts';
+import {areaRadius} from './schema.ts';
 
 export interface HostPlayer {position:{x:number;y:number;z:number};velocity:{x:number;y:number;z:number};mode:string;body?:{radius?:number}}
 export interface MiniGameHostOptions {
@@ -30,7 +32,20 @@ export interface MiniGameHostOptions {
   hudHost?:HTMLElement|null;
   /** Local personal bests (same mechanism as race records); absent = none kept. */
   records?:RaceStorage;worldBuild?:string;
+  /** Presentation services of the game (doc 107 §évolution graphique), all optional:
+   * the local hamster's reactions, semantic sounds, resident spectators, graphic tier,
+   * geography for automatic themes and the game's shared impact chips. */
+  character?:{play(action:string):boolean;express?(emotion:'joyful'|'sad'|'surprised'|'determined',seconds:number):void}|null;
+  audio?:{emit(id:string,o:{position?:{x:number;y:number;z:number};source?:'player'|'world'|'ui'}):void}|null;
+  spectators?:{spectate(point:{x:number;z:number},o:{radius?:number;max?:number;seconds?:number;cheer?:boolean}):number}|null;
+  tier?():MiniGameFxTier;
+  ground?(x:number,z:number):{biome:string;material:string}|null;
+  chips?(x:number,y:number,z:number,kind:'wood'|'stone'|'soil'|'crystal'|'iron'|'water'|'leaf',count:number):void;
 }
+/** Local hamster reaction per launch style (data, not code per variant). */
+const LAUNCH_ACTION={kick:'KICK',throw:'THROW',putt:'PUTT'} as const;
+/** Field state radius beyond the area (name sign, flags start waving). */
+export const FIELD_READY_RADIUS=14;
 /** Picking ray in world space (camera origin, normalised direction). */
 export interface AimRay {ox:number;oy:number;oz:number;dx:number;dy:number;dz:number}
 export const LOCAL_PLAYER='local';
@@ -64,19 +79,53 @@ export function createMiniGameHost(o:MiniGameHostOptions){
   let pendingShot:{id:string;yaw:number;power:number;loft:number}|null=null,aimLine:MiniGameAimLine|null=null;
   const modeChoice=new Map<string,string>();
   let previewPoints=0;
-  const hud=o.hudHost?document.createElement('div'):null;
-  if(hud){hud.className='minigame-hud';hud.hidden=true;hud.setAttribute('role','status');
-    Object.assign(hud.style,{position:'fixed',left:'50%',top:'12px',transform:'translateX(-50%)',padding:'6px 12px',borderRadius:'8px',background:'rgba(20,24,30,.72)',color:'#fff',font:'14px system-ui,sans-serif',pointerEvents:'none',zIndex:'20',maxWidth:'90vw',textAlign:'center'});
-    o.hudHost!.append(hud);}
+  // Shared presentation: ONE effect pool for every field of the host (created with the first view).
+  let fx:MiniGameEffectsLike|null=null,tier:MiniGameFxTier=o.tier?.()??'medium';
+  const fieldStates=new Map<string,MiniGameFieldState>();
+  const viewCtx:MiniGameViewContext={get fx(){return fx;},tier:()=>tier,ground:o.ground,
+    sound:o.audio?(id,x,y,z)=>{point.x=x;point.y=y;point.z=z;o.audio!.emit(minigameSoundEvent(id),{position:{x,y,z},source:'world'});}:undefined};
+  let result:{until:number;title:string;detail:string}|null=null,presentTime=0;
+  const hud=o.hudHost?createHud(o.hudHost):null;
 
   async function prepare(id:string){
     const r=await manager.prepare(id);
     if(disposed||r.state!=='READY'||!r.module||!r.sim||views.has(id)||loadingViews.has(id))return;
     loadingViews.add(id);
-    try{const factory=await r.module.loadView();if(!disposed&&r.sim&&manager.records.get(id)?.sim===r.sim){views.set(id,factory.create(o.parent,r.sim,env));if(!aimLine&&factory.createAimLine)aimLine=factory.createAimLine(o.parent);}}
+    try{const factory=await r.module.loadView();if(!disposed&&r.sim&&manager.records.get(id)?.sim===r.sim){
+      if(!fx&&factory.createEffects){fx=factory.createEffects(o.parent);fx.setTier?.(tier);if(o.chips)(fx as {chips?:unknown}).chips=o.chips;}
+      views.set(id,factory.create(o.parent,r.sim,env,viewCtx));fieldStates.delete(id);if(!aimLine&&factory.createAimLine)aimLine=factory.createAimLine(o.parent);}}
     finally{loadingViews.delete(id);}
   }
-  function release(id:string){if(aiming?.id===id)cancelAim();views.get(id)?.dispose();views.delete(id);manager.release(id);}
+  function release(id:string){if(aiming?.id===id)cancelAim();views.get(id)?.dispose();views.delete(id);fieldStates.delete(id);manager.release(id);}
+  const centreOf=(r:MiniGameInstanceRecord)=>({x:r.def.area.x,z:r.def.area.z});
+  const mineEvent=(r:MiniGameInstanceRecord,playerId?:string)=>playerId===LOCAL_PLAYER||(!!playerId&&r.session?.players.find(p=>p.id===LOCAL_PLAYER)?.teamId===playerId);
+  /** Hamster, spectators and celebration reactions to the session events (presentation only). */
+  function react(r:MiniGameInstanceRecord,e:MiniGameEvent){
+    const c=o.character,spec=MINIGAME_VARIANTS[r.def.variant];
+    switch(e.type){
+      case 'game:start':o.spectators?.spectate(centreOf(r),{seconds:8});break;
+      case 'ball:hit':if(e.playerId===LOCAL_PLAYER)c?.play(LAUNCH_ACTION[spec.physics.command]);break;
+      case 'target:hit':{
+        const el=r.def.elements.find(x=>x.id===e.targetId);
+        if(el?.kind==='goal'||el?.kind==='hole'||el?.kind==='target'&&spec.visual?.board){
+          const scorer=el.kind==='goal'?(r.def.teams??[]).find(t=>t.id!==el.teamId)?.id:e.playerId;
+          if(mineEvent(r,scorer)){c?.play('CHEER');c?.express?.('joyful',2.5);}
+          if(el.kind!=='target')o.spectators?.spectate(centreOf(r),{cheer:true,seconds:5});
+        }
+        break;
+      }
+      case 'highlight':if(mineEvent(r,e.playerId)){c?.play('CHEER');c?.express?.('joyful',3);}o.spectators?.spectate(centreOf(r),{cheer:true,seconds:5});break;
+      case 'game:finish':{
+        if(!r.session?.players.some(p=>p.id===LOCAL_PLAYER))break;
+        const won=e.winners.some(w=>mineEvent(r,w));
+        if(won){c?.play('CHEER');c?.express?.('joyful',4);}else if(e.winners.length){c?.play('SAD');c?.express?.('sad',3);}
+        o.spectators?.spectate(centreOf(r),{cheer:won,seconds:6});
+        const teams=r.def.teams??[],name=(id:string)=>teams.find(t=>t.id===id)?.name??(id===LOCAL_PLAYER?'Vous':id);
+        result={until:presentTime+5,title:won?'Victoire !':e.winners.length?'Partie terminée':'Égalité',detail:Object.entries(r.session?.scores??{}).map(([k,v])=>name(k)+' '+v).join(' · ')};
+        break;
+      }
+    }
+  }
   function cancelAim(){aiming=null;previewPoints=0;aimLine?.set(null,0);}
   /** Refresh the anchor (it follows a rolling football) and the preview line, at most once a tick. */
   function updateAim(){
@@ -104,10 +153,10 @@ export function createMiniGameHost(o:MiniGameHostOptions){
     const teams=r.def.teams??[],name=(id:string)=>teams.find(t=>t.id===id)?.name??(id===LOCAL_PLAYER?'Vous':id);
     switch(e.type){
       case 'game:start':o.showInfo(r.def.name+' : c’est parti !','success');break;
-      case 'target:hit':case 'ball:out':case 'game:reset':case 'score:changed':{
+      case 'target:hit':case 'ball:out':case 'game:reset':case 'score:changed':case 'highlight':{
         // Variant wording lives with the variant rules, not here.
         const text=r.sim&&r.session?r.sim.describe(r.session,e,LOCAL_PLAYER):null;
-        if(text)o.showInfo(text,e.type==='ball:out'?'warning':e.type==='target:hit'?'success':'info');break;
+        if(text)o.showInfo(text,e.type==='ball:out'?'warning':e.type==='target:hit'||e.type==='highlight'?'success':'info');break;
       }
       case 'game:finish':{
         const won=e.winners.includes(LOCAL_PLAYER)||e.winners.some(w=>r.session?.players.find(p=>p.id===LOCAL_PLAYER)?.teamId===w);
@@ -115,29 +164,46 @@ export function createMiniGameHost(o:MiniGameHostOptions){
         o.showInfo(`${r.def.name} terminé${e.winners.length?' · vainqueur : '+e.winners.map(name).join(', '):' · égalité'} (${scores})`,'success');
         o.emit?.({type:'minigame.finished',instanceId:r.def.id,variant:r.def.variant,seconds:r.session?sessionSeconds(r.session):0,won});
         const record=o.records?minigameRecord(r.def,o.worldBuild):null,mine=r.session?.scores[LOCAL_PLAYER];
-        if(record&&mine!==undefined&&e.reason!=='abandon'&&writePracticeBest(o.records!,record,mine)){bests.delete(r.def.id);o.showInfo('Nouveau record personnel : '+mine,'success');}
+        if(record&&mine!==undefined&&e.reason!=='abandon'&&writePracticeBest(o.records!,record,mine)){
+          bests.delete(r.def.id);o.showInfo('Nouveau record personnel : '+mine,'success');
+          views.get(r.def.id)?.celebrate?.('record');o.character?.play('CHEER');o.character?.express?.('joyful',4);
+          if(result)result.title='Nouveau record !';
+        }
         break;
       }
       case 'game:abandon':o.showInfo(r.def.name+' : partie abandonnée');break;
     }
   }
+  /** Compact contextual HUD: a title (activity · mode · time), one line of context, and a
+   * power meter only while aiming or charging; a short result card at the end. */
   function updateHud(r:MiniGameInstanceRecord|null){
     if(!hud)return;
-    let text='';
-    if(r?.sim&&r.state==='ACTIVE'&&r.session){
-      text=r.sim.hint(r.session,actor)??'';
-      if(aiming){const p=aiming.power;text='Puissance '+'▮'.repeat(Math.round(p*10))+'▯'.repeat(10-Math.round(p*10))+
-        (aiming.aim.canLoft?` · hauteur ${Math.round(aiming.loft*100)} % (molette)`:'')+' · relâchez pour tirer, Échap : annuler';}
-      else if(held>0){const style=MINIGAME_VARIANTS[r.def.variant].physics.command,p=Math.min(1,held/CHARGE[style]);text+=' · puissance '+'▮'.repeat(Math.round(p*10))+'▯'.repeat(10-Math.round(p*10));}
-      if(r.def.rules.timeLimitSeconds)text+=' · '+Math.max(0,Math.ceil(r.def.rules.timeLimitSeconds-sessionSeconds(r.session)))+' s';
+    let title='',line='',meter=-1,meterLabel='',chip='';
+    if(result&&presentTime<result.until){title=result.title;line=result.detail;}
+    else if(r?.sim&&r.state==='ACTIVE'&&r.session){
+      const mode=r.session.mode?modesOf(r).find(m=>m.id===r.session!.mode)?.label.split(' ')[0]:'';
+      title=r.def.name+(mode?' · '+mode:'');line=r.sim.hint(r.session,actor)??'';
+      if(r.def.rules.timeLimitSeconds)chip=Math.max(0,Math.ceil(r.def.rules.timeLimitSeconds-sessionSeconds(r.session)))+' s';
+      if(aiming){meter=aiming.power;meterLabel=aiming.aim.canLoft?`hauteur ${Math.round(aiming.loft*100)} % · molette`:'relâchez pour tirer';line='Relâchez pour tirer · Échap : annuler';}
+      else if(held>0){const style=MINIGAME_VARIANTS[r.def.variant].physics.command;meter=Math.min(1,held/CHARGE[style]);meterLabel='F : relâchez';}
     }else if(r){
       if(!bests.has(r.def.id)){const record=o.records?minigameRecord(r.def,o.worldBuild):null;bests.set(r.def.id,record?readPracticeBest(o.records!,record):null);}
-      const best=bests.get(r.def.id)??null;
-      const modes=modesOf(r),mode=chosenMode(r);
-      text=`${r.def.name} · F : commencer (${r.def.playersMin>1&&r.def.rules.practice?'entraînement solo':'solo'})${best!==null?' · record : '+best:''}`+
+      const best=bests.get(r.def.id)??null,modes=modesOf(r),mode=chosenMode(r);
+      title=r.def.name;chip=best!==null?'record '+best:'';
+      line=`F : commencer (${r.def.playersMin>1&&r.def.rules.practice?'entraînement solo':'solo'})`+
         (modes.length?' · '+modes.map((m,k)=>`${k+1} : ${m.id===mode?'[':''}${m.label}${m.id===mode?']':''}`).join(' · '):'');
     }
-    if(text!==lastHint){lastHint=text;hud.textContent=text;hud.hidden=!text;}
+    const key=title+'|'+line+'|'+chip+'|'+(meter<0?'':Math.round(meter*20))+meterLabel;
+    if(key===lastHint)return;lastHint=key;hud.set(title,line,chip,meter,meterLabel);
+  }
+  /** Field ambience state (event-driven views): active game, player around, or idle. */
+  function updateFieldStates(){
+    for(const [id,v] of views){
+      const r=manager.records.get(id);if(!r)continue;
+      const near=Math.hypot(actor.x-r.def.area.x,actor.z-r.def.area.z)<areaRadius(r.def.area)+FIELD_READY_RADIUS;
+      const s:MiniGameFieldState=r.state==='ACTIVE'?'active':near?'ready':'inactive';
+      if(fieldStates.get(id)!==s){fieldStates.set(id,s);v.setState?.(s);}
+    }
   }
   return {
     manager,env,
@@ -169,9 +235,10 @@ export function createMiniGameHost(o:MiniGameHostOptions){
         }else{charging=false;held=0;if(actionHeld&&!wasHeld&&inside.state==='READY'){send(inside,tickNo,{type:'join'});send(inside,tickNo,{type:'start',mode:chosenMode(inside)});}}
       }else{held=0;charging=false;}
       wasHeld=actionHeld;
-      const result=manager.tick(tickNo,dt,inside||mine?actors:none);
-      for(const e of result.events){const r=manager.records.get(e.sessionId.replace(/:s\d+$/,''));if(r)describe(r,e);}
-      for(const f of result.refusals)if(f.playerId===LOCAL_PLAYER&&tickNo-hintAt>20){hintAt=tickNo;o.showInfo(f.reason,'warning');}
+      const out=manager.tick(tickNo,dt,inside||mine?actors:none);
+      for(const e of out.events){const r=manager.records.get(e.sessionId.replace(/:s\d+$/,''));if(!r)continue;react(r,e);describe(r,e);views.get(r.def.id)?.onEvent?.(e,r.session,LOCAL_PLAYER);}
+      for(const f of out.refusals)if(f.playerId===LOCAL_PLAYER&&tickNo-hintAt>20){hintAt=tickNo;o.showInfo(f.reason,'warning');}
+      if(tickNo%5===0)updateFieldStates();
       updateAim();updateHud(inside);
     },
     /** Left press on the canvas: true when it grabs the slingshot (the camera must not orbit). */
@@ -201,13 +268,45 @@ export function createMiniGameHost(o:MiniGameHostOptions){
       const mode=modes[Number(m[1])-1];if(!mode)return true;
       modeChoice.set(r.def.id,mode.id);o.showInfo(r.def.name+' : mode '+mode.label);lastHint='';return true;
     },
-    render(alpha:number){for(const v of views.values())v.update(alpha);},
+    /** One presentation frame: views (interpolation, animations) and the shared effects. */
+    render(alpha:number,dt=1/30){
+      if(disposed)return;presentTime+=dt;
+      const t=o.tier?.()??tier;if(t!==tier){tier=t;fx?.setTier?.(t);}
+      for(const v of views.values())v.update(alpha,dt);fx?.update(dt);
+      if(result&&presentTime>=result.until){result=null;lastHint='';}
+    },
+    /** Where the local hamster may look (moving ball, projectile, aim anchor), or null. */
+    lookTarget(){
+      const r=playing();if(!r?.sim||!r.session)return null;
+      return aiming?aiming.aim.anchor:r.sim.focus?.(r.session,actor)??null;
+    },
+    /** Live effects (metrics, tests). */
+    get effects(){return fx?.live??0;},
+    fieldState:(id:string)=>fieldStates.get(id)??'inactive',
     stats(){return {...manager.stats(),views:views.size,lastTick};},
     /** Test/metrics view (no references escape): states, sessions and area of each instance. */
     debug(){return {...manager.stats(),views:views.size,instances:[...manager.records.values()].map(r=>({id:r.def.id,variant:r.def.variant,state:r.state,area:{...r.def.area},
       session:r.session?{status:r.session.status,scores:{...r.session.scores},attempts:{...r.session.attempts},round:r.session.round,finished:[...r.session.finished],result:r.session.result}:null,
       snapshot:r.sim?r.sim.snapshot():null}))};},
-    dispose(){if(disposed)return;disposed=true;aiming=null;pendingShot=null;aimLine?.dispose();aimLine=null;for(const v of views.values())v.dispose();views.clear();manager.dispose();hud?.remove();},
+    dispose(){if(disposed)return;disposed=true;aiming=null;pendingShot=null;aimLine?.dispose();aimLine=null;fx?.dispose();fx=null;for(const v of views.values())v.dispose();views.clear();manager.dispose();hud?.remove();},
   };
 }
 export type MiniGameHost=ReturnType<typeof createMiniGameHost>;
+
+/** DOM of the compact mini-game HUD (no UI library; light CSS transitions). */
+function createHud(host:HTMLElement){
+  const root=document.createElement('div');root.className='minigame-hud';root.hidden=true;root.setAttribute('role','status');
+  Object.assign(root.style,{position:'fixed',left:'50%',top:'12px',transform:'translateX(-50%)',padding:'6px 12px 7px',borderRadius:'10px',background:'rgba(20,24,30,.74)',color:'#fff',
+    font:'13px system-ui,sans-serif',pointerEvents:'none',zIndex:'20',maxWidth:'min(92vw,560px)',textAlign:'center',boxShadow:'0 2px 10px rgba(0,0,0,.25)',transition:'opacity .2s'});
+  const head=document.createElement('div'),title=document.createElement('strong'),chip=document.createElement('span'),line=document.createElement('div');
+  Object.assign(head.style,{display:'flex',gap:'8px',justifyContent:'center',alignItems:'baseline'});Object.assign(title.style,{fontSize:'14px',letterSpacing:'.01em'});
+  Object.assign(chip.style,{fontSize:'12px',padding:'0 6px',borderRadius:'6px',background:'rgba(255,255,255,.16)'});Object.assign(line.style,{opacity:'.92',marginTop:'2px'});
+  const meter=document.createElement('div'),fill=document.createElement('div'),label=document.createElement('div');
+  Object.assign(meter.style,{height:'7px',borderRadius:'4px',background:'rgba(255,255,255,.18)',marginTop:'5px',overflow:'hidden'});
+  Object.assign(fill.style,{height:'100%',width:'0%',borderRadius:'4px',transition:'width .08s linear, background-color .1s'});Object.assign(label.style,{fontSize:'11px',opacity:'.8',marginTop:'2px'});
+  meter.append(fill);head.append(title,chip);root.append(head,line,meter,label);host.append(root);
+  return Object.assign(root,{set(t:string,l:string,c:string,m:number,ml:string){
+    root.hidden=!t&&!l;title.textContent=t;line.textContent=l;chip.textContent=c;chip.hidden=!c;
+    meter.hidden=label.hidden=m<0;if(m>=0){fill.style.width=Math.round(m*100)+'%';fill.style.backgroundColor=`hsl(${Math.round((1-m)*120)},80%,52%)`;label.textContent=ml;}
+  }});
+}

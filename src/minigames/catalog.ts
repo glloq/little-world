@@ -5,7 +5,9 @@
  */
 export type MiniGameFamilyId='ball'|'target';
 export type MiniGameVariantId='football'|'bowling'|'minigolf'|'cans'|'bullseye';
-export type MiniGameElementKind='goal'|'pin'|'tee'|'hole'|'obstacle'|'spawn'|'ball'|'target'|'lane';
+export type MiniGameElementKind='goal'|'pin'|'tee'|'hole'|'obstacle'|'spawn'|'ball'|'target'|'lane'|'scoreboard'|'decor';
+/** Presentation elements allowed in every variant (score boards, decorative props). */
+export const DECOR_ELEMENTS:{scoreboard:[number,number];decor:[number,number]}={scoreboard:[0,2],decor:[0,24]};
 /** Surface of an activity floor (rendering and nothing else: physics reads its shape). */
 export type FloorMaterial='pitch'|'lane'|'gutter'|'green'|'sand';
 /** Relief of a floor region (mini-golf lanes): offset added to its flat level. */
@@ -56,34 +58,34 @@ export interface MiniGameVariantSpec {
 export const MINIGAME_VARIANTS:Record<MiniGameVariantId,MiniGameVariantSpec>={
   football:{family:'ball',label:'Football',description:'Deux buts, une balle, score par équipe ; fin au score ou au temps.',
     maxPlayers:8,teams:true,ranking:'highest',rules:['scoreTarget','timeLimit'],requiredRules:['scoreTarget'],
-    elements:{goal:[2,2],ball:[1,1],spawn:[0,8]},minHalfSize:{width:4,length:6},
+    elements:{goal:[2,2],ball:[1,1],spawn:[0,8],...DECOR_ELEMENTS},minHalfSize:{width:4,length:6},
     physics:{ballRadius:.35,ballMass:.6,restitution:.55,rolling:.9,contactPush:true,launchSpeed:12,loft:6,command:'kick',walls:{height:.8,playerBlocking:true}},
     floor:{material:'pitch',raise:.05},aim:{maxPull:3,loft:true,defaultLoft:0},
     visual:{ballColor:0xf6f3ea},
     site:{maxSlope:.08,nearSettlement:true}},
   bowling:{family:'ball',label:'Bowling',description:'Une piste, des quilles ; tentatives et manches configurables.',
     maxPlayers:4,teams:false,ranking:'highest',rules:['rounds'],requiredRules:['attempts','rounds'],
-    elements:{tee:[1,1],pin:[1,10],obstacle:[0,8]},minHalfSize:{width:.8,length:4},
+    elements:{tee:[1,1],pin:[1,10],obstacle:[0,8],...DECOR_ELEMENTS},minHalfSize:{width:.8,length:4},
     physics:{ballRadius:.3,ballMass:2.5,restitution:.25,rolling:.35,contactPush:false,launchSpeed:11,loft:0,command:'throw',walls:{height:.3,playerBlocking:false}},
     floor:{material:'lane',raise:.05},aim:{maxPull:2.5,loft:false,defaultLoft:0},
     modes:[{id:'beginner',label:'Débutant (rigoles bloquées)'},{id:'normal',label:'Normal (avec rigoles)'}],
     visual:{upright:'pin',ballColor:0x3a4aa8},site:{maxSlope:.05,nearSettlement:true}},
   minigolf:{family:'ball',label:'Mini-golf',description:'Un parcours de plusieurs trous à bordures (rampes, dévers, bosses) ; total des coups.',
     maxPlayers:4,teams:false,ranking:'lowest',rules:['allFinished','timeLimit'],requiredRules:['attempts'],
-    elements:{lane:[0,9],tee:[1,9],hole:[1,9],obstacle:[0,48]},minHalfSize:{width:1.5,length:3},stages:true,
+    elements:{lane:[0,9],tee:[1,9],hole:[1,9],obstacle:[0,48],...DECOR_ELEMENTS},minHalfSize:{width:1.5,length:3},stages:true,
     physics:{ballRadius:.12,ballMass:.05,restitution:.6,rolling:.6,contactPush:false,launchSpeed:9,loft:3,command:'putt',walls:{height:.15,playerBlocking:true}},
     floor:{material:'green',raise:.12},aim:{maxPull:2.5,loft:true,defaultLoft:0},
     visual:{playerColors:true},
     site:{maxSlope:.1,nearSettlement:false}},
   cans:{family:'target',label:'Chamboule-tout',description:'Renverser une pyramide de boîtes posée sur une table avec quelques balles.',
     maxPlayers:4,teams:false,ranking:'highest',rules:['rounds'],requiredRules:['attempts','rounds'],
-    elements:{tee:[1,1],target:[1,15],obstacle:[1,4]},minHalfSize:{width:1,length:3},
+    elements:{tee:[1,1],target:[1,15],obstacle:[1,4],...DECOR_ELEMENTS},minHalfSize:{width:1,length:3},
     physics:{ballRadius:.1,ballMass:.3,restitution:.4,rolling:.8,contactPush:false,launchSpeed:14,loft:7,command:'throw',walls:false},
     floor:{material:'sand',raise:.04},aim:{maxPull:3,loft:true,defaultLoft:.8},
     visual:{upright:'can',ballColor:0xe25b45},site:{maxSlope:.1,nearSettlement:true}},
   bullseye:{family:'target',label:'Tir sur cible',description:'Lancer des balles sur une cible : plus c’est près du centre, plus ça rapporte.',
     maxPlayers:4,teams:false,ranking:'highest',rules:['rounds'],requiredRules:['attempts','rounds'],
-    elements:{tee:[1,1],target:[1,3],obstacle:[0,4]},minHalfSize:{width:1,length:3},
+    elements:{tee:[1,1],target:[1,3],obstacle:[0,4],...DECOR_ELEMENTS},minHalfSize:{width:1,length:3},
     physics:{ballRadius:.1,ballMass:.3,restitution:.3,rolling:.8,contactPush:false,launchSpeed:15,loft:7,command:'throw',walls:false},
     floor:{material:'sand',raise:.04},aim:{maxPull:3,loft:true,defaultLoft:.9},
     visual:{board:true,ballColor:0xf2c94c},site:{maxSlope:.1,nearSettlement:true}},

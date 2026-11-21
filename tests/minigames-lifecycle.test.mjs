@@ -145,7 +145,7 @@ test('personal bests: same local mechanism as race records, keyed by layout, dir
  assert.equal(minigameRecord(defaultMiniGame('football',{id:'minigame:f',x:0,z:0})),null,'no personal best for team scores');
 });
 test('resources: leave and come back (no duplicated view or collider), 200 sessions, parallel loads of one family',async()=>{
- const h=hostFixture('football'),posts=()=>h.collision.solidsNear(-1e4,1e4,-1e4,1e4).length,views=()=>h.scene.children.filter(c=>c.name!=='MiniGameAimLine').length; // One aim line per host.
+ const h=hostFixture('football'),posts=()=>h.collision.solidsNear(-1e4,1e4,-1e4,1e4).length,views=()=>h.scene.children.filter(c=>!/^MiniGame(AimLine|Effects)/.test(c.name)).length; // Aim line and effect pool: one per host.
  const settle=async()=>{for(let k=0;k<30;k++){await h.flush();h.step(false,1);}};
  h.at(0,-3);h.step(false,15);await settle();const children=views(),n=h.rec.sim.staticColliders.length;assert.ok(n>=12,'posts + closed pitch');assert.equal(posts(),n);
  for(let round=0;round<3;round++){
