@@ -29,8 +29,6 @@ export interface MiniGameSimulation {
   launch(session:MiniGameSessionState,actor:MiniGameActor,yaw:number,power:number,tick:number,events:MiniGameEvent[]):string|null;
   /** One fixed tick while the session is active. */
   step(ctx:MiniGameStepContext):void;
-  /** Nothing moves: physics step would be a no-op. */
-  readonly idle:boolean;
   readonly staticColliders:readonly MiniGameStaticCollider[];
   /** Short contextual hint for the local player (HUD), or null. */
   hint(session:MiniGameSessionState,actor:MiniGameActor):string|null;

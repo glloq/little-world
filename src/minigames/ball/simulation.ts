@@ -44,7 +44,6 @@ export function createBallSimulation(def:MiniGameInstanceV1,env:MiniGameEnvironm
   let disposed=false;
   const sim:MiniGameSimulation={
     def,
-    get idle(){return world.awakeCount===0;},
     get staticColliders():readonly MiniGameStaticCollider[]{return game.colliders;},
     reset(session:MiniGameSessionState,tick:number,events:MiniGameEvent[]){logic.reset(game,session,tick,events);},
     launch(session,actor,yaw,power,tick,events){

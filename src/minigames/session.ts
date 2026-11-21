@@ -124,4 +124,3 @@ export function completeTurn(s:MiniGameSessionState,playerId:string,tick:number,
 }
 /** Player whose turn it is (turn-based variants), or null. */
 export const currentPlayer=(s:MiniGameSessionState)=>s.players[s.turn%Math.max(1,s.players.length)]?.id??null;
-export function snapshotSession(s:MiniGameSessionState):MiniGameSessionState{return structuredClone(s);}
