@@ -120,6 +120,14 @@ export class StudioViewport {
   setVisible(visible:boolean){this.visible=visible;this.element.hidden=!visible;if(visible){this.resize();this.invalidate(10);}}
   setTool(id:string){this.tools.activate(this.tools.has(id)?id:'select');if(this.session.selection.state.activeTool!==this.tools.active!.id)this.session.selection.setTool(this.tools.active!.id);this.canvas.dataset.tool=this.tools.active!.id;}
   focusSelection(){const b=this.selection.bounds();if(b)this.camera.focus(b.center,b.radius);else if(this.cursor)this.camera.focus({x:this.cursor.x,y:terrainHeight(this.cursor.x,this.cursor.z),z:this.cursor.z},10);this.invalidate(30);this.saveCamera();}
+  private overlays=new Map<string,THREE.Object3D>();
+  /** Presentation-only overlay owned by a Studio panel (e.g. mini-game previews); the caller
+   * disposes its own resources. Replaces the overlay of the same name, null removes it. */
+  setOverlay(name:string,object:THREE.Object3D|null){
+    this.overlays.get(name)?.removeFromParent();this.overlays.delete(name);
+    if(object){this.overlays.set(name,object);this.scene.add(object);}
+    this.invalidate(3);
+  }
   /** Course authoring preview; presentation only, no collider or logical state. */
   setRacePreview(gates:readonly RaceGate[]|null){
     if(!gates){this.racePreview?.clear();this.invalidate(3);return;}
