@@ -10,8 +10,8 @@ import {maskCell,type MaskLayerId,type SectorGrid,type SectorLayers} from './lay
 import {polygonSignedDistance,type PointXZ} from './archipelago.ts';
 import {createLandscapeSampler,type LandscapeRegion} from '../world-production/biotopes.ts';
 
-/** Activity zones and settlement footprints ('settlement' = reserved: grass, no trees). */
-export interface GeoZone {kind:'farm-plot'|'mine'|'settlement';polygon:PointXZ[]}
+/** Activity zones and settlement footprints ('settlement' / 'minigame' = reserved: grass, no trees). */
+export interface GeoZone {kind:'farm-plot'|'mine'|'settlement'|'minigame';polygon:PointXZ[]}
 export interface GeoBiomeStroke {x:number;z:number;radius:number;biome:string}
 export interface GeographySources {
   seed:number;grid:SectorGrid;

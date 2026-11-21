@@ -670,6 +670,21 @@ if(gameplay){
 const activityView=gameplay&&(gameplay.activities.mines.size||gameplay.activities.farms.size)?(await import('./activity-view.ts')).createActivityView(scene,gameplay.activities,terrainHeight):null;
 if(activityView&&!searchParams.has('lightBench'))world.refreshLights([...(definition.lights??[]),...activityView.lights]);
 let activityQueue=0,cropQueue=0,strikeTimer=0;
+// Mini-games (doc 107): the module is fetched only when the island declares activities
+// (or with ?minigames=demo); families and their views load near each instance.
+const minigameHost=await (async()=>{
+  let defs=playable?.minigames??[];
+  if(searchParams.get('minigames')==='demo'&&!isLegacyTerrain()){
+    const c=getTerrainConfig(),w=(c.width??200)/2,l=(c.length??600)/2,{demoMiniGames,runtimeObstacles}=await import('./minigames/demo.ts'),{DRESSING_CELL_M,ITEM_STRIDE}=await import('./geography/dressing.ts');
+    const obstacles=runtimeObstacles({cell:gameplay?.gathering?.cell,cellSize:DRESSING_CELL_M,stride:ITEM_STRIDE,solids:gameplay?(a,b,c,d)=>gameplay!.collision.solidsNear(a,b,c,d):undefined});
+    defs=[...defs,...demoMiniGames({x:player.position.x,z:player.position.z},{height:terrainHeight,water:waterSurface,obstacles},{minX:-w,maxX:w,minZ:-l,maxZ:l})];
+  }
+  if(!defs.length)return null;
+  const {createMiniGameHost}=await import('./minigames/game-host.ts');
+  return createMiniGameHost({parent:scene,defs,collision:gameplay?.collision??null,height:terrainHeight,water:waterSurface,
+    showInfo,emit:e=>gameplay?.emitGameplayEvent(e),hudHost:document.body});
+})();
+if(metricsEnabled&&minigameHost)Object.assign((window as unknown as {littleWorldDebug?:object}).littleWorldDebug??{},{minigames:minigameHost});
 world.update(0, player.position);
 {
   const {createGameUi}=await import('./ui/app/game-ui.ts'),c=getTerrainConfig();
@@ -1692,6 +1707,7 @@ function tick(dt: number) {
         stopRace();
       }else if(event?.kind==='failed'){showInfo('Course arrêtée : '+event.reason,'warning');stopRace();}
     }
+    minigameHost?.tick(motionTick,dt,player,keySet.has('KeyF'),yaw);
     // Crossing a mine entrance / stairs: no interpolation through rock.
     if(player.transitioned){previousPlayerPosition.copy(player.position);renderPosition.copy(player.position);}
     if (keys.jumpPressed) jumpQueue = Math.max(0, jumpQueue - 1);
@@ -1700,6 +1716,7 @@ function tick(dt: number) {
   }
   // F: activity in front (dig, fell/pick, farm). Holding F repeats strikes (≈ 3.5 per second).
   if(gameplay&&!aboard&&gameplay.fishing.state.phase!=='reeling'&&keySet.has('KeyF')){strikeTimer-=dt;if(strikeTimer<=0){strikeTimer=.28;activityQueue=Math.max(activityQueue,1);}}else strikeTimer=0;
+  if(activityQueue>0&&minigameHost?.capturesAction(player))activityQueue=0; // F belongs to the mini-game.
   if(activityQueue>0&&gameplay&&!aboard&&player.mode!=='roll'&&gameplay.fishing.state.phase!=='reeling'){activityQueue=0;if(player.space)runDig();else if(gameplay.activities.farmNear(player.position))runFarm();else runGather();}
   updateFishing();
   if(cropQueue>0&&gameplay&&gameplay.fishing.state.phase!=='reeling'){cropQueue=0;const plot=gameplay.activities.farmNear(player.position,player.space);if(plot){const name=gameplay.activities.cycleCrop(plot.zone.id);if(name){showInfo('Culture choisie : '+name);audio?.emit('farm.seedbag',{source:'player'});}}}
@@ -1942,6 +1959,7 @@ function draw(now: number) {
   frameCount++;
   const renderBegin = performance.now();
   gpuTimer.begin();
+  minigameHost?.render(frame.alpha);
   renderer.render(scene, camera);
   gpuTimer.end();
   const renderSubmitMs = performance.now() - renderBegin;
@@ -1976,6 +1994,7 @@ function draw(now: number) {
         dressing: world.dressing ? { ...world.dressing } : null,
         grass: world.grass ? { ...world.grass } : null,
         inventory: gameplay ? { ...gameplay.runtime.state.inventory } : null,
+        minigames:minigameHost&&presentedFrames%15===0?minigameHost.debug():(window as unknown as {littleWorldMetrics?:{minigames:unknown}}).littleWorldMetrics?.minigames??null,
         surfWorld:surfWorldConfig,
         surfQuality:appliedSurfProfile?.name??null,
         surfPerf:surfPerf?(presentedFrames%30===0?surfPerf.snapshot():(window as unknown as {littleWorldMetrics?:{surfPerf:unknown}}).littleWorldMetrics?.surfPerf??surfPerf.snapshot()):null,

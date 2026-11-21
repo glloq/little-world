@@ -1,3 +1,4 @@
+import {minigameGeoZones} from '../minigames/schema.ts';
 import {settlementGeoZones} from '../settlements/footprint.ts';
 import {parseSkiArea,skiAreasOf,skiGeography} from '../snow/ski-area.ts';
 import {habitatColliders} from '../settlements/habitat.ts';
@@ -75,7 +76,7 @@ export function playableFromCompiled(bundle:CompiledWorldBundle,spawn?:Point3):P
   const terrain=unionById(chunks.map(chunk=>chunk.terrain.edits)).sort((a,b)=>a.order-b.order||a.id.localeCompare(b.id)).map(stripOrder) as TerrainStroke[];
   const biomes=unionById(chunks.map(chunk=>chunk.biomes.edits)).sort((a,b)=>a.order-b.order||a.id.localeCompare(b.id)).map(stripOrder) as BiomeStroke[];
   const masks:Record<string,import('../geography/layers.ts').SectorLayers>={};for(const chunk of chunks)if(chunk.layers)masks[chunk.chunkId]=structuredClone(chunk.layers);
-  const zones=[...Object.values(logic.libraries.zones??{}).map(z=>({kind:z.kind,polygon:z.polygon.map(p=>({...p}))})),...settlementGeoZones(logic.libraries.settlements)];
+  const zones=[...Object.values(logic.libraries.zones??{}).map(z=>({kind:z.kind,polygon:z.polygon.map(p=>({...p}))})),...settlementGeoZones(logic.libraries.settlements),...minigameGeoZones(logic.libraries.minigames)];
   const landscapes=[...landscapeRegions(logic.libraries.landscapes),...regionDressingRegions(logic.libraries.regions)];
   const raceRoads=Object.values(logic.libraries.races??{}).flatMap(r=>r.track?[structuredClone(r.track)]:[]);
   const world:WorldDefinition={...(logic.libraries.alpine||Object.keys(masks).length||zones.length||landscapes.length||raceRoads.length?{geography:{...(logic.libraries.alpine?skiGeography(logic.libraries.alpine):{}),sectorSizeM:manifest.chunkSizeM,masks,zones,...(landscapes.length?{landscapes}:{}),...(raceRoads.length?{races:raceRoads}:{})}}:{}),schemaVersion:2,name:manifest.worldId,config,placements,terrain,biomes,
@@ -97,9 +98,10 @@ export function playableFromCompiled(bundle:CompiledWorldBundle,spawn?:Point3):P
   const surfZones=Object.values(logic.libraries.surfZones??{}).map(z=>structuredClone(z));
   const surfFeatures=Object.values(logic.libraries.surfFeatures??{}).map(f=>structuredClone(f));
   const diveSites=Object.values(logic.libraries.diveSites??{}).map(d=>structuredClone(d));
+  const minigames=Object.values(logic.libraries.minigames??{}).map(g=>structuredClone(g));
   const start=spawn??defaultSpawn(config,terrain);
   if(Math.abs(start.x)>(config.width??0)/2||Math.abs(start.z)>(config.length??0)/2)throw Error('Point de départ hors de la carte');
-  return {schemaVersion:1,kind:'playable-world',...(logic.libraries.alpine?{alpine:parseSkiArea(logic.libraries.alpine['composition-alpine'],manifest.bounds),alpineAreas:skiAreasOf(logic.libraries.alpine).map(area=>parseSkiArea(area,manifest.bounds))}:{}),...(manifest.audio?{audio:manifest.audio}:{}),world,gameplay,collisions,spawn:{...start},...(activities.mines.length||activities.farms.length?{activities}:{}),...(races.length?{races}:{}),...(questCatalog.length?{questCatalog}:{}),...(surfZones.length?{surfZones}:{}),...(surfFeatures.length?{surfFeatures}:{}),...(diveSites.length?{diveSites}:{})};
+  return {schemaVersion:1,kind:'playable-world',...(logic.libraries.alpine?{alpine:parseSkiArea(logic.libraries.alpine['composition-alpine'],manifest.bounds),alpineAreas:skiAreasOf(logic.libraries.alpine).map(area=>parseSkiArea(area,manifest.bounds))}:{}),...(manifest.audio?{audio:manifest.audio}:{}),world,gameplay,collisions,spawn:{...start},...(activities.mines.length||activities.farms.length?{activities}:{}),...(races.length?{races}:{}),...(questCatalog.length?{questCatalog}:{}),...(surfZones.length?{surfZones}:{}),...(surfFeatures.length?{surfFeatures}:{}),...(minigames.length?{minigames}:{}),...(diveSites.length?{diveSites}:{})};
 }
 /** Published worlds: a same-origin relative manifest path such as `maps/island/manifest.json`. */
 export function publishedManifestURL(base:string,path:string):string{

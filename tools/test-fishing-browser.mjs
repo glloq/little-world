@@ -30,7 +30,11 @@ try{
   const cdp=touch?await page.context().newCDPSession(page):null;
   async function down(){
    if(!cdp){await page.keyboard.down('KeyE');return;}
-   const {x,y,width,height}=await touchButton.boundingBox();
+   // The touch HUD can lag the metrics target by a frame on slow CI runners: wait for a box.
+   await touchButton.waitFor({state:'visible',timeout:15000});
+   let box=null;for(let i=0;i<50&&!box;i++){box=await touchButton.boundingBox();if(!box)await page.waitForTimeout(100);}
+   assert.ok(box,'Touch action button is laid out');
+   const {x,y,width,height}=box;
    await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{id:1,x:x+width/2,y:y+height/2}]});
   }
   async function up(){

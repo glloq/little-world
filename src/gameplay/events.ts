@@ -29,6 +29,7 @@ export const GAMEPLAY_EVENTS={
  'music.played':{label:'Jouer de la musique',fields:['source','targetId']},
  'dive.depth-reached':{label:'Atteindre une profondeur',fields:['targetId','distanceM']},
  'underwater.discovered':{label:'Découverte sous-marine',fields:['targetId','source']},
+ 'minigame.finished':{label:'Terminer un mini-jeu',fields:['targetId','source','measuredSeconds']},
 } as const;
 export type GameplayEventType=keyof typeof GAMEPLAY_EVENTS;
 export const GAMEPLAY_EVENT_TYPES=Object.keys(GAMEPLAY_EVENTS) as GameplayEventType[];
@@ -46,7 +47,9 @@ export type GameplayEvent=
  |{type:'market.sold';itemId:string;quantity:number;shopId?:string}
  |{type:'music.played';instrument:string;placeId?:string}
  |{type:'dive.depth-reached';siteId:string;depthM:number}
- |{type:'underwater.discovered';discoveryId:string;siteId?:string};
+ |{type:'underwater.discovered';discoveryId:string;siteId?:string}
+ /** Doc 107: one finished mini-game session (practice included); `won` = local player won. */
+ |{type:'minigame.finished';instanceId:string;variant:string;seconds:number;won:boolean};
 /** Typed event → flat quest fields (one mapping, so producers cannot drift). */
 export function questFields(e:GameplayEvent):GameplayEventFields{
  switch(e.type){
@@ -60,6 +63,7 @@ export function questFields(e:GameplayEvent):GameplayEventFields{
   case 'music.played':return {source:e.instrument,...(e.placeId?{targetId:e.placeId}:{})};
   case 'dive.depth-reached':return {targetId:e.siteId,distanceM:Math.max(0,Math.round(e.depthM*10)/10)};
   case 'underwater.discovered':return {targetId:e.discoveryId,...(e.siteId?{source:e.siteId}:{})};
+  case 'minigame.finished':return {targetId:e.instanceId,source:e.won?e.variant+':won':e.variant,measuredSeconds:Math.round(e.seconds*10)/10};
  }
 }
 /** Depth thresholds (m) that emit dive.depth-reached once per dive and site. */

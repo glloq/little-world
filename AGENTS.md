@@ -1,5 +1,7 @@
 # Little World — instructions pour Codex et autres agents de développement
 
+> **Mini-jeux unifiés :** lire [107 — architecture des mini-jeux](docs/107-MINIGAMES-UNIFIED-PLATFORM.md). Une variante = une entrée de `minigames/catalog.ts` + un gabarit + des crochets de règles ; **un seul** `BallWorld`, une seule session, un seul cycle de vie (`MiniGameManager`). `libraries.minigames` facultatif : sans lui, aucun module de mini-jeu n’est chargé. Ne jamais ajouter de boucle RAF ni modifier `simulatePlayer` pour un mini-jeu ; ne pas migrer courses/pêche/musique, les relier par `gameplay/events.ts`.
+
 > **Générateur cohérent (pipeline, occupation, terrassement, circulation, activités, pôles, quêtes, sous-marin) :** lire [104 — générateur de mondes cohérent](docs/104-COHERENT-WORLD-GENERATOR-AUDIT.md). Toute nouvelle génération passe par `COMPOSITION_STAGES` (pas de constructeur d’île dédié) ; un thème = une fiche `WorldBriefV1`. Les options sont opt-in V5 : sans elles, les mondes existants restent identiques octet par octet. Événements de quête = registre `gameplay/events.ts` uniquement. Augmenter `DRESSING_VERSION` si l’occupation change.
 
 > **Vagues de surf V2 :** lire [SURF-WAVE-OPTIMIZATION-V2](docs/SURF-WAVE-OPTIMIZATION-V2.md). Une seule famille de houle analytique partagée CPU/GPU (`wave-shape.ts`), `style` optionnel (`classic` = V1 bit-identique), peel des tubes opt-in, profils Low/Medium/HQ dérivés de `PresentationBudget`. Ne jamais faire dépendre la physique du rendu ; qualification iGPU NOT_VERIFIED.
