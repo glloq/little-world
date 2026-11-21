@@ -1,226 +1,357 @@
 # 107 — Mini-jeux : architecture unifiée, mutualisation et optimisation
 
-Branche : `feat/minigames-unified-platform` (non fusionnée). Statuts : **SPECIFIED / IMPLEMENTED / TESTED / QUALIFIED** distincts ; rien n’est `QUALIFIED` (aucune mesure sur GPU intégré réel).
+Branche de travail : `feat/minigames-unified-platform`. Le premier lot a été fusionné par la PR #110 (`main` = `2603dd4`). Le second lot (audit, stabilisation, famille `target`, Studio 3D, composition) est sur la même branche, **non fusionné**.
+Statuts : **TODO / IN_PROGRESS / IMPLEMENTED / TESTED / QUALIFIED / BLOCKED**. Rien n’est `QUALIFIED` : aucune mesure n’a été faite sur un GPU intégré réel.
 
 ## 0. Résumé
 
-- Un seul moteur de balles (`BallWorld`), une seule gestion de session, un seul cycle de vie et un seul format de données servent **football, bowling et mini-golf**.
-- Les mini-jeux sont **déclarés par île** (`libraries.minigames`, facultatif) et chargés **à la demande** : une île sans mini-jeu ne télécharge aucun de leurs modules (vérifié en navigateur), une activité inactive ne simule rien (vérifié par test et banc).
-- Le contrôleur du joueur (`simulatePlayer`) n’est **pas modifié** ; la balle réagit au corps du hamster (aller simple), sur la **même** boucle fixe 30 Hz.
-- Studio : module « Mini-jeux » (créer, configurer, analyser le terrain, aperçu, « Jouer ici »).
-- Multijoueur : contrats prêts (commandes horodatées par tick, ordre déterministe, états sérialisables, autorité locale) ; **aucun serveur**, conformément à AGENTS §1 quater.
+- **Un moteur** (`BallWorld`), **une** session, **un** cycle de vie et **un** format de données servent **deux familles** chargées à la demande :
+  - `ball` : football, bowling, mini-golf ;
+  - `target` : chamboule-tout, tir sur cible.
+- Une famille apporte **une table de règles**, pas de moteur. Ajouter `target` n’a demandé **aucune modification** de `MiniGameManager`, `MiniGameSession` ni de l’autorité (§12).
+- Les mini-jeux sont **déclarés par île** (`libraries.minigames`, facultatif) :
+  - une île sans mini-jeu ne télécharge aucun de leurs modules (vérifié en navigateur) ;
+  - une activité inactive ne simule rien (vérifié par test et banc).
+- `simulatePlayer` n’est **pas modifié**. Les balles réagissent au corps du hamster (aller simple), sur la **même** boucle fixe 30 Hz.
+- Studio :
+  - module « Mini-jeux » : création, règles, analyse de terrain, aperçu, « Jouer ici » ;
+  - **sélection 3D et gizmo de déplacement** des zones et de leurs éléments, par le système de sélection universel existant ;
+  - cases à cocher dans l’écran de création d’île.
+- Composition : option facultative `activities.minigames`, qui place chaque variante sur un terrain **naturellement** adapté.
+- Multijoueur : contrats prêts (commandes par tick, ordre déterministe, instantanés reprenables) ; **aucun serveur** (AGENTS §1 quater).
 
-## 1. Audit de l’existant (code réel, 21/11/2026)
+## 1. Audit initial (lot 1)
 
-| Système | Emplacement | Rôle | Classe | Décision |
-|---|---|---|---|---|
-| Requêtes de collision | `src/physics/collision-world.ts` (`WorldCollisionQuery`) | relief (`reliefHeight`), matériaux, grille 32 m d’AABB, espaces de mine | **REUSE + ADAPT** | les balles lisent le même relief/matériaux ; ajout de `solidsNear()` (lecture publique de la broadphase existante, +125 o) |
-| Contrôleur joueur | `src/player.ts` (`simulatePlayer`, roulade) | marche, roulade, vol, nage, surf, ski | **REUSE** | inchangé ; un instantané `MiniGameActor` est lu après chaque pas |
-| Constantes de mouvement | `src/physics/motion.ts` | `MOTION.gravity`, `SURFACE_MOTION` | **REUSE** | gravité et frottement de sol des balles = ceux du joueur |
-| Horloge fixe | `src/frame-clock.ts`, `tick()` de `src/main.ts` | simulation 30 Hz, présentation 30/20 FPS | **REUSE** | un seul appel `minigameHost.tick()` par pas ; **aucune boucle RAF** ajoutée |
-| Courses | `src/gameplay/races.ts`, `race-track.ts`, `races-panel.ts` | sessions pures par tick, événements retournés | **REUSE (non migré)** | mécanique mature conservée ; son patron (pur, tick, événements retournés) est repris par `session.ts` |
-| Activités mines/champs | `src/gameplay/activity-runtime.ts` | intention → autorité locale → notification | **REUSE (patron)** | même séparation intention/autorité dans `authority.ts` |
-| Trackers 30 Hz | `src/gameplay/activity-trackers.ts` | plongée, surf, ski → événements typés | **REUSE** | inchangés |
-| Registre d’événements | `src/gameplay/events.ts` | seul registre des événements de quête | **ADAPT** | + `minigame.finished` (pas de second bus) |
-| Quêtes | `src/quests/*` | attendent des événements déclarés | **REUSE** | une quête peut attendre `minigame.finished` |
-| Pêche, musique, cueillette | `fishing.ts`, `src/instruments`, `gathering.ts` | activités matures | **REUSE (non migré)** | rattachées au catalogue des familles, sans réécriture |
-| `libraries.activities` | `src/gameplay/schema.ts` (`ActivityDefinition`) | regroupe des interactions/objectifs (collect, deliver, fish, puzzle) | **REUSE (inchangé)** | pas de zone, de physique ni de session : surcharger ce type aurait cassé ses validateurs ; `libraries.minigames` suit plutôt le modèle de `races`/`surfZones` |
-| Zones géographiques | `src/geography/engine.ts` (`GeoZone`) | sol réservé des villages (pas d’arbres) | **ADAPT** | type `'minigame'` : terrains de jeu auteur sans arbres générés |
-| Arbres / troncs | `src/geography/dressing.ts`, `gameplay/tree-colliders.ts` | cellules déterministes, troncs autour du joueur | **REUSE** | la recherche de site de la démo évite ces troncs |
-| Studio | `shell.ts`, `races-panel.ts`, `surf-panel.ts`, `CommandBus` | modules paresseux, transactions | **REUSE + ADAPT** | nouveau module ; `StudioViewport.setOverlay()` générique |
-| Bancs | `tools/bench-physics.mjs`, `tools/bench-activities.mjs` | coûts joueur / mines / champs | **REUSE** | + `tools/bench-minigames.mjs` (+ navigateur) |
+| Système | Emplacement | Classe | Décision |
+|---|---|---|---|
+| Requêtes de collision | `src/physics/collision-world.ts` | REUSE + ADAPT | relief et matériaux partagés ; `solidsNear()` = lecture publique de la broadphase existante |
+| Contrôleur joueur | `src/player.ts` | REUSE | inchangé ; un instantané `MiniGameActor` est lu après chaque pas |
+| Constantes de mouvement | `src/physics/motion.ts` | REUSE | `MOTION.gravity`, `MOTION.walk`, `SURFACE_MOTION` |
+| Horloge fixe | `frame-clock.ts`, `tick()` de `main.ts` | REUSE | un appel `minigameHost.tick()` par pas ; aucune boucle RAF ajoutée |
+| Courses | `gameplay/races.ts` | REUSE (non migré) | patron repris par `session.ts` |
+| Records de course | `gameplay/race-records.ts` | **MERGE (lot 2)** | mécanisme générique de record personnel partagé avec les mini-jeux |
+| Activités mines/champs | `gameplay/activity-runtime.ts` | REUSE (patron) | séparation intention/autorité |
+| Registre d’événements | `gameplay/events.ts` | ADAPT | + `minigame.finished` |
+| Zones géographiques | `geography/engine.ts` | ADAPT | `GeoZone` `'minigame'` (sol réservé, pas d’arbres) |
+| Sélection Studio | `studio-core/elements.ts`, `viewport/select-tool.ts` | **ADAPT (lot 2)** | sortes `minigame` et `minigameElement` |
+| Pêche, musique, cueillette, surf, ski | divers | REUSE (non migré) | reliés par `gameplay/events.ts` |
 
-**Doublons et couplages relevés (hors périmètre, non modifiés)** : tests point-dans-polygone et distance à un segment réimplémentés dans plusieurs modules (`mine-data.ts`, `activity-trackers.ts`, `activity-runtime.ts`) ; `main.ts` (~2 200 lignes) orchestre en ligne courses, défis de vol, surf, ski et télésièges. Les mini-jeux n’ajoutent **qu’un objet hôte et quatre points d’accroche** à `main.ts` au lieu d’une logique de plus en ligne. Aucune simulation inutile n’a été trouvée sur le chemin des mini-jeux ; les trackers existants ne tournent que si leurs zones existent.
+Doublons hors périmètre, non modifiés : tests point-dans-polygone répétés dans plusieurs modules, et `main.ts` monolithique (~2 200 lignes). Les mini-jeux n’y ajoutent qu’un objet hôte et quatre points d’accroche.
 
-**Ce qui est réellement nouveau (NEW)** : physique de sphères, poussée bornée, session générique, règles composables, autorité locale, registre/gestionnaire de familles, trois variantes, vue Three, hôte navigateur, analyse de site, panneau Studio.
+## 1 bis. Audit du lot 2 (21/11/2026, code de `2603dd4`)
+
+### Écarts entre spécification, code, tests et qualification
+
+| Élément | Spécifié | Implémenté | Testé (preuve) | Qualifié | Correction faite / restante |
+|---|---|---|---|---|---|
+| `BallWorld` | oui | oui | Node : `minigames-physics`, `minigames-physics-limits` | non (SwiftShader seul) | 6 défauts corrigés (§6) |
+| Poussée hamster | oui | oui | Node | non | traversée de mur corrigée, palier « course » ajouté |
+| Gestionnaire et cycle de vie | oui | oui | Node : `minigames-core`, `minigames-lifecycle` ; navigateur | non | courses asynchrones vérifiées (pas de défaut) ; `restore(atTick)` ajouté |
+| Session, règles | oui | oui | Node | — | `completeTurn` mutualisé (bowling + cibles) |
+| Autorité locale | oui | oui | Node | — | ordre `(tick, joueur, seq)` documenté et testé |
+| Football, bowling, mini-golf | oui | oui | Node + navigateur | non | trou : vitesse de capture selon le centrage |
+| 2e famille | demandée | **oui (`target`)** | Node + navigateur | non | ricochets : TODO (§13) |
+| Mutualisation des activités | demandée | records personnels | Node | — | courses/pêche/surf/ski non migrés (aucun gain mesurable) |
+| Studio, manipulation 3D | demandée | oui | Node + navigateur (clic 3D, inspecteur, Undo) | — | glisser le gizmo à la souris : non automatisé (même code que les autres éléments) |
+| Studio, validation de terrain | demandée | pente, eau, obstacles, accès, superposition, dimensions | Node | — | occupation `'none'` lue à tort comme obstacle : **corrigé** |
+| Composition | demandée | option facultative | Node, île réelle composée | — | — |
+| Bundle et ressources | demandés | mesurés (§10) | navigateur + Node | — | site search sorti du cœur Studio |
+
+### Classement des composants
+
+| Composant | Classe | Raison |
+|---|---|---|
+| `manager.ts`, `registry.ts`, `authority.ts`, `rules.ts` | KEEP | corrects (scénarios asynchrones vérifiés), aucune complexité inutile |
+| `session.ts` | IMPROVE | `completeTurn` ; `snapshotSession` inutilisé supprimé |
+| `ball-physics.ts`, `push.ts` | IMPROVE | défauts des cas limites (§6) |
+| `ball/variants.ts` | REFACTOR | contrat et utilitaires sortis dans `ball/kit.ts` (pour la 2e famille) ; libellés HUD rapatriés depuis l’hôte |
+| `ball/simulation.ts` | REFACTOR | reçoit la table de règles de la famille (au lieu d’importer celle du ballon) |
+| `ball/view.ts` | REFACTOR | piloté par `catalog.visual` au lieu de tests sur les noms de variantes |
+| `game-host.ts` | IMPROVE | messages délégués à la variante, abandon en changeant d’activité, temps non reçu non compté, records |
+| `MiniGameSimulation.idle` | REMOVE | jamais lu |
+| `gameplay/race-records.ts` | MERGE | un seul mécanisme de record personnel |
+| 2e famille, manipulation 3D, composition | MISSING → ajoutés | §7, §8, §8 bis |
 
 ## 2. Architecture retenue
 
 ```
 données d’île (libraries.minigames) ──compile──▶ PlayableWorld.minigames
                                                      │ (seulement si non vide, ou ?minigames=demo)
-main.ts ──import()──▶ minigames/game-host.ts ──▶ MiniGameManager ──registry.load('ball')──▶ ball/family.ts
-   tick 30 Hz : host.tick(tick, dt, player, F, yaw)      │                               │
-   draw       : host.render(alpha)                       ├─ LocalMiniGameAuthority      ├─ simulation.ts (BallWorld + push + variants)
-                                                         ├─ session.ts / rules.ts        └─ loadView() ──import()──▶ ball/view.ts (Three)
+main.ts ──import()──▶ minigames/game-host.ts ──▶ MiniGameManager ──registry.load(famille)──▶ ball/family.ts | target/family.ts
+   tick 30 Hz : host.tick(tick, dt, player, F, yaw)      │                                    └─ createBallSimulation(def, env, TABLE_DE_RÈGLES)
+   draw       : host.render(alpha)                       ├─ LocalMiniGameAuthority                 ├─ BallWorld + push (partagés)
+                                                         ├─ session.ts / rules.ts                  └─ loadView() ──▶ ball/view.ts (Three, chunk séparé)
 ```
 
 | Fichier | Responsabilité |
 |---|---|
-| `src/minigames/catalog.ts` | données des familles et variantes (règles, éléments, paramètres physiques, critères de site) |
-| `src/minigames/schema.ts` | contrat `MiniGameInstanceV1`, validation stricte, repère de zone, zones géographiques réservées |
-| `src/minigames/layouts.ts` | gabarits prêts à l’emploi par variante |
-| `src/minigames/session.ts` | **MiniGameSession** : joueurs, équipes, statut, scores, tentatives, manches, chrono en ticks, résultats, événements numérotés |
-| `src/minigames/rules.ts` | **MiniGameRules** : prédicats composables (`scoreTarget`, `timeLimit`, `attempts`, `allFinished`, `rounds`) |
-| `src/minigames/authority.ts` | intentions horodatées + autorité locale (ordre déterministe, rejet des rejoués/périmés) |
-| `src/minigames/registry.ts` | **MiniGameRegistry** : famille → `import()` statiquement analysable, vol unique |
-| `src/minigames/manager.ts` | **MiniGameManager** : découverte, cycle de vie, isolement des erreurs, nettoyage |
-| `src/minigames/types.ts` | contrats famille/simulation/vue (types seuls, sans Three) |
-| `src/minigames/ball/ball-physics.ts` | **BallPhysics** (`BallWorld`) |
-| `src/minigames/ball/push.ts` | poussées hamster ↔ balle et lancers bornés |
-| `src/minigames/ball/variants.ts` | règles propres au football, bowling, mini-golf (crochets, pas de physique) |
-| `src/minigames/ball/simulation.ts` | assemblage commun d’une instance (monde, murs, obstacles, ordre des étapes) |
-| `src/minigames/ball/view.ts` | rendu low-poly (chunk séparé) |
-| `src/minigames/game-host.ts` | adaptateur navigateur (proximité, entrées, HUD, messages, événements de quête) |
-| `src/minigames/sites.ts`, `demo.ts` | analyse/suggestion de terrain, démonstration opt-in |
-| `src/studio/minigames-panel.ts`, `minigames-preview.ts`, `src/studio-core/minigame-authoring.ts` | Studio |
+| `minigames/catalog.ts` | familles, variantes, règles, éléments autorisés, physique, `visual`, critères de site |
+| `minigames/schema.ts` | `MiniGameInstanceV1`, validation stricte, repère de zone, `minigameGeoZones` |
+| `minigames/layouts.ts` | gabarits par variante |
+| `minigames/session.ts` / `rules.ts` | session pure (joueurs, équipes, scores, tours, chrono en ticks, événements numérotés) / prédicats composables |
+| `minigames/authority.ts` | intentions horodatées, autorité locale |
+| `minigames/registry.ts` / `manager.ts` | chargement paresseux par famille / cycle de vie et isolement des erreurs |
+| `minigames/types.ts` | contrats famille/simulation/vue (types seuls) |
+| `minigames/ball/ball-physics.ts`, `push.ts` | moteur et interactions bornées (partagés par toutes les familles à balles) |
+| `minigames/ball/kit.ts` | contrat `BallVariantLogic` et utilitaires communs aux familles |
+| `minigames/ball/simulation.ts` | assemblage d’une instance (monde, murs, obstacles, ordre des étapes) |
+| `minigames/ball/variants.ts` | règles football / bowling / mini-golf |
+| `minigames/target/variants.ts`, `family.ts` | règles chamboule-tout / tir sur cible |
+| `minigames/ball/view.ts` | rendu low-poly partagé |
+| `minigames/records.ts` | records personnels (mécanisme de `race-records.ts`) |
+| `minigames/game-host.ts` | adaptateur navigateur |
+| `minigames/sites.ts`, `demo.ts` | analyse et suggestion de terrain, démo opt-in |
+| `studio-core/minigame-authoring.ts` | écriture validée (`putMiniGame`…) |
+| `studio-core/minigame-elements.ts` | mini-jeux comme éléments Studio universels |
+| `studio-core/minigame-composition.ts` | requêtes de terrain du projet, placement par le compositeur |
+| `studio/minigames-panel.ts`, `minigames-preview.ts` | module Studio et aperçu |
 
-Pas de framework générique, pas d’ECS, pas de second bus : la spécialisation reste dans les modules de famille, le gestionnaire ne fait que coordonner.
+### API publiques principales
+
+- `createMiniGameManager(defs, {env, registry?, authority?, colliders?, onError?})` renvoie un objet exposant :
+  - `prepare(id)` et `release(id)` ;
+  - `proximity(x, z)` ;
+  - `submit(cmd)` et `tick(tick, dt, actors)`, ce dernier renvoyant `{events, refusals, stepped}` ;
+  - `suspend` / `resume` ;
+  - `snapshot(id)` / `restore(id, snap, atTick?)` ;
+  - `subscribe` et `dispose`.
+- `createMiniGameHost(options)` renvoie `tick`, `capturesAction`, `render`, `stats`, `debug` et `dispose`.
+- Famille : `MiniGameFamilyModule {family, createSimulation(def, env), loadView()}`.
+- Variante d’une famille à balles : `BallVariantLogic` dans `ball/kit.ts`, avec les crochets `capacity`, `initial`, `parseState`, `setup`, `reset`, `launch`, `afterStep`, `hint`, et les crochets facultatifs `describe`, `pushable` et `touched`.
+- Studio : `putMiniGame`, `removeMiniGame`, `createMiniGame` et `resetMiniGameLayout` ; `projectSiteQueries` et `composeMiniGames` ; `inspectMiniGame(def, q, {others})`, `suggestMiniGameSites` et `areasOverlap`.
 
 ## 3. Contrat de données (`libraries.minigames`, V3 facultatif)
 
 ```json
-{"minigame:football-1":{"id":"minigame:football-1","version":1,"name":"Stade du port",
- "family":"ball","variant":"football","playersMin":2,"playersMax":6,
- "area":{"x":120,"z":-40,"heading":0.6,"halfWidth":9,"halfLength":14},
- "teams":[{"id":"blue","name":"Bleus","color":4161496},{"id":"red","name":"Rouges","color":14176319}],
- "rules":{"scoreTarget":3,"timeLimitSeconds":180,"practice":true},
- "elements":[{"id":"goal-blue","kind":"goal","x":0,"z":-14,"width":4,"depth":1,"height":1.6,"teamId":"blue"},
-             {"id":"goal-red","kind":"goal","x":0,"z":14,"width":4,"depth":1,"height":1.6,"teamId":"red"},
-             {"id":"ball","kind":"ball","x":0,"z":0}]}}
+{"minigame:cans-1":{"id":"minigame:cans-1","version":1,"name":"Chamboule-tout 1",
+ "family":"target","variant":"cans","playersMin":1,"playersMax":4,
+ "area":{"x":120,"z":-40,"heading":0.6,"halfWidth":1.5,"halfLength":5},
+ "rules":{"attempts":3,"rounds":3,"practice":true},
+ "elements":[{"id":"tee","kind":"tee","x":0,"z":-4.2},
+             {"id":"table","kind":"obstacle","x":0,"z":3.5,"width":1.6,"depth":0.5,"height":0.8},
+             {"id":"can-1","kind":"target","x":-0.25,"z":3.5,"height":0.92}]}}
 ```
 
-- Éléments exprimés **dans le repère de la zone** (x en travers, z le long de `heading`) : déplacer/tourner la zone déplace tout.
-- Validation stricte (`validateMiniGame`) à la frontière Studio (`studio-core/schema.ts`), au monde compilé et à `parsePlayableWorld` : champs inconnus refusés, éléments requis par variante, équipes, limites de carte, 64 instances max.
-- Compilation : la bibliothèque passe dans `compiled-logic` existant ; `playableFromCompiled` produit `minigames` **uniquement s’il y en a** ; les zones de jeu deviennent des `GeoZone` `'minigame'`. **Un projet sans mini-jeu compile exactement comme avant** (test `minigames-pipeline`).
-- Plusieurs instances d’une même variante : identifiants stables `minigame:<variante>-<n>`, états totalement séparés.
+- Éléments dans le **repère de la zone** : x en travers, z le long de `heading`.
+  - Pour une cible, `height` est l’élévation de son centre.
+  - Sortes d’éléments : `goal`, `pin`, `tee`, `hole`, `obstacle`, `spawn`, `ball`, `target`.
+- Validation stricte (`validateMiniGame`) au Studio, au monde compilé et dans `parsePlayableWorld`. Elle contrôle les familles et variantes, les nombres d’éléments par sorte, les équipes, les limites de carte, et refuse les champs inconnus ; 64 instances au maximum.
+- Les zones deviennent des `GeoZone` `'minigame'` : sol réservé, sans arbres générés. **Un projet sans mini-jeu compile exactement comme avant** (test).
+- Sauvegardes : les parties sont éphémères (minutes) et **ne sont pas** écrites dans les emplacements de sauvegarde. Les résultats persistent par les quêtes (`minigame.finished`) et par les records personnels (`localStorage`, clé liée au tracé). Aucune migration de sauvegarde n’est nécessaire.
 
 ## 4. Chargement conditionnel et cycle de vie
 
 | État | Signification | Coût par tick |
 |---|---|---|
-| `UNLOADED` | rien d’instancié (le code de famille peut être en cache module) | 0 |
-| `LOADING` | `import()` de la famille en cours | 0 |
-| `READY` | simulation au repos + vue + colliders statiques (poteaux) | **0** (jamais pas à pas) |
+| `UNLOADED` | rien d’instancié (le code de la famille peut rester en cache module) | 0 |
+| `LOADING` | `import()` en cours ; `release` ou `dispose` pendant le chargement = rien ne sera créé | 0 |
+| `READY` | simulation au repos, vue, colliders statiques | **0** |
 | `ACTIVE` | session en cours | pas physique + règles |
 | `SUSPENDED` | session figée (temps non compté) | 0 |
-| `DISPOSED` / `FAILED` | détruit / désactivé après exception (isolé, réessayable) | 0 |
+| `DISPOSED` / `FAILED` | détruit / exception isolée, nouvelle tentative possible | 0 |
 
-- `main.ts` n’importe `game-host.ts` que si l’île déclare des mini-jeux (ou `?minigames=demo`). Le chunk `family` n’est importé qu’à l’approche (45 m au-delà du rayon de zone), la vue (`view.ts`, Three) dans un chunk séparé ; libération à 80 m (hystérésis), toutes les 15 ticks seulement.
-- Libération : simulation détruite, colliders retirés de `WorldCollisionQuery`, commandes oubliées, vue retirée ; géométries/matériaux **partagés** des balles et quilles conservés (quelques Ko) ; le code JS importé reste dans le cache du navigateur (non déchargeable, assumé).
-- Changement d’île = navigation de page (`location.assign`, cf. `archipelago`) : tout est libéré par le navigateur ; `dispose()` existe pour les tests et un futur changement sans rechargement.
+- Proximité : chargement 45 m au-delà du rayon de la zone, libération à 80 m, contrôle toutes les 15 ticks.
+- Le chargement est unique par famille : trois instances simultanées déclenchent un seul `import()` (test).
+- Libération : simulation, vue, colliders et commandes en attente sont libérés ; les géométries et matériaux partagés sont conservés.
+- Changement d’île = navigation de page. `dispose()` est testé pour un changement sans rechargement : 0 collider orphelin, 0 listener, aucune croissance monotone du tas.
+- Vérifié par les tests :
+  - sortir de la zone puis revenir 3 fois : une seule vue, colliders créés une fois ;
+  - 200 sessions de suite : aucune commande en attente, aucune partie active.
 
-## 5. Sessions, règles, événements
+## 5. Sessions, règles, commandes
 
-- Session pure, JSON, sans horloge murale ni hasard ; chaque mutation émet un événement `{type, sessionId, tick, seq}` : `game:start`, `game:finish`, `game:reset`, `game:abandon`, `player:join`, `player:leave`, `ball:hit`, `ball:out`, `target:hit`, `checkpoint:passed` (réservé), `score:changed`.
-- Ces événements sont **retournés** (comme `advanceRace`) ; seul `game:finish` est relayé au registre existant sous `minigame.finished` (`targetId` = instance, `source` = variante ou `variante:won`, `measuredSeconds`).
-- Règles par variante (catalogue) : football `scoreTarget`+`timeLimit` ; bowling `rounds` (tentatives par manche, manches par joueur, tour par tour) ; mini-golf `allFinished`+`timeLimit` (coups max, pénalité de sortie). Égalité d’équipes = pas de vainqueur.
-- Entraînement solo (`rules.practice`) : permet de démarrer sous `playersMin` dans le jeu solo actuel.
+- Session pure, JSON, sans horloge murale ni hasard. Chaque mutation émet `{type, sessionId, tick, seq}` exactement une fois (tests).
+- Événements :
+  - `game:start`, `game:finish`, `game:reset`, `game:abandon` ;
+  - `player:join`, `player:leave` ;
+  - `ball:hit`, `ball:out`, `target:hit`, `score:changed`.
+- `completeTurn` : fin de tour commune au bowling et aux familles de cibles (tentatives remises à zéro, manche comptée, tour suivant).
+- Égalité d’équipes = pas de vainqueur ; égalité individuelle = victoire partagée. Après la fin, un tir est refusé et une nouvelle inscription ouvre une **nouvelle** session (`<id>:s<n>`).
+- Hôte :
+  - le temps où l’hôte n’est pas appelé (télésiège) n’est pas compté dans le chrono ;
+  - entrer dans **une autre** activité abandonne la partie en cours, ainsi F agit toujours sur l’activité où l’on se trouve ;
+  - l’appui sur F qui démarre une partie ne déclenche jamais de tir.
+- Commandes : `join`, `leave`, `start`, `abandon`, `reset`, `launch{yaw, power}`.
+  - Ordre de traitement : tick, puis joueur, puis `seq`.
+  - Un `seq` inférieur ou égal au dernier reçu pour ce joueur et cette instance est refusé ; le client envoie dans l’ordre.
+  - Plus de 90 ticks de retard : refusé.
+  - Une commande pour une instance libérée est refusée.
 
-## 6. Physique simplifiée (`BallWorld`)
+## 6. Physique (`BallWorld`)
 
-- SoA `Float64Array`, capacité ≤ 32, **aucune allocation dans `step`** (≈ 35–85 o/tick mesurés en régime permanent, bruit V8 compris).
-- Sol : relief partagé (pont/route de course inclus), normale par différences centrées, gravité `MOTION.gravity`, résistance au roulement `rolling × frottement matériau × g × 0,15`, rebond si vitesse d’impact > 0,9 m/s.
-- Obstacles : boîtes orientées (murs, obstacles, cadres de but) + colliders statiques partagés via `solidsNear` copiés une fois par pas dans un pool.
-- Balle/balle : impulsions avec restitution min., séparation au prorata des masses inverses, réveil.
-- Sous-pas : `n = ceil(vmax·dt / (r/2))`, borné à 8 ; anti-traversée garantie jusqu’à `8 · r/2 · 30` m/s (golf r = 0,12 → 14,4 m/s ; lancer max 9 m/s) pour des parois ≥ 0,2 m (test). Vitesse bornée à 30 m/s.
-- Sommeil : au sol et < 0,06 m/s pendant 12 ticks ; un monde endormi coûte ~0,2 µs/tick.
-- Eau : drapeau `inWater` + flottaison ; les variantes en font une sortie.
-- Poussée hamster (`push.ts`) : séparation **de la balle seulement**, transfert `approche·(1+e)·m_h/(m_h+m_b)`, vitesse normale plafonnée (marche 5,5 m/s, roulade 13 m/s), Δv ≤ 8 m/s par acteur et par tick ; plusieurs hamsters s’additionnent (test grosse balle). Lancer volontaire (tir, boule, putt) borné, portée 1,1 m.
-- Déterminisme : mêmes commandes → instantanés identiques bit à bit (tests).
-- **Pas de Rapier/Cannon/Ammo** : 16 balles actives ≈ 16–20 µs/tick (p50) en Node, aucun besoin mesuré.
-- Projectiles (pommes de pin, palets, ricochets) : réutilisables via `BallWorld` ; une trajectoire analytique reste préférable quand aucun contact n’est nécessaire (non implémenté).
+- Données en SoA `Float64Array`, capacité ≤ 32 balles.
+- Sol : relief partagé avec le joueur, gravité `MOTION.gravity`, résistance au roulement liée au matériau.
+- Une **sphère qui roule** prend 5/7 g sinθ en pente.
+- Rebonds avec restitution, boîtes orientées, colliders partagés **sans plafond**, impulsions sphère/sphère, eau, mise en sommeil.
 
-## 7. Trois démonstrations
+**Défauts trouvés par les tests de cas limites et corrigés :**
 
-| Jeu | Éléments | Spécificités (dans `variants.ts`) |
-|---|---|---|
-| Football | 2 buts d’équipe, 1 balle, points de départ | contact + tir chargé, but = franchissement de ligne entre poteaux sous la barre, remise au centre, sortie → remise en jeu |
-| Bowling | départ, 1–10 quilles | lancer chargé visé dans ±0,3 rad, quilles = sphères dormantes réveillées par contact, comptées à 10 cm de déplacement, retirées entre lancers, relevées à chaque manche, tour par tour |
-| Mini-golf | départ, trou, 0–24 obstacles, murs | une balle par joueur, putt dosé, trou si < 3,2 m/s à 22 cm, sortie/eau → +1 coup et retour au dernier repos, coups max |
+| Défaut | Correction |
+|---|---|
+| le hamster pouvait **téléporter la balle à travers un mur fin** (correction de position au contact) | séparation par vitesse bornée et proportionnée aux masses : la balle garde les collisions balayées du monde |
+| 256 colliders partagés au maximum, **coupés silencieusement** | plus de plafond ; nombre exposé dans `sharedCount` |
+| deux balles exactement superposées ne se séparaient jamais | axe de séparation déterministe par paire |
+| un relief qui renvoie NaN propageait NaN | pas de contact sur relief invalide ; un état non fini revient à la dernière position valide (compté dans `recovered`) |
+| accélération g sinθ en descente (trop forte) | 5/7 g sinθ |
+| anti-traversée limité à 8 sous-pas | 16 sous-pas, puis vitesse plafonnée à r/2 par sous-pas, ce qui tient pour tous les rayons jusqu’à 30 m/s (test) |
+| poussée identique en marchant et en courant | paliers marche 5,5 m/s < course 8 m/s (au-delà de `MOTION.walk`) < roulade 13 m/s ; Δv ≤ 12 m/s par tick |
 
-En jeu : approcher, **F** pour commencer, **maintenir F puis relâcher** pour tirer/lancer/putter dans la direction de la caméra ; s’éloigner de 25 m abandonne. Démo : `?minigames=demo` (sites cherchés autour du départ : pente, eau, troncs, colliders).
+Cas couverts par des tests : balle immobile, pente faible et forte, rebonds décroissants, murs fins, obstacles orientés, coins, plusieurs obstacles à la fois, balles superposées, masses différentes, balle endormie réveillée, eau, sortie de terrain, grande vitesse, absence de gain d’énergie (16 balles pendant 60 s), NaN. Côté poussée : contact latéral, pendant un saut et par-dessus, plusieurs pousseurs, balle lourde, balle poussée contre un mur. Pas de Rapier, Cannon ni Ammo : aucun besoin mesuré.
+
+## 7. Familles et variantes opérationnelles
+
+| Famille | Variante | Règles | Spécificités |
+|---|---|---|---|
+| `ball` | football | `scoreTarget`, `timeLimit` | contact et tir chargé, but entre les poteaux sous la barre, remise au centre, sortie → remise en jeu |
+| `ball` | bowling | `rounds` | lancer visé (±0,3 rad), quilles = sphères dormantes, retirées entre deux lancers et relevées à chaque manche |
+| `ball` | mini-golf | `allFinished`, `timeLimit` | putt dosé, **capture à 0,9 m/s au bord et 2,6 m/s au centre**, sortie ou eau → +1 coup |
+| `target` | chamboule-tout | `rounds` | 3 balles par manche, pyramide 3-2-1 sur une table ; une boîte soutenue se réveille quand ce qui la porte bouge |
+| `target` | tir sur cible | `rounds` | anneaux de 5 à 1 point selon la distance au centre ; la balle reste collée à la cible |
+
+En jeu : approcher, **F** pour commencer, **maintenir F puis relâcher** pour tirer dans la direction de la caméra. Le record personnel est affiché avant la partie. Démo : `?minigames=demo` (5 activités).
 
 ## 8. Studio
 
-Module **Logique › Mini-jeux** : famille/variante, « Créer au centre de la vue » ou « Trouver un terrain adapté près de la vue » (`suggestMiniGameSites`), nom, joueurs, entraînement solo, orientation, dimensions (disposition remise à l’échelle), règles, équipes, coordonnées des éléments, ajout/retrait d’obstacles, « Analyser le terrain » (pente, eau, occupation), « Voir », « Déplacer au centre de la vue », « Disposition par défaut », « Supprimer ». Chaque modification = **une transaction** du `CommandBus` (Undo/Redo, sauvegarde, archive ZIP). L’aperçu 3D réutilise **la même simulation et la même vue** que le jeu (`setOverlay`). « Jouer ici » compile et charge les mini-jeux du brouillon.
+- Module **Logique › Mini-jeux** :
+  - choix de la famille, puis de la variante (liste filtrée) ;
+  - création au centre de la vue, ou sur un terrain adapté trouvé automatiquement ;
+  - joueurs, équipes, règles, éléments, obstacles, disposition par défaut ;
+  - « Analyser le terrain » : pente, eau, obstacles existants, **accès à pied**, **superposition** avec d’autres activités ; les dimensions minimales sont imposées par le schéma.
+- **Manipulation 3D** (lot 2), par le système existant, sans second système :
+  - un clic sélectionne la zone ou l’un de ses éléments (but, quille, cible, obstacle, départ, trou, balle) ;
+  - le gizmo de déplacement (`W`) déplace en une transaction ; l’élément suit le gizmo dans le repère tourné de la zone ;
+  - Supprimer, Dupliquer, liste d’auteur et inspecteur fonctionnent comme pour les autres éléments ;
+  - l’inspecteur donne les valeurs précises (orientation, largeur et rotation d’un obstacle, hauteur d’une cible) ;
+  - toute écriture passe par `putMiniGame` (même validation) ; supprimer un élément obligatoire est refusé.
+- Aperçu : même simulation et même vue que le jeu. « Jouer ici » charge les mini-jeux du brouillon.
 
-Point d’intégration composition : `suggestMiniGameSites(variante, requêtes, {anchors, bounds, avoid})` (football près des villages sur terrain plat, mini-golf sur relief modéré). Le compositeur ne l’appelle **pas encore** (TODO) ; aucune génération de terrain n’a été ajoutée.
+## 8 bis. Composition des îles
 
-## 9. Contrats multijoueurs (préparés, non activés)
+- `generation.activities.minigames`, facultatif, V5, au plus 8 variantes distinctes.
+- L’étape « activités » existante place une instance par variante :
+  - autour des villages si `site.nearSettlement`, sinon autour du centre de l’île ;
+  - **après** les villages, courses et pistes, pour les éviter.
+- Les critères sont ceux du Studio (`projectSiteQueries`, `inspectArea`). Le relief n’est **jamais** modifié.
+- Une variante sans terrain adapté produit un `WARNING`, jamais un blocage. Sans l’option, le monde composé est inchangé (test).
 
-- Identifiants stables : instance (`minigame:*`), session (`<instance>:s<n>`), joueur (`[a-zA-Z0-9:_-]{1,64}`).
-- Commandes `{instanceId, playerId, tick, seq, type…}` (`join`, `leave`, `start`, `abandon`, `reset`, `launch{yaw,power}`) ; ordre `(tick, joueur, seq)` ; rejouées et > 90 ticks de retard rejetées.
-- L’autorité vérifie portée, tour, visée, coups restants : le client **n’envoie jamais** de position de balle ni de résultat.
-- États sérialisables : `manager.snapshot(id)` / `restore()` (session + simulation) ; reprise après coupure ; `leave` d’un dernier joueur ⇒ abandon (déconnexion).
-- Physique et règles sans rendu ni temps mural ⇒ exécutables par un futur serveur autoritaire ; `LocalMiniGameAuthority` est l’adaptateur local. **Non implémenté** : transport, prédiction/réconciliation, acteurs distants.
+## 9. Préparation multijoueur
 
-## 10. Mesures (référence `main` = `accdcc8`, même machine, Node 22.23, Chromium SwiftShader)
+- Identifiants stables : instance, session, joueur.
+- Commandes par tick dans un ordre déterministe ; l’autorité vérifie portée, tour, visée et coups restants.
+- `snapshot` / `restore(atTick)` reprend une partie sur une autre autorité ou une autre base de ticks, à l’identique (test).
+- Départ du dernier joueur = abandon (déconnexion).
+- **Non implémenté** : transport, prédiction et réconciliation, acteurs distants dans le jeu.
 
-**Bundle** (`node tools/report-bundle.mjs dist <main>/dist`, octets bruts minifiés) :
+## 10. Mesures
 
-| | main | branche | Δ |
+Même machine, Node 22.23, Chromium SwiftShader. Références :
+- `accdcc8` : `main` avant tout mini-jeu ;
+- `2603dd4` : `main` après la PR #110 (lot 1) ;
+- branche : lot 2.
+
+**Bundle** (`node tools/report-bundle.mjs dist <ref>/dist`, octets bruts minifiés) :
+
+| | `accdcc8` | `2603dd4` | branche (lot 2) |
 |---|---|---|---|
-| JS initial du jeu (fermeture statique d’`index.html`) | 1 461 011 | 1 462 456 | **+1 445** (+590 gzip) : crochets `main.ts`, `solidsNear`, extraction du helper de préchargement Vite |
-| JS initial du Studio | 1 051 327 | 1 058 287 | +6 960 (validateur + catalogue, ~5,9 Ko) |
-| Chunks paresseux mini-jeux | — | `game-host` 16,6 Ko · `family` 21,4 Ko · `view` 4,3 Ko · `demo` 3,2 Ko | jamais chargés sur une île sans mini-jeu |
+| JS initial du jeu | 1 461 011 | 1 463 754 | **1 464 149** (+395 o vs lot 1 ; +3,1 Ko vs avant les mini-jeux) |
+| JS initial du Studio | 1 051 327 | 1 060 688 | **1 070 721** (+10,0 Ko vs lot 1 : éléments Studio, libellés, gabarits ; la recherche de site est sortie du cœur) |
+| Chunks à la demande | — | `game-host` 16,6 Ko · `family` 21,4 Ko · `view` 4,3 Ko | `game-host` 13,2 Ko · famille `ball` 8,9 Ko · famille `target` 5,9 Ko · moteur et vue partagés en chunks communs · panneau Studio 7,6 Ko |
 
-**CPU Node** (`npm run bench:minigames`, p50/p95/p99 µs par tick 30 Hz, une exécution) :
+Une île sans mini-jeu ne demande **aucun** de ces chunks (contrôle navigateur).
 
-| Scénario | p50 | p95 | p99 |
-|---|---|---|---|
-| 1 balle en mouvement | 1,5–1,8 | 4–6 | 9–16 |
-| 4 balles | 2,7–4,2 | 6–9 | 13–30 |
-| 8 balles | 5,3–8,9 | 11–14 | 34–47 |
-| 16 balles | 15,6–20,3 | 30–35 | 85–114 |
-| 16 balles endormies | 0,24 | 0,36 | 0,42 |
-| gestionnaire sans instance | 0,39 | 0,57 | 0,93 |
-| **10 activités READY (inactives)** | 0,28 | 0,47 | 0,83 — `stepped = 0` |
-| 1 football actif + acteur qui dribble | 1,6 | 4,5 | 12,2 |
+**CPU Node** (`npm run bench:minigames`, médiane de 3 passes, p50/p95 en µs par tick 30 Hz, avec / sans obstacles) :
 
-Allocations : 35–85 o/tick (8 balles, régime permanent). Cycles d’île (créer, charger 3, jouer 60 ticks, libérer) : 0,2–0,3 ms ; 0 collider orphelin ; tas sans croissance monotone sur 28 000 cycles. Joueur (`npm run bench:physics`, 2 passes chacun) : identique à `main` au bruit près (code inchangé).
+| Balles | lot 1 (`2603dd4`) | lot 2 |
+|---|---|---|
+| 1 | 1,6/5,3 · 1,2/2,4 | 1,9/5,6 · 1,3/1,9 |
+| 4 | 2,6/6,2 · 2,1/3,1 | 2,6/6,2 · 2,2/3,2 |
+| 8 | 5,4/11,7 · 5,2/8,0 | 5,4/11,7 · 4,7/8,3 |
+| 16 | 11,8/21,0 · 13,4/17,7 | 11,9/21,5 · 11,0/16,9 |
+| 32 | 34,1/57,8 · 33,0/48,6 | 26,1/46,6 · 33,8/48,9 |
+| 32 endormies | 0,38 | 0,37 |
+| 10 activités READY | 0,28 — `stepped = 0` | 0,28 — `stepped = 0` |
+| 1 football actif + dribble | 1,65/2,53 | 1,80/3,11 |
 
-**Navigateur** (`npm run bench:minigames:browser`, île officielle, même point, 15 s, SwiftShader ⇒ signal de régression seulement) :
+Les corrections de physique n’ont pas de coût mesurable : les écarts sont du même ordre que la variance entre passes (environ ±30 %). Pire cas, 32 balles en mouvement : moins de 0,2 % d’un tick de 33 ms.
+
+- Allocations en régime permanent (8 balles) : 69 à 362 o/tick selon la passe, contre 69 à 275 au lot 1. C’est du bruit de mesure du tas V8.
+- Cycles d’île : 0,3 ms, 0 collider orphelin. Le tas oscille sans croissance monotone sur 28 000 cycles (lot 1, reconduit).
+- Joueur (`npm run bench:physics`, médiane de 3 passes, p50 en µs) : relief 6,0 → 5,8 ; 400 obstacles 79,6 → 89,9 (p95 196 → 271, bruit) ; mine 5,3 → 5,4 ; roulade 6,5 → 6,6 ; planeur 5,7 → 5,9. **Code du joueur inchangé.**
+
+**Navigateur** (`npm run bench:minigames:browser`, île officielle, même point, 15 s, SwiftShader : signal de régression seulement) :
 
 | Scénario | chargement | frame p50/p95 (ms) | simulation p50/p95 (ms) | draw calls |
 |---|---|---|---|---|
-| base (sans paramètre) | 8,1 s | 133 / 200 | 0,4 / 2,8 | 114 |
-| démo READY (2 terrains proches) | 8,7 s | 133 / 200 | 0,4 / 1,0 | 118 |
-| démo, football actif | 8,9 s | 133 / 217 | 0,5 / 1,8 | 117 |
+| base (sans paramètre) | 8,9 s | 117 / 200 | 0,4 / 0,9 | 114 |
+| démo READY (4 activités proches chargées) | 7,8 s | 133 / 200 | 0,4 / 1,5 | 123 |
+| démo, football actif | 7,9 s | 133 / 217 | 0,6 / 1,9 | 122 |
 
-Résolution de `performance.now()` du navigateur : 0,1 ms. Temps de chargement : une seule mesure chacun (bruit de l’ordre de la différence). **Cibles 30/20 FPS non qualifiées sur GPU intégré.**
+Les temps de frame sous SwiftShader sont dominés par le rendu logiciel. Les chargements sont mesurés une seule fois : le bruit est du même ordre que la différence. **Aucune cible FPS n’est qualifiée sur GPU intégré.**
 
 ## 11. Tests
 
-- Node (`npm test`) : `minigames-physics` (rebond, pente, roulement, matériau, impulsions, parois orientées, anti-traversée, colliders partagés, eau, poussées bornées/cumulées, déterminisme, sommeil), `minigames-core` (schéma, repère, session, règles, autorité, registre, chargement paresseux, READY sans calcul, isolement d’erreur, rechargement sans doublon, nettoyage), `minigames-variants` (but/score/fin, poussée, sortie, quilles/manches/fin, tours et visée imposés, putt/trou/pénalité, moteur commun, non-interférence, rejeu identique), `minigames-pipeline` (Studio → archive → compilation → monde jouable, zones réservées, projet sans mini-jeu inchangé, sites, événement de quête).
-- Navigateur (`npm run test:minigames`, ajouté au workflow `checks`) : île sans mini-jeu = aucun chunk demandé ; démo = 3 activités, chunk `family` chargé à l’approche, F démarre, tir chargé, bowling (strike observé), coup de mini-golf compté, abandon en quittant, libération complète au loin, aucune erreur ; Studio = liste, édition de règle, Undo, création d’une seconde instance, sauvegarde, « Jouer ici » charge l’hôte.
-- Régressions (21/11/2026, build complet `npm run build` + `verify-static-build` + fixtures de test, Chromium SwiftShader) : `npm test` **1157/1157** (1126 avant la branche + 31 nouveaux), `typecheck` OK, et 13 contrôles navigateur **tous verts** : `test:minigames`, `published`, `gameplay`, `hamster` (marche, roulade, saut), `swim`, `boats`, `climb`, courses Studio→jeu, `test:fishing`, `test:surf`, îles d’extension (ski chronométré, télésiège, semis), `studio`, `economy`. Le planeur est couvert par `bench:physics` et les tests Node existants, pas par un contrôle navigateur dédié dans cette campagne.
+- Node (`npm test`) : `minigames-physics`, `minigames-physics-limits`, `minigames-core`, `minigames-lifecycle`, `minigames-variants`, `minigames-target`, `minigames-pipeline`, `minigames-studio-elements`, `minigames-composition`, plus `race-records` (inchangé).
+- Navigateur (`npm run test:minigames`, dans le workflow CI `checks`) :
+  - île sans mini-jeu : aucun chunk ;
+  - 5 activités de démo ;
+  - modules de famille séparés ;
+  - but, strike, putt, lancer au chamboule-tout ;
+  - abandon et libération complète ;
+  - Studio : liste, règle, Undo, **clic 3D, inspecteur, Undo**, nouvelle instance, « Jouer ici ».
+- Régressions (21/11/2026, lot 2) :
+  - build complet, `verify-static-build`, fixtures de test, Chromium SwiftShader ;
+  - `npm test` **1193/1193**, `typecheck` OK ;
+  - 19 contrôles navigateur exécutés : minigames, published, gameplay, hamster, swim, boats, climb, courses, fishing, surf, îles d’extension (ski, télésiège, semis), studio, economy, ui, sélection universelle, monde Studio, édition à l’inspecteur, voyage entre îles, local.
+  - **18/19 verts au premier passage.** `hamster` a échoué une fois sur l’étape « Espace deux fois : planeur ». Relancé seul : 4/4. Il échoue aussi lorsqu’il tourne en même temps qu’un autre contrôle navigateur (2 sur 3). Le test enchaîne deux appuis à des instants d’horloge murale : il est sensible à la charge CPU. Ni le planeur ni les entrées ne sont modifiés par la branche. Risque résiduel : instabilité du test en CI chargée.
 
-## 12. Ajouter un mini-jeu
+## 12. Guide : créer un nouveau mini-jeu
 
-1. **Variante de balle** (pétanque, course de balle…) : une entrée dans `MINIGAME_VARIANTS` (`catalog.ts` : règles, éléments, physique, site), un gabarit dans `layouts.ts`, un objet de crochets dans `ball/variants.ts` (but/tour/score uniquement), éventuellement un message dans `describe()` de `game-host.ts`, puis des tests. **Aucune physique à recopier.**
-2. **Nouvelle famille** (cible, coopération…) : un module implémentant `MiniGameFamilyModule` (`createSimulation`, `loadView`) et une ligne dans `DEFAULT_LOADERS` (`registry.ts`) — chunk séparé automatiquement.
-3. **Activité déjà existante** (course, pêche, musique) : ne pas migrer ; la relier par un événement du registre `gameplay/events.ts` ou un adaptateur léger.
+Exemple : **pétanque**, une variante de la famille `ball`.
+
+1. **Catalogue** (`minigames/catalog.ts`) :
+   - ajouter `'petanque'` à `MiniGameVariantId` ;
+   - ajouter une entrée `MINIGAME_VARIANTS.petanque` : `family:'ball'`, `rules:['rounds']`, `requiredRules:['attempts','rounds']`, éléments autorisés (`tee:[1,1]`, `target:[1,1]` pour le cochonnet), physique (`ballRadius:.08`, `ballMass:.7`, `rolling:2`, `contactPush:false`, `command:'throw'`, `loft:5`), `visual` et `site`.
+2. **Gabarit** (`minigames/layouts.ts`) : une fonction `petanque()` (zone, départ, cochonnet) ajoutée à `TEMPLATES`. Le compilateur signale toute entrée manquante.
+3. **Règles** (`ball/variants.ts`) : un objet `BallVariantLogic`, en réutilisant les utilitaires de `ball/kit.ts`.
+   - `setup` : boules et cochonnet ;
+   - `launch` : `launchBall` et le contrôle du tour ;
+   - `afterStep` : fin de lancer, et en fin de manche la boule la plus proche marque, puis `completeTurn` ;
+   - `hint` et `describe`.
+   - Aucune physique et aucune session à écrire.
+4. **Studio** : rien à coder. La variante apparaît dans le module, l’écran de création et la sélection 3D. Ajouter un libellé d’élément seulement si la sorte est nouvelle.
+5. **Tests** : un fichier `tests/minigames-petanque.test.mjs` qui pilote le gestionnaire comme `minigames-target`, puis « Analyser le terrain » et « Jouer ici » dans le Studio.
+
+**Nouvelle famille** (ex. coopération) : un dossier avec `family.ts` qui implémente `MiniGameFamilyModule`, et une ligne dans `DEFAULT_LOADERS` (`registry.ts`). Elle obtient automatiquement un chunk séparé. Si elle utilise des balles, elle réutilise `createBallSimulation` avec sa propre table de règles, comme `target`.
 
 ## 13. Limitations connues
 
-- Quilles = sphères ; la chute est une animation de présentation. Les balles ne tournent pas visuellement.
-- Seuls les poteaux de but bloquent le joueur (AABB) ; filets et murets bas sont franchissables par le hamster (marche 0,45 m).
-- Balles en extérieur uniquement (pas dans les espaces de mine) ; pas de vent ni de courant sur les balles.
-- Solo : un seul joueur local, pas d’IA adverse ; les parties à plusieurs sont testées par commandes (Node).
-- Charge comptée en ticks de simulation (correct et déterministe ; plus lente que l’horloge si la simulation ralentit) ; visée = direction caméra.
-- Édition des éléments par champs numériques (pas de gizmo 3D) ; analyse de terrain du Studio fondée sur l’occupation, pas sur les arbres générés (inutile pour les zones auteur, réservées sans arbres).
-- Compositeur de mondes non branché à `suggestMiniGameSites`.
-- `dispose()` non appelé sur `pagehide` (changement d’île = rechargement de page).
-- Mesures : SwiftShader et Node seulement ; aucune qualification GPU.
+- Quilles et boîtes = sphères ; leur chute est une présentation. Les balles ne tournent pas visuellement.
+- Pas de visée verticale : la portée d’un lancer dépend de la seule puissance (lancer en cloche, gravité arcade).
+- Ricochets (famille `target`) : **TODO**. Il faut une règle de site « eau obligatoire » et un contact eau dédié.
+- Seuls les poteaux de but bloquent le hamster. Les balles restent en extérieur (pas dans les mines) et ignorent vent et courant.
+- Solo : un seul joueur local, pas d’IA adverse.
+- Studio : la rotation des zones et des obstacles se fait par l’inspecteur (le gizmo des éléments non-entités ne fait que translater). Le glisser du gizmo n’est pas automatisé en navigateur ; le code de déplacement est testé en Node.
+- Mesures : Node et SwiftShader seulement.
 
 ## 14. Roadmap
 
 | ID | Élément | Statut |
 |---|---|---|
-| MG-0 | Audit, inventaire REUSE/ADAPT/MERGE/NEW | IMPLEMENTED |
-| MG-1 | Schéma `libraries.minigames`, catalogue, gabarits, validation | TESTED |
-| MG-2 | Session, règles composables, événements, `minigame.finished` | TESTED |
-| MG-3 | Registre à imports dynamiques, gestionnaire, cycle de vie, isolement | TESTED (Node + navigateur) |
-| MG-4 | `BallWorld`, poussée hamster, lancers bornés | TESTED |
+| MG-0 | Audits (lot 1, lot 2) | IMPLEMENTED |
+| MG-1 | Schéma, catalogue, gabarits | TESTED |
+| MG-2 | Session, règles, événements, `minigame.finished`, `completeTurn` | TESTED |
+| MG-3 | Registre, gestionnaire, cycle de vie, chargements asynchrones | TESTED (Node + navigateur) |
+| MG-4 | `BallWorld`, poussée, cas limites | TESTED |
 | MG-5 | Football, bowling, mini-golf | TESTED (Node + navigateur SwiftShader) |
 | MG-6 | Pipeline compilé, zones réservées, intégration `main.ts`, démo | TESTED |
 | MG-7 | Studio Mini-jeux, aperçu, « Jouer ici » | TESTED (navigateur) |
-| MG-8 | Contrats multijoueurs, autorité locale, instantanés | IMPLEMENTED (pas de transport) |
-| MG-9 | Bancs CPU/mémoire/bundle/navigateur | IMPLEMENTED (mesures SwiftShader) |
-| MG-10 | Qualification 30/20 FPS sur GPU intégré de référence | TODO |
-| MG-11 | Branchement du compositeur (`suggestMiniGameSites`) | TODO |
-| MG-12 | Familles Cible (lancer, ricochets, chamboule-tout) via `BallWorld` | TODO |
-| MG-13 | Adaptateur courses → gestionnaire (sans migrer `races.ts`) | TODO |
-| MG-14 | Gizmo 3D des éléments dans le Studio | TODO |
-| MG-15 | Serveur autoritaire et réplication | BLOCKED (jalon multijoueur non approuvé, AGENTS §1 quater) |
+| MG-8 | Contrats multijoueurs, `restore(atTick)` | TESTED (sans transport) |
+| MG-9 | Bancs CPU, mémoire, bundle, navigateur | IMPLEMENTED (Node + SwiftShader) |
+| MG-10 | Qualification 30/20 FPS sur GPU intégré | TODO |
+| MG-11 | Composition (`activities.minigames`) | TESTED |
+| MG-12 | Famille `target` : chamboule-tout, tir sur cible | TESTED |
+| MG-12b | Ricochets | TODO |
+| MG-13 | Records personnels partagés avec les courses | TESTED |
+| MG-14 | Sélection 3D, gizmo, inspecteur des éléments | TESTED (clic et inspecteur en navigateur ; glisser du gizmo en Node) |
+| MG-15 | Serveur autoritaire, réplication | BLOCKED (jalon multijoueur non approuvé, AGENTS §1 quater) |
+| MG-16 | Visée verticale des lancers | TODO |
