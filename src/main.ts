@@ -670,6 +670,8 @@ if(gameplay){
 const activityView=gameplay&&(gameplay.activities.mines.size||gameplay.activities.farms.size)?(await import('./activity-view.ts')).createActivityView(scene,gameplay.activities,terrainHeight):null;
 if(activityView&&!searchParams.has('lightBench'))world.refreshLights([...(definition.lights??[]),...activityView.lights]);
 let activityQueue=0,cropQueue=0,strikeTimer=0;
+// A tap shorter than one simulation tick must still reach the mini-game (latched like the other queues).
+let minigameTap=false;
 // Mini-games (doc 107): the module is fetched only when the island declares activities
 // (or with ?minigames=demo); families and their views load near each instance.
 const minigameHost=await (async()=>{
@@ -1082,7 +1084,7 @@ function resetCameraDrag(): void {
 function clearGameplayInput():void{
   gameplay?.fishing.cancel();fishingHud.hide();fishingEffects.reset();fishingFloatSoundDue=-1;
   keySet.clear();
-  rollQueue=0;surfQueue=0;jumpQueue=0;touchStrokeQueue=0;actionQueue=0;activityQueue=0;cropQueue=0;
+  rollQueue=0;surfQueue=0;jumpQueue=0;touchStrokeQueue=0;actionQueue=0;activityQueue=0;cropQueue=0;minigameTap=false;
   queuedMineStrike=null;mobileTouch?.reset();resetCameraDrag();
 }
 // Switching to any UI panel releases held movement and boost keys immediately.
@@ -1117,7 +1119,7 @@ window.addEventListener('keydown', (e) => {
   }
   if (e.code === 'KeyF' && !e.repeat){
     queuedMineStrike=mineRhythmHud.sample(performance.now());
-    activityQueue++;
+    activityQueue++;minigameTap=true;
   }
   if (e.code === 'KeyC') cropQueue++;
   if (e.code === 'KeyB'&&snowDemo)toggleSnowEquipment();
@@ -1707,7 +1709,7 @@ function tick(dt: number) {
         stopRace();
       }else if(event?.kind==='failed'){showInfo('Course arrêtée : '+event.reason,'warning');stopRace();}
     }
-    minigameHost?.tick(motionTick,dt,player,keySet.has('KeyF'),yaw);
+    minigameHost?.tick(motionTick,dt,player,keySet.has('KeyF')||minigameTap,yaw);minigameTap=false;
     // Crossing a mine entrance / stairs: no interpolation through rock.
     if(player.transitioned){previousPlayerPosition.copy(player.position);renderPosition.copy(player.position);}
     if (keys.jumpPressed) jumpQueue = Math.max(0, jumpQueue - 1);
