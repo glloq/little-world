@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {createSeaSurfaceMaterial} from './render/water-look.ts';
 import {isLegacyTerrain} from './terrain.ts';
 import {packedColors,packedNormals} from './render/packing.ts';
 import {horizonGrid,horizonFar,packedHorizonBlock,SEA_COLOR,type HorizonBounds} from './horizon-data.ts';
@@ -76,7 +77,7 @@ export function createHorizonView(root:THREE.Group,bounds:HorizonBounds,coverage
     nearGeometry.setAttribute('position',new THREE.BufferAttribute(new Float32Array(nearCapacity*12),3));nearGeometry.setAttribute('normal',new THREE.BufferAttribute(normals,3));
     const index=new Uint16Array(nearCapacity*6);for(let q=0;q<nearCapacity;q++)index.set([q*4,q*4+2,q*4+1,q*4+1,q*4+2,q*4+3],q*6);
     nearGeometry.setIndex(new THREE.BufferAttribute(index,1));nearGeometry.setDrawRange(0,0);
-    near=new THREE.Mesh(nearGeometry,new THREE.MeshLambertMaterial({color:SEA_COLOR,transparent:true,opacity:.9,depthWrite:false}));near.name='NearSea';near.frustumCulled=false;near.renderOrder=2;group.add(near);
+    near=new THREE.Mesh(nearGeometry,createSeaSurfaceMaterial());near.name='NearSea';near.frustumCulled=false;near.renderOrder=2;group.add(near);
   }
   function rebuildNear(){
     if(!near)return;

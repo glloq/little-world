@@ -146,6 +146,8 @@ Lire **[20 — Blender, GLB, presets et archives de cartes](docs/20-BLENDER-STUD
 
 ## Eau LOW-RESOURCE : réseau, immersion, cascades et horizon — décision validée
 
+> **Rendu de l’eau V1 (WREN-1, implémenté sur branche) :** lire [108 — rendu de l’eau partout](docs/108-WATER-RENDERING-LOW-RESOURCE.md). Un seul matériau pour rivières/lacs/cascades (`render/water-look.ts`), attributs de flux dérivés du profil compilé, hauts-fonds et écume de rivage peints sur le terrain, mer proche éclairée par sommet ; aucune passe, texture ni brouillard ajoutés. L’eau profonde doit rester égale à la mer d’horizon. Temps GPU non qualifié.
+
 Lire **[21 — Eau LOW-RESOURCE, rivières/lacs/mer et LOD](docs/21-WATER-HYDROLOGY-LOW-RESOURCE.md)** avant de toucher aux surfaces d'eau, à la nage/plongée ou au Studio « Eau ».
 
 - **Une seule source hydrographique V3** : tracés orientés, nœuds/jonctions, lacs à niveau constant, rapides, cascades à niveau haut/bas, embouchures. Tracer les rivières depuis Studio et calculer le profil d'altitude, puis creuser **localement** le lit ; signaler les contre-pentes/contradictions au lieu d'inventer des niveaux.

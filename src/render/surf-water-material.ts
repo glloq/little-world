@@ -30,8 +30,9 @@ varying float vWet;varying float vEnv;varying vec3 vShore;
 varying float vFace;varying float vLocal;varying float vAcross;varying vec2 vFoamUV;varying float vMod;
 varying vec3 vLightFront;varying vec3 vLightBack;
 `;
-/** Light uniforms named like three's lights_pars_begin (filled by the renderer, lights:true). */
-const LIGHTS=`
+/** Light uniforms named like three's lights_pars_begin (filled by the renderer, lights:true).
+ * Shared with the near-sea material (water-look.ts): same per-vertex Lambert terms. */
+export const LAMBERT_VERTEX_LIGHTS=`
 uniform vec3 ambientLightColor;
 #if NUM_DIR_LIGHTS > 0
 struct DirectionalLight{vec3 direction;vec3 color;};
@@ -54,7 +55,7 @@ vec3 sw_irradiance(vec3 n){
   return e*RECIPROCAL_PI;
 }
 `;
-const VERTEX_HEADER=COMMON+LIGHTS+`
+const VERTEX_HEADER=COMMON+LAMBERT_VERTEX_LIGHTS+`
 attribute float aEnvelope;attribute float aWet;attribute vec3 aShore;attribute vec2 aEnvGrad;attribute float aSkirt;
 `;
 /** CPU twin: SurfWaveField.height / sample (wave-field.ts). Keep both in sync (tests). */

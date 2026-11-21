@@ -302,6 +302,8 @@ La [spécification AGRI 25](25-AGRICULTURE-PARCELS-LOW-RESOURCE.md) relie les pa
 
 ## 12. Diagnostic de la base actuelle, avant développement
 
+> **Mise à jour 21/11/2026** : le rendu extérieur (rivières, lacs, cascades, mer proche, hauts-fonds) a reçu un premier lot WREN-1 décrit dans [108](108-WATER-RENDERING-LOW-RESOURCE.md) ; les constats ci-dessous décrivent l’état antérieur.
+
 **Vérification du code `main` au 12 novembre 2026** :
 - `src/terrain.ts` définit une rivière de démonstration `riverX(z)`, `riverLevel(z)` et `waterSurface(x,z)` ; les volumes additionnels `WaterBody` possèdent `points`, `width`, `level`, `depth` (une altitude constante par tracé).
 - `src/world.ts::createRiver` construit un ruban et un plan de mer avec `MeshLambertMaterial` **transparent** (`opacity≈0,8`) ; les rubans ajoutés depuis l'éditeur sont à hauteur `water.level` constante. Aucun LOD0–3 d'eau n'est établi.
