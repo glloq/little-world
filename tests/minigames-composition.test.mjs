@@ -6,7 +6,7 @@ import {newIslandRequirements,validateMapRequirements} from '../src/studio-core/
 import {selectIslandStyle} from '../src/studio-core/island-styles.ts';
 import {parseProject} from '../src/studio-core/schema.ts';
 import {inspectMiniGame,areasOverlap} from '../src/minigames/sites.ts';
-import {projectSiteQueries} from '../src/studio-core/minigame-authoring.ts';
+import {projectSiteQueries} from '../src/studio-core/minigame-composition.ts';
 
 const gentle=()=>selectIslandStyle({...newIslandRequirements(),maritimePort:true,welcomeVillage:'village'},'gentle');
 test('requested mini-games are placed on naturally suitable, free ground, deterministically',()=>{

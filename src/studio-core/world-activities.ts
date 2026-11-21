@@ -10,7 +10,7 @@ import type {ProjectDocument} from './types.ts';
 import {planFlightCourse,planSurfActivity} from './activity-planners.ts';
 import {authoredPortLayout} from '../archipelago/port-n1-plan.ts';
 import type {CompositionDiagnostic} from './world-composition.ts';
-import {composeMiniGames} from './minigame-authoring.ts';
+import {composeMiniGames} from './minigame-composition.ts';
 export function generateWorldActivities(p:ProjectDocument,diagnostics:CompositionDiagnostic[]){
  const options=p.world.generation?.activities;if(!options)return;
  const audio=parseAudioDefinitionV2(catalog);if(options.music==='off')audio.music.cues={};p.world.audio=audio;

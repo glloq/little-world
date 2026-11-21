@@ -9,7 +9,8 @@ import type {StudioViewport} from './viewport/editor-viewport.ts';
 import {MINIGAME_VARIANTS,MINIGAME_VARIANT_IDS,ACTIVITY_FAMILIES,type MiniGameVariantId} from '../minigames/catalog.ts';
 import type {MiniGameElementV1,MiniGameInstanceV1,MiniGameRulesV1} from '../minigames/schema.ts';
 import {inspectMiniGame,suggestMiniGameSites,type SiteQueries} from '../minigames/sites.ts';
-import {createMiniGame,putMiniGame,removeMiniGame,resetMiniGameLayout,projectSiteQueries} from '../studio-core/minigame-authoring.ts';
+import {createMiniGame,putMiniGame,removeMiniGame,resetMiniGameLayout} from '../studio-core/minigame-authoring.ts';
+import {projectSiteQueries} from '../studio-core/minigame-composition.ts';
 import {terrainHeight} from '../terrain.ts';
 
 export interface MiniGamesPanelContext {session:StudioSession;viewport:StudioViewport;status(message:string,error?:boolean):void}

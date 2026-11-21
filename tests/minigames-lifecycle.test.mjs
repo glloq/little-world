@@ -144,3 +144,23 @@ test('personal bests: same local mechanism as race records, keyed by layout, dir
  assert.equal(minigameRecord(defaultMiniGame('bowling',{id:'minigame:b',x:0,z:0})).better,'higher');
  assert.equal(minigameRecord(defaultMiniGame('football',{id:'minigame:f',x:0,z:0})),null,'no personal best for team scores');
 });
+test('resources: leave and come back (no duplicated view or collider), 200 sessions, parallel loads of one family',async()=>{
+ const h=hostFixture('football'),posts=()=>h.collision.solidsNear(-1e4,1e4,-1e4,1e4).length;
+ const settle=async()=>{for(let k=0;k<30;k++){await h.flush();h.step(false,1);}};
+ h.at(0,-3);h.step(false,15);await settle();const children=h.scene.children.length;assert.equal(posts(),4);
+ for(let round=0;round<3;round++){
+  h.player.position.set(h.def.area.x+300,0,h.def.area.z);h.step(false,15);await settle();
+  assert.equal(h.rec.state,'UNLOADED');assert.equal(posts(),0);assert.equal(h.scene.children.length,0);
+  h.at(0,-3);h.step(false,15);await settle();
+  assert.equal(h.rec.state,'READY');assert.equal(posts(),4,'colliders once');assert.equal(h.scene.children.length,children,'one view');
+ }
+ h.host.dispose();
+ const d=defaultMiniGame('bowling',{id:'minigame:b',x:0,z:0}),m=createMiniGameManager([d],{env});await m.prepare(d.id);
+ let tick=0,seq=0;
+ for(let k=0;k<200;k++){for(const type of ['join','start','abandon'])m.submit({instanceId:d.id,playerId:'p',tick:tick+1,seq:++seq,type});m.tick(++tick,1/30,[]);}
+ assert.equal(m.records.get(d.id).session.sessionId,d.id+':s200');assert.equal(m.stats().pendingCommands,0);assert.equal(m.stats().active,0);
+ let loads=0;const registry=new MiniGameRegistry({ball:async()=>{loads++;await new Promise(r=>setTimeout(r,5));return realFamily();}});
+ const defs=['football','bowling','minigolf'].map((v,i)=>defaultMiniGame(v,{id:'minigame:p'+i,x:i*40,z:0})),many=createMiniGameManager(defs,{env,registry});
+ await Promise.all(defs.map(x=>many.prepare(x.id)));
+ assert.equal(loads,1,'one family import for three simultaneous instances');assert.ok(defs.every(x=>many.records.get(x.id).state==='READY'));
+});
