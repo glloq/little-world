@@ -52,11 +52,18 @@ try{
   check(chunks.includes('family'),'ball family chunk loaded on approach');
   await hold(page,120);await waitState(page,foot.id,'ACTIVE');
   check((await inst(page,foot.id)).session.status==='active','F starts a football session');
-  const ball0=(await inst(page,foot.id)).snapshot.world.state.slice(0,3);
-  await goTo(page,foot,0,-1.05);await page.waitForTimeout(300);await hold(page,2000);await page.waitForTimeout(1200);
-  const ball1=(await inst(page,foot.id)).snapshot.world.state.slice(0,3);
-  const moved=Math.hypot(ball1[0]-ball0[0],ball1[2]-ball0[2]);
-  check(moved>2,'charged F kicks the ball ('+moved.toFixed(1)+' m)');
+  // Live simulation state (the metrics copy is refreshed every 15 frames). A full-power kick can
+  // score and reset the ball to the centre within a second on a fast runner: accept either a
+  // displacement or a goal, never a fixed-time position.
+  const live=id=>page.evaluate(id=>{const r=window.littleWorldDebug.minigames.manager.records.get(id);
+    return {ball:r.sim.snapshot().world.state.slice(0,3),goals:Object.values(r.session?.scores??{}).reduce((a,b)=>a+b,0)};},id);
+  const before=await live(foot.id);
+  await goTo(page,foot,0,-1.05);await page.waitForTimeout(300);await hold(page,2000);
+  const kicked=await page.waitForFunction(([id,b,g])=>{const r=window.littleWorldDebug.minigames.manager.records.get(id);
+    const s=r.sim.snapshot().world.state,goals=Object.values(r.session?.scores??{}).reduce((a,c)=>a+c,0);
+    const moved=Math.hypot(s[0]-b[0],s[2]-b[2]);return moved>2||goals>g?{moved,goals}:null;},[foot.id,before.ball,before.goals],{timeout:15000,polling:50})
+    .then(h=>h.jsonValue()).catch(()=>null);
+  check(!!kicked,'charged F kicks the ball '+JSON.stringify(kicked??await live(foot.id)));
   if(shots)await page.screenshot({path:shots+'/football.png'});
   // Bowling.
   const bowl=g.instances.find(i=>i.variant==='bowling');
