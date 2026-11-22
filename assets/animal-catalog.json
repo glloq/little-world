@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "animals": [
+    {
+      "id": "animal.capybara.v6-3",
+      "name": "Capybara low-poly V6.3",
+      "file": "models/capybara-v6.3.obj",
+      "format": "obj",
+      "license": "project-original",
+      "source": "Original Little World capybara V6.3 prototype; approved silhouette retained",
+      "runtimeModule": "src/capybara/capybara-model.ts",
+      "locomotionModule": "src/capybara/capybara-gait.ts",
+      "meshCount": 1,
+      "vertexCount": 802,
+      "triangles": 1600,
+      "coordinateSystem": { "up": "+Y", "forward": "+X", "units": "metres", "pivot": "ground" },
+      "animations": ["idle", "walk-procedural-preview"],
+      "sockets": ["SocketRider", "SocketHitch"],
+      "status": "prototype-ready-for-world-integration",
+      "worldSpawnEnabled": false,
+      "rideableEnabled": false,
+      "draftEnabled": false,
+      "notes": "Walk is GPU vertex deformation, not a Blender skeleton/GLB animation clip. Mounting, hitbox, and traction gameplay are future integrations."
+    }
+  ]
+}
