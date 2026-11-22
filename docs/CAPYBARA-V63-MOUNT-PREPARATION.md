@@ -67,3 +67,48 @@ npm run build
 ```
 
 Le test navigateur interactif et la qualification iGPU restent nécessaires avant merge / activation dans le monde.
+
+
+## Équipements modulaires (optionnels)
+
+Le module `src/capybara/capybara-accessories.ts` construit et détruit à la demande six variantes :
+`none`, `saddle`, `pack`, `cart`, `wagon`, `caravan`.
+La selle et les sacoches sont fixées visuellement au corps ; charrette, wagon et roulotte sont **des prototypes de décor sans articulation ni dynamique de roues**.
+Changer de variante élimine les primitives de la précédente pour éviter les fuites mémoire. La ressource du corps reste mutualisée.
+
+```ts
+const animal = await createCapybaraModel('saddle');
+animal.setLoadout('caravan'); // Démo : ne crée pas de véhicule jouable.
+animal.setLoadout('none');
+```
+
+Le nombre de triangles/draw calls annoncé pour le corps (1600 / 1) ne comprend pas l'équipement. Les accessoires sont construits avec des primitives Three.js peu détaillées, sans textures et sans atlas : il faudra réduire leurs draw calls (fusion / partage / instancing) avant activation massive.
+
+## Présentation comportementale
+
+`src/capybara/capybara-pose.ts` fournit les états de présentation `idle`, `walk`, `follow`, `rest`, `sleep`, `wake`.
+Les états sont pilotés par une seule boucle extérieure. L'orientation vers le joueur est définie par une position monde (Three.Vector3) et convertie en yaw/pitch local, borné à ±0,55 et ±0,24 radians.
+
+```ts
+const animal = await createCapybaraModel('none');
+animal.setState('follow');
+animal.setLookTarget(player.group.position); // position monde, conservée par référence
+animal.update(dt, animalGroundSpeed);       // depuis la boucle existante
+
+animal.setState('rest');   // pose couchée approximative sur le côté
+animal.setState('sleep');  // yeux visuellement fermés + respiration lente
+animal.setState('wake');   // transition douce vers le repos debout
+```
+
+Cette couche est **visuelle uniquement**, sans intelligence de suivi, fatigue, besoins vitaux, interaction ni capacité de montage réelle. Les courbes de pose sont progressives et la marche reste pilotée par la vitesse.
+Les états couchés sont désactivés visuellement lorsque l'animal tracte `cart`, `wagon` ou `caravan`, afin d'éviter une déconnexion flagrante de l'attelage. Quand un animal bouge, la couche de pose impose la marche plutôt que le sommeil.
+
+**Limites à corriger** : l'inclinaison sur le côté est une rotation globale du maillage (pas une véritable pose anatomique). Les jambes ne se replient pas, le contact latéral avec le sol est approximatif, les paupières sont simulées par shading et la tête pivote par déformation locale du shader plutôt que par un os. Le futur rig Blender devra remplacer ces approximations sans changer l'API comportementale.
+
+## Tests supplémentaires
+
+```sh
+node --experimental-strip-types --test tests/capybara-pose.test.mjs
+```
+
+La qualification de la silhouette couchée, des appuis, de la selle et de la roulotte en navigateur est **non terminée**. Ajouter une galerie de validation et tester l'échelle d'un hamster assis avant d'intégrer à Studio.
