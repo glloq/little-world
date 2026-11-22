@@ -46,6 +46,23 @@ export function mountGeneratedPanel(host:HTMLElement,session:StudioSession,statu
    if(!links.paths.length){status(links.failed.length?`Aucune liaison praticable (${links.failed.length} lieu(x) restent isolés).`:'Tous les lieux sont déjà reliés.');return;}
    await session.change('Relier les lieux isolés',allChunks(session.document),d=>{for(const path of links.paths)putPath(d,path);});
    status(`${links.paths.length} liaison(s) ajoutée(s)${links.failed.length?` · ${links.failed.length} lieu(x) restent isolés`:''} · annulable.`);
+  }).catch(e=>status(String(e),true))),
+  // Planned roads (doc 109): paths cut at the bridges, footbridges and graded beds in one undoable transaction.
+  button('Tracer les routes (ponts, lacets, terrassement)',()=>withBusy('Tracé des routes…',async()=>{
+   const p=await loadAll(),{planRoadLinks,applyRoadLinks}=await import('../studio-core/road-links.ts');
+   const plan=planRoadLinks(p);
+   if(!plan.paths.length){status(plan.failed.length?`Aucune route praticable (${plan.failed.length} lieu(x) restent isolés).`:'Tous les lieux sont déjà reliés.');return;}
+   await session.change('Tracer les routes',allChunks(session.document),d=>{if(plan.earthworks.length)archipelago(d);applyRoadLinks(d,plan);});
+   out.replaceChildren(...plan.links.map(l=>node('p',`${l.name} : ${l.lengthM} m, ${l.bridges} pont(s), pente ≤ ${Math.round(l.maxGrade*100)} %`)),
+    ...plan.failed.map(f=>node('p',`${f.name} : ${f.reason}`,'diagnostic WARNING')));
+   status(`${plan.links.length} route(s), ${plan.bridges.length} pont(s), ${plan.earthworks.length} terrassement(s)${plan.failed.length?` · ${plan.failed.length} lieu(x) restent isolés`:''} · annulable.`);
+  }).catch(e=>status(String(e),true))),
+  button('Contrôler les routes',()=>withBusy('Contrôle des routes…',async()=>{
+   const p=await loadAll(),{auditProjectRoads}=await import('../studio-core/road-audit.ts'),a=auditProjectRoads(p),t=a.totals;
+   const bad=a.paths.filter(q=>q.underwaterM>0||q.steepM>5||q.fallLineM>20).sort((x,y)=>y.underwaterM*3+y.fallLineM+y.steepM-(x.underwaterM*3+x.fallLineM+x.steepM));
+   out.replaceChildren(node('p',`${t.lengthM} m de chemins · ${t.underwaterM} m sous l’eau · ${t.fallLineM} m dans la pente · ${t.tiltedM} m en dévers · ${t.unbridged} traversée(s) sans pont · ${t.misalignedBridges} pont(s) de travers`),
+    ...bad.slice(0,10).map(q=>node('p',`${q.pathId} : ${q.underwaterM} m sous l’eau, ${q.steepM} m trop raides, ${q.fallLineM} m dans la pente (${q.maxGradeAt.x}, ${q.maxGradeAt.z})`,'diagnostic WARNING')),
+    ...a.crossings.filter(c=>!c.bridgeId).slice(0,6).map(c=>node('p',`${c.pathId} traverse ${c.waterId} sans pont (${Math.round(c.x)}, ${Math.round(c.z)})`,'diagnostic WARNING')));
   }).catch(e=>status(String(e),true))),out);
   const locale=select('fr',[['fr','Français'],['en','English']],()=>{});
   box.append(field('Langue des textes générés',locale),button('Régénérer hôtes, dialogues et quêtes',()=>withBusy('Hôtes et quêtes…',async()=>{

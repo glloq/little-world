@@ -29,7 +29,7 @@ export function mountCompositionPanel(host:HTMLElement,session:StudioSession,sta
    try{
     const p=await session.fullDocument(),next={...structuredClone(nextRequirements),seed,compositionVersion:version};
     // Every V5-only option goes when composing with an older version (the validator refuses them).
-    if(version<5){for(const key of ['activities','maritimePort','welcomeVillage','welcomeActivity','layout','earthworks','circulation','poles','architecture','underwater','stories','locale'] as const)delete next[key];if(next.islandStyle)delete next.islandStyle.silhouette;}if(version<4)delete next.islandStyle;
+    if(version<5){for(const key of ['activities','maritimePort','welcomeVillage','welcomeActivity','layout','earthworks','circulation','roads','poles','architecture','underwater','stories','locale'] as const)delete next[key];if(next.islandStyle)delete next.islandStyle.silhouette;}if(version<4)delete next.islandStyle;
     const progress=createProgress('Recomposition',()=>composer.cancel());output.replaceChildren(progress.element);
     const result=await composer.recompose(p,next,mode,{onProgress:q=>progress.update(q)});progress.done();if(disposed)return;
     preview=result;output.replaceChildren(node('p',result.summary));

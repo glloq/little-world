@@ -23,7 +23,10 @@ float pathPattern(){
 export function createPathView(parent:THREE.Group,sectorSize:number,options:{radius?:number;lodDistance?:number;budgetMs?:number}={}){
   const radius=options.radius??360,lodDistance=options.lodDistance??160,budget=options.budgetMs??2;
   const root=new THREE.Group();root.name='Paths';parent.add(root);
-  const material=new THREE.MeshLambertMaterial({vertexColors:true,side:THREE.DoubleSide});
+  // Depth bias toward the camera: negligible up close (millimetres), growing with distance like the
+  // error of the coarser terrain LODs — a road on a narrow graded bed must not be swallowed by the
+  // far relief mesh (doc 109 §5). Free: no pass, no texture.
+  const material=new THREE.MeshLambertMaterial({vertexColors:true,side:THREE.DoubleSide,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-120});
   material.onBeforeCompile=shader=>{
     shader.vertexShader=PATTERN_VERTEX+shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvPathUv=pathUv;vPathKind=pathKind;');
     shader.fragmentShader=PATTERN_FRAGMENT+shader.fragmentShader.replace('#include <color_fragment>','#include <color_fragment>\ndiffuseColor.rgb*=pathPattern();');
