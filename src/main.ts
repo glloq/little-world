@@ -309,7 +309,10 @@ try{
       definition=merged;
     }else definition=boostCatalog;
   }
-  if(definition){const {createAudioController}=await import('./audio/view.ts');const catalogue=toAudioCatalog(definition);audio=createAudioController(withFishingSounds(activeIsland?withFerryBells(catalogue):catalogue),{baseUrl:import.meta.env.BASE_URL});}
+  if(definition){const {createAudioController}=await import('./audio/view.ts');let catalogue=toAudioCatalog(definition);
+    // Mini-game sounds only for islands that declare mini-games (lazy module, doc 107 §audio).
+    if(playable?.minigames?.length||searchParams.get('minigames')==='demo')catalogue=(await import('./minigames/audio.ts')).withMiniGameSounds(catalogue);
+    audio=createAudioController(withFishingSounds(activeIsland?withFerryBells(catalogue):catalogue),{baseUrl:import.meta.env.BASE_URL});}
  }catch{console.warn('Audio indisponible : le jeu reste silencieux.');}
 const {createGroundProbe}=await import('./audio/world-probe.ts'),groundProbe=createGroundProbe();
 let gameplay:GameplayView|null=null;
@@ -681,12 +684,24 @@ const minigameHost=await (async()=>{
   if(searchParams.get('minigames')==='demo'&&!isLegacyTerrain()){
     const c=getTerrainConfig(),w=(c.width??200)/2,l=(c.length??600)/2,{demoMiniGames,runtimeObstacles}=await import('./minigames/demo.ts'),{DRESSING_CELL_M,ITEM_STRIDE}=await import('./geography/dressing.ts');
     const obstacles=runtimeObstacles({cell:gameplay?.gathering?.cell,cellSize:DRESSING_CELL_M,stride:ITEM_STRIDE,solids:gameplay?(a,b,c,d)=>gameplay!.collision.solidsNear(a,b,c,d):undefined});
-    defs=[...defs,...demoMiniGames({x:player.position.x,z:player.position.z},{height:terrainHeight,water:waterSurface,obstacles},{minX:-w,maxX:w,minZ:-l,maxZ:l})];
+    // Demo-only theme override (captures): ?minigameTheme=snow|forest|… (validated by the schema).
+    const theme=searchParams.get('minigameTheme'),{MINIGAME_THEME_IDS}=await import('./minigames/themes.ts');
+    defs=[...defs,...demoMiniGames({x:player.position.x,z:player.position.z},{height:terrainHeight,water:waterSurface,obstacles},{minX:-w,maxX:w,minZ:-l,maxZ:l})
+      .map(d=>theme&&(MINIGAME_THEME_IDS as readonly string[]).includes(theme)?{...d,style:{...d.style,theme:theme as NonNullable<typeof d.style>['theme']}}:d)];
   }
   if(!defs.length)return null;
   const {createMiniGameHost}=await import('./minigames/game-host.ts');
+  const {minigameFxTier}=await import('./minigames/fx/tier.ts');
   return createMiniGameHost({parent:scene,defs,collision:gameplay?.collision??null,height:terrainHeight,water:waterSurface,
-    showInfo,emit:e=>gameplay?.emitGameplayEvent(e),hudHost:document.body,records:localStorage,worldBuild:gameplay?.runtime.data.buildVersion??''});
+    showInfo,emit:e=>gameplay?.emitGameplayEvent(e),hudHost:document.body,records:localStorage,worldBuild:gameplay?.runtime.data.buildVersion??'',
+    // Presentation services (doc 107 §évolution graphique): the existing character, audio,
+    // residents, quality controller, geography and impact chips — nothing duplicated.
+    character:{play:a=>character.play(a),express:(e,seconds)=>character.express(e,seconds)},
+    audio:{emit:(id,o)=>audio?.emit(id,o)},
+    spectators:{spectate:(at,o)=>npcs.spectate(at,o)},
+    tier:()=>minigameFxTier(quality.value,budget.level),
+    ground:isLegacyTerrain()?undefined:(x,z)=>{try{const g=classifyPoint(geoContext(),x,z);return {biome:g.biome,material:g.material};}catch{return null;}},
+    chips:(x,y,z,kind,count)=>{chipAt.set(x,y,z);impacts.spawn(chipAt,kind,count);}});
 })();
 if(metricsEnabled&&minigameHost)Object.assign((window as unknown as {littleWorldDebug?:object}).littleWorldDebug??{},{minigames:minigameHost});
 world.update(0, player.position);
@@ -1079,6 +1094,21 @@ function isMenuKey(e: KeyboardEvent): boolean {
   return e.key.toLowerCase() === 'a' && !e.altKey && !e.ctrlKey && !e.metaKey;
 }
 const orbitDrag = new MouseDragOrbit();
+// Mini-game gaze (doc 107 §regard): presentation-only head overlay towards the ball in play,
+// limited and smoothed; nothing when no game is played.
+const chipAt=new THREE.Vector3();
+let gazeYaw=0,gazePitch=0;
+function applyMiniGameGaze(dt:number){
+  const target=minigameHost?.lookTarget()??null;let yawGoal=0,pitchGoal=0;
+  if(target&&player.mode==='ground'){
+    const dx=target.x-character.group.position.x,dz=target.z-character.group.position.z,d=Math.hypot(dx,dz);
+    if(d>.3){const rel=Math.atan2(Math.sin(Math.atan2(dx,dz)-character.rig.group.rotation.y),Math.cos(Math.atan2(dx,dz)-character.rig.group.rotation.y));
+      yawGoal=Math.max(-.9,Math.min(.9,rel));pitchGoal=Math.max(-.35,Math.min(.35,-Math.atan2(target.y-character.group.position.y-.5,d)*.6));}
+  }
+  const k=Math.min(1,dt*6);gazeYaw+=(yawGoal-gazeYaw)*k;gazePitch+=(pitchGoal-gazePitch)*k;
+  if(Math.abs(gazeYaw)+Math.abs(gazePitch)<1e-3)return;
+  const head=character.rig.joints.Head;head.rotation.y+=gazeYaw;head.rotation.x+=gazePitch;
+}
 // Mini-game slingshot (doc 107 §visée): a left press on the ball grabs it instead of orbiting.
 const aimRaycaster=new THREE.Raycaster(),aimNdc=new THREE.Vector2();
 let aimPointer:number|null=null;
@@ -1908,6 +1938,7 @@ function draw(now: number) {
   character.setAboard(aboard);
   if(gameplay){const f=gameplay.fishing.state;character.setFishing(f.phase!=='idle'&&f.castAt?{x:f.castAt.x,y:waterSurface(f.castAt.x,f.castAt.z)??getTerrainConfig().seaLevel,z:f.castAt.z,biting:f.phase==='bite'}:null);}
   character.update(player, delta, elapsed);
+  applyMiniGameGaze(delta);
   snowCharacterView.update(player);
   applySurfPose(character,player,motionTick);
   // Water tumble is a hero-only overlay; keep the hamster swim/dive state authoritative.
@@ -1980,7 +2011,7 @@ function draw(now: number) {
   frameCount++;
   const renderBegin = performance.now();
   gpuTimer.begin();
-  minigameHost?.render(frame.alpha);
+  minigameHost?.render(frame.alpha,delta);
   renderer.render(scene, camera);
   gpuTimer.end();
   const renderSubmitMs = performance.now() - renderBegin;

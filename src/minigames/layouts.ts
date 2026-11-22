@@ -46,7 +46,11 @@ function minigolf():Omit<MiniGameInstanceV1,'id'|'name'|'area'>&{size:[number,nu
   elements.push({id:'block-a',kind:'obstacle',stage:0,x:-3.15,z:-5.2,width:.9,depth:.2,height:.3},
     {id:'block-b',kind:'obstacle',stage:0,x:-2.45,z:-3.6,width:.9,depth:.2,height:.3},
     {id:'baffle-a',kind:'obstacle',stage:5,x:-3.1,z:3.4,width:1,depth:.2,height:.3},
-    {id:'baffle-b',kind:'obstacle',stage:5,x:-2.5,z:5.4,width:1,depth:.2,height:.3});
+    {id:'baffle-b',kind:'obstacle',stage:5,x:-2.5,z:5.4,width:1,depth:.2,height:.3},
+    // Decoration (doc 107 §décors): start / finish arches, a tunnel over hole 6 and a windmill
+    // between the rows — placed off the lanes so the course plays exactly as before.
+    {id:'arch-start',kind:'decor',prop:'arch-start',x:-2.8,z:-7.75},{id:'arch-finish',kind:'decor',prop:'arch-finish',x:-2.8,z:8.3},
+    {id:'tunnel-6',kind:'decor',prop:'tunnel',x:-2.8,z:2.6},{id:'windmill',kind:'decor',prop:'windmill',x:-1.4,z:0});
   return {version:1,family:'ball',variant:'minigolf',playersMin:1,playersMax:4,size:[4.2,8.6],
     rules:{attempts:6,par:14,timeLimitSeconds:900,practice:true},elements};
 }

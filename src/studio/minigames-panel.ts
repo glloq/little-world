@@ -8,15 +8,16 @@ import type {StudioSession} from './session.ts';
 import type {StudioViewport} from './viewport/editor-viewport.ts';
 import {MINIGAME_VARIANTS,MINIGAME_VARIANT_IDS,ACTIVITY_FAMILIES,FLOOR_SHAPES,type FloorShape,type MiniGameVariantId} from '../minigames/catalog.ts';
 import type {MiniGameElementV1,MiniGameInstanceV1,MiniGameRulesV1} from '../minigames/schema.ts';
+import {MINIGAME_BORDERS,MINIGAME_PROP_IDS,MINIGAME_PROPS,MINIGAME_THEME_IDS,MINIGAME_THEME_LABELS,type MiniGameBorder,type MiniGamePropId,type MiniGameStyleV1,type MiniGameThemeId} from '../minigames/themes.ts';
 import {inspectMiniGame,suggestMiniGameSites,type SiteQueries} from '../minigames/sites.ts';
-import {addGolfHole,createMiniGame,flattenMiniGameGround,GOLF_HOLE_TYPES,putMiniGame,removeGolfHole,removeMiniGame,resetMiniGameLayout,setGolfHoleShape} from '../studio-core/minigame-authoring.ts';
-import {projectSiteQueries} from '../studio-core/minigame-composition.ts';
+import {addGolfHole,createMiniGame,GOLF_HOLE_TYPES,miniGamePad,putMiniGame,removeGolfHole,removeMiniGame,removeMiniGamePad,resetMiniGameLayout,setGolfHoleShape} from '../studio-core/minigame-authoring.ts';
+import {gradeMiniGame,projectSiteQueries} from '../studio-core/minigame-composition.ts';
 import {terrainHeight} from '../terrain.ts';
 
 export interface MiniGamesPanelContext {session:StudioSession;viewport:StudioViewport;status(message:string,error?:boolean):void}
 const RULE_FIELDS:[keyof MiniGameRulesV1,string,number,number][]=[
   ['scoreTarget','Score à atteindre',1,99],['timeLimitSeconds','Durée max (s)',10,3600],['attempts','Tentatives / coups max',1,20],['rounds','Manches',1,10],['par','Par',1,20]];
-const ELEMENT_LABELS:Record<MiniGameElementV1['kind'],string>={goal:'But',pin:'Quille',tee:'Départ',hole:'Trou',obstacle:'Obstacle',spawn:'Point de départ',ball:'Balle',target:'Cible',lane:'Piste'};
+const ELEMENT_LABELS:Record<MiniGameElementV1['kind'],string>={goal:'But',pin:'Quille',tee:'Départ',hole:'Trou',obstacle:'Obstacle',spawn:'Point de départ',ball:'Balle',target:'Cible',lane:'Piste',scoreboard:'Tableau de score',decor:'Décoration'};
 const SHAPE_LABELS:Record<FloorShape,string>={flat:'Plat','ramp-up':'Montée','ramp-down':'Descente',bank:'Dévers',bumps:'Bosses'};
 const deg=(r:number)=>Math.round(r*180/Math.PI),rad=(d:number)=>Math.round(d*Math.PI/180*100)/100;
 
@@ -34,6 +35,33 @@ async function refreshPreview(ctx:MiniGamesPanelContext){
 }
 /** Called by the shell when the module closes. */
 export function disposeMiniGamesPreview(ctx:Pick<MiniGamesPanelContext,'viewport'>){preview?.dispose();preview=null;previewKey='';ctx.viewport.setOverlay('minigames',null);}
+
+/** Presentation options (doc 107 §évolution graphique), grouped and compact: theme, borders,
+ * score board, flags, automatic decoration, balls, effects; placed boards and decorations
+ * are ordinary elements (3D gizmo, Undo/Redo, archives). */
+function presentationEditor(g:MiniGameInstanceV1,edit:(label:string,next:MiniGameInstanceV1)=>void){
+  const box=node('details','','minigame-style'),st=g.style??{};box.append(node('summary','Présentation et décor'));
+  const setStyle=(label:string,patch:Partial<MiniGameStyleV1>)=>{const next={...st,...patch};for(const k of Object.keys(next) as (keyof MiniGameStyleV1)[])if(next[k]===undefined)delete next[k];
+    edit(label,Object.keys(next).length?{...g,style:next}:(({style:_drop,...rest})=>rest)(g) as MiniGameInstanceV1);};
+  const yes=(v:boolean|undefined)=>v===false?'no':'yes';
+  box.append(
+    field('Thème',select(st.theme??'auto',[['auto','Automatique (biome)'],...MINIGAME_THEME_IDS.map(t=>[t,MINIGAME_THEME_LABELS[t]] as const)],v=>setStyle('Thème du terrain',{theme:v==='auto'?undefined:v as MiniGameThemeId}))),
+    field('Bordures',select(st.border??'auto',[['auto','Selon le thème'],...MINIGAME_BORDERS.map(b=>[b,BORDER_LABELS[b]] as const)],v=>setStyle('Bordures du terrain',{border:v==='auto'?undefined:v as MiniGameBorder}))),
+    field('Décor automatique',select(st.decor??'light',[['none','Aucun'],['light','Léger'],['full','Complet']],v=>setStyle('Décor automatique',{decor:v==='light'?undefined:v as 'none'|'full'}))),
+    field('Tableau de score',select(yes(st.scoreboard),[['yes','Affiché'],['no','Masqué']],v=>setStyle('Tableau de score',{scoreboard:v==='yes'?undefined:false}))),
+    field('Fanions',select(yes(st.flags),[['yes','Oui'],['no','Non']],v=>setStyle('Fanions',{flags:v==='yes'?undefined:false}))),
+    field('Balles',select(st.balls??'classic',[['classic','Couleurs classiques'],['bright','Contrastées']],v=>setStyle('Apparence des balles',{balls:v==='classic'?undefined:'bright'}))),
+    field('Effets',select(yes(st.effects),[['yes','Autorisés'],['no','Désactivés']],v=>setStyle('Effets visuels',{effects:v==='yes'?undefined:false}))),
+    node('p','Le niveau de détail suit le réglage de qualité du joueur (bas : décor essentiel, sans traînées).','muted'));
+  const free=(prefix:string)=>{let n=1;while(g.elements.some(e=>e.id===prefix+'-'+n))n++;return prefix+'-'+n;};
+  const {halfWidth:hw,halfLength:hl}=g.area,count=(k:string)=>g.elements.filter(e=>e.kind===k).length;
+  if(count('scoreboard')<2)box.append(button('Ajouter un tableau de score',()=>edit('Ajouter un tableau de score',{...g,elements:[...g.elements,{id:free('board'),kind:'scoreboard',x:-Math.min(hw+3,hw+7.9),z:0,yaw:Math.PI/2}]})));
+  let prop:MiniGamePropId='podium';
+  if(count('decor')<24)box.append(field('Décoration',select(prop,MINIGAME_PROP_IDS.map(p=>[p,MINIGAME_PROPS[p].label] as const),v=>{prop=v as MiniGamePropId;})),
+    button('Ajouter (bord de la zone, déplaçable en 3D)',()=>edit('Ajouter une décoration',{...g,elements:[...g.elements,{id:free('decor'),kind:'decor',prop,x:Math.min(hw+2,hw+7.9),z:-hl*.5,yaw:-Math.PI/2}]})));
+  return box;
+}
+const BORDER_LABELS:Record<MiniGameBorder,string>={boards:'Planches blanches',wood:'Bois',logs:'Rondins',rope:'Cordes',stone:'Pierre',snowbank:'Neige',basalt:'Basalte',planks:'Planches'};
 
 /** Holes of a staged course: relief type and slope per lane, add / remove a hole. */
 function courseEditor(g:MiniGameInstanceV1,edit:(label:string,next:MiniGameInstanceV1)=>void,ctx:MiniGamesPanelContext){
@@ -60,7 +88,12 @@ function courseEditor(g:MiniGameInstanceV1,edit:(label:string,next:MiniGameInsta
 
 export function mountMiniGamesPanel(host:HTMLElement,ctx:MiniGamesPanelContext){
   const doc=ctx.session.document,games=Object.values(doc.libraries.minigames??{});
-  const edit=(label:string,next:MiniGameInstanceV1)=>void ctx.session.change(label,[],d=>putMiniGame(d,next)).catch(e=>ctx.status(String(e instanceof Error?e.message:e),true));
+  // A graded field follows its area: moving, turning or resizing it re-levels its pad from
+  // the natural ground (one transaction, Undo restores both).
+  const edit=(label:string,next:MiniGameInstanceV1)=>void ctx.session.change(label,[],d=>{
+    const before=d.libraries.minigames?.[next.id];putMiniGame(d,next);
+    if(miniGamePad(d,next.id)&&before&&JSON.stringify(before.area)!==JSON.stringify(next.area))gradeMiniGame(d,next);
+  }).catch(e=>ctx.status(String(e instanceof Error?e.message:e),true));
   host.append(node('div','MINI-JEUX','kicker'),node('h3','Mini-jeux de l’île'),
     node('p','Chaque mini-jeu est une instance indépendante (zone, éléments, règles) chargée par le jeu seulement à proximité. Testez avec « Jouer ici ».','muted'));
   // Creation.
@@ -76,14 +109,14 @@ export function mountMiniGamesPanel(host:HTMLElement,ctx:MiniGamesPanelContext){
     field('Nom (facultatif)',input('',v=>{name=v.trim();})),
     button('Créer au centre de la vue',async()=>{
       const t=ctx.viewport.camera.target,game=createMiniGame(ctx.session.document,variant,{x:t.x,z:t.z},name||undefined);
-      await ctx.session.change('Créer un mini-jeu',[],d=>putMiniGame(d,game)).then(()=>ctx.status(game.name+' créé : vérifiez le terrain puis « Jouer ici ».')).catch(e=>ctx.status(String(e instanceof Error?e.message:e),true));
+      await ctx.session.change('Créer un mini-jeu',[],d=>{putMiniGame(d,game);gradeMiniGame(d,game);}).then(()=>ctx.status(game.name+' créé sur un sol aplani : vérifiez puis « Jouer ici ».')).catch(e=>ctx.status(String(e instanceof Error?e.message:e),true));
     },'primary-button'),
     button('Trouver un terrain adapté près de la vue',async()=>{
       const t=ctx.viewport.camera.target,b=ctx.session.document.world.bounds,avoid=Object.values(ctx.session.document.libraries.minigames??{}).map(g=>g.area);
       const [area]=suggestMiniGameSites(variant,siteQueries(ctx),{anchors:[t],bounds:b,avoid,maxDistance:200});
       if(!area){ctx.status('Aucun terrain assez plat et libre à moins de 200 m',true);return;}
       const game=createMiniGame(ctx.session.document,variant,area,name||undefined);
-      await ctx.session.change('Créer un mini-jeu sur un terrain adapté',[],d=>putMiniGame(d,game)).catch(e=>ctx.status(String(e),true));
+      await ctx.session.change('Créer un mini-jeu sur un terrain adapté',[],d=>{putMiniGame(d,game);gradeMiniGame(d,game);}).catch(e=>ctx.status(String(e),true));
       ctx.viewport.goTo(area.x,area.z,30);ctx.status(game.name+' placé sur un terrain adapté.');
     }));
   host.append(create,node('p',MINIGAME_VARIANTS[variant].description,'muted'));
@@ -118,9 +151,16 @@ export function mountMiniGamesPanel(host:HTMLElement,ctx:MiniGamesPanelContext){
         field('z',numberInput(e.z,v=>patch({z:v},'Déplacer un élément'),-a.halfLength,a.halfLength,'.1')));
       if(e.kind==='obstacle')row.append(field('largeur',numberInput(e.width??1,v=>patch({width:v},'Redimensionner un obstacle'),.1,20,'.1')),
         button('Retirer',()=>set('Retirer un obstacle',{elements:g.elements.filter(x=>x.id!==e.id)})));
+      if(e.kind==='decor')row.append(field('objet',select(e.prop??'flag',MINIGAME_PROP_IDS.map(p=>[p,MINIGAME_PROPS[p].label] as const),v=>patch({prop:v as MiniGamePropId},'Changer une décoration'))),
+        field('orientation (°)',numberInput(deg(e.yaw??0),v=>patch({yaw:rad(v)},'Orienter une décoration'),-360,360,'5')),
+        button('Retirer',()=>set('Retirer une décoration',{elements:g.elements.filter(x=>x.id!==e.id)})));
+      if(e.kind==='scoreboard')row.append(field('matière',select(e.prop??'auto',[['auto','Selon le thème'],['wood','Bois'],['stone','Pierre']],v=>patch({prop:v==='auto'?undefined:v as 'wood'|'stone'},'Matière du tableau de score'))),
+        field('orientation (°)',numberInput(deg(e.yaw??0),v=>patch({yaw:rad(v)},'Orienter un tableau de score'),-360,360,'5')),
+        button('Retirer',()=>set('Retirer un tableau de score',{elements:g.elements.filter(x=>x.id!==e.id)})));
       table.append(row);
     }
     box.append(table);
+    box.append(presentationEditor(g,(label,next)=>edit(label,next)));
     const allowed=MINIGAME_VARIANTS[g.variant].elements.obstacle;
     if(allowed&&g.elements.filter(e=>e.kind==='obstacle').length<allowed[1])
       box.append(button('Ajouter un obstacle',()=>{let n=1;while(g.elements.some(e=>e.id==='obstacle-'+n))n++;set('Ajouter un obstacle',{elements:[...g.elements,{id:'obstacle-'+n,kind:'obstacle',x:0,z:0,width:1.2,depth:.3,height:.35}]});}));
@@ -131,7 +171,8 @@ export function mountMiniGamesPanel(host:HTMLElement,ctx:MiniGamesPanelContext){
       button('Déplacer au centre de la vue',()=>{const t=ctx.viewport.camera.target;set('Déplacer le mini-jeu',{area:{...a,x:Math.round(t.x*10)/10,z:Math.round(t.z*10)/10}});}),
       button('Disposition par défaut',()=>set('Disposition par défaut',resetMiniGameLayout(g))),
       // Optional: flat ground under the activity (an earthwork pad, annulable like any edit).
-      button('Aplanir le terrain',()=>void ctx.session.change('Aplanir le terrain du mini-jeu',[],d=>{const pad=flattenMiniGameGround(d,g,siteQueries(ctx).height);ctx.status(`Terrain aplani à ${pad.levelM} m (terrassement « ${pad.id} », annulable).`);}).catch(e=>ctx.status(String(e instanceof Error?e.message:e),true))),
+      button(miniGamePad(doc,g.id)?'Réaplanir le terrain':'Aplanir le terrain',()=>void ctx.session.change('Aplanir le terrain du mini-jeu',[],d=>{const pad=gradeMiniGame(d,g);ctx.status(pad?`Sol lissé au niveau moyen ${pad.levelM} m (terrassement « ${pad.id} », annulable).`:'Relief historique : pas de terrassement possible.',!pad);}).catch(e=>ctx.status(String(e instanceof Error?e.message:e),true))),
+      ...(miniGamePad(doc,g.id)?[button('Rendre le relief naturel',()=>void ctx.session.change('Retirer le terrassement du mini-jeu',[],d=>removeMiniGamePad(d,g.id)).catch(e=>ctx.status(String(e),true)))]:[]),
       button('Supprimer',()=>void ctx.session.change('Supprimer un mini-jeu',[],d=>removeMiniGame(d,g.id)).catch(e=>ctx.status(String(e),true))));
     host.append(box);
   }

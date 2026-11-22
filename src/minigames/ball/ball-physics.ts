@@ -23,12 +23,15 @@ export const BALL_LIMITS={maxBalls:32,maxSubsteps:16,maxSpeed:30,sleepSpeed:.06,
 export interface BallSpec {id:string;x:number;y:number;z:number;radius:number;mass:number;restitution:number;rolling:number;asleep?:boolean}
 /** Oriented box: yaw rotation in XZ (same frame convention as the mini-game area), AABB in Y. */
 /** Presentation role of a static box (the view styles it; physics ignores it). */
-export type StaticBoxTag='wall'|'obstacle'|'net'|'post'|'bumper'|'board';
+export type StaticBoxTag='wall'|'obstacle'|'net'|'post'|'bumper'|'board'|'prop';
 export interface StaticBox {cx:number;cz:number;hx:number;hz:number;minY:number;maxY:number;cos:number;sin:number;restitution:number;tag?:StaticBoxTag}
 export function orientedBox(cx:number,cz:number,width:number,depth:number,minY:number,maxY:number,yaw:number,restitution=.6):StaticBox{
   return {cx,cz,hx:width/2,hz:depth/2,minY,maxY,cos:Math.cos(yaw),sin:Math.sin(yaw),restitution};
 }
 export interface BallWorldSnapshot {ids:string[];state:number[]}
+/** Kinds of the strongest contact of a step (`BallWorld.hitKind`); for HIT.ball, `hitBox`
+ * holds the other ball's index. */
+export const HIT={none:0,ground:1,box:2,ball:3,shared:4} as const;
 const STRIDE=9;
 
 export class BallWorld {
@@ -41,6 +44,11 @@ export class BallWorld {
   readonly asleep:Uint8Array;readonly enabled:Uint8Array;readonly grounded:Uint8Array;readonly inWater:Uint8Array;readonly idle:Uint16Array;
   /** Strongest contact closing speed during the last step (pins, sounds, events). */
   readonly hitSpeed:Float64Array;
+  /** What that strongest contact was (presentation only: effects, sounds): see `HIT`, and
+   * for a static box its index in `boxes` (else -1). Never read by the physics. */
+  readonly hitKind:Uint8Array;readonly hitBox:Int16Array;
+  /** Number of `step` calls so far (a renderer detects new physics steps with it). */
+  steps=0;
   /** Local oriented obstacles of the activity. */
   boxes:StaticBox[]=[];
   /** Number of integrated (awake) ball sub-steps during the last step (benchmarks). */
@@ -55,7 +63,7 @@ export class BallWorld {
     if(!Number.isSafeInteger(capacity)||capacity<1||capacity>BALL_LIMITS.maxBalls)throw Error('Capacité de balles invalide');
     this.capacity=capacity;const f=()=>new Float64Array(capacity);
     this.px=f();this.py=f();this.pz=f();this.vx=f();this.vy=f();this.vz=f();this.ox=f();this.oy=f();this.oz=f();
-    this.radius=f();this.invMass=f();this.restitution=f();this.rolling=f();this.hitSpeed=f();
+    this.radius=f();this.invMass=f();this.restitution=f();this.rolling=f();this.hitSpeed=f();this.hitKind=new Uint8Array(capacity);this.hitBox=new Int16Array(capacity);
     this.asleep=new Uint8Array(capacity);this.enabled=new Uint8Array(capacity);this.grounded=new Uint8Array(capacity);this.inWater=new Uint8Array(capacity);this.idle=new Uint16Array(capacity);
   }
   add(s:BallSpec):number{
@@ -84,9 +92,9 @@ export class BallWorld {
 
   step(dt:number){
     if(!(dt>0&&dt<=.25))throw Error('Pas de balle invalide');
-    let maxV=0,minR=Infinity,awake=0,minX=Infinity,maxX=-Infinity,minZ=Infinity,maxZ=-Infinity;
+    let maxV=0,minR=Infinity,awake=0,minX=Infinity,maxX=-Infinity,minZ=Infinity,maxZ=-Infinity;this.steps++;
     for(let i=0;i<this.count;i++){
-      this.ox[i]=this.px[i];this.oy[i]=this.py[i];this.oz[i]=this.pz[i];this.hitSpeed[i]=0;
+      this.ox[i]=this.px[i];this.oy[i]=this.py[i];this.oz[i]=this.pz[i];this.hitSpeed[i]=0;this.hitKind[i]=HIT.none;this.hitBox[i]=-1;
       if(!this.enabled[i]||this.asleep[i])continue;
       awake++;const v=this.speed(i),r=this.radius[i],reach=v*dt+r;maxV=Math.max(maxV,v);minR=Math.min(minR,r);
       minX=Math.min(minX,this.px[i]-reach);maxX=Math.max(maxX,this.px[i]+reach);minZ=Math.min(minZ,this.pz[i]-reach);maxZ=Math.max(maxZ,this.pz[i]+reach);
@@ -101,7 +109,7 @@ export class BallWorld {
       if(v>limit){const k=limit/v;this.vx[i]*=k;this.vy[i]*=k;this.vz[i]*=k;}
     }
     for(let k=0;k<n;k++){
-      for(let i=0;i<this.count;i++){if(!this.enabled[i]||this.asleep[i])continue;this.lastWork++;this.integrate(i,h);this.ground(i,h);this.collideBoxes(i,this.boxes,this.boxes.length);this.collideBoxes(i,this.shared,this.sharedCount);}
+      for(let i=0;i<this.count;i++){if(!this.enabled[i]||this.asleep[i])continue;this.lastWork++;this.integrate(i,h);this.ground(i,h);this.collideBoxes(i,this.boxes,this.boxes.length,HIT.box);this.collideBoxes(i,this.shared,this.sharedCount,HIT.shared);}
       this.collidePairs();
     }
     for(let i=0;i<this.count;i++){
@@ -140,7 +148,7 @@ export class BallWorld {
     if(this.py[i]>rest+.002){this.grounded[i]=0;return;}
     this.py[i]=rest;this.grounded[i]=1;
     const vn=this.vx[i]*nx+this.vy[i]*ny+this.vz[i]*nz;
-    if(vn<0){const k=-vn>BALL_LIMITS.bounceMin?1+this.restitution[i]:1;this.vx[i]-=k*vn*nx;this.vy[i]-=k*vn*ny;this.vz[i]-=k*vn*nz;if(-vn>BALL_LIMITS.bounceMin)this.hitSpeed[i]=Math.max(this.hitSpeed[i],-vn);}
+    if(vn<0){const k=-vn>BALL_LIMITS.bounceMin?1+this.restitution[i]:1;this.vx[i]-=k*vn*nx;this.vy[i]-=k*vn*ny;this.vz[i]-=k*vn*nz;if(-vn>BALL_LIMITS.bounceMin)this.hit(i,-vn,HIT.ground,-1);}
     // Rolling body: part of the slope's gravity spins the sphere instead of moving it
     // (5/7 g sinθ for a solid ball), so steep descents no longer over-accelerate.
     const gh=this.g*h*BALL_LIMITS.rollingInertia;this.vx[i]-=gh*ny*nx;this.vy[i]+=gh*(1-ny*ny);this.vz[i]-=gh*ny*nz;
@@ -150,7 +158,9 @@ export class BallWorld {
     const friction=SURFACE_MOTION[this.env.material?.(x,z)??'grass'].friction,decel=this.rolling[i]*friction*this.g*BALL_LIMITS.rollCoefficient*h;
     const k=ts<=decel?1:decel/ts;this.vx[i]-=tx*k;this.vy[i]-=ty*k;this.vz[i]-=tz*k;
   }
-  private collideBoxes(i:number,boxes:readonly StaticBox[],count:number){
+  /** Records the strongest contact of the step (presentation bookkeeping only). */
+  private hit(i:number,speed:number,kind:number,box:number){if(speed>this.hitSpeed[i]){this.hitSpeed[i]=speed;this.hitKind[i]=kind;this.hitBox[i]=box;}}
+  private collideBoxes(i:number,boxes:readonly StaticBox[],count:number,kind:number){
     const r=this.radius[i];
     for(let b=0;b<count;b++){
       const box=boxes[b],dx=this.px[i]-box.cx,dz=this.pz[i]-box.cz;
@@ -168,7 +178,7 @@ export class BallWorld {
       const nx=ax*c+az*s,nz=-ax*s+az*c,ny=ay;
       this.px[i]+=nx*pen;this.py[i]+=ny*pen;this.pz[i]+=nz*pen;
       const vn=this.vx[i]*nx+this.vy[i]*ny+this.vz[i]*nz;
-      if(vn<0){const k=1+Math.min(this.restitution[i],box.restitution);this.vx[i]-=k*vn*nx;this.vy[i]-=k*vn*ny;this.vz[i]-=k*vn*nz;this.hitSpeed[i]=Math.max(this.hitSpeed[i],-vn);}
+      if(vn<0){const k=1+Math.min(this.restitution[i],box.restitution);this.vx[i]-=k*vn*nx;this.vy[i]-=k*vn*ny;this.vz[i]-=k*vn*nz;this.hit(i,-vn,kind,kind===HIT.box?b:-1);}
       if(ny>.7)this.grounded[i]=1;
     }
   }
@@ -190,7 +200,7 @@ export class BallWorld {
         this.vx[i]-=J*wi*nx;this.vy[i]-=J*wi*ny;this.vz[i]-=J*wi*nz;
         this.vx[j]+=J*wj*nx;this.vy[j]+=J*wj*ny;this.vz[j]+=J*wj*nz;
         this.asleep[i]=this.asleep[j]=0;this.idle[i]=this.idle[j]=0;
-        this.hitSpeed[i]=Math.max(this.hitSpeed[i],-vr);this.hitSpeed[j]=Math.max(this.hitSpeed[j],-vr);
+        this.hit(i,-vr,HIT.ball,j);this.hit(j,-vr,HIT.ball,i);
       }
     }
   }

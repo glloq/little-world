@@ -173,3 +173,12 @@ test('floors: an access ramp (apron) lets the hamster walk onto a deck raised ab
  for(let z=edge-A-.5;z<edge+2;z+=.2){const y=q.reliefHeight(0,z,feet);assert.ok(y-feet<=.45,'every step is walkable at z='+z.toFixed(1));feet=y;}
  assert.equal(feet,deck,'the hamster ends on the deck');
 });
+
+test('activity platforms are solid: a hamster below the deck stands on it (never walks through); bridges keep their rule',async()=>{
+ const q=new WorldCollisionQuery((x,z)=>.2*z,()=>null),sample=(x,z)=>Math.abs(x)<5&&Math.abs(z)<5?3:null,b={minX:-5,maxX:5,minZ:-5,maxZ:5};
+ q.setOutdoorSurface('field',{sample,...b,solid:true});
+ assert.equal(q.surfaceAt({x:0,y:0,z:0},undefined,.4).floorY,3,'feet at the ground under a 3 m platform: standing on it');
+ assert.equal(q.reliefHeight(0,0,0),3);
+ q.setOutdoorSurface('field',{sample,...b});
+ assert.equal(q.surfaceAt({x:0,y:0,z:0},undefined,.4).floorY,0,'a bridge is still walked under');
+});

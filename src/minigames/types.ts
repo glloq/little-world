@@ -21,7 +21,8 @@ export interface MiniGameStepContext {
 }
 export interface MiniGameAim {anchor:{x:number;y:number;z:number};maxPull:number;canLoft:boolean;defaultLoft:number}
 /** Deck sampler with its world bounds (WorldCollisionQuery.setOutdoorSurface). */
-export interface MiniGameSurface {sample(x:number,z:number):number|null;minX:number;maxX:number;minZ:number;maxZ:number}
+export interface MiniGameSurface {sample(x:number,z:number):number|null;minX:number;maxX:number;minZ:number;maxZ:number;
+  /** Platform on the ground: the floor at any height (never walked under). */solid?:boolean}
 /** Player-blocking static part of an activity (goal posts), registered while loaded. */
 export interface MiniGameStaticCollider {id:string;position:{x:number;y:number;z:number};size:{x:number;y:number;z:number}}
 export interface MiniGameSimulation {
@@ -37,6 +38,8 @@ export interface MiniGameSimulation {
   predict(session:MiniGameSessionState,actor:MiniGameActor,yaw:number,power:number,loft:number|undefined,ticks?:number):Float32Array|null;
   /** Activity floor as an outdoor walking surface for the player (absent = none). */
   readonly floorSurface?:MiniGameSurface;
+  /** Point worth looking at for this actor (moving ball, projectile, aim anchor), or null. */
+  focus?(session:MiniGameSessionState,actor:MiniGameActor):{x:number;y:number;z:number}|null;
   /** One fixed tick while the session is active. */
   step(ctx:MiniGameStepContext):void;
   readonly staticColliders:readonly MiniGameStaticCollider[];
@@ -50,13 +53,50 @@ export interface MiniGameSimulation {
 }
 /** Trajectory preview line: points (flat xyz) or null to hide; power 0…1 tints it. */
 export interface MiniGameAimLine {set(points:Float32Array|null,power:number):void;dispose():void}
+/** Visual state of a field (doc 107 §ambiance), set by the host; events add short pulses. */
+export type MiniGameFieldState='inactive'|'ready'|'active'|'finished';
+export type MiniGameFxTier='low'|'medium'|'high';
+/** Shared presentation services handed to every view of a host (all optional). */
+export interface MiniGameViewContext {
+  /** Shared pooled effects (MiniGameVisualEffects), created by the factory, one per host. */
+  fx?:MiniGameEffectsLike|null;
+  /** Current graphic tier (player setting lowered by the adaptive budget). */
+  tier?():MiniGameFxTier;
+  /** Geography at a point (automatic theme): biome and ground material ids. */
+  ground?(x:number,z:number):{biome:string;material:string}|null;
+  /** Semantic sound request (the host maps it to the game's audio catalogue). */
+  sound?(id:MiniGameSoundId,x:number,y:number,z:number,intensity:number):void;
+}
+export type MiniGameSoundId='ball.kick'|'ball.bounce'|'hit.wood'|'hit.stone'|'hit.metal'|'hit.ball'|'pins'|'cup'|'goal'|'success'|'fail'|'record'|'applause'|'start';
+/** What views need from the effect pool (kept Three-free here). */
+export interface MiniGameEffectsLike {
+  readonly quality:{impacts:0|1|2;trails:boolean;burst:number;squash:boolean;dust:boolean;decor:0|1|2;animated:0|1|2};
+  impact(x:number,y:number,z:number,speed:number,chip?:'wood'|'stone'|'soil'|'crystal'|'iron'|'water'|'leaf'|null):void;
+  dust(x:number,y:number,z:number,color:number,amount?:number):void;
+  trail(x:number,y:number,z:number,size:number,color:number):void;
+  success(x:number,y:number,z:number,level:1|2|3,colors?:readonly number[]):void;
+  update(dt:number):void;clear():void;dispose():void;
+  setTier?(tier:MiniGameFxTier):void;
+  readonly live?:number;
+}
 /** Presentation of one instance; created only in the browser, after the simulation. */
-export interface MiniGameView {update(alpha:number):void;dispose():void}
+export interface MiniGameView {
+  /** `dt`: presentation seconds since the previous frame (animations, effects). */
+  update(alpha:number,dt?:number):void;
+  /** Session events of this instance, after the tick that produced them. */
+  onEvent?(event:MiniGameEvent,session:MiniGameSessionState|null,localPlayer:string):void;
+  setState?(state:MiniGameFieldState):void;
+  /** Celebration requested by the host (new personal record). */
+  celebrate?(kind:'record'):void;
+  dispose():void;
+}
 export interface MiniGameViewFactory {
   /** `parent` is a THREE.Object3D; typed loosely so this contract stays Three-free. */
-  create(parent:unknown,sim:MiniGameSimulation,env:MiniGameEnvironment):MiniGameView;
+  create(parent:unknown,sim:MiniGameSimulation,env:MiniGameEnvironment,ctx?:MiniGameViewContext):MiniGameView;
   /** Shared aiming line (slingshot preview); one per host. */
   createAimLine?(parent:unknown):MiniGameAimLine;
+  /** Shared effect pool; one per host. */
+  createEffects?(parent:unknown):MiniGameEffectsLike;
 }
 export interface MiniGameFamilyModule {
   family:string;

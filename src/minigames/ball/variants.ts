@@ -3,7 +3,7 @@
  * BallWorld, push module and session helpers. No physics here: goals, pins, holes, turns.
  * Shots are pure plans (`shot`) shared by the real launch and the trajectory preview.
  */
-import type {MiniGameVariantId} from '../catalog.ts';
+import {MINIGAME_VARIANTS,type MiniGameVariantId} from '../catalog.ts';
 import {areaToWorld,insideLane,worldToArea,type MiniGameElementV1,type MiniGameInstanceV1} from '../schema.ts';
 import {addScore,completeTurn,currentPlayer,emit,playerScoreKey,type MiniGameEvent,type MiniGameSessionState} from '../session.ts';
 import type {StaticBox} from './ball-physics.ts';
@@ -149,11 +149,15 @@ const bowling:BallVariantLogic={
     placeBall(g);st.phase='aim';st.gutter=false;
     const thrower=st.thrower;st.thrower=null;
     if(!thrower)return;
+    if(st.knocked.length===w.count-1){
+      const throws=ctx.session.attempts[thrower]??0;
+      if(throws<=2)emit(ctx.session,ctx.events,ctx.tick,{type:'highlight',kind:throws===1?'strike':'spare',playerId:thrower});
+    }
     if(st.knocked.length===w.count-1||(ctx.session.attempts[thrower]??0)>=(g.def.rules.attempts??2)){
       resetPins(g);st.knocked=[];completeTurn(ctx.session,thrower,ctx.tick,ctx.events);
     }
   },
-  describe(_g,_s,e){return e.type==='game:reset'?'Nouvelle manche : quilles relevées':e.type==='ball:out'?'Rigole !':null;},
+  describe(_g,_s,e){return e.type==='game:reset'?'Nouvelle manche : quilles relevées':e.type==='ball:out'?'Rigole !':e.type==='highlight'?(e.kind==='strike'?'STRIKE !':'Spare !'):null;},
   hint(g,s,a){
     if(s.status!=='active')return null;const st=g.state as BowlingState,who=currentPlayer(s);
     if(st.phase==='rolling')return st.gutter?'Dans la rigole…':'La boule roule…';
@@ -197,7 +201,7 @@ const minigolf:BallVariantLogic={
   floors(def):FloorSpec[]{
     const lanes=el(def,'lane');if(!lanes.length)return defaultFloor(def);
     // The deck runs under the borders so they stand on it (and follow its ramps).
-    return lanes.map(l=>({id:l.id,x:l.x,z:l.z,halfWidth:(l.width??2)/2+WALL_THICKNESS,halfLength:(l.depth??6)/2+WALL_THICKNESS,yaw:l.yaw??0,material:'green' as const,shape:l.shape??'flat',slope:l.slope??0,raise:.12}));
+    return lanes.map(l=>({id:l.id,x:l.x,z:l.z,halfWidth:(l.width??2)/2+WALL_THICKNESS,halfLength:(l.depth??6)/2+WALL_THICKNESS,yaw:l.yaw??0,material:'green' as const,shape:l.shape??'flat',slope:l.slope??0,raise:MINIGAME_VARIANTS.minigolf.floor.raise}));
   },
   walls(g){
     const h=g.spec.physics.walls?g.spec.physics.walls.height:.15,lanes=el(g.def,'lane');
@@ -239,6 +243,7 @@ const minigolf:BallVariantLogic={
       const off=Math.hypot(w.px[i]-hole.x,w.pz[i]-hole.z);
       if(off<HOLE_RADIUS&&w.speed(i)<HOLE_CAPTURE.rim+(HOLE_CAPTURE.centre-HOLE_CAPTURE.rim)*(1-off/HOLE_RADIUS)){
         emit(s,ctx.events,ctx.tick,{type:'target:hit',targetId:stage.hole.id,playerId:player});
+        if((s.attempts[player]??0)===1)emit(s,ctx.events,ctx.tick,{type:'highlight',kind:'hole-in-one',playerId:player,targetId:stage.hole.id});
         nextHole(g,s,player,ctx.tick,ctx.events);continue;
       }
       const l=worldToArea(g.def.area,w.px[i],w.pz[i]);
@@ -256,6 +261,7 @@ const minigolf:BallVariantLogic={
     }
   },
   describe(g,_s,e,local){
+    if(e.type==='highlight'&&e.playerId===local)return 'Trou en un !';
     if(e.type==='target:hit'&&e.playerId===local)return 'Dans le trou !';
     if(e.type==='checkpoint:passed'&&e.playerId===local)return `Trou ${((g.state as GolfState).stage[local]??0)+1} : en route !`;
     return e.type==='ball:out'?'Balle sortie : +1 coup de pénalité':null;

@@ -10,7 +10,9 @@ import type { MotionMode } from '../player.ts';
 
 export const LOCOMOTION_STATES = ['IDLE', 'WALK', 'RUN', 'ROLL_ENTER', 'ROLL_LOOP', 'ROLL_EXIT', 'ROLL_AIR', 'ROLL_LAND', 'JUMP', 'FALL', 'LAND', 'GLIDE_OPEN', 'GLIDE_LOOP', 'GLIDE_CLOSE', 'SWIM', 'CLIMB', 'BOAT'] as const;
 export type LocomotionState = typeof LOCOMOTION_STATES[number];
-export const ACTIONS = ['EQUIP', 'UNEQUIP', 'TOOL_SWING_VERTICAL', 'TOOL_SWING_HORIZONTAL', 'TOOL_DIG', 'WATERING', 'PICKUP', 'CARRY', 'FISH_CAST', 'FISH_WAIT', 'FISH_REEL', 'INTERACT', 'SIT'] as const;
+export const ACTIONS = ['EQUIP', 'UNEQUIP', 'TOOL_SWING_VERTICAL', 'TOOL_SWING_HORIZONTAL', 'TOOL_DIG', 'WATERING', 'PICKUP', 'CARRY', 'FISH_CAST', 'FISH_WAIT', 'FISH_REEL', 'INTERACT', 'SIT',
+  /** Mini-games (doc 107 §animations): short one-shots over the same rig and channels. */
+  'KICK', 'THROW', 'PUTT', 'CHEER', 'CLAP', 'SAD'] as const;
 export type ActionName = typeof ACTIONS[number];
 export type AnimationEventName = 'equip' | 'unequip' | 'impact' | 'grab' | 'release' | 'reel' | 'pour' | 'wave' | 'roll-start' | 'roll-stop' | 'glide-open' | 'glide-close' | 'land' | 'jump';
 export interface HamsterInput {
@@ -87,6 +89,26 @@ export const ACTION_DEFS: Record<ActionName, ActionDefinition> = {
     { t: 0, shoulderRX: -.9, shoulderLX: -.7 }, { t: .3, shoulderRX: -1.6, shoulderLX: -1.2, bodyRX: -.12 }, { t: .6, shoulderRX: -1.7, shoulderLX: -.6, bodyRX: -.1 }, { t: 1, shoulderRX: -.9, shoulderLX: -.4, bodyRX: 0 }] },
   INTERACT: { duration: .45, loop: false, tool: false, events: [{ at: .4, name: 'wave' }], keys: [{ t: 0, shoulderRX: 0 }, { t: .4, shoulderRX: -2.4, shoulderRZ: .5, headRZ: .12 }, { t: 1, shoulderRX: 0, shoulderRZ: 0, headRZ: 0 }] },
   SIT: { duration: 1, loop: true, tool: false, events: [], keys: [{ t: 0, bodyY: -.06, hipLX: -1.2, hipRX: -1.2, squash: .95 }, { t: 1, bodyY: -.06, hipLX: -1.2, hipRX: -1.2, squash: .95 }] },
+  // Mini-games: no tool, no gameplay event (the simulation already decided the shot).
+  KICK: { duration: .45, loop: false, tool: false, events: [], keys: [
+    { t: 0, hipRX: 0, bodyRX: 0 }, { t: .35, hipRX: .7, bodyRX: .08, shoulderLX: -.5 }, { t: .55, hipRX: -1.1, bodyRX: -.12, shoulderLX: -.7, shoulderRX: .3, squash: .96 }, { t: 1, hipRX: 0, bodyRX: 0, shoulderLX: 0, shoulderRX: 0, squash: 1 }] },
+  THROW: { duration: .5, loop: false, tool: false, events: [], keys: [
+    { t: 0, shoulderRX: -.6, bodyRY: 0 }, { t: .4, shoulderRX: -2.8, bodyRY: .35, bodyRX: -.12, headRX: -.1 }, { t: .58, shoulderRX: -.5, bodyRY: -.25, bodyRX: .14 }, { t: 1, shoulderRX: 0, bodyRY: 0, bodyRX: 0, headRX: 0 }] },
+  PUTT: { duration: .55, loop: false, tool: false, events: [], keys: [
+    { t: 0, shoulderRX: -.6, shoulderLX: -.6, bodyRX: .18, bodyRY: 0 }, { t: .4, shoulderRX: -.35, shoulderLX: -.35, bodyRY: .3, bodyRX: .2 },
+    { t: .6, shoulderRX: -.9, shoulderLX: -.9, bodyRY: -.22, bodyRX: .18 }, { t: 1, shoulderRX: 0, shoulderLX: 0, bodyRY: 0, bodyRX: 0 }] },
+  CHEER: { duration: 1.1, loop: false, tool: false, events: [], keys: [
+    { t: 0, bodyY: 0, squash: 1, shoulderRX: 0, shoulderLX: 0 }, { t: .12, bodyY: 0, squash: .88, shoulderRX: -1, shoulderLX: -1 },
+    { t: .3, bodyY: .3, squash: 1.06, shoulderRX: -2.9, shoulderLX: -2.9, shoulderRZ: .35, shoulderLZ: -.35, headRX: -.25, earL: .3, earR: -.3 },
+    { t: .5, bodyY: 0, squash: .9 }, { t: .68, bodyY: .22, squash: 1.05, shoulderRX: -2.9, shoulderLX: -2.9 },
+    { t: .86, bodyY: 0, squash: .94 }, { t: 1, bodyY: 0, squash: 1, shoulderRX: 0, shoulderLX: 0, shoulderRZ: 0, shoulderLZ: 0, headRX: 0, earL: 0, earR: 0 }] },
+  CLAP: { duration: .9, loop: false, tool: false, events: [], keys: [
+    { t: 0, shoulderRX: 0, shoulderLX: 0, shoulderRZ: 0, shoulderLZ: 0 }, { t: .15, shoulderRX: -1.5, shoulderLX: -1.5, shoulderRZ: -.45, shoulderLZ: .45 },
+    { t: .3, shoulderRZ: .05, shoulderLZ: -.05 }, { t: .45, shoulderRZ: -.45, shoulderLZ: .45 }, { t: .6, shoulderRZ: .05, shoulderLZ: -.05 }, { t: .75, shoulderRZ: -.45, shoulderLZ: .45 },
+    { t: 1, shoulderRX: 0, shoulderLX: 0, shoulderRZ: 0, shoulderLZ: 0 }] },
+  SAD: { duration: 1.3, loop: false, tool: false, events: [], keys: [
+    { t: 0, headRX: 0, bodyRX: 0, earL: 0, earR: 0, squash: 1 }, { t: .25, headRX: .45, bodyRX: .18, earL: -.45, earR: .45, squash: .96, shoulderRX: .15, shoulderLX: .15 },
+    { t: .8, headRX: .45, bodyRX: .18, earL: -.45, earR: .45, squash: .96 }, { t: 1, headRX: 0, bodyRX: 0, earL: 0, earR: 0, squash: 1, shoulderRX: 0, shoulderLX: 0 }] },
 };
 const smooth = (x: number) => x * x * (3 - 2 * x);
 function sample(keys: Key[], u: number, out: Partial<Record<Channel, number>>) {

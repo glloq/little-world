@@ -62,7 +62,8 @@ export const inspectMiniGame=(def:MiniGameInstanceV1,q:SiteQueries,context:SiteC
  * rings every 8 m, 16 headings, first match per anchor order. Used by the demo and as the
  * composition integration point (activities suggested from relief and biome).
  */
-export function suggestMiniGameSites(variant:MiniGameVariantId,q:SiteQueries,options:{anchors:readonly {x:number;z:number}[];bounds:{minX:number;maxX:number;minZ:number;maxZ:number};avoid?:readonly MiniGameAreaV1[];limit?:number;maxDistance?:number}):MiniGameAreaV1[]{
+export function suggestMiniGameSites(variant:MiniGameVariantId,q:SiteQueries,options:{anchors:readonly {x:number;z:number}[];bounds:{minX:number;maxX:number;minZ:number;maxZ:number};avoid?:readonly MiniGameAreaV1[];limit?:number;maxDistance?:number;
+  /** Largest height difference accepted under the area (m): platforms stay low on ungraded ground. */maxRelief?:number}):MiniGameAreaV1[]{
   const probe=defaultMiniGame(variant,{id:'minigame:probe',x:0,z:0}),out:MiniGameAreaV1[]=[],avoid=[...(options.avoid??[])];
   const r0=areaRadius(probe.area),limit=options.limit??1,maxD=options.maxDistance??160;
   for(const a of options.anchors){
@@ -72,7 +73,7 @@ export function suggestMiniGameSites(variant:MiniGameVariantId,q:SiteQueries,opt
       const area={...probe.area,x,z,heading:Math.round(t*100)/100};
       if(x-r0<options.bounds.minX||x+r0>options.bounds.maxX||z-r0<options.bounds.minZ||z+r0>options.bounds.maxZ)continue;
       if(avoid.some(o=>areasOverlap(o,area,3)))continue;
-      if(!inspectArea(area,variant,q).ok)continue;
+      const report=inspectArea(area,variant,q);if(!report.ok||options.maxRelief!==undefined&&report.relief>options.maxRelief)continue;
       out.push(area);avoid.push(area);
     }
     if(out.length>=limit)break;

@@ -50,21 +50,26 @@ export class WorldCollisionQuery {
  private outdoorCourse:((x:number,z:number)=>number|null)|null=null;
  setOutdoorCourseSurface(sample:((x:number,z:number)=>number|null)|null){this.outdoorCourse=sample;}
  /** Further authored decks (mini-game floors…), each with its XZ bounds for a cheap early-out.
-  * Same rule as the course: a deck is a surface approached from above. */
- private surfaces=new Map<string,{sample:(x:number,z:number)=>number|null;minX:number;maxX:number;minZ:number;maxZ:number}>();
- setOutdoorSurface(id:string,surface:{sample:(x:number,z:number)=>number|null;minX:number;maxX:number;minZ:number;maxZ:number}|null){if(surface)this.surfaces.set(id,surface);else this.surfaces.delete(id);}
- /** Highest authored deck at (x, z), or null: race course first, then the other surfaces. */
- private deckAt(x:number,z:number):number|null{
-   let deck=this.outdoorCourse?.(x,z)??null;
+  * A `solid` deck is a platform standing on the ground (sides down into the relief): it is
+  * the floor at any height, never walked under. Other decks follow the course rule (a
+  * bridge, approached from above). */
+ private surfaces=new Map<string,{sample:(x:number,z:number)=>number|null;minX:number;maxX:number;minZ:number;maxZ:number;solid?:boolean}>();
+ setOutdoorSurface(id:string,surface:{sample:(x:number,z:number)=>number|null;minX:number;maxX:number;minZ:number;maxZ:number;solid?:boolean}|null){if(surface)this.surfaces.set(id,surface);else this.surfaces.delete(id);}
+ /** Highest authored deck at (x, z) usable by a body whose feet are at `feet` (undefined =
+  * any deck), or null: race course first, then the other surfaces. */
+ private deckAt(x:number,z:number,feet?:number):number|null{
+   const reach=feet===undefined?Infinity:feet+.45;
+   let deck=this.outdoorCourse?.(x,z)??null;if(deck!==null&&deck>reach)deck=null;
    if(this.surfaces.size)for(const s of this.surfaces.values()){
-     if(x<s.minX||x>s.maxX||z<s.minZ||z>s.maxZ)continue;const h=s.sample(x,z);if(h!==null&&(deck===null||h>deck))deck=h;
+     if(x<s.minX||x>s.maxX||z<s.minZ||z>s.maxZ)continue;const h=s.sample(x,z);
+     if(h!==null&&(s.solid||h<=reach)&&(deck===null||h>deck))deck=h;
    }
    return deck;
  }
  /** Ground gradient for rolling; the same course surface feeds rendering and floor contact. */
  reliefHeight(x:number,z:number,feet?:number){
-   const ground=this.terrain(x,z),deck=this.deckAt(x,z);
-   return deck!==null&&(feet===undefined||deck<=feet+.45)?Math.max(ground,deck):ground;
+   const ground=this.terrain(x,z),deck=this.deckAt(x,z,feet);
+   return deck!==null?Math.max(ground,deck):ground;
  }
  private water:(x:number,z:number)=>number|null;
  private large=new Set<string>();
@@ -98,10 +103,10 @@ export class WorldCollisionQuery {
  /** Base floor/ceiling of the space (terrain outside, layer or provider column underground). */
  private base(x:number,z:number,y:number,space?:MovementSpace|null):{floorY:number;ceilingY:number|null}{
   if(!space){
-    const base=this.terrain(x,z),deck=this.deckAt(x,z);
+    const base=this.terrain(x,z),deck=this.deckAt(x,z,y);
     // A raised bridge is a surface approached from above; do not teleport animals
-    // walking underneath onto its deck.
-    return {floorY:deck!==null&&deck<=y+.45?Math.max(base,deck):base,ceilingY:null};
+    // walking underneath onto its deck (solid platforms excepted, see deckAt).
+    return {floorY:deck!==null?Math.max(base,deck):base,ceilingY:null};
   }
   const provider=this.providers.get(space.zoneId);
   if(provider){const c=provider.column(space.levelId,x,z);return c??{floorY:provider.floor(space.levelId),ceilingY:provider.floor(space.levelId)};}

@@ -16,11 +16,14 @@ export type MiniGameEvent=
  |{type:'game:reset';sessionId:string;tick:number;seq:number;round:number}
  |{type:'game:abandon';sessionId:string;tick:number;seq:number;playerId?:string}
  |{type:'player:join'|'player:leave';sessionId:string;tick:number;seq:number;playerId:string;teamId?:string}
- |{type:'ball:hit';sessionId:string;tick:number;seq:number;playerId:string;ballId:string;speed:number}
+ |{type:'ball:hit';sessionId:string;tick:number;seq:number;playerId:string;ballId:string;speed:number;/** Voluntary launch (kick / throw / putt), not a contact push. */shot?:boolean}
  |{type:'ball:out';sessionId:string;tick:number;seq:number;ballId:string}
  |{type:'target:hit';sessionId:string;tick:number;seq:number;targetId:string;playerId?:string}
  |{type:'checkpoint:passed';sessionId:string;tick:number;seq:number;playerId:string;checkpointId:string}
- |{type:'score:changed';sessionId:string;tick:number;seq:number;key:string;score:number};
+ |{type:'score:changed';sessionId:string;tick:number;seq:number;key:string;score:number}
+ /** Remarkable moment of a variant (presentation, HUD, reactions); never changes a score. */
+ |{type:'highlight';sessionId:string;tick:number;seq:number;kind:MiniGameHighlight;playerId?:string;targetId?:string};
+export type MiniGameHighlight='strike'|'spare'|'hole-in-one'|'bullseye'|'clear';
 type EventBody<T> = T extends unknown ? Omit<T,'sessionId'|'tick'|'seq'> : never;
 export type MiniGameEventBody=EventBody<MiniGameEvent>;
 

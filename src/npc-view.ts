@@ -1,3 +1,4 @@
+import {selectSpectators,type SpectateOptions,type Spectator} from './npc-life/spectators.ts';
 import {createImpostorSectors} from './render/impostor-sectors.ts';
 import {getTerrainConfig} from './terrain.ts';
 import * as THREE from 'three';
@@ -319,6 +320,16 @@ export function createNPCSystem(
     entry.scripted={route,goal:to,startAt:lifeOptions.worldTime(),pausedFor:0,pauseFrom:null,arrivedAt:null,lastCheckedAt:-1,lastDistance:0,replans:0,recovery:false,lastReplanAt:-Infinity,plannedRevision:navigationRevision()};
     return true;
   }
+  /** Spectators (doc 107 §PNJ): residents near a mini-game briefly watch it, facing the
+   * field, then resume their routine. Event-driven (no per-frame search), bounded count and
+   * duration, never a resident at work, talking, scripted or indoors. */
+  const spectators=new Map<string,Spectator>();
+  let clockNow=0;
+  function spectate(point:{x:number;z:number},o:SpectateOptions={}):number{
+    if(disposed)return 0;
+    return selectSpectators(entries.map(e=>({id:e.state.definition.id,x:e.state.x,z:e.state.z,
+      busy:!!e.scripted||dialogue.npcId===e.state.definition.id||e.state.phase==='work'||e.state.phase==='talk'||!!e.life?.indoors})),point,o,spectators,clockNow);
+  }
   function talkTo(id:string,playerPosition:NPCPoint):boolean{
     const entry=entries.find(e=>e.state.definition.id===id);
     if(!entry||entry.life?.indoors||dialogue.isOpen||Math.hypot(entry.state.x-playerPosition.x,entry.state.z-playerPosition.z)>5.5||
@@ -326,6 +337,7 @@ export function createNPCSystem(
     dialogue.open(entry.state);
     return dialogue.isOpen;
   }
+  function spectatorOf(id:string,time:number){const w=spectators.get(id);if(!w)return null;if(time>w.until){spectators.delete(id);return null;}return w;}
   return {
     dialogue,
     /** Reuse the SAME qualified router for one-time quest catalog assembly. */
@@ -334,11 +346,14 @@ export function createNPCSystem(
     },
     moveTo,
     talkTo,
+    spectate,
+    get spectating(){return spectators.size;},
     setLighting(color:THREE.Color|null){distant.setLighting(color);},
     states: entries.map((entry) => entry.state),
     get lifeStats(){return {assigned:entries.filter(e=>!!e.state.definition.routine).length,routed:entries.filter(e=>!!e.life).length,agendas:entries.filter(e=>!!e.life?.agenda).length,unqualifiedAgendas:entries.filter(e=>e.state.definition.routine?.activities?.length&&!e.life?.agenda).length,socialPairs:socialPartners.size/2,animatedRigs:entries.filter(e=>!!e.model).length,rigBudget:lifeOptions?.rigBudget??12,scriptedReplans,scriptedBlocked,scriptedCompleted,routineRecoveries,routineBlocked,navigationRevision:navigationRevision(),roadNodes:router?.nodes??0,roadTruncated:router?.truncated??false};},
     update(dt: number, time: number, position: NPCPoint,camera?:THREE.PerspectiveCamera) {
       if (disposed) return;
+      clockNow=time;
       distant.begin();distant.update(time);proxyFade.center.value.set(camera?.position.x??position.x,0,camera?.position.z??position.z);
       if(time<lastRigSample||time-lastRigSample>=.5){
         const focus={x:camera?.position.x??position.x,z:camera?.position.z??position.z};
@@ -459,13 +474,13 @@ export function createNPCSystem(
           if(now<life.lastTime){life.pausedSeconds=0;life.pauseFrom=null;life.lastSample=-1;life.lastRecoveryAt=-Infinity;}
           life.lastTime=now;
           const distance=Math.hypot(position.x-state.x,position.z-state.z);
-          const talking=dialogue.npcId===state.definition.id;
+          const talking=dialogue.npcId===state.definition.id,watching=spectatorOf(state.definition.id,time);
           state.activity=npcActivity(distance);
-          if(talking){
+          if(talking||watching){
             if(life.pauseFrom===null)life.pauseFrom=now;
             state.previousX=state.x;state.previousY=state.y;state.previousZ=state.z;
-            state.vx=0;state.vz=0;state.phase=talking?'talk':'greet';
-            state.heading=Math.atan2(position.x-state.x,position.z-state.z);
+            state.vx=0;state.vz=0;state.phase=talking?'talk':'idle';
+            const look=talking?position:watching!;state.heading=Math.atan2(look.x-state.x,look.z-state.z);
           }else{
             if(life.pauseFrom!==null){life.pausedSeconds+=Math.max(0,now-life.pauseFrom);life.pauseFrom=null;}
             // Conversations freeze an actor only while speaking. Gradually regain
@@ -520,7 +535,11 @@ export function createNPCSystem(
               }
             }else{state.vx=0;state.vz=0;}
           }
-        }else if(!entry.scripted)updateNPC(state,dt,position,obstacles);
+        }else if(!entry.scripted){
+          const watching=spectatorOf(state.definition.id,time);
+          if(watching){state.vx=0;state.vz=0;state.phase='idle';state.heading=Math.atan2(watching.x-state.x,watching.z-state.z);}
+          else updateNPC(state,dt,position,obstacles);
+        }
         // Visually enter the home at its exterior threshold, no fictional room.
         // The native door component remains the single authority for manual
         // player opening and the temporary request is never persisted.
@@ -595,6 +614,11 @@ export function createNPCSystem(
         model.group.position.copy(player.position);
         model.group.rotation.y = state.heading;
         model.update(player, dt, time);
+        const fan=spectators.get(state.definition.id);
+        if(hamster&&fan&&fan.cheer&&!fan.cheered&&!hamster.action&&time<=fan.until){
+          // One celebration per event, cheer or clap by resident (deterministic).
+          if(hamster.play(state.definition.id.length%2?'CHEER':'CLAP'))fan.cheered=true;
+        }
         if (hamster) {
           if (state.phase === 'greet' && !hamster.action && (entry.lastGreetAt<0||time-entry.lastGreetAt>8)){
             if(hamster.play('INTERACT'))entry.lastGreetAt=time;

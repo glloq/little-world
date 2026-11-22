@@ -10,6 +10,7 @@ import type {MiniGameActor,MiniGameAim,MiniGameEnvironment,MiniGameSimulation,Mi
 import {BallWorld,BALL_LIMITS,orientedBox,type BallWorldSnapshot,type StaticBox,type StaticBoxTag} from './ball-physics.ts';
 import {pushBalls} from './push.ts';
 import {buildFloors,withFloors,type FloorSpec} from './floors.ts';
+import {MINIGAME_PROPS,type MiniGamePropId} from '../themes.ts';
 import type {BallGame,BallVariantLogic,ShotPlan,WallOpening} from './kit.ts';
 
 /** Sampled ground range under a segment of the area (walls, goals). */
@@ -50,7 +51,12 @@ export function rectWalls(def:MiniGameInstanceV1,env:MiniGameEnvironment,r:{x:nu
   return out;
 }
 function obstacles(def:MiniGameInstanceV1,env:MiniGameEnvironment,elements:readonly MiniGameElementV1[]):StaticBox[]{
-  return elements.filter(e=>e.kind==='obstacle').map(e=>areaBox(def,env,e.x,e.z,e.width??1,e.depth??.3,e.height??.35,e.yaw??0));
+  const out=elements.filter(e=>e.kind==='obstacle').map(e=>areaBox(def,env,e.x,e.z,e.width??1,e.depth??.3,e.height??.35,e.yaw??0));
+  // Decorative props with a declared footprint (windmill base…) also stop balls; the view
+  // draws the prop itself, the box is the approximation of its collision.
+  for(const e of elements){const solid=e.kind==='decor'&&e.prop?MINIGAME_PROPS[e.prop as MiniGamePropId]?.solid:undefined;
+    if(solid)out.push(areaBox(def,env,e.x,e.z,solid.width,solid.depth,solid.height,e.yaw??0,.5,undefined,'prop'));}
+  return out;
 }
 /** Player colliders covering a (possibly rotated) wall with axis-aligned boxes: one box when
  * the wall is axis-aligned, otherwise a chain whose bounds overhang the wall by ≤ 20 cm on each side. */
@@ -100,14 +106,14 @@ export function createBallSimulation(def:MiniGameInstanceV1,env:MiniGameEnvironm
   const sim:MiniGameSimulation={
     def,
     get staticColliders():readonly MiniGameStaticCollider[]{return game.colliders;},
-    floorSurface:floors.regions.length?{sample:floors.walk,...floors.walkBounds}:undefined,
+    floorSurface:floors.regions.length?{sample:floors.walk,...floors.walkBounds,solid:true}:undefined,
     reset(session:MiniGameSessionState,tick:number,events:MiniGameEvent[]){logic.reset(game,session,tick,events);},
     launch(session,actor,yaw,power,loft,tick,events){
       if(session.status!=='active')return 'Partie non commencée';
       if(!session.players.some(p=>p.id===actor.id))return 'Rejoignez la partie';
       const plan=logic.shot(game,session,actor,yaw,power,loftOf(loft));if(typeof plan==='string')return plan;
       apply(world,plan,plan.ball);logic.launched?.(game,session,actor,plan,tick,events);
-      emit(session,events,tick,{type:'ball:hit',playerId:actor.id,ballId:world.ids[plan.ball],speed:Math.round(world.speed(plan.ball)*100)/100});
+      emit(session,events,tick,{type:'ball:hit',playerId:actor.id,ballId:world.ids[plan.ball],speed:Math.round(world.speed(plan.ball)*100)/100,shot:true});
       return null;
     },
     aim(session,actor):MiniGameAim|null{
@@ -127,6 +133,15 @@ export function createBallSimulation(def:MiniGameInstanceV1,env:MiniGameEnvironm
       out[k++]=s.px[0];out[k++]=s.py[0];out[k++]=s.pz[0];
       for(let t=0;t<n&&!s.asleep[0];t++){s.step(1/30);out[k++]=s.px[0];out[k++]=s.py[0];out[k++]=s.pz[0];}
       return out.subarray(0,k);
+    },
+    focus(session,actor){
+      if(!joined(session,actor))return null;
+      // The fastest moving ball within 25 m, else where the player can aim from.
+      let best=-1,speed=.6;
+      for(let i=0;i<world.count;i++){if(!world.enabled[i]||world.asleep[i])continue;const v=world.speed(i);
+        if(v>speed&&Math.hypot(world.px[i]-actor.x,world.pz[i]-actor.z)<25){speed=v;best=i;}}
+      if(best>=0)return {x:world.px[best],y:world.py[best],z:world.pz[best]};
+      return logic.aim(game,session,actor);
     },
     step(ctx:MiniGameStepContext){
       if(disposed)throw Error('Simulation libérée');
