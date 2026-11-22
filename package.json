@@ -19,6 +19,7 @@
     "generate:island": "node --experimental-strip-types tools/generate-island.mjs",
     "generate:reference": "node --experimental-strip-types tools/generate-reference.mjs",
     "benchmark:route": "node tools/benchmark-route.mjs",
+    "audit:roads": "node --experimental-strip-types tools/audit-roads.mjs",
     "test:gameplay": "node tools/test-gameplay-browser.mjs",
     "test:fishing": "node --experimental-strip-types tools/test-fishing-browser.mjs",
     "test:ui": "node tools/test-ui-browser.mjs",
