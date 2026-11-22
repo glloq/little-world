@@ -7,7 +7,7 @@ import * as THREE from 'three';
 import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
 import { advanceCapybaraGait, makeCapybaraGait, type CapybaraGait } from './capybara-gait.ts';
 import { advanceCapybaraPose, initialCapybaraPose, type CapybaraPose, type CapybaraState } from './capybara-pose.ts';
-import { buildCapybaraAccessories, disposeCapybaraAccessories, type CapybaraLoadout } from './capybara-accessories.ts';
+import { buildCapybaraAccessories, advanceCapybaraEquipment, disposeCapybaraAccessories, type CapybaraLoadout } from './capybara-accessories.ts';
 
 export type { CapybaraState } from './capybara-pose.ts';
 export type { CapybaraLoadout } from './capybara-accessories.ts';
@@ -186,6 +186,8 @@ export async function createCapybaraModel(initialLoadout: CapybaraLoadout='none'
       }
       pose=advanceCapybaraPose(pose,{dt,speed:groundSpeed,state:wanted,lookYaw:yaw,lookPitch:pitch});
       gait=advanceCapybaraGait(gait,{dt,speed:pose.walkWeight>0?groundSpeed:0});
+      // Wheels are children of the same animal-root transform; no world-space detach.
+      advanceCapybaraEquipment(equipment,groundSpeed*Math.max(0,Math.min(.1,dt)));
       uniforms.phase.value=gait.phase;
       uniforms.influence.value=gait.influence*pose.walkWeight;
       uniforms.yaw.value=pose.headYaw;
