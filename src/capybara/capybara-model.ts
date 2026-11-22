@@ -145,8 +145,16 @@ export async function createCapybaraModel(initialLoadout: CapybaraLoadout='none'
   poseRoot.add(riderSocket);
   const hitchSocket=new THREE.Group(); hitchSocket.name='SocketHitch';
   hitchSocket.position.set(...CAPYBARA_SOCKETS.hitch); group.add(hitchSocket);
-  let equipment=buildCapybaraAccessories(initialLoadout);
-  group.add(equipment);
+  const attachEquipment=(kind:CapybaraLoadout):THREE.Group=>{
+    const next=buildCapybaraAccessories(kind);
+    if(kind==='saddle'||kind==='pack'){
+      next.position.y=-.96; poseRoot.add(next);
+    }else{
+      group.add(next);
+    }
+    return next;
+  };
+  let equipment=attachEquipment(initialLoadout);
   let loadout=initialLoadout;
   let state:CapybaraState='idle';
   let gait:CapybaraGait=makeCapybaraGait();
@@ -159,8 +167,8 @@ export async function createCapybaraModel(initialLoadout: CapybaraLoadout='none'
     setState(value) { if(disposed)return; state=value; model.state=value; },
     setLoadout(value) {
       if(disposed||loadout===value)return;
-      group.remove(equipment); disposeCapybaraAccessories(equipment);
-      equipment=buildCapybaraAccessories(value); group.add(equipment);
+      equipment.removeFromParent(); disposeCapybaraAccessories(equipment);
+      equipment=attachEquipment(value);
       loadout=value; model.loadout=value;
     },
     setLookTarget(value){lookTarget=value;},
@@ -191,7 +199,7 @@ export async function createCapybaraModel(initialLoadout: CapybaraLoadout='none'
     dispose(){
       if(disposed)return;
       disposed=true;
-      group.remove(equipment); disposeCapybaraAccessories(equipment);
+      equipment.removeFromParent(); disposeCapybaraAccessories(equipment);
       poseRoot.remove(body); material.dispose();
       group.clear();
     },
