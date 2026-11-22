@@ -17,7 +17,7 @@ function wheel(parent:THREE.Group,x:number,z:number,radius=.43) {
   for(let i=0;i<4;i++) {
     const a=i*Math.PI/4;
     const spoke=box(parent,'Spoke',C.spoke,[x,radius,z],[radius*1.65,.055,.04]);
-    spoke.rotation.x=a;
+    spoke.rotation.z=a;
   }
 }
 /** All accessories are optional, created only for the selected loadout. */
