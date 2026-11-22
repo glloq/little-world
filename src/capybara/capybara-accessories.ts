@@ -134,6 +134,23 @@ export function buildCapybaraAccessories(kind:CapybaraLoadout):THREE.Group {
      roof.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
      roof.setIndex(idx); roof.computeVertexNormals();
      add(tow,'CaravanArchedRoof',roof,palette.roof);
+     // Close the two curved gables, so there is no triangular daylight above the walls.
+     for(const x of [rear-.048,front+.048]){
+       const gablePositions:number[]=[]; const gableIndices:number[]=[];
+       for(let j=0;j<=12;j++){
+         const z=-roofHalf+2*roofHalf*j/12;
+         gablePositions.push(x,1.95,z,x,roofY(z),z);
+       }
+       for(let j=0;j<12;j++){
+         const n=j*2;
+         // Double-sided via distinct facings; both ends remain visible.
+         gableIndices.push(n,n+1,n+3,n,n+3,n+2,n,n+3,n+1,n,n+2,n+3);
+       }
+       const gable=new THREE.BufferGeometry();
+       gable.setAttribute('position',new THREE.Float32BufferAttribute(gablePositions,3));
+       gable.setIndex(gableIndices);gable.computeVertexNormals();
+       add(tow,'CaravanRoofGable',gable,palette.wood);
+     }
      for(const x of [rear-.15,front+.14]){
        for(let j=0;j<12;j++){
          const za=-roofHalf+2*roofHalf*j/12;
