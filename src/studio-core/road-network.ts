@@ -12,7 +12,7 @@ import {centerline} from '../paths/path-geometry.ts';
 export function projectRoadContext(p:ProjectDocument,avoid?:(x:number,z:number)=>boolean):RoadContext{
  const geo=projectGeography(p),index=new WaterSpatialIndex(Object.values(p.libraries.water),geo.source,p.world.seaLevel);
  return {bounds:p.world.bounds,height:geo.ctx.height,seaLevel:p.world.seaLevel,
-  blocked:(x,z,margin)=>index.query(x,z,margin).length>0||!!avoid?.(x,z),
+  blocked:(x,z,margin)=>index.query(x,z,margin).length>0||!!avoid?.(x,z),wet:(x,z)=>index.query(x,z).some(h=>h.inside),
   streams:index.bodies.filter(w=>w.kind!=='lake').map(w=>({id:w.id,points:w.points.map(q=>({x:q.x,z:q.z,half:q.half??w.width/2,level:q.level}))}))};
 }
 export interface BridgePlacement {x:number;z:number;/** Yaw of a prop whose deck runs along local X. */yaw:number;/** Height of the model origin above the carved bed. */y:number;stretch:number;site:BridgeSite}

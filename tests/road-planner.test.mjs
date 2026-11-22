@@ -147,3 +147,46 @@ test('Volcan: the ground is fitted to the planned roads (doc 109 §5)', () => {
  const routes=auditProjectRoads(project).paths.filter(p=>p.pathId.startsWith('route-')),length=routes.reduce((n,r)=>n+r.lengthM,0),tilted=routes.reduce((n,r)=>n+r.tiltedM,0);
  assert.ok(tilted<length*.05,`dévers ${Math.round(tilted)} m sur ${Math.round(length)} m`);
 });
+
+// ---- Project links, composition and Studio entry point (doc 109 §6) ---------------------------
+import {buildCirculationGraph,circulationReport} from '../src/studio-core/circulation.ts';
+import {planRoadLinks,applyRoadLinks,ROAD_LINK_PREFIX,ROAD_BRIDGE_PREFIX} from '../src/studio-core/road-links.ts';
+import {validateMapRequirements,newIslandRequirements} from '../src/studio-core/map-requirements.ts';
+import {composeWorld} from '../src/studio-core/world-composition.ts';
+import {WORLD_BRIEFS,briefToRequirements} from '../src/studio-core/world-brief.ts';
+
+test('circulation: a footbridge joins the two road pieces cut at its abutments', () => {
+ const bridge=(x)=>({id:'b',name:'Pont',components:{Transform:{position:{x,y:0,z:0},rotation:{x:0,y:0,z:0,w:1},scale:{x:1,y:1,z:1}},Visual:{assetId:'structure.bridge_wooden_arch'}}});
+ const project=(entities)=>({world:{bounds:{minX:-500,maxX:500,minZ:-500,maxZ:500},seaLevel:0},chunks:{c:{entities}},entityIndex:{},libraries:{paths:{l:{id:'l',points:[{x:-100,z:0},{x:-7.8,z:0},{x:-2.8,z:0}],width:3},r:{id:'r',points:[{x:2.8,z:0},{x:7.8,z:0},{x:100,z:0}],width:3}},water:{},zones:{}}});
+ assert.equal(buildCirculationGraph(project({})).componentCount,2);
+ assert.equal(buildCirculationGraph(project({b:bridge(0)})).componentCount,1);
+ assert.equal(buildCirculationGraph(project({b:bridge(40)})).componentCount,2,'a bridge elsewhere joins nothing');
+ assert.equal(buildCirculationGraph(project({}),undefined,[bridge(0)]).componentCount,1,'planned bridges count before they are committed');
+});
+
+test('requirements: planned roads are a composition 5 option', () => {
+ assert.doesNotThrow(()=>validateMapRequirements({...newIslandRequirements(),roads:true}));
+ assert.throws(()=>validateMapRequirements({...newIslandRequirements(),compositionVersion:4,roads:true}));
+ assert.throws(()=>validateMapRequirements({...newIslandRequirements(),roads:'yes'}));
+ assert.equal(briefToRequirements(WORLD_BRIEFS['harvest-valley']).roads,true,'themed generation plans roads');
+});
+
+test('composition: a themed island is linked by planned roads, bridged and graded; without the option nothing changes', () => {
+ const base={...briefToRequirements(WORLD_BRIEFS['harvest-valley']),rivers:4,tributaries:4},ids={projectId:'t',worldId:'t'};
+ const plain=composeWorld({...structuredClone(base),roads:undefined,circulation:false},'T',ids).project,linked=composeWorld(structuredClone(base),'T',ids);
+ const count=(p,prefix)=>[...Object.keys(p.libraries.paths),...Object.keys(p.entityIndex)].filter(id=>id.startsWith(prefix)).length;
+ assert.equal(count(plain,ROAD_LINK_PREFIX)+count(plain,ROAD_BRIDGE_PREFIX),0);assert.ok(!(plain.world.terrain.archipelago.earthworks??[]).some(w=>w.id.startsWith('road:')));
+ const p=linked.project;assert.ok(linked.ready);
+ assert.ok(count(p,ROAD_LINK_PREFIX)>=6,'links');assert.ok(count(p,ROAD_BRIDGE_PREFIX)>=1,'a river is bridged');
+ assert.ok(p.world.terrain.archipelago.earthworks.some(w=>w.id.startsWith('road:'+ROAD_LINK_PREFIX)),'graded beds');
+ const report=circulationReport(buildCirculationGraph(p));assert.equal(report.reachable,report.destinations.length);
+ const audit=auditProjectRoads(p),roads=audit.paths.filter(q=>q.pathId.startsWith(ROAD_LINK_PREFIX));
+ assert.equal(audit.totals.unbridged,0);assert.equal(audit.totals.misalignedBridges,0);assert.equal(audit.totals.orphanBridges,0);
+ for(const r of roads){assert.equal(r.underwaterM,0,r.pathId);assert.ok(r.steepM<5&&r.fallLineM<30,r.pathId);}
+ // Planning again finds nothing left to link: the Studio button is idempotent.
+ const again=planRoadLinks(p);assert.equal(again.paths.length,0);assert.equal(again.failed.length,0);
+ // Plan, then apply: the plan alone writes nothing.
+ const fresh=structuredClone(plain),before=JSON.stringify(fresh),plan=planRoadLinks(fresh);assert.equal(JSON.stringify(fresh),before);
+ assert.ok(plan.paths.length&&plan.links.every(l=>l.lengthM>0));applyRoadLinks(fresh,plan);
+ assert.ok(count(fresh,ROAD_LINK_PREFIX)>=plan.links.length);
+});

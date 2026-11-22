@@ -278,6 +278,7 @@ export function mountWelcome(host:HTMLElement,actions:WelcomeActions){
     box.append(
       check('Terrasser les sites en pente',requirements.earthworks===true,v=>set({earthworks:v})),
       check('Relier tous les lieux par des chemins',requirements.circulation===true,v=>set({circulation:v})),
+      check('Routes planifiées : ponts, lacets et terrain adapté',requirements.roads===true,v=>set({roads:v})),
       check('Hôtes, dialogues et quêtes des activités',requirements.stories===true,v=>set({stories:v})),
       field('Langue des textes générés',select(requirements.locale??'fr',[['fr','Français'],['en','English']],v=>set({locale:v==='fr'?undefined:v as 'en'}))),
       field('Architecture',select(requirements.architecture??'',[['','Historique'],...ARCHITECTURE_STYLE_IDS.map(a=>[a,ARCHITECTURE_STYLES[a].label] as [string,string])],v=>set({architecture:(v||undefined) as MapRequirements['architecture']}))),

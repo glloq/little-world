@@ -1,7 +1,8 @@
 # 109 — Routes, ponts et liaisons entre villes et villages
 
-> Statut : **IMPLEMENTED / TESTED (Node)** sur l’île du Volcan ; vérification visuelle en jeu
-> sous SwiftShader uniquement ; **non RELEASED**. Les autres mondes ne sont qu’audités.
+> Statut : **IMPLEMENTED / TESTED (Node)** — Volcan, génération par thèmes (`roads`) et Studio ;
+> vérification visuelle en jeu et dans le Studio sous SwiftShader uniquement ; **non RELEASED**.
+> Les îles publiées Val forestier, Trois vagues, Cimes et Moissons ne sont qu’auditées.
 
 ## 1. Constat mesuré
 
@@ -14,16 +15,16 @@ au ruisseau, donc de travers par rapport à la route.
 
 | Volcan | Avant | Après |
 |---|---|---|
-| Longueur de chemins | 12 634 m | 13 968 m |
+| Longueur de chemins | 12 634 m | 17 387 m ⁶ |
 | Sous l’eau (mer, lac, ruisseau sans tablier) | 1 216 m | 15 m ¹ |
 | Au-delà de la pente du profil | 939 m | 115 m ² |
-| Montée dans la ligne de pente (sans lacet) | 1 426 m | 300 m ² |
+| Montée dans la ligne de pente (sans lacet) | 1 426 m | 303 m ² |
 | Traversées de cours d’eau sans pont | 3 / 10 | 0 / 3 ³ |
 | Ponts de travers par rapport au chemin (> 15°) | 6 | 0 |
 | Ponts sans chemin | 4 | 1 ⁴ |
-| Sol en dévers (> 22 % en travers) | 1 496 m | 514 m ⁵ |
+| Sol en dévers (> 22 % en travers) | 1 496 m | 529 m ⁵ |
 
-¹ Ruban sous trois passerelles de chemins de presets (non découpés, voir §6).
+¹ Ruban sous trois passerelles de chemins de presets (non découpés, voir §7).
 ² Reste : piste du hameau de montagne (falaise du preset, aucun passage praticable), ruelles de port,
 et sentiers repris au palier `steep` (32 %) : sur une plateforme taillée, la pente du sol *est* celle
 du sentier, donc la mesure les compte.
@@ -31,6 +32,9 @@ du sentier, donc la mesure les compte.
 ⁴ Pont du preset `river-bend`, sans chemin par conception du preset.
 ⁵ Sans terrassement les lacets donnaient 3 014 m de dévers ; le terrain est maintenant adapté à
 la route (§5). Reste : ruelles et sentiers de presets non repris, abords de l’eau.
+
+⁶ Dont 11 liaisons nouvelles (§6) vers les comptoirs, champs, camps et la mine, jusque-là coupés du
+réseau : 17 lieux sur 18 sont atteignables à pied depuis le port.
 
 Les quatre autres mondes (Val forestier, Trois vagues, Cimes, Moissons) n’ont que des rues et
 accès courts issus de `planGroundRoute` : 0 m sous l’eau sauf 8 m sous le pont du Val forestier
@@ -96,11 +100,50 @@ système de relief) :
 - ouvrages de 20 points au plus, identifiants `road:<chemin>:<n>` : une régénération ne remplace
   que les siens, les retouches de relief manuelles ne sont jamais touchées.
 
-Volcan : 73 ouvrages sur 5 993 m, déblai max 2,09 m, remblai max 1,61 m (limite du format : 256).
+Volcan : 95 ouvrages sur 7 696 m, déblai max 2,09 m, remblai max 1,61 m (limite du format : 256).
+
+**Rendu lointain** : une plateforme étroite n’est pas résolue par les LOD grossiers du relief, qui
+recouvraient la route par endroits (pointillés vus à 150 m). Le matériau des chemins reçoit un
+biais de profondeur (`polygonOffset`, `paths/path-view.ts`) : quelques millimètres de près,
+croissant avec la distance comme l’erreur des LOD. Aucune passe ni texture ajoutée.
 Seules les routes planifiées et les accès repris sont terrassés ; rues de village et sentiers de
 presets sains gardent leur sol.
 
-## 6. Audit — `src/paths/road-audit.ts`, `npm run audit:roads`
+## 6. Génération automatique et Studio — `src/studio-core/road-links.ts`
+
+`planRoadLinks(p)` relie au réseau principal chaque lieu que l’audit de circulation trouve isolé
+(villages, comptoirs, champs, mines, courses, pistes, sites), du plus proche au plus lointain :
+route carrossable (3 m, 16 %) pour les lieux habités ou marchands, sentier (2 m, 24 %) pour le
+reste, palier plus raide en dernier recours. Il renvoie un plan (chemins, passerelles,
+terrassements, échecs motivés) ; `applyRoadLinks` l’écrit. Rien n’est modifié avant.
+
+- Départ : un point des chemins propres du lieu (raccord exact), sinon un sol libre à son bord —
+  hors de son champ, hors de la chaussée de sa course.
+- Les routes et leurs talus évitent bâtiments, champs, chaussées de course et pistes de ski.
+- Spots de surf et de plongée : jamais forcés par une route (le relieur de chemins sert la plage).
+- Graphe de circulation : une passerelle joint les deux tronçons coupés à ses culées
+  (`buildCirculationGraph`), y compris les passerelles planifiées non encore écrites.
+
+**Composition** : option `roads` de `MapRequirements` (composition 5 uniquement). L’étape
+`CIRCULATION` pose d’abord les routes, puis le relieur historique sert ce qui reste. Sans
+l’option, les mondes composés restent identiques. Les fiches de thème (`briefToRequirements`)
+l’activent ; l’assistant de création a la case « Routes planifiées : ponts, lacets et terrain
+adapté ».
+
+**Studio**, panneau « Monde généré » :
+- « Tracer les routes (ponts, lacets, terrassement) » — une seule transaction annulable ; les
+  lits de route apparaissent dans la liste des terrassements, modifiables ou supprimables ;
+- « Contrôler les routes » — totaux de l’audit et pires chemins, avec leurs coordonnées.
+
+Mesures sur trois thèmes composés (chemins historiques → routes planifiées) :
+
+| Thème | Lieux atteignables | Dévers | Ligne de pente |
+|---|---|---|---|
+| Île du Volcan (thème) | 30/33 → 32/33 | 599 m → 150 m | 107 m → 176 m |
+| Vallons des Moissons | 40/40 → 40/40 | 116 m → 12 m | 82 m → 0 m |
+| Massif des Neiges | 16/20 → 20/20 | 2 639 m → 192 m | 362 m → 45 m |
+
+## 7. Audit — `src/paths/road-audit.ts`, `npm run audit:roads`
 
 `auditRoads` mesure par chemin : mètres sous l’eau, au-delà de la pente du profil, en dévers,
 dans la ligne de pente, et par traversée : biais, pont présent, orientation du pont, ponts
@@ -114,10 +157,10 @@ Limites connues :
   modifiés pour ne pas changer les fixtures.
 - **Grands ponts** (> 16 m), viaducs, gués et tunnels : hors lot (doc 88).
 - **Collision des passerelles GLB** : inchangée (boîte du registre).
-- **Composition V5** (`planCirculationLinks`) et **Studio** : toujours sur `planGroundRoute` ;
-  le planificateur n’y est pas encore branché (les mondes composés restent identiques octet
-  par octet). Les diagnostics de l’audit ne sont pas encore affichés dans le Studio. **Lot suivant décidé :**
-  brancher planificateur, ponts et terrassement dans le Studio puis dans `COMPOSITION_STAGES`.
+- **Épingles** : arrondies sur 9 m seulement, elles restent pointues vues de haut.
+- **Rues de village et accès de sites** (`planGroundRoute`) : inchangés.
+- **PNJ** : les passerelles GLB n’ont pas de support de navigation (`supportId`) ; les habitants
+  ne les empruntent pas. Le joueur les traverse (vérifié en jeu).
 - `DRESSING_VERSION` non augmenté : la génération de végétation est inchangée, seules les
   emprises de routes du Volcan ont bougé.
-- Génération du Volcan : ~20 s → ~37 s (recherche de routes) ; temps GPU non concerné.
+- Composition d’un thème : +3 à +9 s avec `roads`. Génération du Volcan : ~20 s → ~48 s (recherche de routes) ; temps GPU non concerné.

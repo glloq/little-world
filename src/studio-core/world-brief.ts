@@ -64,7 +64,7 @@ export function briefToRequirements(raw:WorldBriefV1):MapRequirements{
   activities:{races:a.races??'none',ski:a.ski==='run'||a.ski==='resort',music:'contextual',
    ...(a.ski==='resort'?{skiResort:true}:{}),...(a.surf?{surf:true}:{}),...(a.flight?{flight:true}:{})},
   ...(reefCoast||diving!=='none'?{underwater:{shelf:reefCoast?'wide' as const:'narrow' as const,reefs:b.coast==='lagoon'?5:reefCoast?3:diving==='reefs'?2:0,holes:diving==='deep'?2:diving==='reefs'?1:0,trench:diving==='deep',diveSites:diving!=='none'}}:{}),
-  earthworks:true,circulation:true,stories:b.stories??true,...(b.locale?{locale:b.locale}:{}),
+  earthworks:true,circulation:true,roads:true,stories:b.stories??true,...(b.locale?{locale:b.locale}:{}),
  };
  return validateMapRequirements(r);
 }

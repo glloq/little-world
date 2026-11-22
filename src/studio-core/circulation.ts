@@ -8,7 +8,7 @@
  *
  * Pure and derived: the graph is never stored; links are ordinary paths.
  */
-import type {ProjectDocument} from './types.ts';
+import type {ProjectDocument,EntityDefinitionV3} from './types.ts';
 import type {PathDefinition} from '../world-data.ts';
 import {settlementFootprint,type PointXZ} from '../settlements/footprint.ts';
 import {planGroundRoute,type GroundRouteContext} from '../paths/terrain-route.ts';
@@ -22,7 +22,8 @@ export interface CirculationEdge {a:number;b:number;lengthM:number;pathId:string
 export interface AttachedDestination extends Destination {node:number|null;gapM:number;component:number|null}
 export interface CirculationGraph {nodes:PointXZ[];edges:CirculationEdge[];adjacency:number[][];component:number[];componentCount:number;destinations:AttachedDestination[];hub:AttachedDestination|null}
 
-const SNAP_M=3,CELL=32;
+// Bridge reach > snap: an abutment vertex may have merged with the previous vertex of its path.
+const SNAP_M=3,CELL=32,BRIDGE_REACH_M=4;
 class NodeIndex {
  readonly nodes:PointXZ[]=[];private readonly cells=new Map<string,number[]>();
  private key(x:number,z:number){return Math.floor(x/CELL)+':'+Math.floor(z/CELL);}
@@ -60,7 +61,17 @@ export function collectDestinations(p:ProjectDocument):Destination[]{
  return out.sort((a,b)=>a.id.localeCompare(b.id));
 }
 
-export function buildCirculationGraph(p:ProjectDocument,paths:readonly PathDefinition[]=Object.values(p.libraries.paths) as PathDefinition[]):CirculationGraph{
+/** Deck ends of the footbridge props (doc 109): a road is cut at both abutments, the bridge joins them. */
+function bridgeDecks(p:ProjectDocument,extra:readonly EntityDefinitionV3[]):{a:PointXZ;b:PointXZ;id:string}[]{
+ const out:{a:PointXZ;b:PointXZ;id:string}[]=[];
+ for(const e of [...Object.values(p.chunks).flatMap(c=>Object.values(c.entities)),...extra]){
+  const t=e.components.Transform,asset=e.components.Visual?.assetId??'';if(!t||e.components.Bridge||!/^structure\.bridge/.test(asset))continue;
+  const yaw=2*Math.atan2(t.rotation.y,t.rotation.w),half=2.8*t.scale.x,ax=Math.cos(yaw),az=-Math.sin(yaw);
+  out.push({id:e.id,a:{x:t.position.x-ax*half,z:t.position.z-az*half},b:{x:t.position.x+ax*half,z:t.position.z+az*half}});
+ }
+ return out.sort((x,y)=>x.id.localeCompare(y.id));
+}
+export function buildCirculationGraph(p:ProjectDocument,paths:readonly PathDefinition[]=Object.values(p.libraries.paths) as PathDefinition[],extraBridges:readonly EntityDefinitionV3[]=[]):CirculationGraph{
  const index=new NodeIndex(),edges:CirculationEdge[]=[],polylines:{pathId:string;nodes:number[]}[]=[];
  for(const path of [...paths].sort((a,b)=>a.id.localeCompare(b.id))){
   const nodes=path.points.map(q=>index.add(q.x,q.z));polylines.push({pathId:path.id,nodes});
@@ -89,6 +100,8 @@ export function buildCirculationGraph(p:ProjectDocument,paths:readonly PathDefin
   const n=index.add(p1.x+rx*u,p1.z+rz*u),at=index.nodes[n];
   for(const k of [s.a,s.b,t.a,t.b])if(k!==n)edges.push({a:n,b:k,lengthM:Math.hypot(index.nodes[k].x-at.x,index.nodes[k].z-at.z),pathId:k===s.a||k===s.b?s.pathId:t.pathId});
  }
+ // Footbridges: path ends standing at the two abutments are joined across the water.
+ for(const deck of bridgeDecks(p,extraBridges)){const a=index.nearest(deck.a.x,deck.a.z,BRIDGE_REACH_M),b=index.nearest(deck.b.x,deck.b.z,BRIDGE_REACH_M);if(a&&b&&a.node!==b.node)edges.push({a:a.node,b:b.node,lengthM:Math.hypot(deck.b.x-deck.a.x,deck.b.z-deck.a.z),pathId:deck.id});}
  const adjacency:number[][]=index.nodes.map(()=>[]);edges.forEach((e,i)=>{adjacency[e.a].push(i);adjacency[e.b].push(i);});
  const component=index.nodes.map(()=>-1);let componentCount=0;
  for(let s=0;s<index.nodes.length;s++){if(component[s]>=0)continue;const stack=[s];component[s]=componentCount;while(stack.length){const n=stack.pop()!;for(const ei of adjacency[n]){const e=edges[ei],m=e.a===n?e.b:e.a;if(component[m]<0){component[m]=componentCount;stack.push(m);}}}componentCount++;}

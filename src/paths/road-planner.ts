@@ -13,6 +13,9 @@ export interface RoadStream {id:string;points:{x:number;z:number;half:number;lev
 export interface RoadContext {bounds:{minX:number;maxX:number;minZ:number;maxZ:number};height(x:number,z:number):number;seaLevel:number;
  /** Water or forbidden ground (buildings, fields, race corridors) within `marginM` of the point. */
  blocked(x:number,z:number,marginM:number):boolean;
+ /** Water alone at the point (no other forbidden ground): the short hop from a stop to the search grid
+  * may cross a field edge, never a brook. Defaults to `blocked(x,z,0)`. */
+ wet?(x:number,z:number):boolean;
  /** Rivers that may be bridged. */streams:readonly RoadStream[];
  /** Roads already planned (bridges included as segments): followed at a discount instead of being
   * doubled, so a new road branches off where it really diverges. */
@@ -82,22 +85,30 @@ function buildGrid(c:RoadContext,box:RoadContext['bounds'],step:number):Grid{
  return {minX:box.minX,minZ:box.minZ,step,cols,rows,h,gx,gz,open,road};
 }
 const cellPoint=(g:Grid,i:number):PointXZ=>({x:g.minX+(i%g.cols+.5)*g.step,z:g.minZ+(Math.floor(i/g.cols)+.5)*g.step});
-function nearestOpen(g:Grid,q:PointXZ,reach=3):number{
+/** Closest free cell; with `dryHop`, the straight hop from the point to that cell must not touch water. */
+function nearestOpen(g:Grid,q:PointXZ,reach=3,dryHop?:(x:number,z:number)=>boolean):number{
  const cx=Math.floor((q.x-g.minX)/g.step),cz=Math.floor((q.z-g.minZ)/g.step);let best=-1,bd=Infinity;
- for(let dz=-reach;dz<=reach;dz++)for(let dx=-reach;dx<=reach;dx++){const x=cx+dx,z=cz+dz;if(x<0||x>=g.cols||z<0||z>=g.rows)continue;const i=z*g.cols+x;if(!g.open[i])continue;const t=cellPoint(g,i),d=Math.hypot(t.x-q.x,t.z-q.z);if(d<bd-1e-9){bd=d;best=i;}}
+ for(let dz=-reach;dz<=reach;dz++)for(let dx=-reach;dx<=reach;dx++){const x=cx+dx,z=cz+dz;if(x<0||x>=g.cols||z<0||z>=g.rows)continue;const i=z*g.cols+x;if(!g.open[i])continue;const t=cellPoint(g,i),d=Math.hypot(t.x-q.x,t.z-q.z);if(d>=bd-1e-9)continue;
+  if(dryHop){const n=Math.max(1,Math.ceil(d/1.2));let wet=false;for(let k=0;k<=n&&!wet;k++)wet=dryHop(q.x+(t.x-q.x)*k/n,q.z+(t.z-q.z)*k/n);if(wet)continue;}
+  bd=d;best=i;}
  return best;
 }
 interface BridgeEdge {to:number;site:BridgeSite;forward:boolean;angle:number;dir:number;cost:number}
 const REUSE=.6;
 type Step={cell:number;/** Reached along an existing road. */reused:boolean;bridge?:{site:BridgeSite;forward:boolean}};
 
-function searchLeg(start:PointXZ,end:PointXZ,g:Grid,sites:readonly BridgeSite[],p:RoadPolicy,c_network:boolean,startDir=D):{steps:Step[];expanded:number;dir:number}|null{
- const first=nearestOpen(g,start),last=nearestOpen(g,end);if(first<0||last<0)return null;
+function searchLeg(start:PointXZ,end:PointXZ,g:Grid,sites:readonly BridgeSite[],p:RoadPolicy,c_network:boolean,startDir=D,wet?:(x:number,z:number)=>boolean):{steps:Step[];expanded:number;dir:number}|null{
+ const first=nearestOpen(g,start,3,wet),last=nearestOpen(g,end,3,wet);if(first<0||last<0)return null;
  const n=g.cols*g.rows,turnM=p.turnM??12,bridgeCost=p.bridgeCostM??60,angles=DIRS.map(([dx,dz])=>Math.atan2(dz,dx)),lens=DIRS.map(([dx,dz])=>Math.hypot(dx,dz)*g.step);
  // Bridges become edges between the cells behind each approach stub.
  const bridges=new Map<number,BridgeEdge[]>();
  for(const site of sites){
-  const reach=STUB_M+g.step,ca=nearestOpen(g,{x:site.a.x-site.axisX*reach,z:site.a.z-site.axisZ*reach},1),cb=nearestOpen(g,{x:site.b.x+site.axisX*reach,z:site.b.z+site.axisZ*reach},1);if(ca<0||cb<0||ca===cb)continue;
+  // The cell behind each approach must be reached from its stub over dry ground: another brook may
+  // run just behind the bank (confluences).
+  const stubA={x:site.a.x-site.axisX*STUB_M,z:site.a.z-site.axisZ*STUB_M},stubB={x:site.b.x+site.axisX*STUB_M,z:site.b.z+site.axisZ*STUB_M};
+  const ca=nearestOpen(g,{x:stubA.x-site.axisX*g.step,z:stubA.z-site.axisZ*g.step},1),cb=nearestOpen(g,{x:stubB.x+site.axisX*g.step,z:stubB.z+site.axisZ*g.step},1);if(ca<0||cb<0||ca===cb)continue;
+  const hopWet=(from:PointXZ,cell:number)=>{if(!wet)return false;const t=cellPoint(g,cell),n=Math.max(1,Math.ceil(Math.hypot(t.x-from.x,t.z-from.z)/1.2));for(let k=0;k<=n;k++)if(wet(from.x+(t.x-from.x)*k/n,from.z+(t.z-from.z)*k/n))return true;return false;};
+  if(hopWet(stubA,ca)||hopWet(stubB,cb))continue;
   const A=cellPoint(g,ca),B=cellPoint(g,cb),cost=Math.hypot(B.x-A.x,B.z-A.z)+bridgeCost,angle=Math.atan2(site.axisZ,site.axisX);
   const nearestDir=(a:number)=>{let k=0;for(let i=1;i<D;i++)if(turn(angles[i],a)<turn(angles[k],a))k=i;return k;};
   for(const [from,to,forward,ang]of [[ca,cb,true,angle],[cb,ca,false,angle+Math.PI]] as const){const list=bridges.get(from)??[];list.push({to,site,forward,angle:ang,dir:nearestDir(ang),cost});bridges.set(from,list);}
@@ -185,7 +196,7 @@ export function planRoad(stops:readonly PointXZ[],c:RoadContext,p:RoadPolicy,sit
   type Item={q:PointXZ;reused:boolean;site?:undefined}|{site:BridgeSite;q?:undefined};
   const items:Item[]=[{q:stops[0],reused:false}];let ok=true,heading=D;
   for(let k=1;k<stops.length&&ok;k++){
-   const leg=searchLeg(stops[k-1],stops[k],g,sites,p,!!c.network?.length,heading);if(!leg){ok=false;break;}expanded+=leg.expanded;heading=leg.dir;
+   const leg=searchLeg(stops[k-1],stops[k],g,sites,p,!!c.network?.length,heading,c.wet??((x,z)=>c.blocked(x,z,0)));if(!leg){ok=false;break;}expanded+=leg.expanded;heading=leg.dir;
    // The first and last cells stand for the stops themselves.
    leg.steps.forEach((s,i)=>{
     if(s.bridge){const {site,forward}=s.bridge,[near,far]=forward?[site.a,site.b]:[site.b,site.a],sx=forward?site.axisX:-site.axisX,sz=forward?site.axisZ:-site.axisZ;
@@ -196,16 +207,23 @@ export function planRoad(stops:readonly PointXZ[],c:RoadContext,p:RoadPolicy,sit
   }
   if(!ok)continue;
   const snap=(q:PointXZ):PointXZ=>{let best=q,bd=Infinity;for(const line of c.network??[])for(let k=1;k<line.length;k++){const a=line[k-1],b=line[k],dx=b.x-a.x,dz=b.z-a.z,t=Math.max(0,Math.min(1,((q.x-a.x)*dx+(q.z-a.z)*dz)/(dx*dx+dz*dz||1))),x=a.x+dx*t,z=a.z+dz*t,d=Math.hypot(x-q.x,z-q.z);if(d<bd){bd=d;best={x,z};}}return bd<=g.step*2?best:q;};
-  const raw:{points:PointXZ[];head:boolean;tail:boolean}[]=[],bridges:BridgeSite[]=[];
-  let current:{points:PointXZ[];head:boolean;tail:boolean}|null={points:[stops[0]],head:false,tail:false},previous=stops[0],onNetwork=false;
-  const close=()=>{if(current&&current.points.length>=2)raw.push(current);current=null;};
+  type Piece={points:PointXZ[];head:boolean;tail:boolean;/** Left the existing network to get here. */branch:boolean};
+  const raw:Piece[]=[],bridges:BridgeSite[]=[],span=(l:PointXZ[])=>l.slice(1).reduce((m,q,i)=>m+Math.hypot(q.x-l[i].x,q.z-l[i].z),0);
+  let current:Piece|null={points:[stops[0]],head:false,tail:false,branch:false},previous=stops[0],onNetwork=false;
+  // A few metres that leave the network only to rejoin it are grid noise, not a road: dropped.
+  const close=(rejoins=false)=>{if(current&&current.points.length>=2&&!(rejoins&&current.branch&&!current.head&&span(current.points)<g.step*5))raw.push(current);current=null;};
   for(const item of items.slice(1)){
-   if(item.site){if(current)current.tail=true;close();bridges.push(item.site);current={points:[],head:true,tail:false};onNetwork=false;continue;}
-   if(item.reused){if(current&&current.points.length>=2)current.points[current.points.length-1]=snap(current.points.at(-1)!);close();onNetwork=true;}
-   else{if(!current)current={points:[onNetwork?snap(previous):previous],head:false,tail:false};current.points.push(item.q);onNetwork=false;}
+   if(item.site){if(current)current.tail=true;close();bridges.push(item.site);current={points:[],head:true,tail:false,branch:false};onNetwork=false;continue;}
+   if(item.reused){if(current&&current.points.length>=2)current.points[current.points.length-1]=snap(current.points.at(-1)!);close(true);onNetwork=true;}
+   else{if(!current)current={points:[onNetwork?snap(previous):previous],head:false,tail:false,branch:onNetwork};current.points.push(item.q);onNetwork=false;}
    previous=item.q;
   }
   close();
+  // Same noise at the journey's end: a stub between two points of the network adds nothing.
+  const gap=(q:PointXZ)=>{const s=snap(q);return s===q?(c.network?.some(l=>l.some(v=>v.x===q.x&&v.z===q.z))?0:Infinity):Math.hypot(s.x-q.x,s.z-q.z);};
+  for(let k=raw.length-1;k>=0;k--){const piece=raw[k];if(!piece.head&&!piece.tail&&span(piece.points)<g.step*5&&gap(piece.points[0])<1.5&&gap(piece.points.at(-1)!)<1.5)raw.splice(k,1);}
+  // A stop standing just beside the network, reached without leaving it: joined by a short spur.
+  for(const [stop,first]of [[stops[0],true],[stops.at(-1)!,false]] as const){const d=gap(stop);if(d>.5&&d<Infinity&&!raw.some(piece=>piece.points.some(q=>q===stop)))raw[first?'unshift':'push']({points:first?[stop,snap(stop)]:[snap(stop),stop],head:false,tail:false,branch:true});}
   // Bridge ends and their stubs stay exact: only the open ground in between is simplified and rounded.
   const pieces=raw.map(({points:piece,head,tail})=>{
    const first=head?piece.slice(0,1):[],lastPoint=tail?piece.slice(-1):[],body=piece.slice(head?1:0,tail?piece.length-1:piece.length);

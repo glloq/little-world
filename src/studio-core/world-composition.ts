@@ -1,3 +1,4 @@
+import {planRoadLinks,applyRoadLinks} from './road-links.ts';
 import {generateWorldActivities,validateWorldActivities} from './world-activities.ts';
 import {generateBirthPort,validateBirthPort} from './birth-port.ts';
 import {generateWelcomeVillage} from './welcome-village.ts';
@@ -98,8 +99,19 @@ const POLES:Stage={id:'poles',label:'Pôles habités',run(c){
 const ACTIVITIES:Stage={id:'activities',label:'Activités',run(c){generateWorldActivities(c.project,c.diagnostics);}};
 /** One walkable network: optional links from every destination to the port, then reachability audit. */
 const CIRCULATION:Stage={id:'circulation',label:'Réseau de circulation',run(c){
+ let roadFailures:{id:string;name:string;reason:string}[]=[];
+ // Planned roads first (doc 109): bridges, hairpins and graded beds. The path linker then serves what
+ // is left (beaches for surf and dive spots, places a road could not reach).
+ if(c.requirements.roads){
+  const plan=planRoadLinks(c.project);applyRoadLinks(c.project,plan);
+  roadFailures=plan.failed;
+  if(plan.earthworksDropped)c.diagnostics.push({severity:'WARNING',code:'ROAD_GRADING_LIMIT',message:`${plan.earthworksDropped} terrassement(s) de route non créés : limite du format atteinte.`});
+ }
  if(c.requirements.circulation){const links=planCirculationLinks(c.project,terrainAccessContext(c.project));for(const path of links.paths)putPath(c.project,path);}
- c.diagnostics.push(...auditCirculation(c.project).map(d=>({severity:d.severity,code:d.code,message:d.message})));
+ const audit=auditCirculation(c.project);
+ // A failed road only matters if the place is still cut off once every link is in.
+ for(const f of roadFailures)if(audit.some(d=>d.id===f.id))c.diagnostics.push({severity:'WARNING',code:'ROAD_LINK_FAILED',message:`Route vers « ${f.name} » impossible : ${f.reason}.`});
+ c.diagnostics.push(...audit.map(d=>({severity:d.severity,code:d.code,message:d.message})));
 }};
 /** Reefs, blue holes and trench away from the port and surf breaks, then dive sites with discoveries. */
 const DIVE:Stage={id:'dive',label:'Récifs et sites de plongée',run(c){

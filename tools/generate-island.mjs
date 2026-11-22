@@ -24,6 +24,7 @@ import {planRoadTiered,nearestRoadPoint,ROAD_POLICIES} from '../src/paths/road-p
 import {projectRoadContext,bridgePlacement,roadPaths,repairPath} from '../src/studio-core/road-network.ts';
 import {projectRoadAuditEnv} from '../src/studio-core/road-audit.ts';
 import {planRoadGrading} from '../src/paths/road-grading.ts';
+import {planRoadLinks,applyRoadLinks,ROAD_LINK_PREFIX} from '../src/studio-core/road-links.ts';
 import {putEarthworks} from '../src/studio-core/earthworks-planner.ts';
 import {compileProjectToDirectory} from './compile-project.mjs';
 
@@ -187,9 +188,12 @@ const kind=['nature.boulder_large','nature.boulder_pile','nature.rock_spire','na
     removePath(p,path.id);for(const q of fix.paths){putPath(p,q);repaired.add(q.id);}
     for(const site of fix.bridges){const b=bridgePlacement(site,g.ctx.height);place(`island-road-bridge-${bridges++}`,'Passerelle','structure.bridge_wooden_arch',b.x,b.z,b.yaw,b.y,b.stretch);}
    }
+   // Shops, fields, camps and the mine still cut off from the network get their own planned link (doc 109 §6).
+   const links=planRoadLinks(p,{grading:false});applyRoadLinks(p,links);
+   if(process.env.ISLAND_VERBOSE)console.warn('liaisons',links.links.length,'pont(s)',links.bridges.length,'échecs',links.failed.map(f=>f.name+' : '+f.reason));
    // The ground is fitted to the roads where needed (doc 109 §5): a bed cut into flanks and evened
    // along the way, never near water. Village streets and preset lanes keep their natural ground.
-   const graded=Object.values(p.libraries.paths).filter(q=>q.id.startsWith('route-')||repaired.has(q.id)).map(q=>planRoadGrading(q,{height:g.ctx.height,seaLevel:sea,nearWater:(x,z,m)=>rc.blocked(x,z,m)}));
+   const graded=Object.values(p.libraries.paths).filter(q=>q.id.startsWith('route-')||q.id.startsWith(ROAD_LINK_PREFIX)||repaired.has(q.id)).map(q=>planRoadGrading(q,{height:g.ctx.height,seaLevel:sea,nearWater:(x,z,m)=>rc.blocked(x,z,m)}));
    putEarthworks(p,graded.flatMap(r=>r.works));
    if(process.env.ISLAND_VERBOSE)console.warn('terrassement',graded.reduce((n,r)=>n+r.works.length,0),'ouvrages,',graded.reduce((n,r)=>n+r.gradedM,0),'m, déblai max',Math.max(...graded.map(r=>r.maxCutM)),'m, remblai max',Math.max(...graded.map(r=>r.maxFillM)),'m');}
   // Roadside campfires with log seats every ~320 m along the routes (lit, flickering).
