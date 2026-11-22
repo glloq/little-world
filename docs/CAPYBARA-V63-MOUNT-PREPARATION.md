@@ -112,3 +112,19 @@ node --experimental-strip-types --test tests/capybara-pose.test.mjs
 ```
 
 La qualification de la silhouette couchée, des appuis, de la selle et de la roulotte en navigateur est **non terminée**. Ajouter une galerie de validation et tester l'échelle d'un hamster assis avant d'intégrer à Studio.
+
+## Passe accessoires V2 — attaches et orientation
+
+Le harnais et les sangles ne traversent plus le ventre avec des blocs cubiques : bandes courbes autour du torse, selle et sacoches arrondies. Les roues sont orientées dans le plan XY, avec axe de rotation +Z, et possèdent un pivot propre. La déformation GPU des pattes reste indépendante.
+
+**Hiérarchie** :
+- `capybara.group` : mouvement/rotation du personnage et de tous ses équipements ;
+- `CapybaraPoseRoot` : corps couché + selle/sacoches lorsqu'ils suivent le corps ;
+- `CapybaraTowAssembly` : roulotte / charrette dans le repère du capybara, avec roues sous pivots animés par la distance `groundSpeed * dt` ;
+- `SocketHitch` : repère d'attelage, conservé.
+
+Le suivi est garanti au **niveau du graphe de scène** quand le moteur déplace `capybara.group` : les accessoires ne doivent jamais être positionnés indépendamment en coordonnées mondiales. En cas de futur système de roulotte physiquement indépendante, ce nœud deviendra le visuel piloté par l'articulation de traction.
+
+La démo HTML autonome `little-world-capybara-accessoires-v2-mobile.html` illustre un déplacement du groupe et des roues (mode marche). L'intégration en jeu, les collisions et le virage articulé de la roulotte ne sont pas implémentés.
+
+**Tests requis avant merge :** caméra 3/4 des six accessoires, marche/arrêt avec tournants, contact roue-sol, clips repos/relèvement, test sur iGPU. L'amélioration esthétique reste soumise à validation utilisateur.
