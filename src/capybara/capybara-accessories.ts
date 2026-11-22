@@ -97,49 +97,52 @@ export function buildCapybaraAccessories(kind:CapybaraLoadout):THREE.Group {
        bar(tow,'CargoStake',palette.woodDark,new THREE.Vector3(x,.94,side*width/2),new THREE.Vector3(x,1.55,side*width/2),.04);
    }
    if(kind==='caravan'){
-     // Wooden covered wagon: longitudinal cabin, arched roof spanning +Z to -Z.
-     // No intersecting ovoid shell or incorrectly oriented half-cylinder.
-     const rear=axle-.70,front=axle+.66,half=width*.43,roofHalf=half+.16;
+     // V4: cabin closed under the barrel roof; low-poly rear staircase.
+     const rear=axle-.70, front=axle+.66, half=width*.43, roofHalf=half+.16;
      for(const side of [-1,1]){
-       block(tow,'CaravanWall',palette.wood,axle,1.43,side*half,1.40,.79,.10);
-       for(let j=0;j<4;j++)
-         block(tow,'WallPlank',j%2?palette.wood:palette.canvas,axle,1.09+j*.20,side*(half+.057),1.37,.012,.10);
+       block(tow,'CaravanWall',palette.wood,axle,1.50,side*half,1.40,1.00,.11);
+       for(let j=0;j<5;j++)
+         block(tow,'WallPlank',j%2?palette.wood:palette.canvas,axle,1.06+j*.20,side*(half+.065),1.38,.012,.13);
        for(const x of [axle-.57,axle+.55])
-         bar(tow,'WallFrame',palette.woodDark,new THREE.Vector3(x,1.04,side*half),
-           new THREE.Vector3(x,1.87,side*half),.042);
-       block(tow,'WindowFrame',palette.woodDark,axle+.12,1.49,side*(half+.072),.42,.38,.038);
-       block(tow,'WindowGlass',palette.trim,axle+.12,1.49,side*(half+.096),.32,.29,.027);
-       bar(tow,'WindowCross',palette.woodDark,new THREE.Vector3(axle+.12,1.34,side*(half+.119)),
-         new THREE.Vector3(axle+.12,1.64,side*(half+.119)),.017);
+         bar(tow,'WallFrame',palette.woodDark,new THREE.Vector3(x,1.02,side*half),
+           new THREE.Vector3(x,2.00,side*half),.042);
+       block(tow,'UpperWallInfill',palette.wood,axle,1.98,side*(half+.02),1.38,.18,.11);
+       block(tow,'EaveTrim',palette.woodDark,axle,1.89,side*(half+.055),1.40,.08,.08);
+       block(tow,'WindowFrame',palette.woodDark,axle+.12,1.55,side*(half+.072),.42,.38,.038);
+       block(tow,'WindowGlass',palette.trim,axle+.12,1.55,side*(half+.096),.32,.29,.027);
+       bar(tow,'WindowCross',palette.woodDark,new THREE.Vector3(axle+.12,1.40,side*(half+.119)),
+         new THREE.Vector3(axle+.12,1.70,side*(half+.119)),.017);
      }
-     block(tow,'RearWall',palette.wood,rear,1.43,0,.10,.80,half*2);
-     block(tow,'FrontWall',palette.wood,front,1.43,0,.10,.80,half*2);
-     block(tow,'CaravanDoorFrame',palette.woodDark,rear-.064,1.36,0,.035,.69,.47);
-     block(tow,'CaravanDoor',palette.wood,rear-.086,1.37,0,.023,.57,.36);
-     roundedPad(tow,'DoorKnob',palette.metal,rear-.11,1.43,.11,.027,.027,.027);
-     block(tow,'RearStep',palette.woodDark,rear-.19,.89,0,.28,.09,.55);
-     // Barrel-vault roof mesh with clear eaves and continuous triangulated surface.
+     block(tow,'RearWall',palette.wood,rear,1.53,0,.10,1.06,half*2);
+     block(tow,'FrontWall',palette.wood,front,1.53,0,.10,1.06,half*2);
+     block(tow,'CaravanDoorFrame',palette.woodDark,rear-.064,1.42,0,.035,.72,.44);
+     block(tow,'CaravanDoor',palette.wood,rear-.086,1.43,0,.022,.63,.35);
+     roundedPad(tow,'DoorKnob',palette.metal,rear-.104,1.48,.105,.025,.025,.025);
+     for(const [i,dx] of [[0,-.16],[1,-.30],[2,-.46]] as const)
+       block(tow,'RearStairStep',palette.woodDark,rear+dx,.99-i*.08,0,.22+i*.08,.07,.48+i*.10);
+     // Arch decreases to its eaves, meeting the upper wall instead of floating.
      const pos:number[]=[]; const idx:number[]=[];
-     const roofY=(z:number)=>2.015+.30*Math.max(0,1-(z/roofHalf)**2);
+     const roofY=(z:number)=>1.95+.23*Math.max(0,1-(z/roofHalf)**2);
      for(let j=0;j<=12;j++){
        const z=-roofHalf+2*roofHalf*j/12;
        pos.push(rear-.15,roofY(z),z,front+.14,roofY(z),z);
      }
      for(let j=0;j<12;j++){
-       const n=j*2;idx.push(n,n+3,n+1,n,n+2,n+3);
+       const n=j*2; idx.push(n,n+3,n+1,n,n+2,n+3);
      }
-     const geo=new THREE.BufferGeometry();
-     geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
-     geo.setIndex(idx);geo.computeVertexNormals();
-     add(tow,'CaravanArchedRoof',geo,palette.roof);
+     const roof=new THREE.BufferGeometry();
+     roof.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+     roof.setIndex(idx); roof.computeVertexNormals();
+     add(tow,'CaravanArchedRoof',roof,palette.roof);
      for(const x of [rear-.15,front+.14]){
        for(let j=0;j<12;j++){
          const za=-roofHalf+2*roofHalf*j/12;
          const zb=-roofHalf+2*roofHalf*(j+1)/12;
          bar(tow,'RoofRib',palette.woodDark,new THREE.Vector3(x,roofY(za),za),
-           new THREE.Vector3(x,roofY(zb),zb),.027);
+           new THREE.Vector3(x,roofY(zb),zb),.028);
        }
      }
+
    }
  }
  return root;
