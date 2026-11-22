@@ -21,7 +21,10 @@ test('mounting and caravan variants have distinct attachment meshes',()=>{
   assert.ok(saddle.getObjectByName('SaddleSeat'));
   assert.equal(saddle.getObjectByName('CaravanBody'),undefined);
   const caravan=buildCapybaraAccessories('caravan');
-  assert.ok(caravan.getObjectByName('CaravanBody'));
+  assert.ok(caravan.getObjectByName('CaravanArchedRoof'));
+  assert.ok(caravan.getObjectByName('CaravanDoor'));
+  assert.ok(caravan.getObjectByName('WindowFrame'));
+  assert.equal(caravan.getObjectByName('CaravanShell'),undefined);
   assert.ok(caravan.getObjectByName('Wheel'));
   assert.equal(caravan.getObjectByName('SaddleSeat'),undefined);
   disposeCapybaraAccessories(saddle);
