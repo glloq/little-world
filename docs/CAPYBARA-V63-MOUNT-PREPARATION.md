@@ -128,3 +128,53 @@ Le suivi est garanti au **niveau du graphe de scène** quand le moteur déplace 
 La démo HTML autonome `little-world-capybara-accessoires-v2-mobile.html` illustre un déplacement du groupe et des roues (mode marche). L'intégration en jeu, les collisions et le virage articulé de la roulotte ne sont pas implémentés.
 
 **Tests requis avant merge :** caméra 3/4 des six accessoires, marche/arrêt avec tournants, contact roue-sol, clips repos/relèvement, test sur iGPU. L'amélioration esthétique reste soumise à validation utilisateur.
+
+## Étape suivante — raccord au monde (préparé, non activé)
+
+Le fichier `src/capybara/capybara-world.ts` fournit un adaptateur opt-in pour créer et piloter un capybara à partir d'une entité gérée par la simulation existante.
+
+```ts
+import {createCapybaraWorldCollection} from './capybara/capybara-world.ts';
+
+const animals = createCapybaraWorldCollection(world.root);
+const capybara = await animals.add('capybara-test-01', {
+  x: 4, y: terrainHeight(4, 8), z: 8,
+  heading: 0, groundSpeed: 0,
+  state: 'idle', loadout: 'caravan',
+});
+
+// À appeler depuis la boucle déjà existante (aucun RAF supplémentaire) :
+animals.update(dt, snapshotsById, playerPosition);
+
+// Lorsque la carte est déchargée :
+animals.dispose();
+```
+
+L'adaptateur réutilise le repère 3D de la scène `world.root`. Les coordonnées du capybara sont toujours imposées par son état de simulation; les animations ne changent jamais les coordonnées de collision. Les modèles sont créés à la demande, mutualisent la géométrie, disposent de leur propre phase de marche, et sont détruits explicitement.
+
+### Roulotte V4 : correction du rendu
+
+- Volume des flancs prolongé pour fermer le vide entre murs et toiture.
+- Pignons avant et arrière sous le toit cintré (aucun vide ouvert).
+- Trois marches derrière la porte, avec ouverture sur l'axe `-X` (arrière de l'animal).
+- Les éléments du timon et des roues suivent la transformation du capybara; les roues tournent selon la distance parcourue.
+- La roulotte reste un **assemblage visuel** (aucune physique de remorque ni articulation de pivot arrière).
+
+### Ordre de raccordement proposé
+
+1. Démo locale opt-in, un seul capybara avec les six configurations et états visuels; aucune modification des îles publiées.
+2. Câbler son placement à une entité du monde et au terrain, puis mesurer orientation `+X`, hauteur du sol, collisions proposées, virages et pentes.
+3. Faire qualifier le matériel attelé: largeur des chemins, rayon de braquage, longueur d'attelage, obstacles et impossibilité de se coucher lorsqu'une remorque est accrochée.
+4. Faire un véritable assemblage de véhicule sur pivot d'attelage et roues en contact avec le terrain, avant d'autoriser déplacements joueurs/PNJ et persistance.
+5. Ajouter une représentation d'entité animale persistante dans Studio et les îles seulement après validation des versions enregistrées et de la compatibilité des cartes existantes.
+
+**Ne pas ajouter** le modèle OBJ dans `assets/world-assets.json` : le registre World Production représente actuellement des GLB statiques et le pipeline le régénère. Le capybara est un animal dynamique chargé via un contrôleur dédié.
+
+### Critères de qualification avant activation
+
+- Test de chargement et destruction répétés sans fuite de ressources.
+- Validation visuelle en WebGL sur chaque côté, à l'arrêt et en mouvement.
+- Vérification du mouvement de la roulotte dans les virages et de l'escalier près du sol.
+- Contrôle qualité des faux appuis / mouvement de tête / sommeil.
+- `npm test`, `npm run typecheck`, `npm run build` et CI de la branche au vert.
+
