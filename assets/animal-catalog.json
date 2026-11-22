@@ -13,14 +13,39 @@
       "meshCount": 1,
       "vertexCount": 802,
       "triangles": 1600,
-      "coordinateSystem": { "up": "+Y", "forward": "+X", "units": "metres", "pivot": "ground" },
-      "animations": ["idle", "walk-procedural-preview"],
-      "sockets": ["SocketRider", "SocketHitch"],
+      "coordinateSystem": {
+        "up": "+Y",
+        "forward": "+X",
+        "units": "metres",
+        "pivot": "ground"
+      },
+      "animations": [
+        "idle",
+        "walk-procedural-preview",
+        "follow-head",
+        "rest-side-preview",
+        "sleep-side-preview",
+        "wake-preview"
+      ],
+      "sockets": [
+        "SocketRider",
+        "SocketHitch"
+      ],
       "status": "prototype-ready-for-world-integration",
       "worldSpawnEnabled": false,
       "rideableEnabled": false,
       "draftEnabled": false,
-      "notes": "Walk is GPU vertex deformation, not a Blender skeleton/GLB animation clip. Mounting, hitbox, and traction gameplay are future integrations."
+      "notes": "Procedural GPU preview and separate removable primitive accessories; no rigged skeleton, articulated cart, validated sleeping ground contact, mount controls, wheels physics or world spawn.",
+      "loadouts": [
+        "none",
+        "saddle",
+        "pack",
+        "cart",
+        "wagon",
+        "caravan"
+      ],
+      "presentationModule": "src/capybara/capybara-pose.ts",
+      "equipmentModule": "src/capybara/capybara-accessories.ts"
     }
   ]
 }
