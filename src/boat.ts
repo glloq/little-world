@@ -4,6 +4,7 @@ import {
   insideWorld,
   terrainHeight,
   waterSurface,
+  waterCurrentAt,
 } from './terrain.ts';
 
 /** Fixed-step, render-independent arcade boat controller.
@@ -112,6 +113,12 @@ export function updateBoat(
     boat.z = nextZ;
   } else {
     boat.speed = 0;
+  }
+  // River current (doc 108): the hull drifts downstream; never pushed onto a bank.
+  const current = waterCurrentAt(boat.x, boat.z);
+  if (current.x || current.z) {
+    const driftX = boat.x + current.x * dt, driftZ = boat.z + current.z * dt;
+    if (canMove(boat, driftX, driftZ, boat.heading)) { boat.x = driftX; boat.z = driftZ; }
   }
   boat.y = (boatSurfaceAt(boat.x, boat.z) ?? waterSurface(boat.x, boat.z) ?? 0) - 0.15;
 }

@@ -17,8 +17,9 @@ import type {BiotopeId} from '../world-production/asset-usage.ts';
 const rnd=(seed:number,i:number,j:number)=>(hash2(seed,i,j)+1)/2;
 
 /** Bump when the placement rules, the species table or the occupation inputs change (cache keys,
- * reproducibility). 7: settlement footprints are reserved (doc 104 §C3). */
-export const DRESSING_VERSION=7;
+ * reproducibility). 7: settlement footprints are reserved (doc 104 §C3). 8: organic river beds
+ * (V-shaped banks, variable width) change the ground near water (doc 108 §9). */
+export const DRESSING_VERSION=8;
 export type DressingKind='pine'|'oak'|'shrub'|'plant'|'deadwood'|'rock'|'scree'|'pebble'|'basalt';
 export const DRESSING_KINDS:DressingKind[]=['pine','oak','shrub','plant','deadwood','rock','scree','pebble','basalt'];
 /** x, y, z, scale, rotation (rad), tint 0..1, species index (-1 = procedural) per item.

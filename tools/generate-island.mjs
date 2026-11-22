@@ -9,7 +9,8 @@
  * Usage: npm run generate:island */
 import {writeFile} from 'node:fs/promises';
 import {createProject,parseProject,chunkAt} from '../src/studio-core/schema.ts';
-import {putEntity,putPath} from '../src/studio-core/source.ts';
+import {putEntity,putPath,putWater} from '../src/studio-core/source.ts';
+import {planRiverNetwork} from '../src/world-production/river-network.ts';
 import {putZone} from '../src/studio-core/zones.ts';
 import {blobOutline} from '../src/geography/archipelago-params.ts';
 import {defaultEnvironment} from '../src/environment/climate.ts';
@@ -102,8 +103,8 @@ export function buildIsland(){
   // Presets that trace water are applied last: their WATER validation sees the final relief.
   const WATER_PRESETS=['forest-valley','marsh-basin','river-bend','waterfall-gorge'],ordered=[...ISLAND_LANDSCAPES].sort((a,b)=>WATER_PRESETS.indexOf(a[0])-WATER_PRESETS.indexOf(b[0]));
   const reports=ordered.map(([presetId,center,[w,l],rotation,params])=>applyLandscape(p,newLandscape(p,presetId,center,{width:w,length:l,rotation,params})));
-  const place=(id,name,assetId,x,z,ry=0,y=0)=>{const def=assetDefinitionFor(assetId);if(def&&!p.assets[assetId])p.assets[assetId]=def;
-    putEntity(p,{id,name,kind:assetId.startsWith('architecture.')?'building':'prop',ownerChunkId:chunkAt(p.world,x,z),components:{Transform:{type:'Transform',position:{x,y,z},rotation:{x:0,y:Math.sin(ry/2),z:0,w:Math.cos(ry/2)},scale:{x:1,y:1,z:1}},Visual:{type:'Visual',assetId},...(colliderFor(assetId)?{Collider:colliderFor(assetId)}:{}),...(lightFor(assetId,id)?{Light:lightFor(assetId,id)}:{})}});};
+  const place=(id,name,assetId,x,z,ry=0,y=0,sx=1)=>{const def=assetDefinitionFor(assetId);if(def&&!p.assets[assetId])p.assets[assetId]=def;
+    putEntity(p,{id,name,kind:assetId.startsWith('architecture.')?'building':'prop',ownerChunkId:chunkAt(p.world,x,z),components:{Transform:{type:'Transform',position:{x,y,z},rotation:{x:0,y:Math.sin(ry/2),z:0,w:Math.cos(ry/2)},scale:{x:sx,y:1,z:1}},Visual:{type:'Visual',assetId},...(colliderFor(assetId)?{Collider:colliderFor(assetId)}:{}),...(lightFor(assetId,id)?{Light:lightFor(assetId,id)}:{})}});};
   const {ctx}=projectGeography(p),sea=p.world.seaLevel;
   place('island-lighthouse-west','Phare du cap ouest','architecture.lighthouse',-1640,1120,.8);
   place('island-lighthouse-south','Phare du cap sud','architecture.lighthouse',1420,-1130,-.6);
@@ -137,6 +138,23 @@ const kind=['nature.boulder_large','nature.boulder_pile','nature.rock_spire','na
   route('route-mine-hamlet-w',[[-1040,-880],[-1250,-960]],'trail',2);
   route('route-west-coast',[[-1080,720],[-1400,400],[-1600,100],[-1600,-260]],'trail',2);
   route('route-forest-east',[[500,620],[900,300],[1260,-100]],'trail',2);
+  // Natural drainage (doc 108 §8): creeks that join into rivers, lakes in closed basins, every stream
+  // validated by WATER; villages, fields and works stay dry. Footbridges where a route crosses.
+  {const g=projectGeography(p),occ=(x,z)=>classifyPoint(g.ctx,x,z).occupation;
+   const net=planRiverNetwork({height:g.source,seaLevel:sea,bounds:p.world.bounds,existing:Object.values(p.libraries.water),
+     avoid:(x,z)=>{const o=occ(x,z);return o==='built'||o==='farm'||o==='reserved'||o==='exclusion';},keepDry:(x,z)=>occ(x,z)!=='none'},
+     {idPrefix:'island-stream-',minAreaM2:20000,maxStreams:60,minLengthM:150,seed});
+   for(const w of net.waters)putWater(p,w);
+   const crossings=[];
+   for(const w of net.waters){if(w.kind==='lake')continue;
+    for(const path of Object.values(p.libraries.paths))for(let i=1;i<w.points.length;i++)for(let j=1;j<path.points.length;j++){
+     const a=w.points[i-1],b=w.points[i],c=path.points[j-1],d=path.points[j],ex=b.x-a.x,ez=b.z-a.z,fx=d.x-c.x,fz=d.z-c.z,det=ex*fz-ez*fx;if(Math.abs(det)<1e-9)continue;
+     const t=((c.x-a.x)*fz-(c.z-a.z)*fx)/det,u=((c.x-a.x)*ez-(c.z-a.z)*ex)/det;if(t<0||t>1||u<0||u>1)continue;
+     const x=a.x+ex*t,z=a.z+ez*t;if(crossings.some(q=>Math.hypot(q.x-x,q.z-z)<30))continue;
+     const l=Math.hypot(ex,ez)||1,px=-ez/l,pz=ex/l,span=5.6,stretch=Math.max(1,(w.width+3)/span),reach=Math.max(span/2*stretch,w.width/2+2);
+     const bank=Math.min(g.source(x+px*reach,z+pz*reach),g.source(x-px*reach,z-pz*reach)),bed=g.source(x,z)-.35-w.depth;
+     crossings.push({x,z});place(`island-ford-bridge-${crossings.length-1}`,'Passerelle','structure.bridge_wooden_arch',+x.toFixed(2),+z.toFixed(2),Math.atan2(-pz,px),+Math.max(0,bank-.86-bed).toFixed(2),+stretch.toFixed(2));}}
+   if(process.env.ISLAND_VERBOSE)console.warn('drainage',net.streams.length,'cours d’eau,',net.lakes.length,'lacs,',crossings.length,'passerelles',net.diagnostics);}
   // Roadside campfires with log seats every ~320 m along the routes (lit, flickering).
   const authored=Object.values(p.chunks).flatMap(c=>Object.values(c.entities)).map(e=>e.components.Transform.position);let camp=0;
   for(const path of Object.values(p.libraries.paths).filter(q=>q.id.startsWith('route-'))){

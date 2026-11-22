@@ -79,28 +79,35 @@ export function lakeSurfaceData(water:CompiledWater){
 }
 /** Width (m) of the shaded shore band of a lake. */
 export const LAKE_SHORE_BAND=3;
-/** Lake surface subdivided on a barycentric grid (flat: T-junctions cannot crack) so that each
- * vertex carries its distance to the shore. ≤ ~24 000 triangles whatever the lake size. */
+/** Lake surface = a shore strip (outline → outline inset by LAKE_SHORE_BAND) + the inset polygon,
+ * all vertices shared (watertight: no T-junction pinholes). The flow attribute grades the shore
+ * (1 on the outline, 0 inside). Falls back to the plain outline when the inset is not simple. */
 export function lakeRenderData(water:CompiledWater):WaterRenderData{
- const base=lakeSurfaceData(water),poly=water.polygon!,bp=base.positions,bi=base.indices;
- let area=0;const tri=(t:number)=>[0,1,2].map(k=>bi[t*3+k]*3);
- for(let t=0;t<bi.length/3;t++){const [a,b,c]=tri(t);area+=Math.abs((bp[b]-bp[a])*(bp[c+2]-bp[a+2])-(bp[b+2]-bp[a+2])*(bp[c]-bp[a]))/2;}
- const cell=Math.max(2.5,Math.sqrt(area/12000));
- const positions:number[]=[],indices:number[]=[],flow:number[]=[];
- for(let t=0;t<bi.length/3;t++){
-  const [a,b,c]=tri(t),edge=(u:number,v:number)=>Math.hypot(bp[u]-bp[v],bp[u+2]-bp[v+2]);
-  const steps=Math.max(1,Math.min(48,Math.ceil(Math.max(edge(a,b),edge(b,c),edge(c,a))/cell))),first=positions.length/3,id=(i:number,j:number)=>first+i*(steps+1)-i*(i-1)/2+j;
-  for(let i=0;i<=steps;i++)for(let j=0;j<=steps-i;j++){
-   const u=i/steps,v=j/steps,w=1-u-v;
-   const x=bp[a]*w+bp[b]*u+bp[c]*v,y=bp[a+1],z=bp[a+2]*w+bp[b+2]*u+bp[c+2]*v;
-   const inward=Math.max(0,polygonSignedDistance(poly,x,z));
-   positions.push(x,y,z);flow.push(0,1-smooth(0,LAKE_SHORE_BAND,inward),-1,0);
-  }
-  // Same winding as the source triangle (a, b, c), which already faces up.
-  for(let i=0;i<steps;i++)for(let j=0;j<steps-i;j++){
-   indices.push(id(i,j),id(i+1,j),id(i,j+1));
-   if(j<steps-i-1)indices.push(id(i+1,j),id(i+1,j+1),id(i,j+1));
-  }
- }
+ const base=lakeSurfaceData(water),poly=water.polygon!,n=poly.length;
+ let area=0;for(let i=0;i<n;i++){const a=poly[i],b=poly[(i+1)%n];area+=a.x*b.z-b.x*a.z;}
+ const inward=area>0?1:-1;
+ // Inset along the vertex bisectors, limited so that small lakes keep an interior.
+ const inset=poly.map((p,i)=>{const a=poly[(i+n-1)%n],b=poly[(i+1)%n];
+  const e1x=p.x-a.x,e1z=p.z-a.z,e2x=b.x-p.x,e2z=b.z-p.z,l1=Math.hypot(e1x,e1z)||1,l2=Math.hypot(e2x,e2z)||1;
+  // Left normal of an edge (−dz, dx) points inside a counter-clockwise outline.
+  const nx=(-e1z/l1-e2z/l2)*inward,nz=(e1x/l1+e2x/l2)*inward,nl=Math.hypot(nx,nz)||1,cos=Math.max(.35,nl/2);
+  const d=Math.min(LAKE_SHORE_BAND,Math.max(.1,Math.min(l1,l2)*.45))/cos;
+  return {x:p.x+nx/nl*d,z:p.z+nz/nl*d};});
+ const simple=inset.every(q=>polygonSignedDistance(poly,q.x,q.z)>.05)&&!selfIntersects(inset);
+ if(!simple)return {positions:base.positions,indices:base.indices,flow:poly.flatMap(()=>[0,1,-1,0])};
+ const inner=lakeSurfaceData({...water,polygon:inset,points:water.points});
+ const positions=[...base.positions,...inner.positions],flow:number[]=[...poly.flatMap(()=>[0,1,-1,0]),...inset.flatMap(()=>[0,0,-1,0])];
+ const indices=inner.indices.map(k=>k+n);
+ // Strip: outline i,i+1 with inset i,i+1 (same upward winding as the ear-clipped surfaces).
+ for(let i=0;i<n;i++){const j=(i+1)%n,a=i,b=j,c=n+i,d=n+j;
+  if(inward>0)indices.push(a,c,b,b,c,d);else indices.push(a,b,c,b,d,c);}
  return {positions,indices,flow};
+}
+function selfIntersects(p:{x:number;z:number}[]){
+ const n=p.length;
+ for(let i=0;i<n;i++)for(let j=i+2;j<n;j++){if(i===0&&j===n-1)continue;
+  const a=p[i],b=p[(i+1)%n],c=p[j],d=p[(j+1)%n],d1=(b.x-a.x)*(c.z-a.z)-(b.z-a.z)*(c.x-a.x),d2=(b.x-a.x)*(d.z-a.z)-(b.z-a.z)*(d.x-a.x),
+   d3=(d.x-c.x)*(a.z-c.z)-(d.z-c.z)*(a.x-c.x),d4=(d.x-c.x)*(b.z-c.z)-(d.z-c.z)*(b.x-c.x);
+  if(d1*d2<0&&d3*d4<0)return true;}
+ return false;
 }

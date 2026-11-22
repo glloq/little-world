@@ -98,7 +98,7 @@ export function createInlandWaterMaterial():THREE.MeshLambertMaterial{
   float wl_speed=mix(.45,5.5,wl_rush*wl_rush);
   vec2 wl_p=mix(vec2((vWaterFlow.x-uWaterTime*wl_speed)*.22,vWaterFlow.y*2.2),vWaterWorld.xz*.35+vec2(uWaterTime*.07,-uWaterTime*.05),wl_lake);
   wl_n=mix(.5,.65*wl_noise(wl_p)+.35*wl_noise(wl_p*2.7+3.1),wl_detail);
-  wl_col=mix(wl_col,${vec3(WATER_LOOK_PALETTE.sky)},smoothstep(.62,.82,wl_n)*.35*wl_detail);
+  wl_col=mix(wl_col,${vec3(WATER_LOOK_PALETTE.sky)},smoothstep(.62,.82,wl_n)*(.35-.15*wl_lake)*wl_detail);
   wl_foam+=smoothstep(.72-.35*wl_rush,.95,wl_n)*wl_rush*.9*wl_detail;
  }
  float wl_whiteness=smoothstep(.25,.75,wl_foam*(.55+.9*wl_n));

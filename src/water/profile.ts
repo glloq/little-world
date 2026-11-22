@@ -2,11 +2,14 @@ import {VERTICAL_ENVELOPE} from '../terrain-generator.ts';
 export const WATER_ALTITUDE=VERTICAL_ENVELOPE;
 import type {WaterBody} from '../world-data.ts';
 export type WaterProfile = {mode:'terrain';offset:number}|{mode:'manual';levels:number[]};
-export interface HydroPoint {x:number;z:number;distance:number;ground:number;level:number}
+/** `half`: local half width (organic: pools wider, riffles narrower); `shift`: lateral offset of the
+ * deepest line toward the outside of a bend (+ = left bank). Both derived at compile time. */
+export interface HydroPoint {x:number;z:number;distance:number;ground:number;level:number;half?:number;shift?:number}
 export interface HydroDiagnostic {severity:'ERROR'|'WARNING';code:string;message:string}
 export interface CompiledWater {id:string;width:number;depth:number;points:HydroPoint[];diagnostics:HydroDiagnostic[];
   /** Lake: constant level over a closed outline (points = polygon). Absent = river/stream. */kind?:'lake';polygon?:{x:number;z:number}[];
-  /** Explicit waterfalls kept with their high and low levels. */falls?:{x:number;z:number;top:number;bottom:number}[]}
+  /** Explicit waterfalls kept with their high and low levels. */falls?:{x:number;z:number;top:number;bottom:number}[];
+  /** Extra bank reach (m) where the river runs below the surrounding ground: V-shaped banks. */bankM?:number}
 /** Network context: receiving lakes/rivers and the sea level bound the levels of a river. */
 export interface WaterNetworkContext {lakes:Map<string,CompiledWater>;rivers:Map<string,CompiledWater>;seaLevel:number}
 const finite=(v:unknown,min:number,max:number)=>typeof v==='number'&&Number.isFinite(v)&&v>=min&&v<=max;
@@ -97,7 +100,30 @@ export function compileWaterBody(w:WaterBody,source:(x:number,z:number)=>number,
   if(t>0&&t<1&&u>0&&u<1)diagnostics.push({severity:'ERROR',code:'WATER_SELF_CROSS',message:'Le cours d’eau se croise : séparer les tronçons et résoudre leurs niveaux avant de créer une jonction.'});
  }
  if(w.profile&&maxSlope>.18)diagnostics.push({severity:'WARNING',code:'WATER_STEEP',message:'Forte pente : aperçu en rapide incliné ; aucune cascade verticale n’est créée automatiquement.'});
- return {id:w.id,width:w.width,depth:w.depth,points,diagnostics,...(falls.length?{falls}:{})};
+ shapeChannel(w.id,w.width,points);
+ const bankM=Math.min(16,Math.round(Math.max(0,...points.map(p=>p.ground-p.level))*1.6*10)/10);
+ return {id:w.id,width:w.width,depth:w.depth,points,diagnostics,...(falls.length?{falls}:{}),...(bankM>0?{bankM}:{})};
+}
+/** Organic channel (doc 108 §9), deterministic from the id: the width breathes along the course
+ * (wide calm pools, narrow fast riffles, ±15 %), back to the authored width near both ends (links,
+ * bridges), and the thalweg moves toward the outside of bends (point bars on the inside). */
+export const CHANNEL_SHAPE={minFactor:.7,maxFactor:1.18,shiftOfWidth:.28} as const;
+function idSeed(id:string){let h=2166136261;for(let i=0;i<id.length;i++)h=Math.imul(h^id.charCodeAt(i),16777619);return h>>>0;}
+function smoothNoise(seed:number,t:number){const i=Math.floor(t),f=t-i,u=f*f*(3-2*f),r=(k:number)=>{let h=Math.imul((seed^Math.imul(k,374761393))>>>0,668265263);h=(h^(h>>>13))>>>0;return (Math.imul(h,1274126177)>>>0)/4294967296;};return r(i)+(r(i+1)-r(i))*u;}
+function shapeChannel(id:string,width:number,points:HydroPoint[]){
+ const n=points.length;if(n<3)return;const total=points[n-1].distance,seed=idSeed(id),half=width/2,{minFactor,maxFactor,shiftOfWidth}=CHANNEL_SHAPE;
+ for(let i=0;i<n;i++){
+  const p=points[i],a=points[Math.max(0,i-3)],b=points[Math.min(n-1,i+3)],run=b.distance-a.distance;
+  const slope=run>1e-3?Math.max(0,(a.level-b.level)/run):0,fall=a.level-b.level>.9&&run<20;
+  const ends=Math.min(1,Math.min(p.distance,total-p.distance)/Math.max(6,width*2));
+  const breathe=.92+.26*smoothNoise(seed,p.distance/Math.max(10,width*7))-.22*Math.min(1,Math.max(0,(slope-.015)/.1));
+  p.half=half*(1+(Math.min(maxFactor,Math.max(minFactor,breathe))-1)*(fall?0:ends));
+  // Signed turn over ±1.5 widths: + = turning left ⇒ deepest water on the right (outside).
+  let j0=i,j1=i;while(j0>0&&p.distance-points[j0].distance<width*1.5)j0--;while(j1<n-1&&points[j1].distance-p.distance<width*1.5)j1++;
+  const ax=p.x-points[j0].x,az=p.z-points[j0].z,bx=points[j1].x-p.x,bz=points[j1].z-p.z,la=Math.hypot(ax,az),lb=Math.hypot(bx,bz);
+  const turn=la>1e-3&&lb>1e-3?Math.asin(Math.max(-1,Math.min(1,(ax*bz-az*bx)/(la*lb)))):0;
+  p.shift=fall?0:-Math.max(-1,Math.min(1,turn/.6))*width*shiftOfWidth*ends;
+ }
 }
 /** Whole network: lakes first, then rivers from upstream to downstream (a river feeding
  * another is compiled after it). Cycles are reported, never looped. */
@@ -123,17 +149,36 @@ export function waterSections(water:CompiledWater):{left:HydroVertex;right:Hydro
  const p=water.points;
  return p.map((v,i)=>{
   const before=p[Math.max(0,i-1)],after=p[Math.min(p.length-1,i+1)],dx=after.x-before.x,dz=after.z-before.z,len=Math.hypot(dx,dz)||1;
-  return {left:{x:v.x-dz/len*water.width/2,z:v.z+dx/len*water.width/2,level:v.level},right:{x:v.x+dz/len*water.width/2,z:v.z-dx/len*water.width/2,level:v.level}};
+  const h=v.half??water.width/2;
+  return {left:{x:v.x-dz/len*h,z:v.z+dx/len*h,level:v.level},right:{x:v.x+dz/len*h,z:v.z-dx/len*h,level:v.level}};
  });
 }
-interface Segment {water:CompiledWater;order:number;a:HydroPoint;b:HydroPoint;leftA:HydroVertex;rightA:HydroVertex;leftB:HydroVertex;rightB:HydroVertex}
+interface Segment {water:CompiledWater;order:number;a:HydroPoint;b:HydroPoint;leftA:HydroVertex;rightA:HydroVertex;leftB:HydroVertex;rightB:HydroVertex;speedA:number;speedB:number}
 function triangleLevel(x:number,z:number,a:HydroVertex,b:HydroVertex,c:HydroVertex):number|null {
  const dx=b.x-a.x,dz=b.z-a.z,ex=c.x-a.x,ez=c.z-a.z,det=dx*ez-dz*ex;
  if(Math.abs(det)<1e-10)return null;
  const u=((x-a.x)*ez-(z-a.z)*ex)/det,v=(dx*(z-a.z)-dz*(x-a.x))/det;
  return u>=-1e-7&&v>=-1e-7&&u+v<=1+1e-7?a.level+u*(b.level-a.level)+v*(c.level-a.level):null;
 }
-export interface WaterHit {water:CompiledWater;distance:number;level:number;flowX:number;flowZ:number;inside:boolean}
+/** `speed`: surface current (m/s) along flowX/flowZ at this point, already reduced near the banks
+ * (0 for lakes). Gameplay drift only; the water surface itself never moves. */
+export interface WaterHit {water:CompiledWater;distance:number;level:number;flowX:number;flowZ:number;inside:boolean;speed:number;
+ /** Rivers: local half width, signed lateral offset from the axis (+ = left) and thalweg shift. */half:number;lateral:number;shift:number}
+/** Current tuning (gameplay, deterministic): calm reaches drift slowly, rapids push hard, the lip of
+ * a waterfall cannot be held. Swim speed is 3.15 m/s (5 running) for comparison. */
+export const RIVER_CURRENT={baseMs:.25,slopeGain:9,maxMs:3.2,windowM:12,bankFactor:.3} as const;
+/** Surface current (m/s) at each compiled point from the water-line slope averaged over ±windowM.
+ * Lakes have none. Pure: derived from the compiled profile only. */
+export function riverCurrentProfile(water:CompiledWater):number[]{
+ const p=water.points,n=p.length;if(water.kind==='lake'||n<2)return p.map(()=>0);
+ const {baseMs,slopeGain,maxMs,windowM}=RIVER_CURRENT,out:number[]=[];
+ const levelAt=(d:number)=>{let lo=0,hi=n-1;if(d<=p[0].distance)return p[0].level;if(d>=p[hi].distance)return p[hi].level;
+  while(hi-lo>1){const m=(lo+hi)>>1;if(p[m].distance<=d)lo=m;else hi=m;}const a=p[lo],b=p[hi],t=(d-a.distance)/Math.max(1e-6,b.distance-a.distance);return a.level+(b.level-a.level)*t;};
+ const total=p[n-1].distance;
+ for(const q of p){const d0=Math.max(0,q.distance-windowM),d1=Math.min(total,q.distance+windowM),run=d1-d0;
+  const slope=run>1e-3?Math.max(0,(levelAt(d0)-levelAt(d1))/run):0;out.push(Math.min(maxMs,baseMs+slopeGain*Math.sqrt(slope)));}
+ return out;
+}
 /** Local segment grid shared by bed, swimming and surface queries. */
 const EMPTY_HITS:readonly WaterHit[]=Object.freeze([]);
 /** Unique numeric key of a 32 m cell (|cell| < 2^20 covers any world up to ±33 000 km). */
@@ -149,10 +194,10 @@ export class WaterSpatialIndex {
    if(water.kind==='lake'){const xs=water.polygon!.map(p=>p.x),zs=water.polygon!.map(p=>p.z);
     for(let cx=Math.floor((Math.min(...xs)-4)/32);cx<=Math.floor((Math.max(...xs)+4)/32);cx++)for(let cz=Math.floor((Math.min(...zs)-4)/32);cz<=Math.floor((Math.max(...zs)+4)/32);cz++){const key=cellKey(cx,cz),cell=this.lakeCells.get(key)??[];cell.push({water,order});this.lakeCells.set(key,cell);}
     continue;}
-   const sections=waterSections(water);
+   const sections=waterSections(water),speeds=riverCurrentProfile(water);
    for(let i=1;i<water.points.length;i++){
    if(++segments>65536)throw Error('Réseau d’eau trop détaillé : plus de 65 536 segments.');
-   const a=water.points[i-1],b=water.points[i],r=water.width/2+2,segment={water,order,a,b,leftA:sections[i-1].left,rightA:sections[i-1].right,leftB:sections[i].left,rightB:sections[i].right};
+   const a=water.points[i-1],b=water.points[i],r=Math.max(a.half??water.width/2,b.half??water.width/2)+2+(water.bankM??0),segment={water,order,a,b,leftA:sections[i-1].left,rightA:sections[i-1].right,leftB:sections[i].left,rightB:sections[i].right,speedA:speeds[i-1],speedB:speeds[i]};
    for(let cx=Math.floor((Math.min(a.x,b.x)-r)/32);cx<=Math.floor((Math.max(a.x,b.x)+r)/32);cx++)
     for(let cz=Math.floor((Math.min(a.z,b.z)-r)/32);cz<=Math.floor((Math.max(a.z,b.z)+r)/32);cz++){
      const key=cellKey(cx,cz),cell=this.cells.get(key)??[];cell.push(segment);this.cells.set(key,cell);
@@ -164,19 +209,23 @@ export class WaterSpatialIndex {
   const key=cellKey(Math.floor(x/32),Math.floor(z/32)),candidates=this.cells.get(key),lakes=this.lakeCells.get(key);if(!candidates&&!lakes)return EMPTY_HITS;
   const closest=new Map<number,WaterHit>();
   // Lakes: constant level, no current; `distance` = metres outside the shore (0 inside).
-  for(const {water,order} of lakes??[]){const d=polygonSignedDistance(water.polygon!,x,z);if(d<-bank||d<0&&bank===0)continue;closest.set(order,{water,distance:Math.max(0,-d),level:water.points[0].level,flowX:0,flowZ:0,inside:d>=0});}
+  for(const {water,order} of lakes??[]){const d=polygonSignedDistance(water.polygon!,x,z);if(d<-bank||d<0&&bank===0)continue;closest.set(order,{water,distance:Math.max(0,-d),level:water.points[0].level,flowX:0,flowZ:0,inside:d>=0,speed:0,half:0,lateral:0,shift:0});}
   if(!candidates)return [...closest].sort(([a],[b])=>b-a).map(([,hit])=>hit);
-  for(const {water,order,a,b,leftA,rightA,leftB,rightB} of candidates){
+  for(const {water,order,a,b,leftA,rightA,leftB,rightB,speedA,speedB} of candidates){
    const dx=b.x-a.x,dz=b.z-a.z,length=Math.hypot(dx,dz),t=Math.max(0,Math.min(1,((x-a.x)*dx+(z-a.z)*dz)/(length*length)));
-   const distance=Math.hypot(x-a.x-t*dx,z-a.z-t*dz);
-   if(distance>water.width/2+bank)continue;
+   const distance=Math.hypot(x-a.x-t*dx,z-a.z-t*dz),half=(a.half??water.width/2)+((b.half??water.width/2)-(a.half??water.width/2))*t;
+   // Bank queries (bed carving) also reach the V-shaped banks of an entrenched river.
+   if(distance>half+bank+(bank>0?water.bankM??0:0))continue;
    const first=triangleLevel(x,z,leftA,leftB,rightA),second=triangleLevel(x,z,rightA,leftB,rightB),inside=first!==null||second!==null;
    if(!inside&&bank===0)continue;
    const level=inside?Math.max(first??-Infinity,second??-Infinity):a.level+(b.level-a.level)*t,previous=closest.get(order);
    // Upper surface wins if a very tight bend overlaps its own strip. Bank-only
    // projections must never replace an actual water volume.
    if(previous&&(previous.inside&&!inside||previous.inside===inside&&(inside?level<=previous.level:distance>=previous.distance)))continue;
-   closest.set(order,{water,distance,level,flowX:dx/length,flowZ:dz/length,inside});
+   // Strongest mid-channel, RIVER_CURRENT.bankFactor of it at the banks (escape by the side).
+   const edge=Math.min(1,distance/Math.max(.5,half)),side=RIVER_CURRENT.bankFactor+(1-RIVER_CURRENT.bankFactor)*(1-edge*edge);
+   const lateral=(dx*(z-a.z)-dz*(x-a.x))/length,shift=(a.shift??0)+((b.shift??0)-(a.shift??0))*t;
+   closest.set(order,{water,distance,level,flowX:dx/length,flowZ:dz/length,inside,speed:inside?(speedA+(speedB-speedA)*t)*side:0,half,lateral,shift});
   }
   return [...closest].sort(([a],[b])=>b-a).map(([,hit])=>hit);
  }

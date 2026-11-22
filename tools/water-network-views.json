@@ -1,0 +1,7 @@
+[
+ {"name":"net-confluence","label":"Deux ruisseaux qui se rejoignent avant la côte est","world":"maps/island/manifest.json","x":1700,"z":-470,"yaw":3.14,"pitch":0.5,"dist":40},
+ {"name":"net-lake","label":"Lac de cuvette au nord (niveau de débordement)","world":"maps/island/manifest.json","x":-235,"z":905,"yaw":0,"pitch":0.35,"dist":45},
+ {"name":"net-crater","label":"Lac de cratère du volcan","world":"maps/island/manifest.json","x":1098,"z":-560,"yaw":3.14,"pitch":0.55,"dist":120},
+ {"name":"net-bridge","label":"Passerelle où la route croise un ruisseau","world":"maps/island/manifest.json","x":300,"z":1150,"yaw":0.3,"pitch":0.3,"dist":18},
+ {"name":"net-stones","label":"Ruisseau en forêt, galets de berge","world":"maps/island/manifest.json","x":1350,"z":30,"yaw":3.14,"pitch":0.45,"dist":20}
+]
