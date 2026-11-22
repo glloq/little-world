@@ -11,6 +11,7 @@ import {naturalMesh} from './structures/natural-mesh.ts';
 import {createCliffView,type CliffView} from './render/cliff-view.ts';
 import {createNaturalView,type NaturalView} from './structures/natural-view.ts';
 import {waterRibbonData} from './water/geometry.ts';
+import {createInlandWaterMaterial,setWaterDetail,setWaterSeaLevel,setWaterTime,waterDetailFor} from './render/water-look.ts';
 import * as THREE from 'three';
 import {HOUSE_LOOKS} from './settlements/architecture.ts';
 import type {HabitatStyle} from './settlements/habitat.ts';
@@ -807,10 +808,16 @@ export function buildWorld(
   const grassParam = typeof location !== 'undefined' ? new URLSearchParams(location.search).get('grass') : null;
   const grassOverride = (grassParam === 'off'||grassParam==='groundOnly') ? 'groundOnly' : grassParam === 'dense' || grassParam === 'balanced' || grassParam === 'ultra' ? grassParam : null;
   if (grassOverride) grass?.setProfile(grassOverride);
+  // `?water=static|full` (captures, benchmarks): fixed water detail instead of the budget level.
+  const waterParam = typeof location !== 'undefined' ? new URLSearchParams(location.search).get('water') : null;
+  const waterDetailOverride = waterParam === 'static' ? 0 : waterParam === 'full' ? 1 : null;
+  if (waterDetailOverride !== null) setWaterDetail(waterDetailOverride);
   // Relief occlusion of distant content (generated worlds): refreshed in slices after camera moves.
   const occlusionOff = typeof location !== 'undefined' && new URLSearchParams(location.search).get('occlusion') === '0';
   const occlusion = legacy || occlusionOff ? null : createHorizonOcclusion(terrainHeight);
   const occluded = (x: number, z: number, top: number) => !!occlusion && !occlusion.visible(x, z, top);
+  const inlandWater=createInlandWaterMaterial();sharedMaterials.add(inlandWater);
+  setWaterSeaLevel(getTerrainConfig().seaLevel);
   const waterMeshes=new Map<string,{signature:string;mesh:THREE.Mesh}>();
   function refreshWater(){
     const changed:string[]=[],ids=new Set(compiledWaterBodies().map(w=>w.id));
@@ -820,8 +827,9 @@ export function buildWorld(
       if(waterMeshes.get(water.id)?.signature===signature)continue;
       const previous=waterMeshes.get(water.id);if(previous)removePlacement(previous.mesh);
       const data=waterRibbonData(water),geo=new THREE.BufferGeometry();
-      geo.setAttribute('position',new THREE.Float32BufferAttribute(data.positions,3));geo.setIndex(data.indices);geo.computeVertexNormals();
-      const ribbon=mesh(geo,new THREE.MeshLambertMaterial({color:0x6daeb5,side:THREE.DoubleSide}),root,0,0,0);
+      geo.setAttribute('position',new THREE.Float32BufferAttribute(data.positions,3));geo.setAttribute('waterFlow',new THREE.Float32BufferAttribute(data.flow,4));geo.setIndex(data.indices);geo.computeVertexNormals();
+      // Doc 108: one shared material (one program) for every river, lake and waterfall.
+      const ribbon=mesh(geo,inlandWater,root,0,0,0);ribbon.renderOrder=3;
       ribbon.name='Water:'+water.id;ribbon.userData.waterId=water.id;
       waterMeshes.set(water.id,{signature,mesh:ribbon});changed.push(water.id);
     }
@@ -970,11 +978,13 @@ export function buildWorld(
       ecology.setDetail(level);
       dressing?.setDetail(economy ? level + 1 : level);buildingImpostors.setBudget(64,4);
       grass?.setProfile(grassOverride ?? grassProfileFor(level, economy));
+      setWaterDetail(waterDetailOverride ?? waterDetailFor(level, economy));
     },
     refreshTerrain(x, z, radius) { refreshAreas([{ x, z, radius }]); },
     refreshTerrainAreas(areas: { x: number; z: number; radius: number }[]) { refreshAreas(areas); },
     update(dt: number, focus = { x: 0, z: 0 }, camera?: THREE.PerspectiveCamera, pixelHeight = 640, physicalVelocity?: {x:number;z:number}) {
       time += dt;
+      setWaterTime(time);
       wheel.rotation.x -= dt * 0.33;
       animatedAssets.update(dt);
       if (camera) {
@@ -1056,6 +1066,7 @@ export function buildWorld(
       lightView.dispose();
       horizon.dispose();
       terrainView.dispose();
+      inlandWater.dispose();
       root.traverse((o) => {
         o.userData.disposed = true; // Pending GLB callbacks must not attach to retired editor worlds.
         const m = o as THREE.Mesh;

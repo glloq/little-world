@@ -1,0 +1,7 @@
+[
+ {"name":"water-falls","label":"Gorge et cascade (feuille d’eau, stries, bassin)","world":"maps/island/manifest.json","x":-647,"z":-900,"yaw":0,"pitch":0.35,"dist":45},
+ {"name":"water-river","label":"Rivière vue de près (centre profond, berges fondues)","world":"maps/island/manifest.json","x":-528,"z":-110,"yaw":3.14,"pitch":0.5,"dist":14},
+ {"name":"water-lake","label":"Mare du marais (bande de rive)","world":"maps/island/manifest.json","x":130,"z":-675,"yaw":3.14,"pitch":0.55,"dist":14},
+ {"name":"water-bay","label":"Embouchure et baie (hauts-fonds turquoise)","world":"maps/island/manifest.json","x":-536,"z":-240,"yaw":3.14,"pitch":0.45,"dist":60},
+ {"name":"water-beach","label":"Plage (ligne d’écume mobile)","world":"maps/island/manifest.json","x":-560,"z":-262,"yaw":2.4,"pitch":0.35,"dist":16}
+]

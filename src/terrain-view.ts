@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { TERRAIN_WATER_VERTEX, TERRAIN_WATER_FRAGMENT, bindTerrainWaterUniforms } from './render/water-look.ts';
 import {
   chunkBounds,
   planChunks,
@@ -52,12 +53,17 @@ export function createTerrainMaterial(): { material: THREE.MeshLambertMaterial; 
   const material = new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.FrontSide });
   material.onBeforeCompile = (shader) => {
     shader.uniforms.uMorph = morph;
-    shader.vertexShader = 'attribute float morphY;\nattribute vec3 morphColor;\nattribute vec3 morphNormal;\nuniform float uMorph;\n' + shader.vertexShader
+    bindTerrainWaterUniforms(shader);
+    shader.vertexShader = 'attribute float morphY;\nattribute vec3 morphColor;\nattribute vec3 morphNormal;\nuniform float uMorph;\n' + TERRAIN_WATER_VERTEX.header + shader.vertexShader
       .replace('#include <beginnormal_vertex>', 'vec3 objectNormal = normalize(mix(vec3(normal), morphNormal, uMorph));\n#ifdef USE_TANGENT\nvec3 objectTangent = vec3(tangent.xyz);\n#endif')
       .replace('#include <begin_vertex>', 'vec3 transformed = vec3(position);\ntransformed.y = mix(position.y, morphY, uMorph);')
-      .replace('#include <color_vertex>', '#include <color_vertex>\n#ifdef USE_COLOR\nvColor.rgb = mix(color.rgb, morphColor, uMorph);\n#endif');
+      .replace('#include <color_vertex>', '#include <color_vertex>\n#ifdef USE_COLOR\nvColor.rgb = mix(color.rgb, morphColor, uMorph);\n#endif')
+      .replace('#include <project_vertex>', '#include <project_vertex>\n' + TERRAIN_WATER_VERTEX.after);
+    // Doc 108: shallow-sea absorption and the moving waterline are painted on the ground.
+    shader.fragmentShader = TERRAIN_WATER_FRAGMENT.header + shader.fragmentShader
+      .replace('#include <color_fragment>', '#include <color_fragment>\n' + TERRAIN_WATER_FRAGMENT.code);
   };
-  material.customProgramCacheKey = () => 'terrain-geomorph-v1';
+  material.customProgramCacheKey = () => 'terrain-geomorph-v2-water';
   return { material, morph };
 }
 /** Blend duration between two representations of a tile (seconds). */
