@@ -126,7 +126,7 @@ export function buildCapybaraAccessories(kind:CapybaraLoadout):THREE.Group {
        pos.push(rear-.15,roofY(z),z,front+.14,roofY(z),z);
      }
      for(let j=0;j<12;j++){
-       const n=j*2;idx.push(n,n+1,n+3,n,n+3,n+2);
+       const n=j*2;idx.push(n,n+3,n+1,n,n+2,n+3);
      }
      const geo=new THREE.BufferGeometry();
      geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
