@@ -145,23 +145,34 @@ export function terrainHeight(x:number,z:number):number {return carveWaterBeds(s
  * authoring previews such as the Studio 2D map, so both see the same water and banks). */
 export function carveWaterBeds(source:(x:number,z:number)=>number,index:WaterSpatialIndex,x:number,z:number):number {
  let h=source(x,z);
- for(const {water,distance,level} of index.query(x,z,3)){
+ for(const {water,distance,level,half:localHalf,lateral,shift} of index.query(x,z,3)){
   if(water.kind==='lake'){
    // Basin: deepens away from the shore; a 3 m bank outside meets the relief.
    const inward=polygonSignedDistance(water.polygon!,x,z);
    const bed=inward>=0?level-.08-water.depth*smoothstep(0,Math.max(3,water.depth*2.5),inward):lerp(level-.08,h,smoothstep(0,3,-inward));
    h=Math.min(h,bed);continue;
   }
-  if(distance>water.width*.5+2)continue;
-  const core=water.width*.25,edge=water.width*.5+2;
-  // Extend a shallow bank beyond the surface so coarse terrain cannot cover the ribbon.
-  const half=water.width*.5;
-  const bed=distance<=half?level-.08-water.depth*(1-smoothstep(core,half,distance)):lerp(level-.08,h,smoothstep(half,edge,distance));
+  // Organic bed (doc 108 §9): local half width, deepest line shifted to the outside of bends
+  // (point bar inside), banks that widen with the ground above the water (V-shaped, ≈ 32°)
+  // and a slightly irregular bank line. Shallow bank beyond the surface: coarse terrain never
+  // covers the ribbon.
+  const half=localHalf,rise=Math.max(0,h-level);
+  const edge=half+2+Math.min(water.bankM??0,rise*1.6)+.8*(Math.sin(x*.21+z*.13)*Math.sin(z*.17-x*.11));
+  if(distance>edge)continue;
+  const fromThalweg=Math.abs(lateral-shift),reach=half+Math.abs(shift);
+  const bed=distance<=half?level-.08-water.depth*(1-smoothstep(half*.25,reach,fromThalweg)):lerp(level-.08,h,smoothstep(half,edge,distance));
   h=Math.min(h,bed);
  }
  return h;
 }
 
+/** River current (m/s, world XZ) at a point: zero on lakes, the sea, dry land and the legacy valley.
+ * Gameplay drift for swimmers, boats and floating objects; deterministic, position only. */
+export function waterCurrentAt(x:number,z:number):{x:number;z:number}{
+  const hit=waterIndex.query(x,z)[0];
+  if(!hit||!hit.inside||hit.speed<=0)return {x:0,z:0};
+  return {x:hit.flowX*hit.speed,z:hit.flowZ*hit.speed};
+}
 export function waterSurface(x: number, z: number): number | null {
   const hit=waterIndex.query(x,z)[0];
   if(hit)return hit.level;

@@ -14,6 +14,7 @@ import {
   insideWorld,
   terrainHeight,
   waterSurface,
+  waterCurrentAt,
 } from './terrain.ts';
 
 export const MOTION_MODES = ['ground', 'air', 'glide', 'swim', 'dive', 'climb', 'roll', 'snow', 'surf'] as const;
@@ -114,7 +115,8 @@ export interface Player {
 }
 /** Swimming tuning: depth of the feet under the water line while swimming (body centre ≈ at the
  * surface, head out), dive speed (normal / Shift) and the push down when diving with Space. */
-export const SWIM={sink:.48,dive:2.6,diveRun:3.6,divePush:2.4,diveDepth:1} as const;
+export const SWIM={sink:.48,dive:2.6,diveRun:3.6,divePush:2.4,diveDepth:1,
+  /** Share of the river current felt under the surface. */currentDive:.6} as const;
 export const MAX_OXYGEN = 90;
 export const MAX_STAMINA = 100;
 /** Input forgiveness calibrated for 30 Hz; only enabled when jumpAssist is true. */
@@ -331,20 +333,22 @@ export function simulatePlayer(p: Player, keys: Controls, dt: number,collision?:
     const waterBoost=Math.min(7,waterThrust*.11);
     const speed = (underwater ? (keys.run ? SWIM.diveRun : SWIM.dive) : keys.run ? 5.0 : 3.15)+stroke*2.5+waterBoost;
     const smoothing = Math.min(1, dt * 6);
+    // River current (doc 108): the swimmer drifts downstream (less when diving); outdoor water only.
+    const current=p.space?{x:0,z:0}:waterCurrentAt(pos.x,pos.z),drift=underwater?SWIM.currentDive:1;
     let vyTarget: number;
     if (underwater && !keys.dive) {
       // 3D swimming: forward follows the camera (looking down dives down), strafing stays level.
       const tilt = clamp(keys.cameraPitch ?? 0, -1.2, 1.2), level = Math.cos(tilt);
       // Camera-relative input split: the forward part tilts with the camera, strafing stays level.
       const fx = strokeForward * sx, fz = strokeForward * cz, ix = -strokeRight * cz, iz = strokeRight * sx;
-      v.x += ((fx * level + ix) * speed - v.x) * smoothing;
-      v.z += ((fz * level + iz) * speed - v.z) * smoothing;
+      v.x += ((fx * level + ix) * speed + current.x * drift - v.x) * smoothing;
+      v.z += ((fz * level + iz) * speed + current.z * drift - v.z) * smoothing;
       vyTarget = -Math.sin(tilt) * strokeForward * speed;
       // A dive first goes fully under (head ≈ 0.6 m deep), then floats and follows the camera.
       if (p.diveSink) { if (pos.y <= surfaceY - SWIM.diveDepth + .05) p.diveSink = false; else vyTarget = Math.min(vyTarget, clamp((surfaceY - SWIM.diveDepth - pos.y) * 3, -2, -.6)); }
     } else {
-      v.x += (strokeDx * speed - v.x) * smoothing;
-      v.z += (strokeDz * speed - v.z) * smoothing;
+      v.x += (strokeDx * speed + current.x * drift - v.x) * smoothing;
+      v.z += (strokeDz * speed + current.z * drift - v.z) * smoothing;
       // Ctrl held sinks; otherwise the float pulls back to the swimming line (fast from deep water).
       vyTarget = keys.dive ? -3.2 : clamp((surfaceY - pos.y) * 4, -1.5, 3.75);
     }

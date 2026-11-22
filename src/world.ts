@@ -11,6 +11,7 @@ import {naturalMesh} from './structures/natural-mesh.ts';
 import {createCliffView,type CliffView} from './render/cliff-view.ts';
 import {createNaturalView,type NaturalView} from './structures/natural-view.ts';
 import {waterRibbonData} from './water/geometry.ts';
+import {createRiverStonesView,riverStoneBudget} from './render/river-stones.ts';
 import {createInlandWaterMaterial,setWaterDetail,setWaterSeaLevel,setWaterTime,waterDetailFor} from './render/water-look.ts';
 import * as THREE from 'three';
 import {HOUSE_LOOKS} from './settlements/architecture.ts';
@@ -817,22 +818,39 @@ export function buildWorld(
   const occlusion = legacy || occlusionOff ? null : createHorizonOcclusion(terrainHeight);
   const occluded = (x: number, z: number, top: number) => !!occlusion && !occlusion.visible(x, z, top);
   const inlandWater=createInlandWaterMaterial();sharedMaterials.add(inlandWater);
+  // Doc 108 §11: stones along and in the rivers (one instanced mesh, near the player only).
+  const riverStones=legacy?null:createRiverStonesView(root);
   setWaterSeaLevel(getTerrainConfig().seaLevel);
-  const waterMeshes=new Map<string,{signature:string;mesh:THREE.Mesh}>();
+  // Doc 108 §12: inland water meshes are grouped by 512 m cell (of each water's first point):
+  // a dense creek network costs a few draw calls, an edit rebuilds only the affected cells.
+  const WATER_GROUP_M=512;
+  const waterEntries=new Map<string,{signature:string;cell:string;data:ReturnType<typeof waterRibbonData>}>();
+  const waterGroups=new Map<string,THREE.Mesh>();
+  const groupCell=(w:{points:{x:number;z:number}[]})=>`${Math.floor(w.points[0].x/WATER_GROUP_M)}:${Math.floor(w.points[0].z/WATER_GROUP_M)}`;
+  function rebuildWaterGroup(cell:string){
+    const previous=waterGroups.get(cell);if(previous){removePlacement(previous);waterGroups.delete(cell);}
+    const members=[...waterEntries].filter(([,e])=>e.cell===cell);if(!members.length)return;
+    const positions:number[]=[],flow:number[]=[],indices:number[]=[];
+    for(const [,e]of members){const base=positions.length/3;positions.push(...e.data.positions);flow.push(...e.data.flow);for(const k of e.data.indices)indices.push(base+k);}
+    const geo=new THREE.BufferGeometry();
+    geo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));geo.setAttribute('waterFlow',new THREE.Float32BufferAttribute(flow,4));geo.setIndex(indices);geo.computeVertexNormals();
+    // One shared material (one program) for every river, lake and waterfall.
+    const group=mesh(geo,inlandWater,root,0,0,0);group.renderOrder=3;
+    group.name='Water:'+cell;group.userData.waterId=members[0][0];group.userData.waterIds=members.map(([id])=>id);
+    waterGroups.set(cell,group);
+  }
   function refreshWater(){
-    const changed:string[]=[],ids=new Set(compiledWaterBodies().map(w=>w.id));
-    for(const [id,entry]of waterMeshes)if(!ids.has(id)){removePlacement(entry.mesh);waterMeshes.delete(id);changed.push(id);}
-    for(const water of compiledWaterBodies()){
+    const changed:string[]=[],dirty=new Set<string>(),bodies=compiledWaterBodies(),ids=new Set(bodies.map(w=>w.id));
+    for(const [id,entry]of waterEntries)if(!ids.has(id)){dirty.add(entry.cell);waterEntries.delete(id);changed.push(id);}
+    for(const water of bodies){
       const signature=JSON.stringify([water.width,water.depth,water.points.map(v=>[v.x,v.z,v.level])]);
-      if(waterMeshes.get(water.id)?.signature===signature)continue;
-      const previous=waterMeshes.get(water.id);if(previous)removePlacement(previous.mesh);
-      const data=waterRibbonData(water),geo=new THREE.BufferGeometry();
-      geo.setAttribute('position',new THREE.Float32BufferAttribute(data.positions,3));geo.setAttribute('waterFlow',new THREE.Float32BufferAttribute(data.flow,4));geo.setIndex(data.indices);geo.computeVertexNormals();
-      // Doc 108: one shared material (one program) for every river, lake and waterfall.
-      const ribbon=mesh(geo,inlandWater,root,0,0,0);ribbon.renderOrder=3;
-      ribbon.name='Water:'+water.id;ribbon.userData.waterId=water.id;
-      waterMeshes.set(water.id,{signature,mesh:ribbon});changed.push(water.id);
+      const previous=waterEntries.get(water.id);if(previous?.signature===signature)continue;
+      if(previous)dirty.add(previous.cell);
+      const cell=groupCell(water);dirty.add(cell);
+      waterEntries.set(water.id,{signature,cell,data:waterRibbonData(water)});changed.push(water.id);
     }
+    for(const cell of dirty)rebuildWaterGroup(cell);
+    if(changed.length||!riverStones?.stats.cells)riverStones?.setWaters(bodies,terrainHeight);
     return changed;
   }
   refreshWater();
@@ -979,12 +997,14 @@ export function buildWorld(
       dressing?.setDetail(economy ? level + 1 : level);buildingImpostors.setBudget(64,4);
       grass?.setProfile(grassOverride ?? grassProfileFor(level, economy));
       setWaterDetail(waterDetailOverride ?? waterDetailFor(level, economy));
+      riverStones?.setCapacity(riverStoneBudget(level, economy));
     },
     refreshTerrain(x, z, radius) { refreshAreas([{ x, z, radius }]); },
     refreshTerrainAreas(areas: { x: number; z: number; radius: number }[]) { refreshAreas(areas); },
     update(dt: number, focus = { x: 0, z: 0 }, camera?: THREE.PerspectiveCamera, pixelHeight = 640, physicalVelocity?: {x:number;z:number}) {
       time += dt;
       setWaterTime(time);
+      riverStones?.update(focus.x, focus.z);
       wheel.rotation.x -= dt * 0.33;
       animatedAssets.update(dt);
       if (camera) {
@@ -1066,7 +1086,7 @@ export function buildWorld(
       lightView.dispose();
       horizon.dispose();
       terrainView.dispose();
-      inlandWater.dispose();
+      inlandWater.dispose();riverStones?.dispose();
       root.traverse((o) => {
         o.userData.disposed = true; // Pending GLB callbacks must not attach to retired editor worlds.
         const m = o as THREE.Mesh;

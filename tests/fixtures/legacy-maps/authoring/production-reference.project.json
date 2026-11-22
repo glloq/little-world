@@ -9140,12 +9140,8 @@
       "z": 108.7
      },
      {
-      "x": 107.6,
-      "z": 109.1
-     },
-     {
-      "x": 101.4,
-      "z": 98.8
+      "x": 101,
+      "z": 102
      }
     ],
     "width": 5,
@@ -10621,7 +10617,7 @@
       "ls-waterfall-gorge-1.pool": "520cd40bd0412901"
      },
      "water": {
-      "ls-waterfall-gorge-1.falls-river": "a0ba301c2b3ecf96"
+      "ls-waterfall-gorge-1.falls-river": "e86339a18d3ed5e5"
      },
      "paths": {},
      "entities": {},

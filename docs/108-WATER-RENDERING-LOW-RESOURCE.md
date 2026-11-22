@@ -1,7 +1,7 @@
 # 108 — Rendu de l’eau partout : recherche, lot 1 livré et suite (LOW-RESOURCE)
 
 > Complète [21 — Eau LOW-RESOURCE](21-WATER-HYDROLOGY-LOW-RESOURCE.md) (§4 rendu, §5 LOD) et respecte [22 — PERF](22-RESOURCE-BUDGET-MANAGER.md).
-> **Statut** : lot WREN-1 **implémenté et testé sur branche** (tests unitaires + navigateur SwiftShader). **Temps GPU non qualifié** sur GPU intégré réel : les mesures ci-dessous sont des signaux de régression, pas une preuve de 30 FPS.
+> **Statut** : lots WREN-1 (rendu) et WREN-2 (cours d’eau réalistes, courant, réseau hydrographique) **implémentés et testés** (tests unitaires + navigateur SwiftShader). WREN-1 a été fusionné dans `main` (#114). **Temps GPU non qualifié** sur GPU intégré réel : les mesures ci-dessous sont des signaux de régression, pas une preuve de 30 FPS.
 
 ## 1. État initial (main, 21/11/2026)
 
@@ -76,18 +76,84 @@ Lecture : **parité dans le bruit de mesure** (± 5 %). Étapes intermédiaires 
 - Rivière principale (`ls-river-bend-1.river`) : rapides détectés près de l’embouchure (pente > 12 %) — cohérent avec le relief, à confirmer artistiquement.
 - Restes du raccord surf ↔ mer proche : quelques pointillés aux bords des rectangles de surf (déjà présents sur `main`, désormais atténués) ; à traiter avec le lot surf.
 
-## 6. Suite proposée (spécifiée, non livrée)
+## 6. Lot WREN-2 : des cours d’eau qui ressemblent à des cours d’eau
+
+Constat de départ (après WREN-1) : toutes les cartes n’ont qu’**une à deux rivières** (île du volcan : un méandre de 8 m posé par préréglage, une rivière de gorge, une mare), de **largeur constante**, sans affluent, au lit en U régulier bordé d’un mur de 2 m quand le terrain est plus haut ; les bords sont de la **boue brune** sur 10–20 m (humidité > 0,88) et le **lit sous l’eau est classé « herbe »**. Rien ne pousse le nageur.
+
+### 7. Courant (gameplay)
+
+- `water/profile.ts` : `riverCurrentProfile` dérive une vitesse de surface par point de la **pente de la ligne d’eau lissée sur ± 12 m** : `0,25 + 9·√pente` m/s, plafonnée à 3,2 (`RIVER_CURRENT`). Lacs et mer : 0. Au bord du lit, il ne reste que 30 % du courant (on s’échappe par la rive). Chaque `WaterHit` porte `speed`.
+- `terrain.ts::waterCurrentAt(x,z)` : vecteur (m/s) déterministe, fonction de la seule position.
+- `player.ts` (nage/plongée, pas fixe 30 Hz) : la cible de vitesse inclut le courant (60 % en plongée, `SWIM.currentDive`) ; dans un bief calme on remonte en nageant, dans un rapide on recule, au bord d’une cascade on est emporté. `boat.ts` : la coque dérive, jamais poussée sur une berge (`canMove`).
+- Hors lot : bouchon de pêche et objets lâchés (pas d’objet flottant physique aujourd’hui).
+
+### 8. Réseau hydrographique dendritique (génération automatique)
+
+`world-production/river-network.ts::planRiverNetwork` — hydrologie classique sur une grille bornée (24 m pour l’île, ≈ 21 000 cellules, < 1 s) :
+1. **remplissage des cuvettes** par priority-flood (avec une gigue déterministe de ± 0,3 m pour casser les lignes droites du D8 sur les pentes planes) ;
+2. **D8** sur le relief rempli et **aire drainée** cumulée ;
+3. **lacs dans les vraies cuvettes** (≥ 1,5 m) au niveau de débordement, rivage trouvé par 64 rayons sur le vrai relief, jamais sur une route, un champ ou un village (`keepDry`) ; un **exutoire** repart du point de débordement (`from:{kind:'lake'}`) ;
+4. **chenaux** au-delà de `minAreaM2` (pas sur les plats remplis hors lac, pas sur les zones habitées) ; découpage aux confluences selon la **règle de Hack** (le cours principal continue vers la plus grande aire, les autres deviennent **affluents** `to:{kind:'river'}` qui se terminent exactement sur le tracé de leur rivière) ; ordre de Strahler en diagnostic ;
+5. **largeur ∝ √aire** (`streamWidth` : 1,4 → 12 m), profondeur dérivée ; lissage de Chaikin, **méandres doux** (λ ≈ 14 largeurs) qui ne montent jamais sur une berge ;
+6. chaque cours d’eau est **recompilé par le compilateur WATER partagé** ; un échec retire le cours d’eau et ses affluents.
+
+Île du volcan (`tools/generate-island.mjs`, après les routes) : **28 cours d’eau, 7 lacs** (dont un **lac de cratère** sur le volcan), plusieurs systèmes à affluents, **10 passerelles** (`structure.bridge_wooden_arch`, étirées selon la largeur) là où une route croise un ruisseau. Sources rééditables dans le Studio (eau V3 ordinaire), aucune nouvelle donnée de schéma. Seules deux pierres décoratives se retrouvent dans l’eau (un rocher dans le lac du cratère, une pierre de ruine dans un ruisseau).
+
+Essai écarté : creuser des vallées (élément `valley`) le long des seuils. La vallée à profondeur constante surcreuse l’amont et crée de nouveaux seuils (test à l’appui) ; les lacs de cuvette + les berges en V (§9) règlent le problème proprement.
+
+### 9. Lit organique (toutes les cartes, dérivé à la compilation)
+
+`water/profile.ts::shapeChannel` (déterministe par identifiant, physique = rendu = creusement) :
+- **largeur qui respire** : mouilles plus larges, radiers plus étroits (`CHANNEL_SHAPE`, 0,7 → 1,18 × la largeur auteur), **largeur auteur conservée aux deux extrémités** (liaisons, ponts) ;
+- **thalweg décalé vers l’extérieur des courbes** (jusqu’à 0,28 largeur) : fond profond côté extérieur, **banc de galets** côté intérieur ;
+- `terrain.ts::carveWaterBeds` : **berges en V** dont la largeur croît avec la hauteur du terrain au-dessus de l’eau (≈ 32°, portée `bankM` calculée par cours d’eau, ≤ 16 m) au lieu d’un mur de 2 m ; ligne de berge légèrement irrégulière (± 0,8 m).
+- `DRESSING_VERSION` 7 → 8 (le sol change près de l’eau).
+
+### 10. Lits et berges sur le terrain (0 coût runtime)
+
+`geography/classify.ts::materialAt` : **galets** dans le lit des rivières et sur une marge de 1 m au ras de l’eau, **sable** au fond des lacs, **herbe humide** (verte) le long des berges ; la **boue** est réservée aux vrais marais (> 12 m d’une rivière). Calculé à la construction des tuiles, comme toutes les couleurs du sol.
+
+### 11. Pierres de rivière
+
+`render/river-stones.ts` : galets de berge, **blocs dans les radiers et rapides** (seulement où l’eau est assez peu profonde pour les montrer), cailloutis sur les rives convexes, blocs autour des bassins de cascade, pierres de rive des lacs. Dérivés du profil compilé (déterministes), **un seul `InstancedMesh`** (roche 20 triangles, Lambert plat, couleur par instance, sans ombre), rangés par cellules de 48 m et envoyés au GPU seulement dans un rayon de 140 m quand le joueur s’est déplacé de plus de 6 m. Budget par niveau de présentation (`riverStoneBudget` : 1500 / 1000 / 500 / 0, économie 300). Décoratives : **aucune collision**.
+
+### 12. Draw calls de l’eau intérieure
+
+Les rubans d’eau sont **regroupés par cellule de 512 m** (premier point de chaque eau) : un réseau dense coûte quelques appels de rendu, une retouche Studio ne reconstruit que les cellules touchées. Les lacs utilisent désormais un **anneau de rive + intérieur à sommets partagés** (la subdivision précédente laissait des micro-trous de jonction en T visibles en pointillés).
+
+### Mesures WREN-2 (SwiftShader, 960×540, qualité haute)
+
+| Vue | main (avant WREN-1) | WREN-2 | Draw calls main → WREN-2 |
+| --- | --- | --- | --- |
+| Baie | 6,6–6,7 FPS | 7,2–7,3 | 98 → 101 |
+| Plage | 8,0–8,2 | 8,5–9,2 | 100 → 107 |
+| Rivière proche | 7,4–7,5 | 7,8–8,3 | 88 → 93 |
+| Confluence (nouvelle) | — | 7,5–8,2 | 82 |
+
+Lecture : FPS au moins équivalents (le contenu a changé : lacs et ruisseaux remplacent une partie de la végétation) ; **+3 à +7 draw calls** (pierres, passerelles, groupes d’eau, nouveaux lacs). Temps GPU réel **non qualifié**. Captures avant/après : `docs/images/water-v2/` (points de vue `tools/water-network-views.json`).
+
+Tests : `tests/water-current.test.mjs` (courant, nageur, bateau), `tests/river-network.test.mjs` (affluents, mer, lac de cuvette, zones évitées, déterminisme), `tests/water-channel.test.mjs` (largeur, thalweg, berges en V, pierres), plus les tests navigateur Eau/Studio et île.
+
+### Limites connues
+
+- Les rubans d’un affluent et de sa rivière se recouvrent sur quelques mètres à la confluence (deux surfaces translucides) : à rogner côté rendu (WREN-3).
+- Le relief de l’île n’a pas été façonné par l’eau : l’essentiel des ruisseaux reste court (bassins côtiers de 0,1–0,9 km²). Un relief généré avec érosion donnerait des bassins plus grands.
+- Le planificateur n’est branché que sur l’île du volcan ; l’exposer comme option **opt-in V5** de l’étape HYDRO de `COMPOSITION_STAGES` (doc 104) pour les autres îles reste à faire.
+- Pierres sans collision ; objets flottants (bouchon) sans courant.
+
+## 13. Suite proposée (spécifiée, non livrée)
 
 | Lot | Contenu | Coût visé / garde-fous |
 | --- | --- | --- |
-| **WREN-2** | Brume/éclaboussures au pied des cascades (≤ 8 sprites par chute proche, shader partagé, sans ombre) ; caustiques analytiques sur le fond < 4 m près de la caméra ; berges **mouillées** (assombrissement dans `materialColor` via `waterEdgeDistance` à la construction des tuiles : **0 coût runtime**) | Budget eau du `ResourceBudgetManager`, désactivé en économie |
-| **WREN-3** | Confluences et embouchures : flow map basse résolution par jonction, mélange rivière → mer (dégradé d’alpha et d’écume sur les derniers mètres) ; cascades lointaines = bande claire quasi statique (silhouette conservée, doc 21 §5) | Pas de surface coplanaire double, test de jonction |
-| **WREN-4** | Météo : rides plus fortes et direction du vent (`EnvironmentState`), impacts de pluie procéduraux sur l’eau proche, teinte Fresnel tirée du ciel réel (uniforme du `sky-renderer`) au lieu d’une constante | Uniformes seulement, 0 particule CPU |
-| **WREN-5** | Variantes de programme précompilées (`#define WATER_STATIC`) basculées par le budget pour retirer réellement le code animé sur GPU très faible / logiciel ; warm-up des variantes (doc 106) | Pas de compilation en jeu |
-| **WREN-Q** | Qualification sur GPU intégré : temps GPU (timer WebGL2) vue baie/plage/rivière/cascade, overdraw de la mer translucide, comparaison `?water=static` | Obligatoire avant d’annoncer un coût GPU |
+| **WREN-3** | Confluences et embouchures : rubans d’affluent rognés à la berge de la rivière, mélange rivière → mer (alpha et écume sur les derniers mètres), brume au pied des cascades (≤ 8 sprites proches), cascades lointaines = bande claire quasi statique (doc 21 §5) | Pas de surface coplanaire double, test de jonction |
+| **WREN-4** | Météo : rides et direction du vent (`EnvironmentState`), impacts de pluie procéduraux, teinte Fresnel tirée du ciel réel ; caustiques analytiques sur le fond proche | Uniformes seulement, 0 particule CPU |
+| **WREN-5** | Variantes de programme précompilées (`#define WATER_STATIC`) basculées par le budget ; warm-up des variantes (doc 106) | Pas de compilation en jeu |
+| **HYD-3** | Réseau dendritique en option opt-in V5 de `COMPOSITION_STAGES` ; relief avec érosion légère pour des bassins plus grands ; écume localisée autour des blocs | Mondes existants identiques sans l’option |
+| **WREN-Q** | Qualification sur GPU intégré : temps GPU vue baie/plage/rivière/cascade/confluence, overdraw de la mer translucide, comparaison `?water=static` | Obligatoire avant d’annoncer un coût GPU |
 
-## 7. Règles pour la suite
+## 14. Règles pour la suite
 
-- Toute eau intérieure passe par `createInlandWaterMaterial` (un programme) ; toute donnée de rendu se dérive du profil compilé (`CompiledWater`), jamais l’inverse.
-- La mer proche doit rester **égale à la mer d’horizon** en eau profonde et au loin : ne pas assombrir `seabedAbsorb` sans traiter les coutures de tuiles/jupes.
-- Mesurer avant/après chaque ajout avec `tools/water-views.json` ; SwiftShader exécutant toutes les branches, compter les instructions, pas seulement les `if`.
+- Toute eau intérieure passe par `createInlandWaterMaterial` (un programme) ; toute donnée de rendu **et de gameplay** (courant, pierres, berges) se dérive du profil compilé (`CompiledWater`), jamais l’inverse.
+- Un cours d’eau généré passe le compilateur WATER partagé ; un lac généré ne recouvre jamais une route, un champ ou un bâtiment.
+- La mer proche doit rester **égale à la mer d’horizon** en eau profonde et au loin.
+- Mesurer avant/après chaque ajout avec `tools/water-views.json` et `tools/water-network-views.json` ; SwiftShader exécutant toutes les branches, compter les instructions, pas seulement les `if`.

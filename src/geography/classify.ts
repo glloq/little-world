@@ -84,11 +84,16 @@ export function materialAt(ctx:GeoContext,x:number,z:number,s:{geology:Geology;b
   const code=ctx.mask('material',x,z);if(code&&code!=='.')return categoryOf('material',code)!.id as Material;
   if(ctx.snowLineM!==undefined&&s.height!==undefined&&s.height>=snowLineAt(ctx,x,z,s.slope)&&s.slope<.9&&s.occupation==='none')return 'snow';
   if(s.occupation==='road')return 'dirt';if(s.occupation==='built')return 'gravel';if(s.occupation==='farm')return 'dirt';
+  // Freshwater (doc 108 §10): pebble beds under rivers, sand under lakes, a pebble margin at the
+  // water's edge, lush wet grass (not mud) along the banks; mud is kept for real marshes.
+  if(s.biome==='river')return ctx.riverDistance(x,z)<.5?'pebbles':'sand';
+  const nearRiver=s.biome==='wetland'||s.moisture>.7?ctx.riverDistance(x,z):Infinity;
+  if(nearRiver<1&&s.slope<.7&&s.geology==='soil')return 'pebbles';
   switch(s.geology){
     case 'sand':return s.cliff>.35?'pebbles':'sand';
     case 'rock':return 'rock';case 'basalt':return 'basalt';case 'ash':return 'ash';case 'gravel':return 'gravel';
   }
-  if(s.biome==='wetland')return s.moisture>.88?'mud':'grass';
+  if(s.biome==='wetland')return s.moisture>.88&&nearRiver>12?'mud':'grass';
   if(s.biome==='scrub')return 'dry-grass';
   if(s.biome==='forest')return 'forest-floor';
   if(s.biome==='mountain')return s.slope>.6?'rock':'dry-grass';
