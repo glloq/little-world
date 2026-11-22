@@ -20,8 +20,10 @@ import {projectGeography} from '../src/studio-core/geo-context.ts';
 import {classifyPoint} from '../src/geography/classify.ts';
 import {ECONOMY_ITEMS} from '../src/gameplay/economy.ts';
 import {roadsideSpots} from '../src/world-production/roadside.ts';
-import {planRoadTiered,nearestRoadPoint,ROAD_POLICIES} from '../src/paths/road-planner.ts';
-import {projectRoadContext,bridgePlacement,roadPaths,repairPath} from '../src/studio-core/road-network.ts';
+import {planRoadTiered,nearestRoadPoint,ROAD_POLICIES,BRIDGE_CLEARANCE_M} from '../src/paths/road-planner.ts';
+import {WaterSpatialIndex} from '../src/water/profile.ts';
+import {projectRoadContext,roadBridge,roadPaths,repairPath} from '../src/studio-core/road-network.ts';
+import {HABITAT_ASSETS} from '../src/settlements/habitat.ts';
 import {projectRoadAuditEnv} from '../src/studio-core/road-audit.ts';
 import {planRoadGrading} from '../src/paths/road-grading.ts';
 import {planRoadLinks,applyRoadLinks,ROAD_LINK_PREFIX} from '../src/studio-core/road-links.ts';
@@ -133,6 +135,7 @@ const kind=['nature.boulder_large','nature.boulder_pile','nature.rock_spire','na
       State:{type:'State',initial:{opened:false}},Persistence:{type:'Persistence',fields:['opened']},Interactable:{type:'Interactable',prompt:'Ouvrir le coffre',range:2.2,interactionIds:[act]}}});
     p.libraries.interactions[act]={id:act,trigger:{type:'onInteract',entityId:id},condition:{type:'stateEquals',entityId:id,key:'opened',value:false},repeat:'once',persistent:true,
       sequence:[{type:'giveItem',itemId:'coin',quantity:coins},{type:'setState',entityId:id,key:'opened',value:true},{type:'showText',text:`Trésor du sommet ! +${coins} pièces.`}]};});
+  let ford=()=>0;
   // Natural drainage (doc 108 §8): creeks that join into rivers, lakes in closed basins, every stream
   // validated by WATER; villages, fields and works stay dry. Footbridges where a route crosses.
   {const g=projectGeography(p),occ=(x,z)=>classifyPoint(g.ctx,x,z).occupation;
@@ -143,29 +146,35 @@ const kind=['nature.boulder_large','nature.boulder_pile','nature.rock_spire','na
      {idPrefix:'island-stream-',minAreaM2:20000,maxStreams:60,minLengthM:150,seed});
    for(const w of net.waters)putWater(p,w);
    const crossings=[];
-   // Preset paths that a new stream cuts: footbridge laid along the path (never askew to it).
-   for(const w of net.waters){if(w.kind==='lake')continue;
-    for(const path of Object.values(p.libraries.paths))for(let i=1;i<w.points.length;i++)for(let j=1;j<path.points.length;j++){
+   // Preset paths a stream still cuts once the accesses have been planned again (below): footbridge laid
+   // along the path, never askew to it. Planned roads and repaired accesses carry native bridges instead.
+   ford=()=>{for(const w of net.waters){if(w.kind==='lake')continue;
+    for(const path of Object.values(p.libraries.paths).filter(q=>!q.supportId))for(let i=1;i<w.points.length;i++)for(let j=1;j<path.points.length;j++){
      const a=w.points[i-1],b=w.points[i],c=path.points[j-1],d=path.points[j],ex=b.x-a.x,ez=b.z-a.z,fx=d.x-c.x,fz=d.z-c.z,det=ex*fz-ez*fx;if(Math.abs(det)<1e-9)continue;
      const t=((c.x-a.x)*fz-(c.z-a.z)*fx)/det,u=((c.x-a.x)*ez-(c.z-a.z)*ex)/det;if(t<0||t>1||u<0||u>1)continue;
      const x=a.x+ex*t,z=a.z+ez*t;if(crossings.some(q=>Math.hypot(q.x-x,q.z-z)<30))continue;
      const fl=Math.hypot(fx,fz)||1,ux=fx/fl,uz=fz/fl,l=Math.hypot(ex,ez)||1,square=Math.abs(ux*-ez/l+uz*ex/l)||.5,span=5.6,stretch=Math.max(1,(w.width+3)/square/span),reach=span/2*stretch;
      const bank=Math.min(g.source(x+ux*reach,z+uz*reach),g.source(x-ux*reach,z-uz*reach)),bed=g.source(x,z)-.35-w.depth;
-     crossings.push({x,z});place(`island-ford-bridge-${crossings.length-1}`,'Passerelle','structure.bridge_wooden_arch',+x.toFixed(2),+z.toFixed(2),Math.atan2(-uz,ux),+Math.max(0,bank-.86-bed).toFixed(2),+stretch.toFixed(2));}}
-   if(process.env.ISLAND_VERBOSE)console.warn('drainage',net.streams.length,'cours d’eau,',net.lakes.length,'lacs,',crossings.length,'passerelles',net.diagnostics);}
+     crossings.push({x,z});place(`island-ford-bridge-${crossings.length-1}`,'Passerelle','structure.bridge_wooden_arch',+x.toFixed(2),+z.toFixed(2),Math.atan2(-uz,ux),+Math.max(0,bank-.86-bed).toFixed(2),+stretch.toFixed(2));}}return crossings.length;};
+   if(process.env.ISLAND_VERBOSE)console.warn('drainage',net.streams.length,'cours d’eau,',net.lakes.length,'lacs',net.diagnostics);}
   // Main routes linking towns, camps, ports and landmarks (doc 109): planned on the final relief and
   // water — no ground under water, gradient capped (traverses and hairpins on steep flanks), streams
   // crossed square on a footbridge laid along the road. Stops shared by two routes are junctions.
   {const g=projectGeography(p),occ=(x,z)=>classifyPoint(g.ctx,x,z).occupation,rc=projectRoadContext(p,(x,z)=>{const o=occ(x,z);return o==='built'||o==='farm'||o==='exclusion';});
    const stop=new Map(),at=(x,z)=>{const k=x+':'+z;if(!stop.has(k)){const q=nearestRoadPoint(rc,P(x,z),3);if(!q)throw Error(`Route : aucun sol praticable près de ${x},${z}`);stop.set(k,q);}return stop.get(k);};
-   let bridges=0;const network=[];
+   let bridges=0;const network=[],ramps=[];
+   // Native footbridge (doc 88 support): flat deck clear of the water, walked by the player and the
+   // residents, with its wood path and a ramp on each bank.
+   const bridge=(site,width)=>{const work=roadBridge(p,`island-road-bridge-${bridges++}`,site,width,g.ctx.height);
+    if(!p.assets['settlement.bridge'])p.assets['settlement.bridge']=structuredClone(HABITAT_ASSETS.find(a=>a.id==='settlement.bridge'));
+    putEntity(p,work.entity);putPath(p,work.path);ramps.push(...work.earthworks);};
    const route=(id,pts,kind='dirt',width=3)=>{
     const tiers=kind==='dirt'?[ROAD_POLICIES.road,ROAD_POLICIES.trail,ROAD_POLICIES.steep]:[ROAD_POLICIES.trail,ROAD_POLICIES.steep];
     const road=planRoadTiered(pts.map(([x,z])=>at(x,z)),{...rc,network},tiers.map(t=>({...t,widthM:width})));
     network.push(...road.pieces,...road.bridges.map(b=>[b.a,b.b]));
     if(!road.pieces.length)throw Error(`Route ${id} : ${road.reason}`);
     for(const path of roadPaths(id,road,{kind,width}))putPath(p,path);
-    for(const site of road.bridges){const b=bridgePlacement(site,g.ctx.height);place(`island-road-bridge-${bridges++}`,'Passerelle','structure.bridge_wooden_arch',b.x,b.z,b.yaw,b.y,b.stretch);}
+    for(const site of road.bridges)bridge(site,width);
     if(process.env.ISLAND_VERBOSE)console.warn('route',id,road.lengthM+' m',road.bridges.length+' pont(s)','pente max '+road.policy.maxGrade);
    };
    route('route-port-town',[[260,1180],[-150,880]]);
@@ -186,16 +195,26 @@ const kind=['nature.boulder_large','nature.boulder_pile','nature.rock_spire','na
     if(process.env.ISLAND_VERBOSE)console.warn('accès',fix.pathId,fix.action,fix.reason);
     if(fix.action==='kept')continue;
     removePath(p,path.id);for(const q of fix.paths){putPath(p,q);repaired.add(q.id);}
-    for(const site of fix.bridges){const b=bridgePlacement(site,g.ctx.height);place(`island-road-bridge-${bridges++}`,'Passerelle','structure.bridge_wooden_arch',b.x,b.z,b.yaw,b.y,b.stretch);}
+    for(const site of fix.bridges)bridge(site,path.width);
    }
+   const fords=ford();if(process.env.ISLAND_VERBOSE)console.warn('passerelles de presets restantes',fords);
    // Shops, fields, camps and the mine still cut off from the network get their own planned link (doc 109 §6).
    const links=planRoadLinks(p,{grading:false});applyRoadLinks(p,links);
    if(process.env.ISLAND_VERBOSE)console.warn('liaisons',links.links.length,'pont(s)',links.bridges.length,'échecs',links.failed.map(f=>f.name+' : '+f.reason));
    // The ground is fitted to the roads where needed (doc 109 §5): a bed cut into flanks and evened
    // along the way, never near water. Village streets and preset lanes keep their natural ground.
-   const graded=Object.values(p.libraries.paths).filter(q=>q.id.startsWith('route-')||q.id.startsWith(ROAD_LINK_PREFIX)||repaired.has(q.id)).map(q=>planRoadGrading(q,{height:g.ctx.height,seaLevel:sea,nearWater:(x,z,m)=>rc.blocked(x,z,m)}));
-   putEarthworks(p,graded.flatMap(r=>r.works));
+   const graded=Object.values(p.libraries.paths).filter(q=>!q.supportId&&(q.id.startsWith('route-')||q.id.startsWith(ROAD_LINK_PREFIX)||repaired.has(q.id))).map(q=>planRoadGrading(q,{height:g.ctx.height,seaLevel:sea,nearWater:(x,z,m)=>rc.blocked(x,z,m)}));
+   // Ramps last: at an abutment the deck level wins over a neighbouring road bed.
+   putEarthworks(p,[...graded.flatMap(r=>r.works),...ramps]);
    if(process.env.ISLAND_VERBOSE)console.warn('terrassement',graded.reduce((n,r)=>n+r.works.length,0),'ouvrages,',graded.reduce((n,r)=>n+r.gradedM,0),'m, déblai max',Math.max(...graded.map(r=>r.maxCutM)),'m, remblai max',Math.max(...graded.map(r=>r.maxFillM)),'m');}
+  // Preset bridges (GLB props) were anchored on banks level with the water: raised so the deck ends
+  // stand clear of it (doc 109 §3).
+  {const g=projectGeography(p),water=new WaterSpatialIndex(Object.values(p.libraries.water),g.source,sea),ANCHOR={'structure.bridge_wooden_arch':.86,'structure.bridge_log':.5,'structure.bridge_stone':1.64};let raised=0;const lifts=[];
+   for(const c of Object.values(p.chunks))for(const e of Object.values(c.entities)){const anchor=ANCHOR[e.components.Visual?.assetId],t=e.components.Transform;if(anchor===undefined)continue;
+    const level=Math.max(...water.query(t.position.x,t.position.z,3).filter(h=>h.water.kind!=='lake').map(h=>h.level),-Infinity);if(!Number.isFinite(level))continue;
+    const lift=level+BRIDGE_CLEARANCE_M-(g.ctx.height(t.position.x,t.position.z)+t.position.y+anchor);if(lift>.02){lifts.push([e,+(t.position.y+lift).toFixed(2)]);raised++;}}
+   for(const [e,y]of lifts){const next=structuredClone(e);next.components.Transform.position.y=y;putEntity(p,next);}
+   if(process.env.ISLAND_VERBOSE)console.warn('ponts de presets remontés',raised);}
   // Roadside campfires with log seats every ~320 m along the routes (lit, flickering).
   const authored=Object.values(p.chunks).flatMap(c=>Object.values(c.entities)).map(e=>e.components.Transform.position);let camp=0;
   for(const path of Object.values(p.libraries.paths).filter(q=>q.id.startsWith('route-'))){

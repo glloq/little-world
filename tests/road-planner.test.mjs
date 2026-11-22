@@ -34,9 +34,14 @@ test('steep flank: the road climbs by traverses, never up the fall line', () => 
  assert.equal(road.pieces.length,1,road.reason);
  const line=road.pieces[0];
  assert.ok(length(line)>Math.hypot(450,140)*1.6,'longer than the direct climb: '+length(line));
- const a=auditRoads(paths(road),env);
- assert.ok(a.paths[0].maxGrade<=ROAD_POLICIES.road.maxGrade*1.6,'gradient '+a.paths[0].maxGrade);
- assert.ok(a.totals.fallLineM<10,'fall line '+a.totals.fallLineM);
+ // A hairpin turns through the fall line: the legs keep the capped gradient, and the turn is cut
+ // into the flank (as the generator does), so the walked surface never climbs straight up.
+ const a=auditRoads(paths(road),env),works=paths(road).flatMap(q=>planRoadGrading(q,{height:env.height,seaLevel:0,nearWater:()=>false},{budgetM:6}).works);
+ const bed=compileEarthworks(works,0),after=auditRoads(paths(road),{...env,height:(x,z)=>bed(x,z,env.height(x,z))});
+ assert.ok(a.totals.fallLineM<length(line)*.05&&a.totals.steepM<10,'legs: fall line '+a.totals.fallLineM+', steep '+a.totals.steepM);
+ assert.ok(after.paths[0].maxGrade<=.34,'gradient on the bed '+after.paths[0].maxGrade);
+ // Rounded hairpins: no corner turns more than 60° at a single vertex.
+ for(let i=1;i<line.length-1;i++){const t1=Math.atan2(line[i].z-line[i-1].z,line[i].x-line[i-1].x),t2=Math.atan2(line[i+1].z-line[i].z,line[i+1].x-line[i].x);let d=Math.abs(t1-t2)%(2*Math.PI);if(d>Math.PI)d=2*Math.PI-d;assert.ok(d<1.05,'sharp corner '+d.toFixed(2)+' at '+i);}
  assert.deepEqual(line[0],from);assert.deepEqual(line.at(-1),to);
 });
 
@@ -100,10 +105,10 @@ test('Volcan: generated roads have no flagrant defect (doc 109)', () => {
  const audit=auditProjectRoads(parseProject(JSON.parse(readFileSync(new URL('../maps/island.project.json',import.meta.url),'utf8'))));
  const routes=audit.paths.filter(p=>p.pathId.startsWith('route-'));
  assert.ok(routes.length>=9);
- for(const r of routes){assert.equal(r.underwaterM,0,r.pathId+' sous l’eau');assert.ok(r.steepM<10,r.pathId+' trop raide : '+r.steepM);assert.ok(r.fallLineM<60,r.pathId+' dans la pente : '+r.fallLineM);}
+ for(const r of routes){assert.equal(r.underwaterM,0,r.pathId+' sous l’eau');assert.ok(r.steepM<10,r.pathId+' trop raide : '+r.steepM);/* hairpin turns cross the fall line by nature: a few percent of the length at most */assert.ok(r.fallLineM<Math.max(30,r.lengthM*.04),r.pathId+' dans la pente : '+r.fallLineM);}
  assert.equal(audit.totals.unbridged,0);assert.equal(audit.totals.misalignedBridges,0);
- // Only the ribbon under the footbridges of three preset paths remains.
- assert.ok(audit.totals.underwaterM<=25,String(audit.totals.underwaterM));
+ // Forded preset accesses are planned again: nothing is left under water, every crossing is square.
+ assert.equal(audit.totals.underwaterM,0);assert.equal(audit.totals.skewedCrossings,0);assert.ok(audit.crossings.length>=5&&audit.crossings.every(c=>c.bridgeId));
  assert.ok(audit.crossings.filter(c=>c.pathId.startsWith('route-')).every(c=>c.skewDeg<=10));
 });
 
@@ -154,6 +159,20 @@ import {planRoadLinks,applyRoadLinks,ROAD_LINK_PREFIX,ROAD_BRIDGE_PREFIX} from '
 import {validateMapRequirements,newIslandRequirements} from '../src/studio-core/map-requirements.ts';
 import {composeWorld} from '../src/studio-core/world-composition.ts';
 import {WORLD_BRIEFS,briefToRequirements} from '../src/studio-core/world-brief.ts';
+import {terrainAccessContext} from '../src/studio-core/terrain-access.ts';
+import {pathSupport} from '../src/settlements/bridge.ts';
+import {inspectGroundSegment} from '../src/paths/terrain-route.ts';
+import {WaterSpatialIndex} from '../src/water/profile.ts';
+import {BRIDGE_CLEARANCE_M} from '../src/paths/road-planner.ts';
+import {sectorGeometry,deckEnds} from '../src/paths/path-geometry.ts';
+
+test('rendering: a road has no round cap where a bridge deck takes over', () => {
+ const road={id:'r',points:[{x:-30,z:0},{x:0,z:0}],width:3},deck={id:'d',points:[{x:0,z:0},{x:8,z:0}],width:2,kind:'wood',supportId:'b'};
+ const rect={minX:-100,maxX:100,minZ:-100,maxZ:100},env={height:()=>5},capped=sectorGeometry([road],rect,env),flat=sectorGeometry([road],rect,env,0,undefined,deckEnds([road,deck]));
+ const maxX=g=>Math.max(...Array.from({length:g.positions.length/3},(_,i)=>g.positions[i*3]));
+ assert.ok(maxX(capped)>1.4,'cap spills past the end');assert.ok(maxX(flat)<=1e-6,'no geometry past the abutment');
+ assert.ok(flat.index.length<capped.index.length&&flat.index.length>0);
+});
 
 test('circulation: a footbridge joins the two road pieces cut at its abutments', () => {
  const bridge=(x)=>({id:'b',name:'Pont',components:{Transform:{position:{x,y:0,z:0},rotation:{x:0,y:0,z:0,w:1},scale:{x:1,y:1,z:1}},Visual:{assetId:'structure.bridge_wooden_arch'}}});
@@ -185,6 +204,21 @@ test('composition: a themed island is linked by planned roads, bridged and grade
  for(const r of roads){assert.equal(r.underwaterM,0,r.pathId);assert.ok(r.steepM<5&&r.fallLineM<30,r.pathId);}
  // Planning again finds nothing left to link: the Studio button is idempotent.
  const again=planRoadLinks(p);assert.equal(again.paths.length,0);assert.equal(again.failed.length,0);
+ // Crossings are native supported decks: walked by the player and the residents, clear of the water,
+ // level with both ramped abutments.
+ const c=terrainAccessContext(p),decks=Object.values(p.libraries.paths).filter(q=>q.supportId?.startsWith(ROAD_BRIDGE_PREFIX));
+ assert.ok(decks.length>=1);
+ for(const deck of decks){
+  const ref=p.entityIndex[deck.supportId],entity=p.chunks[ref.ownerChunkId].entities[deck.supportId];
+  assert.ok(entity.components.Bridge&&entity.components.Visual.assetId==='settlement.bridge'&&!entity.components.Collider);
+  const support=pathSupport(p,deck,c),[a,b]=deck.points,y=support.height((a.x+b.x)/2,(a.z+b.z)/2),site=audit.crossings.find(x=>x.pathId===deck.id);
+  assert.ok(site&&site.bridgeId===deck.supportId&&site.bridgeYawErrorDeg<=1&&site.skewDeg<=10,JSON.stringify(site));
+  assert.ok(inspectGroundSegment(a,b,support,{maxSlope:.35,widthM:deck.width}).valid,'deck walkable');
+  for(const end of [a,b])assert.ok(Math.abs(c.height(end.x,end.z)-y)<.08,'abutment level with the deck: '+(c.height(end.x,end.z)-y));
+  const water=new WaterSpatialIndex(Object.values(p.libraries.water),c.source,p.world.seaLevel).query((a.x+b.x)/2,(a.z+b.z)/2);
+  assert.ok(water.length&&water.every(h=>y-h.level>=BRIDGE_CLEARANCE_M-.02),'deck above the water');
+  assert.ok(Object.values(p.libraries.paths).some(q=>!q.supportId&&q.points.some(v=>Math.hypot(v.x-a.x,v.z-a.z)<.02)),'road ends on the abutment');
+ }
  // Plan, then apply: the plan alone writes nothing.
  const fresh=structuredClone(plain),before=JSON.stringify(fresh),plan=planRoadLinks(fresh);assert.equal(JSON.stringify(fresh),before);
  assert.ok(plan.paths.length&&plan.links.every(l=>l.lengthM>0));applyRoadLinks(fresh,plan);

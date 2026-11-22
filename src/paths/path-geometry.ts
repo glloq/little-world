@@ -52,7 +52,10 @@ export interface PathGeometry {positions:Float32Array;colors:Float32Array;uvs:Fl
  * segment belongs to exactly one sector, consecutive sectors share their boundary samples).
  * LOD 0: crowned 3-vertex cross-section, round end caps, wood deck with side skirts;
  * LOD 1: one sample out of three, flat 2-vertex section, no caps. */
-export function sectorGeometry(paths:readonly PathDefinition[],rect:SectorRect,env:GeometryEnv,lod:0|1=0,lines?:Map<string,Sample[]>):PathGeometry{
+/** Ends where a supported deck (bridge) takes over: no round cap there, it would spill onto the planks. */
+export function deckEnds(paths:readonly PathDefinition[]):Set<string>{const out=new Set<string>();for(const p of paths)if(p.supportId)for(const q of [p.points[0],p.points.at(-1)!])out.add(endKey(q.x,q.z));return out;}
+const endKey=(x:number,z:number)=>Math.round(x*10)+':'+Math.round(z*10);
+export function sectorGeometry(paths:readonly PathDefinition[],rect:SectorRect,env:GeometryEnv,lod:0|1=0,lines?:Map<string,Sample[]>,flatEnds?:ReadonlySet<string>):PathGeometry{
   const pos:number[]=[],col:number[]=[],uv:number[]=[],kinds:number[]=[],idx:number[]=[],used:string[]=[],color=new LinearColor(),alt=new LinearColor();
   const inRect=(x:number,z:number)=>x>=rect.minX&&x<rect.maxX&&z>=rect.minZ&&z<rect.maxZ;
   for(const path of paths){
@@ -91,7 +94,7 @@ export function sectorGeometry(paths:readonly PathDefinition[],rect:SectorRect,e
     }
     // Round caps at the ends (LOD 0): clean junctions where a path ends on another one.
     if(lod===0&&kind!=='wood')for(const end of [0,line.length-1]){
-      const s=line[end];if(!inRect(s.x,s.z))continue;any=true;
+      const s=line[end];if(!inRect(s.x,s.z)||flatEnds?.has(endKey(s.x,s.z)))continue;any=true;
       const o=line[end===0?1:end-1],dx=s.x-o.x,dz=s.z-o.z,l=Math.hypot(dx,dz)||1,ux=dx/l,uz=dz/l,centre=pos.length/3,n=6;
       pos.push(s.x,surface(s.x,s.z)+.02,s.z);col.push(color.r,color.g,color.b);uv.push(s.d,0);
       for(let k=0;k<=n;k++){const ang=-Math.PI/2+Math.PI*k/n,c=Math.cos(ang),sn=Math.sin(ang),x=s.x+(ux*c-uz*sn)*half,z=s.z+(uz*c+ux*sn)*half;pos.push(x,surface(x,z),z);col.push(color.r,color.g,color.b);uv.push(s.d,sn);}

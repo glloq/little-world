@@ -22,7 +22,7 @@ export interface RoadContext {bounds:{minX:number;maxX:number;minZ:number;maxZ:n
  network?:readonly (readonly PointXZ[])[]}
 export interface RoadPolicy {/** Steepest gradient along the road (rise/run). */maxGrade:number;/** Steepest ground across the road. */maxTilt:number;widthM:number;
  stepM?:number;/** Cost of a right-angle turn, in metres. */turnM?:number;/** Cost of one bridge, in metres. */bridgeCostM?:number;maxSpanM?:number;maxBankStepM?:number;maxCells?:number;roundM?:number}
-export interface BridgeSite {waterId:string;a:PointXZ;b:PointXZ;spanM:number;axisX:number;axisZ:number;/** Lower bank height: the deck anchors there. */bankY:number;level:number}
+export interface BridgeSite {waterId:string;a:PointXZ;b:PointXZ;spanM:number;axisX:number;axisZ:number;/** Lower bank height. */bankY:number;/** Flat deck level: above both abutments and clear of the water. */deckY:number;level:number}
 export interface PlannedRoad {/** New dry pieces in travel order, cut at each bridge and wherever the road follows the existing network. */pieces:PointXZ[][];bridges:BridgeSite[];lengthM:number;expanded:number;reason?:string}
 
 export const ROAD_POLICIES={
@@ -30,11 +30,15 @@ export const ROAD_POLICIES={
  /** Footpath to hamlets, camps and landmarks. */trail:{maxGrade:.24,maxTilt:.75,widthM:2},
  /** Last resort on mountain flanks. */steep:{maxGrade:.32,maxTilt:.95,widthM:1.8},
 } as const satisfies Record<string,RoadPolicy>;
-const STUB_M=5,MIN_DECK_M=5.6;
+/** Straight approach kept in the bridge axis on each bank (m). */
+export const BRIDGE_APPROACH_M=5;
+/** Deck above the water line (m): the slab and its underside stay dry. */
+export const BRIDGE_CLEARANCE_M=.55;
+const STUB_M=BRIDGE_APPROACH_M;
 
 /** Places where a stream can be bridged: square to the flow, both banks dry and level enough. */
 export function bridgeSites(c:RoadContext,p:RoadPolicy,spacingM=10):BridgeSite[]{
- const out:BridgeSite[]=[],maxSpan=p.maxSpanM??16,maxStep=p.maxBankStepM??1;
+ const out:BridgeSite[]=[],maxSpan=p.maxSpanM??20,maxStep=p.maxBankStepM??.8;
  // Banks of a small stream sit about level with its water line: dry = outside the water strip, not drowned.
  const dry=(q:PointXZ,level:number)=>!c.blocked(q.x,q.z,0)&&c.height(q.x,q.z)>level-.15;
  for(const s of c.streams){
@@ -47,16 +51,21 @@ export function bridgeSites(c:RoadContext,p:RoadPolicy,spacingM=10):BridgeSite[]
     // Falls are not bridged: the water line drops too fast under the deck. A torrent running down
     // a flank is: the deck follows the contour.
     if(Math.abs(v.level-u.level)/len>.5)continue;
-    const bank=(side:number)=>{for(let r=half+.6;r<=half+5;r+=.6){const q={x:x+nx*side*r,z:z+nz*side*r};if(dry(q,level))return q;}return null;};
-    let a=bank(1),b=bank(-1);if(!a||!b)continue;
-    let span=Math.hypot(b.x-a.x,b.z-a.z);
-    if(span<MIN_DECK_M){const grow=(MIN_DECK_M-span)/2;a={x:a.x+nx*grow,z:a.z+nz*grow};b={x:b.x-nx*grow,z:b.z-nz*grow};span=MIN_DECK_M;if(!dry(a,level)||!dry(b,level))continue;}
-    const ha=c.height(a.x,a.z),hb=c.height(b.x,b.z);
-    if(span>maxSpan||Math.abs(ha-hb)>maxStep)continue;
+    // Abutments stand where the carved bank has met the natural ground again (the bed widens with
+    // the height above the water), so a ramp can raise them to a deck set clear of the water line.
+    let deck=level+BRIDGE_CLEARANCE_M,a:PointXZ|null=null,b:PointXZ|null=null;
+    for(let pass=0;pass<3;pass++){const r=half+3+1.6*(deck-level);a={x:x+nx*r,z:z+nz*r};b={x:x-nx*r,z:z-nz*r};
+     const next=Math.max(c.height(a.x,a.z),c.height(b.x,b.z),level+BRIDGE_CLEARANCE_M);if(Math.abs(next-deck)<.05)break;deck=next;}
+    if(!a||!b||!dry(a,level)||!dry(b,level))continue;
+    const span=Math.hypot(b.x-a.x,b.z-a.z),ha=c.height(a.x,a.z),hb=c.height(b.x,b.z);
+    if(span>maxSpan||Math.abs(ha-hb)>maxStep||deck-Math.min(ha,hb)>BRIDGE_CLEARANCE_M+maxStep)continue;
+    // Nothing may stand above the deck between the abutments (a rock, the far bank of a bend).
+    let clear=true;for(let k=1;k<12&&clear;k++)clear=c.height(a.x+(b.x-a.x)*k/12,a.z+(b.z-a.z)*k/12)<=deck+.02;
+    if(!clear)continue;
     // Straight approaches on both banks: dry, gentle, clear of any other water.
     const approach=(q:PointXZ,side:number,h0:number)=>{let prev=h0;for(let r=1;r<=STUB_M+2;r++){const w={x:q.x+nx*side*r,z:q.z+nz*side*r},h=c.height(w.x,w.z);if(c.blocked(w.x,w.z,0)||h<level-.15||Math.abs(h-prev)>p.maxGrade*1.6)return false;prev=h;}return true;};
     if(!approach(a,1,ha)||!approach(b,-1,hb))continue;
-    out.push({waterId:s.id,a,b,spanM:span,axisX:-nx,axisZ:-nz,bankY:Math.min(ha,hb),level});
+    out.push({waterId:s.id,a,b,spanM:span,axisX:-nx,axisZ:-nz,bankY:Math.min(ha,hb),deckY:deck,level});
    }
    carried=(carried-len)%spacingM;if(carried<0)carried+=spacingM;
   }
@@ -155,15 +164,23 @@ function simplify(pts:PointXZ[],tol:number):PointXZ[]{
   if(at>=0&&worst>tol){keep[at]=1;stack.push([a,at],[at,b]);}}
  return pts.filter((_,i)=>keep[i]);
 }
-/** Round each corner with a short curve (radius bounded by the adjacent legs): hairpins become bends. */
-function roundCorners(pts:PointXZ[],radius:number):PointXZ[]{
+/** Round each corner with a true circular arc tangent to both legs. An ordinary bend is eased over
+ * `reachM` at most on each leg; a hairpin (bend beyond ~90°) gets `hairpinM`, hence a turn of 4 to
+ * 9 m of radius like a real mountain switchback instead of a pointed « Z ». Legs shorter than
+ * twice the reach share what they have. */
+function roundCorners(pts:PointXZ[],reachM:number,hairpinM=reachM*2.6):PointXZ[]{
  if(pts.length<3)return pts;const out:PointXZ[]=[pts[0]];
  for(let i=1;i<pts.length-1;i++){
   const a=pts[i-1],v=pts[i],b=pts[i+1],la=Math.hypot(a.x-v.x,a.z-v.z),lb=Math.hypot(b.x-v.x,b.z-v.z);
-  const bend=turn(Math.atan2(v.z-a.z,v.x-a.x),Math.atan2(b.z-v.z,b.x-v.x)),r=Math.min(radius,la*.45,lb*.45);
-  if(bend<.2||r<1){out.push(v);continue;}
-  const p0={x:v.x+(a.x-v.x)/la*r,z:v.z+(a.z-v.z)/la*r},p2={x:v.x+(b.x-v.x)/lb*r,z:v.z+(b.z-v.z)/lb*r},n=bend>1.2?4:2;
-  for(let k=0;k<=n;k++){const t=k/n,w=1-t;out.push({x:w*w*p0.x+2*w*t*v.x+t*t*p2.x,z:w*w*p0.z+2*w*t*v.z+t*t*p2.z});}
+  const bend=turn(Math.atan2(v.z-a.z,v.x-a.x),Math.atan2(b.z-v.z,b.x-v.x)),d=Math.min(bend>1.6?hairpinM:reachM,la*.45,lb*.45);
+  // A full U-turn has no inscribed circle; a faint bend needs none.
+  if(bend<.2||bend>3.05||d<1){out.push(v);continue;}
+  const u1={x:(a.x-v.x)/la,z:(a.z-v.z)/la},u2={x:(b.x-v.x)/lb,z:(b.z-v.z)/lb},half=(Math.PI-bend)/2,radius=d*Math.tan(half);
+  const bl=Math.hypot(u1.x+u2.x,u1.z+u2.z),cx=v.x+(u1.x+u2.x)/bl*d/Math.cos(half),cz=v.z+(u1.z+u2.z)/bl*d/Math.cos(half);
+  const from=Math.atan2(v.z+u1.z*d-cz,v.x+u1.x*d-cx),to=Math.atan2(v.z+u2.z*d-cz,v.x+u2.x*d-cx);
+  let sweep=to-from;while(sweep>Math.PI)sweep-=Math.PI*2;while(sweep<-Math.PI)sweep+=Math.PI*2;
+  const n=Math.max(2,Math.ceil(Math.abs(sweep)/.32));
+  for(let k=0;k<=n;k++){const t=from+sweep*k/n;out.push({x:cx+Math.cos(t)*radius,z:cz+Math.sin(t)*radius});}
  }
  out.push(pts.at(-1)!);return out;
 }
