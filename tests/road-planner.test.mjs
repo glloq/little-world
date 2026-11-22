@@ -106,3 +106,44 @@ test('Volcan: generated roads have no flagrant defect (doc 109)', () => {
  assert.ok(audit.totals.underwaterM<=25,String(audit.totals.underwaterM));
  assert.ok(audit.crossings.filter(c=>c.pathId.startsWith('route-')).every(c=>c.skewDeg<=10));
 });
+
+// ---- Grading (doc 109 §5) -----------------------------------------------------------------
+import {planRoadGrading} from '../src/paths/road-grading.ts';
+import {compileEarthworks,parseEarthworks} from '../src/geography/earthworks.ts';
+const graded=(height,works)=>{const earth=compileEarthworks(works,0);return earth?(x,z)=>earth(x,z,height(x,z)):height;};
+
+test('grading: a traverse on a flank gets a level bed, flat ground gets none', () => {
+ const slope=(x,z)=>50+z*.4,path={id:'r',points:[{x:-200,z:0},{x:200,z:20}],width:3},env={height:slope,seaLevel:0,nearWater:()=>false};
+ assert.equal(planRoadGrading({...path,id:'flat'},{...env,height:()=>10}).works.length,0);
+ const plan=planRoadGrading(path,env);
+ assert.ok(plan.works.length>=2&&plan.gradedM>380,JSON.stringify([plan.works.length,plan.gradedM]));
+ assert.doesNotThrow(()=>parseEarthworks(plan.works));
+ assert.ok(plan.works.every(w=>w.id.startsWith('road:r:')&&w.points.length<=20));
+ const after=graded(slope,plan.works),audit=h=>auditRoads([path],{height:h,seaLevel:0,bridges:[],water:()=>[]}).paths[0];
+ assert.ok(audit(slope).tiltedM>380);assert.ok(audit(after).tiltedM<15,'tilt left: '+audit(after).tiltedM);
+ // Cut uphill, fill downhill, the axis barely moves; the ground is untouched away from the road.
+ assert.ok(Math.abs(after(0,10)-slope(0,10))<.3);assert.ok(after(0,11.5)<slope(0,11.5)&&after(0,8.5)>slope(0,8.5));
+ assert.equal(after(0,40),slope(0,40));
+ assert.ok(plan.maxCutM<1&&plan.maxFillM<1);
+ assert.equal(JSON.stringify(planRoadGrading(path,env)),JSON.stringify(plan));
+});
+
+test('grading: bumps are evened, water sides and deep cuts are left natural', () => {
+ const bumpy=(x,z)=>20+(Math.abs(x)<4?1.2:0),path={id:'b',points:[{x:-80,z:0},{x:80,z:0}],width:3},env={height:bumpy,seaLevel:0,nearWater:()=>false};
+ const plan=planRoadGrading(path,env);assert.ok(plan.works.length>=1);
+ assert.ok(graded(bumpy,plan.works)(0,0)<bumpy(0,0)-.4);
+ const slope=(x,z)=>50+z*.4,side={id:'s',points:[{x:-200,z:0},{x:200,z:0}],width:3};
+ assert.equal(planRoadGrading(side,{height:slope,seaLevel:0,nearWater:()=>true}).works.length,0);
+ const partly=planRoadGrading(side,{height:slope,seaLevel:0,nearWater:x=>x>0});
+ assert.ok(partly.works.length&&partly.works.every(w=>w.points.every(q=>q.x<=0)));
+ const cliff=(x,z)=>20+(x>0?30:0);
+ assert.ok(planRoadGrading({id:'c',points:[{x:-60,z:0},{x:60,z:0}],width:3},{height:cliff,seaLevel:0,nearWater:()=>false},{budgetM:2.5}).works.every(w=>w.points.every((q,i)=>Math.abs(w.levels[i]-cliff(q.x,q.z))<=2.5)));
+ assert.equal(planRoadGrading({id:'w',points:[{x:-60,z:0},{x:60,z:0}],width:2,kind:'wood'},{height:slope,seaLevel:0,nearWater:()=>false}).works.length,0);
+});
+
+test('Volcan: the ground is fitted to the planned roads (doc 109 §5)', () => {
+ const project=parseProject(JSON.parse(readFileSync(new URL('../maps/island.project.json',import.meta.url),'utf8'))),works=project.world.terrain.archipelago.earthworks??[];
+ assert.ok(works.length>20&&works.length<=256&&works.every(w=>w.id.startsWith('road:')&&w.kind==='corridor'));
+ const routes=auditProjectRoads(project).paths.filter(p=>p.pathId.startsWith('route-')),length=routes.reduce((n,r)=>n+r.lengthM,0),tilted=routes.reduce((n,r)=>n+r.tiltedM,0);
+ assert.ok(tilted<length*.05,`dévers ${Math.round(tilted)} m sur ${Math.round(length)} m`);
+});
