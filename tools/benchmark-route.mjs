@@ -17,8 +17,16 @@ import {resolve} from 'node:path';
 import {execFileSync} from 'node:child_process';
 import {chromium} from 'playwright';
 
-const base=new URL(process.argv[2]??'http://127.0.0.1:5173/little-world/');
-const output=resolve(process.argv[3]??'../little-world-artifacts/route');
+// OPT-0: `--suite=opt` (or BENCHMARK_SUITE=opt) runs the reproducible scene suite of
+// tools/perf/opt-suite.mjs instead of the historical HZ-0 route below (kept for benchmark-sky).
+const cli=process.argv.slice(2),suite=(cli.find(a=>a.startsWith('--suite='))?.slice(8))??process.env.BENCHMARK_SUITE??'route',positional=cli.filter(a=>!a.startsWith('--'));
+if(suite==='opt'){
+  const {runOptSuite}=await import('./perf/opt-suite.mjs');
+  await runOptSuite(positional[0]??'http://127.0.0.1:4173/little-world/',positional[1]??'../little-world-artifacts/opt');
+  process.exit(0);
+}
+const base=new URL(positional[0]??'http://127.0.0.1:5173/little-world/');
+const output=resolve(positional[1]??'../little-world-artifacts/route');
 const viewport={width:960,height:640};
 const launchArgs=['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader'];
 const scenarios=[
