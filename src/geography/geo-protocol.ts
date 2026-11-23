@@ -13,6 +13,7 @@ export type GeoJob=
   |{kind:'dressing';seed:number;cx:number;cz:number}
   |{kind:'canopy';seed:number;cx:number;cz:number}
   |{kind:'map';bounds:{minX:number;minZ:number};level:number;tx:number;tz:number}
+  |{kind:'grass';seed:number;cx:number;cz:number;density:number}
   |{kind:'ecology';seed:number;cx:number;cz:number;density:number;edits:{x:number;z:number;radius:number;biome:string}[]};
 export type GeoMessage=
   |{type:'terrain';config:WorldConfig;edits:TerrainStroke[];water:WaterBody[];roads:PathDefinition[]}

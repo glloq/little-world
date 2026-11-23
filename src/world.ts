@@ -803,7 +803,7 @@ export function buildWorld(
   const natural = createNaturalView(root,terrainHeight);
   const cliffs = createCliffView(root,terrainHeight,config.seed,config.terrain);
   // Doc 18: short and tall grass tufts near the player (generated worlds), 1 draw call, wind in the shader.
-  const grass = legacy ? null : createGrass(root, config.seed, generatedGrass, terrainHeight,24000,true);
+  const grass = legacy ? null : createGrass(root, config.seed, generatedGrass, terrainHeight,24000,true,workers);
   let grassActors:readonly import('./render/grass.ts').GrassActor[]=[];
   // `?grass=dense|balanced|ultra|off` (benchmarks, captures): fixed profile instead of the budget level.
   const grassParam = typeof location !== 'undefined' ? new URLSearchParams(location.search).get('grass') : null;
