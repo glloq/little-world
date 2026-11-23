@@ -790,7 +790,7 @@ export function buildWorld(
         return edits[i].biome;
     return sampleBiome(x, z);
   };
-  const ecology = createEcology(root, config.seed, config.density, biomeAt, legacy ? undefined : generatedCover);
+  const ecology = createEcology(root, config.seed, config.density, biomeAt, legacy ? undefined : generatedCover, { pool: workers, edits: definition?.biomes ?? [] });
   // G5: natural dressing (forests, cliff rocks, scree, pebbles, basalt) of generated worlds.
   const dressing: DressingView | null = legacy ? null : createDressingView(root, config.seed, config.density, workers);
   const buildingImpostors=createImpostorSectors(root,'buildings');buildingImpostors.setBudget(64,4);
