@@ -102,7 +102,7 @@ async function openPage(browser,viewport){
   return {context,page,errors,cdp};
 }
 function worldURL(base,world,extra){
-  const url=new URL(base);url.searchParams.set('metrics','1');url.searchParams.set('world',world);url.searchParams.set('renderTier',String(env.RENDER_TIER??0));
+  const url=new URL(base);url.searchParams.set('metrics','1');url.searchParams.set('world',world);if((env.RENDER_TIER??'0')!=='auto')url.searchParams.set('renderTier',String(env.RENDER_TIER??0));
   for(const [k,v] of Object.entries(extra))url.searchParams.set(k,v);
   for(const [k,v] of new URLSearchParams(env.EXTRA_QUERY??''))url.searchParams.set(k,v);
   return url.href;
@@ -135,7 +135,7 @@ async function runScene(browser,base,output,name,scene,{viewport,ticks,repeatInd
     function frame(now){if(s.stop)return;const m=window.littleWorldMetrics;
       if(m&&m.frameId!==lastFrame){lastFrame=m.frameId;
         if(last!==null){const t=m.timings;s.rows.push([now-last,t.updateMs,t.renderSubmitMs,t.simulationMs,t.gpuMs??NaN,t.metricsMs??NaN,m.calls,m.triangles,
-          m.uploads?.bytes??NaN,performance.memory?.usedJSHeapSize??NaN,m.bench?.phase??0,m.bench?.tick??0,m.chunks.pending,m.dressing?.pending??0,now]);}
+          m.uploads?.bytes??NaN,performance.memory?.usedJSHeapSize??NaN,m.bench?.phase??0,m.bench?.tick??0,m.chunks.pending,m.dressing?.pending??0,now,m.framebuffer?.pixelRatio??NaN,m.budget?.detailLevel??m.qualityLevel??NaN,m.renderRate??NaN]);}
         last=now;}
       requestAnimationFrame(frame);}
     requestAnimationFrame(frame);
@@ -169,6 +169,7 @@ async function runScene(browser,base,output,name,scene,{viewport,ticks,repeatInd
     rssMB:{before:rssBefore,after:rssAfter},
     work:{before:workBefore,after:workAfter,programsCompiledDuringRun:workAfter.programs-workBefore.programs,cliffsBuiltDuringRun:workAfter.cliffsBuilt-workBefore.cliffsBuilt,
       grassUploadedKB:Math.round((workAfter.grassUploadedBytes-workBefore.grassUploadedBytes)/1024),terrainTilesBuilt:workAfter.terrainBuilt-workBefore.terrainBuilt},
+    budget:budgetTrace(rows.rows),
     profile,captures:[],errors};
   // Reference captures: route frozen at fixed ticks, streaming drained, then 1.5 s of steady frames.
   for(const tick of scene.captures){
@@ -214,4 +215,8 @@ async function runTravel(browser,base,{viewport,cycles,runId}){
 function profileTop(p,n){const self=new Map(),byId=new Map(p.nodes.map(x=>[x.id,x]));const dt=p.timeDeltas;let total=0;
   for(let i=0;i<p.samples.length;i++){const node=byId.get(p.samples[i]),d=(dt[i+1]??dt[i]??0)/1000;total+=d;const c=node.callFrame,key=`${c.functionName||'(anon)'} ${c.url.split('/').pop()}:${c.lineNumber+1}`;self.set(key,(self.get(key)??0)+d);}
   return {totalMs:Math.round(total),top:[...self.entries()].sort((a,b)=>b[1]-a[1]).slice(0,n).map(([k,v])=>({fn:k,ms:Math.round(v),pct:+(100*v/total).toFixed(1)}))};}
+/** Adaptive budget trace (RENDER_TIER=auto): time-weighted pixel ratio, detail and rate, and the changes. */
+function budgetTrace(rows){if(!rows.length)return null;let t=0,dpr=0,detail=0,rate20=0;const changes=[];let prev=null;
+  for(const r of rows){const d=r[0];t+=d;dpr+=r[15]*d;detail+=r[16]*d;if(r[17]===20)rate20+=d;const key=r[15]+'/'+r[16]+'/'+r[17];if(key!==prev){changes.push({tick:r[11],pixelRatio:r[15],detail:r[16],rate:r[17]});prev=key;}}
+  return {meanPixelRatio:+(dpr/t).toFixed(3),meanDetail:+(detail/t).toFixed(3),rate20Share:+(rate20/t).toFixed(3),final:changes.at(-1),changes:changes.slice(0,20)};}
 function slope(v){const n=v.length,mx=(n-1)/2,my=v.reduce((a,b)=>a+b,0)/n;let num=0,den=0;v.forEach((y,x)=>{num+=(x-mx)*(y-my);den+=(x-mx)**2;});return den?num/den:0;}

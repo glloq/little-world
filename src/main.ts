@@ -164,7 +164,7 @@ if(new URLSearchParams(location.search).has('metrics'))Object.assign(window,{__l
 const quality = document.querySelector<HTMLSelectElement>('#quality')!;
 const renderTier=new URLSearchParams(location.search).get('renderTier');
 const presentation = new FrameClock(),
-  budget = new PresentationBudget(renderTier===null?undefined:Number(renderTier));
+  budget = new PresentationBudget(renderTier===null?undefined:Number(renderTier),new URLSearchParams(location.search).get('opt6')==='0');
 const qualityRatios = { low: 1, medium: 1.35, high: 2 } as const;
 type RenderQuality = keyof typeof qualityRatios;
 const remembered = (() => {
@@ -182,7 +182,7 @@ function applyQuality() {
   const ratio=presentationPixelRatio(
       window.devicePixelRatio,
       qualityRatios[mode] ?? 1.35,
-      budget.level,
+      budget.resolutionLevel,
     );
   // Reallocating the drawing buffer is a visible hitch: only when the ratio really changes.
   if(ratio!==renderer.getPixelRatio())renderer.setPixelRatio(ratio);
@@ -1885,7 +1885,11 @@ function tick(dt: number) {
     else if (target?.targetType === 'mine-lift') gameUi?.openMineLift();
   }
 }
-const perfSampler=new PerfSampler(),gpuTimer=createGpuTimer(renderer,metricsEnabled);
+// GPU timer: metrics mode or explicit ?gpuTimer=1 (untested drivers keep the CPU heuristic only).
+const perfSampler=new PerfSampler(),gpuTimer=createGpuTimer(renderer,metricsEnabled||searchParams.get('gpuTimer')==='1');
+const budgetUsesGpu=gpuTimer.stats.available;
+/** OPT-6 benchmark only (?metrics&cpuLoad=ms): controlled synthetic main-thread CPU load per presented frame. */
+const syntheticCpuLoadMs=metricsEnabled?Math.max(0,Math.min(200,Number(searchParams.get('cpuLoad'))||0)):0;
 const uploadCounter=metricsEnabled?createUploadCounter(renderer.getContext() as WebGL2RenderingContext):null;
 let gpuSamplesSeen=0;
 const actorCount=Number(searchParams.get('remoteActors')??0);
@@ -1952,6 +1956,7 @@ function draw(now: number) {
   grassActors.length=0;
   for(const state of npcs.states)if(Math.hypot(state.x-player.position.x,state.z-player.position.z)<44)grassActors.push(state);
   remoteActors?.renderer.collectGrassActors(grassActors,player.position);
+  if(syntheticCpuLoadMs){const until=performance.now()+syntheticCpuLoadMs;while(performance.now()<until){/* busy */}}
   world.setUnderground(!!player.space);
   world.update(delta, player.position, camera, renderer.domElement.height, player.velocity);
   const surfWaterStart=surfPerf?performance.now():0;
@@ -2160,6 +2165,7 @@ function draw(now: number) {
         background:scene.background instanceof THREE.Color?scene.background.getHex(THREE.SRGBColorSpace):null,
         renderRate: budget.rate,
         qualityLevel: budget.level,
+        budget:{resolutionLevel:budget.resolutionLevel,detailLevel:budget.level,rate:budget.rate,bottleneck:budget.bottleneck,reason:budget.lastReason},
         simulationHz: 30,
         timings: {
           simulationMs,
@@ -2179,12 +2185,15 @@ function draw(now: number) {
     fpsTime = 0;
     frameCount = 0;
   }
-  const cost = performance.now() - begin;
-  const levelBefore=budget.level;
-  if (budget.observe(cost, wallDrawDelta)) {
+  // Main-thread CPU work of this presented frame (simulation included): the budget compares it
+  // with the interval (and the GPU time when measured) to pick the lever (OPT-6).
+  const cost = performance.now() - begin + simulationMs;
+  const levelBefore=budget.level,resolutionBefore=budget.resolutionLevel;
+  if (budget.observe(cost, wallDrawDelta, budgetUsesGpu?gpuTimer.stats.ms:null)) {
     presentation.rate = budget.rate;
     // A 30↔20 presentation change keeps detail and resolution: no rebuild, no reallocation.
-    if(budget.level!==levelBefore){world.setDetail(budget.level, quality.value === 'low');applyQuality();}
+    if(budget.level!==levelBefore)world.setDetail(budget.level, quality.value === 'low');
+    if(budget.level!==levelBefore||budget.resolutionLevel!==resolutionBefore)applyQuality();
   }
   requestAnimationFrame(draw);
 }
