@@ -12,6 +12,8 @@ Tenu à jour à chaque étape. Protocole et gate : [PLAN-OPTIMISATION.md](PLAN-O
 | 3 — OPT-2 falaises / structures naturelles | — | **non applicable (pas de code)** | aucun : 0 falaise `rl-cliff-*` et 0 structure naturelle dans les 5 îles publiées ; 0 falaise construite dans tous les parcours | — | analyse du contenu + compteurs baseline |
 | 4 — OPT-3 objets statiques | — | **testée (mesure), non retenue** | boucle des objets + code propre de `world.update` : **0,08 ms/image** (9,4 ms / 121 images au village, profil) ; 3–32 objets testés par image | — | profil CPU village/vol/forêt |
 | 5 — allocations de la boucle critique | `claude/opt-5-zero-alloc` | **retenue partiellement** (cueillette, herbe, chemins) ; partie habillage revertée | allocations (profil échantillonné) **−12 % forêt, −11 % village, −6 % vol** ; `update` p50 −10 à −12 %, p95 −7 % (forêt, village), vol p95 −6,5 %, p99 −9 % | forêt `update` p99 +5,3 % (2–3 images) ; envoi GPU vol +11 % inexpliqué (ni herbe ni habillage) | forêt, village, vol, 1280×720, 2 exécutions, `ALLOC_PROFILE=1` |
+| 6 — herbe : plages d'instances stables (variante a) | `claude/opt-grass-stable-slots` | **retenue** | octets d'herbe **−94 % forêt, −90 % village, −75 % vol** ; envoi GPU total −34 à −57 % ; `update` p99 forêt −16 %, `update` p50 village −10 % | vol : intervalle p95 +1 palier vsync (283 → 300 ms) ; triangles +1,5–1,9 % (trous résiduels à échelle nulle) | forêt, village, vol, 1280×720, 2 exécutions |
+| 6 — herbe : secteurs cullables (variante b) | — | **non testée** | — | gain attendu uniquement côté sommets GPU (non mesurable ici) ; augmente les appels de rendu | — |
 
 ## Étape 1 — OPT-6 : diagnostic CPU/GPU de l'arbitre
 
@@ -76,3 +78,21 @@ Changements, tous à résultat identique (mêmes instances aux points de capture
 | vol | 27,7 → 26,1 Mo/s (−6 %) | −3 % (=) | −6,5 % | −9 % | envoi GPU +11 % (inexpliqué) |
 
 Détail : [`opt-5/ab-retained.md`](opt-5/ab-retained.md) (A = build de l'étape 1, B′ = retenu), [`opt-5/ab-all.md`](opt-5/ab-all.md) (B = avec la partie habillage). **Limites** : le p99 forêt (+5,3 %) porte sur 2–3 images par exécution, juste au-dessus du seuil de 5 % ; la hausse des envois GPU en vol ne provient ni de l'herbe ni de l'habillage (compteurs égaux) et reste à expliquer ; les requêtes de géographie restent la principale source d'allocations en vol (étape 7).
+
+## Étape 6 — herbe — variante (a) retenue : plages d'instances stables
+
+**Statut : IMPLEMENTED, TESTED, BENCHMARKED-SWIFTSHADER.** `src/render/slot-allocator.ts` (nouveau, pur), `src/render/grass.ts`. Le fondu et le rejet par distance existaient déjà dans le vertex shader (`uRadius`).
+
+- **Avant** : chaque reconstruction (dès qu'une cellule de 16 m entre ou sort) réécrivait **toutes** les touffes dans l'ordre plus-proche-d'abord et marquait tout le tampon pour l'envoi (≈ 55 Mo par minute de course en forêt, 60 % des octets envoyés au GPU).
+- **Après** : chaque cellule garde une plage d'instances stable (`SlotAllocator` : first fit, fusion des trous, plafond = nombre d'instances dessinées) ; une reconstruction n'écrit et n'envoie que les cellules ajoutées, met à l'échelle 0 les cellules sortantes et **tasse** la plage dessinée en déplaçant la dernière cellule dans un trou qui la contient (seule la cellule déplacée est envoyée) ; recompactage complet si aucun trou ne convient ou si plus d'un quart de la plage est vide. Même ensemble de touffes (plus proches d'abord, même capacité, même troncature) ; ordre de dessin différent sans effet (matériau opaque). `?grassUpload=full` rétablit l'ancien comportement (A/B dans le même build).
+- **Mesure** (A = `?grassUpload=full`, B = défaut, même build, 2 répétitions ; [`opt-grass/ab.md`](opt-grass/ab.md)) :
+
+| Scène | herbe envoyée | envoi GPU total | `update` p50 / p95 / p99 | intervalle p95 | triangles |
+| --- | --- | --- | --- | --- | --- |
+| forêt | 54,7 → 3,3 Mo (−94 %) | −57 % | = / = / **−16 %** | = | +1,5 % |
+| village | 48,5 → 5,1 Mo (−90 %) | −53 % | **−10 %** / = / = | = | +1,9 % |
+| vol | 50,6 → 12,8 Mo (−75 %) | −34 % | = / = / = | +5,9 % (283 → 300 ms, un palier) | +0,8 % |
+
+- **Images** : écarts A/B dans le bruit A/A ([`opt-grass/images.json`](opt-grass/images.json)).
+- Un premier essai sans tassement ([`first-B-stable-unpacked.json`](opt-grass/first-B-stable-unpacked.json)) réduisait autant les envois mais laissait jusqu'à 25 % de la plage en trous (+5,6 % de triangles au village, intervalle +5 à +6 % en forêt et au village) : d'où le tassement.
+- **Limites** : la hausse d'un palier de vsync du p95 en vol (où l'herbe est presque toujours masquée par l'altitude) est probablement une dérive entre le bloc A et le bloc B, mesurés à 30 min d'intervalle : les étapes suivantes alternent A/B/A/B. Sous SwiftShader un octet envoyé coûte peu ; sur iGPU réel la réduction de trafic devrait compter davantage — **non démontré**. La variante (b) « secteurs cullables par frustum » n'a pas été codée : son gain porte uniquement sur les sommets traités par le GPU (non mesurable sans GPU) et elle multiplie les appels de rendu ; à tester avec `GPU=1`.
