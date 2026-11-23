@@ -115,7 +115,7 @@ async function cdpMetrics(cdp){const {metrics}=await cdp.send('Performance.getMe
  * counters of the dressing, grass, cliffs and natural structures, object culling. */
 const workCounters=()=>{const m=window.littleWorldMetrics,info=window.__lwRenderer?.info;return {programs:info?.programs?.length??m.programs??null,
   geometries:info?.memory.geometries??null,textures:info?.memory.textures??null,cliffsBuilt:m.cliffs?.built??null,cliffsDisposed:m.cliffs?.disposed??null,
-  grassUploadedBytes:m.grass?.uploadedBytes??null,grassGeneratedCells:m.grass?.generatedCells??null,dressingCells:m.dressing?.cells??null,
+  grassUploadedBytes:m.grass?.uploadedBytes??null,dressingUploadedBytes:m.dressing?.uploadedBytes??null,grassGeneratedCells:m.grass?.generatedCells??null,dressingCells:m.dressing?.cells??null,
   terrainBuilt:m.chunks?.built??null,objectsTested:m.objectCulling?.tested??null,objectsHidden:m.objectCulling?.hidden??null,placed:m.placed??null};};
 async function runScene(browser,base,output,name,scene,{viewport,ticks,repeatIndex,runId}){
   const {context,page,errors,cdp}=await openPage(browser,viewport);
@@ -142,10 +142,13 @@ async function runScene(browser,base,output,name,scene,{viewport,ticks,repeatInd
     window.littleWorldDebug.benchStart();
   });
   if(env.PROFILE==='1'){await cdp.send('Profiler.enable');await cdp.send('Profiler.setSamplingInterval',{interval:500});await cdp.send('Profiler.start');}
+  if(env.ALLOC_PROFILE==='1'){await cdp.send('HeapProfiler.enable');await cdp.send('HeapProfiler.startSampling',{samplingInterval:16384,includeObjectsCollectedByMajorGC:true,includeObjectsCollectedByMinorGC:true});}
   const runStart=Date.now();
   await page.waitForFunction(n=>window.littleWorldMetrics.bench.tick>=n,ticks,{timeout:Math.max(120000,ticks/30*1000*12),polling:250});
   const runWallMs=Date.now()-runStart;
   const rows=await page.evaluate(()=>{const s=window.__optSampler;s.stop=true;return {rows:s.rows,longTasks:s.longTasks};});
+  let allocations=null;
+  if(env.ALLOC_PROFILE==='1'){const {profile:h}=await cdp.send('HeapProfiler.stopSampling');allocations=allocationTop(h,40,(Date.now()-runStart)/1000);await writeFile(resolve(output,`alloc-${name}-r${repeatIndex}.json`),JSON.stringify(allocations,null,1));}
   let profile=null;
   if(env.PROFILE==='1'){const {profile:p}=await cdp.send('Profiler.stop');const file=`profile-${name}-r${repeatIndex}.cpuprofile`;await writeFile(resolve(output,file),JSON.stringify(p));profile={file,top:profileTop(p,40)};}
   const cdpAfter=await cdpMetrics(cdp),rssAfter=await browserRssMB(runId),workAfter=await page.evaluate(workCounters);
@@ -168,9 +171,9 @@ async function runScene(browser,base,output,name,scene,{viewport,ticks,repeatInd
       layoutS:+(cdpAfter.LayoutDuration-cdpBefore.LayoutDuration).toFixed(3),styleS:+(cdpAfter.RecalcStyleDuration-cdpBefore.RecalcStyleDuration).toFixed(3),jsHeapUsedMB:+(cdpAfter.JSHeapUsedSize/2**20).toFixed(1)},
     rssMB:{before:rssBefore,after:rssAfter},
     work:{before:workBefore,after:workAfter,programsCompiledDuringRun:workAfter.programs-workBefore.programs,cliffsBuiltDuringRun:workAfter.cliffsBuilt-workBefore.cliffsBuilt,
-      grassUploadedKB:Math.round((workAfter.grassUploadedBytes-workBefore.grassUploadedBytes)/1024),terrainTilesBuilt:workAfter.terrainBuilt-workBefore.terrainBuilt},
+      grassUploadedKB:Math.round((workAfter.grassUploadedBytes-workBefore.grassUploadedBytes)/1024),dressingUploadedKB:workAfter.dressingUploadedBytes===null?null:Math.round((workAfter.dressingUploadedBytes-workBefore.dressingUploadedBytes)/1024),terrainTilesBuilt:workAfter.terrainBuilt-workBefore.terrainBuilt},
     budget:budgetTrace(rows.rows),
-    profile,captures:[],errors};
+    profile,allocations:allocations&&{totalMBps:allocations.totalMBps,top:allocations.top.slice(0,15)},captures:[],errors};
   // Reference captures: route frozen at fixed ticks, streaming drained, then 1.5 s of steady frames.
   for(const tick of scene.captures){
     await page.evaluate(t=>window.littleWorldDebug.benchSeek(t),tick);
@@ -219,4 +222,10 @@ function profileTop(p,n){const self=new Map(),byId=new Map(p.nodes.map(x=>[x.id,
 function budgetTrace(rows){if(!rows.length)return null;let t=0,dpr=0,detail=0,rate20=0;const changes=[];let prev=null;
   for(const r of rows){const d=r[0];t+=d;dpr+=r[15]*d;detail+=r[16]*d;if(r[17]===20)rate20+=d;const key=r[15]+'/'+r[16]+'/'+r[17];if(key!==prev){changes.push({tick:r[11],pixelRatio:r[15],detail:r[16],rate:r[17]});prev=key;}}
   return {meanPixelRatio:+(dpr/t).toFixed(3),meanDetail:+(detail/t).toFixed(3),rate20Share:+(rate20/t).toFixed(3),final:changes.at(-1),changes:changes.slice(0,20)};}
+/** Sampled allocations (CDP HeapProfiler, 16 KiB interval, objects collected by minor/major GC
+ * included): allocated bytes per allocating function, per second of run. */
+function allocationTop(h,n,seconds){const self=new Map();let total=0;
+  const walk=node=>{const c=node.callFrame,key=`${c.functionName||'(anon)'} ${c.url.split('/').pop().split('?')[0]}:${c.lineNumber+1}`,b=node.selfSize;if(b){self.set(key,(self.get(key)??0)+b);total+=b;}for(const ch of node.children??[])walk(ch);};
+  walk(h.head);
+  return {seconds:+seconds.toFixed(1),totalMBps:+(total/2**20/seconds).toFixed(3),top:[...self.entries()].sort((a,b)=>b[1]-a[1]).slice(0,n).map(([k,v])=>({fn:k,KBps:+(v/1024/seconds).toFixed(1),pct:+(100*v/total).toFixed(1)}))};}
 function slope(v){const n=v.length,mx=(n-1)/2,my=v.reduce((a,b)=>a+b,0)/n;let num=0,den=0;v.forEach((y,x)=>{num+=(x-mx)*(y-my);den+=(x-mx)**2;});return den?num/den:0;}

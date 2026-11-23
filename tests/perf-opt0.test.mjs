@@ -71,3 +71,14 @@ test('upload counter counts buffer and texture bytes, then restores the context'
   assert.equal(calls.length,5);
   c.dispose();assert.equal(gl.bufferData,original);
 });
+
+test('OPT-1: dirty instance ranges coalesce small gaps and count changed instances', async ()=>{
+  const {markDirty,dirtyCount}=await import('../src/dressing-view.ts');
+  const r=[];for(const i of [0,1,2,5,30,31,100])markDirty(r,i);
+  assert.deepEqual(r,[0,32,100,101]);
+  assert.equal(dirtyCount(r),32+1);
+  const {capRanges}=await import('../src/dressing-view.ts');
+  const many=[];for(let i=0;i<20;i++)markDirty(many,i*100);assert.equal(many.length,40);
+  assert.deepEqual(capRanges(many),[0,1901]);
+  const s=[];markDirty(s,4);markDirty(s,4);assert.deepEqual(s,[4,5]);
+});

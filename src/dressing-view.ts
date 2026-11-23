@@ -36,8 +36,18 @@ export const CANOPY_RADII=[1800,1600,1400,1100] as const;
 export interface DressingStats {/** GLB species library: loading state, instances per LOD, culling. */species:{state:'loading'|'ready'|'failed';lod0:number;lod1:number;triangles:number;bytes:number;loadMs:number;failed:string[];dropped:number};/** Allocated instance buffers (matrices + colours), bytes. */instanceBytes:number;byFamily:Record<string,number>;triangles:number;cells:number;pending:number;instances:number;calls:number;lastRebuildMs:number;maxCellMs:number;generatedMs:number;bytes:number;radiusScale:number;
   /** GLB instances drawn per priority class, and instances refused by the class shares (G6). */byClass:Partial<Record<DressingClass,number>>;droppedByClass:Partial<Record<DressingClass,number>>;/** Far canopy cells cached (beyond the silhouette ring) and still to generate. */canopyCells:number;canopyPending:number;
   /** Cells still to generate within 160 m of the focus (loading screen); −1 before the first plan. */nearPending:number;impostors:ReturnType<typeof createImpostorSectors>['stats'];
-  /** Rebuild job: frames used by the last rebuild, duration of its commit and longest slice (ms). */rebuildSlices:number;lastCommitMs:number;maxRebuildSliceMs:number}
+  /** Rebuild job: frames used by the last rebuild, duration of its commit and longest slice (ms). */rebuildSlices:number;lastCommitMs:number;maxRebuildSliceMs:number;
+  /** OPT-1: instance bytes marked for upload by commits (cumulative), and instances actually changed by the last commit. */uploadedBytes:number;changedInstances:number}
 
+/** OPT-1: largest run of unchanged instances merged into a dirty range (fewer GL calls). */
+const DIRTY_GAP=32;
+/** Each range is one GL upload call: beyond this many, one span covering them all is cheaper. */
+const MAX_RANGES=8;
+/** Marks instance `i` dirty; indices arrive in increasing order within a rebuild. */
+export function markDirty(ranges:number[],i:number){const k=ranges.length;if(k&&i<=ranges[k-1]+DIRTY_GAP){if(i>=ranges[k-1])ranges[k-1]=i+1;return;}ranges.push(i,i+1);}
+/** Collapses more than MAX_RANGES ranges into one span [first start, last end). */
+export function capRanges(ranges:number[]){if(ranges.length>MAX_RANGES*2){const end=ranges[ranges.length-1];ranges.length=2;ranges[1]=end;}return ranges;}
+export function dirtyCount(ranges:readonly number[]){let n=0;for(let r=0;r<ranges.length;r+=2)n+=ranges[r+1]-ranges[r];return n;}
 const trianglesOf=(g:THREE.BufferGeometry)=>(g.index?g.index.count:g.getAttribute('position').count)/3;
 /** Far round crown: an octahedron whose lower half is squashed (reads as a canopy, not a diamond). */
 function flatBottom(g:THREE.BufferGeometry){const pos=g.getAttribute('position') as THREE.BufferAttribute;for(let i=0;i<pos.count;i++)if(pos.getY(i)<0)pos.setY(i,pos.getY(i)*.3);g.computeVertexNormals();return g;}
@@ -97,6 +107,8 @@ export function createDressingView(parent:THREE.Group,seed:number,density:number
   const fadeCenter={value:new THREE.Vector3()};addDistanceFade(materials.farCone,fadeCenter);addDistanceFade(materials.farRound,fadeCenter);
   const FADED:Partial<Record<Family,true>>={farCone:true,farRound:true};
   const meshes={} as Record<Family,THREE.InstancedMesh>;
+  /** A/B flag `?opt1=0`: historical full-range uploads at every commit. */
+  const optFullUpload=typeof location!=='undefined'&&new URLSearchParams(location.search).get('opt1')==='0';
   /** Grown instance buffers waiting for the commit (the displayed mesh keeps its data meanwhile). */
   const growing:Partial<Record<Family,THREE.InstancedMesh>>={};
   // Instance buffers start small and grow ×4 on demand up to CAPACITY (memory follows the
@@ -145,7 +157,7 @@ export function createDressingView(parent:THREE.Group,seed:number,density:number
     if(lib.species.every(g=>!g)){stats.species.state='failed';return;}
     batches.push(createBatch(0),createBatch(1));stats.species.state='ready';dirty=true;
   },()=>{stats.species.state='failed';});
-  const m4=new THREE.Matrix4(),tint=new THREE.Color();
+  const tint=new THREE.Color();
   /** False when the batch (or this class's share of it) is full: a tree then falls back to its
    * cheap far silhouette instead of vanishing; smaller elements are simply not drawn.
    * Staged only: the BatchedMesh is touched at the commit of the rebuild job. */
@@ -162,21 +174,44 @@ export function createDressingView(parent:THREE.Group,seed:number,density:number
     const k=.88+.22*t;b.sCol[i*3]=k;b.sCol[i*3+1]=k*(.98+.04*t);b.sCol[i*3+2]=k*.97;
     return true;
   }
+  /** Textures that already received a full upload: later commits may upload ranges only. */
+  const textureUploaded=new WeakSet<THREE.Texture>();
+  const batchDirtyM:number[]=[],batchDirtyC:number[]=[];
+  /** OPT-1: upload only the dirty instance ranges of a BatchedMesh data texture (split per row,
+   * three uploads one row strip per range). First upload, resize or > 50 % dirty: whole texture. */
+  function uploadTextureRanges(tex:THREE.DataTexture,ranges:number[],floats:number,count:number){
+    const dirty=dirtyCount(ranges);
+    if(optFullUpload||!textureUploaded.has(tex)||dirty>count*.5){tex.clearUpdateRanges();tex.needsUpdate=true;textureUploaded.add(tex);stats.uploadedBytes+=(tex.image.data as Float32Array).byteLength;return;}
+    if(!dirty)return;
+    const row=tex.image.width*4;tex.clearUpdateRanges();
+    for(let r=0;r<ranges.length;r+=2){let a=ranges[r]*floats;const e=ranges[r+1]*floats;while(a<e){const end=Math.min(e,(Math.floor(a/row)+1)*row);tex.addUpdateRange(a,end-a);a=end;}}
+    // One texSubImage2D per row segment: past MAX_RANGES segments, a single full upload is cheaper.
+    if(tex.updateRanges.length>MAX_RANGES){tex.clearUpdateRanges();tex.needsUpdate=true;stats.uploadedBytes+=(tex.image.data as Float32Array).byteLength;return;}
+    tex.needsUpdate=true;stats.uploadedBytes+=dirty*floats*4;
+  }
   function batchCommit(b:Batch){
     const n=b.staged,cap=BATCH_CAP[batches.indexOf(b)];
     if(n>b.capacity){while(b.capacity<n)b.capacity=Math.min(cap,b.capacity*2);b.mesh.setInstanceCount(b.capacity);}
+    const inner=b.mesh as unknown as {_matricesTexture:THREE.DataTexture;_colorsTexture:THREE.DataTexture|null};
+    batchDirtyM.length=batchDirtyC.length=0;
     for(let i=0;i<n;i++){
       const gid=b.sGid[i];
-      if(i>=b.added){b.mesh.addInstance(gid);b.added++;}else{b.mesh.setGeometryIdAt(i,gid);b.mesh.setVisibleAt(i,true);}
-      m4.fromArray(b.sMat,i*16);b.mesh.setMatrixAt(i,m4);tint.setRGB(b.sCol[i*3],b.sCol[i*3+1],b.sCol[i*3+2]);b.mesh.setColorAt(i,tint);
+      if(i>=b.added){b.mesh.addInstance(gid);b.added++;}else{if(b.mesh.getGeometryIdAt(i)!==gid)b.mesh.setGeometryIdAt(i,gid);if(!b.mesh.getVisibleAt(i))b.mesh.setVisibleAt(i,true);}
+      // Compare before writing (OPT-1): unchanged instances are not uploaded again.
+      const md=inner._matricesTexture.image.data as Float32Array,o=i*16;
+      for(let k=0;k<16;k++)if(md[o+k]!==b.sMat[o+k]){md.set(b.sMat.subarray(o,o+16),o);markDirty(batchDirtyM,i);break;}
+      if(!inner._colorsTexture){tint.setRGB(b.sCol[i*3],b.sCol[i*3+1],b.sCol[i*3+2]);b.mesh.setColorAt(i,tint);}
       // Fade parameter in the alpha of the colour texture (setColorAt writes RGB only).
-      const colors=(b.mesh as unknown as {_colorsTexture?:THREE.DataTexture})._colorsTexture;if(colors)(colors.image.data as Float32Array)[i*4+3]=b.sFade[i];
+      const cd=inner._colorsTexture!.image.data as Float32Array,c=i*4,r=b.sCol[i*3],g=b.sCol[i*3+1],bl=b.sCol[i*3+2],fd=b.sFade[i];
+      if(cd[c]!==r||cd[c+1]!==g||cd[c+2]!==bl||cd[c+3]!==fd){cd[c]=r;cd[c+1]=g;cd[c+2]=bl;cd[c+3]=fd;markDirty(batchDirtyC,i);}
       b.cls[i]=b.sCls[i];
     }
+    if(n){uploadTextureRanges(inner._matricesTexture,batchDirtyM,16,b.capacity);if(inner._colorsTexture)uploadTextureRanges(inner._colorsTexture,batchDirtyC,4,b.capacity);}
+    stats.changedInstances+=Math.max(dirtyCount(batchDirtyM),dirtyCount(batchDirtyC));
     b.used=n;b.byClass=b.stagedByClass;
   }
   const cache=new Map<string,CachedCell>(),MAX_CELLS=1200;let clock=0;
-  const stats:DressingStats={species:{state:'loading',lod0:0,lod1:0,triangles:0,bytes:0,loadMs:0,failed:[],dropped:0},instanceBytes:0,byFamily:{},triangles:0,cells:0,pending:0,instances:0,calls:0,lastRebuildMs:0,maxCellMs:0,generatedMs:0,bytes:0,radiusScale:1,byClass:{},droppedByClass:{},canopyCells:0,canopyPending:0,nearPending:-1,impostors:impostors.stats,rebuildSlices:0,lastCommitMs:0,maxRebuildSliceMs:0};
+  const stats:DressingStats={species:{state:'loading',lod0:0,lod1:0,triangles:0,bytes:0,loadMs:0,failed:[],dropped:0},instanceBytes:0,byFamily:{},triangles:0,cells:0,pending:0,instances:0,calls:0,lastRebuildMs:0,maxCellMs:0,generatedMs:0,bytes:0,radiusScale:1,byClass:{},droppedByClass:{},canopyCells:0,canopyPending:0,nearPending:-1,impostors:impostors.stats,rebuildSlices:0,lastCommitMs:0,maxRebuildSliceMs:0,uploadedBytes:0,changedInstances:0};
   const canopyFlight=new Map<string,GeoTask<Float32Array>>();let canopyDirty=false,queue:[number,number][]=[],focusCell='',dirty=true,lastRebuild=0,farScale=1,detail=0,retired=false;
   const scaleOf=(c:DressingClass)=>classScale(c,detail);
   const included=new Set<string>();
@@ -229,9 +264,14 @@ export function createDressingView(parent:THREE.Group,seed:number,density:number
     const near=(kind:DressingKind,d:number,key:string)=>{const r=DRESSING_RADII[kind]*scaleOf(classOf(kind));const tag=kind+key;if(d<r){included.add(tag);return true;}if(d<r+24&&included.has(tag))return true;included.delete(tag);return false;};
     const write=(f:Family,x:number,y:number,z:number,sx:number,sy:number,sz:number,rot:number,hex:number|null,fade=1)=>{
       const n=counts[f];if(n>=CAPACITY[f])return;if(n>=allocated[f])allocate(f,Math.min(CAPACITY[f],allocated[f]*4),n);const m=growing[f]??meshes[f],e=m.instanceMatrix.array as Float32Array,o=n*16,c=Math.cos(rot),s=Math.sin(rot);
-      e[o]=c*sx;e[o+1]=0;e[o+2]=-s*sx;e[o+3]=0;e[o+4]=0;e[o+5]=sy;e[o+6]=0;e[o+7]=0;e[o+8]=s*sz;e[o+9]=0;e[o+10]=c*sz;e[o+11]=0;e[o+12]=x;e[o+13]=y;e[o+14]=z;e[o+15]=1;
-      if(hex!==null&&m.instanceColor){color.setHex(hex);m.instanceColor.setXYZ(n,color.r,color.g,color.b);}
-      if(FADED[f])(m.geometry.getAttribute('instanceFade').array as Float32Array)[n]=fade;
+      // OPT-1: compare before writing; only instances that really change are marked for upload.
+      const a0=Math.fround(c*sx),a2=Math.fround(-s*sx),a5=Math.fround(sy),a8=Math.fround(s*sz),a10=Math.fround(c*sz),ax=Math.fround(x),ay=Math.fround(y),az=Math.fround(z);
+      let changed=e[o]!==a0||e[o+2]!==a2||e[o+5]!==a5||e[o+8]!==a8||e[o+10]!==a10||e[o+12]!==ax||e[o+13]!==ay||e[o+14]!==az||e[o+15]!==1;
+      if(changed){e[o]=a0;e[o+1]=0;e[o+2]=a2;e[o+3]=0;e[o+4]=0;e[o+5]=a5;e[o+6]=0;e[o+7]=0;e[o+8]=a8;e[o+9]=0;e[o+10]=a10;e[o+11]=0;e[o+12]=ax;e[o+13]=ay;e[o+14]=az;e[o+15]=1;}
+      if(hex!==null&&m.instanceColor){color.setHex(hex);const ca=m.instanceColor.array as Float32Array,r=Math.fround(color.r),g=Math.fround(color.g),bl=Math.fround(color.b),k=n*3;
+        if(ca[k]!==r||ca[k+1]!==g||ca[k+2]!==bl){ca[k]=r;ca[k+1]=g;ca[k+2]=bl;changed=true;}}
+      if(FADED[f]){const fa=m.geometry.getAttribute('instanceFade').array as Float32Array,v=Math.fround(fade);if(fa[n]!==v){fa[n]=v;changed=true;}}
+      if(changed)markDirty(jobDirty[f],n);
       const b=jobBounds[f];if(x<b[0])b[0]=x;if(y<b[1])b[1]=y;if(z<b[2])b[2]=z;if(x>b[3])b[3]=x;if(y+sy>b[4])b[4]=y+sy;if(z>b[5])b[5]=z;counts[f]=n+1;
     };
     const mix=(a:number,b:number,t:number)=>{color.setHex(a);c2.setHex(b);color.lerp(c2,t);return color.getHex();};
@@ -342,15 +382,28 @@ export function createDressingView(parent:THREE.Group,seed:number,density:number
     // ---- Commit: swap grown buffers, apply staged batch writes, upload once.
     const t0=performance.now();
     impostors.end();
-    for(const f of FAMILIES){const g=growing[f];if(g){const old=meshes[f];root.add(g);meshes[f]=g;growing[f]=undefined;old.removeFromParent();disposeFamilyMesh(f,old);}}
+    const swapped=new Set<Family>();
+    for(const f of FAMILIES){const g=growing[f];if(g){const old=meshes[f];root.add(g);meshes[f]=g;growing[f]=undefined;old.removeFromParent();disposeFamilyMesh(f,old);swapped.add(f);}}
+    let changedInstances=0;
     let instances=impostors.stats.instances,calls=impostors.stats.calls,triangles=impostors.stats.instances*2;
     for(const f of FAMILIES){
       const m=meshes[f],n=counts[f];m.count=n;m.visible=n>0;instances+=n;if(n)calls++;stats.byFamily[f]=n;triangles+=n*trianglesOf(geometries[f]);
-      m.instanceMatrix.needsUpdate=true;m.instanceMatrix.clearUpdateRanges();m.instanceMatrix.addUpdateRange(0,n*16);
-      if(m.instanceColor){m.instanceColor.needsUpdate=true;m.instanceColor.clearUpdateRanges();m.instanceColor.addUpdateRange(0,n*3);}
-      if(FADED[f]){const a=m.geometry.getAttribute('instanceFade') as THREE.InstancedBufferAttribute;a.needsUpdate=true;a.clearUpdateRanges();a.addUpdateRange(0,n);}
+      // Upload only the changed ranges (a fresh grown mesh uploads its whole buffer on first use).
+      const ranges=jobDirty[f],fade=FADED[f]?m.geometry.getAttribute('instanceFade') as THREE.InstancedBufferAttribute:null;
+      changedInstances+=dirtyCount(ranges);
+      if(optFullUpload||swapped.has(f)){m.instanceMatrix.clearUpdateRanges();m.instanceMatrix.addUpdateRange(0,n*16);m.instanceMatrix.needsUpdate=true;
+        if(m.instanceColor){m.instanceColor.clearUpdateRanges();m.instanceColor.addUpdateRange(0,n*3);m.instanceColor.needsUpdate=true;}
+        if(fade){fade.clearUpdateRanges();fade.addUpdateRange(0,n);fade.needsUpdate=true;}
+        stats.uploadedBytes+=n*(64+(m.instanceColor?12:0)+(fade?4:0));
+      }else if(capRanges(ranges).length){
+        m.instanceMatrix.clearUpdateRanges();m.instanceColor?.clearUpdateRanges();fade?.clearUpdateRanges();
+        for(let r=0;r<ranges.length;r+=2){const a=ranges[r],k=ranges[r+1]-a;m.instanceMatrix.addUpdateRange(a*16,k*16);m.instanceColor?.addUpdateRange(a*3,k*3);fade?.addUpdateRange(a,k);stats.uploadedBytes+=k*(64+(m.instanceColor?12:0)+(fade?4:0));}
+        m.instanceMatrix.needsUpdate=true;if(m.instanceColor)m.instanceColor.needsUpdate=true;if(fade)fade.needsUpdate=true;
+      }
+      ranges.length=0;
       if(n){const b=jobBounds[f],sphere=m.boundingSphere??=new THREE.Sphere();sphere.center.set((b[0]+b[3])/2,(b[1]+b[4])/2,(b[2]+b[5])/2);sphere.radius=Math.hypot(b[3]-b[0],b[4]-b[1],b[5]-b[2])/2+8;}
     }
+    stats.changedInstances=changedInstances;
     for(const b of batches){const before=b.used;batchCommit(b);for(let i=b.used;i<before;i++)b.mesh.setVisibleAt(i,false);b.mesh.visible=b.used>0;if(b.used){calls++;instances+=b.used;}}
     triangles+=speciesTriangles;stats.byClass={};for(const b of batches)for(const [k,v]of Object.entries(b.byClass))stats.byClass[k as DressingClass]=(stats.byClass[k as DressingClass]??0)+v;stats.species.lod0=batches[0]?.used??0;stats.species.lod1=batches[1]?.used??0;stats.species.triangles=speciesTriangles;
     stats.instances=instances;stats.calls=calls;stats.triangles=triangles;stats.cells=cache.size;
@@ -362,6 +415,8 @@ export function createDressingView(parent:THREE.Group,seed:number,density:number
   const jobCounts:Record<Family,number>={trunk:0,cone:0,round:0,stone:0,grit:0,basalt:0,farCone:0,farRound:0};
   const jobBounds=Object.fromEntries(FAMILIES.map(f=>[f,new Float64Array(6)])) as Record<Family,Float64Array>;
   const jobCells:{c:CachedCell;d:number}[]=[];
+  /** OPT-1: dirty instance ranges per family, flat [start,end) pairs, filled in index order by write(). */
+  const jobDirty=Object.fromEntries(FAMILIES.map(f=>[f,[] as number[]])) as Record<Family,number[]>;
   let job:Generator<void,void,void>|null=null,sliceEnd=0,slices=0,cellBytes=0,jobSpent=0;
   const cellBytesOf=(c:CachedCell)=>{let n=0;for(const a of Object.values(c.items))n+=a.byteLength;for(const a of Object.values(c.modes??{}))n+=a.byteLength;return n;};
   /** Runs the rebuild for at most `ms` of this frame; true when the new instances are committed. */
