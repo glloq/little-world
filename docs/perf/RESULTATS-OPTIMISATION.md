@@ -11,6 +11,7 @@ Tenu à jour à chaque étape. Protocole et gate : [PLAN-OPTIMISATION.md](PLAN-O
 | 2 — OPT-1 habillage, upload partiel | `claude/opt-1-dressing-partial-upload` (code `c1e612a`, reverté) | **testée, non retenue** | octets d'habillage −13 à −44 %, envoi GPU total −6 à −11 % | `submit` p95 **+21 à +36 %**, `update` p95 forêt +12 %, p99 forêt +31 %, vol +5 % ; seul le village s'améliore | forêt, village, vol, 1280×720, 2×2 exécutions |
 | 3 — OPT-2 falaises / structures naturelles | — | **non applicable (pas de code)** | aucun : 0 falaise `rl-cliff-*` et 0 structure naturelle dans les 5 îles publiées ; 0 falaise construite dans tous les parcours | — | analyse du contenu + compteurs baseline |
 | 4 — OPT-3 objets statiques | — | **testée (mesure), non retenue** | boucle des objets + code propre de `world.update` : **0,08 ms/image** (9,4 ms / 121 images au village, profil) ; 3–32 objets testés par image | — | profil CPU village/vol/forêt |
+| 5 — allocations de la boucle critique | `claude/opt-5-zero-alloc` | **retenue partiellement** (cueillette, herbe, chemins) ; partie habillage revertée | allocations (profil échantillonné) **−12 % forêt, −11 % village, −6 % vol** ; `update` p50 −10 à −12 %, p95 −7 % (forêt, village), vol p95 −6,5 %, p99 −9 % | forêt `update` p99 +5,3 % (2–3 images) ; envoi GPU vol +11 % inexpliqué (ni herbe ni habillage) | forêt, village, vol, 1280×720, 2 exécutions, `ALLOC_PROFILE=1` |
 
 ## Étape 1 — OPT-6 : diagnostic CPU/GPU de l'arbitre
 
@@ -57,3 +58,21 @@ Le contenu publié ne contient **aucune** falaise `rl-cliff-*` (l'île du volcan
 ## Étape 4 — OPT-3 : objets statiques — non retenue (coût négligeable)
 
 Mesure : temps propre de `world.update` (qui contient la boucle `objects.children`, `assetInFrustum`, `representationFor`) dans les profils OPT-0 : **9,4 ms sur 121 images au village (0,08 ms/image)**, 5,0 ms en vol, 4,7 ms en forêt ; 3 à 32 objets testés par image. Sous le seuil de 0,1 ms/image fixé dans le plan : un index spatial n'apporterait pas de gain mesurable. Pas de code.
+
+## Étape 5 — zéro allocation dans la boucle critique — retenue partiellement
+
+**Statut : IMPLEMENTED, TESTED, BENCHMARKED-SWIFTSHADER.** Mesure des allocations par **profil d'allocations échantillonné** (CDP `HeapProfiler`, intervalle 16 Kio, objets collectés inclus : `ALLOC_PROFILE=1`), plus fiable que la pente du heap (bruit < 1,5 % ici contre ±30 %).
+
+Profil initial (serveur de dev, attribution indicative) : 17,9 Mo/s en vol, 4,9 Mo/s en forêt ; premiers postes : reconstruction d'habillage (9,5–15,5 %), requêtes de géographie du thread principal (`polygonSignedDistance`, `height`, `lines`, 25–30 % en vol, relèvent de l'étape 7), `hiddenAt` de la cueillette (3–6 %), fermeture `species` (3–4 %), génération d'herbe (3,5 %).
+
+Changements, tous à résultat identique (mêmes instances aux points de capture stabilisés) :
+- **retenus** — `gameplay/gathering.ts` : compteur d'éléments récoltés par cellule (clé numérique), le filtre de rendu ne construit plus de clé texte par élément quand rien n'a été récolté dans la cellule ; `render/grass.ts` : tableaux de génération typés réutilisés et une seule copie exacte par cellule, constantes de variantes ; `paths/path-view.ts` : rectangles de secteur mémorisés au lieu de `split/map` + objet par secteur et par image ;
+- **reverté** — `dressing-view.ts` (bits d'hystérésis par cellule au lieu d'étiquettes texte, entrées de cellules réutilisées, une fonction `stage()` par reconstruction) : en vol, `update` p50 +10 %, p95 +7,5 %, intervalle p50 +1 vsync et file d'habillage 189 au lieu de 166 ; écarté par mesure (variante B′).
+
+| Scène | allocations A → B′ | `update` p50 | `update` p95 | `update` p99 | autres |
+| --- | --- | --- | --- | --- | --- |
+| forêt | 4,79 → 4,22 Mo/s (−12 %) | −12 % | −7 % | +5,3 % | — |
+| village | 7,01 → 6,26 Mo/s (−11 %) | −10 % | −7 % | = | `submit` p95 −8 % |
+| vol | 27,7 → 26,1 Mo/s (−6 %) | −3 % (=) | −6,5 % | −9 % | envoi GPU +11 % (inexpliqué) |
+
+Détail : [`opt-5/ab-retained.md`](opt-5/ab-retained.md) (A = build de l'étape 1, B′ = retenu), [`opt-5/ab-all.md`](opt-5/ab-all.md) (B = avec la partie habillage). **Limites** : le p99 forêt (+5,3 %) porte sur 2–3 images par exécution, juste au-dessus du seuil de 5 % ; la hausse des envois GPU en vol ne provient ni de l'herbe ni de l'habillage (compteurs égaux) et reste à expliquer ; les requêtes de géographie restent la principale source d'allocations en vol (étape 7).

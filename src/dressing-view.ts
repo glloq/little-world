@@ -21,7 +21,7 @@ import {CLASS_SHARE,classOf,classScale,farScale as farScaleOf,type DressingClass
  * call per LOD, per-instance frustum culling, no sorting). Beyond, trees keep their 4–8
  * triangle silhouettes tinted with the species crown colour; while the GLB library loads (or
  * if a file is missing) the procedural families stay in place: no hole, no popping to empty. */
-interface CachedCell extends DressingCell {used:number;stale?:boolean;modes?:Partial<Record<'pine'|'oak',Uint8Array>>;/** Near-radius hysteresis per kind (bit 1 trees, bit 2 shrubs). */incl?:number}
+interface CachedCell extends DressingCell {used:number;stale?:boolean;modes?:Partial<Record<'pine'|'oak',Uint8Array>>}
 type Family='trunk'|'cone'|'round'|'stone'|'grit'|'basalt'|'farCone'|'farRound';
 const FAMILIES:Family[]=['trunk','cone','round','stone','grit','basalt','farCone','farRound'];
 /** Draw radius (m) per item kind at detail level 0; values are benchmark knobs, not truths. */
@@ -179,6 +179,7 @@ export function createDressingView(parent:THREE.Group,seed:number,density:number
   const stats:DressingStats={species:{state:'loading',lod0:0,lod1:0,triangles:0,bytes:0,loadMs:0,failed:[],dropped:0},instanceBytes:0,byFamily:{},triangles:0,cells:0,pending:0,instances:0,calls:0,lastRebuildMs:0,maxCellMs:0,generatedMs:0,bytes:0,radiusScale:1,byClass:{},droppedByClass:{},canopyCells:0,canopyPending:0,nearPending:-1,impostors:impostors.stats,rebuildSlices:0,lastCommitMs:0,maxRebuildSliceMs:0};
   const canopyFlight=new Map<string,GeoTask<Float32Array>>();let canopyDirty=false,queue:[number,number][]=[],focusCell='',dirty=true,lastRebuild=0,farScale=1,detail=0,retired=false;
   const scaleOf=(c:DressingClass)=>classScale(c,detail);
+  const included=new Set<string>();
   // Far canopy cells (cheap classification samples), generated after the near dressing.
   const canopy=new Map<string,{a:Float32Array;used:number;x:number;z:number}>(),MAX_CANOPY=6000;let canopyQueue:[number,number][]=[];
   const canopyRadius=()=>CANOPY_RADII[detail],farRadius=()=>DRESSING_RADII.farTrees*farScale;
@@ -210,7 +211,7 @@ export function createDressingView(parent:THREE.Group,seed:number,density:number
   function evict(){
     if(cache.size<=MAX_CELLS)return;const keep=maxRadius()+DRESSING_CELL_M;
     const order=[...cache.entries()].map(([key,c])=>({key,d:cellDistance(c.cx,c.cz,lastFx,lastFz)})).filter(e=>e.d>keep).sort((a,b)=>b.d-a.d);
-    for(const {key}of order.slice(0,cache.size-MAX_CELLS)){const gone=cache.get(key);if(gone)cellBytes-=cellBytesOf(gone);cache.delete(key);}
+    for(const {key}of order.slice(0,cache.size-MAX_CELLS)){const gone=cache.get(key);if(gone)cellBytes-=cellBytesOf(gone);cache.delete(key);const tag=':'+key;for(const kind of ['pine','shrub','rock','scree','pebble','basalt'])included.delete(kind+tag);}
   }
   const color=new THREE.Color(),c2=new THREE.Color();
   const FOLIAGE:[number,number][]=[[0x4f7a45,0x6d9653],[0x5d8a4a,0x8aa85c]];
@@ -223,11 +224,9 @@ export function createDressingView(parent:THREE.Group,seed:number,density:number
     const pause=()=>slice&&performance.now()>sliceEnd;
     const counts=jobCounts;for(const f of FAMILIES){counts[f]=0;const b=jobBounds[f];b[0]=b[1]=b[2]=Infinity;b[3]=b[4]=b[5]=-Infinity;}
     // Near/far decisions use the distance to the cell centre (a cell is 64 m wide).
-    // Pooled {cell, distance} entries (OPT step 5): no object per cell per rebuild.
-    let nCells=0;for(const c of cache.values()){const e=jobPool[nCells]??(jobPool[nCells]={c,d:0});e.c=c;e.d=Math.hypot((c.cx+.5)*DRESSING_CELL_M-fx,(c.cz+.5)*DRESSING_CELL_M-fz);jobCells[nCells++]=e;}jobCells.length=nCells;
+    jobCells.length=0;for(const c of cache.values())jobCells.push({c,d:Math.hypot((c.cx+.5)*DRESSING_CELL_M-fx,(c.cz+.5)*DRESSING_CELL_M-fz)});
     const cells=jobCells.sort((a,b)=>a.d-b.d);
-    // Hysteresis bit per cell (no string tag per cell and kind).
-    const near=(kind:'pine'|'shrub',d:number,c:CachedCell)=>{const r=DRESSING_RADII[kind]*scaleOf(classOf(kind)),bit=kind==='pine'?1:2,had=((c.incl??0)&bit)!==0;if(d<r){c.incl=(c.incl??0)|bit;return true;}if(d<r+24&&had)return true;c.incl=(c.incl??0)&~bit;return false;};
+    const near=(kind:DressingKind,d:number,key:string)=>{const r=DRESSING_RADII[kind]*scaleOf(classOf(kind));const tag=kind+key;if(d<r){included.add(tag);return true;}if(d<r+24&&included.has(tag))return true;included.delete(tag);return false;};
     const write=(f:Family,x:number,y:number,z:number,sx:number,sy:number,sz:number,rot:number,hex:number|null,fade=1)=>{
       const n=counts[f];if(n>=CAPACITY[f])return;if(n>=allocated[f])allocate(f,Math.min(CAPACITY[f],allocated[f]*4),n);const m=growing[f]??meshes[f],e=m.instanceMatrix.array as Float32Array,o=n*16,c=Math.cos(rot),s=Math.sin(rot);
       e[o]=c*sx;e[o+1]=0;e[o+2]=-s*sx;e[o+3]=0;e[o+4]=0;e[o+5]=sy;e[o+6]=0;e[o+7]=0;e[o+8]=s*sz;e[o+9]=0;e[o+10]=c*sz;e[o+11]=0;e[o+12]=x;e[o+13]=y;e[o+14]=z;e[o+15]=1;
@@ -240,14 +239,11 @@ export function createDressingView(parent:THREE.Group,seed:number,density:number
     const radiiOf=(kind:'pine'|'oak'|'shrub'|'plant'|'deadwood',cls:DressingClass)=>SPECIES_RADII[cls==='gather'?'gather':kind];
     /** Fade parameter for the far silhouette written right after a species() refusal. */
     let silhouetteFade=1;
-    // Arguments of the species() call being staged: one stage() per rebuild, not one closure per element.
-    let stSp=0,stX=0,stY=0,stZ=0,stS=0,stR=0,stT=0,stCls:DressingClass='tree';
-    const stage=(lod:0|1,fade:number)=>{if(!batchStage(batches[lod],stSp,stX,stY,stZ,stS,stR,stT,stCls,fade))return false;speciesTriangles+=batches[lod].tri[stSp];return true;};
     const species=(kind:'pine'|'oak'|'shrub'|'plant'|'deadwood',x:number,y:number,z:number,s:number,r:number,t:number,sp:number,dist:number):boolean=>{
       silhouetteFade=1;
-      if(!glb||sp<0||!library!.species[sp])return false;const cls=classOf(kind,SPECIES[sp]?.id),radii=radiiOf(kind,cls),k=scaleOf(cls),r0=radii[0]*k,r1=radii[1]*k;
+      if(!glb||sp<0||!library!.species[sp])return false;const cls=classOf(kind,SPECIES[sp]?.id),[a0,a1]=radiiOf(kind,cls),k=scaleOf(cls),r0=a0*k,r1=a1*k;
       if(r1<=0)return false;
-      stSp=sp;stX=x;stY=y;stZ=z;stS=s;stR=r;stT=t;stCls=cls;
+      const stage=(lod:0|1,fade:number)=>{if(!batchStage(batches[lod],sp,x,y,z,s,r,t,cls,fade))return false;speciesTriangles+=batches[lod].tri[sp];return true;};
       // Inner band around r0: LOD0 fading out and LOD1 fading in (both, when capacity allows).
       if(dist>=r0*(1-FADE_BAND)-FADE_MARGIN&&dist<=r0+FADE_MARGIN&&r0>4){
         if(stage(0,r0)){if(!stage(1,-r0))batches[0].sFade[batches[0].staged-1]=1;return true;}
@@ -269,7 +265,8 @@ export function createDressingView(parent:THREE.Group,seed:number,density:number
     // refused by a full batch keeps its silhouette: forests never vanish from the screen.
     for(const {c,d}of cells){
       if(pause())yield;
-      const trees=near('pine',d,c),far=d<DRESSING_RADII.farTrees*farScale;
+      const key=':'+c.cx+':'+c.cz;
+      const trees=near('pine',d,key),far=d<DRESSING_RADII.farTrees*farScale;
       for(const kind of ['pine','oak'] as const){
         const a=c.items[kind];if(!trees&&!far&&!glb)continue;
         let modes:Uint8Array|undefined;if(useHybrid){c.modes??={};modes=c.modes[kind]??=new Uint8Array(a.length/ITEM_STRIDE);}
@@ -322,7 +319,7 @@ export function createDressingView(parent:THREE.Group,seed:number,density:number
           species(kind,a[i],a[i+1],a[i+2],a[i+3],a[i+4],a[i+5],sp,Math.hypot(a[i]-fx,a[i+2]-fz));}}
     };
     yield* flora('plant',cls=>cls==='gather');
-    for(const {c,d}of cells){const a=c.items.shrub,nearShrub=near('shrub',d,c);if(!nearShrub&&d>SPECIES_RADII.shrub[1]*scaleOf('shrub')+48)continue;if(pause())yield;
+    for(const {c,d}of cells){const key=':'+c.cx+':'+c.cz,a=c.items.shrub,nearShrub=near('shrub',d,key);if(!nearShrub&&d>SPECIES_RADII.shrub[1]*scaleOf('shrub')+48)continue;if(pause())yield;
       for(let i=0;i<a.length;i+=ITEM_STRIDE){
         if(species('shrub',a[i],a[i+1],a[i+2],a[i+3],a[i+4],a[i+5],a[i+6],Math.hypot(a[i]-fx,a[i+2]-fz)))continue;
         if(nearShrub&&!glb)write('round',a[i],a[i+1]+.45*a[i+3],a[i+2],1.1*a[i+3],.75*a[i+3],1.1*a[i+3],a[i+4],mix(0x6f8f4e,0x93a15a,a[i+5]));}}
@@ -364,7 +361,7 @@ export function createDressingView(parent:THREE.Group,seed:number,density:number
   /** Fixed-size working storage of the rebuild job (no allocation per rebuild). */
   const jobCounts:Record<Family,number>={trunk:0,cone:0,round:0,stone:0,grit:0,basalt:0,farCone:0,farRound:0};
   const jobBounds=Object.fromEntries(FAMILIES.map(f=>[f,new Float64Array(6)])) as Record<Family,Float64Array>;
-  const jobCells:{c:CachedCell;d:number}[]=[],jobPool:{c:CachedCell;d:number}[]=[];
+  const jobCells:{c:CachedCell;d:number}[]=[];
   let job:Generator<void,void,void>|null=null,sliceEnd=0,slices=0,cellBytes=0,jobSpent=0;
   const cellBytesOf=(c:CachedCell)=>{let n=0;for(const a of Object.values(c.items))n+=a.byteLength;for(const a of Object.values(c.modes??{}))n+=a.byteLength;return n;};
   /** Runs the rebuild for at most `ms` of this frame; true when the new instances are committed. */
