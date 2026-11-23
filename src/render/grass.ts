@@ -179,6 +179,20 @@ export function createGrass(parent: THREE.Object3D, seed: number, sampler: (x: n
     if(allocator.end){matrixDirty.push(0,allocator.end);colorDirty.push(0,allocator.end);}
     upload();
   }
+  /** Moves the cell drawn last into an earlier hole while one fits: the drawn range stays tight
+   * (empty slots still cost vertex work) and only the moved cells are uploaded. */
+  function packTail(){
+    while(allocator.holes>0){
+      let tail:Cell|null=null,slot:{start:number;count:number}|null=null;
+      for(const [c,s] of slots)if(!slot||s.start>slot.start){tail=c;slot=s;}
+      if(!tail||!slot)return;
+      const start=allocator.allocate(slot.count);
+      if(start<0)return;
+      if(start>slot.start){allocator.release(start,slot.count);return;}
+      const old=slot.start;matrices.copyWithin(start*16,old*16,(old+slot.count)*16);colors.copyWithin(start*3,old*3,(old+slot.count)*3);
+      matrixDirty.push(start,slot.count);colorDirty.push(start,slot.count);allocator.release(old,slot.count);slot.start=start;
+    }
+  }
   function rebuild() {
     // Nearest cells first (capacity); distances computed once, list reused (no per-rebuild garbage).
     const fx=uniforms.uFocus.value.x,fz=uniforms.uFocus.value.z;order.length=0;
@@ -193,6 +207,7 @@ export function createGrass(parent: THREE.Object3D, seed: number, sampler: (x: n
       for(const [c,slot] of slots)if(wanted.get(c)!==slot.count){matrices.fill(0,slot.start*16,(slot.start+slot.count)*16);matrixDirty.push(slot.start,slot.count);allocator.release(slot.start,slot.count);slots.delete(c);}
       let fits=true;
       for(const [c,k] of wanted)if(!slots.has(c)){const start=allocator.allocate(k);if(start<0){fits=false;break;}place(c,start,k);}
+      if(fits)packTail();
       // Too fragmented (no hole fits, or a quarter of the drawn range is empty): lay out again.
       if(!fits||allocator.holes>capacity*.25)compact();else upload();
     }
