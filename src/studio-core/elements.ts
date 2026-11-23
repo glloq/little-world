@@ -10,12 +10,13 @@ import {deleteEntities,duplicateEntities,duplicateChunkIds,transformChunkIds,app
 import {lineChunkIds,waterEditChunkIds} from '../water/sectors.ts';
 import {affectedChunkIds,chunkAt} from './schema.ts';
 import {ReferenceIndex} from './references.ts';
+import {animalElementData,animalElementLabel,animalElementsAt,moveAnimal,updateAnimal,removeAnimal,duplicateAnimal,listAnimalElements} from './animal-authoring.ts';
 import {minigameElementData,minigameElementLabel,minigameElementsAt,moveMinigameElement,updateMinigameElement,removeMinigameElement,duplicateMinigameElement,listMinigameElements} from './minigame-elements.ts';
 
-export type ElementKind='entity'|'path'|'water'|'zone'|'terrainEdit'|'biomeEdit'|'minigame'|'minigameElement';
+export type ElementKind='entity'|'path'|'water'|'zone'|'terrainEdit'|'biomeEdit'|'minigame'|'minigameElement'|'animal';
 const isMiniGame=(k:string):k is 'minigame'|'minigameElement'=>k==='minigame'||k==='minigameElement';
 export interface ElementRef {kind:ElementKind;id:string}
-export const ELEMENT_KINDS:Record<ElementKind,string>={entity:'Objet / PNJ / lumière',path:'Chemin',water:'Rivière',zone:'Zone',terrainEdit:'Retouche de relief',biomeEdit:'Retouche de biotope',minigame:'Mini-jeu',minigameElement:'Élément de mini-jeu'};
+export const ELEMENT_KINDS:Record<ElementKind,string>={entity:'Objet / PNJ / lumière',path:'Chemin',water:'Rivière',zone:'Zone',terrainEdit:'Retouche de relief',biomeEdit:'Retouche de biotope',minigame:'Mini-jeu',minigameElement:'Élément de mini-jeu',animal:'Animal / harde'};
 const isKind=(k:string):k is ElementKind=>k in ELEMENT_KINDS;
 
 /** Canonical retouch of a loaded sector (edits of unloaded sectors are found through the index). */
@@ -34,6 +35,7 @@ export function elementExists(p:ProjectDocument,ref:{kind:string;id:string}):boo
     case 'water':return !!p.libraries.water[ref.id];
     case 'zone':return !!p.libraries.zones?.[ref.id];
     case 'minigame':case 'minigameElement':return !!minigameElementData(p,ref.kind,ref.id);
+    case 'animal':return !!p.libraries.animals?.[ref.id];
     case 'terrainEdit':case 'biomeEdit':return editChunkIds(p,ref.kind,ref.id).length>0||!!findEdit(p,ref.kind,ref.id);
     default:return false;
   }
@@ -41,6 +43,7 @@ export function elementExists(p:ProjectDocument,ref:{kind:string;id:string}):boo
 export function elementData(p:ProjectDocument,ref:ElementRef):PathDefinition|WaterBody|ActivityZoneV3|TerrainStroke|BiomeStroke|ReturnType<typeof minigameElementData>{
   switch(ref.kind){
     case 'minigame':case 'minigameElement':return minigameElementData(p,ref.kind,ref.id);
+    case 'animal':return animalElementData(p,ref.id);
     case 'path':return p.libraries.paths[ref.id];case 'water':return p.libraries.water[ref.id];case 'zone':return p.libraries.zones?.[ref.id];
     case 'terrainEdit':case 'biomeEdit':return findEdit(p,ref.kind,ref.id);default:return undefined;
   }
@@ -57,6 +60,7 @@ export function elementLabel(p:ProjectDocument,ref:ElementRef):string{
     case 'terrainEdit':{const e=d as TerrainStroke|undefined;return e?`Relief (${({raise:'élever',lower:'abaisser',flatten:'aplanir',smooth:'lisser'})[e.mode]}) · r ${e.radius.toFixed(0)} m`:'Retouche de relief';}
     case 'biomeEdit':{const e=d as BiomeStroke|undefined;return e?`Biotope ${e.biome} · r ${e.radius.toFixed(0)} m`:'Retouche de biotope';}
     case 'minigame':case 'minigameElement':return minigameElementLabel(p,ref.kind,ref.id);
+    case 'animal':return animalElementLabel(p,ref.id);
   }
 }
 /** Representative point (focus, map highlight, list). */
@@ -97,6 +101,7 @@ export function deleteElements(draft:ProjectDocument,refs:ElementRef[]):void{
     if(r.kind==='path')removePath(draft,r.id);else if(r.kind==='water')removeWater(draft,r.id);else if(r.kind==='zone')removeZone(draft,r.id);
     else if(r.kind==='terrainEdit')removeTerrainEdit(draft,r.id);else if(r.kind==='biomeEdit')removeBiomeEdit(draft,r.id);
     else if(isMiniGame(r.kind))removeMinigameElement(draft,r.kind,r.id);
+    else if(r.kind==='animal')removeAnimal(draft,r.id);
   }
 }
 /** Copies with new stable ids, shifted by `offset`; returns the new references. */
@@ -105,6 +110,7 @@ export function duplicateElements(draft:ProjectDocument,refs:ElementRef[],offset
   for(const r of refs){
     const d=elementData(draft,r);if(!d||r.kind==='entity')continue;
     if(isMiniGame(r.kind)){const ref=duplicateMinigameElement(draft,r.kind,r.id,offset);if(ref)out.push(ref);continue;}
+    if(r.kind==='animal'){const ref=duplicateAnimal(draft,r.id,offset);if(ref)out.push(ref);continue;}
     if(r.kind==='path'){const copy={...shiftLine(d as PathDefinition,offset),id:'path:'+newId()};if(!inside(draft,copy.points))throw Error('La copie sortirait de la carte');putPath(draft,copy);out.push({kind:'path',id:copy.id});}
     else if(r.kind==='water'){const copy={...shiftLine(d as WaterBody,offset),id:newId()};if(!inside(draft,copy.points))throw Error('La copie sortirait de la carte');putWater(draft,copy);out.push({kind:'water',id:copy.id});}
     else if(r.kind==='zone'){const z=d as ActivityZoneV3,copy={...structuredClone(z),id:'zone:'+newId(),name:z.name+' (copie)',polygon:z.polygon.map(q=>({x:q.x+offset.x,z:q.z+offset.z}))};if(!inside(draft,copy.polygon))throw Error('La copie sortirait de la carte');putZone(draft,copy);out.push({kind:'zone',id:copy.id});}
@@ -119,6 +125,7 @@ export function moveElements(draft:ProjectDocument,refs:ElementRef[],offset:{x:n
   for(const r of refs){
     const d=elementData(draft,r);if(!d||r.kind==='entity')continue;
     if(isMiniGame(r.kind)){moveMinigameElement(draft,r.kind,r.id,offset);continue;}
+    if(r.kind==='animal'){moveAnimal(draft,r.id,offset);continue;}
     if(r.kind==='path'){const next=shiftLine(d as PathDefinition,offset);if(!inside(draft,next.points))throw Error('Hors de la carte');putPath(draft,next);}
     else if(r.kind==='water'){const next=shiftLine(d as WaterBody,offset);if(!inside(draft,next.points))throw Error('Hors de la carte');putWater(draft,next);}
     else if(r.kind==='zone'){const z=d as ActivityZoneV3,next={...z,polygon:z.polygon.map(q=>({x:q.x+offset.x,z:q.z+offset.z}))};if(!inside(draft,next.polygon))throw Error('Hors de la carte');putZone(draft,next);}
@@ -132,7 +139,7 @@ export function moveChunkIds(p:ProjectDocument,refs:ElementRef[],offset:{x:numbe
 /** Human-readable references that a deletion would break (checked before destructive edits). */
 export function elementDependents(p:ProjectDocument,refs:ElementRef[]):string[]{
   const out:string[]=[],index=new ReferenceIndex(p),ids=new Set(refs.map(r=>r.id));
-  for(const r of refs)if(r.kind==='entity')for(const d of index.dependents(r.id))if(!ids.has(d))out.push(d);
+  for(const r of refs)if(r.kind==='entity')for(const d of index.dependents(r.id))if(!ids.has(d))out.push(p.libraries.animals?.[d]?`${p.libraries.animals[d].name} (animal)`:d);
   // Lights in entities of other sectors never point to paths/zones; NPC routes are inline points.
   return [...new Set(out)];
 }
@@ -146,6 +153,7 @@ export function listElements(p:ProjectDocument,query='',kind:ElementKind|'all'|'
     for(const id of Object.keys(p.libraries.paths))add({kind:'path',id});for(const id of Object.keys(p.libraries.water))add({kind:'water',id});
     for(const id of Object.keys(p.libraries.zones??{}))add({kind:'zone',id});
     for(const ref of listMinigameElements(p))add(ref);
+    for(const ref of listAnimalElements(p))add(ref);
     for(const c of Object.values(p.chunks)){for(const e of c.terrainEdits)add({kind:'terrainEdit',id:e.id});for(const e of c.biomeEdits)add({kind:'biomeEdit',id:e.id});}
   }
   return out.sort((a,b)=>a.label.localeCompare(b.label,'fr')).slice(0,limit);
@@ -164,6 +172,7 @@ export function elementsAt(p:ProjectDocument,x:number,z:number,tolerance=1.5):El
   for(const water of Object.values(p.libraries.water)){const d=lineDistance(water.points)-water.width/2;if(d<=tolerance)out.push({ref:{kind:'water',id:water.id},d:d+.5});}
   for(const zone of Object.values(p.libraries.zones??{})){let inside=false;const poly=zone.polygon;for(let i=0,j=poly.length-1;i<poly.length;j=i++){const a=poly[j],b=poly[i];if((a.z>z)!==(b.z>z)&&x<a.x+(z-a.z)/(b.z-a.z)*(b.x-a.x))inside=!inside;}if(inside)out.push({ref:{kind:'zone',id:zone.id},d:100});}
   out.push(...minigameElementsAt(p,x,z,tolerance));
+  out.push(...animalElementsAt(p,x,z,tolerance));
   return out.sort((a,b)=>a.d-b.d).map(v=>v.ref);
 }
 export function toElementRefs(values:{kind:string;id:string}[]):ElementRef[]{return values.filter(v=>isKind(v.kind)).map(v=>({kind:v.kind as ElementKind,id:v.id}));}
@@ -172,6 +181,7 @@ export {chunkAt};
 export type ElementPatch=Record<string,unknown>;
 export function updateElement(draft:ProjectDocument,ref:ElementRef,patch:ElementPatch):void{
   if(isMiniGame(ref.kind)){updateMinigameElement(draft,ref.kind,ref.id,patch);return;}
+  if(ref.kind==='animal'){updateAnimal(draft,ref.id,patch);return;}
   const d=elementData(draft,ref);if(!d||ref.kind==='entity')throw Error('Élément introuvable');
   const next={...structuredClone(d),...structuredClone(patch)} as never;
   if(ref.kind==='path')putPath(draft,next);else if(ref.kind==='water')putWater(draft,next);else if(ref.kind==='zone')putZone(draft,next);
