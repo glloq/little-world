@@ -7,19 +7,19 @@ import type {PathDefinition} from '../world-data.ts';
 import type {EarthworkV1} from '../geography/earthworks.ts';
 import {EARTHWORK_LIMIT} from '../geography/earthworks.ts';
 import {buildCirculationGraph,circulationReport,type DestinationKind} from './circulation.ts';
-import {projectRoadContext,bridgePlacement,roadPaths} from './road-network.ts';
+import {projectRoadContext,roadBridge,roadPaths} from './road-network.ts';
+import {HABITAT_ASSETS} from '../settlements/habitat.ts';
+import {auditProjectRoads} from './road-audit.ts';
 import {projectGeography} from './geo-context.ts';
 import {classifyPoint} from '../geography/classify.ts';
 import {createRaceCorridorIndex} from '../gameplay/race-corridors.ts';
-import {planRoadTiered,nearestRoadPoint,ROAD_POLICIES,type BridgeSite} from '../paths/road-planner.ts';
+import {planRoadTiered,nearestRoadPoint,ROAD_POLICIES} from '../paths/road-planner.ts';
 import {planRoadGrading} from '../paths/road-grading.ts';
 import {pathRibbon} from '../paths/path-geometry.ts';
 import {putPath,putEntity} from './source.ts';
 import {putEarthworks,projectEarthworks} from './earthworks-planner.ts';
-import {chunkAt} from './schema.ts';
-import {assetDefinitionFor,colliderFor} from '../world-production/registry.ts';
 
-export const ROAD_LINK_PREFIX='road-link-',ROAD_BRIDGE_PREFIX='road-bridge-',ROAD_BRIDGE_ASSET='structure.bridge_wooden_arch';
+export const ROAD_LINK_PREFIX='road-link-',ROAD_BRIDGE_PREFIX='road-bridge-',ROAD_BRIDGE_ASSET='settlement.bridge';
 export interface RoadLinkReport {pathId:string;destinationId:string;name:string;lengthM:number;bridges:number;maxGrade:number}
 export interface RoadLinkPlan {paths:PathDefinition[];bridges:EntityDefinitionV3[];earthworks:EarthworkV1[];failed:{id:string;name:string;reason:string}[];links:RoadLinkReport[];
  /** Works left out because the project already holds the format limit. */earthworksDropped:number}
@@ -29,12 +29,6 @@ export interface RoadLinkOptions {maxLinks?:number;maxDistanceM?:number;/** Cut 
 const CART:ReadonlySet<DestinationKind>=new Set(['port','settlement','shop','farm']);
 /** Reached from the shore or by boat: never forced by a road (the path planner serves the beach). */
 const WATERSIDE:ReadonlySet<DestinationKind>=new Set(['surf','dive']);
-
-export function bridgeEntity(p:ProjectDocument,id:string,site:BridgeSite,height:(x:number,z:number)=>number):EntityDefinitionV3{
- const b=bridgePlacement(site,height),collider=colliderFor(ROAD_BRIDGE_ASSET);
- return {id,name:'Passerelle',kind:'prop',ownerChunkId:chunkAt(p.world,b.x,b.z),components:{Transform:{type:'Transform',position:{x:b.x,y:b.y,z:b.z},rotation:{x:0,y:Math.sin(b.yaw/2),z:0,w:Math.cos(b.yaw/2)},scale:{x:b.stretch,y:1,z:1}},
-  Visual:{type:'Visual',assetId:ROAD_BRIDGE_ASSET},...(collider?{Collider:collider}:{})}} as EntityDefinitionV3;
-}
 
 export function planRoadLinks(p:ProjectDocument,o:RoadLinkOptions={}):RoadLinkPlan{
  const geo=projectGeography(p),sea=p.world.seaLevel;
@@ -46,6 +40,8 @@ export function planRoadLinks(p:ProjectDocument,o:RoadLinkOptions={}):RoadLinkPl
  const dry={...rc,blocked:(x:number,z:number,m:number)=>water.blocked(x,z,m)};
  const plan:RoadLinkPlan={paths:[],bridges:[],earthworks:[],failed:[],links:[],earthworksDropped:0},taken=new Set([...Object.keys(p.libraries.paths),...Object.keys(p.entityIndex)]);
  const next=(prefix:string)=>{let n=0;while(taken.has(prefix+n))n++;taken.add(prefix+n);return prefix+n;};
+ const ramps:EarthworkV1[]=[];
+ const drowned=new Set(auditProjectRoads(p).paths.filter(q=>q.underwaterM>0).map(q=>q.pathId));
  const maxLinks=o.maxLinks??24,maxDistance=o.maxDistanceM??1800,served=new Set<string>();
  for(let round=0;round<maxLinks;round++){
   const all=[...Object.values(p.libraries.paths) as PathDefinition[],...plan.paths],g=buildCirculationGraph(p,all,plan.bridges),report=circulationReport(g);
@@ -71,8 +67,10 @@ export function planRoadLinks(p:ProjectDocument,o:RoadLinkOptions={}):RoadLinkPl
   const cart=CART.has(d.kind),b=nearestRoadPoint(dry,to,width,0);
   if(!a||!b){fail('aucun sol praticable près du départ ou du réseau');continue;}
   const tiers=(cart?[ROAD_POLICIES.road,ROAD_POLICIES.trail,ROAD_POLICIES.steep]:[ROAD_POLICIES.trail,ROAD_POLICIES.steep]).map(t=>({...t,widthM:width}));
-  // Only the main network is followed: a road must not inherit the defects of an unrelated path.
-  const network=[...all.filter(q=>!q.supportId&&q.points.some(v=>hub.some(h=>Math.abs(h.x-v.x)<.01&&Math.abs(h.z-v.z)<.01))).map(q=>pathRibbon(q).points),...plan.bridges.map(e=>bridgeSpan(e))];
+  // Every sound path is followed where it serves the road, decks included: an existing bridge is crossed
+  // again, never doubled by a second one beside it. A path with ground under water is not: a road must
+  // not inherit that defect.
+  const network=[...all.filter(q=>!drowned.has(q.id)).map(q=>pathRibbon(q).points),...plan.bridges.map(e=>bridgeSpan(e))];
   const road=planRoadTiered([a,b],{...rc,network},tiers);
   // Hairpins up a mountain are long by nature: only an absurd detour is refused.
   if(!road.pieces.length||road.lengthM>Math.max(600,dist*10)){fail(road.reason??'détour trop long');continue;}
@@ -80,7 +78,8 @@ export function planRoadLinks(p:ProjectDocument,o:RoadLinkOptions={}):RoadLinkPl
   if(!paths.length){fail('déjà au bord du réseau, sans raccord possible');continue;}
   for(const q of paths.slice(1))taken.add(q.id);
   plan.paths.push(...paths);
-  for(const site of road.bridges)plan.bridges.push(bridgeEntity(p,next(ROAD_BRIDGE_PREFIX),site,geo.ctx.height));
+  // Each crossing: native deck (walked by the player and the residents), its wood path and two ramps.
+  for(const site of road.bridges){const bid=next(ROAD_BRIDGE_PREFIX),work=roadBridge(p,bid,site,width,geo.ctx.height);taken.add(work.path.id);plan.bridges.push(work.entity);plan.paths.push(work.path);ramps.push(...work.earthworks);}
   served.add(d.id);
   plan.links.push({pathId:id,destinationId:d.id,name:d.name,lengthM:road.lengthM,bridges:road.bridges.length,maxGrade:road.policy!.maxGrade});
  }
@@ -88,19 +87,23 @@ export function planRoadLinks(p:ProjectDocument,o:RoadLinkOptions={}):RoadLinkPl
   const room=EARTHWORK_LIMIT-projectEarthworks(p).length,// The bed and its talus keep clear of water and of every ground something else owns: buildings, fields,
   // race roadbeds and ski runs are validated on their own terrain.
   env={height:geo.ctx.height,seaLevel:sea,nearWater:(x:number,z:number,m:number)=>rc.blocked(x,z,m)||rc.blocked(x+m,z,0)||rc.blocked(x-m,z,0)||rc.blocked(x,z+m,0)||rc.blocked(x,z-m,0)};
-  for(const path of plan.paths){const works=planRoadGrading(path,env).works;if(plan.earthworks.length+works.length<=room)plan.earthworks.push(...works);else plan.earthworksDropped+=works.length;}
+  for(const path of plan.paths.filter(q=>!q.supportId)){const works=planRoadGrading(path,env).works;if(plan.earthworks.length+works.length+ramps.length<=room)plan.earthworks.push(...works);else plan.earthworksDropped+=works.length;}
  }
+ // Ramps are part of the bridge, not an option (without them the deck stands above its banks), and
+ // come last: at an abutment the deck level wins over a neighbouring road bed.
+ if(p.world.terrain?.kind==='archipelago')plan.earthworks.push(...ramps);
  return plan;
 }
 /** Deck of a planned bridge entity as a segment (network following, circulation). */
 function bridgeSpan(e:EntityDefinitionV3){
- const t=e.components.Transform!,yaw=2*Math.atan2(t.rotation.y,t.rotation.w),half=2.8*t.scale.x,ax=Math.cos(yaw),az=-Math.sin(yaw);
+ const t=e.components.Transform!,yaw=2*Math.atan2(t.rotation.y,t.rotation.w),half=t.scale.x/2,ax=Math.cos(yaw),az=-Math.sin(yaw);
  return [{x:t.position.x-ax*half,z:t.position.z-az*half},{x:t.position.x+ax*half,z:t.position.z+az*half}];
 }
-/** Commit a plan: native paths, bridge props (asset registered once) and earthworks. */
+/** Commit a plan: native paths, bridges (asset registered once) and earthworks — works before the
+ * entities they carry, so each deck is validated on its final ground. */
 export function applyRoadLinks(p:ProjectDocument,plan:RoadLinkPlan):void{
- for(const path of plan.paths)putPath(p,path);
- if(plan.bridges.length&&!p.assets[ROAD_BRIDGE_ASSET]){const def=assetDefinitionFor(ROAD_BRIDGE_ASSET);if(def)p.assets[ROAD_BRIDGE_ASSET]=def;}
- for(const e of plan.bridges)putEntity(p,e);
  if(plan.earthworks.length)putEarthworks(p,plan.earthworks);
+ if(plan.bridges.length&&!p.assets[ROAD_BRIDGE_ASSET]){const def=HABITAT_ASSETS.find(a=>a.id===ROAD_BRIDGE_ASSET);if(def)p.assets[ROAD_BRIDGE_ASSET]=structuredClone(def);}
+ for(const e of plan.bridges)putEntity(p,e);
+ for(const path of plan.paths)putPath(p,path);
 }

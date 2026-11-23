@@ -15,26 +15,26 @@ au ruisseau, donc de travers par rapport à la route.
 
 | Volcan | Avant | Après |
 |---|---|---|
-| Longueur de chemins | 12 634 m | 17 387 m ⁶ |
-| Sous l’eau (mer, lac, ruisseau sans tablier) | 1 216 m | 15 m ¹ |
-| Au-delà de la pente du profil | 939 m | 115 m ² |
-| Montée dans la ligne de pente (sans lacet) | 1 426 m | 303 m ² |
-| Traversées de cours d’eau sans pont | 3 / 10 | 0 / 3 ³ |
+| Longueur de chemins | 12 634 m | 17 200 m ⁶ |
+| Sous l’eau (mer, lac, ruisseau sans tablier) | 1 216 m | 0 m ¹ |
+| Au-delà de la pente du profil | 939 m | 125 m ² |
+| Montée dans la ligne de pente (sans lacet) | 1 426 m | 337 m ² |
+| Traversées de cours d’eau sans pont | 3 / 10 | 0 / 6 ³ |
 | Ponts de travers par rapport au chemin (> 15°) | 6 | 0 |
 | Ponts sans chemin | 4 | 1 ⁴ |
-| Sol en dévers (> 22 % en travers) | 1 496 m | 529 m ⁵ |
+| Sol en dévers (> 22 % en travers) | 1 496 m | 540 m ⁵ |
 
-¹ Ruban sous trois passerelles de chemins de presets (non découpés, voir §7).
+¹ Les sentiers de presets qui passaient à gué sont replanifiés comme les autres (§3).
 ² Reste : piste du hameau de montagne (falaise du preset, aucun passage praticable), ruelles de port,
 et sentiers repris au palier `steep` (32 %) : sur une plateforme taillée, la pente du sol *est* celle
 du sentier, donc la mesure les compte.
-³ Les routes planifiées s’arrêtent aux culées : elles ne comptent plus comme traversées.
+³ Six traversées, toutes d’équerre, sur passerelle native (tablier ≥ 55 cm au-dessus de l’eau).
 ⁴ Pont du preset `river-bend`, sans chemin par conception du preset.
 ⁵ Sans terrassement les lacets donnaient 3 014 m de dévers ; le terrain est maintenant adapté à
 la route (§5). Reste : ruelles et sentiers de presets non repris, abords de l’eau.
 
 ⁶ Dont 11 liaisons nouvelles (§6) vers les comptoirs, champs, camps et la mine, jusque-là coupés du
-réseau : 17 lieux sur 18 sont atteignables à pied depuis le port.
+réseau : les 18 lieux sont atteignables à pied depuis le port.
 
 Les quatre autres mondes (Val forestier, Trois vagues, Cimes, Moissons) n’ont que des rues et
 accès courts issus de `planGroundRoute` : 0 m sous l’eau sauf 8 m sous le pont du Val forestier
@@ -52,6 +52,9 @@ dont la sortie reste identique pour les mondes existants.
 - **Pente** : la pente *le long* de la route est plafonnée (`maxGrade`). Sur un versant raide la
   route part donc en traversée et fait des épingles ; elle ne monte jamais dans la ligne de pente.
   Le dévers (`maxTilt`) est plafonné et pénalisé.
+- **Épingles** : chaque coin est un arc de cercle tangent aux deux branches ; une épingle prend
+  jusqu’à 23 m sur chaque branche, soit un virage de 4 à 9 m de rayon, comme un vrai lacet. Le
+  virage raccourcit la montée : le terrassement (§5) absorbe la différence.
 - **Tracé lisible** : la recherche tient compte de la direction d’arrivée (24 directions) ; un
   virage coûte (`turnM`, un demi-tour = 4 × `turnM`), d’où de longues traversées et peu
   d’épingles au lieu d’un zigzag de grille. Les coins sont ensuite arrondis (rayon ≤ 9 m) ; les
@@ -70,8 +73,14 @@ des réglages visuels à calibrer, pas des seuils qualifiés.
 - `projectRoadContext(p, avoid?)` : relief final, eau compilée, cours d’eau franchissables.
 - `roadPaths(id, road, …)` : chemins natifs `PathDefinition` (≤ 100 points chacun, non lissés :
   le tracé validé est celui qui est dessiné).
-- `bridgePlacement(site, height)` : pose d’une passerelle GLB **dans l’axe de la route**, étirée à
-  la portée, tablier à la hauteur de la berge basse.
+- `roadBridge(p, id, site, …)` : **passerelle native** (support V3 du doc 88, `settlement.bridge` +
+  composant `Bridge`) dans l’axe de la route, avec son chemin de bois `supportId` — le joueur
+  **et les habitants** la traversent — et une rampe terrassée sur chaque berge. Le tablier est
+  plat, à `BRIDGE_CLEARANCE_M` (55 cm) au moins au-dessus de l’eau, jamais à fleur. Les culées
+  sont posées là où la berge creusée a rejoint le sol naturel (le lit s’élargit avec la hauteur
+  au-dessus de l’eau), sans quoi le remblai de la rampe serait repris par le creusement du lit.
+  Les rampes sont appliquées après les lits de route : à la culée, le niveau du tablier l’emporte.
+- `bridgePlacement` reste pour les passerelles GLB décoratives des presets.
 - `repairPath(path, …)` : reprise d’un accès généré (sentiers de presets) noyé ou trop raide —
   replanifié entre ses deux extrémités, sinon recoupé au sec ; un accès sain n’est pas touché.
 
@@ -100,7 +109,10 @@ système de relief) :
 - ouvrages de 20 points au plus, identifiants `road:<chemin>:<n>` : une régénération ne remplace
   que les siens, les retouches de relief manuelles ne sont jamais touchées.
 
-Volcan : 95 ouvrages sur 7 696 m, déblai max 2,09 m, remblai max 1,61 m (limite du format : 256).
+Volcan : 101 lits de route sur 7 841 m (déblai max 1,29 m, remblai max 1,75 m) et 12 rampes de pont (limite du format : 256).
+
+**Extrémités** : un chemin n’a plus de bout arrondi là où un tablier prend le relais
+(`deckEnds`), il débordait sur les planches.
 
 **Rendu lointain** : une plateforme étroite n’est pas résolue par les LOD grossiers du relief, qui
 recouvraient la route par endroits (pointillés vus à 150 m). Le matériau des chemins reçoit un
@@ -152,15 +164,15 @@ pont de travers, aucune traversée sans pont).
 
 Limites connues :
 
-- **Chemins de presets** : leurs traversées restent en biais (pont aligné sur le chemin, ruban
-  non coupé dessous). Les presets eux-mêmes (`landscape-presets.ts`, `bridgeOver`) ne sont pas
-  modifiés pour ne pas changer les fixtures.
+- **Presets** (`landscape-presets.ts`, `bridgeOver`) : non modifiés pour ne pas changer les
+  fixtures ; c’est le générateur du Volcan qui replanifie leurs accès à gué. Le Val forestier
+  garde donc son pont à 20° du sentier.
 - **Grands ponts** (> 16 m), viaducs, gués et tunnels : hors lot (doc 88).
-- **Collision des passerelles GLB** : inchangée (boîte du registre).
-- **Épingles** : arrondies sur 9 m seulement, elles restent pointues vues de haut.
 - **Rues de village et accès de sites** (`planGroundRoute`) : inchangés.
-- **PNJ** : les passerelles GLB n’ont pas de support de navigation (`supportId`) ; les habitants
-  ne les empruntent pas. Le joueur les traverse (vérifié en jeu).
+- **Ponts de presets** (`bridgeOver`, pierre ou arche GLB, sans chemin) : seulement remontés
+  au-dessus de l’eau par le générateur du Volcan ; pas de support de navigation.
+- **Routage des habitants** : le pont est un support valide (testé : tablier praticable, culées
+  de niveau) ; un trajet complet d’habitant sur une passerelle de route n’a pas été rejoué en jeu.
 - `DRESSING_VERSION` non augmenté : la génération de végétation est inchangée, seules les
   emprises de routes du Volcan ont bougé.
 - Composition d’un thème : +3 à +9 s avec `roads`. Génération du Volcan : ~20 s → ~48 s (recherche de routes) ; temps GPU non concerné.

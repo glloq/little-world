@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {terrainHeight,waterSurface} from '../terrain.ts';
 import type {PathDefinition} from '../world-data.ts';
-import {centerline,pathSectors,sectorGeometry,type Sample} from './path-geometry.ts';
+import {centerline,deckEnds,pathSectors,sectorGeometry,type Sample} from './path-geometry.ts';
 
 /** E8 — path surfaces streamed by sector around the focus. One shared material (vertex colours
  * + a tiny procedural pattern: cobbles, planks, ruts) and one mesh per sector: draw calls stay
@@ -32,7 +32,7 @@ export function createPathView(parent:THREE.Group,sectorSize:number,options:{rad
     shader.fragmentShader=PATTERN_FRAGMENT+shader.fragmentShader.replace('#include <color_fragment>','#include <color_fragment>\ndiffuseColor.rgb*=pathPattern();');
   };
   material.customProgramCacheKey=()=>'little-world-paths-1';
-  let paths:PathDefinition[]=[];
+  let paths:PathDefinition[]=[],flatEnds:ReadonlySet<string>=new Set();
   const lines=new Map<string,Sample[]>(),signatures=new Map<string,string>(),sectorPaths=new Map<string,Set<string>>(),pathSectorKeys=new Map<string,string[]>();
   const built=new Map<string,{mesh:THREE.Mesh;lod:0|1}>(),dirty=new Set<string>();
   const stats:PathViewStats={paths:0,sectors:0,built:0,triangles:0,buildMs:0,pending:0,signature:''};
@@ -42,7 +42,7 @@ export function createPathView(parent:THREE.Group,sectorSize:number,options:{rad
   function drop(key:string){const b=built.get(key);if(!b)return;b.mesh.removeFromParent();b.mesh.geometry.dispose();built.delete(key);}
   function build(key:string,lod:0|1){
     const begin=performance.now(),ids=sectorPaths.get(key);drop(key);if(!ids?.size)return;
-    const list=paths.filter(p=>ids.has(p.id)&&!p.supportId),g=sectorGeometry(list,rectOf(key),{height:terrainHeight,water:waterSurface},lod,lines);
+    const list=paths.filter(p=>ids.has(p.id)&&!p.supportId),g=sectorGeometry(list,rectOf(key),{height:terrainHeight,water:waterSurface},lod,lines,flatEnds);
     if(g.index.length){
       const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.BufferAttribute(g.positions,3));geometry.setAttribute('color',new THREE.BufferAttribute(g.colors,3));
       geometry.setAttribute('pathUv',new THREE.BufferAttribute(g.uvs,2));geometry.setAttribute('pathKind',new THREE.BufferAttribute(g.kinds,1));geometry.setIndex(new THREE.BufferAttribute(g.positions.length/3>65535?g.index:Uint16Array.from(g.index),1));
@@ -64,7 +64,7 @@ export function createPathView(parent:THREE.Group,sectorSize:number,options:{rad
         const line=centerline(p),keys=pathSectors(p,sectorSize,line);lines.set(p.id,line);signatures.set(p.id,sig);pathSectorKeys.set(p.id,keys);
         for(const k of keys){let set=sectorPaths.get(k);if(!set)sectorPaths.set(k,set=new Set());set.add(p.id);dirty.add(k);}
       }
-      paths=next.map(p=>structuredClone(p));measure();
+      paths=next.map(p=>structuredClone(p));flatEnds=deckEnds(paths);measure();
       let h=2166136261;const text=JSON.stringify([...paths].sort((a,b)=>a.id<b.id?-1:1).map(p=>[p.id,p.kind??'dirt',!!p.smooth,p.width,p.points.map(q=>[Math.round(q.x*1000),Math.round(q.z*1000)])]));for(let i=0;i<text.length;i++)h=Math.imul(h^text.charCodeAt(i),16777619);stats.signature=(h>>>0).toString(16);
       return changed;
     },
