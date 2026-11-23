@@ -49,7 +49,7 @@ export async function runOptSuite(baseHref,outputDir){
   const run={suite:'opt',recordedAt:new Date().toISOString(),base:base.href,revision:git(['rev-parse','HEAD']),branch:git(['rev-parse','--abbrev-ref','HEAD']),
     dirtyFiles:(git(['status','--short'])??'').split('\n').filter(Boolean).length,browserVersion:browser.version(),launchArgs:args.filter(a=>!a.startsWith('--lw-bench-run')),
     machine:{platform:os.platform(),release:os.release(),cpus:os.cpus().length,cpuModel:os.cpus()[0]?.model??null,totalMemGB:+(os.totalmem()/2**30).toFixed(1)},
-    viewport,deviceScaleFactor:1,quality:env.QUALITY??'medium',renderTier:Number(env.RENDER_TIER??0),ticksPerScene:ticks,repeat,extraQuery:env.EXTRA_QUERY??'',
+    buildLabel:env.BUILD_LABEL??null,viewport,deviceScaleFactor:1,quality:env.QUALITY??'medium',renderTier:Number(env.RENDER_TIER??0),ticksPerScene:ticks,repeat,extraQuery:env.EXTRA_QUERY??'',
     notes:['GPU timer null = EXT_disjoint_timer_query_webgl2 unavailable (always the case under SwiftShader).',
       'cpuRenderSubmitMs = JS duration of renderer.render(): command submission, not GPU execution.',
       'Presentation is quantised by vsync (16.7 ms multiples) and the 30 FPS cap: compare p95/p99 and CPU costs, not mean FPS alone.',

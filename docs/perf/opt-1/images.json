@@ -1,0 +1,77 @@
+{
+  "threshold": 16,
+  "a": "/tmp/claude-0/opt1c/A/captures",
+  "b": "/tmp/claude-0/opt1c/B/captures",
+  "rows": [
+    {
+      "file": "flight-t0-r0.png",
+      "pixelsOverPct": 0.169,
+      "meanAbsDiff": 0.119
+    },
+    {
+      "file": "flight-t0-r1.png",
+      "pixelsOverPct": 0.222,
+      "meanAbsDiff": 0.088
+    },
+    {
+      "file": "flight-t1200-r0.png",
+      "pixelsOverPct": 0.04,
+      "meanAbsDiff": 0.221
+    },
+    {
+      "file": "flight-t1200-r1.png",
+      "pixelsOverPct": 0.057,
+      "meanAbsDiff": 0.046
+    },
+    {
+      "file": "flight-t600-r0.png",
+      "pixelsOverPct": 0.042,
+      "meanAbsDiff": 0.116
+    },
+    {
+      "file": "flight-t600-r1.png",
+      "pixelsOverPct": 0.102,
+      "meanAbsDiff": 0.053
+    },
+    {
+      "file": "forest-t0-r0.png",
+      "pixelsOverPct": 0.375,
+      "meanAbsDiff": 0.219
+    },
+    {
+      "file": "forest-t0-r1.png",
+      "pixelsOverPct": 0.755,
+      "meanAbsDiff": 0.377
+    },
+    {
+      "file": "forest-t900-r0.png",
+      "pixelsOverPct": 0.555,
+      "meanAbsDiff": 0.282
+    },
+    {
+      "file": "forest-t900-r1.png",
+      "pixelsOverPct": 0.637,
+      "meanAbsDiff": 0.338
+    },
+    {
+      "file": "village-t0-r0.png",
+      "pixelsOverPct": 0.047,
+      "meanAbsDiff": 0.023
+    },
+    {
+      "file": "village-t0-r1.png",
+      "pixelsOverPct": 0.124,
+      "meanAbsDiff": 0.139
+    },
+    {
+      "file": "village-t900-r0.png",
+      "pixelsOverPct": 0.099,
+      "meanAbsDiff": 0.128
+    },
+    {
+      "file": "village-t900-r1.png",
+      "pixelsOverPct": 1.973,
+      "meanAbsDiff": 0.846
+    }
+  ]
+}
