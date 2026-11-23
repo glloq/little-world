@@ -1,4 +1,5 @@
 import {validateMiniGame,type MiniGameInstanceV1} from '../minigames/schema.ts';
+import {validateAnimals,type AnimalAuthorV1} from '../animals/schema.ts';
 import {parseDiveSite} from '../water/dive-sites.ts';
 import {parseSkiArea,type SkiAreaV1} from '../snow/ski-area.ts';
 import {parseQuestCatalogEntry} from '../quests/validation.ts';
@@ -23,7 +24,8 @@ export interface PlayableWorld {schemaVersion:1;kind:'playable-world';audio?:Any
   /** Optional fixed circuits compiled from a Studio project. */races?:RaceDefinition[];
   /** Optional local swells, separate from flat hydrographic water. */surfZones?:SurfZone[];surfFeatures?:SurfFeature[];
   /** Optional dive sites (doc 104 §3): depth goals and underwater discoveries. */diveSites?:import('../water/dive-sites.ts').DiveSiteV1[];
-  /** Optional mini-game instances (doc 107); their modules load only near them. */minigames?:MiniGameInstanceV1[];}
+  /** Optional mini-game instances (doc 107); their modules load only near them. */minigames?:MiniGameInstanceV1[];
+  /** Optional animals and herds (doc 110); the animal modules load only when present. */animals?:Record<string,AnimalAuthorV1>;}
 export interface StudioPlaytest {schemaVersion:1;kind:'studio-playtest';snapshotId:string;projectId:string;createdAt:number;content:PlayableWorld;}
 export function parsePlayableWorld(value:unknown):PlayableWorld {
  if(!record(value)||value.schemaVersion!==1||value.kind!=='playable-world'||!record(value.spawn)||!finite(value.spawn.x,-10000,10000)||!finite(value.spawn.y,-10000,10000)||!finite(value.spawn.z,-10000,10000))throw Error('Monde jouable invalide');
@@ -82,7 +84,8 @@ export function parsePlayableWorld(value:unknown):PlayableWorld {
    const ids=new Set<string>();
    return value.minigames.map(raw=>{const g=validateMiniGame(raw,{minX:-width/2,maxX:width/2,minZ:-length/2,maxZ:length/2});if(ids.has(g.id))throw Error('Mini-jeu en double');ids.add(g.id);return g;});
  })();
- return {schemaVersion:1,kind:'playable-world',...(minigames?.length?{minigames}:{}),...(value.alpine?{alpine:parseSkiArea(value.alpine,{minX:-width/2,maxX:width/2,minZ:-length/2,maxZ:length/2})}:{}),...(Array.isArray(value.alpineAreas)?{alpineAreas:value.alpineAreas.slice(0,24).map((area:unknown)=>parseSkiArea(area,{minX:-width/2,maxX:width/2,minZ:-length/2,maxZ:length/2}))}:{}),...(audio?{audio}:{}),world,gameplay,spawn:{...spawn},...(value.collisions?{collisions:structuredClone(value.collisions) as CollisionDefinition[]}:{} ),...(value.activities!==undefined?{activities:parseActivities(value.activities)}:{}),...(races?{races}:{}),...(questCatalog?{questCatalog}:{}),...(surfZones?{surfZones}:{}),...(surfFeatures?{surfFeatures}:{}),...(diveSites?{diveSites}:{})};
+ const animals=value.animals===undefined?undefined:validateAnimals(value.animals,{width,length});
+ return {schemaVersion:1,kind:'playable-world',...(minigames?.length?{minigames}:{}),...(animals&&Object.keys(animals).length?{animals}:{}),...(value.alpine?{alpine:parseSkiArea(value.alpine,{minX:-width/2,maxX:width/2,minZ:-length/2,maxZ:length/2})}:{}),...(Array.isArray(value.alpineAreas)?{alpineAreas:value.alpineAreas.slice(0,24).map((area:unknown)=>parseSkiArea(area,{minX:-width/2,maxX:width/2,minZ:-length/2,maxZ:length/2}))}:{}),...(audio?{audio}:{}),world,gameplay,spawn:{...spawn},...(value.collisions?{collisions:structuredClone(value.collisions) as CollisionDefinition[]}:{} ),...(value.activities!==undefined?{activities:parseActivities(value.activities)}:{}),...(races?{races}:{}),...(questCatalog?{questCatalog}:{}),...(surfZones?{surfZones}:{}),...(surfFeatures?{surfFeatures}:{}),...(diveSites?{diveSites}:{})};
 }
 const PREFIX='little-world:studio-playtest:v1:';
 export function savePlaytest(value:Omit<StudioPlaytest,'schemaVersion'|'kind'|'snapshotId'|'createdAt'>,storage:Storage=sessionStorage):StudioPlaytest {

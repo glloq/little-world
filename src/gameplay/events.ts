@@ -30,6 +30,9 @@ export const GAMEPLAY_EVENTS={
  'dive.depth-reached':{label:'Atteindre une profondeur',fields:['targetId','distanceM']},
  'underwater.discovered':{label:'Découverte sous-marine',fields:['targetId','source']},
  'minigame.finished':{label:'Terminer un mini-jeu',fields:['targetId','source','measuredSeconds']},
+ 'animal.mounted':{label:'Monter un animal',fields:['targetId']},
+ 'animal.acquired':{label:'Obtenir un animal',fields:['targetId']},
+ 'animal.hitched':{label:'Atteler un véhicule',fields:['targetId','source']},
 } as const;
 export type GameplayEventType=keyof typeof GAMEPLAY_EVENTS;
 export const GAMEPLAY_EVENT_TYPES=Object.keys(GAMEPLAY_EVENTS) as GameplayEventType[];
@@ -40,6 +43,8 @@ export interface GameplayEventFields {itemId?:string;quantity?:number;source?:st
 export type GameplayEvent=
  |{type:'race.finished'|'race.personal-best';raceId:string;measuredSeconds:number;raceKind:'flight'|'roll'|'mixed'|'surf'|'ski'}
  |{type:'flight.completed';courseId:string;seconds:number}
+ |{type:'animal.mounted'|'animal.acquired';animalId:string}
+ |{type:'animal.hitched';animalId:string;vehicleId:string}
  |{type:'ski.piste-completed';areaId:string;difficulty?:string;seconds?:number}
  |{type:'ski.lift-ridden';areaId:string}
  |{type:'surf.wave-ridden';zoneId:string;style?:string}
@@ -63,6 +68,8 @@ export function questFields(e:GameplayEvent):GameplayEventFields{
   case 'music.played':return {source:e.instrument,...(e.placeId?{targetId:e.placeId}:{})};
   case 'dive.depth-reached':return {targetId:e.siteId,distanceM:Math.max(0,Math.round(e.depthM*10)/10)};
   case 'underwater.discovered':return {targetId:e.discoveryId,...(e.siteId?{source:e.siteId}:{})};
+  case 'animal.mounted':case 'animal.acquired':return {targetId:e.animalId};
+  case 'animal.hitched':return {targetId:e.animalId,source:e.vehicleId};
   case 'minigame.finished':return {targetId:e.instanceId,source:e.won?e.variant+':won':e.variant,measuredSeconds:Math.round(e.seconds*10)/10};
  }
 }

@@ -28,13 +28,13 @@ const MODULES:[string,string,string,string,string][]=[
   ['scene','Sélection','➚','Naviguer','V'],['map','Carte globale','▦','Naviguer','M'],
   ['objects','Objets','▣','Construire','B'],['settlements','Villages & villes','⌂','Construire',''],['natural','Structures naturelles','◠','Construire',''],['characters','Personnages','☺','Construire',''],['lights','Lumières','✦','Construire','L'],
   ['terrain','Relief','⛰','Monde','T'],['regions','Régions','◉','Monde',''],['biomes','Biotopes','✿','Monde',''],['paths','Chemins et rivières','〰','Monde',''],['water','Eau','≈','Monde',''],['surf','Surf','〰','Monde',''],['zones','Zones','⬠','Monde',''],['landscapes','Paysages','❦','Monde',''],
-  ['races','Courses','⚑','Logique',''],['minigames','Mini-jeux','◎','Logique',''],['quests','Quêtes','♧','Logique',''],['dialogues','Dialogues','✉','Logique',''],['interactions','Interactions','⚙','Logique',''],['environment','Environnement','☀','Logique',''],['audio','Audio','♪','Logique',''],['motion-lab','Animations du hamster','◉','Logique',''],
+  ['races','Courses','⚑','Logique',''],['minigames','Mini-jeux','◎','Logique',''],['animals','Animaux','♞','Construire',''],['quests','Quêtes','♧','Logique',''],['dialogues','Dialogues','✉','Logique',''],['interactions','Interactions','⚙','Logique',''],['environment','Environnement','☀','Logique',''],['audio','Audio','♪','Logique',''],['motion-lab','Animations du hamster','◉','Logique',''],
   ['composition','Recomposer le monde','◒','Projet',''],
   ['generated','Monde généré','✧','Projet',''],
   ['guide','Assistant de création','☷','Projet',''],
   ['tests','Validation / compilation','✓','Projet',''],
 ];
-const VIEWPORT_MODULES=new Set(['scene','objects','natural','regions','characters','lights','terrain','biomes','polyline','paths','zones','surf','races','minigames','landscapes']);
+const VIEWPORT_MODULES=new Set(['scene','objects','natural','regions','characters','lights','terrain','biomes','polyline','paths','zones','surf','races','minigames','animals','landscapes']);
 const ALIASES:Record<string,string>={local:'scene',select:'scene'};
 const panelHost=()=>$('panel-host');
 function refreshHeader(){
@@ -233,6 +233,13 @@ async function toolPanel(id:string,v:StudioViewport){
     const render=()=>{tools.replaceChildren();mountMiniGamesPanel(tools,ctx);};render();
     const stop=s.commands.subscribe(()=>{if(activeModule==='minigames')render();}),previous=disposePanel;
     disposePanel=()=>{stop();disposeMiniGamesPreview(ctx);previous();};
+  }else if(id==='animals'){
+    v.setTool('select');
+    const {mountAnimalsPanel,disposeAnimalsPreview}=await import('./animals-panel.ts');
+    const ctx={session:s,viewport:v,status};
+    const render=()=>{tools.replaceChildren();mountAnimalsPanel(tools,ctx);};render();
+    const stop=s.commands.subscribe(()=>{if(activeModule==='animals')render();}),stopSelection=s.selection.subscribe(()=>{if(activeModule==='animals')render();}),previous=disposePanel;
+    disposePanel=()=>{stop();stopSelection();disposeAnimalsPreview(ctx);previous();};
   }else if(id==='regions'){
     v.setTool('select');
     const {mountRegionsPanel}=await import('./regions-panel.ts');

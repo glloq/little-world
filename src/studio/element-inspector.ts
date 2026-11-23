@@ -1,3 +1,4 @@
+import {animalSection} from './animal-inspector.ts';
 import {node,button,field,input,numberInput,select} from './dom.ts';
 import type {StudioSession} from './session.ts';
 import {elementData,elementLabel,elementAnchor,updateElement,updateChunkIds,ELEMENT_KINDS,type ElementRef,type ElementPatch} from '../studio-core/elements.ts';
@@ -72,6 +73,10 @@ export function renderElementInspector(host:HTMLElement,ref:ElementRef,ctx:Eleme
       if(element.kind==='obstacle')box.append(field('Largeur (m)',numberInput(element.width??1,v=>apply('Redimensionner un obstacle',{width:v}),.1,20,'.1')),field('Rotation (°)',numberInput(Math.round((element.yaw??0)*180/Math.PI),v=>apply('Pivoter un obstacle',{yaw:Math.round(v*Math.PI/180*100)/100}),-180,180,'1')));
       if(element.kind==='target')box.append(field('Hauteur (m)',numberInput(element.height??1,v=>apply('Hauteur de la cible',{height:v}),.05,10,'.01')));}
     box.append(button('Règles et éléments (module Mini-jeux)',()=>ctx.open('minigames')));
+  }else if(ref.kind==='animal'){
+    const animal=p.libraries.animals?.[ref.id];
+    if(animal)animalSection(box,animal,{document:p,apply,editPath:ctx.editPath,view:ctx.view});
+    box.append(button('Aperçu des animations (module Animaux)',()=>ctx.open('animals')));
   }
   host.append(box);ctx.extras?.(ref,host);
   const anchor=elementAnchor(p,ref),actions=node('div','','row');

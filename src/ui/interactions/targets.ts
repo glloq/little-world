@@ -2,7 +2,7 @@
  * The engine identifies a target, the business systems say which actions are possible (and
  * why not), the interface shows one primary action; the command is executed by the same
  * business method. Descriptors are presentation models, never a second source of truth. */
-export type TargetType='object'|'npc'|'boat'|'mine-wall'|'farm-plot'|'gather'|'fishing'|'shop'|'mine-lift'|'ferry'|'maritime-trade';
+export type TargetType='object'|'npc'|'boat'|'mine-wall'|'farm-plot'|'gather'|'fishing'|'shop'|'mine-lift'|'ferry'|'maritime-trade'|'animal';
 export interface InteractionAction {id:string;key:string;label:string;enabled:boolean;disabledReason?:string}
 export interface TargetDescriptor {
   targetId:string;targetType:TargetType;displayName:string;
@@ -26,6 +26,8 @@ export function objectTarget(o:{entity:{id:string};name:string;prompt:string;ran
 }
 export function npcTarget(n:{id:string;name:string}):TargetDescriptor{const primary=action('talk','Parler avec '+n.name);return {targetId:n.id,targetType:'npc',displayName:'',primaryAction:primary,availableActions:[primary]};}
 export function boatTarget(aboard:boolean):TargetDescriptor{const primary=aboard?action('disembark','Quitter le bateau'):action('board','Embarquer');return {targetId:'boat',targetType:'boat',displayName:aboard?'':'Bateau',primaryAction:primary,availableActions:[primary]};}
+/** Animal, mount or parked vehicle (doc 110): the animal host decides the action and why it may be refused. */
+export function animalTarget(a:{id:string;name:string;label:string;enabled:boolean;reason?:string}):TargetDescriptor{const primary=action('animal',a.label,a.enabled,a.reason);return {targetId:a.id,targetType:'animal',displayName:a.name,primaryAction:primary,availableActions:[primary],...(a.enabled?{}:{disabledReason:a.reason})};}
 export function ferryTarget(present:boolean):TargetDescriptor{
   const primary=action('ferry','Parler au rameur',present,'Bateau absent : consultez les horaires de la carte.');
   return {targetId:'ferry',targetType:'ferry',displayName:'Navette maritime',primaryAction:primary,availableActions:[primary],...(present?{}:{disabledReason:'Bateau absent'})};

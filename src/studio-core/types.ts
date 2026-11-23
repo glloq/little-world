@@ -92,6 +92,8 @@ export interface ProjectLibraries {
   landscapes?:Record<StableId,import('../world-production/landscape-schema.ts').LandscapeInstanceV1>;
   /** Optional mini-game instances (doc 107); absent = no mini-game module is ever loaded. */
   minigames?:Record<StableId,import('../minigames/schema.ts').MiniGameInstanceV1>;
+  /** Optional animals and wild herds (doc 110); without it no animal module is loaded. */
+  animals?:Record<StableId,import('../animals/schema.ts').AnimalAuthorV1>;
   /** Editable A/B geographic region recipes, stored as author-only V3 data. */
   regions?:Record<StableId,import('./region-schema.ts').RegionRecipeV1>;
 }
