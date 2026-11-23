@@ -122,7 +122,8 @@ export function createAnimalHost(options: AnimalHostOptions) {
   function target(player: Player): TargetDescriptor | null {
     const ridden = sim.ridden;
     if (ridden) return animalTarget({ id: ridden.id, name: '', label: 'Descendre', enabled: true });
-    if (player.space || player.mode === 'swim' || player.mode === 'dive' || player.mode === 'glide' || player.mode === 'surf') return null;
+    // Animals are handled on foot only: not indoors, in water, in the air, rolling, climbing or sliding.
+    if (player.space || player.mode !== 'ground') return null;
     const { animal, vehicle } = sim.nearest(player.position.x, player.position.z, reach());
     if (animal) {
       const buy = acquisitionLabel(animal);

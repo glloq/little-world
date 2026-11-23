@@ -400,7 +400,9 @@ const npcBridgeSurfaces=new Map(definition.placements.filter(p=>p.assetId==='set
 const npcExteriorDoors=new Set(definition.placements.filter(p=>p.assetId==='settlement.door').map(p=>p.id));
 // Animals (doc 110): opt-in. Without `libraries.animals` (or ?animalDemo=1) no animal module is fetched.
 const animalDemo=searchParams.get('animalDemo')==='1'&&!isLegacyTerrain()?(await import('./animals/demo.ts')).demoAnimals({x:player.position.x,z:player.position.z},{ground:terrainHeight,water:waterSurface,inside:insideWorld}):null;
-const animalDefinitions=animalDemo||playable?.animals?{...(playable?.animals??{}),...(animalDemo?.animals??{})}:null;
+// ?animalBench=N (measurements only): N active capybaras around the player.
+const animalBench=searchParams.has('animalBench')&&!isLegacyTerrain()?(await import('./animals/demo.ts')).benchAnimals({x:player.position.x,z:player.position.z},{ground:terrainHeight,water:waterSurface,inside:insideWorld},Number(searchParams.get('animalBench'))):null;
+const animalDefinitions=animalDemo||animalBench||playable?.animals?{...(playable?.animals??{}),...(animalDemo?.animals??{}),...(animalBench??{})}:null;
 const npcs = createNPCSystem(scene, animalDemo?[...definition.npcs,...animalDemo.npcs]:definition.npcs,isLegacyTerrain()?undefined:[],gameplay?.dialogueSession,{
   worldTime:()=>worldClock.time,dayLengthSeconds:climate.definition.dayLengthSeconds,
   initialDayPhase:climate.definition.initialDayPhase,paths:definition.paths,
@@ -1191,7 +1193,7 @@ window.addEventListener('keydown', (e) => {
     if(playable)reset.position.set(playable.spawn.x,terrainHeight(playable.spawn.x,playable.spawn.z)+playable.spawn.y+.02,playable.spawn.z);
     player.position.copy(reset.position);
     player.velocity.set(0, 0, 0);
-    aboard = false;
+    aboard = false;animalHost?.abandon();
     player.mode = 'ground';
     player.oxygen = MAX_OXYGEN;
     player.glideReady = false;
@@ -1205,7 +1207,7 @@ window.addEventListener('keydown', (e) => {
     showInfo('Retour au point de départ');
   }
   if (e.code === 'KeyP' && started && isLegacyTerrain()) {
-    aboard = false;
+    aboard = false;animalHost?.abandon();
     player.position.set(-23, getTerrainConfig().seaLevel + 1.35, 217);
     player.velocity.set(0, 0, 0);
     player.mode = 'air';

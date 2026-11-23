@@ -1,5 +1,7 @@
 # Capybara V6.3 — préparation d'intégration dans Little World
 
+> **Document historique (prototype visuel).** Le rig, les animations, la simulation, les montures, les attelages et le Studio sont décrits dans [110 — Animaux](110-ANIMALS-CAPYBARA-MOUNTS.md). `capybara-pose.ts` et `capybara-world.ts` cités ci-dessous ont été remplacés par `capybara-animation.ts` et `src/animals/`.
+
 ## Contenu de la branche
 
 - `public/models/capybara-v6.3.obj` : modèle original validé comme base visuelle, **1 maillage / 802 sommets / 1600 triangles**. Pas de texture externe.

@@ -38,3 +38,18 @@ export function demoAnimals(origin: AnimalPoint, env: DemoGround): { animals: Re
   const start = (id: string): AnimalPoint => { const a = animals[id] as AnimalInstanceV1; return { x: a.x + 1.4, z: a.z }; };
   return { animals, npcs: [npc(DEMO_CARTER, 'Charretier', start('animal:demo-cart')), npc(DEMO_TRAVELLER, 'Voyageuse', start('animal:demo-caravan'))] };
 }
+/** Benchmark layout (`?animalBench=N`): N active capybaras around the player, one in five
+ * pulling a cart, so rigs, navigation, colliders and vehicles are all exercised. */
+export function benchAnimals(origin: AnimalPoint, env: DemoGround, count: number): Record<string, AnimalAuthorV1> {
+  const out: Record<string, AnimalAuthorV1> = {}, n = Math.max(0, Math.min(60, Math.round(count)));
+  for (let i = 0; i < n; i++) {
+    const ring = 7 + Math.floor(i / 8) * 5, angle = (i * 2.399963) % (Math.PI * 2) - Math.PI, x = origin.x + Math.cos(angle) * ring, z = origin.z + Math.sin(angle) * ring;
+    if (!env.inside(x, z) || env.water(x, z) !== null) continue;
+    const team = i % 5 === 4, id = `animal:bench-${i}`;
+    out[id] = validateAnimal(team
+      ? { version: 1, kind: 'individual', id, species: 'capybara', name: 'Attelage ' + i, role: 'draft', x, z, heading: angle, loadout: 'cart', initialState: 'idle', access: 'anyone', roamRadius: 0, persistent: false,
+        path: [{ x, z }, { x: x + Math.cos(angle + 1.6) * 14, z: z + Math.sin(angle + 1.6) * 14 }], pauseSeconds: 2 }
+      : { version: 1, kind: 'individual', id, species: 'capybara', name: 'Capybara ' + i, role: 'domestic', x, z, heading: angle, loadout: i % 3 === 0 ? 'saddle' : 'none', initialState: 'idle', access: 'anyone', home: { x, z }, roamRadius: 7, persistent: false });
+  }
+  return out;
+}
