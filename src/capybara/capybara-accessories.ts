@@ -3,6 +3,7 @@
  * world transform. Tow body is a separate visual pivot for future physics.
  */
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 export const CAPYBARA_LOADOUTS=['none','saddle','pack','cart','wagon','caravan'] as const;
 export type CapybaraLoadout=typeof CAPYBARA_LOADOUTS[number];
 const palette={leather:0x67412e,dark:0x443126,cloth:0xb85d40,trim:0xe1c28f,wood:0x946b43,woodDark:0x61432f,canvas:0xd9c49f,roof:0x7f9470,metal:0xb79660,rim:0x553b2c};
@@ -180,4 +181,84 @@ export function advanceCapybaraEquipment(root:THREE.Group,distance:number):void 
 export function disposeCapybaraAccessories(root:THREE.Group):void {
  root.traverse(n=>{if(n instanceof THREE.Mesh)n.geometry.dispose();});
  root.clear();
+}
+
+/* ---- Baked equipment: one draw call per worn set, one per vehicle body, one per wheel. ---- */
+export const CAPYBARA_VEHICLES=['cart','wagon','caravan'] as const;
+export type CapybaraVehicleKind=typeof CAPYBARA_VEHICLES[number];
+export const isCapybaraVehicle=(v:unknown):v is CapybaraVehicleKind=>CAPYBARA_VEHICLES.includes(v as CapybaraVehicleKind);
+/** Hitch pin in capybara model space; a vehicle's own origin sits on the ground under it. */
+export const CAPYBARA_HITCH_X=-1.65;
+/** Kinematic footprint of each vehicle, measured from the hitch pin (metres). */
+export const CAPYBARA_VEHICLE_SPECS:Record<CapybaraVehicleKind,{axle:number;length:number;width:number;wheelRadius:number;height:number}>={
+  cart:{axle:1.53,length:2.45,width:1.5,wheelRadius:.35,height:1.3},
+  wagon:{axle:1.77,length:2.7,width:1.8,wheelRadius:.43,height:1.6},
+  caravan:{axle:1.77,length:2.95,width:1.8,wheelRadius:.43,height:2.25},
+};
+const bakedMaterial=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.96,metalness:0,flatShading:true});
+const bakedCache=new Map<string,THREE.BufferGeometry>();
+const tint=new THREE.Color();
+/** Merges every mesh under `nodes` (expressed relative to `frame`) into one coloured geometry. */
+function bake(key:string,frame:THREE.Object3D,nodes:readonly THREE.Object3D[],offsetX=0):THREE.BufferGeometry{
+  const cached=bakedCache.get(key);
+  if(cached)return cached;
+  frame.updateMatrixWorld(true);
+  const inverse=new THREE.Matrix4().copy(frame.matrixWorld).invert().premultiply(new THREE.Matrix4().makeTranslation(offsetX,0,0));
+  const parts:THREE.BufferGeometry[]=[];
+  for(const node of nodes)node.traverse(n=>{
+    if(!(n instanceof THREE.Mesh))return;
+    const g=(n.geometry as THREE.BufferGeometry).toNonIndexed();
+    for(const name of Object.keys(g.attributes))if(name!=='position')g.deleteAttribute(name);
+    g.applyMatrix4(new THREE.Matrix4().multiplyMatrices(inverse,n.matrixWorld));
+    tint.copy((n.material as THREE.MeshStandardMaterial).color);
+    const count=g.getAttribute('position').count,colors=new Float32Array(count*3);
+    for(let i=0;i<count;i++){colors[i*3]=tint.r;colors[i*3+1]=tint.g;colors[i*3+2]=tint.b;}
+    g.setAttribute('color',new THREE.BufferAttribute(colors,3));
+    parts.push(g);
+  });
+  const merged=parts.length?mergeGeometries(parts,false)!:new THREE.BufferGeometry();
+  parts.forEach(g=>g.dispose());
+  merged.computeVertexNormals();merged.computeBoundingSphere();
+  bakedCache.set(key,merged);
+  return merged;
+}
+function bakedMesh(name:string,geometry:THREE.BufferGeometry):THREE.Mesh{
+  const mesh=new THREE.Mesh(geometry,bakedMaterial);mesh.name=name;mesh.castShadow=true;mesh.receiveShadow=true;return mesh;
+}
+/** Worn equipment (saddle, panniers or draught harness) in capybara model space, or null. */
+export function buildCapybaraWorn(kind:CapybaraLoadout):THREE.Mesh|null{
+  if(kind==='none')return null;
+  const key='worn:'+(isCapybaraVehicle(kind)?'harness':kind);
+  if(!bakedCache.has(key)){
+    const source=buildCapybaraAccessories(kind);
+    bake(key,source,source.children.filter(c=>c.name!=='CapybaraTowAssembly'));
+    disposeCapybaraAccessories(source);
+  }
+  return bakedMesh('CapybaraWorn_'+kind,bakedCache.get(key)!);
+}
+export interface CapybaraVehicleVisual {group:THREE.Group;kind:CapybaraVehicleKind;wheels:THREE.Mesh[];
+  /** Rolls the wheels by a travelled distance (metres, signed). */
+  roll(distance:number):void}
+/** Independent trailer: origin on the ground under the hitch pin, +X forward, wheels as children. */
+export function buildCapybaraVehicle(kind:CapybaraVehicleKind):CapybaraVehicleVisual{
+  const spec=CAPYBARA_VEHICLE_SPECS[kind];
+  if(!bakedCache.has('vehicle:'+kind)){
+    const source=buildCapybaraAccessories(kind);
+    const tow=source.getObjectByName('CapybaraTowAssembly')!;
+    const pivots=tow.children.filter(c=>c.name==='CapybaraWheelPivot');
+    bake('vehicle:'+kind,source,tow.children.filter(c=>c.name!=='CapybaraWheelPivot'),-CAPYBARA_HITCH_X);
+    bake('wheel:'+spec.wheelRadius,pivots[0],[pivots[0]]);
+    bakedCache.set('wheels:'+kind,new THREE.BufferGeometry().setAttribute('position',
+      new THREE.Float32BufferAttribute(pivots.flatMap(p=>[p.position.x-CAPYBARA_HITCH_X,p.position.y,p.position.z]),3)));
+    disposeCapybaraAccessories(source);
+  }
+  const group=new THREE.Group();group.name='CapybaraVehicle_'+kind;
+  group.add(bakedMesh('CapybaraVehicleBody',bakedCache.get('vehicle:'+kind)!));
+  const at=bakedCache.get('wheels:'+kind)!.getAttribute('position');
+  const wheels:THREE.Mesh[]=[];
+  for(let i=0;i<at.count;i++){
+    const wheel=bakedMesh('CapybaraVehicleWheel',bakedCache.get('wheel:'+spec.wheelRadius)!);
+    wheel.position.set(at.getX(i),at.getY(i),at.getZ(i));group.add(wheel);wheels.push(wheel);
+  }
+  return {group,kind,wheels,roll(distance){if(Number.isFinite(distance))for(const w of wheels)w.rotation.z-=distance/spec.wheelRadius;}};
 }

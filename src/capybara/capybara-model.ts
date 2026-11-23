@@ -1,126 +1,78 @@
-/** Original Little World capybara V6.3 — optional mount / draft visual prototype.
- * One OBJ mesh (802 vertices / 1600 triangles), animated on GPU; accessories are
- * independently replaceable. No island spawn, gameplay, autonomous RAF or physics.
- * +X forward; +Y up; +Z lateral. Ground is Y≈0.
+/** Original Little World capybara V6.3 — articulated runtime model.
+ * The approved OBJ mesh (802 vertices / 1600 triangles) is skinned procedurally
+ * (`capybara-rig.ts`) and posed by `CapybaraAnimator`. One SkinnedMesh, one shared
+ * geometry, two shared materials (eyes open / closed): one draw call per animal.
+ * No island spawn, gameplay, RAF or physics here. +X forward, +Y up, ground Y≈0.
  */
 import * as THREE from 'three';
 import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
-import { advanceCapybaraGait, makeCapybaraGait, type CapybaraGait } from './capybara-gait.ts';
-import { advanceCapybaraPose, initialCapybaraPose, type CapybaraPose, type CapybaraState } from './capybara-pose.ts';
-import { buildCapybaraAccessories, advanceCapybaraEquipment, disposeCapybaraAccessories, type CapybaraLoadout } from './capybara-accessories.ts';
+import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
+import {
+  CAPYBARA_BONES, CAPYBARA_PARENTS, CAPYBARA_PIVOTS, capybaraRestOffset, computeCapybaraSkin, type CapybaraBone,
+} from './capybara-rig.ts';
+import { CapybaraAnimator, type CapybaraAnimationInput, type CapybaraBehavior, type CapybaraRigPose } from './capybara-animation.ts';
+import { buildCapybaraWorn, type CapybaraLoadout } from './capybara-accessories.ts';
 
-export type { CapybaraState } from './capybara-pose.ts';
 export type { CapybaraLoadout } from './capybara-accessories.ts';
+export type { CapybaraBehavior } from './capybara-animation.ts';
 export const CAPYBARA_ASSET_ID = 'animal.capybara.v6-3';
 export const CAPYBARA_TRIANGLES = 1600;
+export const CAPYBARA_VERTICES = 802;
 export const CAPYBARA_BOUNDS = { length: 3.57, width: 1.26, height: 1.82 } as const;
+/** Logical volume proposal in model units; the simulation uses `animals/species.ts`. */
 export const CAPYBARA_COLLIDER = { shape: 'capsule' as const, radius: 0.51, length: 2.4, centreY: 0.98 };
-export const CAPYBARA_SOCKETS = {
-  rider: [-0.48, 1.73, 0] as const,
-  hitch: [-1.62, 0.77, 0] as const,
-} as const;
+export const CAPYBARA_SOCKETS = { rider: CAPYBARA_PIVOTS.SocketRider, hitch: CAPYBARA_PIVOTS.SocketHitch } as const;
+/** 0 = full rig every frame, 1 = pose refreshed at a reduced rate, 2 = frozen pose. */
+export type CapybaraLod = 0 | 1 | 2;
 
-type ShaderUniforms = {
-  phase: { value: number }; influence: { value: number };
-  yaw: { value: number }; pitch: { value: number };
-  breathe: { value: number }; eyesClosed: { value: number };
-};
-export interface CapybaraModel {
-  group: THREE.Group;
-  body: THREE.Mesh<THREE.BufferGeometry, THREE.MeshStandardMaterial>;
-  riderSocket: THREE.Group;
-  hitchSocket: THREE.Group;
-  loadout: CapybaraLoadout;
-  state: CapybaraState;
-  /** Explicit visual intent; physics and NPC AI remain external. */
-  setState(state: CapybaraState): void;
-  setLoadout(loadout: CapybaraLoadout): void;
-  /** The vector belongs to the caller; it may be updated in place each frame. */
-  setLookTarget(worldPosition: THREE.Vector3 | null): void;
-  /** Call from existing frame loop: no RAF. */
-  update(dt: number, groundSpeed: number): void;
-  dispose(): void;
+/** Welds the de-indexed OBJ back to its 802 vertices and adds the procedural skin. */
+export function prepareCapybaraGeometry(source: THREE.BufferGeometry): THREE.BufferGeometry {
+  const bare = new THREE.BufferGeometry();
+  bare.setAttribute('position', source.getAttribute('position').clone());
+  const geometry = mergeVertices(bare, 1e-6);
+  bare.dispose();
+  const positions = geometry.getAttribute('position');
+  const triangles = geometry.index!.count / 3;
+  if (triangles !== CAPYBARA_TRIANGLES || positions.count !== CAPYBARA_VERTICES) {
+    geometry.dispose();
+    throw new Error(`Capybara mesh mismatch: ${positions.count} vertices / ${triangles} triangles`);
+  }
+  const skin = computeCapybaraSkin(positions.array);
+  geometry.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(skin.skinIndex, 4));
+  geometry.setAttribute('skinWeight', new THREE.Float32BufferAttribute(skin.skinWeight, 4));
+  geometry.computeVertexNormals();
+  geometry.boundingSphere = new THREE.Sphere(new THREE.Vector3(0.1, 0.9, 0), 2.3);
+  geometry.boundingBox = new THREE.Box3(new THREE.Vector3(-2.1, -0.3, -1.2), new THREE.Vector3(2.3, 2.2, 1.2));
+  return geometry;
 }
-
+export function parseCapybaraObj(text: string): THREE.BufferGeometry {
+  const root = new OBJLoader().parse(text);
+  const parts: THREE.Mesh[] = [];
+  root.traverse((child) => { if (child instanceof THREE.Mesh) parts.push(child); });
+  if (parts.length !== 1) throw new Error(`Expected one capybara mesh; got ${parts.length}`);
+  const geometry = prepareCapybaraGeometry(parts[0].geometry);
+  parts[0].geometry.dispose();
+  (Array.isArray(parts[0].material) ? parts[0].material : [parts[0].material]).forEach((m) => m.dispose());
+  return geometry;
+}
 let cachedGeometry: Promise<THREE.BufferGeometry> | undefined;
 function loadGeometry(): Promise<THREE.BufferGeometry> {
-  if (!cachedGeometry) {
-    cachedGeometry = new OBJLoader().loadAsync(`${import.meta.env.BASE_URL}models/capybara-v6.3.obj`).then((root) => {
-      const parts: THREE.Mesh[] = [];
-      root.traverse((child) => { if (child instanceof THREE.Mesh) parts.push(child); });
-      if (parts.length !== 1) throw new Error(`Expected one capybara mesh; got ${parts.length}`);
-      const geometry = parts[0].geometry.clone();
-      geometry.computeVertexNormals();
-      geometry.computeBoundingSphere();
-      geometry.computeBoundingBox();
-      const positions = geometry.getAttribute('position');
-      const triangles = geometry.index ? geometry.index.count / 3 : positions.count / 3;
-      if (triangles !== CAPYBARA_TRIANGLES) {
-        geometry.dispose();
-        throw new Error(`Capybara triangle count mismatch: ${triangles}`);
-      }
-      root.traverse((child) => {
-        if (!(child instanceof THREE.Mesh)) return;
-        child.geometry.dispose();
-        if (Array.isArray(child.material)) child.material.forEach((m) => m.dispose());
-        else child.material.dispose();
-      });
-      return geometry;
-    }).catch((error: unknown) => { cachedGeometry = undefined; throw error; });
-  }
+  cachedGeometry ??= fetch(`${import.meta.env.BASE_URL}models/capybara-v6.3.obj`)
+    .then((response) => { if (!response.ok) throw new Error(`Capybara OBJ ${response.status}`); return response.text(); })
+    .then(parseCapybaraObj)
+    .catch((error: unknown) => { cachedGeometry = undefined; throw error; });
   return cachedGeometry;
 }
 
-const draftEquipment = new Set<CapybaraLoadout>(['cart','wagon','caravan']);
-/** Geometry reused across instances; uniforms, materials and state are per capybara. */
-export async function createCapybaraModel(initialLoadout: CapybaraLoadout='none'): Promise<CapybaraModel> {
-  const geometry = await loadGeometry();
-  const uniforms: ShaderUniforms = {
-    phase:{value:0}, influence:{value:0}, yaw:{value:0}, pitch:{value:0},
-    breathe:{value:0}, eyesClosed:{value:0},
-  };
-  const material = new THREE.MeshStandardMaterial({color:0xc58b5c, roughness:.98, metalness:0});
-  material.onBeforeCompile=(shader)=>{
-    shader.uniforms.capPhase=uniforms.phase;
-    shader.uniforms.capInfluence=uniforms.influence;
-    shader.uniforms.capYaw=uniforms.yaw;
-    shader.uniforms.capPitch=uniforms.pitch;
-    shader.uniforms.capBreathe=uniforms.breathe;
-    shader.uniforms.capEyesClosed=uniforms.eyesClosed;
-    shader.vertexShader=`
-      uniform float capPhase;
-      uniform float capInfluence;
-      uniform float capYaw;
-      uniform float capPitch;
-      uniform float capBreathe;
-      varying vec3 vCapPosition;
-    `+shader.vertexShader;
-    shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>',`#include <begin_vertex>
-      vCapPosition=position;
-      float rear=1.0-smoothstep(-.94,-.70,position.x);
-      float front=smoothstep(-.04,.12,position.x)*(1.0-smoothstep(.49,.69,position.x));
-      float limb=max(rear,front)*(1.0-smoothstep(.25,.78,position.y))*smoothstep(.18,.34,abs(position.z));
-      float side=position.z>=0.0?0.0:3.14159265;
-      float phase=capPhase+side+(rear>front?0.0:3.14159265);
-      transformed.x+=limb*capInfluence*sin(phase)*.14;
-      transformed.y+=limb*capInfluence*max(0.0,cos(phase))*.12;
-      float torso=smoothstep(.42,.95,position.y)*(1.0-smoothstep(1.58,1.81,position.y));
-      transformed.y+=torso*(capInfluence*.01*cos(2.0*capPhase)+capBreathe);
-      // Shader-only head follow, blending at the neck (no skeletal jaw / eyelids).
-      float head=smoothstep(.48,.98,position.x);
-      vec3 rel=transformed-vec3(.64,1.14,0.0);
-      float cy=cos(capYaw),sy=sin(capYaw);
-      float cp=cos(capPitch),sp=sin(capPitch);
-      vec3 turned=vec3(cy*rel.x-sy*rel.z,rel.y,sy*rel.x+cy*rel.z);
-      turned=vec3(cp*turned.x-sp*turned.y,sp*turned.x+cp*turned.y,turned.z);
-      transformed=mix(transformed,turned+vec3(.64,1.14,0.0),head);
-    `);
-    shader.fragmentShader=`
-      varying vec3 vCapPosition;
-      uniform float capEyesClosed;
-    `+shader.fragmentShader;
-    shader.fragmentShader=shader.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>
-      // Face is shaded directly on the original mesh: no extra draw calls.
+function faceMaterial(eyesClosed: number): THREE.MeshStandardMaterial {
+  const material = new THREE.MeshStandardMaterial({ color: 0xc58b5c, roughness: 0.98, metalness: 0, flatShading: true });
+  material.onBeforeCompile = (shader) => {
+    shader.uniforms.capEyesClosed = { value: eyesClosed };
+    shader.vertexShader = `varying vec3 vCapPosition;\n${shader.vertexShader}`
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\n  vCapPosition=position;');
+    shader.fragmentShader = `varying vec3 vCapPosition;\nuniform float capEyesClosed;\n${shader.fragmentShader}`
+      .replace('#include <color_fragment>', `#include <color_fragment>
+      // The face is shaded on the rest position of the original mesh: no extra draw call.
       float muzzle=smoothstep(1.51,1.78,vCapPosition.x)*(1.0-smoothstep(1.30,1.44,vCapPosition.y));
       diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.32,.18,.12),muzzle*.75);
       float sx=(vCapPosition.x-1.09)/.14;
@@ -129,82 +81,104 @@ export async function createCapybaraModel(initialLoadout: CapybaraLoadout='none'
       float eyeOpen=1.0-smoothstep(.38,.80,sx*sx+sy*sy);
       float eyeSleep=(1.0-smoothstep(.11,.33,abs(arcY)))*(1.0-smoothstep(.78,1.03,abs(sx)));
       float eye=mix(eyeOpen,eyeSleep,capEyesClosed)*smoothstep(.34,.40,abs(vCapPosition.z));
-      diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.07,.038,.026),eye*.95);
-    `);
+      diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.07,.038,.026),eye*.95);`);
   };
-  material.customProgramCacheKey=()=> 'little-world-capybara-v6.3-full-pose-v2';
-  const group=new THREE.Group(); group.name='CapybaraV63';
-  // Pivot above floor allows a subtle side-lying rest posture.
-  const poseRoot=new THREE.Group(); poseRoot.name='CapybaraPoseRoot';
-  poseRoot.position.y=.96; group.add(poseRoot);
-  const body=new THREE.Mesh(geometry,material); body.name='CapybaraBody';
-  body.position.y=-.96; body.castShadow=true; body.receiveShadow=true;
-  body.frustumCulled=false; poseRoot.add(body);
-  const riderSocket=new THREE.Group(); riderSocket.name='SocketRider';
-  riderSocket.position.set(CAPYBARA_SOCKETS.rider[0],CAPYBARA_SOCKETS.rider[1]-.96,CAPYBARA_SOCKETS.rider[2]);
-  poseRoot.add(riderSocket);
-  const hitchSocket=new THREE.Group(); hitchSocket.name='SocketHitch';
-  hitchSocket.position.set(...CAPYBARA_SOCKETS.hitch); group.add(hitchSocket);
-  const attachEquipment=(kind:CapybaraLoadout):THREE.Group=>{
-    const next=buildCapybaraAccessories(kind);
-    if(kind==='saddle'||kind==='pack'){
-      next.position.y=-.96; poseRoot.add(next);
-    }else{
-      group.add(next);
-    }
-    return next;
+  material.customProgramCacheKey = () => 'little-world-capybara-v6.3-rig-v1';
+  return material;
+}
+let materials: { open: THREE.MeshStandardMaterial; closed: THREE.MeshStandardMaterial } | undefined;
+const sharedMaterials = () => (materials ??= { open: faceMaterial(0), closed: faceMaterial(1) });
+
+/** Writes a pose on the bones. Yaw channels are positive to the LEFT (+Z). */
+export function applyCapybaraPose(bones: Record<CapybaraBone, THREE.Bone>, p: CapybaraRigPose): void {
+  bones.Pelvis.position.y = CAPYBARA_PIVOTS.Pelvis[1] + p.bodyY;
+  bones.Pelvis.rotation.set(p.bodyRoll, -p.pelvisYaw, p.bodyPitch);
+  bones.Chest.rotation.set(0, -p.chestYaw, p.chestPitch);
+  bones.Neck.rotation.set(0, -p.neckYaw, p.neckPitch);
+  bones.Head.rotation.set(p.headRoll, -p.headYaw, p.headPitch);
+  bones.EarLeft.rotation.z = p.earL; bones.EarRight.rotation.z = p.earR;
+  bones.RearUpperLeft.rotation.z = p.rlUpper; bones.RearLowerLeft.rotation.z = p.rlLower; bones.RearFootLeft.rotation.z = p.rlFoot;
+  bones.RearUpperRight.rotation.z = p.rrUpper; bones.RearLowerRight.rotation.z = p.rrLower; bones.RearFootRight.rotation.z = p.rrFoot;
+  bones.FrontUpperLeft.rotation.z = p.flUpper; bones.FrontLowerLeft.rotation.z = p.flLower; bones.FrontFootLeft.rotation.z = p.flFoot;
+  bones.FrontUpperRight.rotation.z = p.frUpper; bones.FrontLowerRight.rotation.z = p.frLower; bones.FrontFootRight.rotation.z = p.frFoot;
+}
+
+export interface CapybaraModel {
+  group: THREE.Group;
+  mesh: THREE.SkinnedMesh;
+  bones: Record<CapybaraBone, THREE.Bone>;
+  riderSocket: THREE.Bone;
+  hitchSocket: THREE.Bone;
+  animator: CapybaraAnimator;
+  loadout: CapybaraLoadout;
+  lod: CapybaraLod;
+  /** Worn equipment only; a towed vehicle is a separate object owned by the caller. */
+  setLoadout(loadout: CapybaraLoadout): void;
+  /** The vector belongs to the caller; it may be updated in place each frame. */
+  setLookTarget(worldPosition: THREE.Vector3 | null): void;
+  play(behavior: CapybaraBehavior): boolean;
+  /** Call from the existing frame loop: no RAF. `motion` comes from the simulation. */
+  update(dt: number, motion: number | CapybaraAnimationInput): void;
+  dispose(): void;
+}
+/** Synchronous build from a prepared geometry (browser, Node tests and GLB generator). */
+export function buildCapybaraModel(geometry: THREE.BufferGeometry, initialLoadout: CapybaraLoadout = 'none'): CapybaraModel {
+  const group = new THREE.Group(); group.name = 'CapybaraV63';
+  const bones = {} as Record<CapybaraBone, THREE.Bone>;
+  for (const name of CAPYBARA_BONES) { const bone = new THREE.Bone(); bone.name = name; bone.position.set(...capybaraRestOffset(name)); bones[name] = bone; }
+  for (const name of CAPYBARA_BONES) { const parent = CAPYBARA_PARENTS[name]; if (parent) bones[parent].add(bones[name]); }
+  const mesh = new THREE.SkinnedMesh(geometry, sharedMaterials().open); mesh.name = 'CapybaraBody';
+  mesh.castShadow = true; mesh.receiveShadow = true;
+  mesh.add(bones.Root); group.add(mesh);
+  group.updateMatrixWorld(true);
+  mesh.bind(new THREE.Skeleton(CAPYBARA_BONES.map((name) => bones[name])), new THREE.Matrix4());
+  // Fixed bounds: no per-frame skinned bounding volume computation.
+  mesh.boundingSphere = geometry.boundingSphere!.clone(); mesh.boundingBox = geometry.boundingBox!.clone();
+  const animator = new CapybaraAnimator();
+  let worn: THREE.Mesh | null = null, lookTarget: THREE.Vector3 | null = null, disposed = false, pending = 0, tick = 0;
+  const temp = new THREE.Vector3(), input: CapybaraAnimationInput = { speed: 0 };
+  const wear = (kind: CapybaraLoadout): void => {
+    worn?.removeFromParent();
+    worn = buildCapybaraWorn(kind);
+    // Worn pieces follow the pelvis bone, expressed back in model space.
+    if (worn) { worn.position.set(-CAPYBARA_PIVOTS.Pelvis[0], -CAPYBARA_PIVOTS.Pelvis[1], 0); bones.Pelvis.add(worn); }
   };
-  let equipment=attachEquipment(initialLoadout);
-  let loadout=initialLoadout;
-  let state:CapybaraState='idle';
-  let gait:CapybaraGait=makeCapybaraGait();
-  let pose:CapybaraPose=initialCapybaraPose();
-  let lookTarget:THREE.Vector3|null=null;
-  const temp=new THREE.Vector3();
-  let disposed=false;
-  const model:CapybaraModel={
-    group,body,riderSocket,hitchSocket,loadout,state,
-    setState(value) { if(disposed)return; state=value; model.state=value; },
-    setLoadout(value) {
-      if(disposed||loadout===value)return;
-      equipment.removeFromParent(); disposeCapybaraAccessories(equipment);
-      equipment=attachEquipment(value);
-      loadout=value; model.loadout=value;
-    },
-    setLookTarget(value){lookTarget=value;},
-    update(dt,groundSpeed) {
-      if(disposed)return;
-      // Keep a loaded carriage upright: side-lying visual requires releasing the hitch.
-      const wanted=draftEquipment.has(loadout)&&(state==='rest'||state==='sleep')?'idle':state;
-      let yaw=0,pitch=0;
-      if(lookTarget && (wanted==='idle'||wanted==='walk'||wanted==='follow')){
-        group.updateWorldMatrix(true,false);
+  wear(initialLoadout);
+  const model: CapybaraModel = {
+    group, mesh, bones, riderSocket: bones.SocketRider, hitchSocket: bones.SocketHitch, animator, loadout: initialLoadout, lod: 0,
+    setLoadout(value) { if (disposed || model.loadout === value) return; wear(value); model.loadout = value; },
+    setLookTarget(value) { lookTarget = value; },
+    play: (behavior) => !disposed && animator.play(behavior),
+    update(dt, motion) {
+      if (disposed || model.lod === 2) return;
+      // Distant animals refresh their pose every third frame with the accumulated time.
+      pending += Math.max(0, Number.isFinite(dt) ? dt : 0);
+      if (model.lod === 1 && ++tick % 3) return;
+      const source = typeof motion === 'number' ? { speed: motion } : motion;
+      Object.assign(input, { turnRate: 0, load: 0, rider: false, groundPitch: 0, lookYaw: undefined, lookPitch: undefined }, source);
+      if (lookTarget && model.lod === 0 && source.lookYaw === undefined) {
+        group.updateWorldMatrix(true, false);
         temp.copy(lookTarget); group.worldToLocal(temp);
-        const dx=temp.x-.64, dy=temp.y-1.14, dz=temp.z;
-        yaw=Math.atan2(dz,dx);
-        pitch=Math.atan2(dy,Math.sqrt(dx*dx+dz*dz));
+        const dx = temp.x - CAPYBARA_PIVOTS.Head[0], dy = temp.y - CAPYBARA_PIVOTS.Head[1];
+        input.lookYaw = Math.atan2(temp.z, dx);
+        input.lookPitch = Math.atan2(dy, Math.hypot(dx, temp.z));
       }
-      pose=advanceCapybaraPose(pose,{dt,speed:groundSpeed,state:wanted,lookYaw:yaw,lookPitch:pitch});
-      gait=advanceCapybaraGait(gait,{dt,speed:pose.walkWeight>0?groundSpeed:0});
-      // Wheels are children of the same animal-root transform; no world-space detach.
-      advanceCapybaraEquipment(equipment,groundSpeed*Math.max(0,Math.min(.1,dt)));
-      uniforms.phase.value=gait.phase;
-      uniforms.influence.value=gait.influence*pose.walkWeight;
-      uniforms.yaw.value=pose.headYaw;
-      uniforms.pitch.value=pose.headPitch;
-      uniforms.breathe.value=pose.breathing;
-      uniforms.eyesClosed.value=pose.eyesClosed;
-      poseRoot.rotation.x=pose.roll;
-      // Keep barrel near floor as it rolls, without changing the physics controller.
-      poseRoot.position.y=.96-.045*Math.sin(pose.roll);
+      const pose = animator.update(input, pending);
+      pending = 0;
+      applyCapybaraPose(bones, pose);
+      mesh.material = pose.eyesClosed > 0.5 ? sharedMaterials().closed : sharedMaterials().open;
     },
-    dispose(){
-      if(disposed)return;
-      disposed=true;
-      equipment.removeFromParent(); disposeCapybaraAccessories(equipment);
-      poseRoot.remove(body); material.dispose();
+    dispose() {
+      if (disposed) return;
+      disposed = true;
+      worn?.removeFromParent();
+      mesh.skeleton.dispose();
       group.clear();
     },
   };
   return model;
+}
+/** Geometry and materials are shared by every instance; state and skeleton are per animal. */
+export async function createCapybaraModel(initialLoadout: CapybaraLoadout = 'none'): Promise<CapybaraModel> {
+  return buildCapybaraModel(await loadGeometry(), initialLoadout);
 }

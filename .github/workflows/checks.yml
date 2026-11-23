@@ -38,6 +38,8 @@ jobs:
       - run: git diff --exit-code -- public/maps
       - run: npm run assets:hamster
       - run: git diff --exit-code -- public/models/hamster.glb
+      - run: npm run assets:capybara
+      - run: git diff --exit-code -- public/models/capybara.glb
       - run: npm run build
       - run: node tools/verify-static-build.mjs
       - run: npx playwright install --with-deps chromium

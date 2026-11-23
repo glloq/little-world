@@ -13,6 +13,7 @@
     "compile:map": "node --experimental-strip-types tools/compile-map.mjs",
     "assets:squirrel": "node --experimental-strip-types tools/generate-squirrel.mjs",
     "assets:hamster": "node --experimental-strip-types tools/generate-hamster.mjs",
+    "assets:capybara": "node --experimental-strip-types tools/generate-capybara.mjs",
     "test:studio": "node tools/test-studio-browser.mjs",
     "compile:project": "node --experimental-strip-types tools/compile-project.mjs",
     "generate:beta": "node --experimental-strip-types tools/generate-beta.mjs",

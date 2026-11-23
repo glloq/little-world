@@ -1,0 +1,35 @@
+<!doctype html>
+<meta charset="utf-8"><title>Capybara rig lab (dev only: npm run dev)</title>
+<style>html,body{margin:0;height:100%;background:#9cc3d6;font:13px sans-serif}#ui{position:fixed;left:8px;top:8px;display:flex;gap:4px;flex-wrap:wrap;max-width:70vw}</style>
+<div id="ui"></div>
+<script type="module">
+// Development viewer for the runtime rig: it imports the real modules, no duplicated model.
+import * as THREE from 'three';
+import { createCapybaraModel } from '/little-world/src/capybara/capybara-model.ts';
+import { CAPYBARA_BEHAVIOR_NAMES } from '/little-world/src/capybara/capybara-animation.ts';
+import { CAPYBARA_LOADOUTS, buildCapybaraVehicle, isCapybaraVehicle, CAPYBARA_HITCH_X } from '/little-world/src/capybara/capybara-accessories.ts';
+const q = new URLSearchParams(location.search);
+const renderer = new THREE.WebGLRenderer({ antialias: true }); document.body.append(renderer.domElement);
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x9cc3d6);
+scene.add(new THREE.HemisphereLight(0xffffff, 0x556644, 1.6)); const sun = new THREE.DirectionalLight(0xffffff, 1.4); sun.position.set(3, 6, 4); scene.add(sun);
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), new THREE.MeshStandardMaterial({ color: 0x7da35c })); ground.rotation.x = -Math.PI / 2; scene.add(ground);
+const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 100);
+const yaw = Number(q.get('yaw') ?? 0.9), dist = Number(q.get('dist') ?? 7);
+camera.position.set(Math.cos(yaw) * dist, 2.2, Math.sin(yaw) * dist); camera.lookAt(-0.5, 0.8, 0);
+const model = await createCapybaraModel(q.get('loadout') ?? 'none'); scene.add(model.group);
+let vehicle = null;
+const setLoadout = (kind) => { model.setLoadout(kind); vehicle?.group.removeFromParent(); vehicle = isCapybaraVehicle(kind) ? buildCapybaraVehicle(kind) : null;
+  if (vehicle) { vehicle.group.position.x = CAPYBARA_HITCH_X; scene.add(vehicle.group); } };
+setLoadout(q.get('loadout') ?? 'none');
+let speed = Number(q.get('speed') ?? 0), turn = Number(q.get('turn') ?? 0);
+const ui = document.getElementById('ui');
+const button = (label, run) => { const b = document.createElement('button'); b.textContent = label; b.onclick = run; ui.append(b); };
+for (const name of CAPYBARA_BEHAVIOR_NAMES) button(name, () => { speed = 0; model.play(name); });
+for (const [label, v] of [['walk', 1.1], ['fast', 1.9], ['trot', 3.2], ['back', -0.6], ['stop', 0]]) button(label, () => { speed = v; });
+for (const kind of CAPYBARA_LOADOUTS) button(kind, () => setLoadout(kind));
+if (q.get('play')) model.play(q.get('play'));
+const resize = () => { renderer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); }; addEventListener('resize', resize); resize();
+let last = performance.now();
+window.lab = { model, step(seconds) { for (let i = 0; i < seconds * 30; i++) { model.update(1 / 30, { speed, turnRate: turn, load: vehicle ? 0.6 : 0 }); vehicle?.roll(speed / 30); } renderer.render(scene, camera); } };
+if (!q.get('manual')) (function frame(now) { const dt = Math.min(0.05, (now - last) / 1000); last = now; model.update(dt, { speed, turnRate: turn, load: vehicle ? 0.6 : 0 }); vehicle?.roll(speed * dt); renderer.render(scene, camera); requestAnimationFrame(frame); })(last);
+</script>

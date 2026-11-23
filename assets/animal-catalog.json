@@ -9,7 +9,6 @@
       "license": "project-original",
       "source": "Original Little World capybara V6.3 prototype; approved silhouette retained",
       "runtimeModule": "src/capybara/capybara-model.ts",
-      "locomotionModule": "src/capybara/capybara-gait.ts",
       "meshCount": 1,
       "vertexCount": 802,
       "triangles": 1600,
@@ -21,21 +20,49 @@
       },
       "animations": [
         "idle",
-        "walk-procedural-preview",
-        "follow-head",
-        "rest-side-preview",
-        "sleep-side-preview",
-        "wake-preview"
+        "walk",
+        "fast_walk",
+        "trot",
+        "walk_backward",
+        "turn_left",
+        "turn_right",
+        "start_walk",
+        "stop_walk",
+        "look_around",
+        "eat",
+        "drink",
+        "graze",
+        "sniff",
+        "sit",
+        "lie_down",
+        "rest",
+        "sleep",
+        "wake_up",
+        "stand_up",
+        "shake",
+        "react",
+        "happy",
+        "afraid",
+        "wait_loading",
+        "walk_rider",
+        "walk_loaded",
+        "draft_light",
+        "draft_heavy"
       ],
       "sockets": [
         "SocketRider",
-        "SocketHitch"
+        "SocketSaddle",
+        "SocketPackLeft",
+        "SocketPackRight",
+        "SocketHarness",
+        "SocketHitch",
+        "SocketHead"
       ],
-      "status": "prototype-ready-for-world-integration",
-      "worldSpawnEnabled": false,
-      "rideableEnabled": false,
-      "draftEnabled": false,
-      "notes": "Procedural GPU preview and separate removable primitive accessories; no rigged skeleton, articulated cart, validated sleeping ground contact, mount controls, wheels physics or world spawn.",
+      "status": "rigged-runtime",
+      "worldSpawnEnabled": "opt-in (libraries.animals / ?animalDemo=1)",
+      "rideableEnabled": true,
+      "draftEnabled": true,
+      "notes": "Runtime skins the OBJ procedurally (one SkinnedMesh, shared geometry/materials); capybara.glb is generated for Blender exchange and is not loaded by the game. Simulation lives in src/animals/.",
       "loadouts": [
         "none",
         "saddle",
@@ -44,8 +71,23 @@
         "wagon",
         "caravan"
       ],
-      "presentationModule": "src/capybara/capybara-pose.ts",
-      "equipmentModule": "src/capybara/capybara-accessories.ts"
+      "presentationModule": "src/capybara/capybara-animation.ts",
+      "equipmentModule": "src/capybara/capybara-accessories.ts",
+      "exchangeFile": "models/capybara.glb",
+      "exchangeGenerator": "tools/generate-capybara.mjs",
+      "rigModule": "src/capybara/capybara-rig.ts",
+      "skeleton": {
+        "bones": 26,
+        "deformBones": 19,
+        "maxInfluences": 4,
+        "binding": "procedural-weights-from-rest-positions"
+      },
+      "vehicles": [
+        "cart",
+        "wagon",
+        "caravan"
+      ],
+      "locomotionModule": "src/capybara/capybara-gait.ts"
     }
   ]
 }
