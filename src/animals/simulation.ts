@@ -48,6 +48,8 @@ export interface AnimalSimulationOptions {
   /** Display name of an owner entity, for refusal messages. */
   ownerName?: (id: string) => string;
   questDone?: (questId: string) => boolean;
+  /** Called before an animal moves (hosts ignore its own colliders meanwhile); null afterwards. */
+  moving?: (animal: AnimalState | null) => void;
 }
 const no = (reason: string): RuleResult => ({ ok: false, reason });
 const YES: RuleResult = { ok: true };
@@ -278,7 +280,9 @@ export function createAnimalSimulation(options: AnimalSimulationOptions) {
   function stay(animalId: string): void { const a = animals.get(animalId); if (a && a.mode === 'follow') { a.mode = 'stay'; a.target = null; } }
 
   function move(a: AnimalState, input: DriveInput, dt: number): void {
+    options.moving?.(a);
     const result = stepAnimal(a.body, input, a.species, limitsOf(a), env, dt, vehicleOf(a)?.trailer ?? null);
+    options.moving?.(null);
     a.blocked = result.blocked; a.travelled = result.travelled;
   }
   function still(a: AnimalState, dt: number): void { if (a.body.speed !== 0 || a.body.turnRate !== 0) move(a, { throttle: 0, steer: 0, gait: 'walk' }, dt); else a.travelled = 0; }

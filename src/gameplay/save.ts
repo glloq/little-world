@@ -1,3 +1,4 @@
+import {parseAnimalsSave} from '../animals/save.ts';
 import {finite,identifier,record,stateValue,type ObjectiveStatus,type Point3,type StateValue} from './schema.ts';
 import {parseQuestInstance} from '../quests/validation.ts';
 import {parseNpcWorkshopAccount,type NpcWorkshopAccountV1} from '../npc-life/economy.ts';
@@ -38,7 +39,8 @@ export interface GameSaveV2 extends Omit<GameSaveV1,'schemaVersion'> {schemaVers
   /** Player satiety (0..100) and fractional auto-charge progress, optional for older saves. */
   satiety?:number;boostRechargeProgress?:number;
   /** Board dropped in this island's sea. Missing = packed or older save. */
-  surfBoard?:SurfBoardPlacement|null;}
+  surfBoard?:SurfBoardPlacement|null;
+  /** Animals, mounts and vehicles changed during play (doc 110); absent on older saves. */animals?:import('../animals/save.ts').AnimalsSaveV1;}
 export type GameSave=GameSaveV2;
 /** Activity payloads above this size go to IndexedDB (when available). */
 export const INLINE_ACTIVITY_LIMIT=256*1024;
@@ -110,6 +112,7 @@ export function parseGameSave(value:unknown):GameSaveV2 {
   if(v.equippedItemId!==undefined&&v.equippedItemId!==null)assert(typeof v.equippedItemId==='string'&&identifier(v.equippedItemId),'Objet équipé invalide');
   const loadout=v.loadout===undefined?undefined:parsePlayerLoadout(v.loadout);
   const surfBoard=v.surfBoard===undefined?undefined:parseSurfBoardPlacement(v.surfBoard);
+  const animals=v.animals===undefined?undefined:parseAnimalsSave(v.animals);
   const flightProgress=parseFlightProgress(v.flightProgress);
   // Pre-satiety saves had a 200..280-unit reservoir: accept them and clamp on restore.
   if(v.gasReserve!==undefined)assert(typeof v.gasReserve==='number'&&Number.isFinite(v.gasReserve)&&v.gasReserve>=0&&v.gasReserve<=280,'Réserve de gaz invalide');
@@ -117,7 +120,7 @@ export function parseGameSave(value:unknown):GameSaveV2 {
   if(v.boostRechargeProgress!==undefined)assert(finite(v.boostRechargeProgress,0,1),'Progression de recharge invalide');
   if(v.external!==undefined)assert(record(v.external)&&typeof v.external.key==='string'&&v.external.key.length<=300&&finite(v.external.bytes,0,1e9),'Référence de données de partie invalide');
   assert(new TextEncoder().encode(JSON.stringify({...v,mines:undefined,farms:undefined,workshops:undefined,markets:undefined})).byteLength<=2_000_000,'Sauvegarde trop volumineuse');
-  return structuredClone({...v,...(v.questsLocal!==undefined?{questsLocal}:{}),flightProgress,gasReserve:Math.min(gasCapacity({}),typeof v.gasReserve==='number'?v.gasReserve:GAS.legacyInitial),satiety:v.satiety??100,boostRechargeProgress:v.boostRechargeProgress??0,schemaVersion:2,dialogueFlags:v.dialogueFlags??{},space:v.space??null,mines,farms,workshops,markets,cargoPurchaseRevision:v.cargoPurchaseRevision??0,...(loadout!==undefined?{loadout}:{}),...(surfBoard!==undefined?{surfBoard}:{})}) as unknown as GameSaveV2;
+  return structuredClone({...v,...(animals?{animals}:{}),...(v.questsLocal!==undefined?{questsLocal}:{}),flightProgress,gasReserve:Math.min(gasCapacity({}),typeof v.gasReserve==='number'?v.gasReserve:GAS.legacyInitial),satiety:v.satiety??100,boostRechargeProgress:v.boostRechargeProgress??0,schemaVersion:2,dialogueFlags:v.dialogueFlags??{},space:v.space??null,mines,farms,workshops,markets,cargoPurchaseRevision:v.cargoPurchaseRevision??0,...(loadout!==undefined?{loadout}:{}),...(surfBoard!==undefined?{surfBoard}:{})}) as unknown as GameSaveV2;
 }
 export const GAME_SAVE_PREFIX='little-world:game-save:v1:';
 export interface SaveStorage {readonly length:number;key(index:number):string|null;getItem(key:string):string|null;setItem(key:string,value:string):void;removeItem(key:string):void;}

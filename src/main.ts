@@ -53,7 +53,7 @@ import {
   presentationPixelRatio,
 } from './frame-clock';
 import './style.css';
-import {waterSurface,riverX,isLegacyTerrain} from './terrain.ts';
+import {waterSurface,riverX,isLegacyTerrain,insideWorld} from './terrain.ts';
 import {createUnderwaterView} from './render/underwater-view.ts';
 import {createShaderWarmup} from './render/shader-warmup.ts';
 import {createDiveTracker,createSkiRunTracker,createSurfRideTracker,stepDiveTracker,stepSkiRun,stepSurfRide} from './gameplay/activity-trackers.ts';
@@ -315,6 +315,8 @@ try{
     audio=createAudioController(withFishingSounds(activeIsland?withFerryBells(catalogue):catalogue),{baseUrl:import.meta.env.BASE_URL});}
  }catch{console.warn('Audio indisponible : le jeu reste silencieux.');}
 const {createGroundProbe}=await import('./audio/world-probe.ts'),groundProbe=createGroundProbe();
+// Late-bound: the animal host is created after the gameplay view that saves it.
+const animalBridge:{host:import('./animals/host.ts').AnimalHost|null}={host:null};
 let gameplay:GameplayView|null=null;
 let npcActorActions:null|{moveTo:(id:string,p:{x:number;y:number;z:number})=>boolean;talkTo:(id:string,p:{x:number;z:number})=>boolean}=null;
 if(playable){
@@ -331,7 +333,7 @@ if(playable){
     onNpcStartDialogue:(id)=>npcActorActions?.talkTo(id,{x:player.position.x,z:player.position.z})??false,
     onSound:(id,p)=>audio?.playSound(id,p),collisions:playable.collisions,temporary:!!(studioTest||buildScope),saveScope:studioTest?.snapshotId??buildScope??undefined,getPosition:()=>({x:player.position.x,y:player.position.y,z:player.position.z}),objects:world.objects,showInfo,
     activities:playable.activities,getSpace:()=>player.space,
-    getGas:()=>gasLevel(player),getSatiety:()=>satietyLevel(player),getRechargeProgress:()=>player.boostRechargeProgress??0,getSurfBoard:()=>placedSurfBoard,
+    getGas:()=>gasLevel(player),getSatiety:()=>satietyLevel(player),getRechargeProgress:()=>player.boostRechargeProgress??0,getSurfBoard:()=>placedSurfBoard,getAnimals:()=>animalBridge.host?.save(),setAnimals:saved=>{animalBridge.host?.restore(saved);},
     setSurfBoard:board=>{placedSurfBoard=board&&isSurfBoardWaterSafe(board,waterSurface,terrainHeight,(x,z)=>!!surfFieldAt(x,z))?board:null;},
     getGasProgress:()=>structuredClone(flightProgress),
     setGasProgress:value=>{flightProgress={...value,currentFlightDistance:0,currentFlightNoGas:0,currentCombo:0,lastPulseAt:-1};player.gasCapacityLevel=value.capacityLevel;player.gasPowerLevel=value.powerLevel;player.gasControlLevel=value.controlLevel;},
@@ -339,7 +341,7 @@ if(playable){
     ...(isLegacyTerrain()?{}:{gathering:{ctx:geoContext,seed:definition.config.seed,inside:(x:number,z:number)=>Math.abs(x)<=(definition.config.width??200)/2&&Math.abs(z)<=(definition.config.length??600)/2,
       // Interior cells only: there the renderer's world bounds (3 m margin) and these agree.
       cached:(cx:number,cz:number)=>{const m=DRESSING_CELL_M,hw=(definition.config.width??200)/2-4,hl=(definition.config.length??600)/2-4;return cx*m>=-hw&&(cx+1)*m<=hw&&cz*m>=-hl&&(cz+1)*m<=hl?world.dressingCell(cx,cz):undefined;}}}),
-    setPosition:(p,space)=>{gameplay?.fishing.cancel();stopFlightCourse();stopRace();player.space=space??undefined;player.position.set(p.x,p.y,p.z);player.velocity.set(0,0,0);player.mode='air';player.oxygen=MAX_OXYGEN;player.glideReady=false;player.snowAirborne=false;player.coyoteLeft=0;player.jumpBufferLeft=0;aboard=false;keySet.clear();jumpQueue=0;actionQueue=0;npcs.dialogue.close();previousPlayerPosition.copy(player.position);renderPosition.copy(player.position);updateCamera(1);}
+    setPosition:(p,space)=>{animalBridge.host?.abandon();gameplay?.fishing.cancel();stopFlightCourse();stopRace();player.space=space??undefined;player.position.set(p.x,p.y,p.z);player.velocity.set(0,0,0);player.mode='air';player.oxygen=MAX_OXYGEN;player.glideReady=false;player.snowAirborne=false;player.coyoteLeft=0;player.jumpBufferLeft=0;aboard=false;keySet.clear();jumpQueue=0;actionQueue=0;npcs.dialogue.close();previousPlayerPosition.copy(player.position);renderPosition.copy(player.position);updateCamera(1);}
   });
   if(metricsEnabled){const g=gameplay;Object.assign(window,{littleWorldDebug:{/** Developer/test hook (metrics mode only): give items. */grant:(itemId:string,quantity:number)=>g.runtime.grantItems([{itemId,quantity}]),
     /** Developer/test hook: move the player on the ground and turn the camera (heading in rad). */
@@ -396,7 +398,10 @@ const worldClock=gameplay?.runtime.clock??new WorldClock(),climate=gameplay?.run
 const npcBridgeSurfaces=new Map(definition.placements.filter(p=>p.assetId==='settlement.bridge')
   .map(p=>[p.id,p] as const));
 const npcExteriorDoors=new Set(definition.placements.filter(p=>p.assetId==='settlement.door').map(p=>p.id));
-const npcs = createNPCSystem(scene, definition.npcs,isLegacyTerrain()?undefined:[],gameplay?.dialogueSession,{
+// Animals (doc 110): opt-in. Without `libraries.animals` (or ?animalDemo=1) no animal module is fetched.
+const animalDemo=searchParams.get('animalDemo')==='1'&&!isLegacyTerrain()?(await import('./animals/demo.ts')).demoAnimals({x:player.position.x,z:player.position.z},{ground:terrainHeight,water:waterSurface,inside:insideWorld}):null;
+const animalDefinitions=animalDemo||playable?.animals?{...(playable?.animals??{}),...(animalDemo?.animals??{})}:null;
+const npcs = createNPCSystem(scene, animalDemo?[...definition.npcs,...animalDemo.npcs]:definition.npcs,isLegacyTerrain()?undefined:[],gameplay?.dialogueSession,{
   worldTime:()=>worldClock.time,dayLengthSeconds:climate.definition.dayLengthSeconds,
   initialDayPhase:climate.definition.initialDayPhase,paths:definition.paths,
   // Gameplay tracks actual temporary/manual exterior-door state transitions.
@@ -703,6 +708,17 @@ const minigameHost=await (async()=>{
     ground:isLegacyTerrain()?undefined:(x,z)=>{try{const g=classifyPoint(geoContext(),x,z);return {biome:g.biome,material:g.material};}catch{return null;}},
     chips:(x,y,z,kind,count)=>{chipAt.set(x,y,z);impacts.spawn(chipAt,kind,count);}});
 })();
+const animalHost=animalDefinitions?(await import('./animals/host.ts')).createAnimalHost({scene,animals:animalDefinitions,
+  ground:terrainHeight,water:waterSurface,inside:insideWorld,collision:gameplay?.collision??null,
+  biome:isLegacyTerrain()?undefined:(x,z)=>{try{const g=classifyPoint(geoContext(),x,z);return g.occupation==='none'||g.occupation==='reserved'?g.biome:'village';}catch{return null;}},
+  npcs:()=>npcs.states,purse:gameplay?.purse??null,itemName:id=>gameplay?.itemName(id)??id,
+  inventory:()=>gameplay?Object.entries(gameplay.runtime.state.inventory).filter(([id,n])=>n>0&&id!=='coin').map(([itemId,count])=>({itemId,name:gameplay!.itemName(itemId),count})):[],
+  showInfo:(message,tone)=>showInfo(message,tone),panelHost:document.body,
+  onEvent:e=>{if(e.type==='animal.mounted'||e.type==='animal.acquired')gameplay?.emitGameplayEvent({type:e.type,animalId:e.animalId});else if(e.type==='animal.hitched')gameplay?.emitGameplayEvent({type:e.type,animalId:e.animalId,vehicleId:e.vehicleId});},
+  // Animals share the character budget: at most half of the full rigs of the current level.
+  rigBudget:()=>Math.max(2,Math.floor(budget.resources.fullCharacters/2))}):null;
+animalBridge.host=animalHost;
+if(metricsEnabled&&animalHost)Object.assign((window as unknown as {littleWorldDebug?:object}).littleWorldDebug??{},{animals:animalHost});
 if(metricsEnabled&&minigameHost)Object.assign((window as unknown as {littleWorldDebug?:object}).littleWorldDebug??{},{minigames:minigameHost});
 world.update(0, player.position);
 {
@@ -1155,7 +1171,8 @@ window.addEventListener('keydown', (e) => {
   if (minigameHost?.key(e.code)) return; // 1…9: mini-game mode before starting.
   keySet.add(e.code);
   if (e.code === 'Space') jumpQueue++;
-  if (e.code === 'KeyX' || (e.code.startsWith('Shift')&&shiftTogglesRoll(player.mode)&&!aboard)) rollQueue++;
+  if (e.code === 'KeyX' || (e.code.startsWith('Shift')&&shiftTogglesRoll(player.mode)&&!aboard&&!animalHost?.riding)) rollQueue++;
+  if ((e.code === 'KeyG' || e.code === 'KeyH') && !e.repeat && started && !aboard) animalHost?.key(e.code, player);
   if (e.code === 'KeyE'){
     if(currentTarget()?.targetType==='mine-wall')queuedMineStrike=mineRhythmHud.sample(performance.now());
     actionQueue++;
@@ -1317,7 +1334,7 @@ function updateCamera(dt: number) {
   const target = cameraTarget.copy(renderPosition);
   // A compact chase camera keeps the opening readable from inside the curled
   // lip; never rotate the actual physics camera/heading to follow the tumble.
-  target.y += aboard ? 2.9 : inSurfTube ? .93 : 1.35;
+  target.y += aboard ? 2.9 : animalHost?.riding ? 1.1 : inSurfTube ? .93 : 1.35;
   const followDistance=inSurfTube?Math.min(distance,3.15):distance+speedCue.extraDistance;
   const cosPitch = Math.cos(pitch);
   const x = target.x - Math.sin(yaw) * cosPitch * followDistance;
@@ -1497,6 +1514,7 @@ function currentTarget():TargetDescriptor|null{
   }
   let unusable:TargetDescriptor|null=null;
   return resolveTarget([
+    ()=>animalHost?.riding?animalHost.target(player):null,
     ()=>aboard?boatTarget(true):null,
     // Merchant trade is independent from ferry boarding.
     ()=>merchantNear()?maritimeTradeTarget():null,
@@ -1515,6 +1533,7 @@ function currentTarget():TargetDescriptor|null{
       if(portN1Layout)return ferryNow.present&&canBoardFerry()?ferryTarget(true):null;
       return (shore<2.5||(d<3.5&&Math.abs(player.position.y-ferryDock.y)<4))?ferryTarget(ferryNow.present):null;},
     ()=>{const n=npcs.talker(player.position);return n?npcTarget(n):null;},
+    ()=>aboard?null:animalHost?.target(player)??null,
     ()=>fleet.nearest(player.position.x,player.position.y,player.position.z)?boatTarget(false):null,
     ()=>{if(!gameplay||!player.space)return null;const p=gameplay.activities.digPreview(player.position,player.space,forwardOf());return p?mineWallTarget({...p,rewardName:itemName(p.reward?.itemId)}):null;},
     ()=>{const s=nearShop();return s?shopTarget({entityId:s.id,name:SHOPS[s.kind].name}):null;},
@@ -1587,7 +1606,7 @@ function tick(dt: number) {
   if(gameplay)gameplay.update(dt);else worldClock.advance(dt);
   // Boosts recharge even when walking, swimming, on a boat or taking a lift.
   // The ordinary player simulation handles other motion states below.
-  if(aboard||liftRide)stepBoostVitals(player,dt);
+  if(aboard||liftRide||animalHost?.riding)stepBoostVitals(player,dt);
   if(cargoService){
     const cargoMinute=worldGameMinute(worldClock.time,climate.definition.dayLengthSeconds);
     if(cargoMinute!==lastCargoMinute){
@@ -1624,6 +1643,8 @@ function tick(dt: number) {
   // A sold or discarded board cannot remain duplicated in the water.
   if(placedSurfBoard&&!surfDemo&&!gameplay?.has('tool:surfboard'))placedSurfBoard=null;
   const keys = input();
+  // Animals step on the same fixed tick; a mounted player is carried by the simulation.
+  animalHost?.tick(dt,{...keys,trot:codeHeld('ShiftLeft','ShiftRight')||!!mobileTouch?.accelerateHeld},player,{night:climate.state(worldClock.time).sunAltitude<0,hoursPerSecond:24/climate.definition.dayLengthSeconds});
   if(!liftRide&&resortLiftList.length){
     const near=nearestLiftBase(resortLiftList,player.position.x,player.position.z);
     if(near&&liftHint!==near.id&&!aboard)showInfo('E : prendre '+near.name);
@@ -1644,6 +1665,10 @@ function tick(dt: number) {
     // The rider stays on the boarding platform until the reserved seat arrives.
     const base=liftRide.lift.lift.path[0];player.position.set(base.x,terrainHeight(base.x,base.z)+.05,base.z);
     player.velocity.set(0,0,0);player.mode='ground';jumpQueue=0;
+  } else if (animalHost?.riding) {
+    // The mount owns the movement (animalHost.tick below); on-foot actions are suspended.
+    jumpQueue = 0; rollQueue = 0; surfQueue = 0;
+    if(activityQueue>0||cropQueue>0){activityQueue=0;cropQueue=0;showInfo('Descendez d’abord de votre monture (E).','warning');}
   } else if (aboard) {
     updateBoat(boat, { throttle: mobileTouch?.accelerateHeld?Math.max(1,keys.forward):keys.forward, steer: keys.right }, dt);boatSteer=keys.right;
     // The world keeps going while sailing: swells advance on the same 30 Hz tick.
@@ -1785,8 +1810,11 @@ function tick(dt: number) {
       if(liftRide)showInfo(liftRide.lift.name+' : attente du prochain '+(liftRide.lift.kind==='gondola'?'cabine':liftRide.lift.kind==='draglift'?'perche':'siège'));
     } else if (target?.targetType === 'maritime-trade') {
       gameUi?.openMaritimeTrade();
+    } else if (target?.targetType === 'animal') {
+      const done=animalHost?.act(player);
+      if(done){player.position.set(done.dismounted.x,done.dismounted.y+.05,done.dismounted.z);player.velocity.set(0,0,0);player.mode='air';player.glideReady=false;}
     } else if (target?.targetType === 'ferry') {
-      gameUi?.openFerry();
+      animalHost?.abandon();gameUi?.openFerry();
     } else if (target?.targetType === 'boat' && aboard) {
       aboard = false;fleet.leave();
       const dock = isLegacyTerrain() ? null : dryLanding(boat);
@@ -1934,8 +1962,11 @@ function draw(now: number) {
   for(const b of fleet.boats)if(b===playerBoat||b===fleet.current||b.state.waveNormal)fleet.sync(b,renderTime,frame.alpha);
   if(portN1View)portN1View.update(renderTime,player.position);else ferryView?.update(renderTime);
   snowLiftView?.update(renderTime);
+  // Animals: interpolated visuals; a mounted player sits on the animated rider socket.
+  const riderSeat=animalHost?.present(delta,frame.alpha,camera.position,renderPosition)??null;
+  if(riderSeat)renderPosition.copy(riderSeat).y-=.3;
   character.group.position.copy(renderPosition);
-  character.setAboard(aboard);
+  character.setAboard(aboard||!!animalHost?.riding);
   if(gameplay){const f=gameplay.fishing.state;character.setFishing(f.phase!=='idle'&&f.castAt?{x:f.castAt.x,y:waterSurface(f.castAt.x,f.castAt.z)??getTerrainConfig().seaLevel,z:f.castAt.z,biting:f.phase==='bite'}:null);}
   character.update(player, delta, elapsed);
   applyMiniGameGaze(delta);

@@ -46,14 +46,14 @@ export interface AnimalSpeciesDefinition {
   rideable: boolean; packUnits: number;
   vehicles: Record<AnimalVehicleKind, VehicleSpec>;
 }
-const S = 0.62;
+const S = 0.7;
 export const ANIMAL_SPECIES: Record<string, AnimalSpeciesDefinition> = {
   capybara: {
     id: 'capybara', name: 'Capybara', modelScale: S,
-    radius: 0.42, halfLength: 0.95, height: 1.15,
+    radius: 0.47, halfLength: 1.05, height: 1.3,
     speeds: { walk: 1.3, fast: 2.2, trot: 3.8, reverse: 0.6 },
     acceleration: 2.2, braking: 4.5,
-    turnRate: 1.6, pivotRate: 1.1, turnRadius: 1.4,
+    turnRate: 1.6, pivotRate: 1.1, turnRadius: 1.5,
     maxSlope: 0.6, maxWade: 0.55,
     hitchOffset: 1.65 * S, riderSeat: { back: 0.48 * S, height: 1.73 * S },
     habitats: { wetland: 1, river: 1, lake: 1, meadow: 0.8, coast: 0.35, forest: 0.3, scrub: 0.15, village: 0.1 },
