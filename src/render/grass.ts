@@ -111,7 +111,7 @@ export function createGrass(parent: THREE.Object3D, seed: number, sampler: (x: n
   function dispatch() {
     while (queue.length && inFlight.size < 4) {
       const [x, z] = queue.shift()!, key = x + ':' + z, prof = profile;
-      const task = workers!.run<GrassCellData>({ kind: 'grass', seed, cx: x, cz: z, density: GRASS_PROFILES[prof].density }, 2500 + inFlight.size);
+      const task = workers!.run<GrassCellData>({ kind: 'grass', seed, cx: x, cz: z, density: GRASS_PROFILES[prof].density }, 1950 + inFlight.size);
       inFlight.set(key, task);
       task.promise.then(({ result, stale, ms }) => {
         if (disposed || inFlight.get(key) !== task) return;

@@ -68,6 +68,8 @@ export interface WorldView {
   placed: PlacedInstances;
   /** Sparse local low-poly vaults, only allocated near player (mobile GPU cap). */
   natural: NaturalView;
+  /** Ecology streaming counters (metrics/benchmarks). */
+  ecologyStats: import('./ecology.ts').EcologyStats;
   /** Near-field faceted rock surfaces for authored cliff lines, budgeted and streamed. */
   cliffs: CliffView;
   refreshCliffs: (terrain?:import('./terrain-generator.ts').TerrainGeneratorDefinition)=>void;
@@ -966,6 +968,7 @@ export function buildWorld(
     terrainWork: terrainView.work,
     placed,
     natural,
+    ecologyStats: ecology.stats,
     cliffs,
     isOccluded:(x,y,z)=>occluded(x,z,y),
     hybrid:{setDebug(on:boolean){dressing?.setDebug(on);buildingImpostors.setDebug(on);},setMode:setHybridMode,setSectors(on:boolean){dressing?.setSectorSize(on?256:512);},getMode:()=>hybridMode,stats:{get mode(){return hybridMode;},trees:dressing?.stats.impostors??null,buildings:buildingImpostors.stats,cache:atlasCacheStats}},

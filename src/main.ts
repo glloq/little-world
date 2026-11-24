@@ -2112,6 +2112,7 @@ function draw(now: number) {
         terrainWork: { ...world.terrainWork },
         dressing: world.dressing ? { ...world.dressing } : null,
         grass: world.grass ? { ...world.grass } : null,
+        ecology: { ...world.ecologyStats },
         inventory: gameplay ? { ...gameplay.runtime.state.inventory } : null,
         minigames:minigameHost&&presentedFrames%15===0?minigameHost.debug():(window as unknown as {littleWorldMetrics?:{minigames:unknown}}).littleWorldMetrics?.minigames??null,
         surfWorld:surfWorldConfig,
