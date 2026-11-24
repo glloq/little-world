@@ -11,6 +11,7 @@
  * (doc 22): dense / balanced / ultra-economy / groundOnly (off). Never touches gameplay. */
 import * as THREE from 'three';
 import {setLinearHex} from './linear-color.ts';
+import {SlotAllocator} from './slot-allocator.ts';
 
 export const GRASS_CELL_M = 16;
 /** Per-instance silhouette variants (height, width, depth factors). */
@@ -151,20 +152,65 @@ export function createGrass(parent: THREE.Object3D, seed: number, sampler: (x: n
     for (const key of [...cells.keys()]) if (!wanted.has(key)) { cells.delete(key); dirty = true; }
     queue = need.sort((a, b) => a[2] - b[2]).map(([x, z]) => [x, z]);
   }
+  // Stable slots (doc 82 step 6): a cell keeps its instance range while it stays drawn, so a
+  // rebuild writes and uploads only the cells that appear or disappear. `?grassUpload=full`
+  // restores the historical full rewrite (A/B).
+  const fullUpload=typeof location!=='undefined'&&new URLSearchParams(location.search).get('grassUpload')==='full';
+  const allocator=new SlotAllocator(capacity),slots=new Map<Cell,{start:number;count:number}>(),wanted=new Map<Cell,number>();
+  const matrixDirty:number[]=[],colorDirty:number[]=[];
+  const matrices=mesh.instanceMatrix.array as Float32Array,colors=mesh.instanceColor!.array as Float32Array;
+  function upload(){
+    mesh.count=allocator.end;mesh.visible=allocator.end>0;
+    let bytes=0;
+    if(matrixDirty.length){mesh.instanceMatrix.clearUpdateRanges();for(let i=0;i<matrixDirty.length;i+=2){mesh.instanceMatrix.addUpdateRange(matrixDirty[i]*16,matrixDirty[i+1]*16);bytes+=matrixDirty[i+1]*64;}mesh.instanceMatrix.needsUpdate=true;}
+    if(colorDirty.length){mesh.instanceColor!.clearUpdateRanges();for(let i=0;i<colorDirty.length;i+=2){mesh.instanceColor!.addUpdateRange(colorDirty[i]*3,colorDirty[i+1]*3);bytes+=colorDirty[i+1]*12;}mesh.instanceColor!.needsUpdate=true;}
+    if(bytes){stats.uploads++;stats.uploadedBytes+=bytes;}
+    matrixDirty.length=colorDirty.length=0;
+  }
+  function place(c:Cell,start:number,k:number){
+    matrices.set(k===c.count?c.matrices:c.matrices.subarray(0,k*16),start*16);colors.set(k===c.count?c.colors:c.colors.subarray(0,k*3),start*3);
+    slots.set(c,{start,count:k});matrixDirty.push(start,k);colorDirty.push(start,k);
+  }
+  /** Contiguous nearest-first layout from scratch (first fill, fragmentation, A/B flag). */
+  function compact(){
+    allocator.reset();slots.clear();matrixDirty.length=colorDirty.length=0;
+    for(const [c,k] of wanted)place(c,allocator.allocate(k),k);
+    matrixDirty.length=colorDirty.length=0;
+    if(allocator.end){matrixDirty.push(0,allocator.end);colorDirty.push(0,allocator.end);}
+    upload();
+  }
+  /** Moves the cell drawn last into an earlier hole while one fits: the drawn range stays tight
+   * (empty slots still cost vertex work) and only the moved cells are uploaded. */
+  function packTail(){
+    while(allocator.holes>0){
+      let tail:Cell|null=null,slot:{start:number;count:number}|null=null;
+      for(const [c,s] of slots)if(!slot||s.start>slot.start){tail=c;slot=s;}
+      if(!tail||!slot)return;
+      const start=allocator.allocate(slot.count);
+      if(start<0)return;
+      if(start>slot.start){allocator.release(start,slot.count);return;}
+      const old=slot.start;matrices.copyWithin(start*16,old*16,(old+slot.count)*16);colors.copyWithin(start*3,old*3,(old+slot.count)*3);
+      matrixDirty.push(start,slot.count);colorDirty.push(start,slot.count);allocator.release(old,slot.count);slot.start=start;
+    }
+  }
   function rebuild() {
-    let n = 0;const matrices = mesh.instanceMatrix.array as Float32Array, colors = mesh.instanceColor!.array as Float32Array;
     // Nearest cells first (capacity); distances computed once, list reused (no per-rebuild garbage).
     const fx=uniforms.uFocus.value.x,fz=uniforms.uFocus.value.z;order.length=0;
     // Hidden layer (sub-pixel tufts at altitude): nothing drawn or uploaded, cells kept.
     if(active)for(const c of cells.values()){c.d=Math.hypot((c.cx+.5)*GRASS_CELL_M-fx,(c.cz+.5)*GRASS_CELL_M-fz);order.push(c);}
     order.sort((a,b)=>a.d!-b.d!);
-    for (const c of order) {
-      const k = Math.min(c.count, capacity - n); if (k <= 0) break;
-      matrices.set(k === c.count ? c.matrices : c.matrices.subarray(0, k * 16), n * 16); colors.set(k === c.count ? c.colors : c.colors.subarray(0, k * 3), n * 3); n += k;
+    wanted.clear();let n=0;
+    for (const c of order) { const k = Math.min(c.count, capacity - n); if (k <= 0) break; wanted.set(c,k); n += k; }
+    if(fullUpload||!active||!slots.size)compact();
+    else{
+      // Cells leaving (or truncated differently): zero-scaled so their slots draw nothing.
+      for(const [c,slot] of slots)if(wanted.get(c)!==slot.count){matrices.fill(0,slot.start*16,(slot.start+slot.count)*16);matrixDirty.push(slot.start,slot.count);allocator.release(slot.start,slot.count);slots.delete(c);}
+      let fits=true;
+      for(const [c,k] of wanted)if(!slots.has(c)){const start=allocator.allocate(k);if(start<0){fits=false;break;}place(c,start,k);}
+      if(fits)packTail();
+      // Too fragmented (no hole fits, or a quarter of the drawn range is empty): lay out again.
+      if(!fits||allocator.holes>capacity*.25)compact();else upload();
     }
-    mesh.count = n; mesh.visible = n > 0; mesh.instanceMatrix.clearUpdateRanges(); mesh.instanceMatrix.addUpdateRange(0, n * 16); mesh.instanceMatrix.needsUpdate = true;
-    if (mesh.instanceColor) { mesh.instanceColor.clearUpdateRanges(); mesh.instanceColor.addUpdateRange(0, n * 3); mesh.instanceColor.needsUpdate = true; }
-    stats.uploads++;stats.uploadedBytes+=n*19*4;
     let cellBytes=0;for(const c of order)cellBytes+=c.matrices.byteLength+c.colors.byteLength;stats.bytes=capacity*19*4+cellBytes;
     stats.tufts = n; stats.triangles = n * 3; stats.calls = n ? 1 : 0; stats.cells = cells.size;
   }

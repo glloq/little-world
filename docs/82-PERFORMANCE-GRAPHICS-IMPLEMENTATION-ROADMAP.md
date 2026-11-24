@@ -131,6 +131,7 @@ Plan détaillé et règles de gate : [perf/PLAN-OPTIMISATION.md](perf/PLAN-OPTIM
 | OPT-2 — falaises/structures (étape 3) | **non applicable** : 0 falaise et 0 structure naturelle publiées | — |
 | OPT-3 — objets statiques (étape 4) | **non retenue** : boucle mesurée à 0,08 ms/image | — |
 | Étape 5 — allocations | **IMPLEMENTED, TESTED, BENCHMARKED-SWIFTSHADER** (partiel : cueillette, herbe, chemins) | allocations −6 à −12 %, `update` p95 −6,5 à −7 % |
+| Étape 6 — herbe, plages stables | **IMPLEMENTED, TESTED, BENCHMARKED-SWIFTSHADER** | octets d'herbe −75 à −94 %, envoi GPU −34 à −57 % |
 | OPT-4, OPT-5, OPT-7 … OPT-9 | SPECIFIED | voir le plan |
 
 ## Travail évité sur la boucle de rendu

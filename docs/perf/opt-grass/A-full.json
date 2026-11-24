@@ -1,0 +1,1562 @@
+{
+  "suite": "opt",
+  "recordedAt": "2026-11-23T22:29:21.215Z",
+  "base": "http://127.0.0.1:4173/little-world/",
+  "revision": "ffc0b6fba67b9d64fb5e578401368898e4e029a1",
+  "branch": "claude/opt-grass-stable-slots",
+  "dirtyFiles": 0,
+  "browserVersion": "153.0.8010.12",
+  "launchArgs": [
+    "--no-sandbox",
+    "--enable-precise-memory-info",
+    "--use-angle=swiftshader",
+    "--enable-unsafe-swiftshader"
+  ],
+  "machine": {
+    "platform": "linux",
+    "release": "6.18.44-fc-v726",
+    "cpus": 4,
+    "cpuModel": "Intel(R) Xeon(R) Processor @ 2.10GHz",
+    "totalMemGB": 15.7
+  },
+  "buildLabel": "A: grassUpload=full",
+  "viewport": {
+    "width": 1280,
+    "height": 720
+  },
+  "deviceScaleFactor": 1,
+  "quality": "medium",
+  "renderTier": 0,
+  "ticksPerScene": 1800,
+  "repeat": 2,
+  "extraQuery": "grassUpload=full",
+  "notes": [
+    "GPU timer null = EXT_disjoint_timer_query_webgl2 unavailable (always the case under SwiftShader).",
+    "cpuRenderSubmitMs = JS duration of renderer.render(): command submission, not GPU execution.",
+    "Presentation is quantised by vsync (16.7 ms multiples) and the 30 FPS cap: compare p95/p99 and CPU costs, not mean FPS alone.",
+    "uploadBytes are estimated from wrapped WebGL upload calls (buffers exact, textures from dimensions).",
+    "heapAllocMBps / heapDrops are a GC proxy from precise per-frame usedJSHeapSize, not an allocation profiler.",
+    "Routes are tick-indexed: identical trajectory between runs; frames land on different ticks, so images are compared at fixed ticks after settling."
+  ],
+  "gpuRenderer": {
+    "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+    "timerQuery": false
+  },
+  "scenes": [
+    {
+      "name": "forest",
+      "route": "forest",
+      "repeatIndex": 0,
+      "bootMs": 9936,
+      "settled": true,
+      "settleMs": 142677,
+      "runWallMs": 83911,
+      "simulatedTicks": 1800,
+      "simulatedSpeedRatio": 0.715,
+      "overall": {
+        "frames": 240,
+        "meanMs": 349.6387500000001,
+        "p50Ms": 350,
+        "p95Ms": 416.70000000001164,
+        "p99Ms": 433.3999999999942,
+        "maxMs": 483.29999999998836,
+        "over50Ms": 240,
+        "over100Ms": 240,
+        "fps": 2.8600948836477644
+      },
+      "byPhase": {
+        "0": {
+          "frames": 240,
+          "meanMs": 349.6387500000001,
+          "p50Ms": 350,
+          "p95Ms": 416.70000000001164,
+          "p99Ms": 433.3999999999942,
+          "maxMs": 483.29999999998836,
+          "over50Ms": 240,
+          "over100Ms": 240,
+          "fps": 2.8600948836477644
+        }
+      },
+      "cpu": {
+        "updateMs": {
+          "n": 240,
+          "mean": 6.606249999891346,
+          "p50": 5.5,
+          "p95": 15,
+          "p99": 20.300000000745058,
+          "max": 24.199999999254942
+        },
+        "submitMs": {
+          "n": 240,
+          "mean": 3.019166666843618,
+          "p50": 2.7000000029802322,
+          "p95": 4.899999998509884,
+          "p99": 7.100000001490116,
+          "max": 10.399999998509884
+        },
+        "simulationMs": {
+          "n": 240,
+          "mean": 0.13666666666977106,
+          "p50": 0.10000000149011612,
+          "p95": 0.20000000298023224,
+          "p99": 0.6999999992549419,
+          "max": 4.600000001490116
+        },
+        "metricsOverheadMs": {
+          "n": 240,
+          "mean": 0.22083333327124516,
+          "p50": 0.19999999925494194,
+          "p95": 0.4000000022351742,
+          "p99": 0.5999999977648258,
+          "max": 0.8999999985098839
+        }
+      },
+      "gpu": {
+        "available": false,
+        "ms": {
+          "n": 0,
+          "mean": null,
+          "p50": null,
+          "p95": null,
+          "p99": null,
+          "max": null
+        }
+      },
+      "gpuRenderer": {
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "timerQuery": false
+      },
+      "drawCalls": {
+        "n": 240,
+        "mean": 124.59166666666667,
+        "p50": 125,
+        "p95": 158,
+        "p99": 162,
+        "max": 168
+      },
+      "triangles": {
+        "n": 240,
+        "mean": 126525.925,
+        "p50": 126300,
+        "p95": 146913,
+        "p99": 151193,
+        "max": 153483
+      },
+      "uploadBytesPerSecond": 1110055.347263691,
+      "uploadBytesTotal": 92759888,
+      "heap": {
+        "startMB": 41.9,
+        "endMB": 50.47,
+        "maxMB": 57.72,
+        "allocMBps": 3.09,
+        "drops": 48
+      },
+      "longTasks": {
+        "count": 240,
+        "totalMs": 83670,
+        "max": 486
+      },
+      "pendingMax": {
+        "chunks": 7,
+        "dressing": 27
+      },
+      "cdp": {
+        "scriptS": 2.53,
+        "taskS": 85.26,
+        "layoutS": 0.04,
+        "styleS": 0.019,
+        "jsHeapUsedMB": 35.5
+      },
+      "rssMB": {
+        "before": 1113.6,
+        "after": 1157
+      },
+      "work": {
+        "before": {
+          "programs": 162,
+          "geometries": 159,
+          "textures": 12,
+          "cliffsBuilt": 0,
+          "cliffsDisposed": 0,
+          "grassUploadedBytes": 4919860,
+          "dressingUploadedBytes": null,
+          "grassGeneratedCells": 68,
+          "dressingCells": 608,
+          "terrainBuilt": 76,
+          "objectsTested": 17,
+          "objectsHidden": 16,
+          "placed": {
+            "placements": 1343,
+            "lod0": 0,
+            "lod1": 40,
+            "lod2": 0,
+            "calls": 1,
+            "rebuilds": 6,
+            "staticBuildings": 69,
+            "instanceCreates": 49,
+            "instanceDeletes": 9,
+            "fallbacks": 0,
+            "lod2Capacity": 65,
+            "preparedThisUpdate": 0,
+            "pendingLevels": 0,
+            "maxPrepareMs": 1.3999999985098839,
+            "state": "ready"
+          }
+        },
+        "after": {
+          "programs": 162,
+          "geometries": 271,
+          "textures": 12,
+          "cliffsBuilt": 0,
+          "cliffsDisposed": 0,
+          "grassUploadedBytes": 61126648,
+          "dressingUploadedBytes": null,
+          "grassGeneratedCells": 222,
+          "dressingCells": 694,
+          "terrainBuilt": 176,
+          "objectsTested": 8,
+          "objectsHidden": 5,
+          "placed": {
+            "placements": 1343,
+            "lod0": 0,
+            "lod1": 5,
+            "lod2": 0,
+            "calls": 1,
+            "rebuilds": 40,
+            "staticBuildings": 69,
+            "instanceCreates": 57,
+            "instanceDeletes": 52,
+            "fallbacks": 0,
+            "lod2Capacity": 65,
+            "preparedThisUpdate": 0,
+            "pendingLevels": 0,
+            "maxPrepareMs": 1.3999999985098839,
+            "state": "ready"
+          }
+        },
+        "programsCompiledDuringRun": 0,
+        "cliffsBuiltDuringRun": 0,
+        "grassUploadedKB": 54889,
+        "dressingUploadedKB": null,
+        "terrainTilesBuilt": 100
+      },
+      "budget": {
+        "meanPixelRatio": 1,
+        "meanDetail": 0,
+        "rate20Share": 0,
+        "final": {
+          "tick": 15,
+          "pixelRatio": 1,
+          "detail": 0,
+          "rate": 30
+        },
+        "changes": [
+          {
+            "tick": 15,
+            "pixelRatio": 1,
+            "detail": 0,
+            "rate": 30
+          }
+        ]
+      },
+      "profile": null,
+      "allocations": null,
+      "captures": [
+        {
+          "tick": 0,
+          "file": "captures/forest-t0-r0.png",
+          "settled": true,
+          "calls": 161,
+          "triangles": 130680,
+          "position": [
+            -1500,
+            29.78098041942462,
+            -250
+          ],
+          "dressingInstances": 3657
+        },
+        {
+          "tick": 900,
+          "file": "captures/forest-t900-r0.png",
+          "settled": true,
+          "calls": 146,
+          "triangles": 149734,
+          "position": [
+            -1353.0711067082216,
+            73.67099488808478,
+            -263.345883113762
+          ],
+          "dressingInstances": 4557
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "village",
+      "route": "village",
+      "repeatIndex": 0,
+      "bootMs": 9609,
+      "settled": true,
+      "settleMs": 165260,
+      "runWallMs": 71810,
+      "simulatedTicks": 1800,
+      "simulatedSpeedRatio": 0.836,
+      "overall": {
+        "frames": 244,
+        "meanMs": 294.31885245901634,
+        "p50Ms": 283.4000000000233,
+        "p95Ms": 366.6000000000058,
+        "p99Ms": 383.29999999998836,
+        "maxMs": 383.3999999999942,
+        "over50Ms": 244,
+        "over100Ms": 244,
+        "fps": 3.397675655653928
+      },
+      "byPhase": {
+        "0": {
+          "frames": 244,
+          "meanMs": 294.31885245901634,
+          "p50Ms": 283.4000000000233,
+          "p95Ms": 366.6000000000058,
+          "p99Ms": 383.29999999998836,
+          "maxMs": 383.3999999999942,
+          "over50Ms": 244,
+          "over100Ms": 244,
+          "fps": 3.397675655653928
+        }
+      },
+      "cpu": {
+        "updateMs": {
+          "n": 244,
+          "mean": 7.620491803211511,
+          "p50": 6.400000002235174,
+          "p95": 16.699999999254942,
+          "p99": 23,
+          "max": 24.800000000745058
+        },
+        "submitMs": {
+          "n": 244,
+          "mean": 2.9336065573495675,
+          "p50": 2.699999999254942,
+          "p95": 4.300000000745058,
+          "p99": 6.600000001490116,
+          "max": 10.799999997019768
+        },
+        "simulationMs": {
+          "n": 244,
+          "mean": 0.10409836075650375,
+          "p50": 0.10000000149011612,
+          "p95": 0.20000000298023224,
+          "p99": 0.30000000074505806,
+          "max": 1.5999999977648258
+        },
+        "metricsOverheadMs": {
+          "n": 244,
+          "mean": 0.23565573768965045,
+          "p50": 0.19999999925494194,
+          "p95": 0.4000000022351742,
+          "p99": 0.6999999992549419,
+          "max": 0.8999999985098839
+        }
+      },
+      "gpu": {
+        "available": false,
+        "ms": {
+          "n": 0,
+          "mean": null,
+          "p50": null,
+          "p95": null,
+          "p99": null,
+          "max": null
+        }
+      },
+      "gpuRenderer": {
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "timerQuery": false
+      },
+      "drawCalls": {
+        "n": 244,
+        "mean": 124.00819672131148,
+        "p50": 125,
+        "p95": 139,
+        "p99": 145,
+        "max": 150
+      },
+      "triangles": {
+        "n": 244,
+        "mean": 88490.95901639345,
+        "p50": 87916,
+        "p95": 99963,
+        "p99": 103652,
+        "max": 104254
+      },
+      "uploadBytesPerSecond": 1210585.5722889458,
+      "uploadBytesTotal": 86533262,
+      "heap": {
+        "startMB": 44.78,
+        "endMB": 55.65,
+        "maxMB": 56.2,
+        "allocMBps": 3.9,
+        "drops": 66
+      },
+      "longTasks": {
+        "count": 244,
+        "totalMs": 71626,
+        "max": 383
+      },
+      "pendingMax": {
+        "chunks": 6,
+        "dressing": 27
+      },
+      "cdp": {
+        "scriptS": 2.75,
+        "taskS": 72.96,
+        "layoutS": 0.04,
+        "styleS": 0.017,
+        "jsHeapUsedMB": 31.7
+      },
+      "rssMB": {
+        "before": 1098.8,
+        "after": 1133.1
+      },
+      "work": {
+        "before": {
+          "programs": 126,
+          "geometries": 135,
+          "textures": 14,
+          "cliffsBuilt": 0,
+          "cliffsDisposed": 0,
+          "grassUploadedBytes": 5750236,
+          "dressingUploadedBytes": null,
+          "grassGeneratedCells": 54,
+          "dressingCells": 676,
+          "terrainBuilt": 71,
+          "objectsTested": 6,
+          "objectsHidden": 5,
+          "placed": {
+            "placements": 1343,
+            "lod0": 47,
+            "lod1": 164,
+            "lod2": 6,
+            "calls": 3,
+            "rebuilds": 6,
+            "staticBuildings": 69,
+            "instanceCreates": 261,
+            "instanceDeletes": 44,
+            "fallbacks": 0,
+            "lod2Capacity": 65,
+            "preparedThisUpdate": 0,
+            "pendingLevels": 0,
+            "maxPrepareMs": 2.600000001490116,
+            "state": "ready"
+          }
+        },
+        "after": {
+          "programs": 126,
+          "geometries": 306,
+          "textures": 14,
+          "cliffsBuilt": 0,
+          "cliffsDisposed": 0,
+          "grassUploadedBytes": 55594608,
+          "dressingUploadedBytes": null,
+          "grassGeneratedCells": 201,
+          "dressingCells": 753,
+          "terrainBuilt": 181,
+          "objectsTested": 12,
+          "objectsHidden": 4,
+          "placed": {
+            "placements": 1343,
+            "lod0": 35,
+            "lod1": 165,
+            "lod2": 6,
+            "calls": 3,
+            "rebuilds": 37,
+            "staticBuildings": 69,
+            "instanceCreates": 639,
+            "instanceDeletes": 433,
+            "fallbacks": 0,
+            "lod2Capacity": 65,
+            "preparedThisUpdate": 0,
+            "pendingLevels": 0,
+            "maxPrepareMs": 2.600000001490116,
+            "state": "ready"
+          }
+        },
+        "programsCompiledDuringRun": 0,
+        "cliffsBuiltDuringRun": 0,
+        "grassUploadedKB": 48676,
+        "dressingUploadedKB": null,
+        "terrainTilesBuilt": 110
+      },
+      "budget": {
+        "meanPixelRatio": 1,
+        "meanDetail": 0,
+        "rate20Share": 0,
+        "final": {
+          "tick": 15,
+          "pixelRatio": 1,
+          "detail": 0,
+          "rate": 30
+        },
+        "changes": [
+          {
+            "tick": 15,
+            "pixelRatio": 1,
+            "detail": 0,
+            "rate": 30
+          }
+        ]
+      },
+      "profile": null,
+      "allocations": null,
+      "captures": [
+        {
+          "tick": 0,
+          "file": "captures/village-t0-r0.png",
+          "settled": true,
+          "calls": 112,
+          "triangles": 86626,
+          "position": [
+            -140,
+            33.49952807290633,
+            590
+          ],
+          "dressingInstances": 2488
+        },
+        {
+          "tick": 900,
+          "file": "captures/village-t900-r0.png",
+          "settled": true,
+          "calls": 120,
+          "triangles": 94194,
+          "position": [
+            -103.75002534142598,
+            33.50032289472136,
+            714.2256761790266
+          ],
+          "dressingInstances": 2933
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "flight",
+      "route": "flight",
+      "repeatIndex": 0,
+      "bootMs": 9172,
+      "settled": true,
+      "settleMs": 107937,
+      "runWallMs": 62034,
+      "simulatedTicks": 1800,
+      "simulatedSpeedRatio": 0.967,
+      "overall": {
+        "frames": 271,
+        "meanMs": 228.95756457564576,
+        "p50Ms": 233.29999999998836,
+        "p95Ms": 283.3999999999942,
+        "p99Ms": 333.3000000000029,
+        "maxMs": 349.9000000000233,
+        "over50Ms": 271,
+        "over100Ms": 271,
+        "fps": 4.367621580240944
+      },
+      "byPhase": {
+        "0": {
+          "frames": 271,
+          "meanMs": 228.95756457564576,
+          "p50Ms": 233.29999999998836,
+          "p95Ms": 283.3999999999942,
+          "p99Ms": 333.3000000000029,
+          "maxMs": 349.9000000000233,
+          "over50Ms": 271,
+          "over100Ms": 271,
+          "fps": 4.367621580240944
+        }
+      },
+      "cpu": {
+        "updateMs": {
+          "n": 271,
+          "mean": 16.942066420625718,
+          "p50": 16.199999999254942,
+          "p95": 31.699999999254942,
+          "p99": 35.69999999925494,
+          "max": 38.5
+        },
+        "submitMs": {
+          "n": 271,
+          "mean": 3.5110701107835856,
+          "p50": 3.2000000029802322,
+          "p95": 5,
+          "p99": 7.600000001490116,
+          "max": 8.900000002235174
+        },
+        "simulationMs": {
+          "n": 271,
+          "mean": 0.1232472324805726,
+          "p50": 0.10000000149011612,
+          "p95": 0.20000000298023224,
+          "p99": 0.5999999977648258,
+          "max": 6.5
+        },
+        "metricsOverheadMs": {
+          "n": 271,
+          "mean": 0.20479704801171908,
+          "p50": 0.19999999925494194,
+          "p95": 0.30000000074505806,
+          "p99": 0.5,
+          "max": 1
+        }
+      },
+      "gpu": {
+        "available": false,
+        "ms": {
+          "n": 0,
+          "mean": null,
+          "p50": null,
+          "p95": null,
+          "p99": null,
+          "max": null
+        }
+      },
+      "gpuRenderer": {
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "timerQuery": false
+      },
+      "drawCalls": {
+        "n": 271,
+        "mean": 155.21771217712177,
+        "p50": 161,
+        "p95": 178,
+        "p99": 214,
+        "max": 220
+      },
+      "triangles": {
+        "n": 271,
+        "mean": 84930.20664206642,
+        "p50": 84046,
+        "p95": 114380,
+        "p99": 127404,
+        "max": 132861
+      },
+      "uploadBytesPerSecond": 2042423.831280904,
+      "uploadBytesTotal": 126148674,
+      "heap": {
+        "startMB": 55.44,
+        "endMB": 71.71,
+        "maxMB": 85.59,
+        "allocMBps": 18.14,
+        "drops": 57
+      },
+      "longTasks": {
+        "count": 271,
+        "totalMs": 61694,
+        "max": 353
+      },
+      "pendingMax": {
+        "chunks": 9,
+        "dressing": 142
+      },
+      "cdp": {
+        "scriptS": 5.82,
+        "taskS": 63.11,
+        "layoutS": 0.05,
+        "styleS": 0.019,
+        "jsHeapUsedMB": 58.7
+      },
+      "rssMB": {
+        "before": 1180,
+        "after": 1217.2
+      },
+      "work": {
+        "before": {
+          "programs": 162,
+          "geometries": 153,
+          "textures": 12,
+          "cliffsBuilt": 0,
+          "cliffsDisposed": 0,
+          "grassUploadedBytes": 4919860,
+          "dressingUploadedBytes": null,
+          "grassGeneratedCells": 68,
+          "dressingCells": 608,
+          "terrainBuilt": 76,
+          "objectsTested": 26,
+          "objectsHidden": 12,
+          "placed": {
+            "placements": 1343,
+            "lod0": 0,
+            "lod1": 43,
+            "lod2": 2,
+            "calls": 2,
+            "rebuilds": 6,
+            "staticBuildings": 69,
+            "instanceCreates": 52,
+            "instanceDeletes": 7,
+            "fallbacks": 0,
+            "lod2Capacity": 65,
+            "preparedThisUpdate": 0,
+            "pendingLevels": 0,
+            "maxPrepareMs": 1.5,
+            "state": "ready"
+          }
+        },
+        "after": {
+          "programs": 162,
+          "geometries": 368,
+          "textures": 14,
+          "cliffsBuilt": 0,
+          "cliffsDisposed": 0,
+          "grassUploadedBytes": 56561936,
+          "dressingUploadedBytes": null,
+          "grassGeneratedCells": 369,
+          "dressingCells": 1200,
+          "terrainBuilt": 476,
+          "objectsTested": 20,
+          "objectsHidden": 18,
+          "placed": {
+            "placements": 1343,
+            "lod0": 0,
+            "lod1": 2,
+            "lod2": 50,
+            "calls": 2,
+            "rebuilds": 141,
+            "staticBuildings": 69,
+            "instanceCreates": 515,
+            "instanceDeletes": 463,
+            "fallbacks": 0,
+            "lod2Capacity": 65,
+            "preparedThisUpdate": 0,
+            "pendingLevels": 0,
+            "maxPrepareMs": 1.5,
+            "state": "ready"
+          }
+        },
+        "programsCompiledDuringRun": 0,
+        "cliffsBuiltDuringRun": 0,
+        "grassUploadedKB": 50432,
+        "dressingUploadedKB": null,
+        "terrainTilesBuilt": 400
+      },
+      "budget": {
+        "meanPixelRatio": 1,
+        "meanDetail": 0,
+        "rate20Share": 0,
+        "final": {
+          "tick": 15,
+          "pixelRatio": 1,
+          "detail": 0,
+          "rate": 30
+        },
+        "changes": [
+          {
+            "tick": 15,
+            "pixelRatio": 1,
+            "detail": 0,
+            "rate": 30
+          }
+        ]
+      },
+      "profile": null,
+      "allocations": null,
+      "captures": [
+        {
+          "tick": 0,
+          "file": "captures/flight-t0-r0.png",
+          "settled": true,
+          "calls": 162,
+          "triangles": 136389,
+          "position": [
+            -1500,
+            122.98089667782965,
+            -250
+          ],
+          "dressingInstances": 4389
+        },
+        {
+          "tick": 600,
+          "file": "captures/flight-t600-r0.png",
+          "settled": true,
+          "calls": 181,
+          "triangles": 146444,
+          "position": [
+            -928.3671348486776,
+            176.41067587590263,
+            76.59619091338904
+          ],
+          "dressingInstances": 5218
+        },
+        {
+          "tick": 1200,
+          "file": "captures/flight-t1200-r0.png",
+          "settled": true,
+          "calls": 160,
+          "triangles": 138964,
+          "position": [
+            -417.08067710971216,
+            99.27606126887272,
+            497.939078821594
+          ],
+          "dressingInstances": 3116
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "forest",
+      "route": "forest",
+      "repeatIndex": 1,
+      "bootMs": 8933,
+      "settled": true,
+      "settleMs": 141909,
+      "runWallMs": 81625,
+      "simulatedTicks": 1800,
+      "simulatedSpeedRatio": 0.735,
+      "overall": {
+        "frames": 240,
+        "meanMs": 340.125,
+        "p50Ms": 349.8999999999942,
+        "p95Ms": 400,
+        "p99Ms": 433.29999999998836,
+        "maxMs": 450,
+        "over50Ms": 240,
+        "over100Ms": 240,
+        "fps": 2.940095553105476
+      },
+      "byPhase": {
+        "0": {
+          "frames": 240,
+          "meanMs": 340.125,
+          "p50Ms": 349.8999999999942,
+          "p95Ms": 400,
+          "p99Ms": 433.29999999998836,
+          "maxMs": 450,
+          "over50Ms": 240,
+          "over100Ms": 240,
+          "fps": 2.940095553105476
+        }
+      },
+      "cpu": {
+        "updateMs": {
+          "n": 240,
+          "mean": 6.237083333420257,
+          "p50": 5.5,
+          "p95": 13.5,
+          "p99": 21.900000002235174,
+          "max": 25.100000001490116
+        },
+        "submitMs": {
+          "n": 240,
+          "mean": 2.927500000083819,
+          "p50": 2.699999999254942,
+          "p95": 4.399999998509884,
+          "p99": 5.199999999254942,
+          "max": 11.600000001490116
+        },
+        "simulationMs": {
+          "n": 240,
+          "mean": 0.12874999980752666,
+          "p50": 0.10000000149011612,
+          "p95": 0.20000000298023224,
+          "p99": 1.3999999985098839,
+          "max": 3.2000000029802322
+        },
+        "metricsOverheadMs": {
+          "n": 240,
+          "mean": 0.21291666662630934,
+          "p50": 0.19999999925494194,
+          "p95": 0.3999999985098839,
+          "p99": 0.6000000014901161,
+          "max": 1.1000000014901161
+        }
+      },
+      "gpu": {
+        "available": false,
+        "ms": {
+          "n": 0,
+          "mean": null,
+          "p50": null,
+          "p95": null,
+          "p99": null,
+          "max": null
+        }
+      },
+      "gpuRenderer": {
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "timerQuery": false
+      },
+      "drawCalls": {
+        "n": 240,
+        "mean": 124.5875,
+        "p50": 125,
+        "p95": 158,
+        "p99": 162,
+        "max": 168
+      },
+      "triangles": {
+        "n": 240,
+        "mean": 126798.95,
+        "p50": 126333,
+        "p95": 147877,
+        "p99": 151184,
+        "max": 153263
+      },
+      "uploadBytesPerSecond": 1167877.7462134028,
+      "uploadBytesTotal": 94925220,
+      "heap": {
+        "startMB": 46.76,
+        "endMB": 76.94,
+        "maxMB": 80.38,
+        "allocMBps": 4.46,
+        "drops": 11
+      },
+      "longTasks": {
+        "count": 240,
+        "totalMs": 81418,
+        "max": 452
+      },
+      "pendingMax": {
+        "chunks": 7,
+        "dressing": 26
+      },
+      "cdp": {
+        "scriptS": 2.39,
+        "taskS": 83,
+        "layoutS": 0.041,
+        "styleS": 0.018,
+        "jsHeapUsedMB": 30.5
+      },
+      "rssMB": {
+        "before": 1172.8,
+        "after": 1198.8
+      },
+      "work": {
+        "before": {
+          "programs": 162,
+          "geometries": 159,
+          "textures": 12,
+          "cliffsBuilt": 0,
+          "cliffsDisposed": 0,
+          "grassUploadedBytes": 4919860,
+          "dressingUploadedBytes": null,
+          "grassGeneratedCells": 68,
+          "dressingCells": 610,
+          "terrainBuilt": 76,
+          "objectsTested": 17,
+          "objectsHidden": 16,
+          "placed": {
+            "placements": 1343,
+            "lod0": 0,
+            "lod1": 40,
+            "lod2": 0,
+            "calls": 1,
+            "rebuilds": 6,
+            "staticBuildings": 69,
+            "instanceCreates": 49,
+            "instanceDeletes": 9,
+            "fallbacks": 0,
+            "lod2Capacity": 65,
+            "preparedThisUpdate": 0,
+            "pendingLevels": 0,
+            "maxPrepareMs": 1,
+            "state": "ready"
+          }
+        },
+        "after": {
+          "programs": 162,
+          "geometries": 271,
+          "textures": 12,
+          "cliffsBuilt": 0,
+          "cliffsDisposed": 0,
+          "grassUploadedBytes": 60827132,
+          "dressingUploadedBytes": null,
+          "grassGeneratedCells": 222,
+          "dressingCells": 695,
+          "terrainBuilt": 176,
+          "objectsTested": 8,
+          "objectsHidden": 5,
+          "placed": {
+            "placements": 1343,
+            "lod0": 0,
+            "lod1": 5,
+            "lod2": 0,
+            "calls": 1,
+            "rebuilds": 41,
+            "staticBuildings": 69,
+            "instanceCreates": 57,
+            "instanceDeletes": 52,
+            "fallbacks": 0,
+            "lod2Capacity": 65,
+            "preparedThisUpdate": 0,
+            "pendingLevels": 0,
+            "maxPrepareMs": 1,
+            "state": "ready"
+          }
+        },
+        "programsCompiledDuringRun": 0,
+        "cliffsBuiltDuringRun": 0,
+        "grassUploadedKB": 54597,
+        "dressingUploadedKB": null,
+        "terrainTilesBuilt": 100
+      },
+      "budget": {
+        "meanPixelRatio": 1,
+        "meanDetail": 0,
+        "rate20Share": 0,
+        "final": {
+          "tick": 15,
+          "pixelRatio": 1,
+          "detail": 0,
+          "rate": 30
+        },
+        "changes": [
+          {
+            "tick": 15,
+            "pixelRatio": 1,
+            "detail": 0,
+            "rate": 30
+          }
+        ]
+      },
+      "profile": null,
+      "allocations": null,
+      "captures": [
+        {
+          "tick": 0,
+          "file": "captures/forest-t0-r1.png",
+          "settled": true,
+          "calls": 161,
+          "triangles": 130656,
+          "position": [
+            -1500,
+            29.78098041942462,
+            -250
+          ],
+          "dressingInstances": 3654
+        },
+        {
+          "tick": 900,
+          "file": "captures/forest-t900-r1.png",
+          "settled": true,
+          "calls": 146,
+          "triangles": 149734,
+          "position": [
+            -1353.0711067082216,
+            73.67099488808478,
+            -263.345883113762
+          ],
+          "dressingInstances": 4557
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "village",
+      "route": "village",
+      "repeatIndex": 1,
+      "bootMs": 9476,
+      "settled": true,
+      "settleMs": 160583,
+      "runWallMs": 71884,
+      "simulatedTicks": 1800,
+      "simulatedSpeedRatio": 0.835,
+      "overall": {
+        "frames": 244,
+        "meanMs": 294.5922131147541,
+        "p50Ms": 299.8999999999942,
+        "p95Ms": 350,
+        "p99Ms": 399.9000000000233,
+        "maxMs": 416.79999999998836,
+        "over50Ms": 244,
+        "over100Ms": 244,
+        "fps": 3.3945228539033536
+      },
+      "byPhase": {
+        "0": {
+          "frames": 244,
+          "meanMs": 294.5922131147541,
+          "p50Ms": 299.8999999999942,
+          "p95Ms": 350,
+          "p99Ms": 399.9000000000233,
+          "maxMs": 416.79999999998836,
+          "over50Ms": 244,
+          "over100Ms": 244,
+          "fps": 3.3945228539033536
+        }
+      },
+      "cpu": {
+        "updateMs": {
+          "n": 244,
+          "mean": 7.75327868868032,
+          "p50": 6.899999998509884,
+          "p95": 16.900000002235174,
+          "p99": 24.100000001490116,
+          "max": 25.100000001490116
+        },
+        "submitMs": {
+          "n": 244,
+          "mean": 3.1327868851939917,
+          "p50": 2.800000000745058,
+          "p95": 4.899999998509884,
+          "p99": 6.199999999254942,
+          "max": 8.099999997764826
+        },
+        "simulationMs": {
+          "n": 244,
+          "mean": 0.12213114740662888,
+          "p50": 0.09999999776482582,
+          "p95": 0.20000000298023224,
+          "p99": 1.1000000014901161,
+          "max": 3.800000000745058
+        },
+        "metricsOverheadMs": {
+          "n": 244,
+          "mean": 0.23196721322773423,
+          "p50": 0.19999999925494194,
+          "p95": 0.4000000022351742,
+          "p99": 0.6000000014901161,
+          "max": 0.7000000029802322
+        }
+      },
+      "gpu": {
+        "available": false,
+        "ms": {
+          "n": 0,
+          "mean": null,
+          "p50": null,
+          "p95": null,
+          "p99": null,
+          "max": null
+        }
+      },
+      "gpuRenderer": {
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "timerQuery": false
+      },
+      "drawCalls": {
+        "n": 244,
+        "mean": 123.94262295081967,
+        "p50": 125,
+        "p95": 138,
+        "p99": 145,
+        "max": 150
+      },
+      "triangles": {
+        "n": 244,
+        "mean": 88352.9631147541,
+        "p50": 87899,
+        "p95": 99004,
+        "p99": 102214,
+        "max": 104009
+      },
+      "uploadBytesPerSecond": 1217411.8478895756,
+      "uploadBytesTotal": 87122618,
+      "heap": {
+        "startMB": 45.62,
+        "endMB": 53.55,
+        "maxMB": 56.06,
+        "allocMBps": 3.91,
+        "drops": 69
+      },
+      "longTasks": {
+        "count": 244,
+        "totalMs": 71670,
+        "max": 407
+      },
+      "pendingMax": {
+        "chunks": 7,
+        "dressing": 27
+      },
+      "cdp": {
+        "scriptS": 2.84,
+        "taskS": 73,
+        "layoutS": 0.04,
+        "styleS": 0.018,
+        "jsHeapUsedMB": 32.9
+      },
+      "rssMB": {
+        "before": 1110.2,
+        "after": 1146
+      },
+      "work": {
+        "before": {
+          "programs": 126,
+          "geometries": 136,
+          "textures": 14,
+          "cliffsBuilt": 0,
+          "cliffsDisposed": 0,
+          "grassUploadedBytes": 5965012,
+          "dressingUploadedBytes": null,
+          "grassGeneratedCells": 54,
+          "dressingCells": 676,
+          "terrainBuilt": 71,
+          "objectsTested": 6,
+          "objectsHidden": 5,
+          "placed": {
+            "placements": 1343,
+            "lod0": 47,
+            "lod1": 164,
+            "lod2": 6,
+            "calls": 3,
+            "rebuilds": 6,
+            "staticBuildings": 69,
+            "instanceCreates": 261,
+            "instanceDeletes": 44,
+            "fallbacks": 0,
+            "lod2Capacity": 65,
+            "preparedThisUpdate": 0,
+            "pendingLevels": 0,
+            "maxPrepareMs": 1.4000000022351742,
+            "state": "ready"
+          }
+        },
+        "after": {
+          "programs": 126,
+          "geometries": 308,
+          "textures": 14,
+          "cliffsBuilt": 0,
+          "cliffsDisposed": 0,
+          "grassUploadedBytes": 55539508,
+          "dressingUploadedBytes": null,
+          "grassGeneratedCells": 202,
+          "dressingCells": 753,
+          "terrainBuilt": 180,
+          "objectsTested": 12,
+          "objectsHidden": 4,
+          "placed": {
+            "placements": 1343,
+            "lod0": 36,
+            "lod1": 164,
+            "lod2": 6,
+            "calls": 3,
+            "rebuilds": 39,
+            "staticBuildings": 69,
+            "instanceCreates": 642,
+            "instanceDeletes": 436,
+            "fallbacks": 0,
+            "lod2Capacity": 65,
+            "preparedThisUpdate": 0,
+            "pendingLevels": 0,
+            "maxPrepareMs": 1.4000000022351742,
+            "state": "ready"
+          }
+        },
+        "programsCompiledDuringRun": 0,
+        "cliffsBuiltDuringRun": 0,
+        "grassUploadedKB": 48413,
+        "dressingUploadedKB": null,
+        "terrainTilesBuilt": 109
+      },
+      "budget": {
+        "meanPixelRatio": 1,
+        "meanDetail": 0,
+        "rate20Share": 0,
+        "final": {
+          "tick": 15,
+          "pixelRatio": 1,
+          "detail": 0,
+          "rate": 30
+        },
+        "changes": [
+          {
+            "tick": 15,
+            "pixelRatio": 1,
+            "detail": 0,
+            "rate": 30
+          }
+        ]
+      },
+      "profile": null,
+      "allocations": null,
+      "captures": [
+        {
+          "tick": 0,
+          "file": "captures/village-t0-r1.png",
+          "settled": true,
+          "calls": 112,
+          "triangles": 86626,
+          "position": [
+            -140,
+            33.49952807290633,
+            590
+          ],
+          "dressingInstances": 2488
+        },
+        {
+          "tick": 900,
+          "file": "captures/village-t900-r1.png",
+          "settled": true,
+          "calls": 120,
+          "triangles": 93624,
+          "position": [
+            -103.75002534142598,
+            33.50032289472136,
+            714.2256761790266
+          ],
+          "dressingInstances": 2933
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "flight",
+      "route": "flight",
+      "repeatIndex": 1,
+      "bootMs": 9011,
+      "settled": true,
+      "settleMs": 108120,
+      "runWallMs": 61782,
+      "simulatedTicks": 1800,
+      "simulatedSpeedRatio": 0.971,
+      "overall": {
+        "frames": 272,
+        "meanMs": 227.13529411764713,
+        "p50Ms": 233.29999999998836,
+        "p95Ms": 283.3999999999942,
+        "p99Ms": 350,
+        "maxMs": 350,
+        "over50Ms": 272,
+        "over100Ms": 272,
+        "fps": 4.402662315800376
+      },
+      "byPhase": {
+        "0": {
+          "frames": 272,
+          "meanMs": 227.13529411764713,
+          "p50Ms": 233.29999999998836,
+          "p95Ms": 283.3999999999942,
+          "p99Ms": 350,
+          "maxMs": 350,
+          "over50Ms": 272,
+          "over100Ms": 272,
+          "fps": 4.402662315800376
+        }
+      },
+      "cpu": {
+        "updateMs": {
+          "n": 272,
+          "mean": 16.776838235077722,
+          "p50": 16.300000000745058,
+          "p95": 29.600000001490116,
+          "p99": 38.79999999701977,
+          "max": 42.599999997764826
+        },
+        "submitMs": {
+          "n": 272,
+          "mean": 3.156617647256045,
+          "p50": 3,
+          "p95": 4.5,
+          "p99": 7.100000001490116,
+          "max": 9.200000002980232
+        },
+        "simulationMs": {
+          "n": 272,
+          "mean": 0.1297794117948369,
+          "p50": 0.10000000149011612,
+          "p95": 0.19999999925494194,
+          "p99": 3,
+          "max": 5.200000002980232
+        },
+        "metricsOverheadMs": {
+          "n": 272,
+          "mean": 0.2080882352859001,
+          "p50": 0.19999999925494194,
+          "p95": 0.30000000074505806,
+          "p99": 0.5,
+          "max": 1
+        }
+      },
+      "gpu": {
+        "available": false,
+        "ms": {
+          "n": 0,
+          "mean": null,
+          "p50": null,
+          "p95": null,
+          "p99": null,
+          "max": null
+        }
+      },
+      "gpuRenderer": {
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "timerQuery": false
+      },
+      "drawCalls": {
+        "n": 272,
+        "mean": 155.27205882352942,
+        "p50": 160,
+        "p95": 179,
+        "p99": 217,
+        "max": 222
+      },
+      "triangles": {
+        "n": 272,
+        "mean": 85059.625,
+        "p50": 83493,
+        "p95": 115653,
+        "p99": 127375,
+        "max": 132715
+      },
+      "uploadBytesPerSecond": 2039122.0580435437,
+      "uploadBytesTotal": 125333006,
+      "heap": {
+        "startMB": 69.65,
+        "endMB": 65.72,
+        "maxMB": 86.85,
+        "allocMBps": 18.37,
+        "drops": 57
+      },
+      "longTasks": {
+        "count": 272,
+        "totalMs": 61438,
+        "max": 354
+      },
+      "pendingMax": {
+        "chunks": 8,
+        "dressing": 140
+      },
+      "cdp": {
+        "scriptS": 5.7,
+        "taskS": 62.58,
+        "layoutS": 0.047,
+        "styleS": 0.02,
+        "jsHeapUsedMB": 52.6
+      },
+      "rssMB": {
+        "before": 1181.7,
+        "after": 1242.1
+      },
+      "work": {
+        "before": {
+          "programs": 162,
+          "geometries": 153,
+          "textures": 12,
+          "cliffsBuilt": 0,
+          "cliffsDisposed": 0,
+          "grassUploadedBytes": 4919860,
+          "dressingUploadedBytes": null,
+          "grassGeneratedCells": 68,
+          "dressingCells": 608,
+          "terrainBuilt": 76,
+          "objectsTested": 26,
+          "objectsHidden": 12,
+          "placed": {
+            "placements": 1343,
+            "lod0": 0,
+            "lod1": 43,
+            "lod2": 2,
+            "calls": 2,
+            "rebuilds": 6,
+            "staticBuildings": 69,
+            "instanceCreates": 52,
+            "instanceDeletes": 7,
+            "fallbacks": 0,
+            "lod2Capacity": 65,
+            "preparedThisUpdate": 0,
+            "pendingLevels": 0,
+            "maxPrepareMs": 1.800000000745058,
+            "state": "ready"
+          }
+        },
+        "after": {
+          "programs": 162,
+          "geometries": 369,
+          "textures": 14,
+          "cliffsBuilt": 0,
+          "cliffsDisposed": 0,
+          "grassUploadedBytes": 56891016,
+          "dressingUploadedBytes": null,
+          "grassGeneratedCells": 373,
+          "dressingCells": 1200,
+          "terrainBuilt": 471,
+          "objectsTested": 20,
+          "objectsHidden": 18,
+          "placed": {
+            "placements": 1343,
+            "lod0": 0,
+            "lod1": 2,
+            "lod2": 50,
+            "calls": 2,
+            "rebuilds": 141,
+            "staticBuildings": 69,
+            "instanceCreates": 512,
+            "instanceDeletes": 460,
+            "fallbacks": 0,
+            "lod2Capacity": 65,
+            "preparedThisUpdate": 0,
+            "pendingLevels": 0,
+            "maxPrepareMs": 1.800000000745058,
+            "state": "ready"
+          }
+        },
+        "programsCompiledDuringRun": 0,
+        "cliffsBuiltDuringRun": 0,
+        "grassUploadedKB": 50753,
+        "dressingUploadedKB": null,
+        "terrainTilesBuilt": 395
+      },
+      "budget": {
+        "meanPixelRatio": 1,
+        "meanDetail": 0,
+        "rate20Share": 0,
+        "final": {
+          "tick": 15,
+          "pixelRatio": 1,
+          "detail": 0,
+          "rate": 30
+        },
+        "changes": [
+          {
+            "tick": 15,
+            "pixelRatio": 1,
+            "detail": 0,
+            "rate": 30
+          }
+        ]
+      },
+      "profile": null,
+      "allocations": null,
+      "captures": [
+        {
+          "tick": 0,
+          "file": "captures/flight-t0-r1.png",
+          "settled": true,
+          "calls": 162,
+          "triangles": 136429,
+          "position": [
+            -1500,
+            122.98089667782965,
+            -250
+          ],
+          "dressingInstances": 4394
+        },
+        {
+          "tick": 600,
+          "file": "captures/flight-t600-r1.png",
+          "settled": true,
+          "calls": 181,
+          "triangles": 146444,
+          "position": [
+            -928.3671348486776,
+            176.41067587590263,
+            76.59619091338904
+          ],
+          "dressingInstances": 5218
+        },
+        {
+          "tick": 1200,
+          "file": "captures/flight-t1200-r1.png",
+          "settled": true,
+          "calls": 160,
+          "triangles": 138972,
+          "position": [
+            -417.08067710971216,
+            99.27606126887272,
+            497.939078821594
+          ],
+          "dressingInstances": 3116
+        }
+      ],
+      "errors": []
+    }
+  ],
+  "travel": null
+}
