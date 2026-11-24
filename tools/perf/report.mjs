@@ -19,7 +19,7 @@ const byScene=run=>{const m=new Map();for(const s of run.scenes){if(!m.has(s.nam
 const mean=a=>{const v=a.filter(Number.isFinite);return v.length?v.reduce((x,y)=>x+y,0)/v.length:null;};
 /** Relative half-spread between repeats of the same run (A/A noise), as a fraction. */
 const noise=list=>{const v=list.filter(Number.isFinite);if(v.length<2)return null;const m=mean(v);return m?(Math.max(...v)-Math.min(...v))/2/Math.abs(m):0;};
-function header(run){return `Révision \`${run.revision?.slice(0,8)}\` (${run.branch}), ${run.recordedAt.slice(0,10)}, ${run.browserVersion}, ${run.scenes[0]?.gpuRenderer?.renderer??'?'}, ${run.viewport.width}×${run.viewport.height} DPR ${run.deviceScaleFactor}, qualité ${run.quality}, renderTier ${run.renderTier}, ${run.ticksPerScene} ticks/scène, ${run.repeat} répétition(s), ${run.machine.cpus} CPU ${run.machine.cpuModel}, ${run.machine.totalMemGB} Go.`;}
+function header(run){return `${run.buildLabel?'Build '+run.buildLabel+' ; outils ':''}Révision \`${run.revision?.slice(0,8)}\` (${run.branch}), ${run.recordedAt.slice(0,10)}, ${run.browserVersion}, ${run.scenes[0]?.gpuRenderer?.renderer??'?'}, ${run.viewport.width}×${run.viewport.height} DPR ${run.deviceScaleFactor}, qualité ${run.quality}, renderTier ${run.renderTier}, ${run.ticksPerScene} ticks/scène, ${run.repeat} répétition(s), ${run.machine.cpus} CPU ${run.machine.cpuModel}, ${run.machine.totalMemGB} Go.`;}
 const out=[];
 if(!B){
   out.push(header(A),'');
