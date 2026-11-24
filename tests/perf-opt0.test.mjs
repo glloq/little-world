@@ -71,3 +71,4 @@ test('upload counter counts buffer and texture bytes, then restores the context'
   assert.equal(calls.length,5);
   c.dispose();assert.equal(gl.bufferData,original);
 });
+
