@@ -107,26 +107,30 @@ export function createGrass(parent: THREE.Object3D, seed: number, sampler: (x: n
   const inFlight = new Map<string, GeoTask<GrassCellData>>();
   let wantedKeys = new Set<string>();
   const remote = () => !!workers?.available && typeof location !== 'undefined' && new URLSearchParams(location.search).get('opt4grass') !== '0';
-  /** Posts the nearest queued cells (≤ 4 in flight); results land in `cells` between frames. */
-  function dispatch() {
-    while (queue.length && inFlight.size < 4) {
-      const [x, z] = queue.shift()!, key = x + ':' + z, prof = profile;
-      const task = workers!.run<GrassCellData>({ kind: 'grass', seed, cx: x, cz: z, density: GRASS_PROFILES[prof].density }, 2500 + inFlight.size);
+  /** Content first (OPT-4): the main-thread path keeps generating the head of the queue exactly as
+   * before; workers prefetch the following queued cells at low priority (only when idle, after
+   * terrain and dressing). A prefetched cell is used as soon as it arrives (removed from the queue). */
+  function prefetch() {
+    for (let i = 0; i < queue.length && inFlight.size < 4; i++) {
+      const [x, z] = queue[i], key = x + ':' + z;
+      if (inFlight.has(key)) continue;
+      const prof = profile, task = workers!.run<GrassCellData>({ kind: 'grass', seed, cx: x, cz: z, density: GRASS_PROFILES[prof].density }, 6600 + i);
       inFlight.set(key, task);
       task.promise.then(({ result, stale, ms }) => {
         if (disposed || inFlight.get(key) !== task) return;
         inFlight.delete(key);
-        // Stale (relief changed) or no longer wanted/profile changed: the next plan asks again.
-        if (stale || prof !== profile || !wantedKeys.has(key)) { focusKey = ''; return; }
+        // Stale (relief changed), profile changed, no longer wanted or already generated here: dropped.
+        if (stale || prof !== profile || !wantedKeys.has(key) || cells.get(key)?.profile === prof) return;
         cells.set(key, { ...result, profile: prof }); stats.generatedMs += ms; stats.generatedCells++; dirty = true;
-      }, () => { if (inFlight.get(key) === task) { inFlight.delete(key); focusKey = ''; } });
+        const at = queue.findIndex(([qx, qz]) => qx === result.cx && qz === result.cz); if (at >= 0) queue.splice(at, 1);
+      }, () => { if (inFlight.get(key) === task) inFlight.delete(key); });
     }
   }
   function plan(fx: number, fz: number) {
     const r = radius(), cx = Math.floor(fx / GRASS_CELL_M), cz = Math.floor(fz / GRASS_CELL_M), n = Math.ceil(r / GRASS_CELL_M), need: [number, number, number][] = [], wanted = new Set<string>();
     if (r > 0) for (let dz = -n; dz <= n; dz++) for (let dx = -n; dx <= n; dx++) {
       const x = cx + dx, z = cz + dz, ex = Math.max(x * GRASS_CELL_M - fx, 0, fx - (x + 1) * GRASS_CELL_M), ez = Math.max(z * GRASS_CELL_M - fz, 0, fz - (z + 1) * GRASS_CELL_M), d = Math.hypot(ex, ez);
-      if (d > r) continue; const key = x + ':' + z; wanted.add(key); const cell = cells.get(key); if ((!cell || cell.profile !== profile) && !inFlight.has(key)) need.push([x, z, d]);
+      if (d > r) continue; const key = x + ':' + z; wanted.add(key); const cell = cells.get(key); if (!cell || cell.profile !== profile) need.push([x, z, d]);
     }
     for (const key of [...cells.keys()]) if (!wanted.has(key)) { cells.delete(key); dirty = true; }
     for (const [key, task] of inFlight) if (!wanted.has(key)) { task.cancel(); inFlight.delete(key); }
@@ -243,9 +247,9 @@ export function createGrass(parent: THREE.Object3D, seed: number, sampler: (x: n
       if (active&&target>0&&key !== focusKey) { focusKey = key; plan(center.x, center.z); }
       const t0 = performance.now();
       let generated=0;
-      if (remote()) dispatch();
-      else while (queue.length && generated<2 && performance.now() - t0 < budgetMs) { const [x, z] = queue.shift()!; const start=performance.now();cells.set(x + ':' + z, generate(x, z));stats.generatedMs+=performance.now()-start;stats.generatedCells++;generated++; dirty = true; }
-      stats.pending = queue.length + inFlight.size;
+      while (queue.length && generated<2 && performance.now() - t0 < budgetMs) { const [x, z] = queue.shift()!; inFlight.get(x + ':' + z)?.cancel(); inFlight.delete(x + ':' + z); const start=performance.now();cells.set(x + ':' + z, generate(x, z));stats.generatedMs+=performance.now()-start;stats.generatedCells++;generated++; dirty = true; }
+      if (remote()) prefetch();
+      stats.pending = queue.length;
       if (dirty&&(!stats.pending||mesh.count===0||sinceUpload>=.1)) { sinceUpload=0;dirty = false; const t1 = performance.now(); rebuild(); stats.buildMs = performance.now() - t1; }
       stats.updateMs=performance.now()-begin;
     },
