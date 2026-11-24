@@ -10,12 +10,11 @@
  * the edge of the radius (no visible border, no fog). Profiles follow the shared budget level
  * (doc 22): dense / balanced / ultra-economy / groundOnly (off). Never touches gameplay. */
 import * as THREE from 'three';
-import {setLinearHex} from './linear-color.ts';
 import {SlotAllocator} from './slot-allocator.ts';
 
-export const GRASS_CELL_M = 16;
-/** Per-instance silhouette variants (height, width, depth factors). */
-const VARIANT_HEIGHT = [.78, 1, 1.24], VARIANT_WIDTH = [1.2, 1, .78], VARIANT_DEPTH = [.65, 1, 1.18];
+import {GRASS_CELL_M,generateGrassCell,type GrassSample,type GrassCellData} from './grass-cell.ts';
+import type {GeoTask,GeoWorkerPool} from '../geography/geo-workers.ts';
+export {GRASS_CELL_M,type GrassSample};
 /** Profiles (benchmark knobs, doc 18 §profiles): radius (m), tufts per m² at full grass share. */
 export const GRASS_PROFILES = {
   dense: { radius: 42, density: 2.6 },
@@ -30,17 +29,11 @@ export function grassProfileFor(level: number, economy = false): GrassProfile {
   return (['dense', 'balanced', 'ultra', 'groundOnly'] as const)[l];
 }
 /** What the grass needs to know about a point: grass share 0…1, tall-grass share 0…1, colour. */
-export interface GrassSample { share: number; tall: number; color: number }
 export interface GrassView {position:{x:number;y:number;z:number};fov:number;height:number}
 export interface GrassActor {x:number;y:number;z:number}
 export interface GrassStats { visibleScale:number;actors:number;generatedMs:number;updateMs:number;bytes:number;uploadedBytes:number;uploads:number;generatedCells:number; profile: GrassProfile; cells: number; tufts: number; triangles: number; calls: number; buildMs: number; pending: number }
 
 /** Deterministic hash → [0, 1). */
-function rnd(seed: number, a: number, b: number, c = 0) {
-  let h = (seed ^ Math.imul(a, 0x27d4eb2d) ^ Math.imul(b, 0x165667b1) ^ Math.imul(c, 0x9e3779b1)) >>> 0;
-  h = Math.imul(h ^ (h >>> 15), 0x85ebca6b); h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35); h ^= h >>> 16;
-  return (h >>> 0) / 4294967296;
-}
 /** One tuft: 3 blades (1 triangle each) at 0°, 60°, 120°, base on the ground, tip at y = 1.
  * Normals point up (soft, even lighting of thin blades); colour darker at the root. */
 export function tuftGeometry(): THREE.BufferGeometry {
@@ -62,7 +55,10 @@ export function tuftGeometry(): THREE.BufferGeometry {
 /** `profile`: density it was generated for; a cell of another profile stays drawn until regenerated. */
 interface Cell { cx: number; cz: number; count: number; matrices: Float32Array; colors: Float32Array; profile?: GrassProfile; d?: number }
 
-export function createGrass(parent: THREE.Object3D, seed: number, sampler: (x: number, z: number) => GrassSample | null, height: (x: number, z: number) => number, capacity = 24000, exactPlacement = false) {
+export function createGrass(parent: THREE.Object3D, seed: number, sampler: (x: number, z: number) => GrassSample | null, height: (x: number, z: number) => number, capacity = 24000, exactPlacement = false,
+  /** OPT-4 (doc 82 step 7): the generated-world sampler (biomes.generatedGrass + terrainHeight,
+   * exact placement) runs in the geography workers; absent/unavailable or ?opt4grass=0: main thread. */
+  workers: GeoWorkerPool | null = null) {
   const geometry = tuftGeometry();
   const uniforms = { uTime: { value: 0 }, uWind: { value: .35 }, uFocus: { value: new THREE.Vector3() }, uRadius: { value: 1 }, uActors: { value: [new THREE.Vector3(1e6,1e6,1e6),new THREE.Vector3(1e6,1e6,1e6)] }, uActorCount:{value:0}, uVisibility:{value:1} };
   const material = new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide });
@@ -105,43 +101,30 @@ export function createGrass(parent: THREE.Object3D, seed: number, sampler: (x: n
   let profile: GrassProfile = 'balanced', queue: [number, number][] = [], focusKey = '', dirty = false, disposed = false;
   const stats: GrassStats = { visibleScale:1,actors:0,generatedMs:0,updateMs:0,bytes:capacity*19*4,uploadedBytes:0,uploads:0,generatedCells:0, profile, cells: 0, tufts: 0, triangles: 0, calls: 0, buildMs: 0, pending: 0 };
   const radius = () => GRASS_PROFILES[profile].radius;
-  // Generation scratch (OPT step 5): typed arrays reused between cells, one exact-size copy per
-  // cell; same float32 values as the former number arrays.
-  let scratchM = new Float32Array(1024 * 16), scratchC = new Float32Array(1024 * 3);
-  const base = new THREE.Color();
   function generate(cx: number, cz: number): Cell {
-    let k = 0;
-    const p = GRASS_PROFILES[profile], patch = 4;
-    for (let pz = 0; pz < GRASS_CELL_M / patch; pz++) for (let px = 0; px < GRASS_CELL_M / patch; px++) {
-      const sx = cx * GRASS_CELL_M + (px + .5) * patch, sz = cz * GRASS_CELL_M + (pz + .5) * patch, s = sampler(sx, sz);
-      if (!s || s.share <= .02) continue;
-      const n = Math.round(patch * patch * p.density * s.share * (.8 + .4 * rnd(seed, cx * 8 + px, cz * 8 + pz, 7)));
-      base.set(s.color);
-      for (let i = 0; i < n; i++) {
-        const r0 = rnd(seed, cx * 8 + px, cz * 8 + pz, i * 4), r1 = rnd(seed, cx * 8 + px, cz * 8 + pz, i * 4 + 1), r2 = rnd(seed, cx * 8 + px, cz * 8 + pz, i * 4 + 2), r3 = rnd(seed, cx * 8 + px, cz * 8 + pz, i * 4 + 3);
-        const x = sx + (r0 - .5) * patch, z = sz + (r1 - .5) * patch;
-        // Exact final point check prevents the 4 m sampling grid from spilling over exclusions.
-        const final=exactPlacement?sampler(x,z):s;if(!final||final.share<=.02)continue;
-        const tall=r2<final.tall; if(exactPlacement)setLinearHex(base,final.color);
-        // Heights against the hamster (≈ 0.9 m): short grass to the ankle, tall grass to the chest.
-        // Preserve one 3-triangle geometry and one draw call, but create three silhouettes
-        // with deterministic per-instance anisotropy and height (no extra geometry/material).
-        const variant = Math.floor(rnd(seed ^ 0x673f, cx * 8 + px, cz * 8 + pz, i) * 3);
-        const h = (tall ? .35 + .35 * r3 : .15 + .15 * r3) * VARIANT_HEIGHT[variant];
-        const w = (tall ? .9 + .4 * r3 : 1.2 + .5 * r3) * VARIANT_WIDTH[variant];
-        const tint = .82 + .3 * r2;
-        const yaw = r3 * 6.283, c = Math.cos(yaw), s2 = Math.sin(yaw);
-        // Y rotation × scale (w, h, w) + translation, column-major (THREE.Matrix4.elements order).
-        const depth = w * VARIANT_DEPTH[variant];
-        if (k * 16 >= scratchM.length) { const m = new Float32Array(scratchM.length * 2); m.set(scratchM); scratchM = m; const c3 = new Float32Array(scratchC.length * 2); c3.set(scratchC); scratchC = c3; }
-        const o = k * 16, q = k * 3, m = scratchM;
-        m[o] = c * w; m[o + 1] = 0; m[o + 2] = -s2 * w; m[o + 3] = 0; m[o + 4] = 0; m[o + 5] = h; m[o + 6] = 0; m[o + 7] = 0;
-        m[o + 8] = s2 * depth; m[o + 9] = 0; m[o + 10] = c * depth; m[o + 11] = 0; m[o + 12] = x; m[o + 13] = height(x, z) - .03; m[o + 14] = z; m[o + 15] = 1;
-        scratchC[q] = base.r * tint; scratchC[q + 1] = base.g * tint; scratchC[q + 2] = base.b * tint * .95;
-        k++;
-      }
+    return { ...generateGrassCell(seed, cx, cz, GRASS_PROFILES[profile].density, sampler, height, exactPlacement), profile };
+  }
+  const inFlight = new Map<string, GeoTask<GrassCellData>>();
+  let wantedKeys = new Set<string>();
+  const remote = () => !!workers?.available && typeof location !== 'undefined' && new URLSearchParams(location.search).get('opt4grass') !== '0';
+  /** Content first (OPT-4): the main-thread path keeps generating the head of the queue exactly as
+   * before; workers prefetch the following queued cells at low priority (only when idle, after
+   * terrain and dressing). A prefetched cell is used as soon as it arrives (removed from the queue). */
+  function prefetch() {
+    for (let i = 0; i < queue.length && inFlight.size < 4; i++) {
+      const [x, z] = queue[i], key = x + ':' + z;
+      if (inFlight.has(key)) continue;
+      const prof = profile, task = workers!.run<GrassCellData>({ kind: 'grass', seed, cx: x, cz: z, density: GRASS_PROFILES[prof].density }, 6600 + i);
+      inFlight.set(key, task);
+      task.promise.then(({ result, stale, ms }) => {
+        if (disposed || inFlight.get(key) !== task) return;
+        inFlight.delete(key);
+        // Stale (relief changed), profile changed, no longer wanted or already generated here: dropped.
+        if (stale || prof !== profile || !wantedKeys.has(key) || cells.get(key)?.profile === prof) return;
+        cells.set(key, { ...result, profile: prof }); stats.generatedMs += ms; stats.generatedCells++; dirty = true;
+        const at = queue.findIndex(([qx, qz]) => qx === result.cx && qz === result.cz); if (at >= 0) queue.splice(at, 1);
+      }, () => { if (inFlight.get(key) === task) inFlight.delete(key); });
     }
-    return { cx, cz, count: k, matrices: scratchM.slice(0, k * 16), colors: scratchC.slice(0, k * 3), profile };
   }
   function plan(fx: number, fz: number) {
     const r = radius(), cx = Math.floor(fx / GRASS_CELL_M), cz = Math.floor(fz / GRASS_CELL_M), n = Math.ceil(r / GRASS_CELL_M), need: [number, number, number][] = [], wanted = new Set<string>();
@@ -150,6 +133,8 @@ export function createGrass(parent: THREE.Object3D, seed: number, sampler: (x: n
       if (d > r) continue; const key = x + ':' + z; wanted.add(key); const cell = cells.get(key); if (!cell || cell.profile !== profile) need.push([x, z, d]);
     }
     for (const key of [...cells.keys()]) if (!wanted.has(key)) { cells.delete(key); dirty = true; }
+    for (const [key, task] of inFlight) if (!wanted.has(key)) { task.cancel(); inFlight.delete(key); }
+    wantedKeys = wanted;
     queue = need.sort((a, b) => a[2] - b[2]).map(([x, z]) => [x, z]);
   }
   // Stable slots (doc 82 step 6): a cell keeps its instance range while it stays drawn, so a
@@ -262,14 +247,15 @@ export function createGrass(parent: THREE.Object3D, seed: number, sampler: (x: n
       if (active&&target>0&&key !== focusKey) { focusKey = key; plan(center.x, center.z); }
       const t0 = performance.now();
       let generated=0;
-      while (queue.length && generated<2 && performance.now() - t0 < budgetMs) { const [x, z] = queue.shift()!; const start=performance.now();cells.set(x + ':' + z, generate(x, z));stats.generatedMs+=performance.now()-start;stats.generatedCells++;generated++; dirty = true; }
+      while (queue.length && generated<2 && performance.now() - t0 < budgetMs) { const [x, z] = queue.shift()!; inFlight.get(x + ':' + z)?.cancel(); inFlight.delete(x + ':' + z); const start=performance.now();cells.set(x + ':' + z, generate(x, z));stats.generatedMs+=performance.now()-start;stats.generatedCells++;generated++; dirty = true; }
+      if (remote()) prefetch();
       stats.pending = queue.length;
-      if (dirty&&(!queue.length||mesh.count===0||sinceUpload>=.1)) { sinceUpload=0;dirty = false; const t1 = performance.now(); rebuild(); stats.buildMs = performance.now() - t1; }
+      if (dirty&&(!stats.pending||mesh.count===0||sinceUpload>=.1)) { sinceUpload=0;dirty = false; const t1 = performance.now(); rebuild(); stats.buildMs = performance.now() - t1; }
       stats.updateMs=performance.now()-begin;
     },
     /** Authored change (relief, biotopes): regenerate the cells around it. */
-    refresh(x: number, z: number, r: number) { for (const c of [...cells.values()]) if (Math.hypot((c.cx + .5) * GRASS_CELL_M - x, (c.cz + .5) * GRASS_CELL_M - z) < r + GRASS_CELL_M) cells.delete(c.cx + ':' + c.cz); focusKey = ''; dirty = true; },
-    dispose() { if (disposed) return; disposed = true; mesh.removeFromParent(); mesh.dispose(); geometry.dispose(); material.dispose(); cells.clear(); },
+    refresh(x: number, z: number, r: number) { for (const t of inFlight.values()) t.cancel(); inFlight.clear(); for (const c of [...cells.values()]) if (Math.hypot((c.cx + .5) * GRASS_CELL_M - x, (c.cz + .5) * GRASS_CELL_M - z) < r + GRASS_CELL_M) cells.delete(c.cx + ':' + c.cz); focusKey = ''; dirty = true; },
+    dispose() { if (disposed) return; disposed = true; for (const t of inFlight.values()) t.cancel(); inFlight.clear(); mesh.removeFromParent(); mesh.dispose(); geometry.dispose(); material.dispose(); cells.clear(); },
   };
 }
 export type Grass = ReturnType<typeof createGrass>;

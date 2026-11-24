@@ -68,6 +68,8 @@ export interface WorldView {
   placed: PlacedInstances;
   /** Sparse local low-poly vaults, only allocated near player (mobile GPU cap). */
   natural: NaturalView;
+  /** Ecology streaming counters (metrics/benchmarks). */
+  ecologyStats: import('./ecology.ts').EcologyStats;
   /** Near-field faceted rock surfaces for authored cliff lines, budgeted and streamed. */
   cliffs: CliffView;
   refreshCliffs: (terrain?:import('./terrain-generator.ts').TerrainGeneratorDefinition)=>void;
@@ -790,7 +792,7 @@ export function buildWorld(
         return edits[i].biome;
     return sampleBiome(x, z);
   };
-  const ecology = createEcology(root, config.seed, config.density, biomeAt, legacy ? undefined : generatedCover);
+  const ecology = createEcology(root, config.seed, config.density, biomeAt, legacy ? undefined : generatedCover, { pool: workers, edits: definition?.biomes ?? [] });
   // G5: natural dressing (forests, cliff rocks, scree, pebbles, basalt) of generated worlds.
   const dressing: DressingView | null = legacy ? null : createDressingView(root, config.seed, config.density, workers);
   const buildingImpostors=createImpostorSectors(root,'buildings');buildingImpostors.setBudget(64,4);
@@ -803,7 +805,7 @@ export function buildWorld(
   const natural = createNaturalView(root,terrainHeight);
   const cliffs = createCliffView(root,terrainHeight,config.seed,config.terrain);
   // Doc 18: short and tall grass tufts near the player (generated worlds), 1 draw call, wind in the shader.
-  const grass = legacy ? null : createGrass(root, config.seed, generatedGrass, terrainHeight,24000,true);
+  const grass = legacy ? null : createGrass(root, config.seed, generatedGrass, terrainHeight,24000,true,workers);
   let grassActors:readonly import('./render/grass.ts').GrassActor[]=[];
   // `?grass=dense|balanced|ultra|off` (benchmarks, captures): fixed profile instead of the budget level.
   const grassParam = typeof location !== 'undefined' ? new URLSearchParams(location.search).get('grass') : null;
@@ -966,6 +968,7 @@ export function buildWorld(
     terrainWork: terrainView.work,
     placed,
     natural,
+    ecologyStats: ecology.stats,
     cliffs,
     isOccluded:(x,y,z)=>occluded(x,z,y),
     hybrid:{setDebug(on:boolean){dressing?.setDebug(on);buildingImpostors.setDebug(on);},setMode:setHybridMode,setSectors(on:boolean){dressing?.setSectorSize(on?256:512);},getMode:()=>hybridMode,stats:{get mode(){return hybridMode;},trees:dressing?.stats.impostors??null,buildings:buildingImpostors.stats,cache:atlasCacheStats}},

@@ -212,3 +212,36 @@ export function generatedGrass(x: number, z: number): { share: number; tall: num
   const cover=groundCover(generatedSample(x,z),x,z,geoContext().seed);
   return cover.density>.02?{share:cover.density,tall:cover.tallGrass,color:cover.color}:null;
 }
+
+/** Habitat of a creature along its circle, sampled at PATH_SAMPLES phases when its sector is
+ * built (doc 106, HITCH-8): per frame only the y-dependent rule is evaluated. Same rules as
+ * habitatAllows. Pure (terrain/geography only): runs on the main thread or in a geo worker. */
+export const PATH_SAMPLES = 32;
+export interface CreaturePath { floor: Float32Array; surface: Float32Array; ok: Uint8Array }
+export function creatureRadius(site: CreatureSite) { return site.kind === 'bird' ? 6 : site.kind === 'fish' ? 1.2 : 1.8; }
+export function sampleCreaturePath(site: CreatureSite): CreaturePath {
+  const floor = new Float32Array(PATH_SAMPLES), surface = new Float32Array(PATH_SAMPLES), ok = new Uint8Array(PATH_SAMPLES), r = creatureRadius(site);
+  for (let i = 0; i < PATH_SAMPLES; i++) {
+    const a = (i / PATH_SAMPLES) * Math.PI * 2, x = site.x + Math.cos(a) * r, z = site.z + Math.sin(a) * r;
+    if (!insideWorld(x, z)) continue;
+    const f = terrainHeight(x, z), w = waterSurface(x, z);
+    floor[i] = f; surface[i] = w === null ? NaN : w;
+    ok[i] = site.kind === 'butterfly' ? ((w === null || w - f < 0.05) && !ecologyExcluded(x, z) ? 1 : 0) : 1;
+  }
+  return { floor, surface, ok };
+}
+/** Legacy authored biome circles (last applicable wins), then the generated/legacy sampler. */
+export interface BiomeEditCircle { x: number; z: number; radius: number; biome: BiomeId }
+export function biomeSamplerWith(edits: readonly BiomeEditCircle[]): BiomeSampler {
+  return (x, z) => {
+    for (let i = edits.length - 1; i >= 0; i--)
+      if (Math.hypot(x - edits[i].x, z - edits[i].z) < edits[i].radius) return edits[i].biome;
+    return sampleBiome(x, z);
+  };
+}
+/** A sector ready to draw: placements plus each creature's sampled path (structured-cloneable). */
+export interface EcologySectorData extends EcologySector { paths: CreaturePath[] }
+export function ecologySectorData(seed: number, cx: number, cz: number, density: number, sampler: BiomeSampler, cover?: (x: number, z: number) => number): EcologySectorData {
+  const sector = generateEcologySector(seed, cx, cz, density, sampler, cover);
+  return { ...sector, paths: sector.creatures.map(sampleCreaturePath) };
+}
