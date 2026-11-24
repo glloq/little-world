@@ -1,5 +1,6 @@
 import {DRESSING_CELL_M} from './geography/dressing.ts';
-import {PerfSampler,createGpuTimer} from './render/perf-sampler.ts';
+import {PerfSampler,createGpuTimer,createUploadCounter} from './render/perf-sampler.ts';
+import {BENCH_ROUTES,createBenchRoute,type BenchRouteRunner} from './render/bench-route.ts';
 import {advanceSpeedCamera,speedCameraState,createSpeedStreaks} from './render/speed-effects.ts';
 import {advanceFlightAutoCamera,type FlightCameraFollow} from './render/flight-auto-camera.ts';
 import {createActorSimulator} from './render/remote-characters.ts';
@@ -343,7 +344,8 @@ if(playable){
       cached:(cx:number,cz:number)=>{const m=DRESSING_CELL_M,hw=(definition.config.width??200)/2-4,hl=(definition.config.length??600)/2-4;return cx*m>=-hw&&(cx+1)*m<=hw&&cz*m>=-hl&&(cz+1)*m<=hl?world.dressingCell(cx,cz):undefined;}}}),
     setPosition:(p,space)=>{animalBridge.host?.abandon();gameplay?.fishing.cancel();stopFlightCourse();stopRace();player.space=space??undefined;player.position.set(p.x,p.y,p.z);player.velocity.set(0,0,0);player.mode='air';player.oxygen=MAX_OXYGEN;player.glideReady=false;player.snowAirborne=false;player.coyoteLeft=0;player.jumpBufferLeft=0;aboard=false;keySet.clear();jumpQueue=0;actionQueue=0;npcs.dialogue.close();previousPlayerPosition.copy(player.position);renderPosition.copy(player.position);updateCamera(1);}
   });
-  if(metricsEnabled){const g=gameplay;Object.assign(window,{littleWorldDebug:{/** Developer/test hook (metrics mode only): give items. */grant:(itemId:string,quantity:number)=>g.runtime.grantItems([{itemId,quantity}]),
+  if(metricsEnabled){const g=gameplay;Object.assign(window,{littleWorldDebug:{/** OPT-0: start/stop the benchmark route (?benchRoute=); restart resets tick 0. */benchStart:()=>{benchTick=0;benchRunning=true;},benchStop:()=>{benchRunning=false;},benchSeek:(tick:number)=>{benchRunning=false;benchTick=Math.max(0,Math.floor(tick));},
+    /** Developer/test hook (metrics mode only): give items. */grant:(itemId:string,quantity:number)=>g.runtime.grantItems([{itemId,quantity}]),
     /** Developer/test hook: move the player on the ground and turn the camera (heading in rad). */
     teleport:(x:number,z:number,heading:number,altitude=0)=>{gameplay?.fishing.cancel();player.space=undefined;player.mode=altitude>0?'air':'ground';player.glideReady=altitude>0;player.snowAirborne=false;player.coyoteLeft=0;player.jumpBufferLeft=0;player.velocity.set(0,0,0);player.position.set(x,terrainHeight(x,z)+altitude,z);previousPlayerPosition.copy(player.position);yaw=heading;},
     /** Developer/test hook: natural dressing and placed objects drawn within r m of the player. */
@@ -986,6 +988,25 @@ const flightCameraFollow:FlightCameraFollow={yaw,pitch,idleSeconds:0,wasGliding:
 const previousPlayerPosition = player.position.clone(),
   renderPosition = player.position.clone();
 let presentedFrames = 0;
+/** OPT-0 benchmark route (metrics mode only): pose is a pure function of benchTick. */
+const benchRouteName=metricsEnabled?searchParams.get('benchRoute'):null;
+const bench:BenchRouteRunner|null=benchRouteName&&BENCH_ROUTES[benchRouteName]?createBenchRoute(BENCH_ROUTES[benchRouteName],terrainHeight):null;
+let benchTick=0,benchRunning=false,lastMetricsMs=0;
+/** Carry the player along the benchmark route; replaces the player simulation for this tick. */
+function applyBenchPose(){
+  const p=bench!.at(benchRunning?benchTick++:benchTick);
+  if(p.mode==='boat'){
+    if(!aboard||fleet.current!==playerBoat){boat=playerBoat.state;fleet.board(playerBoat);aboard=true;}
+    const surface=waterSurface(p.x,p.z);
+    boat.x=p.x;boat.z=p.z;boat.heading=p.yaw;boat.speed=Math.hypot(p.vx,p.vz);boat.y=(surface??getTerrainConfig().seaLevel)-.15;
+    player.position.set(boat.x,boat.y+1.02,boat.z);player.velocity.set(p.vx,0,p.vz);player.mode='ground';
+  }else{
+    if(aboard){fleet.leave();aboard=false;}
+    player.position.set(p.x,p.y,p.z);player.velocity.set(p.vx,p.vy,p.vz);player.mode=p.mode==='glide'?'glide':'ground';
+    player.heading=p.yaw;if(p.mode==='glide'){player.glideHeading=p.yaw;player.glidePitch=0;player.glideTurnRate=0;}
+  }
+  player.space=undefined;motionTick++;
+}
 let lastPresented: number | null = null;
 let pendingSimulationMs=0;
 let frameCount = 0,
@@ -1330,6 +1351,7 @@ function updateCamera(dt: number) {
     player.velocity.x,player.velocity.z,player.heading??yaw,!!player.gasBoosting
   );
   yaw=flightCameraFollow.yaw;pitch=flightCameraFollow.pitch;
+  if(bench){yaw=bench.pose.yaw;pitch=bench.pose.pitch;distance=bench.pose.dist;}
   const effects=gameUi?.preferences.speedEffects!==false&&!gameUi?.preferences.reduceMotion;
   advanceSpeedCamera(speedCue,{speed:player.velocity.length(),mode:player.mode,boosting:!!player.gasBoosting,turnRate:player.glideTurnRate??0,enabled:effects},dt);
   const inSurfTube=player.mode==='surf'&&player.barrelEntryTick!==undefined&&!!surfField;
@@ -1606,6 +1628,7 @@ function tick(dt: number) {
   // Menus (pause, parties, paramètres) pause the world simulation; the frame still renders.
   if (!started || gameUi?.paused||mobileLandscape?.blocked) return;
   if(gameplay)gameplay.update(dt);else worldClock.advance(dt);
+  if(bench){applyBenchPose();return;}
   // Boosts recharge even when walking, swimming, on a boat or taking a lift.
   // The ordinary player simulation handles other motion states below.
   if(aboard||liftRide||animalHost?.riding)stepBoostVitals(player,dt);
@@ -1863,6 +1886,8 @@ function tick(dt: number) {
   }
 }
 const perfSampler=new PerfSampler(),gpuTimer=createGpuTimer(renderer,metricsEnabled);
+const uploadCounter=metricsEnabled?createUploadCounter(renderer.getContext() as WebGL2RenderingContext):null;
+let gpuSamplesSeen=0;
 const actorCount=Number(searchParams.get('remoteActors')??0);
 const remoteActors=[10,50,100].includes(actorCount)?createActorSimulator(scene,actorCount,player.position,terrainHeight,world.isOccluded):null;
 remoteActors?.renderer.setLighting(world.atlasIllumination);
@@ -2058,11 +2083,15 @@ function draw(now: number) {
     g.lods=surfWaterViews.map(v=>v.stats.tier);
     surfPerf.endFrame();
   }
-  if(metricsEnabled)perfSampler.record(wallDrawDelta*1000,simulationMs,renderBegin-begin,renderSubmitMs);
+  if(metricsEnabled){perfSampler.record(wallDrawDelta*1000,simulationMs,renderBegin-begin,renderSubmitMs);
+    if(gpuTimer.stats.samples!==gpuSamplesSeen){gpuSamplesSeen=gpuTimer.stats.samples;if(gpuTimer.stats.ms!==null)perfSampler.recordGpu(gpuTimer.stats.ms);}}
+  const metricsBegin=metricsEnabled?performance.now():0;
   if (metricsEnabled)
     Object.assign(window, {
       littleWorldMetrics: {
         frameId: ++presentedFrames,
+        uploads:uploadCounter?{...uploadCounter.stats}:null,
+        bench:bench?{name:benchRouteName,tick:benchTick,running:benchRunning,phase:bench.pose.phase,periodTicks:bench.periodTicks,lengthM:bench.length}:null,
         framebuffer:{width:renderer.domElement.width,height:renderer.domElement.height,pixelRatio:renderer.getPixelRatio()},
         calls: renderer.info.render.calls,
         triangles: renderer.info.render.triangles,
@@ -2136,9 +2165,13 @@ function draw(now: number) {
           simulationMs,
           updateMs: renderBegin - begin,
           renderSubmitMs,
+          gpuMs: gpuTimer.stats.ms,
+          /** Cost of building this metrics object on the previous frame (benchmark overhead). */
+          metricsMs: lastMetricsMs,
         },
       },
     });
+  if(metricsEnabled)lastMetricsMs=performance.now()-metricsBegin;
   if (fpsTime >= 0.8) {
     fps.textContent = `FPS : ${Math.round(frameCount / fpsTime)}`;
     const heap=(performance as Performance & {memory?:{usedJSHeapSize:number}}).memory?.usedJSHeapSize;

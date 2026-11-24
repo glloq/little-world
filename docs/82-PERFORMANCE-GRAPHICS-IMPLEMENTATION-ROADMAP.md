@@ -118,6 +118,16 @@ Le moteur est **GFX-READY** uniquement lorsque les 4 points sont démontrés :
 - Chaque nouveau shader, matériau, eau/ombre/vegetation plus riche possède une variante économique **artistiquement acceptable**, plutôt qu'une simple désactivation brutale.
 
 **Prochaines actions immédiates** : OPT-0 puis OPT-1 sur une branche de code dédiée ; mesurer `dressing-view.ts` avant d'envisager une modification graphique globale. **Cet ajout documentaire ne réalise aucune phase OPT.**
+
+## 7. Suivi d'exécution (campagne de novembre 2026)
+
+Plan détaillé et règles de gate : [perf/PLAN-OPTIMISATION.md](perf/PLAN-OPTIMISATION.md). Résultats : [perf/OPT-0-BASELINE.md](perf/OPT-0-BASELINE.md) puis `perf/RESULTATS-OPTIMISATION.md` en fin de campagne.
+
+| Jalon | Statut | Preuve |
+| --- | --- | --- |
+| OPT-0 — baseline | **IMPLEMENTED, TESTED, BENCHMARKED-SWIFTSHADER** · NOT BENCHMARKED-4GB/8GB | `render/perf-sampler.ts` (GPU par requête, intervalles >50/>100 ms, compteur d'uploads WebGL2), `render/bench-route.ts` (parcours `?benchRoute=` indexés sur le tick), `tools/perf/opt-suite.mjs` (`npm run benchmark:opt`), `tools/perf/compare-captures.mjs`, `tests/perf-opt0.test.mjs` ; baseline et bruit A/A dans `perf/opt-0-baseline/` |
+| OPT-1 … OPT-9 | SPECIFIED | voir le plan |
+
 ## Travail évité sur la boucle de rendu
 
 L’éclairage, le vent et le mixage partagent l’état météo échantillonné pour
