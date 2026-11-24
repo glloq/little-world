@@ -107,7 +107,7 @@ function worldURL(base,world,extra){
   for(const [k,v] of new URLSearchParams(env.EXTRA_QUERY??''))url.searchParams.set(k,v);
   return url.href;
 }
-const settledPredicate=()=>{const m=window.littleWorldMetrics;return !!m&&m.chunks.pending===0&&(!m.cliffs||!m.cliffs.pending)&&(!m.dressing||m.dressing.pending===0&&!m.dressing.canopyPending&&m.dressing.species?.state!=='loading');};
+const settledPredicate=()=>{const m=window.littleWorldMetrics;return !!m&&m.chunks.pending===0&&(!m.cliffs||!m.cliffs.pending)&&(!m.dressing||m.dressing.pending===0&&!m.dressing.canopyPending&&m.dressing.species?.state!=='loading')&&(!m.ecology||m.ecology.missing===0)&&(!m.grass||!m.grass.pending);};
 async function waitSettled(page,timeout){const t=Date.now();const ok=await page.waitForFunction(settledPredicate,{},{timeout,polling:200}).then(()=>true,()=>false);return {ok,ms:Date.now()-t};}
 async function cdpMetrics(cdp){const {metrics}=await cdp.send('Performance.getMetrics');return Object.fromEntries(metrics.map(m=>[m.name,m.value]));}
 
@@ -135,7 +135,7 @@ async function runScene(browser,base,output,name,scene,{viewport,ticks,repeatInd
     function frame(now){if(s.stop)return;const m=window.littleWorldMetrics;
       if(m&&m.frameId!==lastFrame){lastFrame=m.frameId;
         if(last!==null){const t=m.timings;s.rows.push([now-last,t.updateMs,t.renderSubmitMs,t.simulationMs,t.gpuMs??NaN,t.metricsMs??NaN,m.calls,m.triangles,
-          m.uploads?.bytes??NaN,performance.memory?.usedJSHeapSize??NaN,m.bench?.phase??0,m.bench?.tick??0,m.chunks.pending,m.dressing?.pending??0,now,m.framebuffer?.pixelRatio??NaN,m.budget?.detailLevel??m.qualityLevel??NaN,m.renderRate??NaN]);}
+          m.uploads?.bytes??NaN,performance.memory?.usedJSHeapSize??NaN,m.bench?.phase??0,m.bench?.tick??0,m.chunks.pending,m.dressing?.pending??0,now,m.framebuffer?.pixelRatio??NaN,m.budget?.detailLevel??m.qualityLevel??NaN,m.renderRate??NaN,m.ecology?.missing??NaN,m.ecology?.missingNear??NaN,m.grass?.pending??NaN]);}
         last=now;}
       requestAnimationFrame(frame);}
     requestAnimationFrame(frame);
@@ -167,6 +167,8 @@ async function runScene(browser,base,output,name,scene,{viewport,ticks,repeatInd
     heap:{startMB:+(heap[0]/2**20).toFixed(2),endMB:+(heap.at(-1)/2**20).toFixed(2),maxMB:+(Math.max(...heap)/2**20).toFixed(2),allocMBps:+(alloc/2**20/spanS).toFixed(2),drops},
     longTasks:{count:rows.longTasks.length,totalMs:Math.round(rows.longTasks.reduce((a,b)=>a+b,0)),max:Math.round(Math.max(0,...rows.longTasks))},
     pendingMax:{chunks:Math.max(0,...col(12)),dressing:Math.max(0,...col(13))},
+    /** Content lag: ecology sectors within radius not yet resident (mean, max) and near ones; grass cells pending. */
+    streamingLag:{ecologyMissingMean:stats(col(18)).mean,ecologyMissingMax:Math.max(0,...col(18).filter(Number.isFinite)),ecologyMissingNearMean:stats(col(19)).mean,ecologyMissingNearMax:Math.max(0,...col(19).filter(Number.isFinite)),grassPendingMean:stats(col(20)).mean},
     cdp:{scriptS:+(cdpAfter.ScriptDuration-cdpBefore.ScriptDuration).toFixed(2),taskS:+(cdpAfter.TaskDuration-cdpBefore.TaskDuration).toFixed(2),
       layoutS:+(cdpAfter.LayoutDuration-cdpBefore.LayoutDuration).toFixed(3),styleS:+(cdpAfter.RecalcStyleDuration-cdpBefore.RecalcStyleDuration).toFixed(3),jsHeapUsedMB:+(cdpAfter.JSHeapUsedSize/2**20).toFixed(1)},
     rssMB:{before:rssBefore,after:rssAfter},

@@ -1,6 +1,9 @@
 /** Geography worker: same modules as the main thread (identical results), no Three.js and no
  * DOM. Holds a replica of the terrain/geography configuration and of the Studio map project. */
-import {configureTerrain,insideWorld} from '../terrain.ts';
+import {configureTerrain,insideWorld,isLegacyTerrain} from '../terrain.ts';
+import {ecologySectorData,biomeSamplerWith,generatedCover,generatedGrass,type BiomeEditCircle} from '../biomes.ts';
+import {generateGrassCell} from '../render/grass-cell.ts';
+import {terrainHeight} from '../terrain.ts';
 import {configureGeography,geoContext} from './engine.ts';
 import {createChunkData} from '../terrain-data.ts';
 import {packedHorizonBlock} from '../horizon-data.ts';
@@ -17,6 +20,8 @@ function run(job:GeoJob):{result:unknown;transfer:ArrayBuffer[]}{
     case 'horizon':{const d=packedHorizonBlock(job.bounds,job.grid,job.column,job.row);return {result:d,transfer:buffers(d.positions,d.normals,d.colors,d.index)};}
     case 'dressing':{const c=generateDressingCell(geoContext(),job.seed,job.cx,job.cz,insideWorld);return {result:c,transfer:buffers(...Object.values(c.items))};}
     case 'canopy':{const a=generateCanopyCell(geoContext(),job.seed,job.cx,job.cz,insideWorld);return {result:a,transfer:buffers(a)};}
+    case 'grass':{const c=generateGrassCell(job.seed,job.cx,job.cz,job.density,generatedGrass,terrainHeight,true);return {result:c,transfer:buffers(c.matrices,c.colors)};}
+    case 'ecology':{const d=ecologySectorData(job.seed,job.cx,job.cz,job.density,biomeSamplerWith(job.edits as BiomeEditCircle[]),isLegacyTerrain()?undefined:generatedCover);return {result:d,transfer:d.paths.flatMap(p=>[p.floor.buffer as ArrayBuffer,p.surface.buffer as ArrayBuffer,p.ok.buffer as ArrayBuffer])};}
     case 'map':{if(!project)throw Error('Projet non configuré');const t=sampleTile(project.ctx,job.bounds,job.level,job.tx,job.tz);return {result:t,transfer:buffers(t.heights,t.slope,t.moisture,t.authored,t.underwater,...Object.values(t.codes))};}
   }
 }

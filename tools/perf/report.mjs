@@ -2,11 +2,14 @@
 /** OPT suite report: Markdown tables from results.json of tools/perf/opt-suite.mjs.
  *   node tools/perf/report.mjs A/results.json             → baseline table + A/A noise
  *   node tools/perf/report.mjs A/results.json B/results.json → A/B table + gate verdict
+ *   (each side may list several comma-separated results.json: interleaved A/B/A/B runs)
  * Gate (docs/perf/PLAN-OPTIMISATION.md §2): a metric changes when |B−A| exceeds
  * max(2 × A/A noise, 5 %) of A; lower is better for every metric listed here. */
 import {readFile} from 'node:fs/promises';
 const [fa,fb]=process.argv.slice(2);if(!fa)throw Error('usage: report.mjs A/results.json [B/results.json]');
-const A=JSON.parse(await readFile(fa,'utf8')),B=fb?JSON.parse(await readFile(fb,'utf8')):null;
+// Several runs of one side (interleaved A/B/A/B sessions): comma-separated files, scenes merged.
+async function load(arg){const runs=await Promise.all(arg.split(',').map(async f=>JSON.parse(await readFile(f,'utf8'))));const run={...runs[0],scenes:runs.flatMap(r=>r.scenes),repeat:runs.reduce((n,r)=>n+r.repeat,0)};return run;}
+const A=await load(fa),B=fb?await load(fb):null;
 export const METRICS=[
   ['p50 ms',s=>s.overall.p50Ms],['p95 ms',s=>s.overall.p95Ms],['p99 ms',s=>s.overall.p99Ms],['>100 ms %',s=>100*s.overall.over100Ms/Math.max(1,s.overall.frames)],
   ['update p50',s=>s.cpu.updateMs.p50],['update p95',s=>s.cpu.updateMs.p95],['update p99',s=>s.cpu.updateMs.p99],

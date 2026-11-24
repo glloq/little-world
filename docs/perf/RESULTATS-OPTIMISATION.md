@@ -14,6 +14,9 @@ Tenu à jour à chaque étape. Protocole et gate : [PLAN-OPTIMISATION.md](PLAN-O
 | 5 — allocations de la boucle critique | `claude/opt-5-zero-alloc` | **retenue partiellement** (cueillette, herbe, chemins) ; partie habillage revertée | allocations (profil échantillonné) **−12 % forêt, −11 % village, −6 % vol** ; `update` p50 −10 à −12 %, p95 −7 % (forêt, village), vol p95 −6,5 %, p99 −9 % | forêt `update` p99 +5,3 % (2–3 images) ; envoi GPU vol +11 % inexpliqué (ni herbe ni habillage) | forêt, village, vol, 1280×720, 2 exécutions, `ALLOC_PROFILE=1` |
 | 6 — herbe : plages d'instances stables (variante a) | `claude/opt-grass-stable-slots` | **retenue** | octets d'herbe **−94 % forêt, −90 % village, −75 % vol** ; envoi GPU total −34 à −57 % ; `update` p99 forêt −16 %, `update` p50 village −10 % | vol : intervalle p95 +1 palier vsync (283 → 300 ms) ; triangles +1,5–1,9 % (trous résiduels à échelle nulle) | forêt, village, vol, 1280×720, 2 exécutions |
 | 6 — herbe : secteurs cullables (variante b) | — | **non testée** | — | gain attendu uniquement côté sommets GPU (non mesurable ici) ; augmente les appels de rendu | — |
+| 7 — OPT-4 streaming : écologie et herbe préchargées par les workers | `claude/opt-4-streaming-workers` | **testée, non retenue par défaut** : opt-in `?opt4=1` (CI en échec, voir §7) | `update` p50 −20 % / p95 −10 % (vol), p95 −28 % / p99 −36 % (forêt), p50 −15 % (zones) ; décor écologie/herbe à parité | file d'habillage en vol 281 au lieu de ~175 (triangles −1,5 %) ; zones : `submit` p95 +19 %, allocations +77 % (copie des résultats) | vol, zones, forêt, 1280×720, A/B/A/B |
+| 8 — préchauffage des shaders | — | **déjà livré (doc 106), vérifié** | 0 programme compilé pendant tous les parcours mesurés (baseline et A/B) | — | toutes scènes |
+| 9 — overdraw (alpha-test / alphaToCoverage) | — | **non retenue (analyse)** | aucun matériau transparent à opacité 1 : eau, mer proche, halos, pluie, ombre de contact et effets sont réellement translucides ; alpha-test changerait l'image | — | inventaire du code |
 
 ## Étape 1 — OPT-6 : diagnostic CPU/GPU de l'arbitre
 
@@ -96,3 +99,33 @@ Détail : [`opt-5/ab-retained.md`](opt-5/ab-retained.md) (A = build de l'étape 
 - **Images** : écarts A/B dans le bruit A/A ([`opt-grass/images.json`](opt-grass/images.json)).
 - Un premier essai sans tassement ([`first-B-stable-unpacked.json`](opt-grass/first-B-stable-unpacked.json)) réduisait autant les envois mais laissait jusqu'à 25 % de la plage en trous (+5,6 % de triangles au village, intervalle +5 à +6 % en forêt et au village) : d'où le tassement.
 - **Limites** : la hausse d'un palier de vsync du p95 en vol (où l'herbe est presque toujours masquée par l'altitude) est probablement une dérive entre le bloc A et le bloc B, mesurés à 30 min d'intervalle : les étapes suivantes alternent A/B/A/B. Sous SwiftShader un octet envoyé coûte peu ; sur iGPU réel la réduction de trafic devrait compter davantage — **non démontré**. La variante (b) « secteurs cullables par frustum » n'a pas été codée : son gain porte uniquement sur les sommets traités par le GPU (non mesurable sans GPU) et elle multiplie les appels de rendu ; à tester avec `GPU=1`.
+
+## Étape 7 — OPT-4 streaming : écologie et herbe hors du thread principal — non retenue par défaut (opt-in `?opt4=1`)
+
+**Décision finale (24/11/2026)** : la CI GitHub (runner sans GPU, peu de CPU) a échoué sur `test:hamster` — roulade de **5,9 m en 2,6 s au lieu de > 8 m**, alors que la même vérification passait avec l'étape 6. Le préchargement par les workers y concurrence le rendu logiciel : des images dépassent 250 ms et le monde ralentit par rapport au temps réel, ce qui est une régression de gameplay sur machine modeste. Localement (12,5 m) la régression ne se reproduit pas. Le préchargement est donc **désactivé par défaut** et activable par `?opt4=1` pour une mesure sur GPU réel ; sans ce flag le comportement est celui d'avant l'étape (génération synchrone, un secteur d'écologie par image, budget d'herbe inchangé). Restent actifs, à résultat identique : les modules purs `render/grass-cell.ts`, `ecologySectorData`, et les compteurs `ecology.missing`/`streamingLag`. Vérifications après ce changement : `npm test` 1320/1320, navigateur (build de production + fixtures comme la CI) `hamster` (12,5 m), `gameplay`, `test:dressing-stability`, `test:island` verts.
+
+Mesures de la version opt-in ci-dessous (flags A/B de l'époque : `?opt4eco=0&opt4grass=0` = A).
+
+**Statut : IMPLEMENTED, TESTED (unitaires), BENCHMARKED-SWIFTSHADER.** `biomes.ts` (`ecologySectorData`, `sampleCreaturePath`, `biomeSamplerWith`), `render/grass-cell.ts` (génération pure), jobs `ecology` et `grass` des workers de géographie, `ecology.ts`, `render/grass.ts`. Flags A/B : `?opt4eco=0`, `?opt4grass=0`. Métriques ajoutées : `ecology.missing/missingNear` (secteurs manquants dans le rayon), `streamingLag` dans la suite, stabilisation incluant écologie et herbe.
+
+Quatre variantes mesurées (A/B alternés, même build) :
+1. **Tout dans les workers** : `update` p95 −65 % en vol, mais −23 % d'appels de rendu et −16 % de triangles : décor manquant (workers saturés sous SwiftShader). **Rejetée.**
+2. **+ filet synchrone près du joueur** : encore 5,7 secteurs d'écologie manquants en vol (1,3 en A). **Rejetée.**
+3. **Contenu d'abord + préchargement prioritaire** : écologie à parité, mais la file d'habillage passe à 639 cellules en vol (−10 % de triangles). **Rejetée.**
+4. **Contenu d'abord + préchargement basse priorité (retenue)** : chaque image construit le secteur/la cellule le plus proche comme avant, sauf si un worker l'a déjà livré ; les workers préchargent quand ils sont libres.
+
+| Scène | `update` p50 | p95 | p99 | écologie manquante (moy.) | triangles | file habillage max |
+| --- | --- | --- | --- | --- | --- | --- |
+| vol | −20 % | −10 % | = | 1,39 → 1,08 | −1,5 % | ~175 → 281–296 |
+| zones | −15 % | = | = | 3,2 → 3,2 | −0,7 % | = |
+| forêt | −10 % | −28 % | −36 % | = | = | = |
+
+Coûts mesurés : en zones, `submit` p95 +19 % et allocations +77 % (copie structurée des résultats des workers) ; en vol, l'habillage attend davantage les workers (triangles −1,5 %). Détail : [`opt-4/ab.md`](opt-4/ab.md). **Pourquoi « sous réserve »** : gain CPU net, mais la règle « aucune perte » n'est respectée qu'à 1,5 % près en vol ; sur un vrai PC (workers non concurrencés par la rastérisation logicielle) l'écart devrait disparaître — **non démontré**.
+
+## Étape 8 — préchauffage des shaders — déjà livré, vérifié
+
+`render/shader-warmup.ts` (doc 106, HITCH-4) compile toutes les matières au chargement et à l'arrivée des espèces. Mesuré : **0 programme compilé** pendant les parcours forêt, village, vol, bateau, zones (baseline et toutes les A/B). Aucun code ajouté.
+
+## Étape 9 — overdraw — non retenue (analyse)
+
+Inventaire des matériaux `transparent` du jeu : mer proche (`NearSeaMaterial`, 0,9), eau intérieure (`water-look.ts`, déjà `forceSinglePass`), halos de lumière, pluie, disque d'ombre du hamster (0,18), effets (gaz, sillage, pêche, vitesse), mer/rivière de la vallée historique. Tous sont réellement translucides : un alpha-test les rendrait opaques ou crénelés, et `alphaToCoverage` exige le MSAA (non activé). Aucun candidat « sans changement visuel » ⇒ pas de code. Les assets du catalogue n'ont aucune texture (doc 81), donc pas de feuillage à alpha.
