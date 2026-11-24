@@ -132,7 +132,10 @@ Plan détaillé et règles de gate : [perf/PLAN-OPTIMISATION.md](perf/PLAN-OPTIM
 | OPT-3 — objets statiques (étape 4) | **non retenue** : boucle mesurée à 0,08 ms/image | — |
 | Étape 5 — allocations | **IMPLEMENTED, TESTED, BENCHMARKED-SWIFTSHADER** (partiel : cueillette, herbe, chemins) | allocations −6 à −12 %, `update` p95 −6,5 à −7 % |
 | Étape 6 — herbe, plages stables | **IMPLEMENTED, TESTED, BENCHMARKED-SWIFTSHADER** | octets d'herbe −75 à −94 %, envoi GPU −34 à −57 % |
-| OPT-4, OPT-5, OPT-7 … OPT-9 | SPECIFIED | voir le plan |
+| OPT-4 — streaming via workers (étape 7) | **TESTED, BENCHMARKED-SWIFTSHADER — non retenue par défaut** (opt-in `?opt4=1`) | gain CPU SwiftShader mais ralentissement du monde en CI (roulade 5,9 m au lieu de > 8 m) |
+| Étape 8 — préchauffage shaders | déjà livré (doc 106), **vérifié** : 0 compilation pendant les parcours | — |
+| Étape 9 — overdraw | **non retenue (analyse)** : aucun matériau remplaçable sans changement visuel | — |
+| OPT-5, OPT-7 … OPT-9 | SPECIFIED | voir le plan |
 
 ## Travail évité sur la boucle de rendu
 
