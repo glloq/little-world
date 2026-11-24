@@ -57,7 +57,7 @@ interface Cell { cx: number; cz: number; count: number; matrices: Float32Array; 
 
 export function createGrass(parent: THREE.Object3D, seed: number, sampler: (x: number, z: number) => GrassSample | null, height: (x: number, z: number) => number, capacity = 24000, exactPlacement = false,
   /** OPT-4 (doc 82 step 7): the generated-world sampler (biomes.generatedGrass + terrainHeight,
-   * exact placement) runs in the geography workers; absent/unavailable or ?opt4grass=0: main thread. */
+   * exact placement) runs in the geography workers; without ?opt4=1 (default) or unavailable: main thread. */
   workers: GeoWorkerPool | null = null) {
   const geometry = tuftGeometry();
   const uniforms = { uTime: { value: 0 }, uWind: { value: .35 }, uFocus: { value: new THREE.Vector3() }, uRadius: { value: 1 }, uActors: { value: [new THREE.Vector3(1e6,1e6,1e6),new THREE.Vector3(1e6,1e6,1e6)] }, uActorCount:{value:0}, uVisibility:{value:1} };
@@ -106,7 +106,9 @@ export function createGrass(parent: THREE.Object3D, seed: number, sampler: (x: n
   }
   const inFlight = new Map<string, GeoTask<GrassCellData>>();
   let wantedKeys = new Set<string>();
-  const remote = () => !!workers?.available && typeof location !== 'undefined' && new URLSearchParams(location.search).get('opt4grass') !== '0';
+  // Opt-in only (?opt4=1), see ecology.ts: default = historical main-thread generation.
+  const optIn = typeof location !== 'undefined' && new URLSearchParams(location.search).get('opt4') === '1';
+  const remote = () => optIn && !!workers?.available;
   /** Content first (OPT-4): the main-thread path keeps generating the head of the queue exactly as
    * before; workers prefetch the following queued cells at low priority (only when idle, after
    * terrain and dressing). A prefetched cell is used as soon as it arrives (removed from the queue). */
