@@ -13,6 +13,8 @@ import * as THREE from 'three';
 import {setLinearHex} from './linear-color.ts';
 
 export const GRASS_CELL_M = 16;
+/** Per-instance silhouette variants (height, width, depth factors). */
+const VARIANT_HEIGHT = [.78, 1, 1.24], VARIANT_WIDTH = [1.2, 1, .78], VARIANT_DEPTH = [.65, 1, 1.18];
 /** Profiles (benchmark knobs, doc 18 §profiles): radius (m), tufts per m² at full grass share. */
 export const GRASS_PROFILES = {
   dense: { radius: 42, density: 2.6 },
@@ -102,13 +104,18 @@ export function createGrass(parent: THREE.Object3D, seed: number, sampler: (x: n
   let profile: GrassProfile = 'balanced', queue: [number, number][] = [], focusKey = '', dirty = false, disposed = false;
   const stats: GrassStats = { visibleScale:1,actors:0,generatedMs:0,updateMs:0,bytes:capacity*19*4,uploadedBytes:0,uploads:0,generatedCells:0, profile, cells: 0, tufts: 0, triangles: 0, calls: 0, buildMs: 0, pending: 0 };
   const radius = () => GRASS_PROFILES[profile].radius;
+  // Generation scratch (OPT step 5): typed arrays reused between cells, one exact-size copy per
+  // cell; same float32 values as the former number arrays.
+  let scratchM = new Float32Array(1024 * 16), scratchC = new Float32Array(1024 * 3);
+  const base = new THREE.Color();
   function generate(cx: number, cz: number): Cell {
-    const mats: number[] = [], cols: number[] = [], p = GRASS_PROFILES[profile], patch = 4;
+    let k = 0;
+    const p = GRASS_PROFILES[profile], patch = 4;
     for (let pz = 0; pz < GRASS_CELL_M / patch; pz++) for (let px = 0; px < GRASS_CELL_M / patch; px++) {
       const sx = cx * GRASS_CELL_M + (px + .5) * patch, sz = cz * GRASS_CELL_M + (pz + .5) * patch, s = sampler(sx, sz);
       if (!s || s.share <= .02) continue;
       const n = Math.round(patch * patch * p.density * s.share * (.8 + .4 * rnd(seed, cx * 8 + px, cz * 8 + pz, 7)));
-      const base = new THREE.Color(s.color);
+      base.set(s.color);
       for (let i = 0; i < n; i++) {
         const r0 = rnd(seed, cx * 8 + px, cz * 8 + pz, i * 4), r1 = rnd(seed, cx * 8 + px, cz * 8 + pz, i * 4 + 1), r2 = rnd(seed, cx * 8 + px, cz * 8 + pz, i * 4 + 2), r3 = rnd(seed, cx * 8 + px, cz * 8 + pz, i * 4 + 3);
         const x = sx + (r0 - .5) * patch, z = sz + (r1 - .5) * patch;
@@ -119,17 +126,21 @@ export function createGrass(parent: THREE.Object3D, seed: number, sampler: (x: n
         // Preserve one 3-triangle geometry and one draw call, but create three silhouettes
         // with deterministic per-instance anisotropy and height (no extra geometry/material).
         const variant = Math.floor(rnd(seed ^ 0x673f, cx * 8 + px, cz * 8 + pz, i) * 3);
-        const h = (tall ? .35 + .35 * r3 : .15 + .15 * r3) * ([.78, 1, 1.24][variant]);
-        const w = (tall ? .9 + .4 * r3 : 1.2 + .5 * r3) * ([1.2, 1, .78][variant]);
+        const h = (tall ? .35 + .35 * r3 : .15 + .15 * r3) * VARIANT_HEIGHT[variant];
+        const w = (tall ? .9 + .4 * r3 : 1.2 + .5 * r3) * VARIANT_WIDTH[variant];
         const tint = .82 + .3 * r2;
         const yaw = r3 * 6.283, c = Math.cos(yaw), s2 = Math.sin(yaw);
         // Y rotation × scale (w, h, w) + translation, column-major (THREE.Matrix4.elements order).
-        const depth = w * ([.65, 1, 1.18][variant]);
-        mats.push(c * w, 0, -s2 * w, 0, 0, h, 0, 0, s2 * depth, 0, c * depth, 0, x, height(x, z) - .03, z, 1);
-        cols.push(base.r * tint, base.g * tint, base.b * tint * .95);
+        const depth = w * VARIANT_DEPTH[variant];
+        if (k * 16 >= scratchM.length) { const m = new Float32Array(scratchM.length * 2); m.set(scratchM); scratchM = m; const c3 = new Float32Array(scratchC.length * 2); c3.set(scratchC); scratchC = c3; }
+        const o = k * 16, q = k * 3, m = scratchM;
+        m[o] = c * w; m[o + 1] = 0; m[o + 2] = -s2 * w; m[o + 3] = 0; m[o + 4] = 0; m[o + 5] = h; m[o + 6] = 0; m[o + 7] = 0;
+        m[o + 8] = s2 * depth; m[o + 9] = 0; m[o + 10] = c * depth; m[o + 11] = 0; m[o + 12] = x; m[o + 13] = height(x, z) - .03; m[o + 14] = z; m[o + 15] = 1;
+        scratchC[q] = base.r * tint; scratchC[q + 1] = base.g * tint; scratchC[q + 2] = base.b * tint * .95;
+        k++;
       }
     }
-    return { cx, cz, count: cols.length / 3, matrices: new Float32Array(mats), colors: new Float32Array(cols), profile };
+    return { cx, cz, count: k, matrices: scratchM.slice(0, k * 16), colors: scratchC.slice(0, k * 3), profile };
   }
   function plan(fx: number, fz: number) {
     const r = radius(), cx = Math.floor(fx / GRASS_CELL_M), cz = Math.floor(fz / GRASS_CELL_M), n = Math.ceil(r / GRASS_CELL_M), need: [number, number, number][] = [], wanted = new Set<string>();

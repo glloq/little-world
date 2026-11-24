@@ -37,7 +37,9 @@ export function createPathView(parent:THREE.Group,sectorSize:number,options:{rad
   const built=new Map<string,{mesh:THREE.Mesh;lod:0|1}>(),dirty=new Set<string>();
   const stats:PathViewStats={paths:0,sectors:0,built:0,triangles:0,buildMs:0,pending:0,signature:''};
   let focus={x:NaN,z:NaN},disposed=false;
-  const rectOf=(key:string)=>{const [cx,cz]=key.split(':').map(Number);return {minX:cx*sectorSize,maxX:(cx+1)*sectorSize,minZ:cz*sectorSize,maxZ:(cz+1)*sectorSize};};
+  // Sector rectangles parsed once per key (OPT step 5: the per-frame scan allocated arrays/objects).
+  const rects=new Map<string,{minX:number;maxX:number;minZ:number;maxZ:number}>();
+  const rectOf=(key:string)=>{let r=rects.get(key);if(!r){const [cx,cz]=key.split(':').map(Number);r={minX:cx*sectorSize,maxX:(cx+1)*sectorSize,minZ:cz*sectorSize,maxZ:(cz+1)*sectorSize};rects.set(key,r);}return r;};
   const distance=(key:string)=>{const r=rectOf(key);return Math.hypot(Math.max(r.minX-focus.x,0,focus.x-r.maxX),Math.max(r.minZ-focus.z,0,focus.z-r.maxZ));};
   function drop(key:string){const b=built.get(key);if(!b)return;b.mesh.removeFromParent();b.mesh.geometry.dispose();built.delete(key);}
   function build(key:string,lod:0|1){

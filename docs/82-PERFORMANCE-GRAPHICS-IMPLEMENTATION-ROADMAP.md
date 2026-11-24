@@ -126,7 +126,12 @@ Plan détaillé et règles de gate : [perf/PLAN-OPTIMISATION.md](perf/PLAN-OPTIM
 | Jalon | Statut | Preuve |
 | --- | --- | --- |
 | OPT-0 — baseline | **IMPLEMENTED, TESTED, BENCHMARKED-SWIFTSHADER** · NOT BENCHMARKED-4GB/8GB | `render/perf-sampler.ts` (GPU par requête, intervalles >50/>100 ms, compteur d'uploads WebGL2), `render/bench-route.ts` (parcours `?benchRoute=` indexés sur le tick), `tools/perf/opt-suite.mjs` (`npm run benchmark:opt`), `tools/perf/compare-captures.mjs`, `tests/perf-opt0.test.mjs` ; baseline et bruit A/A dans `perf/opt-0-baseline/` |
-| OPT-1 … OPT-9 | SPECIFIED | voir le plan |
+| OPT-6 — diagnostic CPU/GPU (étape 1) | **IMPLEMENTED, TESTED, BENCHMARKED-SWIFTSHADER** · NOT BENCHMARKED-4GB/8GB | goulot CPU : pixel ratio 1,0 conservé au lieu de 0,65 à CPU/p95/p99 égaux ; [perf/RESULTATS-OPTIMISATION.md](perf/RESULTATS-OPTIMISATION.md) |
+| OPT-1 — habillage upload partiel (étape 2) | **TESTED, BENCHMARKED-SWIFTSHADER — non retenue (revert)** | octets −13 à −44 % mais `submit` p95 +21 à +36 % |
+| OPT-2 — falaises/structures (étape 3) | **non applicable** : 0 falaise et 0 structure naturelle publiées | — |
+| OPT-3 — objets statiques (étape 4) | **non retenue** : boucle mesurée à 0,08 ms/image | — |
+| Étape 5 — allocations | **IMPLEMENTED, TESTED, BENCHMARKED-SWIFTSHADER** (partiel : cueillette, herbe, chemins) | allocations −6 à −12 %, `update` p95 −6,5 à −7 % |
+| OPT-4, OPT-5, OPT-7 … OPT-9 | SPECIFIED | voir le plan |
 
 ## Travail évité sur la boucle de rendu
 

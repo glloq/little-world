@@ -175,3 +175,61 @@ test('a restore followed by immediate overload backs off instead of oscillating'
   run(1, 1 / 30, 14);
   assert.equal(b.level, 0);
 });
+
+test('OPT-6: CPU-limited frames lower detail then rate, never the resolution', () => {
+  const b = new PresentationBudget();
+  // 45 ms of main-thread work per 50 ms frame: the CPU alone fills the 33 ms budget.
+  for (let i = 0; i < 600; i++) b.observe(45, 0.05);
+  assert.equal(b.bottleneck, 'cpu');
+  assert.equal(b.resolutionLevel, 0);
+  assert.equal(b.level, 2);
+  assert.equal(b.rate, 20);
+});
+
+test('OPT-6: GPU/presentation-limited frames lower the resolution first, then detail', () => {
+  const b = new PresentationBudget();
+  // 6 ms of CPU work but 100 ms between frames: the wait is outside the main thread.
+  for (let i = 0; i < 45; i++) b.observe(6, 0.1);
+  assert.equal(b.bottleneck, 'gpu');
+  assert.equal(b.resolutionLevel, 1);
+  assert.equal(b.level, 0);
+  for (let i = 0; i < 400; i++) b.observe(6, 0.1);
+  assert.equal(b.resolutionLevel, 2);
+  assert.equal(b.level, 2);
+  assert.equal(b.rate, 20);
+});
+
+test('OPT-6: a measured GPU time overrides the interval heuristic', () => {
+  const cpu = new PresentationBudget(), gpu = new PresentationBudget();
+  for (let i = 0; i < 45; i++) { cpu.observe(20, 0.1, 5); gpu.observe(20, 0.1, 60); }
+  assert.equal(cpu.bottleneck, 'cpu'); assert.equal(cpu.resolutionLevel, 0); assert.equal(cpu.level, 1);
+  assert.equal(gpu.bottleneck, 'gpu'); assert.equal(gpu.resolutionLevel, 1); assert.equal(gpu.level, 0);
+});
+
+test('OPT-6: recovery undoes the most recent step first, with the same hysteresis', () => {
+  const b = new PresentationBudget();
+  for (let i = 0; i < 45; i++) b.observe(6, 0.1); // GPU → resolution 1
+  for (let i = 0; i < 70; i++) b.observe(45, 0.05); // then CPU → detail 1
+  assert.deepEqual([b.resolutionLevel, b.level], [1, 1]);
+  for (let i = 0; i < 300; i++) b.observe(1, 1 / 30); // 10 s of headroom: not yet
+  assert.deepEqual([b.resolutionLevel, b.level], [1, 1]);
+  for (let i = 0; i < 100; i++) b.observe(1, 1 / 30);
+  assert.deepEqual([b.resolutionLevel, b.level], [1, 0]);
+  for (let i = 0; i < 400; i++) b.observe(1, 1 / 30);
+  assert.deepEqual([b.resolutionLevel, b.level], [0, 0]);
+  assert.match(b.lastReason, /resolution ↑/);
+});
+
+test('OPT-6: a fixed comparison tier freezes both levers', () => {
+  const b = new PresentationBudget(2);
+  for (let i = 0; i < 300; i++) assert.equal(b.observe(1, 0.2), false);
+  assert.deepEqual([b.resolutionLevel, b.level, b.rate], [2, 2, 30]);
+});
+
+test('OPT-6: ?opt6=0 keeps the historical coupled resolution+detail steps', () => {
+  const b = new PresentationBudget(undefined, true);
+  for (let i = 0; i < 600; i++) b.observe(45, 0.05);
+  assert.deepEqual([b.resolutionLevel, b.level, b.rate], [2, 2, 20]);
+  for (let i = 0; i < 250; i++) b.observe(1, 1 / 20);
+  assert.deepEqual([b.resolutionLevel, b.level, b.rate], [2, 2, 30]);
+});

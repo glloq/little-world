@@ -85,22 +85,43 @@ export class FrameClock {
     return f;
   }
 }
-/** Sustained overload reduces resolution, then detail, then presentation; it never changes simulation. */
+export type Bottleneck = 'cpu' | 'gpu';
+type Lever = 'resolution' | 'detail' | 'both' | 'rate';
+/** Sustained overload degrades one lever at a time and never changes the simulation (OPT-6).
+ * The bottleneck decides the lever: a frame whose main-thread CPU work alone fills the budget
+ * is CPU-limited, so lowering the resolution would cost image quality for nothing; detail is
+ * reduced instead. Otherwise (GPU/fill-rate/presentation, or a measured GPU time above the CPU
+ * work) the internal resolution goes first, as doc 11 orders. 30 → 20 FPS stays the last resort
+ * and recovery undoes the most recent step first. One arbiter, same hysteresis (3 s / 12 s,
+ * doubled after a premature restore). `level` (detail) keeps its historical meaning for the
+ * detail consumers; `resolutionLevel` drives the pixel ratio. */
 export class PresentationBudget {
   get resources(){return REPRESENTATION_BUDGETS[this.level];}
+  /** Detail level 0..2 (dressing, small elements, effects tiers). */
   level = 0;
+  /** Internal resolution level 0..2 (pixel ratio ×1, ×0.8, ×0.65). */
+  resolutionLevel = 0;
   rate: 30 | 20 = 30;
+  /** Last diagnosed bottleneck (null until an overload was observed). */
+  bottleneck: Bottleneck | null = null;
+  /** Why the last change happened (beta/metrics panel). */
+  lastReason = '';
   private overload = 0;
   private stable = 0;
   private averageWork = 0;
   private averageInterval = 0;
+  private averageGpu = -1;
   private fixed = false;
+  private readonly applied: Lever[] = [];
   /** Seconds of headroom required before restoring a step; doubled after a failed restore. */
   private recovery = 12;
   private sinceRestore = Infinity;
   /** Explicit benchmark override: the same budget/quotas, without adaptation during A/B. */
-  constructor(fixedLevel?:number){if(fixedLevel!==undefined&&Number.isInteger(fixedLevel)&&fixedLevel>=0&&fixedLevel<=2){this.level=fixedLevel;this.fixed=true;}}
-  observe(workMs: number, seconds: number): boolean {
+  /** `legacy` (A/B flag ?opt6=0): pre-OPT-6 behaviour, resolution and detail lowered together. */
+  private readonly legacy: boolean;
+  constructor(fixedLevel?:number,legacy=false){this.legacy=legacy;if(fixedLevel!==undefined&&Number.isInteger(fixedLevel)&&fixedLevel>=0&&fixedLevel<=2){this.level=this.resolutionLevel=fixedLevel;this.fixed=true;}}
+  /** CPU work of the presented frame (ms), wall interval (s), measured GPU time (ms) if known. */
+  observe(workMs: number, seconds: number, gpuMs: number | null = null): boolean {
     if(this.fixed)return false;
     if (!Number.isFinite(workMs) || !Number.isFinite(seconds) || seconds <= 0)
       return false;
@@ -111,6 +132,8 @@ export class PresentationBudget {
     this.averageWork += (Math.min(workMs, target * 4) - this.averageWork) * mix;
     this.averageInterval +=
       (Math.min(seconds * 1000, target * 4) - this.averageInterval) * mix;
+    if (gpuMs !== null && Number.isFinite(gpuMs))
+      this.averageGpu = this.averageGpu < 0 ? gpuMs : this.averageGpu + (Math.min(gpuMs, target * 4) - this.averageGpu) * mix;
     if (
       this.averageWork > target * 0.95 ||
       this.averageInterval > target * 1.15
@@ -133,29 +156,47 @@ export class PresentationBudget {
       // Overloaded again soon after a restore: the restore was premature, so the next one
       // waits twice as long (bounded). Prevents a 15 s down/up oscillation of resolution.
       if (this.sinceRestore < 10) this.recovery = Math.min(96, this.recovery * 2);
-      if (this.level < 2) {
-        this.level++;
-        return true;
-      }
-      if (this.rate === 30) {
-        this.rate = 20;
+      const bottleneck = this.diagnose();
+      this.bottleneck = bottleneck;
+      const lever = this.nextLever(bottleneck);
+      if (lever) {
+        this.apply(lever, +1);
+        this.applied.push(lever);
+        this.lastReason = `${bottleneck}: ${lever} ↓ (cpu ${this.averageWork.toFixed(1)} ms, interval ${this.averageInterval.toFixed(1)} ms${this.averageGpu >= 0 ? ', gpu ' + this.averageGpu.toFixed(1) + ' ms' : ''})`;
         return true;
       }
     }
     if (this.stable >= this.recovery) {
       this.stable = 0;
-      if (this.rate === 20) {
-        this.rate = 30;
+      const lever = this.applied.pop();
+      if (lever) {
+        this.apply(lever, -1);
         this.sinceRestore = 0;
-        return true;
-      }
-      if (this.level > 0) {
-        this.level--;
-        this.sinceRestore = 0;
+        this.lastReason = `headroom: ${lever} ↑`;
         return true;
       }
     }
     return false;
+  }
+  /** The browser pipelines main-thread work and GPU work, so the interval is roughly the larger
+   * of the two. CPU when the measured main-thread work makes up most of the interval (or a measured
+   * GPU time is below it); otherwise the frame waits on GPU/fill-rate/presentation. */
+  private diagnose(): Bottleneck {
+    if (this.averageGpu >= 0) return this.averageGpu >= this.averageWork ? 'gpu' : 'cpu';
+    return this.averageWork >= this.averageInterval * 0.6 ? 'cpu' : 'gpu';
+  }
+  private nextLever(b: Bottleneck): Lever | null {
+    if (this.legacy) return this.level < 2 ? 'both' : this.rate === 30 ? 'rate' : null;
+    if (b === 'gpu' && this.resolutionLevel < 2) return 'resolution';
+    if (this.level < 2) return 'detail';
+    if (this.rate === 30) return 'rate';
+    return null;
+  }
+  private apply(lever: Lever, direction: 1 | -1) {
+    if (lever === 'resolution') this.resolutionLevel = Math.max(0, Math.min(2, this.resolutionLevel + direction));
+    else if (lever === 'detail') this.level = Math.max(0, Math.min(2, this.level + direction));
+    else if (lever === 'both') this.level = this.resolutionLevel = Math.max(0, Math.min(2, this.level + direction));
+    else this.rate = direction > 0 ? 20 : 30;
   }
 }
 

@@ -36,11 +36,18 @@ export function createGathering(deps:GatherDeps){
   // trunk colliders and the gathering target no longer stall a frame generating them again.
   function cell(cx:number,cz:number){const k=cx+':'+cz;let c=cells.get(k);if(!c){c=deps.cached?.(cx,cz)??generateDressingCell(deps.ctx(),deps.seed,cx,cz,deps.inside);cells.set(k,c);if(cells.size>48)cells.delete(cells.keys().next().value!);}return c;}
   const keyOf=(cx:number,cz:number,kind:DressingKind,i:number)=>`${DRESSING_VERSION}:${cx}:${cz}:${kind}:${i}`;
+  // OPT step 5: gathered elements counted per cell (numeric key), so the renderer filter answers
+  // "nothing gathered here" without building a string key for every drawn element.
+  const perCell=new Map<number,number>(),cellNumber=(cx:number,cz:number)=>(cx+32768)*65536+(cz+32768);
+  const cellOfKey=(key:string)=>{const p=key.split(':');return cellNumber(Number(p[1]),Number(p[2]));};
+  function setGathered(key:string,value:{t:number;action:GatherKind;regrow:number}){if(!gathered.has(key)){const c=cellOfKey(key);perCell.set(c,(perCell.get(c)??0)+1);}gathered.set(key,value);}
+  function deleteGathered(key:string){if(!gathered.delete(key))return;const c=cellOfKey(key),n=(perCell.get(c)??1)-1;if(n>0)perCell.set(c,n);else perCell.delete(c);}
+  function clearGathered(){gathered.clear();perCell.clear();}
   /** True while a gathered element has not grown back (also used by the renderer to hide it). */
   /** True while a gathered element has not grown back. */
-  function gone(key:string){const g=gathered.get(key);if(!g)return false;if(deps.time()-g.t>=g.regrow){gathered.delete(key);return false;}return true;}
+  function gone(key:string){const g=gathered.get(key);if(!g)return false;if(deps.time()-g.t>=g.regrow){deleteGathered(key);return false;}return true;}
   /** Renderer filter: felled trees, picked mushrooms/flowers/reeds are not drawn until regrowth. */
-  function hiddenAt(cx:number,cz:number,kind:DressingKind,index:number){const key=keyOf(cx,cz,kind,index),g=gathered.get(key);return !!g&&g.action!=='pick'&&gone(key);}
+  function hiddenAt(cx:number,cz:number,kind:DressingKind,index:number){if(!perCell.has(cellNumber(cx,cz)))return false;const key=keyOf(cx,cz,kind,index),g=gathered.get(key);return !!g&&g.action!=='pick'&&gone(key);}
   /** Element in front of the player (cone ±60°), nearest first. */
   function target(p:{x:number;y:number;z:number},forward:{x:number;z:number}):GatherTarget|null{
     const len=Math.hypot(forward.x,forward.z)||1,fx=forward.x/len,fz=forward.z/len;let best:GatherTarget|null=null;
@@ -64,7 +71,7 @@ export function createGathering(deps:GatherDeps){
     if(n<t.rule.strikes){hits.set(t.key,n);return {ok:true,message:`${t.rule.label} : ${n}/${t.rule.strikes}`,target:t};}
     const {itemId,min,max}=t.rule.yields,quantity=min+Math.floor(hash(t.key+':'+deps.time().toFixed(0))*(max-min+1));
     if(!grant([{itemId,quantity}]))return {ok:false,message:'Sac plein',target:t};
-    hits.delete(t.key);gathered.set(t.key,{t:deps.time(),action:t.rule.action,regrow:t.rule.regrowSeconds});if(gathered.size>5000)gathered.delete(gathered.keys().next().value!);
+    hits.delete(t.key);setGathered(t.key,{t:deps.time(),action:t.rule.action,regrow:t.rule.regrowSeconds});if(gathered.size>5000)deleteGathered(gathered.keys().next().value!);
     for(const l of listeners)l({x:t.x,z:t.z,key:t.key});
     return {ok:true,done:true,message:`+${quantity}`,target:t,reward:{itemId,quantity}};
   }
@@ -78,8 +85,8 @@ export function createGathering(deps:GatherDeps){
     subscribe(l:(t:{x:number;z:number;key:string})=>void){listeners.add(l);return ()=>listeners.delete(l);},
     /** Saved as « key:action:regrow » → time (only elements not grown back yet). */
     serialize():GatherSave{const out:Record<string,number>={};for(const [k,g]of gathered)if(deps.time()-g.t<g.regrow)out[`${k}:${g.action[0]}:${g.regrow}`]=g.t;return {schemaVersion:1,gathered:out};},
-    restore(save?:GatherSave|null){gathered.clear();hits.clear();if(!save){for(const l of listeners)l({x:0,z:0,key:''});return;}const actions:Record<string,GatherKind>={f:'fell',p:'pick',c:'collect'};
-      for(const [k,t]of Object.entries(save.gathered)){const parts=k.split(':');if(parts[0]!==String(DRESSING_VERSION))continue;gathered.set(parts.slice(0,5).join(':'),{t,action:actions[parts[5]]??'fell',regrow:Number(parts[6])||1800});}
+    restore(save?:GatherSave|null){clearGathered();hits.clear();if(!save){for(const l of listeners)l({x:0,z:0,key:''});return;}const actions:Record<string,GatherKind>={f:'fell',p:'pick',c:'collect'};
+      for(const [k,t]of Object.entries(save.gathered)){const parts=k.split(':');if(parts[0]!==String(DRESSING_VERSION))continue;setGathered(parts.slice(0,5).join(':'),{t,action:actions[parts[5]]??'fell',regrow:Number(parts[6])||1800});}
       for(const l of listeners)l({x:0,z:0,key:''});},
     get count(){return gathered.size;},
   };
