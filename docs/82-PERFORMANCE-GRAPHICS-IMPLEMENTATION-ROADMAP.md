@@ -126,7 +126,8 @@ Plan détaillé et règles de gate : [perf/PLAN-OPTIMISATION.md](perf/PLAN-OPTIM
 | Jalon | Statut | Preuve |
 | --- | --- | --- |
 | OPT-0 — baseline | **IMPLEMENTED, TESTED, BENCHMARKED-SWIFTSHADER** · NOT BENCHMARKED-4GB/8GB | `render/perf-sampler.ts` (GPU par requête, intervalles >50/>100 ms, compteur d'uploads WebGL2), `render/bench-route.ts` (parcours `?benchRoute=` indexés sur le tick), `tools/perf/opt-suite.mjs` (`npm run benchmark:opt`), `tools/perf/compare-captures.mjs`, `tests/perf-opt0.test.mjs` ; baseline et bruit A/A dans `perf/opt-0-baseline/` |
-| OPT-1 … OPT-9 | SPECIFIED | voir le plan |
+| OPT-6 — diagnostic CPU/GPU (étape 1) | **IMPLEMENTED, TESTED, BENCHMARKED-SWIFTSHADER** · NOT BENCHMARKED-4GB/8GB | goulot CPU : pixel ratio 1,0 conservé au lieu de 0,65 à CPU/p95/p99 égaux ; [perf/RESULTATS-OPTIMISATION.md](perf/RESULTATS-OPTIMISATION.md) |
+| OPT-1 … OPT-5, OPT-7 … OPT-9 | SPECIFIED | voir le plan |
 
 ## Travail évité sur la boucle de rendu
 
