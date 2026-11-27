@@ -106,9 +106,9 @@ La bêta statique GitHub Pages reste sans serveur ; rattrapage local borné, pas
 **Séquence de conception corrigée le 27 novembre :** catalogue des jeux et accès (112), objectifs journaliers, puis saisons et événements récurrents (113). Ne pas considérer les valeurs provisoires comme des décisions définitives.
 
 1. Consolider le catalogue des jeux, leurs emplacements, la progression de compétence et la monétisation équitable. Voir [112 — Jeux sociaux, terrier et compétitions](112-SOCIAL-GAMES-TARGET.md).
-2. Définir les dailies pour toutes les activités : trois à cinq actions, 5 à 15 minutes maximum, équité entre spécialisations.
+2. Définir les dailies pour toutes les activités : trois à cinq actions, 5 à 15 minutes maximum, équité entre spécialisations, récompense complète possible sans quitter son île personnelle.
 3. Définir les saisons naturelles de deux à trois mois, le calendrier international (événements de 14 à 21 jours) et les éditions cumulatives : contenu historique, nouveautés gratuites, nouveautés premium facultatives. Voir [113 — Dailies, saisons et événements](113-DAILIES-SEASONS-EVENTS-TARGET.md).
-4. Poursuivre le game design avant de figer le catalogue exhaustif, les barèmes et les implémentations ; détailler terrier, invitations, permissions et partage.
+4. Définir l'île principale comme centre social, commercial, culturel, ludique et logistique ; limiter la récolte à l'initiation, réserver la production primaire aux îles personnelles et garantir les dailies sans déplacement obligatoire. Approfondir mairie, marché, poste et autres services. Voir [114 — Île principale](114-MAIN-ISLAND-TARGET.md). Poursuivre ensuite les spécifications détaillées du terrier, des invitations, permissions et partages.
 5. Formaliser ressources, recettes, extensions d'île, mines et modèle économique ; qualifier l'économie solo PNJ dès la première version.
 6. Après autorisation du jalon réseau : comptes, codes amis, consentement, transactions et sauvegarde serveur ; tests de charge et événements.
 7. Équilibrage continu sans modifier silencieusement les invariants validés.
