@@ -103,12 +103,14 @@ La bêta statique GitHub Pages reste sans serveur ; rattrapage local borné, pas
 
 ## 9. Feuille de route proposée (priorité gameplay, non engagement de livraison)
 
-1. Formaliser catalogue des ressources, recettes et niveaux, scénarios d'équité, modèle de stocks/demande ; réutiliser contrats existants.
-2. Qualifier économie solo PNJ (production réelle, consommation, commandes, prix de référence) et banc de simulation sans rendu.
-3. Définir génération des îles personnelles, extensions par spécialité et cycle de mine épuisée ; tester variantes.
-4. Définir UX terrier, catalogue social et jeux duo ; contrats des invitations, permissions et partage, sans réseau prématuré.
-5. Prototype marché dynamique et logistique ; tester boucles de progression sur plusieurs semaines simulées.
-6. Après autorisation du jalon réseau : comptes, codes amis, relations, consentement, transactions et sauvegarde serveur ; tests de charge puis événements.
+**Priorité corrigée le 27 novembre :** définir d'abord les jeux multijoueurs, leur accès, leurs règles et leur progression. Voir [112 — Jeux sociaux, terrier et compétitions](112-SOCIAL-GAMES-TARGET.md).
+
+1. Valider catalogue des jeux et emplacements, spécifier le terrier et trois jeux prioritaires ; définir progression de compétence, récompenses et monétisation équitable.
+2. Formaliser invitations, permissions et partage ; préparer les contrats sans réseau prématuré.
+3. Formaliser catalogue des ressources, recettes, niveaux, équité, stocks et demande ; qualifier économie solo PNJ dès la première version.
+4. Définir génération des îles personnelles, extensions par spécialité et cycle de mine épuisée ; tester variantes.
+5. Prototyper marché dynamique, logistique et simulation économique.
+6. Après autorisation du jalon réseau : comptes, codes amis, relations, consentement, transactions et sauvegarde serveur ; tests de charge et événements.
 7. Équilibrage continu, sans modifier silencieusement les invariants validés.
 
 ## 10. Qualification attendue
