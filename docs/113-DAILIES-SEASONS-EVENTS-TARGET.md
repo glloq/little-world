@@ -11,6 +11,12 @@ Date : 27 novembre 2026. Statut : conception cible, non implémentée. Compléme
 - Les pièces proviennent principalement des activités économiques et des commandes ; les cœurs peuvent récompenser la diversité des activités et la progression sociale. Aucun cœur acheté, misé ou convertible en argent (112). Leur rôle exact et leur barème restent ouverts.
 - Pas de pénalité d'absence, série de connexions obligatoire, achats nécessaires ou objectifs perdus à cause d'un prérequis non accessible.
 
+### Accessibilité géographique — contrainte validée
+
+Les objectifs journaliers sont consultables depuis le terrier ou le menu du joueur sur n'importe quelle île, et validés automatiquement. Le joueur peut obtenir la récompense complète sans quitter son île personnelle ; aucune visite de l'île principale, mairie ou PNJ n'est obligatoire pour consulter, valider ou réclamer les récompenses. Les objectifs occasionnels sur l'île principale (football, mini-golf, commerce, aide PNJ) disposent toujours d'une alternative équivalente ailleurs. Aucun bonus quotidien indispensable n'est réservé à l'île principale.
+
+Les rendez-vous communautaires sont volontaires, distincts des dailies et non obligatoirement quotidiens ; deux à trois par semaine constituent une hypothèse, à calibrer. Voir [114 — Île principale](114-MAIN-ISLAND-TARGET.md).
+
 ### Paliers proposés, à équilibrer
 
 | Actions distinctes | Budget cumulé cible | Cœurs cumulés (exemple) |
