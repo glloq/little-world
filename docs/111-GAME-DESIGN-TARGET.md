@@ -103,15 +103,15 @@ La bêta statique GitHub Pages reste sans serveur ; rattrapage local borné, pas
 
 ## 9. Feuille de route proposée (priorité gameplay, non engagement de livraison)
 
-**Priorité corrigée le 27 novembre :** définir d'abord les jeux multijoueurs, leur accès, leurs règles et leur progression. Voir [112 — Jeux sociaux, terrier et compétitions](112-SOCIAL-GAMES-TARGET.md).
+**Séquence de conception corrigée le 27 novembre :** catalogue des jeux et accès (112), objectifs journaliers, puis saisons et événements récurrents (113). Ne pas considérer les valeurs provisoires comme des décisions définitives.
 
-1. Valider catalogue des jeux et emplacements, spécifier le terrier et trois jeux prioritaires ; définir progression de compétence, récompenses et monétisation équitable.
-2. Formaliser invitations, permissions et partage ; préparer les contrats sans réseau prématuré.
-3. Formaliser catalogue des ressources, recettes, niveaux, équité, stocks et demande ; qualifier économie solo PNJ dès la première version.
-4. Définir génération des îles personnelles, extensions par spécialité et cycle de mine épuisée ; tester variantes.
-5. Prototyper marché dynamique, logistique et simulation économique.
-6. Après autorisation du jalon réseau : comptes, codes amis, relations, consentement, transactions et sauvegarde serveur ; tests de charge et événements.
-7. Équilibrage continu, sans modifier silencieusement les invariants validés.
+1. Consolider le catalogue des jeux, leurs emplacements, la progression de compétence et la monétisation équitable. Voir [112 — Jeux sociaux, terrier et compétitions](112-SOCIAL-GAMES-TARGET.md).
+2. Définir les dailies pour toutes les activités : trois à cinq actions, 5 à 15 minutes maximum, équité entre spécialisations.
+3. Définir les saisons naturelles de deux à trois mois, le calendrier international (événements de 14 à 21 jours) et les éditions cumulatives : contenu historique, nouveautés gratuites, nouveautés premium facultatives. Voir [113 — Dailies, saisons et événements](113-DAILIES-SEASONS-EVENTS-TARGET.md).
+4. Poursuivre le game design avant de figer le catalogue exhaustif, les barèmes et les implémentations ; détailler terrier, invitations, permissions et partage.
+5. Formaliser ressources, recettes, extensions d'île, mines et modèle économique ; qualifier l'économie solo PNJ dès la première version.
+6. Après autorisation du jalon réseau : comptes, codes amis, consentement, transactions et sauvegarde serveur ; tests de charge et événements.
+7. Équilibrage continu sans modifier silencieusement les invariants validés.
 
 ## 10. Qualification attendue
 
